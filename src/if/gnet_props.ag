@@ -4207,4 +4207,38 @@ prop = {
     };
 };
 
+prop = {
+    name = "bw_dht_out_enabled";
+    cfgvar = "bandwidth_dht_output_limit";
+    desc = "Enable bandwidth limitation for outgoing DHT traffic.";
+    type = boolean;
+    data = {
+        default = FALSE;
+        value   = bws_dht_out_enabled;
+    };
+};
+
+prop = {
+     name = "bw_dht_out";
+     cfgvar = "output_dht_bandwidth";
+     desc = "Bandwidth limit for outgoing DHT traffic in bytes/sec.";
+     type = guint32;
+     data = {
+        default = 12288;
+        min     = 8192;			/* Bare minimum required to be useable */
+        max     = BS_BW_MAX;
+    };
+};
+
+prop = {
+    name = "node_dht_sendqueue_size";
+    desc = "Maximum size of the DHT message queue (in bytes).";
+    type = guint32;
+    data = {
+        default = 131072;
+        min     = 98304;
+        max     = 256000;
+    };
+};
+
 /* vi: set ts=4: */

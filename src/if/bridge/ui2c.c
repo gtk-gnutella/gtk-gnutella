@@ -62,6 +62,7 @@
 #include "if/core/version.h"
 #include "if/core/main.h"
 #include "if/bridge/ui2c.h"
+#include "if/dht/dht.h"
 
 /*
  *	Functions the UI uses to access the CORE
@@ -961,6 +962,12 @@ void
 guc_upload_stats_clear_all(void)
 {
 	upload_stats_clear_all();
+}
+
+gboolean
+guc_dht_enabled(void)
+{
+	return dht_enabled();
 }
 
 /**	version interface functions (UI -> Core)*/

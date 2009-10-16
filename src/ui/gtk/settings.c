@@ -693,6 +693,25 @@ bw_gnet_out_enabled_changed(property_t prop)
 }
 
 static gboolean
+bw_dht_out_enabled_changed(property_t prop)
+{
+    GtkWidget *w;
+    GtkWidget *s;
+    gboolean val;
+
+    gnet_prop_get_boolean_val(prop, &val);
+
+    w = gui_dlg_prefs_lookup("checkbutton_config_bws_dht_out");
+    s = gui_dlg_prefs_lookup("spinbutton_config_bws_dht_out");
+
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
+    gtk_widget_set_sensitive(s, val);
+	update_output_bw_display();
+
+    return FALSE;
+}
+
+static gboolean
 bw_ul_usage_enabled_changed(property_t prop)
 {
     GtkWidget *w;
@@ -743,15 +762,7 @@ bw_http_out_enabled_changed(property_t prop)
 static void
 shrink_frame_status(void)
 {
-#ifdef USE_GTK1
-	GtkWidget *w = gui_main_window_lookup("frame_status_images");
-
-	if (w == NULL)
-		return;
-
-	gtk_widget_hide(w);
-	gtk_widget_show(w);
-#endif /* USE_GTK1 */
+	gui_shrink_widget_named("frame_status_images");
 }
 
 static GtkWidget *
@@ -1682,7 +1693,35 @@ progressbar_bws_glout_visible_changed(property_t prop)
 }
 
 static gboolean
-autohide_bws_gleaf_changed(property_t prop)
+progressbar_bws_dht_in_visible_changed(property_t prop)
+{
+    gboolean val;
+    GtkWidget *w = gui_main_window_lookup("progressbar_bws_dht_in");
+    GtkCheckMenuItem *cm = GTK_CHECK_MENU_ITEM
+        (gui_main_window_lookup("menu_bws_dht_in_visible"));
+
+    gui_prop_get_boolean_val(prop, &val);
+    update_stats_visibility(cm, w, val);
+
+    return FALSE;
+}
+
+static gboolean
+progressbar_bws_dht_out_visible_changed(property_t prop)
+{
+    gboolean val;
+    GtkWidget *w = gui_main_window_lookup("progressbar_bws_dht_out");
+    GtkCheckMenuItem *cm = GTK_CHECK_MENU_ITEM
+        (gui_main_window_lookup("menu_bws_dht_out_visible"));
+
+    gui_prop_get_boolean_val(prop, &val);
+    update_stats_visibility(cm, w, val);
+
+    return FALSE;
+}
+
+static gboolean
+autohide_bws_changed(property_t prop)
 {
     gboolean val;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
@@ -1991,6 +2030,12 @@ update_output_bw_display(void)
 	gnet_prop_get_boolean_val(PROP_BW_GNET_OUT_ENABLED, &enabled);
 	if (enabled) {
 		gnet_prop_get_guint32_val(PROP_BW_GNET_OUT, &bw);
+		val += bw;
+	}
+
+	gnet_prop_get_boolean_val(PROP_BW_DHT_OUT_ENABLED, &enabled);
+	if (enabled) {
+		gnet_prop_get_guint32_val(PROP_BW_DHT_OUT, &bw);
 		val += bw;
 	}
 
@@ -2516,7 +2561,10 @@ spinbutton_adjustment_value_changed(GtkAdjustment *adj, gpointer user_data)
             (map_entry->prop == PROP_BW_GNET_LIN) ||
             (map_entry->prop == PROP_BW_GNET_LOUT) ||
             (map_entry->prop == PROP_BW_GNET_IN) ||
-            (map_entry->prop == PROP_BW_GNET_OUT)
+            (map_entry->prop == PROP_BW_GNET_OUT) ||
+			(map_entry->prop == PROP_BW_DHT_OUT) ||
+			(map_entry->prop == PROP_BW_DHT_LOOKUP_IN) ||
+			(map_entry->prop == PROP_BW_DHT_LOOKUP_OUT)
         ) {
             val = adj->value * 1024.0;
         }
@@ -2638,7 +2686,10 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                         (map->prop == PROP_BW_GNET_LIN) ||
                         (map->prop == PROP_BW_GNET_LOUT) ||
                         (map->prop == PROP_BW_GNET_IN) ||
-                        (map->prop == PROP_BW_GNET_OUT)
+                        (map->prop == PROP_BW_GNET_OUT) ||
+                        (map->prop == PROP_BW_DHT_OUT) ||
+                        (map->prop == PROP_BW_DHT_LOOKUP_IN) ||
+                        (map->prop == PROP_BW_DHT_LOOKUP_OUT)
                     )
                 ) {
                     divider = 1024.0;
@@ -2808,9 +2859,17 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         gui_main_window,
         PROP_AUTOHIDE_BWS_GLEAF,
-        autohide_bws_gleaf_changed,
+        autohide_bws_changed,
         TRUE,
         "menu_autohide_bws_gleaf",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_AUTOHIDE_BWS_DHT,
+        autohide_bws_changed,
+        TRUE,
+        "menu_autohide_bws_dht",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -2827,6 +2886,22 @@ static prop_map_t property_map[] = {
         progressbar_bws_glout_visible_changed,
         TRUE,
         "menu_bws_glout_visible",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_PROGRESSBAR_BWS_DHT_IN_VISIBLE,
+        progressbar_bws_dht_in_visible_changed,
+        TRUE,
+        "menu_bws_dht_in_visible",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_PROGRESSBAR_BWS_DHT_OUT_VISIBLE,
+        progressbar_bws_dht_out_visible_changed,
+        TRUE,
+        "menu_bws_dht_out_visible",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -3327,6 +3402,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_BW_DHT_OUT_ENABLED,
+        bw_dht_out_enabled_changed,
+        TRUE,
+        "checkbutton_config_bws_dht_out",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_BW_HTTP_IN,
         spinbutton_input_bw_changed,
         TRUE,
@@ -3355,6 +3438,14 @@ static prop_map_t property_map[] = {
         spinbutton_output_bw_changed,
         TRUE,
         "spinbutton_config_bws_gout",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_BW_DHT_OUT,
+        spinbutton_output_bw_changed,
+        TRUE,
+        "spinbutton_config_bws_dht_out",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -5086,6 +5177,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_ENABLE_DHT,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_enable_dht",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_CONVERT_SPACES,
         update_togglebutton,
         TRUE,
@@ -5180,6 +5279,22 @@ static prop_map_t property_map[] = {
         update_entry,
         TRUE,
         "entry_config_ipv6_trt_prefix",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_BW_DHT_LOOKUP_IN,
+        update_bandwidth_spinbutton,
+        TRUE,
+        "spinbutton_config_input_dht_lookup_bw",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_BW_DHT_LOOKUP_OUT,
+        update_bandwidth_spinbutton,
+        TRUE,
+        "spinbutton_config_output_dht_lookup_bw",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

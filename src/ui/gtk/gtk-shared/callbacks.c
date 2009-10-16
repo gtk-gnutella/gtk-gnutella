@@ -146,6 +146,35 @@ on_progressbar_bws_lout_button_press_event(GtkWidget *unused_widget,
 	return TRUE;
 }
 
+gboolean
+on_progressbar_bws_dht_in_button_press_event(GtkWidget *unused_widget,
+		GdkEventButton *unused_event, gpointer unused_udata)
+{
+    gboolean val;
+
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+    gui_prop_get_boolean_val(PROP_PROGRESSBAR_BWS_DHT_IN_AVG, &val);
+    gui_prop_set_boolean_val(PROP_PROGRESSBAR_BWS_DHT_IN_AVG, !val);
+	return TRUE;
+}
+
+
+gboolean
+on_progressbar_bws_dht_out_button_press_event(GtkWidget *unused_widget,
+		GdkEventButton *unused_event, gpointer unused_udata)
+{
+    gboolean val;
+
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+    gui_prop_get_boolean_val(PROP_PROGRESSBAR_BWS_DHT_OUT_AVG, &val);
+    gui_prop_set_boolean_val(PROP_PROGRESSBAR_BWS_DHT_OUT_AVG, !val);
+	return TRUE;
+}
+
 /***
  *** GnutellaNet pane
  ***/
@@ -179,6 +208,7 @@ on_button_hostcache_clear_bad_clicked(GtkButton *unused_button,
     guc_hcache_clear(HCACHE_TIMEOUT);
     guc_hcache_clear(HCACHE_BUSY);
     guc_hcache_clear(HCACHE_UNSTABLE);
+	/* Do not clear HCACHE_ALIEN -- we want to keep knowledge of these */
 }
 
 /***

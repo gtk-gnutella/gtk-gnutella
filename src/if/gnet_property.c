@@ -835,6 +835,12 @@ prop_def_choice_t gnet_property_variable_dht_trace_choices[] = {
     {N_("input & output"), SOCK_TRACE_BOTH},
     {NULL, 0}
 };
+gboolean gnet_property_variable_bws_dht_out_enabled     = FALSE;
+static const gboolean gnet_property_variable_bws_dht_out_enabled_default = FALSE;
+guint32  gnet_property_variable_bw_dht_out     = 12288;
+static const guint32  gnet_property_variable_bw_dht_out_default = 12288;
+guint32  gnet_property_variable_node_dht_sendqueue_size     = 131072;
+static const guint32  gnet_property_variable_node_dht_sendqueue_size_default = 131072;
 
 static prop_set_t *gnet_property;
 
@@ -7734,6 +7740,63 @@ gnet_prop_init(void) {
     gnet_property->props[360].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[360].data.guint32.min   = 0x00000000;
     gnet_property->props[360].data.guint32.choices = (void *) &gnet_property_variable_dht_trace_choices;
+
+
+    /*
+     * PROP_BW_DHT_OUT_ENABLED:
+     *
+     * General data:
+     */
+    gnet_property->props[361].name = "bandwidth_dht_output_limit";
+    gnet_property->props[361].desc = _("Enable bandwidth limitation for outgoing DHT traffic.");
+    gnet_property->props[361].ev_changed = event_new("bw_dht_out_enabled_changed");
+    gnet_property->props[361].save = TRUE;
+    gnet_property->props[361].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[361].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[361].data.boolean.def   = (void *) &gnet_property_variable_bws_dht_out_enabled_default;
+    gnet_property->props[361].data.boolean.value = (void *) &gnet_property_variable_bws_dht_out_enabled;
+
+
+    /*
+     * PROP_BW_DHT_OUT:
+     *
+     * General data:
+     */
+    gnet_property->props[362].name = "output_dht_bandwidth";
+    gnet_property->props[362].desc = _("Bandwidth limit for outgoing DHT traffic in bytes/sec.");
+    gnet_property->props[362].ev_changed = event_new("bw_dht_out_changed");
+    gnet_property->props[362].save = TRUE;
+    gnet_property->props[362].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[362].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[362].data.guint32.def   = (void *) &gnet_property_variable_bw_dht_out_default;
+    gnet_property->props[362].data.guint32.value = (void *) &gnet_property_variable_bw_dht_out;
+    gnet_property->props[362].data.guint32.choices = NULL;
+    gnet_property->props[362].data.guint32.max   = BS_BW_MAX;
+    gnet_property->props[362].data.guint32.min   = 8192;
+
+
+    /*
+     * PROP_NODE_DHT_SENDQUEUE_SIZE:
+     *
+     * General data:
+     */
+    gnet_property->props[363].name = "node_dht_sendqueue_size";
+    gnet_property->props[363].desc = _("Maximum size of the DHT message queue (in bytes).");
+    gnet_property->props[363].ev_changed = event_new("node_dht_sendqueue_size_changed");
+    gnet_property->props[363].save = TRUE;
+    gnet_property->props[363].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[363].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[363].data.guint32.def   = (void *) &gnet_property_variable_node_dht_sendqueue_size_default;
+    gnet_property->props[363].data.guint32.value = (void *) &gnet_property_variable_node_dht_sendqueue_size;
+    gnet_property->props[363].data.guint32.choices = NULL;
+    gnet_property->props[363].data.guint32.max   = 256000;
+    gnet_property->props[363].data.guint32.min   = 98304;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

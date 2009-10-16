@@ -2411,7 +2411,13 @@ socket_udp_accept(struct gnutella_socket *s)
 
 	g_assert((size_t) r <= s->buf_size);
 
-	bws_udp_count_read(r);
+	/*
+	 * We're too low level to account for the proper bandwidth here as we
+	 * want to distinguish between UDP Gnutella traffic and DHT traffic.
+	 *
+	 * This will be done in udp_receieved() which we're about to call.
+	 */
+
 	s->pos = r;
 
 	/*
@@ -2423,6 +2429,7 @@ socket_udp_accept(struct gnutella_socket *s)
 
 	if (!is_host_addr(s->addr)) {
 		gnet_stats_count_general(GNR_UDP_BOGUS_SOURCE_IP, 1);
+		bws_udp_count_read(r, FALSE);	/* Assume not from DHT */
 		errno = EINVAL;
 		return (ssize_t) -1;
 	}

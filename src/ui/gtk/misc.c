@@ -167,6 +167,8 @@ gui_update_traffic_stats(void)
     static guint32 gnet_out_max = 0;
     static guint32 leaf_in_max = 0;
     static guint32 leaf_out_max = 0;
+    static guint32 dht_in_max = 0;
+    static guint32 dht_out_max = 0;
     gnet_bw_stats_t s;
     gnet_bw_stats_t s2;
     static GtkProgressBar *pg_http_in = NULL;
@@ -175,6 +177,8 @@ gui_update_traffic_stats(void)
     static GtkProgressBar *pg_gnet_out = NULL;
     static GtkProgressBar *pg_leaf_in = NULL;
     static GtkProgressBar *pg_leaf_out = NULL;
+    static GtkProgressBar *pg_dht_in = NULL;
+    static GtkProgressBar *pg_dht_out = NULL;
 
 	if (pg_http_in == NULL) {
 		pg_http_in = GTK_PROGRESS_BAR(
@@ -189,6 +193,10 @@ gui_update_traffic_stats(void)
 			(gui_main_window_lookup("progressbar_bws_lin"));
 		pg_leaf_out = GTK_PROGRESS_BAR
 			(gui_main_window_lookup("progressbar_bws_lout"));
+		pg_dht_in = GTK_PROGRESS_BAR
+			(gui_main_window_lookup("progressbar_bws_dht_in"));
+		pg_dht_out = GTK_PROGRESS_BAR
+			(gui_main_window_lookup("progressbar_bws_dht_out"));
 	}
 
   	/*
@@ -208,25 +216,59 @@ gui_update_traffic_stats(void)
     guc_gnet_get_bw_stats(BW_HTTP_IN, &s);
     update_stat(&http_in_max, pg_http_in, &s,
 		GUI_PROPERTY(progressbar_bws_in_avg), 1);
+
     guc_gnet_get_bw_stats(BW_HTTP_OUT, &s);
     update_stat(&http_out_max, pg_http_out, &s,
 		GUI_PROPERTY(progressbar_bws_out_avg), 0);
+
     guc_gnet_get_bw_stats(BW_GNET_IN, &s);
     guc_gnet_get_bw_stats(BW_GNET_UDP_IN, &s2);
 	gnet_bw_stats_sum(&s, &s2);
     update_stat(&gnet_in_max, pg_gnet_in, &s,
 		GUI_PROPERTY(progressbar_bws_gin_avg), 1);
+
     guc_gnet_get_bw_stats(BW_GNET_OUT, &s);
     guc_gnet_get_bw_stats(BW_GNET_UDP_OUT, &s2);
 	gnet_bw_stats_sum(&s, &s2);
     update_stat(&gnet_out_max, pg_gnet_out, &s,
 		GUI_PROPERTY(progressbar_bws_gout_avg), 0);
+
     guc_gnet_get_bw_stats(BW_LEAF_IN, &s);
     update_stat(&leaf_in_max, pg_leaf_in, &s,
 		GUI_PROPERTY(progressbar_bws_glin_avg), 1);
+
     guc_gnet_get_bw_stats(BW_LEAF_OUT, &s);
     update_stat(&leaf_out_max, pg_leaf_out, &s,
 		GUI_PROPERTY(progressbar_bws_glout_avg), 0);
+
+    guc_gnet_get_bw_stats(BW_DHT_IN, &s);
+    update_stat(&dht_in_max, pg_dht_in, &s,
+		GUI_PROPERTY(progressbar_bws_dht_in_avg), 1);
+
+    guc_gnet_get_bw_stats(BW_DHT_OUT, &s);
+    update_stat(&dht_out_max, pg_dht_out, &s,
+		GUI_PROPERTY(progressbar_bws_dht_out_avg), 0);
+}
+
+/**
+ * Utility routine to dynamically resize a widget after some items it holds
+ * were hidden, so that the GTK layer can remove any uncessary hole that
+ * would remain.
+ */
+void
+gui_shrink_widget_named(const char *name)
+{
+#ifdef USE_GTK1
+	GtkWidget *w = gui_main_window_lookup(name);
+
+	if (w == NULL)
+		return;
+
+	gtk_widget_hide(w);
+	gtk_widget_show(w);
+#else	/* !USE_GTK1 */
+	(void) name;
+#endif	/* USE_GTK1 */
 }
 
 void
@@ -235,12 +277,15 @@ gui_update_stats_frames(void)
     static GtkWidget *frame_bws_inout = NULL;
     static GtkWidget *frame_bws_ginout = NULL;
     static GtkWidget *frame_bws_glinout = NULL;
+    static GtkWidget *frame_bws_dht_inout = NULL;
     guint32 peermode;
+	gboolean hidden = FALSE;
 
 	if (frame_bws_inout == NULL) {
 		frame_bws_inout = gui_main_window_lookup("frame_bws_inout");
 		frame_bws_ginout = gui_main_window_lookup("frame_bws_ginout");
 		frame_bws_glinout = gui_main_window_lookup("frame_bws_glinout");
+		frame_bws_dht_inout = gui_main_window_lookup("frame_bws_dht_inout");
 	}
 
    	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &peermode);
@@ -248,18 +293,22 @@ gui_update_stats_frames(void)
     if (
 		GUI_PROPERTY(progressbar_bws_in_visible) ||
 		GUI_PROPERTY(progressbar_bws_out_visible)
-	)
+	) {
         gtk_widget_show(frame_bws_inout);
-    else
+    } else {
         gtk_widget_hide(frame_bws_inout);
+		hidden = TRUE;
+	}
 
     if (
 		GUI_PROPERTY(progressbar_bws_gin_visible) ||
 		GUI_PROPERTY(progressbar_bws_gout_visible)
-	)
+	) {
         gtk_widget_show(frame_bws_ginout);
-    else
+    } else {
         gtk_widget_hide(frame_bws_ginout);
+		hidden = TRUE;
+	}
 
     if (
 		(
@@ -267,14 +316,32 @@ gui_update_stats_frames(void)
 			GUI_PROPERTY(progressbar_bws_glout_visible)
 		) &&
         (peermode == NODE_P_ULTRA || !GUI_PROPERTY(autohide_bws_gleaf))
-	)
+	) {
         gtk_widget_show(frame_bws_glinout);
-    else
+    } else {
         gtk_widget_hide(frame_bws_glinout);
+		hidden = TRUE;
+	}
+
+    if (
+		(
+			GUI_PROPERTY(progressbar_bws_dht_in_visible) ||
+			GUI_PROPERTY(progressbar_bws_dht_out_visible)
+		) &&
+        (guc_dht_enabled() || !GUI_PROPERTY(autohide_bws_dht))
+	) {
+        gtk_widget_show(frame_bws_dht_inout);
+    } else {
+        gtk_widget_hide(frame_bws_dht_inout);
+		hidden = TRUE;
+	}
+
+	if (hidden)
+		gui_shrink_widget_named("vbox_sidebar_stats");
 }
 
 /**
- * If the given coordinates are not reasonable, they're appriopriately
+ * If the given coordinates are not reasonable, they're appropriately
  * adjusted.
  *
  * @param	coord must point to an array of 4 guint32 values

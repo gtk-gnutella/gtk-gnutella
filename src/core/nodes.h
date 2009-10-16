@@ -324,7 +324,7 @@ enum {
 	NODE_A_CAN_SFLAG	= 1 << 13,	/**< Node supports flags in headers */
  
 	NODE_A_UNUSED_1		= 1 << 14,	/**< UNUSED */
-	NODE_A_UNUSED_2		= 1 << 15,	/**< UNUSED */
+	NODE_A_UDP			= 1 << 15,	/**< Node uses UDP for traffic */
 	NODE_A_CAN_HSEP		= 1 << 16,	/**< Node supports HSEP */
 	NODE_A_CAN_QRP		= 1 << 17,	/**< Node supports query routing */
 	NODE_A_CAN_VENDOR	= 1 << 18,	/**< Node supports vendor messages */
@@ -423,6 +423,7 @@ enum {
 #define NODE_UP_QRP(n)			((n)->attrs & NODE_A_UP_QRP)
 #define NODE_LEAF_GUIDE(n)		((n)->attrs & NODE_A_GUIDANCE)
 #define NODE_CAN_INFLATE(n)		((n)->attrs & NODE_A_CAN_INFLATE)
+#define NODE_USES_UDP(n)		((n)->attrs & NODE_A_UDP)
 
 /*
  * Peer inspection macros
@@ -432,6 +433,7 @@ enum {
 #define NODE_IS_NORMAL(n)		((n)->peermode == NODE_P_NORMAL)
 #define NODE_IS_ULTRA(n)		((n)->peermode == NODE_P_ULTRA)
 #define NODE_IS_UDP(n)			((n)->peermode == NODE_P_UDP)
+#define NODE_IS_DHT(n)			((n)->peermode == NODE_P_DHT)
 
 /*
  * Macros.
@@ -595,11 +597,12 @@ void node_became_udp_firewalled(void);
 void node_set_socket_rx_size(int rx_size);
 
 mqueue_t *node_udp_get_outq(enum net_type net);
-gboolean node_udp_is_flow_controlled(void);
-gboolean node_udp_would_flow_control(size_t additional);
+gboolean node_dht_is_flow_controlled(void);
+gboolean node_dht_would_flow_control(size_t additional);
 void node_udp_disable(void);
-void node_udp_process(struct gnutella_socket *s);
+void node_udp_process(gnutella_node_t *n, struct gnutella_socket *s);
 gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, guint16 port);
+gnutella_node_t *node_dht_get_addr_port(const host_addr_t addr, guint16 port);
 
 void node_can_tsync(gnutella_node_t *n);
 void node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features);
@@ -624,7 +627,7 @@ gboolean node_id_self(const node_id_t node_id);
 static inline void
 node_check(const struct gnutella_node * const n)
 {
-	g_assert(n);
+	g_assert(n != NULL);
 	g_assert(NODE_MAGIC == n->magic);
 }
 

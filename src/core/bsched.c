@@ -321,7 +321,7 @@ bsched_set_urgent(bsched_bws_t bws, int amount)
 }
 
 /**
- * Add `stealer' as a bandwidth stealer for underused bandwidth in `bs'.
+ * Add `stealer' as a bandwidth stealer for underused bandwidth in `bws'.
  * Both must be either reading or writing schedulers.
  */
 static void
@@ -353,6 +353,16 @@ bsched_reset_stealers(bsched_t *bs)
 }
 
 /**
+ * Configure outband DHT traffic cross-stealing with Gnutella UDP
+ */
+static void
+bsched_dht_cross_stealing(void)
+{
+	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_DHT_OUT);
+	bsched_add_stealer(BSCHED_BWS_DHT_OUT, BSCHED_BWS_GOUT_UDP);
+}
+
+/**
  * Allow cross-stealing of unused bandwidth between HTTP/gnet.
  */
 void
@@ -368,6 +378,7 @@ bsched_config_steal_http_gnet(void)
 	bsched_add_stealer(BSCHED_BWS_OUT, BSCHED_BWS_GOUT);
 	bsched_add_stealer(BSCHED_BWS_OUT, BSCHED_BWS_GOUT_UDP);
 	bsched_add_stealer(BSCHED_BWS_OUT, BSCHED_BWS_GLOUT);
+	bsched_add_stealer(BSCHED_BWS_OUT, BSCHED_BWS_DHT_OUT);
 
 	bsched_add_stealer(BSCHED_BWS_GOUT, BSCHED_BWS_OUT);
 	bsched_add_stealer(BSCHED_BWS_GOUT, BSCHED_BWS_GOUT_UDP);
@@ -393,9 +404,11 @@ bsched_config_steal_http_gnet(void)
 	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_GLOUT);
 	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_OUT);
 
-	bsched_add_stealer(BSCHED_BWS_GIN_UDP, BSCHED_BWS_GIN);
-	bsched_add_stealer(BSCHED_BWS_GIN_UDP, BSCHED_BWS_GLIN);
-	bsched_add_stealer(BSCHED_BWS_GIN_UDP, BSCHED_BWS_IN);
+	bsched_add_stealer(BSCHED_BWS_DHT_OUT, BSCHED_BWS_GOUT);
+	bsched_add_stealer(BSCHED_BWS_DHT_OUT, BSCHED_BWS_GLOUT);
+	bsched_add_stealer(BSCHED_BWS_DHT_OUT, BSCHED_BWS_OUT);
+
+	bsched_dht_cross_stealing();
 }
 
 /**
@@ -412,9 +425,10 @@ bsched_config_steal_gnet(void)
 	}
 
 	bsched_add_stealer(BSCHED_BWS_GIN, BSCHED_BWS_GIN_UDP);
-	bsched_add_stealer(BSCHED_BWS_GIN_UDP, BSCHED_BWS_GIN);
 	bsched_add_stealer(BSCHED_BWS_GOUT, BSCHED_BWS_GOUT_UDP);
 	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_GOUT);
+
+	bsched_dht_cross_stealing();
 }
 
 /*
@@ -450,7 +464,14 @@ bsched_early_init(void)
 
 	bws_set[BSCHED_BWS_LOOPBACK_OUT] = bsched_make("loopback out",
 		BS_T_STREAM, BS_F_WRITE, 0, 1000);
+
 	bws_set[BSCHED_BWS_LOOPBACK_IN] = bsched_make("loopback in",
+		BS_T_STREAM, BS_F_READ, 0, 1000);
+
+	bws_set[BSCHED_BWS_DHT_OUT] = bsched_make("DHT out",
+		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_dht_out), 1000);
+
+	bws_set[BSCHED_BWS_DHT_IN] = bsched_make("DHT int",
 		BS_T_STREAM, BS_F_READ, 0, 1000);
 
 	bws_list = g_slist_prepend(bws_list, 
@@ -464,6 +485,8 @@ bsched_early_init(void)
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_IN));
 	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_DHT_IN));
+	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_OUT));
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GLOUT));
@@ -473,6 +496,8 @@ bsched_early_init(void)
 						GUINT_TO_POINTER(BSCHED_BWS_GOUT_UDP));
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_OUT));
+	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_DHT_OUT));
 
 	bws_out_list = g_slist_prepend(bws_in_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_IN));
@@ -484,6 +509,8 @@ bsched_early_init(void)
 						GUINT_TO_POINTER(BSCHED_BWS_GIN_UDP));
 	bws_in_list = g_slist_prepend(bws_in_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_IN));
+	bws_in_list = g_slist_prepend(bws_in_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_DHT_IN));
 
 	bws_out_list = g_slist_prepend(bws_out_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_OUT));
@@ -495,6 +522,8 @@ bsched_early_init(void)
 						GUINT_TO_POINTER(BSCHED_BWS_GOUT_UDP));
 	bws_out_list = g_slist_prepend(bws_out_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_OUT));
+	bws_out_list = g_slist_prepend(bws_out_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_DHT_OUT));
 }
 
 /**
@@ -511,6 +540,8 @@ bsched_correct_init(void)
 	bsched_set_bandwidth(BSCHED_BWS_GIN, GNET_PROPERTY(bw_gnet_in));
 	bsched_set_bandwidth(BSCHED_BWS_GIN_UDP, 0);
 	bsched_set_bandwidth(BSCHED_BWS_GLIN, GNET_PROPERTY(bw_gnet_lin));
+	bsched_set_bandwidth(BSCHED_BWS_DHT_OUT, GNET_PROPERTY(bw_dht_out));
+	bsched_set_bandwidth(BSCHED_BWS_DHT_IN, 0);
 }
 
 /**
@@ -1957,11 +1988,9 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 }
 
 /**
- * XXX: This is copy-paste bullshit:
- *
  * Read at most `len' bytes from `iov' to source's fd, as bandwidth permits,
  * `len' being determined by the size of the supplied I/O vector.
- * If we cannot write anything due to bandwidth constraints, return -1 with
+ * If we cannot read anything due to bandwidth constraints, return -1 with
  * errno set to EAGAIN.
  */
 ssize_t
@@ -2142,27 +2171,14 @@ bws_read(bsched_bws_t bws, wrap_io_t *wio, gpointer data, size_t len)
  * Account for read data from UDP.
  */
 void
-bws_udp_count_read(int len)
+bws_udp_count_read(int len, gboolean dht)
 {
 	int count = BW_UDP_MSG + len;
 	bsched_t *bs;
 
-	bs = bsched_get(BSCHED_BWS_GIN_UDP);
+	bs = bsched_get(dht ? BSCHED_BWS_DHT_IN : BSCHED_BWS_GIN_UDP);
 	bsched_bw_update(bs, count, count);
 	bs->flags |= BS_F_DATA_READ;
-}
-
-/**
- * Account for written data to UDP.
- */
-void
-bws_udp_count_written(int len)
-{
-	int count = BW_UDP_MSG + len;
-	bsched_t *bs;
-
-	bs = bsched_get(BSCHED_BWS_GOUT_UDP);
-	bsched_bw_update(bs, count, count);
 }
 
 /**

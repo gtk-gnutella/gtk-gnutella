@@ -424,7 +424,7 @@ k_send_pong(struct gnutella_node *n, const guid_t *muid)
 			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
 			host_addr_port_to_string(n->addr, n->port));
 
-	udp_send_mb(n, mb);
+	udp_dht_send_mb(n, mb);
 }
 
 /**
@@ -500,7 +500,7 @@ k_send_find_node_response(
 			(unsigned long) klen, klen == 1 ? "" : "s",
 			host_addr_port_to_string(n->addr, n->port));
 
-	udp_send_mb(n, mb);
+	udp_dht_send_mb(n, mb);
 }
 
 /**
@@ -663,7 +663,7 @@ k_send_find_value_response(
 			secondaries, secondaries == 1 ? "" : "s",
 			host_addr_port_to_string(n->addr, n->port));
 
-	udp_send_mb(n, mb);
+	udp_dht_send_mb(n, mb);
 }
 
 /**
@@ -760,7 +760,7 @@ k_send_store_response(
 			i, i == 1 ? "" : "es",
 			host_addr_port_to_string(n->addr, n->port));
 
-	udp_send_mb(n, mb);
+	udp_dht_send_mb(n, mb);
 
 	/*
 	 * Cleanup.
@@ -912,7 +912,7 @@ answer_find_node(struct gnutella_node *n,
 	 * is likely to be dropped by the queue later on.
 	 */
 
-	if (node_udp_is_flow_controlled()) {
+	if (node_dht_is_flow_controlled()) {
 		msg = "is flow-controlled";
 		goto flow_controlled;
 	}
@@ -923,7 +923,7 @@ answer_find_node(struct gnutella_node *n,
 	 * the case in practice as long as we've been looking up our own KUID once.
 	 */
 
-	if (node_udp_would_flow_control(KMSG_FOUND_NODE_SIZE)) {
+	if (node_dht_would_flow_control(KMSG_FOUND_NODE_SIZE)) {
 		msg = "would flow-control";
 		goto flow_controlled;
 	}
@@ -1445,7 +1445,7 @@ k_handle_rpc_reply(knode_t *kn, struct gnutella_node *n,
 void
 kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 {
-	struct gnutella_node *n = node_udp_get_addr_port(kn->addr, kn->port);
+	struct gnutella_node *n = node_dht_get_addr_port(kn->addr, kn->port);
 
 	knode_check(kn);
 
@@ -1458,7 +1458,7 @@ kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 	}
 
 	kn->last_sent = tm_time();
-	udp_send_mb(n, mb);
+	udp_dht_send_mb(n, mb);
 }
 
 /**
@@ -1702,7 +1702,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
  * @param len		total length of the message (header + data)
  * @param addr		address from which we received the datagram
  * @param port		port from which we received the datagram
- * @param n			the UDP Gnutella node, for some core function calls
+ * @param n			the DHT Gnutella node, for some core function calls
  */
 void kmsg_received(
 	gconstpointer data, size_t len,
@@ -1724,6 +1724,7 @@ void kmsg_received(
 	guint16 extended_length;
 
 	g_assert(len >= GTA_HEADER_SIZE);	/* Valid Gnutella packet at least */
+	g_assert(NODE_IS_DHT(n));
 
 	/*
 	 * If DHT is not enabled, drop the message now.

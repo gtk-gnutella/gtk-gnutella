@@ -987,6 +987,13 @@ gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
     case BW_LEAF_OUT:
 		bw_stats(s, GNET_PROPERTY(bws_glout_enabled), BSCHED_BWS_GLOUT);
 		return;
+    case BW_DHT_IN:
+		/* Cannot limit incoming DHT traffic (UDP) */
+		bw_stats(s, FALSE, BSCHED_BWS_DHT_IN);
+		return;
+    case BW_DHT_OUT:
+		bw_stats(s, GNET_PROPERTY(bws_dht_out_enabled), BSCHED_BWS_DHT_OUT);
+		return;
     }
 	g_assert_not_reached();
 }

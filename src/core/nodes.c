@@ -173,6 +173,8 @@ static GHashTable *nodes_by_id;
 static GHashTable *nodes_by_guid;
 static gnutella_node_t *udp_node;
 static gnutella_node_t *udp6_node;
+static gnutella_node_t *dht_node;
+static gnutella_node_t *dht6_node;
 static gnutella_node_t *browse_node;
 static char *payload_inflate_buffer;
 static int payload_inflate_buffer_len;
@@ -254,6 +256,7 @@ static void node_bye_all_but_one(struct gnutella_node *nskip,
 static void node_set_current_peermode(node_peer_t mode);
 static enum node_bad node_is_bad(struct gnutella_node *n);
 static gnutella_node_t *node_udp_create(enum net_type net);
+static gnutella_node_t *node_dht_create(enum net_type net);
 static gnutella_node_t *node_browse_create(void);
 static gboolean node_remove_useless_leaf(gboolean *is_gtkg);
 static gboolean node_remove_useless_ultra(gboolean *is_gtkg);
@@ -1358,6 +1361,8 @@ node_init(void)
 
 	udp_node = node_udp_create(NET_TYPE_IPV4);
 	udp6_node = node_udp_create(NET_TYPE_IPV6);
+	dht_node = node_dht_create(NET_TYPE_IPV4);
+	dht6_node = node_dht_create(NET_TYPE_IPV6);
 	browse_node = node_browse_create();
 
 	payload_inflate_buffer_len = settings_max_msg_size();
@@ -1461,6 +1466,7 @@ node_keep_missing(void)
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
+	case NODE_P_DHT:
 	case NODE_P_UNKNOWN:
 		break;
 	}
@@ -1493,6 +1499,7 @@ node_missing(void)
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
+	case NODE_P_DHT:
 	case NODE_P_UNKNOWN:
 		break;
 	}
@@ -1533,6 +1540,7 @@ node_outdegree(void)
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
+	case NODE_P_DHT:
 	case NODE_P_UNKNOWN:
 		break;
 	}
@@ -1587,6 +1595,7 @@ node_type_count_dec(const struct gnutella_node *n)
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
+	case NODE_P_DHT:
 	case NODE_P_UNKNOWN:
 		return;
 	}
@@ -1888,7 +1897,7 @@ node_remove_by_id(const node_id_t node_id)
 
 	node = node_by_id(node_id);
 	if (node) {
-		if (node == udp_node || node == udp6_node) {
+		if (NODE_IS_UDP(node) || NODE_IS_DHT(node)) {
 			/* Ignore */
 		} else if (NODE_IS_WRITABLE(node)) {
 			node_bye(node, 201, "User manual removal");
@@ -2154,6 +2163,7 @@ node_avoid_monopoly(struct gnutella_node *n)
 		return FALSE;
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
+	case NODE_P_DHT:
 	case NODE_P_UNKNOWN:
 		g_assert_not_reached();
 		break;
@@ -2314,6 +2324,7 @@ node_reserve_slot(struct gnutella_node *n)
 		return FALSE;
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
+	case NODE_P_DHT:
 	case NODE_P_UNKNOWN:
 		g_assert_not_reached();
 		break;
@@ -3454,6 +3465,7 @@ node_is_now_connected(struct gnutella_node *n)
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
+	case NODE_P_DHT:
 	case NODE_P_UNKNOWN:
 		break;
 	}
@@ -3482,6 +3494,7 @@ node_is_now_connected(struct gnutella_node *n)
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
+	case NODE_P_DHT:
 	case NODE_P_UNKNOWN:
 		g_error("Invalid peer mode %d", GNET_PROPERTY(current_peermode));
 		break;
@@ -3869,6 +3882,7 @@ node_set_current_peermode(node_peer_t mode)
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
+	case NODE_P_DHT:
 	case NODE_P_UNKNOWN:
 		g_error("unhandled mode %d", mode);
 		break;
@@ -4621,6 +4635,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
+	case NODE_P_DHT:
 	case NODE_P_UNKNOWN:
 		g_assert_not_reached();
 		break;
@@ -5969,11 +5984,10 @@ node_browse_cleanup(gnutella_node_t *n)
 }
 
 /**
- * Create a "fake" node that is used as a placeholder when processing
- * Gnutella messages received from UDP.
+ * Create a pseudo node for receiving and sending UDP traffic.
  */
 static gnutella_node_t *
-node_udp_create(enum net_type net)
+node_pseudo_create(enum net_type net, node_peer_t mode, const char *name)
 {
 	gnutella_node_t *n;
 
@@ -5983,7 +5997,7 @@ node_udp_create(enum net_type net)
 	n->port = GNET_PROPERTY(listen_port);
 	n->proto_major = 0;
 	n->proto_minor = 6;
-	n->peermode = NODE_P_UDP;
+	n->peermode = mode;
 	n->hops_flow = MAX_HOP_COUNT;
 	n->last_update = n->last_tx = n->last_rx = tm_time();
 	n->routing_data = NULL;
@@ -5991,7 +6005,7 @@ node_udp_create(enum net_type net)
 		char buf[256];
 
 		concat_strings(buf, sizeof buf,
-			_("Pseudo UDP node"),
+			name,
 			" (", net_type_to_string(host_addr_net(n->addr)), ")",
 			(void *) 0);
 		n->vendor = atom_str_get(buf);
@@ -5999,6 +6013,7 @@ node_udp_create(enum net_type net)
 	n->status = GTA_NODE_CONNECTED;
 	n->flags = NODE_F_ESTABLISHED |
 		NODE_F_READABLE | NODE_F_WRITABLE | NODE_F_VALID;
+	n->attrs = NODE_A_UDP;
 	n->up_date = GNET_PROPERTY(start_stamp);
 	n->connect_date = GNET_PROPERTY(start_stamp);
 	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
@@ -6008,16 +6023,87 @@ node_udp_create(enum net_type net)
 }
 
 /**
- * Enable UDP transmission via pseudo node.
+ * Create a "fake" node that is used as a placeholder when processing
+ * Gnutella messages received from UDP.
+ */
+static gnutella_node_t *
+node_udp_create(enum net_type net)
+{
+	return node_pseudo_create(net, NODE_P_UDP, _("Pseudo UDP node"));
+}
+
+/**
+ * Create a "fake" node that is used as a placeholder when processing
+ * DHT messages received from UDP.
+ */
+static gnutella_node_t *
+node_dht_create(enum net_type net)
+{
+	return node_pseudo_create(net, NODE_P_DHT, _("Pseudo DHT node"));
+}
+
+/**
+ * Enable transmissions on a pseudo node by setting up a full TX stack.
+ */
+static void
+node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
+	bsched_bws_t bws, guint32 qsize)
+{
+	txdrv_t *tx;
+	struct tx_dgram_args args;
+	gnet_host_t host;
+
+	node_check(n);
+	socket_check(s);
+
+	n->socket = s;
+
+	args.cb = &node_tx_dgram_cb;
+	args.bws = bws;
+	args.wio = &n->socket->wio;
+
+	gnet_host_set(&host, n->addr, n->port);
+
+	if (n->outq) {
+		mq_free(n->outq);
+		n->outq = NULL;
+	}
+	tx = tx_make(n, &host, tx_dgram_get_ops(), &args);	/* Cannot fail */
+	n->outq = mq_udp_make(qsize, n, tx);
+	n->flags |= NODE_F_WRITABLE;
+	
+    node_fire_node_added(n);
+    node_fire_node_flags_changed(n);
+}
+
+/**
+ * Disable transmissions on a pseudo node by dismantling its TX stack.
+ */
+static void
+node_pseudo_disable(gnutella_node_t *n)
+{
+	node_check(n);
+
+	n->flags &= ~NODE_F_WRITABLE;
+	if (n->socket != NULL) {
+		socket_check(n->socket);
+		node_fire_node_removed(n);
+	}
+	if (n->outq != NULL) {
+		mq_free(n->outq);
+		n->outq = NULL;
+	}
+	n->socket = NULL;
+}
+
+/**
+ * Enable UDP transmissions via pseudo node.
  */
 static void
 node_udp_enable_by_net(enum net_type net)
 {
 	struct gnutella_socket *s = NULL;
 	gnutella_node_t *n = NULL;
-	txdrv_t *tx;
-	struct tx_dgram_args args;
-	gnet_host_t host;
 
 	switch (net) {
 	case NET_TYPE_IPV4:
@@ -6033,28 +6119,35 @@ node_udp_enable_by_net(enum net_type net)
 		g_assert_not_reached();
 	}
 
-	node_check(n);
-	g_assert(s != NULL);
+	node_pseudo_enable(n, s, BSCHED_BWS_GOUT_UDP,
+		GNET_PROPERTY(node_udp_sendqueue_size));
+}
 
-	socket_check(s);
-	n->socket = s;
+/**
+ * Enable DHT transmissions via pseudo node.
+ */
+static void
+node_dht_enable_by_net(enum net_type net)
+{
+	struct gnutella_socket *s = NULL;
+	gnutella_node_t *n = NULL;
 
-	args.cb = &node_tx_dgram_cb;
-	args.bws = BSCHED_BWS_GOUT_UDP;
-	args.wio = &n->socket->wio;
-
-	gnet_host_set(&host, n->addr, n->port);
-
-	if (n->outq) {
-		mq_free(n->outq);
-		n->outq = NULL;
+	switch (net) {
+	case NET_TYPE_IPV4:
+		n = dht_node;
+		s = s_udp_listen;
+		break;
+	case NET_TYPE_IPV6:
+		n = dht6_node;
+		s = s_udp_listen6;
+		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
 	}
-	tx = tx_make(n, &host, tx_dgram_get_ops(), &args);	/* Cannot fail */
-	n->outq = mq_udp_make(GNET_PROPERTY(node_udp_sendqueue_size), n, tx);
-	n->flags |= NODE_F_WRITABLE;
-	
-    node_fire_node_added(n);
-    node_fire_node_flags_changed(n);
+
+	node_pseudo_enable(n, s, BSCHED_BWS_DHT_OUT,
+		GNET_PROPERTY(node_dht_sendqueue_size));
 }
 
 /**
@@ -6077,18 +6170,30 @@ node_udp_disable_by_net(enum net_type net)
 		g_assert_not_reached();
 	}
 
-	node_check(n);
+	node_pseudo_disable(n);
+}
 
-	n->flags &= ~NODE_F_WRITABLE;
-	if (n->socket) {
-		socket_check(n->socket);
-		node_fire_node_removed(n);
+/**
+ * Disable UDP transmission via pseudo node.
+ */
+static void
+node_dht_disable_by_net(enum net_type net)
+{
+	gnutella_node_t *n = NULL;
+
+	switch (net) {
+	case NET_TYPE_IPV4:
+		n = dht_node;
+		break;
+	case NET_TYPE_IPV6:
+		n = dht6_node;
+		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
 	}
-	if (n->outq) {
-		mq_free(n->outq);
-		n->outq = NULL;
-	}
-	n->socket = NULL;
+
+	node_pseudo_disable(n);
 }
 
 static void
@@ -6100,9 +6205,24 @@ node_udp_enable(void)
 		node_udp_enable_by_net(NET_TYPE_IPV6);
 }
 
+static void
+node_dht_enable(void)
+{
+	if (s_udp_listen)
+		node_dht_enable_by_net(NET_TYPE_IPV4);
+	if (s_udp_listen6)
+		node_dht_enable_by_net(NET_TYPE_IPV6);
+}
+
 void
 node_udp_disable(void)
 {
+	if (dht_node && dht_node->socket)
+		node_dht_disable_by_net(NET_TYPE_IPV4);
+
+	if (dht6_node && dht6_node->socket)
+		node_dht_disable_by_net(NET_TYPE_IPV6);
+
 	/*
 	 * Because the pseudo UDP nodes reference the UDP sockets,
 	 * we have to disable these first.
@@ -6119,27 +6239,13 @@ node_udp_disable(void)
 }
 
 /**
- * Get "fake" node after reception of a datagram and return its address.
+ * Setup pseudo node after receiving data on its socket.
  */
-static gnutella_node_t *
-node_udp_get(struct gnutella_socket *s)
+static void
+node_pseudo_setup(gnutella_node_t *n, struct gnutella_socket *s)
 {
-	gnutella_node_t *n = NULL;
 	gnutella_header_t *head;
 
-	socket_check(s);
-
-	switch (s->net) {
-	case NET_TYPE_IPV4:
-		n = udp_node;
-		break;
-	case NET_TYPE_IPV6:
-		n = udp6_node;
-		break;
-	case NET_TYPE_LOCAL:
-	case NET_TYPE_NONE:
-		g_assert_not_reached();
-	}
 	node_check(n);
 	g_assert(n->socket == s);		/* Only one UDP socket */
 
@@ -6152,9 +6258,7 @@ node_udp_get(struct gnutella_socket *s)
 	n->addr = s->addr;
 	n->port = s->port;
 
-	n->attrs = 0;
-
-	return n;
+	n->attrs = NODE_A_UDP;
 }
 
 /**
@@ -6176,39 +6280,54 @@ node_udp_get_outq(enum net_type net)
 }
 
 /**
- * Check whether the UDP node is flow-controlled.
+ * Check whether the DHT node is flow-controlled.
  */
 gboolean
-node_udp_is_flow_controlled(void)
+node_dht_is_flow_controlled(void)
 {
-	if (udp_node && udp_node->outq && mq_is_flow_controlled(udp_node->outq))
+	if (dht_node && dht_node->outq && mq_is_flow_controlled(dht_node->outq))
 		return TRUE;
 
-	if (udp6_node && udp6_node->outq && mq_is_flow_controlled(udp6_node->outq))
+	if (dht6_node && dht6_node->outq && mq_is_flow_controlled(dht6_node->outq))
 		return TRUE;
 
 	return FALSE;
 }
 
 /**
- * Check whether additional traffic would cause the UDP node to flow-control.
+ * Check whether additional traffic would cause the DHT node to flow-control.
  */
 gboolean
-node_udp_would_flow_control(size_t additional)
+node_dht_would_flow_control(size_t additional)
 {
 	if (
-		udp_node && udp_node->outq &&
-		mq_would_flow_control(udp_node->outq, additional)
+		dht_node && dht_node->outq &&
+		mq_would_flow_control(dht_node->outq, additional)
 	)
 		return TRUE;
 
 	if (
-		udp6_node && udp6_node->outq &&
-		mq_would_flow_control(udp6_node->outq, additional)
+		dht6_node && dht6_node->outq &&
+		mq_would_flow_control(dht6_node->outq, additional)
 	)
 		return TRUE;
 
 	return FALSE;
+}
+
+/**
+ * Setup addr:port in pseudo node.
+ */
+static inline gnutella_node_t *
+node_pseudo_set_addr_port(gnutella_node_t *n,
+	const host_addr_t addr, guint16 port)
+{
+	if (n && n->outq) {
+		n->addr = addr;
+		n->port = port;
+		return n;
+	}
+	return NULL;
 }
 
 /**
@@ -6233,11 +6352,34 @@ node_udp_get_addr_port(const host_addr_t addr, guint16 port)
 			g_assert_not_reached();
 			break;
 		}
-		if (n && n->outq) {
-			n->addr = addr;
-			n->port = port;
-			return n;
+		return node_pseudo_set_addr_port(n, addr, port);
+	}
+	return NULL;
+}
+
+/**
+ * Get "fake" node for DHT transmission.
+ */
+gnutella_node_t *
+node_dht_get_addr_port(const host_addr_t addr, guint16 port)
+{
+	gnutella_node_t *n;
+
+	if (port != 0 && udp_active()) {
+		n = NULL;
+		switch (host_addr_net(addr)) {
+		case NET_TYPE_IPV4:
+			n = dht_node;
+			break;
+		case NET_TYPE_IPV6:
+			n = dht6_node;
+			break;
+		case NET_TYPE_LOCAL:
+		case NET_TYPE_NONE:
+			g_assert_not_reached();
+			break;
 		}
+		return node_pseudo_set_addr_port(n, addr, port);
 	}
 	return NULL;
 }
@@ -7146,10 +7288,11 @@ node_drain_hello(gpointer data, int source, inputevt_cond_t cond)
  * Process incoming Gnutella datagram.
  */
 void
-node_udp_process(struct gnutella_socket *s)
+node_udp_process(gnutella_node_t *n, struct gnutella_socket *s)
 {
-	gnutella_node_t *n = node_udp_get(s);
 	gboolean drop_hostile = TRUE;
+
+	node_pseudo_setup(n, s);
 
 	/*
 	 * The node_parse() routine was written to process incoming Gnutella
@@ -7170,6 +7313,9 @@ node_udp_process(struct gnutella_socket *s)
 	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
 
 	node_add_rx_given(n, n->size + GTA_HEADER_SIZE);
+
+	if (NODE_IS_DHT(n))
+		goto hostile_check;
 
 	/*
 	 * A little code duplication from node_read(), which we don't call
@@ -7203,6 +7349,8 @@ node_udp_process(struct gnutella_socket *s)
 	 * Discard incoming datagrams from registered hostile IP addresses.
 	 */
 
+hostile_check:
+
 	if (drop_hostile && hostiles_check(n->addr)) {
 		if (GNET_PROPERTY(udp_debug))
 			g_warning("UDP got %s from hostile %s -- dropped",
@@ -7215,8 +7363,8 @@ node_udp_process(struct gnutella_socket *s)
 	 * DHT messages now leave the Gnutella processing path.
 	 */
 
-	if (GTA_MSG_DHT == gnutella_header_get_function(&n->header)) {
-		kmsg_received(cast_to_gpointer(s->buf), s->pos, s->addr, s->port, n);
+	if (NODE_IS_DHT(n)) {
+		kmsg_received(s->buf, s->pos, s->addr, s->port, n);
 		return;
 	}
 
@@ -7887,6 +8035,8 @@ void
 node_bye_all(void)
 {
 	GSList *sl;
+	gnutella_node_t *udp_nodes[] = { udp_node, udp6_node, dht_node, dht6_node };
+	unsigned i;
 
 	g_assert(!in_shutdown);		/* Meant to be called once */
 
@@ -7898,13 +8048,12 @@ node_bye_all(void)
 	 * the UDP socket very shortly...
 	 */
 
-	if (udp_node && udp_node->outq) {
-		mq_clear(udp_node->outq);
-		mq_discard(udp_node->outq);
-	}
-	if (udp6_node && udp6_node->outq) {
-		mq_clear(udp6_node->outq);
-		mq_discard(udp6_node->outq);
+	for (i = 0; i < G_N_ELEMENTS(udp_nodes); i++) {
+		gnutella_node_t *n = udp_nodes[i];
+		if (n && n->outq) {
+			mq_clear(n->outq);
+			mq_discard(n->outq);
+		}
 	}
 
 	host_shutdown();
@@ -8469,7 +8618,8 @@ node_close(void)
 	}
 
 	{
-		gnutella_node_t *special_nodes[] = { udp_node, udp6_node, browse_node };
+		gnutella_node_t *special_nodes[] = {
+			udp_node, udp6_node, dht_node, dht6_node, browse_node };
 		guint i;
 
 		for (i = 0; i < G_N_ELEMENTS(special_nodes); i++) {
@@ -8494,6 +8644,8 @@ node_close(void)
 		}
 		udp_node = NULL;
 		udp6_node = NULL;
+		dht_node = NULL;
+		dht6_node = NULL;
 		browse_node = NULL;
 	}
 
@@ -8782,10 +8934,13 @@ node_fill_info(const node_id_t node_id, gnet_node_info_t *info)
     info->addr = node->addr;
     info->port = node->port;
 
-	info->is_pseudo = node == udp_node || node == udp6_node;
+	info->is_pseudo = NODE_IS_UDP(node) || NODE_IS_DHT(node);
 
 	if (info->is_pseudo) {
-    	info->addr = node == udp_node ? listen_addr() : listen_addr6();
+		if (NODE_IS_UDP(node))
+			info->addr = node == udp_node ? listen_addr() : listen_addr6();
+		else
+			info->addr = node == dht_node ? listen_addr() : listen_addr6();
     	info->port = GNET_PROPERTY(listen_port);
 		info->gnet_addr = info->addr;
 		info->gnet_port = info->port;
@@ -8888,7 +9043,7 @@ node_get_status(const node_id_t node_id, gnet_node_status_t *status)
 	if (NULL == node)
 		return FALSE;
 
-	status->is_pseudo = node == udp_node || node == udp6_node;
+	status->is_pseudo = NODE_IS_UDP(node) || NODE_IS_DHT(node);
     status->status     = node->status;
 
 	status->connect_date = node->connect_date;
@@ -9852,8 +10007,12 @@ void
 node_update_udp_socket(void)
 {
 	node_udp_disable();
+
 	if ((udp_node || udp6_node) && udp_active())
 		node_udp_enable();
+
+	if ((dht_node || dht6_node) && udp_active())
+		node_dht_enable();
 }
 
 /**
@@ -9888,6 +10047,7 @@ node_flags_to_string(const gnet_node_flags_t *flags)
 	case NODE_P_LEAF:		status[0] = 'L'; break;
 	case NODE_P_CRAWLER:	status[0] = 'C'; break;
 	case NODE_P_UDP:		status[0] = 'P'; break;
+	case NODE_P_DHT:		status[0] = 'P'; break;
 	default:				g_assert_not_reached(); break;
 	}
 
@@ -9966,16 +10126,12 @@ const char *
 node_peermode_to_string(node_peer_t m)
 {
 	switch (m) {
-	case NODE_P_LEAF:
-		return _("Leaf");
-	case NODE_P_ULTRA:
-		return _("Ultrapeer");
-	case NODE_P_NORMAL:
-		return _("Legacy");
-	case NODE_P_CRAWLER:
-		return _("Crawler");
-	case NODE_P_UDP:
-		return _("UDP");
+	case NODE_P_LEAF:		return _("Leaf");
+	case NODE_P_ULTRA:		return _("Ultrapeer");
+	case NODE_P_NORMAL:		return _("Legacy");
+	case NODE_P_CRAWLER:	return _("Crawler");
+	case NODE_P_UDP:		return _("UDP");
+	case NODE_P_DHT:		return _("DHT");
 	case NODE_P_AUTO:
 	case NODE_P_UNKNOWN:
 		break;
@@ -9990,8 +10146,10 @@ node_peermode_to_string(node_peer_t m)
 void
 node_post_init(void)
 {
-	if (udp_active())
+	if (udp_active()) {
 		node_udp_enable();
+		node_dht_enable();
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

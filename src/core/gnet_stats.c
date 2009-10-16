@@ -312,7 +312,7 @@ gnet_stats_count_received_header(gnutella_node_t *n)
 	guint i;
 	gnet_stats_t *stats;
 
-	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
     n->received++;
 
@@ -346,7 +346,7 @@ gnet_stats_count_received_payload(const gnutella_node_t *n)
 	guint i;
 	gnet_stats_t *stats;
 
-	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
     gnet_stats.byte.received[MSG_TOTAL] += size;
     gnet_stats.byte.received[t] += size;
@@ -374,7 +374,7 @@ gnet_stats_count_queued(const gnutella_node_t *n,
 
 	g_assert(t != MSG_UNKNOWN);
 
-	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
 	stats_pkg = hops ? gnet_stats.pkg.queued : gnet_stats.pkg.gen_queued;
 	stats_byte = hops ? gnet_stats.byte.queued : gnet_stats.byte.gen_queued;
@@ -404,7 +404,7 @@ gnet_stats_count_sent(const gnutella_node_t *n,
 
 	g_assert(t != MSG_UNKNOWN);
 
-	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
 	stats_pkg = hops ? gnet_stats.pkg.relayed : gnet_stats.pkg.generated;
 	stats_byte = hops ? gnet_stats.byte.relayed : gnet_stats.byte.generated;
@@ -430,7 +430,7 @@ gnet_stats_count_expired(const gnutella_node_t *n)
 	guint t = stats_lut[gnutella_header_get_function(&n->header)];
 	gnet_stats_t *stats;
 
-	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
     gnet_stats.pkg.expired[MSG_TOTAL]++;
     gnet_stats.pkg.expired[t]++;
@@ -474,7 +474,7 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 
     size = n->size + sizeof(n->header);
 	type = stats_lut[gnutella_header_get_function(&n->header)];
-	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
 	DROP_STATS(stats, type, size);
 	node_inc_rxdrop(n);
@@ -526,7 +526,7 @@ gnet_stats_count_dropped_nosize(
 	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
 
 	type = stats_lut[gnutella_header_get_function(&n->header)];
-	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
 	/* Data part of message not read */
 	DROP_STATS(stats, type, sizeof(n->header));

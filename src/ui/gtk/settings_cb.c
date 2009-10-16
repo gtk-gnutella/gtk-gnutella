@@ -1050,4 +1050,28 @@ on_menu_autohide_bws_gleaf_activate(GtkMenuItem *menuitem,
 	checkmenu_changed(gui, PROP_AUTOHIDE_BWS_GLEAF, menuitem);
 }
 
+void
+on_menu_autohide_bws_dht_activate(GtkMenuItem *menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_udata;
+	checkmenu_changed(gui, PROP_AUTOHIDE_BWS_DHT, menuitem);
+}
+
+void
+on_menu_bws_dht_in_visible_activate(GtkMenuItem *menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_udata;
+	checkmenu_changed(gui, PROP_PROGRESSBAR_BWS_DHT_IN_VISIBLE, menuitem);
+}
+
+void
+on_menu_bws_dht_out_visible_activate(GtkMenuItem *menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_udata;
+	checkmenu_changed(gui, PROP_PROGRESSBAR_BWS_DHT_OUT_VISIBLE, menuitem);
+}
+
 /* vi: set ts=4 sw=4 cindent: */

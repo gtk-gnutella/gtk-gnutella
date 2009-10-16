@@ -135,14 +135,14 @@ struct gnutella_socket {
 	struct getline *getline;	/**< Line reader object */
 
 	size_t pos;			/**< write position in the buffer */
-	size_t buf_size;	/**< write position in the buffer */
+	size_t buf_size;	/**< allocated buffer size */
 	char *buf;			/**< buffer to put in the data read */
 };
 
 static inline void
 socket_check(const struct gnutella_socket * const s)
 {
-	g_assert(s);
+	g_assert(s != NULL);
 	g_assert(SOCKET_MAGIC == s->magic);
 }
 

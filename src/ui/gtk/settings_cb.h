@@ -86,6 +86,9 @@ void on_menu_bws_gout_visible_activate(GtkMenuItem *, gpointer user_data);
 void on_menu_bws_glin_visible_activate(GtkMenuItem *, gpointer user_data);
 void on_menu_bws_glout_visible_activate(GtkMenuItem *, gpointer user_data);
 void on_menu_autohide_bws_gleaf_activate(GtkMenuItem *, gpointer user_data);
+void on_menu_autohide_bws_dht_activate(GtkMenuItem *, gpointer);
+void on_menu_bws_dht_in_visible_activate(GtkMenuItem *, gpointer);
+void on_menu_bws_dht_out_visible_activate(GtkMenuItem *, gpointer);
 
 void on_button_dbg_property_refresh_clicked(GtkButton *, gpointer unused_udata);
 

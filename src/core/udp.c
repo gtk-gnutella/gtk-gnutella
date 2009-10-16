@@ -63,14 +63,19 @@ RCSID("$Id$")
 
 /**
  * Look whether the datagram we received is a valid Gnutella packet.
+ *
+ * @return NULL if not valid, the UDP node that got the message otherwise
  */
-static gboolean
-udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
+static gnutella_node_t *
+udp_is_valid_gnet(struct gnutella_socket *s, gboolean dht, gboolean truncated)
 {
-	struct gnutella_node *n = node_udp_get_addr_port(s->addr, s->port);
+	struct gnutella_node *n;
 	gnutella_header_t *head;
 	const char *msg;
 	guint16 size;				/**< Payload size, from the Gnutella message */
+
+	n = dht ? node_dht_get_addr_port(s->addr, s->port) :
+		node_udp_get_addr_port(s->addr, s->port);
 
 	/*
 	 * If we can't get a proper UDP node for this address/port combination,
@@ -153,7 +158,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 	case GTA_MSG_SEARCH_RESULTS:
 	case GTA_MSG_RUDP:
 	case GTA_MSG_DHT:
-		return TRUE;
+		return n;
 	case GTA_MSG_SEARCH:
 		msg = "Queries not yet processed from UDP";
 		goto drop;			/* XXX don't handle GUESS queries for now */
@@ -186,7 +191,7 @@ log:
 			dump_hex(stderr, "UDP datagram", s->buf, s->pos);
 	}
 
-	return FALSE;
+	return NULL;
 }
 
 /**
@@ -231,7 +236,9 @@ is_ntp_reply(struct gnutella_socket *s)
 void
 udp_received(struct gnutella_socket *s, gboolean truncated)
 {
+	gnutella_node_t *n;
 	gboolean bogus = FALSE;
+	gboolean dht = FALSE;
 
 	/*
 	 * If reply comes from the NTP port, notify that they're running NTP.
@@ -245,6 +252,16 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 	 */
 
 	inet_udp_got_incoming(s->addr);
+
+	/*
+	 * Discriminate between Gnutella UDP and DHT messages, so that we
+	 * can account received data with the proper bandwidth scheduler.
+	 */
+
+	if (s->pos >= GTA_HEADER_SIZE)
+		dht = GTA_MSG_DHT == gnutella_header_get_function(s->buf);
+
+	bws_udp_count_read(s->pos, dht);
 
 	/*
 	 * If we get traffic from a bogus IP (unroutable), warn, for now.
@@ -262,7 +279,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 		gnet_stats_count_general(GNR_UDP_BOGUS_SOURCE_IP, 1);
 	}
 
-	if (!udp_is_valid_gnet(s, truncated))
+	if (!(n = udp_is_valid_gnet(s, dht, truncated)))
 		return;
 
 	/*
@@ -274,7 +291,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 		g_message("UDP got %s from %s%s", gmsg_infostr_full(s->buf, s->pos),
 			bogus ? "BOGUS " : "", host_addr_port_to_string(s->addr, s->port));
 
-	node_udp_process(s);
+	node_udp_process(n, s);
 }
 
 /**
@@ -307,6 +324,26 @@ udp_send_mb(const gnutella_node_t *n, pmsg_t *mb)
 		g_assert_not_reached();
 	}
 	g_assert(NODE_IS_UDP(n));
+	mq_udp_node_putq(n->outq, mb, n);
+}
+
+/**
+ * Send a message to the DHT node through UDP.
+ *
+ * It is up to the caller to clone the message if needed, otherwise the
+ * node's queue becomes the sole owner of the message and will pmsg_free() it.
+ */
+void
+udp_dht_send_mb(const gnutella_node_t *n, pmsg_t *mb)
+{
+	if (NULL == n || NULL == n->outq) {
+		pmsg_free(mb);
+		/* emit warnings */
+		g_return_if_fail(n);
+		g_return_if_fail(n->outq);
+		g_assert_not_reached();
+	}
+	g_assert(NODE_IS_DHT(n));
 	mq_udp_node_putq(n->outq, mb, n);
 }
 

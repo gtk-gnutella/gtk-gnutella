@@ -549,7 +549,7 @@ ulq_service(void)
 		 * queries, stop launching.
 		 */
 
-		if (node_udp_would_flow_control(KDA_ALPHA * vema(sched.sz_out_ema)))
+		if (node_dht_would_flow_control(KDA_ALPHA * vema(sched.sz_out_ema)))
 			break;
 
 		if (0 == slist_length(sched.runq))
@@ -616,7 +616,7 @@ ulq_do_service(cqueue_t *unused_cq, gpointer unused_obj)
 	 * a sudden release of many lookups when we resume.
 	 */
 
-	if (node_udp_is_flow_controlled()) {
+	if (node_dht_is_flow_controlled()) {
 		if (GNET_PROPERTY(dht_ulq_debug))
 			g_warning("DHT ULQ deferring servicing: UDP queue flow-controlled");
 

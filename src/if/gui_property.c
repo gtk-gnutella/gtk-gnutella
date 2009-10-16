@@ -305,6 +305,16 @@ prop_def_choice_t gui_property_variable_search_lifetime_choices[] = {
 };
 gboolean gui_property_variable_status_icon_enabled     = TRUE;
 static const gboolean gui_property_variable_status_icon_enabled_default = TRUE;
+gboolean gui_property_variable_autohide_bws_dht     = TRUE;
+static const gboolean gui_property_variable_autohide_bws_dht_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_dht_in_visible     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_dht_in_visible_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_dht_out_visible     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_dht_out_visible_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_dht_in_avg     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_dht_in_avg_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_dht_out_avg     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_dht_out_avg_default = TRUE;
 
 static prop_set_t *gui_property;
 
@@ -2267,6 +2277,91 @@ gui_prop_init(void) {
     gui_property->props[106].type               = PROP_TYPE_BOOLEAN;
     gui_property->props[106].data.boolean.def   = (void *) &gui_property_variable_status_icon_enabled_default;
     gui_property->props[106].data.boolean.value = (void *) &gui_property_variable_status_icon_enabled;
+
+
+    /*
+     * PROP_AUTOHIDE_BWS_DHT:
+     *
+     * General data:
+     */
+    gui_property->props[107].name = "autohide_bws_dht";
+    gui_property->props[107].desc = _("Automatically hide DHT bandwidth display when DHT not enabled.");
+    gui_property->props[107].ev_changed = event_new("autohide_bws_dht_changed");
+    gui_property->props[107].save = TRUE;
+    gui_property->props[107].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[107].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[107].data.boolean.def   = (void *) &gui_property_variable_autohide_bws_dht_default;
+    gui_property->props[107].data.boolean.value = (void *) &gui_property_variable_autohide_bws_dht;
+
+
+    /*
+     * PROP_PROGRESSBAR_BWS_DHT_IN_VISIBLE:
+     *
+     * General data:
+     */
+    gui_property->props[108].name = "progressbar_bws_dht_in_visible";
+    gui_property->props[108].desc = _("Display incoming DHT traffic bandwidth usage.");
+    gui_property->props[108].ev_changed = event_new("progressbar_bws_dht_in_visible_changed");
+    gui_property->props[108].save = TRUE;
+    gui_property->props[108].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[108].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[108].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_dht_in_visible_default;
+    gui_property->props[108].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_dht_in_visible;
+
+
+    /*
+     * PROP_PROGRESSBAR_BWS_DHT_OUT_VISIBLE:
+     *
+     * General data:
+     */
+    gui_property->props[109].name = "progressbar_bws_dht_out_visible";
+    gui_property->props[109].desc = _("Display outgoing DHT traffic bandwidth usage.");
+    gui_property->props[109].ev_changed = event_new("progressbar_bws_dht_out_visible_changed");
+    gui_property->props[109].save = TRUE;
+    gui_property->props[109].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[109].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[109].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_dht_out_visible_default;
+    gui_property->props[109].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_dht_out_visible;
+
+
+    /*
+     * PROP_PROGRESSBAR_BWS_DHT_IN_AVG:
+     *
+     * General data:
+     */
+    gui_property->props[110].name = "progressbar_bws_dht_in_avg";
+    gui_property->props[110].desc = _("Display incoming DHT traffic bandwidth as an average.");
+    gui_property->props[110].ev_changed = event_new("progressbar_bws_dht_in_avg_changed");
+    gui_property->props[110].save = TRUE;
+    gui_property->props[110].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[110].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[110].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_dht_in_avg_default;
+    gui_property->props[110].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_dht_in_avg;
+
+
+    /*
+     * PROP_PROGRESSBAR_BWS_DHT_OUT_AVG:
+     *
+     * General data:
+     */
+    gui_property->props[111].name = "progressbar_bws_dht_out_avg";
+    gui_property->props[111].desc = _("Display outgoing DHT traffic bandwidth as an average.");
+    gui_property->props[111].ev_changed = event_new("progressbar_bws_dht_out_avg_changed");
+    gui_property->props[111].save = TRUE;
+    gui_property->props[111].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[111].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[111].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_dht_out_avg_default;
+    gui_property->props[111].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_dht_out_avg;
 
     gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {

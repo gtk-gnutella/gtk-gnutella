@@ -284,7 +284,9 @@ typedef enum {
 	BW_LEAF_IN,
 	BW_LEAF_OUT,
 	BW_GNET_UDP_IN,
-	BW_GNET_UDP_OUT
+	BW_GNET_UDP_OUT,
+	BW_DHT_IN,
+	BW_DHT_OUT
 } gnet_bw_source;
 
 typedef struct gnet_bw_stats {

@@ -49,11 +49,10 @@
 
 void on_button_extra_config_clicked(GtkButton *, gpointer user_data);
 
-
-
 /***
  *** sidebar
  ***/
+
 gboolean on_progressbar_bws_in_button_press_event(GtkWidget *,
 		GdkEventButton *event, gpointer user_data);
 gboolean on_progressbar_bws_out_button_press_event(GtkWidget *,
@@ -66,8 +65,10 @@ gboolean on_progressbar_bws_lin_button_press_event(GtkWidget *,
 		GdkEventButton *event, gpointer user_data);
 gboolean on_progressbar_bws_lout_button_press_event(GtkWidget *,
 		GdkEventButton *event, gpointer user_data);
-
-
+gboolean on_progressbar_bws_dht_in_button_press_event(GtkWidget *,
+		GdkEventButton *event, gpointer user_data);
+gboolean on_progressbar_bws_dht_out_button_press_event(GtkWidget *,
+		GdkEventButton *event, gpointer user_data);
 
 /***
  *** hostcache panel
@@ -76,11 +77,10 @@ void on_button_host_catcher_clear_clicked(GtkButton *, gpointer user_data);
 void on_button_ultra_catcher_clear_clicked(GtkButton *, gpointer user_data);
 void on_button_hostcache_clear_bad_clicked(GtkButton *, gpointer user_data);
 
-
-
 /***
  *** config panel
  ***/
+
 gboolean on_entry_config_maxttl_focus_out_event(GtkWidget *,
 		GdkEventFocus *, gpointer user_data);
 gboolean on_entry_config_myttl_focus_out_event(GtkWidget *,
@@ -105,15 +105,13 @@ void on_entry_config_netmask_activate(GtkEditable *, gpointer user_data);
 void on_entry_config_search_items_activate(GtkEditable *, gpointer user_data);
 void on_entry_config_speed_activate(GtkEditable *, gpointer user_data);
 
-
-
 /***
  *** search stats
  ***/
+
 void on_button_search_stats_reset_clicked(GtkButton *, gpointer user_data);
 
 void on_menu_faq_activate(GtkMenuItem *, gpointer user_data);
 gboolean on_dlg_faq_delete_event(GtkWidget *, GdkEvent *, gpointer user_data);
 
 #endif	/* _callbacks_h_ */
-

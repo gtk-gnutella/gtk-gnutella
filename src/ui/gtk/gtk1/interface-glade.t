@@ -5,11 +5,11 @@
  */
 
 /*
-       %s,^[^=]*= ,,
-       g/"label[0-9]*"/d
-       g/"\[.*\]"/d
-       g/^N_.*[^;]$/j
-       sort | uniq
+	%s,^[^=]*= ,,
+	g/"label[0-9]*"/d
+	g/"\[.*\]"/d
+	g/^N_.*[^;]$/j
+	sort | uniq
 */
 
 N_(" Clear completed ");
@@ -21,11 +21,11 @@ N_(" passive)");
 N_(" queued (");
 N_(" registered, ");
 N_(" with sources");
+N_("$Id$");
 N_("%v/%u (%P%%)");
 N_("%v/%u Gnutella peers");
 N_("%v/%u downloads");
 N_("%v/%u uploads");
-N_("(");
 N_("(Disable: 0, Random: 1)");
 N_("(no search)");
 N_("(not forwarded)");
@@ -66,6 +66,8 @@ N_("Avg. uptime of this servent:");
 N_("Bad hosts");
 N_("Bandwidth limits for Gnutella traffic");
 N_("Bandwidth limits for HTTP traffic");
+N_("Bandwidth limits for the Distributed Hash Table");
+N_("Bandwidth targets for node lookups");
 N_("Bandwidth");
 N_("Banning");
 N_("Beautify filenames by removing needless underscores");
@@ -131,6 +133,8 @@ N_("Cumulative _upload rate");
 N_("Current IP settings (Address:Port):");
 N_("Current search:");
 N_("Currently used");
+N_("DHT traffic stats");
+N_("DHT traffic");
 N_("DISPLAY");
 N_("DOWNLOAD");
 N_("Debugging");
@@ -161,6 +165,7 @@ N_("Dup / Bad / Weird");
 N_("E_xpose relative paths");
 N_("Edit value:");
 N_("Enable \"_Browse Host\" feature");
+N_("Enable _DHT");
 N_("Enable _UDP");
 N_("Enable dynamic upload slots _allocation");
 N_("Enable remote _shell control interface");
@@ -204,6 +209,7 @@ N_("General search settings (affect all searches)");
 N_("General");
 N_("Generated queries");
 N_("Generation:");
+N_("Global DHT outgoing traffic");
 N_("Gnutella TTL settings");
 N_("Gnutella _leaf traffic stats");
 N_("Gnutella display");
@@ -240,6 +246,7 @@ N_("Incoming connecting timeout");
 N_("Incoming traffic from _leaves");
 N_("Indexing started on:");
 N_("Info");
+N_("Input bandwidth average");
 N_("Jeroen Asselman");
 N_("Join the users or developers mailing lists.");
 N_("Jump to newly created searches");
@@ -248,6 +255,8 @@ N_("Keywords:");
 N_("KiB");
 N_("KiB/s");
 N_("Large enough uptime");
+N_("Last Request");
+N_("Last Upload");
 N_("Last check");
 N_("Last chunk size");
 N_("Last scan initiated on:");
@@ -320,6 +329,7 @@ N_("Originally obtained from");
 N_("Other");
 N_("Out of Band Querying");
 N_("Outgoing traffic to lea_ves");
+N_("Output bandwidth average");
 N_("PARQ development:");
 N_("Partial File Sharing");
 N_("Pass_word");
@@ -431,6 +441,8 @@ N_("Show _outbound leaf traffic");
 N_("Show _percentages");
 N_("Show _tooltips (does not affect all tooltips yet)");
 N_("Show additional information and settings for advanced and _expert users");
+N_("Show inbound DHT traffic");
+N_("Show outbound DHT traffic");
 N_("Show pr_otocol:");
 N_("Show r_easons for");
 N_("Show tabs");
@@ -560,6 +572,7 @@ N_("_View");
 N_("_auto-hide leaf traffic stats");
 N_("active");
 N_("and lasted");
+N_("auto-hide DHT traffic stats");
 N_("bytes");
 N_("case sensitive");
 N_("case-sensitive");

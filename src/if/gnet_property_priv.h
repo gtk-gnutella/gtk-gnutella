@@ -409,6 +409,9 @@ extern const guint32  gnet_property_variable_whitelist_debug;
 extern const guint32  gnet_property_variable_dht_tcache_debug;
 extern const guint32  gnet_property_variable_publisher_debug;
 extern const guint32  gnet_property_variable_dht_trace;
+extern const gboolean gnet_property_variable_bws_dht_out_enabled;
+extern const guint32  gnet_property_variable_bw_dht_out;
+extern const guint32  gnet_property_variable_node_dht_sendqueue_size;
 
 
 prop_set_t *gnet_prop_init(void);

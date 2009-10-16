@@ -153,6 +153,11 @@ extern const guint32  gui_property_variable_gnet_stats_byte_col_widths[6];
 extern const guint32  gui_property_variable_config_toolbar_style;
 extern const guint32  gui_property_variable_search_lifetime;
 extern const gboolean gui_property_variable_status_icon_enabled;
+extern const gboolean gui_property_variable_autohide_bws_dht;
+extern const gboolean gui_property_variable_progressbar_bws_dht_in_visible;
+extern const gboolean gui_property_variable_progressbar_bws_dht_out_visible;
+extern const gboolean gui_property_variable_progressbar_bws_dht_in_avg;
+extern const gboolean gui_property_variable_progressbar_bws_dht_out_avg;
 
 
 prop_set_t *gui_prop_init(void);

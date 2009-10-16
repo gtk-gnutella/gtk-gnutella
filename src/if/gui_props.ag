@@ -533,7 +533,6 @@ prop = {
     };
 };
 
-
 prop = {
     name = "progressbar_bws_in_avg";
     desc = "Display incoming HTTP traffic bandwidth average.";
@@ -1219,6 +1218,51 @@ prop = {
     desc = "Show a status icon in the system tray if possible "
 			"(requires Gtk+ 2.10 or newer).";
 	save = TRUE;
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "autohide_bws_dht";
+    desc = "Automatically hide DHT bandwidth display when DHT not enabled.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_dht_in_visible";
+    desc = "Display incoming DHT traffic bandwidth usage.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_dht_out_visible";
+    desc = "Display outgoing DHT traffic bandwidth usage.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_dht_in_avg";
+    desc = "Display incoming DHT traffic bandwidth as an average.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_dht_out_avg";
+    desc = "Display outgoing DHT traffic bandwidth as an average.";
     type = boolean;
     data = {
         default = TRUE;

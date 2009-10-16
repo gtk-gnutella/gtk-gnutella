@@ -282,5 +282,8 @@ const char *guc_bitzi_ticket_by_sha1(const struct sha1 *, filesize_t);
 /** main functions */
 void guc_gtk_gnutella_exit(int code);
 
+/** DHT functions */
+gboolean guc_dht_enabled(void);
+
 #endif /* _if_bridge_ui2c_h_ */
 /* vi: set ts=4 sw=4 cindent: */
