@@ -424,7 +424,7 @@ node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 	gnutella_node_t *udp = NULL, *tn;
 
 	(void) unused_cq;
-	g_assert(!NODE_IS_UDP(n));
+	g_assert(!NODE_USES_UDP(n));
 	g_assert(n->attrs & NODE_A_TIME_SYNC);
 
 	n->tsync_ev = NULL;	/* has been freed before calling this function */
@@ -460,7 +460,7 @@ node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 void
 node_can_tsync(gnutella_node_t *n)
 {
-	g_assert(!NODE_IS_UDP(n));
+	g_assert(!NODE_USES_UDP(n));
 
 	if (n->attrs & NODE_A_TIME_SYNC)
 		return;
@@ -481,7 +481,7 @@ node_can_tsync(gnutella_node_t *n)
 static void
 node_tsync_tcp(gnutella_node_t *n)
 {
-	g_assert(!NODE_IS_UDP(n));
+	g_assert(!NODE_USES_UDP(n));
 	g_assert(n->attrs & NODE_A_TIME_SYNC);
 
 	tsync_send(n, NODE_ID(n));
@@ -1720,7 +1720,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 {
 	node_check(n);
 	g_assert(n->status != GTA_NODE_REMOVING);
-	g_assert(!NODE_IS_UDP(n));
+	g_assert(!NODE_USES_UDP(n));
 
 	if (reason && no_reason != reason) {
 		gm_vsnprintf(n->error_str, sizeof n->error_str, reason, ap);
@@ -1899,7 +1899,7 @@ node_remove_by_id(const node_id_t node_id)
 
 	node = node_by_id(node_id);
 	if (node) {
-		if (NODE_IS_UDP(node) || NODE_IS_DHT(node)) {
+		if (NODE_USES_UDP(node)) {
 			/* Ignore */
 		} else if (NODE_IS_WRITABLE(node)) {
 			node_bye(node, 201, "User manual removal");
@@ -2546,7 +2546,7 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 	char *reason_base = &reason_fmt[2];	/* Leading 2 bytes for code */
 
 	node_check(n);
-	g_assert(!NODE_IS_UDP(n));
+	g_assert(!NODE_USES_UDP(n));
 
 	if (n->status == GTA_NODE_SHUTDOWN) {
 		node_recursive_shutdown_v(n, "Bye", reason, ap);
@@ -7647,6 +7647,8 @@ node_tx_enter_warnzone(struct gnutella_node *n)
 
 	if (NODE_IS_UDP(n))
 		bsched_set_urgent(BSCHED_BWS_GOUT_UDP, mq_lowat(n->outq));
+	else if (NODE_IS_DHT(n))
+		bsched_set_urgent(BSCHED_BWS_DHT_OUT, mq_lowat(n->outq));
 }
 
 /**
@@ -7666,7 +7668,7 @@ node_tx_enter_flowc(struct gnutella_node *n)
 {
 	n->tx_flowc_date = tm_time();
 
-	if ((n->attrs & NODE_A_CAN_VENDOR) && !NODE_IS_UDP(n))
+	if ((n->attrs & NODE_A_CAN_VENDOR) && !NODE_USES_UDP(n))
 		vmsg_send_hops_flow(n, 0);			/* Disable all query traffic */
 
     node_fire_node_flags_changed(n);
@@ -7677,9 +7679,13 @@ node_tx_enter_flowc(struct gnutella_node *n)
 	 * low watermark to clear the flow-control condition quickly.
 	 */
 
-	if (NODE_IS_UDP(n))
+	if (NODE_IS_UDP(n)) {
 		bsched_set_urgent(BSCHED_BWS_GOUT_UDP,
 			mq_size(n->outq) - mq_lowat(n->outq));
+	} else if (NODE_IS_DHT(n)) {
+		bsched_set_urgent(BSCHED_BWS_DHT_OUT,
+			mq_size(n->outq) - mq_lowat(n->outq));
+	}
 }
 
 /**
@@ -7695,7 +7701,7 @@ node_tx_leave_flowc(struct gnutella_node *n)
 			node_addr(n), spent, spent == 1 ? "" : "s");
 	}
 
-	if ((n->attrs & NODE_A_CAN_VENDOR) && !NODE_IS_UDP(n))
+	if ((n->attrs & NODE_A_CAN_VENDOR) && !NODE_USES_UDP(n))
 		vmsg_send_hops_flow(n, 255);		/* Re-enable query traffic */
 
     node_fire_node_flags_changed(n);
@@ -8703,7 +8709,7 @@ node_by_guid(const struct guid *guid)
 	n = g_hash_table_lookup(nodes_by_guid, guid);
 	if (n) {
 		node_check(n);
-		g_assert(!NODE_IS_UDP(n));
+		g_assert(!NODE_USES_UDP(n));
 	}
 	return n;
 }
@@ -8720,7 +8726,7 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 
 	node_check(n);
 
-	g_return_val_if_fail(!NODE_IS_UDP(n), TRUE);
+	g_return_val_if_fail(!NODE_USES_UDP(n), TRUE);
 	g_return_val_if_fail(guid, TRUE);
 	g_return_val_if_fail(!n->guid, TRUE);
 
@@ -8936,7 +8942,7 @@ node_fill_info(const node_id_t node_id, gnet_node_info_t *info)
     info->addr = node->addr;
     info->port = node->port;
 
-	info->is_pseudo = NODE_IS_UDP(node) || NODE_IS_DHT(node);
+	info->is_pseudo = NODE_USES_UDP(node);
 
 	if (info->is_pseudo) {
 		if (NODE_IS_UDP(node))
@@ -9045,7 +9051,7 @@ node_get_status(const node_id_t node_id, gnet_node_status_t *status)
 	if (NULL == node)
 		return FALSE;
 
-	status->is_pseudo = NODE_IS_UDP(node) || NODE_IS_DHT(node);
+	status->is_pseudo = NODE_USES_UDP(node);
     status->status     = node->status;
 
 	status->connect_date = node->connect_date;
@@ -9095,14 +9101,17 @@ node_get_status(const node_id_t node_id, gnet_node_status_t *status)
 	status->udp_rtt = node->udp_rtt;
 
 	/*
-	 * The UDP node has no RX stack: we direcly receive datagrams from
+	 * An UDP node has no RX stack: we direcly receive datagrams from
 	 * the socket layer, and they are meant to be one Gntuella message.
 	 * Therefore, the actual traffic is given by the bws.gin_udp scheduler.
 	 */
 
-	if (NODE_IS_UDP(node))
-		status->rx_bps = bsched_bps(BSCHED_BWS_GIN_UDP);
-	else {
+	if (NODE_USES_UDP(node)) {
+		if (NODE_IS_UDP(node))
+			status->rx_bps = bsched_bps(BSCHED_BWS_GIN_UDP);
+		else
+			status->rx_bps = bsched_bps(BSCHED_BWS_DHT_IN);
+	} else {
 		bio_source_t *bio = node->rx ? rx_bio_source(node->rx) : NULL;
 		status->rx_bps = bio ? bio_bps(bio) : 0;
 	}
@@ -9281,7 +9290,7 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 {
 	g_return_val_if_fail(n, FALSE);
 	g_return_val_if_fail(guid, FALSE);
-	g_return_val_if_fail(!NODE_IS_UDP(n), FALSE);
+	g_return_val_if_fail(!NODE_USES_UDP(n), FALSE);
 
 	/*
 	 * If we're firewalled, we can't accept.
@@ -9575,7 +9584,7 @@ node_set_leaf_guidance(const node_id_t id, gboolean supported)
 	n = node_active_by_id(id);
 
 	if (n != NULL) {
-		g_return_if_fail(!NODE_IS_UDP(n));
+		g_return_if_fail(!NODE_USES_UDP(n));
 
 		if (supported)
 			n->attrs |= NODE_A_GUIDANCE;		/* Record support */
