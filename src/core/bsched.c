@@ -155,7 +155,6 @@ static int bws_in_ema = 0;
 #define BW_SLOT_MIN		64	 /**< Minimum bandwidth/slot for realloc */
 
 #define BW_OUT_UP_MIN	8192 /**< Minimum out bandwidth for becoming ultra */
-#define BW_OUT_DHT_MIN	8192 /**< Minimum out bandwidth for joining the DHT */
 #define BW_OUT_GNET_MIN	128	 /**< Minimum out bandwidth per Gnet connection */
 #define BW_OUT_LEAF_MIN	32	 /**< Minimum out bandwidth per leaf connection */
 
