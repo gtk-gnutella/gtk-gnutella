@@ -2208,7 +2208,7 @@ static prop_map_t property_map[] = {
     {
         PROP_BW_DHT_OUT_ENABLED,
         bw_dht_out_enabled_changed,
-        FALSE
+        TRUE		/* Want it inited initially */
     },
     {
         PROP_SCAN_EXTENSIONS,
