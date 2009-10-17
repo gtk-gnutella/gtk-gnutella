@@ -6970,7 +6970,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[321].name = "output_dht_lookup_bandwidth";
-    gnet_property->props[321].desc = _("Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for limiting concurrent publishing and searching.  Traffic is made on the Gnutella UDP socket. Output needs are lower than input.");
+    gnet_property->props[321].desc = _("Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for limiting concurrent publishing and searching.  Traffic is made on the Gnutella UDP socket. Output needs are lower than input (between 3 to 5 times less). The larger the numbers, the more values can be looked up concurrently, but the more bandwidth is used.");
     gnet_property->props[321].ev_changed = event_new("bw_dht_lookup_out_changed");
     gnet_property->props[321].save = TRUE;
     gnet_property->props[321].vector_size = 1;
@@ -6990,7 +6990,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[322].name = "input_dht_lookup_bandwidth";
-    gnet_property->props[322].desc = _("Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for limiting concurrent publishing and searching.  Traffic is made on the Gnutella UDP socket and cannot therefore be truly controlled.  Input needs are much larger than output as far as lookups are concerned.");
+    gnet_property->props[322].desc = _("Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for limiting concurrent publishing and searching.  Traffic is made on the Gnutella UDP socket and cannot therefore be truly controlled.  Input needs are much larger than output as far as lookups are concerned (between 3 to 5 times).  The larger the numbers the more values can be looked up concurrently, but the more bandwidth is used.");
     gnet_property->props[322].ev_changed = event_new("bw_dht_lookup_in_changed");
     gnet_property->props[322].save = TRUE;
     gnet_property->props[322].vector_size = 1;
@@ -7767,7 +7767,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[362].name = "output_dht_bandwidth";
-    gnet_property->props[362].desc = _("Bandwidth limit for outgoing DHT traffic in bytes/sec.");
+    gnet_property->props[362].desc = _("Bandwidth limit for outgoing DHT traffic in bytes/sec. It is always pooled with the Gnutella UDP queue, regardless of whether bandwidth stealing is enabled, so that UDP queues can flush more quickly.");
     gnet_property->props[362].ev_changed = event_new("bw_dht_out_changed");
     gnet_property->props[362].save = TRUE;
     gnet_property->props[362].vector_size = 1;
