@@ -400,6 +400,7 @@ typedef enum {
     PROP_BW_DHT_OUT_ENABLED,
     PROP_BW_DHT_OUT,
     PROP_NODE_DHT_SENDQUEUE_SIZE,
+    PROP_BSCHED_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

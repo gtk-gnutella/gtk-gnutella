@@ -841,6 +841,8 @@ guint32  gnet_property_variable_bw_dht_out     = 12288;
 static const guint32  gnet_property_variable_bw_dht_out_default = 12288;
 guint32  gnet_property_variable_node_dht_sendqueue_size     = 131072;
 static const guint32  gnet_property_variable_node_dht_sendqueue_size_default = 131072;
+guint32  gnet_property_variable_bsched_debug     = 0;
+static const guint32  gnet_property_variable_bsched_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -7797,6 +7799,26 @@ gnet_prop_init(void) {
     gnet_property->props[363].data.guint32.choices = NULL;
     gnet_property->props[363].data.guint32.max   = 256000;
     gnet_property->props[363].data.guint32.min   = 98304;
+
+
+    /*
+     * PROP_BSCHED_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[364].name = "bsched_debug";
+    gnet_property->props[364].desc = _("Debug level for bandwidth scheduler.");
+    gnet_property->props[364].ev_changed = event_new("bsched_debug_changed");
+    gnet_property->props[364].save = TRUE;
+    gnet_property->props[364].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[364].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[364].data.guint32.def   = (void *) &gnet_property_variable_bsched_debug_default;
+    gnet_property->props[364].data.guint32.value = (void *) &gnet_property_variable_bsched_debug;
+    gnet_property->props[364].data.guint32.choices = NULL;
+    gnet_property->props[364].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[364].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
