@@ -44,6 +44,10 @@
 
 RCSID("$Id$")
 
+#ifdef I_MATH
+#include <math.h>		/* For log() */
+#endif	/* I_MATH */
+
 #include "publisher.h"
 #include "share.h"
 #include "pdht.h"
@@ -79,6 +83,29 @@ RCSID("$Id$")
 
 #define PUBLISH_DB_CACHE_SIZE	128		/**< Amount of data to keep cached */
 #define PUBLISH_SYNC_PERIOD		60000	/**< Flush DB every minute */
+#define PUBLISH_MIN_DECIMATION	0.95	/**< Minimum acceptable decimation */
+
+
+/**
+ * Decimation factor to adjust the republish time depending on how many
+ * nodes we published to.  Since the overall probability of all the n nodes
+ * to which we published to disappearing within the hour is exponentially
+ * decreasing, so is our decimation function.
+ *
+ * Assuming we manage to publish to n nodes out of the k-closest set,
+ * the decimation is set to 1 + ln(n/k)^2, with n <= k.
+ *
+ * To avoid having to do a floating point division each time, we compute
+ * the inverse of the decimation factor.
+ */
+static double inverse_decimation[KDA_K];
+
+/**
+ * The minimum amount of nodes we accept without attempting a background
+ * followup STORE is the amount for which the inverse of the decimation
+ * factor is greater than PUBLISH_MIN_DECIMATION.
+ */
+static unsigned publisher_minimum;
 
 typedef enum { PUBLISHER_MAGIC = 0x7592fb8fU } publisher_magic_t;
 
@@ -311,11 +338,20 @@ publisher_done(gpointer arg, pdht_error_t code,
 	case PDHT_E_OK:
 		/*
 		 * If we were not able to publish to KDA_K nodes, decrease the
-		 * delay before republishing.
+		 * delay before republishing.  We use a non-linear decimation of
+		 * the republish time, as a function of the number of nodes to which
+		 * we could publish.
 		 */
 
-		delay = DHT_VALUE_ALOC_EXPIRE * all_roots / KDA_K - PUBLISH_SAFETY;
-		delay = MAX(delay, PUBLISH_SAFETY);
+		if (0 == all_roots) {
+			delay = PUBLISH_SAFETY;
+		} else if (all_roots >= KDA_K) {
+			delay = DHT_VALUE_ALOC_EXPIRE - PUBLISH_SAFETY;
+		} else {
+			delay = inverse_decimation[all_roots - 1] * DHT_VALUE_ALOC_EXPIRE;
+			delay -= PUBLISH_SAFETY;
+			delay = MAX(delay, PUBLISH_SAFETY);
+		}
 		break;
 	case PDHT_E_POPULAR:
 		delay = PUBLISH_POPULAR;
@@ -383,7 +419,7 @@ publisher_done(gpointer arg, pdht_error_t code,
 		gm_snprintf(retry, sizeof retry, "%s", compact_time(delay));
 
 		g_message("PUBLISHER SHA-1 %s %s%s\"%s\" %spublished to %u node%s%s: %s"
-			" (%stook %s, total %u node%s, retry in %s, %s bg)",
+			" (%stook %s, total %u node%s, retry in %s, %s bg, path %u)",
 			sha1_to_string(pe->sha1),
 			pe->backgrounded ? "[bg] " : "",
 			(sf && sf != SHARE_REBUILDING && shared_file_is_partial(sf)) ?
@@ -392,7 +428,8 @@ publisher_done(gpointer arg, pdht_error_t code,
 			pe->last_publish ? "re" : "",
 			roots, 1 == roots ? "" : "s", after, pdht_strerror(code), late,
 			compact_time(delta_time(tm_time(), pe->last_enqueued)),
-			all_roots, 1 == all_roots ? "" : "s", retry, can_bg ? "can" : "no");
+			all_roots, 1 == all_roots ? "" : "s", retry, can_bg ? "can" : "no",
+			path_len);
 	}
 
 	/*
@@ -408,7 +445,7 @@ publisher_done(gpointer arg, pdht_error_t code,
 				dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
 			}
 		}
-		accepted = all_roots == path_len || !can_bg;
+		accepted = all_roots >= publisher_minimum || !can_bg;
 	}
 
 	/*
@@ -703,6 +740,8 @@ publisher_sync(gpointer unused_obj)
 void
 publisher_init(void)
 {
+	size_t i;
+
 	publish_cq = cq_submake("publisher", callout_queue, PUBLISHER_CALLOUT);
 	publisher_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
 
@@ -712,6 +751,32 @@ publisher_init(void)
 		PUBLISH_DB_CACHE_SIZE, sha1_hash, sha1_eq);
 
 	cq_periodic_add(publish_cq, PUBLISH_SYNC_PERIOD, publisher_sync, NULL);
+
+	for (i = 0; i < G_N_ELEMENTS(inverse_decimation); i++) {
+		double n = i + 1.0;
+		double v = log(n / KDA_K);
+
+		inverse_decimation[i] = 1.0 / (1.0 + v * v);
+
+		if (GNET_PROPERTY(publisher_debug) > 4) {
+			g_message("PUBLISHER inverse_decimation[%u] = %.3f",
+				i, inverse_decimation[i]);
+		}
+	}
+
+	for (i = 0; i < G_N_ELEMENTS(inverse_decimation); i++) {
+		if (inverse_decimation[i] >= PUBLISH_MIN_DECIMATION) {
+			publisher_minimum = i + 1;
+			break;
+		}
+	}
+
+	g_assert(publisher_minimum > 0);
+
+	if (GNET_PROPERTY(publisher_debug)) {
+		g_message("PUBLISHER minimum amount of nodes we accept: %u",
+			publisher_minimum);
+	}
 }
 
 /**
