@@ -1548,6 +1548,12 @@ bw_gnet_lout_enabled_changed(property_t prop)
 }
 
 static gboolean
+bw_dht_out_enabled_changed(property_t prop)
+{
+	return bw_switch(prop, BSCHED_BWS_DHT_OUT);
+}
+
+static gboolean
 node_sendqueue_size_changed(property_t unused_prop)
 {
     guint32 min = 1.5 * settings_max_msg_size();
@@ -1776,6 +1782,17 @@ bw_gnet_lout_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GLOUT, val);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
+
+    return FALSE;
+}
+
+static gboolean
+bw_dht_out_changed(property_t prop)
+{
+    guint32 val;
+
+    gnet_prop_get_guint32_val(prop, &val);
+    bsched_set_bandwidth(BSCHED_BWS_DHT_OUT, val);
 
     return FALSE;
 }
@@ -2189,6 +2206,11 @@ static prop_map_t property_map[] = {
         FALSE
     },
     {
+        PROP_BW_DHT_OUT_ENABLED,
+        bw_dht_out_enabled_changed,
+        FALSE
+    },
+    {
         PROP_SCAN_EXTENSIONS,
         scan_extensions_changed,
         TRUE
@@ -2261,6 +2283,11 @@ static prop_map_t property_map[] = {
     {
         PROP_BW_GNET_LOUT,
         bw_gnet_lout_changed,
+        FALSE
+    },
+    {
+        PROP_BW_DHT_OUT,
+        bw_dht_out_changed,
         FALSE
     },
     {
