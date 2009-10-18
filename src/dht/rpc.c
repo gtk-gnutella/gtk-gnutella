@@ -294,6 +294,33 @@ dht_rpc_cancel_if_no_callback(const guid_t *muid)
 }
 
 /**
+ * Extract IP:port of the host to which we sent an RPC.
+ *
+ * @return TRUE if we found the pending RPC, with host and port filled,
+ * false otherwise.
+ */
+gboolean
+dht_rpc_info(const guid_t *muid, host_addr_t *addr, guint16 *port)
+{
+	struct rpc_cb *rcb;
+	knode_t *rn;
+
+	rcb = g_hash_table_lookup(pending, muid);
+	if (!rcb)
+		return FALSE;
+
+	rpc_cb_check(rcb);
+
+	rn = rcb->kn;
+	knode_check(rn);
+
+	*addr = rn->addr;
+	*port = rn->port;
+
+	return TRUE;
+}
+
+/**
  * Notification that an RPC answer message was received.
  *
  * @param muid		the MUID of the message
@@ -344,7 +371,10 @@ dht_rpc_answer(const guid_t *muid,
 	 * the registered callback will perform this kind of verification itself.
 	 */
 
-	if (!(rcb->flags & RPC_CALL_NO_VERIFY) && !kuid_eq(kn->id, rn->id)) {
+	if (
+		!(rcb->flags & RPC_CALL_NO_VERIFY) &&
+		kn != rn && !kuid_eq(kn->id, rn->id)
+	) {
 		/*
 		 * This node is stale: the node to which we sent the RPC bears
 		 * a KUID different from the one we thought it had.  The node we
@@ -368,6 +398,18 @@ dht_rpc_answer(const guid_t *muid,
 		rpc_timed_out(callout_queue, rcb);	/* Invoke user callback if any */
 
 		return FALSE;	/* RPC was sent to wrong node, ignore */
+	}
+
+	/*
+	 * If kn and rn are different (see above comment as to why this can be),
+	 * we need to make sure the "firewalled" statuses and the "shutdowning"
+	 * statuses of the replying node are propagated correctly.
+	 */
+
+	if (kn != rn) {
+		guint32 flags = kn->flags & (KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING);
+		rn->flags &= ~(KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING);
+		rn->flags |= flags;
 	}
 
 	/*
