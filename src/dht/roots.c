@@ -141,6 +141,8 @@ rootinfo_check(const struct rootinfo *ri)
 	g_assert(ROOTINFO_MAGIC == ri->magic);
 }
 
+#define ROOTDATA_STRUCT_VERSION	0
+
 /**
  * Information about a target KUID that is stored to disk.
  * The structure is serialized first, not written as-is.
@@ -149,12 +151,15 @@ struct rootdata {
 	guint64 dbkeys[KDA_K];	/**< SDBM keys pointing to contact information */
 	time_t last_update;		/**< When we last updated the key set */
 	guint8 count;			/**< Amount of dbkeys contained */
+	guint8 version;			/**< Structure version */
 };
 
 /**
  * Internal counter used to assign DB keys to the contacts we're storing.
  */
 static guint64 contactid = 1;		/* 0 is not a valid key (used as marker) */
+
+#define CONTACT_STRUCT_VERSION	0
 
 /**
  * Contact information.
@@ -167,6 +172,7 @@ struct contact {
 	guint16 port;			/**< Port of the node */
 	guint8 major;			/**< Major version */
 	guint8 minor;			/**< Minor version */
+	guint8 version;			/**< Structure version */
 };
 
 static unsigned targets_managed;	/**< Amount of targets held in database */
@@ -668,6 +674,17 @@ serialize_rootdata(pmsg_t *mb, gconstpointer data)
 	for (i = 0; i < rd->count; i++) {
 		pmsg_write_be64(mb, rd->dbkeys[i]);
 	}
+
+	/*
+	 * Because this is persistent, version the structure so that changes
+	 * can be processed efficiently after an upgrade.
+	 *
+	 * This is done here and not at the beginning of the serialized data
+	 * because I forgot to plan for it before.
+	 *		--RAM, 2009-10-18
+	 */
+
+	pmsg_write_u8(mb, ROOTDATA_STRUCT_VERSION);
 }
 
 /**
@@ -688,6 +705,21 @@ deserialize_rootdata(bstr_t *bs, gpointer valptr, size_t len)
 	for (i = 0; i < rd->count; i++) {
 		bstr_read_be64(bs, &rd->dbkeys[i]);
 	}
+
+	/*
+	 * Temporary, until 0.96.7 is out: we cannot blindly read the version
+	 * since it was lacking in previous experimental versions.  Therefore
+	 * only do it if we have unread data.
+	 *
+	 * The test will be removed in versions after 0.96.7, when we can be
+	 * certain that the new data format was serialized.
+	 *		--RAM, 2009-10-18
+	 */
+
+	if (bstr_unread_size(bs))
+		bstr_read_u8(bs, &rd->version);
+	else
+		rd->version = 0;
 }
 
 /**
@@ -704,6 +736,17 @@ serialize_contact(pmsg_t *mb, gconstpointer data)
 	pmsg_write_be16(mb, c->port);
 	pmsg_write_u8(mb, c->major);
 	pmsg_write_u8(mb, c->minor);
+
+	/*
+	 * Because this is persistent, version the structure so that changes
+	 * can be processed efficiently after an upgrade.
+	 *
+	 * This is done here and not at the beginning of the serialized data
+	 * because I forgot to plan for it before.
+	 *		--RAM, 2009-10-18
+	 */
+
+	pmsg_write_u8(mb, CONTACT_STRUCT_VERSION);
 }
 
 /**
@@ -725,6 +768,21 @@ deserialize_contact(bstr_t *bs, gpointer valptr, size_t len)
 	bstr_read_be16(bs, &c->port);
 	bstr_read_u8(bs, &c->major);
 	bstr_read_u8(bs, &c->minor);
+
+	/*
+	 * Temporary, until 0.96.7 is out: we cannot blindly read the version
+	 * since it was lacking in previous experimental versions.  Therefore
+	 * only do it if we have unread data.
+	 *
+	 * The test will be removed in versions after 0.96.7, when we can be
+	 * certain that the new data format was serialized.
+	 *		--RAM, 2009-10-18
+	 */
+
+	if (bstr_unread_size(bs))
+		bstr_read_u8(bs, &c->version);
+	else
+		c->version = 0;
 
 	/*
 	 * Only create the KUID atom if there was no error in the deserialization

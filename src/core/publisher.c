@@ -143,6 +143,8 @@ static dbmw_t *db_pubdata;
 static char db_pubdata_base[] = "dht_published";
 static char db_pubdata_what[] = "DHT published SHA-1 information";
 
+#define PUBDATA_STRUCT_VERSION	0
+
 /**
  * Publish scheduling information kept in persistent storage.
  *
@@ -152,6 +154,7 @@ static char db_pubdata_what[] = "DHT published SHA-1 information";
 struct pubdata {
 	time_t next_enqueue;		/**< When file should be enqueued again */
 	time_t expiration;			/**< Expiration date of published information */
+	guint8 version;				/**< Structure version */
 };
 
 static void publisher_handle(struct publisher_entry *pe);
@@ -706,6 +709,17 @@ serialize_pubdata(pmsg_t *mb, gconstpointer data)
 
 	pmsg_write_time(mb, pd->next_enqueue);
 	pmsg_write_time(mb, pd->expiration);
+
+	/*
+	 * Because this is persistent, version the structure so that changes
+	 * can be processed efficiently after an upgrade.
+	 *
+	 * This is done here and not at the beginning of the serialized data
+	 * because I forgot to plan for it before.
+	 *		--RAM, 2009-10-18
+	 */
+
+	pmsg_write_u8(mb, PUBDATA_STRUCT_VERSION);
 }
 
 /**
@@ -720,6 +734,21 @@ deserialize_pubdata(bstr_t *bs, gpointer valptr, size_t len)
 
 	bstr_read_time(bs, &pd->next_enqueue);
 	bstr_read_time(bs, &pd->expiration);
+
+	/*
+	 * Temporary, until 0.96.7 is out: we cannot blindly read the version
+	 * since it was lacking in previous experimental versions.  Therefore
+	 * only do it if we have unread data.
+	 *
+	 * The test will be removed in versions after 0.96.7, when we can be
+	 * certain that the new data format was serialized.
+	 *		--RAM, 2009-10-18
+	 */
+
+	if (bstr_unread_size(bs))
+		bstr_read_u8(bs, &pd->version);
+	else
+		pd->version = 0;
 }
 
 /**
