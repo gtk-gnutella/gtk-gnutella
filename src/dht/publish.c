@@ -1499,12 +1499,31 @@ pb_value_handle_reply(gpointer obj, const knode_t *kn,
 	 */
 
 	if (function != KDA_MSG_STORE_RESPONSE) {
-		if (GNET_PROPERTY(dht_publish_debug))
+		if (GNET_PROPERTY(dht_publish_debug)) {
 			g_warning("DHT PUBLISH[%s] hop %u got unexpected %s reply from %s",
 				revent_id_to_string(pb->pid), hop, kmsg_name(function),
 				knode_to_string(kn));
-
+		}
 		pb->rpc_bad++;
+		return can_iterate;
+	}
+
+	/*
+	 * If we get a reply from a shutdowning or firewalled node, then we
+	 * need to ignore the node alltogether.
+	 */
+
+	if (kn->flags & (KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING)) {
+		if (GNET_PROPERTY(dht_publish_debug)) {
+			g_warning("DHT PUBLISH[%s] hop %u got %s from to-be-ignored %s%s%s",
+				revent_id_to_string(pb->pid), hop, kmsg_name(function),
+				(kn->flags & KNODE_F_FIREWALLED) ? "firewalled " : "",
+				(kn->flags & KNODE_F_SHUTDOWNING) ? "shutdowning " : "",
+				knode_to_string(kn));
+		}
+		pb->rpc_bad++;
+		tcache_remove(kn->id);
+		publish_value_set_store_status(pb, kn, STORE_SC_FIREWALLED);
 		return can_iterate;
 	}
 

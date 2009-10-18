@@ -102,6 +102,7 @@ typedef enum {
 #define STORE_SC_EXPIRED		14U	/**< Value has already expired */
 #define STORE_SC_DB_IO			15U	/**< Database I/O error */
 
+#define STORE_SC_FIREWALLED		65534U	/**< Internal: node is firewalled */
 #define STORE_SC_TIMEOUT		65535U	/**< Internal: STORE timed-out */
 
 struct dht_value;
