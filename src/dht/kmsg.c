@@ -907,6 +907,7 @@ answer_find_node(struct gnutella_node *n,
 	int requested = KDA_K;
 	int cnt;
 	const char *msg = NULL;
+	gboolean delayed;
 
 	/*
 	 * If the UDP queue is flow controlled already, there's no need to
@@ -949,14 +950,18 @@ answer_find_node(struct gnutella_node *n,
 	 * the queue, drop the request.
 	 */
 
+	delayed = node_dht_above_low_watermark();
+
 	if (kn->flags & KNODE_F_FIREWALLED) {
-		if (node_dht_above_low_watermark()) {
+		if (delayed) {
 			msg = "above low watermark with passive requestor";
 			goto flow_controlled;
 		}
 		if (bsched_saturated(BSCHED_BWS_DHT_OUT)) {
 			requested = KDA_K / 2;
 		}
+	} else if (delayed) {
+		requested = 3 * KDA_K / 4;
 	}
 
 	/*
@@ -1862,14 +1867,6 @@ void kmsg_received(
 			}
 			kaddr = raddr;
 			kport = rport;
-		} else {
-			if (GNET_PROPERTY(dht_debug)) {
-				g_warning("DHT bad contact address %s (%s v%u.%u), "
-					"forcing \"firewalled\" flag",
-					host_addr_port_to_string(kaddr, kport),
-					vendor_code_to_string(vcode.u32), kmajor, kminor);
-			}
-			flags |= KDA_MSG_F_FIREWALLED;
 		}
 	}
 
@@ -1897,6 +1894,16 @@ void kmsg_received(
 	g_assert(kn == NULL || !(kn->flags & KNODE_F_FIREWALLED));
 
 	if (NULL == kn) {
+		if (!(flags & KDA_MSG_F_FIREWALLED) && !host_is_valid(kaddr, kport)) {
+			if (GNET_PROPERTY(dht_debug)) {
+				g_warning("DHT bad contact address %s (%s v%u.%u), "
+					"forcing \"firewalled\" flag",
+					host_addr_port_to_string(kaddr, kport),
+					vendor_code_to_string(vcode.u32), kmajor, kminor);
+			}
+			flags |= KDA_MSG_F_FIREWALLED;
+		}
+
 		if (GNET_PROPERTY(dht_debug) > 2)
 			g_message("DHT traffic from new %s%snode %s at %s (%s v%u.%u)",
 				(flags & KDA_MSG_F_FIREWALLED) ? "firewalled " : "",
@@ -1909,7 +1916,35 @@ void kmsg_received(
 		if (!(flags & (KDA_MSG_F_FIREWALLED | KDA_MSG_F_SHUTDOWNING)))
 			dht_traffic_from(kn);
 	} else {
-		if (GNET_PROPERTY(dht_debug) > 2)
+		/*
+		 * This here is again a workaround for LimeWire's bug: a good
+		 * non-firewalled host that is known in our routing table with a
+		 * proper address has to be identical to one bearing the same KUID
+		 * with a non-routable address as long as the ports are identical.
+		 *
+		 * This needs to be done here before we attempt to initiate an
+		 * address validation because the node's address would appear to have
+		 * changed...
+		 */
+
+		if (
+			!(flags & KDA_MSG_F_FIREWALLED) && !host_is_valid(kaddr, kport) &&
+			host_is_valid(kn->addr, kn->port) && kport == kn->port
+		) {
+			if (GNET_PROPERTY(dht_debug)) {
+				g_warning("DHT fixing contact address %s (%s v%u.%u) "
+					"to %s:%u based on routing table (%s UDP info)",
+					host_addr_port_to_string(kaddr, kport),
+					vendor_code_to_string(vcode.u32), kmajor, kminor,
+					host_addr_to_string(kn->addr), kn->port,
+					host_addr_equal(addr, kn->addr) && port == kport ?
+						"matches" : "still different from");
+			}
+			kaddr = kn->addr;
+			/* Port identical, as checked in test */
+		}
+
+		if (GNET_PROPERTY(dht_debug) > 2) {
 			g_message("DHT traffic from known %s %s%snode %s at %s (%s v%u.%u)",
 				knode_status_to_string(kn->status),
 				(flags & KDA_MSG_F_FIREWALLED) ? "firewalled " : "",
@@ -1917,6 +1952,7 @@ void kmsg_received(
 				kuid_to_hex_string(id),
 				host_addr_port_to_string(kaddr, kport),
 				vendor_code_to_string(vcode.u32), kmajor, kminor);
+		}
 
 		/*
 		 * Make sure the IP has not changed for the node.
