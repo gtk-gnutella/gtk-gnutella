@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "values.h"
 #include "storage.h"
 
+#include "core/bsched.h"
 #include "core/gnet_stats.h"
 #include "core/hosts.h"
 #include "core/hostiles.h"
@@ -903,6 +904,7 @@ answer_find_node(struct gnutella_node *n,
 	const knode_t *kn, const kuid_t *id, const guid_t *muid)
 {
 	knode_t *kvec[KDA_K];
+	int requested = KDA_K;
 	int cnt;
 	const char *msg = NULL;
 
@@ -929,10 +931,46 @@ answer_find_node(struct gnutella_node *n,
 	}
 
 	/*
+	 * If the request comes from a firewalled node, then let's be stricter.
+	 *
+	 * Indeed, a firewalled node will not participate to the DHT structure
+	 * fully since it cannot answer FIND_NODE and STORE requests, by definition.
+	 *
+	 * We are an active node (since we're replying to the RPC) and therefore
+	 * are paying a greater bandwidth price for the benefit of the whole
+	 * network, but this should not penalize us if there are more passive than
+	 * active nodes out there.
+	 *
+	 * So, if the request comes from a firewalled node and we are already
+	 * suffering from outgoing traffic congestion, limit the number of replies
+	 * to KDA_K / 2.
+	 *
+	 * Furthermore, if we already have enough outgoing pending traffic in
+	 * the queue, drop the request.
+	 */
+
+	if (kn->flags & KNODE_F_FIREWALLED) {
+		if (node_dht_above_low_watermark()) {
+			msg = "above low watermark with passive requestor";
+			goto flow_controlled;
+		}
+		if (bsched_saturated(BSCHED_BWS_DHT_OUT)) {
+			requested = KDA_K / 2;
+		}
+	}
+
+	/*
 	 * OK, perform the lookup and send them the answer.
 	 */
 
-	cnt = dht_fill_closest(id, kvec, KDA_K, kn->id, TRUE);
+	if (GNET_PROPERTY(dht_debug > 2)) {
+		g_message("DHT processing FIND_NODE %s (requestor %s, %d node%s)",
+			kuid_to_hex_string(id),
+			(kn->flags & KNODE_F_FIREWALLED) ? "passive" : "active",
+			requested, 1 == requested ? "" : "s");
+	}
+
+	cnt = dht_fill_closest(id, kvec, requested, kn->id, TRUE);
 	k_send_find_node_response(n, kn, kvec, cnt, muid);
 	return;
 
@@ -1017,11 +1055,11 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 	 */
 
 	if (!peer_replication(kn, id) && keys_is_store_loaded(id)) {
-		if (GNET_PROPERTY(dht_debug > 2))
+		if (GNET_PROPERTY(dht_debug > 2)) {
 			g_message("DHT key %s getting too many STORE, "
 				"ignoring FIND_NODE from %s",
 				kuid_to_hex_string(id), knode_to_string(kn));
-
+		}
 		gnet_stats_count_dropped(n, MSG_DROP_DHT_TOO_MANY_STORE);
 		return;
 	}
@@ -1802,13 +1840,37 @@ void kmsg_received(
 	 */
 
 	if (!(flags & KDA_MSG_F_FIREWALLED) && !host_is_valid(kaddr, kport)) {
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT bad contact address %s (%s v%u.%u), "
-				"forcing \"firewalled\" flag",
-				host_addr_port_to_string(kaddr, kport),
-				vendor_code_to_string(vcode.u32), kmajor, kminor);
+		host_addr_t raddr;
+		guint16 rport;
 
-		flags |= KDA_MSG_F_FIREWALLED;
+		/*
+		 * LimeWire nodes suffer from a bug whereby the contact is not
+		 * firewalled but replies to RPC requests come back with an
+		 * advertised address of 127.0.0.1.  This is annoying but hopefully
+		 * fixable, at the cost of extra processing.
+		 */
+
+		if (dht_rpc_info(kademlia_header_get_muid(header), &raddr, &rport)) {
+			if (GNET_PROPERTY(dht_debug)) {
+				g_warning("DHT fixing contact address %s (%s v%u.%u) "
+					"to %s:%u on RPC reply (%s UDP info)",
+					host_addr_port_to_string(kaddr, kport),
+					vendor_code_to_string(vcode.u32), kmajor, kminor,
+					host_addr_to_string(raddr), rport,
+					host_addr_equal(addr, raddr) && port == rport ?
+						"matches" : "still different from");
+			}
+			kaddr = raddr;
+			kport = rport;
+		} else {
+			if (GNET_PROPERTY(dht_debug)) {
+				g_warning("DHT bad contact address %s (%s v%u.%u), "
+					"forcing \"firewalled\" flag",
+					host_addr_port_to_string(kaddr, kport),
+					vendor_code_to_string(vcode.u32), kmajor, kminor);
+			}
+			flags |= KDA_MSG_F_FIREWALLED;
+		}
 	}
 
 	/*
