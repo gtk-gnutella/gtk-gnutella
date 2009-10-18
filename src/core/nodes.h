@@ -599,6 +599,7 @@ void node_set_socket_rx_size(int rx_size);
 mqueue_t *node_udp_get_outq(enum net_type net);
 gboolean node_dht_is_flow_controlled(void);
 gboolean node_dht_would_flow_control(size_t additional);
+gboolean node_dht_above_low_watermark(void);
 void node_udp_disable(void);
 void node_udp_process(gnutella_node_t *n, struct gnutella_socket *s);
 gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, guint16 port);

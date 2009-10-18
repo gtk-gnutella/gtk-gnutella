@@ -6318,6 +6318,22 @@ node_dht_would_flow_control(size_t additional)
 }
 
 /**
+ * Check whether we already have sufficient delay in the queue (above the
+ * low water-mark), regardless of whether we are flow-controlled.
+ */
+gboolean
+node_dht_above_low_watermark(void)
+{
+	if (dht_node && dht_node->outq && mq_above_low_watermark(dht_node->outq))
+		return TRUE;
+
+	if (dht6_node && dht6_node->outq && mq_above_low_watermark(dht6_node->outq))
+		return TRUE;
+
+	return FALSE;
+}
+
+/**
  * Setup addr:port in pseudo node.
  */
 static inline gnutella_node_t *

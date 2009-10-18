@@ -138,6 +138,15 @@ mq_would_flow_control(const mqueue_t *q, size_t additional)
 }
 
 /**
+ * Are we already at or above the low watermark?
+ */
+gboolean
+mq_above_low_watermark(const mqueue_t *q)
+{
+	return q->size >= q->lowat;
+}
+
+/**
  * Compute readable queue information.
  */
 const char *

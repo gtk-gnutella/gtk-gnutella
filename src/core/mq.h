@@ -128,6 +128,7 @@ enum {
 gboolean mq_is_flow_controlled(const mqueue_t *q);
 gboolean mq_is_swift_controlled(const mqueue_t *q);
 gboolean mq_would_flow_control(const mqueue_t *q, size_t additional);
+gboolean mq_above_low_watermark(const mqueue_t *q);
 guint32 mq_debug(const mqueue_t *q);
 int mq_maxsize(const mqueue_t *q);
 int mq_size(const mqueue_t *q);
