@@ -2269,6 +2269,41 @@ lookup_handle_reply(
 	}
 
 	/*
+	 * For STORE lookups, if we got our first valid RPC reply then we now have
+	 * hopefully queried the node closest to the key.
+	 *
+	 * We can therefore pre-load the path with all the nodes in our shortlist
+	 * for which we have a security token cached: we are not going to contact
+	 * these nodes.
+	 */
+
+	if (LOOKUP_STORE == nl->type && 0 == patricia_count(nl->path)) {
+		if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+			g_message("DHT LOOKUP[%s] got first RPC reply, loading STORE path",
+				revent_id_to_string(nl->lid));
+		}
+		lookup_load_path(nl);
+	}
+
+	/*
+	 * If the replying node is either firewalled or shutdowning, it is best
+	 * to not include it in the lookup path: a firewalled node should not
+	 * have answered, and a shutdowning node may not be there when we need
+	 * to use the looked-up path.
+	 */
+
+	if (kn->flags & (KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING)) {
+		if (GNET_PROPERTY(dht_lookup_debug)) {
+			g_message("DHT LOOKUP[%s] ignoring reply from to-be-ignored %s%s%s",
+				revent_id_to_string(nl->lid),
+				(kn->flags & KNODE_F_FIREWALLED) ? "firewalled " : "",
+				(kn->flags & KNODE_F_SHUTDOWNING) ? "shutdowning " : "",
+				knode_to_string(kn));
+		}
+		goto done;
+	}
+
+	/*
 	 * We parsed the whole message correctly, so we can add this node to
 	 * our lookup path and remember its security token.
 	 */
@@ -2295,23 +2330,7 @@ lookup_handle_reply(
 		}
 	}
 
-	/*
-	 * For STORE lookups, if we got our first valid RPC reply then we now have
-	 * hopefully queried the node closest to the key.
-	 *
-	 * We can therefore pre-load the path with all the nodes in our shortlist
-	 * for which we have a security token cached: we are not going to contact
-	 * these nodes.
-	 */
-
-	if (LOOKUP_STORE == nl->type && 1 == map_count(nl->tokens)) {
-		if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-			g_message("DHT LOOKUP[%s] got first RPC reply, loading STORE path",
-				revent_id_to_string(nl->lid));
-		}
-		lookup_load_path(nl);
-	}
-
+done:
 	bstr_free(&bs);
 	return TRUE;
 
