@@ -259,10 +259,15 @@ bsched_free(bsched_t *bs)
 	G_FREE_NULL(bs);
 }
 
+/**
+ * Is bandwidth scheduler saturated currently?
+ */
 gboolean
 bsched_saturated(bsched_bws_t bws)
 {
 	const bsched_t *bs = bsched_get(bws);
+	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
+		return FALSE;
 	return bs->bw_actual > bs->bw_max;
 }
 
