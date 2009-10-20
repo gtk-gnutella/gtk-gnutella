@@ -755,27 +755,63 @@ short_time_ascii(time_delta_t t)
 }
 
 /**
+ * A variant of compact_time(), formatting being done in the supplied buffer.
+ *
+ * @param t			the elapsed time to format.
+ * @param dst		the destination buffer; may be NULL iff ``size'' is zero
+ * @param size		the size of ``dst'', in bytes
+ *
+ * @return The length of the resulting string assuming ``size'' is sufficient.
+ */
+size_t
+compact_time_to_buf(time_delta_t t, char *dst, size_t size)
+{
+	unsigned s = t < 0 ? -t : t;
+	char *m = t < 0 ? "-" : "";
+	size_t r;
+
+	if (s > 86400)
+		r = gm_snprintf(dst, size, "%s%ud%uh",
+				m, s / 86400, (s % 86400) / 3600);
+	else if (s > 3600)
+		r = gm_snprintf(dst, size, "%s%uh%um", m, s / 3600, (s % 3600) / 60);
+	else if (s > 60)
+		r = gm_snprintf(dst, size, "%s%um%us", m, s / 60, s % 60);
+	else
+		r = gm_snprintf(dst, size, "%s%us", m, s);
+
+	return r;
+}
+
+/**
  * A variant of short_time_ascii() without whitespace.
  *
- * @return time spent in seconds in a consise short readable form.
- * @note The returned string is in English and ASCII encoded.
+ * @return time spent in seconds in a concise short readable form.
+ * @note The returned string is in English and ASCII encoded, and held in
+ * a static buffer.
  */
 const char *
 compact_time(time_delta_t t)
 {
-	static char buf[4 * SIZE_FIELD_MAX];
-	guint s = MAX(t, 0);
+	static char buf[4 * SIZE_FIELD_MAX + 1];
 
-	if (s > 86400)
-		gm_snprintf(buf, sizeof buf, "%ud%uh",
-			s / 86400, (s % 86400) / 3600);
-	else if (s > 3600)
-		gm_snprintf(buf, sizeof buf, "%uh%um", s / 3600, (s % 3600) / 60);
-	else if (s > 60)
-		gm_snprintf(buf, sizeof buf, "%um%us", s / 60, s % 60);
-	else
-		gm_snprintf(buf, sizeof buf, "%us", s);
+	compact_time_to_buf(t, buf, sizeof buf);
+	return buf;
+}
 
+/**
+ * A variant of short_time_ascii() without whitespace.
+ *
+ * @return time spent in seconds in a concise short readable form.
+ * @note The returned string is in English and ASCII encoded, and held in
+ * a static buffer.
+ */
+const char *
+compact_time2(time_delta_t t)
+{
+	static char buf[4 * SIZE_FIELD_MAX + 1];
+
+	compact_time_to_buf(t, buf, sizeof buf);
 	return buf;
 }
 

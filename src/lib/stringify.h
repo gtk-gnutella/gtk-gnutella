@@ -91,7 +91,9 @@ const char *lazy_string_to_printf_escape(const char *src);
  */
 const char *short_time(time_delta_t s);
 const char *short_time_ascii(time_delta_t t);
+size_t compact_time_to_buf(time_delta_t t, char *dst, size_t size);
 const char *compact_time(time_delta_t t);
+const char *compact_time2(time_delta_t t);
 const char *short_uptime(time_delta_t s);
 size_t time_locale_to_string_buf(time_t date, char *dst, size_t size);
 size_t time_t_to_string_buf(time_t v, char *dst, size_t size);
