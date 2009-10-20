@@ -283,6 +283,19 @@ keys_within_kball(const kuid_t *id)
 }
 
 /**
+ * Is a key ID foreign?
+ *
+ * A key is foreign if it does not fall into our space, i.e. it does not
+ * have any common leading bits with our KUID.
+ */
+gboolean
+keys_is_foreign(const kuid_t *id)
+{
+	return 0 == common_leading_bits(id, KUID_RAW_BITSIZE,
+		get_our_kuid(), KUID_RAW_BITSIZE);
+}
+
+/**
  * Get keydata from database.
  */
 static struct keydata *
