@@ -60,6 +60,12 @@ typedef enum {
  * it probably makes sense in a highly transient environment.  However,
  * with such a low expiration time, it would have been wiser to choose
  * a KDA_K < 20.
+ *
+ * A solution would be to extend the message protocol to be able to specify
+ * the expiration time of published values.  Nodes would know to estimate
+ * that based on their average uptime for intance, or average IP stability time.
+ * However this extension must be transparent to existing nodes, which is
+ * a challenge.
  */
 #define DHT_VALUE_EXPIRE		(4*60*60)	/**< 4 hours, default */
 #define DHT_VALUE_ALOC_EXPIRE	(1*60*60)	/**< 1 hour for alt-locs */
@@ -70,7 +76,7 @@ typedef enum {
  *
  * Again, very low value chosen by the LimeWire team.
  */
-#define DHT_VALUE_REPUBLISH		(30*60)		/**< 30 minutes */
+#define DHT_VALUE_REPUBLISH		(60*60)		/**< 1 hour */
 
 /**
  * The size of the DHT value header, preceding the actual data value
