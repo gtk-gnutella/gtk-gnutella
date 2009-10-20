@@ -404,12 +404,16 @@ dht_rpc_answer(const guid_t *muid,
 	 * If kn and rn are different (see above comment as to why this can be),
 	 * we need to make sure the "firewalled" statuses and the "shutdowning"
 	 * statuses of the replying node are propagated correctly.
+	 *
+	 * Also we propage the "last_seen" timestamp on the RPC knode.
 	 */
 
 	if (kn != rn) {
 		guint32 flags = kn->flags & (KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING);
+
 		rn->flags &= ~(KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING);
-		rn->flags |= flags;
+		rn->flags |= flags | KNODE_F_ALIVE;
+		rn->last_seen = kn->last_seen;
 	}
 
 	/*
