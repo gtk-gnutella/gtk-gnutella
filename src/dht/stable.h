@@ -1,9 +1,7 @@
 /*
- * $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+ * $Id$
  *
- * Copyright (c) 2006, Raphael Manfredi
- *
- * Jmakefile for the DHT part.
+ * Copyright (c) 2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,43 +23,33 @@
  *----------------------------------------------------------------------
  */
 
-;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+/**
+ * @ingroup dht
+ * @file
+ *
+ * Stable node recording.
+ *
+ * @author Raphael Manfredi
+ * @date 2009
+ */
 
-SRC = \
-	acct.c \
-	keys.c \
-	kmsg.c \
-	knode.c \
-	kuid.c \
-	lookup.c \
-	publish.c \
-	revent.c \
-	roots.c \
-	routing.c \
-	rpc.c \
-	stable.c \
-	storage.c \
-	tcache.c \
-	token.c \
-	ulq.c \
-	values.c
+#ifndef _dht_stable_h_
+#define _dht_stable h_
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+#include "lib/tm.h"
+#include "if/dht/knode.h"
+#include "if/dht/lookup.h"
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+/*
+ * Public interface.
+ */
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
+void stable_init(void);
+void stable_close(void);
 
-IF = ../if
-GNET_PROPS = gnet_property.h
+double stable_alive_probability(time_delta_t t, time_delta_t d);
+void stable_record_activity(const knode_t *kn);
 
-RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
-NormalLibraryTarget(dht, $(SRC), $(OBJ))
-DependTarget()
+#endif /* _dht_stable_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

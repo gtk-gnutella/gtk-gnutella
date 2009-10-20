@@ -117,6 +117,7 @@ typedef void (*lookup_cb_ok_t)(
 
 const lookup_rs_t *lookup_result_refcnt_inc(const lookup_rs_t *rs);
 size_t lookup_result_path_length(const lookup_rs_t *rs);
+const knode_t *lookup_result_nth_node(const lookup_rs_t *rs, size_t n);
 void lookup_result_free(const lookup_rs_t *rs);
 
 const char *lookup_strerror(lookup_error_t error);

@@ -60,21 +60,29 @@ typedef enum {
 } pdht_error_t;
 
 /**
+ * The information structure supplied to the publish callback.
+ */
+typedef struct pdht_info {
+	double presence;		/**< estimated probability of presence in 1 hour */
+	unsigned roots;			/**< # of roots to which file was published now */
+	unsigned all_roots;		/**< total # of roots to which file was published */
+	unsigned path_len;		/**< total # of candidate roots for publishing */
+	gboolean can_bg;		/**< whether background publish can be attempted */
+} pdht_info_t;
+
+/**
  * Publish callback, invoked when the publishing request is finished, either
  * successfully or not.
  *
  * @param arg		user-supplied callback argument
  * @param code		status code of the operation
- * @param roots		number of roots to which the file was published this time
- * @param all_roots	total number of roots to which the file was published
- * @param path_len	total number of roots to which the file could be published
- * @param can_bg	whether background publishing can be attempted
+ * @param info		additional information about the publishing
  *
  * @return TRUE if receiver is OK with the publishing, FALSE to request further
  * background attempts to publish to more nodes.
  */
-typedef gboolean (*pdht_cb_t)(gpointer arg, pdht_error_t code,
-	unsigned roots, unsigned all_roots, unsigned path_len, gboolean can_bg);
+typedef gboolean (*pdht_cb_t)(gpointer arg,
+	pdht_error_t code, const pdht_info_t *info);
 
 /*
  * Public interface.

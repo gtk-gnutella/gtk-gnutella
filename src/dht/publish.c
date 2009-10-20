@@ -147,6 +147,7 @@ RCSID("$Id$")
 #include "revent.h"
 #include "tcache.h"
 #include "routing.h"		/* For get_our_kuid() */
+#include "stable.h"
 
 #include "if/dht/kademlia.h"
 #include "if/dht/value.h"
@@ -1532,6 +1533,13 @@ pb_value_handle_reply(gpointer obj, const knode_t *kn,
 	 */
 
 	g_assert(KDA_MSG_STORE_RESPONSE == function);
+
+	/*
+	 * Whether we got a successful reply or not for the STORE operation,
+	 * record the fact that the node (a STORE root) is still alive.
+	 */
+
+	stable_record_activity(kn);
 
 	/*
 	 * We count the amount of replies because, regardless of whether we got

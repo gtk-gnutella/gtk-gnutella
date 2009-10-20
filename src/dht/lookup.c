@@ -62,6 +62,7 @@ RCSID("$Id$")
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -474,6 +475,18 @@ lookup_result_path_length(const lookup_rs_t *rs)
 {
 	lookup_result_check(rs);
 	return rs->path_len;
+}
+
+/**
+ * @return nth node in the path.
+ */
+const knode_t *
+lookup_result_nth_node(const lookup_rs_t *rs, size_t n)
+{
+	g_assert(size_is_non_negative(n));
+	g_assert(n < rs->path_len);
+
+	return rs->path[n].kn;
 }
 
 /**

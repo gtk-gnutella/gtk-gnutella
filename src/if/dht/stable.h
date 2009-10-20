@@ -1,9 +1,7 @@
 /*
- * $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+ * $Id$
  *
- * Copyright (c) 2006, Raphael Manfredi
- *
- * Jmakefile for the DHT part.
+ * Copyright (c) 2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,43 +23,29 @@
  *----------------------------------------------------------------------
  */
 
-;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+/**
+ * @ingroup dht
+ * @file
+ *
+ * Stable node recording.
+ *
+ * @author Raphael Manfredi
+ * @date 2009
+ */
 
-SRC = \
-	acct.c \
-	keys.c \
-	kmsg.c \
-	knode.c \
-	kuid.c \
-	lookup.c \
-	publish.c \
-	revent.c \
-	roots.c \
-	routing.c \
-	rpc.c \
-	stable.c \
-	storage.c \
-	tcache.c \
-	token.c \
-	ulq.c \
-	values.c
+#ifndef _if_dht_stable_h_
+#define _if_dht_stable_h_
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+#include "lookup.h"
+#include "lib/tm.h"
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+/*
+ * Public interface.
+ */
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
+double stable_store_presence(time_delta_t d,
+	const lookup_rs_t *rs, const guint16 *status);
 
-IF = ../if
-GNET_PROPS = gnet_property.h
+#endif	/* _if_dht_stable_h_ */
 
-RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
-NormalLibraryTarget(dht, $(SRC), $(OBJ))
-DependTarget()
-
+/* vi: set ts=4 sw=4 cindent: */

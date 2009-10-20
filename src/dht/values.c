@@ -73,6 +73,7 @@ RCSID("$Id$")
 #include "acct.h"
 #include "keys.h"
 #include "kmsg.h"
+#include "stable.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1132,15 +1133,50 @@ validate_new_acceptable(const dht_value_t *v)
 /**
  * Compute value's expiration time based on the proximity we have with the key,
  * the status of our k-ball at the time of publication and the type of data.
+ *
+ * @param key		the primary key
+ * @param type		the value type
+ * @param cn		the creator node, NULL if not an original
+ * @param created	the creation date (first publish from creator)
  */
 static time_t
-values_expire_time(const kuid_t *key, dht_value_type_t type)
+values_expire_time(const kuid_t *key, dht_value_type_t type,
+	const knode_t *cn, time_t created)
 {
 	time_delta_t lifetime = dht_value_lifetime(type);
 	double decimation = keys_decimation_factor(key);
 
 	g_assert(decimation > 0.0);
 	g_assert(lifetime > 0);
+
+	/*
+	 * If value is an original and it's being republished, augment its
+	 * default lifetime proportionally to the expected probability of
+	 * presence in one republishing period, given the known node's lifetime,
+	 * as long as this probability is greater than 0.5.
+	 *
+	 * This strategy avoid too early expiration of values republished by
+	 * stable nodes, provided we are one of the k-closest nodes (decimation
+	 * is 1.0).  It favors stable data by "reserving" one of the limited
+	 * value slots for the key.
+	 */
+
+	if (cn != NULL && decimation <= 1.0) {	/* Signals an original, for us */
+		time_delta_t alive = delta_time(tm_time(), created);
+		double p = stable_alive_probability(alive, DHT_VALUE_REPUBLISH);
+
+		if (p > 0.5) {
+			lifetime += lifetime * 3.0 * (p - 0.5);
+
+			if (GNET_PROPERTY(dht_storage_debug)) {
+				g_message("DHT STORE boosted expire of \"%s\" %s to %s, "
+					"life=%s for creator %s", dht_value_type_to_string(type),
+					kuid_to_hex_string(key),
+					compact_time(lifetime), compact_time2(alive),
+					knode_to_string(cn));
+			}
+		}
+	}
 
 	return time_advance(tm_time(), (gulong) (lifetime / decimation));
 }
@@ -1173,7 +1209,6 @@ fill_valuedata(struct valuedata *vd, const knode_t *cn, const dht_value_t *v)
 		acct_net_update(values_per_ip, cn->addr, NET_IPv4_MASK, +1);
 	}
 
-	vd->expire = values_expire_time(v->id, v->type);
 	vd->vcode = cn->vcode;			/* struct copy */
 	vd->addr = cn->addr;			/* struct copy */
 	vd->port = cn->port;
@@ -1183,6 +1218,9 @@ fill_valuedata(struct valuedata *vd, const knode_t *cn, const dht_value_t *v)
 	vd->value_major = v->major;
 	vd->value_minor = v->minor;
 	vd->length = v->length;
+
+	vd->expire = values_expire_time(v->id, v->type,
+		vd->original ? cn : NULL, vd->created);
 }
 
 /**

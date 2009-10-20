@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "if/dht/knode.h"
 #include "if/dht/value.h"
 #include "if/dht/publish.h"
+#include "if/dht/stable.h"
 #include "if/core/fileinfo.h"
 
 #include "if/gnet_property_priv.h"
@@ -256,6 +257,8 @@ pdht_strerror(pdht_error_t code)
 static void
 pdht_publish_error(pdht_publish_t *pp, pdht_error_t code)
 {
+	pdht_info_t pinfo;
+
 	pdht_publish_check(pp);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
@@ -264,7 +267,13 @@ pdht_publish_error(pdht_publish_t *pp, pdht_error_t code)
 			pdht_strerror(code));
 	}
 
-	(*pp->cb)(pp->arg, code, 0, 0, 0, FALSE);
+	pinfo.roots = 0;
+	pinfo.all_roots = 0;
+	pinfo.path_len = 0;
+	pinfo.can_bg = FALSE;
+	pinfo.presence = 0.0;
+
+	(*pp->cb)(pp->arg, code, &pinfo);
 	pdht_free_publish(pp, pp->id != NULL);
 }
 
@@ -280,6 +289,7 @@ pdht_publish_done(gpointer arg,
 	unsigned published = info->published;
 	unsigned candidates = info->candidates;
 	gboolean can_bg = TRUE;
+	pdht_info_t pinfo;
 
 	pdht_publish_check(pp);
 
@@ -365,10 +375,14 @@ pdht_publish_done(gpointer arg,
 	 * If the upper layer accepts the publishing, then we're done.
 	 */
 
-	if (
-		(*pp->cb)(pp->arg, status,
-			info->published, published, candidates, can_bg)
-	) {
+	pinfo.roots = info->published;
+	pinfo.all_roots = published;
+	pinfo.path_len = candidates;
+	pinfo.can_bg = can_bg;
+	pinfo.presence = stable_store_presence(
+		DHT_VALUE_REPUBLISH, info->rs, info->status);
+
+	if ((*pp->cb)(pp->arg, status, &pinfo)) {
 		if (pp->flags & PDHT_F_CANCELLING)
 			return;
 		goto terminate;

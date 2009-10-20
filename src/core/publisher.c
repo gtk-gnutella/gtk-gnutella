@@ -85,7 +85,7 @@ RCSID("$Id$")
 #define PUBLISH_DB_CACHE_SIZE	128		/**< Amount of data to keep cached */
 #define PUBLISH_SYNC_PERIOD		60000	/**< Flush DB every minute */
 #define PUBLISH_MIN_DECIMATION	0.95	/**< Minimum acceptable decimation */
-
+#define PUBLISH_MIN_PROBABILITY	0.99999	/**< 5 nines */
 
 /**
  * Decimation factor to adjust the republish time depending on how many
@@ -302,8 +302,7 @@ publisher_hold(struct publisher_entry *pe, int delay)
  * on progress using the same callback.
  */
 static gboolean
-publisher_done(gpointer arg, pdht_error_t code,
-	unsigned roots, unsigned all_roots, unsigned path_len, gboolean can_bg)
+publisher_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 {
 	struct publisher_entry *pe = arg;
 	struct pubdata *pd;
@@ -320,7 +319,7 @@ publisher_done(gpointer arg, pdht_error_t code,
 	 */
 
 	if (PDHT_E_OK == code) {
-		if (pe->last_publish && roots > 0) {
+		if (pe->last_publish && info->roots > 0) {
 			if (pd != NULL) {
 				if (pd->expiration && delta_time(tm_time(), pd->expiration) > 0)
 					expired = TRUE;
@@ -347,13 +346,16 @@ publisher_done(gpointer arg, pdht_error_t code,
 		 * we could publish.
 		 */
 
-		if (0 == all_roots) {
+		if (0 == info->all_roots) {
 			delay = PUBLISH_SAFETY;
-		} else if (all_roots >= KDA_K) {
+		} else if (info->all_roots >= KDA_K) {
+			delay = DHT_VALUE_ALOC_EXPIRE - PUBLISH_SAFETY;
+		} else if (info->presence >= PUBLISH_MIN_PROBABILITY) {
 			delay = DHT_VALUE_ALOC_EXPIRE - PUBLISH_SAFETY;
 		} else {
-			g_assert(uint_is_positive(all_roots));
-			delay = inverse_decimation[all_roots - 1] * DHT_VALUE_ALOC_EXPIRE;
+			g_assert(uint_is_positive(info->all_roots));
+			delay =
+				inverse_decimation[info->all_roots - 1] * DHT_VALUE_ALOC_EXPIRE;
 			delay -= PUBLISH_SAFETY;
 			delay = MAX(delay, PUBLISH_SAFETY);
 		}
@@ -396,6 +398,11 @@ publisher_done(gpointer arg, pdht_error_t code,
 		}
 	}
 
+	if (PDHT_E_OK == code) {
+		accepted = info->presence >= PUBLISH_MIN_PROBABILITY ||
+			info->all_roots >= publisher_minimum || !info->can_bg;
+	}
+
 	/*
 	 * Logging.
 	 */
@@ -424,17 +431,21 @@ publisher_done(gpointer arg, pdht_error_t code,
 		gm_snprintf(retry, sizeof retry, "%s", compact_time(delay));
 
 		g_message("PUBLISHER SHA-1 %s %s%s\"%s\" %spublished to %u node%s%s: %s"
-			" (%stook %s, total %u node%s, retry in %s, %s bg, path %u)",
+			" (%stook %s, total %u node%s, proba %.3f%%, retry in %s,"
+			" %s bg, path %u) [%s]",
 			sha1_to_string(pe->sha1),
 			pe->backgrounded ? "[bg] " : "",
 			(sf && sf != SHARE_REBUILDING && shared_file_is_partial(sf)) ?
 				"partial " : "",
 			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "",
 			pe->last_publish ? "re" : "",
-			roots, 1 == roots ? "" : "s", after, pdht_strerror(code), late,
+			info->roots, 1 == info->roots ? "" : "s",
+			after, pdht_strerror(code), late,
 			compact_time(delta_time(tm_time(), pe->last_enqueued)),
-			all_roots, 1 == all_roots ? "" : "s", retry, can_bg ? "can" : "no",
-			path_len);
+			info->all_roots, 1 == info->all_roots ? "" : "s",
+			info->presence * 100.0, retry,
+			info->can_bg ? "can" : "no", info->path_len,
+			accepted ? "OK" : "INCOMPLETE");
 	}
 
 	/*
@@ -442,7 +453,7 @@ publisher_done(gpointer arg, pdht_error_t code,
 	 */
 
 	if (PDHT_E_OK == code) {
-		if (roots > 0) {
+		if (info->roots > 0) {
 			pe->last_publish = tm_time();
 			if (pd != NULL) {
 				pd->expiration =
@@ -450,7 +461,6 @@ publisher_done(gpointer arg, pdht_error_t code,
 				dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
 			}
 		}
-		accepted = all_roots >= publisher_minimum || !can_bg;
 	}
 
 	/*

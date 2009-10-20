@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2006-2008, Raphael Manfredi
+ * Copyright (c) 2006-2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -50,7 +50,7 @@
  * KUID, as defined in the is_splitable() routine.
  *
  * @author Raphael Manfredi
- * @date 2006-2008
+ * @date 2006-2009
  */
 
 #include "common.h"
@@ -72,6 +72,7 @@ RCSID("$Id$")
 #include "publish.h"
 #include "roots.h"
 #include "tcache.h"
+#include "stable.h"
 
 #include "core/settings.h"
 #include "core/gnet_stats.h"
@@ -1227,6 +1228,7 @@ dht_initialize(gboolean post_init)
 	publish_init();
 	roots_init();
 	tcache_init();
+	stable_init();
 
 	if (post_init)
 		dht_attempt_bootstrap();
@@ -3370,6 +3372,7 @@ dht_close(void)
 	 * the RPC and lookups, which rely on the routing table.
 	 */
 
+	stable_close();
 	tcache_close();
 	roots_close();
 	publish_close();
