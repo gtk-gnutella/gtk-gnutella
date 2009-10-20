@@ -1284,11 +1284,13 @@ value_count_republish(struct valuedata *vd)
 		vd->s_elapsed_publish =
 			guint32_saturate_add(vd->s_elapsed_publish, elapsed);
 
-		if (GNET_PROPERTY(dht_storage_debug))
-			g_message("DHT STORE republishing of \"%s\" %s #%u after %s",
-				dht_value_type_to_string(vd->type),
+		if (GNET_PROPERTY(dht_storage_debug)) {
+			g_message("DHT STORE republishing of \"%s\" %s #%u after %s, "
+				"life=%s", dht_value_type_to_string(vd->type),
 				kuid_to_hex_string(&vd->id), (unsigned) vd->n_republish,
-				compact_time(elapsed));
+				compact_time(elapsed),
+				compact_time2(delta_time(tm_time(), vd->created)));
+		}
 	}
 
 	vd->publish = now;
