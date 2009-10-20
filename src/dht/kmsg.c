@@ -908,6 +908,7 @@ answer_find_node(struct gnutella_node *n,
 	int cnt;
 	const char *msg = NULL;
 	gboolean delayed;
+	gboolean within_kball;
 
 	/*
 	 * If the UDP queue is flow controlled already, there's no need to
@@ -932,6 +933,39 @@ answer_find_node(struct gnutella_node *n,
 	}
 
 	/*
+	 * We're going to reply differently depending on whether the key falls
+	 * within our k-ball or whether we are starting to have some noticeable
+	 * delays in the outgoing UDP queue.
+	 */
+
+	delayed = node_dht_above_low_watermark();
+	within_kball = keys_within_kball(id);
+
+	if (within_kball) {
+		if (
+			bsched_saturated(BSCHED_BWS_DHT_OUT) &&
+			kuid_eq(id, get_our_kuid())
+		) {
+			/*
+			 * If they are looking for precisely our KUID, then most probably
+			 * all they want is our security token.  Since bandwidth is
+			 * saturated, just give them that.
+			 */
+
+			goto only_token;
+		}
+
+		/*
+		 * Regardless of bandwidth considerations, we need to fully reply to
+		 * requests for which we could be one of the k-closest nodes otherwise
+		 * the looking node would not be able to find accurately the set of
+		 * k-closest nodes surrounding the looked-up key.
+		 */
+
+		goto answer;
+	}
+
+	/*
 	 * If the request comes from a firewalled node, then let's be stricter.
 	 *
 	 * Indeed, a firewalled node will not participate to the DHT structure
@@ -944,13 +978,11 @@ answer_find_node(struct gnutella_node *n,
 	 *
 	 * So, if the request comes from a firewalled node and we are already
 	 * suffering from outgoing traffic congestion, limit the number of replies
-	 * to KDA_K / 2.
+	 * to KDA_K / 2 provided the key falls in our space, KDA_K / 4 otherwise.
 	 *
 	 * Furthermore, if we already have enough outgoing pending traffic in
 	 * the queue, drop the request.
 	 */
-
-	delayed = node_dht_above_low_watermark();
 
 	if (kn->flags & KNODE_F_FIREWALLED) {
 		if (delayed) {
@@ -958,20 +990,26 @@ answer_find_node(struct gnutella_node *n,
 			goto flow_controlled;
 		}
 		if (bsched_saturated(BSCHED_BWS_DHT_OUT)) {
-			requested = KDA_K / 2;
+			requested = keys_is_foreign(id) ? KDA_K / 4 : KDA_K / 2;
 		}
 	} else if (delayed) {
-		requested = 3 * KDA_K / 4;
+		requested = keys_is_foreign(id) ? KDA_K / 2 : 3 * KDA_K / 4;
 	}
 
 	/*
 	 * OK, perform the lookup and send them the answer.
 	 */
 
+answer:
+
 	if (GNET_PROPERTY(dht_debug > 2)) {
-		g_message("DHT processing FIND_NODE %s (requestor %s, %d node%s)",
+		g_message("DHT processing FIND_NODE %s "
+			"%s%s%s: giving %d node%s",
 			kuid_to_hex_string(id),
-			(kn->flags & KNODE_F_FIREWALLED) ? "passive" : "active",
+			delayed ? "[UDP delayed] " : "",
+			within_kball ? "[in k-ball] " :
+				keys_is_foreign(id) ? "[foreign] " : "",
+			(kn->flags & KNODE_F_FIREWALLED) ? "[passive]" : "[active]",
 			requested, 1 == requested ? "" : "s");
 	}
 
@@ -988,12 +1026,7 @@ flow_controlled:
 	 */
 
 	if (kuid_eq(id, get_our_kuid())) {
-		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT limiting FIND_NODE %s (ourselves): UDP queue %s",
-				kuid_to_hex_string(id), msg);
-		}
-
-		k_send_find_node_response(n, kn, kvec, 0, muid);
+		goto only_token;
 	} else {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_message("DHT ignoring FIND_NODE %s: UDP queue %s",
@@ -1002,6 +1035,20 @@ flow_controlled:
 
 		gnet_stats_count_dropped(n, MSG_DROP_FLOW_CONTROL);
 	}
+
+	return;
+
+only_token:
+	/*
+	 * Only send back our security token, with no nodes.
+	 */
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_message("DHT limiting FIND_NODE %s (ourselves): UDP queue %s",
+			kuid_to_hex_string(id), msg);
+	}
+
+	k_send_find_node_response(n, kn, kvec, 0, muid);
 }
 
 /**
