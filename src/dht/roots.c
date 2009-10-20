@@ -224,7 +224,6 @@ get_rootdata(const kuid_t *id)
 			g_warning("key %s exists but was not found in DBMW \"%s\"",
 				kuid_to_hex_string(id), dbmw_name(db_rootdata));
 		}
-		return NULL;
 	}
 
 	return rd;
@@ -248,7 +247,6 @@ get_contact(guint64 dbkey)
 			g_warning("key %s exists but was not found in DBMW \"%s\"",
 				uint64_to_string(dbkey), dbmw_name(db_contact));
 		}
-		return NULL;
 	}
 
 	return c;
