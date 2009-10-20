@@ -127,7 +127,6 @@ get_tokdata(const kuid_t *id)
 			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
 				dbmw_name(db_tokdata));
 		}
-		return NULL;
 	}
 
 	return td;
