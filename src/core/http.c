@@ -1969,14 +1969,14 @@ http_async_create(
 
 		if (string_to_host_addr(host, NULL, &ip)) {
 			host = NULL;
-			s = socket_connect(ip, uport, SOCK_TYPE_HTTP, 0);
+			s = socket_connect(ip, uport, SOCK_TYPE_HTTP, SOCK_F_FORCE);
 		} else {
 			s = socket_connect_by_name(host, uport, SOCK_TYPE_HTTP, 0);
 		}
 	} else {
 		host = NULL;
 		path = url;
-		s = socket_connect(addr, port, SOCK_TYPE_HTTP, 0);
+		s = socket_connect(addr, port, SOCK_TYPE_HTTP, SOCK_F_FORCE);
 	}
 
 	if (s == NULL) {
