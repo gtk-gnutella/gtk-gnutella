@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2008-2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Kademlia Messages.
  *
  * @author Raphael Manfredi
- * @date 2008
+ * @date 2008-2009
  */
 
 #include "common.h"
@@ -1904,10 +1904,11 @@ void kmsg_received(
 
 		if (dht_rpc_info(kademlia_header_get_muid(header), &raddr, &rport)) {
 			if (GNET_PROPERTY(dht_debug)) {
-				g_warning("DHT fixing contact address %s (%s v%u.%u) "
+				g_warning("DHT fixing contact address %s (%s v%u.%u) kuid=%s "
 					"to %s:%u on RPC reply (%s UDP info)",
 					host_addr_port_to_string(kaddr, kport),
 					vendor_code_to_string(vcode.u32), kmajor, kminor,
+					kuid_to_hex_string(id),
 					host_addr_to_string(raddr), rport,
 					host_addr_equal(addr, raddr) && port == rport ?
 						"matches" : "still different from");
@@ -1941,14 +1942,30 @@ void kmsg_received(
 	g_assert(kn == NULL || !(kn->flags & KNODE_F_FIREWALLED));
 
 	if (NULL == kn) {
+		gboolean patched = FALSE;
+
+		/*
+		 * If the node is not already in our routing table, but its advertised
+		 * contact information is wrong and it is not presenting itself as
+		 * being firewalled, attempt to use the UDP address and port.
+		 *
+		 * Moreover, we are flagging the node with KNODE_F_PCONTACT, so
+		 * any value it attempts to store will have its creator address
+		 * corrected.
+		 */
+
 		if (!(flags & KDA_MSG_F_FIREWALLED) && !host_is_valid(kaddr, kport)) {
 			if (GNET_PROPERTY(dht_debug)) {
-				g_warning("DHT bad contact address %s (%s v%u.%u), "
-					"forcing \"firewalled\" flag",
+				g_warning("DHT fixing contact address %s (%s v%u.%u) kuid=%s, "
+					"not firewalled, replacing with UDP source %s:%u",
 					host_addr_port_to_string(kaddr, kport),
-					vendor_code_to_string(vcode.u32), kmajor, kminor);
+					vendor_code_to_string(vcode.u32), kmajor, kminor,
+					kuid_to_hex_string(id),
+					host_addr_to_string(addr), port);
 			}
-			flags |= KDA_MSG_F_FIREWALLED;
+			kaddr = addr;
+			kport = port;
+			patched = TRUE;
 		}
 
 		if (GNET_PROPERTY(dht_debug) > 2)
@@ -1960,6 +1977,10 @@ void kmsg_received(
 				vendor_code_to_string(vcode.u32), kmajor, kminor);
 
 		kn = knode_new(id, flags, kaddr, kport, vcode, kmajor, kminor);
+
+		if (patched)
+			kn->flags |= KNODE_F_PCONTACT;
+
 		if (!(flags & (KDA_MSG_F_FIREWALLED | KDA_MSG_F_SHUTDOWNING)))
 			dht_traffic_from(kn);
 	} else {
@@ -1979,10 +2000,11 @@ void kmsg_received(
 			host_is_valid(kn->addr, kn->port) && kport == kn->port
 		) {
 			if (GNET_PROPERTY(dht_debug)) {
-				g_warning("DHT fixing contact address %s (%s v%u.%u) "
+				g_warning("DHT fixing contact address %s (%s v%u.%u) kuid=%s "
 					"to %s:%u based on routing table (%s UDP info)",
 					host_addr_port_to_string(kaddr, kport),
 					vendor_code_to_string(vcode.u32), kmajor, kminor,
+					kuid_to_hex_string(id),
 					host_addr_to_string(kn->addr), kn->port,
 					host_addr_equal(addr, kn->addr) && port == kport ?
 						"matches" : "still different from");
