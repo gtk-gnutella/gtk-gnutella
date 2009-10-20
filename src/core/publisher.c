@@ -72,6 +72,7 @@ RCSID("$Id$")
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/stringify.h"
+#include "lib/unsigned.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -351,6 +352,7 @@ publisher_done(gpointer arg, pdht_error_t code,
 		} else if (all_roots >= KDA_K) {
 			delay = DHT_VALUE_ALOC_EXPIRE - PUBLISH_SAFETY;
 		} else {
+			g_assert(uint_is_positive(all_roots));
 			delay = inverse_decimation[all_roots - 1] * DHT_VALUE_ALOC_EXPIRE;
 			delay -= PUBLISH_SAFETY;
 			delay = MAX(delay, PUBLISH_SAFETY);
@@ -685,7 +687,7 @@ publisher_add(const sha1_t *sha1)
 				enqueue > 0 ? compact_time(enqueue) : "now",
 				pd->expiration ?
 					(expires > 0 ? "expires in " : "expired") : "not published",
-				expires > 0 ? short_time_ascii(expires) : "");
+				expires > 0 ? compact_time2(expires) : "");
 		}
 	}
 
