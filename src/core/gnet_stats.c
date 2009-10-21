@@ -256,6 +256,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"dht_publishing_attempts",
 	"dht_publishing_successful",
 	"dht_publishing_partially_successful",
+	"dht_publishing_satisfactory",
 	"dht_republished_late",
 	"dht_publishing_to_self",
 	"dht_publishing_bg_attempts",

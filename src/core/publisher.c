@@ -348,10 +348,12 @@ publisher_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 
 		if (0 == info->all_roots) {
 			delay = PUBLISH_SAFETY;
-		} else if (info->all_roots >= KDA_K) {
+		} else if (
+			info->all_roots >= KDA_K ||
+			info->presence >= PUBLISH_MIN_PROBABILITY
+		) {
 			delay = DHT_VALUE_ALOC_EXPIRE - PUBLISH_SAFETY;
-		} else if (info->presence >= PUBLISH_MIN_PROBABILITY) {
-			delay = DHT_VALUE_ALOC_EXPIRE - PUBLISH_SAFETY;
+			gnet_stats_count_general(GNR_DHT_PUBLISHING_SATISFACTORY, +1);
 		} else {
 			g_assert(uint_is_positive(info->all_roots));
 			delay =
