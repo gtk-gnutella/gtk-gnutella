@@ -763,6 +763,17 @@ file_info_store_binary(fileinfo_t *fi, gboolean force)
 	fi->stamp = tm_time();
 	if (!force && delta_time(fi->stamp, fi->last_flush) < FI_STORE_DELAY)
 		return;
+
+	/*
+	 * The first time we flush the fileinfo, record the SHA1 to the DHT
+	 * publisher, if known.  Indeed, the output file is only created the
+	 * first time we get download data for it, and file presence is mandatory
+	 * for partial files to be considered as shareable by the publisher.
+	 */
+
+	if (0 == fi->last_flush && fi->sha1 != NULL && can_publish_partial_sha1)
+		publisher_add(fi->sha1);
+
 	fi->last_flush = fi->stamp;
 
 	/*
