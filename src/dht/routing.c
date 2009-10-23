@@ -2934,10 +2934,9 @@ fill_closest_in_bucket(
 
 	/*
 	 * If we can determine that we do not have enough good nodes in the bucket
-	 * to fill the vector, use also the stale nodes for which the "grace"
-	 * period since the timeout has passed. Finally, also consider "pending"
-	 * nodes if we really miss nodes (excluding shutdowning ones), provided
-	 * we got traffic from them recently (defined by the aliveness period).
+	 * to fill the vector, consider "pending" nodes (excluding shutdowning
+	 * ones), provided we got traffic from them recently (defined by the
+	 * aliveness period).
 	 */
 
 	good = hash_list_list(kb->nodes->good);
@@ -2960,34 +2959,6 @@ fill_closest_in_bucket(
 	}
 
 	if (available < kcnt) {
-		GList *stale = hash_list_list(kb->nodes->stale);
-
-		while (stale) {
-			knode_t *kn = stale->data;
-
-			knode_check(kn);
-			g_assert(KNODE_STALE == kn->status);
-
-			/*
-			 * Limit to stale nodes that can be recontacted and which
-			 * have only 1 timeout recorded.  Others are likely to be
-			 * really dead or changed their IP address.
-			 */
-
-			if (
-				knode_can_recontact(kn) && 1 == kn->rpc_timeouts &&
-				(!exclude || !kuid_eq(kn->id, exclude)) &&
-				(!alive || (kn->flags & KNODE_F_ALIVE))
-			) {
-				nodes = g_list_prepend(nodes, kn);
-				available++;
-			}
-
-			stale = g_list_remove(stale, kn);
-		}
-	}
-
-	if (available < kcnt) {
 		GList *pending = hash_list_list(kb->nodes->pending);
 		time_t now = tm_time();
 
@@ -3000,7 +2971,12 @@ fill_closest_in_bucket(
 			if (
 				!(kn->flags & KNODE_F_SHUTDOWNING) &&
 				(!exclude || !kuid_eq(kn->id, exclude)) &&
-				(!alive || delta_time(now, kn->last_seen) < ALIVENESS_PERIOD)
+				(!alive ||
+					(
+						(kn->flags & KNODE_F_ALIVE) &&
+						delta_time(now, kn->last_seen) < ALIVENESS_PERIOD
+					)
+				)
 			) {
 				nodes = g_list_prepend(nodes, kn);
 				available++;
