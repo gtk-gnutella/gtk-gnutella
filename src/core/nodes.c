@@ -122,6 +122,7 @@ RCSID("$Id$")
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/dht/kmsg.h"
+#include "if/dht/dht.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -6210,6 +6211,8 @@ node_udp_enable(void)
 static void
 node_dht_enable(void)
 {
+	dht_initialize(TRUE);
+
 	if (s_udp_listen)
 		node_dht_enable_by_net(NET_TYPE_IPV4);
 	if (s_udp_listen6)

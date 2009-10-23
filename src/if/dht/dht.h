@@ -65,7 +65,8 @@ void dht_update_size_estimate(void);
 static inline gboolean
 dht_enabled(void)
 {
-	return GNET_PROPERTY(enable_udp) && GNET_PROPERTY(enable_dht);
+	return GNET_PROPERTY(enable_udp) && GNET_PROPERTY(enable_dht) &&
+		GNET_PROPERTY(listen_port) != 0;
 }
 
 #endif /* _if_dht_dht_h */

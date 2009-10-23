@@ -1180,11 +1180,18 @@ dht_initialize(gboolean post_init)
 	if (!dht_enabled()) {
 		/* UDP or DHT not both enabled */
 		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT will not initialize: UDP %s, DHT %s",
+			g_message("DHT will not initialize: UDP %s, DHT %s, port %u",
 				GNET_PROPERTY(enable_udp) ? "on" : "off",
-				GNET_PROPERTY(enable_dht) ? "on" : "off");
+				GNET_PROPERTY(enable_dht) ? "on" : "off",
+				GNET_PROPERTY(listen_port));
 		}
 		return;
+	}
+
+	if (root != NULL) {
+		if (GNET_PROPERTY(dht_debug))
+			g_message("DHT already initialized");
+		return;				/* already initialized */
 	}
 
 	if (GNET_PROPERTY(dht_debug))
