@@ -1519,7 +1519,7 @@ main(int argc, char **argv)
 		PACKAGE_SOURCE_DIR);
 #endif
 
-#if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
+#if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC) && !defined(TRACK_ZALLOC)
 	xmlMemSetup(hfree, halloc, hrealloc, h_strdup);
 #endif
 

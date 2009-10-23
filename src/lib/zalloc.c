@@ -41,6 +41,7 @@ RCSID("$Id$")
 #include "zalloc.h"
 #include "hashtable.h"
 #include "glib-missing.h"	/* For g_mem_is_system_malloc() */
+#include "misc.h"			/* For short_filename() */
 #include "stringify.h"
 #include "unsigned.h"
 #include "tm.h"
@@ -314,6 +315,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 	unsigned line;
 
 	uptr = p + sizeof(char *);		/* Skip used marker */
+	uptr += sizeof(char *);			/* Skip owning zone */
 	file = *(char **) uptr;
 	uptr += sizeof(char *);
 	line = *(int *) uptr;
@@ -385,15 +387,16 @@ zfree(zone_t *zone, void *ptr)
 		char **tmp;
 
 		/* Go back at leading magic, also the start of the block */
-		tmp = (char **) ((char *) ptr - USED_REV_OFFSET);
+		tmp = ptr_add_offset(ptr, -USED_REV_OFFSET);
 
 		if (tmp[0] != BLOCK_USED)
 			g_error("trying to free block 0x%lx twice", (gulong) ptr);
 		if (tmp[1] != (char *) zone)
 			g_error("trying to free block 0x%lx to wrong zone", (gulong) ptr);
-		ptr = tmp;
 	}
 #endif
+
+	ptr = ptr_add_offset(ptr, -USED_REV_OFFSET);
 
 	g_assert(uint_is_positive(zone->zn_cnt)); 	/* Has something to free! */
 

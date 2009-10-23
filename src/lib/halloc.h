@@ -39,12 +39,30 @@
 #include "common.h"
 
 /*
+ * Under TRACK_ZALLOC we remap halloc() and halloc0() in case these routines
+ * perform their allocation through zalloc().
+ */
+
+#ifdef TRACK_ZALLOC
+#define halloc(_s)	halloc_track(_s, _WHERE_, __LINE__)
+#define halloc0(_s)	halloc0_track(_s, _WHERE_, __LINE__)
+
+void *halloc_track(size_t size,
+	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *halloc0_track(size_t size,
+	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+#else
+#ifndef TRACK_MALLOC
+void *halloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *halloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+#endif
+#endif	/* TRACK_ZALLOC */
+
+/*
  * Under TRACK_MALLOC control, these routines are remapped to malloc()/free().
  */
 
 #ifndef TRACK_MALLOC
-void *halloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-void *halloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void hfree(void *ptr);
 void *hrealloc(void *old, size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 

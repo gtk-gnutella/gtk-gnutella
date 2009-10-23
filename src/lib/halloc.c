@@ -168,8 +168,13 @@ halloc_get_size(void *p)
  *
  * @return a pointer to the start of the allocated block.
  */
+#ifdef TRACK_ZALLOC
+void *
+halloc_track(size_t size, const char *file, int line)
+#else
 void *
 halloc(size_t size)
+#endif
 {
 	void *p;
 	size_t allocated;
@@ -181,7 +186,11 @@ halloc(size_t size)
 		union align *head;
 
 		allocated = size + sizeof head[0];
+#ifdef TRACK_ZALLOC
+		head = walloc_track(allocated, file, line);
+#else
 		head = walloc(allocated);
+#endif
 		head->size = size;
 		p = &head[1];
 	} else {
@@ -203,10 +212,19 @@ halloc(size_t size)
 /**
  * Same as halloc(), but fills the allocated memory with zeros before returning.
  */
+#ifdef TRACK_ZALLOC
+void *
+halloc0_track(size_t size, const char *file, int line)
+#else
 void *
 halloc0(size_t size)
+#endif
 {
+#ifdef TRACK_ZALLOC
+	void *p = halloc_track(size, file, line);
+#else
 	void *p = halloc(size);
+#endif
 	if (p) {
 		memset(p, 0, size);
 	}

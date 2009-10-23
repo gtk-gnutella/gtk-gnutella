@@ -472,7 +472,7 @@ tls_global_init(void)
 	};
 	char *cert_file, *key_file;
 
-#if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
+#if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC) && !defined(TRACK_ZALLOC)
 	gnutls_global_set_mem_functions(halloc, halloc, NULL, hrealloc, hfree);
 #endif
 

@@ -61,6 +61,7 @@ static inline void wfree(gpointer p, size_t size) { g_slice_free1(size, p); }
 
 static inline gpointer
 wcopy(gconstpointer p, size_t size)
+	WARN_UNUSED_RESULT G_GNUC_MALLOC
 {
 	gpointer x = g_slice_alloc(size);
 	memcpy(x, p, size);
@@ -69,6 +70,7 @@ wcopy(gconstpointer p, size_t size)
 
 static inline gpointer
 wrealloc(gpointer p, size_t old_size, size_t new_size)
+	WARN_UNUSED_RESULT G_GNUC_MALLOC
 {
 	gpointer x = g_slice_alloc(new_size);
 	memcpy(x, p, MIN(new_size, old_size));
@@ -82,6 +84,7 @@ wrealloc(gpointer p, size_t old_size, size_t new_size)
 
 static inline gpointer
 wcopy(gconstpointer p, size_t size)
+	WARN_UNUSED_RESULT G_GNUC_MALLOC
 {
 	return g_memdup(p, size);
 }
@@ -95,6 +98,7 @@ wfree(gpointer p, size_t size)
 
 static inline gpointer
 wrealloc(gpointer p, size_t o, size_t n)
+	WARN_UNUSED_RESULT G_GNUC_MALLOC
 {
 	(void) o;
 	return g_realloc(p, n);
@@ -102,6 +106,7 @@ wrealloc(gpointer p, size_t o, size_t n)
 
 static inline void *
 wmove(void *p, size_t n)
+	WARN_UNUSED_RESULT G_GNUC_MALLOC
 {
 	(void) n;
 	return p;
