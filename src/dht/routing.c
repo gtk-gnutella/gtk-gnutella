@@ -2754,7 +2754,7 @@ dht_update_size_estimate(void)
 	guint64 estimate;
 	gboolean alive = TRUE;
 
-	if (!GNET_PROPERTY(enable_dht))
+	if (!dht_enabled())
 		return;
 
 	kvec = walloc(K_LOCAL_ESTIMATE * sizeof(knode_t *));
