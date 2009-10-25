@@ -1795,6 +1795,7 @@ values_close(void)
 	db_valuedata = db_rawdata = db_expired = NULL;
 	acct_net_free(&values_per_ip);
 	acct_net_free(&values_per_class_c);
+	values_managed = 0;
 
 	g_hash_table_foreach(expired, expired_free_kv, NULL);
 	g_hash_table_destroy(expired);

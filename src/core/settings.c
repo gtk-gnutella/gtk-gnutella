@@ -1266,10 +1266,6 @@ enable_udp_changed(property_t prop)
 				gcu_statusbar_warning(_("Failed to create IPv6 UDP socket"));
 			}
 		}
-		if (s_udp_listen || s_udp_listen6) {
-			/* Will start the DHT if enabled otherwise */
-			dht_initialize(TRUE);
-		}
 	} else {
 		/* Also takes care of freeing s_udp_listen and s_udp_listen6 */
 		node_udp_disable();
@@ -1277,9 +1273,6 @@ enable_udp_changed(property_t prop)
 		/* We have to free them anyway during startup*/
 		socket_free_null(&s_udp_listen);
 		socket_free_null(&s_udp_listen6);
-
-		/* Can no longer operate the DHT */
-		dht_close();
 	}
 	node_update_udp_socket();
 

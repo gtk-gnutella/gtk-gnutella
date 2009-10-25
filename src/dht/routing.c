@@ -243,6 +243,7 @@ enum bootsteps {
 static gboolean initialized;		/**< Whether dht_init() was called */
 static gboolean bootstrapping;		/**< Whether we are bootstrapping */
 static enum bootsteps boot_status;	/**< Booting status */
+static enum bootsteps old_boot_status = BOOT_NONE;
 
 static struct kbucket *root = NULL;	/**< The root of the routing table tree. */
 static kuid_t *our_kuid;			/**< Our own KUID (atom) */
@@ -854,8 +855,8 @@ recursively_apply(
 	if (r == NULL)
 		return;
 
-	recursively_apply(r->one, f, u);
 	recursively_apply(r->zero, f, u);
+	recursively_apply(r->one, f, u);
 	(*f)(r, u);
 }
 
@@ -3220,45 +3221,44 @@ write_node(const knode_t *kn, FILE *f)
 }
 
 /**
- * Recursively store all good nodes from leaf buckets.
+ * Store all good nodes from a leaf bucket.
  */
 static void
-recursively_store_bucket(struct kbucket *kb, FILE *f)
+dht_store_leaf_bucket(struct kbucket *kb, gpointer u)
 {
-	if (is_leaf(kb)) {
-		hash_list_iter_t *iter;
+	FILE *f = u;
+	hash_list_iter_t *iter;
 
-		/*
-		 * All good nodes are persisted.
-		 */
+	if (!is_leaf(kb))
+		return;
 
-		iter = hash_list_iterator(kb->nodes->good);
-		while (hash_list_iter_has_next(iter)) {
-			const knode_t *kn;
+	/*
+	 * All good nodes are persisted.
+	 */
 
-			kn = hash_list_iter_next(iter);
-			write_node(kn, f);
-		}
-		hash_list_iter_release(&iter);
+	iter = hash_list_iterator(kb->nodes->good);
+	while (hash_list_iter_has_next(iter)) {
+		const knode_t *kn;
 
-		/*
-		 * Stale nodes for which the RPC timeout condition was cleared
-		 * are also elected.
-		 */
-
-		iter = hash_list_iterator(kb->nodes->stale);
-		while (hash_list_iter_has_next(iter)) {
-			const knode_t *kn;
-
-			kn = hash_list_iter_next(iter);
-			if (!kn->rpc_timeouts)
-				write_node(kn, f);
-		}
-		hash_list_iter_release(&iter);
-	} else {
-		recursively_store_bucket(kb->zero, f);
-		recursively_store_bucket(kb->one, f);
+		kn = hash_list_iter_next(iter);
+		write_node(kn, f);
 	}
+	hash_list_iter_release(&iter);
+
+	/*
+	 * Stale nodes for which the RPC timeout condition was cleared
+	 * are also elected.
+	 */
+
+	iter = hash_list_iterator(kb->nodes->stale);
+	while (hash_list_iter_has_next(iter)) {
+		const knode_t *kn;
+
+		kn = hash_list_iter_next(iter);
+		if (!kn->rpc_timeouts)
+			write_node(kn, f);
+	}
+	hash_list_iter_release(&iter);
 }
 
 /**
@@ -3292,7 +3292,7 @@ dht_route_store(void)
 	);
 
 	if (root)
-		recursively_store_bucket(root, f);
+		recursively_apply(root, dht_store_leaf_bucket, f);
 
 	file_config_close(f, &fp);
 	stats.dirty = FALSE;
@@ -3380,6 +3380,7 @@ dht_close(void)
 	statx_free(stats.netdata);
 
 	memset(&stats, 0, sizeof stats);		/* Clear all stats */
+	old_boot_status = boot_status;
 	boot_status = BOOT_NONE;
 }
 
@@ -3950,6 +3951,8 @@ dht_route_parse(FILE *f)
 	if (dht_seeded()) {
 		boot_status =
 			most_recent < REFRESH_PERIOD / 2 ? BOOT_COMPLETED : BOOT_SEEDED;
+		if (old_boot_status != BOOT_NONE)
+			boot_status = old_boot_status;
 	}
 
 	if (GNET_PROPERTY(dht_debug))

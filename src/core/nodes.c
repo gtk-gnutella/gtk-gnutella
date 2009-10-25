@@ -6241,6 +6241,9 @@ node_udp_disable(void)
 		node_udp_disable_by_net(NET_TYPE_IPV6);
 		socket_free_null(&s_udp_listen6);
 	}
+
+	/* Can no longer operate the DHT */
+	dht_close();
 }
 
 /**
