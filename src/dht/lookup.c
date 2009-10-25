@@ -1127,14 +1127,18 @@ lookup_value_append(nlookup_t *nl, float load,
 		dht_value_t *v = vvec[i];
 
 		if (!map_contains(fv->seen, dht_value_creator(v)->id)) {
+			if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+				g_message("DHT LOOKUP[%s] inserting new %s",
+					revent_id_to_string(nl->lid), dht_value_to_string(v));
+			}
 			g_assert(fv->vcnt < fv->vsize);
 			fv->vvec[fv->vcnt++] = v;
 			map_insert(fv->seen, dht_value_creator(v)->id, v);
 		} else {
-			if (GNET_PROPERTY(dht_lookup_debug) > 2)
+			if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 				g_message("DHT LOOKUP[%s] ignoring duplicate %s",
 					revent_id_to_string(nl->lid), dht_value_to_string(v));
-
+			}
 			gnet_stats_count_general(GNR_DHT_DUP_VALUES, 1);
 			dht_value_free(v, TRUE);
 		}
