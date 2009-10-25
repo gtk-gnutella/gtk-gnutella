@@ -60,7 +60,7 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#define MAX_PROXIES		8		/**< Max push-proxies we collect from a PROX */
+#define MAX_PROXIES		32		/**< Max push-proxies we collect from a PROX */
 
 /**
  * Hash table holding all the pending lookups by KUID.
