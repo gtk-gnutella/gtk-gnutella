@@ -526,6 +526,12 @@ flush_match(void)
 	if (tls_enabled()) {
 		if (!ggep_stream_pack(&gs, GGEP_NAME(TLS), NULL, 0, 0))
 			g_warning("could not write GGEP \"TLS\" extension into QHIT");
+		/*
+		 * FIXME TODO: Drop sending GTKG.TLS after 0.96.7 is out, only
+		 * sending the now standardized "TLS" extension which GTKG has been
+		 * understanding since 0.96.6.
+		 *		--RAM, 2009-10-24
+		 */
 		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0))
 			g_warning("could not write GGEP \"GTKG.TLS\" extension into QHIT");
 	}
