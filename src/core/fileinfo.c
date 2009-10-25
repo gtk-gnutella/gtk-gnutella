@@ -765,13 +765,14 @@ file_info_store_binary(fileinfo_t *fi, gboolean force)
 		return;
 
 	/*
-	 * The first time we flush the fileinfo, record the SHA1 to the DHT
-	 * publisher, if known.  Indeed, the output file is only created the
-	 * first time we get download data for it, and file presence is mandatory
-	 * for partial files to be considered as shareable by the publisher.
+	 * When we flush the fileinfo, record the SHA1 to the DHT publisher,
+	 * if known.  Indeed, the publisher can forget about a SHA1 when it
+	 * believes the file is no longer shared.  But if we're flushing the
+	 * trailer, then there is activity going on and maybe the file is
+	 * publishable in the DHT.
 	 */
 
-	if (0 == fi->last_flush && fi->sha1 != NULL && can_publish_partial_sha1)
+	if (fi->sha1 != NULL && can_publish_partial_sha1)
 		publisher_add(fi->sha1);
 
 	fi->last_flush = fi->stamp;
