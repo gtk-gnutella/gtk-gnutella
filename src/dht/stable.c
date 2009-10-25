@@ -90,7 +90,7 @@
  * - for values we store and for which we have an original, we can determine
  *   the probability that the publisher remains alive for one more publishing
  *   period and, if high enough, increase the expiration date for the published
- *   value, so as to reserve the entry slot in the key (give we have a fixed
+ *   value, so as to reserve the entry slot in the key (given we have a fixed
  *   limited amount of values per keys) to the most stable publishers.
  *
  * Implementation:
