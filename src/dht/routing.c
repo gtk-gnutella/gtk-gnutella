@@ -236,6 +236,7 @@ enum bootsteps {
 	BOOT_OWN,					/**< Looking for own KUID */
 	BOOT_COMPLETING,			/**< Completing further bucket bootstraps */
 	BOOT_COMPLETED,				/**< Fully bootstrapped */
+	BOOT_SHUTDOWN,				/**< Shutdowning */
 
 	BOOT_MAX_VALUE
 };
@@ -270,6 +271,7 @@ static const char * const boot_status_str[] = {
 	"looking for our KUID",			/**< BOOT_OWN */
 	"completing bucket bootstrap",	/**< BOOT_COMPLETING */
 	"completely bootstrapped",		/**< BOOT_COMPLETING */
+	"shutdowning",					/**< BOOT_SHUTDOWN */
 };
 
 /**
@@ -716,8 +718,10 @@ forget_hashlist_node(gpointer knode, gpointer unused_data)
 	 * to KNODE_UNKNOWN for knode_dispose().
 	 */
 
-	if (1 == kn->refcnt)
-		kn->status = KNODE_UNKNOWN;
+	if (BOOT_SHUTDOWN == boot_status)
+		kn->status = KNODE_UNKNOWN;		/* No longer in route table */
+	else if (1 == kn->refcnt)
+		kn->status = KNODE_UNKNOWN;		/* For knode_dispose() */
 
 	knode_free(kn);
 }
@@ -1023,8 +1027,9 @@ completion_iterate(struct bootstrap *b)
 	}
 
 	if (GNET_PROPERTY(dht_debug))
-		g_warning("DHT completing bootstrap with KUID %s (%d leading bit%s)",
-			kuid_to_hex_string(&b->id), b->bits, 1 == b->bits ? "" : "s");
+		g_warning("DHT completing bootstrap with KUID %s "
+			"(%d common leading bit%s fixed)",
+			kuid_to_hex_string(&b->id), b->bits - 1, 2 == b->bits ? "" : "s");
 }
 
 /**
@@ -3366,6 +3371,9 @@ dht_close(void)
 	dht_rpc_close();
 	token_close();
 
+	old_boot_status = boot_status;
+	boot_status = BOOT_SHUTDOWN;
+
 	recursively_apply(root, dht_free_bucket, NULL);
 	root = NULL;
 	kuid_atom_free_null(&our_kuid);
@@ -3380,7 +3388,6 @@ dht_close(void)
 	statx_free(stats.netdata);
 
 	memset(&stats, 0, sizeof stats);		/* Clear all stats */
-	old_boot_status = boot_status;
 	boot_status = BOOT_NONE;
 }
 
@@ -3951,7 +3958,7 @@ dht_route_parse(FILE *f)
 	if (dht_seeded()) {
 		boot_status =
 			most_recent < REFRESH_PERIOD / 2 ? BOOT_COMPLETED : BOOT_SEEDED;
-		if (old_boot_status != BOOT_NONE)
+		if (old_boot_status != BOOT_NONE && old_boot_status != BOOT_COMPLETED)
 			boot_status = old_boot_status;
 	}
 
