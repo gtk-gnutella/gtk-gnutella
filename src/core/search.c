@@ -4066,8 +4066,8 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 		 * LOCAL_MAX_ALT entries.
 		 */
 
-		if (hcnt) {
-			vector_t vec = vector_create(hvec, sizeof hvec[0], G_N_ELEMENTS(hvec));
+		if (hcnt > 0) {
+			vector_t vec = vector_create(hvec, sizeof hvec[0], hcnt);
 			rc->alt_locs = gnet_host_vec_from_vector(&vec);
 		}
 	}
