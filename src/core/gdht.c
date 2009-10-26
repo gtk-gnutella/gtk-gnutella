@@ -337,10 +337,10 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	}
 
 	/*
-	 * Check that filesize matches.
+	 * Check that filesize matches, if any supplied and if known.
 	 */
 
-	if (filesize && fi->size != filesize) {
+	if (filesize != 0 && fi->size != 0 && fi->size != filesize) {
 		if (GNET_PROPERTY(download_debug))
 			g_warning("discarding %s from %s for %s: "
 				"we have size=%lu, ALOC says %lu",
@@ -383,7 +383,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 		flags |= SOCK_F_TLS;
 
 	download_dht_auto_new(filepath_basename(fi->pathname),
-		fi->size,
+		fi->size != 0 ? fi->size : filesize,
 		hostname, rc->addr, port,
 		&guid,
 		fi->sha1,
