@@ -252,9 +252,10 @@ handle_entry(cqueue_t *unused_cq, gpointer obj)
  *
  * @param pe		the entry to publish
  * @param delay		delay in seconds
+ * @param msg		if non-NULL, logging message explaining the delay
  */
 static void
-publisher_retry(struct publisher_entry *pe, int delay)
+publisher_retry(struct publisher_entry *pe, int delay, const char *msg)
 {
 	struct pubdata *pd;
 
@@ -270,6 +271,16 @@ publisher_retry(struct publisher_entry *pe, int delay)
 
 	pe->publish_ev = cq_insert(publish_cq, delay * 1000, handle_entry, pe);
 	pe->last_delayed = tm_time();
+
+	if (GNET_PROPERTY(publisher_debug) > 3) {
+		shared_file_t *sf = shared_file_by_sha1(pe->sha1);
+		g_message("PUBLISHER will retry SHA-1 %s %s\"%s\" in %s: %s",
+			sha1_to_string(pe->sha1),
+			(sf && sf != SHARE_REBUILDING && shared_file_is_partial(sf)) ?
+				"partial " : "",
+			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "",
+			compact_time(delay), msg != NULL ? msg : "<no reason>");
+	}
 }
 
 /**
@@ -278,7 +289,7 @@ publisher_retry(struct publisher_entry *pe, int delay)
  * matter if this already published data expires in the DHT.
  */
 static void
-publisher_hold(struct publisher_entry *pe, int delay)
+publisher_hold(struct publisher_entry *pe, int delay, const char *msg)
 {
 	struct pubdata *pd;
 
@@ -290,7 +301,7 @@ publisher_hold(struct publisher_entry *pe, int delay)
 		dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
 	}
 
-	publisher_retry(pe, delay);
+	publisher_retry(pe, delay, msg);
 }
  
 /**
@@ -474,9 +485,9 @@ publisher_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 	 */
 
 	if (PDHT_E_POPULAR == code)
-		publisher_hold(pe, delay);
+		publisher_hold(pe, delay, "popular entry");
 	else
-		publisher_retry(pe, delay);
+		publisher_retry(pe, delay, accepted ? "accepted publish" : "published");
 
 	pe->backgrounded = !accepted;
 
@@ -514,7 +525,7 @@ publisher_handle(struct publisher_entry *pe)
 
 		if (fi != NULL && file_exists(fi->pathname)) {
 			/* Waiting for more data to be able to share, or PFSP re-enabled */
-			publisher_retry(pe, PUBLISH_BUSY);
+			publisher_retry(pe, PUBLISH_BUSY, "partial file missing");
 			return;
 		}
 
@@ -531,7 +542,7 @@ publisher_handle(struct publisher_entry *pe)
 	 */
 
 	if (sf == SHARE_REBUILDING) {
-		publisher_retry(pe, PUBLISH_BUSY);
+		publisher_retry(pe, PUBLISH_BUSY, "library being rebuilt");
 		return;
 	}
 
@@ -545,7 +556,7 @@ publisher_handle(struct publisher_entry *pe)
 		!is_partial &&
 		(!sha1_hash_available(sf) || !sha1_hash_is_uptodate(sf))
 	) {
-		publisher_retry(pe, PUBLISH_BUSY);
+		publisher_retry(pe, PUBLISH_BUSY, "SHA-1 of file unknown yet");
 		return;
 	}
 
@@ -569,7 +580,7 @@ publisher_handle(struct publisher_entry *pe)
 				shared_file_name_nfc(sf),
 				alt_locs, 1 == alt_locs ? "y" : "ies");
 		}
-		publisher_hold(pe, PUBLISH_POPULAR);
+		publisher_hold(pe, PUBLISH_POPULAR, "popular file");
 		return;
 	}
 
@@ -578,7 +589,7 @@ publisher_handle(struct publisher_entry *pe)
 	 */
 
 	if (!dht_enabled()) {
-		publisher_hold(pe, PUBLISH_BUSY);
+		publisher_hold(pe, PUBLISH_BUSY, "DHT  disabled");
 		return;
 	}
 
@@ -594,7 +605,7 @@ publisher_handle(struct publisher_entry *pe)
 			!GNET_PROPERTY(pfsp_server) ||
 			fi->done < GNET_PROPERTY(pfsp_minimum_filesize)
 		) {
-			publisher_hold(pe, PUBLISH_BUSY);
+			publisher_hold(pe, PUBLISH_BUSY, "PFSP minima not reached");
 			return;
 		}
 	}
@@ -622,7 +633,7 @@ publisher_handle(struct publisher_entry *pe)
 						sha1_to_string(pe->sha1), compact_time(enqueue));
 				}
 
-				publisher_retry(pe, delay);
+				publisher_retry(pe, delay, "first-time delay");
 				return;
 			}
 		}
