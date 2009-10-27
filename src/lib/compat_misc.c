@@ -189,6 +189,7 @@ compat_memmem(const void *data, size_t data_size,
 	return deconstify_gchar(p);
 }
 
+#ifdef HAS_POSIX_FADVISE
 /**
  * See posix_fadvise(2).
  *
@@ -205,7 +206,6 @@ compat_fadvise(int fd, off_t offset, off_t size, int hint)
 	g_return_if_fail(size >= 0);
 	(void) hint;
 
-#ifdef HAS_POSIX_FADVISE
 	if (0 == size) {
 		/**
  		 * NOTE: Buggy Linux kernels don't handle zero correctly.
@@ -213,14 +213,18 @@ compat_fadvise(int fd, off_t offset, off_t size, int hint)
 		size = OFF_T_MAX;
 	}
 	posix_fadvise(fd, offset, size, hint);
-#endif	/* HAS_POSIX_FADVISE */
 }
+#endif	/* HAS_POSIX_FADVISE */
 
 void
 compat_fadvise_sequential(int fd, off_t offset, off_t size)
 {
 #ifdef HAS_POSIX_FADVISE
 	compat_fadvise(fd, offset, size, POSIX_FADV_SEQUENTIAL);
+#else
+	(void) fd;
+	(void) offset;
+	(void) size;
 #endif	/* HAS_POSIX_FADVISE */
 }
 
@@ -229,6 +233,10 @@ compat_fadvise_noreuse(int fd, off_t offset, off_t size)
 {
 #ifdef HAS_POSIX_FADVISE
 	compat_fadvise(fd, offset, size, POSIX_FADV_NOREUSE);
+#else
+	(void) fd;
+	(void) offset;
+	(void) size;
 #endif	/* HAS_POSIX_FADVISE */
 }
 
@@ -237,6 +245,10 @@ compat_fadvise_dontneed(int fd, off_t offset, off_t size)
 {
 #ifdef HAS_POSIX_FADVISE
 	compat_fadvise(fd, offset, size, POSIX_FADV_DONTNEED);
+#else
+	(void) fd;
+	(void) offset;
+	(void) size;
 #endif	/* HAS_POSIX_FADVISE */
 }
 
