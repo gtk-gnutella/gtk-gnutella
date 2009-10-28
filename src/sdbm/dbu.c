@@ -151,9 +151,10 @@ doit(register cmd *act, char *file)
 				*op++ = 0;
 				val.dptr = op;
 				val.dsize = line + n - op;
-			}
-			else
+			} else {
 				oops("bad input; %s", line);
+				val = nullitem;     /* shut compiler warnings */
+			}
 	
 			if (sdbm_store(db, key, val, DBM_REPLACE) < 0) {
 				prdatum(stderr, key);
