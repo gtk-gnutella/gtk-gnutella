@@ -3635,11 +3635,16 @@ socket_tx_shutdown(struct gnutella_socket *s)
 	if (s->flags & SOCK_F_SHUTDOWN)
 		return;
 
-	/* EINVAL and ENOTCONN may occur if connect() didn't succeed */
+	/*
+	 * EINVAL and ENOTCONN may occur if connect() didn't succeed.
+	 * ECONNRESET may occur when TX shutdown happens late and the other
+	 * side of the connection already closed its socket.
+	 */
 	if (
 		-1 == shutdown(s->file_desc, SHUT_WR) &&
 		EINVAL != errno &&
-		ENOTCONN != errno
+		ENOTCONN != errno &&
+		ECONNRESET != errno
 	) {
 		g_warning("unable to shutdown TX on fd#%d: %s",
 			s->file_desc, g_strerror(errno));
