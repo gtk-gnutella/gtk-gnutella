@@ -590,8 +590,11 @@ static const char * const parse_errstr[] = {
 const char *
 http_url_strerror(http_url_error_t errnum)
 {
-	if (UNSIGNED(errnum) >= G_N_ELEMENTS(parse_errstr))
-		return "Invalid error code";
+	if (UNSIGNED(errnum) >= G_N_ELEMENTS(parse_errstr)) {
+		static char buf[40];
+		gm_snprintf(buf, sizeof buf, "Invalid URL error code: %u", errnum);
+		return buf;
+	}
 
 	return parse_errstr[errnum];
 }
@@ -1474,8 +1477,12 @@ guint http_async_errno;		/**< Used to return error codes during setup */
 const char *
 http_async_strerror(guint errnum)
 {
-	if (errnum >= G_N_ELEMENTS(error_str))
-		return "Invalid error code";
+	if (errnum >= G_N_ELEMENTS(error_str)) {
+		static char buf[50];
+		gm_snprintf(buf, sizeof buf,
+			"Invalid HTTP async error code: %u", errnum);
+		return buf;
+	}
 
 	return error_str[errnum];
 }
@@ -1899,7 +1906,7 @@ http_async_got_reply(const struct http_async *unused_ha,
 	if (GNET_PROPERTY(http_trace) & SOCK_TRACE_IN) {
 		g_message("----Got HTTP reply from %s:",
 			host_addr_to_string(s->addr));
-		fprintf(stderr, "%s", status);
+		fprintf(stderr, "%s\n", status);
 		header_dump(stderr, header, "----");
 	}
 }
@@ -1971,7 +1978,8 @@ http_async_create(
 			host = NULL;
 			s = socket_connect(ip, uport, SOCK_TYPE_HTTP, SOCK_F_FORCE);
 		} else {
-			s = socket_connect_by_name(host, uport, SOCK_TYPE_HTTP, 0);
+			s = socket_connect_by_name(host, uport,
+					SOCK_TYPE_HTTP, SOCK_F_FORCE);
 		}
 	} else {
 		host = NULL;
@@ -2713,10 +2721,20 @@ http_async_connected(struct http_async *ha)
  * Error indication callback which logs the error by listing the
  * initial HTTP request and the reported error cause.  The specified
  * debugging level is explicitly given.
+ *
+ * @param handle		the asynchronous HTTP request
+ * @param type			the error type, as reported to the error callback
+ * @param v				the opaque error description from error callback
+ * @param prefix		logging prefix to be inserted in logging messages
+ * @param all			if TRUE, also log explicit user cancels
+ *
+ * If no prefix is supplied, "HTTP" is used.
+ *
+ * @return TRUE if anything was logged.
  */
-void
+gboolean
 http_async_log_error_dbg(struct http_async *handle,
-	http_errtype_t type, gpointer v, guint32 dbg_level)
+	http_errtype_t type, gpointer v, const gchar *prefix, gboolean all)
 {
 	const char *url;
 	const char *req;
@@ -2724,6 +2742,7 @@ http_async_log_error_dbg(struct http_async *handle,
 	http_error_t *herror = v;
 	host_addr_t addr;
 	guint16 port;
+	const char *what = prefix != NULL ? prefix : "HTTP";
 
 	http_async_check(handle);
 
@@ -2731,58 +2750,67 @@ http_async_log_error_dbg(struct http_async *handle,
 
 	switch (type) {
 	case HTTP_ASYNC_SYSERR:
-        if (dbg_level) {
-            g_message("aborting \"%s %s\" at %s on system error: %s",
-                req, url, host_addr_port_to_string(addr, port),
-				g_strerror(error));
-        }
-		return;
+		g_message("%s: aborting \"%s %s\" at %s on system error: %s",
+			what, req, url, host_addr_port_to_string(addr, port),
+			g_strerror(error));
+		return TRUE;
 	case HTTP_ASYNC_ERROR:
 		if (error == HTTP_ASYNC_CANCELLED) {
-			if (dbg_level > 3)
-				g_message("explicitly cancelled \"%s %s\" at %s", req, url,
-					host_addr_port_to_string(addr, port));
+			if (all) {
+				g_message("%s: explicitly cancelled \"%s %s\" at %s",
+					what, req, url, host_addr_port_to_string(addr, port));
+				return TRUE;
+			}
 		} else if (error == HTTP_ASYNC_CLOSED) {
-			if (dbg_level > 3)
-				g_message("connection closed for \"%s %s\" at %s", req, url,
-					host_addr_port_to_string(addr, port));
-		} else
-            if (dbg_level) {
-                g_message("aborting \"%s %s\" at %s on error: %s", req, url,
-                    host_addr_port_to_string(addr, port),
-					http_async_strerror(error));
-            }
-		return;
+			if (all) {
+				g_message("%s: connection closed for \"%s %s\" at %s",
+					what, req, url, host_addr_port_to_string(addr, port));
+				return TRUE;
+			}
+		} else {
+			g_message("%s: aborting \"%s %s\" at %s on error: %s",
+				what, req, url,
+				host_addr_port_to_string(addr, port),
+				http_async_strerror(error));
+			return TRUE;
+		}
+		return FALSE;
 	case HTTP_ASYNC_HEADER:
-        if (dbg_level) {
-            g_message("aborting \"%s %s\" at %s on header parsing error: %s",
-                req, url, host_addr_port_to_string(addr, port),
-				header_strerror(error));
-        }
-		return;
+		g_message("%s: aborting \"%s %s\" at %s on header parsing error: %s",
+			what, req, url, host_addr_port_to_string(addr, port),
+			header_strerror(error));
+		return TRUE;
 	case HTTP_ASYNC_HTTP:
-        if (dbg_level) {
-            g_message("stopping \"%s %s\" at %s: HTTP %d %s", req, url,
-                host_addr_port_to_string(addr, port),
-				herror->code, herror->message);
-        }
-		return;
+		g_message("%s: stopping \"%s %s\" at %s: HTTP %d %s",
+			what, req, url,
+			host_addr_port_to_string(addr, port),
+			herror->code, herror->message);
+		return TRUE;
 	/* No default clause, let the compiler warn us about missing cases. */
 	}
 
 	/* In case the error was not trapped at compile time... */
 	g_error("unhandled HTTP request error type %d", type);
 	/* NOTREACHED */
+	return FALSE;	/* Avoid compiler warnings about missing returned value */
 }
 
 /**
  * Default error indication callback which logs the error by listing the
  * initial HTTP request and the reported error cause.
+ *
+ * @return whether anything was logged.
  */
-void
-http_async_log_error(struct http_async *handle, http_errtype_t type, gpointer v)
+gboolean
+http_async_log_error(struct http_async *handle,
+	http_errtype_t type, gpointer v, const char *prefix)
 {
-	http_async_log_error_dbg(handle, type, v, GNET_PROPERTY(http_debug));
+	if (GNET_PROPERTY(http_debug)) {
+		return http_async_log_error_dbg(handle, type, v, prefix,
+			GNET_PROPERTY(http_debug) >= 4);
+	}
+
+	return FALSE;
 }
 
 /***

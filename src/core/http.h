@@ -327,10 +327,10 @@ http_state_t http_async_state(struct http_async *handle);
 void http_async_set_opaque(struct http_async *handle,
 		gpointer data, http_user_free_t fn);
 gpointer http_async_get_opaque(struct http_async *handle);
-void http_async_log_error(struct http_async *handle,
-		http_errtype_t type, gpointer v);
-void http_async_log_error_dbg(struct http_async *handle,
-		http_errtype_t type, gpointer v, guint32 dbg_level);
+gboolean http_async_log_error(struct http_async *handle,
+		http_errtype_t type, gpointer v, const char *prefix);
+gboolean http_async_log_error_dbg(struct http_async *handle,
+		http_errtype_t type, gpointer v, const char *prefix, gboolean all);
 
 void http_async_on_state_change(struct http_async *ha, http_state_change_t fn);
 void http_async_allow_redirects(struct http_async *ha, gboolean allow);

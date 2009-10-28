@@ -1042,7 +1042,7 @@ cproxy_http_error_ind(struct http_async *handle,
 	g_assert(cp != NULL);
 	g_assert(cp->magic == CPROXY_MAGIC);
 
-	http_async_log_error(handle, type, v);
+	http_async_log_error(handle, type, v, "HTTP push-proxy request");
 
 	cp->http_handle = NULL;
 	cp->done = TRUE;
