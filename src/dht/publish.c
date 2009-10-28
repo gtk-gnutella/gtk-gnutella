@@ -1098,8 +1098,6 @@ publish_status_retryable(guint16 status)
 	switch (status) {
 	case STORE_SC_ERROR:
 	case STORE_SC_LOADED:
-	case STORE_SC_FULL:
-	case STORE_SC_FULL_LOADED:
 	case STORE_SC_QUOTA:
 	case STORE_SC_EXHAUSTED:
 		return TRUE;
