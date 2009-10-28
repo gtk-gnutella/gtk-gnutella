@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5 PL0]
-: $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-30]
+: $X-Id: Jmake.tmpl 30 2009-10-28 07:45:28Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -71,19 +71,19 @@ XML2_LDFLAGS =  $xmlldflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 8 2006-08-25 22:27:18Z rmanfredi $
+# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
 
-.FORCE_DEPEND::
-
 all:: .FORCE_DEPEND
+
+.FORCE_DEPEND::
 
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 8273 2005-05-07 13:19:24Z graaff $
+# $X-Id: Jmakefile 16059 2009-03-04 12:37:51Z rmanfredi $
 
 # Those files lie in the ../gtk-shared directory
 REMOTE_GLADE_C = callbacks.c

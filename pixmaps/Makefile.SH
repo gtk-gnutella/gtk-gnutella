@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.0 PL70]
-: $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-30]
+: $X-Id: Jmake.tmpl 30 2009-10-28 07:45:28Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -50,12 +50,12 @@ RM = $rm -f
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 8 2006-08-25 22:27:18Z rmanfredi $
+# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 11129 2006-06-20 22:13:22Z cbiere $
+# $X-Id: Jmakefile 17125 2009-10-28 07:51:14Z rmanfredi $
 
 PIXMAPS = \
 	arrow_down.xpm \

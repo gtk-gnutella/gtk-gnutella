@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-25]
-: $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-30]
+: $X-Id: Jmake.tmpl 30 2009-10-28 07:45:28Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -88,9 +88,9 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
 
-.FORCE_DEPEND::
-
 all:: .FORCE_DEPEND
+
+.FORCE_DEPEND::
 
 ########################################################################
 # Start of Jmakefile
