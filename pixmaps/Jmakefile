@@ -64,7 +64,7 @@ PIXMAPS = \
 	thaw.xpm \
 	ultra.xpm \
 	upload.xpm \
-	warning.xpm \
+	warning.xpm
 
 
 all::
