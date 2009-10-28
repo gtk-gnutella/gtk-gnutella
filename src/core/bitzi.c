@@ -246,14 +246,11 @@ bitzi_host_data_ind(struct http_async *unused_handle, char *data, int len)
  */
 static void
 bitzi_host_error_ind(struct http_async *handle,
-	http_errtype_t unused_type, gpointer unused_v)
+	http_errtype_t type, gpointer v)
 {
-	(void) unused_type;
-	(void) unused_v;
-
-	g_warning("bitzi_host_error_ind: failed!");
-
 	g_assert(handle == current_bitzi_request_handle);
+
+	http_async_log_error_dbg(handle, type, v, "bitzi_host_error_ind", TRUE);
 
 	/*
 	 * process what we had and clear up
