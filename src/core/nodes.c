@@ -5060,6 +5060,65 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 
 	node_extract_user_agent(n, head); 	/* Servent vendor identification */
+	
+	/* Node -- remote node Gnet IP/port information */
+
+	if (incoming) {
+		/*
+		 * We parse only for incoming connections.  Even though the remote
+		 * node may reply with such a header to our outgoing connections,
+		 * if we reached it, we know its IP:port already!  There's no need
+		 * to spend time parsing it.
+		 */
+
+		if (node_intuit_address(n, head)) {
+			if (n->attrs & NODE_A_ULTRA) {
+				/* Might have free slots */
+				pcache_pong_fake(n, n->gnet_addr, n->gnet_port);
+			}
+
+			/*
+			 * Since we have the node's IP:port, record it now and mark the
+			 * node as valid: if the connection is terminated, the host will
+			 * be recorded amongst our valid set.
+			 *		--RAM, 18/03/2002.
+			 */
+
+			if (host_addr_equal(n->gnet_addr, n->addr)) {
+                node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
+
+				n->gnet_pong_addr = n->addr;	/* Cannot lie about its IP */
+				n->flags |= NODE_F_VALID;
+
+                node_ht_connected_nodes_add(n->gnet_addr, n->gnet_port);
+			}
+			/* FIXME: What about LAN connections? Should we blindly accept
+			 * 		  the reported external address?
+			 */
+		}
+	}
+
+	/*
+	 * Decline handshakes from closed P2P networks politely.
+	 */
+	
+	field = header_get(head, "X-Auth-Challenge");
+	if (NULL == field)
+		field = header_get(head, "FP-Auth-Challenge");	/* BearShare */
+
+	if (field) {
+		static const char msg[] = N_("Not a network member");
+		if (GNET_PROPERTY(node_debug)) {
+			g_warning("rejecting authentication challenge from %s <%s>",
+				node_addr(n), node_vendor(n));
+		}
+		/* Remove from fresh/valid caches */
+		hcache_purge(n->gnet_addr, n->gnet_port);
+		hcache_add(HCACHE_ALIEN, n->gnet_addr, n->gnet_port, "alien network");
+		node_send_error(n, 403, "%s", msg);
+		node_remove(n, "%s", _(msg));
+		return;
+	}
 
 	/* Pong-Caching -- ping/pong reduction scheme */
 
@@ -5101,42 +5160,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			n->attrs |= NODE_A_NO_ULTRA;
 	}
 
-	/* Node -- remote node Gnet IP/port information */
 
-	if (incoming) {
-		/*
-		 * We parse only for incoming connections.  Even though the remote
-		 * node may reply with such a header to our outgoing connections,
-		 * if we reached it, we know its IP:port already!  There's no need
-		 * to spend time parsing it.
-		 */
-
-		if (node_intuit_address(n, head)) {
-			if (n->attrs & NODE_A_ULTRA) {
-				/* Might have free slots */
-				pcache_pong_fake(n, n->gnet_addr, n->gnet_port);
-			}
-
-			/*
-			 * Since we have the node's IP:port, record it now and mark the
-			 * node as valid: if the connection is terminated, the host will
-			 * be recorded amongst our valid set.
-			 *		--RAM, 18/03/2002.
-			 */
-
-			if (host_addr_equal(n->gnet_addr, n->addr)) {
-                node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
-
-				n->gnet_pong_addr = n->addr;	/* Cannot lie about its IP */
-				n->flags |= NODE_F_VALID;
-
-                node_ht_connected_nodes_add(n->gnet_addr, n->gnet_port);
-			}
-			/* FIXME: What about LAN connections? Should we blindly accept
-			 * 		  the reported external address?
-			 */
-		}
-	}
 
 	if (header_get_feature("tls", head, NULL, NULL)) {
 		node_supports_tls(n);
@@ -5293,27 +5317,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
         }
     }
 
-	/*
-	 * Decline handshakes from closed P2P networks politely.
-	 */
-	
-	field = header_get(head, "X-Auth-Challenge");
-	if (NULL == field)
-		field = header_get(head, "FP-Auth-Challenge");	/* BearShare */
-
-	if (field) {
-		static const char msg[] = N_("Not a network member");
-		if (GNET_PROPERTY(node_debug)) {
-			g_warning("rejecting authentication challenge from %s <%s>",
-				node_addr(n), node_vendor(n));
-		}
-		/* Remove from fresh/valid caches */
-		hcache_purge(n->gnet_addr, n->gnet_port);
-		hcache_add(HCACHE_ALIEN, n->gnet_addr, n->gnet_port, "alien network");
-		node_send_error(n, 403, "%s", msg);
-		node_remove(n, "%s", _(msg));
-		return;
-	}
 
 	/*
 	 * Vendor-specific banning.
