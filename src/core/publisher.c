@@ -81,6 +81,7 @@ RCSID("$Id$")
 #define PUBLISH_POPULAR		10800	/**< 3 hours of delay for popular files */
 #define PUBLISH_BUSY		600		/**< Retry after 10 minutes */
 #define PUBLISH_DMESH_MAX	5		/**< File popularity by dmesh entry count */
+#define PUBLISH_PARTIAL_MAX	1		/**< Partial file popularity (dmesh) */
 
 #define PUBLISH_DB_CACHE_SIZE	128		/**< Amount of data to keep cached */
 #define PUBLISH_SYNC_PERIOD		60000	/**< Flush DB every minute */
@@ -572,7 +573,7 @@ publisher_handle(struct publisher_entry *pe)
 
 	alt_locs = dmesh_count(pe->sha1);
 
-	if (alt_locs > (is_partial ? 1 : PUBLISH_DMESH_MAX)) {
+	if (alt_locs > (is_partial ? PUBLISH_PARTIAL_MAX : PUBLISH_DMESH_MAX)) {
 		if (GNET_PROPERTY(publisher_debug)) {
 			g_message("PUBLISHER SHA-1 %s %s\"%s\" has %d download mesh "
 				"entr%s, skipped", sha1_to_string(pe->sha1),

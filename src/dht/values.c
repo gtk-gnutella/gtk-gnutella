@@ -1799,6 +1799,7 @@ values_close(void)
 
 	g_hash_table_foreach(expired, expired_free_kv, NULL);
 	g_hash_table_destroy(expired);
+	expired = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -290,7 +290,7 @@ stable_store_presence(time_delta_t d,
 				time_delta_t alive = delta_time(ld->last_seen, ld->first_seen);
 				double p = stable_alive_probability(alive, d);
 
-				q *= (1 - p);	/* (1 - p) is proba this node will be gone */
+				q *= (1.0 - p);	/* (1 - p) is proba this node will be gone */
 			}
 		}
 	}
