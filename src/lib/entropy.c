@@ -149,11 +149,13 @@ entropy_collect(struct sha1 *digest)
 	 * Add local CPU state noise.
 	 */
 
+	memset(env, 0, sizeof env);		/* Avoid uninitialized memory reads */
+
 	if (setjmp(env)) {
 		/* We will never longjmp() back here */
 		g_assert_not_reached();
 	}
-	SHA1Input(&ctx, env, sizeof env);
+	SHA1Input(&ctx, env, sizeof env);	/* "env" is an array */
 
 	/* Add some host/user dependent noise */
 	sha1_feed_ulong(&ctx, getuid());
