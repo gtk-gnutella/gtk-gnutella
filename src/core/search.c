@@ -727,7 +727,7 @@ is_odd_guid(const struct guid *guid)
 	do {
 		unsigned char c = guid->v[--i];
 
-		if (c < 0xaaU || (c & 0x0f) < 0x0aU)
+		if (c < 0xaaU || (c & 0x0fU) < 0x0aU)
 			return FALSE;
 	} while (i > 0);
 	return TRUE;
