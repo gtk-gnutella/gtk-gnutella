@@ -196,6 +196,8 @@ static dbmw_t *db_expired;
 static char db_expbase[] = "dht_expired";
 static char db_expwhat[] = "DHT expired values";
 
+static cperiodic_t *values_expire_ev;	/**< Value expire periodic event */
+
 /**
  * @return amount of values managed.
  */
@@ -1768,8 +1770,8 @@ values_init(void)
 	values_per_class_c = acct_net_create();
 	expired = g_hash_table_new(uint64_hash, uint64_eq);
 
-	cq_periodic_add(callout_queue, EXPIRE_PERIOD * 1000,
-		values_periodic_expire, NULL);
+	values_expire_ev = cq_periodic_add(callout_queue,
+		EXPIRE_PERIOD * 1000, values_periodic_expire, NULL);
 }
 
 static void
@@ -1795,6 +1797,7 @@ values_close(void)
 	db_valuedata = db_rawdata = db_expired = NULL;
 	acct_net_free(&values_per_ip);
 	acct_net_free(&values_per_class_c);
+	cq_periodic_remove(callout_queue, &values_expire_ev);
 	values_managed = 0;
 
 	g_hash_table_foreach(expired, expired_free_kv, NULL);
