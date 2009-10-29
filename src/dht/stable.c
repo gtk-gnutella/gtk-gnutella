@@ -142,6 +142,9 @@ RCSID("$Id$")
 #define STABLE_PRUNE_PERIOD	(DHT_VALUE_REPUBLISH * 1000)
 #define STABLE_SYNC_PERIOD	(60 * 1000)
 
+static cperiodic_t *stable_sync_ev;
+static cperiodic_t *stable_prune_ev;
+
 /**
  * DBM wrapper to associate a target KUID with the set timestamps.
  */
@@ -353,9 +356,6 @@ stable_periodic_prune(gpointer unused_obj)
 {
 	(void) unused_obj;
 
-	if (NULL == db_lifedata)
-		return FALSE;	/* Stop calling */
-
 	stable_prune_old();
 	return TRUE;		/* Keep calling */
 }
@@ -368,11 +368,8 @@ stable_sync(gpointer unused_obj)
 {
 	(void) unused_obj;
 
-	if (NULL == db_lifedata)
-		return FALSE;	/* Stop calling */
-
 	storage_sync(db_lifedata);
-	return TRUE;
+	return TRUE;		/* Keep calling */
 }
 
 /**
@@ -417,9 +414,11 @@ stable_init(void)
 	dbmw_set_map_cache(db_lifedata, STABLE_MAP_CACHE_SIZE);
 	stable_prune_old();
 
-	cq_periodic_add(callout_queue, STABLE_SYNC_PERIOD, stable_sync, NULL);
-	cq_periodic_add(callout_queue, STABLE_PRUNE_PERIOD,
-		stable_periodic_prune, NULL);
+	stable_sync_ev = cq_periodic_add(callout_queue,
+		STABLE_SYNC_PERIOD, stable_sync, NULL);
+
+	stable_prune_ev = cq_periodic_add(callout_queue,
+		STABLE_PRUNE_PERIOD, stable_periodic_prune, NULL);
 }
 
 /**
@@ -430,6 +429,8 @@ stable_close(void)
 {
 	storage_close(db_lifedata, db_stable_base);
 	db_lifedata = NULL;
+	cq_periodic_remove(callout_queue, &stable_sync_ev);
+	cq_periodic_remove(callout_queue, &stable_prune_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

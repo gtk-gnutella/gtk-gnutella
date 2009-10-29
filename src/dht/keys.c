@@ -182,6 +182,7 @@ static char db_keybase[] = "dht_keys";
 static char db_keywhat[] = "DHT key data";
 
 static cevent_t *kball_ev;		/**< Event for periodic k-ball update */
+static cperiodic_t *keys_periodic_ev;
 
 /**
  * Decimation factor to adjust expiration time depending on the distance
@@ -1243,7 +1244,7 @@ keys_init(void)
 {
 	size_t i;
 
-	cq_periodic_add(callout_queue, LOAD_PERIOD * 1000,
+	keys_periodic_ev = cq_periodic_add(callout_queue, LOAD_PERIOD * 1000,
 		keys_periodic_load, NULL);
 
 	keys = g_hash_table_new(sha1_hash, sha1_eq);
@@ -1427,6 +1428,7 @@ keys_close(void)
 	kuid_atom_free_null(&kball.closest);
 
 	cq_cancel(callout_queue, &kball_ev);
+	cq_periodic_remove(callout_queue, &keys_periodic_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
