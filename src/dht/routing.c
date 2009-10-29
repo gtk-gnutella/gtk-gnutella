@@ -1144,6 +1144,13 @@ void
 dht_attempt_bootstrap(void)
 {
 	/*
+	 * If the DHT is not initialized, ignore silently.
+	 */
+
+	if (NULL == root)
+		return;
+
+	/*
 	 * If we are already completely bootstrapped, ignore.
 	 */
 
