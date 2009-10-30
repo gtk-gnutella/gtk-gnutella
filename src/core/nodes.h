@@ -43,6 +43,7 @@
 #include "if/core/nodes.h"
 
 #include "lib/header.h"
+#include "lib/sequence.h"
 
 struct guid;
 
@@ -585,7 +586,8 @@ void node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port);
 void node_proxy_cancel_all(void);
 size_t node_http_proxies_add(char *buf, size_t size,
 			gpointer arg, guint32 flags);
-const GSList *node_push_proxies(void);
+sequence_t *node_push_proxies(void);
+const gnet_host_t *node_oldest_push_proxy(void);
 const GSList *node_all_nodes(void);
 
 gnutella_node_t *node_by_id(const node_id_t node_id);

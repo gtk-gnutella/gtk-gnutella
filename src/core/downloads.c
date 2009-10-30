@@ -102,6 +102,7 @@
 #include "lib/magnet.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
+#include "lib/sequence.h"
 #include "lib/strtok.h"
 #include "lib/stringify.h"
 #include "lib/tigertree.h"
@@ -135,7 +136,7 @@ RCSID("$Id$")
 #define DOWNLOAD_DATA_TIMEOUT	5		/**< Max # of data timeouts we allow */
 #define DOWNLOAD_ALT_LOC_SIZE	1024	/**< Max size for alt locs */
 #define DOWNLOAD_BAN_DELAY		360		/**< Retry time when suspecting ban */
-#define DOWNLOAD_MAX_PROXIES	8		/**< Keep that many recent proxies */
+#define DOWNLOAD_MAX_PROXIES	32		/**< Keep that many recent proxies */
 #define DOWNLOAD_MAX_UDP_PUSH	4		/**< Contact at most 4 hosts */
 #define DOWNLOAD_CONNECT_DELAY	12		/**< Seconds between connections */
 
@@ -1252,55 +1253,18 @@ dl_by_time_remove(struct dl_server *server)
 }
 
 /**
- * Trim push-proxies so that we do not keep too much of them.
- */
-static void
-trim_proxies(const struct dl_server *server)
-{
-	hash_list_t *hl;
-
-	g_assert(dl_server_valid(server));
-	g_assert(server->proxies != NULL);
-
-	/*
-	 * We trim from the tail since we add the most recent ones at the head.
-	 */
-
-	hl = server->proxies;
-
-	while (hash_list_length(hl) > DOWNLOAD_MAX_PROXIES) {
-		gnet_host_t *host = hash_list_remove_tail(hl);
-		gnet_host_free(host);
-	}
-}
-
-/**
  * Add hosts in the vector as push-proxies for the server, provided they
  * were not already known.
  */
 static void
 add_proxies_vec(struct dl_server *server, const gnet_host_vec_t *vec)
 {
-	hash_list_t *hl;
-	int i;
-
 	g_assert(dl_server_valid(server));
 
-	hl = server->proxies;
-	if (NULL == hl)
-		hl = server->proxies = hash_list_new(host_hash, host_eq);
+	if (NULL == server->proxies)
+		server->proxies = pproxy_set_allocate(DOWNLOAD_MAX_PROXIES);
 
-	for (i = gnet_host_vec_count(vec) - 1; i >= 0; i--) {
-		gnet_host_t host = gnet_host_vec_get(vec, i);
-		if (hash_list_contains(hl, &host)) {
-			hash_list_moveto_head(hl, &host);
-		} else {
-			hash_list_prepend(hl, gnet_host_dup(&host));
-		}
-	}
-
-	server->proxies_stamp = tm_time();
-	trim_proxies(server);
+	pproxy_set_add_vec(server->proxies, vec);
 }
 
 /**
@@ -1311,43 +1275,12 @@ add_proxies_vec(struct dl_server *server, const gnet_host_vec_t *vec)
 static gboolean
 add_proxy(struct dl_server *server, const host_addr_t addr, guint16 port)
 {
-	hash_list_t *hl;
-	gnet_host_t host;
-	gboolean added = FALSE;
-
 	g_assert(dl_server_valid(server));
 
-	hl = server->proxies;
-	if (NULL == hl)
-		hl = server->proxies = hash_list_new(host_hash, host_eq);
+	if (NULL == server->proxies)
+		server->proxies = pproxy_set_allocate(DOWNLOAD_MAX_PROXIES);
 
-	gnet_host_set(&host, addr, port);
-
-	if (hash_list_contains(hl, &host)) {
-		hash_list_moveto_head(hl, &host);
-	} else {
-		hash_list_prepend(hl, gnet_host_dup(&host));
-		added = TRUE;
-	}
-
-	server->proxies_stamp = tm_time();
-	trim_proxies(server);
-
-	return added;
-}
-
-/**
- * Get rid of the list of push-proxies held in the server.
- */
-static void
-free_proxies(struct dl_server *server)
-{
-	g_assert(dl_server_valid(server));
-
-	if (server->proxies) {
-		hash_list_foreach(server->proxies, gnet_host_free_item, NULL);
-		hash_list_free(&server->proxies);
-	}
+	return pproxy_set_add(server->proxies, addr, port);
 }
 
 /**
@@ -1356,21 +1289,10 @@ free_proxies(struct dl_server *server)
 static void
 remove_proxy(struct dl_server *server, const host_addr_t addr, guint16 port)
 {
-	hash_list_t *hl;
-
 	g_assert(dl_server_valid(server));
 
-	hl = server->proxies;
-
-	if (hl != NULL) {
-		gnet_host_t key;
-		gnet_host_t *item;
-
-		gnet_host_set(&key, addr, port);
-		item = hash_list_remove(hl, &key);
-		if (item != NULL)
-			gnet_host_free(item);
-	}
+	if (server->proxies != NULL)
+		pproxy_set_remove(server->proxies, addr, port);
 }
 
 /**
@@ -1548,7 +1470,7 @@ free_server(struct dl_server *server)
 	g_assert(server->list[DL_LIST_STOPPED] == NULL);
 
 	server_unregister(server);
-	free_proxies(server);
+	pproxy_set_free_null(&server->proxies);
 	atom_str_free_null(&server->hostname);
 	server_list_free_all(server);
 
@@ -2292,8 +2214,6 @@ download_add_push_proxies(const struct guid *guid,
 	gnet_host_t *proxies, int proxy_count)
 {
 	struct dl_server *server;
-	hash_list_t *hl;
-	int i;
 
 	g_assert(proxies);
 
@@ -2303,19 +2223,10 @@ download_add_push_proxies(const struct guid *guid,
 
 	g_assert(dl_server_valid(server));
 
-	hl = server->proxies;
-	if (NULL == hl)
-		hl = server->proxies = hash_list_new(host_hash, host_eq);
+	if (NULL == server->proxies)
+		server->proxies = pproxy_set_allocate(DOWNLOAD_MAX_PROXIES);
 
-	for (i = 0; i < proxy_count; i++) {
-		if (hash_list_contains(hl, &proxies[i])) {
-			hash_list_moveto_head(hl, &proxies[i]);
-		} else {
-			hash_list_prepend(hl, gnet_host_dup(&proxies[i]));
-		}
-	}
-
-	server->proxies_stamp = tm_time();
+	pproxy_set_add_array(server->proxies, proxies, proxy_count);
 }
 
 /**
@@ -2330,7 +2241,7 @@ download_push_proxy_wakeup(struct dl_server *server)
 	guint32 n = GNET_PROPERTY(max_host_downloads);
 	time_t now;
 
-	if (NULL == server->proxies || 0 == hash_list_length(server->proxies))
+	if (NULL == server->proxies || 0 == pproxy_set_count(server->proxies))
 		return;
 
 	/*
@@ -4375,6 +4286,24 @@ download_is_special(const struct download *d)
 }
 
 /**
+ * Iterator callback to send a HEAD ping.
+ */
+static void
+send_head_ping(gpointer key, gpointer data)
+{
+	gnet_host_t *host = key;
+	struct download *d = data;
+
+	download_check(d);
+
+	vmsg_send_head_ping(d->file_info->sha1,
+		gnet_host_get_addr(host), gnet_host_get_port(host),
+		download_guid(d));
+
+	d->head_ping_sent = tm_time();
+}
+
+/**
  * Send a HEAD Ping vendor message to node to get alternate sources via
  * UDP since we're not going to issue an HTTP request right now.
  */
@@ -4422,19 +4351,8 @@ download_send_head_ping(struct download *d)
 
 		g_assert(!has_blank_guid(d));
 
-		if (d->server->proxies && hash_list_length(d->server->proxies)) {
-			hash_list_iter_t *iter;
-
-			iter = hash_list_iterator(d->server->proxies);
-			while (hash_list_iter_has_next(iter)) {
-				gnet_host_t *host = hash_list_iter_next(iter);
-
-				vmsg_send_head_ping(d->file_info->sha1,
-					gnet_host_get_addr(host), gnet_host_get_port(host),
-					download_guid(d));
-				d->head_ping_sent = now;
-			}
-			hash_list_iter_release(&iter);
+		if (d->server->proxies != NULL) {
+			pproxy_set_foreach(d->server->proxies, send_head_ping, d);
 		}
 	} else {
 		/*
@@ -6167,15 +6085,13 @@ create_download(
 	g_assert(dl_server_valid(server));
 
 	/*
-	 * If some push proxies are given, and provided the `stamp' argument
-	 * is recent enough, add the proxies coming from the query hit if we
-	 * did not already know them.
+	 * If some push proxies are given add the proxies coming from the
+	 * query hit if we did not already know them and if the timestamp
+	 * is more recent than the last addition to the push-proxy set.
 	 */
 
-	if (proxies != NULL && delta_time(stamp, server->proxies_stamp) > 0) {
+	if (proxies != NULL && pproxy_set_older_than(server->proxies, stamp))
 		add_proxies_vec(server, proxies);
-		server->proxies_stamp = stamp;
-	}
 
 	/*
 	 * Record server's hostname if non-NULL and not empty.
@@ -7074,7 +6990,7 @@ has_push_proxies(const struct download *d)
 	g_assert(dl_server_valid(server));
 
 	return server->proxies != NULL &&
-		hash_list_length(server->proxies) > 0 && !has_blank_guid(d);
+		pproxy_set_count(server->proxies) > 0 && !has_blank_guid(d);
 }
 
 /**
@@ -7086,7 +7002,6 @@ static gboolean
 use_push_proxy(struct download *d)
 {
 	struct dl_server *server = d->server;
-	hash_list_t *hl;
 	gboolean created = FALSE;
 
 	download_check(d);
@@ -7098,16 +7013,17 @@ use_push_proxy(struct download *d)
 		d->cproxy = NULL;
 	}
 
-	hl = server->proxies;
-
-	if (hl) {
-		hash_list_iter_t *iter;
+	if (server->proxies != NULL) {
+		sequence_t *seq;
+		sequence_iter_t *iter;
 		GSList *to_remove = NULL;
 		GSList *sl;
 
-		iter = hash_list_iterator(hl);
-		while (!created && hash_list_iter_has_next(iter)) {
-			const gnet_host_t *host = hash_list_iter_next(iter);
+		seq = pproxy_set_sequence(server->proxies);
+		iter = sequence_forward_iterator(seq);
+
+		while (!created && sequence_iter_has_next(iter)) {
+			const gnet_host_t *host = sequence_iter_next(iter);
 
 			d->cproxy = cproxy_create(d,
 				gnet_host_get_addr(host), gnet_host_get_port(host),
@@ -7122,7 +7038,8 @@ use_push_proxy(struct download *d)
 					deconstify_gpointer(host));
 			}
 		}
-		hash_list_iter_release(&iter);
+		sequence_iterator_release(&iter);
+		sequence_release(&seq);
 
 		for (sl = to_remove; sl; sl = g_slist_next(sl)) {
 			const gnet_host_t *host = sl->data;
@@ -7238,12 +7155,12 @@ download_send_push_request(struct download *d, gboolean broadcast)
 		(void) send_udp_push(packet, download_addr(d), download_port(d));
 
 		if (has_push_proxies(d)) {
-			hash_list_iter_t *iter;
+			sequence_t *seq = pproxy_set_sequence(d->server->proxies);
+			sequence_iter_t *iter = sequence_forward_iterator(seq);
 			int i = 0;
 
-			iter = hash_list_iterator(d->server->proxies);
-			while (i < DOWNLOAD_MAX_UDP_PUSH && hash_list_iter_has_next(iter)) {
-				gnet_host_t *host = hash_list_iter_next(iter);
+			while (i < DOWNLOAD_MAX_UDP_PUSH && sequence_iter_has_next(iter)) {
+				gnet_host_t *host = sequence_iter_next(iter);
 
 				if (
 					send_udp_push(packet,
@@ -7252,7 +7169,8 @@ download_send_push_request(struct download *d, gboolean broadcast)
 					i++;
 				}
 			}
-			hash_list_iter_release(&iter);
+			sequence_iterator_release(&iter);
+			sequence_release(&seq);
 			success = i > 0;
 		}
 
@@ -8674,7 +8592,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		if (d->always_push && DOWNLOAD_IS_IN_PUSH_MODE(d)) {
 			cflags |= SOCK_F_PUSH;
 		}
-		proxies = gnet_host_vec_from_hash_list(d->server->proxies);
+		proxies = pproxy_set_host_vec(d->server->proxies);
 
 		if (
 			download_thex_start(uri, d->sha1, d->file_info->tth,
@@ -8690,7 +8608,6 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		G_FREE_NULL(uri);
 	}
 }
-
 
 /**
  * Look for a Date: header in the reply and use it to update our skew.
@@ -13724,8 +13641,12 @@ download_url_for_uri(const struct download *d, const char *uri)
 		(!host_is_valid(addr, port) && !guid_is_blank(download_guid(d)))
 	) {
 		char guid_buf[GUID_HEX_SIZE + 1];
+		sequence_t *seq;
 
-		host = hostp = magnet_proxies_to_string(d->server->proxies);
+		seq = d->server->proxies != NULL ?
+			pproxy_set_sequence(d->server->proxies) : NULL;
+		host = hostp = magnet_proxies_to_string(seq);
+		sequence_release(&seq);
 		guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
 		concat_strings(prefix_buf, sizeof prefix_buf,
 			"push://", guid_buf, (void *) 0);

@@ -924,15 +924,12 @@ proxies_to_string(GSList *proxies)
  * string is newly allocated.
  */
 char *
-magnet_proxies_to_string(hash_list_t *proxies)
+magnet_proxies_to_string(const sequence_t *proxies)
 {
-	sequence_t seq;
-
 	if (NULL == proxies)
 		return g_strdup("");
 	
-	return proxy_sequence_to_string(
-		sequence_fill_from_hash_list(&seq, proxies));
+	return proxy_sequence_to_string(proxies);
 }
 
 /**

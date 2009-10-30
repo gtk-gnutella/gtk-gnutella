@@ -40,6 +40,8 @@
 
 #include "if/core/pproxy.h"
 #include "lib/array.h"
+#include "lib/gnet_host.h"
+#include "lib/sequence.h"
 
 struct guid;
 
@@ -86,6 +88,27 @@ void cproxy_reparent(struct download *d, struct download *cd);
 struct array build_push(guint8 ttl, guint8 hops,
 	const struct guid *guid, host_addr_t addr_v4, host_addr_t addr_v6,
 	guint16 port, guint32 file_idx, gboolean supports_tls);
+
+/***
+ *** Push proxy set
+ ***/
+
+typedef struct pproxy_set pproxy_set_t;
+
+pproxy_set_t *pproxy_set_allocate(size_t max_proxies);
+void pproxy_set_free_null(pproxy_set_t **ps_ptr);
+gboolean pproxy_set_add(pproxy_set_t *ps, const host_addr_t addr, guint16 port);
+void pproxy_set_add_vec(pproxy_set_t *ps, const gnet_host_vec_t *vec);
+void pproxy_set_add_array(pproxy_set_t *ps,
+	gnet_host_t *proxies, int proxy_count);
+gboolean pproxy_set_remove(pproxy_set_t *ps,
+	const host_addr_t addr, guint16 port);
+size_t pproxy_set_count(const pproxy_set_t *ps);
+gboolean pproxy_set_older_than(const pproxy_set_t *ps, time_t t);
+void pproxy_set_foreach(const pproxy_set_t *ps, GFunc func, void *user_data);
+sequence_t *pproxy_set_sequence(const pproxy_set_t *ps);
+gnet_host_vec_t *pproxy_set_host_vec(const pproxy_set_t *ps);
+const gnet_host_t *pproxy_set_oldest(const pproxy_set_t *ps);
 
 #endif	/* _core_pproxy_h_ */
 

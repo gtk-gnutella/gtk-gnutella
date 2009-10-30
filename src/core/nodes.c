@@ -89,6 +89,7 @@ RCSID("$Id$")
 #include "ipp_cache.h"
 #include "dump.h"
 #include "ctl.h"
+#include "pproxy.h"
 
 #include "lib/adns.h"
 #include "lib/aging.h"
@@ -109,6 +110,7 @@ RCSID("$Id$")
 #include "lib/listener.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
+#include "lib/sequence.h"
 #include "lib/strtok.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -205,7 +207,7 @@ typedef struct node_bad_client {
 static int node_error_threshold = 6;
 static time_t node_error_cleanup_timer = 6 * 3600;	/**< 6 hours */
 
-static GSList *sl_proxies;	/* Our push proxies */
+static pproxy_set_t *proxies;	/* Our push proxies */
 static guint32 shutdown_nodes;
 static gboolean allow_gnet_connections = FALSE;
 GHookList node_added_hook_list;
@@ -1339,9 +1341,10 @@ node_init(void)
 {
 	time_t now = clock_loc2gmt(tm_time());
 
-	rxbuf_init();
+	STATIC_ASSERT(23 == sizeof(gnutella_header_t));
 
-	g_assert(23 == sizeof(gnutella_header_t));
+	rxbuf_init();
+	proxies = pproxy_set_allocate(0);
 
 	header_features_add_guarded(FEATURES_CONNECTIONS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
@@ -1841,7 +1844,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	}
 
 	if (is_host_addr(n->proxy_addr)) {
-		sl_proxies = g_slist_remove(sl_proxies, n);
+		pproxy_set_remove(proxies, n->proxy_addr, n->proxy_port);
 	}
 	string_table_free(&n->qseen);
 	string_table_free(&n->qrelayed);
@@ -8636,7 +8639,6 @@ node_close(void)
 	g_slist_free(unstable_servents);
 	unstable_servents = NULL;
 
-
 	g_hash_table_destroy(unstable_servent);
 	unstable_servent = NULL;
 
@@ -8684,9 +8686,6 @@ node_close(void)
 
 	HFREE_NULL(payload_inflate_buffer);
 
-	g_slist_free(sl_proxies);
-	sl_proxies = NULL;
-
     g_hash_table_destroy(ht_connected_nodes);
     ht_connected_nodes = NULL;
 
@@ -8701,6 +8700,7 @@ node_close(void)
 
 	aging_destroy(&tcp_crawls);
 	aging_destroy(&udp_crawls);
+	pproxy_set_free_null(&proxies);
 	rxbuf_close();
 }
 
@@ -9438,7 +9438,8 @@ node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port)
 	n->proxy_addr = addr;
 	n->proxy_port = port;
 
-	sl_proxies = g_slist_prepend(sl_proxies, n);
+	pproxy_set_add(proxies, addr, port);
+	node_fire_node_flags_changed(n);
 }
 
 /**
@@ -9449,16 +9450,16 @@ node_proxy_cancel_all(void)
 {
 	GSList *sl;
 
-	for (sl = sl_proxies; sl; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		gnutella_node_t *n = sl->data;
 
-		vmsg_send_proxy_cancel(n);
-		n->proxy_addr = zero_host_addr;
-		n->proxy_port = 0;
+		if (is_host_addr(n->proxy_addr)) {
+			if (NODE_IS_WRITABLE(n))
+				vmsg_send_proxy_cancel(n);
+			n->proxy_addr = zero_host_addr;
+			n->proxy_port = 0;
+		}
 	}
-
-	g_slist_free(sl_proxies);
-	sl_proxies = NULL;
 }
 
 /**
@@ -9522,21 +9523,22 @@ node_http_proxies_add(char *buf, size_t size,
 	 *		--RAM, 2009-03-02
 	 */
 
-	if (sl_proxies != NULL) {
+	if (0 != pproxy_set_count(proxies)) {
 		header_fmt_t *fmt;
 		size_t len;
-		GSList *sl;
-		
-		fmt = header_fmt_make("X-Push-Proxies", ", ", 0, size - rw);
+		sequence_t *seq;
+		sequence_iter_t *iter;
 
-		for (sl = sl_proxies; sl; sl = g_slist_next(sl)) {
-			struct gnutella_node *n = sl->data;
+		fmt = header_fmt_make("X-Push-Proxies", ", ", 0, size - rw);
+		seq = pproxy_set_sequence(proxies);
+		iter = sequence_forward_iterator(seq);
+
+		while (sequence_iter_has_next(iter)) {
+			const gnet_host_t *host = sequence_iter_next(iter);
 			const char *str;
 
-			/* Must be non-null if it's our proxy */
-			g_assert(is_host_addr(n->proxy_addr));
-
-			str = host_addr_port_to_string(n->proxy_addr, n->proxy_port);
+			str = host_addr_port_to_string(
+				gnet_host_get_addr(host), gnet_host_get_port(host));
 			header_fmt_append_value(fmt, str);
 		}
 
@@ -9547,18 +9549,30 @@ node_http_proxies_add(char *buf, size_t size,
 		rw += clamp_strncpy(&buf[rw], size - rw, header_fmt_string(fmt), len);
 
 		header_fmt_free(&fmt);
+		sequence_iterator_release(&iter);
+		sequence_release(&seq);
 	}
 
 	return rw; /* Tell them how much we wrote into `buf' */
 }
 
 /**
- * @return list of our push-proxies.
+ * @return sequence of our push-proxies, which must be freed by caller
+ * using sequence_release().
  */
-const GSList *
+sequence_t *
 node_push_proxies(void)
 {
-	return sl_proxies;
+	return pproxy_set_sequence(proxies);
+}
+
+/**
+ * @return oldest push proxy.
+ */
+const gnet_host_t *
+node_oldest_push_proxy(void)
+{
+	return pproxy_set_oldest(proxies);
 }
 
 /**

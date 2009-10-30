@@ -27,7 +27,7 @@
  * @ingroup core
  * @file
  *
- * Push proxy HTTP management.
+ * Push proxy HTTP and set management.
  *
  * @author Raphael Manfredi
  * @date 2003
@@ -66,12 +66,15 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/getline.h"
+#include "lib/hashlist.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/glib-missing.h"
 #include "lib/endian.h"
 #include "lib/parse.h"
+#include "lib/sequence.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -1340,6 +1343,270 @@ cproxy_reparent(struct download *d, struct download *cd)
 	g_assert(d->cproxy == NULL);
 	g_assert(cd->cproxy != NULL);
 	g_assert(cd == cd->cproxy->d);
+}
+
+/***
+ *** Set of push-proxies.
+ ***/
+
+enum pproxy_set_magic { PPROXY_SET_MAGIC = 0x4349802fU };
+
+/**
+ * A collection of push-proxies, used to hold all the known push-proxies for
+ * a given servent (including ourselves).
+ *
+ * Newer entries are added at the head of the list.
+ *
+ * When dealing with push-proxies for download purposes, we should attempt to
+ * use proxies in the order they are given, i.e. the freshest ones first.
+ *
+ * When dealing with our push-proxies, we must hand out the most stable entries
+ * first, since they are the ones which are the most likely to be around for
+ * a little while.  This means we must get entries in reverse order from the
+ * tail of the list.
+ */
+struct pproxy_set {
+	enum pproxy_set_magic magic;	/**< Magic number */
+	time_t last_update;				/**< Last time we updated the list */
+	hash_list_t *proxies;			/**< Known push proxies (gnet_host_t) */
+	size_t max_proxies;				/**< Max amount we want (0 for unlimited) */
+};
+
+static inline void
+pproxy_set_check(const pproxy_set_t *ps)
+{
+	g_assert(ps != NULL);
+	g_assert(PPROXY_SET_MAGIC == ps->magic);
+}
+
+/**
+ * @return amount of push-proxies held in the set.
+ */
+size_t
+pproxy_set_count(const pproxy_set_t *ps)
+{
+	pproxy_set_check(ps);
+
+	return hash_list_length(ps->proxies);
+}
+
+/**
+ * @return whether timestamp is more recent than last addition made to
+ * the push-proxy set.
+ */
+gboolean
+pproxy_set_older_than(const pproxy_set_t *ps, time_t t)
+{
+	if (NULL == ps)
+		return TRUE;
+
+	pproxy_set_check(ps);
+	return delta_time(t, ps->last_update) >= 0;
+}
+
+/**
+ * Create a new set of push-proxies.
+ *
+ * @param max_proxies		maximum amount we want to keep (0 for unlimited)
+ *
+ * @return the newly created set of push-proxies.
+ */
+pproxy_set_t *
+pproxy_set_allocate(size_t max_proxies)
+{
+	pproxy_set_t *ps;
+
+	g_assert(size_is_non_negative(max_proxies));
+
+	ps = walloc0(sizeof *ps);
+	ps->magic = PPROXY_SET_MAGIC;
+	ps->proxies = hash_list_new(host_hash, host_eq);
+	ps->max_proxies = max_proxies;
+
+	return ps;
+}
+
+/**
+ * Dispose of the push-proxy set and nullify the pointer.
+ */
+void
+pproxy_set_free_null(pproxy_set_t **ps_ptr)
+{
+	pproxy_set_t *ps = *ps_ptr;
+
+	if (ps != NULL) {
+		pproxy_set_check(ps);
+		hash_list_foreach(ps->proxies, gnet_host_free_item, NULL);
+		hash_list_free(&ps->proxies);
+		ps->magic = 0;
+		wfree(ps, sizeof *ps);
+
+		*ps_ptr = NULL;
+	}
+}
+
+/**
+ * Trim set so that we do not keep too many entries.
+ */
+static void
+pproxy_set_trim(const pproxy_set_t *ps)
+{
+	pproxy_set_check(ps);
+
+	if (0 == ps->max_proxies)
+		return;					/* Unlimited length */
+
+	while (hash_list_length(ps->proxies) > ps->max_proxies) {
+		gnet_host_t *host = hash_list_remove_tail(ps->proxies);
+		gnet_host_free(host);
+	}
+}
+
+/**
+ * Add a push-proxy to the set.
+ *
+ * @return TRUE if host was added, FALSE if we already knew it.
+ */
+gboolean
+pproxy_set_add(pproxy_set_t *ps, const host_addr_t addr, guint16 port)
+{
+	gnet_host_t host;
+	gboolean added = FALSE;
+
+	pproxy_set_check(ps);
+
+	gnet_host_set(&host, addr, port);
+	if (hash_list_contains(ps->proxies, &host)) {
+		hash_list_moveto_head(ps->proxies, &host);
+	} else {
+		hash_list_prepend(ps->proxies, gnet_host_dup(&host));
+		pproxy_set_trim(ps);
+		added = TRUE;
+	}
+
+	ps->last_update = tm_time();
+
+	return added;
+}
+
+/**
+ * Add hosts in the vector to the push-proxy set.
+ */
+void
+pproxy_set_add_vec(pproxy_set_t *ps, const gnet_host_vec_t *vec)
+{
+	int i;
+
+	pproxy_set_check(ps);
+
+	for (i = gnet_host_vec_count(vec) - 1; i >= 0; i--) {
+		gnet_host_t host = gnet_host_vec_get(vec, i);
+		if (hash_list_contains(ps->proxies, &host)) {
+			hash_list_moveto_head(ps->proxies, &host);
+		} else {
+			hash_list_prepend(ps->proxies, gnet_host_dup(&host));
+		}
+	}
+
+	pproxy_set_trim(ps);
+	ps->last_update = tm_time();
+}
+
+/**
+ * Add hosts in the `proxies' array to the push-proxy set.
+ */
+void
+pproxy_set_add_array(pproxy_set_t *ps, gnet_host_t *proxies, int proxy_count)
+{
+	int i;
+
+	pproxy_set_check(ps);
+
+	for (i = 0; i < proxy_count; i++) {
+		if (hash_list_contains(ps->proxies, &proxies[i])) {
+			hash_list_moveto_head(ps->proxies, &proxies[i]);
+		} else {
+			hash_list_prepend(ps->proxies, gnet_host_dup(&proxies[i]));
+		}
+	}
+
+	pproxy_set_trim(ps);
+	ps->last_update = tm_time();
+}
+
+/**
+ * Remove a push-proxy from the set.
+ *
+ * @return TRUE if push-proxy was found and removed, FALSE if it was missing.
+ */
+gboolean
+pproxy_set_remove(pproxy_set_t *ps, const host_addr_t addr, guint16 port)
+{
+	gnet_host_t key;
+	gnet_host_t *item;
+
+	pproxy_set_check(ps);
+
+	gnet_host_set(&key, addr, port);
+	item = hash_list_remove(ps->proxies, &key);
+
+	if (item != NULL) {
+		gnet_host_free(item);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Apply function to each of the push-proxies in the set.
+ */
+void
+pproxy_set_foreach(const pproxy_set_t *ps, GFunc func, void *user_data)
+{
+	pproxy_set_check(ps);
+
+	hash_list_foreach(ps->proxies, func, user_data);
+}
+
+/**
+ * Create a sequence to iterate on the push-proxy set.
+ * Items in the sequence are of type gnet_host_t *.
+ *
+ * @return sequence encapsulation which can be freed by sequence_release().
+ */
+sequence_t *
+pproxy_set_sequence(const pproxy_set_t *ps)
+{
+	pproxy_set_check(ps);
+
+	return sequence_create_from_hash_list(ps->proxies);
+}
+
+/**
+ * Get a host vector out of the push-proxy set.
+ *
+ * @return a host vector that must be freed with gnet_host_vec_free().
+ */
+gnet_host_vec_t *
+pproxy_set_host_vec(const pproxy_set_t *ps)
+{
+	if (NULL == ps)
+		return NULL;
+
+	pproxy_set_check(ps);
+	return gnet_host_vec_from_hash_list(ps->proxies);
+}
+
+/**
+ * @return most ancient push proxy, NULL if none are recorded.
+ */
+const gnet_host_t *
+pproxy_set_oldest(const pproxy_set_t *ps)
+{
+	pproxy_set_check(ps);
+
+	return hash_list_tail(ps->proxies);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -59,6 +59,7 @@ RCSID("$Id$")
 #include "lib/getdate.h"
 #include "lib/endian.h"
 #include "lib/misc.h"
+#include "lib/sequence.h"
 #include "lib/tm.h"
 #include "lib/override.h"			/* Must be the last header included */
 
@@ -68,7 +69,7 @@ RCSID("$Id$")
  */
 #define QHIT_MAX_RESULTS	10		/**< Maximum amount of hits in a query hit */
 #define QHIT_MAX_ALT		10		/**< Send out 10 alt-locs per entry, max */
-#define QHIT_MAX_PROXIES	5		/**< Send out 5 push-proxies at most */
+#define QHIT_MAX_PROXIES	8		/**< Send out 8 push-proxies at most */
 #define QHIT_MAX_GGEP		512		/**< Allocated room for trailing GGEP */
 #define QHIT_SIZE_THRESHOLD	2016	/**< Flush query hits larger than this */
 
@@ -442,12 +443,12 @@ flush_match(void)
 	 */
 
 	if (GNET_PROPERTY(is_firewalled)) {
-		const GSList *nodes = node_push_proxies();
+		sequence_t *seq = node_push_proxies();
 
-		if (nodes != NULL) {
+		if (!sequence_is_empty(seq)) {
 			guchar tls_bytes[(QHIT_MAX_PROXIES + 7) / 8];
 			guint tls_index, tls_length;
-			const GSList *iter;
+			sequence_iter_t *iter;
 			gboolean ok;
 
 			ok = ggep_stream_begin(&gs, GGEP_NAME(PUSH), 0);
@@ -455,17 +456,26 @@ flush_match(void)
 			tls_index = 0;
 			tls_length = 0;
 
-			for (iter = nodes; ok && NULL != iter; iter = g_slist_next(iter)) {
-				const struct gnutella_node *n = iter->data;
+			/*
+			 * We iterate backwards to get the most stable of our push proxies,
+			 * namely those to which we've been connected for the longest time.
+			 */
+
+			iter = sequence_backward_iterator(seq, TRUE);
+
+			while (ok && sequence_iter_has_previous(iter)) {
+				const gnet_host_t *host = sequence_iter_previous(iter);
+				host_addr_t addr = gnet_host_get_addr(host);
+				guint16 port = gnet_host_get_port(host);
 				char proxy[6];
 
-				if (NET_TYPE_IPV4 != host_addr_net(n->proxy_addr))
+				if (NET_TYPE_IPV4 != host_addr_net(addr))
 					continue;
 
-				poke_be32(&proxy[0], host_addr_ipv4(n->proxy_addr));
-				poke_le16(&proxy[4], n->proxy_port);
+				poke_be32(&proxy[0], host_addr_ipv4(addr));
+				poke_le16(&proxy[4], port);
 				ok = ggep_stream_write(&gs, proxy, sizeof proxy);
-				if (NODE_F_CAN_TLS & n->flags) {
+				if (tls_cache_lookup(addr, port)) {
 					tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
 					tls_length = (tls_index >> 3) + 1;
 				}
@@ -475,6 +485,7 @@ flush_match(void)
 			}
 
 			ok = ok && ggep_stream_end(&gs);
+			sequence_iterator_release(&iter);
 
 			if (!ok)
 				g_warning("could not write GGEP \"PUSH\" extension "
@@ -487,6 +498,7 @@ flush_match(void)
 					g_warning("could not write GGEP \"PUSH_TLS\" extension");
 			}
 		}
+		sequence_release(&seq);
 	}
 
 	/*

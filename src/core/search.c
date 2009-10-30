@@ -4156,13 +4156,12 @@ search_locally(gnet_search_t sh, const char *query)
 		rs->status |= ST_FIREWALL;
 	
 	if (GNET_PROPERTY(is_firewalled) || !host_is_valid(rs->addr, rs->port)) {
-		const GSList *nodes = node_push_proxies();
+		const gnet_host_t *host = node_oldest_push_proxy();
 
-		if (nodes) {
-			struct gnutella_node *n = nodes->data;
-
+		if (host != NULL) {
 			rs->proxies = gnet_host_vec_alloc();
-			gnet_host_vec_add(rs->proxies, n->proxy_addr, n->proxy_port);
+			gnet_host_vec_add(rs->proxies,
+				gnet_host_get_addr(host), gnet_host_get_port(host));
 		}
 	}
 

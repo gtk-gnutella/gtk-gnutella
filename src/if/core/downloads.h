@@ -32,6 +32,7 @@
 #include "lib/list.h"
 #include "lib/slist.h"
 
+#include "core/pproxy.h"
 #include "core/rx.h"
 #include "core/rx_link.h"
 #include "core/rx_chunk.h"
@@ -91,11 +92,10 @@ struct dl_server {
 	list_t *list[DL_LIST_SZ];	/**< Download lists */
 	const char *vendor;			/**< Remote server vendor string (atom) */
 	const char *hostname;		/**< Remote hostname, if known (atom) */
-	hash_list_t *proxies;		/**< Known push proxies (gnet_host_t) */
+	pproxy_set_t *proxies;		/**< Known push proxies */
 	GHashTable *sha1_counts;
 	time_t retry_after;		/**< Time at which we may retry from this host */
 	time_t dns_lookup;		/**< Last DNS lookup for hostname */
-	time_t proxies_stamp;	/**< Time when list was last updated */
 	time_t last_connect;	/**< When we last connected to that server */
 	struct vernum parq_version; /**< Supported queueing version */
 	guint speed_avg;			/**< Average (EMA) upload speed, in bytes/sec */
