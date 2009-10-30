@@ -632,13 +632,12 @@ handle_proxy_req(struct gnutella_node *n,
 	 * Add proxying info for this node.  On successful completion,
 	 * we'll send an acknowledgement.
 	 *
-	 * We'll reply with a message at the same version as the one we got.
+	 * We always use version 2 to reply, see comment in vmsg_send_proxy_req().
 	 */
 
 	if (node_proxying_add(n, gnutella_header_get_muid(&n->header))) {
 		/* MUID is the node's GUID */
-		vmsg_send_proxy_ack(n, gnutella_header_get_muid(&n->header),
-			vmsg->version);
+		vmsg_send_proxy_ack(n, gnutella_header_get_muid(&n->header), 2);
 	}
 }
 
@@ -655,12 +654,28 @@ vmsg_send_proxy_req(struct gnutella_node *n, const struct guid *muid)
 
 	msgsize = vmsg_fill_header(v_tmp_header, 0, sizeof v_tmp);
 	gnutella_header_set_muid(v_tmp_header, muid);
-	(void) vmsg_fill_type(v_tmp_data, T_LIME, 21, 2);
+
+	/*
+	 * LimeWire only supports version 1 of the Push Proxy Request but will
+	 * send a Push Proxy Ack at version 2.  They did not think that people
+	 * would be using the version of the request message to indicate the
+	 * level of support for the acknowledgement.
+	 *
+	 * So from now on, stick to sending version 1, and always reply with
+	 * version 2, regardless of what they send us, thereby mimicking their
+	 * (broken) behaviour.  Nowadays, everybody should support the version 2
+	 * of the acknowledgement anyway.
+	 *		--RAM, 2009-10-30
+	 */
+
+	(void) vmsg_fill_type(v_tmp_data, T_LIME, 21, 1);
 
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_message("sent proxy REQ to %s <%s>", node_addr(n), node_vendor(n));
+	if (GNET_PROPERTY(vmsg_debug) > 2) {
+		g_message("VMSG sent proxy REQ to %s <%s>",
+			node_addr(n), node_vendor(n));
+	}
 }
 
 /**
@@ -688,10 +703,11 @@ handle_proxy_ack(struct gnutella_node *n,
 
 	port = peek_le16(payload);
 
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_message("got proxy ACK from %s <%s>: proxy at %s",
+	if (GNET_PROPERTY(vmsg_debug) > 2) {
+		g_message("VMSG got proxy ACK v%u from %s <%s>: proxy at %s",
+			vmsg->version,
 			node_addr(n), node_vendor(n), host_addr_port_to_string(ha, port));
-
+	}
 
 	if (!host_is_valid(ha, port)) {
 		g_warning("got improper address %s in %s from %s <%s>",
@@ -700,7 +716,7 @@ handle_proxy_ack(struct gnutella_node *n,
 		return;
 	}
 	if (hostiles_check(ha)) {
-		g_message("got proxy ACK from hostile host %s <%s>: proxy at %s",
+		g_message("VMSG got proxy ACK from hostile host %s <%s>: proxy at %s",
 			node_addr(n), node_vendor(n), host_addr_port_to_string(ha, port));
 		return;
 	}
@@ -837,7 +853,8 @@ vmsg_send_proxy_cancel(struct gnutella_node *n)
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
 	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_message("sent proxy CANCEL to %s <%s>", node_addr(n), node_vendor(n));
+		g_message("VMSG sent proxy CANCEL to %s <%s>",
+			node_addr(n), node_vendor(n));
 }
 
 /**
@@ -1081,7 +1098,7 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n,
 	udp_send_msg(n, v_tmp, msgsize);
 
 	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_message("sent OOB reply ACK %s to %s for %u hit%s",
+		g_message("VMSG sent OOB reply ACK %s to %s for %u hit%s",
 			guid_hex_str(muid), node_addr(n), want, want == 1 ? "" : "s");
 }
 
@@ -1620,7 +1637,7 @@ latest_svn_release_changed(property_t prop)
 		signature = array_init(data, data_length);
 
 		if (svn_release_notification_verify(revision, date, &signature)) {
-			g_message("SVN release notify signature is valid: r%u (%s)",
+			g_message("VMSG SVN release notify signature is valid: r%u (%s)",
 				revision, timestamp_to_string(date));
 
 			memcpy(svn_release_signature.data, data, data_length);
@@ -1720,7 +1737,7 @@ handle_svn_release_notify(struct gnutella_node *n,
 		gnet_prop_set_string(PROP_LATEST_SVN_RELEASE_SIGNATURE, hex);
 		G_FREE_NULL(hex);
 	} else {
-		g_message("BAD %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
+		g_message("VMSG BAD %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
 			vmsg->name,
 			vmsg->version,
 			node_addr(n),
@@ -1839,7 +1856,7 @@ vmsg_send_head_pong_v1(struct gnutella_node *n, const struct sha1 *sha1,
 	paysize = p - payload;
 
 	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_message("sending HEAD Pong v1 to %s (%u bytes)",
+		g_message("VMSG sending HEAD Pong v1 to %s (%u bytes)",
 			node_addr(n), paysize);
 	}
 
@@ -1954,7 +1971,7 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 	paysize += ggep_len;
 
 	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_message("sending HEAD Pong v2 to %s (%u bytes)",
+		g_message("VMSG sending HEAD Pong v2 to %s (%u bytes)",
 			node_addr(n), paysize);
 	}
 
@@ -2217,7 +2234,7 @@ vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, guint16 port,
 	if (head_ping_register_own(muid, sha1, n)) {
 		if (GNET_PROPERTY(vmsg_debug) > 1) {
 			g_message(
-				"sending HEAD Ping to %s (%u bytes) for urn:sha1:%s",
+				"VMSG sending HEAD Ping to %s (%u bytes) for urn:sha1:%s",
 					node_addr(n), paysize, sha1_base32(sha1));
 		}
 		vmsg_send_data(n, v_tmp, msgsize);
@@ -2275,7 +2292,8 @@ head_ping_target_by_guid(const struct guid *guid)
 	if (n) {
 	   	if (!(NODE_A_CAN_HEAD & n->attrs)) {
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("HEAD Ping target %s does not support HEAD pings",
+				g_message(
+					"VMSG HEAD Ping target %s does not support HEAD pings",
 					node_addr(n));
 			}
 			n = NULL;
@@ -2312,7 +2330,7 @@ handle_head_ping(struct gnutella_node *n,
 		return;
 
 	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_message("got %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
+		g_message("VMSG got %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
 			vmsg->name,
 			vmsg->version,
 			node_addr(n),
@@ -2331,7 +2349,8 @@ handle_head_ping(struct gnutella_node *n,
 		urn_get_sha1(&payload[1], &sha1)
 	) {
 		if (GNET_PROPERTY(vmsg_debug)) {
-			g_message("HEAD Ping for %s%s", urn_prefix, sha1_to_string(&sha1));
+			g_message("VMSG HEAD Ping for %s%s",
+				urn_prefix, sha1_to_string(&sha1));
 		}
 	} else {
 		if (GNET_PROPERTY(vmsg_debug)) {
@@ -2356,7 +2375,8 @@ handle_head_ping(struct gnutella_node *n,
 		}
 		if (has_guid) {
 		   	if (GNET_PROPERTY(vmsg_debug) > 1) {
-				g_message("HEAD Ping carries GUID %s", guid_hex_str(&guid));
+				g_message("VMSG HEAD Ping carries GUID %s",
+					guid_hex_str(&guid));
 			}
 		} else {
 		   	if (GNET_PROPERTY(vmsg_debug) > 1) {
@@ -2370,13 +2390,13 @@ handle_head_ping(struct gnutella_node *n,
 
 		if (NODE_P_LEAF == GNET_PROPERTY(current_peermode)) {
 		   	if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("not forwarding HEAD Ping as leaf");
+				g_message("VMSG not forwarding HEAD Ping as leaf");
 			}
 			return;
 		}
 		if (gnutella_header_get_hops(&n->header) > 0) {
 		   	if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("not forwarding forwarded HEAD Ping");
+				g_message("VMSG not forwarding forwarded HEAD Ping");
 			}
 			return;
 		}
@@ -2393,14 +2413,15 @@ handle_head_ping(struct gnutella_node *n,
 
 			if (head_ping_register_forwarded(muid, &sha1, n)) {
 				if (GNET_PROPERTY(vmsg_debug) > 1) {
-					g_message("forwarding HEAD Ping to %s", node_addr(target));
+					g_message("VMSG forwarding HEAD Ping to %s",
+						node_addr(target));
 				}
 				gmsg_split_sendto_one(target, header, n->data,
 					GTA_HEADER_SIZE + n->size);
 			}
 		} else {
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("no route found for HEAD Ping");
+				g_message("VMSG no route found for HEAD Ping");
 			}
 		}
 	} else {
@@ -2416,7 +2437,7 @@ handle_head_ping(struct gnutella_node *n,
 			 * (404).
 			 */
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("HEAD Ping whilst rebuilding library");
+				g_message("VMSG HEAD Ping whilst rebuilding library");
 			}
 		} else {
 			if (sf) {
@@ -2426,7 +2447,7 @@ handle_head_ping(struct gnutella_node *n,
 				fi = shared_file_fileinfo(sf);
 				if (fi) {
 					if (GNET_PROPERTY(vmsg_debug)) {
-						g_message("HEAD Ping for partial file");
+						g_message("VMSG HEAD Ping for partial file");
 					}
 					if (GNET_PROPERTY(pfsp_server)) {
 						code = VMSG_HEAD_CODE_PARTIAL;
@@ -2438,13 +2459,13 @@ handle_head_ping(struct gnutella_node *n,
 					}
 				}  else {
 					if (GNET_PROPERTY(vmsg_debug)) {
-						g_message("HEAD Ping for shared file");
+						g_message("VMSG HEAD Ping for shared file");
 					}
 					code = VMSG_HEAD_CODE_COMPLETE;
 				}
 			} else {
 				if (GNET_PROPERTY(vmsg_debug)) {
-					g_message("HEAD Ping for unknown file");
+					g_message("VMSG HEAD Ping for unknown file");
 				}
 				code = VMSG_HEAD_CODE_NOT_FOUND;
 			}
@@ -2534,7 +2555,7 @@ forward_head_pong(struct gnutella_node *n,
 			pmsg_t *mb;
 
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("Forwarding HEAD Pong to %s", node_addr(target));
+				g_message("VMSG forwarding HEAD Pong to %s", node_addr(target));
 			}
 
 			memcpy(header, n->header, GTA_HEADER_SIZE);
@@ -2592,7 +2613,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 
 	if (GNET_PROPERTY(vmsg_debug) > 1) {
 		g_message(
-			"HEAD Pong v1 vendor=%s, %s%s, result=\"%s%s%s\", queue=%d",
+			"VMSG HEAD Pong v1 vendor=%s, %s%s, result=\"%s%s%s\", queue=%d",
 			vendor,
 			source->ping.sha1 ? "urn:sha1:" : "<unknown hash>",
 			source->ping.sha1 ? sha1_base32(source->ping.sha1) : "",
@@ -2639,7 +2660,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 			return;
 		} else {
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("HEAD Pong carries ranges (%u bytes)", len);
+				g_message("VMSG HEAD Pong carries ranges (%u bytes)", len);
 			}
 			p += 2;
 			p += len;
@@ -2658,7 +2679,8 @@ handle_head_pong_v1(const struct head_ping_source *source,
 			return;
 		} else {
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("HEAD Pong carries firewalled alt-locs (%u bytes)",
+				g_message(
+					"VMSG HEAD Pong carries firewalled alt-locs (%u bytes)",
 					len);
 			}
 			p += 2;
@@ -2681,7 +2703,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 			return;
 		} else {
 			if (GNET_PROPERTY(vmsg_debug))
-				g_message("HEAD Pong carries %u alt-locs", len / 6);
+				g_message("VMSG HEAD Pong carries %u alt-locs", len / 6);
 
 			p += 2;				/* Skip length indication */
 			if (node_id_self(source->ping.node_id) && source->ping.sha1) {
@@ -2766,11 +2788,11 @@ handle_head_pong_v2(const struct head_ping_source *source,
 				const char *name = ext_ggep_id_str(e);
 
 				if (name[0]) {
-					g_message(
-						"HEAD Pong carries unhandled GGEP \"%s\" (%lu byte)",
+					g_message("VMSG HEAD Pong carries unhandled "
+						"GGEP \"%s\" (%lu byte)",
 						name, (unsigned long) ext_paylen(e));
 				} else {
-					g_message("HEAD Pong carries unknown extra payload");
+					g_message("VMSG HEAD Pong carries unknown extra payload");
 				}
 			}
 			break;
@@ -2782,7 +2804,7 @@ handle_head_pong_v2(const struct head_ping_source *source,
 
 	if (GNET_PROPERTY(vmsg_debug) > 1) {
 		g_message(
-			"HEAD Pong v2 vendor=%s, %s%s, result=\"%s%s%s\", queue=%d",
+			"VMSG HEAD Pong v2 vendor=%s, %s%s, result=\"%s%s%s\", queue=%d",
 			vendor,
 			source->ping.sha1 ? "urn:sha1:" : "<unknown hash>",
 			source->ping.sha1 ? sha1_base32(source->ping.sha1) : "",
@@ -2839,7 +2861,7 @@ handle_head_pong(struct gnutella_node *n,
 		return;
 
 	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_message("got %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
+		g_message("VMSG got %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
 			vmsg->name,
 			vmsg->version,
 			node_addr(n),
