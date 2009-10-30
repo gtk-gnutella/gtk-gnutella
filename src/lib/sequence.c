@@ -249,6 +249,28 @@ sequence_fill_from_vector(sequence_t *s, vector_t *vec)
 }
 
 /**
+ * Return sequence type string, for logging.
+ */
+const char *
+sequence_type_to_string(const sequence_t *s)
+{
+	sequence_check(s);
+
+	switch (s->type) {
+	case SEQUENCE_GSLIST:		return "GSList";
+	case SEQUENCE_GLIST:		return "GList";
+	case SEQUENCE_LIST:			return "list_t";
+	case SEQUENCE_SLIST:		return "slist_t";
+	case SEQUENCE_HLIST:		return "hash_list_t";
+	case SEQUENCE_VECTOR:		return "vector_t";
+	case SEQUENCE_MAXTYPE:		break;
+	}
+
+	g_assert_not_reached();
+	return NULL;
+}
+
+/**
  * Is the sequence empty?
  */
 gboolean
@@ -307,21 +329,30 @@ sequence_implementation(const sequence_t *s)
 /**
  * Release sequence encapsulation, returning the underlying implementation
  * object (will need to be cast back to the proper type for perusal).
+ *
+ * The supplied pointer to the sequence is nullified upon return.
  */
 gpointer
-sequence_release(sequence_t *s)
+sequence_release(sequence_t **s_ptr)
 {
-	gpointer implementation;
+	sequence_t *s = *s_ptr;
 
-	sequence_check(s);
+	if (s != NULL) {
+		gpointer implementation;
 
-	implementation = sequence_implementation(s);
+		sequence_check(s);
 
-	s->type = SEQUENCE_MAXTYPE;
-	s->magic = 0;
-	wfree(s, sizeof *s);
+		implementation = sequence_implementation(s);
 
-	return implementation;
+		s->type = SEQUENCE_MAXTYPE;
+		s->magic = 0;
+		wfree(s, sizeof *s);
+
+		*s_ptr = NULL;
+		return implementation;
+	}
+
+	return NULL;
 }
 
 /**
@@ -466,6 +497,129 @@ sequence_iter_next(sequence_iter_t *si)
 	}
 
 	return next;
+}
+
+/**
+ * Creates a backward iterator, for the sequences that support it.
+ * If the structure does not support it, set it up as a forward iterator
+ * instead unless ``check'' is TRUE in which case we panic.
+ */
+sequence_iter_t *
+sequence_backward_iterator(const sequence_t *s, gboolean check)
+{
+	sequence_iter_t *si;
+
+	g_assert(s != NULL);
+
+	si = walloc(sizeof *si);
+	si->magic = SEQUENCE_ITER_MAGIC;
+	si->direction = SEQ_ITER_BACKWARD;
+	si->type = s->type;
+
+	switch (s->type) {
+	case SEQUENCE_GSLIST:
+		if (check)
+			goto panic;
+		si->u.gsl = s->u.gsl;
+		break;
+	case SEQUENCE_GLIST:
+		si->u.gl = g_list_last(s->u.gl);
+		break;
+	case SEQUENCE_LIST:
+		si->u.li = list_iter_after_tail(s->u.l);
+		break;
+	case SEQUENCE_SLIST:
+		if (check)
+			goto panic;
+		si->u.sli = slist_iter_before_head(s->u.sl);
+		break;
+	case SEQUENCE_HLIST:
+		si->u.hli = hash_list_iterator_tail(s->u.hl);
+		break;
+	case SEQUENCE_VECTOR:
+		si->u.veci = vector_iterator_tail(s->u.vec);
+		break;
+	case SEQUENCE_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return si;
+
+panic:
+	g_error("sequence_backward_iterator() impossible on type %s",
+		sequence_type_to_string(s));
+	return NULL;
+}
+
+/**
+ * Get previous item, moving iterator cursor by one position backwards.
+ */
+gpointer
+sequence_iter_previous(sequence_iter_t *si)
+{
+	gpointer prev = NULL;
+
+	sequence_iter_check(si);
+	g_assert(SEQ_ITER_BACKWARD == si->direction);
+
+	switch (si->type) {
+	case SEQUENCE_GSLIST:
+		/* Forward iteration only */
+		prev = si->u.gsl ? si->u.gsl->data : NULL;
+		si->u.gsl = g_slist_next(si->u.gsl);
+		break;
+	case SEQUENCE_GLIST:
+		prev = si->u.gl ? si->u.gl->data : NULL;
+		si->u.gl = g_list_previous(si->u.gl);
+		break;
+	case SEQUENCE_LIST:
+		return list_iter_previous(si->u.li);
+	case SEQUENCE_SLIST:
+		/* Forward iteration only */
+		return slist_iter_next(si->u.sli);
+	case SEQUENCE_HLIST:
+		return hash_list_iter_previous(si->u.hli);
+	case SEQUENCE_VECTOR:
+		return vector_iter_previous(si->u.veci);
+	case SEQUENCE_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return prev;
+}
+
+/**
+ * Check whether we have a previous item to be iterated over.
+ */
+gboolean
+sequence_iter_has_previous(const sequence_iter_t *si)
+{
+	if (!si)
+		return FALSE;
+
+	sequence_iter_check(si);
+	g_assert(SEQ_ITER_BACKWARD == si->direction);
+
+	switch (si->type) {
+	case SEQUENCE_GSLIST:
+		/* Forward iteration only */
+		return si->u.gsl != NULL;
+	case SEQUENCE_GLIST:
+		return si->u.gl != NULL;
+	case SEQUENCE_LIST:
+		return list_iter_has_previous(si->u.li);
+	case SEQUENCE_SLIST:
+		/* Forward iteration only */
+		return slist_iter_has_next(si->u.sli);
+	case SEQUENCE_HLIST:
+		return hash_list_iter_has_previous(si->u.hli);
+	case SEQUENCE_VECTOR:
+		return vector_iter_has_previous(si->u.veci);
+	case SEQUENCE_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return FALSE;
 }
 
 /**
