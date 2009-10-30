@@ -174,6 +174,8 @@ general_type_str(gint value)
 		N_("PARQ QUEUE sending attempts"),
 		N_("PARQ QUEUE messages sent"),
 		N_("PARQ QUEUE follow-up requests received"),
+		N_("Launched SHA-1 file verifications"),
+		N_("Launched TTH file verifications"),
 		N_("Re-seeding of orphan downloads through query hits"),
 		N_("Re-seeding of orphan downloads through upload requests"),
 		N_("DHT estimated amount of nodes"),

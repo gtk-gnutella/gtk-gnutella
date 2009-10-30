@@ -12976,6 +12976,7 @@ download_verify_sha1_start(struct download *d)
 
 	d->file_info->cha1_hashed = 0;
 	download_set_status(d, GTA_DL_VERIFYING);
+	gnet_stats_count_general(GRN_SHA1_VERIFICATIONS, 1);
 }
 
 /**
@@ -13186,6 +13187,7 @@ download_verify_tigertree_start(struct download *d)
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	download_set_status(d, GTA_DL_VERIFYING);
+	gnet_stats_count_general(GRN_TTH_VERIFICATIONS, 1);
 }
 
 /**

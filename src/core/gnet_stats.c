@@ -190,6 +190,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"parq_queue_sending_attempts",
 	"parq_queue_sent",
 	"parq_queue_follow_ups",
+	"sha1_verifications",
+	"tth_verifications",
 	"qhit_seeding_of_orphan",
 	"upload_seeding_of_orphan",
 	"dht_estimated_size",
