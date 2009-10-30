@@ -572,6 +572,7 @@ publisher_handle(struct publisher_entry *pe)
 	 */
 
 	alt_locs = dmesh_count(pe->sha1);
+	is_partial = is_partial && !shared_file_is_finished(sf);
 
 	if (alt_locs > (is_partial ? PUBLISH_PARTIAL_MAX : PUBLISH_DMESH_MAX)) {
 		if (GNET_PROPERTY(publisher_debug)) {
