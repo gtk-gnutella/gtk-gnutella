@@ -37,6 +37,7 @@
 #define _vector_h_
 
 #include "common.h"
+#include "lib/unsigned.h"
 
 struct vector {
 	char *base;
@@ -88,10 +89,25 @@ vector_iter_next(vector_iter_t *iter)
 	return &iter->vec->base[iter->i++ * iter->vec->element_size];
 }
 
+static inline gboolean
+vector_iter_has_previous(const vector_iter_t *iter)
+{
+	g_assert(iter);
+	return size_is_non_negative(iter->i);
+}
+
+static inline void * 
+vector_iter_previous(vector_iter_t *iter)
+{
+	g_assert(vector_iter_has_previous(iter));
+	return &iter->vec->base[iter->i-- * iter->vec->element_size];
+}
+
 vector_t *vector_alloc(void *base, size_t element_size, size_t n);
 void vector_free(vector_t **);
 
 vector_iter_t *vector_iterator(vector_t *);
+vector_iter_t *vector_iterator_tail(vector_t *);
 void vector_iter_release(vector_iter_t **);
 
 #endif	/* _vector_h_ */

@@ -51,6 +51,16 @@ vector_iterator(vector_t *vec)
 	return iter;
 }
 
+vector_iter_t *
+vector_iterator_tail(vector_t *vec)
+{
+	vector_iter_t *iter;
+	iter = walloc(sizeof *iter);
+	iter->vec = vec;
+	iter->i = vec->n - 1;
+	return iter;
+}
+
 void
 vector_iter_release(vector_iter_t **iter_ptr)
 {
