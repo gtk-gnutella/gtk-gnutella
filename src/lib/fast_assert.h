@@ -55,10 +55,18 @@ typedef struct assertion_data {
 	unsigned line;
 } assertion_data;
 
-void G_GNUC_NORETURN NON_NULL_PARAM((1)) REGPARM(1)
+/*
+ * Due to an optimizer bug in gcc 4.2.1 (and maybe later verions), avoid
+ * specifying the REGPARM(1) attribute in the assertion_xxx() routines
+ * or the pointer being passed will be garbage, causing a segmentation fault
+ * in assertion_message().
+ *		--RAM, 2009-10-31
+ */
+
+void G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_failure(const assertion_data * const data);
 
-void NON_NULL_PARAM((1)) REGPARM(1)
+void NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_warning(const assertion_data * const data);
 
 #define RUNTIME_ASSERT(expr) fast_assert(expr, #expr)
