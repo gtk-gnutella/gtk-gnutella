@@ -393,7 +393,10 @@ guid_oob_is_gtkg(const struct guid *guid,
 	 * therefore it is masked out for comparison purposes.
 	 */
 
-	if ((peek_u8(&guid->v[15]) & ~GUID_REQUERY) != (guid_hec_oob(guid) & ~GUID_REQUERY))
+	if (
+		(peek_u8(&guid->v[15]) & ~GUID_REQUERY) !=
+			(guid_hec_oob(guid) & ~GUID_REQUERY)
+	)
 		return FALSE;
 
 	return guid_extract_gtkg_info(guid, 4, majp, minp, relp);
