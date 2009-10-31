@@ -2582,13 +2582,18 @@ update_cached_size_estimate(void)
 	guint64 min = 0;
 	guint64 max = MAX_INT_VAL(guint64);
 
+	/*
+	 * Only retain the points that fall within one standard deviation of
+	 * the mean to remove obvious aberration.
+	 */
+
 	n = statx_n(stats.lookdata);
 	if (n > 1) {
 		guint64 sdev = (guint64) statx_sdev(stats.lookdata);
 		guint64 avg = (guint64) statx_avg(stats.lookdata);
-		if (2 * sdev < avg)
-			min = avg - 2 * sdev;
-		max = avg + 2 * sdev;
+		if (sdev < avg)
+			min = avg - sdev;
+		max = avg + sdev;
 	}
 
 	for (i = 0; i < K_REGIONS; i++) {
