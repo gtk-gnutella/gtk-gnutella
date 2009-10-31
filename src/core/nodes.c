@@ -9460,6 +9460,9 @@ node_proxy_cancel_all(void)
 			n->proxy_port = 0;
 		}
 	}
+
+	pproxy_set_free_null(&proxies);
+	proxies = pproxy_set_allocate(0);
 }
 
 /**
