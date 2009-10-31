@@ -150,31 +150,32 @@ parse_pointer(const char *src, char const **endptr, int *errorptr)
 gboolean
 parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 {
+	const char *p = s;
 	guint8 buf[16];
 	int i;
 	guchar c = 0, last;
 	int dc_start = -1;
 	int error;
 
-	g_assert(s);
+	g_assert(s != NULL);
 
 	for (i = 0; i < 16; /* NOTHING */) {
 		const char *ep;
 		guint32 v;
 
 		last = c;
-		c = *s;
+		c = *p;
 
 		if (':' == c) {
 			if (':' == last) {
 				if (dc_start >= 0) {
 					/* Second double colon */
-					s--; /* Rewind to the really bad colon */
+					p--; /* Rewind to the really bad colon */
 					break;
 				}
 				dc_start = i;
 			}
-			s++;
+			p++;
 			continue;
 		}
 
@@ -183,7 +184,7 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 			break;
 		}
 
-		v = parse_uint32(s, &ep, 16, &error);
+		v = parse_uint32(p, &ep, 16, &error);
 		if (error || v > 0xffff) {
 			/* parse_uint32() failed */
 			break;
@@ -192,8 +193,8 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 		if (*ep == '.' && i <= 12) {
 			guint32 ip;
 
-			if (string_to_ip_strict(s, &ip, &ep)) {
-				s = ep;
+			if (string_to_ip_strict(p, &ip, &ep)) {
+				p = ep;
 				poke_be32(&buf[i], ip);
 				i += 4;
 			}
@@ -204,9 +205,9 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 		buf[i++] = v >> 8;
 		buf[i++] = v & 0xff;
 
-		s = ep;
+		p = ep;
 
-		if ('\0' == *s) {
+		if ('\0' == *p) {
 			/* NUL reached */
 			break;
 		}
@@ -215,7 +216,7 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 	}
 
 	if (endptr)
-		*endptr = s;
+		*endptr = p;
 
 	if (dc_start >= 0) {
 		int z, n, j;
@@ -271,7 +272,7 @@ string_to_ip_strict(const char *s, guint32 *addr, const char **endptr)
 	gboolean valid;
 	int i;
 
-	g_assert(s);
+	g_assert(s != NULL);
 
 	i = 0;
 	for (;;) {
