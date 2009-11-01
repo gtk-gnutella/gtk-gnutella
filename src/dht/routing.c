@@ -3351,9 +3351,11 @@ other_size_free_cb(gpointer other_size, gpointer unused_data)
 
 /**
  * Shutdown the DHT.
+ *
+ * @param exiting	whether gtk-gnutella is exiting altogether
  */
 void
-dht_close(void)
+dht_close(gboolean exiting)
 {
 	size_t i;
 
@@ -3371,14 +3373,14 @@ dht_close(void)
 	 * the RPC and lookups, which rely on the routing table.
 	 */
 
+	lookup_close(exiting);
+	publish_close(exiting);
 	stable_close();
 	tcache_close();
 	roots_close();
-	publish_close();
 	values_close();
 	keys_close();
 	ulq_close();
-	lookup_close();
 	dht_rpc_close();
 	token_close();
 

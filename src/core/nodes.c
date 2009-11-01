@@ -6251,7 +6251,7 @@ node_udp_disable(void)
 	}
 
 	/* Can no longer operate the DHT */
-	dht_close();
+	dht_close(FALSE);
 }
 
 /**

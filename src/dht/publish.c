@@ -274,6 +274,7 @@ struct publish {
 #define PB_F_NEED_DELAY		(1U << 3)	/**< Iteration delay requested */
 #define PB_F_SUBORDINATE	(1U << 4)	/**< Subordinate (child) request */
 #define PB_F_BACKGROUND		(1U << 5)	/**< Background publishing */
+#define PB_F_DONT_REMOVE	(1U << 6)	/**< Don't remove from table on free */
 
 static inline void
 publish_check(const publish_t *pb)
@@ -373,7 +374,7 @@ free_kuid_atom(gpointer obj)
  * Destroy a publish request.
  */
 static void
-publish_free(publish_t *pb, gboolean can_remove)
+publish_free(publish_t *pb)
 {
 	publish_check(pb);
 
@@ -400,7 +401,7 @@ publish_free(publish_t *pb, gboolean can_remove)
 		break;
 	}
 
-	if (can_remove)
+	if (!(pb->flags & PB_F_DONT_REMOVE))
 		g_hash_table_remove(publishes, &pb->pid);
 
 	pb->magic = 0;
@@ -556,7 +557,7 @@ publish_terminate(publish_t *pb, publish_error_t code)
 	if (PUBLISH_VALUE == pb->type)
 		publish_value_notify(pb, code);
 
-	publish_free(pb, TRUE);
+	publish_free(pb);
 }
 
 /**
@@ -598,7 +599,7 @@ publish_cancel(publish_t *pb, gboolean callback)
 	if (PUBLISH_VALUE == pb->type && callback)
 		publish_value_notify(pb, PUBLISH_E_CANCELLED);
 
-	publish_free(pb, TRUE);
+	publish_free(pb);
 }
 
 /**
@@ -2494,24 +2495,37 @@ publish_init(void)
  * Hashtable iteration callback to free the publish_t object held as the key.
  */
 static void
-free_publish(gpointer key, gpointer value, gpointer unused_data)
+free_publish(gpointer key, gpointer value, gpointer data)
 {
 	publish_t *pb = value;
+	gboolean *exiting = data;
 
 	publish_check(pb);
 	g_assert(key == &pb->pid);
-	(void) unused_data;
 
-	publish_free(pb, FALSE);		/* No removal whilst we iterate! */
+	/*
+	 * If we're shutdowning the DHT but not the whole process, then we must
+	 * cancel the publish since there may be some user-level code that need
+	 * to clean up and be notified that the publish is being freed.
+	 */
+
+	pb->flags |= PB_F_DONT_REMOVE;		/* No removal whilst we iterate! */
+
+	if (*exiting)
+		publish_free(pb);
+	else
+		publish_cancel(pb, TRUE);
 }
 
 /**
  * Cleanup data structures used by Kademlia publishing.
+ *
+ * @param exiting		whether the whole process is about to exit
  */
 void
-publish_close(void)
+publish_close(gboolean exiting)
 {
-	g_hash_table_foreach(publishes, free_publish, NULL);
+	g_hash_table_foreach(publishes, free_publish, &exiting);
 	g_hash_table_destroy(publishes);
 	publishes = NULL;
 }

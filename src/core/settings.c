@@ -1297,7 +1297,7 @@ enable_dht_changed(property_t prop)
 		/* Will start the DHT if UDP enabled otherwise */
 		dht_initialize(TRUE);
 	} else {
-		dht_close();
+		dht_close(FALSE);
 	}
 
 	return FALSE;

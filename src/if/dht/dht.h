@@ -45,7 +45,7 @@ typedef enum {
 struct gnutella_node;
 
 void dht_init(void);
-void dht_close(void);
+void dht_close(gboolean exiting);
 void dht_initialize(gboolean post_init);
 void dht_reset_kuid(void);
 gboolean dht_seeded(void);

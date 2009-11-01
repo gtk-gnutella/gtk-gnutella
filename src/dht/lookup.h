@@ -128,7 +128,7 @@ lookup_result_check(const lookup_rs_t *rs)
  */
 
 void lookup_init(void);
-void lookup_close(void);
+void lookup_close(gboolean exiting);
 
 nlookup_t *lookup_bucket_refresh(const kuid_t *kuid,
 	lookup_cb_err_t done, gpointer arg);

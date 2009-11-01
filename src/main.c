@@ -407,10 +407,17 @@ gtk_gnutella_exit(int exit_code)
 	exiting = TRUE;
 
 #define DO(fn) 	do {					\
-	exit_step = #fn;					\
+	exit_step = STRINGIFY(fn);			\
 	if (GNET_PROPERTY(shutdown_debug))	\
 		g_message("SHUTDOWN calling %s", exit_step);	\
 	fn();								\
+} while (0)
+
+#define DO_ARG(fn, arg)	do {			\
+	exit_step = STRINGIFY(fn);					\
+	if (GNET_PROPERTY(shutdown_debug))	\
+		g_message("SHUTDOWN calling %s(%s)", exit_step, STRINGIFY(arg));	\
+	fn(arg);							\
 } while (0)
 
 	DO(shell_close);
@@ -430,7 +437,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(move_close);
 	DO(publisher_close);
 	DO(pdht_close);
-	DO(dht_close);
+	DO_ARG(dht_close, TRUE);
 	DO(ipp_cache_save_all);
 
 	/*
@@ -608,6 +615,7 @@ gtk_gnutella_exit(int exit_code)
 	exit(exit_code);
 
 #undef DO
+#undef DO_ARG
 
 }
 

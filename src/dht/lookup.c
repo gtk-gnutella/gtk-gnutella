@@ -204,10 +204,11 @@ struct nlookup {
 /**
  * Operating flags for lookups.
  */
-#define NL_F_SENDING		(1 << 0)	/**< Currently sending new requests */
-#define NL_F_UDP_DROP		(1 << 1)	/**< UDP message was dropped  */
-#define NL_F_DELAYED		(1 << 2)	/**< Iteration has been delayed */
-#define NL_F_COMPLETED		(1 << 3)	/**< Completed, waiting final RPCs */
+#define NL_F_SENDING		(1U << 0)	/**< Currently sending new requests */
+#define NL_F_UDP_DROP		(1U << 1)	/**< UDP message was dropped  */
+#define NL_F_DELAYED		(1U << 2)	/**< Iteration has been delayed */
+#define NL_F_COMPLETED		(1U << 3)	/**< Completed, waiting final RPCs */
+#define NL_F_DONT_REMOVE	(1U << 4)	/**< No removal from table on free */
 
 static inline void
 lookup_check(const nlookup_t *nl)
@@ -364,7 +365,7 @@ free_knode_pt(gpointer key, size_t u_kbits, gpointer value, gpointer u_data)
  * Destroy a KUID lookup.
  */
 static void
-lookup_free(nlookup_t *nl, gboolean can_remove)
+lookup_free(nlookup_t *nl)
 {
 	lookup_check(nl);
 	
@@ -393,7 +394,7 @@ lookup_free(nlookup_t *nl, gboolean can_remove)
 	patricia_destroy(nl->path);
 	patricia_destroy(nl->ball);
 
-	if (can_remove)
+	if (!(nl->flags & NL_F_DONT_REMOVE))
 		g_hash_table_remove(nlookups, &nl->lid);
 
 	nl->magic = 0;
@@ -694,7 +695,8 @@ lookup_abort(nlookup_t *nl, lookup_error_t error)
 
 	if (nl->err)
 		(*nl->err)(nl->kuid, error, nl->arg);
-	lookup_free(nl, TRUE);
+
+	lookup_free(nl);
 }
 
 /**
@@ -752,7 +754,7 @@ lookup_terminate(nlookup_t *nl)
 		break;
 	}
 
-	lookup_free(nl, TRUE);
+	lookup_free(nl);
 }
 
 /**
@@ -914,7 +916,7 @@ lookup_value_terminate(nlookup_t *nl,
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
 		log_patricia_dump(nl, nl->ball, "final value path", 2);
 
-	lookup_free(nl, TRUE);
+	lookup_free(nl);
 
 cleanup:
 	/*
@@ -3136,7 +3138,7 @@ lookup_cancel(nlookup_t *nl, gboolean callback)
 	if (callback && nl->err)
 		(*nl->err)(nl->kuid, LOOKUP_E_CANCELLED, nl->arg);
 
-	lookup_free(nl, TRUE);
+	lookup_free(nl);
 }
 
 /**
@@ -3178,7 +3180,7 @@ lookup_find_node(
 	nl->mode = LOOKUP_LOOSE;
 
 	if (!lookup_load_shortlist(nl)) {
-		lookup_free(nl, TRUE);
+		lookup_free(nl);
 		return NULL;
 	}
 
@@ -3211,7 +3213,7 @@ lookup_store_nodes(
 	nl->mode = LOOKUP_LOOSE;
 
 	if (!lookup_load_shortlist(nl)) {
-		lookup_free(nl, TRUE);
+		lookup_free(nl);
 		return NULL;
 	}
 
@@ -3352,7 +3354,7 @@ lookup_find_value(
 	nl->mode = LOOKUP_LOOSE;	/* Converge quickly */
 
 	if (!lookup_load_shortlist(nl)) {
-		lookup_free(nl, TRUE);
+		lookup_free(nl);
 		return NULL;
 	}
 
@@ -3391,7 +3393,7 @@ lookup_bucket_refresh(
 	nl->mode = LOOKUP_BOUNDED;
 
 	if (!lookup_load_shortlist(nl)) {
-		lookup_free(nl, TRUE);
+		lookup_free(nl);
 		return NULL;
 	}
 
@@ -3878,24 +3880,37 @@ lookup_init(void)
  * Hashtable iteration callback to free the nlookup_t object held as the key.
  */
 static void
-free_lookup(gpointer key, gpointer value, gpointer unused_data)
+free_lookup(gpointer key, gpointer value, gpointer data)
 {
 	nlookup_t *nl = value;
+	gboolean *exiting = data;
 
 	lookup_check(nl);
 	g_assert(key == &nl->lid);
-	(void) unused_data;
 
-	lookup_free(nl, FALSE);		/* No removal whilst we iterate! */
+	nl->flags |= NL_F_DONT_REMOVE;	/* No removal whilst we iterate! */
+
+	/*
+	 * If we're shutdowning the DHT but not the whole process, then we must
+	 * cancel the lookup since there may be some user-level code that need
+	 * to clean up and be notified that the lookup is being freed.
+	 */
+
+	if (*exiting)
+		lookup_free(nl);
+	else
+		lookup_cancel(nl, TRUE);
 }
 
 /**
  * Cleanup data structures used by Kademlia node lookups.
+ *
+ * @param exiting		whether the whole process is about to exit
  */
 void
-lookup_close(void)
+lookup_close(gboolean exiting)
 {
-	g_hash_table_foreach(nlookups, free_lookup, NULL);
+	g_hash_table_foreach(nlookups, free_lookup, &exiting);
 	g_hash_table_destroy(nlookups);
 	nlookups = NULL;
 }
