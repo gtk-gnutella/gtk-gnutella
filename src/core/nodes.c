@@ -90,6 +90,7 @@ RCSID("$Id$")
 #include "dump.h"
 #include "ctl.h"
 #include "pproxy.h"
+#include "pdht.h"
 
 #include "lib/adns.h"
 #include "lib/aging.h"
@@ -1845,6 +1846,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 
 	if (is_host_addr(n->proxy_addr)) {
 		pproxy_set_remove(proxies, n->proxy_addr, n->proxy_port);
+		pdht_prox_publish_if_changed();
 	}
 	string_table_free(&n->qseen);
 	string_table_free(&n->qrelayed);
@@ -9439,6 +9441,7 @@ node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port)
 	n->proxy_port = port;
 
 	pproxy_set_add(proxies, addr, port);
+	pdht_prox_publish_if_changed();
 	node_fire_node_flags_changed(n);
 }
 
@@ -9463,6 +9466,7 @@ node_proxy_cancel_all(void)
 
 	pproxy_set_free_null(&proxies);
 	proxies = pproxy_set_allocate(0);
+	pdht_prox_publish_if_changed();
 }
 
 /**

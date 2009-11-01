@@ -304,6 +304,53 @@ publisher_hold(struct publisher_entry *pe, int delay, const char *msg)
 
 	publisher_retry(pe, delay, msg);
 }
+
+/**
+ * Computes republish delay for a value.
+ *
+ * @param info			the information from the publishing layer
+ * @param expiration	expected value expiration time
+ *
+ * @return republishing delay, in seconds.
+ *
+ * @attention
+ * As a side effect, increases the count of satisfactory publishes if the
+ * information from the publishing layer lead us to believe it is.  Therefore
+ * this routine is not idempotent and should be called only once per callback.
+ */
+int
+publisher_delay(const pdht_info_t *info, time_delta_t expiration)
+{
+	int delay;
+
+	if (0 == info->all_roots) {
+		delay = PUBLISH_SAFETY;
+	} else if (
+		info->all_roots >= KDA_K ||
+		info->presence >= PUBLISH_MIN_PROBABILITY
+	) {
+		delay = expiration - PUBLISH_SAFETY;
+		gnet_stats_count_general(GNR_DHT_PUBLISHING_SATISFACTORY, +1);
+	} else {
+		g_assert(uint_is_positive(info->all_roots));
+		delay =
+			inverse_decimation[info->all_roots - 1] * expiration;
+		delay -= PUBLISH_SAFETY;
+		delay = MAX(delay, PUBLISH_SAFETY);
+	}
+
+	return delay;
+}
+
+/**
+ * Is publishing acceptable or should we attempt background republish?
+ */
+gboolean
+publisher_is_acceptable(const pdht_info_t *info)
+{
+	return info->presence >= PUBLISH_MIN_PROBABILITY ||
+		info->all_roots >= publisher_minimum || !info->can_bg;
+}
  
 /**
  * Publishing callback invoked when asynchronous publication is completed,
@@ -358,21 +405,8 @@ publisher_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 		 * we could publish.
 		 */
 
-		if (0 == info->all_roots) {
-			delay = PUBLISH_SAFETY;
-		} else if (
-			info->all_roots >= KDA_K ||
-			info->presence >= PUBLISH_MIN_PROBABILITY
-		) {
-			delay = DHT_VALUE_ALOC_EXPIRE - PUBLISH_SAFETY;
-			gnet_stats_count_general(GNR_DHT_PUBLISHING_SATISFACTORY, +1);
-		} else {
-			g_assert(uint_is_positive(info->all_roots));
-			delay =
-				inverse_decimation[info->all_roots - 1] * DHT_VALUE_ALOC_EXPIRE;
-			delay -= PUBLISH_SAFETY;
-			delay = MAX(delay, PUBLISH_SAFETY);
-		}
+		delay = publisher_delay(info, DHT_VALUE_ALOC_EXPIRE);
+		accepted = publisher_is_acceptable(info);
 		break;
 	case PDHT_E_POPULAR:
 		delay = PUBLISH_POPULAR;
@@ -410,11 +444,6 @@ publisher_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 		} else {
 			delay = 1;
 		}
-	}
-
-	if (PDHT_E_OK == code) {
-		accepted = info->presence >= PUBLISH_MIN_PROBABILITY ||
-			info->all_roots >= publisher_minimum || !info->can_bg;
 	}
 
 	/*
@@ -466,14 +495,12 @@ publisher_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 	 * Update last publishing time and remember expiration time.
 	 */
 
-	if (PDHT_E_OK == code) {
-		if (info->roots > 0) {
-			pe->last_publish = tm_time();
-			if (pd != NULL) {
-				pd->expiration =
-					time_advance(pe->last_publish, DHT_VALUE_ALOC_EXPIRE);
-				dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
-			}
+	if (PDHT_E_OK == code && info->roots > 0) {
+		pe->last_publish = tm_time();
+		if (pd != NULL) {
+			pd->expiration =
+				time_advance(pe->last_publish, DHT_VALUE_ALOC_EXPIRE);
+			dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
 		}
 	}
 

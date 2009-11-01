@@ -132,6 +132,8 @@ enum ulq_qtype {
 	ULQ_PROX = 0,					/**< Push proxy lookups */
 	ULQ_ALOC,						/**< Alt-loc lookups */
 	ULQ_STORE,						/**< Node lookups (for publishing) */
+	ULQ_PRIO,						/**< Prioritary lookups */
+	ULQ_OTHER,						/**< Other types of lookups */
 
 	ULQ_QUEUE_COUNT					/**< Amount of queues */
 };
@@ -144,7 +146,6 @@ static cevent_t *service_ev;				/**< Servicing event */
  */
 static struct ulq_sched {
 	slist_t *runq;					/**< Runnable queues */
-	guint weight;					/**< Total weight among queues */
 	int running;					/**< Total running lookups */
 	int pending;					/**< Total pending lookups */
 	int bw_in_ema;					/**< Slow EMA of incoming b/w per lookup */
@@ -377,7 +378,7 @@ ulq_lookup_stats(const kuid_t *kuid,
 static const char *
 ulq_queue_status(void)
 {
-	static char buf[80];
+	static char buf[120];
 	size_t i, offset = 0;
 
 	for (i = 0; i < G_N_ELEMENTS(ulq); i++) {
@@ -652,11 +653,15 @@ ulq_needs_servicing(void)
 }
 
 /**
- * @return proper lookup queue depending on the type of data.
+ * @return proper lookup queue depending on the type of data and whether
+ * the lookup is flagged as urgent.
  */
 static struct ulq *
-ulq_get(lookup_type_t ltype, dht_value_type_t vtype)
+ulq_get(lookup_type_t ltype, dht_value_type_t vtype, gboolean prioritary)
 {
+	if (prioritary)
+		return ulq[ULQ_PRIO];
+
 	switch (ltype) {
 	case LOOKUP_STORE:
 		return ulq[ULQ_STORE];
@@ -677,7 +682,7 @@ ulq_get(lookup_type_t ltype, dht_value_type_t vtype)
 	case DHT_VT_PROX:
 		return ulq[ULQ_PROX];
 	default:
-		return ulq[ULQ_ALOC];		/* XXX or dedicated queue for others? */
+		return ulq[ULQ_OTHER];
 	}
 }
 
@@ -707,7 +712,7 @@ ulq_putq(struct ulq *uq, struct ulq_item *ui)
  * directly invoked by user code.
  */
 void
-ulq_find_store_roots(const kuid_t *kuid,
+ulq_find_store_roots(const kuid_t *kuid, gboolean prioritary,
 	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg)
 {
 	struct ulq_item *ui;
@@ -716,7 +721,7 @@ ulq_find_store_roots(const kuid_t *kuid,
 	g_assert(ok);
 	g_assert(error);
 
-	uq = ulq_get(LOOKUP_STORE, DHT_VT_BINARY);
+	uq = ulq_get(LOOKUP_STORE, DHT_VT_BINARY, prioritary);
 
 	ui = allocate_ulq_item(LOOKUP_STORE,  kuid, error, arg);
 	ui->u.fn.ok = ok;
@@ -737,7 +742,7 @@ ulq_find_value(const kuid_t *kuid, dht_value_type_t type,
 	g_assert(ok);
 	g_assert(error);
 
-	uq = ulq_get(LOOKUP_VALUE, type);
+	uq = ulq_get(LOOKUP_VALUE, type, FALSE);
 
 	ui = allocate_ulq_item(LOOKUP_VALUE,  kuid, error, arg);
 	ui->u.fv.ok = ok;
@@ -778,18 +783,33 @@ ulq_init_queue(const char *name, int weight)
 void
 ulq_init(void)
 {
-	size_t i;
-
 	STATIC_ASSERT(ULQ_QUEUE_COUNT == G_N_ELEMENTS(ulq));
 
-	ulq[ULQ_PROX] = ulq_init_queue("PROX", 60);
-	ulq[ULQ_ALOC] = ulq_init_queue("ALOC", 20);
-	ulq[ULQ_STORE] = ulq_init_queue("STORE", 20);
+	/*
+	 * The weights are arbitrary values, not necessarily summing to 100.
+	 *
+	 * To avoid too frequent schduler resets, they are somehow scaled, i.e.
+	 * we do not put 12,3,4,1 as weights, but 60,15,20,5 to ensure we will
+	 * serve a fair amount of entries in each queue between each scheduler
+	 * resets -- see ulq_sched_reset().
+	 *
+	 * Values must not be too large though, or a given queue would monopolize
+	 * the scheduling as long as it has entries and others have expired all
+	 * their slots.
+	 *
+	 * The ULQ_PRIO queue is meant for things that should be scheduled more
+	 * urgently, and its weight must therefore be a number greater than the
+	 * others but not too large or a bug (like too many enqueuing of prioritary
+	 * lookups) would litterally starve the other queues.
+	 */
+
+	ulq[ULQ_PROX]	= ulq_init_queue("PROX", 60);
+	ulq[ULQ_ALOC]	= ulq_init_queue("ALOC", 15);
+	ulq[ULQ_STORE]	= ulq_init_queue("STORE", 20);
+	ulq[ULQ_OTHER]	= ulq_init_queue("OTHER", 5);
+	ulq[ULQ_PRIO]	= ulq_init_queue("PRIO", 100);
 
 	sched.runq = slist_new();
-
-	for (i = 0; i < G_N_ELEMENTS(ulq); i++)
-		sched.weight += ulq[i]->weight;
 }
 
 /**

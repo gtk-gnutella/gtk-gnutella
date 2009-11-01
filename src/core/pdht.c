@@ -44,6 +44,11 @@ RCSID("$Id$")
 #include "ggep_type.h"
 #include "sockets.h"			/* For socket_listen_port() */
 #include "tls_common.h"			/* For tls_enabled() */
+#include "nodes.h"				/* For node_push_proxies() */
+#include "ipp_cache.h"			/* For tls_cache_lookup() */
+#include "settings.h"			/* For listen_addr() */
+#include "publisher.h"
+#include "gnet_stats.h"
 
 #include "if/dht/kademlia.h"
 #include "if/dht/lookup.h"
@@ -51,6 +56,7 @@ RCSID("$Id$")
 #include "if/dht/value.h"
 #include "if/dht/publish.h"
 #include "if/dht/stable.h"
+#include "if/dht/dht.h"
 #include "if/core/fileinfo.h"
 
 #include "if/gnet_property_priv.h"
@@ -58,14 +64,21 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/misc.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define PDHT_ALOC_MAJOR		0	/**< We generate v0.1 "ALOC" values */
 #define PDHT_ALOC_MINOR		1
 
+#define PDHT_PROX_MAJOR		0	/**< We generate v0.0 "PROX" values */
+#define PDHT_PROX_MINOR		0
+
 #define PDHT_BG_PERIOD		60000	/**< 1 minute, in ms */
 #define PDHT_BG_MAX_RUNS	3		/**< Max amount of background attempts */
+#define PDHT_PROX_DELAY		30		/**< Initial delay before publishing PROX */
+#define PDHT_MAX_PROXIES	8		/**< Send out 8 push-proxies at most */
+#define PDHT_PROX_RETRY		60		/**< Every minute if we have to */
 
 /**
  * Hash table holding all the pending file publishes by SHA1.
@@ -131,6 +144,28 @@ pdht_publish_check(const pdht_publish_t *pp)
  */
 #define PDHT_F_CANCELLING	(1U << 0)	/**< Explicitly cancelling */
 #define PDHT_F_BACKGROUND	(1U << 1)	/**< Background publishing */
+#define PDHT_F_DEAD			(1U << 2)	/**< Dead, to be freed ASAP */
+#define PDHT_F_LOOKUP_DONE	(1U << 3)	/**< Lookup phase completed */
+
+/**
+ * Context for PROX value publishing.
+ *
+ * Contrary to ALOC publishing, a servent only needs to publish one PROX
+ * value only: the one giving its known push-proxies.
+ *
+ * Whether or not the servent is TCP-firewalled, we do publish push-proxies.
+ * When not firewalled, we include the servent itself as its own push-proxy.
+ */
+static struct {
+	gnet_host_t proxies[PDHT_MAX_PROXIES];	/**< Known push proxies */
+	size_t proxies_count;		/**< Amount of valid entries in proxies[] */
+	pdht_publish_t *pp;			/**< Current running publish, NULL if none */
+	cevent_t *publish_ev;		/**< Scheduled (re)publish event */
+	time_t last_enqueued;		/**< When republish event was fired */
+	time_t last_publish;		/**< Time at which last publish completed */
+	time_t last_delayed;		/**< When republish event was set */
+	gboolean backgrounded;		/**< Whether background republish runs */
+} pdht_proxy;
 
 static void pdht_bg_publish(cqueue_t *unused_cq, gpointer obj);
 
@@ -147,6 +182,23 @@ pdht_type_to_string(pdht_type_t type)
 	}
 
 	return "UNKNOWN";
+}
+
+/**
+ * Allocate a publishing context.
+ */
+static pdht_publish_t *
+pdht_publish_allocate(pdht_type_t type, pdht_cb_t cb, gpointer arg)
+{
+	pdht_publish_t *pp;
+
+	pp = walloc0(sizeof *pp);
+	pp->magic = PDHT_PUBLISH_MAGIC;
+	pp->type = type;
+	pp->cb = cb;
+	pp->arg = arg;
+
+	return pp;
 }
 
 /**
@@ -198,8 +250,10 @@ pdht_free_publish(pdht_publish_t *pp, gboolean do_remove)
 		pp->pb = NULL;
 	}
 
-	if (pp->value != NULL)
+	if (pp->value != NULL) {
 		dht_value_free(pp->value, TRUE);
+		pp->value = NULL;
+	}
 
 	pdht_bg_free_null(&pp->bg);
 
@@ -211,14 +265,34 @@ pdht_free_publish(pdht_publish_t *pp, gboolean do_remove)
 		shared_file_unref(&pp->u.aloc.sf);
 		break;
 	case PDHT_T_PROX:
-		/* XXX */
+		if (do_remove)
+			pdht_proxy.pp = NULL;
 		break;
 	case PDHT_T_MAX:
 		g_assert_not_reached();
 	}
 
-	kuid_atom_free(pp->id);
-	wfree(pp, sizeof *pp);
+	/*
+	 * Do not free up the object until the lookup has been completed.
+	 *
+	 * There is no way for us to cancel the enqueued node lookup, so we
+	 * need to leave it happen, at which time the callback for the node
+	 * lookup will notice the object is dead and will call us back to
+	 * finalize the cleanup.
+	 *
+	 * NB: we always free the object when ``do_remove'' is FALSE because
+	 * we are called thusly either at final shutdown time or when the
+	 * object was alraedy marked as "dead" and we're called from the node
+	 * lookup callbacks.
+	 */
+
+	if (!do_remove || (pp->flags & PDHT_F_LOOKUP_DONE)) {
+		kuid_atom_free(pp->id);
+		pp->magic = 0;
+		wfree(pp, sizeof *pp);
+	} else {
+		pp->flags |= PDHT_F_DEAD;		/* For lookup callbacks */
+	}
 }
 
 static const char *pdht_errstr[] = {
@@ -449,11 +523,9 @@ pdht_bg_publish(cqueue_t *unused_cq, gpointer obj)
 
 	switch (pp->type) {
 	case PDHT_T_ALOC:
+	case PDHT_T_PROX:
 		pp->pb = publish_value_background(dht_value_clone(pp->value),
 			pp->bg->rs, pp->bg->status, pdht_publish_done, pp);
-		break;
-	case PDHT_T_PROX:
-		/* XXX */
 		break;
 	case PDHT_T_MAX:
 		g_assert_not_reached();
@@ -585,50 +657,217 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 }
 
 /**
- * Callback when lookup for STORE roots succeeded for ALOC publishing.
+ * Generate a DHT "PROX" value to publish our push-proxies
+ *
+ * @return NULL if problems during GGEP encoding, the DHT value otherwise.
+ */
+static dht_value_t *
+pdht_get_prox(const kuid_t *key)
+{
+	void *value;
+	ggep_stream_t gs;
+	int ggep_len;
+	gboolean ok;
+	dht_value_t *prox;
+	knode_t *our_knode;
+	guint8 zero = 0;
+
+	/*
+	 * A PROX value bears the following GGEP keys:
+	 *
+	 * client-id		the servent's GUID as raw 16 bytes
+	 * features			no idea what it is, use a single "0"
+	 * fwt-version		a single "0" for now as we do not support it
+	 * port				the servent's listening port for push-proxy messages
+	 * tls				bitfield specifying which proxies support TLS
+	 * proxies			an array of push-proxy IP:port
+	 */
+
+	value = walloc(DHT_VALUE_MAX_LEN);
+	ggep_stream_init(&gs, value, DHT_VALUE_MAX_LEN);
+
+	ok = ggep_stream_pack(&gs, GGEP_NAME(client_id),
+		GNET_PROPERTY(servent_guid), GUID_RAW_SIZE, 0);
+
+	/* "features" emitted as a little-endian integer with no trailing 0s */
+	ok = ok &&
+		ggep_stream_pack(&gs, GGEP_NAME(features), &zero, sizeof zero, 0);
+
+	/* "fwt_version" emitted as a little-endian integer with no trailing 0s */
+	ok = ok &&
+		ggep_stream_pack(&gs, GGEP_NAME(fwt_version), &zero, sizeof zero, 0);
+
+	{
+		char buf[sizeof(guint16)];
+		guint16 port = socket_listen_port();
+
+		poke_be16(buf, port);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), buf, sizeof buf, 0);
+	}
+
+	ok = ok && pdht_proxy.proxies_count > 0;
+
+	if (ok) {
+		guchar tls_bytes[(PDHT_MAX_PROXIES + 7) / 8];
+		guint tls_length;
+		size_t i = 0;
+
+		ok = ok && ggep_stream_begin(&gs, GGEP_NAME(proxies), 0);
+		memset(tls_bytes, 0, sizeof tls_bytes);
+		tls_length = 0;
+
+		while (ok && i < pdht_proxy.proxies_count) {
+			const gnet_host_t *host = &pdht_proxy.proxies[i];
+			host_addr_t addr = gnet_host_get_addr(host);
+			guint16 port = gnet_host_get_port(host);
+			char proxy[18];
+			guint8 len;
+			gboolean tls = FALSE;
+
+			switch (host_addr_net(addr)) {
+			case NET_TYPE_IPV4:
+				len = 6;
+				poke_be32(&proxy[0], host_addr_ipv4(addr));
+				poke_be16(&proxy[4], port);
+				break;
+			case NET_TYPE_IPV6:
+				len = 18;
+				memcpy(&proxy[0], host_addr_ipv6(&addr), 16);
+				poke_be16(&proxy[16], port);
+				break;
+			default:
+				continue;
+			}
+
+			ok = ok && ggep_stream_write(&gs, &len, sizeof len);
+			ok = ok && ggep_stream_write(&gs, proxy, len);
+
+			if (tls_cache_lookup(addr, port)) {
+				tls_bytes[i >> 3] |= 0x80U >> (i & 7);
+				tls_length = (i >> 3) + 1;
+				tls = TRUE;
+			}
+			i++;
+
+			if (GNET_PROPERTY(publisher_debug) > 2) {
+				g_message("PDHT PROX #%u is %s%s", (unsigned) i,
+					tls ? "tls:" : "", host_addr_port_to_string(addr, port));
+			}
+		}
+
+		ok = ok && ggep_stream_end(&gs);
+
+		if (ok && tls_length > 0) {
+			ok = ggep_stream_pack(&gs, GGEP_NAME(tls),
+					tls_bytes, tls_length, 0);
+		}
+	}
+
+	ggep_len = ggep_stream_close(&gs);
+
+	g_assert(ggep_len <= DHT_VALUE_MAX_LEN);
+
+	if (!ok) {
+		if (GNET_PROPERTY(publisher_debug))
+			g_warning("PDHT PROX cannot construct DHT value");
+
+		wfree(value, DHT_VALUE_MAX_LEN);
+		return NULL;
+	}
+
+	/*
+	 * DHT value becomes the owner of the walloc()-ed GGEP block.
+	 */
+
+	g_assert(ggep_len > 0);
+
+	value = wrealloc(value, DHT_VALUE_MAX_LEN, ggep_len);
+	our_knode = get_our_knode();
+	prox = dht_value_make(our_knode, key, DHT_VT_PROX,
+		PDHT_PROX_MAJOR, PDHT_PROX_MINOR, value, ggep_len);
+	knode_refcnt_dec(our_knode);
+
+	return prox;
+}
+
+/**
+ * Callback when lookup for STORE roots succeeded.
  */
 static void
-pdht_aloc_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
+pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 {
 	pdht_publish_t *pp = arg;
-	struct pdht_aloc *paloc = &pp->u.aloc;
-	shared_file_t *sf;
-	dht_value_t *value;
+	dht_value_t *value = NULL;
 
 	pdht_publish_check(pp);
 	g_assert(pp->id == kuid);		/* They are atoms */
 
-	sf = paloc->sf;
-
-	if (GNET_PROPERTY(publisher_debug) > 1) {
-		size_t roots = lookup_result_path_length(rs);
-		g_message("PDHT ALOC found %lu publish root%s for %s \"%s\"",
-			(unsigned long) roots, 1 == roots ? "" : "s",
-			shared_file_is_partial(sf) ? "partial" : "shared",
-			shared_file_name_nfc(sf));
-	}
-
 	/*
-	 * Step #2: if file is still publishable, generate the DHT ALOC value
-	 *
-	 * If shared_file_by_sha1() returns SHARE_REBUILDING, we nonetheless
-	 * go on with the publishing because chances are the file will still
-	 * be shared anyway.  If no longer shared, it will not be requeued for
-	 * publishing at the next period.
+	 * Becase we cannot unqueue lookups once they have been sent to the ULQ
+	 * layer, we mark the lookup as completed and check whether the object
+	 * was not already marked as dead, the state where it simply waits for
+	 * the lookup to be completed.
 	 */
 
-	if (NULL == shared_file_by_sha1(paloc->sha1)) {
-		if (GNET_PROPERTY(publisher_debug)) {
-			g_warning("PDHT ALOC cannot publish %s \"%s\": no longer shared",
-				shared_file_is_partial(sf) ? "partial" : "shared",
-				shared_file_name_nfc(sf));
-		}
-
-		pdht_publish_error(pp, PDHT_E_NOT_SHARED);
+	if (pp->flags & PDHT_F_DEAD) {
+		pdht_free_publish(pp, FALSE);	/* Already "removed" */
 		return;
 	}
 
-	value = pdht_get_aloc(sf, pp->id);
+	pp->flags |= PDHT_F_LOOKUP_DONE;	/* Signals: can free up object now */
+
+	/*
+	 * Step #2: generate the DHT value
+	 */
+	
+	switch (pp->type) {
+	case PDHT_T_ALOC:
+		{
+			struct pdht_aloc *paloc = &pp->u.aloc;
+			shared_file_t *sf = paloc->sf;
+
+			if (GNET_PROPERTY(publisher_debug) > 1) {
+				size_t roots = lookup_result_path_length(rs);
+				g_message("PDHT ALOC found %lu publish root%s for %s \"%s\"",
+					(unsigned long) roots, 1 == roots ? "" : "s",
+					shared_file_is_partial(sf) ? "partial" : "shared",
+					shared_file_name_nfc(sf));
+			}
+
+			/*
+			 * If shared_file_by_sha1() returns SHARE_REBUILDING, we
+			 * nonetheless go on with the publishing because chances are the
+			 * file will still be shared anyway.  If no longer shared, it will
+			 * not be requeued for publishing at the next period.
+			 */
+
+			if (NULL == shared_file_by_sha1(paloc->sha1)) {
+				if (GNET_PROPERTY(publisher_debug)) {
+					g_warning("PDHT ALOC cannot publish %s \"%s\": "
+						"no longer shared",
+						shared_file_is_partial(sf) ? "partial" : "shared",
+						shared_file_name_nfc(sf));
+				}
+
+				pdht_publish_error(pp, PDHT_E_NOT_SHARED);
+				return;
+			}
+
+			value = pdht_get_aloc(sf, pp->id);
+		}
+		break;
+	case PDHT_T_PROX:
+		if (GNET_PROPERTY(publisher_debug) > 1) {
+			size_t roots = lookup_result_path_length(rs);
+			g_message("PDHT PROX found %lu publish root%s",
+				(unsigned long) roots, 1 == roots ? "" : "s");
+		}
+
+		value = pdht_get_prox(pp->id);
+		break;
+	case PDHT_T_MAX:
+		g_assert_not_reached();
+	}
 
 	if (NULL == value) {
 		pdht_publish_error(pp, PDHT_E_GGEP);
@@ -646,22 +885,50 @@ pdht_aloc_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 }
 
 /**
- * Callback for errors during ALOC publishing.
+ * Callback for errors during root node lookups.
  */
 static void
-pdht_aloc_roots_error(const kuid_t *kuid, lookup_error_t error, gpointer arg)
+pdht_roots_error(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 {
 	pdht_publish_t *pp = arg;
-	struct pdht_aloc *paloc = &pp->u.aloc;
 	pdht_error_t status;
 
 	pdht_publish_check(pp);
 	g_assert(pp->id == kuid);		/* They are atoms */
 
+	/*
+	 * Becase we cannot unqueue lookups once they have been sent to the ULQ
+	 * layer, we mark the lookup as completed and check whether the object
+	 * was not already marked as dead, the state where it simply waits for
+	 * the lookup to be completed.
+	 */
+
+	if (pp->flags & PDHT_F_DEAD) {
+		pdht_free_publish(pp, FALSE);	/* Already "removed" */
+		return;
+	}
+
+	pp->flags |= PDHT_F_LOOKUP_DONE;	/* Signals: can free up object now */
+
 	if (GNET_PROPERTY(publisher_debug)) {
-		g_message("PDHT ALOC publish roots lookup failed for %s \"%s\": %s",
-			shared_file_is_partial(paloc->sf) ? "partial" : "shared",
-			shared_file_name_nfc(paloc->sf), lookup_strerror(error));
+		switch (pp->type) {
+		case PDHT_T_ALOC:
+			{
+				struct pdht_aloc *paloc = &pp->u.aloc;
+
+				g_message("PDHT ALOC publish roots lookup failed "
+					"for %s \"%s\": %s",
+					shared_file_is_partial(paloc->sf) ? "partial" : "shared",
+					shared_file_name_nfc(paloc->sf), lookup_strerror(error));
+			}
+			break;
+		case PDHT_T_PROX:
+			g_message("PDHT PROX publish roots lookup failed: %s",
+				lookup_strerror(error));
+			break;
+		case PDHT_T_MAX:
+			g_assert_not_reached();
+		}
 	}
 
 	switch (error) {
@@ -727,11 +994,8 @@ pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, gpointer arg)
 
 	g_assert(sf != NULL);
 
-	pp = walloc0(sizeof *pp);
-	pp->magic = PDHT_PUBLISH_MAGIC;
-	pp->type = PDHT_T_ALOC;
-	pp->cb = cb;
-	pp->arg = arg;
+	pp = pdht_publish_allocate(PDHT_T_ALOC, cb, arg);
+
 	paloc = &pp->u.aloc;
 	paloc->sf = shared_file_ref(sf);
 
@@ -765,8 +1029,8 @@ pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, gpointer arg)
 	 * Here we launch step #1.
 	 */
 
-	ulq_find_store_roots(pp->id,
-		pdht_aloc_roots_found, pdht_aloc_roots_error, pp);
+	ulq_find_store_roots(pp->id, FALSE,
+		pdht_roots_found, pdht_roots_error, pp);
 
 	return;
 
@@ -782,6 +1046,33 @@ error:
 	 */
 
 	pdht_publish_error_async(pp, code);
+}
+
+/**
+ * Cancel an active publishing.
+ *
+ * @param pp		the publish object
+ * @param callabck	whether callbacks need to be invoked
+ */
+static void
+pdht_cancel(pdht_publish_t *pp, gboolean callback)
+{
+	pdht_publish_check(pp);
+
+	/*
+	 * By setting PDHT_F_CANCELLING we avoid the publish callback from
+	 * freeing the publishing object, since we are going to do that
+	 * ourselves once we return from the publish_cancel() call.
+	 */
+
+	pp->flags |= PDHT_F_CANCELLING;
+
+	if (pp->pb != NULL) {
+		publish_cancel(pp->pb, callback);
+		pp->pb = NULL;
+	}
+
+	pdht_free_publish(pp, TRUE);
 }
 
 /**
@@ -810,21 +1101,417 @@ pdht_cancel_file(const sha1_t *sha1, gboolean callback)
 			callback ? "with" : "no", sha1_to_string(sha1));
 	}
 
-	/*
-	 * By setting PDHT_F_CANCELLING we avoid the publish callback from
-	 * freeing the publishing object, since we are going to do that
-	 * ourselves once we return from the publish_cancel() call.
-	 */
+	pdht_cancel(pp, callback);
+}
 
-	pp->flags |= PDHT_F_CANCELLING;
+/***
+ *** Push-proxy publishing.
+ ***/
 
-	if (pp->pb != NULL) {
-		publish_cancel(pp->pb, callback);
-		pp->pb = NULL;
+static void pdht_prox_install_republish(time_t t);
+
+/**
+ * Cancel current PROX publishing.
+ *
+ * @param callabck	whether callbacks need to be invoked
+ */
+static void
+pdht_cancel_prox(gboolean callback)
+{
+	pdht_publish_t *pp;
+
+	pp = pdht_proxy.pp;
+
+	if (NULL == pp)
+		return;
+
+	pdht_publish_check(pp);
+
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		g_warning("PDHT cancelling PROX publish (%s callback)",
+			callback ? "with" : "no");
 	}
 
-	pdht_free_publish(pp, TRUE);
+	pdht_cancel(pp, callback);
 }
+
+/**
+ * Publishing callback invoked when asynchronous publication is completed,
+ * or ended with an error.
+ *
+ * @return TRUE if we accept the publishing, FALSE otherwise to get the
+ * publishing layer to continue attempts to failed STORE roots and report
+ * on progress using the same callback.
+ */
+static gboolean
+pdht_prox_done(gpointer u_arg, pdht_error_t code, const pdht_info_t *info)
+{
+	gboolean accepted = TRUE;
+	int delay = PDHT_PROX_RETRY;
+
+	(void) u_arg;
+
+	/*
+	 * The logic here is similar to that of publisher_done(), although we're
+	 * dealing with a single value that we want to be widely published and
+	 * which cannot be popular, by construction.
+	 */
+
+	if (PDHT_E_OK == code) {
+		if (pdht_proxy.last_publish && info->roots > 0) {
+			time_delta_t elapsed =
+				delta_time(tm_time(), pdht_proxy.last_publish);
+			if (elapsed > DHT_VALUE_PROX_EXPIRE)
+				gnet_stats_count_general(GNR_DHT_REPUBLISHED_LATE, +1);
+		}
+
+		delay = publisher_delay(info, DHT_VALUE_PROX_EXPIRE);
+		accepted = publisher_is_acceptable(info);
+	}
+
+	/*
+	 * For a backgrounded entry publishing, we need to adjust the computed
+	 * delay with the time that was elapsed.
+	 */
+
+	g_assert(!pdht_proxy.backgrounded == !(pdht_proxy.publish_ev != NULL));
+
+	if (pdht_proxy.backgrounded) {
+		time_delta_t elapsed = delta_time(tm_time(), pdht_proxy.last_delayed);
+		cq_cancel(callout_queue, &pdht_proxy.publish_ev);
+		if (delay > elapsed) {
+			delay -= elapsed;
+		} else {
+			delay = 1;
+		}
+	}
+
+	/*
+	 * Logging.
+	 */
+
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		char retry[80];
+		char after[80];
+		const char *late = "";
+
+		after[0] = '\0';
+		if (pdht_proxy.last_publish) {
+			time_delta_t elapsed =
+				delta_time(tm_time(), pdht_proxy.last_publish);
+
+			if (elapsed > DHT_VALUE_PROX_EXPIRE)
+				late = "late, ";
+		}
+
+		gm_snprintf(retry, sizeof retry, "%s", compact_time(delay));
+
+		g_message("PDHT PROX %s%spublished to %u node%s%s: %s"
+			" (%stook %s, total %u node%s, proba %.3f%%, retry in %s,"
+			" %s bg, path %u) [%s]",
+			pdht_proxy.backgrounded ? "[bg] " : "",
+			pdht_proxy.last_publish ? "re" : "",
+			info->roots, 1 == info->roots ? "" : "s",
+			after, pdht_strerror(code), late,
+			compact_time(delta_time(tm_time(), pdht_proxy.last_enqueued)),
+			info->all_roots, 1 == info->all_roots ? "" : "s",
+			info->presence * 100.0, retry,
+			info->can_bg ? "can" : "no", info->path_len,
+			accepted ? "OK" : "INCOMPLETE");
+	}
+
+	/*
+	 * Update last publishing time.
+	 */
+
+	if (PDHT_E_OK == code && info->roots > 0)
+		pdht_proxy.last_publish = tm_time();
+
+	pdht_prox_install_republish(delay);
+	pdht_proxy.backgrounded = !accepted;
+
+	return accepted;
+}
+
+/**
+ * Build list of known push proxies in supplied vector.
+ *
+ * @return amount of entries filled.
+ */
+static size_t
+pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
+{
+	sequence_t *seq = NULL;
+	GList *list = NULL;
+	gnet_host_t localhost;
+	size_t i = 0;
+
+	if (GNET_PROPERTY(is_firewalled))
+		seq = node_push_proxies();
+
+	if (!GNET_PROPERTY(is_firewalled) || sequence_is_empty(seq)) {
+		host_addr_t addr;
+		guint16 port = socket_listen_port();
+
+		sequence_release(&seq);
+
+		/*
+		 * List ourselves as the only push-proxy if we have a valid IP:port.
+		 */
+
+		addr = listen_addr();
+		if (!is_host_addr(addr))
+			addr = listen_addr6();
+
+		if (is_host_addr(addr) && port != 0) {
+			gnet_host_set(&localhost, addr, socket_listen_port());
+			list = g_list_prepend(list, &localhost);
+			seq = sequence_create_from_glist(list);
+		} else {
+			return 0;		/* Nothing to fill */
+		}
+	}
+
+	if (!sequence_is_empty(seq)) {
+		gnet_host_t *vp = vec;
+		sequence_iter_t *iter;
+
+		/*
+		 * We iterate backwards to get the most stable of our push proxies,
+		 * namely those to which we've been connected for the longest time.
+		 */
+
+		iter = sequence_backward_iterator(seq, TRUE);
+
+		while (i < vecsize && sequence_iter_has_previous(iter)) {
+			const gnet_host_t *host = sequence_iter_previous(iter);
+
+			*vp++ = *host;		/* Struct copy */
+			i++;
+		}
+
+		sequence_iterator_release(&iter);
+	}
+
+	sequence_release(&seq);
+	g_list_free(list);
+	list = NULL;
+
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		g_message("PDHT PROX using %u push-prox%s for local node (%s)",
+			i, 1 == i ? "y" : "ies",
+			GNET_PROPERTY(is_firewalled) ? "firewalled" : "not firewalled");
+	}
+
+	return i;
+}
+
+/**
+ * Update list of known push proxies.
+ *
+ * @return TRUE if the list changed, FALSE if it is the same as the
+ * one we had before.
+ */
+static gboolean
+pdht_prox_update_list(void)
+{
+	gnet_host_t proxies[PDHT_MAX_PROXIES];
+	size_t n;
+	size_t i;
+
+	n = pdht_prox_fill_vector(proxies, G_N_ELEMENTS(proxies));
+
+	g_assert(n <= G_N_ELEMENTS(proxies));
+
+	if (n != pdht_proxy.proxies_count)
+		goto new_proxies;
+
+	for (i = 0; i < n; i++) {
+		if (!host_eq(&proxies[i], &pdht_proxy.proxies[i]))
+			goto new_proxies;
+	}
+
+	return FALSE;
+
+new_proxies:
+
+	g_assert(G_N_ELEMENTS(proxies) == G_N_ELEMENTS(pdht_proxy.proxies));
+
+	memcpy(pdht_proxy.proxies, proxies, n * sizeof proxies[0]);
+	pdht_proxy.proxies_count = n;
+
+	return TRUE;
+}
+
+/**
+ * Publish our push-proxies to the DHT.
+ *
+ * When ``force'' is TRUE, we unconditionally publish the list of known
+ * push-proxies.  Otherwise, we do so only if the list has changed since
+ * the last time we published it.
+ */
+static void
+pdht_prox_publish(gboolean force)
+{
+	gboolean changed;
+	time_t now;
+
+	changed = pdht_prox_update_list();
+
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		g_message("PDHT PROX list of %u push-prox%s %schanged, %s (%s)",
+			(unsigned) pdht_proxy.proxies_count,
+			1 == pdht_proxy.proxies_count ? "y" : "ies",
+			changed ? "" : "un",
+			pdht_proxy.proxies_count > 0 && (changed || force) ?
+				"publishing" : "ignoring",
+			force ? "forced" : "on change only");
+	}
+
+	if (!(pdht_proxy.proxies_count > 0 && (changed || force)))
+		return;
+
+	/*
+	 * If there is already a request pending, look whether the node lookup
+	 * was performed.  If it was not, then we're already enqueued and we
+	 * have not generated the DHT PROX value yet, so do nothing.
+	 */
+
+	if (pdht_proxy.pp != NULL) {
+		if (GNET_PROPERTY(publisher_debug)) {
+			g_warning("PDHT PROX publish whilst previous request still active"
+				" (node lookup %s)",
+				(pdht_proxy.pp->flags & PDHT_F_LOOKUP_DONE) ?
+					"completed" : "pending");
+		}
+
+		if (!(pdht_proxy.pp->flags & PDHT_F_LOOKUP_DONE))
+			return;
+		pdht_cancel_prox(TRUE);
+	}
+
+	g_assert(NULL == pdht_proxy.pp);
+
+	/*
+	 * Ensure that we do not republish PROX values too often, which could be
+	 * the case if our set of push-proxies is changing quickly due to
+	 * connection problems.
+	 *
+	 * We check against the last enqueuing of a publish and the last time
+	 * we actually completed the publishing.
+	 *
+	 * Since we're about to either launch the PROX publishing or delay it for
+	 * a while, cancel any previously installed timer first.
+	 */
+
+	cq_cancel(callout_queue, &pdht_proxy.publish_ev);
+
+	now = tm_time();
+
+	if (
+		delta_time(now, pdht_proxy.last_enqueued) < PDHT_PROX_RETRY ||
+		delta_time(now, pdht_proxy.last_publish) < PDHT_PROX_RETRY
+	) {
+		if (GNET_PROPERTY(publisher_debug) > 1) {
+			g_message("PDHT PROX delaying publishing: "
+				"last enqueued %s ago, last published %s ago",
+				compact_time(delta_time(now, pdht_proxy.last_enqueued)),
+				compact_time2(delta_time(now, pdht_proxy.last_publish)));
+		}
+
+		pdht_prox_install_republish(PDHT_PROX_DELAY);
+		return;
+	}
+
+	/*
+	 * If the DHT is not bootstrapped yet, delay publishing.
+	 */
+
+	if (!dht_bootstrapped()) {
+		if (GNET_PROPERTY(publisher_debug) > 1) {
+			g_message("PDHT PROX delaying publishing: "
+				"DHT not fully bootstrapped yet");
+		}
+		pdht_prox_install_republish(PDHT_PROX_DELAY);
+		return;
+	}
+
+	/*
+	 * OK, launch the PROX publishing.
+	 */
+
+	pdht_proxy.pp = pdht_publish_allocate(PDHT_T_PROX, pdht_prox_done, NULL);
+	pdht_proxy.pp->id =
+		gdht_kuid_from_guid((guid_t *) GNET_PROPERTY(servent_guid));
+
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		g_message("PDHT PROX initiating publishing for GUID %s (kuid=%s)",
+			guid_to_string((guid_t *) GNET_PROPERTY(servent_guid)),
+			kuid_to_hex_string(pdht_proxy.pp->id));
+	}
+
+	/*
+	 * Publishing will occur in three steps:
+	 *
+	 * #1 locate suitable nodes for publishing the PROX value
+	 * #2 generate the DHT PROX value
+	 * #3 issue the STORE on each of the k identified nodes.
+	 *
+	 * Here we launch step #1, as a prioritary request to be able to bypass
+	 * all other STORE requests, since the push-proxies are transient.
+	 */
+
+	ulq_find_store_roots(pdht_proxy.pp->id, TRUE,
+		pdht_roots_found, pdht_roots_error, pdht_proxy.pp);
+
+	pdht_proxy.last_enqueued = now;
+}
+
+/**
+ * Republish push-proxies if list changed.
+ */
+void
+pdht_prox_publish_if_changed(void)
+{
+	/*
+	 * Guard against early calls during the init sequence due to property
+	 * value changes.
+	 */
+
+	if (NULL == aloc_publishes)
+		return;		/* pdht_init() not called yet */
+
+	pdht_prox_publish(FALSE);
+}
+
+/**
+ * Callout queue callback to initiate a new PROX publish.
+ */
+static void
+pdht_prox_timer(cqueue_t *unused_cq, gpointer unused_obj)
+{
+	(void) unused_cq;
+	(void) unused_obj;
+
+	pdht_proxy.publish_ev = NULL;
+	pdht_prox_publish(TRUE);
+}
+
+/**
+ * Install a new callback to republish our push-proxies in t seconds.
+ */
+static void
+pdht_prox_install_republish(time_t t)
+{
+	g_assert(NULL == pdht_proxy.publish_ev);
+	pdht_proxy.publish_ev =
+		cq_insert(callout_queue, t * 1000, pdht_prox_timer, NULL);
+	pdht_proxy.last_delayed = tm_time();
+}
+
+/***
+ *** Initialization / Shutdown
+ ***/
 
 /**
  * Initialize the Gnutella DHT layer.
@@ -833,6 +1520,7 @@ void
 pdht_init(void)
 {
 	aloc_publishes = g_hash_table_new(sha1_hash, sha1_eq);
+	pdht_prox_install_republish(PDHT_PROX_DELAY);
 }
 
 /**
@@ -858,6 +1546,12 @@ pdht_close(void)
 	g_hash_table_foreach(aloc_publishes, free_publish_kv, NULL);
 	g_hash_table_destroy(aloc_publishes);
 	aloc_publishes = NULL;
+
+	if (pdht_proxy.pp != NULL) {
+		pdht_free_publish(pdht_proxy.pp, FALSE);
+		pdht_proxy.pp = NULL;
+	}
+	cq_cancel(callout_queue, &pdht_proxy.publish_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

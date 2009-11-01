@@ -121,7 +121,7 @@ const knode_t *lookup_result_nth_node(const lookup_rs_t *rs, size_t n);
 void lookup_result_free(const lookup_rs_t *rs);
 
 const char *lookup_strerror(lookup_error_t error);
-void ulq_find_store_roots(const kuid_t *kuid,
+void ulq_find_store_roots(const kuid_t *kuid, gboolean prioritary,
 	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
 
 /*

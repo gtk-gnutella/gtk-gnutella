@@ -55,6 +55,7 @@
 #include "routing.h"			/* For gnet_reset_guid() */
 #include "ipp_cache.h"
 #include "ctl.h"
+#include "pdht.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1103,6 +1104,13 @@ update_address_lifetime(void)
 	 */
 
 	remember_local_addr_port();
+
+	/*
+	 * If our address or port changed, we may have to republish our push
+	 * proxies to the DHT.
+	 */
+
+	pdht_prox_publish_if_changed();
 }
 
 /**

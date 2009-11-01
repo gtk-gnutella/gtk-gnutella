@@ -1578,8 +1578,10 @@ pproxy_set_foreach(const pproxy_set_t *ps, GFunc func, void *user_data)
 sequence_t *
 pproxy_set_sequence(const pproxy_set_t *ps)
 {
-	pproxy_set_check(ps);
+	if (NULL == ps)
+		return sequence_create_from_glist(NULL);	/* Empty sequence */
 
+	pproxy_set_check(ps);
 	return sequence_create_from_hash_list(ps->proxies);
 }
 

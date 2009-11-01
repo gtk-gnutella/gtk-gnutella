@@ -96,6 +96,7 @@ void pdht_close(void);
 void pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, gpointer arg);
 const char *pdht_strerror(pdht_error_t code);
 void pdht_cancel_file(const struct sha1 *sha1, gboolean callback);
+void pdht_prox_publish_if_changed(void);
 
 #endif	/* _core_pdht_h_ */
 
