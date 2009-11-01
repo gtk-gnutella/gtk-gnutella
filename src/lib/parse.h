@@ -40,21 +40,21 @@
 #define _parse_h_
 
 guint16 parse_uint16(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1, 4));
+	NON_NULL_PARAM((1));
 guint32 parse_uint32(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1, 4));
+	NON_NULL_PARAM((1));
 guint64 parse_uint64(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1, 4));
+	NON_NULL_PARAM((1));
 unsigned parse_uint(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1, 4));
+	NON_NULL_PARAM((1));
 unsigned long parse_ulong(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1, 4));
+	NON_NULL_PARAM((1));
 size_t parse_size(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1, 4));
+	NON_NULL_PARAM((1));
 const void *parse_pointer(const char *, char const **, int *)
-	NON_NULL_PARAM((1, 3));
+	NON_NULL_PARAM((1));
 gboolean parse_ipv6_addr(const char *s, uint8_t *dst, const char **endptr)
-	NON_NULL_PARAM((1, 3));
+	NON_NULL_PARAM((1));
 
 guint32  string_to_ip(const char *);
 gboolean string_to_ip_strict(const char *s, guint32 *addr, const char **ep);
