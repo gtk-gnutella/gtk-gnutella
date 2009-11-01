@@ -670,7 +670,7 @@ void
 oob_init(void)
 {
 	results_by_muid = g_hash_table_new(guid_hash, guid_eq);
-	servent_by_host = g_hash_table_new(host_hash, host_eq);
+	servent_by_host = g_hash_table_new(gnet_host_hash, gnet_host_eq);
 }
 
 /**

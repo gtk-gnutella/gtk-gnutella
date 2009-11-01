@@ -1330,7 +1330,7 @@ pdht_prox_update_list(void)
 		goto new_proxies;
 
 	for (i = 0; i < n; i++) {
-		if (!host_eq(&proxies[i], &pdht_proxy.proxies[i]))
+		if (!gnet_host_eq(&proxies[i], &pdht_proxy.proxies[i]))
 			goto new_proxies;
 	}
 

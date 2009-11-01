@@ -1420,7 +1420,7 @@ pproxy_set_allocate(size_t max_proxies)
 
 	ps = walloc0(sizeof *ps);
 	ps->magic = PPROXY_SET_MAGIC;
-	ps->proxies = hash_list_new(host_hash, host_eq);
+	ps->proxies = hash_list_new(gnet_host_hash, gnet_host_eq);
 	ps->max_proxies = max_proxies;
 
 	return ps;

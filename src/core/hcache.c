@@ -1117,7 +1117,7 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, int hcount)
 {
 	int i;
 	hostcache_t *hc = NULL;
-	GHashTable *seen_host = g_hash_table_new(host_hash, host_eq);
+	GHashTable *seen_host = g_hash_table_new(gnet_host_hash, gnet_host_eq);
 	hash_list_iter_t *iter;
 
     switch (type) {
@@ -1474,7 +1474,7 @@ hcache_timer(time_t now)
 void
 hcache_init(void)
 {
-	ht_known_hosts = g_hash_table_new(host_hash, host_eq);
+	ht_known_hosts = g_hash_table_new(gnet_host_hash, gnet_host_eq);
 
     caches[HCACHE_FRESH_ANY] = hcache_alloc(
         HCACHE_FRESH_ANY,

@@ -89,12 +89,12 @@ gnet_host_get_net(const gnet_host_t *h)
 const char *gnet_host_to_string(const gnet_host_t *h);
 
 /*
- * Host hashing, no "gnet_" prefix for historical reasons.
+ * Gnutella host hashing and comparison functions.
  */
 
-guint host_hash(gconstpointer key);
-int host_eq(gconstpointer v1, gconstpointer v2);
-int host_cmp(gconstpointer v1, gconstpointer v2);
+guint gnet_host_hash(gconstpointer key);
+int gnet_host_eq(gconstpointer v1, gconstpointer v2);
+int gnet_host_cmp(gconstpointer v1, gconstpointer v2);
 
 /*
  * Serialized IPv4 and IPv6 Gnutella hosts.

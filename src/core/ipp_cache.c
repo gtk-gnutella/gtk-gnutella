@@ -93,14 +93,14 @@ static guint
 ipp_cache_item_hash(gconstpointer key)
 {
 	const struct ipp_cache_item *item = key;
-	return host_hash(&item->host);
+	return gnet_host_hash(&item->host);
 }
 
 static int
 ipp_cache_item_eq(gconstpointer v1, gconstpointer v2)
 {
 	const struct ipp_cache_item *a = v1, *b = v2;
-	return host_eq(&a->host,& b->host);
+	return gnet_host_eq(&a->host,& b->host);
 }
 
 /**

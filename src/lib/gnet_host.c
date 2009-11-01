@@ -69,7 +69,7 @@ RCSID("$Id$")
  * Hash function for use in g_hash_table_new.
  */
 guint
-host_hash(gconstpointer key)
+gnet_host_hash(gconstpointer key)
 {
 	const gnet_host_t *host = key;
 	host_addr_t addr;
@@ -86,7 +86,7 @@ host_hash(gconstpointer key)
  * @note For use in g_hash_table_new.
  */
 int
-host_eq(gconstpointer v1, gconstpointer v2)
+gnet_host_eq(gconstpointer v1, gconstpointer v2)
 {
 	const gnet_host_t *h1 = v1, *h2 = v2;
 
@@ -100,9 +100,9 @@ host_eq(gconstpointer v1, gconstpointer v2)
  * @note For use in g_list_find_custom.
  */
 int
-host_cmp(gconstpointer v1, gconstpointer v2)
+gnet_host_cmp(gconstpointer v1, gconstpointer v2)
 {
-	return host_eq(v1, v2) ? 0 : 1;
+	return gnet_host_eq(v1, v2) ? 0 : 1;
 }
 
 /***

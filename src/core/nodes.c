@@ -1359,7 +1359,7 @@ node_init(void)
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 
 	unstable_servent   = g_hash_table_new(NULL, NULL);
-    ht_connected_nodes = g_hash_table_new(host_hash, host_eq);
+    ht_connected_nodes = g_hash_table_new(gnet_host_hash, gnet_host_eq);
 	nodes_by_id        = g_hash_table_new(node_id_hash, node_id_eq_func);
 	nodes_by_guid      = g_hash_table_new(guid_hash, guid_eq);
 
