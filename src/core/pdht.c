@@ -742,7 +742,10 @@ pdht_get_prox(const kuid_t *key)
 			ok = ok && ggep_stream_write(&gs, &len, sizeof len);
 			ok = ok && ggep_stream_write(&gs, proxy, len);
 
-			if (tls_cache_lookup(addr, port)) {
+			if (
+				tls_cache_lookup(addr, port) ||
+				(tls_enabled() && is_my_address_and_port(addr, port))
+			) {
 				tls_bytes[i >> 3] |= 0x80U >> (i & 7);
 				tls_length = (i >> 3) + 1;
 				tls = TRUE;
@@ -1354,21 +1357,22 @@ static void
 pdht_prox_publish(gboolean force)
 {
 	gboolean changed;
+	gboolean publishing;
 	time_t now;
 
 	changed = pdht_prox_update_list();
+	publishing = pdht_proxy.proxies_count > 0 && (changed || force);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_message("PDHT PROX list of %u push-prox%s %schanged, %s (%s)",
 			(unsigned) pdht_proxy.proxies_count,
 			1 == pdht_proxy.proxies_count ? "y" : "ies",
 			changed ? "" : "un",
-			pdht_proxy.proxies_count > 0 && (changed || force) ?
-				"publishing" : "ignoring",
+			publishing ?  "publishing" : "ignoring",
 			force ? "forced" : "on change only");
 	}
 
-	if (!(pdht_proxy.proxies_count > 0 && (changed || force)))
+	if (!publishing)
 		return;
 
 	/*
