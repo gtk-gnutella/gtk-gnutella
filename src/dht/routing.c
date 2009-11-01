@@ -1027,9 +1027,8 @@ completion_iterate(struct bootstrap *b)
 	}
 
 	if (GNET_PROPERTY(dht_debug))
-		g_warning("DHT completing bootstrap with KUID %s "
-			"(%d common leading bit%s fixed)",
-			kuid_to_hex_string(&b->id), b->bits - 1, 2 == b->bits ? "" : "s");
+		g_warning("DHT completing bootstrap with KUID %s (%d bit%s)",
+			kuid_to_hex_string(&b->id), b->bits, 1 == b->bits ? "" : "s");
 }
 
 /**
