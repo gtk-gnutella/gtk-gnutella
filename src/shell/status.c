@@ -153,13 +153,17 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 	{	
 		const gboolean metric = GNET_PROPERTY(display_metric_units);
 		short_string_t gnet_in, http_in, leaf_in, gnet_out, http_out, leaf_out;
-		gnet_bw_stats_t bw_stats;
+		gnet_bw_stats_t bw_stats, bw2_stats;
 
 		gnet_get_bw_stats(BW_GNET_IN, &bw_stats);
-		gnet_in = short_rate_get_string(bw_stats.average, metric);
+		gnet_get_bw_stats(BW_GNET_UDP_IN, &bw2_stats);
+		gnet_in = short_rate_get_string(
+			bw_stats.average + bw2_stats.average, metric);
 
 		gnet_get_bw_stats(BW_GNET_OUT, &bw_stats);
-		gnet_out = short_rate_get_string(bw_stats.average, metric);
+		gnet_get_bw_stats(BW_GNET_UDP_OUT, &bw2_stats);
+		gnet_out = short_rate_get_string(
+			bw_stats.average + bw2_stats.average, metric);
 		
 		gnet_get_bw_stats(BW_HTTP_IN, &bw_stats);
 		http_in = short_rate_get_string(bw_stats.average, metric);
