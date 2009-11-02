@@ -732,11 +732,13 @@ pmsg_slist_discard(slist_t *slist, size_t n_bytes)
 	slist_iter_free(&iter);
 }
 
+#define PMSG_SLIST_GROW_MIN	1024	/**< Minimum to allocate on new blocks */
+
 /**
  * Appends `n_bytes' to the pmsg_t buffer. If the last pmsg_t is writable
  * it is filled with as much data as space is still available. Otherwise
  * or if this space is not sufficient another pmsg_t is created and
- * append to the list.
+ * appendded to the list.
  */
 void
 pmsg_slist_append(slist_t *slist, const void *data, size_t n_bytes)
@@ -758,7 +760,7 @@ pmsg_slist_append(slist_t *slist, const void *data, size_t n_bytes)
 		n_bytes -= n;
 	}
 	if (n_bytes > 0) {
-		mb = pmsg_new(PMSG_P_DATA, NULL, n_bytes);
+		mb = pmsg_new(PMSG_P_DATA, NULL, MAX(n_bytes, PMSG_SLIST_GROW_MIN));
 		pmsg_write(mb, data, n_bytes);
 		slist_append(slist, mb);
 	}
