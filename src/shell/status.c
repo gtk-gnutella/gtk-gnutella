@@ -229,7 +229,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 	gm_snprintf(buf, sizeof buf,
 		"|%s|\n"
 		"| Peers: %-7u Ultra %4u/%-7u  Leaf %4u/%-6u  Legacy %4u/%-4u |\n"
-		"|            Downloads %4u/%-4u  Uploads %4u/%-4u%21s|\n"
+		"|            Downloads %4u/%-4u  Uploads %4u/%-7u Browse %4u/%-4u |\n"
 		"|%s|\n",
 		equals,
 		GNET_PROPERTY(node_ultra_count)
@@ -244,7 +244,9 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		GNET_PROPERTY(node_normal_count),
 		GNET_PROPERTY(normal_connections),
 		GNET_PROPERTY(dl_active_count), GNET_PROPERTY(dl_running_count),
-		GNET_PROPERTY(ul_registered), GNET_PROPERTY(ul_running), space,
+		GNET_PROPERTY(ul_running), GNET_PROPERTY(ul_registered),
+		GNET_PROPERTY(html_browse_served) + GNET_PROPERTY(qhits_browse_served),
+		GNET_PROPERTY(html_browse_count) + GNET_PROPERTY(qhits_browse_count),
 		equals);
 	shell_write(sh, buf);
 
@@ -321,7 +323,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			" total",
 			(void *) 0);
 		gm_snprintf(buf, sizeof buf,
-			"| %-36s Up: %-11s Down: %-11s|\n",
+			"| %-35s Up: %-11s Down: %-11s |\n",
 			line,
 			short_byte_size(GNET_PROPERTY(ul_byte_count), metric),
 			short_byte_size2(GNET_PROPERTY(dl_byte_count), metric));
