@@ -1860,9 +1860,7 @@ allocated:
 		download_found_server(guid, addr, port);
 		correct = g_hash_table_lookup(dl_by_guid, guid);
 
-		g_assert(correct != NULL);
-
-		if (correct != server) {
+		if (correct != NULL && correct != server) {
 			if (GNET_PROPERTY(download_debug)) {
 				g_message("had originally found GUID %s at %s, "
 					"returning GUID %s at %s",
