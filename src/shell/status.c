@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2002-2003, Richard Eckart
+ * Copyright (c) 2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -21,6 +22,18 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup shell
+ * @file
+ *
+ * The "status" command.
+ *
+ * @author Richard Eckart
+ * @date 2002-2003
+ * @author Raphael Manfredi
+ * @date 2009
  */
 
 #include "common.h"
@@ -49,9 +62,9 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 static char dashes[] =
-	"-------------------------------------------------------------------";
+	"-----------------------------------------------------------------------";
 static char equals[] =
-	"===================================================================";
+	"=======================================================================";
 static char space[] = " ";
 static char empty[] = "";
 
@@ -61,12 +74,24 @@ static char empty[] = "";
 enum shell_reply
 shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 {
+	const char *cur;
+	const option_t options[] = {
+		{ "i", &cur },
+	};
+	int parsed;
 	char buf[2048];
 	time_t now;
 
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
+
+	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	if (parsed < 0)
+		return REPLY_ERROR;
+
+	argv += parsed;	/* args[0] is first command argument */
+	argc -= parsed;	/* counts only command arguments now */
 
 	now = tm_time();
 
@@ -129,7 +154,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 
 		gm_snprintf(buf, sizeof buf,
 			"+%s+\n"
-			"| %-18s%47s |\n"
+			"| %-18s%51s |\n"
 			"|%s|\n",
 			dashes, "Status", flags, equals);
 		shell_write(sh, buf);
@@ -158,9 +183,9 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		}
 
 		gm_snprintf(buf, sizeof buf,
-			"|   Mode: %-9s               Last Switch: %-19s%2s|\n"
-			"| Uptime: %-9s                Last Check: %-19s%2s|\n"
-			"|   Port: %-9u                  Blackout: %-7s%14s|\n"
+			"|   Mode: %-9s                   Last Switch: %-19s%2s|\n"
+			"| Uptime: %-9s                    Last Check: %-19s%2s|\n"
+			"|   Port: %-9u                      Blackout: %-7s%14s|\n"
 			"|%s|\n",
 			GNET_PROPERTY(online_mode)
 				? node_peermode_to_string(GNET_PROPERTY(current_peermode))
@@ -180,7 +205,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 	case NET_USE_BOTH:
 	case NET_USE_IPV4:
 		gm_snprintf(buf, sizeof buf,
-			"| IPv4 Address: %-17s Last Change: %-9s            |\n",
+			"| IPv4: %-44s Since: %-12s|\n",
 			host_addr_to_string(listen_addr()),
 			short_time(delta_time(now, GNET_PROPERTY(current_ip_stamp))));
 		shell_write(sh, buf);
@@ -194,8 +219,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		/* FALL THROUGH */
 	case NET_USE_IPV6:
 		gm_snprintf(buf, sizeof buf,
-			"| IPv6 Address: %-39s             |\n"
-			"|                                 Last Change: %-9s            |\n",
+			"| IPv6: %-44s Since: %-12s|\n",
 			host_addr_to_string(listen_addr6()),
 			short_time(delta_time(now, GNET_PROPERTY(current_ip6_stamp))));
 		shell_write(sh, buf);
@@ -203,14 +227,14 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	/* Node counts */
 	gm_snprintf(buf, sizeof buf,
-	"|%s|\n"
-	"| Connected Peers: %-4u%45s|\n"
-	"|    Ultra %4u/%-4u   Leaf %4u/%-4u   Legacy %4u/%-4u%12s|\n"
-	"|%s|\n",
+		"|%s|\n"
+		"| Peers: %-7u Ultra %4u/%-7u  Leaf %4u/%-6u  Legacy %4u/%-4u |\n"
+		"|            Downloads %4u/%-4u  Uploads %4u/%-4u%21s|\n"
+		"|%s|\n",
 		equals,
 		GNET_PROPERTY(node_ultra_count)
 			+ GNET_PROPERTY(node_leaf_count)
-			+ GNET_PROPERTY(node_normal_count), space,
+			+ GNET_PROPERTY(node_normal_count),
 		GNET_PROPERTY(node_ultra_count),
 		NODE_P_ULTRA == GNET_PROPERTY(current_peermode)
 			? GNET_PROPERTY(max_connections)
@@ -218,7 +242,9 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		GNET_PROPERTY(node_leaf_count),
 		GNET_PROPERTY(max_leaves),
 		GNET_PROPERTY(node_normal_count),
-		GNET_PROPERTY(normal_connections), space,
+		GNET_PROPERTY(normal_connections),
+		GNET_PROPERTY(dl_active_count), GNET_PROPERTY(dl_running_count),
+		GNET_PROPERTY(ul_registered), GNET_PROPERTY(ul_running), space,
 		equals);
 	shell_write(sh, buf);
 
@@ -228,63 +254,77 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		short_string_t gnet_in, http_in, leaf_in, gnet_out, http_out, leaf_out;
 		short_string_t dht_in, dht_out;
 		gnet_bw_stats_t bw_stats, bw2_stats;
+		const char *bwtype = cur ? "(cur)" : "(avg)";
 
 		gnet_get_bw_stats(BW_GNET_IN, &bw_stats);
 		gnet_get_bw_stats(BW_GNET_UDP_IN, &bw2_stats);
 		gnet_in = short_rate_get_string(
-			bw_stats.average + bw2_stats.average, metric);
+			cur ? bw_stats.current + bw2_stats.current
+				: bw_stats.average + bw2_stats.average, metric);
 
 		gnet_get_bw_stats(BW_GNET_OUT, &bw_stats);
 		gnet_get_bw_stats(BW_GNET_UDP_OUT, &bw2_stats);
 		gnet_out = short_rate_get_string(
-			bw_stats.average + bw2_stats.average, metric);
+			cur ? bw_stats.current + bw2_stats.current
+				: bw_stats.average + bw2_stats.average, metric);
 		
 		gnet_get_bw_stats(BW_HTTP_IN, &bw_stats);
-		http_in = short_rate_get_string(bw_stats.average, metric);
+		http_in = short_rate_get_string(
+			cur ? bw_stats.current : bw_stats.average, metric);
 		
 		gnet_get_bw_stats(BW_HTTP_OUT, &bw_stats);
-		http_out = short_rate_get_string(bw_stats.average, metric);
+		http_out = short_rate_get_string(
+			cur ? bw_stats.current : bw_stats.average, metric);
 		
 		gnet_get_bw_stats(BW_LEAF_IN, &bw_stats);
-		leaf_in = short_rate_get_string(bw_stats.average, metric);
+		leaf_in = short_rate_get_string(
+			cur ? bw_stats.current : bw_stats.average, metric);
 
 		gnet_get_bw_stats(BW_LEAF_OUT, &bw_stats);
-		leaf_out = short_rate_get_string(bw_stats.average, metric);
+		leaf_out = short_rate_get_string(
+			cur ? bw_stats.current : bw_stats.average, metric);
 
 		gnet_get_bw_stats(BW_DHT_IN, &bw_stats);
-		dht_in = short_rate_get_string(bw_stats.average, metric);
+		dht_in = short_rate_get_string(
+			cur ? bw_stats.current : bw_stats.average, metric);
 
 		gnet_get_bw_stats(BW_DHT_OUT, &bw_stats);
-		dht_out = short_rate_get_string(bw_stats.average, metric);
+		dht_out = short_rate_get_string(
+			cur ? bw_stats.current : bw_stats.average, metric);
 
 		gm_snprintf(buf, sizeof buf,
-		"| %s |\n"
-		"|%s|\n"
-		"|      In:   %12s  %12s  %12s  %12s |\n"
-		"|     Out:   %12s  %12s  %12s  %12s |\n",
-			"Traffic:       Gnutella          Leaf          HTTP           DHT",
+			"| %-70s|\n"
+			"|%71s|\n"
+			"| %5s  In:  %13s %13s %13s %13s   |\n"
+			"| %5s Out:  %13s %13s %13s %13s   |\n",
+			"Bandwidth:"
+				"       Gnutella          Leaf          HTTP           DHT",
 			dashes,
-			gnet_in.str, leaf_in.str, http_in.str, dht_in.str,
-			gnet_out.str, leaf_out.str, http_out.str, dht_out.str);
+			bwtype, gnet_in.str, leaf_in.str, http_in.str, dht_in.str,
+			bwtype, gnet_out.str, leaf_out.str, http_out.str, dht_out.str);
 		shell_write(sh, buf);
 	}
 	
 	{
 		char line[128];
+		gboolean metric = GNET_PROPERTY(display_metric_units);
 
-		gm_snprintf(buf, sizeof buf, "|%s|\n", dashes);
+		gm_snprintf(buf, sizeof buf, "|%s|\n", equals);
 		shell_write(sh, buf);
 		concat_strings(line, sizeof line,
-			"Sharing ",
+			"Shares ",
 			uint64_to_string(shared_files_scanned()),
 			" file",
 			shared_files_scanned() == 1 ? "" : "s",
 			" ",
-			short_kb_size(shared_kbytes_scanned(),
-				GNET_PROPERTY(display_metric_units)),
+			short_kb_size(shared_kbytes_scanned(), metric),
 			" total",
 			(void *) 0);
-		gm_snprintf(buf, sizeof buf, "| %-55s           |\n", line);
+		gm_snprintf(buf, sizeof buf,
+			"| %-36s Up: %-11s Down: %-11s|\n",
+			line,
+			short_byte_size(GNET_PROPERTY(ul_byte_count), metric),
+			short_byte_size2(GNET_PROPERTY(dl_byte_count), metric));
 		shell_write(sh, buf);
 		gm_snprintf(buf, sizeof buf, "+%s+\n", dashes);
 		shell_write(sh, buf);
@@ -305,7 +345,24 @@ shell_help_status(int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 	
-	return NULL;
+	return "status [-i]\n"
+		"Display status pane summary\n"
+		"-i : display instantaneous bandwidth instead of average\n"
+		"Upper-right corner flags mimic status icons in the GUI:\n"
+		"(from left to right in lightening order)\n"
+		"  CLK          clock, GTKG expired\n"
+		"  !FD or FD    red or yellow bombs for fd shortage\n"
+		"  STL          upload stalls\n"
+		"  CPU          cpu overloaded\n"
+		"  MOV          file moving\n"
+		"  SHA          SHA-1 rebuilding or verifying\n"
+		"  TTH          TTH rebuilding or verifying\n"
+		"  LIB          library rescan\n"
+		"  FW or :FW    indicates firewalled status or hole punching ability\n"
+		"  UDP or udp   is UDP-firewalled only (lowercased = hole punching)\n"
+		"  TCP          is TCP-firewalled only\n"
+		"  -            the happy face: no firewall\n"
+		"  UP or LF     ultrapeer or leaf mode\n";
 }
 
 /* vi: set ts=4 sw=4 cindent: */
