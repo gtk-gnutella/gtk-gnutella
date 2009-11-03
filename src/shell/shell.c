@@ -23,6 +23,18 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup shell
+ * @file
+ *
+ * Main command parser and dispatcher.
+ *
+ * @author Richard Eckart
+ * @date 2002-2003
+ * @author Raphael Manfredi
+ * @date 2009
+ */
+
 #include "common.h"
 
 RCSID("$Id$")
@@ -52,6 +64,8 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+#define SHELL_MAX_ARGS	1024	/**< Maximum number of arguments in command */
 
 static GSList *sl_shells;
 
@@ -199,31 +213,85 @@ shell_toggle_interactive(struct gnutella_shell *sh)
 }
 
 /**
- * @returns a pointer to the end of the first token within s. If
- * s only consists of a single token, it returns a pointer to the
- * terminating \0 in the string.
+ * Grabs next token, dynamically allocated, which must be gfree()'ed by caller.
+ *
+ * A token is delimited by whitespace or by a ';' character.  Both double and
+ * single-quoted strings are handled, and it is possible to use the '\' char
+ * to escape a quote within a string.
+ *
+ * In the returned tokens, string quotes are removed and escaped char stand
+ * for themselves, i.e. have the leading escape sequence removed.
+ *
+ * @param sh		the shell, in case we have to report a syntax error
+ * @param start		the beginning of the string to parse
+ * @param endptr	written with the address of the first char following token
+ *
+ * @return next token, or a NULL pointer on error.
  */
-static const char *
-shell_token_end(const char *s)
+static char *
+shell_next_token(struct gnutella_shell *sh,
+	const char *start, const char **endptr)
 {
+	GString *token;
 	gboolean escape = FALSE;
 	gboolean quote  = FALSE;
+	gboolean squote  = FALSE;
+	const char *s = start;
+	char c;
 
-	g_assert(s);
+	shell_check(sh);
+	g_assert(s != NULL);
 
-	for (/* NOTHING*/; '\0' != *s; s++) {
-		if (escape || '\\' == *s) {
+	token = g_string_sized_new(40);
+
+	for (c = *s; '\0' != c; c = *++s) {
+		if (escape || '\\' == c) {
 			escape = !escape;
-		} else if ('"' == *s) {
+			if (!escape)
+				g_string_append_c(token, c);
+		} else if ('"' == c) {
+			if (squote) {
+				g_string_append_c(token, c);
+				continue;		/* Grab a quote inside 'string' */
+			}
 			quote = !quote;
-			if (!quote)
+		} else if ('\'' == c) {
+			if (quote) {
+				g_string_append_c(token, c);
+				continue;		/* Grab a single quote inside "string" */
+			}
+			squote = !squote;
+		} else if (!(quote || squote)) {
+			if (is_ascii_space(c))
 				break;
-		} else if (is_ascii_space(*s) && !quote) {
-			break;
+			if (';' == c)
+				break;
+			g_string_append_c(token, c);
+		} else {
+			g_string_append_c(token, c);
 		}
 	}
 
-	return s;
+	if (escape) {
+		/* XXX for now, but at the end of a line it means a continuation */
+		shell_set_msg(sh, _("unterminated escape sequence"));
+		goto error;
+	}
+	if (quote) {
+		shell_set_msg(sh, _("unterminated double-quoted string"));
+		goto error;
+	}
+	if (squote) {
+		shell_set_msg(sh, _("unterminated single-quoted string"));
+		goto error;
+	}
+
+	*endptr = s;
+	return gm_string_finalize(token);
+
+error:
+	g_string_free(token, TRUE);
+	return NULL;
 }
 
 /**
@@ -238,6 +306,8 @@ shell_options_parse(struct gnutella_shell *sh,
 {
 	int ret;
 
+	shell_check(sh);
+
 	ret = options_parse(argv, ovec, ovcnt);
 	if (ret < 0) {
 		shell_write(sh, "400-Syntax error: ");
@@ -248,74 +318,47 @@ shell_options_parse(struct gnutella_shell *sh,
 	return ret;
 }
 
-static void
-shell_unescape(char *s)
+/**
+ * Grab the next token from line, which must be freed through gfree().
+ *
+ * @param sh			the shell for which we're parsing commands
+ * @param line			beginning of the line
+ * @param endptr		written with address of first unparsed character
+ * @param token_ptr		where allocated token is returned, if OK.
+ *
+ * @return TRUE if OK, FALSE on error with an error message recorded
+ * in the shell structure (in which case no token was allocated).
+ */
+static gboolean
+shell_get_token(struct gnutella_shell *sh,
+	const char *line, const char **endptr, const char **token_ptr)
 {
-	gboolean escape = FALSE;
-	const char *c_read = s;
-	char *c_write = s;
+	const char *start;
+	char *token = NULL;
 
-	g_assert(s);
+	shell_check(sh);
+	g_assert(line != NULL);
+	g_assert(endptr != NULL);
+	g_assert(token_ptr != NULL);
 
-	while (*c_read != '\0') {
-		if (escape || (*c_read == '\\'))
-			escape = !escape;
+	start = skip_ascii_spaces(line);
 
-		if (escape) {
-			c_read++;
-			continue;
-		}
+	if (*start == '\0')
+		goto end;			/* Nothing more to get */
 
-		*c_write++ = *c_read++;
-	}
-	*c_write = '\0';
+	if (NULL == (token = shell_next_token(sh, start, endptr)))
+		return FALSE;
+
+end:
+	*token_ptr = token;
+	return TRUE;
 }
 
 /**
- * @return the next token from s starting from position pos. Make sure
- * that pos is 0 or something sensible when calling this the first time!.
- * The returned string is newly allocated.
+ * Free allocated argv[] vector and parsed arguments, then nullify its pointer.
+ *
+ * @param argv_ptr		pointer to the variable holding the argv[] pointer
  */
-static char *
-shell_get_token(const char *s, int *pos)
-{
-	const char *start, *end;
-	char *retval;
-
-	g_assert(pos);
-	g_assert(s);
-	g_assert(-1 == *pos || *pos >= 0);
-
-	if (*pos >= 0) {
-		start = skip_ascii_spaces(&s[*pos]);
-		if (*start == '\0') {
-			*pos = -1;
-		}
-	} else {
-		start = NULL;	/* Suppress compiler warning */
-	}
-	if (*pos < 0) {
-		return NULL; /* nothing more to get */
-	}
-
-	end = shell_token_end(start);
-
-	/* update position before removing quotes */
-	switch (*end) {
-	case '\0':	*pos = -1; break;
-	default:	*pos = (end - s) + 1; break;
-	}
-
-	/* don't return enclosing quotes */
-	if (*start == '"' && *end == '"')
-		start++;
-
-	retval = h_strndup(start, end - start);
-	shell_unescape(retval);
-
-	return retval;
-}
-
 static void
 shell_free_argv(const char ***argv_ptr)
 {
@@ -323,47 +366,82 @@ shell_free_argv(const char ***argv_ptr)
 		char **argv = deconstify_gpointer(*argv_ptr);
 
 		while (NULL != argv[0]) {
-			HFREE_NULL(argv[0]);
+			G_FREE_NULL(argv[0]);
 			argv++;
 		}
 		HFREE_NULL(*argv_ptr);
 	}
 }
 
-static int 
-shell_parse_command(const char *line, const char ***argv_ptr)
+/**
+ * Parse shell command and fill up the argv[] array with the command and
+ * its argument, ensuring that argv[argc] is NULL to mark the end of arguments.
+ *
+ * A shell command ends at the end of the line or with the ';' character.
+ *
+ * @param sh			the shell for which we're parsing commands
+ * @param line			beginning of the line
+ * @param endptr		written with address of first unparsed character
+ * @param argc_ptr		filled with the argument count
+ * @param argv_ptr		fille with the allocated argument vector
+ *
+ * @return TRUE if OK, FALSE on error with an error message recorded in the
+ * shell structure.
+ */
+static gboolean 
+shell_parse_command(struct gnutella_shell *sh,
+	const char *line, const char **endptr,
+	int *argc_ptr, const char ***argv_ptr)
 {
 	const char **argv = NULL;
 	unsigned argc = 0;
-	int pos = 0;
 	size_t n = 0;
+	gboolean ok = TRUE;
+	const char *start;
 
+	shell_check(sh);
 	g_assert(line);
 	g_assert(argv_ptr);
 
 	/*
-	 * The limit of 1024 is arbitrary. However, note that 'n' must not
-	 * overflow.
+	 * The limit of SHELL_MAX_ARGS is arbitrary.
+	 * However, note that 'n' must not overflow.
 	 */
-	for (;;) {
+	for (start = line; /* empty */; /* empty */) {
 		if (argc >= n) {
 			n = 2 * MAX(16, n);
 			argv = hrealloc(argv, n * sizeof argv[0]);
 		}
-		if (argc > 1024) {
-			argv[argc] = NULL;
+		if (argc > SHELL_MAX_ARGS) {
+			argv[SHELL_MAX_ARGS] = NULL;
 			shell_free_argv(&argv);
+			shell_set_msg(sh, _("too many arguments in command"));
 			argc = 0;
+			ok = FALSE;
 			break;
 		}
-		argv[argc] = shell_get_token(line, &pos);
+		if (!shell_get_token(sh, start, endptr, &argv[argc])) {
+			ok = FALSE;
+			break;
+		}
 		if (NULL == argv[argc])
 			break;
+		start = *endptr;
 		argc++;
+		if (';' == *start) {
+			if (argc >= n)
+				argv = hrealloc(argv, (argc + 1) * sizeof argv[0]);
+			argv[argc] = NULL;
+			*endptr = ++start;
+			break;
+		}
 	}
 
+	g_assert(NULL == argv || NULL == argv[argc]);
+
 	*argv_ptr = argv;
-	return argc;
+	*argc_ptr = argc;
+	return ok;
 }
 
 /**
@@ -395,15 +473,25 @@ shell_cmd_get_handler(const char *cmd)
  * Takes a command string and tries to parse and execute it.
  */
 static enum shell_reply
-shell_exec(struct gnutella_shell *sh, const char *line)
+shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 {
 	enum shell_reply reply_code;
 	const char **argv;
 	int argc;
+	const char *start = line;
 
 	shell_check(sh);
 
-	argc = shell_parse_command(line, &argv);
+	if (!shell_parse_command(sh, start, endptr, &argc, &argv)) {
+		shell_write(sh, "400-Syntax error:");
+		shell_write_msg(sh);
+		shell_write(sh, "\n");
+		shell_set_msg(sh, NULL);
+		shell_set_msg(sh, _("Malformed command"));
+		*endptr = NULL;
+		return REPLY_ERROR;
+	}
+
 	if (argc < 1) {
 		reply_code = REPLY_NONE;
 	} else {
@@ -426,11 +514,14 @@ shell_exec(struct gnutella_shell *sh, const char *line)
 				}
 			}
 		} else {
-			shell_set_msg(sh, _("Unknown command"));
+			char buf[80];
+			gm_snprintf(buf, sizeof buf, _("Unknown command: \"%s\""), argv[0]);
+			shell_set_msg(sh, buf);
 			reply_code = REPLY_ERROR;
 		}
 	}
 	shell_free_argv(&argv);
+
 	return reply_code;
 }
 
@@ -524,8 +615,8 @@ shell_read_data(struct gnutella_shell *sh)
 	}
 
 	while (s->pos > 0) {
-		enum shell_reply reply_code;
 		size_t parsed;
+		const char *line;
 
 		switch (getline_read(s->getline, s->buf, s->pos, &parsed)) {
 		case READ_OVERFLOW:
@@ -554,29 +645,38 @@ shell_read_data(struct gnutella_shell *sh)
 		 */
 
 		sh->line_count++;
-		reply_code = shell_exec(sh, getline_str(s->getline));
-		if (
-			REPLY_NONE != reply_code &&
-			!(!sh->interactive && REPLY_READY == reply_code)
-		) {
-			/*
-			 * On error, when running non-interactively, remind them
-			 * about the command that failed first.
-			 */
+		line = getline_str(s->getline);
 
-			if (REPLY_ERROR == reply_code && !sh->interactive) {
+		while (line != NULL && *line != '\0') {
+			enum shell_reply reply_code;
+			const char *endptr;
+
+			reply_code = shell_exec(sh, line, &endptr);
+			if (
+				REPLY_NONE != reply_code &&
+				!(!sh->interactive && REPLY_READY == reply_code)
+			) {
+				/*
+				 * On error, when running non-interactively, remind them
+				 * about the command that failed first.
+				 */
+
+				if (REPLY_ERROR == reply_code && !sh->interactive) {
+					shell_write(sh, uint32_to_string(reply_code));
+					shell_write(sh, "-Error for: \"");
+					shell_write(sh, getline_str(s->getline));
+					shell_write(sh, "\"\n");
+				}
+
 				shell_write(sh, uint32_to_string(reply_code));
-				shell_write(sh, "-Error for: \"");
-				shell_write(sh, getline_str(s->getline));
-				shell_write(sh, "\"\n");
+				shell_write_msg(sh);
+				shell_write(sh, "\n");
 			}
 
-			shell_write(sh, uint32_to_string(reply_code));
-			shell_write_msg(sh);
-			shell_write(sh, "\n");
+			line = endptr;
+			shell_set_msg(sh, NULL);
 		}
 
-		shell_set_msg(sh, NULL);
 		getline_reset(s->getline);
 		if (sh->shutdown)
 			goto finish;
