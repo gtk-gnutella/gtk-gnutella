@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2002-2003, Richard Eckart
+ * Copyright (c) 2007, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -21,6 +22,18 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup shell
+ * @file
+ *
+ * The "help" command.
+ *
+ * @author Richar Eckart
+ * @date 2002-2003
+ * @author Raphael Manfredi
+ * @date 2007
  */
 
 #include "common.h"

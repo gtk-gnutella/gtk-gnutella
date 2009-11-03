@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup shell
+ * @file
+ *
+ * The "stats" command.
+ *
+ * @author Christian Biere
+ * @date 2008
+ */
+
 #include "common.h"
 
 RCSID("$Id$")

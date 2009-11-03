@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup shell
+ * @file
+ *
+ * The "memory" command.
+ *
+ * @author Christian Biere
+ * @date 2009
+ */
+
 #include "common.h"
 
 RCSID("$Id$")

@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup shell
+ * @file
+ *
+ * The "download" command.
+ *
+ * @author Richard Eckart
+ * @date 2002-2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$")
