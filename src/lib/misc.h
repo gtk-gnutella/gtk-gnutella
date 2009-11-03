@@ -116,13 +116,20 @@ const char *local_hostname(void);
 const char *short_size(guint64 size, gboolean metric);
 const char *short_html_size(guint64 size, gboolean metric);
 const char *short_kb_size(guint64 size, gboolean metric);
+const char *short_kb_size2(guint64 size, gboolean metric);
 const char *short_rate(guint64 rate, gboolean metric);
+const char *short_byte_size(guint64 size, gboolean metric);
+const char *short_byte_size2(guint64 size, gboolean metric);
 const char *compact_size(guint64 size, gboolean metric);
+const char *compact_size2(guint64 size, gboolean metric);
 const char *compact_rate(guint64 rate, gboolean metric);
 const char *compact_kb_size(guint32 size, gboolean metric);
 const char *nice_size(guint64 size, gboolean metric);
 char *short_value(char *buf, size_t size, guint64 v, gboolean metric);
 char *compact_value(char *buf, size_t size, guint64 v, gboolean metric);
+
+size_t short_byte_size_to_buf(guint64 size, gboolean metric, char *, size_t);
+size_t short_kb_size_to_buf(guint64 size, gboolean metric, char *, size_t);
 
 short_string_t short_rate_get_string(guint64 rate, gboolean metric);
 

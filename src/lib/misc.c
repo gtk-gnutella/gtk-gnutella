@@ -470,22 +470,89 @@ short_html_size(guint64 size, gboolean metric)
 	return b;
 }
 
+size_t
+short_byte_size_to_buf(guint64 size, gboolean metric, char *buf, size_t buflen)
+{
+	size_t w;
+
+	if (size < kilo(metric)) {
+		guint n = size;
+		w = gm_snprintf(buf, buflen, "%u B", n);
+	} else {
+		guint q, r;
+		char c;
+
+		c = norm_size_scale(size, &q, &r, metric);
+		r = (r * 100) / kilo(metric);
+		w = gm_snprintf(buf, buflen,
+				"%u.%02u %c%s", q, r, c, byte_suffix(metric));
+	}
+
+	return w;
+}
+
+/**
+ * Same as short_size() but displays "B" instead of Byte(s) when the value
+ * is less than a kilo.
+ */
 const char *
-short_kb_size(guint64 size, gboolean metric)
+short_byte_size(guint64 size, gboolean metric)
 {
 	static char b[SIZE_FIELD_MAX];
-	
+
+	short_byte_size_to_buf(size, metric, b, sizeof b);
+	return b;
+}
+
+const char *
+short_byte_size2(guint64 size, gboolean metric)
+{
+	static char b[SIZE_FIELD_MAX];
+
+	short_byte_size_to_buf(size, metric, b, sizeof b);
+	return b;
+}
+
+size_t
+short_kb_size_to_buf(guint64 size, gboolean metric, char *buf, size_t buflen)
+{
+	size_t w;
+
 	if (size < kilo(metric)) {
-		gm_snprintf(b, sizeof b, "%u %s", (guint) size, metric ? "kB" : "KiB");
+		w = gm_snprintf(buf, buflen,
+				"%u %s", (guint) size, metric ? "kB" : "KiB");
 	} else {
 		guint q, r;
 		char c;
 
 		c = kib_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
-		gm_snprintf(b, sizeof b, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
+		w = gm_snprintf(buf, buflen,
+				"%u.%02u %c%s", q, r, c, byte_suffix(metric));
 	}
 
+	return w;
+}
+
+/**
+ * Same as short_size() or short_byte_size() but the argument is given in
+ * kibibytes, not bytes.
+ */
+const char *
+short_kb_size(guint64 size, gboolean metric)
+{
+	static char b[SIZE_FIELD_MAX];
+
+	short_kb_size_to_buf(size, metric, b, sizeof b);
+	return b;
+}
+
+const char *
+short_kb_size2(guint64 size, gboolean metric)
+{
+	static char b[SIZE_FIELD_MAX];
+
+	short_kb_size_to_buf(size, metric, b, sizeof b);
 	return b;
 }
 
@@ -559,6 +626,16 @@ short_value(char *buf, size_t size, guint64 v, gboolean metric)
 
 const char *
 compact_size(guint64 size, gboolean metric)
+{
+	static char buf[SIZE_FIELD_MAX];
+
+	compact_value(buf, sizeof buf, size, metric);
+	g_strlcat(buf, "B", sizeof buf);
+	return buf;
+}
+
+const char *
+compact_size2(guint64 size, gboolean metric)
 {
 	static char buf[SIZE_FIELD_MAX];
 
