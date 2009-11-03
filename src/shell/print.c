@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup shell
+ * @file
+ *
+ * The "print" command.
+ *
+ * @author Richard Eckart
+ * @date 2002-2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$")
@@ -50,7 +60,9 @@ shell_exec_print(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	prop = gnet_prop_get_by_name(argv[1]);
 	if (prop == NO_PROP) {
-		shell_set_msg(sh, _("Unknown property"));
+		char buf[120];
+		gm_snprintf(buf, sizeof buf, _("Unknown property \"%s\""), argv[1]);
+		shell_set_msg(sh, buf);
 		goto error;
 	}
 
