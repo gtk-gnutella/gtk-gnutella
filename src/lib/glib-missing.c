@@ -713,17 +713,14 @@ gm_try_realloc(gpointer p, gulong size)
 gpointer
 g_malloc(gulong size)
 {
-	gpointer p;
+	if (G_LIKELY(size != 0)) {
+		gpointer p = gm_malloc(size);
 
-	if (size == 0)
-		return NULL;
+		if (p)
+			return p;
 
-	p = gm_malloc(size);
-
-	if (p)
-		return p;
-
-	g_error("allocation of %lu bytes failed", size);
+		g_error("allocation of %lu bytes failed", size);
+	}
 	return NULL;
 }
 
@@ -731,19 +728,17 @@ g_malloc(gulong size)
 gpointer
 g_malloc0(gulong size)
 {
-	gpointer p;
 
-	if (size == 0)
-		return NULL;
+	if (G_LIKELY(size != 0)) {
+		gpointer p = gm_malloc(size);
 
-	p = gm_malloc(size);
+		if (p) {
+			memset(p, 0, size);
+			return p;
+		}
 
-	if (p) {
-		memset(p, 0, size);
-		return p;
+		g_error("allocation of %lu bytes failed", size);
 	}
-
-	g_error("allocation of %lu bytes failed", size);
 	return NULL;
 }
 
@@ -753,7 +748,7 @@ g_realloc(gpointer p, gulong size)
 {
 	gpointer n;
 
-	if (size == 0) {
+	if (G_UNLIKELY(0 == size)) {
 		gm_free(p);
 		return NULL;
 	}
