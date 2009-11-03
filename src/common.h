@@ -562,11 +562,13 @@ G_STMT_START {			\
 #define SHA1_BASE32_SIZE 	32		/**< 160 bits in base32 representation */
 #define SHA1_RAW_SIZE		20		/**< 160 bits in binary representation */
 
-#define TTH_BASE32_SIZE 	39		/**< 160 bits in base32 representation */
-#define TTH_RAW_SIZE		24		/**< 160 bits in binary representation */
+#define TTH_BASE16_SIZE 	48		/**< 192 bits in base16 representation */
+#define TTH_BASE32_SIZE 	39		/**< 192 bits in base32 representation */
+#define TTH_RAW_SIZE		24		/**< 192 bits in binary representation */
 
 #define BITPRINT_BASE32_SIZE 	72	/**< 352 bits in base32 representation
 									 **  includes dot between sha1 and tiger */
+#define BITPRINT_BASE16_SIZE	89	/**< 352 bits in base16 + separation dot */
 #define BITPRINT_RAW_SIZE		44	/**< 352 bits in binary representation */
 
 /** Maximum bytes in filename i.e., including NUL */
