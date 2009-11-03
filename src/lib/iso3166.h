@@ -37,4 +37,5 @@ const char *iso3166_country_name(guint16 code);
 const char *iso3166_country_cc(guint16 code);
 
 #endif /* _lib_iso3166_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */
