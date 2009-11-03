@@ -27,6 +27,7 @@
  * @ingroup core
  * @file
  *
+ * Main loop entry point when running topless.
  */
 
 #include "common.h"
