@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup shell
+ * @file
+ *
+ * The "props" command.
+ *
+ * @author Richard Eckart
+ * @date 2002-2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$")
@@ -42,14 +52,25 @@ RCSID("$Id$")
 enum shell_reply
 shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 {
+	const char *values;
+	const option_t options[] = {
+		{ "v", &values },
+	};
+	int parsed;
 	GSList *props, *sl;
 
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
+	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	if (parsed < 0)
+		return REPLY_ERROR;
 
-	props = gnet_prop_get_by_regex(argc > 1 ? argv[1] : ".", NULL);
+	argv += parsed;	/* args[0] is first command argument */
+	argc -= parsed;	/* counts only command arguments now */
+
+	props = gnet_prop_get_by_regex(argc > 0 ? argv[0] : ".", NULL);
 	if (!props) {
 		shell_set_msg(sh, _("No matching property."));
 		return REPLY_ERROR;
@@ -60,6 +81,10 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 	   
 		prop = GPOINTER_TO_UINT(sl->data);
 		shell_write(sh, gnet_prop_name(prop));
+		if (values) {
+			shell_write(sh, " = ");
+			shell_write(sh, gnet_prop_to_string(prop));
+		}
 		shell_write(sh, "\n");
 	}
 	g_slist_free(props);
@@ -80,9 +105,10 @@ shell_help_props(int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	return "props [<regexp>]\n"
-		"Display all properties,\n"
-		"or those matching the regular expression supplied.\n";
+	return "props [-v] [<regexp>]\n"
+		"Display all properties, or those matching\n"
+		"the regular expression supplied.\n"
+		"-v: also display property values\n";
 }
 
 /* vi: set ts=4 sw=4 cindent: */
