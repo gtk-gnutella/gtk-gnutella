@@ -420,7 +420,7 @@ zlib_uncompress(gconstpointer data, int len, gulong uncompressed_len)
  *
  * @param data		the data to inflate
  * @param len		length of data
- * @param out		buffer where inflate data should be put
+ * @param out		buffer where inflated data should be put
  * @param outlen	on input the length of out buffer, on output the length of
  *					the deflated data.
  *

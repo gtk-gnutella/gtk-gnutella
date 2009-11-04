@@ -339,7 +339,7 @@ gip_close(void)
  * Retrieves the country an address is assigned to.
  *
  * @param ha the host address to look up.
- * @return the country mapped to this IP address as an numerical encoded
+ * @return the country mapped to this IP address as a numerically-encoded
  *         country code, or ISO3166_INVALID when unknown.
  */
 guint16
