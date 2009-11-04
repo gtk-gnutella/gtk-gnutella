@@ -5324,8 +5324,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 						break;
 					default:
 						if (
-							GNET_PROPERTY(search_debug) > 0 ||
-							GNET_PROPERTY(ggep_debug) > 0 
+							GNET_PROPERTY(search_debug) > 3 ||
+							GNET_PROPERTY(ggep_debug) > 3 
 						) {
 							g_warning("%s bad GGEP \"XQ\" (dumping)",
 									gmsg_infostr(&n->header));
@@ -5347,7 +5347,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
 	if (extended_query) {
-		if (GNET_PROPERTY(search_debug) > 0) {
+		if (GNET_PROPERTY(search_debug) > 1) {
 			g_warning("extended query:\n\toriginal=\"%s\"\n\textended=\"%s\"",
 				search, extended_query);
 		}
