@@ -649,7 +649,7 @@ shell_read_data(struct gnutella_shell *sh)
 
 		while (line != NULL && *line != '\0') {
 			enum shell_reply reply_code;
-			const char *endptr;
+			const char *endptr = NULL;
 
 			reply_code = shell_exec(sh, line, &endptr);
 			if (
