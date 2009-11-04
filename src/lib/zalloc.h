@@ -73,7 +73,7 @@ void zdestroy(zone_t *zone);
 
 void *zalloc(zone_t *) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void zfree(zone_t *, void *);
-void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT;
 void zgc(gboolean overloaded);
 
 void zinit(void);
