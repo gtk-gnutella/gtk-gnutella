@@ -342,20 +342,20 @@ hdestroy(void)
 
 #ifdef USE_HALLOC
 
-gpointer
-gm_malloc(gsize size)
+static gpointer
+ha_malloc(gsize size)
 {
 	return halloc(size);
 }
 
-gpointer
-gm_realloc(gpointer p, gsize size)
+static gpointer
+ha_realloc(gpointer p, gsize size)
 {
 	return hrealloc(p, size);
 }
 
-void
-gm_free(gpointer p)
+static void
+ha_free(gpointer p)
 {
 	hfree(p);
 }
@@ -396,14 +396,14 @@ halloc_init_vtable(void)
 		static char variable[] = "G_SLICE=always-malloc";
 		putenv(variable);
 	}
-	
-	vtable.malloc = gm_malloc;
-	vtable.realloc = gm_realloc;
-	vtable.free = gm_free;
+
+	vtable.malloc = ha_malloc;
+	vtable.realloc = ha_realloc;
+	vtable.free = ha_free;
 #else	/* GLib < 2.0.0 */
-	vtable.gmvt_malloc = gm_malloc;
-	vtable.gmvt_realloc = gm_realloc;
-	vtable.gmvt_free = gm_free;
+	vtable.gmvt_malloc = ha_malloc;
+	vtable.gmvt_realloc = ha_realloc;
+	vtable.gmvt_free = ha_free;
 #endif	/* GLib >= 2.0.0 */
 
 	g_mem_set_vtable(&vtable);
