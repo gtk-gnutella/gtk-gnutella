@@ -59,7 +59,7 @@ RCSID("$Id$")
 /**
  * An extension descriptor.
  *
- * The extension block is structured thustly:
+ * The extension block is structured thusly:
  *
  *    - <.................len.......................>
  *    - <..headlen.><..........paylen...............>
@@ -1282,7 +1282,8 @@ ext_ggep_decode(const extvec_t *e)
 		if (!d->ext_ggep_deflate) {
 			if (!cobs_decode_into(pbase, plen, uncobs, plen, &result)) {
 				if (GNET_PROPERTY(ggep_debug))
-					g_warning("unable to decode COBS buffer");
+					g_warning("unable to decode COBS buffer for GGEP \"%s\"",
+						d->ext_ggep_id);
 				goto out;
 			}
 
@@ -1296,7 +1297,8 @@ ext_ggep_decode(const extvec_t *e)
 		} else {
 			if (!cobs_decode_into(pbase, plen, uncobs, plen, &result)) {
 				if (GNET_PROPERTY(ggep_debug))
-					g_warning("unable to decode COBS buffer");
+					g_warning("unable to decode COBS buffer for GGEP \"%s\"",
+						d->ext_ggep_id);
 				goto out;
 			}
 
@@ -1337,7 +1339,7 @@ out:
 	 */
 
 	if (d->ext_payload == NULL) {
-		if (GNET_PROPERTY(dbg) || GNET_PROPERTY(ggep_debug)) {
+		if (GNET_PROPERTY(ggep_debug)) {
 			g_warning("unable to get GGEP \"%s\" %d-byte payload (%s)",
 				d->ext_ggep_id, d->ext_phys_paylen,
 				(d->ext_ggep_deflate && d->ext_ggep_cobs) ? "COBS + deflated" :

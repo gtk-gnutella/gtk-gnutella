@@ -142,7 +142,7 @@ typedef enum ext_token {
 /**
  * A public extension descriptor.
  *
- * An extension block is structured thustly:
+ * An extension block is structured thusly:
  *
  *    - <.................len.......................>
  *    - <..headlen.><..........paylen...............>

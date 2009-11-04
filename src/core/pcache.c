@@ -470,8 +470,8 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		char ip_port[6];
 
 		/* Ip Port (not UHC IPP!)*/
-		if (GNET_PROPERTY(pcache_debug) || GNET_PROPERTY(ggep_debug))
-			g_message("adding GGEP IP for %s",
+		if (GNET_PROPERTY(pcache_debug) > 1 || GNET_PROPERTY(ggep_debug) > 1)
+			g_message("adding GGEP IP to pong for %s",
 				host_addr_port_to_string(sender_addr, sender_port));
 
 		poke_be32(&ip_port[0], host_addr_ipv4(sender_addr));
@@ -1290,7 +1290,7 @@ ping_all_neighbours(void)
 		if (!(n->attrs & NODE_A_PONG_CACHING))
 			n->next_ping = time_advance(now, OLD_PING_PERIOD);
 
-		if (GNET_PROPERTY(pcache_debug))
+		if (GNET_PROPERTY(pcache_debug) > 1)
 			g_message("PCACHE pinging \"%s\" %s",
 				(n->attrs & NODE_A_PONG_CACHING) ? "new" : "old",
 				host_addr_port_to_string(n->addr, n->port));
@@ -1841,7 +1841,7 @@ pong_extract_metadata(struct gnutella_node *n)
 			}
 			break;
 		default:
-			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
+			if (GNET_PROPERTY(ggep_debug) > 3 && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_infostr(&n->header), ext_ggep_id_str(e),
@@ -2002,7 +2002,7 @@ pcache_ping_received(struct gnutella_node *n)
 		(n->attrs & (NODE_A_PONG_CACHING|NODE_A_PONG_ALIEN)) ==
 			NODE_A_PONG_CACHING
 	) {
-		if (GNET_PROPERTY(pcache_debug) || GNET_PROPERTY(dbg))
+		if (GNET_PROPERTY(pcache_debug))
 			g_warning("node %s (%s) [%d.%d] claimed ping reduction, "
 				"got ping with hops=%d", node_addr(n),
 				node_vendor(n),
@@ -2110,9 +2110,12 @@ pcache_udp_pong_received(struct gnutella_node *n)
 			payload = ext_payload(e);
 
 			if (paylen % 6) {
-				g_warning("%s (UDP): bad length for GGEP \"%s\" (%d byte%s)",
-					gmsg_infostr(&n->header), ext_ggep_id_str(e),
-					paylen, paylen == 1 ? "" : "s");
+				if (GNET_PROPERTY(pcache_debug) || GNET_PROPERTY(ggep_debug)) {
+					g_warning("%s (UDP): "
+						"bad length for GGEP \"%s\" (%d byte%s)",
+						gmsg_infostr(&n->header), ext_ggep_id_str(e),
+						paylen, paylen == 1 ? "" : "s");
+				}
 			} else {
 				switch (e->ext_token) {
 				case EXT_T_GGEP_IPP:
