@@ -1654,6 +1654,8 @@ download_server_info_changed(const struct dl_server *server)
 	size_t i;
 	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
 
+	g_assert(dl_server_valid(server));
+
 	for (i = 0; i < G_N_ELEMENTS(listnum); i++) {
 		enum dl_list idx = listnum[i];
 		list_iter_t *iter;
@@ -1962,6 +1964,8 @@ change_server_addr(struct dl_server *server,
 	key->port = new_port;
 	server->country = gip_country(new_addr);
 
+	g_assert(dl_server_valid(server));
+
 	/*
 	 * Look for a duplicate.  It's quite possible that we saw some IP
 	 * address 1.2.3.4 and 5.6.7.8 without knowing that they both were
@@ -1972,6 +1976,7 @@ change_server_addr(struct dl_server *server,
 	duplicate = get_server(key->guid, new_addr, new_port, FALSE);
 
 	if (duplicate != NULL && duplicate != server) {
+		g_assert(dl_server_valid(duplicate));
 		g_assert(host_addr_equal(duplicate->key->addr, key->addr));
 		g_assert(duplicate->key->port == key->port);
 

@@ -29,12 +29,18 @@
 #include "common.h"
 
 #define ISO3166_INVALID ((guint16)-1)
+#define ISO3166_NUM_CODES (36 * 35 + 35)
 
 guint16 iso3166_encode_cc(const char *cc);
 void iso3166_init(void);
 void iso3166_close(void);
 const char *iso3166_country_name(guint16 code);
 const char *iso3166_country_cc(guint16 code);
+
+static inline gboolean iso3166_code_is_valid(guint16 code)
+{
+	return ISO3166_INVALID == code || code < (unsigned) ISO3166_NUM_CODES;
+}
 
 #endif /* _lib_iso3166_h_ */
 

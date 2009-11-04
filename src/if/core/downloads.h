@@ -28,6 +28,7 @@
 
 #include "lib/tm.h"				/* For tm_t */
 #include "lib/event.h"			/* For frequency_t */
+#include "lib/iso3166.h"		/* For iso3166_code_is_valid() */
 #include "lib/hashlist.h"
 #include "lib/list.h"
 #include "lib/slist.h"
@@ -106,7 +107,8 @@ struct dl_server {
 static inline gboolean
 dl_server_valid(const struct dl_server *s)
 {
-	return s != NULL && s->magic == DL_SERVER_MAGIC;
+	return s != NULL && s->magic == DL_SERVER_MAGIC &&
+			iso3166_code_is_valid(s->country);
 }
 
 /**

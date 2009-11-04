@@ -311,8 +311,7 @@ static const struct {
 
 static iso3166_entry_t iso3166_entries[G_N_ELEMENTS(iso3166_tab)];
 
-#define NUM_CODES (36 * 35 + 35)
-static iso3166_entry_t *iso3166_countries[NUM_CODES];
+static iso3166_entry_t *iso3166_countries[ISO3166_NUM_CODES];
 
 /**
  * Decodes a valid country code into a 2-letter country string.
