@@ -466,7 +466,7 @@ ggep_stream_end(ggep_stream_t *gs)
 
 			if (!ok)
 				goto cleanup;
-		} else if (GNET_PROPERTY(ggep_debug) > 2)
+		} else if (GNET_PROPERTY(ggep_debug) > 3)
 			g_warning("GGEP \"%.*s\" compressed %d bytes into %d",
 				(int) (*gs->fp & GGEP_F_IDLEN),
 				gs->fp + 1, (int) ilen, (int) plen);
@@ -536,7 +536,7 @@ ggep_stream_end(ggep_stream_t *gs)
 			gs->o = &gs->lp[1 + plen];	/* +1 to skip NUL "length" byte */
 			/* No overwriting */
 			g_assert((size_t) (gs->end - gs->o) <= gs->size);
-		} else if (GNET_PROPERTY(ggep_debug) > 2)
+		} else if (GNET_PROPERTY(ggep_debug) > 3)
 			g_message("GGEP \"%.*s\" COBS-ed into %d bytes",
 				(int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1, (int) plen);
 	}
@@ -556,7 +556,7 @@ ggep_stream_end(ggep_stream_t *gs)
 	 * stored at the beginning.  We only reserved 1 byte for the length.
 	 */
 
-	if (GNET_PROPERTY(ggep_debug) > 3)
+	if (GNET_PROPERTY(ggep_debug) > 7)
 		g_message("GGEP \"%.*s\" payload holds %d byte%s",
 			(int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1,
 			(int) plen, plen == 1 ? "" : "s");
