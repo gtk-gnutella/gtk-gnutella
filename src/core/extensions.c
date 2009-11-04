@@ -1151,7 +1151,7 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 	for (;;) {
 		/*
 		 * Resize output buffer if needed.
-		 * Never grow the result buffer to more than MAX_PAYLOAD_LEN bytes.
+		 * Never grow the result buffer to more than GGEP_MAXLEN bytes.
 		 */
 
 		if (rsize == inflated) {
@@ -1186,8 +1186,10 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 			break;
 
 		if (ret != Z_OK) {
-			g_warning("decompression of GGEP payload \"%s\" failed: %s",
-				name, zlib_strerror(ret));
+			g_warning("decompression of GGEP payload \"%s\""
+				" (%d byte%s, %d consumed) failed: %s [inflated %d]",
+				name, len, 1 == len ? "" : "s",
+				len - inz->avail_in, zlib_strerror(ret), inflated);
 			failed = TRUE;
 			break;
 		}
