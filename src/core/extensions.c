@@ -1111,6 +1111,7 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 	int ret;
 	int inflated;					/* Amount of inflated data so far */
 	gboolean failed = FALSE;
+	gboolean more_space = FALSE;
 
 	g_assert(buf);
 	g_assert(len > 0);
@@ -1154,22 +1155,23 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 		 * Never grow the result buffer to more than GGEP_MAXLEN bytes.
 		 */
 
-		if (rsize == inflated) {
-			rsize += MAX(len, GGEP_GROW);
-			rsize = MIN(rsize, GGEP_MAXLEN);
-
-			if (rsize == inflated) {		/* Reached maximum size! */
+		if (more_space || rsize == inflated) {
+			if (rsize >= GGEP_MAXLEN) {		/* Reached maximum size! */
 				g_warning("GGEP payload \"%s\" would be larger than %d bytes",
 					name, GGEP_MAXLEN);
 				failed = TRUE;
 				break;
 			}
 
-			g_assert(rsize > inflated);
+			rsize += MAX(len, GGEP_GROW);
+			rsize = MIN(rsize, GGEP_MAXLEN);
 
 			result = hrealloc(result, rsize);
 		}
 
+		g_assert(rsize > inflated);
+
+		more_space = FALSE;
 		inz->next_out = (guchar *) result + inflated;
 		inz->avail_out = rsize - inflated;
 
@@ -1182,14 +1184,21 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 
 		g_assert(inflated <= rsize);
 
-		if (ret == Z_STREAM_END)				/* All done! */
+		if (ret == Z_STREAM_END)			/* All done! */
 			break;
 
+		if (ret == Z_BUF_ERROR) {			/* Needs more output space */
+			more_space = TRUE;
+			continue;
+		}
+
 		if (ret != Z_OK) {
-			g_warning("decompression of GGEP payload \"%s\""
-				" (%d byte%s, %d consumed) failed: %s [inflated %d]",
-				name, len, 1 == len ? "" : "s",
-				len - inz->avail_in, zlib_strerror(ret), inflated);
+			if (GNET_PROPERTY(ggep_debug)) {
+				g_warning("decompression of GGEP payload \"%s\""
+					" (%d byte%s) failed: %s [consumed %d, inflated into %d]",
+					name, len, 1 == len ? "" : "s", zlib_strerror(ret),
+					len - inz->avail_in, inflated);
+			}
 			failed = TRUE;
 			break;
 		}
@@ -1200,9 +1209,12 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 	 */
 
 	ret = inflateEnd(inz);
-	if (ret != Z_OK)
-		g_warning("while freeing decompressor for GGEP payload \"%s\": %s",
-			name, zlib_strerror(ret));
+	if (ret != Z_OK) {
+		if (GNET_PROPERTY(ggep_debug)) {
+			g_warning("while freeing decompressor for GGEP payload \"%s\": %s",
+				name, zlib_strerror(ret));
+		}
+	}
 
 	wfree(inz, sizeof(*inz));
 
@@ -1218,6 +1230,11 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 	*retlen = inflated;
 
 	g_assert(*retlen == inflated);	/* Make sure it was not truncated */
+
+	if (GNET_PROPERTY(ggep_debug) > 5) {
+		g_message("decompressed GGEP payload \"%s\" (%d byte%s) into %d",
+			name, len, 1 == len ? "" : "s", inflated);
+	}
 
 	return result;					/* OK, successfully inflated */
 }
@@ -1320,12 +1337,12 @@ out:
 	 */
 
 	if (d->ext_payload == NULL) {
-		if (GNET_PROPERTY(dbg) || GNET_PROPERTY(ggep_debug))
+		if (GNET_PROPERTY(dbg) || GNET_PROPERTY(ggep_debug)) {
 			g_warning("unable to get GGEP \"%s\" %d-byte payload (%s)",
 				d->ext_ggep_id, d->ext_phys_paylen,
 				(d->ext_ggep_deflate && d->ext_ggep_cobs) ? "COBS + deflated" :
 				d->ext_ggep_cobs ? "COBS" : "deflated");
-
+		}
 		d->ext_paylen = 0;
 		d->ext_payload = d->ext_phys_payload;
 	}
