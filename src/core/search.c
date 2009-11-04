@@ -733,6 +733,35 @@ is_odd_guid(const struct guid *guid)
 	return TRUE;
 }
 
+static gboolean
+is_lime_return_path(const extvec_t *e)
+{
+	const char *id = ext_ggep_id_str(e);
+	const char *s;
+
+	s = is_strprefix(id, "RP");		/* Return Path */
+	if (NULL == s)
+		return FALSE;
+
+	/*
+	 * "RP" followed by a letter then by digit(s).
+	 *
+	 * This seems to be a trail left by each relaying LimeWire which
+	 * yields information about the IP:port of the servent which received
+	 * the message ("RPI"), the source from which it was received ("RPS"),
+	 * along with TTL ("RPT") and hops ("RPH") information.
+	 *
+	 * Each relaying host increments the trailing digits, so it is possible
+	 * to reconstruct the full message path from this information, as long
+	 * as it was relayed through LimeWire hosts.
+	 *
+	 * Certainly great for debugging, but what a waste and silly format (it
+	 * was probably easier to hack this feature in that way, grr....).
+	 */
+
+	return s[0] != '\0' && is_ascii_digit(s[1]);
+}
+
 static void
 search_results_identify_spam(gnet_results_set_t *rs)
 {
@@ -979,6 +1008,93 @@ search_results_are_requested(const struct guid *muid,
 }
 
 /**
+ * Log multiple GGEP occurrences in trailer if needed.
+ *
+ * @param n			node from which we got the message
+ * @param e			the GGEP extension
+ * @param vendor	the vendor code string
+ */
+static void
+search_log_multiple_ggep(const gnutella_node_t *n,
+	const extvec_t *e, const char *vendor)
+{
+	g_assert(EXT_GGEP == e->ext_type);
+
+	if (GNET_PROPERTY(search_debug) || GNET_PROPERTY(ggep_debug)) {
+		g_warning("%s from %s has multiple GGEP \"%s\" (ignoring)",
+			gmsg_infostr(&n->header), vendor, ext_ggep_id_str(e));
+	}
+}
+
+/**
+ * Log GGEP occurrences in trailer if needed.
+ *
+ * @param n			node from which we got the message
+ * @param e			the GGEP extension
+ * @param vendor	the vendor code string
+ * @param what		adjective describing what is wrong about GGEP extension
+ */
+static void
+search_log_ggep(const gnutella_node_t *n,
+	const extvec_t *e, const char *vendor, const char *what)
+{
+	g_assert(EXT_GGEP == e->ext_type);
+
+	if (GNET_PROPERTY(search_debug) > 3 || GNET_PROPERTY(ggep_debug) > 3) {
+		g_warning("%s from %s has %s GGEP \"%s\"%s",
+			gmsg_infostr(&n->header), vendor, what, ext_ggep_id_str(e),
+			GNET_PROPERTY(ggep_debug) > 5 ? " (dumping)" : "");
+		if (GNET_PROPERTY(ggep_debug) > 5) {
+			ext_dump(stderr, e, 1, "....", "\n", TRUE);
+		}
+	}
+}
+
+/**
+ * Log bad GGEP occurrences in trailer if needed.
+ *
+ * @param n			node from which we got the message
+ * @param e			the GGEP extension
+ * @param vendor	the vendor code string
+ */
+static void
+search_log_bad_ggep(const gnutella_node_t *n,
+	const extvec_t *e, const char *vendor)
+{
+	search_log_ggep(n, e, vendor, "bad");
+}
+
+/**
+ * Log unknown GGEP occurrences in trailer if needed.
+ *
+ * @param n			node from which we got the message
+ * @param rs		the result set
+ * @param e			the GGEP extension
+ * @param vendor	the vendor code string
+ */
+static void
+search_log_unknown_ggep(const gnutella_node_t *n,
+	const gnet_results_set_t *rs,
+	const extvec_t *e, const char *vendor)
+{
+	if (GNET_PROPERTY(search_debug) <= 3 && GNET_PROPERTY(ggep_debug) <= 3)
+		return;
+
+	/*
+	 * Avoid logging unknown GGEP extensions for LimeWire's return-path,
+	 * which we don't want to parse anyway (and since they're dynamic and
+	 * not fixed, we wouldn't be able to parse them given our current
+	 * zero-copy extension parsing implementation).
+	 *		--RAM, 2009-11-04
+	 */
+
+	if (T_LIME == rs->vcode.u32 && is_lime_return_path(e))
+		return;
+
+	search_log_ggep(n, e, vendor, "unknown");
+}
+
+/**
  * Compute status bits, decompile trailer info, if present.
  *
  * @return TRUE if there were errors and the packet should be dropped.
@@ -998,6 +1114,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		return FALSE;
 
 	vendor = vendor_get_name(rs->vcode.u32);
+	vendor = vendor != NULL ? vendor : "unknown vendor";
 	open_size = trailer[4];
 	open_parsing_size = trailer[4];
 	enabler_mask = trailer[5];
@@ -1008,7 +1125,8 @@ search_results_handle_trailer(const gnutella_node_t *n,
 
 	if (open_size > trailer_size - 4) {
 		if (GNET_PROPERTY(search_debug)) {
-			g_warning("trailer is too small (%u byte%s) for open size field",
+			g_warning("trailer from %s is too small (%u byte%s) "
+				"for open size field", vendor,
 				(unsigned) trailer_size, 1 == trailer_size ? "" : "s");
 		}
 		return TRUE;
@@ -1039,10 +1157,9 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			if (GNET_PROPERTY(search_debug) > 1)
 				g_warning("vendor %s changed # of open data bytes to %d",
 						vendor, open_size);
-		} else if (vendor) {
+		} else {
 			if (GNET_PROPERTY(search_debug) > 1)
-				g_warning("ignoring %d open data byte%s from "
-						"unknown vendor %s",
+				g_warning("ignoring %d open data byte%s from %s",
 						open_size, open_size == 1 ? "" : "s", vendor);
 		}
 	}
@@ -1097,28 +1214,19 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				break;
 			case EXT_T_GGEP_GTKG_IPV6:
 				if (has_ipv6_addr) {
-					g_warning("%s has multiple GGEP \"GTKG.IPV6\" (ignoring)",
-							gmsg_infostr(&n->header));
+					search_log_multiple_ggep(n, e, vendor);
 				} else {
 					ret = ggept_gtkg_ipv6_extract(e, &ipv6_addr);
 					if (GGEP_OK == ret) {
 						has_ipv6_addr = TRUE;
 					} else if (ret == GGEP_INVALID) {
-						if (
-							GNET_PROPERTY(search_debug) > 3 ||
-							GNET_PROPERTY(ggep_debug) > 3
-						) {
-							g_warning("%s bad GGEP \"GTKG.IPV6\" (dumping)",
-								gmsg_infostr(&n->header));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
-						}
+						search_log_bad_ggep(n, e, vendor);
 					}
 				}
 				break;
 			case EXT_T_GGEP_GTKGV1:
 				if (NULL != rs->version) {
-					g_warning("%s has multiple GGEP \"GTKGV1\" (ignoring)",
-							gmsg_infostr(&n->header));
+					search_log_multiple_ggep(n, e, vendor);
 				} else {
 					struct ggep_gtkgv1 vi;
 
@@ -1139,21 +1247,13 @@ search_results_handle_trailer(const gnutella_node_t *n,
 
 						rs->version = atom_str_get(version_str(&ver));
 					} else if (ret == GGEP_INVALID) {
-						if (
-							GNET_PROPERTY(search_debug) > 3 ||
-							GNET_PROPERTY(ggep_debug) > 3
-						) {
-							g_warning("%s bad GGEP \"GTKGV1\" (dumping)",
-									gmsg_infostr(&n->header));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
-						}
+						search_log_bad_ggep(n, e, vendor);
 					}
 				}
 				break;
 			case EXT_T_GGEP_PUSH:
 				if (NULL != rs->proxies) {
-					g_warning("%s has multiple GGEP \"PUSH\" (ignoring)",
-							gmsg_infostr(&n->header));
+					search_log_multiple_ggep(n, e, vendor);
 				} else {
 					gnet_host_vec_t *hvec = NULL;
 
@@ -1162,21 +1262,13 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					if (ret == GGEP_OK) {
 						rs->proxies = hvec;
 					} else {
-						if (
-							GNET_PROPERTY(search_debug) > 3 ||
-							GNET_PROPERTY(ggep_debug) > 3
-						) {
-							g_warning("%s bad GGEP \"PUSH\" (dumping)",
-									gmsg_infostr(&n->header));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
-						}
+						search_log_bad_ggep(n, e, vendor);
 					}
 				}
 				break;
 			case EXT_T_GGEP_HNAME:
 				if (NULL != rs->hostname) {
-					g_warning("%s has multiple GGEP \"HNAME\" (ignoring)",
-							gmsg_infostr(&n->header));
+					search_log_multiple_ggep(n, e, vendor);
 				} else {
 					char hostname[MAX_HOSTLEN];
 
@@ -1184,14 +1276,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					if (ret == GGEP_OK)
 						rs->hostname = atom_str_get(hostname);
 					else {
-						if (
-							GNET_PROPERTY(search_debug) > 3 ||
-							GNET_PROPERTY(ggep_debug) > 3
-						) {
-							g_warning("%s bad GGEP \"HNAME\" (dumping)",
-									gmsg_infostr(&n->header));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
-						}
+						search_log_bad_ggep(n, e, vendor);
 					}
 				}
 				break;
@@ -1215,14 +1300,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				}
 				break;
 			case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
-				if (
-					GNET_PROPERTY(search_debug) > 3 ||
-					GNET_PROPERTY(ggep_debug) > 3
-				) {
-					g_warning("%s unknown GGEP \"%s\" in trailer (dumping)",
-							gmsg_infostr(&n->header), ext_ggep_id_str(e));
-					ext_dump(stderr, e, 1, "....", "\n", TRUE);
-				}
+				search_log_unknown_ggep(n, rs, e, vendor);
 				break;
 			default:
 				break;
@@ -1232,7 +1310,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		if (exvcnt == MAX_EXTVEC) {
 			if (GNET_PROPERTY(search_debug) > 0) {
 				g_warning("%s from %s has %d trailer extensions!",
-					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
+					gmsg_infostr(&n->header), vendor, exvcnt);
 			}
 			if (GNET_PROPERTY(search_debug) > 2)
 				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
@@ -1241,10 +1319,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		} else if (!seen_ggep && GNET_PROPERTY(ggep_debug)) {
 			g_warning("%s from %s claimed GGEP extensions in trailer, "
 					"seen none",
-					gmsg_infostr(&n->header), vendor ? vendor : "????");
+					gmsg_infostr(&n->header), vendor);
 		} else if (GNET_PROPERTY(search_debug) > 2) {
 			g_message("%s from %s has %d trailer extensions:",
-					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
+					gmsg_infostr(&n->header), vendor, exvcnt);
 			ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 		}
 
@@ -1827,7 +1905,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	 */
 
 	if (s < endptr) {
-		size_t trailer_len = endptr - s;			/* Trailer length, starts at `s' */
+		size_t trailer_len = endptr - s;	/* Trailer length, starts at `s' */
 
 		if (trailer_len >= 5) {
 			unsigned open_data_size = peek_u8(&s[4]);
