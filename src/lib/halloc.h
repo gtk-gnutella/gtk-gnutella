@@ -64,7 +64,7 @@ void *halloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 
 #ifndef TRACK_MALLOC
 void hfree(void *ptr);
-void *hrealloc(void *old, size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *hrealloc(void *old, size_t size) WARN_UNUSED_RESULT;
 
 static inline void *
 hcopy(const void *p, size_t size)
