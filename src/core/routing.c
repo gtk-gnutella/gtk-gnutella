@@ -179,7 +179,7 @@ struct route_log {
 	gboolean handle;			/**< Whether message will be handled */
 	gboolean local;				/**< Whether message originated locally */
 	gboolean new;				/**< Whether message is a new message */
-	char extra[80];			/**< Extra text for logging */
+	char extra[80];				/**< Extra text for logging */
 	struct route_dest dest;		/**< Message destination */
 };
 
