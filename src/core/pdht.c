@@ -1524,6 +1524,7 @@ void
 pdht_init(void)
 {
 	aloc_publishes = g_hash_table_new(sha1_hash, sha1_eq);
+	memset(&pdht_proxy, 0, sizeof pdht_proxy);
 	pdht_prox_install_republish(PDHT_PROX_DELAY);
 }
 
