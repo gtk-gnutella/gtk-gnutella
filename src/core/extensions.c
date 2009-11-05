@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,6 +31,7 @@
  *
  * @author Raphael Manfredi
  * @date 2002-2003
+ * @date 2009
  */
 
 #include "common.h"
@@ -1111,7 +1112,6 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 	int ret;
 	int inflated;					/* Amount of inflated data so far */
 	gboolean failed = FALSE;
-	gboolean more_space = FALSE;
 
 	g_assert(buf);
 	g_assert(len > 0);
@@ -1155,10 +1155,13 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 		 * Never grow the result buffer to more than GGEP_MAXLEN bytes.
 		 */
 
-		if (more_space || rsize == inflated) {
+		if (rsize == inflated) {
 			if (rsize >= GGEP_MAXLEN) {		/* Reached maximum size! */
-				g_warning("GGEP payload \"%s\" would be larger than %d bytes",
-					name, GGEP_MAXLEN);
+				if (GNET_PROPERTY(ggep_debug)) {
+					g_warning("GGEP payload \"%s\" (%d byte%s) would "
+						"decompress to more than %d bytes",
+						name, len, 1 == len ? "" : "s", GGEP_MAXLEN);
+				}
 				failed = TRUE;
 				break;
 			}
@@ -1171,7 +1174,6 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 
 		g_assert(rsize > inflated);
 
-		more_space = FALSE;
 		inz->next_out = (guchar *) result + inflated;
 		inz->avail_out = rsize - inflated;
 
@@ -1188,8 +1190,16 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 			break;
 
 		if (ret == Z_BUF_ERROR) {			/* Needs more output space */
-			more_space = TRUE;
-			continue;
+			if (rsize == inflated)
+				continue;
+
+			if (GNET_PROPERTY(ggep_debug)) {
+				g_warning("GGEP payload \"%s\" does not "
+					"decompress properly (consumed %d/%d byte%s)",
+					name, len - inz->avail_in, len, 1 == len ? "" : "s");
+			}
+			failed = TRUE;
+			break;
 		}
 
 		if (ret != Z_OK) {
@@ -1219,7 +1229,7 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 	wfree(inz, sizeof(*inz));
 
 	/*
-	 * @return NULL on error, fill `retlen' if OK.
+	 * return NULL on error.
 	 */
 
 	if (failed) {
@@ -1279,14 +1289,14 @@ ext_ggep_decode(const extvec_t *e)
 		uncobs = walloc(plen);		/* At worse slightly oversized */
 		uncobs_len = plen;
 
-		if (!d->ext_ggep_deflate) {
-			if (!cobs_decode_into(pbase, plen, uncobs, plen, &result)) {
-				if (GNET_PROPERTY(ggep_debug))
-					g_warning("unable to decode COBS buffer for GGEP \"%s\"",
-						d->ext_ggep_id);
-				goto out;
-			}
+		if (!cobs_decode_into(pbase, plen, uncobs, plen, &result)) {
+			if (GNET_PROPERTY(ggep_debug))
+				g_warning("unable to decode COBS buffer for GGEP \"%s\"",
+					d->ext_ggep_id);
+			goto out;
+		}
 
+		if (!d->ext_ggep_deflate) {
 			g_assert(result <= plen);
 
 			d->ext_payload = uncobs;
@@ -1295,13 +1305,6 @@ ext_ggep_decode(const extvec_t *e)
 
 			return;
 		} else {
-			if (!cobs_decode_into(pbase, plen, uncobs, plen, &result)) {
-				if (GNET_PROPERTY(ggep_debug))
-					g_warning("unable to decode COBS buffer for GGEP \"%s\"",
-						d->ext_ggep_id);
-				goto out;
-			}
-
 			g_assert(result <= plen);
 
 			/*
