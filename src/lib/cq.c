@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,6 +31,7 @@
  *
  * @author Raphael Manfredi
  * @date 2002-2003
+ * @date 2009
  */
 
 #include "common.h"
