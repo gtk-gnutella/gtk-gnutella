@@ -91,8 +91,8 @@ version_get_code(void)
 static void
 version_dump(const char *str, const version_t *ver, const char *cmptag)
 {
-	printf("VERSION%s \"%s\":\n"
-		"\tmajor=%u minor=%u patch=%u tag=%c taglevel=%u build=%u\n",
+	g_message("VERSION%s \"%s\": "
+		"major=%u minor=%u patch=%u tag=%c taglevel=%u build=%u",
 		cmptag, str, ver->major, ver->minor, ver->patchlevel,
 		ver->tag ? ver->tag : ' ', ver->taglevel, ver->build);
 }
@@ -283,7 +283,7 @@ version_parse(const char *str, version_t *ver)
 	} else
 		ver->build = 0;
 
-	if (GNET_PROPERTY(dbg) > 6)
+	if (GNET_PROPERTY(version_debug) > 1)
 		version_dump(str, ver, "#");
 
 	return TRUE;
@@ -431,7 +431,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 
 	cmp = version_cmp(target_version, &their_version);
 
-	if (GNET_PROPERTY(dbg) > 6)
+	if (GNET_PROPERTY(version_debug) > 1)
 		version_dump(str, &their_version,
 			cmp == 0 ? "=" :
 			cmp > 0 ? "-" : "+");
@@ -442,8 +442,8 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 
 	version_stamp(str, &their_version);
 
-	if (GNET_PROPERTY(dbg) > 6)
-		printf("VERSION time=%d\n", (int) their_version.timestamp);
+	if (GNET_PROPERTY(version_debug) > 3)
+		g_message("VERSION time=%d", (int) their_version.timestamp);
 
 	/*
 	 * If version claims something older than TOKEN_START_DATE, then
@@ -454,7 +454,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 		tok_error_t error;
 
 		if (token == NULL) {
-            if (GNET_PROPERTY(dbg)) {
+            if (GNET_PROPERTY(version_debug)) {
                 g_message("got GTKG vendor string \"%s\" without token!", str);
             }
 			return FALSE;	/* Can't be correct */
@@ -477,7 +477,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 			error = TOK_OK;		/* Our keys have expired, cannot validate */
 
 		if (error != TOK_OK) {
-            if (GNET_PROPERTY(dbg)) {
+            if (GNET_PROPERTY(version_debug)) {
                 g_message("vendor string \"%s\" [%s] has wrong token "
                     "\"%s\": %s ", str, host_addr_to_string(addr), token,
                     tok_strerror(error));
@@ -507,12 +507,12 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 			|| their_version.build > target_version->build) &&
 		target_version == &last_rel_version
 	) {
-		if (GNET_PROPERTY(dbg) > 6)
-			printf("VERSION is a SVN update of a release\n");
+		if (GNET_PROPERTY(version_debug) > 3)
+			g_message("VERSION is a SVN update of a release");
 
 		if (version_build_cmp(&last_dev_version, &their_version) > 0) {
-			if (GNET_PROPERTY(dbg) > 6)
-				printf("VERSION is less recent than latest dev we know\n");
+			if (GNET_PROPERTY(version_debug) > 3)
+				g_message("VERSION is less recent than latest dev we know");
 			return TRUE;
 		}
 		target_version = &last_dev_version;
@@ -542,8 +542,8 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 	 * We found a more recent version than the last version seen.
 	 */
 
-	if (GNET_PROPERTY(dbg) > 4)
-		printf("more recent %s VERSION \"%s\"\n",
+	if (GNET_PROPERTY(version_debug) > 1)
+		g_message("more recent %s VERSION \"%s\"",
 			target_version == &last_dev_version ? "dev" : "rel", str);
 
 	*target_version = their_version;		/* struct copy */

@@ -146,7 +146,7 @@ hostiles_load(FILE *f, hostiles_t which)
 			break;
 			/* FALL THROUGH */
 		default:
-			if (GNET_PROPERTY(dbg) > 0 || error != IPR_ERR_RANGE_SUBNET) {
+			if (GNET_PROPERTY(reload_debug) || error != IPR_ERR_RANGE_SUBNET) {
 				g_warning("%s, line %d: rejected entry \"%s\" (%s/%d): %s",
 					hostiles_file, linenum, line, ip_to_string(ip), bits,
 					iprange_strerror(error));
@@ -157,7 +157,7 @@ hostiles_load(FILE *f, hostiles_t which)
 
 	iprange_sync(hostile_db[which]);
 
-	if (GNET_PROPERTY(dbg)) {
+	if (GNET_PROPERTY(reload_debug)) {
 		g_message("loaded %u addresses/netmasks from %s (%u hosts)",
 			iprange_get_item_count(hostile_db[which]), hostiles_what[which],
 			iprange_get_host_count(hostile_db[which]));

@@ -231,7 +231,7 @@ vmsg_handle(struct gnutella_node *n)
 
 	if (n->size < expected_size) {
 		gnet_stats_count_dropped(n, MSG_DROP_TOO_SMALL);
-		if (GNET_PROPERTY(dbg) || GNET_PROPERTY(vmsg_debug))
+		if (GNET_PROPERTY(vmsg_debug))
 			gmsg_log_bad(n, "message has only %u bytes, needs at least %u",
 				(unsigned) n->size, expected_size);
 		return;
@@ -261,7 +261,7 @@ vmsg_handle(struct gnutella_node *n)
 		(*vmsg.handler)(n, &vmsg, n->data + sizeof(*v), n->size - sizeof(*v));
 	} else {
 		gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
-		if (GNET_PROPERTY(dbg) || GNET_PROPERTY(vmsg_debug))
+		if (GNET_PROPERTY(vmsg_debug))
 			gmsg_log_bad(n, "unknown vendor message");
 	}
 }
@@ -340,7 +340,7 @@ vmsg_bad_payload(struct gnutella_node *n,
 	n->n_bad++;
 	gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
 
-	if (GNET_PROPERTY(dbg) || GNET_PROPERTY(vmsg_debug))
+	if (GNET_PROPERTY(vmsg_debug))
 		gmsg_log_bad(n, "Bad payload size %lu for %s/%dv%d (%s), expected %lu",
 			(gulong) size, vendor_code_to_string(vmsg->vendor), vmsg->id,
 			vmsg->version, vmsg->name, (gulong) expected);

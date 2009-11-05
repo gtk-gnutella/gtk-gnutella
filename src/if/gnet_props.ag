@@ -4266,4 +4266,40 @@ prop = {
     };
 };
 
+prop = {
+    name = "reload_debug";
+    desc = "Debug level for the file (re)loading, on change.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "move_debug";
+    desc = "Debug level for the file moving, accross filesystems.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "qhit_debug";
+    desc = "Debug level for query hit message generation.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "version_debug";
+    desc = "Debug level for version management.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

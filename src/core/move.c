@@ -208,7 +208,8 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 	}
 
 	if (!S_ISREG(buf.st_mode)) {
-		g_warning("file \"%s\" is not a regular file", download_pathname(d));
+		g_warning("cannot move file \"%s\": not a regular file",
+			download_pathname(d));
 		goto abort_read;
 	}
 
@@ -233,8 +234,8 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 
 	compat_fadvise_sequential(md->rd, 0, 0);
 
-	if (GNET_PROPERTY(dbg) > 1)
-		g_message("Moving \"%s\" to \"%s\"",
+	if (GNET_PROPERTY(move_debug) > 1)
+		g_message("MOVE starting moving \"%s\" to \"%s\"",
 				download_basename(d), md->target);
 
 	return;
@@ -323,8 +324,8 @@ error:
 	elapsed = delta_time(tm_time(), md->start);
 	elapsed = MAX(1, elapsed);		/* time warp? clock not monotic? */
 
-	if (GNET_PROPERTY(dbg) > 1)
-		printf("Moved file \"%s\" at %lu bytes/sec [error=%d]\n",
+	if (GNET_PROPERTY(move_debug) > 1)
+		g_message("MOVE moved file \"%s\" at %lu bytes/sec [error=%d]\n",
 			download_basename(md->d), (gulong) md->size / elapsed, md->error);
 
 finish:

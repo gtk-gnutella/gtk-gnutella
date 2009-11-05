@@ -87,7 +87,7 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 	gpointer ccode;
 	guint cc;
 
-	if (GNET_PROPERTY(dbg) > 4)
+	if (GNET_PROPERTY(reload_debug) > 4)
 		printf("GEO adding %s/%d for \"%s\"\n",
 			ip_to_string(ip), bits, ctx->line);
 
@@ -239,7 +239,7 @@ gip_load(FILE *f)
 
 	iprange_sync(geo_db);
 
-	if (GNET_PROPERTY(dbg)) {
+	if (GNET_PROPERTY(reload_debug)) {
 		g_message("loaded %u geographical IP ranges (%u hosts)",
 			iprange_get_item_count(geo_db),
 			iprange_get_host_count(geo_db));

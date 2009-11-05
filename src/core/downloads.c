@@ -12622,7 +12622,7 @@ download_retrieve_old(FILE *f)
 		 * in the fileinfo.
 		 */
 
-		if (GNET_PROPERTY(dbg))
+		if (GNET_PROPERTY(download_debug) > 5)
 			g_message("DOWNLOAD '%s' (%s bytes) from %s (%s) SHA1=%s",
 				d_name, uint64_to_string(d_size), host_addr_to_string(d_addr),
 				d_hostname, has_sha1 ? sha1_base32(&sha1) : "<none>");

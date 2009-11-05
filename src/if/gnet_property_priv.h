@@ -414,6 +414,10 @@ extern const guint32  gnet_property_variable_bw_dht_out;
 extern const guint32  gnet_property_variable_node_dht_sendqueue_size;
 extern const guint32  gnet_property_variable_bsched_debug;
 extern const guint32  gnet_property_variable_dht_stable_debug;
+extern const guint32  gnet_property_variable_reload_debug;
+extern const guint32  gnet_property_variable_move_debug;
+extern const guint32  gnet_property_variable_qhit_debug;
+extern const guint32  gnet_property_variable_version_debug;
 
 
 prop_set_t *gnet_prop_init(void);

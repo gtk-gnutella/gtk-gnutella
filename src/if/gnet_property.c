@@ -845,6 +845,14 @@ guint32  gnet_property_variable_bsched_debug     = 0;
 static const guint32  gnet_property_variable_bsched_debug_default = 0;
 guint32  gnet_property_variable_dht_stable_debug     = 0;
 static const guint32  gnet_property_variable_dht_stable_debug_default = 0;
+guint32  gnet_property_variable_reload_debug     = 0;
+static const guint32  gnet_property_variable_reload_debug_default = 0;
+guint32  gnet_property_variable_move_debug     = 0;
+static const guint32  gnet_property_variable_move_debug_default = 0;
+guint32  gnet_property_variable_qhit_debug     = 0;
+static const guint32  gnet_property_variable_qhit_debug_default = 0;
+guint32  gnet_property_variable_version_debug     = 0;
+static const guint32  gnet_property_variable_version_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -7841,6 +7849,86 @@ gnet_prop_init(void) {
     gnet_property->props[365].data.guint32.choices = NULL;
     gnet_property->props[365].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[365].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_RELOAD_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[366].name = "reload_debug";
+    gnet_property->props[366].desc = _("Debug level for the file (re)loading, on change.");
+    gnet_property->props[366].ev_changed = event_new("reload_debug_changed");
+    gnet_property->props[366].save = TRUE;
+    gnet_property->props[366].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[366].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[366].data.guint32.def   = (void *) &gnet_property_variable_reload_debug_default;
+    gnet_property->props[366].data.guint32.value = (void *) &gnet_property_variable_reload_debug;
+    gnet_property->props[366].data.guint32.choices = NULL;
+    gnet_property->props[366].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[366].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_MOVE_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[367].name = "move_debug";
+    gnet_property->props[367].desc = _("Debug level for the file moving, accross filesystems.");
+    gnet_property->props[367].ev_changed = event_new("move_debug_changed");
+    gnet_property->props[367].save = TRUE;
+    gnet_property->props[367].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[367].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[367].data.guint32.def   = (void *) &gnet_property_variable_move_debug_default;
+    gnet_property->props[367].data.guint32.value = (void *) &gnet_property_variable_move_debug;
+    gnet_property->props[367].data.guint32.choices = NULL;
+    gnet_property->props[367].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[367].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QHIT_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[368].name = "qhit_debug";
+    gnet_property->props[368].desc = _("Debug level for query hit message generation.");
+    gnet_property->props[368].ev_changed = event_new("qhit_debug_changed");
+    gnet_property->props[368].save = TRUE;
+    gnet_property->props[368].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[368].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[368].data.guint32.def   = (void *) &gnet_property_variable_qhit_debug_default;
+    gnet_property->props[368].data.guint32.value = (void *) &gnet_property_variable_qhit_debug;
+    gnet_property->props[368].data.guint32.choices = NULL;
+    gnet_property->props[368].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[368].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_VERSION_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[369].name = "version_debug";
+    gnet_property->props[369].desc = _("Debug level for version management.");
+    gnet_property->props[369].ev_changed = event_new("version_debug_changed");
+    gnet_property->props[369].save = TRUE;
+    gnet_property->props[369].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[369].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[369].data.guint32.def   = (void *) &gnet_property_variable_version_debug_default;
+    gnet_property->props[369].data.guint32.value = (void *) &gnet_property_variable_version_debug;
+    gnet_property->props[369].data.guint32.choices = NULL;
+    gnet_property->props[369].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[369].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

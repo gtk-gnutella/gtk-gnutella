@@ -340,6 +340,13 @@ qhit_send_node(gpointer data, size_t len, gpointer udata)
 	gmsg_sendto_one(n, data, len);
 }
 
+static void
+qhit_log_ggep_write_failure(const char *id)
+{
+	if (GNET_PROPERTY(qhit_debug))
+		g_warning("QHIT could not write GGEP \"%s\" extension", id);
+}
+
 /**
  * Flush pending search request to the network.
  */
@@ -424,7 +431,7 @@ flush_match(void)
 			ggep_stream_end(&gs);
 
 		if (!ok)
-			g_warning("could not write GGEP \"GTKGV1\" extension in query hit");
+			qhit_log_ggep_write_failure("GTKGV1");
 	}
 
 	{
@@ -433,8 +440,9 @@ flush_match(void)
 		if (
 			token->data &&
 			!ggep_stream_pack(&gs, GGEP_NAME(SO), token->data, token->size, 0)
-		)
-			g_warning("could not add GGEP \"SO\" extension to query hit");
+		) {
+			qhit_log_ggep_write_failure("SO");
+		}
 	}
 
 	/*
@@ -488,14 +496,13 @@ flush_match(void)
 			sequence_iterator_release(&iter);
 
 			if (!ok)
-				g_warning("could not write GGEP \"PUSH\" extension "
-					"in query hit");
+				qhit_log_ggep_write_failure("PUSH");
 
 			if (ok && tls_length > 0) {
 				ok = ggep_stream_pack(&gs, GGEP_NAME(PUSH_TLS),
 						tls_bytes, tls_length, 0);
 				if (!ok)
-					g_warning("could not write GGEP \"PUSH_TLS\" extension");
+					qhit_log_ggep_write_failure("PUSH_TLS");
 			}
 		}
 		sequence_release(&seq);
@@ -519,8 +526,7 @@ flush_match(void)
 				0);
 
 		if (!ok)
-			g_warning("could not write GGEP \"HNAME\" extension "
-				"in query hit");
+			qhit_log_ggep_write_failure("HNAME");
 	}
 
 	{
@@ -530,24 +536,24 @@ flush_match(void)
 			const guint8 *ipv6 = host_addr_ipv6(&addr);
 
 			if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0))
-				g_warning("could not write GGEP \"GTKG.IPV6\" extension "
-						"into query hit");
+				qhit_log_ggep_write_failure("GTKG.IPV6");
 		}
 	}
 
 	if (tls_enabled()) {
 		if (!ggep_stream_pack(&gs, GGEP_NAME(TLS), NULL, 0, 0))
-			g_warning("could not write GGEP \"TLS\" extension into QHIT");
+			qhit_log_ggep_write_failure("TLS");
+
 		/*
 		 * FIXME TODO: Drop sending GTKG.TLS after 0.96.7 is out, only
 		 * sending the now standardized "TLS" extension which GTKG has been
 		 * understanding since 0.96.6.
 		 *		--RAM, 2009-10-24
 		 */
-		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0))
-			g_warning("could not write GGEP \"GTKG.TLS\" extension into QHIT");
-	}
 
+		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0))
+			qhit_log_ggep_write_failure("GTKG.TLS");
+	}
 
 	/*
 	 * Advertise the Browse Host extension in the results if the feature is
@@ -556,7 +562,7 @@ flush_match(void)
 
 	if (GNET_PROPERTY(browse_host_enabled)) {
 		if (!ggep_stream_pack(&gs, GGEP_NAME(BH), NULL, 0, 0))
-			g_warning("could not write GGEP \"BH\" extension into query hit");
+			qhit_log_ggep_write_failure("BH");
 	}
 
 	ggep_len = ggep_stream_close(&gs);
@@ -578,7 +584,9 @@ flush_match(void)
 
 failure:
 
-	g_warning("Created query hit was too big, discarding");
+	if (GNET_PROPERTY(qhit_debug))
+		g_warning("QHIT message was too big, discarding");
+
 	found_clear();
 }
 
@@ -708,7 +716,7 @@ add_file(const struct shared_file *sf)
 			ggep_stream_end(&gs);
 
 		if (!ok)
-			g_warning("could not write GGEP \"H\" extension in query hit");
+			qhit_log_ggep_write_failure("H");
 	}
 
 	/*
@@ -716,6 +724,7 @@ add_file(const struct shared_file *sf)
 	 * Now they are still unaware of GGEP "H" but emit GGEP "TT" with the
 	 * hash in binary form.
 	 */
+
 	if (sha1_available && !found_ggep_h()) {
 		const struct tth * const tth = shared_file_tth(sf);
 
@@ -723,7 +732,7 @@ add_file(const struct shared_file *sf)
 			ok = ggep_stream_pack(&gs,
 						GGEP_NAME(TT), tth->data, TTH_RAW_SIZE, GGEP_W_COBS);
 			if (!ok)
-				g_warning("could not write GGEP \"TT\" extension in query hit");
+				qhit_log_ggep_write_failure("TT");
 		}
 	}
 
@@ -742,7 +751,7 @@ add_file(const struct shared_file *sf)
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(LF), buf, len, GGEP_W_COBS);
 		if (!ok)
-			g_warning("could not write GGEP \"LF\" extension in query hit");
+			qhit_log_ggep_write_failure("LF");
 	}
 
 	/*
@@ -787,13 +796,13 @@ add_file(const struct shared_file *sf)
 		ok = ok && ggep_stream_end(&gs);
 
 		if (!ok)
-			g_warning("could not write GGEP \"ALT\" extension in query hit");
+			qhit_log_ggep_write_failure("ALT");
 
 		if (ok && tls_length > 0) {
 			ok = ggep_stream_pack(&gs, GGEP_NAME(ALT_TLS),
 					tls_bytes, tls_length, GGEP_W_COBS);
 			if (!ok)
-				g_warning("could not write GGEP \"ALT_TLS\" extension");
+				qhit_log_ggep_write_failure("ALT_TLS");
 		}
 	}
 
@@ -803,7 +812,7 @@ add_file(const struct shared_file *sf)
 		if (rp) {
 			ok = ggep_stream_pack(&gs, GGEP_NAME(PATH), rp, strlen(rp), 0);
 			if (!ok)
-				g_warning("could not add GGEP \"PATH\" extension to query hit");
+				qhit_log_ggep_write_failure("PATH");
 		}
 	}
 
@@ -827,7 +836,7 @@ add_file(const struct shared_file *sf)
 
 			ok = ggep_stream_pack(&gs, GGEP_NAME(CT), buf, len, GGEP_W_COBS);
 			if (!ok)
-				g_warning("could not write GGEP \"CT\" extension in query hit");
+				qhit_log_ggep_write_failure("CT");
 		}
 	}
 
