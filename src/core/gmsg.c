@@ -1124,6 +1124,40 @@ gmsg_infostr(gconstpointer msg)
 }
 
 /**
+ * Pretty-print the message information, based solely on the Gnutella header
+ * of the message held in a gnutella node (current message received from
+ * that node and being routed or processed).
+ *
+ * The advantage over calling gmsg_infostr(&n->header) is that the node
+ * information is also printed if by chance the hop count of the message is 1.
+ *
+ * @returns formatted static string:
+ *
+ *     msg_type (payload length) [hops=x, TTL=x]
+ *
+ * if message is from a remote node, or
+ *
+ *     msg_type (payload length) [hops=x, TTL=x] //IP:port <vendor>//
+ *
+ * if message comes from a neighbour.
+ */
+const char *
+gmsg_node_infostr(const gnutella_node_t *n)
+{
+	static char buf[120];
+	size_t w;
+
+	w = gmsg_infostr_to_buf(&n->header, buf, sizeof buf);
+
+	if (gnutella_header_get_hops(n->header) == 1) {
+		gm_snprintf(&buf[w], sizeof buf - w, " //%s <%s>//",
+			node_addr(n), node_vendor(n));
+	}
+
+	return buf;
+}
+
+/**
  * Log dropped message (given with separated header and data) with reason.
  */
 void

@@ -132,6 +132,7 @@ gboolean gmsg_is_oob_query(gconstpointer msg);
 gboolean gmsg_split_is_oob_query(gconstpointer head, gconstpointer data);
 int gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2, gboolean pdu2_complete);
 const char *gmsg_infostr(gconstpointer msg);
+const char *gmsg_node_infostr(const struct gnutella_node *n);
 char *gmsg_infostr_full(gconstpointer msg, size_t msg_len);
 char *gmsg_infostr_full_split(gconstpointer head,
 	gconstpointer data, size_t data_len);
