@@ -101,6 +101,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_IPP_TLS,		/**< TLS-capability bitmap for GGEP IPP */
 	EXT_T_GGEP_LF,			/**< Large File, in query hits */
 	EXT_T_GGEP_LOC,			/**< Locale preferences */
+	EXT_T_GGEP_M,			/**< MIME type for queries (byte code) */
 	EXT_T_GGEP_NP,			/**< do Not Proxy the query (OOB) */
 	EXT_T_GGEP_P,			/**< Push alt-locs in HEAD Pongs */
 	EXT_T_GGEP_PATH,		/**< Shared file path, in query hits */

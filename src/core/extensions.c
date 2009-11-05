@@ -183,6 +183,7 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(IPP_TLS),	/**< TLS-capability bitmap for GGEP IPP */
 	GGEP_ID(LF),		/**< Large file size in qhits */
 	GGEP_ID(LOC),		/**< Locale preferences, for clustering  */
+	GGEP_ID(M),			/**< MIME type for queries (byte code) */
 	GGEP_ID(NP),		/**< do Not Proxy (queries; OOB) */
 	GGEP_ID(P),			/**< Push alt-locs in HEAD Pongs */
 	GGEP_ID(PATH),		/**< Shared file path, in query hits */
