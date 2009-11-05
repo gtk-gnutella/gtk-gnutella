@@ -1021,8 +1021,13 @@ search_log_multiple_ggep(const gnutella_node_t *n,
 	g_assert(EXT_GGEP == e->ext_type);
 
 	if (GNET_PROPERTY(search_debug) || GNET_PROPERTY(ggep_debug)) {
-		g_warning("%s from %s has multiple GGEP \"%s\" (ignoring)",
-			gmsg_infostr(&n->header), vendor, ext_ggep_id_str(e));
+		if (vendor != NULL) {
+			g_warning("%s from %s has multiple GGEP \"%s\" (ignoring)",
+				gmsg_node_infostr(n), vendor, ext_ggep_id_str(e));
+		} else {
+			g_warning("%s has multiple GGEP \"%s\" (ignoring)",
+				gmsg_node_infostr(n), ext_ggep_id_str(e));
+		}
 	}
 }
 
@@ -1041,9 +1046,15 @@ search_log_ggep(const gnutella_node_t *n,
 	g_assert(EXT_GGEP == e->ext_type);
 
 	if (GNET_PROPERTY(search_debug) > 3 || GNET_PROPERTY(ggep_debug) > 3) {
-		g_warning("%s from %s has %s GGEP \"%s\"%s",
-			gmsg_infostr(&n->header), vendor, what, ext_ggep_id_str(e),
-			GNET_PROPERTY(ggep_debug) > 5 ? " (dumping)" : "");
+		if (vendor != NULL) {
+			g_warning("%s from %s has %s GGEP \"%s\"%s",
+				gmsg_node_infostr(n), vendor, what, ext_ggep_id_str(e),
+				GNET_PROPERTY(ggep_debug) > 5 ? " (dumping)" : "");
+		} else {
+			g_warning("%s has %s GGEP \"%s\"%s",
+				gmsg_node_infostr(n), what, ext_ggep_id_str(e),
+				GNET_PROPERTY(ggep_debug) > 5 ? " (dumping)" : "");
+		}
 		if (GNET_PROPERTY(ggep_debug) > 5) {
 			ext_dump(stderr, e, 1, "....", "\n", TRUE);
 		}
@@ -1310,7 +1321,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		if (exvcnt == MAX_EXTVEC) {
 			if (GNET_PROPERTY(search_debug) > 0) {
 				g_warning("%s from %s has %d trailer extensions!",
-					gmsg_infostr(&n->header), vendor, exvcnt);
+					gmsg_node_infostr(n), vendor, exvcnt);
 			}
 			if (GNET_PROPERTY(search_debug) > 2)
 				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
@@ -1319,10 +1330,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		} else if (!seen_ggep && GNET_PROPERTY(ggep_debug)) {
 			g_warning("%s from %s claimed GGEP extensions in trailer, "
 					"seen none",
-					gmsg_infostr(&n->header), vendor);
+					gmsg_node_infostr(n), vendor);
 		} else if (GNET_PROPERTY(search_debug) > 2) {
 			g_message("%s from %s has %d trailer extensions:",
-					gmsg_infostr(&n->header), vendor, exvcnt);
+					gmsg_node_infostr(n), vendor, exvcnt);
 			ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 		}
 
@@ -1725,23 +1736,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						seen_ggep_h = TRUE;
 					} else if (ret == GGEP_INVALID) {
 						sha1_errors++;
-						if (
-							GNET_PROPERTY(search_debug) > 3 ||
-							GNET_PROPERTY(ggep_debug) > 3
-						) {
-							g_warning("%s bad GGEP \"H\" (dumping)",
-								gmsg_infostr(&n->header));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
-						}
+						search_log_bad_ggep(n, e, NULL);
 					} else {
-						if (
-							GNET_PROPERTY(search_debug) > 3 ||
-							GNET_PROPERTY(ggep_debug) > 3
-						) {
-							g_warning("%s GGEP \"H\" with no SHA1 (dumping)",
-								gmsg_infostr(&n->header));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
-						}
+						search_log_ggep(n, e, NULL, "SHA1-less");
 					}
 					break;
 				case EXT_T_GGEP_ALT:		/* Alternate locations */
@@ -1754,11 +1751,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						seen_ggep_alt = TRUE;
 					} else {
 						alt_errors++;
-						if (GNET_PROPERTY(search_debug) > 3) {
-							g_warning("%s bad GGEP \"ALT\" (dumping)",
-								gmsg_infostr(&n->header));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
-						}
+						search_log_bad_ggep(n, e, NULL);
 					}
 					break;
 				case EXT_T_GGEP_ALT_TLS:	/* TLS-capability bitmap for ALT */
@@ -1772,9 +1765,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						if (ret == GGEP_OK) {
 							rc->size = fs;
 						} else {
-							g_warning("%s bad GGEP \"LF\" (dumping)",
-								gmsg_infostr(&n->header));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+							search_log_bad_ggep(n, e, NULL);
 						}
 					}
 					break;
@@ -1810,14 +1801,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						) {
 							rc->create_time = stamp;
 						} else {
-							if (
-								GNET_PROPERTY(search_debug) > 3 ||
-								GNET_PROPERTY(ggep_debug) > 3
-							) {
-								g_warning("%s bad GGEP \"CT\" (dumping)",
-										gmsg_infostr(&n->header));
-								ext_dump(stderr, e, 1, "....", "\n", TRUE);
-							}
+							search_log_bad_ggep(n, e, NULL);
 						}
 					}
 					break;
@@ -1826,9 +1810,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						GNET_PROPERTY(search_debug) > 3 ||
 						GNET_PROPERTY(ggep_debug) > 3
 					) {
-						g_warning("%s unknown GGEP \"%s\" (dumping)",
-							gmsg_infostr(&n->header), ext_ggep_id_str(e));
-						ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						search_log_ggep(n, e, NULL, "unknown");
 					}
 					break;
 				case EXT_T_UNKNOWN:
@@ -1848,20 +1830,20 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			if (has_unknown) {
 				if (GNET_PROPERTY(search_debug) > 2) {
 					g_warning("%s hit record #%d/%d has unknown extensions!",
-						gmsg_infostr(&n->header), nr, rs->num_recs);
+						gmsg_node_infostr(n), nr, rs->num_recs);
 					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 					dump_hex(stderr, "Query Hit Tag", tag, taglen);
 				}
 			} else if (exvcnt == MAX_EXTVEC) {
 				if (GNET_PROPERTY(search_debug) > 2) {
 					g_warning("%s hit record #%d/%d has %d extensions!",
-						gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
+						gmsg_node_infostr(n), nr, rs->num_recs, exvcnt);
 					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 					dump_hex(stderr, "Query Hit Tag", tag, taglen);
 				}
 			} else if (GNET_PROPERTY(search_debug) > 3) {
 				g_message("%s hit record #%d/%d has %d extensions:",
-					gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
+					gmsg_node_infostr(n), nr, rs->num_recs, exvcnt);
 				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 			}
 
@@ -1927,7 +1909,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					"(%u/%u records parsed)",
 					(unsigned long) trailer_len,
 					(unsigned long) (s - n->data),
-					gmsg_infostr(&n->header),
+					gmsg_node_infostr(n),
 					node_addr(n), (guint) nr, (guint) rs->num_recs);
 			}
 			if (GNET_PROPERTY(search_debug) > 1) {
@@ -1980,7 +1962,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		if (GNET_PROPERTY(search_debug)) g_warning(
 				"%s from %s (via \"%s\" at %s) "
 				"had %u SHA1 error%s over %u record%s",
-				gmsg_infostr(&n->header), vendor ? vendor : "????",
+				gmsg_node_infostr(n), vendor ? vendor : "????",
 				node_vendor(n), node_addr(n),
 				sha1_errors, sha1_errors == 1 ? "" : "s",
 				nr, nr == 1 ? "" : "s");
@@ -1997,7 +1979,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		g_warning(
 				"%s from %s (via \"%s\" at %s) "
 				"had %u ALT error%s over %u record%s",
-				gmsg_infostr(&n->header), vendor ? vendor : "????",
+				gmsg_node_infostr(n), vendor ? vendor : "????",
 				node_vendor(n), node_addr(n),
 				alt_errors, alt_errors == 1 ? "" : "s",
 				nr, nr == 1 ? "" : "s");
@@ -2007,7 +1989,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		g_warning(
 				"%s from %s (via \"%s\" at %s) "
 				"had %u ALT extension%s with no hash over %u record%s",
-				gmsg_infostr(&n->header), vendor ? vendor : "????",
+				gmsg_node_infostr(n), vendor ? vendor : "????",
 				node_vendor(n), node_addr(n),
 				alt_without_hash, alt_without_hash == 1 ? "" : "s",
 				nr, nr == 1 ? "" : "s");
@@ -2016,19 +1998,19 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	if (GNET_PROPERTY(search_debug) > 1) {
 		if (seen_ggep_h && GNET_PROPERTY(search_debug) > 3)
 			g_message("%s from %s used GGEP \"H\" extension",
-					gmsg_infostr(&n->header), vendor ? vendor : "????");
+					gmsg_node_infostr(n), vendor ? vendor : "????");
 		if (seen_ggep_alt && GNET_PROPERTY(search_debug) > 3)
 			g_message("%s from %s used GGEP \"ALT\" extension",
-					gmsg_infostr(&n->header), vendor ? vendor : "????");
+					gmsg_node_infostr(n), vendor ? vendor : "????");
 		if (seen_bitprint && GNET_PROPERTY(search_debug) > 3)
 			g_message("%s from %s used urn:bitprint",
-					gmsg_infostr(&n->header), vendor ? vendor : "????");
+					gmsg_node_infostr(n), vendor ? vendor : "????");
 		if (multiple_sha1)
 			g_warning("%s from %s had records with multiple SHA1",
-					gmsg_infostr(&n->header), vendor ? vendor : "????");
+					gmsg_node_infostr(n), vendor ? vendor : "????");
 		if (multiple_alt)
 			g_warning("%s from %s had records with multiple ALT",
-					gmsg_infostr(&n->header), vendor ? vendor : "????");
+					gmsg_node_infostr(n), vendor ? vendor : "????");
 	}
 
 	{
@@ -2073,7 +2055,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	if (GNET_PROPERTY(search_debug) > 2) {
 		g_warning(
 			"BAD %s from %s (via \"%s\" at %s) -- %u/%u records parsed",
-			 gmsg_infostr(&n->header), vendor ? vendor : "????",
+			 gmsg_node_infostr(n), vendor ? vendor : "????",
 			 node_vendor(n), node_addr(n), nr, rs->num_recs);
 		if (GNET_PROPERTY(search_debug) > 1)
 			dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
@@ -2104,7 +2086,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
 				"node %s (%s) had no tag in its query hits, now has %s in %s",
 				n->n_weird,
-				node_addr(n), node_vendor(n), vendor, gmsg_infostr(&n->header));
+				node_addr(n), node_vendor(n), vendor, gmsg_node_infostr(n));
 			n->attrs &= ~NODE_A_QHD_NO_VTAG;
 		}
 	} else {
@@ -2125,7 +2107,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 				"now has none in %s",
 				n->n_weird, node_addr(n), node_vendor(n),
 				vendor_code_to_string(n->vcode.u32),
-				gmsg_infostr(&n->header));
+				gmsg_node_infostr(n));
 		}
 	}
 
@@ -2147,7 +2129,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
 				"node %s (%s) moved from tag %4.4s to %4.4s in %s",
 				n->n_weird, node_addr(n), node_vendor(n),
-				vc_old, vc_new, gmsg_infostr(&n->header));
+				vc_old, vc_new, gmsg_node_infostr(n));
 		}
 
 		n->vcode = rs->vcode;
@@ -2170,7 +2152,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 					"Node %s (%s) has GUID %s but used %s in %s",
 					n->n_weird, node_addr(n), node_vendor(n),
 					guid_hex_str(node_guid(n)), guid_buf,
-					gmsg_infostr(&n->header));
+					gmsg_node_infostr(n));
 			}
 		}
 	} else {
@@ -4809,8 +4791,8 @@ search_request_preprocess(struct gnutella_node *n)
 		exvcnt = ext_parse(search + search_len + 1, extra, exv, MAX_EXTVEC);
 
 		if (exvcnt == MAX_EXTVEC) {
-			g_warning("%s has %d extensions!",
-				gmsg_infostr(&n->header), exvcnt);
+			g_warning("%s has at least %d extensions!",
+				gmsg_node_infostr(n), exvcnt);
 			if (GNET_PROPERTY(share_debug))
 				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 			if (GNET_PROPERTY(share_debug) > 1)
@@ -4861,24 +4843,10 @@ search_request_preprocess(struct gnutella_node *n)
 					if (GGEP_OK == ret) {
 						/* Okay */
 					} else if (GGEP_NOT_FOUND == ret) {
-						if (
-							GNET_PROPERTY(search_debug) > 3 ||
-							GNET_PROPERTY(ggep_debug) > 3
-						) {
-							g_warning("%s GGEP \"H\" with no SHA1 (dumping)",
-								gmsg_infostr(&n->header));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
-						}
+						search_log_ggep(n, e, NULL, "SHA1-less");
 						continue;		/* Unsupported hash type */
 					} else {
-						if (
-							GNET_PROPERTY(search_debug) > 3 ||
-							GNET_PROPERTY(ggep_debug) > 3
-						) {
-							g_warning("%s bad GGEP \"H\" (dumping)",
-								gmsg_infostr(&n->header));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
-						}
+						search_log_bad_ggep(n, e, NULL);
 						drop_it = TRUE;
 						break;
 					}
@@ -4911,18 +4879,17 @@ search_request_preprocess(struct gnutella_node *n)
 				break;
 
 			case EXT_T_UNKNOWN_GGEP:
-				if (GNET_PROPERTY(share_debug) > 4) {
-					g_message("Unknown GGEP extension in query");
-				}
+				search_log_ggep(n, e, NULL, "unknown");
 				break;
 			case EXT_T_UNKNOWN:
 				if (GNET_PROPERTY(share_debug) > 4) {
-					g_message("Unknown extension in query");
+					g_message("%s has unknown extension", gmsg_node_infostr(n));
 				}
 				break;
 			default:
 				if (GNET_PROPERTY(share_debug) > 4) {
-					g_message("Unhandled extension in query");
+					g_message("%s has unhandled extension",
+						gmsg_node_infostr(n));
 				}
 			}
 			
@@ -5391,8 +5358,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 			case EXT_T_GGEP_XQ:	/* eXtended Query */
 				if (NULL != extended_query) {
-					g_warning("%s has multiple GGEP \"XQ\" (ignoring)",
-							gmsg_infostr(&n->header));
+					search_log_multiple_ggep(n, e, NULL);
 				} else {
 					char buf[MAX_EXTENDED_QUERY_LEN + 1];
 
@@ -5401,14 +5367,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 						extended_query = atom_str_get(buf);
 						break;
 					default:
-						if (
-							GNET_PROPERTY(search_debug) > 3 ||
-							GNET_PROPERTY(ggep_debug) > 3 
-						) {
-							g_warning("%s bad GGEP \"XQ\" (dumping)",
-									gmsg_infostr(&n->header));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
-						}
+						search_log_bad_ggep(n, e, NULL);
+						break;
 					}
 				}
 				break;
