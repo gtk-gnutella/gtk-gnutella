@@ -245,7 +245,7 @@ pdht_free_publish(pdht_publish_t *pp, gboolean do_remove)
 {
 	pdht_publish_check(pp);
 
-	if (do_remove && pp->pb != NULL) {
+	if (pp->pb != NULL) {
 		publish_cancel(pp->pb, FALSE);
 		pp->pb = NULL;
 	}
@@ -1554,8 +1554,7 @@ pdht_close(void)
 	aloc_publishes = NULL;
 
 	if (pdht_proxy.pp != NULL) {
-		pdht_free_publish(pdht_proxy.pp, FALSE);
-		pdht_proxy.pp = NULL;
+		pdht_free_publish(pdht_proxy.pp, TRUE);
 	}
 	cq_cancel(callout_queue, &pdht_proxy.publish_ev);
 }
