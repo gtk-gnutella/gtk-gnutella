@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2001-2003, Richard Eckart
+ * Copyright (c) 2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,6 +24,18 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * GTK1 update display of the various statistics-related panes.
+ *
+ * @author Richard Eckart
+ * @date 2001-2003
+ * @author Raphael Manfredi
+ * @date 2009
+ */
+
 #include "common.h"
 
 RCSID("$Id$")
@@ -42,6 +55,19 @@ RCSID("$Id$")
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
+
+enum gnet_stats_nb_page {
+	GNET_STATS_NB_PAGE_GENERAL,
+	GNET_STATS_NB_PAGE_FC_TTL,
+	GNET_STATS_NB_PAGE_FC_HOPS,
+	GNET_STATS_NB_PAGE_MESSAGES,
+	GNET_STATS_NB_PAGE_HORIZON,
+	GNET_STATS_NB_PAGE_FILE,
+
+	NUM_GNET_STATS_NB_PAGES
+};
+
+static GtkNotebook *notebook_gnet_stats;
 
 /***
  *** Private functions
@@ -281,6 +307,9 @@ gnet_stats_gui_init(void)
     guc_hsep_add_global_table_listener(
 		(GCallback) gnet_stats_gui_horizon_update, FREQ_UPDATES, 0);
 
+	notebook_gnet_stats =
+		GTK_NOTEBOOK(gui_main_window_lookup("gnet_stats_notebook"));
+
 	main_gui_add_timer(gnet_stats_gui_timer);
 }
 
@@ -310,111 +339,58 @@ gnet_stats_gui_shutdown(void)
 		PROP_GNET_STATS_HORIZON_COL_WIDTHS);
 }
 
-void
-gnet_stats_gui_update_display(time_t now)
+static void
+gnet_stats_update_general(const gnet_stats_t *stats)
 {
-    GtkCList *clist_stats_msg;
-    GtkCList *clist_reason;
-    GtkCList *clist_general;
-    GtkCList *clist_horizon;
-    GtkCList *clist_stats_fc_ttl;
-    GtkCList *clist_stats_fc_hops;
-    gint n;
-    gnet_stats_t stats;
-    gnet_stats_t mstats;
-	static time_t last_horizon_update = 0;
-	gint global_table_size;
-	gnet_stats_t *xstats = NULL;
+    static GtkCList *clist_general;
+	gint n;
 
-    guc_gnet_stats_get(&stats);
-
-    clist_stats_msg = GTK_CLIST(
-        gui_main_window_lookup("clist_gnet_stats_msg"));
-    clist_reason = GTK_CLIST(
-        gui_main_window_lookup("clist_gnet_stats_drop_reasons"));
-    clist_general = GTK_CLIST(
-        gui_main_window_lookup("clist_gnet_stats_general"));
-    clist_horizon = GTK_CLIST(
-        gui_main_window_lookup("clist_gnet_stats_horizon"));
-    clist_stats_fc_ttl = GTK_CLIST(
-        gui_main_window_lookup("clist_gnet_stats_fc_ttl"));
-    clist_stats_fc_hops = GTK_CLIST(
-        gui_main_window_lookup("clist_gnet_stats_fc_hops"));
-
-    gtk_clist_freeze(clist_reason);
-    gtk_clist_freeze(clist_general);
-    gtk_clist_freeze(clist_stats_msg);
-    gtk_clist_freeze(clist_stats_fc_ttl);
-    gtk_clist_freeze(clist_stats_fc_hops);
-
-	switch (GUI_PROPERTY(gnet_stats_source)) {
-	case GNET_STATS_FULL:
-		xstats = &stats;
-		break;
-	case GNET_STATS_TCP_ONLY:
-		guc_gnet_stats_tcp_get(&mstats);
-		xstats = &mstats;
-		break;
-	case GNET_STATS_UDP_ONLY:
-		guc_gnet_stats_udp_get(&mstats);
-		xstats = &mstats;
-		break;
-	default:
-		g_assert_not_reached();
+	if (NULL == clist_general) {
+		clist_general =
+			GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_general"));
 	}
 
-    for (n = 0; n < MSG_TYPE_COUNT; n ++) {
-        int m;
+    gtk_clist_freeze(clist_general);
 
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_received,
-            GUI_PROPERTY(gnet_stats_bytes) ?
-                byte_stat_str(xstats->byte.received, xstats->pkg.received, n) :
-                pkt_stat_str(xstats->pkg.received, n));
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_gen_queued,
-            GUI_PROPERTY(gnet_stats_bytes) ?
-                byte_stat_str(xstats->byte.gen_queued,
-					xstats->pkg.gen_queued, n) :
-                pkt_stat_str(xstats->pkg.gen_queued, n));
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_generated,
-            GUI_PROPERTY(gnet_stats_bytes) ?
-                byte_stat_str(xstats->byte.generated,
-					xstats->pkg.generated, n) :
-                pkt_stat_str(xstats->pkg.generated, n));
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_dropped,
-            GUI_PROPERTY(gnet_stats_bytes) ?
-                byte_stat_str(xstats->byte.dropped, xstats->pkg.dropped, n) :
-                pkt_stat_str(xstats->pkg.dropped, n));
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_expired,
-            GUI_PROPERTY(gnet_stats_bytes) ?
-                byte_stat_str(xstats->byte.expired, xstats->pkg.expired, n) :
-                pkt_stat_str(xstats->pkg.expired, n));
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_queued,
-            GUI_PROPERTY(gnet_stats_bytes) ?
-                byte_stat_str(xstats->byte.queued, xstats->pkg.queued, n) :
-                pkt_stat_str(xstats->pkg.queued, n));
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_relayed,
-            GUI_PROPERTY(gnet_stats_bytes) ?
-                byte_stat_str(xstats->byte.relayed, xstats->pkg.relayed, n) :
-                pkt_stat_str(xstats->pkg.relayed, n));
+    for (n = 0; n < GNR_TYPE_COUNT; n ++) {
+        gtk_clist_set_text(clist_general, n, 1, general_stat_str(stats, n));
+	}
 
-        for (m = 0; m < 9; m ++)
-            gtk_clist_set_text(clist_stats_fc_ttl, n, m+1,
-                GUI_PROPERTY(gnet_stats_bytes) ?
-                    flowc_stat_str_byte(stats.byte.flowc_ttl[m], n) :
-                    flowc_stat_str_pkg(stats.pkg.flowc_ttl[m], n));
+    gtk_clist_thaw(clist_general);
+}
 
-        for (m = 0; m < 9; m ++)
-            gtk_clist_set_text(clist_stats_fc_hops, n, m+1,
-                GUI_PROPERTY(gnet_stats_bytes) ?
-                    flowc_stat_str_byte(stats.byte.flowc_hops[m], n) :
-                    flowc_stat_str_pkg(stats.pkg.flowc_hops[m], n));
-    }
+static void
+gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
+{
+    static GtkCList *clist_reason;
+	gint n;
 
-    for (n = 0; n < MSG_DROP_REASON_COUNT; n ++)
-        gtk_clist_set_text(clist_reason, n, 1, drop_stat_str(&stats, n));
+	if (NULL == clist_reason) {
+		clist_reason =
+			GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_drop_reasons"));
+	}
 
-    for (n = 0; n < GNR_TYPE_COUNT; n ++)
-        gtk_clist_set_text(clist_general, n, 1, general_stat_str(&stats, n));
+    gtk_clist_freeze(clist_reason);
+
+    for (n = 0; n < MSG_DROP_REASON_COUNT; n ++) {
+        gtk_clist_set_text(clist_reason, n, 1, drop_stat_str(stats, n));
+	}
+
+    gtk_clist_thaw(clist_reason);
+}
+
+static void
+gnet_stats_update_horizon(time_t now)
+{
+    static GtkCList *clist_horizon;
+	static time_t last_horizon_update = 0;
+	gint global_table_size;
+	gint n;
+
+	if (NULL == clist_horizon) {
+		clist_horizon =
+			GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_horizon"));
+	}
 
 	/*
 	 * Update horizon statistics table, but only if the values have changed.
@@ -426,33 +402,177 @@ gnet_stats_gui_update_display(time_t now)
 	 *		-- TNT 14/06/2004
 	 */
 
-	if (delta_time(now, last_horizon_update) >= 2) {
+	if (delta_time(now, last_horizon_update) <2)
+		return;
 
-		gtk_clist_freeze(clist_horizon);
+	global_table_size = guc_hsep_get_table_size();
+	gtk_clist_freeze(clist_horizon);
 
-		global_table_size = guc_hsep_get_table_size();
+	for (n = 0; n < global_table_size; n ++) {
+		/*
+		 * Note that we output hsep_table[1..global_table_size]
+		 *		-- TNT 02/06/2004
+		 */
+		gtk_clist_set_text(clist_horizon, n, 1,
+			horizon_stat_str(n + 1, 1));
+		gtk_clist_set_text(clist_horizon, n, 2,
+			horizon_stat_str(n + 1, 2));
+		gtk_clist_set_text(clist_horizon, n, 3,
+			horizon_stat_str(n + 1, 3));
+	}
+	last_horizon_update = now;
 
-		for (n = 0; n < global_table_size; n ++) {
-			/*
-			 * Note that we output hsep_table[1..global_table_size]
-			 *		-- TNT 02/06/2004
-			 */
-			gtk_clist_set_text(clist_horizon, n, 1,
-			    horizon_stat_str(n + 1, 1));
-			gtk_clist_set_text(clist_horizon, n, 2,
-			    horizon_stat_str(n + 1, 2));
-			gtk_clist_set_text(clist_horizon, n, 3,
-			    horizon_stat_str(n + 1, 3));
-		}
-		last_horizon_update = now;
-		gtk_clist_thaw(clist_horizon);
+	gtk_clist_thaw(clist_horizon);
+}
+
+static void
+gnet_stats_update_messages(const gnet_stats_t *stats)
+{
+    static GtkCList *clist_stats_msg;
+	gint n;
+
+	if (NULL == clist_stats_msg) {
+		clist_stats_msg =
+			GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_msg"));
 	}
 
-    gtk_clist_thaw(clist_reason);
-    gtk_clist_thaw(clist_general);
+    gtk_clist_freeze(clist_stats_msg);
+
+    for (n = 0; n < MSG_TYPE_COUNT; n ++) {
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_received,
+            GUI_PROPERTY(gnet_stats_bytes) ?
+                byte_stat_str(stats->byte.received, stats->pkg.received, n) :
+                pkt_stat_str(stats->pkg.received, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_gen_queued,
+            GUI_PROPERTY(gnet_stats_bytes) ?
+                byte_stat_str(stats->byte.gen_queued,
+					stats->pkg.gen_queued, n) :
+                pkt_stat_str(stats->pkg.gen_queued, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_generated,
+            GUI_PROPERTY(gnet_stats_bytes) ?
+                byte_stat_str(stats->byte.generated,
+					stats->pkg.generated, n) :
+                pkt_stat_str(stats->pkg.generated, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_dropped,
+            GUI_PROPERTY(gnet_stats_bytes) ?
+                byte_stat_str(stats->byte.dropped, stats->pkg.dropped, n) :
+                pkt_stat_str(stats->pkg.dropped, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_expired,
+            GUI_PROPERTY(gnet_stats_bytes) ?
+                byte_stat_str(stats->byte.expired, stats->pkg.expired, n) :
+                pkt_stat_str(stats->pkg.expired, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_queued,
+            GUI_PROPERTY(gnet_stats_bytes) ?
+                byte_stat_str(stats->byte.queued, stats->pkg.queued, n) :
+                pkt_stat_str(stats->pkg.queued, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_relayed,
+            GUI_PROPERTY(gnet_stats_bytes) ?
+                byte_stat_str(stats->byte.relayed, stats->pkg.relayed, n) :
+                pkt_stat_str(stats->pkg.relayed, n));
+	}
+
     gtk_clist_thaw(clist_stats_msg);
+}
+
+static void
+gnet_stats_update_fc_ttl(const gnet_stats_t *stats)
+{
+    static GtkCList *clist_stats_fc_ttl;
+    gint n;
+
+	if (NULL == clist_stats_fc_ttl) {
+		clist_stats_fc_ttl =
+			GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_fc_ttl"));
+	}
+
+    gtk_clist_freeze(clist_stats_fc_ttl);
+
+    for (n = 0; n < MSG_TYPE_COUNT; n ++) {
+        int m;
+
+        for (m = 0; m < 9; m ++) {
+            gtk_clist_set_text(clist_stats_fc_ttl, n, m+1,
+                GUI_PROPERTY(gnet_stats_bytes) ?
+                    flowc_stat_str_byte(stats->byte.flowc_ttl[m], n) :
+                    flowc_stat_str_pkg(stats->pkg.flowc_ttl[m], n));
+		}
+	}
+
     gtk_clist_thaw(clist_stats_fc_ttl);
+}
+
+static void
+gnet_stats_update_fc_hops(const gnet_stats_t *stats)
+{
+    static GtkCList *clist_stats_fc_hops;
+    gint n;
+
+	if (NULL == clist_stats_fc_hops) {
+		clist_stats_fc_hops =
+			GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_fc_hops"));
+	}
+
+    gtk_clist_freeze(clist_stats_fc_hops);
+
+    for (n = 0; n < MSG_TYPE_COUNT; n ++) {
+        int m;
+
+        for (m = 0; m < 9; m ++) {
+            gtk_clist_set_text(clist_stats_fc_hops, n, m+1,
+                GUI_PROPERTY(gnet_stats_bytes) ?
+                    flowc_stat_str_byte(stats->byte.flowc_hops[m], n) :
+                    flowc_stat_str_pkg(stats->pkg.flowc_hops[m], n));
+		}
+	}
+
     gtk_clist_thaw(clist_stats_fc_hops);
+}
+
+void
+gnet_stats_gui_update_display(time_t now)
+{
+    gnet_stats_t stats;
+	enum gnet_stats_nb_page current_page;
+
+	current_page = gtk_notebook_get_current_page(notebook_gnet_stats);
+
+	switch (current_page) {
+	case GNET_STATS_NB_PAGE_GENERAL:
+		guc_gnet_stats_get(&stats);
+		gnet_stats_update_general(&stats);
+		gnet_stats_update_drop_reasons(&stats);
+		break;
+	case GNET_STATS_NB_PAGE_FC_TTL:
+		guc_gnet_stats_get(&stats);
+		gnet_stats_update_fc_ttl(&stats);
+		break;
+	case GNET_STATS_NB_PAGE_FC_HOPS:
+		guc_gnet_stats_get(&stats);
+		gnet_stats_update_fc_hops(&stats);
+		break;
+	case GNET_STATS_NB_PAGE_MESSAGES:
+		switch (GUI_PROPERTY(gnet_stats_source)) {
+		case GNET_STATS_FULL:
+			guc_gnet_stats_get(&stats);
+			break;
+		case GNET_STATS_TCP_ONLY:
+			guc_gnet_stats_tcp_get(&stats);
+			break;
+		case GNET_STATS_UDP_ONLY:
+			guc_gnet_stats_udp_get(&stats);
+			break;
+		default:
+			g_assert_not_reached();
+		}
+		gnet_stats_update_messages(&stats);
+		break;
+	case GNET_STATS_NB_PAGE_HORIZON:
+		gnet_stats_update_horizon(now);
+		break;
+	case GNET_STATS_NB_PAGE_FILE:
+	case NUM_GNET_STATS_NB_PAGES:
+		break;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

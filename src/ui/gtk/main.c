@@ -647,6 +647,7 @@ main_gui_init(void)
     gnet_stats_gui_init();
     search_stats_gui_init();
     uploads_gui_init();
+	upload_stats_common_gui_init();
     upload_stats_gui_init();
     /* Must come before search_init() so searches/filters can be loaded.*/
 	filter_init();
@@ -806,6 +807,7 @@ main_gui_shutdown(void)
     fi_gui_shutdown();
     nodes_gui_shutdown();
     uploads_gui_shutdown();
+    upload_stats_common_gui_shutdown();
     upload_stats_gui_shutdown();
 	gnet_stats_gui_shutdown();
     hcache_gui_shutdown();

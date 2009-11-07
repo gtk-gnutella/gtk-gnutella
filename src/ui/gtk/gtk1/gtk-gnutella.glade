@@ -4823,7 +4823,7 @@
 
 	      <widget>
 		<class>GtkNotebook</class>
-		<name>notebook3</name>
+		<name>gnet_stats_notebook</name>
 		<height>157</height>
 		<can_focus>True</can_focus>
 		<show_tabs>True</show_tabs>
