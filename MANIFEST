@@ -933,6 +933,7 @@ src/ui/gtk/settings_cb.c
 src/ui/gtk/settings_cb.h
 src/ui/gtk/statusbar.c
 src/ui/gtk/statusbar.h
+src/ui/gtk/upload_stats.c
 src/ui/gtk/upload_stats.h
 src/ui/gtk/upload_stats_cb.c
 src/ui/gtk/upload_stats_cb.h

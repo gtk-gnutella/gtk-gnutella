@@ -51,6 +51,7 @@ LSRC = \
 	settings.c \
 	settings_cb.c \
 	statusbar.c \
+	upload_stats.c \
 	upload_stats_cb.c \
 	uploads_cb.c \
 	uploads_common.c \

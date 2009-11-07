@@ -109,6 +109,7 @@ LSRC = \
 	settings.c \
 	settings_cb.c \
 	statusbar.c \
+	upload_stats.c \
 	upload_stats_cb.c \
 	uploads_cb.c \
 	uploads_common.c \
@@ -138,6 +139,7 @@ LOBJ = \
 	settings.o \
 	settings_cb.o \
 	statusbar.o \
+	upload_stats.o \
 	upload_stats_cb.o \
 	uploads_cb.o \
 	uploads_common.o \

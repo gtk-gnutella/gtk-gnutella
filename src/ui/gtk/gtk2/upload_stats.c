@@ -469,7 +469,7 @@ upload_stats_gui_update_name(struct ul_stats *us)
  * Update the visible statistics for a given file.
  */
 void
-upload_stats_gui_update(struct ul_stats *us)
+upload_stats_gui_update_model(struct ul_stats *us)
 {
 	GtkListStore *store;
 	struct upload_data *data;

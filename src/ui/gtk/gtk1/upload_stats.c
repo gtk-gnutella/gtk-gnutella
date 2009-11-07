@@ -254,7 +254,7 @@ upload_stats_gui_update_name(struct ul_stats *us)
  * Called when a row of the upload stats should be updated
  */
 void
-upload_stats_gui_update(struct ul_stats *us)
+upload_stats_gui_update_model(struct ul_stats *us)
 {
 	GtkCList *clist = clist_ul_stats();
 	enum c_us i;

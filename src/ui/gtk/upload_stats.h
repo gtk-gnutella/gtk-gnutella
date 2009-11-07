@@ -30,5 +30,9 @@
 #include "if/ui/gtk/upload_stats.h"
 
 void upload_stats_gui_shutdown(void);
+void upload_stats_common_gui_init(void);
+void upload_stats_common_gui_shutdown(void);
+
+void upload_stats_gui_update_model(struct ul_stats *us);
 
 #endif /* _gtk_uploads_stats_h_ */
