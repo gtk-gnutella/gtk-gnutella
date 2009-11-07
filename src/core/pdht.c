@@ -1135,6 +1135,7 @@ pdht_cancel_prox(gboolean callback)
 			callback ? "with" : "no");
 	}
 
+	pdht_proxy.backgrounded = FALSE;
 	pdht_cancel(pp, callback);
 }
 
