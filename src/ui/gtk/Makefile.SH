@@ -83,7 +83,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 14287 2007-08-02 22:37:41Z cbiere $
+# $X-Id: Jmakefile 17204 2009-11-07 19:38:16Z rmanfredi $
 
 LSRC = \
 	bitzi.c \
