@@ -81,6 +81,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_ALT_TLS,		/**< TLS-capability bitmap for GGEP ALT */
 	EXT_T_GGEP_BH,			/**< Browseable host indication */
 	EXT_T_GGEP_C,			/**< Result Code in HEAD Pongs */
+	EXT_T_GGEP_CHAT,		/**< Chat support info in qhit trailers */
 	EXT_T_GGEP_CT,			/**< Resource creation time */
 	EXT_T_GGEP_DHT,			/**< DHT version and flags, in pongs */
 	EXT_T_GGEP_DHTIPP,		/**< DHT nodes in packed IP:Port format (pongs) */

@@ -165,6 +165,7 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(ALT_TLS),	/**< TLS-capability bitmap for GGEP ALT */
 	GGEP_ID(BH),		/**< Browseable host indication */
 	GGEP_ID(C),			/**< Result Code in HEAD Pongs */
+	GGEP_ID(CHAT),		/**< CHAT indication in query hit trailer */
 	GGEP_ID(CT),		/**< Resource creation time */
 	GGEP_ID(DHT),		/**< DHT version and flags, in pongs */
 	GGEP_ID(DHTIPP),	/**< DHT nodes in packed IP:Port format (pongs) */
@@ -363,9 +364,9 @@ ext_names_kv_free(gpointer key, gpointer value, gpointer unused_udata)
 {
 	(void) unused_udata;
 
-	if (0 != strcmp(key, value)) {
-		G_FREE_NULL(value);
-	}
+	if (key != value)
+		HFREE_NULL(value);
+
     wfree(key, 1 + strlen(key));
 
 	return TRUE;
