@@ -102,7 +102,7 @@ offtime(time_t t, time_delta_t offset, struct tm *tp)
 #define DIV(a, b) ((a) / (b) - ((a) % (b) < 0))
 #define LEAPS_THRU_END_OF(y) (DIV (y, 4) - DIV (y, 100) + DIV (y, 400))
 
-	while (days < 0 || days >= (__isleap(y) ? 366 : 365)) {
+	while (days < 0 || days >= (is_leap(y) ? 366 : 365)) {
 		/* Guess a corrected year, assuming 365 days per year.	*/
 		long yg = y + days / 365 - (days % 365 < 0);
 
