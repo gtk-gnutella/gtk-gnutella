@@ -1627,7 +1627,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						payload = ext_payload(e);
 						if (
 							huge_tth_extract32(&payload[SHA1_BASE32_SIZE + 1],
-								paylen, &tth_digest, &n->header)
+								paylen, &tth_digest, n)
 						) {
 							atom_tth_change(&rc->tth, &tth_digest);
 						} else {
@@ -1645,7 +1645,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					}
 					if (
 						huge_sha1_extract32(ext_payload(e),
-								paylen, &sha1_digest, &n->header)
+								paylen, &sha1_digest, n)
 					) {
 						multiple_sha1 |= NULL != rc->sha1;
 						atom_sha1_change(&rc->sha1, &sha1_digest);
@@ -1661,7 +1661,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					paylen = MIN(paylen, TTH_BASE32_SIZE);
 					if (
 						huge_tth_extract32(ext_payload(e),
-							paylen, &tth_digest, &n->header)
+							paylen, &tth_digest, n)
 					) {
 						atom_tth_change(&rc->tth, &tth_digest);
 					} else {
@@ -4857,8 +4857,7 @@ search_request_preprocess(struct gnutella_node *n)
 						continue;				/* A simple "urn:sha1:" */
 
 					if (
-						!huge_sha1_extract32(ext_payload(e), paylen,
-							sha1, &n->header)
+						!huge_sha1_extract32(ext_payload(e), paylen, sha1, n)
 					) {
 						gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
 						drop_it = TRUE;
@@ -5335,12 +5334,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 						continue;				/* A simple "urn:sha1:" */
 
 					if (
-						!huge_sha1_extract32(ext_payload(e), paylen,
-							sha1, &n->header)
+						!huge_sha1_extract32(ext_payload(e), paylen, sha1, n)
 					) {
 						g_assert_not_reached();
 					}
-
 				}
 
 				exv_sha1[exv_sha1cnt].matched = FALSE;

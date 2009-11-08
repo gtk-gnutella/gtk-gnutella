@@ -805,7 +805,7 @@ handle_push_request(struct gnutella_node *n)
 					case GGEP_BAD_SIZE:
 						if (GNET_PROPERTY(ggep_debug) > 3) {
 							g_warning("%s bad GGEP \"GTKG.IPV6\" (dumping)",
-									gmsg_infostr(&n->header));
+									gmsg_node_infostr(n));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
 						}
 						break;
@@ -820,7 +820,7 @@ handle_push_request(struct gnutella_node *n)
 				if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
 					size_t paylen = ext_paylen(e);
 					g_warning("%s (PUSH): unhandled GGEP \"%s\" (%lu byte%s)",
-						gmsg_infostr(&n->header), ext_ggep_id_str(e),
+						gmsg_node_infostr(n), ext_ggep_id_str(e),
 						(gulong) paylen, paylen == 1 ? "" : "s");
 				}
 				break;

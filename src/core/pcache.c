@@ -592,7 +592,7 @@ ping_type(const gnutella_node_t *n)
 
 	if ((flags & PING_F_UHC) && GNET_PROPERTY(ggep_debug) > 1)
 		g_message("%s: UHC ping requesting %s slots from %s",
-			gmsg_infostr(&n->header),
+			gmsg_node_infostr(n),
 			(flags & PING_F_UHC_ANY) ?	"unspecified" :
 			(flags & PING_F_UHC_ULTRA) ?	"ultra" : "leaf",
 			host_addr_port_to_string(n->addr, n->port));
@@ -1844,7 +1844,7 @@ pong_extract_metadata(struct gnutella_node *n)
 			if (GNET_PROPERTY(ggep_debug) > 3 && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
-					gmsg_infostr(&n->header), ext_ggep_id_str(e),
+					gmsg_node_infostr(n), ext_ggep_id_str(e),
 					paylen, paylen == 1 ? "" : "s");
 			}
 			break;
@@ -2113,7 +2113,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 				if (GNET_PROPERTY(pcache_debug) || GNET_PROPERTY(ggep_debug)) {
 					g_warning("%s (UDP): "
 						"bad length for GGEP \"%s\" (%d byte%s)",
-						gmsg_infostr(&n->header), ext_ggep_id_str(e),
+						gmsg_node_infostr(n), ext_ggep_id_str(e),
 						paylen, paylen == 1 ? "" : "s");
 				}
 			} else {
@@ -2152,7 +2152,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
 				g_warning("%s (UDP): unhandled GGEP \"%s\" (%d byte%s)",
-					gmsg_infostr(&n->header), ext_ggep_id_str(e),
+					gmsg_node_infostr(n), ext_ggep_id_str(e),
 					paylen, paylen == 1 ? "" : "s");
 			}
 			break;

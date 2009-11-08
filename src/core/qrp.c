@@ -4392,7 +4392,7 @@ qrt_build_query_target(
 		if (GNET_PROPERTY(qrp_debug)) {
 			if (source != NULL)
 				g_warning("QRP %s had empty hash vector",
-					gmsg_infostr(&source->header));
+					gmsg_node_infostr(source));
 			else
 				g_warning("QRP query [hops=%d] had empty hash vector", hops);
 		}
@@ -4541,7 +4541,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 
 		g_message(
 			"QRP %s (%d word%s%s) forwarded to %d/%d leaves, %d ultra%s",
-			gmsg_infostr(&n->header),
+			gmsg_node_infostr(n),
 			qhvec->count, qhvec->count == 1 ? "" : "s",
 			qhvec->has_urn ? " + URN" : "", leaves,
 			GNET_PROPERTY(node_leaf_count),

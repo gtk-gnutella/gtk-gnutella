@@ -6733,7 +6733,7 @@ node_check_ggep(struct gnutella_node *n, int maxsize, int regsize)
 	len = n->size - regsize;				/* Extension length */
 
 	if (len > maxsize) {
-		g_warning("%s has %d extra bytes !", gmsg_infostr(&n->header), len);
+		g_warning("%s has %d extra bytes !", gmsg_node_infostr(n), len);
 		return FALSE;
 	}
 
@@ -6746,7 +6746,7 @@ node_check_ggep(struct gnutella_node *n, int maxsize, int regsize)
 
 	if (n->extcount == MAX_EXTVEC) {
 		g_warning("%s has %d extensions!",
-			gmsg_infostr(&n->header), n->extcount);
+			gmsg_node_infostr(n), n->extcount);
 		if (GNET_PROPERTY(node_debug))
 			ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
 		return FALSE;
@@ -6760,7 +6760,7 @@ node_check_ggep(struct gnutella_node *n, int maxsize, int regsize)
 		if (n->extvec[i].ext_type != EXT_GGEP) {
 			if (GNET_PROPERTY(node_debug)) {
 				g_warning("%s has non-GGEP extensions!",
-					gmsg_infostr(&n->header));
+					gmsg_node_infostr(n));
 				ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
 			}
 			return FALSE;
@@ -6768,7 +6768,7 @@ node_check_ggep(struct gnutella_node *n, int maxsize, int regsize)
 	}
 
 	if (GNET_PROPERTY(node_debug) > 3) {
-		g_message("%s has GGEP extensions:", gmsg_infostr(&n->header));
+		g_message("%s has GGEP extensions:", gmsg_node_infostr(n));
 		ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
 	}
 
@@ -7913,7 +7913,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 		if (n->size != n->allocated) {
 			/*
 			 * We need to grow the allocated data buffer
-			 * Since could change dynamically one day, so compute it.
+			 * Since maximum could change dynamically one day, compute it.
 			 */
 
 			guint32 maxsize = settings_max_msg_size();

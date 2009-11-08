@@ -245,7 +245,7 @@ vmsg_handle(struct gnutella_node *n)
 
 	if (GNET_PROPERTY(vmsg_debug) > 4)
 		g_message("VMSG %s \"%s\": %s/%uv%u from %s",
-			gmsg_infostr(&n->header), found ? vmsg.name : "UNKNOWN",
+			gmsg_node_infostr(n), found ? vmsg.name : "UNKNOWN",
 			vendor_code_to_string(vc.u32), id, version,
 			host_addr_port_to_string(n->addr, n->port));
 

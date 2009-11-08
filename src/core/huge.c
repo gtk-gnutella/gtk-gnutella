@@ -749,7 +749,7 @@ huge_improbable_sha1(const char *buf, size_t len)
  * of a SHA1 hash, and write decoded value in `sha1'.
  * Also make sure that the SHA1 is not an improbable value.
  *
- * `header' is the header of the packet where we found the SHA1, so that we
+ * `n' is the node receiving the packet where we found the SHA1, so that we
  * may trace errors if needed.
  *
  * When `check_old' is true, check the encoding against an earlier version
@@ -759,7 +759,7 @@ huge_improbable_sha1(const char *buf, size_t len)
  */
 gboolean
 huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
-	gconstpointer header)
+	const struct gnutella_node *n)
 {
 	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))
 		goto bad;
@@ -774,8 +774,8 @@ huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
 	if (huge_improbable_sha1(sha1->data, sizeof sha1->data)) {
 		if (GNET_PROPERTY(dbg)) {
 			if (is_printable(buf, len)) {
-				g_warning("%s has bad SHA1 (len=%lu): %.*s, hex: %s",
-					gmsg_infostr(header),
+				g_warning("%s has improbable SHA1 (len=%lu): %.*s, hex: %s",
+					gmsg_node_infostr(n),
 					(unsigned long) len,
 					(int) MIN(len, (size_t) INT_MAX),
 					buf, data_hex_str(sha1->data, sizeof sha1->data));
@@ -791,13 +791,13 @@ bad:
 	if (GNET_PROPERTY(dbg)) {
 		if (is_printable(buf, len)) {
 			g_warning("%s has bad SHA1 (len=%u): %.*s",
-				gmsg_infostr(header),
+				gmsg_node_infostr(n),
 				(unsigned) len,
 				(int) MIN(len, (size_t) INT_MAX),
 				buf);
 		} else {
 			g_warning("%s has bad SHA1 (len=%u)",
-				gmsg_infostr(header), (unsigned) len);
+				gmsg_node_infostr(n), (unsigned) len);
 			if (len)
 				dump_hex(stderr, "Base32 SHA1", buf, len);
 		}
@@ -808,7 +808,7 @@ bad:
 
 gboolean
 huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
-	gconstpointer header)
+	const struct gnutella_node *n)
 {
 	if (len != TTH_BASE32_SIZE)
 		goto bad;
@@ -822,13 +822,13 @@ bad:
 	if (GNET_PROPERTY(dbg)) {
 		if (is_printable(buf, len)) {
 			g_warning("%s has bad TTH (len=%u): %.*s",
-				gmsg_infostr(header),
+				gmsg_node_infostr(n),
 				(unsigned) len,
 				(int) MIN(len, (size_t) INT_MAX),
 				buf);
 		} else {
 			g_warning("%s has bad TTH (len=%u",
-				gmsg_infostr(header), (unsigned) len);
+				gmsg_node_infostr(n), (unsigned) len);
 			if (len)
 				dump_hex(stderr, "Base32 TTH", buf, len);
 		}

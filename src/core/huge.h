@@ -42,6 +42,7 @@
 
 #include "common.h"
 
+struct gnutella_node;
 struct shared_file;
 struct header;
 struct sha1;
@@ -64,9 +65,9 @@ gboolean huge_update_hashes(struct shared_file *sf,
 
 gboolean huge_improbable_sha1(const char *buf, size_t len);
 gboolean huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
-	gconstpointer header);
+	const struct gnutella_node *n);
 gboolean huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
-	gconstpointer header);
+	const struct gnutella_node *n);
 void huge_collect_locations(
 	const struct sha1 *sha1, const struct header *header);
 
