@@ -73,18 +73,6 @@ static const struct {
 #undef D
 };
 
-#define print_str(x) \
-G_STMT_START { \
-	if (iov_cnt < G_N_ELEMENTS(iov)) { \
-		const char *ptr = (x); \
-		if (ptr) { \
-			iov[iov_cnt].iov_base = (char *) ptr; \
-			iov[iov_cnt].iov_len = strlen(ptr); \
-			iov_cnt++; \
-		} \
-	} \
-} G_STMT_END
-
 static void
 crash_message(const char *reason)
 {

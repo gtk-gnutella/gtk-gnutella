@@ -37,21 +37,10 @@
 
 RCSID("$Id$")
 
+#include "lib/crash.h"				/* For print_str() */
 #include "lib/fast_assert.h"
 #include "lib/misc.h"
 #include "lib/override.h"			/* Must be the last header included */
-
-#define print_str(x) \
-G_STMT_START { \
-	if (iov_cnt < G_N_ELEMENTS(iov)) { \
-		const char *ptr = (x); \
-		if (ptr) { \
-			iov[iov_cnt].iov_base = (char *) ptr; \
-			iov[iov_cnt].iov_len = strlen(ptr); \
-			iov_cnt++; \
-		} \
-	} \
-} G_STMT_END
 
 /**
  * @note For maximum safety this is kept signal-safe, so that we can

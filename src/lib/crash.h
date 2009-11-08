@@ -43,6 +43,36 @@
 
 #include "common.h"
 
+/**
+ * This macro is to be used in signal handlers, or wherever it is important
+ * to be signal-safe, to record strings to be printed in an I/O vector,
+ * which is then to be flushed via writev(), which is an atomic syscall.
+ *
+ * When using this macro, the following local variable are expected to
+ * be visible on the stack:
+ *
+ *    struct iovec iov[16];
+ *    unsigned iov_cnt = 0;
+ *
+ * The size of the I/O vector may be anything, 16 above is just an example.
+ *
+ * @attention
+ * There is no formatting done here, this is not a printf()-like function.
+ * It only records an array of constant strings in a vector.
+ */
+#define print_str(x) \
+G_STMT_START { \
+	if (iov_cnt < G_N_ELEMENTS(iov)) { \
+		const char *ptr = (x); \
+		if (ptr) { \
+			iov[iov_cnt].iov_base = (char *) ptr; \
+			iov[iov_cnt].iov_len = strlen(ptr); \
+			iov_cnt++; \
+		} \
+	} \
+} G_STMT_END
+
+
 void crash_init(const char *pathname, const char *argv0, int pause_process);
 
 #endif	/* _crash_h_ */
