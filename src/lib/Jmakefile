@@ -80,6 +80,7 @@ LSRC = \
 	map.c \
 	mime_type.c \
 	misc.c \
+	offtime.c \
 	options.c \
 	pagetable.c \
 	parse.c \

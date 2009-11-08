@@ -209,3 +209,5 @@ tm_elapsed_us(const tm_t *t1, const tm_t *t0)
 }
 
 #endif /* _tm_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

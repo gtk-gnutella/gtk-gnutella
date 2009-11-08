@@ -2,6 +2,8 @@
  * Copyright (c) 2006 Christian Biere <christianbiere@gmx.de>
  * All rights reserved.
  *
+ * Copyright (c) 2009 Raphael Manfredi <Raphael_Manfredi@pobox.com>
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -36,6 +38,8 @@
  *
  * @author Christian Biere
  * @date 2006
+ * @author Raphael Manfredi
+ * @date 2009
  */
 
 #include "common.h"
@@ -44,10 +48,13 @@ RCSID("$Id$")
 
 #include "fd.h"
 #include "misc.h"
-#include "vmm.h"
+#include "offtime.h"
+#include "tm.h"
 #include "crash.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+static time_delta_t crash_gmtoff;	/**< Offset to GMT */
 
 static struct {
 	const char *pathname;	/* The file to execute. */
@@ -73,21 +80,104 @@ static const struct {
 #undef D
 };
 
+/**
+ * Append positive value to buffer, formatted as "%02u".
+ *
+ * @return amount of characters written.
+ */
+static size_t
+crash_append_fmt_02u(char *buf, size_t buflen, long v)
+{
+	if (buflen < 2 || v < 0)
+		return 0;
+
+	if (v >= 100)
+		v %= 100;
+
+	if (v < 10) {
+		buf[0] = '0';
+		buf[1] = dec_digit(v);
+	} else {
+		int d = v % 10;
+		int c = v /= 10;
+		buf[0] = dec_digit(c);
+		buf[1] = dec_digit(d);
+	}
+
+	return 2;
+}
+
+/**
+ * Append a character to supplied buffer.
+ *
+ * @return amount of characters written.
+ */
+static size_t
+crash_append_fmt_c(char *buf, size_t buflen, unsigned char c)
+{
+	if (buflen < 1)
+		return 0;
+
+	buf[0] = c;
+	return 1;
+}
+
+/**
+ * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS
+ * and should be at least 18 chars long or the string will be truncated.
+ *
+ * This routine can safely be used in a signal handler as it does not rely
+ * on unsafe calls.
+ */
+void
+crash_time(char *buf, size_t buflen)
+{
+	struct tm tm;
+	size_t rw = 0;
+
+	if (0 == buflen)
+		return;
+
+	if (!offtime(tm_time() + crash_gmtoff, 0, &tm)) {
+		buf[0] = '\0';
+		return;
+	}
+
+	rw += crash_append_fmt_02u(&buf[rw], buflen - rw,
+		(1900 + tm.tm_year) % 100);
+	rw += crash_append_fmt_c(&buf[rw], buflen - rw, '-');
+	rw += crash_append_fmt_02u(&buf[rw], buflen - rw, tm.tm_mon + 1);
+	rw += crash_append_fmt_c(&buf[rw], buflen - rw, '-');
+	rw += crash_append_fmt_02u(&buf[rw], buflen - rw, tm.tm_mday);
+	rw += crash_append_fmt_c(&buf[rw], buflen - rw, ' ');
+	rw += crash_append_fmt_02u(&buf[rw], buflen - rw, tm.tm_hour);
+	rw += crash_append_fmt_c(&buf[rw], buflen - rw, ':');
+	rw += crash_append_fmt_02u(&buf[rw], buflen - rw, tm.tm_min);
+	rw += crash_append_fmt_c(&buf[rw], buflen - rw, ':');
+	rw += crash_append_fmt_02u(&buf[rw], buflen - rw, tm.tm_sec);
+
+	rw++;	/* Trailing NUL */
+	buf[MIN(rw, buflen) - 1] = '\0';
+}
+
 static void
 crash_message(const char *reason)
 {
-	struct iovec iov[5];
+	struct iovec iov[6];
 	unsigned iov_cnt = 0;
 	char pid_buf[22];
-	
-	print_str("CRASH (pid=");
+	char time_buf[18];
+
+	crash_time(time_buf, sizeof time_buf);
+
+	print_str(time_buf);
+	print_str(" CRASH (pid=");
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));
 	print_str(") by ");
 	print_str(reason);
 	print_str("\n");
 	writev(STDERR_FILENO, iov, iov_cnt);
 }
-
 
 static void
 crash_exec(const char *pathname, const char *argv0)
@@ -182,6 +272,22 @@ crash_init(const char *pathname, const char *argv0, int pause_process)
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		set_signal(signals[i].signo, crash_handler);
+	}
+
+	/*
+	 * Compute offset to GMT.
+	 */
+
+	{
+		struct tm tmg;
+		struct tm *tp;
+		time_t now = tm_time_exact();
+
+		tp = gmtime(&now);
+		tmg = *tp;			/* struct copy */
+		tp = localtime(&now);
+
+		crash_gmtoff = diff_tm(tp, &tmg);
 	}
 }
 

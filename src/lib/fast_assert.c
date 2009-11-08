@@ -37,7 +37,7 @@
 
 RCSID("$Id$")
 
-#include "lib/crash.h"				/* For print_str() */
+#include "lib/crash.h"				/* For print_str() and crash_time() */
 #include "lib/fast_assert.h"
 #include "lib/misc.h"
 #include "lib/override.h"			/* Must be the last header included */
@@ -51,10 +51,14 @@ static void
 assertion_message(const assertion_data * const data, int fatal)
 {
 	char line_buf[22];
+	char time_buf[18];
 	struct iovec iov[16];
 	unsigned iov_cnt = 0;
 
-	print_str(fatal ? "FATAL: " : "WARNING: ");
+	crash_time(time_buf, sizeof time_buf);
+
+	print_str(time_buf);
+	print_str(fatal ? " FATAL: " : " WARNING: ");
 	if (data->expr) {
 		print_str("Assertion failure in ");
 	} else {

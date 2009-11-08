@@ -136,6 +136,7 @@ LSRC = \
 	map.c \
 	mime_type.c \
 	misc.c \
+	offtime.c \
 	options.c \
 	pagetable.c \
 	parse.c \
@@ -226,6 +227,7 @@ LOBJ = \
 	map.o \
 	mime_type.o \
 	misc.o \
+	offtime.o \
 	options.o \
 	pagetable.o \
 	parse.o \
