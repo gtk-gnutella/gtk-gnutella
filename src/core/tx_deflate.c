@@ -262,6 +262,16 @@ deflate_flush(txdrv_t *tx)
 	int ret;
 	int old_avail;
 
+	/*
+	 * Normally we come here with something already written, so outz->next_in
+	 * should be initialized.  If it is not the case, then it means we
+	 * never wrote anything, so there is nothing for us to do: we're simply
+	 * called through tx_deflate_close().
+	 */
+
+	if (NULL == outz->next_in)
+		goto done;
+
 retry:
 	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
 
@@ -284,7 +294,6 @@ retry:
 	outz->avail_in = 0;
 
 	g_assert(outz->avail_out > 0);
-	g_assert(outz->next_in);		/* We previously wrote something */
 
 	ret = deflate(outz, (tx->flags & TX_CLOSING) ? Z_FINISH : Z_SYNC_FLUSH);
 
@@ -339,6 +348,8 @@ retry:
 
 		goto retry;
 	}
+
+done:
 
 	attr->unflushed = 0;
 	attr->flags &= ~DF_FLUSH;
