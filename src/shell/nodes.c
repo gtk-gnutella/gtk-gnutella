@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/halloc.h"
 #include "lib/stringify.h"
 #include "lib/options.h"
 #include "lib/tm.h"
@@ -77,7 +78,7 @@ print_node_info(struct gnutella_shell *sh, const struct gnutella_node *n)
 		escaped = hex_escape(vendor, TRUE);
 		clamp_strcpy(vendor_escaped, sizeof vendor_escaped, escaped);
 		if (escaped != vendor) {
-			G_FREE_NULL(escaped);
+			HFREE_NULL(escaped);
 		}
 	}
 

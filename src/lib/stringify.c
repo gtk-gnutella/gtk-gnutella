@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "endian.h"
 #include "misc.h"
 #include "glib-missing.h"
+#include "halloc.h"
 #include "override.h"			/* Must be the last header included */
 
 static const char hex_alphabet[] = "0123456789ABCDEF";
@@ -553,6 +554,7 @@ char_is_safe(guchar c, gboolean strict)
  * Escape all non-printable chars into the hexadecimal "\xhh" form.
  *
  * @returns new escaped string, or the original string if no escaping occurred.
+ * The new string must be freed through hfree().
  */
 char *
 hex_escape(const char *name, gboolean strict)
@@ -570,7 +572,7 @@ hex_escape(const char *name, gboolean strict)
 	if (need_escape == 0)
 		return deconstify_gchar(name);
 
-	new = g_malloc(p - name + 3 * need_escape);
+	new = halloc(p - name + 3 * need_escape);
 
 	for (p = name, q = new, c = *p++; c; c = *p++) {
 		if (char_is_safe(c, strict))
@@ -603,7 +605,8 @@ escape_control_char(guchar c)
  * Escape all ASCII control chars except LF into the hexadecimal "\xhh" form.
  * When a CR LF sequence is seen, the CR character is dropped.
  *
- * @returns new escaped string, or the original string if no escaping occurred.
+ * @returns new escaped string, or the original string if no escaping occurred
+ * The new string must be freed through hfree().
  */
 char *
 control_escape(const char *s)
@@ -619,7 +622,7 @@ control_escape(const char *s)
 	if (need_escape > 0) {
 		char *q, *escaped;
 
-		q = escaped = g_malloc(p - s + 1 + 3 * need_escape);
+		q = escaped = halloc(p - s + 1 + 3 * need_escape);
 
 		for (p = s; '\0' != (c = *p); p++) {
 			if (escape_control_char(c)) {
@@ -690,7 +693,7 @@ lazy_string_to_printf_escape(const char *src)
 	g_assert(src);
 	g_assert(src != prev);
 
-	G_FREE_NULL(prev);
+	HFREE_NULL(prev);
 	
 	for (s = src, n = 0; '\0' != (c = *s); s++)
 		n += char_to_printf_escape(c, NULL, safe_chars);
@@ -698,7 +701,7 @@ lazy_string_to_printf_escape(const char *src)
 	if (n == (size_t) (s - src))
 		return src;
 	
-	prev = g_malloc(n + 1);
+	prev = halloc(n + 1);
 	for (s = src, p = prev; '\0' != (c = *s); s++) {
 		guint len = char_to_printf_escape(c, p, safe_chars);
 		p += len;

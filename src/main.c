@@ -931,7 +931,7 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix, safer);
 
 	if (safer != message) {
-		G_FREE_NULL(safer);
+		HFREE_NULL(safer);
 	}
 
 #if 0
