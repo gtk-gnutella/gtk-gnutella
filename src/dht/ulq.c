@@ -853,7 +853,7 @@ ulq_close(gboolean exiting)
 		struct ulq *uq = ulq[i];
 
 		if (uq) {
-			fifo_free_all(uq->q, free_fifo_item, NULL);
+			fifo_free_all(uq->q, free_fifo_item, &exiting);
 			slist_foreach(uq->launched, free_fifo_item, &exiting);
 			slist_free(&uq->launched);
 			wfree(uq, sizeof *uq);
