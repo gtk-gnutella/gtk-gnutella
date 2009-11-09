@@ -2899,15 +2899,16 @@ struct qrt_receive {
 	int shrink_factor;		/**< 1 means none, `n' means coalesce `n' entries */
 	int seqsize;			/**< Amount of patch messages to expect */
 	int seqno;				/**< Sequence number of next message we expect */
-	int entry_bits;		/**< Amount of bits used by PATCH */
+	int entry_bits;			/**< Amount of bits used by PATCH */
 	z_streamp inz;			/**< Data inflater */
-	char *data;			/**< Where inflated data is written */
+	char *data;				/**< Where inflated data is written */
 	int len;				/**< Length of the `data' buffer */
 	int current_slot;		/**< Current slot processed in patch */
 	int current_index;		/**< Current index (after shrinking) in QR table */
 	char *expansion;		/**< Temporary expansion arena before shrinking */
 	gboolean deflated;		/**< Is data deflated? */
-	gboolean (*patch)(struct qrt_receive *qrcv, const guchar *data, int len);
+	gboolean (*patch)(struct qrt_receive *qrcv, const guchar *data, int len,
+						const struct qrp_patch *patch);
 };
 
 /**
@@ -2917,13 +2918,15 @@ struct qrt_receive {
  */
 static gboolean
 qrt_unknown_patch(struct qrt_receive *unused_qrcv,
-	const guchar *unused_data, int unused_len)
+	const guchar *unused_data, int unused_len,
+	const struct qrp_patch *unused_patch)
 {
 	(void) unused_qrcv;
 	(void) unused_data;
 	(void) unused_len;
+	(void) unused_patch;
 
-	g_error("Patch application pointer uninitialized.");
+	g_error("QRP patch application pointer uninitialized.");
 
 	return FALSE;
 }
@@ -3036,12 +3039,18 @@ qrt_receive_free(struct qrt_receive *qrcv)
 /**
  * Apply raw patch data (uncompressed) to the current routing table.
  *
+ * @param qrcv			query routing table being received
+ * @param data			patch data to apply
+ * @param len			length of patch data (amount of data bytes)
+ * @param patch			the PATCH message, for logging purposes
+ *
  * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
  */
 static gboolean
-qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, int len)
+qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, int len,
+	const struct qrp_patch *patch)
 {
-	int bpe = qrcv->entry_bits;		/* bits per entry */
+	int bpe = qrcv->entry_bits;			/* bits per entry */
 	int epb;							/* entries per byte */
 	guint8 rmask;						/* reading mask */
 	int expansion_slot;
@@ -3063,10 +3072,12 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, int len)
 	if (qrcv->current_index >= rt->slots) {
 		struct gnutella_node *n = qrcv->node;
 		g_warning("%s node %s <%s> overflowed its QRP %d-bit patch of %s slots"
-			" (spurious message?)", node_type(n), node_addr(n), node_vendor(n),
+			" (%s message #%d/%d)", node_type(n), node_addr(n), node_vendor(n),
 			qrcv->entry_bits,
 			compact_size(rt->client_slots,
-				GNET_PROPERTY(display_metric_units)));
+				GNET_PROPERTY(display_metric_units)),
+			patch->compressor ? "compressed" : "plain",
+			patch->seq_no, patch->seq_size);
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
 			compact_size(rt->client_slots,
 				GNET_PROPERTY(display_metric_units)));
@@ -3259,7 +3270,8 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, int len)
  * must be ignored.
  */
 static gboolean
-qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte)
+qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte,
+	const struct qrp_patch *patch)
 {
 	struct routing_table *rt = qrcv->table;
 	unsigned last_patch_slot;
@@ -3272,10 +3284,14 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte)
 
 	if (qrcv->current_index >= rt->slots) {
 		struct gnutella_node *n = qrcv->node;
-		g_warning("%s node %s <%s> overflowed its QRP patch of %s slots"
-			" (spurious message?)", node_type(n), node_addr(n), node_vendor(n),
+		g_warning("%s node %s <%s> overflowed its QRP %d-bit patch of %s slots"
+			" (current_index=%d, slots=%d at %s message #%u/%u)",
+			node_type(n), node_addr(n), node_vendor(n), qrcv->entry_bits,
 			compact_size(rt->client_slots,
-				GNET_PROPERTY(display_metric_units)));
+				GNET_PROPERTY(display_metric_units)),
+			qrcv->current_index, rt->slots,
+			patch->compressor ? "compressed" : "plain",
+			patch->seq_no, patch->seq_size);
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
 			compact_size(rt->client_slots,
 				GNET_PROPERTY(display_metric_units)));
@@ -3292,11 +3308,13 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte)
 	if (last_patch_slot > rt->client_slots) {
 		struct gnutella_node *n = qrcv->node;
 		g_warning("%s node %s <%s> overflowed its QRP %d-bit patch of "
-			"%s slots by extra %s",
+			"%s slots by extra %s at %s message #%u/%u",
 			node_type(n), node_addr(n), node_vendor(n), qrcv->entry_bits,
 			compact_size(rt->client_slots,
 				GNET_PROPERTY(display_metric_units)),
-			uint32_to_string(last_patch_slot - rt->client_slots));
+			uint32_to_string(last_patch_slot - rt->client_slots),
+			patch->compressor ? "compressed" : "plain",
+			patch->seq_no, patch->seq_size);
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
 			compact_size(rt->client_slots,
 				GNET_PROPERTY(display_metric_units)));
@@ -3309,10 +3327,16 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte)
 /**
  * Apply raw 8-bit patch data (uncompressed) to the current routing table.
  *
+ * @param qrcv			query routing table being received
+ * @param data			patch data to apply
+ * @param len			length of patch data (amount of data bytes)
+ * @param patch			the PATCH message, for logging purposes
+ *
  * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
  */
 static gboolean
-qrt_apply_patch8(struct qrt_receive *qrcv, const guchar *data, int len)
+qrt_apply_patch8(struct qrt_receive *qrcv, const guchar *data, int len,
+	const struct qrp_patch *patch)
 {
 	struct routing_table *rt = qrcv->table;
 	int i;
@@ -3327,7 +3351,7 @@ qrt_apply_patch8(struct qrt_receive *qrcv, const guchar *data, int len)
 	if (len == 0)						/* No data, only zlib trailer */
 		return TRUE;
 
-	if (!qrt_patch_is_valid(qrcv, len, 1))
+	if (!qrt_patch_is_valid(qrcv, len, 1, patch))
 		return FALSE;
 
 	g_assert(qrcv->current_index + len <= rt->slots);
@@ -3361,10 +3385,16 @@ qrt_apply_patch8(struct qrt_receive *qrcv, const guchar *data, int len)
 /**
  * Apply raw 4-bit patch data (uncompressed) to the current routing table.
  *
+ * @param qrcv			query routing table being received
+ * @param data			patch data to apply
+ * @param len			length of patch data (amount of data bytes)
+ * @param patch			the PATCH message, for logging purposes
+ *
  * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
  */
 static gboolean
-qrt_apply_patch4(struct qrt_receive *qrcv, const guchar *data, int len)
+qrt_apply_patch4(struct qrt_receive *qrcv, const guchar *data, int len,
+	const struct qrp_patch *patch)
 {
 	struct routing_table *rt = qrcv->table;
 	int i;
@@ -3379,7 +3409,7 @@ qrt_apply_patch4(struct qrt_receive *qrcv, const guchar *data, int len)
 	if (len == 0)						/* No data, only zlib trailer */
 		return TRUE;
 
-	if (!qrt_patch_is_valid(qrcv, len, 2))
+	if (!qrt_patch_is_valid(qrcv, len, 2, patch))
 		return FALSE;
 
 	g_assert(qrcv->current_index + len * 2 <= rt->slots);
@@ -3681,6 +3711,11 @@ qrt_handle_reset(
 /**
  * Handle reception of QRP PATCH.
  *
+ * @param n			the node sending the patch
+ * @param qrcv		the querty routing table being received
+ * @param patch		the PATCH message
+ * @param done		written with TRUE when last message was processed
+ *
  * @returns TRUE if we handled the message correctly, FALSE if an error
  * was found and the node BYE-ed.  Sets `done' to TRUE on the last message
  * from the sequence.
@@ -3817,7 +3852,7 @@ qrt_handle_patch(
 
 			if (
 				!qrcv->patch(qrcv, (guchar *) qrcv->data,
-					qrcv->len - inz->avail_out)
+					qrcv->len - inz->avail_out, patch)
 			)
 				return FALSE;
 		}
@@ -3837,7 +3872,7 @@ qrt_handle_patch(
 				(guint) patch->seq_no, (guint) patch->seq_size);
 			return FALSE;
 		}
-	} else if (!qrcv->patch(qrcv, patch->data, patch->len))
+	} else if (!qrcv->patch(qrcv, patch->data, patch->len, patch))
 		return FALSE;
 
 	/*
