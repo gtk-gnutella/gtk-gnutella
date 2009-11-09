@@ -58,6 +58,7 @@ RCSID("$Id$")
 #include "lib/halloc.h"
 #include "lib/pow2.h"
 #include "lib/sha1.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/wordvec.h"
@@ -3061,8 +3062,9 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, int len)
 
 	if (qrcv->current_index >= rt->slots) {
 		struct gnutella_node *n = qrcv->node;
-		g_warning("%s node %s <%s> overflowed its QRP patch of %s slots"
+		g_warning("%s node %s <%s> overflowed its QRP %d-bit patch of %s slots"
 			" (spurious message?)", node_type(n), node_addr(n), node_vendor(n),
+			qrcv->entry_bits,
 			compact_size(rt->client_slots,
 				GNET_PROPERTY(display_metric_units)));
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
@@ -3231,9 +3233,10 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, int len)
 			if ((guint) qrcv->current_slot >= rt->client_slots) {
 				if (j != (epb - 1) || i != (len - 1)) {
 					struct gnutella_node *n = qrcv->node;
-					g_warning(
-						"%s node %s <%s> overflowed its QRP patch of %s slots",
+					g_warning("%s node %s <%s> overflowed its QRP "
+						"%d-bit patch of %s slots",
 						node_type(n), node_addr(n), node_vendor(n),
+						qrcv->entry_bits,
 						compact_size(rt->client_slots,
 							GNET_PROPERTY(display_metric_units)));
 					node_bye_if_writable(n, 413,
@@ -3259,6 +3262,7 @@ static gboolean
 qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte)
 {
 	struct routing_table *rt = qrcv->table;
+	unsigned last_patch_slot;
 
 	/*
 	 * Make sure the received table is not full yet.  If that
@@ -3282,13 +3286,17 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte)
 	 * Make sure they are not providing us with more data than
 	 * the table can hold.
 	 */
-	if ((guint) qrcv->current_slot + len * slots_per_byte > rt->client_slots) {
+
+	last_patch_slot = (guint) qrcv->current_slot + len * slots_per_byte;
+
+	if (last_patch_slot > rt->client_slots) {
 		struct gnutella_node *n = qrcv->node;
-		g_warning(
-			"%s node %s <%s> overflowed its QRP patch of %s slots",
-			node_type(n), node_addr(n), node_vendor(n),
+		g_warning("%s node %s <%s> overflowed its QRP %d-bit patch of "
+			"%s slots by extra %s",
+			node_type(n), node_addr(n), node_vendor(n), qrcv->entry_bits,
 			compact_size(rt->client_slots,
-				GNET_PROPERTY(display_metric_units)));
+				GNET_PROPERTY(display_metric_units)),
+			uint32_to_string(last_patch_slot - rt->client_slots));
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
 			compact_size(rt->client_slots,
 				GNET_PROPERTY(display_metric_units)));
