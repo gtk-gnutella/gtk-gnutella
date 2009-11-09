@@ -41,6 +41,7 @@
 RCSID("$Id$")
 
 #include "timestamp.h"
+#include "offtime.h"
 #include "stringify.h"
 #include "glib-missing.h"
 #include "override.h"			/* Must be the last header included */
@@ -49,8 +50,8 @@ RCSID("$Id$")
  * Compute the difference in seconds between two tm structs (a - b).
  * Comes from glibc-2.2.5.
  */
-static int
-tm_diff(const struct tm *a, const struct tm * b)
+time_delta_t
+diff_tm(const struct tm *a, const struct tm * b)
 {
 	/*
 	 * Compute intervening leap days correctly even if year is negative.
@@ -58,10 +59,8 @@ tm_diff(const struct tm *a, const struct tm * b)
 	 * but it's OK to assume that A and B are close to each other.
 	 */
 
-#define TM_YEAR_BASE 1900
-
-	int a4 = (a->tm_year >> 2) + (TM_YEAR_BASE >> 2) - ! (a->tm_year & 3);
-	int b4 = (b->tm_year >> 2) + (TM_YEAR_BASE >> 2) - ! (b->tm_year & 3);
+	int a4 = (a->tm_year >> 2) + (TM_YEAR_ORIGIN >> 2) - ! (a->tm_year & 3);
+	int b4 = (b->tm_year >> 2) + (TM_YEAR_ORIGIN >> 2) - ! (b->tm_year & 3);
 	int a100 = a4 / 25 - (a4 % 25 < 0);
 	int b100 = b4 / 25 - (b4 % 25 < 0);
 	int a400 = a100 >> 2;
@@ -158,6 +157,28 @@ timestamp_to_string(time_t date)
 }
 
 /**
+ * Compute offset of local timezone to GMT, in seconds.
+ *
+ * @param date			the current timestamp for which we want the offset
+ * @param tm_ptr		if non-NULL, written with the localtime() struct.
+ */
+time_delta_t
+timestamp_gmt_offset(time_t date, struct tm **tm_ptr)
+{
+	struct tm *tm;
+	struct tm gmt_tm;
+	
+	tm = gmtime(&date);
+	gmt_tm = *tm;					/* struct copy */
+	tm = localtime(&date);
+
+	if (tm_ptr != NULL)
+		*tm_ptr = tm;
+
+	return diff_tm(tm, &gmt_tm);	/* in seconds */
+}
+
+/**
  * Convert time to RFC-822 style date, into supplied string buffer.
  *
  * @param date The timestamp.
@@ -170,14 +191,10 @@ static size_t
 timestamp_rfc822_to_string_buf(time_t date, char *buf, size_t size)
 {
 	struct tm *tm;
-	struct tm gmt_tm;
 	int gmt_off;
 	char sign;
 
 	g_assert(size > 0);
-	tm = gmtime(&date);
-	gmt_tm = *tm;					/* struct copy */
-	tm = localtime(&date);
 
 	/*
 	 * We used to do:
@@ -196,7 +213,7 @@ timestamp_rfc822_to_string_buf(time_t date, char *buf, size_t size)
 	 * but this is GNU-specific.
 	 */
 
-	gmt_off = tm_diff(tm, &gmt_tm) / 60;	/* in minutes */
+	gmt_off = timestamp_gmt_offset(date, &tm) / 60;	/* in minutes */
 
 	if (gmt_off < 0) {
 		sign = '-';

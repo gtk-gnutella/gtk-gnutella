@@ -72,6 +72,33 @@ G_STMT_START { \
 	} \
 } G_STMT_END
 
+/**
+ * Print unsigned quantity into supplied buffer and returns the address
+ * within that buffer where the printed string starts (value is generated
+ * bacwards from the end of the buffer).
+ *
+ * This routine can be used safely in signal handlers.
+ */
+static inline WARN_UNUSED_RESULT const char *
+print_number(char *dst, size_t size, unsigned long value)
+{
+	char *p = &dst[size];
+
+	if (size > 0) {
+		*--p = '\0';
+	}
+	while (p != dst) {
+		*--p = (value % 10) + '0';
+		value /= 10;
+		if (0 == value)
+			break;
+	}
+	return p;
+}
+
+/*
+ * Public interface.
+ */
 
 void crash_init(const char *pathname, const char *argv0, int pause_process);
 void crash_time(char *buf, size_t buflen);

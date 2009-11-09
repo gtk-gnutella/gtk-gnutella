@@ -120,6 +120,7 @@
 #include "lib/iso3166.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
+#include "lib/offtime.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
 #include "lib/patricia.h"
@@ -927,7 +928,7 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 	safer = control_escape(message);
 
 	fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s): %s\n",
-		(1900 + ct->tm_year) % 100, ct->tm_mon + 1, ct->tm_mday,
+		(TM_YEAR_ORIGIN + ct->tm_year) % 100, ct->tm_mon + 1, ct->tm_mday,
 		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix, safer);
 
 	if (safer != message) {

@@ -49,12 +49,13 @@ RCSID("$Id$")
 #include "fd.h"
 #include "misc.h"
 #include "offtime.h"
+#include "timestamp.h"
 #include "tm.h"
 #include "crash.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static time_delta_t crash_gmtoff;	/**< Offset to GMT */
+static time_delta_t crash_gmtoff;	/**< Offset to GMT, supposed to be fixed */
 
 static struct {
 	const char *pathname;	/* The file to execute. */
@@ -144,7 +145,7 @@ crash_time(char *buf, size_t buflen)
 	}
 
 	rw += crash_append_fmt_02u(&buf[rw], buflen - rw,
-		(1900 + tm.tm_year) % 100);
+		(TM_YEAR_ORIGIN + tm.tm_year) % 100);
 	rw += crash_append_fmt_c(&buf[rw], buflen - rw, '-');
 	rw += crash_append_fmt_02u(&buf[rw], buflen - rw, tm.tm_mon + 1);
 	rw += crash_append_fmt_c(&buf[rw], buflen - rw, '-');
@@ -274,21 +275,7 @@ crash_init(const char *pathname, const char *argv0, int pause_process)
 		set_signal(signals[i].signo, crash_handler);
 	}
 
-	/*
-	 * Compute offset to GMT.
-	 */
-
-	{
-		struct tm tmg;
-		struct tm *tp;
-		time_t now = tm_time_exact();
-
-		tp = gmtime(&now);
-		tmg = *tp;			/* struct copy */
-		tp = localtime(&now);
-
-		crash_gmtoff = diff_tm(tp, &tmg);
-	}
+	crash_gmtoff = timestamp_gmt_offset(tm_time_exact(), NULL);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

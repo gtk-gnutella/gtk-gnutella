@@ -35,6 +35,8 @@
 
 #include "common.h"		/* For RCSID */
 
+RCSID("$Id$")
+
 #if defined(MALLOC_STATS) && !defined(TRACK_MALLOC)
 #define TRACK_MALLOC
 #endif
@@ -82,8 +84,6 @@
 #define MALLOC_PERIODIC		/* Periodically scan blocks for overruns */
 #define MALLOC_PERIOD	5000	/* Every 5 secs */
 #endif
-
-RCSID("$Id$")
 
 /**
  * Most routines in this file are defined either when compiling with

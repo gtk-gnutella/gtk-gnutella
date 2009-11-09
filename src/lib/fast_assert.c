@@ -39,7 +39,6 @@ RCSID("$Id$")
 
 #include "lib/crash.h"				/* For print_str() and crash_time() */
 #include "lib/fast_assert.h"
-#include "lib/misc.h"
 #include "lib/override.h"			/* Must be the last header included */
 
 /**

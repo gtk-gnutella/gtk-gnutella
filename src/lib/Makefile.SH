@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 16990 2009-09-25 15:23:43Z rmanfredi $
+# $X-Id: Jmakefile 17211 2009-11-08 23:18:22Z rmanfredi $
 
 LSRC = \
 	adns.c \

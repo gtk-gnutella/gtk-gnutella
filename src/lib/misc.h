@@ -619,23 +619,6 @@ G_STMT_START { \
 	} \
 } G_STMT_END
 
-static inline const char *
-print_number(char *dst, size_t size, unsigned long value)
-{
-	char *p = &dst[size];
-
-	if (size > 0) {
-		*--p = '\0';
-	}
-	while (p != dst) {
-		*--p = (value % 10) + '0';
-		value /= 10;
-		if (0 == value)
-			break;
-	}
-	return p;
-}
-
 /**
  * Converts an integer to a single decimal ASCII digit. The are no checks,
  * this is just a convenience function.

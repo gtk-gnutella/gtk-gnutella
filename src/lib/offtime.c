@@ -65,7 +65,7 @@ static inline gboolean is_leap(long year) {
  * @return TRUE on success.
  *
  * @note
- * This code was taken from the GNU libc, which is distributed under the LGPL.
+ * This code was taken from the GNU libc 2.10.1 (distributed under the LGPL).
  * It was slightly adapted to meet GTKG's coding standards.
  */
 gboolean
@@ -112,9 +112,9 @@ offtime(time_t t, time_delta_t offset, struct tm *tp)
 		y = yg;
 	}
 
-	tp->tm_year = y - 1900;
+	tp->tm_year = y - TM_YEAR_ORIGIN;
 
-	if (tp->tm_year != y - 1900) {
+	if (tp->tm_year != y - TM_YEAR_ORIGIN) {
 		/* The year cannot be represented due to overflow.	*/
 		return FALSE;
 	}
@@ -130,28 +130,6 @@ offtime(time_t t, time_delta_t offset, struct tm *tp)
 	tp->tm_mday = days + 1;
 
 	return TRUE;
-}
-
-/**
- * Yield A - B, measured in seconds.
- */
-time_delta_t
-diff_tm(struct tm *a, struct tm *b)
-{
-    int ay = a->tm_year + (TM_YEAR_ORIGIN - 1);
-    int by = b->tm_year + (TM_YEAR_ORIGIN - 1);
-    long days = (
-		    /* difference in day of year */
-		    a->tm_yday - b->tm_yday
-		    /* + intervening leap days */
-		    + ((ay >> 2) - (by >> 2))
-		    - (ay / 100 - by / 100)
-		    + ((ay / 100 >> 2) - (by / 100 >> 2))
-		    /* + difference in years * 365 */
-		    + (long) (ay - by) * 365);
-    return (60 * (60 * (24 * days + (a->tm_hour - b->tm_hour))
-		  + (a->tm_min - b->tm_min))
-	    + (a->tm_sec - b->tm_sec));
 }
 
 /* vi: set ts=4 sw=4 cindent: */

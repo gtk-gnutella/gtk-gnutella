@@ -78,7 +78,8 @@
 #define ISDIGIT(c) ((unsigned) (c) - '0' <= 9)
 
 #include "getdate.h"
-#include "offtime.h"
+#include "offtime.h"		/* For TM_YEAR_ORIGIN */
+#include "timestamp.h"		/* For diff_tm */
 
 /* Some old versions of bison generate parsers that use bcopy.
    That loses on systems that don't provide the function, so we have
@@ -727,7 +728,7 @@ static int ToYear(int Year)
     if (Year < 69)
 	Year += 2000;
     else if (Year < 100)
-	Year += 1900;
+	Year += TM_YEAR_ORIGIN;
 
     return Year;
 }

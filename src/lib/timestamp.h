@@ -41,6 +41,8 @@
 
 #include "misc.h"		/* For short_string_t */
 
+time_delta_t diff_tm(const struct tm *a, const struct tm * b);
+
 /*
  * Date string conversions
  */
