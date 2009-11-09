@@ -41,11 +41,17 @@
 
 #include "misc.h"		/* For short_string_t */
 
+/*
+ * Utilities based on "struct tm".
+ */
+
 time_delta_t diff_tm(const struct tm *a, const struct tm * b);
+time_delta_t timestamp_gmt_offset(time_t date, struct tm **tm_ptr);
 
 /*
- * Date string conversions
+ * Date string conversions.
  */
+
 const char *timestamp_to_string(time_t date);
 const char *timestamp_utc_to_string(time_t date);
 const char *timestamp_rfc822_to_string(time_t date);
