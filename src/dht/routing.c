@@ -3375,12 +3375,12 @@ dht_close(gboolean exiting)
 
 	lookup_close(exiting);
 	publish_close(exiting);
+	ulq_close(exiting);
 	stable_close();
 	tcache_close();
 	roots_close();
 	values_close();
 	keys_close();
-	ulq_close();
 	dht_rpc_close();
 	token_close();
 

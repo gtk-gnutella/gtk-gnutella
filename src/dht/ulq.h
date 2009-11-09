@@ -44,7 +44,7 @@
  */
 
 void ulq_init(void);
-void ulq_close(void);
+void ulq_close(gboolean exiting);
 
 #endif /* _dht_ulq_h_ */
 

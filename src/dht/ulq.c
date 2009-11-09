@@ -162,14 +162,14 @@ static void ulq_delay_servicing(void);
 static inline void
 ulq_check(const struct ulq *uq)
 {
-	g_assert(uq);
+	g_assert(uq != NULL);
 	g_assert(ULQ_MAGIC == uq->magic);
 }
 
 static inline void
 ulq_item_check(const struct ulq_item *ui)
 {
-	g_assert(ui);
+	g_assert(ui != NULL);
 	g_assert(ULQ_ITEM_MAGIC == ui->magic);
 }
 
@@ -817,18 +817,32 @@ ulq_init(void)
  * FIFO free item freeing callback.
  */
 static void
-free_fifo_item(gpointer item, gpointer unused_data)
+free_fifo_item(gpointer item, gpointer data)
 {
-	(void) unused_data;
+	struct ulq_item *ui = item;
+	gboolean *exiting = data;
 
-	free_ulq_item(item);
+	ulq_item_check(ui);
+
+	/*
+	 * If the process is not exiting, we're simply shutdowning the DHT
+	 * layer and therefore callers need to be informed that their enqueued
+	 * lookups were cancelled, so that they may cleanup after themselves.
+	 */
+
+	if (!*exiting)
+		(*ui->err)(ui->kuid, LOOKUP_E_CANCELLED, ui->arg);
+
+	free_ulq_item(ui);
 }
 
 /**
  * Shutdown the user lookup queue.
+ *
+ * @param exiting	whether the whole process is exiting
  */
 void
-ulq_close(void)
+ulq_close(gboolean exiting)
 {
 	size_t i;
 
@@ -840,7 +854,7 @@ ulq_close(void)
 
 		if (uq) {
 			fifo_free_all(uq->q, free_fifo_item, NULL);
-			slist_foreach(uq->launched, free_fifo_item, NULL);
+			slist_foreach(uq->launched, free_fifo_item, &exiting);
 			slist_free(&uq->launched);
 			wfree(uq, sizeof *uq);
 
