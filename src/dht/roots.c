@@ -372,9 +372,15 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 		gnet_stats_count_general(GNR_DHT_CACHED_KUID_TARGETS_HELD, +1);
 	} else {
 		rd = get_rootdata(kuid);
-		if (NULL == rd)
-			return;			/* I/O error probably */
-		existed = TRUE;
+		if (NULL == rd) {
+			if (dbmw_has_ioerr(db_rootdata))
+				return;			/* I/O error */
+			/* Key supposed to exist but not found -> DB was corrupted */
+			rd = &new_rd;
+			new_rd.count = 0;
+		} else {
+			existed = TRUE;
+		}
 	}
 
 	/*
