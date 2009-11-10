@@ -845,6 +845,7 @@ void
 ulq_close(gboolean exiting)
 {
 	size_t i;
+	gboolean true = TRUE;
 
 	cq_cancel(callout_queue, &service_ev);
 	slist_free(&sched.runq);
@@ -853,9 +854,19 @@ ulq_close(gboolean exiting)
 		struct ulq *uq = ulq[i];
 
 		if (uq) {
-			fifo_free_all(uq->q, free_fifo_item, &exiting);
-			slist_foreach(uq->launched, free_fifo_item, &exiting);
+			/*
+			 * Do not invoke callback for launched lookups, they will be
+			 * duly cancelled by lookup_close(): tell free_fifo_item() that
+			 * we are exiting.
+			 *
+			 * Enqueued lookups on the other hand (still in the FIFO) need
+			 * to be properly cleaned-up by forcing the registered error
+			 * callback, since there is no lookup object yet.
+			 */
+
+			slist_foreach(uq->launched, free_fifo_item, &true);
 			slist_free(&uq->launched);
+			fifo_free_all(uq->q, free_fifo_item, &exiting);
 			wfree(uq, sizeof *uq);
 
 			ulq[i] = NULL;
