@@ -201,6 +201,7 @@ entropy_collect(struct sha1 *digest)
 
 	sha1_feed_double(&ctx, fs_free_space_pct(eval_subst("~")));
 	sha1_feed_double(&ctx, fs_free_space_pct("/"));
+	sha1_feed_double(&ctx, fs_free_space_pct("."));
 
 #ifdef HAS_UNAME
 	{
@@ -214,6 +215,7 @@ entropy_collect(struct sha1 *digest)
 	
 	sha1_feed_pointer(&ctx, &ctx);
 	sha1_feed_pointer(&ctx, cast_func_to_pointer(&random_init));
+	sha1_feed_pointer(&ctx, cast_func_to_pointer(&exit));	/* libc */
 	sha1_feed_pointer(&ctx, sbrk(0));
 
 	{
@@ -257,6 +259,7 @@ entropy_collect(struct sha1 *digest)
 
 	tm_now_exact(&end);
 	SHA1Input(&ctx, &end, sizeof end);
+	sha1_feed_double(&ctx, tm_elapsed_f(&end, &start));
 
 	/*
 	 * Done, finalize SHA1 computation into supplied digest buffer.

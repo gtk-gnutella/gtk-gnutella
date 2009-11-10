@@ -1307,7 +1307,7 @@ random_u32(void)
 	 * MSB is always zero. Therefore mix two random values to get
 	 * full 32 random bits.
 	 */
-	return uint32_rot16(random()) ^ random();
+	return uint32_rot16(random()) ^ (65587 * random());
 }
 #endif	/* HAS_ARC4RANDOM */
 
@@ -1368,8 +1368,8 @@ random_init(void)
 	 * will differ.  This matters when the first thing they will do is
 	 * generate a GUID or a KUID...
 	 *
-	 * This adds roughly 8 bits of additional salt to the 32-bit seed since
-	 * it can compute at most 22*20 = 440 random numbers, that amount being
+	 * This adds roughly 10 bits of additional salt to the 32-bit seed since
+	 * it can compute at most 66*20 = 1320 random numbers, that amount being
 	 * random (based on the SHA1 noise we have already computed).
 	 */
 
@@ -1378,7 +1378,7 @@ random_init(void)
 		guint32 count = 0;
 
 		for (i = 0; i < SHA1_RAW_SIZE; i++) {
-			int j = (guchar) digest.data[i] % 23;
+			int j = (guchar) digest.data[i] % 67;
 
 			while (j-- > 0)
 				count += random_u32();		/* Avoid compiler warnings */
