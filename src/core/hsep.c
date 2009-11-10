@@ -875,7 +875,7 @@ hsep_notify_shared(guint64 own_files, guint64 own_kibibytes)
 	) {
 
 		if (GNET_PROPERTY(hsep_debug)) {
-			printf("HSEP: Shared files changed to %s (%s KiB)\n",
+			g_message("HSEP: Shared files changed to %s (%s KiB)",
 			    uint64_to_string(own_files), uint64_to_string2(own_kibibytes));
 		}
 

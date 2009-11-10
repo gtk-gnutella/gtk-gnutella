@@ -497,7 +497,7 @@ get_next_slot(void)
 				g_malloc0(CHUNK_MESSAGES * sizeof(struct message *));
 
 			if (GNET_PROPERTY(routing_debug))
-				printf("RT created new chunk #%d, now holds %d / %d\n",
+				g_message("RT created new chunk #%d, now holds %d / %d",
 					chunk_idx, routing.count, routing.capacity);
 
 			slot = routing.chunks[chunk_idx];	/* First slot in new chunk */
@@ -513,7 +513,7 @@ get_next_slot(void)
 
 		if (idx == 0) {
 			if (GNET_PROPERTY(routing_debug))
-				printf("RT cycling over FORCED, elapsed=%u, holds %d / %d\n",
+				g_message("RT cycling over FORCED, elapsed=%u, holds %d / %d",
 					(unsigned) elapsed, routing.count, routing.capacity);
 
 			routing.last_rotation = now;
