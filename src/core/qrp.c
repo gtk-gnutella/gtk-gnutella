@@ -183,7 +183,7 @@ static int generation;
 static void qrt_compress_cancel_all(void);
 static void qrt_patch_compute(
 	struct routing_table *rt, struct routing_patch **rpp);
-static guint32 qrt_dump(FILE *f, struct routing_table *rt, gboolean full);
+static guint32 qrt_dump(struct routing_table *rt, gboolean full);
 void test_hash(void);
 
 static gboolean
@@ -409,8 +409,8 @@ qrt_compact(struct routing_table *rt)
 	g_assert(!rt->compacted);
 
 	if (GNET_PROPERTY(qrp_debug) > 4) {
-		g_message("dumping QRT before compaction...");
-		token = qrt_dump(stderr, rt, GNET_PROPERTY(qrp_debug) > 19);
+		g_message("QRP dumping QRT before compaction...");
+		token = qrt_dump(rt, GNET_PROPERTY(qrp_debug) > 19);
 	}
 
 	nsize = rt->slots / 8;
@@ -453,8 +453,8 @@ qrt_compact(struct routing_table *rt)
 
 	if (GNET_PROPERTY(qrp_debug) > 4) {
 		guint32 token2;
-		g_message("dumping QRT after compaction...");
-		token2 = qrt_dump(stderr, rt, GNET_PROPERTY(qrp_debug) > 19);
+		g_message("QRP dumping QRT after compaction...");
+		token2 = qrt_dump(rt, GNET_PROPERTY(qrp_debug) > 19);
 
 		if (token2 != token)
 			g_warning("BUG in QRT compaction!");
@@ -689,7 +689,6 @@ qrt_step_compress(struct bgtask *h, gpointer u, int ticks)
 				ctx->rp->len, zlib_deflater_outlen(ctx->zd),
 				100.0 * (ctx->rp->len - zlib_deflater_outlen(ctx->zd)) /
 					ctx->rp->len);
-			fflush(stdout);
 		}
 
 		if (zlib_deflater_outlen(ctx->zd) < ctx->rp->len) {
@@ -1698,8 +1697,8 @@ qrp_step_compute(struct bgtask *h, gpointer u, int unused_ticks)
 		bits >= MAX_TABLE_BITS ||
 		(!full && conflict_ratio < MAX_CONFLICT_RATIO)
 	) {
-		if (GNET_PROPERTY(qrp_debug))
-			g_message("QRP final table size: %d bytes", slots);
+		if (GNET_PROPERTY(qrp_debug)> 1)
+			g_message("QRP final table size: %d slots", slots);
 
 		gnet_prop_set_guint32_val(PROP_QRP_SLOTS, (guint32) slots);
 		gnet_prop_set_guint32_val(PROP_QRP_SLOTS_FILLED, (guint32) filled);
@@ -1718,8 +1717,8 @@ qrp_step_compute(struct bgtask *h, gpointer u, int unused_ticks)
 		 */
 
 		if (routing_table && qrt_eq(routing_table, table, slots)) {
-			if (GNET_PROPERTY(qrp_debug))
-				g_message("no change in QRP table");
+			if (GNET_PROPERTY(qrp_debug) > 1)
+				g_message("QRP no change in table");
 			HFREE_NULL(table);
 			bg_task_exit(h, 0);	/* Abort processing */
 		}
@@ -2339,7 +2338,7 @@ qrp_send_reset(struct gnutella_node *n, int slots, int inf_val)
 
 	gmsg_sendto_one(n, &msg, sizeof msg);
 
-	if (GNET_PROPERTY(qrp_debug) > 4)
+	if (GNET_PROPERTY(qrp_debug) > 1)
 		g_message("QRP sent RESET slots=%d, infinity=%d to %s",
 			slots, inf_val, node_addr(n));
 }
@@ -2391,7 +2390,7 @@ qrp_send_patch(struct gnutella_node *n,
 
 	HFREE_NULL(msg);
 
-	if (GNET_PROPERTY(qrp_debug) > 4)
+	if (GNET_PROPERTY(qrp_debug) > 2)
 		g_message("QRP sent PATCH #%d/%d (%d bytes) to %s",
 			seqno, seqsize, len, node_addr(n));
 }
@@ -2546,10 +2545,12 @@ qrt_compressed(struct bgtask *unused_h, gpointer unused_u,
 
 	if (routing_patch != NULL && qup->patch->len > routing_patch->len) {
 		if (GNET_PROPERTY(qrp_debug))
-			g_warning("incremental query routing patch for node %s is %d "
-				"bytes, bigger than the default patch (%d bytes) -- "
-				"using latter",
-				node_addr(qup->node), qup->patch->len, routing_patch->len);
+			g_warning("QRP incremental query routing patch for node %s is %d "
+				"bytes for %s slots, bigger than the default "
+				"patch (%d bytes for %s slots) -- using latter",
+				node_addr(qup->node),
+				qup->patch->len, compact_size(qup->patch->size, FALSE),
+				routing_patch->len, compact_size2(routing_patch->size, FALSE));
 
 		qrt_patch_unref(qup->patch);
 		qup->patch = qrt_patch_ref(routing_patch);
@@ -2674,7 +2675,7 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 
 		if (old->slots != routing_table->slots) {
 			if (GNET_PROPERTY(qrp_debug))
-				g_warning("old QRT for %s had %d slots, new one has %d",
+				g_warning("QRP old QRT for %s had %d slots, new one has %d",
 					node_addr(n), old->slots, routing_table->slots);
 			old_table = NULL;
 		}
@@ -3074,13 +3075,11 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, int len,
 		g_warning("%s node %s <%s> overflowed its QRP %d-bit patch of %s slots"
 			" (%s message #%d/%d)", node_type(n), node_addr(n), node_vendor(n),
 			qrcv->entry_bits,
-			compact_size(rt->client_slots,
-				GNET_PROPERTY(display_metric_units)),
+			compact_size(rt->client_slots, FALSE),
 			patch->compressor ? "compressed" : "plain",
 			patch->seq_no, patch->seq_size);
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
-			compact_size(rt->client_slots,
-				GNET_PROPERTY(display_metric_units)));
+			compact_size(rt->client_slots, FALSE));
 		return FALSE;
 	}
 
@@ -3248,12 +3247,10 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, int len,
 						"%d-bit patch of %s slots",
 						node_type(n), node_addr(n), node_vendor(n),
 						qrcv->entry_bits,
-						compact_size(rt->client_slots,
-							GNET_PROPERTY(display_metric_units)));
+						compact_size(rt->client_slots, FALSE));
 					node_bye_if_writable(n, 413,
 						"QRP patch overflowed table (%s slots)",
-						compact_size(rt->client_slots,
-							GNET_PROPERTY(display_metric_units)));
+						compact_size(rt->client_slots, FALSE));
 					return FALSE;
 				}
 			}
@@ -3287,14 +3284,12 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte,
 		g_warning("%s node %s <%s> overflowed its QRP %d-bit patch of %s slots"
 			" (current_index=%d, slots=%d at %s message #%u/%u)",
 			node_type(n), node_addr(n), node_vendor(n), qrcv->entry_bits,
-			compact_size(rt->client_slots,
-				GNET_PROPERTY(display_metric_units)),
+			compact_size(rt->client_slots, FALSE),
 			qrcv->current_index, rt->slots,
 			patch->compressor ? "compressed" : "plain",
 			patch->seq_no, patch->seq_size);
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
-			compact_size(rt->client_slots,
-				GNET_PROPERTY(display_metric_units)));
+			compact_size(rt->client_slots, FALSE));
 		return FALSE;
 	}
 
@@ -3310,14 +3305,12 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte,
 		g_warning("%s node %s <%s> overflowed its QRP %d-bit patch of "
 			"%s slots by extra %s at %s message #%u/%u",
 			node_type(n), node_addr(n), node_vendor(n), qrcv->entry_bits,
-			compact_size(rt->client_slots,
-				GNET_PROPERTY(display_metric_units)),
+			compact_size(rt->client_slots, FALSE),
 			uint32_to_string(last_patch_slot - rt->client_slots),
 			patch->compressor ? "compressed" : "plain",
 			patch->seq_no, patch->seq_size);
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
-			compact_size(rt->client_slots,
-				GNET_PROPERTY(display_metric_units)));
+			compact_size(rt->client_slots, FALSE));
 		return FALSE;
 	}
 	
@@ -3460,8 +3453,8 @@ qrp_can_route_##bits(const query_hashvec_t *qhv, \
  \
 	while (i-- > 0) { \
 		guint32 idx = vec[i].hashcode >> (32 - bits); \
-		/* ALL the keywords must be present. */ \
-		if (!RT_SLOT_READ(arena, idx)) \
+		/* ALL the keywords must be present -- hardwire RT_SLOT_READ. */ \
+		if (0 == (0x80U & (arena[idx >> 3] << (idx & 0x7)))) \
 			return FALSE; \
 	} \
 	return TRUE; \
@@ -3485,7 +3478,6 @@ CAN_ROUTE(21)
  * will be qrp_can_route_urn_14.
  *
  * @todo: Is URN searched deprecated, with DHT queries?
- *
  */
 #define CAN_ROUTE_URN(bits)                                           \
 static gboolean                                                       \
@@ -3494,11 +3486,10 @@ qrp_can_route_urn_##bits(const query_hashvec_t *qhv,                  \
 {                                                                     \
 	const struct query_hash *qh = qhv->vec;                           \
 	const guint8 *arena         = rt->arena;                          \
-	const guint shift           = 32 - bits;                          \
 	guint i;                                                          \
 					                                                  \
 	for (i = 0; i < qhv->count; i++) {                                \
-		guint32 idx = qh[i].hashcode >> shift;                        \
+		guint32 idx = qh[i].hashcode >> (32 - bits);                  \
 					                                                  \
 		/*                                                            \
 		 * If there is an entry in the table and the source is an URN,\
@@ -3634,7 +3625,7 @@ qrt_handle_reset(
 	}
 
 	if (GNET_PROPERTY(qrp_debug) && qrcv->shrink_factor > 1)
-		g_warning("QRT from %s <%s> will be shrunk by a factor of %d",
+		g_warning("QRP QRT from %s <%s> will be shrunk by a factor of %d",
 			node_addr(n), node_vendor(n), qrcv->shrink_factor);
 
 	qrcv->expansion = walloc(qrcv->shrink_factor);
@@ -3643,8 +3634,7 @@ qrt_handle_reset(
 	rt->bits = highest_bit_set(rt->slots);
 
 	/* Populate 'can_route' routines based on constant slot sizes.
-	 * This allows pre-computed shift to be optimized for the table
-	 * under question.
+	 * This allows pre-computed shift to be optimized for each table size.
 	 */
 	switch(rt->bits)
 	{
@@ -3962,7 +3952,7 @@ qrt_handle_patch(
 			qrp_leaf_changed();
 
 		if (GNET_PROPERTY(qrp_debug) > 1)
-			(void) qrt_dump(stdout, rt, GNET_PROPERTY(qrp_debug) > 19);
+			(void) qrt_dump(rt, GNET_PROPERTY(qrp_debug) > 19);
 	}
 
 	return TRUE;
@@ -4138,7 +4128,7 @@ qrt_dump_is_slot_present(struct routing_table *rt, int slot)
  * @returns a unique 32-bit checksum.
  */
 static guint32
-qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
+qrt_dump(struct routing_table *rt, gboolean full)
 {
 	struct sha1 digest;
 	SHA1Context ctx;
@@ -4147,9 +4137,9 @@ qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 	guint32 result;
 	int i;
 
-	if (GNET_PROPERTY(qrp_debug) > 0) {
-		fprintf(f, "------ Query Routing Table \"%s\" "
-			"(gen=%d, slots=%d, %scompacted)\n",
+	if (GNET_PROPERTY(qrp_debug)) {
+		g_message("------ Query Routing Table \"%s\" "
+			"(gen=%d, slots=%d, %scompacted)",
 			rt->name, rt->generation, rt->slots, rt->compacted ? "" : "not ");
 	}
 
@@ -4179,10 +4169,10 @@ qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 	final:
 		if (full) {
 			if (i - 1 != last_slot)
-				fprintf(f, "%d .. %d: %s\n", last_slot, i - 1,
+				g_message("%d .. %d: %s", last_slot, i - 1,
 					last_status ? "PRESENT" : "nothing");
 			else
-				fprintf(f, "%d: %s\n", last_slot,
+				g_message("%d: %s", last_slot,
 					last_status ? "PRESENT" : "nothing");
 
 			last_slot = i;
@@ -4198,9 +4188,9 @@ qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 
 	result = sha1_hash(&digest);
 
-	if (GNET_PROPERTY(qrp_debug) > 0) {
-		fprintf(f, "------ End Routing Table \"%s\" "
-			"(gen=%d, SHA1=%s, token=0x%x)\n",
+	if (GNET_PROPERTY(qrp_debug)) {
+		g_message("------ End Routing Table \"%s\" "
+			"(gen=%d, SHA1=%s, token=0x%x)",
 			rt->name, rt->generation, sha1_base32(&digest), result);
 	}
 
