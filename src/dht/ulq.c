@@ -845,7 +845,7 @@ void
 ulq_close(gboolean exiting)
 {
 	size_t i;
-	gboolean true = TRUE;
+	gboolean one = TRUE;
 
 	cq_cancel(callout_queue, &service_ev);
 	slist_free(&sched.runq);
@@ -864,7 +864,7 @@ ulq_close(gboolean exiting)
 			 * callback, since there is no lookup object yet.
 			 */
 
-			slist_foreach(uq->launched, free_fifo_item, &true);
+			slist_foreach(uq->launched, free_fifo_item, &one);
 			slist_free(&uq->launched);
 			fifo_free_all(uq->q, free_fifo_item, &exiting);
 			wfree(uq, sizeof *uq);
