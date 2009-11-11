@@ -877,11 +877,38 @@ free_entry(gpointer key, gpointer val, gpointer data)
 }
 
 /**
+ * DBMW foreach iterator to remove keys otherwise unknown by the publisher.
+ * @return TRUE if entry is to be deleted.
+ */
+static gboolean
+publisher_remove_orphan(gpointer key,
+	gpointer u_value, size_t u_len, gpointer u_data)
+{
+	const sha1_t *sha1 = key;
+
+	(void) u_value;
+	(void) u_len;
+	(void) u_data;
+
+	return NULL == g_hash_table_lookup(publisher_sha1, sha1);
+}
+
+/**
  * Shutdown the DHT publisher.
  */
 void
 publisher_close(void)
 {
+	/*
+	 * Purge data we no longer know about from the persisted DB.
+	 */
+
+	dbmw_foreach_remove(db_pubdata, publisher_remove_orphan, NULL);
+
+	/*
+	 * Final cleanup.
+	 */
+
 	g_hash_table_foreach(publisher_sha1, free_entry, NULL);
 	g_hash_table_destroy(publisher_sha1);
 	publisher_sha1 = NULL;
