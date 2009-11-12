@@ -93,6 +93,8 @@ void st_search(
 	int max_res,
 	struct query_hashvec *qhv);
 
+void st_fill_qhv(const char *search_term, struct query_hashvec *qhv);
+
 #endif	/* _core_matching_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

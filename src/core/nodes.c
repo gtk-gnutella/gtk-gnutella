@@ -7188,13 +7188,14 @@ route_only:
 		 * address is not matching that of the node.
 		 *		--RAM, 2006-08-20
 		 *
-		 * XXX Changed search_request_preprocess() to only check the return address
-		 * XXX of an OOB query if it comes from a leaf node directly.
-		 * XXX Is it safe to decrement the hop count as well?  What are the other
-		 * XXX servents doing here?  If their UPs are indeed making relayed leaf
-		 * XXX queries appear with hops=1 when they are sent, we should do the same.
-		 * XXX Otherwise, our hops+ttl count could become larger than the allowed
-		 * XXX maximum...
+		 * FIXME?
+		 * Changed search_request_preprocess() to only check the return address
+		 * of an OOB query if it comes from a leaf node directly.
+		 * Is it safe to decrement the hop count as well?  What are the other
+		 * servents doing here?  If their UPs are indeed making relayed leaf
+		 * queries appear with hops=1 when they are sent, we should do the same.
+		 * Otherwise, our hops+ttl count could become larger than the allowed
+		 * maximum...
 		 *		--RAM, 2009-02-05
 		 */
 

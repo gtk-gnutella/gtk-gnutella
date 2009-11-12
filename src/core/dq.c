@@ -767,11 +767,6 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 /**
  * Forward message to all the leaves but the one originating this query,
  * according to their QRP tables.
- *
- * @attention
- * NB: In order to avoid qrt_build_query_target() selecting neighbouring
- * ultra nodes that support last-hop QRP, we ensure the TTL is NOT 1.
- * This is why we somehow duplicate qrt_route_query() here.
  */
 static void
 dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
@@ -781,10 +776,16 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 
 	dquery_check(dq);
 	head = cast_to_gconstpointer(pmsg_start(dq->mb));
+
+	/*
+	 * NB: In order to avoid qrt_build_query_target() selecting neighbouring
+	 * ultra nodes that support last-hop QRP, we ensure the TTL is 0.
+	 * This is why we somehow duplicate qrt_route_query() here.
+	 */
+
 	nodes = qrt_build_query_target(dq->qhv,
-				gnutella_header_get_hops(head),
-				MAX(gnutella_header_get_ttl(head), 2),
-				source);
+				gnutella_header_get_hops(head), 0, source);
+
 	if (GNET_PROPERTY(dq_debug) > 4)
 		g_message("DQ QRP %s (%d word%s%s) forwarded to %d/%d leaves",
 			gmsg_infostr_full(head, pmsg_written_size(dq->mb)),

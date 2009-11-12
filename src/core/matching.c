@@ -441,6 +441,40 @@ entry_match(const char *text, size_t tlen,
 }
 
 /**
+ * Fill non-NULL query hash vector for query routing.
+ *
+ * This needs to be called when st_search() is not called when processing
+ * a query, otherwise the qhery hash vector won't be properly initialized
+ * and the query would be improperly dropped by qrt_build_query_target(),
+ * hence never routed.
+ */
+void
+st_fill_qhv(const char *search_term, query_hashvec_t *qhv)
+{
+	char *search;
+	word_vec_t *wovec;
+	guint wocnt;
+	guint i;
+
+	if (NULL == qhv)
+		return;
+
+	search = UNICODE_CANONIZE(search_term);
+	wocnt = word_vec_make(search, &wovec);
+
+	for (i = 0; i < wocnt; i++) {
+		if (wovec[i].len >= QRP_MIN_WORD_LENGTH)
+			qhvec_add(qhv, wovec[i].word, QUERY_H_WORD);
+	}
+
+	if (search != search_term)
+		G_FREE_NULL(search);
+
+	if (wocnt > 0)
+		word_vec_free(wovec, wocnt);
+}
+
+/**
  * Do an actual search.
  */
 void
@@ -478,27 +512,26 @@ st_search(
 	 * Find smallest bin
 	 */
 
-	if (len < 2)
-		goto finish;
+	if (len >= 2) {
+		for (i = 0; i < len - 1; i++) {
+			struct st_bin *bin;
+			if (is_ascii_space(search[i]) || is_ascii_space(search[i+1]))
+				continue;
+			key = st_key(table, search + i);
+			if ((bin = table->bins[key]) == NULL) {
+				best_bin = NULL;
+				break;
+			}
+			if (bin->nvals < best_bin_size) {
+				best_bin = bin;
+				best_bin_size = bin->nvals;
+			}
+		}
 
-	for (i = 0; i < len - 1; i++) {
-		struct st_bin *bin;
-		if (is_ascii_space(search[i]) || is_ascii_space(search[i+1]))
-			continue;
-		key = st_key(table, search + i);
-		if ((bin = table->bins[key]) == NULL) {
-			best_bin = NULL;
-			break;
-		}
-		if (bin->nvals < best_bin_size) {
-			best_bin = bin;
-			best_bin_size = bin->nvals;
-		}
+		if (GNET_PROPERTY(dbg) > 6)
+			printf("st_search(): str=\"%s\", len=%d, best_bin_size=%d\n",
+				search, len, best_bin_size);
 	}
-
-	if (GNET_PROPERTY(dbg) > 6)
-		printf("st_search(): str=\"%s\", len=%d, best_bin_size=%d\n",
-			search, len, best_bin_size);
 
 	/*
 	 * If the best_bin is NULL, we did not find a matching bin, and we're

@@ -4422,7 +4422,7 @@ qrt_build_query_target(
 	g_assert(hops >= 0);
 
 	if (qhvec->count == 0) {
-		if (GNET_PROPERTY(qrp_debug)) {
+		if (GNET_PROPERTY(qrp_debug) > 2) {
 			if (source != NULL)
 				g_warning("QRP %s had empty hash vector",
 					gmsg_node_infostr(source));
@@ -4468,8 +4468,10 @@ qrt_build_query_target(
 				continue;				/* Don't send anything */
 		} else {
 			/* Ultra node */
-			if (ttl != 1)				/* Only deal with last-hop UP */
+			if (0 == ttl)				/* Exclude routing to other UPs */
 				continue;
+			if (ttl > 1)				/* Only deal with last-hop UP */
+				goto can_send;			/* Send to other UP if ttl > 1 */
 			if (rt == NULL)				/* UP has not sent us its table */
 				goto can_send;			/* Forward everything then */
 			if (!NODE_UP_QRP(dn))		/* QRP-unaware host? */

@@ -5268,6 +5268,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	gboolean may_oob_proxy = !(n->flags & NODE_F_NO_OOB_PROXY);
 	struct guid muid;
 	const char *extended_query = NULL;
+	gboolean qhv_filled = FALSE;
 
 	/* NOTE: search_request_preprocess() has already handled this query. */
 
@@ -5545,6 +5546,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		if (!skip_file_search) {
 			shared_files_match(search, got_match, qctx, max_replies, qhv);
+			qhv_filled = TRUE;		/* A side effect of st_search() */
 		}
 
 		if (qctx->found > 0) {
@@ -5607,6 +5609,18 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
 finish:
+	/*
+	 * If for some reason we did not call shared_files_match(), then
+	 * we've not had an opportunity to fill the query hash vector.
+	 * Regardless of whether we attempt a match locally, we need to build
+	 * this vector to properly route the query (if we're an ultra node, but
+	 * if we're a leaf, qhv will be NULL).
+	 *		--RAM, 2009-11-11
+	 */
+
+	if (!qhv_filled && qhv != NULL)
+		st_fill_qhv(search, qhv);
+
 	atom_str_free_null(&extended_query);
 }
 
