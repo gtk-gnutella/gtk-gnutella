@@ -175,7 +175,7 @@ guid_init(void)
 		guid_gtkg_encode_version(GTA_VERSION, GTA_SUBVERSION, *rev == '\0');
 
 	if (GNET_PROPERTY(node_debug))
-		printf("GTKG version mark is 0x%x\n", gtkg_version_mark);
+		g_message("GTKG version mark is 0x%x", gtkg_version_mark);
 
 	/*
 	 * Validate that guid_random_muid() correctly marks GUIDs as being GTKG's.
