@@ -1,17 +1,16 @@
-# translation of uk.po to
 # $Id$
 #
 # Ukrainian translation for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2007 Raphaël Manfredi.
+# Copyright (C) 2001-2010 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Vitaliy Buyar <vetal17@gmail.com>, 2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.6u\n"
+"Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2009-03-29 15:44+0200\n"
+"POT-Creation-Date: 2010-01-10 22:16+0900\n"
 "PO-Revision-Date: 2006-07-13 22:09-0400\n"
 "Last-Translator: Vitalik\n"
 "Language-Team:  <uk@li.org>\n"
@@ -633,6 +632,9 @@ msgstr ""
 msgid "Servent Shutdown"
 msgstr ""
 
+msgid "Not a network member"
+msgstr ""
+
 msgid "Too frequent crawling"
 msgstr ""
 
@@ -679,7 +681,14 @@ msgstr ""
 msgid "Pseudo UDP node"
 msgstr "Псевдо UDP вузол"
 
+#, fuzzy
+msgid "Pseudo DHT node"
+msgstr "Псевдо UDP вузол"
+
 msgid "Already connected"
+msgstr ""
+
+msgid "Limited connection"
 msgstr ""
 
 #, c-format
@@ -712,6 +721,9 @@ msgstr ""
 msgid "UDP"
 msgstr ""
 
+msgid "DHT"
+msgstr ""
+
 msgid "Unknown"
 msgstr ""
 
@@ -729,7 +741,7 @@ msgstr "Не можу знайти вашу домашню директорію"
 msgid "creating configuration directory \"%s\""
 msgstr ""
 
-msgid "You seem to have left another gtk-gnutella running\n"
+msgid "You seem to have left another gtk-gnutella running"
 msgstr ""
 
 msgid "Cannot proceed without valid configuration directory"
@@ -2291,14 +2303,18 @@ msgstr ""
 msgid ""
 "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
 "limiting concurrent publishing and searching.  Traffic is made on the "
-"Gnutella UDP socket. Output needs are lower than input."
+"Gnutella UDP socket. Output needs are lower than input (between 3 to 5 times "
+"less). The larger the numbers, the more values can be looked up "
+"concurrently, but the more bandwidth is used."
 msgstr ""
 
 msgid ""
 "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
 "limiting concurrent publishing and searching.  Traffic is made on the "
 "Gnutella UDP socket and cannot therefore be truly controlled.  Input needs "
-"are much larger than output as far as lookups are concerned."
+"are much larger than output as far as lookups are concerned (between 3 to 5 "
+"times).  The larger the numbers the more values can be looked up "
+"concurrently, but the more bandwidth is used."
 msgstr ""
 
 msgid ""
@@ -2368,6 +2384,113 @@ msgid ""
 "percent of the maximum message size."
 msgstr ""
 
+msgid "Debug level for the management of the clock accuracy."
+msgstr ""
+
+msgid "Debug level for the firewalled status management."
+msgstr ""
+
+msgid "Debug level for host management."
+msgstr ""
+
+msgid "Debug level for DHT root node caching."
+msgstr ""
+
+msgid "Logged statistics level for code shared between GUI and core."
+msgstr ""
+
+#, c-format
+msgid ""
+"If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a "
+"fast disk database, which saves a large amount of core memory and reduces "
+"the overall footprint, at the cost of an increased I/O level. However, the "
+"DB cache has typically a 90% hit rate, so the actual overhead is barely "
+"noticeable when running as an ultra node and should remain completely "
+"unnoticed when running as a leaf."
+msgstr ""
+
+msgid "Debug level for spam detection."
+msgstr ""
+
+msgid "Debug level for lockfile management."
+msgstr ""
+
+msgid "Debug level for the zone-based memory allocator."
+msgstr ""
+
+msgid "Debug level for the pool-based memory allocator."
+msgstr ""
+
+msgid "Debug level for the RX buffer allocator."
+msgstr ""
+
+msgid ""
+"Whether the zone-based memory allocator should always keep the zones in "
+"garbage-collecting mode, thereby maximizing the chances of being able to "
+"quickly reclaim empty zones after an allocation burst. This causes a slight "
+"CPU overhead at block free time but the memory footprint will remain much "
+"lower. To further minimize the footprint, you can also set "
+"spam_lut_in_memory to FALSE."
+msgstr ""
+
+msgid "Debug level for the virtual memory manager."
+msgstr ""
+
+msgid "Debug level for final shutdown."
+msgstr ""
+
+#, fuzzy
+msgid "Country preferences"
+msgstr "Вподобання"
+
+msgid "Debug level for country limits."
+msgstr ""
+
+msgid "Whether to log dropped Gnutella messages"
+msgstr ""
+
+msgid "Debug level for whitelist management."
+msgstr ""
+
+msgid "Debug level for DHT token caching."
+msgstr ""
+
+msgid "Debug level for DHT publishing from Gnutella."
+msgstr ""
+
+msgid "Defines which DHT messages should be traced."
+msgstr ""
+
+msgid "Enable bandwidth limitation for outgoing DHT traffic."
+msgstr ""
+
+msgid ""
+"Bandwidth limit for outgoing DHT traffic in bytes/sec. It is always pooled "
+"with the Gnutella UDP queue, regardless of whether bandwidth stealing is "
+"enabled, so that UDP queues can flush more quickly."
+msgstr ""
+
+msgid "Maximum size of the DHT message queue (in bytes)."
+msgstr ""
+
+msgid "Debug level for bandwidth scheduler."
+msgstr ""
+
+msgid "Debug level for the DHT stable node recorder."
+msgstr ""
+
+msgid "Debug level for the file (re)loading, on change."
+msgstr ""
+
+msgid "Debug level for the file moving, accross filesystems."
+msgstr ""
+
+msgid "Debug level for query hit message generation."
+msgstr ""
+
+msgid "Debug level for version management."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -2397,9 +2520,6 @@ msgstr "Понг"
 
 msgid "Bye"
 msgstr "Бувай"
-
-msgid "DHT"
-msgstr ""
 
 msgid "QRP"
 msgstr ""
@@ -2811,6 +2931,21 @@ msgstr ""
 msgid ""
 "Show a status icon in the system tray if possible (requires Gtk+ 2.10 or "
 "newer)."
+msgstr ""
+
+msgid "Automatically hide DHT bandwidth display when DHT not enabled."
+msgstr ""
+
+msgid "Display incoming DHT traffic bandwidth usage."
+msgstr ""
+
+msgid "Display outgoing DHT traffic bandwidth usage."
+msgstr ""
+
+msgid "Display incoming DHT traffic bandwidth as an average."
+msgstr ""
+
+msgid "Display outgoing DHT traffic bandwidth as an average."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -3592,26 +3727,10 @@ msgstr ""
 msgid "B/s"
 msgstr ""
 
-#, c-format
-msgid "%ud %uh"
-msgstr ""
-
-#, c-format
-msgid "%uh %um"
-msgstr ""
-
-#, c-format
-msgid "%um %us"
-msgstr ""
-
-#, c-format
-msgid "%us"
-msgstr ""
-
 msgid "locale_get_language|en"
 msgstr "uk"
 
-msgid "This is an unofficial build which accesses files in this directory:"
+msgid "unofficial build, accessing files from"
 msgstr ""
 
 msgid "URL missing"
@@ -3683,7 +3802,8 @@ msgstr[1] ""
 msgid "Property missing"
 msgstr "Властивість відсутня"
 
-msgid "Unknown property"
+#, fuzzy, c-format
+msgid "Unknown property \"%s\""
 msgstr "Невідома властивість"
 
 msgid "Value: "
@@ -3712,6 +3832,9 @@ msgstr "Пошук додано"
 msgid "The search could not be created"
 msgstr "Немає слоту для скачування"
 
+msgid "Unknown property"
+msgstr "Невідома властивість"
+
 #, fuzzy
 msgid "Value missing"
 msgstr "Властивість відсутня"
@@ -3719,11 +3842,27 @@ msgstr "Властивість відсутня"
 msgid "Value found and set"
 msgstr ""
 
+msgid "unterminated escape sequence"
+msgstr ""
+
+msgid "unterminated double-quoted string"
+msgstr ""
+
+msgid "unterminated single-quoted string"
+msgstr ""
+
 msgid "Invalid command syntax"
+msgstr ""
+
+msgid "too many arguments in command"
 msgstr ""
 
 msgid "Malformed command"
 msgstr "Спотворена команда"
+
+#, fuzzy, c-format
+msgid "Unknown command: \"%s\""
+msgstr "НЕвідома команда"
 
 msgid "Help: "
 msgstr "Допомога:"
@@ -4337,6 +4476,9 @@ msgstr ""
 msgid "Changed server GUIDs"
 msgstr ""
 
+msgid "Detected GUID collisions"
+msgstr ""
+
 msgid "Detected collisions with our own GUID"
 msgstr ""
 
@@ -4412,7 +4554,16 @@ msgstr ""
 msgid "PARQ QUEUE follow-up requests received"
 msgstr ""
 
+msgid "Launched SHA-1 file verifications"
+msgstr ""
+
+msgid "Launched TTH file verifications"
+msgstr ""
+
 msgid "Re-seeding of orphan downloads through query hits"
+msgstr ""
+
+msgid "Re-seeding of orphan downloads through upload requests"
 msgstr ""
 
 msgid "DHT estimated amount of nodes"
@@ -4451,7 +4602,13 @@ msgstr ""
 msgid "DHT routing table promoted pending nodes"
 msgstr ""
 
+msgid "DHT routing table pinged promoted nodes"
+msgstr ""
+
 msgid "DHT completed bucket refreshes"
+msgstr ""
+
+msgid "DHT forced bucket refreshes"
 msgstr ""
 
 msgid "DHT denied non-splitable bucket refresh"
@@ -4480,6 +4637,37 @@ msgstr ""
 
 msgid "DHT values held"
 msgstr ""
+
+msgid "DHT cached KUID targets held"
+msgstr ""
+
+msgid "DHT cached closest root nodes"
+msgstr ""
+
+msgid "DHT cached roots exact hits"
+msgstr ""
+
+msgid "DHT cached roots approximate hits"
+msgstr ""
+
+msgid "DHT cached roots misses"
+msgstr ""
+
+msgid "DHT cached roots lookups within k-ball"
+msgstr ""
+
+msgid "DHT cached roots contact address refreshed"
+msgstr ""
+
+msgid "DHT cached security tokens held"
+msgstr ""
+
+msgid "DHT cached security tokens hits"
+msgstr ""
+
+#, fuzzy
+msgid "DHT stable node information held"
+msgstr "Детальна інформація"
 
 msgid "DHT local hits on value lookups"
 msgstr ""
@@ -4530,6 +4718,63 @@ msgid "DHT detected KUID collisions"
 msgstr ""
 
 msgid "DHT detected collisions with our own KUID"
+msgstr ""
+
+msgid "DHT detected KUID mismatches on RPC reply"
+msgstr ""
+
+msgid "DHT caching attempts"
+msgstr ""
+
+msgid "DHT caching ended successfully"
+msgstr ""
+
+msgid "DHT caching partially completed"
+msgstr ""
+
+msgid "DHT key-offloading checks after discovering new closest node"
+msgstr ""
+
+msgid "DHT keys selected for offloading"
+msgstr ""
+
+msgid "DHT key-offloading attempts"
+msgstr ""
+
+msgid "DHT key-offloading ended successfully"
+msgstr ""
+
+msgid "DHT key-offloading partially completed"
+msgstr ""
+
+msgid "DHT values successfully offloaded"
+msgstr ""
+
+msgid "DHT publishing attempts"
+msgstr ""
+
+msgid "DHT publishing ended successfully (all roots)"
+msgstr ""
+
+msgid "DHT publishing partially completed (root subset only)"
+msgstr ""
+
+msgid "DHT publishing ending with proper value presence"
+msgstr ""
+
+msgid "DHT value republishing occurring too late (after expiry)"
+msgstr ""
+
+msgid "DHT publishing to self"
+msgstr ""
+
+msgid "DHT background publishing completion attempts"
+msgstr ""
+
+msgid "DHT background publishing completion showing improvements"
+msgstr ""
+
+msgid "DHT background publishing completion successful (all roots)"
 msgstr ""
 
 msgid "DHT alt-loc lookups issued"
@@ -4596,6 +4841,9 @@ msgstr ""
 msgid " with sources"
 msgstr ""
 
+msgid "$Id$"
+msgstr ""
+
 msgid "%v/%u (%P%%)"
 msgstr ""
 
@@ -4606,9 +4854,6 @@ msgid "%v/%u downloads"
 msgstr ""
 
 msgid "%v/%u uploads"
-msgstr ""
-
-msgid "("
 msgstr ""
 
 msgid "(Disable: 0, Random: 1)"
@@ -4734,6 +4979,12 @@ msgid "Bandwidth limits for Gnutella traffic"
 msgstr ""
 
 msgid "Bandwidth limits for HTTP traffic"
+msgstr ""
+
+msgid "Bandwidth limits for the Distributed Hash Table"
+msgstr ""
+
+msgid "Bandwidth targets for node lookups"
 msgstr ""
 
 msgid "Bandwidth"
@@ -4929,6 +5180,14 @@ msgstr ""
 msgid "Currently used"
 msgstr ""
 
+#, fuzzy
+msgid "DHT traffic stats"
+msgstr "статистика HTTP трафіка"
+
+#, fuzzy
+msgid "DHT traffic"
+msgstr "HTTP трафік"
+
 msgid "Debugging"
 msgstr ""
 
@@ -5013,6 +5272,10 @@ msgstr ""
 
 msgid "Enable \"_Browse Host\" feature"
 msgstr ""
+
+#, fuzzy
+msgid "Enable _DHT"
+msgstr "Включити _UDP"
 
 msgid "Enable _UDP"
 msgstr "Включити _UDP"
@@ -5141,6 +5404,9 @@ msgstr ""
 msgid "Generation:"
 msgstr ""
 
+msgid "Global DHT outgoing traffic"
+msgstr ""
+
 #, fuzzy
 msgid "Gnutella TTL settings"
 msgstr "Загальна статистика"
@@ -5255,6 +5521,9 @@ msgstr ""
 msgid "Info"
 msgstr "Інфо"
 
+msgid "Input bandwidth average"
+msgstr ""
+
 msgid "Jeroen Asselman"
 msgstr ""
 
@@ -5275,6 +5544,13 @@ msgstr ""
 
 msgid "Large enough uptime"
 msgstr ""
+
+msgid "Last Request"
+msgstr ""
+
+#, fuzzy
+msgid "Last Upload"
+msgstr "Завантажено"
 
 msgid "Last check"
 msgstr ""
@@ -5486,6 +5762,9 @@ msgid "Out of Band Querying"
 msgstr ""
 
 msgid "Outgoing traffic to lea_ves"
+msgstr ""
+
+msgid "Output bandwidth average"
 msgstr ""
 
 msgid "PARQ development:"
@@ -5838,6 +6117,14 @@ msgstr ""
 
 msgid "Show additional information and settings for advanced and _expert users"
 msgstr ""
+
+#, fuzzy
+msgid "Show inbound DHT traffic"
+msgstr "показувати вхідний Gnet трафік"
+
+#, fuzzy
+msgid "Show outbound DHT traffic"
+msgstr "показувати вихідний Gnet трафік"
 
 msgid "Show pr_otocol:"
 msgstr ""
@@ -6254,6 +6541,10 @@ msgstr ""
 msgid "and lasted"
 msgstr ""
 
+#, fuzzy
+msgid "auto-hide DHT traffic stats"
+msgstr "статистика Gnet трафіка"
+
 msgid "bytes"
 msgstr ""
 
@@ -6555,6 +6846,9 @@ msgstr ""
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
 
+msgid "Global DHT ougoing traffic"
+msgstr ""
+
 msgid "attempts"
 msgstr ""
 
@@ -6613,13 +6907,6 @@ msgid_plural "%u terms counted"
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "Last Request"
-msgstr ""
-
-#, fuzzy
-msgid "Last Upload"
-msgstr "Завантажено"
-
 msgid "Done"
 msgstr "Виконано"
 
@@ -6636,6 +6923,9 @@ msgid "Valid ultra"
 msgstr ""
 
 msgid "Unstable"
+msgstr ""
+
+msgid "Alien"
 msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"

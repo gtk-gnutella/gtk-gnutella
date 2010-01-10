@@ -2,15 +2,15 @@
 #
 # Dutch translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2007 Raphaël Manfredi.
+# Copyright (C) 2001-2010 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Jeroen Asselman <jeroen@asselman.com>, 2003-2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.6u\n"
+"Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2009-03-29 15:44+0200\n"
+"POT-Creation-Date: 2010-01-10 22:16+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -654,6 +654,10 @@ msgstr "Protocol wordt niet ondersteund"
 msgid "Servent Shutdown"
 msgstr "Servent afgesloten"
 
+#, fuzzy
+msgid "Not a network member"
+msgstr "Gnutella netwerk modus"
+
 msgid "Too frequent crawling"
 msgstr "Te snel crawling"
 
@@ -700,8 +704,16 @@ msgstr "Mislukt (Extra HELLO data)"
 msgid "Pseudo UDP node"
 msgstr "Pseudo UDP node"
 
+#, fuzzy
+msgid "Pseudo DHT node"
+msgstr "Pseudo UDP node"
+
 msgid "Already connected"
 msgstr "Reeds verbonden"
+
+#, fuzzy
+msgid "Limited connection"
+msgstr "Legacy verbindingen"
 
 #, c-format
 msgid "Write error during HELLO: %s"
@@ -733,6 +745,9 @@ msgstr "Crawler"
 msgid "UDP"
 msgstr "UDP"
 
+msgid "DHT"
+msgstr ""
+
 msgid "Unknown"
 msgstr "Onbekend"
 
@@ -750,7 +765,8 @@ msgstr "Kan Thuis map niet vinden"
 msgid "creating configuration directory \"%s\""
 msgstr "configuraties directory \"%s\" wordt gecreëerd"
 
-msgid "You seem to have left another gtk-gnutella running\n"
+#, fuzzy
+msgid "You seem to have left another gtk-gnutella running"
 msgstr "Het ziet er naar uit dat je nog een andere gtk-gnutella hebt draaien\n"
 
 msgid "Cannot proceed without valid configuration directory"
@@ -2816,14 +2832,18 @@ msgstr "Debug level voor de HTTP-code."
 msgid ""
 "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
 "limiting concurrent publishing and searching.  Traffic is made on the "
-"Gnutella UDP socket. Output needs are lower than input."
+"Gnutella UDP socket. Output needs are lower than input (between 3 to 5 times "
+"less). The larger the numbers, the more values can be looked up "
+"concurrently, but the more bandwidth is used."
 msgstr ""
 
 msgid ""
 "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
 "limiting concurrent publishing and searching.  Traffic is made on the "
 "Gnutella UDP socket and cannot therefore be truly controlled.  Input needs "
-"are much larger than output as far as lookups are concerned."
+"are much larger than output as far as lookups are concerned (between 3 to 5 "
+"times).  The larger the numbers the more values can be looked up "
+"concurrently, but the more bandwidth is used."
 msgstr ""
 
 msgid ""
@@ -2901,6 +2921,140 @@ msgstr ""
 "Maximum grootte van de verzend rij voor de nodes (in bytes). Dit moet "
 "tenminste 150 procent zijn van de maximum bericht grootte."
 
+#, fuzzy
+msgid "Debug level for the management of the clock accuracy."
+msgstr "Debug level voor de download mesh beheer."
+
+#, fuzzy
+msgid "Debug level for the firewalled status management."
+msgstr "Debug level voor de download mesh beheer."
+
+#, fuzzy
+msgid "Debug level for host management."
+msgstr "Debug level voor de download mesh beheer."
+
+#, fuzzy
+msgid "Debug level for DHT root node caching."
+msgstr "Debug level voor pong caching."
+
+#, fuzzy
+msgid "Logged statistics level for code shared between GUI and core."
+msgstr "Debug level voor code die wordt gedeelt tussen de GUI en de core."
+
+#, c-format
+msgid ""
+"If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a "
+"fast disk database, which saves a large amount of core memory and reduces "
+"the overall footprint, at the cost of an increased I/O level. However, the "
+"DB cache has typically a 90% hit rate, so the actual overhead is barely "
+"noticeable when running as an ultra node and should remain completely "
+"unnoticed when running as a leaf."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for spam detection."
+msgstr "Debug level voor pong caching."
+
+#, fuzzy
+msgid "Debug level for lockfile management."
+msgstr "Debug level voor de download mesh beheer."
+
+#, fuzzy
+msgid "Debug level for the zone-based memory allocator."
+msgstr "Debug level voor de gui."
+
+#, fuzzy
+msgid "Debug level for the pool-based memory allocator."
+msgstr "Debug level voor de gui."
+
+#, fuzzy
+msgid "Debug level for the RX buffer allocator."
+msgstr "Debug level voor de gui."
+
+msgid ""
+"Whether the zone-based memory allocator should always keep the zones in "
+"garbage-collecting mode, thereby maximizing the chances of being able to "
+"quickly reclaim empty zones after an allocation burst. This causes a slight "
+"CPU overhead at block free time but the memory footprint will remain much "
+"lower. To further minimize the footprint, you can also set "
+"spam_lut_in_memory to FALSE."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the virtual memory manager."
+msgstr "Detail level voor vendor berichten."
+
+#, fuzzy
+msgid "Debug level for final shutdown."
+msgstr "Debug level voor de bestandsinformatie."
+
+#, fuzzy
+msgid "Country preferences"
+msgstr "Voorkeuren"
+
+#, fuzzy
+msgid "Debug level for country limits."
+msgstr "Debug level voor zoekopdrachten."
+
+#, fuzzy
+msgid "Whether to log dropped Gnutella messages"
+msgstr "Debug level voor Gnutella berichten."
+
+#, fuzzy
+msgid "Debug level for whitelist management."
+msgstr "Debug level voor de download mesh beheer."
+
+#, fuzzy
+msgid "Debug level for DHT token caching."
+msgstr "Debug level voor pong caching."
+
+#, fuzzy
+msgid "Debug level for DHT publishing from Gnutella."
+msgstr "Debug level voor de HTTP-code."
+
+msgid "Defines which DHT messages should be traced."
+msgstr ""
+
+#, fuzzy
+msgid "Enable bandwidth limitation for outgoing DHT traffic."
+msgstr "Activeer het limiteren van bandbreedte voor uitgaand HTTP verkeer."
+
+msgid ""
+"Bandwidth limit for outgoing DHT traffic in bytes/sec. It is always pooled "
+"with the Gnutella UDP queue, regardless of whether bandwidth stealing is "
+"enabled, so that UDP queues can flush more quickly."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum size of the DHT message queue (in bytes)."
+msgstr ""
+"Maximale grootte van de antwoorden op zoek opdrachten die we doorsturen naar "
+"anderen (in bytes)."
+
+#, fuzzy
+msgid "Debug level for bandwidth scheduler."
+msgstr "Debug level voor de gui."
+
+#, fuzzy
+msgid "Debug level for the DHT stable node recorder."
+msgstr "Debug level voor de gui."
+
+#, fuzzy
+msgid "Debug level for the file (re)loading, on change."
+msgstr "Debug level voor de bestanden delen code."
+
+#, fuzzy
+msgid "Debug level for the file moving, accross filesystems."
+msgstr "Debug level voor de bestanden delen code."
+
+#, fuzzy
+msgid "Debug level for query hit message generation."
+msgstr "Debug level voor de berichting routering."
+
+#, fuzzy
+msgid "Debug level for version management."
+msgstr "Debug level voor de download mesh beheer."
+
 msgid "disable"
 msgstr "uitschakelen"
 
@@ -2930,9 +3084,6 @@ msgstr "Pong"
 
 msgid "Bye"
 msgstr "Bye"
-
-msgid "DHT"
-msgstr ""
 
 msgid "QRP"
 msgstr "QRP"
@@ -3402,6 +3553,30 @@ msgid ""
 "Show a status icon in the system tray if possible (requires Gtk+ 2.10 or "
 "newer)."
 msgstr ""
+
+#, fuzzy
+msgid "Automatically hide DHT bandwidth display when DHT not enabled."
+msgstr ""
+"Verberg de weergave van de bandbreedte van de leafs automatisch als we niet "
+"in Ultrapeer modus zijn."
+
+#, fuzzy
+msgid "Display incoming DHT traffic bandwidth usage."
+msgstr "Bandbreedte gebruik voor het inkomend HTTP verkeer tonen."
+
+#, fuzzy
+msgid "Display outgoing DHT traffic bandwidth usage."
+msgstr "Bandbreedte gebruik voor het uitgaand HTTP verkeer tonen."
+
+#, fuzzy
+msgid "Display incoming DHT traffic bandwidth as an average."
+msgstr ""
+"Toon het gemiddelde bandbreedte verkeer voor het inkomend HTTP verkeer."
+
+#, fuzzy
+msgid "Display outgoing DHT traffic bandwidth as an average."
+msgstr ""
+"Toon het gemiddelde bandbreedte verkeer voor het uitgaand HTTP verkeer."
 
 msgid "Anonymizing proxies"
 msgstr "Anonieme proxies"
@@ -4233,26 +4408,11 @@ msgstr "%s (%s bytes)"
 msgid "B/s"
 msgstr "B/s"
 
-#, c-format
-msgid "%ud %uh"
-msgstr "%ud %uh"
-
-#, c-format
-msgid "%uh %um"
-msgstr "%uh %um"
-
-#, c-format
-msgid "%um %us"
-msgstr "%um %us"
-
-#, c-format
-msgid "%us"
-msgstr "%us"
-
 msgid "locale_get_language|en"
 msgstr "nl"
 
-msgid "This is an unofficial build which accesses files in this directory:"
+#, fuzzy
+msgid "unofficial build, accessing files from"
 msgstr ""
 "Dit is een officieel gebouwde versie en haalt zijn bestanden uit deze "
 "directorie:"
@@ -4330,7 +4490,8 @@ msgstr[1] "%u downloads verwijderd"
 msgid "Property missing"
 msgstr "Property mist"
 
-msgid "Unknown property"
+#, fuzzy, c-format
+msgid "Unknown property \"%s\""
 msgstr "Onbekende eigenschap"
 
 msgid "Value: "
@@ -4359,17 +4520,36 @@ msgstr "Zoek opdracht toegevoegd"
 msgid "The search could not be created"
 msgstr "Geen download slot (aanmaken)"
 
+msgid "Unknown property"
+msgstr "Onbekende eigenschap"
+
 msgid "Value missing"
 msgstr "Waarde mist"
 
 msgid "Value found and set"
 msgstr "Waarde gevonden en gezet"
 
+msgid "unterminated escape sequence"
+msgstr ""
+
+msgid "unterminated double-quoted string"
+msgstr ""
+
+msgid "unterminated single-quoted string"
+msgstr ""
+
 msgid "Invalid command syntax"
+msgstr ""
+
+msgid "too many arguments in command"
 msgstr ""
 
 msgid "Malformed command"
 msgstr "Commando ongeldig"
+
+#, fuzzy, c-format
+msgid "Unknown command: \"%s\""
+msgstr "Commando onbekend"
 
 msgid "Help: "
 msgstr "Help:"
@@ -4997,6 +5177,9 @@ msgstr ""
 msgid "Changed server GUIDs"
 msgstr ""
 
+msgid "Detected GUID collisions"
+msgstr ""
+
 msgid "Detected collisions with our own GUID"
 msgstr ""
 
@@ -5075,8 +5258,18 @@ msgstr ""
 msgid "PARQ QUEUE follow-up requests received"
 msgstr ""
 
+msgid "Launched SHA-1 file verifications"
+msgstr ""
+
+msgid "Launched TTH file verifications"
+msgstr ""
+
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr ""
+
+#, fuzzy
+msgid "Re-seeding of orphan downloads through upload requests"
+msgstr "Debug level voor de downloads."
 
 msgid "DHT estimated amount of nodes"
 msgstr ""
@@ -5116,7 +5309,14 @@ msgstr ""
 msgid "DHT routing table promoted pending nodes"
 msgstr ""
 
+#, fuzzy
+msgid "DHT routing table pinged promoted nodes"
+msgstr "Generatienummer van de zoekopdrachtenrouteringstabel"
+
 msgid "DHT completed bucket refreshes"
+msgstr ""
+
+msgid "DHT forced bucket refreshes"
 msgstr ""
 
 msgid "DHT denied non-splitable bucket refresh"
@@ -5145,6 +5345,37 @@ msgstr ""
 
 msgid "DHT values held"
 msgstr ""
+
+msgid "DHT cached KUID targets held"
+msgstr ""
+
+msgid "DHT cached closest root nodes"
+msgstr ""
+
+msgid "DHT cached roots exact hits"
+msgstr ""
+
+msgid "DHT cached roots approximate hits"
+msgstr ""
+
+msgid "DHT cached roots misses"
+msgstr ""
+
+msgid "DHT cached roots lookups within k-ball"
+msgstr ""
+
+msgid "DHT cached roots contact address refreshed"
+msgstr ""
+
+msgid "DHT cached security tokens held"
+msgstr ""
+
+msgid "DHT cached security tokens hits"
+msgstr ""
+
+#, fuzzy
+msgid "DHT stable node information held"
+msgstr "Gedetaileerde informatie"
 
 msgid "DHT local hits on value lookups"
 msgstr ""
@@ -5197,6 +5428,63 @@ msgid "DHT detected KUID collisions"
 msgstr ""
 
 msgid "DHT detected collisions with our own KUID"
+msgstr ""
+
+msgid "DHT detected KUID mismatches on RPC reply"
+msgstr ""
+
+msgid "DHT caching attempts"
+msgstr ""
+
+msgid "DHT caching ended successfully"
+msgstr ""
+
+msgid "DHT caching partially completed"
+msgstr ""
+
+msgid "DHT key-offloading checks after discovering new closest node"
+msgstr ""
+
+msgid "DHT keys selected for offloading"
+msgstr ""
+
+msgid "DHT key-offloading attempts"
+msgstr ""
+
+msgid "DHT key-offloading ended successfully"
+msgstr ""
+
+msgid "DHT key-offloading partially completed"
+msgstr ""
+
+msgid "DHT values successfully offloaded"
+msgstr ""
+
+msgid "DHT publishing attempts"
+msgstr ""
+
+msgid "DHT publishing ended successfully (all roots)"
+msgstr ""
+
+msgid "DHT publishing partially completed (root subset only)"
+msgstr ""
+
+msgid "DHT publishing ending with proper value presence"
+msgstr ""
+
+msgid "DHT value republishing occurring too late (after expiry)"
+msgstr ""
+
+msgid "DHT publishing to self"
+msgstr ""
+
+msgid "DHT background publishing completion attempts"
+msgstr ""
+
+msgid "DHT background publishing completion showing improvements"
+msgstr ""
+
+msgid "DHT background publishing completion successful (all roots)"
 msgstr ""
 
 msgid "DHT alt-loc lookups issued"
@@ -5271,6 +5559,9 @@ msgstr ".geregistreerd, "
 msgid " with sources"
 msgstr " met bronnen"
 
+msgid "$Id$"
+msgstr ""
+
 #, fuzzy
 msgid "%v/%u (%P%%)"
 msgstr "%u/%u host (%u%%)"
@@ -5284,9 +5575,6 @@ msgstr "%v/%u downloads"
 
 msgid "%v/%u uploads"
 msgstr "%v/%u uploads"
-
-msgid "("
-msgstr ""
 
 #, fuzzy
 msgid "(Disable: 0, Random: 1)"
@@ -5425,6 +5713,13 @@ msgstr "Bandbreedte voor GnutellaNet verkeer limiteren"
 
 msgid "Bandwidth limits for HTTP traffic"
 msgstr "Bandbreedte voor HTTP verkeer limiteren"
+
+#, fuzzy
+msgid "Bandwidth limits for the Distributed Hash Table"
+msgstr "Debug level voor de bestanden delen code."
+
+msgid "Bandwidth targets for node lookups"
+msgstr ""
 
 msgid "Bandwidth"
 msgstr "Bandbreedte"
@@ -5630,6 +5925,14 @@ msgstr "Huidige zoekopdracht:"
 msgid "Currently used"
 msgstr "Momenteel gebruikt"
 
+#, fuzzy
+msgid "DHT traffic stats"
+msgstr "Statistieken voor _HTTP verkeer"
+
+#, fuzzy
+msgid "DHT traffic"
+msgstr "HTTP verkeer"
+
 msgid "Debugging"
 msgstr "Debuggen"
 
@@ -5715,6 +6018,10 @@ msgstr "Bewerk waarde:"
 
 msgid "Enable \"_Browse Host\" feature"
 msgstr "Activeer \"Host bladeren\" ondersteuning"
+
+#, fuzzy
+msgid "Enable _DHT"
+msgstr "Activeer _UDP"
 
 msgid "Enable _UDP"
 msgstr "Activeer _UDP"
@@ -5850,6 +6157,10 @@ msgid "Generation:"
 msgstr "Generatie:"
 
 #, fuzzy
+msgid "Global DHT outgoing traffic"
+msgstr "Uitgaand verkeer"
+
+#, fuzzy
 msgid "Gnutella TTL settings"
 msgstr "GnutellaNet TTL instellingen"
 
@@ -5966,6 +6277,9 @@ msgstr "Indexeren is gestart op:"
 msgid "Info"
 msgstr "Informatie"
 
+msgid "Input bandwidth average"
+msgstr ""
+
 msgid "Jeroen Asselman"
 msgstr ""
 
@@ -5987,6 +6301,14 @@ msgstr "KiB/s"
 
 msgid "Large enough uptime"
 msgstr "Voldoende lange uptime"
+
+#, fuzzy
+msgid "Last Request"
+msgstr "Laatste omschakeling"
+
+#, fuzzy
+msgid "Last Upload"
+msgstr "Uploads"
 
 msgid "Last check"
 msgstr "Laatste controle"
@@ -6212,6 +6534,10 @@ msgstr "Out of Band (OOB) zoeken"
 
 msgid "Outgoing traffic to lea_ves"
 msgstr "Uitgaand verkeer naar lea_ves"
+
+#, fuzzy
+msgid "Output bandwidth average"
+msgstr "Totale output bandbreedte limiet:"
 
 msgid "PARQ development:"
 msgstr "PARQ ontwikkeling:"
@@ -6584,6 +6910,14 @@ msgid "Show additional information and settings for advanced and _expert users"
 msgstr ""
 "Toon aanvullende informatie en instellingen voor geavanceerde en _expert "
 "gebruikers"
+
+#, fuzzy
+msgid "Show inbound DHT traffic"
+msgstr "toon _inkomend Gnet verkeer"
+
+#, fuzzy
+msgid "Show outbound DHT traffic"
+msgstr "toon uitgaand Gnet verkeer"
 
 msgid "Show pr_otocol:"
 msgstr "Toon pr_otocol:"
@@ -7041,6 +7375,10 @@ msgstr "actief"
 msgid "and lasted"
 msgstr "en duurde"
 
+#, fuzzy
+msgid "auto-hide DHT traffic stats"
+msgstr "Leaf verkeer statistieken _automatisch verbergen"
+
 msgid "bytes"
 msgstr "bytes"
 
@@ -7353,6 +7691,10 @@ msgstr "s"
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Maximum percentage verbindingen dat een leverancier kan bezetten."
 
+#, fuzzy
+msgid "Global DHT ougoing traffic"
+msgstr "Uitgaand verkeer"
+
 msgid "attempts"
 msgstr "pogingen"
 
@@ -7412,14 +7754,6 @@ msgid_plural "%u terms counted"
 msgstr[0] "%u term geteld"
 msgstr[1] "%u termen geteld"
 
-#, fuzzy
-msgid "Last Request"
-msgstr "Laatste omschakeling"
-
-#, fuzzy
-msgid "Last Upload"
-msgstr "Uploads"
-
 msgid "Done"
 msgstr "Gereed"
 
@@ -7437,6 +7771,10 @@ msgstr "Ultra geldig"
 
 msgid "Unstable"
 msgstr "Instabiel"
+
+#, fuzzy
+msgid "Alien"
+msgstr "Alias"
 
 msgid "gtk-gnutella: Click to minimize/restore"
 msgstr ""
@@ -7927,6 +8265,3 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
-
-#~ msgid "Unavailable range, waiting retry..."
-#~ msgstr "Bereik niet beschikbaar, wacht op een nieuwe poging..."
