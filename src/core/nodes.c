@@ -2645,7 +2645,10 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 			g_message("successfully sent BYE %d \"%s\" to %s (%s)",
 				code, n->error_str, node_addr(n), node_vendor(n));
 
-			socket_tx_shutdown(n->socket);
+			if (n->socket != NULL) {
+				/* Socket could have been nullified on a write error */
+				socket_tx_shutdown(n->socket);
+			}
 			node_shutdown_mode(n, BYE_GRACE_DELAY);
 	} else {
 		if (GNET_PROPERTY(node_debug))
