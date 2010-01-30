@@ -1351,13 +1351,38 @@ http_range_merge(GSList *old_list, GSList *new_list)
 			 * are no longer relevant.
 			 */
 
-			if (old_range->end <= highest) {
+			if (old_range->end < highest) {
 				old = g_slist_next(old);
 				continue;
 			}
-			if (new_range->end <= highest) {
+			if (new_range->end < highest) {
 				new = g_slist_next(new);
 				continue;
+			}
+
+			/*
+			 * If we encounter a range ending at the same spot as the
+			 * latest entry but which starts earlier, correct the starting
+			 * point of the latest range.
+			 */
+
+			if (result_list != NULL) {
+				if (old_range->end == highest) {
+					http_range_t *latest = result_list->data;
+					g_assert(latest->end == highest);
+					if (latest->start > old_range->start)
+						latest->start = old_range->start;
+					old = g_slist_next(old);
+					continue;
+				}
+				if (new_range->end == highest) {
+					http_range_t *latest = result_list->data;
+					g_assert(latest->end == highest);
+					if (latest->start > new_range->start)
+						latest->start = new_range->start;
+					new = g_slist_next(new);
+					continue;
+				}
 			}
 
 			/*
