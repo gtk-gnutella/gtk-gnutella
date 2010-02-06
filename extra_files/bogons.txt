@@ -2,7 +2,6 @@
 # The list below comes from http://www.cymru.com/Documents/bogon-bn-nonagg.txt
 # This file was manually updated on Thu Nov  5 21:59:37 CET 2009
 0.0.0.0/8
-1.0.0.0/8
 5.0.0.0/8
 10.0.0.0/8
 14.0.0.0/8
