@@ -806,15 +806,17 @@ shell_auth_cookie(void)
  * @return TRUE if the connection is allowed.
  */
 static gboolean
-shell_auth(const char *str)
+shell_auth(struct gnutella_shell *sh, const char *str)
 {
 	const struct sha1 *cookie;
-	char *tok_helo, *tok_cookie;
+	const char *tok_helo = NULL, *tok_cookie = NULL;
 	gboolean ok = FALSE;
-	int pos = 0;
+	const char *endptr;
 
-	tok_helo = shell_get_token(str, &pos);
-	tok_cookie = shell_get_token(str, &pos);
+	if (!shell_get_token(sh, str, &endptr, &tok_helo))
+		goto done;
+	if (!shell_get_token(sh, endptr, &endptr, &tok_cookie))
+		goto done;
 
 	if (GNET_PROPERTY(shell_debug)) {
 		g_message("auth: [%s] [<cookie not displayed>]", tok_helo);
@@ -831,8 +833,11 @@ shell_auth(const char *str)
 		cpu_noise();
 	}
 
-	G_FREE_NULL(tok_helo);
-	G_FREE_NULL(tok_cookie);
+done:
+	if (tok_helo != NULL)
+		g_free(deconstify_gpointer(tok_helo));
+	if (tok_cookie != NULL)
+		g_free(deconstify_gpointer(tok_cookie));
 
 	return ok;
 }
@@ -845,7 +850,7 @@ shell_grant_remote_shell(struct gnutella_shell *sh)
 	shell_check(sh);
 
 	if (GNET_PROPERTY(enable_shell)) {
-		if (shell_auth(getline_str(sh->socket->getline))) {
+		if (shell_auth(sh, getline_str(sh->socket->getline))) {
 			granted = TRUE;
 			sh->interactive = TRUE;
 			shell_write_welcome(sh);
