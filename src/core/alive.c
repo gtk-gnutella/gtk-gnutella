@@ -108,7 +108,7 @@ alive_make(struct gnutella_node *n, int max)
 {
 	struct alive *a;
 
-	a = g_malloc0(sizeof *a);
+	a = walloc0(sizeof *a);
 	a->node = n;
 	a->maxcount = max;
 	a->min_rt = INFINITY;
@@ -129,7 +129,7 @@ alive_free(gpointer obj)
 		ap_free(sl->data);
 
 	g_slist_free(a->pings);
-	G_FREE_NULL(a);
+	wfree(a, sizeof *a);
 }
 
 /**
