@@ -6069,11 +6069,11 @@ create_download(
 		if (GNET_PROPERTY(beautify_filenames))
 			b = filename_beautify(s);
 
-		/* An empty filename would create a corrupt download entry */
+		/* An empty filename would create a corrupted download entry */
     	file_name = atom_str_get('\0' != b[0] ? b : "noname");
 
-		if (b != s)		G_FREE_NULL(b);
-		if (file != s)	G_FREE_NULL(s);
+		if (b != s)		HFREE_NULL(b);
+		if (file != s)	HFREE_NULL(s);
 	}
 
 	/*
@@ -8583,7 +8583,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		gnet_host_vec_t *proxies;
 		char *uri;
 
-		uri = g_strndup(uri_start, uri_length);
+		uri = h_strndup(uri_start, uri_length);
 
 		/*
 		 * Remember that we fetched tigertree data from this one, so
@@ -8608,7 +8608,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		}
 
 		gnet_host_vec_free(&proxies);
-		G_FREE_NULL(uri);
+		HFREE_NULL(uri);
 	}
 }
 
@@ -11320,7 +11320,7 @@ picked:
 				method, (gulong) d->record_index, escaped);
 
 		if (escaped != d->file_name) {
-			G_FREE_NULL(escaped);
+			HFREE_NULL(escaped);
 		}
 	}
 
@@ -13704,11 +13704,11 @@ download_build_url(const struct download *d)
 		char *escaped, *uri;
 	   
 		escaped = url_escape(d->file_name);
-		uri = g_strdup_printf("/get/%u/%s", d->record_index, escaped);
+		uri = h_strdup_printf("/get/%u/%s", d->record_index, escaped);
 		url = download_url_for_uri(d, uri);
-		G_FREE_NULL(uri);
+		HFREE_NULL(uri);
 		if (escaped != d->file_name) {
-			G_FREE_NULL(escaped);
+			HFREE_NULL(escaped);
 		}
 	}
 	return url;
@@ -14193,15 +14193,15 @@ download_handle_magnet(const char *url)
 					{
 						char *path, *unescaped;
 
-						path = g_strndup(ms->path, endptr - ms->path);
+						path = h_strndup(ms->path, endptr - ms->path);
 						unescaped = url_unescape(path, FALSE);
 						if (unescaped) {
 							filename = g_strdup(filepath_basename(unescaped));
 							if (unescaped != path) {
-								G_FREE_NULL(unescaped);
+								HFREE_NULL(unescaped);
 							}
 						}
-						G_FREE_NULL(path);
+						HFREE_NULL(path);
 					}
 
 					if (filename && '\0' != filename[0]) {

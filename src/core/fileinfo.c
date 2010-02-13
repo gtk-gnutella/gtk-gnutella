@@ -182,7 +182,7 @@ enum dl_file_info_field {
  */
 static struct {
 	char *arena;			/**< Base arena */
-	char *wptr;			/**< Write pointer */
+	char *wptr;				/**< Write pointer */
 	const char *rptr;		/**< Read pointer */
 	const char *end;		/**< First byte off arena */
 	size_t size;			/**< Current size of arena */
@@ -242,7 +242,7 @@ tbuf_extend(size_t x, gboolean writing)
 	offset = (writing && tbuf.wptr) ? (tbuf.wptr - tbuf.arena) : 0;
 	g_assert(offset <= tbuf.size);
 
-	tbuf.arena = g_realloc(tbuf.arena, new_size);
+	tbuf.arena = hrealloc(tbuf.arena, new_size);
 	tbuf.end = &tbuf.arena[new_size];
 	tbuf.size = new_size;
 	tbuf.wptr = writing ? &tbuf.arena[offset] : NULL;
@@ -2306,7 +2306,7 @@ file_info_close(void)
 	g_hash_table_destroy(fi_by_guid);
 	g_hash_table_destroy(fi_by_outname);
 
-	G_FREE_NULL(tbuf.arena);
+	HFREE_NULL(tbuf.arena);
 }
 
 /**
@@ -3237,8 +3237,8 @@ file_info_retrieve(void)
 					}
 				}
 
-				if (b != s)		G_FREE_NULL(b);
-				if (value != s) G_FREE_NULL(s);
+				if (b != s)		HFREE_NULL(b);
+				if (value != s) HFREE_NULL(s);
 			} else {
 				filename = atom_str_get(value);
 			}
@@ -3282,8 +3282,8 @@ file_info_retrieve(void)
 							"unsanitized alias: \"%s\" -> \"%s\"", value, s);
 					}
 				}
-				if (b != s)		G_FREE_NULL(b);
-				if (s != value)	G_FREE_NULL(s);
+				if (b != s)		HFREE_NULL(b);
+				if (s != value)	HFREE_NULL(s);
 			}
 			break;
 		case FI_TAG_GENR:
@@ -3492,8 +3492,8 @@ file_info_new_outname(const char *dir, const char *name)
 	 */
 
 	uniq = file_info_unique_filename(dir, filename, "");
-	if (b != s)		G_FREE_NULL(b);
-	if (name != s)	G_FREE_NULL(s);
+	if (b != s)		HFREE_NULL(b);
+	if (name != s)	HFREE_NULL(s);
 
 	if (uniq) {
 		const char *pathname;
@@ -6625,7 +6625,7 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 			pathname = file_info_unique_filename(directory, name, "");
 		}
 		if (name != filename) {
-			G_FREE_NULL(name);
+			HFREE_NULL(name);
 		}
 		HFREE_NULL(directory);
 	}

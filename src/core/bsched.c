@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/walloc.h"
 #include "lib/parse.h"
 #include "lib/stringify.h"
@@ -202,10 +203,10 @@ bsched_make(const char *name, int type, guint32 mode,
 	g_assert(type == BS_T_STREAM);		/* XXX only mode supported for now */
 	g_assert(bandwidth <= BS_BW_MAX);	/* Signed, and multiplied by 1000 */
 
-	bs = g_malloc0(sizeof(*bs));
+	bs = walloc0(sizeof *bs);
 
 	bs->magic = BSCHED_MAGIC;
-	bs->name = g_strdup(name);
+	bs->name = h_strdup(name);
 	bs->flags = mode;
 	bs->type = type;
 	bs->period = period;
@@ -254,9 +255,9 @@ bsched_free(bsched_t *bs)
 	bs->sources = NULL;
 	g_slist_free(bs->stealers);
 	bs->stealers = NULL;
-	G_FREE_NULL(bs->name);
+	HFREE_NULL(bs->name);
 	bs->magic = 0;
-	G_FREE_NULL(bs);
+	wfree(bs, sizeof *bs);
 }
 
 /**

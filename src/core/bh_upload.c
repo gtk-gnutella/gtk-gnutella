@@ -59,6 +59,7 @@ RCSID("$Id$")
 #include "lib/header.h"
 #include "lib/gnet_host.h"
 #include "lib/concat.h"
+#include "lib/halloc.h"
 #include "lib/unsigned.h"
 #include "lib/stringify.h"
 #include "lib/url.h"
@@ -281,7 +282,7 @@ browse_host_read_html(struct special_upload *ctx,
 						
 						dir = shared_file_relative_path(sf);
 						if (dir) {
-							name = g_strconcat(dir, "/", name_nfc, (void *) 0);
+							name = h_strconcat(dir, "/", name_nfc, (void *) 0);
 						} else {
 							name = deconstify_gchar(name_nfc);
 						}
@@ -290,7 +291,7 @@ browse_host_read_html(struct special_upload *ctx,
 						html_name = walloc(html_size);
 						html_escape(name, html_name, html_size);
 						if (name != name_nfc) {
-							G_FREE_NULL(name);
+							HFREE_NULL(name);
 						}
 					}
 
@@ -319,7 +320,7 @@ browse_host_read_html(struct special_upload *ctx,
 							"]</li>\r\n", (void *) 0);
 
 						if (escaped != name_nfc) {
-							G_FREE_NULL(escaped);
+							HFREE_NULL(escaped);
 						}
 					}
 

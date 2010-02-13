@@ -64,6 +64,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/ascii.h"
 #include "lib/file.h"
+#include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/parse.h"
 #include "lib/stringify.h"
@@ -355,7 +356,7 @@ upload_stats_dump_item(gpointer p, gpointer user_data)
 		s->sha1 ? sha1_base32(s->sha1) : "*");
 
 	if (escaped != pathname) {		/* File had escaped chars */
-		G_FREE_NULL(escaped);
+		HFREE_NULL(escaped);
 	}
 }
 

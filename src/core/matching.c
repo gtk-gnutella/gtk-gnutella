@@ -468,7 +468,7 @@ st_fill_qhv(const char *search_term, query_hashvec_t *qhv)
 	}
 
 	if (search != search_term)
-		G_FREE_NULL(search);
+		HFREE_NULL(search);
 
 	if (wocnt > 0)
 		word_vec_free(wovec, wocnt);
@@ -666,7 +666,7 @@ st_search(
 
 finish:
 	if (search != search_term) {
-		G_FREE_NULL(search);
+		HFREE_NULL(search);
 	}
 }
 

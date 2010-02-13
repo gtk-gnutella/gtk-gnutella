@@ -39,8 +39,9 @@ RCSID("$Id$")
 
 #include "url_factory.h"
 #include "concat.h"
-#include "path.h"
+#include "halloc.h"
 #include "misc.h"
+#include "path.h"
 #include "stringify.h"
 #include "url.h"
 
@@ -93,7 +94,7 @@ url_for_sharemonkey_lookup(
 		(void *) 0);
 
 	if (escaped != file_basename)
-		G_FREE_NULL(escaped);
+		HFREE_NULL(escaped);
 
 	return url;
 }

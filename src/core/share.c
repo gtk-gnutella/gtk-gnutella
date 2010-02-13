@@ -306,7 +306,7 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 		name_canonic = UNICODE_CANONIZE(name);
 		sf->name_canonic = atom_str_get(name_canonic);
 		if (name_canonic != name) {
-			G_FREE_NULL(name_canonic);
+			HFREE_NULL(name_canonic);
 		}
 		if (name != sf->name_nfc) {
 			G_FREE_NULL(name);

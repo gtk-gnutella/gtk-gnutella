@@ -136,7 +136,7 @@ filename_sanitize(const char *filename,
 
 	/* Make sure the filename isn't too long */
 	if (strlen(filename) >= FILENAME_MAXBYTES) {
-		q = g_malloc(FILENAME_MAXBYTES);
+		q = halloc(FILENAME_MAXBYTES);
 		filename_shrink(filename, q, FILENAME_MAXBYTES);
 		s = q;
 	} else {
@@ -161,7 +161,7 @@ filename_sanitize(const char *filename,
 				|| (no_evil && NULL != strchr(evil, c))
 		   ) {
 				if (!q)
-					q = g_strdup(s);
+					q = h_strdup(s);
 				q[i] = '_';
 			}
 		}
@@ -199,7 +199,7 @@ filename_beautify(const char *filename)
 
 	s = filename;
 	len = strlen(filename);
-	q = g_malloc(len + 1);		/* Trailing NUL */
+	q = halloc(len + 1);		/* Trailing NUL */
 
 	while ((c = *s++)) {
 		guchar d;
@@ -233,8 +233,8 @@ filename_beautify(const char *filename)
 
 	/* Ensure we have no empty name */
 	if (j == 0) {
-		G_FREE_NULL(q);
-		return g_strdup(empty);
+		HFREE_NULL(q);
+		return h_strdup(empty);
 	}
 
 	/*
@@ -245,8 +245,8 @@ filename_beautify(const char *filename)
 	 */
 
 	if (NULL == strchr(q, '.') && j < len && '.' == filename[len - j]) {
-		char *r = g_strconcat(empty, ".", q, (void *) 0);
-		G_FREE_NULL(q);
+		char *r = h_strconcat(empty, ".", q, (void *) 0);
+		HFREE_NULL(q);
 
 		return r;
 	}

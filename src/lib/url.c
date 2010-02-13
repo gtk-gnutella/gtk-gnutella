@@ -96,7 +96,8 @@ static const char hex_alphabet[] = "0123456789ABCDEF";
  * @param `url' no brief description.
  * @param `mask' tells us whether we're escaping an URL path or a query string.
  *
- * @return argument if no escaping is necessary, or a new string otherwise.
+ * @return argument if no escaping is necessary, or a new string otherwise,
+ * which must be freed via hfree().
  */
 static char *
 url_escape_mask(const char *url, guint8 mask)
@@ -114,7 +115,7 @@ url_escape_mask(const char *url, guint8 mask)
 	if (need_escape == 0)
 		return deconstify_gchar(url);
 
-	new = g_malloc(p - url + (need_escape << 1));
+	new = halloc(p - url + (need_escape << 1));
 
 	for (p = url, q = new, c = *p++; c; c = *p++) {
 		if (is_transparent_char(c, mask))
@@ -216,7 +217,7 @@ url_from_absolute_path(const char *path)
 	escaped = url_escape_mask(path, SHELL_MASK);
 	url = g_strconcat("file://", escaped, (void *) 0);
 	if (escaped != path) {
-		G_FREE_NULL(escaped);
+		HFREE_NULL(escaped);
 	}
 	return url;
 }
@@ -287,7 +288,7 @@ url_escape_cntrl(const char *url)
 		guchar c;
 
 		size = p - url + 1 + need_escape * 2;
-		escaped = g_malloc(size);
+		escaped = halloc(size);
 		q = escaped;
 
 		for (p = url; '\0' != (c = *p); p++) {
@@ -351,7 +352,7 @@ url_unescape(char *url, gboolean inplace)
 		new = url;
 	else {
 		unescaped_memory = p - url - (need_unescape << 1) + 1;
-		new = g_malloc(unescaped_memory);
+		new = halloc(unescaped_memory);
 	}
 
 	for (p = url, q = new, c = *p++; c; c = *p++) {
@@ -415,7 +416,7 @@ url_params_parse(char *query)
 					return NULL;
 				}
 				if (value == start)				/* No unescaping took place */
-					value = g_strdup(start);
+					value = h_strdup(start);
 				*q = c;
 				g_hash_table_insert(up->params, name, value);
 				up->count++;
@@ -462,7 +463,7 @@ free_params_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
 	(void) unused_udata;
 	HFREE_NULL(key);
-	G_FREE_NULL(value);
+	HFREE_NULL(value);
 }
 
 /**

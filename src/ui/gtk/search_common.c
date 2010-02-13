@@ -3834,15 +3834,15 @@ search_gui_set_details(const record_t *rc)
 
 			filename = filepath_basename(rc->utf8_name);
 			escaped = url_escape(filename);
-			url = g_strconcat("http://",
+			url = h_strconcat("http://",
 					host_addr_port_to_string(rs->addr, rs->port),
 					"/get/", uint32_to_string(rc->file_index), "/", escaped,
 					(void *)0);
 			search_gui_append_detail(_("Classic URL"), url);
 			if (filename != escaped) {
-				G_FREE_NULL(escaped);
+				HFREE_NULL(escaped);
 			}
-			G_FREE_NULL(url);
+			HFREE_NULL(url);
 		}
 	}
 }

@@ -67,10 +67,12 @@ RCSID("$Id$")
 #include "utf8.h"
 #include "ascii.h"
 #include "concat.h"
+#include "halloc.h"
 #include "misc.h"
 #include "debug.h"
 #include "glib-missing.h"
 #include "stringify.h"
+#include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
 /**
@@ -126,7 +128,7 @@ struct conv_to_utf8 {
 	gboolean is_iso8859;	/**< Set to TRUE if name matches "ISO-8859-*" */
 };
 
-static const char *charset = NULL;	/** Name of the locale charset */
+static char *charset = NULL;	/** Name of the locale charset */
 static GHashTable *utf32_compose_roots;
 
 /** A single-linked list of conv_to_utf8 structs. The first one is used
@@ -1209,7 +1211,7 @@ locale_get_charset(void)
 			g_warning("locale_init: using default codeset %s as fallback", cs);
 		}
 
-		cs = g_strdup(cs);
+		cs = h_strdup(cs);
 		initialized = TRUE;
 	}
 
@@ -1236,9 +1238,9 @@ conv_to_utf8_new(const char *cs)
 {
 	struct conv_to_utf8 *t;
 
-	t = g_malloc(sizeof *t);
+	t = walloc(sizeof *t);
 	t->cd = (iconv_t) -1;
-	t->name = g_strdup(cs);
+	t->name = h_strdup(cs);
 	t->is_utf8 = 0 == strcmp(cs, "UTF-8");
 	t->is_ascii = 0 == strcmp(cs, "ASCII");
 	t->is_iso8859 = NULL != is_strprefix(cs, "ISO-8859-");
@@ -1248,8 +1250,8 @@ conv_to_utf8_new(const char *cs)
 static void
 conv_to_utf8_free(struct conv_to_utf8 *cu)
 {
-	G_FREE_NULL(cu->name);
-	g_free(cu);
+	HFREE_NULL(cu->name);
+	wfree(cu, sizeof *cu);
 }
 
 /**
@@ -1480,7 +1482,7 @@ locale_init(void)
 		struct utf32_general_category, uc, CMP, uint32_to_string);
 
 	setlocale(LC_ALL, "");
-	charset = locale_get_charset();
+	charset = deconstify_gpointer(locale_get_charset());
 
 	/*
 	 * If the character set could not be properly detected, use ASCII as
@@ -1569,11 +1571,7 @@ locale_close(void)
 	G_SLIST_FOREACH(sl_filename_charsets, conv_to_utf8_free);
 	g_slist_free(sl_filename_charsets);
 	sl_filename_charsets = NULL;
-
-	if (charset) {
-		g_free(deconstify_gpointer(charset));
-		charset = NULL;
-	}
+	HFREE_NULL(charset);
 
 	g_hash_table_foreach_remove(utf32_compose_roots, compose_free_slist, NULL);
 	g_hash_table_destroy(utf32_compose_roots);
@@ -2581,6 +2579,28 @@ CAT2(lazy_,func) proto \
 	return NOT_LEAKING(dst); \
 }
 
+/**
+ * FIXME: temporary until everything is converted to use halloc().
+ * Same a LAZY_CONVERT() but for halloc()-ed strings.
+ */
+#define LAZY_CONVERT_HALLOC(func, proto,params) \
+const char * \
+CAT2(lazy_,func) proto \
+{ \
+	static char *prev; /* Previous conversion result */ \
+	char *dst; \
+ \
+	g_assert(src); \
+	g_assert(prev != src); \
+ \
+	HFREE_NULL(prev); \
+ \
+	dst = func params; \
+	if (dst != src) \
+		prev = dst; \
+	return NOT_LEAKING(dst); \
+}
+
 /*
  * Converts the supplied string ``src'' from the current locale encoding
  * to an UTF-8 NFC string.
@@ -2598,10 +2618,11 @@ LAZY_CONVERT(utf8_to_locale, (const char *src), (src))
 
 LAZY_CONVERT(iso8859_1_to_utf8, (const char *src), (src))
 LAZY_CONVERT(utf8_to_iso8859_1, (const char *src), (src))
+LAZY_CONVERT(unknown_to_ui_string, (const char *src), (src))
+
 LAZY_CONVERT(filename_to_ui_string, (const char *src), (src))
 LAZY_CONVERT(filename_to_utf8_normalized,
 		(const char *src, uni_norm_t norm), (src, norm))
-LAZY_CONVERT(unknown_to_ui_string, (const char *src), (src))
 
 /*
  * Converts the supplied string ``src'' from a guessed encoding
@@ -4744,7 +4765,7 @@ utf8_normalize(const char *src, uni_norm_t norm)
 }
 
 /**
- * Apply the NFKD/NFC algo to have nomalized keywords
+ * Apply the NFKD/NFC algo to have nomalized keywords (string is halloc()-ed)
  */
 static guint32 *
 utf32_canonize(const guint32 *src0)
@@ -4754,24 +4775,24 @@ utf32_canonize(const guint32 *src0)
 
 	/* Convert to NFC */
 	size = utf32_strlen(src0) + 1;
-	src = g_memdup(src0, size * sizeof *src);
+	src = hcopy(src0, size * sizeof *src);
 	(void) utf32_compose(src);
 
 	/* Apply simple and special folding */
 	n = utf32_case_fold(src, NULL, 0);
 	size = n + 1;
-	dst = g_malloc(size * sizeof *dst);
+	dst = halloc(size * sizeof *dst);
 	n = utf32_case_fold(src, dst, size);
-	G_FREE_NULL(src);
+	HFREE_NULL(src);
 	src = dst;
 
 	/* Convert to NFKD */
 	n = utf32_decompose(src, NULL, 0, TRUE);
 	size = n + 1;
-	dst = g_malloc(size * sizeof *dst);
+	dst = halloc(size * sizeof *dst);
 	n = utf32_decompose(src, dst, size, TRUE);
 	g_assert(size - 1 == n);
-	G_FREE_NULL(src);
+	HFREE_NULL(src);
 	src = dst;
 
 	/* Apply special filter; works in-place */
@@ -4782,10 +4803,10 @@ utf32_canonize(const guint32 *src0)
 	 * operations did not destroy the NFKD */
 	n = utf32_decompose(src, NULL, 0, FALSE);
 	size = n + 1;
-	dst = g_malloc(size * sizeof *dst);
+	dst = halloc(size * sizeof *dst);
 	n = utf32_decompose(src, dst, size, FALSE);
 	g_assert(size - 1 == n);
-	G_FREE_NULL(src);
+	HFREE_NULL(src);
 	src = dst;
 
 	/* Convert to NFC; works in-place */
@@ -4795,16 +4816,16 @@ utf32_canonize(const guint32 *src0)
 	/* Insert an ASCII space at block changes, this keeps NFC */
 	n = utf32_split_blocks(src, NULL, 0);
 	size = n + 1;
-	dst = g_malloc(size * sizeof *dst);
+	dst = halloc(size * sizeof *dst);
 	n = utf32_split_blocks(src, dst, size);
 	g_assert(size - 1 == n);
-	G_FREE_NULL(src);
+	HFREE_NULL(src);
 
 	return dst;
 }
 
 /**
- * Apply the NFKD/NFC algo to have nomalized keywords
+ * Apply the NFKD/NFC algo to have nomalized keywords (string is halloc()-ed)
  */
 char *
 utf8_canonize(const char *src)
@@ -4824,7 +4845,7 @@ utf8_canonize(const char *src)
 		} else {
 			size_t size = n + 1;
 
-			s = g_malloc(size * sizeof *s);
+			s = halloc(size * sizeof *s);
 			n = utf8_to_utf32(src, s, size);
 			g_assert(size - 1 == n);
 		}
@@ -4832,7 +4853,7 @@ utf8_canonize(const char *src)
 		dst32 = utf32_canonize(s);
 		g_assert(dst32 != s);
 		if (s != buf) {
-			G_FREE_NULL(s);
+			HFREE_NULL(s);
 		}
 	}
 

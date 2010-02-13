@@ -3653,7 +3653,7 @@ search_new(gnet_search_t *ptr, const char *query,
 			goto failure;
 		}
 	} else {
-		qdup = g_strdup(query);
+		qdup = h_strdup(query);
 	}
 
 	sch = walloc0(sizeof *sch);
@@ -3669,7 +3669,7 @@ search_new(gnet_search_t *ptr, const char *query,
 	sch->create_time = create_time;
 	sch->lifetime = lifetime;
 
-	G_FREE_NULL(qdup);
+	HFREE_NULL(qdup);
 
 	sch->browse = sbool_set(flags & SEARCH_F_BROWSE);
 	sch->local = sbool_set(flags & SEARCH_F_LOCAL);
@@ -3701,7 +3701,7 @@ search_new(gnet_search_t *ptr, const char *query,
 	return SEARCH_NEW_SUCCESS;
 
 failure:
-	G_FREE_NULL(qdup);
+	HFREE_NULL(qdup);
 	*ptr = -1;
 	return result;
 }

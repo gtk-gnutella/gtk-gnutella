@@ -1661,7 +1661,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 					href[0] = '\0';
 				}
 				if (uri != u->name)
-					G_FREE_NULL(uri);
+					HFREE_NULL(uri);
 			}
 
 			gm_snprintf(index_href, sizeof index_href,
@@ -2570,7 +2570,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 		if (sfn && sf != sfn) {
 			char location[1024];
-			const char *escaped;
+			char *escaped;
 
 			if (!sha1_hash_is_uptodate(sfn))
 				goto sha1_recomputed;
@@ -2621,8 +2621,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 				(gulong) shared_file_index(sfn), escaped);
 
 			if (escaped != shared_file_name_nfc(sfn)) {
-				g_free(deconstify_gchar(escaped));
-				escaped = NULL;	/* Don't use G_FREE_NULL b/c of lvalue cast */
+				HFREE_NULL(escaped);
 			}
 
 			u->sf = shared_file_ref(sfn);			
@@ -3224,7 +3223,11 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 			upload_vendor_str(u));
 
 	if (!GNET_PROPERTY(browse_host_enabled)) {
-		upload_send_error(u, 403, "Browse Host Disabled");
+		if (ctl_limit(u->socket->addr, CTL_D_BROWSE | CTL_D_STEALTH)) {
+			upload_remove(u, _("Limited connection"));
+		} else {
+			upload_send_error(u, 403, "Browse Host Disabled");
+		}
 		return -1;
 	}
 

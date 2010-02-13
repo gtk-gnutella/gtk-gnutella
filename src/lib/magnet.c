@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "concat.h"
 #include "glib-missing.h"
 #include "gnet_host.h"
+#include "halloc.h"
 #include "magnet.h"
 #include "parse.h"
 #include "sequence.h"
@@ -876,7 +877,7 @@ magnet_append_item(GString **gs_ptr, gboolean escape_value,
 		escaped = url_escape_query(value);
 		gs = g_string_append(gs, escaped);
 		if (escaped != value) {
-			G_FREE_NULL(escaped);
+			HFREE_NULL(escaped);
 		}
 	} else {
 		gs = g_string_append(gs, value);

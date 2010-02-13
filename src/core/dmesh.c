@@ -65,6 +65,7 @@ RCSID("$Id$")
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/header.h"
 #include "lib/parse.h"
@@ -537,7 +538,7 @@ dmesh_url_parse(const char *url, dmesh_urlinfo_t *info)
 		}
 		info->name = atom_str_get(unescaped);
 		if (unescaped != file) {
-			G_FREE_NULL(unescaped);
+			HFREE_NULL(unescaped);
 		}
 	} else {
 		struct sha1 sha1;
@@ -2076,17 +2077,20 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 		{
 			char *url;
 
-			url = g_strndup(url_start, p - url_start);
+			url = h_strndup(url_start, p - url_start);
 			ok = dmesh_url_parse(url, &info);
 
 			if (GNET_PROPERTY(dmesh_debug) > 6)
 				g_message("MESH (parsed=%d): \"%s\"", ok, url);
 
-			if (!ok && (GNET_PROPERTY(dmesh_debug) > 1 || !is_strprefix(url, "ed2kftp://"))) {
+			if (!ok &&
+				(GNET_PROPERTY(dmesh_debug) > 1 ||
+					!is_strprefix(url, "ed2kftp://"))
+			) {
 				g_warning("cannot parse Alternate-Location URL \"%s\": %s",
 					url, dmesh_url_strerror(dmesh_url_errno));
 			}
-			G_FREE_NULL(url);
+			HFREE_NULL(url);
 		}
 
 		if (c == '"')				/* URL ended with a quote, skip it */
@@ -2149,7 +2153,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 			char *date;
 
 			g_assert((guchar) *p == c);
-			date = g_strndup(date_start, p - date_start);
+			date = h_strndup(date_start, p - date_start);
 			stamp = date2time(date, now);
 
 			if (GNET_PROPERTY(dmesh_debug) > 6)
@@ -2160,7 +2164,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 				g_warning("cannot parse Alternate-Location date: %s", date);
 				stamp = 0;
 			}
-			G_FREE_NULL(date);
+			HFREE_NULL(date);
 		} else
 			stamp = 0;
 
