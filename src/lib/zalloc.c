@@ -124,7 +124,8 @@ static gboolean addr_grows_upwards;	/**< Whether newer VM addresses increase */
 static gboolean zalloc_closing;		/**< Whether zclose() was called */
 
 /*
- * Define ZONE_SAFE to allow detection of duplicate frees on a zone object.
+ * Define ZONE_SAFE to allow detection of duplicate frees on a zone object
+ * or freeing directed to the wrong zone.
  *
  * Don't leave that as the default because it adds an overhead to each allocated
  * block, which defeats one of the advantages of having a zone allocation in
