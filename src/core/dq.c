@@ -1057,7 +1057,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	 */
 
 	if (!(dq->flags & (DQ_F_LEAF_GUIDED|DQ_F_ROUTING_HITS))) {
-		if (GNET_PROPERTY(dq_debug))
+		if (GNET_PROPERTY(dq_debug) > 1)
 			g_message(
 				"DQ[%s] terminating unguided & unrouted (queried %u UP%s)",
 				dquery_id_to_string(dq->qid), dq->up_sent,
@@ -1331,7 +1331,7 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
-		if (GNET_PROPERTY(dq_debug))
+		if (GNET_PROPERTY(dq_debug) > 1)
 			g_message("DQ[%s] terminating (no longer an ultra node)",
 				dquery_id_to_string(dq->qid));
 		goto terminate;
@@ -1345,7 +1345,7 @@ dq_send_next(dquery_t *dq)
 	results = dq_kept_results(dq);
 
 	if (dq->horizon >= DQ_MAX_HORIZON || results >= dq->max_results) {
-		if (GNET_PROPERTY(dq_debug))
+		if (GNET_PROPERTY(dq_debug) > 1)
 			g_message("DQ[%s] terminating "
 				"(UPs=%u, horizon=%u >= %d, %s results=%u >= %u)",
 				dquery_id_to_string(dq->qid), dq->up_sent, dq->horizon,
@@ -1364,7 +1364,7 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	if (dq->results + dq->oob_results > dq->fin_results) {
-		if (GNET_PROPERTY(dq_debug))
+		if (GNET_PROPERTY(dq_debug) > 1)
 			g_message("DQ[%s] terminating "
 				"(UPs=%u, seen=%u + OOB=%u >= %u -- %s kept=%u)",
 				dquery_id_to_string(dq->qid), dq->up_sent,
@@ -1383,7 +1383,7 @@ dq_send_next(dquery_t *dq)
 		dq->up_sent >=
 			GNET_PROPERTY(max_connections) - GNET_PROPERTY(normal_connections)
 	) {
-		if (GNET_PROPERTY(dq_debug))
+		if (GNET_PROPERTY(dq_debug) > 1)
 			g_message("DQ[%s] terminating (queried UPs=%u >= %u)",
 				dquery_id_to_string(dq->qid), dq->up_sent,
 				GNET_PROPERTY(max_connections) -
@@ -1493,8 +1493,8 @@ dq_send_next(dquery_t *dq)
 
 	if (GNET_PROPERTY(dq_debug) > 1)
 		g_message("DQ[%s] (%d secs) timeout set to %d ms (pending=%d)",
-			dquery_id_to_string(dq->qid), (int) (tm_time() - dq->start), timeout,
-			dq->pending);
+			dquery_id_to_string(dq->qid), (int) (tm_time() - dq->start),
+			timeout, dq->pending);
 
 	dq->results_ev = cq_insert(callout_queue, timeout, dq_results_expired, dq);
 	return;
@@ -1677,7 +1677,7 @@ dq_common_init(dquery_t *dq)
 			gnutella_msg_search_get_text(packet));
 	}
 
-	if (GNET_PROPERTY(dq_debug)) {
+	if (GNET_PROPERTY(dq_debug) > 1) {
 		gconstpointer packet;
 		guint16 flags;
 
@@ -1853,6 +1853,7 @@ void
 dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 {
 	dquery_t *dq;
+	const char *msg = NULL;
 
 	/*
 	 * Local queries are queued in the global SQ, for slow dispatching.
@@ -1860,13 +1861,13 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	 */
 
 	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
-		if (GNET_PROPERTY(dq_debug))
-			g_warning("ignoring dynamic query \"%s\": no longer an ultra node",
-				gnutella_msg_search_get_text(pmsg_start(mb)));
+		msg = "no longer an ultra node";
+		goto ignore;
+	}
 
-		pmsg_free(mb);
-		qhvec_free(qhv);
-		return;
+	if (0 == qhvec_count(qhv)) {
+		msg = "empty hash vector";
+		goto ignore;
 	}
 
 	/*
@@ -1894,6 +1895,15 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	dq_common_init(dq);
 	dq_sendto_leaves(dq, NULL);
 	dq_send_probe(dq);
+	return;
+
+ignore:
+	if (GNET_PROPERTY(dq_debug))
+		g_warning("ignoring local dynamic query \"%s\": %s",
+			gnutella_msg_search_get_text(pmsg_start(mb)), msg);
+
+	pmsg_free(mb);
+	qhvec_free(qhv);
 }
 
 /**
@@ -1917,7 +1927,7 @@ dq_node_removed(const node_id_t node_id)
 
 		dquery_check(dq);
 
-		if (GNET_PROPERTY(dq_debug))
+		if (GNET_PROPERTY(dq_debug) > 1)
 			g_message("DQ[%s] terminated by node #%s removal (queried %u UP%s)",
 				dquery_id_to_string(dq->qid), node_id_to_string(dq->node_id),
 				dq->up_sent, dq->up_sent == 1 ? "" : "s");
@@ -2178,7 +2188,7 @@ dq_got_query_status(const struct guid *muid,
 	 */
 
 	if (kept == 0xffff) {
-		if (GNET_PROPERTY(dq_debug))
+		if (GNET_PROPERTY(dq_debug) > 1)
 			g_message("DQ[%s] terminating at user's request (queried %u UP%s)",
 				dquery_id_to_string(dq->qid), dq->up_sent,
 				dq->up_sent == 1 ? "" : "s");
