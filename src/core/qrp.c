@@ -130,18 +130,18 @@ enum qrp_route_magic {
  */
 struct routing_table {
 	enum qrp_route_magic magic;
-	int refcnt;			/**< Amount of references */
-	int generation;		/**< Generation number */
+	int refcnt;				/**< Amount of references */
+	int generation;			/**< Generation number */
 	guint8 *arena;			/**< Where table starts */
 	int slots;				/**< Amount of slots in table */
 	int infinity;			/**< Value for "infinity" */
 	guint32 client_slots;	/**< Only for received tables, for shrinking ctrl */
 	int bits;				/**< Amount of bits used in table size (received) */
 	int set_count;			/**< Amount of slots set in table */
-	int fill_ratio;		/**< 100 * fill ratio for table (received) */
-	int pass_throw;		/**< Query must pass a d100 throw to be forwarded */
+	int fill_ratio;			/**< 100 * fill ratio for table (received) */
+	int pass_throw;			/**< Query must pass a d100 throw to be forwarded */
 	const struct sha1 *digest;	/**< SHA1 digest of the whole table (atom) */
-	char *name;			/**< Name for dumping purposes */
+	char *name;				/**< Name for dumping purposes */
 	gboolean reset;			/**< This is a new table, after a RESET */
 	gboolean compacted;
 	/**
@@ -165,7 +165,7 @@ enum routing_patch_magic {
  */
 struct routing_patch {
 	enum routing_patch_magic magic;
-	int refcnt;			/**< Amount of references */
+	int refcnt;				/**< Amount of references */
 	guint8 *arena;
 	int size;				/**< Number of entries in table */
 	int infinity;			/**< Value of infinity for the table patched */
@@ -3951,7 +3951,7 @@ qrt_handle_patch(
 		if (NODE_IS_LEAF(n))
 			qrp_leaf_changed();
 
-		if (GNET_PROPERTY(qrp_debug) > 1)
+		if (GNET_PROPERTY(qrp_debug) > 4)
 			(void) qrt_dump(rt, GNET_PROPERTY(qrp_debug) > 19);
 	}
 
