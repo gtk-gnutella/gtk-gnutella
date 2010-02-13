@@ -1399,7 +1399,7 @@ http_range_merge(GSList *old_list, GSList *new_list)
 				continue;
 			}
 			if (old_range->end < new_range->start) {
-				highest = new_range->end;
+				highest = old_range->end;
 				result_list = g_slist_prepend(result_list,
 									http_range_clone(old_range));
 
