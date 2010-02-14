@@ -54,6 +54,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/parse.h"
 #include "lib/tm.h"
+#include "lib/timestamp.h"
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -704,6 +705,11 @@ version_ancient_warn(void)
 
 	if (elapsed > VERSION_ANCIENT_WARN || tok_is_ancient(now)) {
 		static gboolean warned = FALSE;
+		if (GNET_PROPERTY(version_debug)) {
+			g_message("VERSION our_version = %s (elapsed = %ld, token %s)",
+				timestamp_to_string(our_version.timestamp),
+				(long) elapsed, tok_is_ancient(now) ? "ancient" : "ok");
+		}
 		if (!warned) {
 			g_warning("version of gtk-gnutella is too old, please upgrade!");
 			warned = TRUE;
