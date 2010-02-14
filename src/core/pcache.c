@@ -593,7 +593,7 @@ ping_type(const gnutella_node_t *n)
 	if ((flags & PING_F_UHC) && GNET_PROPERTY(ggep_debug) > 1)
 		g_message("%s: UHC ping requesting %s slots from %s",
 			gmsg_node_infostr(n),
-			(flags & PING_F_UHC_ANY) ?	"unspecified" :
+			(flags & PING_F_UHC_ANY) ?	"any" :
 			(flags & PING_F_UHC_ULTRA) ?	"ultra" : "leaf",
 			host_addr_port_to_string(n->addr, n->port));
 
@@ -1917,6 +1917,15 @@ pcache_udp_ping_received(struct gnutella_node *n)
 	}
 
 	/*
+	 * Don't answer to pings from bad nodes (includes "alien" hosts).
+	 */
+
+	if (hcache_node_is_bad(n->addr)) {
+		gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
+		return;
+	}
+
+	/*
 	 * Don't answer to too frequent pings from the same IP.
 	 */
 
@@ -1927,6 +1936,7 @@ pcache_udp_ping_received(struct gnutella_node *n)
 
 	aging_insert(udp_pings,
 		wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
+
 	send_personal_info(n, FALSE, ping_type(n));
 }
 
