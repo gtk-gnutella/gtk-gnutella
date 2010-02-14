@@ -1591,6 +1591,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 
 	if (u->flags & UPLOAD_F_LIMITED) {
 		u->flags &= ~UPLOAD_F_LIMITED;		/* For recursion */
+		u->keep_alive = FALSE;				/* Force disconnection */
 		if (u->flags & UPLOAD_F_NORMAL_LIMIT) {
 			send_upload_error(u, 403, "Unauthorized");
 		} else if (!(u->flags & UPLOAD_F_STEALTH_LIMIT)) {
