@@ -568,6 +568,31 @@ ctl_parse(const char *s)
 		str.p = s;
 		str.unread = NULL;
 
+		/*
+		 * Format is:
+		 *    <country>, <country>:<options>, {<country>, <country>}:<options>
+		 *
+		 * <country> is 2-letter ISO-3166 country code.
+		 *
+		 * <options> can be any combination of:
+		 * i = do not accept incoming HTTP connections (uploads)
+		 * o = do not make outoing HTTP connections (downloads)
+		 * g = do not allow any Gnutella connection
+		 * b = deny browse-host requests [implicit if "i"]
+		 * u = deny Gnutella UDP (not including DHT)
+		 * q = do not answer Gnutella queries (hop=1 or OOB)
+		 * r = ignore replies (query hits)
+		 * a = all of the above ("qiobrug")
+		 * s = stealth mode -- never give any feedback, just close connections
+		 * n = reject with "unauthorized" message instead of explicit error
+		 * d = no insertion into download mesh
+		 * c = do not cache valid/fresh hosts
+		 * w = allow whitelist overrides
+		 *
+		 * Default is "a", any specified option superseding the default.
+		 * Use carefully.
+		 */
+
 		ctl_parse_list(&str);
 		ctl_token_free_null(&str.unread);
 	}
