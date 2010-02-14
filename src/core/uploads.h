@@ -65,7 +65,7 @@ struct upload {
     gnet_upload_t upload_handle;
 	guint32 flags;					/**< Operating flags */
 	upload_stage_t status;
-	int error_sent;				/**< HTTP error code sent back */
+	int error_sent;					/**< HTTP error code sent back */
 	gpointer io_opaque;				/**< Opaque I/O callback information */
 	struct parq_ul_queued *parq_ul;	/**< PARQ information */
 
@@ -107,7 +107,7 @@ struct upload {
 	guint16 gnet_port;			/**< Advertised Gnet port, for browsing */
 	guint16 country;			/**< Country of origin, ISO3166 code */
 
-	const char *user_agent;	/**< Remote user agent */
+	const char *user_agent;		/**< Remote user agent */
 
 	filesize_t file_size;
 	filesize_t skip;			/**< First byte to send, inclusive */
@@ -117,8 +117,8 @@ struct upload {
 	filesize_t total_requested;	/**< Total amount of bytes requested */
 	filesize_t downloaded;		/**< What they claim as downloaded so far */
 
-	int http_major;			/**< HTTP major version */
-	int http_minor;			/**< HTTP minor version */
+	int http_major;				/**< HTTP major version */
+	int http_minor;				/**< HTTP minor version */
 
 	gboolean keep_alive;		/**< Keep HTTP connection? */
 	gboolean push;
@@ -158,6 +158,9 @@ upload_is_special(const struct upload *u)
  */
 
 enum {
+	UPLOAD_F_NORMAL_LIMIT	= 1 << 5,	/**< Normal limits */
+	UPLOAD_F_STEALTH_LIMIT	= 1 << 4,	/**< Stealth limits */
+	UPLOAD_F_LIMITED		= 1 << 3,	/**< Subject to limitation */
 	UPLOAD_F_WAS_PLAIN		= 1 << 2,	/**< Prev request was for plain file  */
 	UPLOAD_F_EARLY_STALL	= 1 << 1,	/**< Pre-stalling condition */
 	UPLOAD_F_STALLED		= 1 << 0	/**< Stall condition present */

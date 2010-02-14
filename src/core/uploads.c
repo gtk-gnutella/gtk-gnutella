@@ -1128,6 +1128,8 @@ upload_likely_from_browser(const header_t *header)
 /**
  * Wrapper to http_send_status() to disable TCP quick ACKs before sending
  * the actual status.
+ *
+ * @return TRUE if we were able to send everything, FALSE otherwise
  */
 static gboolean 
 upload_send_http_status(struct upload *u,
@@ -1138,6 +1140,11 @@ upload_send_http_status(struct upload *u,
 
 	if (u->keep_alive)
 		socket_set_quickack(u->socket, FALSE);	/* Re-disable quick TCP ACKs */
+
+	if (u->flags & UPLOAD_F_LIMITED) {
+		send_upload_error(u, 403, "Unauthorized");
+		return TRUE;
+	}
 
 	return http_send_status(HTTP_UPLOAD, u->socket, code, keep_alive,
 				u->hev, u->hevcnt, "%s", msg);
@@ -1581,6 +1588,17 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 
 	upload_check(u);
 	u->hevcnt = 0;
+
+	if (u->flags & UPLOAD_F_LIMITED) {
+		u->flags &= ~UPLOAD_F_LIMITED;		/* For recursion */
+		if (u->flags & UPLOAD_F_NORMAL_LIMIT) {
+			send_upload_error(u, 403, "Unauthorized");
+		} else if (!(u->flags & UPLOAD_F_STEALTH_LIMIT)) {
+			send_upload_error(u, 403, "Limiting connections from %s",
+				gip_country_name(u->socket->addr));
+		}
+		return;
+	}
 
 	if (msg && no_reason != msg) {
 		gm_vsnprintf(reason, sizeof reason, msg, ap);
@@ -4303,14 +4321,12 @@ upload_request(struct upload *u, header_t *header)
 	 */
 
 	if (ctl_limit(u->socket->addr, CTL_D_INCOMING)) {
+		u->flags |= UPLOAD_F_LIMITED;
 		if (ctl_limit(u->socket->addr, CTL_D_NORMAL)) {
-			send_upload_error(u, 403, "Unauthorized");
-		} else if (!ctl_limit(u->socket->addr, CTL_D_STEALTH)) {
-			send_upload_error(u, 403, "Limiting connections from %s",
-				gip_country_name(u->socket->addr));
+			u->flags |= UPLOAD_F_NORMAL_LIMIT;
+		} else if (ctl_limit(u->socket->addr, CTL_D_STEALTH)) {
+			u->flags |= UPLOAD_F_STEALTH_LIMIT;
 		}
-		upload_remove(u, _("Limited connection"));
-		return;
 	}
 
 	/* @todo TODO: Parse the HTTP request properly:
@@ -4539,6 +4555,11 @@ upload_request(struct upload *u, header_t *header)
 	 */
 
 	upload_fire_upload_info_changed(u);
+
+	if (u->flags & UPLOAD_F_LIMITED) {
+		upload_error_remove(u, 403, _("Limited connection"));
+		return;
+	}
 
 	/*
 	 * If we're not using sendfile() or if we don't have a requested file
