@@ -3023,6 +3023,7 @@ send_error(
 	char *token;
 	char xlive[128];
 	char xtoken[128];
+	char xultrapeer[30];
 	int pongs = saturated ? CONNECT_PONGS_LOW : CONNECT_PONGS_COUNT;
 
 	socket_check(s);
@@ -3077,6 +3078,19 @@ send_error(
 		pongs = 0;
 
 	/*
+	 * Do not send X-Ultrapeer on 4xx errors or 550.
+	 */
+
+	if (code == 550 || (code >= 400 && code < 500)) {
+		xultrapeer[0] = '\0';
+	} else {
+		gm_snprintf(xultrapeer, sizeof(xultrapeer),
+			GNET_PROPERTY(current_peermode) == NODE_P_NORMAL ?
+			"" : GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
+			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n");
+	}
+
+	/*
 	 * Build the response.
 	 */
 
@@ -3090,10 +3104,8 @@ send_error(
 		"%s"		/* X-Try */
 		"%s"		/* X-Try-Ultrapeers */
 		"\r\n",
-		code, msg_tmp, version, host_addr_to_string(s->addr), xtoken, xlive,
-		GNET_PROPERTY(current_peermode) == NODE_P_NORMAL ? "" :
-		GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
-			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
+		code, msg_tmp, version, host_addr_to_string(s->addr),
+		xtoken, xlive, xultrapeer,
 		(GNET_PROPERTY(current_peermode) == NODE_P_NORMAL && pongs) ?
 			formatted_connection_pongs("X-Try", HOST_ANY, pongs) : "",
 		(GNET_PROPERTY(current_peermode) != NODE_P_NORMAL && pongs) ?
