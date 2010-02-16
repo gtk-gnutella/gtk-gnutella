@@ -70,8 +70,9 @@ DBU_OBJ = \
 -expand \\
 
 ++GLIB_LDFLAGS $glibldflags
+++COMMON_LIBS $libs
 
-LIBS = -L. -lsdbm -L../lib -lshared $(GLIB_LDFLAGS)
+LIBS = -L. -lsdbm -L../lib -lshared $(GLIB_LDFLAGS) $(COMMON_LIBS)
 
 dbu: libsdbm.a
 RemoteTargetDependency(dbu, ../lib, libshared.a)
