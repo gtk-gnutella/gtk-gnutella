@@ -233,6 +233,7 @@ pdht_bg_free_null(struct pdht_bg **pbg_ptr)
 		WFREE_NULL(pbg->status,
 			lookup_result_path_length(pbg->rs) * sizeof *pbg->status);
 		lookup_result_free(pbg->rs);
+		wfree(pbg, sizeof *pbg);
 		*pbg_ptr = NULL;
 	}
 }
