@@ -3748,7 +3748,7 @@ prop = {
     desc = "If TRUE, DHT storage uses memory instead of diskspace.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
