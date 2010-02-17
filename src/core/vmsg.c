@@ -341,7 +341,7 @@ vmsg_bad_payload(struct gnutella_node *n,
 	gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
 
 	if (GNET_PROPERTY(vmsg_debug))
-		gmsg_log_bad(n, "Bad payload size %lu for %s/%dv%d (%s), expected %lu",
+		gmsg_log_bad(n, "Bad payload size %lu for %s/%uv%u (%s), expected %lu",
 			(gulong) size, vendor_code_to_string(vmsg->vendor), vmsg->id,
 			vmsg->version, vmsg->name, (gulong) expected);
 
@@ -3272,18 +3272,30 @@ void
 vmsg_init(void)
 {
 	size_t i;
+	char data[VMSG_TYPE_LEN];
+	gnutella_vendor_t *weight_key = (void *) data;
+
+	vmsg_init_weight();
 
 	ht_vmsg = g_hash_table_new(vmsg_hash_func, vmsg_eq_func);
+
 	for (i = 0; i < G_N_ELEMENTS(vmsg_map); i++) {
 		gconstpointer key = &vmsg_map[i];
 		gm_hash_table_insert_const(ht_vmsg, key, key);
+
+		gnutella_vendor_set_code(weight_key, vmsg_map[i].vendor);
+		gnutella_vendor_set_selector_id(weight_key, vmsg_map[i].id);
+
+		if (!patricia_contains(pt_weight, weight_key)) {
+			g_error("vendor message %s/%u missing from vmsg_weight_map[]",
+				vendor_code_to_string(vmsg_map[i].vendor),
+				vmsg_map[i].id);
+		}
 	}
 
 	head_pings = hash_list_new(guid_hash, guid_eq);
 	head_ping_ev = cq_insert(callout_queue, HEAD_PING_PERIODIC_MS,
 					head_ping_timer, NULL);
-
-	vmsg_init_weight();
 }
 
 void
