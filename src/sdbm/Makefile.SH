@@ -58,6 +58,7 @@ GLIB_LDFLAGS =  $glibldflags
 SOURCES =   \$(SRC)  \$(DBA_SRC)  \$(DBU_SRC)
 OBJECTS =   \$(OBJ)  \$(DBA_OBJ)  \$(DBU_OBJ)
 GLIB_CFLAGS =  $glibcflags
+COMMON_LIBS =  $libs
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -146,7 +147,7 @@ DBU_OBJ = \
 	dbu.o \
 	util.o 
 
-LIBS = -L. -lsdbm -L../lib -lshared $(GLIB_LDFLAGS)
+LIBS = -L. -lsdbm -L../lib -lshared $(GLIB_LDFLAGS) $(COMMON_LIBS)
 
 dbu: libsdbm.a
 
