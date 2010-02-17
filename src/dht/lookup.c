@@ -2347,9 +2347,13 @@ lookup_handle_reply(
 				revent_id_to_string(nl->lid),
 				token->length, buf, knode_to_string(kn));
 		}
+
+		token = NULL;		/* Prevents token_free() below */
 	}
 
 done:
+	if (token)
+		token_free(token, TRUE);
 	bstr_free(&bs);
 	return TRUE;
 
