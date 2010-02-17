@@ -579,7 +579,7 @@ ctl_parse(const char *s)
 		 * o = do not make outoing HTTP connections (downloads)
 		 * g = do not allow any Gnutella connection
 		 * b = deny browse-host requests [implicit if "i"]
-		 * u = deny Gnutella UDP (not including DHT)
+		 * u = deny Gnutella UDP (not including DHT and routed PUSH)
 		 * q = do not answer Gnutella queries (hop=1 or OOB)
 		 * r = ignore replies (query hits)
 		 * a = all of the above ("qiobrug")

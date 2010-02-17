@@ -769,11 +769,25 @@ handle_push_request(struct gnutella_node *n)
 	 * We are the target of the push.
 	 */
 
+	if (NODE_IS_UDP(n) && ctl_limit(n->addr, CTL_D_UDP | CTL_D_INCOMING)) {
+		gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+		return;
+	}
+
+	/*
+	 * Decode the message.
+	 */
+
 	info = &n->data[GUID_RAW_SIZE];			/* Start of file information */
 
 	file_index = peek_le32(&info[0]);
 	ha = host_addr_peek_ipv4(&info[4]);
 	port = peek_le16(&info[8]);
+
+	if (ctl_limit(ha, CTL_D_INCOMING)) {
+		gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+		return;
+	}
 
 	if (n->size > sizeof(gnutella_push_request_t)) {
 		extvec_t exv[MAX_EXTVEC];

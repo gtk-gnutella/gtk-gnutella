@@ -7421,13 +7421,20 @@ hostile_check:
 	 */
 
 	if (ctl_limit(s->addr, CTL_D_UDP)) {
-		if (GNET_PROPERTY(udp_debug) || GNET_PROPERTY(ctl_debug) > 2)
+		if (gnutella_header_get_function(&n->header) == GTA_MSG_PUSH_REQUEST)
+			goto proceed;	/* For now, until we know we are the target */
+
+		if (GNET_PROPERTY(udp_debug) || GNET_PROPERTY(ctl_debug) > 2) {
 			g_warning("CTL UDP got %s from %s [%s] -- dropped",
 				gmsg_infostr_full(s->buf, s->pos), node_addr(n),
 				gip_country_cc(s->addr));
+		}
+
 		gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 		return;
 	}
+
+proceed:
 
 	/*
 	 * If payload is deflated, inflate it before processing.
