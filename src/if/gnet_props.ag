@@ -72,7 +72,7 @@ prop = {
 		   "more than 30 to provide decent range for searches.";
     type = guint32;
     data = {
-        default = 32;
+        default = 42;
         min     = 0;
         max     = 100;
     };
@@ -97,11 +97,11 @@ prop = {
            "servents.  As a rule of thumb you should reserve 256 b/s "
 	       "bandwidth per connection. Never use up all your bandwidth, "
 	       "leave a little space for TCP/IP overhead. It's not "
-           "advisable that you set this to a value smaller than 30.";
+           "advisable that you set this to a value smaller than 40.";
     type = guint32;
     data = {
-        default = 40;
-        min     = 20;
+        default = 50;
+        min     = 30;
         max     = 100;
     };
 };

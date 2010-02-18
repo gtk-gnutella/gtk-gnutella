@@ -52,12 +52,12 @@ gboolean gnet_property_variable_ancient_version     = FALSE;
 static const gboolean gnet_property_variable_ancient_version_default = FALSE;
 char   *gnet_property_variable_new_version_str     = NULL;
 static const char   *gnet_property_variable_new_version_str_default = NULL;
-guint32  gnet_property_variable_up_connections     = 32;
-static const guint32  gnet_property_variable_up_connections_default = 32;
+guint32  gnet_property_variable_up_connections     = 42;
+static const guint32  gnet_property_variable_up_connections_default = 42;
 guint32  gnet_property_variable_normal_connections     = 0;
 static const guint32  gnet_property_variable_normal_connections_default = 0;
-guint32  gnet_property_variable_max_connections     = 40;
-static const guint32  gnet_property_variable_max_connections_default = 40;
+guint32  gnet_property_variable_max_connections     = 50;
+static const guint32  gnet_property_variable_max_connections_default = 50;
 guint32  gnet_property_variable_node_leaf_count     = 0;
 static const guint32  gnet_property_variable_node_leaf_count_default = 0;
 guint32  gnet_property_variable_node_normal_count     = 0;
@@ -990,7 +990,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[6].name = "max_connections";
-    gnet_property->props[6].desc = _("Don't allow more than this number of connections to other servents.  As a rule of thumb you should reserve 256 b/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead. It's not advisable that you set this to a value smaller than 30.");
+    gnet_property->props[6].desc = _("Don't allow more than this number of connections to other servents.  As a rule of thumb you should reserve 256 b/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead. It's not advisable that you set this to a value smaller than 40.");
     gnet_property->props[6].ev_changed = event_new("max_connections_changed");
     gnet_property->props[6].save = TRUE;
     gnet_property->props[6].vector_size = 1;
@@ -1001,7 +1001,7 @@ gnet_prop_init(void) {
     gnet_property->props[6].data.guint32.value = (void *) &gnet_property_variable_max_connections;
     gnet_property->props[6].data.guint32.choices = NULL;
     gnet_property->props[6].data.guint32.max   = 100;
-    gnet_property->props[6].data.guint32.min   = 20;
+    gnet_property->props[6].data.guint32.min   = 30;
 
 
     /*
