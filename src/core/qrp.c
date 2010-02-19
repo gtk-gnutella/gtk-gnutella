@@ -4429,6 +4429,11 @@ qrt_build_query_target(
 			else
 				g_warning("QRP query [hops=%d] had empty hash vector", hops);
 		}
+		if (GNET_PROPERTY(qrp_debug) > 4) {
+			/* Skip search flags (2 first bytes) */
+			dump_hex(stderr, "Query Payload",
+				source->data + 2, source->size - 2);
+		}
 		return NULL;
 	}
 
