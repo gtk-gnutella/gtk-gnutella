@@ -5589,12 +5589,13 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 	s->seeding		  = 0 != (FI_F_SEEDING & fi->flags);
 	s->finished		  = 0 != FILE_INFO_FINISHED(fi);
 	s->complete		  = 0 != FILE_INFO_COMPLETE(fi);
+	s->verifying	  = 0 != (FI_F_VERIFYING & fi->flags);
 	s->has_sha1 	  = NULL != fi->sha1;
 	s->sha1_matched   = s->complete && s->has_sha1 && fi->sha1 == fi->cha1;
-	s->verifying	  = s->complete && !s->finished && s->has_sha1 && !fi->cha1;
 
-	s->copied 		  = s->complete ? fi->copied : 0;
-	s->sha1_hashed    = s->complete ? fi->cha1_hashed : 0;
+	s->copied 		  = s->complete ? fi->copied : FALSE;
+	s->vrfy_hashed    = s->complete ? fi->vrfy_hashed : FALSE;
+	s->tth_check      = s->complete ? fi->tth_check : FALSE;
 }
 
 /**
@@ -6544,15 +6545,18 @@ file_info_status_to_string(const gnet_fi_status_t *status)
     } else if (status->seeding) {
 		return _("Seeding");
     } else if (status->verifying) {
-		if (status->sha1_hashed > 0) {
+		if (status->vrfy_hashed > 0) {
 			gm_snprintf(buf, sizeof buf,
-					"%s %s (%.1f%%)", _("Computing SHA1"),
-					short_size(status->sha1_hashed,
+					"%s %s (%.1f%%)",
+					status->tth_check ?
+						_("Computing TTH") : _("Computing SHA1"),
+					short_size(status->vrfy_hashed,
 						GNET_PROPERTY(display_metric_units)),
-					(1.0 * status->sha1_hashed / status->size) * 100.0);
+					(1.0 * status->vrfy_hashed / status->size) * 100.0);
 			return buf;
 		} else {
-			return _("Waiting for SHA1 check");
+			return status->tth_check ?
+				_("Waiting for TTH check") : _("Waiting for SHA1 check");
 		}
  	} else if (status->complete) {
 		static char msg_sha1[1024], msg_copy[1024];

@@ -80,7 +80,7 @@ typedef struct gnet_fi_status {
 	filesize_t  done;
 	
 	filesize_t  uploaded;
-	filesize_t  sha1_hashed;
+	filesize_t  vrfy_hashed;
 	filesize_t	copied;
 
 	time_t		modified;
@@ -104,6 +104,7 @@ typedef struct gnet_fi_status {
 	unsigned 	sha1_matched:1;
 	unsigned	finished:1;
 	unsigned	seeding:1;
+	unsigned	tth_check:1;
 } gnet_fi_status_t;
 
 typedef struct gnet_fi_chunks {
@@ -152,11 +153,6 @@ typedef struct dl_file_info {
 	GSList *seen_on_network;  /**< List of ranges available on network */
 	guint32 generation;		/**< Generation number, incremented on disk update */
 	struct shared_file *sf;	/**< When PFSP-server is enabled, share this file */
-	gboolean file_size_known; /**< File size known? */
-	gboolean use_swarming;	/**< Use swarming? */
-	gboolean dirty;			/**< Does it need saving? */
-	gboolean dirty_status;  /**< Notify about status change on next interval */
-	gboolean hashed;		/**< In hash tables? */
 	guint32  active_queued; /**< Actively queued sources */
 	guint32  passive_queued;/**< Passively queued sources */
 
@@ -173,10 +169,21 @@ typedef struct dl_file_info {
 	 * This group of fields is used by the background SHA1 and moving daemons.
 	 */
 
-	filesize_t cha1_hashed;	/**< Amount of bytes hashed so far */
+	filesize_t vrfy_hashed;	/**< Amount of bytes hashed so far during verify */
 	filesize_t copied;		/**< Amount of bytes copied so far */
-	unsigned cha1_elapsed;	/**< Time spent to compute the SHA1 */
+	unsigned vrfy_elapsed;	/**< Time spent to compute the hash */
 	unsigned copy_elapsed;	/**< Time spent to copy the file */
+
+	/*
+	 * Booleans (bit fields used since gboolean uses too much space).
+	 */
+
+	unsigned file_size_known:1;	/**< File size known? */
+	unsigned use_swarming:1;	/**< Use swarming? */
+	unsigned dirty:1;			/**< Does it need saving? */
+	unsigned dirty_status:1;  	/**< Notify status change on next interval */
+	unsigned hashed:1;			/**< In hash tables? */
+	unsigned tth_check:1;		/**< TTH checking performed? */
 } fileinfo_t;
 
 static inline void

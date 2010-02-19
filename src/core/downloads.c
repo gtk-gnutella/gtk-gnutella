@@ -4361,6 +4361,7 @@ download_send_head_ping(struct download *d)
 		/*
 		 * Not firewalled, just send direct message to the server.
 		 */
+
 		vmsg_send_head_ping(d->file_info->sha1,
 			download_addr(d), download_port(d), NULL);
 		d->head_ping_sent = now;
@@ -8492,7 +8493,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	
 	if ('/' != uri_start[0]) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("X-Thex-URI header has no valid URI (%s): \"%s\"",
+			g_message("TTH X-Thex-URI header has no valid URI (%s): \"%s\"",
 				download_host_info(d), uri_start);
 		}
 		return;
@@ -8506,8 +8507,9 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		urn = skip_ascii_spaces(&endptr[1]);
 		if (strlen(urn) < TTH_BASE32_SIZE) {
 			if (GNET_PROPERTY(tigertree_debug)) {
-				g_message("X-Thex-URI header has no root hash for %s from %s",
-						download_basename(d), download_host_info(d));
+				g_message("TTH X-Thex-URI header has no root hash "
+					"for %s from %s",
+					download_basename(d), download_host_info(d));
 			}
 			return;
 		}
@@ -8534,7 +8536,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		uri_length = strlen(uri_start);
 
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("X-Thex-URI header has no root hash (%s): \"%s\"",
+			g_message("TTH X-Thex-URI header has no root hash (%s): \"%s\"",
 				download_host_info(d), uri_start);
 		}
 		/*
@@ -8557,8 +8559,8 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	if (d->file_info->tth) {
 		if (!tth_eq(&tth, d->file_info->tth)) {
 			if (GNET_PROPERTY(tigertree_debug)) {
-				g_warning(
-				  "X-Thex-URI causes TTH (%s) mismatch for %s from %s: \"%s\"",
+				g_warning("TTH X-Thex-URI causes TTH (%s) mismatch "
+					"for %s from %s: \"%s\"",
 					tth_base32(d->file_info->tth),
 					download_basename(d), download_host_info(d), uri_start);
 			}
@@ -8886,7 +8888,7 @@ handle_content_urn(struct download *d, header_t *header)
 			}
 		} else if (GNET_PROPERTY(tth_auto_discovery)) {
 			if (GNET_PROPERTY(tigertree_debug)) {
-				g_message("discovered TTH (%s) for %s from %s",
+				g_message("TTH discovered root hash (%s) for %s from %s",
 					tth_base32(&tth),
 					download_basename(d), download_host_info(d));
 			}
@@ -12977,7 +12979,9 @@ download_verify_sha1_start(struct download *d)
 	g_assert(d->status == GTA_DL_VERIFY_WAIT);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
-	d->file_info->cha1_hashed = 0;
+	d->file_info->vrfy_hashed = 0;
+	d->file_info->tth_check = FALSE;
+
 	download_set_status(d, GTA_DL_VERIFYING);
 	gnet_stats_count_general(GRN_SHA1_VERIFICATIONS, 1);
 }
@@ -12992,7 +12996,7 @@ download_verify_sha1_progress(struct download *d, guint32 hashed)
 	g_assert(d->status == GTA_DL_VERIFYING);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
-	d->file_info->cha1_hashed = hashed;
+	d->file_info->vrfy_hashed = hashed;
 	file_info_changed(d->file_info);
 }
 
@@ -13034,8 +13038,8 @@ download_verify_sha1_done(struct download *d,
 	fi = d->file_info;
 	file_info_check(fi);
 	fi->cha1 = atom_sha1_get(sha1);
-	fi->cha1_elapsed = elapsed;
-	fi->cha1_hashed = fi->size;
+	fi->vrfy_elapsed = elapsed;
+	fi->vrfy_hashed = fi->size;
 	file_info_store_binary(fi, TRUE);		/* Resync with computed SHA1 */
 	file_info_changed(fi);
 
@@ -13044,7 +13048,7 @@ download_verify_sha1_done(struct download *d,
 
 	ignore_add_sha1(file_info_readable_filename(fi), fi->cha1);
 
-	if (fi->tth && (!has_good_sha1(d) || GNET_PROPERTY(tigertree_debug))) {
+	if (fi->tth && (!has_good_sha1(d) || GNET_PROPERTY(tigertree_debug) > 1)) {
 		download_verify_tigertree(d);
 	} else {
 		download_verifying_done(d);
@@ -13065,6 +13069,7 @@ download_verify_status_unknown(struct download *d, const char *what)
 	g_assert(d->status == GTA_DL_VERIFYING);
 
 	fi = d->file_info;
+	file_info_check(fi);
 	name = file_info_readable_filename(fi);
 
 	if (0 == strcmp(filepath_basename(fi->pathname), name))
@@ -13075,7 +13080,8 @@ download_verify_status_unknown(struct download *d, const char *what)
     }
 
 	download_set_status(d, GTA_DL_VERIFIED);
-	fi->cha1_hashed = fi->size;
+	fi->vrfy_hashed = fi->size;
+	fi->tth_check = FALSE;
 	fi->flags &= ~FI_F_VERIFYING;
 	file_info_changed(fi);
 
@@ -13174,7 +13180,6 @@ download_verify_sha1(struct download *d)
 	d->file_info->flags |= FI_F_VERIFYING;
 }
 
-
 /***
  *** Tigertree verification routines.
  ***/
@@ -13188,6 +13193,9 @@ download_verify_tigertree_start(struct download *d)
 	download_check(d);
 	g_assert(d->status == GTA_DL_VERIFY_WAIT);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
+
+	d->file_info->vrfy_hashed = 0;
+	d->file_info->tth_check = TRUE;
 
 	download_set_status(d, GTA_DL_VERIFYING);
 	gnet_stats_count_general(GRN_TTH_VERIFICATIONS, 1);
@@ -13203,7 +13211,8 @@ download_verify_tigertree_progress(struct download *d, guint32 hashed)
 	g_assert(d->status == GTA_DL_VERIFYING);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
-	(void) hashed;
+	d->file_info->vrfy_hashed = hashed;
+	file_info_changed(d->file_info);
 }
 
 static void
@@ -13227,15 +13236,17 @@ download_tigertree_sweep(struct download *d,
 
 	g_assert(fi->file_size_known);
 
-	g_message("Tigertree sweep: file=\"%s\", filesize=%s, slice size=%s",
-		download_basename(d),
-		filesize_to_string(download_filesize(d)),
-		uint64_to_string(fi->tigertree.slice_size));
+	if (GNET_PROPERTY(tigertree_debug)) {
+		g_message("TTH tree sweep: file=\"%s\", filesize=%s, slice size=%s",
+			download_basename(d),
+			filesize_to_string(download_filesize(d)),
+			uint64_to_string(fi->tigertree.slice_size));
+	}
 
 	if (num_leaves > fi->tigertree.num_leaves) {
 		size_t dst;
 
-		nodes = g_malloc0(num_leaves * sizeof nodes[0]);
+		nodes = halloc0(num_leaves * sizeof nodes[0]);
 		dst = num_leaves;
 
 		do {
@@ -13262,10 +13273,13 @@ download_tigertree_sweep(struct download *d,
 		next = offset + amount;
 
 		if (!tth_eq(&leaves[i], &fi->tigertree.leaves[i])) {
-			g_warning("Tigertree sweep: bad slice #%lu (%s-%s)",
+			g_warning("TTH tree sweep: "
+				"bad slice #%lu (%s-%s) in \"%s\" (%s bytes)",
 				(unsigned long) i,
 				filesize_to_string(offset),
-				uint64_to_string(next - 1));
+				uint64_to_string(next - 1),
+				download_basename(d),
+				filesize_to_string2(download_filesize(d)));
 
 			bad_slices++;
 			file_info_update(d, offset, next, DL_CHUNK_EMPTY);
@@ -13273,12 +13287,18 @@ download_tigertree_sweep(struct download *d,
 		offset = next;
 	}
 	if (bad_slices > 0) {
-		g_warning("Tigertree sweep: %lu/%lu bad slices",
-			(unsigned long) bad_slices, (unsigned long) num_leaves);
+		if (GNET_PROPERTY(tigertree_debug)) {
+			g_warning("TTH tree sweep: %lu/%lu bad slice%s",
+				(unsigned long) bad_slices, (unsigned long) num_leaves,
+				1 == bad_slices ? "" : "s");
+		}
 	} else {
-		g_message("Tigertree sweep: all slices okay");
+		if (GNET_PROPERTY(tigertree_debug)) {
+			g_message("TTH tree sweep: all %lu slice%s okay",
+				(unsigned long) num_leaves, 1 == num_leaves ? "" : "s");
+		}
 	}
-	G_FREE_NULL(nodes);
+	HFREE_NULL(nodes);
 }
 
 /**
@@ -13286,12 +13306,10 @@ download_tigertree_sweep(struct download *d,
  */
 static void
 download_verify_tigertree_done(struct download *d,
-	const struct tth *tth, guint unused_elapsed,
+	const struct tth *tth, guint elapsed,
 	const struct tth *leaves, size_t num_leaves)
 {
 	fileinfo_t *fi;
-
-	(void) unused_elapsed;
 
 	download_check(d);
 	g_assert(d->status == GTA_DL_VERIFYING);
@@ -13300,13 +13318,18 @@ download_verify_tigertree_done(struct download *d,
 	fi = d->file_info;
 	file_info_check(fi);
 	fi->flags &= ~FI_F_VERIFYING;
+	fi->vrfy_elapsed = elapsed;
+	fi->vrfy_hashed = fi->size;
 
 	if (tth_eq(tth, fi->tth)) {
 		g_message("TTH matches (file=\"%s\")", download_basename(d));
 
 		download_set_status(d, GTA_DL_VERIFIED);
 
-		if (GNET_PROPERTY(tigertree_debug) && fi->tigertree.num_leaves > 0) {
+		if (
+			GNET_PROPERTY(tigertree_debug) > 1 &&
+			fi->tigertree.num_leaves > 0
+		) {
 			/* NOTE: For testing only */
 			download_tigertree_sweep(d, leaves, num_leaves); 
 		}
@@ -13325,19 +13348,19 @@ download_verify_tigertree_done(struct download *d,
 		}
 		download_verifying_done(d);
 	} else {
-		g_message("TTH mismatch (file=\"%s\")", download_basename(d));
-
 		download_set_status(d, GTA_DL_COMPLETED);
 
 		if (fi->tigertree.num_leaves > 0) {
+			g_message("TTH mismatch (file=\"%s\")", download_basename(d));
 			/* Reset result of the SHA-1 calculation */
 			atom_sha1_free_null(&fi->cha1);
-			fi->cha1_elapsed = 0;
-			fi->cha1_hashed = 0;
+			fi->vrfy_elapsed = 0;
+			fi->vrfy_hashed = 0;
 
 			download_tigertree_sweep(d, leaves, num_leaves);
 			queue_suspend_downloads_with_file(fi, FALSE);
 		} else {
+			g_message("TTH unavailable (file=\"%s\")", download_basename(d));
 			download_verifying_done(d);
 		}
 	}
@@ -13349,16 +13372,6 @@ download_verify_tigertree_done(struct download *d,
 static void
 download_verify_tigertree_error(struct download *d)
 {
-	fileinfo_t *fi;
-
-	download_check(d);
-	g_assert(d->status == GTA_DL_VERIFYING);
-	g_assert(d->list_idx == DL_LIST_STOPPED);
-
-	fi = d->file_info;
-	file_info_check(fi);
-	fi->flags &= ~FI_F_VERIFYING;
-
 	download_verify_status_unknown(d, "TTH");
 }
 
@@ -13396,6 +13409,16 @@ download_verify_tigertree_callback(const struct verify *ctx,
 	return FALSE;
 }
 
+/**
+ * Initiate Tiger tree hash (TTH) verification of completed download.
+ *
+ * If verification is successful, the download will be considered OK provided
+ * its SHA-1 verfication was also successful; otherwise we have a bad bitprint.
+ *
+ * If verification is unsuccessful, the Tiger tree is used to prune the parts
+ * of the downloaded file which do not verify, and downloading will resume
+ * to fetch the pruned parts again, hopefully correctly this time.
+ */
 static void
 download_verify_tigertree(struct download *d)
 {
@@ -13888,7 +13911,7 @@ download_thex_done(struct download *d)
 
 	if (!thex_download_finished(d->thex)) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("Discarding tigertree data from %s: Bad THEX data",
+			g_message("TTH discarding tigertree data from %s: Bad THEX data",
 				download_host_info(d));
 		}
 		goto finish;
@@ -13897,7 +13920,7 @@ download_thex_done(struct download *d)
 	fi = file_info_by_sha1(sha1);
 	if (NULL == fi) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("Discarding tigertree data from %s: No more download",
+			g_message("TTH discarding tigertree data from %s: No more download",
 				download_host_info(d));	
 		}
 		cancel_all = TRUE;

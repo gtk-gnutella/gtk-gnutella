@@ -420,14 +420,20 @@ downloads_gui_status_string(const struct download *d)
 
 	case GTA_DL_VERIFY_WAIT:
 		g_assert(FILE_INFO_COMPLETE(fi));
-		g_strlcpy(tmpstr, _("Waiting for SHA1 checking..."), sizeof(tmpstr));
+		g_strlcpy(tmpstr,
+			fi->tth_check ?
+				_("Waiting for TTH checking...") :
+				_("Waiting for SHA1 checking..."),
+			sizeof(tmpstr));
 		status = tmpstr;
 		break;
 
 	case GTA_DL_VERIFYING:
 		g_assert(FILE_INFO_COMPLETE(fi));
 		gm_snprintf(tmpstr, sizeof(tmpstr),
-			_("Computing SHA1 (%.02f%%)"), fi->cha1_hashed * 100.0 / fi->size);
+			_("Computing %s (%.02f%%)"),
+			fi->tth_check ? "TTH" : "SHA1",
+			fi->vrfy_hashed * 100.0 / fi->size);
 		status = tmpstr;
 		break;
 
@@ -436,14 +442,14 @@ downloads_gui_status_string(const struct download *d)
 	case GTA_DL_MOVING:
 	case GTA_DL_DONE:
 		g_assert(FILE_INFO_COMPLETE(fi));
-		g_assert(fi->cha1_hashed <= fi->size);
+		g_assert(fi->vrfy_hashed <= fi->size);
 		{
 			const char *sha1_status;
 			
 			if (fi->cha1) {
 				if (fi->sha1) {
 					sha1_status = sha1_eq(fi->sha1, fi->cha1)
-						? _("SHA-1 OK")
+						? (fi->tth_check ? _("TTH OK") : _("SHA-1 OK"))
 						: _("SHA-1 MISMATCH");
 				} else {
 					sha1_status = _("SHA-1 calculated");
@@ -453,14 +459,14 @@ downloads_gui_status_string(const struct download *d)
 			}
 			rw = gm_snprintf(tmpstr, sizeof tmpstr, "%s", sha1_status);
 
-			if (fi->cha1 && fi->cha1_hashed) {
-				unsigned elapsed = fi->cha1_elapsed;
+			if (fi->cha1 && fi->vrfy_hashed) {
+				unsigned elapsed = fi->vrfy_elapsed;
 			
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (%s) %s",
-					short_rate(fi->cha1_hashed / (elapsed ? elapsed : 1),
+					short_rate(fi->vrfy_hashed / (elapsed ? elapsed : 1),
 						show_metric_units()),
-					short_time(fi->cha1_elapsed));
+					short_time(fi->vrfy_elapsed));
 			}
 
 			switch (d->status) {
