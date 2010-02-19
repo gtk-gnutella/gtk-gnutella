@@ -12979,9 +12979,6 @@ download_verify_sha1_start(struct download *d)
 	g_assert(d->status == GTA_DL_VERIFY_WAIT);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
-	d->file_info->vrfy_hashed = 0;
-	d->file_info->tth_check = FALSE;
-
 	download_set_status(d, GTA_DL_VERIFYING);
 	gnet_stats_count_general(GRN_SHA1_VERIFICATIONS, 1);
 }
@@ -13141,9 +13138,12 @@ static void
 download_verify_sha1(struct download *d)
 {
 	gboolean inserted;
+	fileinfo_t *fi;
 
 	download_check(d);
-	g_assert(FILE_INFO_COMPLETE(d->file_info));
+	fi = d->file_info;
+	file_info_check(fi);
+	g_assert(FILE_INFO_COMPLETE(fi));
 	g_assert(DOWNLOAD_IS_STOPPED(d));
 	g_assert(!DOWNLOAD_IS_VERIFYING(d));
 	g_assert(!(d->flags & DL_F_SUSPENDED));
@@ -13152,16 +13152,16 @@ download_verify_sha1(struct download *d)
 	if (DL_F_TRANSIENT & d->flags)	/* Nothing to verify */
 		return;
 
-	g_assert(!FILE_INFO_FINISHED(d->file_info));
+	g_assert(!FILE_INFO_FINISHED(fi));
 
 	if (GNET_PROPERTY(verify_debug) > 1) {
 		g_message("%s verifying SHA-1 of completed %s",
-			(FI_F_VERIFYING & d->file_info->flags) ?
+			(FI_F_VERIFYING & fi->flags) ?
 				"already planned" : "will be",
 			download_pathname(d));
 	}
 
-	if (FI_F_VERIFYING & d->file_info->flags)	/* Already verifying */
+	if (FI_F_VERIFYING & fi->flags)	/* Already verifying */
 		return;
 
 	/*
@@ -13170,14 +13170,16 @@ download_verify_sha1(struct download *d)
 	 */
 
 	download_set_status(d, GTA_DL_VERIFY_WAIT);
-	queue_suspend_downloads_with_file(d->file_info, TRUE);
+	queue_suspend_downloads_with_file(fi, TRUE);
 
 	inserted = verify_sha1_enqueue(TRUE, download_pathname(d),
 					download_filesize(d), download_verify_sha1_callback, d);
 
 	g_assert(inserted); /* There cannot be duplicates */
 
-	d->file_info->flags |= FI_F_VERIFYING;
+	fi->flags |= FI_F_VERIFYING;
+	fi->vrfy_hashed = 0;
+	fi->tth_check = FALSE;
 }
 
 /***
@@ -13193,9 +13195,6 @@ download_verify_tigertree_start(struct download *d)
 	download_check(d);
 	g_assert(d->status == GTA_DL_VERIFY_WAIT);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
-
-	d->file_info->vrfy_hashed = 0;
-	d->file_info->tth_check = TRUE;
 
 	download_set_status(d, GTA_DL_VERIFYING);
 	gnet_stats_count_general(GRN_TTH_VERIFICATIONS, 1);
@@ -13422,13 +13421,16 @@ download_verify_tigertree_callback(const struct verify *ctx,
 static void
 download_verify_tigertree(struct download *d)
 {
+	fileinfo_t *fi;
+
 	download_check(d);
-	file_info_check(d->file_info);
-	g_assert(FILE_INFO_COMPLETE(d->file_info));
+	fi = d->file_info;
+	file_info_check(fi);
+	g_assert(FILE_INFO_COMPLETE(fi));
 	g_assert(DOWNLOAD_IS_STOPPED(d));
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 	g_return_if_fail(!(d->flags & DL_F_TRANSIENT));
-	g_assert(!(d->file_info->flags & FI_F_VERIFYING));
+	g_assert(!(fi->flags & FI_F_VERIFYING));
 
 	if (GNET_PROPERTY(verify_debug) > 1) {
 		g_message("will be verifying TTH of completed %s",
@@ -13441,12 +13443,14 @@ download_verify_tigertree(struct download *d)
 	 */
 
 	download_set_status(d, GTA_DL_VERIFY_WAIT);
-	queue_suspend_downloads_with_file(d->file_info, TRUE);
+	queue_suspend_downloads_with_file(fi, TRUE);
 
 	verify_tth_prepend(download_pathname(d), 0, download_filesize(d),
 		download_verify_tigertree_callback, d);
 
-	d->file_info->flags |= FI_F_VERIFYING;
+	fi->flags |= FI_F_VERIFYING;
+	fi->vrfy_hashed = 0;
+	fi->tth_check = TRUE;
 }
 
 /**

@@ -6563,8 +6563,9 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 
 		msg_sha1[0] = '\0';
 		if (status->has_sha1) {
-			gm_snprintf(msg_sha1, sizeof msg_sha1, "SHA1 %s",
-					status->sha1_matched ? _("OK") : _("failed"));
+			gm_snprintf(msg_sha1, sizeof msg_sha1, "%s %s",
+				status->tth_check ? _("TTH") : _("SHA1"),
+				status->sha1_matched ? _("OK") : _("failed"));
 		}
 
 		msg_copy[0] = '\0';
