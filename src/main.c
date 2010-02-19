@@ -457,7 +457,6 @@ gtk_gnutella_exit(int exit_code)
 	if (from_atexit)
 		return;
 
-#ifdef USE_HALLOC
 	/*
 	 * When halloc() is replacing malloc(), we need to make sure no memory
 	 * allocated through halloc() is going to get invalidated because some
@@ -472,11 +471,17 @@ gtk_gnutella_exit(int exit_code)
 	 * Note that only the actual freeing is suppressed, but all internal
 	 * data structures are still updated, meaning memory leak detection will
 	 * still work correctly.
+	 *
+	 * Used to do that only when halloc_replaces_malloc() was true, but
+	 * now doing it unconditionally because of problems with GTK1 callbacks.
+	 * This may not be due to GTK and be a bug in our usage of callbacks,
+	 * but it happens only with memory allocated through the VMM layer,
+	 * i.e. impacting walloc() / zalloc() as well since their arena are
+	 * now allocated through VMM.
+	 *		--RAM, 2010-02-19
 	 */
 
-	if (halloc_replaces_malloc())
-		DO(vmm_stop_freeing);
-#endif
+	DO(vmm_stop_freeing);
 
 	if (!running_topless) {
 		DO(settings_gui_save_if_dirty);
