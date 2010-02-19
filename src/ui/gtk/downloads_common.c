@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "lib/concat.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/halloc.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/url_factory.h"
@@ -62,7 +63,7 @@ RCSID("$Id$")
 
 struct fileinfo_data {
 	const char *filename;	/* atom */
-	char *status;			/* g_strdup */
+	char *status;			/* h_strdup */
 	hash_list_t *sources;	/* struct download * */
 
 	void *user_data;
@@ -1232,7 +1233,7 @@ fi_gui_file_fill_status(struct fileinfo_data *file)
 	file->seeding = 0 != status.seeding;
 
 	G_FREE_NULL(file->status);	
-	file->status = g_strdup(guc_file_info_status_to_string(&status));
+	file->status = h_strdup(guc_file_info_status_to_string(&status));
 }
 
 static void
@@ -1330,7 +1331,7 @@ static void
 fi_gui_file_free(struct fileinfo_data *file)
 {
 	atom_str_free_null(&file->filename);
-	G_FREE_NULL(file->status);
+	HFREE_NULL(file->status);
 	wfree(file, sizeof *file);
 }
 
