@@ -5790,7 +5790,6 @@ download_push(struct download *d, gboolean on_timeout)
 		 */
 
 		if (!host_is_valid(download_addr(d), download_port(d))) {
-			/* XXX YYY revisit with DHT PROX */
 			download_unavailable(d, GTA_DL_ERROR, _("Push route lost"));
 			download_remove_all_from_peer(
 				download_guid(d), download_addr(d), download_port(d), TRUE);
@@ -5829,23 +5828,27 @@ attempt_retry:
 		!(d->server->attrs & DLS_A_PUSH_IGN)	/* But never connected yet */
 	) {
 		d->retries++;
-		if (on_timeout || d->retries > 5) {
+
+		if (on_timeout || d->retries >= 5) {
 			/*
-			 * Looks like we won't be able to ever reach this host.
-			 * Abort the download, and remove all the ones for the same host.
+			 * Looks like we won't be able to ever reach this host directly.
+			 * Reset the DL_F_PUSH_IGN flag.
 			 */
 
-			/* XXX YYY revisit with DHT PROX */
+			if (GNET_PROPERTY(download_debug) > 2) {
+				g_message("PUSH clearing the ignore PUSH condition for %s",
+					host_addr_port_to_string(
+						download_addr(d), download_port(d)));
+			}
+			d->flags &= ~DL_F_PUSH_IGN;
+		}
 
-			download_unavailable(d, GTA_DL_ERROR,
-				_("Can't reach host (Push or Direct)"));
-			download_remove_all_from_peer(
-				download_guid(d), download_addr(d), download_port(d), TRUE);
-		} else
-			download_queue_hold(d, GNET_PROPERTY(download_retry_refused_delay),
+		download_queue_hold(d, GNET_PROPERTY(download_retry_refused_delay),
+			(d->flags & DL_F_PUSH_IGN) ?
 				NG_("No direct connection yet (%u retry)",
-					"No direct connection yet (%u retries)", d->retries),
-					 d->retries);
+					"No direct connection yet (%u retries)", d->retries) :
+				NG_("Timeout (%u retry)", "Timeout (%u retries)", d->retries),
+			d->retries);
 	} else if (d->retries < GNET_PROPERTY(download_max_retries)) {
 		d->retries++;
 		if (on_timeout)
@@ -8742,7 +8745,7 @@ check_xhost(struct download *d, const header_t *header)
 		download_push_remove(d);
 
 	if (GNET_PROPERTY(download_debug) > 2)
-		g_message("PUSH got X-Host, trying to ignore them for %s",
+		g_message("PUSH got X-Host, trying to ignore PUSH for %s",
 			host_addr_port_to_string(download_addr(d), download_port(d)));
 
 	d->flags |= DL_F_PUSH_IGN;
@@ -14587,8 +14590,7 @@ download_timer(time_t now)
 					parq_download_retry_active_queued(d);
 				else if (
 					d->status == GTA_DL_CONNECTING &&
-					!(GNET_PROPERTY(is_firewalled) ||
-						GNET_PROPERTY(send_pushes))
+					!GNET_PROPERTY(is_firewalled) && GNET_PROPERTY(send_pushes)
 				) {
 					download_fallback_to_push(d, TRUE, FALSE);
 				} else if (d->status == GTA_DL_HEADERS)
