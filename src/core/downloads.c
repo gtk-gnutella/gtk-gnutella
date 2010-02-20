@@ -14564,7 +14564,10 @@ download_timer(time_t now)
  				break;
 			case GTA_DL_PUSH_SENT:
 			case GTA_DL_FALLBACK:
-				timeout = GNET_PROPERTY(download_push_sent_timeout);
+				/* Do not timeout if we're searching for new push-proxies */
+				timeout = (d->server->attrs & DLS_A_DHT_PROX) ?
+					MAX_INT_VAL(time_delta_t) :
+					GNET_PROPERTY(download_push_sent_timeout);
 				break;
 			case GTA_DL_CONNECTING:
 			case GTA_DL_REQ_SENT:
