@@ -1232,7 +1232,7 @@ fi_gui_file_fill_status(struct fileinfo_data *file)
 	file->finished = 0 != status.finished;
 	file->seeding = 0 != status.seeding;
 
-	G_FREE_NULL(file->status);	
+	HFREE_NULL(file->status);	
 	file->status = h_strdup(guc_file_info_status_to_string(&status));
 }
 
