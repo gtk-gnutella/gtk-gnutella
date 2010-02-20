@@ -77,6 +77,8 @@ enum magnet_key {
 	MAGNET_KEY_EXACT_SOURCE,		/* eXact Source */
 	MAGNET_KEY_EXACT_TOPIC,			/* eXact Topic */
 	MAGNET_KEY_PARQ_ID,				/* PARQ ID */
+	MAGNET_KEY_GUID,				/* Servent GUID */
+	MAGNET_KEY_VENDOR,				/* Servent vendor */
 
 	NUM_MAGNET_KEYS
 };
@@ -90,7 +92,9 @@ static const struct {
 	{ "as",			MAGNET_KEY_ALTERNATE_SOURCE },
 	{ "dn",			MAGNET_KEY_DISPLAY_NAME },
 	{ "kt",			MAGNET_KEY_KEYWORD_TOPIC },
+	{ "x.guid",		MAGNET_KEY_GUID },
 	{ "x.parq-id",	MAGNET_KEY_PARQ_ID },
+	{ "x.vndr",		MAGNET_KEY_VENDOR },
 	{ "xl",			MAGNET_KEY_EXACT_LENGTH },
 	{ "xs",			MAGNET_KEY_EXACT_SOURCE },
 	{ "xt",			MAGNET_KEY_EXACT_TOPIC },
@@ -564,6 +568,14 @@ magnet_handle_key(struct magnet_resource *res,
 		magnet_set_parq_id(res, value);
 		break;
 
+	case MAGNET_KEY_VENDOR:
+		magnet_set_vendor(res, value);
+		break;
+
+	case MAGNET_KEY_GUID:
+		magnet_set_guid(res, value);
+		break;
+
 	case MAGNET_KEY_NONE:
 		g_message("unhandled parameter in MAGNET URI: \"%s\"", name);
 		break;
@@ -685,6 +697,8 @@ magnet_resource_free(struct magnet_resource **res_ptr)
 		atom_sha1_free_null(&res->sha1);
 		atom_tth_free_null(&res->tth);
 		atom_str_free_null(&res->parq_id);
+		atom_str_free_null(&res->guid);
+		atom_str_free_null(&res->vendor);
 
 		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
 			struct magnet_source *ms = sl->data;
@@ -1022,6 +1036,12 @@ magnet_to_string(const struct magnet_resource *res)
 	if (res->parq_id) {
 		magnet_append_item(&gs, TRUE, "x.parq-id", res->parq_id);
 	}
+	if (res->vendor) {
+		magnet_append_item(&gs, TRUE, "x.vndr", res->vendor);
+	}
+	if (res->guid) {
+		magnet_append_item(&gs, TRUE, "x.guid", res->guid);
+	}
 
 	for (sl = res->sources; NULL != sl; sl = g_slist_next(sl)) {
 		char *url;
@@ -1038,6 +1058,33 @@ magnet_to_string(const struct magnet_resource *res)
 	return gm_string_finalize(gs);
 }
 
+/*
+ * The following extensions are reserved for single-source magnets, such
+ * as the ones used to persist the enqueued download sources.  There are
+ * some useful meta-information about a given source that need to propagated
+ * accross sessions.
+ *
+ * See the "FIXME" comment in download_store_magnets() to understand why
+ * this is likely to be revised some day.
+ *		--RAM, 2010-02-20
+ */
+
+/**
+ * Record given string magnet resource at the supplied location.
+ */
+static void
+magnet_resource_set_string(const char **p, const char *str)
+{
+	const char *atom;
+
+	g_return_if_fail(p);
+	g_return_if_fail(str);
+
+	atom = atom_str_get(str);
+	atom_str_free_null(p);
+	*p = atom;
+}
+
 /**
  * This is a bit of a hack (an extension anyway) and should only be used
  * for magnets with a single logical source because the PARQ ID is only
@@ -1046,14 +1093,38 @@ magnet_to_string(const struct magnet_resource *res)
 void
 magnet_set_parq_id(struct magnet_resource *res, const char *parq_id)
 {
-	const char *atom;
-
 	g_return_if_fail(res);
 	g_return_if_fail(parq_id);
 
-	atom = atom_str_get(parq_id);
-	atom_str_free_null(&res->parq_id);
-	res->parq_id = atom;
+	magnet_resource_set_string(&res->parq_id, parq_id);
+}
+
+/**
+ * This is a bit of a hack (an extension anyway) and should only be used
+ * for magnets with a single logical source because the vendor is only
+ * valid for a certain source.
+ */
+void
+magnet_set_vendor(struct magnet_resource *res, const char *vendor)
+{
+	g_return_if_fail(res);
+	g_return_if_fail(vendor);
+
+	magnet_resource_set_string(&res->vendor, vendor);
+}
+
+/**
+ * This is a bit of a hack (an extension anyway) and should only be used
+ * for magnets with a single logical source because the GUID is only
+ * valid for a certain source.
+ */
+void
+magnet_set_guid(struct magnet_resource *res, const char *guid)
+{
+	g_return_if_fail(res);
+	g_return_if_fail(guid);
+
+	magnet_resource_set_string(&res->guid, guid);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -2244,16 +2244,13 @@ download_push_proxy_wakeup(struct dl_server *server)
 	guint32 n = GNET_PROPERTY(max_host_downloads);
 	time_t now;
 
-	if (NULL == server->proxies || 0 == pproxy_set_count(server->proxies))
-		return;
-
 	/*
 	 * Send a UDP push request to the `n' first download we find waiting
 	 * for a GIV from this server, with n = the max number of downloads
 	 * we can request from a single server.
 	 */
 
-	iter = list_iter_before_head(server->list[DL_LIST_WAITING]);
+	iter = list_iter_before_head(server->list[DL_LIST_RUNNING]);
 	while (list_iter_has_next(iter) && n != 0) {
 		struct download *d = list_iter_next(iter);
 		download_check(d);
@@ -2289,7 +2286,46 @@ download_push_proxy_wakeup(struct dl_server *server)
 }
 
 /**
- * Lookup for push proxies is finished.
+ * Sleep call when we get a notification from the DHT that there are no fresh
+ * push-proxy available for a given server.  All the downloads awaiting
+ * a push reply are put back to sleep.
+ */
+static void
+download_push_proxy_sleep(struct dl_server *server)
+{
+	list_iter_t *iter;
+	GSList *to_sleep = NULL;
+	GSList *sl;
+
+	iter = list_iter_before_head(server->list[DL_LIST_RUNNING]);
+	while (list_iter_has_next(iter)) {
+		struct download *d = list_iter_next(iter);
+		download_check(d);
+		if (DOWNLOAD_IS_EXPECTING_GIV(d)) {
+			/* Not moving the download out of the list over which we iterate */
+			to_sleep = g_slist_prepend(to_sleep, d);
+		}
+	}
+	list_iter_free(&iter);
+
+	/*
+	 * Process recorded downloads now that we finished iterating, since
+	 * that will cause them to move to the waiting list.
+	 */
+
+	for (sl = to_sleep; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
+		d->retries++;
+		download_queue_delay(d,
+			GNET_PROPERTY(download_retry_timeout_delay),
+			_("Requeued due to no push-proxy"));
+	}
+
+	g_slist_free(to_sleep);
+}
+
+/**
+ * Lookup for push proxies is finished (successful or not).
  */
 void
 download_proxy_dht_lookup_done(const struct guid *guid)
@@ -2302,7 +2338,10 @@ download_proxy_dht_lookup_done(const struct guid *guid)
 
 	server->attrs &= ~DLS_A_DHT_PROX;
 
-	download_push_proxy_wakeup(server);
+	if (NULL == server->proxies || 0 == pproxy_set_count(server->proxies))
+		download_push_proxy_sleep(server);
+	else
+		download_push_proxy_wakeup(server);
 }
 
 /**
@@ -12228,6 +12267,7 @@ download_build_magnet(const struct download *d)
 		const struct sha1 *sha1;
 		const struct tth *tth;
 		const char *parq_id;
+		const char *vendor;
 	
 		magnet = magnet_resource_new();
 
@@ -12252,6 +12292,18 @@ download_build_magnet(const struct download *d)
 		if (parq_id) {
 			magnet_set_parq_id(magnet, parq_id);
 		}
+		vendor = download_vendor(d);
+		if (vendor) {
+			magnet_set_vendor(magnet, vendor);
+		}
+		if (
+			!guid_is_blank(download_guid(d)) &&
+			!is_strprefix(dl_url, "push://")
+		) {
+			char guid_buf[GUID_HEX_SIZE + 1];
+			guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
+			magnet_set_guid(magnet, guid_buf);
+		}
 		magnet_add_source_by_url(magnet, dl_url);
 		G_FREE_NULL(dl_url);
 		url = magnet_to_string(magnet);
@@ -12261,7 +12313,6 @@ download_build_magnet(const struct download *d)
 	}
 	return url;
 }
-
 
 static void
 download_store_magnet(FILE *f, const struct download *d)
@@ -12290,6 +12341,22 @@ download_store_magnets(void)
 	FILE *f;
 
 	g_return_if_fail(!retrieving);
+
+	/*
+	 * FIXME: it is wrong to store download sources as magnets only.
+	 *
+	 * Each record should be made of a magnet (standalone with sufficient
+	 * information to be dropped to another servent to initiate a download)
+	 * plus other meta information described separately.  When that is done,
+	 * magnet extensions such as x.parq-id, x.vndr and x.guid can go: they
+	 * are not pure as they apply to a single source only, but a general
+	 * magnet could contain several source locations.
+	 *
+	 * Our extension trick works because we know that each magnet we persist
+	 * is describing one source only.
+	 *
+	 *		--RAM, 2010-02-20
+	 */
 
 	file_path_set(&fp, settings_config_dir(), download_file);
 	f = file_config_open_write(file_what, &fp);
@@ -14254,6 +14321,7 @@ download_handle_magnet(const char *url)
 			struct magnet_source *ms = sl->data;
 			gnet_host_vec_t *proxies;
 			const struct guid *guid;
+			const struct guid *guid_atom = NULL;
 			host_addr_t addr;
 			guint16 port;
 			guint32 flags;
@@ -14288,7 +14356,14 @@ download_handle_magnet(const char *url)
 			} else {
 				addr = is_host_addr(ms->addr) ? ms->addr : ipv4_unspecified;
 				port = ms->port;
-				guid = &blank_guid;
+				if (res->guid) {
+					struct guid server_guid;
+					if (hex_to_guid(res->guid, &server_guid)) {
+						guid = guid_atom = atom_guid_get(&server_guid);
+					}
+				} else {
+					guid = &blank_guid;
+				}
 				proxies = NULL;
 			}
 
@@ -14296,7 +14371,7 @@ download_handle_magnet(const char *url)
 				ms->path,
 				res->size,
 				addr,
-				ms->port,
+				port,
 				guid,
 				ms->hostname,
 				res->sha1,
@@ -14306,7 +14381,22 @@ download_handle_magnet(const char *url)
 				proxies,
 				flags,
 				res->parq_id);
-			
+
+			/*
+			 * Propagate server vendor information if available.
+			 */
+
+			if (res->vendor) {
+				struct dl_server *server = get_server(guid, addr, port, FALSE);
+				if (server && NULL == server->vendor) {
+					server->vendor =
+						atom_str_get(lazy_iso8859_1_to_utf8(res->vendor));
+				}
+			}
+
+			if (guid_atom != NULL)
+				atom_guid_free_null(&guid_atom);
+
 			gnet_host_vec_free(&proxies);
 			n_downloads++;
 		}
@@ -14626,12 +14716,15 @@ download_timer(time_t now)
 				break;
 			}
 
-			if (
+			if (d->retries >= GNET_PROPERTY(download_max_retries)) {
+				download_unavailable(d, GTA_DL_ERROR,
+					_("Too many attempts (%u times)"), d->retries);
+			} else if (
 				delta_time(now, d->last_update) >
 					(time_delta_t) d->timeout_delay
-			)
+			) {
 				download_start(d, TRUE);
-			else {
+			} else {
 				/* Move the download back to the waiting queue.
 				 * It will be rescheduled automatically later.
 				 */

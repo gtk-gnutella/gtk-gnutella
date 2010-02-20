@@ -59,6 +59,8 @@ struct magnet_resource {
 	const struct sha1 *sha1;	/* SHA1 atom */
 	const struct tth *tth;		/* TTH atom */
 	const char *parq_id;		/* string atom */
+	const char *vendor;			/* string atom */
+	const char *guid;			/* string atom */
 	GSList *sources;	/* List of walloc()ed (struct magnet_source *) */
 	GSList *searches;	/* List of string atoms */
 	filesize_t size;
@@ -88,6 +90,8 @@ void magnet_add_sha1_source(struct magnet_resource *res,
 
 /* Extensions */
 void magnet_set_parq_id(struct magnet_resource *res, const char *parq_id);
+void magnet_set_guid(struct magnet_resource *res, const char *guid);
+void magnet_set_vendor(struct magnet_resource *res, const char *vendor);
 char *magnet_proxies_to_string(const sequence_t *proxies);
 
 #endif /* _magnet_h_ */
