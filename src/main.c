@@ -422,7 +422,7 @@ gtk_gnutella_exit(int exit_code)
 } while (0)
 
 	DO(shell_close);
-	DO(file_info_store_if_dirty);
+	DO(file_info_store_if_dirty);	/* For safety, will run again below */
 	DO(file_info_close_pre);
 	DO(node_bye_all);
 	DO(upload_close);	/* Done before upload_stats_close() for stats update */
@@ -431,6 +431,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(verify_sha1_close);
 	DO(verify_tth_close);
 	DO(download_close);
+	DO(file_info_store_if_dirty);	/* In case downloads had buffered data */
 	DO(parq_close);
 	DO(pproxy_close);
 	DO(http_close);
