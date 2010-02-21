@@ -1052,9 +1052,12 @@ cproxy_http_error_ind(struct http_async *handle,
 
 	if (
 		type == HTTP_ASYNC_ERROR &&
-		GPOINTER_TO_INT(v) == HTTP_ASYNC_CANCELLED
+		(
+			GPOINTER_TO_INT(v) == HTTP_ASYNC_CANCELLED ||
+			GPOINTER_TO_INT(v) == HTTP_ASYNC_CLOSED
+		)
 	)
-		return;		/* Was an explicit cancel */
+		return;
 
 	download_proxy_failed(cp->d);
 }
@@ -1310,6 +1313,7 @@ cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
 	cp->file_idx = file_idx == URN_INDEX ? 0 : file_idx;
 	cp->http_handle = handle;
 	cp->flags = 0;
+	cp->state = http_async_state(handle);
 
 	/*
 	 * Customize async HTTP layer.
