@@ -789,7 +789,7 @@ ulq_init(void)
 	 * The weights are arbitrary values, not necessarily summing to 100.
 	 *
 	 * To avoid too frequent schduler resets, they are somehow scaled, i.e.
-	 * we do not put 12,3,4,1 as weights, but 60,15,20,5 to ensure we will
+	 * we would not put 12,3,4,1 as weights, but 60,15,20,5 to ensure we will
 	 * serve a fair amount of entries in each queue between each scheduler
 	 * resets -- see ulq_sched_reset().
 	 *
@@ -804,8 +804,8 @@ ulq_init(void)
 	 */
 
 	ulq[ULQ_PROX]	= ulq_init_queue("PROX", 60);
-	ulq[ULQ_ALOC]	= ulq_init_queue("ALOC", 15);
-	ulq[ULQ_STORE]	= ulq_init_queue("STORE", 20);
+	ulq[ULQ_ALOC]	= ulq_init_queue("ALOC", 10);
+	ulq[ULQ_STORE]	= ulq_init_queue("STORE", 25);
 	ulq[ULQ_OTHER]	= ulq_init_queue("OTHER", 5);
 	ulq[ULQ_PRIO]	= ulq_init_queue("PRIO", 100);
 
