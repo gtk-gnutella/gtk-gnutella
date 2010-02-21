@@ -5937,6 +5937,16 @@ download_fallback_to_push(struct download *d,
 			on_timeout ? "y" : "n", user_request ? "y" : "n",
 			download_basename(d), download_host_info(d));
 
+	/*
+	 * On user requests, and provided we have a non-blank GUID for the
+	 * download, reset the push-ignore flags.
+	 */
+
+	if (user_request && !has_blank_guid(d)) {
+		d->flags &= ~DL_F_PUSH_IGN;
+		d->server->attrs &= ~DLS_A_PUSH_IGN;
+	}
+
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		if (!d->push) {
 			download_push_insert(d);
@@ -7055,7 +7065,11 @@ use_push_proxy(struct download *d)
 	g_assert(dl_server_valid(server));
 
 	if (d->cproxy != NULL) {
-		cproxy_free(d->cproxy);
+		struct cproxy *cp = d->cproxy;
+		if (!cp->sent) {
+			remove_proxy(d->server, cproxy_addr(cp), cproxy_port(cp));
+		}
+		cproxy_free(cp);
 		d->cproxy = NULL;
 	}
 
@@ -7097,6 +7111,28 @@ use_push_proxy(struct download *d)
 	}
 
 	return created;
+}
+
+/**
+ * Attempt to move to the next push proxy if we were unable to send the
+ * push message through the current one.
+ *
+ * @return TRUE if we selected a new push-proxy.
+ */
+static gboolean
+next_push_proxy(struct download *d)
+{
+	download_check(d);
+	g_assert(!has_blank_guid(d));
+
+	if (d->cproxy != NULL) {
+		struct cproxy *cp = d->cproxy;
+		if (cp->sent)
+			return FALSE;
+		return use_push_proxy(d);
+	}
+
+	return FALSE;
 }
 
 /**
@@ -14689,7 +14725,9 @@ download_timer(time_t now)
 				} else if (d->status == GTA_DL_HEADERS)
 					download_incomplete_header(d);
 				else {
-					if (d->retries++ < GNET_PROPERTY(download_max_retries))
+					if (DOWNLOAD_IS_EXPECTING_GIV(d) && next_push_proxy(d))
+						/* OK, retrying a push-proxy via TCP */;
+					else if (d->retries++ < GNET_PROPERTY(download_max_retries))
 						download_retry(d);
 					else if (d->data_timeouts > DOWNLOAD_DATA_TIMEOUT) {
 						download_unavailable(d, GTA_DL_ERROR,
