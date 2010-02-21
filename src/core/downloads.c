@@ -7110,6 +7110,10 @@ use_push_proxy(struct download *d)
 		g_slist_free(to_remove);
 	}
 
+	if (created) {
+		d->last_update = tm_time();
+	}
+
 	return created;
 }
 
@@ -7269,6 +7273,9 @@ download_send_push_request(struct download *d, gboolean broadcast)
 				g_slist_free(nodes);
 				success = TRUE;
 			}
+		}
+		if (success) {
+			d->last_update = tm_time();
 		}
 		return success;
 	} else {
