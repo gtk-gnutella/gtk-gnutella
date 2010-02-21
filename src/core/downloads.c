@@ -229,6 +229,18 @@ download_is_alive(const struct download *d)
 	return FALSE;
 }
 
+/**
+ * Is download in a "running" list?
+ */
+static gboolean
+download_is_running(const struct download *d)
+{
+	download_check(d);
+	dl_server_valid(d->server);
+
+	return DL_LIST_RUNNING == d->list_idx;
+}
+
 static void
 download_set_status(struct download *d, download_status_t status)
 {
@@ -7110,7 +7122,7 @@ use_push_proxy(struct download *d)
 		g_slist_free(to_remove);
 	}
 
-	if (created) {
+	if (created && download_is_running(d)) {
 		d->last_update = tm_time();
 	}
 
@@ -7274,7 +7286,7 @@ download_send_push_request(struct download *d, gboolean broadcast)
 				success = TRUE;
 			}
 		}
-		if (success) {
+		if (success && download_is_running(d)) {
 			d->last_update = tm_time();
 		}
 		return success;
