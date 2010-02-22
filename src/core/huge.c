@@ -57,6 +57,7 @@ RCSID("$Id$")
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/parse.h"
+#include "lib/pattern.h"
 #include "lib/sha1.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -105,15 +106,12 @@ struct sha1_cache_entry {
 static GHashTable *sha1_cache;
 
 /**
- * cache_dirty means that in-core cache is different from the one on disk when
- * TRUE.
+ * cache_dirty = TRUE means that in-core cache is different from the disk one.
  */
 static gboolean cache_dirty;
 static time_t cache_dumped;
 
-/**
- ** Elementary operations on SHA1 values
- **/
+static cpattern_t *has_http_urls;
 
 /**
  ** Handling of persistent buffer
@@ -159,7 +157,7 @@ add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
 	g_hash_table_insert(sha1_cache, deconstify_gchar(item->file_name), item);
 }
 
-/** Disk cache */
+/* Disk cache */
 
 static const char sha1_persistent_cache_file_header[] =
 "#\n"
@@ -669,52 +667,6 @@ request_sha1(struct shared_file *sf)
 }
 
 /**
- ** Init
- **/
-
-/**
- * Initialize SHA1 module.
- */
-void
-huge_init(void)
-{
-	sha1_cache = g_hash_table_new(pointer_hash_func, NULL);
-	sha1_read_cache();
-}
-
-/**
- * Free SHA1 cache entry.
- */
-static gboolean
-cache_free_entry(gpointer unused_key, gpointer v, gpointer unused_udata)
-{
-	struct sha1_cache_entry *e = v;
-
-	(void) unused_key;
-	(void) unused_udata;
-
-	atom_str_free_null(&e->file_name);
-	atom_sha1_free_null(&e->sha1);
-	atom_tth_free_null(&e->tth);
-	wfree(e, sizeof *e);
-
-	return TRUE;
-}
-
-/**
- * Called when servent is shutdown.
- */
-void
-huge_close(void)
-{
-	dump_cache(FALSE);
-
-	g_hash_table_foreach_remove(sha1_cache, cache_free_entry, NULL);
-	g_hash_table_destroy(sha1_cache);
-	sha1_cache = NULL;
-}
-
-/**
  * Test whether the SHA1 in its base32/binary form is improbable.
  *
  * This is used to detect "urn:sha1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" and
@@ -837,14 +789,49 @@ bad:
 }
 
 /**
+ * Is the X-Alt header really holding a collection of IP:port (with possible
+ * push alt-locs containing a prefixing GUID) or is it mistakenly called
+ * X-Alt but is really an old X-Gnutella-Alternate-Location containing a
+ * list of HTTP URLs.
+ */
+static gboolean
+huge_is_pure_xalt(const char *value, size_t len)
+{
+	host_addr_t addr;
+
+	/*
+	 * This is pure heuristics, knowing that if we return TRUE, we'll parse
+	 * the X-Alt header in the format that is emitted by the majority of
+	 * vendors.
+	 *
+	 * We try to avoid the more costly pattern_qsearch() call if we can,
+	 * and our heuristic should catch 99% of the cases.  And pattern_qsearch()
+	 * should quickly return true if the X-Alt is not a collection of IP:port.
+	 */
+
+	if (is_strcaseprefix(value, "tls="))
+		return TRUE;
+
+	if (string_to_host_addr(value, NULL, &addr))
+		return TRUE;
+
+	if (pattern_qsearch(has_http_urls, value, len, 0, qs_any))
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
  * Parse the "X-Gnutella-Alternate-Location" header if present to learn
  * about other sources for this file.
+ *
+ * Also knows about "Alternate-Location", "Alt-Location" and "X-Alt".
  */
 void
 huge_collect_locations(const struct sha1 *sha1, const header_t *header)
 {
 	char *alt;
-   
+	size_t len;
 
 	g_return_if_fail(sha1);
 	g_return_if_fail(header);
@@ -867,11 +854,67 @@ huge_collect_locations(const struct sha1 *sha1, const header_t *header)
 		return;
 	}
 
-	alt = header_get(header, "X-Alt");
+	alt = header_get_extended(header, "X-Alt", &len);
 
 	if (alt) {
-		dmesh_collect_compact_locations(sha1, alt);
+		/*
+		 * Wonderful Shareaza now uses X-Alt but does not pass compact
+		 * locations.  In essence, they renamed Alt-Location to X-Alt
+		 * without changing the format of the value.  Great job.
+		 *		--RAM, 2010-02-22
+		 */
+
+		if (huge_is_pure_xalt(alt, len))
+			dmesh_collect_compact_locations(sha1, alt);
+		else
+			dmesh_collect_locations(sha1, alt);
     }
+}
+
+/**
+ * Initialize the HUGE layer.
+ */
+void
+huge_init(void)
+{
+	sha1_cache = g_hash_table_new(pointer_hash_func, NULL);
+	sha1_read_cache();
+	has_http_urls = pattern_compile("http://");
+}
+
+/**
+ * Free SHA1 cache entry.
+ */
+static gboolean
+cache_free_entry(gpointer unused_key, gpointer v, gpointer unused_udata)
+{
+	struct sha1_cache_entry *e = v;
+
+	(void) unused_key;
+	(void) unused_udata;
+
+	atom_str_free_null(&e->file_name);
+	atom_sha1_free_null(&e->sha1);
+	atom_tth_free_null(&e->tth);
+	wfree(e, sizeof *e);
+
+	return TRUE;
+}
+
+/**
+ * Called when servent is shutdown.
+ */
+void
+huge_close(void)
+{
+	dump_cache(FALSE);
+
+	g_hash_table_foreach_remove(sha1_cache, cache_free_entry, NULL);
+	g_hash_table_destroy(sha1_cache);
+	sha1_cache = NULL;
+
+	pattern_free(has_http_urls);
+	has_http_urls = NULL;
 }
 
 /*

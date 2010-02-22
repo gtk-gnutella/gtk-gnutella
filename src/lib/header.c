@@ -325,13 +325,26 @@ header_get(const header_t *o, const char *field)
 
 /**
  * Get field value, or NULL if not present.  The value returned is a
- * copy of the internal value, so it may be kept around, but must be
- * freed by the caller.
+ * pointer to the internals of the header structure, so it must not be
+ * kept around.
+ *
+ * If the len_ptr pointer is not NULL, it is filled with the length
+ * of the header string.
  */
 char *
-header_getdup(const header_t *o, const char *field)
+header_get_extended(const header_t *o, const char *field, size_t *len_ptr)
 {
-	return g_strdup(header_get(o, field));
+	GString *v;
+
+	if (o->headers) {
+		v = g_hash_table_lookup(o->headers, deconstify_gchar(field));
+	} else {
+		v = NULL;
+	}
+	if (v && len_ptr != NULL) {
+		*len_ptr = v->len;
+	}
+	return v ? v->str : NULL;
 }
 
 /**

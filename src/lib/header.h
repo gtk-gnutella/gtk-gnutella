@@ -78,7 +78,7 @@ int header_append(header_t *o, const char *text, int len);
 void header_dump(FILE *out, const header_t *o, const char *trailer);
 const char *header_strerror(guint errnum);
 char *header_get(const header_t *o, const char *field);
-char *header_getdup(const header_t *o, const char *field);
+char *header_get_extended(const header_t *o, const char *field, size_t *lptr);
 
 typedef struct header_fmt header_fmt_t;
 
