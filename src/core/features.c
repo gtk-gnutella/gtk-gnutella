@@ -54,6 +54,7 @@ struct header_x_feature {
 	int major;
 	int minor;
 	const gboolean *guard;
+	gboolean (*guardfn)(void);
 };
 
 struct features {
@@ -127,10 +128,35 @@ header_features_add_guarded(xfeature_t xf,
 	item->major = major;
 	item->minor = minor;
 	item->guard = guard;
+	item->guardfn = NULL;
 
 	features->list = g_list_append(features->list, item);
 }
+ 
+/**
+ * Add conditional support for feature ``name'': if at run-time the value
+ * returned by the ``guardfn'' function is FALSE, the feature is not emitted.
+ */
+void
+header_features_add_guarded_function(xfeature_t xf,
+	const char *name, int major, int minor, gboolean (*guardfn)(void))
+{
+	struct header_x_feature *item;
+	struct features *features;
 
+	features = features_get(xf);
+	g_return_if_fail(features);
+
+	item = walloc(sizeof *item);
+	item->name = g_strdup(name);
+	item->major = major;
+	item->minor = minor;
+	item->guard = NULL;
+	item->guardfn = guardfn;
+
+	features->list = g_list_append(features->list, item);
+}
+ 
 /**
  * Add support for feature ``name'' with the specified version to the
  * X-Features header.
@@ -179,6 +205,9 @@ header_features_generate(xfeature_t xf, char *dst, size_t len, size_t *rw)
 		char buf[50];
 
 		if (item->guard && !*item->guard)
+			continue;
+
+		if (item->guardfn && !(*item->guardfn)())
 			continue;
 
 		gm_snprintf(buf, sizeof buf, "%s/%d.%d",

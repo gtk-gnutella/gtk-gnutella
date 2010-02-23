@@ -57,6 +57,8 @@ gboolean header_get_feature(const char *name, const header_t *header,
 void header_features_add(xfeature_t xf, const char *name, int major, int minor);
 void header_features_add_guarded(xfeature_t xf, const char *name,
 	int major, int minor, const gboolean *guard);
+void header_features_add_guarded_function(xfeature_t xf,
+	const char *name, int major, int minor, gboolean (*guardfn)(void));
 void header_features_generate(xfeature_t xf, char *buf, size_t len, size_t *rw);
 
 void features_close(void);
