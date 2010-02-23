@@ -9103,6 +9103,26 @@ collect_locations:
 }
 
 /**
+ * Extract GUID information out of X-GUID if present and update the server
+ * information accordingly.
+ */
+static void
+check_xguid(struct download *d, const header_t *header)
+{
+	const char *buf;
+
+	buf = header_get(header, "X-GUID");
+	if (buf) {
+		guid_t guid;
+
+		if (!hex_to_guid(buf, &guid))
+			return;
+
+		download_found_server(&guid, download_addr(d), download_port(d));
+	}
+}
+
+/**
  * Extract firewalled node information and possibly push-proxies from
  * the X-FW-Node-Info header string.
  *
@@ -9891,6 +9911,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	 * the reply: this will indicate that the remote host is not firewalled
 	 * and will give us its IP:port.
 	 *
+	 * If not, look for a X-GUID header informing us about the server's GUID.
+	 *
 	 * NB: do this before extracting the server token, as it may redirect
 	 * us to an alternate server, and we could therefore lose the server
 	 * vendor string indication (attaching it to a discarded server object).
@@ -9900,6 +9922,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		if (!is_followup)
 			check_xhost(d, header);
 		check_push_proxies(d, header);
+	} else {
+		check_xguid(d, header);
 	}
 
 	/*

@@ -79,6 +79,7 @@ RCSID("$Id$")
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
+#include "if/dht/dht.h"		/* For dht_enabled() */
 
 #include "lib/aging.h"
 #include "lib/atoms.h"
@@ -1193,6 +1194,14 @@ upload_http_xhost_add(char *buf, size_t size,
 	return len < size ? len : 0;
 }
 
+/**
+ * Generates the X-Features line -- http_send_status() callback.
+ *
+ * @param buf		buffer where header must be written to
+ * @param size		size of supplied buffer
+ *
+ * @return length of generated content
+ */
 static size_t
 upload_xfeatures_add(char *buf, size_t size,
 	gpointer unused_arg, guint32 unused_flags)
@@ -1206,6 +1215,61 @@ upload_xfeatures_add(char *buf, size_t size,
 	return rw;
 }
 
+/**
+ * Generates the X-GUID line -- http_send_status() callback.
+ *
+ * @param buf		buffer where header must be written to
+ * @param size		size of supplied buffer
+ * @param flags		set of HTTP_CBF_* flags
+ *
+ * @return length of generated content
+ */
+static size_t
+upload_xguid_add(char *buf, size_t size,
+	gpointer unused_arg, guint32 flags)
+{
+	size_t rw;
+	guid_t guid;
+
+	(void) unused_arg;
+
+	/*
+	 * If we don't use the DHT (hence we won't be publishing any push-proxy
+	 * information) or are TCP-firewalled there's no need to generate
+	 * the header.
+	 */
+
+	if (GNET_PROPERTY(is_firewalled) || !dht_enabled())
+		return 0;
+
+	/*
+	 * Also if output bandwidth is saturated, save some bytes when sending
+	 * a 503 "busy" signal.
+	 */
+
+	if ((flags & (HTTP_CBF_BW_SATURATED|HTTP_CBF_BUSY_SIGNAL)) ==
+			(HTTP_CBF_BW_SATURATED|HTTP_CBF_BUSY_SIGNAL))
+		return 0;
+
+	gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
+
+	rw = concat_strings(buf, size,
+			"X-GUID: ", guid_hex_str(&guid), "\r\n",
+			(void *) 0);
+
+	return rw < size ? rw : 0;
+}
+
+/**
+ * Generates the X-Gnutella-Content-URN line -- http_send_status() callback.
+ *
+ * @param buf		buffer where header must be written to
+ * @param size		size of supplied buffer
+ * @param arg		user-supplied argument
+ * @param flags		set of HTTP_CBF_* flags
+ *
+ * @return length of generated content
+ */
 static size_t
 upload_gnutella_content_urn_add(char *buf, size_t size,
 	gpointer arg, guint32 flags)
@@ -1244,6 +1308,16 @@ upload_gnutella_content_urn_add(char *buf, size_t size,
 	return len < size ? len : 0;
 }
 
+/**
+ * Generates the X-Thex-URI line -- http_send_status() callback.
+ *
+ * @param buf		buffer where header must be written to
+ * @param size		size of supplied buffer
+ * @param arg		user-supplied argument
+ * @param flags		set of HTTP_CBF_* flags
+ *
+ * @return length of generated content
+ */
 static size_t
 upload_thex_uri_add(char *buf, size_t size, gpointer arg, guint32 flags)
 {
@@ -1652,8 +1726,10 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	 * careful not to add the same extra headers twice.
 	 */
 
-	if (0 == u->reqnum)
+	if (0 == u->reqnum) {
 		upload_http_extra_callback_add_once(u, upload_xfeatures_add, NULL);
+		upload_http_extra_callback_add_once(u, upload_xguid_add, NULL);
+	}
 
 	upload_http_extra_callback_add_once(u, node_http_proxies_add, NULL);
 
@@ -4514,8 +4590,10 @@ upload_request(struct upload *u, header_t *header)
 	/* Pick up the X-Remote-IP or Remote-IP header */
 	node_check_remote_ip_header(u->addr, header);
 
-	if (0 == u->reqnum)
+	if (0 == u->reqnum) {
 		upload_http_extra_callback_add(u, upload_xfeatures_add, NULL);
+		upload_http_extra_callback_add(u, upload_xguid_add, NULL);
+	}
 
 	/*
 	 * If this is a pushed upload, and we are not firewalled, then tell
