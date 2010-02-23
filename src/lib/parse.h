@@ -39,6 +39,8 @@
 #ifndef _parse_h_
 #define _parse_h_
 
+guint8 parse_uint8(const char *, char const **, unsigned, int *)
+	NON_NULL_PARAM((1));
 guint16 parse_uint16(const char *, char const **, unsigned, int *)
 	NON_NULL_PARAM((1));
 guint32 parse_uint32(const char *, char const **, unsigned, int *)
