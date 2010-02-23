@@ -12987,6 +12987,7 @@ download_move(struct download *d, const char *dir, const char *ext)
 
 	download_set_status(d, GTA_DL_MOVE_WAIT);
 	move_queue(d, dir, common_dir ? ext : "");
+	fi->flags |= FI_F_MOVING;
 
 	goto cleanup;
 
@@ -13048,6 +13049,7 @@ download_move_done(struct download *d, const char *pathname, guint elapsed)
 	fi = d->file_info;
 	fi->copy_elapsed = elapsed;
 	fi->copied = fi->size;
+	fi->flags &= ~FI_F_MOVING;
 
 	d->last_update = tm_time();
 	download_set_status(d, GTA_DL_DONE);
@@ -13099,6 +13101,7 @@ download_move_error(struct download *d)
 	 */
 
 	fi = d->file_info;
+	fi->flags &= ~FI_F_MOVING;
 	name = file_info_readable_filename(fi);
 
 	ext = has_good_sha1(d) ? DL_OK_EXT : DL_BAD_EXT;

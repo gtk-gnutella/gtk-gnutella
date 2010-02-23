@@ -38,6 +38,7 @@ struct download;
  */
 
 enum {
+	FI_F_MOVING			= 1 << 11,	/**< Moving file (or about to) */
 	FI_F_VERIFYING		= 1 << 10,	/**< Verifying SHA1 or TTH */
 	FI_F_BAD_BITPRINT	= 1 << 9,	/**< SHA1 + TTH combination is bad */
 	FI_F_UNLINKED		= 1 << 8,	/**< Removed from disk */
@@ -101,6 +102,7 @@ typedef struct gnet_fi_status {
 
 	unsigned	complete:1;
 	unsigned	verifying:1;
+	unsigned	moving:1;
 	unsigned 	sha1_matched:1;
 	unsigned	finished:1;
 	unsigned	seeding:1;

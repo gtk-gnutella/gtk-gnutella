@@ -5647,6 +5647,7 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 	s->finished		  = 0 != FILE_INFO_FINISHED(fi);
 	s->complete		  = 0 != FILE_INFO_COMPLETE(fi);
 	s->verifying	  = 0 != (FI_F_VERIFYING & fi->flags);
+	s->moving		  = 0 != (FI_F_MOVING & fi->flags);
 	s->has_sha1 	  = NULL != fi->sha1;
 	s->sha1_matched   = s->complete && s->has_sha1 && fi->sha1 == fi->cha1;
 
@@ -6626,12 +6627,17 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		}
 
 		msg_copy[0] = '\0';
-		if (status->copied > 0 && status->copied < status->size) {
-			gm_snprintf(msg_copy, sizeof msg_copy,
-				"; %s %s (%.1f%%)", _("Moving"),
-				short_size(status->copied,
-					GNET_PROPERTY(display_metric_units)),
-				(1.0 * status->copied / status->size) * 100.0);
+		if (status->moving) {
+			if (0 == status->copied) {
+				gm_snprintf(msg_copy, sizeof msg_copy, "%s",
+					_("; Waiting for moving..."));
+			} else if (status->copied > 0 && status->copied < status->size) {
+				gm_snprintf(msg_copy, sizeof msg_copy,
+					"; %s %s (%.1f%%)", _("Moving"),
+					short_size(status->copied,
+						GNET_PROPERTY(display_metric_units)),
+					(1.0 * status->copied / status->size) * 100.0);
+			}
 		}
 
 		concat_strings(buf, sizeof buf, _("Finished"),
