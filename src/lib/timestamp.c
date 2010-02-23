@@ -41,7 +41,9 @@
 RCSID("$Id$")
 
 #include "timestamp.h"
+#include "ascii.h"
 #include "offtime.h"
+#include "parse.h"
 #include "stringify.h"
 #include "glib-missing.h"
 #include "override.h"			/* Must be the last header included */
@@ -287,6 +289,93 @@ timestamp_rfc1123_to_string(time_t date)
 
 	timestamp_rfc1123_to_string_buf(date, buf, sizeof buf);
 	return buf;
+}
+
+/**
+ * Parse an ISO 8601 timestamp, e.g. "2002-06-09T14:54:42Z", converting
+ * it to a time_t.  The middle 'T' can be a ' ' (space) and the trailing 'Z'
+ * is optional, so we can parse "2002-06-09 14:54:42" equally well.
+ *
+ * @return TRUE if we parsed the string correctly, FALSE if it did not
+ * look like a valid ISO timestamp.
+ */
+gboolean
+string_to_timestamp_utc(const char *str, const char **endptr, time_t *stamp)
+{
+	const char *ep;
+	struct tm tm;
+	int error;
+
+	ep = skip_ascii_spaces(str);
+
+	tm.tm_year = parse_uint16(str, &ep, 10, &error);
+	if (error)
+		return FALSE;
+	if (tm.tm_year < TM_YEAR_ORIGIN)
+		return FALSE;
+	tm.tm_year -= TM_YEAR_ORIGIN;
+
+	if (*ep++ != '-')
+		return FALSE;
+
+	tm.tm_mon = parse_uint8(ep, &ep, 10, &error);
+	if (error)
+		return FALSE;
+	if (tm.tm_mon < 1 || tm.tm_mon > 12)
+		return FALSE;
+	tm.tm_mon--;
+
+	if (*ep++ != '-')
+		return FALSE;
+
+	tm.tm_mday = parse_uint8(ep, &ep, 10, &error);
+	if (error)
+		return FALSE;
+	if (tm.tm_mday < 1 || tm.tm_mday > 31)
+		return FALSE;
+
+	if (*ep != ' ' && *ep != 'T')
+		return FALSE;
+
+	ep++;
+
+	tm.tm_hour = parse_uint8(ep, &ep, 10, &error);
+	if (error)
+		return FALSE;
+	if (tm.tm_hour < 0 || tm.tm_hour > 23)
+		return FALSE;
+
+	if (*ep++ != ':')
+		return FALSE;
+
+	tm.tm_min = parse_uint8(ep, &ep, 10, &error);
+	if (error)
+		return FALSE;
+	if (tm.tm_min < 0 || tm.tm_min > 59)
+		return FALSE;
+
+	if (*ep++ != ':')
+		return FALSE;
+
+	tm.tm_sec = parse_uint8(ep, &ep, 10, &error);
+	if (error)
+		return FALSE;
+	if (tm.tm_sec < 0 || tm.tm_sec > 59)
+		return FALSE;
+
+	if (*ep == 'Z')
+		ep++;
+
+	if (endptr != NULL)
+		*endptr = ep;
+
+	if (stamp != NULL) {
+		tm.tm_isdst = -1;
+		tm.tm_yday = tm.tm_wday = 0;
+		*stamp = mktime(&tm);
+	}
+
+	return TRUE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
