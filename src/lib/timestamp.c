@@ -93,7 +93,7 @@ static const char months[12][4] = {
 size_t
 timestamp_utc_to_string_buf(time_t date, char *dst, size_t size)
 {
-	const struct tm *tm = localtime(&date);
+	const struct tm *tm;
 	size_t len;
 
 	g_assert(size > 0);
@@ -125,7 +125,7 @@ timestamp_utc_to_string(time_t date)
 size_t
 timestamp_to_string_buf(time_t date, char *dst, size_t size)
 {
-	const struct tm *tm = localtime(&date);
+	const struct tm *tm;
 	size_t len;
 
 	g_assert(size > 0);
@@ -292,12 +292,15 @@ timestamp_rfc1123_to_string(time_t date)
 }
 
 /**
- * Parse an ISO 8601 timestamp, e.g. "2002-06-09T14:54:42Z", converting
+ * Parse an ISO 8601 UTC timestamp, e.g. "2002-06-09T14:54:42Z", converting
  * it to a time_t.  The middle 'T' can be a ' ' (space) and the trailing 'Z'
  * is optional, so we can parse "2002-06-09 14:54:42" equally well.
  *
  * @return TRUE if we parsed the string correctly, FALSE if it did not
  * look like a valid ISO timestamp.
+ *
+ * @attention
+ * The date is returned in ``stamp'' as local time, not UTC time.
  */
 gboolean
 string_to_timestamp_utc(const char *str, const char **endptr, time_t *stamp)
@@ -370,9 +373,15 @@ string_to_timestamp_utc(const char *str, const char **endptr, time_t *stamp)
 		*endptr = ep;
 
 	if (stamp != NULL) {
+		time_t date;
+		time_delta_t gmt_off;
+
 		tm.tm_isdst = -1;
 		tm.tm_yday = tm.tm_wday = 0;
-		*stamp = mktime(&tm);
+
+		date = mktime(&tm);			/* UTC */
+		gmt_off = timestamp_gmt_offset(date, &tm);
+		*stamp = date + gmt_off;	/* Local time */
 	}
 
 	return TRUE;
