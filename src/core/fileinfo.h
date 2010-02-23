@@ -90,6 +90,8 @@ void file_info_close_pre(void);
 void file_info_try_to_swarm_with(
 	const char *file_name, const host_addr_t addr,
 	guint16 port, const struct sha1 *sha1);
+void file_info_try_to_swarm_with_firewalled(
+	const guid_t *guid, hash_list_t *proxies, const struct sha1 *sha1);
 void file_info_spot_completed_orphans(void);
 void file_info_add_source(fileinfo_t *fi, struct download *dl);
 void file_info_add_new_source(fileinfo_t *fi, struct download *dl);

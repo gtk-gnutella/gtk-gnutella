@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2009, Raphael Manfredi
+ * Copyright (c) 2002-2010, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Download mesh.
  *
  * @author Raphael Manfredi
- * @date 2002-2009
+ * @date 2002-2010
  */
 
 #include "common.h"
@@ -90,7 +90,8 @@ static GHashTable *mesh = NULL;
 
 struct dmesh {				/**< A download mesh bucket */
 	list_t *entries;		/**< The download mesh entries, dmesh_entry data */
-	GHashTable *by_host;	/**< Entries indexed by host */
+	GHashTable *by_host;	/**< Entries indexed by host (IP:port) */
+	GHashTable *by_guid;	/**< Entries indexed by GUID (firewalled entries) */
 	time_t last_update;		/**< Timestamp of last insert/expire in the mesh */
 	const struct sha1 *sha1;	/**< The SHA1 of this mesh */
 };
@@ -98,9 +99,13 @@ struct dmesh {				/**< A download mesh bucket */
 struct dmesh_entry {
 	time_t inserted;		/**< When entry was inserted in mesh */
 	time_t stamp;			/**< When entry was last seen */
-	dmesh_urlinfo_t url;	/**< URL info */
+	union {
+		dmesh_urlinfo_t url;	/**< URL info */
+		dmesh_fwinfo_t fwh;		/**< Firewalled host */
+	} e;
 	hash_list_t *bad;		/**< Keeps track of IPs reporting entry as bad */
-	gboolean good;			/**< Whether marked as being a good entry */
+	guint8 good;			/**< Whether marked as being a good entry */
+	guint8 fw_entry;		/**< Whether entry is that of a firewalled host */
 };
 
 #define MAX_LIFETIME	43200		/**< half a day */
@@ -154,6 +159,7 @@ static const char dmesh_ban_file[] = "dmesh_ban";
 static void dmesh_retrieve(void);
 static void dmesh_ban_retrieve(void);
 static char *dmesh_urlinfo_to_string(const dmesh_urlinfo_t *info);
+static char *dmesh_fwinfo_to_string(const dmesh_fwinfo_t *info);
 
 /**
  * Hash a URL info.
@@ -208,8 +214,16 @@ dmesh_entry_free(struct dmesh_entry *dme)
 {
 	g_assert(dme);
 
-	if (dme->url.name)
-		atom_str_free(dme->url.name);
+	if (dme->fw_entry) {
+		atom_guid_free_null(&dme->e.fwh.guid);
+		if (dme->e.fwh.proxies != NULL) {
+			hash_list_foreach(dme->e.fwh.proxies, gnet_host_free_item, NULL);
+			hash_list_free(&dme->e.fwh.proxies);
+		}
+	} else {
+		if (dme->e.url.name)
+			atom_str_free(dme->e.url.name);
+	}
 
 	if (dme->bad) {
 		hash_list_foreach(dme->bad, wfree_host_addr, NULL);
@@ -417,6 +431,16 @@ dmesh_is_banned(const dmesh_urlinfo_t *info)
 	return NULL != g_hash_table_lookup(ban_mesh, info);
 }
 
+/**
+ * Are we capable of using firewalled alternate locations?
+ */
+gboolean
+dmesh_can_use_fwalt(void)
+{
+	return GNET_PROPERTY(enable_dht) &&
+		!GNET_PROPERTY(is_firewalled) && GNET_PROPERTY(send_pushes);
+}
+
 /***
  *** Mesh URL parsing.
  ***/
@@ -568,8 +592,8 @@ dm_alloc(const struct sha1 *sha1)
 	dm->last_update = 0;
 	dm->entries = list_new();
 	dm->sha1 = atom_sha1_get(sha1);
-	dm->by_host =
-		g_hash_table_new(packed_host_hash_func, packed_host_eq_func);
+	dm->by_host = g_hash_table_new(packed_host_hash_func, packed_host_eq_func);
+	dm->by_guid = g_hash_table_new(guid_hash, guid_eq);
 
 	return dm;
 }
@@ -598,6 +622,7 @@ dm_free(struct dmesh *dm)
 	
 	gm_hash_table_foreach_key(dm->by_host, wfree_packed_host, NULL);
 	g_hash_table_destroy(dm->by_host);
+	g_hash_table_destroy(dm->by_guid);	/* Keys were GUID in the dmesh_entry */
 	atom_sha1_free(dm->sha1);
 
 	wfree(dm, sizeof *dm);
@@ -617,23 +642,39 @@ dm_remove_entry(struct dmesh *dm, struct dmesh_entry *dme)
 	g_assert(dm);
 	g_assert(list_length(dm->entries) > 0);
 
-	if (GNET_PROPERTY(dmesh_debug))
-		g_message("dmesh entry removed for urn:sha1:%s at %s",
-			sha1_base32(dm->sha1),
-			host_addr_port_to_string(dme->url.addr, dme->url.port));
+	if (GNET_PROPERTY(dmesh_debug)) {
+		g_message("dmesh %sentry removed for urn:sha1:%s at %s",
+			dme->fw_entry ? "firewalled " : "", sha1_base32(dm->sha1),
+			dme->fw_entry ?
+				guid_hex_str(dme->e.fwh.guid) :
+				host_addr_port_to_string(dme->e.url.addr, dme->e.url.port));
+	}
 
-	packed = host_pack(dme->url.addr, dme->url.port);
-	found = g_hash_table_lookup_extended(dm->by_host, &packed, &key, &value);
+	if (dme->fw_entry) {
+		found = g_hash_table_lookup_extended(dm->by_guid,
+					dme->e.fwh.guid, &key, &value);
+	} else {
+		packed = host_pack(dme->e.url.addr, dme->e.url.port);
+		found = g_hash_table_lookup_extended(dm->by_host,
+					&packed, &key, &value);
+	}
 
 	g_assert(found);
 	g_assert(value == (gpointer) dme);
 
-	found = list_remove(dm->entries, dme);		/* Remove from list */
+	found = list_remove(dm->entries, dme);		/* Remove from list... */
 
 	g_assert(found);
 
-	g_hash_table_remove(dm->by_host, &packed);	/* And from hash table */
-	wfree_packed_host(key, NULL);
+	/* ...and from the proper hash table */
+
+	if (dme->fw_entry) {
+		g_hash_table_remove(dm->by_guid, dme->e.fwh.guid);
+	} else {
+		g_hash_table_remove(dm->by_host, &packed);
+		wfree_packed_host(key, NULL);
+	}
+
 	dmesh_entry_free(dme);
 }
 
@@ -657,17 +698,20 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, guint16 port)
 	if (!found)
 		return;
 
-	if (GNET_PROPERTY(dmesh_debug))
+	if (GNET_PROPERTY(dmesh_debug)) {
 		g_message("dmesh entry removed for urn:sha1:%s at %s",
 			sha1_base32(dm->sha1), host_addr_port_to_string(addr, port));
+	}
 
 	dme = value;
 	found = list_remove(dm->entries, dme);		/* Remove from list */
 
 	g_assert(found);
+	g_assert(!dme->fw_entry);
 
 	g_hash_table_remove(dm->by_host, &packed);	/* And from hash table */
 	wfree_packed_host(key, NULL);
+
 	dmesh_entry_free(dme);
 }
 
@@ -725,13 +769,15 @@ dm_expire(struct dmesh *dm)
 		 * Remove the entry.
 		 *
 		 * XXX instead of removing, maybe we can schedule a HEAD refresh
-		 * XXX to see whether the entry is still valid.
+		 * XXX to see whether the entry is still valid?
 		 */
 
 		if (GNET_PROPERTY(dmesh_debug) > 4)
 			g_message("MESH %s: EXPIRED \"%s\", age=%u",
 				sha1_base32(dm->sha1),
-				dmesh_urlinfo_to_string(&dme->url),
+				dme->fw_entry ?
+					dmesh_fwinfo_to_string(&dme->e.fwh) :
+					dmesh_urlinfo_to_string(&dme->e.url),
 				(unsigned) delta_time(now, dme->stamp));
 
 		expired = g_slist_prepend(expired, dme);
@@ -846,6 +892,35 @@ dmesh_count(const struct sha1 *sha1)
 }
 
 /**
+ * Return download mesh for a given SHA1.
+ */
+static struct dmesh *
+dmesh_get(const struct sha1 *sha1)
+{
+	struct dmesh *dm;
+
+	/*
+	 * Lookup SHA1 in the mesh to see if we already have entries for it.
+	 *
+	 * If we don't, create a new structure and insert it in the table.
+	 *
+	 * If we have, make sure we remove any existing older entry first,
+	 * to avoid storing duplicates (entry is removed only if found and older
+	 * than the one we're trying to add).
+	 */
+
+	dm =  g_hash_table_lookup(mesh, sha1);
+	if (dm == NULL) {
+		dm = dm_alloc(sha1);
+		gm_hash_table_insert_const(mesh, atom_sha1_get(sha1), dm);
+	} else {
+		dm_expire(dm);
+	}
+
+	return dm;
+}
+
+/**
  * Add entry to the download mesh, indexed by the binary `sha1' digest.
  * If `stamp' is 0, then the current time is used.
  *
@@ -918,23 +993,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		goto rejected;
 	}
 
-	/*
-	 * Lookup SHA1 in the mesh to see if we already have entries for it.
-	 *
-	 * If we don't, create a new structure and insert it in the table.
-	 *
-	 * If we have, make sure we remove any existing older entry first,
-	 * to avoid storing duplicates (entry is removed only if found and older
-	 * than the one we're trying to add).
-	 */
-
-	dm =  g_hash_table_lookup(mesh, sha1);
-	if (dm == NULL) {
-		dm = dm_alloc(sha1);
-		gm_hash_table_insert_const(mesh, atom_sha1_get(sha1), dm);
-	} else {
-		dm_expire(dm);
-	}
+	dm = dmesh_get(sha1);
 
 	/*
 	 * See whether we knew something about this host already.
@@ -948,16 +1007,16 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		 * Entry for this host existed.
 		 */
 
-		g_assert(host_addr_equal(dme->url.addr, addr));
-		g_assert(dme->url.port == port);
+		g_assert(host_addr_equal(dme->e.url.addr, addr));
+		g_assert(dme->e.url.port == port);
 
 		/*
 		 * We favor URN_INDEX entries, if we can...
 		 */
 
-		if (dme->url.idx != idx && idx == URN_INDEX) {
-			dme->url.idx = idx;
-			atom_str_change(&dme->url.name, name);
+		if (dme->e.url.idx != idx && idx == URN_INDEX) {
+			dme->e.url.idx = idx;
+			atom_str_change(&dme->e.url.name, name);
 		}
 
 		if (stamp > dme->stamp)		/* Don't move stamp back in the past */
@@ -975,12 +1034,13 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 
 		dme->inserted = now;
 		dme->stamp = stamp;
-		dme->url.addr = addr;
-		dme->url.port = port;
-		dme->url.idx = idx;
-		dme->url.name = atom_str_get(name);
+		dme->e.url.addr = addr;
+		dme->e.url.port = port;
+		dme->e.url.idx = idx;
+		dme->e.url.name = atom_str_get(name);
 		dme->bad = NULL;
 		dme->good = FALSE;
+		dme->fw_entry = FALSE;
 
 		if (GNET_PROPERTY(dmesh_debug))
 			g_message("dmesh entry created for urn:sha1:%s at %s",
@@ -1020,6 +1080,134 @@ rejected:
 		g_message("MESH %s: rejecting \"%s\", stamp=%u age=%u: %s",
 			sha1_base32(sha1),
 			dmesh_urlinfo_to_string(info), (guint) stamp,
+			(unsigned) delta_time(now, stamp),
+			reason);
+
+	return FALSE;
+}
+
+/**
+ * Add firewalled entry to the download mesh, indexed by the `sha1' digest.
+ * If `stamp' is 0, then the current time is used.
+ *
+ * When entry is created, we become the owner of the proxies list.
+ *
+ * @return whether the entry was added in the mesh, or was discarded because
+ * it was the oldest record and we have enough already.
+ */
+static gboolean
+dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
+	time_t stamp)
+{
+	struct dmesh_entry *dme;
+	struct dmesh *dm;
+	time_t now = tm_time();
+	const char *reason = NULL;
+
+	g_return_val_if_fail(sha1, FALSE);
+
+	if (stamp == 0 || delta_time(stamp, now) > 0)
+		stamp = now;
+
+	if (delta_time(now, stamp) > MAX_LIFETIME) {
+		reason = "expired";
+		goto rejected;
+	}
+
+	/*
+	 * Reject if this is for our host.
+	 */
+
+	if (guid_eq(info->guid, GNET_PROPERTY(servent_guid))) {
+		reason = "my own GUID";
+		goto rejected;
+	}
+
+	dm = dmesh_get(sha1);
+
+	/*
+	 * See whether we knew something about this host already.
+	 */
+
+	dme = g_hash_table_lookup(dm->by_guid, info->guid);
+
+	if (dme) {
+		/*
+		 * Entry for this host existed.
+		 */
+
+		g_assert(guid_eq(dme->e.fwh.guid, info->guid));
+
+		if (stamp > dme->stamp)		/* Don't move stamp back in the past */
+			dme->stamp = stamp;
+
+		/*
+		 * If we have new proxies, the new list supersedes the old one.
+		 * Otherwise we keep the old list.
+		 */
+
+		if (info->proxies != NULL) {
+			if (dme->e.fwh.proxies != NULL) {
+				hash_list_foreach(dme->e.fwh.proxies,
+					gnet_host_free_item, NULL);
+				hash_list_free(&dme->e.fwh.proxies);
+			}
+			dme->e.fwh.proxies = info->proxies;
+		}
+
+		if (GNET_PROPERTY(dmesh_debug))
+			g_message("dmesh entry reused for urn:sha1:%s for %s (%s proxies)",
+				sha1_base32(sha1), guid_hex_str(info->guid),
+				info->proxies ? "new" : "no new");
+	} else {
+		/*
+		 * Allocate new entry.
+		 */
+
+		dme = walloc(sizeof *dme);
+
+		dme->inserted = now;
+		dme->stamp = stamp;
+		dme->e.fwh.guid = atom_guid_get(info->guid);
+		dme->e.fwh.proxies = info->proxies;
+		dme->bad = NULL;
+		dme->good = FALSE;
+		dme->fw_entry = TRUE;
+
+		if (GNET_PROPERTY(dmesh_debug))
+			g_message("dmesh entry created for urn:sha1:%s for %s",
+				sha1_base32(sha1), guid_hex_str(info->guid));
+
+		/*
+		 * We insert new entries at the tail of the list, and record them
+		 * into the hash table indexed by GUID.
+		 */
+
+		list_append(dm->entries, dme);
+		dm->last_update = now;
+
+		gm_hash_table_insert_const(dm->by_guid, dme->e.fwh.guid, dme);
+
+		if (list_length(dm->entries) == MAX_ENTRIES) {
+			struct dmesh_entry *oldest = list_head(dm->entries);
+			dm_remove_entry(dm, oldest);
+		}
+	}
+
+	/*
+	 * We got a new entry that could be used for swarming if we are
+	 * downloading that file.
+	 */
+
+	file_info_try_to_swarm_with_firewalled(info->guid, info->proxies, sha1);
+
+	return TRUE;			/* We added the entry */
+
+rejected:
+	if (GNET_PROPERTY(dmesh_debug) > 4)
+		g_message("MESH %s: rejecting \"%s\", stamp=%u age=%u: %s",
+			sha1_base32(sha1),
+			dmesh_fwinfo_to_string(info), (guint) stamp,
 			(unsigned) delta_time(now, stamp),
 			reason);
 
@@ -1127,8 +1315,8 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 	if (dme == NULL)
 		return;
 
-	g_assert(dme->url.port == port);
-	g_assert(host_addr_equal(dme->url.addr, addr));
+	g_assert(dme->e.url.port == port);
+	g_assert(host_addr_equal(dme->e.url.addr, addr));
 
 	if (dme->bad == NULL)
 		dme->bad = hash_list_new(host_addr_hash_func, host_addr_eq_func);
@@ -1195,8 +1383,8 @@ retry:
 			return;
 	}
 
-	g_assert(dme->url.port == port);
-	g_assert(host_addr_equal(dme->url.addr, addr));
+	g_assert(dme->e.url.port == port);
+	g_assert(host_addr_equal(dme->e.url.addr, addr));
 
 	/*
 	 * Get rid of the "bad" reporting if we're flagging it as good!
@@ -1237,7 +1425,7 @@ retry:
  * contains a "," character.
  */
 static size_t
-dmesh_urlinfo(const dmesh_urlinfo_t *info, char *buf,
+dmesh_urlinfo_to_string_buf(const dmesh_urlinfo_t *info, char *buf,
 	size_t len, gboolean *quoting)
 {
 	size_t rw;
@@ -1298,9 +1486,63 @@ dmesh_urlinfo_to_string(const dmesh_urlinfo_t *info)
 {
 	static char urlstr[1024];
 
-	(void) dmesh_urlinfo(info, urlstr, sizeof urlstr, NULL);
+	(void) dmesh_urlinfo_to_string_buf(info, urlstr, sizeof urlstr, NULL);
 
 	return urlstr;
+}
+
+/**
+ * Format the firewalled host described by `info' into the provided buffer
+ * `buf', which can hold `len' bytes.
+ *
+ * @returns length of formatted entry, -1 if the string would be larger than
+ * the buffer.  The generated string does not contain any "," character.
+ */
+static size_t
+dmesh_fwinfo_to_string_buf(const dmesh_fwinfo_t *info, char *buf, size_t len)
+{
+	size_t rw;
+	size_t maxslen = len - 1;			/* Account for trailing NUL */
+	hash_list_iter_t *iter;
+
+	g_assert(len > 0);
+	g_assert(len <= INT_MAX);
+	g_assert(info->guid != NULL);
+
+	rw = gm_snprintf(buf, len, "%s", guid_hex_str(info->guid));
+	if (rw >= maxslen)
+		goto done;
+
+	if (NULL == info->proxies)
+		goto done;
+
+	iter = hash_list_iterator(info->proxies);
+
+	while (hash_list_iter_has_next(iter) && rw < maxslen) {
+		gnet_host_t *host = hash_list_iter_next(iter);
+
+		rw += gm_snprintf(&buf[rw], len - rw, ";%s",
+				host_addr_port_to_string(
+					gnet_host_get_addr(host), gnet_host_get_port(host)));
+	}
+
+	hash_list_iter_release(&iter);
+
+done:
+	return rw < maxslen ? rw : (size_t) -1;
+}
+
+/**
+ * Format the `info' firewalled host and return pointer to static string.
+ */
+static char *
+dmesh_fwinfo_to_string(const dmesh_fwinfo_t *info)
+{
+	static char fwstr[1024];
+
+	(void) dmesh_fwinfo_to_string_buf(info, fwstr, sizeof fwstr);
+
+	return fwstr;
 }
 
 /**
@@ -1314,10 +1556,11 @@ dmesh_urlinfo_to_string(const dmesh_urlinfo_t *info)
 static size_t
 dmesh_entry_compact(const struct dmesh_entry *dme, char *buf, size_t size)
 {
-	const dmesh_urlinfo_t *info = &dme->url;
+	const dmesh_urlinfo_t *info = &dme->e.url;
 	const char *host;
 	size_t rw;
 
+	g_assert(!dme->fw_entry);
 	g_assert(size > 0);
 	g_assert(size <= INT_MAX);
 
@@ -1345,6 +1588,7 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, char *buf, size_t size)
 	size_t rw;
 	gboolean quoting;
 
+	g_assert(!dme->fw_entry);
 	g_assert(size > 0);
 	g_assert(size <= INT_MAX);
 
@@ -1352,7 +1596,7 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, char *buf, size_t size)
 	 * Format the URL info first.
 	 */
 
-	rw = dmesh_urlinfo(&dme->url, buf, size, &quoting);
+	rw = dmesh_urlinfo_to_string_buf(&dme->e.url, buf, size, &quoting);
 	if ((size_t) -1 == rw)
 		return (size_t) -1;
 
@@ -1382,17 +1626,56 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, char *buf, size_t size)
 }
 
 /**
- * Format the `dme' mesh entry as "URL timestamp".
+ * Format dmesh_entry in the provided buffer, as a firewalled location
+ * with an appended timestamp in ISO format, GMT time.
+ *
+ * @return length of formatted entry, -1 if the entry would be larger than
+ * the buffer.
+ */
+static size_t
+dmesh_entry_fw_stamp(const struct dmesh_entry *dme, char *buf, size_t size)
+{
+	size_t rw;
+
+	g_assert(dme->fw_entry);
+	g_assert(size > 0);
+	g_assert(size <= INT_MAX);
+
+	/*
+	 * Format the firewalled host info first.
+	 */
+
+	rw = dmesh_fwinfo_to_string_buf(&dme->e.fwh, buf, size);
+	if ((size_t) -1 == rw)
+		return (size_t) -1;
+
+	/*
+	 * Append timestamp.
+	 */
+
+	rw += concat_strings(&buf[rw], size - rw,
+			";", timestamp_utc_to_string(dme->stamp), (void *) 0);
+
+	return rw < size ? rw : (size_t) -1;
+}
+
+/**
+ * Format the `dme' mesh entry as "URL timestamp" or as FW host info.
  *
  * @return pointer to static string.
  */
 static const char *
 dmesh_entry_to_string(const struct dmesh_entry *dme)
 {
-	static char urlstr[1024];
+	static char str[1024];
 
-	(void) dmesh_entry_url_stamp(dme, urlstr, sizeof urlstr);
-	return urlstr;
+	if (dme->fw_entry) {
+		dmesh_entry_fw_stamp(dme, str, sizeof str);
+	} else {
+		dmesh_entry_url_stamp(dme, str, sizeof str);
+	}
+
+	return str;
 }
 
 /**
@@ -1431,7 +1714,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 	while (list_iter_has_next(iter)) {
 		struct dmesh_entry *dme = list_iter_next(iter);
 
-		if (dme->url.idx != URN_INDEX)
+		if (dme->fw_entry || dme->e.url.idx != URN_INDEX)
 			continue;
 
 		/*
@@ -1448,13 +1731,13 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 				continue;		/* Only propagate good alt locs */
 		}
 
-		if (NET_TYPE_IPV4 != host_addr_net(dme->url.addr))
+		if (NET_TYPE_IPV4 != host_addr_net(dme->e.url.addr))
 			continue;
 
-		if (g2_cache_lookup(dme->url.addr, dme->url.port))
+		if (g2_cache_lookup(dme->e.url.addr, dme->e.url.port))
 			continue;			/* Don't pollute with G2-only entries */
 
-		if (local_addr_cache_lookup(dme->url.addr, dme->url.port))
+		if (local_addr_cache_lookup(dme->e.url.addr, dme->e.url.port))
 			continue;			/* Don't pollute with our recent addresses */
 
 		g_assert(i < MAX_ENTRIES);
@@ -1501,7 +1784,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 
 		g_assert(j < hcnt);
 
-		gnet_host_set(&hvec[j], dme->url.addr, dme->url.port);
+		gnet_host_set(&hvec[j], dme->e.url.addr, dme->e.url.port);
 		j++;
 	}
 
@@ -1686,10 +1969,12 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 		ourselves.inserted = now;
 		ourselves.stamp = now;
-		ourselves.url.addr = listen_addr();
-		ourselves.url.port = GNET_PROPERTY(listen_port);
-		ourselves.url.idx = URN_INDEX;
-		ourselves.url.name = NULL;
+		ourselves.e.url.addr = listen_addr();
+		ourselves.e.url.port = GNET_PROPERTY(listen_port);
+		ourselves.e.url.idx = URN_INDEX;
+		ourselves.e.url.name = NULL;
+		ourselves.good = TRUE;
+		ourselves.fw_entry = FALSE;
 
 		url_len = dmesh_entry_compact(&ourselves, url, sizeof url);
 		g_assert((size_t) -1 != url_len && url_len < sizeof url);
@@ -1745,6 +2030,9 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	while (list_iter_has_next(iter)) {
 		struct dmesh_entry *dme = list_iter_next(iter);
 
+		if (dme->fw_entry)
+			continue;
+
 		/*
 		 * When downloading (i.e. when the file is not complete), we have the
 		 * neceesary feedback to spot good sources.  When sharing a complete
@@ -1762,16 +2050,16 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		if (delta_time(dme->inserted, last_sent) <= 0)
 			continue;
 
-		if (host_addr_equal(dme->url.addr, addr))
+		if (host_addr_equal(dme->e.url.addr, addr))
 			continue;
 
-		if (dme->url.idx != URN_INDEX)
+		if (dme->e.url.idx != URN_INDEX)
 			continue;
 
-		if (g2_cache_lookup(dme->url.addr, dme->url.port))
+		if (g2_cache_lookup(dme->e.url.addr, dme->e.url.port))
 			continue;			/* Don't pollute with G2-only entries */
 
-		if (local_addr_cache_lookup(dme->url.addr, dme->url.port))
+		if (local_addr_cache_lookup(dme->e.url.addr, dme->e.url.port))
 			continue;			/* Don't pollute with our recent addresses */
 
 		g_assert(i < MAX_ENTRIES);
@@ -1837,7 +2125,8 @@ nomore:
 		length = header_fmt_length(fmt);
 		g_assert(size >= len);
 		g_assert(size > size_saturate_add(length, len));
-		len += clamp_strncpy(&buf[len], size - len, header_fmt_string(fmt), length);
+		len += clamp_strncpy(&buf[len], size - len,
+			header_fmt_string(fmt), length);
 	}
 	header_fmt_free(&fmt);
 
@@ -1911,9 +2200,14 @@ dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
 			continue;
 
 		/*
-		 * There could be a GUID here if the host is not directly connectible
-		 * but we ignore this apparently.
+		 * In the original X-Alt specs, there could be a GUID here if the host
+		 * is not directly connectible but LimeWire chose to emit firewalled
+		 * sources in a dedicated X-Falt header, and only if the "fwalt" feature
+		 * was advertised in X-Features.
+		 *
+		 * Therefore, we only parse a list of IP:port in X-Alt and X-Nalt.
 		 */	
+
 		ok = string_to_host_addr(start, &endptr, &addr);
 		if (ok && ':' == *endptr) {
 			int error;
@@ -2219,7 +2513,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 }
 
 /**
- * Fill buffer with at most `count' alternative locations for sha1.
+ * Fill buffer with at most `count' un-firewalled alt-locations for sha1.
  *
  * @returns the amount of locations inserted.
  */
@@ -2245,15 +2539,161 @@ dmesh_alt_loc_fill(const struct sha1 *sha1, dmesh_urlinfo_t *buf, int count)
 		struct dmesh_entry *dme = list_iter_next(iter);
 		dmesh_urlinfo_t *from;
 
+		if (dme->fw_entry)
+			continue;
+
 		g_assert(i < MAX_ENTRIES);
 
-		from = &dme->url;
+		from = &dme->e.url;
 		buf[i++] = *from;
 	}
 
 	list_iter_free(&iter);
 
 	return i;
+}
+
+/**
+ * Parse a single firewalled location.
+ */
+void
+dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
+{
+	struct guid guid;
+	gboolean seen_proxy = FALSE;
+	gboolean seen_guid = FALSE;
+	gboolean seen_pptls = FALSE;
+	const char *msg = NULL;
+	time_t stamp = 0;
+	const char *tok;
+	strtok_t *st;
+	dmesh_fwinfo_t info;
+
+	/*
+	 * An X-Falt header is formatted as:
+	 *
+	 *  X-Falt: 9DBC52EEEBCA2C8A79036D626B959900;fwt/1;
+	 *		26252:85.182.49.3;
+	 *		pptls=E;69.12.88.95:1085;64.53.20.48:804;66.17.23.159:343
+	 *
+	 * We learn the GUID of the node, its address (in reversed port:IP format)
+	 * and the push-proxies.
+	 *
+	 * The "fwt/1", the host address, "pptls=" and push-proxies are all
+	 * optional items, only the leading GUID is mandatory.
+	 *
+	 * When persisting a firewalled location, we append an ISO timestamp
+	 * at the end (e.g "2010-02-23 16:06:55Z").
+	 */
+
+	st = strtok_make_strip(value);
+	info.guid = NULL;
+	info.proxies = NULL;
+
+	while ((tok = strtok_next(st, ";"))) {
+		host_addr_t addr;
+		guint16 port;
+		gnet_host_t host;
+
+		/* GUID is the first item we expect */
+		if (!seen_guid) {
+			if (!hex_to_guid(tok, &guid)) {
+				msg = "bad leading GUID";
+				break;
+			}
+			seen_guid = TRUE;
+			info.guid = atom_guid_get(&guid);
+			continue;
+		}
+
+		/* Skip "options", stated as "word/x.y" */
+		if (strstr(tok, "/"))
+			continue;
+
+		/* Skip first "pptsl=" indication */
+		if (!seen_pptls) {
+			/* TODO: handle pptls=<hex> */
+			if (is_strcaseprefix(tok, "pptls=")) {
+				seen_pptls = TRUE;
+				continue;
+			}
+		}
+
+		/*
+		 * If we find a valid port:IP host, then these are the remote
+		 * server address and port.
+		 */
+
+		if (!seen_proxy && string_to_port_host_addr(tok, NULL, &port, &addr))
+			continue;
+
+		/*
+		 * If we reach the timestamp, we're done.
+		 */
+
+		if (string_to_timestamp_utc(tok, NULL, &stamp))
+			break;
+
+		/*
+		 * Ignore everything that is not an IP:port, describing a push-proxy.
+		 */
+
+		if (!string_to_host_addr_port(tok, NULL, &addr, &port))
+			continue;
+
+		if (!seen_guid)
+			break;			/* No GUID before proxy list, something is wrong */
+
+		seen_proxy = TRUE;	/* Entering the push-proxy list */
+
+		if (is_private_addr(addr) || !host_is_valid(addr, port))
+			continue;
+
+		if (info.proxies == NULL)
+			info.proxies = hash_list_new(gnet_host_hash, gnet_host_eq);
+
+		gnet_host_set(&host, addr, port);
+		if (!hash_list_contains(info.proxies, &host)) {
+			hash_list_append(info.proxies, gnet_host_dup(&host));
+		}
+	}
+
+	strtok_free(st);
+
+	if (NULL == info.guid) {
+		if (GNET_PROPERTY(dmesh_debug))
+			g_warning("could not parse 'X-Falt: %s'", value);
+	} else {
+		if (!dmesh_raw_fw_add(sha1, &info, stamp)) {
+			/* Not added, hence nobody owns this list now */
+			if (info.proxies != NULL) {
+				hash_list_foreach(info.proxies, gnet_host_free_item, NULL);
+				hash_list_free(&info.proxies);
+			}
+		}
+		atom_guid_free_null(&info.guid);
+	}
+}
+
+/**
+ * Parse value of the "X-Falt" header to extract alternate firewalled sources
+ * for a given SHA1 key.
+ */
+void
+dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value)
+{
+	const char *tok;
+	strtok_t *st;
+
+	/*
+	 * An X-Falt header can contain several items, separated by ",".
+	 */
+
+	st = strtok_make_strip(value);
+	while ((tok = strtok_next(st, ","))) {
+		dmesh_collect_fw_host(sha1, tok);
+	}
+	strtok_free(st);
 }
 
 /**
@@ -2437,6 +2877,7 @@ dmesh_header_print(FILE *out)
 			"#   SHA1\n"
 			"#   URL1 timestamp1\n"
 			"#   URL2 timestamp2\n"
+			"#   FWALT timestamp\n"
 			"#   <blank line>\n"
 			"#\n\n",
 			out);
@@ -2511,7 +2952,11 @@ dmesh_retrieve(void)
 		if (has_sha1) {
 			if (GNET_PROPERTY(dmesh_debug))
 				g_message("dmesh_retrieve(): parsing %s", tmp);
-			dmesh_collect_locations(&sha1, tmp);
+			if (is_strprefix(tmp, "http://")) {
+				dmesh_collect_locations(&sha1, tmp);
+			} else {
+				dmesh_collect_fw_hosts(&sha1, tmp);
+			}
 		} else {
 			if (
 				strlen(tmp) < SHA1_BASE32_SIZE ||

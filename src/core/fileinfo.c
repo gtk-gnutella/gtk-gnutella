@@ -1,7 +1,9 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Vidar Madsen & Raphael Manfredi
+ * Copyright (c) 2002-2003, Vidar Madsen
+ * Copyright (c) 2004-2008, Christian Biere
+ * Copyright (c) 2002-2010, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,8 +33,11 @@
  * downloaded.
  *
  * @author Vidar Madsen
- * @author Raphael Manfredi
  * @date 2002-2003
+ * @author Christian Biere
+ * @date 2004-2008
+ * @author Raphael Manfredi
+ * @date 2002-2010
  */
 
 #include "common.h"
@@ -5347,6 +5352,58 @@ file_info_try_to_swarm_with(
 		fi,
 		NULL,	/* proxies */
 		/* FIXME: TLS? */ 0);
+}
+
+/**
+ * Called when we add a firewalled source to the dmesh.
+ *
+ * Add the corresponding file to the download list if we're swarming
+ * on it.
+ *
+ * @param guid		the GUID of the remote servent
+ * @param proxies	list of known push-proxies (gnet_host_t)
+ * @param sha1		the SHA1 of the file.
+ */
+void
+file_info_try_to_swarm_with_firewalled(
+	const guid_t *guid, hash_list_t *proxies, const struct sha1 *sha1)
+{
+	fileinfo_t *fi;
+	gnet_host_vec_t *push_proxies = NULL;
+
+	if (!can_swarm)				/* Downloads not initialized yet */
+		return;
+
+	fi = file_info_by_sha1(sha1);
+	if (!fi)
+		return;
+
+	file_info_check(fi);
+
+	if (proxies != NULL)
+		push_proxies = gnet_host_vec_from_hash_list(proxies);
+
+	if (GNET_PROPERTY(dmesh_debug) || GNET_PROPERTY(download_debug)) {
+		g_message("MESH supplying firewalled %s (%u push-prox%s) for %s",
+			guid_hex_str(guid), hash_list_length(proxies),
+			1 == hash_list_length(proxies) ? "y" : "ies",
+			filepath_basename(fi->pathname));
+	}
+
+	download_auto_new(filepath_basename(fi->pathname),
+		fi->size,
+		ipv4_unspecified,	/* addr */
+		0,					/* port */
+		guid,
+		NULL,				/* hostname */
+		sha1,
+		NULL,				/* TTH */
+		tm_time(),
+		fi,
+		push_proxies,		/* proxies */
+		/* FIXME: TLS? */ 0);
+
+	gnet_host_vec_free(&push_proxies);
 }
 
 /**

@@ -825,7 +825,7 @@ huge_is_pure_xalt(const char *value, size_t len)
  * Parse the "X-Gnutella-Alternate-Location" header if present to learn
  * about other sources for this file.
  *
- * Also knows about "Alternate-Location", "Alt-Location" and "X-Alt".
+ * Also knows about "Alternate-Location", "Alt-Location", "X-Alt" and "X-Falt".
  */
 void
 huge_collect_locations(const struct sha1 *sha1, const header_t *header)
@@ -869,6 +869,16 @@ huge_collect_locations(const struct sha1 *sha1, const header_t *header)
 		else
 			dmesh_collect_locations(sha1, alt);
     }
+
+	/*
+	 * Firewalled locations are collected only if we can peruse them.
+	 */
+
+	alt = header_get(header, "X-Falt");
+
+	if (alt && dmesh_can_use_fwalt()) {
+		dmesh_collect_fw_hosts(sha1, alt);
+	}
 }
 
 /**

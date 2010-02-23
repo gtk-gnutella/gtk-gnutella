@@ -803,6 +803,9 @@ download_init(void)
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
 		GNET_PROPERTY_PTR(browse_host_enabled));
 
+	header_features_add_guarded_function(FEATURES_DOWNLOADS,
+		"fwalt", 0, 1, dmesh_can_use_fwalt);
+
 	sl_downloads = hash_list_new(NULL, NULL);
 	sl_unqueued = hash_list_new(NULL, NULL);
 }
@@ -3325,7 +3328,7 @@ download_clone(struct download *d)
 	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
 	cd->push = FALSE;
 	cd->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED |
-		DL_F_FROM_PLAIN | DL_F_FROM_ERROR);
+		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_CLONED);
 	download_set_status(cd, GTA_DL_CONNECTING);
 	cd->server->refcnt++;
 
@@ -3370,6 +3373,7 @@ download_clone(struct download *d)
 
 	d->socket = NULL;
 	d->ranges = NULL;
+	d->flags |= DL_F_CLONED;		/* Don't persist parent download */
 
 	return cd;
 }
@@ -12379,7 +12383,7 @@ download_store_magnet(FILE *f, const struct download *d)
 
 	if (d->status == GTA_DL_DONE || d->status == GTA_DL_REMOVED)
 		return;
-	if (d->flags & DL_F_TRANSIENT)
+	if (d->flags & (DL_F_TRANSIENT | DL_F_CLONED))
 		return;
 
 	url = download_build_magnet(d);

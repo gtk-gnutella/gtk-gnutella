@@ -39,8 +39,10 @@
 #include "common.h"
 #include "downloads.h"
 
+#include "lib/hashlist.h"
+
 /**
- * A download mesh info (describes an URL).
+ * A download mesh info (describes an URL) for a non-firewalled servent.
  *
  * It can describe URLs like:
  *
@@ -56,6 +58,14 @@ typedef struct {
 	guint idx;					/**< File index (URN_INDEX means URN access) */
 	guint16 port;				/**< Host port */
 } dmesh_urlinfo_t;
+
+/**
+ * A download mesh info for a firewalled servent.
+ */
+typedef struct {
+	const guid_t *guid;			/**< Servent's GUID (atom) */
+	hash_list_t *proxies;		/**< Known push proxies (gnet_host_t) */
+} dmesh_fwinfo_t;
 
 /**
  * Error codes from dmesh_url_parse().
@@ -79,6 +89,8 @@ extern dmesh_url_error_t dmesh_url_errno;
 
 void dmesh_init(void);
 void dmesh_close(void);
+
+gboolean dmesh_can_use_fwalt(void);
 
 const char *dmesh_url_strerror(dmesh_url_error_t errnum);
 gboolean dmesh_url_parse(const char *url, dmesh_urlinfo_t *info);
@@ -110,6 +122,7 @@ gboolean dmesh_collect_sha1(const char *value, struct sha1 *sha1);
 void dmesh_collect_locations(const struct sha1 *sha1, const char *value);
 void dmesh_collect_compact_locations(const struct sha1 *sha1,
 		const char *value);
+void dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value);
 void dmesh_collect_negative_locations(const struct sha1 *sha1,
 	const char *value, host_addr_t reporter);
 int dmesh_fill_alternate(const struct sha1 *sha1,
