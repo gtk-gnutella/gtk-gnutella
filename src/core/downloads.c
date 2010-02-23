@@ -13328,6 +13328,7 @@ download_verify_sha1(struct download *d)
 
 	download_set_status(d, GTA_DL_VERIFY_WAIT);
 	queue_suspend_downloads_with_file(fi, TRUE);
+	d->flags &= ~DL_F_CLONED;		/* Has to be persisted until SHA-1 is OK */
 
 	inserted = verify_sha1_enqueue(TRUE, download_pathname(d),
 					download_filesize(d), download_verify_sha1_callback, d);
