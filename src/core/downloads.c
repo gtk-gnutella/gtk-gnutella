@@ -5959,6 +5959,7 @@ download_fallback_to_push(struct download *d,
 	 */
 
 	if (user_request && !has_blank_guid(d)) {
+		d->always_push = TRUE;
 		d->flags &= ~DL_F_PUSH_IGN;
 		d->server->attrs &= ~DLS_A_PUSH_IGN;
 	}
