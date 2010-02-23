@@ -55,6 +55,7 @@ RCSID("$Id$")
 #include "ctl.h"
 
 #include "if/gnet_property_priv.h"
+#include "if/dht/dht.h"		/* For dht_enabled() */
 
 #include "lib/ascii.h"
 #include "lib/atoms.h"
@@ -437,7 +438,7 @@ dmesh_is_banned(const dmesh_urlinfo_t *info)
 gboolean
 dmesh_can_use_fwalt(void)
 {
-	return GNET_PROPERTY(enable_dht) &&
+	return dht_enabled() &&
 		!GNET_PROPERTY(is_firewalled) && GNET_PROPERTY(send_pushes);
 }
 
