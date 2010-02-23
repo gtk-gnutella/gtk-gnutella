@@ -1121,6 +1121,8 @@ real_free(void *p)
 				g_error("MALLOC probable duplicate free of 0x%lx", (gulong) p);
 		}
 	}
+#else
+	(void) size;
 #endif	/* TRACK_MALLOC || MALLOC_VTABLE */
 
 #ifdef MALLOC_SAFE
