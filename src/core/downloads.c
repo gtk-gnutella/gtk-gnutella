@@ -154,12 +154,12 @@ static const char no_reason[] = "<no reason>"; /**< Don't translate this */
 static const char dev_null[] = "/dev/null";
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
-static gboolean download_send_push_request(struct download *d, gboolean broad);
+static gboolean download_send_push_request(
+	struct download *d, gboolean, gboolean);
 static gboolean download_read(struct download *d, pmsg_t *mb);
 static gboolean download_ignore_data(struct download *d, pmsg_t *mb);
 static void download_request(struct download *d, header_t *header, gboolean ok);
 static void download_push_ready(struct download *d, getline_t *empty);
-static void download_push_remove(struct download *d);
 static void download_push(struct download *d, gboolean on_timeout);
 static void download_resume_bg_tasks(void);
 static void download_incomplete_header(struct download *d);
@@ -2269,8 +2269,9 @@ download_push_proxy_wakeup(struct dl_server *server)
 	while (list_iter_has_next(iter) && n != 0) {
 		struct download *d = list_iter_next(iter);
 		download_check(d);
+		d->flags &= ~DL_F_UDP_PUSH;
 		if (DOWNLOAD_IS_EXPECTING_GIV(d)) {
-			download_send_push_request(d, FALSE);	/* UDP only */
+			download_send_push_request(d, TRUE, FALSE);	/* UDP only */
 			n--;
 		}
 	}
@@ -2290,11 +2291,12 @@ download_push_proxy_wakeup(struct dl_server *server)
 	while (list_iter_has_next(iter) && n != 0) {
 		struct download *d = list_iter_next(iter);
 		download_check(d);
-		if (delta_time(now, d->retry_after) < 0)
-			break;		/* List is sorted */
-		if (GTA_DL_TIMEOUT_WAIT == d->status) {
-			download_send_push_request(d, FALSE);	/* UDP only */
-			n--;
+		d->flags &= ~DL_F_UDP_PUSH;
+		if (delta_time(now, d->retry_after) >= 0) {
+			if (GTA_DL_TIMEOUT_WAIT == d->status) {
+				download_send_push_request(d, TRUE, FALSE);	/* UDP only */
+				n--;
+			}
 		}
 	}
 	list_iter_free(&iter);
@@ -3159,30 +3161,6 @@ download_set_sha1(struct download *d, const struct sha1 *sha1)
 	}
 }
 
-/**
- * Record that we sent a push request for this download.
- */
-static void
-download_push_insert(struct download *d)
-{
-	download_check(d);
-	g_assert(!d->push);
-
-	d->push = TRUE;
-}
-
-/**
- * Forget that we sent a push request for this download.
- */
-static void
-download_push_remove(struct download *d)
-{
-	download_check(d);
-	g_assert(d->push);
-
-	d->push = FALSE;
-}
-
 /*
  * Downloads management
  */
@@ -3326,7 +3304,6 @@ download_clone(struct download *d)
 	cd->sha1 = d->sha1 ? atom_sha1_get(d->sha1) : NULL;
 	cd->file_name = atom_str_get(d->file_name);
 	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
-	cd->push = FALSE;
 	cd->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED |
 		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_CLONED);
 	download_set_status(cd, GTA_DL_CONNECTING);
@@ -3342,11 +3319,6 @@ download_clone(struct download *d)
 	 */
 	hash_list_prepend(sl_downloads, cd);
 	hash_list_prepend(sl_unqueued, cd);
-
-	if (d->push) {
-		download_push_remove(d);
-		download_push_insert(cd);
-	}
 
 	if (d->parq_dl)
 		parq_dl_reparent_id(d, cd);
@@ -3966,9 +3938,6 @@ download_stop_v(struct download *d, download_status_t new_status,
 
 	if (store_queue) {
 		download_dirty = TRUE;		/* Refresh list, in case we crash */
-	}
-	if (DOWNLOAD_IS_STOPPED(d) && DOWNLOAD_IS_IN_PUSH_MODE(d)) {
-		download_push_remove(d);
 	}
 	file_info_clear_download(d, FALSE);
 	file_info_changed(d->file_info);
@@ -4620,9 +4589,6 @@ download_remove(struct download *d)
 		thex_download_free(&d->thex);
 	}
 
-	if (d->push)
-		download_push_remove(d);
-
 	download_set_sha1(d, NULL);
 
 	if (d->ranges) {
@@ -5203,20 +5169,11 @@ download_start(struct download *d, gboolean check_allowed)
 	g_assert(d->file_info->lifecount > 0);
 	g_assert(d->file_info->lifecount <= d->file_info->refcount);
 
-	if (
-		d->push &&
-		(GNET_PROPERTY(is_firewalled) || !GNET_PROPERTY(send_pushes))
-	) {
-		download_push_remove(d);
-	}
-
 	/*
 	 * If server is known to be reachable without pushes, reset the flag.
 	 */
 
 	if (d->always_push && (d->server->attrs & DLS_A_PUSH_IGN)) {
-		if (d->push)
-			download_push_remove(d);
 		d->always_push = FALSE;
 	}
 
@@ -5768,6 +5725,7 @@ static void
 download_push(struct download *d, gboolean on_timeout)
 {
 	gboolean ignore_push = FALSE;
+	gboolean udp_push;
 
 	download_check(d);
 
@@ -5787,31 +5745,26 @@ download_push(struct download *d, gboolean on_timeout)
 		ignore_push || 
 		GNET_PROPERTY(is_firewalled) ||
 		!GNET_PROPERTY(send_pushes)
-	) {
-		if (d->push)
-			download_push_remove(d);
+	)
 		goto attempt_retry;
-	}
 
-	if (!d->push)
-		download_push_insert(d);
+	/*
+	 * The first time we come here, we simply record we did send PUSH via UDP
+	 * and return.  Next time, we'll go on below.
+	 *
+	 * The rationale here is that UDP is a faster way to propagate PUSH
+	 * requests, but we have to fallback in case it does not work.
+	 *		--RAM, 2007-05-06
+	 */
 
-	g_assert(d->push);
+	udp_push = !booleanize(d->flags & DL_F_UDP_PUSH);
 
-	if (download_send_push_request(d, TRUE)) {
-		/*
-		 * The first time we come here, we simply record we did send UDP
-		 * pushes and return.  Next time, we'll continue below.
-		 * The rational here is that UDP is a faster way to propagate PUSH
-		 * requests, but we have to fallback in case it does not work.
-		 *		--RAM, 2007-05-06
-		 */
-
-		if (!(d->flags & DL_F_UDP_PUSH)) {
-			d->flags |= DL_F_UDP_PUSH;
+	if (download_send_push_request(d, udp_push, TRUE)) {
+		/* Always attempt to broadcast through Gnutella if we have a route */
+		if (udp_push) {
+			d->flags |= DL_F_UDP_PUSH;		/* For next time */
 			return;
 		}
-
 		/* FALL THROUGH */
 	}
 
@@ -5835,7 +5788,6 @@ download_push(struct download *d, gboolean on_timeout)
 	 */
 
 	if (!d->always_push) {
-		download_push_remove(d);
 		goto attempt_retry;
 	} else {
 		/*
@@ -5855,8 +5807,6 @@ download_push(struct download *d, gboolean on_timeout)
 			 * we will clear the `always_push' indication.
 			 * (see download_send_request() for more information)
 			 */
-
-			download_push_remove(d);
 
 			if (GNET_PROPERTY(download_debug) > 2)
 				g_message("PUSH trying to ignore them for %s",
@@ -5964,12 +5914,8 @@ download_fallback_to_push(struct download *d,
 		d->server->attrs &= ~DLS_A_PUSH_IGN;
 	}
 
-	if (DOWNLOAD_IS_QUEUED(d)) {
-		if (!d->push) {
-			download_push_insert(d);
-		}
+	if (DOWNLOAD_IS_QUEUED(d))
 		return;
-	}
 
 	/* If we're receiving data or already sent push, we're wrong
 	 * here. Most likely it was unnecessarily requested by the user.
@@ -6251,11 +6197,6 @@ create_download(
 	d->size = size;					/* Will be changed if range requested */
 	d->record_stamp = stamp;
 	download_set_sha1(d, sha1);
-	if (d->always_push) {
-		download_push_insert(d);
-	} else {
-		d->push = FALSE;
-	}
 	download_add_to_list(d, DL_LIST_WAITING);
 
 	/*
@@ -7229,19 +7170,22 @@ send_udp_push(const struct array packet, host_addr_t addr, guint16 port)
  * Send a push request to the target GUID, in order to request the push of
  * the file whose index is `file_id' there onto our local port `port'.
  *
- * We're very aggressive: we send a PUSH via UDP to the host itself, as well
- * as the 4 most recent push proxies.  We also broadcast to the proper routes
- * on Gnutella if `broadcast' is TRUE.
+ * We're very aggressive: we can send a PUSH via UDP to the host itself,
+ * as well as the 4 most recent push proxies when `udp' is set.
+ * We can also broadcast to the proper routes on Gnutella if `broadcast' is set.
  *
  * @returns TRUE if the request could be sent, FALSE if we don't have the route.
  */
 static gboolean
-download_send_push_request(struct download *d, gboolean broadcast)
+download_send_push_request(struct download *d, gboolean udp, gboolean broadcast)
 {
 	struct array packet;
 	guint16 port;
 
 	download_check(d);
+
+	if (!(udp || broadcast))
+		return FALSE;
 
 	port = socket_listen_port();
 	if (0 == port)
@@ -7255,9 +7199,11 @@ download_send_push_request(struct download *d, gboolean broadcast)
 		gboolean success = FALSE;
 
 		/* Pure luck: try to reach the remote host directly via UDP... */
-		(void) send_udp_push(packet, download_addr(d), download_port(d));
+		if (udp) {
+			send_udp_push(packet, download_addr(d), download_port(d));
+		}
 
-		if (has_push_proxies(d)) {
+		if (udp && has_push_proxies(d)) {
 			sequence_t *seq = pproxy_set_sequence(d->server->proxies);
 			sequence_iter_t *iter = sequence_forward_iterator(seq);
 			int i = 0;
@@ -7296,9 +7242,13 @@ download_send_push_request(struct download *d, gboolean broadcast)
 		}
 		return success;
 	} else {
-		g_warning("failed to send PUSH for %s (index=%lu)",
-			host_addr_port_to_string(download_addr(d), download_port(d)),
-				(gulong) d->record_index);
+		if (GNET_PROPERTY(download_debug)) {
+			g_warning("failed to send PUSH (udp=%s, gnet=%s) "
+				"for %s (index=%lu)",
+				udp ? "y" : "n", broadcast ? "y" : "n",
+				host_addr_port_to_string(download_addr(d), download_port(d)),
+					(gulong) d->record_index);
+		}
 		return FALSE;
 	}
 }
@@ -8696,7 +8646,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		 */
 
 		d->flags |= DL_F_FETCH_TTH;
-		if (d->always_push && DOWNLOAD_IS_IN_PUSH_MODE(d)) {
+		if (d->always_push) {
 			cflags |= SOCK_F_PUSH;
 		}
 		proxies = pproxy_set_host_vec(d->server->proxies);
@@ -8783,9 +8733,6 @@ check_xhostname(struct download *d, const header_t *header)
 	 */
 
 	if (d->got_giv) {
-		if (d->push)
-			download_push_remove(d);
-
 		if (GNET_PROPERTY(download_debug) > 2)
 			g_message("PUSH got X-Hostname, trying to ignore them for %s (%s)",
 				buf, host_addr_port_to_string(download_addr(d),
@@ -8839,9 +8786,6 @@ check_xhost(struct download *d, const header_t *header)
 	 * We'll mark the server as DLS_A_PUSH_IGN the first time we'll
 	 * be able to connect to it.
 	 */
-
-	if (d->push)
-		download_push_remove(d);
 
 	if (GNET_PROPERTY(download_debug) > 2)
 		g_message("PUSH got X-Host, trying to ignore PUSH for %s",
@@ -11873,9 +11817,6 @@ select_push_download(GSList *servers)
 			file_info_check(d->file_info);
 			g_assert(!DOWNLOAD_IS_RUNNING(d));
 
-			if (!DOWNLOAD_IS_EXPECTING_GIV(d))
-				continue;
-
 			if (download_has_enough_active_sources(d))
 				continue;
 
@@ -11892,7 +11833,8 @@ select_push_download(GSList *servers)
 
 			g_assert(d->socket == NULL);
 
-			/* Potential candidates are recorded into a new list because
+			/*
+			 * Potential candidates are recorded into a new list because
 			 * download_start_prepare() modifies the list which is just
 			 * being traversed.
 			 */
@@ -12073,6 +12015,82 @@ merge_push_servers(GSList *servers, const struct guid *guid)
 }
 
 /**
+ * Attempt to merge multiple servers as much as possible.
+ *
+ * @return new list of (hopefully merged) servers.
+ */
+static GSList *
+merge_servers(GSList *servers, const struct guid *guid)
+{
+	GSList *sided = NULL;
+
+	while (g_slist_length(servers) >= 2) {
+		GSList *sl;
+		GSList *tuple = NULL;
+		struct dl_server *non_blank = NULL;
+
+		/*
+		 * First we select a server with a non-blank GUID.  If there are none,
+		 * then no further merging is possible.
+		 */
+
+		for (sl = servers; sl; sl = g_slist_next(sl)) {
+			struct dl_server *serv = sl->data;
+
+			if (!guid_is_blank(serv->key->guid)) {
+				non_blank = serv;
+				servers = g_slist_remove(servers, non_blank);
+				break;
+			}
+		}
+
+		if (NULL == non_blank)
+			return servers;			/* No further merging possible */
+
+		/*
+		 * Construct a list with the head of the remaining servers and the
+		 * non-blank one and attempt to merge the two.
+		 */
+
+		tuple = servers;
+		servers = g_slist_remove_link(servers, servers);
+		tuple = g_slist_prepend(tuple, non_blank);
+
+		g_assert(2 == g_slist_length(tuple));
+
+		tuple = merge_push_servers(tuple, guid);
+
+		if (1 == g_slist_length(tuple)) {
+			servers = g_slist_prepend(servers, tuple->data);
+			continue;
+		}
+
+		/*
+		 * Could not merge the tuple into one single server.
+		 *
+		 * We keep the non-blank server to iterate, but we put aside
+		 * the other one to re-inject it later.
+		 */
+
+		g_assert(2 == g_slist_length(tuple));
+
+		tuple = g_slist_remove(tuple, non_blank);
+
+		g_assert(1 == g_slist_length(tuple));
+
+		sided = g_slist_prepend(sided, tuple->data);
+		g_slist_free(tuple);
+		servers = g_slist_prepend(servers, non_blank);
+	}
+
+	/*
+	 * Bring back the un-mergeable servers we may have put aside.
+	 */
+
+	return g_slist_concat(servers, sided);
+}
+
+/**
  * @return FALSE on failure, TRUE if the GIV was successfully parsed.
  */
 static gboolean
@@ -12214,8 +12232,8 @@ download_push_ack(struct gnutella_socket *s)
 					serv->vendor ? serv->vendor : "");
 			}
 
-			if (2 == count) {
-				servers = merge_push_servers(servers, &guid);
+			if (count >= 2) {
+				servers = merge_servers(servers, &guid);
 			}
 		}
 		break;
@@ -13827,7 +13845,7 @@ download_url_for_uri(const struct download *d, const char *uri)
 	port = download_port(d);
 
 	if (
-		DOWNLOAD_IS_IN_PUSH_MODE(d) || d->always_push ||
+		d->always_push ||
 		(!host_is_valid(addr, port) && !guid_is_blank(download_guid(d)))
 	) {
 		char guid_buf[GUID_HEX_SIZE + 1];

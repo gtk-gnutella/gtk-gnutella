@@ -171,7 +171,6 @@ enum download_magic { DOWNLOAD_MAGIC = 0x2dd6efe9 };	/**< Magic number */
 struct download {
 	enum download_magic magic;	/**< Magic number */
     gnet_src_t src_handle;      /**< Handle */
-	gboolean src_handle_valid;	/**< TRUE if src_handle is initialized */
 
 	char error_str[256];		/**< Used to snprintf() error strings */
 	download_status_t status;   /**< Current status of the download */
@@ -228,11 +227,11 @@ struct download {
 	guint32 flags;
 	guint32 cflags;
 
-	gboolean keep_alive;		/**< Keep HTTP connection? */
-	gboolean push;				/**< Currently in push mode */
-	gboolean always_push;		/**< Always use the push method for this */
-	gboolean got_giv;			/**< Whether initiated from GIV reception */
-	gboolean unavailable;		/**< Set on Timout, Push route lost */
+	unsigned src_handle_valid:1;/**< TRUE if src_handle is initialized */
+	unsigned keep_alive:1;		/**< Keep HTTP connection? */
+	unsigned always_push:1;		/**< Always send PUSH to connect */
+	unsigned got_giv:1;			/**< Whether initiated from GIV reception */
+	unsigned unavailable:1;		/**< Set on Timout, Push route lost */
 
 	struct cproxy *cproxy;		/**< Push proxy being used currently */
 	struct parq_dl_queued *parq_dl;	/**< Queuing status */
@@ -383,7 +382,8 @@ enum {
 	|| (d)->status == GTA_DL_FALLBACK	\
 	|| (d)->status == GTA_DL_PUSH_SENT	)
 
-#define DOWNLOAD_IS_IN_PUSH_MODE(d) (d->push)
+#define DOWNLOAD_IS_IN_PUSH_MODE(d) \
+	(d->always_push && !(d->flags & DL_F_PUSH_IGN))
 
 gboolean download_has_blank_guid(const struct download *);
 
