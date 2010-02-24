@@ -1055,6 +1055,7 @@ upload_clone(struct upload *u)
     cu->skip = 0;
     cu->end = 0;
 	cu->sent = 0;
+	cu->hevcnt = 0;
 
 	/*
 	 * This information is required to have proper GUI information displayed
@@ -1191,6 +1192,12 @@ upload_http_xhost_add(char *buf, size_t size,
 	} else {
 		len = 0;
 	}
+
+	if (len >= size && GNET_PROPERTY(upload_debug)) {
+		g_warning("U/L cannot send X-Host header back: only %u byte%s left",
+			(unsigned) size, 1 == size ? "" : "s");
+	}
+
 	return len < size ? len : 0;
 }
 
@@ -1226,12 +1233,10 @@ upload_xfeatures_add(char *buf, size_t size,
  */
 static size_t
 upload_xguid_add(char *buf, size_t size,
-	gpointer unused_arg, guint32 flags)
+	gpointer arg, guint32 flags)
 {
 	size_t rw;
 	guid_t guid;
-
-	(void) unused_arg;
 
 	/*
 	 * If we don't use the DHT (hence we won't be publishing any push-proxy
@@ -1244,11 +1249,14 @@ upload_xguid_add(char *buf, size_t size,
 
 	/*
 	 * Also if output bandwidth is saturated, save some bytes when sending
-	 * a 503 "busy" signal.
+	 * a 503 "busy" signal, unless we're forced to by a non-null argument.
 	 */
 
-	if ((flags & (HTTP_CBF_BW_SATURATED|HTTP_CBF_BUSY_SIGNAL)) ==
-			(HTTP_CBF_BW_SATURATED|HTTP_CBF_BUSY_SIGNAL))
+	if (
+		(flags & (HTTP_CBF_BW_SATURATED|HTTP_CBF_BUSY_SIGNAL)) ==
+			(HTTP_CBF_BW_SATURATED|HTTP_CBF_BUSY_SIGNAL) &&
+		NULL == arg
+	)
 		return 0;
 
 	gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
@@ -1256,6 +1264,11 @@ upload_xguid_add(char *buf, size_t size,
 	rw = concat_strings(buf, size,
 			"X-GUID: ", guid_hex_str(&guid), "\r\n",
 			(void *) 0);
+
+	if (rw >= size && GNET_PROPERTY(upload_debug)) {
+		g_warning("U/L cannot send X-GUID header back: only %u byte%s left",
+			(unsigned) size, 1 == size ? "" : "s");
+	}
 
 	return rw < size ? rw : 0;
 }
@@ -1305,6 +1318,13 @@ upload_gnutella_content_urn_add(char *buf, size_t size,
 	len = concat_strings(buf, size,
 			"X-Gnutella-Content-URN: ", sha1_to_urn_string(sha1), "\r\n",
 			(void *) 0);
+
+	if (len >= size && GNET_PROPERTY(upload_debug)) {
+		g_warning("U/L cannot send X-Gnutella-Content-URN header back: "
+			"only %u byte%s left",
+			(unsigned) size, 1 == size ? "" : "s");
+	}
+
 	return len < size ? len : 0;
 }
 
@@ -1347,6 +1367,12 @@ upload_thex_uri_add(char *buf, size_t size, gpointer arg, guint32 flags)
 			";", tth_base32(tth),
 			"\r\n",
 			(void *) 0);
+
+	if (len >= size && GNET_PROPERTY(upload_debug)) {
+		g_warning("U/L cannot send X-Thex-URI header back: only %u byte%s left",
+			(unsigned) size, 1 == size ? "" : "s");
+	}
+
 	return len < size ? len : 0;
 }
 
@@ -1493,6 +1519,13 @@ upload_416_extra(char *buf, size_t size, gpointer arg, guint32 unused_flags)
 	uint64_to_string_buf(u->file_size, fsize, sizeof fsize);
 	len = concat_strings(buf, size,
 			"Content-Range: bytes */", fsize, (void *) 0);
+
+	if (len >= size && GNET_PROPERTY(upload_debug)) {
+		g_warning("U/L cannot send Content-Range header back: "
+			"only %u byte%s left",
+			(unsigned) size, 1 == size ? "" : "s");
+	}
+
 	/* Don't emit a truncated header */
 	return len < size ? len : 0;
 }
@@ -1511,6 +1544,13 @@ upload_http_content_length_add(char *buf, size_t size,
 	len = concat_strings(buf, size,
 			"Content-Length: ", uint64_to_string(u->end - u->skip + 1), "\r\n",
 			(void *) 0);
+
+	if (len >= size && GNET_PROPERTY(upload_debug)) {
+		g_warning("U/L cannot send Content-Length header back: "
+			"only %u byte%s left",
+			(unsigned) size, 1 == size ? "" : "s");
+	}
+
 	return len < size ? len : 0;
 }
 
@@ -1532,6 +1572,13 @@ upload_http_content_type_add(char *buf, size_t size,
 	len = concat_strings(buf, size,
 			"Content-Type: ", shared_file_mime_type(u->sf), "\r\n",
 			(void *) 0);
+
+	if (len >= size && GNET_PROPERTY(upload_debug)) {
+		g_warning("U/L cannot send Content-Type header back: "
+			"only %u byte%s left",
+			(unsigned) size, 1 == size ? "" : "s");
+	}
+
 	return len < size ? len : 0;
 }
 
@@ -1547,6 +1594,13 @@ upload_http_last_modified_add(char *buf, size_t size,
 	len = concat_strings(buf, size,
 			"Last-Modified: ", timestamp_rfc1123_to_string(a->mtime), "\r\n",
 			(void *) 0);
+
+	if (len >= size && GNET_PROPERTY(upload_debug)) {
+		g_warning("U/L cannot send Last-Modified header back: "
+			"only %u byte%s left",
+			(unsigned) size, 1 == size ? "" : "s");
+	}
+
 	return len < size ? len : 0;
 }
 
@@ -1571,6 +1625,13 @@ upload_http_content_range_add(char *buf, size_t size,
 	} else {
 		len = 0;
 	}
+
+	if (len >= size && GNET_PROPERTY(upload_debug)) {
+		g_warning("U/L cannot send Content-Range header back: "
+			"only %u byte%s left",
+			(unsigned) size, 1 == size ? "" : "s");
+	}
+
 	return len < size ? len : 0;
 }
 
@@ -1600,12 +1661,35 @@ upload_http_extra_callback_add(struct upload *u,
 	http_status_cb_t callback, gpointer user_arg)
 {
 	upload_check(u);
-	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
-
 	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
 
 	http_extra_callback_set(&u->hev[u->hevcnt], callback, user_arg);
 	u->hevcnt++;
+}
+
+/**
+ * Remove all registered matching HTTP status callbacks.
+ */
+static void
+upload_http_extra_callback_remove(struct upload *u, http_status_cb_t callback)
+{
+	guint i;
+
+	upload_check(u);
+	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
+
+	for (i = 0; i < u->hevcnt; /* empty */) {
+		if (http_extra_callback_matches(&u->hev[i], callback)) {
+			if (i < u->hevcnt - 1) {
+				memmove(&u->hev[i], &u->hev[i+1],
+					sizeof(u->hev[0]) * (u->hevcnt - i - 1));
+			}
+			g_assert(u->hevcnt != 0);
+			u->hevcnt--;
+		} else {
+			i++;
+		}
+	}
 }
 
 /**
@@ -1619,12 +1703,10 @@ upload_http_extra_callback_add_once(struct upload *u,
 	guint i;
 
 	upload_check(u);
-	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
-
 	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
 
 	for (i = 0; i < u->hevcnt; i++) {
-		if (http_extra_callback_matches(&u->hev[i], callback, user_arg))
+		if (http_extra_callback_matches(&u->hev[i], callback))
 			return;
 	}
 
@@ -1640,8 +1722,6 @@ static void
 upload_http_extra_line_add(struct upload *u, const char *msg)
 {
 	upload_check(u);
-	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
-
 	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
 
 	http_extra_line_set(&u->hev[u->hevcnt], msg);
@@ -1655,8 +1735,6 @@ static void
 upload_http_extra_body_add(struct upload *u, const char *body)
 {
 	upload_check(u);
-	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
-
 	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
 
 	http_extra_body_set(&u->hev[u->hevcnt], body);
@@ -1675,7 +1753,6 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	size_t slen = 0;
 
 	upload_check(u);
-	u->hevcnt = 0;
 
 	if (u->flags & UPLOAD_F_LIMITED) {
 		u->flags &= ~UPLOAD_F_LIMITED;		/* For recursion */
@@ -1726,10 +1803,8 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	 * careful not to add the same extra headers twice.
 	 */
 
-	if (0 == u->reqnum) {
+	if (0 == u->reqnum)
 		upload_http_extra_callback_add_once(u, upload_xfeatures_add, NULL);
-		upload_http_extra_callback_add_once(u, upload_xguid_add, NULL);
-	}
 
 	upload_http_extra_callback_add_once(u, node_http_proxies_add, NULL);
 
@@ -1803,6 +1878,25 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 				"Content-Type: text/html; charset=utf-8\r\n");
 			upload_http_extra_body_add(u, buf);
 		}
+
+		/*
+		 * Force sending of X-GUID if passively queued and the request
+		 * does not come from a browser.
+		 *
+		 * We remove first instead of calling the "add_once" version in case
+		 * the callback was registered already with a NULL argument: we want
+		 * to force emission so we need a non-NULL one.
+		 */
+
+		if (u->from_browser) {
+			upload_http_extra_callback_remove(u, upload_xguid_add);
+		} else if (u->status != GTA_UL_QUEUED) {
+			upload_http_extra_callback_remove(u, upload_xguid_add);
+			upload_http_extra_callback_add(u, upload_xguid_add,
+				GINT_TO_POINTER(1));
+		}
+	} else if (!(u->is_followup || u->was_actively_queued)) {
+		upload_http_extra_callback_add_once(u, upload_xguid_add, NULL);
 	}
 
 	/*
@@ -4393,11 +4487,13 @@ upload_request(struct upload *u, header_t *header)
 	u->socket->getline = NULL;
 
 	if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_IN) {
-		g_message("----%s Request%s from %s%s:\n%s",
+		g_message("----%s Request%s #%u from %s%s%s:\n%s",
 			u->is_followup ? "Follow-up" : "Incoming",
 			u->last_was_error ? " (after error)" : "",
+			u->reqnum,
 			host_addr_to_string(u->socket->addr),
 			u->from_browser ? " (via browser)" : "",
+			u->was_actively_queued ? " (queued)" : "",
 			u->request);
 		header_dump(stderr, header, "----");
 	}
@@ -4590,10 +4686,8 @@ upload_request(struct upload *u, header_t *header)
 	/* Pick up the X-Remote-IP or Remote-IP header */
 	node_check_remote_ip_header(u->addr, header);
 
-	if (0 == u->reqnum) {
+	if (0 == u->reqnum)
 		upload_http_extra_callback_add(u, upload_xfeatures_add, NULL);
-		upload_http_extra_callback_add(u, upload_xguid_add, NULL);
-	}
 
 	/*
 	 * If this is a pushed upload, and we are not firewalled, then tell
@@ -4652,6 +4746,19 @@ upload_request(struct upload *u, header_t *header)
 	if (u->flags & UPLOAD_F_LIMITED) {
 		upload_error_remove(u, 403, _("Limited connection"));
 		return;
+	}
+
+	/*
+	 * We will send back an X-GUID if necessary, provided that the request
+	 * is not a follow-up (they already got it) or a new request after
+	 * being actively queued (idem, they got it the first time they got
+	 * actively queued, but the request is not a follow-up in that case,
+	 * just a retry attempt of an initial request).
+	 */
+
+	if (!(u->is_followup || u->was_actively_queued)) {
+		upload_http_extra_callback_add(u,
+			upload_xguid_add, GINT_TO_POINTER(1));
 	}
 
 	/*
