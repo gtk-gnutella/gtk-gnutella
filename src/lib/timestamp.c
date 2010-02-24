@@ -380,7 +380,7 @@ string_to_timestamp_utc(const char *str, const char **endptr, time_t *stamp)
 		tm.tm_yday = tm.tm_wday = 0;
 
 		date = mktime(&tm);			/* UTC */
-		gmt_off = timestamp_gmt_offset(date, &tm);
+		gmt_off = timestamp_gmt_offset(date, NULL);
 		*stamp = date + gmt_off;	/* Local time */
 	}
 
