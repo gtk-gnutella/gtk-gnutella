@@ -271,6 +271,38 @@ sequence_type_to_string(const sequence_t *s)
 }
 
 /**
+ * Apply ``func'' to all the items in the sequence.
+ */
+void
+sequence_foreach(const sequence_t *s, GFunc func, void *data)
+{
+	sequence_check(s);
+
+	switch (s->type) {
+	case SEQUENCE_GSLIST:
+		g_slist_foreach(s->u.gsl, func, data);
+		break;
+	case SEQUENCE_GLIST:
+		g_list_foreach(s->u.gl, func, data);
+		break;
+	case SEQUENCE_LIST:
+		list_foreach(s->u.l, func, data);
+		break;
+	case SEQUENCE_SLIST:
+		slist_foreach(s->u.sl, func, data);
+		break;
+	case SEQUENCE_HLIST:
+		hash_list_foreach(s->u.hl, func, data);
+		break;
+	case SEQUENCE_VECTOR:
+		vector_foreach(s->u.vec, func, data);
+		break;
+	case SEQUENCE_MAXTYPE:
+		g_assert_not_reached();
+	}
+}
+
+/**
  * Is the sequence empty?
  */
 gboolean

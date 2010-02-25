@@ -107,6 +107,7 @@ const char *sequence_type_to_string(const sequence_t *);
 void sequence_destroy(sequence_t *);
 
 gboolean sequence_is_empty(const sequence_t *);
+void sequence_foreach(const sequence_t *s, GFunc func, void *data);
 
 sequence_iter_t *sequence_forward_iterator(const sequence_t *);
 gboolean sequence_iter_has_next(const sequence_iter_t *);
