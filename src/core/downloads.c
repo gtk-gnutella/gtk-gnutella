@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2009, Raphael Manfredi
+ * Copyright (c) 2001-2010, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -2378,6 +2378,7 @@ download_proxy_dht_lookup_done(const struct guid *guid)
 	server->attrs &= ~DLS_A_DHT_PROX;
 
 	if (NULL == server->proxies || 0 == pproxy_set_count(server->proxies)) {
+		route_starving_add(guid, download_got_push_route);
 		download_push_proxy_sleep(server);
 	} else {
 		route_starving_remove(guid);
