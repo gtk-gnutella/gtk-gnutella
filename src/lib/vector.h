@@ -110,6 +110,8 @@ vector_iter_t *vector_iterator(vector_t *);
 vector_iter_t *vector_iterator_tail(vector_t *);
 void vector_iter_release(vector_iter_t **);
 
+void vector_foreach(const vector_t *v, GFunc func, void *data);
+
 #endif	/* _vector_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

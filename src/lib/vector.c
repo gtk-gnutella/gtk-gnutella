@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2009, Christian Biere
+ * Copyright (c) 2010, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -90,6 +91,20 @@ vector_free(vector_t **vec_ptr)
 		vector_t *vec = *vec_ptr;
 		wfree(vec, sizeof *vec);
 		*vec_ptr = NULL;
+	}
+}
+
+/**
+ * Apply ``func'' to all the items in the vector.
+ */
+void
+vector_foreach(const vector_t *v, GFunc func, void *data)
+{
+	size_t i;
+
+	for (i = 0; i < v->n; i++) {
+		void *item = &v->base[i * v->element_size];
+		(*func)(item, data);
 	}
 }
 
