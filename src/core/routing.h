@@ -55,6 +55,11 @@ struct route_dest {
 	} ur;
 };
 
+/**
+ * Starving GUID callback.
+ */
+typedef void (*route_starving_cb_t)(const struct guid *);
+
 /*
  * Global Functions
  */
@@ -73,6 +78,9 @@ gboolean route_exists_for_reply(const struct guid *muid, guint8 function);
 gboolean route_proxy_add(const struct guid *guid, struct gnutella_node *n);
 void route_proxy_remove(const struct guid *guid);
 struct gnutella_node *route_proxy_find(const struct guid *guid);
+
+void route_starving_add(const struct guid *guid, route_starving_cb_t cb);
+void route_starving_remove(const struct guid *guid);
 
 #endif /* _core_routing_h_ */
 /* vi: set ts=4 sw=4 cindent: */

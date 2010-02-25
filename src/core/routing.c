@@ -156,7 +156,19 @@ static const char * const banned_push[] = {
 	"27630b632f070ca9ffc48eb06a72c700",		/**< Morpheus?, 2005-08-30 */
 	"58585858585858585858585858585858",		/**< Probably an init bug! */
 };
-static GHashTable *ht_banned_push = NULL;
+static GHashTable *ht_banned_push;
+
+/**
+ * Starving GUIDs for push routing.
+ *
+ * Downloads which require a push route to a given GUID but have no identified
+ * push route are said to be "starving" for that GUID.  They can of course
+ * rely on push-proxies to contact the node, or look through the DHT.
+ *
+ * But still, in case we happen to see a query hit that comes from one of
+ * the starving GUID, it's good to notify the download layer.
+ */
+static GHashTable *ht_starving_guid;
 
 /**
  * Push-proxy table.
@@ -164,7 +176,7 @@ static GHashTable *ht_banned_push = NULL;
  * It maps a GUID to a node, so that we can easily send a push message
  * on behalf of a requesting node to the proper connection.
  */
-static GHashTable *ht_proxyfied = NULL;
+static GHashTable *ht_proxyfied;
 
 /**
  * Routing logging.
@@ -189,6 +201,52 @@ static inline gboolean
 is_banned_push(const struct guid *guid)
 {
 	return NULL != g_hash_table_lookup(ht_banned_push, guid);
+}
+
+/**
+ * Remove starving condition for a GUID.
+ */
+void
+route_starving_remove(const guid_t *guid)
+{
+ 	/*
+	 * The GUID atom is still referred to by the server,
+	 * so don't clear anything.
+	 */
+
+	g_hash_table_remove(ht_starving_guid, guid);
+}
+
+/**
+ * Add starving condition for ``guid''.
+ *
+ * When we learn about a new route for that GUID, the callback will be
+ * triggered, with the GUID as argument.
+ *
+ * @attention
+ * NB: assumes ``guid'' is already an atom linked somehow to ``server''.
+ */
+void
+route_starving_add(const guid_t *guid, route_starving_cb_t cb)
+{
+	gm_hash_table_replace_const(ht_starving_guid, guid, cb);
+}
+
+/**
+ * Invoked when we discover a new route for a given GUID.
+ *
+ * Check whether a GUID was recorded as starving and invoke the callback
+ * if it was.
+ */
+static void
+route_starving_check(const guid_t *guid)
+{
+	route_starving_cb_t cb;
+
+	cb = g_hash_table_lookup(ht_starving_guid, guid);
+
+	if (cb != NULL)
+		(*cb)(guid);
 }
 
 /**
@@ -800,10 +858,11 @@ routing_init(void)
 	routing.last_rotation = tm_time();
 
 	/*
-	 * Push proxification.
+	 * Push proxification and starving GUIDs.
 	 */
 
 	ht_proxyfied = g_hash_table_new(guid_hash, guid_eq);
+	ht_starving_guid = g_hash_table_new(guid_hash, guid_eq);
 }
 
 /**
@@ -1702,6 +1761,7 @@ route_query_hit(struct route_log *route_log,
 
 			if (!is_banned_push(origin_guid)) {
 				message_add(origin_guid, QUERY_HIT_ROUTE_SAVE, sender);
+				route_starving_check(origin_guid);
 			}
 		} else if (m->routes == NULL || !node_sent_message(sender, m)) {
 			struct route_data *route;
@@ -2193,6 +2253,14 @@ routing_close(void)
 
 	g_hash_table_destroy(ht_proxyfied);
 	ht_proxyfied = NULL;
+
+	cnt = g_hash_table_size(ht_starving_guid);
+	if (cnt != 0)
+		g_warning("starving GUID table still holds %u entr%s",
+			cnt, cnt == 1 ? "y" : "ies");
+
+	g_hash_table_destroy(ht_starving_guid);
+	ht_starving_guid = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
