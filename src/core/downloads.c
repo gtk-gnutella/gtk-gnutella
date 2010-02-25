@@ -1874,9 +1874,11 @@ allocated:
 	 */
 
 	if (
-		(guid_is_blank(server->key->guid) && !guid_is_blank(guid)) ||
-		(!guid_is_blank(server->key->guid) &&
-			!host_is_valid(server->key->addr, server->key->port))
+		!guid_is_blank(guid) &&
+		(
+			guid_is_blank(server->key->guid) ||
+			!host_is_valid(server->key->addr, server->key->port)
+		)
 	) {
 		struct dl_server *correct;
 
