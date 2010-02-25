@@ -1547,6 +1547,9 @@ download_found_server(const struct guid *guid,
 {
 	struct dl_server *server;
 
+	if (guid_is_blank(guid))
+		return;
+
 	/*
 	 * XXX Unfortunately, this late discovery of the real IP:port can create
 	 * XXX duplicate downloads.  Imagine we thought this was 0.0.0.0 for some
