@@ -183,6 +183,7 @@ static void change_server_addr(struct dl_server *server,
 	const host_addr_t new_addr, const guint16 new_port);
 static struct download *download_pick_another(
 	const struct download *d, const struct download *pd);
+static void download_got_push_route(const guid_t *guid);
 
 static gboolean download_dirty = FALSE;
 static gboolean download_shutdown = FALSE;
@@ -1872,7 +1873,11 @@ allocated:
 	 * had figured, but recompute the server by looking in the by_dl_guid hash.
 	 */
 
-	if (guid_is_blank(server->key->guid) && !guid_is_blank(guid)) {
+	if (
+		(guid_is_blank(server->key->guid) && !guid_is_blank(guid)) ||
+		(!guid_is_blank(server->key->guid) &&
+			!host_is_valid(server->key->addr, server->key->port))
+	) {
 		struct dl_server *correct;
 
 		download_found_server(guid, addr, port);
