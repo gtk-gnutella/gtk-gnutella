@@ -849,14 +849,14 @@ huge_collect_locations(const struct sha1 *sha1, const header_t *header)
 	if (alt == NULL)
 		alt = header_get(header, "Alt-Location");
 
-	if (alt) {
+	if (alt != NULL) {
 		dmesh_collect_locations(sha1, alt);
 		return;
 	}
 
 	alt = header_get_extended(header, "X-Alt", &len);
 
-	if (alt) {
+	if (alt != NULL) {
 		/*
 		 * Wonderful Shareaza now uses X-Alt but does not pass compact
 		 * locations.  In essence, they renamed Alt-Location to X-Alt
@@ -871,12 +871,12 @@ huge_collect_locations(const struct sha1 *sha1, const header_t *header)
     }
 
 	/*
-	 * Firewalled locations are collected only if we can peruse them.
+	 * Firewalled locations.
 	 */
 
 	alt = header_get(header, "X-Falt");
 
-	if (alt && dmesh_can_use_fwalt()) {
+	if (alt != NULL) {
 		dmesh_collect_fw_hosts(sha1, alt);
 	}
 }
