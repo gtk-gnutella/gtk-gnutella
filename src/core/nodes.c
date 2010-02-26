@@ -9493,6 +9493,72 @@ node_proxy_cancel_all(void)
 }
 
 /**
+ * Emin an X-FW-Node-Info header in the supplied buffer, returning the length
+ * of the data printed.
+ *
+ * The header emitted is the complete one with push-proxies unless the
+ * ``with_proxies'' parameter is FALSE.
+ */
+size_t
+node_http_fw_node_info_add(char *buf, size_t size, gboolean with_proxies)
+{
+	header_fmt_t *fmt;
+	size_t len;
+	struct guid guid;
+	guint16 port = socket_listen_port();
+	size_t rw = 0;
+
+	fmt = header_fmt_make("X-FW-Node-Info", "; ", 0, size);
+
+	gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
+	header_fmt_append_value(fmt, guid_to_string(&guid));
+
+#if 0
+	/* No FWT support yet */
+	header_fmt_append_value(fmt, "fwt/1");
+#endif
+
+	/* Local node information, as port:IP */
+
+	if (host_is_valid(listen_addr(), port)) {
+		header_fmt_append_value(fmt,
+			port_host_addr_to_string(port, listen_addr()));
+	} else if (host_is_valid(listen_addr6(), port)) {
+		header_fmt_append_value(fmt,
+			port_host_addr_to_string(port, listen_addr6()));
+	}
+
+	/* Push proxies */
+
+	if (with_proxies && 0 != pproxy_set_count(proxies)) {
+		sequence_t *seq;
+		sequence_iter_t *iter;
+
+		seq = pproxy_set_sequence(proxies);
+		iter = sequence_forward_iterator(seq);
+
+		while (sequence_iter_has_next(iter)) {
+			const gnet_host_t *host = sequence_iter_next(iter);
+			const char *str;
+
+			str = host_addr_port_to_string(
+				gnet_host_get_addr(host), gnet_host_get_port(host));
+			header_fmt_append_value(fmt, str);
+		}
+	}
+
+	header_fmt_end(fmt);
+	len = header_fmt_length(fmt);
+
+	g_assert(len < size);		/* ``size'' was the configured maximum */
+	rw = clamp_strncpy(buf, size, header_fmt_string(fmt), len);
+
+	header_fmt_free(&fmt);
+
+	return rw;
+}
+
+/**
  * HTTP status callback.
  *
  * If we are still firewalled or have push-proxies, let the downloader
@@ -9513,36 +9579,7 @@ node_http_proxies_add(char *buf, size_t size,
 	 */
 
 	if (GNET_PROPERTY(is_firewalled)) {
-		header_fmt_t *fmt;
-		size_t len;
-		struct guid guid;
-		guint16 port = socket_listen_port();
-
-		fmt = header_fmt_make("X-FW-Node-Info", "; ", 0, size);
-
-		gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
-		header_fmt_append_value(fmt, guid_to_string(&guid));
-
-#if 0
-		/* No FWT support yet */
-		header_fmt_append_value(fmt, "fwt/1");
-#endif
-
-		if (host_is_valid(listen_addr(), port)) {
-			header_fmt_append_value(fmt,
-				port_host_addr_to_string(port, listen_addr()));
-		} else if (host_is_valid(listen_addr6(), port)) {
-			header_fmt_append_value(fmt,
-				port_host_addr_to_string(port, listen_addr6()));
-		}
-
-		header_fmt_end(fmt);
-		len = header_fmt_length(fmt);
-
-		g_assert(len < size);		/* ``size'' was the configured maximum */
-		rw += clamp_strncpy(buf, size, header_fmt_string(fmt), len);
-
-		header_fmt_free(&fmt);
+		rw = node_http_fw_node_info_add(buf, size, FALSE);
 	}
 
 	/*

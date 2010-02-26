@@ -11675,6 +11675,18 @@ picked:
 	}
 
 	/*
+	 * If we are firewalled, send X-FW-Node-Info with push-proxies.
+	 */
+
+	if (
+		GNET_PROPERTY(is_firewalled) &&
+		!(d->server->attrs & DLS_A_MINIMAL_HTTP)
+	) {
+		rw += node_http_fw_node_info_add(
+			&request_buf[rw], sizeof request_buf - rw, TRUE);
+	}
+
+	/*
 	 * Finish headers.
 	 */
 
