@@ -65,6 +65,8 @@ RCSID("$Id$")
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
+#include "if/dht/dht.h"			/* For dht_enabled() */
+#include "if/dht/kademlia.h"	/* For KDA_VERSION_* */
 
 #include "lib/array.h"
 #include "lib/atoms.h"
@@ -3158,10 +3160,18 @@ vmsg_send_features_supported(struct gnutella_node *n)
 	vmsg_features_reset(&vmf, payload, VMSG_PAYLOAD_MAX);
 
 	vmsg_features_add(&vmf, "HSEP", 1);
-	vmsg_features_add(&vmf, "F2FT", 0); /* No support for NAT-to-NAT */
+	/* No support for NAT-to-NAT -- signal version as -1, not 0 */
+	vmsg_features_add(&vmf, "F2FT", (guint16) -1);
+	/* TCP-incoming connections: are possible if not firewalled */
 	vmsg_features_add(&vmf, "TCPI", GNET_PROPERTY(is_firewalled) ? 0 : 1);
 	if (tls_enabled()) {
 		vmsg_features_add(&vmf, "TLS!", 1);
+	}
+	if (dht_enabled()) {
+		/* DHT mode: ADHT = active, PDHT = passive, LDHT = leaf */
+		vmsg_features_add(&vmf,
+			GNET_PROPERTY(is_firewalled) ? "PDHT" : "ADHT",
+			(KDA_VERSION_MAJOR << 8) + KDA_VERSION_MINOR);
 	}
 
 	paysize = vmsg_features_get_length(&vmf);
