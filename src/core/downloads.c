@@ -805,7 +805,8 @@ download_init(void)
 		GNET_PROPERTY_PTR(browse_host_enabled));
 
 	header_features_add_guarded_function(FEATURES_DOWNLOADS,
-		"fwalt", 0, 1, dmesh_can_use_fwalt);
+		"fwalt", FWALT_VERSION_MAJOR, FWALT_VERSION_MINOR,
+		dmesh_can_use_fwalt);
 
 	sl_downloads = hash_list_new(NULL, NULL);
 	sl_unqueued = hash_list_new(NULL, NULL);

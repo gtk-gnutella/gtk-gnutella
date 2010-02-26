@@ -42,6 +42,12 @@
 #include "lib/hashlist.h"
 
 /**
+ * Our level of support for firewalled alt-locs.
+ */
+#define FWALT_VERSION_MAJOR 0
+#define FWALT_VERSION_MINOR 1
+
+/**
  * A download mesh info (describes an URL) for a non-firewalled servent.
  *
  * It can describe URLs like:
