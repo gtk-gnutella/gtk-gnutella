@@ -9545,6 +9545,9 @@ node_http_fw_node_info_add(char *buf, size_t size, gboolean with_proxies)
 				gnet_host_get_addr(host), gnet_host_get_port(host));
 			header_fmt_append_value(fmt, str);
 		}
+
+		sequence_iterator_release(&iter);
+		sequence_release(&seq);
 	}
 
 	header_fmt_end(fmt);
