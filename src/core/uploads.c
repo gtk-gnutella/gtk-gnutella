@@ -2657,7 +2657,7 @@ upload_collect_locations(struct upload *u,
 		huge_collect_locations(sha1, header);
 		if (host_is_valid(u->gnet_addr, u->gnet_port)) {
 			/*
-			 * The uploader is only an alt-loc if it lists itself to the
+			 * The uploader is only an alt-loc if it lists itself in the
 			 * X-Alt: header. If it didn't the following has no effect.
 			 */
 			dmesh_good_mark(sha1, u->gnet_addr, u->gnet_port, TRUE);
@@ -4439,6 +4439,7 @@ upload_request(struct upload *u, header_t *header)
 	char *search, *uri;
 	time_t now = tm_time();
 	char host[1 + MAX_HOSTLEN];
+	gboolean first_request;
 
 	upload_check(u);
 
@@ -4502,6 +4503,18 @@ upload_request(struct upload *u, header_t *header)
 		gnet_stats_count_general(GNR_CLIENT_FOLLOWUP_AFTER_ERROR, 1);
 
 	u->last_was_error = FALSE;
+
+	/*
+	 * Some headers are sent back only once on a given connection, the
+	 * remote host being supposed to cache the values we provide.
+	 * 
+	 * If the request is a follow-up or a new request after being actively
+	 * queued (the request is not a follow-up in that case, just a retry
+	 * attempt of an initial request), then we consider it is not the first
+	 * request ever made and will not send these headers.
+	 */
+
+	first_request = !(u->is_followup || u->was_actively_queued);
 
 	/*
 	 * Check limits.
@@ -4686,7 +4699,11 @@ upload_request(struct upload *u, header_t *header)
 	/* Pick up the X-Remote-IP or Remote-IP header */
 	node_check_remote_ip_header(u->addr, header);
 
-	if (0 == u->reqnum)
+	/*
+	 * X-Features is sent only once on a given connection.
+	 */
+
+	if (first_request)
 		upload_http_extra_callback_add(u, upload_xfeatures_add, NULL);
 
 	/*
@@ -4699,7 +4716,7 @@ upload_request(struct upload *u, header_t *header)
 
 	if (u->push && !GNET_PROPERTY(is_firewalled)) {
 		/* Only send X-Host the first time we reply */
-		if (0 == u->reqnum) {
+		if (first_request) {
 			upload_http_extra_callback_add(u, upload_http_xhost_add, NULL);
 		}
 	} else if (GNET_PROPERTY(is_firewalled)) {
@@ -4713,7 +4730,7 @@ upload_request(struct upload *u, header_t *header)
 	 */
 
 	if (
-		0 == u->reqnum &&
+		first_request &&
 		!GNET_PROPERTY(is_firewalled) &&
 		GNET_PROPERTY(give_server_hostname) &&
 		!is_null_or_empty(GNET_PROPERTY(server_hostname))
@@ -4749,17 +4766,12 @@ upload_request(struct upload *u, header_t *header)
 	}
 
 	/*
-	 * We will send back an X-GUID if necessary, provided that the request
-	 * is not a follow-up (they already got it) or a new request after
-	 * being actively queued (idem, they got it the first time they got
-	 * actively queued, but the request is not a follow-up in that case,
-	 * just a retry attempt of an initial request).
+	 * We will send back an X-GUID if necessary, provided that this is
+	 * the first request on the connection.
 	 */
 
-	if (!(u->is_followup || u->was_actively_queued)) {
-		upload_http_extra_callback_add(u,
-			upload_xguid_add, GINT_TO_POINTER(1));
-	}
+	if (first_request)
+		upload_http_extra_callback_add(u, upload_xguid_add, GINT_TO_POINTER(1));
 
 	/*
 	 * If we're not using sendfile() or if we don't have a requested file
