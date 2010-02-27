@@ -2262,11 +2262,12 @@ download_add_push_proxies(const struct guid *guid,
 /**
  * Wakeup call when we get a fresh list of push-proxies for a server.
  * Re-send UDP push-requests to those expecting a GIV and those in a
- * "timeout wait" state.
+ * "timeout wait" state if ``udp'' is TRUE.
  * If ``broadcast'' is TRUE, also try to broadcast the PUSH on Gnutella.
  */
 static void
-download_push_proxy_wakeup(struct dl_server *server, gboolean broadcast)
+download_push_proxy_wakeup(struct dl_server *server,
+	gboolean udp, gboolean broadcast)
 {
 	list_iter_t *iter;
 	guint32 n = GNET_PROPERTY(max_host_downloads);
@@ -2283,9 +2284,10 @@ download_push_proxy_wakeup(struct dl_server *server, gboolean broadcast)
 	while (list_iter_has_next(iter) && n != 0) {
 		struct download *d = list_iter_next(iter);
 		download_check(d);
-		d->flags &= ~DL_F_UDP_PUSH;
+		if (udp)
+			d->flags &= ~DL_F_UDP_PUSH;
 		if (DOWNLOAD_IS_EXPECTING_GIV(d)) {
-			if (download_send_push_request(d, TRUE, broadcast)) {
+			if (download_send_push_request(d, udp, broadcast)) {
 				n--;
 				sent++;
 			}
@@ -2318,7 +2320,7 @@ download_push_proxy_wakeup(struct dl_server *server, gboolean broadcast)
 			GTA_DL_TIMEOUT_WAIT == d->status ||
 			delta_time(now, d->retry_after) >= 0
 		) {
-			if (download_send_push_request(d, TRUE, broadcast)) {
+			if (download_send_push_request(d, udp, broadcast)) {
 				n--;
 				sent++;
 			}
@@ -2393,7 +2395,7 @@ download_proxy_dht_lookup_done(const struct guid *guid)
 		download_push_proxy_sleep(server);
 	} else {
 		route_starving_remove(guid);
-		download_push_proxy_wakeup(server, FALSE);
+		download_push_proxy_wakeup(server, TRUE, FALSE);
 	}
 }
 
@@ -5758,6 +5760,49 @@ download_pickup_queued(void)
 }
 
 /**
+ * Invoked by the query hit parsing layer when push-proxies are discovered
+ * for some GUID.
+ */
+void
+download_got_push_proxies(const struct guid *guid,
+	const gnet_host_vec_t *proxies)
+{
+	struct dl_server *server;
+	int i;
+	size_t added = 0;
+
+	server = g_hash_table_lookup(dl_by_guid, guid);
+	if (server == NULL)
+		return;
+
+	dl_server_valid(server);
+
+	for (i = gnet_host_vec_count(proxies) - 1; i >= 0; i--) {
+		struct gnutella_host host;
+		host_addr_t addr;
+		guint16 port;
+
+		host = gnet_host_vec_get(proxies, i);
+		addr = gnet_host_get_addr(&host);
+		port = gnet_host_get_port(&host);
+
+		if (add_proxy(server, addr, port))
+			added++;
+	}
+
+	if (added > 0) {
+		if (GNET_PROPERTY(download_debug)) {
+			g_message("PUSH found %u new push prox%s in query hit "
+				"for GUID %s at %s",
+				added, 1 == added ? "y" : "ies",
+				guid_hex_str(guid), server_host_info(server));
+		}
+		gnet_stats_count_general(GNR_COLLECTED_PUSH_PROXIES, +1);
+		download_push_proxy_wakeup(server, TRUE, FALSE);
+	}
+}
+
+/**
  * Invoked by routing layer when a PUSH route is available for the GUID.
  */
 static void
@@ -5776,7 +5821,7 @@ download_got_push_route(const guid_t *guid)
 	 */
 
 	gnet_stats_count_general(GNR_REVITALIZED_PUSH_ROUTES, +1);
-	download_push_proxy_wakeup(server, TRUE);
+	download_push_proxy_wakeup(server, FALSE, TRUE);
 	if (server->proxies != NULL && pproxy_set_count(server->proxies) > 0) {
 		route_starving_remove(guid);
 	}
@@ -9317,7 +9362,7 @@ check_fw_node_info(struct dl_server *server, const char *fwinfo)
 	}
 
 	if (added > 0)
-		download_push_proxy_wakeup(server, FALSE);
+		download_push_proxy_wakeup(server, TRUE, FALSE);
 
 	return added > 0;
 }
@@ -9434,7 +9479,7 @@ check_push_proxies(struct download *d, const header_t *header)
 	strtok_free(st);
 
 	if (added > 0)
-		download_push_proxy_wakeup(d->server, FALSE);
+		download_push_proxy_wakeup(d->server, TRUE, FALSE);
 }
 
 /**

@@ -152,6 +152,7 @@ general_type_str(gint value)
 		N_("Detected collisions with our own GUID"),
 		N_("Firewalled node info for known hosts received in upload requests"),
 		N_("Revitalized PUSH routes"),
+		N_("Collected new PUSH proxies from other query hits"),
 		N_("Attempted download resource switching on completion"),
 		N_("Attempted download resource switching after error"),
 		N_("Successful download resource switching (all kind)"),

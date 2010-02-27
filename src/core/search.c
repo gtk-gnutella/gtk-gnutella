@@ -1952,6 +1952,13 @@ get_results_set(gnutella_node_t *n, gboolean browse)
         gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 		goto bad_packet;		
 	}
+
+	/*
+	 * Refresh push-proxies if we're downloading anything from this server.
+	 */
+
+	if (rs->proxies != NULL)
+		download_got_push_proxies(rs->guid, rs->proxies);
 	
 	/*
 	 * Now that we have the vendor, warn if the message has SHA1 errors.

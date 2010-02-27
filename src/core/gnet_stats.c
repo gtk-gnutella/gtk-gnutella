@@ -168,6 +168,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"own_guid_collisions",
 	"received_known_fw_node_info",
 	"revitalized_push_routes",
+	"collected_push_proxies",
 	"attempted_resource_switching",
 	"attempted_resource_switching_after_error",
 	"successful_resource_switching",
