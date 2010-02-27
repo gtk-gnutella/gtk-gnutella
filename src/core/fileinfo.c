@@ -5385,8 +5385,8 @@ file_info_try_to_swarm_with_firewalled(
 
 	if (GNET_PROPERTY(dmesh_debug) || GNET_PROPERTY(download_debug)) {
 		g_message("MESH supplying firewalled %s (%u push-prox%s) for %s",
-			guid_hex_str(guid), hash_list_length(proxies),
-			1 == hash_list_length(proxies) ? "y" : "ies",
+			guid_hex_str(guid), proxies ? hash_list_length(proxies) : 0,
+			(proxies && 1 == hash_list_length(proxies)) ? "y" : "ies",
 			filepath_basename(fi->pathname));
 	}
 
