@@ -210,6 +210,7 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(features),	/**< Unknown value, PROX v0.0 */
 	GGEP_ID(firewalled),/**< Firewalled status in ALOC v0.0 */
 	{ "fwt-version", EXT_T_GGEP_fwt_version }, /**< FW2FW version, PROX v0.0 */
+	GGEP_ID(guid),		/**< Servent's GUID in NOPE v0.0 */
 	GGEP_ID(length),	/**< File length in ALOC v0.1 */
 	GGEP_ID(port),		/**< Servent's Port in ALOC v0.0 */
 	GGEP_ID(proxies),	/**< Push proxies in PROX v0.0 */

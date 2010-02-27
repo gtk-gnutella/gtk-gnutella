@@ -446,6 +446,9 @@ dht_value_lifetime(dht_value_type_t type)
 	case DHT_VT_PROX:
 		lifetime = DHT_VALUE_PROX_EXPIRE;
 		break;
+	case DHT_VT_NOPE:
+		lifetime = DHT_VALUE_NOPE_EXPIRE;
+		break;
 	case DHT_VT_ALOC:
 		lifetime = DHT_VALUE_ALOC_EXPIRE;
 		break;

@@ -635,6 +635,18 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 	}
 
 	/*
+	 * If there is a SHA1 conflict, reject the PROX.
+	 */
+
+	if (!guid_eq(glk->guid, &guid)) {
+		if (GNET_PROPERTY(download_debug))
+			g_warning("discarding %s from %s for GUID %s: PROX was for GUID %s",
+				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
+				guid_to_string(glk->guid), guid_hex_str(&guid));
+		goto cleanup;
+	}
+
+	/*
 	 * If we did not find any proxy, reject the PROX.
 	 */
 

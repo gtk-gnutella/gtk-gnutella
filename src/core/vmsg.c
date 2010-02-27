@@ -407,6 +407,11 @@ handle_features_supported(struct gnutella_node *n,
 		if (0 != version && 0 == strcmp(feature, "TLS!")) {
 			node_supports_tls(n);
 		}
+
+		/* Any of ADHT, PDHT or LDHT means DHT is supported */
+		if (feature[0] && 0 == strcmp(&feature[1], "DHT")) {
+			node_supports_dht(n);
+		}
 	}
 }
 

@@ -74,6 +74,9 @@ RCSID("$Id$")
 #define PDHT_PROX_MAJOR		0	/**< We generate v0.0 "PROX" values */
 #define PDHT_PROX_MINOR		0
 
+#define PDHT_NOPE_MAJOR		0	/**< We generate v0.0 "NOPE" values */
+#define PDHT_NOPE_MINOR		0
+
 #define PDHT_BG_PERIOD		60000	/**< 1 minute, in ms */
 #define PDHT_BG_MAX_RUNS	3		/**< Max amount of background attempts */
 #define PDHT_PROX_DELAY		30		/**< Initial delay before publishing PROX */
@@ -85,11 +88,17 @@ RCSID("$Id$")
  */
 static GHashTable *aloc_publishes;		/* SHA1 -> pdht_publish_t */
 
+/**
+ * Hash table holding all the pending push-entry publishing by GUID.
+ */
+static GHashTable *nope_publishes;		/* GUID -> pdht_publish_t */
+
 typedef enum { PDHT_PUBLISH_MAGIC = 0x680182c5U } pdht_magic_t;
 
 typedef enum {
 	PDHT_T_ALOC = 0,			/**< ALOC value: shared files */
 	PDHT_T_PROX,				/**< PROX value: push-proxies */
+	PDHT_T_NOPE,				/**< NOPE value: node push-entry */
 
 	PDHT_T_MAX					/**< Amount of publishing types */
 } pdht_type_t;
@@ -128,6 +137,10 @@ typedef struct pdht_publish {
 			const sha1_t *sha1;		/**< SHA1 of the file being published */
 			shared_file_t *sf;		/**< Published file entry, for logs */
 		} aloc;
+		struct pdht_nope {			/**< Context for NOPE publishing */
+			const guid_t *guid;		/**< GUID of servent */
+			node_id_t nid;			/**< ID of node for which we're a proxy */
+		} nope;
 	} u;
 	guint32 flags;				/**< Operating flags */
 } pdht_publish_t;
@@ -177,6 +190,7 @@ pdht_type_to_string(pdht_type_t type)
 {
 	switch (type) {
 	case PDHT_T_ALOC:	return "ALOC";
+	case PDHT_T_NOPE:	return "NOPE";
 	case PDHT_T_PROX:	return "PROX";
 	case PDHT_T_MAX:	break;
 	}
@@ -262,8 +276,14 @@ pdht_free_publish(pdht_publish_t *pp, gboolean do_remove)
 	case PDHT_T_ALOC:
 		if (do_remove)
 			g_hash_table_remove(aloc_publishes, pp->u.aloc.sha1);
-		atom_sha1_free(pp->u.aloc.sha1);
+		atom_sha1_free_null(&pp->u.aloc.sha1);
 		shared_file_unref(&pp->u.aloc.sf);
+		break;
+	case PDHT_T_NOPE:
+		if (do_remove)
+			g_hash_table_remove(nope_publishes, pp->u.nope.guid);
+		atom_guid_free_null(&pp->u.nope.guid);
+		node_id_unref(pp->u.nope.nid);
 		break;
 	case PDHT_T_PROX:
 		if (do_remove)
@@ -346,6 +366,7 @@ pdht_publish_error(pdht_publish_t *pp, pdht_error_t code)
 	pinfo.all_roots = 0;
 	pinfo.path_len = 0;
 	pinfo.can_bg = FALSE;
+	pinfo.was_bg = pp->bg != NULL;
 	pinfo.presence = 0.0;
 
 	(*pp->cb)(pp->arg, code, &pinfo);
@@ -454,6 +475,7 @@ pdht_publish_done(gpointer arg,
 	pinfo.all_roots = published;
 	pinfo.path_len = candidates;
 	pinfo.can_bg = can_bg;
+	pinfo.was_bg = pp->bg != NULL;
 	pinfo.presence = stable_store_presence(
 		DHT_VALUE_REPUBLISH, info->rs, info->status);
 
@@ -524,6 +546,7 @@ pdht_bg_publish(cqueue_t *unused_cq, gpointer obj)
 
 	switch (pp->type) {
 	case PDHT_T_ALOC:
+	case PDHT_T_NOPE:
 	case PDHT_T_PROX:
 		pp->pb = publish_value_background(dht_value_clone(pp->value),
 			pp->bg->rs, pp->bg->status, pdht_publish_done, pp);
@@ -795,6 +818,73 @@ pdht_get_prox(const kuid_t *key)
 }
 
 /**
+ * Generate a DHT "NOPE" value to publish we are a push-proxy for a node.
+ *
+ * @return NULL if problems during GGEP encoding, the DHT value otherwise.
+ */
+static dht_value_t *
+pdht_get_nope(const guid_t *guid, const kuid_t *key)
+{
+	void *value;
+	ggep_stream_t gs;
+	int ggep_len;
+	gboolean ok;
+	dht_value_t *nope;
+	knode_t *our_knode;
+
+	/*
+	 * A NOPE value bears the following GGEP keys:
+	 *
+	 * guid				the servent's GUID as raw 16 bytes
+	 * port				our listening port for push-proxy messages
+	 * tls				if present, indicates that we support TLS
+	 */
+
+	value = walloc(DHT_VALUE_MAX_LEN);
+	ggep_stream_init(&gs, value, DHT_VALUE_MAX_LEN);
+
+	ok = ggep_stream_pack(&gs, GGEP_NAME(guid), guid, GUID_RAW_SIZE, 0);
+
+	{
+		char buf[sizeof(guint16)];
+		guint16 port = socket_listen_port();
+
+		poke_be16(buf, port);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), buf, sizeof buf, 0);
+	}
+
+	if (tls_enabled()) {
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(tls), NULL, 0, 0);
+	}
+
+	ggep_len = ggep_stream_close(&gs);
+
+	g_assert(ggep_len <= DHT_VALUE_MAX_LEN);
+
+	if (!ok) {
+		if (GNET_PROPERTY(publisher_debug))
+			g_warning("PDHT NOPE cannot construct DHT value");
+
+		wfree(value, DHT_VALUE_MAX_LEN);
+		return NULL;
+	}
+
+	/*
+	 * DHT value becomes the owner of the walloc()-ed GGEP block.
+	 */
+
+	g_assert(ggep_len > 0);
+
+	value = wrealloc(value, DHT_VALUE_MAX_LEN, ggep_len);
+	our_knode = get_our_knode();
+	nope = dht_value_make(our_knode, key, DHT_VT_NOPE,
+		PDHT_NOPE_MAJOR, PDHT_NOPE_MINOR, value, ggep_len);
+	knode_refcnt_dec(our_knode);
+
+	return nope;
+}
+
+/**
  * Callback when lookup for STORE roots succeeded.
  */
 static void
@@ -860,6 +950,15 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 			value = pdht_get_aloc(sf, pp->id);
 		}
 		break;
+	case PDHT_T_NOPE:
+		if (GNET_PROPERTY(publisher_debug) > 1) {
+			size_t roots = lookup_result_path_length(rs);
+			g_message("PDHT NOPE found %lu publish root%s",
+				(unsigned long) roots, 1 == roots ? "" : "s");
+		}
+
+		value = pdht_get_nope(pp->u.nope.guid, pp->id);
+		break;
 	case PDHT_T_PROX:
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
@@ -924,6 +1023,15 @@ pdht_roots_error(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 					"for %s \"%s\": %s",
 					shared_file_is_partial(paloc->sf) ? "partial" : "shared",
 					shared_file_name_nfc(paloc->sf), lookup_strerror(error));
+			}
+			break;
+		case PDHT_T_NOPE:
+			{
+				struct pdht_nope *pnope = &pp->u.nope;
+
+				g_message("PDHT NOPE publish roots lookup failed "
+					"for GUID %s: %s",
+					guid_hex_str(pnope->guid), lookup_strerror(error));
 			}
 			break;
 		case PDHT_T_PROX:
@@ -1516,6 +1624,153 @@ pdht_prox_install_republish(time_t t)
 }
 
 /***
+ *** Node push-entry publishing (legacy nodes for which we are a push proxy).
+ ***/
+
+/**
+ * Cancel a push-entry publishing.
+ *
+ * @param guid		the GUID of the node
+ * @param callabck	whether callbacks need to be invoked
+ */
+void
+pdht_cancel_nope(const struct guid *guid, gboolean callback)
+{
+	pdht_publish_t *pp;
+
+	pp = g_hash_table_lookup(nope_publishes, guid);
+
+	if (NULL == pp)
+		return;
+
+	pdht_publish_check(pp);
+
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		g_warning("PDHT cancelling NOPE (%s callback): %s",
+			callback ? "with" : "no", guid_to_string(guid));
+	}
+
+	pdht_cancel(pp, callback);
+}
+
+/**
+ * Publishing callback invoked when asynchronous NOPE publication is completed,
+ * or ended with an error.
+ *
+ * @return TRUE if we accept the publishing, FALSE otherwise to get the
+ * publishing layer to continue attempts to failed STORE roots and report
+ * on progress using the same callback.
+ */
+static gboolean
+pdht_nope_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
+{
+	int delay = PDHT_PROX_RETRY;
+	gboolean accepted = TRUE;
+	node_id_t node_id = arg;
+	gnutella_node_t *n;
+
+	n = node_by_id(node_id);
+
+	if (NULL == n)
+		return TRUE;		/* Node is long gone */
+
+	/*
+	 * Compute retry delay.
+	 */
+
+	if (PDHT_E_OK == code) {
+		delay = publisher_delay(info, DHT_VALUE_NOPE_EXPIRE);
+		accepted = publisher_is_acceptable(info);
+	}
+
+	/*
+	 * Logging.
+	 */
+
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		g_message("PDHT NOPE %s%s at %s <%s> published to %u node%s: %s"
+			" (total %u node%s, proba %.3f%%, "
+			" %s bg, path %u) [%s]",
+			info->was_bg ? "[bg] " : "",
+			guid_hex_str(node_guid(n)), node_addr(n), node_vendor(n),
+			info->roots, 1 == info->roots ? "" : "s",
+			pdht_strerror(code),
+			info->all_roots, 1 == info->all_roots ? "" : "s",
+			info->presence * 100.0,
+			info->can_bg ? "can" : "no", info->path_len,
+			accepted ? "OK" : "INCOMPLETE");
+	}
+
+	return accepted;
+}
+
+/**
+ * Publish that we are a push-proxy for a legacy node (not supporting the DHT).
+ *
+ * @param n		the node for which we are a push-proxy
+ */
+void
+pdht_publish_proxy(const gnutella_node_t *n)
+{
+	const char *error = NULL;
+	pdht_publish_t *pp;
+	struct pdht_nope *pnope;
+	pdht_error_t code;
+	node_id_t nid = node_get_id(n);
+
+	pp = pdht_publish_allocate(PDHT_T_NOPE,
+		pdht_nope_done, deconstify_gpointer(nid));
+
+	pnope = &pp->u.nope;
+	pnope->guid = atom_guid_get(node_guid(n));
+	pnope->nid = node_id_ref(nid);
+	pp->id = gdht_kuid_from_guid(pnope->guid);
+
+	if (g_hash_table_lookup(nope_publishes, pnope->guid)) {
+		error = "previous publish still pending";
+		code = PDHT_E_PENDING;
+		goto error;
+	}
+
+	gm_hash_table_insert_const(nope_publishes, pnope->guid, pp);
+
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		g_message("PDHT NOPE initiating publishing for GUID %s at %s <%s> "
+			"(kuid=%s)",
+			guid_to_string(pnope->guid), node_addr(n), node_vendor(n),
+			kuid_to_hex_string(pp->id));
+	}
+
+	/*
+	 * Publishing will occur in three steps:
+	 *
+	 * #1 locate suitable nodes for publishing the NOPE value
+	 * #2 generate the DHT NOPE value
+	 * #3 issue the STORE on each of the k identified nodes.
+	 *
+	 * Here we launch step #1, as a prioritary request to be able to bypass
+	 * all other STORE requests, since the push-proxies are transient.
+	 */
+
+	ulq_find_store_roots(pp->id, TRUE,
+		pdht_roots_found, pdht_roots_error, pp);
+
+	return;
+
+error:
+	if (GNET_PROPERTY(publisher_debug)) {
+		g_warning("PDHT will not publish NOPE for GUID %s: %s",
+			guid_hex_str(pnope->guid), error);
+	}
+
+	/*
+	 * Report error asynchronously, to return to caller first.
+	 */
+
+	pdht_publish_error_async(pp, code);
+}
+
+/***
  *** Initialization / Shutdown
  ***/
 
@@ -1526,6 +1781,7 @@ void
 pdht_init(void)
 {
 	aloc_publishes = g_hash_table_new(sha1_hash, sha1_eq);
+	nope_publishes = g_hash_table_new(guid_hash, guid_eq);
 	memset(&pdht_proxy, 0, sizeof pdht_proxy);
 	pdht_prox_install_republish(PDHT_PROX_DELAY);
 }
@@ -1553,6 +1809,10 @@ pdht_close(void)
 	g_hash_table_foreach(aloc_publishes, free_publish_kv, NULL);
 	g_hash_table_destroy(aloc_publishes);
 	aloc_publishes = NULL;
+
+	g_hash_table_foreach(nope_publishes, free_publish_kv, NULL);
+	g_hash_table_destroy(nope_publishes);
+	nope_publishes = NULL;
 
 	if (pdht_proxy.pp != NULL) {
 		pdht_free_publish(pdht_proxy.pp, TRUE);

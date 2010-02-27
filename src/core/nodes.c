@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2004, Raphael Manfredi
+ * Copyright (c) 2001-2010, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Gnutella node management.
  *
  * @author Raphael Manfredi
- * @date 2001-2004
+ * @date 2001-2010
  */
 
 #include "common.h"
@@ -126,6 +126,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 #include "if/dht/kmsg.h"
 #include "if/dht/dht.h"
+#include "if/dht/value.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -960,6 +961,14 @@ node_supports_tls(struct gnutella_node *n)
 	
 	n->flags |= NODE_F_CAN_TLS;
 	node_tls_refresh(n);
+}
+
+void
+node_supports_dht(struct gnutella_node *n)
+{
+	node_check(n);
+	
+	n->flags |= NODE_F_CAN_DHT;
 }
 
 /**
@@ -1830,6 +1839,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	}
 
 	cq_cancel(callout_queue, &n->tsync_ev);
+	cq_cancel(callout_queue, &n->dht_nope_ev);
 
 	n->status = GTA_NODE_REMOVING;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE|NODE_F_BYE_SENT);
@@ -8974,7 +8984,7 @@ node_free_info(gnet_node_info_t *info)
 gboolean
 node_fill_info(const node_id_t node_id, gnet_node_info_t *info)
 {
-    gnutella_node_t  *node = node_by_id(node_id);
+    gnutella_node_t *node = node_by_id(node_id);
 
 	if (NULL == node)
 		return FALSE;
@@ -9325,7 +9335,40 @@ node_proxying_remove(gnutella_node_t *n)
 
 		g_return_if_fail(node_guid(n));
 		route_proxy_remove(node_guid(n));
+
+		pdht_cancel_nope(node_guid(n), FALSE);
 	}
+}
+
+/**
+ * Periodically republish NOPE values (Node Push Entry) in the DHT.
+ */
+static void
+node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
+{
+	gnutella_node_t *n = obj;
+
+	(void) unused_cq;
+
+	n->dht_nope_ev = NULL;	/* has been freed before calling this function */
+
+	/*
+	 * If the node tole us it was a member of the DHT, then it will publish
+	 * its push-proxy information in PROX values himself.
+	 */
+
+	if (n->flags & NODE_F_CAN_DHT)
+		return;
+
+	n->dht_nope_ev = cq_insert(callout_queue,
+		(DHT_VALUE_NOPE_EXPIRE - (5*60)) * 1000, node_publish_dht_nope, n);
+
+	if (GNET_PROPERTY(node_debug)) {
+		g_message("publishing we are a push-proxy for node %s <%s> GUID %s",
+			node_addr(n), node_vendor(n), guid_hex_str(n->guid));
+	}
+
+	pdht_publish_proxy(n);
 }
 
 /**
@@ -9401,10 +9444,20 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 		return FALSE;
 	}
 
+	/*
+	 * Refuse to be the push-proxy of a node who will be mostly transient.
+	 */
+
+	if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME)
+		return FALSE;
+
+	/*
+	 * OK, try to be the push-proxy of that node.
+	 */
+
 	if (route_proxy_add(node_guid(n), n)) {
 		n->flags |= NODE_F_PROXIED;
 		node_fire_node_flags_changed(n);
-		return TRUE;
 	} else {
 		if (GNET_PROPERTY(node_debug)) {
 			g_warning("push-proxyfication failed for %s <%s>: "
@@ -9413,6 +9466,24 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 		}
 		return FALSE;
 	}
+
+	/*
+	 * If the node is a leaf node, maybe it's a legacy one who is not capable
+	 * of joining the DHT and publish us as its push-proxy.  We can work around
+	 * that by regularily publishing NOPE values in the DHT to signal us as
+	 * the push-proxy of that node.
+	 *
+	 * After some "grace" time has elapsed, and if we did not get indication
+	 * that the node has joined the DHT through the "feature capability"
+	 * vendor message, we'll start to regularily publish NOPE values.
+	 */
+
+	if (NODE_IS_LEAF(n) && NULL == n->dht_nope_ev) {
+		n->dht_nope_ev = cq_insert(callout_queue,
+			NODE_USELESS_GRACE * 1000, node_publish_dht_nope, n);
+	}
+
+	return TRUE;
 }
 
 /**

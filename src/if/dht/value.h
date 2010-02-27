@@ -44,7 +44,8 @@ typedef enum {
 	DHT_VT_BTAL		= FOURCC_NATIVE('B','T','A','L'),	/**< Bittorrent */
 	DHT_VT_GTKG		= FOURCC_NATIVE('G','T','K','G'),
 	DHT_VT_LIME		= FOURCC_NATIVE('L','I','M','E'),
-	DHT_VT_PROX		= FOURCC_NATIVE('P','R','O','X'),
+	DHT_VT_NOPE		= FOURCC_NATIVE('N','O','P','E'),	/**< Node push entry */
+	DHT_VT_PROX		= FOURCC_NATIVE('P','R','O','X'),	/**< Push-proxies */
 	DHT_VT_TEST		= FOURCC_NATIVE('T','E','S','T'),
 	DHT_VT_TEXT		= FOURCC_NATIVE('T','E','X','T'),
 
@@ -69,6 +70,7 @@ typedef enum {
  */
 #define DHT_VALUE_EXPIRE		(4*60*60)	/**< 4 hours, default */
 #define DHT_VALUE_ALOC_EXPIRE	(1*60*60)	/**< 1 hour for alt-locs */
+#define DHT_VALUE_NOPE_EXPIRE	(1*60*60)	/**< 1 hour for node push entries */
 #define DHT_VALUE_PROX_EXPIRE	(1*60*60)	/**< 1 hour for push-proxies */
 
 /**

@@ -128,6 +128,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_features,	/**< Unknown value, PROX v0.0 */
 	EXT_T_GGEP_firewalled,	/**< Firewalled status in ALOC v0.0 */
 	EXT_T_GGEP_fwt_version,	/**< Fw-to-fw transfer version, PROX v0.0 */
+	EXT_T_GGEP_guid,		/**< Servent's GUID in NOPE v0.0 */
 	EXT_T_GGEP_length,		/**< File length in ALOC v0.1 */
 	EXT_T_GGEP_port,		/**< Servent's Port in ALOC v0.0 */
 	EXT_T_GGEP_proxies,		/**< Push proxies in PROX v0.0 */

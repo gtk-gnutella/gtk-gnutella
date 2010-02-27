@@ -446,6 +446,9 @@ initialized:
 
 		if (LOOKUP_VALUE == ui->type) {
 			switch (ui->u.fv.vtype) {
+			case DHT_VT_NOPE:
+				gnet_stats_count_general(GNR_DHT_NODE_PROXY_ENTRY_LOOKUPS, 1);
+				break;
 			case DHT_VT_PROX:
 				gnet_stats_count_general(GNR_DHT_PUSH_PROXY_LOOKUPS, 1);
 				break;
@@ -679,6 +682,7 @@ ulq_get(lookup_type_t ltype, dht_value_type_t vtype, gboolean prioritary)
 	switch (vtype) {
 	case DHT_VT_ALOC:
 		return ulq[ULQ_ALOC];
+	case DHT_VT_NOPE:
 	case DHT_VT_PROX:
 		return ulq[ULQ_PROX];
 	default:

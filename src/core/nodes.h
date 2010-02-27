@@ -42,6 +42,7 @@
 #include "if/core/hcache.h"
 #include "if/core/nodes.h"
 
+#include "lib/cq.h"
 #include "lib/header.h"
 #include "lib/sequence.h"
 
@@ -195,6 +196,7 @@ typedef struct gnutella_node {
 	time_delta_t alive_period;	/**< Period for sending alive pings (secs) */
 
 	wrap_buf_t hello;			/**< Spill buffer for GNUTELLA HELLO */
+	cevent_t *dht_nope_ev;		/**< Periodic event for NOPE DHT publishing */
 
 	/*
 	 * Round-trip time (RTT) measurements operated via Time Sync
@@ -275,33 +277,34 @@ typedef struct gnutella_node {
  */
 
 enum {
-	NODE_F_HDSK_PING	= 1 << 0,	/**< Expecting handshake ping */
-	NODE_F_STALE_QRP	= 1 << 1,	/**< Is sending a stale QRP patch */
-	NODE_F_INCOMING		= 1 << 2,	/**< Incoming (permanent) connection */
-	NODE_F_ESTABLISHED	= 1 << 3,	/**< Gnutella connection established */
-	NODE_F_VALID		= 1 << 4,	/**< Handshaked with a Gnutella node */
-	NODE_F_ALIEN_IP		= 1 << 5,	/**< Pong-IP did not match TCP/IP addr */
-	NODE_F_WRITABLE		= 1 << 6,	/**< Node is writable */
-	NODE_F_READABLE		= 1 << 7,	/**< Node is readable, process queries */
-	NODE_F_BYE_SENT		= 1 << 8,	/**< Bye message was queued */
-	NODE_F_NOREAD		= 1 << 9,	/**< Prevent further reading from node */
-	NODE_F_EOF_WAIT		= 1 << 10,	/**< At final shutdown, waiting EOF */
-	NODE_F_CLOSING		= 1 << 11,	/**< Initiated bye or shutdown */
-	NODE_F_ULTRA		= 1 << 12,	/**< Is one of our ultra nodes */
-	NODE_F_LEAF			= 1 << 13,	/**< Is one of our leaves */
-	NODE_F_CRAWLER		= 1 << 14,	/**< Is a Gnutella Crawler */
-	NODE_F_FAKE_NAME	= 1 << 15,	/**< Was unable to validate GTKG name */
-	NODE_F_PROXY		= 1 << 16,	/**< Sent a push-proxy request to it */
-	NODE_F_PROXIED		= 1 << 17,	/**< We are push-proxy for that node */
-	NODE_F_QRP_SENT		= 1 << 18,	/**< Undergone 1 complete QRP sending */
-	NODE_F_TSYNC_WAIT	= 1 << 19,	/**< Time sync pending via TCP */
-	NODE_F_TSYNC_TCP	= 1 << 20,	/**< No replies via UDP, use TCP */
-	NODE_F_GTKG			= 1 << 21,	/**< Node is another gtk-gnutella */
-	NODE_F_FORCE		= 1 << 22,	/**< Connection is forced */
-	NODE_F_NO_OOB_PROXY	= 1 << 23,	/**< Do not OOB proxy the leaf */
-	NODE_F_TLS			= 1 << 24,	/**< TLS-tunneled */
+	NODE_F_CAN_DHT		= 1 << 27,	/**< Indicated support for TLS */
+	NODE_F_VMSG_SUPPORT	= 1 << 26,	/**< Indicated which VMSGs are supported */
 	NODE_F_CAN_TLS		= 1 << 25,	/**< Indicated support for TLS */
-	NODE_F_VMSG_SUPPORT	= 1 << 26	/**< Indicated which VMSGs are supported */
+	NODE_F_TLS			= 1 << 24,	/**< TLS-tunneled */
+	NODE_F_NO_OOB_PROXY	= 1 << 23,	/**< Do not OOB proxy the leaf */
+	NODE_F_FORCE		= 1 << 22,	/**< Connection is forced */
+	NODE_F_GTKG			= 1 << 21,	/**< Node is another gtk-gnutella */
+	NODE_F_TSYNC_TCP	= 1 << 20,	/**< No replies via UDP, use TCP */
+	NODE_F_TSYNC_WAIT	= 1 << 19,	/**< Time sync pending via TCP */
+	NODE_F_QRP_SENT		= 1 << 18,	/**< Undergone 1 complete QRP sending */
+	NODE_F_PROXIED		= 1 << 17,	/**< We are push-proxy for that node */
+	NODE_F_PROXY		= 1 << 16,	/**< Sent a push-proxy request to it */
+	NODE_F_FAKE_NAME	= 1 << 15,	/**< Was unable to validate GTKG name */
+	NODE_F_CRAWLER		= 1 << 14,	/**< Is a Gnutella Crawler */
+	NODE_F_LEAF			= 1 << 13,	/**< Is one of our leaves */
+	NODE_F_ULTRA		= 1 << 12,	/**< Is one of our ultra nodes */
+	NODE_F_CLOSING		= 1 << 11,	/**< Initiated bye or shutdown */
+	NODE_F_EOF_WAIT		= 1 << 10,	/**< At final shutdown, waiting EOF */
+	NODE_F_NOREAD		= 1 << 9,	/**< Prevent further reading from node */
+	NODE_F_BYE_SENT		= 1 << 8,	/**< Bye message was queued */
+	NODE_F_READABLE		= 1 << 7,	/**< Node is readable, process queries */
+	NODE_F_WRITABLE		= 1 << 6,	/**< Node is writable */
+	NODE_F_ALIEN_IP		= 1 << 5,	/**< Pong-IP did not match TCP/IP addr */
+	NODE_F_VALID		= 1 << 4,	/**< Handshaked with a Gnutella node */
+	NODE_F_ESTABLISHED	= 1 << 3,	/**< Gnutella connection established */
+	NODE_F_INCOMING		= 1 << 2,	/**< Incoming (permanent) connection */
+	NODE_F_STALE_QRP	= 1 << 1,	/**< Is sending a stale QRP patch */
+	NODE_F_HDSK_PING	= 1 << 0	/**< Expecting handshake ping */
 };
 
 /*
@@ -309,30 +312,29 @@ enum {
  */
 
 enum {
-	NODE_A_BYE_PACKET	= 1 << 0,	/**< Supports Bye-Packet */
-	NODE_A_PONG_CACHING	= 1 << 1,	/**< Supports Pong-Caching */
-	NODE_A_PONG_ALIEN	= 1 << 2,	/**< Alien Pong-Caching scheme */
-	NODE_A_QHD_NO_VTAG	= 1 << 3,	/**< Servent has no vendor tag in QHD */
-	NODE_A_RX_INFLATE	= 1 << 4,	/**< Reading compressed data */
-	NODE_A_TX_DEFLATE	= 1 << 5,	/**< Sending compressed data */
-	NODE_A_ULTRA		= 1 << 6,	/**< Node wants to be an Ultrapeer */
-	NODE_A_NO_ULTRA		= 1 << 7,	/**< Node is NOT ultra capable */
-	NODE_A_UP_QRP		= 1 << 8,	/**< Supports intra-UP QRP */
-	NODE_A_GUIDANCE		= 1 << 9,	/**< Can leaf-guide dyn queries */
-	NODE_A_TIME_SYNC	= 1 << 10,	/**< Supports time sync */
-	NODE_A_CRAWLABLE	= 1 << 11,	/**< Node can be UDP-crawled */
-	NODE_A_DYN_QUERY	= 1 << 12,	/**< Node can perform dynamic queries */
-	NODE_A_CAN_SFLAG	= 1 << 13,	/**< Node supports flags in headers */
- 
-	NODE_A_UNUSED_1		= 1 << 14,	/**< UNUSED */
-	NODE_A_UDP			= 1 << 15,	/**< Node uses UDP for traffic */
-	NODE_A_CAN_HSEP		= 1 << 16,	/**< Node supports HSEP */
-	NODE_A_CAN_QRP		= 1 << 17,	/**< Node supports query routing */
-	NODE_A_CAN_VENDOR	= 1 << 18,	/**< Node supports vendor messages */
-	NODE_A_CAN_ULTRA	= 1 << 19,	/**< Node is ultra capable */
-	NODE_A_CAN_INFLATE	= 1 << 20,	/**< Node capable of inflating */
+	NODE_A_CAN_SVN_NOTIFY =	1 << 22,	/**< Supports SVN release notifies */
 	NODE_A_CAN_HEAD		= 1 << 21,	/**< Supports HEAD ping (vendor message) */
-	NODE_A_CAN_SVN_NOTIFY =	1 << 22	/**< Supports SVN release notifications */
+	NODE_A_CAN_INFLATE	= 1 << 20,	/**< Node capable of inflating */
+	NODE_A_CAN_ULTRA	= 1 << 19,	/**< Node is ultra capable */
+	NODE_A_CAN_VENDOR	= 1 << 18,	/**< Node supports vendor messages */
+	NODE_A_CAN_QRP		= 1 << 17,	/**< Node supports query routing */
+	NODE_A_CAN_HSEP		= 1 << 16,	/**< Node supports HSEP */
+	NODE_A_UDP			= 1 << 15,	/**< Node uses UDP for traffic */
+	NODE_A_UNUSED_1		= 1 << 14,	/**< UNUSED */
+	NODE_A_CAN_SFLAG	= 1 << 13,	/**< Node supports flags in headers */
+	NODE_A_DYN_QUERY	= 1 << 12,	/**< Node can perform dynamic queries */
+	NODE_A_CRAWLABLE	= 1 << 11,	/**< Node can be UDP-crawled */
+	NODE_A_TIME_SYNC	= 1 << 10,	/**< Supports time sync */
+	NODE_A_GUIDANCE		= 1 << 9,	/**< Can leaf-guide dyn queries */
+	NODE_A_UP_QRP		= 1 << 8,	/**< Supports intra-UP QRP */
+	NODE_A_NO_ULTRA		= 1 << 7,	/**< Node is NOT ultra capable */
+	NODE_A_ULTRA		= 1 << 6,	/**< Node wants to be an Ultrapeer */
+	NODE_A_TX_DEFLATE	= 1 << 5,	/**< Sending compressed data */
+	NODE_A_RX_INFLATE	= 1 << 4,	/**< Reading compressed data */
+	NODE_A_QHD_NO_VTAG	= 1 << 3,	/**< Servent has no vendor tag in QHD */
+	NODE_A_PONG_ALIEN	= 1 << 2,	/**< Alien Pong-Caching scheme */
+	NODE_A_PONG_CACHING	= 1 << 1,	/**< Supports Pong-Caching */
+	NODE_A_BYE_PACKET	= 1 << 0	/**< Supports Bye-Packet */
 };
  
 /*
@@ -624,6 +626,7 @@ gnutella_node_t *node_browse_prepare(
 void node_browse_cleanup(gnutella_node_t *n);
 void node_kill_hostiles(void);
 void node_supports_tls(struct gnutella_node *);
+void node_supports_dht(struct gnutella_node *);
 
 node_id_t node_id_get_self(void);
 gboolean node_id_self(const node_id_t node_id);
@@ -639,6 +642,12 @@ static inline const struct guid *
 node_guid(const struct gnutella_node * const n)
 {
 	return n->guid;
+}
+
+static inline node_id_t
+node_get_id(const struct gnutella_node * const n)
+{
+	return n->id;
 }
 
 gboolean node_set_guid(struct gnutella_node *n, const struct guid *guid);

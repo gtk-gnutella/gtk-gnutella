@@ -252,8 +252,10 @@ general_type_str(gint value)
 		N_("DHT background publishing completion successful (all roots)"),
 		N_("DHT alt-loc lookups issued"),
 		N_("DHT push-proxy lookups issued"),
+		N_("DHT node push-entry lookups issued"),
 		N_("DHT successful alt-loc lookups"),
 		N_("DHT successful push-proxy lookups"),
+		N_("DHT successful node push-entry lookups"),
 		N_("DHT re-seeding of orphan downloads"),
 	};
 

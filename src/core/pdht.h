@@ -37,6 +37,7 @@
 #define _core_pdht_h_
 
 #include "share.h"		/* For shared_file_t */
+#include "nodes.h"		/* For gnutella_node_t */
 
 /**
  * Publish error codes.
@@ -67,7 +68,8 @@ typedef struct pdht_info {
 	unsigned roots;			/**< # of roots to which file was published now */
 	unsigned all_roots;		/**< total # of roots to which file was published */
 	unsigned path_len;		/**< total # of candidate roots for publishing */
-	gboolean can_bg;		/**< whether background publish can be attempted */
+	unsigned can_bg:1;		/**< whether background publish can be attempted */
+	unsigned was_bg:1;		/**< whether this was a background publish */
 } pdht_info_t;
 
 /**
@@ -97,6 +99,8 @@ void pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, gpointer arg);
 const char *pdht_strerror(pdht_error_t code);
 void pdht_cancel_file(const struct sha1 *sha1, gboolean callback);
 void pdht_prox_publish_if_changed(void);
+void pdht_publish_proxy(const gnutella_node_t *n);
+void pdht_cancel_nope(const struct guid *guid, gboolean callback);
 
 #endif	/* _core_pdht_h_ */
 
