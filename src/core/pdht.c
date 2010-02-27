@@ -280,9 +280,11 @@ pdht_free_publish(pdht_publish_t *pp, gboolean do_remove)
 		shared_file_unref(&pp->u.aloc.sf);
 		break;
 	case PDHT_T_NOPE:
-		if (do_remove) {
+		if (do_remove)
 			g_hash_table_remove(nope_publishes, pp->u.nope.guid);
+		if (pp->u.nope.nid != NULL) {
 			node_id_unref(pp->u.nope.nid);
+			pp->u.nope.nid = NULL;
 		}
 		atom_guid_free_null(&pp->u.nope.guid);
 		break;
@@ -1199,6 +1201,9 @@ pdht_cancel_file(const sha1_t *sha1, gboolean callback)
 {
 	pdht_publish_t *pp;
 
+	if (NULL == aloc_publishes)
+		return;
+
 	pp = g_hash_table_lookup(aloc_publishes, sha1);
 
 	if (NULL == pp)
@@ -1638,6 +1643,9 @@ void
 pdht_cancel_nope(const struct guid *guid, gboolean callback)
 {
 	pdht_publish_t *pp;
+
+	if (NULL == nope_publishes)
+		return;
 
 	pp = g_hash_table_lookup(nope_publishes, guid);
 
