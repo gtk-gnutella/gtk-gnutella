@@ -5786,6 +5786,12 @@ download_got_push_proxies(const struct guid *guid,
 		addr = gnet_host_get_addr(&host);
 		port = gnet_host_get_port(&host);
 
+		if (
+			host_addr_equal(addr, server->key->addr) &&
+			port == server->key->port
+		)
+			continue;		/* We always try the server's own IP:port */
+
 		if (add_proxy(server, addr, port))
 			added++;
 	}
