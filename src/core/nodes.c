@@ -5180,8 +5180,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			n->attrs |= NODE_A_NO_ULTRA;
 	}
 
-
-
 	if (header_get_feature("tls", head, NULL, NULL)) {
 		node_supports_tls(n);
 	}
