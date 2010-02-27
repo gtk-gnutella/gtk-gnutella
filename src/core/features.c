@@ -256,7 +256,10 @@ header_get_feature(const char *name, const header_t *header,
 		 * Actually the 'specs' say we should assume it is supported if the
 		 * X-Features header is not there. But I wouldn't count on it, and
 		 * it was only for "legacy" attributes in the HTTP file exchange.
-		 * Better safe than sorry.
+		 *
+		 * Also, for optimization purposes, the X-Features line will be sent
+		 * once per persistent HTTP connection, as the client is expected to
+		 * cache the supported features.
 		 */
 
 		return FALSE;
@@ -278,26 +281,20 @@ header_get_feature(const char *name, const header_t *header,
 		if (buf == start)
 			break;
 
-		pc = *(buf - 1);
-		if (is_ascii_space(pc) || pc == ',' || pc == ';')
-			break;			/* Found it! */
-
 		/*
 		 * Since we're looking for whole words separated by a space or the
 		 * regular header punctuation, the next match can't occur before
 		 * the end of the current string we matched...
 		 */
 
+		pc = *(buf - 1);
 		buf += strlen(name);
-	}
 
-	buf += strlen(name);		/* Should now be on the "/" sep */
+		if (*buf != '/')
+			continue;		/* Matched "barcode" when looking for "bar" */
 
-	if (*buf != '/') {
-		if (debugging(0))
-			g_warning("malformed %s header \"%s\", ignoring",
-				x_features, NULL_STRING(header_get(header, x_features)));
-		return FALSE;
+		if (is_ascii_space(pc) || pc == ',' || pc == ';')
+			break;			/* Found it! */
 	}
 
 	buf++;
