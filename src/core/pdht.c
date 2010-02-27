@@ -280,10 +280,11 @@ pdht_free_publish(pdht_publish_t *pp, gboolean do_remove)
 		shared_file_unref(&pp->u.aloc.sf);
 		break;
 	case PDHT_T_NOPE:
-		if (do_remove)
+		if (do_remove) {
 			g_hash_table_remove(nope_publishes, pp->u.nope.guid);
+			node_id_unref(pp->u.nope.nid);
+		}
 		atom_guid_free_null(&pp->u.nope.guid);
-		node_id_unref(pp->u.nope.nid);
 		break;
 	case PDHT_T_PROX:
 		if (do_remove)
