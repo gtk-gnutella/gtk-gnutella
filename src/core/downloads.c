@@ -6945,6 +6945,36 @@ download_free_removed(void)
 /* ----------------------------------------- */
 
 /**
+ * Does the download layer know information about a given GUID?
+ *
+ * If yes, return TRUE and fill in the ``addr'', ``port' and ``proxies''
+ * argument.
+ *
+ * @attention
+ * It is up to the caller to release the memory allocated for the proxies
+ * sequence through a call to sequence_release().
+ */
+gboolean
+download_known_guid(const struct guid *guid,
+	host_addr_t *addr, guint16 *port, sequence_t **proxies)
+{
+	struct dl_server *server;
+
+	server = g_hash_table_lookup(dl_by_guid, guid);
+	if (server == NULL)
+		return FALSE;
+
+	if (addr != NULL)
+		*addr = server->key->addr;
+	if (port != NULL)
+		*port = server->key->port;
+	if (proxies != NULL && server->proxies != NULL)
+		*proxies = pproxy_set_sequence(server->proxies);
+
+	return TRUE;
+}
+
+/**
  * Forget about download: stop it if running.
  * When `unavailable' is TRUE, mark the download as unavailable.
  */
@@ -8750,6 +8780,41 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 }
 
 /**
+ * Add download as a good alternate location in the mesh.
+ */
+static void
+download_add_mesh(const struct download *d)
+{
+	download_check(d);
+
+	if (d->uri != NULL)
+		return;				/* Special download, no place in mesh */
+
+	if (NULL == d->sha1)
+		return;
+
+	if (d->always_push) {
+		struct dl_server *server = d->server;
+
+		dl_server_valid(server);
+
+		/*
+		 * If we have no known push-proxies, then the firewalled alt-loc
+		 * will be mostly useless.  It's also a probable sign that the
+		 * remote host does not support either push-proxy advertising, or
+		 * even lacks total DHT support, hence is not able to publish its
+		 * push proxies.
+		 */
+
+		if (server->proxies != NULL && pproxy_set_count(server->proxies) > 0) {
+			dmesh_add_good_firewalled(d->sha1, download_guid(d));
+		}
+	} else {
+		dmesh_add_good_alternate(d->sha1, download_addr(d), download_port(d));
+	}
+}
+
+/**
  * Look for a Date: header in the reply and use it to update our skew.
  */
 static void
@@ -9094,21 +9159,12 @@ handle_content_urn(struct download *d, header_t *header)
 				return FALSE;
 		}
 
+		download_add_mesh(d);		/* Add as known good alt-loc */
+
 		/*
 		 * We discovered the SHA-1, thus refresh on next occasion.
 		 */
 		download_dirty = TRUE;
-
-		/*
-		 * Insert record in download mesh if it does not require
-		 * a push.	Since we just got a connection, we use "now"
-		 * as the mesh timestamp.
-		 */
-
-		if (!d->always_push && NULL == d->uri) {
-			dmesh_add_good_alternate(d->sha1,
-				download_addr(d), download_port(d));
-		}
 	}
 
 	/*
@@ -9976,6 +10032,13 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	node_check_remote_ip_header(download_addr(d), header);
 
 	/*
+	 * Cache whether remote host supports / wants firewalled locations.
+	 */
+
+	if (header_get_feature("fwalt", header, NULL, NULL))
+		d->server->attrs |= DLS_A_FWALT;
+
+	/*
 	 * Check status.
 	 */
 
@@ -10159,11 +10222,7 @@ http_version_nofix:
 				if (parq_download_is_active_queued(d)) {
 					download_passively_queued(d, FALSE);
 
-					/* Update mesh */
-					if (!d->always_push && d->sha1 && NULL == d->uri) {
-						dmesh_add_good_alternate(d->sha1,
-							download_addr(d), download_port(d));
-					}
+					download_add_mesh(d);	/* Update mesh (good source) */
 
 					/* Count partial success if we were switched */
 					if (d->flags & DL_F_SWITCHED) {
@@ -10223,11 +10282,7 @@ http_version_nofix:
 
 			file_info_clear_download(d, TRUE);		/* `d' is running */
 
-			/* Update mesh -- we're about to return */
-			if (!d->always_push && d->sha1 && NULL == d->uri) {
-				dmesh_add_good_alternate(d->sha1,
-					download_addr(d), download_port(d));
-			}
+			download_add_mesh(d);	/* Update mesh -- we're about to return */
 
 			if (!download_start_prepare_running(d))
 				return;
@@ -10341,12 +10396,7 @@ http_version_nofix:
 		if (d->server->attrs & DLS_A_G2_ONLY)
 			g2_cache_insert(download_addr(d), download_port(d));
 
-		/* OK -- Update mesh */
-		if (!d->always_push && d->sha1 && NULL == d->uri) {
-			dmesh_add_good_alternate(d->sha1,
-				download_addr(d), download_port(d));
-		}
-
+		download_add_mesh(d);	/* OK -- mark as good source */
 		download_passively_queued(d, FALSE);
 		download_actively_queued(d, FALSE);
 
@@ -10438,11 +10488,7 @@ http_version_nofix:
 			if (d->server->attrs & DLS_A_G2_ONLY)
 				g2_cache_insert(download_addr(d), download_port(d));
 
-			/* Update mesh */
-			if (!d->always_push && d->sha1 && NULL == d->uri) {
-				dmesh_add_good_alternate(d->sha1,
-					download_addr(d), download_port(d));
-			}
+			download_add_mesh(d);		/* Update mesh: source is good */
 
 			/*
 			 * We did a fall through on a 503, however, the download could be
@@ -11355,6 +11401,7 @@ download_send_request(struct download *d)
 	fileinfo_t *fi;
 	size_t rw;
 	ssize_t sent;
+	size_t maxsize = sizeof request_buf - 3;
 
 	download_check(d);
 	s = d->socket;
@@ -11459,19 +11506,19 @@ picked:
 		char *escaped_uri;
 
 		escaped_uri = url_fix_escape(d->uri);
-		rw = gm_snprintf(request_buf, sizeof request_buf,
+		rw = gm_snprintf(request_buf, maxsize,
 				"%s %s HTTP/1.1\r\n", method, escaped_uri);
 		if (escaped_uri != d->uri) {
 			G_FREE_NULL(escaped_uri);
 		}
 	} else if (sha1) {
-		rw = gm_snprintf(request_buf, sizeof request_buf,
+		rw = gm_snprintf(request_buf, maxsize,
 				"%s /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n",
 				method, sha1_base32(sha1));
 	} else {
 		char *escaped = url_escape(d->file_name);
 
-		rw = gm_snprintf(request_buf, sizeof request_buf,
+		rw = gm_snprintf(request_buf, maxsize,
 				"%s /get/%lu/%s HTTP/1.1\r\n",
 				method, (gulong) d->record_index, escaped);
 
@@ -11489,7 +11536,7 @@ picked:
 		return;
 	}
 
-	rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
+	rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n",
 		d->server->hostname
@@ -11498,38 +11545,38 @@ picked:
 			version_string);
 
 	if (d->server->attrs & DLS_A_FAKE_G2) {
-		rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
+		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 			"X-Features: g2/1.0\r\n");
 	} else {
 		header_features_generate(FEATURES_DOWNLOADS,
-			request_buf, sizeof request_buf, &rw);
+			request_buf, maxsize, &rw);
 
 		/*
 		 * If we request the file by a custom URI it's most likely
 		 * not a Gnutella peer, unless it's a THEX request.
 		 */
 		if (!d->uri || (d->flags & DL_F_THEX)) {
-			rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
+			rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 					"X-Token: %s\r\n", tok_version());
 		}
 	}
 
 	if (d->flags & DL_F_BROWSE) {
-		rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
+		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 				"Accept: application/x-gnutella-packets\r\n");
 	}
 	if (d->flags & DL_F_THEX) {
-		rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
+		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 				"Accept: application/dime\r\n");
 	}
 
-	rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
+	rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 			"Accept-Encoding: deflate\r\n");
 
 	/*
 	 * Add X-Queue / X-Queued information into the header
 	 */
-	parq_download_add_header(request_buf, sizeof request_buf, &rw, d);
+	parq_download_add_header(request_buf, maxsize, &rw, d);
 
 	/*
 	 * If server is known to NOT support keepalives, then request only
@@ -11555,7 +11602,7 @@ picked:
 
 			d->range_end = d->skip + d->size;
 
-			rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
+			rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 				"Range: bytes=%s-%s\r\n",
 				uint64_to_string(start), uint64_to_string2(d->range_end - 1));
 		}
@@ -11563,7 +11610,7 @@ picked:
 		/* Request only a lower-bounded range, if needed */
 
 		if (d->skip > d->overlap_size)
-			rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
+			rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 				"Range: bytes=%s-\r\n",
 				uint64_to_string(d->skip - d->overlap_size));
 	}
@@ -11582,11 +11629,22 @@ picked:
 	 */
 
 	if (!(d->server->attrs & DLS_A_FAKE_G2)) {
-		rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
+		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 			"X-Downloaded: %s\r\n", uint64_to_string(download_filedone(d)));
 	}
 
 	g_assert(rw + 3U < sizeof request_buf);	/* Should not have filled yet! */
+
+	/*
+	 * If we are firewalled, send X-FW-Node-Info with push-proxies.
+	 */
+
+	if (
+		GNET_PROPERTY(is_firewalled) &&
+		!(d->server->attrs & (DLS_A_MINIMAL_HTTP | DLS_A_FAKE_G2))
+	) {
+		rw += node_http_fw_node_info_add(&request_buf[rw], maxsize - rw, TRUE);
+	}
 
 	/*
 	 * In any case, if we know a SHA1, we need to send it over.  If the server
@@ -11617,7 +11675,7 @@ picked:
 			fileinfo_t *file_info = d->file_info;
 			size_t altloc_size;
 
-			altloc_size = sizeof request_buf;
+			altloc_size = maxsize;
 			altloc_size -= MIN(altloc_size, rw);
 			altloc_size -= MIN(altloc_size, sha1_room);
 			
@@ -11654,10 +11712,13 @@ picked:
 			wmesh = dmesh_alternate_location(sha1,
 				&request_buf[rw], altloc_size,
 				download_addr(d), d->last_dmesh, download_vendor(d),
-				file_info, TRUE);
+				file_info, TRUE,
+				(d->server->attrs & DLS_A_FWALT) ?
+					download_guid(d) : NULL);
 			rw += wmesh;
 
-			d->last_dmesh = tm_time();
+			if (wmesh > 0)
+				d->last_dmesh = tm_time();
 		}
 
 		/*
@@ -11669,27 +11730,17 @@ picked:
 
 		if (wmesh) {
 			g_assert(sha1);
-			rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
+			rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 				"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
 				sha1_base32(sha1));
 		}
 	}
 
 	/*
-	 * If we are firewalled, send X-FW-Node-Info with push-proxies.
-	 */
-
-	if (
-		GNET_PROPERTY(is_firewalled) &&
-		!(d->server->attrs & DLS_A_MINIMAL_HTTP)
-	) {
-		rw += node_http_fw_node_info_add(
-			&request_buf[rw], sizeof request_buf - rw, TRUE);
-	}
-
-	/*
 	 * Finish headers.
 	 */
+
+	g_assert(rw + 3U <= sizeof request_buf);	/* Has room for final "\r\n" */
 
 	rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw, "\r\n");
 

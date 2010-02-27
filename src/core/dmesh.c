@@ -54,6 +54,7 @@ RCSID("$Id$")
 #include "ipp_cache.h"
 #include "ctl.h"
 
+#include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/dht/dht.h"		/* For dht_enabled() */
 
@@ -933,7 +934,7 @@ dmesh_get(const struct sha1 *sha1)
  */
 static gboolean
 dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
-	time_t stamp)
+	time_t stamp, gboolean swarm)
 {
 	struct dmesh_entry *dme;
 	struct dmesh *dm;
@@ -1071,8 +1072,10 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 	 * filename, so that the existing name is used instead.
 	 */
 
-	file_info_try_to_swarm_with(
-		URN_INDEX == idx && sha1 ? NULL : name, addr, port, sha1);
+	if (swarm) {
+		file_info_try_to_swarm_with(URN_INDEX == idx && sha1 ? NULL : name,
+			addr, port, sha1);
+	}
 
 	return TRUE;			/* We added the entry */
 
@@ -1098,7 +1101,7 @@ rejected:
  */
 static gboolean
 dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
-	time_t stamp)
+	time_t stamp, gboolean swarm)
 {
 	struct dmesh_entry *dme;
 	struct dmesh *dm;
@@ -1200,7 +1203,8 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 	 * downloading that file.
 	 */
 
-	file_info_try_to_swarm_with_firewalled(info->guid, info->proxies, sha1);
+	if (swarm)
+		file_info_try_to_swarm_with_firewalled(info->guid, info->proxies, sha1);
 
 	return TRUE;			/* We added the entry */
 
@@ -1231,7 +1235,7 @@ dmesh_add(const struct sha1 *sha1, const host_addr_t addr,
 	 */
 
 	dmesh_fill_info(&info, sha1, addr, port, idx, name);
-	return dmesh_raw_add(sha1, &info, stamp);
+	return dmesh_raw_add(sha1, &info, stamp, TRUE);
 }
 
 /**
@@ -1243,14 +1247,20 @@ dmesh_add_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
 	dmesh_urlinfo_t info;
 
 	dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
-	(void) dmesh_raw_add(sha1, &info, tm_time());
+	(void) dmesh_raw_add(sha1, &info, tm_time(), TRUE);
 }
 
+/**
+ * Add addr:port as a known good alternate location for given sha1.
+ */
 void
 dmesh_add_good_alternate(const struct sha1 *sha1,
 	host_addr_t addr, guint16 port)
 {
-	dmesh_add_alternate(sha1, addr, port);
+	dmesh_urlinfo_t info;
+
+	dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
+	(void) dmesh_raw_add(sha1, &info, tm_time(), FALSE);
 	dmesh_good_mark(sha1, addr, port, TRUE);
 }
 
@@ -1414,6 +1424,82 @@ retry:
 	}
 
 	dme->good = good;
+}
+
+/**
+ * Flag firewalled dmesh entry for this SHA1 as good or bad.
+ */
+static void
+dmesh_good_fw_mark(const struct sha1 *sha1,
+	const struct guid *guid, gboolean good)
+{
+	struct dmesh *dm;
+	struct dmesh_entry *dme;
+
+	dm = g_hash_table_lookup(mesh, sha1);
+	if (dm == NULL)
+		return;			/* Weird, but it doesn't matter */
+
+	dme = g_hash_table_lookup(dm->by_guid, guid);
+
+	if (dme == NULL)
+		return;
+
+	g_assert(guid_eq(dme->e.fwh.guid, guid));
+
+/* XXX */
+#if 0
+	/*
+	 * Get rid of the "bad" reporting if we're flagging it as good!
+	 */
+
+	if (good && dme->bad) {
+		hash_list_foreach(dme->bad, wfree_host_addr, NULL);
+		hash_list_free(&dme->bad);
+	}
+#endif
+
+	/*
+	 * If we're flagging the entry as good for the first time, then
+	 * update the `inserted' field: indeed, we only send new entries
+	 * to remote parties, so we must update this.
+	 *
+	 * As a side effect, we also update the stamp when the entry is
+	 * flagged as good!
+	 */
+
+	if (good) {
+		time_t now = tm_time();
+
+		if (!dme->good)
+			dme->inserted = now;	/* First time flagged as good */
+		dme->stamp = now;			/* We know it's still alive */
+	}
+
+	dme->good = good;
+}
+
+/**
+ * Add GUID as a known good firewalled location for given sha1.
+ */
+void
+dmesh_add_good_firewalled(const struct sha1 *sha1, const struct guid *guid)
+{
+	dmesh_fwinfo_t info;
+
+	/*
+	 * Firewalled locations which we collect through downloading (i.e. ones
+	 * we know as being good) are recorded without push-proxies.
+	 *
+	 * When we have to propagate these firewalled locations, we'll use the
+	 * known push-proxies from the download server, if any.
+	 */
+
+	info.guid = guid;
+	info.proxies = NULL;
+
+	dmesh_raw_fw_add(sha1, &info, tm_time(), FALSE);
+	dmesh_good_fw_mark(sha1, guid, TRUE);
 }
 
 /**
@@ -1793,6 +1879,52 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 }
 
 /**
+ * Format firewalled location into supplied buffer.
+ *
+ * @param buf		the buffer where we have to format
+ * @param size		the buffer size
+ * @param guid		the GUID of the firewalled alt-loc
+ * @param addr		the known address of the servent
+ * @param port		the known listening port of the servent
+ * @param proxies	sequence of known push-proxies (gnet_host_t *)
+ *
+ * @return the length of generated string.
+ */
+static size_t
+dmesh_fwalt_string(char *buf, size_t size,
+	const guid_t *guid, host_addr_t addr, guint16 port, sequence_t *proxies)
+{
+	size_t rw;
+
+	rw = gm_snprintf(buf, size, "%s", guid_to_string(guid));
+
+#if 0
+	/* No FWT support yet */
+	rw += gm_snprintf(&buf[rw], size - rw, ";fwt/1");
+#endif
+
+	if (host_is_valid(addr, port)) {
+		rw += gm_snprintf(&buf[rw], size - rw, ";%s",
+			port_host_addr_to_string(port, addr));
+	}
+
+	if (proxies != NULL) {
+		sequence_iter_t *iter;
+
+		iter = sequence_forward_iterator(proxies);
+		while (sequence_iter_has_next(iter)) {
+			const gnet_host_t *host = sequence_iter_next(iter);
+			rw += gm_snprintf(&buf[rw], size - rw, ";%s",
+				host_addr_port_to_string(
+					gnet_host_get_addr(host), gnet_host_get_port(host)));
+		}
+		sequence_iterator_release(&iter);
+	}
+
+	return rw;
+}
+
+/**
  * Build alternate location header for a given SHA1 key.  We generate at
  * most `size' bytes of data into `alt'.
  *
@@ -1818,6 +1950,9 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
  * @param `request' if it is true, then the mesh entries are generated in
  * an HTTP request; otherwise it's for an HTTP reply.
  *
+ * @param `guid' if non-NULL, then we can also include firewalled locations
+ * and this is the GUID that we must not include.
+ *
  * unless the `vendor' is GTKG, don't use continuation: most
  * servent authors don't bother with a proper HTTP header parsing layer.
  *
@@ -1827,7 +1962,7 @@ int
 dmesh_alternate_location(const struct sha1 *sha1,
 	char *buf, size_t size, const host_addr_t addr,
 	time_t last_sent, const char *vendor,
-	fileinfo_t *fi, gboolean request)
+	fileinfo_t *fi, gboolean request, const struct guid *guid)
 {
 	char url[1024];
 	struct dmesh *dm;
@@ -1842,11 +1977,16 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	gboolean added;
 	list_iter_t *iter;
 	gboolean complete_file;
+	gboolean can_share_partials;
 
 	g_assert(sha1);
 	g_assert(buf);
 	g_assert(size_is_non_negative(size));
 	g_assert(size <= INT_MAX);
+
+	if (fi != NULL) {
+		file_info_check(fi);
+	}
 
 	if (size <= 3)		/* Account for trailing NUL + "\r\n" */
 		return 0;
@@ -1948,7 +2088,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	 * of the file available, or MIN_PFSP_PCT percents of it.
 	 */
 
-	if (
+	can_share_partials =
 		fi != NULL &&
 		fi->size != 0 &&
 		fi->file_size_known &&
@@ -1956,17 +2096,19 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		GNET_PROPERTY(pfsp_server) &&
 		!GNET_PROPERTY(is_firewalled) &&
 		is_host_addr(listen_addr()) &&
-		(
-			fi->done >= MIN_PFSP_SIZE ||
-			fi->done * 100 / fi->size > MIN_PFSP_PCT
-		) && upload_is_enabled()
-	) {
+		(fi->done >= MIN_PFSP_SIZE ||
+			fi->done * 100 / fi->size > MIN_PFSP_PCT) &&
+		upload_is_enabled();
+
+	/*
+	 * For unfirewalled servers, the PFSP-server alt-loc is listed in X-Alt.
+	 */
+
+	if (can_share_partials && !GNET_PROPERTY(is_firewalled)) {
 		static const char tls_hex[] = "tls=8";	/* Only us at index zero */
 		size_t url_len;
 		struct dmesh_entry ourselves;
 		time_t now = tm_time();
-
-		file_info_check(fi);
 
 		ourselves.inserted = now;
 		ourselves.stamp = now;
@@ -1984,6 +2126,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 			goto nomore;
 
 		if (tls_enabled()) {
+			/* FIXME: what's the semantic of a leading "tls=8"? */
 			header_fmt_append_value(fmt, tls_hex);
 		}
 		if (header_fmt_append_value(fmt, url))
@@ -2117,6 +2260,140 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		if (header_fmt_append_value(fmt, url))
 			added = TRUE;
 	}
+
+	if (NULL == guid)
+		goto nomore;		/* No need to emit firewalled alt locs */
+
+	/*
+	 * Finish X-Alt header if we have emitted something.
+	 */
+
+	if (added) {
+		size_t length;
+
+		header_fmt_end(fmt);			/* Only report sources we've checked */
+		length = header_fmt_length(fmt);
+		g_assert(size >= len);
+		g_assert(size > size_saturate_add(length, len));
+		len += clamp_strncpy(&buf[len], size - len,
+			header_fmt_string(fmt), length);
+	}
+	header_fmt_free(&fmt);
+
+	fmt = header_fmt_make("X-Falt", ", ", size - len, size - len);
+	if (maxlinelen)
+		header_fmt_set_line_length(fmt, maxlinelen);
+	added = FALSE;
+
+	/*
+	 * For firewalled servers, the PFSP-server alt-loc is listed in X-Falt.
+	 */
+
+	if (can_share_partials && GNET_PROPERTY(is_firewalled)) {
+		size_t url_len;
+		guid_t *servent_guid;
+
+		gnet_prop_get_storage(PROP_SERVENT_GUID,
+			&servent_guid, sizeof servent_guid);
+
+		/*
+		 * Since we're firewalled, we necessarily emit X-FW-Node-Info and
+		 * possibly some X-Push-Proxy header.  There's no need to repeat
+		 * that information and we can simply emit our GUID.
+		 */
+
+		url_len = dmesh_fwalt_string(url, sizeof url,
+			servent_guid, ipv4_unspecified, 0, NULL);
+
+		g_assert(url_len < sizeof url);
+
+		if (header_fmt_append_value(fmt, url))
+			added = TRUE;
+
+		if (!added)
+			goto nomore;
+	}
+
+	/*
+	 * We do a single-pass over firewalled entries because they are more
+	 * verbose and if we have non-firewalled alt-locs then it is less useful
+	 * to have firewalled ones.
+	 */
+
+	iter = list_iter_before_head(dm->entries);
+
+	while (list_iter_has_next(iter)) {
+		struct dmesh_entry *dme = list_iter_next(iter);
+		sequence_t *proxies;
+		host_addr_t servent_addr;
+		guint16 servent_port;
+
+		if (!dme->fw_entry)
+			continue;
+
+		/*
+		 * When downloading (i.e. when the file is not complete), we have the
+		 * neceesary feedback to spot good sources.  When sharing a complete
+		 * file, all we can do is skip entries for which we got bad feedback.
+		 */
+
+		if (complete_file) {
+			if (dme->bad)		/* Skip entries with negative feedback */
+				continue;
+		} else {
+			if (!dme->good)
+				continue;		/* Only propagate good alt locs */
+		}
+
+		if (delta_time(dme->inserted, last_sent) <= 0)
+			continue;
+
+		if (guid_eq(dme->e.fwh.guid, guid))
+			continue;
+
+		/*
+		 * Found a suitable firewalled alt-loc.
+		 *
+		 * See whether the download layer knows about this GUID and can
+		 * supply us a list of proxies as well as the servent's IP:port.
+		 */
+
+		if (
+			download_known_guid(dme->e.fwh.guid, &servent_addr, &servent_port,
+				&proxies)
+		) {
+			size_t url_len;
+			url_len = dmesh_fwalt_string(url, sizeof url,
+				dme->e.fwh.guid, servent_addr, servent_port, proxies);
+			sequence_release(&proxies);
+
+			g_assert(url_len < sizeof url);
+
+			if (header_fmt_append_value(fmt, url))
+				added = TRUE;
+		} else {
+			size_t url_len;
+
+			if (dme->e.fwh.proxies != NULL) {
+				proxies = sequence_create_from_hash_list(dme->e.fwh.proxies);
+			} else {
+				proxies = NULL;
+			}
+
+			url_len = dmesh_fwalt_string(url, sizeof url,
+				dme->e.fwh.guid, ipv4_unspecified, 0, proxies);
+			sequence_release(&proxies);
+
+			g_assert(url_len < sizeof url);
+
+			if (header_fmt_append_value(fmt, url))
+				added = TRUE;
+		}
+	}
+
+	list_iter_free(&iter);
+
+	/* FALL THROUGH */
 
 nomore:
 	if (added) {
@@ -2491,7 +2768,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 			 */
 
 		}
-		ok = dmesh_raw_add(sha1, &info, stamp);
+		ok = dmesh_raw_add(sha1, &info, stamp, TRUE);
 
 	skip_add:
 		if (GNET_PROPERTY(dmesh_debug) > 4)
@@ -2665,7 +2942,7 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 		if (GNET_PROPERTY(dmesh_debug))
 			g_warning("could not parse 'X-Falt: %s'", value);
 	} else {
-		if (!dmesh_raw_fw_add(sha1, &info, stamp)) {
+		if (!dmesh_raw_fw_add(sha1, &info, stamp, TRUE)) {
 			/* Not added, hence nobody owns this list now */
 			if (info.proxies != NULL) {
 				hash_list_foreach(info.proxies, gnet_host_free_item, NULL);
@@ -2735,7 +3012,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 		if (has) {
 			dmesh_fill_info(&info, rc->sha1, rs->addr, rs->port,
 				URN_INDEX, NULL);
-			(void) dmesh_raw_add(rc->sha1, &info, now);
+			(void) dmesh_raw_add(rc->sha1, &info, now, TRUE);
 
 			/*
 			 * If we have further alt-locs specified in the query hit, add
@@ -2753,7 +3030,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 					dmesh_fill_info(&info, rc->sha1,
 						gnet_host_get_addr(&host), gnet_host_get_port(&host),
 						URN_INDEX, NULL);
-					(void) dmesh_raw_add(rc->sha1, &info, now);
+					(void) dmesh_raw_add(rc->sha1, &info, now, TRUE);
 				}
 
 				search_free_alt_locs(rc);		/* Read them, free them! */

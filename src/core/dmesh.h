@@ -117,6 +117,9 @@ void dmesh_remove_alternate(const struct sha1 *sha1,
 		host_addr_t addr, guint16 port);
 void dmesh_add_alternates(const struct sha1 *sha1, const gnet_host_vec_t *vec);
 
+void dmesh_add_good_firewalled(const struct sha1 *sha1,
+	const struct guid *guid);
+
 void dmesh_negative_alt(const struct sha1 *sha1,
 	host_addr_t reporter, host_addr_t addr, guint16 port);
 void dmesh_good_mark(const struct sha1 *sha1,
@@ -137,7 +140,7 @@ int dmesh_fill_alternate(const struct sha1 *sha1,
 int dmesh_alternate_location(
 	const struct sha1 *sha1, char * buf, size_t size, const host_addr_t addr,
 	time_t last_sent, const char *vendor, fileinfo_t *fi,
-	gboolean request);
+	gboolean request, const struct guid *guid);
 
 void dmesh_multiple_downloads(
 	const struct sha1 *sha1, filesize_t size, fileinfo_t *fi);

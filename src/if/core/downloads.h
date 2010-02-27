@@ -280,6 +280,7 @@ enum {
  * Server attributes.
  */
 enum {
+	DLS_A_FWALT			= 1 << 12,	/**< Server accepts firewalled locations */
 	DLS_A_TLS			= 1 << 11,	/**< Server known to support TLS */
 	DLS_A_DHT_PROX		= 1 << 10,	/**< Looking for push-proxies in DHT */
 	DLS_A_G2_ONLY		= 1 << 9,	/**< Server is "G2" only */

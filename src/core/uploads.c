@@ -991,6 +991,7 @@ upload_free_resources(struct upload *u)
 	}
 	atom_str_free_null(&u->user_agent);
 	atom_sha1_free_null(&u->sha1);
+	atom_guid_free_null(&u->guid);
 	if (u->special) {
 		u->special->close(u->special, FALSE);
 		u->special = NULL;
@@ -1084,6 +1085,7 @@ upload_clone(struct upload *u)
 	u->socket = NULL;
 	u->buffer = NULL;
 	u->sha1 = NULL;
+	u->guid = NULL;
 	u->thex = NULL;
 	u->request = NULL;
 
@@ -1444,7 +1446,8 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 
 		mesh_len = dmesh_alternate_location(sha1,
 					alt_locs, sizeof alt_locs, u->socket->addr,
-					last_sent, u->user_agent, NULL, FALSE);
+					last_sent, u->user_agent, NULL, FALSE,
+					u->fwalt ? u->guid : NULL);
 
 		if (size - rw > mesh_len) {
 			size_t len;
@@ -1493,7 +1496,8 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 
 		len = dmesh_alternate_location(sha1,
 					&buf[rw], avail, u->socket->addr,
-					last_sent, u->user_agent, NULL, FALSE);
+					last_sent, u->user_agent, NULL, FALSE,
+					u->fwalt ? u->guid : NULL);
 		rw += len;
 		u->last_dmesh = tm_time();
 	}
@@ -3308,7 +3312,7 @@ supports_chunked(const struct upload *u, const header_t *header)
  * that node.
  */
 static void
-extract_fw_node_info(const struct upload *u, const header_t *header)
+extract_fw_node_info(struct upload *u, const header_t *header)
 {
 	struct guid guid;
 	gboolean seen_port_ip = FALSE;
@@ -3397,12 +3401,26 @@ extract_fw_node_info(const struct upload *u, const header_t *header)
 		addr = u->socket->addr;
 	}
 
+	if (u->guid != NULL) {
+		if (!guid_eq(u->guid, &guid)) {
+			if (GNET_PROPERTY(upload_debug)) {
+				g_warning("U/L spotted GUID change (%s => %s) from %s",
+					guid_hex_str(u->guid), guid_to_string(&guid),
+					upload_host_info(u));
+			}
+			atom_guid_free(u->guid);
+			u->guid = atom_guid_get(&guid);
+		}
+	} else {
+		u->guid = atom_guid_get(&guid);
+	}
+
 	/*
 	 * Propagate information to the download layer so that we may further
 	 * consolidate servers for which we do not have a GUID yet.
 	 */
 
-	download_got_fw_node_info(&guid, addr, port, buf);
+	download_got_fw_node_info(u->guid, addr, port, buf);
 }
 
 /**
@@ -4541,6 +4559,12 @@ upload_request(struct upload *u, header_t *header)
 	if (u->push && header_get_feature("tls", header, NULL, NULL)) {
 		tls_cache_insert(u->addr, u->socket->port);
 	}
+
+	/*
+	 * Cache whether remote host supports / wants firewalled locations.
+	 */
+
+	u->fwalt |= header_get_feature("fwalt", header, NULL, NULL);
 
 	/*
 	 * Make sure there is the HTTP/x.x tag at the end of the request,

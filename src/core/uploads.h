@@ -108,6 +108,7 @@ struct upload {
 	guint16 country;			/**< Country of origin, ISO3166 code */
 
 	const char *user_agent;		/**< Remote user agent */
+	const struct guid *guid;	/**< Remote servent GUID (atom), if known */
 
 	filesize_t file_size;
 	filesize_t skip;			/**< First byte to send, inclusive */
@@ -120,19 +121,20 @@ struct upload {
 	int http_major;				/**< HTTP major version */
 	int http_minor;				/**< HTTP minor version */
 
-	gboolean keep_alive;		/**< Keep HTTP connection? */
-	gboolean push;
-	gboolean queue;				/**< Similar to PUSH, but for PARQ's QUEUE */
-	gboolean accounted;			/**< True when upload was accounted for */
-	gboolean n2r;				/**< True when they sent an N2R request */
-	gboolean browse_host;		/**< True when they sent a Browse Host req. */
-	gboolean from_browser;		/**< True when request likely from browser */
-	gboolean head_only;
-	gboolean is_followup;
-	gboolean was_actively_queued;
-	gboolean was_running;
-	gboolean last_was_error;	/**< Whether last request was an error */
-	gboolean parq_status;
+	unsigned keep_alive:1;		/**< Keep HTTP connection? */
+	unsigned push:1;
+	unsigned queue:1;			/**< Similar to PUSH, but for PARQ's QUEUE */
+	unsigned accounted:1;		/**< True when upload was accounted for */
+	unsigned n2r:1;				/**< True when they sent an N2R request */
+	unsigned browse_host:1;		/**< True when they sent a Browse Host req. */
+	unsigned from_browser:1;	/**< True when request likely from browser */
+	unsigned head_only:1;
+	unsigned is_followup:1;
+	unsigned was_actively_queued:1;
+	unsigned was_running:1;
+	unsigned last_was_error:1;	/**< Whether last request was an error */
+	unsigned parq_status:1;
+	unsigned fwalt:1;			/**< Downloader accepts firewalled locations */
 };
 
 static inline void
