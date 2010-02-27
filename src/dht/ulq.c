@@ -446,8 +446,13 @@ initialized:
 
 		if (LOOKUP_VALUE == ui->type) {
 			switch (ui->u.fv.vtype) {
-			case DHT_VT_NOPE:
-				gnet_stats_count_general(GNR_DHT_NODE_PROXY_ENTRY_LOOKUPS, 1);
+			case DHT_VT_ANY:
+				/*
+				 * We use generic lookups to locate PROX or NOPE values.
+				 * These are scheduled in the ULQ_PROX queue.
+				 */
+				if (uq == ulq[ULQ_PROX])
+					gnet_stats_count_general(GNR_DHT_PUSH_PROXY_LOOKUPS, 1);
 				break;
 			case DHT_VT_PROX:
 				gnet_stats_count_general(GNR_DHT_PUSH_PROXY_LOOKUPS, 1);
@@ -734,7 +739,7 @@ ulq_find_store_roots(const kuid_t *kuid, gboolean prioritary,
 }
 
 /**
- * Enqueue value lookup.
+ * Enqueue value lookup of specific type.
  */
 void
 ulq_find_value(const kuid_t *kuid, dht_value_type_t type,
@@ -751,6 +756,31 @@ ulq_find_value(const kuid_t *kuid, dht_value_type_t type,
 	ui = allocate_ulq_item(LOOKUP_VALUE,  kuid, error, arg);
 	ui->u.fv.ok = ok;
 	ui->u.fv.vtype = type;
+
+	ulq_putq(uq, ui);
+}
+
+/**
+ * Enqueue value lookup for any value type.
+ *
+ * The specified ``queue_type'' is simply used to select the proper
+ * scheduling queue.
+ */
+void
+ulq_find_any_value(const kuid_t *kuid, dht_value_type_t queue_type,
+	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg)
+{
+	struct ulq_item *ui;
+	struct ulq *uq;
+
+	g_assert(ok);
+	g_assert(error);
+
+	uq = ulq_get(LOOKUP_VALUE, queue_type, FALSE);
+
+	ui = allocate_ulq_item(LOOKUP_VALUE,  kuid, error, arg);
+	ui->u.fv.ok = ok;
+	ui->u.fv.vtype = DHT_VT_ANY;	/* Generic type */
 
 	ulq_putq(uq, ui);
 }

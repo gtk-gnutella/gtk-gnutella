@@ -516,22 +516,11 @@ gdht_guid_not_found(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 	g_assert(glk->id == kuid);		/* They are atoms */
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_message("DHT %s lookup for GUID %s failed: %s",
-			glk->nope ? "NOPE" : "PROX",
+		g_message("DHT PROX lookup for GUID %s failed: %s",
 			guid_to_string(glk->guid), lookup_strerror(error));
 
-	/*
-	 * If we were looking for PROX values, switch to NOPE lookups.
-	 */
-
-	if (glk->nope) {
-		download_no_push_proxies(glk->guid);
-		gdht_free_guid_lookup(glk, TRUE);
-	} else {
-		glk->nope = TRUE;
-		ulq_find_value(glk->id, DHT_VT_NOPE,
-			gdht_guid_found, gdht_guid_not_found, glk);
-	}
+	download_no_push_proxies(glk->guid);
+	gdht_free_guid_lookup(glk, TRUE);
 }
 
 /**
@@ -820,35 +809,70 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 {
 	struct guid_lookup *glk = arg;
 	size_t i;
+	gboolean prox = FALSE;
+	gboolean nope = FALSE;
+	size_t other = 0;
 
 	g_assert(rs);
 	guid_lookup_check(glk);
 	g_assert(glk->id == kuid);		/* They are atoms */
 
-	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_message("DHT %s lookup for GUID %s returned %lu value%s",
-			glk->nope ? "NOPE" : "PROX",
+	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+		g_message("DHT PROX lookup for GUID %s returned %lu value%s",
 			guid_to_string(glk->guid), (gulong) rs->count,
 			1 == rs->count ? "" : "s");
-
-	gnet_stats_count_general(
-		glk->nope ?
-			GNR_DHT_SUCCESSFUL_NODE_PUSH_ENTRY_LOOKUPS :
-			GNR_DHT_SUCCESSFUL_PUSH_PROXY_LOOKUPS,
-		1);
+	}
 
 	/*
 	 * Parse PROX or NOPE results.
+	 *
+	 * We've been launching a generic lookup for any value.  If there is
+	 * a SHA1 collision in the DHT, we may very well get ALOC results only,
+	 * for instance.
 	 */
 
 	for (i = 0; i < rs->count; i++) {
 		lookup_val_rc_t *rc = &rs->records[i];
-		if (glk->nope) {
-			gdht_handle_nope(rc, glk);
-		} else {
+	g_assert(DHT_VT_PROX == rc->type);
+		switch (rc->type) {
+		case DHT_VT_PROX:
+			prox = TRUE;
 			gdht_handle_prox(rc, glk);
+			break;
+		case DHT_VT_NOPE:
+			nope = TRUE;
+			gdht_handle_nope(rc, glk);
+			break;
+		default:
+			other++;
+			break;
 		}
 	}
+
+	if (GNET_PROPERTY(dht_lookup_debug)) {
+		g_message("DHT PROX %s lookup for GUID %s returned %lu other value%s",
+			guid_to_string(glk->guid),
+			(prox || nope) ? "successful" : "failed",
+			(gulong) other, 1 == other ? "" : "s");
+	}
+
+	/*
+	 * If we got only alien values (neither PROX nor NOPE), then act as if
+	 * the lookup had failed, actually.
+	 */
+
+	if (!(prox || nope)) {
+		gdht_guid_not_found(kuid, LOOKUP_E_NOT_FOUND, glk);
+		return;
+	}
+
+	/* If we got at least one NOPE back, count a successful NOPE lookup */
+
+	gnet_stats_count_general(
+		nope ?
+			GNR_DHT_SUCCESSFUL_NODE_PUSH_ENTRY_LOOKUPS :
+			GNR_DHT_SUCCESSFUL_PUSH_PROXY_LOOKUPS,
+		1);
 
 	gdht_free_guid_lookup(glk, TRUE);
 }
@@ -871,7 +895,6 @@ gdht_find_guid(const guid_t *guid, const host_addr_t addr, guint16 port)
 	glk->guid = atom_guid_get(guid);
 	glk->addr = addr;
 	glk->port = port;
-	glk->nope = FALSE;	/* Start by looking for PROX values */
 
 	/*
 	 * If we have so many queued searches that we did not manage to get
@@ -895,7 +918,23 @@ gdht_find_guid(const guid_t *guid, const host_addr_t addr, guint16 port)
 			guid_to_string(guid), host_addr_port_to_string(addr, port));
 
 	gm_hash_table_insert_const(guid_lookups, glk->id, glk);
-	ulq_find_value(glk->id, DHT_VT_PROX,
+
+	/*
+	 * We're looking for ANY value here, but we really expect PROX or NOPE
+	 * values back.
+	 *
+	 * Compared to issuing a PROX lookup first followed by a NOPE lookup if
+	 * we don't get result, we're more efficient but we run the risk of failing
+	 * if, bad luck, the SHA1 of the GUID we're looking conflicts with the
+	 * SHA1 of a shared file, and we'll be getting only ALOC values back.
+	 *
+	 * Still, the collision risk is low and lookups being rather costly,
+	 * it's best to only issue one.  With time, NOPE publishing will become
+	 * less frequent so we'll also better withstand evolution.
+	 *		--RAM, 2010-02-28
+	 */
+
+	ulq_find_any_value(glk->id, DHT_VT_PROX,
 		gdht_guid_found, gdht_guid_not_found, glk);
 }
 

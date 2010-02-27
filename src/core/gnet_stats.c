@@ -268,7 +268,6 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"dht_publishing_bg_successful",
 	"dht_alt_loc_lookups",
 	"dht_push_proxy_lookups",
-	"dht_node_push_entry_lookups",
 	"dht_successful_alt_loc_lookups",
 	"dht_successful_push_proxy_lookups",
 	"dht_successful_node_push_entry_lookups",

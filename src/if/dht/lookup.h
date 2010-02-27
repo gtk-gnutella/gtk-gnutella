@@ -132,6 +132,10 @@ void ulq_find_store_roots(const kuid_t *kuid, gboolean prioritary,
 void ulq_find_value(const kuid_t *kuid, dht_value_type_t type,
 	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg);
 
+void ulq_find_any_value(const kuid_t *kuid,
+	dht_value_type_t queue_type,
+	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg);
+
 #endif	/* _if_dht_lookup_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
