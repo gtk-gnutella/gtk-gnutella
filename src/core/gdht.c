@@ -851,8 +851,8 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 
 	if (GNET_PROPERTY(dht_lookup_debug)) {
 		g_message("DHT PROX %s lookup for GUID %s returned %lu other value%s",
-			guid_to_string(glk->guid),
 			(prox || nope) ? "successful" : "failed",
+			guid_to_string(glk->guid),
 			(gulong) other, 1 == other ? "" : "s");
 	}
 
