@@ -96,7 +96,7 @@ typedef enum {
 } glk_magic_t;
 
 /**
- * Context for PROX lookups.
+ * Context for PROX / NOPE lookups.
  */
 struct guid_lookup {
 	glk_magic_t magic;
@@ -104,6 +104,7 @@ struct guid_lookup {
 	const guid_t *guid;		/**< Servent's GUID (atom) */
 	host_addr_t addr;		/**< Servent's address */
 	guint16 port;			/**< Servent's port */
+	unsigned nope:1;		/**< Was looking for a NOPE instead of a PROX */
 };
 
 static inline void
@@ -112,6 +113,9 @@ guid_lookup_check(const struct guid_lookup *glk)
 	g_assert(glk);
 	g_assert(GUID_LOOKUP_MAGIC == glk->magic);
 }
+
+static void gdht_guid_found(const kuid_t *kuid,
+	const lookup_val_rs_t *rs, gpointer arg);
 
 /**
  * Convert a SHA1 to the proper Kademlia key for lookups.
@@ -512,11 +516,22 @@ gdht_guid_not_found(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 	g_assert(glk->id == kuid);		/* They are atoms */
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_message("DHT PROX lookup for GUID %s failed: %s",
+		g_message("DHT %s lookup for GUID %s failed: %s",
+			glk->nope ? "NOPE" : "PROX",
 			guid_to_string(glk->guid), lookup_strerror(error));
 
-	download_no_push_proxies(glk->guid);
-	gdht_free_guid_lookup(glk, TRUE);
+	/*
+	 * If we were looking for PROX values, switch to NOPE lookups.
+	 */
+
+	if (glk->nope) {
+		download_no_push_proxies(glk->guid);
+		gdht_free_guid_lookup(glk, TRUE);
+	} else {
+		glk->nope = TRUE;
+		ulq_find_value(glk->id, DHT_VT_NOPE,
+			gdht_guid_found, gdht_guid_not_found, glk);
+	}
 }
 
 /**
@@ -704,7 +719,101 @@ cleanup:
 }
 
 /**
- * Callback when GUID lookup is successful.
+ * Handle DHT NOPE value received to generate a new push-proxy for the servent.
+ */
+static void
+gdht_handle_nope(const lookup_val_rc_t *rc, struct guid_lookup *glk)
+{
+	extvec_t exv[MAX_EXTVEC];
+	int exvcnt;
+	int i;
+	guid_t guid;
+	guint16 port = 0;
+
+	g_assert(DHT_VT_NOPE == rc->type);
+	guid_lookup_check(glk);
+
+	ext_prepare(exv, MAX_EXTVEC);
+	memset(guid.v, 0, GUID_RAW_SIZE);
+
+	exvcnt = ext_parse(rc->data, rc->length, exv, MAX_EXTVEC);
+
+	for (i = 0; i < exvcnt; i++) {
+		extvec_t *e = &exv[i];
+		guint16 paylen;
+
+		switch (e->ext_token) {
+		case EXT_T_GGEP_guid:
+			if (GUID_RAW_SIZE == ext_paylen(e))
+				memcpy(guid.v, ext_payload(e), GUID_RAW_SIZE);
+			break;
+		case EXT_T_GGEP_port:
+			if (2 == ext_paylen(e))
+				port = peek_be16(ext_payload(e));
+			break;
+		case EXT_T_GGEP_tls:
+			/* We don't handle TLS support indication yet -- RAM, 2010-02-27 */
+			break;
+		default:
+			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
+				paylen = ext_paylen(e);
+				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
+					value_infostr(rc),
+					ext_ggep_id_str(e), paylen, paylen == 1 ? "" : "s");
+			}
+			break;
+		}
+	}
+
+	/*
+	 * If there is a DHT key conflict, reject the NOPE.
+	 */
+
+	if (!guid_eq(glk->guid, &guid)) {
+		if (GNET_PROPERTY(download_debug))
+			g_warning("discarding %s from %s for GUID %s: NOPE was for GUID %s",
+				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
+				guid_to_string(glk->guid), guid_hex_str(&guid));
+		goto cleanup;
+	}
+
+	/*
+	 * Check servent's port, if specified.  It should match that of the
+	 * creator.  If not, warn, but trust what is in the NOPE.
+	 */
+
+	if (port) {
+		if (port != rc->port && GNET_PROPERTY(download_debug))
+			g_warning("%s: port mismatch: creator's was %u, "
+				"NOPE is %u for %s, known as %s here",
+				value_infostr(rc), rc->port,
+				port, host_addr_to_string(rc->addr),
+				host_addr_port_to_string(glk->addr, glk->port));
+	} else {
+		port = rc->port;
+	}
+
+	/*
+	 * Create new push-proxies.
+	 */
+
+	if (GNET_PROPERTY(download_debug) > 0)
+		g_message("adding %s (NOPE creator) as push-proxy for %s (%s)",
+			host_addr_port_to_string(rc->addr, port),
+			guid_to_string(glk->guid),
+			host_addr_port_to_string(glk->addr, glk->port));
+
+	download_add_push_proxy(glk->guid, rc->addr, port);
+
+	/* FALL THROUGH */
+
+cleanup:
+	if (exvcnt)
+		ext_reset(exv, MAX_EXTVEC);
+}
+
+/**
+ * Callback when GUID lookup is successful (PROX or NOPE values).
  */
 static void
 gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
@@ -717,19 +826,28 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 	g_assert(glk->id == kuid);		/* They are atoms */
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_message("DHT PROX lookup for GUID %s returned %lu value%s",
+		g_message("DHT %s lookup for GUID %s returned %lu value%s",
+			glk->nope ? "NOPE" : "PROX",
 			guid_to_string(glk->guid), (gulong) rs->count,
 			1 == rs->count ? "" : "s");
 
-	gnet_stats_count_general(GNR_DHT_SUCCESSFUL_PUSH_PROXY_LOOKUPS, 1);
+	gnet_stats_count_general(
+		glk->nope ?
+			GNR_DHT_SUCCESSFUL_NODE_PUSH_ENTRY_LOOKUPS :
+			GNR_DHT_SUCCESSFUL_PUSH_PROXY_LOOKUPS,
+		1);
 
 	/*
-	 * Parse PROX results.
+	 * Parse PROX or NOPE results.
 	 */
 
 	for (i = 0; i < rs->count; i++) {
 		lookup_val_rc_t *rc = &rs->records[i];
-		gdht_handle_prox(rc, glk);
+		if (glk->nope) {
+			gdht_handle_nope(rc, glk);
+		} else {
+			gdht_handle_prox(rc, glk);
+		}
 	}
 
 	gdht_free_guid_lookup(glk, TRUE);
@@ -753,6 +871,7 @@ gdht_find_guid(const guid_t *guid, const host_addr_t addr, guint16 port)
 	glk->guid = atom_guid_get(guid);
 	glk->addr = addr;
 	glk->port = port;
+	glk->nope = FALSE;	/* Start by looking for PROX values */
 
 	/*
 	 * If we have so many queued searches that we did not manage to get

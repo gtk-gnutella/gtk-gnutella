@@ -289,7 +289,7 @@ server_host_info(const struct dl_server *server)
 	char host[128];
 	char name[MAX_HOSTLEN + 8];
 
-	dl_server_valid(server);
+	g_assert(dl_server_valid(server));
 
 	host_addr_port_to_string_buf(server->key->addr, server->key->port,
 		host, sizeof host);
@@ -2234,6 +2234,24 @@ sink_data:
 refused:
 	gnet_stats_count_general(GNR_IGNORING_REFUSED, 1);
 	return FALSE;
+}
+
+/**
+ * Add a single push-proxy for server identified by its GUID.
+ */
+void
+download_add_push_proxy(const struct guid *guid,
+	host_addr_t addr, guint16 port)
+{
+	struct dl_server *server;
+
+	server = g_hash_table_lookup(dl_by_guid, guid);
+	if (server == NULL)
+		return;
+
+	g_assert(dl_server_valid(server));
+
+	add_proxy(server, addr, port);
 }
 
 /**
@@ -5775,7 +5793,7 @@ download_got_push_proxies(const struct guid *guid,
 	if (server == NULL)
 		return;
 
-	dl_server_valid(server);
+	g_assert(dl_server_valid(server));
 
 	for (i = gnet_host_vec_count(proxies) - 1; i >= 0; i--) {
 		struct gnutella_host host;
@@ -8847,7 +8865,7 @@ download_add_mesh(const struct download *d)
 	if (d->always_push) {
 		struct dl_server *server = d->server;
 
-		dl_server_valid(server);
+		g_assert(dl_server_valid(server));
 
 		/*
 		 * If we have no known push-proxies, then the firewalled alt-loc
