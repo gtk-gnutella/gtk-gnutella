@@ -276,16 +276,20 @@ lookup_strerror(lookup_error_t error)
  * @return human-readable lookup type
  */
 static const char *
-lookup_type_to_string(lookup_type_t type)
+lookup_type_to_string(const nlookup_t *nl)
 {
 	const char *what = "unknown";
+	static char buf[15];
 
-	switch (type) {
-	case LOOKUP_VALUE:		what = "value"; break;
+	switch (nl->type) {
 	case LOOKUP_NODE:		what = "node"; break;
 	case LOOKUP_STORE:		what = "store"; break;
 	case LOOKUP_REFRESH:	what = "refresh"; break;
 	case LOOKUP_TOKEN:		what = "token"; break;
+	case LOOKUP_VALUE:
+		gm_snprintf(buf, sizeof buf, "\"%s\" value",
+			dht_value_type_to_string(nl->u.fv.vtype));
+		return buf;
 	}
 
 	return what;
@@ -688,7 +692,7 @@ lookup_abort(nlookup_t *nl, lookup_error_t error)
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_message("DHT LOOKUP[%s] aborting %s lookup for %s: %s",
-			revent_id_to_string(nl->lid), lookup_type_to_string(nl->type),
+			revent_id_to_string(nl->lid), lookup_type_to_string(nl),
 			kuid_to_hex_string(nl->kuid), lookup_strerror(error));
 
 	lookup_final_stats(nl);
@@ -715,7 +719,7 @@ lookup_terminate(nlookup_t *nl)
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
 		g_message("DHT LOOKUP[%s] terminating %s lookup for %s",
-			revent_id_to_string(nl->lid), lookup_type_to_string(nl->type),
+			revent_id_to_string(nl->lid), lookup_type_to_string(nl),
 			kuid_to_hex_string(nl->kuid));
 
 	lookup_final_stats(nl);
@@ -794,7 +798,7 @@ lookup_cleanup_ball(nlookup_t *nl)
 		size_t pcount = patricia_count(nl->path);
 		g_message("DHT LOOKUP[%s] %s lookup "
 			"cleaning up ball (%u item%s), path has %u",
-			revent_id_to_string(nl->lid), lookup_type_to_string(nl->type),
+			revent_id_to_string(nl->lid), lookup_type_to_string(nl),
 			(unsigned) bcount, 1 == bcount ? "" : "s",
 			(unsigned) pcount);
 	}
@@ -837,7 +841,7 @@ lookup_value_terminate(nlookup_t *nl,
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
 		g_message("DHT LOOKUP[%s] terminating %s lookup (%s) "
 			"for %s with %d value%s",
-			revent_id_to_string(nl->lid), lookup_type_to_string(nl->type),
+			revent_id_to_string(nl->lid), lookup_type_to_string(nl),
 			dht_value_type_to_string(nl->u.fv.vtype),
 			kuid_to_hex_string(nl->kuid),
 			vcnt, 1 == vcnt ? "" : "s");
@@ -1321,7 +1325,7 @@ lookup_value_expired(cqueue_t *unused_cq, gpointer obj)
 
 		g_message("DHT LOOKUP[%s] expiring secondary key fetching in "
 			"%s lookup (%s) for %s after %f secs, %d key%s remaining",
-			revent_id_to_string(nl->lid), lookup_type_to_string(nl->type),
+			revent_id_to_string(nl->lid), lookup_type_to_string(nl),
 			dht_value_type_to_string(nl->u.fv.vtype),
 			kuid_to_hex_string(nl->kuid),
 			tm_elapsed_f(&now, &fv->start), remain, 1 == remain ? "" : "s");
@@ -1680,7 +1684,7 @@ lookup_expired(cqueue_t *unused_cq, gpointer obj)
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_message("DHT LOOKUP[%s] %s lookup for %s expired (%s)",
-			revent_id_to_string(nl->lid), lookup_type_to_string(nl->type),
+			revent_id_to_string(nl->lid), lookup_type_to_string(nl),
 			kuid_to_hex_string(nl->kuid),
 			(nl->flags & NL_F_COMPLETED) ? "completed" : "incomplete");
 
@@ -1826,7 +1830,7 @@ log_status(nlookup_t *nl)
 
 	g_message("DHT LOOKUP[%s] %s lookup status for %s at hop %u after %f secs",
 		revent_id_to_string(nl->lid), kuid_to_hex_string(nl->kuid),
-		lookup_type_to_string(nl->type), nl->hops,
+		lookup_type_to_string(nl), nl->hops,
 		tm_elapsed_f(&now, &nl->start));
 	g_message("DHT LOOKUP[%s] messages pending=%d, sent=%d, dropped=%d",
 		revent_id_to_string(nl->lid), nl->msg_pending, nl->msg_sent,
@@ -3069,7 +3073,7 @@ lookup_load_shortlist(nlookup_t *nl)
 	if (0 == contactable && GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_message("DHT LOOKUP[%s] cancelling %s lookup for %s: "
 			"no contactable shortlist",
-			revent_id_to_string(nl->lid), lookup_type_to_string(nl->type),
+			revent_id_to_string(nl->lid), lookup_type_to_string(nl),
 			kuid_to_hex_string(nl->kuid));
 
 	return contactable > 0;		/* Proceed only if we have at least one node */
@@ -3115,7 +3119,7 @@ lookup_create(const kuid_t *kuid, lookup_type_t type,
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
 		g_message("DHT LOOKUP[%s] starting %s lookup for %s",
-			revent_id_to_string(nl->lid), lookup_type_to_string(nl->type),
+			revent_id_to_string(nl->lid), lookup_type_to_string(nl),
 			kuid_to_hex_string(nl->kuid));
 	}
 
@@ -3135,7 +3139,7 @@ lookup_cancel(nlookup_t *nl, gboolean callback)
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
 		g_message("DHT LOOKUP[%s] cancelling %s lookup with%s callback",
-			revent_id_to_string(nl->lid), lookup_type_to_string(nl->type),
+			revent_id_to_string(nl->lid), lookup_type_to_string(nl),
 			callback && nl->err ? "" : "out");
 	}
 
