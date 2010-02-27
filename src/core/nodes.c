@@ -9360,6 +9360,13 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 	if (n->flags & NODE_F_CAN_DHT)
 		return;
 
+	/*
+	 * Transient node, don't bother.
+	 */
+
+	if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME)
+		return;
+
 	n->dht_nope_ev = cq_insert(callout_queue,
 		(DHT_VALUE_NOPE_EXPIRE - (5*60)) * 1000, node_publish_dht_nope, n);
 
