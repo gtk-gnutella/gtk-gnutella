@@ -6630,10 +6630,10 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		if (status->moving) {
 			if (0 == status->copied) {
 				gm_snprintf(msg_copy, sizeof msg_copy, "%s",
-					_("; Waiting for moving..."));
+					_("Waiting for moving..."));
 			} else if (status->copied > 0 && status->copied < status->size) {
 				gm_snprintf(msg_copy, sizeof msg_copy,
-					"; %s %s (%.1f%%)", _("Moving"),
+					"%s %s (%.1f%%)", _("Moving"),
 					short_size(status->copied,
 						GNET_PROPERTY(display_metric_units)),
 					(1.0 * status->copied / status->size) * 100.0);
