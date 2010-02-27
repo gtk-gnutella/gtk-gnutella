@@ -229,7 +229,8 @@ route_starving_remove(const guid_t *guid)
 void
 route_starving_add(const guid_t *guid, route_starving_cb_t cb)
 {
-	gm_hash_table_replace_const(ht_starving_guid, guid, cb);
+	gm_hash_table_replace_const(ht_starving_guid, guid,
+		cast_func_to_pointer(cb));
 }
 
 /**
@@ -243,7 +244,7 @@ route_starving_check(const guid_t *guid)
 {
 	route_starving_cb_t cb;
 
-	cb = g_hash_table_lookup(ht_starving_guid, guid);
+	cb = cast_pointer_to_func(g_hash_table_lookup(ht_starving_guid, guid));
 
 	if (cb != NULL)
 		(*cb)(guid);

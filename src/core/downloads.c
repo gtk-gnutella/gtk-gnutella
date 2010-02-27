@@ -14682,6 +14682,8 @@ download_handle_magnet(const char *url)
 					struct guid server_guid;
 					if (hex_to_guid(res->guid, &server_guid)) {
 						guid = guid_atom = atom_guid_get(&server_guid);
+					} else {
+						guid = &blank_guid;
 					}
 				} else {
 					guid = &blank_guid;
