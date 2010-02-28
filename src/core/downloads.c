@@ -8868,6 +8868,15 @@ download_add_mesh(const struct download *d)
 		g_assert(dl_server_valid(server));
 
 		/*
+		 * If we have seen no sign in the replies from the server that the
+		 * servent is recent enough to become a good firewalled source, then
+		 * don't bother encumbering the mesh.
+		 */
+
+		if (!(d->server->attrs & DLS_A_FW_SOURCE))
+			return;
+
+		/*
 		 * If we have no known push-proxies, then the firewalled alt-loc
 		 * will be mostly useless.  It's also a probable sign that the
 		 * remote host does not support either push-proxy advertising, or
@@ -9459,8 +9468,10 @@ check_push_proxies(struct download *d, const header_t *header)
 	 */
 
 	buf = header_get(header, "X-FW-Node-Info");
-	if (buf && check_fw_node_info(d->server, buf))
+	if (buf && check_fw_node_info(d->server, buf)) {
+		d->server->attrs |= DLS_A_FW_SOURCE;
 		return;
+	}
 
 	/*
 	 * The newest specifications say that the header to be used
@@ -9478,6 +9489,7 @@ check_push_proxies(struct download *d, const header_t *header)
 	if (buf == NULL)
 		return;
 
+	d->server->attrs |= DLS_A_FW_SOURCE;
 	st = strtok_make_strip(buf);
 
 	while ((tok = strtok_next(st, ","))) {
