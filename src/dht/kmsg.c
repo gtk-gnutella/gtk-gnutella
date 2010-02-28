@@ -1934,6 +1934,50 @@ void kmsg_received(
 	}
 
 	/*
+	 * If we got the UDP message from another address than the one we
+	 * have in the contact information, it is not necessarily an error.
+	 *
+	 * We always reply to the address we had in the UDP message, but when
+	 * contacting the node, we use the address in the contact information.
+	 * The gnutella_node structure keeps track of the origin of the UDP message.
+	 *
+	 * If the UDP port matches the port advertised in the contact information,
+	 * then it probably means the servent is unable to figure its outgoing
+	 * IP address correctly.
+	 */
+
+	if (
+		!(flags & KDA_MSG_F_FIREWALLED) &&
+		(!host_addr_equal(addr, kaddr) || port != kport)
+	) {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_warning("DHT contact address is %s "
+				"but message came from %s (%s v%u.%u) kuid=%s",
+				host_addr_port_to_string(kaddr, kport),
+				host_addr_port_to_string2(addr, port),
+				vendor_code_to_string(vcode.u32), kmajor, kminor,
+				kuid_to_hex_string(id));
+		}
+	}
+
+	/*
+	 * If they set kport to 0, act as if they were firewalled.
+	 */
+
+	if (!(flags & KDA_MSG_F_FIREWALLED) && 0 == kport) {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_warning("DHT contact port is zero, forcing firewalled status "
+				"for %s (%s v%u.%u@%s) kuid=%s",
+				host_addr_port_to_string(kaddr, kport),
+				vendor_code_to_string(vcode.u32), kmajor, kminor,
+				host_addr_port_to_string2(addr, port),
+				kuid_to_hex_string(id));
+		}
+		flags |= KDA_MSG_F_FIREWALLED;
+	}
+
+
+	/*
 	 * See whether we already have this node in the routing table.
 	 */
 
@@ -1954,17 +1998,42 @@ void kmsg_received(
 		 * corrected.
 		 */
 
-		if (!(flags & KDA_MSG_F_FIREWALLED) && !host_is_valid(kaddr, kport)) {
-			if (GNET_PROPERTY(dht_debug)) {
-				g_warning("DHT fixing contact address %s (%s v%u.%u) kuid=%s, "
-					"not firewalled, replacing with UDP source %s:%u",
-					host_addr_port_to_string(kaddr, kport),
-					vendor_code_to_string(vcode.u32), kmajor, kminor,
-					kuid_to_hex_string(id),
-					host_addr_to_string(addr), port);
+		if (
+			!(flags & KDA_MSG_F_FIREWALLED) &&
+			(!host_is_valid(kaddr, kport) || !host_addr_equal(addr, kaddr))
+		) {
+			if (port == kport) {
+				if (GNET_PROPERTY(dht_debug)) {
+					g_warning("DHT fixing contact address %s (%s v%u.%u) "
+						"kuid=%s, "
+						"not firewalled, replacing with UDP source %s:%u",
+						host_addr_port_to_string(kaddr, kport),
+						vendor_code_to_string(vcode.u32), kmajor, kminor,
+						kuid_to_hex_string(id),
+						host_addr_to_string(addr), port);
+				}
+			} else {
+				if (GNET_PROPERTY(dht_debug)) {
+					g_warning("DHT fixing contact address %s (%s v%u.%u) "
+						"kuid=%s, "
+						"not firewalled, replacing with UDP source IP %s and "
+						"ignoring UDP port %u",
+						host_addr_port_to_string(kaddr, kport),
+						vendor_code_to_string(vcode.u32), kmajor, kminor,
+						kuid_to_hex_string(id),
+						host_addr_to_string(addr), port);
+				}
+				/*
+				 * kport is probably their advertised listening port, and
+				 * the UDP port is different because of NAT: replying on
+				 * that port would work for a while, until the NAT times out.
+				 *
+				 * We don't know whether kport is forwarded on the router
+				 * though, but since the host did not set the "firewalled" bit
+				 * we have to assume it is.
+				 */
 			}
 			kaddr = addr;
-			kport = port;
 			patched = TRUE;
 		}
 
@@ -1995,22 +2064,46 @@ void kmsg_received(
 		 * changed...
 		 */
 
-		if (
-			!(flags & KDA_MSG_F_FIREWALLED) && !host_is_valid(kaddr, kport) &&
-			host_is_valid(kn->addr, kn->port) && kport == kn->port
-		) {
-			if (GNET_PROPERTY(dht_debug)) {
-				g_warning("DHT fixing contact address %s (%s v%u.%u) kuid=%s "
-					"to %s:%u based on routing table (%s UDP info)",
-					host_addr_port_to_string(kaddr, kport),
-					vendor_code_to_string(vcode.u32), kmajor, kminor,
-					kuid_to_hex_string(id),
-					host_addr_to_string(kn->addr), kn->port,
-					host_addr_equal(addr, kn->addr) && port == kport ?
-						"matches" : "still different from");
+		if (!(flags & KDA_MSG_F_FIREWALLED)) {
+			if (
+				kport == kn->port &&
+				host_is_valid(kn->addr, kn->port) &&
+				(
+					!host_is_valid(kaddr, kport) ||
+					!host_addr_equal(addr, kaddr)
+				)
+			) {
+				if (GNET_PROPERTY(dht_debug)) {
+					g_warning("DHT fixing contact address %s "
+						"(%s v%u.%u) kuid=%s "
+						"to %s:%u based on routing table (%s UDP info)",
+						host_addr_port_to_string(kaddr, kport),
+						vendor_code_to_string(vcode.u32), kmajor, kminor,
+						kuid_to_hex_string(id),
+						host_addr_to_string(kn->addr), kn->port,
+						host_addr_equal(addr, kn->addr) && port == kport ?
+							"matches" : "still different from");
+				}
+				kaddr = kn->addr;
+				/* Port identical, as checked in test */
+				kn->flags |= KNODE_F_PCONTACT;	/* To adapt creator later */
+				kn->flags &= ~KNODE_F_FOREIGN_IP;
+			} else {
+				kn->flags &= ~(KNODE_F_PCONTACT | KNODE_F_FOREIGN_IP);
+				if (!host_addr_equal(addr, kaddr)) {
+					if (GNET_PROPERTY(dht_debug)) {
+						g_warning("DHT not fixing contact address %s "
+							"(%s v%u.%u) kuid=%s but keeping "
+							"routing table info %s:%u (UDP came from %s)",
+							host_addr_port_to_string(kaddr, kport),
+							vendor_code_to_string(vcode.u32), kmajor, kminor,
+							kuid_to_hex_string(id),
+							host_addr_to_string(kn->addr), kn->port,
+							host_addr_port_to_string2(addr, port));
+					}
+					kn->flags |= KNODE_F_FOREIGN_IP;
+				}
 			}
-			kaddr = kn->addr;
-			/* Port identical, as checked in test */
 		}
 
 		if (GNET_PROPERTY(dht_debug) > 2) {
@@ -2088,25 +2181,6 @@ void kmsg_received(
 			if (!(flags & (KDA_MSG_F_FIREWALLED | KDA_MSG_F_SHUTDOWNING)))
 				dht_record_activity(kn);
 		}
-	}
-
-	/*
-	 * If we got the UDP message from another address than the one we
-	 * have in the contact information, it is not necessarily an error.
-	 * However, we keep track of that by flagging the node.
-	 *
-	 * We always reply to the address we had in the UDP message, but when
-	 * contacting the node, we use the address in the contact information.
-	 * The gnutella_node structure keeps track of the origin of the UDP message.
-	 */
-
-	if (!(kn->flags & KNODE_F_FIREWALLED) && !host_addr_equal(addr, kaddr)) {
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT contact address is %s but message came from %s",
-				host_addr_port_to_string(kaddr, kport),
-				host_addr_to_string(addr));
-
-		kn->flags |= KNODE_F_FOREIGN_IP;
 	}
 
 	/*
