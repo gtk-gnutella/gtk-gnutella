@@ -97,9 +97,19 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+/*
+ * We set a maximum amount of values that can be published locally to our
+ * node from a given IP address or from a class C network, in order to
+ * avoid massive attacks / DHT pollution attempts.
+ *
+ * However, we must understand that due to caching, we may very well be
+ * handed out values that fall well outside our k-ball.  So we must keep
+ * the thresholds high enough to not limit useful STORE requests.
+ */
+#define MAX_VALUES_IP	128		/**< Max # of values allowed per IP address */
+#define MAX_VALUES_NET	1024	/**< Max # of values allowed per class C net */
+
 #define MAX_VALUES		131072	/**< Max # of values we accept to manage */
-#define MAX_VALUES_IP	16		/**< Max # of values allowed per IP address */
-#define MAX_VALUES_NET	256		/**< Max # of values allowed per class C net */
 #define EXPIRE_PERIOD	30		/**< Asynchronous expire period: 30 secs */
 
 #define VALUES_DB_CACHE_SIZE 1024	/**< Amount of values to keep cached */
