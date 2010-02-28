@@ -120,6 +120,8 @@ struct dmesh_entry {
 #define DMESH_CALLOUT	5000		/**< Callout heartbeat every 5 seconds */
 #define EXPIRE_DELAY	600			/**< 10 minutes after last update */
 
+#define FW_MAX_PROXIES	4			/**< At most 4 push-proxies */
+
 static const char dmesh_file[] = "dmesh";
 static cqueue_t *dmesh_cq;			/**< Download mesh callout queue */
 
@@ -1910,9 +1912,10 @@ dmesh_fwalt_string(char *buf, size_t size,
 
 	if (proxies != NULL) {
 		sequence_iter_t *iter;
+		size_t n = 0;
 
 		iter = sequence_forward_iterator(proxies);
-		while (sequence_iter_has_next(iter)) {
+		while (sequence_iter_has_next(iter) && n++ < FW_MAX_PROXIES) {
 			const gnet_host_t *host = sequence_iter_next(iter);
 			rw += gm_snprintf(&buf[rw], size - rw, ";%s",
 				host_addr_port_to_string(
