@@ -1809,6 +1809,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 
 	if (!(u->is_followup || u->was_actively_queued)) {
 		upload_http_extra_callback_add_once(u, upload_xfeatures_add, NULL);
+	}
 
 	upload_http_extra_callback_add_once(u, node_http_proxies_add, NULL);
 
