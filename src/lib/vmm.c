@@ -1476,6 +1476,8 @@ pmap_remove(struct pmap *pm, void *p, size_t size)
 		const void *vend = vmf_end(vmf);
 		gboolean foreign = vmf_is_foreign(vmf);
 
+		g_assert(vmf_size(vmf) >= size);
+
 		if (p == vmf->start) {
 
 			if (vmm_debugging(2)) {
@@ -1489,7 +1491,7 @@ pmap_remove(struct pmap *pm, void *p, size_t size)
 				pmap_remove_whole_region(pm, p, size);
 			} else {
 				vmf->start = end;			/* Known fragment reduced */
-				g_assert(ptr_cmp(vmf->start, vmf->end) < 0);
+				g_assert(ptr_cmp(vmf->start, vend) < 0);
 			}
 		} else {
 			g_assert(ptr_cmp(vmf->start, p) < 0);
