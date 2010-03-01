@@ -1807,7 +1807,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	 * careful not to add the same extra headers twice.
 	 */
 
-	if (0 == u->reqnum)
+	if (!(u->is_followup || u->was_actively_queued)) {
 		upload_http_extra_callback_add_once(u, upload_xfeatures_add, NULL);
 
 	upload_http_extra_callback_add_once(u, node_http_proxies_add, NULL);
@@ -4512,7 +4512,7 @@ upload_request(struct upload *u, header_t *header)
 			u->reqnum,
 			host_addr_to_string(u->socket->addr),
 			u->from_browser ? " (via browser)" : "",
-			u->was_actively_queued ? " (queued)" : "",
+			u->was_actively_queued ? " (was queued)" : "",
 			u->request);
 		header_dump(stderr, header, "----");
 	}
