@@ -964,11 +964,19 @@ node_supports_tls(struct gnutella_node *n)
 }
 
 void
-node_supports_dht(struct gnutella_node *n)
+node_supports_dht(struct gnutella_node *n, dht_mode_t mode)
 {
 	node_check(n);
-	
-	n->flags |= NODE_F_CAN_DHT;
+
+	if (GNET_PROPERTY(node_debug) || GNET_PROPERTY(dht_debug)) {
+		g_message("node %s <%s> supports DHT (%s mode)",
+			node_addr(n), node_vendor(n), dht_mode_to_string(mode));
+	}
+
+	if (mode != DHT_MODE_INACTIVE) {
+		/* Not interested by flagging DHT support if node not joining */
+		n->flags |= NODE_F_CAN_DHT;
+	}
 }
 
 /**

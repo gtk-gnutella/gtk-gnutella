@@ -41,6 +41,7 @@
 #include "if/core/guid.h"
 #include "if/core/hcache.h"
 #include "if/core/nodes.h"
+#include "if/dht/dht.h"
 
 #include "lib/cq.h"
 #include "lib/header.h"
@@ -626,7 +627,7 @@ gnutella_node_t *node_browse_prepare(
 void node_browse_cleanup(gnutella_node_t *n);
 void node_kill_hostiles(void);
 void node_supports_tls(struct gnutella_node *);
-void node_supports_dht(struct gnutella_node *);
+void node_supports_dht(struct gnutella_node *, dht_mode_t);
 
 node_id_t node_id_get_self(void);
 gboolean node_id_self(const node_id_t node_id);

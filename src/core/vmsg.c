@@ -410,7 +410,18 @@ handle_features_supported(struct gnutella_node *n,
 
 		/* Any of ADHT, PDHT or LDHT means DHT is supported */
 		if (feature[0] && 0 == strcmp(&feature[1], "DHT")) {
-			node_supports_dht(n);
+			dht_mode_t mode;
+			gboolean known = TRUE;
+			switch (feature[0]) {
+			case 'A': mode = DHT_MODE_ACTIVE; break;
+			case 'P': mode = DHT_MODE_PASSIVE; break;
+			case 'L': mode = DHT_MODE_PASSIVE_LEAF; break;
+			case 'I': mode = DHT_MODE_INACTIVE; break;
+			default:  known = FALSE; break;
+			}
+			if (known) {
+				node_supports_dht(n, mode);
+			}
 		}
 	}
 }
