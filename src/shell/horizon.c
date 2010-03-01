@@ -63,8 +63,8 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 	const char *size_str = _("Size");
 	hsep_triple non_hsep, *t;
 	char buf[200];
-	unsigned maxlen[4];
-	int i;
+	size_t maxlen[4];
+	size_t i;
 
 	if (!non_hsep_ptr) {
 		non_hsep_ptr = &empty_non_hsep;
@@ -81,7 +81,7 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 	maxlen[2] = strlen(files_str);  /* length of Files */
 	maxlen[3] = strlen(size_str);   /* length of Size */
 
-	for (i = 0; i < triples * 4; i++) {
+	for (i = 0; i < UNSIGNED(triples) * 4; i++) {
 		size_t n;
 		unsigned m = i % 4;
 
@@ -116,10 +116,10 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 	}
 
 	gm_snprintf(buf, sizeof buf, "%*s  %*s  %*s  %*s\n",
-		maxlen[0], hops_str,
-		maxlen[1], nodes_str,
-		maxlen[2], files_str,
-		maxlen[3], size_str);
+		(int) maxlen[0], hops_str,
+		(int) maxlen[1], nodes_str,
+		(int) maxlen[2], files_str,
+		(int) maxlen[3], size_str);
 
 	shell_write(sh, buf);
 
@@ -130,7 +130,7 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 
 	t = &table[1];
 
-	for (i = 0; i < triples; i++) {
+	for (i = 0; i < UNSIGNED(triples); i++) {
 		const char *s1, *s2, *s3;
 
 		s1 = uint64_to_string(t[i][HSEP_IDX_NODES] + non_hsep[HSEP_IDX_NODES]);
@@ -139,10 +139,10 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 				GNET_PROPERTY(display_metric_units));
 
 		gm_snprintf(buf, sizeof buf, "%*d  %*s  %*s  %*s\n",
-			maxlen[0], i + 1,
-			maxlen[1], s1,
-			maxlen[2], s2,
-			maxlen[3], s3);
+			(int) maxlen[0], i + 1,
+			(int) maxlen[1], s1,
+			(int) maxlen[2], s2,
+			(int) maxlen[3], s3);
 
 		shell_write(sh, buf);
 	}
