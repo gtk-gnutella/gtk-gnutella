@@ -59,6 +59,8 @@ void dht_bootstrap_if_needed(host_addr_t addr, guint16 port);
 void dht_attempt_bootstrap(void);
 void dht_update_size_estimate(void);
 
+const char *dht_mode_to_string(dht_mode_t mode);
+
 /**
  * Is the DHT enabled?
  */

@@ -291,6 +291,22 @@ boot_status_to_string(enum bootsteps status)
 }
 
 /**
+ * Give a textual representation of the DHT mode.
+ */
+const char *
+dht_mode_to_string(dht_mode_t mode)
+{
+	switch (mode) {
+	case DHT_MODE_INACTIVE:		return "inactive";
+	case DHT_MODE_ACTIVE:		return "active";
+	case DHT_MODE_PASSIVE:		return "passive";
+	case DHT_MODE_PASSIVE_LEAF:	return "leaf";
+	}
+
+	return "unknown";
+}
+
+/**
  * Is bucket a leaf?
  */
 static gboolean
