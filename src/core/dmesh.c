@@ -1159,6 +1159,7 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 				hash_list_free(&dme->e.fwh.proxies);
 			}
 			dme->e.fwh.proxies = info->proxies;
+			dme->inserted = now;	/* List of push-proxies changed */
 		}
 
 		if (GNET_PROPERTY(dmesh_debug))
