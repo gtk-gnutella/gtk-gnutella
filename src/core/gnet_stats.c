@@ -266,6 +266,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"dht_publishing_bg_attempts",
 	"dht_publishing_bg_improvements",
 	"dht_publishing_bg_successful",
+	"dht_sha1_data_type_collisions",
 	"dht_alt_loc_lookups",
 	"dht_push_proxy_lookups",
 	"dht_successful_alt_loc_lookups",

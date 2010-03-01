@@ -856,6 +856,11 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 			(gulong) other, 1 == other ? "" : "s");
 	}
 
+	if (other > 0) {
+		/* Was looking for SHA1(GUID), found some other SHA1 */
+		gnet_stats_count_general(GNR_DHT_SHA1_DATA_TYPE_COLLISIONS, 1);
+	}
+
 	/*
 	 * If we got only alien values (neither PROX nor NOPE), then act as if
 	 * the lookup had failed, actually.

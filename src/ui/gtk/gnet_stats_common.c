@@ -250,6 +250,7 @@ general_type_str(gint value)
 		N_("DHT background publishing completion attempts"),
 		N_("DHT background publishing completion showing improvements"),
 		N_("DHT background publishing completion successful (all roots)"),
+		N_("DHT SHA1 data type collisions"),
 		N_("DHT alt-loc lookups issued"),
 		N_("DHT push-proxy lookups issued"),
 		N_("DHT successful alt-loc lookups"),
