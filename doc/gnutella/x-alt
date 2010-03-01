@@ -26,3 +26,19 @@ the new header "X-ALT:"
 
                 X-ALT: a.b.c.d:e,f.g.h.i:j,<GUID>;k.l.m.n:o;p.q.r.s:t
 
+[Update of 2010-03-01]
+
+Actually, firewalled alt-locs are not sent in X-Alt but in X-Falt, and then
+only if the remote party advertised the "fwalt" (for firewalled altloc)
+feature in his X-Feature header.
+
+The format of X-Falt is the following at least:
+
+	X-Falt: <GUID>;a.b.c.d:e;p.q.r.s:t
+
+i.e. it lists the GUID of the host and a list of push-proxies as IP:port,
+corresponding to the known proxies of that GUID.
+
+LimeWire prefixes the push-proxy list with "pptls=<hex>" to signal which
+of the push-proxies support TLS, but the format of the bitfield represented
+in "<hex>" is unknown.
