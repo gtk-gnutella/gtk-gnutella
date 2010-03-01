@@ -969,8 +969,9 @@ node_supports_dht(struct gnutella_node *n, dht_mode_t mode)
 	node_check(n);
 
 	if (GNET_PROPERTY(node_debug) || GNET_PROPERTY(dht_debug)) {
-		g_message("node %s <%s> supports DHT (%s mode)",
-			node_addr(n), node_vendor(n), dht_mode_to_string(mode));
+		g_message("%s node %s <%s> supports DHT (%s mode)",
+			node_type(n), node_addr(n), node_vendor(n),
+			dht_mode_to_string(mode));
 	}
 
 	if (mode != DHT_MODE_INACTIVE) {
