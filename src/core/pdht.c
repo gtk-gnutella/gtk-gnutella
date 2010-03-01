@@ -956,8 +956,9 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 	case PDHT_T_NOPE:
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
-			g_message("PDHT NOPE found %lu publish root%s",
-				(unsigned long) roots, 1 == roots ? "" : "s");
+			g_message("PDHT NOPE found %lu publish root%s for %s",
+				(unsigned long) roots, 1 == roots ? "" : "s",
+				guid_hex_str(pp->u.nope.guid));
 		}
 
 		value = pdht_get_nope(pp->u.nope.guid, pp->id);
@@ -1565,9 +1566,10 @@ pdht_prox_publish(gboolean force)
 		gdht_kuid_from_guid((guid_t *) GNET_PROPERTY(servent_guid));
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PDHT PROX initiating publishing for GUID %s (kuid=%s)",
+		g_message("PDHT PROX initiating publishing for GUID %s (kuid=%s/%s)",
 			guid_to_string((guid_t *) GNET_PROPERTY(servent_guid)),
-			kuid_to_hex_string(pdht_proxy.pp->id));
+			kuid_to_hex_string(pdht_proxy.pp->id),
+			kuid_to_string(pdht_proxy.pp->id));
 	}
 
 	/*
@@ -1745,9 +1747,9 @@ pdht_publish_proxy(const gnutella_node_t *n)
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_message("PDHT NOPE initiating publishing for GUID %s at %s <%s> "
-			"(kuid=%s)",
+			"(kuid=%s/%s)",
 			guid_to_string(pnope->guid), node_addr(n), node_vendor(n),
-			kuid_to_hex_string(pp->id));
+			kuid_to_hex_string(pp->id), kuid_to_string(pp->id));
 	}
 
 	/*
