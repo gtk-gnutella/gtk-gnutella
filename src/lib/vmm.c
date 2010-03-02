@@ -1426,6 +1426,31 @@ pmap_is_available(const struct pmap *pm, const void *p, size_t size)
 }
 
 /**
+ * Assert range is within one single (coalesced) region of the VM space.
+ */
+void
+assert_vmm_is_allocated(const void *base, size_t size)
+{
+	struct vm_fragment *vmf;
+	const void *end;
+	const void *vend;
+
+	g_assert(base != NULL);
+	g_assert(size_is_positive(size));
+
+	vmf = pmap_lookup(vmm_pmap(), base, NULL);
+
+	g_assert(vmf != NULL);
+	g_assert(vmf_size(vmf) >= size);
+
+	end = const_ptr_add_offset(base, size);
+	vend = vmf_end(vmf);
+
+	g_assert(ptr_cmp(base, vmf->start) >= 0);
+	g_assert(ptr_cmp(end, vend) <= 0);
+}
+
+/**
  * Is region starting at ``base'' and of ``size'' bytes a virtual memory
  * fragment, i.e. a standalone mapping in the middle of the VM space?
  */
@@ -2449,6 +2474,7 @@ vmm_alloc(size_t size)
 	p = page_cache_find_pages(n, &hole);
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
+		assert_vmm_is_allocated(p, size);
 		return p;
 	}
 
@@ -2457,6 +2483,7 @@ vmm_alloc(size_t size)
 		g_error("cannot allocate %lu bytes: out of virtual memmory",
 			(unsigned long) size);
 
+	assert_vmm_is_allocated(p, size);
 	return p;
 }
 
@@ -2484,6 +2511,7 @@ vmm_alloc0(size_t size)
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		memset(p, 0, size);
+		assert_vmm_is_allocated(p, size);
 		return p;
 	}
 
@@ -2492,6 +2520,7 @@ vmm_alloc0(size_t size)
 		g_error("cannot allocate %lu bytes: out of virtual memmory",
 			(unsigned long) size);
 
+	assert_vmm_is_allocated(p, size);
 	return p;		/* Memory allocated by the kernel is already zero-ed */
 }
 
@@ -2511,6 +2540,8 @@ vmm_free(void *p, size_t size)
 		size = round_pagesize_fast(size);
 		n = pagecount_fast(size);
 		RUNTIME_ASSERT(n >= 1);
+
+		assert_vmm_is_allocated(p, size);
 
 		/*
 		 * Memory regions that are larger than our highest-order cache
