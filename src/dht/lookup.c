@@ -655,11 +655,13 @@ lookup_final_stats(nlookup_t *nl)
 	tm_now_exact(&end);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1 || GNET_PROPERTY(dht_debug) > 1)
-		g_message("DHT LOOKUP[%s] %f secs, "
-			"hops=%u, path=%u, in=%d bytes, out=%d bytes",
-			revent_id_to_string(nl->lid), tm_elapsed_f(&end, &nl->start),
+		g_message("DHT LOOKUP[%s] type %s, took %f secs, "
+			"hops=%u, path=%u, in=%d bytes, out=%d bytes, %d RPC repl%s",
+			revent_id_to_string(nl->lid), lookup_type_to_string(nl),
+			tm_elapsed_f(&end, &nl->start),
 			nl->hops, (unsigned) patricia_count(nl->path),
-			nl->bw_incoming, nl->bw_outgoing);
+			nl->bw_incoming, nl->bw_outgoing,
+			nl->rpc_replies, 1 == nl->rpc_replies ? "y" : "ies");
 
 	/*
 	 * Optional statistics callback, added via lookup_ctrl_stats() after
