@@ -917,6 +917,16 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 {
 	struct kbucket *kb = arg;
 
+	/*
+	 * Handle disabling of DHT whilst we were busy looking.
+	 */
+
+	if (NULL == root || LOOKUP_E_CANCELLED == error) {
+		if (GNET_PROPERTY(dht_debug))
+			g_message("DHT disabled during bucket refresh");
+		return;
+	}
+
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug)) {
 		g_message("DHT bucket refresh with %s "
 			"for %s %s (good: %u, stale: %u, pending: %u) completed: %s",
@@ -1057,9 +1067,15 @@ bootstrap_completion_status(
 	struct bootstrap *b = arg;
 
 	/*
-	 * XXX Handle disabling of DHT whilst we are busy looking.
-	 * XXX This applies to other lookup callbacks as well.
+	 * Handle disabling of DHT whilst we were busy looking.
 	 */
+
+	if (NULL == root || LOOKUP_E_CANCELLED == error) {
+		wfree(b, sizeof *b);
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT disabled during bootstrap");
+		return;
+	}
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
 		g_message("DHT bootstrap with ID %s (%d bit%s) done: %s",
@@ -1082,7 +1098,9 @@ bootstrap_completion_status(
 		return;
 	}
 
-	b->bits--;
+	if (LOOKUP_E_OK == error || LOOKUP_E_PARTIAL == error)
+		b->bits--;
+
 	completion_iterate(b);
 }
 
@@ -1126,6 +1144,16 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 			lookup_strerror(error));
 
 	bootstrapping = FALSE;
+
+	/*
+	 * Handle disabling of DHT whilst we were busy looking.
+	 */
+
+	if (NULL == root || LOOKUP_E_CANCELLED == error) {
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT disabled during bootstrap");
+		return;
+	}
 
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT bootstrapping was %s seeded",
