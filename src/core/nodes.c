@@ -1848,7 +1848,6 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	}
 
 	cq_cancel(callout_queue, &n->tsync_ev);
-	cq_cancel(callout_queue, &n->dht_nope_ev);
 
 	n->status = GTA_NODE_REMOVING;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE|NODE_F_BYE_SENT);
@@ -9346,6 +9345,7 @@ node_proxying_remove(gnutella_node_t *n)
 		route_proxy_remove(node_guid(n));
 
 		pdht_cancel_nope(node_guid(n), FALSE);
+		cq_cancel(callout_queue, &n->dht_nope_ev);
 	}
 }
 
