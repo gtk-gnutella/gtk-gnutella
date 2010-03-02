@@ -1698,6 +1698,7 @@ vpc_insert(struct page_cache *pc, void *p)
 	}
 
 	g_assert(size_is_non_negative(idx) && idx <= pc->current);
+	assert_vmm_is_allocated(p, pc->chunksize);
 
 	/*
 	 * If we're inserting in the highest-order cache, there's no need
