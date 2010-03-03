@@ -2119,6 +2119,14 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	}
 
 	/*
+	 * Tell the node layer when we detect a firewalled node.
+	 */
+
+	if (rs->status & ST_FIREWALL && !(n->attrs & NODE_A_FIREWALLED)) {
+		node_is_firewalled(n);
+	}
+
+	/*
 	 * Save vendor code if present.
 	 */
 

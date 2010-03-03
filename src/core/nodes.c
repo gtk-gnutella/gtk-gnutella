@@ -976,7 +976,7 @@ node_supports_dht(struct gnutella_node *n, dht_mode_t mode)
 
 	if (mode != DHT_MODE_INACTIVE) {
 		/* Not interested by flagging DHT support if node not joining */
-		n->flags |= NODE_F_CAN_DHT;
+		n->attrs |= NODE_A_CAN_DHT;
 	}
 }
 
@@ -1848,6 +1848,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	}
 
 	cq_cancel(callout_queue, &n->tsync_ev);
+	cq_cancel(callout_queue, &n->dht_nope_ev);
 
 	n->status = GTA_NODE_REMOVING;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE|NODE_F_BYE_SENT);
@@ -9361,12 +9362,14 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 
 	n->dht_nope_ev = NULL;	/* has been freed before calling this function */
 
+	g_return_if_fail(n->guid != NULL);
+
 	/*
 	 * If the node tole us it was a member of the DHT, then it will publish
 	 * its push-proxy information in PROX values himself.
 	 */
 
-	if (n->flags & NODE_F_CAN_DHT)
+	if (n->attrs & NODE_A_CAN_DHT)
 		return;
 
 	/*
@@ -9575,6 +9578,39 @@ node_proxy_cancel_all(void)
 	pproxy_set_free_null(&proxies);
 	proxies = pproxy_set_allocate(0);
 	pdht_prox_publish_if_changed();
+}
+
+/**
+ * Callback when we determine a node is firewalled by parsing its query hits.
+ */
+void
+node_is_firewalled(gnutella_node_t *n)
+{
+	if (n->attrs & NODE_A_FIREWALLED)
+		return;		/* Already knew about it */
+
+	if (GNET_PROPERTY(node_debug)) {
+		g_message("%s node %s <%s> is firewalled (%s push-proxied)",
+			node_type(n), node_addr(n), node_vendor(n),
+			(n->flags & NODE_F_PROXIED) ? "already" : "not");
+	}
+
+	n->attrs |= NODE_A_FIREWALLED;
+
+	/*
+	 * If we're not firewalled, a leaf node becomes a candidate for NOPE
+	 * advertising if it does not support the DHT and it's not already
+	 * scheduled for NOPE publishing.
+	 */
+
+	if (
+		!GNET_PROPERTY(is_firewalled) &&
+		!(n->attrs & NODE_A_CAN_DHT) &&
+		NODE_IS_LEAF(n) &&
+		NULL == n->dht_nope_ev		/* Not scheduled for NOPE already */
+	) {
+		n->dht_nope_ev = cq_insert(callout_queue, 1, node_publish_dht_nope, n);
+	}
 }
 
 /**

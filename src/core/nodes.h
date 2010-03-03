@@ -278,7 +278,6 @@ typedef struct gnutella_node {
  */
 
 enum {
-	NODE_F_CAN_DHT		= 1 << 27,	/**< Indicated support for TLS */
 	NODE_F_VMSG_SUPPORT	= 1 << 26,	/**< Indicated which VMSGs are supported */
 	NODE_F_CAN_TLS		= 1 << 25,	/**< Indicated support for TLS */
 	NODE_F_TLS			= 1 << 24,	/**< TLS-tunneled */
@@ -313,6 +312,8 @@ enum {
  */
 
 enum {
+	NODE_A_CAN_DHT		= 1 << 24,	/**< Indicated support for DHT */
+	NODE_A_FIREWALLED	= 1 << 23,	/**< Node determined to be firewalled */
 	NODE_A_CAN_SVN_NOTIFY =	1 << 22,	/**< Supports SVN release notifies */
 	NODE_A_CAN_HEAD		= 1 << 21,	/**< Supports HEAD ping (vendor message) */
 	NODE_A_CAN_INFLATE	= 1 << 20,	/**< Node capable of inflating */
@@ -628,6 +629,7 @@ void node_browse_cleanup(gnutella_node_t *n);
 void node_kill_hostiles(void);
 void node_supports_tls(struct gnutella_node *);
 void node_supports_dht(struct gnutella_node *, dht_mode_t);
+void node_is_firewalled(gnutella_node_t *n);
 
 node_id_t node_id_get_self(void);
 gboolean node_id_self(const node_id_t node_id);
