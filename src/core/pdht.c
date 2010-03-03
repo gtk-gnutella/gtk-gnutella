@@ -1682,7 +1682,7 @@ pdht_nope_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 
 	n = node_by_id(node_id);
 
-	if (NULL == n)
+	if (NULL == n || NULL == node_guid(n))
 		return TRUE;		/* Node is long gone */
 
 	/*
@@ -1728,6 +1728,8 @@ pdht_publish_proxy(const gnutella_node_t *n)
 	struct pdht_nope *pnope;
 	pdht_error_t code;
 	node_id_t nid = node_get_id(n);
+
+	g_return_if_fail(node_guid(n) != NULL);
 
 	pp = pdht_publish_allocate(PDHT_T_NOPE,
 		pdht_nope_done, deconstify_gpointer(nid));
