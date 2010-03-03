@@ -1070,6 +1070,10 @@ validate_quotas(const dht_value_t *v)
 	int count;
 	const knode_t *c = v->creator;
 
+	/* Specifications say: creator address must be IPv4 */
+	if (NET_TYPE_IPV4 != host_addr_net(c->addr))
+		return STORE_SC_BAD_CREATOR;
+
 	count = acct_net_get(values_per_class_c, c->addr, NET_CLASS_C_MASK);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2) {
@@ -1428,8 +1432,6 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			}
 			vd->original = TRUE;
 		} else {
-			if (NET_TYPE_IPV4 != host_addr_net(cn->addr))
-				return STORE_SC_BAD_CREATOR;
 			if (kuid_pair_was_expired(kn->id, cn->id))
 				goto expired;
 			vd->original = FALSE;
