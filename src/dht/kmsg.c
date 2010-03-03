@@ -1539,6 +1539,17 @@ kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 
 	knode_check(kn);
 
+	if (NULL == n) {
+		/* E.g. we're given an IPv6 node address but IPv6 support is off */
+		if (GNET_PROPERTY(dht_debug)) {
+			int len = pmsg_size(mb);
+			g_message("DHT discarding %s (%d bytes) to %s",
+				kmsg_infostr(pmsg_start(mb)), len, knode_to_string(kn));
+		}
+		pmsg_free(mb);
+		return;
+	}
+
 	if (GNET_PROPERTY(dht_debug) > 3) {
 		int len = pmsg_size(mb);
 		g_message("DHT sending %s (%d bytes) to %s, RTT=%u",
