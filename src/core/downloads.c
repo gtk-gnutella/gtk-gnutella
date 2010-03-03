@@ -9527,14 +9527,18 @@ check_push_proxies(struct download *d, const header_t *header)
  *
  * @param[in,out] d  The download for which we update available ranges
  * @param[in] header  The HTTP header which contains ranges info
+ *
+ * @return TRUE if we have seen one of the X-Available headers, indicating
+ * that the remote file is partial.
  */
-static void
+static gboolean
 update_available_ranges(struct download *d, const header_t *header)
 {
 	static const char available_ranges[] = "X-Available-Ranges";
 	static const char available[] = "X-Available";
 	const char *buf;
 	filesize_t available_bytes = 0;
+	gboolean seen_available = FALSE;
 
 	download_check(d);
 
@@ -9556,6 +9560,7 @@ update_available_ranges(struct download *d, const header_t *header)
 		char *p = is_strprefix(buf, "bytes");
 
 		d->flags |= DL_F_PARTIAL;	/* Definitevely a partial file */
+		seen_available = TRUE;
 
 		if (p) {
 			guint64 v;
@@ -9585,6 +9590,7 @@ update_available_ranges(struct download *d, const header_t *header)
 		goto send_event;
 
 	d->flags |= DL_F_PARTIAL;	/* Definitevely a partial file */
+	seen_available = TRUE;
 
 	/*
 	 * LimeWire seemingly sends this to imply that file is partial yet
@@ -9659,6 +9665,8 @@ update_available_ranges(struct download *d, const header_t *header)
 	 */
 
 	fi_src_ranges_changed(d);
+
+	return seen_available;
 }
 
 /**
@@ -10276,6 +10284,24 @@ http_version_nofix:
 
 	download_handle_thex_uri_header(d, header);
 
+	if (update_available_ranges(d, header)) {	/* Updates `d->ranges' */
+		/*
+		 * Some X-Availble or X-Available-Ranges header was present.
+		 * Some broken servents return 503 when they meant 416, fix this.
+		 */
+		if (
+			ack_code == 503 && d->ranges != NULL &&
+			!http_range_contains(d->ranges, d->skip, d->range_end - 1)
+		) {
+			if (GNET_PROPERTY(download_debug)) {
+				g_warning("fixing inappropriate status code 503 (%s) "
+					"from %s to 416",
+					ack_message, download_host_info(d));
+			}
+			ack_code = 416;
+		}
+	}
+
 	if (ack_code == 503 || (ack_code >= 200 && ack_code <= 299)) {
 
 		/*
@@ -10319,8 +10345,6 @@ http_version_nofix:
 			}
 		} /* ack_code was not 503 */
 	}
-
-	update_available_ranges(d, header);		/* Updates `d->ranges' */
 
 	delay = extract_retry_after(d, header);
 	d->retry_after = time_advance(tm_time(), MAX(1, delay));
