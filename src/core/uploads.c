@@ -1759,6 +1759,11 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	upload_check(u);
 
 	if (u->flags & UPLOAD_F_LIMITED) {
+		if (GNET_PROPERTY(upload_debug)) {
+			g_message("upload request from %s [%s] limited",
+				host_addr_to_string(u->socket->addr),
+				gip_country_name(u->socket->addr));
+		}
 		u->flags &= ~UPLOAD_F_LIMITED;		/* For recursion */
 		u->keep_alive = FALSE;				/* Force disconnection */
 		if (u->flags & UPLOAD_F_NORMAL_LIMIT) {
