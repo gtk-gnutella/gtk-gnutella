@@ -164,19 +164,25 @@ crash_time(char *buf, size_t buflen)
 static void
 crash_message(const char *reason)
 {
-	struct iovec iov[6];
+	struct iovec iov[8];
 	unsigned iov_cnt = 0;
 	char pid_buf[22];
 	char time_buf[18];
 
 	crash_time(time_buf, sizeof time_buf);
 
-	print_str(time_buf);
-	print_str(" CRASH (pid=");
-	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));
-	print_str(") by ");
-	print_str(reason);
-	print_str("\n");
+	print_str(time_buf);			/* 0 */
+	print_str(" CRASH (pid=");		/* 1 */
+	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(") by ");				/* 3 */
+	print_str(reason);				/* 4 */
+	if (vars.pathname) {
+		print_str(" -- calling ");	/* 5 */
+		print_str(vars.pathname);	/* 6 */
+	} else if (vars.pause_process) {
+		print_str(" -- pausing");	/* 5 */
+	}
+	print_str("\n");				/* 7, at most */
 	writev(STDERR_FILENO, iov, iov_cnt);
 }
 
