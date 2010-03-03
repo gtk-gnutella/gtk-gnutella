@@ -10291,7 +10291,9 @@ http_version_nofix:
 		 */
 		if (
 			ack_code == 503 && d->ranges != NULL &&
-			!http_range_contains(d->ranges, d->skip, d->range_end - 1)
+			!http_range_contains(d->ranges, d->skip, d->range_end - 1) &&
+			NULL == header_get(header, "X-Queue") &&
+			NULL == header_get(header, "X-Queued")
 		) {
 			if (GNET_PROPERTY(download_debug)) {
 				g_warning("fixing inappropriate status code 503 (%s) "
