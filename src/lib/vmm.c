@@ -3055,6 +3055,18 @@ vmm_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 
 	if (p != MAP_FAILED) {
 		pmap_insert_foreign(vmm_pmap(), p, round_pagesize_fast(length));
+		assert_vmm_is_allocated(p, length);
+
+		if (vmm_debugging(5)) {
+			g_message("VMM mapped %luKiB region at 0x%lx "
+				"(fd #%d, offset 0x%lx)",
+				(unsigned long) length / 1024, (unsigned long) p,
+				fd, (unsigned long) offset);
+		}
+	} else if (vmm_debugging(0)) {
+		g_warning("VMM FAILED maping of %luKiB region "
+			"(fd #%d, offset 0x%lx)",
+			(unsigned long) length / 1024, fd, (unsigned long) offset);
 	}
 
 	return p;
@@ -3080,7 +3092,13 @@ vmm_munmap(void *addr, size_t length)
 	int ret = munmap(addr, length);
 
 	if (0 == ret) {
+		assert_vmm_is_allocated(addr, length);
 		pmap_remove(vmm_pmap(), addr, round_pagesize_fast(length));
+
+		if (vmm_debugging(5)) {
+			g_message("VMM unmapped %luKiB region at 0x%lx",
+				(unsigned long) length / 1024, (unsigned long) addr);
+		}
 	} else {
 		g_warning("munmap() failed: %s", g_strerror(errno));
 	}
