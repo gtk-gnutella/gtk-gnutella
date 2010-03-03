@@ -9362,8 +9362,6 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 
 	n->dht_nope_ev = NULL;	/* has been freed before calling this function */
 
-	g_return_if_fail(n->guid != NULL);
-
 	/*
 	 * If the node tole us it was a member of the DHT, then it will publish
 	 * its push-proxy information in PROX values himself.
@@ -9381,6 +9379,19 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 
 	n->dht_nope_ev = cq_insert(callout_queue,
 		(DHT_VALUE_NOPE_EXPIRE - (5*60)) * 1000, node_publish_dht_nope, n);
+
+	/*
+	 * If for some reason we don't have a proper GUID for the node, don't
+	 * publish anything yet.  We'll retry again in DHT_VALUE_NOPE_EXPIRE secs.
+	 */
+
+	if (NULL == n->guid) {
+		if (GNET_PROPERTY(node_debug)) {
+			g_warning("can't publish we are a push-proxy for node %s <%s>: "
+				"no GUID known yet", node_addr(n), node_vendor(n));
+		}
+		return;
+	}
 
 	if (GNET_PROPERTY(node_debug)) {
 		g_message("publishing we are a push-proxy for node %s <%s> GUID %s",
