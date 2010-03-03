@@ -216,10 +216,18 @@ hfield_dump(const header_field_t *h, FILE *out)
 			fputs(s, out);
 		} else {
 			char buf[80];
+			const char *p = s;
+			int c;
 			size_t len = strlen(s);
 			gm_snprintf(buf, sizeof buf, "<%u non-printable byte%s>",
 				(unsigned) len, 1 == len ? "" : "s");
 			fputs(buf, out);
+			while ((c = *p++)) {
+				if (is_ascii_print(c) || is_ascii_space(c))
+					fputc(c, out);
+				else
+					fputc('.', out);	/* Less visual clutter than '?' */
+			}
 		}
 		fputc('\n', out);
 	}
