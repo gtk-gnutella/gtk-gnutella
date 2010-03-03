@@ -1668,6 +1668,7 @@ vpc_free(struct page_cache *pc, size_t idx)
 	g_assert(size_is_non_negative(idx) && idx < pc->current);
 
 	p = pc->info[idx].base;
+	assert_vmm_is_allocated(p, pc->chunksize);
 	free_pages_forced(p, pc->chunksize, FALSE);
 	vpc_delete_slot(pc, idx);
 }
