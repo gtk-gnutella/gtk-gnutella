@@ -89,7 +89,7 @@ The FS sends the new PushProxyRequest message to its ultrapeers asking if they
 will become a PP.
  
 3.1 PushProxyRequest Message
-Selector: LIME/21v2
+Selector: LIME/21v1
 Payload: Empty.
 VM GUID: 16 byte ServentId of the FS.
 
@@ -126,6 +126,8 @@ DottedIPAddress:Port combinations.  A servent that receives this list
 MUST immediately replace its known list of proxy servers for the FS with
 this updated list.
 
+[The header name was changed to X-Push-Proxy some time ago -- RAM, 2010-03-03]
+
 4.3 In Download Mesh
 ====================
 The Download Mesh is a technique for conveying alternative
@@ -134,6 +136,11 @@ sources to a downloader.  The format of the original download mesh
 information.  A new format (X-Alt) used to transmit the push proxy mesh
 information.  Support for Download Mesh is optional, and is described
 in the Download Mesh 0.1 document.
+
+[The header to use is now X-Falt, and it must be emitted only when the
+remote peer indicated that it would be able to understand firewalled
+alt-locs through the "fwalt" feature, advertised in the X-Features header
+	-- RAM, 2010-03-03]
 
 5 Contacting a Proxy Server
 ===========================
