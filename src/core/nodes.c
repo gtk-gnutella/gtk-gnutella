@@ -145,8 +145,6 @@ RCSID("$Id$")
 #define SHUTDOWN_GRACE_DELAY	120	  /**< Grace time for shutdowning nodes */
 #define BYE_GRACE_DELAY			30	  /**< Bye sent, give time to propagate */
 #define MAX_WEIRD_MSG			5	  /**< End link after so much weirds */
-#define MAX_TX_RX_RATIO			85	  /**< Max TX/RX ratio for shortage */
-#define MIN_TX_FOR_RATIO		1000  /**< TX packets before enforcing ratio */
 #define ALIVE_PERIOD			20	  /**< Seconds between each alive ping */
 #define ALIVE_PERIOD_LEAF		120	  /**< Idem, for leaves <-> ultrapeers */
 #define ALIVE_MAX_PENDING		6	  /**< Max unanswered pings in a row */
@@ -970,7 +968,7 @@ node_supports_dht(struct gnutella_node *n, dht_mode_t mode)
 
 	if (GNET_PROPERTY(node_debug) || GNET_PROPERTY(dht_debug)) {
 		g_message("%s node %s <%s> supports DHT (%s mode)",
-			node_type(n), node_addr(n), node_vendor(n),
+			node_type(n), node_gnet_addr(n), node_vendor(n),
 			dht_mode_to_string(mode));
 	}
 
@@ -1113,21 +1111,6 @@ node_timer(time_t now)
 				node_bye_if_writable(n, 412, "Security violation");
 				continue;
 			}
-
-#if 0
-			/* FIXME: Disabled because it's nonsense. The ratio sent:received
-			 * can be very high due to OOB reply indications for example and
-			 * indicates no bad condition for this peer at all.
-			 */
-			if (
-				!NODE_IS_LEAF(n) &&
-				n->sent > MIN_TX_FOR_RATIO &&
-				(n->received == 0 || n->sent / n->received > MAX_TX_RX_RATIO)
-			) {
-				node_bye_if_writable(n, 405, "Reception shortage");
-				continue;
-			}
-#endif
 
 			/*
 			 * If quiet period is nearing timeout and node supports
@@ -9363,7 +9346,7 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 	n->dht_nope_ev = NULL;	/* has been freed before calling this function */
 
 	/*
-	 * If the node tole us it was a member of the DHT, then it will publish
+	 * If the node told us it was a member of the DHT, then it will publish
 	 * its push-proxy information in PROX values himself.
 	 */
 
@@ -9387,15 +9370,17 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 
 	if (NULL == n->guid) {
 		if (GNET_PROPERTY(node_debug)) {
-			g_warning("can't publish we are a push-proxy for node %s <%s>: "
-				"no GUID known yet", node_addr(n), node_vendor(n));
+			g_warning("can't publish we act as push-proxy for %s node %s <%s>: "
+				"no GUID known yet",
+				node_type(n), node_gnet_addr(n), node_vendor(n));
 		}
 		return;
 	}
 
 	if (GNET_PROPERTY(node_debug)) {
-		g_message("publishing we are a push-proxy for node %s <%s> GUID %s",
-			node_addr(n), node_vendor(n), guid_hex_str(n->guid));
+		g_message("publishing we act as push-proxy for %s node %s <%s> GUID %s",
+			node_type(n), node_gnet_addr(n), node_vendor(n),
+			guid_hex_str(n->guid));
 	}
 
 	pdht_publish_proxy(n);
@@ -9602,7 +9587,7 @@ node_is_firewalled(gnutella_node_t *n)
 
 	if (GNET_PROPERTY(node_debug)) {
 		g_message("%s node %s <%s> is firewalled (%s push-proxied)",
-			node_type(n), node_addr(n), node_vendor(n),
+			node_type(n), node_gnet_addr(n), node_vendor(n),
 			(n->flags & NODE_F_PROXIED) ? "already" : "not");
 	}
 
@@ -9611,7 +9596,8 @@ node_is_firewalled(gnutella_node_t *n)
 	/*
 	 * If we're not firewalled, a leaf node becomes a candidate for NOPE
 	 * advertising if it does not support the DHT and it's not already
-	 * scheduled for NOPE publishing.
+	 * scheduled for NOPE publishing (which it will be if it does not
+	 * support the DHT and is push-proxied).
 	 */
 
 	if (
