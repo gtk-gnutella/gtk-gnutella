@@ -5176,7 +5176,6 @@ download_start(struct download *d, gboolean check_allowed)
 	download_check(d);
 	file_info_check(d->file_info);
 
-	g_return_if_fail(!FILE_INFO_FINISHED(d->file_info));
 	g_return_if_fail(!DOWNLOAD_IS_MOVING(d));
 	g_return_if_fail(!DOWNLOAD_IS_RUNNING(d));
 	g_return_if_fail(!DOWNLOAD_IS_VERIFYING(d));
@@ -5191,6 +5190,11 @@ download_start(struct download *d, gboolean check_allowed)
 	g_return_if_fail(d->file_info->lifecount > 0);
 	g_return_if_fail(d->file_info->lifecount <= d->file_info->refcount);
 	g_return_if_fail(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
+
+	if (FILE_INFO_FINISHED(d->file_info)) {
+		download_stop(d, GTA_DL_COMPLETED, no_reason);
+		return;
+	}
 
 	if (download_queue_is_frozen()) {
 		if (!DOWNLOAD_IS_QUEUED(d)) {
