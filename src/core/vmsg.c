@@ -3164,6 +3164,9 @@ vmsg_features_add(struct vmsg_features *vmf, const char *name, guint16 version)
 	vmf->pos += 6;
 }
 
+/**
+ * Tell node about which features we're currently supporting.
+ */
 void
 vmsg_send_features_supported(struct gnutella_node *n)
 {
