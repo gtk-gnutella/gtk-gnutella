@@ -1730,6 +1730,7 @@ vpc_insert(struct page_cache *pc, void *p)
 			base = before;
 			pages += pc->pages;
 			vpc_remove(pc, before);
+			idx--;		/* Removed entry before insertion point */
 		}
 	}
 
@@ -2152,6 +2153,8 @@ page_cache_insert_pages(void *base, size_t n)
 	size_t pages = n;
 	void *p = base;
 
+	assert_vmm_is_allocated(base, n * kernel_pagesize);
+
 	/*
 	 * Identified memory fragments are immediately freed and not put
 	 * back into the cache, in order to reduce fragmentation of the
@@ -2196,6 +2199,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	const size_t old_pages = pages;
 	void *end;
 
+	assert_vmm_is_allocated(base, pages * kernel_pagesize);
+
 	if (pages >= VMM_CACHE_LINES)
 		return FALSE;
 
@@ -2230,6 +2235,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 						(unsigned long) ptr_add_offset(base,
 							pages * kernel_pagesize - 1));
 				}
+				assert_vmm_is_allocated(before,
+					(pages + lopc->pages) * kernel_pagesize);
 				base = before;
 				pages += lopc->pages;
 				vpc_remove(lopc, before);
@@ -2272,6 +2279,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 					(unsigned long) ptr_add_offset(base,
 						pages * kernel_pagesize - 1));
 			}
+			assert_vmm_is_allocated(before,
+				(pages + hopc->pages) * kernel_pagesize);
 			base = before;
 			pages += hopc->pages;
 			vpc_remove(hopc, before);
@@ -2308,6 +2317,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 						(unsigned long) lopc->pages - 1, (unsigned long) base,
 						(unsigned long) ptr_add_offset(end, -1));
 				}
+				assert_vmm_is_allocated(base,
+					(pages + lopc->pages) * kernel_pagesize);
 				pages += lopc->pages;
 				vpc_remove(lopc, end);
 				end = ptr_add_offset(end, lopc->chunksize);
@@ -2346,6 +2357,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 					(unsigned long) base,
 					(unsigned long) ptr_add_offset(end, -1));
 			}
+			assert_vmm_is_allocated(base,
+				(pages + hopc->pages) * kernel_pagesize);
 			pages += hopc->pages;
 			vpc_remove(hopc, end);
 			end = ptr_add_offset(end, hopc->chunksize);
@@ -2355,6 +2368,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	}
 
 done:
+	assert_vmm_is_allocated(base, pages * kernel_pagesize);
+
 	if (pages != old_pages) {
 		if (vmm_debugging(2)) {
 			g_message("VMM coalesced %luKiB region [0x%lx, 0x%lx] into "
