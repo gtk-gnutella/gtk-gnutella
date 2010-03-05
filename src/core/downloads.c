@@ -5936,9 +5936,7 @@ download_push(struct download *d, gboolean on_timeout)
 	 * flag if the address is deemed to be reacheable...
 	 */
 
-	if (!d->always_push) {
-		goto attempt_retry;
-	} else {
+	if (d->always_push) {
 		/*
 		 * If the address is not a private IP, it is possible that the
 		 * servent set the "Push" flag incorrectly.
@@ -5972,9 +5970,8 @@ download_push(struct download *d, gboolean on_timeout)
 			d->flags |= DL_F_PUSH_IGN;
 			download_queue(d, _("Ignoring Push flag"));
 		}
+		return;
 	}
-
-	return;
 
 attempt_retry:
 	/*
@@ -8565,6 +8562,7 @@ download_check_status(struct download *d, header_t *header, int code)
 			) {
 				break;
 			}
+		case 416:	/* Range not available */
 		case 200:	/* Okay */
 		case 206:	/* Partial Content */
 			d->retries = 0;
@@ -15055,11 +15053,14 @@ download_timer(time_t now)
 				} else if (d->status == GTA_DL_HEADERS)
 					download_incomplete_header(d);
 				else {
-					if (DOWNLOAD_IS_EXPECTING_GIV(d) && next_push_proxy(d))
-						/* OK, retrying a push-proxy via TCP */;
-					else if (d->retries++ < GNET_PROPERTY(download_max_retries))
+					if (DOWNLOAD_IS_EXPECTING_GIV(d)) {
+						if (!next_push_proxy(d))
+							download_push(d, TRUE);
+					} else if (
+						d->retries++ < GNET_PROPERTY(download_max_retries)
+					) {
 						download_retry(d);
-					else if (d->data_timeouts > DOWNLOAD_DATA_TIMEOUT) {
+					} else if (d->data_timeouts > DOWNLOAD_DATA_TIMEOUT) {
 						download_unavailable(d, GTA_DL_ERROR,
 							_("Too many data timeouts"));
 					} else {
