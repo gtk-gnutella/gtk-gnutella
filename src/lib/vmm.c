@@ -1270,6 +1270,26 @@ failure:
 static void
 pmap_load(struct pmap *pm)
 {
+	/*
+	 * FIXME
+	 *
+	 * Before the 0.96.7 release, I'm disabling kernel pmap loading.
+	 *
+	 * This is because upon kernel map loading, we do not know currently
+	 * how to propagate the regions we have allocated already to o prevent
+	 * them from being coalesced by the loading into a "foreign" area (despite
+	 * them being truly owned by us already).
+	 *
+	 * This would then trigger undue assertion failures because suddenly
+	 * we would think we're releasing memory allocated via vmm_mmap() (as
+	 * it would be wrongly be part of a fragment tagged foreign) when in
+	 * reality we're releasing memory allocated through vmm_alloc().
+	 *
+	 * 		--RAM, 2010-03-05
+	 */
+	(void) pm;
+
+#if 0
 	static int failed;
 	unsigned attempt = 0;
 
@@ -1320,6 +1340,7 @@ pmap_load(struct pmap *pm)
 			(unsigned long) pm->generation,
 			(unsigned long) pm->count, 1 == pm->count ? "" : "s");
 	}
+#endif
 }
 
 /**
