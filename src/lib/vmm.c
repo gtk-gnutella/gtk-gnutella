@@ -1451,6 +1451,36 @@ assert_vmm_is_allocated(const void *base, size_t size)
 }
 
 /**
+ * Assert that pointer is not belonging to a foreign VM space.
+ */
+void
+assert_vmm_is_not_foreign(const void *p)
+{
+	struct vm_fragment *vmf;
+
+	g_assert(p != NULL);
+	vmf = pmap_lookup(vmm_pmap(), p, NULL);
+
+	g_assert(vmf != NULL);
+	g_assert(!vmf_is_foreign(vmf));
+}
+
+/**
+ * Assert that pointer is belonging to a foreign VM space.
+ */
+void
+assert_vmm_is_foreign(const void *p)
+{
+	struct vm_fragment *vmf;
+
+	g_assert(p != NULL);
+	vmf = pmap_lookup(vmm_pmap(), p, NULL);
+
+	g_assert(vmf != NULL);
+	g_assert(vmf_is_foreign(vmf));
+}
+
+/**
  * Is region starting at ``base'' and of ``size'' bytes a virtual memory
  * fragment, i.e. a standalone mapping in the middle of the VM space?
  */
@@ -1652,6 +1682,8 @@ vpc_remove(struct page_cache *pc, void *p)
 	size_t idx;
 
 	idx = vpc_lookup(pc, p, NULL);
+	assert_vmm_is_allocated(p, pc->chunksize);
+	assert_vmm_is_not_foreign(p);
 	g_assert(idx != (size_t) -1);		/* Must have been found */
 	vpc_delete_slot(pc, idx);
 }
@@ -1669,6 +1701,7 @@ vpc_free(struct page_cache *pc, size_t idx)
 
 	p = pc->info[idx].base;
 	assert_vmm_is_allocated(p, pc->chunksize);
+	assert_vmm_is_not_foreign(p);
 	free_pages_forced(p, pc->chunksize, FALSE);
 	vpc_delete_slot(pc, idx);
 }
@@ -1700,6 +1733,7 @@ vpc_insert(struct page_cache *pc, void *p)
 
 	g_assert(size_is_non_negative(idx) && idx <= pc->current);
 	assert_vmm_is_allocated(p, pc->chunksize);
+	assert_vmm_is_not_foreign(p);
 
 	/*
 	 * If we're inserting in the highest-order cache, there's no need
@@ -2154,6 +2188,7 @@ page_cache_insert_pages(void *base, size_t n)
 	void *p = base;
 
 	assert_vmm_is_allocated(base, n * kernel_pagesize);
+	assert_vmm_is_not_foreign(base);
 
 	/*
 	 * Identified memory fragments are immediately freed and not put
@@ -2492,6 +2527,7 @@ vmm_alloc(size_t size)
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		assert_vmm_is_allocated(p, size);
+		assert_vmm_is_not_foreign(p);
 		return p;
 	}
 
@@ -2501,6 +2537,7 @@ vmm_alloc(size_t size)
 			(unsigned long) size);
 
 	assert_vmm_is_allocated(p, size);
+	assert_vmm_is_not_foreign(p);
 	return p;
 }
 
@@ -2529,6 +2566,7 @@ vmm_alloc0(size_t size)
 		vmm_validate_pages(p, size);
 		memset(p, 0, size);
 		assert_vmm_is_allocated(p, size);
+		assert_vmm_is_not_foreign(p);
 		return p;
 	}
 
@@ -2538,6 +2576,7 @@ vmm_alloc0(size_t size)
 			(unsigned long) size);
 
 	assert_vmm_is_allocated(p, size);
+	assert_vmm_is_not_foreign(p);
 	return p;		/* Memory allocated by the kernel is already zero-ed */
 }
 
@@ -2559,6 +2598,7 @@ vmm_free(void *p, size_t size)
 		RUNTIME_ASSERT(n >= 1);
 
 		assert_vmm_is_allocated(p, size);
+		assert_vmm_is_not_foreign(p);
 
 		/*
 		 * Memory regions that are larger than our highest-order cache
@@ -3109,6 +3149,7 @@ vmm_munmap(void *addr, size_t length)
 
 	if (0 == ret) {
 		assert_vmm_is_allocated(addr, length);
+		assert_vmm_is_foreign(addr);
 		pmap_remove(vmm_pmap(), addr, round_pagesize_fast(length));
 
 		if (vmm_debugging(5)) {
