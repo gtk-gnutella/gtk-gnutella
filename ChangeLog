@@ -1,3 +1,152 @@
+# v 0.96.7   2010-03-07  [stable]
+
+Bug Fixes:
+- Fixed memory leaks.
+- Do not unduly rewrite fileinfo trailers on restart, messing with the "mtime"
+  filesystem information.
+- We were never forwarding to other ultra nodes queries that did not
+  have a TTL of exactly 1 (severe bug impacting the network).
+- Queries not kept for a local file match were most often dropped and not
+  forwarded (severe bug impacting the network).
+- Corrected detection of largefile support in Configure.
+- Fixed oversight in token validation, to be able to verify older versions.
+- Fixed metaconfig unit for systems without kqueue().
+- PARQ complained about lack of X-Queued header even if HTTP status was not 503.
+- Fixed sending of QUEUE callbacks to avoid hammering remote host, or stopping
+  alltogether at the first timeout detection.
+- Was sometimes failing to reconnect to more nodes after disconnections.
+- Inverted logic was causing repeated UHCs queries when under the minimum
+  amount of peer connections, causing undue traffic.
+- Tigertree verification would sometimes crash and delete the wrong slices
+  after a TTH mismatch.
+- Fixed crashes at shutdown time due to inappropriate dropping of new messages
+  in the message queues.
+- Fixed crashes at shutdown time due to improper checking in the dynamic
+  query cleanup code.
+- Fixed invalid boundary test when server shrinks the requested file chunk.
+- Unfreeze all PARQ entries from the IP after serving a quick slot, or we
+  could have several frozen entries for that IP with no possible escape.
+- Receptions of "GIV" and "QUEUE" were not checking whether the remote address
+  was an hostile one.
+- Changed the Bitzi ticket-requesting URL, as the previous one was no longer
+  responding correctly.
+- Fixed push-proxy support: requests (LIME/21) now only use v1 and acks
+  (LIME/22) only use v2 because this is what LimeWire expects.  GTKG was
+  sending LIME/21v2 which confused LimeWire, in effect disabling the ability
+  of GTKG to act as a push-proxy.
+- GUI node flags were not updated upon reception of a Push Proxy
+  Acknowledgement (indicating the node became one of our push-proxies).
+- Fixed status bar which lost the GTKG URL as soon as a new version was
+  announced.
+- Fixed crash when a compressed connection was closed and had never been
+  given any data to compress.
+- Fixed behaviour on DHT value lookups when the key exists but is not holding
+  the proper value types.
+- Fixed HTTP partial range merging logic.
+- Fixed logic for push-fallback on connection timeouts.
+- Fixed improper GUI status display when connecting to a push-proxy.
+- Could wrongly discard a perfectly good push-proxy.
+- Prevent "found more recent metainfo" warnings at next startup by properly
+  flushing the metainfo database at shutdown time.
+- The "Force push mode" menu entry could have no effect if gtk-gnutella had
+  determined the host did not require a push.
+- Avoid innocuous duplicates in the persisted download file.
+
+Improvements:
+- Better resuming of downloads on session restarts.
+- Increased success rate on downloads from firewalled hosts.
+- Completed support for DHT publishing: DHT is now fully functional.
+- DHT bandwidth usage is now disaplayed in the GUI.
+- Added support for GGEP XQ (eXtended Query) as used by LimeWire for search
+  terms longer than about 30 characters.
+- Try to decipher incorrectly encoded query flags from buggy Shareaza.
+- Parse incorrectly formatted X-Alt header from buggy Shareaza.
+- Implemented PFSP 1.0a: now emits and handles new X-Available header.
+- Added some MIME types and file extension mappings.
+- Added comand-line switch --compile-info to print some information
+  that is hardcoded at compile-time.
+- Persist known TTH roots in magnets.
+- Swapped leaf and ultrapeer slots for GGEP UP in compliance with LimeWire
+  which does not follow the published specification (so we don't either now
+  but we are compliant with the de-facto standard).
+- Will now remove uncompressed ultra connections when full and getting a
+  new compressed one.
+- Whitelist can now support TLS hosts and will refresh DNS mappings regularily.
+- Improved granularity of the background task used to scan the library in
+  order to prevent noticeable processing freezes as much as possible.
+- Redesigned the output of the shell "status" command to show more information
+  and display status flags (shown as icons in the GUI).
+- Added liberal parsing of urn:sha1: and urn:bitprint to cope with clueless
+  sites using hexadecimal instead of base32 to encode the hashes.
+- Added -v option to the shell command "props" to also display values along.
+- Added real shell-like string parsing, and fixed escaping to work correctly.
+- Added the ';' separator to be used to separate mutiple shell commands.
+- Allow crashes and fast assertions "soft" failures to be timestamped.
+- Don't answer to UDP pings from bad nodes, which include "alien" hosts.
+- Loop through the TCP push-proxies more quickly until one can relay our push.
+- Passively revitalize PUSH routes and wakeup starving downloads.
+- Attempt to collect push-proxies passively from relayed query hits.
+- A completed file waiting for being moved accross filesystems will now
+  be flagged as such in the GUI "Downloads" pane.
+- Detect and fix improper 503 HTTP status code replies when 416 was meant
+  (broken HTTP replies from Foxy, Shareaza, and maybe others).
+
+Under the hood:
+- DHT (Distributed Hash Table) is now enabled by default.
+- Reduced blackout period between two DNS server name lookups to 30 minutes.
+- Updated PFSP specifications (partial file sharing) to version 1.0a.
+- More statistics.
+- Always use exact time when logging, not the cached time.
+- Align to LimeWire's settings for DHT expiration and republishing periods.
+- Do not emit any PFSP header when seeding a finished file.
+- Even if bandwidth is tight, force emission of the X-Hostname header under
+  certain circumstances because this information is precious.
+- No longer constantly monitors for unsolicited UDP traffic, which will save
+  precious CPU cycles.
+- Improved malloc tracking by reporting symbolic names in stack frames.
+- Optimized ultrapeer TX compression settings to reduce memory requirements,
+  saving 288 KiB of RAM per Gnutella node connection (leaf or ultra).
+- Increased default amount of ultrapeer connections to 42.
+- Optimized memory footprint of the simple hashtable and allow it to be
+  downsized as well.
+- Consider a HEAD Ping message to be unsolicited UDP traffic.
+- New shell command "memory dump" available when malloc stats compiled in.
+- Some documentation held in SVN cannot be packaged on Debian, so it was
+  moved to a separate directory that is left out from the packaging manifest.
+- SDBM improvements for greater runtime performance and data consistency.
+- Added DHT root node caching (k-closest nodes of a target KUID).
+- Tuned DHT node lookups for more performance.
+- Can now hold the SPAM look-up table in an SDBM database instead of memory.
+- The directory holding "incomplete" files is now lock-protected to prevent
+  two different gtk-gnutella instances from using the same one.
+- Added long-due zone garbage collector, called when gtk-gnutella is "idle".
+- Tuned block size to avoid wasting too many bytes in zones.
+- Improved the virtual memory management layer to limit fragmentation,
+  especially for servents running over long periods of time (weeks).
+- Revised the vitrual memory management page-caching algorithm.
+- Politely deny handshaking with peers presenting an X-Auth-Challenge header
+  or an FP-Auth-Challenge one.
+- Added support for firewalled alternate location collection and propagation
+  through the X-Falt header (requires that the "fwalt/0.1" feature be
+  advertised in X-Features).
+- Added a non-persistent "alien" cache to keep track of IP:port of nodes
+  that do not belong to the Gnutella network.
+- Increased the buffer size of datagram sockets to 32KiB to allow reception of
+  bigger messages: it is not uncommon to get OOB query hits larger than 4KiB.
+- Count (and show) amount of launched SHA-1 and TTH file verifications.
+- Translation updates.
+
+Limitations:
+
+- DHT code is currently sub-optimal for firewalled hosts.
+- Manual bandwidth tuning is currently necessary to allow for efficient
+  DHT usage.  Allow at least 8 Kib/s out, 15 KiB/s out being better.
+  Also increase the lookup bandwidth to 32 KiB/s in and 6 KiB/s out, the
+  defaults of 8 KiB/s in and 2 KiB/s out being very conservative.
+- DHT is enabled by default with a fixed (manually tunable) configuration.
+  There is no auto-tuning and no adaptation to traffic conditions yet.
+  You need to explicitly disable the DHT if you don't want to benefit from it.
+
 # v 0.96.6   2009-03-29  [stable]
 
 Bug Fixes:
