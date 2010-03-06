@@ -5901,8 +5901,11 @@ download_push(struct download *d, gboolean on_timeout)
 
 	udp_push = !booleanize(d->flags & DL_F_UDP_PUSH);
 
+	/*
+	 * Always attempt to broadcast through Gnutella if we have a route
+	 */
+
 	if (download_send_push_request(d, udp_push, TRUE)) {
-		/* Always attempt to broadcast through Gnutella if we have a route */
 		if (udp_push) {
 			d->flags |= DL_F_UDP_PUSH;		/* For next time */
 			return;
