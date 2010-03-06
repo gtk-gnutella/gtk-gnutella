@@ -2181,7 +2181,7 @@ head_ping_is_registered(const struct guid *muid)
 }
 
 /**
- * Send a "HEAD Ping" -- LIME/23v1
+ * Send a "HEAD Ping" -- LIME/23v2
  *
  * This message is used to gather information about an urn:sha1, such as
  * getting more alternate location, or the list of available ranges.
