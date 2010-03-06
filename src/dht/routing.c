@@ -92,6 +92,7 @@ RCSID("$Id$")
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
 #include "lib/map.h"
+#include "lib/patricia.h"
 #include "lib/stats.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -3833,6 +3834,8 @@ dht_route_parse(FILE *f)
 	gboolean done = FALSE;
 	time_delta_t most_recent = REFRESH_PERIOD;
 	time_t now = tm_time();
+	patricia_t *nodes;
+	patricia_iter_t *iter;
 	/* Variables filled for each entry */
 	host_addr_t addr;
 	guint16 port;
@@ -3844,6 +3847,7 @@ dht_route_parse(FILE *f)
 	g_return_if_fail(f);
 
 	bit_array_clear_range(tag_used, 0, NUM_DHT_ROUTE_TAGS);
+	nodes = patricia_create(KUID_RAW_BITSIZE);
 
 	while (fgets(line, sizeof line, f)) {
 		const char *tag_name, *value;
@@ -3957,7 +3961,6 @@ dht_route_parse(FILE *f)
 
 		if (done) {
 			knode_t *kn;
-			knode_t *tkn;
 			time_delta_t delta;
 
 			/*
@@ -3986,14 +3989,9 @@ dht_route_parse(FILE *f)
 			if (!knode_is_usable(kn)) {
 				g_warning("DHT ignoring persisted unusable %s",
 					knode_to_string(kn));
-			} else if ((tkn = dht_find_node(kn->id))) {
-				g_warning("DHT ignoring persisted dup %s (has %s already)",
-					knode_to_string(kn), knode_to_string2(tkn));
 			} else {
-				record_node(kn, FALSE);
+				patricia_insert(nodes, kn->id, kn);
 			}
-
-			knode_free(kn);
 
 			/* Reset state */
 			done = FALSE;
@@ -4005,6 +4003,33 @@ dht_route_parse(FILE *f)
 		g_warning("damaged DHT route entry at line %u, aborting", line_no);
 		break;
 	}
+
+	/*
+	 * Now insert the recorded nodes in topological order, so that
+	 * we fill the closest subtree first and minimize the level of
+	 * splitting in the furthest parts of the tree.
+	 */
+
+	iter = patricia_metric_iterator_lazy(nodes, our_kuid, TRUE);
+
+	while (patricia_iter_has_next(iter)) {
+		knode_t *tkn;
+		knode_t *kn = patricia_iter_next_value(iter);
+		if ((tkn = dht_find_node(kn->id))) {
+			g_warning("DHT ignoring persisted dup %s (has %s already)",
+				knode_to_string(kn), knode_to_string2(tkn));
+		} else {
+			if (!record_node(kn, FALSE)) {
+				/* This can happen when the furthest subtrees are full */
+				if (GNET_PROPERTY(dht_debug)) {
+					g_message("DHT ignored persisted %s", knode_to_string(kn));
+				}
+			}
+		}
+	}
+	patricia_iterator_release(&iter);
+	patricia_foreach(nodes, knode_patricia_free, NULL);
+	patricia_destroy(nodes);
 
 	/*
 	 * If the delta is smaller than half the bucket refresh period, we
