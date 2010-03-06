@@ -371,4 +371,33 @@ knode_free(knode_t *kn)
 	knode_dispose(kn);
 }
 
+/**
+ * PATRICIA iterator callback to free Kademlia nodes
+ */
+void
+knode_patricia_free(gpointer key, size_t u_kbits, gpointer value, gpointer u_d)
+{
+	knode_t *kn = value;
+
+	(void) u_kbits;
+	(void) u_d;
+
+	g_assert(key == kn->id);
+	knode_free(kn);
+}
+
+/**
+ * Map iterator callback to free Kademlia nodes
+ */
+void
+knode_map_free(gpointer key, gpointer value, gpointer unused_u)
+{
+	knode_t *kn = value;
+
+	(void) unused_u;
+
+	g_assert(key == kn->id);
+	knode_free(kn);
+}
+
 /* vi: set ts=4 sw=4 cindent: */

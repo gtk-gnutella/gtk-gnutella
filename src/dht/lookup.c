@@ -337,35 +337,6 @@ free_token(gpointer unused_key, gpointer value, gpointer unused_u)
 }
 
 /**
- * Map iterator callback to free Kademlia nodes
- */
-static void
-free_knode(gpointer key, gpointer value, gpointer unused_u)
-{
-	knode_t *kn = value;
-
-	(void) unused_u;
-
-	g_assert(key == kn->id);
-	knode_free(kn);
-}
-
-/**
- * PATRICIA iterator callback to free Kademlia nodes
- */
-static void
-free_knode_pt(gpointer key, size_t u_kbits, gpointer value, gpointer u_data)
-{
-	knode_t *kn = value;
-
-	(void) u_kbits;
-	(void) u_data;
-
-	g_assert(key == kn->id);
-	knode_free(kn);
-}
-
-/**
  * Destroy a KUID lookup.
  */
 static void
@@ -377,13 +348,13 @@ lookup_free(nlookup_t *nl)
 		lookup_value_free(nl, TRUE);
 
 	map_foreach(nl->tokens, free_token, NULL);
-	patricia_foreach(nl->shortlist, free_knode_pt, NULL);
-	map_foreach(nl->queried, free_knode, NULL);
-	map_foreach(nl->alternate, free_knode, NULL);
-	map_foreach(nl->pending, free_knode, NULL);
-	map_foreach(nl->fixed, free_knode, NULL);
-	patricia_foreach(nl->path, free_knode_pt, NULL);
-	patricia_foreach(nl->ball, free_knode_pt, NULL);
+	patricia_foreach(nl->shortlist, knode_patricia_free, NULL);
+	map_foreach(nl->queried, knode_map_free, NULL);
+	map_foreach(nl->alternate, knode_map_free, NULL);
+	map_foreach(nl->pending, knode_map_free, NULL);
+	map_foreach(nl->fixed, knode_map_free, NULL);
+	patricia_foreach(nl->path, knode_patricia_free, NULL);
+	patricia_foreach(nl->ball, knode_patricia_free, NULL);
 
 	cq_cancel(callout_queue, &nl->expire_ev);
 	cq_cancel(callout_queue, &nl->delay_ev);

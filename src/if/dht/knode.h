@@ -81,6 +81,9 @@ typedef struct knode {
 knode_t *get_our_knode(void);
 
 void knode_free(knode_t *kn);
+void knode_patricia_free(gpointer, size_t, gpointer, gpointer);
+void knode_map_free(gpointer, gpointer, gpointer);
+
 unsigned int knode_hash(gconstpointer key);
 int knode_eq(gconstpointer a, gconstpointer b);
 int knode_seen_cmp(gconstpointer a, gconstpointer b);
