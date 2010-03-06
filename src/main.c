@@ -975,6 +975,7 @@ log_init(void)
 extern char **environ;
 
 enum main_arg {
+	main_arg_compile_info,
 	main_arg_daemonize,
 	main_arg_exec_on_crash,
 	main_arg_geometry,
@@ -988,7 +989,6 @@ enum main_arg {
 	main_arg_shell,
 	main_arg_topless,
 	main_arg_version,
-	main_arg_compile_info,
 
 	/* Passed through for Gtk+/GDK/GLib */
 	main_arg_class,
