@@ -8,7 +8,7 @@
 .\" or simply:
 .\"    nroff -man gtk\-gnutella.man | less -s
 .\"
-.TH GTK\\-GNUTELLA 1 "Mar 2009" Version "0.96.6"
+.TH GTK\\-GNUTELLA 1 "Mar 2010" Version "0.96.7"
 .SH NAME
 gtk\-gnutella \- A Gnutella client for Gtk+
 .SH SYNOPSIS
@@ -16,10 +16,26 @@ gtk\-gnutella \- A Gnutella client for Gtk+
 .SH DESCRIPTION
 .I gtk\-gnutella
 is a GTK+ Gnutella client for Unix. It supports both searching and
-sharing with the 0.6 version of the gnutella protocol and includes
+sharing with the 0.6 version of the Gnutella protocol and includes
 support for numerous protocol improvements and additions that have
 been added to the Gnutella network since.
+.P
+The Gnutella network allows users to search for files and to advertise
+files shared locally, but is not handling file transfers which is done
+through HTTP.  The addition of Gnutella-specific HTTP headers makes each
+Gnutella client a powerful file swarmer where even firewalled hosts can
+contribute.
+.P
+Great care has been devoted into making
+.I gtk\-gnutella
+powerful, efficient and reliable.
 .SH OPTIONS
+.TP
+.B "\-\-compile-info"
+Tell
+.I gtk\-gnutella
+to output a list of variables describing compile-time configuration
+information that was gathered when the program was built.
 .TP
 .B "\-\-daemonize"
 This options causes 
@@ -299,8 +315,8 @@ Yann Grossel wrote the original
 Raphael Manfredi <Raphael_Manfredi@pobox.com> is the current maintainer
 and project leader (since version 0.14, released early September 2001).
 .br
-Richard Eckart <wyldfire@users.sourceforge.net> is actively working
-on GUI issues.
+For support, please contact the developer list, which can be reached
+at <gtk-gnutella-devel@lists.sourceforge.net>.
 .PP
 For a full list of contributors, open the "About" menu.
 .PP

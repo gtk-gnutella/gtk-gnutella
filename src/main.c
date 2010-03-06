@@ -1020,6 +1020,7 @@ static struct {
 #define OPTION(name, type, summary) \
 	{ main_arg_ ## name , #name, summary, ARG_TYPE_ ## type, NULL, FALSE }
 
+	OPTION(compile_info,	NONE, "Display compile-time information."),
 	OPTION(daemonize, 		NONE, "Daemonize the process."),
 	OPTION(exec_on_crash, 	PATH, "Execute a command on crash."),
 	OPTION(geometry,		TEXT, "Placement of the main GUI window."),
@@ -1041,7 +1042,6 @@ static struct {
 	OPTION(topless,			NONE, "Disable the graphical user-interface."),
 #endif	/* USE_TOPLESS */
 	OPTION(version,			NONE, "Show version information."),
-	OPTION(compile_info,	NONE, NULL /* FIXME: Document when stable */),
 
 	/* These are handled by Gtk+/GDK/GLib */
 	OPTION(class,				TEXT, NULL),
