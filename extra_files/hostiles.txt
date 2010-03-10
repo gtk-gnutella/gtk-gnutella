@@ -1800,3 +1800,6 @@
 67.215.64.0/19
 208.69.32.0/21
 
+# Repetritive queries, fishing for leaked documents
+222.149.72.78
+118.236.138.45
