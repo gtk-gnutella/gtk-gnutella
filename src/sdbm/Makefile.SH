@@ -147,6 +147,7 @@ DBU_OBJ = \
 	dbu.o \
 	util.o 
 
+LDFLAGS =
 LIBS = -L. -lsdbm -L../lib -lshared $(GLIB_LDFLAGS) $(COMMON_LIBS)
 
 dbu: libsdbm.a
