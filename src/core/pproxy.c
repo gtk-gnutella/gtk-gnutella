@@ -353,7 +353,7 @@ get_params(struct pproxy *pp, const char *request,
 	uri = is_strprefix(request, "GET");
 	if (!uri)
 		uri = is_strprefix(request, "HEAD");
-	if (!uri) {
+	if (!uri || !is_ascii_blank(uri[0])) {
 		pproxy_error_remove(pp, 501, "Not Implemented");
 		return FALSE;
 	}
