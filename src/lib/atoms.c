@@ -706,6 +706,30 @@ uint64_hash(gconstpointer p)
 }
 
 /**
+ * Test two 64-bit integers for equality, with pointers not necessarily
+ * aligned on 64-bit quantities.
+ *
+ * @return whether both referenced 64-bit integers are equal.
+ */
+int
+uint64_mem_eq(gconstpointer a, gconstpointer b)
+{
+	return a == b || 0 == memcmp(a, b, sizeof(guint64));
+}
+
+/**
+ * Calculate the 32-bit hash of a 64-bit integer whose address is not
+ * necessarily aligned on 64-bit quantities.
+ *
+ * @return the 32-bit hash value for the referenced 64-bit integer.
+ */
+guint
+uint64_mem_hash(gconstpointer p)
+{
+	return binary_hash(p, sizeof(guint64));
+}
+
+/**
  * @return printable form of a filesize_t, as pointer to static data.
  */
 static const char *

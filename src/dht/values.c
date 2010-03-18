@@ -1769,12 +1769,12 @@ values_init(void)
 	db_valuedata = storage_create(db_valwhat, db_valbase,
 		sizeof(guint64), sizeof(struct valuedata), 0,
 		serialize_valuedata, deserialize_valuedata, NULL,
-		VALUES_DB_CACHE_SIZE, uint64_hash, uint64_eq);
+		VALUES_DB_CACHE_SIZE, uint64_mem_hash, uint64_mem_eq);
 
 	db_rawdata = storage_create(db_rawwhat, db_rawbase,
 		sizeof(guint64), DHT_VALUE_MAX_LEN, 0,
 		NULL, NULL, NULL,
-		RAW_DB_CACHE_SIZE, uint64_hash, uint64_eq);
+		RAW_DB_CACHE_SIZE, uint64_mem_hash, uint64_mem_eq);
 
 	db_expired = storage_create(db_expwhat, db_expbase,
 		2 * KUID_RAW_SIZE, 0, 0,

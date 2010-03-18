@@ -957,7 +957,7 @@ roots_init_rootinfo(void)
 			(unsigned) count, 1 == count ? "" : "s");
 	}
 
-	ctx.dbkeys = g_hash_table_new(uint64_hash, uint64_eq);
+	ctx.dbkeys = g_hash_table_new(uint64_mem_hash, uint64_mem_eq);
 	ctx.orphans = 0;
 
 	dbmw_foreach_remove(db_rootdata, recreate_ri, &ctx);
@@ -1006,7 +1006,7 @@ roots_init(void)
 		sizeof(guint64), sizeof(struct contact),
 			sizeof(struct contact) + KUID_RAW_SIZE,
 		serialize_contact, deserialize_contact, free_contact,
-		CONTACT_DB_CACHE_SIZE, uint64_hash, uint64_eq);
+		CONTACT_DB_CACHE_SIZE, uint64_mem_hash, uint64_mem_eq);
 
 	dbmw_set_map_cache(db_contact, CONTACT_MAP_CACHE_SIZE);
 

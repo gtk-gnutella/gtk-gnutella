@@ -201,6 +201,8 @@ guint guid_hash(gconstpointer key);
 int guid_eq(gconstpointer a, gconstpointer b);
 guint uint64_hash(gconstpointer key);
 int uint64_eq(gconstpointer a, gconstpointer b);
+guint uint64_mem_hash(gconstpointer key);
+int uint64_mem_eq(gconstpointer a, gconstpointer b);
 guint binary_hash(gconstpointer key, size_t len);
 guint uint32_hash(gconstpointer key);
 int uint32_eq(gconstpointer a, gconstpointer b);
