@@ -917,7 +917,7 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 	now = tm_time_exact();
 	ct = localtime(&now);
 
-	switch (level) {
+	switch (level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL)) {
 #define CASE(x) case CAT2(G_LOG_LEVEL_,x): prefix = #x; break;
 
 	CASE(CRITICAL)
@@ -931,11 +931,19 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 		prefix = "UNKNOWN";
 	}
 
-	safer = control_escape(message);
+	if (level & G_LOG_FLAG_RECURSION) {
+		/* Probably logging from memory allocator, string should be safe */
+		safer = deconstify_gpointer(message);
+	} else {
+		safer = control_escape(message);
+	}
 
-	fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s): %s\n",
+	fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n",
 		(TM_YEAR_ORIGIN + ct->tm_year) % 100, ct->tm_mon + 1, ct->tm_mday,
-		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix, safer);
+		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
+		(level & G_LOG_FLAG_RECURSION) ? " (recursive)" : "",
+		(level & G_LOG_FLAG_FATAL) ? " (FATAL)" : "",
+		safer);
 
 	if (safer != message) {
 		HFREE_NULL(safer);
@@ -966,6 +974,7 @@ log_init(void)
 
 	for (i = 0; i < G_N_ELEMENTS(log_domains); i++) {
 		g_log_set_handler(log_domains[i],
+			G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL |
 			G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING |
 			G_LOG_LEVEL_MESSAGE | G_LOG_LEVEL_INFO | G_LOG_LEVEL_DEBUG,
 			log_handler, NULL);
