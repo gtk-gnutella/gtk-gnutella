@@ -562,10 +562,15 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 					g_message("VMM marked hint 0x%lx as foreign",
 						(unsigned long) hint);
 				}
-			} else {
+			} else if (
+				ptr_cmp(hint, ptr_add_offset(p, size)) >= 0 ||
+				ptr_cmp(hint, p) < 0
+			) {
 				void *try;
 
 				/*
+				 * The hint address is not included in the allocted segment.
+				 *
 				 * Try allocating a single page at the hint location, and
 				 * if we don't succeed, we can mark it as foreign.  If
 				 * we succeed and we were previously trying to allocate
@@ -605,6 +610,13 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 						g_warning("VMM cannot allocate one page at 0x%lx: %s",
 							(unsigned long) hint, g_strerror(errno));
 					}
+				}
+			} else {
+				if (vmm_debugging(0)) {
+					g_message("VMM hint 0x%lx fell within allocated "
+						"[0x%lx, 0x%lx]",
+						(unsigned long) hint, (unsigned long) p,
+						(unsigned long) ptr_add_offset(p, size - 1));
 				}
 			}
 		}
