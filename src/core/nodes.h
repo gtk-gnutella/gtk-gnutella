@@ -120,7 +120,7 @@ typedef struct gnutella_node {
 	guint8 qrp_minor;			/**< Query routing protocol minor number */
 	guint8 uqrp_major;			/**< UP Query routing protocol major number */
 	guint8 uqrp_minor;			/**< UP Query routing protocol minor number */
-	const char *vendor;		/**< Vendor information (always UTF-8) */
+	const char *vendor;			/**< Vendor information (always UTF-8) */
 	vendor_code_t vcode;		/**< Vendor code (vcode.u32 == 0 if unknown) */
 	gpointer io_opaque;			/**< Opaque I/O callback information */
 
@@ -131,7 +131,7 @@ typedef struct gnutella_node {
 	guint16 size; /**< How many bytes we need to read for the current message */
 	guint16 header_flags;		/**< Header flags (new message architecture) */
 
-	char *data;				/**< data of the current message */
+	char *data;					/**< data of the current message */
 	guint32 pos;				/**< write position in data */
 
 	gnet_node_state_t status;	/**< See possible values below */
