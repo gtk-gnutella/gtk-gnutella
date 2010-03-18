@@ -64,7 +64,7 @@ RCSID("$Id$")
 #include "lib/override.h"	/* Must be the last header included */
 
 #define THEX_DOWNLOAD_DEFAULT_SIZE	4096	/* Default data buffer size */
-#define THEX_DOWNLOAD_MAX_SIZE		(256 * 1024)	/* 256 KiB */
+#define THEX_DOWNLOAD_MAX_SIZE		(260 * 1024)	/* 256 KiB + overhead */
 
 struct thex_download {
 	gpointer owner;					/**< Download owning us */
@@ -73,6 +73,7 @@ struct thex_download {
 	char *data;						/**< Where payload data is stored */
 	size_t data_size;				/**< Size of data buffer */
 	size_t pos;						/**< Reading position */
+	size_t max_size;				/**< Max size we'll read */
 	const struct sha1 *sha1;		/**< SHA1 atom; refers to described file */
 	const struct tth *tth;			/**< TTH atom; refers to described file */
 	struct tth *leaves;				/**< g_memdup()ed leave TTHs */
@@ -148,7 +149,7 @@ thex_download_data_read(struct thex_download *ctx, pmsg_t *mb)
 	g_assert(ctx->pos <= ctx->data_size);
 
 	while ((size = pmsg_size(mb)) > 0) {
-		if (ctx->pos + size > THEX_DOWNLOAD_MAX_SIZE)
+		if (ctx->pos + size > ctx->max_size)
 			return TRUE;
 
 		if (size > ctx->data_size - ctx->pos) {
@@ -333,7 +334,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 		error |= ctx->depth > tt_full_depth(ctx->filesize);
 		if (error) {
 			ctx->depth = 0;
-			g_message("Bad value for \"depth\" of node \"%s\": \"%s\"",
+			g_message("TTH bad value for \"depth\" of node \"%s\": \"%s\"",
 				node->name, value);
 		}
 		xml_string_free(&value);
@@ -660,17 +661,18 @@ static const struct rx_inflate_cb thex_rx_inflate_cb = {
 };
 
 /**
- * Prepare reception of query hit data by building an appropriate RX stack.
+ * Prepare reception of THEX data by building an appropriate RX stack.
  *
  * @return TRUE if we may continue with the download.
  */
 gboolean
 thex_download_receive(struct thex_download *ctx,
+	filesize_t content_length,
 	gnet_host_t *host, struct wrap_io *wio, guint32 flags)
 {
 	g_assert(ctx != NULL);
 
-	ctx->host = *host;			/* Struct copy */
+	ctx->host = *host;				/* Struct copy */
 
 	/*
 	 * Freeing of the RX stack must be asynchronous: each time we establish
@@ -683,6 +685,20 @@ thex_download_receive(struct thex_download *ctx,
 		rx_free(ctx->rx);
 		ctx->rx = NULL;
 	}
+
+	/*
+	 * If there is a Content-Length indication in the HTTP reply, it is
+	 * supplied here and will be used as a limit of the data we'll read.
+	 *
+	 * If there was none (for instance if the output is chunked), then 0
+	 * is given and we'll use a hardwired maximum.
+	 */
+
+	if (content_length > MAX_INT_VAL(size_t))
+		return FALSE;
+
+	ctx->max_size = content_length ?
+		(size_t) content_length : THEX_DOWNLOAD_MAX_SIZE;
 
 	{
 		struct rx_link_args args;

@@ -10020,6 +10020,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	const char *ack_message = "";
 	const char *buf;
 	gboolean got_content_length = FALSE;
+	filesize_t content_length = 0;
 	gboolean is_chunked;
 	gboolean must_ignore;
 	http_content_encoding_t content_encoding;
@@ -10819,6 +10820,7 @@ http_version_nofix:
 		int error;
 
 		content_size = parse_uint64(buf, NULL, 10, &error);
+		content_length = content_size;
 
 		if (
 			!error &&
@@ -11092,7 +11094,10 @@ http_version_nofix:
 			flags |= THEX_DOWNLOAD_F_CHUNKED;
 		}
 
-		if (!thex_download_receive(d->thex, &host, &d->socket->wio, flags)) {
+		if (
+			!thex_download_receive(d->thex, content_length,
+				&host, &d->socket->wio, flags)
+		) {
 			download_stop(d, GTA_DL_ERROR, _("THEX download aborted"));
 			return;
 		}
