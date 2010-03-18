@@ -833,7 +833,6 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 
 	for (i = 0; i < rs->count; i++) {
 		lookup_val_rc_t *rc = &rs->records[i];
-	g_assert(DHT_VT_PROX == rc->type);
 		switch (rc->type) {
 		case DHT_VT_PROX:
 			prox = TRUE;
