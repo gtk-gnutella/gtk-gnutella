@@ -543,8 +543,9 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 * got mapped at the place where we thought there was nothing...
 		 *
 		 * Reload the current kernel pmap if we're able to do so, otherwise
-		 * mark the page at the selected hint as "foreign" so that we never
-		 * attempt to select it again, provided we asked for a single page.
+		 * see whether we can mark something as "foreign" in the VM space so
+		 * that we avoid further attempts at the same location for blocks
+		 * of similar sizes.
 		 */
 
 		if (vmm_pmap() == &kernel_pmap) {
@@ -554,8 +555,58 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 			}
 			pmap_load(&kernel_pmap);
 			vmm_reserve_stack(0);
-		} else if (!local_pmap.extending && size <= kernel_pagesize) {
-			pmap_insert_foreign(&local_pmap, hint, kernel_pagesize);
+		} else if (!local_pmap.extending) {
+			if (size <= kernel_pagesize) {
+				pmap_insert_foreign(&local_pmap, hint, kernel_pagesize);
+				if (vmm_debugging(0)) {
+					g_message("VMM marked hint 0x%lx as foreign",
+						(unsigned long) hint);
+				}
+			} else {
+				void *try;
+
+				/*
+				 * Try allocating a single page at the hint location, and
+				 * if we don't succeed, we can mark it as foreign.  If
+				 * we succeed and we were previously trying to allocate
+				 * exactly two pages, then we know the next page is foreign.
+				 */
+
+				try = mmap(hint, kernel_pagesize,
+						PROT_READ | PROT_WRITE, flags, fd, 0);
+
+				if (try != MAP_FAILED) {
+					if (try != hint) {
+						pmap_insert_foreign(&local_pmap, hint, kernel_pagesize);
+						if (vmm_debugging(0)) {
+							g_message("VMM marked hint 0x%lx as foreign",
+								(unsigned long) hint);
+						}
+					} else if (2 == pagecount_fast(size)) {
+						void *next = ptr_add_offset(hint, kernel_pagesize);
+						pmap_insert_foreign(&local_pmap, next, kernel_pagesize);
+						if (vmm_debugging(0)) {
+							g_message("VMM marked 0x%lx (page after 0x%lx) "
+								"as foreign",
+								(unsigned long) next, (unsigned long) hint);
+						}
+					} else {
+						if (vmm_debugging(1)) {
+							g_message("VMM hinted 0x%lx is not a foreign page",
+								(unsigned long) hint);
+						}
+					}
+					if (0 != munmap(try, kernel_pagesize)) {
+						g_warning("VMM cannot free single page at 0x%lx: %s",
+							(unsigned long) try, g_strerror(errno));
+					}
+				} else {
+					if (vmm_debugging(0)) {
+						g_warning("VMM cannot allocate one page at 0x%lx: %s",
+							(unsigned long) hint, g_strerror(errno));
+					}
+				}
+			}
 		}
 	} else if (hint != NULL) {
 		hint_followed++;
