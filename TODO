@@ -1,10 +1,8 @@
 This documents describes briefly the things we want to have in gtk-gnutella 
 and which are not already implemented in SVN.
 
-0.97:	
-	* Full DHT publishing
-
-0.97.1:
+0.96.9
+	* Full DHT GUI configuration / feedback.
 	* Area-specific logging?
 	* Disk space monitoring
 	* Firewalled to firewalled transfers (when LimeWire publishes specs)
