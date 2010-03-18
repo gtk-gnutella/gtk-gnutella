@@ -143,6 +143,7 @@ struct pmap {
 	size_t generation;				/**< Reloading generation number */
 	unsigned loading:1;				/**< Pmap being loaded */
 	unsigned resized:1;				/**< Pmap has been resized */
+	unsigned extending:1;			/**< Pmap being extended */
 };
 
 /**
@@ -172,10 +173,11 @@ vmm_pmap(void)
 }
 
 static void page_cache_insert_pages(void *base, size_t n);
-static void pmap_remove(struct pmap *pm, void *p, size_t size);
+static void pmap_remove(struct pmap *pm, const void *p, size_t size);
 static void pmap_load(struct pmap *pm);
 static void pmap_insert_region(struct pmap *pm,
 	const void *start, size_t size, gboolean foreign);
+static void pmap_overrule(struct pmap *pm, const void *p, size_t size);
 static void vmm_reserve_stack(size_t amount);
 
 static void
@@ -348,7 +350,7 @@ vmm_find_hole(size_t size)
 	struct pmap *pm = vmm_pmap();
 	size_t i;
 
-	if (pm == &local_pmap || 0 == pm->count || pm->loading)
+	if (0 == pm->count || pm->loading)
 		return NULL;
 
 	if (kernel_mapaddr_increasing) {
@@ -404,7 +406,7 @@ vmm_first_hole(const void **hole_ptr)
 	struct pmap *pm = vmm_pmap();
 	size_t i;
 
-	if (pm == &local_pmap || 0 == pm->count)
+	if (0 == pm->count)
 		return 0;
 
 	if (kernel_mapaddr_increasing) {
@@ -479,6 +481,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 {
 	static int flags, failed, fd = -1;
 	void *hint, *p;
+	static guint64 hint_followed;
 
 	if (failed)
 		return NULL;
@@ -514,10 +517,26 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 	} else if (hint != NULL && p != hint) {
 		if (vmm_debugging(0)) {
 			g_warning("VMM kernel did not follow hint 0x%lx for %luKiB region, "
-				"picked 0x%lx",
+				"picked 0x%lx (after %lu followed hint%s)",
 				(unsigned long) hint, (unsigned long) (size / 1024),
-				(unsigned long) p);
+				(unsigned long) p, (unsigned long) hint_followed,
+				hint_followed == 1 ? "" : "s");
 		}
+
+		hint_followed = 0;
+
+		/*
+		 * Because the hint was not followed and we're not dealing with
+		 * "foreign" memory here, we have to over-rule any chunk of the map
+		 * space that we could have declared as "foreign" and which would
+		 * overlap the space we just mapped.
+		 *
+		 * This can happen when we declared "foreign" some pages because
+		 * our past allocations at these hinted spots failed, but for some
+		 * reason the memory was released and we could not notice it.
+		 */
+
+		pmap_overrule(vmm_pmap(), p, size);
 
 		/*
 		 * Kernel did not use our hint, maybe it was wrong because something
@@ -525,7 +544,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 *
 		 * Reload the current kernel pmap if we're able to do so, otherwise
 		 * mark the page at the selected hint as "foreign" so that we never
-		 * attempt to select it again.
+		 * attempt to select it again, provided we asked for a single page.
 		 */
 
 		if (vmm_pmap() == &kernel_pmap) {
@@ -535,9 +554,11 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 			}
 			pmap_load(&kernel_pmap);
 			vmm_reserve_stack(0);
-		} else {
-			pmap_insert_foreign(vmm_pmap(), hint, kernel_pagesize);
+		} else if (!local_pmap.extending && size <= kernel_pagesize) {
+			pmap_insert_foreign(&local_pmap, hint, kernel_pagesize);
 		}
+	} else if (hint != NULL) {
+		hint_followed++;
 	}
 	return p;
 }
@@ -674,7 +695,8 @@ free_pages(void *p, size_t size, gboolean update_pmap)
  * Lookup address within the pmap.
  *
  * If ``low_ptr'' is non-NULL, it is written with the index where insertion
- * of a new item should happen (in which case the returned value must be NULL).
+ * of a new item should happen (in which case the returned value must be NULL)
+ * or with the index of the found fragment within the pmap.
  *
  * @return found fragment if address lies within the fragment, NULL if
  * no fragment containing the address was found.
@@ -684,12 +706,11 @@ pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 {
 	size_t low = 0, high = pm->count - 1;
 	struct vm_fragment *item;
+	size_t mid;
 
 	/* Binary search */
 
 	for (;;) {
-		size_t mid;
-
 		if (low > high || high > SIZE_MAX / 2) {
 			item = NULL;		/* Not found */
 			break;
@@ -709,7 +730,7 @@ pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 	}
 
 	if (low_ptr != NULL)
-		*low_ptr = low;
+		*low_ptr = (item == NULL) ? low : mid;
 
 	return item;
 }
@@ -745,6 +766,7 @@ pmap_extend(struct pmap *pm)
 	size_t osize;
 	void *oarray;
 	size_t old_generation;
+	gboolean was_extending = pm->extending;
 
 retry:
 
@@ -753,11 +775,14 @@ retry:
 	old_generation = vmm_pmap()->generation;
 
 	if (vmm_debugging(0)) {
-		g_message("VMM extending %s%s pmap from %lu KiB to %lu KiB",
+		g_message("VMM extending %s%s%s pmap from %lu KiB to %lu KiB",
+			pm->extending ? "(recursively) " : "",
 			pm->loading ? "loading " : "",
 			pm == &kernel_pmap ? "kernel" : "local",
 			(unsigned long) osize / 1024, (unsigned long) nsize / 1024);
 	}
+
+	pm->extending = TRUE;
 
 	/*
 	 * It is possible to recursively enter here through alloc_pages() when
@@ -809,6 +834,9 @@ retry:
 	pm->size = nsize / sizeof pm->array[0];
 	memcpy(narray, oarray, osize);
 	pm->array = narray;
+	if (!was_extending) {
+		pm->extending = FALSE;
+	}
 
 	/*
 	 * Freeing could update the pmap we've been extending.
@@ -1543,7 +1571,7 @@ pmap_remove_whole_region(struct pmap *pm, const void *p, size_t size)
  * Remove region from the pmap, which can create a new fragment.
  */
 static void
-pmap_remove(struct pmap *pm, void *p, size_t size)
+pmap_remove(struct pmap *pm, const void *p, size_t size)
 {
 	struct vm_fragment *vmf = pmap_lookup(pm, p, NULL);
 
@@ -1589,6 +1617,117 @@ pmap_remove(struct pmap *pm, void *p, size_t size)
 		if (vmm_debugging(0)) {
 			g_warning("VMM %luKiB region at 0x%lx missing from pmap",
 				(unsigned long) size / 1024, (unsigned long) p);
+		}
+	}
+}
+
+/**
+ * Forcefully remove a foreign region from the pmap (``size'' bytes starting
+ * at ``p''), belonging to a given foreign fragment.
+ */
+static void
+pmap_remove_foreign(struct pmap *pm, struct vm_fragment *vmf,
+	const void *p, size_t size)
+{
+	const void *end = const_ptr_add_offset(p, size);
+	const void *vend;
+
+	g_assert(vmf != NULL);
+	g_assert(vmf_is_foreign(vmf));
+	g_assert(size_is_positive(size));
+
+	vend = vmf_end(vmf);
+
+	g_assert(ptr_cmp(vmf->start, p) <= 0);
+	g_assert(ptr_cmp(p, vend) < 0);
+	g_assert(ptr_cmp(vmf->start, end) <= 0);
+	g_assert(ptr_cmp(end, vend) <= 0);
+
+	if (vmm_debugging(0)) {
+		g_warning("VMM forgetting foreign %luKiB region at 0x%lx in pmap",
+			(unsigned long) size / 1024, (unsigned long) p);
+	}
+
+	if (p == vmf->start) {
+		if (end == vend) {
+			pmap_remove_whole_region(pm, p, size);
+		} else {
+			vmf->start = end;			/* Known fragment reduced */
+		}
+	} else {
+		vmf_set_end(vmf, p, TRUE);
+
+		if (end != vend) {
+			/* Insert trailing part back as a foreign region */
+			pmap_insert_foreign(pm, end, ptr_diff(vend, end));
+		}
+	}
+}
+
+/**
+ * Kernel may have overruled our foreign region accounting by allocating
+ * ``size'' bytes starting at ``p''.  Make sure we remove all foreign pages
+ * in this space.
+ */
+static void
+pmap_overrule(struct pmap *pm, const void *p, size_t size)
+{
+	const void *base = p;
+	size_t remain = size;
+
+	while (size_is_positive(remain)) {
+		size_t idx;
+		struct vm_fragment *vmf = pmap_lookup(pm, base, &idx);
+		size_t len;
+
+		g_assert(size_is_non_negative(idx));
+
+		if (NULL == vmf) {
+			const void *end = const_ptr_add_offset(base, remain);
+			const void *vend;
+			size_t gap;
+
+			/* ``base'' does not belong to any known region, ``idx'' is next */
+
+			if (idx >= pm->count)
+				break;
+
+			vmf = &pm->array[idx];
+			vend = vmf_end(vmf);
+
+			if (ptr_cmp(end, vmf->start) <= 0)
+				return;		/* Next region starts after our target */
+
+			/* We have an overlap with region in ``vmf'' */
+
+			g_assert(vmf_is_foreign(vmf));
+
+			gap = ptr_diff(vmf->start, base);
+			g_assert(size_is_positive(gap));
+			g_assert(gap <= remain);
+
+			remain -= gap;
+			base = vmf->start;
+
+			/* FALL THROUGH */
+		}
+
+		/*
+		 * We have to remove ``remain'' bytes starting at ``base''.
+		 */
+
+		len = ptr_diff(vmf_end(vmf), base);		/* From base to end of region */
+
+		g_assert(vmf_is_foreign(vmf));
+		g_assert(size_is_positive(len));
+
+		if (len <= remain) {
+			pmap_remove_foreign(pm, vmf, base, len);
+			base = const_ptr_add_offset(base, len);
+			remain -= len;
+		} else {
+			pmap_remove_foreign(pm, vmf, base, remain);
+			break;
 		}
 	}
 }
