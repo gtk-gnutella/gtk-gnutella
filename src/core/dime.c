@@ -206,6 +206,43 @@ dime_create_record(const struct dime_record *record,
 /***
  *** Parsing
  ***/
+
+/**
+ * Report truncated record.
+ */
+static void
+dime_log_truncated_record(const char *name, const struct dime_record *header,
+	size_t announced, size_t real)
+{
+	const char *type;
+
+	switch (header->type_t) {
+	case 0x00:	type = "unchanged"; break;
+	case 0x01:	type = "media-type"; break;
+	case 0x02:	type = "absolute URI"; break;
+	case 0x03:	type = "unknown"; break;
+	case 0x04:	type = "none"; break;
+	default:	type = "reserved"; break;
+	}
+
+	g_warning("dime_parse_record_header(): truncated %s "
+		"in \"%s\" record%s%s%s: "
+		"announced %lu (padded to %lu), got only %lu byte%s left",
+		name, type,
+		(header->flags & DIME_F_MB) ? " [MB]" : "",
+		(header->flags & DIME_F_ME) ? " [ME]" : "",
+		(header->flags & DIME_F_CF) ? " [CF]" : "",
+		(unsigned long) announced, (unsigned long) dime_ceil(announced),
+		(unsigned long) real, 1 == real ? "" : "s");
+}
+
+/**
+ * Parse ``size'' bytes starting at ``data''  and fill-in the information
+ * about the next record in ``header''.
+ *
+ * @return the length of the record successfully parsed, 0 on error (since
+ * the minimal amount of bytes for an empty record would be DIME_HEADER_SIZE).
+ */
 static size_t
 dime_parse_record_header(const char *data, size_t size,
 	struct dime_record *header)
@@ -245,7 +282,8 @@ dime_parse_record_header(const char *data, size_t size,
 
 	n = dime_ceil(header->options_length);
 	if (size < n) {
-		g_warning("dime_parse_record_header(): Truncated options");
+		dime_log_truncated_record("options",
+			header, header->options_length, size);
 		goto failure;
 	}
 	size -= n;
@@ -254,7 +292,7 @@ dime_parse_record_header(const char *data, size_t size,
 
 	n = dime_ceil(header->id_length);
 	if (size < n) {
-		g_warning("dime_parse_record_header(): Truncated ID");
+		dime_log_truncated_record("ID", header, header->id_length, size);
 		goto failure;
 	}
 	size -= n;
@@ -263,7 +301,7 @@ dime_parse_record_header(const char *data, size_t size,
 
 	n = dime_ceil(header->type_length);
 	if (size < n) {
-		g_warning("dime_parse_record_header(): Truncated Type");
+		dime_log_truncated_record("type", header, header->type_length, size);
 		goto failure;
 	}
 	size -= n;
@@ -272,7 +310,7 @@ dime_parse_record_header(const char *data, size_t size,
 
 	n = dime_ceil(header->data_length);
 	if (size < n) {
-		g_warning("dime_parse_record_header(): Truncated Data");
+		dime_log_truncated_record("data", header, header->data_length, size);
 		goto failure;
 	}
 	size -= n;
