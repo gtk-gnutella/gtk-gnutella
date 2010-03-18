@@ -2647,7 +2647,7 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 			g_message("successfully sent BYE %d \"%s\" to %s (%s)",
 				code, n->error_str, node_addr(n), node_vendor(n));
 
-			if (n->socket != NULL) {
+			if (n->socket != NULL && !socket_uses_tls(n->socket)) {
 				/* Socket could have been nullified on a write error */
 				socket_tx_shutdown(n->socket);
 			}
@@ -7802,7 +7802,15 @@ node_bye_sent(struct gnutella_node *n)
 
 	n->flags &= ~NODE_F_BYE_SENT;
 
-	socket_tx_shutdown(n->socket);
+	/*
+	 * Do not shutdown the TX side with TLS since we don't know whether
+	 * the TLS layer will have to still exchange data with the other TLS
+	 * stack.
+	 */
+
+	if (!socket_uses_tls(n->socket)) {
+		socket_tx_shutdown(n->socket);
+	}
 	node_shutdown_mode(n, BYE_GRACE_DELAY);
 }
 
