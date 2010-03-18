@@ -771,7 +771,7 @@ handle_push_request(struct gnutella_node *n)
 	 */
 
 	if (NODE_IS_UDP(n) && ctl_limit(n->addr, CTL_D_UDP | CTL_D_INCOMING)) {
-		gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+		gnet_stats_count_dropped(n, MSG_DROP_LIMIT);
 		return;
 	}
 
@@ -786,7 +786,7 @@ handle_push_request(struct gnutella_node *n)
 	port = peek_le16(&info[8]);
 
 	if (ctl_limit(ha, CTL_D_INCOMING)) {
-		gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+		gnet_stats_count_dropped(n, MSG_DROP_LIMIT);
 		return;
 	}
 

@@ -7430,7 +7430,7 @@ hostile_check:
 				gip_country_cc(s->addr));
 		}
 
-		gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+		gnet_stats_count_dropped(n, MSG_DROP_LIMIT);
 		return;
 	}
 

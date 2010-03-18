@@ -69,6 +69,7 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Improper hops/ttl combination"), /**< MSG_DROP_IMPROPER_HOPS_TTL */
 		N_("Max TTL exceeded"),				 /**< MSG_DROP_MAX_TTL_EXCEEDED */
 		N_("Message throttle"),				 /**< MSG_DROP_THROTTLE */
+		N_("Message matched limits"),		 /**< MSG_DROP_LIMIT */
 		N_("Unusable Pong"),				 /**< MSG_DROP_PONG_UNUSABLE */
 		N_("Hard TTL limit reached"),		 /**< MSG_DROP_HARD_TTL_LIMIT */
 		N_("Max hop count reached"),		 /**< MSG_DROP_MAX_HOP_COUNT */
