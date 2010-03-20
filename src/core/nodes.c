@@ -9372,6 +9372,13 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 		(DHT_VALUE_NOPE_EXPIRE - (5*60)) * 1000, node_publish_dht_nope, n);
 
 	/*
+	 * If the DHT is disabled, try later.
+	 */
+
+	if (!dht_enabled())
+		return;
+
+	/*
 	 * If for some reason we don't have a proper GUID for the node, don't
 	 * publish anything yet.  We'll retry again in DHT_VALUE_NOPE_EXPIRE secs.
 	 */
