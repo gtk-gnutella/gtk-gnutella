@@ -258,6 +258,7 @@ poke_le64(gpointer p, guint64 v)
 	defined(__ppc__) || \
 	defined(__sh__) || \
 	defined(__sparc__) || \
+	defined(__sparc) || \
 	defined(__x86_64__)
 #define FLOAT_USES_IEEE754
 #else
