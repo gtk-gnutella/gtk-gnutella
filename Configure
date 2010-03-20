@@ -7560,7 +7560,7 @@ END {
 	}
 }
 EOC
-gtkgversion=`$awk -f ./ver "$rsrc/src/common.h"`
+gtkgversion=`$awk -f ./ver "$rsrc/src/gtk-gnutella.h"`
 echo "(You have version $gtkgversion.)"
 $rm -f ver
 
