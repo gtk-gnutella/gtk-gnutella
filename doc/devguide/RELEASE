@@ -12,10 +12,9 @@ Before releasing, double check that:
   with the date (timestamp) listed in the token_keys[] array being accurate.
   Generate new keys with this:
 
-	dd if=/dev/random count=1 | od -x | awk '{
+	dd if=/dev/urandom | od -x | awk '{
 		printf("\t\042%s %s %s %s %s %s %s %s\042,\n",
-			      $2,$3,$4,$5,$6,$7,$8,$9) }' | head -n 22
-
+			$2,$3,$4,$5,$6,$7,$8,$9) }' | head -n 28
 
 Release steps
 -------------
@@ -41,16 +40,16 @@ Release steps
 
 2a. Update the version number at the top of src/gtk-gnutella.man
 
-   Check the man-page to see if there are no user-visible changes such
+   Check the man-page to see if there are any user-visible changes such
    as command line options that must be described there.
 
-3. Edit src/common.h and setup for the release:
+3. Edit src/gtk-gnutella.h and setup for the release:
 
    #define GTA_REVISION "stable"
    #define GTA_REVCHAR ""
    #define GTA_RELEASE "2002-10-19"
 
-4. Commit ChangeLog and src/common.h with comment:
+4. Commit ChangeLog and src/gtk-gnutella.h with comment:
 
 	"Release 0.91 stable."
 
@@ -58,7 +57,7 @@ Release steps
 
 	TZ=UTC LC_ALL=C date +'%a, %e %b %Y %H:%M:%S %z'
 
-6. Make sure MANIFEST doesn't list any files considered unfree by debian,
+6. Make sure MANIFEST doesn't list any files considered unfree by Debian,
    for example, RFCs and other copyrighted documentation.
 
 7. From the "top directory", run:
