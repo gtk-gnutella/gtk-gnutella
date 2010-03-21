@@ -198,6 +198,7 @@ more=''
 msgfmt=''
 msgmerge=''
 mv=''
+nawk=''
 nm=''
 nroff=''
 perl=''
@@ -1533,6 +1534,7 @@ gmsgfmt
 ln
 msgfmt
 msgmerge
+nawk
 nm
 nroff
 test
@@ -7560,7 +7562,7 @@ END {
 	}
 }
 EOC
-gtkgversion=`$awk -f ./ver "$rsrc/src/gtk-gnutella.h"`
+gtkgversion=`${nawk:-$awk} -f ./ver "$rsrc/src/gtk-gnutella.h"`
 echo "(You have version $gtkgversion.)"
 $rm -f ver
 
@@ -9366,6 +9368,7 @@ mydomain='$mydomain'
 myhostname='$myhostname'
 myuname='$myuname'
 n='$n'
+nawk='$nawk'
 nm='$nm'
 nm_opt='$nm_opt'
 nm_so_opt='$nm_so_opt'

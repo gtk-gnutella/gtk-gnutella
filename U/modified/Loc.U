@@ -64,7 +64,7 @@
 ?MAKE:Loc awk ar bash bison byacc cat chgrp chmod chown \
 	comm compress cp cpio cpp csh date echo egrep emacs expr find flex \
 	gcc gzip grep inews ksh less line lint ln lp lpr ls mail mailx \
-	make mkdir more mv nm nroff perl pg pmake pr rm rmail sed sendmail \
+	make mkdir more mv nawk nm nroff perl pg pmake pr rm rmail sed sendmail \
 	shar sleep smail sort submit tail tar tbl test touch tr troff \
 	gmsgfmt msgfmt msgmerge xgettext \
 	uname uniq uuname vi zcat zip:  eunicefix n c Instruct Myread \
@@ -73,7 +73,7 @@
 ?LINT:describe awk ar bash bison byacc cat chgrp chmod chown \
 	comm compress cp cpio cpp csh date echo egrep emacs expr find flex \
 	gcc gzip grep inews ksh less line lint ln lp lpr ls mail mailx \
-	make mkdir more mv nm nroff perl pg pmake pr rm rmail sed sendmail \
+	make mkdir more mv nawk nm nroff perl pg pmake pr rm rmail sed sendmail \
 	shar sleep smail sort submit tail tar tbl test touch tr troff \
 	gmsgfmt msgfmt msgmerge xgettext \
 	uname uniq uuname vi zcat zip
@@ -184,6 +184,7 @@ trylist="
 ?more:more
 ?msgfmt:msgfmt
 ?msgmerge:msgmerge
+?nawk:nawk
 ?nm:nm
 ?nroff:nroff
 ?perl:perl
@@ -209,7 +210,7 @@ trylist="
 ?LINT:set awk ar bash bison byacc cat chgrp chmod chown \
 	comm compress cp cpio cpp csh date echo emacs expr find flex \
 	gcc gzip grep inews ksh less line lint lp lpr ls mail mailx \
-	make mkdir more mv nm nroff perl pg pmake pr rm rmail sed sendmail \
+	make mkdir more mv nawk nm nroff perl pg pmake pr rm rmail sed sendmail \
 	shar sleep smail sort submit tail tar tbl touch tr troff \
 	msgfmt msgmerge \
 	uname uniq uuname vi zcat zip

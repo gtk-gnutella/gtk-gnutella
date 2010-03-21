@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:gtkgversion: awk cat rm rsrc
+?MAKE:gtkgversion: awk nawk cat rm rsrc
 ?MAKE:	-pick add $@ %<
 ?S:gtkgversion:
 ?S:	The version of gtk-gnutella we're compiling.
@@ -25,7 +25,8 @@ END {
 	}
 }
 EOC
-gtkgversion=`$awk -f ./ver "$rsrc/src/gtk-gnutella.h"`
+?X: Prefer "nawk" since older "awk" versions may not implement gsub()
+gtkgversion=`${nawk:-$awk} -f ./ver "$rsrc/src/gtk-gnutella.h"`
 echo "(You have version $gtkgversion.)"
 $rm -f ver
 
