@@ -769,7 +769,7 @@ pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 {
 	size_t low = 0, high = pm->count - 1;
 	struct vm_fragment *item;
-	size_t mid;
+	size_t mid = 0;
 
 	/* Binary search */
 
