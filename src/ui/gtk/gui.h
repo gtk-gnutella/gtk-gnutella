@@ -58,7 +58,7 @@
 #include "gtk2/support-glade.h"
 
 #if !GTK_CHECK_VERSION(2,5,0)
-#include "pbarcellrenderer.h"
+#include "gtk2/pbarcellrenderer.h"
 #endif
 
 /* Common padding values for GtkCellRenderer */

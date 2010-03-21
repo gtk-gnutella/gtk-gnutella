@@ -59,7 +59,6 @@
 #define _gtk2_pbarcellrenderer_h_
 
 #include <gtk/gtkcellrenderer.h>
-#include "gtk/gui.h"
 
 #if !defined(GTK_TYPE_CELL_RENDERER_PROGRESS)
 #define USING_CUSTOM_TYPE_CELL_RENDERER_PROGRESS
