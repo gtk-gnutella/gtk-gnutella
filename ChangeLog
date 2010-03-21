@@ -1,3 +1,35 @@
+# v 0.96.8   2010-03-21  [stable]
+
+This is essentially a bug-fixing release for 0.96.7, in which some code paths
+that were not exercised during pre-release testing are responsible for
+fatal errors (sudden crashes due to assertion failures).
+
+Bug Fixes:
+- Removed an obsolete assertion now that gtk-gnutella supports NOPE DHT values.
+  This was causing a crash each time a NOPE value was received in response
+  to push-proxies queries in the DHT.
+- Fixed memory alignment problem for non-forgiving CPU architectures.
+- The virtual memory manager would crash when the kernel starts allocating
+  pages in zones we wrongly thought were already used.
+- Fixed long-standing bug in the Query Routing Table protocol where a RESET
+  message with the wrong table size could sometimes be sent, causing the remote
+  node to close the connection.
+- Make sure an ultrapeer is not publishing NOPE values in the DHT if support
+  for the DHT was disabled by user, which would be triggering a fatal assertion
+  failure.
+
+Under the hood:
+- Fixed Makefile to ensure proper compilation under Gentoo's build scripts.
+- Push-proxy client support now makes sure there is a space after a leading
+  GET or HEAD word in the HTTP request.
+- The DIME parsing layer now given more information in case of an error.
+- Let THEX downloads peruse any supplied Content-Length information from the
+  server (applicable only when the output is not chunked).
+- The VMM layer is now smarter at identifying foreign pages when allocating
+  blocks larger than a single page.
+- When sending BYE messages, do not shutdown the socket layer if using TLS.
+- Compilation cleanup for SunOS, Sun Studio, and versions of GTK < 2.5.0.
+
 # v 0.96.7   2010-03-07  [stable]
 
 Bug Fixes:
