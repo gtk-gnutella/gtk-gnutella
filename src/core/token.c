@@ -313,6 +313,11 @@ struct tokkey {
 		{ 0, 96, 7, '\0', 0, 0, 1269813600 },		/* 2010-03-29 */
 		keys_096_7, G_N_ELEMENTS(keys_096_7),
 	},
+	/* No new keys for 0.96.8: bugfix release of 0.96.7 */
+	{
+		{ 0, 96, 8, '\0', 0, 0, 1269813601 },		/* 2010-03-29 */
+		keys_096_7, G_N_ELEMENTS(keys_096_7),
+	},
 };
 
 /**
