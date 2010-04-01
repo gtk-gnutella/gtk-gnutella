@@ -381,6 +381,30 @@ find_tokkey_upto(time_t now, size_t count)
 }
 
 /**
+ * Based on the timestamp, determine the proper token keys to use limiting
+ * to the first ``count'' items.
+ *
+ * @return the suitable keys, falling back to the last keyset in the table
+ * if we can't find any suitable keys.
+ */
+static const struct tokkey *
+find_tokkey_upto_fallback(time_t now, size_t count)
+{
+	const struct tokkey *tk;
+
+	tk = find_tokkey_upto(now, count);
+
+	if (NULL == tk) {
+		g_assert(count <= G_N_ELEMENTS(token_keys));
+		tk = &token_keys[count - 1];
+	}
+
+	g_assert(tk != NULL);
+
+	return tk;
+}
+
+/**
  * Based on the timestamp, determine the proper token keys to use.
  *
  * @return NULL if we cannot locate any suitable keys.
@@ -422,12 +446,11 @@ find_tokkey_version(const version_t *ver, time_t now)
 
 	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
 		const struct tokkey *tk = &token_keys[i];
-		time_delta_t dtime = delta_time(ver->timestamp, tk->ver.timestamp);
-		if (dtime < 0 && -dtime >= 86400)
-			break;				/* Not within a day and older than token */
+		if (version_cmp(ver, &tk->ver) <= 0)
+			break;
 	}
 
-	return find_tokkey_upto(now, i);
+	return find_tokkey_upto_fallback(now, i);
 }
 
 /**
