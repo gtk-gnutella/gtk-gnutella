@@ -5191,11 +5191,6 @@ download_start(struct download *d, gboolean check_allowed)
 	g_return_if_fail(d->file_info->lifecount <= d->file_info->refcount);
 	g_return_if_fail(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
 
-	if (FILE_INFO_FINISHED(d->file_info)) {
-		download_stop(d, GTA_DL_COMPLETED, no_reason);
-		return;
-	}
-
 	if (download_queue_is_frozen()) {
 		if (!DOWNLOAD_IS_QUEUED(d)) {
 			download_queue(d, _("Download queue is frozen"));
@@ -5224,10 +5219,27 @@ download_start(struct download *d, gboolean check_allowed)
 	if (!download_start_prepare(d))
 		return;
 
+	/* Post-conditions when download_start_prepare() returns TRUE */
+
+	g_assert(!DOWNLOAD_IS_QUEUED(d));
 	g_assert(d->list_idx == DL_LIST_RUNNING);	/* Moved to "running" list */
 	g_assert(d->file_info->refcount > 0);		/* Still alive */
 	g_assert(d->file_info->lifecount > 0);
 	g_assert(d->file_info->lifecount <= d->file_info->refcount);
+
+	/*
+	 * If file is finished, we can stop immediately.
+	 *
+	 * NB: this check must be made after donwload_start_prepare() since
+	 * one must not call download_stop() with a queued download, and the
+	 * download is not flagged as running until download_start_prepare()
+	 * was called and returned TRUE.
+	 */
+
+	if (FILE_INFO_FINISHED(d->file_info)) {
+		download_stop(d, GTA_DL_COMPLETED, no_reason);
+		return;
+	}
 
 	/*
 	 * If server is known to be reachable without pushes, reset the flag.
