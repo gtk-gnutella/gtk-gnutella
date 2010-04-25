@@ -10647,7 +10647,7 @@ http_version_nofix:
 					rw += gm_snprintf(&tmp[rw], sizeof(tmp)-rw, /* ( */ ")");
 				}
 
-				download_queue_delay(d, header,
+				download_queue_delay(d,
 					delay ? delay : GNET_PROPERTY(download_retry_busy_delay),
 					"%s", tmp);
 			} else {
