@@ -4069,8 +4069,10 @@ download_stop_switch(struct download *d, const header_t *header,
 	download_check(d);
 	d->unavailable = FALSE;
 
-	if (download_switchable(d, header))
+	if (download_switchable(d, header)) {
+		download_actively_queued(d, FALSE);
 		cd = download_clone(d);
+	}
 
 	va_start(args, reason);
 	download_stop_v(d, new_status, reason, args);
@@ -10645,7 +10647,7 @@ http_version_nofix:
 					rw += gm_snprintf(&tmp[rw], sizeof(tmp)-rw, /* ( */ ")");
 				}
 
-				download_queue_delay_switch(d, header,
+				download_queue_delay(d, header,
 					delay ? delay : GNET_PROPERTY(download_retry_busy_delay),
 					"%s", tmp);
 			} else {
