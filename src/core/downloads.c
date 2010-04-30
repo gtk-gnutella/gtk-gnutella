@@ -479,7 +479,14 @@ download_ignore_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct download *d = rx_owner(rx);
 
-	g_assert(DOWNLOAD_IS_ACTIVE(d));		/* No I/O via RX stack otherwise */
+	/*
+	 * I/Os via the RX stack are possible when the download is active (nominal
+	 * case) or when the download is completed and we're waiting for the
+	 * request to finish to be able to switch to another download (connection
+	 * is reused, probably from incoming firewalled servent).
+	 */
+
+	g_assert(DOWNLOAD_IS_ACTIVE(d) || GTA_DL_COMPLETED == d->status);
 
 	return download_ignore_data(d, mb);
 }
