@@ -7482,9 +7482,19 @@ download_get_server_name(struct download *d, header_t *header)
 		if (NULL == user_agent || !is_strprefix(user_agent, "gtk-gnutella/")) {
 			socket_disable_token(d->socket);
 		}
-			
+
+		/*
+		 * Make sure the address is valid, because we may have to call
+		 * clock_update() through version_check() when we have a gtk-gnutella
+		 * host, and if the connection is pushed, the server address may
+		 * bear an invalid address.
+		 *
+		 * Hence, do not use download_addr() but fetch the address from the
+		 * socket, directly.
+		 */
+
 		faked = !version_check(user_agent, header_get(header, "X-Token"),
-					download_addr(d));
+					d->socket->addr);
 
 		if (server->vendor == NULL) {
 			got_new_server = TRUE;
