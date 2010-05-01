@@ -396,7 +396,7 @@ rx_chunk_init(rxdrv_t *rx, gconstpointer args)
 	const struct rx_chunk_args *rargs = args;
 	struct attr *attr;
 
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(rargs->cb != NULL);
 
 	attr = walloc(sizeof *attr);
@@ -433,7 +433,7 @@ rx_chunk_recv(rxdrv_t *rx, pmsg_t *mb)
 	gboolean error = FALSE;
 	pmsg_t *imb;		/* Dechunked message */
 
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(mb);
 
 	/*

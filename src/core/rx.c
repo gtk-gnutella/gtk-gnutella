@@ -72,7 +72,7 @@ static GSList *rx_freed = NULL;
 static gboolean
 rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
-	g_assert(rx);
+	rx_check(rx);
 
 	if (rx->upper == NULL)
 		g_error("Forgot to call rx_set_data_ind() on the RX stack.");
@@ -107,6 +107,7 @@ rx_make(
 
 	rx = walloc0(sizeof *rx);
 
+	rx->magic = RXDRV_MAGIC;
 	rx->owner = owner;
 	rx->ops = ops;
 	rx->host = *host;		/* Struct copy */
@@ -136,12 +137,23 @@ rx_make(
 void
 rx_set_data_ind(rxdrv_t *rx, rx_data_t data_ind)
 {
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(rx->upper == NULL);			/* Called on topmost driver */
-	g_assert(data_ind != rx_data_ind);		/* Must not use internal routine */
-	g_assert(rx->data_ind == rx_data_ind);	/* No data_ind set already */
+	g_assert(!(rx->flags & RX_F_FREED));
 
 	rx->data_ind = data_ind;
+}
+
+/**
+ * Fetch current `data_ind' callback.
+ */
+rx_data_t
+rx_get_data_ind(rxdrv_t *rx)
+{
+	rx_check(rx);
+	g_assert(rx->upper == NULL);			/* Called on topmost driver */
+
+	return rx->data_ind;
 }
 
 /**
@@ -152,10 +164,9 @@ rx_replace_data_ind(rxdrv_t *rx, rx_data_t data_ind)
 {
 	rx_data_t old_data_ind;
 
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(rx->upper == NULL);			/* Called on topmost driver */
-	g_assert(data_ind != rx_data_ind);		/* Must not use internal routine */
-	g_assert(rx->data_ind != rx_data_ind);	/* data_ind has been set already */
+	g_assert(!(rx->flags & RX_F_FREED));
 
 	old_data_ind = rx->data_ind;
 	rx->data_ind = data_ind;
@@ -169,8 +180,8 @@ rx_replace_data_ind(rxdrv_t *rx, rx_data_t data_ind)
 static void
 rx_attached(rxdrv_t *rx, rxdrv_t *urx)
 {
-	g_assert(rx);
-	g_assert(urx);
+	rx_check(rx);
+	rx_check(urx);
 	g_assert(rx->upper == NULL);			/* Can only attach ONE layer */
 
 	rx->upper = urx;
@@ -186,12 +197,13 @@ rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops, gconstpointer args)
 {
 	rxdrv_t *rx;
 
-	g_assert(lrx);
+	rx_check(lrx);
 	g_assert(lrx->upper == NULL);		/* Nothing above yet */
 	g_assert(ops);
 
 	rx = walloc0(sizeof(*rx));
 
+	rx->magic = RXDRV_MAGIC;
 	rx->owner = lrx->owner;
 	rx->host = lrx->host;				/* Struct copy */
 	rx->ops = ops;
@@ -220,12 +232,13 @@ rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops, gconstpointer args)
 static void
 rx_deep_free(rxdrv_t *rx)
 {
-	g_assert(rx);
+	rx_check(rx);
 
 	if (rx->lower)
 		rx_deep_free(rx->lower);
 
 	RX_DESTROY(rx);
+	rx->magic = 0;
 	wfree(rx, sizeof(*rx));
 }
 
@@ -236,10 +249,12 @@ rx_deep_free(rxdrv_t *rx)
 void
 rx_free(rxdrv_t *rx)
 {
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(rx->upper == NULL);
+	g_assert(!(rx->flags & RX_F_FREED));
 
 	rx_disable(rx);
+	rx->flags |= RX_F_FREED;
 	rx_freed = g_slist_prepend(rx_freed, rx);
 }
 
@@ -253,6 +268,7 @@ rx_collect(void)
 
 	for (sl = rx_freed; sl; sl = g_slist_next(sl)) {
 		rxdrv_t *rx = sl->data;
+		g_assert(rx->flags & RX_F_FREED);
 		rx_deep_free(rx);
 	}
 
@@ -266,7 +282,7 @@ rx_collect(void)
 gboolean
 rx_recv(rxdrv_t *rx, pmsg_t *mb)
 {
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(mb);
 
 	return RX_RECV(rx, mb);
@@ -291,7 +307,7 @@ rx_deep_enable(rxdrv_t *rx)
 void
 rx_enable(rxdrv_t *rx)
 {
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(rx->upper == NULL);
 
 	rx_deep_enable(rx);
@@ -316,7 +332,7 @@ rx_deep_disable(rxdrv_t *rx)
 void
 rx_disable(rxdrv_t *rx)
 {
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(rx->upper == NULL);
 
 	rx_deep_disable(rx);
@@ -340,7 +356,7 @@ rx_deep_bottom(rxdrv_t *rx)
 rxdrv_t *
 rx_bottom(rxdrv_t *rx)
 {
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(rx->upper == NULL);
 
 	return rx_deep_bottom(rx);
@@ -354,7 +370,7 @@ rx_bio_source(rxdrv_t *rx)
 {
 	rxdrv_t *bottom;
 
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(rx->upper == NULL);
 
 	bottom = rx_bottom(rx);

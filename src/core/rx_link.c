@@ -165,7 +165,7 @@ rx_link_init(rxdrv_t *rx, gconstpointer args)
 	const struct rx_link_args *rargs = args;
 	struct attr *attr;
 
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(rargs);
 	g_assert(rargs->cb);
 
@@ -210,7 +210,7 @@ rx_link_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;
 
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(mb);
 
 	if (attr->cb->add_rx_given != NULL)

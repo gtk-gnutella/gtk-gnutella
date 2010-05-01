@@ -46,26 +46,41 @@ struct gnutella_node;
 
 typedef gboolean (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
 
+enum rxdrv_magic { RXDRV_MAGIC = 0x4a9c3049U };
+
 /**
  * A network driver.
  */
 
 typedef struct rxdriver {
+	enum rxdrv_magic magic;			/**< Magic number */
 	gpointer owner;					/**< Owner of the RX stack */
 	gnet_host_t host;				/**< Host information (ip, port) */
 	const struct rxdrv_ops *ops;	/**< Dynamically dispatched operations */
 	struct rxdriver *upper;			/**< Layer above, NULL if none */
 	struct rxdriver *lower;			/**< Layer underneath, NULL if none */
-	int flags;						/**< Driver flags */
 	rx_data_t data_ind;				/**< Data indication routine */
 	gpointer opaque;				/**< Used by heirs to store specific info */
+	guint32 flags;					/**< Current layer flags */
 } rxdrv_t;
 
 #define rx_owner(r)	((r)->owner)
 
+static inline void
+rx_check(const rxdrv_t *rx)
+{
+	g_assert(rx != NULL);
+	g_assert(RXDRV_MAGIC == rx->magic);
+}
+
 /*
- * Driver flags.
+ * Layer flags.
  */
+
+enum {
+	RX_F_FREED 		= 1 << 0		/**< Will be freed asynchronously */
+};
+
 
 /**
  * Operations defined on all drivers.
@@ -90,6 +105,7 @@ rxdrv_t *rx_make(gpointer owner, gnet_host_t *host,
 rxdrv_t *rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops,
 	gconstpointer args);
 
+rx_data_t rx_get_data_ind(rxdrv_t *rx);
 void rx_set_data_ind(rxdrv_t *rx, rx_data_t data_ind);
 rx_data_t rx_replace_data_ind(rxdrv_t *rx, rx_data_t data_ind);
 void rx_free(rxdrv_t *d);

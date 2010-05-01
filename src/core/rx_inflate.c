@@ -145,7 +145,7 @@ rx_inflate_init(rxdrv_t *rx, gconstpointer args)
 	z_streamp inz;
 	int ret;
 
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(rargs->cb != NULL);
 
 	inz = walloc(sizeof(*inz));
@@ -204,7 +204,7 @@ rx_inflate_recv(rxdrv_t *rx, pmsg_t *mb)
 	gboolean error = FALSE;
 	pmsg_t *imb;		/**< Inflated message */
 
-	g_assert(rx);
+	rx_check(rx);
 	g_assert(mb);
 
 	/*
