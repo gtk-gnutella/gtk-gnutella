@@ -3641,7 +3641,7 @@ search_new(gnet_search_t *ptr, const char *query,
 			result = SEARCH_NEW_INVALID_URN;
 			goto failure;
 		}
-		qdup = g_strdup(query);
+		qdup = h_strdup(query);
 	} else if (
 		!(flags & (SEARCH_F_LOCAL | SEARCH_F_BROWSE | SEARCH_F_PASSIVE))
 	) {
