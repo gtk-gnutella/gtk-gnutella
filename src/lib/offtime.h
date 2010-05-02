@@ -40,7 +40,7 @@
 
 #define TM_YEAR_ORIGIN 1900
 
-gboolean offtime(time_t t, time_delta_t offset, struct tm *tp);
+gboolean off_time(time_t t, time_delta_t offset, struct tm *tp);
 
 #endif /* _offtime_h_ */
 

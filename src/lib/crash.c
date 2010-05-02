@@ -139,7 +139,7 @@ crash_time(char *buf, size_t buflen)
 	if (0 == buflen)
 		return;
 
-	if (!offtime(tm_time() + crash_gmtoff, 0, &tm)) {
+	if (!off_time(tm_time() + crash_gmtoff, 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}

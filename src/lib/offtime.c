@@ -69,7 +69,7 @@ static inline gboolean is_leap(long year) {
  * It was slightly adapted to meet GTKG's coding standards.
  */
 gboolean
-offtime(time_t t, time_delta_t offset, struct tm *tp)
+off_time(time_t t, time_delta_t offset, struct tm *tp)
 {
 	long days, rem, y;
 	const unsigned short *ip;
