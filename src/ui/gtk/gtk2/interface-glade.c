@@ -2924,7 +2924,7 @@ create_main_window_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox_leaf), label519, FALSE, TRUE, 0);
   gtk_misc_set_padding (GTK_MISC (label519), 5, 0);
 
-  spinbutton_max_ultrapeers_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_max_ultrapeers_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 0);
   spinbutton_max_ultrapeers = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_ultrapeers_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_ultrapeers, "spinbutton_max_ultrapeers");
   gtk_widget_show (spinbutton_max_ultrapeers);
@@ -2983,7 +2983,7 @@ create_main_window_gnet_tab (void)
   gtk_label_set_justify (GTK_LABEL (label2), GTK_JUSTIFY_CENTER);
   gtk_misc_set_padding (GTK_MISC (label2), 5, 0);
 
-  spinbutton_up_connections_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_up_connections_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_up_connections = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_up_connections_adj), 1, 0);
   gtk_widget_set_name (spinbutton_up_connections, "spinbutton_up_connections");
   gtk_widget_show (spinbutton_up_connections);
@@ -2996,7 +2996,7 @@ create_main_window_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), label3, FALSE, TRUE, 0);
   gtk_label_set_justify (GTK_LABEL (label3), GTK_JUSTIFY_CENTER);
 
-  spinbutton_max_connections_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_max_connections_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_max_connections = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_connections_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_connections, "spinbutton_max_connections");
   gtk_widget_show (spinbutton_max_connections);
@@ -3020,7 +3020,7 @@ create_main_window_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox265), label851, FALSE, FALSE, 0);
   gtk_misc_set_padding (GTK_MISC (label851), 5, 0);
 
-  spinbutton_quick_connect_pool_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_quick_connect_pool_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_quick_connect_pool_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_quick_connect_pool_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_quick_connect_pool_size, "spinbutton_quick_connect_pool_size");
   gtk_widget_show (spinbutton_quick_connect_pool_size);
@@ -3312,7 +3312,7 @@ create_main_window_uploads_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label81), 0, 0.5);
 
-  spinbutton_max_uploads_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_max_uploads_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_max_uploads = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_uploads_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_uploads, "spinbutton_max_uploads");
   gtk_widget_show (spinbutton_max_uploads);
@@ -3321,7 +3321,7 @@ create_main_window_uploads_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_uploads), TRUE);
 
-  spinbutton_max_uploads_ip_adj = gtk_adjustment_new (1, 1, 100, 1, 10, 10);
+  spinbutton_max_uploads_ip_adj = gtk_adjustment_new (1, 1, 100, 1, 10, 0);
   spinbutton_max_uploads_ip = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_uploads_ip_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_uploads_ip, "spinbutton_max_uploads_ip");
   gtk_widget_show (spinbutton_max_uploads_ip);
@@ -3859,7 +3859,7 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_browse_host_max_results_adj = gtk_adjustment_new (1000, 1, 50000, 1, 10, 10);
+  spinbutton_browse_host_max_results_adj = gtk_adjustment_new (1000, 1, 50000, 1, 10, 0);
   spinbutton_browse_host_max_results = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_browse_host_max_results_adj), 1, 0);
   gtk_widget_set_name (spinbutton_browse_host_max_results, "spinbutton_browse_host_max_results");
   gtk_widget_show (spinbutton_browse_host_max_results);
@@ -3916,7 +3916,7 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_search_max_results_adj = gtk_adjustment_new (1000, 1, 50000, 1, 10, 10);
+  spinbutton_search_max_results_adj = gtk_adjustment_new (1000, 1, 50000, 1, 10, 0);
   spinbutton_search_max_results = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_max_results_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_max_results, "spinbutton_search_max_results");
   gtk_widget_show (spinbutton_search_max_results);
@@ -3979,7 +3979,7 @@ create_main_window_search_tab (void)
   gtk_label_set_justify (GTK_LABEL (label655), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label655), 1, 0.5);
 
-  spinbutton_search_reissue_timeout_adj = gtk_adjustment_new (600, 0, 100000, 60, 600, 600);
+  spinbutton_search_reissue_timeout_adj = gtk_adjustment_new (600, 0, 100000, 60, 600, 0);
   spinbutton_search_reissue_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_reissue_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_reissue_timeout, "spinbutton_search_reissue_timeout");
   gtk_widget_show (spinbutton_search_reissue_timeout);
@@ -4215,7 +4215,7 @@ create_main_window_monitor_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox45), label68, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label68), GTK_JUSTIFY_CENTER);
 
-  spinbutton_monitor_items_adj = gtk_adjustment_new (1, 0, 1000, 1, 10, 10);
+  spinbutton_monitor_items_adj = gtk_adjustment_new (1, 0, 1000, 1, 10, 0);
   spinbutton_monitor_items = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_monitor_items_adj), 1, 0);
   gtk_widget_set_name (spinbutton_monitor_items, "spinbutton_monitor_items");
   gtk_widget_show (spinbutton_monitor_items);
@@ -4317,7 +4317,7 @@ create_main_window_search_stats_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox67), label101, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label101), GTK_JUSTIFY_RIGHT);
 
-  spinbutton_search_stats_update_interval_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_search_stats_update_interval_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_search_stats_update_interval = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_stats_update_interval_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_stats_update_interval, "spinbutton_search_stats_update_interval");
   gtk_widget_show (spinbutton_search_stats_update_interval);
@@ -4329,7 +4329,7 @@ create_main_window_search_stats_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox67), label102, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label102), GTK_JUSTIFY_RIGHT);
 
-  spinbutton_search_stats_delcoef_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_search_stats_delcoef_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_search_stats_delcoef = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_stats_delcoef_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_stats_delcoef, "spinbutton_search_stats_delcoef");
   gtk_widget_show (spinbutton_search_stats_delcoef);
@@ -8383,7 +8383,7 @@ create_main_window_hostcache_tab (void)
   gtk_label_set_justify (GTK_LABEL (label547), GTK_JUSTIFY_CENTER);
   gtk_misc_set_padding (GTK_MISC (label547), 5, 0);
 
-  spinbutton_max_hosts_cached_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_max_hosts_cached_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_max_hosts_cached = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_hosts_cached_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_hosts_cached, "spinbutton_max_hosts_cached");
   gtk_widget_show (spinbutton_max_hosts_cached);
@@ -8417,7 +8417,7 @@ create_main_window_hostcache_tab (void)
   gtk_label_set_justify (GTK_LABEL (label548), GTK_JUSTIFY_CENTER);
   gtk_misc_set_padding (GTK_MISC (label548), 5, 0);
 
-  spinbutton_max_ultra_hosts_cached_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_max_ultra_hosts_cached_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_max_ultra_hosts_cached = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_ultra_hosts_cached_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_ultra_hosts_cached, "spinbutton_max_ultra_hosts_cached");
   gtk_widget_show (spinbutton_max_ultra_hosts_cached);
@@ -8451,7 +8451,7 @@ create_main_window_hostcache_tab (void)
   gtk_label_set_justify (GTK_LABEL (label845), GTK_JUSTIFY_CENTER);
   gtk_misc_set_padding (GTK_MISC (label845), 5, 0);
 
-  spinbutton_max_bad_hosts_cached_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_max_bad_hosts_cached_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_max_bad_hosts_cached = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_bad_hosts_cached_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_bad_hosts_cached, "spinbutton_max_bad_hosts_cached");
   gtk_widget_show (spinbutton_max_bad_hosts_cached);
@@ -8826,7 +8826,7 @@ create_dlg_prefs_net_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label986), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label986), 4, 0);
 
-  spinbutton_config_port_adj = gtk_adjustment_new (6346, 0, 65535, 1, 10, 10);
+  spinbutton_config_port_adj = gtk_adjustment_new (6346, 0, 65535, 1, 10, 0);
   spinbutton_config_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_port_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_port, "spinbutton_config_port");
   gtk_widget_show (spinbutton_config_port);
@@ -9010,7 +9010,7 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_config_proxy_port_adj = gtk_adjustment_new (3128, 1, 65535, 1, 10, 10);
+  spinbutton_config_proxy_port_adj = gtk_adjustment_new (3128, 1, 65535, 1, 10, 0);
   spinbutton_config_proxy_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_proxy_port_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_proxy_port, "spinbutton_config_proxy_port");
   gtk_widget_show (spinbutton_config_proxy_port);
@@ -9148,7 +9148,7 @@ create_dlg_prefs_net_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table43), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table43), 4);
 
-  spinbutton_config_ban_ratio_fds_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_config_ban_ratio_fds_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 0);
   spinbutton_config_ban_ratio_fds = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_ban_ratio_fds_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_ban_ratio_fds, "spinbutton_config_ban_ratio_fds");
   gtk_widget_show (spinbutton_config_ban_ratio_fds);
@@ -9156,7 +9156,7 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_config_ban_max_fds_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_config_ban_max_fds_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 0);
   spinbutton_config_ban_max_fds = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_ban_max_fds_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_ban_max_fds, "spinbutton_config_ban_max_fds");
   gtk_widget_show (spinbutton_config_ban_max_fds);
@@ -9352,7 +9352,7 @@ create_dlg_prefs_net_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label_kbytes), 0, 0);
   gtk_misc_set_padding (GTK_MISC (label_kbytes), 2, 2);
 
-  spinbutton_download_rx_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_download_rx_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_download_rx_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_download_rx_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_download_rx_size, "spinbutton_download_rx_size");
   gtk_widget_show (spinbutton_download_rx_size);
@@ -9360,7 +9360,7 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_node_rx_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_node_rx_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_node_rx_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_node_rx_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_node_rx_size, "spinbutton_node_rx_size");
   gtk_widget_show (spinbutton_node_rx_size);
@@ -9811,7 +9811,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table92), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table92), 4);
 
-  spinbutton_normal_connections_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_normal_connections_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_normal_connections = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_normal_connections_adj), 1, 0);
   gtk_widget_set_name (spinbutton_normal_connections, "spinbutton_normal_connections");
   gtk_widget_show (spinbutton_normal_connections);
@@ -9827,7 +9827,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label577), 0, 0.5);
 
-  spinbutton_config_max_leaves_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_max_leaves_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_max_leaves = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_max_leaves_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_max_leaves, "spinbutton_config_max_leaves");
   gtk_widget_show (spinbutton_config_max_leaves);
@@ -10231,7 +10231,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table17), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table17), 4);
 
-  spinbutton_config_search_items_adj = gtk_adjustment_new (1, 1, 255, 1, 10, 10);
+  spinbutton_config_search_items_adj = gtk_adjustment_new (1, 1, 255, 1, 10, 0);
   spinbutton_config_search_items = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_search_items_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_search_items, "spinbutton_config_search_items");
   gtk_widget_show (spinbutton_config_search_items);
@@ -10241,7 +10241,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_search_items, _("This limits how many results gnutella returns to other people searching your files."), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_search_items), TRUE);
 
-  spinbutton_config_search_reissue_timeout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_search_reissue_timeout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_search_reissue_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_search_reissue_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_search_reissue_timeout, "spinbutton_config_search_reissue_timeout");
   gtk_widget_show (spinbutton_config_search_reissue_timeout);
@@ -10359,7 +10359,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label772), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label772), 4, 0);
 
-  spinbutton_search_queue_size_adj = gtk_adjustment_new (1000, 0, 1000, 1, 10, 10);
+  spinbutton_search_queue_size_adj = gtk_adjustment_new (1000, 0, 1000, 1, 10, 0);
   spinbutton_search_queue_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_queue_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_queue_size, "spinbutton_search_queue_size");
   gtk_widget_show (spinbutton_search_queue_size);
@@ -10367,7 +10367,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
 
-  spinbutton_search_queue_spacing_adj = gtk_adjustment_new (60, 0, 100, 1, 10, 10);
+  spinbutton_search_queue_spacing_adj = gtk_adjustment_new (60, 0, 100, 1, 10, 0);
   spinbutton_search_queue_spacing = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_queue_spacing_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_queue_spacing, "spinbutton_search_queue_spacing");
   gtk_widget_show (spinbutton_search_queue_spacing);
@@ -10449,7 +10449,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label584), 0, 0.5);
 
-  spinbutton_config_node_connecting_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_node_connecting_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 0);
   spinbutton_config_node_connecting_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_node_connecting_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_node_connecting_timeout, "spinbutton_config_node_connecting_timeout");
   gtk_widget_show (spinbutton_config_node_connecting_timeout);
@@ -10458,7 +10458,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_node_connecting_timeout), TRUE);
 
-  spinbutton_config_node_tx_flowc_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_node_tx_flowc_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 0);
   spinbutton_config_node_tx_flowc_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_node_tx_flowc_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_node_tx_flowc_timeout, "spinbutton_config_node_tx_flowc_timeout");
   gtk_widget_show (spinbutton_config_node_tx_flowc_timeout);
@@ -10467,7 +10467,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_node_tx_flowc_timeout), TRUE);
 
-  spinbutton_config_node_connected_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_node_connected_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 0);
   spinbutton_config_node_connected_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_node_connected_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_node_connected_timeout, "spinbutton_config_node_connected_timeout");
   gtk_widget_show (spinbutton_config_node_connected_timeout);
@@ -10476,7 +10476,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_node_connected_timeout), TRUE);
 
-  spinbutton_config_incoming_connecting_timeout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_incoming_connecting_timeout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_incoming_connecting_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_incoming_connecting_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_incoming_connecting_timeout, "spinbutton_config_incoming_connecting_timeout");
   gtk_widget_show (spinbutton_config_incoming_connecting_timeout);
@@ -10509,7 +10509,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table9), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table9), 4);
 
-  spinbutton_config_maxttl_adj = gtk_adjustment_new (1, 1, 99, 1, 5, 5);
+  spinbutton_config_maxttl_adj = gtk_adjustment_new (1, 1, 99, 1, 5, 0);
   spinbutton_config_maxttl = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_maxttl_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_maxttl, "spinbutton_config_maxttl");
   gtk_widget_show (spinbutton_config_maxttl);
@@ -10518,7 +10518,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_maxttl), TRUE);
 
-  spinbutton_config_myttl_adj = gtk_adjustment_new (1, 1, 99, 1, 5, 5);
+  spinbutton_config_myttl_adj = gtk_adjustment_new (1, 1, 99, 1, 5, 0);
   spinbutton_config_myttl = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_myttl_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_myttl, "spinbutton_config_myttl");
   gtk_widget_show (spinbutton_config_myttl);
@@ -10554,7 +10554,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label159), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label159), 4, 0);
 
-  spinbutton_config_hard_ttl_limit_adj = gtk_adjustment_new (5, 5, 99, 1, 10, 10);
+  spinbutton_config_hard_ttl_limit_adj = gtk_adjustment_new (5, 5, 99, 1, 10, 0);
   spinbutton_config_hard_ttl_limit = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_hard_ttl_limit_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_hard_ttl_limit, "spinbutton_config_hard_ttl_limit");
   gtk_widget_show (spinbutton_config_hard_ttl_limit);
@@ -10581,7 +10581,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label157), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label157), 4, 0);
 
-  spinbutton_config_max_high_ttl_msg_adj = gtk_adjustment_new (1, 0, 99, 1, 10, 10);
+  spinbutton_config_max_high_ttl_msg_adj = gtk_adjustment_new (1, 0, 99, 1, 10, 0);
   spinbutton_config_max_high_ttl_msg = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_max_high_ttl_msg_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_max_high_ttl_msg, "spinbutton_config_max_high_ttl_msg");
   gtk_widget_show (spinbutton_config_max_high_ttl_msg);
@@ -10596,7 +10596,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_label_set_justify (GTK_LABEL (label158), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label158), 0, 0.5);
 
-  spinbutton_config_max_high_ttl_radius_adj = gtk_adjustment_new (1, 1, 99, 1, 10, 10);
+  spinbutton_config_max_high_ttl_radius_adj = gtk_adjustment_new (1, 1, 99, 1, 10, 0);
   spinbutton_config_max_high_ttl_radius = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_max_high_ttl_radius_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_max_high_ttl_radius, "spinbutton_config_max_high_ttl_radius");
   gtk_widget_show (spinbutton_config_max_high_ttl_radius);
@@ -10637,7 +10637,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label433), 0, 0.5);
 
-  spinbutton_config_min_dup_msg_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_min_dup_msg_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_min_dup_msg = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_min_dup_msg_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_min_dup_msg, "spinbutton_config_min_dup_msg");
   gtk_widget_show (spinbutton_config_min_dup_msg);
@@ -10646,7 +10646,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_min_dup_msg), TRUE);
 
-  spinbutton_config_min_dup_ratio_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_min_dup_ratio_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_min_dup_ratio = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_min_dup_ratio_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_min_dup_ratio, "spinbutton_config_min_dup_ratio");
   gtk_widget_show (spinbutton_config_min_dup_ratio);
@@ -10681,7 +10681,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label574), 0, 0.5);
 
-  spinbutton_config_node_rx_flowc_ratio_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_node_rx_flowc_ratio_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_node_rx_flowc_ratio = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_node_rx_flowc_ratio_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_node_rx_flowc_ratio, "spinbutton_config_node_rx_flowc_ratio");
   gtk_widget_show (spinbutton_config_node_rx_flowc_ratio);
@@ -10715,7 +10715,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label773), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label773), 4, 0);
 
-  spinbutton_node_queries_half_life_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_node_queries_half_life_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_node_queries_half_life = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_node_queries_half_life_adj), 1, 0);
   gtk_widget_set_name (spinbutton_node_queries_half_life, "spinbutton_node_queries_half_life");
   gtk_widget_show (spinbutton_node_queries_half_life);
@@ -10732,7 +10732,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label774), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label774), 4, 0);
 
-  spinbutton_node_requery_threshold_adj = gtk_adjustment_new (1700, 0, 1800, 1, 10, 10);
+  spinbutton_node_requery_threshold_adj = gtk_adjustment_new (1700, 0, 1800, 1, 10, 0);
   spinbutton_node_requery_threshold = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_node_requery_threshold_adj), 1, 0);
   gtk_widget_set_name (spinbutton_node_requery_threshold, "spinbutton_node_requery_threshold");
   gtk_widget_show (spinbutton_node_requery_threshold);
@@ -10814,7 +10814,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label729), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label729), 4, 0);
 
-  spinbutton_config_reserve_gtkg_nodes_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_reserve_gtkg_nodes_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_reserve_gtkg_nodes = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_reserve_gtkg_nodes_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_reserve_gtkg_nodes, "spinbutton_config_reserve_gtkg_nodes");
   gtk_widget_show (spinbutton_config_reserve_gtkg_nodes);
@@ -10823,7 +10823,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_tooltips_set_tip (tooltips, spinbutton_config_reserve_gtkg_nodes, _("Percentage of the number of connections we should reserve for gtk-gnutella nodes."), NULL);
 
-  spinbutton_config_unique_nodes_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_unique_nodes_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_unique_nodes = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_unique_nodes_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_unique_nodes, "spinbutton_config_unique_nodes");
   gtk_widget_show (spinbutton_config_unique_nodes);
@@ -10851,7 +10851,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table51), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table51), 4);
 
-  spinbutton_config_hops_random_factor_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_config_hops_random_factor_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 0);
   spinbutton_config_hops_random_factor = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_hops_random_factor_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_hops_random_factor, "spinbutton_config_hops_random_factor");
   gtk_widget_show (spinbutton_config_hops_random_factor);
@@ -10921,7 +10921,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_label_set_justify (GTK_LABEL (label782), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label782), 0, 0.5);
 
-  spinbutton_search_queries_forward_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_search_queries_forward_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_search_queries_forward_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_queries_forward_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_queries_forward_size, "spinbutton_search_queries_forward_size");
   gtk_widget_show (spinbutton_search_queries_forward_size);
@@ -10929,7 +10929,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_search_answers_forward_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_search_answers_forward_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_search_answers_forward_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_answers_forward_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_answers_forward_size, "spinbutton_search_answers_forward_size");
   gtk_widget_show (spinbutton_search_answers_forward_size);
@@ -10937,7 +10937,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_search_queries_kick_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_search_queries_kick_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_search_queries_kick_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_queries_kick_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_queries_kick_size, "spinbutton_search_queries_kick_size");
   gtk_widget_show (spinbutton_search_queries_kick_size);
@@ -10945,7 +10945,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_search_answers_kick_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_search_answers_kick_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_search_answers_kick_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_answers_kick_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_answers_kick_size, "spinbutton_search_answers_kick_size");
   gtk_widget_show (spinbutton_search_answers_kick_size);
@@ -10953,7 +10953,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_other_messages_kick_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_other_messages_kick_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_other_messages_kick_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_other_messages_kick_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_other_messages_kick_size, "spinbutton_other_messages_kick_size");
   gtk_widget_show (spinbutton_other_messages_kick_size);
@@ -11518,7 +11518,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_label_set_justify (GTK_LABEL (label182), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label182), 0, 0.5);
 
-  spinbutton_config_bws_gin_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 16);
+  spinbutton_config_bws_gin_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 0);
   spinbutton_config_bws_gin = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_gin_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_gin, "spinbutton_config_bws_gin");
   gtk_widget_show (spinbutton_config_bws_gin);
@@ -11527,7 +11527,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_gin), TRUE);
 
-  spinbutton_config_bws_gout_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 16);
+  spinbutton_config_bws_gout_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 0);
   spinbutton_config_bws_gout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_gout_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_gout, "spinbutton_config_bws_gout");
   gtk_widget_show (spinbutton_config_bws_gout);
@@ -11576,7 +11576,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table62), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table62), 4);
 
-  spinbutton_config_bws_glout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_bws_glout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_bws_glout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_glout_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_glout, "spinbutton_config_bws_glout");
   gtk_widget_show (spinbutton_config_bws_glout);
@@ -11593,7 +11593,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label581), 0, 0.5);
 
-  spinbutton_config_bws_glin_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_bws_glin_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_bws_glin = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_glin_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_glin, "spinbutton_config_bws_glin");
   gtk_widget_show (spinbutton_config_bws_glin);
@@ -11667,7 +11667,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_label_set_justify (GTK_LABEL (label1033), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label1033), 0, 0.5);
 
-  spinbutton_config_bws_dht_out_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 16);
+  spinbutton_config_bws_dht_out_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 0);
   spinbutton_config_bws_dht_out = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_dht_out_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_dht_out, "spinbutton_config_bws_dht_out");
   gtk_widget_show (spinbutton_config_bws_dht_out);
@@ -11722,7 +11722,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_label_set_justify (GTK_LABEL (label1037), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label1037), 0, 0.5);
 
-  spinbutton_config_input_dht_lookup_bw_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 16);
+  spinbutton_config_input_dht_lookup_bw_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 0);
   spinbutton_config_input_dht_lookup_bw = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_input_dht_lookup_bw_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_input_dht_lookup_bw, "spinbutton_config_input_dht_lookup_bw");
   gtk_widget_show (spinbutton_config_input_dht_lookup_bw);
@@ -11731,7 +11731,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_input_dht_lookup_bw), TRUE);
 
-  spinbutton_config_output_dht_lookup_bw_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 16);
+  spinbutton_config_output_dht_lookup_bw_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 0);
   spinbutton_config_output_dht_lookup_bw = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_output_dht_lookup_bw_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_output_dht_lookup_bw, "spinbutton_config_output_dht_lookup_bw");
   gtk_widget_show (spinbutton_config_output_dht_lookup_bw);
@@ -11805,7 +11805,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_label_set_justify (GTK_LABEL (label126), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label126), 0, 0.5);
 
-  spinbutton_config_bws_in_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 16);
+  spinbutton_config_bws_in_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 0);
   spinbutton_config_bws_in = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_in_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_in, "spinbutton_config_bws_in");
   gtk_widget_show (spinbutton_config_bws_in);
@@ -11814,7 +11814,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_in), TRUE);
 
-  spinbutton_config_bws_out_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 1024);
+  spinbutton_config_bws_out_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 0);
   spinbutton_config_bws_out = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_out_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_out, "spinbutton_config_bws_out");
   gtk_widget_show (spinbutton_config_bws_out);
@@ -11823,7 +11823,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_out), TRUE);
 
-  spinbutton_config_ul_usage_min_percentage_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_ul_usage_min_percentage_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_ul_usage_min_percentage = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_ul_usage_min_percentage_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_ul_usage_min_percentage, "spinbutton_config_ul_usage_min_percentage");
   gtk_widget_show (spinbutton_config_ul_usage_min_percentage);
@@ -11833,7 +11833,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_ul_usage_min_percentage, _("Until the configured percentage of outgoing HTTP bandwidth is in use, open additional upload slots on request."), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_ul_usage_min_percentage), TRUE);
 
-  spinbutton_config_speed_adj = gtk_adjustment_new (64, 0, 2000, 1, 16, 16);
+  spinbutton_config_speed_adj = gtk_adjustment_new (64, 0, 2000, 1, 16, 0);
   spinbutton_config_speed = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_speed_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_speed, "spinbutton_config_speed");
   gtk_widget_show (spinbutton_config_speed);
@@ -12425,7 +12425,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_label_set_justify (GTK_LABEL (label173), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label173), 0, 0.5);
 
-  spinbutton_config_download_overlap_range_adj = gtk_adjustment_new (133, 128, 4096, 1, 10, 10);
+  spinbutton_config_download_overlap_range_adj = gtk_adjustment_new (133, 128, 4096, 1, 10, 0);
   spinbutton_config_download_overlap_range = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_overlap_range_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_overlap_range, "spinbutton_config_download_overlap_range");
   gtk_widget_show (spinbutton_config_download_overlap_range);
@@ -12455,7 +12455,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label171), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label171), 4, 0);
 
-  spinbutton_config_download_max_retries_adj = gtk_adjustment_new (1, 0, 100000, 1, 10, 10);
+  spinbutton_config_download_max_retries_adj = gtk_adjustment_new (1, 0, 100000, 1, 10, 0);
   spinbutton_config_download_max_retries = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_max_retries_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_max_retries, "spinbutton_config_download_max_retries");
   gtk_widget_show (spinbutton_config_download_max_retries);
@@ -12491,7 +12491,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table8), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table8), 4);
 
-  spinbutton_config_download_retry_stopped_delay_adj = gtk_adjustment_new (15, 15, 100000, 1, 10, 10);
+  spinbutton_config_download_retry_stopped_delay_adj = gtk_adjustment_new (15, 15, 100000, 1, 10, 0);
   spinbutton_config_download_retry_stopped_delay = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_stopped_delay_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_retry_stopped_delay, "spinbutton_config_download_retry_stopped_delay");
   gtk_widget_show (spinbutton_config_download_retry_stopped_delay);
@@ -12501,7 +12501,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_stopped_delay, _("Delay in seconds to wait when running download stops"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_stopped_delay), TRUE);
 
-  spinbutton_config_download_retry_refused_delay_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 10);
+  spinbutton_config_download_retry_refused_delay_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 0);
   spinbutton_config_download_retry_refused_delay = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_refused_delay_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_retry_refused_delay, "spinbutton_config_download_retry_refused_delay");
   gtk_widget_show (spinbutton_config_download_retry_refused_delay);
@@ -12511,7 +12511,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_refused_delay, _("Delay in seconds to wait if connection is refused"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_refused_delay), TRUE);
 
-  spinbutton_config_download_retry_busy_delay_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 10);
+  spinbutton_config_download_retry_busy_delay_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 0);
   spinbutton_config_download_retry_busy_delay = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_busy_delay_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_retry_busy_delay, "spinbutton_config_download_retry_busy_delay");
   gtk_widget_show (spinbutton_config_download_retry_busy_delay);
@@ -12521,7 +12521,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_busy_delay, _("Delay in seconds to wait after HTTP busy indication"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_busy_delay), TRUE);
 
-  spinbutton_config_download_retry_timeout_delay_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 10);
+  spinbutton_config_download_retry_timeout_delay_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 0);
   spinbutton_config_download_retry_timeout_delay = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_timeout_delay_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_retry_timeout_delay, "spinbutton_config_download_retry_timeout_delay");
   gtk_widget_show (spinbutton_config_download_retry_timeout_delay);
@@ -12531,7 +12531,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_timeout_delay, _("Delay in seconds to wait after connection failure"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_timeout_delay), TRUE);
 
-  spinbutton_config_download_retry_timeout_max_adj = gtk_adjustment_new (15, 15, 100000, 1, 10, 10);
+  spinbutton_config_download_retry_timeout_max_adj = gtk_adjustment_new (15, 15, 100000, 1, 10, 0);
   spinbutton_config_download_retry_timeout_max = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_timeout_max_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_retry_timeout_max, "spinbutton_config_download_retry_timeout_max");
   gtk_widget_show (spinbutton_config_download_retry_timeout_max);
@@ -12541,7 +12541,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_timeout_max, _("Maximum seconds to wait on auto-retry timeouts"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_timeout_max), TRUE);
 
-  spinbutton_config_download_retry_timeout_min_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 10);
+  spinbutton_config_download_retry_timeout_min_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 0);
   spinbutton_config_download_retry_timeout_min = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_timeout_min_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_retry_timeout_min, "spinbutton_config_download_retry_timeout_min");
   gtk_widget_show (spinbutton_config_download_retry_timeout_min);
@@ -12551,7 +12551,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_timeout_min, _("Minimum seconds to wait on auto-retry timeouts"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_timeout_min), TRUE);
 
-  spinbutton_config_download_connecting_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_download_connecting_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 0);
   spinbutton_config_download_connecting_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_connecting_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_connecting_timeout, "spinbutton_config_download_connecting_timeout");
   gtk_widget_show (spinbutton_config_download_connecting_timeout);
@@ -12561,7 +12561,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_connecting_timeout, _("Number of seconds before timeout for a connecting download"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_connecting_timeout), TRUE);
 
-  spinbutton_config_download_push_sent_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_download_push_sent_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 0);
   spinbutton_config_download_push_sent_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_push_sent_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_push_sent_timeout, "spinbutton_config_download_push_sent_timeout");
   gtk_widget_show (spinbutton_config_download_push_sent_timeout);
@@ -12571,7 +12571,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_push_sent_timeout, _("Number of seconds before timeout for a 'push sent' download"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_push_sent_timeout), TRUE);
 
-  spinbutton_config_download_connected_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_download_connected_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 0);
   spinbutton_config_download_connected_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_connected_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_connected_timeout, "spinbutton_config_download_connected_timeout");
   gtk_widget_show (spinbutton_config_download_connected_timeout);
@@ -12684,7 +12684,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table94), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table94), 4);
 
-  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
+  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 0);
   spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
   gtk_widget_show (spinbutton_dl_minchunksize);
@@ -12693,7 +12693,7 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
 
-  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
+  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 0);
   spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
   gtk_widget_show (spinbutton_dl_maxchunksize);
@@ -12759,7 +12759,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label934), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label934), 4, 0);
 
-  spinbutton_download_buffer_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_download_buffer_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_download_buffer_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_download_buffer_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_download_buffer_size, "spinbutton_download_buffer_size");
   gtk_widget_show (spinbutton_download_buffer_size);
@@ -13281,7 +13281,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label726), 0, 0.5);
 
-  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 1000000, 1, 1024, 1024);
+  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 1000000, 1, 1024, 0);
   spinbutton_pfsp_first_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_first_chunk_adj), 1, 0);
   gtk_widget_set_name (spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
   gtk_widget_show (spinbutton_pfsp_first_chunk);
@@ -13304,7 +13304,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (0), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label954), 0, 0.5);
 
-  spinbutton_pfsp_minimum_filesize_adj = gtk_adjustment_new (1, 0, 1000000, 1, 1024, 1024);
+  spinbutton_pfsp_minimum_filesize_adj = gtk_adjustment_new (1, 0, 1000000, 1, 1024, 0);
   spinbutton_pfsp_minimum_filesize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_minimum_filesize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_pfsp_minimum_filesize, "spinbutton_pfsp_minimum_filesize");
   gtk_widget_show (spinbutton_pfsp_minimum_filesize);
@@ -13312,7 +13312,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_pfsp_last_chunk_adj = gtk_adjustment_new (1, 0, 1000000, 1, 1024, 1024);
+  spinbutton_pfsp_last_chunk_adj = gtk_adjustment_new (1, 0, 1000000, 1, 1024, 0);
   spinbutton_pfsp_last_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_last_chunk_adj), 1, 0);
   gtk_widget_set_name (spinbutton_pfsp_last_chunk, "spinbutton_pfsp_last_chunk");
   gtk_widget_show (spinbutton_pfsp_last_chunk);
@@ -13366,7 +13366,7 @@ create_dlg_prefs_ul_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label180), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label180), 4, 0);
 
-  spinbutton_config_upload_connecting_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_upload_connecting_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 0);
   spinbutton_config_upload_connecting_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_upload_connecting_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_upload_connecting_timeout, "spinbutton_config_upload_connecting_timeout");
   gtk_widget_show (spinbutton_config_upload_connecting_timeout);
@@ -13375,7 +13375,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_upload_connecting_timeout), TRUE);
 
-  spinbutton_config_upload_connected_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_upload_connected_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 0);
   spinbutton_config_upload_connected_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_upload_connected_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_upload_connected_timeout, "spinbutton_config_upload_connected_timeout");
   gtk_widget_show (spinbutton_config_upload_connected_timeout);
@@ -13415,7 +13415,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label928), 0, 0.5);
 
-  spinbutton_parq_min_size_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
+  spinbutton_parq_min_size_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 0);
   spinbutton_parq_min_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_parq_min_size, "spinbutton_parq_min_size");
   gtk_widget_show (spinbutton_parq_min_size);
@@ -13438,7 +13438,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
 
-  spinbutton_parq_min_time_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
+  spinbutton_parq_min_time_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 0);
   spinbutton_parq_min_time = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_time_adj), 1, 0);
   gtk_widget_set_name (spinbutton_parq_min_time, "spinbutton_parq_min_time");
   gtk_widget_show (spinbutton_parq_min_time);
@@ -14301,7 +14301,7 @@ create_dlg_prefs_ui_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
 
-  spinbutton_search_accumulation_period_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_search_accumulation_period_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_search_accumulation_period = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_accumulation_period_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_accumulation_period, "spinbutton_search_accumulation_period");
   gtk_widget_show (spinbutton_search_accumulation_period);
@@ -14317,7 +14317,7 @@ create_dlg_prefs_ui_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label834), 0, 0.5);
 
-  spinbutton_entry_removal_timeout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_entry_removal_timeout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_entry_removal_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_entry_removal_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_entry_removal_timeout, "spinbutton_entry_removal_timeout");
   gtk_widget_show (spinbutton_entry_removal_timeout);
@@ -15407,7 +15407,7 @@ create_main_window_downloads_tab (void)
   gtk_label_set_justify (GTK_LABEL (label64), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label64), 0, 0.5);
 
-  spinbutton_max_downloads_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_max_downloads_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_max_downloads = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_downloads_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_downloads, "spinbutton_max_downloads");
   gtk_widget_show (spinbutton_max_downloads);
@@ -15424,7 +15424,7 @@ create_main_window_downloads_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label831), 0, 0.5);
 
-  spinbutton_mismatch_backout_adj = gtk_adjustment_new (50000, 0, 250000, 1000, 10000, 10);
+  spinbutton_mismatch_backout_adj = gtk_adjustment_new (50000, 0, 250000, 1000, 10000, 0);
   spinbutton_mismatch_backout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_mismatch_backout_adj), 100, 0);
   gtk_widget_set_name (spinbutton_mismatch_backout, "spinbutton_mismatch_backout");
   gtk_widget_show (spinbutton_mismatch_backout);
@@ -15472,7 +15472,7 @@ create_main_window_downloads_tab (void)
   gtk_label_set_justify (GTK_LABEL (label1009), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label1009), 0, 0.5);
 
-  spinbutton_max_host_downloads_adj = gtk_adjustment_new (1, 1, 100, 1, 10, 10);
+  spinbutton_max_host_downloads_adj = gtk_adjustment_new (1, 1, 100, 1, 10, 0);
   spinbutton_max_host_downloads = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_host_downloads_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_host_downloads, "spinbutton_max_host_downloads");
   gtk_widget_show (spinbutton_max_host_downloads);
@@ -15481,7 +15481,7 @@ create_main_window_downloads_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_host_downloads), TRUE);
 
-  spinbutton_max_file_downloads_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_max_file_downloads_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_max_file_downloads = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_file_downloads_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_file_downloads, "spinbutton_max_file_downloads");
   gtk_widget_show (spinbutton_max_file_downloads);
