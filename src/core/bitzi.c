@@ -80,7 +80,7 @@
  */
 
 static const char bitzi_url_fmt[] =
-	"http://bitzi.com/rdf/urn:sha1:%s?ref=gtk-gnutella";
+	"http://ticket.bitzi.com/rdf/urn:sha1:%s?ref=gtk-gnutella";
 
 typedef struct {
 	const struct sha1 *sha1;			/**< binary SHA-1, atom */
