@@ -7035,7 +7035,8 @@ download_free_removed(void)
  * Does the download layer know information about a given GUID?
  *
  * If yes, return TRUE and fill in the ``addr'', ``port' and ``proxies''
- * argument.
+ * argument.  If there are no push-proxies known, ``proxies'' is written
+ * with a NULL pointer.
  *
  * @attention
  * It is up to the caller to release the memory allocated for the proxies
@@ -7055,8 +7056,10 @@ download_known_guid(const struct guid *guid,
 		*addr = server->key->addr;
 	if (port != NULL)
 		*port = server->key->port;
-	if (proxies != NULL && server->proxies != NULL)
-		*proxies = pproxy_set_sequence(server->proxies);
+	if (proxies != NULL) {
+		*proxies = server->proxies ?
+			pproxy_set_sequence(server->proxies) : NULL;
+	}
 
 	return TRUE;
 }
