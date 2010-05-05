@@ -790,7 +790,7 @@ gdht_handle_nope(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 		g_message("adding %s (NOPE creator) as push-proxy for %s (%s)",
 			host_addr_port_to_string(rc->addr, port),
 			guid_to_string(glk->guid),
-			host_addr_port_to_string(glk->addr, glk->port));
+			host_addr_port_to_string2(glk->addr, glk->port));
 
 	download_add_push_proxy(glk->guid, rc->addr, port);
 
