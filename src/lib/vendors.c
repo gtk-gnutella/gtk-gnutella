@@ -172,10 +172,10 @@ is_vendor_acceptable(vendor_code_t code)
 	char temp[4];
 
 	memcpy(temp, &code.u32, 4);
-	return is_ascii_print(temp[0]) &&
-		is_ascii_print(temp[1]) &&
-		is_ascii_print(temp[2]) &&
-		is_ascii_print(temp[3]);
+	return is_ascii_alnum(temp[0]) &&
+		is_ascii_alnum(temp[1]) &&
+		is_ascii_alnum(temp[2]) &&
+		is_ascii_alnum(temp[3]);
 }
 
 /**
