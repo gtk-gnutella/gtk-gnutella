@@ -105,7 +105,6 @@ static const struct {
 	{ "gwc.chickenkiller.com:8080" },
 	{ "leet.gtkg.org:1337" },
 	{ "tertiary.udp-host-cache.com:9999" },
-	{ "yang.cloud.bishopston.net:33558" },
 	{ "yin.cloud.bishopston.net:33558" },
 #endif	/* USE_LOCAL_UHC */
 };
