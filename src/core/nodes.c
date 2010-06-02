@@ -7658,6 +7658,9 @@ node_init_outgoing(struct gnutella_node *n)
 void
 node_flushq(struct gnutella_node *n)
 {
+	if (NULL == n->socket)
+		return;		/* Socket has been nullified on a write error */
+
 	/*
 	 * Put the connection in TCP_NODELAY mode to accelerate flushing of the
 	 * kernel buffers by turning off the Nagle algorithm.
@@ -7671,6 +7674,9 @@ node_flushq(struct gnutella_node *n)
 void
 node_unflushq(struct gnutella_node *n)
 {
+	if (NULL == n->socket)
+		return;		/* Socket has been nullified on a write error */
+
 	socket_nodelay(n->socket, FALSE);
 }
 
