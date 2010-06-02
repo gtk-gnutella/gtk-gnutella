@@ -1870,7 +1870,7 @@ allocated:
 	 *
 	 * If we found the server by address, we got #1, but download_found_server()
 	 * will locate by GUID and find #2.  It will then call
-	 * change_server_address() to change the address of #2 to that of #1,
+	 * change_server_addr() to change the address of #2 to that of #1,
 	 * and the duplicate #1 will be picked and remaped to #2.
 	 *
 	 * Upon return, we must therefore not return the original server we
