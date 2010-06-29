@@ -1833,11 +1833,13 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	cq_cancel(callout_queue, &n->tsync_ev);
 	cq_cancel(callout_queue, &n->dht_nope_ev);
 
+	if (n->status != GTA_NODE_REMOVING) {
+		node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
+	}
+
 	n->status = GTA_NODE_REMOVING;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE|NODE_F_BYE_SENT);
 	n->last_update = tm_time();
-
-    node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
 
 	node_proxying_remove(n);
 
