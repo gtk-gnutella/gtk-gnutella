@@ -589,11 +589,21 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 						}
 					} else if (2 == pagecount_fast(size)) {
 						void *next = ptr_add_offset(hint, kernel_pagesize);
-						pmap_insert_foreign(&local_pmap, next, kernel_pagesize);
-						if (vmm_debugging(0)) {
-							g_message("VMM marked 0x%lx (page after 0x%lx) "
-								"as foreign",
-								(unsigned long) next, (unsigned long) hint);
+						if (next != p) {
+							pmap_insert_foreign(&local_pmap, next,
+								kernel_pagesize);
+							if (vmm_debugging(0)) {
+								g_message("VMM marked 0x%lx (page after 0x%lx) "
+									"as foreign",
+									(unsigned long) next, (unsigned long) hint);
+							}
+						} else {
+							if (vmm_debugging(0)) {
+								g_message("VMM funny kernel ignored hint 0x%lx "
+									"and allocated 8 KiB at 0x%lx whereas hint "
+									"was free",
+									(unsigned long) hint, (unsigned long) p);
+							}
 						}
 					} else {
 						if (vmm_debugging(1)) {
