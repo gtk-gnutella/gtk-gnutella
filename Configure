@@ -7562,7 +7562,9 @@ END {
 	}
 }
 EOC
-gtkgversion=`${nawk:-$awk} -f ./ver "$rsrc/src/gtk-gnutella.h"`
+awkp=$awk
+test -x $nawk && awkp=$nawk
+gtkgversion=`$awkp -f ./ver "$rsrc/src/gtk-gnutella.h"`
 echo "(You have version $gtkgversion.)"
 $rm -f ver
 

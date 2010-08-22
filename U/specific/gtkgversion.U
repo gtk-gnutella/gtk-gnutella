@@ -7,6 +7,7 @@
 ?S:gtkgversion:
 ?S:	The version of gtk-gnutella we're compiling.
 ?S:.
+?T:awkp
 ?F:!ver
 ?LINT:usefile ver.c
 : determine our version number
@@ -26,7 +27,9 @@ END {
 }
 EOC
 ?X: Prefer "nawk" since older "awk" versions may not implement gsub()
-gtkgversion=`${nawk:-$awk} -f ./ver "$rsrc/src/gtk-gnutella.h"`
+awkp=$awk
+test -x $nawk && awkp=$nawk
+gtkgversion=`$awkp -f ./ver "$rsrc/src/gtk-gnutella.h"`
 echo "(You have version $gtkgversion.)"
 $rm -f ver
 
