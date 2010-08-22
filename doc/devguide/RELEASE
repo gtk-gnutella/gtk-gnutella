@@ -82,10 +82,11 @@ Release steps
 
    This will generate a directory gtk-gnutella-0.92.1
 
-10. Create the tar.bz2
+10. Create the tar.bz2 and detached ASCII signature
 
 	tar -cvf gtk-gnutella-0.92.1.tar gtk-gnutella-0.92.1
 	bzip2 -v9 gtk-gnutella-0.92.1.tar
+	pgp -sba gtk-gnutella-0.92.1.tar.bz2
 
 11. Move into the directory.
 
