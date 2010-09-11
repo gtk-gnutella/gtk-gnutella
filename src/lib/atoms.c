@@ -856,17 +856,22 @@ atoms_init(void)
 	}
 }
 
+/**
+ * Check whether ``key'' is an atom of type ``type''.
+ *
+ * @return the size of the atom if found, 0 otherwise.
+ */
 static inline size_t
 atom_is_registered(enum atom_type type, gconstpointer key)
 {
 	gpointer value;
 
 	if (g_hash_table_lookup_extended(ht_all_atoms, key, NULL, &value)) {
-		/* If the address is already registered in the global atom table,
+		/*
+		 * If the address is already registered in the global atom table,
 		 * this is definitely an atom. However, the same memory object
 		 * could be shared by atoms of different types (in theory at least),
-		 * thus we must check whether the types are identical. Otherwise,
-		 * a new atom must be created.
+		 * thus we must check whether the types are identical.
 		 */
 
 		if (((size_t) value & ATOM_TYPE_MASK) == (guint) type) {
@@ -876,6 +881,20 @@ atom_is_registered(enum atom_type type, gconstpointer key)
 		}
 	}
 	return 0;
+}
+
+/**
+ * Check whether atom exists.
+ *
+ * @return TRUE if ``key'' points to a ``type'' atom.
+ */
+gboolean
+atom_exists(enum atom_type type, gconstpointer key)
+{
+	g_assert(key != NULL);
+
+	return atom_is_registered(type, key) > 0 ||
+		g_hash_table_lookup_extended(atoms[type].table, key, NULL, NULL);
 }
 
 /**
@@ -899,18 +918,22 @@ atom_get(enum atom_type type, gconstpointer key)
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
-	/* If the address is already registered in the global atom table,
-	 * this is definitely an atom. However, the same memory object
-	 * could be shared by atoms of different types (in theory at least),
-	 * thus we must check whether the types are identical. Otherwise,
-	 * a new atom must be created.
-	 */
-
 	size = atom_is_registered(type, key);
 	if (size > 0) {
+		/* Atom already exists for key and type */
 		orig_key = deconstify_gpointer(key);
 	} else {
 		gpointer value;
+
+		/*
+		 * Normally, if atom exists, it will be found by atom_is_registered().
+		 * If not, look in the type-specific table.
+		 *
+		 * This happens when the first few bytes of the atom arena are shared
+		 * by atoms of different types (it creates conflicts in the global
+		 * ht_all_atoms table).
+		 */
+
 		if (g_hash_table_lookup_extended(td->table, key, &orig_key, &value)) {
 			size = (size_t) value;
 			g_assert(size >= ARENA_OFFSET);

@@ -122,7 +122,7 @@ upload_stats_find(const struct sha1 *sha1, const char *pathname, guint64 size)
 		if (sha1) {
 			s = g_hash_table_lookup(upload_stats_by_sha1, sha1);
 			if (s)
-				return s;		/* Found it by SHA1 */
+				goto done;		/* Found it by SHA1 */
 		}
 
 		key = zero_stats;
@@ -154,8 +154,17 @@ upload_stats_find(const struct sha1 *sha1, const char *pathname, guint64 size)
 		}
 	}
 
+done:
+
 	/* We guarantee the SHA1 is present in the record if known */
 	g_assert(!(s && sha1) || s->sha1);
+
+	/* Postcondition: if we return something, it must be "correct" */
+	if (s != NULL) {
+		g_assert(atom_is_str(s->pathname));
+		g_assert(atom_is_str(s->filename));
+		g_assert(s->norm >= 0.0);
+	}
 
 	return s;
 }
@@ -167,6 +176,9 @@ upload_stats_add(const char *pathname, filesize_t size, const char *name,
 {
 	static const struct ul_stats zero_stats;
 	struct ul_stats *s;
+
+	g_assert(pathname != NULL);
+	g_assert(name != NULL);
 
 	s = walloc(sizeof *s);
 	*s = zero_stats;

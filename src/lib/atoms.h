@@ -59,6 +59,8 @@ gconstpointer atom_get(enum atom_type type, gconstpointer key);
 void atom_free(enum atom_type type, gconstpointer key);
 #endif
 
+gboolean atom_exists(enum atom_type type, gconstpointer key);
+
 /*
  * Convenience macros.
  */
@@ -187,6 +189,48 @@ atom_uint32_free(const guint32 *k)
 
 void atoms_init(void);
 void atoms_close(void);
+
+static inline gboolean
+atom_is_str(const char *k)
+{
+	return atom_exists(ATOM_STRING, k);
+}
+
+static inline gboolean
+atom_is_guid(const struct guid *k)
+{
+	return atom_exists(ATOM_GUID, k);
+}
+
+static inline gboolean
+atom_is_sha1(const struct sha1 *k)
+{
+	return atom_exists(ATOM_SHA1, k);
+}
+
+static inline gboolean
+atom_is_tth(const struct tth *k)
+{
+	return atom_exists(ATOM_TTH, k);
+}
+
+static inline gboolean
+atom_is_uint64(const guint64 *k)
+{
+	return atom_exists(ATOM_UINT64, k);
+}
+
+static inline gboolean
+atom_is_filesize(const filesize_t *k)
+{
+	return atom_exists(ATOM_FILESIZE, k);
+}
+
+static inline gboolean
+atom_is_uint32(const guint32 *k)
+{
+	return atom_exists(ATOM_UINT32, k);
+}
 
 /*
  * Hash functions and equality checks
