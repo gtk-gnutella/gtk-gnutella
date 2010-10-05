@@ -5834,9 +5834,9 @@ download_got_push_proxies(const struct guid *guid,
 
 	if (added > 0) {
 		if (GNET_PROPERTY(download_debug)) {
-			g_message("PUSH found %u new push prox%s in query hit "
+			g_message("PUSH found %lu new push prox%s in query hit "
 				"for GUID %s at %s",
-				added, 1 == added ? "y" : "ies",
+				(unsigned long) added, 1 == added ? "y" : "ies",
 				guid_hex_str(guid), server_host_info(server));
 		}
 		gnet_stats_count_general(GNR_COLLECTED_PUSH_PROXIES, +1);

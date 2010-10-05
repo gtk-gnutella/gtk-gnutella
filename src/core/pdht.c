@@ -1418,8 +1418,8 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 	list = NULL;
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PDHT PROX using %u push-prox%s for local node (%s)",
-			i, 1 == i ? "y" : "ies",
+		g_message("PDHT PROX using %lu push-prox%s for local node (%s)",
+			(unsigned long) i, 1 == i ? "y" : "ies",
 			GNET_PROPERTY(is_firewalled) ? "firewalled" : "not firewalled");
 	}
 

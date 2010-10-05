@@ -1638,7 +1638,7 @@ publish_cache_send(publish_t *pb, pmsg_t *mb)
 	pb->rpc_pending++;
 
 	if (GNET_PROPERTY(dht_publish_debug) > 3) {
-		guint8 held = values_held(mb);
+		int held = values_held(mb);
 		g_message("DHT PUBLISH[%s] hop %u sending STORE (%d bytes) "
 			"#%d first-sk=%s (%u value%s)",
 			revent_id_to_string(pb->pid), pb->hops, pmsg_size(mb),
@@ -1845,7 +1845,8 @@ publish_value_send(publish_t *pb, knode_t *kn, pmsg_t *mb)
 		g_message("DHT PUBLISH[%s] hop %u sending STORE (%d bytes) "
 			"to node #%u/%u: %s",
 			revent_id_to_string(pb->pid), pb->hops, pmsg_size(mb),
-			pb->target.v.idx + 1, (unsigned) pb->target.v.rs->path_len,
+			(unsigned) pb->target.v.idx + 1,
+			(unsigned) pb->target.v.rs->path_len,
 			knode_to_string(kn));
 	}
 
@@ -1898,7 +1899,8 @@ publish_value_iterate(publish_t *pb)
 		bin_to_hex_buf(rc->token, rc->token_len, buf, sizeof buf);
 		g_message("DHT PUBLISH[%s] at root %u/%u, "
 			"using %u-byte token \"%s\" for %s",
-			revent_id_to_string(pb->pid), pb->target.v.idx + 1,
+			revent_id_to_string(pb->pid),
+			(unsigned) pb->target.v.idx + 1,
 			(unsigned) pb->target.v.rs->path_len,
 			rc->token_len, buf, knode_to_string(rc->kn));
 	}
