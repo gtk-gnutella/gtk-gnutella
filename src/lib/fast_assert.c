@@ -72,7 +72,7 @@ assertion_message(const assertion_data * const data, int fatal)
 		print_str("\"");
 	}
 	print_str("\n");
-	writev(STDERR_FILENO, iov, iov_cnt);
+	IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 }
 
 /*

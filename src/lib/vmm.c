@@ -1300,7 +1300,7 @@ iobuffer_readline(struct iobuffer *iob, int fd)
  * @return	A negative value on failure. If zero is returned, check pm->resize
  *			and try again.
  */
-static int
+static inline int
 pmap_load_data(struct pmap *pm)
 {
 	struct iobuffer iob;

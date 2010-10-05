@@ -183,7 +183,7 @@ crash_message(const char *reason)
 		print_str(" -- pausing");	/* 5 */
 	}
 	print_str("\n");				/* 7, at most */
-	writev(STDERR_FILENO, iov, iov_cnt);
+	IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 }
 
 static void
