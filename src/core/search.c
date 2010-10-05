@@ -815,7 +815,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 	if (!is_vendor_acceptable(rs->vcode)) {
 		/* A proper vendor code is mandatory */
 		rs->status |= ST_FAKE_SPAM;
-	} else if (T_LIME == rs->vcode.u32 && !(has_xml || has_ct)) {
+	} else if (T_LIME == rs->vcode.u32 && !has_ct) {
 		/*
 		 * If there are no timestamps, this is most-likely not from LimeWire.
 		 * Cabos frequently fails to add timestamps for unknown reasons.
