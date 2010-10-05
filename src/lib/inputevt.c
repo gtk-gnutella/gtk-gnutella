@@ -916,10 +916,8 @@ inputevt_add_source(inputevt_relay_t *relay)
 
 			size = poll_ctx->num_ev * sizeof poll_ctx->ev_arr.ev[0];
 			poll_ctx->ev_arr.ev = g_realloc(poll_ctx->ev_arr.ev, size);
-			
-			poll_ctx->used = bit_array_realloc(poll_ctx->used,
-								poll_ctx->num_ev);
-			bit_array_clear_range(poll_ctx->used, n, poll_ctx->num_ev - 1);
+			poll_ctx->used = bit_array_resize(poll_ctx->used,
+								n, poll_ctx->num_ev);
 
 			if (0 == n) {
 				/* ID 0 is reserved for compatibility with GLib's IDs */

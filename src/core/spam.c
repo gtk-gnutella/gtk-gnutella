@@ -249,7 +249,7 @@ spam_load(FILE *f)
 
 	/* Reset state */
 	item = zero_item;
-	bit_array_clear_range(tag_used, 0, NUM_SPAM_TAGS - 1U);
+	bit_array_init(tag_used, NUM_SPAM_TAGS);
 
 	while (fgets(line, sizeof line, f)) {
 		const char *tag_name, *value;

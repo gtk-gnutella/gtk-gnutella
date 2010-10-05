@@ -1429,7 +1429,7 @@ listen_port_changed(property_t prop)
 	} else {
 		bit_array_t tried[BIT_ARRAY_SIZE(65536)];
 		guint num_tried = 0;
-    	guint32 port = GNET_PROPERTY(listen_port);
+		guint32 port = GNET_PROPERTY(listen_port);
 
 		/* Mark ports below 1024 as already tried, these ports can
 		 * be configured manually but we don't want to pick one of
@@ -1437,6 +1437,7 @@ listen_port_changed(property_t prop)
 		 * port of an important service (which is currently down).
 		 */
 
+		bit_array_init(tried, 65536);
 		bit_array_set_range(tried, 0, 1023);
 		bit_array_clear_range(tried, 1024, 65535);
 

@@ -4790,7 +4790,7 @@ parq_upload_load_queue(void)
 
 	/* Reset state */
 	entry = zero_entry;
-	bit_array_clear_range(tag_used, 0, NUM_PARQ_TAGS - 1);
+	bit_array_init(tag_used, NUM_PARQ_TAGS);
 
 	while (fgets(line, sizeof(line), f)) {
 		const char *tag_name, *value;

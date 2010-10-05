@@ -91,7 +91,8 @@ typedef unsigned long bit_array_t;
  #define BIT_ARRAY_BYTE_SIZE(n) (BIT_ARRAY_SIZE(n) * sizeof (bit_array_t))
 
 /**
- * Re-allocates "base" so that it can hold at least "n" bits.
+ * Re-allocates "base" so that it can hold at least "n" bits
+ * and initializes newly allocated bytes if necessary.
  *
  * @param base The base address of the bit array, may be NULL.
  * @param n The number of bits the bit array should hold.
@@ -100,19 +101,45 @@ typedef unsigned long bit_array_t;
  * @attention DO NOT USE IN MEMORY ALLOCATING ROUTINES!
  */
 static inline bit_array_t *
-bit_array_realloc(bit_array_t *base, size_t n)
+bit_array_resize(bit_array_t *base, size_t old_n, size_t new_n)
 {
-	size_t size;
+	size_t old_size, new_size;
+	void *p;
 
 	STATIC_ASSERT(0 == (BIT_ARRAY_BITSIZE & BIT_ARRAY_BITMASK));
 	
-	size = BIT_ARRAY_BYTE_SIZE(n);
-	return g_realloc(base, size);
+	new_size = BIT_ARRAY_BYTE_SIZE(new_n);
+	old_size = BIT_ARRAY_BYTE_SIZE(old_n);
+	p = g_realloc(base, new_size);
+	if (old_size < new_size) {
+		char *bytes = p;
+		memset(&bytes[old_size], 0, new_size - old_size);
+	}
+	return p;
 }
 
+/**
+ * Initializes the bit array so that all bits are cleared. This
+ * function MUST be used for all non-statically allocated bit arrays
+ * before using it with any other bit array function!
+ *
+ * @param base The base address of the bit array, may be NULL.
+ * @param n The number of bits the bit array holds.
+ */
+static inline void 
+bit_array_init(bit_array_t *base, size_t n)
+{
+	g_assert(!n || NULL != base);
+	if (n) {
+		memset(base, 0, BIT_ARRAY_BYTE_SIZE(n));
+	}
+}
 
 /**
  * Sets bit number "i" of the bit array "base".
+ *
+ * @param base The base address of the bit array which must be initialized.
+ * @param n The index of the bit to set counting from zero.
  * @note: For optimum performance, there are no checks at all.
  */
 static inline void
@@ -123,6 +150,8 @@ bit_array_set(bit_array_t *base, size_t i)
 
 /**
  * Sets bit number "i" of the bit array "base".
+ * @param base The base address of the bit array which must be initialized.
+ * @param n The index of the bit to clear counting from zero.
  * @note: For optimum performance, there are no checks at all.
  */
 static inline void 
@@ -135,6 +164,8 @@ bit_array_clear(bit_array_t *base, size_t i)
  * Flips bit number "i" of the bit array "base".
  * @note: For optimum performance, there are no checks at all.
  *
+ * @param base The base address of the bit array which must be initialized.
+ * @param n The index of the bit to flip counting from zero.
  * @return The new state of the bit.
  */
 static inline gboolean
@@ -146,6 +177,8 @@ bit_array_flip(bit_array_t *base, size_t i)
 /**
  * Retrieves bit number "i" of the bit array "base".
  * @note: For optimum performance, there are no checks at all.
+ * @param base The base address of the bit array which must be initialized.
+ * @param n The index of the bit to read counting from zero.
  * @return TRUE if the bit is set, FALSE otherwise.
  */
 static inline gboolean
@@ -158,7 +191,7 @@ bit_array_get(const bit_array_t *base, size_t i)
  * Clears all bits starting at "from" up to "to" inclusive.
  * @note: For optimum performance, there are no checks at all.
  *
- * @param base The base address of the bit array.
+ * @param base The base address of the bit array which must be initialized.
  * @param from The first bit.
  * @param to The last bit, must be equal or above "from".
  * @return TRUE if the bit is set, FALSE otherwise.
@@ -192,7 +225,7 @@ bit_array_clear_range(bit_array_t *base, size_t from, size_t to)
  * Sets all bits starting at "from" up to "to" inclusive.
  * @note: For optimum performance, there are no checks at all.
  *
- * @param base The base address of the bit array.
+ * @param base The base address of the bit array which must be initialized.
  * @param from The first bit.
  * @param to The last bit, must be equal or above "from".
  * @return TRUE if the bit is set, FALSE otherwise.
@@ -225,7 +258,7 @@ bit_array_set_range(bit_array_t *base, size_t from, size_t to)
 /**
  * Peforms a linear scan for the first unset bit of the given bit array.
  *
- * @param base The base address of the bit array.
+ * @param base The base address of the bit array which must be initialized.
  * @param from The first bit.
  * @param to The last bit, must be equal or above "from".
  * @return (size_t) -1, if no unset bit was found. On success the
@@ -270,7 +303,7 @@ bit_array_first_clear(const bit_array_t *base, size_t from, size_t to)
 /**
  * Peforms a linear scan for the last set bit of the given bit array.
  *
- * @param base The base address of the bit array.
+ * @param base The base address of the bit array which must be initialized.
  * @param from The first bit.
  * @param to The last bit, must be equal or above "from".
  * @return (size_t) -1, if no set bit was found. On success the

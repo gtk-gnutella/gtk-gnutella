@@ -451,7 +451,8 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 	/* Reset state */
 	done = FALSE;
 	item = zero_item;
-	bit_array_clear_range(tag_used, 0, (guint) NUM_IPP_CACHE_TAGS - 1);
+	bit_array_init(tag_used, NUM_IPP_CACHE_TAGS);
+	bit_array_clear_range(tag_used, 0, NUM_IPP_CACHE_TAGS - 1U);
 
 	while (fgets(line, sizeof line, f)) {
 		const char *tag_name, *value;
