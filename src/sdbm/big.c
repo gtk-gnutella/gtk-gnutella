@@ -29,6 +29,14 @@
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+/**
+ * XXX FIXME BUG:
+ * XXX bit_array_t is NOT an array of BYTES but UNSIGNED LONG
+ * XXX or rather an OPAQUE type. Therefore all explicit and implicit
+ * XXX assumptions regarding ALIGNMENT, ALLOCATION, ENDIANNESS of bit_array_t
+ * XXX made here are invalid.
+ */
+
 /*
  * FIXME:
  * We'd need some kind of "dbmck" to check and fix inconsistencies: duplicate
