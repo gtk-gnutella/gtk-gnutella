@@ -35,11 +35,6 @@
  * @date 2006
  */
 
-/*
- * NOTE: any change made to macros in this file should be reported
- * with slight adaptation ("array" -> "field") to bit_field.h.
- */
-
 #ifndef _bit_array_h_
 #define _bit_array_h_
 
