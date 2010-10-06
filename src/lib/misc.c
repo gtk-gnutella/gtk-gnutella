@@ -1546,10 +1546,10 @@ guid_random_fill(struct guid *guid)
  *
  * @returns pointer within supplied string.
  */
-char *
-short_filename(char *fullname)
+const char *
+short_filename(const char *fullname)
 {
-	char *s;
+	const char *s;
 
 	s = is_strprefix(fullname, SRC_PREFIX);
 	return s ? s : fullname;

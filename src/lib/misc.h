@@ -259,7 +259,7 @@ int highest_bit_set(guint32 n) G_GNUC_CONST;
 size_t common_leading_bits(
 	gconstpointer k1, size_t k1bits, gconstpointer k2, size_t k2bits);
 float force_range(float value, float min, float max);
-char *short_filename(char *fullname);
+const char *short_filename(const char *fullname);
 char *data_hex_str(const char *data, size_t len);
 
 #if defined(S_IROTH) && defined(S_IXOTH)

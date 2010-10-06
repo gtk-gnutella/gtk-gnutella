@@ -290,13 +290,13 @@ zalloc(zone_t *zone)
  * Tracking version of zalloc().
  */
 void *
-zalloc_track(zone_t *zone, char *file, int line)
+zalloc_track(zone_t *zone, const char *file, int line)
 {
 	char *blk = zalloc(zone);
 	char *p;
 
 	p = blk - FILE_REV_OFFSET;			/* Go backwards */
-	*(char **) p = short_filename(file);
+	*(char const **) p = short_filename(file);
 	p += sizeof(char *);
 	*(int *) p = line;
 

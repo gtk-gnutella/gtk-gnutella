@@ -85,7 +85,7 @@ void set_zalloc_always_gc(gboolean val);
 
 #define zalloc(z)	zalloc_track(z, _WHERE_, __LINE__)
 
-void *zalloc_track(zone_t *z, char *file, int line);
+void *zalloc_track(zone_t *z, const char *file, int line);
 
 #endif	/* TRACK_ZALLOC */
 
