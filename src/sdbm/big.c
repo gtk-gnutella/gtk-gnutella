@@ -18,7 +18,7 @@
 #include "big.h"
 #include "private.h"
 
-#include "lib/bit_array.h"
+#include "lib/bit_field.h"
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
 #include "lib/fd.h"
@@ -28,14 +28,6 @@
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
-
-/**
- * XXX FIXME BUG:
- * XXX bit_array_t is NOT an array of BYTES but UNSIGNED LONG
- * XXX or rather an OPAQUE type. Therefore all explicit and implicit
- * XXX assumptions regarding ALIGNMENT, ALLOCATION, ENDIANNESS of bit_array_t
- * XXX made here are invalid.
- */
 
 /*
  * FIXME:
@@ -91,7 +83,7 @@ struct datfile {
  */
 struct DBMBIG {
 	struct datfile *file;	/* file information, kept until file is opened */
-	bit_array_t *bitbuf;	/* current bitmap page (size: BIG_SIZE) */
+	bit_field_t *bitbuf;	/* current bitmap page (size: BIG_SIZE) */
 	char *scratch;			/* scratch buffer where key/values are read */
 	long bitbno;			/* page number of the bitmap in bitbuf */
 	size_t scratch_len;		/* length of the scratch buffer */
@@ -275,7 +267,7 @@ big_open(DBMBIG *dbg)
 
 	if (0 == buf.st_size) {
 		memset(dbg->bitbuf, 0, BIG_BLKSIZE);
-		bit_array_set(dbg->bitbuf, 0);	/* First page is the bitmap itself */
+		bit_field_set(dbg->bitbuf, 0);	/* First page is the bitmap itself */
 		dbg->bitbno = 0;
 		dbg->bitmaps = 1;
 	}
@@ -686,7 +678,7 @@ falloc(DBM *db, size_t first)
 		if (!fetch_bitbuf(db, i))
 			return 0;
 		
-		bno = bit_array_first_clear(dbg->bitbuf, first_bit, BIG_BITCOUNT - 1);
+		bno = bit_field_first_clear(dbg->bitbuf, first_bit, BIG_BITCOUNT - 1);
 		if ((size_t) -1 == bno)
 			continue;
 
@@ -694,7 +686,7 @@ falloc(DBM *db, size_t first)
 		 * Found a free block.
 		 */
 
-		bit_array_set(dbg->bitbuf, bno);
+		bit_field_set(dbg->bitbuf, bno);
 		dbg->bitbuf_dirty = TRUE;
 
 		/*
@@ -770,13 +762,13 @@ ffree(DBM *db, size_t bno)
 	 * at some point, hence it cannot be an assertion.
 	 */
 
-	if (!bit_array_get(dbg->bitbuf, i)) {
+	if (!bit_field_get(dbg->bitbuf, i)) {
 		g_warning("sdbm: \"%s\": freed block #%ld was already marked as free",
 			sdbm_name(db), (long) bno);
 		return;
 	}
 
-	bit_array_clear(dbg->bitbuf, i);
+	bit_field_clear(dbg->bitbuf, i);
 	dbg->bitbuf_dirty = TRUE;
 }
 
@@ -814,12 +806,12 @@ falloc_seq(DBM *db, int bmap, int n)
 		if (!fetch_bitbuf(db, i))
 			return 0;
 		
-		first = bit_array_first_clear(dbg->bitbuf, 0, BIG_BITCOUNT - 1);
+		first = bit_field_first_clear(dbg->bitbuf, 0, BIG_BITCOUNT - 1);
 		if ((size_t) -1 == first)
 			continue;
 
 		for (j = first + 1, r = n - 1; r > 0 && j < BIG_BITCOUNT; r--, j++) {
-			if (bit_array_get(dbg->bitbuf, j))
+			if (bit_field_get(dbg->bitbuf, j))
 				break;
 		}
 
@@ -834,7 +826,7 @@ falloc_seq(DBM *db, int bmap, int n)
 			 */
 
 			for (j = first, r = n; r > 0; r--, j++) {
-				bit_array_set(dbg->bitbuf, j);
+				bit_field_set(dbg->bitbuf, j);
 			}
 			dbg->bitbuf_dirty = TRUE;
 
@@ -970,7 +962,7 @@ retry:
 		return FALSE;
 
 	memset(dbg->bitbuf, 0, BIG_BLKSIZE);
-	bit_array_set(dbg->bitbuf, 0);	/* First page is the bitmap itself */
+	bit_field_set(dbg->bitbuf, 0);	/* First page is the bitmap itself */
 	dbg->bitbno = dbg->bitmaps * BIG_BITCOUNT;
 	dbg->bitmaps++;
 
@@ -1271,7 +1263,7 @@ big_shrink(DBM *db)
 		if (!fetch_bitbuf(db, i))
 			return FALSE;
 
-		bno = bit_array_last_set(dbg->bitbuf, 0, BIG_BITCOUNT - 1);
+		bno = bit_field_last_set(dbg->bitbuf, 0, BIG_BITCOUNT - 1);
 
 		if ((size_t) -1 == bno) {
 			g_warning("sdbm: \"%s\": corrupted bitmap #%ld, considered empty",

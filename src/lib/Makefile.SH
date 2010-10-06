@@ -83,6 +83,21 @@ all:: .FORCE_DEPEND
 
 # $X-Id: Jmakefile 17211 2009-11-08 23:18:22Z rmanfredi $
 
+GENERIC = bit_array.h bit_field.h
+
+bit_array.h: bit_array.ht bit_generic.t
+	$(TOP)/scripts/generic-cat bit_array.ht bit_generic.t array >$@
+
+bit_field.h: bit_field.ht bit_generic.t
+	$(TOP)/scripts/generic-cat bit_field.ht bit_generic.t field >$@
+
+all:: $(GENERIC)
+
+local_clean::
+	$(RM) $(GENERIC)
+
+depend:: $(GENERIC)
+
 LSRC = \
 	adns.c \
 	aging.c \

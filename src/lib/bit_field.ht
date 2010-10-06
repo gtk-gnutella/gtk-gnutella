@@ -1,0 +1,67 @@
+;#
+;# $Id$
+;#
+;# Copyright (c) 2010, Raphael Manfredi
+;# Copyright (c) 2006, Christian Biere
+;#
+;#----------------------------------------------------------------------
+;# This file is part of gtk-gnutella.
+;#
+;#  gtk-gnutella is free software; you can redistribute it and/or modify
+;#  it under the terms of the GNU General Public License as published by
+;#  the Free Software Foundation; either version 2 of the License, or
+;#  (at your option) any later version.
+;#
+;#  gtk-gnutella is distributed in the hope that it will be useful,
+;#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;#  GNU General Public License for more details.
+;#
+;#  You should have received a copy of the GNU General Public License
+;#  along with gtk-gnutella; if not, write to the Free Software
+;#  Foundation, Inc.:
+;#      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+;#----------------------------------------------------------------------
+;#
+;# This file is a the header of the generated bit_field.h file.
+;#
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Bit field (linear field of bits with fixed endiannes). 
+ *
+ * Macros defined here are derived from those in <lib/bit_aray.h> but
+ * operate on a linear field of byte, with fixed endianness of bits
+ * within each byte.
+ *
+ * This is intended to be used for portable representations of bit fields.
+ * If used internally only, then bit_array_t should be preferred as it will
+ * be more efficient computation-wise.
+ *
+ * @author Raphael Manfredi
+ * @date 2010
+ * @author Christian Biere
+ * @date 2006
+ */
+
+#ifndef _bit_field_h_
+#define _bit_field_h_
+
+#include "common.h"
+
+/*
+ * Functions for handling arrays of bits. On BSD systems, the macros from
+ * <bitstring.h> could be used for better efficiency.
+ * The following implementation tries to eliminate loop overhead by handling
+ * all bits of a "char" at once, where possible.
+ */
+
+typedef guint8 bit_field_t;
+
+#define BIT_FIELD_BITSHIFT 3
+#define BIT_FIELD_BITSIZE (8 * sizeof(bit_field_t))
+#define BIT_FIELD_BITMASK (BIT_FIELD_BITSIZE - 1)
+#define BIT_FIELD_WORD(base, i) base[(i) >> BIT_FIELD_BITSHIFT]
+#define BIT_FIELD_BIT(base, i) (1UL << ((i) & BIT_FIELD_BITMASK)) 
+

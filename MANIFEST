@@ -284,6 +284,7 @@ po/tr.po
 po/uk.po
 po/zh_CN.po
 scripts/fix_copyright.pl
+scripts/generic-cat
 scripts/geo-to-db.pl
 scripts/gtkg-dbus-listener.py
 scripts/magnet-handler.sh
@@ -593,7 +594,9 @@ src/lib/base64.c
 src/lib/base64.h
 src/lib/bg.c
 src/lib/bg.h
-src/lib/bit_array.h
+src/lib/bit_array.ht
+src/lib/bit_field.ht
+src/lib/bit_generic.t
 src/lib/bstr.c
 src/lib/bstr.h
 src/lib/cobs.c

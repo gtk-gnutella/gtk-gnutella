@@ -1,0 +1,62 @@
+#!/bin/sh
+
+#
+# $Id$
+#
+# Copyright (c) 2010, Raphael Manfredi
+#
+# Catenate a .ht file with a generic .t file, substituting the "generic"
+# string in the .t file with the supplied parameter.
+#
+# All ";#" comments from both the .ht and .t files are stripped out during
+# the generation process.
+#
+#----------------------------------------------------------------------
+# This file is part of gtk-gnutella.
+#
+#  gtk-gnutella is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  gtk-gnutella is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with gtk-gnutella; if not, write to the Free Software
+#  Foundation, Inc.:
+#      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#----------------------------------------------------------------------
+#
+
+LC_ALL=C
+export LC_ALL
+
+header=$1
+template=$2
+generic=$3
+
+date=`date`
+
+cat <<EOH
+/*
+ * THIS FILE WAS AUTOMATICALLY GENERATED -- DO NOT EDIT.
+ *
+ * Generating command:
+ *
+ *     $0 $@
+ *
+ * Generated on $date.
+ */
+
+EOH
+grep -v '^;#' $header
+echo " "
+GENERIC=`echo $generic | tr '[a-z]' '[A-Z]'`
+sed -e "/^;#/d" \
+	-e "s/<generic>/$generic/g" \
+	-e "s/_generic_/_${generic}_/g" \
+	-e "s/_GENERIC_/_${GENERIC}_/g" $template
+
