@@ -2409,10 +2409,24 @@ download_push_proxy_sleep(struct dl_server *server)
 
 	for (sl = to_sleep; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		d->retries++;
-		download_queue_delay(d,
-			GNET_PROPERTY(download_retry_timeout_delay),
-			_("Requeued due to no push-proxy"));
+		guint32 delay = GNET_PROPERTY(download_retry_timeout_delay);
+		if (d->retries < GNET_PROPERTY(download_max_retries) - 1) {
+			d->retries++;
+		} else if (d->server->attrs & DLS_A_DHT_PUBLISH) {
+			/*
+			 * If server is known to publish in the DHT, then it is safe
+			 * to assume that it has a stable GUID and that we can find
+			 * it as soon as it comes back up.  Hence do not bring the
+			 * amount of retries above the maximum so that we can keep
+			 * trying.  Just double the usual timeout.
+			 *		--RAM, 2010-10-06
+			 */
+
+			delay = guint32_saturate_mult(delay, 2);
+		} else {
+			d->retries++;
+		}
+		download_queue_delay(d, delay, _("Requeued due to no push-proxy"));
 	}
 
 	g_slist_free(to_sleep);
@@ -5985,12 +5999,7 @@ download_push(struct download *d, gboolean on_timeout)
 		 */
 
 		if (!host_is_valid(download_addr(d), download_port(d))) {
-			if (d->retries < GNET_PROPERTY(download_max_retries)) {
-				d->retries++;
-				download_queue_hold(d,
-					GNET_PROPERTY(download_retry_refused_delay),
-					_("Waiting for push route"));
-			} else if (d->server->attrs & DLS_A_DHT_PUBLISH) {
+			if (d->server->attrs & DLS_A_DHT_PUBLISH) {
 				/*
 				 * If server is known to publish in the DHT, then it is safe
 				 * to assume that it has a stable GUID and that we can find
@@ -5998,9 +6007,17 @@ download_push(struct download *d, gboolean on_timeout)
 				 * all the sources we have for that host.
 				 *		--RAM, 2010-10-06
 				 */
+				if (d->retries < GNET_PROPERTY(download_max_retries) - 1) {
+					d->retries++;
+				}
 				download_queue_hold(d,
 					GNET_PROPERTY(download_retry_refused_delay),
 					_("Waiting for server PROX publishing"));
+			} else if (d->retries < GNET_PROPERTY(download_max_retries)) {
+				d->retries++;
+				download_queue_hold(d,
+					GNET_PROPERTY(download_retry_refused_delay),
+					_("Waiting for push route"));
 			} else {
 				/*
 				 * Reached maximum amount of retries and server is not known
