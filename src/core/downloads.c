@@ -12738,6 +12738,8 @@ download_build_magnet(const struct download *d)
 			guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
 			magnet_set_guid(magnet, guid_buf);
 		}
+		magnet_set_dht(magnet,
+			booleanize(d->server->attrs & DLS_A_DHT_PUBLISH));
 		magnet_add_source_by_url(magnet, dl_url);
 		G_FREE_NULL(dl_url);
 		url = magnet_to_string(magnet);
@@ -14823,14 +14825,19 @@ download_handle_magnet(const char *url)
 				res->parq_id);
 
 			/*
-			 * Propagate server vendor information if available.
+			 * Propagate informations to server:
+			 *    - vendor information if available.
+			 *    - DHT support indication.
 			 */
 
-			if (res->vendor) {
+			if (res->vendor || res->dht) {
 				struct dl_server *server = get_server(guid, addr, port, FALSE);
-				if (server && NULL == server->vendor) {
+				if (server && res->vendor != NULL && NULL == server->vendor) {
 					server->vendor =
 						atom_str_get(lazy_iso8859_1_to_utf8(res->vendor));
+				}
+				if (server && res->dht) {
+					server->attrs |= DLS_A_DHT_PUBLISH;
 				}
 			}
 

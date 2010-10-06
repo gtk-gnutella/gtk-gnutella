@@ -79,6 +79,7 @@ enum magnet_key {
 	MAGNET_KEY_PARQ_ID,				/* PARQ ID */
 	MAGNET_KEY_GUID,				/* Servent GUID */
 	MAGNET_KEY_VENDOR,				/* Servent vendor */
+	MAGNET_KEY_DHT,					/* Servent known to publish in the DHT */
 
 	NUM_MAGNET_KEYS
 };
@@ -92,6 +93,7 @@ static const struct {
 	{ "as",			MAGNET_KEY_ALTERNATE_SOURCE },
 	{ "dn",			MAGNET_KEY_DISPLAY_NAME },
 	{ "kt",			MAGNET_KEY_KEYWORD_TOPIC },
+	{ "x.dht",		MAGNET_KEY_DHT },
 	{ "x.guid",		MAGNET_KEY_GUID },
 	{ "x.parq-id",	MAGNET_KEY_PARQ_ID },
 	{ "x.vndr",		MAGNET_KEY_VENDOR },
@@ -576,6 +578,18 @@ magnet_handle_key(struct magnet_resource *res,
 		magnet_set_guid(res, value);
 		break;
 
+	case MAGNET_KEY_DHT:
+		{
+			int error;
+			guint8 u;
+
+			u = parse_uint8(value, NULL, 10, &error);
+			if (!error) {
+				magnet_set_dht(res, u);
+			}
+		}
+		break;
+
 	case MAGNET_KEY_NONE:
 		g_message("unhandled parameter in MAGNET URI: \"%s\"", name);
 		break;
@@ -1042,6 +1056,9 @@ magnet_to_string(const struct magnet_resource *res)
 	if (res->guid) {
 		magnet_append_item(&gs, TRUE, "x.guid", res->guid);
 	}
+	if (res->dht) {
+		magnet_append_item(&gs, TRUE, "x.dht", "1");
+	}
 
 	for (sl = res->sources; NULL != sl; sl = g_slist_next(sl)) {
 		char *url;
@@ -1125,6 +1142,19 @@ magnet_set_guid(struct magnet_resource *res, const char *guid)
 	g_return_if_fail(guid);
 
 	magnet_resource_set_string(&res->guid, guid);
+}
+
+/**
+ * This is a bit of a hack (an extension anyway) and should only be used
+ * for magnets with a single logical source because DHT support is only
+ * valid for a certain source.
+ */
+void
+magnet_set_dht(struct magnet_resource *res, gboolean dht_support)
+{
+	g_return_if_fail(res);
+
+	res->dht = booleanize(dht_support);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
