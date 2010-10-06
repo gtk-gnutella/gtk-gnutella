@@ -165,6 +165,20 @@ guint32_saturate_add(guint32 a, guint32 b)
 	return ret;
 }
 
+/*
+ * Calculate the product of a and b but saturate towards MAX_UINT32.
+ * @return MAX_UINT32 if a * b > MAX_UINT32, otherwise a * b.
+ */
+static inline guint32
+guint32_saturate_mult(guint32 a, guint32 b)
+{
+	if (0 == a)
+		return 0;
+	if (G_UNLIKELY(MAX_INT_VAL(guint32) / a < b))
+		return MAX_INT_VAL(guint32);
+	return a * b;
+}
+
 #endif /* _unsigned_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
