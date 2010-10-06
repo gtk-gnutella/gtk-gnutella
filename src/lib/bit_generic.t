@@ -301,7 +301,6 @@ bit_generic_last_set(const bit_generic_t *base, size_t from, size_t to)
 }
 
 #undef BIT_GENERIC_BIT
-#undef BIT_GENERIC_BITSIZE
 #undef BIT_GENERIC_BITMASK
 #undef BIT_GENERIC_BITSHIFT
 #undef BIT_GENERIC_WORD
