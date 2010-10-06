@@ -77,6 +77,8 @@ void download_redirect_to_server(struct download *d,
 		const host_addr_t addr, guint16 port);
 void download_actively_queued(struct download *d, gboolean queued);
 
+void download_server_publishes_in_dht(const struct guid *);
+
 void download_add_push_proxy(const struct guid *guid,
 	host_addr_t addr, guint16 port);
 void download_add_push_proxies(const struct guid *,

@@ -2237,6 +2237,30 @@ refused:
 }
 
 /**
+ * Signals that server seems to be publishing in the DHT.
+ */
+void
+download_server_publishes_in_dht(const struct guid *guid)
+{
+	struct dl_server *server;
+
+	server = g_hash_table_lookup(dl_by_guid, guid);
+	if (server == NULL)
+		return;
+
+	g_assert(dl_server_valid(server));
+
+	if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(dht_debug)) {
+		if (!(server->attrs & DLS_A_DHT_PUBLISH)) {
+			g_message("DL learnt that %s publishes in the DHT",
+				server_host_info(server));
+		}
+	}
+
+	server->attrs |= DLS_A_DHT_PUBLISH;
+}
+
+/**
  * Add a single push-proxy for server identified by its GUID.
  */
 void
@@ -5966,7 +5990,23 @@ download_push(struct download *d, gboolean on_timeout)
 				download_queue_hold(d,
 					GNET_PROPERTY(download_retry_refused_delay),
 					_("Waiting for push route"));
+			} else if (d->server->attrs & DLS_A_DHT_PUBLISH) {
+				/*
+				 * If server is known to publish in the DHT, then it is safe
+				 * to assume that it has a stable GUID and that we can find
+				 * it as soon as it comes back up.  Hence do not remove
+				 * all the sources we have for that host.
+				 *		--RAM, 2010-10-06
+				 */
+				download_queue_hold(d,
+					GNET_PROPERTY(download_retry_refused_delay),
+					_("Waiting for server PROX publishing"));
 			} else {
+				/*
+				 * Reached maximum amount of retries and server is not known
+				 * for publishing PROX entries in the DHT.  Get rid of all
+				 * the sources referring to that unreacheable server
+				 */
 				download_unavailable(d, GTA_DL_ERROR, _("Push route lost"));
 				download_remove_all_from_peer(
 					download_guid(d), download_addr(d), download_port(d), TRUE);
