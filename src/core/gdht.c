@@ -341,15 +341,6 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	}
 
 	/*
-	 * Regardless of whether this ALOC matches the file we queried originally
-	 * we can flag the server as publishing in the DHT.
-	 */
-
-	if (!guid_is_blank(&guid)) {
-		download_server_publishes_in_dht(&guid);
-	}
-
-	/*
 	 * Check that filesize matches, if any supplied and if known.
 	 */
 
@@ -408,8 +399,17 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	/* FALL THROUGH */
 
 cleanup:
-	if (exvcnt)
+	/*
+	 * Regardless of whether this ALOC matches the file we queried originally
+	 * we can flag the server as publishing in the DHT.
+	 */
+
+	if (!guid_is_blank(&guid)) {
+		download_server_publishes_in_dht(&guid);
+	}
+	if (exvcnt) {
 		ext_reset(exv, MAX_EXTVEC);
+	}
 }
 
 /**
