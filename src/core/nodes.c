@@ -1833,9 +1833,9 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	cq_cancel(callout_queue, &n->tsync_ev);
 	cq_cancel(callout_queue, &n->dht_nope_ev);
 
-	if (n->status != GTA_NODE_REMOVING) {
-		node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
-	}
+	/* Routine pre-condition asserted that n->status != GTA_NODE_REMOVING */
+
+	node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
 
 	n->status = GTA_NODE_REMOVING;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE|NODE_F_BYE_SENT);
@@ -2749,8 +2749,7 @@ node_host_is_connected(const host_addr_t addr, guint16 port)
 {
 	/* Check our local address */
 
-	return is_my_address(addr) ||
-			node_ht_connected_nodes_has(addr, port);
+	return is_my_address(addr) || node_ht_connected_nodes_has(addr, port);
 }
 
 /**
@@ -6530,11 +6529,13 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 		return;
 	}
 
+	incoming = s != NULL;
+
 	/*
 	 * If they wish to be temporarily off Gnet, don't initiate connections.
 	 */
 
-	if (s == NULL && !allow_gnet_connections)
+	if (!incoming && !allow_gnet_connections)
 		return;
 
 	/*
@@ -6544,13 +6545,14 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	 * for 0.6 clients and onwards.
 	 */
 
-	if (s) {
+	if (incoming) {
 		get_protocol_version(getline_str(s->getline), &major, &minor);
 		getline_free(s->getline);
 		s->getline = NULL;
 	}
 
-	if (s && major == 0 && minor < 6) {
+	/* Refuse to connect to legacy servents (not at least 0.6) */
+	if (incoming && major == 0 && minor < 6) {
 		socket_free_null(&s);
 		return;
 	}
@@ -6559,7 +6561,6 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	 * Check whether we have already a connection to this node.
 	 */
 
-	incoming = s != NULL;
 	already_connected = node_is_connected(addr, port, incoming);
 
 	if (!incoming && already_connected)
@@ -6617,7 +6618,8 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	n->routing_data = NULL;
 	n->flags = NODE_F_HDSK_PING | (forced ? NODE_F_FORCE : 0);
 
-	if (s) {					/* This is an incoming control connection */
+	if (incoming) {
+		/* This is an incoming control connection */
 		n->socket = s;
 		s->resource.node = n;
 		s->type = SOCK_TYPE_CONTROL;
@@ -6670,7 +6672,6 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 			if (errno == EMFILE || errno == ENFILE)
 				n->flags |= NODE_F_VALID;
 		}
-
 	}
 
     node_fire_node_added(n);
