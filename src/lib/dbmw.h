@@ -117,8 +117,8 @@ const char *dbmw_strerror(const dbmw_t *dw);
 GSList *dbmw_all_keys(const dbmw_t *dw);
 void dbmw_free_all_keys(const dbmw_t *dw, GSList *keys);
 
-void dbmw_foreach(const dbmw_t *dw, dbmw_cb_t cb, gpointer arg);
-void dbmw_foreach_remove(const dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg);
+void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, gpointer arg);
+void dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg);
 
 gboolean dbmw_store(dbmw_t *dw, const char *base, gboolean inplace);
 gboolean dbmw_copy(dbmw_t *from, dbmw_t *to);

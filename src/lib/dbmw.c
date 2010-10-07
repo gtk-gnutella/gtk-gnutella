@@ -989,7 +989,7 @@ struct foreach_ctx {
 		dbmw_cbr_t cbr;
 	} u;
 	gpointer arg;
-	const dbmw_t *dw;
+	dbmw_t *dw;
 };
 
 /**
@@ -1001,17 +1001,39 @@ dbmw_foreach_common(gboolean removing,
 	gpointer key, dbmap_datum_t *d, gpointer arg)
 {
 	struct foreach_ctx *ctx = arg;
-	const dbmw_t *dw = ctx->dw;
+	dbmw_t *dw = ctx->dw;
 	struct cached *entry;
 
 	dbmw_check(dw);
 
 	entry = map_lookup(dw->values, key);
 	if (entry != NULL) {
+		/*
+		 * Key / value pair is present in the cache.
+		 *
+		 * This affects us in two ways:
+		 *
+		 *   - We may already know that the key was deleted, in which case
+		 *     that entry is just skipped: no further access is possible
+		 *     through DBMW until that key is recreated.  We still return
+		 *     TRUE to make sure the lower layers will delete the entry
+		 *     physically, since deletion has not been flushed yet (that's
+		 *     the reason we're still iterating on it).
+		 *
+		 *   - Should the cached key need to be deleted (as determined by
+		 *     the user callback, we make sure we delete the entry in the
+		 *     cache upon callback return).
+		 */
+
 		if (entry->absent)
-			return TRUE;		/* Key was deleted in cache */
+			return TRUE;		/* Key was already deleted, info cached */
 		if (removing) {
-			return (*ctx->u.cbr)(key, entry->data, entry->len, ctx->arg);
+			gboolean status;
+			status = (*ctx->u.cbr)(key, entry->data, entry->len, ctx->arg);
+			if (status) {
+				(void) remove_entry(dw, key, TRUE, FALSE);	/* Discard it */
+			}
+			return status;
 		} else {
 			(*ctx->u.cb)(key, entry->data, entry->len, ctx->arg);
 			return FALSE;
@@ -1079,7 +1101,7 @@ dbmw_foreach_remove_trampoline(gpointer key, dbmap_datum_t *d, gpointer arg)
  * Iterate over the DB, invoking the callback on each item along with the
  * supplied argument.
  */
-void dbmw_foreach(const dbmw_t *dw, dbmw_cb_t cb, gpointer arg)
+void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, gpointer arg)
 {
 	struct foreach_ctx ctx;
 
@@ -1096,7 +1118,7 @@ void dbmw_foreach(const dbmw_t *dw, dbmw_cb_t cb, gpointer arg)
  * Iterate over the DB, invoking the callback on each item along with the
  * supplied argument and removing the item when the callback returns TRUE.
  */
-void dbmw_foreach_remove(const dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg)
+void dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg)
 {
 	struct foreach_ctx ctx;
 
