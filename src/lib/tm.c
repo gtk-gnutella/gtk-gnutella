@@ -44,7 +44,7 @@ RCSID("$Id$")
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
 
-static tm_t now;			/* Currently cached time */
+tm_t tm_cached_now;			/* Currently cached time */
 
 /**
  * Convert floating point time description into a struct timeval by filling
@@ -118,7 +118,7 @@ tm_cmp(const tm_t *a, const tm_t *b)
 void
 tm_now(tm_t *tm)
 {
-	*tm = now;		/* Struct copy */
+	*tm = tm_cached_now;		/* Struct copy */
 }
 
 /**
@@ -129,26 +129,17 @@ tm_now(tm_t *tm)
 void
 tm_now_exact(tm_t *tm)
 {
-	const tm_t past = now;
+	const tm_t past = tm_cached_now;
 	
-	g_get_current_time(&now);
-	if (now.tv_sec < past.tv_sec) {
-		now = past;
-	} else if (now.tv_sec == past.tv_sec) {
-		if (now.tv_usec < past.tv_usec)
-			now.tv_usec = past.tv_usec;
+	g_get_current_time(&tm_cached_now);
+	if (tm_cached_now.tv_sec < past.tv_sec) {
+		tm_cached_now = past;
+	} else if (tm_cached_now.tv_sec == past.tv_sec) {
+		if (tm_cached_now.tv_usec < past.tv_usec)
+			tm_cached_now.tv_usec = past.tv_usec;
 	}
 	if (tm)
-		*tm = now;
-}
-
-/**
- * Get current time, at the second granularity (cached).
- */
-time_t
-tm_time(void)
-{
-	return (time_t) now.tv_sec;
+		*tm = tm_cached_now;
 }
 
 /**
@@ -158,7 +149,7 @@ time_t
 tm_time_exact(void)
 {
 	tm_now_exact(NULL);
-	return (time_t) now.tv_sec;
+	return (time_t) tm_cached_now.tv_sec;
 }
 
 /**

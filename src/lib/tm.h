@@ -76,7 +76,6 @@ int tm_cmp(const tm_t *a, const tm_t *b);
 
 void tm_now(tm_t *tm);
 void tm_now_exact(tm_t *tm);
-time_t tm_time(void);
 time_t tm_time_exact(void);
 double tm_cputime(double *user, double *sys);
 
@@ -206,6 +205,17 @@ tm_elapsed_us(const tm_t *t1, const tm_t *t0)
 
 	tm_elapsed(&elapsed, t1, t0);
 	return tm2us(&elapsed);
+}
+
+extern tm_t tm_cached_now;			/* Currently cached time */
+
+/**
+ * Get current time, at the second granularity (cached).
+ */
+static inline time_t
+tm_time(void)
+{
+	return (time_t) tm_cached_now.tv_sec;
 }
 
 #endif /* _tm_h_ */
