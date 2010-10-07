@@ -81,6 +81,7 @@ RCSID("$Id$")
 #include "core/gnet_stats.h"
 
 #include "lib/atoms.h"
+#include "lib/cq.h"
 #include "lib/map.h"
 #include "lib/dbmw.h"
 #include "lib/misc.h"
@@ -93,7 +94,10 @@ RCSID("$Id$")
 #define TOK_MAP_CACHE_SIZE	64		/**< Amount of SDBM pages to cache */
 #define TOK_LIFE			(5*3600)	/**< Cached token lifetime in seconds */
 
+#define TCACHE_PRUNE_PERIOD	(3600 * 1000)	/**< 1 hour in ms */
+
 static time_delta_t token_life;		/**< Lifetime of our cached tokens */
+static cperiodic_t *tcache_prune_ev;
 
 /**
  * DBM wrapper to associate a target KUID with the set of KDA_K dbkeys.
@@ -264,7 +268,7 @@ tcache_get(const kuid_t *id,
 	if (NULL == td)
 		return FALSE;
 
-	if (delta_time(tm_time(), td->last_update) > TOK_LIFE) {
+	if (delta_time(tm_time(), td->last_update) > token_life) {
 		delete_tokdata(id);
 		return FALSE;
 	}
@@ -302,6 +306,62 @@ tcache_remove(const kuid_t *id)
 }
 
 /**
+ * DBMW foreach iterator to remove old entries.
+ * @return  TRUE if entry must be deleted.
+ */
+static gboolean
+tk_prune_old(gpointer key, gpointer value, size_t u_len, gpointer u_data)
+{
+	const kuid_t *id = key;
+	const struct tokdata *td = value;
+	time_delta_t d;
+
+	(void) u_len;
+	(void) u_data;
+
+	d = delta_time(tm_time(), td->last_update);
+
+	if (GNET_PROPERTY(dht_tcache_debug) > 2 && d > token_life) {
+		g_message("DHT TCACHE security token from %s expired",
+			kuid_to_hex_string(id));
+	}
+
+	return d > token_life;
+}
+
+/**
+ * Prune the database, removing expired tokens.
+ */
+static void
+tcache_prune_old(void)
+{
+	if (GNET_PROPERTY(dht_tcache_debug)) {
+		g_message("DHT TCACHE pruning expired tokens (%lu)",
+			(unsigned long) dbmw_count(db_tokdata));
+	}
+
+	dbmw_foreach_remove(db_tokdata, tk_prune_old, NULL);
+	gnet_stats_set_general(GNR_DHT_CACHED_TOKENS_HELD, dbmw_count(db_tokdata));
+
+	if (GNET_PROPERTY(dht_tcache_debug)) {
+		g_message("DHT TCACHE pruned expired tokens (%lu remaining)",
+			(unsigned long) dbmw_count(db_tokdata));
+	}
+}
+
+/**
+ * Callout queue periodic event to expire old entries.
+ */
+static gboolean
+tcache_periodic_prune(gpointer unused_obj)
+{
+	(void) unused_obj;
+
+	tcache_prune_old();
+	return TRUE;		/* Keep calling */
+}
+
+/**
  * Initialize security token caching.
  */
 void
@@ -320,6 +380,9 @@ tcache_init(void)
 	if (GNET_PROPERTY(dht_tcache_debug))
 		g_message("DHT cached token lifetime set to %u secs",
 			(unsigned) token_life);
+
+	tcache_prune_ev = cq_periodic_add(callout_queue,
+		TCACHE_PRUNE_PERIOD, tcache_periodic_prune, NULL);
 }
 
 /**
@@ -330,6 +393,7 @@ tcache_close(void)
 {
 	storage_delete(db_tokdata);
 	db_tokdata = NULL;
+	cq_periodic_remove(callout_queue, &tcache_prune_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
