@@ -199,6 +199,8 @@ general_type_str(gint value)
 		N_("DHT initiated bucket alive checks"),
 		N_("DHT alive pings sent to good nodes"),
 		N_("DHT alive pings sent to stale nodes"),
+		N_("DHT alive pings avoided"),
+		N_("DHT revitalized stale nodes on RPC reply"),
 		N_("DHT value store rejected on IP/network quota grounds"),
 		N_("DHT value store rejected on creator validation grounds"),
 		N_("DHT keys held"),

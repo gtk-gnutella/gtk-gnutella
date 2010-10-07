@@ -1872,13 +1872,14 @@ promote_pending_node(struct kbucket *kb)
 			elapsed = delta_time(tm_time(), selected->last_seen);
 
 			if (elapsed >= ALIVENESS_PERIOD) {
-				if (GNET_PROPERTY(dht_debug))
+				if (GNET_PROPERTY(dht_debug)) {
 					g_message("DHT pinging promoted node (last seen %s)",
 						short_time(elapsed));
-
-				dht_rpc_ping(selected, NULL, NULL);
-				gnet_stats_count_general(
-					GNR_DHT_ROUTING_PINGED_PROMOTED_NODES, 1);
+				}
+				if (dht_lazy_rpc_ping(selected)) {
+					gnet_stats_count_general(
+						GNR_DHT_ROUTING_PINGED_PROMOTED_NODES, 1);
+				}
 			}
 
 			gnet_stats_count_general(GNR_DHT_ROUTING_PROMOTED_PENDING_NODES, 1);
@@ -2377,6 +2378,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	struct kbucket *kb = obj;
 	hash_list_iter_t *iter;
 	time_t now = tm_time();
+	guint good_and_stale;
 
 	(void) unused_cq;
 
@@ -2394,6 +2396,46 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 			kbucket_to_string(kb),
 			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
 			list_count(kb, KNODE_PENDING));
+	}
+
+	/*
+	 * If the sum of good + stale nodes is less than the maximum amount
+	 * of good nodes, try to promote that many pending nodes to the "good"
+	 * status.
+	 */
+
+	good_and_stale = list_count(kb, KNODE_GOOD) + list_count(kb, KNODE_STALE);
+
+	if (good_and_stale < K_BUCKET_GOOD) {
+		guint missing = K_BUCKET_GOOD - good_and_stale;
+		guint old_count;
+		guint new_count;
+
+		if (GNET_PROPERTY(dht_debug)) {
+			g_message("DHT missing %u good node%s (has %u + %u stale) in %s",
+				missing, 1 == missing ? "" : "s",
+				list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
+				kbucket_to_string(kb));
+		}
+
+		do {
+			old_count = list_count(kb, KNODE_GOOD);
+			promote_pending_node(kb);
+			new_count = list_count(kb, KNODE_GOOD);
+			if (new_count > old_count) {
+				missing--;
+			}
+		} while (missing > 0 && new_count > old_count);
+
+		if (GNET_PROPERTY(dht_debug)) {
+			guint promoted = K_BUCKET_GOOD - good_and_stale - missing;
+			if (promoted) {
+				g_message("DHT promoted %u pending node%s "
+					"(now has %u good) in %s",
+					promoted, 1 == promoted ? "" : "s",
+					list_count(kb, KNODE_GOOD), kbucket_to_string(kb));
+			}
+		}
 	}
 
 	/*
@@ -2425,8 +2467,9 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 		if (delta_time(now, kn->last_seen) < ALIVENESS_PERIOD)
 			break;		/* List is sorted: least recently seen at the head */
 
-		dht_rpc_ping(kn, NULL, NULL);
-		gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_GOOD_NODES, 1);
+		if (dht_lazy_rpc_ping(kn)) {
+			gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_GOOD_NODES, 1);
+		}
 	}
 	hash_list_iter_release(&iter);
 
@@ -2441,8 +2484,9 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 		knode_check(kn);
 
 		if (knode_can_recontact(kn)) {
-			dht_rpc_ping(kn, NULL, NULL);
-			gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_STALE_NODES, 1);
+			if (dht_lazy_rpc_ping(kn)) {
+				gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_STALE_NODES, 1);
+			}
 		}
 	}
 	hash_list_iter_release(&iter);

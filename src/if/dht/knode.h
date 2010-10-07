@@ -31,6 +31,7 @@
 #include "kuid.h"
 #include "lib/vendors.h"
 #include "lib/host_addr.h"
+#include "lib/unsigned.h"		/* For guint8_saturate_add() */
 
 struct kbucket;
 
@@ -61,7 +62,8 @@ typedef struct knode {
 	host_addr_t addr;			/**< IP of the node */
 	knode_status_t status;		/**< Node status (good, stale, pending) */
 	guint16 port;				/**< Port of the node */
-	guchar rpc_timeouts;		/**< Amount of consecutive RPC timeouts */
+	guint8 rpc_pending;			/**< Amount of pending RPCs (may saturate) */
+	guint8 rpc_timeouts;		/**< Amount of consecutive RPC timeouts */
 	guint8 major;				/**< Major version */
 	guint8 minor;				/**< Minor version */
 } knode_t;
@@ -159,6 +161,52 @@ knode_is_shared(const knode_t *kn, gboolean no_routing_table)
 		refcnt--;
 
 	return refcnt > 1;
+}
+
+/**
+ * Add one more RPC pending for this node.
+ */
+static inline void
+knode_rpc_inc(knode_t *kn)
+{
+	/*
+	 * We don't care if that counter saturates because it is used solely
+	 * to optimize the sending of "alive" PING RPCs from the routing table:
+	 * when at least one pending RPC is registered, we can avoid sending
+	 * such an "alive" PING since any timeout on the pending RPCs would make
+	 * the node become stale anyway, and the purpose of "alive" PINGs is
+	 * precisely to be able to detect such stale nodes.
+	 *
+	 * Because the counter can saturate, it also can indicate 0 when in fact
+	 * we do have pending RPCs still, but then the optimization won't kick-in
+	 * and there's no harm done.
+	 */
+
+	kn->rpc_pending = guint8_saturate_add(kn->rpc_pending, 1);
+}
+
+/**
+ * Remove one pending RPC for this node.
+ */
+static inline void
+knode_rpc_dec(knode_t *kn)
+{
+	/*
+	 * Because counter can saturate, decrease it only if not zero.
+	 * See knode_rpc_inc() for why saturation is not a problem.
+	 */
+
+	if (G_LIKELY(kn->rpc_pending != 0))
+		kn->rpc_pending--;
+}
+
+/**
+ * Are there any RPC pending for this node?
+ */
+static inline gboolean
+knode_rpc_pending(knode_t *kn)
+{
+	return booleanize(kn->rpc_pending);
 }
 
 #endif /* _if_dht_knode_h_ */

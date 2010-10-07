@@ -117,6 +117,7 @@ rpc_cb_free(struct rpc_cb *rcb, gboolean in_shutdown)
 	rpc_cb_check(rcb);
 
 	if (in_shutdown) {
+		knode_rpc_dec(rcb->kn);
 		if (rcb->cb)
 			(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
 	} else {
@@ -178,6 +179,13 @@ rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
 
 	rcb->timeout = NULL;
 	dht_node_timed_out(rcb->kn);
+
+	/*
+	 * Invoke user callback, if any configured, to signify operation timed out.
+	 * The amount of pending RPCs is decreased before invoking the callback.
+	 */
+
+	knode_rpc_dec(rcb->kn);
 
 	if (rcb->cb)
 		(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
@@ -241,6 +249,7 @@ rpc_call_prepare(
 	rcb->cb = cb;
 	rcb->arg = arg;
 	tm_now_exact(&rcb->start);	/* To measure RTT when we get the reply */
+	knode_rpc_inc(kn);
 
 	gm_hash_table_insert_const(pending, rcb->muid, rcb);
 
@@ -265,6 +274,7 @@ dht_rpc_cancel(const guid_t *muid)
 		return FALSE;
 
 	rpc_cb_check(rcb);
+	knode_rpc_dec(rcb->kn);
 	rpc_cb_free(rcb, FALSE);
 	return TRUE;
 }
@@ -286,6 +296,7 @@ dht_rpc_cancel_if_no_callback(const guid_t *muid)
 
 	rpc_cb_check(rcb);
 	if (NULL == rcb->cb) {
+		knode_rpc_dec(rcb->kn);
 		rpc_cb_free(rcb, FALSE);
 		return TRUE;
 	}
@@ -445,12 +456,17 @@ dht_rpc_answer(const guid_t *muid,
 	 * found at RPC reply time, a new node in "unknown" status was created.
 	 */
 
-	if (kn->status == KNODE_STALE)
+	if (kn->status == KNODE_STALE) {
 		dht_set_node_status(kn, KNODE_GOOD);
+		gnet_stats_count_general(GNR_DHT_REVITALIZED_STALE_NODES, 1);
+	}
 
 	/*
 	 * Invoke user callback, if any configured.
+	 * The amount of pending RPCs is decreased before invoking the callback.
 	 */
+
+	knode_rpc_dec(rcb->kn);
 
 	if (rcb->cb)
 		(*rcb->cb)(DHT_RPC_REPLY, rn, n, function, payload, len, rcb->arg);
@@ -489,6 +505,34 @@ void
 dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg)
 {
 	dht_rpc_ping_extended(kn, 0, cb, arg);
+}
+
+/**
+ * Lazily send an alive ping to the remove node.
+ *
+ * Lazyness comes from the fact that all we want to know is whether we can
+ * contact the node or whether it is stale.  If some pending RPC is known
+ * to be happening for the node, the RPC layer will mark the node stale if
+ * the RPC times out.  Hence there is no need to send an alive ping if we
+ * already have some pending RPC for that node.
+ *
+ * @return TRUE if PING is actually sent, FALSE if optimized out.
+ */
+gboolean
+dht_lazy_rpc_ping(knode_t *kn)
+{
+	if (knode_rpc_pending(kn)) {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_message("DHT not sending any alive ping to %s (%u pending RPC%s)",
+				knode_to_string(kn), kn->rpc_pending,
+				1 == kn->rpc_pending ? "" : "s");
+		}
+		gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_AVOIDED, 1);
+		return FALSE;
+	} else {
+		dht_rpc_ping(kn, NULL, NULL);
+		return TRUE;
+	}
 }
 
 /**

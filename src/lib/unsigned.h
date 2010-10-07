@@ -179,6 +179,19 @@ guint32_saturate_mult(guint32 a, guint32 b)
 	return a * b;
 }
 
+/*
+ * Calculate the sum of a and b but saturate towards the maximum value.
+ * @return maximum if a + b > maximum, otherwise a + b.
+ */
+static inline guint8
+guint8_saturate_add(guint8 a, guint8 b)
+{
+	guint8 ret = a + b;
+	if (G_UNLIKELY(ret < a))
+		return MAX_INT_VAL(guint8);
+	return ret;
+}
+
 #endif /* _unsigned_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

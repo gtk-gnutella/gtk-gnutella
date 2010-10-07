@@ -216,6 +216,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"dht_bucket_alive_check",
 	"dht_alive_pings_to_good_nodes",
 	"dht_alive_pings_to_stale_nodes",
+	"dht_alive_pings_avoided",
+	"dht_revitalized_stale_nodes",
 	"dht_rejected_value_on_quota",
 	"dht_rejected_value_on_creator",
 	"dht_keys_held",
