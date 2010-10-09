@@ -233,7 +233,7 @@ get_rootdata(const kuid_t *id)
  * Get contact from database.
  */
 static struct contact *
-get_contact(guint64 dbkey)
+get_contact(guint64 dbkey, gboolean shout)
 {
 	struct contact *c;
 
@@ -243,7 +243,7 @@ get_contact(guint64 dbkey)
 		if (dbmw_has_ioerr(db_contact)) {
 			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
 				dbmw_name(db_contact));
-		} else {
+		} else if (shout) {
 			g_warning("key %s exists but was not found in DBMW \"%s\"",
 				uint64_to_string(dbkey), dbmw_name(db_contact));
 		}
@@ -398,10 +398,21 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 	existing = map_create_patricia(KUID_RAW_BITSIZE);
 
 	for (i = 0; i < rd->count; i++) {
-		struct contact *c = get_contact(rd->dbkeys[i]);
+		struct contact *c = get_contact(rd->dbkeys[i], FALSE);
+
+		/*
+		 * It can happen that ``rd'' contains DB keys that no longer exist
+		 * in the contact database.  At startup time, we clear orphaned keys,
+		 * but we do nothing against "ghost" DB keys referenced by entries
+		 * within db_rootdata.  These are harmless anyway and will disappear
+		 * as we expire entries or update them after a lookup.
+		 *
+		 * That's why the above get_contact() call silences "key not found"
+		 * type of warnings.
+		 */
 
 		if (NULL == c)
-			continue;		/* I/O error */
+			continue;		/* I/O error or stale info in ``rd'' */ 
 
 		previous[i].id = *c->id;		/* Struct copy */
 		previous[i].dbkey = rd->dbkeys[i];
@@ -421,15 +432,20 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 
 		/*
 		 * If entry existed in the previous set, we reuse the old contact.
+		 *
+		 * Note that presence in the ``existing'' map means that we were
+		 * able to read the contact from the database earlier, so this time
+		 * we issue a verbose get_contact() call to warn if we fail to
+		 * retrieve the contact from the database again.
 		 */
 
 		dbkey_ptr = map_lookup(existing, kn->id);
 
 		if (NULL != dbkey_ptr) {
-			struct contact *c = get_contact(*dbkey_ptr);
+			struct contact *c = get_contact(*dbkey_ptr, TRUE);
 
 			if (NULL == c)
-				continue;		/* I/O error */
+				continue;		/* I/O error, most probably */
 
 			/* Update contact addr:port information, if stale */
 			if (c->port != kn->port || !host_addr_equal(c->addr, kn->addr)) {
@@ -526,7 +542,7 @@ roots_fill_vector(struct rootdata *rd,
 	g_assert(NULL == furthest || id != NULL);
 
 	for (i = 0; i < rd->count && i < kcnt; i++) {
-		struct contact *c = get_contact(rd->dbkeys[i]);
+		struct contact *c = get_contact(rd->dbkeys[i], FALSE);
 		knode_t *kn;
 
 		if (NULL == c)
@@ -910,7 +926,7 @@ recreate_ri(gpointer key, gpointer value, size_t u_len, gpointer data)
 
 /**
  * DBMW foreach iterator to remove orphan DB keys.
- * @return TRUE if entry is orphaned must be deleted.
+ * @return TRUE if entry is an orphan and must be deleted.
  */
 static gboolean
 remove_orphan(gpointer key, gpointer u_value, size_t u_len, gpointer data)
