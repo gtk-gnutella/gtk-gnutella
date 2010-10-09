@@ -197,6 +197,38 @@ dbmap_sdbm_strip_superblock(DBM *sdbm)
 }
 
 /**
+ * Check whether last operation reported an I/O error in the SDBM layer.
+ *
+ * If database is volatile, clear the error indication to continue
+ * processing: the DB may end-up being corrupted of course, but upper layers
+ * must be robust enough to cope with that fact.
+ *
+ * @return TRUE on error
+ */
+static gboolean
+dbmap_sdbm_error_check(const dbmap_t *dm)
+{
+	dbmap_check(dm);
+	g_assert(DBMAP_SDBM == dm->type);
+
+	if (sdbm_error(dm->u.s.sdbm)) {
+		dbmap_t *dmw = deconstify_gpointer(dm);
+		dmw->ioerr = TRUE;
+		dmw->error = errno;
+		if (dm->u.s.is_volatile) {
+			sdbm_clearerr(dm->u.s.sdbm);
+		}
+		return TRUE;
+	} else if (dm->ioerr) {
+		dbmap_t *dmw = deconstify_gpointer(dm);
+		dmw->ioerr = FALSE;
+		dmw->error = 0;
+	}
+
+	return FALSE;
+}
+
+/**
  * @return constant-width key size for the DB map.
  */
 size_t
@@ -437,8 +469,7 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 			errno = dm->error = 0;
 			ret = sdbm_replace(dm->u.s.sdbm, dkey, dval, &existed);
 			if (0 != ret) {
-				dm->ioerr = 0 != sdbm_error(dm->u.s.sdbm);
-				dm->error = errno;
+				dbmap_sdbm_error_check(dm);
 				return FALSE;
 			}
 			if (!existed)
@@ -495,7 +526,7 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 
 			errno = dm->error = 0;
 			ret = sdbm_delete(dm->u.s.sdbm, dkey);
-			dm->ioerr = 0 != sdbm_error(dm->u.s.sdbm);
+			dbmap_sdbm_error_check(dm);
 			if (-1 == ret) {
 				/* Could be that value was not found, errno == 0 then */
 				if (errno != 0) {
@@ -536,7 +567,7 @@ dbmap_contains(dbmap_t *dm, gconstpointer key)
 
 			dm->error = errno = 0;
 			ret = sdbm_exists(dm->u.s.sdbm, dkey);
-			dm->ioerr = 0 != sdbm_error(dm->u.s.sdbm);
+			dbmap_sdbm_error_check(dm);
 			if (-1 == ret) {
 				dm->error = errno;
 				return FALSE;
@@ -583,7 +614,7 @@ dbmap_lookup(dbmap_t *dm, gconstpointer key)
 
 			errno = dm->error = 0;
 			value = sdbm_fetch(dm->u.s.sdbm, dkey);
-			dm->ioerr = 0 != sdbm_error(dm->u.s.sdbm);
+			dbmap_sdbm_error_check(dm);
 			if (errno)
 				dm->error = errno;
 			result.data = value.dptr;
@@ -748,11 +779,7 @@ dbmap_all_keys(const dbmap_t *dm)
 				kdup = wcopy(key.dptr, key.dsize);
 				sl = g_slist_prepend(sl, kdup);
 			}
-			if (sdbm_error(sdbm)) {
-				dbmap_t *dmw = deconstify_gpointer(dm);
-				dmw->ioerr = TRUE;
-				dmw->error = errno;
-			}
+			dbmap_sdbm_error_check(dm);
 		}
 		break;
 	case DBMAP_MAXTYPE:
@@ -866,11 +893,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg)
 					(*cb)(key.dptr, &d, arg);
 				}
 			}
-			if (sdbm_error(sdbm)) {
-				dbmap_t *dmw = deconstify_gpointer(dm);
-				dmw->ioerr = TRUE;
-				dmw->error = errno;
-			} else {
+			if (!dbmap_sdbm_error_check(dm)) {
 				dbmap_t *dmw = deconstify_gpointer(dm);
 				dmw->count = count;
 			}
@@ -935,11 +958,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
 					}
 				}
 			}
-			if (sdbm_error(sdbm)) {
-				dbmap_t *dmw = deconstify_gpointer(dm);
-				dmw->ioerr = TRUE;
-				dmw->error = errno;
-			} else {
+			if (!dbmap_sdbm_error_check(dm)) {
 				dbmap_t *dmw = deconstify_gpointer(dm);
 				dmw->count = count;
 			}
