@@ -613,6 +613,7 @@ flushpag(DBM *db, char *pag, long num)
 			g_warning("sdbm: \"%s\": could only flush %u bytes from page #%ld",
 				sdbm_name(db), (unsigned) w, num);
 		ioerr(db, TRUE);
+		db->flush_errors++;
 		return FALSE;
 	}
 

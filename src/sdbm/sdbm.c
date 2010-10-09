@@ -305,6 +305,8 @@ log_sdbmstats(DBM *db)
 	g_message("sdbm: \"%s\" inplace value writes = %.2f%% on %lu occurence%s",
 		sdbm_name(db), db->repl_inplace * 100.0 / MAX(db->repl_stores, 1),
 		db->repl_stores, 1 == db->repl_stores ? "" : "s");
+	g_message("sdbm: \"%s\" read errors = %lu, write errors = %lu (flush %lu)",
+		sdbm_name(db), db->read_errors, db->write_errors, db->flush_errors);
 }
 
 /**
@@ -905,7 +907,9 @@ restore:
 			failed = TRUE;
 #endif
 
+#ifdef LRU
 	failed:
+#endif
 		if (failed) {
 			g_warning("sdbm: \"%s\": cannot undo split of page #%lu: %s",
 				sdbm_name(db), curbno, g_strerror(errno));

@@ -37,8 +37,13 @@ struct DBM {
 	unsigned long dirwdelayed;	/* stats: amount of deferred dir writes */
 	unsigned long repl_stores;	/* stats: amount of DBM_REPLACE stores */
 	unsigned long repl_inplace;	/* stats: amount of DBM_REPLACE done inplace */
-#ifdef LRU
+	unsigned long read_errors;	/* stats: number of read() errors */
+	unsigned long write_errors;	/* stats: number of write() errors */
+	unsigned long flush_errors;	/* stats: number of page flush errors */
+#if defined(LRU) || defined(BIGDATA)
 	guint8 is_volatile;			/* whether consistency of database matters */
+#endif
+#ifdef LRU
 	guint8 dirbuf_dirty;		/* whether dirbuf needs flushing to disk */
 #endif
 #ifdef BIGDATA
@@ -62,8 +67,12 @@ static inline void
 ioerr(DBM *db, gboolean on_write)
 {
 	db->flags |= DBM_IOERR;
-	if (on_write)
+	if (on_write) {
 		db->flags |= DBM_IOERR_W;
+		db->write_errors++;
+	} else {
+		db->read_errors++;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
