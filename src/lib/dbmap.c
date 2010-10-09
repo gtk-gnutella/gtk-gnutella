@@ -768,7 +768,7 @@ dbmap_all_keys(const dbmap_t *dm)
 			errno = 0;
 			for (
 				key = sdbm_firstkey(sdbm);
-				key.dptr && !sdbm_error(sdbm);
+				key.dptr != NULL;
 				key = sdbm_nextkey(sdbm)
 			) {
 				gpointer kdup;
@@ -876,7 +876,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg)
 			errno = 0;
 			for (
 				key = sdbm_firstkey(sdbm);
-				key.dptr && !sdbm_error(sdbm);
+				key.dptr != NULL;
 				key = sdbm_nextkey(sdbm)
 			) {
 				datum value;
@@ -938,7 +938,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
 			errno = 0;
 			for (
 				key = sdbm_firstkey(sdbm);
-				key.dptr && !sdbm_error(sdbm);
+				key.dptr != NULL;
 				key = sdbm_nextkey(sdbm)
 			) {
 				datum value;
