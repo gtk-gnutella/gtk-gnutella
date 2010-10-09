@@ -113,9 +113,13 @@ on_clipboard_selection_get(GtkWidget *unused_widget,
 	(void) unused_eventtime;
 
 	text = clipboard_text_get();
-	length = strlen(text);
-	if (length >= UNSIGNED(INT_MAX)) {
-		text = NULL;
+	if (NULL != text) {
+		length = strlen(text);
+		if (length >= UNSIGNED(INT_MAX)) {
+			text = NULL;
+			length = 0;
+		}
+	} else {
 		length = 0;
 	}
     gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
