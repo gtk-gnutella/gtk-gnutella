@@ -2362,10 +2362,15 @@ dht_node_timed_out(knode_t *kn)
 {
 	knode_check(kn);
 
-	if (++kn->rpc_timeouts >= KNODE_MAX_TIMEOUTS)
+	if (++kn->rpc_timeouts >= KNODE_MAX_TIMEOUTS) {
 		dht_remove_timeouting_node(kn);
-	else
-		dht_set_node_status(kn, KNODE_STALE);
+	} else {
+		if (kn->flags & KNODE_F_SHUTDOWNING) {
+			dht_set_node_status(kn, KNODE_PENDING);
+		} else {
+			dht_set_node_status(kn, KNODE_STALE);
+		}
+	}
 }
 
 /**
@@ -2486,6 +2491,29 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 		if (knode_can_recontact(kn)) {
 			if (dht_lazy_rpc_ping(kn)) {
 				gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_STALE_NODES, 1);
+			}
+		}
+	}
+	hash_list_iter_release(&iter);
+
+	/*
+	 * Ping all the pending nodes in "shutdowning mode" we can recontact
+	 *
+	 * These pending nodes are normally never considered, but we don't want
+	 * to keep them as pending forever if they're dead, or we want to clear
+	 * their "shutdowning" status if they're back to life.
+	 */
+
+	iter = hash_list_iterator(kb->nodes->pending);
+	while (hash_list_iter_has_next(iter)) {
+		knode_t *kn = hash_list_iter_next(iter);
+
+		knode_check(kn);
+
+		if ((kn->flags & KNODE_F_SHUTDOWNING) && knode_can_recontact(kn)) {
+			if (dht_lazy_rpc_ping(kn)) {
+				gnet_stats_count_general(
+					GNR_DHT_ALIVE_PINGS_TO_SHUTDOWNING_NODES, 1);
 			}
 		}
 	}
