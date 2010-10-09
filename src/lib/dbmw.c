@@ -105,7 +105,7 @@ struct cached {
 };
 
 /**
- * Check whether I/O error has occurred.
+ * Check whether I/O error has occurred during last operation.
  */
 gboolean
 dbmw_has_ioerr(const dbmw_t *dw)
@@ -312,6 +312,7 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 			dw->name, value->absent ? "deleting" : "flushing",
 			(unsigned long) dval.len, 1 == dval.len ? "" : "s");
 
+	dw->ioerr = FALSE;
 	ok = value->absent ?
 		dbmap_remove(dw->dm, key) : dbmap_insert(dw->dm, key, dval);
 
@@ -734,6 +735,7 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 	 * Not cached, must read from DB.
 	 */
 
+	dw->ioerr = FALSE;
 	dval = dbmap_lookup(dw->dm, key);
 
 	if (dbmap_has_ioerr(dw->dm)) {
@@ -822,6 +824,7 @@ dbmw_exists(dbmw_t *dw, gconstpointer key)
 		return !entry->absent;
 	}
 
+	dw->ioerr = FALSE;
 	ret = dbmap_contains(dw->dm, key);
 
 	if (dbmap_has_ioerr(dw->dm)) {
@@ -874,6 +877,7 @@ dbmw_delete(dbmw_t *dw, gconstpointer key)
 		}
 		hash_list_moveto_tail(dw->keys, key);
 	} else {
+		dw->ioerr = FALSE;
 		dbmap_remove(dw->dm, key);
 
 		if (dbmap_has_ioerr(dw->dm)) {
