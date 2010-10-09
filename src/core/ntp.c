@@ -113,7 +113,7 @@ ntp_no_reply(cqueue_t *unused_cq, gpointer unused_udata)
 	(void) unused_udata;
 
 	if (GNET_PROPERTY(dbg))
-		printf("NTP no reply from localhost\n");
+		g_message("NTP no reply from localhost");
 
 	/*
 	 * Don't set PROP_HOST_RUNS_NTP to FALSE.  If they force it to TRUE,
@@ -227,7 +227,7 @@ ntp_probe(void)
 	 */
 
 	if (GNET_PROPERTY(dbg))
-		printf("NTP sent probe to localhost\n");
+		g_message("NTP sent probe to localhost");
 
 	cq_cancel(callout_queue, &wait_ev);
 	wait_ev = cq_insert(callout_queue, NTP_WAIT_MS, ntp_no_reply, NULL);
@@ -266,7 +266,7 @@ ntp_got_reply(struct gnutella_socket *s)
 	}
 
 	if (GNET_PROPERTY(dbg))
-		printf("NTP got %s reply from NTP-%u server, stratum %u\n",
+		g_message("NTP got %s reply from NTP-%u server, stratum %u",
 			s->pos == NTP_MINSIZE ? "regular" : "auth", version, m->stratum);
 
 	/*
@@ -295,7 +295,7 @@ ntp_got_reply(struct gnutella_socket *s)
 	clock_offset = tm2f(&offset) / 2;		/* Should be close to 0 */
 
 	if (GNET_PROPERTY(dbg) > 1)
-		printf("NTP local clock offset is %.6f secs\n",
+		g_message("NTP local clock offset is %.6f secs",
 			(double) clock_offset);
 
 	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, (guint32) clock_offset);
