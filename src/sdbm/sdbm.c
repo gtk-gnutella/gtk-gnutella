@@ -305,8 +305,17 @@ log_sdbmstats(DBM *db)
 	g_message("sdbm: \"%s\" inplace value writes = %.2f%% on %lu occurence%s",
 		sdbm_name(db), db->repl_inplace * 100.0 / MAX(db->repl_stores, 1),
 		db->repl_stores, 1 == db->repl_stores ? "" : "s");
-	g_message("sdbm: \"%s\" read errors = %lu, write errors = %lu (flush %lu)",
-		sdbm_name(db), db->read_errors, db->write_errors, db->flush_errors);
+	if (db->read_errors || db->write_errors) {
+		g_warning("sdbm: \"%s\" "
+			"ERRORS: read = %lu, write = %lu (%lu in flushes, %lu in splits)",
+			sdbm_name(db),
+			db->read_errors, db->write_errors,
+			db->flush_errors, db->spl_errors);
+	}
+	if (db->spl_corrupt) {
+		g_warning("sdbm: \"%s\" %lu failed page split%s could not be undone",
+			sdbm_name(db), db->spl_corrupt, 1 == db->spl_corrupt ? "" : "s");
+	}
 }
 
 /**
@@ -748,6 +757,7 @@ makroom(DBM *db, long int hash, size_t need)
 #ifdef LRU
 			if (!force_flush_pagbuf(db, !db->is_volatile)) {
 				memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
+				db->spl_errors++;
 				goto aborted;
 			}
 
@@ -763,6 +773,7 @@ makroom(DBM *db, long int hash, size_t need)
 #else
 			if (!flush_pagbuf(db)) {
 				memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
+				db->spl_errors++;
 				goto aborted;
 			}
 #endif	/* LRU */
@@ -792,6 +803,7 @@ makroom(DBM *db, long int hash, size_t need)
 
 			if (!cachepag(db, New, newp)) {
 				memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
+				db->spl_errors++;
 				goto aborted;
 			}
 		}
@@ -804,6 +816,7 @@ makroom(DBM *db, long int hash, size_t need)
 				sdbm_name(db), newp, g_strerror(errno));
 			ioerr(db, TRUE);
 			memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
+			db->spl_errors++;
 			goto aborted;
 		}
 
@@ -876,6 +889,8 @@ restore:
 	 * We could not flush the current page after a split, undo the operation.
 	 */
 
+	db->spl_errors++;
+
 	if (db->pagbno != curbno) {
 		gboolean failed = FALSE;
 
@@ -911,6 +926,8 @@ restore:
 	failed:
 #endif
 		if (failed) {
+			db->spl_errors++;
+			db->spl_corrupt++;
 			g_warning("sdbm: \"%s\": cannot undo split of page #%lu: %s",
 				sdbm_name(db), curbno, g_strerror(errno));
 		}
@@ -927,6 +944,8 @@ restore:
 			g_warning("sdbm: \"%s\": cannot zero-back new split page #%lu: %s",
 				sdbm_name(db), newp, g_strerror(errno));
 			ioerr(db, TRUE);
+			db->spl_errors++;
+			db->spl_corrupt++;
 		}
 
 		memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
