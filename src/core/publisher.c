@@ -818,6 +818,80 @@ publisher_sync(gpointer unused_obj)
 }
 
 /**
+ * DBMW foreach iterator to remove expired DB keys.
+ * @return TRUE if entry must be deleted.
+ */
+static gboolean
+publisher_remove_expired(gpointer u_key,
+	gpointer value, size_t u_len, gpointer u_data)
+{
+	const struct pubdata *pd = value;
+
+	(void) u_key;
+	(void) u_len;
+	(void) u_data;
+
+	/*
+	 * Entries for which we should re-enqueue a publish request now
+	 * have expired and can be deleted.
+	 */
+
+	return delta_time(tm_time(), pd->next_enqueue) >= 0;
+}
+
+/**
+ * Remove expired items at startup time.
+ */
+static void
+publisher_trim_pubdata(void)
+{
+	size_t count;
+
+	if (GNET_PROPERTY(publisher_debug)) {
+		count = dbmw_count(db_pubdata);
+		g_message("PUBLISHER scanning %u retrieved SHA1%s",
+			(unsigned) count, 1 == count ? "" : "s");
+	}
+
+	dbmw_foreach_remove(db_pubdata, publisher_remove_expired, NULL);
+
+	count = dbmw_count(db_pubdata);
+
+	if (GNET_PROPERTY(publisher_debug)) {
+		g_message("PUBLISHER kept information about %u SHA1%s",
+			(unsigned) count, 1 == count ? "" : "s");
+	}
+
+	/*
+	 * If we retained no entries, issue a dbmw_clear() to restore underlying
+	 * SDBM files to their smallest possible value.  This is necessary because
+	 * the database is persistent and it can grow very large on disk, but still
+	 * holding only a few values per page.  Being able to get a fresh start
+	 * occasionally is a plus.
+	 */
+
+	if (0 == count) {
+		if (GNET_PROPERTY(publisher_debug)) {
+			g_message("PUBLISHER clearing database");
+		}
+		if (!dbmw_clear(db_pubdata)) {
+			if (GNET_PROPERTY(publisher_debug)) {
+				g_warning("PUBLISHER unable to clear %s", db_pubdata_what);
+			}
+		}
+	} else {
+		if (GNET_PROPERTY(publisher_debug)) {
+			g_message("PUBLISHER shrinking database files");
+		}
+		if (!dbmw_shrink(db_pubdata)) {
+			if (GNET_PROPERTY(publisher_debug)) {
+				g_warning("PUBLISHER unable to shrink %s", db_pubdata_what);
+			}
+		}
+	}
+}
+
+/**
  * Initialize the DHT publisher.
  */
 void
@@ -860,6 +934,8 @@ publisher_init(void)
 		g_message("PUBLISHER minimum amount of nodes we accept: %u",
 			publisher_minimum);
 	}
+
+	publisher_trim_pubdata();
 }
 
 /**
