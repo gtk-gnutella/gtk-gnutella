@@ -44,6 +44,7 @@ const char *sdbm_name(\s-1DBM\s0 *db)
 gboolean sdbm_rdonly(\s-1DBM\s0 *db)
 gboolean sdbm_error(\s-1DBM\s0 *db)
 gboolean sdbm_shrink(\s-1DBM\s0 *db)
+gboolean sdbm_clear(\s-1DBM\s0 *db)
 sdbm_clearerr(\s-1DBM\s0 *db)
 int sdbm_dirfno(\s-1DBM\s0 *db)
 int sdbm_pagfno(\s-1DBM\s0 *db)
@@ -70,6 +71,7 @@ gboolean sdbm_is_storable(size_t key, size_t value)
 .IX sdbm_rdonly "" "\fLsdbm_rdonly\fR \(em return \fLsdbm\fR database read-only mode"
 .IX sdbm_error "" "\fLsdbm_error\fR \(em return \fLsdbm\fR database error condition"
 .IX sdbm_shrink "" "\fLsdbm_shrink\fR \(em attempt to shrink files on disk"
+.IX sdbm_clear "" "\fLsdbm_clear\fR \(em erase all data but keep database opened"
 .IX sdbm_clearerr "" "\fLsdbm_clearerr\fR \(em clear \fLsdbm\fR database error condition"
 .IX sdbm_dirfno "" "\fLsdbm_dirfno\fR \(em return \fLsdbm\fR database bitmap file descriptor"
 .IX sdbm_pagfno "" "\fLsdbm_pagfno\fR \(em return \fLsdbm\fR database page file descriptor"
@@ -87,6 +89,7 @@ gboolean sdbm_is_storable(size_t key, size_t value)
 .IX "database functions \(em \fLsdbm\fR"  sdbm_rdonly  ""  \fLsdbm_rdonly\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_error  ""  \fLsdbm_error\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_shrink  ""  \fLsdbm_shrink\fP
+.IX "database functions \(em \fLsdbm\fR"  sdbm_clear  ""  \fLsdbm_clear\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_clearerr  ""  \fLsdbm_clearerr\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_dirfno  ""  \fLsdbm_dirfno\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_pagfno  ""  \fLsdbm_pagfno\fP
@@ -279,6 +282,10 @@ attempts to shrink the allocated files on disk to reclaim unused trailing
 space, after many value deletions for instance.  Returns
 .B FALSE
 on errors.
+.IP
+.BR sdbm_clear (\|)
+erases all the data held in the database but keeps it opened.
+Returns -1 on errors.
 .SH PAGE CACHING
 This
 .B sdbm
@@ -427,6 +434,8 @@ The
 .BR sdbm_value (\|),
 .BR sdbm_is_storable (\|),
 .BR sdbm_sync (\|),
+.BR sdbm_srink (\|),
+.BR sdbm_clear (\|),
 .BR sdbm_set_cache (\|),
 .BR sdbm_set_wdelay (\|),
 .BR sdbm_set_volatile (\|),

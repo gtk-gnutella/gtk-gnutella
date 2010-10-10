@@ -113,6 +113,7 @@ void dbmap_unlink_sdbm(const char *base);
 gboolean dbmap_store(dbmap_t *dm, const char *base, gboolean inplace);
 gboolean dbmap_copy(dbmap_t *from, dbmap_t *to);
 gboolean dbmap_shrink(dbmap_t *dm);
+gboolean dbmap_clear(dbmap_t *dm);
 ssize_t dbmap_sync(dbmap_t *dm);
 int dbmap_set_cachesize(dbmap_t *dm, long pages);
 int dbmap_set_deferred_writes(dbmap_t *dm, gboolean on);

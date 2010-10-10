@@ -70,6 +70,7 @@ int sdbm_set_cache(DBM *db, long pages);
 int sdbm_set_wdelay(DBM *db, gboolean on);
 int sdbm_set_volatile(DBM *db, gboolean yes);
 gboolean sdbm_shrink(DBM *db);
+int sdbm_clear(DBM *db);
 
 #endif /* _sdbm_h_ */
 

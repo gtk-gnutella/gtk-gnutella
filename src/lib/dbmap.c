@@ -1190,6 +1190,34 @@ dbmap_shrink(dbmap_t *dm)
 }
 
 /**
+ * Discard all data from the database.
+ * @return TRUE if no error occurred.
+ */
+gboolean
+dbmap_clear(dbmap_t *dm)
+{
+	dbmap_check(dm);
+
+	switch (dm->type) {
+	case DBMAP_MAP:
+		map_foreach(dm->u.m.map, free_kv, dm);
+		dm->count = 0;
+		return TRUE;
+	case DBMAP_SDBM:
+		if (0 == sdbm_clear(dm->u.s.sdbm)) {
+			dm->ioerr = FALSE;
+			dm->count = 0;
+			return TRUE;
+		}
+		return FALSE;
+	case DBMAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return FALSE;
+}
+
+/**
  * Set SDBM cache size, in amount of pages (must be >= 1).
  * @return 0 if OK, -1 on errors with errno set.
  */

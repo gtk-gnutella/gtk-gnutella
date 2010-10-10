@@ -1352,6 +1352,45 @@ sdbm_shrink(DBM *db)
 }
 
 /**
+ * Clear the whole database, discarding all the data.
+ *
+ * @return 0 on success, -1 on failure with errno set.
+ */
+int
+sdbm_clear(DBM *db)
+{
+	if (db == NULL) {
+		errno = EINVAL;
+		return -1;
+	}
+	if (db->flags & DBM_RDONLY) {
+		errno = EPERM;
+		return -1;
+	}
+	if (-1 == ftruncate(db->pagf, 0))
+		return -1;
+	db->pagbno = -1;
+	db->pagtail = 0L;
+	if (-1 == ftruncate(db->dirf, 0))
+		return -1;
+	db->dirbno = -1;
+	db->maxbno = 0;
+	db->curbit = 0;
+	db->hmask = 0;
+	db->blkptr = 0;
+	db->keyptr = 0;
+#ifdef LRU
+	lru_discard(db, 0);
+#endif
+	sdbm_clearerr(db);
+#ifdef BIGDATA
+	if (!big_clear(db))
+		return -1;
+#endif
+	return 0;
+}
+
+/**
  * Set the LRU cache size.
  */
 int

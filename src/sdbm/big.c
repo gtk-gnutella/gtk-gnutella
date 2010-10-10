@@ -228,8 +228,9 @@ big_free(DBM *db)
 }
 
 /**
- * Open the .dat file.
- * @return -1 on error with errno set, 0 if OK.
+ * Open the .dat file, creating it if missing.
+ *
+ * @return -1 on error with errno set, 0 if OK with cleared errno.
  */
 static int
 big_open(DBMBIG *dbg)
@@ -272,6 +273,7 @@ big_open(DBMBIG *dbg)
 		dbg->bitmaps = 1;
 	}
 
+	errno = 0;
 	return 0;
 }
 
@@ -1218,6 +1220,48 @@ big_sync(DBM *db)
 }
 
 /**
+ * Open the .dat file only if it already exists, which justifies the "lazy"
+ * qualification.  If the file exists but is empty, it will be deleted.
+ * 
+ * @param dbg	the big DBM descriptor
+ * @param force if TRUE, call big_open() to actually open (create) the file
+ *
+ * @return -1 on error with errno set, 0 if OK (file opened).
+ */
+static int
+big_open_lazy(DBMBIG *dbg, gboolean force)
+{
+	struct stat buf;
+
+	g_assert(-1 == dbg->fd);
+
+	if (NULL == dbg->file) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (-1 == stat(dbg->file->datname, &buf)) {
+		if (ENOENT == errno) {
+			errno = 0;	/* OK if .dat file is missing */
+		}
+		return -1;
+	}
+
+	if (0 == buf.st_size) {
+		if (-1 != unlink(dbg->file->datname)) {
+			errno = 0;
+		}
+		return -1;
+	}
+
+	if (force)
+		return big_open(dbg);
+
+	errno = EEXIST;
+	return -1;			/* File not opened, but file already exists */
+}
+
+/**
  * Shrink .dat file on disk to remove needlessly allocated blocks.
  *
  * @return TRUE if we were able to successfully shrink the file.
@@ -1230,24 +1274,13 @@ big_shrink(DBM *db)
 	filesize_t offset = 0;
 
 	if (-1 == dbg->fd) {
-		struct stat buf;
-
 		/*
 		 * We do not want to call big_open() unless the .dat file already
 		 * exists because that would create it and it was not needed so far.
 		 */
 
-		if (NULL == dbg->file)
-			return FALSE;
-
-		if (-1 == stat(dbg->file->datname, &buf))
-			return ENOENT == errno;			/* OK if .dat file is missing */
-
-		if (0 == buf.st_size)
-			return -1 != unlink(dbg->file->datname);
-
-		if (-1 == big_open(dbg))
-			return FALSE;
+		if (-1 == big_open_lazy(dbg, TRUE))
+			return 0 == errno;
 	}
 
 	g_assert(dbg->fd != -1);
@@ -1279,6 +1312,48 @@ big_shrink(DBM *db)
 		return FALSE;
 
 	dbg->bitmaps = i + 1;	/* Possibly reduced the amount of bitmaps */
+
+	return TRUE;
+}
+
+/**
+ * Clear the .dat file.
+ *
+ * @return TRUE if we were able to successfully unlink the file.
+ */
+gboolean
+big_clear(DBM *db)
+{
+	DBMBIG *dbg = db->big;
+
+	if (-1 == dbg->fd) {
+		/*
+		 * We do not want to call big_open() unless the .dat file already
+		 * exists because that would create it and it was not needed so far.
+		 */
+
+		if (-1 == big_open_lazy(dbg, FALSE)) {
+			if (EEXIST == errno) {
+				if (-1 != unlink(dbg->file->datname)) {
+					errno = 0;
+				}
+			}
+			return 0 == errno;
+		}
+	}
+
+	g_assert(dbg->fd != -1);
+
+	if (-1 == fd_close(&dbg->fd, TRUE))
+		return FALSE;
+
+	dbg->bitbno = -1;
+	WFREE_NULL(dbg->bitbuf, BIG_BLKSIZE);
+	HFREE_NULL(dbg->scratch);
+	dbg->scratch_len = 0;
+
+	if (-1 == unlink(dbg->file->datname))
+		return FALSE;
 
 	return TRUE;
 }

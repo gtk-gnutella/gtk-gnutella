@@ -18,13 +18,12 @@ struct DBM {
 	long curbit;	/* current bit number */
 	long hmask;	/* current hash mask */
 	long blkptr;	/* current block for nextkey */
-	long blkno;	/* current page to read/write */
 	long pagbno;	/* current page in pagbuf */
 	long dirbno;	/* current block in dirbuf */
 	int dirf;	/* directory file descriptor */
 	int pagf;	/* page file descriptor */
 	int flags;	/* status/error flags, see below */
-	int keyptr;	/* current key for nextkey */
+	int keyptr;	/* current key in page for nextkey */
 	unsigned long pagfetch;		/* stats: amount of page fetch calls */
 	unsigned long pagread;		/* stats: amount of page read requests */
 	unsigned long pagbno_hit;	/* stats: amount of read avoided on pagbno */

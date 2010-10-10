@@ -31,6 +31,7 @@ void big_free(DBM *);
 int big_datfno(DBM *);
 gboolean big_sync(DBM *);
 gboolean big_shrink(DBM *);
+gboolean big_clear(DBM *);
 gboolean bigkey_put(DBM *, char *, size_t, const char *, size_t);
 gboolean bigval_put(DBM *, char *, size_t, const char *, size_t);
 gboolean bigkey_free(DBM *, const char *, size_t);

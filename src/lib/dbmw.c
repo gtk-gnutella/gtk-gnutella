@@ -943,6 +943,24 @@ dbmw_clear_cache(dbmw_t *dw)
 }
 
 /**
+ * Discard all data held in the database.
+ *
+ * @return TRUE if successful.
+ */
+gboolean
+dbmw_clear(dbmw_t *dw)
+{
+	if (!dbmap_clear(dw->dm))
+		return FALSE;
+
+	dbmw_clear_cache(dw);
+	dw->ioerr = FALSE;
+	dw->count_needs_sync = FALSE;
+
+	return TRUE;
+}
+
+/**
  * Destroy the DBM wrapper, optionally closing the underlying DB map.
  */
 void
