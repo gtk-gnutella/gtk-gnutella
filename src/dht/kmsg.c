@@ -1881,9 +1881,9 @@ void kmsg_received(
 		(major == KDA_VERSION_MAJOR && minor > KDA_VERSION_MINOR)
 	) {
 		/* ... hence just warn when debugging */
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT Kademlia message at v%u.%u -- I am only v%u.%u",
-				major, minor, KDA_VERSION_MAJOR, KDA_VERSION_MINOR);
+		if (GNET_PROPERTY(dht_debug) > 4)
+			g_warning("DHT Kademlia message %s -- I am only v%u.%u",
+				kmsg_infostr(data), KDA_VERSION_MAJOR, KDA_VERSION_MINOR);
 	}
 
 	/*
@@ -1915,14 +1915,13 @@ void kmsg_received(
 
 		if (dht_rpc_info(kademlia_header_get_muid(header), &raddr, &rport)) {
 			if (GNET_PROPERTY(dht_debug)) {
-				g_warning("DHT fixing contact address %s (%s v%u.%u) kuid=%s "
-					"to %s:%u on RPC reply (%s UDP info)",
-					host_addr_port_to_string(kaddr, kport),
-					vendor_code_to_string(vcode.u32), kmajor, kminor,
+				g_warning("DHT fixing contact address for kuid=%s "
+					"to %s:%u on RPC reply (%s UDP info) in %s",
 					kuid_to_hex_string(id),
 					host_addr_to_string(raddr), rport,
 					host_addr_equal(addr, raddr) && port == rport ?
-						"matches" : "still different from");
+						"matches" : "still different from",
+					kmsg_infostr(data));
 			}
 			kaddr = raddr;
 			kport = rport;
@@ -2015,24 +2014,20 @@ void kmsg_received(
 		) {
 			if (port == kport) {
 				if (GNET_PROPERTY(dht_debug)) {
-					g_warning("DHT fixing contact address %s (%s v%u.%u) "
-						"kuid=%s, "
-						"not firewalled, replacing with UDP source %s:%u",
-						host_addr_port_to_string(kaddr, kport),
-						vendor_code_to_string(vcode.u32), kmajor, kminor,
+					g_warning("DHT fixing contact address for kuid=%s, "
+						"not firewalled, replacing with UDP source %s:%u in %s",
 						kuid_to_hex_string(id),
-						host_addr_to_string(addr), port);
+						host_addr_to_string(addr), port,
+						kmsg_infostr(data));
 				}
 			} else {
 				if (GNET_PROPERTY(dht_debug)) {
-					g_warning("DHT fixing contact address %s (%s v%u.%u) "
-						"kuid=%s, "
+					g_warning("DHT fixing contact address for kuid=%s, "
 						"not firewalled, replacing with UDP source IP %s and "
-						"ignoring UDP port %u",
-						host_addr_port_to_string(kaddr, kport),
-						vendor_code_to_string(vcode.u32), kmajor, kminor,
+						"ignoring UDP port %u in %s",
 						kuid_to_hex_string(id),
-						host_addr_to_string(addr), port);
+						host_addr_to_string(addr), port,
+						kmsg_infostr(data));
 				}
 				/*
 				 * kport is probably their advertised listening port, and
@@ -2085,15 +2080,13 @@ void kmsg_received(
 				)
 			) {
 				if (GNET_PROPERTY(dht_debug)) {
-					g_warning("DHT fixing contact address %s "
-						"(%s v%u.%u) kuid=%s "
-						"to %s:%u based on routing table (%s UDP info)",
-						host_addr_port_to_string(kaddr, kport),
-						vendor_code_to_string(vcode.u32), kmajor, kminor,
+					g_warning("DHT fixing contact address for kuid=%s "
+						"to %s:%u based on routing table (%s UDP info) in %s",
 						kuid_to_hex_string(id),
 						host_addr_to_string(kn->addr), kn->port,
 						host_addr_equal(addr, kn->addr) && port == kport ?
-							"matches" : "still different from");
+							"matches" : "still different from",
+						kmsg_infostr(data));
 				}
 				kaddr = kn->addr;
 				/* Port identical, as checked in test */
@@ -2105,12 +2098,13 @@ void kmsg_received(
 					if (GNET_PROPERTY(dht_debug)) {
 						g_warning("DHT not fixing contact address %s "
 							"(%s v%u.%u) kuid=%s but keeping "
-							"routing table info %s:%u (UDP came from %s)",
+							"routing table info %s:%u (UDP came from %s) in %s",
 							host_addr_port_to_string(kaddr, kport),
 							vendor_code_to_string(vcode.u32), kmajor, kminor,
 							kuid_to_hex_string(id),
 							host_addr_to_string(kn->addr), kn->port,
-							host_addr_port_to_string2(addr, port));
+							host_addr_port_to_string2(addr, port),
+							kmsg_infostr(data));
 					}
 					kn->flags |= KNODE_F_FOREIGN_IP;
 				}
