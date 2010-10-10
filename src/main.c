@@ -163,8 +163,8 @@ RCSID("$Id$")
 #define EXIT_GRACE				30	/**< Seconds to wait before exiting */
 #define ATEXIT_TIMEOUT			20	/**< Final cleanup must not take longer */
 
-#define LOAD_HIGH_WATERMARK		90	/**< % amount over which we're overloaded */
-#define LOAD_LOW_WATERMARK		55	/**< lower threshold to clear condition */
+#define LOAD_HIGH_WATERMARK		95	/**< % amount over which we're overloaded */
+#define LOAD_LOW_WATERMARK		70	/**< lower threshold to clear condition */
 
 static unsigned main_slow_update;
 static volatile sig_atomic_t exiting;
