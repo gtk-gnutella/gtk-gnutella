@@ -42,6 +42,7 @@ struct DBM {
 	unsigned long flush_errors;	/* stats: number of page flush errors */
 	unsigned long spl_errors;	/* stats: number of split errors */
 	unsigned long spl_corrupt;	/* stats: number of split unfixed corruptions */
+	unsigned long bad_pages;	/* stats: number of corrupted pages zero-ed */
 #if defined(LRU) || defined(BIGDATA)
 	guint8 is_volatile;			/* whether consistency of database matters */
 #endif

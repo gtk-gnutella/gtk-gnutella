@@ -305,6 +305,15 @@ log_sdbmstats(DBM *db)
 	g_message("sdbm: \"%s\" inplace value writes = %.2f%% on %lu occurence%s",
 		sdbm_name(db), db->repl_inplace * 100.0 / MAX(db->repl_stores, 1),
 		db->repl_stores, 1 == db->repl_stores ? "" : "s");
+}
+
+static void
+log_sdbm_warnings(DBM *db)
+{
+	if (db->bad_pages) {
+		g_warning("sdbm: \"%s\" read %lu corrupted page%s (zero-ed on the fly)",
+			sdbm_name(db), db->bad_pages, 1 == db->bad_pages ? "" : "s");
+	}
 	if (db->read_errors || db->write_errors) {
 		g_warning("sdbm: \"%s\" "
 			"ERRORS: read = %lu, write = %lu (%lu in flushes, %lu in splits)",
@@ -384,6 +393,7 @@ fetch_pagbuf(DBM *db, long pagnum)
 			g_warning("sdbm: \"%s\": corrupted page #%ld, clearing",
 				sdbm_name(db), pagnum);
 			memset(db->pagbuf, 0, DBM_PBLKSIZ);
+			db->bad_pages++;
 		}
 		db->pagbno = pagnum;
 
@@ -473,8 +483,10 @@ sdbm_close(DBM *db)
 #ifdef BIGDATA
 		big_free(db);
 #endif
-		if (common_stats)
+		if (common_stats) {
 			log_sdbmstats(db);
+		}
+		log_sdbm_warnings(db);
 		HFREE_NULL(db->name);
 		wfree(db, sizeof *db);
 	}
@@ -1299,13 +1311,16 @@ sdbm_shrink(DBM *db)
 			/* Page not cached, have to read it */
 			/* FALLTHROUGH */
 		}
-#endif
-
+#else
 		if (db->pagbno == bno) {
 			const unsigned short *ino = (const unsigned short *) db->pagbuf;
 			count = ino[0];
 			goto computed;
 		}
+
+		/* Page not cached, have to read it */
+		/* FALLTHROUGH */
+#endif
 
 		r = compat_pread(db->pagf, &count, sizeof count, offset);
 		if (-1 == r || r != sizeof count)
