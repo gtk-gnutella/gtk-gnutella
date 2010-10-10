@@ -966,9 +966,10 @@ static void
 roots_init_rootinfo(void)
 {
 	struct recreate_context ctx;
+	size_t count;
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
-		size_t count = dbmw_count(db_rootdata);
+		count = dbmw_count(db_rootdata);
 		g_message("DHT ROOTS scanning %u retrieved target KUID%s",
 			(unsigned) count, 1 == count ? "" : "s");
 	}
@@ -982,25 +983,55 @@ roots_init_rootinfo(void)
 	g_hash_table_foreach(ctx.dbkeys, free_dbkey_kv, NULL);
 	g_hash_table_destroy(ctx.dbkeys);
 
+	count = dbmw_count(db_rootdata);
+
 	if (GNET_PROPERTY(dht_roots_debug)) {
-		size_t count = dbmw_count(db_rootdata);
 		g_message("DHT ROOTS kept %u target KUID%s: targets=%u, contacts=%u",
 			(unsigned) count, 1 == count ? "" : "s",
 			targets_managed, contacts_managed);
 		g_message("DHT ROOTS stripped %u orphan contact DB-key%s",
 			ctx.orphans, 1 == ctx.orphans ? "" : "s");
+	}
+
+	/*
+	 * If we retained no entries, issue a dbmw_clear() to restore underlying
+	 * SDBM files to their smallest possible value.  This is necessary because
+	 * the database is persistent and it can grow very large on disk, but still
+	 * holding only a few values per page.  Being able to get a fresh start
+	 * occasionally is a plus.
+	 */
+
+	if (0 == count) {
+		contactid = 1;
+		targets_managed = contacts_managed = 0;
+		if (GNET_PROPERTY(dht_roots_debug)) {
+			g_message("DHT ROOTS clearing database");
+		}
+		if (!dbmw_clear(db_rootdata)) {
+			if (GNET_PROPERTY(dht_roots_debug))
+				g_warning("DHT ROOTS unable to clear %s", db_rootdata_what);
+		}
+		if (!dbmw_clear(db_contact)) {
+			if (GNET_PROPERTY(dht_roots_debug))
+				g_warning("DHT ROOTS unable to clear %s", db_contact_what);
+		}
+	} else {
+		if (GNET_PROPERTY(dht_roots_debug)) {
+			g_message("DHT ROOTS shrinking database files");
+		}
+		if (!dbmw_shrink(db_rootdata)) {
+			if (GNET_PROPERTY(dht_roots_debug))
+				g_warning("DHT ROOTS unable to shrink %s", db_rootdata_what);
+		}
+		if (!dbmw_shrink(db_contact)) {
+			if (GNET_PROPERTY(dht_roots_debug))
+				g_warning("DHT ROOTS unable to shrink %s", db_contact_what);
+		}
+	}
+
+	if (GNET_PROPERTY(dht_roots_debug)) {
 		g_message("DHT ROOTS first allocated contact DB-key will be %s",
 			uint64_to_string(contactid));
-	}
-
-	if (!dbmw_shrink(db_rootdata)) {
-		if (GNET_PROPERTY(dht_roots_debug))
-			g_warning("DHT ROOTS unable to shrink %s", db_rootdata_what);
-	}
-
-	if (!dbmw_shrink(db_contact)) {
-		if (GNET_PROPERTY(dht_roots_debug))
-			g_warning("DHT ROOTS unable to shrink %s", db_contact_what);
 	}
 }
 
