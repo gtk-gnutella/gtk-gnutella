@@ -647,7 +647,8 @@ on_tree_view_motion_notify(GtkWidget *widget,
 		}
 #undef EVENT_TYPE
 
-		g_message("on_tree_view_motion_notify(): type=%s, x=%d, y=%d, axes=%p, x_root=%d, y_root=%d",
+		g_message("on_tree_view_motion_notify(): "
+			"type=%s, x=%d, y=%d, axes=%p, x_root=%d, y_root=%d",
 				type,
 				(gint) event->x, (gint) event->y, event->axes,
 				(gint) event->x_root, (gint) event->y_root);
@@ -700,7 +701,8 @@ tree_view_motion_set_callback(GtkTreeView *tv,
 	g_return_val_if_fail(tv, NULL);
 	g_return_val_if_fail(cb, NULL);
 
-	tvm = g_malloc(sizeof *tvm);
+	tvm = walloc(sizeof *tvm);
+	tvm->ready = FALSE;
 	tvm->tv = GTK_TREE_VIEW(g_object_ref(tv));
 	tvm->cb = cb;
 	tvm->timeout_id = g_timeout_add(interval, tree_view_motion_timeout, tvm);
@@ -719,7 +721,7 @@ tree_view_motion_clear_callback(tree_view_motion_t **ptr)
 		g_source_remove(tvm->timeout_id);
 		g_object_unref(tvm->tv);
 		tvm->tv = NULL;
-		G_FREE_NULL(tvm);
+		WFREE_NULL(tvm, sizeof *tvm);
 		*ptr = NULL;
 	}
 }
