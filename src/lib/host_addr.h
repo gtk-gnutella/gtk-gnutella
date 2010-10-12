@@ -111,6 +111,11 @@ struct packed_host {
 };
 
 typedef union socket_addr {
+	/*
+	 * Both structures in the union start with an sa_family_t field
+	 * (either sin_family or sin6_family) so we can discriminate the
+	 * union correctly by probing inet4.sin_family and inet6.sin6_family.
+	 */
 	struct sockaddr_in inet4;
 #ifdef HAS_IPV6
 	struct sockaddr_in6 inet6;
