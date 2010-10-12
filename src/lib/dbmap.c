@@ -943,22 +943,25 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
 			) {
 				datum value;
 
+				count++;
+
 				if (dm->key_size != key.dsize)
 					continue;		/* Invalid key, corrupted file? */
 
-				count++;
 				value = sdbm_value(sdbm);
 				if (value.dptr) {
 					dbmap_datum_t d;
 					d.data = value.dptr;
 					d.len = value.dsize;
 					if ((*cbr)(key.dptr, &d, arg)) {
-						sdbm_deletekey(sdbm);
-						count--;
+						if (0 == sdbm_deletekey(sdbm)) {
+							count--;
+						}
 					}
 				}
 			}
-			if (!dbmap_sdbm_error_check(dm)) {
+			dbmap_sdbm_error_check(dm);
+			{
 				dbmap_t *dmw = deconstify_gpointer(dm);
 				dmw->count = count;
 			}
