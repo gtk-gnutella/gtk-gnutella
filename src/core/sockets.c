@@ -1758,6 +1758,31 @@ cleanup:
 }
 
 /**
+ * Socket connection failed, destroy the socket.
+ *
+ * If we're establishing a download, try to fallback to sending push since
+ * a direct connection seems impossible.
+ */
+static void
+socket_connection_failed(struct gnutella_socket *s, const char *errmsg)
+{
+	if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download != NULL) {
+		/*
+		 * Socket will be closed by download_fallback_to_push().
+		 *
+		 * We need to call that routine regardless of whether we are
+		 * firewalled or whether the user denied pushes: that will be
+		 * checked in download_push(), and there is important processing
+		 * that needs to be done by the download layer.
+		 */
+		g_assert(s->resource.download->socket == s);
+		download_fallback_to_push(s->resource.download, FALSE, FALSE);
+	} else {
+		socket_destroy(s, errmsg);
+	}
+}
+
+/**
  * Callback for outgoing connections!
  *
  * Called when a socket is connected. Checks type of connection and hands
@@ -1778,10 +1803,7 @@ socket_connected(gpointer data, int source, inputevt_cond_t cond)
 
 	if (cond & INPUT_EVENT_EXCEPTION) {	/* Error while connecting */
 		bws_sock_connect_failed(s->type);
-		if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
-			download_fallback_to_push(s->resource.download, FALSE, FALSE);
-		else
-			socket_destroy(s, _("Connection failed"));
+		socket_connection_failed(s, _("Connection failed"));
 		return;
 	}
 
@@ -1790,10 +1812,7 @@ socket_connected(gpointer data, int source, inputevt_cond_t cond)
 
 	if (0 != socket_tls_setup(s)) {
 		if (!is_temporary_error(errno)) {
-			if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
-				download_fallback_to_push(s->resource.download, FALSE, FALSE);
-			else
-				socket_destroy(s, "TLS handshake failed");
+			socket_connection_failed(s, "TLS handshake failed");
 		}
 		return;
 	}
@@ -1863,14 +1882,7 @@ socket_connected(gpointer data, int source, inputevt_cond_t cond)
 					   (void *) &option, &size);
 
 		if (res == -1 || option) {
-			if (
-				s->type == SOCK_TYPE_DOWNLOAD &&
-				s->resource.download &&
-				!(GNET_PROPERTY(is_firewalled) || !GNET_PROPERTY(send_pushes))
-			)
-				download_fallback_to_push(s->resource.download, FALSE, FALSE);
-			else
-				socket_destroy(s, _("Connection failed"));
+			socket_connection_failed(s, _("Connection failed"));
 			return;
 		}
 
@@ -2350,6 +2362,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	/* Initialize from_addr so that it matches the socket's network type. */
 	from_len = socket_addr_init(from_addr, s->net);
 	g_assert(from_len > 0);
+	g_assert(from_len == socket_addr_get_len(from_addr));
 
 	from = socket_addr_get_sockaddr(from_addr);
 	g_assert(from);
@@ -2398,7 +2411,7 @@ socket_udp_accept(struct gnutella_socket *s)
 #ifdef HAS_MSGHDR_MSG_FLAGS
 		truncated = 0 != (MSG_TRUNC & msg.msg_flags);
 #else	/* HAS_MSGHDR_MSG_FLAGS */
-		truncated = FALSE;	/* We can't detect truncation with recvfrom() */
+		truncated = FALSE;	/* We can't detect truncation with recvmsg() */
 #endif /* HAS_MSGHDR_MSG_FLAGS */
 
 		if ((ssize_t) -1 != r && !GNET_PROPERTY(force_local_ip)) {
