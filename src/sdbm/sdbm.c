@@ -1150,13 +1150,14 @@ getnext(DBM *db)
 		 * file, we will have to seek.
 		 */
 
+	next_page:
 		db->keyptr = 0;
 		db->blkptr++;
 
 		if (OFF_PAG(db->blkptr) > db->pagtail)
 			break;
 		else if (!fetch_pagbuf(db, db->blkptr))
-			break;
+			goto next_page;		/* Skip faulty page */
 	}
 
 	return nullitem;
