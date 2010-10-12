@@ -6116,6 +6116,10 @@ attempt_retry:
 
 /**
  * Direct download failed, let's try it with a push request.
+ *
+ * @param d				the target download
+ * @param on_timeout	TRUE when coming from download_timer()
+ * @param user_request	TRUE if user explicitly requested a fallback
  */
 void
 download_fallback_to_push(struct download *d,
@@ -6144,10 +6148,15 @@ download_fallback_to_push(struct download *d,
 	if (DOWNLOAD_IS_QUEUED(d))
 		return;
 
-	/* If we're receiving data or already sent push, we're wrong
+	/*
+	 * If we're receiving data or already sent push, we're wrong
 	 * here. Most likely it was unnecessarily requested by the user.
 	 */
-	if (DOWNLOAD_IS_ACTIVE(d) || DOWNLOAD_IS_EXPECTING_GIV(d))
+
+	if (DOWNLOAD_IS_ACTIVE(d))
+		return;
+
+	if (user_request && DOWNLOAD_IS_EXPECTING_GIV(d))
 		return;
 
 	if (DOWNLOAD_IS_STOPPED(d))
@@ -15118,10 +15127,16 @@ download_timer(time_t now)
  				break;
 			case GTA_DL_PUSH_SENT:
 			case GTA_DL_FALLBACK:
-				/* Do not timeout if we're searching for new push-proxies */
+				/*
+				 * Do not timeout if we're searching for new push-proxies
+				 * or if we're issuing an HTTP push-proxy request but
+				 * got no reply from the other party yet.
+				 */
 				timeout = (d->server->attrs & DLS_A_DHT_PROX) ?
 					MAX_INT_VAL(time_delta_t) :
-					GNET_PROPERTY(download_push_sent_timeout);
+					(d->cproxy != NULL && !d->cproxy->done) ?
+						MAX_INT_VAL(time_delta_t) :
+						GNET_PROPERTY(download_push_sent_timeout);
 				break;
 			case GTA_DL_CONNECTING:
 			case GTA_DL_REQ_SENT:
