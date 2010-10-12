@@ -1133,6 +1133,7 @@ void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, gpointer arg)
 	ctx.arg = arg;
 	ctx.dw = dw;
 
+	dbmw_sync(dw, DBMW_SYNC_CACHE);
 	dbmap_foreach(dw->dm, dbmw_foreach_trampoline, &ctx);
 }
 
@@ -1150,6 +1151,7 @@ void dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg)
 	ctx.arg = arg;
 	ctx.dw = dw;
 
+	dbmw_sync(dw, DBMW_SYNC_CACHE);
 	dbmap_foreach_remove(dw->dm, dbmw_foreach_remove_trampoline, &ctx);
 }
 
