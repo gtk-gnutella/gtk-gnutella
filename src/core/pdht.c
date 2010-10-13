@@ -1294,17 +1294,16 @@ pdht_prox_done(gpointer u_arg, pdht_error_t code, const pdht_info_t *info)
 	 * delay with the time that was elapsed.
 	 */
 
-	g_assert(!pdht_proxy.backgrounded == !(pdht_proxy.publish_ev != NULL));
-
 	if (pdht_proxy.backgrounded) {
 		time_delta_t elapsed = delta_time(tm_time(), pdht_proxy.last_delayed);
-		cq_cancel(callout_queue, &pdht_proxy.publish_ev);
 		if (delay > elapsed) {
 			delay -= elapsed;
 		} else {
 			delay = 1;
 		}
 	}
+
+	cq_cancel(callout_queue, &pdht_proxy.publish_ev);
 
 	/*
 	 * Logging.
