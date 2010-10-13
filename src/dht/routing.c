@@ -2362,6 +2362,20 @@ dht_node_timed_out(knode_t *kn)
 {
 	knode_check(kn);
 
+	/*
+	 * If we're no longer connected, do not change any node status: we do
+	 * not want to lose all our nodes in case the Internet link is severed.
+	 */
+
+	if (!GNET_PROPERTY(is_inet_connected)) {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_message("DHT not connected to Internet, "
+				"ignoring RPC timeout for %s",
+				knode_to_string(kn));
+		}
+		return;
+	}
+
 	if (++kn->rpc_timeouts >= KNODE_MAX_TIMEOUTS) {
 		dht_remove_timeouting_node(kn);
 	} else {
