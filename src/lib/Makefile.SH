@@ -113,6 +113,7 @@ LSRC = \
 	compat_pio.c \
 	compat_sleep_ms.c \
 	concat.c \
+	cpufreq.c \
 	cq.c \
 	crash.c \
 	crc.c \
@@ -127,6 +128,7 @@ LSRC = \
 	fd.c \
 	fifo.c \
 	file.c \
+	filehead.c \
 	filename.c \
 	fragcheck.c \
 	fs_free_space.c \
@@ -204,6 +206,7 @@ LOBJ = \
 	compat_pio.o \
 	compat_sleep_ms.o \
 	concat.o \
+	cpufreq.o \
 	cq.o \
 	crash.o \
 	crc.o \
@@ -218,6 +221,7 @@ LOBJ = \
 	fd.o \
 	fifo.o \
 	file.o \
+	filehead.o \
 	filename.o \
 	fragcheck.o \
 	fs_free_space.o \

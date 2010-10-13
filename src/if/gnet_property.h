@@ -406,6 +406,8 @@ typedef enum {
     PROP_MOVE_DEBUG,
     PROP_QHIT_DEBUG,
     PROP_VERSION_DEBUG,
+    PROP_CPU_FREQ_MIN,
+    PROP_CPU_FREQ_MAX,
     GNET_PROPERTY_END
 } gnet_property_t;
 

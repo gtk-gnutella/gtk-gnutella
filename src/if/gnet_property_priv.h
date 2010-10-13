@@ -418,6 +418,8 @@ extern const guint32  gnet_property_variable_reload_debug;
 extern const guint32  gnet_property_variable_move_debug;
 extern const guint32  gnet_property_variable_qhit_debug;
 extern const guint32  gnet_property_variable_version_debug;
+extern const guint64  gnet_property_variable_cpu_freq_min;
+extern const guint64  gnet_property_variable_cpu_freq_max;
 
 
 prop_set_t *gnet_prop_init(void);

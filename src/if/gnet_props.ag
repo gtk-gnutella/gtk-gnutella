@@ -4302,4 +4302,24 @@ prop = {
     };
 };
 
+prop = {
+    name = "cpu_freq_min";
+    desc = "Minimum CPU frequency, in Hz.";
+	save = FALSE;
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "cpu_freq_max";
+    desc = "Maximum CPU frequency, in Hz.";
+	save = FALSE;
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

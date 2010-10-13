@@ -853,6 +853,10 @@ guint32  gnet_property_variable_qhit_debug     = 0;
 static const guint32  gnet_property_variable_qhit_debug_default = 0;
 guint32  gnet_property_variable_version_debug     = 0;
 static const guint32  gnet_property_variable_version_debug_default = 0;
+guint64  gnet_property_variable_cpu_freq_min     = 0;
+static const guint64  gnet_property_variable_cpu_freq_min_default = 0;
+guint64  gnet_property_variable_cpu_freq_max     = 0;
+static const guint64  gnet_property_variable_cpu_freq_max_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -7929,6 +7933,46 @@ gnet_prop_init(void) {
     gnet_property->props[369].data.guint32.choices = NULL;
     gnet_property->props[369].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[369].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_CPU_FREQ_MIN:
+     *
+     * General data:
+     */
+    gnet_property->props[370].name = "cpu_freq_min";
+    gnet_property->props[370].desc = _("Minimum CPU frequency, in Hz.");
+    gnet_property->props[370].ev_changed = event_new("cpu_freq_min_changed");
+    gnet_property->props[370].save = FALSE;
+    gnet_property->props[370].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[370].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[370].data.guint64.def   = (void *) &gnet_property_variable_cpu_freq_min_default;
+    gnet_property->props[370].data.guint64.value = (void *) &gnet_property_variable_cpu_freq_min;
+    gnet_property->props[370].data.guint64.choices = NULL;
+    gnet_property->props[370].data.guint64.max   = (guint64) -1;
+    gnet_property->props[370].data.guint64.min   = 0x0000000000000000;
+
+
+    /*
+     * PROP_CPU_FREQ_MAX:
+     *
+     * General data:
+     */
+    gnet_property->props[371].name = "cpu_freq_max";
+    gnet_property->props[371].desc = _("Maximum CPU frequency, in Hz.");
+    gnet_property->props[371].ev_changed = event_new("cpu_freq_max_changed");
+    gnet_property->props[371].save = FALSE;
+    gnet_property->props[371].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[371].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[371].data.guint64.def   = (void *) &gnet_property_variable_cpu_freq_max_default;
+    gnet_property->props[371].data.guint64.value = (void *) &gnet_property_variable_cpu_freq_max;
+    gnet_property->props[371].data.guint64.choices = NULL;
+    gnet_property->props[371].data.guint64.max   = (guint64) -1;
+    gnet_property->props[371].data.guint64.min   = 0x0000000000000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

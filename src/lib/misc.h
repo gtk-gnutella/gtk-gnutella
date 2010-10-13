@@ -113,6 +113,7 @@ const char *local_hostname(void);
 /*
  * Size string conversions
  */
+const char *short_frequency(guint64 freq);
 const char *short_size(guint64 size, gboolean metric);
 const char *short_html_size(guint64 size, gboolean metric);
 const char *short_kb_size(guint64 size, gboolean metric);

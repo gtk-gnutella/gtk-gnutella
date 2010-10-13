@@ -446,6 +446,26 @@ short_size(guint64 size, gboolean metric)
 	return b;
 }
 
+const char *
+short_frequency(guint64 freq)
+{
+	static char b[SIZE_FIELD_MAX];
+
+	if (freq < kilo(TRUE)) {
+		guint n = freq;
+		gm_snprintf(b, sizeof b, "%u Hz", n);
+	} else {
+		guint q, r;
+		char c;
+
+		c = norm_size_scale(freq, &q, &r, TRUE);
+		r = (r * 100) / kilo(TRUE);
+		gm_snprintf(b, sizeof b, "%u.%02u %cHz", q, r, c);
+	}
+
+	return b;
+}
+
 /**
  * Like short_size() but with unbreakable space between the digits and unit.
  */

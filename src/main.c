@@ -108,6 +108,7 @@
 #include "lib/bg.h"
 #include "lib/compat_misc.h"
 #include "lib/compat_sleep_ms.h"
+#include "lib/cpufreq.h"
 #include "lib/cq.h"
 #include "lib/crash.h"
 #include "lib/crc.h"
@@ -164,7 +165,7 @@ RCSID("$Id$")
 #define ATEXIT_TIMEOUT			20	/**< Final cleanup must not take longer */
 
 #define LOAD_HIGH_WATERMARK		95	/**< % amount over which we're overloaded */
-#define LOAD_LOW_WATERMARK		70	/**< lower threshold to clear condition */
+#define LOAD_LOW_WATERMARK		80	/**< lower threshold to clear condition */
 
 static unsigned main_slow_update;
 static volatile sig_atomic_t exiting;
@@ -741,8 +742,6 @@ check_cpu_usage(void)
 	 * running other things.  But we can be busy running our own code,
 	 * not really because the CPU is used by other processes, so we cannot
 	 * just divide by the coverage ratio.
-	 *
-	 * The average load is computed using a medium exponential moving average.
 	 */
 
 	if (coverage <= 0.1)
@@ -751,6 +750,34 @@ check_cpu_usage(void)
 		cpu_percent *= 3;
 	else if (coverage <= 0.5)
 		cpu_percent *= 1.5;
+
+	/*
+	 * If CPU scaling is enabled, correct the percentage used accordingly.
+	 * We want to consider what the CPU usage would be if we were running
+	 * at full speed.
+	 */
+
+	{
+		guint64 current_speed = cpufreq_current();
+
+		if (current_speed) {
+			guint64 full_speed = cpufreq_max();
+			double fraction = current_speed /
+				(double) ((0 == full_speed) ?  current_speed : full_speed);
+
+			if (GNET_PROPERTY(cpu_debug) > 1) {
+				g_message("CPU: running at %.2f%% of the maximum %s frequency",
+					100.0 * fraction, short_frequency(full_speed));
+			}
+
+			if (fraction < 1.0)
+				cpu_percent *= fraction;
+		}
+	}
+
+	/*
+	 * The average load is computed using a medium exponential moving average.
+	 */
 
 	load = (unsigned) cpu_percent * 100;
 	load_avg += (load >> 3) - (load_avg >> 3);

@@ -66,6 +66,7 @@
 #include "if/bridge/c2ui.h"
 
 #include "lib/bit_array.h"
+#include "lib/cpufreq.h"
 #include "lib/cq.h"
 #include "lib/compat_misc.h"
 #include "lib/debug.h"
@@ -550,6 +551,9 @@ settings_init(void)
 	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, max_fd);
 	gnet_prop_set_guint64_val(PROP_SYS_PHYSMEM, amount);
 
+	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MIN, cpufreq_min());
+	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MAX, cpufreq_max());
+
 	settings_init_session_id();
 	memset(deconstify_gpointer(GNET_PROPERTY(servent_guid)), 0, GUID_RAW_SIZE);
 
@@ -601,6 +605,16 @@ settings_init(void)
 		g_message("max I/O vector size is %d items", MAX_IOV_COUNT);
 		g_message("virtual memory page size is %lu bytes",
 			(gulong) compat_pagesize());
+
+		if (GNET_PROPERTY(cpu_freq_max)) {
+			g_message("CPU frequency variation detected");
+			g_message("minimum CPU frequency: %s",
+				short_frequency(GNET_PROPERTY(cpu_freq_min)));
+			g_message("maximum CPU frequency: %s",
+				short_frequency(GNET_PROPERTY(cpu_freq_max)));
+		} else {
+			g_message("no possible CPU frequency variation detected");
+		}
 	}
 
 	{
