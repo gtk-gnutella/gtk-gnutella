@@ -231,8 +231,6 @@ fi_gui_set_details(const struct fileinfo_data *file)
 			NULL);	/* Separator */
 		fi_gui_append_detail(FI_GUI_DETAIL_BITZI, _("Bitzi URL"),
 			url_for_bitzi_lookup(info->sha1));
-		fi_gui_append_detail(FI_GUI_DETAIL_SHAREMONKEY, _("ShareMonkey URL"),
-			url_for_sharemonkey_lookup(info->sha1, info->filename, info->size));
 	}
 
  	guc_fi_free_info(info);

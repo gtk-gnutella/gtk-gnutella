@@ -41,8 +41,6 @@
 struct sha1;
 
 const char * url_for_bitzi_lookup(const struct sha1 *sha1);
-const char * url_for_sharemonkey_lookup(
-	const struct sha1 *sha1, const char *filename, filesize_t size);
 
 #endif	/* _url_factory_h_ */
 

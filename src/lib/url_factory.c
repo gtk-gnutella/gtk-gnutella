@@ -65,38 +65,4 @@ url_for_bitzi_lookup(const struct sha1 *sha1)
 	return buf;
 }
 
-/**
- * Create a ShareMonkey lookup URL.
- *
- * @return pointer to static data containing the ShareMonkey URL, NULL on error.
- */
-const char *
-url_for_sharemonkey_lookup(
-	const struct sha1 *sha1, const char *filename, filesize_t size)
-{
-	static const char base_url[] = "http://match.sharemonkey.com/?";
-	static const char campaign[] = "cid=25";
-	static char url[2048];
-	const char *file_basename;
-	char *escaped;
-
-	g_return_val_if_fail(sha1, NULL);
-	g_return_val_if_fail(filename, NULL);
-
-	file_basename = filepath_basename(filename);
-	escaped = url_escape(file_basename);
-
-	concat_strings(url, sizeof url,
-		base_url, campaign,
-		"&n=", escaped,
-		"&s=", filesize_to_string(size),
-		"&sha1=", sha1_base32(sha1),
-		(void *) 0);
-
-	if (escaped != file_basename)
-		HFREE_NULL(escaped);
-
-	return url;
-}
-
 /* vi: set ts=4 sw=4 cindent: */
