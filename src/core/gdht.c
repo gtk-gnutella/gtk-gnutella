@@ -528,7 +528,6 @@ gdht_guid_not_found(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 		g_message("DHT PROX lookup for GUID %s failed: %s",
 			guid_to_string(glk->guid), lookup_strerror(error));
 
-	download_no_push_proxies(glk->guid);
 	gdht_free_guid_lookup(glk, TRUE);
 }
 

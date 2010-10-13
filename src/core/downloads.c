@@ -2456,21 +2456,6 @@ download_proxy_dht_lookup_done(const struct guid *guid)
 }
 
 /**
- * Lookup for push proxies in the DHT failed.
- */
-void
-download_no_push_proxies(const struct guid *guid)
-{
-	struct dl_server *server;
-
-	server = g_hash_table_lookup(dl_by_guid, guid);
-	if (server == NULL)
-		return;
-
-	/* XXX any processing required really or can we ditch this callback? */
-}
-
-/**
  * Look for more push-proxies in the DHT.
  *
  * @return TRUE if we are looking for proxies, FALSE if there is nothing

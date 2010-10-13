@@ -84,7 +84,6 @@ void download_add_push_proxy(const struct guid *guid,
 void download_add_push_proxies(const struct guid *,
 	gnet_host_t *proxies, int proxy_count);
 void download_proxy_dht_lookup_done(const struct guid *);
-void download_no_push_proxies(const struct guid *);
 void download_found_server(const struct guid *,
 	const host_addr_t addr, guint16 port);
 
