@@ -59,7 +59,7 @@ cpufreq_min(void)
 	/* Only Linux is supported for now */
 
 	done = TRUE;
-	freq = filehead_uint64(
+	freq = 1000 * filehead_uint64(
 		"/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq",
 		TRUE, NULL);
 
@@ -83,7 +83,7 @@ cpufreq_max(void)
 	/* Only Linux is supported for now */
 
 	done = TRUE;
-	freq = filehead_uint64(
+	freq = 1000 * filehead_uint64(
 		"/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq",
 		TRUE, NULL);
 
@@ -106,7 +106,7 @@ cpufreq_current(void)
 
 	/* Only Linux is supported for now */
 
-	freq = filehead_uint64(
+	freq = 1000 * filehead_uint64(
 		"/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq",
 		TRUE, NULL);
 
