@@ -139,3 +139,15 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Only turn database read-only after a write I/O error occurs.
 * Added sdbm_shrink() to truncate files if trailing parts are empty.
 * Added the "truncate" (aka "shrink") command to dbu and made "insert" work.
+
+Thu Oct 14 00:21:01 CEST 2010
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Iterations through sdbm_firstkey() / sdbm_nextkey() now skip disk pages
+  that can't be read for some reason.
+* Added sdbm_clear() to remove all entries from the opened database.
+* Added counter for corrupted pages, read and write errors, split write
+  errors and unfixable split errors.
+* Will now unconditionally emit warnings at SDBM close time if errors occurred
+  during operations.
