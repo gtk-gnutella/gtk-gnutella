@@ -607,13 +607,13 @@ settings_init(void)
 			(gulong) compat_pagesize());
 
 		if (GNET_PROPERTY(cpu_freq_max)) {
-			g_message("CPU frequency variation detected");
+			g_message("CPU frequency scaling detected");
 			g_message("minimum CPU frequency: %s",
 				short_frequency(GNET_PROPERTY(cpu_freq_min)));
 			g_message("maximum CPU frequency: %s",
 				short_frequency(GNET_PROPERTY(cpu_freq_max)));
 		} else {
-			g_message("no possible CPU frequency variation detected");
+			g_message("no CPU frequency scaling detected");
 		}
 	}
 
