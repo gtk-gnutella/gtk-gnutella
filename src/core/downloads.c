@@ -2426,7 +2426,9 @@ download_push_proxy_sleep(struct dl_server *server)
 		} else {
 			d->retries++;
 		}
-		download_queue_delay(d, delay, _("Requeued due to no push-proxy"));
+		download_retry(d);	/* Updates d->timeout_delay */
+		download_queue_delay(d, MAX(delay, d->timeout_delay),
+			_("Requeued due to no push-proxy"));
 	}
 
 	g_slist_free(to_sleep);
