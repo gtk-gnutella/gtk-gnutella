@@ -106,6 +106,7 @@ static const struct {
 	{ "leet.gtkg.org:1337" },
 	{ "tertiary.udp-host-cache.com:9999" },
 	{ "yin.cloud.bishopston.net:33558" },
+	{ "uhc1.frostwire.com:9000" },
 #endif	/* USE_LOCAL_UHC */
 };
 
