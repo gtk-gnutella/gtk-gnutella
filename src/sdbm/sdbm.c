@@ -870,8 +870,13 @@ makroom(DBM *db, long int hash, size_t need)
 		 * DB has reached 32 MiB.
 		 */
 
-		if (!setdbit(db, db->curbit))
+		if (!setdbit(db, db->curbit)) {
+			g_warning("sdbm: \"%s\": cannot set bit in forest bitmap for 0x%lx",
+				sdbm_name(db), db->curbit);
+			db->spl_errors++;
+			db->spl_corrupt++;
 			return FALSE;
+		}
 
 		if (fits)
 			return TRUE;
