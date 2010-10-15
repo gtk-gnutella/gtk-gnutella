@@ -107,6 +107,7 @@ SRC = \
 	geo_ip.c \
 	ggep.c \
 	ggep_type.c \
+	ghc.c \
 	gmsg.c \
 	gnet_stats.c \
 	guid.c \
@@ -198,6 +199,7 @@ OBJ = \
 	geo_ip.o \
 	ggep.o \
 	ggep_type.o \
+	ghc.o \
 	gmsg.o \
 	gnet_stats.o \
 	guid.o \

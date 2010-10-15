@@ -51,6 +51,7 @@ SRC = \
 	geo_ip.c \
 	ggep.c \
 	ggep_type.c \
+	ghc.c \
 	gmsg.c \
 	gnet_stats.c \
 	guid.c \

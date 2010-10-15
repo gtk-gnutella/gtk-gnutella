@@ -60,6 +60,7 @@
 #include "core/gdht.h"
 #include "core/pdht.h"
 #include "core/geo_ip.h"
+#include "core/ghc.h"
 #include "core/gmsg.h"
 #include "core/gnet_stats.h"
 #include "core/gnutella.h"
@@ -437,6 +438,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(pproxy_close);
 	DO(http_close);
 	DO(uhc_close);
+	DO(ghc_close);
 	DO(move_close);
 	DO(publisher_close);
 	DO(pdht_close);
@@ -1630,6 +1632,7 @@ main(int argc, char **argv)
 	gip_init();
 	guid_init();
 	uhc_init();
+	ghc_init();
 	verify_sha1_init();
 	verify_tth_init();
 	move_init();

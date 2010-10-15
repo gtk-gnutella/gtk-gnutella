@@ -343,6 +343,8 @@ src/core/ggep.c
 src/core/ggep.h
 src/core/ggep_type.c
 src/core/ggep_type.h
+src/core/ghc.c
+src/core/ghc.h
 src/core/gmsg.c
 src/core/gmsg.h
 src/core/gnet_stats.c
