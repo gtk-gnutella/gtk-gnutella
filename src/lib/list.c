@@ -196,12 +196,12 @@ list_free(list_t **list_ptr)
  * Append `key' to the list.
  */
 void
-list_append(list_t *list, gpointer key)
+list_append(list_t *list, const void *key)
 {
 	list_check(list);
 	g_assert(1 == list->refcount);
 
-	list->tail = g_list_append(list->tail, key);
+	list->tail = g_list_append(list->tail, deconstify_gpointer(key));
 	list->tail = g_list_last(list->tail);
 	if (!list->head) {
 		list->head = list->tail;
@@ -217,12 +217,12 @@ list_append(list_t *list, gpointer key)
  * Prepend `key' to the list.
  */
 void
-list_prepend(list_t *list, gpointer key)
+list_prepend(list_t *list, const void *key)
 {
 	list_check(list);
 	g_assert(1 == list->refcount);
 
-	list->head = g_list_prepend(list->head, key);
+	list->head = g_list_prepend(list->head, deconstify_gpointer(key));
 	if (!list->tail) {
 		list->tail = list->head;
 	}
@@ -237,13 +237,14 @@ list_prepend(list_t *list, gpointer key)
  * Insert `key' into the list.
  */
 void
-list_insert_sorted(list_t *list, gpointer key, GCompareFunc func)
+list_insert_sorted(list_t *list, const void *key, GCompareFunc func)
 {
 	list_check(list);
 	g_assert(1 == list->refcount);
 	g_assert(func);
 
-	list->head = g_list_insert_sorted(list->head, key, func);
+	list->head = g_list_insert_sorted(list->head,
+		deconstify_gpointer(key), func);
 	if (list->tail) {
 		list->tail = g_list_last(list->tail);
 	} else {
@@ -261,13 +262,13 @@ list_insert_sorted(list_t *list, gpointer key, GCompareFunc func)
  * @return whether we found the item in the list and deleted it.
  */
 gboolean
-list_remove(list_t *list, gpointer key)
+list_remove(list_t *list, const void *key)
 {
 	GList *item;
 
 	list_check(list);
 
-	item = g_list_find(list->head, key);
+	item = g_list_find(list->head, deconstify_gpointer(key));
 	if (item) {
 
 		if (item == list->head) {
@@ -294,7 +295,7 @@ list_remove(list_t *list, gpointer key)
 /**
  * @returns The data associated with the tail item, or NULL if none.
  */
-gpointer
+void *
 list_tail(const list_t *list)
 {
 	list_check(list);
@@ -305,7 +306,7 @@ list_tail(const list_t *list)
 /**
  * @returns the first item of the list, or NULL if none.
  */
-gpointer
+void *
 list_head(const list_t *list)
 {
 	list_check(list);
@@ -317,7 +318,7 @@ list_head(const list_t *list)
  * Move entry to the head of the list.
  */
 gboolean
-list_moveto_head(list_t *list, gpointer key)
+list_moveto_head(list_t *list, const void *key)
 {
 	if (list_remove(list, key)) {
 		list_prepend(list, key);
@@ -330,7 +331,7 @@ list_moveto_head(list_t *list, gpointer key)
  * Move entry to the tail of the list.
  */
 gboolean
-list_moveto_tail(list_t *list, gpointer key)
+list_moveto_tail(list_t *list, const void *key)
 {
 	if (list_remove(list, key)) {
 		list_append(list, key);
@@ -517,8 +518,7 @@ list_iter_free(list_iter_t **iter_ptr)
  * using `func'.
  */
 gboolean
-list_contains(list_t *list, gconstpointer key, GEqualFunc func,
-	gpointer *orig_key)
+list_contains(list_t *list, const void *key, GEqualFunc func, void **orig_key)
 {
 	GList *item;
 
