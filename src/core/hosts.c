@@ -48,6 +48,8 @@ RCSID("$Id$")
 #include "settings.h"
 #include "bogons.h"
 #include "uhc.h"
+#include "hostiles.h"
+#include "udp.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/dht/dht.h"		/* For dht_fill_random() */
@@ -220,13 +222,7 @@ host_timer(void)
 
             missing = to_add;
 
-			while (hcache_size(htype) && missing-- > 0) {
-				if (hcache_get_caught(htype, &addr, &port)) {
-					node_add(addr, port, 0);
-				}
-			}
-
-			if (missing > 0) {
+			if (missing > 0 && (0 == node_count() || host_low_on_pongs)) {
 				gnet_host_t host[HOST_DHT_MAX];
 				int hcount;
 				int i;
@@ -239,7 +235,23 @@ host_timer(void)
 				for (i = 0; i < hcount; i++) {
 					addr = gnet_host_get_addr(&host[i]);
 					port = gnet_host_get_port(&host[i]);
-					node_add(addr, port, 0);
+					if (!hcache_node_is_bad(addr)) {
+						/* Try to use the host as an UHC before connecting */
+						udp_send_ping(NULL, addr, port, TRUE);
+						node_add_socket(NULL, addr, port, 0);
+					} else {
+						missing++;	/* Did not use entry */
+					}
+				}
+			}
+
+			while (hcache_size(htype) && missing-- > 0) {
+				if (hcache_get_caught(htype, &addr, &port)) {
+					if (!(hostiles_check(addr) || hcache_node_is_bad(addr))) {
+						node_add_socket(NULL, addr, port, 0);
+					} else {
+						missing++;	/* Did not use entry */
+					}
 				}
 			}
 
