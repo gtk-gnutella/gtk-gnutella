@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "sockets.h"
 #include "udp.h"
 #include "uhc.h"
+#include "ghc.h"
 
 #include "lib/adns.h"
 #include "lib/atoms.h"
@@ -53,6 +54,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/halloc.h"
 #include "lib/parse.h"
 
 #include "if/gnet_property_priv.h"
@@ -98,11 +100,8 @@ static const struct {
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
 	{ "drei.gtkg.net:62666" },
-	{ "g6.dns6.org:1337" },
 	{ "gnutelladev1.udp-host-cache.com:1234" },
 	{ "gnutelladev2.udp-host-cache.com:5678" },
-	{ "gwc.ak-electron.eu:12060" },
-	{ "gwc.chickenkiller.com:8080" },
 	{ "leet.gtkg.org:1337" },
 	{ "tertiary.udp-host-cache.com:9999" },
 	{ "yin.cloud.bishopston.net:33558" },
@@ -229,7 +228,7 @@ uhc_list_add(const char *host)
 }
 
 /**
- * @return NULL on error, a newly allocated string otherwise.
+ * @return NULL on error, a newly allocated string via halloc() otherwise.
  */
 static char *
 uhc_get_next(void)
@@ -256,7 +255,7 @@ uhc_get_next(void)
 		return NULL;
 
 	uhc->stamp = now;
-	host = g_strdup(uhc->host);
+	host = h_strdup(uhc->host);
 
 	if (uhc->used < UHC_MAX_ATTEMPTS) {
 		uhc->used++;
@@ -283,7 +282,8 @@ uhc_pick(void)
 	uhc = uhc_get_next();
 	if (NULL == uhc) {
 		if (GNET_PROPERTY(bootstrap_debug))
-			g_warning("BOOT ran out of UHCs");
+			g_warning("BOOT ran out of UHCs, switching to GHCs");
+		ghc_get_hosts();
 		goto finish;
 	}
 
@@ -304,7 +304,7 @@ uhc_pick(void)
 	success = TRUE;
 
 finish:
-	G_FREE_NULL(uhc);
+	HFREE_NULL(uhc);
 	return success;
 }
 
@@ -317,11 +317,10 @@ uhc_try_random(void)
 	g_assert(uhc_connecting);
 	g_assert(uhc_ctx.timeout_ev == NULL);
 
-	if (uhc_ctx.attempts >= UHC_MAX_ATTEMPTS || !uhc_pick()) {
+	if (!uhc_pick()) {
 		uhc_connecting = FALSE;
 		return;
 	}
-	uhc_ctx.attempts++;
 
 	/*
 	 * The following may recurse if resolution is synchronous, but
@@ -452,18 +451,23 @@ uhc_get_hosts(void)
 	if (uhc_connecting || GNET_PROPERTY(ancient_version))
 		return;
 
-	if (!udp_active())
+	if (!udp_active()) {
+		if (GNET_PROPERTY(bootstrap_debug)) {
+			g_message("BOOT cannot contact UHCs (UDP inactive), using GHCs");
+		}
+		ghc_get_hosts();
 		return;
+	}
 
-	if (GNET_PROPERTY(bootstrap_debug))
+	if (GNET_PROPERTY(bootstrap_debug)) {
 		g_message("BOOT will be contacting an UHC");
+	}
 
 	/*
 	 * Reset context.
 	 */
 
 	uhc_connecting = TRUE;
-	uhc_ctx.attempts = 0;
 
 	g_assert(uhc_ctx.timeout_ev == NULL);
 
