@@ -262,8 +262,8 @@ file_config_open(const char *what, const file_path_t *fv)
 		out = file_fopen(path, "w");
 		if (out == NULL)
 			g_warning("unable to persist %s", what);
-		HFREE_NULL(path);
 	}
+	HFREE_NULL(path);
 	return out;
 }
 
