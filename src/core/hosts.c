@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "uhc.h"
 
 #include "if/gnet_property_priv.h"
+#include "if/dht/dht.h"		/* For dht_fill_random() */
 
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
@@ -61,6 +62,7 @@ RCSID("$Id$")
 #include "lib/override.h"	/* Must be the last header included */
 
 #define HOST_PINGING_PERIOD		30		/**< Try pinging every 30 seconds */
+#define HOST_DHT_MAX			50		/**< Get that many random hosts */
 
 gboolean host_low_on_pongs = FALSE;		/**< True when less than 12% full */
 
@@ -224,17 +226,28 @@ host_timer(void)
 				}
 			}
 
+			if (missing > 0) {
+				gnet_host_t host[HOST_DHT_MAX];
+				int hcount;
+				int i;
+
+				hcount = dht_fill_random(host,
+					MIN(UNSIGNED(missing), G_N_ELEMENTS(host)));
+
+				missing -= hcount;
+
+				for (i = 0; i < hcount; i++) {
+					addr = gnet_host_get_addr(&host[i]);
+					port = gnet_host_get_port(&host[i]);
+					node_add(addr, port, 0);
+				}
+			}
+
 			if (missing > 0 && host_cache_allow_bypass()) {
 				if (!uhc_is_waiting()) {
 					if (GNET_PROPERTY(host_debug))
 						g_message("host_timer - querying UDP host cache");
 					uhc_get_hosts();	/* Get new hosts from UHCs */
-				} else if (
-					GNET_PROPERTY(bootstrap_debug) > 2 ||
-					GNET_PROPERTY(host_debug)
-				) {
-					g_message("BOOT host_timer - waiting for reply from %s",
-						uhc_is_waiting() ? "UDP host cache" : "web cache");
 				}
 			}
 		}
