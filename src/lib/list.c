@@ -293,6 +293,32 @@ list_remove(list_t *list, const void *key)
 }
 
 /**
+ * Remove the head of the list.
+ *
+ * @return the key at the head of the list, NULL if none.
+ */
+void *
+list_shift(list_t *list)
+{
+	GList *item;
+	void *key;
+	gboolean found;
+
+	list_check(list);
+
+	item = list->head;
+	if (NULL == item)
+		return NULL;
+
+	key = item->data;
+	found = list_remove(list, key);
+
+	g_assert(found);
+
+	return key;
+}
+
+/**
  * @returns The data associated with the tail item, or NULL if none.
  */
 void *

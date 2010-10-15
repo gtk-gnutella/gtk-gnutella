@@ -40,6 +40,7 @@ void list_prepend(list_t *list, const void *key);
 void list_insert_sorted(list_t *list, const void *key, GCompareFunc func);
 gboolean list_moveto_head(list_t *list, const void *key);
 gboolean list_moveto_tail(list_t *list, const void *key);
+void *list_shift(list_t *list);
 void *list_head(const list_t *list);
 void *list_tail(const list_t *list);
 guint list_length(const list_t *list);
