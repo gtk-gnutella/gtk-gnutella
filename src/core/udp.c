@@ -479,6 +479,11 @@ udp_ping_is_registered(const struct guid *muid)
 
 /**
  * Send a Gnutella ping to the specified host.
+ *
+ * @param muid		the MUID to use (allocated randomly if NULL)
+ * @param addr		address to which ping should be sent
+ * @param port		port number
+ * @param uhc_ping	if TRUE, include the "SCP" GGEP extension
  */
 gboolean
 udp_send_ping(const struct guid *muid, const host_addr_t addr, guint16 port,
