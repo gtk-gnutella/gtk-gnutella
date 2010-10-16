@@ -505,7 +505,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen)
 
 		hcache_add_caught(HOST_ULTRA, ha, port, "UDP-HC");
 
-		if (GNET_PROPERTY(bootstrap_debug) > 1)
+		if (GNET_PROPERTY(bootstrap_debug) > 2)
 			g_message("BOOT collected %s from UDP IPP pong from %s",
 				host_addr_to_string(ha), node_addr(n));
 	}
