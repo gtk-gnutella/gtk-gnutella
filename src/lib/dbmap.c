@@ -872,6 +872,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg)
 			datum key;
 			DBM *sdbm = dm->u.s.sdbm;
 			size_t count = 0;
+			size_t invalid = 0;
 
 			errno = 0;
 			for (
@@ -881,10 +882,13 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg)
 			) {
 				datum value;
 
-				if (dm->key_size != key.dsize)
-					continue;		/* Invalid key, corrupted file? */
-
 				count++;
+
+				if (dm->key_size != key.dsize) {
+					invalid++;
+					continue;		/* Invalid key, corrupted file? */
+				}
+
 				value = sdbm_value(sdbm);
 				if (value.dptr) {
 					dbmap_datum_t d;
@@ -896,6 +900,10 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg)
 			if (!dbmap_sdbm_error_check(dm)) {
 				dbmap_t *dmw = deconstify_gpointer(dm);
 				dmw->count = count;
+			}
+			if (invalid) {
+				g_warning("DBMAP on sdbm \"%s\": found %lu invalid key%s",
+					sdbm_name(sdbm), (gulong) invalid, 1 == invalid ? "" : "s");
 			}
 		}
 		break;
@@ -934,6 +942,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
 			datum key;
 			DBM *sdbm = dm->u.s.sdbm;
 			size_t count = 0;
+			size_t invalid = 0;
 
 			errno = 0;
 			for (
@@ -945,8 +954,10 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
 
 				count++;
 
-				if (dm->key_size != key.dsize)
+				if (dm->key_size != key.dsize) {
+					invalid++;
 					continue;		/* Invalid key, corrupted file? */
+				}
 
 				value = sdbm_value(sdbm);
 				if (value.dptr) {
@@ -964,6 +975,10 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
 			{
 				dbmap_t *dmw = deconstify_gpointer(dm);
 				dmw->count = count;
+			}
+			if (invalid) {
+				g_warning("DBMAP on sdbm \"%s\": found %lu invalid key%s",
+					sdbm_name(sdbm), (gulong) invalid, 1 == invalid ? "" : "s");
 			}
 		}
 		break;
