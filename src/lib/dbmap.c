@@ -767,7 +767,7 @@ dbmap_all_keys(const dbmap_t *dm)
 
 			errno = 0;
 			for (
-				key = sdbm_firstkey(sdbm);
+				key = sdbm_firstkey_safe(sdbm);
 				key.dptr != NULL;
 				key = sdbm_nextkey(sdbm)
 			) {
@@ -1019,7 +1019,7 @@ dbmap_count_keys_sdbm(DBM *sdbm)
 		return sblock.count;
 	}
 
-	for (key = sdbm_firstkey(sdbm); key.dptr; key = sdbm_nextkey(sdbm))
+	for (key = sdbm_firstkey_safe(sdbm); key.dptr; key = sdbm_nextkey(sdbm))
 		count++;
 
 	if (sdbm_error(sdbm)) {

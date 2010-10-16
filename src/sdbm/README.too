@@ -151,3 +151,6 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
   errors and unfixable split errors.
 * Will now unconditionally emit warnings at SDBM close time if errors occurred
   during operations.
+* Added sdbm_firstkey_safe() to activate additional checks during traversal,
+  making sure all the keys belong to their page (i.e. that the .dir and .pag
+  files are consistent), deleting all non-belonging keys.

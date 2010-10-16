@@ -26,6 +26,7 @@ int sdbm_delete(\s-1DBM\s0 *db, datum key)
 int sdbm_exists(\s-1DBM\s0 *db, datum key)
 .sp
 datum sdbm_firstkey(\s-1DBM\s0 *db)
+datum sdbm_firstkey_safe(\s-1DBM\s0 *db)
 datum sdbm_nextkey(\s-1DBM\s0 *db)
 datum sdbm_value(\s-1DBM\s0 *db)
 int sdbm_deletekey(\s-1DBM\s0 *db)
@@ -64,6 +65,7 @@ gboolean sdbm_is_storable(size_t key, size_t value)
 .IX sdbm_delete "" "\fLsdbm_delete\fR \(em remove data from \fLsdbm\fR database"
 .IX sdbm_exists "" "\fLsdbm_exists\fR \(em test \fLsdbm\fR key existence"
 .IX sdbm_firstkey "" "\fLsdbm_firstkey\fR \(em start iterator on \fLsdbm\fR database"
+.IX sdbm_firstkey_safe "" "\fLsdbm_firstkey_safe\fR \(em start iterator on \fLsdbm\fR database with extended page checks"
 .IX sdbm_nextkey "" "\fLsdbm_nextkey\fR \(em move iterator on \fLsdbm\fR database"
 .IX sdbm_value "" "\fLsdbm_value\fR \(em current value in \fLsdbm\fR database iterator"
 .IX sdbm_deletekey "" "\fLsdbm_deletekey\fR \(em delete current key in \fLsdbm\fR database"
@@ -83,6 +85,7 @@ gboolean sdbm_is_storable(size_t key, size_t value)
 .IX "database functions \(em \fLsdbm\fR"  sdbm_store  ""  \fLsdbm_store\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_delete  ""  \fLsdbm_delete\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_firstkey  ""  \fLsdbm_firstkey\fP
+.IX "database functions \(em \fLsdbm\fR"  sdbm_firstkey_safe  ""  \fLsdbm_firstkey_safe\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_nextkey  ""  \fLsdbm_nextkey\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_value  ""  \fLsdbm_value\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_deletekey  ""  \fLsdbm_deletekey\fP
@@ -233,6 +236,16 @@ deleted through the
 routine.  Usage of
 .BR sdbm_value (\|)
 outside of the outlined iterator loop is forbidden.
+.LP
+The iteration may begin with
+.BR sdbm_firstkey_safe (\|)
+instead, which will activate extended checks of each page: keys not belonging
+to the page are deleted on the fly.  This is useful when iterating over a
+database which could have been corrupted due to I/O errors, and the
+.B \.dir
+and
+.B \.pag
+files are not consistent with eachother.
 .LP
 If you determine that the performance of the database is inadequate or
 you notice clustering or other effects that may be due to the hashing
@@ -430,6 +443,7 @@ functions are unique to this package.
 The
 .BR sdbm_datfno (\|)
 .BR sdbm_replace (\|),
+.BR sdbm_firstkey_safe (\|),
 .BR sdbm_deletekey (\|),
 .BR sdbm_value (\|),
 .BR sdbm_is_storable (\|),

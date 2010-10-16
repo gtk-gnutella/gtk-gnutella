@@ -19,9 +19,10 @@
 
 typedef struct DBM DBM;
 
-#define DBM_RDONLY	0x1			/* data base open read-only */
-#define DBM_IOERR	0x2			/* data base I/O error (any) */
-#define DBM_IOERR_W	0x4			/* data base write I/O error */
+#define DBM_RDONLY		(1 << 0)	/* data base open read-only */
+#define DBM_IOERR		(1 << 1)	/* data base I/O error (any) */
+#define DBM_IOERR_W		(1 << 2)	/* data base write I/O error */
+#define DBM_KEYCHECK	(1 << 3)	/* safe mode during iteration */
 
 typedef struct {
 	char *dptr;
@@ -46,6 +47,7 @@ int sdbm_delete(DBM *, datum);
 int sdbm_store(DBM *, datum, datum, int);
 int sdbm_replace(DBM *, datum, datum, gboolean *);
 datum sdbm_firstkey(DBM *);
+datum sdbm_firstkey_safe(DBM *);
 datum sdbm_nextkey(DBM *);
 datum sdbm_value(DBM *);
 int sdbm_deletekey(DBM *);

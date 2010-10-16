@@ -36,6 +36,7 @@ static gboolean setdbit(DBM *, long);
 static gboolean getpage(DBM *, long);
 static datum getnext(DBM *);
 static gboolean makroom(DBM *, long, size_t);
+static void validpage(DBM *, char *, long);
 
 static inline int
 bad(const datum item)
@@ -314,6 +315,10 @@ log_sdbm_warnings(DBM *db)
 	if (db->bad_pages) {
 		g_warning("sdbm: \"%s\" read %lu corrupted page%s (zero-ed on the fly)",
 			sdbm_name(db), db->bad_pages, 1 == db->bad_pages ? "" : "s");
+	}
+	if (db->removed_keys) {
+		g_warning("sdbm: \"%s\" removed %lu key%s not belonging to their page",
+			sdbm_name(db), db->removed_keys, 1 == db->removed_keys ? "" : "s");
 	}
 	if (db->read_errors || db->write_errors) {
 		g_warning("sdbm: \"%s\" "
@@ -825,7 +830,7 @@ makroom(DBM *db, long int hash, size_t need)
 			db->pagwrite++,
 			compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0
 		) {
-			g_warning("sdbm: \"%s\": cannot flush new page #%lu: %s",
+			g_warning("sdbm: \"%s\": cannot flush new page #%ld: %s",
 				sdbm_name(db), newp, g_strerror(errno));
 			ioerr(db, TRUE);
 			memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
@@ -959,7 +964,7 @@ restore:
 
 		memset(New, 0, DBM_PBLKSIZ);
 		if (compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0) {
-			g_warning("sdbm: \"%s\": cannot zero-back new split page #%lu: %s",
+			g_warning("sdbm: \"%s\": cannot zero-back new split page #%ld: %s",
 				sdbm_name(db), newp, g_strerror(errno));
 			ioerr(db, TRUE);
 			db->spl_errors++;
@@ -976,6 +981,14 @@ aborted:
 	return FALSE;
 }
 
+static datum
+iteration_done(DBM *db)
+{
+	g_assert(db != NULL);
+	db->flags &= ~DBM_KEYCHECK;		/* Iteration done */
+	return nullitem;
+}
+
 /*
  * the following two routines will break if
  * deletions aren't taken into account. (ndbm bug)
@@ -985,12 +998,12 @@ sdbm_firstkey(DBM *db)
 {
 	if (db == NULL) {
 		errno = EINVAL;
-		return nullitem;
+		return iteration_done(db);
 	}
 
 	db->pagtail = lseek(db->pagf, 0L, SEEK_END);
 	if (db->pagtail < 0)
-		return nullitem;
+		return iteration_done(db);
 
 	/*
 	 * Start at page 0, skipping any page we can't read.
@@ -998,12 +1011,27 @@ sdbm_firstkey(DBM *db)
 
 	for (db->blkptr = 0; OFF_PAG(db->blkptr) <= db->pagtail; db->blkptr++) {
 		db->keyptr = 0;
-		if (fetch_pagbuf(db, db->blkptr))
+		if (fetch_pagbuf(db, db->blkptr)) {
+			if (db->flags & DBM_KEYCHECK)
+				validpage(db, db->pagbuf, db->blkptr);
 			break;
+		}
 		/* Skip faulty page */
 	}
 
 	return getnext(db);
+}
+
+/**
+ * Like sdbm_firstkey() but activate extended page checks during iteration.
+ */
+datum
+sdbm_firstkey_safe(DBM *db)
+{
+	if (db != NULL) {
+		db->flags |= DBM_KEYCHECK;
+	}
+	return sdbm_firstkey(db);
 }
 
 datum
@@ -1011,7 +1039,7 @@ sdbm_nextkey(DBM *db)
 {
 	if (db == NULL) {
 		errno = EINVAL;
-		return nullitem;
+		return iteration_done(db);
 	}
 	return getnext(db);
 }
@@ -1068,6 +1096,42 @@ getpage(DBM *db, long int hash)
 		return FALSE;
 
 	return TRUE;
+}
+
+/**
+ * Check the page for keys that would not belong to the page and remove
+ * them on the fly, logging problems.
+ */
+static void
+validpage(DBM *db, char *pag, long pagb)
+{
+	int n;
+	int i;
+	unsigned short *ino = (unsigned short *) pag;
+	int removed = 0;
+
+	n = ino[0];
+
+	for (i = n - 1; i > 0; i -= 2) {
+		datum key;
+		long int hash;
+		long kpag;
+
+		key = getnkey(db, pag, i);
+		hash = exhash(key);
+		kpag = getpageb(db, hash, FALSE);
+
+		if (kpag != pagb) {
+			delipair(db, pag, i);
+			removed++;
+		}
+	}
+
+	if (removed > 0) {
+		db->removed_keys += removed;
+		g_warning("sdbm: \"%s\": removed %d key%s not belonging to page #%ld",
+			sdbm_name(db), removed, 1 == removed ? "" : "s", pagb);
+	}
 }
 
 static gboolean
@@ -1191,9 +1255,12 @@ getnext(DBM *db)
 			break;
 		else if (!fetch_pagbuf(db, db->blkptr))
 			goto next_page;		/* Skip faulty page */
+
+		if (db->flags & DBM_KEYCHECK)
+			validpage(db, db->pagbuf, db->blkptr);
 	}
 
-	return nullitem;
+	return iteration_done(db);
 }
 
 /**
