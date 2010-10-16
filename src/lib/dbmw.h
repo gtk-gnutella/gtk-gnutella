@@ -92,6 +92,7 @@ typedef gboolean (*dbmw_cbr_t)(
  */
 #define DBMW_SYNC_CACHE		(1 << 0)	/**< Sync DBMW local cache */
 #define DBMW_SYNC_MAP		(1 << 1)	/**< Sync DBMW underlying map */
+#define DBMW_DELETED_ONLY	(1 << 2)	/**< Only sync deleted keys */
 
 dbmw_t *dbmw_create(dbmap_t *dm, const char *name,
 	size_t key_size, size_t value_size, size_t value_data_size,

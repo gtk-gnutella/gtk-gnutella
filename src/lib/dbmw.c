@@ -99,9 +99,11 @@ dbmw_check(const dbmw_t *dw)
  */
 struct cached {
 	gpointer data;				/**< Value data */
-	int len;					/**< Length of data */
-	gboolean dirty;				/**< Whether entry is dirty */
-	gboolean absent;			/**< Whether entry is absent from database */
+	size_t len;					/**< Length of data */
+	unsigned dirty:1;			/**< Whether entry is dirty */
+	unsigned absent:1;			/**< Whether entry is absent from database */
+	unsigned traversed:1;		/**< Whether entry was traversed by iteration */
+	unsigned removable:1;		/**< Entry must be removed after iteration? */
 };
 
 /**
@@ -147,7 +149,7 @@ size_t
 dbmw_count(dbmw_t *dw)
 {
 	/*
-	 * Must write pending new items first and delete cached items to allow
+	 * Must write pending new items first and delete removed items to allow
 	 * proper count in the underlying map.
 	 */
 
@@ -498,12 +500,94 @@ fill_entry(const dbmw_t *dw,
 }
 
 /**
+ * Map iterator to reset traversed/removable flags on cached entries before
+ * iterating on the database.
+ */
+static void
+cache_reset_before_traversal(gpointer u_key, gpointer value, gpointer u_data)
+{
+	struct cached *entry = value;
+
+	(void) u_key;
+	(void) u_data;
+
+	entry->traversed = FALSE;
+	entry->removable = FALSE;
+}
+
+/**
+ * Structure used to iterate on the cached entries that were not traversed.
+ */
+struct cache_foreach_ctx {
+	struct foreach_ctx *foreach;
+	union {
+		dbmap_cb_t cb;
+		dbmap_cbr_t cbr;
+	} u;
+	unsigned removing:1;	/* Union discriminant */
+};
+
+/**
+ * Map iterator to traverse cached entries that were not already flagged
+ * as being traversed, invoking the supplied trampoline callback.
+ */
+static void
+cache_finish_traversal(gpointer key, gpointer value, gpointer data)
+{
+	struct cached *entry = value;
+	struct cache_foreach_ctx *fctx = data;
+	dbmap_datum_t d;
+
+	if (entry->traversed)
+		return;
+
+	d.data = entry->data;
+	d.len = entry->len;
+
+	/*
+	 * We ignore the returned value because to-be-removed data (when traversing
+	 * for removal) will be marked as "removable": we can't delete them yet as
+	 * we are traversing the cache structure already.
+	 */
+
+	if (fctx->removing) {
+		(void) (*fctx->u.cbr)(key, &d, fctx->foreach);
+	} else {
+		(*fctx->u.cb)(key, &d, fctx->foreach);
+	}
+}
+
+/**
+ * Map iterator to free cached entries that have been marked as removable.
+ */
+static gboolean
+cache_free_removable(gpointer key, gpointer value, gpointer data)
+{
+	dbmw_t *dw = data;
+	struct cached *entry = value;
+
+	dbmw_check(dw);
+	g_assert(!entry->len == !entry->data);
+
+	if (!entry->removable)
+		return FALSE;
+
+	free_value(dw, entry, TRUE);
+	hash_list_remove(dw->keys, key);
+	wfree(key, dw->key_size);
+	wfree(entry, sizeof *entry);
+
+	return TRUE;
+}
+
+/**
  * Context for flushes.
  */
 struct flush_context {
 	dbmw_t *dw;
 	ssize_t amount;
-	gboolean error;
+	unsigned error:1;
+	unsigned deleted_only:1;
 };
 
 /**
@@ -516,6 +600,8 @@ flush_dirty(gpointer key, gpointer value, gpointer data)
 	struct cached *entry = value;
 
 	if (entry->dirty) {
+		if (!entry->absent && ctx->deleted_only)
+			return;
 		if (write_back(ctx->dw, key, entry))
 			ctx->amount++;
 		else
@@ -535,6 +621,9 @@ flush_dirty(gpointer key, gpointer value, gpointer data)
  * DBMW_SYNC_MAP requests that the DB map layer be flushed, if it is backed
  * by disk data.
  *
+ * If DBMW_DELETED_ONLY is specified along with DBMW_SYNC_CACHE, only the
+ * dirty values that are marked as pending deletion are flushed.
+ *
  * @return amount of value flushes plus amount of sdbm page flushes, -1 if
  * an error occurred.
  */
@@ -549,6 +638,7 @@ dbmw_sync(dbmw_t *dw, int which)
 
 		ctx.dw = dw;
 		ctx.error = FALSE;
+		ctx.deleted_only = booleanize(which & DBMW_DELETED_ONLY);
 		ctx.amount = 0;
 
 		map_foreach(dw->values, flush_dirty, &ctx);
@@ -1047,13 +1137,15 @@ dbmw_foreach_common(gboolean removing,
 		 *     cache upon callback return).
 		 */
 
+		entry->traversed = TRUE;	/* Signal we iterated on cached value */
+
 		if (entry->absent)
 			return TRUE;		/* Key was already deleted, info cached */
 		if (removing) {
 			gboolean status;
 			status = (*ctx->u.cbr)(key, entry->data, entry->len, ctx->arg);
 			if (status) {
-				(void) remove_entry(dw, key, TRUE, FALSE);	/* Discard it */
+				entry->removable = TRUE;	/* Discard it after traversal */
 			}
 			return status;
 		} else {
@@ -1126,15 +1218,41 @@ dbmw_foreach_remove_trampoline(gpointer key, dbmap_datum_t *d, gpointer arg)
 void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, gpointer arg)
 {
 	struct foreach_ctx ctx;
+	struct cache_foreach_ctx fctx;
 
 	dbmw_check(dw);
+
+	/*
+	 * Before iterating we flush the deleted keys we know about in the cache
+	 * and whose deletion was deferred, so that the underlying map will
+	 * not have to iterate on them.
+	 */
+
+	dbmw_sync(dw, DBMW_SYNC_CACHE | DBMW_DELETED_ONLY);
+
+	/*
+	 * Some values may be present only in the cache.  Hence we clear all
+	 * marks in the cache and each traversed value that happens to be
+	 * present in the cache will be marked as "traversed".
+	 */
 
 	ctx.u.cb = cb;
 	ctx.arg = arg;
 	ctx.dw = dw;
 
-	dbmw_sync(dw, DBMW_SYNC_CACHE);
+	map_foreach(dw->values, cache_reset_before_traversal, NULL);
 	dbmap_foreach(dw->dm, dbmw_foreach_trampoline, &ctx);
+
+	/*
+	 * Continue traversal with all the cached entries that were not traversed
+	 * already because they do not exist in the underlying map.
+	 */
+
+	fctx.removing = FALSE;
+	fctx.foreach = &ctx;
+	fctx.u.cb = dbmw_foreach_trampoline;
+
+	map_foreach(dw->values, cache_finish_traversal, &fctx);
 }
 
 /**
@@ -1144,15 +1262,46 @@ void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, gpointer arg)
 void dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg)
 {
 	struct foreach_ctx ctx;
+	struct cache_foreach_ctx fctx;
 
 	dbmw_check(dw);
+
+	/*
+	 * Before iterating we flush the deleted keys we know about in the cache
+	 * and whose deletion was deferred, so that the underlying map will
+	 * not have to iterate on them.
+	 */
+
+	dbmw_sync(dw, DBMW_SYNC_CACHE | DBMW_DELETED_ONLY);
+
+	/*
+	 * Some values may be present only in the cache.  Hence we clear all
+	 * marks in the cache and each traversed value that happens to be
+	 * present in the cache will be marked as "traversed".
+	 */
 
 	ctx.u.cbr = cbr;
 	ctx.arg = arg;
 	ctx.dw = dw;
 
-	dbmw_sync(dw, DBMW_SYNC_CACHE);
+	map_foreach(dw->values, cache_reset_before_traversal, NULL);
 	dbmap_foreach_remove(dw->dm, dbmw_foreach_remove_trampoline, &ctx);
+
+	fctx.removing = TRUE;
+	fctx.foreach = &ctx;
+	fctx.u.cbr = dbmw_foreach_remove_trampoline;
+
+	/*
+	 * Continue traversal with all the cached entries that were not traversed
+	 * already because they do not exist in the underlying map.
+	 *
+	 * Any cached entry that needs to be removed will be marked as such
+	 * and we'll complete processing by discarding from the cache all
+	 * the entries that have been marked as "removable" during the traversal.
+	 */
+
+	map_foreach(dw->values, cache_finish_traversal, &fctx);
+	map_foreach_remove(dw->values, cache_free_removable, dw);
 }
 
 /**
