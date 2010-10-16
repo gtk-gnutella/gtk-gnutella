@@ -22,6 +22,7 @@
 #include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/misc.h"
+#include "lib/pow2.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -1014,15 +1015,23 @@ sdbm_nextkey(DBM *db)
 	return getnext(db);
 }
 
-/*
- * all important binary trie traversal
+/**
+ * Compute the page number where a key hashing to the specified hash would lie.
+ * When "update" is true, store the current bit and mask for the key in
+ * the DB context.
+ *
+ * @return the page number
  */
-static gboolean
-getpage(DBM *db, long int hash)
+static long
+getpageb(DBM *db, long int hash, gboolean update)
 {
 	int hbit;
 	long dbit;
-	long pagb;
+	long hmask;
+
+	/*
+	 * all important binary trie traversal
+	 */
 
 	dbit = 0;
 	hbit = 0;
@@ -1031,10 +1040,28 @@ getpage(DBM *db, long int hash)
 
 	debug(("dbit: %ld...", dbit));
 
-	db->curbit = dbit;
-	db->hmask = masks[hbit];
+	hmask = masks[hbit];
 
-	pagb = hash & db->hmask;
+	if (update) {
+		db->curbit = dbit;
+		db->hmask = hmask;
+	}
+
+	return hash & hmask;
+}
+
+/**
+ * Fetch page where a key hashing to the specified hash would lie.
+ * Update current hash bit and hash mask as a side effect.
+ *
+ * @return TRUE if OK.
+ */
+static gboolean
+getpage(DBM *db, long int hash)
+{
+	long pagb;
+
+	pagb = getpageb(db, hash, TRUE);
 
 	if (!fetch_pagbuf(db, pagb))
 		return FALSE;
@@ -1348,6 +1375,56 @@ sdbm_shrink(DBM *db)
 		lru_discard(db, truncate_bno);
 #endif
 	}
+
+	/*
+	 * We have the first ``truncate_bno'' pages used in the .pag file.
+	 * Resize the .dir file accordingly.
+	 */
+
+	g_assert(truncate_bno < MAX_INT_VAL(guint32));
+	STATIC_ASSERT(IS_POWER_OF_2(DBM_DBLKSIZ));
+
+	{
+		guint32 maxdbit = next_pow2(truncate_bno) - 1;
+		long maxsize = 1 + maxdbit / BYTESIZ;
+		long mask = DBM_DBLKSIZ - 1;		/* Rounding mask */
+		long filesize;
+		long dirb;
+		long off;
+
+		g_assert(maxsize + mask > maxsize);	/* No overflow */
+
+		filesize = (maxsize + mask) & ~mask;
+		if (-1 == ftruncate(db->dirf, filesize))
+			return FALSE;
+		db->maxbno = filesize * BYTESIZ;
+
+		/*
+		 * Clear the trailer of the last page.
+		 */
+
+		dirb = (filesize - 1) / DBM_DBLKSIZ;
+
+		if (db->dirbno > dirb)
+			db->dirbno = -1;	/* Discard since after our truncation point */
+
+		if (!fetch_dirbuf(db, dirb))
+			return FALSE;
+
+		g_assert(filesize - maxsize < DBM_DBLKSIZ);
+
+		off = DBM_DBLKSIZ - (filesize - maxsize);
+		memset(ptr_add_offset(db->dirbuf, off), 0, filesize - maxsize);
+	}
+
+#ifdef LRU
+	if (db->is_volatile) {
+		db->dirbuf_dirty = TRUE;
+		db->dirwdelayed++;
+	} else
+#endif
+	if (!flush_dirbuf(db))
+		return FALSE;
 
 #ifdef BIGDATA
 	if (!big_shrink(db))
