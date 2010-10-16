@@ -988,19 +988,20 @@ sdbm_firstkey(DBM *db)
 		return nullitem;
 	}
 
-	db->keyptr = 0;
-	db->blkptr = 0;
-
-	/*
-	 * start at page 0
-	 */
-
-	if (!fetch_pagbuf(db, 0))
-		return nullitem;
-
 	db->pagtail = lseek(db->pagf, 0L, SEEK_END);
 	if (db->pagtail < 0)
 		return nullitem;
+
+	/*
+	 * Start at page 0, skipping any page we can't read.
+	 */
+
+	for (db->blkptr = 0; OFF_PAG(db->blkptr) <= db->pagtail; db->blkptr++) {
+		db->keyptr = 0;
+		if (fetch_pagbuf(db, db->blkptr))
+			break;
+		/* Skip faulty page */
+	}
 
 	return getnext(db);
 }
