@@ -349,7 +349,7 @@ downloads_gui_status_string(const struct download *d)
 						status = _("Reading headers");
 						break;
 					default:
-						status = "...";
+						status = cp->udp_ev ? _("UDP push sent") : "...";
 						break;
 					}
 

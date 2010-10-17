@@ -7272,7 +7272,6 @@ static gboolean
 use_push_proxy(struct download *d)
 {
 	struct dl_server *server = d->server;
-	gboolean created = FALSE;
 
 	download_check(d);
 	g_assert(!has_blank_guid(d));
@@ -7288,47 +7287,23 @@ use_push_proxy(struct download *d)
 	}
 
 	if (server->proxies != NULL) {
-		sequence_t *seq;
-		sequence_iter_t *iter;
-		GSList *to_remove = NULL;
-		GSList *sl;
+		const gnet_host_t *host = pproxy_set_head(server->proxies);
 
-		seq = pproxy_set_sequence(server->proxies);
-		iter = sequence_forward_iterator(seq);
-
-		while (!created && sequence_iter_has_next(iter)) {
-			const gnet_host_t *host = sequence_iter_next(iter);
-
+		if (host != NULL) {
 			d->cproxy = cproxy_create(d,
 				gnet_host_get_addr(host), gnet_host_get_port(host),
 				download_guid(d), d->record_index);
 
-			if (d->cproxy) {
-				/* Will read status in d->cproxy */
-				fi_src_status_changed(d);
-				created = TRUE;
-			} else {
-				to_remove = g_slist_prepend(to_remove,
-					deconstify_gpointer(host));
-			}
+			/* Will read status in d->cproxy */
+			fi_src_status_changed(d);
 		}
-		sequence_iterator_release(&iter);
-		sequence_release(&seq);
-
-		for (sl = to_remove; sl; sl = g_slist_next(sl)) {
-			const gnet_host_t *host = sl->data;
-
-			remove_proxy(server,
-				gnet_host_get_addr(host), gnet_host_get_port(host));
-		}
-		g_slist_free(to_remove);
 	}
 
-	if (created && download_is_running(d)) {
+	if (d->cproxy != NULL && download_is_running(d)) {
 		d->last_update = tm_time();
 	}
 
-	return created;
+	return d->cproxy != NULL;
 }
 
 /**
@@ -7405,8 +7380,14 @@ download_proxy_failed(struct download *d)
  * IO functions
  */
 
-static gboolean
-send_udp_push(const struct array packet, host_addr_t addr, guint16 port)
+/**
+ * Send an UDP push packet to specified host.
+ *
+ * @return TRUE on success.
+ */
+gboolean
+download_send_udp_push(
+	const struct array packet, host_addr_t addr, guint16 port)
 {
 	gboolean success = FALSE;
 	
@@ -7456,7 +7437,7 @@ download_send_push_request(struct download *d, gboolean udp, gboolean broadcast)
 
 		/* Pure luck: try to reach the remote host directly via UDP... */
 		if (udp) {
-			send_udp_push(packet, download_addr(d), download_port(d));
+			download_send_udp_push(packet, download_addr(d), download_port(d));
 		}
 
 		if (udp && has_push_proxies(d)) {
@@ -7468,7 +7449,7 @@ download_send_push_request(struct download *d, gboolean udp, gboolean broadcast)
 				gnet_host_t *host = sequence_iter_next(iter);
 
 				if (
-					send_udp_push(packet,
+					download_send_udp_push(packet,
 						gnet_host_get_addr(host), gnet_host_get_port(host))
 				) {
 					i++;
@@ -12604,6 +12585,16 @@ download_push_ack(struct gnutella_socket *s)
 	if (d->io_opaque) {
 		g_warning("d->io_opaque is already set!");
 		goto discard;
+	}
+
+	/*
+	 * It could be that we were attempting to connect to a push-proxy and
+	 * got a GIV whilst we were busy waiting.
+	 */
+
+	if (d->cproxy) {
+		cproxy_free(d->cproxy);
+		d->cproxy = NULL;
 	}
 
 	/*

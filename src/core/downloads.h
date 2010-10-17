@@ -42,6 +42,7 @@
 
 #include "fileinfo.h"
 
+#include "lib/array.h"
 #include "if/core/downloads.h"
 #include "if/core/search.h"			/* For gnet_host_vec_t */
 
@@ -79,6 +80,8 @@ void download_actively_queued(struct download *d, gboolean queued);
 
 void download_server_publishes_in_dht(const struct guid *);
 
+gboolean download_send_udp_push(
+	const struct array packet, host_addr_t addr, guint16 port);
 void download_add_push_proxy(const struct guid *guid,
 	host_addr_t addr, guint16 port);
 void download_add_push_proxies(const struct guid *,

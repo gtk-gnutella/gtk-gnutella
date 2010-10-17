@@ -1013,6 +1013,18 @@ pproxy_close(void)
  ***/
 
 #define CPROXY_MAGIC	0xc8301U
+#define CPROXY_UDP_MS	5000		/**< in milliseconds */
+
+static void cproxy_http_request(struct cproxy *cp);
+
+static inline void
+cproxy_check(const struct cproxy *cp)
+{
+	g_assert(cp != NULL);
+	g_assert(CPROXY_MAGIC == cp->magic);
+	g_assert(cp->d != NULL);
+	g_assert(cp->d->cproxy == cp);
+}
 
 /**
  * Free the structure and all its dependencies.
@@ -1020,7 +1032,7 @@ pproxy_close(void)
 void
 cproxy_free(struct cproxy *cp)
 {
-	g_assert(cp->magic == CPROXY_MAGIC);
+	cproxy_check(cp);
 
 	atom_guid_free_null(&cp->guid);
 	if (cp->http_handle != NULL) {
@@ -1028,6 +1040,7 @@ cproxy_free(struct cproxy *cp)
 		cp->http_handle = NULL;
 	}
 	atom_str_free_null(&cp->server);
+	cq_cancel(callout_queue, &cp->udp_ev);
 
 	cp->magic = 0;
 	wfree(cp, sizeof *cp);
@@ -1042,8 +1055,7 @@ cproxy_http_error_ind(struct http_async *handle,
 {
 	struct cproxy *cp = http_async_get_opaque(handle);
 
-	g_assert(cp != NULL);
-	g_assert(cp->magic == CPROXY_MAGIC);
+	cproxy_check(cp);
 
 	http_async_log_error(handle, type, v, "HTTP push-proxy request");
 
@@ -1075,9 +1087,7 @@ cproxy_http_header_ind(struct http_async *handle, header_t *header,
 	char *server;
 	char *to_free;
 
-	g_assert(cp != NULL);
-	g_assert(cp->d != NULL);
-	g_assert(cp->magic == CPROXY_MAGIC);
+	cproxy_check(cp);
 
 	/* message is not valid anymore after http_async_cancel() */
 	to_free = h_strdup(message);
@@ -1263,45 +1273,35 @@ cproxy_http_newstate(struct http_async *handle, http_state_t newstate)
 {
 	struct cproxy *cp = http_async_get_opaque(handle);
 
-	g_assert(cp != NULL);
-	g_assert(cp->d != NULL);
-	g_assert(cp->magic == CPROXY_MAGIC);
+	cproxy_check(cp);
 
 	cp->state = newstate;
 	download_proxy_newstate(cp->d);
 }
 
+static void
+cproxy_udp_timeout(cqueue_t *unused_cq, gpointer obj)
+{
+	struct cproxy *cp = obj;
+
+	(void) unused_cq;
+	cproxy_check(cp);
+
+	cp->udp_ev = NULL;
+	cproxy_http_request(cp);
+}
+
 /**
  * Create client proxy.
  *
- * @returns NULL if problem during connection.
+ * @returns created client proxy.
  */
 struct cproxy *
 cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
 	const struct guid *guid, guint32 file_idx)
 {
-	struct http_async *handle;
 	struct cproxy *cp;
-	char path[128];
-
-	concat_strings(path, sizeof path,
-		"/gnutella/push-proxy?ServerId=", guid_base32_str(guid),
-		tls_enabled() ? "&tls=true" : "",
-		(void *) 0);
-
-	/*
-	 * Try to connect immediately: if we can't connect, no need to continue.
-	 */
-
-	handle = http_async_get_addr(path, addr, port,
-		cproxy_http_header_ind, NULL, cproxy_http_error_ind);
-
-	if (handle == NULL) {
-		g_warning("can't connect to push-proxy %s for GUID %s: %s",
-			host_addr_port_to_string(addr, port), guid_hex_str(guid),
-			http_async_strerror(http_async_errno));
-		return NULL;
-	}
+	struct array packet;
 
 	cp = walloc0(sizeof *cp);
 
@@ -1311,8 +1311,79 @@ cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
 	cp->port = port;
 	cp->guid = atom_guid_get(guid);
 	cp->file_idx = file_idx == URN_INDEX ? 0 : file_idx;
-	cp->http_handle = handle;
 	cp->flags = 0;
+
+	/*
+	 * Most push-proxies nowadays support routing PUSH messages received
+	 * through UDP, and UDP is faster than establishing a TCP connection
+	 * and issuing an HTTP request.
+	 *
+	 * Hence our strategy is to send an UDP packet to the proxy and wait for
+	 * a while by arming a timer firing in CPROXY_UDP_MS.
+	 *
+	 * If the PUSH reaches its destination and the recipient comes back to us
+	 * via a GIV callback and the proper download is selected, this push-proxy
+	 * request will be cancelled, along with the timer.
+	 *
+	 * If no reply is received, the timer will fire and then we will switch
+	 * back to establishing a TCP connection to the push-proxy.
+	 *		--RAM, 2010-10-17
+	 */
+
+	packet = build_push(GNET_PROPERTY(my_ttl), 0 /* Hops */,
+		cp->guid, listen_addr(), listen_addr6(), cp->port,
+		cp->file_idx, tls_enabled());
+
+	if (packet.data) {
+		if (download_send_udp_push(packet, cp->addr, cp->port)) {
+			cp->udp_ev = cq_insert(callout_queue, CPROXY_UDP_MS,
+				cproxy_udp_timeout, cp);
+		} else {
+			cproxy_http_request(cp);
+		}
+	} else {
+		cproxy_http_request(cp);
+	}
+
+	return cp;
+}
+
+/**
+ * Issue client proxy HTTP request.
+ */
+static void
+cproxy_http_request(struct cproxy *cp)
+{
+	struct http_async *handle;
+	char path[128];
+
+	cproxy_check(cp);
+	g_assert(NULL == cp->udp_ev);
+
+	concat_strings(path, sizeof path,
+		"/gnutella/push-proxy?ServerId=", guid_base32_str(cp->guid),
+		tls_enabled() ? "&tls=true" : "",
+		(void *) 0);
+
+	/*
+	 * Try to connect immediately: if we can't connect, no need to continue.
+	 */
+
+	handle = http_async_get_addr(path, cp->addr, cp->port,
+		cproxy_http_header_ind, NULL, cproxy_http_error_ind);
+
+	if (handle == NULL) {
+		if (GNET_PROPERTY(download_debug)) {
+			g_warning("can't connect to push-proxy %s for GUID %s: %s",
+				host_addr_port_to_string(cp->addr, cp->port),
+				guid_hex_str(cp->guid),
+				http_async_strerror(http_async_errno));
+		}
+		download_proxy_failed(cp->d);
+		return;
+	}
+
+	cp->http_handle = handle;
 	cp->state = http_async_state(handle);
 
 	/*
@@ -1324,8 +1395,6 @@ cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
 	http_async_set_op_reqsent(handle, cproxy_sent_request);
 	http_async_set_op_gotreply(handle, cproxy_got_reply);
 	http_async_on_state_change(handle, cproxy_http_newstate);
-
-	return cp;
 }
 
 /**
@@ -1587,6 +1656,17 @@ pproxy_set_sequence(const pproxy_set_t *ps)
 
 	pproxy_set_check(ps);
 	return sequence_create_from_hash_list(ps->proxies);
+}
+
+/**
+ * Get first item from push-proxy set.
+ *
+ * @return host or NULL if set is empty.
+ */
+gnet_host_t *
+pproxy_set_head(const pproxy_set_t *ps)
+{
+	return ps ? hash_list_head(ps->proxies) : NULL;
 }
 
 /**

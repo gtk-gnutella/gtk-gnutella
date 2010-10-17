@@ -41,6 +41,7 @@
 
 #include "if/core/http.h"	/* For http_state_t */
 #include "lib/host_addr.h"	/* For host_addr_t */
+#include "lib/cq.h"			/* For cevent_t */
 
 struct download;
 struct guid;
@@ -52,6 +53,7 @@ struct cproxy {
 	guint32 magic;
 	struct download *d;		/**< Which download triggered us */
 
+	cevent_t *udp_ev;		/**< UDP PUSH timeout */
 	host_addr_t addr;		/**< IP of the proxy servent */
 	guint16 port;			/**< Port of the proxy servent */
 	const char *server;	/**< Server string */

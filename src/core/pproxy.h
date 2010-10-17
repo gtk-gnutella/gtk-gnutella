@@ -106,6 +106,7 @@ gboolean pproxy_set_remove(pproxy_set_t *ps,
 size_t pproxy_set_count(const pproxy_set_t *ps);
 gboolean pproxy_set_older_than(const pproxy_set_t *ps, time_t t);
 void pproxy_set_foreach(const pproxy_set_t *ps, GFunc func, void *user_data);
+gnet_host_t *pproxy_set_head(const pproxy_set_t *ps);
 sequence_t *pproxy_set_sequence(const pproxy_set_t *ps);
 gnet_host_vec_t *pproxy_set_host_vec(const pproxy_set_t *ps);
 const gnet_host_t *pproxy_set_oldest(const pproxy_set_t *ps);
