@@ -416,7 +416,7 @@ delipair(DBM *db, char *pag, int i)
 
 	n = ino[0];
 
-	if (0 == n || i >= n)
+	if (0 == n || i >= n || !(i & 0x1))		/* In range, and odd number */
 		return FALSE;
 
 	/*
