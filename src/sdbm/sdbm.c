@@ -1122,8 +1122,15 @@ validpage(DBM *db, char *pag, long pagb)
 		kpag = getpageb(db, hash, FALSE);
 
 		if (kpag != pagb) {
-			delipair(db, pag, i);
-			removed++;
+			if (delipair(db, pag, i)) {
+				removed++;
+			} else {
+				int k = (i + 1) >> 1;
+				/* Can happen on I/O error with big keys */
+				g_warning("sdbm: \"%s\": cannot remove key #%d/%d "
+					"not belonging to page #%ld",
+					sdbm_name(db), k, n / 2, pagb);
+			}
 		}
 	}
 
@@ -1131,7 +1138,7 @@ validpage(DBM *db, char *pag, long pagb)
 		db->removed_keys += removed;
 		g_warning("sdbm: \"%s\": removed %d/%d key%s "
 			"not belonging to page #%ld",
-			sdbm_name(db), removed, n, 1 == removed ? "" : "s", pagb);
+			sdbm_name(db), removed, n / 2, 1 == removed ? "" : "s", pagb);
 	}
 }
 
