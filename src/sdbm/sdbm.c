@@ -1461,19 +1461,32 @@ sdbm_shrink(DBM *db)
 	STATIC_ASSERT(IS_POWER_OF_2(DBM_DBLKSIZ));
 
 	{
-		guint32 maxdbit = next_pow2(truncate_bno) - 1;
+		guint32 maxdbit = truncate_bno ? next_pow2(truncate_bno) - 1 : 0;
 		long maxsize = 1 + maxdbit / BYTESIZ;
 		long mask = DBM_DBLKSIZ - 1;		/* Rounding mask */
 		long filesize;
 		long dirb;
-		long off;
 
 		g_assert(maxsize + mask > maxsize);	/* No overflow */
 
 		filesize = (maxsize + mask) & ~mask;
-		if (-1 == ftruncate(db->dirf, filesize))
+		filesize = MAX(filesize, DBM_DBLKSIZ);	/* Ensure 1 block at least */
+
+		if (-1 == fstat(db->dirf, &buf))
 			return FALSE;
-		db->maxbno = filesize * BYTESIZ;
+
+		/*
+		 * Try to not change the mtime of the index if we don't have to.
+		 */
+
+		if (filesize > buf.st_size && filesize - buf.st_size >= DBM_DBLKSIZ)
+			goto no_idx_change;		/* File smaller than needed, full of 0s */
+
+		if (filesize < buf.st_size) {
+			if (-1 == ftruncate(db->dirf, filesize))
+				return FALSE;
+			db->maxbno = filesize * BYTESIZ;
+		}
 
 		/*
 		 * Clear the trailer of the last page.
@@ -1489,8 +1502,31 @@ sdbm_shrink(DBM *db)
 
 		g_assert(filesize - maxsize < DBM_DBLKSIZ);
 
-		off = DBM_DBLKSIZ - (filesize - maxsize);
-		memset(ptr_add_offset(db->dirbuf, off), 0, filesize - maxsize);
+		/*
+		 * Do not clear everything (making index dirty) if we don't have to.
+		 */
+
+		{
+			long off = DBM_DBLKSIZ - (filesize - maxsize);
+			char *start = ptr_add_offset(db->dirbuf, off);
+			char *end = ptr_add_offset(db->dirbuf, DBM_DBLKSIZ);
+			char *p;
+			gboolean need_clearing = FALSE;
+
+			g_assert(ptr_diff(end, start) == UNSIGNED(filesize - maxsize));
+
+			for (p = start; p < end; p++) {
+				if (*p != '\0') {
+					need_clearing = TRUE;
+					break;
+				}
+			}
+
+			if (!need_clearing)
+				goto no_idx_change;
+
+			memset(start, 0, filesize - maxsize);
+		}
 	}
 
 #ifdef LRU
@@ -1501,6 +1537,8 @@ sdbm_shrink(DBM *db)
 #endif
 	if (!flush_dirbuf(db))
 		return FALSE;
+
+no_idx_change:
 
 #ifdef BIGDATA
 	if (!big_shrink(db))
