@@ -1309,10 +1309,11 @@ void dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg)
  * To free the returned keys, use the dbmw_free_all_keys() helper.
  */
 GSList *
-dbmw_all_keys(const dbmw_t *dw)
+dbmw_all_keys(dbmw_t *dw)
 {
 	dbmw_check(dw);
 
+	dbmw_sync(dw, DBMW_SYNC_CACHE);
 	return dbmap_all_keys(dw->dm);
 }
 

@@ -116,7 +116,7 @@ gboolean dbmw_shrink(dbmw_t *dw);
 gboolean dbmw_clear(dbmw_t *dw);
 const char *dbmw_strerror(const dbmw_t *dw);
 
-GSList *dbmw_all_keys(const dbmw_t *dw);
+GSList *dbmw_all_keys(dbmw_t *dw);
 void dbmw_free_all_keys(const dbmw_t *dw, GSList *keys);
 
 void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, gpointer arg);
