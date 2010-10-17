@@ -81,8 +81,9 @@ struct dbmap {
 	} u;
 	size_t key_size;		/**< Constant width keys are a requirement */
 	size_t count;			/**< Amount of items */
-	gboolean ioerr;			/**< Had I/O error */
 	int error;				/**< Last errno value consecutive to an error */
+	unsigned ioerr:1;		/**< Last operation raised an I/O error */
+	unsigned had_ioerr:1;	/**< Whether we ever had an I/O error */
 };
 
 static inline void
@@ -98,13 +99,21 @@ dbmap_check(const dbmap_t *dm)
  */
 static const char dbmap_superkey[] = "__dbmap_superkey__";
 
+#define DBMAP_SUPERKEY_VERSION	1U
+
 /**
  * Superblock stored in the superkey.
  */
 struct dbmap_superblock {
 	guint32 key_size;		/**< Constant width keys are a requirement */
 	guint32 count;			/**< Amount of items */
+	guint32 flags;			/**< Status flags */
 };
+
+/**
+ * Superblock status flags.
+ */
+#define DBMAP_SF_KEYCHECK (1 << 0)	/**< Need keycheck at next startup */
 
 /**
  * Store a superblock in an SDBM DB map.
@@ -116,6 +125,7 @@ dbmap_sdbm_store_superblock(const dbmap_t *dm)
 	datum key, value;
 	DBM *sdbm;
 	pmsg_t *mb;
+	guint32 flags = 0;
 	gboolean ok = TRUE;
 
 	dbmap_check(dm);
@@ -126,13 +136,19 @@ dbmap_sdbm_store_superblock(const dbmap_t *dm)
 	key.dptr = deconstify_gpointer(dbmap_superkey);
 	key.dsize = CONST_STRLEN(dbmap_superkey);
 
+	if (dm->had_ioerr) {
+		flags |= DBMAP_SF_KEYCHECK;		/* Request check next time */
+	}
+
 	/*
 	 * Superblock stored in the superkey.
 	 */
 
-	mb = pmsg_new(PMSG_P_DATA, NULL, 2 * 4);
+	mb = pmsg_new(PMSG_P_DATA, NULL, 3 * 4 + 1);
+	pmsg_write_u8(mb, DBMAP_SUPERKEY_VERSION);
 	pmsg_write_be32(mb, dm->key_size);
 	pmsg_write_be32(mb, dm->count);
+	pmsg_write_be32(mb, flags);
 
 	value.dptr = pmsg_start(mb);
 	value.dsize = pmsg_size(mb);
@@ -155,6 +171,7 @@ dbmap_sdbm_retrieve_superblock(DBM *sdbm, struct dbmap_superblock *block)
 	datum key, value;
 	gboolean ok;
 	bstr_t *bs;
+	guint8 version;
 
 	key.dptr = deconstify_gpointer(dbmap_superkey);
 	key.dsize = CONST_STRLEN(dbmap_superkey);
@@ -165,8 +182,26 @@ dbmap_sdbm_retrieve_superblock(DBM *sdbm, struct dbmap_superblock *block)
 		return FALSE;
 
 	bs = bstr_open(value.dptr, value.dsize, 0);
+
+	if (value.dsize > 2 * 4) {
+		bstr_read_u8(bs, &version);
+	} else {
+		version = 0;
+	}
+
+	if (version > DBMAP_SUPERKEY_VERSION) {
+		g_warning("SDBM \"%s\": superblock more recent "
+			"(version %u, can only understand up to version %u)",
+			sdbm_name(sdbm), version, DBMAP_SUPERKEY_VERSION);
+	}
+
 	bstr_read_be32(bs, &block->key_size);
 	bstr_read_be32(bs, &block->count);
+
+	if (version >= 1) {
+		bstr_read_be32(bs, &block->flags);
+	}
+
 	ok = !bstr_has_error(bs);
 	bstr_free(&bs);
 
@@ -214,6 +249,7 @@ dbmap_sdbm_error_check(const dbmap_t *dm)
 	if (sdbm_error(dm->u.s.sdbm)) {
 		dbmap_t *dmw = deconstify_gpointer(dm);
 		dmw->ioerr = TRUE;
+		dmw->had_ioerr = TRUE;
 		dmw->error = errno;
 		if (dm->u.s.is_volatile) {
 			sdbm_clearerr(dm->u.s.sdbm);
@@ -339,7 +375,7 @@ dbmap_create_sdbm(size_t ksize,
 	if (name)
 		sdbm_set_name(dm->u.s.sdbm, name);
 
-	dm->count = dbmap_count_keys_sdbm(dm->u.s.sdbm);
+	dm->count = dbmap_count_keys_sdbm(dm->u.s.sdbm, !(flags & O_TRUNC));
 
 	return dm;
 }
@@ -392,7 +428,7 @@ dbmap_create_from_sdbm(const char *name, size_t key_size, DBM *sdbm)
 	dm->magic = DBMAP_MAGIC;
 	dm->type = DBMAP_SDBM;
 	dm->key_size = key_size;
-	dm->count = dbmap_count_keys_sdbm(sdbm);
+	dm->count = dbmap_count_keys_sdbm(sdbm, FALSE);
 	dm->u.s.sdbm = sdbm;
 
 	return dm;
@@ -998,7 +1034,7 @@ unlink_sdbm(const char *file)
  * Helper routine to count keys in an opened SDBM database.
  */
 size_t
-dbmap_count_keys_sdbm(DBM *sdbm)
+dbmap_count_keys_sdbm(DBM *sdbm, gboolean expect_superblock)
 {
 	datum key;
 	size_t count = 0;
@@ -1010,13 +1046,21 @@ dbmap_count_keys_sdbm(DBM *sdbm)
 
 	if (dbmap_sdbm_retrieve_superblock(sdbm, &sblock)) {
 		if (common_dbg) {
-			g_message("SDBM \"%s\": superblock has %u key%s",
+			g_message("SDBM \"%s\": superblock has %u key%s%s",
 				sdbm_name(sdbm), (unsigned) sblock.count,
-				1 == sblock.count ? "" : "s");
+				1 == sblock.count ? "" : "s",
+				(sblock.flags & DBMAP_SF_KEYCHECK) ?
+					" (keycheck required)" : "");
 		}
 
 		dbmap_sdbm_strip_superblock(sdbm);
-		return sblock.count;
+		if (!(sblock.flags & DBMAP_SF_KEYCHECK))
+			return sblock.count;
+	} else if (expect_superblock) {
+		if (common_dbg) {
+			g_message("SDBM \"%s\": no superblock, counting and checking keys",
+				sdbm_name(sdbm));
+		}
 	}
 
 	for (key = sdbm_firstkey_safe(sdbm); key.dptr; key = sdbm_nextkey(sdbm))
