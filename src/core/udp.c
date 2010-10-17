@@ -53,6 +53,7 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/hashlist.h"
@@ -60,6 +61,10 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+#define UDP_PING_FREQ	60		/**< At most 1 ping per minute to a given IP */
+
+static aging_table_t *udp_aging_pings;
 
 /**
  * Look whether the datagram we received is a valid Gnutella packet.
@@ -366,9 +371,9 @@ struct udp_ping {
 	time_t added;		/**< Timestamp of insertion */
 };
 
-static const time_delta_t UDP_PING_TIMEOUT	    = 30;	/**< seconds */
-static const size_t		  UDP_PING_MAX 			= 1024;	/**< amount to track */
-static const int 		  UDP_PING_PERIODIC_MS	= 5000;	/**< milliseconds */
+static const time_delta_t UDP_PING_TIMEOUT	   = 30;	/**< seconds */
+static const size_t		  UDP_PING_MAX 		   = 1024;	/**< amount to track */
+static const int 		  UDP_PING_PERIODIC_MS = 10000;	/**< milliseconds */
 
 static hash_list_t *udp_pings;	/**< Tracks send/forwarded UDP Pings */
 static cevent_t *udp_ping_ev;	/**< Monitoring event */
@@ -426,17 +431,10 @@ udp_ping_timer(cqueue_t *cq, gpointer unused_udata)
 static gboolean
 udp_ping_register(const struct guid *muid)
 {
-	static gboolean initialized;
 	struct udp_ping *ping;
 	guint length;
 
 	g_assert(muid);
-
-	if (!initialized) {
-		initialized = TRUE;
-		udp_pings = hash_list_new(guid_hash, guid_eq);
-		udp_ping_timer(callout_queue, NULL);
-	}
 	g_return_val_if_fail(udp_pings, FALSE);
 
 	if (hash_list_contains(udp_pings, muid)) {
@@ -484,6 +482,8 @@ udp_ping_is_registered(const struct guid *muid)
  * @param addr		address to which ping should be sent
  * @param port		port number
  * @param uhc_ping	if TRUE, include the "SCP" GGEP extension
+ *
+ * @return TRUE if we sent the ping, FALSE it we throttled it.
  */
 gboolean
 udp_send_ping(const struct guid *muid, const host_addr_t addr, guint16 port,
@@ -495,13 +495,44 @@ udp_send_ping(const struct guid *muid, const host_addr_t addr, guint16 port,
 		gnutella_msg_init_t *m;
 		guint32 size;
 
+		/*
+		 * Don't send too frequent pings: they may throttle us anyway.
+		 */
+
+		if (aging_lookup(udp_aging_pings, &addr)) {
+			if (GNET_PROPERTY(udp_debug) > 1) {
+				g_warning("UDP throttling %sping to %s",
+					uhc_ping ? "UHC " : "", host_addr_to_string(addr));
+			}
+			return FALSE;
+		}
+
 		m = build_ping_msg(muid, 1, uhc_ping, &size);
 		if (udp_ping_register(gnutella_header_get_muid(m))) {
+			aging_insert(udp_aging_pings,
+				wcopy(&addr, sizeof addr), GUINT_TO_POINTER(1));
 			udp_send_msg(n, m, size);
 			return TRUE;
 		}
 	}
 	return FALSE;
+}
+
+/**
+ * UDP layer startup
+ */
+void
+udp_init(void)
+{
+	/*
+	 * Limit sending of UDP pings to 1 per UDP_PING_FREQ seconds.
+	 */
+
+	udp_aging_pings = aging_make(UDP_PING_FREQ,
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
+
+	udp_pings = hash_list_new(guid_hash, guid_eq);
+	udp_ping_timer(callout_queue, NULL);
 }
 
 /**
@@ -514,6 +545,8 @@ udp_close(void)
 		udp_ping_expire(TRUE);
 		hash_list_free(&udp_pings);
 	}
+
+	aging_destroy(&udp_aging_pings);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

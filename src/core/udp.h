@@ -58,6 +58,8 @@ gboolean udp_send_ping(const struct guid *muid,
 void udp_send_mb(const struct gnutella_node *n, struct pmsg *mb);
 void udp_dht_send_mb(const struct gnutella_node *n, struct pmsg *mb);
 gboolean udp_ping_is_registered(const struct guid *muid);
+
+void udp_init(void);
 void udp_close(void);
 
 #endif /* _core_udp_h_ */

@@ -1614,6 +1614,7 @@ main(int argc, char **argv)
 	}
 
 	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
+	udp_init();
 	vmsg_init();
 	tsync_init();
 	watcher_init();
