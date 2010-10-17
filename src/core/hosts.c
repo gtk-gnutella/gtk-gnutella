@@ -54,6 +54,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 #include "if/dht/dht.h"		/* For dht_fill_random() */
 
+#include "lib/aging.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/parse.h"
@@ -65,10 +66,12 @@ RCSID("$Id$")
 
 #define HOST_PINGING_PERIOD		30		/**< Try pinging every 30 seconds */
 #define HOST_DHT_MAX			50		/**< Get that many random hosts */
+#define HOST_CONNECT_FREQ		120		/**< At most 1 connection per 2 mins */
 
 gboolean host_low_on_pongs = FALSE;		/**< True when less than 12% full */
 
 static gboolean in_shutdown = FALSE;
+static aging_table_t *node_connects;
 
 /*
  * Avoid nodes being stuck helplessly due to completely stale caches.
@@ -95,6 +98,22 @@ host_cache_allow_bypass(void)
 		return FALSE;
 
 	last_try = tm_time();
+	return TRUE;
+}
+
+/**
+ * Attempt Gnutella host connection.
+ * @return TRUE if OK, FALSE if attempt was throttled
+ */
+static gboolean
+host_gnutella_connect(host_addr_t addr, guint16 port)
+{
+	if (aging_lookup(node_connects, &addr))
+		return FALSE;
+
+	node_add_socket(NULL, addr, port, 0);
+	aging_insert(node_connects, wcopy(&addr, sizeof addr), GUINT_TO_POINTER(1));
+
 	return TRUE;
 }
 
@@ -238,7 +257,9 @@ host_timer(void)
 					if (!hcache_node_is_bad(addr)) {
 						/* Try to use the host as an UHC before connecting */
 						udp_send_ping(NULL, addr, port, TRUE);
-						node_add_socket(NULL, addr, port, 0);
+						if (!host_gnutella_connect(addr, port)) {
+							missing++;	/* Did not use entry */
+						}
 					} else {
 						missing++;	/* Did not use entry */
 					}
@@ -248,7 +269,9 @@ host_timer(void)
 			while (hcache_size(htype) && missing-- > 0) {
 				if (hcache_get_caught(htype, &addr, &port)) {
 					if (!(hostiles_check(addr) || hcache_node_is_bad(addr))) {
-						node_add_socket(NULL, addr, port, 0);
+						if (!host_gnutella_connect(addr, port)) {
+							missing++;	/* Did not use entry */
+						}
 					} else {
 						missing++;	/* Did not use entry */
 					}
@@ -283,6 +306,8 @@ void
 host_init(void)
 {
 	pcache_init();
+	node_connects = aging_make(HOST_CONNECT_FREQ,
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 }
 
 /**
@@ -487,6 +512,7 @@ host_close(void)
 {
 	pcache_close();
 	free_networks();
+	aging_destroy(&node_connects);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
