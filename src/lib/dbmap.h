@@ -107,7 +107,6 @@ void dbmap_free_all_keys(const dbmap_t *dm, GSList *keys);
 /**
  * Other helper routines.
  */
-size_t dbmap_count_keys_sdbm(DBM *sdbm, gboolean expect_superblock);
 void dbmap_unlink_sdbm(const char *base);
 
 gboolean dbmap_store(dbmap_t *dm, const char *base, gboolean inplace);

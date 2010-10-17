@@ -84,6 +84,7 @@ struct dbmap {
 	int error;				/**< Last errno value consecutive to an error */
 	unsigned ioerr:1;		/**< Last operation raised an I/O error */
 	unsigned had_ioerr:1;	/**< Whether we ever had an I/O error */
+	unsigned validated:1;	/**< Whether we initiated an initial keychek */
 };
 
 static inline void
@@ -265,6 +266,59 @@ dbmap_sdbm_error_check(const dbmap_t *dm)
 }
 
 /**
+ * Helper routine to count keys in an opened SDBM database.
+ */
+size_t
+dbmap_sdbm_count_keys(dbmap_t *dm, gboolean expect_superblock)
+{
+	datum key;
+	size_t count = 0;
+	struct dbmap_superblock sblock;
+	DBM* sdbm;
+
+	dbmap_check(dm);
+	g_assert(DBMAP_SDBM == dm->type);
+
+	sdbm = dm->u.s.sdbm;
+
+	/*
+	 * If there is a superblock, use it to read key count, then strip it.
+	 */
+
+	if (dbmap_sdbm_retrieve_superblock(sdbm, &sblock)) {
+		if (common_dbg) {
+			g_message("SDBM \"%s\": superblock has %u key%s%s",
+				sdbm_name(sdbm), (unsigned) sblock.count,
+				1 == sblock.count ? "" : "s",
+				(sblock.flags & DBMAP_SF_KEYCHECK) ?
+					" (keycheck required)" : "");
+		}
+
+		dbmap_sdbm_strip_superblock(sdbm);
+		if (expect_superblock && !(sblock.flags & DBMAP_SF_KEYCHECK))
+			return sblock.count;
+	} else if (expect_superblock) {
+		if (common_dbg) {
+			g_message("SDBM \"%s\": no superblock, counting and checking keys",
+				sdbm_name(sdbm));
+		}
+	}
+
+	for (key = sdbm_firstkey_safe(sdbm); key.dptr; key = sdbm_nextkey(sdbm))
+		count++;
+
+	dm->validated = TRUE;
+
+	if (sdbm_error(sdbm)) {
+		g_warning("SDBM \"%s\": I/O error after key counting, clearing",
+			sdbm_name(sdbm));
+		sdbm_clearerr(sdbm);
+	}
+
+	return count;
+}
+
+/**
  * @return constant-width key size for the DB map.
  */
 size_t
@@ -375,7 +429,7 @@ dbmap_create_sdbm(size_t ksize,
 	if (name)
 		sdbm_set_name(dm->u.s.sdbm, name);
 
-	dm->count = dbmap_count_keys_sdbm(dm->u.s.sdbm, !(flags & O_TRUNC));
+	dm->count = dbmap_sdbm_count_keys(dm, !(flags & O_TRUNC));
 
 	return dm;
 }
@@ -428,8 +482,8 @@ dbmap_create_from_sdbm(const char *name, size_t key_size, DBM *sdbm)
 	dm->magic = DBMAP_MAGIC;
 	dm->type = DBMAP_SDBM;
 	dm->key_size = key_size;
-	dm->count = dbmap_count_keys_sdbm(sdbm, FALSE);
 	dm->u.s.sdbm = sdbm;
+	dm->count = dbmap_sdbm_count_keys(dm, FALSE);
 
 	return dm;
 }
@@ -570,8 +624,23 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 					return FALSE;
 				}
 			} else {
-				g_assert(dm->count);
-				dm->count--;
+				if (0 == dm->count) {
+					if (dm->validated) {
+						g_warning("DBMAP on sdbm \"%s\": BUG: "
+							"sdbm_delete() worked but we had no key tracked",
+							sdbm_name(dm->u.s.sdbm));
+					} else {
+						g_warning("DBMAP on sdbm \"%s\": "
+							"key count inconsistency, validating database",
+							sdbm_name(dm->u.s.sdbm));
+					}
+					dm->count = dbmap_sdbm_count_keys(dm, FALSE);
+					g_warning("DBMAP on sdbm \"%s\": "
+						"key count reset to %lu after counting",
+						sdbm_name(dm->u.s.sdbm), (gulong) dm->count);
+				} else {
+					dm->count--;
+				}
 			}
 		}
 		break;
@@ -1028,51 +1097,6 @@ unlink_sdbm(const char *file)
 {
 	if (-1 == unlink(file) && errno != ENOENT)
 		g_warning("cannot unlink SDBM file %s: %s", file, g_strerror(errno));
-}
-
-/**
- * Helper routine to count keys in an opened SDBM database.
- */
-size_t
-dbmap_count_keys_sdbm(DBM *sdbm, gboolean expect_superblock)
-{
-	datum key;
-	size_t count = 0;
-	struct dbmap_superblock sblock;
-
-	/*
-	 * If there is a superblock, use it to read key count, then strip it.
-	 */
-
-	if (dbmap_sdbm_retrieve_superblock(sdbm, &sblock)) {
-		if (common_dbg) {
-			g_message("SDBM \"%s\": superblock has %u key%s%s",
-				sdbm_name(sdbm), (unsigned) sblock.count,
-				1 == sblock.count ? "" : "s",
-				(sblock.flags & DBMAP_SF_KEYCHECK) ?
-					" (keycheck required)" : "");
-		}
-
-		dbmap_sdbm_strip_superblock(sdbm);
-		if (!(sblock.flags & DBMAP_SF_KEYCHECK))
-			return sblock.count;
-	} else if (expect_superblock) {
-		if (common_dbg) {
-			g_message("SDBM \"%s\": no superblock, counting and checking keys",
-				sdbm_name(sdbm));
-		}
-	}
-
-	for (key = sdbm_firstkey_safe(sdbm); key.dptr; key = sdbm_nextkey(sdbm))
-		count++;
-
-	if (sdbm_error(sdbm)) {
-		g_warning("SDBM \"%s\": I/O error after key counting, clearing",
-			sdbm_name(sdbm));
-		sdbm_clearerr(sdbm);
-	}
-
-	return count;
 }
 
 /**
