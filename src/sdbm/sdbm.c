@@ -1129,8 +1129,9 @@ validpage(DBM *db, char *pag, long pagb)
 
 	if (removed > 0) {
 		db->removed_keys += removed;
-		g_warning("sdbm: \"%s\": removed %d key%s not belonging to page #%ld",
-			sdbm_name(db), removed, 1 == removed ? "" : "s", pagb);
+		g_warning("sdbm: \"%s\": removed %d/%d key%s "
+			"not belonging to page #%ld",
+			sdbm_name(db), removed, n, 1 == removed ? "" : "s", pagb);
 	}
 }
 
