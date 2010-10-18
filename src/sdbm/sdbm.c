@@ -36,7 +36,7 @@ static gboolean setdbit(DBM *, long);
 static gboolean getpage(DBM *, long);
 static datum getnext(DBM *);
 static gboolean makroom(DBM *, long, size_t);
-static void validpage(DBM *, char *, long);
+static void validpage(DBM *, long);
 
 static inline int
 bad(const datum item)
@@ -1013,7 +1013,7 @@ sdbm_firstkey(DBM *db)
 		db->keyptr = 0;
 		if (fetch_pagbuf(db, db->blkptr)) {
 			if (db->flags & DBM_KEYCHECK)
-				validpage(db, db->pagbuf, db->blkptr);
+				validpage(db, db->blkptr);
 			break;
 		}
 		/* Skip faulty page */
@@ -1103,10 +1103,11 @@ getpage(DBM *db, long int hash)
  * them on the fly, logging problems.
  */
 static void
-validpage(DBM *db, char *pag, long pagb)
+validpage(DBM *db, long pagb)
 {
 	int n;
 	int i;
+	char *pag = db->pagbuf;
 	unsigned short *ino = (unsigned short *) pag;
 	int removed = 0;
 
@@ -1139,6 +1140,11 @@ validpage(DBM *db, char *pag, long pagb)
 		g_warning("sdbm: \"%s\": removed %d/%d key%s "
 			"not belonging to page #%ld",
 			sdbm_name(db), removed, n / 2, 1 == removed ? "" : "s", pagb);
+#ifdef LRU
+		(void) force_flush_pagbuf(db, !db->is_volatile);
+#else
+		(void) flush_pagbuf(db);
+#endif
 	}
 }
 
@@ -1214,8 +1220,8 @@ setdbit(DBM *db, long int dbit)
 #endif
 
 #ifdef LRU
+	db->dirbuf_dirty = TRUE;
 	if (db->is_volatile) {
-		db->dirbuf_dirty = TRUE;
 		db->dirwdelayed++;
 	} else
 #endif
@@ -1265,7 +1271,7 @@ getnext(DBM *db)
 			goto next_page;		/* Skip faulty page */
 
 		if (db->flags & DBM_KEYCHECK)
-			validpage(db, db->pagbuf, db->blkptr);
+			validpage(db, db->blkptr);
 	}
 
 	return iteration_done(db);
@@ -1530,8 +1536,8 @@ sdbm_shrink(DBM *db)
 	}
 
 #ifdef LRU
+	db->dirbuf_dirty = TRUE;
 	if (db->is_volatile) {
-		db->dirbuf_dirty = TRUE;
 		db->dirwdelayed++;
 	} else
 #endif
