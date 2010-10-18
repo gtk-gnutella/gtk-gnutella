@@ -1005,7 +1005,6 @@ free_cached(gpointer key, gpointer value, gpointer data)
 	struct cached *entry = value;
 
 	dbmw_check(dw);
-	g_assert(dw->is_volatile || !entry->dirty);
 	g_assert(!entry->len == !entry->data);
 
 	free_value(dw, entry, TRUE);
