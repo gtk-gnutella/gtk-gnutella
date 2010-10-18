@@ -131,14 +131,15 @@ typedef struct gnet_results_set {
  * Result record flags
  */
 enum {
-	SR_DOWNLOADED	= (1 << 0),
-	SR_IGNORED		= (1 << 1),
-	SR_DONT_SHOW	= (1 << 2),
-	SR_SPAM			= (1 << 3),
-	SR_SHARED		= (1 << 4),
-	SR_OWNED		= (1 << 5),
+	SR_PUSH			= (1 << 8),	/* Servent firewalled, will need a PUSH */
+	SR_ATOMIZED		= (1 << 7),	/* Set if filename is an atom */
 	SR_PARTIAL		= (1 << 6),
-	SR_ATOMIZED		= (1 << 7)	/* Set if filename is an atom */
+	SR_OWNED		= (1 << 5),
+	SR_SHARED		= (1 << 4),
+	SR_SPAM			= (1 << 3),
+	SR_DONT_SHOW	= (1 << 2),
+	SR_IGNORED		= (1 << 1),
+	SR_DOWNLOADED	= (1 << 0)
 };
 
 /**

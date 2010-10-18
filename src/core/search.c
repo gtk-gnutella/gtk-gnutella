@@ -2948,20 +2948,31 @@ static void
 search_results_set_flag_records(gnet_results_set_t *rs)
 {
 	const GSList *sl;
+	gboolean need_push = FALSE;
+
+	if (rs->guid != NULL && !guid_is_blank(rs->guid)) {
+		if ((rs->status & ST_FIREWALL) || !host_is_valid(rs->addr, rs->port)) {
+			need_push = TRUE;
+		}
+	}
 
 	for (sl = rs->records; NULL != sl; sl = g_slist_next(sl)) {
 		const shared_file_t *sf;
 		gnet_record_t *rc = sl->data;
+
+		if (need_push) {
+			rc->flags |= SR_PUSH;
+		}
 
 		if (!rc->sha1)
 			continue;
 
 		sf = shared_file_by_sha1(rc->sha1);
 		if (sf && SHARE_REBUILDING != sf) {
-			if (shared_file_is_partial(sf)) {
-				rc->flags |= SR_PARTIAL;
-			} else {
+			if (shared_file_is_finished(sf)) {
 				rc->flags |= SR_SHARED;
+			} else {
+				rc->flags |= SR_PARTIAL;
 			}
 		} else {
 			enum ignore_val reason;

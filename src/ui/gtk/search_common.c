@@ -124,15 +124,16 @@ static struct {
 	const enum gui_color id;
 	GdkColor color;
 } colors[] = {
-	{ "#000000",	GUI_COLOR_DEFAULT,		{ 0, 0, 0, 0 } },	/* black */
-	{ "#326732",	GUI_COLOR_DOWNLOADING,	{ 0, 0, 0, 0 } },	/* dark green */
-	{ "#5F007F",	GUI_COLOR_HOSTILE,		{ 0, 0, 0, 0 } },	/* indigo */
-	{ "#7F7F7F",	GUI_COLOR_IGNORED,		{ 0, 0, 0, 0 } },	/* gray */
-	{ "#001F7F",	GUI_COLOR_MARKED, 		{ 0, 0, 0, 0 } },	/* blue */
-	{ "#FC000D",	GUI_COLOR_MAYBE_SPAM, 	{ 0, 0, 0, 0 } },	/* flashy red */
-	{ "#7f0000",	GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } },	/* dark red */
-	{ "#7E5029",	GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } },	/* marroon */
-	{ "#FFFFFF",	GUI_COLOR_BACKGROUND,	{ 0, 0, 0, 0 } },	/* white */
+	{ "#000000", GUI_COLOR_DEFAULT,		{ 0, 0, 0, 0 } }, /* black */
+	{ "#326732", GUI_COLOR_DOWNLOADING,	{ 0, 0, 0, 0 } }, /* dark green */
+	{ "#5F007F", GUI_COLOR_HOSTILE,		{ 0, 0, 0, 0 } }, /* indigo */
+	{ "#7F7F7F", GUI_COLOR_IGNORED,		{ 0, 0, 0, 0 } }, /* gray */
+	{ "#001F7F", GUI_COLOR_MARKED, 		{ 0, 0, 0, 0 } }, /* blue */
+	{ "#FC000D", GUI_COLOR_MAYBE_SPAM, 	{ 0, 0, 0, 0 } }, /* flashy red */
+	{ "#7f0000", GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } }, /* dark red */
+	{ "#7E5029", GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } }, /* marroon */
+	{ "#2F4F4F", GUI_COLOR_PUSH,		{ 0, 0, 0, 0 } }, /* dark slate gray */
+	{ "#FFFFFF", GUI_COLOR_BACKGROUND,	{ 0, 0, 0, 0 } }, /* white */
 };
 
 GdkColor *
@@ -1641,6 +1642,8 @@ search_gui_color_for_record(const record_t * const rc)
 		return GUI_COLOR_IGNORED;
 	} else if (rc->flags & (SR_DOWNLOADED | SR_PARTIAL)) {
 		return GUI_COLOR_DOWNLOADING;
+	} else if (rc->flags & SR_PUSH) {
+		return GUI_COLOR_PUSH;
 	} else {
 		return GUI_COLOR_DEFAULT;
 	}
