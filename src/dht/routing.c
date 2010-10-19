@@ -423,6 +423,26 @@ is_splitable(const struct kbucket *kb)
 	if (kb->ours)
 		return TRUE;		/* We can always split our own bucket */
 
+	/*
+	 * A passive node does not store data and does not need to replicate it
+	 * to its k-closest neighbours and does not answer RPC calls.  Hence
+	 * the routing table is only maintained so that we get reasonable
+	 * anchoring points to start our lookups.
+	 *
+	 * Thus limit the size of the routing table (there will also be less
+	 * PINGs sent and less table maintenance overhead) by disabling extra
+	 * bucket splits (i.e. acting as if KDA_B = 1) and not bothering with
+	 * closest subtree irregular splits.
+	 */
+
+	if (GNET_PROPERTY(dht_current_mode) != DHT_MODE_ACTIVE)
+		return FALSE;		/* No more splits */
+
+	/*
+	 * We are an active node. Allow for KDA_B extra splits for buckets that
+	 * have left our closest subtree.
+	 */
+
 	if (kb->depth + 1 - kb->split_depth < K_BUCKET_SUBDIVIDE)
 		return TRUE;		/* Extra subdivision for faster convergence */
 
