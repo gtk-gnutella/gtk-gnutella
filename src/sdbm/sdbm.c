@@ -1117,8 +1117,9 @@ validpage(DBM *db, long pagb)
 		datum key;
 		long int hash;
 		long kpag;
+		int k = (i + 1) / 2;
 
-		key = getnkey(db, pag, i);
+		key = getnkey(db, pag, k);
 		hash = exhash(key);
 		kpag = getpageb(db, hash, FALSE);
 
@@ -1126,7 +1127,6 @@ validpage(DBM *db, long pagb)
 			if (delipair(db, pag, i)) {
 				removed++;
 			} else {
-				int k = (i + 1) >> 1;
 				/* Can happen on I/O error with big keys */
 				g_warning("sdbm: \"%s\": cannot remove key #%d/%d "
 					"not belonging to page #%ld",
