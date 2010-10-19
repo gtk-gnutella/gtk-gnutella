@@ -952,6 +952,7 @@ answer_find_node(struct gnutella_node *n,
 			 * saturated, just give them that.
 			 */
 
+			msg = "bandwidth limited";
 			goto only_token;
 		}
 
