@@ -1803,7 +1803,7 @@ patricia_closest(const patricia_t *pt, gconstpointer key)
 }
 
 /**
- * Same a patricia_closest(), only a boolean indication of whether an item
+ * Same as patricia_closest(), only a boolean indication of whether an item
  * was found is given, and the actual key that was deemed the closest is
  * also returned.  This is useful when the values do not point back to the
  * keys used for inserting them.
@@ -1856,7 +1856,7 @@ patricia_furthest(const patricia_t *pt, gconstpointer key)
 }
 
 /**
- * Same a patricia_furthest(), only a boolean indication of whether an item
+ * Same as patricia_furthest(), only a boolean indication of whether an item
  * was found is given, and the actual key that was deemed the furthest is
  * also returned.  This is useful when the values do not point back to the
  * keys used for inserting them.
