@@ -84,6 +84,11 @@ RCSID("$Id$")
 #define KMSG_FOUND_NODE_SIZE	727
 
 /**
+ * Constant length of a PONG response: 61 bytes of header + 40 bytes payload.
+ */
+#define KMSG_PONG_SIZE			101
+
+/**
  * The aimed length for STORE messages.
  *
  * The overhead of a STORE message is variable, because the security token is
@@ -110,6 +115,7 @@ typedef void (*kmsg_handler_t)(knode_t *kn, struct gnutella_node *n,
  */
 struct kmsg {
 	guint8 function;
+	guint8 rpc_call;
 	kmsg_handler_t handler;
 	const char *name;
 };
@@ -188,6 +194,20 @@ kmsg_handle(knode_t *kn,
 
 	function = kademlia_header_get_function(header);
 	km = kmsg_find(function);
+
+	/*
+	 * Users can force passive mode, even if not firewalled.
+	 * Enforce that no RPC call can be made on a non-active node.
+	 */
+
+	if (GNET_PROPERTY(dht_current_mode) != DHT_MODE_ACTIVE && km->rpc_call) {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_message("DHT in passive mode, ignoring %s from %s",
+				km->name, knode_to_string(kn));
+		}
+		gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
+		return;
+	}
 
 	if (!km) {
 		if (GNET_PROPERTY(dht_debug))
@@ -779,6 +799,8 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 	const kademlia_header_t *header, guint8 extlen,
 	const void *payload, size_t len)
 {
+	const char *msg = NULL;
+
 	warn_no_header_extension(kn, header, extlen);
 
 	if (len && GNET_PROPERTY(dht_debug)) {
@@ -787,7 +809,37 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 		dump_hex(stderr, "Kademlia Ping payload", payload, len);
 	}
 
+	/*
+	 * Firewalled nodes send us PINGs when they are listing us in their
+	 * routing table.  We usually try to reply to such messages unless
+	 * we're short on UDP bandwidth or we're (almost) flow-controlled.
+	 */
+
+	if (kn->flags & KNODE_F_FIREWALLED) {
+		if (node_dht_would_flow_control(KMSG_PONG_SIZE)) {
+			msg = "flow-control threat";
+			goto drop;
+		} else if (bsched_saturated(BSCHED_BWS_DHT_OUT)) {
+			if (random_value(100) < 90) {
+				msg = "outgoing bandwidth saturated";
+				goto drop;
+			}
+		} else if (node_dht_above_low_watermark()) {
+			if (random_value(100) < 50) {
+				msg = "UDP delayed";
+				goto drop;
+			}
+		}
+	}
+
 	k_send_pong(n, kademlia_header_get_muid(header));
+	return;
+
+drop:
+	if (GNET_PROPERTY(dht_debug) > 2) {
+		g_message("DHT ignoring PING from %s: %s", knode_to_string(kn), msg);
+	}
+	gnet_stats_count_dropped(n, MSG_DROP_FLOW_CONTROL);
 }
 
 /**
@@ -2227,17 +2279,17 @@ drop:
 }
 
 static const struct kmsg kmsg_map[] = {
-	{ 0x00,							NULL, /* Invalid */		"invalid"		},
-	{ KDA_MSG_PING_REQUEST,			k_handle_ping,			"PING"			},
-	{ KDA_MSG_PING_RESPONSE,		k_handle_pong,			"PONG"			},
-	{ KDA_MSG_STORE_REQUEST,		k_handle_store,			"STORE"			},
-	{ KDA_MSG_STORE_RESPONSE,		k_handle_rpc_reply,		"STORE_ACK"		},
-	{ KDA_MSG_FIND_NODE_REQUEST,	k_handle_find_node,		"FIND_NODE"		},
-	{ KDA_MSG_FIND_NODE_RESPONSE,	k_handle_rpc_reply,		"FOUND_NODE"	},
-	{ KDA_MSG_FIND_VALUE_REQUEST,	k_handle_find_value,	"FIND_VALUE"	},
-	{ KDA_MSG_FIND_VALUE_RESPONSE,	k_handle_rpc_reply,		"VALUE"			},
-	{ KDA_MSG_STATS_REQUEST,		NULL, /* Deprecated */	"STATS"			},
-	{ KDA_MSG_STATS_RESPONSE,		NULL, /* Deprecated */	"STATS_ACK" 	},
+	{ 0x00,							FALSE, NULL, /* Invalid */	"invalid"	},
+	{ KDA_MSG_PING_REQUEST,			TRUE,  k_handle_ping,		"PING"		},
+	{ KDA_MSG_PING_RESPONSE,		FALSE, k_handle_pong,		"PONG"		},
+	{ KDA_MSG_STORE_REQUEST,		TRUE,  k_handle_store,		"STORE"		},
+	{ KDA_MSG_STORE_RESPONSE,		FALSE, k_handle_rpc_reply,	"STORE_ACK"	},
+	{ KDA_MSG_FIND_NODE_REQUEST,	TRUE,  k_handle_find_node,	"FIND_NODE"	},
+	{ KDA_MSG_FIND_NODE_RESPONSE,	FALSE, k_handle_rpc_reply,	"FOUND_NODE"},
+	{ KDA_MSG_FIND_VALUE_REQUEST,	TRUE,  k_handle_find_value,	"FIND_VALUE"},
+	{ KDA_MSG_FIND_VALUE_RESPONSE,	FALSE, k_handle_rpc_reply,	"VALUE"		},
+	{ KDA_MSG_STATS_REQUEST,		TRUE,  NULL, /* Obsolete */	"STATS"		},
+	{ KDA_MSG_STATS_RESPONSE,		FALSE, NULL, /* Obsolete */	"STATS_ACK"	},
 };
 
 /**
