@@ -307,8 +307,8 @@ dht_rpc_cancel_if_no_callback(const guid_t *muid)
 /**
  * Extract IP:port of the host to which we sent an RPC.
  *
- * @return TRUE if we found the pending RPC, with host and port filled,
- * false otherwise.
+ * @return TRUE if we found the pending RPC, with host and port filled (when
+ * non-NULL), FALSE otherwise.
  */
 gboolean
 dht_rpc_info(const guid_t *muid, host_addr_t *addr, guint16 *port)
@@ -325,8 +325,8 @@ dht_rpc_info(const guid_t *muid, host_addr_t *addr, guint16 *port)
 	rn = rcb->kn;
 	knode_check(rn);
 
-	*addr = rn->addr;
-	*port = rn->port;
+	if (addr) *addr = rn->addr;
+	if (port) *port = rn->port;
 
 	return TRUE;
 }
