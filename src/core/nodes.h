@@ -41,7 +41,7 @@
 #include "if/core/guid.h"
 #include "if/core/hcache.h"
 #include "if/core/nodes.h"
-#include "if/dht/dht.h"
+#include "if/dht/routing.h"
 
 #include "lib/cq.h"
 #include "lib/header.h"
