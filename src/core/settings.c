@@ -1318,6 +1318,17 @@ enable_dht_changed(property_t prop)
 }
 
 static gboolean
+is_udp_firewalled_changed(property_t prop)
+{
+	gboolean fw;
+	
+    gnet_prop_get_boolean_val(prop, &fw);
+	dht_configured_mode_changed(GNET_PROPERTY(dht_configured_mode));
+
+	return FALSE;
+}
+
+static gboolean
 enable_local_socket_changed(property_t prop)
 {
 	gboolean enabled;
@@ -2034,6 +2045,17 @@ current_peermode_changed(property_t prop)
 }
 
 static gboolean
+configured_dht_mode_changed(property_t prop)
+{
+    guint32 val;
+
+    gnet_prop_get_guint32_val(prop, &val);
+	dht_configured_mode_changed(val);
+
+	return FALSE;
+}
+
+static gboolean
 download_rx_size_changed(property_t prop)
 {
     guint32 val;
@@ -2397,6 +2419,11 @@ static prop_map_t property_map[] = {
 		TRUE,
 	},
 	{
+		PROP_DHT_CONFIGURED_MODE,
+		configured_dht_mode_changed,
+		TRUE,
+	},
+	{
 		PROP_DOWNLOAD_RX_SIZE,
 		download_rx_size_changed,
 		TRUE,
@@ -2429,6 +2456,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_ENABLE_LOCAL_SOCKET,
 		enable_local_socket_changed,
+		TRUE,
+	},
+	{
+		PROP_IS_UDP_FIREWALLED,
+		is_udp_firewalled_changed,
 		TRUE,
 	},
 };

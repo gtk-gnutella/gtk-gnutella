@@ -272,7 +272,8 @@ kmsg_build_header(kademlia_header_t *header,
 		host_addr_ipv4(listen_addr()), socket_listen_port());
 	kademlia_header_set_contact_instance(header, 1);	/* XXX What's this? */
 	kademlia_header_set_contact_flags(header,
-		GNET_PROPERTY(is_udp_firewalled) ? KDA_MSG_F_FIREWALLED : 0);
+		GNET_PROPERTY(dht_current_mode) == DHT_MODE_PASSIVE ?
+			KDA_MSG_F_FIREWALLED : 0);
 	kademlia_header_set_extended_length(header, 0);
 
 	g_assert(kademlia_header_constants_ok(header));

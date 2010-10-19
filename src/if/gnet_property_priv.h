@@ -46,6 +46,7 @@
 #include "if/core/nodes.h"
 #include "if/core/sockets.h"
 #include "dht/kuid.h"
+#include "if/dht/routing.h"
 
 
 extern const gboolean gnet_property_variable_reading_hostfile;
@@ -420,6 +421,9 @@ extern const guint32  gnet_property_variable_qhit_debug;
 extern const guint32  gnet_property_variable_version_debug;
 extern const guint64  gnet_property_variable_cpu_freq_min;
 extern const guint64  gnet_property_variable_cpu_freq_max;
+extern const guint32  gnet_property_variable_dht_boot_status;
+extern const guint32  gnet_property_variable_dht_configured_mode;
+extern const guint32  gnet_property_variable_dht_current_mode;
 
 
 prop_set_t *gnet_prop_init(void);

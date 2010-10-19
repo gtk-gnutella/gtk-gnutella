@@ -3189,7 +3189,8 @@ vmsg_send_features_supported(struct gnutella_node *n)
 	if (dht_enabled()) {
 		/* DHT mode: ADHT = active, PDHT = passive, LDHT = leaf */
 		vmsg_features_add(&vmf,
-			GNET_PROPERTY(is_firewalled) ? "PDHT" : "ADHT",
+			GNET_PROPERTY(dht_current_mode) == DHT_MODE_ACTIVE ?
+				"ADHT" : "PDHT",
 			(KDA_VERSION_MAJOR << 8) + KDA_VERSION_MINOR);
 	}
 

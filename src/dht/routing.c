@@ -232,7 +232,6 @@ struct other_size {
 
 static gboolean initialized;		/**< Whether dht_init() was called */
 static gboolean bootstrapping;		/**< Whether we are bootstrapping */
-static enum dht_bootsteps boot_status;	/**< Booting status */
 static enum dht_bootsteps old_boot_status = DHT_BOOT_NONE;
 
 static struct kbucket *root = NULL;	/**< The root of the routing table tree. */
@@ -293,6 +292,29 @@ dht_mode_to_string(dht_mode_t mode)
 	}
 
 	return "unknown";
+}
+
+/**
+ * Invoked when they change the configured DHT mode or when the UDP firewalled
+ * indication changes.
+ */
+void
+dht_configured_mode_changed(dht_mode_t mode)
+{
+	dht_mode_t new_mode = mode;
+
+	switch (mode) {
+	case DHT_MODE_INACTIVE:
+	case DHT_MODE_PASSIVE:
+	case DHT_MODE_PASSIVE_LEAF:
+		break;
+	case DHT_MODE_ACTIVE:
+		if (GNET_PROPERTY(is_udp_firewalled))
+			new_mode = DHT_MODE_PASSIVE;
+		break;
+	}
+
+	gnet_prop_set_guint32_val(PROP_DHT_CURRENT_MODE, new_mode);
 }
 
 /**
@@ -419,7 +441,7 @@ is_splitable(const struct kbucket *kb)
 gboolean
 dht_bootstrapped(void)
 {
-	return DHT_BOOT_COMPLETED == boot_status;
+	return DHT_BOOT_COMPLETED == GNET_PROPERTY(dht_boot_status);
 }
 
 /**
@@ -602,7 +624,8 @@ get_our_knode(void)
 	gtkg.u32 = T_GTKG;
 
 	return knode_new(our_kuid,
-		GNET_PROPERTY(is_udp_firewalled) ? KDA_MSG_F_FIREWALLED : 0,
+		GNET_PROPERTY(dht_current_mode) == DHT_MODE_PASSIVE ?
+			KDA_MSG_F_FIREWALLED : 0,
 		listen_addr(), socket_listen_port(), gtkg,
 		KDA_VERSION_MAJOR, KDA_VERSION_MINOR);
 }
@@ -723,7 +746,7 @@ forget_hashlist_node(gpointer knode, gpointer unused_data)
 	 * to KNODE_UNKNOWN for knode_dispose().
 	 */
 
-	if (DHT_BOOT_SHUTDOWN == boot_status)
+	if (DHT_BOOT_SHUTDOWN == GNET_PROPERTY(dht_boot_status))
 		kn->status = KNODE_UNKNOWN;		/* No longer in route table */
 	else if (1 == kn->refcnt)
 		kn->status = KNODE_UNKNOWN;		/* For knode_dispose() */
@@ -943,7 +966,7 @@ dht_bucket_refresh(struct kbucket *kb, gboolean forced)
 	 * If we are not completely bootstrapped, do not launch the refresh.
 	 */
 
-	if (boot_status != DHT_BOOT_COMPLETED) {
+	if (GNET_PROPERTY(dht_boot_status) != DHT_BOOT_COMPLETED) {
 		if (GNET_PROPERTY(dht_debug))
 			g_warning("DHT not fully bootstrapped, denying %srefresh of %s "
 				"(good: %u, stale: %u, pending: %u)",
@@ -1081,9 +1104,7 @@ bootstrap_completion_status(
 		if (GNET_PROPERTY(dht_debug))
 			g_message("DHT now completely bootstrapped");
 
-		boot_status = DHT_BOOT_COMPLETED;
-		/* XXX set property */
-
+		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_COMPLETED);
 		return;
 	}
 
@@ -1114,7 +1135,7 @@ dht_complete_bootstrap(void)
 	b->current = ours->prefix;		/* Struct copy */
 	b->bits = ours->depth;
 
-	boot_status = DHT_BOOT_COMPLETING;
+	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_COMPLETING);
 	keys_update_kball();		/* We know enough to compute the k-ball */
 	completion_iterate(b);
 }
@@ -1186,7 +1207,7 @@ dht_attempt_bootstrap(void)
 	 * If we are already completely bootstrapped, ignore.
 	 */
 
-	if (DHT_BOOT_COMPLETED == boot_status)
+	if (DHT_BOOT_COMPLETED == GNET_PROPERTY(dht_boot_status))
 		return;
 
 	bootstrapping = TRUE;
@@ -1202,9 +1223,9 @@ dht_attempt_bootstrap(void)
 			g_message("DHT bootstrapping impossible: routing table empty");
 
 		bootstrapping = FALSE;
-		boot_status = DHT_BOOT_NONE;
+		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
 	} else {
-		boot_status = DHT_BOOT_OWN;
+		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_OWN);
 	}
 
 	/* XXX set DHT property status to "bootstrapping" -- red icon */
@@ -1267,7 +1288,7 @@ dht_initialize(gboolean post_init)
 
 	g_assert(0 == stats.good);
 
-	boot_status = DHT_BOOT_NONE;
+	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
 
 	dht_route_retrieve();
 
@@ -1304,7 +1325,7 @@ void
 dht_init(void)
 {
 	initialized = TRUE;
-	boot_status = DHT_BOOT_NONE;
+	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
 
 	/*
 	 * If the DHT is disabled at startup time, clear the KUID.
@@ -2257,11 +2278,11 @@ dht_traffic_from(knode_t *kn)
 	 * If not bootstrapped yet, we just got our seed.
 	 */
 
-	if (DHT_BOOT_NONE == boot_status) {
+	if (DHT_BOOT_NONE == GNET_PROPERTY(dht_boot_status)) {
 		if (GNET_PROPERTY(dht_debug))
 			g_message("DHT got a bootstrap seed with %s", knode_to_string(kn));
 
-		boot_status = DHT_BOOT_SEEDED;
+		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_SEEDED);
 		dht_attempt_bootstrap();
 	}
 }
@@ -3503,8 +3524,8 @@ dht_close(gboolean exiting)
 	dht_rpc_close();
 	token_close();
 
-	old_boot_status = boot_status;
-	boot_status = DHT_BOOT_SHUTDOWN;
+	old_boot_status = GNET_PROPERTY(dht_boot_status);
+	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_SHUTDOWN);
 
 	recursively_apply(root, dht_free_bucket, NULL);
 	root = NULL;
@@ -3520,7 +3541,7 @@ dht_close(gboolean exiting)
 	statx_free(stats.netdata);
 
 	memset(&stats, 0, sizeof stats);		/* Clear all stats */
-	boot_status = DHT_BOOT_NONE;
+	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
 }
 
 /***
@@ -4112,7 +4133,7 @@ dht_route_parse(FILE *f)
 	 */
 
 	if (dht_seeded()) {
-		boot_status =
+		enum dht_bootsteps boot_status =
 			most_recent < REFRESH_PERIOD / 2 ?
 				DHT_BOOT_COMPLETED : DHT_BOOT_SEEDED;
 		if (
@@ -4121,11 +4142,12 @@ dht_route_parse(FILE *f)
 		) {
 			boot_status = old_boot_status;
 		}
+		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, boot_status);
 	}
 
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT after retrieval we are %s",
-			boot_status_to_string(boot_status));
+			boot_status_to_string(GNET_PROPERTY(dht_boot_status)));
 
 	keys_update_kball();
 	dht_update_size_estimate();

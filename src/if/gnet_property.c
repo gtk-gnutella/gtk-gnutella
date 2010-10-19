@@ -40,6 +40,7 @@
 #include "if/core/nodes.h"
 #include "if/core/sockets.h"
 #include "dht/kuid.h"
+#include "if/dht/routing.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -857,6 +858,31 @@ guint64  gnet_property_variable_cpu_freq_min     = 0;
 static const guint64  gnet_property_variable_cpu_freq_min_default = 0;
 guint64  gnet_property_variable_cpu_freq_max     = 0;
 static const guint64  gnet_property_variable_cpu_freq_max_default = 0;
+guint32  gnet_property_variable_dht_boot_status     = 0;
+static const guint32  gnet_property_variable_dht_boot_status_default = 0;
+prop_def_choice_t gnet_property_variable_dht_boot_status_choices[] = { 
+    {N_("none"), DHT_BOOT_NONE},
+    {N_("seeded"), DHT_BOOT_SEEDED},
+    {N_("own KUID lookup"), DHT_BOOT_OWN},
+    {N_("completing"), DHT_BOOT_COMPLETING},
+    {N_("completed"), DHT_BOOT_COMPLETED},
+    {N_("shutdown"), DHT_BOOT_SHUTDOWN},
+    {NULL, 0}
+};
+guint32  gnet_property_variable_dht_configured_mode     = 1;
+static const guint32  gnet_property_variable_dht_configured_mode_default = 1;
+prop_def_choice_t gnet_property_variable_dht_configured_mode_choices[] = { 
+    {N_("active (recommended)"), DHT_MODE_ACTIVE},
+    {N_("passive"), DHT_MODE_PASSIVE},
+    {NULL, 0}
+};
+guint32  gnet_property_variable_dht_current_mode     = 1;
+static const guint32  gnet_property_variable_dht_current_mode_default = 1;
+prop_def_choice_t gnet_property_variable_dht_current_mode_choices[] = { 
+    {N_("active (recommended)"), DHT_MODE_ACTIVE},
+    {N_("passive"), DHT_MODE_PASSIVE},
+    {NULL, 0}
+};
 
 static prop_set_t *gnet_property;
 
@@ -7973,6 +7999,66 @@ gnet_prop_init(void) {
     gnet_property->props[371].data.guint64.choices = NULL;
     gnet_property->props[371].data.guint64.max   = (guint64) -1;
     gnet_property->props[371].data.guint64.min   = 0x0000000000000000;
+
+
+    /*
+     * PROP_DHT_BOOT_STATUS:
+     *
+     * General data:
+     */
+    gnet_property->props[372].name = "dht_boot_status";
+    gnet_property->props[372].desc = _("DHT bootstrap status.");
+    gnet_property->props[372].ev_changed = event_new("dht_boot_status_changed");
+    gnet_property->props[372].save = FALSE;
+    gnet_property->props[372].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[372].type               = PROP_TYPE_MULTICHOICE;
+    gnet_property->props[372].data.guint32.def   = (void *) &gnet_property_variable_dht_boot_status_default;
+    gnet_property->props[372].data.guint32.value = (void *) &gnet_property_variable_dht_boot_status;
+    gnet_property->props[372].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[372].data.guint32.min   = 0x00000000;
+    gnet_property->props[372].data.guint32.choices = (void *) &gnet_property_variable_dht_boot_status_choices;
+
+
+    /*
+     * PROP_DHT_CONFIGURED_MODE:
+     *
+     * General data:
+     */
+    gnet_property->props[373].name = "dht_configured_mode";
+    gnet_property->props[373].desc = _("The DHT running mode. An active mode will be able to store values and is a fully participating member of the Distributed Hash Table. A passive node can perform lookups and publish but will not store values and cannot be a member of the DHT structure. A firewalled node is necessarily passive, but you can force the passive mode even if you are not firewalled, although that is not recommended because the DHT requires far more active nodes that passive ones to be efficient.");
+    gnet_property->props[373].ev_changed = event_new("dht_configured_mode_changed");
+    gnet_property->props[373].save = TRUE;
+    gnet_property->props[373].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[373].type               = PROP_TYPE_MULTICHOICE;
+    gnet_property->props[373].data.guint32.def   = (void *) &gnet_property_variable_dht_configured_mode_default;
+    gnet_property->props[373].data.guint32.value = (void *) &gnet_property_variable_dht_configured_mode;
+    gnet_property->props[373].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[373].data.guint32.min   = 0x00000000;
+    gnet_property->props[373].data.guint32.choices = (void *) &gnet_property_variable_dht_configured_mode_choices;
+
+
+    /*
+     * PROP_DHT_CURRENT_MODE:
+     *
+     * General data:
+     */
+    gnet_property->props[374].name = "dht_current_mode";
+    gnet_property->props[374].desc = _("Current DHT running mode.");
+    gnet_property->props[374].ev_changed = event_new("dht_current_mode_changed");
+    gnet_property->props[374].save = FALSE;
+    gnet_property->props[374].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[374].type               = PROP_TYPE_MULTICHOICE;
+    gnet_property->props[374].data.guint32.def   = (void *) &gnet_property_variable_dht_current_mode_default;
+    gnet_property->props[374].data.guint32.value = (void *) &gnet_property_variable_dht_current_mode;
+    gnet_property->props[374].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[374].data.guint32.min   = 0x00000000;
+    gnet_property->props[374].data.guint32.choices = (void *) &gnet_property_variable_dht_current_mode_choices;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

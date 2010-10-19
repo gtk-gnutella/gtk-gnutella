@@ -15,6 +15,7 @@ uses = "lib/misc.h";
 uses = "if/core/nodes.h";
 uses = "if/core/sockets.h";
 uses = "dht/kuid.h";
+uses = "if/dht/routing.h";
 
 prop = {
     name = "reading_hostfile";
@@ -4319,6 +4320,81 @@ prop = {
     type = guint64;
     data = {
         default = 0;
+    };
+};
+
+prop = {
+    name = "dht_boot_status";
+    desc = "DHT bootstrap status.";
+	save = FALSE;
+    type = multichoice;
+    data = {
+        default = 0;
+    };
+    choice = {
+        name = "none";
+        value = DHT_BOOT_NONE;
+    };
+    choice = {
+        name = "seeded";
+        value = DHT_BOOT_SEEDED;
+    };
+    choice = {
+        name = "own KUID lookup";
+        value = DHT_BOOT_OWN;
+    };
+    choice = {
+        name = "completing";
+        value = DHT_BOOT_COMPLETING;
+    };
+    choice = {
+        name = "completed";
+        value = DHT_BOOT_COMPLETED;
+    };
+    choice = {
+        name = "shutdown";
+        value = DHT_BOOT_SHUTDOWN;
+    };
+};
+
+prop = {
+    name = "dht_configured_mode";
+    desc = "The DHT running mode. An active mode will be able to store values "
+		"and is a fully participating member of the Distributed Hash Table. "
+		"A passive node can perform lookups and publish but will not store "
+		"values and cannot be a member of the DHT structure. A firewalled node "
+		"is necessarily passive, but you can force the passive mode even if "
+		"you are not firewalled, although that is not recommended because the "
+		"DHT requires far more active nodes that passive ones to be efficient.";
+    type = multichoice;
+    data = {
+        default = 1;
+    };
+    choice = {
+        name = "active (recommended)";
+        value = DHT_MODE_ACTIVE;
+    };
+    choice = {
+        name = "passive";
+        value = DHT_MODE_PASSIVE;
+    };
+};
+
+prop = {
+    name = "dht_current_mode";
+    desc = "Current DHT running mode.";
+	save = FALSE;
+    type = multichoice;
+    data = {
+        default = 1;
+    };
+    choice = {
+        name = "active (recommended)";
+        value = DHT_MODE_ACTIVE;
+    };
+    choice = {
+        name = "passive";
+        value = DHT_MODE_PASSIVE;
     };
 };
 
