@@ -558,6 +558,7 @@ src/if/dht/knode.h
 src/if/dht/kuid.h
 src/if/dht/lookup.h
 src/if/dht/publish.h
+src/if/dht/routing.h
 src/if/dht/stable.h
 src/if/dht/value.h
 src/if/gnet_property.c

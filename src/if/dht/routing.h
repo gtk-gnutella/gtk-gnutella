@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2010, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,44 +23,41 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _if_dht_dht_h_
-#define _if_dht_dht_h_
+#ifndef _if_dht_routing_h_
+#define _if_dht_routing_h_
 
-#include "lib/host_addr.h"
-#include "lib/gnet_host.h"
+#include "common.h"
 
-#include "if/gnet_property_priv.h"
+typedef enum {
+	DHT_MODE_INACTIVE = 0x0,		/**< DHT capable, but not in DHT */
+	DHT_MODE_ACTIVE = 0x1,			/**< Active DHT node */
+	DHT_MODE_PASSIVE = 0x2,			/**< Passive DHT node */
+	DHT_MODE_PASSIVE_LEAF = 0x3		/**< Passive leaf DHT node */
+} dht_mode_t;
+
+/**
+ * DHT bootstrapping steps
+ */
+enum dht_bootsteps {
+	DHT_BOOT_NONE = 0,				/**< Not bootstrapped yet */
+	DHT_BOOT_SEEDED,				/**< Seeded with one address */
+	DHT_BOOT_OWN,					/**< Looking for own KUID */
+	DHT_BOOT_COMPLETING,			/**< Completing further bucket bootstraps */
+	DHT_BOOT_COMPLETED,				/**< Fully bootstrapped */
+	DHT_BOOT_SHUTDOWN,				/**< Shutdowning */
+
+	DHT_BOOT_MAX_VALUE
+};
 
 /*
  * Public interface.
  */
 
-struct gnutella_node;
+const char *dht_mode_to_string(dht_mode_t mode);
+gboolean dht_seeded(void);
+gboolean dht_bootstrapped(void);
 
-void dht_init(void);
-void dht_close(gboolean exiting);
-void dht_initialize(gboolean post_init);
-void dht_reset_kuid(void);
-void dht_ipp_extract(
-	const struct gnutella_node *n, const char *payload, int paylen);
-int dht_fill_random(gnet_host_t *hvec, int hcnt);
-
-void dht_route_store_if_dirty(void);
-void dht_bootstrap_if_needed(host_addr_t addr, guint16 port);
-void dht_attempt_bootstrap(void);
-void dht_update_size_estimate(void);
-
-/**
- * Is the DHT enabled?
- */
-static inline gboolean
-dht_enabled(void)
-{
-	return GNET_PROPERTY(enable_udp) && GNET_PROPERTY(enable_dht) &&
-		GNET_PROPERTY(listen_port) != 0;
-}
-
-#endif /* _if_dht_dht_h */
+#endif /* _if_dht_routing_h */
 
 /* vi: set ts=4 sw=4 cindent: */
 

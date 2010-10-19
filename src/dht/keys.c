@@ -81,6 +81,7 @@ RCSID("$Id$")
 #include "storage.h"
 
 #include "if/dht/kademlia.h"
+#include "if/dht/routing.h"
 #include "if/core/settings.h"
 
 #include "if/gnet_property.h"

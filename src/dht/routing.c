@@ -83,6 +83,8 @@ RCSID("$Id$")
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "if/dht/routing.h"
+
 #include "lib/atoms.h"
 #include "lib/base16.h"
 #include "lib/bit_array.h"
@@ -228,24 +230,10 @@ struct other_size {
 	guint64 size;				/**< Its own size estimate */
 };
 
-/**
- * Bootstrapping steps
- */
-enum bootsteps {
-	BOOT_NONE = 0,				/**< Not bootstrapped yet */
-	BOOT_SEEDED,				/**< Seeded with one address */
-	BOOT_OWN,					/**< Looking for own KUID */
-	BOOT_COMPLETING,			/**< Completing further bucket bootstraps */
-	BOOT_COMPLETED,				/**< Fully bootstrapped */
-	BOOT_SHUTDOWN,				/**< Shutdowning */
-
-	BOOT_MAX_VALUE
-};
-
 static gboolean initialized;		/**< Whether dht_init() was called */
 static gboolean bootstrapping;		/**< Whether we are bootstrapping */
-static enum bootsteps boot_status;	/**< Booting status */
-static enum bootsteps old_boot_status = BOOT_NONE;
+static enum dht_bootsteps boot_status;	/**< Booting status */
+static enum dht_bootsteps old_boot_status = DHT_BOOT_NONE;
 
 static struct kbucket *root = NULL;	/**< The root of the routing table tree. */
 static kuid_t *our_kuid;			/**< Our own KUID (atom) */
@@ -267,23 +255,23 @@ static struct kbucket *dht_find_bucket(const kuid_t *id);
 #undef DHT_ROUTING_DEBUG
 
 static const char * const boot_status_str[] = {
-	"not bootstrapped yet",			/**< BOOT_NONE */
-	"seeded with some hosts",		/**< BOOT_SEEDED */
-	"looking for our KUID",			/**< BOOT_OWN */
-	"completing bucket bootstrap",	/**< BOOT_COMPLETING */
-	"completely bootstrapped",		/**< BOOT_COMPLETING */
-	"shutdowning",					/**< BOOT_SHUTDOWN */
+	"not bootstrapped yet",			/**< DHT_BOOT_NONE */
+	"seeded with some hosts",		/**< DHT_BOOT_SEEDED */
+	"looking for our KUID",			/**< DHT_BOOT_OWN */
+	"completing bucket bootstrap",	/**< DHT_BOOT_COMPLETING */
+	"completely bootstrapped",		/**< DHT_BOOT_COMPLETED */
+	"shutdowning",					/**< DHT_BOOT_SHUTDOWN */
 };
 
 /**
  * Provide human-readable boot status.
  */
 static const char *
-boot_status_to_string(enum bootsteps status)
+boot_status_to_string(enum dht_bootsteps status)
 {
 	size_t i = status;
 
-	STATIC_ASSERT(BOOT_MAX_VALUE == G_N_ELEMENTS(boot_status_str));
+	STATIC_ASSERT(DHT_BOOT_MAX_VALUE == G_N_ELEMENTS(boot_status_str));
 
 	if (i >= G_N_ELEMENTS(boot_status_str))
 		return "invalid boot status";
@@ -431,7 +419,7 @@ is_splitable(const struct kbucket *kb)
 gboolean
 dht_bootstrapped(void)
 {
-	return BOOT_COMPLETED == boot_status;
+	return DHT_BOOT_COMPLETED == boot_status;
 }
 
 /**
@@ -735,7 +723,7 @@ forget_hashlist_node(gpointer knode, gpointer unused_data)
 	 * to KNODE_UNKNOWN for knode_dispose().
 	 */
 
-	if (BOOT_SHUTDOWN == boot_status)
+	if (DHT_BOOT_SHUTDOWN == boot_status)
 		kn->status = KNODE_UNKNOWN;		/* No longer in route table */
 	else if (1 == kn->refcnt)
 		kn->status = KNODE_UNKNOWN;		/* For knode_dispose() */
@@ -955,7 +943,7 @@ dht_bucket_refresh(struct kbucket *kb, gboolean forced)
 	 * If we are not completely bootstrapped, do not launch the refresh.
 	 */
 
-	if (boot_status != BOOT_COMPLETED) {
+	if (boot_status != DHT_BOOT_COMPLETED) {
 		if (GNET_PROPERTY(dht_debug))
 			g_warning("DHT not fully bootstrapped, denying %srefresh of %s "
 				"(good: %u, stale: %u, pending: %u)",
@@ -1093,7 +1081,7 @@ bootstrap_completion_status(
 		if (GNET_PROPERTY(dht_debug))
 			g_message("DHT now completely bootstrapped");
 
-		boot_status = BOOT_COMPLETED;
+		boot_status = DHT_BOOT_COMPLETED;
 		/* XXX set property */
 
 		return;
@@ -1126,7 +1114,7 @@ dht_complete_bootstrap(void)
 	b->current = ours->prefix;		/* Struct copy */
 	b->bits = ours->depth;
 
-	boot_status = BOOT_COMPLETING;
+	boot_status = DHT_BOOT_COMPLETING;
 	keys_update_kball();		/* We know enough to compute the k-ball */
 	completion_iterate(b);
 }
@@ -1198,7 +1186,7 @@ dht_attempt_bootstrap(void)
 	 * If we are already completely bootstrapped, ignore.
 	 */
 
-	if (BOOT_COMPLETED == boot_status)
+	if (DHT_BOOT_COMPLETED == boot_status)
 		return;
 
 	bootstrapping = TRUE;
@@ -1214,9 +1202,9 @@ dht_attempt_bootstrap(void)
 			g_message("DHT bootstrapping impossible: routing table empty");
 
 		bootstrapping = FALSE;
-		boot_status = BOOT_NONE;
+		boot_status = DHT_BOOT_NONE;
 	} else {
-		boot_status = BOOT_OWN;
+		boot_status = DHT_BOOT_OWN;
 	}
 
 	/* XXX set DHT property status to "bootstrapping" -- red icon */
@@ -1279,7 +1267,7 @@ dht_initialize(gboolean post_init)
 
 	g_assert(0 == stats.good);
 
-	boot_status = BOOT_NONE;
+	boot_status = DHT_BOOT_NONE;
 
 	dht_route_retrieve();
 
@@ -1316,7 +1304,7 @@ void
 dht_init(void)
 {
 	initialized = TRUE;
-	boot_status = BOOT_NONE;
+	boot_status = DHT_BOOT_NONE;
 
 	/*
 	 * If the DHT is disabled at startup time, clear the KUID.
@@ -2269,11 +2257,11 @@ dht_traffic_from(knode_t *kn)
 	 * If not bootstrapped yet, we just got our seed.
 	 */
 
-	if (BOOT_NONE == boot_status) {
+	if (DHT_BOOT_NONE == boot_status) {
 		if (GNET_PROPERTY(dht_debug))
 			g_message("DHT got a bootstrap seed with %s", knode_to_string(kn));
 
-		boot_status = BOOT_SEEDED;
+		boot_status = DHT_BOOT_SEEDED;
 		dht_attempt_bootstrap();
 	}
 }
@@ -3516,7 +3504,7 @@ dht_close(gboolean exiting)
 	token_close();
 
 	old_boot_status = boot_status;
-	boot_status = BOOT_SHUTDOWN;
+	boot_status = DHT_BOOT_SHUTDOWN;
 
 	recursively_apply(root, dht_free_bucket, NULL);
 	root = NULL;
@@ -3532,7 +3520,7 @@ dht_close(gboolean exiting)
 	statx_free(stats.netdata);
 
 	memset(&stats, 0, sizeof stats);		/* Clear all stats */
-	boot_status = BOOT_NONE;
+	boot_status = DHT_BOOT_NONE;
 }
 
 /***
@@ -4125,9 +4113,14 @@ dht_route_parse(FILE *f)
 
 	if (dht_seeded()) {
 		boot_status =
-			most_recent < REFRESH_PERIOD / 2 ? BOOT_COMPLETED : BOOT_SEEDED;
-		if (old_boot_status != BOOT_NONE && old_boot_status != BOOT_COMPLETED)
+			most_recent < REFRESH_PERIOD / 2 ?
+				DHT_BOOT_COMPLETED : DHT_BOOT_SEEDED;
+		if (
+			old_boot_status != DHT_BOOT_NONE &&
+			old_boot_status != DHT_BOOT_COMPLETED
+		) {
 			boot_status = old_boot_status;
+		}
 	}
 
 	if (GNET_PROPERTY(dht_debug))
