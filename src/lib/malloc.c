@@ -973,7 +973,7 @@ block_check(const void *key, void *value, void *ctx)
 		bc->old_corrupted++;
 	} else {
 		if (b->corrupted) {
-			bc->new_corrupted++
+			bc->new_corrupted++;
 		}
 	}
 }
