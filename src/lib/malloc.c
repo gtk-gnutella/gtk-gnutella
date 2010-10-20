@@ -213,7 +213,8 @@ struct block {
 	int line;
 	size_t size;
 	GSList *reallocations;
-	guint8 owned;		/* Whether we allocated the block ourselves */
+	unsigned owned:1;		/* Whether we allocated the block ourselves */
+	unsigned corrupted:1;	/* Whether block was marked as corrupted */
 };
 
 #ifdef TRACK_MALLOC
@@ -786,6 +787,7 @@ block_check_trailer(gconstpointer o, size_t size,
 		g_warning(
 			"MALLOC (%s:%d) block 0x%lx from %s:%d has corrupted end mark",
 			op_file, op_line, (gulong) o, file, line);
+		goto done;
 	}
 
 	p = const_ptr_add_offset(o, size + sizeof(guint32));
@@ -799,6 +801,7 @@ block_check_trailer(gconstpointer o, size_t size,
 		}
 	}
 
+done:
 	if (error && showstack) {
 #ifdef MALLOC_FRAMES
 		g_warning("current stack:");
@@ -819,16 +822,20 @@ block_check_trailer(gconstpointer o, size_t size,
  * @param size	the user-known size of the buffer
  */
 static void
-block_check_marks(gconstpointer o, const struct block *b,
+block_check_marks(gconstpointer o, struct block *b,
 	const char *file, int line)
 {
 	gboolean error = FALSE;
+
+	if (b->corrupted)
+		return;			/* Already identified it was corrupted */
 
 #ifdef MALLOC_SAFE_HEAD
 	const struct malloc_header *mh = malloc_header_from_arena(o);
 
 	if (mh->start != MALLOC_START_MARK) {
 		error = TRUE;
+		b->corrupted = TRUE;
 		g_warning(
 			"MALLOC (%s:%d) block 0x%lx from %s:%d has corrupted start mark",
 			file, line, (gulong) o, b->file, b->line);
@@ -836,6 +843,7 @@ block_check_marks(gconstpointer o, const struct block *b,
 #endif /* MALLOC_SAFE_HEAD */
 
 	if (block_check_trailer(o, b->size, b->file, b->line, file, line, FALSE)) {
+		b->corrupted = TRUE;
 		error = TRUE;
 	}
 
