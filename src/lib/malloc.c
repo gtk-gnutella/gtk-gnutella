@@ -830,6 +830,9 @@ block_check_marks(gconstpointer o, struct block *b,
 	if (b->corrupted)
 		return;			/* Already identified it was corrupted */
 
+	if (!b->owned)
+		return;			/* We only track it, we did not allocate it */
+
 #ifdef MALLOC_SAFE_HEAD
 	const struct malloc_header *mh = malloc_header_from_arena(o);
 
@@ -1262,7 +1265,10 @@ real_realloc(void *p, size_t size)
 #endif	/* MALLOC_VTABLE */
 
 #ifdef TRACK_MALLOC
+
+#ifdef MALLOC_FRAMES
 static hash_table_t *alloc_points; /**< Maps a block to its allocation frame */
+#endif
 
 /**
  * Wrapper to real malloc().
