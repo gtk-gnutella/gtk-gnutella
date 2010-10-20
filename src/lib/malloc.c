@@ -96,8 +96,6 @@ RCSID("$Id$")
  * When MALLOC_FRAMES is supplied, we keep information about the allocation
  * stack frame and free stack frames.
  *
- * This turns on MALLOC_STATS automatically if not set.
- *
  * XXX need metaconfig checks for <execinfo.h>, backtrace().
  */
 
@@ -333,8 +331,8 @@ locate_from_path(const char *argv0)
 static int
 trace_cmp(const void *p, const void *q)
 {
-	const struct trace const *a = p;
-	const struct trace const *b = q;
+	struct trace const *a = p;
+	struct trace const *b = q;
 
 	return a->start == b->start ? 0 :
 		pointer_to_ulong(a->start) < pointer_to_ulong(b->start) ? -1 : +1;
@@ -697,6 +695,14 @@ stats_eq(gconstpointer a, gconstpointer b)
 
 	return  sa->line == sb->line && 0 == strcmp(sa->file, sb->file);
 }
+#else	/* !MALLOC_STATS */
+#ifdef MALLOC_FRAMES
+struct stats {
+	hash_table_t *alloc_frames;		/**< The frames where alloc took place */
+	hash_table_t *free_frames;		/**< The frames where free took place */
+	hash_table_t *realloc_frames;	/**< The frames where realloc took place */
+} gst;
+#endif
 #endif /* MALLOC_STATS */
 
 /**
@@ -1370,8 +1376,8 @@ malloc_record(gconstpointer o, size_t sz, gboolean owned,
 {
 	struct block *b;
 	struct block *ob;
-#ifdef MALLOC_STATS
-	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
+#if defined(MALLOC_STATS) || defined(MALLOC_FRAMES)
+	struct stats *st = NULL;	/* Needed in case MALLOC_FRAMES is also set */
 #endif
 
 	if (o == NULL)			/* In case it's called externally */
@@ -1446,7 +1452,7 @@ malloc_record(gconstpointer o, size_t sz, gboolean owned,
 		struct frame *fr;
 
 		get_stack_frame(&f);
-		fr = get_frame_atom(&st->alloc_frames, &f);
+		fr = get_frame_atom(st ? &st->alloc_frames : &gst.alloc_frames, &f);
 
 		fr->count += sz;
 		fr->total_count += sz;
@@ -1523,8 +1529,8 @@ free_record(gconstpointer o, const char *file, int line)
 	void *v;
 	GSList *l;
 	gboolean owned = FALSE;
-#ifdef MALLOC_STATS
-	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
+#if defined(MALLOC_STATS) || defined(MALLOC_FRAMES)
+	struct stats *st = NULL;	/* Needed in case MALLOC_FRAMES is also set */
 #endif
 
 	if (NULL == o)
@@ -1673,8 +1679,8 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 {
 	struct block *b;
 	struct block *r;
-#ifdef MALLOC_STATS
-	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
+#if defined(MALLOC_STATS) || defined(MALLOC_FRAMES)
+	struct stats *st = NULL;	/* Needed in case MALLOC_FRAMES is also set */
 #endif
 
 	g_assert(n);
