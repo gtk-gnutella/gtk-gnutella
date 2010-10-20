@@ -59,6 +59,10 @@
 #endif
 #endif
 
+#ifdef MALLOC_FRAMES
+#include "hashtable.h"
+#endif
+
 #if defined(TRACK_MALLOC) && !defined(MALLOC_SOURCE)
 
 #include "hashlist.h"
@@ -206,7 +210,7 @@
 #define MEMTRACK(o,s)	malloc_record((o), (s), FALSE, _WHERE_, __LINE__)
 #define GSLISTTRACK(o)	gslist_record((o), _WHERE_, __LINE__)
 #define GLISTTRACK(o)	glist_record((o), _WHERE_, __LINE__)
-#define NOT_LEAKING(o)	malloc_not_leaking(o, _WHERE_, __LINE__)
+#define NOT_LEAKING(o)	malloc_not_leaking(o)
 
 #else	/* !TRACK_MALLOC || MALLOC_SOURCE */
 
@@ -214,7 +218,13 @@
 #define MEMTRACK(o,s)	(o)
 #define GSLISTTRACK(o)	(o)
 #define GLISTTRACK(o)	(o)
+
+#if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
+#define NOT_LEAKING(o)	zalloc_not_leaking(o)
+void *zalloc_not_leaking(const void *o);
+#else
 #define NOT_LEAKING(o)	(o)
+#endif
 
 #endif	/* TRACK_MALLOC && !MALLOC_SOURCE */
 
@@ -225,7 +235,7 @@ gpointer malloc_record(gconstpointer o, size_t size, gboolean owned,
 	const char *file, int line);
 GSList *gslist_record(const GSList *, const char *file, int line);
 GList *glist_record(const GList *, const char *file, int line);
-gpointer malloc_not_leaking(gconstpointer o, const char *file, int line);
+gpointer malloc_not_leaking(gconstpointer o);
 
 gpointer malloc_track(size_t size, const char *file, int line);
 gpointer malloc0_track(size_t size, const char *file, int line);
@@ -328,6 +338,30 @@ void alloc_dump(FILE *f, gboolean total);
 void alloc_reset(FILE *f, gboolean total);
 #endif
 
+#ifdef MALLOC_FRAMES
+
+#define FRAME_DEPTH		10	/**< Size of allocation frame we keep around */
+
+/**
+ * Structure keeping track of the allocation/free stack frames.
+ *
+ * Counts are signed because for realloc() frames, we count algebric
+ * quantities (in case the blocks are shrunk).
+ */
+struct frame {
+	void *stack[FRAME_DEPTH];	/**< PC of callers */
+	size_t len;					/**< Number of valid entries in stack */
+	size_t blocks;				/**< Blocks allocated from this stack frame */
+	size_t count;				/**< Bytes allocated/freed since reset */
+	size_t total_count;			/**< Grand total for this stack frame */
+};
+
+void get_stack_frame(struct frame *fr);
+void print_stack_frame(FILE *f, const struct frame *fr);
+struct frame *get_frame_atom(hash_table_t **hptr, const struct frame *f);
+
+#endif /* MALLOC_FRAMES */
+
 /*
  * Public interface, available no matter which compile options are used.
  */
@@ -335,6 +369,7 @@ void alloc_reset(FILE *f, gboolean total);
 void malloc_init(const char *argv0);
 void malloc_init_vtable(void);
 void malloc_close(void);
+void print_where(FILE *f);
 
 void *real_malloc(size_t size);
 

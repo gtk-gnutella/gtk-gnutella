@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2004-2010, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Debugging malloc, to supplant dmalloc which is not satisfactory.
  *
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2004-2010
  */
 
 #include "common.h"		/* For RCSID */
@@ -64,9 +64,12 @@ RCSID("$Id$")
  *
  * All of these have effect even when TRACK_MALLOC is not defined,
  * although in that case MALLOC_VTABLE should be defined so that real_malloc()
- * is called, at least -- otherwse the other settings do not matter much!
+ * is called, at least -- otherwise the other settings do not matter much!
  */
 
+#if 0
+#define MALLOC_VTABLE		/* Try to redirect glib's malloc here */
+#endif
 #if 0
 #define MALLOC_SAFE				/* Add trailer magic to each block */
 #define MALLOC_TRAILER_LEN	32	/* Additional trailer len, past end mark */
@@ -76,9 +79,6 @@ RCSID("$Id$")
 #endif
 #if 0
 #define MALLOC_DUP_FREE		/* Detect duplicate frees by block tagging */
-#endif
-#if 0
-#define MALLOC_VTABLE		/* Try to redirect glib's malloc here */
 #endif
 #if 0
 #define MALLOC_PERIODIC		/* Periodically scan blocks for overruns */
@@ -103,13 +103,6 @@ RCSID("$Id$")
 
 #ifdef MALLOC_FRAMES
 #include <execinfo.h>
-
-#ifndef MALLOC_STATS
-#define MALLOC_STATS
-#endif
-
-#define FRAME_DEPTH		10	/**< Size of allocation frame we keep around */
-
 #endif /* MALLOC_FRAMES */
 #endif /* TRACK_MALLOC || TRACK_ZALLOC */
 
@@ -226,7 +219,6 @@ struct block {
 };
 
 #ifdef TRACK_MALLOC
-
 static time_t init_time = 0;
 static time_t reset_time = 0;
 
@@ -234,6 +226,7 @@ static hash_table_t *blocks = NULL;
 static hash_table_t *not_leaking = NULL;
 
 static gboolean free_record(gconstpointer o, const char *file, int line);
+#endif
 
 /*
  * When MALLOC_FRAMES is defined, we keep track of allocation stack frames
@@ -244,22 +237,6 @@ static gboolean free_record(gconstpointer o, const char *file, int line);
  * the leaked blocks that we can identify at the end.
  */
 #ifdef MALLOC_FRAMES
-
-static hash_table_t *alloc_points; /**< Maps a block to its allocation frame */
-
-/**
- * Structure keeping track of the allocation/free stack frames.
- *
- * Counts are signed because for realloc() frames, we count algebric
- * quantities (in case the blocks are shrunk).
- */
-struct frame {
-	void *stack[FRAME_DEPTH];	/**< PC of callers */
-	size_t len;					/**< Number of valid entries in stack */
-	size_t blocks;				/**< Blocks allocated from this stack frame */
-	size_t count;				/**< Bytes allocated/freed since reset */
-	size_t total_count;			/**< Grand total for this stack frame */
-};
 
 /**
  * A routine entry in the symbol table.
@@ -582,7 +559,7 @@ done:
 /**
  * Fill supplied frame structure with the backtrace.
  */
-static void
+void
 get_stack_frame(struct frame *fr)
 {
 	void *stack[FRAME_DEPTH + 2];
@@ -599,10 +576,12 @@ get_stack_frame(struct frame *fr)
 /**
  * Print stack frame to specified file, using symbolic names if possible.
  */
-static void
+void
 print_stack_frame(FILE *f, const struct frame *fr)
 {
 	size_t i;
+
+	g_assert(fr != NULL);
 
 	for (i = 0; i < fr->len; i++) {
 		const char *where = trace_name(fr->stack[i]);
@@ -613,11 +592,11 @@ print_stack_frame(FILE *f, const struct frame *fr)
 /**
  * Print current stack frame to specified file.
  *
- * @attention: not declared in "lib/malloc.h", only defined when MALLOC_FRAMES,
+ * @attention: only defined when MALLOC_FRAMES,
  * meant to be used as a last resort tool to track memory problems.
  */
 void
-where(FILE *f)
+print_where(FILE *f)
 {
 	struct frame fr;
 
@@ -632,7 +611,7 @@ where(FILE *f)
  *
  * @return stack frame "atom".
  */
-static struct frame *
+struct frame *
 get_frame_atom(hash_table_t **hptr, const struct frame *f)
 {
 	struct frame *fr = NULL;
@@ -652,6 +631,13 @@ get_frame_atom(hash_table_t **hptr, const struct frame *f)
 	}
 
 	return fr;
+}
+#else  /* !MALLOC_FRAMES */
+void
+print_where(FILE *f)
+{
+	(void) f;
+	/* Empty */
 }
 #endif /* MALLOC_FRAMES */
 
@@ -712,7 +698,6 @@ stats_eq(gconstpointer a, gconstpointer b)
 	return  sa->line == sb->line && 0 == strcmp(sa->file, sb->file);
 }
 #endif /* MALLOC_STATS */
-#endif /* TRACK_MALLOC */
 
 /**
  * Safe malloc definitions.
@@ -811,7 +796,7 @@ block_check_trailer(gconstpointer o, size_t size,
 	if (error && showstack) {
 #ifdef MALLOC_FRAMES
 		g_warning("current stack:");
-		where(stderr);
+		print_where(stderr);
 #endif
 	}
 
@@ -851,7 +836,7 @@ block_check_marks(gconstpointer o, const struct block *b,
 	if (error) {
 #ifdef MALLOC_FRAMES
 		g_warning("current stack:");
-		where(stderr);
+		print_where(stderr);
 #endif
 	}
 }
@@ -892,7 +877,7 @@ block_erase(const void *o, size_t size)
  * When MALLOC_DUP_FREE is set, the first integer of the block is marked to
  * allow free() to detect duplicates.
  */
-#ifdef MALLOC_DUR_FREE
+#ifdef MALLOC_DUP_FREE
 #define MALLOC_DEAD_MARK	0xdeadbeefU
 #define MALLOC_DEAD_CLEAR	0x0
 
@@ -921,7 +906,7 @@ block_is_dead(void *p, size_t size)
 
 	return FALSE;
 }
-#endif	/* MALLOC_DUR_FREE */
+#endif	/* MALLOC_DUP_FREE */
 
 #if !defined(TRACK_MALLOC) || !defined(MALLOC_DUP_FREE)
 #define block_mark_dead(p_, s_)
@@ -945,6 +930,10 @@ static void
 block_check(const void *key, void *value, void *unused_user)
 {
 	(void) unused_user;
+
+#ifdef MALLOC_SAFE
+	block_check_marks(key, value, __FILE__, __LINE__);
+#endif
 }
 #endif	/* TRACK_MALLOC */
 
@@ -1255,6 +1244,8 @@ real_realloc(void *p, size_t size)
 #endif	/* MALLOC_VTABLE */
 
 #ifdef TRACK_MALLOC
+static hash_table_t *alloc_points; /**< Maps a block to its allocation frame */
+
 /**
  * Wrapper to real malloc().
  */
@@ -1356,11 +1347,8 @@ malloc_log_block(const void *k, void *v, gpointer leaksort)
  * @return argument ``o''.
  */
 gpointer
-malloc_not_leaking(gconstpointer o, const char *unused_file, int unused_line)
+malloc_not_leaking(gconstpointer o)
 {
-	(void) unused_file;
-	(void) unused_line;
-
 	/*
 	 * Could be called on memory that was not allocated dynamically or which
 	 * we do not know anything about. If so, just ignore silently.
@@ -3213,6 +3201,7 @@ malloc_init(const char *argv0)
 {
 	gboolean has_setting = FALSE;
 	struct malloc_settings {
+		guint8 use_halloc;
 		guint8 track_malloc;
 		guint8 track_zalloc;
 		guint8 remap_zalloc;
@@ -3254,6 +3243,10 @@ malloc_init(const char *argv0)
 	 * Log malloc configuration.
 	 */
 
+#ifdef USE_HALLOC
+	settings.use_halloc = TRUE;
+	has_setting = TRUE;
+#endif
 #ifdef TRACK_MALLOC
 	settings.track_malloc = TRUE;
 	has_setting = TRUE;

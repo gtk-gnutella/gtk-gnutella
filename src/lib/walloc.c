@@ -190,11 +190,16 @@ wfree(gpointer ptr, size_t size)
 #endif
 
 	if (rounded > WALLOC_MAX) {
+#ifdef TRACK_ZALLOC
+		/* halloc_track() is going to walloc_track() which uses malloc() */ 
+		free(ptr);
+#else
 		if (rounded >= halloc_threshold) {
 			hfree(ptr);
 		} else {
 			free(ptr);
 		}
+#endif
 		return;
 	}
 
@@ -301,7 +306,8 @@ walloc_track(size_t size, const char *file, int line)
 #ifdef TRACK_MALLOC
 			malloc_track(size, file, line);
 #else
-			rounded >= halloc_threshold ? halloc(size) : malloc(size);
+			/* Can't reroute to halloc() since it may come back here */
+			malloc(size);
 #endif
 			if (NULL == p)
 				g_error("out of memory");

@@ -55,6 +55,7 @@ RCSID("$Id$")
 #include "walloc.h"
 #include "unsigned.h"
 #include "vmm.h"
+#include "zalloc.h"			/* Only for possible zalloc_shift_pointer() */
 
 #include "glib-missing.h"
 #include "override.h"		/* Must be the last header included */
@@ -193,6 +194,9 @@ halloc(size_t size)
 #endif
 		head->size = size;
 		p = &head[1];
+#if defined(TRACK_ZALLOC) || defined(MALLOC_STATS)
+		zalloc_shift_pointer(head, p);
+#endif
 	} else {
 		int inserted;
 

@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, 2009 Raphael Manfredi
+ * Copyright (c) 2002-2003, 2009-2010 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,7 +31,7 @@
  *
  * @author Raphael Manfredi
  * @date 2002-2003
- * @date 2009
+ * @date 2009-2010
  */
 
 #include "common.h"
@@ -41,6 +41,7 @@ RCSID("$Id$")
 #include "zalloc.h"
 #include "hashtable.h"
 #include "glib-missing.h"	/* For g_mem_is_system_malloc() */
+#include "malloc.h"			/* For MALLOC_FRAMES */
 #include "misc.h"			/* For short_filename() */
 #include "stringify.h"
 #include "unsigned.h"
@@ -123,6 +124,37 @@ static gboolean zalloc_always_gc;	/**< Whether zones should stay in GC mode */
 static gboolean addr_grows_upwards;	/**< Whether newer VM addresses increase */
 static gboolean zalloc_closing;		/**< Whether zclose() was called */
 
+#ifdef MALLOC_FRAMES
+static hash_table_t *zalloc_frames;	/**< Tracks allocation frame atoms */
+#endif
+#if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
+static hash_table_t *not_leaking;
+static hash_table_t *alloc_used_to_real;
+static hash_table_t *alloc_real_to_used;
+#endif
+
+/*
+ * Optional additional overhead at the beginning of each block:
+ *
+ *  +---------------------+ <---- OVH_ZONE_SAFE_OFFSET   ^
+ *  | BLOCK_USED magic    | ZONE_SAFE                    | OVH_ZONE_SAFE_LEN
+ *  | zone_t *zone        |                              v
+ *  +---------------------+ <---- OVH_TRACK_OFFSET       ^
+ *  | char *filename      | TRACK_ZALLOC                 | OVH_TRACK_LEN
+ *  | int line            |                              v
+ *  +---------------------+ <---- OVH_FRAME_OFFSET       ^
+ *  | struct frame *alloc | MALLOC_FRAMES                v OVH_FRAME_LEN
+ *  +---------------------+ <---- returned alocation pointer
+ *  |      ........       | User data
+ *  :      ........       :
+ *
+ * The total length of the leading overhead is OVH_LENGTH.
+ * Individual offets are relative to the real block start.
+ *
+ * FIXME: will not work on 64-bit architectures if pointers cannot be aligned
+ * on 32-bit boundaries.
+ */
+
 /*
  * Define ZONE_SAFE to allow detection of duplicate frees on a zone object
  * or freeing directed to the wrong zone.
@@ -131,27 +163,36 @@ static gboolean zalloc_closing;		/**< Whether zclose() was called */
  * block, which defeats one of the advantages of having a zone allocation in
  * the first place!
  */
-#if (defined(DMALLOC) || defined(TRACK_ZALLOC)) && !defined(ZONE_SAFE)
+#if (defined(DMALLOC) || defined(TRACK_ZALLOC)) || defined(MALLOC_FRAMES)
+#ifndef ZONE_SAFE
 #define ZONE_SAFE
 #endif
-
-#ifdef ZONE_SAFE
-#define SAFE_REV_OFFSET		(2 * sizeof(char *))
-#else
-#define SAFE_REV_OFFSET		0
 #endif
 
+#define OVH_ZONE_SAFE_OFFSET	0
+#ifdef ZONE_SAFE
+#define OVH_ZONE_SAFE_LEN		(2 * sizeof(char *))
+#else
+#define OVH_ZONE_SAFE_LEN		0
+#endif
+
+#define OVH_TRACK_OFFSET	(OVH_ZONE_SAFE_OFFSET + OVH_ZONE_SAFE_LEN)
 #ifdef TRACK_ZALLOC
-
 #undef zalloc				/* We want the real zalloc() routine here */
+#define OVH_TRACK_LEN		(sizeof(char *) + sizeof(int))
+#else
+#define OVH_TRACK_LEN		0
+#endif
 
-#define FILE_REV_OFFSET		(sizeof(char *) + sizeof(int))
+#define OVH_FRAME_OFFSET	(OVH_TRACK_OFFSET + OVH_TRACK_LEN)
+#ifdef MALLOC_FRAMES
+#define OVH_FRAME_LEN		sizeof(struct frame *)
+#define INVALID_FRAME_PTR	((struct frame *) 0xdeadbeef)
+#else
+#define OVH_FRAME_LEN		0
+#endif
 
-#else	/* !TRACK_ZALLOC */
-#define FILE_REV_OFFSET		0
-#endif	/* TRACK_ZALLOC */
-
-#define USED_REV_OFFSET		(SAFE_REV_OFFSET + FILE_REV_OFFSET)
+#define OVH_LENGTH			(OVH_ZONE_SAFE_LEN + OVH_TRACK_LEN + OVH_FRAME_LEN)
 
 #ifdef ZONE_SAFE
 #define BLOCK_USED			((char *) 0xff12aa35)	/**< Tag for used blocks */
@@ -203,7 +244,17 @@ zprepare(zone_t *zone, char **blk)
 	*blk++ = (char *) zone;
 #endif
 #ifdef TRACK_ZALLOC
-	blk = ptr_add_offset(blk, FILE_REV_OFFSET);
+	blk = ptr_add_offset(blk, OVH_TRACK_LEN);
+#endif
+#ifdef MALLOC_FRAMES
+	{
+		struct frame **p = (struct frame **) blk;
+		struct frame f;
+
+		get_stack_frame(&f);
+		*p = get_frame_atom(&zalloc_frames, &f);
+	}
+	blk = ptr_add_offset(blk, OVH_FRAME_LEN);
 #endif
 	return blk;
 }
@@ -295,14 +346,16 @@ zalloc_track(zone_t *zone, const char *file, int line)
 	char *blk = zalloc(zone);
 	char *p;
 
-	p = blk - FILE_REV_OFFSET;			/* Go backwards */
+	p = ptr_add_offset(blk, -OVH_LENGTH + OVH_TRACK_OFFSET);
 	*(char const **) p = short_filename(file);
 	p += sizeof(char *);
 	*(int *) p = line;
 
 	return blk;
 }
+#endif	/* TRACK_ZALLOC */
 
+#if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
 /**
  * Log information about block, `p' being the physical start of the block, not
  * the user part of it.  The block is known to be of size `size' and should
@@ -315,15 +368,45 @@ zblock_log(const char *p, size_t size, void *leakset)
 	const char *file;
 	unsigned line;
 
-	uptr = p + sizeof(char *);		/* Skip used marker */
-	uptr += sizeof(char *);			/* Skip owning zone */
-	file = *(char **) uptr;
-	uptr += sizeof(char *);
-	line = *(int *) uptr;
-	uptr += sizeof(int);
+	STATIC_ASSERT(OVH_ZONE_SAFE_LEN > 0);	/* Ensures ZONE_SAFE is on */
+
+	uptr = const_ptr_add_offset(p, OVH_LENGTH);
+
+#ifdef TRACK_ZALLOC
+	{
+		const char *q = const_ptr_add_offset(p, OVH_TRACK_OFFSET);
+		file = *(char **) q;
+		q += sizeof(char *);
+		line = *(int *) q;
+	}
+#else
+	file = "none";
+	line = 0;
+#endif
+#if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
+	if (not_leaking != NULL && hash_table_lookup(not_leaking, uptr)) {
+		g_message("block 0x%lx from \"%s:%u\" marked as non-leaking",
+			(unsigned long) uptr, file, line);
+		return;
+	}
+#endif
 
 	g_warning("leaked block 0x%lx from \"%s:%u\"",
 		(unsigned long) uptr, file, line);
+
+#ifdef MALLOC_FRAMES
+	{
+		const char *q = const_ptr_add_offset(p, OVH_FRAME_OFFSET);
+		const struct frame *f = *(struct frame **) q;
+
+		if (f != INVALID_FRAME_PTR) {
+			print_stack_frame(stderr, f);
+		} else {
+			g_warning("however frame pointer suggests block 0x%lx was freed?",
+				(unsigned long) uptr);
+		}
+	}
+#endif
 
 	leak_add(leakset, size, file, line);
 }
@@ -338,6 +421,8 @@ zdump_used(const zone_t *zone)
 	const struct subzone *sz;
 	const char *p;
 	void *leakset = leak_init();
+
+	STATIC_ASSERT(OVH_ZONE_SAFE_LEN > 0);	/* Ensures ZONE_SAFE is on */
 
 	for (sz = &zone->zn_arena; sz; sz = sz->sz_next) {
 		const char *end;
@@ -364,7 +449,56 @@ zdump_used(const zone_t *zone)
 	leak_dump(leakset);
 	leak_close(leakset);
 }
-#endif	/* TRACK_ZALLOC */
+
+/**
+ * Flag object ``o'' as "not leaking" if not freed at exit time.
+ * @return argument ``o''.
+ */
+void *
+zalloc_not_leaking(const void *o)
+{
+	const void *u;
+
+	/*
+	 * Before recording a pointer as non-leaking, we can't make sure we're
+	 * called with a used zalloc() block: we could be invoked on a malloc'ed()
+	 * object or worse, the result of a vmm_alloc(). So we can't just backtrack
+	 * in memory and look for some header.
+	 */
+
+	if (NULL == not_leaking)
+		not_leaking = hash_table_new();
+
+	/*
+	 * If object was allocated through halloc(), the used pointer (the one seen
+	 * outside of halloc()) is not the start of the allocated block.  For the
+	 * purpose of leak tracking, we track physical block start.
+	 */
+
+	u = hash_table_lookup(alloc_used_to_real, o);
+
+	hash_table_insert(not_leaking, u != NULL ? u : o, GINT_TO_POINTER(1));
+
+	return deconstify_gpointer(o);
+}
+
+/**
+ * Records the mapping between the user-visible address of the allocated block,
+ * as returned by halloc(), or any other header-using allocation routine based
+ * on zalloc() for that matter, and the start of the physical block.
+ */
+void
+zalloc_shift_pointer(const void *allocated, const void *used)
+{
+	if (alloc_used_to_real == NULL) {
+		alloc_used_to_real = hash_table_new();
+		alloc_real_to_used = hash_table_new();
+	}
+
+	hash_table_insert(alloc_used_to_real, used, allocated);
+	hash_table_insert(alloc_real_to_used, allocated, used);
+}
+#endif	/* TRACK_ZALLOC || MALLOC_FRAMES */
 
 /**
  * Return block to its zone, hence freeing it. Previous content of the
@@ -388,7 +522,7 @@ zfree(zone_t *zone, void *ptr)
 		char **tmp;
 
 		/* Go back at leading magic, also the start of the block */
-		tmp = ptr_add_offset(ptr, -USED_REV_OFFSET);
+		tmp = ptr_add_offset(ptr, -OVH_LENGTH + OVH_ZONE_SAFE_OFFSET);
 
 		if (tmp[0] != BLOCK_USED)
 			g_error("trying to free block 0x%lx twice", (gulong) ptr);
@@ -396,8 +530,27 @@ zfree(zone_t *zone, void *ptr)
 			g_error("trying to free block 0x%lx to wrong zone", (gulong) ptr);
 	}
 #endif
+#ifdef MALLOC_FRAMES
+	{
+		struct frame **p = ptr_add_offset(ptr, -OVH_LENGTH + OVH_FRAME_OFFSET);
+		*p = INVALID_FRAME_PTR;
+	}
+#endif
+#if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
+	if (not_leaking != NULL) {
+		void *a = NULL;
+		if (alloc_real_to_used != NULL) {
+			a = hash_table_lookup(alloc_real_to_used, ptr);
+		}
+		hash_table_remove(not_leaking, a != NULL ? a : ptr);
+		if (a != NULL) {
+			hash_table_remove(alloc_real_to_used, ptr);
+			hash_table_remove(alloc_used_to_real, a);
+		}
+	}
+#endif
 
-	ptr = ptr_add_offset(ptr, -USED_REV_OFFSET);
+	ptr = ptr_add_offset(ptr, -OVH_LENGTH);
 
 	g_assert(uint_is_positive(zone->zn_cnt)); 	/* Has something to free! */
 
@@ -515,7 +668,7 @@ adjust_size(size_t requested, unsigned *hint_ptr)
 	 * line number where it was allocated from.
 	 */
 
-	size += USED_REV_OFFSET;
+	size += OVH_LENGTH;
 
 	size = zalloc_round(size);
 
@@ -861,6 +1014,36 @@ zclose(void)
 	hash_table_foreach(zt, free_zone, NULL);
 	hash_table_destroy(zt);
 	zt = NULL;
+
+#ifdef MALLOC_FRAMES
+	if (zalloc_frames != NULL) {
+		size_t frames = hash_table_size(zalloc_frames);
+		g_message("zalloc() tracked %lu distinct stack frame%s",
+			(unsigned long) frames, 1 == frames ? "" : "s");
+		hash_table_destroy(zalloc_frames);
+		zalloc_frames = NULL;
+	}
+#endif
+#if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
+	if (not_leaking != NULL) {
+		size_t blocks = hash_table_size(not_leaking);
+		g_message("zalloc() had %lu block%s registered as not-leaking",
+			(unsigned long) blocks, 1 == blocks ? "" : "s");
+		hash_table_destroy(not_leaking);
+		not_leaking = NULL;
+	}
+	if (alloc_used_to_real != NULL) {
+		size_t blocks = hash_table_size(alloc_used_to_real);
+		g_message("zalloc() had %lu block%s registered for address shifting",
+			(unsigned long) blocks, 1 == blocks ? "" : "s");
+		hash_table_destroy(alloc_used_to_real);
+		if (hash_table_size(alloc_real_to_used) != blocks) {
+			g_warning("zalloc() had count mismatch in address shifting tables");
+		}
+		hash_table_destroy(alloc_real_to_used);
+		alloc_used_to_real = alloc_real_to_used = NULL;
+	}
+#endif
 }
 
 /**
@@ -1847,7 +2030,7 @@ found:
 	 * block size).
 	 */
 
-	start = ptr_add_offset(p, -USED_REV_OFFSET);
+	start = ptr_add_offset(p, -OVH_LENGTH);
 	memcpy(blk, start, zone->zn_size);
 
 	np = zprepare(zone, blk);		/* Allow for block overhead */

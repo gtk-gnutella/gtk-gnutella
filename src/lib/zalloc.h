@@ -89,5 +89,9 @@ void *zalloc_track(zone_t *z, const char *file, int line);
 
 #endif	/* TRACK_ZALLOC */
 
+#if defined(TRACK_ZALLOC) || defined(MALLOC_STATS)
+void zalloc_shift_pointer(const void *allocated, const void *used);
+#endif
+
 #endif /* _zalloc_h_ */
 

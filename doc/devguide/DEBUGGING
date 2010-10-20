@@ -62,14 +62,18 @@ The defines which can be used are:
         twice is reported during program execution.
 
     TRACK_ZALLOC
-		Track allocations made by zalloc() and provide a report on
-		memory not freed at the end of program execution. Memory freed
-		twice is reported during program execution.
+        Track allocations made by zalloc() and provide a report on
+        memory not freed at the end of program execution. Memory freed
+        twice is reported during program execution.
 
-    * note that there is no TRACK_WALLOC because walloc() is a wrapper
-      around both malloc() and zalloc() so all memory allocation with
-      walloc() will be caught with TRACK_MALLOC and either
-      TRACK_ZALLOC or REMAP_ZALLOC.
+        * note that there is no TRACK_WALLOC because walloc() is a wrapper
+          around both malloc() and zalloc() so all memory allocation with
+          walloc() will be caught with TRACK_MALLOC and either
+          TRACK_ZALLOC or REMAP_ZALLOC.
+
+        Combining with MALLOC_FRAMES will also track and display the
+        allocation stack frame of all blocks which remain allocated at
+        shutdown time.
 
     TRACK_ATOMS
         Track the allocation of Atoms used in GTKG. Some values, such
@@ -83,9 +87,9 @@ The defines which can be used are:
         so that the used status can be tracked and double free's can
         be detected. 
 
-		ZONE_SAFE is automatically turned on when TRACK_ZALLOC is
-		used. When tracking some additional memory is used to track
-		the file and line information as well.
+        ZONE_SAFE is automatically turned on when TRACK_ZALLOC is
+        used. When tracking some additional memory is used to track
+        the file and line information as well.
 
     REMAP_ZALLOC
         Cause both zalloc and walloc calls to actually use g_malloc. This
@@ -97,50 +101,94 @@ The defines which can be used are:
         It does make much sense to use REMAP_ZALLOC together with the
         TRACK_* defines.
 
-	MALLOC_STATS
-		When supplied in addition to TRACK_MALLOC, and with REMAP_ZALLOC,
-		this keeps track of allocation statistics during the lifetime of
-		the program.
+    MALLOC_STATS
+        When supplied in addition to TRACK_MALLOC, and with REMAP_ZALLOC,
+        this keeps track of allocation statistics during the lifetime of
+        the program.
 
-	* note: When compiling with MALLOC_STATS, it's best to use REMAP_ZALLOC
-	  as well since normally zalloc() has its own block tracking features
-	  that will not be accounted for in the malloc stats.
+        * note: When compiling with MALLOC_STATS, it's best to use REMAP_ZALLOC
+          as well since normally zalloc() has its own block tracking features
+          that will not be accounted for in the malloc stats.
 
-		Those statistics are dumped at the end of the program run, and also
-		when a SIGUSR1 signal is sent.  The SIGUSR2 signal resets the
-		incremental statistics after dumping them and can be used to look at
-		the memory usage variation between a SIGUSR2 and the next SIGUSR1
-		or SIGUSR2.
+        Those statistics are dumped at the end of the program run, and also
+        when a SIGUSR1 signal is sent.  The SIGUSR2 signal resets the
+        incremental statistics after dumping them and can be used to look at
+        the memory usage variation between a SIGUSR2 and the next SIGUSR1
+        or SIGUSR2.
 
-		During the execution of the program, statistics are sorted on the
-		"incremental" counters whilst the final dump is sorted using the
-		global counters.
+        During the execution of the program, statistics are sorted on the
+        "incremental" counters whilst the final dump is sorted using the
+        global counters.
 
-	MALLOC_FRAMES
-		If you have a GNU C library with the backtrace() call, this will
-		keep track of the allocation stacks, free stacks and reallocation
-		stacks and will show the various paths leading to a given call.
+    MALLOC_FRAMES
+        If you have a GNU C library with the backtrace() call, this will
+        keep track of the allocation stacks, free stacks and reallocation
+        stacks and will show the various paths leading to a given call.
 
-		At exit time, it will provide, for each leaked block, the stack trace
-		that led to the allocation of that block  The stack uses symbol
-		names if possible.  This is done by parsing the output of "nm -p",
-		so it may not work on all systems (tested only on Linux, but the
-		expected format is known to be compatible with that of HP-UX, at least).
+        At exit time, it will provide, for each leaked block, the stack trace
+        that led to the allocation of that block  The stack uses symbol
+        names if possible.  This is done by parsing the output of "nm -p",
+        so it may not work on all systems (tested only on Linux, but the
+        expected format is known to be compatible with that of HP-UX, at least).
 
-		MALLOC_FRAMES works best with MALLOC_STATS and REMAP_ZALLOC.
+        MALLOC_FRAMES works best with MALLOC_STATS and REMAP_ZALLOC, but
+        it can be used in a standalone way as well, in which case it only
+        applies to zalloc() and walloc(), without any need for TRACK_ZALLOC
+        (however without TRACK_ZALLOC only stack frames will be displayed,
+        the exact allocation point will not be tracked).
 
-		Currently, the code does not compile without MALLOC_STATS if
-		MALLOC_FRAMES is also requested, but this will be fixed in the future.
+        To get allocation frames from malloc()-style allocations, TRACK_MALLOC
+        is also required.
 
-	MALLOC_SAFE
-		When turned on, this adds a 4-byte trailer with a magic number, to
-		detect buffer overruns at realloc() and free() time.  One can also
-		add a fixed-length additional trailer (length is controlled by the
-		MALLOC_TRAILER_LEN define) to increase the protection / detection range.
+Some options are also available by editing the src/lib/malloc.c top
+section, which define symbols that need only be visible within that file
+to be effective.
 
-		Say -DMALLOC_TRAILER_LEN=32 on the compile line to get an additional
-		32-byte trailer that will be checked for overrun.
+All such symbols are protected thusly:
 
-		This is aimed at detecting buffer overruns, not as a way to permanently
-		tolerate them with some protection.  First, it costs additional memory,
-		and second, buffer overruns are bugs!
+#if 0
+#define MALLOC_VTABLE
+#endif
+
+All you need to do is change the "#if 0" into "#if 1".  If you are a developer,
+be careful to never submit a version of src/lib/malloc.c with any of these
+conditional symbols turned on (i.e. the submitted version should contain
+only "#if 0" protections).
+
+The various symbols are:
+
+    MALLOC_VTABLE
+        When TRACK_MALLOC is not defined, it is important to define this so
+        that glib's and GTK's malloc() calls are redirected to the real_malloc()
+        routine, so that we have a chance to implement the various options
+        that can be defined in src/lib/malloc.c.
+
+    MALLOC_SAFE
+        When turned on, this adds a 4-byte trailer with a magic number, to
+        detect buffer overruns at realloc() and free() time.  One can also
+        add a fixed-length additional trailer (length is controlled by the
+        MALLOC_TRAILER_LEN symbol) to increase the protection / detection range.
+
+        Say -DMALLOC_TRAILER_LEN=32 on the compile line to get an additional
+        32-byte trailer that will be checked for overrun.
+
+        This is aimed at detecting buffer overruns, not as a way to permanently
+        tolerate them with some protection.  First, it costs additional memory,
+        and second, buffer overruns are bugs!
+
+    MALLOC_FREE_ERASE
+        This erases the content of allocated blocks at free time, filling with
+        a marker which should also invalidate all pointers in the block: any
+        accidental de-reference should cause a segmentation fault or a bus
+        error.  The aim is to catch invalid access to freed memory.
+
+    MALLOC_DUP_FREE
+        Detects duplicate free() calls by marking the first integer of each
+        free block with a magic number that cannot be a valid pointer.
+        When the block is allocated again, the mark is removed (zero-ed).
+
+    MALLOC_PERIODIC
+        Turns on periodic scanning of all the allocated blocks to check
+        for memory corruption (corrupted markers at the end of blocks added
+        by MALLOC_SAFE).
+
