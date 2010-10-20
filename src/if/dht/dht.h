@@ -50,6 +50,8 @@ void dht_bootstrap_if_needed(host_addr_t addr, guint16 port);
 void dht_attempt_bootstrap(void);
 void dht_update_size_estimate(void);
 
+gboolean dht_is_active(void);
+
 /**
  * Is the DHT enabled?
  */

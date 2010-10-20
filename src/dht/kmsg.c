@@ -200,7 +200,7 @@ kmsg_handle(knode_t *kn,
 	 * Enforce that no RPC call can be made on a non-active node.
 	 */
 
-	if (GNET_PROPERTY(dht_current_mode) != DHT_MODE_ACTIVE && km->rpc_call) {
+	if (km->rpc_call && !dht_is_active()) {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_message("DHT in passive mode, ignoring %s from %s",
 				km->name, knode_to_string(kn));
@@ -292,8 +292,7 @@ kmsg_build_header(kademlia_header_t *header,
 		host_addr_ipv4(listen_addr()), socket_listen_port());
 	kademlia_header_set_contact_instance(header, 1);	/* XXX What's this? */
 	kademlia_header_set_contact_flags(header,
-		GNET_PROPERTY(dht_current_mode) == DHT_MODE_PASSIVE ?
-			KDA_MSG_F_FIREWALLED : 0);
+		dht_is_active() ?  0 : KDA_MSG_F_FIREWALLED);
 	kademlia_header_set_extended_length(header, 0);
 
 	g_assert(kademlia_header_constants_ok(header));

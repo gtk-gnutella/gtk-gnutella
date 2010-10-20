@@ -84,6 +84,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "if/dht/routing.h"
+#include "if/dht/dht.h"
 
 #include "lib/atoms.h"
 #include "lib/base16.h"
@@ -107,6 +108,7 @@ RCSID("$Id$")
 #define K_BUCKET_PENDING	KDA_K	/* Keep k pending contacts (replacement) */
 
 #define K_BUCKET_MAX_DEPTH	(KUID_RAW_BITSIZE - 1)
+#define K_BUCKET_MAX_DEPTH_PASSIVE	16
 
 /**
  * How many sub-divisions of a bucket can happen.
@@ -136,8 +138,10 @@ RCSID("$Id$")
  * Every period, we make sure our "good" contacts are still alive and
  * check whether the "stale" contacts can be permanently dropped.
  */
-#define ALIVENESS_PERIOD		(10*60)		/* 10 minutes */
-#define ALIVENESS_PERIOD_MS		(ALIVENESS_PERIOD * 1000)
+#define ALIVE_PERIOD			(10*60)		/* 10 minutes */
+#define ALIVE_PERIOD_MS			(ALIVE_PERIOD * 1000)
+#define ALIVE_PERIOD_PASV		(20*60)		/* 20 minutes */
+#define ALIVE_PERIOD_PASV_MS	(ALIVE_PERIOD_PASV * 1000)
 
 /**
  * Period for bucket refreshes.
@@ -318,6 +322,15 @@ dht_configured_mode_changed(dht_mode_t mode)
 }
 
 /**
+ * Is DHT running in active mode?
+ */
+gboolean
+dht_is_active(void)
+{
+	return GNET_PROPERTY(dht_current_mode) == DHT_MODE_ACTIVE;
+}
+
+/**
  * Is bucket a leaf?
  */
 static gboolean
@@ -415,9 +428,19 @@ is_among_our_closest(const struct kbucket *kb)
 static gboolean
 is_splitable(const struct kbucket *kb)
 {
+	unsigned max_depth;
+
 	g_assert(is_leaf(kb));
 
-	if (kb->depth >= K_BUCKET_MAX_DEPTH)
+	/*
+	 * Limit the depth of the tree to K_BUCKET_MAX_DEPTH_PASSIVE for passive
+	 * nodes since they don't need to maintain a full table.
+	 */
+
+	max_depth = dht_is_active() ?
+		K_BUCKET_MAX_DEPTH : K_BUCKET_MAX_DEPTH_PASSIVE;
+
+	if (kb->depth >= max_depth)
 		return FALSE;		/* Reached the bottom of the tree */
 
 	if (kb->ours)
@@ -435,7 +458,7 @@ is_splitable(const struct kbucket *kb)
 	 * closest subtree irregular splits.
 	 */
 
-	if (GNET_PROPERTY(dht_current_mode) != DHT_MODE_ACTIVE)
+	if (!dht_is_active())
 		return FALSE;		/* No more splits */
 
 	/*
@@ -644,8 +667,7 @@ get_our_knode(void)
 	gtkg.u32 = T_GTKG;
 
 	return knode_new(our_kuid,
-		GNET_PROPERTY(dht_current_mode) == DHT_MODE_PASSIVE ?
-			KDA_MSG_F_FIREWALLED : 0,
+		dht_is_active() ? 0 : KDA_MSG_F_FIREWALLED,
 		listen_addr(), socket_listen_port(), gtkg,
 		KDA_VERSION_MAJOR, KDA_VERSION_MINOR);
 }
@@ -832,17 +854,26 @@ free_node_lists(struct kbucket *kb)
 static void
 install_alive_check(struct kbucket *kb)
 {
-	int delay = ALIVENESS_PERIOD_MS;
+	int delay;
 	int adj;
 
 	g_assert(is_leaf(kb));
+
+	/*
+	 * Passive node need not refresh as often since it is not critical
+	 * to be able to return good nodes to others: they don't answer RPCs.
+	 * All that matters is that they keep some good nodes to be able to
+	 * initiate lookups.
+	 */
+
+	delay = dht_is_active() ? ALIVE_PERIOD_MS : ALIVE_PERIOD_PASV_MS;
 
 	/*
 	 * Adjust delay randomly by +/- 5% to avoid callbacks firing at the
 	 * same time for all the buckets.
 	 */
 
-	adj = ALIVENESS_PERIOD_MS / 10;
+	adj = ALIVE_PERIOD_MS / 10;
 	adj = adj / 2 - random_value(adj);
 
 	kb->nodes->aliveness =
@@ -863,11 +894,15 @@ install_bucket_refresh(struct kbucket *kb)
 	/*
 	 * Our bucket must be refreshed more often, so that we always have a
 	 * complete view of our closest subtree.
+	 *
+	 * If we are passive (not responding to RPC calls) then it does not
+	 * matter as much and our bucket does not necessarily need to be refreshed
+	 * more often.
 	 */
 
 	STATIC_ASSERT(OUR_REFRESH_PERIOD < REFRESH_PERIOD);
 
-	if (kb->ours)
+	if (kb->ours && dht_is_active())
 		period = OUR_REFRESH_PERIOD;
 
 	/*
@@ -1900,7 +1935,7 @@ promote_pending_node(struct kbucket *kb)
 
 			elapsed = delta_time(tm_time(), selected->last_seen);
 
-			if (elapsed >= ALIVENESS_PERIOD) {
+			if (elapsed >= ALIVE_PERIOD) {
 				if (GNET_PROPERTY(dht_debug)) {
 					g_message("DHT pinging promoted node (last seen %s)",
 						short_time(elapsed));
@@ -2512,7 +2547,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 		knode_check(kn);
 		g_assert(KNODE_GOOD == kn->status);
 
-		if (delta_time(now, kn->last_seen) < ALIVENESS_PERIOD)
+		if (delta_time(now, kn->last_seen) < ALIVE_PERIOD)
 			break;		/* List is sorted: least recently seen at the head */
 
 		if (dht_lazy_rpc_ping(kn)) {
@@ -2846,7 +2881,7 @@ dht_update_subspace_size_estimate(
 	 * unless we have more data in the results (estimate will be more precise).
 	 */
 
-	if (delta_time(now, stats.lookups[subspace].computed) < ALIVENESS_PERIOD) {
+	if (delta_time(now, stats.lookups[subspace].computed) < ALIVE_PERIOD) {
 		if (kept <= stats.lookups[subspace].amount)
 			return;
 	}
@@ -3151,7 +3186,7 @@ fill_closest_in_bucket(
 				(!alive ||
 					(
 						(kn->flags & KNODE_F_ALIVE) &&
-						delta_time(now, kn->last_seen) < ALIVENESS_PERIOD
+						delta_time(now, kn->last_seen) < ALIVE_PERIOD
 					)
 				)
 			) {

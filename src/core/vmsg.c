@@ -65,7 +65,7 @@ RCSID("$Id$")
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
-#include "if/dht/dht.h"			/* For dht_enabled() */
+#include "if/dht/dht.h"			/* For dht_enabled(), dht_is_active() */
 #include "if/dht/kademlia.h"	/* For KDA_VERSION_* */
 
 #include "lib/array.h"
@@ -3189,8 +3189,7 @@ vmsg_send_features_supported(struct gnutella_node *n)
 	if (dht_enabled()) {
 		/* DHT mode: ADHT = active, PDHT = passive, LDHT = leaf */
 		vmsg_features_add(&vmf,
-			GNET_PROPERTY(dht_current_mode) == DHT_MODE_ACTIVE ?
-				"ADHT" : "PDHT",
+			dht_is_active() ?  "ADHT" : "PDHT",
 			(KDA_VERSION_MAJOR << 8) + KDA_VERSION_MINOR);
 	}
 
