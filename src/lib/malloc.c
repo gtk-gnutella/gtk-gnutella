@@ -939,18 +939,43 @@ block_is_dead(const void *p, size_t size)
 
 static gboolean need_periodic;
 
+struct block_check_context {
+	unsigned total;
+	unsigned owned;
+	unsigned real;
+	unsigned old_corrupted;
+	unsigned new_corrupted;
+};
+
 #ifdef TRACK_MALLOC
 /**
  * Iterating callback to check a tracked block.
  */
 static void
-block_check(const void *key, void *value, void *unused_user)
+block_check(const void *key, void *value, void *ctx)
 {
-	(void) unused_user;
+	struct block_check_context *bc = ctx;
+	struct block *b = value;
+	gboolean was_corrupted;
+
+	bc->total++;
+
+	if (b->owned)
+		bc->owned++;
+
+	was_corrupted = b->corrupted;
 
 #ifdef MALLOC_SAFE
-	block_check_marks(key, value, __FILE__, __LINE__);
+	block_check_marks(key, b, __FILE__, __LINE__);
 #endif
+
+	if (was_corrupted) {
+		bc->old_corrupted++;
+	} else {
+		if (b->corrupted) {
+			bc->new_corrupted++
+		}
+	}
 }
 #endif	/* TRACK_MALLOC */
 
@@ -959,14 +984,18 @@ block_check(const void *key, void *value, void *unused_user)
  * Iterating callback to check a real (untracked) malloc'ed block.
  */
 static void
-real_check(const void *key, void *value, void *unused_user)
+real_check(const void *key, void *value, void *ctx)
 {
+	struct block_check_context *bc = ctx;
 	size_t size = pointer_to_ulong(value);
 	void *p = deconstify_gpointer(key);
 
-	(void) unused_user;
+	bc->total++;
+	bc->real++;
 
-	block_check_trailer(p, size, "FAKED", 0, _WHERE_, __LINE__, TRUE);
+	if (block_check_trailer(p, size, "FAKED", 0, _WHERE_, __LINE__, TRUE)) {
+		bc->new_corrupted++;
+	}
 	if (block_is_dead(p, size)) {
 		g_warning("MALLOC allocated block 0x%lx marked as DEAD", (gulong) p);
 	}
@@ -975,6 +1004,7 @@ real_check(const void *key, void *value, void *unused_user)
 	{
 		struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
 		if (REAL_MALLOC_MAGIC != rmh->magic) {
+			bc->new_corrupted++;
 			g_warning("MALLOC corrupted real block magic at 0x%lx",
 				(unsigned long) p);
 		} else if (rmh->size != size) {
@@ -992,20 +1022,25 @@ real_check(const void *key, void *value, void *unused_user)
 static gboolean
 malloc_periodic(gpointer unused_obj)
 {
+	struct block_check_context ctx;
 	gboolean checked = FALSE;
+	tm_t start, end;
 
 	(void) unused_obj;
 
 	g_message("malloc periodic check starting...");
 
+	memset(&ctx, 0, sizeof ctx);
+	tm_now_exact(&start);
+
 #ifdef TRACK_MALLOC
 	checked = TRUE;
 	if (blocks != NULL)
-		hash_table_foreach(blocks, block_check, NULL);
+		hash_table_foreach(blocks, block_check, &ctx);
 #endif
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 		checked = TRUE;
-		hash_table_foreach(reals, real_check, NULL);
+		hash_table_foreach(reals, real_check, &ctx);
 #endif
 
 	if (!checked) {
@@ -1013,7 +1048,21 @@ malloc_periodic(gpointer unused_obj)
 		return FALSE;
 	}
 
-	g_message("malloc periodic check done.");
+	tm_now_exact(&end);
+
+	if (0 == ctx.old_corrupted && 0 == ctx.new_corrupted) {
+		g_message("malloc periodic check done (%u msecs): "
+			"total: %u, owned: %u, real: %u",
+			(unsigned) tm_elapsed_ms(&end, &start),
+			ctx.total, ctx.owned, ctx.real);
+	} else {
+		g_warning("malloc periodic check done (%u msecs): %s"
+			"total: %u, owned: %u, real: %u, NEWLY CORRUPTED: %u (%u old)",
+			(unsigned) tm_elapsed_ms(&end, &start),
+			0 == ctx.new_corrupted ? "" : "WATCH OUT ",
+			ctx.total, ctx.owned, ctx.real,
+			ctx.new_corrupted, ctx.old_corrupted);
+	}
 
 	return TRUE;
 }
@@ -3133,22 +3182,24 @@ malloc_glib12_check(void)
 	vtable_works = TRUE;
 
 #if !GLIB_CHECK_VERSION(2,0,0)
-	gpointer p;
-	size_t old_size = hash_table_size(reals);
+	{
+		gpointer p;
+		size_t old_size = hash_table_size(reals);
 
-	/*
-	 * Check whether the remapping is effective. This may not be
-	 * the case for our GLib 1.2 hack. This is required for Darwin,
-	 * for example.
-	 */
-	p = g_strdup("");
-	if (hash_table_size(reals) == old_size) {
-		static GMemVTable zero_vtable;
-		fprintf(stderr, "WARNING: resetting g_mem_set_vtable\n");
-		g_mem_set_vtable(&zero_vtable);
-		vtable_works = FALSE;
-	} else {
-		G_FREE_NULL(p);
+		/*
+		 * Check whether the remapping is effective. This may not be
+		 * the case for our GLib 1.2 hack. This is required for Darwin,
+		 * for example.
+		 */
+		p = g_strdup("");
+		if (hash_table_size(reals) == old_size) {
+			static GMemVTable zero_vtable;
+			fprintf(stderr, "WARNING: resetting g_mem_set_vtable\n");
+			g_mem_set_vtable(&zero_vtable);
+			vtable_works = FALSE;
+		} else {
+			G_FREE_NULL(p);
+		}
 	}
 #endif	/* GLib < 2.0.0 */
 }
