@@ -781,14 +781,14 @@ block_check_trailer(gconstpointer o, size_t size,
 	size_t trailer = MALLOC_TRAILER_LEN;
 	const char *p;
 
-	if (MALLOC_END_MARK != peek_be32(ptr_add_offset_const(o, size))) {
+	if (MALLOC_END_MARK != peek_be32(const_ptr_add_offset(o, size))) {
 		error = TRUE;
 		g_warning(
 			"MALLOC (%s:%d) block 0x%lx from %s:%d has corrupted end mark",
 			op_file, op_line, (gulong) o, file, line);
 	}
 
-	p = ptr_add_offset_const(o, size + sizeof(guint32));
+	p = const_ptr_add_offset(o, size + sizeof(guint32));
 	while (trailer--) {
 		if (*p++ != MALLOC_TRAILER_MARK) {
 			error = TRUE;
@@ -888,25 +888,25 @@ block_erase(const void *o, size_t size)
 #define MALLOC_DEAD_CLEAR	0x0
 
 static inline void
-block_mark_dead(void *p, size_t size)
+block_mark_dead(const void *p, size_t size)
 {
-	if (size >= sizeof guint) {
+	if (size >= sizeof(guint)) {
 		*(guint *) p = MALLOC_DEAD_MARK;
 	}
 }
 
 static inline void
-block_clear_dead(void *p, size_t size)
+block_clear_dead(const void *p, size_t size)
 {
-	if (size >= sizeof guint) {
+	if (size >= sizeof(guint)) {
 		*(guint *) p = MALLOC_DEAD_CLEAR;
 	}
 }
 
 static inline gboolean
-block_is_dead(void *p, size_t size)
+block_is_dead(const void *p, size_t size)
 {
-	if (size >= sizeof guint) {
+	if (size >= sizeof(guint)) {
 		return MALLOC_DEAD_MARK == *(guint *) p;
 	}
 
@@ -1193,29 +1193,33 @@ real_realloc(void *p, size_t size)
 #ifdef TRACK_MALLOC
 		struct block *b = NULL;
 
-		if (blocks)
+		if (blocks) {
 			b = hash_table_lookup(blocks, p);
+		}
 #endif
 
 #if defined(TRACK_MALLOC) && defined(MALLOC_SAFE)
-		struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
-		size_t len = real_malloc_safe_size(size);
+		{
+			struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
+			size_t len = real_malloc_safe_size(size);
 
-		if (REAL_MALLOC_MAGIC != rmh->magic)
-			g_error("MALLOC realloc(): corrupted real block magic at 0x%lx",
-				(unsigned long) p);
+			if (REAL_MALLOC_MAGIC != rmh->magic)
+				g_error("MALLOC realloc(): corrupted real block magic at 0x%lx",
+					(unsigned long) p);
 
-		block_check_trailer(p, rmh->size, "FAKED", 0, _WHERE_, __LINE__, TRUE);
+			block_check_trailer(p, rmh->size,
+				"FAKED", 0, _WHERE_, __LINE__, TRUE);
 
-		rmh = realloc(rmh, len);
-		if (rmh == NULL) {
-			n = NULL;
-		} else {
-			g_assert(REAL_MALLOC_MAGIC == rmh->magic);
+			rmh = realloc(rmh, len);
+			if (rmh == NULL) {
+				n = NULL;
+			} else {
+				g_assert(REAL_MALLOC_MAGIC == rmh->magic);
 
-			rmh->size = size;
-			n = rmh->arena;
-			block_write_trailer(n, size);
+				rmh->size = size;
+				n = rmh->arena;
+				block_write_trailer(n, size);
+			}
 		}
 #else	/* !(TRACK_MALLOC && MALLOC_SAFE) */
 		n = realloc(p, size);
