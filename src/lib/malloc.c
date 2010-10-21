@@ -75,6 +75,9 @@ RCSID("$Id$")
 #define MALLOC_TRAILER_LEN	32	/* Additional trailer len, past end mark */
 #endif
 #if 0
+#define MALLOC_SAFE_HEAD		/* Additional header magic before each block */
+#endif
+#if 0
 #define MALLOC_FREE_ERASE	/* Whether freeing should erase block data */
 #endif
 #if 0
@@ -89,20 +92,6 @@ RCSID("$Id$")
  * Most routines in this file are defined either when compiling with
  * TRACK_MALLOC or TRACK_ZALLOC.
  */
-
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
-
-/*
- * When MALLOC_FRAMES is supplied, we keep information about the allocation
- * stack frame and free stack frames.
- *
- * XXX need metaconfig checks for <execinfo.h>, backtrace().
- */
-
-#ifdef MALLOC_FRAMES
-#include <execinfo.h>
-#endif /* MALLOC_FRAMES */
-#endif /* TRACK_MALLOC || TRACK_ZALLOC */
 
 /*
  * With MALLOC_SAFE, a marker integer is put at the end of each block, and is
@@ -139,11 +128,6 @@ union mem_chunk {
   double    d;
 };
 
-/**
- * It would be nice to also protect the head, but alas, this does not work
- * well with GTK...
- */
-#undef MALLOC_SAFE_HEAD		/* Shall we protect the head of each block? */
 #ifdef MALLOC_SAFE_HEAD
 
 /**
@@ -156,10 +140,6 @@ union mem_chunk {
  *
  * Also, it is required that we be the ones freeing the blocks we allocate.
  * If this is not the case and our free is not called, havoc will result.
- *
- * With gtk-gnutella, it is IMPOSSIBLE to enable as of today (2009-05-04)
- * because the GTK routines free blocks that we allocate (for instance
- * in our gtk_clist_set_column_name() version for GTK1).
  */
 struct malloc_header {
 	unsigned start;				/* Start mark (must be before arena) */
@@ -228,14 +208,346 @@ static gboolean free_record(gconstpointer o, const char *file, int line);
 #endif
 
 /*
- * When MALLOC_FRAMES is defined, we keep track of allocation stack frames
+ * When MALLOC_FRAMES is supplied, we collect allocation stack frames.
+ *
+ * When MALLOC_STATS is also defined, we keep track of allocation stack frames
  * for all the blocks to know how many allocation / reallocation and free
  * points there are for each allocation point (identified by file + line).
  *
  * We also keep and show the allocation stack frame using symbol names for all
  * the leaked blocks that we can identify at the end.
  */
+
 #ifdef MALLOC_FRAMES
+/*
+ * getreturnaddr() and getframeaddr() are:
+ *
+ * Copyright (c) 2003 Maxim Sobolev <sobomax@FreeBSD.org>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ * $X-Id: execinfo.c,v 1.3 2004/07/19 05:21:09 sobomax Exp $
+ */
+
+/*
+ * The following routines rely on GCC internal macros, which are expanded at
+ * compile-time (hence the parameter must be specified explicitly and
+ * cannot be a variable).
+ *
+ * The advantage is that this is portable accross all architectures where
+ * GCC is available.
+ *
+ * The disadvantage is that GCC is required and the stack frame maximum
+ * size is constrained by the number of cases handled.
+ */
+
+#if defined(__GNUC__)
+static void *
+getreturnaddr(size_t level)
+{
+    switch (level) {
+    case 0:		return __builtin_return_address(1);
+    case 1:		return __builtin_return_address(2);
+    case 2:		return __builtin_return_address(3);
+    case 3:		return __builtin_return_address(4);
+    case 4:		return __builtin_return_address(5);
+    case 5:		return __builtin_return_address(6);
+    case 6:		return __builtin_return_address(7);
+    case 7:		return __builtin_return_address(8);
+    case 8:		return __builtin_return_address(9);
+    case 9:		return __builtin_return_address(10);
+    case 10:	return __builtin_return_address(11);
+    case 11:	return __builtin_return_address(12);
+    case 12:	return __builtin_return_address(13);
+    case 13:	return __builtin_return_address(14);
+    case 14:	return __builtin_return_address(15);
+    case 15:	return __builtin_return_address(16);
+    case 16:	return __builtin_return_address(17);
+    case 17:	return __builtin_return_address(18);
+    case 18:	return __builtin_return_address(19);
+    case 19:	return __builtin_return_address(20);
+    case 20:	return __builtin_return_address(21);
+    case 21:	return __builtin_return_address(22);
+    case 22:	return __builtin_return_address(23);
+    case 23:	return __builtin_return_address(24);
+    case 24:	return __builtin_return_address(25);
+    case 25:	return __builtin_return_address(26);
+    case 26:	return __builtin_return_address(27);
+    case 27:	return __builtin_return_address(28);
+    case 28:	return __builtin_return_address(29);
+    case 29:	return __builtin_return_address(30);
+    case 30:	return __builtin_return_address(31);
+    case 31:	return __builtin_return_address(32);
+    case 32:	return __builtin_return_address(33);
+    case 33:	return __builtin_return_address(34);
+    case 34:	return __builtin_return_address(35);
+    case 35:	return __builtin_return_address(36);
+    case 36:	return __builtin_return_address(37);
+    case 37:	return __builtin_return_address(38);
+    case 38:	return __builtin_return_address(39);
+    case 39:	return __builtin_return_address(40);
+    case 40:	return __builtin_return_address(41);
+    case 41:	return __builtin_return_address(42);
+    case 42:	return __builtin_return_address(43);
+    case 43:	return __builtin_return_address(44);
+    case 44:	return __builtin_return_address(45);
+    case 45:	return __builtin_return_address(46);
+    case 46:	return __builtin_return_address(47);
+    case 47:	return __builtin_return_address(48);
+    case 48:	return __builtin_return_address(49);
+    case 49:	return __builtin_return_address(50);
+    case 50:	return __builtin_return_address(51);
+    case 51:	return __builtin_return_address(52);
+    case 52:	return __builtin_return_address(53);
+    case 53:	return __builtin_return_address(54);
+    case 54:	return __builtin_return_address(55);
+    case 55:	return __builtin_return_address(56);
+    case 56:	return __builtin_return_address(57);
+    case 57:	return __builtin_return_address(58);
+    case 58:	return __builtin_return_address(59);
+    case 59:	return __builtin_return_address(60);
+    case 60:	return __builtin_return_address(61);
+    case 61:	return __builtin_return_address(62);
+    case 62:	return __builtin_return_address(63);
+    case 63:	return __builtin_return_address(64);
+    case 64:	return __builtin_return_address(65);
+    case 65:	return __builtin_return_address(66);
+    case 66:	return __builtin_return_address(67);
+    case 67:	return __builtin_return_address(68);
+    case 68:	return __builtin_return_address(69);
+    case 69:	return __builtin_return_address(70);
+    case 70:	return __builtin_return_address(71);
+    case 71:	return __builtin_return_address(72);
+    case 72:	return __builtin_return_address(73);
+    case 73:	return __builtin_return_address(74);
+    case 74:	return __builtin_return_address(75);
+    case 75:	return __builtin_return_address(76);
+    case 76:	return __builtin_return_address(77);
+    case 77:	return __builtin_return_address(78);
+    case 78:	return __builtin_return_address(79);
+    case 79:	return __builtin_return_address(80);
+    case 80:	return __builtin_return_address(81);
+    case 81:	return __builtin_return_address(82);
+    case 82:	return __builtin_return_address(83);
+    case 83:	return __builtin_return_address(84);
+    case 84:	return __builtin_return_address(85);
+    case 85:	return __builtin_return_address(86);
+    case 86:	return __builtin_return_address(87);
+    case 87:	return __builtin_return_address(88);
+    case 88:	return __builtin_return_address(89);
+    case 89:	return __builtin_return_address(90);
+    case 90:	return __builtin_return_address(91);
+    case 91:	return __builtin_return_address(92);
+    case 92:	return __builtin_return_address(93);
+    case 93:	return __builtin_return_address(94);
+    case 94:	return __builtin_return_address(95);
+    case 95:	return __builtin_return_address(96);
+    case 96:	return __builtin_return_address(97);
+    case 97:	return __builtin_return_address(98);
+    case 98:	return __builtin_return_address(99);
+    case 99:	return __builtin_return_address(100);
+    case 100:	return __builtin_return_address(101);
+    case 101:	return __builtin_return_address(102);
+    case 102:	return __builtin_return_address(103);
+    case 103:	return __builtin_return_address(104);
+    case 104:	return __builtin_return_address(105);
+    case 105:	return __builtin_return_address(106);
+    case 106:	return __builtin_return_address(107);
+    case 107:	return __builtin_return_address(108);
+    case 108:	return __builtin_return_address(109);
+    case 109:	return __builtin_return_address(110);
+    case 110:	return __builtin_return_address(111);
+    case 111:	return __builtin_return_address(112);
+    case 112:	return __builtin_return_address(113);
+    case 113:	return __builtin_return_address(114);
+    case 114:	return __builtin_return_address(115);
+    case 115:	return __builtin_return_address(116);
+    case 116:	return __builtin_return_address(117);
+    case 117:	return __builtin_return_address(118);
+    case 118:	return __builtin_return_address(119);
+    case 119:	return __builtin_return_address(120);
+    case 120:	return __builtin_return_address(121);
+    case 121:	return __builtin_return_address(122);
+    case 122:	return __builtin_return_address(123);
+    case 123:	return __builtin_return_address(124);
+    case 124:	return __builtin_return_address(125);
+    case 125:	return __builtin_return_address(126);
+    case 126:	return __builtin_return_address(127);
+    case 127:	return __builtin_return_address(128);
+    default:	return NULL;
+    }
+}
+
+static void *
+getframeaddr(size_t level)
+{
+    switch (level) {
+    case 0:		return __builtin_frame_address(1);
+    case 1:		return __builtin_frame_address(2);
+    case 2:		return __builtin_frame_address(3);
+    case 3:		return __builtin_frame_address(4);
+    case 4:		return __builtin_frame_address(5);
+    case 5:		return __builtin_frame_address(6);
+    case 6:		return __builtin_frame_address(7);
+    case 7:		return __builtin_frame_address(8);
+    case 8:		return __builtin_frame_address(9);
+    case 9:		return __builtin_frame_address(10);
+    case 10:	return __builtin_frame_address(11);
+    case 11:	return __builtin_frame_address(12);
+    case 12:	return __builtin_frame_address(13);
+    case 13:	return __builtin_frame_address(14);
+    case 14:	return __builtin_frame_address(15);
+    case 15:	return __builtin_frame_address(16);
+    case 16:	return __builtin_frame_address(17);
+    case 17:	return __builtin_frame_address(18);
+    case 18:	return __builtin_frame_address(19);
+    case 19:	return __builtin_frame_address(20);
+    case 20:	return __builtin_frame_address(21);
+    case 21:	return __builtin_frame_address(22);
+    case 22:	return __builtin_frame_address(23);
+    case 23:	return __builtin_frame_address(24);
+    case 24:	return __builtin_frame_address(25);
+    case 25:	return __builtin_frame_address(26);
+    case 26:	return __builtin_frame_address(27);
+    case 27:	return __builtin_frame_address(28);
+    case 28:	return __builtin_frame_address(29);
+    case 29:	return __builtin_frame_address(30);
+    case 30:	return __builtin_frame_address(31);
+    case 31:	return __builtin_frame_address(32);
+    case 32:	return __builtin_frame_address(33);
+    case 33:	return __builtin_frame_address(34);
+    case 34:	return __builtin_frame_address(35);
+    case 35:	return __builtin_frame_address(36);
+    case 36:	return __builtin_frame_address(37);
+    case 37:	return __builtin_frame_address(38);
+    case 38:	return __builtin_frame_address(39);
+    case 39:	return __builtin_frame_address(40);
+    case 40:	return __builtin_frame_address(41);
+    case 41:	return __builtin_frame_address(42);
+    case 42:	return __builtin_frame_address(43);
+    case 43:	return __builtin_frame_address(44);
+    case 44:	return __builtin_frame_address(45);
+    case 45:	return __builtin_frame_address(46);
+    case 46:	return __builtin_frame_address(47);
+    case 47:	return __builtin_frame_address(48);
+    case 48:	return __builtin_frame_address(49);
+    case 49:	return __builtin_frame_address(50);
+    case 50:	return __builtin_frame_address(51);
+    case 51:	return __builtin_frame_address(52);
+    case 52:	return __builtin_frame_address(53);
+    case 53:	return __builtin_frame_address(54);
+    case 54:	return __builtin_frame_address(55);
+    case 55:	return __builtin_frame_address(56);
+    case 56:	return __builtin_frame_address(57);
+    case 57:	return __builtin_frame_address(58);
+    case 58:	return __builtin_frame_address(59);
+    case 59:	return __builtin_frame_address(60);
+    case 60:	return __builtin_frame_address(61);
+    case 61:	return __builtin_frame_address(62);
+    case 62:	return __builtin_frame_address(63);
+    case 63:	return __builtin_frame_address(64);
+    case 64:	return __builtin_frame_address(65);
+    case 65:	return __builtin_frame_address(66);
+    case 66:	return __builtin_frame_address(67);
+    case 67:	return __builtin_frame_address(68);
+    case 68:	return __builtin_frame_address(69);
+    case 69:	return __builtin_frame_address(70);
+    case 70:	return __builtin_frame_address(71);
+    case 71:	return __builtin_frame_address(72);
+    case 72:	return __builtin_frame_address(73);
+    case 73:	return __builtin_frame_address(74);
+    case 74:	return __builtin_frame_address(75);
+    case 75:	return __builtin_frame_address(76);
+    case 76:	return __builtin_frame_address(77);
+    case 77:	return __builtin_frame_address(78);
+    case 78:	return __builtin_frame_address(79);
+    case 79:	return __builtin_frame_address(80);
+    case 80:	return __builtin_frame_address(81);
+    case 81:	return __builtin_frame_address(82);
+    case 82:	return __builtin_frame_address(83);
+    case 83:	return __builtin_frame_address(84);
+    case 84:	return __builtin_frame_address(85);
+    case 85:	return __builtin_frame_address(86);
+    case 86:	return __builtin_frame_address(87);
+    case 87:	return __builtin_frame_address(88);
+    case 88:	return __builtin_frame_address(89);
+    case 89:	return __builtin_frame_address(90);
+    case 90:	return __builtin_frame_address(91);
+    case 91:	return __builtin_frame_address(92);
+    case 92:	return __builtin_frame_address(93);
+    case 93:	return __builtin_frame_address(94);
+    case 94:	return __builtin_frame_address(95);
+    case 95:	return __builtin_frame_address(96);
+    case 96:	return __builtin_frame_address(97);
+    case 97:	return __builtin_frame_address(98);
+    case 98:	return __builtin_frame_address(99);
+    case 99:	return __builtin_frame_address(100);
+    case 100:	return __builtin_frame_address(101);
+    case 101:	return __builtin_frame_address(102);
+    case 102:	return __builtin_frame_address(103);
+    case 103:	return __builtin_frame_address(104);
+    case 104:	return __builtin_frame_address(105);
+    case 105:	return __builtin_frame_address(106);
+    case 106:	return __builtin_frame_address(107);
+    case 107:	return __builtin_frame_address(108);
+    case 108:	return __builtin_frame_address(109);
+    case 109:	return __builtin_frame_address(110);
+    case 110:	return __builtin_frame_address(111);
+    case 111:	return __builtin_frame_address(112);
+    case 112:	return __builtin_frame_address(113);
+    case 113:	return __builtin_frame_address(114);
+    case 114:	return __builtin_frame_address(115);
+    case 115:	return __builtin_frame_address(116);
+    case 116:	return __builtin_frame_address(117);
+    case 117:	return __builtin_frame_address(118);
+    case 118:	return __builtin_frame_address(119);
+    case 119:	return __builtin_frame_address(120);
+    case 120:	return __builtin_frame_address(121);
+    case 121:	return __builtin_frame_address(122);
+    case 122:	return __builtin_frame_address(123);
+    case 123:	return __builtin_frame_address(124);
+    case 124:	return __builtin_frame_address(125);
+    case 125:	return __builtin_frame_address(126);
+    case 126:	return __builtin_frame_address(127);
+    case 127:	return __builtin_frame_address(128);
+    default:	return NULL;
+    }
+}
+#else	/* !__GNUC__ */
+static void *
+getreturnaddr(size_t level)
+{
+	(void) level;
+	return NULL;
+}
+
+static void *
+getframeaddr(size_t level)
+{
+	(void) level;
+	return NULL;
+}
+#endif	/* __GNUC__ */
 
 /**
  * A routine entry in the symbol table.
@@ -556,20 +868,27 @@ done:
 }
 
 /**
- * Fill supplied frame structure with the backtrace.
+ * Fill supplied stackframe structure with the backtrace.
  */
 void
-get_stack_frame(struct frame *fr)
+get_stackframe(struct stackframe *fr)
 {
-	void *stack[FRAME_DEPTH + 2];
-	int len;
+    size_t i;
 
-	/* Remove ourselves + our caller from stack (first two items) */
-	len = backtrace(stack, G_N_ELEMENTS(stack));
-	g_assert(len >= 2);
-	fr->len = len - 2;
-	memcpy(fr->stack, &stack[2],
-		sizeof stack[0] * MIN(fr->len, G_N_ELEMENTS(fr->stack)));
+#define OFF 1	/* Remove ourselves + our caller from stack (first two items) */
+
+    for (
+		i = OFF;
+		getframeaddr(i + 1) != NULL && i - OFF < G_N_ELEMENTS(fr->stack);
+		i++
+	) {
+        if (NULL == (fr->stack[i - OFF] = getreturnaddr(i)))
+			break;
+    }
+
+	fr->len = i - OFF;
+
+#undef OFF
 }
 
 /**
@@ -597,10 +916,15 @@ print_stack_frame(FILE *f, const struct frame *fr)
 void
 print_where(FILE *f)
 {
-	struct frame fr;
+	struct stackframe fr;
+	size_t i;
 
-	get_stack_frame(&fr);
-	print_stack_frame(f, &fr);
+	get_stackframe(&fr);
+
+	for (i = 0; i < fr.len; i++) {
+		const char *where = trace_name(fr.stack[i]);
+		fprintf(f, "\t%s\n", where);
+	}
 }
 
 /**
@@ -611,7 +935,7 @@ print_where(FILE *f)
  * @return stack frame "atom".
  */
 struct frame *
-get_frame_atom(hash_table_t **hptr, const struct frame *f)
+get_frame_atom(hash_table_t **hptr, const struct stackframe *f)
 {
 	struct frame *fr = NULL;
 	hash_table_t *ht;
@@ -785,8 +1109,9 @@ block_check_trailer(gconstpointer o, size_t size,
 	if (MALLOC_END_MARK != peek_be32(const_ptr_add_offset(o, size))) {
 		error = TRUE;
 		g_warning(
-			"MALLOC (%s:%d) block 0x%lx from %s:%d has corrupted end mark",
-			op_file, op_line, (gulong) o, file, line);
+			"MALLOC (%s:%d) block 0x%lx (%lu bytes) from %s:%d "
+			"has corrupted end mark",
+			op_file, op_line, (gulong) o, (unsigned long) size, file, line);
 		goto done;
 	}
 
@@ -795,8 +1120,9 @@ block_check_trailer(gconstpointer o, size_t size,
 		if (*p++ != MALLOC_TRAILER_MARK) {
 			error = TRUE;
 			g_warning(
-				"MALLOC (%s:%d) block 0x%lx from %s:%d has corrupted trailer",
-				op_file, op_line, (gulong) o, file, line);
+				"MALLOC (%s:%d) block 0x%lx (%lu bytes) from %s:%d "
+				"has corrupted trailer",
+				op_file, op_line, (gulong) o, (unsigned long) size, file, line);
 			break;
 		}
 	}
@@ -834,14 +1160,16 @@ block_check_marks(gconstpointer o, struct block *b,
 		return;			/* We only track it, we did not allocate it */
 
 #ifdef MALLOC_SAFE_HEAD
-	const struct malloc_header *mh = malloc_header_from_arena(o);
+	{
+		const struct malloc_header *mh = malloc_header_from_arena(o);
 
-	if (mh->start != MALLOC_START_MARK) {
-		error = TRUE;
-		b->corrupted = TRUE;
-		g_warning(
-			"MALLOC (%s:%d) block 0x%lx from %s:%d has corrupted start mark",
-			file, line, (gulong) o, b->file, b->line);
+		if (mh->start != MALLOC_START_MARK) {
+			error = TRUE;
+			b->corrupted = TRUE;
+			g_warning(
+				"MALLOC (%s:%d) block 0x%lx from %s:%d has corrupted start mark",
+				file, line, (gulong) o, b->file, b->line);
+		}
 	}
 #endif /* MALLOC_SAFE_HEAD */
 
@@ -940,9 +1268,12 @@ block_is_dead(const void *p, size_t size)
 static gboolean need_periodic;
 
 struct block_check_context {
-	unsigned total;
-	unsigned owned;
-	unsigned real;
+	size_t total_size;
+	size_t owned_size;
+	size_t real_size;
+	unsigned total_count;
+	unsigned owned_count;
+	unsigned real_count;
 	unsigned old_corrupted;
 	unsigned new_corrupted;
 };
@@ -958,10 +1289,13 @@ block_check(const void *key, void *value, void *ctx)
 	struct block *b = value;
 	gboolean was_corrupted;
 
-	bc->total++;
+	bc->total_count++;
+	bc->total_size = size_saturate_add(bc->total_size, b->size);
 
-	if (b->owned)
-		bc->owned++;
+	if (b->owned) {
+		bc->owned_count++;
+		bc->owned_size = size_saturate_add(bc->owned_size, b->size);
+	}
 
 	was_corrupted = b->corrupted;
 
@@ -990,8 +1324,10 @@ real_check(const void *key, void *value, void *ctx)
 	size_t size = pointer_to_ulong(value);
 	void *p = deconstify_gpointer(key);
 
-	bc->total++;
-	bc->real++;
+	bc->total_count++;
+	bc->total_size = size_saturate_add(bc->total_size, size);
+	bc->real_count++;
+	bc->real_size = size_saturate_add(bc->real_size, size);
 
 	if (block_check_trailer(p, size, "FAKED", 0, _WHERE_, __LINE__, TRUE)) {
 		bc->new_corrupted++;
@@ -1005,12 +1341,13 @@ real_check(const void *key, void *value, void *ctx)
 		struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
 		if (REAL_MALLOC_MAGIC != rmh->magic) {
 			bc->new_corrupted++;
-			g_warning("MALLOC corrupted real block magic at 0x%lx",
-				(unsigned long) p);
+			g_warning("MALLOC corrupted real block magic at 0x%lx (%lu byte%s)",
+				(unsigned long) p, (unsigned long) size, 1 == size ? "" : "s");
 		} else if (rmh->size != size) {
 			g_warning("MALLOC size mismatch for real block 0x%lx: "
-				"hashtable says %u byte%s, header says %u",
-				(unsigned long) p, size, 1 == size ? "" : "s", rmh->size);
+				"hashtable says %lu byte%s, header says %u",
+				(unsigned long) p, (unsigned long) size,
+				1 == size ? "" : "s", rmh->size);
 		}
 	}
 #endif	/* MALLOC_SAFE */
@@ -1025,10 +1362,19 @@ malloc_periodic(gpointer unused_obj)
 	struct block_check_context ctx;
 	gboolean checked = FALSE;
 	tm_t start, end;
-
+	static unsigned errors;
+	char total_size[SIZE_FIELD_MAX];
+	char owned_size[SIZE_FIELD_MAX];
+	char real_size[SIZE_FIELD_MAX];
+	
 	(void) unused_obj;
 
-	g_message("malloc periodic check starting...");
+	if (0 == errors) {
+		g_message("malloc periodic check starting...");
+	} else {
+		g_message("malloc periodic check starting... [%u error%s already]",
+			errors, 1 == errors ? "" : "s");
+	}
 
 	memset(&ctx, 0, sizeof ctx);
 	tm_now_exact(&start);
@@ -1050,17 +1396,32 @@ malloc_periodic(gpointer unused_obj)
 
 	tm_now_exact(&end);
 
+	short_size_to_string_buf(ctx.total_size, FALSE,
+		total_size, sizeof total_size);
+	short_size_to_string_buf(ctx.owned_size, FALSE,
+		owned_size, sizeof owned_size);
+	short_size_to_string_buf(ctx.real_size, FALSE,
+		real_size, sizeof real_size);
+
 	if (0 == ctx.old_corrupted && 0 == ctx.new_corrupted) {
 		g_message("malloc periodic check done (%u msecs): "
-			"total: %u, owned: %u, real: %u",
+			"total: %u [%s], owned: %u [%s], real: %u [%s]",
 			(unsigned) tm_elapsed_ms(&end, &start),
-			ctx.total, ctx.owned, ctx.real);
+			ctx.total_count, total_size,
+			ctx.owned_count, owned_size,
+			ctx.real_count, real_size);
 	} else {
+		if (ctx.new_corrupted) {
+			errors++;
+		}
 		g_warning("malloc periodic check done (%u msecs): %s"
-			"total: %u, owned: %u, real: %u, NEWLY CORRUPTED: %u (%u old)",
+			"total: %u [%s], owned: %u [%s], real: %u [%s], "
+			"NEWLY CORRUPTED: %u (%u old)",
 			(unsigned) tm_elapsed_ms(&end, &start),
 			0 == ctx.new_corrupted ? "" : "WATCH OUT ",
-			ctx.total, ctx.owned, ctx.real,
+			ctx.total_count, total_size,
+			ctx.owned_count, owned_size,
+			ctx.real_count, real_size,
 			ctx.new_corrupted, ctx.old_corrupted);
 	}
 
@@ -1117,7 +1478,8 @@ real_malloc(size_t size)
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 	if (!hash_table_insert(reals, o, ulong_to_pointer(size))) {
-		g_warning("MALLOC reusing block 0x%lx, missed its freeing", (gulong) o);
+		g_warning("MALLOC reusing real block 0x%lx, missed its freeing",
+			(gulong) o);
 		hash_table_replace(reals, o, ulong_to_pointer(size));
 	}
 #endif
@@ -1134,6 +1496,7 @@ static void
 real_free(void *p)
 {
 	size_t size = 0;
+	gboolean owned = FALSE;
 #ifdef TRACK_MALLOC
 	struct block *b = NULL;
 #endif
@@ -1158,6 +1521,7 @@ real_free(void *p)
 
 	if (b) {
 		size = b->size;
+		owned = b->owned;
 		free_record(p, _WHERE_, __LINE__);
 	} else
 #endif
@@ -1193,18 +1557,29 @@ real_free(void *p)
 #ifdef TRACK_MALLOC
 		NULL == b ||
 #endif
-		TRUE
+		!owned
 	) {
 		struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
 		if (REAL_MALLOC_MAGIC != rmh->magic)
-			g_error("MALLOC free(): corrupted real block magic at 0x%lx",
+			g_warning("MALLOC free(): corrupted real block magic at 0x%lx",
 				(unsigned long) p);
 		free(rmh);
+	} else if (TRUE) {
+#ifdef MALLOC_SAFE_HEAD
+		struct malloc_header *mh = malloc_header_from_arena(p);
+		free(mh);
+#else
+		free(p);
+#endif
 	} else
 #endif	/* MALLOC_SAFE */
 	{
 		free(p);
 	}
+
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+	hash_table_remove(reals, p);
+#endif
 }
 #endif /* TRACK_MALLOC || TRACK_ZALLOC || MALLOC_VTABLE */
 
@@ -1236,6 +1611,9 @@ real_strdup(const char *s)
 static void *
 real_realloc(void *p, size_t size)
 {
+#ifdef TRACK_MALLOC
+		struct block *b = NULL;
+#endif
 #ifdef MALLOC_PERIODIC
 	if (need_periodic && NULL != callout_queue)
 		install_malloc_periodic();
@@ -1251,8 +1629,6 @@ real_realloc(void *p, size_t size)
 		void *n;
 
 #ifdef TRACK_MALLOC
-		struct block *b = NULL;
-
 		if (blocks) {
 			b = hash_table_lookup(blocks, p);
 		}
@@ -1515,10 +1891,10 @@ malloc_record(gconstpointer o, size_t sz, gboolean owned,
 #endif /* MALLOC_STATS */
 #ifdef MALLOC_FRAMES
 	{
-		struct frame f;
+		struct stackframe f;
 		struct frame *fr;
 
-		get_stack_frame(&f);
+		get_stackframe(&f);
 		fr = get_frame_atom(st ? &st->alloc_frames : &gst.alloc_frames, &f);
 
 		fr->count += sz;
@@ -1607,12 +1983,15 @@ free_record(gconstpointer o, const char *file, int line)
 		if (hash_table_lookup(reals, o))
 			return FALSE;
 
-		if (block_is_dead(o, 4))
+		if (block_is_dead(o, 4)) {
 			g_error("MALLOC (%s:%d) duplicate free of 0x%lx",
 				file, line, (gulong) o);
+		}
 
 		g_warning("MALLOC (%s:%d) attempt to free block at 0x%lx twice?",
 			file, line, (gulong) o);
+		g_message("current stack:");
+		print_where(stderr);
 		return FALSE;
 	}
 
@@ -1670,10 +2049,10 @@ free_record(gconstpointer o, const char *file, int line)
 #endif /* MALLOC_STATS */
 #ifdef MALLOC_FRAMES
 	if (st != NULL) {
-		struct frame f;
+		struct stackframe f;
 		struct frame *fr;
 
-		get_stack_frame(&f);
+		get_stackframe(&f);
 		fr = get_frame_atom(&st->free_frames, &f);
 
 		fr->count += b->size;			/* Counts actual size, not original */
@@ -1702,24 +2081,25 @@ free_record(gconstpointer o, const char *file, int line)
 void
 free_track(gpointer o, const char *file, int line)
 {
-#ifdef MALLOC_SAFE_HEAD
-	gboolean owned = free_record(o, file, line);
-
-	if (owned) {
-		struct malloc_header *mh = malloc_header_from_arena(o);
-		free(mh);
-	} else {
-		free(o);
-	}
-#else
-	free_record(o, file, line);
-
 	if (hash_table_lookup(reals, o)) {
 		real_free(o);
 	} else {
-		free(o);
-	}
+		struct block *b;
+		if (blocks != NULL && (b = hash_table_lookup(blocks, o)) && b->owned) {
+			free_record(o, file, line);
+#ifdef MALLOC_SAFE_HEAD
+			{
+				struct malloc_header *mh = malloc_header_from_arena(o);
+				free(mh);
+			}
+#else
+			free(o);
 #endif /* MALLOC_SAFE_HEAD */
+		} else {
+			free_record(o, file, line);
+			free(o);
+		}
+	}
 }
 
 /**
@@ -1767,7 +2147,8 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 	r->size = b->size;			/* Previous size before realloc */
 	r->reallocations = NULL;
 
-	b->reallocations = g_slist_prepend(b->reallocations, r); /* Last realloc at head */
+	/* Put last realloc at head */
+	b->reallocations = g_slist_prepend(b->reallocations, r);
 	b->size = size;
 
 	if (n != o) {
@@ -1800,10 +2181,10 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 #endif /* MALLOC_STATS */
 #ifdef MALLOC_FRAMES
 	if (st != NULL) {
-		struct frame f;
+		struct stackframe f;
 		struct frame *fr;
 
-		get_stack_frame(&f);
+		get_stackframe(&f);
 		fr = get_frame_atom(&st->realloc_frames, &f);
 
 		fr->count += b->size - r->size;

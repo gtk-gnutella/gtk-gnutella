@@ -43,7 +43,7 @@
  * perform their allocation through zalloc().
  */
 
-#ifdef TRACK_ZALLOC
+#if defined(TRACK_ZALLOC) && !defined(TRACK_MALLOC)
 #define halloc(_s)	halloc_track(_s, _WHERE_, __LINE__)
 #define halloc0(_s)	halloc0_track(_s, _WHERE_, __LINE__)
 

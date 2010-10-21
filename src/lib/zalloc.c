@@ -249,9 +249,9 @@ zprepare(zone_t *zone, char **blk)
 #ifdef MALLOC_FRAMES
 	{
 		struct frame **p = (struct frame **) blk;
-		struct frame f;
+		struct stackframe f;
 
-		get_stack_frame(&f);
+		get_stackframe(&f);
 		*p = get_frame_atom(&zalloc_frames, &f);
 	}
 	blk = ptr_add_offset(blk, OVH_FRAME_LEN);
@@ -490,6 +490,8 @@ zalloc_not_leaking(const void *o)
 void
 zalloc_shift_pointer(const void *allocated, const void *used)
 {
+	g_assert(ptr_cmp(allocated, used) < 0);
+
 	if (alloc_used_to_real == NULL) {
 		alloc_used_to_real = hash_table_new();
 		alloc_real_to_used = hash_table_new();
@@ -2046,6 +2048,37 @@ found:
 			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s",
 			(unsigned long) used, 1 == used ? "" : "s");
 	}
+
+#if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
+	/*
+	 * Since we moved the physical block around, update any non-leaking
+	 * information we had on the old address, and if there is a shift
+	 * between the allocated address and the used pointer, update it as
+	 * well based on the new physical address.
+	 */
+
+	if (not_leaking != NULL) {
+		void *a = NULL;
+		void *b;
+		size_t offset;
+		if (alloc_real_to_used != NULL) {
+			a = hash_table_lookup(alloc_real_to_used, p);
+		}
+		b = a != NULL ? a : p;
+		g_assert(ptr_cmp(b, p) >= 0);
+		offset = ptr_diff(b, p);
+		if (hash_table_lookup(not_leaking, b) != NULL) {
+			hash_table_remove(not_leaking, b);
+			hash_table_insert(not_leaking, ptr_add_offset(np, offset),
+				GINT_TO_POINTER(1));
+		}
+		if (a != NULL) {
+			hash_table_remove(alloc_real_to_used, p);
+			hash_table_remove(alloc_used_to_real, a);
+			zalloc_shift_pointer(np, ptr_add_offset(np, offset));
+		}
+	}
+#endif	/* TRACK_MALLOC || MALLOC_FRAMES */
 
 	/*
 	 * Put old block back into its subzone, which may result in it being

@@ -426,23 +426,41 @@ kib_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
 	return size_scale(v, q, r, scale_prefixes(metric) + 1, metric);
 }
 
-const char *
-short_size(guint64 size, gboolean metric)
+/**
+ * Prints the supplied size ``len'' to the ``dst'' buffer, whose is is ``len''
+ * bytes.  If ``len'' is too small, the string is truncated but is always
+ * NULL-terminated, unless ``len'' is 0.
+ *
+ * @param size		the size to print
+ * @param metric	if TRUE, use the metric system, otherwise powers of 1024.
+ * @param dst		where to write the string
+ * @param len		the size of ``dst'' in byts.
+ *
+ * @return The length of the resulting string assuming ``size'' is sufficient.
+ */
+size_t
+short_size_to_string_buf(guint64 size, gboolean metric, char *dst, size_t len)
 {
-	static char b[SIZE_FIELD_MAX];
-
 	if (size < kilo(metric)) {
 		guint n = size;
-		gm_snprintf(b, sizeof b, NG_("%u Byte", "%u Bytes", n), n);
+		return gm_snprintf(dst, len, NG_("%u Byte", "%u Bytes", n), n);
 	} else {
 		guint q, r;
 		char c;
 
 		c = norm_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
-		gm_snprintf(b, sizeof b, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
+		return
+			gm_snprintf(dst, len, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
 	}
+}
 
+const char *
+short_size(guint64 size, gboolean metric)
+{
+	static char b[SIZE_FIELD_MAX];
+
+	short_size_to_string_buf(size, metric, b, sizeof b);
 	return b;
 }
 

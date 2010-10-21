@@ -340,7 +340,16 @@ void alloc_reset(FILE *f, gboolean total);
 
 #ifdef MALLOC_FRAMES
 
+#define FRAME_DEPTH_MAX	128
 #define FRAME_DEPTH		10	/**< Size of allocation frame we keep around */
+
+/**
+ * A stack frame.
+ */
+struct stackframe {
+	void *stack[FRAME_DEPTH];	/**< PC of callers */
+	size_t len;					/**< Number of valid entries in stack */
+};
 
 /**
  * Structure keeping track of the allocation/free stack frames.
@@ -349,6 +358,7 @@ void alloc_reset(FILE *f, gboolean total);
  * quantities (in case the blocks are shrunk).
  */
 struct frame {
+	/* First two members MUST be the same as struct stackframe */
 	void *stack[FRAME_DEPTH];	/**< PC of callers */
 	size_t len;					/**< Number of valid entries in stack */
 	size_t blocks;				/**< Blocks allocated from this stack frame */
@@ -356,9 +366,9 @@ struct frame {
 	size_t total_count;			/**< Grand total for this stack frame */
 };
 
-void get_stack_frame(struct frame *fr);
+void get_stackframe(struct stackframe *fr);
 void print_stack_frame(FILE *f, const struct frame *fr);
-struct frame *get_frame_atom(hash_table_t **hptr, const struct frame *f);
+struct frame *get_frame_atom(hash_table_t **hptr, const struct stackframe *f);
 
 #endif /* MALLOC_FRAMES */
 

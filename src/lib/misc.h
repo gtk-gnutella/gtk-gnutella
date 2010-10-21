@@ -131,6 +131,7 @@ char *compact_value(char *buf, size_t size, guint64 v, gboolean metric);
 
 size_t short_byte_size_to_buf(guint64 size, gboolean metric, char *, size_t);
 size_t short_kb_size_to_buf(guint64 size, gboolean metric, char *, size_t);
+size_t short_size_to_string_buf(guint64 size, gboolean metric, char *, size_t);
 
 short_string_t short_rate_get_string(guint64 rate, gboolean metric);
 

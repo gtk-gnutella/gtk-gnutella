@@ -176,6 +176,14 @@ The various symbols are:
         tolerate them with some protection.  First, it costs additional memory,
         and second, buffer overruns are bugs!
 
+	MALLOC_SAFE_HEAD
+		Adds additional header magic at the start of each block to help
+		spot off-by-one corruptions from other blocks (which may not have
+		a trailer or are allocated through system's malloc() and thus do not
+		benefit from possible MALLOC_SAFE trailer checks.
+
+		Currently (2010-10-21) requires MALLOC_SAFE as well to compile cleanly.
+
     MALLOC_FREE_ERASE
         This erases the content of allocated blocks at free time, filling with
         a marker which should also invalidate all pointers in the block: any
