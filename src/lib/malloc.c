@@ -85,6 +85,9 @@ RCSID("$Id$")
 #define MALLOC_PERIODIC		/* Periodically scan blocks for overruns */
 #define MALLOC_PERIOD	5000	/* Every 5 secs */
 #endif
+#if 0
+#define MALLOC_LEAK_ALL		/* Report all leaked "real" blocks as well */
+#endif
 
 /*
  * Enable MALLOC_VTABLE to avoid missing free() events from GTK if they
@@ -1335,10 +1338,9 @@ block_check(const void *key, void *value, void *ctx)
 	 * iterate over the "real" ones.
 	 */
 
-	bc->total_count++;
-	bc->total_size = size_saturate_add(bc->total_size, b->size);
-
 	if (!b->owned) {
+		bc->total_count++;
+		bc->total_size = size_saturate_add(bc->total_size, b->size);
 		bc->foreign_count++;
 		bc->foreign_size = size_saturate_add(bc->foreign_size, b->size);
 	}
@@ -2030,8 +2032,116 @@ malloc_log_block(const void *k, void *v, gpointer leaksort)
 			}
 		}
 	}
-#endif
+#endif	/* MALLOC_FRAMES */
 }
+
+#ifdef MALLOC_LEAK_ALL
+/**
+ * malloc_fill_ignored		-- hash table iterator callback
+ *
+ * Insert all the values we see in the "ignored" table passed as argument.
+ */
+static void
+malloc_fill_ignored(const void *u_k, void *v, gpointer ignored)
+{
+	hash_table_t *ign = ignored;
+
+	(void) u_k;
+
+	hash_table_insert(ign, v, GINT_TO_POINTER(1));
+}
+
+/**
+ * Context passed to the malloc_log_real_block() iterator.
+ */
+struct log_real_ctx {
+	hash_table_t *ignored;
+	struct leak_set *ls;
+};
+
+/**
+ * malloc_log_real_block		-- hash table iterator callback
+ *
+ * Log used block, and record it among the `leaksort' set for future summary.
+ */
+static void
+malloc_log_real_block(const void *k, void *v, gpointer data)
+{
+	const struct realblock *rb = v;
+	struct log_real_ctx *ctx = data;
+	const void *p = k;
+
+	if (hash_table_lookup(ctx->ignored, p))
+		return;			/* Address of a an internal data structure */
+
+#ifdef MALLOC_SAFE_HEAD
+	/*
+	 * Adjust the arena start if pointing to a block we own: the real block
+	 * is structured like this.
+	 *
+	 *               user-visible pointer
+	 *               v
+	 *    +-----+----+-------------------+
+	 *    | RMH | MH | arena (user data) |
+	 *    +-----+----+-------------------+
+	 *    ^     ^
+	 *    phys  real
+	 *
+	 * We are pointing to "real" but the physical start of the block is "phys".
+	 * The leading RMH header is struct real_malloc_header.
+	 *
+	 * However, malloc_track() will structure the arena of the physical
+	 * block by craming a header (the MH header, a struct malloc_header) and
+	 * returning a user-visible pointer that is after MH.
+	 *
+	 * If non-leaking indication was given for this block, it was with the
+	 * user-visible pointer, so we need to shift the address, both for
+	 * probing and for logging, provided the block is known to be owned,
+	 * i.e. that it was explicitly allocated from malloc_track() initially.
+	 */
+
+	if (blocks != NULL) {
+		const struct malloc_header *mh = k;
+		struct block *b;
+
+		b = hash_table_lookup(blocks, mh->arena);
+		if (b != NULL && b->owned) {
+			p = mh->arena;
+		}
+	}
+#endif
+
+	if (hash_table_lookup(not_leaking, p))
+		return;
+
+	if (hash_table_lookup(blocks, p))
+		return;		/* Was already logged through malloc_log_block() */
+
+	g_warning("leaked block 0x%lx (%lu bytes)", (gulong) p, (gulong) rb->size);
+
+	leak_add(ctx->ls, rb->size, "FAKED", 0);
+
+#ifdef MALLOC_FRAMES
+	if (trace_array.count) {
+		g_message("block 0x%lx (out of %u) allocated from:",
+			(gulong) p, (unsigned) rb->alloc->blocks);
+		print_stack_frame(stderr, rb->alloc);
+	} else {
+		size_t i;
+		char buf[12 * FRAME_DEPTH];
+		size_t rw = 0;
+		struct frame *fr = rb->alloc;
+
+		buf[0] = '\0';
+		for (i = 0; i < fr->len; i++) {
+			rw += gm_snprintf(&buf[rw], sizeof buf - rw,
+				"0x%lx ", (gulong) fr->stack[i]);
+		}
+		g_message("block 0x%lx allocated from %s", (gulong) p, buf);
+	}
+#endif	/* MALLOC_FRAMES */
+}
+#endif	/* MALLOC_LEAK_ALL */
 
 /**
  * Flag object ``o'' as "not leaking" if not freed at exit time.
@@ -4073,6 +4183,11 @@ malloc_close(void)
 {
 #ifdef TRACK_MALLOC
 	gpointer leaksort;
+#ifdef MALLOC_LEAK_ALL
+	hash_table_t *saved_reals;
+	hash_table_t *ignored;
+	struct log_real_ctx log_ctx;
+#endif	/* MALLOC_LEAK_ALL */
 
 	if (blocks == NULL)
 		return;
@@ -4082,14 +4197,51 @@ malloc_close(void)
 	alloc_dump(stderr, TRUE);
 #endif
 
-	leaksort = leak_init();
+#ifdef MALLOC_LEAK_ALL
+	/*
+	 * We can't iterate on "reals" and fill "leaksort" without affecting
+	 * the table since real_*() routines are used to allocate memory.
+	 * Create a new empty one to manage the remaining allocations.
+	 */
 
+	saved_reals = reals;
+	reals = hash_table_new_real();
+#endif	/* MALLOC_LEAK_ALL */
+
+	leaksort = leak_init();
 	hash_table_foreach(blocks, malloc_log_block, leaksort);
 
-	/* XXX dump all non-leaking real blocks remaining */
+#ifdef MALLOC_LEAK_ALL
+	/*
+	 * Before iterating on "real" blocks, we need to remove all the
+	 * "struct block" and "struct realblock" addresses which are the
+	 * values held within the "blocks" and "reals" tables.
+	 */
+
+	ignored = hash_table_new_real();
+	hash_table_foreach(blocks, malloc_fill_ignored, ignored);
+	hash_table_foreach(saved_reals, malloc_fill_ignored, ignored);
+
+	log_ctx.ignored = ignored;
+	log_ctx.ls = leaksort;
+
+	hash_table_foreach(saved_reals, malloc_log_real_block, &log_ctx);
+	hash_table_destroy_real(ignored);
+#endif	/* MALLOC_LEAK_ALL */
 
 	leak_dump(leaksort);
 	leak_close(leaksort);
+
+#ifdef MALLOC_LEAK_ALL
+	/*
+	 * Restore original "reals" table for the remaining free() up to the
+	 * final exit point.
+	 */
+
+	hash_table_destroy_real(reals);
+	reals = saved_reals;
+#endif	/* MALLOC_LEAK_ALL */
+
 #endif	/* TRACK_MALLOC */
 }
 
