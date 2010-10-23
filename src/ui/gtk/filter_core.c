@@ -76,7 +76,11 @@ typedef struct shadow {
     guint32 fail_count;
 } shadow_t;
 
+#ifdef TRACK_MALLOC
+typedef GList *filter_add_rule_func_t(GList *, gpointer, const char *, int);
+#else
 typedef GList *filter_add_rule_func_t(GList *, gpointer);
+#endif
 
 /**
  * Structure holding "global" variables during filtering.
@@ -1484,7 +1488,12 @@ filter_add_rule(filter_t *f, rule_t * const r, filter_add_rule_func_t func)
     /*
      * We add the rule to the filter increase the refcount on the target.
      */
+
+#ifdef TRACK_MALLOC
+    f->ruleset = (*func)(f->ruleset, r, _WHERE_, __LINE__);
+#else
     f->ruleset = (*func)(f->ruleset, r);
+#endif
     r->target->refcount ++;
     if (GUI_PROPERTY(gui_debug) >= 6)
         g_message("increased refcount on \"%s\" to %d",
@@ -1493,8 +1502,13 @@ filter_add_rule(filter_t *f, rule_t * const r, filter_add_rule_func_t func)
     /*
      * If a shadow for our filter exists, we add it there also.
      */
-    if (shadow != NULL)
+    if (shadow != NULL) {
+#ifdef TRACK_MALLOC
+        shadow->current = (*func)(shadow->current, r, _WHERE_, __LINE__);
+#else
         shadow->current = (*func)(shadow->current, r);
+#endif
+	}
 
     /*
      * If a shadow for the target exists, we increase refcount there too.
@@ -1527,7 +1541,11 @@ filter_add_rule(filter_t *f, rule_t * const r, filter_add_rule_func_t func)
 void
 filter_append_rule(filter_t *f, rule_t * const r)
 {
+#ifdef TRACK_MALLOC
+  filter_add_rule(f, r, track_list_append);
+#else
   filter_add_rule(f, r, g_list_append);
+#endif
 }
 
 /**
@@ -1536,7 +1554,11 @@ filter_append_rule(filter_t *f, rule_t * const r)
 void
 filter_prepend_rule(filter_t *f, rule_t * const r)
 {
+#ifdef TRACK_MALLOC
+  filter_add_rule(f, r, track_list_prepend);
+#else
   filter_add_rule(f, r, g_list_prepend);
+#endif
 }
 
 /**

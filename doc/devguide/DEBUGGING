@@ -147,7 +147,7 @@ to be effective.
 All such symbols are protected thusly:
 
 #if 0
-#define MALLOC_VTABLE
+#define MALLOC_SAFE
 #endif
 
 All you need to do is change the "#if 0" into "#if 1".  If you are a developer,
@@ -162,6 +162,9 @@ The various symbols are:
         that glib's and GTK's malloc() calls are redirected to the real_malloc()
         routine, so that we have a chance to implement the various options
         that can be defined in src/lib/malloc.c.
+
+		This setting is also required (and is forcefully enabled) when
+		MALLOC_SAFE options are used.
 
     MALLOC_SAFE
         When turned on, this adds a 4-byte trailer with a magic number, to
@@ -178,7 +181,7 @@ The various symbols are:
 
 	MALLOC_SAFE_HEAD
 		Adds additional header magic at the start of each block to help
-		spot off-by-one corruptions from other blocks (which may not have
+		spot off-by-one corruptions from other blocks which may not have
 		a trailer or are allocated through system's malloc() and thus do not
 		benefit from possible MALLOC_SAFE trailer checks.
 

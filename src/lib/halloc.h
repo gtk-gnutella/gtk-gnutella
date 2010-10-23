@@ -93,6 +93,18 @@ gboolean halloc_is_available(void);
 size_t halloc_bytes_allocated(void);
 size_t halloc_chunks_allocated(void);
 
+#ifdef TRACK_MALLOC
+
+#define HFREE_NULL(p)	\
+G_STMT_START {			\
+	if (p) {			\
+		free_track((p), _WHERE_, __LINE__); \
+		p = NULL;		\
+	}					\
+} G_STMT_END
+
+#else	/* !TRACK_MALLOC */
+
 #define HFREE_NULL(p)	\
 G_STMT_START {			\
 	if (p) {			\
@@ -100,6 +112,8 @@ G_STMT_START {			\
 		p = NULL;		\
 	}					\
 } G_STMT_END
+
+#endif	/* TRACK_MALLOC */
 
 #endif /* _halloc_h_ */
 /* vi: set ts=4 sw=4 cindent: */

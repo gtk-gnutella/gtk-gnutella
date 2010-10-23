@@ -407,19 +407,6 @@ typedef void (*GCallback) (void);
 	PACKAGE_SOURCE_DIR G_DIR_SEPARATOR_S "extra_files"
 #endif
 
-/**
- * Calls g_free() and sets the pointer to NULL afterwards. You should use
- * this instead of a bare g_free() to prevent double-free bugs and dangling
- * pointers.
- */
-#define G_FREE_NULL(p)	\
-G_STMT_START {			\
-	if (p) {			\
-		g_free(p);		\
-		p = NULL;		\
-	}					\
-} G_STMT_END
-
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
 
 /** HAVE_GCC allows conditionalization depending on the version of gcc

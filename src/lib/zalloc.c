@@ -1019,10 +1019,11 @@ zclose(void)
 
 #ifdef MALLOC_FRAMES
 	if (zalloc_frames != NULL) {
+		extern void hash_table_destroy_real(hash_table_t *ht);
 		size_t frames = hash_table_size(zalloc_frames);
 		g_message("zalloc() tracked %lu distinct stack frame%s",
 			(unsigned long) frames, 1 == frames ? "" : "s");
-		hash_table_destroy(zalloc_frames);
+		hash_table_destroy_real(zalloc_frames);
 		zalloc_frames = NULL;
 	}
 #endif

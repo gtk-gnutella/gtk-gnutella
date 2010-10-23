@@ -383,6 +383,29 @@ void print_where(FILE *f);
 
 void *real_malloc(size_t size);
 
+/**
+ * Calls g_free() and sets the pointer to NULL afterwards. You should use
+ * this instead of a bare g_free() to prevent double-free bugs and dangling
+ * pointers.
+ */
+#if defined(TRACK_MALLOC) && !defined(MALLOC_SOURCE)
+#define G_FREE_NULL(p)	\
+G_STMT_START {			\
+	if (p) {			\
+		free_track((p), _WHERE_, __LINE__);	\
+		p = NULL;		\
+	}					\
+} G_STMT_END
+#else
+#define G_FREE_NULL(p)	\
+G_STMT_START {			\
+	if (p) {			\
+		g_free(p);		\
+		p = NULL;		\
+	}					\
+} G_STMT_END
+#endif	/* TRACK_MALLOC && !MALLOC_SOURCE */
+
 #endif /* _malloc_h_ */
 
 /* vi: set ts=4 sw=4 cindent:  */
