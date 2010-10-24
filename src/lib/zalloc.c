@@ -628,7 +628,7 @@ zn_free_additional_subzones(zone_t *zone)
 	while (sz) {
 		struct subzone *next = sz->sz_next;
 		subzone_free_arena(sz);
-		free(sz);
+		g_free(sz);
 		sz = next;
 	}
 
@@ -784,7 +784,13 @@ zn_extend(zone_t *zone)
 {
 	struct subzone *sz;		/* New sub-zone */
 
-	sz = malloc(sizeof *sz);
+	/*
+	 * We use g_malloc() here and not a raw malloc() so that we can benefit
+	 * from leak tracking for our underlying memory usage when compiled
+	 * under TRACK_MALLOC.
+	 */
+
+	sz = g_malloc(sizeof *sz);
 	if (NULL == sz)
 		g_error("out of memory");
 
@@ -846,7 +852,13 @@ zcreate(size_t size, unsigned hint)
 {
 	zone_t *zone;			/* Zone descriptor */
 
-	zone = malloc(sizeof *zone);
+	/*
+	 * We use g_malloc() here and not a raw malloc() so that we can benefit
+	 * from leak tracking for our underlying memory usage when compiled
+	 * under TRACK_MALLOC.
+	 */
+
+	zone = g_malloc(sizeof *zone);
 	if (NULL == zone)
 		g_error("out of memory");
 
@@ -899,7 +911,7 @@ zdestroy(zone_t *zone)
 	if (!zalloc_closing)
 		hash_table_remove(zt, ulong_to_pointer(zone->zn_size));
 
-	free(zone);
+	g_free(zone);
 }
 
 /**
@@ -1207,7 +1219,9 @@ zgc_insert_subzone(const zone_t *zone, struct subzone *sz, char **blk)
 	 */
 
 	zg->zg_zones++;
-	array = realloc(zg->zg_subzinfo, zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
+	array = g_realloc(zg->zg_subzinfo,
+		zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
+
 	if (NULL == array)
 		g_error("out of memory");
 
@@ -1477,7 +1491,7 @@ release_zone:
 				}
 			}
 		}
-		free(sz);
+		g_free(sz);
 	} else {
 		unsigned n = 2;
 		struct subzone *prev = &zone->zn_arena;
@@ -1501,7 +1515,7 @@ release_zone:
 						free_blocks, 1 == free_blocks ? "" : "s");
 				}
 				subzone_free_arena(sz);
-				free(sz);
+				g_free(sz);
 				prev->sz_next = next;
 				goto found;
 			}
@@ -1613,14 +1627,20 @@ zgc_allocate(zone_t *zone)
 			free_blocks, 1 == free_blocks ? "" : "s");
 	}
 
-	zg = malloc(sizeof *zg);
+	/*
+	 * We use g_malloc() here and not a raw malloc() so that we can benefit
+	 * from leak tracking for our underlying memory usage when compiled
+	 * under TRACK_MALLOC.
+	 */
+
+	zg = g_malloc(sizeof *zg);
 	if (NULL == zg)
 		g_error("out of memory");
 
 	zone->zn_gc = zg;
 
 	zg->zg_zones = zone->zn_subzones;
-	zg->zg_subzinfo = malloc(zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
+	zg->zg_subzinfo = g_malloc(zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
 	if (NULL == zg->zg_subzinfo)
 		g_error("out of memory");
 
@@ -1864,8 +1884,8 @@ zgc_dispose(zone_t *zone)
 	 * Dispose the GC structures.
 	 */
 
-	free(zg->zg_subzinfo);
-	free(zg);
+	g_free(zg->zg_subzinfo);
+	g_free(zg);
 	zone->zn_gc = NULL;			/* Back to regular zalloc() */
 	zgc_zone_cnt--;
 
