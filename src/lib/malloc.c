@@ -2118,20 +2118,42 @@ malloc_not_leaking(gconstpointer o)
 {
 	/*
 	 * Could be called on memory that was not allocated dynamically or which
-	 * we do not know anything about. If so, just ignore silently.
+	 * we do not know anything about.
 	 */
 
 	if (hash_table_lookup(reals, o)) {
 		hash_table_insert(not_leaking, o, GINT_TO_POINTER(1));
+		goto done;
 	}
+
 #ifdef MALLOC_SAFE_HEAD
-	else {
+	{
 		const void *p = malloc_header_from_arena(o);
 		if (hash_table_lookup(reals, p)) {
 			hash_table_insert(not_leaking, o, GINT_TO_POINTER(1));
+			goto done;
 		}
 	}
 #endif	/* MALLOC_SAFE_HEAD */
+
+	if (blocks != NULL && hash_table_lookup(blocks, o)) {
+		hash_table_insert(not_leaking, o, GINT_TO_POINTER(1));
+		goto done;
+	}
+
+#ifdef MALLOC_VTABLE
+	/*
+	 * With MALLOC_VTABLE we should track most of the allocations, it may
+	 * be worth noting the usage of NOT_LEAKING() calls that are made on
+	 * something we know nothing about.
+	 */
+
+	g_warning("MALLOC asked to ignore leaks on unknown address 0x%lx",
+		(gulong) o);
+	print_where(stderr);
+#endif
+
+done:
 	return deconstify_gpointer(o);
 }
 
