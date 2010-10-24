@@ -70,7 +70,7 @@ RCSID("$Id$")
 #endif
 #if 0
 #define MALLOC_SAFE				/* Add trailer magic to each block */
-#define MALLOC_TRAILER_LEN	32	/* Additional trailer len, past end mark */
+#define MALLOC_TRAILER_LEN	8	/* Additional trailer len, past end mark */
 #endif
 #if 0
 #define MALLOC_SAFE_HEAD		/* Additional header magic before each block */
@@ -235,6 +235,7 @@ struct realblock {
 	size_t size;
 #if defined(MALLOC_SAFE) || defined(MALLOC_PERIODIC)
 	unsigned corrupted:1;	/**< Whether block was marked as corrupted */
+	unsigned header_corrupted:1;
 #endif
 };
 
@@ -1312,11 +1313,9 @@ block_is_dead(const void *p, size_t size)
 static gboolean need_periodic;
 
 struct block_check_context {
-	size_t total_size;
-	size_t foreign_size;
+	size_t tracked_size;
 	size_t real_size;
-	unsigned total_count;
-	unsigned foreign_count;
+	unsigned tracked_count;
 	unsigned real_count;
 	unsigned old_corrupted;
 	unsigned new_corrupted;
@@ -1333,17 +1332,8 @@ block_check(const void *key, void *value, void *ctx)
 	struct block *b = value;
 	gboolean was_corrupted;
 
-	/*
-	 * If block is marked as owned, it will be checked later when we
-	 * iterate over the "real" ones.
-	 */
-
-	if (!b->owned) {
-		bc->total_count++;
-		bc->total_size = size_saturate_add(bc->total_size, b->size);
-		bc->foreign_count++;
-		bc->foreign_size = size_saturate_add(bc->foreign_size, b->size);
-	}
+	bc->tracked_count++;
+	bc->tracked_size = size_saturate_add(bc->tracked_size, b->size);
 
 	was_corrupted = b->corrupted;
 
@@ -1374,8 +1364,6 @@ real_check(const void *key, void *value, void *ctx)
 	struct realblock *rb = value;
 	void *p = deconstify_gpointer(key);
 
-	bc->total_count++;
-	bc->total_size = size_saturate_add(bc->total_size, rb->size);
 	bc->real_count++;
 	bc->real_size = size_saturate_add(bc->real_size, rb->size);
 
@@ -1395,9 +1383,10 @@ real_check(const void *key, void *value, void *ctx)
 	}
 
 #ifdef MALLOC_SAFE
-	{
+	if (!rb->header_corrupted) {
 		struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
 		if (REAL_MALLOC_MAGIC != rmh->magic) {
+			rb->header_corrupted = TRUE;
 			bc->new_corrupted++;
 			g_warning("MALLOC corrupted real block magic at 0x%lx (%lu byte%s)",
 				(unsigned long) p,
@@ -1405,6 +1394,7 @@ real_check(const void *key, void *value, void *ctx)
 		} else if (rmh->size != rb->size) {
 			/* Can indicate memory corruption as well */
 			bc->new_corrupted++;
+			rb->header_corrupted = TRUE;
 			g_warning("MALLOC size mismatch for real block 0x%lx: "
 				"hashtable says %lu byte%s, header says %u",
 				(unsigned long) p, (unsigned long) rb->size,
@@ -1424,8 +1414,7 @@ malloc_periodic(gpointer unused_obj)
 	gboolean checked = FALSE;
 	tm_t start, end;
 	static unsigned errors;
-	char total_size[SIZE_FIELD_MAX];
-	char foreign_size[SIZE_FIELD_MAX];
+	char tracked_size[SIZE_FIELD_MAX];
 	char real_size[SIZE_FIELD_MAX];
 	
 	(void) unused_obj;
@@ -1457,31 +1446,27 @@ malloc_periodic(gpointer unused_obj)
 
 	tm_now_exact(&end);
 
-	short_size_to_string_buf(ctx.total_size, FALSE,
-		total_size, sizeof total_size);
-	short_size_to_string_buf(ctx.foreign_size, FALSE,
-		foreign_size, sizeof foreign_size);
+	short_size_to_string_buf(ctx.tracked_size, FALSE,
+		tracked_size, sizeof tracked_size);
 	short_size_to_string_buf(ctx.real_size, FALSE,
 		real_size, sizeof real_size);
 
 	if (0 == ctx.old_corrupted && 0 == ctx.new_corrupted) {
 		g_message("malloc periodic check done (%u msecs): "
-			"total: %u [%s], foreign: %u [%s], real: %u [%s]",
+			"tracked: %u [%s], real: %u [%s]",
 			(unsigned) tm_elapsed_ms(&end, &start),
-			ctx.total_count, total_size,
-			ctx.foreign_count, foreign_size,
+			ctx.tracked_count, tracked_size,
 			ctx.real_count, real_size);
 	} else {
 		if (ctx.new_corrupted) {
 			errors++;
 		}
 		g_warning("malloc periodic check done (%u msecs): %s"
-			"total: %u [%s], foreign: %u [%s], real: %u [%s], "
+			"tracked: %u [%s], real: %u [%s], "
 			"NEWLY CORRUPTED: %u (%u old)",
 			(unsigned) tm_elapsed_ms(&end, &start),
 			0 == ctx.new_corrupted ? "" : "WATCH OUT ",
-			ctx.total_count, total_size,
-			ctx.foreign_count, foreign_size,
+			ctx.tracked_count, tracked_size,
 			ctx.real_count, real_size,
 			ctx.new_corrupted, ctx.old_corrupted);
 	}
@@ -1939,6 +1924,7 @@ real_realloc(void *ptr, size_t size)
 static hash_table_t *alloc_points; /**< Maps a block to its allocation frame */
 #endif
 
+#if 0	/* UNUSED */
 /**
  * Wrapper to real malloc().
  */
@@ -1958,6 +1944,7 @@ real_calloc(size_t nmemb, size_t size)
 
 	return p;
 }
+#endif	/* UNUSED */
 
 /**
  * Called at first allocation to initialize tracking structures,.
@@ -2037,42 +2024,15 @@ malloc_log_block(const void *k, void *v, gpointer leaksort)
 
 #ifdef MALLOC_LEAK_ALL
 /**
- * malloc_fill_ignored		-- hash table iterator callback
- *
- * Insert all the values we see in the "ignored" table passed as argument.
- */
-static void
-malloc_fill_ignored(const void *u_k, void *v, gpointer ignored)
-{
-	hash_table_t *ign = ignored;
-
-	(void) u_k;
-
-	hash_table_insert(ign, v, GINT_TO_POINTER(1));
-}
-
-/**
- * Context passed to the malloc_log_real_block() iterator.
- */
-struct log_real_ctx {
-	hash_table_t *ignored;
-	struct leak_set *ls;
-};
-
-/**
  * malloc_log_real_block		-- hash table iterator callback
  *
  * Log used block, and record it among the `leaksort' set for future summary.
  */
 static void
-malloc_log_real_block(const void *k, void *v, gpointer data)
+malloc_log_real_block(const void *k, void *v, gpointer leaksort)
 {
 	const struct realblock *rb = v;
-	struct log_real_ctx *ctx = data;
 	const void *p = k;
-
-	if (hash_table_lookup(ctx->ignored, p))
-		return;			/* Address of a an internal data structure */
 
 #ifdef MALLOC_SAFE_HEAD
 	/*
@@ -2119,7 +2079,7 @@ malloc_log_real_block(const void *k, void *v, gpointer data)
 
 	g_warning("leaked block 0x%lx (%lu bytes)", (gulong) p, (gulong) rb->size);
 
-	leak_add(ctx->ls, rb->size, "FAKED", 0);
+	leak_add(leaksort, rb->size, "FAKED", 0);
 
 #ifdef MALLOC_FRAMES
 	if (trace_array.count) {
@@ -2188,7 +2148,7 @@ malloc_record(gconstpointer o, size_t sz, gboolean owned,
 	if (blocks == NULL)
 		track_init();
 
-	b = real_calloc(1, sizeof(*b));
+	b = calloc(1, sizeof(*b));
 	if (b == NULL)
 		g_error("unable to allocate %u bytes", (unsigned) sizeof(*b));
 
@@ -2225,7 +2185,7 @@ malloc_record(gconstpointer o, size_t sz, gboolean owned,
 		st = hash_table_lookup(stats, &s);
 
 		if (st == NULL) {
-			st = real_calloc(1, sizeof(*st));
+			st = calloc(1, sizeof(*st));
 			st->file = b->file;
 			st->line = line;
 			hash_table_insert(stats, st, st);
@@ -2415,11 +2375,11 @@ free_record(gconstpointer o, const char *file, int line)
 	for (l = b->reallocations; l; l = g_slist_next(l)) {
 		struct block *r = l->data;
 		g_assert(r->reallocations == NULL);
-		real_free(r);
+		free(r);
 	}
 	g_slist_free(b->reallocations);
 
-	real_free(b);
+	free(b);
 	return owned;
 }
 
@@ -2523,7 +2483,7 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 		}
 	}
 
-	r = real_calloc(sizeof(*r), 1);
+	r = calloc(sizeof(*r), 1);
 	if (r == NULL)
 		g_error("unable to allocate %u bytes", (unsigned) sizeof(*r));
 
@@ -2770,6 +2730,20 @@ strconcat_track(const char *file, int line, const char *s, ...)
 	va_start(args, s);
 	o = m_strconcatv(s, args);
 	va_end(args);
+
+	/*
+	 * FIXME:
+	 *
+	 * m_strconcatv() uses real_malloc(), but we cannot mark we own this
+	 * block as there is no malloc_header structure put in case we're
+	 * compiled with MALLOC_SAFE_HEAD.
+	 *
+	 * To be able to do that, we need to have more flags in the block
+	 * and be able to pass them on to malloc_record (i.e. it must not just
+	 * take TRUE/FALSE but a set of flags) so that we can tell the lower
+	 * layers whether a block allocated through real_malloc() has an
+	 * additional malloc_header in front of the data.
+	 */
 
 	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
 }
@@ -4185,8 +4159,6 @@ malloc_close(void)
 	gpointer leaksort;
 #ifdef MALLOC_LEAK_ALL
 	hash_table_t *saved_reals;
-	hash_table_t *ignored;
-	struct log_real_ctx log_ctx;
 #endif	/* MALLOC_LEAK_ALL */
 
 	if (blocks == NULL)
@@ -4212,21 +4184,7 @@ malloc_close(void)
 	hash_table_foreach(blocks, malloc_log_block, leaksort);
 
 #ifdef MALLOC_LEAK_ALL
-	/*
-	 * Before iterating on "real" blocks, we need to remove all the
-	 * "struct block" and "struct realblock" addresses which are the
-	 * values held within the "blocks" and "reals" tables.
-	 */
-
-	ignored = hash_table_new_real();
-	hash_table_foreach(blocks, malloc_fill_ignored, ignored);
-	hash_table_foreach(saved_reals, malloc_fill_ignored, ignored);
-
-	log_ctx.ignored = ignored;
-	log_ctx.ls = leaksort;
-
-	hash_table_foreach(saved_reals, malloc_log_real_block, &log_ctx);
-	hash_table_destroy_real(ignored);
+	hash_table_foreach(saved_reals, malloc_log_real_block, leaksort);
 #endif	/* MALLOC_LEAK_ALL */
 
 	leak_dump(leaksort);
