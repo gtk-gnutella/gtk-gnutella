@@ -1224,9 +1224,11 @@ host_addr_free_interface_addrs(GSList **sl_ptr)
 struct packed_host_addr
 host_addr_pack(const host_addr_t addr)
 {
+	static struct packed_host_addr zero_paddr;
 	struct packed_host_addr paddr;
 	enum net_type net;
 
+	paddr = zero_paddr;			/* Shut compiler warning up */
 	net = host_addr_net(addr);
 	switch (net) {
 	case NET_TYPE_IPV4:
