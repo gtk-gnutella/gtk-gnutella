@@ -384,7 +384,7 @@ pdht_publish_done(gpointer arg,
 	publish_error_t code, const publish_info_t *info)
 {
 	pdht_publish_t *pp = arg;
-	pdht_error_t status;
+	pdht_error_t status = PDHT_E_OK;		/* Shut compiler warning up */
 	unsigned published = info->published;
 	unsigned candidates = info->candidates;
 	gboolean can_bg = TRUE;
