@@ -1473,7 +1473,8 @@ sdbm_shrink(DBM *db)
 		long filesize;
 		long dirb;
 
-		g_assert(maxsize + mask > maxsize);	/* No overflow */
+		/* No overflow */
+		g_assert(UNSIGNED(maxsize + mask) > UNSIGNED(maxsize));
 
 		filesize = (maxsize + mask) & ~mask;
 		filesize = MAX(filesize, DBM_DBLKSIZ);	/* Ensure 1 block at least */
