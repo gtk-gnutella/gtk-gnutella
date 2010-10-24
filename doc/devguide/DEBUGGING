@@ -203,3 +203,13 @@ The various symbols are:
         for memory corruption (corrupted markers at the end of blocks added
         by MALLOC_SAFE).
 
+	MALLOC_TIME
+		Record allocation time / tracking time of all blocks.  This can be
+		used to determine whether a leak is really a true leak or whether
+		it is only due to improper cleanup (for recently-allocated blocks)
+		after a sudden exit request.
+
+	MALLOC_LEAK_ALL
+		If enabled, report leaks for all the blocks allocated by glib/GTK
+		and intercepted trough the use of MALLOC_VTABLE which were not freed
+		at exit time.

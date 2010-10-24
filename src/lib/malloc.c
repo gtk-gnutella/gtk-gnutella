@@ -66,14 +66,14 @@ RCSID("$Id$")
  */
 
 #if 0
-#define MALLOC_VTABLE			/* Try to redirect glib's malloc here */
+#define MALLOC_VTABLE		/* Try to redirect glib's malloc here */
 #endif
 #if 0
 #define MALLOC_SAFE				/* Add trailer magic to each block */
 #define MALLOC_TRAILER_LEN	8	/* Additional trailer len, past end mark */
 #endif
 #if 0
-#define MALLOC_SAFE_HEAD		/* Additional header magic before each block */
+#define MALLOC_SAFE_HEAD	/* Additional header magic before each block */
 #endif
 #if 0
 #define MALLOC_FREE_ERASE	/* Whether freeing should erase block data */
@@ -82,8 +82,11 @@ RCSID("$Id$")
 #define MALLOC_DUP_FREE		/* Detect duplicate frees by block tagging */
 #endif
 #if 0
-#define MALLOC_PERIODIC		/* Periodically scan blocks for overruns */
+#define MALLOC_PERIODIC			/* Periodically scan blocks for overruns */
 #define MALLOC_PERIOD	5000	/* Every 5 secs */
+#endif
+#if 0
+#define MALLOC_TIME			/* Track allocation time of blocks */
 #endif
 #if 0
 #define MALLOC_LEAK_ALL		/* Report all leaked "real" blocks as well */
@@ -219,6 +222,9 @@ struct block {
 	GSList *reallocations;
 	size_t size;
 	int line;
+#ifdef MALLOC_TIME
+	time_t ttime;			/**< Tracking start time */
+#endif
 	unsigned owned:1;		/**< Whether we allocated the block ourselves */
 #if defined(MALLOC_SAFE) || defined(MALLOC_PERIODIC)
 	unsigned corrupted:1;	/**< Whether block was marked as corrupted */
@@ -233,6 +239,9 @@ struct realblock {
 	struct frame *alloc;	/**< Allocation frame (atom) */
 #endif
 	size_t size;
+#ifdef MALLOC_TIME
+	time_t atime;			/**< Allocation time */
+#endif
 #if defined(MALLOC_SAFE) || defined(MALLOC_PERIODIC)
 	unsigned corrupted:1;	/**< Whether block was marked as corrupted */
 	unsigned header_corrupted:1;
@@ -1608,6 +1617,9 @@ real_malloc(size_t size)
 		if (!hash_table_insert(reals, o, rb)) {
 			g_error("MALLOC cannot record real block 0x%lx", (gulong) o);
 		}
+#ifdef MALLOC_TIME
+		rb->atime = tm_time();
+#endif
 #ifdef MALLOC_FRAMES
 		{
 			struct stackframe f;
@@ -1974,12 +1986,20 @@ static void
 malloc_log_block(const void *k, void *v, gpointer leaksort)
 {
 	const struct block *b = v;
+	char ago[128];
 
 	if (hash_table_lookup(not_leaking, k))
 		return;
 
-	g_warning("leaked block 0x%lx (%lu bytes) from \"%s:%d\"",
-		(gulong) k, (gulong) b->size, b->file, b->line);
+#ifdef MALLOC_TIME
+	gm_snprintf(ago, sizeof ago, " tracked %s ago",
+		short_time(delta_time(tm_time(), b->ttime)));
+#else
+	ago[0] = '\0';
+#endif	/* MALLOC_TIME */
+
+	g_warning("leaked block 0x%lx (%lu bytes) from \"%s:%d\"%s",
+		(gulong) k, (gulong) b->size, b->file, b->line, ago);
 
 	leak_add(leaksort, b->size, b->file, b->line);
 
@@ -2033,6 +2053,7 @@ malloc_log_real_block(const void *k, void *v, gpointer leaksort)
 {
 	const struct realblock *rb = v;
 	const void *p = k;
+	char ago[128];
 
 #ifdef MALLOC_SAFE_HEAD
 	/*
@@ -2077,7 +2098,15 @@ malloc_log_real_block(const void *k, void *v, gpointer leaksort)
 	if (hash_table_lookup(blocks, p))
 		return;		/* Was already logged through malloc_log_block() */
 
-	g_warning("leaked block 0x%lx (%lu bytes)", (gulong) p, (gulong) rb->size);
+#ifdef MALLOC_TIME
+	gm_snprintf(ago, sizeof ago, " allocated %s ago",
+		short_time(delta_time(tm_time(), rb->atime)));
+#else
+	ago[0] = '\0';
+#endif	/* MALLOC_TIME */
+
+	g_warning("leaked block 0x%lx (%lu bytes)%s",
+		(gulong) p, (gulong) rb->size, ago);
 
 	leak_add(leaksort, rb->size, "FAKED", 0);
 
@@ -2157,6 +2186,9 @@ malloc_record(gconstpointer o, size_t sz, gboolean owned,
 	b->size = sz;
 	b->reallocations = NULL;
 	b->owned = owned;
+#ifdef MALLOC_TIME
+	b->ttime = tm_time();
+#endif
 
 	/**
 	 * It can happen that we track the allocation of a block somewhere
@@ -4041,6 +4073,8 @@ malloc_init(const char *argv0)
 		guint8 malloc_vtable;
 		guint8 malloc_periodic;
 		gulong malloc_period;
+		gulong malloc_leak_all;
+		gulong malloc_time;
 		gboolean vtable_works;
 	} settings;
 
@@ -4110,6 +4144,14 @@ malloc_init(const char *argv0)
 	settings.malloc_dup_free = TRUE;
 	has_setting = TRUE;
 #endif
+#ifdef MALLOC_TIME
+	settings.malloc_time = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef MALLOC_LEAK_ALL
+	settings.malloc_leak_all = TRUE;
+	has_setting = TRUE;
+#endif
 #ifdef MALLOC_VTABLE
 	settings.malloc_vtable = TRUE;
 	settings.vtable_works = vtable_works;
@@ -4122,7 +4164,7 @@ malloc_init(const char *argv0)
 #endif
 
 	if (has_setting) {
-		g_message("malloc settings: %s%s%s%s%s%s%s%s%s%s%s",
+		g_message("malloc settings: %s%s%s%s%s%s%s%s%s%s%s%s%s",
 			settings.track_malloc ? "TRACK_MALLOC " : "",
 			settings.track_zalloc ? "TRACK_ZALLOC " : "",
 			settings.remap_zalloc ? "REMAP_ZALLOC " : "",
@@ -4133,6 +4175,8 @@ malloc_init(const char *argv0)
 			settings.malloc_free_erase ? "MALLOC_FREE_ERASE " : "",
 			settings.malloc_dup_free ? "MALLOC_DUP_FREE " : "",
 			settings.malloc_vtable ? "MALLOC_VTABLE " : "",
+			settings.malloc_time ? "MALLOC_TIME " : "",
+			settings.malloc_leak_all ? "MALLOC_LEAK_ALL " : "",
 			settings.malloc_periodic ? "MALLOC_PERIODIC " : "");
 	}
 

@@ -434,7 +434,7 @@ kib_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
  * @param size		the size to print
  * @param metric	if TRUE, use the metric system, otherwise powers of 1024.
  * @param dst		where to write the string
- * @param len		the size of ``dst'' in byts.
+ * @param len		the size of ``dst'' in bytes.
  *
  * @return The length of the resulting string assuming ``size'' is sufficient.
  */
