@@ -2575,8 +2575,8 @@ CAT2(lazy_,func) proto \
  \
 	dst = func params; \
 	if (dst != src) \
-		prev = dst; \
-	return NOT_LEAKING(dst); \
+		prev = NOT_LEAKING(dst); \
+	return dst; \
 }
 
 /**
