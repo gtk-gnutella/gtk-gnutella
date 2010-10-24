@@ -98,7 +98,7 @@ RCSID("$Id$")
  */
 
 #if defined(TRACK_MALLOC) && !defined(MALLOC_VTABLE)
-#define MALLOC_VTABLE		/* Will miss some free(), report false leaks */
+#define MALLOC_VTABLE		/* Or would miss some free(), report false leaks */
 #endif
 
 /**
@@ -807,16 +807,21 @@ trace_lookup(void *pc)
 static const char *
 trace_name(void *pc)
 {
-	struct trace *t;
 	static char buf[256];
 
-	t = trace_lookup(pc);
-
-	if (NULL == t) {
+	if (0 == trace_array.count) {
 		gm_snprintf(buf, sizeof buf, "0x%lx", pointer_to_ulong(pc));
 	} else {
-		gm_snprintf(buf, sizeof buf, "%s+%u", t->name,
-			(unsigned) ptr_diff(pc, t->start));
+		struct trace *t;
+
+		t = trace_lookup(pc);
+
+		if (NULL == t || &trace_array.base[trace_array.count -1] == t) {
+			gm_snprintf(buf, sizeof buf, "0x%lx", pointer_to_ulong(pc));
+		} else {
+			gm_snprintf(buf, sizeof buf, "%s+%u", t->name,
+				(unsigned) ptr_diff(pc, t->start));
+		}
 	}
 
 	return buf;
@@ -1992,7 +1997,7 @@ malloc_log_block(const void *k, void *v, gpointer leaksort)
 		return;
 
 #ifdef MALLOC_TIME
-	gm_snprintf(ago, sizeof ago, " tracked %s ago",
+	gm_snprintf(ago, sizeof ago, " [%s]",
 		short_time(delta_time(tm_time(), b->ttime)));
 #else
 	ago[0] = '\0';
@@ -2020,23 +2025,9 @@ malloc_log_block(const void *k, void *v, gpointer leaksort)
 			g_warning("no allocation record for 0x%lx from %s:%d?",
 				(gulong) k, b->file, b->line);
 		else {
-
-			if (trace_array.count) {
-				g_message("block 0x%lx (out of %u) allocated from:",
-					(gulong) k, (unsigned) fr->blocks);
-				print_stack_frame(stderr, fr);
-			} else {
-				size_t i;
-				char buf[12 * FRAME_DEPTH];
-				size_t rw = 0;
-
-				buf[0] = '\0';
-				for (i = 0; i < fr->len; i++) {
-					rw += gm_snprintf(&buf[rw], sizeof buf - rw,
-						"0x%lx ", (gulong) fr->stack[i]);
-				}
-				g_message("block 0x%lx allocated from %s", (gulong) k, buf);
-			}
+			g_message("block 0x%lx (out of %u) allocated from:",
+				(gulong) k, (unsigned) fr->blocks);
+			print_stack_frame(stderr, fr);
 		}
 	}
 #endif	/* MALLOC_FRAMES */
@@ -2099,7 +2090,7 @@ malloc_log_real_block(const void *k, void *v, gpointer leaksort)
 		return;		/* Was already logged through malloc_log_block() */
 
 #ifdef MALLOC_TIME
-	gm_snprintf(ago, sizeof ago, " allocated %s ago",
+	gm_snprintf(ago, sizeof ago, " [%s]",
 		short_time(delta_time(tm_time(), rb->atime)));
 #else
 	ago[0] = '\0';
@@ -2111,23 +2102,9 @@ malloc_log_real_block(const void *k, void *v, gpointer leaksort)
 	leak_add(leaksort, rb->size, "FAKED", 0);
 
 #ifdef MALLOC_FRAMES
-	if (trace_array.count) {
-		g_message("block 0x%lx (out of %u) allocated from:",
-			(gulong) p, (unsigned) rb->alloc->blocks);
-		print_stack_frame(stderr, rb->alloc);
-	} else {
-		size_t i;
-		char buf[12 * FRAME_DEPTH];
-		size_t rw = 0;
-		struct frame *fr = rb->alloc;
-
-		buf[0] = '\0';
-		for (i = 0; i < fr->len; i++) {
-			rw += gm_snprintf(&buf[rw], sizeof buf - rw,
-				"0x%lx ", (gulong) fr->stack[i]);
-		}
-		g_message("block 0x%lx allocated from %s", (gulong) p, buf);
-	}
+	g_message("block 0x%lx (out of %u) allocated from:",
+		(gulong) p, (unsigned) rb->alloc->blocks);
+	print_stack_frame(stderr, rb->alloc);
 #endif	/* MALLOC_FRAMES */
 }
 #endif	/* MALLOC_LEAK_ALL */
