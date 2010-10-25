@@ -132,15 +132,14 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 
 	for (i = 0; i < UNSIGNED(triples); i++) {
 		const char *s1, *s2, *s3;
-		int length = MAX(i, INT_MAX - 1U);
 
 		s1 = uint64_to_string(t[i][HSEP_IDX_NODES] + non_hsep[HSEP_IDX_NODES]);
 		s2 = uint64_to_string2(t[i][HSEP_IDX_FILES] + non_hsep[HSEP_IDX_FILES]);
 		s3 = short_kb_size(t[i][HSEP_IDX_KIB] + non_hsep[HSEP_IDX_KIB],
 				GNET_PROPERTY(display_metric_units));
 
-		gm_snprintf(buf, sizeof buf, "%*d  %*s  %*s  %*s\n",
-			(int) maxlen[0], length + 1,
+		gm_snprintf(buf, sizeof buf, "%*u  %*s  %*s  %*s\n",
+			(int) maxlen[0], UNSIGNED(i + 1),
 			(int) maxlen[1], s1,
 			(int) maxlen[2], s2,
 			(int) maxlen[3], s3);
@@ -149,7 +148,6 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 	}
 
 }
-
 
 /**
  * Displays horizon size information.
