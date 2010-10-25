@@ -1818,6 +1818,11 @@ free_publish_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 void
 pdht_close(void)
 {
+	if (pdht_proxy.pp != NULL) {
+		pdht_free_publish(pdht_proxy.pp, TRUE);
+	}
+	cq_cancel(callout_queue, &pdht_proxy.publish_ev);
+
 	g_hash_table_foreach(aloc_publishes, free_publish_kv, NULL);
 	g_hash_table_destroy(aloc_publishes);
 	aloc_publishes = NULL;
@@ -1825,11 +1830,6 @@ pdht_close(void)
 	g_hash_table_foreach(nope_publishes, free_publish_kv, NULL);
 	g_hash_table_destroy(nope_publishes);
 	nope_publishes = NULL;
-
-	if (pdht_proxy.pp != NULL) {
-		pdht_free_publish(pdht_proxy.pp, TRUE);
-	}
-	cq_cancel(callout_queue, &pdht_proxy.publish_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
