@@ -65,7 +65,7 @@ RCSID("$Id$")
  * All of these have effect even when TRACK_MALLOC is not defined.
  */
 
-#if 1
+#if 0
 #define MALLOC_VTABLE		/* Try to redirect glib's malloc here */
 #endif
 #if 0
@@ -85,7 +85,7 @@ RCSID("$Id$")
 #define MALLOC_PERIODIC			/* Periodically scan blocks for overruns */
 #define MALLOC_PERIOD	5000	/* Every 5 secs */
 #endif
-#if 1
+#if 0
 #define MALLOC_LEAK_ALL		/* Report all leaked "real" blocks as well */
 #endif
 
