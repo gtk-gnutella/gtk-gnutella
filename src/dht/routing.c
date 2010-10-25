@@ -3766,7 +3766,7 @@ dht_ping_cb(
 }
 
 /*
- * Send a DHT Ping to the supplied address, randomly and not more than one
+ * Send a DHT Ping to the supplied address, randomly and not more than once
  * every minute.
  */
 static void
@@ -3776,6 +3776,15 @@ dht_ping(host_addr_t addr, guint16 port)
 	vendor_code_t vc;
 	static time_t last_sent = 0;
 	time_t now = tm_time();
+
+	/*
+	 * Passive nodes are not part of the DHT structure, so no need to ping
+	 * random hosts: our node will never become part of another's routing
+	 * table unless we are active.
+	 */
+
+	if (!dht_is_active())
+		return;
 
 	/*
 	 * The idea is to prevent the formation of DHT islands by using another
