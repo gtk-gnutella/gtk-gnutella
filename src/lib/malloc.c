@@ -65,7 +65,7 @@ RCSID("$Id$")
  * All of these have effect even when TRACK_MALLOC is not defined.
  */
 
-#if 0
+#if 1
 #define MALLOC_VTABLE		/* Try to redirect glib's malloc here */
 #endif
 #if 0
@@ -85,10 +85,7 @@ RCSID("$Id$")
 #define MALLOC_PERIODIC			/* Periodically scan blocks for overruns */
 #define MALLOC_PERIOD	5000	/* Every 5 secs */
 #endif
-#if 0
-#define MALLOC_TIME			/* Track allocation time of blocks */
-#endif
-#if 0
+#if 1
 #define MALLOC_LEAK_ALL		/* Report all leaked "real" blocks as well */
 #endif
 
@@ -1991,7 +1988,7 @@ static void
 malloc_log_block(const void *k, void *v, gpointer leaksort)
 {
 	const struct block *b = v;
-	char ago[128];
+	char ago[32];
 
 	if (hash_table_lookup(not_leaking, k))
 		return;
@@ -2044,7 +2041,7 @@ malloc_log_real_block(const void *k, void *v, gpointer leaksort)
 {
 	const struct realblock *rb = v;
 	const void *p = k;
-	char ago[128];
+	char ago[32];
 
 #ifdef MALLOC_SAFE_HEAD
 	/*

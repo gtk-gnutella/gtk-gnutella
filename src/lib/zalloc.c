@@ -142,6 +142,8 @@ static hash_table_t *alloc_real_to_used;
  *  +---------------------+ <---- OVH_TRACK_OFFSET       ^
  *  | char *filename      | TRACK_ZALLOC                 | OVH_TRACK_LEN
  *  | int line            |                              v
+ *  +---------------------+ <---- OVH_TIME_OFFSET        ^
+ *  | time_t atime        | MALLOC_TIME                  v OVH_TIME_LEN
  *  +---------------------+ <---- OVH_FRAME_OFFSET       ^
  *  | struct frame *alloc | MALLOC_FRAMES                v OVH_FRAME_LEN
  *  +---------------------+ <---- returned alocation pointer
@@ -184,7 +186,14 @@ static hash_table_t *alloc_real_to_used;
 #define OVH_TRACK_LEN		0
 #endif
 
-#define OVH_FRAME_OFFSET	(OVH_TRACK_OFFSET + OVH_TRACK_LEN)
+#define OVH_TIME_OFFSET		(OVH_TRACK_OFFSET + OVH_TRACK_LEN)
+#ifdef MALLOC_TIME
+#define OVH_TIME_LEN		(sizeof(time_t))
+#else
+#define OVH_TIME_LEN		0
+#endif
+
+#define OVH_FRAME_OFFSET	(OVH_TIME_OFFSET + OVH_TIME_LEN)
 #ifdef MALLOC_FRAMES
 #define OVH_FRAME_LEN		sizeof(struct frame *)
 #define INVALID_FRAME_PTR	((struct frame *) 0xdeadbeef)
@@ -192,7 +201,8 @@ static hash_table_t *alloc_real_to_used;
 #define OVH_FRAME_LEN		0
 #endif
 
-#define OVH_LENGTH			(OVH_ZONE_SAFE_LEN + OVH_TRACK_LEN + OVH_FRAME_LEN)
+#define OVH_LENGTH \
+	(OVH_ZONE_SAFE_LEN + OVH_TRACK_LEN + OVH_TIME_LEN + OVH_FRAME_LEN)
 
 #ifdef ZONE_SAFE
 #define BLOCK_USED			((char *) 0xff12aa35)	/**< Tag for used blocks */
@@ -245,6 +255,13 @@ zprepare(zone_t *zone, char **blk)
 #endif
 #ifdef TRACK_ZALLOC
 	blk = ptr_add_offset(blk, OVH_TRACK_LEN);
+#endif
+#ifdef MALLOC_TIME
+	{
+		time_t *t = (time_t *) blk;
+		*t = tm_time();
+	}
+	blk = ptr_add_offset(blk, OVH_TIME_LEN);
 #endif
 #ifdef MALLOC_FRAMES
 	{
@@ -367,6 +384,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 	const char *uptr;			/* User pointer */
 	const char *file;
 	unsigned line;
+	char ago[32];
 
 	STATIC_ASSERT(OVH_ZONE_SAFE_LEN > 0);	/* Ensures ZONE_SAFE is on */
 
@@ -390,9 +408,18 @@ zblock_log(const char *p, size_t size, void *leakset)
 		return;
 	}
 #endif
+#ifdef MALLOC_TIME
+	{
+		const time_t *t = const_ptr_add_offset(p, OVH_TIME_OFFSET);
+		gm_snprintf(ago, sizeof ago, " [%s]",
+			short_time(delta_time(tm_time(), *t)));
+	}
+#else
+	ago[0] = '\0';
+#endif
 
-	g_warning("leaked block 0x%lx from \"%s:%u\"",
-		(unsigned long) uptr, file, line);
+	g_warning("leaked block 0x%lx from \"%s:%u\"%s",
+		(unsigned long) uptr, file, line, ago);
 
 #ifdef MALLOC_FRAMES
 	{

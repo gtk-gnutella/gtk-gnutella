@@ -140,6 +140,12 @@ The defines which can be used are:
         To get allocation frames from malloc()-style allocations, TRACK_MALLOC
         is also required.
 
+	MALLOC_TIME
+		Record allocation time / tracking time of all blocks.  This can be
+		used to determine whether a leak is really a true leak or whether
+		it is only due to improper cleanup (for recently-allocated blocks)
+		after a sudden exit request.
+
 Some options are also available by editing the src/lib/malloc.c top
 section, which define symbols that need only be visible within that file
 to be effective.
@@ -202,12 +208,6 @@ The various symbols are:
         Turns on periodic scanning of all the allocated blocks to check
         for memory corruption (corrupted markers at the end of blocks added
         by MALLOC_SAFE).
-
-	MALLOC_TIME
-		Record allocation time / tracking time of all blocks.  This can be
-		used to determine whether a leak is really a true leak or whether
-		it is only due to improper cleanup (for recently-allocated blocks)
-		after a sudden exit request.
 
 	MALLOC_LEAK_ALL
 		If enabled, report leaks for all the blocks allocated by glib/GTK
