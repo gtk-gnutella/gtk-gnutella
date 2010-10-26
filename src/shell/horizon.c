@@ -139,7 +139,7 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 				GNET_PROPERTY(display_metric_units));
 
 		gm_snprintf(buf, sizeof buf, "%*u  %*s  %*s  %*s\n",
-			(int) maxlen[0], UNSIGNED(i + 1),
+			(int) maxlen[0], (unsigned) (i + 1),
 			(int) maxlen[1], s1,
 			(int) maxlen[2], s2,
 			(int) maxlen[3], s3);
