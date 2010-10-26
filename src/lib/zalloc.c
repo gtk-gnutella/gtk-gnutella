@@ -133,6 +133,7 @@ static hash_table_t *not_leaking;
 static hash_table_t *alloc_used_to_real;
 static hash_table_t *alloc_real_to_used;
 #endif
+static void *z_leakset;
 
 /*
  * Optional additional overhead at the beginning of each block:
@@ -436,19 +437,20 @@ zblock_log(const char *p, size_t size, void *leakset)
 	}
 #endif
 
-	leak_add(leakset, size, file, line);
+	if (leakset != NULL) {
+		leak_add(leakset, size, file, line);
+	}
 }
 
 /**
  * Go through the whole zone and dump all the used blocks.
  */
 static void
-zdump_used(const zone_t *zone)
+zdump_used(const zone_t *zone, void *leakset)
 {
 	unsigned used = 0;
 	const struct subzone *sz;
 	const char *p;
-	void *leakset = leak_init();
 
 	STATIC_ASSERT(OVH_ZONE_SAFE_LEN > 0);	/* Ensures ZONE_SAFE is on */
 
@@ -473,9 +475,6 @@ zdump_used(const zone_t *zone)
 			used, 1 == used ? "" : "s",
 			(unsigned long) zone->zn_size, zone->zn_cnt);
 	}
-
-	leak_dump(leakset);
-	leak_close(leakset);
 }
 
 /**
@@ -743,7 +742,8 @@ adjust_size(size_t requested, unsigned *hint_ptr)
 		if (adjusted != size) {
 			if (zalloc_debug) {
 				g_message("ZALLOC adjusting block size from %lu to %lu "
-					"(%lu blocks will waste %lu bytes at end of %lu-byte subzone)",
+					"(%lu blocks will waste %lu bytes at end of "
+					"%lu-byte subzone)",
 					(unsigned long) requested, (unsigned long) adjusted,
 					(unsigned long) hint,
 					(unsigned long) (rounded - hint * adjusted),
@@ -752,7 +752,8 @@ adjust_size(size_t requested, unsigned *hint_ptr)
 		} else {
 			if (zalloc_debug) {
 				g_message("ZALLOC cannot adjust block size of %lu "
-					"(%lu blocks will waste %lu bytes at end of %lu-byte subzone)",
+					"(%lu blocks will waste %lu bytes at end of "
+					"%lu-byte subzone)",
 					(unsigned long) requested, (unsigned long) hint,
 					(unsigned long) (rounded - hint * adjusted),
 					(unsigned long) rounded);
@@ -901,8 +902,7 @@ zcreate(size_t size, unsigned hint)
 }
 
 /**
- * Destroy a zone chunk by releasing its memory to the system if possible,
- * converting it into a malloc chunk otherwise.
+ * Destroy a zone chunk by releasing its memory to the system if possible.
  */
 void
 zdestroy(zone_t *zone)
@@ -924,7 +924,7 @@ zdestroy(zone_t *zone)
 			(unsigned long) zone->zn_size, zone->zn_cnt,
 			zone->zn_cnt == 1 ? "y" : "ies");
 #ifdef TRACK_ZALLOC
-		zdump_used(zone);
+		zdump_used(zone, z_leakset);
 #endif
 	}
 
@@ -1056,6 +1056,11 @@ zclose(void)
 	hash_table_foreach(zt, free_zone, NULL);
 	hash_table_destroy(zt);
 	zt = NULL;
+
+#ifdef TRACK_ZALLOC
+	leak_dump(z_leakset);
+	leak_close(z_leakset);
+#endif
 
 #ifdef MALLOC_FRAMES
 	if (zalloc_frames != NULL) {
@@ -2277,6 +2282,9 @@ void
 zinit(void)
 {
 	addr_grows_upwards = vmm_grows_upwards();
+#ifdef TRACK_ZALLOC
+	z_leakset = leak_init();
+#endif
 }
 
 /* vi: set ts=4: */
