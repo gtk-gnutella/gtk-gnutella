@@ -133,7 +133,9 @@ static hash_table_t *not_leaking;
 static hash_table_t *alloc_used_to_real;
 static hash_table_t *alloc_real_to_used;
 #endif
+#ifdef TRACK_ZALLOC
 static void *z_leakset;
+#endif
 
 /*
  * Optional additional overhead at the beginning of each block:
