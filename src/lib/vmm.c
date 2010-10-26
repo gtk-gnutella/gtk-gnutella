@@ -58,6 +58,7 @@ RCSID("$Id$")
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
+#include "omalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -721,13 +722,12 @@ static void
 free_pages_intern(void *p, size_t size, gboolean update_pmap)
 {
 	/*
-	 * If ``stop_freeing'' was set, do not even bother updating the pmap:
-	 * Our pages are not freed physically, they must remain in the pmap as
-	 * allocated zones.
+	 * If ``stop_freeing'' was set, well be only updating the pmap so that
+	 * we can spot "leaks" at vmm_close() time.
 	 */
 
 	if (G_UNLIKELY(stop_freeing))
-		return;
+		goto pmap_update;
 
 #if defined(HAS_MMAP)
 	{
@@ -746,6 +746,7 @@ free_pages_intern(void *p, size_t size, gboolean update_pmap)
 #error "Neither mmap(), posix_memalign() nor memalign() available"
 #endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
 
+pmap_update:
 	if (update_pmap)
 		pmap_remove(vmm_pmap(), p, size);
 }
@@ -1824,15 +1825,6 @@ free_pages_forced(void *p, size_t size, gboolean fragment)
 	 */
 
 	free_pages_intern(p, size, FALSE);
-
-	/*
-	 * If ``stop_freeing'' was set, do not even bother updating the pmap:
-	 * Our pages are not freed physically, they must remain in the pmap as
-	 * allocated zones.
-	 */
-
-	if (G_UNLIKELY(stop_freeing))
-		return;
 
 	/*
 	 * If we're freeing a fragment, we can remove it from the list of known
@@ -2927,8 +2919,7 @@ page_cache_timer(gpointer unused_udata)
 }
 
 /**
- * Copies the given string to a read-only buffer. vmm_free() can be used
- * to free the memory.
+ * Copies the given string to a read-only buffer.
  *
  * @param s A NUL-terminated string. If NULL, NULL is returned.
  * @return	On success, a copy of the string is returned. On failure, NULL
@@ -2955,6 +2946,12 @@ prot_strdup(const char *s)
 }
 
 /**
+ * Get a protected region bearing a non-NULL address.
+ *
+ * This is used as the address of sentinel objects for which we can do
+ * pointer comparisons but which we shall never try to access directly as
+ * they are "fake" object addresses.
+ *
  * @return	A page-sized and page-aligned chunk of memory which causes an
  *			exception to be raised if accessed.
  */
@@ -3327,6 +3324,72 @@ vmm_stop_freeing(void)
 		g_message("VMM will no longer release freed pages");
 }
 
+/**
+ * Final shutdown.
+ */
+void
+vmm_close(void)
+{
+	struct pmap *pm = vmm_pmap();
+	size_t pages = 0;
+	size_t memory = 0;
+	size_t i;
+
+	/*
+	 * Clear all cached pages.
+	 */
+
+	for (i = 0; i < VMM_CACHE_LINES; i++) {
+		struct page_cache *pc = &page_cache[i];
+		size_t j;
+
+		for (j = 0; j < pc->current; j++) {
+			vpc_free(pc, j);
+		}
+	}
+
+	/*
+	 * Look at remaining regions (leaked pages?).
+	 */
+
+	for (i = 0; i < pm->count; i++) {
+		struct vm_fragment *vmf = &pm->array[i];
+
+		if (vmf_is_foreign(vmf))
+			continue;
+
+		/*
+		 * Found an allocated region, still.
+		 */
+
+		memory += vmf_size(vmf) / 1024;
+		pages += pagecount_fast(vmf_size(vmf));
+	}
+
+	/*
+	 * Substract "once" memory.
+	 */
+
+	{
+		size_t opages = omalloc_page_count();
+
+		if (opages > pages) {
+			g_warning("VMM omalloc() claims using %lu page%s, we have %lu left",
+				(unsigned long) opages, 1 == opages ? "" : "s",
+				(unsigned long) pages);
+		} else {
+			pages -= opages;
+			memory -= opages * (compat_pagesize() / 1024);
+		}
+	}
+
+	if (pages != 0) {
+		g_warning("VMM still holds %lu page%s totaling %s KiB",
+			(unsigned long) pages, 1 == pages ? "" : "s",
+			size_t_to_string(memory));
+	}
+}
+
 /***
  *** mmap() and munmap() wrappers: the application should not call these
  *** system calls directly but go through the wrappers so that the VMM layer
@@ -3378,11 +3441,14 @@ int
 vmm_munmap(void *addr, size_t length)
 {
 #ifdef HAS_MMAP
-	int ret = munmap(addr, length);
+	int ret;
+
+	assert_vmm_is_allocated(addr, length);
+	assert_vmm_is_foreign(addr);
+
+	ret = munmap(addr, length);
 
 	if (0 == ret) {
-		assert_vmm_is_allocated(addr, length);
-		assert_vmm_is_foreign(addr);
 		pmap_remove(vmm_pmap(), addr, round_pagesize_fast(length));
 
 		if (vmm_debugging(5)) {

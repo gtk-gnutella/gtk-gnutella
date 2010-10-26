@@ -614,6 +614,8 @@ gtk_gnutella_exit(int exit_code)
 	DO(wdestroy);
 	DO(zclose);
 	DO(malloc_close);
+	DO(hdestroy);
+	DO(vmm_close);
 
 	if (debugging(0) || signal_received || shutdown_requested) {
 		g_message("gtk-gnutella shut down cleanly.");
@@ -621,7 +623,6 @@ gtk_gnutella_exit(int exit_code)
 	if (!running_topless) {
 		main_gui_exit(exit_code);
 	}
-	hdestroy();
 	exit(exit_code);
 
 #undef DO
