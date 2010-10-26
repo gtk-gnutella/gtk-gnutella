@@ -134,6 +134,7 @@ static struct {
 	size_t pages;			/**< Total amount of pages allocated */
 	size_t objects;			/**< Total amount of objects allocated */
 	size_t memory;			/**< Total amount of memory allocated */
+	size_t chunks;			/**< Total amount of chunks still present */
 } stats;
 
 /**
@@ -382,6 +383,7 @@ omalloc_chunk_allocate_from(struct ochunk *ck, size_t size)
 		 */
 
 		omalloc_chunk_unlink(ck);
+		stats.chunks--;
 
 		if (common_dbg > 3) {
 			g_message("OMALLOC dissolving chunk header on %lu-byte allocation",
@@ -434,8 +436,10 @@ omalloc(size_t size)
 
 	if (common_dbg > 3) {
 		size_t pages = allocated / compat_pagesize();
-		g_message("OMALLOC allocated %lu page%s",
-			(unsigned long) pages, 1 == pages ? "" : "s");
+		g_message("OMALLOC allocated %lu page%s (%lu total for %lu object%s)",
+			(unsigned long) pages, 1 == pages ? "" : "s",
+			(unsigned long) stats.pages, (unsigned long) stats.objects,
+			1 == stats.objects ? "" : "s");
 	}
 
 	stats.pages += allocated / compat_pagesize();
@@ -452,6 +456,19 @@ omalloc(size_t size)
 		ck = ptr_add_offset(result, rounded);
 		ck->end = ptr_add_offset(result, allocated);
 		omalloc_chunk_link(ck);
+		stats.chunks++;
+
+		if (common_dbg > 3) {
+			g_message("OMALLOC adding %lu byte-long chunk (%lu chunk%s total)",
+				(unsigned long) omalloc_chunk_size(ck),
+				(unsigned long) stats.chunks, 1 == stats.chunks ? "" : "s");
+		}
+	} else if (allocated != rounded) {
+		if (common_dbg > 3) {
+			g_message("OMALLOC %lu trailing bytes lost on %lu-byte allocation",
+				(unsigned long) (allocated - rounded),
+				(unsigned long) rounded);
+		}
 	}
 
 	return result;
