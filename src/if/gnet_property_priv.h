@@ -424,6 +424,7 @@ extern const guint64  gnet_property_variable_cpu_freq_max;
 extern const guint32  gnet_property_variable_dht_boot_status;
 extern const guint32  gnet_property_variable_dht_configured_mode;
 extern const guint32  gnet_property_variable_dht_current_mode;
+extern const guint32  gnet_property_variable_omalloc_debug;
 
 
 prop_set_t *gnet_prop_init(void);

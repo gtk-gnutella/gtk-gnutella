@@ -75,6 +75,7 @@
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
 #include "lib/sha1.h"
@@ -1873,6 +1874,17 @@ zalloc_debug_changed(property_t prop)
 }
 
 static gboolean
+omalloc_debug_changed(property_t prop)
+{
+	guint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_omalloc_debug(val);
+
+    return FALSE;
+}
+
+static gboolean
 palloc_debug_changed(property_t prop)
 {
 	guint32 val;
@@ -2346,6 +2358,11 @@ static prop_map_t property_map[] = {
     {
         PROP_ZALLOC_DEBUG,
         zalloc_debug_changed,
+        TRUE
+    },
+    {
+        PROP_OMALLOC_DEBUG,
+        omalloc_debug_changed,
         TRUE
     },
     {

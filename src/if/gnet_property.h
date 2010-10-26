@@ -411,6 +411,7 @@ typedef enum {
     PROP_DHT_BOOT_STATUS,
     PROP_DHT_CONFIGURED_MODE,
     PROP_DHT_CURRENT_MODE,
+    PROP_OMALLOC_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

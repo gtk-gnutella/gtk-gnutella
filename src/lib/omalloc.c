@@ -75,6 +75,7 @@
 RCSID("$Id$")
 
 #include "omalloc.h"
+#include "misc.h"
 #include "pow2.h"
 #include "unsigned.h"
 #include "vmm.h"
@@ -531,6 +532,28 @@ void
 set_omalloc_debug(guint32 level)
 {
 	omalloc_debug = level;
+}
+
+/**
+ * Final shutdown.
+ */
+void
+omalloc_close(void)
+{
+	/*
+	 * We can't free anything since we don't track allocated memory.
+	 * Just log what we did during this run.
+	 */
+
+	if (omalloc_debug) {
+		g_message("omalloc() allocated %lu object%s spread on %lu page%s",
+			(unsigned long) stats.objects, 1 == stats.objects ? "" : "s",
+			(unsigned long) stats.pages, 1 == stats.pages ? "" : "s");
+		g_message("omalloc() allocated %s, %lu partial page%s remain%s",
+			short_size(stats.memory, FALSE),
+			(unsigned long) stats.chunks, 1 == stats.chunks ? "" : "s",
+			1 == stats.chunks ? "s" : "");
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent:  */

@@ -123,6 +123,7 @@
 #include "lib/map.h"
 #include "lib/mime_type.h"
 #include "lib/offtime.h"
+#include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
 #include "lib/patricia.h"
@@ -615,6 +616,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(zclose);
 	DO(malloc_close);
 	DO(hdestroy);
+	DO(omalloc_close);
 	DO(vmm_close);
 
 	if (debugging(0) || signal_received || shutdown_requested) {
