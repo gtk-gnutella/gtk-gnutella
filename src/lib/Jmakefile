@@ -102,6 +102,7 @@ LSRC = \
 	mime_type.c \
 	misc.c \
 	offtime.c \
+	omalloc.c \
 	options.c \
 	pagetable.c \
 	parse.c \
@@ -117,6 +118,7 @@ LSRC = \
 	slist.c \
 	socket.c \
 	sorted_array.c \
+	stacktrace.c \
 	stats.c \
 	stringify.c \
 	strtok.c \
