@@ -41,6 +41,7 @@ void *omalloc0(size_t size);
 char *ostrdup(const char *str);
 
 size_t omalloc_page_count(void);
+void set_omalloc_debug(guint32 level);
 
 #endif /* _omalloc_h_ */
 

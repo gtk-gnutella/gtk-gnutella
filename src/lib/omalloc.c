@@ -75,7 +75,6 @@
 RCSID("$Id$")
 
 #include "omalloc.h"
-#include "debug.h"
 #include "pow2.h"
 #include "unsigned.h"
 #include "vmm.h"
@@ -118,6 +117,8 @@ struct ochunk {
 };
 
 #define OMALLOC_HEADER_SIZE	(sizeof(struct ochunk))
+
+static guint32 omalloc_debug;
 
 /**
  * Array of chunks with free space.
@@ -385,7 +386,7 @@ omalloc_chunk_allocate_from(struct ochunk *ck, size_t size)
 		omalloc_chunk_unlink(ck);
 		stats.chunks--;
 
-		if (common_dbg > 3) {
+		if (omalloc_debug > 2) {
 			g_message("OMALLOC dissolving chunk header on %lu-byte allocation",
 				(unsigned long) size);
 			if (csize != size) {
@@ -434,7 +435,7 @@ omalloc(size_t size)
 	result = vmm_alloc(rounded);
 	allocated = round_pagesize(rounded);
 
-	if (common_dbg > 3) {
+	if (omalloc_debug > 2) {
 		size_t pages = allocated / compat_pagesize();
 		g_message("OMALLOC allocated %lu page%s (%lu total for %lu object%s)",
 			(unsigned long) pages, 1 == pages ? "" : "s",
@@ -458,13 +459,13 @@ omalloc(size_t size)
 		omalloc_chunk_link(ck);
 		stats.chunks++;
 
-		if (common_dbg > 3) {
+		if (omalloc_debug > 2) {
 			g_message("OMALLOC adding %lu byte-long chunk (%lu chunk%s total)",
 				(unsigned long) omalloc_chunk_size(ck),
 				(unsigned long) stats.chunks, 1 == stats.chunks ? "" : "s");
 		}
 	} else if (allocated != rounded) {
-		if (common_dbg > 3) {
+		if (omalloc_debug > 2) {
 			g_message("OMALLOC %lu trailing bytes lost on %lu-byte allocation",
 				(unsigned long) (allocated - rounded),
 				(unsigned long) rounded);
@@ -521,6 +522,15 @@ size_t
 omalloc_page_count(void)
 {
 	return stats.pages;
+}
+
+/**
+ * Set debug level.
+ */
+void
+set_omalloc_debug(guint32 level)
+{
+	omalloc_debug = level;
 }
 
 /* vi: set ts=4 sw=4 cindent:  */
