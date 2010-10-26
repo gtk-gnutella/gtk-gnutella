@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "glib-missing.h"	/* For g_mem_is_system_malloc() */
 #include "malloc.h"			/* For MALLOC_FRAMES */
 #include "misc.h"			/* For short_filename() */
+#include "stacktrace.h"
 #include "stringify.h"
 #include "unsigned.h"
 #include "tm.h"
@@ -266,10 +267,10 @@ zprepare(zone_t *zone, char **blk)
 #ifdef MALLOC_FRAMES
 	{
 		struct frame **p = (struct frame **) blk;
-		struct stackframe f;
+		struct stacktrace t;
 
-		get_stackframe(&f);
-		*p = get_frame_atom(&zalloc_frames, &f);
+		stacktrace_get_offset(&t, 1);	/* Remove ourselves from trace */
+		*p = get_frame_atom(&zalloc_frames, &t);
 	}
 	blk = ptr_add_offset(blk, OVH_FRAME_LEN);
 #endif
@@ -427,7 +428,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 		const struct frame *f = *(struct frame **) q;
 
 		if (f != INVALID_FRAME_PTR) {
-			print_stack_frame(stderr, f);
+			stacktrace_atom_print(stderr, f->ast);
 		} else {
 			g_warning("however frame pointer suggests block 0x%lx was freed?",
 				(unsigned long) uptr);
