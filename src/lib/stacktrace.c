@@ -214,8 +214,8 @@ trace_sort(void)
 	if (old_count != trace_array.count) {
 		size_t delta = old_count - trace_array.count;
 		g_assert(size_is_non_negative(delta));
-		g_message("stripped %u duplicate symbol%s",
-			delta, 1 == delta ? "" : "s");
+		g_message("stripped %lu duplicate symbol%s",
+			(unsigned long) delta, 1 == delta ? "" : "s");
 	}
 }
 
@@ -348,6 +348,12 @@ parse_nm(struct nm_parser *ctx, char *line)
 	}
 }
 
+static size_t
+str_hash(const void *p)
+{
+	return g_str_hash(p);
+}
+
 /**
  * Load symbols from the executable we're running.
  */
@@ -372,7 +378,7 @@ load_symbols(const char *path)
 		goto done;
 	}
 
-	nm_ctx.atoms = hash_table_new_full_real(g_str_hash, g_str_equal);
+	nm_ctx.atoms = hash_table_new_full_real(str_hash, g_str_equal);
 
 	while (fgets(tmp, sizeof tmp, f)) {
 		parse_nm(&nm_ctx, tmp);
@@ -648,7 +654,7 @@ stacktrace_where_print(FILE *f)
 /**
  * Hashing routine for a "struct stacktracea".
  */
-unsigned int
+size_t
 stack_hash(const void *key)
 {
 	const struct stackatom *sa = key;
