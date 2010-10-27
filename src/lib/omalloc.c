@@ -62,7 +62,7 @@
  * that we can use this space for other smaller allocations.
  *
  * Therefore, the optimial size for our "big chunk" is one page size because
- * this is the lowest granularity we have when allocating pages and it does
+ * this is the lowest granularity we have when allocating pages and it does not
  * prevent us from efficiently allocating smaller objects out of remaining
  * fragments.
  *
@@ -308,8 +308,6 @@ omalloc_chunk_allocate_from(struct ochunk *ck, size_t size)
 	 */
 
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES)); /* redundant */
-	/** FIXME: BUG, does not compile on common 64-bit machines */
-	//STATIC_ASSERT(omalloc_round(OMALLOC_HEADER_SIZE) == OMALLOC_HEADER_SIZE);
 
 	g_assert(ck != NULL);
 	g_assert(size_is_positive(size));
