@@ -99,13 +99,8 @@ static const struct {
 #if defined(USE_LOCAL_UHC)
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
-	{ "drei.gtkg.net:62666" },
-	{ "gnutelladev1.udp-host-cache.com:1234" },
-	{ "gnutelladev2.udp-host-cache.com:5678" },
-	{ "leet.gtkg.org:1337" },
-	{ "tertiary.udp-host-cache.com:9999" },
 	{ "yin.cloud.bishopston.net:33558" },
-	{ "uhc1.frostwire.com:9000" },
+	{ "uhc1.frostwire.com:9000" }, /* possibly dead (2010-10-27) */
 #endif	/* USE_LOCAL_UHC */
 };
 
