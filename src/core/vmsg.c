@@ -2280,7 +2280,7 @@ extract_guid(const char *data, size_t size, struct guid *guid)
 			 */
 			if (ext_paylen(e) < GUID_RAW_SIZE) {
 				if (GNET_PROPERTY(vmsg_debug)) {
-					g_warning("GUID too short in HEAD Ping");
+					g_warning("VMSG HEAD Ping: GUID too short");
 				}
 			} else {
 				memcpy(guid, ext_payload(e), GUID_RAW_SIZE);
@@ -2372,7 +2372,7 @@ handle_head_ping(struct gnutella_node *n,
 		}
 	} else {
 		if (GNET_PROPERTY(vmsg_debug)) {
-			g_warning("no SHA-1 in HEAD Ping");
+			g_warning("VMSG HEAD Ping: no SHA-1");
 		}
 		return;
 	}
@@ -2398,7 +2398,7 @@ handle_head_ping(struct gnutella_node *n,
 			}
 		} else {
 		   	if (GNET_PROPERTY(vmsg_debug) > 1) {
-				g_message("no GUID in HEAD Ping");
+				g_message("VMSG HEAD Ping: no GUID");
 			}
 		}
 	}
@@ -2408,13 +2408,14 @@ handle_head_ping(struct gnutella_node *n,
 
 		if (NODE_P_LEAF == GNET_PROPERTY(current_peermode)) {
 		   	if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("VMSG not forwarding HEAD Ping as leaf");
+				g_message("VMSG HEAD Ping: not forwarding as leaf");
 			}
 			return;
 		}
 		if (gnutella_header_get_hops(&n->header) > 0) {
 		   	if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("VMSG not forwarding forwarded HEAD Ping");
+				g_message("VMSG HEAD Ping: not forwarding further (hops=%u)",
+					gnutella_header_get_hops(&n->header));
 			}
 			return;
 		}
@@ -2431,7 +2432,7 @@ handle_head_ping(struct gnutella_node *n,
 
 			if (head_ping_register_forwarded(muid, &sha1, n)) {
 				if (GNET_PROPERTY(vmsg_debug) > 1) {
-					g_message("VMSG forwarding HEAD Ping to %s",
+					g_message("VMSG HEAD Ping: forwarding to %s",
 						node_addr(target));
 				}
 				gmsg_split_sendto_one(target, header, n->data,
@@ -2439,7 +2440,7 @@ handle_head_ping(struct gnutella_node *n,
 			}
 		} else {
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("VMSG no route found for HEAD Ping");
+				g_message("VMSG HEAD Ping: no route found");
 			}
 		}
 	} else {
@@ -2455,7 +2456,7 @@ handle_head_ping(struct gnutella_node *n,
 			 * (404).
 			 */
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("VMSG HEAD Ping whilst rebuilding library");
+				g_message("VMSG HEAD Ping: got it whilst rebuilding library");
 			}
 		} else {
 			if (sf) {
@@ -2465,7 +2466,7 @@ handle_head_ping(struct gnutella_node *n,
 				fi = shared_file_fileinfo(sf);
 				if (fi) {
 					if (GNET_PROPERTY(vmsg_debug)) {
-						g_message("VMSG HEAD Ping for partial file");
+						g_message("VMSG HEAD Ping: matches a partial file");
 					}
 					if (GNET_PROPERTY(pfsp_server)) {
 						code = VMSG_HEAD_CODE_PARTIAL;
@@ -2477,13 +2478,13 @@ handle_head_ping(struct gnutella_node *n,
 					}
 				}  else {
 					if (GNET_PROPERTY(vmsg_debug)) {
-						g_message("VMSG HEAD Ping for shared file");
+						g_message("VMSG HEAD Ping: matches a shared file");
 					}
 					code = VMSG_HEAD_CODE_COMPLETE;
 				}
 			} else {
 				if (GNET_PROPERTY(vmsg_debug)) {
-					g_message("VMSG HEAD Ping for unknown file");
+					g_message("VMSG HEAD Ping: unknown file");
 				}
 				code = VMSG_HEAD_CODE_NOT_FOUND;
 			}
@@ -2573,7 +2574,8 @@ forward_head_pong(struct gnutella_node *n,
 			pmsg_t *mb;
 
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("VMSG forwarding HEAD Pong to %s", node_addr(target));
+				g_message("VMSG HEAD Pong: forwarding to %s",
+					node_addr(target));
 			}
 
 			memcpy(header, n->header, GTA_HEADER_SIZE);
@@ -2673,7 +2675,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 		len = block_length(array_init(p, endptr - p));
 		if (len < 0 || len % 8) {
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_warning("HEAD Pong carries truncated ranges");
+				g_warning("VMSG HEAD Pong carries truncated ranges");
 			}
 			return;
 		} else {
@@ -2692,7 +2694,8 @@ handle_head_pong_v1(const struct head_ping_source *source,
 		len = block_length(array_init(p, endptr - p));
 		if (len != 0 && (len < 23 || (len - 23) % 6)) {
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_warning("HEAD Pong carries truncated firewalled alt-locs");
+				g_warning(
+					"VMSG HEAD Pong carries truncated firewalled alt-locs");
 			}
 			return;
 		} else {
@@ -2716,7 +2719,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 		len = block_length(array_init(p, endptr - p));
 		if (len < 0 || len % 6) {
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_warning("HEAD Pong carries truncated alt-locs");
+				g_warning("VMSG HEAD Pong carries truncated alt-locs");
 			}
 			return;
 		} else {
@@ -2900,7 +2903,7 @@ handle_head_pong(struct gnutella_node *n,
 		head_ping_source_free(source);
 	} else {
 		if (GNET_PROPERTY(vmsg_debug)) {
-			g_warning("HEAD Pong MUID is not registered");
+			g_warning("VMSG HEAD Pong MUID is not registered");
 		}
 	}
 }
