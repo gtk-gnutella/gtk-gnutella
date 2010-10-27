@@ -85,4 +85,7 @@ END
 NAME [[:blank:]]{6}$
 ADDED 2009-04-25
 END
-
+ 
+NAME [.](r00|uue)$
+ADDED 2010-10-27
+END
