@@ -2,7 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2006, Christian Biere
- * Copyright (c) 2006, 2009 Raphael Manfredi
+ * Copyright (c) 2006, 2009-2010 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -33,7 +33,7 @@
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2006, 2009
+ * @date 2006, 2009-2010
  */
 
 #ifndef _vmm_h_
@@ -41,11 +41,44 @@
 
 #include "common.h"
 
-size_t round_pagesize(size_t n);
-size_t compat_pagesize(void);
+/*
+ * Under TRACK_VMM we keep track of the allocation places.
+ */
+
+#if defined(TRACK_VMM) && !defined(VMM_SOURCE)
+#define vmm_alloc(s)		vmm_alloc_track((s), _WHERE_, __LINE__)
+#define vmm_alloc0(s)		vmm_alloc0_track((s), _WHERE_, __LINE__)
+#define vmm_free(p,s)		vmm_free_track((p), (s), _WHERE_, __LINE__)
+
+#define vmm_alloc_not_leaking(s) \
+	vmm_alloc_track_not_leaking((s), _WHERE_, __LINE__)
+
+#endif	/* TRACK_VMM && !VMM_SOURCE */
+
+#ifdef TRACK_VMM
+void *vmm_alloc_track(size_t size,
+	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *vmm_alloc_track_not_leaking(size_t size,
+	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *vmm_alloc0_track(size_t size,
+	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void vmm_free_track(void *p, size_t size, const char *file, int line);
+
+void *vmm_alloc_notrack(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void vmm_free_notrack(void *p, size_t size);
+
+#else	/* !TRACK_VMM */
+#define vmm_alloc_not_leaking(s)	vmm_alloc(s)
+#endif	/* TRACK_VMM */
+
+#ifdef VMM_SOURCE
 void *vmm_alloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *vmm_alloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void vmm_free(void *p, size_t size);
+#endif	/* VMM_SOURCE */
+
+size_t round_pagesize(size_t n);
+size_t compat_pagesize(void);
 const char *prot_strdup(const char *s);
 const void *vmm_trap_page(void);
 gboolean vmm_is_fragment(const void *base, size_t size);

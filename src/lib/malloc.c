@@ -2769,7 +2769,7 @@ string_sprintfa_track(GString *s,
  *** can be used by both malloc() and zalloc().
  ***/
 
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
+#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined(TRACK_VMM)
 
 struct leak_record {		/* Informations about leak at some place */
 	size_t size;			/* Total size allocated there */
@@ -2942,7 +2942,7 @@ leak_dump(gpointer o)
 	real_free(filler.leaks);
 }
 
-#endif /* TRACK_MALLOC || TRACK_ZALLOC */
+#endif /* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM */
 
 /***
  *** This section contains general-purpose allocation summarizing routines that
@@ -3339,6 +3339,7 @@ malloc_init(const char *argv0)
 	gboolean has_setting = FALSE;
 	struct malloc_settings {
 		guint8 use_halloc;
+		guint8 track_vmm;
 		guint8 track_malloc;
 		guint8 track_zalloc;
 		guint8 remap_zalloc;
@@ -3385,6 +3386,10 @@ malloc_init(const char *argv0)
 
 #ifdef USE_HALLOC
 	settings.use_halloc = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef TRACK_VMM
+	settings.track_vmm = TRUE;
 	has_setting = TRUE;
 #endif
 #ifdef TRACK_MALLOC
@@ -3444,7 +3449,8 @@ malloc_init(const char *argv0)
 #endif
 
 	if (has_setting) {
-		g_message("malloc settings: %s%s%s%s%s%s%s%s%s%s%s%s%s",
+		g_message("malloc settings: %s%s%s%s%s%s%s%s%s%s%s%s%s%s",
+			settings.track_vmm ? "TRACK_VMM " : "",
 			settings.track_malloc ? "TRACK_MALLOC " : "",
 			settings.track_zalloc ? "TRACK_ZALLOC " : "",
 			settings.remap_zalloc ? "REMAP_ZALLOC " : "",

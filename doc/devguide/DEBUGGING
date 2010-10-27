@@ -82,6 +82,12 @@ The defines which can be used are:
         string or value is only allocated once. Atoms with non-zero
         life counts are reported at the end of program execution.
 
+	TRACK_VMM
+		Track the low-level allocation from vmm_alloc(), which need to
+		be paired with a matching vmm_free().  Any inconsistency in the
+		provided size or any duplicated freeing will be reported.
+		At the end of execution, leaked pages are reported.
+
     ZONE_SAFE
         This define allocates more memory when using zone allocations
         so that the used status can be tracked and double free's can

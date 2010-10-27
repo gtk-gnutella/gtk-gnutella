@@ -88,7 +88,66 @@ struct hash_table {
   hash_item_t **bins;           /* Array of bins of size ``num_bins'' */
   hash_item_t *free_list;       /* List of free hash items */
   hash_item_t *items;           /* Array of items */
+#ifdef TRACK_VMM
+  /*
+   * Since we use these data structures during tracking, be careful:
+   * if the table is created with the _real variant, it is used by
+   * the tracking code and we must make sure to exercise the VMM
+   * layer specially.
+   */
+  unsigned real:1;				/* If TRUE, created as "real" */
+#endif
 };
+
+static inline void *
+hash_vmm_alloc(const struct hash_table *ht, size_t size)
+{
+#ifdef TRACK_VMM
+  if (ht->real)
+	return vmm_alloc_notrack(size);
+  else
+	return vmm_alloc(size);
+#else
+	(void) ht;
+	return vmm_alloc(size);
+#endif
+}
+
+static inline void
+hash_vmm_free(const struct hash_table *ht, void *p, size_t size)
+{
+#ifdef TRACK_VMM
+  if (ht->real)
+	vmm_free_notrack(p, size);
+  else
+	vmm_free(p, size);
+#else
+  (void) ht;
+  vmm_free(p, size);
+#endif
+}
+
+static inline void
+hash_mark_real(hash_table_t *ht, gboolean is_real)
+{
+#ifdef TRACK_VMM
+  ht->real = is_real;
+#else
+  (void) ht;
+  (void) is_real;
+#endif
+}
+
+static inline void
+hash_copy_real_flag(hash_table_t *dest, hash_table_t *src)
+{
+#ifdef TRACK_VMM
+  dest->real = src->real;
+#else
+  (void) dest;
+  (void) src;
+#endif
+}
 
 static inline void
 hash_table_check(const struct hash_table *ht)
@@ -189,7 +248,7 @@ hash_table_new_intern(hash_table_t *ht, size_t num_bins,
 
   arena = hash_bins_items_arena_size(ht, &items_off);
 
-  ht->bins = vmm_alloc(arena);
+  ht->bins = hash_vmm_alloc(ht, arena);
   RUNTIME_ASSERT(ht->bins);
   RUNTIME_ASSERT(items_off != 0);
   
@@ -217,6 +276,7 @@ hash_table_new_full(hash_table_hash_func hash, hash_table_eq_func eq)
 {
   hash_table_t *ht = malloc(sizeof *ht);
   RUNTIME_ASSERT(ht);
+  hash_mark_real(ht, FALSE);
   hash_table_new_intern(ht, 2, hash, eq);
   return ht;
 }
@@ -332,7 +392,7 @@ hash_table_clear(hash_table_t *ht)
 
   arena = hash_bins_items_arena_size(ht, NULL);
 
-  vmm_free(ht->bins, arena);
+  hash_vmm_free(ht, ht->bins, arena);
   ht->bins = NULL;
   ht->num_bins = 0;
   ht->items = NULL;
@@ -392,6 +452,7 @@ hash_table_resize(hash_table_t *ht, size_t n)
 {
   hash_table_t tmp;
 
+  hash_copy_real_flag(&tmp, ht);
   hash_table_new_intern(&tmp, n, ht->hash, ht->eq);
   hash_table_foreach(ht, hash_table_resize_helper, &tmp);
   RUNTIME_ASSERT(ht->num_held == tmp.num_held);
@@ -573,6 +634,7 @@ hash_table_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
 {
   hash_table_t *ht = malloc(sizeof *ht);
   RUNTIME_ASSERT(ht);
+  hash_mark_real(ht, TRUE);
   hash_table_new_intern(ht, 2, hash, eq);
   return ht;
 }

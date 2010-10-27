@@ -432,7 +432,7 @@ omalloc(size_t size)
 	 * Request new memory.
 	 */
 
-	result = vmm_alloc(rounded);
+	result = vmm_alloc_not_leaking(rounded);
 	allocated = round_pagesize(rounded);
 
 	if (omalloc_debug > 2) {

@@ -324,14 +324,14 @@ GString *string_sprintfa_track(
 
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
 
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
+#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined (TRACK_VMM)
 
 gpointer leak_init(void);
 void leak_add(gpointer o, size_t size, const char *file, int line);
 void leak_dump(gpointer o);
 void leak_close(gpointer o);
 
-#endif /* TRACK_MALLOC || TRACK_ZALLOC */
+#endif /* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM */
 
 #ifdef MALLOC_STATS
 void alloc_dump(FILE *f, gboolean total);

@@ -48,6 +48,7 @@
 
 RCSID("$Id$")
 
+#define VMM_SOURCE
 #include "vmm.h"
 
 #include "ascii.h"
@@ -59,6 +60,11 @@ RCSID("$Id$")
 #include "tm.h"
 #include "unsigned.h"
 #include "omalloc.h"
+
+#ifdef TRACK_VMM
+#include "hashtable.h"
+#include "stacktrace.h"
+#endif
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -160,6 +166,13 @@ static const void *initial_brk;		/**< Startup position of the heap */
 static const void *initial_sp;		/**< Initial "bottom" of the stack */
 static gboolean sp_increasing;		/**< Growing direction of the stack */
 static const void *vmm_base;		/**< Where we'll start allocating */
+
+#ifdef TRACK_VMM
+static void vmm_track_init(void);
+static void vmm_track_malloc_inited(void);
+static void vmm_track_post_init(void);
+static void vmm_track_close(void);
+#endif
 
 static inline gboolean
 vmm_debugging(guint32 lvl)
@@ -2995,6 +3008,9 @@ void
 vmm_malloc_inited(void)
 {
 	safe_to_malloc = TRUE;
+#ifdef TRACK_VMM
+	vmm_track_malloc_inited();
+#endif
 }
 
 /**
@@ -3239,6 +3255,10 @@ vmm_post_init(void)
 
 		vmm_reserve_stack(room);
 	}
+
+#ifdef TRACK_VMM
+	vmm_track_post_init();
+#endif
 }
 
 /**
@@ -3296,6 +3316,10 @@ vmm_init(const void *sp)
 		free_pages(q, kernel_pagesize, FALSE);
 		free_pages(p, kernel_pagesize, FALSE);
 	}
+
+#ifdef TRACK_VMM
+	vmm_track_init();
+#endif
 }
 
 /**
@@ -3304,6 +3328,11 @@ vmm_init(const void *sp)
 void
 vmm_pre_close(void)
 {
+	/*
+	 * It's still safe to log, however it's going to get messy with all
+	 * the memory freeing activity.  Better avoid such clutter.
+	 */
+
 	safe_to_malloc = FALSE;		/* Turn logging off */
 }
 
@@ -3347,6 +3376,10 @@ vmm_close(void)
 			vpc_free(pc, j);
 		}
 	}
+
+#ifdef TRACK_VMM
+	vmm_track_close();
+#endif
 
 	/*
 	 * Look at remaining regions (leaked pages?).
@@ -3422,7 +3455,7 @@ vmm_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 	}
 
 	return p;
-#else
+#else	/* !HAS_MMAP */
 	(void) addr;
 	(void) length;
 	(void) prot;
@@ -3431,7 +3464,7 @@ vmm_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 	g_assert_not_reached();
 
 	return MAP_FAILED;
-#endif
+#endif	/* HAS_MMAP */
 }
 
 /**
@@ -3460,13 +3493,587 @@ vmm_munmap(void *addr, size_t length)
 	}
 
 	return ret;
-#else
+#else	/* !HAS_MMAP */
 	(void) addr;
 	(void) length;
 	g_assert_not_reached();
 
 	return -1;
+#endif	/* HAS_MMAP */
+}
+
+/***
+ *** Allocation tracking -- enabled by compiling with -DTRACK_VMM.
+ ***/
+
+#ifdef TRACK_VMM
+/**
+ * This table assotiates an allocate pointer with a page_track structure.
+ */
+static hash_table_t *tracked;		/**< Allocations tracked */
+static hash_table_t *not_leaking;	/**< Known non-leaks */
+
+/**
+ * Describes an allocated group of pages.
+ */
+struct page_track {
+	size_t size;					/**< Length of consecutive pages */
+	const char *file;				/**< File where allocation was made */
+	int line;						/**< Line number within file */
+#ifdef MALLOC_FRAMES
+	const struct stackatom *ast;	/**< Allocation stack trace (atom) */
+#endif
+#ifdef MALLOC_TIME
+	time_t atime;					/**< Allocation time */
+#endif
+};
+
+/**
+ * Because we're going to use hash_table_t to keep track of the allocated
+ * pages, and due to the fact that this data structure internally relies on
+ * the VMM layer, we may recurse to the tracking code at any time.
+ *
+ * This flag keeps track of recursions so that we avoid exercising any
+ * tracking when recursion is detected.
+ */
+static gboolean vmm_recursed;
+
+/**
+ * This buffer allows us to queue allocations or deletions whenever a
+ * tracking activity occurs and we've detected recursion.
+ */
+#define VMM_BUFFER	16
+
+enum track_operation {
+	VMM_ALLOC = 0,
+	VMM_FREE
+};
+
+struct track_buffer {
+	enum track_operation op;
+	const void *addr;
+	struct page_track pt;
+#ifdef MALLOC_FRAMES
+	struct stacktrace where;
+#endif
+};
+
+struct buffering {
+	size_t idx;				/**< Next available slot (0 = empty) */
+	size_t missed;			/**< "could not buffer" events */
+	size_t max;				/**< Max buffer index, for logging */
+};
+
+static struct track_buffer vmm_buffered[VMM_BUFFER];
+static struct buffering vmm_buffer;
+
+/**
+ * Buffering of non-leaking events that happen before we're fully initialized
+ */
+
+static const void *vmm_nl_buffered[VMM_BUFFER];
+static struct buffering vmm_nl_buffer;
+
+/**
+ * Human version of operations.
+ */
+static const char *
+track_operation_to_string(enum track_operation op)
+{
+	switch (op) {
+	case VMM_ALLOC:	return "alloc";
+	case VMM_FREE:	return "free";
+	}
+
+	return "unknown operation";
+}
+
+static void unbuffer_operations(void);
+static void vmm_free_record(const void *p, size_t size,
+	const char *file, int line);
+
+/**
+ * Buffer operation for deferred processing (up to next alloc/free).
+ * We're buffering the fact that the operation took place, not deferring the
+ * actual allocation / free that is described.
+ */
+static void
+buffer_operation(enum track_operation op,
+	const void *p, size_t size, const char *file, int line)
+{
+	if (vmm_buffer.idx >= G_N_ELEMENTS(vmm_buffered)) {
+		vmm_buffer.missed++;
+		if (vmm_debugging(0)) {
+			g_warning("VMM unable to defer tracking of "
+				"%s (%lu bytes starting 0x%lx) at \"%s:%d\" (issue #%lu)",
+				track_operation_to_string(op),
+				(unsigned long) size, (unsigned long) p, file, line,
+				(unsigned long) vmm_buffer.missed);
+			stacktrace_where_print(stderr);
+		}
+	} else {
+		size_t i = vmm_buffer.idx++;
+		struct track_buffer *tb = &vmm_buffered[i];
+
+		if (vmm_buffer.idx > vmm_buffer.max) {
+			vmm_buffer.max = vmm_buffer.idx;
+		}
+
+		if (vmm_debugging(5)) {
+			g_warning("VMM deferring tracking of "
+				"%s (%lu bytes starting 0x%lx) at \"%s:%d\" (item #%lu)",
+				track_operation_to_string(op),
+				(unsigned long) size, (unsigned long) p, file, line,
+				(unsigned long) vmm_buffer.idx);
+		}
+
+		tb->op = op;
+		tb->addr = p;
+		tb->pt.size = size;
+		tb->pt.file = file;
+		tb->pt.line = line;
+#ifdef MALLOC_FRAMES
+		stacktrace_get_offset(&tb->where, 2);
+#endif
+#ifdef MALLOC_TIME
+		tb->pt.atime = tm_time();
+#endif
+	}
+}
+
+/*
+ * In case TRACK_MALLOC is activated, we want the raw malloc() and free()
+ * from here on...
+ *
+ * For that reason, the following code should stay at the bottom of the file.
+ */
+#undef malloc
+#undef free
+
+/**
+ * Handle freeing of page, as described by the supplied page_track structure.
+ */
+static void
+vmm_free_record_desc(const void *p, const struct page_track *pt)
+{
+	struct page_track *xpt;
+
+	g_assert(pt != NULL);
+
+	xpt = hash_table_lookup(tracked, p);
+
+	if (NULL == xpt) {
+		if (vmm_debugging(0)) {
+			g_warning("VMM (%s:%d) attempt to free page at 0x%lx twice?",
+				pt->file, pt->line, (unsigned long) p);
+			stacktrace_where_print(stderr);
+			if (0 == vmm_buffer.missed) {
+				g_error("VMM vmm_free() of unknown address 0x%lx",
+					(unsigned long) p);
+			}
+		}
+		return;
+	}
+
+	if (xpt->size != pt->size) {
+		if (vmm_debugging(0)) {
+			g_warning("VMM (%s:%d) freeing page at 0x%lx (%lu bytes) "
+				"from \"%s:%d\" with wrong size %lu [%lu missed event%s]",
+				pt->file, pt->line, (unsigned long) p,
+				(unsigned long) xpt->size, xpt->file, xpt->line,
+				(unsigned long) pt->size, (unsigned long) vmm_buffer.missed,
+				1 == vmm_buffer.missed ? "" : "s");
+			stacktrace_where_print(stderr);
+		}
+	}
+
+	hash_table_remove(tracked, p);
+	free(xpt);						/* raw free() */
+}
+
+/**
+ * Handle allocation as described in the supplied page_track structure.
+ */
+static void
+vmm_alloc_record_desc(const void *p, const struct page_track *pt)
+{
+	struct page_track *xpt;
+
+	g_assert(pt != NULL);
+
+	if (NULL != (xpt = hash_table_lookup(tracked, p))) {
+		g_warning("VMM (%s:%d) reusing page start 0x%lx (%lu bytes) "
+			"from %s:%d, missed its freeing",
+			pt->file, pt->line, (unsigned long) p, (unsigned long) xpt->size,
+			xpt->file, xpt->line);
+#ifdef MALLOC_FRAMES
+		g_warning("VMM page 0x%lx was allocated from:", (unsigned long) p);
+		stacktrace_atom_print(stderr, xpt->ast);
+#endif
+		g_warning("VMM current stack:");
+		stacktrace_where_print(stderr);
+
+		vmm_free_record_desc(p, pt);
+	}
+
+	xpt = malloc(sizeof *xpt);		/* raw malloc() */
+	*xpt = *pt;						/* struct copy */
+
+	if (!hash_table_insert(tracked, p, xpt))
+		g_error("cannot record page allocation");
+}
+
+/**
+ * Record that ``p'' is ``size'' bytes long and was allocated from "file:line".
+ *
+ * @return its argument ``p''
+ */
+static void *
+vmm_alloc_record(void *p, size_t size, const char *file, int line)
+{
+	struct page_track pt;
+
+	if (NULL == tracked)
+		return p;					/* Tracking not initialized yet */
+
+	if (vmm_recursed) {
+		buffer_operation(VMM_ALLOC, p, size, file, line);
+		return p;
+	}
+
+	if (vmm_buffer.idx != 0) {
+		unbuffer_operations();
+	}
+
+	/*
+	 * Critical section protected against recursion.
+	 */
+
+	g_assert(!vmm_recursed);
+
+	vmm_recursed = TRUE;
+	pt.size = size;
+	pt.file = file;
+	pt.line = line;
+#ifdef MALLOC_FRAMES
+	{
+		struct stacktrace st;
+
+		stacktrace_get_offset(&st, 1);
+		pt.ast = stacktrace_get_atom(&st);
+	}
+#endif
+#ifdef MALLOC_TIME
+	pt.atime = tm_time();
+#endif
+
+	vmm_alloc_record_desc(p, &pt);
+	vmm_recursed = FALSE;
+
+	return p;
+}
+
+/**
+ * Record that ``p'' (pointing to ``size'' bytes is now free.
+ */
+static void
+vmm_free_record(const void *p, size_t size, const char *file, int line)
+{
+	struct page_track pt;
+
+	if (vmm_recursed) {
+		buffer_operation(VMM_FREE, p, size, file, line);
+		return;
+	}
+
+	if (vmm_buffer.idx != 0) {
+		unbuffer_operations();
+	}
+
+	/*
+	 * Critical section protected against recursion.
+	 */
+
+	g_assert(!vmm_recursed);
+
+	vmm_recursed = TRUE;
+	pt.size = size;
+	pt.file = file;
+	pt.line = line;
+	vmm_free_record_desc(p, &pt);
+	vmm_recursed = FALSE;
+}
+
+/**
+ * Shift out the first entry in the buffer, copying the value into the
+ * supplied structure.
+ */
+static void
+unbuffer_first(struct track_buffer *dest)
+{
+	g_assert(dest != NULL);
+	g_assert(size_is_positive(vmm_buffer.idx));
+	g_assert(vmm_buffer.idx <= G_N_ELEMENTS(vmm_buffered));
+
+	*dest = vmm_buffered[0];		/* Struct copy */
+
+	/* Shift everything down one position */
+	memmove(&vmm_buffered[0], &vmm_buffered[1],
+		(vmm_buffer.idx - 1) * sizeof vmm_buffered[0]);
+
+	vmm_buffer.idx--;			/* One more slot available */
+}
+
+/**
+ * Unbuffer operations in the order they were issued.
+ */
+static void unbuffer_operations(void)
+{
+	g_assert(size_is_positive(vmm_buffer.idx));
+
+	while (vmm_buffer.idx != 0) {
+		struct track_buffer tb;
+
+		/*
+		 * Shift the oldest operation before attempting to pocess it,
+		 * making at least space for one more bufferable operation.
+		 */
+
+		unbuffer_first(&tb);		/* Decreases vmm_buffer.idx */
+
+		g_assert(!vmm_recursed);
+		vmm_recursed = TRUE;
+
+		/*
+		 * Process buffered operation.
+		 */
+
+		if (vmm_debugging(2)) {
+			g_warning("VMM processing deferred "
+				"%s (%lu bytes starting 0x%lx) at \"%s:%d\" "
+				"(%lu other record%s pending)",
+				track_operation_to_string(tb.op),
+				(unsigned long) tb.pt.size, (unsigned long) tb.addr,
+				tb.pt.file, tb.pt.line,
+				(unsigned long) vmm_buffer.idx, 1 == vmm_buffer.idx ? "" : "s");
+		}
+
+		switch (tb.op) {
+		case VMM_ALLOC:
+#ifdef MALLOC_FRAMES
+			tb.pt.ast = stacktrace_get_atom(&tb.where);
+#endif
+			vmm_alloc_record_desc(tb.addr, &tb.pt);
+			break;
+		case VMM_FREE:
+#ifdef MALLOC_FRAMES
+			tb.pt.ast = NULL;
+#endif
+			vmm_free_record_desc(tb.addr, &tb.pt);
+			break;
+		}
+
+		vmm_recursed = FALSE;
+	}
+}
+
+/**
+ * Record a non-leaking address.
+ */
+static void *
+vmm_not_leaking(const void *o)
+{
+	if (not_leaking != NULL) {
+		hash_table_insert(not_leaking, o, GINT_TO_POINTER(1));
+	} else {
+		/*
+		 * Buffer the event until we're initialized.
+		 */
+
+		if (vmm_nl_buffer.idx >= G_N_ELEMENTS(vmm_nl_buffered)) {
+			vmm_nl_buffer.missed++;
+		} else {
+			size_t i = vmm_nl_buffer.idx++;
+
+			if (vmm_nl_buffer.idx > vmm_nl_buffer.max) {
+				vmm_nl_buffer.max = vmm_nl_buffer.idx;
+			}
+			vmm_nl_buffered[i] = o;
+		}
+	}
+
+	return deconstify_gpointer(o);
+}
+
+/**
+ * Tracking version of vmm_alloc().
+ */
+void *
+vmm_alloc_track(size_t size, const char *file, int line)
+{
+	void *p;
+
+	p = vmm_alloc(size);
+	return vmm_alloc_record(p, size, file, line);
+}
+
+/**
+ * Tracking version of vmm_alloc() for memory flagged as non-leaking.
+ */
+void *
+vmm_alloc_track_not_leaking(size_t size, const char *file, int line)
+{
+	void *p;
+
+	p = vmm_alloc_track(size, file, line);
+	return vmm_not_leaking(p);
+}
+
+/**
+ * Tracking version of vmm_alloc0().
+ */
+void *
+vmm_alloc0_track(size_t size, const char *file, int line)
+{
+	void *p;
+
+	p = vmm_alloc0(size);
+	return vmm_alloc_record(p, size, file, line);
+}
+
+/**
+ * Tracking version of vmm_free().
+ */
+void
+vmm_free_track(void *p, size_t size, const char *file, int line)
+{
+	if (not_leaking != NULL) {
+		hash_table_remove(not_leaking, p);
+	}
+
+	vmm_free_record(p, size, file, line);
+	vmm_free(p, size);
+}
+
+/**
+ * Initialization of the VMM tracking.
+ */
+static void
+vmm_track_init(void)
+{
+	tracked = hash_table_new_real();
+	not_leaking = hash_table_new_real();
+
+	/*
+	 * Handle buffered non-leaking events.
+	 */
+
+	if (vmm_nl_buffer.idx != 0) {
+		size_t i;
+		for (i = 0; i < vmm_nl_buffer.idx; i++) {
+			vmm_not_leaking(vmm_nl_buffered[i]);
+		}
+	}
+}
+
+/**
+ * Malloc was initialized, we can log.
+ * Display warning if we overflowed our buffering.
+ */
+static void
+vmm_track_malloc_inited(void)
+{
+	if (vmm_buffer.missed != 0) {
+		g_warning("VMM missed %lu initial tracking event%s",
+			(unsigned long) vmm_buffer.missed,
+			1 == vmm_buffer.missed ? "" : "s");
+	}
+}
+
+/**
+ * Called when properties have been loaded, so we can use vmm_debugging().
+ */
+static void
+vmm_track_post_init(void)
+{
+	if (vmm_buffer.max > 0 && vmm_debugging(0)) {
+		g_message("VMM required %lu bufferred event%s",
+			(unsigned long) vmm_buffer.max,
+			1 == vmm_buffer.max ? "" : "s");
+	}
+	if (vmm_nl_buffer.max > 0 && vmm_debugging(0)) {
+		g_message("VMM required %lu bufferred non-leaking event%s",
+			(unsigned long) vmm_nl_buffer.max,
+			1 == vmm_nl_buffer.max ? "" : "s");
+	}
+}
+
+/**
+ * vmm_log_pages		-- hash table iterator callback
+ *
+ * Log used pages, and record them among the `leaksort' set for future summary.
+ */
+static void
+vmm_log_pages(const void *k, void *v, gpointer leaksort)
+{
+	const struct page_track *pt = v;
+	char ago[32];
+
+	if (hash_table_lookup(not_leaking, k))
+		return;
+
+#ifdef MALLOC_TIME
+	gm_snprintf(ago, sizeof ago, " [%s]",
+		short_time(delta_time(tm_time(), pt->atime)));
+#else
+	ago[0] = '\0';
+#endif	/* MALLOC_TIME */
+
+	g_warning("leaked page%s 0x%lx (%lu bytes) from \"%s:%d\"%s",
+		pt->size > kernel_pagesize ? "s" : "",
+		(unsigned long) k, (unsigned long) pt->size,
+		pt->file, pt->line, ago);
+
+	leak_add(leaksort, pt->size, pt->file, pt->line);
+
+#ifdef MALLOC_FRAMES
+	g_message("block 0x%lx allocated from: ", (unsigned long) k);
+	stacktrace_atom_print(stderr, pt->ast);
 #endif
 }
+
+/**
+ * Report leaks.
+ */
+static void
+vmm_track_close(void)
+{
+	void *leaksort;
+
+	leaksort = leak_init();
+	hash_table_foreach(tracked, vmm_log_pages, leaksort);
+	leak_dump(leaksort);
+	leak_close(leaksort);
+	hash_table_destroy_real(tracked);
+}
+
+/**
+ * The raw vmm_alloc().
+ */
+void *
+vmm_alloc_notrack(size_t size)
+{
+	return vmm_alloc(size);
+}
+
+/**
+ * The raw vmm_free().
+ */
+void
+vmm_free_notrack(void *p, size_t size)
+{
+	vmm_free(p, size);
+}
+#endif	/* TRACK_VMM */
 
 /* vi: set ts=4 sw=4 cindent: */

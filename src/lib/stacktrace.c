@@ -236,7 +236,7 @@ trace_insert(const void *start, const char *name)
 		trace_array.size += 1024;
 		new_size = trace_array.size * sizeof *t;
 
-		trace_array.base = vmm_alloc(trace_array.size * sizeof *t);
+		trace_array.base = vmm_alloc_not_leaking(trace_array.size * sizeof *t);
 		if (old_base != NULL) {
 			memcpy(trace_array.base, old_base, old_size);
 			vmm_free(old_base, old_size);
