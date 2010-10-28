@@ -71,11 +71,11 @@ void vmm_free_notrack(void *p, size_t size);
 #define vmm_alloc_not_leaking(s)	vmm_alloc(s)
 #endif	/* TRACK_VMM */
 
-#ifdef VMM_SOURCE
+#if defined(VMM_SOURCE) || !defined(TRACK_VMM)
 void *vmm_alloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *vmm_alloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void vmm_free(void *p, size_t size);
-#endif	/* VMM_SOURCE */
+#endif	/* VMM_SOURCE || !TRACK_VMM */
 
 size_t round_pagesize(size_t n);
 size_t compat_pagesize(void);
