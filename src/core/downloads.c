@@ -11029,6 +11029,18 @@ http_version_nofix:
 				 * Make sure there is something sensible served, i.e. the
 				 * upper boundary must be greater than the lower (requested)
 				 * one.		--RAM, 2006-01-13
+				 *
+				 * Note that this can happen and does not indicate a remote
+				 * server-side bug: it's just that the real start of the
+				 * request is d->skip - d->overlap_size, and the server wants
+				 * us to grab something that is only in the overlap section,
+				 * because it is serving a partial file and has only that much
+				 * to offer.
+				 *			--RAM, 2010-10-18
+				 *
+				 * FIXME: shouldn't we sink that, and update our vision of
+				 * the available ranges if we can determine that the remote
+				 * file is indeed partial?
 				 */
 
 				if (d->skip >= end + 1) {
@@ -12388,6 +12400,7 @@ merge_servers(GSList *servers, const struct guid *guid)
 
 		if (1 == g_slist_length(tuple)) {
 			servers = g_slist_prepend(servers, tuple->data);
+			g_slist_free(tuple);
 			continue;
 		}
 
