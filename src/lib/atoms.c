@@ -432,6 +432,8 @@ static size_t filesize_len(gconstpointer v);
 static const char *filesize_str(gconstpointer v);
 static size_t uint32_len(gconstpointer v);
 static const char *uint32_str(gconstpointer v);
+static size_t gnet_host_len(gconstpointer v);
+static const char *gnet_host_str(gconstpointer v);
 
 /**
  * The set of all atom types we know about.
@@ -442,9 +444,11 @@ static table_desc_t atoms[] = {
 	{ "SHA1",	NULL, sha1_hash,   sha1_eq,	    sha1_len,   sha1_str },	/* 2 */
 	{ "TTH",	NULL, tth_hash,    tth_eq,	    tth_len,    tth_str },	/* 3 */
 	{ "uint64",	NULL, uint64_hash, uint64_eq,   uint64_len, uint64_str},/* 4 */
-	{ "filesize",
-		NULL, filesize_hash, filesize_eq, filesize_len, filesize_str},  /* 5 */
+	{ "filesize", NULL,
+		filesize_hash, filesize_eq, filesize_len, filesize_str},		/* 5 */
 	{ "uint32",	NULL, uint32_hash, uint32_eq,   uint32_len, uint32_str},/* 6 */
+	{ "host", NULL,
+		gnet_host_hash, gnet_host_eq, gnet_host_len, gnet_host_str},	/* 7 */
 };
 
 static GHashTable *ht_all_atoms;
@@ -669,6 +673,15 @@ uint32_len(gconstpointer unused_v)
 	return sizeof(guint32);
 }
 
+/**
+ * @return length of gnet_host_t
+ */
+static size_t
+gnet_host_len(gconstpointer unused_v)
+{
+	(void) unused_v;
+	return sizeof(gnet_host_t);
+}
 
 /**
  * @return printable form of a 64-bit integer, as pointer to static data.
@@ -738,6 +751,18 @@ filesize_str(gconstpointer v)
 	static char buf[UINT64_DEC_BUFLEN];
 
 	uint64_to_string_buf(*(const filesize_t *) v, buf, sizeof buf);
+	return buf;
+}
+
+/**
+ * @return printable form of a gnet_host_t, as pointer to static data.
+ */
+static const char *
+gnet_host_str(gconstpointer v)
+{
+	static char buf[HOST_ADDR_PORT_BUFLEN];
+
+	gnet_host_to_string_buf(*(const gnet_host_t **) v, buf, sizeof buf);
 	return buf;
 }
 

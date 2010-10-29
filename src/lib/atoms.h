@@ -37,6 +37,7 @@
 #define _atoms_h_
 
 #include "common.h"
+#include "gnet_host.h"		/* For gnet_host_t */
 
 /*
  * Atom types.
@@ -50,6 +51,7 @@ enum atom_type {
 	ATOM_UINT64,	/**< unsigned 64-bit integers (binary, 8 bytes) */
 	ATOM_FILESIZE,	/**< filesize_t (binary) */
 	ATOM_UINT32,	/**< unsigned 32-bit integers (binary, 4 bytes) */
+	ATOM_HOST,		/**< gnet_host_t "IP:port" (binary) */
 
 	NUM_ATOM_TYPES
 };
@@ -84,6 +86,9 @@ gboolean atom_exists(enum atom_type type, gconstpointer key);
 
 #define atom_uint32_get(k)	atom_get_track(ATOM_UINT32, (k), _WHERE_, __LINE__)
 #define atom_uint32_free(k)	atom_free_track(ATOM_UINT32, (k), _WHERE_, __LINE__)
+
+#define atom_host_get(k)	atom_get_track(ATOM_HOST, (k), _WHERE_, __LINE__)
+#define atom_host_free(k)	atom_free_track(ATOM_HOST, (k), _WHERE_, __LINE__)
 
 #define atom_filesize_get(k) \
 	atom_get_track(ATOM_FILESIZE, (k), _WHERE_, __LINE__)
@@ -181,6 +186,18 @@ atom_uint32_free(const guint32 *k)
 	atom_free(ATOM_UINT32, k);
 }
 
+static inline const gnet_host_t *
+atom_host_get(const gnet_host_t *k)
+{
+	return atom_get(ATOM_HOST, k);
+}
+
+static inline void
+atom_host_free(const gnet_host_t *k)
+{
+	atom_free(ATOM_HOST, k);
+}
+
 #endif	/* TRACK_ATOMS */
 
 /*
@@ -230,6 +247,12 @@ static inline gboolean
 atom_is_uint32(const guint32 *k)
 {
 	return atom_exists(ATOM_UINT32, k);
+}
+
+static inline gboolean
+atom_is_host(const gnet_host_t *k)
+{
+	return atom_exists(ATOM_HOST, k);
 }
 
 /*
@@ -283,6 +306,7 @@ GENERATE_ATOM_FREE_NULL(str, char *)
 GENERATE_ATOM_FREE_NULL(tth, struct tth *)
 GENERATE_ATOM_FREE_NULL(uint64, guint64 *)
 GENERATE_ATOM_FREE_NULL(uint32, guint32 *)
+GENERATE_ATOM_FREE_NULL(host, gnet_host_t *)
 #undef GENERATE_ATOM_FREE_NULL
 
 /**

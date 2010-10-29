@@ -153,17 +153,35 @@ gnet_host_free_item(gpointer key, gpointer unused_data)
 }
 
 /**
+ * Prints the host address ` followed by ``port'' to ``buf''. The string
+ * written to ``buf'' is always NUL-terminated unless ``len'' is zero. If
+ * ``len'' is too small, the string will be truncated.
+ *
+ * @param h		the packet IP:port address.
+ * @param buf	the destination buffer; may be NULL iff ``len'' is zero.
+ * @param len	the size of ``buf'' in bytes.
+ *
+ * @return The length of the resulting string assuming ``len'' is sufficient.
+ */
+size_t
+gnet_host_to_string_buf(const gnet_host_t *h, void *buf, size_t len)
+{
+	host_addr_t addr;
+	guint16 port;
+
+	packed_host_unpack(h->data, &addr, &port);
+	return host_addr_port_to_string_buf(addr, port, buf, len);
+}
+
+/**
  * @return the "address:port" string for a host
  */
 const char *
 gnet_host_to_string(const gnet_host_t *h)
 {
 	static char buf[HOST_ADDR_PORT_BUFLEN];
-	host_addr_t addr;
-	guint16 port;
 
-	packed_host_unpack(h->data, &addr, &port);
-	host_addr_port_to_string_buf(addr, port, buf, sizeof buf);
+	gnet_host_to_string_buf(h, buf, sizeof buf);
 	return buf;
 }
 
