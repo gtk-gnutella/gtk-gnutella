@@ -316,6 +316,40 @@ invalid_len_max(
 }
 
 /**
+ * Report invalid encoding detected.
+ * @return FALSE
+ */
+static gboolean
+invalid_encoding(bstr_t *bs, const char *what, const char *where)
+{
+	if (bs->flags & BSTR_F_ERROR) {
+		alloc_error(bs);
+		g_string_printf(bs->error,
+			"%s: invalid encoding at offset %lu: %s",
+			where, (unsigned long) (bs->rptr - bs->start), what);
+	}
+
+	return bs->ok = FALSE;
+}
+
+/**
+ * Report error.
+ * @return FALSE
+ */
+static gboolean
+report_error(bstr_t *bs, const char *what, const char *where)
+{
+	if (bs->flags & BSTR_F_ERROR) {
+		alloc_error(bs);
+		g_string_printf(bs->error,
+			"%s: error at offset %lu: %s",
+			where, (unsigned long) (bs->rptr - bs->start), what);
+	}
+
+	return bs->ok = FALSE;
+}
+
+/**
  * @return amount of unread data.
  */
 size_t
@@ -687,6 +721,8 @@ bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha)
  * @param max	maximum number of bytes expected in the array
  * @param ptr	where to put the read bytes (must be at least "max" byte long)
  * @param pr	where to put the amount of bytes read in ptr
+ *
+ * @return TRUE if OK
  */
 gboolean
 bstr_read_packed_array_u8(bstr_t *bs, size_t max, void *ptr, guint8 *pr)
@@ -716,6 +752,97 @@ bstr_read_packed_array_u8(bstr_t *bs, size_t max, void *ptr, guint8 *pr)
 	*pr = len;
 
 	return TRUE;
+}
+
+/**
+ * Read unsigned 64-bit quantity encoded using variable-length representation.
+ * Bytes appear in little-endian and contain 7 bits of the value.  The last
+ * byte of the sequence is flagged with its highest bit set.
+ *
+ * @param bs	the binary stream
+ * @param pv	where to write the value
+ *
+ * @return TRUE if OK.
+ */
+gboolean
+bstr_read_ule64(bstr_t *bs, guint64 *pv)
+{
+	static const char where[] = "bstr_read_ule64";
+	guint64 value = 0;
+	guint8 shift = 0;
+	guint8 n = 0;
+
+	g_assert(pv);
+
+	if (!expect(bs, 1, where))	/* Need at least one byte */
+		return FALSE;
+
+	for (;;) {
+		guint8 byte;
+		if (!bstr_read_u8(bs, &byte))
+			return FALSE;
+		n++;
+		if (n > 10)
+			return invalid_encoding(bs, "no end seen after 10 bytes", where);
+		value |= (byte & 0x7f) << shift;	/* Got 7 more bits */
+		if (byte & 0x80)
+			break;			/* Highest bit set, end of encoding */
+		shift += 7;
+	}
+
+	*pv = value;
+	return TRUE;
+}
+
+/**
+ * Read fixed-length string into buffer.
+ * The string is expected to be encoded as: <ule64(length)><bytes>, with
+ * no trailing NUL.
+ *
+ * @param bs	the binary stream
+ * @param slen	where to write the length of the string read (if non NULL)
+ * @param buf	buffer where string is copied
+ * @param len	length of supplied buffer
+ *
+ * A trailing NUL is appended to the buffer.  It is an error if the buffer
+ * is too short.
+ *
+ * @return TRUE if OK.
+ */
+gboolean
+bstr_read_fixed_string(bstr_t *bs, size_t *slen, char *buf, size_t len)
+{
+	static const char where[] = "bstr_read_fixed_string";
+	guint64 length;
+	size_t n;
+
+	g_assert(slen);
+	g_assert(buf);
+	g_assert(size_is_positive(len));
+
+	if (!expect(bs, 1, where))	/* Need at least one byte */
+		return FALSE;
+
+	if (!bstr_read_ule64(bs, &length))
+		return FALSE;
+
+	if (length > MAX_INT_VAL(size_t))
+		return report_error(bs, "encoded length too large", where);
+
+	n = (size_t) length;
+
+	g_assert((guint64) n == length);	/* Nothing lost by casting */
+
+	if (slen != NULL) {
+		*slen = n;
+	}
+
+	if (len < n + 1)
+		return report_error(bs, "buffer smaller than string", where);
+
+	buf[n] = '\0';				/* NUL-terminate in advance */
+
+	return 0 == n ? TRUE : bstr_read(bs, buf, n);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -791,4 +791,49 @@ pmsg_write_ipv4_or_ipv6_addr(pmsg_t *mb, host_addr_t addr)
 	}
 }
 
+/**
+ * Write an unsigned 64-bit quantity using variable length encoding (little
+ * endian). Each serialized byte contains 7 bits, the highest bit is set when
+ * this is the last byte of the encoded value.
+ */
+void
+pmsg_write_ule64(pmsg_t *mb, guint64 v)
+{
+	guint64 value = v;
+
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(pmsg_available(mb) >= 10);	/* Will need 10 bytes at most */
+
+	do {
+		guint8 byte = (guint8) (value & 0x7f);	/* Lowest 7 bits */
+		value >>= 7;
+		if (value != 0) {
+			byte |= 0x80;						/* Last byte emitted */
+		}
+		pmsg_write_u8(mb, byte);
+	} while (value != 0);
+}
+
+/**
+ * Write NUL-terminated string, up to `n' characters.
+ *
+ * The string is written as: <ule64(length)><bytes>, no trailing NUL.
+ */
+void
+pmsg_write_fixed_string(pmsg_t *mb, const char *str, size_t n)
+{
+	size_t len;
+
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(UNSIGNED(pmsg_available(mb)) >= n + 10);	/* Need ule64 length */
+
+	len = strlen(str);
+	len = MIN(n, len);
+	pmsg_write_ule64(mb, (guint64) len);
+
+	if (len != 0) {
+		pmsg_write(mb, str, len);
+	}
+}
+
 /* vi: set ts=4 sw=4 cindent: */

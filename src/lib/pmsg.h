@@ -393,6 +393,8 @@ pmsg_write_float_be(pmsg_t *mb, float val)
 	mb->m_wptr = poke_float_be32(mb->m_wptr, val);
 }
 
+void pmsg_write_ule64(pmsg_t *mb, guint64 val);
+void pmsg_write_fixed_string(pmsg_t *mb, const char *str, size_t n);
 void pmsg_write_ipv4_or_ipv6_addr(pmsg_t *mb, host_addr_t addr);
 
 #endif	/* _pmsg_h_ */
