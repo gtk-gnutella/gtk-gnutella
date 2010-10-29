@@ -298,6 +298,45 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, GCompareFunc func)
 	}
 }
 
+/**
+ * Sort the list with ``func'' comparing keys.
+ */
+void
+hash_list_sort(hash_list_t *hl, GCompareFunc func)
+{
+	hash_list_check(hl);
+	g_assert(1 == hl->refcount);
+	g_assert(NULL != func);
+
+	/*
+	 * Unfortunately, relying on g_list_sort() requires one more traversal
+	 * to update the tail. -- FIXME
+	 */
+
+	hl->head = g_list_sort(hl->head, func);
+	hl->tail = g_list_last(hl->head);
+}
+
+/**
+ * Sort the list with ``func'' comparing keys, using external data in addition
+ * to the keys to make the comparison.
+ */
+void
+hash_list_sort_with_data(hash_list_t *hl, GCompareDataFunc func, void *data)
+{
+	hash_list_check(hl);
+	g_assert(1 == hl->refcount);
+	g_assert(NULL != func);
+
+	/*
+	 * Unfortunately, relying on g_list_sort_with_data() requires one more
+	 * traversal to update the tail. -- FIXME
+	 */
+
+	hl->head = g_list_sort_with_data(hl->head, func, data);
+	hl->tail = g_list_last(hl->head);
+}
+
 static void * 
 hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 {
