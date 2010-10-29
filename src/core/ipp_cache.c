@@ -28,7 +28,25 @@
  * @ingroup core
  * @file
  *
- * Caching of hosts by IP:port.
+ * Caching of hosts by IP:port to be able to make "existence" checks, i.e.
+ * determine whether a particular IP:port belongs to the cache and when
+ * it was added.
+ *
+ * This is generic code hanlding entries formatted as:
+ *
+ *   HOST 10.19.182.13:1033
+ *   SEEN 2010-10-27 14:25:06
+ *   END
+ *
+ * and which are added through ipp_cache_insert(), and removed through
+ * ipp_cache_remove().  Lookups are made via ipp_cache_lookup().
+ *
+ * Convenient wrappers are provided for each of the caches we manage here.
+ * For instance, tls_cache_lookup() can be used to operate on the TLS cache.
+ *
+ * Each cache is configured to hold a maximum amount of entries, along with
+ * a maximum lifetime for the data so that old-enough entries can be
+ * expired.
  *
  * @author Raphael Manfredi
  * @date 2007-2009
@@ -664,7 +682,7 @@ ipp_cache_init(void)
 	 * However, for stupid political reasons on the part of "G2" proponents,
 	 * the "G2" servents do not always allow sharing of their files with
 	 * Gnutella, whereas most Gnutella servents, and GTKG for sure, will fully
-	 * allow "G2" hosts to the Gnutella extensions to HTTP to download files.
+	 * allow "G2" hosts to download files.
 	 *
 	 * The purpose of this cache is to store the addresses of known G2-only
 	 * hosts so that we can prevent the propagation of their addresses in the
