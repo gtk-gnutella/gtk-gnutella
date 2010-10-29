@@ -139,6 +139,8 @@
 	track_slist_delete_link((l),(x), _WHERE_, __LINE__)
 #define gm_slist_insert_after(l,lk,d) \
 	track_slist_insert_after((l),(lk),(d), _WHERE_, __LINE__)
+#define gm_slist_prepend_const(l,d) \
+	track_slist_prepend_const((l),(d), _WHERE_, __LINE__)
 
 #define g_list_alloc()			track_list_alloc(_WHERE_, __LINE__)
 #define g_list_append(l,d)		track_list_append((l),(d), _WHERE_, __LINE__)
@@ -264,6 +266,8 @@ GSList *track_slist_alloc(const char *file, int line);
 GSList *track_slist_append(GSList *l, gpointer data,
 	const char *file, int line);
 GSList *track_slist_prepend(GSList *l, gpointer data,
+	const char *file, int line);
+GSList *track_slist_prepend_const(GSList *l, gconstpointer data,
 	const char *file, int line);
 GSList *track_slist_copy(GSList *l, const char *file, int line);
 void track_slist_free(GSList *l, const char *file, int line);

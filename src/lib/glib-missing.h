@@ -139,6 +139,12 @@ gm_hash_table_replace_const(GHashTable *ht,
 GSList *gm_hash_table_all_keys(GHashTable *ht);
 void gm_hash_table_foreach_key(GHashTable *ht, GFunc func, gpointer user_data);
 
+static inline GSList *
+gm_slist_prepend_const(GSList *sl, gconstpointer value)
+{
+	return g_slist_prepend(sl, (gpointer) value);
+}
+
 /*
  * The G_*LIST_FOREACH_* macros are supposed to be used with ``func'' being
  * a function declared ``static inline'' whereas the protoype MUST match

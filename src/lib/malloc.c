@@ -2212,6 +2212,19 @@ track_slist_prepend(GSList *l, gpointer data, const char *file, int line)
 }
 
 GSList *
+track_slist_prepend_const(GSList *l, gconstpointer data,
+	const char *file, int line)
+{
+	GSList *new;
+
+	new = track_slist_alloc(file, line);
+	new->data = deconstify_gpointer(data);
+	new->next = l;
+
+	return new;
+}
+
+GSList *
 track_slist_copy(GSList *list, const char *file, int line)
 {
 	return gslist_record(g_slist_copy(list), file, line);
