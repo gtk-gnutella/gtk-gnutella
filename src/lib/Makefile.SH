@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 17562 2010-10-26 20:38:58Z rmanfredi $
+# $X-Id: Jmakefile 17581 2010-10-29 13:53:39Z rmanfredi $
 
 GENERIC = bit_array.h bit_field.h
 
@@ -93,7 +93,7 @@ bit_field.h: bit_field.ht bit_generic.t
 
 all:: $(GENERIC)
 
-local_clean::
+local_realclean::
 	$(RM) $(GENERIC)
 
 depend:: $(GENERIC)
