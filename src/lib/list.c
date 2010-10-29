@@ -27,7 +27,7 @@
  * @ingroup lib
  * @file
  *
- * Handling of lists on a slightly higher lever than GList.
+ * Handling of lists on a slightly higher level than GList.
  *
  * The purpose of this list functions is providing efficient appending,
  * prepending of items to a list structure, fast lookup of the list
