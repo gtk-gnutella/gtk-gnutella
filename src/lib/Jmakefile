@@ -41,7 +41,7 @@ bit_field.h: bit_field.ht bit_generic.t
 
 all:: $(GENERIC)
 
-local_clean::
+local_realclean::
 	$(RM) $(GENERIC)
 
 depend:: $(GENERIC)
