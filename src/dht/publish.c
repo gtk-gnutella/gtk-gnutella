@@ -1676,8 +1676,6 @@ publish_cache_iterate(publish_t *pb)
 	 * Pick first message template and send it.
 	 */
 
-	pb->flags &= ~PB_F_UDP_DROP;
-
 	mb = slist_shift(pb->target.c.messages);
 
 	/*
@@ -1688,15 +1686,19 @@ publish_cache_iterate(publish_t *pb)
 	 * the queue...
 	 */
 
+	g_assert(mb != NULL);
+
 	if (!pmsg_is_writable(mb)) {
 		if (GNET_PROPERTY(dht_publish_debug) > 1) {
 			g_message("DHT PUBLISH[%s] previous message still in UDP queue",
 				revent_id_to_string(pb->pid));
 		}
+		slist_prepend(pb->target.c.messages, mb);	/* Put message back */
 		publish_delay(pb);
 		return;
 	}
 
+	pb->flags &= ~PB_F_UDP_DROP;
 	publish_cache_send(pb, mb);
 
 	/*
