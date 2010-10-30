@@ -298,6 +298,16 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, GCompareFunc func)
 	}
 }
 
+static int
+sort_wrapper(const void *a, const void *b, void *data)
+{
+	GCompareFunc func = data;
+	const struct hash_list_item *ha = a;
+	const struct hash_list_item *hb = b;
+
+	return (*func)(ha->orig_key, hb->orig_key);
+}
+
 /**
  * Sort the list with ``func'' comparing keys.
  */
@@ -313,8 +323,23 @@ hash_list_sort(hash_list_t *hl, GCompareFunc func)
 	 * to update the tail. -- FIXME
 	 */
 
-	hl->head = g_list_sort(hl->head, func);
+	hl->head = g_list_sort_with_data(hl->head, sort_wrapper, func);
 	hl->tail = g_list_last(hl->head);
+}
+
+struct sort_with_data {
+	GCompareDataFunc func;
+	void *data;
+};
+
+static int
+sort_data_wrapper(const void *a, const void *b, void *data)
+{
+	struct sort_with_data *ctx = data;
+	const struct hash_list_item *ha = a;
+	const struct hash_list_item *hb = b;
+
+	return (*ctx->func)(ha->orig_key, hb->orig_key, ctx->data);
 }
 
 /**
@@ -324,16 +349,20 @@ hash_list_sort(hash_list_t *hl, GCompareFunc func)
 void
 hash_list_sort_with_data(hash_list_t *hl, GCompareDataFunc func, void *data)
 {
+	struct sort_with_data ctx;
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 	g_assert(NULL != func);
 
 	/*
-	 * Unfortunately, relying on g_list_sort_with_data() requires one more
+	 * Unfortunately, relying on g_list_sort() requires one more
 	 * traversal to update the tail. -- FIXME
 	 */
 
-	hl->head = g_list_sort_with_data(hl->head, func, data);
+	ctx.func = func;
+	ctx.data = data;
+
+	hl->head = g_list_sort_with_data(hl->head, sort_data_wrapper, &ctx);
 	hl->tail = g_list_last(hl->head);
 }
 
