@@ -264,12 +264,6 @@ oob_proxy_pending_results(
 		return FALSE;
 
 	oob_proxy_rec_check(opr);
-	/*
-	 * OOB query is still alive, delay its expiration time.
-	 */
-
-	g_assert(opr->expire_ev != NULL);
-	cq_resched(callout_queue, opr->expire_ev, PROXY_EXPIRE_MS);
 
 	/*
 	 * Fetch the leaf node.
@@ -340,6 +334,13 @@ oob_proxy_pending_results(
 		msg = "nothing wanted";
 		goto ignore;
 	}
+
+	/*
+	 * OOB query is still alive, delay its expiration time.
+	 */
+
+	g_assert(opr->expire_ev != NULL);
+	cq_resched(callout_queue, opr->expire_ev, PROXY_EXPIRE_MS);
 
 	/*
 	 * Claim the results (all of it).
