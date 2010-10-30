@@ -3864,11 +3864,24 @@ download_stop_v(struct download *d, download_status_t new_status,
 		g_assert(d->file_info->recvcount <= d->file_info->lifecount);
 
 		/*
-		 * If there is unflushed downloaded data, try to flush it now.
+		 * If there is unflushed downloaded data, try to flush it now,
+		 * unless the file is already complete.
 		 */
 
 		if (d->buffers != NULL) {
-			download_silent_flush(d);
+			if (!FILE_INFO_COMPLETE(d->file_info)) {
+				download_silent_flush(d);
+				if (FILE_INFO_COMPLETE(d->file_info)) {
+					/*
+					 * Flushing the data we held made the file complete.
+					 * We were probably the last running source and did not
+					 * complete our request, hence we did not go to
+					 * download_write_data() to see that the file was now
+					 * complete.
+					 */
+					download_verify_sha1(d);
+				}
+			}
 			buffers_free(d);
 		}
 
@@ -8252,8 +8265,8 @@ download_continue(struct download *d, gboolean trimmed)
 	 *       some testing. 2007-09-12
 	 */
 	if (s->pos > 0) {
-		/* This should have already been fed it to the RX stack. */
-		g_warning("download_continue(): Clearing socket buffer of %s",
+		/* This should have already been fed to the RX stack. */
+		g_warning("download_continue(): clearing socket buffer of %s",
 			download_host_info(d));
 	}
 	s->pos = 0;
