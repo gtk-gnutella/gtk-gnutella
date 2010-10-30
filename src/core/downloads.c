@@ -898,7 +898,6 @@ buffers_reset_reading(struct download *d)
 	slist_iter_t *iter;
 
 	download_check(d);
-	socket_check(d->socket);
 	g_assert(d->buffers != NULL);
 	g_assert(DOWNLOAD_IS_ACTIVE(d));
 	g_assert(d->buffers->held == 0);
