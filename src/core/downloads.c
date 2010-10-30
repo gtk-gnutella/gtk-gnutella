@@ -3869,7 +3869,9 @@ download_stop_v(struct download *d, download_status_t new_status,
 		 */
 
 		if (d->buffers != NULL) {
-			if (!FILE_INFO_COMPLETE(d->file_info)) {
+			if (FILE_INFO_COMPLETE(d->file_info)) {
+				buffers_discard(d);
+			} else {
 				download_silent_flush(d);
 				if (FILE_INFO_COMPLETE(d->file_info)) {
 					/*
