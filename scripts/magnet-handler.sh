@@ -37,7 +37,7 @@ gtk-gnutella --ping || {
 }
 
 # Special characters in the URL must not be parsed as quotes or escapes.
-url="`printf '%s' "$1" |sed 's,",%22,g' |sed "s,',%27,g" |sed 's,\\\\,%5c,g'`"
+url="`printf '%s' "$1" |sed 's,",%22,g' |sed "s,',%27,g" | sed 's,;,%3b,g' |sed 's,\\\\,%5c,g'`"
 
 # Send a shell command to download the magnet URL.
 cat <<EOF | exec gtk-gnutella --shell
