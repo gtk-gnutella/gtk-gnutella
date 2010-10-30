@@ -349,16 +349,32 @@ gnet_stats_count_received_header(gnutella_node_t *n)
 
 /**
  * Called when Gnutella payload has been read.
+ *
+ * The actual payload size (effectively read) is expected to be found
+ * in n->size.
  */
 void
 gnet_stats_count_received_payload(const gnutella_node_t *n)
 {
-    guint32 size = gnutella_header_get_size(&n->header);
 	guint t = stats_lut[gnutella_header_get_function(&n->header)];
 	guint i;
 	gnet_stats_t *stats;
+    guint32 size;
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+
+	/*
+	 * Size is NOT read in the Gnutella header but in n->size, which
+	 * reflects how much data we have in the payload, as opposed to the
+	 * size in the header which may be wrong, or have highest bits set
+	 * because they indicate flags.
+	 *
+	 * In particular, broken DHT messages often come with an invalid size in
+	 * the header.
+	 *		--RAM, 2010-10-30
+	 */
+
+	size = n->size;
 
     gnet_stats.byte.received[MSG_TOTAL] += size;
     gnet_stats.byte.received[t] += size;
