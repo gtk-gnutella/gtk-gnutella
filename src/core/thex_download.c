@@ -178,7 +178,7 @@ thex_download_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	download_check(d);
 
 	/*
-	 * When we receive browse-host data with an advertised size, the remote
+	 * When we receive THEX data with an advertised size, the remote
 	 * end will simply stop emitting data when we're done and could maintain
 	 * the HTTP connection alive.  Therefore, since we don't intend to
 	 * issue any more request on that connection, we must check for completion.

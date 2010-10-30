@@ -1207,10 +1207,12 @@ socket_timer(time_t now)
 
 		socket_check(s);
 		g_assert(s->last_update);
+
 		/*
-		 * Last_update can be in the feature due to parq. This is needed
+		 * Last_update can be in the future due to PARQ. This is needed
 		 * to avoid dropping the connection
 		 */
+
 		delta = delta_time(now, s->last_update);
 		if (delta > (time_delta_t) GNET_PROPERTY(incoming_connecting_timeout)) {
 			if (GNET_PROPERTY(socket_debug)) {
@@ -1220,6 +1222,7 @@ socket_timer(time_t now)
 					dump_hex(stderr, "Connection Header",
 						s->buf, MIN(s->pos, 80));
 			}
+
 			to_remove = g_slist_prepend(to_remove, s);
 		}
 	}
