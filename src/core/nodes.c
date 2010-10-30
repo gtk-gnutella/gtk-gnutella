@@ -7897,7 +7897,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 			break;
 		}
 
-		/* If the message haven't got any data, we process it now */
+		/* If the message doesn't have any data, we process it now */
 
 		if (!n->size) {
 			node_parse(n);
