@@ -4083,30 +4083,17 @@ dht_route_parse(FILE *f)
 				goto damaged;
 			break;
 		case DHT_ROUTE_TAG_END:
-			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_KUID)) {
-				g_warning("dht_route_parse(): missing KUID tag near line %u",
-					line_no);
-				goto damaged;
-			}
-			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_VNDR)) {
-				g_warning("dht_route_parse(): missing VNDR tag near line %u",
-					line_no);
-				goto damaged;
-			}
-			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_VERS)) {
-				g_warning("dht_route_parse(): missing VERS tag near line %u",
-					line_no);
-				goto damaged;
-			}
-			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_HOST)) {
-				g_warning("dht_route_parse(): missing HOST tag near line %u",
-					line_no);
-				goto damaged;
-			}
-			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_SEEN)) {
-				g_warning("dht_route_parse(): missing SEEN tag near line %u",
-					line_no);
-				goto damaged;
+			{
+				size_t i;
+
+				for (i = 0; i < G_N_ELEMENTS(dht_route_tag_map); i++) {
+					if (!bit_array_get(tag_used, dht_route_tag_map[i].tag)) {
+						g_warning("dht_route_parse(): "
+							"missing %s tag near line %u",
+							dht_route_tag_map[i].str, line_no);
+						goto damaged;
+					}
+				}
 			}
 			done = TRUE;
 			break;
