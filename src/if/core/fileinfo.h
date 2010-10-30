@@ -104,6 +104,7 @@ typedef struct gnet_fi_status {
 	unsigned	verifying:1;
 	unsigned	moving:1;
 	unsigned 	sha1_matched:1;
+	unsigned 	sha1_failed:1;
 	unsigned	finished:1;
 	unsigned	seeding:1;
 	unsigned	tth_check:1;

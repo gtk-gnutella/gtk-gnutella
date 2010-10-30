@@ -5650,6 +5650,8 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 	s->moving		  = 0 != (FI_F_MOVING & fi->flags);
 	s->has_sha1 	  = NULL != fi->sha1;
 	s->sha1_matched   = s->complete && s->has_sha1 && fi->sha1 == fi->cha1;
+	s->sha1_failed    =
+		s->complete && s->has_sha1 && fi->cha1 && fi->sha1 != fi->cha1;
 
 	s->copied 		  = s->complete ? fi->copied : FALSE;
 	s->vrfy_hashed    = s->complete ? fi->vrfy_hashed : FALSE;
@@ -6622,8 +6624,9 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		msg_sha1[0] = '\0';
 		if (status->has_sha1) {
 			gm_snprintf(msg_sha1, sizeof msg_sha1, "%s %s",
-				status->tth_check ? _("TTH") : _("SHA1"),
-				status->sha1_matched ? _("OK") : _("failed"));
+				_("SHA1"),
+				status->sha1_matched ? _("OK") :
+				status->sha1_failed ? _("failed") : _("not computed yet"));
 		}
 
 		msg_copy[0] = '\0';
