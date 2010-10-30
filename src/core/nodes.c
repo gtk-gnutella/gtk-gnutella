@@ -1104,8 +1104,8 @@ node_timer(time_t now)
 			time_delta_t rx_quiet = delta_time(now, n->last_rx);
 
 			if (n->n_weird >= MAX_WEIRD_MSG) {
-				g_message("Removing %s <%s> due to security violation",
-					node_addr(n), node_vendor(n));
+				g_message("removing %s node %s <%s> due to security violation",
+					node_type(n), node_addr(n), node_vendor(n));
 				ban_record(n->addr,
 					"IP with Gnutella security violations");
 				node_bye_if_writable(n, 412, "Security violation");

@@ -2091,8 +2091,8 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		if (vendor) {
 			n->n_weird++;
 			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
-				"node %s (%s) had no tag in its query hits, now has %s in %s",
-				n->n_weird,
+				"%s node %s (%s) had no tag in its query hits, now has %s in %s",
+				n->n_weird, node_type(n),
 				node_addr(n), node_vendor(n), vendor, gmsg_node_infostr(n));
 			n->attrs &= ~NODE_A_QHD_NO_VTAG;
 		}
@@ -2110,9 +2110,9 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		if (n->vcode.u32 != T_0000 && vendor == NULL) {
 			n->n_weird++;
 			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
-				"node %s (%s) had tag \"%s\" in its query hits, "
+				"%s node %s (%s) had tag \"%s\" in its query hits, "
 				"now has none in %s",
-				n->n_weird, node_addr(n), node_vendor(n),
+				n->n_weird, node_type(n), node_addr(n), node_vendor(n),
 				vendor_code_to_string(n->vcode.u32),
 				gmsg_node_infostr(n));
 		}
@@ -2142,8 +2142,8 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			vendor_code_to_string_buf(rs->vcode.u32, vc_new, sizeof vc_new);
 
 			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
-				"node %s (%s) moved from tag %4.4s to %4.4s in %s",
-				n->n_weird, node_addr(n), node_vendor(n),
+				"%s node %s (%s) moved from tag %4.4s to %4.4s in %s",
+				n->n_weird, node_type(n), node_addr(n), node_vendor(n),
 				vc_old, vc_new, gmsg_node_infostr(n));
 		}
 
@@ -2164,8 +2164,8 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 				guid_to_string_buf(rs->guid, guid_buf, sizeof guid_buf);
 				g_warning("[weird #%d] "
-					"Node %s (%s) has GUID %s but used %s in %s",
-					n->n_weird, node_addr(n), node_vendor(n),
+					"%s node %s (%s) has GUID %s but used %s in %s",
+					n->n_weird, node_type(n), node_addr(n), node_vendor(n),
 					guid_hex_str(node_guid(n)), guid_buf,
 					gmsg_node_infostr(n));
 			}
@@ -2205,7 +2205,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		) {
 			n->n_weird++;
 			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
-				"node %s (%s) advertised %s but now says Query Hits from %s",
+				"%s node (%s) advertised %s but now says Query Hits from %s",
 				n->n_weird, node_addr(n), node_vendor(n),
 				host_addr_to_string(is_host_addr(n->gnet_qhit_addr) ?
 					n->gnet_qhit_addr : n->gnet_pong_addr),
