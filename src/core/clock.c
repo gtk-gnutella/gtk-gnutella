@@ -209,7 +209,7 @@ clock_adjust(void)
 		double *value = statx_data(datapoints);
 
 		if (GNET_PROPERTY(clock_debug) > 1)
-			g_message("CLOCK before #%d: n=%d avg=%.2f sdev=%.2f",
+			g_debug("CLOCK before #%d: n=%d avg=%.2f sdev=%.2f",
 				k, n, avg, sdev);
 
 		statx_clear(datapoints);
@@ -240,7 +240,7 @@ clock_adjust(void)
 		sdev = statx_sdev(datapoints);
 
 		if (GNET_PROPERTY(clock_debug) > 1)
-			g_message("CLOCK after #%d: kept n=%d avg=%.2f sdev=%.2f",
+			g_debug("CLOCK after #%d: kept n=%d avg=%.2f sdev=%.2f",
 				k, n, avg, sdev);
 
 		if (sdev <= MAX_SDEV || n < MIN_DATA)
@@ -257,7 +257,7 @@ clock_adjust(void)
 
 	if (sdev > MAX_SDEV || n < MIN_DATA) {
 		if (GNET_PROPERTY(clock_debug) > 1)
-			g_message("CLOCK will continue collecting data");
+			g_debug("CLOCK will continue collecting data");
 		return;
 	}
 
@@ -266,7 +266,7 @@ clock_adjust(void)
 	new_skew = GNET_PROPERTY(clock_skew) + (gint32) avg;
 
 	if (GNET_PROPERTY(clock_debug))
-		g_message("CLOCK with n=%d avg=%.2f sdev=%.2f => SKEW old=%d new=%d",
+		g_debug("CLOCK with n=%d avg=%.2f sdev=%.2f => SKEW old=%d new=%d",
 			n, avg, sdev, (gint32) GNET_PROPERTY(clock_skew),
 			(gint32) new_skew);
 
@@ -314,7 +314,7 @@ clock_update(time_t update, int precision, const host_addr_t addr)
 	statx_add(datapoints, (double) (delta - precision));
 
 	if (GNET_PROPERTY(clock_debug) > 1)
-		g_message("CLOCK skew=%d delta=%d +/-%d [%s] (n=%d avg=%.2f sdev=%.2f)",
+		g_debug("CLOCK skew=%d delta=%d +/-%d [%s] (n=%d avg=%.2f sdev=%.2f)",
 			(gint32) GNET_PROPERTY(clock_skew),
 			delta, precision, host_addr_to_string(addr),
 			statx_n(datapoints), statx_avg(datapoints), statx_sdev(datapoints));

@@ -162,7 +162,7 @@ ipf_destroy(cqueue_t *unused_cq, gpointer obj)
 	g_assert(ipf == g_hash_table_lookup(info, &ipf->addr));
 
 	if (GNET_PROPERTY(ban_debug) > 8)
-		g_message("disposing of BAN %s: %s",
+		g_debug("disposing of BAN %s: %s",
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
 	g_hash_table_remove(info, &ipf->addr);
@@ -194,7 +194,7 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 	ipf->created = now;
 
 	if (GNET_PROPERTY(ban_debug) > 2)
-		g_message("lifting BAN for %s (%s), counter = %.3f",
+		g_debug("lifting BAN for %s (%s), counter = %.3f",
 			host_addr_to_string(ipf->addr), ban_reason(ipf), ipf->counter);
 
 	/**
@@ -211,7 +211,7 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 
 	if (delay <= 0) {
 		if (GNET_PROPERTY(ban_debug) > 8)
-			g_message("disposing of BAN %s: %s",
+			g_debug("disposing of BAN %s: %s",
 				host_addr_to_string(ipf->addr), ban_reason(ipf));
 
 		g_hash_table_remove(info, &ipf->addr);
@@ -285,7 +285,7 @@ ban_allow(const host_addr_t addr)
 	ipf->created = now;
 
 	if (GNET_PROPERTY(ban_debug) > 4)
-		g_message("BAN %s, counter = %.3f (%s)",
+		g_debug("BAN %s, counter = %.3f (%s)",
 			host_addr_to_string(ipf->addr), ipf->counter,
 			ipf->banned ? "already banned" :
 			ipf->counter > (float) MAX_REQUEST ? "banning" : "OK");
@@ -377,7 +377,7 @@ ban_record(const host_addr_t addr, const char *msg)
 	ipf->ban_delay = MAX_BAN;
 
 	if (GNET_PROPERTY(ban_debug))
-		g_message("BAN %s record %s: %s",
+		g_debug("BAN %s record %s: %s",
 			ipf->banned ? "updating" : "new",
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
@@ -426,7 +426,7 @@ reclaim_fd(void)
 	(void) close(GPOINTER_TO_INT(banned_tail->data));	/* Reclaim fd */
 
 	if (GNET_PROPERTY(ban_debug) > 9)
-		g_message("closed BAN fd #%d", GPOINTER_TO_INT(banned_tail->data));
+		g_debug("closed BAN fd #%d", GPOINTER_TO_INT(banned_tail->data));
 
 	prev = g_list_previous(banned_tail);
 	banned_head = g_list_remove_link(banned_head, banned_tail);
@@ -590,7 +590,7 @@ ban_max_recompute(void)
 	max = MAX(1, max);
 
 	if (GNET_PROPERTY(ban_debug))
-		g_message("will use at most %d file descriptor%s for banning",
+		g_info("will use at most %d file descriptor%s for banning",
 			max, max == 1 ? "" : "s");
 
 	gnet_prop_set_guint32_val(PROP_MAX_BANNED_FD, max);

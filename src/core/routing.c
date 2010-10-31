@@ -397,8 +397,7 @@ routing_log_flush(struct route_log *route_log)
 	if (GNET_PROPERTY(routing_debug) <= 7)
 		return;
 
-	g_log(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG,
-		"ROUTE %-21s %s %s %3d/%3d: [%c] %s%s%s-> %s",
+	g_debug("ROUTE %-21s %s %s %3d/%3d: [%c] %s%s%s-> %s",
 		route_log->local ? "OURSELVES"
 			: host_addr_port_to_string(route_log->addr, route_log->port),
 		debug_msg[route_log->function], guid_hex_str(&route_log->muid),
@@ -537,7 +536,7 @@ get_next_slot(void)
 
 		if (idx > 0 && elapsed > TABLE_MIN_CYCLE) {
 			if (GNET_PROPERTY(routing_debug))
-				printf("RT cycling over table, elapsed=%u, holds %d / %d\n",
+				g_debug("RT cycling over table, elapsed=%u, holds %d / %d",
 					(unsigned) elapsed, routing.count, routing.capacity);
 
 			chunk_idx = 0;
@@ -556,7 +555,7 @@ get_next_slot(void)
 				g_malloc0(CHUNK_MESSAGES * sizeof(struct message *));
 
 			if (GNET_PROPERTY(routing_debug))
-				g_message("RT created new chunk #%d, now holds %d / %d",
+				g_debug("RT created new chunk #%d, now holds %d / %d",
 					chunk_idx, routing.count, routing.capacity);
 
 			slot = routing.chunks[chunk_idx];	/* First slot in new chunk */
@@ -572,7 +571,7 @@ get_next_slot(void)
 
 		if (idx == 0) {
 			if (GNET_PROPERTY(routing_debug))
-				g_message("RT cycling over FORCED, elapsed=%u, holds %d / %d",
+				g_debug("RT cycling over FORCED, elapsed=%u, holds %d / %d",
 					(unsigned) elapsed, routing.count, routing.capacity);
 
 			routing.last_rotation = now;

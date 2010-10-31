@@ -645,7 +645,7 @@ dm_remove_entry(struct dmesh *dm, struct dmesh_entry *dme)
 	g_assert(list_length(dm->entries) > 0);
 
 	if (GNET_PROPERTY(dmesh_debug)) {
-		g_message("dmesh %sentry removed for urn:sha1:%s at %s",
+		g_debug("dmesh %sentry removed for urn:sha1:%s at %s",
 			dme->fw_entry ? "firewalled " : "", sha1_base32(dm->sha1),
 			dme->fw_entry ?
 				guid_hex_str(dme->e.fwh.guid) :
@@ -701,7 +701,7 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, guint16 port)
 		return;
 
 	if (GNET_PROPERTY(dmesh_debug)) {
-		g_message("dmesh entry removed for urn:sha1:%s at %s",
+		g_debug("dmesh entry removed for urn:sha1:%s at %s",
 			sha1_base32(dm->sha1), host_addr_port_to_string(addr, port));
 	}
 
@@ -775,7 +775,7 @@ dm_expire(struct dmesh *dm)
 		 */
 
 		if (GNET_PROPERTY(dmesh_debug) > 4)
-			g_message("MESH %s: EXPIRED \"%s\", age=%u",
+			g_debug("MESH %s: EXPIRED \"%s\", age=%u",
 				sha1_base32(dm->sha1),
 				dme->fw_entry ?
 					dmesh_fwinfo_to_string(&dme->e.fwh) :
@@ -1025,7 +1025,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 			dme->stamp = stamp;
 
 		if (GNET_PROPERTY(dmesh_debug))
-			g_message("dmesh entry reused for urn:sha1:%s at %s",
+			g_debug("dmesh entry reused for urn:sha1:%s at %s",
 				sha1_base32(sha1), host_addr_port_to_string(addr, port));
 	} else {
 		/*
@@ -1045,7 +1045,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		dme->fw_entry = FALSE;
 
 		if (GNET_PROPERTY(dmesh_debug))
-			g_message("dmesh entry created for urn:sha1:%s at %s",
+			g_debug("dmesh entry created for urn:sha1:%s at %s",
 				sha1_base32(sha1), host_addr_port_to_string(addr, port));
 
 		/*
@@ -1081,7 +1081,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 
 rejected:
 	if (GNET_PROPERTY(dmesh_debug) > 4)
-		g_message("MESH %s: rejecting \"%s\", stamp=%u age=%u: %s",
+		g_debug("MESH %s: rejecting \"%s\", stamp=%u age=%u: %s",
 			sha1_base32(sha1),
 			dmesh_urlinfo_to_string(info), (guint) stamp,
 			(unsigned) delta_time(now, stamp),
@@ -1161,7 +1161,7 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 		}
 
 		if (GNET_PROPERTY(dmesh_debug))
-			g_message("dmesh entry reused for urn:sha1:%s for %s (%s proxies)",
+			g_debug("dmesh entry reused for urn:sha1:%s for %s (%s proxies)",
 				sha1_base32(sha1), guid_hex_str(info->guid),
 				info->proxies ? "new" : "no new");
 	} else {
@@ -1180,7 +1180,7 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 		dme->fw_entry = TRUE;
 
 		if (GNET_PROPERTY(dmesh_debug))
-			g_message("dmesh entry created for urn:sha1:%s for %s",
+			g_debug("dmesh entry created for urn:sha1:%s for %s",
 				sha1_base32(sha1), guid_hex_str(info->guid));
 
 		/*
@@ -1211,7 +1211,7 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 
 rejected:
 	if (GNET_PROPERTY(dmesh_debug) > 4)
-		g_message("MESH %s: rejecting \"%s\", stamp=%u age=%u: %s",
+		g_debug("MESH %s: rejecting \"%s\", stamp=%u age=%u: %s",
 			sha1_base32(sha1),
 			dmesh_fwinfo_to_string(info), (guint) stamp,
 			(unsigned) delta_time(now, stamp),
@@ -2655,7 +2655,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 			ok = dmesh_url_parse(url, &info);
 
 			if (GNET_PROPERTY(dmesh_debug) > 6)
-				g_message("MESH (parsed=%d): \"%s\"", ok, url);
+				g_debug("MESH (parsed=%d): \"%s\"", ok, url);
 
 			if (!ok &&
 				(GNET_PROPERTY(dmesh_debug) > 1 ||
@@ -2731,7 +2731,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 			stamp = date2time(date, now);
 
 			if (GNET_PROPERTY(dmesh_debug) > 6)
-				g_message("MESH (stamp=%s): \"%s\"",
+				g_debug("MESH (stamp=%s): \"%s\"",
 					timestamp_to_string(stamp), date);
 
 			if (stamp == (time_t) -1) {
@@ -2774,7 +2774,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 
 	skip_add:
 		if (GNET_PROPERTY(dmesh_debug) > 4)
-			g_message("MESH %s: %s \"%s\", stamp=%u age=%u",
+			g_debug("MESH %s: %s \"%s\", stamp=%u age=%u",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
 				dmesh_urlinfo_to_string(&info), (guint) stamp,
@@ -3072,7 +3072,7 @@ dmesh_multiple_downloads(const struct sha1 *sha1,
 		const char *filename;
 
 		if (GNET_PROPERTY(dmesh_debug) > 2)
-			g_message("ALT-LOC queuing from MESH: %s",
+			g_debug("ALT-LOC queuing from MESH: %s",
 				dmesh_urlinfo_to_string(p));
 
 		filename = URN_INDEX == p->idx && fi
@@ -3231,7 +3231,7 @@ dmesh_retrieve(void)
 
 		if (has_sha1) {
 			if (GNET_PROPERTY(dmesh_debug))
-				g_message("dmesh_retrieve(): parsing %s", tmp);
+				g_debug("dmesh_retrieve(): parsing %s", tmp);
 			if (is_strprefix(tmp, "http://")) {
 				dmesh_collect_locations(&sha1, tmp);
 			} else {

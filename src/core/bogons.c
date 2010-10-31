@@ -124,7 +124,7 @@ bogons_load(FILE *f)
 	iprange_sync(bogons_db);
 
 	if (GNET_PROPERTY(reload_debug)) {
-		g_message("loaded %u bogus IP ranges (%u hosts)",
+		g_debug("loaded %u bogus IP ranges (%u hosts)",
 			iprange_get_item_count(bogons_db),
 			iprange_get_host_count(bogons_db));
 	}

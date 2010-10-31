@@ -675,7 +675,7 @@ bsched_enable(bsched_bws_t bws)
 	tm_now(&bs->last_period);
 
 	if (GNET_PROPERTY(bsched_debug))
-		g_message("BSCHED enabling \"%s\"", bs->name);
+		g_debug("BSCHED enabling \"%s\"", bs->name);
 }
 
 /**
@@ -688,7 +688,7 @@ bsched_disable(bsched_bws_t bws)
 	bs->flags &= ~BS_F_ENABLED;
 
 	if (GNET_PROPERTY(bsched_debug))
-		g_message("BSCHED disabling \"%s\"", bs->name);
+		g_debug("BSCHED disabling \"%s\"", bs->name);
 }
 
 /**
@@ -1122,7 +1122,7 @@ bsched_set_bandwidth(bsched_bws_t bws, int bandwidth)
 	g_assert(bandwidth <= BS_BW_MAX);	/* Signed, and multiplied by 1000 */
 
 	if (GNET_PROPERTY(bsched_debug))
-		g_message("BSCHED bsched_set_bandwidth: using %.2f KiB/s for %s",
+		g_debug("BSCHED bsched_set_bandwidth: using %.2f KiB/s for %s",
 			(double) bandwidth / bs->period, bs->name);
 
 	bs->bw_per_second = bandwidth;
@@ -1195,7 +1195,7 @@ bw_available(bio_source_t *bio, int len)
 	available = bs->bw_max + bs->bw_stolen - bs->bw_actual;
 
 	if (GNET_PROPERTY(bsched_debug) > 8)
-		g_message("BSCHED bw_available: "
+		g_debug("BSCHED bw_available: "
 			"[fd #%d] max=%d, stolen=%d, actual=%d => avail=%d",
 			bio->wio->fd(bio->wio), bs->bw_max, bs->bw_stolen, bs->bw_actual,
 			available);
@@ -1219,7 +1219,7 @@ bw_available(bio_source_t *bio, int len)
 	active = bio->flags & BIO_F_ACTIVE;
 
 	if (GNET_PROPERTY(bsched_debug) > 8)
-		g_message("BSCHED \tcapped=%s, used=%s, active=%s => avail=%d",
+		g_debug("BSCHED \tcapped=%s, used=%s, active=%s => avail=%d",
 			capped ? "y" : "n", used ? "y" : "n", active ? "y" : "n",
 			available);
 
@@ -1277,7 +1277,7 @@ bw_available(bio_source_t *bio, int len)
 		}
 
 		if (GNET_PROPERTY(bsched_debug) > 7)
-			g_message("BSCHED bw_availble: new slot=%d for \"%s\" (%scapped)",
+			g_debug("BSCHED bw_availble: new slot=%d for \"%s\" (%scapped)",
 				bs->bw_slot, bs->name, capped ? "" : "un");
 	}
 
@@ -1351,7 +1351,7 @@ bw_available(bio_source_t *bio, int len)
 			adj = available;
 
 		if (GNET_PROPERTY(bsched_debug) > 4)
-			g_message("BSCHED bw_available: \"%s\" adding %d to %d"
+			g_debug("BSCHED bw_available: \"%s\" adding %d to %d"
 				" (len=%d, capped=%d [%d-%d/%d], available=%d, used=%c)",
 				bs->name, adj, result, len, bs->bw_last_capped,
 				bs->last_used, bs->current_used, bs->count,
@@ -1449,7 +1449,7 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 	amount = len > available ? available : len;
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_message("BSCHED bio_write(wio=%d, len=%d) available=%d",
+		g_debug("BSCHED bio_write(wio=%d, len=%d) available=%d",
 			bio->wio->fd(bio->wio), (int) len, (int) available);
 
 	r = bio->wio->write(bio->wio, data, amount);
@@ -1561,7 +1561,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, int iovcnt)
 	 */
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_message("BSCHED bio_writev(fd=%d, len=%d) available=%d",
+		g_debug("BSCHED bio_writev(fd=%d, len=%d) available=%d",
 			bio->wio->fd(bio->wio), (int) len, (int) available);
 
 	if (iovcnt > MAX_IOV_COUNT)
@@ -1637,7 +1637,7 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 	}
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_message("BSCHED bio_sendto(wio=%d, len=%d) available=%d",
+		g_debug("BSCHED bio_sendto(wio=%d, len=%d) available=%d",
 			bio->wio->fd(bio->wio), (int) len, (int) available);
 
 	g_assert(bio->wio != NULL);
@@ -1774,7 +1774,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 	amount = len > available ? available : len;
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_message("BSCHED bsched_write(fd=%d, len=%d) available=%d",
+		g_debug("BSCHED bsched_write(fd=%d, len=%d) available=%d",
 			bio->wio->fd(bio->wio), (int) len, (int) available);
 
 #ifdef USE_MMAP
@@ -1986,7 +1986,7 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 
 	amount = len > available ? available : len;
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_message("BSCHED bsched_read(fd=%d, len=%d) available=%d",
+		g_debug("BSCHED bsched_read(fd=%d, len=%d) available=%d",
 			bio->wio->fd(bio->wio), (int) len, (int) available);
 
 	r = bio->wio->read(bio->wio, data, amount);
@@ -2084,7 +2084,7 @@ bio_readv(bio_source_t *bio, struct iovec *iov, int iovcnt)
 	 */
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_message("BSCHED bio_readv(fd=%d, len=%d) available=%d",
+		g_debug("BSCHED bio_readv(fd=%d, len=%d) available=%d",
 			bio->wio->fd(bio->wio), (int) len, (int) available);
 
 	if (iovcnt > MAX_IOV_COUNT)
@@ -2421,7 +2421,7 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 		(tv->tv_usec - bs->last_period.tv_usec) / 1000);
 
 	if (GNET_PROPERTY(bsched_debug) > 9)
-		g_message("BSCHED [%s] tv = %d,%d  bs = %d,%d, delay = %d",
+		g_debug("BSCHED [%s] tv = %d,%d  bs = %d,%d, delay = %d",
 			bs->name, (int) tv->tv_sec, (int) tv->tv_usec,
 			(int) bs->last_period.tv_sec, (int) bs->last_period.tv_usec,
 			delay);
@@ -2564,14 +2564,14 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 	bs->last_used = last_used;
 
 	if (GNET_PROPERTY(bsched_debug) > 4) {
-		g_message("BSCHED bsched_timer(%s): delay=%d (EMA=%d), b/w=%d (EMA=%d), "
+		g_debug("BSCHED bsched_timer(%s): delay=%d (EMA=%d), b/w=%d (EMA=%d), "
 			"overused=%d (EMA=%d) stolen=%d (EMA=%d) unwritten=%d "
 			"capped=%d (%d) used %d/%d",
 			bs->name, delay, bs->period_ema, bs->bw_actual, bs->bw_ema,
 			overused, bs->bw_ema - bs->bw_stolen_ema - theoric,
 			bs->bw_stolen, bs->bw_stolen_ema, bs->bw_unwritten,
 			last_capped, bs->bw_capped, bs->last_used, bs->count);
-		g_message("BSCHED    -> b/w delta=%d, max=%d, slot=%d, first=%d "
+		g_debug("BSCHED    -> b/w delta=%d, max=%d, slot=%d, first=%d "
 			"(target %d B/s, %d slot%s, real %.02f B/s)",
 			bs->bw_delta, bs->bw_max,
 			bs->count ? bs->bw_max / bs->count : 0,
@@ -2694,7 +2694,7 @@ bsched_stealbeat(bsched_t *bs)
 			underused -= amount;
 
 			if (GNET_PROPERTY(bsched_debug) > 4)
-				g_message("BSCHED b/w sched \"%s\" urgently giving %d bytes "
+				g_debug("BSCHED b/w sched \"%s\" urgently giving %d bytes "
 					"to \"%s\" (still wants %d bytes urgently)",
 					bs->name, amount, xbs->name, xbs->bw_urgent);
 
@@ -2717,7 +2717,7 @@ bsched_stealbeat(bsched_t *bs)
 			xbs->bw_stolen += underused / steal_count;
 
 			if (GNET_PROPERTY(bsched_debug) > 4)
-				g_message("BSCHED b/w sched \"%s\" evenly giving %d bytes "
+				g_debug("BSCHED b/w sched \"%s\" evenly giving %d bytes "
 					"to \"%s\"", bs->name, underused / steal_count, xbs->name);
 		}
 	} else {
@@ -2736,7 +2736,7 @@ bsched_stealbeat(bsched_t *bs)
 				xbs->bw_stolen += (int) amount;
 
 			if (GNET_PROPERTY(bsched_debug) > 4)
-				g_message("BSCHED b/w sched \"%s\" giving %d bytes to \"%s\"",
+				g_debug("BSCHED b/w sched \"%s\" giving %d bytes to \"%s\"",
 					bs->name, (int) amount, xbs->name);
 		}
 	}
@@ -2800,7 +2800,7 @@ bsched_timer(void)
 	bws_out_ema += (out_used >> 6) - (bws_out_ema >> 6);	/* Slow EMA */
 
 	if (GNET_PROPERTY(bsched_debug) > 3)
-		g_message("BSCHED outgoing b/w EMA = %d bytes/s", bws_out_ema);
+		g_debug("BSCHED outgoing b/w EMA = %d bytes/s", bws_out_ema);
 
 	for (l = bws_in_list; l; l = g_slist_next(l)) {
 		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
@@ -2817,7 +2817,7 @@ bsched_timer(void)
 	bws_in_ema += (in_used >> 6) - (bws_in_ema >> 6);		/* Slow EMA */
 
 	if (GNET_PROPERTY(bsched_debug) > 3)
-		g_message("BSCHED incoming b/w EMA = %d bytes/s", bws_in_ema);
+		g_debug("BSCHED incoming b/w EMA = %d bytes/s", bws_in_ema);
 
 	/*
 	 * Don't simply rely on in_used > 0 since we fake input data when
@@ -2834,7 +2834,7 @@ static gboolean
 true_expr(const char *expr)
 {
 	if (GNET_PROPERTY(bsched_debug) > 0) {
-		g_message("BSCHED %s", expr);
+		g_debug("BSCHED %s", expr);
 	}
 	return TRUE;
 }

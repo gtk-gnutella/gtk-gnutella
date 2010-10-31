@@ -494,7 +494,7 @@ ctl_parse_list_entry(struct ctl_string *s)
 		ctl_all_flags |= flags;
 
 		if (GNET_PROPERTY(ctl_debug)) {
-			g_message("CTL %s => '%s' (%s)",
+			g_debug("CTL %s => '%s' (%s)",
 				iso3166_country_cc(code), ctl_flags2str(flags),
 				iso3166_country_name(code));
 		}
@@ -598,7 +598,7 @@ ctl_parse(const char *s)
 	}
 
 	if (GNET_PROPERTY(ctl_debug)) {
-		g_message("CTL full option set is '%s'", ctl_flags2str(ctl_all_flags));
+		g_debug("CTL full option set is '%s'", ctl_flags2str(ctl_all_flags));
 	}
 }
 
