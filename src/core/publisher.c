@@ -189,7 +189,7 @@ delete_pubdata(const sha1_t *sha1)
 
 	if (GNET_PROPERTY(publisher_debug) > 2) {
 		shared_file_t *sf = shared_file_by_sha1(sha1);
-		g_message("PUBLISHER SHA-1 %s %s\"%s\" reclaimed",
+		g_debug("PUBLISHER SHA-1 %s %s\"%s\" reclaimed",
 			sha1_to_string(sha1),
 			(sf && sf != SHARE_REBUILDING && shared_file_is_partial(sf)) ?
 				"partial " : "",
@@ -275,7 +275,7 @@ publisher_retry(struct publisher_entry *pe, int delay, const char *msg)
 
 	if (GNET_PROPERTY(publisher_debug) > 3) {
 		shared_file_t *sf = shared_file_by_sha1(pe->sha1);
-		g_message("PUBLISHER will retry SHA-1 %s %s\"%s\" in %s: %s",
+		g_debug("PUBLISHER will retry SHA-1 %s %s\"%s\" in %s: %s",
 			sha1_to_string(pe->sha1),
 			(sf && sf != SHARE_REBUILDING && shared_file_is_partial(sf)) ?
 				"partial " : "",
@@ -473,7 +473,7 @@ publisher_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 
 		gm_snprintf(retry, sizeof retry, "%s", compact_time(delay));
 
-		g_message("PUBLISHER SHA-1 %s %s%s\"%s\" %spublished to %u node%s%s: %s"
+		g_debug("PUBLISHER SHA-1 %s %s%s\"%s\" %spublished to %u node%s%s: %s"
 			" (%stook %s, total %u node%s, proba %.3f%%, retry in %s,"
 			" %s bg, path %u) [%s]",
 			sha1_to_string(pe->sha1),
@@ -558,7 +558,7 @@ publisher_handle(struct publisher_entry *pe)
 		}
 
 		if (GNET_PROPERTY(publisher_debug)) {
-			g_message("PUBLISHER SHA-1 %s is no longer shared",
+			g_debug("PUBLISHER SHA-1 %s is no longer shared",
 				sha1_to_string(pe->sha1));
 		}
 		publisher_entry_free(pe, TRUE);
@@ -603,7 +603,7 @@ publisher_handle(struct publisher_entry *pe)
 
 	if (alt_locs > (is_partial ? PUBLISH_PARTIAL_MAX : PUBLISH_DMESH_MAX)) {
 		if (GNET_PROPERTY(publisher_debug)) {
-			g_message("PUBLISHER SHA-1 %s %s\"%s\" has %d download mesh "
+			g_debug("PUBLISHER SHA-1 %s %s\"%s\" has %d download mesh "
 				"entr%s, skipped", sha1_to_string(pe->sha1),
 				is_partial ? "partial " : "",
 				shared_file_name_nfc(sf),
@@ -658,7 +658,7 @@ publisher_handle(struct publisher_entry *pe)
 					delay = MIN(delay, expire);
 
 				if (GNET_PROPERTY(publisher_debug) > 1) {
-					g_message("PUBLISHER SHA-1 %s delayed by %s",
+					g_debug("PUBLISHER SHA-1 %s delayed by %s",
 						sha1_to_string(pe->sha1), compact_time(enqueue));
 				}
 
@@ -683,7 +683,7 @@ publisher_handle(struct publisher_entry *pe)
 
 	if (pe->last_publish) {
 		if (GNET_PROPERTY(publisher_debug) > 2) {
-			g_message("PUBLISHER SHA-1 %s re-enqueued %d secs "
+			g_debug("PUBLISHER SHA-1 %s re-enqueued %d secs "
 				"after last publish", sha1_to_string(pe->sha1),
 				(int) delta_time(tm_time(), pe->last_publish));
 		}
@@ -725,7 +725,7 @@ publisher_add(const sha1_t *sha1)
 		dbmw_write(db_pubdata, sha1, &new_pd, sizeof new_pd);
 
 		if (GNET_PROPERTY(publisher_debug) > 2) {
-			g_message("PUBLISHER allocating new SHA-1 %s",
+			g_debug("PUBLISHER allocating new SHA-1 %s",
 				sha1_to_string(sha1));
 		}
 	} else {
@@ -733,7 +733,7 @@ publisher_add(const sha1_t *sha1)
 			time_delta_t enqueue = delta_time(pd->next_enqueue, tm_time());
 			time_delta_t expires = delta_time(pd->expiration, tm_time());
 
-			g_message("PUBLISHER existing SHA-1 %s, next enqueue %s%s, %s%s",
+			g_debug("PUBLISHER existing SHA-1 %s, next enqueue %s%s, %s%s",
 				sha1_to_string(sha1),
 				enqueue > 0 ? "in " : "",
 				enqueue > 0 ? compact_time(enqueue) : "now",
@@ -849,7 +849,7 @@ publisher_trim_pubdata(void)
 
 	if (GNET_PROPERTY(publisher_debug)) {
 		count = dbmw_count(db_pubdata);
-		g_message("PUBLISHER scanning %u retrieved SHA1%s",
+		g_debug("PUBLISHER scanning %u retrieved SHA1%s",
 			(unsigned) count, 1 == count ? "" : "s");
 	}
 
@@ -858,7 +858,7 @@ publisher_trim_pubdata(void)
 	count = dbmw_count(db_pubdata);
 
 	if (GNET_PROPERTY(publisher_debug)) {
-		g_message("PUBLISHER kept information about %u SHA1%s",
+		g_debug("PUBLISHER kept information about %u SHA1%s",
 			(unsigned) count, 1 == count ? "" : "s");
 	}
 
@@ -872,7 +872,7 @@ publisher_trim_pubdata(void)
 
 	if (0 == count) {
 		if (GNET_PROPERTY(publisher_debug)) {
-			g_message("PUBLISHER clearing database");
+			g_debug("PUBLISHER clearing database");
 		}
 		if (!dbmw_clear(db_pubdata)) {
 			if (GNET_PROPERTY(publisher_debug)) {
@@ -881,7 +881,7 @@ publisher_trim_pubdata(void)
 		}
 	} else {
 		if (GNET_PROPERTY(publisher_debug)) {
-			g_message("PUBLISHER shrinking database files");
+			g_debug("PUBLISHER shrinking database files");
 		}
 		if (!dbmw_shrink(db_pubdata)) {
 			if (GNET_PROPERTY(publisher_debug)) {
@@ -916,7 +916,7 @@ publisher_init(void)
 		inverse_decimation[i] = 1.0 / (1.0 + v * v);
 
 		if (GNET_PROPERTY(publisher_debug) > 4) {
-			g_message("PUBLISHER inverse_decimation[%lu] = %.3f",
+			g_debug("PUBLISHER inverse_decimation[%lu] = %.3f",
 				(unsigned long) i, inverse_decimation[i]);
 		}
 	}
@@ -931,7 +931,7 @@ publisher_init(void)
 	g_assert(publisher_minimum > 0);
 
 	if (GNET_PROPERTY(publisher_debug)) {
-		g_message("PUBLISHER minimum amount of nodes we accept: %u",
+		g_debug("PUBLISHER minimum amount of nodes we accept: %u",
 			publisher_minimum);
 	}
 

@@ -203,7 +203,7 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
 	}
 
 	if (GNET_PROPERTY(push_proxy_debug) > 0) {
-		g_message("push-proxy: ending request from %s (%s): %s",
+		g_debug("push-proxy: ending request from %s (%s): %s",
 			pp->socket ? host_addr_to_string(pp->socket->addr) : "<no socket>",
 			pproxy_vendor_str(pp),
 			logreason);
@@ -435,7 +435,7 @@ get_params(struct pproxy *pp, const char *request,
 		}
 
 		if (GNET_PROPERTY(push_proxy_debug) > 0)
-			g_message("PUSH-PROXY: decoding %s=%s as base32", attr, value);
+			g_debug("PUSH-PROXY: decoding %s=%s as base32", attr, value);
 
 		guid = base32_to_guid(value);
 		if (guid == NULL) {
@@ -460,7 +460,7 @@ get_params(struct pproxy *pp, const char *request,
 		}
 
 		if (GNET_PROPERTY(push_proxy_debug) > 0)
-			g_message("PUSH-PROXY: decoding %s=%s as hexadecimal", attr, value);
+			g_debug("PUSH-PROXY: decoding %s=%s as hexadecimal", attr, value);
 
 		if (!hex_to_guid(value, &guid)) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
@@ -702,7 +702,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	gboolean supports_tls = FALSE;
 
 	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_IN) {
-		g_message("----Push-proxy request from %s:\n%s",
+		g_debug("----Push-proxy request from %s:\n%s",
 			host_addr_to_string(s->addr), request);
 		header_dump(stderr, header, "----");
 	}
@@ -726,7 +726,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	supports_tls |= header_get_feature("tls", header, NULL, NULL);
 
 	if (GNET_PROPERTY(push_proxy_debug) > 0)
-		g_message("PUSH-PROXY: %s requesting a push to %s for file #%d",
+		g_debug("PUSH-PROXY: %s requesting a push to %s for file #%d",
 			host_addr_to_string(s->addr), guid_hex_str(pp->guid),
 			pp->file_idx);
 
@@ -1149,7 +1149,7 @@ cproxy_http_header_ind(struct http_async *handle, header_t *header,
 	}
 
 	if (GNET_PROPERTY(push_proxy_debug) > 0 && cp->sent)
-		g_message("PUSH-PROXY at %s (%s) sent PUSH for %s file #%u %s",
+		g_debug("PUSH-PROXY at %s (%s) sent PUSH for %s file #%u %s",
 			host_addr_port_to_string(cp->addr, cp->port), cproxy_vendor_str(cp),
 			guid_hex_str(cp->guid), cp->file_idx,
 			cp->directly ? "directly" : "via Gnet");
@@ -1236,7 +1236,7 @@ cproxy_sent_request(const struct http_async *unused_ha,
 	(void) unused_ha;
 
 	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_OUT) {
-		g_message("----Sent push-proxy request%s to %s (%u bytes):",
+		g_debug("----Sent push-proxy request%s to %s (%u bytes):",
 			deferred ? " completely" : "",
 			host_addr_port_to_string(s->addr, s->port), (unsigned) len);
 		dump_string(stderr, req, len, "----");
@@ -1258,7 +1258,7 @@ cproxy_got_reply(const struct http_async *unused_ha,
 	(void) unused_ha;
 
 	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_IN) {
-		g_message("----Got push-proxy reply from %s:",
+		g_debug("----Got push-proxy reply from %s:",
 			host_addr_to_string(s->addr));
 		fprintf(stderr, "%s", status);
 		header_dump(stderr, header, "----");

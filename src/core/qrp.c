@@ -409,7 +409,7 @@ qrt_compact(struct routing_table *rt)
 	g_assert(!rt->compacted);
 
 	if (GNET_PROPERTY(qrp_debug) > 4) {
-		g_message("QRP dumping QRT before compaction...");
+		g_debug("QRP dumping QRT before compaction...");
 		token = qrt_dump(rt, GNET_PROPERTY(qrp_debug) > 19);
 	}
 
@@ -453,7 +453,7 @@ qrt_compact(struct routing_table *rt)
 
 	if (GNET_PROPERTY(qrp_debug) > 4) {
 		guint32 token2;
-		g_message("QRP dumping QRT after compaction...");
+		g_debug("QRP dumping QRT after compaction...");
 		token2 = qrt_dump(rt, GNET_PROPERTY(qrp_debug) > 19);
 
 		if (token2 != token)
@@ -669,7 +669,7 @@ qrt_step_compress(struct bgtask *h, gpointer u, int ticks)
 	chunklen = ticks * QRT_TICK_CHUNK;
 
 	if (GNET_PROPERTY(qrp_debug) > 4)
-		g_message("QRP qrt_step_compress: ticks = %d => chunk = %d bytes",
+		g_debug("QRP qrt_step_compress: ticks = %d => chunk = %d bytes",
 			ticks, chunklen);
 
 	ret = zlib_deflate(ctx->zd, chunklen);
@@ -685,7 +685,7 @@ qrt_step_compress(struct bgtask *h, gpointer u, int ticks)
 		 */
 
 		if (GNET_PROPERTY(qrp_debug) > 2) {
-			g_message("QRP patch: len=%d, compressed=%d (ratio %.2f%%)",
+			g_debug("QRP patch: len=%d, compressed=%d (ratio %.2f%%)",
 				ctx->rp->len, zlib_deflater_outlen(ctx->zd),
 				100.0 * (ctx->rp->len - zlib_deflater_outlen(ctx->zd)) /
 					ctx->rp->len);
@@ -834,7 +834,7 @@ qrt_create(const char *name, char *arena, int slots, int max)
 		rt->digest = atom_sha1_get(qrt_sha1(rt));
 
 	if (GNET_PROPERTY(qrp_debug) > 1)
-		g_message("QRP \"%s\" ready: gen=%d, slots=%d, SHA1=%s",
+		g_debug("QRP \"%s\" ready: gen=%d, slots=%d, SHA1=%s",
 			rt->name, rt->generation, rt->slots,
 			rt->digest ? sha1_base32(rt->digest) : "<not computed>");
 
@@ -1344,7 +1344,7 @@ qrp_add_file(struct shared_file *sf)
 		}
 
 		if (GNET_PROPERTY(qrp_debug) > 8)
-			g_message("new QRP word \"%s\" [from %s]",
+			g_debug("new QRP word \"%s\" [from %s]",
 				word, shared_file_name_nfc(sf));
 	}
 
@@ -1583,7 +1583,7 @@ qrp_step_substring(struct bgtask *unused_h, gpointer u, int unused_ticks)
 	dispose_ht_seen_words();
 
 	if (GNET_PROPERTY(qrp_debug) > 1)
-		g_message("QRP unique subwords: %d", ctx->substrings);
+		g_debug("QRP unique subwords: %d", ctx->substrings);
 
 	return BGR_NEXT;		/* All done for this step */
 }
@@ -1663,7 +1663,7 @@ qrp_step_compute(struct bgtask *h, gpointer u, int unused_ticks)
 			table[idx] = 1;
 			filled++;
 			if (GNET_PROPERTY(qrp_debug) > 7)
-				g_message("QRP added subword: \"%s\"", word);
+				g_debug("QRP added subword: \"%s\"", word);
 		}
 
 		/*
@@ -1683,7 +1683,7 @@ qrp_step_compute(struct bgtask *h, gpointer u, int unused_ticks)
 		(int) (100.0 * (ctx->substrings - filled) / ctx->substrings);
 
 	if (GNET_PROPERTY(qrp_debug) > 1)
-		g_message("QRP [seqno=%d] size=%d, filled=%d, hashed=%d, "
+		g_debug("QRP [seqno=%d] size=%d, filled=%d, hashed=%d, "
 			"ratio=%d%%, conflicts=%d%%%s",
 			bg_task_seqno(h), slots, filled, hashed,
 			(int) (100.0 * filled / slots),
@@ -1698,7 +1698,7 @@ qrp_step_compute(struct bgtask *h, gpointer u, int unused_ticks)
 		(!full && conflict_ratio < MAX_CONFLICT_RATIO)
 	) {
 		if (GNET_PROPERTY(qrp_debug)> 1)
-			g_message("QRP final table size: %d slots", slots);
+			g_debug("QRP final table size: %d slots", slots);
 
 		gnet_prop_set_guint32_val(PROP_QRP_SLOTS, (guint32) slots);
 		gnet_prop_set_guint32_val(PROP_QRP_SLOTS_FILLED, (guint32) filled);
@@ -1718,7 +1718,7 @@ qrp_step_compute(struct bgtask *h, gpointer u, int unused_ticks)
 
 		if (routing_table && qrt_eq(routing_table, table, slots)) {
 			if (GNET_PROPERTY(qrp_debug) > 1)
-				g_message("QRP no change in table");
+				g_debug("QRP no change in table");
 			HFREE_NULL(table);
 			bg_task_exit(h, 0);	/* Abort processing */
 		}
@@ -2155,7 +2155,7 @@ qrt_patch_computed(struct bgtask *unused_h, gpointer unused_u,
 	g_assert(ctx->rpp != NULL);
 
 	if (GNET_PROPERTY(qrp_debug) > 2)
-		g_message("QRP global default patch computed (status = %d)", status);
+		g_debug("QRP global default patch computed (status = %d)", status);
 
 	qrt_patch_ctx = NULL;			/* Indicates that we're done */
 
@@ -2339,7 +2339,7 @@ qrp_send_reset(struct gnutella_node *n, int slots, int inf_val)
 	gmsg_sendto_one(n, &msg, sizeof msg);
 
 	if (GNET_PROPERTY(qrp_debug) > 1)
-		g_message("QRP sent RESET slots=%d, infinity=%d to %s",
+		g_debug("QRP sent RESET slots=%d, infinity=%d to %s",
 			slots, inf_val, node_gnet_addr(n));
 }
 
@@ -2391,7 +2391,7 @@ qrp_send_patch(struct gnutella_node *n,
 	HFREE_NULL(msg);
 
 	if (GNET_PROPERTY(qrp_debug) > 2)
-		g_message("QRP sent PATCH #%d/%d (%d bytes) to %s",
+		g_debug("QRP sent PATCH #%d/%d (%d bytes) to %s",
 			seqno, seqsize, len, node_gnet_addr(n));
 }
 
@@ -2632,7 +2632,7 @@ qrt_patch_available(gpointer arg, struct routing_patch *rp)
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
 	if (GNET_PROPERTY(qrp_debug) > 2)
-		g_message("QRP global routing patch %s (node %s)",
+		g_debug("QRP global routing patch %s (node %s)",
 			rp == NULL ? "computation was cancelled" : "is now available",
 			node_gnet_addr(qup->node));
 
@@ -2701,7 +2701,7 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 			routing_patch->size == routing_table->slots
 		) {
 			if (GNET_PROPERTY(qrp_debug) > 2)
-				g_message(
+				g_debug(
 					"QRP default routing patch is already there (node %s)",
 					node_gnet_addr(n));
 
@@ -2709,7 +2709,7 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 			qrt_compressed(NULL, NULL, BGS_OK, qup);
 		} else {
 			if (GNET_PROPERTY(qrp_debug) > 1)
-				g_message("QRP must wait for default routing patch "
+				g_debug("QRP must wait for default routing patch "
 					"(node %s): %s",
 					node_gnet_addr(n),
 					NULL == routing_patch ? "none present" : "has wrong size");
@@ -3937,7 +3937,7 @@ qrt_handle_patch(
 			rt->pass_throw = 100;		/* Always forward if QRT says so */
 
 		if (GNET_PROPERTY(qrp_debug) > 2)
-			g_message("QRP got whole %d-bit patch "
+			g_debug("QRP got whole %d-bit patch "
 				"(gen=%d, slots=%d (*%d), fill=%d%%, throw=%d) "
 				"from %s %s <%s>: SHA1=%s",
 				qrcv->entry_bits, rt->generation, rt->slots,
@@ -4145,7 +4145,7 @@ qrt_dump(struct routing_table *rt, gboolean full)
 	int i;
 
 	if (GNET_PROPERTY(qrp_debug)) {
-		g_message("------ Query Routing Table \"%s\" "
+		g_debug("------ Query Routing Table \"%s\" "
 			"(gen=%d, slots=%d, %scompacted)",
 			rt->name, rt->generation, rt->slots, rt->compacted ? "" : "not ");
 	}
@@ -4176,10 +4176,10 @@ qrt_dump(struct routing_table *rt, gboolean full)
 	final:
 		if (full) {
 			if (i - 1 != last_slot)
-				g_message("%d .. %d: %s", last_slot, i - 1,
+				g_debug("%d .. %d: %s", last_slot, i - 1,
 					last_status ? "PRESENT" : "nothing");
 			else
-				g_message("%d: %s", last_slot,
+				g_debug("%d: %s", last_slot,
 					last_status ? "PRESENT" : "nothing");
 
 			last_slot = i;
@@ -4196,7 +4196,7 @@ qrt_dump(struct routing_table *rt, gboolean full)
 	result = sha1_hash(&digest);
 
 	if (GNET_PROPERTY(qrp_debug)) {
-		g_message("------ End Routing Table \"%s\" "
+		g_debug("------ End Routing Table \"%s\" "
 			"(gen=%d, SHA1=%s, token=0x%x)",
 			rt->name, rt->generation, sha1_base32(&digest), result);
 	}
@@ -4586,7 +4586,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 				ultras++;
 		}
 
-		g_message(
+		g_debug(
 			"QRP %s (%d word%s%s) forwarded to %d/%d leaves, %d ultra%s",
 			gmsg_node_infostr(n),
 			qhvec->count, qhvec->count == 1 ? "" : "s",

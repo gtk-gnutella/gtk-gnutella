@@ -372,7 +372,7 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 
 			attr->cb->chunk_error(rx->owner,
 					"dechunk() failed: %s", error_str);
-			g_message("dechunk_data(): %s", error_str);
+			g_warning("dechunk_data(): %s", error_str);
 			break;
 		}
 		g_assert(ret <= size);

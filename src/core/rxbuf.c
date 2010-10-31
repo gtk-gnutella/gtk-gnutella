@@ -111,7 +111,7 @@ rxbuf_page_alloc(size_t size)
 	p = vmm_alloc(size);
 
 	if (GNET_PROPERTY(rxbuf_debug) > 2)
-		g_message("RXBUF allocated %uK buffer at 0x%lx",
+		g_debug("RXBUF allocated %uK buffer at 0x%lx",
 			(unsigned) size / 1024, (unsigned long) p);
 
 	return p;
@@ -124,7 +124,7 @@ static void
 rxbuf_page_free(gpointer p, gboolean fragment)
 {
 	if (GNET_PROPERTY(rxbuf_debug) > 2)
-		g_message("RXBUF freeing %uK buffer at 0x%lx%s",
+		g_debug("RXBUF freeing %uK buffer at 0x%lx%s",
 			(unsigned) rxbuf_pagesize / 1024, (unsigned long) p,
 			fragment ? " (fragment)" : "");
 

@@ -164,7 +164,7 @@ static GHashTable *connections;
 #define RUDP_DEBUG(x) \
 G_STMT_START { \
 	if (rudp_debug) { \
-		g_message x; \
+		g_debug x; \
 	} \
 } G_STMT_END
 

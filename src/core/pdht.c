@@ -360,7 +360,7 @@ pdht_publish_error(pdht_publish_t *pp, pdht_error_t code)
 	pdht_publish_check(pp);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PDHT aborting %s publish for %s: %s",
+		g_debug("PDHT aborting %s publish for %s: %s",
 			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
 			pdht_strerror(code));
 	}
@@ -426,7 +426,7 @@ pdht_publish_done(gpointer arg,
 			0 == info->published
 		) {
 			if (GNET_PROPERTY(publisher_debug) > 1) {
-				g_message("PDHT assuming %s %s is a popular key",
+				g_debug("PDHT assuming %s %s is a popular key",
 					pdht_type_to_string(pp->type), kuid_to_string(pp->id));
 			}
 			status = PDHT_E_POPULAR;
@@ -434,7 +434,7 @@ pdht_publish_done(gpointer arg,
 	}
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PDHT ending %s%s publish for %s (%u publish%s): %s",
+		g_debug("PDHT ending %s%s publish for %s (%u publish%s): %s",
 			(pp->flags & PDHT_F_BACKGROUND) ? "background " : "",
 			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
 			info->published, 1 == info->published ? "" : "es",
@@ -458,13 +458,13 @@ pdht_publish_done(gpointer arg,
 
 	if (info->published >= info->candidates) {
 		if (GNET_PROPERTY(publisher_debug) > 1) {
-			g_message("PDHT no more nodes to background publish %s for %s",
+			g_debug("PDHT no more nodes to background publish %s for %s",
 				pdht_type_to_string(pp->type), kuid_to_string(pp->id));
 		}
 		can_bg = FALSE;		/* Published to all available k-closest roots */
 	} else if (pp->bg != NULL && pp->bg->runs >= PDHT_BG_MAX_RUNS) {
 		if (GNET_PROPERTY(publisher_debug) > 1) {
-			g_message("PDHT reached max background %s publish attempts for %s",
+			g_debug("PDHT reached max background %s publish attempts for %s",
 				pdht_type_to_string(pp->type), kuid_to_string(pp->id));
 		}
 		can_bg = FALSE;		/* Reached max amount of retries */
@@ -512,7 +512,7 @@ pdht_publish_done(gpointer arg,
 	}
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PDHT will start background %s publish for %s in %d secs",
+		g_debug("PDHT will start background %s publish for %s in %d secs",
 			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
 			pp->bg->delay / 1000);
 	}
@@ -542,7 +542,7 @@ pdht_bg_publish(cqueue_t *unused_cq, gpointer obj)
 	pp->bg->runs++;
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PDHT starting background %s publish for %s (run #%d)",
+		g_debug("PDHT starting background %s publish for %s (run #%d)",
 			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
 			pp->bg->runs);
 	}
@@ -780,7 +780,7 @@ pdht_get_prox(const kuid_t *key)
 			i++;
 
 			if (GNET_PROPERTY(publisher_debug) > 2) {
-				g_message("PDHT PROX #%u is %s%s", (unsigned) i,
+				g_debug("PDHT PROX #%u is %s%s", (unsigned) i,
 					tls ? "tls:" : "", host_addr_port_to_string(addr, port));
 			}
 		}
@@ -925,7 +925,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 
 			if (GNET_PROPERTY(publisher_debug) > 1) {
 				size_t roots = lookup_result_path_length(rs);
-				g_message("PDHT ALOC found %lu publish root%s for %s \"%s\"",
+				g_debug("PDHT ALOC found %lu publish root%s for %s \"%s\"",
 					(unsigned long) roots, 1 == roots ? "" : "s",
 					shared_file_is_partial(sf) ? "partial" : "shared",
 					shared_file_name_nfc(sf));
@@ -956,7 +956,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 	case PDHT_T_NOPE:
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
-			g_message("PDHT NOPE found %lu publish root%s for %s",
+			g_debug("PDHT NOPE found %lu publish root%s for %s",
 				(unsigned long) roots, 1 == roots ? "" : "s",
 				guid_hex_str(pp->u.nope.guid));
 		}
@@ -966,7 +966,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 	case PDHT_T_PROX:
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
-			g_message("PDHT PROX found %lu publish root%s",
+			g_debug("PDHT PROX found %lu publish root%s",
 				(unsigned long) roots, 1 == roots ? "" : "s");
 		}
 
@@ -1023,7 +1023,7 @@ pdht_roots_error(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 			{
 				struct pdht_aloc *paloc = &pp->u.aloc;
 
-				g_message("PDHT ALOC publish roots lookup failed "
+				g_debug("PDHT ALOC publish roots lookup failed "
 					"for %s \"%s\": %s",
 					shared_file_is_partial(paloc->sf) ? "partial" : "shared",
 					shared_file_name_nfc(paloc->sf), lookup_strerror(error));
@@ -1033,13 +1033,13 @@ pdht_roots_error(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 			{
 				struct pdht_nope *pnope = &pp->u.nope;
 
-				g_message("PDHT NOPE publish roots lookup failed "
+				g_debug("PDHT NOPE publish roots lookup failed "
 					"for GUID %s: %s",
 					guid_hex_str(pnope->guid), lookup_strerror(error));
 			}
 			break;
 		case PDHT_T_PROX:
-			g_message("PDHT PROX publish roots lookup failed: %s",
+			g_debug("PDHT PROX publish roots lookup failed: %s",
 				lookup_strerror(error));
 			break;
 		case PDHT_T_MAX:
@@ -1325,7 +1325,7 @@ pdht_prox_done(gpointer u_arg, pdht_error_t code, const pdht_info_t *info)
 
 		gm_snprintf(retry, sizeof retry, "%s", compact_time(delay));
 
-		g_message("PDHT PROX %s%spublished to %u node%s%s: %s"
+		g_debug("PDHT PROX %s%spublished to %u node%s%s: %s"
 			" (%stook %s, total %u node%s, proba %.3f%%, retry in %s,"
 			" %s bg, path %u) [%s]",
 			pdht_proxy.backgrounded ? "[bg] " : "",
@@ -1417,7 +1417,7 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 	list = NULL;
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PDHT PROX using %lu push-prox%s for local node (%s)",
+		g_debug("PDHT PROX using %lu push-prox%s for local node (%s)",
 			(unsigned long) i, 1 == i ? "y" : "ies",
 			GNET_PROPERTY(is_firewalled) ? "firewalled" : "not firewalled");
 	}
@@ -1480,7 +1480,7 @@ pdht_prox_publish(gboolean force)
 	publishing = pdht_proxy.proxies_count > 0 && (changed || force);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PDHT PROX list of %u push-prox%s %schanged, %s (%s)",
+		g_debug("PDHT PROX list of %u push-prox%s %schanged, %s (%s)",
 			(unsigned) pdht_proxy.proxies_count,
 			1 == pdht_proxy.proxies_count ? "y" : "ies",
 			changed ? "" : "un",
@@ -1533,7 +1533,7 @@ pdht_prox_publish(gboolean force)
 		delta_time(now, pdht_proxy.last_publish) < PDHT_PROX_RETRY
 	) {
 		if (GNET_PROPERTY(publisher_debug) > 1) {
-			g_message("PDHT PROX delaying publishing: "
+			g_debug("PDHT PROX delaying publishing: "
 				"last enqueued %s ago, last published %s ago",
 				compact_time(delta_time(now, pdht_proxy.last_enqueued)),
 				compact_time2(delta_time(now, pdht_proxy.last_publish)));
@@ -1549,7 +1549,7 @@ pdht_prox_publish(gboolean force)
 
 	if (!dht_bootstrapped()) {
 		if (GNET_PROPERTY(publisher_debug) > 1) {
-			g_message("PDHT PROX delaying publishing: "
+			g_debug("PDHT PROX delaying publishing: "
 				"DHT not fully bootstrapped yet");
 		}
 		pdht_prox_install_republish(PDHT_PROX_DELAY);
@@ -1565,7 +1565,7 @@ pdht_prox_publish(gboolean force)
 		gdht_kuid_from_guid((guid_t *) GNET_PROPERTY(servent_guid));
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PDHT PROX initiating publishing for GUID %s (kuid=%s/%s)",
+		g_debug("PDHT PROX initiating publishing for GUID %s (kuid=%s/%s)",
 			guid_to_string((guid_t *) GNET_PROPERTY(servent_guid)),
 			kuid_to_hex_string(pdht_proxy.pp->id),
 			kuid_to_string(pdht_proxy.pp->id));
@@ -1698,7 +1698,7 @@ pdht_nope_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 	 */
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PDHT NOPE %s%s at %s <%s> published to %u node%s: %s"
+		g_debug("PDHT NOPE %s%s at %s <%s> published to %u node%s: %s"
 			" (total %u node%s, proba %.3f%%, "
 			" %s bg, path %u) [%s]",
 			info->was_bg ? "[bg] " : "",
@@ -1747,7 +1747,7 @@ pdht_publish_proxy(const gnutella_node_t *n)
 	gm_hash_table_insert_const(nope_publishes, pnope->guid, pp);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PDHT NOPE initiating publishing for GUID %s at %s <%s> "
+		g_debug("PDHT NOPE initiating publishing for GUID %s at %s <%s> "
 			"(kuid=%s/%s)",
 			guid_to_string(pnope->guid), node_addr(n), node_vendor(n),
 			kuid_to_hex_string(pp->id), kuid_to_string(pp->id));
