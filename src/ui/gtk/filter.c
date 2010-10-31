@@ -1592,7 +1592,7 @@ filter_gui_set_ruleset(GList *ruleset)
         count > 0 && filter_is_modifiable(work_filter));
 
     if (GUI_PROPERTY(gui_debug) >= 5)
-        g_message("updated %d items\n", count);
+        g_debug("filter_gui_set_ruleset(): updated %d items\n", count);
 }
 #endif
 #ifdef USE_GTK2
@@ -1644,7 +1644,7 @@ filter_gui_set_ruleset(GList *ruleset)
         count > 0 && filter_is_modifiable(work_filter));
 
     if (GUI_PROPERTY(gui_debug) >= 5)
-        g_message("updated %d items\n", count);
+        g_debug("filter_gui_set_ruleset(): updated %d items\n", count);
 }
 #endif /* USE_GTK2 */
 

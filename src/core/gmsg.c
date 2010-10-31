@@ -306,7 +306,7 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 
 	if (deflated_length >= plen) {
 		if (GNET_PROPERTY(udp_debug))
-			g_message("UDP not deflating %s into %d bytes",
+			g_debug("UDP not deflating %s into %d bytes",
 				gmsg_infostr_full(msg, size), deflated_length);
 
 		gnet_stats_count_general(GNR_UDP_LARGER_HENCE_NOT_COMPRESSED, 1);
@@ -323,7 +323,7 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 	zlib_deflater_free(z, FALSE);
 
 	if (GNET_PROPERTY(udp_debug))
-		g_message("UDP deflated %s into %d bytes",
+		g_debug("UDP deflated %s into %d bytes",
 			gmsg_infostr_full(msg, size), deflated_length);
 
 	{
@@ -1181,7 +1181,7 @@ gmsg_log_split_dropped(
 		rbuf[0] = '\0';
 	}
 
-	g_message("DROP %s%s", buf, rbuf);
+	g_debug("DROP %s%s", buf, rbuf);
 }
 
 /**
@@ -1207,7 +1207,7 @@ gmsg_log_dropped_pmsg(pmsg_t *mb, const char *reason, ...)
 		rbuf[0] = '\0';
 	}
 
-	g_message("DROP %s%s", buf, rbuf);
+	g_debug("DROP %s%s", buf, rbuf);
 }
 
 /**
@@ -1233,7 +1233,7 @@ gmsg_log_bad(const struct gnutella_node *n, const char *reason, ...)
 		rbuf[0] = '\0';
 	}
 
-	g_message("BAD <%s> %s %s%s",
+	g_debug("BAD <%s> %s %s%s",
 		node_vendor(n), node_addr(n), buf, rbuf);
 }
 

@@ -1925,7 +1925,7 @@ G_STMT_START {				\
 	file_info_merge_adjacent(fi);	/* Update fi->done */
 
 	if (GNET_PROPERTY(fileinfo_debug) > 3)
-		g_message("FILEINFO: "
+		g_debug("FILEINFO: "
 			"good trailer info (v%u, %s bytes) in \"%s\"",
 			version, uint64_to_string(trailer.length), pathname);
 
@@ -2327,7 +2327,7 @@ file_info_hash_insert(fileinfo_t *fi)
 	g_assert(fi->guid);
 
 	if (GNET_PROPERTY(fileinfo_debug) > 4)
-		g_message("FILEINFO insert 0x%p \"%s\" "
+		g_debug("FILEINFO insert 0x%p \"%s\" "
 			"(%s/%s bytes done) sha1=%s",
 			cast_to_gconstpointer(fi), fi->pathname,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size),
@@ -2416,7 +2416,7 @@ file_info_hash_remove(fileinfo_t *fi)
 	g_assert(fi->guid);
 
 	if (GNET_PROPERTY(fileinfo_debug) > 4) {
-		g_message("FILEINFO remove 0x%lx \"%s\" "
+		g_debug("FILEINFO remove 0x%lx \"%s\" "
 			"(%s/%s bytes done) sha1=%s\n",
 			(gulong) fi, fi->pathname,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size),
@@ -2651,7 +2651,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 		concat_strings(buf, sizeof buf,
 			uint64_to_string(xfi->done), "/",
 			uint64_to_string2(xfi->size), (void *) 0);
-		g_message("CONFLICT found same SHA1 %s in \"%s\" "
+		g_debug("CONFLICT found same SHA1 %s in \"%s\" "
 			"(%s bytes done) and \"%s\" (%s/%s bytes done)\n",
 			sha1_base32(sha1), xfi->pathname, buf, fi->pathname,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size));
@@ -4969,7 +4969,7 @@ fi_find_aggressive_candidate(
 			);
 
 		if (GNET_PROPERTY(download_debug) > 1)
-			g_message("will %s be aggressive for \"%s\" given d/l speed "
+			g_debug("will %s be aggressive for \"%s\" given d/l speed "
 				"of %s%u B/s for largest chunk owner and %u B/s for stealer, "
 				"and a coverage of missing chunks of %.2f%% and "
 				"%.2f%% respectively",
@@ -4992,7 +4992,7 @@ fi_find_aggressive_candidate(
 			missing_coverage >= fi_missing_coverage(fc->download);
 
 		if (can_be_aggressive && GNET_PROPERTY(download_debug) > 1)
-			g_message("will instead be aggressive for \"%s\" given d/l speed "
+			g_debug("will instead be aggressive for \"%s\" given d/l speed "
 				"of %s%u B/s for slowest chunk owner and %u B/s for stealer, "
 				"and a coverage of missing chunks of %.2f%% and "
 				"%.2f%% respectively",
@@ -5017,7 +5017,7 @@ fi_find_aggressive_candidate(
 	}
 
 	if (GNET_PROPERTY(download_debug) > 1)
-		g_message("aggressively requesting %s@%s for \"%s\" using %s source",
+		g_debug("aggressively requesting %s@%s for \"%s\" using %s source",
 			filesize_to_string(*to - *from), short_size(*from, FALSE),
 			fi->pathname,
 			d->ranges != NULL ? "partial" : "complete");
@@ -5384,7 +5384,7 @@ file_info_try_to_swarm_with_firewalled(
 		push_proxies = gnet_host_vec_from_hash_list(proxies);
 
 	if (GNET_PROPERTY(dmesh_debug) || GNET_PROPERTY(download_debug)) {
-		g_message("MESH supplying firewalled %s (%u push-prox%s) for %s",
+		g_debug("MESH supplying firewalled %s (%u push-prox%s) for %s",
 			guid_hex_str(guid), proxies ? hash_list_length(proxies) : 0,
 			(proxies && 1 == hash_list_length(proxies)) ? "y" : "ies",
 			filepath_basename(fi->pathname));
@@ -6484,7 +6484,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	 * overall ranges info for this file.
 	 */
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
-		g_message("*** Fileinfo: %s\n", d->file_info->pathname);
+		g_debug("*** Fileinfo: %s\n", d->file_info->pathname);
 
 	for (sl = d->file_info->sources; sl; sl = g_slist_next(sl)) {
 		struct download *src = sl->data;
@@ -6504,7 +6504,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			)
 		) {
 			if (GNET_PROPERTY(fileinfo_debug) > 5)
-				g_message("    %s:%d replied (%x, %x), ",
+				g_debug("    %s:%d replied (%x, %x), ",
 					host_addr_to_string(src->server->key->addr),
 					src->server->key->port, src->flags, src->status);
 
@@ -6518,7 +6518,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				 */
 
 				if (GNET_PROPERTY(fileinfo_debug) > 5)
-					g_message("  whole file is now available");
+					g_debug("  whole file is now available");
 
 				{
 					GSList *full_r;
@@ -6530,7 +6530,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			} else {
 				/* Merge in the new ranges */
 				if (GNET_PROPERTY(fileinfo_debug) > 5)
-					g_message("  ranges %s available",
+					g_debug("  ranges %s available",
 						http_range_to_string(src->ranges));
 				new_r = http_range_merge(r, src->ranges);
 			}
@@ -6541,7 +6541,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	d->file_info->seen_on_network = r;
 
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
-		g_message("    final ranges: %s", http_range_to_string(r));
+		g_debug("    final ranges: %s", http_range_to_string(r));
 
 	/*
 	 * Remove the old list and free its range elements

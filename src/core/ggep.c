@@ -537,7 +537,7 @@ ggep_stream_end(ggep_stream_t *gs)
 			/* No overwriting */
 			g_assert((size_t) (gs->end - gs->o) <= gs->size);
 		} else if (GNET_PROPERTY(ggep_debug) > 3)
-			g_message("GGEP \"%.*s\" COBS-ed into %d bytes",
+			g_debug("GGEP \"%.*s\" COBS-ed into %d bytes",
 				(int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1, (int) plen);
 	}
 
@@ -557,7 +557,7 @@ ggep_stream_end(ggep_stream_t *gs)
 	 */
 
 	if (GNET_PROPERTY(ggep_debug) > 7)
-		g_message("GGEP \"%.*s\" payload holds %d byte%s",
+		g_debug("GGEP \"%.*s\" payload holds %d byte%s",
 			(int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1,
 			(int) plen, plen == 1 ? "" : "s");
 

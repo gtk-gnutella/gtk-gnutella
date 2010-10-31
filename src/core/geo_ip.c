@@ -240,7 +240,7 @@ gip_load(FILE *f)
 	iprange_sync(geo_db);
 
 	if (GNET_PROPERTY(reload_debug)) {
-		g_message("loaded %u geographical IP ranges (%u hosts)",
+		g_debug("loaded %u geographical IP ranges (%u hosts)",
 			iprange_get_item_count(geo_db),
 			iprange_get_host_count(geo_db));
 	}

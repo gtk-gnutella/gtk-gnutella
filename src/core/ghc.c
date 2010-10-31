@@ -307,7 +307,7 @@ static gboolean
 ghc_host_line(struct parse_context *ctx, const gchar *buf, size_t len)
 {
 	if (GNET_PROPERTY(bootstrap_debug) > 2)
-		g_message("BOOT GHC host line #%u (%lu bytes): %s",
+		g_debug("BOOT GHC host line #%u (%lu bytes): %s",
 			ctx->processed + 1, (gulong) len, buf);
 
 	if (len) {
@@ -319,7 +319,7 @@ ghc_host_line(struct parse_context *ctx, const gchar *buf, size_t len)
 			hcache_add_caught(HOST_ULTRA, addr, port, "GHC");
 
 			if (GNET_PROPERTY(bootstrap_debug) > 1)
-				g_message("BOOT collected %s from GHC %s",
+				g_debug("BOOT collected %s from GHC %s",
 					host_addr_to_string(addr),
 					http_async_info(ctx->handle, NULL, NULL, NULL, NULL));
 		}
@@ -337,7 +337,7 @@ ghc_host_eof(struct parse_context *ctx)
 	char msg[256];
 
 	if (GNET_PROPERTY(bootstrap_debug) > 2)
-		g_message("BOOT GHC all done (%u/%u lines processed)",
+		g_debug("BOOT GHC all done (%u/%u lines processed)",
 			ctx->processed, ctx->lines);
 
 	/*
@@ -351,7 +351,7 @@ ghc_host_eof(struct parse_context *ctx)
 	gcu_statusbar_message(msg);
 
 	if (GNET_PROPERTY(bootstrap_debug))
-		g_message("BOOT GHC got %d host%s from %s",
+		g_debug("BOOT GHC got %d host%s from %s",
 			ctx->processed, ctx->processed == 1 ? "" : "s",
 			http_async_info(ghc_ctx.ha, NULL, NULL, NULL, NULL));
 
@@ -455,8 +455,7 @@ ghc_get_hosts(void)
 	if (ghc_connecting || GNET_PROPERTY(ancient_version))
 		return;
 
-	if (GNET_PROPERTY(bootstrap_debug))
-		g_message("BOOT will be contacting a GHC");
+	g_message("BOOT will be contacting a GHC");
 
 	ghc_connecting = TRUE;
 	ghc_try_random();

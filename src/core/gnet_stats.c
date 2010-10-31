@@ -576,7 +576,7 @@ gnet_stats_count_flowc(gconstpointer head)
 	guint8 hops = gnutella_header_get_hops(head);
 
 	if (GNET_PROPERTY(node_debug) > 3)
-		g_message("FLOWC function=%d ttl=%d hops=%d", function, ttl, hops);
+		g_debug("FLOWC function=%d ttl=%d hops=%d", function, ttl, hops);
 
 	t = stats_lut[function];
 

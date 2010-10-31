@@ -208,7 +208,7 @@ gdht_sha1_not_found(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 	g_assert(slk->id == kuid);		/* They are atoms */
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_message("DHT ALOC lookup for %s failed: %s",
+		g_debug("DHT ALOC lookup for %s failed: %s",
 			kuid_to_string(kuid), lookup_strerror(error));
 
 	gdht_free_sha1_lookup(slk, TRUE);
@@ -376,7 +376,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	 */
 
 	if (GNET_PROPERTY(download_debug) > 1)
-		g_message("adding %s%ssource %s (GUID %s) from DHT ALOC for %s",
+		g_debug("adding %s%ssource %s (GUID %s) from DHT ALOC for %s",
 			firewalled ? "firewalled " : "", tls ? "TLS " : "",
 			host_addr_port_to_string(rc->addr, port),
 			guid_to_string(&guid), fi->pathname);
@@ -428,7 +428,7 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 	g_assert(slk->id == kuid);		/* They are atoms */
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_message("DHT ALOC lookup for %s returned %lu value%s",
+		g_debug("DHT ALOC lookup for %s returned %lu value%s",
 			kuid_to_string(kuid), (gulong) rs->count,
 			1 == rs->count ? "" : "s");
 
@@ -505,7 +505,7 @@ gdht_find_sha1(const fileinfo_t *fi)
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug))
-		g_message("DHT will be searching ALOC for %s (%s) for %s",
+		g_debug("DHT will be searching ALOC for %s (%s) for %s",
 			kuid_to_hex_string(slk->id), kuid_to_string(slk->id), fi->pathname);
 
 	gm_hash_table_insert_const(sha1_lookups, slk->id, slk);
@@ -525,7 +525,7 @@ gdht_guid_not_found(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 	g_assert(glk->id == kuid);		/* They are atoms */
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_message("DHT PROX lookup for GUID %s failed: %s",
+		g_debug("DHT PROX lookup for GUID %s failed: %s",
 			guid_to_string(glk->guid), lookup_strerror(error));
 
 	gdht_free_guid_lookup(glk, TRUE);
@@ -624,7 +624,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 						continue;
 					} else {
 						if (GNET_PROPERTY(download_debug))
-							g_message("new push-proxy for %s is at %s",
+							g_debug("new push-proxy for %s is at %s",
 								guid_to_string(glk->guid),
 								host_addr_port_to_string(a, p));
 					}
@@ -700,7 +700,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 	 */
 
 	if (GNET_PROPERTY(download_debug) > 0)
-		g_message("adding %d push-prox%s (GUID %s) from DHT PROX for %s (%s)",
+		g_debug("adding %d push-prox%s (GUID %s) from DHT PROX for %s (%s)",
 			proxy_count, 1 == proxy_count ? "y" : "ies",
 			guid_to_string(glk->guid),
 			host_addr_port_to_string(rc->addr, port),
@@ -796,7 +796,7 @@ gdht_handle_nope(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 	 */
 
 	if (GNET_PROPERTY(download_debug) > 0)
-		g_message("adding %s (NOPE creator) as push-proxy for %s (%s)",
+		g_debug("adding %s (NOPE creator) as push-proxy for %s (%s)",
 			host_addr_port_to_string(rc->addr, port),
 			guid_to_string(glk->guid),
 			host_addr_port_to_string2(glk->addr, glk->port));
@@ -827,7 +827,7 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 	g_assert(glk->id == kuid);		/* They are atoms */
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_message("DHT PROX lookup for GUID %s returned %lu value%s",
+		g_debug("DHT PROX lookup for GUID %s returned %lu value%s",
 			guid_to_string(glk->guid), (gulong) rs->count,
 			1 == rs->count ? "" : "s");
 	}
@@ -858,7 +858,7 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug)) {
-		g_message("DHT PROX %s lookup for GUID %s returned %lu other value%s",
+		g_debug("DHT PROX %s lookup for GUID %s returned %lu other value%s",
 			(prox || nope) ? "successful" : "failed",
 			guid_to_string(glk->guid),
 			(gulong) other, 1 == other ? "" : "s");
@@ -926,7 +926,7 @@ gdht_find_guid(const guid_t *guid, const host_addr_t addr, guint16 port)
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug))
-		g_message("DHT will be searching PROX for %s (GUID %s) for %s",
+		g_debug("DHT will be searching PROX for %s (GUID %s) for %s",
 			kuid_to_hex_string(glk->id),
 			guid_to_string(guid), host_addr_port_to_string(addr, port));
 
