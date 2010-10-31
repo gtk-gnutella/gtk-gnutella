@@ -46,7 +46,7 @@
 
 RCSID("$Id$")
 
-#if HAVE_GCC(3, 0)
+#if HAS_GCC(3, 0)
 #define FRAGCHECK_TRACK_CALLERS
 #endif	/* GCC >= 3.0 */
 

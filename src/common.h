@@ -409,19 +409,20 @@ typedef void (*GCallback) (void);
 
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
 
-/** HAVE_GCC allows conditionalization depending on the version of gcc
- *  being used to compile the source.
+/**
+ * HAS_GCC allows conditionalization depending on the version of gcc
+ * being used to compile the source.
  *
- *  Check each version at "http://gcc.gnu.org/onlinedocs/" for
- *  support.  Specific functionality may also be broken in some
- *  compiler revisions, so it is useful to conditionalize on the
- *  version.
+ * Check each version at "http://gcc.gnu.org/onlinedocs/" for
+ * support.  Specific functionality may also be broken in some
+ * compiler revisions, so it is useful to conditionalize on the
+ * version.
  */
-#define HAVE_GCC(major, minor) \
+#define HAS_GCC(major, minor) \
 	((__GNUC__ > (major)) || \
 	 (__GNUC__ == (major) && __GNUC_MINOR__ >= (minor)))
 #else
-#define HAVE_GCC(major, minor) 0
+#define HAS_GCC(major, minor) 0
 #endif
 
 /*
@@ -432,7 +433,7 @@ typedef void (*GCallback) (void);
  *
  * void my_memcpy(void *dst, const void *src, size_t n) NON_NULL_PARAM((1, 2));
  */
-#if defined(HASATTRIBUTE) && HAVE_GCC(3, 3) 
+#if defined(HASATTRIBUTE) && HAS_GCC(3, 3) 
 #define NON_NULL_PARAM(x) __attribute__((__nonnull__ x))
 #else /* GCC < 3.3 */
 #define NON_NULL_PARAM(x)
@@ -442,7 +443,7 @@ typedef void (*GCallback) (void);
  * This is the same G_GNUC_FORMAT() but for function pointers. Older versions
  * of GCC do not allow function attributes for function pointers.
  */
-#if defined(HASATTRIBUTE) && HAVE_GCC(3, 0)
+#if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
 #define PRINTF_FUNC_PTR(x, y) __attribute__((format(__printf__, (x), (y))))
 #else /* GCC < 3.0 */
 #define PRINTF_FUNC_PTR(x, y)
@@ -450,7 +451,7 @@ typedef void (*GCallback) (void);
 
 /* Functions using this attribute cause a warning if the returned
  * value is not used. */
-#if defined(HASATTRIBUTE) && HAVE_GCC(3, 4)
+#if defined(HASATTRIBUTE) && HAS_GCC(3, 4)
 #define WARN_UNUSED_RESULT __attribute__((__warn_unused_result__))
 #else /* GCC < 3.4 */
 #define WARN_UNUSED_RESULT
@@ -458,7 +459,7 @@ typedef void (*GCallback) (void);
 
 /* Instructs the compiler to emit code for this function even if it is
  * or seems to be unused. */
-#if defined(HASATTRIBUTE) && HAVE_GCC(3, 1)
+#if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
 #define KEEP_FUNCTION __attribute__((__used__))
 #else /* GCC < 3.1 || !GCC */
 #define KEEP_FUNCTION
@@ -475,7 +476,7 @@ typedef void (*GCallback) (void);
 /* Functions using this attribute cause a warning if the variable
  * argument list does not contain a NULL pointer. */
 #ifndef G_GNUC_NULL_TERMINATED
-#if defined(HASATTRIBUTE) && HAVE_GCC(4, 0)
+#if defined(HASATTRIBUTE) && HAS_GCC(4, 0)
 #define G_GNUC_NULL_TERMINATED __attribute__((__sentinel__))
 #else	/* GCC < 4 */
 #define G_GNUC_NULL_TERMINATED
@@ -486,7 +487,7 @@ typedef void (*GCallback) (void);
  * using GLib 1.2 as well. These allow optimization by static branch
  * prediction with GCC. */
 #ifndef G_LIKELY
-#if HAVE_GCC(3, 4)	/* Just a guess, a Configure check would be better */
+#if HAS_GCC(3, 4)	/* Just a guess, a Configure check would be better */
 #define G_LIKELY(x)		(__builtin_expect(x, 1))
 #define G_UNLIKELY(x)	(__builtin_expect(x, 0))
 #else /* !GCC >= 3.4 */
@@ -496,14 +497,14 @@ typedef void (*GCallback) (void);
 #endif /* !G_LIKELY */
 
 #ifndef G_GNUC_MALLOC
-#if defined(HASATTRIBUTE) && HAVE_GCC(3, 0)
+#if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
 #define G_GNUC_MALLOC __attribute__((__malloc__))
 #else
 #define G_GNUC_MALLOC
 #endif	/* GCC >= 3.0 */
 #endif	/* G_GNUC_MALLOC */
 
-#if defined(HASATTRIBUTE) && HAVE_GCC(3, 1)
+#if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
 #define ALWAYS_INLINE __attribute__((__always_inline__))
 #else
 #define ALWAYS_INLINE
