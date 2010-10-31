@@ -1365,15 +1365,15 @@ locale_init_show_results(void)
 {
 	const GSList *sl = sl_filename_charsets;
 
-	g_message("language code: \"%s\"", locale_get_language());
-	g_message("using locale character set \"%s\"", charset);
-	g_message("primary filename character set \"%s\"",
+	g_info("language code: \"%s\"", locale_get_language());
+	g_info("using locale character set \"%s\"", charset);
+	g_info("primary filename character set \"%s\"",
 		primary_filename_charset());
 
 	while (NULL != (sl = g_slist_next(sl))) {
 		const struct conv_to_utf8 *t = sl->data;
 
-		g_message("additional filename character set \"%s\"", t->name);
+		g_info("additional filename character set \"%s\"", t->name);
 	}
 }
 
