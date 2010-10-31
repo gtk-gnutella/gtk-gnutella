@@ -2329,17 +2329,24 @@ size_t
 kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 {
 	guint size = kmsg_size(msg);
+	guint16 extlen = kademlia_header_get_extended_length(msg);
 	char host[HOST_ADDR_PORT_BUFLEN];
+	char ext[UINT32_DEC_BUFLEN + 4];	/* +1 for NUL, +3 for "(+)" */
 
 	host_addr_port_to_string_buf(
 			host_addr_get_ipv4(kademlia_header_get_contact_addr(msg)),
 			kademlia_header_get_contact_port(msg),
 			host, sizeof host);
 
+	if (extlen != 0) {
+		gm_snprintf(ext, sizeof ext, "(+%u)", extlen);
+	} else {
+		ext[0] = '\0';
+	}
+
 	return gm_snprintf(buf, buf_size, "%s%s (%u byte%s) [%s v%u.%u @%s]",
 		kmsg_name(kademlia_header_get_function(msg)),
-		kademlia_header_get_extended_length(msg) ? "(+)" : "",
-		size, size == 1 ? "" : "s",
+		ext, size, size == 1 ? "" : "s",
 		vendor_code_to_string(kademlia_header_get_contact_vendor(msg)),
 		kademlia_header_get_major_version(msg),
 		kademlia_header_get_minor_version(msg),
@@ -2352,9 +2359,10 @@ kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
  * @returns formatted static string containing basic information about
  * the message:
  *
- *   msg_type(+) (payload length) [vendor version]
+ *   msg_type(+s) (payload length) [vendor version]
  *
- * A "(+)" sign indicates an extended Kademlia header.
+ * A "(+s)" sign indicates an extended Kademlia header, ``s'' being the
+ * size of that extension.
  */
 const char *
 kmsg_infostr(gconstpointer msg)
