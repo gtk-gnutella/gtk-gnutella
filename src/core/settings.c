@@ -233,7 +233,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 	}
 
 	if (GNET_PROPERTY(lockfile_debug)) {
-		g_message("file \"%s\" opened", file);
+		g_debug("file \"%s\" opened", file);
 	}
 /* FIXME: These might be enums, a compile-time check would be better */
 #if defined(F_SETLK) && defined(F_WRLCK)
@@ -250,7 +250,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 		locking_failed = -1 == fcntl(fd, F_SETLK, &fl);
 
 		if (GNET_PROPERTY(lockfile_debug)) {
-			g_message("file \"%s\" fcntl-locking %s", file,
+			g_debug("file \"%s\" fcntl-locking %s", file,
 				locking_failed ? "failed" : "succeeded");
 		}
 
@@ -298,7 +298,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 		char buf[33];
 
 		if (GNET_PROPERTY(lockfile_debug)) {
-			g_message("file \"%s\" being read for PID", file);
+			g_debug("file \"%s\" being read for PID", file);
 		}
 		r = read(fd, buf, sizeof buf - 1);
 		if ((ssize_t) -1 == r) {
@@ -325,7 +325,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 				pid_t pid = u;
 
 				if (GNET_PROPERTY(lockfile_debug)) {
-					g_message("file \"%s\" trying to send SIGZERO to PID %lu",
+					g_debug("file \"%s\" trying to send SIGZERO to PID %lu",
 						file, (unsigned long) pid);
 				}
 
@@ -341,7 +341,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 	}
 
 	if (GNET_PROPERTY(lockfile_debug)) {
-		g_message("file \"%s\" LOCKED (mode %s)",
+		g_debug("file \"%s\" LOCKED (mode %s)",
 			file, fd_ptr ? "check" : "permanent");
 	}
 
@@ -361,7 +361,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 failed:
 
 	if (GNET_PROPERTY(lockfile_debug)) {
-		g_message("file \"%s\" NOT LOCKED", file);
+		g_debug("file \"%s\" NOT LOCKED", file);
 	}
 	fd_close(&fd, TRUE);
 	errno = EEXIST;
@@ -385,7 +385,7 @@ save_pid(int fd, const char *path)
 	len = gm_snprintf(buf, sizeof buf, "%lu\n", (gulong) getpid());
 
 	if (GNET_PROPERTY(lockfile_debug)) {
-		g_message("file \"%s\" about to be written with PID %lu on fd #%d",
+		g_debug("file \"%s\" about to be written with PID %lu on fd #%d",
 			path, (gulong) getpid(), fd);
 	}
 	if (-1 == ftruncate(fd, 0))	{
@@ -598,23 +598,23 @@ settings_init(void)
 	}
 
 	if (debugging(0)) {
-		g_message("detected amount of physical RAM: %s",
+		g_info("detected amount of physical RAM: %s",
 			short_size(memory, GNET_PROPERTY(display_metric_units)));
-		g_message("process can use at maximum: %s",
+		g_info("process can use at maximum: %s",
 			short_kb_size(amount, GNET_PROPERTY(display_metric_units)));
-		g_message("process can use %u file descriptors", max_fd);
-		g_message("max I/O vector size is %d items", MAX_IOV_COUNT);
-		g_message("virtual memory page size is %lu bytes",
+		g_info("process can use %u file descriptors", max_fd);
+		g_info("max I/O vector size is %d items", MAX_IOV_COUNT);
+		g_info("virtual memory page size is %lu bytes",
 			(gulong) compat_pagesize());
 
 		if (GNET_PROPERTY(cpu_freq_max)) {
-			g_message("CPU frequency scaling detected");
-			g_message("minimum CPU frequency: %s",
+			g_info("CPU frequency scaling detected");
+			g_info("minimum CPU frequency: %s",
 				short_frequency(GNET_PROPERTY(cpu_freq_min)));
-			g_message("maximum CPU frequency: %s",
+			g_info("maximum CPU frequency: %s",
 				short_frequency(GNET_PROPERTY(cpu_freq_max)));
 		} else {
-			g_message("no CPU frequency scaling detected");
+			g_info("no CPU frequency scaling detected");
 		}
 	}
 
@@ -1617,12 +1617,14 @@ request_directory(const char *pathname)
 	if (is_directory(pathname))
 		return 0;
 
-	g_message("Attempt to create directory \"%s\"", pathname);
+	g_info("attempt to create directory \"%s\"", pathname);
 
 	if (0 == create_directory(pathname, DEFAULT_DIRECTORY_MODE))
 		return 0;
 
-	g_message("Attempt failed: \"%s\"", g_strerror(errno));
+	g_message("attempt to create directory \"%s\" failed: %s",
+		pathname, g_strerror(errno));
+
 	return -1;
 }
 
@@ -1646,7 +1648,7 @@ save_file_path_changed(property_t prop)
 	path = gnet_prop_get_string(prop, NULL, 0);
 
 	if (GNET_PROPERTY(lockfile_debug)) {
-		g_message("save_file_path_change(): path=\"%s\"\n\told_path=\"%s\"",
+		g_debug("save_file_path_change(): path=\"%s\"\n\told_path=\"%s\"",
 			NULL_STRING(path), NULL_STRING(old_path));
 	}
 
