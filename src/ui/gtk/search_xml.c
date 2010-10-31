@@ -235,7 +235,7 @@ parse_number(const gchar *buf, gint *error)
 		*error = EINVAL;
 	}
 	if (0 != *error) {
-		g_message("buf=\"%s\"", buf);
+		g_warning("parse_number(): error with buf=\"%s\"", buf);
 		return 0;
 	}
 
@@ -287,7 +287,7 @@ parse_target(const gchar *buf, gint *error)
 		}
 	}
 	if (0 != *error) {
-		g_message("buf=\"%s\"", buf);
+		g_warning("parse_target(): error with buf=\"%s\"", buf);
 		return NULL;
 	}
 
@@ -467,7 +467,7 @@ search_store_xml(void)
 		gchar *filename;
 
         if (GUI_PROPERTY(gui_debug) >= 3)
-            g_message("saved searches file: %s", filename_new);
+            g_debug("saved searches file: %s", filename_new);
 
 		filename = make_pathname(settings_gui_config_dir(), search_file_xml);
 
@@ -589,7 +589,7 @@ search_retrieve_xml(void)
      */
 
     if (GUI_PROPERTY(gui_debug) >= 6)
-        g_message("resolving UIDs");
+        g_debug("resolving UIDs");
 
     for (f = filters; f != NULL; f = f_next) {
 		gboolean damaged = FALSE;
@@ -600,7 +600,7 @@ search_retrieve_xml(void)
 		f_next = g_list_next(f);
 
         if (GUI_PROPERTY(gui_debug) >= 6) {
-            g_message("\n\nresolving on filter:");
+            g_debug("\n\nresolving on filter:");
             dump_filter(filter);
         }
 
@@ -630,7 +630,7 @@ search_retrieve_xml(void)
                  * manually here.
                  */
                 if (GUI_PROPERTY(gui_debug) >= 7) {
-                    g_message("increasing refcount on \"%s\" to %d",
+                    g_debug("increasing refcount on \"%s\" to %d",
                         rule->target->name, rule->target->refcount + 1);
 				}
                 rule->target->refcount++;
@@ -639,7 +639,7 @@ search_retrieve_xml(void)
         }
 
         if (GUI_PROPERTY(gui_debug) >= 6) {
-			g_message("resolved filter:");
+			g_debug("resolved filter:");
             dump_filter(filter);
         }
 
@@ -660,7 +660,7 @@ search_retrieve_xml(void)
         const GList *s;
 
         if (GUI_PROPERTY(gui_debug) >= 6)
-            g_message("verifying bindings...");
+            g_debug("verifying bindings...");
 
         for (s = search_gui_get_searches(); s != NULL; s = g_list_next(s)) {
             const struct search *search = s->data;
@@ -669,7 +669,7 @@ search_retrieve_xml(void)
 			filter = search_gui_get_filter(search);
             if (filter->search == search) {
                 if (GUI_PROPERTY(gui_debug) >= 6)
-                    g_message("binding ok for: %s", search_gui_query(search));
+                    g_debug("binding ok for: %s", search_gui_query(search));
             } else {
                 g_warning("binding broken for: %s", search_gui_query(search));
                 borked = TRUE;
@@ -740,7 +740,7 @@ search_to_xml(xmlNodePtr parent, const struct search *search)
 		return;
 
     if (GUI_PROPERTY(gui_debug) >= 6) {
-        g_message(
+        g_debug(
 			"saving search: %s (enabled=%d)\n"
 			"  -- filter is bound to: %p\n"
 			"  -- search is         : %p",
@@ -790,12 +790,12 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
      */
     if (filter_is_builtin(f) || filter_is_bound(f)) {
         if (GUI_PROPERTY(gui_debug) >= 7)
-            g_message("not saving bound/builtin: %s", f->name);
+            g_debug("not saving bound/builtin: %s", f->name);
         return;
     }
 
     if (GUI_PROPERTY(gui_debug) >= 6) {
-		g_message(
+		g_debug(
 			"saving filter: %s\n"
 			"  -- bound   : %p",
 			f->name,
@@ -1122,7 +1122,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 		flags &= ~SEARCH_F_ENABLED;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
-        g_message("adding new %s %s search: %s",
+        g_debug("adding new %s %s search: %s",
 			(flags & SEARCH_F_ENABLED) ? "enabled" : "disabled",
 			(flags & SEARCH_F_PASSIVE) ? "passive" : "active",
 			query);
@@ -1192,7 +1192,7 @@ xml_to_filter(xmlNodePtr xmlnode, gpointer unused_udata)
         }
     } else {
         if (GUI_PROPERTY(gui_debug) >= 4)
-            g_message("adding new filter: %s", name);
+            g_debug("adding new filter: %s", name);
         filter = filter_new(name);
         filters = g_list_append(filters, filter);
     }
@@ -1285,7 +1285,7 @@ xml_to_text_rule(xmlNodePtr xmlnode, gpointer data)
     rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
-        g_message("added to filter \"%s\" rule with target %p",
+        g_debug("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
 
@@ -1354,7 +1354,7 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
     rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
-        g_message("added to filter \"%s\" rule with target %p",
+        g_debug("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
 
@@ -1418,7 +1418,7 @@ xml_to_size_rule(xmlNodePtr xmlnode, gpointer data)
     rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
-        g_message("added to filter \"%s\" rule with target %p",
+        g_debug("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
 
@@ -1457,7 +1457,7 @@ xml_to_jump_rule(xmlNodePtr xmlnode, gpointer data)
     rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
-        g_message("added to filter \"%s\" rule with target %p",
+        g_debug("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
 
@@ -1514,7 +1514,7 @@ xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
     rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
-        g_message("added to filter \"%s\" rule with target %p",
+        g_debug("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
 
@@ -1594,7 +1594,7 @@ xml_to_flag_rule(xmlNodePtr xmlnode, gpointer data)
     rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
-        g_message("added to filter \"%s\" rule with target %p",
+        g_debug("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
 
@@ -1661,7 +1661,7 @@ xml_to_state_rule(xmlNodePtr xmlnode, gpointer data)
     rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
-        g_message("added to filter \"%s\" rule with target %p",
+        g_debug("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
 
