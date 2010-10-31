@@ -974,14 +974,13 @@ oob_reply_ack_record(const struct guid *muid,
 
 	ora = ora_lookup(muid, addr, port, token);
 	if (ora) {
-		/* We'll append the new value to the list */
-		hash_list_remove(oob_reply_acks, ora);
+		/* Move to tail of list */
+		hash_list_moveto_tail(oob_reply_acks, ora);
 	} else {
 		ora = ora_alloc(muid, addr, port, token);
+		hash_list_append(oob_reply_acks, ora);
 	}
 	ora->sent = tm_time();
-
-	hash_list_append(oob_reply_acks, ora);
 	oob_reply_acks_garbage_collect();
 }
 
