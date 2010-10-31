@@ -168,7 +168,7 @@ oob_proxy_rec_destroy(cqueue_t *unused_cq, gpointer obj)
 	oob_proxy_rec_check(opr);
 
 	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
-		g_message("OOB proxied query leaf-MUID=%s proxied-MUID=%s expired",
+		g_debug("OOB proxied query leaf-MUID=%s proxied-MUID=%s expired",
 			guid_hex_str(opr->leaf_muid),
 			data_hex_str(opr->proxied_muid->v, GUID_RAW_SIZE));
 
@@ -222,7 +222,7 @@ oob_proxy_create(gnutella_node_t *n)
 	message_add(gnutella_header_get_muid(&n->header), GTA_MSG_SEARCH, NULL);
 
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug)) {
-		g_message("QUERY OOB-proxying query %s from %s <%s> as %s",
+		g_debug("QUERY OOB-proxying query %s from %s <%s> as %s",
 			data_hex_str(opr->leaf_muid->v, GUID_RAW_SIZE),
 			node_addr(n), node_vendor(n),
 			guid_hex_str(opr->proxied_muid));
@@ -347,7 +347,7 @@ oob_proxy_pending_results(
 	 */
 
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
-		g_message("QUERY OOB-proxied %s notified of %d hits at %s %s"
+		g_debug("QUERY OOB-proxied %s notified of %d hits at %s %s"
 			" for leaf #%s %s, wants %u",
 			guid_hex_str(muid), hits,
 			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n),
@@ -360,7 +360,7 @@ oob_proxy_pending_results(
 
 ignore:
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
-		g_message("QUERY OOB-proxied %s "
+		g_debug("QUERY OOB-proxied %s "
 			"notified of %d hits at %s %s for leaf #%s %s, ignored (%s)",
 			guid_hex_str(muid), hits,
 			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n),
@@ -413,7 +413,7 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 		gnet_stats_count_dropped(n, MSG_DROP_ROUTE_LOST);
 
 		if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
-			g_message(
+			g_debug(
 				"QUERY OOB-proxied %s dropping %d hit%s from %s: no leaf #%s",
 				guid_hex_str(opr->proxied_muid),
 				results, results == 1 ? "" : "s",
@@ -461,7 +461,7 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 	dh_route(n, leaf, results);
 
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
-		g_message("QUERY OOB-proxied %s routed %d hit%s to %s <%s> from %s %s",
+		g_debug("QUERY OOB-proxied %s routed %d hit%s to %s <%s> from %s %s",
 			guid_hex_str(opr->proxied_muid), results, results == 1 ? "" : "s",
 			node_addr(leaf), node_vendor(leaf),
 			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr2(n));

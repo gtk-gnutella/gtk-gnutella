@@ -708,16 +708,16 @@ can_become_ultra(time_t now)
 #define OK(b)	((b) ? ok : no)
 
 	if (GNET_PROPERTY(node_debug) > 3) {
-		g_message("Checking Ultrapeer criteria:");
-		g_message("> Sufficient average uptime   : %s", OK(avg_servent_uptime));
-		g_message("> Sufficient IP address uptime: %s", OK(avg_ip_uptime));
-		g_message("> Sufficient node uptime      : %s", OK(node_uptime));
-		g_message("> Node not firewalled         : %s", OK(not_firewalled));
-		g_message("> Enough min peer connections : %s", OK(enough_conn));
-		g_message("> Enough file descriptors     : %s", OK(enough_fd));
-		g_message("> Enough physical memory      : %s", OK(enough_mem));
-		g_message("> Enough available bandwidth  : %s", OK(enough_bw));
-		g_message("> Good UDP support            : %s", OK(good_udp_support));
+		g_debug("Checking Ultrapeer criteria:");
+		g_debug("> Sufficient average uptime   : %s", OK(avg_servent_uptime));
+		g_debug("> Sufficient IP address uptime: %s", OK(avg_ip_uptime));
+		g_debug("> Sufficient node uptime      : %s", OK(node_uptime));
+		g_debug("> Node not firewalled         : %s", OK(not_firewalled));
+		g_debug("> Enough min peer connections : %s", OK(enough_conn));
+		g_debug("> Enough file descriptors     : %s", OK(enough_fd));
+		g_debug("> Enough physical memory      : %s", OK(enough_mem));
+		g_debug("> Enough available bandwidth  : %s", OK(enough_bw));
+		g_debug("> Good UDP support            : %s", OK(good_udp_support));
 	}
 
 #undef OK
@@ -967,7 +967,7 @@ node_supports_dht(struct gnutella_node *n, dht_mode_t mode)
 	node_check(n);
 
 	if (GNET_PROPERTY(node_debug) || GNET_PROPERTY(dht_debug)) {
-		g_message("%s node %s <%s> supports DHT (%s mode)",
+		g_debug("%s node %s <%s> supports DHT (%s mode)",
 			node_type(n), node_gnet_addr(n), node_vendor(n),
 			dht_mode_to_string(mode));
 	}
@@ -1735,16 +1735,16 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 		n->remove_msg = NULL;
 
 	if (GNET_PROPERTY(node_debug) > 3)
-		g_message("Node %s <%s> removed: %s", node_addr(n), node_vendor(n),
+		g_debug("node %s <%s> removed: %s", node_addr(n), node_vendor(n),
 			n->remove_msg ? n->remove_msg : "<no reason>");
 
 	if (GNET_PROPERTY(node_debug) > 4) {
-		g_message("NODE [%d.%d] %s <%s> TX=%d (drop=%d) RX=%d (drop=%d) "
+		g_debug("NODE [%d.%d] %s <%s> TX=%d (drop=%d) RX=%d (drop=%d) "
 			"Dup=%d Bad=%d W=%d",
 			n->proto_major, n->proto_minor, node_addr(n), node_vendor(n),
 			n->sent, n->tx_dropped, n->received, n->rx_dropped,
 			n->n_dups, n->n_bad, n->n_weird);
-		g_message("NODE \"%s%s\" %s PING (drop=%d acpt=%d spec=%d sent=%d) "
+		g_debug("NODE \"%s%s\" %s PING (drop=%d acpt=%d spec=%d sent=%d) "
 			"PONG (rcvd=%d sent=%d)",
 			(n->attrs & NODE_A_PONG_CACHING) ? "new" : "old",
 			(n->attrs & NODE_A_PONG_ALIEN) ? "-alien" : "",
@@ -2028,7 +2028,7 @@ node_mark_bad_vendor(struct gnutella_node *n)
 			node_error_cleanup_timer / node_error_threshold
 	) {
 		if (GNET_PROPERTY(node_debug) > 1)
-			g_message("[nodes up] "
+			g_debug("[nodes up] "
 				  "%s not marking as bad. Connected for: %d (min: %d)",
 				host_addr_to_string(n->addr),
 				(int) delta_time(now, n->connect_date),
@@ -2423,7 +2423,7 @@ node_eof_v(struct gnutella_node *n, const char *reason, va_list args)
 		if (GNET_PROPERTY(node_debug)) {
 			va_list dbargs;
 
-			g_message("EOF-style error during BYE to %s:\n (BYE) ",
+			g_debug("EOF-style error during BYE to %s:\n (BYE) ",
 				node_addr(n));
 
 			VA_COPY(dbargs, args);
@@ -2646,7 +2646,7 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 
 	if (mq_pending(n->outq) == 0) {
 		if (GNET_PROPERTY(node_debug))
-			g_message("successfully sent BYE %d \"%s\" to %s (%s)",
+			g_debug("successfully sent BYE %d \"%s\" to %s (%s)",
 				code, n->error_str, node_addr(n), node_vendor(n));
 
 			if (n->socket != NULL && !socket_uses_tls(n->socket)) {
@@ -2656,7 +2656,7 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 			node_shutdown_mode(n, BYE_GRACE_DELAY);
 	} else {
 		if (GNET_PROPERTY(node_debug))
-			g_message("delayed sending of BYE %d \"%s\" to %s (%s)",
+			g_debug("delayed sending of BYE %d \"%s\" to %s (%s)",
 				code, n->error_str, node_addr(n), node_vendor(n));
 
 		n->flags |= NODE_F_BYE_SENT;
@@ -2857,7 +2857,7 @@ node_inflate_payload(gnutella_node_t *n)
 	gnutella_header_set_size(&n->header, outlen);
 
 	if (GNET_PROPERTY(udp_debug))
-		g_message("UDP inflated %d-byte payload from %s into %s",
+		g_debug("UDP inflated %d-byte payload from %s into %s",
 			n->size, node_addr(n),
 			gmsg_infostr_full_split(&n->header, n->data, n->size));
 
@@ -2986,7 +2986,7 @@ node_crawler_headers(struct gnutella_node *n)
 
 	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
 
-	if (GNET_PROPERTY(node_debug)) g_message(
+	if (GNET_PROPERTY(node_debug)) g_debug(
 		"TCP crawler sending %d/%d ultra%s and %d/%d lea%s to %s",
 			uw, ux, uw == 1 ? "" : "s",
 			lw, lx, lw == 1 ? "f" : "ves",
@@ -3130,7 +3130,7 @@ send_error(
 				host_addr_to_string(s->addr), g_strerror(errno));
 		}
 	} else if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_OUT) {
-		g_message("----Sent error %d to node %s (%u bytes):",
+		g_debug("----Sent error %d to node %s (%u bytes):",
 			code, host_addr_to_string(s->addr), (unsigned) rw);
 		dump_string(stderr, gnet_response, rw, "----");
 	}
@@ -3199,7 +3199,7 @@ node_became_firewalled(void)
 			sent++;
 
 			if (GNET_PROPERTY(node_debug))
-				g_message("sent TCP connect back request to %s",
+				g_debug("sent TCP connect back request to %s",
 					host_addr_port_to_string(n->addr, n->port));
 		}
 
@@ -3234,7 +3234,7 @@ node_became_udp_firewalled(void)
 
 		vmsg_send_udp_connect_back(n, socket_listen_port());
 		if (GNET_PROPERTY(node_debug))
-			g_message("sent UDP connect back request to %s",
+			g_debug("sent UDP connect back request to %s",
 				host_addr_port_to_string(n->addr, n->port));
 
 		if (10 == ++sent)
@@ -3547,7 +3547,7 @@ node_is_now_connected(struct gnutella_node *n)
 		struct rx_inflate_args args;
 
 		if (GNET_PROPERTY(node_debug) > 4)
-			g_message("receiving compressed data from node %s", node_addr(n));
+			g_debug("receiving compressed data from node %s", node_addr(n));
 
 		args.cb = &node_rx_inflate_cb;
 
@@ -3586,7 +3586,7 @@ node_is_now_connected(struct gnutella_node *n)
 		txdrv_t *ctx;
 
 		if (GNET_PROPERTY(node_debug) > 4)
-			g_message("sending compressed data to node %s", node_addr(n));
+			g_debug("sending compressed data to node %s", node_addr(n));
 
 		args.cq = callout_queue;
 		args.cb = &node_tx_deflate_cb;
@@ -3808,7 +3808,7 @@ node_got_bye(struct gnutella_node *n)
 	if (!is_plain_message) {
 		/* XXX parse header */
 		if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN) {
-			g_message("----Bye Message from %s:", node_addr(n));
+			g_debug("----Bye Message from %s:", node_addr(n));
 			dump_string(stderr, message, clamp_strlen(message, n->size - 2),
 				"----");
 		}
@@ -3916,7 +3916,7 @@ node_set_current_peermode(node_peer_t mode)
 
 	g_assert(msg != NULL);
 	if (GNET_PROPERTY(node_debug) > 2)
-		g_message("Switching to \"%s\" peer mode", msg);
+		g_debug("Switching to \"%s\" peer mode", msg);
 
 	if (old_mode != NODE_P_UNKNOWN) {	/* Not at init time */
 		bsched_set_peermode(mode);		/* Adapt Gnet bandwidth */
@@ -4026,7 +4026,7 @@ purge_host_cache_from_hub_list(const char *s)
 			continue;    
 
 		if (GNET_PROPERTY(node_debug)) {
-			g_message("Purging %s:%u from hostcache...",
+			g_debug("Purging %s:%u from hostcache...",
 				host_addr_to_string(addr), port);
 		}
 		
@@ -4149,10 +4149,10 @@ feed_host_cache_from_headers(header_t *header,
 
 			if (GNET_PROPERTY(node_debug) > 0) {
 				if (r > 0)
-					g_message("peer %s sent %u pong%s in %s header",
+					g_debug("peer %s sent %u pong%s in %s header",
 						host_addr_to_string(peer), r, 1 == r ? "" : "s", name);
 				else
-					g_message("peer %s <%s> sent unparseable %s header: \"%s\"",
+					g_debug("peer %s <%s> sent unparseable %s header: \"%s\"",
 						host_addr_to_string(peer), vendor, name, val);
 			}
 		}
@@ -4243,7 +4243,7 @@ node_check_remote_ip_header(const host_addr_t peer, header_t *head)
 			char buf[HOST_ADDR_BUFLEN];
 
 			host_addr_to_string_buf(addr, buf, sizeof buf);
-			g_message("Peer %s reported different IP address: %s (%s)\n",
+			g_message("peer %s reported different IP address: %s (%s)\n",
 				host_addr_to_string(peer), buf, ua);
 		}
 	}
@@ -4284,7 +4284,7 @@ analyse_status(struct gnutella_node *n, int *code)
 		*code = ack_code;
 
 	if (GNET_PROPERTY(node_debug))
-		g_message("%s: code=%d, message=\"%s\", proto=%u.%u",
+		g_debug("%s: code=%d, message=\"%s\", proto=%u.%u",
 			incoming ? "ACK" : "REPLY",
 			ack_code, ack_message, major, minor);
 
@@ -4757,7 +4757,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 	if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN) {
 		const char *status = getline_str(s->getline);
-		g_message("----Got final acknowledgment headers from node %s:",
+		g_debug("----Got final acknowledgment headers from node %s:",
 			host_addr_to_string(n->addr));
 		if (is_printable_iso8859_string(status)) {
 			fprintf(stderr, "%s\n", status);
@@ -4902,7 +4902,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		pmsg_t *mb;
 
 		if (GNET_PROPERTY(node_debug) > 4)
-			g_message("read %d Gnet bytes from node %s after handshake",
+			g_debug("read %d Gnet bytes from node %s after handshake",
 				(int) s->pos, node_addr(n));
 
 		/*
@@ -5056,7 +5056,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	const char *compressing = "Content-Encoding: deflate\r\n";
 
 	if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN) {
-		g_message("----Got %s handshaking headers from node %s:",
+		g_debug("----Got %s handshaking headers from node %s:",
 			incoming ? "incoming" : "outgoing",
 			host_addr_to_string(n->addr));
 		if (!incoming) {
@@ -5785,7 +5785,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		node_remove(n, _("Failed (Cannot send %s atomically)"), what);
 		goto free_gnet_response;
 	} else if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_OUT) {
-		g_message("----Sent OK %s to %s (%u bytes):",
+		g_debug("----Sent OK %s to %s (%u bytes):",
 			what, host_addr_to_string(n->addr), (unsigned) rw);
 		dump_string(stderr, gnet_response, rw, "----");
 	}
@@ -6786,7 +6786,7 @@ node_check_ggep(struct gnutella_node *n, int maxsize, int regsize)
 	}
 
 	if (GNET_PROPERTY(node_debug) > 3) {
-		g_message("%s has GGEP extensions:", gmsg_node_infostr(n));
+		g_debug("%s has GGEP extensions:", gmsg_node_infostr(n));
 		ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
 	}
 
@@ -7602,7 +7602,7 @@ node_init_outgoing(struct gnutella_node *n)
 
 	switch (sent) {
 	case (ssize_t) -1:
-		g_message("bws_write() failed: %s", g_strerror(errno));
+		g_warning("bws_write() failed: %s", g_strerror(errno));
 		if (!is_temporary_error(errno)) {
 			node_remove(n, _("Write error during HELLO: %s"),
 				g_strerror(errno));
@@ -7634,7 +7634,7 @@ node_init_outgoing(struct gnutella_node *n)
 	if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_OUT) {
 		size_t len = strlen(n->hello.ptr);
 
-		g_message("----Sent HELLO request to %s (%u bytes):",
+		g_debug("----Sent HELLO request to %s (%u bytes):",
 			host_addr_to_string(n->addr), (unsigned) len);
 		dump_string(stderr, n->hello.ptr, len, "----");
 	}
@@ -7759,7 +7759,7 @@ node_tx_leave_flowc(struct gnutella_node *n)
 	if (GNET_PROPERTY(node_debug) > 4) {
 		int spent = delta_time(tm_time(), n->tx_flowc_date);
 
-		g_message("node %s spent %d second%s in TX FLOWC",
+		g_debug("node %s spent %d second%s in TX FLOWC",
 			node_addr(n), spent, spent == 1 ? "" : "s");
 	}
 
@@ -7802,7 +7802,7 @@ static void
 node_bye_sent(struct gnutella_node *n)
 {
 	if (GNET_PROPERTY(node_debug))
-		g_message("finally sent BYE \"%s\" to %s (%s)",
+		g_debug("finally sent BYE \"%s\" to %s (%s)",
 			n->error_str, node_addr(n), node_vendor(n));
 
 	/*
@@ -8504,7 +8504,7 @@ node_send_patch_step(struct gnutella_node *n)
 	ok = qrt_update_was_ok(n->qrt_update);
 
 	if (GNET_PROPERTY(node_debug) > 2)
-		g_message("QRP %spatch sending to %s done (%s)",
+		g_debug("QRP %spatch sending to %s done (%s)",
 			(n->flags & NODE_F_STALE_QRP) ? "stale " : "",
 			node_addr(n), ok ? "OK" : "FAILED");
 
@@ -9323,7 +9323,7 @@ node_connected_back(struct gnutella_socket *s)
 	static char msg[] = "\n\n";
 
 	if (GNET_PROPERTY(node_debug) > 4)
-		g_message("connected back to %s",
+		g_debug("connected back to %s",
 			host_addr_port_to_string(s->addr, s->port));
 
 	(void) bws_write(BSCHED_BWS_OUT, &s->wio, msg, sizeof msg - 1);
@@ -9402,7 +9402,7 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 	}
 
 	if (GNET_PROPERTY(node_debug)) {
-		g_message("publishing we act as push-proxy for %s node %s <%s> GUID %s",
+		g_debug("publishing we act as push-proxy for %s node %s <%s> GUID %s",
 			node_type(n), node_gnet_addr(n), node_vendor(n),
 			guid_hex_str(n->guid));
 	}
@@ -9610,7 +9610,7 @@ node_is_firewalled(gnutella_node_t *n)
 		return;		/* Already knew about it */
 
 	if (GNET_PROPERTY(node_debug)) {
-		g_message("%s node %s <%s> is firewalled (%s push-proxied)",
+		g_debug("%s node %s <%s> is firewalled (%s push-proxied)",
 			node_type(n), node_gnet_addr(n), node_vendor(n),
 			(n->flags & NODE_F_PROXIED) ? "already" : "not");
 	}
@@ -10218,7 +10218,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 			int dlen = zlib_deflater_outlen(zd);
 			int remains;
 
-			if (GNET_PROPERTY(node_debug)) g_message(
+			if (GNET_PROPERTY(node_debug)) g_debug(
 				"crawler compressed %d bytes user-agent string into %d",
 				(int) (agents->len - 1), dlen);
 
@@ -10240,7 +10240,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 		zlib_deflater_free(zd, TRUE);
 	}
 
-	if (GNET_PROPERTY(node_debug)) g_message(
+	if (GNET_PROPERTY(node_debug)) g_debug(
 		"UDP crawler sending data for %u/%u ultras and %u/%u leaves: %d bytes, "
 		"features=0x%x to %s",
 		payload[0], ux, payload[1], lx, pmsg_size(mb), payload[2],

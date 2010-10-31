@@ -581,7 +581,7 @@ mq_enter_flowc(mqueue_t *q)
 	node_tx_enter_flowc(q->node);	/* Signal flow control */
 
 	if (MQ_DEBUG_LVL(q) > 4)
-		g_message("entering FLOWC for node %s (%d bytes queued)",
+		g_debug("MQ entering FLOWC for node %s (%d bytes queued)",
 			node_addr(q->node), q->size);
 }
 
@@ -594,7 +594,7 @@ mq_leave_flowc(mqueue_t *q)
 	g_assert(q->flags & MQ_FLOWC);
 
 	if (MQ_DEBUG_LVL(q) > 4)
-		g_message("leaving %s for node %s (%d bytes queued)",
+		g_debug("MQ leaving %s for node %s (%d bytes queued)",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 			node_addr(q->node), q->size);
 
@@ -1087,7 +1087,7 @@ make_room_internal(mqueue_t *q,
 	mq_check(q, 0);
 
 	if (MQ_DEBUG_LVL(q) > 5)
-		g_message("%s try to make room for %d bytes in queue 0x%lx (node %s)",
+		g_debug("MQ %s try to make room for %d bytes in queue 0x%lx (node %s)",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 			needed, (gulong) q, node_addr(q->node));
 
@@ -1227,7 +1227,7 @@ restart:
 		node_add_txdrop(q->node, dropped);	/* Dropped during TX */
 
 	if (MQ_DEBUG_LVL(q) > 5)
-		g_message("%s end purge: %d bytes (count=%d) for node %s, need=%d",
+		g_debug("MQ %s end purge: %d bytes (count=%d) for node %s, need=%d",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 			q->size, q->count, node_addr(q->node), needed);
 

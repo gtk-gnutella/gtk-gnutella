@@ -235,7 +235,7 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 	compat_fadvise_sequential(md->rd, 0, 0);
 
 	if (GNET_PROPERTY(move_debug) > 1)
-		g_message("MOVE starting moving \"%s\" to \"%s\"",
+		g_debug("MOVE starting moving \"%s\" to \"%s\"",
 				download_basename(d), md->target);
 
 	return;
@@ -325,7 +325,7 @@ error:
 	elapsed = MAX(1, elapsed);		/* time warp? clock not monotic? */
 
 	if (GNET_PROPERTY(move_debug) > 1)
-		g_message("MOVE moved file \"%s\" at %lu bytes/sec [error=%d]\n",
+		g_debug("MOVE moved file \"%s\" at %lu bytes/sec [error=%d]\n",
 			download_basename(md->d), (gulong) md->size / elapsed, md->error);
 
 finish:

@@ -392,7 +392,7 @@ again:
 			}
 
 			if (GNET_PROPERTY(mq_udp_debug) > 5)
-				g_message("MQ UDP sent %s",
+				g_debug("MQ UDP sent %s",
 					gmsg_infostr_full(pmsg_start(mb), pmsg_written_size(mb)));
 
 			goto cleanup;
@@ -416,7 +416,7 @@ again:
 	}
 
 	if (GNET_PROPERTY(mq_udp_debug) > 5)
-		g_message("MQ UDP queued %s",
+		g_debug("MQ UDP queued %s",
 			gmsg_infostr_full(pmsg_start(mb), pmsg_written_size(mb)));
 
 	/*

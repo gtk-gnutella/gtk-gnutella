@@ -297,13 +297,13 @@ ipp_cache_insert_intern(ipp_cache_t *ic, const struct ipp_cache_item *item)
 
 		/* We'll move the host to the end of the list */
 		if (*ic->debug) {
-			g_message("refreshing %s host %s",
+			g_debug("refreshing %s host %s",
 				ic->item_name, gnet_host_to_string(&item->host));
 		}
 		item_ptr->seen = item->seen;
 	} else {
 		if (*ic->debug) {
-			g_message("adding %s host %s",
+			g_debug("adding %s host %s",
 				ic->item_name, gnet_host_to_string(&item->host));
 		}
 		key = wcopy(item, sizeof *item);
@@ -617,7 +617,7 @@ ipp_cache_load(ipp_cache_t *ic)
 		ipp_cache_parse(ic, f);
 		n = hash_list_length(ic->hosts);
 		if (*ic->debug) {
-			g_message("loaded %u items from the %s cache", n, ic->item_name);
+			g_debug("loaded %u items from the %s cache", n, ic->item_name);
 		}
 		fclose(f);
 	}
