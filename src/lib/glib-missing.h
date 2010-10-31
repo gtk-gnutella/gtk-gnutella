@@ -221,23 +221,27 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
 	for ((iter) = (slist); NULL != (iter); (iter) = g_slist_next(iter))
 
 /***
- *** Extra logging conveniences not defined by glib-1.x and glib-2.x.
+ *** Extra logging conveniences not defined by glib-1.x or glib-2.x.
  ***/
 
 #if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #define g_info(...)		g_log (G_LOG_DOMAIN,		\
 							   G_LOG_LEVEL_INFO,	\
 							   __VA_ARGS__)
+#if !GLIB_CHECK_VERSION(2,0,0)
 #define g_debug(...)	g_log (G_LOG_DOMAIN,		\
 							   G_LOG_LEVEL_DEBUG,	\
 							   __VA_ARGS__)
+#endif
 #elif defined (__GNUC__)
 #define g_info(format...)	g_log (G_LOG_DOMAIN,		\
 								   G_LOG_LEVEL_INFO,	\
 								   format)
+#if !GLIB_CHECK_VERSION(2,0,0)
 #define g_debug(format...)	g_log (G_LOG_DOMAIN,		\
 								   G_LOG_LEVEL_DEBUG,	\
 								   format)
+#endif
 #else	/* !__GNUC__ */
 static inline void
 g_info (const gchar *format, ...)
@@ -247,6 +251,7 @@ g_info (const gchar *format, ...)
   g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_INFO, format, args);
   va_end(args);
 }
+#if !GLIB_CHECK_VERSION(2,0,0)
 static void
 g_debug (const gchar *format, ...)
 {
@@ -255,6 +260,7 @@ g_debug (const gchar *format, ...)
   g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, format, args);
   va_end(args);
 }
+#endif
 #endif	/* !__GNUC__ */
 
 /* vi: set ts=4 sw=4: */
