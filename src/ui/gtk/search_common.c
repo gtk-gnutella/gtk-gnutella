@@ -957,7 +957,7 @@ search_gui_find(gnet_search_t sh)
 
         if (s->search_handle == sh) {
             if (GUI_PROPERTY(gui_debug) >= 15) {
-                g_message("search [%s] matched handle %x",
+                g_debug("search [%s] matched handle %x",
 					search_gui_query(s), sh);
 			}
             return s;
@@ -2067,7 +2067,7 @@ search_gui_flush_info(void)
         }
 		slist_iter_free(&iter);
 
-        g_message("flushing %u rsets (%u recs, %u recs avg)...",
+        g_debug("flushing %u rsets (%u recs, %u recs avg)...",
             rs_count, recs, recs / rs_count);
     }
 }
@@ -2129,7 +2129,7 @@ search_gui_flush(time_t now, gboolean force)
 				}
                 search_matched(sch, rs);
             } else if (GUI_PROPERTY(gui_debug) >= 6) {
-				g_message(
+				g_debug(
 					"no search for cached search result while dispatching");
 			}
         }
@@ -2171,7 +2171,7 @@ search_gui_flush(time_t now, gboolean force)
 
 	if (GUI_PROPERTY(gui_debug)) {
 		tm_now_exact(&t1);
-		g_message("dispatching results took %lu ms",
+		g_debug("dispatching results took %lu ms",
 			(gulong) tm_elapsed_ms(&t1, &t0));
 	}
 
@@ -2251,7 +2251,7 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 
 				substr = g_strndup(start, endptr - start);
 				if (GUI_PROPERTY(gui_debug)) {
-					g_message("%s: \"%s\"",
+					g_debug("%s: \"%s\"",
 							filter < 0 ? "negative" : "positive", substr);
 				}
 
@@ -2268,7 +2268,7 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 		} else {
 			p = start;
 			if (GUI_PROPERTY(gui_debug)) {
-				g_message("literal: \"%.*s\"", (int)(guint)(endptr - p), p);
+				g_debug("literal: \"%.*s\"", (int)(guint)(endptr - p), p);
 			}
 			if (dst != query->text && !is_ascii_space(dst[-1])) {
 				*dst++ = ' ';
@@ -3927,7 +3927,7 @@ drag_data_received(GtkWidget *widget, GdkDragContext *dc,
 		guint i;
 
 		if (GUI_PROPERTY(gui_debug) > 0) {
-			g_message("drag_data_received: text=\"%s\"", text);
+			g_debug("drag_data_received: text=\"%s\"", text);
 		}
 		
 		if (gui_main_window_lookup("entry_search") != widget) {

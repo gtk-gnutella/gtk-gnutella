@@ -419,7 +419,7 @@ nodes_gui_common_connect_by_name(const gchar *line)
 		}
 
 		if (!string_to_host_or_addr(q, &endptr, &addr)) {
-			g_message("Expected hostname or IP address");
+			g_message("expected hostname or IP address");
 			break;
 		}
 
@@ -435,7 +435,7 @@ nodes_gui_common_connect_by_name(const gchar *line)
 
 			port = parse_uint16(&q[1], &endptr, 10, &error);
 			if (error || 0 == port) {
-				g_message("Cannot parse port");
+				g_message("cannot parse port");
 				break;
 			}
 
@@ -443,7 +443,7 @@ nodes_gui_common_connect_by_name(const gchar *line)
 		} else {
 			q = skip_ascii_spaces(endptr);
 			if ('\0' != *q && ',' != *q) {
-				g_message("Expected \",\" or \":\"");
+				g_message("expected \",\" or \":\"");
 				break;
 			}
 		}

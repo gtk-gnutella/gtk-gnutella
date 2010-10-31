@@ -647,11 +647,13 @@ on_tree_view_motion_notify(GtkWidget *widget,
 		}
 #undef EVENT_TYPE
 
-		g_message("on_tree_view_motion_notify(): "
-			"type=%s, x=%d, y=%d, axes=%p, x_root=%d, y_root=%d",
-				type,
-				(gint) event->x, (gint) event->y, event->axes,
-				(gint) event->x_root, (gint) event->y_root);
+		if (GUI_PROPERTY(gui_debug) {
+			g_debug("on_tree_view_motion_notify(): "
+				"type=%s, x=%d, y=%d, axes=%p, x_root=%d, y_root=%d",
+					type,
+					(gint) event->x, (gint) event->y, event->axes,
+					(gint) event->x_root, (gint) event->y_root);
+		}
 	}
 #endif /* 0 */
 

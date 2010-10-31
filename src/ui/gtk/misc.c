@@ -358,14 +358,14 @@ gui_fix_coords(guint32 *coord)
 	screen_w = gdk_screen_width();
 	screen_h = gdk_screen_height();
 	if (GUI_PROPERTY(gui_debug))
-		g_message("screen: %dx%d", screen_w, screen_h);
+		g_debug("screen: %dx%d", screen_w, screen_h);
 
 	x = coord[0];
 	y = coord[1];
 	w = coord[2];
 	h = coord[3];
 	if (GUI_PROPERTY(gui_debug))
-		g_message("before: %dx%d+%d+%d", w, h, x, y);
+		g_debug("before: %dx%d+%d+%d", w, h, x, y);
 
 	if (w < 200)
 		w = MAX(screen_w / 2, 200);
@@ -385,7 +385,7 @@ gui_fix_coords(guint32 *coord)
 	coord[2] = w;
 	coord[3] = h;
 	if (GUI_PROPERTY(gui_debug))
-		g_message("after: %dx%d+%d+%d", w, h, x, y);
+		g_debug("after: %dx%d+%d+%d", w, h, x, y);
 }
 
 /**
@@ -547,7 +547,7 @@ anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
 	if (abs(dx) > 64 || abs(dy) > 64)
 		return;
 	
-	g_message("anti_window_shift_hack: "
+	g_debug("anti_window_shift_hack: "
 		"x=%d, y=%d, ax=%d, ay=%d , dx=%d, dy=%d",
 			x, y, ax, ay, dx, dy);
 
@@ -556,7 +556,7 @@ anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
 	if (ax == x && ay == y)
 		return;
 		
-	g_message("anti_window_shift_hack failed: ax=%d, ay=%d", ax, ay);
+	g_debug("anti_window_shift_hack failed: ax=%d, ay=%d", ax, ay);
 }
 
 void

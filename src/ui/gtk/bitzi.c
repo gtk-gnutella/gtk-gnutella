@@ -86,7 +86,7 @@ bitzi_gui_update(const bitzi_data_t *bitzi_data)
 
     gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
 	if (bitzi_debug)
-    	g_message("bitzi_gui_update: data %p, size %s\n"
+    	g_debug("bitzi_gui_update: data %p, size %s\n"
 			  "goodness %f, judgement %d, type %s, details %s",
 			cast_to_gconstpointer(bitzi_data),
 			uint64_to_string(bitzi_data->size),
