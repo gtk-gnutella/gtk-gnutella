@@ -301,7 +301,7 @@ nextline:
 
 	if ((ih->flags & IO_HEAD_ONLY) && s->pos) {
         if (GNET_PROPERTY(dbg)) {
-            g_message("remote %s sent extra bytes after headers",
+            g_debug("remote %s sent extra bytes after headers",
                 host_addr_to_string(s->addr));
             dump_hex(stderr, "Extra Data", s->buf, MIN(s->pos, 512));
         }

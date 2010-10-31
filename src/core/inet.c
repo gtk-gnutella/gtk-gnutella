@@ -277,7 +277,7 @@ move_to_unsolicited_check(cqueue_t *unused_cq, gpointer unused_data)
 	unsolicited_udp_ev = NULL;		/* Event fired */
 
 	if (GNET_PROPERTY(fw_debug))
-		g_message("FW: will be now monitoring UDP for unsolicited messages");
+		g_debug("FW: will be now monitoring UDP for unsolicited messages");
 
 	outgoing_udp_state = UNSOLICITED_CHECK;
 }
@@ -289,7 +289,7 @@ static void
 move_to_unsolicited_prepare(void)
 {
 	if (GNET_PROPERTY(fw_debug))
-		g_message("FW: set for unsolicited traffic detection in %d secs",
+		g_debug("FW: set for unsolicited traffic detection in %d secs",
 			FW_UDP_WINDOW);
 
 	unsolicited_udp_ev = cq_insert(callout_queue, FW_UDP_WINDOW * 1000,
@@ -304,7 +304,7 @@ static void
 move_to_unsolicited_off(void)
 {
 	if (GNET_PROPERTY(fw_debug))
-		g_message("FW: turning off unsolicited traffic detection");
+		g_debug("FW: turning off unsolicited traffic detection");
 
 	outgoing_udp_state = UNSOLICITED_OFF;
 	cq_cancel(callout_queue, &unsolicited_udp_ev);	/* Paranoid */
@@ -322,7 +322,7 @@ got_no_udp_solicited(watchdog_t *unused_wd, gpointer unused_obj)
 	(void) unused_obj;
 
 	if (GNET_PROPERTY(fw_debug))
-		g_message("FW: got no solicited UDP traffic for %d secs",
+		g_debug("FW: got no solicited UDP traffic for %d secs",
 			FW_SOLICITED_WINDOW);
 
 	gnet_prop_set_boolean_val(PROP_RECV_SOLICITED_UDP, FALSE);
@@ -338,7 +338,7 @@ inet_udp_got_solicited(void)
 	gnet_prop_set_boolean_val(PROP_RECV_SOLICITED_UDP, TRUE);
 
 	if (wd_wakeup(solicited_udp_wd) && GNET_PROPERTY(fw_debug))
-		g_message("FW: got solicited UDP traffic");
+		g_debug("FW: got solicited UDP traffic");
 
 	wd_kick(solicited_udp_wd);
 }
@@ -354,7 +354,7 @@ got_no_connection(watchdog_t *unused_wd, gpointer unused_obj)
 	(void) unused_obj;
 
 	if (GNET_PROPERTY(fw_debug))
-		g_message("FW: got no connection to port %u for %d secs",
+		g_debug("FW: got no connection to port %u for %d secs",
 			socket_listen_port(), FW_INCOMING_WINDOW);
 
 	inet_firewalled();
@@ -372,7 +372,7 @@ got_no_udp_unsolicited(watchdog_t *unused_wd, gpointer unused_obj)
 	(void) unused_obj;
 
 	if (GNET_PROPERTY(fw_debug))
-		g_message("FW: got no unsolicited UDP datagram to port %u for %d secs",
+		g_debug("FW: got no unsolicited UDP datagram to port %u for %d secs",
 			socket_listen_port(), FW_INCOMING_WINDOW);
 
 	/*
@@ -388,7 +388,7 @@ got_no_udp_unsolicited(watchdog_t *unused_wd, gpointer unused_obj)
 		move_to_unsolicited_prepare();
 	} else {
 		if (GNET_PROPERTY(fw_debug)) {
-			g_message("FW: no unsolicited UDP again for %d secs on port %u "
+			g_debug("FW: no unsolicited UDP again for %d secs on port %u "
 				"=> firewalled", FW_SOLICITED_WINDOW, socket_listen_port());
 		}
 		move_to_unsolicited_off();
@@ -408,7 +408,7 @@ inet_not_firewalled(void)
 	node_proxy_cancel_all();
 
 	if (GNET_PROPERTY(fw_debug))
-		g_message("FW: we're not TCP-firewalled for port %u",
+		g_debug("FW: we're not TCP-firewalled for port %u",
 			socket_listen_port());
 }
 
@@ -421,7 +421,7 @@ inet_udp_not_firewalled(void)
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, FALSE);
 
 	if (GNET_PROPERTY(fw_debug))
-		g_message("FW: we're not UDP-firewalled for port %u",
+		g_debug("FW: we're not UDP-firewalled for port %u",
 			socket_listen_port());
 }
 
@@ -433,13 +433,13 @@ inet_got_incoming(const host_addr_t addr)
 {
 	if (is_local_addr(addr)) {
 		if (GNET_PROPERTY(fw_debug))
-			g_message("FW: not counting local connection from %s",
+			g_debug("FW: not counting local connection from %s",
 				host_addr_to_string(addr));
 		return;
 	}
 
 	if (GNET_PROPERTY(fw_debug) > 19)
-		g_message("FW: got TCP connection from %s", host_addr_to_string(addr));
+		g_debug("FW: got TCP connection from %s", host_addr_to_string(addr));
 
 	/*
 	 * If we get an incoming connection from the outside, we're surely
@@ -451,7 +451,7 @@ inet_got_incoming(const host_addr_t addr)
 		!GNET_PROPERTY(is_inet_connected) &&
 		GNET_PROPERTY(fw_debug)
 	) {
-		g_message("FW: got incoming connection => connected");
+		g_debug("FW: got incoming connection => connected");
 	}
 
 	if (!GNET_PROPERTY(is_inet_connected))
@@ -485,7 +485,7 @@ inet_udp_got_unsolicited_incoming(void)
 {
 	if (outgoing_udp_state != UNSOLICITED_OFF) {
 		if (GNET_PROPERTY(fw_debug))
-			g_message("FW: got unsolicited UDP message => not firewalled");
+			g_debug("FW: got unsolicited UDP message => not firewalled");
 		move_to_unsolicited_off();
 	}
 
@@ -509,7 +509,7 @@ inet_udp_got_incoming(const host_addr_t addr)
 		!GNET_PROPERTY(is_inet_connected) &&
 		GNET_PROPERTY(fw_debug)
 	) {
-		g_message("FW: got incoming UDP traffic => connected");
+		g_debug("FW: got incoming UDP traffic => connected");
 	}
 
 	if (!GNET_PROPERTY(is_inet_connected))
@@ -555,12 +555,12 @@ inet_udp_check_unsolicited(void)
 {
 	if (UNSOLICITED_OFF == outgoing_udp_state) {
 		if (GNET_PROPERTY(fw_debug))
-			g_message("FW: forcing checks for UDP unsolicited traffic");
+			g_debug("FW: forcing checks for UDP unsolicited traffic");
 
 		move_to_unsolicited_prepare();
 	} else {
 		if (GNET_PROPERTY(fw_debug))
-			g_message("FW: already checking UDP unsolicited traffic");
+			g_debug("FW: already checking UDP unsolicited traffic");
 	}
 }
 
@@ -620,7 +620,7 @@ inet_set_is_connected(gboolean val)
 	gnet_prop_set_boolean_val(PROP_IS_INET_CONNECTED, val);
 
 	if (GNET_PROPERTY(fw_debug))
-		g_message("FW: we're %sconnected to the Internet",
+		g_debug("FW: we're %sconnected to the Internet",
 			val ? "" : "no longer ");
 }
 
@@ -672,7 +672,7 @@ inet_connection_succeeded(const host_addr_t addr)
 		!GNET_PROPERTY(is_inet_connected) &&
 		GNET_PROPERTY(fw_debug)
 	) {
-		g_message("FW: outgoing TCP connection succeeded => connected");
+		g_debug("FW: outgoing TCP connection succeeded => connected");
 	}
 
 	if (!GNET_PROPERTY(is_inet_connected))

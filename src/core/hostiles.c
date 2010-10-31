@@ -158,7 +158,7 @@ hostiles_load(FILE *f, hostiles_t which)
 	iprange_sync(hostile_db[which]);
 
 	if (GNET_PROPERTY(reload_debug)) {
-		g_message("loaded %u addresses/netmasks from %s (%u hosts)",
+		g_debug("loaded %u addresses/netmasks from %s (%u hosts)",
 			iprange_get_item_count(hostile_db[which]), hostiles_what[which],
 			iprange_get_host_count(hostile_db[which]));
 	}

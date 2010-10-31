@@ -651,13 +651,13 @@ request_sha1(struct shared_file *sf)
 
 		if (GNET_PROPERTY(dbg) > 4) {
 			if (cached)
-				g_message("Cached SHA1 entry for \"%s\" outdated: "
+				g_debug("cached SHA1 entry for \"%s\" outdated: "
 					"had mtime %lu, now %lu",
 					shared_file_path(sf),
 					(gulong) cached->mtime,
 					(gulong) shared_file_modification_time(sf));
 			else
-				g_message("Queuing \"%s\" for SHA1 computation",
+				g_debug("queuing \"%s\" for SHA1 computation",
 						shared_file_path(sf));
 		}
 

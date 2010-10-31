@@ -284,7 +284,7 @@ http_send_status(
 		}
 
 		if (trace) {
-			g_message("----Sent HTTP status to %s (%lu bytes):",
+			g_debug("----Sent HTTP status to %s (%lu bytes):",
 				host_addr_to_string(s->addr), (gulong) rw);
 			dump_string(stderr, header, rw, "----");
 		}
@@ -519,7 +519,7 @@ http_extract_version(
 	limit = sizeof("X / HTTP/1.0") - 1;
 
 	if (GNET_PROPERTY(http_debug) > 4)
-		g_message("HTTP req (%lu bytes): %s", (gulong) len, request);
+		g_debug("HTTP req (%lu bytes): %s", (gulong) len, request);
 
 	if (len < limit)
 		return FALSE;
@@ -535,7 +535,7 @@ http_extract_version(
 	}
 
 	if (GNET_PROPERTY(http_debug) > 4)
-		g_message("HTTP i = %lu, limit = %lu", (gulong) i, (gulong) limit);
+		g_debug("HTTP i = %lu, limit = %lu", (gulong) i, (gulong) limit);
 
 	if (i == limit)
 		return FALSE;		/* Reached our limit without finding a space */
@@ -552,13 +552,13 @@ http_extract_version(
 		0 != parse_major_minor(p, NULL, major, minor)
 	) {
 		if (GNET_PROPERTY(http_debug) > 1)
-			g_message("HTTP req (%lu bytes): no protocol tag: %s",
+			g_debug("HTTP req (%lu bytes): no protocol tag: %s",
 				(gulong) len, request);
 		return FALSE;
 	}
 
 	if (GNET_PROPERTY(http_debug) > 4)
-		g_message("HTTP req OK (%u.%u)", *major, *minor);
+		g_debug("HTTP req OK (%u.%u)", *major, *minor);
 
 	/*
 	 * We don't check trailing chars after the HTTP/x.x indication.
@@ -693,7 +693,7 @@ http_url_parse(const char *url, guint16 *port, const char **host,
 	}
 
 	if (GNET_PROPERTY(http_debug) > 4) {
-		g_message("URL \"%s\" -> host=\"%s\", port=%u, path=\"%s\"",
+		g_debug("URL \"%s\" -> host=\"%s\", port=%u, path=\"%s\"",
 			url, *host, (unsigned) *port, *path);
 	}
 
@@ -1188,13 +1188,13 @@ final:
 	if (GNET_PROPERTY(http_debug) > 4) {
 		GSList *l;
 
-		g_message("Saw %d ranges in %s %s: %s",
+		g_debug("Saw %d ranges in %s %s: %s",
 			count, request ? "request" : "reply", field, value);
 		if (ranges)
-			g_message("...retained:");
+			g_debug("...retained:");
 		for (l = ranges; l; l = g_slist_next(l)) {
 			http_range_t *r = (http_range_t *) l->data;
-			g_message("...  %s-%s",
+			g_debug("...  %s-%s",
 				uint64_to_string(r->start), uint64_to_string2(r->end));
 		}
 	}
@@ -1907,7 +1907,7 @@ http_async_sent_request(const struct http_async *unused_ha,
 	(void) unused_ha;
 
 	if (GNET_PROPERTY(http_trace) & SOCK_TRACE_OUT) {
-		g_message("----Sent HTTP request%s to %s (%u bytes):",
+		g_debug("----Sent HTTP request%s to %s (%u bytes):",
 			deferred ? " completely" : "",
 			host_addr_port_to_string(s->addr, s->port), (unsigned) len);
 		dump_string(stderr, req, len, "----");
@@ -1929,7 +1929,7 @@ http_async_got_reply(const struct http_async *unused_ha,
 	(void) unused_ha;
 
 	if (GNET_PROPERTY(http_trace) & SOCK_TRACE_IN) {
-		g_message("----Got HTTP reply from %s:",
+		g_debug("----Got HTTP reply from %s:",
 			host_addr_to_string(s->addr));
 		fprintf(stderr, "%s\n", status);
 		header_dump(stderr, header, "----");
@@ -2472,7 +2472,7 @@ http_got_header(struct http_async *ha, header_t *header)
 			(ack_code == 302 && (ha->type == HTTP_GET || ha->type == HTTP_HEAD))
 		) {
 			if (GNET_PROPERTY(http_debug) > 2)
-				g_message("HTTP %s redirect %d (%s): \"%s\" -> \"%s\"",
+				g_debug("HTTP %s redirect %d (%s): \"%s\" -> \"%s\"",
 					http_verb[ha->type], ack_code, ack_message, ha->url, buf);
 
 			/*
