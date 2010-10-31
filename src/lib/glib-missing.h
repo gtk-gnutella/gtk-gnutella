@@ -220,5 +220,42 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
 #define GM_SLIST_FOREACH(slist, iter) \
 	for ((iter) = (slist); NULL != (iter); (iter) = g_slist_next(iter))
 
+/***
+ *** Extra logging conveniences not defined by glib-1.x and glib-2.x.
+ ***/
+
+#if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#define g_info(...)		g_log (G_LOG_DOMAIN,		\
+							   G_LOG_LEVEL_INFO,	\
+							   __VA_ARGS__)
+#define g_debug(...)	g_log (G_LOG_DOMAIN,		\
+							   G_LOG_LEVEL_DEBUG,	\
+							   __VA_ARGS__)
+#elif defined (__GNUC__)
+#define g_info(format...)	g_log (G_LOG_DOMAIN,		\
+								   G_LOG_LEVEL_INFO,	\
+								   format)
+#define g_debug(format...)	g_log (G_LOG_DOMAIN,		\
+								   G_LOG_LEVEL_DEBUG,	\
+								   format)
+#else	/* !__GNUC__ */
+static inline void
+g_info (const gchar *format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_INFO, format, args);
+  va_end(args);
+}
+static void
+g_debug (const gchar *format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, format, args);
+  va_end(args);
+}
+#endif	/* !__GNUC__ */
+
 /* vi: set ts=4 sw=4: */
 #endif	/* _glib_missing_h_ */
