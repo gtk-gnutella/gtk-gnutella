@@ -92,7 +92,7 @@ tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
 		int saved_errno = errno;
 		gboolean error = (ssize_t) -1 == ret;
 
-		g_message("%s(): fd=%d size=%lu ret=%ld%s%s%s",
+		g_debug("%s(): fd=%d size=%lu ret=%ld%s%s%s",
 			op, fd, (gulong) size, (glong) ret,
 			error ? " errno=\"" : "",
 			error ? g_strerror(saved_errno) : "",
@@ -149,7 +149,7 @@ tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 
 		if (GNET_PROPERTY(tls_debug) > 1) {
 			int fd = socket_evt_fd(s);
-			g_message("tls_socket_evt_change: fd=%d, cond=%s -> %s",
+			g_debug("tls_socket_evt_change: fd=%d, cond=%s -> %s",
 				fd, inputevt_cond_to_string(s->tls.cb_cond),
 				inputevt_cond_to_string(cond));
 		}
@@ -198,7 +198,7 @@ tls_print_session_info(const host_addr_t addr, guint16 port,
 	ciph = gnutls_cipher_get_name(gnutls_cipher_get(session));
 	mac = gnutls_mac_get_name(gnutls_mac_get (session));
 
-	g_message(
+	g_debug(
 		"TLS session info:\n"
 		"Host:         %s\n"
 		"Protocol:     %s\n"
@@ -270,7 +270,7 @@ tls_handshake(struct gnutella_socket *s)
 	switch (ret) {
 	case 0:
 		if (GNET_PROPERTY(tls_debug)) {
-			g_message("TLS handshake succeeded");
+			g_debug("TLS handshake succeeded");
 		}
 		tls_socket_evt_change(s, SOCK_CONN_INCOMING == s->direction
 									? INPUT_EVENT_R : INPUT_EVENT_W);
@@ -292,7 +292,7 @@ tls_handshake(struct gnutella_socket *s)
 				if (GNET_PROPERTY(tls_debug) < 2)
 					break;
 			default:
-				g_message("gnutls_handshake() failed: host=%s errno=\"%s\"",
+				g_debug("gnutls_handshake() failed: host=%s errno=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),
 					g_strerror(errno));
 			}
@@ -539,7 +539,7 @@ tls_write_intern(struct wrap_io *wio, gconstpointer buf, size_t size)
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
 			if (GNET_PROPERTY(tls_debug)) {
-				g_message("tls_write(): socket_tls_write() failed: "
+				g_debug("tls_write(): socket_tls_write() failed: "
 					"host=%s errno=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),
 					g_strerror(errno));
@@ -589,7 +589,7 @@ tls_flush(struct wrap_io *wio)
 
 	if (s->tls.snarf) {
 		if (GNET_PROPERTY(tls_debug)) {
-			g_message("tls_flush: snarf=%lu host=%s",
+			g_debug("tls_flush: snarf=%lu host=%s",
 					(gulong) s->tls.snarf,
 					host_addr_port_to_string(s->addr, s->port));
 		}
@@ -654,7 +654,7 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
 			if (GNET_PROPERTY(tls_debug)) {
-				g_message("tls_read(): socket_tls_read() failed: "
+				g_debug("tls_read(): socket_tls_read() failed: "
 					"host=%s errno=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),
 					g_strerror(errno));
@@ -791,7 +791,7 @@ tls_bye(struct gnutella_socket *s)
 						break;
 				default:
 					if (GNET_PROPERTY(tls_debug)) {
-						g_message("gnutls_bye() failed: host=%s errno=\"%s\"",
+						g_debug("gnutls_bye() failed: host=%s errno=\"%s\"",
 							host_addr_port_to_string(s->addr, s->port),
 							g_strerror(errno));
 					}

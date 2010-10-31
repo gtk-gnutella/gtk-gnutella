@@ -256,7 +256,7 @@ spam_sha1_load(FILE *f)
 	sha1_lut.state = SPAM_LOADED;
 
 	if (GNET_PROPERTY(spam_debug))
-		g_message("loaded %lu SPAM SHA-1 keys", item_count);
+		g_debug("loaded %lu SPAM SHA-1 keys", item_count);
 
 	return item_count;
 }

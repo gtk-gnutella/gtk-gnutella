@@ -871,7 +871,7 @@ share_scan_add_file(const char *relative_path,
 	name++;						/* Start of file name */
 
 	if (GNET_PROPERTY(share_debug) > 5) {
-		g_message("share_scan_add_file: pathname=\"%s\"", pathname);
+		g_debug("share_scan_add_file: pathname=\"%s\"", pathname);
 	}
 	sf = shared_file_alloc();
 	sf->file_path = atom_str_get(pathname);
@@ -1774,7 +1774,7 @@ shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
 			 * Only the first found is inserted into the tree.
 			 */
 			if (GNET_PROPERTY(share_debug) > 0) {
-				g_message("\"%s\" is a duplicate of \"%s\"",
+				g_debug("\"%s\" is a duplicate of \"%s\"",
 					shared_file_path(sf),
 					shared_file_path(current));
 			}

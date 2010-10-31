@@ -270,7 +270,7 @@ sq_clear(squeue_t *sq)
 	g_assert(sq);
 
 	if (GNET_PROPERTY(sq_debug) > 3)
-		g_message("clearing sq node %s (sent=%d, dropped=%d)",
+		g_debug("clearing sq node %s (sent=%d, dropped=%d)",
 			sq->node ? node_addr(sq->node) : "GLOBAL",
 			sq->n_sent, sq->n_dropped);
 
@@ -437,7 +437,7 @@ retry:
 		g_assert(sb->qhv != NULL);		/* Enqueued via sq_global_putq() */
 
 		if (GNET_PROPERTY(sq_debug) > 2)
-			g_message("sq GLOBAL, queuing \"%s\" (%u left, %d sent)",
+			g_debug("sq GLOBAL, queuing \"%s\" (%u left, %d sent)",
 				gnutella_msg_search_get_text(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
 
@@ -452,7 +452,7 @@ retry:
 		g_assert(sb->qhv == NULL);		/* Enqueued via sq_putq() */
 
 		if (GNET_PROPERTY(sq_debug) > 2)
-			g_message("sq for node %s, queuing \"%s\" (%u left, %d sent)",
+			g_debug("sq for node %s, queuing \"%s\" (%u left, %d sent)",
 				node_addr(n), gnutella_msg_search_get_text(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
 
@@ -470,7 +470,7 @@ retry:
 
 	} else {
 		if (GNET_PROPERTY(sq_debug) > 4)
-			g_message("sq for node %s, ignored \"%s\" (%u left, %d sent)",
+			g_debug("sq for node %s, ignored \"%s\" (%u left, %d sent)",
 				node_addr(n), gnutella_msg_search_get_text(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
 		pmsg_free(sb->mb);
@@ -516,7 +516,7 @@ cap_queue(squeue_t *sq)
 		sq->n_dropped++;
 
 		if (GNET_PROPERTY(sq_debug) > 4)
-			g_message("sq for node %s, dropped \"%s\" (%u left, %d dropped)",
+			g_debug("sq for node %s, dropped \"%s\" (%u left, %d dropped)",
 				node_addr(sq->node),
 				gnutella_msg_search_get_text(pmsg_start(sb->mb)),
 				sq->count, sq->n_dropped);
@@ -550,7 +550,7 @@ sq_search_closed(squeue_t *sq, gnet_search_t sh)
 		sq->searches = g_list_remove_link(sq->searches, l);
 
 		if (GNET_PROPERTY(sq_debug) > 4)
-			g_message("sq for node %s, dropped \"%s\" on search close (%u left)",
+			g_debug("sq for node %s, dropped \"%s\" on search close (%u left)",
 				sq->node ? node_addr(sq->node) : "GLOBAL",
 				gnutella_msg_search_get_text(pmsg_start(sb->mb)), sq->count);
 

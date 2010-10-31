@@ -353,7 +353,7 @@ verify_context_free(void *data)
 	ctx->task = NULL;
 
 	if (GNET_PROPERTY(verify_debug) > 1) {
-		g_message("destroying task for %s verification", verify_hash_name(ctx));
+		g_debug("destroying task for %s verification", verify_hash_name(ctx));
 	}
 }
 
@@ -390,7 +390,7 @@ verify_next_file(struct verify *ctx)
 			}
 		} else {
 			if (GNET_PROPERTY(verify_debug)) {
-				g_message("discarding request of %s digest for %s",
+				g_debug("discarding request of %s digest for %s",
 					verify_hash_name(ctx), item->pathname);
 			}
 		}
@@ -403,7 +403,7 @@ verify_next_file(struct verify *ctx)
 
 	if (ctx->file) {
 		if (GNET_PROPERTY(verify_debug)) {
-			g_message("verifying %s digest for %s",
+			g_debug("verifying %s digest for %s",
 				verify_hash_name(ctx), file_object_get_pathname(ctx->file));
 		}
 		verify_hash_init(ctx);
@@ -532,7 +532,7 @@ verify_create_task(struct verify *ctx)
 		static const bgstep_cb_t step[] = { verify_step_compute };
 
 		if (GNET_PROPERTY(verify_debug) > 1) {
-			g_message("creating new task for %s verification",
+			g_debug("creating new task for %s verification",
 				verify_hash_name(ctx));
 		}
 
@@ -580,7 +580,7 @@ verify_enqueue(struct verify *ctx, int high_priority,
 	}
 
 	if (GNET_PROPERTY(verify_debug)) {
-		g_message("%s %s digest verification for %s",
+		g_debug("%s %s digest verification for %s",
 			inserted ? "enqueued" : "already had queued",
 			verify_hash_name(ctx), pathname);
 	}

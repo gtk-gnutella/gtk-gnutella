@@ -159,7 +159,7 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 			 */
 
 			if (GNET_PROPERTY(verify_debug) > 1) {
-				g_message("skipping TTH computation for %s: no longer shared",
+				g_debug("skipping TTH computation for %s: no longer shared",
 					shared_file_path(sf));
 			}
 			return FALSE;
@@ -172,7 +172,7 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 				GNET_PROPERTY(tigertree_debug) > 1 ||
 				GNET_PROPERTY(verify_debug) > 1
 			) {
-				g_message("TTH for %s is already cached (%s)",
+				g_debug("TTH for %s is already cached (%s)",
 					shared_file_path(sf), tth_base32(shared_file_tth(sf)));
 			}
 			return FALSE;

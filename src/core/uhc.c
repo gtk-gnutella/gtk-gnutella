@@ -357,7 +357,7 @@ uhc_send_ping(void)
 	if (udp_send_ping(&uhc_ctx.muid, uhc_ctx.addr, uhc_ctx.port, TRUE)) {
 
 		if (GNET_PROPERTY(bootstrap_debug))
-			g_message("BOOT sent UDP SCP ping %s to %s:%u",
+			g_debug("BOOT sent UDP SCP ping %s to %s:%u",
 				guid_hex_str(&uhc_ctx.muid), uhc_ctx.host, uhc_ctx.port);
 		/*
 		 * Give GUI feedback.
@@ -381,7 +381,7 @@ uhc_send_ping(void)
 		uhc_ctx.timeout_ev = cq_insert(callout_queue,
 				UHC_TIMEOUT, uhc_ping_timeout, NULL);
 	} else {
-		g_message("BOOT failed to send UDP SCP to %s",
+		g_warning("BOOT failed to send UDP SCP to %s",
 			host_addr_port_to_string(uhc_ctx.addr, uhc_ctx.port));
 	}
 }
@@ -411,7 +411,7 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, gpointer uu_udata)
 	uhc_ctx.addr = addrs[random_u32() % n];
 	
 	if (GNET_PROPERTY(bootstrap_debug))
-		g_message("BOOT UDP host cache \"%s\" resolved to %s",
+		g_debug("BOOT UDP host cache \"%s\" resolved to %s",
 			uhc_ctx.host, host_addr_to_string(uhc_ctx.addr));
 
 
@@ -447,16 +447,12 @@ uhc_get_hosts(void)
 		return;
 
 	if (!udp_active()) {
-		if (GNET_PROPERTY(bootstrap_debug)) {
-			g_message("BOOT cannot contact UHCs (UDP inactive), using GHCs");
-		}
+		g_message("BOOT cannot contact UHCs (UDP inactive), using GHCs");
 		ghc_get_hosts();
 		return;
 	}
 
-	if (GNET_PROPERTY(bootstrap_debug)) {
-		g_message("BOOT will be contacting an UHC");
-	}
+	g_message("BOOT will be contacting an UHC");
 
 	/*
 	 * Reset context.
@@ -486,7 +482,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen)
 	cnt = paylen / 6;
 
 	if (GNET_PROPERTY(bootstrap_debug))
-		g_message("extracting %d host%s in UDP IPP pong %s from %s (%s)",
+		g_debug("extracting %d host%s in UDP IPP pong %s from %s (%s)",
 			cnt, cnt == 1 ? "" : "s",
 			guid_hex_str(gnutella_header_get_muid(&n->header)), node_addr(n),
 			uhc_connecting ? "expected" : "unsollicited");
@@ -501,7 +497,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen)
 		hcache_add_caught(HOST_ULTRA, ha, port, "UDP-HC");
 
 		if (GNET_PROPERTY(bootstrap_debug) > 2)
-			g_message("BOOT collected %s from UDP IPP pong from %s",
+			g_debug("BOOT collected %s from UDP IPP pong from %s",
 				host_addr_to_string(ha), node_addr(n));
 	}
 
@@ -520,7 +516,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen)
 		return;
 
 	if (GNET_PROPERTY(bootstrap_debug)) {
-		g_message("BOOT UDP cache \"%s\" replied: got %d host%s from %s",
+		g_debug("BOOT UDP cache \"%s\" replied: got %d host%s from %s",
 			uhc_ctx.host, cnt, cnt == 1 ? "" : "s", node_addr(n));
 	}
 

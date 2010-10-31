@@ -209,7 +209,7 @@ log_whitelist_item(const struct whitelist *item, const char *what)
 		bits = 0;
 	}
 
-	g_message("WLIST %s %s%s%s%s", what,
+	g_debug("WLIST %s %s%s%s%s", what,
 		item->use_tls ? "tls:" : "", host,
 		bits == 0 ? "" : "/",
 		bits == 0 ? "" : uint32_to_string(bits));
@@ -270,7 +270,7 @@ whitelist_dns_cb(const host_addr_t *addrs, size_t n, void *udata)
 			item->bits = addr_default_mask(item->addr);
 
 			if (GNET_PROPERTY(whitelist_debug) > 1) {
-				g_message("WLIST DNS-resolved %s as %s (out of %lu result%s)",
+				g_debug("WLIST DNS-resolved %s as %s (out of %lu result%s)",
 					item->host->name, host_addr_to_string(item->addr),
 					(unsigned long) n, 1 == n ? "" : "s");
 			}
@@ -597,7 +597,7 @@ whitelist_changed(const char *filename, gpointer unused_data)
 	(void) unused_data;
 
 	if (GNET_PROPERTY(whitelist_debug)) {
-		g_message("WLIST reloading from %s", filename);
+		g_debug("WLIST reloading from %s", filename);
 	}
 
     whitelist_close();

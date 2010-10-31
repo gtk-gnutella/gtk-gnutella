@@ -92,7 +92,7 @@ version_get_code(void)
 static void
 version_dump(const char *str, const version_t *ver, const char *cmptag)
 {
-	g_message("VERSION%s \"%s\": "
+	g_debug("VERSION%s \"%s\": "
 		"major=%u minor=%u patch=%u tag=%c taglevel=%u build=%u",
 		cmptag, str, ver->major, ver->minor, ver->patchlevel,
 		ver->tag ? ver->tag : ' ', ver->taglevel, ver->build);
@@ -444,7 +444,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 	version_stamp(str, &their_version);
 
 	if (GNET_PROPERTY(version_debug) > 3)
-		g_message("VERSION time=%d", (int) their_version.timestamp);
+		g_debug("VERSION time=%d", (int) their_version.timestamp);
 
 	/*
 	 * If version claims something older than TOKEN_START_DATE, then
@@ -456,7 +456,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 
 		if (token == NULL) {
             if (GNET_PROPERTY(version_debug)) {
-                g_message("got GTKG vendor string \"%s\" without token!", str);
+                g_debug("got GTKG vendor string \"%s\" without token!", str);
             }
 			return FALSE;	/* Can't be correct */
 		}
@@ -479,7 +479,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 
 		if (error != TOK_OK) {
             if (GNET_PROPERTY(version_debug)) {
-                g_message("vendor string \"%s\" [%s] has wrong token "
+                g_debug("vendor string \"%s\" [%s] has wrong token "
                     "\"%s\": %s ", str, host_addr_to_string(addr), token,
                     tok_strerror(error));
             }
@@ -509,11 +509,11 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 		target_version == &last_rel_version
 	) {
 		if (GNET_PROPERTY(version_debug) > 3)
-			g_message("VERSION is a SVN update of a release");
+			g_debug("VERSION is a SVN update of a release");
 
 		if (version_build_cmp(&last_dev_version, &their_version) > 0) {
 			if (GNET_PROPERTY(version_debug) > 3)
-				g_message("VERSION is less recent than latest dev we know");
+				g_debug("VERSION is less recent than latest dev we know");
 			return TRUE;
 		}
 		target_version = &last_dev_version;
@@ -544,7 +544,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 	 */
 
 	if (GNET_PROPERTY(version_debug) > 1)
-		g_message("more recent %s VERSION \"%s\"",
+		g_debug("more recent %s VERSION \"%s\"",
 			target_version == &last_dev_version ? "dev" : "rel", str);
 
 	*target_version = their_version;		/* struct copy */
@@ -631,7 +631,7 @@ version_init(void)
 		g_assert(ok);
 	}
 
-	g_message("%s", version_string);
+	g_info("%s", version_string);
 
 	version_stamp(version_string, &our_version);
 	g_assert(our_version.timestamp != 0);
@@ -706,7 +706,7 @@ version_ancient_warn(void)
 	if (elapsed > VERSION_ANCIENT_WARN || tok_is_ancient(now)) {
 		static gboolean warned = FALSE;
 		if (GNET_PROPERTY(version_debug)) {
-			g_message("VERSION our_version = %s (elapsed = %ld, token %s)",
+			g_debug("VERSION our_version = %s (elapsed = %ld, token %s)",
 				timestamp_to_string(our_version.timestamp),
 				(long) elapsed, tok_is_ancient(now) ? "ancient" : "ok");
 		}

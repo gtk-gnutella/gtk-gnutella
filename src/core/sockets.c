@@ -268,7 +268,7 @@ socket_evt_set(struct gnutella_socket *s,
 	s->tls.cb_data = data;
 
 	if (GNET_PROPERTY(tls_debug) > 4) {
-		g_message("socket_evt_set: fd=%d, cond=%s",
+		g_debug("socket_evt_set: fd=%d, cond=%s",
 			fd, inputevt_cond_to_string(cond));
 	}
 	s->gdk_tag = inputevt_add(fd, cond, handler, data);
@@ -292,7 +292,7 @@ socket_evt_clear(struct gnutella_socket *s)
 	if (s->gdk_tag) {
 		if (GNET_PROPERTY(tls_debug) > 4) {
 			int fd = socket_evt_fd(s);
-			g_message("socket_evt_clear: fd=%d, cond=%s",
+			g_debug("socket_evt_clear: fd=%d, cond=%s",
 				fd, inputevt_cond_to_string(s->tls.cb_cond));
 		}
 
@@ -542,10 +542,10 @@ proxy_connect_helper(const host_addr_t *addr, size_t n, gpointer udata)
 	if (n > 0) {
 		/* Just pick the first address */
 		gnet_prop_set_ip_val(PROP_PROXY_ADDR, addr[0]);
-		g_message("Resolved proxy name \"%s\" to %s",
+		g_message("resolved proxy name \"%s\" to %s",
 			GNET_PROPERTY(proxy_hostname), host_addr_to_string(addr[0]));
 	} else {
-		g_message("Could not resolve proxy name \"%s\"",
+		g_message("could not resolve proxy name \"%s\"",
 			GNET_PROPERTY(proxy_hostname));
 	}
 }
@@ -1082,7 +1082,7 @@ connect_socksv5(struct gnutella_socket *s)
 			return ECONNREFUSED;
 		}
 		if (GNET_PROPERTY(socket_debug)) {
-			g_message("connect_socksv5: Step 5, bytes recv'd %lu\n",
+			g_debug("connect_socksv5: Step 5, bytes recv'd %lu\n",
 				(unsigned long) ret);
 		}
 		if ((size_t) ret != size) {
@@ -1490,7 +1490,7 @@ socket_read(gpointer data, int source, inputevt_cond_t cond)
 				g_assert(1 == ret);
 
 				if (GNET_PROPERTY(tls_debug) > 2)
-					g_message("socket_read(): c=0x%02x", c);
+					g_debug("socket_read(): c=0x%02x", c);
 
 				if (is_ascii_alnum(c) || '\n' == c || '\r' == c) {
 					s->tls.enabled = FALSE;
@@ -1624,7 +1624,7 @@ socket_read(gpointer data, int source, inputevt_cond_t cond)
 			const char *msg = ban_message(s->addr);
 
             if (GNET_PROPERTY(socket_debug)) {
-                g_message("rejecting connection from banned %s (%s still): %s",
+                g_debug("rejecting connection from banned %s (%s still): %s",
                     host_addr_to_string(s->addr),
 					short_time(ban_delay(s->addr)), msg);
             }
@@ -2210,7 +2210,7 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 		ctl_limit(t->addr, CTL_S_ANY_TCP | CTL_D_STEALTH)
 	) {
 		if (GNET_PROPERTY(ctl_debug) > 2) {
-			g_message("CTL closing incoming TCP connection from %s [%s]",
+			g_debug("CTL closing incoming TCP connection from %s [%s]",
 				host_addr_port_to_string(t->addr, t->port),
 				gip_country_cc(t->addr));
 		}
@@ -2224,7 +2224,7 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 	t->tls.snarf = 0;
 
 	if (GNET_PROPERTY(tls_debug) > 2) {
-		g_message("Incoming connection from %s",
+		g_debug("Incoming connection from %s",
 			host_addr_port_to_string(t->addr, t->port));
 	}
 
@@ -2321,7 +2321,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 #endif /* HAS_IPV6 && IPV6_RECVPKTINFO */
 		} else {
 			if (GNET_PROPERTY(socket_debug))
-				g_message("socket_udp_extract_dst_addr(): "
+				g_debug("socket_udp_extract_dst_addr(): "
 					"CMSG type=%u, level=%u, len=%u",
 					(unsigned) p->cmsg_type,
 					(unsigned) p->cmsg_level,
@@ -2466,7 +2466,7 @@ socket_udp_accept(struct gnutella_socket *s)
 		) {
 			last_addr = dst_addr;
 			if (GNET_PROPERTY(socket_debug))
-				g_message("socket_udp_accept(): dst_addr=%s",
+				g_debug("socket_udp_accept(): dst_addr=%s",
 					host_addr_to_string(dst_addr));
 		}
 	}
@@ -2544,7 +2544,7 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 	} while (i < MAX_UDP_RECV_LOOP);
 
 	if (i > 16 && GNET_PROPERTY(socket_debug)) {
-		g_message(
+		g_debug(
 			"socket_udp_event() iterated %u times, read %lu bytes in %u usecs",
 			i, (unsigned long) rd, (unsigned) tm_elapsed_us(&end, &start));
 	}
@@ -2642,7 +2642,7 @@ socket_set_fastack(struct gnutella_socket *s)
 	(void) on;
 #if defined(TCP_FASTACK)
 	if (setsockopt(s->file_desc, sol_tcp(), TCP_FASTACK, &on, sizeof on)) {
-		g_message("Could not set TCP_FASTACK (fd=%d): %s",
+		g_warning("could not set TCP_FASTACK (fd=%d): %s",
 			s->file_desc, g_strerror(errno));
 	}
 #endif /* TCP_FASTACK */
@@ -2665,7 +2665,7 @@ socket_set_quickack(struct gnutella_socket *s, int on)
 	(void) on;
 #if defined(TCP_QUICKACK)
 	if (setsockopt(s->file_desc, sol_tcp(), TCP_QUICKACK, &on, sizeof on)) {
-		g_message("Could not set TCP_QUICKACK (fd=%d): %s",
+		g_warning("could not set TCP_QUICKACK (fd=%d): %s",
 			s->file_desc, g_strerror(errno));
 	}
 #endif	/* TCP_QUICKACK*/
@@ -3560,7 +3560,7 @@ socket_set_intern(int fd, int option, unsigned size,
 
 	if (!shrink && old_len >= size) {
 		if (GNET_PROPERTY(socket_debug) > 5)
-			g_message(
+			g_debug(
 				"socket %s buffer on fd #%d NOT shrank to %u bytes (is %u)",
 				type, fd, size, old_len);
 		return;
@@ -3580,7 +3580,7 @@ socket_set_intern(int fd, int option, unsigned size,
 #endif
 
 	if (GNET_PROPERTY(socket_debug) > 5)
-		g_message("socket %s buffer on fd #%d: %u -> %u bytes (now %u) %s",
+		g_debug("socket %s buffer on fd #%d: %u -> %u bytes (now %u) %s",
 			type, fd, old_len, size, new_len,
 			(new_len == size) ? "OK" : "FAILED");
 }

@@ -359,7 +359,7 @@ mi_clean(cqueue_t *unused_cq, gpointer obj)
 	g_assert(miv->cq_ev);
 
 	if (GNET_PROPERTY(upload_debug) > 4)
-		g_message("upload MESH info (%s/%s) discarded",
+		g_debug("upload MESH info (%s/%s) discarded",
 			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
 
 	g_hash_table_remove(mesh_info, mik);
@@ -399,7 +399,7 @@ mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 		miv->stamp = (guint32) now;
 
 		if (GNET_PROPERTY(upload_debug) > 4)
-			g_message("upload MESH info (%s/%s) has stamp=%u",
+			g_debug("upload MESH info (%s/%s) has stamp=%u",
 				host_addr_to_string(addr), sha1_base32(sha1), oldstamp);
 
 		return oldstamp;
@@ -416,7 +416,7 @@ mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 	g_hash_table_insert(mesh_info, mik, miv);
 
 	if (GNET_PROPERTY(upload_debug) > 4)
-		g_message("new upload MESH info (%s/%s) stamp=%u",
+		g_debug("new upload MESH info (%s/%s) stamp=%u",
 			host_addr_to_string(addr), sha1_base32(sha1), (guint32) now);
 
 	return 0;			/* Don't remember sending info about this file */
@@ -936,7 +936,7 @@ handle_push_request(struct gnutella_node *n)
 	 */
 
 	if (GNET_PROPERTY(upload_debug) > 3)
-		g_message("PUSH (hops=%d, ttl=%d) to %s: %s",
+		g_debug("PUSH (hops=%d, ttl=%d) to %s: %s",
 			gnutella_header_get_hops(&n->header),
 			gnutella_header_get_ttl(&n->header),
 			host_addr_port_to_string(ha, port),
@@ -1243,7 +1243,7 @@ upload_xguid_add(char *buf, size_t size,
 	/*
 	 * If we don't use the DHT (hence we won't be publishing any push-proxy
 	 * information) or are TCP-firewalled there's no need to generate
-	 * the header.
+	 * the header (would be redundant with X-FW-Node-Info).
 	 */
 
 	if (GNET_PROPERTY(is_firewalled) || !dht_enabled())
@@ -1760,7 +1760,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 
 	if (u->flags & UPLOAD_F_LIMITED) {
 		if (GNET_PROPERTY(upload_debug)) {
-			g_message("upload request from %s [%s] limited for %s",
+			g_debug("upload request from %s [%s] limited for %s",
 				host_addr_to_string(u->socket->addr),
 				gip_country_name(u->socket->addr),
 				u->name ? u->name : "<unkonwn resource>");
@@ -1954,7 +1954,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	u->keep_alive = GTA_UL_QUEUED == u->status;
 
 	if (GNET_PROPERTY(upload_debug) >= 4) {
-		g_message(
+		g_debug(
 			"sending code=%d to %s (%s) [status=%d]: %s",
 			code,
 			u->socket
@@ -2032,7 +2032,7 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 
 	if (!UPLOAD_IS_COMPLETE(u) && GNET_PROPERTY(upload_debug) > 1) {
 		if (u->name) {
-			g_message(
+			g_debug(
 				"ending upload of \"%s\" [%s bytes out] from %s (%s): %s",
 				u->name,
 				uint64_to_string(u->sent),
@@ -2041,7 +2041,7 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 				upload_vendor_str(u),
 				logreason);
 		} else {
-			g_message(
+			g_debug(
 				"ending upload [%s bytes out] from %s (%s): %s",
 				uint64_to_string(u->sent),
 				u->socket
@@ -2529,7 +2529,7 @@ upload_connect_conf(struct upload *u)
 			"only sent %lu out of %lu bytes of GIV for \"%s\" to %s",
 			(gulong) sent, (gulong) rw, u->name, host_addr_to_string(s->addr));
 	} else if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT) {
-		g_message("----Sent GIV to %s:", host_addr_to_string(s->addr));
+		g_debug("----Sent GIV to %s:", host_addr_to_string(s->addr));
 		dump_string(stderr, giv, rw, "----");
 	}
 
@@ -2802,7 +2802,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 			if (u->push) {
 				if (GNET_PROPERTY(upload_debug) > 1)
-					g_message("INDEX FIXED (push, SHA1 = %s): "
+					g_debug("INDEX FIXED (push, SHA1 = %s): "
 						"requested %u, serving %u: %s",
 						sha1_base32(&sha1), idx,
 						(guint) shared_file_index(sfn),
@@ -2820,7 +2820,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 			if (shared_file_is_partial(sfn)) {
 				if (GNET_PROPERTY(upload_debug) > 1)
-					g_message("REQUEST FIXED (partial, SHA1 = %s): "
+					g_debug("REQUEST FIXED (partial, SHA1 = %s): "
 						"requested \"%s\", serving \"%s\"",
 						sha1_base32(&sha1), u->name,
 						shared_file_path(sfn));
@@ -2868,10 +2868,10 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 		if (GNET_PROPERTY(upload_debug) > 1) {
 			if (sf)
-				g_message("BAD INDEX FIXED: requested %u, serving %u: %s",
+				g_debug("BAD INDEX FIXED: requested %u, serving %u: %s",
 					idx, (guint) shared_file_index(sf), shared_file_path(sf));
 			else
-				g_message("BAD INDEX NOT FIXED: requested %u: %s",
+				g_debug("BAD INDEX NOT FIXED: requested %u: %s",
 					idx, u->name);
 		}
 
@@ -2882,11 +2882,11 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 		if (GNET_PROPERTY(upload_debug) > 1) {
 			if (sfn)
-				g_message("INDEX FIXED: requested %u, serving %u: %s",
+				g_debug("INDEX FIXED: requested %u, serving %u: %s",
 					idx, (guint) shared_file_index(sfn),
 					shared_file_path(sfn));
 			else
-				g_message("INDEX MISMATCH: requested %u: %s (has %s)",
+				g_debug("INDEX MISMATCH: requested %u: %s (has %s)",
 					idx, u->name, shared_file_name_nfc(sf));
 		}
 
@@ -3446,7 +3446,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	u->name = atom_str_get(_("<Browse Host Request>"));
 
 	if (GNET_PROPERTY(upload_debug) > 1)
-		g_message("BROWSE request from %s (%s)",
+		g_debug("BROWSE request from %s (%s)",
 			host_addr_to_string(u->socket->addr),
 			upload_vendor_str(u));
 
@@ -3915,7 +3915,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			if (parq_upload_request_force(u, u->parq_ul)) {
 				parq_allows = TRUE;
 				if (GNET_PROPERTY(upload_debug))
-					g_message(
+					g_debug(
 						"overriden slot limit because u/l b/w used at "
 						"%lu%% (minimum set to %d%%)",
 						bsched_avg_pct(BSCHED_BWS_OUT),
@@ -4513,7 +4513,7 @@ upload_request(struct upload *u, header_t *header)
 	u->socket->getline = NULL;
 
 	if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_IN) {
-		g_message("----%s Request%s #%u from %s%s%s:\n%s",
+		g_debug("----%s Request%s #%u from %s%s%s:\n%s",
 			u->is_followup ? "Follow-up" : "Incoming",
 			u->last_was_error ? " (after error)" : "",
 			u->reqnum,
@@ -5084,7 +5084,7 @@ upload_special_flushed(gpointer arg)
 	u->special = NULL;
 
 	if (GNET_PROPERTY(upload_debug))
-		g_message("%s from %s (%s) done: %s bytes, %s sent",
+		g_debug("%s from %s (%s) done: %s bytes, %s sent",
 			u->name,
 			host_addr_to_string(u->socket->addr),
 			upload_vendor_str(u),
