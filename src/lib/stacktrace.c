@@ -767,7 +767,7 @@ stacktrace_get_atom(const struct stacktrace *st)
  * $X-Id: execinfo.c,v 1.3 2004/07/19 05:21:09 sobomax Exp $
  */
 
-#if defined(__GNUC__)
+#if HAS_GCC(3, 0)
 static void *
 getreturnaddr(size_t level)
 {
@@ -1039,7 +1039,7 @@ getframeaddr(size_t level)
     default:	return NULL;
     }
 }
-#else	/* !__GNUC__ */
+#else	/* !GCC >= 3.0 */
 static void *
 getreturnaddr(size_t level)
 {
@@ -1053,6 +1053,6 @@ getframeaddr(size_t level)
 	(void) level;
 	return NULL;
 }
-#endif	/* __GNUC__ */
+#endif	/* GCC >= 3.0 */
 
 /* vi: set ts=4 sw=4 cindent:  */
