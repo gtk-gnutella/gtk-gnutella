@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "path.h"
 #include "timestamp.h"
 #include "tm.h"
+#include "glib-missing.h"
 #include "override.h"		/* Must be the last header included */
 
 static const char orig_ext[] = "orig";

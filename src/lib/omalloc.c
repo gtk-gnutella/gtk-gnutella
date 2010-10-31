@@ -79,6 +79,7 @@ RCSID("$Id$")
 #include "pow2.h"
 #include "unsigned.h"
 #include "vmm.h"
+#include "glib-missing.h"
 
 #include "override.h"	/* Must be the last header included */
 

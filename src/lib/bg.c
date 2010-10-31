@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "misc.h"
 #include "tm.h"
 #include "walloc.h"
+#include "glib-missing.h"
 
 #include "override.h"		/* Must be the last header included */
 

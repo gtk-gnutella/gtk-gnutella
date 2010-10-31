@@ -60,6 +60,7 @@ RCSID("$Id$")
 #include "tm.h"
 #include "unsigned.h"
 #include "omalloc.h"
+#include "glib-missing.h"
 
 #ifdef TRACK_VMM
 #include "hashtable.h"
