@@ -266,7 +266,7 @@ delete_contact(guint64 dbkey)
 	dbmw_delete(db_contact, &dbkey);
 
 	if (GNET_PROPERTY(dht_roots_debug) > 2)
-		g_message("DHT contact DB-key %s reclaimed", uint64_to_string(dbkey));
+		g_debug("DHT contact DB-key %s reclaimed", uint64_to_string(dbkey));
 }
 
 /**
@@ -289,7 +289,7 @@ delete_rootdata(const kuid_t *id)
 	dbmw_delete(db_rootdata, id);
 
 	if (GNET_PROPERTY(dht_roots_debug) > 2)
-		g_message("DHT ROOTS k-closest nodes from %s reclaimed",
+		g_debug("DHT ROOTS k-closest nodes from %s reclaimed",
 			kuid_to_hex_string(id));
 }
 
@@ -504,7 +504,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 	}
 
 	if (GNET_PROPERTY(dht_roots_debug) > 1) {
-		g_message("DHT ROOTS cached %u/%u k-closest node%s to %s target %s "
+		g_debug("DHT ROOTS cached %u/%u k-closest node%s to %s target %s "
 			"(new=%u, reused=%u, elapsed=%s)",
 			rd->count, (unsigned) patricia_count(nodes),
 			1 == rd->count ? "" : "s",
@@ -619,7 +619,7 @@ roots_fill_closest(const kuid_t *id,
 		gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_EXACT_HITS, 1);
 
 		if (GNET_PROPERTY(dht_roots_debug) > 1) {
-			g_message("DHT ROOTS exact match for %s (%s), filled %d new node%s",
+			g_debug("DHT ROOTS exact match for %s (%s), filled %d new node%s",
 				kuid_to_hex_string(id),
 				compact_time(delta_time(tm_time(), ri->last_update)),
 				filled, 1 == filled ? "" : "s");
@@ -657,7 +657,7 @@ roots_fill_closest(const kuid_t *id,
 			}
 
 			if (GNET_PROPERTY(dht_roots_debug) > 1) {
-				g_message("DHT ROOTS approximate match of %s with %s (%s), "
+				g_debug("DHT ROOTS approximate match of %s with %s (%s), "
 					"filled %d new node%s",
 					kuid_to_hex_string(id),
 					kuid_to_hex_string2(cri->kuid),
@@ -668,7 +668,7 @@ roots_fill_closest(const kuid_t *id,
 			gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_MISSES, 1);
 
 			if (GNET_PROPERTY(dht_roots_debug) > 1) {
-				g_message("DHT ROOTS no suitable cached entry for %s, "
+				g_debug("DHT ROOTS no suitable cached entry for %s, "
 					"closest was %s",
 					kuid_to_hex_string(id),
 					cri != NULL ?
@@ -871,7 +871,7 @@ recreate_ri(gpointer key, gpointer value, size_t u_len, gpointer data)
 	d = delta_time(tm_time(), rd->last_update);
 
 	if (GNET_PROPERTY(dht_roots_debug) > 4)
-		g_message("DHT ROOTS retrieved target %s (%s)",
+		g_debug("DHT ROOTS retrieved target %s (%s)",
 			kuid_to_hex_string(id), compact_time(d));
 
 	if (d >= ROOTKEY_LIFETIME / 1000) {
@@ -917,7 +917,7 @@ recreate_ri(gpointer key, gpointer value, size_t u_len, gpointer data)
 	gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_HELD, rd->count);
 
 	if (GNET_PROPERTY(dht_roots_debug) > 3)
-		g_message("DHT ROOTS retrieved %u closest node%s from %s kept (for %s)",
+		g_debug("DHT ROOTS retrieved %u closest node%s from %s kept (for %s)",
 			rd->count, 1 == rd->count ? "" : "s",
 			kuid_to_hex_string(id), compact_time(ROOTKEY_LIFETIME / 1000 - d));
 
@@ -970,7 +970,7 @@ roots_init_rootinfo(void)
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		count = dbmw_count(db_rootdata);
-		g_message("DHT ROOTS scanning %u retrieved target KUID%s",
+		g_debug("DHT ROOTS scanning %u retrieved target KUID%s",
 			(unsigned) count, 1 == count ? "" : "s");
 	}
 
@@ -986,10 +986,10 @@ roots_init_rootinfo(void)
 	count = dbmw_count(db_rootdata);
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
-		g_message("DHT ROOTS kept %u target KUID%s: targets=%u, contacts=%u",
+		g_debug("DHT ROOTS kept %u target KUID%s: targets=%u, contacts=%u",
 			(unsigned) count, 1 == count ? "" : "s",
 			targets_managed, contacts_managed);
-		g_message("DHT ROOTS stripped %u orphan contact DB-key%s",
+		g_debug("DHT ROOTS stripped %u orphan contact DB-key%s",
 			ctx.orphans, 1 == ctx.orphans ? "" : "s");
 	}
 
@@ -1005,7 +1005,7 @@ roots_init_rootinfo(void)
 		contactid = 1;
 		targets_managed = contacts_managed = 0;
 		if (GNET_PROPERTY(dht_roots_debug)) {
-			g_message("DHT ROOTS clearing database");
+			g_debug("DHT ROOTS clearing database");
 		}
 		if (!dbmw_clear(db_rootdata)) {
 			if (GNET_PROPERTY(dht_roots_debug))
@@ -1017,7 +1017,7 @@ roots_init_rootinfo(void)
 		}
 	} else {
 		if (GNET_PROPERTY(dht_roots_debug)) {
-			g_message("DHT ROOTS shrinking database files");
+			g_debug("DHT ROOTS shrinking database files");
 		}
 		if (!dbmw_shrink(db_rootdata)) {
 			if (GNET_PROPERTY(dht_roots_debug))
@@ -1030,7 +1030,7 @@ roots_init_rootinfo(void)
 	}
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
-		g_message("DHT ROOTS first allocated contact DB-key will be %s",
+		g_debug("DHT ROOTS first allocated contact DB-key will be %s",
 			uint64_to_string(contactid));
 	}
 }
@@ -1090,7 +1090,7 @@ roots_close(void)
 	}
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
-		g_message("DHT ROOTS shutdown with targets=%u, contacts=%u",
+		g_debug("DHT ROOTS shutdown with targets=%u, contacts=%u",
 			targets_managed, contacts_managed);
 	}
 

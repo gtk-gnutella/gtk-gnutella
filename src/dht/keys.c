@@ -415,7 +415,7 @@ keys_expire_values(struct keyinfo *ki, time_t now)
 	}
 
 	if (GNET_PROPERTY(dht_storage_debug) > 3)
-		g_message("DHT STORE key %s has %d expired value%s out of %d",
+		g_debug("DHT STORE key %s has %d expired value%s out of %d",
 			kuid_to_hex_string(ki->kuid), expired, 1 == expired ? "" : "s",
 			ki->values);
 
@@ -455,7 +455,7 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 	keyinfo_check(ki);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 1)
-		g_message("DHT STORE key %s holds %d/%d value%s, "
+		g_debug("DHT STORE key %s holds %d/%d value%s, "
 			"load avg: get = %.2f [%s], store = %.2f [%s], expire in %s",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
 			1 == ki->values ? "" : "s",
@@ -531,7 +531,7 @@ keys_has(const kuid_t *id, const kuid_t *cid, gboolean store)
 	dbkey = lookup_secondary(kd, cid);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 15)
-		g_message("DHT lookup secondary for %s/%s => dbkey %s",
+		g_debug("DHT lookup secondary for %s/%s => dbkey %s",
 			kuid_to_hex_string(id), kuid_to_hex_string2(cid),
 			uint64_to_string(dbkey));
 
@@ -554,7 +554,7 @@ keys_reclaim(struct keyinfo *ki)
 	g_assert(0 == ki->values);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
-		g_message("DHT STORE key %s reclaimed", kuid_to_hex_string(ki->kuid));
+		g_debug("DHT STORE key %s reclaimed", kuid_to_hex_string(ki->kuid));
 
 	dbmw_delete(db_keydata, ki->kuid);
 
@@ -625,7 +625,7 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
 	dbmw_write(db_keydata, id, kd, sizeof *kd);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
-		g_message("DHT STORE key %s now holds only %d/%d value%s",
+		g_debug("DHT STORE key %s now holds only %d/%d value%s",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
 			1 == ki->values ? "" : "s");
 }
@@ -683,7 +683,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		in_kball = bits_within_kball(common);
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
-			g_message("DHT STORE new %s %s (%lu common bit%s) with creator %s",
+			g_debug("DHT STORE new %s %s (%lu common bit%s) with creator %s",
 				in_kball ? "key" : "cached key",
 				kuid_to_hex_string(id), (gulong) common, 1 == common ? "" : "s",
 				kuid_to_hex_string2(cid));
@@ -724,7 +724,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		g_assert(kd->values < MAX_VALUES);
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
-			g_message("DHT STORE existing key %s (%lu common bit%s) "
+			g_debug("DHT STORE existing key %s (%lu common bit%s) "
 				"has new creator %s",
 				kuid_to_hex_string(id), (gulong) ki->common_bits,
 				1 == ki->common_bits ? "" : "s",
@@ -784,7 +784,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 	dbmw_write(db_keydata, id, kd, sizeof *kd);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
-		g_message("DHT STORE %s key %s now holds %d/%d value%s",
+		g_debug("DHT STORE %s key %s now holds %d/%d value%s",
 			&new_kd == kd ? "new" : "existing",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
 			1 == ki->values ? "" : "s");
@@ -881,7 +881,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	g_assert(ki);	/* If called, we know the key exists */
 
 	if (GNET_PROPERTY(dht_storage_debug) > 5)
-		g_message("DHT FETCH key %s (load = %.2f, current reqs = %u) type %s"
+		g_debug("DHT FETCH key %s (load = %.2f, current reqs = %u) type %s"
 			" with %d secondary key%s",
 			kuid_to_hex_string(id), ki->get_req_load, ki->get_requests,
 			dht_value_type_to_string(type),
@@ -913,7 +913,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 		g_assert(kuid_eq(dht_value_key(v), id));
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
-			g_message("DHT FETCH key %s via secondary key %s has matching %s",
+			g_debug("DHT FETCH key %s via secondary key %s has matching %s",
 				kuid_to_hex_string(id), kuid_to_hex_string2(secondary[i]),
 				dht_value_to_string(v));
 
@@ -955,7 +955,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 		g_assert(kuid_eq(dht_value_key(v), id));
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
-			g_message("DHT FETCH key %s has matching %s",
+			g_debug("DHT FETCH key %s has matching %s",
 				kuid_to_hex_string(id), dht_value_to_string(v));
 
 		*vvec++ = v;
@@ -1107,7 +1107,7 @@ keys_periodic_load(gpointer unused_obj)
 
 	if (GNET_PROPERTY(dht_storage_debug)) {
 		size_t keys_count = g_hash_table_size(keys);
-		g_message("DHT holding %lu value%s spread over %lu key%s",
+		g_debug("DHT holding %lu value%s spread over %lu key%s",
 			(gulong) ctx.values, 1 == ctx.values ? "" : "s",
 			(gulong) keys_count, 1 == keys_count ? "" : "s");
 	}
@@ -1170,15 +1170,15 @@ keys_update_kball(void)
 		if (GNET_PROPERTY(dht_debug)) {
 			guint8 width = cbits - fbits;
 
-			g_message("DHT %sk-ball %s %u bit%s (was %u-bit wide)",
+			g_debug("DHT %sk-ball %s %u bit%s (was %u-bit wide)",
 				kball.seeded ? "" : "(not seeded yet) ",
 				width == kball.width ? "remained at" :
 				width > kball.width ? "expanded to" : "shrunk to",
 				width, 1 == width ? "" : "s", kball.width);
-			g_message("DHT k-ball closest (%lu common bit%s) is %s",
+			g_debug("DHT k-ball closest (%lu common bit%s) is %s",
 				(unsigned long) cbits, 1 == cbits ? "" : "s",
 				knode_to_string(closest));
-			g_message("DHT k-ball furthest (%lu common bit%s) is %s",
+			g_debug("DHT k-ball furthest (%lu common bit%s) is %s",
 				(unsigned long) fbits, 1 == fbits ? "" : "s",
 				knode_to_string(furthest));
 		}
@@ -1337,7 +1337,7 @@ keys_offload(const knode_t *kn)
 			GNET_PROPERTY(dht_publish_debug) > 1;
 
 	if (debug)
-		g_message("DHT preparing key offloading to %s", knode_to_string(kn));
+		g_debug("DHT preparing key offloading to %s", knode_to_string(kn));
 
 	gnet_stats_count_general(GNR_DHT_KEY_OFFLOADING_CHECKS, 1);
 
@@ -1383,7 +1383,7 @@ keys_offload(const knode_t *kn)
 	patricia_destroy(ctx.kclosest);
 
 	if (debug)
-		g_message("DHT found %u/%u offloading candidate%s",
+		g_debug("DHT found %u/%u offloading candidate%s",
 			ctx.count, (unsigned) g_hash_table_size(keys),
 			1 == ctx.count ? "" : "s");
 

@@ -318,7 +318,7 @@ prune_old(gpointer key, gpointer value, size_t u_len, gpointer u_data)
 	d = delta_time(tm_time(), ld->last_seen);
 
 	if (GNET_PROPERTY(dht_stable_debug) > 4) {
-		g_message("DHT STABLE node %s life=%s last_seen=%s%s",
+		g_debug("DHT STABLE node %s life=%s last_seen=%s%s",
 			kuid_to_hex_string(id),
 			compact_time(delta_time(tm_time(), ld->first_seen)),
 			compact_time2(d), d > STABLE_EXPIRE ? " [EXPIRED]" : "");
@@ -335,7 +335,7 @@ static void
 stable_prune_old(void)
 {
 	if (GNET_PROPERTY(dht_stable_debug)) {
-		g_message("DHT STABLE pruning old stable node records (%lu)",
+		g_debug("DHT STABLE pruning old stable node records (%lu)",
 			(unsigned long) dbmw_count(db_lifedata));
 	}
 
@@ -343,13 +343,13 @@ stable_prune_old(void)
 	gnet_stats_set_general(GNR_DHT_STABLE_NODES_HELD, dbmw_count(db_lifedata));
 
 	if (GNET_PROPERTY(dht_stable_debug)) {
-		g_message("DHT STABLE pruned old stable node records (%lu remaining)",
+		g_debug("DHT STABLE pruned old stable node records (%lu remaining)",
 			(unsigned long) dbmw_count(db_lifedata));
 	}
 
 	if (0 == dbmw_count(db_lifedata)) {
 		if (GNET_PROPERTY(dht_stable_debug)) {
-			g_message("DHT STABLE clearing database");
+			g_debug("DHT STABLE clearing database");
 		}
 		if (!dbmw_clear(db_lifedata)) {
 			if (GNET_PROPERTY(dht_stable_debug)) {
@@ -358,7 +358,7 @@ stable_prune_old(void)
 		}
 	} else {
 		if (GNET_PROPERTY(dht_stable_debug)) {
-			g_message("DHT STABLE shrinking database");
+			g_debug("DHT STABLE shrinking database");
 		}
 		if (!dbmw_shrink(db_lifedata)) {
 			if (GNET_PROPERTY(dht_stable_debug)) {

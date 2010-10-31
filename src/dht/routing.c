@@ -965,7 +965,7 @@ dht_allocate_new_kuid_if_needed(void)
 	gnet_prop_get_storage(PROP_KUID, buf.v, sizeof buf.v);
 
 	if (kuid_is_blank(&buf) || !GNET_PROPERTY(sticky_kuid)) {
-		if (GNET_PROPERTY(dht_debug)) g_message("generating new DHT node ID");
+		if (GNET_PROPERTY(dht_debug)) g_debug("generating new DHT node ID");
 		kuid_random_fill(&buf);
 		gnet_prop_set_storage(PROP_KUID, buf.v, sizeof buf.v);
 	}
@@ -973,7 +973,7 @@ dht_allocate_new_kuid_if_needed(void)
 	our_kuid = kuid_get_atom(&buf);
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT local node ID is %s", kuid_to_hex_string(our_kuid));
+		g_debug("DHT local node ID is %s", kuid_to_hex_string(our_kuid));
 }
 
 /**
@@ -990,12 +990,12 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 
 	if (NULL == root || LOOKUP_E_CANCELLED == error) {
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT disabled during bucket refresh");
+			g_debug("DHT disabled during bucket refresh");
 		return;
 	}
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug)) {
-		g_message("DHT bucket refresh with %s "
+		g_debug("DHT bucket refresh with %s "
 			"for %s %s (good: %u, stale: %u, pending: %u) completed: %s",
 			kuid_to_hex_string(kuid),
 			is_leaf(kb) ? "leaf" : "split", kbucket_to_string(kb),
@@ -1041,7 +1041,7 @@ dht_bucket_refresh(struct kbucket *kb, gboolean forced)
 	if (list_count(kb, KNODE_GOOD) == K_BUCKET_GOOD && !is_splitable(kb)) {
 		gnet_stats_count_general(GNR_DHT_DENIED_UNSPLITABLE_BUCKET_REFRESH, 1);
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT denying %srefresh of non-splitable full %s "
+			g_debug("DHT denying %srefresh of non-splitable full %s "
 				"(good: %u, stale: %u, pending: %u)",
 				forced ? "forced " : "",
 				kbucket_to_string(kb), list_count(kb, KNODE_GOOD),
@@ -1050,7 +1050,7 @@ dht_bucket_refresh(struct kbucket *kb, gboolean forced)
 	}
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_message("DHT initiating %srefresh of %ssplitable %s "
+		g_debug("DHT initiating %srefresh of %ssplitable %s "
 			"(good: %u, stale: %u, pending: %u)",
 			forced ? "forced " : "",
 			is_splitable(kb) ? "" : "non-", kbucket_to_string(kb),
@@ -1069,7 +1069,7 @@ dht_bucket_refresh(struct kbucket *kb, gboolean forced)
 	kuid_random_within(&id, &kb->prefix, kb->depth);
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT selected random KUID is %s", kuid_to_hex_string(&id));
+		g_debug("DHT selected random KUID is %s", kuid_to_hex_string(&id));
 
 	g_assert(dht_find_bucket(&id) == kb);
 
@@ -1145,7 +1145,7 @@ bootstrap_completion_status(
 	}
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
-		g_message("DHT bootstrap with ID %s (%d bit%s) done: %s",
+		g_debug("DHT bootstrap with ID %s (%d bit%s) done: %s",
 			kuid_to_hex_string(kuid), b->bits, 1 == b->bits ? "" : "s",
 			lookup_strerror(error));
 
@@ -1157,7 +1157,7 @@ bootstrap_completion_status(
 		wfree(b, sizeof *b);
 
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT now completely bootstrapped");
+			g_debug("DHT now completely bootstrapped");
 
 		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_COMPLETED);
 		return;
@@ -1204,7 +1204,7 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 	(void) unused_arg;
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
-		g_message("DHT bootstrapping via our own ID %s completed: %s",
+		g_debug("DHT bootstrapping via our own ID %s completed: %s",
 			kuid_to_hex_string(kuid),
 			lookup_strerror(error));
 
@@ -1221,7 +1221,7 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 	}
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT bootstrapping was %s seeded",
+		g_debug("DHT bootstrapping was %s seeded",
 			dht_seeded() ? "successfully" : "not fully");
 
 	/*
@@ -1237,7 +1237,7 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 		random_bytes(id.v, sizeof id.v);
 
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT improving bootstrap with random KUID is %s",
+			g_debug("DHT improving bootstrap with random KUID is %s",
 			kuid_to_hex_string(&id));
 
 		bootstrapping =
@@ -1275,7 +1275,7 @@ dht_attempt_bootstrap(void)
 
 	if (!lookup_find_node(our_kuid, NULL, bootstrap_status, NULL)) {
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT bootstrapping impossible: routing table empty");
+			g_debug("DHT bootstrapping impossible: routing table empty");
 
 		bootstrapping = FALSE;
 		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
@@ -1301,7 +1301,7 @@ dht_initialize(gboolean post_init)
 	if (!dht_enabled()) {
 		/* UDP or DHT not both enabled */
 		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT will not initialize: UDP %s, DHT %s, port %u",
+			g_debug("DHT will not initialize: UDP %s, DHT %s, port %u",
 				GNET_PROPERTY(enable_udp) ? "on" : "off",
 				GNET_PROPERTY(enable_dht) ? "on" : "off",
 				GNET_PROPERTY(listen_port));
@@ -1311,12 +1311,12 @@ dht_initialize(gboolean post_init)
 
 	if (root != NULL) {
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT already initialized");
+			g_debug("DHT already initialized");
 		return;				/* already initialized */
 	}
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT initializing (%s init)",
+		g_debug("DHT initializing (%s init)",
 			post_init ? "post" : "first");
 
 	dht_allocate_new_kuid_if_needed();
@@ -1588,7 +1588,7 @@ split_among(gpointer key, gpointer value, gpointer user_data)
 	target = (id->v[nb->byte] & nb->mask) ? nb->one : nb->zero;
 
 	if (GNET_PROPERTY(dht_debug) > 1)
-		g_message("DHT splitting %s to bucket \"%s\" (depth %d, %s ours)",
+		g_debug("DHT splitting %s to bucket \"%s\" (depth %d, %s ours)",
 			knode_to_string(kn), target == nb->one ? "one" : "zero",
 			target->depth, target->ours ? "is" : "not");
 
@@ -1642,7 +1642,7 @@ dht_split_bucket(struct kbucket *kb)
 	check_leaf_list_consistency(kb, kb->nodes->pending, KNODE_PENDING);
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT splitting %s from %s subtree",
+		g_debug("DHT splitting %s from %s subtree",
 			kbucket_to_string(kb),
 			is_among_our_closest(kb) ? "closest" : "further");
 
@@ -1682,12 +1682,12 @@ dht_split_bucket(struct kbucket *kb)
 	if (GNET_PROPERTY(dht_debug) > 2) {
 		const char *tag;
 		tag = kb->split_depth ? "left our tree at" : "in our tree since";
-		g_message("DHT split byte=%d mask=0x%x, %s depth %d",
+		g_debug("DHT split byte=%d mask=0x%x, %s depth %d",
 			byte, mask, tag, kb->split_depth);
-		g_message("DHT split \"zero\" k-bucket is %s (depth %d, %s ours)",
+		g_debug("DHT split \"zero\" k-bucket is %s (depth %d, %s ours)",
 			kuid_to_hex_string(&zero->prefix), zero->depth,
 			zero->ours ? "is" : "not");
-		g_message("DHT split \"one\" k-bucket is %s (depth %d, %s ours)",
+		g_debug("DHT split \"one\" k-bucket is %s (depth %d, %s ours)",
 			kuid_to_hex_string(&one->prefix), one->depth,
 			one->ours ? "is" : "not");
 	}
@@ -1749,7 +1749,7 @@ add_node(struct kbucket *kb, knode_t *kn, knode_status_t new)
 	stats.dirty = TRUE;
 
 	if (GNET_PROPERTY(dht_debug) > 2)
-		g_message("DHT added new node %s to %s",
+		g_debug("DHT added new node %s to %s",
 			knode_to_string(kn), kbucket_to_string(kb));
 
 	check_leaf_list_consistency(kb, hl, new);
@@ -1901,7 +1901,7 @@ promote_pending_node(struct kbucket *kb)
 			time_delta_t elapsed;
 
 			if (GNET_PROPERTY(dht_debug))
-				g_message("DHT promoting %s node %s at %s to good in %s",
+				g_debug("DHT promoting %s node %s at %s to good in %s",
 					knode_status_to_string(selected->status),
 					kuid_to_hex_string(selected->id),
 					host_addr_port_to_string(selected->addr, selected->port),
@@ -1937,7 +1937,7 @@ promote_pending_node(struct kbucket *kb)
 
 			if (elapsed >= ALIVE_PERIOD) {
 				if (GNET_PROPERTY(dht_debug)) {
-					g_message("DHT pinging promoted node (last seen %s)",
+					g_debug("DHT pinging promoted node (last seen %s)",
 						short_time(elapsed));
 				}
 				if (dht_lazy_rpc_ping(selected)) {
@@ -2034,7 +2034,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 			promote_pending_node(kb);
 
 		if (GNET_PROPERTY(dht_debug) > 2)
-			g_message("DHT removed %s node %s from %s",
+			g_debug("DHT removed %s node %s from %s",
 				knode_status_to_string(tkn->status),
 				knode_to_string(tkn), kbucket_to_string(kb));
 
@@ -2079,7 +2079,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 		return;
 
 	if (GNET_PROPERTY(dht_debug) > 1)
-		g_message("DHT node %s at %s (%s in table) moving from %s to %s",
+		g_debug("DHT node %s at %s (%s in table) moving from %s to %s",
 			kuid_to_hex_string(kn->id),
 			host_addr_port_to_string(kn->addr, kn->port),
 			in_table ? (tkn == kn ? "is" : "copy") : "not",
@@ -2156,7 +2156,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 			list_update_stats(KNODE_PENDING, +1);
 
 			if (GNET_PROPERTY(dht_debug))
-				g_message("DHT switched %s node %s at %s to pending in %s",
+				g_debug("DHT switched %s node %s at %s to pending in %s",
 					knode_status_to_string(new),
 					kuid_to_hex_string(removed->id),
 					host_addr_port_to_string(removed->addr, removed->port),
@@ -2166,7 +2166,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 			c_class_update_count(removed, kb, -1);
 
 			if (GNET_PROPERTY(dht_debug))
-				g_message("DHT dropped %s node %s at %s from %s",
+				g_debug("DHT dropped %s node %s at %s from %s",
 					knode_status_to_string(removed->status),
 					kuid_to_hex_string(removed->id),
 					host_addr_port_to_string(removed->addr, removed->port),
@@ -2300,7 +2300,7 @@ record_node(knode_t *kn, gboolean traffic)
 
 	if (c_class_get_count(kn, kb) >= K_BUCKET_MAX_IN_NET) {
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT rejecting new node %s at %s: "
+			g_debug("DHT rejecting new node %s at %s: "
 				"too many hosts from same class-C network in %s",
 				kuid_to_hex_string(kn->id),
 				host_addr_port_to_string(kn->addr, kn->port),
@@ -2335,7 +2335,7 @@ dht_traffic_from(knode_t *kn)
 
 	if (DHT_BOOT_NONE == GNET_PROPERTY(dht_boot_status)) {
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT got a bootstrap seed with %s", knode_to_string(kn));
+			g_debug("DHT got a bootstrap seed with %s", knode_to_string(kn));
 
 		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_SEEDED);
 		dht_attempt_bootstrap();
@@ -2433,7 +2433,7 @@ dht_node_timed_out(knode_t *kn)
 
 	if (!GNET_PROPERTY(is_inet_connected)) {
 		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT not connected to Internet, "
+			g_debug("DHT not connected to Internet, "
 				"ignoring RPC timeout for %s",
 				knode_to_string(kn));
 		}
@@ -2474,7 +2474,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	install_alive_check(kb);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_message("DHT starting alive check on %s "
+		g_debug("DHT starting alive check on %s "
 			"(good: %u, stale: %u, pending: %u)",
 			kbucket_to_string(kb),
 			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
@@ -2495,7 +2495,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 		guint new_count;
 
 		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT missing %u good node%s (has %u + %u stale) in %s",
+			g_debug("DHT missing %u good node%s (has %u + %u stale) in %s",
 				missing, 1 == missing ? "" : "s",
 				list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
 				kbucket_to_string(kb));
@@ -2513,7 +2513,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 		if (GNET_PROPERTY(dht_debug)) {
 			guint promoted = K_BUCKET_GOOD - good_and_stale - missing;
 			if (promoted) {
-				g_message("DHT promoted %u pending node%s "
+				g_debug("DHT promoted %u pending node%s "
 					"(now has %u good) in %s",
 					promoted, 1 == promoted ? "" : "s",
 					list_count(kb, KNODE_GOOD), kbucket_to_string(kb));
@@ -2528,7 +2528,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 
 	if (list_count(kb, KNODE_GOOD) < K_BUCKET_GOOD / 2) {
 		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT forcing refresh of %s %s",
+			g_debug("DHT forcing refresh of %s %s",
 				0 == list_count(kb, KNODE_GOOD) ? "empty" : "depleted",
 				kbucket_to_string(kb));
 		}
@@ -2719,14 +2719,14 @@ dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 		double ds = kuid_to_double(&dsum);
 		double s = kuid_to_double(&sq);
 
-		g_message("DHT target KUID is %s (%d node%s wanted, %u used)",
+		g_debug("DHT target KUID is %s (%d node%s wanted, %u used)",
 			kuid_to_hex_string(kuid), amount, 1 == amount ? "" : "s",
 			(unsigned) (i - 1));
-		g_message("DHT dsum is %s = %f", kuid_to_hex_string(&dsum), ds);
-		g_message("DHT squares is %s = %f (%d)",
+		g_debug("DHT dsum is %s = %f", kuid_to_hex_string(&dsum), ds);
+		g_debug("DHT squares is %s = %f (%d)",
 			kuid_to_hex_string(&sq), s, squares);
 
-		g_message("DHT sparseness over %u nodes is %s = %f (%f)",
+		g_debug("DHT sparseness over %u nodes is %s = %f (%f)",
 			(unsigned) i - 1, kuid_to_hex_string(&sparseness),
 			kuid_to_double(&sparseness), ds / s);
 	}
@@ -2752,7 +2752,7 @@ report_estimated_size(void)
 	guint64 size = dht_size();
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_message("DHT averaged global size estimate: %s "
+		g_debug("DHT averaged global size estimate: %s "
 			"(%d local, %d remote)",
 			uint64_to_string(size), 1 + statx_n(stats.lookdata),
 			statx_n(stats.netdata));
@@ -2820,12 +2820,12 @@ update_cached_size_estimate(void)
 	stats.average.amount = K_LOCAL_ESTIMATE;
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_message("DHT cached average local size estimate is %s "
+		g_debug("DHT cached average local size estimate is %s "
 			"(%d point%s, skipped %d)",
 			uint64_to_string2(stats.average.estimate),
 			count, 1 == count ? "" : "s", n + 1 - count);
 		if (n > 1) {
-			g_message(
+			g_debug(
 				"DHT collected average is %.0f (%d points), sdev = %.2f",
 				statx_avg(stats.lookdata), n, statx_sdev(stats.lookdata));
 		}
@@ -2898,7 +2898,7 @@ dht_update_subspace_size_estimate(
 	statx_add(stats.lookdata, (double) estimate);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_message("DHT subspace \"%02x\" estimate is %s (over %u/%d nodes)",
+		g_debug("DHT subspace \"%02x\" estimate is %s (over %u/%d nodes)",
 			subspace, uint64_to_string(estimate), (unsigned) kept, amount);
 	}
 
@@ -2923,7 +2923,7 @@ dht_expire_size_estimates(void)
 			stats.lookups[i].computed = 0;
 
 			if (GNET_PROPERTY(dht_debug)) {
-				g_message(
+				g_debug(
 					"DHT expired subspace \"%02x\" local size estimate", i);
 			}
 		}
@@ -2940,7 +2940,7 @@ dht_expire_size_estimates(void)
 			stats.network[i].updated = 0;
 
 			if (GNET_PROPERTY(dht_debug)) {
-				g_message(
+				g_debug(
 					"DHT expired subspace \"%02x\" remote size estimates", i);
 			}
 		}
@@ -3004,7 +3004,7 @@ dht_update_size_estimate(void)
 	}
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_message("DHT local size estimate is %s (using %d %s nodes)",
+		g_debug("DHT local size estimate is %s (using %d %s nodes)",
 			uint64_to_string(estimate), kcnt,
 			alive ? "alive" : "possibly zombie");
 	}
@@ -3327,7 +3327,7 @@ dht_fill_closest(
 	}
 
 	if (GNET_PROPERTY(dht_debug) > 15) {
-		g_message("DHT found %d/%d %s nodes (excluding %s) closest to %s",
+		g_debug("DHT found %d/%d %s nodes (excluding %s) closest to %s",
 			added, wanted, alive ? "alive" : "known",
 			exclude ? kuid_to_hex_string(exclude) : "nothing",
 			kuid_to_hex_string2(id));
@@ -3336,7 +3336,7 @@ dht_fill_closest(
 			int i;
 
 			for (i = 0; i < added; i++) {
-				g_message("DHT closest[%d]: %s", i, knode_to_string(base[i]));
+				g_debug("DHT closest[%d]: %s", i, knode_to_string(base[i]));
 			}
 		}
 	}
@@ -3715,7 +3715,7 @@ dht_verify_node(knode_t *kn, knode_t *new)
 	av = walloc(sizeof *av);
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT node %s was at %s, now %s -- verifying",
+		g_debug("DHT node %s was at %s, now %s -- verifying",
 			kuid_to_hex_string(kn->id),
 			host_addr_port_to_string(kn->addr, kn->port),
 			host_addr_port_to_string2(new->addr, new->port));
@@ -3761,7 +3761,7 @@ dht_ping_cb(
 		return;
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT reply from randomly pinged %s",
+		g_debug("DHT reply from randomly pinged %s",
 			host_addr_port_to_string(kn->addr, kn->port));
 }
 
@@ -3798,7 +3798,7 @@ dht_ping(host_addr_t addr, guint16 port)
 	last_sent = now;
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT randomly pinging host %s",
+		g_debug("DHT randomly pinging host %s",
 			host_addr_port_to_string(addr, port));
 
 	/*
@@ -3866,7 +3866,7 @@ dht_bootstrap(host_addr_t addr, guint16 port)
 		return;				/* Hopefully we'll be bootstrapped soon */
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT attempting bootstrap from %s",
+		g_debug("DHT attempting bootstrap from %s",
 			host_addr_port_to_string(addr, port));
 
 	dht_probe(addr, port);
@@ -3903,7 +3903,7 @@ dht_ipp_extract(const struct gnutella_node *n, const char *payload, int paylen)
 	cnt = paylen / 6;
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(bootstrap_debug))
-		g_message("extracting %d DHT host%s in DHTIPP pong from %s",
+		g_debug("extracting %d DHT host%s in DHTIPP pong from %s",
 			cnt, cnt == 1 ? "" : "s", node_addr(n));
 
 	for (i = 0; i < cnt; i++) {
@@ -3914,7 +3914,7 @@ dht_ipp_extract(const struct gnutella_node *n, const char *payload, int paylen)
 		port = peek_le16(&payload[i * 6 + 4]);
 
 		if (GNET_PROPERTY(bootstrap_debug) > 1)
-			g_message("BOOT collected DHT node %s from DHTIPP pong from %s",
+			g_debug("BOOT collected DHT node %s from DHTIPP pong from %s",
 				host_addr_to_string(ha), node_addr(n));
 
 		dht_probe(ha, port);
@@ -4168,7 +4168,7 @@ dht_route_parse(FILE *f)
 			if (!record_node(kn, FALSE)) {
 				/* This can happen when the furthest subtrees are full */
 				if (GNET_PROPERTY(dht_debug)) {
-					g_message("DHT ignored persisted %s", knode_to_string(kn));
+					g_debug("DHT ignored persisted %s", knode_to_string(kn));
 				}
 			}
 		}
@@ -4197,7 +4197,7 @@ dht_route_parse(FILE *f)
 	}
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT after retrieval we are %s",
+		g_debug("DHT after retrieval we are %s",
 			boot_status_to_string(GNET_PROPERTY(dht_boot_status)));
 
 	keys_update_kball();

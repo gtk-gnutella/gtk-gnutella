@@ -419,7 +419,7 @@ publish_final_stats(publish_t *pb)
 	tm_now_exact(&end);
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1 || GNET_PROPERTY(dht_debug) > 1)
-		g_message("DHT PUBLISH[%s] %f secs published %d/%d (%d error%s) "
+		g_debug("DHT PUBLISH[%s] %f secs published %d/%d (%d error%s) "
 			"in=%d bytes, out=%d bytes",
 			revent_id_to_string(pb->pid), tm_elapsed_f(&end, &pb->start),
 			pb->published, pb->cnt, pb->errors, 1 == pb->errors ? "" : "s",
@@ -454,7 +454,7 @@ publish_terminate(publish_t *pb, publish_error_t code)
 	publish_check(pb);
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
-		g_message("DHT PUBLISH[%s] %s "
+		g_debug("DHT PUBLISH[%s] %s "
 			"terminating %s %s%spublish %s %d/%d %s%s for %s: %s",
 			revent_id_to_string(pb->pid),
 			pb->published == pb->cnt ? "OK" : "ERROR",
@@ -572,7 +572,7 @@ publish_cancel(publish_t *pb, gboolean callback)
 	publish_check(pb);
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
-		g_message("DHT PUBLISH[%s] %s "
+		g_debug("DHT PUBLISH[%s] %s "
 			"cancelling %s%s%s publish of %d/%d item%s for %s",
 			revent_id_to_string(pb->pid),
 			pb->published == pb->cnt ? "OK" : "ERROR",
@@ -616,7 +616,7 @@ publish_cache_expired(cqueue_t *unused_cq, gpointer obj)
 	pb->expire_ev = NULL;
 
 	if (GNET_PROPERTY(dht_publish_debug))
-		g_message("DHT PUBLISH[%s] %s%s%s publish of %d value%s for %s expired",
+		g_debug("DHT PUBLISH[%s] %s%s%s publish of %d value%s for %s expired",
 			revent_id_to_string(pb->pid),
 			(pb->flags & PB_F_SUBORDINATE) ? "subordinate " : "",
 			(pb->flags & PB_F_BACKGROUND) ? "background " : "",
@@ -641,7 +641,7 @@ publish_offload_expired(cqueue_t *unused_cq, gpointer obj)
 	pb->expire_ev = NULL;
 
 	if (GNET_PROPERTY(dht_publish_debug))
-		g_message("DHT PUBLISH[%s] %s publish of %d key%s to %s expired",
+		g_debug("DHT PUBLISH[%s] %s publish of %d key%s to %s expired",
 			revent_id_to_string(pb->pid), publish_type_to_string(pb->type),
 			pb->cnt, 1 == pb->cnt ? "" : "s",
 			knode_to_string(pb->target.o.kn));
@@ -663,7 +663,7 @@ publish_store_expired(cqueue_t *unused_cq, gpointer obj)
 	pb->expire_ev = NULL;
 
 	if (GNET_PROPERTY(dht_publish_debug))
-		g_message("DHT PUBLISH[%s] %s publish of %s expired: "
+		g_debug("DHT PUBLISH[%s] %s publish of %s expired: "
 			"published to %d/%d root%s",
 			revent_id_to_string(pb->pid), publish_type_to_string(pb->type),
 			dht_value_to_string(pb->target.v.value),
@@ -683,7 +683,7 @@ log_status(publish_t *pb)
 	publish_check(pb);
 
 	tm_now_exact(&now);
-	g_message("DHT PUBLISH[%s] "
+	g_debug("DHT PUBLISH[%s] "
 		"%s%s%s publish status for %s at hop %u after %f secs",
 		revent_id_to_string(pb->pid),
 		(pb->flags & PB_F_SUBORDINATE) ? "subordinate " : "",
@@ -691,12 +691,12 @@ log_status(publish_t *pb)
 		publish_type_to_string(pb->type),
 		kuid_to_hex_string(pb->key), pb->hops,
 		tm_elapsed_f(&now, &pb->start));
-	g_message("DHT PUBLISH[%s] messages pending=%d, sent=%d, dropped=%d",
+	g_debug("DHT PUBLISH[%s] messages pending=%d, sent=%d, dropped=%d",
 		revent_id_to_string(pb->pid), pb->msg_pending, pb->msg_sent,
 		pb->msg_dropped);
-	g_message("DHT PUBLISH[%s] B/W incoming=%d bytes, outgoing=%d bytes",
+	g_debug("DHT PUBLISH[%s] B/W incoming=%d bytes, outgoing=%d bytes",
 		revent_id_to_string(pb->pid), pb->bw_incoming, pb->bw_outgoing);
-	g_message("DHT PUBLISH[%s] published %s%d/%d %s%s (%d error%s)",
+	g_debug("DHT PUBLISH[%s] published %s%d/%d %s%s (%d error%s)",
 		revent_id_to_string(pb->pid), 
 		PUBLISH_VALUE == pb->type ? "to " : "",
 		pb->published, pb->cnt,
@@ -784,7 +784,7 @@ publish_delay(publish_t *pb)
 	g_assert(!(pb->flags & PB_F_DELAYED));
 
 	if (GNET_PROPERTY(dht_publish_debug) > 2)
-		g_message("DHT PUBLISH[%s] delaying next iteration by %f seconds",
+		g_debug("DHT PUBLISH[%s] delaying next iteration by %f seconds",
 			revent_id_to_string(pb->pid), PB_DELAY / 1000.0);
 
 	pb->flags |= PB_F_DELAYED;
@@ -947,7 +947,7 @@ publish_handle_reply(publish_t *pb, const knode_t *kn,
 
 		if (STORE_SC_OK == status.code) {
 			if (GNET_PROPERTY(dht_publish_debug) > 3)
-				g_message("DHT PUBLISH[%s] STORED pk=%s sk=%s at %s",
+				g_debug("DHT PUBLISH[%s] STORED pk=%s sk=%s at %s",
 					revent_id_to_string(pb->pid),
 					kuid_to_hex_string(&primary),
 					kuid_to_hex_string2(&secondary), knode_to_string(kn));
@@ -958,7 +958,7 @@ publish_handle_reply(publish_t *pb, const knode_t *kn,
 				char msg[80];
 				clamp_strncpy(msg, sizeof msg,
 					status.description, status.length);
-				g_message("DHT PUBLISH[%s] cannot STORE "
+				g_debug("DHT PUBLISH[%s] cannot STORE "
 					"pk=%s sk=%s at %s: %s (%s)",
 					revent_id_to_string(pb->pid),
 					kuid_to_hex_string(&primary),
@@ -1234,7 +1234,7 @@ pb_msg_dropped(gpointer obj, knode_t *unused_kn, pmsg_t *mb)
 		if (GNET_PROPERTY(dht_publish_debug) > 2) {
 			guint8 held = values_held(mb);
 			const kuid_t *id = first_creator_kuid(mb);
-			g_message("DHT PUBLISH[%s] UDP dropped STORE with %u value%s sk=%s",
+			g_debug("DHT PUBLISH[%s] UDP dropped STORE with %u value%s sk=%s",
 				revent_id_to_string(pb->pid), held, 1 == held ? "" : "s",
 				kuid_to_hex_string(id));
 		}
@@ -1244,7 +1244,7 @@ pb_msg_dropped(gpointer obj, knode_t *unused_kn, pmsg_t *mb)
 		if (GNET_PROPERTY(dht_publish_debug) > 2) {
 			guint8 held = values_held(mb);
 			const kuid_t *id = first_creator_kuid(mb);
-			g_message("DHT PUBLISH[%s] "
+			g_debug("DHT PUBLISH[%s] "
 				"synchronous UDP drop of STORE with %u value%s sk=%s",
 				revent_id_to_string(pb->pid), held, 1 == held ? "" : "s",
 				kuid_to_hex_string(id));
@@ -1276,7 +1276,7 @@ pb_rpc_cancelled(gpointer obj, guint32 unused_udata)
 	if (!(pb->flags & PB_F_SENDING)) {
 		if (PUBLISH_CACHE == pb->type && pb->udp_drops >= PB_MAX_UDP_DROPS) {
 			if (GNET_PROPERTY(dht_publish_debug)) {
-				g_message("DHT PUBLISH[%s] terminating after %d UDP drops",
+				g_debug("DHT PUBLISH[%s] terminating after %d UDP drops",
 					revent_id_to_string(pb->pid), pb->udp_drops);
 			}
 			publish_terminate(pb, PUBLISH_E_UDP_CLOGGED);
@@ -1321,7 +1321,7 @@ pb_cache_handling_rpc(gpointer obj, enum dht_rpc_ret type,
 		pmsg_t *mbp = pb->target.c.pending;
 
 		if (GNET_PROPERTY(dht_publish_debug) > 2) {
-			g_message("DHT PUBLISH[%s] RPC timeout #%d at hop %u",
+			g_debug("DHT PUBLISH[%s] RPC timeout #%d at hop %u",
 				revent_id_to_string(pb->pid),
 				pb->target.c.timeouts + 1, pb->hops);
 		}
@@ -1330,7 +1330,7 @@ pb_cache_handling_rpc(gpointer obj, enum dht_rpc_ret type,
 		if (pb->target.c.timeouts++ >= PB_MAX_MSG_RETRY - 1) {
 			if (GNET_PROPERTY(dht_publish_debug) > 1) {
 				guint8 held = values_held(pb->target.c.pending);
-				g_message("DHT PUBLISH[%s] dropping publishing of %u value%s",
+				g_debug("DHT PUBLISH[%s] dropping publishing of %u value%s",
 					revent_id_to_string(pb->pid), held, 1 == held ? "" : "s");
 			}
 			pmsg_free(mbp);
@@ -1369,7 +1369,7 @@ pb_cache_handle_reply(gpointer obj, const knode_t *kn,
 
 	if (pb->hops != hop) {
 		if (GNET_PROPERTY(dht_publish_debug) > 3)
-			g_message("DHT PUBLISH[%s] at hop %u, "
+			g_debug("DHT PUBLISH[%s] at hop %u, "
 				"ignoring late RPC reply from hop %u",
 				revent_id_to_string(pb->pid), pb->hops, hop);
 
@@ -1485,7 +1485,7 @@ pb_value_handle_reply(gpointer obj, const knode_t *kn,
 
 	if (pb->hops != hop) {
 		if (GNET_PROPERTY(dht_publish_debug)) {
-			g_message("DHT PUBLISH[%s] at hop %u, "
+			g_debug("DHT PUBLISH[%s] at hop %u, "
 				"got late STORE RPC reply from hop %u by %s",
 				revent_id_to_string(pb->pid), pb->hops, hop,
 				knode_to_string(kn));
@@ -1639,7 +1639,7 @@ publish_cache_send(publish_t *pb, pmsg_t *mb)
 
 	if (GNET_PROPERTY(dht_publish_debug) > 3) {
 		int held = values_held(mb);
-		g_message("DHT PUBLISH[%s] hop %u sending STORE (%d bytes) "
+		g_debug("DHT PUBLISH[%s] hop %u sending STORE (%d bytes) "
 			"#%d first-sk=%s (%u value%s)",
 			revent_id_to_string(pb->pid), pb->hops, pmsg_size(mb),
 			pb->target.c.timeouts + 1,
@@ -1690,7 +1690,7 @@ publish_cache_iterate(publish_t *pb)
 
 	if (!pmsg_is_writable(mb)) {
 		if (GNET_PROPERTY(dht_publish_debug) > 1) {
-			g_message("DHT PUBLISH[%s] previous message still in UDP queue",
+			g_debug("DHT PUBLISH[%s] previous message still in UDP queue",
 				revent_id_to_string(pb->pid));
 		}
 		slist_prepend(pb->target.c.messages, mb);	/* Put message back */
@@ -1724,7 +1724,7 @@ pb_offload_child_done(gpointer obj, int count, int published, int errors,
 	if (GNET_PROPERTY(dht_publish_debug) > 3) {
 		tm_t now;
 		tm_now_exact(&now);
-		g_message("DHT PUBLISH[%s] %f secs, hop %u: "
+		g_debug("DHT PUBLISH[%s] %f secs, hop %u: "
 			"offload child published %d/%d item%s (%d error%s) "
 			"in=%d bytes, out=%d bytes",
 			revent_id_to_string(pb->pid),
@@ -1792,7 +1792,7 @@ publish_offload_iterate(publish_t *pb)
 		if (GNET_PROPERTY(dht_publish_debug) > 3) {
 			tm_t now;
 			tm_now_exact(&now);
-			g_message("DHT PUBLISH[%s] "
+			g_debug("DHT PUBLISH[%s] "
 				"%f secs, hop %u: offloaded key %s has %d value%s",
 				revent_id_to_string(pb->pid),
 				tm_elapsed_f(&now, &pb->start), pb->hops,
@@ -1844,7 +1844,7 @@ publish_value_send(publish_t *pb, knode_t *kn, pmsg_t *mb)
 	pb->rpc_pending++;
 
 	if (GNET_PROPERTY(dht_publish_debug) > 3) {
-		g_message("DHT PUBLISH[%s] hop %u sending STORE (%d bytes) "
+		g_debug("DHT PUBLISH[%s] hop %u sending STORE (%d bytes) "
 			"to node #%u/%u: %s",
 			revent_id_to_string(pb->pid), pb->hops, pmsg_size(mb),
 			(unsigned) pb->target.v.idx + 1,
@@ -1899,7 +1899,7 @@ publish_value_iterate(publish_t *pb)
 	if (GNET_PROPERTY(dht_publish_debug) > 4) {
 		char buf[80];
 		bin_to_hex_buf(rc->token, rc->token_len, buf, sizeof buf);
-		g_message("DHT PUBLISH[%s] at root %u/%u, "
+		g_debug("DHT PUBLISH[%s] at root %u/%u, "
 			"using %u-byte token \"%s\" for %s",
 			revent_id_to_string(pb->pid),
 			(unsigned) pb->target.v.idx + 1,
@@ -2007,7 +2007,7 @@ publish_create(const kuid_t *key, publish_type_t type, int cnt)
 	}
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
-		g_message("DHT PUBLISH[%s] "
+		g_debug("DHT PUBLISH[%s] "
 			"starting %s publishing %s %d %s%s for %s",
 			revent_id_to_string(pb->pid), publish_type_to_string(pb->type),
 			PUBLISH_VALUE == pb->type ? "to" : "of",
@@ -2078,7 +2078,7 @@ publish_cache_internal(const kuid_t *key,
 	g_assert(vheld == vcnt);	/* We have all our values in the messages */
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
-		g_message("DHT PUBLISH[%s] to %s (security token: %u byte%s)",
+		g_debug("DHT PUBLISH[%s] to %s (security token: %u byte%s)",
 			revent_id_to_string(pb->pid),
 			knode_to_string(target->kn), target->token_len,
 			1 == target->token_len ? "" : "s");
@@ -2088,7 +2088,7 @@ publish_cache_internal(const kuid_t *key,
 		int i;
 		for (i = 0; i < vcnt; i++) {
 			dht_value_t *v = vvec[i];
-			g_message("DHT PUBLISH[%s] item #%d is %s",
+			g_debug("DHT PUBLISH[%s] item #%d is %s",
 				revent_id_to_string(pb->pid), i + 1, dht_value_to_string(v));
 		}
 	}
@@ -2182,7 +2182,7 @@ pb_token_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
 		tm_t now;
 		tm_now_exact(&now);
-		g_message("DHT PUBLISH[%s] %f secs, "
+		g_debug("DHT PUBLISH[%s] %f secs, "
 			"offloading got security token (%d byte%s) for %s",
 			revent_id_to_string(pb->pid),
 			tm_elapsed_f(&now, &pb->start),
@@ -2206,7 +2206,7 @@ pb_token_error(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 	g_assert(kuid_eq(pb->target.o.kn->id, kuid));
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
-		g_message("DHT PUBLISH[%s] unable to get security token for %s: %s",
+		g_debug("DHT PUBLISH[%s] unable to get security token for %s: %s",
 			revent_id_to_string(pb->pid),
 			knode_to_string(pb->target.o.kn),
 			lookup_strerror(error));
@@ -2280,7 +2280,7 @@ publish_offload(const knode_t *kn, GSList *keys)
 
 	if (tcache_get(kn->id, &toklen, &token, NULL)) {
 		if (GNET_PROPERTY(dht_publish_debug) > 1) {
-			g_message("DHT PUBLISH[%s] got %u-byte cached security token "
+			g_debug("DHT PUBLISH[%s] got %u-byte cached security token "
 				"for %s",
 				revent_id_to_string(pb->pid), toklen, knode_to_string(kn));
 		}
@@ -2292,7 +2292,7 @@ publish_offload(const knode_t *kn, GSList *keys)
 		nlookup_t *nl;
 
 		if (GNET_PROPERTY(dht_publish_debug) > 1) {
-			g_message("DHT PUBLISH[%s] requesting security token for %s",
+			g_debug("DHT PUBLISH[%s] requesting security token for %s",
 				revent_id_to_string(pb->pid), knode_to_string(kn));
 		}
 
@@ -2332,7 +2332,7 @@ publish_self(publish_t *pb)
 		guint16 status;
 
 		if (GNET_PROPERTY(dht_publish_debug)) {
-			g_message("DHT PUBLISH[%s] locally publishing %s",
+			g_debug("DHT PUBLISH[%s] locally publishing %s",
 				revent_id_to_string(pb->pid),
 				dht_value_to_string(pb->target.v.value));
 		}

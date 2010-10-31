@@ -202,7 +202,7 @@ storage_open(const char *name, const char *base,
 
 	if (dw != NULL && GNET_PROPERTY(dht_debug)) {
 		size_t count = dbmw_count(dw);
-		g_message("DHT opened DBMW \"%s\" (%u key%s) from %s",
+		g_debug("DHT opened DBMW \"%s\" (%u key%s) from %s",
 			dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
 	}
 
@@ -216,7 +216,7 @@ storage_open(const char *name, const char *base,
 		size_t count = dbmw_count(dw);
 
 		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT loading DBMW \"%s\" (%u key%s) from %s",
+			g_debug("DHT loading DBMW \"%s\" (%u key%s) from %s",
 				dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
 		}
 
@@ -250,7 +250,7 @@ storage_sync(dbmw_t *dw)
 		g_warning("DHT could not synchronize DBMW \"%s\": %s",
 			dbmw_name(dw), g_strerror(errno));
 	} else if (n && GNET_PROPERTY(dht_debug) > 1) {
-		g_message("DHT flushed %u SDBM page%s in DBMW \"%s\"",
+		g_debug("DHT flushed %u SDBM page%s in DBMW \"%s\"",
 			(unsigned) n, 1 == n ? "" : "s", dbmw_name(dw));
 	}
 }
@@ -272,14 +272,14 @@ storage_close(dbmw_t *dw, const char *base)
 	path = make_pathname(settings_config_dir(), base);
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT persisting DBMW \"%s\" as %s", dbmw_name(dw), path);
+		g_debug("DHT persisting DBMW \"%s\" as %s", dbmw_name(dw), path);
 
 	ok = dbmw_store(dw, path, TRUE);
 	HFREE_NULL(path);
 
 	if (GNET_PROPERTY(dht_debug)) {
 		size_t count = dbmw_count(dw);
-		g_message("DHT %ssucessfully persisted DBMW \"%s\" (%u key%s)",
+		g_debug("DHT %ssucessfully persisted DBMW \"%s\" (%u key%s)",
 			ok ? "" : "un", dbmw_name(dw),
 			(unsigned) count, 1 == count ? "" : "s");
 	}

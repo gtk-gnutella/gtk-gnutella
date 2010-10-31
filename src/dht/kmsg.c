@@ -185,7 +185,7 @@ kmsg_handle(knode_t *kn,
 	const struct kmsg *km;
 
 	if (GNET_PROPERTY(dht_debug > 1)) {
-		g_message("DHT got %s from %s",
+		g_debug("DHT got %s from %s",
 			kmsg_infostr(header), knode_to_string(kn));
 		if (len && (GNET_PROPERTY(dht_trace) & SOCK_TRACE_IN))
 			dump_hex(stderr, "UDP payload", payload, len);
@@ -202,7 +202,7 @@ kmsg_handle(knode_t *kn,
 
 	if (km->rpc_call && !dht_is_active()) {
 		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT in passive mode, ignoring %s from %s",
+			g_debug("DHT in passive mode, ignoring %s from %s",
 				km->name, knode_to_string(kn));
 		}
 		gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
@@ -211,11 +211,11 @@ kmsg_handle(knode_t *kn,
 
 	if (!km) {
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT invalid message function 0x%x from %s",
+			g_debug("DHT invalid message function 0x%x from %s",
 				function, knode_to_string(kn));
 	} else if (NULL == km->handler) {
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT unhandled %s from %s",
+			g_debug("DHT unhandled %s from %s",
 				km->name, knode_to_string(kn));
 	} else {
 		km->handler(kn, n, header, extlen, payload, len);
@@ -441,7 +441,7 @@ k_send_pong(struct gnutella_node *n, const guid_t *muid)
 	 */
 
 	if (GNET_PROPERTY(dht_debug > 3))
-		g_message("DHT sending back %s (%lu bytes) to %s",
+		g_debug("DHT sending back %s (%lu bytes) to %s",
 			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
 			host_addr_port_to_string(n->addr, n->port));
 
@@ -516,7 +516,7 @@ k_send_find_node_response(
 	 */
 
 	if (GNET_PROPERTY(dht_debug > 3))
-		g_message("DHT sending back %s (%lu bytes) with %lu contact%s to %s",
+		g_debug("DHT sending back %s (%lu bytes) with %lu contact%s to %s",
 			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
 			(unsigned long) klen, klen == 1 ? "" : "s",
 			host_addr_port_to_string(n->addr, n->port));
@@ -677,7 +677,7 @@ k_send_find_value_response(
 	 */
 
 	if (GNET_PROPERTY(dht_debug > 3))
-		g_message("DHT sending back %s (%lu bytes) with "
+		g_debug("DHT sending back %s (%lu bytes) with "
 			"%d value%s and %d secondary key%s to %s",
 			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
 			values, values == 1 ? "" : "s",
@@ -776,7 +776,7 @@ k_send_store_response(
 	 */
 
 	if (GNET_PROPERTY(dht_debug > 3))
-		g_message("DHT sending back %s (%lu bytes) with %d status%s to %s",
+		g_debug("DHT sending back %s (%lu bytes) with %d status%s to %s",
 			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
 			i, i == 1 ? "" : "es",
 			host_addr_port_to_string(n->addr, n->port));
@@ -836,7 +836,7 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 
 drop:
 	if (GNET_PROPERTY(dht_debug) > 2) {
-		g_message("DHT ignoring PING from %s: %s", knode_to_string(kn), msg);
+		g_debug("DHT ignoring PING from %s: %s", knode_to_string(kn), msg);
 	}
 	gnet_stats_count_dropped(n, MSG_DROP_FLOW_CONTROL);
 }
@@ -887,7 +887,7 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 			is_host_addr(addr) && !is_my_address(addr)
 		) {
 			if (GNET_PROPERTY(dht_debug))
-				g_message(
+				g_debug(
 					"DHT node %s at %s reported new IP address for us: %s",
 					knode_to_string(kn),
 					host_addr_port_to_string(n->addr, n->port),
@@ -921,7 +921,7 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 		memset(&estimated.v[0], 0, KUID_RAW_SIZE - bytes);
 
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT node %s estimates DHT size to %s hosts",
+			g_debug("DHT node %s estimates DHT size to %s hosts",
 				knode_to_string(kn),
 				uint64_to_string(kuid_to_guint64(&estimated)));
 
@@ -1056,7 +1056,7 @@ answer_find_node(struct gnutella_node *n,
 answer:
 
 	if (GNET_PROPERTY(dht_debug > 2)) {
-		g_message("DHT processing FIND_NODE %s "
+		g_debug("DHT processing FIND_NODE %s "
 			"%s%s%s: giving %d node%s",
 			kuid_to_hex_string(id),
 			delayed ? "[UDP delayed] " : "",
@@ -1082,7 +1082,7 @@ flow_controlled:
 		goto only_token;
 	} else {
 		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT ignoring FIND_NODE %s: UDP queue %s",
+			g_debug("DHT ignoring FIND_NODE %s: UDP queue %s",
 				kuid_to_hex_string(id), msg);
 		}
 
@@ -1097,7 +1097,7 @@ only_token:
 	 */
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_message("DHT limiting FIND_NODE %s (ourselves): UDP queue %s",
+		g_debug("DHT limiting FIND_NODE %s (ourselves): UDP queue %s",
 			kuid_to_hex_string(id), msg);
 	}
 
@@ -1135,7 +1135,7 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 	}
 
 	if (GNET_PROPERTY(dht_debug > 3))
-		g_message("DHT node %s looking for %s",
+		g_debug("DHT node %s looking for %s",
 			knode_to_string(kn), kuid_to_hex_string(id));
 
 	/*
@@ -1161,7 +1161,7 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 
 	if (!peer_replication(kn, id) && keys_is_store_loaded(id)) {
 		if (GNET_PROPERTY(dht_debug > 2)) {
-			g_message("DHT key %s getting too many STORE, "
+			g_debug("DHT key %s getting too many STORE, "
 				"ignoring FIND_NODE from %s",
 				kuid_to_hex_string(id), knode_to_string(kn));
 		}
@@ -1223,7 +1223,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 	}
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT STORE %s security token from %s",
+		g_debug("DHT STORE %s security token from %s",
 			valid_token ? "valid" : "invalid", knode_to_string(kn));
 
 	if (!bstr_read_u8(bs, &values)) {
@@ -1402,7 +1402,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	}
 
 	if (GNET_PROPERTY(dht_debug > 3))
-		g_message("DHT FETCH node %s looking for %s value %s (%s)",
+		g_debug("DHT FETCH node %s looking for %s value %s (%s)",
 			knode_to_string(kn),
 			dht_value_type_to_string(type),
 			kuid_to_hex_string(id), kuid_to_string(id));
@@ -1413,7 +1413,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 
 	if (!keys_exists(id)) {
 		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_storage_debug))
-			g_message("DHT FETCH \"%s\" %s not found (%s)",
+			g_debug("DHT FETCH \"%s\" %s not found (%s)",
 				dht_value_type_to_string(type),
 				kuid_to_hex_string(id), kuid_to_string(id));
 
@@ -1499,7 +1499,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 
 	if (0 == vcnt && NULL == secondary) {
 		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_storage_debug))
-			g_message("DHT FETCH \"%s\" %s not found in existing key (%s)",
+			g_debug("DHT FETCH \"%s\" %s not found in existing key (%s)",
 				dht_value_type_to_string(type),
 				kuid_to_hex_string(id), kuid_to_string(id));
 
@@ -1512,7 +1512,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	 */
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_storage_debug))
-		g_message("DHT FETCH \"%s\" %s (%s) FOUND %d %svalue%s",
+		g_debug("DHT FETCH \"%s\" %s (%s) FOUND %d %svalue%s",
 			dht_value_type_to_string(type),
 			kuid_to_hex_string(id), kuid_to_string(id),
 			vcnt, cached ? "cached " : "", 1 == vcnt ? "" : "s");
@@ -1596,7 +1596,7 @@ kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 		/* E.g. we're given an IPv6 node address but IPv6 support is off */
 		if (GNET_PROPERTY(dht_debug)) {
 			int len = pmsg_size(mb);
-			g_message("DHT discarding %s (%d bytes) to %s",
+			g_debug("DHT discarding %s (%d bytes) to %s",
 				kmsg_infostr(pmsg_start(mb)), len, knode_to_string(kn));
 		}
 		pmsg_free(mb);
@@ -1605,7 +1605,7 @@ kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 
 	if (GNET_PROPERTY(dht_debug) > 3) {
 		int len = pmsg_size(mb);
-		g_message("DHT sending %s (%d bytes) to %s, RTT=%u",
+		g_debug("DHT sending %s (%d bytes) to %s, RTT=%u",
 			kmsg_infostr(pmsg_start(mb)), len, knode_to_string(kn), kn->rtt);
 		if (GNET_PROPERTY(dht_trace) & SOCK_TRACE_OUT)
 			dump_hex(stderr, "UDP datagram", pmsg_start(mb), len);
@@ -2097,7 +2097,7 @@ void kmsg_received(
 		}
 
 		if (GNET_PROPERTY(dht_debug) > 2)
-			g_message("DHT traffic from new %s%snode %s at %s (%s v%u.%u)",
+			g_debug("DHT traffic from new %s%snode %s at %s (%s v%u.%u)",
 				(flags & KDA_MSG_F_FIREWALLED) ? "firewalled " : "",
 				(flags & KDA_MSG_F_SHUTDOWNING) ? "shutdowning " : "",
 				kuid_to_hex_string(id),
@@ -2165,7 +2165,7 @@ void kmsg_received(
 		}
 
 		if (GNET_PROPERTY(dht_debug) > 2) {
-			g_message("DHT traffic from known %s %s%snode %s at %s (%s v%u.%u)",
+			g_debug("DHT traffic from known %s %s%snode %s at %s (%s v%u.%u)",
 				knode_status_to_string(kn->status),
 				(flags & KDA_MSG_F_FIREWALLED) ? "firewalled " : "",
 				(flags & KDA_MSG_F_SHUTDOWNING) ? "shutdowning " : "",
@@ -2190,7 +2190,7 @@ void kmsg_received(
 				!host_addr_equal(kn->addr, addr))
 		) {
 			if (GNET_PROPERTY(dht_debug))
-				g_message("DHT new IP for %s (now at %s) -- %s verification",
+				g_debug("DHT new IP for %s (now at %s) -- %s verification",
 					knode_to_string(kn),
 					host_addr_port_to_string(kaddr, kport),
 					(kn->flags & KNODE_F_VERIFYING) ?

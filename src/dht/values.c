@@ -840,7 +840,7 @@ reclaim_dbkey(gpointer key, gpointer u_value, gpointer u_data)
 	delete_valuedata(*dbatom, TRUE);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
-		g_message("DHT value DB-key %s reclaimed", uint64_to_string(*dbatom));
+		g_debug("DHT value DB-key %s reclaimed", uint64_to_string(*dbatom));
 
 	atom_uint64_free(dbatom);
 	return TRUE;
@@ -876,7 +876,7 @@ log_expired_value_stats(guint64 dbkey, const struct valuedata *vd)
 	if (NULL == vd)
 		return;
 
-	g_message("DHT STORE expiring \"%s\" %s "
+	g_debug("DHT STORE expiring \"%s\" %s "
 		"life=%s, republish#=%u, replication#=%u, request#=%u, dbkey=%s",
 		dht_value_type_to_string(vd->type),
 		kuid_to_hex_string(&vd->id),
@@ -894,7 +894,7 @@ log_expired_value_stats(guint64 dbkey, const struct valuedata *vd)
 			avg_replicate =
 				vd->s_elapsed_replicat / (vd->n_replication - 1);
 		}
-		g_message("DHT STORE averages for \"%s\" %s "
+		g_debug("DHT STORE averages for \"%s\" %s "
 			"between republish=%s, replication=%s",
 			dht_value_type_to_string(vd->type),
 			kuid_to_hex_string(&vd->id),
@@ -919,7 +919,7 @@ values_expire(guint64 dbkey, const struct valuedata *vd)
 		log_expired_value_stats(dbkey, vd);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
-		g_message("DHT value DB-key %s expired", uint64_to_string(dbkey));
+		g_debug("DHT value DB-key %s expired", uint64_to_string(dbkey));
 
 	dbatom = atom_uint64_get(&dbkey);
 	gm_hash_table_insert_const(expired, dbatom, GINT_TO_POINTER(1));
@@ -944,7 +944,7 @@ values_unexpire(guint64 dbkey)
 		atom_uint64_free(dbatom);
 
 		if (GNET_PROPERTY(dht_storage_debug) > 2)
-			g_message("DHT value DB-key %s un-expired",
+			g_debug("DHT value DB-key %s un-expired",
 				uint64_to_string(dbkey));
 	}
 }
@@ -1019,7 +1019,7 @@ validate_creator(const knode_t *sender, const dht_value_t *v)
 
 mismatch:
 	if (GNET_PROPERTY(dht_storage_debug))
-		g_message("DHT STORE rejecting \"%s\": "
+		g_debug("DHT STORE rejecting \"%s\": "
 			"%s mismatch between sender %s and creator %s",
 			dht_value_to_string(v), what,
 			knode_to_string(sender), knode_to_string2(creator));
@@ -1028,7 +1028,7 @@ mismatch:
 
 wrong:
 	if (GNET_PROPERTY(dht_storage_debug))
-		g_message("DHT STORE rejecting \"%s\": %s: sender %s and creator %s",
+		g_debug("DHT STORE rejecting \"%s\": %s: sender %s and creator %s",
 			dht_value_to_string(v), what,
 			knode_to_string(sender), knode_to_string2(creator));
 
@@ -1079,7 +1079,7 @@ validate_quotas(const dht_value_t *v)
 	if (GNET_PROPERTY(dht_storage_debug) > 2) {
 		guint32 net = host_addr_ipv4(c->addr) & NET_CLASS_C_MASK;
 
-		g_message("DHT STORE has %d/%d value%s for class C network %s",
+		g_debug("DHT STORE has %d/%d value%s for class C network %s",
 			count, MAX_VALUES_NET, 1 == count ? "" : "s",
 			host_addr_to_string(host_addr_get_ipv4(net)));
 	}
@@ -1088,7 +1088,7 @@ validate_quotas(const dht_value_t *v)
 		if (GNET_PROPERTY(dht_storage_debug)) {
 			guint32 net = host_addr_ipv4(c->addr) & NET_CLASS_C_MASK;
 
-			g_message("DHT STORE rejecting \"%s\": "
+			g_debug("DHT STORE rejecting \"%s\": "
 				"has %d/%d value%s for class C network %s",
 				dht_value_to_string(v),
 				count, MAX_VALUES_NET, 1 == count ? "" : "s",
@@ -1100,13 +1100,13 @@ validate_quotas(const dht_value_t *v)
 	count = acct_net_get(values_per_ip, c->addr, NET_IPv4_MASK);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
-		g_message("DHT STORE has %d/%d value%s for IP %s",
+		g_debug("DHT STORE has %d/%d value%s for IP %s",
 			count, MAX_VALUES_IP, 1 == count ? "" : "s",
 			host_addr_to_string(c->addr));
 
 	if (count >= MAX_VALUES_IP) {
 		if (GNET_PROPERTY(dht_storage_debug)) {
-			g_message("DHT STORE rejecting \"%s\": "
+			g_debug("DHT STORE rejecting \"%s\": "
 				"has %d/%d value%s for IP %s",
 				dht_value_to_string(v),
 				count, MAX_VALUES_IP, 1 == count ? "" : "s",
@@ -1188,7 +1188,7 @@ values_expire_time(const kuid_t *key, dht_value_type_t type,
 			lifetime += lifetime * 3.0 * (p - 0.5);
 
 			if (GNET_PROPERTY(dht_storage_debug)) {
-				g_message("DHT STORE boosted expire of \"%s\" %s to %s, "
+				g_debug("DHT STORE boosted expire of \"%s\" %s to %s, "
 					"life=%s for creator %s", dht_value_type_to_string(type),
 					kuid_to_hex_string(key),
 					compact_time(lifetime), compact_time2(alive),
@@ -1289,7 +1289,7 @@ values_remove(const knode_t *kn, const dht_value_t *v)
 			g_assert(kuid_eq(&vd->id, v->id));		/* Primary key */
 			g_assert(kuid_eq(&vd->cid, cn->id));	/* Secondary key */
 
-			g_message("DHT STORE creator %s deleting %u-byte %s value %s"
+			g_debug("DHT STORE creator %s deleting %u-byte %s value %s"
 				" (life %s)",
 				kuid_to_hex_string(cn->id), vd->length,
 				dht_value_type_to_string(vd->type),
@@ -1303,7 +1303,7 @@ values_remove(const knode_t *kn, const dht_value_t *v)
 
 done:
 	if (reason && GNET_PROPERTY(dht_storage_debug))
-		g_message("DHT STORE refusing deletion of %s: %s",
+		g_debug("DHT STORE refusing deletion of %s: %s",
 			dht_value_to_string(v), reason);
 
 	/*
@@ -1342,7 +1342,7 @@ value_count_republish(struct valuedata *vd)
 			guint32_saturate_add(vd->s_elapsed_publish, elapsed);
 
 		if (GNET_PROPERTY(dht_storage_debug)) {
-			g_message("DHT STORE republishing of \"%s\" %s #%u after %s, "
+			g_debug("DHT STORE republishing of \"%s\" %s #%u after %s, "
 				"life=%s", dht_value_type_to_string(vd->type),
 				kuid_to_hex_string(&vd->id), (unsigned) vd->n_republish,
 				compact_time(elapsed),
@@ -1377,7 +1377,7 @@ value_count_replication(struct valuedata *vd)
 			guint32_saturate_add(vd->s_elapsed_replicat, elapsed);
 
 		if (GNET_PROPERTY(dht_storage_debug))
-			g_message("DHT STORE replication of \"%s\" %s #%u after %s",
+			g_debug("DHT STORE replication of \"%s\" %s #%u after %s",
 				dht_value_type_to_string(vd->type),
 				kuid_to_hex_string(&vd->id), (unsigned) vd->n_replication,
 				compact_time(elapsed));
@@ -1510,7 +1510,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			}
 
 			if (GNET_PROPERTY(dht_storage_debug) > 1)
-				g_message("DHT STORE creator superseding old %u-byte %s value "
+				g_debug("DHT STORE creator superseding old %u-byte %s value "
 					"with %s", vd->length, dht_value_type_to_string(vd->type),
 					dht_value_to_string(v));
 
@@ -1577,10 +1577,10 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 mismatch:
 	if (GNET_PROPERTY(dht_storage_debug) > 1) {
-		g_message("DHT STORE spotted %s mismatch: got %s from %s {creator: %s}",
+		g_debug("DHT STORE spotted %s mismatch: got %s from %s {creator: %s}",
 			what, dht_value_to_string(v), knode_to_string(kn),
 			knode_to_string2(v->creator));
-		g_message("DHT STORE had (pk=%s, sk=%s) %s v%u.%u %u byte%s (%s)",
+		g_debug("DHT STORE had (pk=%s, sk=%s) %s v%u.%u %u byte%s (%s)",
 			kuid_to_hex_string(&vd->id), kuid_to_hex_string2(&vd->cid),
 			dht_value_type_to_string(vd->type),
 			vd->value_major, vd->value_minor,
@@ -1594,7 +1594,7 @@ expired:
 	gnet_stats_count_general(GNR_DHT_STALE_REPLICATION, 1);
 
 	if (GNET_PROPERTY(dht_storage_debug))
-		g_message("DHT STORE detected replication of expired data %s from %s",
+		g_debug("DHT STORE detected replication of expired data %s from %s",
 			dht_value_to_string(v), knode_to_string(kn));
 	
 	return STORE_SC_OK;		/* No error reported, data is stale and must die */
@@ -1620,7 +1620,7 @@ values_store(const knode_t *kn, const dht_value_t *v, gboolean token)
 	g_assert(dbmw_count(db_rawdata) == (size_t) values_managed);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 1) {
-		g_message("DHT STORE %s as %s v%u.%u (%u byte%s) created by %s (%s)",
+		g_debug("DHT STORE %s as %s v%u.%u (%u byte%s) created by %s (%s)",
 			kuid_to_hex_string(v->id), dht_value_type_to_string(v->type),
 			v->major, v->minor, v->length, 1 == v->length ? "" : "s",
 			knode_to_string(v->creator),
@@ -1685,7 +1685,7 @@ values_store(const knode_t *kn, const dht_value_t *v, gboolean token)
 
 done:
 	if (GNET_PROPERTY(dht_storage_debug) > 1)
-		g_message("DHT STORE status for \"%s\" %s is %u (%s)",
+		g_debug("DHT STORE status for \"%s\" %s is %u (%s)",
 			dht_value_type_to_string(v->type),
 			kuid_to_hex_string(v->id), status,
 			dht_store_error_to_string(status));

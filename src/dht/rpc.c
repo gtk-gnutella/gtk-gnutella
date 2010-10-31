@@ -398,7 +398,7 @@ dht_rpc_answer(const guid_t *muid,
 		gnet_stats_count_general(GNR_DHT_RPC_KUID_REPLY_MISMATCH, 1);
 
 		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT sent %s RPC %s to %s but got reply from %s",
+			g_debug("DHT sent %s RPC %s to %s but got reply from %s",
 				op_to_string(rcb->op),
 				guid_to_string(rcb->muid),
 				knode_to_string(rn),
@@ -523,7 +523,7 @@ dht_lazy_rpc_ping(knode_t *kn)
 {
 	if (knode_rpc_pending(kn)) {
 		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT not sending any alive ping to %s (%u pending RPC%s)",
+			g_debug("DHT not sending any alive ping to %s (%u pending RPC%s)",
 				knode_to_string(kn), kn->rpc_pending,
 				1 == kn->rpc_pending ? "" : "s");
 		}

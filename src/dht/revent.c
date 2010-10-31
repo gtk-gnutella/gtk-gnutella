@@ -285,7 +285,7 @@ revent_pmsg_free(pmsg_t *mb, gpointer arg)
 	obj = (*ops->is_alive)(pmi->rid);
 	if (NULL == obj) {
 		if (*ops->debug > 2)
-			g_message("DHT %s[%s] late UDP message %s",
+			g_debug("DHT %s[%s] late UDP message %s",
 				ops->name, revent_id_to_string(pmi->rid),
 				pmsg_was_sent(mb) ? "sending" : "dropping");
 		goto cleanup;
@@ -317,7 +317,7 @@ revent_pmsg_free(pmsg_t *mb, gpointer arg)
 			(*ops->msg_sent)(obj, mb);
 
 		if (*ops->debug > 4)
-			g_message("DHT %s[%s] sent %s (%d bytes) to %s, RTT=%u",
+			g_debug("DHT %s[%s] sent %s (%d bytes) to %s, RTT=%u",
 				ops->name, revent_id_to_string(pmi->rid),
 				kmsg_infostr(pmsg_start(mb)), 
 				pmsg_written_size(mb), knode_to_string(kn), kn->rtt);
@@ -326,7 +326,7 @@ revent_pmsg_free(pmsg_t *mb, gpointer arg)
 		guid_t *muid;
 
 		if (*ops->debug > 2)
-			g_message("DHT %s[%s] message %s%u to %s dropped by UDP queue",
+			g_debug("DHT %s[%s] message %s%u to %s dropped by UDP queue",
 				ops->name, revent_id_to_string(pmi->rid),
 				ops->udata_name, pmi->rpi->udata,
 				knode_to_string(kn));
@@ -394,7 +394,7 @@ revent_rpc_cb(
 	obj = (*ops->is_alive)(rpi->rid);
 	if (NULL == obj) {
 		if (*ops->debug > 2)
-			g_message("DHT %s[%s] late RPC %s from %s",
+			g_debug("DHT %s[%s] late RPC %s from %s",
 				ops->name, revent_id_to_string(rpi->rid),
 				type == DHT_RPC_TIMEOUT ? "timeout" : "reply",
 				knode_to_string(kn));
@@ -406,7 +406,7 @@ revent_rpc_cb(
 	 */
 
 	if (*ops->debug > 2)
-		g_message("DHT %s[%s] handling %s for RPC issued %s%u to %s",
+		g_debug("DHT %s[%s] handling %s for RPC issued %s%u to %s",
 			ops->name, revent_id_to_string(rpi->rid),
 			type == DHT_RPC_TIMEOUT ? "timeout" : "reply",
 			ops->udata_name, rpi->udata, knode_to_string(kn));

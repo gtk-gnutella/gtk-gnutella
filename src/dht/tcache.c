@@ -146,7 +146,7 @@ delete_tokdata(const kuid_t *id)
 	gnet_stats_count_general(GNR_DHT_CACHED_TOKENS_HELD, -1);
 
 	if (GNET_PROPERTY(dht_tcache_debug) > 2)
-		g_message("DHT TCACHE security token from %s reclaimed",
+		g_debug("DHT TCACHE security token from %s reclaimed",
 			kuid_to_hex_string(id));
 }
 
@@ -217,7 +217,7 @@ record_token(gpointer key, gpointer value, gpointer unused_u)
 	if (GNET_PROPERTY(dht_tcache_debug) > 4) {
 		char buf[80];
 		bin_to_hex_buf(td.token, td.length, buf, sizeof buf);
-		g_message("DHT TCACHE adding security token for %s: %u-byte \"%s\"",
+		g_debug("DHT TCACHE adding security token for %s: %u-byte \"%s\"",
 			kuid_to_hex_string(id), td.length, buf);
 	}
 
@@ -280,7 +280,7 @@ tcache_get(const kuid_t *id,
 	if (GNET_PROPERTY(dht_tcache_debug) > 4) {
 		char buf[80];
 		bin_to_hex_buf(td->token, td->length, buf, sizeof buf);
-		g_message("DHT TCACHE security token for %s is %u-byte \"%s\" (%s)",
+		g_debug("DHT TCACHE security token for %s is %u-byte \"%s\" (%s)",
 			kuid_to_hex_string(id), td->length, buf,
 			compact_time(delta_time(tm_time(), td->last_update)));
 	}
@@ -322,7 +322,7 @@ tk_prune_old(gpointer key, gpointer value, size_t u_len, gpointer u_data)
 	d = delta_time(tm_time(), td->last_update);
 
 	if (GNET_PROPERTY(dht_tcache_debug) > 2 && d > token_life) {
-		g_message("DHT TCACHE security token from %s expired",
+		g_debug("DHT TCACHE security token from %s expired",
 			kuid_to_hex_string(id));
 	}
 
@@ -336,7 +336,7 @@ static void
 tcache_prune_old(void)
 {
 	if (GNET_PROPERTY(dht_tcache_debug)) {
-		g_message("DHT TCACHE pruning expired tokens (%lu)",
+		g_debug("DHT TCACHE pruning expired tokens (%lu)",
 			(unsigned long) dbmw_count(db_tokdata));
 	}
 
@@ -344,7 +344,7 @@ tcache_prune_old(void)
 	gnet_stats_set_general(GNR_DHT_CACHED_TOKENS_HELD, dbmw_count(db_tokdata));
 
 	if (GNET_PROPERTY(dht_tcache_debug)) {
-		g_message("DHT TCACHE pruned expired tokens (%lu remaining)",
+		g_debug("DHT TCACHE pruned expired tokens (%lu remaining)",
 			(unsigned long) dbmw_count(db_tokdata));
 	}
 }
@@ -378,7 +378,7 @@ tcache_init(void)
 	token_life = MIN(TOK_LIFE, token_lifetime());
 
 	if (GNET_PROPERTY(dht_tcache_debug))
-		g_message("DHT cached token lifetime set to %u secs",
+		g_debug("DHT cached token lifetime set to %u secs",
 			(unsigned) token_life);
 
 	tcache_prune_ev = cq_periodic_add(callout_queue,

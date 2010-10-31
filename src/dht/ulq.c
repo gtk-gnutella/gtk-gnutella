@@ -359,11 +359,11 @@ ulq_lookup_stats(const kuid_t *kuid,
 	sched.msg_dropped -= sched.msg_dropped >> 1;	/* Halve the count */
 
 	if (GNET_PROPERTY(dht_ulq_debug) > 1)
-		g_message("DHT ULQ %s lookup completed in %.3f secs (in=%d, out=%d)",
+		g_debug("DHT ULQ %s lookup completed in %.3f secs (in=%d, out=%d)",
 			ui->uq->name, ls->elapsed, ls->bw_incoming, ls->bw_outgoing);
 
 	if (GNET_PROPERTY(dht_ulq_debug) > 2)
-		g_message("DHT ULQ sched avg: "
+		g_debug("DHT ULQ sched avg: "
 			"bw_in=%d, bw_out=%d, sz_in=%d, sz_out=%d, dropped=%d",
 			vema(sched.bw_in_ema), vema(sched.bw_out_ema),
 			vema(sched.sz_in_ema), vema(sched.sz_out_ema),
@@ -492,7 +492,7 @@ ulq_service(void)
 	int max;
 
 	if (GNET_PROPERTY(dht_ulq_debug) > 2) {
-		g_message("DHT ULQ service on entry: has %d running and %d pending: %s",
+		g_debug("DHT ULQ service on entry: has %d running and %d pending: %s",
 			sched.running, sched.pending, ulq_queue_status());
 	}
 
@@ -534,7 +534,7 @@ ulq_service(void)
 			sz_out_limit = 1 + GNET_PROPERTY(bw_dht_lookup_out) / sz_out_ema;
 
 		if (GNET_PROPERTY(dht_ulq_debug) > 1)
-			g_message("DHT ULQ service: limits in = (bw: %d, sz: %d), "
+			g_debug("DHT ULQ service: limits in = (bw: %d, sz: %d), "
 				"out = (bw: %d, sz: %d)",
 				in_limit, sz_in_limit, out_limit, sz_out_limit);
 
@@ -589,7 +589,7 @@ ulq_service(void)
 	sched.udp_flow_controlled = FALSE;
 
 	if (GNET_PROPERTY(dht_ulq_debug) > 1)
-		g_message("DHT ULQ service at exit: "
+		g_debug("DHT ULQ service at exit: "
 			"max %d, has %d running and %d pending: %s",
 			max, sched.running, sched.pending, ulq_queue_status());
 
