@@ -5472,7 +5472,7 @@ regression_utf8_bijection(void)
 
 		uc1 = utf8_decode_char_fast(utf8_char, &len1);
 		if (uc != uc1 || len != len1)
-			g_message("uc=%x uc1=%x, len=%d, len1=%d\n", uc, uc1, len, len1);
+			g_debug("uc=%x uc1=%x, len=%d, len1=%d\n", uc, uc1, len, len1);
 		g_assert(uc == uc1);
 		g_assert(len == len1);
 
@@ -5561,7 +5561,7 @@ regression_utf8_vs_glib2(void)
 
 		uc = i;
 		gt = g_unichar_type(uc);
-		g_message("uc=U+%04X", (guint) uc);
+		g_debug("uc=U+%04X", (guint) uc);
 		switch (utf32_general_category(uc)) {
 		case UNI_GC_LETTER_UPPERCASE:
 			g_assert(G_UNICODE_UPPERCASE_LETTER == gt);
@@ -5817,14 +5817,14 @@ regression_utf8_vs_glib2(void)
 			const char *p;
 			guint retlen;
 
-			g_message("\n0x%04X\nbuf=\"%s\"\ns=\"%s\"", i, buf, s);
+			g_debug("\n0x%04X\nbuf=\"%s\"\ns=\"%s\"", i, buf, s);
 			for (p = buf; '\0' != *p; p += retlen) {
 				guint32 uc;
 
 				uc = utf8_decode_char_fast(p, &retlen);
 				if (!uc)
 					break;
-				g_message("buf: U+%04X", uc);
+				g_debug("buf: U+%04X", uc);
 			}
 			for (p = s; '\0' != *p; p += retlen) {
 				guint32 uc;
@@ -5832,7 +5832,7 @@ regression_utf8_vs_glib2(void)
 				uc = utf8_decode_char_fast(p, &retlen);
 				if (!uc)
 					break;
-				g_message("s: U+%04X", uc);
+				g_debug("s: U+%04X", uc);
 			}
 
 #if GLIB_CHECK_VERSION(2, 4, 0) /* Glib >= 2.4.0 */
@@ -5847,7 +5847,7 @@ regression_utf8_vs_glib2(void)
 		G_FREE_NULL(s);
 	}
 
-	g_message("random value: %u", (guint) random_value(~0));
+	g_debug("random value: %u", (guint) random_value(~0));
 
 	/* Check random Unicode strings */
 	for (i = 0; i < 10000000; i++) {
@@ -5995,7 +5995,7 @@ regression_utf8_vs_glib2(void)
 
 			uc1 = utf8_decode_char_fast(x, &retlen);
 			uc2 = utf8_decode_char(x, strlen(x), &retlen, TRUE);
-			g_message("x=\"%s\"\ny=\"%s\"\n, *x=%x, *y=%x\n", x, y, uc1, uc2);
+			g_debug("x=\"%s\"\ny=\"%s\"\n, *x=%x, *y=%x\n", x, y, uc1, uc2);
 
 #if GLIB_CHECK_VERSION(2, 4, 0) /* Glib >= 2.4.0 */
 			/*

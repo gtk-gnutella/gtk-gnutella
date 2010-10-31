@@ -387,10 +387,10 @@ omalloc_chunk_allocate_from(struct ochunk *ck, size_t size)
 		stats.chunks--;
 
 		if (omalloc_debug > 2) {
-			g_message("OMALLOC dissolving chunk header on %lu-byte allocation",
+			g_debug("OMALLOC dissolving chunk header on %lu-byte allocation",
 				(unsigned long) size);
 			if (csize != size) {
-				g_message("OMALLOC %lu trailing bytes lost",
+				g_debug("OMALLOC %lu trailing bytes lost",
 					(unsigned long) (csize - size));
 			}
 		}
@@ -437,7 +437,7 @@ omalloc(size_t size)
 
 	if (omalloc_debug > 2) {
 		size_t pages = allocated / compat_pagesize();
-		g_message("OMALLOC allocated %lu page%s (%lu total for %lu object%s)",
+		g_debug("OMALLOC allocated %lu page%s (%lu total for %lu object%s)",
 			(unsigned long) pages, 1 == pages ? "" : "s",
 			(unsigned long) stats.pages, (unsigned long) stats.objects,
 			1 == stats.objects ? "" : "s");
@@ -460,13 +460,13 @@ omalloc(size_t size)
 		stats.chunks++;
 
 		if (omalloc_debug > 2) {
-			g_message("OMALLOC adding %lu byte-long chunk (%lu chunk%s total)",
+			g_debug("OMALLOC adding %lu byte-long chunk (%lu chunk%s total)",
 				(unsigned long) omalloc_chunk_size(ck),
 				(unsigned long) stats.chunks, 1 == stats.chunks ? "" : "s");
 		}
 	} else if (allocated != rounded) {
 		if (omalloc_debug > 2) {
-			g_message("OMALLOC %lu trailing bytes lost on %lu-byte allocation",
+			g_debug("OMALLOC %lu trailing bytes lost on %lu-byte allocation",
 				(unsigned long) (allocated - rounded),
 				(unsigned long) rounded);
 		}
@@ -545,10 +545,10 @@ omalloc_close(void)
 	 */
 
 	if (omalloc_debug) {
-		g_message("omalloc() allocated %lu object%s spread on %lu page%s",
+		g_debug("omalloc() allocated %lu object%s spread on %lu page%s",
 			(unsigned long) stats.objects, 1 == stats.objects ? "" : "s",
 			(unsigned long) stats.pages, 1 == stats.pages ? "" : "s");
-		g_message("omalloc() allocated %s, %lu partial page%s remain%s",
+		g_debug("omalloc() allocated %s, %lu partial page%s remain%s",
 			short_size(stats.memory, FALSE),
 			(unsigned long) stats.chunks, 1 == stats.chunks ? "" : "s",
 			1 == stats.chunks ? "s" : "");

@@ -257,7 +257,7 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size,
 		dw->max_cached = cache_size;
 
 	if (common_dbg)
-		g_message("DBMW created \"%s\" with %s back-end "
+		g_debug("DBMW created \"%s\" with %s back-end "
 			"(max cached = %lu, key=%lu bytes, value=%lu bytes, "
 			"%lu max serialized)",
 			dw->name, dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
@@ -310,7 +310,7 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 	 */
 
 	if (common_dbg > 4)
-		g_message("DBMW \"%s\" %s dirty value (%lu byte%s)",
+		g_debug("DBMW \"%s\" %s dirty value (%lu byte%s)",
 			dw->name, value->absent ? "deleting" : "flushing",
 			(unsigned long) dval.len, 1 == dval.len ? "" : "s");
 
@@ -1058,7 +1058,7 @@ dbmw_destroy(dbmw_t *dw, gboolean close_map)
 	dbmw_check(dw);
 
 	if (common_stats)
-		g_message("DBMW destroying \"%s\" with %s back-end "
+		g_debug("DBMW destroying \"%s\" with %s back-end "
 			"(read cache hits = %.2f%% on %s request%s, "
 			"write cache hits = %.2f%% on %s request%s)",
 			dw->name, dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",

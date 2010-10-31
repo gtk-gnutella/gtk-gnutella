@@ -558,7 +558,7 @@ timeit(
 	elapsed = tm_elapsed_f(&end, &start);
 
 	if (verbose)
-		g_message("%s (%lu items, %lu loop%s): %f s (average: %f s)", what,
+		g_debug("%s (%lu items, %lu loop%s): %f s (average: %f s)", what,
 			(unsigned long) count, (gulong) iter, iter == 1 ? "" : "s",
 			elapsed, elapsed / iter);
 
@@ -614,7 +614,7 @@ map_test(void)
 			1, "map PATRICIA reloading", verbose);
 
 		if (verbose)
-			g_message("PATRICIA insertion %s than hash with %lu items",
+			g_info("PATRICIA insertion %s than hash with %lu items",
 				ptime < htime ? "faster" : "slower", (unsigned long) count);
 
 		if (ptime < htime)
@@ -627,7 +627,7 @@ map_test(void)
 			LOOPS, "map PATRICIA contains", verbose);
 
 		if (verbose)
-			g_message("PATRICIA contains %s than hash with %lu items",
+			g_info("PATRICIA contains %s than hash with %lu items",
 				ptime < htime ? "faster" : "slower", (unsigned long) count);
 
 		if (ptime < htime)
@@ -640,7 +640,7 @@ map_test(void)
 			1, "map PATRICIA remove", verbose);
 
 		if (verbose)
-			g_message("PATRICIA remove %s than hash with %lu items",
+			g_info("PATRICIA remove %s than hash with %lu items",
 				ptime < htime ? "faster" : "slower", (unsigned long) count);
 
 		if (ptime < htime)
@@ -651,14 +651,14 @@ map_test(void)
 	}
 
 	if (faster.insertion)
-		g_message("PATRICIA insert was faster than hash in %d out of %d tests",
+		g_info("PATRICIA insert was faster than hash in %d out of %d tests",
 			faster.insertion, tests);
 	if (faster.contains)
-		g_message(
+		g_info(
 			"PATRICIA contains was faster than hash in %d out of %d tests",
 			faster.contains, tests);
 	if (faster.removal)
-		g_message("PATRICIA remove was faster than hash in %d out of %d tests",
+		g_info("PATRICIA remove was faster than hash in %d out of %d tests",
 			faster.removal, tests);
 
 	G_FREE_NULL(keys);

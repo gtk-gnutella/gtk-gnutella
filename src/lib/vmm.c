@@ -329,7 +329,7 @@ vmm_dump_pmap(void)
 	struct pmap *pm = vmm_pmap();
 	size_t i;
 
-	g_message("VMM current %s pmap (%lu region%s):",
+	g_debug("VMM current %s pmap (%lu region%s):",
 		pm == &kernel_pmap ? "kernel" :
 		pm == &local_pmap ? "local" : "unknown",
 		(unsigned long) pm->count, 1 == pm->count ? "" : "s");
@@ -343,7 +343,7 @@ vmm_dump_pmap(void)
 			hole = ptr_diff(next, vmf_end(vmf));
 		}
 
-		g_message("VMM [0x%lx, 0x%lx] %luKiB%s%s%s%s",
+		g_debug("VMM [0x%lx, 0x%lx] %luKiB%s%s%s%s",
 			(unsigned long) vmf->start,
 			(unsigned long) const_ptr_add_offset(vmf_end(vmf), -1),
 			(unsigned long) (vmf_size(vmf) / 1024),
@@ -503,7 +503,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 	hint = deconstify_gpointer(NULL == hole ? vmm_find_hole(size) : hole);
 
 	if (hint != NULL && vmm_debugging(8)) {
-		g_message("VMM hinting %s0x%lx for new %luKiB region",
+		g_debug("VMM hinting %s0x%lx for new %luKiB region",
 			NULL == hole ? "" : "supplied ",
 			(unsigned long) hint, (unsigned long) (size / 1024));
 	}
@@ -564,7 +564,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 
 		if (vmm_pmap() == &kernel_pmap) {
 			if (vmm_debugging(0)) {
-				g_message("VMM current kernel pmap before reloading attempt:");
+				g_debug("VMM current kernel pmap before reloading attempt:");
 				vmm_dump_pmap();
 			}
 			pmap_load(&kernel_pmap);
@@ -573,7 +573,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 			if (size <= kernel_pagesize) {
 				pmap_insert_foreign(&local_pmap, hint, kernel_pagesize);
 				if (vmm_debugging(0)) {
-					g_message("VMM marked hint 0x%lx as foreign",
+					g_debug("VMM marked hint 0x%lx as foreign",
 						(unsigned long) hint);
 				}
 			} else if (
@@ -598,7 +598,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 					if (try != hint) {
 						pmap_insert_foreign(&local_pmap, hint, kernel_pagesize);
 						if (vmm_debugging(0)) {
-							g_message("VMM marked hint 0x%lx as foreign",
+							g_debug("VMM marked hint 0x%lx as foreign",
 								(unsigned long) hint);
 						}
 					} else if (2 == pagecount_fast(size)) {
@@ -607,13 +607,13 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 							pmap_insert_foreign(&local_pmap, next,
 								kernel_pagesize);
 							if (vmm_debugging(0)) {
-								g_message("VMM marked 0x%lx (page after 0x%lx) "
+								g_debug("VMM marked 0x%lx (page after 0x%lx) "
 									"as foreign",
 									(unsigned long) next, (unsigned long) hint);
 							}
 						} else {
 							if (vmm_debugging(0)) {
-								g_message("VMM funny kernel ignored hint 0x%lx "
+								g_debug("VMM funny kernel ignored hint 0x%lx "
 									"and allocated 8 KiB at 0x%lx whereas hint "
 									"was free",
 									(unsigned long) hint, (unsigned long) p);
@@ -621,7 +621,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 						}
 					} else {
 						if (vmm_debugging(1)) {
-							g_message("VMM hinted 0x%lx is not a foreign page",
+							g_debug("VMM hinted 0x%lx is not a foreign page",
 								(unsigned long) hint);
 						}
 					}
@@ -637,7 +637,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 				}
 			} else {
 				if (vmm_debugging(0)) {
-					g_message("VMM hint 0x%lx fell within allocated "
+					g_debug("VMM hint 0x%lx fell within allocated "
 						"[0x%lx, 0x%lx]",
 						(unsigned long) hint, (unsigned long) p,
 						(unsigned long) ptr_add_offset(p, size - 1));
@@ -709,7 +709,7 @@ alloc_pages(size_t size, gboolean update_pmap, const void *hole)
 	}
 
 	if (vmm_debugging(5)) {
-		g_message("VMM allocated %luKiB region at 0x%lx",
+		g_debug("VMM allocated %luKiB region at 0x%lx",
 			(unsigned long) size / 1024, (unsigned long) p);
 	}
 
@@ -771,7 +771,7 @@ static void
 free_pages(void *p, size_t size, gboolean update_pmap)
 {
 	if (vmm_debugging(5)) {
-		g_message("VMM freeing %luKiB region at 0x%lx",
+		g_debug("VMM freeing %luKiB region at 0x%lx",
 			(unsigned long) size / 1024, (unsigned long) p);
 	}
 
@@ -862,7 +862,7 @@ retry:
 	old_generation = vmm_pmap()->generation;
 
 	if (vmm_debugging(0)) {
-		g_message("VMM extending %s%s%s pmap from %lu KiB to %lu KiB",
+		g_debug("VMM extending %s%s%s pmap from %lu KiB to %lu KiB",
 			pm->extending ? "(recursively) " : "",
 			pm->loading ? "loading " : "",
 			pm == &kernel_pmap ? "kernel" : "local",
@@ -948,7 +948,7 @@ retry:
 				pmap_insert(vpm, narray, nsize);
 			} else {
 				if (vmm_debugging(0)) {
-					g_message("VMM kernel pmap reloaded during extension");
+					g_debug("VMM kernel pmap reloaded during extension");
 				}
 				/* New pages must be there! */
 				g_assert(NULL != pmap_lookup(vpm, narray, NULL));
@@ -1038,7 +1038,7 @@ pmap_insert_region(struct pmap *pm,
 
 		if (kernel_pmap.generation != generation) {
 			if (vmm_debugging(1)) {
-				g_message("VMM kernel pmap reloaded before inserting "
+				g_debug("VMM kernel pmap reloaded before inserting "
 					"%s[0x%lx, 0x%lx]",
 					foreign ? "foreign " : "",
 					(unsigned long) start,
@@ -1053,7 +1053,7 @@ pmap_insert_region(struct pmap *pm,
 	if (vmf != NULL) {
 		if (reloaded) {
 			if (vmm_debugging(2)) {
-				g_message("VMM good, reloaded kernel pmap contains region");
+				g_debug("VMM good, reloaded kernel pmap contains region");
 			}
 		} else {
 			if (vmm_debugging(0)) {
@@ -1160,7 +1160,7 @@ pmap_parse_and_add(struct pmap *pm, const char *line)
 	gboolean foreign = FALSE;
 
 	if (vmm_debugging(9))
-		g_message("VMM parsing \"%s\"", line);
+		g_debug("VMM parsing \"%s\"", line);
 
 	/*
 	 * Typical format of lines on linux:
@@ -1414,7 +1414,7 @@ pmap_load(struct pmap *pm)
 	g_assert(&kernel_pmap == pm);
 
 	if (vmm_debugging(8)) {
-		g_message("VMM loading kernel memory map (for generation #%lu)",
+		g_debug("VMM loading kernel memory map (for generation #%lu)",
 			(unsigned long) pm->generation + 1);
 	}
 
@@ -1451,7 +1451,7 @@ pmap_load(struct pmap *pm)
 		pm->generation++;
 
 	if (vmm_debugging(1)) {
-		g_message("VMM kernel memory map (generation #%lu) holds %lu region%s",
+		g_debug("VMM kernel memory map (generation #%lu) holds %lu region%s",
 			(unsigned long) pm->generation,
 			(unsigned long) pm->count, 1 == pm->count ? "" : "s");
 	}
@@ -1672,7 +1672,7 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 		if (p == vmf->start) {
 
 			if (vmm_debugging(2)) {
-				g_message("VMM %s%luKiB region at 0x%lx was %s fragment",
+				g_debug("VMM %s%luKiB region at 0x%lx was %s fragment",
 					foreign ? "foreign " : "",
 					(unsigned long) size / 1024, (unsigned long) p,
 					end == vend ? "a whole" : "start of a");
@@ -1692,7 +1692,7 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 
 			if (end != vend) {
 				if (vmm_debugging(1)) {
-					g_message("VMM freeing %s%luKiB region at 0x%lx "
+					g_debug("VMM freeing %s%luKiB region at 0x%lx "
 						"fragments VM space",
 						foreign ? "foreign " : "",
 						(unsigned long) size / 1024, (unsigned long) p);
@@ -1827,7 +1827,7 @@ static void
 free_pages_forced(void *p, size_t size, gboolean fragment)
 {
 	if (vmm_debugging(fragment ? 2 : 5)) {
-		g_message("VMM freeing %luKiB region at 0x%lx%s",
+		g_debug("VMM freeing %luKiB region at 0x%lx%s",
 			(unsigned long) size / 1024, (unsigned long) p,
 			fragment ? " (fragment)" : "");
 	}
@@ -1992,7 +1992,7 @@ vpc_insert(struct page_cache *pc, void *p)
 
 		if (after == p) {
 			if (vmm_debugging(6)) {
-				g_message("VMM page cache #%lu: "
+				g_debug("VMM page cache #%lu: "
 					"coalescing previous [0x%lx, 0x%lx] with [0x%lx, 0x%lx]",
 					(unsigned long) pc->pages - 1, (unsigned long) before,
 					(unsigned long) ptr_add_offset(after, -1),
@@ -2017,7 +2017,7 @@ vpc_insert(struct page_cache *pc, void *p)
 
 		if (next == end) {
 			if (vmm_debugging(6)) {
-				g_message("VMM page cache #%lu: "
+				g_debug("VMM page cache #%lu: "
 					"coalescing [0x%lx, 0x%lx] with next [0x%lx, 0x%lx]",
 					(unsigned long) pc->pages - 1, (unsigned long) base,
 					(unsigned long) ptr_add_offset(end, -1),
@@ -2036,7 +2036,7 @@ vpc_insert(struct page_cache *pc, void *p)
 
 	if (pages != pc->pages) {
 		if (vmm_debugging(2)) {
-			g_message("VMM coalesced %luKiB region [0x%lx, 0x%lx] into "
+			g_debug("VMM coalesced %luKiB region [0x%lx, 0x%lx] into "
 				"%luKiB region [0x%lx, 0x%lx] (recursing)",
 				(unsigned long) (pc->chunksize / 1024),
 				(unsigned long) p,
@@ -2060,7 +2060,7 @@ insert:
 		size_t kidx = kernel_mapaddr_increasing ? VMM_CACHE_SIZE - 1 : 0;
 		if (vmm_debugging(4)) {
 			void *lbase = pc->info[kidx].base;
-			g_message("VMM page cache #%lu: kicking out [0x%lx, 0x%lx] %luKiB",
+			g_debug("VMM page cache #%lu: kicking out [0x%lx, 0x%lx] %luKiB",
 				(unsigned long) pc->pages - 1, (unsigned long) lbase,
 				(unsigned long) ptr_add_offset(lbase, pc->chunksize - 1),
 				(unsigned long) pc->chunksize / 1024);
@@ -2083,7 +2083,7 @@ insert:
 	pc->info[idx].stamp = tm_time();
 
 	if (vmm_debugging(4)) {
-		g_message("VMM page cache #%lu: inserted [0x%lx, 0x%lx] %luKiB, "
+		g_debug("VMM page cache #%lu: inserted [0x%lx, 0x%lx] %luKiB, "
 			"now holds %lu item%s",
 			(unsigned long) pc->pages - 1, (unsigned long) base,
 			(unsigned long) ptr_add_offset(base, pc->chunksize - 1),
@@ -2144,7 +2144,7 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 
 			if (hole != NULL && vmm_ptr_cmp(base, hole) > 0) {
 				if (vmm_debugging(7)) {
-					g_message("VMM page cache #%lu: stopping split attempt "
+					g_debug("VMM page cache #%lu: stopping split attempt "
 						"at 0x%lx (upper than hole 0x%lx)",
 						(unsigned long) pc->pages - 1,
 						(unsigned long) base, (unsigned long) hole);
@@ -2181,7 +2181,7 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 
 			if (hole != NULL && vmm_ptr_cmp(p, hole) > 0) {
 				if (vmm_debugging(7)) {
-					g_message("VMM page cache #%lu: stopping lookup at 0x%lx "
+					g_debug("VMM page cache #%lu: stopping lookup at 0x%lx "
 						"(upper than hole 0x%lx)",
 						(unsigned long) pc->pages - 1,
 						(unsigned long) p, (unsigned long) hole);
@@ -2231,7 +2231,7 @@ selected:
 				} else {
 					if (hole != NULL && vmm_ptr_cmp(start, hole) > 0) {
 						if (vmm_debugging(7)) {
-							g_message("VMM cache #%lu: stopping merge at "
+							g_debug("VMM cache #%lu: stopping merge at "
 								"0x%lx (upper than hole 0x%lx)",
 								(unsigned long) pc->pages - 1,
 								(unsigned long) start, (unsigned long) hole);
@@ -2257,7 +2257,7 @@ selected:
 				} else {
 					if (hole != NULL && vmm_ptr_cmp(prev_base, hole) > 0) {
 						if (vmm_debugging(7)) {
-							g_message("VMM cache #%lu: stopping merge at "
+							g_debug("VMM cache #%lu: stopping merge at "
 								"0x%lx (upper than hole 0x%lx)",
 								(unsigned long) pc->pages - 1,
 								(unsigned long) prev_base,
@@ -2354,7 +2354,7 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 	}
 
 	if (hole != NULL && vmm_debugging(8)) {
-		g_message("VMM lowest hole of %lu page%s at 0x%lx",
+		g_debug("VMM lowest hole of %lu page%s at 0x%lx",
 			(unsigned long) n, n == 1 ? "" : "s", (unsigned long) hole);
 	}
 
@@ -2370,7 +2370,7 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 		p = vpc_find_pages(pc, n, hole);
 
 		if (vmm_debugging(3)) {
-			g_message("VMM lookup for large area (%lu pages) returned 0x%lx",
+			g_debug("VMM lookup for large area (%lu pages) returned 0x%lx",
 				(unsigned long) n, (unsigned long) p);
 		}
 	} else {
@@ -2402,7 +2402,7 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 	}
 
 	if (p != NULL && vmm_debugging(5)) {
-		g_message("VMM found %luKiB region at 0x%lx in cache #%lu%s",
+		g_debug("VMM found %luKiB region at 0x%lx in cache #%lu%s",
 			(unsigned long) (n * kernel_pagesize / 1024),
 			(unsigned long) p,
 			(unsigned long) pc->pages - 1,
@@ -2498,7 +2498,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 			if (loidx != (size_t) -1) {
 				if (vmm_debugging(6)) {
-					g_message("VMM iter #%lu, coalescing previous "
+					g_debug("VMM iter #%lu, coalescing previous "
 						"[0x%lx, 0x%lx] from lower cache #%lu "
 						"with [0x%lx, 0x%lx]",
 						(unsigned long) i, (unsigned long) before,
@@ -2543,7 +2543,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 		if (hoidx != (size_t) -1) {
 			if (vmm_debugging(6)) {
-				g_message("VMM coalescing previous [0x%lx, 0x%lx] "
+				g_debug("VMM coalescing previous [0x%lx, 0x%lx] "
 					"from higher cache #%lu with [0x%lx, 0x%lx]",
 					(unsigned long) before,
 					(unsigned long) ptr_add_offset(base, -1),
@@ -2582,7 +2582,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 			loidx = vpc_lookup(lopc, end, NULL);
 			if (loidx != (size_t) -1) {
 				if (vmm_debugging(6)) {
-					g_message("VMM iter #%lu, coalescing next [0x%lx, 0x%lx] "
+					g_debug("VMM iter #%lu, coalescing next [0x%lx, 0x%lx] "
 						"from lower cache #%lu with [0x%lx, 0x%lx]",
 						(unsigned long) i, (unsigned long) end,
 						(unsigned long) ptr_add_offset(end,
@@ -2622,7 +2622,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 		hoidx = vpc_lookup(hopc, end, NULL);
 		if (hoidx != (size_t) -1) {
 			if (vmm_debugging(6)) {
-				g_message("VMM coalescing next [0x%lx, 0x%lx] "
+				g_debug("VMM coalescing next [0x%lx, 0x%lx] "
 					"from higher cache #%lu with [0x%lx, 0x%lx]",
 					(unsigned long) end,
 					(unsigned long) ptr_add_offset(end, hopc->chunksize - 1),
@@ -2645,7 +2645,7 @@ done:
 
 	if (pages != old_pages) {
 		if (vmm_debugging(2)) {
-			g_message("VMM coalesced %luKiB region [0x%lx, 0x%lx] into "
+			g_debug("VMM coalesced %luKiB region [0x%lx, 0x%lx] into "
 				"%luKiB region [0x%lx, 0x%lx]",
 				(unsigned long) (old_pages * kernel_pagesize / 1024),
 				(unsigned long) *base_ptr,
@@ -2882,7 +2882,7 @@ page_cache_timer(gpointer unused_udata)
 	pc = &page_cache[line];
 
 	if (vmm_debugging(pc->current > 0 ? 4 : 8)) {
-		g_message("VMM scanning page cache #%lu (%lu item%s)",
+		g_debug("VMM scanning page cache #%lu (%lu item%s)",
 			(unsigned long) line,
 			(unsigned long) pc->current, 1 == pc->current ? "" : "s");
 	}
@@ -2912,7 +2912,7 @@ page_cache_timer(gpointer unused_udata)
 
 	if (expired > 0 && vmm_debugging(1)) {
 		size_t regions = vmm_pmap()->count;
-		g_message("VMM expired %lu item%s (%luKiB total) from "
+		g_debug("VMM expired %lu item%s (%luKiB total) from "
 			"page cache #%lu (%lu item%s remaining), "
 			"process has %lu VM regions%s",
 			(unsigned long) expired, 1 == expired ? "" : "s",
@@ -3044,7 +3044,7 @@ vmm_reserve_stack(size_t amount)
 			const void *reserve_start;
 
 			if (vmm_debugging(1)) {
-				g_message("VMM stack region found in the kernel pmap (%lu KiB)",
+				g_debug("VMM stack region found in the kernel pmap (%lu KiB)",
 					(unsigned long) (vmf_size(vmf) / 1024));
 			}
 
@@ -3066,7 +3066,7 @@ vmm_reserve_stack(size_t amount)
 				pmap_insert_foreign(&kernel_pmap,
 					reserve_start, VMM_STACK_MINSIZE);
 				if (vmm_debugging(1)) {
-					g_message("VMM reserved [0x%lx, 0x%lx] "
+					g_debug("VMM reserved [0x%lx, 0x%lx] "
 						"%s stack for possible growing",
 						(unsigned long) reserve_start,
 						(unsigned long) const_ptr_add_offset(reserve_start,
@@ -3107,7 +3107,7 @@ vmm_reserve_stack(size_t amount)
 	if (pmap_is_available(&local_pmap, stack_low, amount)) {
 		pmap_insert_foreign(&local_pmap, stack_low, amount);
 		if (vmm_debugging(1)) {
-			g_message("VMM reserved %luKiB [0x%lx, 0x%lx] for the stack",
+			g_debug("VMM reserved %luKiB [0x%lx, 0x%lx] for the stack",
 				(unsigned long) amount / 1024,
 				(unsigned long) stack_low,
 				(unsigned long) const_ptr_add_offset(stack_low, amount - 1));
@@ -3124,7 +3124,7 @@ vmm_reserve_stack(size_t amount)
 		}
 	} else {
 		if (vmm_debugging(0)) {
-			g_message("VMM cannot reserve %luKiB [0x%lx, 0x%lx] for the stack",
+			g_warning("VMM cannot reserve %luKiB [0x%lx, 0x%lx] for the stack",
 				(unsigned long) amount / 1024,
 				(unsigned long) stack_low,
 				(unsigned long) const_ptr_add_offset(stack_low, amount - 1));
@@ -3135,7 +3135,7 @@ vmm_reserve_stack(size_t amount)
 
 vm_setup:
 	if (vmm_debugging(0)) {
-		g_message("VMM will allocate pages from 0x%lx %swards",
+		g_debug("VMM will allocate pages from 0x%lx %swards",
 			(unsigned long) vmm_base,
 			kernel_mapaddr_increasing ? "up" : "down");
 	}
@@ -3176,17 +3176,17 @@ vmm_post_init(void)
 	}
 
 	if (vmm_debugging(0)) {
-		g_message("VMM using %lu bytes for the page cache",
+		g_debug("VMM using %lu bytes for the page cache",
 			(unsigned long) sizeof page_cache);
-		g_message("VMM kernel grows virtual memory by %s addresses",
+		g_debug("VMM kernel grows virtual memory by %s addresses",
 			kernel_mapaddr_increasing ? "increasing" : "decreasing");
-		g_message("VMM stack grows by %s addresses",
+		g_debug("VMM stack grows by %s addresses",
 			sp_increasing ? "increasing" : "decreasing");
 	}
 
-	if (vmm_debugging(0)) {
-		g_message("VMM initial break at 0x%lx", (unsigned long) initial_brk);
-		g_message("VMM stack bottom at 0x%lx", (unsigned long) initial_sp);
+	if (vmm_debugging(1)) {
+		g_debug("VMM initial break at 0x%lx", (unsigned long) initial_brk);
+		g_debug("VMM stack bottom at 0x%lx", (unsigned long) initial_sp);
 	}
 
 	pmap_load(&kernel_pmap);
@@ -3238,13 +3238,13 @@ vmm_post_init(void)
 
 		if ((size_t) -1 == room) {
 			if (vmm_debugging(0)) {
-				g_message("VMM kernel can grow the stack as needed");
+				g_debug("VMM kernel can grow the stack as needed");
 			}
 		} else if (room < VMM_STACK_MINSIZE) {
 			g_warning("VMM stack has only %luKiB to grow!",
 				(unsigned long) room / 1024);
 		} else if (vmm_debugging(0)) {
-			g_message("VMM stack has at most %luKiB to grow",
+			g_debug("VMM stack has at most %luKiB to grow",
 				(unsigned long) room / 1024);
 		}
 
@@ -3350,7 +3350,7 @@ vmm_stop_freeing(void)
 	stop_freeing = TRUE;
 
 	if (vmm_debugging(0))
-		g_message("VMM will no longer release freed pages");
+		g_debug("VMM will no longer release freed pages");
 }
 
 /**
@@ -3443,7 +3443,7 @@ vmm_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 		assert_vmm_is_allocated(p, length);
 
 		if (vmm_debugging(5)) {
-			g_message("VMM mapped %luKiB region at 0x%lx "
+			g_debug("VMM mapped %luKiB region at 0x%lx "
 				"(fd #%d, offset 0x%lx)",
 				(unsigned long) length / 1024, (unsigned long) p,
 				fd, (unsigned long) offset);
@@ -3485,7 +3485,7 @@ vmm_munmap(void *addr, size_t length)
 		pmap_remove(vmm_pmap(), addr, round_pagesize_fast(length));
 
 		if (vmm_debugging(5)) {
-			g_message("VMM unmapped %luKiB region at 0x%lx",
+			g_debug("VMM unmapped %luKiB region at 0x%lx",
 				(unsigned long) length / 1024, (unsigned long) addr);
 		}
 	} else {
@@ -3997,12 +3997,12 @@ static void
 vmm_track_post_init(void)
 {
 	if (vmm_buffer.max > 0 && vmm_debugging(0)) {
-		g_message("VMM required %lu bufferred event%s",
+		g_debug("VMM required %lu bufferred event%s",
 			(unsigned long) vmm_buffer.max,
 			1 == vmm_buffer.max ? "" : "s");
 	}
 	if (vmm_nl_buffer.max > 0 && vmm_debugging(0)) {
-		g_message("VMM required %lu bufferred non-leaking event%s",
+		g_debug("VMM required %lu bufferred non-leaking event%s",
 			(unsigned long) vmm_nl_buffer.max,
 			1 == vmm_nl_buffer.max ? "" : "s");
 	}

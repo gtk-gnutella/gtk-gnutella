@@ -324,7 +324,7 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 				if (i < entry->n) {
 					addrs[i] = entry->addrs[i];
 					if (common_dbg > 0)
-						g_message("adns_cache_lookup: \"%s\" cached (addr=%s)",
+						g_debug("adns_cache_lookup: \"%s\" cached (addr=%s)",
 							entry->hostname, host_addr_to_string(addrs[i]));
 				} else {
 					addrs[i] = zero_host_addr;
@@ -332,7 +332,7 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 			}
 		} else {
 			if (common_dbg > 0)
-				g_message("adns_cache_lookup: removing \"%s\" from cache",
+				g_debug("adns_cache_lookup: removing \"%s\" from cache",
 						entry->hostname);
 
 			g_hash_table_remove(cache->ht, hostname);
@@ -359,7 +359,7 @@ adns_do_transfer(int fd, gpointer buf, size_t len, gboolean do_write)
 
 	while (n > 0) {
 		if (common_dbg > 2)
-			g_message("adns_do_transfer (%s): n=%lu",
+			g_debug("adns_do_transfer (%s): n=%lu",
 			    do_write ? "write" : "read", (gulong) n);
 
 		if (do_write)
@@ -433,7 +433,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		const char *host;
 
 		if (common_dbg > 1) {
-			g_message("adns_gethostbyname: Resolving \"%s\" ...",
+			g_debug("adns_gethostbyname: Resolving \"%s\" ...",
 					host_addr_to_string(query->addr));
 		}
 
@@ -447,7 +447,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		size_t i = 0;
 
 		if (common_dbg > 1) {
-			g_message("adns_gethostbyname: Resolving \"%s\" ...",
+			g_debug("adns_gethostbyname: Resolving \"%s\" ...",
 				query->hostname);
 		}
 		clamp_strcpy(reply->hostname, sizeof reply->hostname, query->hostname);
@@ -578,7 +578,7 @@ adns_reply_ready(const struct adns_response *ans)
 		if (common_dbg > 1) {
 			const struct adns_reverse_reply *reply = &ans->reply.reverse;
 			
-			g_message("adns_reply_ready: Resolved \"%s\" to \"%s\".",
+			g_debug("adns_reply_ready: Resolved \"%s\" to \"%s\".",
 				host_addr_to_string(reply->addr), reply->hostname);
 		}
 	} else {
@@ -592,7 +592,7 @@ adns_reply_ready(const struct adns_response *ans)
 			size_t i;
 			
 			for (i = 0; i < num; i++) {
-				g_message("adns_reply_ready: Resolved \"%s\" to \"%s\".",
+				g_debug("adns_reply_ready: Resolved \"%s\" to \"%s\".",
 					reply->hostname, host_addr_to_string(reply->addrs[i]));
 			}
 		}

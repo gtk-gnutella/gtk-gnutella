@@ -214,7 +214,7 @@ trace_sort(void)
 	if (old_count != trace_array.count) {
 		size_t delta = old_count - trace_array.count;
 		g_assert(size_is_non_negative(delta));
-		g_message("stripped %lu duplicate symbol%s",
+		g_warning("stripped %lu duplicate symbol%s",
 			(unsigned long) delta, 1 == delta ? "" : "s");
 	}
 }
@@ -388,7 +388,7 @@ load_symbols(const char *path)
 	hash_table_destroy_real(nm_ctx.atoms);
 
 done:
-	g_message("loaded %u symbols from \"%s\"",
+	g_info("loaded %u symbols from \"%s\"",
 		(unsigned) trace_array.count, path);
 
 	trace_sort();

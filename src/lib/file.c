@@ -134,7 +134,7 @@ open_read(
 				g_strerror(errno));
 		}
         if (fvcnt > 1 && common_dbg > 0)
-            g_message("[%s] trying to load from alternate locations...", what);
+            g_debug("[%s] trying to load from alternate locations...", what);
     }
 
 	/*
@@ -177,12 +177,12 @@ open_read(
 
 	if (common_dbg > 0) {
 		if (in) {
-			g_message("[%s] retrieving from \"%s\"%s", what, path, instead);
+			g_debug("[%s] retrieving from \"%s\"%s", what, path, instead);
 		} else if (instead == instead_str) {
-			g_message("[%s] unable to retrieve: tried %d alternate location%s",
+			g_debug("[%s] unable to retrieve: tried %d alternate location%s",
 				what, fvcnt, fvcnt == 1 ? "" : "s");
 		} else {
-			g_message("[%s] unable to retrieve: no alternate locations known",
+			g_debug("[%s] unable to retrieve: no alternate locations known",
 				what);
 		}
 	}

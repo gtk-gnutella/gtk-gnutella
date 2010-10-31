@@ -123,7 +123,7 @@ pool_needs_gc(const pool_t *p, gboolean need)
 	if (!need) {
 		if (pool_gc != NULL && hash_list_remove(pool_gc, p) != NULL) {
 			if (palloc_debug > 1) {
-				g_message("PGC turning off GC for pool \"%s\" "
+				g_debug("PGC turning off GC for pool \"%s\" "
 					"(allocated=%u, held=%u, slow_ema=%u, fast_ema=%u)",
 					p->name, p->allocated, p->held,
 					pool_ema(p, slow_ema), pool_ema(p, fast_ema));
@@ -138,7 +138,7 @@ pool_needs_gc(const pool_t *p, gboolean need)
 		if (!hash_list_contains(pool_gc, p)) {
 			hash_list_append(pool_gc, p);
 			if (palloc_debug > 1) {
-				g_message("PGC turning GC on for pool \"%s\" "
+				g_debug("PGC turning GC on for pool \"%s\" "
 					"(allocated=%u, held=%u, slow_ema=%u, fast_ema=%u)",
 					p->name, p->allocated, p->held,
 					pool_ema(p, slow_ema), pool_ema(p, fast_ema));
@@ -216,7 +216,7 @@ pool_heartbeat(cqueue_t *unused_cq, gpointer obj)
 	}
 
 	if (palloc_debug > 4) {
-		g_message("PGC pool \"%s\": allocated=%u, held=%u, used=%u, above=%u, "
+		g_debug("PGC pool \"%s\": allocated=%u, held=%u, used=%u, above=%u, "
 			"slow_ema=%u, fast_ema=%u, monotonic_ema=%u, peak=%u",
 			p->name, p->allocated, p->held, p->allocated - p->held, p->above,
 			pool_ema(p, slow_ema), pool_ema(p, fast_ema),
@@ -363,7 +363,7 @@ pfree(pool_t *p, gpointer obj)
 		g_assert(uint_is_positive(p->allocated));
 
 		if (palloc_debug > 1) {
-			g_message("PGC pool \"%s\": buffer 0x%lx is a fragment",
+			g_debug("PGC pool \"%s\": buffer 0x%lx is a fragment",
 				p->name, (unsigned long) obj);
 		}
 
@@ -413,7 +413,7 @@ pool_reclaim_garbage(pool_t *p)
 	g_assert(p->allocated >= p->held);
 
 	if (palloc_debug > 2) {
-		g_message("PGC garbage collecting pool \"%s\": allocated=%u, held=%u "
+		g_debug("PGC garbage collecting pool \"%s\": allocated=%u, held=%u "
 			"slow_ema=%u, fast_ema=%u, bg_ema=%u, peak=%u",
 			p->name, p->allocated, p->held,
 			pool_ema(p, slow_ema), pool_ema(p, fast_ema),
@@ -430,7 +430,7 @@ pool_reclaim_garbage(pool_t *p)
 
 	if (p->fast_ema > p->slow_ema) {
 		if (palloc_debug > 1) {
-			g_message("PGC not collecting %u block%s from \"%s\": "
+			g_debug("PGC not collecting %u block%s from \"%s\": "
 				"recent allocation burst",
 				p->held, 1 == p->held ? "" : "s", p->name);
 		}
@@ -448,7 +448,7 @@ pool_reclaim_garbage(pool_t *p)
 
 	if (p->allocated - p->held > ema) {
 		if (palloc_debug > 1) {
-			g_message("PGC doubling current EMA max for \"%s\": "
+			g_debug("PGC doubling current EMA max for \"%s\": "
 				"used block count %u currently above largest EMA %u",
 				p->name, p->allocated - p->held, ema);
 		}
@@ -469,7 +469,7 @@ pool_reclaim_garbage(pool_t *p)
 
 	if (p->allocated <= threshold) {
 		if (palloc_debug > 1) {
-			g_message("PGC not collecting %u block%s from \"%s\": "
+			g_debug("PGC not collecting %u block%s from \"%s\": "
 				"allocation count %u currently below or at target of %u",
 				p->held, 1 == p->held ? "" : "s", p->name, p->allocated,
 				threshold);
@@ -481,7 +481,7 @@ pool_reclaim_garbage(pool_t *p)
 	extra = MIN(extra, p->held);
 
 	if (palloc_debug > 1) {
-		g_message("PGC collecting %u extra block%s from \"%s\"",
+		g_debug("PGC collecting %u extra block%s from \"%s\"",
 			extra, 1 == extra ? "" : "s", p->name);
 	}
 

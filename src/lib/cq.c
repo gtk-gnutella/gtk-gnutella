@@ -570,7 +570,7 @@ done:
 	cq->cq_current = NULL;
 
 	if (cq_debug() > 5) {
-		g_message("CQ: %squeue \"%s\" triggered %d event%s (%d item%s)",
+		g_debug("CQ: %squeue \"%s\" triggered %d event%s (%d item%s)",
 			cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "",
 			cq->cq_name, processed, 1 == processed ? "" : "s",
 			cq->cq_items, 1 == cq->cq_items ? "" : "s");

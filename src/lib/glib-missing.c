@@ -399,7 +399,7 @@ gm_setproctitle_init(int argc, char *argv[], char *env_ptr[])
 		size_t size;
 		
 		size = iov_contiguous_size(iov, n);
-		g_message("%lu bytes available for gm_setproctitle().", (gulong) size);
+		g_info("%lu bytes available for gm_setproctitle().", (gulong) size);
 	}
 
 	/*

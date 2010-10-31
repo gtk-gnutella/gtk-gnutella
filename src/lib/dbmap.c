@@ -287,7 +287,7 @@ dbmap_sdbm_count_keys(dbmap_t *dm, gboolean expect_superblock)
 
 	if (dbmap_sdbm_retrieve_superblock(sdbm, &sblock)) {
 		if (common_dbg) {
-			g_message("SDBM \"%s\": superblock has %u key%s%s",
+			g_debug("SDBM \"%s\": superblock has %u key%s%s",
 				sdbm_name(sdbm), (unsigned) sblock.count,
 				1 == sblock.count ? "" : "s",
 				(sblock.flags & DBMAP_SF_KEYCHECK) ?
@@ -299,7 +299,7 @@ dbmap_sdbm_count_keys(dbmap_t *dm, gboolean expect_superblock)
 			return sblock.count;
 	} else if (expect_superblock) {
 		if (common_dbg) {
-			g_message("SDBM \"%s\": no superblock, counting and checking keys",
+			g_debug("SDBM \"%s\": no superblock, counting and checking keys",
 				sdbm_name(sdbm));
 		}
 	}

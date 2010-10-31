@@ -255,7 +255,7 @@ bg_task_suspend(struct bgtask *bt)
 			(4 * bt->tick_cost + (elapsed / bt->ticks_used)) / 5.0;
 
 		if (common_dbg > 4)
-			g_message("BGTASK \"%s\" total=%d msecs, elapsed=%lu usecs, "
+			g_debug("BGTASK \"%s\" total=%d msecs, elapsed=%lu usecs, "
 				"ticks=%d, used=%d, tick_cost=%f usecs (was %f)",
 				bt->name, bt->wtime, (gulong)elapsed, bt->ticks, bt->ticks_used,
 				new_cost, bt->tick_cost);
@@ -472,7 +472,7 @@ bg_daemon_enqueue(struct bgtask *bt, gpointer item)
 
 	if (bt->flags & TASK_F_SLEEPING) {
 		if (common_dbg > 1)
-			g_message("BGTASK waking up daemon \"%s\" task", bt->name);
+			g_debug("BGTASK waking up daemon \"%s\" task", bt->name);
 
 		bg_sched_wakeup(bt);
 		if (bt->notify)
@@ -538,7 +538,7 @@ bg_task_terminate(struct bgtask *bt)
 	 */
 
 	if (common_dbg > 1)
-		g_message("BGTASK terminating \"%s\"%s, ran %d msecs",
+		g_debug("BGTASK terminating \"%s\"%s, ran %d msecs",
 			bt->name, (bt->flags & TASK_F_DAEMON) ? " daemon" : "", bt->wtime);
 
 	g_assert(!(bt->flags & TASK_F_RUNNING));
@@ -860,7 +860,7 @@ bg_task_ended(struct bgtask *bt)
 	item = bt->wq->data;
 
 	if (common_dbg > 2)
-		g_message("BGTASK daemon \"%s\" done with item 0x%lx",
+		g_debug("BGTASK daemon \"%s\" done with item 0x%lx",
 			bt->name, (gulong) item);
 
 	(*bt->end_cb)(bt, bt->ucontext, item);
@@ -882,7 +882,7 @@ bg_task_ended(struct bgtask *bt)
 
 	if (bt->wq == NULL) {
 		if (common_dbg > 1)
-			g_message("BGTASK daemon \"%s\" going back to sleep", bt->name);
+			g_debug("BGTASK daemon \"%s\" going back to sleep", bt->name);
 
 		bg_sched_sleep(bt);
 		if (bt->notify)
@@ -984,7 +984,7 @@ bg_sched_timer(gboolean overloaded)
 			 */
 
 			if (common_dbg > 1)
-				g_message("BGTASK back from setjmp() for \"%s\"", bt->name);
+				g_debug("BGTASK back from setjmp() for \"%s\"", bt->name);
 
 			bt->flags |= TASK_F_NOTICK;
 			bg_task_switch(NULL);
@@ -997,7 +997,7 @@ bg_sched_timer(gboolean overloaded)
 		 */
 
 		if (common_dbg > 4)
-			g_message("BGTASK \"%s\" running step #%d.%d with %d tick%s",
+			g_debug("BGTASK \"%s\" running step #%d.%d with %d tick%s",
 				bt->name, bt->step, bt->seqno, ticks, ticks == 1 ? "" : "s");
 
 		bg_task_deliver_signals(bt);	/* Send any queued signal */
@@ -1015,7 +1015,7 @@ bg_sched_timer(gboolean overloaded)
 			item = bt->wq->data;
 
 			if (common_dbg > 2)
-				g_message("BGTASK daemon \"%s\" starting with item 0x%lx",
+				g_debug("BGTASK daemon \"%s\" starting with item 0x%lx",
 					bt->name, (gulong) item);
 
 			(*bt->start_cb)(bt, bt->ucontext, item);
@@ -1029,7 +1029,7 @@ bg_sched_timer(gboolean overloaded)
 		remain -= bt->elapsed;
 
 		if (common_dbg > 4)
-			g_message("BGTASK \"%s\" step #%d.%d ran %d tick%s "
+			g_debug("BGTASK \"%s\" step #%d.%d ran %d tick%s "
 				"in %d usecs [ret=%d]",
 				bt->name, bt->step, bt->seqno,
 				bt->ticks_used, bt->ticks_used == 1 ? "" : "s",

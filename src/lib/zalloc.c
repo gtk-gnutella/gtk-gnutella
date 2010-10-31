@@ -743,7 +743,7 @@ adjust_size(size_t requested, unsigned *hint_ptr)
 
 		if (adjusted != size) {
 			if (zalloc_debug) {
-				g_message("ZALLOC adjusting block size from %lu to %lu "
+				g_debug("ZALLOC adjusting block size from %lu to %lu "
 					"(%lu blocks will waste %lu bytes at end of "
 					"%lu-byte subzone)",
 					(unsigned long) requested, (unsigned long) adjusted,
@@ -753,7 +753,7 @@ adjust_size(size_t requested, unsigned *hint_ptr)
 			}
 		} else {
 			if (zalloc_debug) {
-				g_message("ZALLOC cannot adjust block size of %lu "
+				g_debug("ZALLOC cannot adjust block size of %lu "
 					"(%lu blocks will waste %lu bytes at end of "
 					"%lu-byte subzone)",
 					(unsigned long) requested, (unsigned long) hint,
@@ -852,7 +852,7 @@ zn_shrink(zone_t *zone)
 	g_assert(0 == zone->zn_cnt);		/* No blocks used */
 
 	if (zalloc_debug > 1) {
-		g_message("ZGC %lu-byte zone 0x%lx shrunk: "
+		g_debug("ZGC %lu-byte zone 0x%lx shrunk: "
 			"freeing %u subzone%s of %uKiB (%u blocks each)",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
 			zone->zn_subzones - 1, 2 == zone->zn_subzones ? "" : "s",
@@ -1370,7 +1370,7 @@ zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 
 	if (zalloc_debug > 1) {
 		time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
-		g_message("ZGC %lu-byte zone 0x%lx: %ssubzone "
+		g_debug("ZGC %lu-byte zone 0x%lx: %ssubzone "
 			"[0x%lx, 0x%lx] %uKiB, %u blocks, lifetime %s is a fragment",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
 			&zone->zn_arena == sz ? "first " : "extra ",
@@ -1391,7 +1391,7 @@ zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 	nszi = zgc_insert_subzone(zone, sz, blk);
 
 	if (zalloc_debug > 4) {
-		g_message("ZGC %lu-byte zone 0x%lx recreated "
+		g_debug("ZGC %lu-byte zone 0x%lx recreated "
 			"%u blocks in [0x%lx, 0x%lx]",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
 			zone->zn_hint, (unsigned long) nszi->szi_base,
@@ -1436,7 +1436,7 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 	if (subzone_is_fragment(szi->szi_sz)) {
 		if (zalloc_debug > 1) {
 			time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
-			g_message("ZGC %lu-byte zone 0x%lx: %ssubzone "
+			g_debug("ZGC %lu-byte zone 0x%lx: %ssubzone "
 				"[0x%lx, 0x%lx] %uKiB, %u blocks, lifetime %s is a fragment, "
 				"attempting release",
 				(unsigned long) zone->zn_size, (unsigned long) zone,
@@ -1487,7 +1487,7 @@ release_zone:
 		zgc_context.subzone_freed >= ZGC_SUBZONE_FREEMAX
 	) {
 		if (zalloc_debug > 3) {
-			g_message("ZGC %lu-byte zone 0x%lx: hit subzone free limit",
+			g_debug("ZGC %lu-byte zone 0x%lx: hit subzone free limit",
 				(unsigned long) zone->zn_size, (unsigned long) zone);
 		}
 		zg->zg_flags |= ZGC_SCAN_ALL;
@@ -1502,7 +1502,7 @@ release_zone:
 			unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
 				zone->zn_hint;
 			time_delta_t life = delta_time(tm_time(), zone->zn_arena.sz_ctime);
-			g_message("ZGC %lu-byte zone 0x%lx: freeing first subzone "
+			g_debug("ZGC %lu-byte zone 0x%lx: freeing first subzone "
 				"[0x%lx, 0x%lx] %uKiB, %u blocks, lifetime %s "
 				"(still has %u free block%s)",
 				(unsigned long) zone->zn_size, (unsigned long) zone,
@@ -1539,7 +1539,7 @@ release_zone:
 					unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
 						zone->zn_hint;
 					time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
-					g_message("ZGC %lu-byte zone 0x%lx: freeing subzone #%u "
+					g_debug("ZGC %lu-byte zone 0x%lx: freeing subzone #%u "
 						"[0x%lx, 0x%lx] %uKiB, %u blocks, lifetime %s "
 						"(still has %u free block%s)",
 						(unsigned long) zone->zn_size, (unsigned long) zone, n,
@@ -1655,7 +1655,7 @@ zgc_allocate(zone_t *zone)
 
 	if (zalloc_debug > 1) {
 		unsigned free_blocks = zone->zn_blocks - zone->zn_cnt;
-		g_message("ZGC %lu-byte zone 0x%lx: "
+		g_debug("ZGC %lu-byte zone 0x%lx: "
 			"setting up garbage collection for %u subzone%s, %u free block%s",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
 			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s",
@@ -1766,7 +1766,7 @@ zgc_extend(zone_t *zone)
 	szi->szi_free_cnt--;
 
 	if (zalloc_debug > 4) {
-		g_message("ZGC %lu-byte zone 0x%lx extended by "
+		g_debug("ZGC %lu-byte zone 0x%lx extended by "
 			"%u blocks in [0x%lx, 0x%lx]",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
 			zone->zn_hint, (unsigned long) szi->szi_base,
@@ -1794,7 +1794,7 @@ zgc_scan(zone_t *zone)
 	g_assert(uint_is_non_negative(zg->zg_free));
 
 	if (zalloc_debug > 4) {
-		g_message("ZGC %lu-byte zone 0x%lx scanned for free subzones: "
+		g_debug("ZGC %lu-byte zone 0x%lx scanned for free subzones: "
 			"%u blocks, %u free (hint=%u, %u subzones)",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
 			zone->zn_blocks, zone->zn_blocks - zone->zn_cnt, zone->zn_hint,
@@ -1821,7 +1821,7 @@ zgc_scan(zone_t *zone)
 
 		if (zgc_context.subzone_freed >= ZGC_SUBZONE_FREEMAX) {
 			if (zalloc_debug > 3) {
-				g_message("ZGC %lu-byte zone 0x%lx: hit subzone free limit, "
+				g_debug("ZGC %lu-byte zone 0x%lx: hit subzone free limit, "
 					"will resume scanning at next run",
 					(unsigned long) zone->zn_size, (unsigned long) zone);
 			}
@@ -1852,7 +1852,7 @@ finished:
 	zg->zg_flags &= ~ZGC_SCAN_ALL;
 
 	if (zalloc_debug > 4) {
-		g_message("ZGC %lu-byte zone 0x%lx turned scan-all off: "
+		g_debug("ZGC %lu-byte zone 0x%lx turned scan-all off: "
 			"%u blocks, %u free (hint=%u, %u subzones)",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
 			zone->zn_blocks, zone->zn_blocks - zone->zn_cnt, zone->zn_hint,
@@ -1878,7 +1878,7 @@ zgc_dispose(zone_t *zone)
 
 	if (zalloc_debug > 1) {
 		time_delta_t elapsed = delta_time(tm_time(), zg->zg_start);
-		g_message("ZGC %lu-byte zone 0x%lx ending garbage collection "
+		g_debug("ZGC %lu-byte zone 0x%lx ending garbage collection "
 			"(%u free block%s, %u subzone%s, freed %u and defragmented %u "
 			"in %s)",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
@@ -2095,7 +2095,7 @@ found:
 
 	if (zalloc_debug > 1) {
 		size_t used = zone->zn_hint - szi->szi_free_cnt - 1;
-		g_message("ZGC %lu-byte zone 0x%lx: moved 0x%lx to 0x%lx, "
+		g_debug("ZGC %lu-byte zone 0x%lx: moved 0x%lx to 0x%lx, "
 			"zone has %u blocks, %u used (hint=%u, %u subzone%s), previous "
 			"subzone has %lu block%s",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
@@ -2176,7 +2176,7 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 	) {
 		if (++zone->zn_oversized >= ZN_OVERSIZE_THRESH || zalloc_always_gc) {
 			if (zalloc_debug > 4) {
-				g_message("ZGC %lu-byte zone 0x%lx %s: "
+				g_debug("ZGC %lu-byte zone 0x%lx %s: "
 					"%u blocks, %u used (hint=%u, %u subzones)",
 					(unsigned long) zone->zn_size, (unsigned long) zone,
 					zalloc_always_gc ? "forced in GC mode" : "oversized",
@@ -2198,7 +2198,7 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 			}
 
 			if (zalloc_debug > 4) {
-				g_message("ZGC %lu-byte zone 0x%lx %s: "
+				g_debug("ZGC %lu-byte zone 0x%lx %s: "
 					"%u blocks, %u used (hint=%u, %u subzone%s)",
 					(unsigned long) zone->zn_size, (unsigned long) zone,
 					NULL == zone->zn_gc ? "after shrinking" : "has GC on",
@@ -2209,7 +2209,7 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 	} else if (zalloc_always_gc) {
 		if (NULL == zone->zn_gc) {
 			if (zalloc_debug > 4) {
-				g_message("ZGC %lu-byte zone 0x%lx forced in GC mode: "
+				g_debug("ZGC %lu-byte zone 0x%lx forced in GC mode: "
 					"%u blocks, %u used (hint=%u, %u subzones)",
 					(unsigned long) zone->zn_size, (unsigned long) zone,
 					zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
@@ -2257,7 +2257,7 @@ zgc(gboolean overloaded)
 		tm_now_exact(&start);
 
 	if (zalloc_debug > 3) {
-		g_message("ZGC iterating over %u zones (%u in GC mode)",
+		g_debug("ZGC iterating over %u zones (%u in GC mode)",
 			(unsigned) hash_table_size(zt), zgc_zone_cnt);
 	}
 
@@ -2270,7 +2270,7 @@ zgc(gboolean overloaded)
 	if (zalloc_debug > 2) {
 		tm_t end;
 		tm_now_exact(&end);
-		g_message("ZGC iterated over %u zones (%u in GC mode) in %u usecs",
+		g_debug("ZGC iterated over %u zones (%u in GC mode) in %u usecs",
 			(unsigned) hash_table_size(zt), zgc_zone_cnt,
 			(unsigned) tm_elapsed_us(&end, &start));
 	}

@@ -2060,7 +2060,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 		*s = '\0'; /* Terminate value in case of trailing characters */
 
 		if (common_dbg > 5)
-			g_message("k=\"%s\", v=\"%s\"", k, v);
+			g_debug("k=\"%s\", v=\"%s\"", k, v);
 
 		prop = prop_get_by_name(ps, k);
 		if (NO_PROP != prop) {
