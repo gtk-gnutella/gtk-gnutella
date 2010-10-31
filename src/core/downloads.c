@@ -402,7 +402,7 @@ download_repair(struct download *d, const char *reason)
 		d->flags |= DL_F_TRIED_TLS | DL_F_TRY_TLS;
 
 		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
-			g_message("will try to reach server %s with TLS",
+			g_debug("will try to reach server %s with TLS",
 					download_host_info(d));
 
 		download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
@@ -1056,7 +1056,7 @@ buffers_add_read(struct download *d, pmsg_t *mb)
 		pmsg_free(mb);
 
 		if (GNET_PROPERTY(download_debug) > 10)
-			g_message("buffers_add_read(): copied %d bytes "
+			g_debug("buffers_add_read(): copied %d bytes "
 				"into %d-byte long previous #%d (had %d bytes free)",
 				written, pmsg_size(prev_mb) - written,
 				slist_length(b->list), available);
@@ -1592,7 +1592,7 @@ download_found_server(const struct guid *guid,
 				struct dl_key *key = server->key;
 
 				if (GNET_PROPERTY(download_debug)) {
-					g_message("discovered GUID %s is for host %s "
+					g_debug("discovered GUID %s is for host %s "
 						"which had a blank GUID", guid_to_string(guid),
 						host_addr_port_to_string(addr, port));
 				}
@@ -1605,7 +1605,7 @@ download_found_server(const struct guid *guid,
 			}
 		} else {
 			if (GNET_PROPERTY(download_debug)) {
-				g_message("discovered GUID %s is for (firewalled) host %s, "
+				g_debug("discovered GUID %s is for (firewalled) host %s, "
 					"but server is gone!",
 					guid_to_string(guid), host_addr_port_to_string(addr, port));
 			}
@@ -1624,7 +1624,7 @@ download_found_server(const struct guid *guid,
 		return;
 
 	if (GNET_PROPERTY(download_debug))
-		g_message("discovered GUID %s is for host %s [%s] (was %s [%s])",
+		g_debug("discovered GUID %s is for host %s [%s] (was %s [%s])",
 			guid_to_string(guid), host_addr_port_to_string(addr, port),
 			iso3166_country_cc(gip_country(addr)),
 			host_addr_port_to_string2(server->key->addr, server->key->port),
@@ -1795,7 +1795,7 @@ get_server(const struct guid *guid, const host_addr_t addr, guint16 port,
 				)
 			) {
 				if (GNET_PROPERTY(download_debug)) {
-					g_message("server GUID %s was at %s, now seen at %s [%s]",
+					g_debug("server GUID %s was at %s, now seen at %s [%s]",
 						guid_to_string(guid),
 						host_addr_port_to_string(skey->addr, skey->port),
 						host_addr_port_to_string2(addr, port),
@@ -1804,7 +1804,7 @@ get_server(const struct guid *guid, const host_addr_t addr, guint16 port,
 				change_server_addr(server, addr, port);
 			} else {
 				if (GNET_PROPERTY(download_debug)) {
-					g_message(
+					g_debug(
 						"not moving server GUID %s from %s [%s] to %s [%s]",
 						guid_to_string(guid),
 						host_addr_port_to_string(skey->addr, skey->port),
@@ -1890,7 +1890,7 @@ allocated:
 
 		if (correct != NULL && correct != server) {
 			if (GNET_PROPERTY(download_debug)) {
-				g_message("had originally found GUID %s at %s, "
+				g_debug("had originally found GUID %s at %s, "
 					"returning GUID %s at %s",
 					guid_hex_str(server->key->guid),
 					host_addr_port_to_string(
@@ -1915,7 +1915,7 @@ allocated:
 			server->key->port != port ||
 			!guid_eq(server->key->guid, guid)
 		) {
-			g_message("called get_server() with GUID %s at %s, "
+			g_debug("called get_server() with GUID %s at %s, "
 				"returning GUID %s at %s",
 				guid_hex_str(guid), host_addr_port_to_string(addr, port),
 				guid_to_string(server->key->guid),
@@ -1965,7 +1965,7 @@ change_server_addr(struct dl_server *server,
 	}
 
 	if (GNET_PROPERTY(download_debug)) {
-		g_message("server <%s> at %s:%u changed its IP from %s to %s",
+		g_debug("server <%s> at %s:%u changed its IP from %s to %s",
 			server->vendor == NULL ? "UNKNOWN" : server->vendor,
 			server->hostname == NULL ? "NONAME" : server->hostname,
 			key->port, host_addr_port_to_string(key->addr, key->port),
@@ -2007,7 +2007,7 @@ change_server_addr(struct dl_server *server,
 		g_assert(duplicate->key->port == key->port);
 
 		if (GNET_PROPERTY(download_debug)) {
-            g_message(
+            g_debug(
                 "new IP %s for server <%s> GUID %s at %s:%u "
 				"was used by <%s> GUID %s at %s:%u",
                 host_addr_to_string(new_addr),
@@ -2185,7 +2185,7 @@ download_can_ignore(struct download *d)
 	) {
 		if (GNET_PROPERTY(download_debug)) {
 			guint count = server_list_length(d->server, DL_LIST_WAITING);
-			g_message("download \"%s\" has incoming connection from %s "
+			g_debug("download \"%s\" has incoming connection from %s "
 				"and %u waiting file%s on that server -- will sink %s bytes",
 				download_basename(d), download_host_info(d),
 				count, 1 == count ? "" : "s", uint64_to_string(remain));
@@ -2225,7 +2225,7 @@ sink_data:
 	download_set_status(d, GTA_DL_IGNORING);
 
 	if (GNET_PROPERTY(download_debug) > 1)
-		g_message("will be ignoring next %s bytes of data for \"%s\"",
+		g_debug("will be ignoring next %s bytes of data for \"%s\"",
 			uint64_to_string(remain), download_basename(d));
 
 	return TRUE;
@@ -2251,7 +2251,7 @@ download_server_publishes_in_dht(const struct guid *guid)
 
 	if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(dht_debug)) {
 		if (!(server->attrs & DLS_A_DHT_PUBLISH)) {
-			g_message("DL learnt that %s publishes in the DHT",
+			g_debug("DL learnt that %s publishes in the DHT",
 				server_host_info(server));
 		}
 	}
@@ -2371,7 +2371,7 @@ download_push_proxy_wakeup(struct dl_server *server,
 
 done:
 	if (GNET_PROPERTY(download_debug) > 1) {
-		g_message("PUSH %s %u message%s on wakeup for GUID %s at %s",
+		g_debug("PUSH %s %u message%s on wakeup for GUID %s at %s",
 			broadcast ? "broadcasted" : "sent",
 			sent, 1 == sent ? "" : "s",
 			guid_hex_str(server->key->guid), server_host_info(server));
@@ -2520,7 +2520,7 @@ set_server_hostname(struct dl_server *server, const char *hostname)
 		0 != ascii_strcasecmp(server->hostname, hostname)
 	) {
 		if (GNET_PROPERTY(download_debug))
-			g_message("setting hostname \"%s\" for server %s",
+			g_debug("setting hostname \"%s\" for server %s",
 				hostname, server_host_info(server));
 
 		atom_str_change(&server->hostname, hostname);
@@ -3625,7 +3625,7 @@ download_reparent(struct download *d, struct dl_server *new_server)
 reparent:
 
 	if (GNET_PROPERTY(download_debug)) {
-		g_message("reparenting \"%s\", moving from %s/%s to %s/%s",
+		g_debug("reparenting \"%s\", moving from %s/%s to %s/%s",
 			download_basename(d), guid_hex_str(download_guid(d)),
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			guid_to_string(new_server->key->guid),
@@ -3655,7 +3655,7 @@ reparent:
 stop_this:
 
 	if (GNET_PROPERTY(download_debug)) {
-		g_message("stopping \"%s\" from %s/%s: "
+		g_debug("stopping \"%s\" from %s/%s: "
 			"duplicate in %s/%s \"%s\"",
 			download_basename(d), guid_hex_str(download_guid(d)),
 			host_addr_port_to_string(download_addr(d), download_port(d)),
@@ -3671,7 +3671,7 @@ stop_this:
 stop_other:
 
 	if (GNET_PROPERTY(download_debug)) {
-		g_message("duplicate \"%s\" stopped in %s/%s",
+		g_debug("duplicate \"%s\" stopped in %s/%s",
 			download_basename(d), guid_to_string(new_server->key->guid),
 			host_addr_port_to_string(
 				new_server->key->addr, new_server->key->port));
@@ -3767,14 +3767,14 @@ download_switchable(struct download *d, const header_t *header)
 		return FALSE;			/* XXX would require we set sinking up */
 
 	if (GNET_PROPERTY(download_debug))
-		g_message("download \"%s\" on %s could be switchable",
+		g_debug("download \"%s\" on %s could be switchable",
 			download_basename(d), download_host_info(d));
 
 	if (!download_has_pending_on_server(d, TRUE))
 		return FALSE;
 
 	if (GNET_PROPERTY(download_debug))
-		g_message("pending downloads found on %s, \"%s\" is switchable",
+		g_debug("pending downloads found on %s, \"%s\" is switchable",
 			download_host_info(d), download_basename(d));
 
 	return TRUE;
@@ -3820,7 +3820,7 @@ download_switch(struct download *d, const struct download *pd)
 	g_assert(next != d && next != pd);
 
 	if (GNET_PROPERTY(download_debug))
-		g_message("switching from \"%s\" (on error) to \"%s\" (%.2f%%) at %s",
+		g_debug("switching from \"%s\" (on error) to \"%s\" (%.2f%%) at %s",
 			download_basename(d), download_basename(next),
 			100.0 * download_total_progress(next), download_host_info(next));
 
@@ -4241,7 +4241,7 @@ download_queue_v(struct download *d, const char *fmt, va_list ap)
 	download_queue_update_status(d);
 
 	if (GNET_PROPERTY(download_debug))
-		g_message("re-queuing download \"%s\" at %s: %s",
+		g_debug("re-queuing download \"%s\" at %s: %s",
 			download_basename(d), download_host_info(d),
 			fmt ? d->error_str : "<no reason>");
 
@@ -5084,7 +5084,7 @@ download_pick_available(struct download *d)
 
 	if (!file_info_find_available_hole(d, d->ranges, &from, &to)) {
 		if (GNET_PROPERTY(download_debug) > 3)
-			g_message("PFSP no interesting chunks from %s for \"%s\", "
+			g_debug("PFSP no interesting chunks from %s for \"%s\", "
 				"available was: %s",
 				host_addr_port_to_string(download_addr(d), download_port(d)),
 				download_basename(d), http_range_to_string(d->ranges));
@@ -5117,7 +5117,7 @@ download_pick_available(struct download *d)
 		d->overlap_size = GNET_PROPERTY(download_overlap_range);
 
 	if (GNET_PROPERTY(download_debug) > 3)
-		g_message("PFSP selected %s-%s (overlap=%u) "
+		g_debug("PFSP selected %s-%s (overlap=%u) "
 			"from %s for \"%s\", available was: %s",
 			uint64_to_string(from), uint64_to_string2(to - 1), d->overlap_size,
 			host_addr_port_to_string(download_addr(d), download_port(d)),
@@ -5172,7 +5172,7 @@ download_connect(struct download *d)
 		tls = SOCK_F_TLS;
 
 		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
-			g_message("forcing TLS connection for \"%s\" at %s",
+			g_debug("forcing TLS connection for \"%s\" at %s",
 				download_basename(d), download_host_info(d));
 	}
 
@@ -5873,7 +5873,7 @@ download_got_push_proxies(const struct guid *guid,
 
 	if (added > 0) {
 		if (GNET_PROPERTY(download_debug)) {
-			g_message("PUSH found %lu new push prox%s in query hit "
+			g_debug("PUSH found %lu new push prox%s in query hit "
 				"for GUID %s at %s",
 				(unsigned long) added, 1 == added ? "y" : "ies",
 				guid_hex_str(guid), server_host_info(server));
@@ -5908,7 +5908,7 @@ download_got_push_route(const guid_t *guid)
 	}
 
 	if (GNET_PROPERTY(download_debug)) {
-		g_message("PUSH revitalized route for GUID %s at %s",
+		g_debug("PUSH revitalized route for GUID %s at %s",
 			guid_hex_str(guid), server_host_info(server));
 	}
 }
@@ -5925,7 +5925,7 @@ download_push(struct download *d, gboolean on_timeout)
 	download_check(d);
 
 	if (GNET_PROPERTY(download_debug) > 2)
-		g_message("download_push timeout=%s for \"%s\" at %s",
+		g_debug("download_push timeout=%s for \"%s\" at %s",
 			on_timeout ? "y" : "n",
 			download_basename(d), download_host_info(d));
 
@@ -6038,7 +6038,7 @@ download_push(struct download *d, gboolean on_timeout)
 			 */
 
 			if (GNET_PROPERTY(download_debug) > 2)
-				g_message("PUSH trying to ignore them for %s",
+				g_debug("PUSH trying to ignore them for %s",
 					host_addr_port_to_string(download_addr(d),
 					download_port(d)));
 
@@ -6069,7 +6069,7 @@ attempt_retry:
 			 */
 
 			if (GNET_PROPERTY(download_debug) > 2) {
-				g_message("PUSH clearing the ignore PUSH condition for %s",
+				g_debug("PUSH clearing the ignore PUSH condition for %s",
 					host_addr_port_to_string(
 						download_addr(d), download_port(d)));
 			}
@@ -6130,7 +6130,7 @@ download_fallback_to_push(struct download *d,
 	download_check(d);
 
 	if (GNET_PROPERTY(download_debug) > 2)
-		g_message("download_fallback_to_push "
+		g_debug("download_fallback_to_push "
 			"timeout=%s, user=%s for \"%s\" at %s",
 			on_timeout ? "y" : "n", user_request ? "y" : "n",
 			download_basename(d), download_host_info(d));
@@ -6554,7 +6554,7 @@ create_download(
 
 fail:
 	if (GNET_PROPERTY(download_debug)) {
-		g_message("create_download(\"%s\", SHA1=%s): %s",
+		g_debug("create_download(\"%s\", SHA1=%s): %s",
 			file, sha1 ? sha1_base32(sha1) : "none", msg);
 	}
 	atom_str_free_null(&file_name);
@@ -6636,7 +6636,7 @@ download_auto_new_common(const char *file_name,
 
 abort_download:
 	if (GNET_PROPERTY(download_debug) > 4)
-		g_message("ignoring auto download for \"%s\": %s", file_name, reason);
+		g_debug("ignoring auto download for \"%s\": %s", file_name, reason);
 	return;
 }
 
@@ -6688,7 +6688,7 @@ download_auto_new(const char *file_name,
 			GNR_QHIT_SEEDING_OF_ORPHAN : GNR_UPLOAD_SEEDING_OF_ORPHAN, +1);
 
 		if (GNET_PROPERTY(download_debug))
-			g_message("%s seeding of orphan \"%s\" with %s:%u",
+			g_debug("%s seeding of orphan \"%s\" with %s:%u",
 				from_qhit ? "QHIT" : "UPLOAD",
 				filepath_basename(fi->pathname),
 				hostname ? hostname : host_addr_to_string(addr), port);
@@ -6726,7 +6726,7 @@ download_dht_auto_new(const char *file_name,
 	if (was_orphan && 0 != fi->refcount) {
 		gnet_stats_count_general(GNR_DHT_SEEDING_OF_ORPHAN, 1);
 		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(download_debug))
-			g_message("DHT seeding of orphan \"%s\" with %s:%u", file_name,
+			g_debug("DHT seeding of orphan \"%s\" with %s:%u", file_name,
 				hostname ? hostname : host_addr_to_string(addr), port);
 	}
 }
@@ -6821,7 +6821,7 @@ download_index_changed(const host_addr_t addr, guint16 port,
 	 */
 
 	if (nfound > 1) {
-		g_message("found %u requests for index %u (now %u) at %s",
+		g_info("found %u requests for index %u (now %u) at %s",
 			nfound, (guint) from, (guint) to,
 			host_addr_port_to_string(addr, port));
     }
@@ -7644,7 +7644,7 @@ err_header_read_eof(gpointer o, header_t *header)
 			d->flags |= DL_F_TRIED_TLS | DL_F_TRY_TLS;
 
 			if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
-				g_message("will try to reach server %s with TLS for \"%s\"",
+				g_debug("will try to reach server %s with TLS for \"%s\"",
 					download_host_info(d), download_basename(d));
 		}
 	}
@@ -7689,7 +7689,7 @@ err_header_read_eof(gpointer o, header_t *header)
 		delay = MAX(delay, DOWNLOAD_BAN_DELAY);
 
 		if (GNET_PROPERTY(download_debug))
-			g_message(
+			g_debug(
 				"server %s might be banning us (too many EOF for \"%s\")",
 				download_host_info(d), download_basename(d));
 
@@ -7704,7 +7704,7 @@ err_header_read_eof(gpointer o, header_t *header)
 				!(d->server->attrs & DLS_A_G2_ONLY)
 			) {
 				if (GNET_PROPERTY(download_debug))
-					g_message(
+					g_debug(
 						"server %s didn't respond to G2 faking for \"%s\"",
 						download_host_info(d), download_basename(d));
 
@@ -7720,7 +7720,7 @@ err_header_read_eof(gpointer o, header_t *header)
 			d->flags |= DL_F_FAKE_G2;
 
 			if (GNET_PROPERTY(download_debug))
-				g_message("will now attempt G2 faking at server %s for \"%s\"",
+				g_debug("will now attempt G2 faking at server %s for \"%s\"",
 					download_host_info(d), download_basename(d));
 
 			if (d->server->vendor == NULL) {
@@ -7854,7 +7854,7 @@ download_overlap_check(struct download *d)
 			fo = file_object_new(fd, fi->pathname, O_RDONLY);
 		} else {
 			const char *error = g_strerror(errno);
-			g_message("cannot check resuming for \"%s\": %s",
+			g_warning("cannot check resuming for \"%s\": %s",
 				filepath_basename(fi->pathname), error);
 			download_stop(d, GTA_DL_ERROR, _("Can't check resume data: %s"),
 				error);
@@ -7871,7 +7871,7 @@ download_overlap_check(struct download *d)
 		if (-1 == fstat(file_object_get_fd(fo), &sb)) {
 			/* Should never happen */
 			const char *error = g_strerror(errno);
-			g_message("cannot stat opened \"%s\": %s", fi->pathname, error);
+			g_warning("cannot stat opened \"%s\": %s", fi->pathname, error);
 			download_stop(d, GTA_DL_ERROR, _("Can't stat opened file: %s"),
 				error);
 			goto out;
@@ -7902,13 +7902,13 @@ download_overlap_check(struct download *d)
 
 		if ((ssize_t) -1 == r) {
 			const char *error = g_strerror(errno);
-			g_message("cannot read resuming data for \"%s\": %s",
+			g_warning("cannot read resuming data for \"%s\": %s",
 					fi->pathname, error);
 			download_stop(d, GTA_DL_ERROR, _("Can't read resume data: %s"),
 				error);
 			goto out;
 		} else if ((size_t) r != d->overlap_size) {
-			g_message(
+			g_warning(
 				"short read (%u instead of %u bytes) on resuming data for "
 				"\"%s\"", (guint) r, (guint) d->overlap_size, fi->pathname);
 			download_stop(d, GTA_DL_ERROR, _("Short read on resume data"));
@@ -7922,7 +7922,7 @@ download_overlap_check(struct download *d)
 		 */
 
 		if (GNET_PROPERTY(download_debug) > 1) {
-			g_message("%u overlapping bytes UNMATCHED at offset %s for \"%s\"",
+			g_debug("%u overlapping bytes UNMATCHED at offset %s for \"%s\"",
 				(guint) d->overlap_size,
 				uint64_to_string(d->skip - d->overlap_size),
 				download_basename(d));
@@ -7989,7 +7989,7 @@ download_overlap_check(struct download *d)
 	buffers_check_held(d);
 
 	if (GNET_PROPERTY(download_debug) > 3)
-		g_message("%u overlapping bytes MATCHED "
+		g_debug("%u overlapping bytes MATCHED "
 			"at offset %s for \"%s\"",
 			(guint) d->overlap_size,
 			uint64_to_string(d->skip - d->overlap_size), download_basename(d));
@@ -8024,7 +8024,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	g_assert(d->status == GTA_DL_RECEIVING);
 
 	if (GNET_PROPERTY(download_debug) > 10)
-		g_message("flushing %lu bytes (%u buffers) for \"%s\"%s",
+		g_debug("flushing %lu bytes (%u buffers) for \"%s\"%s",
 			(gulong) b->held, slist_length(b->list),
 			download_basename(d), may_stop ? "" : " on stop");
 
@@ -8037,7 +8037,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	if (b->held > d->range_end - d->pos) {
 		filesize_t extra = b->held - (d->range_end - d->pos);
 
-		if (GNET_PROPERTY(download_debug)) g_message(
+		if (GNET_PROPERTY(download_debug)) g_debug(
 			"server %s gave us %s more byte%s than requested for \"%s\"",
 			download_host_info(d), uint64_to_string(extra),
 			extra == 1 ? "" : "s", download_basename(d));
@@ -8237,7 +8237,7 @@ download_continue(struct download *d, gboolean trimmed)
 
 	if (trimmed) {
 		if (GNET_PROPERTY(download_debug))
-			g_message("had to trim data for \"%s\" (%.2f%%), served by %s",
+			g_debug("had to trim data for \"%s\" (%.2f%%), served by %s",
 				download_basename(cd), 100.0 * download_total_progress(cd),
 				download_host_info(cd));
 
@@ -8246,7 +8246,7 @@ download_continue(struct download *d, gboolean trimmed)
 	}
 	if (!cd->keep_alive) {
 		if (GNET_PROPERTY(download_debug))
-			g_message("connection not kept alive for \"%s\" (%.2f%%) by %s",
+			g_debug("connection not kept alive for \"%s\" (%.2f%%) by %s",
 				download_basename(cd), 100.0 * download_total_progress(cd),
 				download_host_info(cd));
 
@@ -8275,7 +8275,7 @@ download_continue(struct download *d, gboolean trimmed)
 	next = download_pick_followup(cd, sha1);
 	if (cd != next) {
 		if (GNET_PROPERTY(download_debug))
-			g_message("switching from \"%s\" (%.2f%%) to \"%s\" (%.2f%%) at %s",
+			g_debug("switching from \"%s\" (%.2f%%) to \"%s\" (%.2f%%) at %s",
 				download_basename(cd), 100.0 * download_total_progress(cd),
 				download_basename(next), 100.0 * download_total_progress(next),
 				download_host_info(next));
@@ -8389,7 +8389,7 @@ download_write_data(struct download *d)
 	}
 
 	if (GNET_PROPERTY(download_debug) > 5) {
-		g_message(
+		g_debug(
 			"%sflushing pending %lu bytes for \"%s\", pos=%s, range_end=%s",
 			should_flush ? "" : "NOT ",
 			(gulong) b->held, download_basename(d),
@@ -8534,7 +8534,7 @@ download_moved_permanently(struct download *d, header_t *header)
 
 	if (!dmesh_url_parse(buf, &info)) {
 		if (GNET_PROPERTY(download_debug))
-			g_message("could not parse HTTP Location: %s", buf);
+			g_debug("could not parse HTTP Location: %s", buf);
 		return FALSE;
 	}
 
@@ -8687,7 +8687,7 @@ download_convert_to_urires(struct download *d)
 		d->record_index, d->file_name);
 
 	if (GNET_PROPERTY(download_debug) > 1) {
-		g_message("download at %s \"%u/%s\" becomes "
+		g_debug("download at %s \"%u/%s\" becomes "
 			"\"/uri-res/N2R?urn:sha1:%s\"",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			d->record_index, d->file_name, sha1_base32(d->sha1));
@@ -8807,7 +8807,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	
 	if ('/' != uri_start[0]) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("TTH X-Thex-URI header has no valid URI (%s): \"%s\"",
+			g_debug("TTH X-Thex-URI header has no valid URI (%s): \"%s\"",
 				download_host_info(d), uri_start);
 		}
 		return;
@@ -8821,7 +8821,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		urn = skip_ascii_spaces(&endptr[1]);
 		if (strlen(urn) < TTH_BASE32_SIZE) {
 			if (GNET_PROPERTY(tigertree_debug)) {
-				g_message("TTH X-Thex-URI header has no root hash "
+				g_debug("TTH X-Thex-URI header has no root hash "
 					"for %s from %s",
 					download_basename(d), download_host_info(d));
 			}
@@ -8830,7 +8830,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		tth_ptr = base32_tth(urn);
 		if (NULL == tth_ptr) {
 			if (GNET_PROPERTY(tigertree_debug)) {
-				g_message("X-Thex-URI header has no root hash for %s from %s",
+				g_debug("X-Thex-URI header has no root hash for %s from %s",
 						download_basename(d), download_host_info(d));
 			}
 			return;
@@ -8850,7 +8850,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		uri_length = strlen(uri_start);
 
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("TTH X-Thex-URI header has no root hash (%s): \"%s\"",
+			g_debug("TTH X-Thex-URI header has no root hash (%s): \"%s\"",
 				download_host_info(d), uri_start);
 		}
 		/*
@@ -8882,7 +8882,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		}
 	} else if (GNET_PROPERTY(tth_auto_discovery)) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("Discovered TTH (%s) for %s from %s", tth_base32(&tth),
+			g_debug("discovered TTH (%s) for %s from %s", tth_base32(&tth),
 				download_basename(d), download_host_info(d));
 		}
 		file_info_got_tth(d->file_info, &tth);
@@ -9040,7 +9040,7 @@ check_xhostname(struct download *d, const header_t *header)
 
 	if (d->got_giv) {
 		if (GNET_PROPERTY(download_debug) > 2)
-			g_message("PUSH got X-Hostname, trying to ignore them for %s (%s)",
+			g_debug("PUSH got X-Hostname, trying to ignore them for %s (%s)",
 				buf, host_addr_port_to_string(download_addr(d),
 				download_port(d)));
 
@@ -9094,7 +9094,7 @@ check_xhost(struct download *d, const header_t *header)
 	 */
 
 	if (GNET_PROPERTY(download_debug) > 2)
-		g_message("PUSH got X-Host, trying to ignore PUSH for %s",
+		g_debug("PUSH got X-Host, trying to ignore PUSH for %s",
 			host_addr_port_to_string(download_addr(d), download_port(d)));
 
 	d->flags |= DL_F_PUSH_IGN;
@@ -9240,7 +9240,7 @@ handle_content_urn(struct download *d, header_t *header)
 			}
 		} else if (GNET_PROPERTY(tth_auto_discovery)) {
 			if (GNET_PROPERTY(tigertree_debug)) {
-				g_message("TTH discovered root hash (%s) for %s from %s",
+				g_debug("TTH discovered root hash (%s) for %s from %s",
 					tth_base32(&tth),
 					download_basename(d), download_host_info(d));
 			}
@@ -9714,7 +9714,7 @@ update_available_ranges(struct download *d, const header_t *header)
 		d->ranges_size = available_bytes;
 
 		if (GNET_PROPERTY(download_debug)) {
-			g_message("X-Available header from %s: has %s bytes for \"%s\"",
+			g_debug("X-Available header from %s: has %s bytes for \"%s\"",
 				download_host_info(d), uint64_to_string(available_bytes),
 				download_basename(d));
 		}
@@ -9726,7 +9726,7 @@ update_available_ranges(struct download *d, const header_t *header)
 
 	if (download_filesize(d) != 0 && d->ranges_size >= download_filesize(d)) {
 		if (GNET_PROPERTY(download_debug)) {
-			g_message("server %s now has the whole file (%s bytes) for \"%s\"",
+			g_debug("server %s now has the whole file (%s bytes) for \"%s\"",
 				download_host_info(d), uint64_to_string(available_bytes),
 				download_basename(d));
 		}
@@ -10134,7 +10134,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	d->last_update = tm_time();			/* Done reading headers */
 
 	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN) {
-		g_message("----Got %sreply #%u from %s:\n%s",
+		g_debug("----Got %sreply #%u from %s:\n%s",
 			ok ? "" : "INCOMPLETE ", d->served_reqs,
 			host_addr_to_string(s->addr), status);
 		header_dump(stderr, header, "----");
@@ -10152,7 +10152,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	if (d->flags & DL_F_FAKE_G2) {
 		if (GNET_PROPERTY(download_debug))
-			g_message("server %s responded well to G2 faking for \"%s\"",
+			g_debug("server %s responded well to G2 faking for \"%s\"",
 				download_host_info(d), download_basename(d));
 
 		d->flags &= ~DL_F_FAKE_G2;
@@ -10303,11 +10303,11 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		if (buf != NULL) {
 			http_major = 1;
 			http_minor = 1;
-			if (GNET_PROPERTY(download_debug)) g_message(
+			if (GNET_PROPERTY(download_debug)) g_debug(
 				"assuming \"HTTP/1.1 %d\" for %s", ack_code,
 				download_host_info(d));
 		} else if (GNET_PROPERTY(download_debug)) {
-			g_message(
+			g_debug(
 				"no HTTP version nor Content-Length given by %s (status %d)",
 				download_host_info(d), ack_code);
 		}
@@ -10452,7 +10452,7 @@ http_version_nofix:
 
 			if (http_range_contains(d->ranges, d->skip, d->range_end - 1)) {
 				if (GNET_PROPERTY(download_debug) > 3)
-					g_message("PFSP currently requested chunk %s-%s from %s "
+					g_debug("PFSP currently requested chunk %s-%s from %s "
 						"for \"%s\" already in the available ranges: %s",
 						uint64_to_string(d->skip),
 						uint64_to_string2(d->range_end - 1),
@@ -10803,7 +10803,7 @@ http_version_nofix:
 				d->server->attrs |= DLS_A_MINIMAL_HTTP;
 
 				if (GNET_PROPERTY(download_debug)) {
-					g_message("server %s might be banning us with \"%d %s\"",
+					g_debug("server %s might be banning us with \"%d %s\"",
 						download_host_info(d), ack_code, ack_message);
 				}
 			}
@@ -10952,7 +10952,7 @@ http_version_nofix:
 
 			if (check_content_range > total) {
                 if (GNET_PROPERTY(download_debug))
-                    g_message(
+                    g_debug(
 						"file \"%s\" on %s: total size mismatch: got %s, "
 						"for a served content of %s",
                         download_basename(d),
@@ -10968,7 +10968,7 @@ http_version_nofix:
 
 			if (start != d->skip - d->overlap_size) {
                 if (GNET_PROPERTY(download_debug))
-                    g_message("file \"%s\" on %s: start byte mismatch: "
+                    g_debug("file \"%s\" on %s: start byte mismatch: "
 						"wanted %s, got %s",
                         download_basename(d),
                         download_host_info(d),
@@ -10981,7 +10981,7 @@ http_version_nofix:
 			}
 			if (total != fi->size) {
                 if (GNET_PROPERTY(download_debug)) {
-                        g_message("file \"%s\" on %s: file size mismatch:"
+                        g_debug("file \"%s\" on %s: file size mismatch:"
 						" expected %s, got %s",
                         download_basename(d), download_host_info(d),
                         uint64_to_string(fi->size), uint64_to_string2(total));
@@ -10992,7 +10992,7 @@ http_version_nofix:
 			}
 			if (end > d->range_end - 1) {
                 if (GNET_PROPERTY(download_debug)) {
-                    g_message("file \"%s\" on %s: end byte too large: "
+                    g_debug("file \"%s\" on %s: end byte too large: "
 						"expected %s, got %s",
                         download_basename(d), download_host_info(d),
                         uint64_to_string(d->range_end - 1),
@@ -11031,7 +11031,7 @@ http_version_nofix:
 			}
 			if (end < d->range_end - 1) {
                 if (GNET_PROPERTY(download_debug))
-                    g_message(
+                    g_debug(
 						"file \"%s\" on %s: end byte short: wanted %s, "
 						"got %s (continuing anyway)",
                         download_basename(d),
@@ -11083,7 +11083,7 @@ http_version_nofix:
 			check_content_range = 0;		/* We validated the served range */
 		} else {
             if (GNET_PROPERTY(download_debug)) {
-                g_message("file \"%s\" on %s: malformed Content-Range: %s",
+                g_debug("file \"%s\" on %s: malformed Content-Range: %s",
 					download_basename(d), download_host_info(d), buf);
             }
         }
@@ -11114,7 +11114,7 @@ http_version_nofix:
 		const char *ua = header_get(header, "Server");
 		ua = ua ? ua : header_get(header, "User-Agent");
 		if (ua && GNET_PROPERTY(download_debug))
-			g_message("server \"%s\" did not send any length indication", ua);
+			g_debug("server \"%s\" did not send any length indication", ua);
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, _("No Content-Length header"));
 		return;
@@ -11564,7 +11564,7 @@ download_write_request(gpointer data, int unused_source, inputevt_cond_t cond)
 		http_buffer_add_read(r, sent);
 		return;
 	} else if (GNET_PROPERTY(download_trace) & SOCK_TRACE_OUT) {
-		g_message("----Sent Request (%s) completely to %s (%u bytes):",
+		g_debug("----Sent Request (%s) completely to %s (%u bytes):",
 			d->keep_alive ? "follow-up" : "initial",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			http_buffer_length(r));
@@ -11576,7 +11576,7 @@ download_write_request(gpointer data, int unused_source, inputevt_cond_t cond)
 	 */
 
 	if (GNET_PROPERTY(download_debug)) {
-		g_message("flushed partially written HTTP request to %s (%u bytes)",
+		g_debug("flushed partially written HTTP request to %s (%u bytes)",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			http_buffer_length(r));
     }
@@ -11630,7 +11630,7 @@ download_send_request(struct download *d)
 
 	if (d->always_push && !DOWNLOAD_IS_IN_PUSH_MODE(d)) {
 		if (GNET_PROPERTY(download_debug) > 2)
-			g_message("PUSH not necessary to reach %s",
+			g_debug("PUSH not necessary to reach %s",
 				host_addr_port_to_string(download_addr(d), download_port(d)));
 		d->server->attrs |= DLS_A_PUSH_IGN;
 		d->always_push = FALSE;
@@ -11988,7 +11988,7 @@ picked:
 		 * path is clogged.
 		 */
 
-		g_message("Partial HTTP request write to %s: wrote %u out of %u bytes",
+		g_message("partial HTTP request write to %s: wrote %u out of %u bytes",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			(guint) sent, (guint) rw);
 
@@ -12005,7 +12005,7 @@ picked:
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
 	} else if (GNET_PROPERTY(download_trace) & SOCK_TRACE_OUT) {
-		g_message("----Sent Request (%s%s%s%s%s) to %s (%u bytes):",
+		g_debug("----Sent Request (%s%s%s%s%s) to %s (%u bytes):",
 			d->keep_alive ? "follow-up" : "initial",
 			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", HTTP/1.1",
 			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",
@@ -12043,7 +12043,7 @@ download_connected(struct download *d)
 	if (d->flags & DL_F_DNS_LOOKUP) {
 		if (!host_addr_equal(download_addr(d), s->addr)) {
 			if (GNET_PROPERTY(download_debug)) {
-				g_message("DNS lookup revealed server %s moved to %s",
+				g_debug("DNS lookup revealed server %s moved to %s",
 					server_host_info(d->server), host_addr_to_string(s->addr));
 			}
 			change_server_addr(d->server, s->addr, download_port(d));
@@ -12067,7 +12067,7 @@ download_push_ready(struct download *d, getline_t *empty)
 	download_check(d);
 
 	if (len != 0) {
-		g_message("file \"%s\": push reply was not followed by an empty line",
+		g_debug("file \"%s\": push reply was not followed by an empty line",
 			download_basename(d));
 		dump_hex(stderr, "Extra GIV data", getline_str(empty), MIN(len, 80));
 		download_stop(d, GTA_DL_ERROR, _("Malformed push reply"));
@@ -12136,7 +12136,7 @@ select_push_download(GSList *servers)
 				continue;
 
 			if (d->socket == NULL) {
-				if (GNET_PROPERTY(download_debug) > 1) g_message(
+				if (GNET_PROPERTY(download_debug) > 1) g_debug(
 					"GIV: selected active download \"%s\" from %s at %s",
 					download_basename(d), guid_hex_str(server->key->guid),
 					download_host_info(d));
@@ -12178,7 +12178,7 @@ select_push_download(GSList *servers)
 			if (d->flags & (DL_F_SUSPENDED | DL_F_PAUSED))
 				continue;
 
-			if (GNET_PROPERTY(download_debug) > 2) g_message(
+			if (GNET_PROPERTY(download_debug) > 2) g_debug(
 				"GIV: will try alternate download \"%s\" from %s at %s",
 				download_basename(d), guid_hex_str(server->key->guid),
 				download_host_info(d));
@@ -12214,7 +12214,7 @@ select_push_download(GSList *servers)
 				gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
 					count_running_downloads());
 
-				if (GNET_PROPERTY(download_debug) > 1) g_message("GIV: "
+				if (GNET_PROPERTY(download_debug) > 1) g_debug("GIV: "
 					"selected alternate download \"%s\" from %s at %s",
 					download_basename(d), guid_hex_str(server->key->guid),
 					download_host_info(d));
@@ -12351,7 +12351,7 @@ merge_push_servers(GSList *servers, const struct guid *guid)
 	 */
 
 	if (GNET_PROPERTY(download_debug)) {
-		g_message("merging servers: GUID %s at %s into GUID %s at %s",
+		g_debug("merging servers: GUID %s at %s into GUID %s at %s",
 			guid_hex_str(duplicate->key->guid),
 			host_addr_port_to_string(
 				duplicate->key->addr, duplicate->key->port),
@@ -12502,7 +12502,7 @@ download_push_ack(struct gnutella_socket *s)
 	gnet_stats_count_general(GNR_GIV_CALLBACKS, 1);
 
 	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN) {
-		g_message("----Got GIV from %s:", host_addr_to_string(s->addr));
+		g_debug("----Got GIV from %s:", host_addr_to_string(s->addr));
 		dump_string(stderr, giv, getline_length(s->getline), "----");
 	}
 
@@ -12579,7 +12579,7 @@ download_push_ack(struct gnutella_socket *s)
 
 			for (sl = servers, i = 0; sl; sl = g_slist_next(sl), i++) {
 				struct dl_server *serv = sl->data;
-				g_message("  #%u is GUID %s at %s <%s>",
+				g_debug("  #%u is GUID %s at %s <%s>",
 					i + 1, guid_hex_str(serv->key->guid),
 					host_addr_port_to_string(serv->key->addr, serv->key->port),
 					serv->vendor ? serv->vendor : "");
@@ -12606,7 +12606,7 @@ download_push_ack(struct gnutella_socket *s)
 	}
 
 	if (GNET_PROPERTY(download_debug))
-		g_message("mapped GIV \"%s\" to \"%s\" from %s",
+		g_debug("mapped GIV \"%s\" to \"%s\" from %s",
 			giv, download_basename(d), download_host_info(d));
 
 	if (d->io_opaque) {
@@ -12922,7 +12922,7 @@ download_retrieve_magnets(FILE *f)
 			}
 
 			if (expect_old_format && is_strprefix(buffer, "RECLINES=")) {
-				g_message("Detected old downloads format");
+				g_message("detected old downloads format");
 				break;
 			}
 
@@ -12933,7 +12933,7 @@ download_retrieve_magnets(FILE *f)
 				created = download_handle_magnet(buffer);
 
 				if (GNET_PROPERTY(download_debug)) {
-					g_message("created %d download%s from %s",
+					g_debug("created %d download%s from %s",
 						created, created == 1 ? "" : "s", buffer);
 				}
 			} else {
@@ -13010,8 +13010,8 @@ download_retrieve_old(FILE *f)
 			if (recline == 0)
 				continue;			/* Allow arbitrary blank lines */
 
-			g_message("download_retrieve(): "
-				"Unexpected empty line #%u, aborting", line);
+			g_warning("download_retrieve(): "
+				"unexpected empty line #%u, aborting", line);
 			goto out;
 		}
 
@@ -13022,8 +13022,8 @@ download_retrieve_old(FILE *f)
 			(void) str_chomp(dl_tmp, 0);
 			/* Un-escape in place */
 			if (!url_unescape(dl_tmp, TRUE)) {
-				g_message("download_retrieve(): "
-					"Invalid escaping in line #%u, aborting", line);
+				g_warning("download_retrieve(): "
+					"invalid escaping in line #%u, aborting", line);
 				goto out;
 			}
 			d_name = atom_str_get(dl_tmp);
@@ -13045,14 +13045,14 @@ download_retrieve_old(FILE *f)
 
 			size64 = parse_uint64(dl_tmp, &endptr, 10, &error);
 			if (error || ',' != *endptr) {
-				g_message("download_retrieve(): "
+				g_warning("download_retrieve(): "
 					"cannot parse line #%u: %s", line, dl_tmp);
 				goto out;
 			}
 
 			d_size = size64;
 			if ((guint64) d_size != size64) {
-				g_message("download_retrieve(): "
+				g_warning("download_retrieve(): "
 					"filesize is too large in line #%u: %s", line, dl_tmp);
 				goto out;
 			}
@@ -13064,7 +13064,7 @@ download_retrieve_old(FILE *f)
 
 			d_index = parse_uint32(endptr, &endptr, 10, &error);
 			if (error || NULL == strchr(":,", *endptr)) {
-				g_message("download_retrieve(): "
+				g_warning("download_retrieve(): "
 					"cannot parse index in line #%u: %s", line, dl_tmp);
 				goto out;
 			}
@@ -13080,14 +13080,14 @@ download_retrieve_old(FILE *f)
 			}
 
 			if (',' != *endptr) {
-				g_message("download_retrieve(): "
+				g_warning("download_retrieve(): "
 					"expected ',' in line #%u: %s", line, dl_tmp);
 				goto out;
 			}
 			endptr = skip_ascii_blanks(++endptr);
 
 			if (!string_to_host_addr_port(endptr, &endptr, &d_addr, &d_port)) {
-				g_message("download_retrieve(): "
+				g_warning("download_retrieve(): "
 					"bad IP:port at line #%u: %s", line, dl_tmp);
 				d_port = 0;
 				d_addr = ipv4_unspecified;
@@ -13119,7 +13119,7 @@ download_retrieve_old(FILE *f)
 				SHA1_RAW_SIZE != base32_decode(sha1.data, sizeof sha1.data,
 									dl_tmp, SHA1_BASE32_SIZE)
 			) {
-				g_message("download_retrieve(): "
+				g_warning("download_retrieve(): "
 					"bad base32 SHA1 '%32s' at line #%u, ignoring",
 					dl_tmp, line);
 			} else
@@ -13130,8 +13130,8 @@ download_retrieve_old(FILE *f)
 			continue;
 		case 4:						/* PARQ id, or "*" if none */
 			if (maxlines != 4) {
-				g_message("download_retrieve(): "
-					"Can't handle %d lines in records, aborting", maxlines);
+				g_warning("download_retrieve(): "
+					"can't handle %d lines in records, aborting", maxlines);
 				goto out;
 			}
 			if (dl_tmp[0] != '*') {
@@ -13140,8 +13140,8 @@ download_retrieve_old(FILE *f)
 			}
 			break;
 		default:
-			g_message("download_retrieve(): "
-				"Too many lines for record at line #%u, aborting", line);
+			g_warning("download_retrieve(): "
+				"too many lines for record at line #%u, aborting", line);
 			goto out;
 		}
 
@@ -13150,7 +13150,7 @@ download_retrieve_old(FILE *f)
 		 */
 
 		if (!hex_to_guid(d_hexguid, &d_guid)) {
-			g_message("download_rerieve(): Malformed GUID %s near line #%u",
+			g_warning("download_rerieve(): malformed GUID %s near line #%u",
 				d_hexguid, line);
         }
 
@@ -13162,7 +13162,7 @@ download_retrieve_old(FILE *f)
 		 */
 
 		if (GNET_PROPERTY(download_debug) > 5)
-			g_message("DOWNLOAD '%s' (%s bytes) from %s (%s) SHA1=%s",
+			g_debug("DOWNLOAD '%s' (%s bytes) from %s (%s) SHA1=%s",
 				d_name, uint64_to_string(d_size), host_addr_to_string(d_addr),
 				d_hostname, has_sha1 ? sha1_base32(&sha1) : "<none>");
 
@@ -13172,7 +13172,7 @@ download_retrieve_old(FILE *f)
 
 		if (d == NULL) {
 			if (GNET_PROPERTY(download_debug))
-				g_message("Ignored dup download at line #%d (server %s)",
+				g_debug("ignored dup download at line #%d (server %s)",
 					line - maxlines + 1,
 					host_addr_port_to_string(d_addr, d_port));
 			goto next_entry;
@@ -13354,7 +13354,7 @@ download_move(struct download *d, const char *dir, const char *ext)
 
 	free_space = fs_free_space(dir);
 	if (download_filesize(d) > free_space) {
-		g_message("Not enough free space in %s (need %s, has %s): "
+		g_message("not enough free space in %s (need %s, has %s): "
 			"renaming \"%s\" locally with %s",
 			dir,
 			filesize_to_string(download_filesize(d)),
@@ -13375,7 +13375,7 @@ download_move(struct download *d, const char *dir, const char *ext)
 	goto cleanup;
 
 error:
-	g_message("Cannot rename %s as %s: %s",
+	g_warning("cannot rename %s as %s: %s",
 		fi->pathname, dest, g_strerror(errno));
 	download_move_error(d);
 	goto cleanup;
@@ -13499,7 +13499,7 @@ download_move_error(struct download *d)
 			fi->pathname, dest, g_strerror(errno));
 		download_set_status(d, GTA_DL_DONE);
 	} else {
-		g_message("Completed \"%s\" left at \"%s\"", name, dest);
+		g_message("completed \"%s\" left at \"%s\"", name, dest);
 		download_move_done(d, dest, 0);
 	}
 	HFREE_NULL(dest);
@@ -13610,9 +13610,9 @@ download_verify_status_unknown(struct download *d, const char *what)
 	name = file_info_readable_filename(fi);
 
 	if (0 == strcmp(filepath_basename(fi->pathname), name))
-		g_message("error while verifying %s for \"%s\"", what, fi->pathname);
+		g_warning("error while verifying %s for \"%s\"", what, fi->pathname);
 	else {
-		g_message("error while verifying %s for \"%s\" (aka \"%s\")",
+		g_warning("error while verifying %s for \"%s\" (aka \"%s\")",
 			what, fi->pathname, name);
     }
 
@@ -13695,7 +13695,7 @@ download_verify_sha1(struct download *d)
 	g_assert(!FILE_INFO_FINISHED(fi));
 
 	if (GNET_PROPERTY(verify_debug) > 1) {
-		g_message("%s verifying SHA-1 of completed %s",
+		g_debug("%s verifying SHA-1 of completed %s",
 			(FI_F_VERIFYING & fi->flags) ?
 				"already planned" : "will be",
 			download_pathname(d));
@@ -13777,7 +13777,7 @@ download_tigertree_sweep(struct download *d,
 	g_assert(fi->file_size_known);
 
 	if (GNET_PROPERTY(tigertree_debug)) {
-		g_message("TTH tree sweep: file=\"%s\", filesize=%s, slice size=%s",
+		g_debug("TTH tree sweep: file=\"%s\", filesize=%s, slice size=%s",
 			download_basename(d),
 			filesize_to_string(download_filesize(d)),
 			uint64_to_string(fi->tigertree.slice_size));
@@ -13834,7 +13834,7 @@ download_tigertree_sweep(struct download *d,
 		}
 	} else {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("TTH tree sweep: all %lu slice%s okay",
+			g_debug("TTH tree sweep: all %lu slice%s okay",
 				(unsigned long) num_leaves, 1 == num_leaves ? "" : "s");
 		}
 	}
@@ -13974,7 +13974,7 @@ download_verify_tigertree(struct download *d)
 	g_assert(!(fi->flags & FI_F_VERIFYING));
 
 	if (GNET_PROPERTY(verify_debug) > 1) {
-		g_message("will be verifying TTH of completed %s",
+		g_debug("will be verifying TTH of completed %s",
 			download_pathname(d));
 	}
 
@@ -14456,7 +14456,7 @@ download_thex_done(struct download *d)
 
 	if (!thex_download_finished(d->thex)) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("TTH discarding tigertree data from %s: Bad THEX data",
+			g_debug("TTH discarding tigertree data from %s: Bad THEX data",
 				download_host_info(d));
 		}
 		goto finish;
@@ -14465,7 +14465,7 @@ download_thex_done(struct download *d)
 	fi = file_info_by_sha1(sha1);
 	if (NULL == fi) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("TTH discarding tigertree data from %s: No more download",
+			g_debug("TTH discarding tigertree data from %s: No more download",
 				download_host_info(d));	
 		}
 		cancel_all = TRUE;
@@ -14482,7 +14482,7 @@ download_thex_done(struct download *d)
 		file_info_got_tth(fi, tth);
 	}
 	if (fi->tigertree.num_leaves >= num_leaves) {
-		g_message("Discarding tigertree data from %s: Already known.",
+		g_message("discarding tigertree data from %s: already known.",
 			download_host_info(d));
 		cancel_all = TRUE;
 		goto finish;
@@ -15286,7 +15286,7 @@ download_slow_timer(time_t now)
 
 			if (d->parq_dl && delta_time(now, d->retry_after) >= 0) {
 				if (GNET_PROPERTY(parq_debug) || GNET_PROPERTY(download_debug))
-					g_message("restarting pending \"%s\" PARQ ID=%s",
+					g_debug("restarting pending \"%s\" PARQ ID=%s",
 						download_pathname(d), get_parq_dl_id(d));
 
 				download_start(d, FALSE);

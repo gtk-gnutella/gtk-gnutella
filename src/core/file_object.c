@@ -584,7 +584,7 @@ file_object_show_item(gpointer key, gpointer value, gpointer unused_udata)
 	file_object_check(fo);
 	g_assert(fo->pathname == key);
 
-	g_message("leaked file object: ref.count=%d fd=%d pathname=\"%s\"",
+	g_warning("leaked file object: ref.count=%d fd=%d pathname=\"%s\"",
 		fo->ref_count, fo->fd, fo->pathname);
 }
 

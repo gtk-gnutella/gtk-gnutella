@@ -1245,7 +1245,7 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 	g_assert(*retlen == inflated);	/* Make sure it was not truncated */
 
 	if (GNET_PROPERTY(ggep_debug) > 5) {
-		g_message("decompressed GGEP payload \"%s\" (%d byte%s) into %d",
+		g_debug("decompressed GGEP payload \"%s\" (%d byte%s) into %d",
 			name, len, 1 == len ? "" : "s", inflated);
 	}
 
