@@ -503,8 +503,8 @@ st_search(
 
 	search = UNICODE_CANONIZE(search_term);
 	if (GNET_PROPERTY(search_debug) > 4 && 0 != strcmp(search, search_term)) {
-		g_message(" Original search term: \"%s\"", search_term);
-		g_message("Canonical search term: \"%s\"", search);
+		g_debug("original search term: \"%s\"", search_term);
+		g_debug("canonical search term: \"%s\"", search);
 	}
 	len = strlen(search);
 
