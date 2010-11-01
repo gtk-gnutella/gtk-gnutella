@@ -69,7 +69,7 @@ dbus_util_init(void)
 	bus = dbus_bus_get(DBUS_BUS_SESSION, &error);
 
 	if (NULL == bus) {
-		g_message("Could not open connection to DBus bus: %s", error.message);
+		g_message("could not open connection to DBus bus: %s", error.message);
 		dbus_error_free(&error);
 	} else {
 
@@ -118,7 +118,7 @@ dbus_util_send_message(const char *signal_name, const char *text)
 	message = dbus_message_new_signal(DBUS_PATH, DBUS_INTERFACE, signal_name);
 
 	if (NULL == message) {
-		g_message("Could not create D-BUS message!");
+		g_message("could not create D-BUS message!");
 	} else {
 
 		/* Add the message to the Events signal */
