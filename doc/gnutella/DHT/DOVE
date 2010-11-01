@@ -1,0 +1,824 @@
+                  DHT Open Versatile Extension
+                          Version 0.0
+
+                        Raphael Manfredi
+                  <Raphael_Manfredi@pobox.com>
+
+                       November, 1st 2010
+
+
+  THIS DOCUMENT IS STILL A DRAFT  / FINAL VERSION WILL BE PUBLISHED LATER
+
+
+1. Introduction
+
+The Gnutella Distributed Hash Table (DHT), as originally specified by LimeWire
+circa 2006, does not propose any structure in the provisioned "header
+extension" mechanism.  The DHT architecture is that of Kademlia, the LimeWire
+specification only providing the message format and the semantics of the
+various fields in the messages.  Unfortunately, nothing was said about the
+structure and semantics of the header extension.
+
+This DHT Open Versatile Extension (DOVE) specification fills this design
+hole by providing a general scheme for information that can be sent in
+optional header extensions.
+
+Since the DHT version 0.0 specifications include provision for header
+extensions, it is expected that all servents already deployed will correctly
+recognize (but ignore) any header extension that would be present in
+the DHT messages.
+
+But DOVE goes even further by defining support for Extended DHT Values,
+in an hopefully totally backward compatible way with the existing deployed
+DHT nodes.
+
+And whilst we are specifying new DHT message formats (or extensions of existing
+formats), we even attempt to change the way-too-verbose STORE_ACK message
+format by using DOVE-architected flags to "fix" the protocol, again in a
+complete backward compatible way.
+
+
+2. DHT Message Format
+
+On an abstract level and as shown in the following paragraphs the Kademlia
+Message Format applicable within Gnutella looks as follows.
+
++--------+---------------+
+|Header  |Body           |
++--------+---------------+
+|61 Bytes|Variable Length|
++--------+---------------+
+
+The DHT is using a slightly modified version of the Gnutella Standard_Message
+Architecture as its message format. This allows us to share the Gnutella UDP
+Socket with the DHT, which has the advantage that a user behind a NAT Router
+has to open/forward only one Port. In essence, this blends the Kademlia
+messages within Gnutella in an efficient way.
+
+The following compares the structure of a Gnutella message and that of a
+Kademlia message. The first lie shows the Gnutella representation of the byte
+stream making up the message, the second line show the Kademlia representation.
+
++---------+-------------+---+----+-----------------+--------------------------+
+|0......15|      16     |17 | 18 |19.............22|23.......................n|
++---------+-------------+---+----+-----------------+--------------------------+
+|   GUID  |  0x44 / 'D' |TTL|Hops|Length of Payload|         Payload          |
++---------+-------------+---+----+-----------------+--------------------------+
+|   MUID  |  0x44 / 'D' |Version |Length of Payload| (DHT Header Continued +  |
+|         |             |Maj|Min | (Little-Endian) |         Payload)         |
++---------+-------------+---+----+-----------------+--------------------------+
+
+Conveniently, the first 23 bytes make up a valid Gnutella header. Therefore
+one can say that Kademlia messages are "encapsulated" into a Gnutella one.
+
+The second line show how the same message can be interpreted as a Kademlia one,
+and outlines some differences:
+
+* The first 16 bytes are a MUID (Message Unique ID) and have nothing to do
+  with a Gnutella servent GUID.
+* Byte at offset 16 is the Gnutella message opcode indicating a DHT message.
+* Bytes at offset 17 and 18 are used to indicate the version of the message
+  (major at offset 17, minor at offset 18).
+
+However, the Kademlia header is at least 61 bytes, and therefore continues
+past the end of the Gnutella header.
+
+The way to look at the full Kademlia Header is therefore:
+
++-----+------------------------+----------------------------------------------+
+|Byte |Name                    |Description                                   |
++-----+------------------------+----------------------------------------------+
+|     |                        |An unique message identifier. Nodes that      |
+|0-15 |MUID                    |respond to requests must echo the MUID in     |
+|     |                        |their response Message.                       |
++-----+------------------------+----------------------------------------------+
+|16   |0x44/'D'                |A hard-coded value for Kademlia messages      |
++-----+------------------------+----------------------------------------------+
+|17-18|Version                 |The version of the message (major + minor)    |
++-----+------------------------+----------------------------------------------+
+|19-22|Length                  |The length of the Gnutella payload in Little- |
+|     |                        |Endian                                        |
++-----+------------------------+----------------------------------------------+
+|23   |OpCode                  |The Kademlia type of the Message              |
++-----+------------------------+----------------------------------------------+
+|24-56|Contact                 |The Node that created the Message (which has, |
+|     |                        |in this case, an IPv4 address)                |
++-----+------------------------+----------------------------------------------+
+|57   |Contact's Instance ID   |The Instance ID                               |
++-----+------------------------+----------------------------------------------+
+|58   |Contact's Flags         |A bit field for various Flags                 |
++-----+------------------------+----------------------------------------------+
+|     |                        |Length of extended Header. It's currently     |
+|59-60|Extended Length         |unused and set to 0 (i.e. there's no extended |
+|     |                        |header). Encoded as Unsigned Big-Endian.      |
++-----+------------------------+----------------------------------------------+
+
+For reference, the currently defined fields (offset 58 in the header above)
+are the following:
+
++-------+----------+----------------------------------------------------------+
+|Bit    |Name      |Description                                               |
++-------+----------+----------------------------------------------------------+
+|7 (MSB)|          |                                                          |
+| ....  |          |RESERVED                                                  |
+|2      |          |                                                          |
++-------+----------+----------------------------------------------------------+
+|       |          |The shutdown flag (if set) indicates that the remote Node |
+|       |          |is going to shutdown and you may mark it immediately as   |
+|1      |SHUTDOWN  |dead in your RouteTable (and don't return it in           |
+|       |          |FIND NODE+FIND VALUE responses). You shouldn't delete it  |
+|       |          |from the RouteTable though as it may comes back soon!     |
++-------+----------+----------------------------------------------------------+
+|       |          |The firewalled flag (if set) indicates that the remote    |
+|0 (LSB)|FIREWALLED|Host is firewalled. If a Host says it's firewalled then DO|
+|       |          |NOT add it to your RouteTable.                            |
++-------+----------+----------------------------------------------------------+
+
+The only other Kademlia field important for DOVE is the "Extended Length"
+field (offset 59 and 60 in the header) with is.  Watch out: it is NOT encoded
+as Little-Endian as in the Gnutella world.  All the fields in the Kademlia
+world are encoded as Big-Endian.
+
+A message with an extended header might be depicted as follows:
+
++--------+-----------------+---------------+
+|Header  |Header Extension |Body           |
++--------+-----------------+---------------+
+|61 Bytes|Variable Length  |Variable Length|
++--------+-----------------+---------------+
+
+Recall that everything is embedded within a Gnutella message, so the total
+length of the message is given by the Payload Length in the Gnutella header
+plus 23 bytes.
+
+    Total Length = Gnutella Payload Length + 23
+
+But the total length is also given by:
+
+    Total Length = Header Extension Length + Body Length + 61
+
+Any Extended Length supplied in the Kademlia header must therefore be
+substracted from the apparent Kademlia payload size (Total Length - 61)
+to produce the real Kademlia payload size.
+
+All servents following the LimeWire specifications must skip any extended
+header present in the message.  Since LimeWire did not make use of this
+feature, all current LimeWire servents emit an Extended Length of 0.  At
+the same time, all the current LimeWire servents are ready to skip any
+specified Extended Length to reach the first Body byte.
+
+
+3. Supported Messages
+
+For reference purposes, here are the defined OpCode values for Kademlia
+messages as originally specified by LimeWire:
+
++------+-----------+---------------------------------------------------------+
+|OpCode|Name       |Description                                              |
++------+-----------+---------------------------------------------------------+
+|1     |PING       |A PING request, mostly for "alive" checks.               |
++------+-----------+---------------------------------------------------------+
+|2     |PONG       |The reply to a PING request.                             |
++------+-----------+---------------------------------------------------------+
+|3     |STORE      |Request to STORE a set of DHT Values.                    |
++------+-----------+---------------------------------------------------------+
+|4     |STORE_ACK  |Acknowledgement of a STORE request.                      |
++------+-----------+---------------------------------------------------------+
+|5     |FIND_NODE  |Node lookup to find the k-closest nodes to a given KUID. |
++------+-----------+---------------------------------------------------------+
+|6     |FOUND_NODE |List of nodes returned for a FIND_NODE or FIND_VALUE.    |
++------+-----------+---------------------------------------------------------+
+|7     |FIND_VALUE |A node lookup aimed at finding a DHT Value.              |
++------+-----------+---------------------------------------------------------+
+|8     |VALUE      |A reply to FIND_VALUE when DHT Values have been found.   |
++------+-----------+---------------------------------------------------------+
+
+These correspond to the operations defined by Kademlia.
+
+
+4. DOVE Negotiation
+
+With DOVE, messages can have a non-zero Extended Length to supply extra
+information to the message being sent.  However, since the recipient of the
+message may not support DOVE, there is a risk that any useful DOVE information
+will be ignored by the recipient.
+
+Sending DOVE data may therefore be just wasting bandwidth.  To be able to
+optimize common operations, DOVE-enabled nodes will set bit 2 of the Contact's
+Flags in the Kademlia header (byte at offset 58).  The new specification for
+that field therefore becomes:
+
++-------+----------+----------------------------------------------------------+
+|Bit    |Name      |Description                                               |
++-------+----------+----------------------------------------------------------+
+|7 (MSB)|          |                                                          |
+| ....  |          |RESERVED                                                  |
+|3      |          |                                                          |
++-------+----------+----------------------------------------------------------+
+|2      |DOVE      |The node follows the DOVE 0.0 specifications.             |
++-------+----------+----------------------------------------------------------+
+|       |          |The shutdown flag (if set) indicates that the remote Node |
+|       |          |is going to shutdown and you may mark it immediately as   |
+|1      |SHUTDOWN  |dead in your RouteTable (and don't return it in           |
+|       |          |FIND NODE+FIND VALUE responses). You shouldn't delete it  |
+|       |          |from the RouteTable though as it may comes back soon!     |
++-------+----------+----------------------------------------------------------+
+|       |          |The firewalled flag (if set) indicates that the remote    |
+|0 (LSB)|FIREWALLED|Host is firewalled. If a Host says it's firewalled then DO|
+|       |          |NOT add it to your RouteTable.                            |
++-------+----------+----------------------------------------------------------+
+
+Note that indicating DOVE support in the Contact's Flags header does not
+necessarily mean that the message contains an Extended Header.  It is simply
+an indication given to the world that the node supports DOVE.
+
+
+5. Extended Header Format
+
+Messages with a non-zero Extended Length may not necessarily contain a DOVE
+extended header, even if DOVE support is indicated in the Contact's Flag field.
+That's because DOVE may not be the only format for header extension.
+However, if present, the DOVE extension must come first.  Moreover, when a DOVE
+extended header is present, the DOVE field MUST be set in the Contact's Flag
+field to tell recipient that they can freely parse the extended header with
+DOVE in mind.
+
+DOVE-capable nodes will extract the DOVE extension from the extended header
+and will ignore the remaining of the extended header, if present.
+
+DOVE architects the extra information supplied to the message in an extensible
+format that is reminiscent of the popular and nowadays universal GGEP extension
+for Gnutella messages, but it is different than GGEP and will therefore require
+a dedicated parser and generator.
+
+The DOVE payload starts with a 'V' ASCII character (byte 0x56 in hexadecimal).
+Therefore, if the header extension does not start with 'V', it does not
+contain a DOVE header and it will be simply skipped by DOVE-capable nodes
+(since no other standard has been published as of 2010-11-01).
+
+It is then followed by a sequence of key/value pairs.  In general, the order
+of key/value pairs in the header does not matter, the only exception being the
+"v" (lower-cased "V") special key.
+
+
+The general format therefore looks like the following:
+
+ +---+--------+----------+--------+----------+-------+--------+----------+
+ |'V'| key #1 | value #1 | key #2 | value #2 | ..... | key #n | value #n |
+ +---+--------+----------+--------+----------+-------+--------+----------+
+ <-----------------------  DOVE header extension ------------------------>
+
+The key is specified thusly:
+
+ <-------- one key --------->
+ +-7654-3210-+--------------+
+ |Flags| Len | ID bytes     |
+ +-----------+--------------+
+ <--1 byte--><--1..n bytes-->
+
+The first byte is a combination of flags and length of the ID that follows.
+
+The lowest 4 bits of the first byte indicate the length of the ID, between
+1 and 15 bytes.  Usually.  There are exceptions we shall explain later.
+In particular, keys with a length of 1 byte are RESERVED by DOVE.
+
+An ID is made up of any binary string, although it is a good design
+practice to use ASCII names for the keys, in a case-sensitive manner.
+DOVE does NOT usually specify which IDs should be used, it only provides
+the architecture of the messages.  There are some exceptions though that
+we shall present later on.
+
+The flags are the upper 4 bits of the first byte.  Here is a full description
+of that first byte:
+
++-------------+---------------------------------------------------------------+
+|Bit Positions|Name          |Comments                                        |
++-------------+---------------------------------------------------------------+
+|7            |Last          |When set, this is the last key/value tuple in   |
+|             |              |the DOVE extension.                             |
++-------------+---------------------------------------------------------------+
+|             |              |When set, the key/value tuple is actually made  |
+|6            |No Value      |of a single key.  The value is the fact that the|
+|             |              |key is present.                                 |
++-------------+---------------------------------------------------------------+
+|             |              |The meaning of that bit depends on whether this |
+|5            |Acknowledge   |comes in a request or in a reply.  A requester  |
+|             |              |requests an ACK, the replier gives that ACK.    |
++-------------+---------------------------------------------------------------+
+|4            |Short         |If set, the ID is only 1 byte and the ID length |
+|             |              |specifies the value length only.                |
++-------------+---------------------------------------------------------------+
+|             |              |Value 1-15 can be stored here.  Usually gives   |
+|             |              |the ID length, excepted when SHORT is specified.|
+|3-0          |ID Length     |In that case, the ID is only 1 byte and this    |
+|             |              |field represents the length of the value that   |
+|             |              |follows that single-byte ID MINUS 1 (unless "No |
+|             |              |Value" is also set, in which case this is 0).   |
++-------------+---------------------------------------------------------------+
+
+Bit 7 is straightforward: in our key/value sequence, the last entry is flagged
+by this bit.  Any data beyond the end of the key/value belongs to another
+extension format and no longer falls under the DOVE specifications.
+
+Bit 6 indicates that there is no value in the key/value sequence.  The presence
+of the key (the ID) is deemed sufficient to convey a meaning.  Note that the
+absence of the key does not convey any meaning at all, and in particular does
+not constitute a negation of the meaning suggested by the key presence!
+
+Bit 5 must be interpreted in the context of the Kademlia message.  If this
+is an RPC request (e.g. "FIND_NODE"), then it requests an acknowledgement
+that the ID was understood and handled accordingly by the other node.  If
+this is an RPC reply (e.g. "PONG"), then this acknowledges to the requester
+that this ID was indeed understood and processed.  In that case, bit 6 could
+be also set to indicate no payload, but a value could also be provided back
+along with the processing acknowledgement.
+
+Bit 4 indicates a short key/value sequence.  The ID is only 1-byte long and
+the ID Length field indicates the length of the payload MINUS 1, i.e. a value
+of 15 indicates a 16-byte payload, and a value of 0 indicates a 1-byte payload.
+To express 0, bit 6 ("No Value") must also be set, in which case the ID Length
+is also given as 0.  When bit 6 is set along with bit 4 and the value of the
+ID Length is non-zero, then this is another special case to encode 17 + the
+value of ID Length.  A 5 would then encode 17 + 5 = 22 bytes.
+
+The following table summarizes how bits 4 and 6 combine to alter the meaning
+of the ID length "L", as read in the lowest 4 bits of the first byte:
+
++--------+----------+------------------+----------------------+
+| Bit 4  | Bit 6    | Actual ID Length | Value Length         |
+|"Short" |"No Value"|                  |                      |
++--------+----------+------------------+----------------------+
+|   0    |    0     |         L        | Follows ID string    |
++--------+----------+------------------+----------------------+
+|   0    |    1     |         L        | 0 (no value present) |
++--------+----------+------------------+----------------------+
+|   1    |    0     |         1        | L + 1                |
++--------+----------+------------------+----------------------+
+|   1    |    1     |         1        | L + 17               |
++--------+----------+------------------+----------------------+
+
+After the key, a value MAY be present.  If it is and bit 4 ("Short") was not
+specified, then the value length must be emitted before the value itself,
+unless bit 6 ("No Value") was set to indicate there is no value (to save
+the otherwise required byte that would indicate a length of 0).
+
+The value length is encoded in a space-efficient representation favoring
+small lengths (which will be the case usually): each byte represents the
+least significant 7 bits of the value that remain to be sent, plus a flag
+indicating whether we reached the last byte.  The 7 bits are encoded in bits
+0..6 of each byte, and the ending flag is bit 7.
+
+We call that encoding VLE-8, for Variable Little-Endian with 8-bit units.
+
+Any value length smaller than 127 bytes can therefore be encoded with one
+single byte, but larger length can also be encoded with VLE-8: 2 bytes are
+required to encode values from 128 to 16383, etc...
+
+Here is pseudo C-style code encoding a VLE-8 value:
+
+    encode(value) {
+        do {
+            byte = value & 0x7f;    /* Lowest 7 bits */
+            if (value != 0)
+                byte |= 0x80;       /* Set bit #7 if last byte emitted */
+            emit byte;
+        } while (value != 0);
+    }
+
+Here is pseudo C-style code to decode a VLE-8 value:
+
+    decode(stream) {
+        value = 0;
+        shift = 0;
+        while (1) {
+            byte = read next byte from stream;
+            value |= (byte & 0x7f) << shift;    /* Got 7 more bits */
+            if (byte & 0x80)
+                break;              /* Bit #7 is set, last byte reached */
+            shift += 7;
+        }
+        return value;
+    }
+
+The value is therefore represented as:
+
+ <---------- one value ---------->
+ +----------------+--------------+
+ | VLE-8 length   | Value bytes  |
+ +----------------+--------------+
+ <-- encode(n) --><-- n bytes --->
+
+
+6. Special Keys
+
+As explained before, there are some special 1-byte keys that can be specified
+in a DOVE extended header.
+
+These keys are meant to be universal: they have the same format and semantics,
+regardless of the message they are given in.  Normal keys may not necessarily
+have the same format or meaning depending on the message: for instance an
+hypothetical "xyz" key in a "PING" message may not contain the same type
+of value as the "xyz" key in a "STORE".
+
+Short 1-byte keys DO have the SAME meaning however and are truly Kademlia
+header extensions, whereas other keys can be viewed more as additional
+parameters to the message.
+
+Short 1-byte keys are OPTIONAL and need not be present in all messages though.
+
+Currently, DOVE specifies only 5 standard keys:
+
+- "6": This key (byte 0x36) specifies the IPv6 address (value = 16 bytes) of
+  the node. This is because the original Kademlia header format defined by
+  LimeWire only allows IPv4 addresses in the Contact field.  The IPv4
+  specified in the Contact may be also valid, unless it is given as 0.0.0.0,
+  in which case only the IPv6 key should be used for that node.
+
+- "v": This key (byte 0x76) specifies the DOVE version (value = 1 byte) encoded
+  as the 4 upper bits being the major version (between 0 and 15) and the 4
+  lowest bits being the minor version (again between 0 and 15).  As long
+  a DOVE version 0.0 is supported (this specification version), the "v" key is
+  not necessary because the DOVE flag in the Contact's Flag of the Kademlia
+  header also imply that at least version 0.0 is supported.  Once seen, the "v"
+  key may change the semantics of the remaining DOVE block in a way that
+  cannot be foreseen now.  If the structuring is kept intact (i.e. parsing
+  the remaining with DOVE 0.0 conventions, as described here, will work), then
+  only additional semantics can be provided.
+
+  If the structure is NOT kept intact (e.g. the key descriptor flag meaning
+  are changed, or a previous DOVE version is known to not be able to parse
+  the remaining of the DOVE block) then the version byte MUST be followed
+  by a little-endian quantity whose value represents the amount of bytes
+  remaining until the end of the DOVE payload, starting with the byte AFTER
+  the last one of the value.  Its purpose is to give older DOVE parsers
+  the opportunity to skip any remaining DOVE parts of the header extension
+  after a "v" key/value indicating a non-compatible message architecture.
+
+  If a length quantity follows, the size of the value in the "v" key descriptor
+  needs to be adjusted to be 1 (the version byte) plus the length of the
+  quantity itself...  Note that in this case we don't use VLE-8 encoding but
+  true little-endian encoding, only we do not emit the upper bytes that would
+  be zeros.  A single byte therefore encodes values from 0 to 255, and 2 bytes
+  would encode values from 256 to 65535.
+
+- "F": This key (byte 0x46) introduces a bit field to be interpreted as flags.
+  Flags are emitted in little-endian, with leading zeros skipped, the specified
+  length of the ID determining how many bytes there are to read and interpret
+  as flags.  If only the lower 8 flags have a non-zero value, then a single
+  byte is sufficient.
+ 
+  The meaning of the Acknowledge bit is special here.  Instead of echoing
+  back the ID with the Acknowledge bit set, to indicate proper understanding
+  of the "F" key, the DOVE-compatible node emits an "f" key, leaving the "F"
+  key intact so that flags can also be specified in the RPC answer.
+ 
+- "f": This key (0x66) is emitted only in RPC answers when the Acknowledge
+  bit was set in the "F" key.  It is encoded as "F" is, but its payload is a
+  mask, whose bits are "1" for each of the flags that the node understood and
+  processed.
+
+  For instance, if the node understood only bit 0 and 3, it would reply with
+  a 1-byte mask containing 0b1001, i.e. 0x09.
+
+- "A": This key (byte 0x41) has a payload of exactly 1 byte.  Its value
+  indicates the bit number of the highest flag bit in "F" which has meaning.
+  In other words, it indicates the subset of the flags that were set.  A value
+  of 17 for instance would mean that bits 0 to 17 (included) are meaningful
+  and set in "F".  It does NOT indicate a level of support, so if the flag
+  at bit 15 is understood but does not need to be supplied in "F", and only
+  bits up to 14 are set, then "A" would indicate 14, despite the fact that
+  the node supports bit 15 as well.
+
+  As an optimization, if the highest meaningful flag is also set in "F", then
+  there is no need to supply "A", because all the bits up to that position
+  MUST be supported and set by the servent.  So "A" is useful when flags must
+  be specified as explicit "0" and they happen to be in the highest bits of
+  the flags to be sent.  For instance, if "F" turns on bit 18 and there is no
+  "A", then the recipient MUST assume that all bits up to 18 inclusive are
+  meaningful, and that no flag with a higher bit position that bit 18 was set.
+
+
+7. Additional Message Header Flags
+
+These flags are specified in the "F" key of the DOVE extension, not in the
+Kademlia header Contact's Flag field.  When used, the "A" key COULD be also
+present to indicate the highest bit with significance in the flags.
+
+Because they are specified here, their meaning is universal and does not
+depend on the type of the message they are sent in, although some of the
+flags will be meaningless in some messages, as for instance the "Extended
+DHT Value" flag which has meaning only in "FIND_VALUE" and "STORE" RPC
+requests, and "VALUE" RPC replies and which will be meaningless in a "PING".
+
+Here are the flags supported and defined by this specification.  Any flag
+received that is not understood must not be acknowledged in "f" (if requested
+by the Acknowledgment bit for "F"):
+
++----+---------------------------+
+|Bit |Name                       |
++----+---------------------------+
+| 0  |Extended DHT Value         |
++----+---------------------------+
+| 1  |Compact STORE Status       |
++----+---------------------------+
+| 2  |Include STORE Error String |
++----+---------------------------+
+
+We shall now detail how each of these flag operate.
+
+
+7.1. The "Extended DHT Value" flag
+
+This flag makes sense only in RPC messages that can request DHT Values, i.e.
+only in "FIND_VALUE", and in replies to "FIND_NODE" preparing "STORE"
+requests, to indicate support for "STORE" operations.
+
+In "FIND_VALUE", this tells nodes that they can reply with extended values.
+
+In "FIND_NODE" preparing a "STORE" (as opposed to "FIND_NODE" being done
+to refresh a Kademlia routing table bucket), this tells replying nodes to
+signal whether they support extended DHT Value, should they get a "STORE"
+later on: their "FOUND_NODE" reply should indicate "Extended DHT Value" if
+they support the feature.
+
+As a side effect, when enough DOVE-enabled nodes are deployed, the recipient
+of a "FIND_NODE" will be able to tell whether this is preparing a "STORE"
+or whether it is simply a bucket refresh, since only the former kind of node
+lookup will bear the "Extended DHT Value" flag.  This will allow better flow
+control decisions when bandwidth is tight.
+
+A DHT Value is essentially a triple of the creator of the given DHT Value, the
+key which is a KUID and the actual value.  The original LimeWire specifications
+for a DHT Value are reproduced here:
+
++-----+------------+------------------------------------------------------+
+|Byte |Name        |Description                                           |
++-----+------------+------------------------------------------------------+
+|0-32 |Contact     |The creator (with an IPv4 address in this case) of the|
+|     |            |DHT Value                                             |
++-----+------------+------------------------------------------------------+
+|33-52|KUID        |The key of the DHT Value                              |
++-----+------------+------------------------------------------------------+
+|53-56|DHTValueType|The type of the DHT Value                             |
++-----+------------+------------------------------------------------------+
+|57-58|Version     |Version of the Value                                  |
++-----+------------+------------------------------------------------------+
+|59-60|Length      |The length of the DHT Value                           |
++-----+------------+------------------------------------------------------+
+|61-  |Value       |The actual value                                      |
++-----+------------+------------------------------------------------------+
+
+There is no provision for an "extended header" as in Kademlia messages, which
+is why we need the "Extended DHT Value" flag set to indicate that the format
+outlined above changes to the following one:
+
++-----+------------+-------------------------------------------------------+
+|Byte |Name        |Description                                            |
++-----+------------+-------------------------------------------------------+
+|0-32 |Contact     |The creator (with an IPv4 address in this case) of the |
+|     |            |DHT Value                                              |
++-----+------------+-------------------------------------------------------+
+|33-52|KUID        |The key of the DHT Value                               |
++-----+------------+-------------------------------------------------------+
+|53-56|DHTValueType|The type of the DHT Value                              |
++-----+------------+-------------------------------------------------------+
+|57-58|Version     |Value Version (bit 7 of byte 57 set if Extended Value) |
++-----+------------+-------------------------------------------------------+
+|59-60|Length      |The length of the DHT Value (payload + extended header)|
++-----+------------+-------------------------------------------------------+
+|     |            |If Extended Value, starts with Value Extension,        |
+|61-  |Payload     |followed by the actual value.  Otherwise, it is the    |
+|     |            |actual value.                                          |
++-----+------------+-------------------------------------------------------+
+
+The Value Extension format is:
+
+<------- Length of the DHT Value ---------->
++--------------+--------------+------------+
+| VLE-8 length | DOVE payload | Value data |
++--------------+--------------+------------+
+<--encode(n)--><---n bytes---><---data----->
+<-- Extended Value Header --->
+
+It can be interpreted as such only when the bit 7 of byte 57 is set,
+indicating Value Extension.  Note that this limits the range of possible
+major version numbers for values to 127.
+
+In the DOVE payload we also define the same 5 Special Keys we specified
+for the Kademlia header extension:
+
+- "6": This is the same format and semantics as the "6" key in the Kademlia
+  header extension: it provides the IPv6 address of the Creator of the value,
+  since the Contact information only allows IPv4 addresses.
+
+- "v": This is the same format and semantics as the "v" key in the Kademlia
+  header extension.
+
+"F", "f" and "A" are also supported, however the meaning of the flags are
+different: they apply to the DHT Value, not to the message.  The defined
+flags are:
+
++----+---------------------------+
+|Bit |Name                       |
++----+---------------------------+
+| 0  |Cached DHT Value           |
++----+---------------------------+
+| 1  |Replicated DHT Value       |
++----+---------------------------+
+
+The "Cached DHT Value" bit is set when the returned value in "VALUE" is deemed
+to have been cached by the node which was holding it.  This is usually the
+case when the primary key of the DHT Value, its KUID, did not fall within
+the k-ball of the holding node (the k-closest nodes surrounding the KUID) at
+the time the STORE happened.
+
+The "Cached DHT Value" bit can also be specified in "STORE" operations to
+tell the remote node that we are not replicating this value but rather
+caching it (that fact that we are not publishing will be obvious because
+the Contact information will not refer to us).
+
+The "Replicated DHT Value" bit is set in DHT Values listed in "VALUE" or in
+"STORE" operations to indicate that there was no original publishing for
+the value.  In other words, the replying node never got an explicit publishing
+of the value by its creator, but the key was replicated to it via the Kademlia
+key offloading, replicating or caching features (from non-DOVE nodes, meaning
+the "Cached DHT Value" bit might not have been accurately determined).
+
+
+7.2. The "Compact STORE Status" flag
+
+This flag can be specified in a "STORE" RPC request, as well as in a
+"STORE_ACK" RPC reply.
+
+In the "STORE" request, it tells the remote node that it can send a compact
+status if it supports it.
+
+In the "STORE_ACK" reply, this tells that the message format is not the
+original one defined by LimeWire but is a more compact one defined by DOVE.
+Obviously, such a reply can only be made when it was requested explicitly,
+otherwise the reply would not be understood.
+
+The standard STORE Status Code defined by LimeWire is the following:
+
++-------------+--------------------------------------+
+|Name         |Description                           |
++-------------+--------------------------------------+
+|Primary Key  |The Primary Key                       |
++-------------+--------------------------------------+
+|Secondary Key|The Secondary Key                     |
++-------------+--------------------------------------+
+|Status Code  |The Status Code of the STORE operation|
++-------------+--------------------------------------+
+
+Where Status Code is further architected as the following block:
+
++--------------+-------------+--------------------+
+|     Code     |   Length    | Description String |
++--------------+-------------+--------------------+
++<--2 bytes---><--2 bytes --><------n bytes------->
+
+There are two main problems with that architecture: there is no need to
+echo lengthy Primary and Secondary keys (20 bytes each) in the status
+since the RPC message reply carries the necessary context: its MUID already
+tells the sender to which message the reply refers to, and the issuer of
+the RPC can keep the context around until the reply comes back or the RPC
+times out.
+
+The Status code is furthermore architected with 2 status codes (OK = 0x1,
+ERROR = 0x2) and the description string (an UTF-8 string, probably meant
+for debugging purposes) is always filled with a meaningless "Error" value
+when there is an error reported...
+
+DOVE re-architects a more compact STORE Status Codes as the following:
+
++---------------+-------------------------------------+
+|Name           |Description                          |
++---------------+-------------------------------------+
+|Compact Status |The status of the STORE operation    |
++---------------+-------------------------------------+
+|Extended Length|A VLE-8 encoded length               |
++---------------+-------------------------------------+
+|DOVE Extension |An optional DOVE payload             |
++---------------+-------------------------------------+
+
+This block is known as the Compact STORE Status Code.  If there is no DOVE
+payload, the Extended Length value is 0 (encoded as 0x80, in VLE-8).
+
+The Compact Status is a 2-byte Big-Endian value, just like the original
+LimeWire Code, only with the following extended value range:
+
++-------------+-----+-----------------------------------+
+|Code         |Value|Description                        |
++-------------+-----+-----------------------------------+
+|OK           |1    |OK                                 |
++-------------+-----+-----------------------------------+
+|ERROR        |2    |Generic error                      |
++-------------+-----+-----------------------------------+
+|FULL         |3    |Node is full for this key          |
++-------------+-----+-----------------------------------+
+|LOADED       |4    |Node is too loaded for this key    |
++-------------+-----+-----------------------------------+
+|FULL_LOADED  |5    |Node is both loaded and full       |
++-------------+-----+-----------------------------------+
+|TOO_LARGE    |6    |Value is too large                 |
++-------------+-----+-----------------------------------+
+|EXHAUSTED    |7    |Storage space exhausted            |
++-------------+-----+-----------------------------------+
+|BAD_CREATOR  |8    |Creator is not acceptable          |
++-------------+-----+-----------------------------------+
+|BAD_VALUE    |9    |Analyzed value did not validate    |
++-------------+-----+-----------------------------------+
+|BAD_TYPE     |10   |Improper value type                |
++-------------+-----+-----------------------------------+
+|QUOTA        |11   |Storage quota for creator reached  |
++-------------+-----+-----------------------------------+
+|DATA_MISMATCH|12   |Replicated data is different       |
++-------------+-----+-----------------------------------+
+|BAD_TOKEN    |13   |Invalid security token             |
++-------------+-----+-----------------------------------+
+|EXPIRED      |14   |Value has already expired          |
++-------------+-----+-----------------------------------+
+|DB_IO        |15   |Database I/O error                 |
++-------------+-----+-----------------------------------+
+
+Note that these values are already used by non-DOVE nodes such as gtk-gnutella,
+in the standard LimeWire-specified STORE Status Code entries.  However, they
+were never formally specified so this DOVE specification is a good entry point
+for that.
+
+DOVE does not forbid new errors from being defined.  However they should be
+communicated to Gnutella vendors so that they can be handled properly by the
+publishing logic.  In particular, it is important to know which error codes
+are likely to indicate a "popular value" in the DHT (many creators already
+for that primary key).
+
+However, DOVE reserves codes above 60000 for internal purposes.  Nodes are
+forbidden to report codes starting at that value and up to 65535.
+
+
+7.3. The "Include STORE Error String" flag
+
+A node running in "debug mode" or "troubleshooting mode" can set this bit
+in the message flag to request an explicit human-readable error message
+in addition to the status code.  Messages should be in English and as
+compact as possible, yet meaningful.  No HTML or other XML overhead, just
+a single error string, ideally 40 characters at most, in ASCII.
+
+This can be specified with or without the "Compact STORE Status".
+
+If the "Compact STORE Status" bit is not set, then the error string is
+returned as part of LimeWire's specified Status Code.
+
+If the "Compact STORE Status" bit is set, then the error string is returned
+as the value for the "EM" key (Error Message) within the DOVE payload of
+the Compact STORE Status Code block.
+
+Again, please do not turn on this flag if you are not debugging your servent
+code, as this will cause more lengthy replies, and outgoing bandwidth is
+always scarce, if not expensive.
+
+
+8. Minimum Features
+
+In order to be able to advertise the DOVE bit in the Contact's Flag field of
+the Kademlia message header, a node must implement the following minimal DOVE
+features:
+
+* Proper parsing of the DOVE payload in Message Headers.
+
+* Support of the 5 Special Keys in the message header, along with the proper
+  handling of the Acknowledgement bit in keys.
+
+* Understanding that bit 7 in the DHT Value major number indicates an extended
+  header, with necessary logic to skip that header if not processed.
+
+All other features are optional, but nonetheless highly desirable.
+
+
+9. Conclusion
+
+DOVE is mostly a framework for extending the current DHT message architecture
+within Gnutella in a backward compatible way without requiring an increase
+of the DHT message version number, which can stay at 0.0 for now.
+
+DOVE introduces the possibility to exchange additional information in messages
+and additional meta-information about values in flexible and extensible key/value
+pairs.
+
+DOVE negotiates its potentially binary-incompatible extensions so that no
+legacy node is presented data that it cannot parse, hopefully.
+
+DOVE architects 5 special keys whose aim it is to allow further DHT protocol
+extensions without sacrificing further external (scarce) Contact's Flag bits.
+
+DOVE uses its negotiation bits to "fix" the verbose STORE acknowledgement
+message format, improving performance.
+
+Further specification relying on DOVE support will follow.  These extensions
+will define message-specific key/value pairs so as to make the DHT exchanges
+much more efficient.
+
+
+The End.
+
+  THIS DOCUMENT IS STILL A DRAFT  / FINAL VERSION WILL BE PUBLISHED LATER
