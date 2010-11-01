@@ -373,9 +373,9 @@ log_cpu_usage(tm_t *since_time, double *prev_user, double *prev_sys)
 	elapsed = tm_elapsed_f(&cur_time, since_time);
 	*since_time = cur_time;
 
-	g_message("average CPU used: %.3f%% over %.2f secs",
+	g_debug("average CPU used: %.3f%% over %.2f secs",
 		100.0 * total / elapsed, elapsed);
-	g_message("CPU usage: total: %.2fs (user: %.2f, sys: %.2f)",
+	g_debug("CPU usage: total: %.2fs (user: %.2f, sys: %.2f)",
 		total, user, sys);
 }
 
@@ -413,14 +413,14 @@ gtk_gnutella_exit(int exit_code)
 #define DO(fn) 	do {					\
 	exit_step = STRINGIFY(fn);			\
 	if (GNET_PROPERTY(shutdown_debug))	\
-		g_message("SHUTDOWN calling %s", exit_step);	\
+		g_debug("SHUTDOWN calling %s", exit_step);	\
 	fn();								\
 } while (0)
 
 #define DO_ARG(fn, arg)	do {			\
 	exit_step = STRINGIFY(fn);					\
 	if (GNET_PROPERTY(shutdown_debug))	\
-		g_message("SHUTDOWN calling %s(%s)", exit_step, STRINGIFY(arg));	\
+		g_debug("SHUTDOWN calling %s(%s)", exit_step, STRINGIFY(arg));	\
 	fn(arg);							\
 } while (0)
 
@@ -457,7 +457,7 @@ gtk_gnutella_exit(int exit_code)
 	safe_to_exit = TRUE;	/* Will immediately exit if re-entered */
 
 	if (debugging(0) || signal_received || shutdown_requested)
-		g_message("context files and settings closed properly");
+		g_info("context files and settings closed properly");
 
 	if (from_atexit)
 		return;
@@ -493,7 +493,7 @@ gtk_gnutella_exit(int exit_code)
 		DO(main_gui_shutdown);
 
 		if (debugging(0) || signal_received || shutdown_requested)
-			g_message("GUI shutdown completed");
+			g_info("GUI shutdown completed");
 	}
 
 	DO(cq_halt);			/* No more callbacks, with everything shutdown */
@@ -527,7 +527,7 @@ gtk_gnutella_exit(int exit_code)
 		exit_grace *= 2;
 
 	if (debugging(0) || signal_received || shutdown_requested) {
-		g_message("waiting at most %s for BYE messages",
+		g_info("waiting at most %s for BYE messages",
 			short_time(exit_grace));
 	}
 
@@ -548,7 +548,7 @@ gtk_gnutella_exit(int exit_code)
 	}
 
 	if (debugging(0) || signal_received || shutdown_requested)
-		g_message("running final shutdown sequence...");
+		g_info("running final shutdown sequence...");
 
 	DO(search_shutdown);	/* Disable now, since we can get queries above */
 
@@ -620,7 +620,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(vmm_close);
 
 	if (debugging(0) || signal_received || shutdown_requested) {
-		g_message("gtk-gnutella shut down cleanly.");
+		g_info("gtk-gnutella shut down cleanly.");
 	}
 	if (!running_topless) {
 		main_gui_exit(exit_code);
@@ -734,7 +734,7 @@ check_cpu_usage(void)
 	coverage = MAX(coverage, 0.001);	/* Prevent division by zero */
 
 	if (GNET_PROPERTY(cq_debug) > 2) {
-		g_message("CQ: callout queue \"%s\" items=%d ticks=%d coverage=%d%%",
+		g_debug("CQ: callout queue \"%s\" items=%d ticks=%d coverage=%d%%",
 			cq_name(callout_queue), cq_count(callout_queue),
 			cq_ticks(callout_queue), (int) (coverage * 100.0 + 0.5));
 	}
@@ -771,7 +771,7 @@ check_cpu_usage(void)
 				(double) ((0 == full_speed) ?  current_speed : full_speed);
 
 			if (GNET_PROPERTY(cpu_debug) > 1) {
-				g_message("CPU: running at %.2f%% of the maximum %s frequency",
+				g_debug("CPU: running at %.2f%% of the maximum %s frequency",
 					100.0 * fraction, short_frequency(full_speed));
 			}
 
@@ -789,7 +789,7 @@ check_cpu_usage(void)
 	avg = load_avg / 100;
 
 	if (GNET_PROPERTY(cpu_debug) > 1 && last_cpu > 0.0)
-		g_message("CPU: %.3f secs in %.3f secs (~%.3f%% @ cover=%.2f) avg=%d%%",
+		g_debug("CPU: %.3f secs in %.3f secs (~%.3f%% @ cover=%.2f) avg=%d%%",
 			cpu - last_cpu, elapsed, cpu_percent, coverage, avg);
 
 	/*
@@ -900,7 +900,7 @@ callout_queue_idle(void *unused_data)
 	(void) unused_data;
 
 	if (GNET_PROPERTY(cq_debug) > 1)
-		g_message("CQ: callout queue is idle (CPU %s)",
+		g_debug("CQ: callout queue is idle (CPU %s)",
 			overloaded ? "OVERLOADED" : "available");
 
 	/* Idle tasks always scheduled */
