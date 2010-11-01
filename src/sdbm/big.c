@@ -143,17 +143,17 @@ log_bigstats(DBM *db)
 	if (-1 == dbg->fd)
 		return;				/* The .dat file was never used */
 
-	g_message("sdbm: \"%s\" bitmap reads = %lu, bitmap writes = %lu "
+	g_info("sdbm: \"%s\" bitmap reads = %lu, bitmap writes = %lu "
 		"(deferred %lu)",
 		sdbm_name(db), dbg->bitread, dbg->bitwrite, dbg->bitwdelayed);
-	g_message("sdbm: \"%s\" bitmap blocknum hits = %.2f%% on %lu request%s",
+	g_info("sdbm: \"%s\" bitmap blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), dbg->bitbno_hit * 100.0 / MAX(dbg->bitfetch, 1),
 		dbg->bitfetch, 1 == dbg->bitfetch ? "" : "s");
-	g_message("sdbm: \"%s\" large key short matches = %.2f%% on %lu attempt%s",
+	g_info("sdbm: \"%s\" large key short matches = %.2f%% on %lu attempt%s",
 		sdbm_name(db),
 		dbg->key_short_match * 100.0 / MAX(dbg->key_matching, 1),
 		dbg->key_matching, 1 == dbg->key_matching ? "" : "s");
-	g_message("sdbm: \"%s\" large key full matches = %.2f%% on %lu attempt%s",
+	g_info("sdbm: \"%s\" large key full matches = %.2f%% on %lu attempt%s",
 		sdbm_name(db),
 		dbg->key_full_match * 100.0 / MAX(dbg->key_short_match, 1),
 		dbg->key_short_match, 1 == dbg->key_short_match ? "" : "s");

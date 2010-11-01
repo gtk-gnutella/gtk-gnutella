@@ -294,17 +294,17 @@ success:
 static void
 log_sdbmstats(DBM *db)
 {
-	g_message("sdbm: \"%s\" page reads = %lu, page writes = %lu (forced %lu)",
+	g_info("sdbm: \"%s\" page reads = %lu, page writes = %lu (forced %lu)",
 		sdbm_name(db), db->pagread, db->pagwrite, db->pagwforced);
-	g_message("sdbm: \"%s\" dir reads = %lu, dir writes = %lu (deferred %lu)",
+	g_info("sdbm: \"%s\" dir reads = %lu, dir writes = %lu (deferred %lu)",
 		sdbm_name(db), db->dirread, db->dirwrite, db->dirwdelayed);
-	g_message("sdbm: \"%s\" page blocknum hits = %.2f%% on %lu request%s",
+	g_info("sdbm: \"%s\" page blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), db->pagbno_hit * 100.0 / MAX(db->pagfetch, 1),
 		db->pagfetch, 1 == db->pagfetch ? "" : "s");
-	g_message("sdbm: \"%s\" dir blocknum hits = %.2f%% on %lu request%s",
+	g_info("sdbm: \"%s\" dir blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), db->dirbno_hit * 100.0 / MAX(db->dirfetch, 1),
 		db->dirfetch, 1 == db->dirfetch ? "" : "s");
-	g_message("sdbm: \"%s\" inplace value writes = %.2f%% on %lu occurence%s",
+	g_info("sdbm: \"%s\" inplace value writes = %.2f%% on %lu occurence%s",
 		sdbm_name(db), db->repl_inplace * 100.0 / MAX(db->repl_stores, 1),
 		db->repl_stores, 1 == db->repl_stores ? "" : "s");
 }

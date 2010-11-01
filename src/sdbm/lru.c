@@ -123,14 +123,14 @@ log_lrustats(DBM *db)
 	unsigned long raccesses = cache->rhits + cache->rmisses;
 	unsigned long waccesses = cache->whits + cache->wmisses;
 
-	g_message("sdbm: \"%s\" LRU cache size = %ld page%s, %s writes, %s DB",
+	g_info("sdbm: \"%s\" LRU cache size = %ld page%s, %s writes, %s DB",
 		sdbm_name(db), cache->pages, 1 == cache->pages ? "" : "s",
 		cache->write_deferred ? "deferred" : "synchronous",
 		db->is_volatile ? "volatile" : "persistent");
-	g_message("sdbm: \"%s\" LRU read cache hits = %.2f%% on %lu request%s",
+	g_info("sdbm: \"%s\" LRU read cache hits = %.2f%% on %lu request%s",
 		sdbm_name(db), cache->rhits * 100.0 / MAX(raccesses, 1), raccesses,
 		1 == raccesses ? "" : "s");
-	g_message("sdbm: \"%s\" LRU write cache hits = %.2f%% on %lu request%s",
+	g_info("sdbm: \"%s\" LRU write cache hits = %.2f%% on %lu request%s",
 		sdbm_name(db), cache->whits * 100.0 / MAX(waccesses, 1), waccesses,
 		1 == waccesses ? "" : "s");
 }
@@ -232,7 +232,7 @@ setcache(DBM *db, long pages)
 	db->pagbuf = NULL;
 
 	if (common_stats) {
-		g_message("sdbm: \"%s\" LRU cache size %s from %ld page%s to %ld",
+		g_info("sdbm: \"%s\" LRU cache size %s from %ld page%s to %ld",
 			sdbm_name(db), pages > cache->pages ? "increased" : "decreased",
 			cache->pages, 1 == cache->pages ? "" : "s", pages);
 		log_lrustats(db);
