@@ -336,10 +336,10 @@ along with the processing acknowledgement.
 Bit 4 indicates a short key/value sequence.  The ID is only 1-byte long and
 the ID Length field indicates the length of the payload MINUS 1, i.e. a value
 of 15 indicates a 16-byte payload, and a value of 0 indicates a 1-byte payload.
-To express 0, bit 6 ("No Value") must also be set, in which case the ID Length
-is also given as 0.  When bit 6 is set along with bit 4 and the value of the
-ID Length is non-zero, then this is another special case to encode 17 + the
-value of ID Length.  A 5 would then encode 17 + 5 = 22 bytes.
+To express 0, bit 6 ("No Value") must be set without the bit 4, and the length
+in that case must be 1 (the actualy ID length).  If bit 4 and bit 6 are both
+set, it is another special case to encode 17 + the value of ID Length.  A 5
+would then encode 17 + 5 = 22 bytes.
 
 The following table summarizes how bits 4 and 6 combine to alter the meaning
 of the ID length "L", as read in the lowest 4 bits of the first byte:
