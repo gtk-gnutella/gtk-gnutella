@@ -71,8 +71,8 @@ stream making up the message, the second line show the Kademlia representation.
 Conveniently, the first 23 bytes make up a valid Gnutella header. Therefore
 one can say that Kademlia messages are "encapsulated" into a Gnutella one.
 
-The second line show how the same message can be interpreted as a Kademlia one,
-and outlines some differences:
+The second line shows how the same message can be interpreted as a Kademlia
+one, and outlines some differences:
 
 * The first 16 bytes are a MUID (Message Unique ID) and have nothing to do
   with a Gnutella servent GUID.
@@ -135,8 +135,8 @@ are the following:
 +-------+----------+----------------------------------------------------------+
 
 The only other Kademlia field important for DOVE is the "Extended Length"
-field (offset 59 and 60 in the header) with is.  Watch out: it is NOT encoded
-as Little-Endian as in the Gnutella world.  All the fields in the Kademlia
+field (offset 59 and 60 in the header).  Watch out: it is NOT encoded as
+Little-Endian as in the Gnutella world.  All the fields in the Kademlia
 world are encoded as Big-Endian.
 
 A message with an extended header might be depicted as follows:
@@ -239,7 +239,7 @@ Messages with a non-zero Extended Length may not necessarily contain a DOVE
 extended header, even if DOVE support is indicated in the Contact's Flag field.
 That's because DOVE may not be the only format for header extension.
 However, if present, the DOVE extension must come first.  Moreover, when a DOVE
-extended header is present, the DOVE field MUST be set in the Contact's Flag
+extended header is present, the DOVE flag MUST be set in the Contact's Flag
 field to tell recipient that they can freely parse the extended header with
 DOVE in mind.
 
@@ -313,7 +313,7 @@ of that first byte:
 |3-0          |ID Length     |In that case, the ID is only 1 byte and this    |
 |             |              |field represents the length of the value that   |
 |             |              |follows that single-byte ID MINUS 1 (unless "No |
-|             |              |Value" is also set, in which case this is 0).   |
+|             |              |Value" is also set, see below for details).     |
 +-------------+---------------------------------------------------------------+
 
 Bit 7 is straightforward: in our key/value sequence, the last entry is flagged
@@ -371,7 +371,7 @@ indicating whether we reached the last byte.  The 7 bits are encoded in bits
 We call that encoding VLE-8, for Variable Little-Endian with 8-bit units.
 
 Any value length smaller than 127 bytes can therefore be encoded with one
-single byte, but larger length can also be encoded with VLE-8: 2 bytes are
+single byte, but larger lengths can also be encoded with VLE-8: 2 bytes are
 required to encode values from 128 to 16383, etc...
 
 Here is pseudo C-style code encoding a VLE-8 value:
@@ -439,13 +439,13 @@ Currently, DOVE specifies only 5 standard keys:
   lowest bits being the minor version (again between 0 and 15).  As long
   a DOVE version 0.0 is supported (this specification version), the "v" key is
   not necessary because the DOVE flag in the Contact's Flag of the Kademlia
-  header also imply that at least version 0.0 is supported.  Once seen, the "v"
-  key may change the semantics of the remaining DOVE block in a way that
+  header also implies that at least version 0.0 is supported.  Once seen, the
+  "v" key may change the semantics of the remaining DOVE block in a way that
   cannot be foreseen now.  If the structuring is kept intact (i.e. parsing
   the remaining with DOVE 0.0 conventions, as described here, will work), then
   only additional semantics can be provided.
 
-  If the structure is NOT kept intact (e.g. the key descriptor flag meaning
+  If the structure is NOT kept intact (e.g. the key descriptor flags meaning
   are changed, or a previous DOVE version is known to not be able to parse
   the remaining of the DOVE block) then the version byte MUST be followed
   by a little-endian quantity whose value represents the amount of bytes
@@ -463,7 +463,7 @@ Currently, DOVE specifies only 5 standard keys:
 
 - "F": This key (byte 0x46) introduces a bit field to be interpreted as flags.
   Flags are emitted in little-endian, with leading zeros skipped, the specified
-  length of the ID determining how many bytes there are to read and interpret
+  length of the ID determining how many bytes there are to read and interpreted
   as flags.  If only the lower 8 flags have a non-zero value, then a single
   byte is sufficient.
  
@@ -495,7 +495,7 @@ Currently, DOVE specifies only 5 standard keys:
   be specified as explicit "0" and they happen to be in the highest bits of
   the flags to be sent.  For instance, if "F" turns on bit 18 and there is no
   "A", then the recipient MUST assume that all bits up to 18 inclusive are
-  meaningful, and that no flag with a higher bit position that bit 18 was set.
+  meaningful, and that no flag with a higher bit position than bit 18 was set.
 
 
 7. Additional Message Header Flags
@@ -524,7 +524,7 @@ by the Acknowledgment bit for "F"):
 | 2  |Include STORE Error String |
 +----+---------------------------+
 
-We shall now detail how each of these flag operate.
+We shall now detail how each of these flags operate.
 
 
 7.1. The "Extended DHT Value" flag
@@ -689,23 +689,23 @@ ERROR = 0x2) and the description string (an UTF-8 string, probably meant
 for debugging purposes) is always filled with a meaningless "Error" value
 when there is an error reported...
 
-DOVE re-architects a more compact STORE Status Codes as the following:
+DOVE re-architects a more compact STORE Status Code as the following:
 
-+---------------+-------------------------------------+
-|Name           |Description                          |
-+---------------+-------------------------------------+
-|Compact Status |The status of the STORE operation    |
-+---------------+-------------------------------------+
-|Extended Length|A VLE-8 encoded length               |
-+---------------+-------------------------------------+
-|DOVE Extension |An optional DOVE payload             |
-+---------------+-------------------------------------+
++---------------+------------------------------------------+
+|Name           |Description                               |
++---------------+------------------------------------------+
+|Compact Status |The status of the STORE operation (VLE-8) |
++---------------+------------------------------------------+
+|Extended Length|A VLE-8 encoded length                    |
++---------------+------------------------------------------+
+|DOVE Extension |An optional DOVE payload                  |
++---------------+------------------------------------------+
 
 This block is known as the Compact STORE Status Code.  If there is no DOVE
 payload, the Extended Length value is 0 (encoded as 0x80, in VLE-8).
 
-The Compact Status is a 2-byte Big-Endian value, just like the original
-LimeWire Code, only with the following extended value range:
+The Compact Status is a VLE-8 encoded value, unlike the original
+LimeWire Code, and with the following extended value range:
 
 +-------------+-----+-----------------------------------+
 |Code         |Value|Description                        |
@@ -753,7 +753,12 @@ are likely to indicate a "popular value" in the DHT (many creators already
 for that primary key).
 
 However, DOVE reserves codes above 60000 for internal purposes.  Nodes are
-forbidden to report codes starting at that value and up to 65535.
+forbidden to report codes between 60000 and 65535.
+
+Thanks to VLE-8 encoding, 1 byte is enough to encode the Compact Status field.
+If there is no attached DOVE payload (which will be the case usually), then
+the length of the whole STORE Status Code is only 2 bytes (compared to the
+44 bytes at least required by the LimeWire specifications).
 
 
 7.3. The "Include STORE Error String" flag
