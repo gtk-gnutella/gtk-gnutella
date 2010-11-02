@@ -1009,14 +1009,18 @@ answer_find_node(struct gnutella_node *n,
 	const guid_t *muid = kademlia_header_get_muid(header);
 
 	/*
-	 * Throttle too frequent lookups from same address.
+	 * Throttle too frequent lookups from same address for keys that are
+	 * not deemed to be close enough from our KUID to warrant such a large
+	 * lookup load.
 	 */
 
-	if (aging_lookup(kmsg_aging_finds, &kn->addr))
-		goto throttle;
+	if (!keys_is_nearby(id)) {
+		if (aging_lookup(kmsg_aging_finds, &kn->addr))
+			goto throttle;
 
-	aging_insert(kmsg_aging_finds,
-		wcopy(&kn->addr, sizeof kn->addr), GINT_TO_POINTER(1));
+		aging_insert(kmsg_aging_finds,
+			wcopy(&kn->addr, sizeof kn->addr), GINT_TO_POINTER(1));
+	}
 
 	/*
 	 * If the UDP queue is flow controlled already, there's no need to

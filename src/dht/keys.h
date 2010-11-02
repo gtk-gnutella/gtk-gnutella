@@ -62,6 +62,7 @@ int keys_get(const kuid_t *id, dht_value_type_t type,
 	float *loadptr, gboolean *cached);
 gboolean keys_within_kball(const kuid_t *id);
 gboolean keys_is_foreign(const kuid_t *id);
+gboolean keys_is_nearby(const kuid_t *id);
 double keys_decimation_factor(const kuid_t *key);
 void keys_update_kball();
 void keys_offload(const knode_t *kn);

@@ -298,6 +298,38 @@ keys_is_foreign(const kuid_t *id)
 }
 
 /**
+ * Is a key ID nearby our KUID?
+ *
+ * A key is "nearby" until it has less common leading bits with our KUID
+ * than the external frontier of our k-ball minus the k-ball radius.
+ */
+gboolean
+keys_is_nearby(const kuid_t *id)
+{
+	size_t common_bits;
+	guint8 radius;
+
+	/*
+	 * Until we get notified that the DHT is seeded (i.e. that we looked up
+	 * our own KUID in the DHT), it is difficult to determine accurately the
+	 * external frontier of our k-ball.
+	 */
+
+	if (!kball.seeded)
+		return TRUE;			/* Assume close enough to our KUID */
+
+	common_bits = common_leading_bits(id, KUID_RAW_BITSIZE,
+			get_our_kuid(), KUID_RAW_BITSIZE);
+
+	radius = (kball.closest_bits - kball.furthest_bits) / 2;
+
+	if (kball.furthest_bits < radius)
+		return common_bits > 0;
+
+	return common_bits > UNSIGNED(kball.furthest_bits - radius);
+}
+
+/**
  * Get keydata from database.
  */
 static struct keydata *
