@@ -102,7 +102,6 @@
 #include "core/version.h"
 #include "core/vmsg.h"
 #include "core/whitelist.h"
-#include "if/dht/kmsg.h"
 #include "if/dht/dht.h"
 #include "lib/adns.h"
 #include "lib/atoms.h"

@@ -70,6 +70,9 @@ void kmsg_serialize_contact(pmsg_t *mb, const knode_t *kn);
 knode_t *kmsg_deserialize_contact(bstr_t *bs);
 dht_value_t *kmsg_deserialize_dht_value(bstr_t *bs);
 
+void kmsg_init(void);
+void kmsg_close(void);
+
 #endif	/* _dht_kmsg_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
