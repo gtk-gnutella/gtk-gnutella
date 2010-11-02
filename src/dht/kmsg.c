@@ -817,11 +817,11 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 	 * Throttle too frequent pings from same address.
 	 */
 
-	if (aging_lookup(kmsg_aging_pings, &n->addr))
+	if (aging_lookup(kmsg_aging_pings, &kn->addr))
 		goto throttle;
 
 	aging_insert(kmsg_aging_pings,
-		wcopy(&n->addr, sizeof n->addr), GINT_TO_POINTER(1));
+		wcopy(&kn->addr, sizeof kn->addr), GINT_TO_POINTER(1));
 
 	/*
 	 * Firewalled nodes send us PINGs when they are listing us in their
@@ -860,7 +860,9 @@ drop:
 
 throttle:
 	if (GNET_PROPERTY(dht_debug) > 2) {
-		g_debug("DHT throttling PING from %s: %s", knode_to_string(kn), msg);
+		g_debug("DHT throttling PING from %s: seen %s ago",
+			knode_to_string(kn),
+			compact_time(aging_age(kmsg_aging_pings, &kn->addr)));
 	}
 	gnet_dht_stats_count_dropped(n,
 		KDA_MSG_PING_REQUEST, MSG_DROP_THROTTLE);
