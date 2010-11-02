@@ -87,6 +87,7 @@ gnet_host_get_net(const gnet_host_t *h)
 }
 
 const char *gnet_host_to_string(const gnet_host_t *h);
+const char *gnet_host_to_string2(const gnet_host_t *h);
 size_t gnet_host_to_string_buf(
 	const gnet_host_t *h, void *buf, size_t len);
 

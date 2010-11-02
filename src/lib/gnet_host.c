@@ -185,6 +185,18 @@ gnet_host_to_string(const gnet_host_t *h)
 	return buf;
 }
 
+/**
+ * @return the "address:port" string for a host
+ */
+const char *
+gnet_host_to_string2(const gnet_host_t *h)
+{
+	static char buf[HOST_ADDR_PORT_BUFLEN];
+
+	gnet_host_to_string_buf(h, buf, sizeof buf);
+	return buf;
+}
+
 /***
  *** Vectors of Gnutella hosts.
  ***/
