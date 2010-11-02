@@ -20,6 +20,7 @@
 
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
+#include "lib/glib-missing.h"
 #include "lib/hashlist.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"

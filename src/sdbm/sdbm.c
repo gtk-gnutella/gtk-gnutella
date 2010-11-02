@@ -20,6 +20,7 @@
 #include "lib/debug.h"
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/pow2.h"
