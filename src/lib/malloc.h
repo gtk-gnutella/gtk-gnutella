@@ -178,7 +178,7 @@
 #define g_string_insert_c(s,i,c) \
 	string_insert_c_track((s),(i),(c),_WHERE_,__LINE__)
 
-#ifdef USE_GTK2 /* Those are defined in gstring.h of GLib2 */
+#ifdef USE_GLIB2 /* Those are defined in gstring.h of GLib2 */
 #undef g_string_sprintf
 #undef g_string_sprintfa
 #endif
