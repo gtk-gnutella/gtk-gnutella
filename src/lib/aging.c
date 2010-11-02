@@ -258,8 +258,7 @@ aging_lookup_revitalise(const aging_table_t *ag, gconstpointer key)
 }
 
 /**
- * Remove value associated with key, dispose of items (key and value)
- * stored in the hash table, but leave the function parameter alone.
+ * Remove key from the table, freeing it if we have a key free routine.
  *
  * @return wehether key was found and subsequently removed.
  */
