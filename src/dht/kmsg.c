@@ -205,7 +205,7 @@ kmsg_handle(knode_t *kn,
 			g_debug("DHT in passive mode, ignoring %s from %s",
 				km->name, knode_to_string(kn));
 		}
-		gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
+		gnet_dht_stats_count_dropped(n, function, MSG_DROP_UNEXPECTED);
 		return;
 	}
 
@@ -838,7 +838,8 @@ drop:
 	if (GNET_PROPERTY(dht_debug) > 2) {
 		g_debug("DHT ignoring PING from %s: %s", knode_to_string(kn), msg);
 	}
-	gnet_stats_count_dropped(n, MSG_DROP_FLOW_CONTROL);
+	gnet_dht_stats_count_dropped(n,
+		KDA_MSG_PING_REQUEST, MSG_DROP_FLOW_CONTROL);
 }
 
 /**
@@ -934,7 +935,9 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 	return;
 
 error:
-	gnet_stats_count_dropped(n, MSG_DROP_DHT_UNPARSEABLE);
+	gnet_dht_stats_count_dropped(n,
+		KDA_MSG_PING_RESPONSE, MSG_DROP_DHT_UNPARSEABLE);
+
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT unhandled PONG payload (%lu byte%s) from %s: %s: %s",
 			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
@@ -949,11 +952,11 @@ error:
  * @param n			the node to whom we need to send the response
  * @param kn		querying node (required to generate the security token)
  * @param id		the node ID they want to look up
- * @param muid		the MUID to use in the reply
+ * @param header	the Kademlia header from which we can extract the MUID
  */
 static void
 answer_find_node(struct gnutella_node *n,
-	const knode_t *kn, const kuid_t *id, const guid_t *muid)
+	const knode_t *kn, const kuid_t *id, const kademlia_header_t *header)
 {
 	knode_t *kvec[KDA_K];
 	int requested = KDA_K;
@@ -961,6 +964,7 @@ answer_find_node(struct gnutella_node *n,
 	const char *msg = NULL;
 	gboolean delayed;
 	gboolean within_kball;
+	const guid_t *muid = kademlia_header_get_muid(header);
 
 	/*
 	 * If the UDP queue is flow controlled already, there's no need to
@@ -1056,8 +1060,9 @@ answer_find_node(struct gnutella_node *n,
 answer:
 
 	if (GNET_PROPERTY(dht_debug > 2)) {
-		g_debug("DHT processing FIND_NODE %s "
+		g_debug("DHT processing %s %s "
 			"%s%s%s: giving %d node%s",
+			kmsg_name(kademlia_header_get_function(header)),
 			kuid_to_hex_string(id),
 			delayed ? "[UDP delayed] " : "",
 			within_kball ? "[in k-ball] " :
@@ -1082,11 +1087,15 @@ flow_controlled:
 		goto only_token;
 	} else {
 		if (GNET_PROPERTY(dht_debug)) {
-			g_debug("DHT ignoring FIND_NODE %s: UDP queue %s",
+			/* This can be a FIND_NODE or a FIND_VALUE (if we don't hold it) */
+			g_debug("DHT ignoring %s %s: UDP queue %s",
+				kmsg_name(kademlia_header_get_function(header)),
 				kuid_to_hex_string(id), msg);
 		}
 
-		gnet_stats_count_dropped(n, MSG_DROP_FLOW_CONTROL);
+		gnet_dht_stats_count_dropped(n,
+			kademlia_header_get_function(header),
+			MSG_DROP_FLOW_CONTROL);
 	}
 
 	return;
@@ -1130,7 +1139,8 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 		g_warning("DHT bad FIND_NODE payload (%lu byte%s) from %s",
 			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
 		dump_hex(stderr, "Kademlia FIND_NODE payload", payload, len);
-		gnet_stats_count_dropped(n, MSG_DROP_DHT_UNPARSEABLE);
+		gnet_dht_stats_count_dropped(n,
+			KDA_MSG_FIND_NODE_REQUEST, MSG_DROP_DHT_UNPARSEABLE);
 		return;
 	}
 
@@ -1165,11 +1175,12 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 				"ignoring FIND_NODE from %s",
 				kuid_to_hex_string(id), knode_to_string(kn));
 		}
-		gnet_stats_count_dropped(n, MSG_DROP_DHT_TOO_MANY_STORE);
+		gnet_dht_stats_count_dropped(n,
+			KDA_MSG_FIND_NODE_REQUEST, MSG_DROP_DHT_TOO_MANY_STORE);
 		return;
 	}
 
-	answer_find_node(n, kn, id, kademlia_header_get_muid(header));
+	answer_find_node(n, kn, id, header);
 }
 
 /**
@@ -1257,7 +1268,8 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 			values = 1;
 		} else {
 			reason = "invalid security token";
-			gnet_stats_count_dropped(n, MSG_DROP_DHT_INVALID_TOKEN);
+			gnet_dht_stats_count_dropped(n,
+				KDA_MSG_STORE_REQUEST, MSG_DROP_DHT_INVALID_TOKEN);
 			goto invalid_token;
 		}
 	}
@@ -1331,7 +1343,9 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 	goto cleanup;
 
 error:
-	gnet_stats_count_dropped(n, MSG_DROP_DHT_UNPARSEABLE);
+	gnet_dht_stats_count_dropped(n,
+		KDA_MSG_STORE_REQUEST, MSG_DROP_DHT_UNPARSEABLE);
+
 	/* FALL THROUGH */
 
 invalid_token:
@@ -1388,7 +1402,8 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 				(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
 			dump_hex(stderr, "Kademlia FIND_VALUE payload", payload, len);
 		}
-		gnet_stats_count_dropped(n, MSG_DROP_DHT_UNPARSEABLE);
+		gnet_dht_stats_count_dropped(n,
+			KDA_MSG_FIND_VALUE_REQUEST, MSG_DROP_DHT_UNPARSEABLE);
 		return;
 	}
 
@@ -1417,7 +1432,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 				dht_value_type_to_string(type),
 				kuid_to_hex_string(id), kuid_to_string(id));
 
-		answer_find_node(n, kn, id, kademlia_header_get_muid(header));
+		answer_find_node(n, kn, id, header);
 		return;
 	}
 
@@ -1503,7 +1518,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 				dht_value_type_to_string(type),
 				kuid_to_hex_string(id), kuid_to_string(id));
 
-		answer_find_node(n, kn, id, kademlia_header_get_muid(header));
+		answer_find_node(n, kn, id, header);
 		goto cleanup;
 	}
 
@@ -1523,7 +1538,9 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	goto cleanup;
 
 error:
-	gnet_stats_count_dropped(n, MSG_DROP_DHT_UNPARSEABLE);
+	gnet_dht_stats_count_dropped(n,
+		KDA_MSG_FIND_VALUE_REQUEST, MSG_DROP_DHT_UNPARSEABLE);
+
 	if (GNET_PROPERTY(dht_debug))
 		g_warning(
 			"DHT unhandled FIND_VALUE payload (%lu byte%s) from %s: %s: %s",

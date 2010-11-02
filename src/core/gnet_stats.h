@@ -30,6 +30,7 @@
 
 #include "nodes.h"
 #include "if/core/net_stats.h"
+#include "if/dht/kademlia.h"
 
 void gnet_stats_init(void);
 
@@ -41,6 +42,8 @@ void gnet_stats_count_sent(
 	const gnutella_node_t *n, guint8 type, const void *base, guint32 size);
 void gnet_stats_count_expired(const gnutella_node_t *n);
 void gnet_stats_count_dropped(gnutella_node_t *n,
+	msg_drop_reason_t reason);
+void gnet_dht_stats_count_dropped(gnutella_node_t *n, kda_msg_t opcode,
 	msg_drop_reason_t reason);
 void gnet_stats_count_dropped_nosize(
 	const gnutella_node_t *n, msg_drop_reason_t reason);

@@ -291,6 +291,10 @@ gnet_stats_init(void)
 {
 	guint i;
 
+	/* Guarantees that our little hack below can succeed */
+	STATIC_ASSERT(
+		UNSIGNED(KDA_MSG_MAX_ID + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut));
+
 	for (i = 0; i < G_N_ELEMENTS(stats_lut); i++) {
 		guchar m = MSG_UNKNOWN;
 
@@ -644,6 +648,29 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 		gmsg_log_split_dropped(&n->header, n->data, n->size,
 			"from %s <%s>: %s", node_addr(n), node_vendor(n),
 			gnet_stats_drop_reason_to_string(reason));
+}
+
+/**
+ * Account for dropped Kademlia message of specified opcode from node ``n''.
+ */
+void
+gnet_dht_stats_count_dropped(gnutella_node_t *n, kda_msg_t opcode,
+	msg_drop_reason_t reason)
+{
+	guint32 size;
+	guint type;
+	gnet_stats_t *stats;
+
+	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
+	g_assert(opcode <= KDA_MSG_MAX_ID);
+	g_assert(UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut));
+
+    size = n->size + sizeof(n->header);
+	type = stats_lut[opcode + MSG_DHT_BASE];
+	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+
+	DROP_STATS(stats, type, size);
+	node_inc_rxdrop(n);
 }
 
 /**
