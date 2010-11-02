@@ -60,6 +60,7 @@ RCSID("$Id$")
 #include "settings.h"
 #include "ctl.h"
 
+#include "lib/atoms.h"
 #include "lib/ascii.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
@@ -240,7 +241,7 @@ hce_free(struct hostcache_entry *hce)
 static void
 hcache_dump_info(const struct hostcache *hc, const char *what)
 {
-    g_message("[%s|%s] %u hosts (%u hits, %u misses)",
+    g_debug("[%s|%s] %u hosts (%u hits, %u misses)",
         hc->name, what, hash_list_length(hc->hostlist), hc->hits, hc->misses);
 }
 
@@ -291,7 +292,7 @@ hcache_ht_get(const host_addr_t addr, guint16 port,
  *         if no metadata was added.
  */
 static hostcache_entry_t *
-hcache_ht_add(hcache_type_t type, gnet_host_t *host)
+hcache_ht_add(hcache_type_t type, const gnet_host_t *host)
 {
     hostcache_entry_t *hce;
 
@@ -299,7 +300,7 @@ hcache_ht_add(hcache_type_t type, gnet_host_t *host)
     hce->type = type;
     hce->time_added = tm_time();
 
-	g_hash_table_insert(ht_known_hosts, host, hce);
+	gm_hash_table_insert_const(ht_known_hosts, host, hce);
 
     return hce;
 }
@@ -332,9 +333,9 @@ hcache_ht_remove(gnet_host_t *host)
  *         or a pointer to a hostcache_entry struct which hold the metadata.
  */
 static hostcache_entry_t *
-hcache_get_metadata(gnet_host_t *host)
+hcache_get_metadata(const gnet_host_t *host)
 {
-    return g_hash_table_lookup(ht_known_hosts, (gconstpointer) host);
+    return g_hash_table_lookup(ht_known_hosts, host);
 }
 
 /**
@@ -463,7 +464,7 @@ hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 
 	hc->dirty = TRUE;
 	hcache_ht_remove(host);
-	wfree(host, sizeof(*host));
+	atom_host_free(host);
 
 	if (!hcache_close_running) {
 		/* This must not be called during a close sequence as it
@@ -594,6 +595,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 	const host_addr_t addr, guint16 port, const char *what)
 {
 	gnet_host_t *host;
+	const gnet_host_t *host_atom;
 	hostcache_t *hc;
 	hostcache_entry_t *hce;
 
@@ -660,7 +662,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		port >= 6346 &&
 		port <= 6350 &&
 		!host_low_on_pongs &&
-		random_u32() % 256 > 31
+		(random_u32() & 0xff) > 31
 	) {
 		return FALSE;
 	}
@@ -733,20 +735,25 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		return TRUE;
     }
 
+	host = NULL;		/* Safety */
+
 	if (!hcache_request_slot(hc->type))
 		return FALSE;
 
 	/* Okay, we got a new host */
-	host = walloc(sizeof *host);
 
-	gnet_host_set(host, addr, port);
+	{
+		gnet_host_t packed;
+		gnet_host_set(&packed, addr, port);
+		host_atom = atom_host_get(&packed);
+	}
 
-	hcache_ht_add(type, host);
+	hcache_ht_add(type, host_atom);
 
     switch (type) {
     case HCACHE_FRESH_ANY:
     case HCACHE_FRESH_ULTRA:
-        hash_list_append(hc->hostlist, host);
+        hash_list_append(hc->hostlist, host_atom);
         break;
 
     case HCACHE_VALID_ANY:
@@ -756,7 +763,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
          * we switch it as HCACHE_FRESH_XXX, we'll start reading from there,
          * in effect using the most recent hosts we know about.
          */
-        hash_list_prepend(hc->hostlist, host);
+        hash_list_prepend(hc->hostlist, host_atom);
         break;
 
     default:
@@ -764,7 +771,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
          * hcache_expire() depends on the fact that new entries are
          * added to the beginning of the list
          */
-        hash_list_prepend(hc->hostlist, host);
+        hash_list_prepend(hc->hostlist, host_atom);
         break;
     }
 
@@ -780,8 +787,9 @@ hcache_add_internal(hcache_type_t type, time_t added,
     hcache_prune(hc->type);
     hcache_update_low_on_pongs();
 
-    if (GNET_PROPERTY(dbg) > 8) {
-        g_message("Added %s %s (%s)", what, gnet_host_to_string(host),
+    if (GNET_PROPERTY(hcache_debug) > 8) {
+        g_debug("HCACHE added %s %s (%s)",
+			what, gnet_host_to_string(host_atom),
             (type == HCACHE_FRESH_ANY || type == HCACHE_VALID_ANY) ?
                 (host_low_on_pongs ? "LOW" : "OK") : "");
     }
@@ -1206,6 +1214,50 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 }
 
 /**
+ * Sorting callback, by decreading added time.
+ */
+static int
+hcache_cmp_added_time(const void *a, const void *b)
+{
+	const gnet_host_t *ha = a;
+	const gnet_host_t *hb = b;
+	const hostcache_entry_t *hce_a;
+	const hostcache_entry_t *hce_b;
+
+	hce_a = hcache_get_metadata(ha);
+	hce_b = hcache_get_metadata(hb);
+
+	if (hce_a == NULL) {
+		return hce_b == NULL ? 0 : +1;	/* Put b first */
+	} else if (hce_b == NULL) {
+		return -1;						/* Put a first */
+	} else {
+		/* Put entry with highest time first */
+		return CMP(hce_b->time_added, hce_a->time_added);
+	}
+}
+
+/**
+ * Sort cache by reverse added time, putting oldest entries at the tail.
+ */
+static void
+hcache_sort_by_added_time(hcache_type_t type)
+{
+	hostcache_t *hc = caches[type];
+
+	if (GNET_PROPERTY(hcache_debug))
+		g_debug("HCACHE sorting %s cache", hcache_type_to_string(type));
+
+	hash_list_sort(hc->hostlist, hcache_cmp_added_time);
+
+	if (GNET_PROPERTY(hcache_debug)) {
+		unsigned count = hash_list_length(hc->hostlist);
+		g_debug("HCACHE sorted %s cache (%u item%s)",
+			hcache_type_to_string(type), count, 1 == count ? "" : "s");
+	}
+}
+
+/**
  * Get host IP/port information from our caught host list, or from the
  * recent pong cache, in alternance.
  *
@@ -1352,6 +1404,8 @@ hcache_load_file(hostcache_t *hc, FILE *f)
 		if (hcache_slots_left(hc->type) < 1)
 			break;
 	}
+
+	hcache_sort_by_added_time(hc->type);	/* Ensure cache sorted */
 }
 
 /**
@@ -1451,7 +1505,7 @@ hcache_timer(time_t now)
 {
     hcache_expire_all(now);
 
-    if (GNET_PROPERTY(dbg) >= 15) {
+    if (GNET_PROPERTY(hcache_debug) >= 15) {
         hcache_dump_info(caches[HCACHE_FRESH_ANY],   "timer");
         hcache_dump_info(caches[HCACHE_VALID_ANY],   "timer");
 
@@ -1462,7 +1516,7 @@ hcache_timer(time_t now)
         hcache_dump_info(caches[HCACHE_BUSY],     "timer");
         hcache_dump_info(caches[HCACHE_UNSTABLE], "timer");
 
-        g_message("Hcache global: local %u   alrdy connected %u   invalid %u",
+        g_debug("HCACHE global: local %u   alrdy connected %u   invalid %u",
             stats[HCACHE_LOCAL_INSTANCE], stats[HCACHE_ALREADY_CONNECTED],
             stats[HCACHE_INVALID_HOST]);
     }
