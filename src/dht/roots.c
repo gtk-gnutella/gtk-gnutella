@@ -72,6 +72,7 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 #include "if/dht/kademlia.h"
+#include "if/dht/dht.h"			/* For dht_is_active() */
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
@@ -355,10 +356,10 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 	/*
 	 * If KUID is within our k-ball, there's no need to cache the roots, as
 	 * we routinely refresh our k-bucket and have normally a perfect knowledge
-	 * of our KDA_K neighbours.
+	 * of our KDA_K neighbours (if we are an active node).
 	 */
 
-	if (keys_within_kball(kuid))
+	if (dht_is_active() && keys_within_kball(kuid))
 		return;
 
 	ri = patricia_lookup(roots, kuid);
@@ -594,10 +595,11 @@ roots_fill_closest(const kuid_t *id,
 
 	/*
 	 * Do not count a cache miss if the lookup was for a key within
-	 * our k-ball, since we do not cache roots for these keys.
+	 * our k-ball, since we do not cache roots for these keys (when we
+	 * are an active node).
 	 */
 
-	if (keys_within_kball(id)) {
+	if (dht_is_active() && keys_within_kball(id)) {
 		gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_KBALL_LOOKUPS, 1);
 		return 0;
 	}

@@ -2327,7 +2327,7 @@ record_node(knode_t *kn, gboolean traffic)
 void
 dht_traffic_from(knode_t *kn)
 {
-	if (record_node(kn, TRUE))
+	if (record_node(kn, TRUE) && dht_is_active())
 		keys_offload(kn);
 
 	/*
@@ -2349,7 +2349,7 @@ dht_traffic_from(knode_t *kn)
 static void
 dht_add_node(knode_t *kn)
 {
-	if (record_node(kn, FALSE))
+	if (record_node(kn, FALSE) && dht_is_active())
 		keys_offload(kn);
 }
 
