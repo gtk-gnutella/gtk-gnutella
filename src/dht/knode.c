@@ -154,11 +154,11 @@ knode_can_recontact(const knode_t *kn)
 		return TRUE;				/* Timeout condition was cleared */
 
 	/*
-	 * The grace period we want is 4 seconds times 2^timeouts, so it
-	 * ends up being 2^(timeouts + 2).
+	 * The grace period we want is 8 seconds times 2^timeouts, so it
+	 * ends up being 2^(timeouts + 3).
 	 */
 
-	grace = 1 << (kn->rpc_timeouts + 2);
+	grace = 1 << (kn->rpc_timeouts + 3);
 	elapsed = delta_time(tm_time(), kn->last_sent);
 
 	return elapsed > grace;
