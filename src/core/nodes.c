@@ -7736,6 +7736,15 @@ node_tx_enter_flowc(struct gnutella_node *n)
     node_fire_node_flags_changed(n);
 
 	/*
+	 * If uploads are stalling, output bandwdith is probably so saturated
+	 * that TCP has not enough opportunities to send data.  In that context,
+	 * avoid bumping UDP output even further.
+	 */
+
+	if (GNET_PROPERTY(uploads_stalling))
+		return;
+
+	/*
 	 * UDP output is critical for proper Gnutella and DHT operations.
 	 * Ask for urgent bandwidth stealing, enough to flush past the
 	 * low watermark to clear the flow-control condition quickly.
