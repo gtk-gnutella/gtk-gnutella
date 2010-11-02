@@ -221,6 +221,21 @@ aging_lookup(const aging_table_t *ag, gconstpointer key)
 }
 
 /**
+ * Return entry age in seconds, (time_delta_t) -1  if not found.
+ */
+time_delta_t
+aging_age(const aging_table_t *ag, gconstpointer key)
+{
+	struct aging_value *aval;
+
+	aging_check(ag);
+
+	aval = g_hash_table_lookup(ag->table, key);
+	return aval == NULL ?
+		(time_delta_t) -1 : delta_time(tm_time(), aval->last_insert);
+}
+
+/**
  * Lookup value in table, and if found, revitalize entry, restoring the
  * initial lifetime the key/value pair had at insertion time.
  */
