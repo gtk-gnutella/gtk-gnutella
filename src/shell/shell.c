@@ -154,7 +154,7 @@ shell_destroy(struct gnutella_shell *sh)
 	shell_check(sh);
 
 	if (GNET_PROPERTY(dbg) > 0) {
-		g_message("shell_destroy");
+		g_debug("shell_destroy");
 	}
 	sl_shells = g_slist_remove(sl_shells, sh);
 	socket_evt_clear(sh->socket);
@@ -598,7 +598,7 @@ shell_read_data(struct gnutella_shell *sh)
 		if (0 == ret) {
 			if (0 == s->pos) {
 				if (GNET_PROPERTY(shell_debug)) {
-					g_message("shell connection closed: EOF");
+					g_debug("shell connection closed: EOF");
 				}
 				shell_shutdown(sh);
 				goto finish;
@@ -819,7 +819,7 @@ shell_auth(struct gnutella_shell *sh, const char *str)
 		goto done;
 
 	if (GNET_PROPERTY(shell_debug)) {
-		g_message("auth: [%s] [<cookie not displayed>]", tok_helo);
+		g_debug("auth: [%s] [<cookie not displayed>]", tok_helo);
 	}
 
 	cookie = shell_auth_cookie();
@@ -912,7 +912,7 @@ shell_add(struct gnutella_socket *s)
 	g_assert(s->getline);
 
 	if (GNET_PROPERTY(shell_debug)) {
-		g_message("Incoming shell connection from %s",
+		g_debug("incoming shell connection from %s",
 			host_addr_port_to_string(s->addr, s->port));
 	}
 
