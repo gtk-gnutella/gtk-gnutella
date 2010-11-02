@@ -232,11 +232,11 @@ kmsg_handle(knode_t *kn,
 
 	if (!km) {
 		if (GNET_PROPERTY(dht_debug))
-			g_debug("DHT invalid message function 0x%x from %s",
+			g_message("DHT invalid message function 0x%x from %s",
 				function, knode_to_string(kn));
 	} else if (NULL == km->handler) {
 		if (GNET_PROPERTY(dht_debug))
-			g_debug("DHT unhandled %s from %s",
+			g_warning("DHT unhandled %s from %s",
 				km->name, knode_to_string(kn));
 	} else {
 		km->handler(kn, n, header, extlen, payload, len);
