@@ -1171,7 +1171,7 @@ throttle:
 		g_debug("DHT throttling %s from %s: seen another lookup %s ago",
 			kmsg_name(kademlia_header_get_function(header)),
 			knode_to_string(kn),
-			compact_time(aging_age(kmsg_aging_pings, &kn->addr)));
+			compact_time(aging_age(kmsg_aging_finds, &kn->addr)));
 	}
 	gnet_dht_stats_count_dropped(n,
 		kademlia_header_get_function(header), MSG_DROP_THROTTLE);
