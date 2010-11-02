@@ -1330,6 +1330,23 @@ is_udp_firewalled_changed(property_t prop)
 }
 
 static gboolean
+uploads_stalling_changed(property_t prop)
+{
+	gboolean stalling;
+
+	/*
+	 * When uploads are stalling, disable stealing from the HTTP out bandwidth
+	 * to help regulate the flow: TCP is probably heavily retransmitting in
+	 * the background, so just use what is configured.
+	 */
+
+    gnet_prop_get_boolean_val(prop, &stalling);
+	bws_allow_stealing(BSCHED_BWS_OUT, !stalling);
+
+	return FALSE;
+}
+
+static gboolean
 enable_local_socket_changed(property_t prop)
 {
 	gboolean enabled;
@@ -2480,6 +2497,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_IS_UDP_FIREWALLED,
 		is_udp_firewalled_changed,
+		TRUE,
+	},
+	{
+		PROP_UPLOADS_STALLING,
+		uploads_stalling_changed,
 		TRUE,
 	},
 };

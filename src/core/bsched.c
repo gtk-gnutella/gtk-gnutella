@@ -65,6 +65,7 @@ enum {
 	BS_F_CHANGED_BW		= (1 << 5),	/**< Bandwidth limit changed */
 	BS_F_CLEARED		= (1 << 6),	/**< Ran clear_active once on sched. */
 	BS_F_DATA_READ		= (1 << 7),	/**< Data read from one source */
+	BS_F_NO_STEALING	= (1 << 8),	/**< Prevent b/w stealing from us */
 
 	BS_F_RW				= (BS_F_READ|BS_F_WRITE)
 };
@@ -2194,6 +2195,28 @@ bws_udp_count_read(int len, gboolean dht)
 }
 
 /**
+ * Enable / disable bandwidth stealing from scheduler.
+ *
+ * @return whether bandwidth stealing was enabled.
+ */
+gboolean
+bws_allow_stealing(bsched_bws_t bws, gboolean allow)
+{
+	bsched_t *bs;
+	gboolean was_disabled;
+
+	bs = bsched_get(bws);
+	was_disabled = booleanize(bs->flags & BS_F_NO_STEALING);
+
+	if (allow)
+		bs->flags &= ~BS_F_NO_STEALING;
+	else
+		bs->flags |= BS_F_NO_STEALING;
+
+	return !was_disabled;
+}
+
+/**
  * Returns adequate b/w shaper depending on the socket type.
  *
  * @returns NULL if there is no b/w shaper to consider.
@@ -2611,6 +2634,9 @@ bsched_stealbeat(bsched_t *bs)
 		return;
 
 	if (!(bs->flags & BS_F_ENABLED))	/* Scheduler disabled */
+		return;
+
+	if (bs->flags & BS_F_NO_STEALING)	/* Stealing disabled */
 		return;
 
 	/**
