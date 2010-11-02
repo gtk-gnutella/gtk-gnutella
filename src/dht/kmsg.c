@@ -63,6 +63,7 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/aging.h"
 #include "lib/bstr.h"
 #include "lib/host_addr.h"
 #include "lib/glib-missing.h"
@@ -87,6 +88,10 @@ RCSID("$Id$")
  * Constant length of a PONG response: 61 bytes of header + 40 bytes payload.
  */
 #define KMSG_PONG_SIZE			101
+
+#define KMSG_PING_FREQ			60	/**< Answer only 1 ping per minute per IP */
+
+static aging_table_t *kmsg_aging_pings;
 
 /**
  * The aimed length for STORE messages.
@@ -809,6 +814,16 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 	}
 
 	/*
+	 * Throttle too frequent pings from same address.
+	 */
+
+	if (aging_lookup(kmsg_aging_pings, &n->addr))
+		goto throttle;
+
+	aging_insert(kmsg_aging_pings,
+		wcopy(&n->addr, sizeof n->addr), GINT_TO_POINTER(1));
+
+	/*
 	 * Firewalled nodes send us PINGs when they are listing us in their
 	 * routing table.  We usually try to reply to such messages unless
 	 * we're short on UDP bandwidth or we're (almost) flow-controlled.
@@ -840,6 +855,17 @@ drop:
 	}
 	gnet_dht_stats_count_dropped(n,
 		KDA_MSG_PING_REQUEST, MSG_DROP_FLOW_CONTROL);
+
+	return;
+
+throttle:
+	if (GNET_PROPERTY(dht_debug) > 2) {
+		g_debug("DHT throttling PING from %s: %s", knode_to_string(kn), msg);
+	}
+	gnet_dht_stats_count_dropped(n,
+		KDA_MSG_PING_REQUEST, MSG_DROP_THROTTLE);
+
+	return;
 }
 
 /**
@@ -2402,6 +2428,18 @@ kmsg_init(void)
 
 		g_assert(entry->function == i);
 	}
+
+	kmsg_aging_pings = aging_make(KMSG_PING_FREQ,
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
+}
+
+/**
+ * Cleanup on DHT shutdown.
+ */
+void
+kmsg_close(void)
+{
+	aging_destroy(&kmsg_aging_pings);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

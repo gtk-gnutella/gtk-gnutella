@@ -1347,6 +1347,7 @@ dht_initialize(gboolean post_init)
 
 	dht_route_retrieve();
 
+	kmsg_init();
 	dht_rpc_init();
 	lookup_init();
 	ulq_init();
@@ -3578,6 +3579,7 @@ dht_close(gboolean exiting)
 	keys_close();
 	dht_rpc_close();
 	token_close();
+	kmsg_close();
 
 	old_boot_status = GNET_PROPERTY(dht_boot_status);
 	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_SHUTDOWN);

@@ -1675,7 +1675,6 @@ main(int argc, char **argv)
 	pdht_init();
 	publisher_init();
 
-	kmsg_init();			/* DHT */
 	dht_init();
 
 	if (!running_topless) {
