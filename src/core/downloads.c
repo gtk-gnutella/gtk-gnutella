@@ -12496,6 +12496,7 @@ download_push_ack(struct gnutella_socket *s)
 	GSList *servers;			/* Potential targets for the download */
 	int count;					/* Amount of potential targets found */
 
+	socket_check(s);
 	g_assert(s->getline);
 	giv = getline_str(s->getline);
 
