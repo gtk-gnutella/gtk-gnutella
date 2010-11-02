@@ -89,9 +89,25 @@ RCSID("$Id$")
  */
 #define KMSG_PONG_SIZE			101
 
-#define KMSG_PING_FREQ			60	/**< Answer only 1 ping per minute per IP */
+/**
+ * Ping throttling.
+ *
+ * Firewalled LimeWire nodes seem to send very frequent pings, some nodes
+ * re-pinging every 10 seconds.  Under no circumstances should a node ping
+ * another one so frequently.
+ */
+#define KMSG_PING_FREQ			180		/**< 1 ping per 3 minutes per IP */
 
 static aging_table_t *kmsg_aging_pings;
+
+/**
+ * Lookup throttling.
+ *
+ * Avoid abuse from nodes (passive?) who would query us too frequently.
+ */
+#define KMSG_FIND_FREQ			10		/**< 1 every 10 seconds */
+
+static aging_table_t *kmsg_aging_finds;
 
 /**
  * The aimed length for STORE messages.
@@ -866,8 +882,6 @@ throttle:
 	}
 	gnet_dht_stats_count_dropped(n,
 		KDA_MSG_PING_REQUEST, MSG_DROP_THROTTLE);
-
-	return;
 }
 
 /**
@@ -993,6 +1007,16 @@ answer_find_node(struct gnutella_node *n,
 	gboolean delayed;
 	gboolean within_kball;
 	const guid_t *muid = kademlia_header_get_muid(header);
+
+	/*
+	 * Throttle too frequent lookups from same address.
+	 */
+
+	if (aging_lookup(kmsg_aging_finds, &kn->addr))
+		goto throttle;
+
+	aging_insert(kmsg_aging_finds,
+		wcopy(&kn->addr, sizeof kn->addr), GINT_TO_POINTER(1));
 
 	/*
 	 * If the UDP queue is flow controlled already, there's no need to
@@ -1134,11 +1158,23 @@ only_token:
 	 */
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT limiting FIND_NODE %s (ourselves): UDP queue %s",
+		g_debug("DHT limiting %s %s (ourselves): UDP queue %s",
+			kmsg_name(kademlia_header_get_function(header)),
 			kuid_to_hex_string(id), msg);
 	}
 
 	k_send_find_node_response(n, kn, kvec, 0, muid);
+	return;
+
+throttle:
+	if (GNET_PROPERTY(dht_debug) > 2) {
+		g_debug("DHT throttling %s from %s: seen another lookup %s ago",
+			kmsg_name(kademlia_header_get_function(header)),
+			knode_to_string(kn),
+			compact_time(aging_age(kmsg_aging_pings, &kn->addr)));
+	}
+	gnet_dht_stats_count_dropped(n,
+		kademlia_header_get_function(header), MSG_DROP_THROTTLE);
 }
 
 /**
@@ -2433,6 +2469,9 @@ kmsg_init(void)
 
 	kmsg_aging_pings = aging_make(KMSG_PING_FREQ,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
+
+	kmsg_aging_finds = aging_make(KMSG_FIND_FREQ,
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 }
 
 /**
@@ -2442,6 +2481,7 @@ void
 kmsg_close(void)
 {
 	aging_destroy(&kmsg_aging_pings);
+	aging_destroy(&kmsg_aging_finds);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
