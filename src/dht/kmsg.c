@@ -96,7 +96,7 @@ RCSID("$Id$")
  * re-pinging every 10 seconds.  Under no circumstances should a node ping
  * another one so frequently.
  */
-#define KMSG_PING_FREQ			180		/**< 1 ping per 3 minutes per IP */
+#define KMSG_PING_FREQ			300		/**< 1 ping per 5 minutes per IP */
 
 static aging_table_t *kmsg_aging_pings;
 
@@ -836,9 +836,6 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 	if (aging_lookup(kmsg_aging_pings, &kn->addr))
 		goto throttle;
 
-	aging_insert(kmsg_aging_pings,
-		wcopy(&kn->addr, sizeof kn->addr), GINT_TO_POINTER(1));
-
 	/*
 	 * Firewalled nodes send us PINGs when they are listing us in their
 	 * routing table.  We usually try to reply to such messages unless
@@ -861,6 +858,14 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 			}
 		}
 	}
+
+	/*
+	 * Record we're answering a PING from this node so that we can ignore
+	 * further PINGs for a while...
+	 */
+
+	aging_insert(kmsg_aging_pings,
+		wcopy(&kn->addr, sizeof kn->addr), GINT_TO_POINTER(1));
 
 	k_send_pong(n, kademlia_header_get_muid(header));
 	return;
