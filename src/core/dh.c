@@ -488,7 +488,7 @@ drop_shutdown:
 
 drop_flow_control:
 	gnet_stats_count_dropped(src, MSG_DROP_FLOW_CONTROL);
-	gnet_stats_count_flowc(&src->header);
+	gnet_stats_count_flowc(&src->header, TRUE);
 	return;
 
 drop_throttle:

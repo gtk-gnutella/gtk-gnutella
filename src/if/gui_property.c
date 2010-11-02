@@ -217,6 +217,14 @@ prop_def_choice_t gui_property_variable_gnet_stats_drop_reasons_type_choices[] =
     {N_("Push"), MSG_PUSH_REQUEST},
     {N_("Query"), MSG_SEARCH},
     {N_("Query Hit"), MSG_SEARCH_RESULTS},
+    {N_("DHT Ping"), MSG_DHT_PING},
+    {N_("DHT Pong"), MSG_DHT_PONG},
+    {N_("DHT Store"), MSG_DHT_STORE},
+    {N_("DHT Store Ack"), MSG_DHT_STORE_ACK},
+    {N_("DHT Find Node"), MSG_DHT_FIND_NODE},
+    {N_("DHT Found Node"), MSG_DHT_FOUND_NODE},
+    {N_("DHT Find Value"), MSG_DHT_FIND_VALUE},
+    {N_("DHT Value"), MSG_DHT_VALUE},
     {N_("Total"), MSG_TOTAL},
     {NULL, 0}
 };

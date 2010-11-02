@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "gnet_stats.h"
 #include "gmsg.h"
 
+#include "if/dht/kademlia.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/event.h"
@@ -292,23 +293,53 @@ gnet_stats_init(void)
 
 	for (i = 0; i < G_N_ELEMENTS(stats_lut); i++) {
 		guchar m = MSG_UNKNOWN;
-		
-    	switch ((enum gta_msg) i) {
-		case GTA_MSG_INIT:           m = MSG_INIT; break;
-		case GTA_MSG_INIT_RESPONSE:  m = MSG_INIT_RESPONSE; break;
-		case GTA_MSG_SEARCH:         m = MSG_SEARCH; break;
-		case GTA_MSG_SEARCH_RESULTS: m = MSG_SEARCH_RESULTS; break;
-		case GTA_MSG_PUSH_REQUEST:   m = MSG_PUSH_REQUEST; break;
-		case GTA_MSG_RUDP:			 m = MSG_RUDP; break;
-		case GTA_MSG_VENDOR:		 m = MSG_VENDOR; break;
-		case GTA_MSG_STANDARD:		 m = MSG_STANDARD; break;
-		case GTA_MSG_QRP:            m = MSG_QRP; break;
-		case GTA_MSG_HSEP_DATA:		 m = MSG_HSEP; break;
-		case GTA_MSG_BYE:      		 m = MSG_BYE; break;
-		case GTA_MSG_DHT:      		 m = MSG_DHT; break;
+
+		/*
+		 * To keep the look-up table small enough, we cheat a little
+		 * bit to be able to stuff both Gnutella and Kademlia messages.
+		 *
+		 * We use the fact that the space from 0xd0 and onwards is unused
+		 * by Gnutella to stuff the DHT messages there.  And 0xd0 starts
+		 * with a 'D', so it's not a total hack.
+		 *		--RAM, 2010-11-01.
+		 */
+
+		if (i > MSG_DHT_BASE) {
+			switch ((enum kda_msg) (i - MSG_DHT_BASE)) {
+			case KDA_MSG_PING_REQUEST:		m = MSG_DHT_PING; break;
+			case KDA_MSG_PING_RESPONSE:		m = MSG_DHT_PONG; break;
+			case KDA_MSG_STORE_REQUEST:		m = MSG_DHT_STORE; break;
+			case KDA_MSG_STORE_RESPONSE:	m = MSG_DHT_STORE_ACK; break;
+			case KDA_MSG_FIND_NODE_REQUEST:	m = MSG_DHT_FIND_NODE; break;
+			case KDA_MSG_FIND_NODE_RESPONSE:m = MSG_DHT_FOUND_NODE; break;
+			case KDA_MSG_FIND_VALUE_REQUEST:	m = MSG_DHT_FIND_VALUE; break;
+			case KDA_MSG_FIND_VALUE_RESPONSE:	m = MSG_DHT_VALUE; break;
+			case KDA_MSG_STATS_REQUEST:
+			case KDA_MSG_STATS_RESPONSE:
+				/* deprecated, not supported */
+				break;
+			}
+		} else {
+			switch ((enum gta_msg) i) {
+			case GTA_MSG_INIT:           m = MSG_INIT; break;
+			case GTA_MSG_INIT_RESPONSE:  m = MSG_INIT_RESPONSE; break;
+			case GTA_MSG_SEARCH:         m = MSG_SEARCH; break;
+			case GTA_MSG_SEARCH_RESULTS: m = MSG_SEARCH_RESULTS; break;
+			case GTA_MSG_PUSH_REQUEST:   m = MSG_PUSH_REQUEST; break;
+			case GTA_MSG_RUDP:			 m = MSG_RUDP; break;
+			case GTA_MSG_VENDOR:		 m = MSG_VENDOR; break;
+			case GTA_MSG_STANDARD:		 m = MSG_STANDARD; break;
+			case GTA_MSG_QRP:            m = MSG_QRP; break;
+			case GTA_MSG_HSEP_DATA:		 m = MSG_HSEP; break;
+			case GTA_MSG_BYE:      		 m = MSG_BYE; break;
+			case GTA_MSG_DHT:            m = MSG_DHT; break;
+				break;
+			}
 		}
 		stats_lut[i] = m;
 	}
+
+#undef CASE
 		
     memset(&gnet_stats, 0, sizeof(gnet_stats));
     memset(&gnet_udp_stats, 0, sizeof(gnet_udp_stats));
@@ -348,15 +379,57 @@ gnet_stats_count_received_header(gnutella_node_t *n)
 }
 
 /**
+ * Called to transform Gnutella header counting into Kademlia header counting.
+ *
+ * @param n		the node receiving the message
+ * @param kt
+ */
+static void
+gnet_stats_count_kademlia_header(const gnutella_node_t *n, guint kt)
+{
+	guint t = stats_lut[gnutella_header_get_function(&n->header)];
+	guint i;
+	gnet_stats_t *stats;
+
+	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+
+    gnet_stats.pkg.received[t]--;
+    gnet_stats.pkg.received[kt]++;
+    gnet_stats.byte.received[t] -= GTA_HEADER_SIZE;
+    gnet_stats.byte.received[kt] += GTA_HEADER_SIZE;
+
+    stats->pkg.received[t]--;
+    stats->pkg.received[kt]++;
+    stats->byte.received[t] -= GTA_HEADER_SIZE;
+    stats->byte.received[kt] += GTA_HEADER_SIZE;
+
+	i = MIN(gnutella_header_get_ttl(&n->header), STATS_RECV_COLUMNS - 1);
+    stats->pkg.received_ttl[i][MSG_TOTAL]--;
+    stats->pkg.received_ttl[i][t]--;
+
+	i = MIN(gnutella_header_get_hops(&n->header), STATS_RECV_COLUMNS - 1);
+    stats->pkg.received_hops[i][MSG_TOTAL]--;
+    stats->pkg.received_hops[i][t]--;
+
+	/* DHT messages have no hops nor ttl, use 0 */
+
+    stats->pkg.received_ttl[0][MSG_TOTAL]++;
+    stats->pkg.received_ttl[0][kt]++;
+    stats->pkg.received_hops[0][MSG_TOTAL]++;
+    stats->pkg.received_hops[0][kt]++;
+}
+
+/**
  * Called when Gnutella payload has been read.
  *
  * The actual payload size (effectively read) is expected to be found
  * in n->size.
  */
 void
-gnet_stats_count_received_payload(const gnutella_node_t *n)
+gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 {
-	guint t = stats_lut[gnutella_header_get_function(&n->header)];
+	guint8 f = gnutella_header_get_function(&n->header);
+	guint t = stats_lut[f];
 	guint i;
 	gnet_stats_t *stats;
     guint32 size;
@@ -376,6 +449,27 @@ gnet_stats_count_received_payload(const gnutella_node_t *n)
 
 	size = n->size;
 
+	/*
+	 * If we're dealing with a Kademlia message, we need to do two things:
+	 *
+	 * We counted the Gnutella header for the GTA_MSG_DHT message, but we
+	 * now need to undo that and count it as a Kademlia message.
+	 *
+	 * To access the proper entry in the array, we need to offset the
+	 * Kademlia OpCode from the header with MSG_DHT_BASE to get the entry
+	 * in the statistics that are associated with that particular message.
+	 *		--RAM, 2010-11-01
+	 */
+
+	if (GTA_MSG_DHT == f && size + GTA_HEADER_SIZE >= KDA_HEADER_SIZE) {
+		guint8 opcode = peek_u8(payload);	/* Kademlia Opcode */
+
+		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
+			t = stats_lut[opcode + MSG_DHT_BASE];
+			gnet_stats_count_kademlia_header(n, t);
+		}
+	}
+
     gnet_stats.byte.received[MSG_TOTAL] += size;
     gnet_stats.byte.received[t] += size;
 
@@ -393,16 +487,32 @@ gnet_stats_count_received_payload(const gnutella_node_t *n)
 
 void
 gnet_stats_count_queued(const gnutella_node_t *n,
-	guint8 type, guint8 hops, guint32 size)
+	guint8 type, const void *base, guint32 size)
 {
 	guint64 *stats_pkg;
 	guint64 *stats_byte;
 	guint t = stats_lut[type];
 	gnet_stats_t *stats;
+	guint8 hops;
 
 	g_assert(t != MSG_UNKNOWN);
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+
+	/*
+	 * Adjust for Kademlia messages.
+	 */
+
+	if (GTA_MSG_DHT == type && size >= KDA_HEADER_SIZE) {
+		guint8 opcode = kademlia_header_get_function(base);
+
+		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
+			t = stats_lut[opcode + MSG_DHT_BASE];
+		}
+		hops = 0;
+	} else {
+		hops = gnutella_header_get_hops(base);
+	}
 
 	stats_pkg = hops ? gnet_stats.pkg.queued : gnet_stats.pkg.gen_queued;
 	stats_byte = hops ? gnet_stats.byte.queued : gnet_stats.byte.gen_queued;
@@ -423,16 +533,32 @@ gnet_stats_count_queued(const gnutella_node_t *n,
 
 void
 gnet_stats_count_sent(const gnutella_node_t *n,
-	guint8 type, guint8 hops, guint32 size)
+	guint8 type, const void *base, guint32 size)
 {
 	guint64 *stats_pkg;
 	guint64 *stats_byte;
 	guint t = stats_lut[type];
 	gnet_stats_t *stats;
+	guint8 hops;
 
 	g_assert(t != MSG_UNKNOWN);
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+
+	/*
+	 * Adjust for Kademlia messages.
+	 */
+
+	if (GTA_MSG_DHT == type && size >= KDA_HEADER_SIZE) {
+		guint8 opcode = kademlia_header_get_function(base);
+
+		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
+			t = stats_lut[opcode + MSG_DHT_BASE];
+		}
+		hops = 0;
+	} else {
+		hops = gnutella_header_get_hops(base);
+	}
 
 	stats_pkg = hops ? gnet_stats.pkg.relayed : gnet_stats.pkg.generated;
 	stats_byte = hops ? gnet_stats.byte.relayed : gnet_stats.byte.generated;
@@ -566,11 +692,11 @@ gnet_stats_count_dropped_nosize(
 }
 
 void
-gnet_stats_count_flowc(gconstpointer head)
+gnet_stats_count_flowc(const void *head, gboolean head_only)
 {
 	guint t;
 	guint i;
-	guint16 size = gmsg_size(head);
+	guint16 size = gmsg_size(head) + GTA_HEADER_SIZE;
 	guint8 function = gnutella_header_get_function(head);
 	guint8 ttl = gnutella_header_get_ttl(head);
 	guint8 hops = gnutella_header_get_hops(head);
@@ -578,7 +704,21 @@ gnet_stats_count_flowc(gconstpointer head)
 	if (GNET_PROPERTY(node_debug) > 3)
 		g_debug("FLOWC function=%d ttl=%d hops=%d", function, ttl, hops);
 
-	t = stats_lut[function];
+	/*
+	 * Adjust for Kademlia messages.
+	 */
+
+	if (GTA_MSG_DHT == function && size >= KDA_HEADER_SIZE && !head_only) {
+		guint8 opcode = kademlia_header_get_function(head);
+
+		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
+			t = stats_lut[opcode + MSG_DHT_BASE];
+		}
+		hops = 0;
+		ttl = 0;
+	} else {
+		t = stats_lut[function];
+	}
 
 	i = MIN(hops, STATS_FLOWC_COLUMNS - 1);
 	gnet_stats.pkg.flowc_hops[i][t]++;

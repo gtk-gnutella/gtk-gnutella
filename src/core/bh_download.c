@@ -186,7 +186,7 @@ browse_data_process(struct browse_ctx *bc)
 
 	dump_rx_packet(n);
 	gnet_stats_count_received_header(n);
-	gnet_stats_count_received_payload(n);
+	gnet_stats_count_received_payload(n, bc->data);
 
 	search_browse_results(n, bc->sh);
 	node_browse_cleanup(n);

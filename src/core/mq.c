@@ -1209,7 +1209,7 @@ restart:
 					gmsg_infostr_full(header, msglen) : gmsg_infostr(header));
 		}
 
-		gnet_stats_count_flowc(pmsg_start(cmb));
+		gnet_stats_count_flowc(pmsg_start(cmb), FALSE);
 		cmb_size = pmsg_size(cmb);
 
 		g_assert(q->qlink[n] == item);
@@ -1324,7 +1324,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 				NODE_IS_UDP(q->node) ? "UDP" : "TCP",
 				node_addr(q->node), q->size);
 
-		gnet_stats_count_flowc(pmsg_start(mb));
+		gnet_stats_count_flowc(pmsg_start(mb), FALSE);
 		pmsg_free(mb);
 		node_inc_txdrop(q->node);		/* Dropped during TX */
 		return;
@@ -1354,7 +1354,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 
 		g_assert(pmsg_is_unread(mb));			/* Not partially written */
 
-		gnet_stats_count_flowc(pmsg_start(mb));
+		gnet_stats_count_flowc(pmsg_start(mb), FALSE);
 
 		if (has_normal_prio) {
 			if (MQ_DEBUG_LVL(q) > 4)

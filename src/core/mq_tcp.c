@@ -154,7 +154,7 @@ again:
 			if (pmsg_prio(mb))
 				has_prioritary = TRUE;
 		} else {
-			gnet_stats_count_flowc(mbs);	/* Done before message freed */
+			gnet_stats_count_flowc(mbs, FALSE);	/* Done before message freed */
 			if (q->qlink)
 				q->cops->qlink_remove(q, l);
 
@@ -222,8 +222,7 @@ again:
 			guint8 function = gmsg_function(mb_start);
 			sent++;
 			pmsg_mark_sent(mb);
-            gnet_stats_count_sent(q->node,
-				function, gmsg_hops(mb_start), pmsg_size(mb));
+            gnet_stats_count_sent(q->node, function, mb_start, pmsg_size(mb));
 			switch (function) {
 			case GTA_MSG_SEARCH:
 				node_inc_tx_query(q->node);
@@ -307,7 +306,6 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb, const struct gnutella_node *from)
 	int size;				/* Message size */
 	char *mbs;				/* Start of message */
 	guint8 function;		/* Gnutella message function */
-	guint8 hops;			/* Gnutella message hop count */
 	gboolean prioritary;	/* Is message prioritary? */
 	gboolean error = FALSE;
 
@@ -360,10 +358,9 @@ again:
 	
 	mbs = pmsg_start(mb);
 	function = gmsg_function(mbs);
-	hops = gmsg_hops(mbs);
 	prioritary = pmsg_prio(mb) != PMSG_P_DATA;
 
-	gnet_stats_count_queued(q->node, function, hops, size);
+	gnet_stats_count_queued(q->node, function, mbs, size);
 
 	/*
 	 * If queue is empty, attempt a write immediatly.
@@ -399,7 +396,7 @@ again:
 				}
 			}
 		} else {
-			gnet_stats_count_flowc(mbs);
+			gnet_stats_count_flowc(mbs, FALSE);
 			node_inc_txdrop(q->node);		/* Dropped during TX */
 			written = -1;
 		}
@@ -412,7 +409,7 @@ again:
 		if (written == size) {
 			pmsg_mark_sent(mb);
 			node_inc_sent(q->node);
-            gnet_stats_count_sent(q->node, function, hops, size);
+            gnet_stats_count_sent(q->node, function, mbs, size);
 			switch (function) {
 			case GTA_MSG_SEARCH:
 				node_inc_tx_query(q->node);

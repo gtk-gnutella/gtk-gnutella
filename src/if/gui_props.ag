@@ -827,6 +827,38 @@ prop = {
 		value = MSG_SEARCH_RESULTS;
 	};
 	choice = {
+		name = "DHT Ping";
+		value = MSG_DHT_PING;
+	};
+	choice = {
+		name = "DHT Pong";
+		value = MSG_DHT_PONG;
+	};
+	choice = {
+		name = "DHT Store";
+		value = MSG_DHT_STORE;
+	};
+	choice = {
+		name = "DHT Store Ack";
+		value = MSG_DHT_STORE_ACK;
+	};
+	choice = {
+		name = "DHT Find Node";
+		value = MSG_DHT_FIND_NODE;
+	};
+	choice = {
+		name = "DHT Found Node";
+		value = MSG_DHT_FOUND_NODE;
+	};
+	choice = {
+		name = "DHT Find Value";
+		value = MSG_DHT_FIND_VALUE;
+	};
+	choice = {
+		name = "DHT Value";
+		value = MSG_DHT_VALUE;
+	};
+	choice = {
 		name = "Total";
 		value = MSG_TOTAL;
 	};

@@ -7992,7 +7992,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 	if (n->pos < n->size)
 		return FALSE;
 
-	gnet_stats_count_received_payload(n);
+	gnet_stats_count_received_payload(n, n->data);
 
 	node_parse(n);
 

@@ -58,7 +58,15 @@ msg_type_str(gint value)
 		N_("Push"),
 		N_("Query"),
 		N_("Query hit"),
-		N_("DHT"),
+		N_("DHT (truncated)"),
+		N_("DHT Ping"),
+		N_("DHT Pong"),
+		N_("DHT Store"),
+		N_("DHT Store Ack"),
+		N_("DHT Find Node"),
+		N_("DHT Found Node"),
+		N_("DHT Find Value"),
+		N_("DHT Value"),
 		N_("Total"),
 	};
 

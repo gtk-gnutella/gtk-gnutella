@@ -232,7 +232,7 @@ mq_udp_service(gpointer data)
 		function = gmsg_function(mb_start);
 		sent++;
 		pmsg_mark_sent(mb);
-		gnet_stats_count_sent(q->node, function, gmsg_hops(mb_start), mb_size);
+		gnet_stats_count_sent(q->node, function, mb_start, mb_size);
 		switch (function) {
 		case GTA_MSG_SEARCH:
 			node_inc_tx_query(q->node);
@@ -290,7 +290,6 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 	size_t size;
 	char *mbs;
 	guint8 function;
-	guint8 hops;
 	pmsg_t *mbe = NULL;		/* Extended message with destination info */
 	gboolean error = FALSE;
 
@@ -352,9 +351,8 @@ again:
 
 	mbs = pmsg_start(mb);
 	function = gmsg_function(mbs);
-	hops = gmsg_hops(mbs);
 
-	gnet_stats_count_queued(q->node, function, hops, size);
+	gnet_stats_count_queued(q->node, function, mbs, size);
 
 	/*
 	 * If queue is empty, attempt a write immediatly.
@@ -366,7 +364,7 @@ again:
 		if (pmsg_check(mb, q)) {
 			written = tx_sendto(q->tx_drv, to, mbs, size);
 		} else {
-			gnet_stats_count_flowc(mbs);
+			gnet_stats_count_flowc(mbs, FALSE);
 			node_inc_txdrop(q->node);		/* Dropped during TX */
 			written = (ssize_t) -1;
 		}
@@ -379,7 +377,7 @@ again:
 		if ((size_t) written == size) {
 			pmsg_mark_sent(mb);
 			node_inc_sent(q->node);
-			gnet_stats_count_sent(q->node, function, hops, size);
+			gnet_stats_count_sent(q->node, function, mbs, size);
 			switch (function) {
 			case GTA_MSG_SEARCH:
 				node_inc_tx_query(q->node);

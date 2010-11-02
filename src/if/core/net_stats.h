@@ -46,10 +46,20 @@ enum {
 	MSG_SEARCH,
 	MSG_SEARCH_RESULTS,
 	MSG_DHT,
+	MSG_DHT_PING,
+	MSG_DHT_PONG,
+	MSG_DHT_STORE,
+	MSG_DHT_STORE_ACK,
+	MSG_DHT_FIND_NODE,
+	MSG_DHT_FOUND_NODE,
+	MSG_DHT_FIND_VALUE,
+	MSG_DHT_VALUE,
 	MSG_TOTAL,     /**< always counted (for all the above types) */
 	
 	MSG_TYPE_COUNT /**< number of known message types */
 };
+
+#define MSG_DHT_BASE	0xd0		/* Base in lookup table for DHT messages */
 
 typedef enum msg_drop_reason {
 	MSG_DROP_BAD_SIZE = 0,
