@@ -108,7 +108,7 @@ RCSID("$Id$")
 #define K_BUCKET_PENDING	KDA_K	/* Keep k pending contacts (replacement) */
 
 #define K_BUCKET_MAX_DEPTH	(KUID_RAW_BITSIZE - 1)
-#define K_BUCKET_MAX_DEPTH_PASSIVE	16
+#define K_BUCKET_MAX_DEPTH_PASSIVE	4
 
 /**
  * How many sub-divisions of a bucket can happen.
@@ -428,38 +428,34 @@ is_among_our_closest(const struct kbucket *kb)
 static gboolean
 is_splitable(const struct kbucket *kb)
 {
-	unsigned max_depth;
-
 	g_assert(is_leaf(kb));
 
 	/*
-	 * Limit the depth of the tree to K_BUCKET_MAX_DEPTH_PASSIVE for passive
-	 * nodes since they don't need to maintain a full table.
-	 */
-
-	max_depth = dht_is_active() ?
-		K_BUCKET_MAX_DEPTH : K_BUCKET_MAX_DEPTH_PASSIVE;
-
-	if (kb->depth >= max_depth)
-		return FALSE;		/* Reached the bottom of the tree */
-
-	if (kb->ours)
-		return TRUE;		/* We can always split our own bucket */
-
-	/*
-	 * A passive node does not store data and does not need to replicate it
+	 * A passive node does not store data and does not need to replicate them
 	 * to its k-closest neighbours and does not answer RPC calls.  Hence
 	 * the routing table is only maintained so that we get reasonable
 	 * anchoring points to start our lookups.
 	 *
-	 * Thus limit the size of the routing table (there will also be less
-	 * PINGs sent and less table maintenance overhead) by disabling extra
-	 * bucket splits (i.e. acting as if KDA_B = 1) and not bothering with
-	 * closest subtree irregular splits.
+	 * Limit the depth of the tree to K_BUCKET_MAX_DEPTH_PASSIVE for them
+	 * since they don't need to maintain a full table.  On the other hand,
+	 * all the buckets are made splitable, even those in the closest subtree.
+	 * This will create 2^K_BUCKET_MAX_DEPTH_PASSIVE leaf buckets, enabling
+	 * the sending of initial lookups to nodes that have at least 
+	 * K_BUCKET_MAX_DEPTH_PASSIVE common leading bits.
 	 */
 
 	if (!dht_is_active())
-		return FALSE;		/* No more splits */
+		return kb->depth < K_BUCKET_MAX_DEPTH_PASSIVE;
+
+	/*
+	 * The following logic only applies to active DHT nodes.
+	 */
+
+	if (kb->depth >= K_BUCKET_MAX_DEPTH)
+		return FALSE;		/* Reached the bottom of the tree */
+
+	if (kb->ours)
+		return TRUE;		/* We can always split our own bucket */
 
 	/*
 	 * We are an active node. Allow for KDA_B extra splits for buckets that
