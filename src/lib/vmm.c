@@ -501,7 +501,11 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 	if (failed)
 		return NULL;
 
-	hint = deconstify_gpointer(NULL == hole ? vmm_find_hole(size) : hole);
+	if (G_UNLIKELY(stop_freeing)) {
+		hint = NULL;
+	} else {
+		hint = deconstify_gpointer(NULL == hole ? vmm_find_hole(size) : hole);
+	}
 
 	if (hint != NULL && vmm_debugging(8)) {
 		g_debug("VMM hinting %s0x%lx for new %luKiB region",
