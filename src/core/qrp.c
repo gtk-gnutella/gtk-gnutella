@@ -294,19 +294,11 @@ qrp_hash(const char *s, int bits)
  *** Routing table management.
  ***/
 
-/**
- * Access slot #`s' in arena `a'.
- * Table is compacted so that slot #6 is bit 1 of byte 0.
+/*
+ * Following inline versions for benchmarking purposes.
  *
- * In general:
- *
- *	byte = slot >> 3;
- *	bit = 7 - (slot & 0x7);
- *  value = arena[byte] & (1 << bit)
- *
- * @returns the TRUE if there is something present, FALSE otherwise.
+ * Code should use RT_SLOT_READ() only.
  */
-
 
 static inline unsigned
 RT_SLOT_READ_div(const guint8 *arena, guint i)
@@ -360,32 +352,51 @@ RT_SLOT_READ_and128(const guint8 *arena, guint i)
 	return 0 != (0x80U & (arena[i >> 3] << (i & 0x7)));
 }
 
+/**
+ * Access slot #`s' in arena `a'.
+ * Table is compacted so that slot #6 is bit 1 of byte 0.
+ *
+ * In general:
+ *
+ *	byte = slot >> 3;
+ *	bit = 7 - (slot & 0x7);
+ *  value = arena[byte] & (1 << bit)
+ *
+ * @returns the TRUE if there is something present, FALSE otherwise.
+ */
 static inline gboolean
 RT_SLOT_READ(const guint8 *arena, guint i)
 {
+	/* Hopefully the fastest version: 1 memory access, 5 shift/mask/cmp ops */
+
 	return RT_SLOT_READ_and128(arena, i);
 }
 
-gboolean
-rt_slot_read(const guint8 *arena, guint i)
-{
-	return RT_SLOT_READ(arena, i);
-}
-
+/**
+ * In a compressed routing table, patch entry ``i'' with ``v'', the value
+ * we got from the routing patch.
+ *
+ * As a side effect, increment rt->set_count if the position ``i'' ends-up
+ * being set after patching.
+ */
 static inline void
 qrt_patch_slot(struct routing_table *rt, guint i, guint8 v)
 {
-	if (v) {
-		guint b = 0x80U >> (i & 0x7);
+	guint b = 0x80U >> (i & 0x7);
 
-		if (v & 0x80) {		/* Negative value */
+	if (v) {
+		if (v & 0x80) {				/* Negative value -> set bit */
 			rt->arena[i >> 3] |= b;
 			rt->set_count++;
-		} else { 			/* Positive value */
+		} else { 					/* Positive value -> clear bit */
 			rt->arena[i >> 3] &= ~b;
 		}
+	} else {
+		/* else... unchanged. */
+		if (rt->arena[i >> 3] & b) {
+			rt->set_count++;		/* Bit was already set, kept that way */
+		}
 	}
-	/* else... unchanged. */
 }
 
 /**
@@ -416,7 +427,7 @@ qrt_compact(struct routing_table *rt)
 	nsize = rt->slots / 8;
 	narena = halloc0(nsize);
 	rt->set_count = 0;
-	q = (guchar *) narena + (nsize - 1);
+	q = ptr_add_offset(narena, nsize - 1);
 
 	/*
 	 * Because we're compacting an ultranode -> leafnode routing table,
@@ -1047,6 +1058,13 @@ mrg_step_get_list(struct bgtask *unused_h, gpointer u, int unused_ticks)
 			continue;
 
 		/*
+		 * If table is so small to be useless, don't merge it.
+		 */
+
+		if (rt->slots <= 8)
+			continue;
+
+		/*
 		 * At this point we're snapshoting the list of tables and we take
 		 * a reference on the table of the node.  Later on, the node can be
 		 * removed, but then we'll know because we'll be the only one
@@ -1084,6 +1102,8 @@ merge_table_into_arena(struct routing_table *rt, guchar *arena, int slots)
 	int ratio;
 	int expand;
 	int i;
+	int b;
+	int bytes;
 
 	/*
 	 * By construction, the size of the arena is the max of all the sizes
@@ -1095,27 +1115,99 @@ merge_table_into_arena(struct routing_table *rt, guchar *arena, int slots)
 	g_assert(rt->compacted);
 	g_assert(is_pow2(slots));
 	g_assert(is_pow2(rt->slots));
+	g_assert(rt->slots >= 8);
 
 	ratio = highest_bit_set(slots) - highest_bit_set(rt->slots);
 
 	g_assert(ratio >= 0);
 
 	expand = 1 << ratio;
+	bytes = rt->slots / 8;
 
 	g_assert(rt->slots * expand <= slots);	/* Won't overflow */
 
 	/*
 	 * Loop over the supplied QRT, and expand each slot `expand' times into
 	 * the arena, doing an "OR" merging.
+	 *
+	 * Since this is going to be a tight loop, try to optimize the smallest
+	 * expansion factors by avoiding memset() calls.
+	 *
+	 * Furthermore, we avoid repeated RT_SLOT_READ() calls by accessing the
+	 * compacted table one byte at a time and then looping on each of its bits.
 	 */
 
-	for (i = 0; i < rt->slots; i++) {
-		gboolean value = RT_SLOT_READ(rt->arena, i);
+#define RT_FOR_EACH_BIT_SET(ON_CHANGE)				\
+for (b = 0, i = 0; b < bytes; b++) {				\
+	guint8 entry = rt->arena[b];					\
+	unsigned mask = 0x80;							\
+													\
+	do {											\
+		/* "0 OR x = x", hence skip unset bits */	\
+		if (entry & mask) {							\
+			ON_CHANGE								\
+		}											\
+		i++;										\
+		mask >>= 1;									\
+	} while (mask);									\
+}
 
-		if (value != 0) {				/* "0 OR x = x" -- no change */
-			memset(&arena[i * expand], 0, expand);	/* Less than "infinity" */
-		}
+	switch (expand) {
+	case 1:
+		RT_FOR_EACH_BIT_SET(
+			arena[i] = 0;		/* less than "inf" => indicates presence */
+		);
+		break;
+	case 2:
+		RT_FOR_EACH_BIT_SET(
+			size_t j = i * 2;
+			arena[j++] = 0;		/* less than "inf" => indicates presence */
+			arena[j] = 0;
+		);
+		break;
+	case 4:
+		RT_FOR_EACH_BIT_SET(
+			size_t j = i * 4;
+			arena[j++] = 0;		/* less than "inf" => indicates presence */
+			arena[j++] = 0;
+			arena[j++] = 0;
+			arena[j] = 0;
+		);
+		break;
+	case 8:
+		RT_FOR_EACH_BIT_SET(
+			size_t j = i * 8;
+			arena[j++] = 0;		/* less than "inf" => indicates presence */
+			arena[j++] = 0;
+			arena[j++] = 0;
+			arena[j++] = 0;
+			arena[j++] = 0;
+			arena[j++] = 0;
+			arena[j++] = 0;
+			arena[j] = 0;
+		);
+		break;
+	case 16:
+		RT_FOR_EACH_BIT_SET(
+			/* 0 is less than "infinity" => indicates presence */
+			memset(&arena[i * 16], 0, 16);
+		);
+		break;
+	case 32:
+		RT_FOR_EACH_BIT_SET(
+			/* 0 is less than "infinity" => indicates presence */
+			memset(&arena[i * 32], 0, 32);
+		);
+		break;
+	default:
+		RT_FOR_EACH_BIT_SET(
+			/* 0 is less than "infinity" => indicates presence */
+			memset(&arena[i * expand], 0, expand);
+		);
+		break;
 	}
+
+#undef RT_FOR_EACH_BIT_SET
 }
 
 /**
@@ -4144,11 +4236,9 @@ qrt_dump(struct routing_table *rt, gboolean full)
 	guint32 result;
 	int i;
 
-	if (GNET_PROPERTY(qrp_debug)) {
-		g_debug("------ Query Routing Table \"%s\" "
-			"(gen=%d, slots=%d, %scompacted)",
-			rt->name, rt->generation, rt->slots, rt->compacted ? "" : "not ");
-	}
+	g_debug("------ Query Routing Table \"%s\" "
+		"(gen=%d, slots=%d, %scompacted)",
+		rt->name, rt->generation, rt->slots, rt->compacted ? "" : "not ");
 
 	SHA1Reset(&ctx);
 
@@ -4195,11 +4285,9 @@ qrt_dump(struct routing_table *rt, gboolean full)
 
 	result = sha1_hash(&digest);
 
-	if (GNET_PROPERTY(qrp_debug)) {
-		g_debug("------ End Routing Table \"%s\" "
-			"(gen=%d, SHA1=%s, token=0x%x)",
-			rt->name, rt->generation, sha1_base32(&digest), result);
-	}
+	g_debug("------ End Routing Table \"%s\" "
+		"(gen=%d, SHA1=%s, token=0x%x)",
+		rt->name, rt->generation, sha1_base32(&digest), result);
 
 	return result;
 }
