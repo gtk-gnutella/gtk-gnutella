@@ -4778,7 +4778,7 @@ test_hash(void)
 
 		h = qrp_hash(buf, 10);
 		if (h != tests[i].hash) {
-			g_warning("qrp_hash() failed: i=%d, h=%u, buf=\"%s\"", i, h, buf);
+			g_error("qrp_hash() failed: i=%d, h=%u, buf=\"%s\"", i, h, buf);
 			g_assert_not_reached();
 		}
 	}
