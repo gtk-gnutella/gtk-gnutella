@@ -119,7 +119,7 @@ RCSID("$Id$")
 #define MAX_ERRORS		10			/**< Max # of errors before we close */
 
 static GSList *list_uploads;
-static guint stalled;				/**< Counts stalled connections */
+static guint uploads_stalled;		/**< Counts stalled connections */
 static time_t last_stalled;			/**< Time at which last stall occurred */
 
 /** Used to fall back to write() if sendfile() failed */
@@ -515,10 +515,12 @@ upload_timer(time_t now)
 				skip = TRUE;
 
 			if (!(u->flags & UPLOAD_F_STALLED)) {
-				if (!skip && stalled++ >= stall_thresh()) {
+				if (!skip && uploads_stalled++ >= stall_thresh()) {
 					if (GNET_PROPERTY(upload_debug)) g_warning(
 						"frequent stalling detected, using workarounds");
 					gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, TRUE);
+					/* More b/w would only help us feed clogged TCP queues */
+					bws_ignore_stolen(BSCHED_BWS_OUT, TRUE);
 				}
 				if (!skip) last_stalled = now;
 				u->flags |= UPLOAD_F_STALLED;
@@ -526,8 +528,28 @@ upload_timer(time_t now)
 					"connection to %s (%s) stalled after %s bytes sent,"
 					" stall counter at %d%s",
 					host_addr_to_string(u->addr), upload_vendor_str(u),
-					uint64_to_string(u->sent), stalled,
+					uint64_to_string(u->sent), uploads_stalled,
 					skip ? " (IGNORED)" : "");
+
+				/*
+				 * We're not using all our bandwidth because some uploads are
+				 * stalling, and that may be due TCP heavily retransmitting
+				 * in the background.  Don't let other schedulers use this
+				 * apparent available bandwidth.
+				 */
+
+				if (
+					uploads_stalled != 0 &&
+					bws_allow_stealing(BSCHED_BWS_OUT, FALSE)
+				) {
+					if (
+						GNET_PROPERTY(upload_debug) &&
+						GNET_PROPERTY(bw_allow_stealing)
+					) {
+						g_warning("disabled stealing of unused "
+							"HTTP outgoing bandwidth");
+					}
+				}
 
 				/*
 				 * Record that this IP is stalling, but also record the fact
@@ -553,7 +575,7 @@ upload_timer(time_t now)
 					skip ? " (IGNORED)" : "");
 
 				if (
-					!skip && stalled <= stall_thresh() &&
+					!skip && uploads_stalled <= stall_thresh() &&
 					!socket_is_corked(u->socket)
 				) {
 					if (GNET_PROPERTY(upload_debug)) g_warning(
@@ -563,10 +585,11 @@ upload_timer(time_t now)
 					socket_tos_throughput(u->socket);
 				}
 
-				if (!skip && stalled != 0) /* It un-stalled, it's not too bad */
-					stalled--;
+				if (!skip && uploads_stalled != 0) {
+					/* It un-stalled, it's not too bad */
+					uploads_stalled--;
+				}
 			}
-			u->flags &= ~UPLOAD_F_STALLED;
 		}
 
 		/* FALL THROUGH */
@@ -578,7 +601,7 @@ upload_timer(time_t now)
 		 * be much more lenient about connection timeouts.
 		 */
 
-		if (!is_connecting && stalled > stall_thresh()) {
+		if (!is_connecting && uploads_stalled > stall_thresh()) {
 			timeout = MAX(IO_LONG_TIMEOUT, timeout);
 		}
 		/*
@@ -608,15 +631,24 @@ upload_timer(time_t now)
 	}
 
 	if (delta_time(now, last_stalled) > STALL_CLEAR) {
-		if (stalled > 0) {
-			stalled /= 2;			/* Exponential decrease */
+		if (uploads_stalled > 0) {
+			uploads_stalled /= 2;			/* Exponential decrease */
 			last_stalled = now;
 			if (GNET_PROPERTY(upload_debug))
-				g_warning("stall counter downgraded to %d", stalled);
-			if (stalled == 0) {
+				g_warning("stall counter downgraded to %d", uploads_stalled);
+			if (uploads_stalled == 0) {
 				if (GNET_PROPERTY(upload_debug))
 					g_warning("frequent stalling condition cleared");
 				gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, FALSE);
+				bws_ignore_stolen(BSCHED_BWS_OUT, FALSE);
+				bws_allow_stealing(BSCHED_BWS_OUT, TRUE);
+				if (
+					GNET_PROPERTY(upload_debug) &&
+					GNET_PROPERTY(bw_allow_stealing)
+				) {
+					g_warning("re-enabled stealing of unused "
+						"HTTP outgoing bandwidth");
+				}
 			}
 		}
 	}
@@ -3595,7 +3627,7 @@ upload_is_already_downloading(struct upload *upload)
 				"stalling connection to %s (%s) replaced after %s bytes sent, "
 				"stall counter at %d",
 				host_addr_to_string(up->addr), upload_vendor_str(up),
-				uint64_to_string(up->sent), stalled);
+				uint64_to_string(up->sent), uploads_stalled);
 
 			upload_remove(up, _("Stalling upload replaced"));
 		}
@@ -3906,7 +3938,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			GNET_PROPERTY(bw_ul_usage_enabled) &&
 			upload_is_enabled() &&
 			GNET_PROPERTY(bws_out_enabled) &&
-			stalled <= stall_thresh() &&
+			uploads_stalled <= stall_thresh() &&
 			(gulong) bsched_pct(BSCHED_BWS_OUT)
 				< GNET_PROPERTY(ul_usage_min_percentage) &&
 			(gulong) bsched_avg_pct(BSCHED_BWS_OUT)
@@ -4169,7 +4201,7 @@ upload_set_tos(struct upload *u)
 
 	known_for_stalling = NULL != aging_lookup(stalling_uploads, &u->addr);
 
-	if (stalled <= stall_thresh() && !known_for_stalling) {
+	if (uploads_stalled <= stall_thresh() && !known_for_stalling) {
 		socket_cork(u->socket, TRUE);
 		socket_tos_throughput(u->socket);
 	} else {
