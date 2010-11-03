@@ -71,6 +71,9 @@ static void wd_start(watchdog_t *wd);
 
 /**
  * Trigger the user-defined callback.
+ *
+ * When callback returns TRUE, the watchdog is immedialtely re-armed for
+ * another period.
  */
 static void
 wd_trigger(watchdog_t *wd)
@@ -186,6 +189,27 @@ wd_sleep(watchdog_t *wd)
 }
 
 /**
+ * Trigger callback and then put the watchdog to sleep, ignoring any desire
+ * from the callback to re-arm the watchdog.
+ *
+ * @return TRUE if we stopped the watchdog, FALSE if it was already aslept,
+ * in which case the trigger was not invoked.
+ */
+gboolean
+wd_expire(watchdog_t *wd)
+{
+	watchdog_check(wd);
+
+	if (NULL == wd->ev)
+		return FALSE;
+
+	cq_cancel(callout_queue, &wd->ev);
+	(*wd->trigger)(wd, wd->arg);
+
+	return TRUE;
+}
+
+/**
  * Create a new watchdog.
  *
  * @param name		the watchdog name, for logging purposes
@@ -194,6 +218,7 @@ wd_sleep(watchdog_t *wd)
  * @param arg		the user-supplied argument given to callback
  * @param start		whether to start immediately, or put in sleep state
  *
+ * @return the created watchdog object.
  */
 watchdog_t *
 wd_make(const char *name, int period,

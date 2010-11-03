@@ -60,10 +60,11 @@ watchdog_t *wd_make(const char *name, int period,
 	wd_trigger_t trigger, gpointer arg, gboolean start);
 void wd_free_null(watchdog_t **wd);
 
-const char * wd_name(const watchdog_t *wd);
+const char *wd_name(const watchdog_t *wd);
 
 gboolean wd_sleep(watchdog_t *wd);
 gboolean wd_wakeup(watchdog_t *wd);
+gboolean wd_expire(watchdog_t *wd);
 void wd_kick(watchdog_t *wd);
 
 #endif /* _wd_h_ */
