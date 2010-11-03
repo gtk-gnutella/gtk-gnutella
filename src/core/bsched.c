@@ -66,6 +66,7 @@ enum {
 	BS_F_CLEARED		= (1 << 6),	/**< Ran clear_active once on sched. */
 	BS_F_DATA_READ		= (1 << 7),	/**< Data read from one source */
 	BS_F_NO_STEALING	= (1 << 8),	/**< Prevent b/w stealing from us */
+	BS_F_STOLEN_IGN		= (1 << 9),	/**< Ignore stolen bandwidth */
 
 	BS_F_RW				= (BS_F_READ|BS_F_WRITE)
 };
@@ -879,6 +880,43 @@ bsched_begin_timeslice(bsched_t *bs)
 	int count;
 
 	bsched_check(bs);
+
+	/*
+	 * When the BS_F_STOLEN_IGN flag is set, stolen bandwidth can be given
+	 * to this scheduler but we ignore it.  The reason is that application
+	 * code which turned on this behaviour suspects that TCP may be doing
+	 * some retransmission in the background, which of course we can't see
+	 * and gives a false impression of bandwidth availability: some sources
+	 * never actually request bandwidth when they should (kernel buffers are
+	 * full).
+	 *
+	 * Allowing the scheduler to steal bandwidth as usual does not perturb
+	 * the other I/Os.  However we're not going to use this stolen bandwidth,
+	 * thereby giving a chance to TCP to flush buffered data.
+	 *
+	 * Note that "capped" bandwidth is also stolen bandwidth in a way: it is
+	 * an amount we did not distribute during the previous timeslice, so we're
+	 * stealing it from the past.  Hence we reset it as well.
+	 */
+
+	if (bs->flags & BS_F_STOLEN_IGN) {
+		if (bs->bw_stolen != 0) {
+			if (GNET_PROPERTY(bsched_debug)) {
+				g_debug("BSCHED b/w sched \"%s\" ignoring stolen %d byte%s",
+					bs->name, bs->bw_stolen, 1 == bs->bw_stolen ? "" : "s");
+			}
+			bs->bw_stolen = 0;
+		}
+		if (bs->bw_last_capped != 0) {
+			if (GNET_PROPERTY(bsched_debug)) {
+				g_debug("BSCHED b/w sched \"%s\" "
+					"ignoring %d byte%s of capped bandwidth",
+					bs->name, bs->bw_last_capped,
+					1 == bs->bw_last_capped ? "" : "s");
+			}
+			bs->bw_last_capped = 0;
+		}
+	}
 
 	norm_factor = 1000.0 / bs->period;
 	for (count = 0, iter = bs->sources; iter; iter = g_list_next(iter)) {
@@ -2217,6 +2255,28 @@ bws_allow_stealing(bsched_bws_t bws, gboolean allow)
 }
 
 /**
+ * Enable / disable usage of stolen bandwidth by scheduler.
+ *
+ * @return whether bandwidth stealing was ignored.
+ */
+gboolean
+bws_ignore_stolen(bsched_bws_t bws, gboolean ignore)
+{
+	bsched_t *bs;
+	gboolean was_ignoring;
+
+	bs = bsched_get(bws);
+	was_ignoring = booleanize(bs->flags & BS_F_STOLEN_IGN);
+
+	if (ignore)
+		bs->flags |= BS_F_STOLEN_IGN;
+	else
+		bs->flags &= ~BS_F_STOLEN_IGN;
+
+	return was_ignoring;
+}
+
+/**
  * Returns adequate b/w shaper depending on the socket type.
  *
  * @returns NULL if there is no b/w shaper to consider.
@@ -2636,7 +2696,7 @@ bsched_stealbeat(bsched_t *bs)
 	if (!(bs->flags & BS_F_ENABLED))	/* Scheduler disabled */
 		return;
 
-	if (bs->flags & BS_F_NO_STEALING)	/* Stealing disabled */
+	if (bs->flags & BS_F_NO_STEALING)	/* Stealing from scheduler disabled */
 		return;
 
 	/**
