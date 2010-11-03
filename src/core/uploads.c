@@ -106,12 +106,14 @@ RCSID("$Id$")
 #include "lib/utf8.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"
+#include "lib/wd.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 #define READ_BUF_SIZE	(64 * 1024)	/**< Read buffer size, if no sendfile(2) */
 #define BW_OUT_MIN		256			/**< Minimum bandwidth to enable uploads */
-#define IO_PRE_STALL	30			/**< Pre-stalling warning */
-#define IO_STALLED		60			/**< Stalling condition */
+#define IO_PRE_STALL	10			/**< Pre-stalling warning */
+#define IO_STALLED		30			/**< Stalling condition */
+#define IO_STALL_WATCH	300			/**< Watchdog period for stall monitoring */
 #define IO_LONG_TIMEOUT	160			/**< Longer timeouting condition */
 #define UP_SEND_BUFSIZE	1024		/**< Socket write buffer, when stalling */
 #define STALL_CLEAR		600			/**< Decrease stall counter every 10 min */
@@ -121,6 +123,8 @@ RCSID("$Id$")
 static GSList *list_uploads;
 static guint uploads_stalled;		/**< Counts stalled connections */
 static time_t last_stalled;			/**< Time at which last stall occurred */
+static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
+static watchdog_t *stall_wd;		/**< Monitor stalling events */
 
 /** Used to fall back to write() if sendfile() failed */
 static gboolean sendfile_failed = FALSE;
@@ -465,6 +469,116 @@ upload_host_info(const struct upload *u)
 }
 
 /**
+ * This is a watchdog callback invoked when no early stalling connection has
+ * been seen for the configured amount of time.
+ */
+static gboolean
+upload_no_more_early_stalling(watchdog_t *unused_wd, gpointer unused_obj)
+{
+	(void) unused_wd;
+	(void) unused_obj;
+
+	if (GNET_PROPERTY(upload_debug)) {
+		g_debug("UL end of upload early stalling condition");
+	}
+
+	/*
+	 * Allow the HTTP outgoing scheduler to use the stolen bandwidth again,
+	 * thereby being able to send more data.
+	 */
+
+	bws_ignore_stolen(BSCHED_BWS_OUT, FALSE);
+	wd_expire(stall_wd);		/* No early stalling => no stalling as well */
+
+	return FALSE;	/* Put watchdog to sleep */
+}
+
+/**
+ * This is a watchdog callback invoked when no stalling connection has been
+ * seen for the configured amount of time.
+ */
+static gboolean
+upload_no_more_stalling(watchdog_t *unused_wd, gpointer unused_obj)
+{
+	(void) unused_wd;
+	(void) unused_obj;
+
+	if (GNET_PROPERTY(upload_debug)) {
+		g_debug("UL end of upload stalling condition");
+	}
+
+	/*
+	 * Allow unused bandwidth to be stolen from the HTTP outgoing scheduler
+	 * since we are back to a healthy state.
+	 */
+
+	bws_allow_stealing(BSCHED_BWS_OUT, TRUE);
+
+	if (GNET_PROPERTY(upload_debug) && GNET_PROPERTY(bw_allow_stealing)) {
+		g_warning("UL re-enabled stealing of unused HTTP outgoing bandwidth");
+	}
+
+	return FALSE;	/* Put watchdog to sleep */
+}
+
+/**
+ * Another upload has an early-stalling condition.
+ */
+static void
+upload_new_early_stalling(const struct upload *u)
+{
+	if (GNET_PROPERTY(upload_debug)) {
+		g_warning("UL request #%u to %s (%s) in early-stalling phase "
+			"after %s bytes sent",
+			u->reqnum, host_addr_to_string(u->addr), upload_vendor_str(u),
+			uint64_to_string(u->sent));
+	}
+
+	/*
+	 * Using more b/w would only help us feed clogged TCP queues, so use at
+	 * most what we were configured to use.
+	 */
+
+	if (!bws_ignore_stolen(BSCHED_BWS_OUT, TRUE)) {
+		if (GNET_PROPERTY(upload_debug) && GNET_PROPERTY(bw_allow_stealing)) {
+			g_warning("UL limiting HTTP outgoing bandwidth to %s/sec strictly",
+				short_size(bsched_bw_per_second(BSCHED_BWS_OUT), FALSE));
+		}
+	}
+
+	wd_wakeup(early_stall_wd);
+}
+
+/**
+ * Another upload is stalling.
+ */
+static void
+upload_new_stalling(const struct upload *u)
+{
+	if (GNET_PROPERTY(upload_debug)) {
+		g_warning("UL request #%u to %s (%s) stalled after %s bytes sent,"
+			" stall counter at %d",
+			u->reqnum, host_addr_to_string(u->addr), upload_vendor_str(u),
+			uint64_to_string(u->sent), uploads_stalled);
+	}
+
+	/*
+	 * We're not using all our bandwidth because some uploads are
+	 * stalling, and that may be due to TCP heavily retransmitting
+	 * in the background.  Don't let other schedulers use this
+	 * apparent available bandwidth.
+	 */
+
+	if (bws_allow_stealing(BSCHED_BWS_OUT, FALSE)) {
+		if (GNET_PROPERTY(upload_debug) && GNET_PROPERTY(bw_allow_stealing)) {
+			g_warning("UL disabled stealing of unused HTTP outgoing bandwidth");
+		}
+	}
+
+	wd_wakeup(stall_wd);
+}
+
+/**
  * Upload heartbeat timer.
  */
 void
@@ -519,37 +633,10 @@ upload_timer(time_t now)
 					if (GNET_PROPERTY(upload_debug)) g_warning(
 						"frequent stalling detected, using workarounds");
 					gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, TRUE);
-					/* More b/w would only help us feed clogged TCP queues */
-					bws_ignore_stolen(BSCHED_BWS_OUT, TRUE);
 				}
 				if (!skip) last_stalled = now;
 				u->flags |= UPLOAD_F_STALLED;
-				if (GNET_PROPERTY(upload_debug)) g_warning(
-					"connection to %s (%s) stalled after %s bytes sent,"
-					" stall counter at %d%s",
-					host_addr_to_string(u->addr), upload_vendor_str(u),
-					uint64_to_string(u->sent), uploads_stalled,
-					skip ? " (IGNORED)" : "");
-
-				/*
-				 * We're not using all our bandwidth because some uploads are
-				 * stalling, and that may be due TCP heavily retransmitting
-				 * in the background.  Don't let other schedulers use this
-				 * apparent available bandwidth.
-				 */
-
-				if (
-					uploads_stalled != 0 &&
-					bws_allow_stealing(BSCHED_BWS_OUT, FALSE)
-				) {
-					if (
-						GNET_PROPERTY(upload_debug) &&
-						GNET_PROPERTY(bw_allow_stealing)
-					) {
-						g_warning("disabled stealing of unused "
-							"HTTP outgoing bandwidth");
-					}
-				}
+				upload_new_stalling(u);
 
 				/*
 				 * Record that this IP is stalling, but also record the fact
@@ -558,6 +645,8 @@ upload_timer(time_t now)
 
 				aging_insert(stalling_uploads, wcopy(&u->addr, sizeof u->addr),
 					skip ? STALL_AGAIN : STALL_FIRST);
+			} else {
+				wd_kick(stall_wd);
 			}
 		} else {
 			gboolean skip = FALSE;
@@ -604,6 +693,7 @@ upload_timer(time_t now)
 		if (!is_connecting && uploads_stalled > stall_thresh()) {
 			timeout = MAX(IO_LONG_TIMEOUT, timeout);
 		}
+
 		/*
 		 * We can't call upload_remove() since it will remove the upload
 		 * from the list we are traversing.
@@ -624,7 +714,12 @@ upload_timer(time_t now)
 					socket_cork(u->socket, FALSE);
 					socket_tos_normal(u->socket); /* Have ACKs come faster */
 				}
-				u->flags |= UPLOAD_F_EARLY_STALL;
+				if (!(u->flags & UPLOAD_F_EARLY_STALL)) {
+					upload_new_early_stalling(u);
+					u->flags |= UPLOAD_F_EARLY_STALL;
+				} else {
+					wd_kick(early_stall_wd);
+				}
 			} else
 				u->flags &= ~UPLOAD_F_EARLY_STALL;
 		}
@@ -640,15 +735,6 @@ upload_timer(time_t now)
 				if (GNET_PROPERTY(upload_debug))
 					g_warning("frequent stalling condition cleared");
 				gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, FALSE);
-				bws_ignore_stolen(BSCHED_BWS_OUT, FALSE);
-				bws_allow_stealing(BSCHED_BWS_OUT, TRUE);
-				if (
-					GNET_PROPERTY(upload_debug) &&
-					GNET_PROPERTY(bw_allow_stealing)
-				) {
-					g_warning("re-enabled stealing of unused "
-						"HTTP outgoing bandwidth");
-				}
 			}
 		}
 	}
@@ -5260,6 +5346,12 @@ upload_init(void)
 
 	header_features_add(FEATURES_UPLOADS, "fwalt",
 		FWALT_VERSION_MAJOR, FWALT_VERSION_MINOR);
+
+	early_stall_wd = wd_make("upload early stalling",
+		IO_STALL_WATCH, upload_no_more_early_stalling, NULL, FALSE);
+
+	stall_wd = wd_make("upload stalling",
+		IO_STALL_WATCH, upload_no_more_stalling, NULL, FALSE);
 }
 
 /**
@@ -5283,6 +5375,8 @@ upload_close(void)
 	mesh_info = NULL;
 
 	aging_destroy(&stalling_uploads);
+	wd_free_null(&early_stall_wd);
+	wd_free_null(&stall_wd);
 }
 
 gnet_upload_info_t *
