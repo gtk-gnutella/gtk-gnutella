@@ -298,6 +298,18 @@ dht_mode_to_string(dht_mode_t mode)
 	return "unknown";
 }
 
+static inline int
+alive_period(void)
+{
+	return dht_is_active() ? ALIVE_PERIOD : ALIVE_PERIOD_PASV;
+}
+
+static inline int
+alive_period_ms(void)
+{
+	return dht_is_active() ? ALIVE_PERIOD_MS : ALIVE_PERIOD_PASV_MS;
+}
+
 /**
  * Invoked when they change the configured DHT mode or when the UDP firewalled
  * indication changes.
@@ -862,14 +874,14 @@ install_alive_check(struct kbucket *kb)
 	 * initiate lookups.
 	 */
 
-	delay = dht_is_active() ? ALIVE_PERIOD_MS : ALIVE_PERIOD_PASV_MS;
+	delay = alive_period_ms();
 
 	/*
 	 * Adjust delay randomly by +/- 5% to avoid callbacks firing at the
 	 * same time for all the buckets.
 	 */
 
-	adj = ALIVE_PERIOD_MS / 10;
+	adj = alive_period_ms() / 10;
 	adj = adj / 2 - random_value(adj);
 
 	kb->nodes->aliveness =
@@ -1932,7 +1944,7 @@ promote_pending_node(struct kbucket *kb)
 
 			elapsed = delta_time(tm_time(), selected->last_seen);
 
-			if (elapsed >= ALIVE_PERIOD) {
+			if (elapsed >= alive_period()) {
 				if (GNET_PROPERTY(dht_debug)) {
 					g_debug("DHT pinging promoted node (last seen %s)",
 						short_time(elapsed));
@@ -2544,7 +2556,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 		knode_check(kn);
 		g_assert(KNODE_GOOD == kn->status);
 
-		if (delta_time(now, kn->last_seen) < ALIVE_PERIOD)
+		if (delta_time(now, kn->last_seen) < alive_period())
 			break;		/* List is sorted: least recently seen at the head */
 
 		if (dht_lazy_rpc_ping(kn)) {
@@ -2878,7 +2890,7 @@ dht_update_subspace_size_estimate(
 	 * unless we have more data in the results (estimate will be more precise).
 	 */
 
-	if (delta_time(now, stats.lookups[subspace].computed) < ALIVE_PERIOD) {
+	if (delta_time(now, stats.lookups[subspace].computed) < alive_period()) {
 		if (kept <= stats.lookups[subspace].amount)
 			return;
 	}
@@ -3183,7 +3195,7 @@ fill_closest_in_bucket(
 				(!alive ||
 					(
 						(kn->flags & KNODE_F_ALIVE) &&
-						delta_time(now, kn->last_seen) < ALIVE_PERIOD
+						delta_time(now, kn->last_seen) < alive_period()
 					)
 				)
 			) {
@@ -3407,7 +3419,12 @@ dht_lookup_notify(const kuid_t *id)
 
 	kb = dht_find_bucket(id);
 	kb->nodes->last_lookup = tm_time();
-	period = kb->ours ? OUR_REFRESH_PERIOD : REFRESH_PERIOD;
+
+	if (dht_is_active()) {
+		period = kb->ours ? OUR_REFRESH_PERIOD : REFRESH_PERIOD;
+	} else {
+		period = REFRESH_PERIOD;
+	}
 	
 	cq_resched(callout_queue, kb->nodes->refresh, period * 1000);
 }
