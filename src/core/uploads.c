@@ -112,17 +112,14 @@ RCSID("$Id$")
 #define READ_BUF_SIZE	(64 * 1024)	/**< Read buffer size, if no sendfile(2) */
 #define BW_OUT_MIN		256			/**< Minimum bandwidth to enable uploads */
 #define IO_PRE_STALL	10			/**< Pre-stalling warning */
+#define IO_RTT_STALL	15			/**< Watch for RTT larger than that */
 #define IO_STALLED		30			/**< Stalling condition */
 #define IO_STALL_WATCH	300			/**< Watchdog period for stall monitoring */
 #define IO_LONG_TIMEOUT	160			/**< Longer timeouting condition */
-#define UP_SEND_BUFSIZE	1024		/**< Socket write buffer, when stalling */
 #define STALL_CLEAR		600			/**< Decrease stall counter every 10 min */
-#define STALL_THRESH	3			/**< If more stalls than that, workaround */
 #define MAX_ERRORS		10			/**< Max # of errors before we close */
 
 static GSList *list_uploads;
-static guint uploads_stalled;		/**< Counts stalled connections */
-static time_t last_stalled;			/**< Time at which last stall occurred */
 static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
 static watchdog_t *stall_wd;		/**< Monitor stalling events */
 
@@ -427,18 +424,6 @@ mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 }
 
 /**
- * Dynamically computed stalling threshold.
- *
- * It is half the amount of upload slots configured, with a minimum value
- * of STALL_THRESH.
- */
-static inline guint32
-stall_thresh(void)
-{
-	return MAX(STALL_THRESH, GNET_PROPERTY(max_uploads) / 2);
-}
-
-/**
  * Can we use bio_sendfile()?
  */
 static inline gboolean
@@ -487,7 +472,23 @@ upload_no_more_early_stalling(watchdog_t *unused_wd, gpointer unused_obj)
 	 * thereby being able to send more data.
 	 */
 
-	bws_ignore_stolen(BSCHED_BWS_OUT, FALSE);
+	if (bws_ignore_stolen(BSCHED_BWS_OUT, FALSE)) {
+		if (GNET_PROPERTY(upload_debug) && GNET_PROPERTY(bw_allow_stealing)) {
+			g_warning("UL re-enabled use of stolen bandwidth for HTTP out");
+		}
+	}
+
+	/*
+	 * Re-enable non-uniform bandwidth scheduling so that one source consuming
+	 * less allows others to consume more.
+	 */
+
+	if (bws_uniform_allocation(BSCHED_BWS_OUT, FALSE)) {
+		if (GNET_PROPERTY(upload_debug)) {
+			g_warning("UL switched back to non-uniform HTTP ougoing bandwidth");
+		}
+	}
+
 	wd_expire(stall_wd);		/* No early stalling => no stalling as well */
 
 	return FALSE;	/* Put watchdog to sleep */
@@ -518,22 +519,22 @@ upload_no_more_stalling(watchdog_t *unused_wd, gpointer unused_obj)
 		g_warning("UL re-enabled stealing of unused HTTP outgoing bandwidth");
 	}
 
+	if (GNET_PROPERTY(uploads_stalling)) {
+		if (GNET_PROPERTY(upload_debug)) {
+			g_message("frequent stalling condition cleared");
+		}
+		gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, FALSE);
+	}
+
 	return FALSE;	/* Put watchdog to sleep */
 }
 
 /**
- * Another upload has an early-stalling condition.
+ * Activate early stalling measures.
  */
 static void
-upload_new_early_stalling(const struct upload *u)
+upload_early_stall(void)
 {
-	if (GNET_PROPERTY(upload_debug)) {
-		g_warning("UL request #%u to %s (%s) in early-stalling phase "
-			"after %s bytes sent",
-			u->reqnum, host_addr_to_string(u->addr), upload_vendor_str(u),
-			uint64_to_string(u->sent));
-	}
-
 	/*
 	 * Using more b/w would only help us feed clogged TCP queues, so use at
 	 * most what we were configured to use.
@@ -546,22 +547,51 @@ upload_new_early_stalling(const struct upload *u)
 		}
 	}
 
-	wd_wakeup(early_stall_wd);
+	/*
+	 * If we don't wake the watchdog up, it means we already came here for
+	 * another early stalling condition, and apparently our initial adjustment
+	 * was not enough.
+	 *
+	 * Enforce uniform bandwidth allocation so that sources which do not
+	 * consume their allocated bandwidth do not cause others to get more
+	 * bandwidth: stalling uploads are probably blocked by TCP, and we don't
+	 * want to stuff too much data to the source as soon as we can write to
+	 * it again.
+	 */
+
+	if (!wd_wakeup(early_stall_wd)) {
+		if (!bws_uniform_allocation(BSCHED_BWS_OUT, TRUE)) {
+			if (GNET_PROPERTY(upload_debug)) {
+				g_warning("UL switching to uniform HTTP ougoing bandwidth");
+			}
+		}
+	}
+
+	wd_kick(early_stall_wd);
 }
 
 /**
- * Another upload is stalling.
+ * Another upload has an early-stalling condition.
  */
 static void
-upload_new_stalling(const struct upload *u)
+upload_new_early_stalling(const struct upload *u)
 {
 	if (GNET_PROPERTY(upload_debug)) {
-		g_warning("UL request #%u to %s (%s) stalled after %s bytes sent,"
-			" stall counter at %d",
+		g_debug("UL request #%u to %s (%s) in early-stalling phase "
+			"after %s bytes sent",
 			u->reqnum, host_addr_to_string(u->addr), upload_vendor_str(u),
-			uint64_to_string(u->sent), uploads_stalled);
+			uint64_to_string(u->sent));
 	}
 
+	upload_early_stall();
+}
+
+/**
+ * Activate stalling measures.
+ */
+static void
+upload_stall(void)
+{
 	/*
 	 * We're not using all our bandwidth because some uploads are
 	 * stalling, and that may be due to TCP heavily retransmitting
@@ -575,7 +605,54 @@ upload_new_stalling(const struct upload *u)
 		}
 	}
 
-	wd_wakeup(stall_wd);
+	/*
+	 * Signal a definitive stalling condition the second time we see a stalling
+	 * upload with the watchdog already active.
+	 */
+
+	if (!wd_wakeup(stall_wd)) {
+		if (GNET_PROPERTY(upload_debug)) {
+			g_warning("frequent stalling detected, using workarounds");
+		}
+		gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, TRUE);
+	}
+
+	wd_kick(stall_wd);
+}
+
+/**
+ * Another upload is stalling.
+ */
+static void
+upload_new_stalling(const struct upload *u)
+{
+	if (GNET_PROPERTY(upload_debug)) {
+		g_debug("UL request #%u to %s (%s) stalled after %s bytes sent",
+			u->reqnum, host_addr_to_string(u->addr), upload_vendor_str(u),
+			uint64_to_string(u->sent));
+	}
+
+	upload_stall();
+}
+
+/**
+ * Invoked when we spot a large round trip time between the end of the previous
+ * request and the followup from the remote client.
+ */
+static void
+upload_large_followup_rtt(const struct upload *u, time_delta_t d)
+{
+	if (GNET_PROPERTY(upload_debug)) {
+		g_debug("UL host %s (%s) took %s to send follow-up after request #%u",
+			host_addr_to_string(u->addr), upload_vendor_str(u),
+			compact_time(d), u->reqnum);
+	}
+
+	if (d >= IO_STALLED) {
+		upload_stall();
+	} else {
+		upload_early_stall();
+	}
 }
 
 /**
@@ -629,14 +706,9 @@ upload_timer(time_t now)
 				skip = TRUE;
 
 			if (!(u->flags & UPLOAD_F_STALLED)) {
-				if (!skip && uploads_stalled++ >= stall_thresh()) {
-					if (GNET_PROPERTY(upload_debug)) g_warning(
-						"frequent stalling detected, using workarounds");
-					gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, TRUE);
-				}
-				if (!skip) last_stalled = now;
 				u->flags |= UPLOAD_F_STALLED;
-				upload_new_stalling(u);
+				if (!skip)
+					upload_new_stalling(u);
 
 				/*
 				 * Record that this IP is stalling, but also record the fact
@@ -653,8 +725,7 @@ upload_timer(time_t now)
 			gpointer stall;
 
 			stall = aging_lookup(stalling_uploads, &u->addr);
-			if (stall == STALL_AGAIN)
-				skip = TRUE;
+			skip = (stall == STALL_AGAIN);
 
 			if (u->flags & UPLOAD_F_STALLED) {
 				if (GNET_PROPERTY(upload_debug)) g_warning(
@@ -663,20 +734,12 @@ upload_timer(time_t now)
 					uint64_to_string(u->sent),
 					skip ? " (IGNORED)" : "");
 
-				if (
-					!skip && uploads_stalled <= stall_thresh() &&
-					!socket_is_corked(u->socket)
-				) {
+				if (!skip && !socket_is_corked(u->socket)) {
 					if (GNET_PROPERTY(upload_debug)) g_warning(
 						"re-enabling TCP_CORK on connection to %s (%s)",
 						host_addr_to_string(u->addr), upload_vendor_str(u));
 					socket_cork(u->socket, TRUE);
 					socket_tos_throughput(u->socket);
-				}
-
-				if (!skip && uploads_stalled != 0) {
-					/* It un-stalled, it's not too bad */
-					uploads_stalled--;
 				}
 			}
 		}
@@ -690,7 +753,7 @@ upload_timer(time_t now)
 		 * be much more lenient about connection timeouts.
 		 */
 
-		if (!is_connecting && uploads_stalled > stall_thresh()) {
+		if (!is_connecting && wd_is_awake(stall_wd)) {
 			timeout = MAX(IO_LONG_TIMEOUT, timeout);
 		}
 
@@ -722,20 +785,6 @@ upload_timer(time_t now)
 				}
 			} else
 				u->flags &= ~UPLOAD_F_EARLY_STALL;
-		}
-	}
-
-	if (delta_time(now, last_stalled) > STALL_CLEAR) {
-		if (uploads_stalled > 0) {
-			uploads_stalled /= 2;			/* Exponential decrease */
-			last_stalled = now;
-			if (GNET_PROPERTY(upload_debug))
-				g_warning("stall counter downgraded to %d", uploads_stalled);
-			if (uploads_stalled == 0) {
-				if (GNET_PROPERTY(upload_debug))
-					g_warning("frequent stalling condition cleared");
-				gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, FALSE);
-			}
 		}
 	}
 
@@ -3710,10 +3759,9 @@ upload_is_already_downloading(struct upload *upload)
 			struct upload *up = cast_to_upload(sl->data);
 
 			if (GNET_PROPERTY(upload_debug)) g_warning(
-				"stalling connection to %s (%s) replaced after %s bytes sent, "
-				"stall counter at %d",
+				"stalling connection to %s (%s) replaced after %s bytes sent",
 				host_addr_to_string(up->addr), upload_vendor_str(up),
-				uint64_to_string(up->sent), uploads_stalled);
+				uint64_to_string(up->sent));
 
 			upload_remove(up, _("Stalling upload replaced"));
 		}
@@ -4024,7 +4072,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			GNET_PROPERTY(bw_ul_usage_enabled) &&
 			upload_is_enabled() &&
 			GNET_PROPERTY(bws_out_enabled) &&
-			uploads_stalled <= stall_thresh() &&
+			!wd_is_awake(stall_wd) &&
 			(gulong) bsched_pct(BSCHED_BWS_OUT)
 				< GNET_PROPERTY(ul_usage_min_percentage) &&
 			(gulong) bsched_avg_pct(BSCHED_BWS_OUT)
@@ -4287,17 +4335,11 @@ upload_set_tos(struct upload *u)
 
 	known_for_stalling = NULL != aging_lookup(stalling_uploads, &u->addr);
 
-	if (uploads_stalled <= stall_thresh() && !known_for_stalling) {
+	if (!wd_is_awake(stall_wd) && !known_for_stalling) {
 		socket_cork(u->socket, TRUE);
 		socket_tos_throughput(u->socket);
 	} else {
 		socket_tos_normal(u->socket);	/* Make sure ACKs come back faster */
-		/* FIXME:
-		 * I think this is just bad. --cbiere, 2006-11-20
-		 */
-#if 0
-		socket_send_buf(s, UP_SEND_BUFSIZE, TRUE);	/* Shrink TX buffer */
-#endif
 	}
 }
 
@@ -4600,14 +4642,6 @@ upload_request(struct upload *u, header_t *header)
 	g_assert(0 == u->socket->gdk_tag);
 	g_assert(NULL == u->bio);
 
-	/*
-	 * Technically, we have not started sending anything yet, but this
-	 * also serves as a marker in case we need to call upload_remove().
-	 * It will not send an HTTP reply by itself.
-	 */
-
-	u->start_date = now;
-	u->last_update = now;		/* Done reading headers */
 	u->was_actively_queued = FALSE;
 
 	switch (u->status) {
@@ -4621,6 +4655,30 @@ upload_request(struct upload *u, header_t *header)
 		u->is_followup = FALSE;
 		break;
 	}
+
+	/*
+	 * If we're dealing with a follow-up request, see how long it took them
+	 * to get the last data we sent and the time we get the new request back.
+	 * Sure, there is the round-trip time, but we must also account for the
+	 * time it took TCP to flush all the pending buffers so that the remote
+	 * host had a chance to see the end of its previous request.
+	 */
+
+	if (u->is_followup) {
+		time_delta_t d = delta_time(now, u->last_update);
+		if (d > IO_RTT_STALL) {
+			upload_large_followup_rtt(u, d);
+		}
+	}
+
+	/*
+	 * Technically, we have not started sending anything yet, but this
+	 * also serves as a marker in case we need to call upload_remove().
+	 * It will not send an HTTP reply by itself.
+	 */
+
+	u->start_date = now;
+	u->last_update = now;		/* Done reading headers */
 
 	u->from_browser = upload_likely_from_browser(header);
 	u->request = h_strdup(getline_str(u->socket->getline));
