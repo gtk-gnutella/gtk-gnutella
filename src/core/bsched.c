@@ -57,16 +57,17 @@ RCSID("$Id$")
  * Scheduling flags.
  */
 enum {
-	BS_F_ENABLED		= (1 << 0),	/**< Scheduler enabled */
-	BS_F_READ			= (1 << 1),	/**< Reading sources */
-	BS_F_WRITE			= (1 << 2),	/**< Writing sources */
-	BS_F_NOBW			= (1 << 3),	/**< No more bandwidth */
-	BS_F_FROZEN_SLOT	= (1 << 4),	/**< Value of `bw_slot' is frozen */
-	BS_F_CHANGED_BW		= (1 << 5),	/**< Bandwidth limit changed */
-	BS_F_CLEARED		= (1 << 6),	/**< Ran clear_active once on sched. */
-	BS_F_DATA_READ		= (1 << 7),	/**< Data read from one source */
-	BS_F_NO_STEALING	= (1 << 8),	/**< Prevent b/w stealing from us */
-	BS_F_STOLEN_IGN		= (1 << 9),	/**< Ignore stolen bandwidth */
+	BS_F_ENABLED		= (1 << 0),		/**< Scheduler enabled */
+	BS_F_READ			= (1 << 1),		/**< Reading sources */
+	BS_F_WRITE			= (1 << 2),		/**< Writing sources */
+	BS_F_NOBW			= (1 << 3),		/**< No more bandwidth */
+	BS_F_FROZEN_SLOT	= (1 << 4),		/**< Value of `bw_slot' is frozen */
+	BS_F_CHANGED_BW		= (1 << 5),		/**< Bandwidth limit changed */
+	BS_F_CLEARED		= (1 << 6),		/**< Ran clear_active once on sched. */
+	BS_F_DATA_READ		= (1 << 7),		/**< Data read from one source */
+	BS_F_NO_STEALING	= (1 << 8),		/**< Prevent b/w stealing from us */
+	BS_F_STOLEN_IGN		= (1 << 9),		/**< Ignore stolen bandwidth */
+	BS_F_UNIFORM_BW		= (1 << 10),	/**< Uniform b/w allocation */
 
 	BS_F_RW				= (BS_F_READ|BS_F_WRITE)
 };
@@ -997,13 +998,17 @@ bsched_begin_timeslice(bsched_t *bs)
 	 * Finally, if we did not use all our sources last time, we give more
 	 * bandwidth to active sources.  We add 1 to the amount of sources used
 	 * to avoid the same sources using all the bandwidth each time before
-	 * it runs out for the time slice.
+	 * it runs out for the time slice.  This adjust is turned off when
+	 * the BS_F_UNIFORM_BW flag is set: all sources get the same initial
+	 * allocation.
 	 */
 
 	if (bs->count) {
 		int dividor = bs->count;
-		if (bs->last_used > 0 && bs->last_used < bs->count)
-			dividor = bs->last_used + 1;
+		if (!(bs->flags & BS_F_UNIFORM_BW)) {
+			if (bs->last_used > 0 && bs->last_used < bs->count)
+				dividor = bs->last_used + 1;
+		}
 		bs->bw_slot = (bs->bw_max + bs->bw_last_capped) / dividor;
 	} else
 		bs->bw_slot = 0;
@@ -1014,6 +1019,14 @@ bsched_begin_timeslice(bsched_t *bs)
 	 */
 
 	if (bs->bw_slot < BW_SLOT_MIN && bs->bw_stolen == 0)
+		bs->flags |= BS_F_FROZEN_SLOT;
+
+	/*
+	 * If uniform bandwidth allocation is requested, the slot allocation is
+	 * also frozen, regardless of how many sources become active.
+	 */
+
+	if (bs->flags & BS_F_UNIFORM_BW)
 		bs->flags |= BS_F_FROZEN_SLOT;
 
 	/*
@@ -1343,11 +1356,17 @@ bw_available(bio_source_t *bio, int len)
 	 * this time.  The rationale is that we might not write enough data
 	 * for each active source, and we don't loop enough time over the sources
 	 * to be able to fill our bandwidth allocation.
+	 *
+	 * Do not perform any adjustment when BS_F_UNIFORM_BW was set because we
+	 * want to keep the allocated bandwidth the same for all the sources.
+	 * If a source "stalls" and does not consume its bandwidth slot, that
+	 * amount will be lost this period.
 	 */
 
 	if (
 		result < len && available > 0 && bs->looped &&
-		(!used || bs->bw_last_capped > 0)
+		(!used || bs->bw_last_capped > 0) &&
+		!(bs->flags & BS_F_UNIFORM_BW)
 	) {
 		int adj = len - result;
 		int nominal;
@@ -2274,6 +2293,29 @@ bws_ignore_stolen(bsched_bws_t bws, gboolean ignore)
 		bs->flags &= ~BS_F_STOLEN_IGN;
 
 	return was_ignoring;
+}
+
+/**
+ * Set / clear scheduler for uniform allocation (all sources getting the same
+ * amount of bandwidth, "inactive" ones included).
+ *
+ * @return whether uniform allocation was already enabled.
+ */
+gboolean
+bws_uniform_allocation(bsched_bws_t bws, gboolean uniform)
+{
+	bsched_t *bs;
+	gboolean was_uniform;
+
+	bs = bsched_get(bws);
+	was_uniform = booleanize(bs->flags & BS_F_UNIFORM_BW);
+
+	if (uniform)
+		bs->flags |= BS_F_UNIFORM_BW;
+	else
+		bs->flags &= ~BS_F_UNIFORM_BW;
+
+	return was_uniform;
 }
 
 /**
