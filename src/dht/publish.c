@@ -57,12 +57,10 @@
  * publish to the k-closest, or from neighbours, in which case someone else
  * already took care of the replication).
  *
- * Only values for which we have an original (i.e. the ones for which we got
- * a STORE from their creator) and that fall without our k-ball range need to
- * be replicated.  Others are necessarily replicated values, for which the
- * owner of the original already handles the replication, or cached values,
- * which must not be replicated anyway or we would be hiding subsequent value
- * updates.
+ * Only values that fall within our k-ball range need to be replicated.
+ * Others are necessarily replicated values, for which some other node
+ * already handles the replication, or cached values, which must not be
+ * replicated anyway or we would be hiding subsequent value updates.
  *
  * In the typical Kademlia settings, values expire after 24 hours and
  * replication is set to 1 hour (which is also the period for bucket refresh).
