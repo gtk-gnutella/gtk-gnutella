@@ -61,6 +61,7 @@ watchdog_t *wd_make(const char *name, int period,
 void wd_free_null(watchdog_t **wd);
 
 const char *wd_name(const watchdog_t *wd);
+gboolean wd_is_awake(const watchdog_t *wd);
 
 gboolean wd_sleep(watchdog_t *wd);
 gboolean wd_wakeup(watchdog_t *wd);

@@ -206,6 +206,12 @@ wd_expire(watchdog_t *wd)
 	cq_cancel(callout_queue, &wd->ev);
 	(*wd->trigger)(wd, wd->arg);
 
+	if (wd->ev != NULL) {
+		g_warning("wd_expire(): "
+			"watchdog %s re-armed within callback, turning it off",
+			wd_name(wd));
+	}
+
 	return TRUE;
 }
 
@@ -247,6 +253,15 @@ const char *
 wd_name(const watchdog_t *wd)
 {
 	return wd->name;
+}
+
+/**
+ * @return TRUE if watchdog has been woken up.
+ */
+gboolean
+wd_is_awake(const watchdog_t *wd)
+{
+	return wd->ev != NULL;
 }
 
 /**
