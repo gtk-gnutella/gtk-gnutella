@@ -1234,6 +1234,14 @@ bw_available(bio_source_t *bio, int len)
 		return 0;							/* No bandwidth available */
 
 	/*
+	 * If uniform scheduling is on, disable source so that it does not
+	 * trigger again for this timeslice.
+	 */
+
+	if ((bs->flags & BS_F_UNIFORM_BW) && bio->io_tag)
+		bio_disable(bio);
+
+	/*
 	 * If source was already active, recompute the per-slot value since
 	 * we already looped once through all the sources.  This prevents the
 	 * first scheduled sources to eat all the bandwidth.
@@ -1342,7 +1350,16 @@ bw_available(bio_source_t *bio, int len)
 		available = 0;
 	}
 
-	result = MIN(bs->bw_slot, available);
+	/*
+	 * Enforce 0 bytes if source was used with uniform scheduling.
+	 * Active sources are disabled, but we could face a passive one.
+	 */
+
+	if (used && (bs->flags & BS_F_UNIFORM_BW))
+		result = 0;
+	else
+		result = MIN(bs->bw_slot, available);
+
 	available -= result;
 
 	/*
