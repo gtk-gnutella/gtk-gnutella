@@ -4913,6 +4913,11 @@ download_start_prepare_running(struct download *d)
 	 * If this file is swarming, the overlapping size and skipping offset
 	 * will be determined before making the requst, in download_pick_chunk().
 	 *		--RAM, 22/08/2002.
+	 *
+	 * Don't use any overlap when we have the TTH for the file: if we already
+	 * got bad data, resuming mismatch could kill a source whereas we can fix
+	 * the bad areas later on anyway.
+	 *		--RAM, 2010-11-04
 	 */
 
 	if (!fi->use_swarming) {
@@ -4920,7 +4925,8 @@ download_start_prepare_running(struct download *d)
 			d->skip = fi->done;		/* Not swarming => file has no holes */
 		}
 		d->pos = d->skip;
-		d->overlap_size = (d->skip == 0 || d->size <= d->pos)
+		d->overlap_size =
+			(d->skip == 0 || d->size <= d->pos || download_get_tth(d))
 			? 0
 			: GNET_PROPERTY(download_overlap_range);
 
@@ -5036,7 +5042,13 @@ download_pick_chunk(struct download *d)
 		d->skip = d->pos = from;
 		d->size = to - from;
 
+		/*
+		 * Don't use overlaps if we got the TTH already.
+		 *		--RAM, 2010-11-04
+		 */
+
 		if (
+			NULL == download_get_tth(d) &&
 			from > GNET_PROPERTY(download_overlap_range) &&
 			file_info_chunk_status(d->file_info,
 				from - GNET_PROPERTY(download_overlap_range),
