@@ -208,7 +208,7 @@ wd_expire(watchdog_t *wd)
 
 	if (wd->ev != NULL) {
 		g_warning("wd_expire(): "
-			"watchdog %s re-armed within callback, turning it off",
+			"watchdog \"%s\" re-armed within callback, turning it off",
 			wd_name(wd));
 	}
 
