@@ -190,7 +190,8 @@ static const char gtkg_vendor[] = "gtk-gnutella/";
 static GHashTable *ht_connected_nodes   = NULL;
 static guint32 total_nodes_connected;
 
-#define NO_METADATA		GUINT_TO_POINTER(1)	/**< No metadata for host */
+static void *no_metadata;
+#define NO_METADATA		(no_metadata)	/**< No metadata for host */
 
 static GHashTable *unstable_servent = NULL;
 static GSList *unstable_servents = NULL;
@@ -1345,6 +1346,7 @@ node_init(void)
 
 	STATIC_ASSERT(23 == sizeof(gnutella_header_t));
 
+	no_metadata = deconstify_gpointer(vmm_trap_page());
 	rxbuf_init();
 	proxies = pproxy_set_allocate(0);
 
@@ -2482,7 +2484,7 @@ node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 
 	n->shutdown_delay = delay;
 
-	if (n->status == GTA_NODE_SHUTDOWN)
+	if (n->status == GTA_NODE_SHUTDOWN || n->status == GTA_NODE_REMOVING)
 		return;
 
 	node_decrement_counters(n);
@@ -3467,6 +3469,8 @@ node_is_now_connected(struct gnutella_node *n)
 	/*
 	 * Update state, and mark node as valid.
 	 */
+
+	g_assert(n->status != GTA_NODE_REMOVING);
 
 	n->status = GTA_NODE_CONNECTED;
 	n->flags |= NODE_F_VALID;
@@ -5808,6 +5812,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		 * we need to configure a different callback when the header
 		 * is collected.
 		 */
+
+		g_assert(n->status != GTA_NODE_REMOVING);
 
 		n->status = GTA_NODE_WELCOME_SENT;
 
