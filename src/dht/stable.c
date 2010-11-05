@@ -138,6 +138,7 @@ RCSID("$Id$")
 #define STABLE_MAP_CACHE_SIZE	64		/**< Amount of SDBM pages to cache */
 
 #define STABLE_EXPIRE (2 * DHT_VALUE_REPUBLISH)	/**< 2 republish periods */
+#define STABLE_PROBA  (0.3333)					/**< 33.33% */
 
 #define STABLE_PRUNE_PERIOD	(DHT_VALUE_REPUBLISH * 1000)
 #define STABLE_SYNC_PERIOD	(60 * 1000)
@@ -197,8 +198,11 @@ stable_alive_probability(time_delta_t t, time_delta_t d)
 	double th = t / 3600.0;
 	double dh = d / 3600.0;
 
-	if (0 == t + d)
+	if (0 == t + d || t <= 0)
 		return 0.0;
+
+	if (d <= 0)
+		return 1.0;
 
 	/*
 	 * See leading file comment for an explanation.
@@ -228,6 +232,30 @@ stable_alive_probability(time_delta_t t, time_delta_t d)
 }
 
 /**
+ * Given a node which was first seen at ``first_seen'' and last seen at
+ * ``last_seen'', return probability that node still be alive now.
+ *
+ * @param first_seen		first time node was seen / created
+ * @param last_seen			last time node was seen
+ *
+ * @return the probability that the node be still alive now.
+ */
+double
+stable_still_alive_probability(time_t first_seen, time_t last_seen)
+{
+	time_delta_t life;
+	time_delta_t elapsed;
+
+	life = delta_time(last_seen, first_seen);
+	if (life <= 0)
+		return 0.0;
+
+	elapsed = delta_time(tm_time(), last_seen);
+
+	return stable_alive_probability(life, elapsed);
+}
+
+/**
  * Record activity on the node.
  */
 void
@@ -245,8 +273,8 @@ stable_record_activity(const knode_t *kn)
 		ld = &new_ld;
 
 		new_ld.version = LIFEDATA_STRUCT_VERSION;
-		new_ld.first_seen = kn->last_seen;
-		new_ld.last_seen = new_ld.first_seen;
+		new_ld.first_seen = kn->first_seen;
+		new_ld.last_seen = kn->last_seen;
 
 		gnet_stats_count_general(GNR_DHT_STABLE_NODES_HELD, +1);
 	} else {
@@ -311,25 +339,37 @@ prune_old(gpointer key, gpointer value, size_t u_len, gpointer u_data)
 	const kuid_t *id = key;
 	const struct lifedata *ld = value;
 	time_delta_t d;
+	gboolean expired;
+	double p;
 
 	(void) u_len;
 	(void) u_data;
 
 	d = delta_time(tm_time(), ld->last_seen);
 
-	if (GNET_PROPERTY(dht_stable_debug) > 4) {
-		g_debug("DHT STABLE node %s life=%s last_seen=%s%s",
-			kuid_to_hex_string(id),
-			compact_time(delta_time(tm_time(), ld->first_seen)),
-			compact_time2(d), d > STABLE_EXPIRE ? " [EXPIRED]" : "");
+	if (d <= STABLE_EXPIRE) {
+		expired = FALSE;
+		p = 1.0;
+	} else {
+		p = stable_still_alive_probability(ld->first_seen, ld->last_seen);
+		expired = p < STABLE_PROBA;
 	}
 
-	return d > STABLE_EXPIRE;
+	if (GNET_PROPERTY(dht_stable_debug) > 4) {
+		g_debug("DHT STABLE node %s life=%s last_seen=%s, p=%.2lf%%%s",
+			kuid_to_hex_string(id),
+			compact_time(delta_time(ld->last_seen, ld->first_seen)),
+			compact_time2(d), p * 100.0,
+			expired ? " [EXPIRED]" : "");
+	}
+
+	return expired;
 }
 
 /**
  * Prune the database, removing old entries not updated since at least
- * STABLE_EXPIRE seconds.
+ * STABLE_EXPIRE seconds and which have less than STABLE_PROBA chance of
+ * still being alive, given our probability density function.
  */
 static void
 stable_prune_old(void)

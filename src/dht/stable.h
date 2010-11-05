@@ -48,6 +48,8 @@ void stable_init(void);
 void stable_close(void);
 
 double stable_alive_probability(time_delta_t t, time_delta_t d);
+double stable_still_alive_probability(time_t first_seen, time_t last_seen);
+
 void stable_record_activity(const knode_t *kn);
 
 #endif /* _dht_stable_h_ */
