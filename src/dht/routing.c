@@ -1102,9 +1102,10 @@ dht_bucket_refresh(struct kbucket *kb, gboolean forced)
  * Structure used to control bootstrap completion.
  */
 struct bootstrap {
-	kuid_t id;			/**< Random ID to look up */
-	kuid_t current;		/**< Current prefix */
-	int bits;			/**< Meaningful prefix, in bits */
+	kuid_t id;				/**< Random ID to look up */
+	kuid_t current;			/**< Current prefix */
+	int bits;				/**< Meaningful prefix, in bits */
+	unsigned complete:1;	/**< Did we lookup our KUID successfully? */
 };
 
 static void bootstrap_completion_status(
@@ -1124,6 +1125,7 @@ completion_iterate(struct bootstrap *b)
 			g_warning("DHT unable to complete bootstrapping");
 		
 		wfree(b, sizeof *b);
+		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
 		return;
 	}
 
@@ -1168,8 +1170,25 @@ bootstrap_completion_status(
 			g_debug("DHT now completely bootstrapped");
 
 		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_COMPLETED);
+
+		/*
+		 * If we're in active mode and we did not initially complete the
+		 * lookup for our own ID, refine the knowledge of our closest tree.
+		 */
+
+		if (dht_is_active() && !b->complete) {
+			if (GNET_PROPERTY(dht_debug)) {
+				g_debug("DHT refining knowledge of our closest neighbours");
+			}
+			lookup_find_node(our_kuid, NULL, NULL, NULL);
+		}
+
 		return;
 	}
+
+	/*
+	 * If something went wrong, stay at the same amount bits.
+	 */
 
 	if (LOOKUP_E_OK == error || LOOKUP_E_PARTIAL == error)
 		b->bits--;
@@ -1183,9 +1202,11 @@ bootstrap_completion_status(
  *
  * To avoid a sudden burst of activity, we're doing that iteratively, waiting
  * for the previous lookup to complete before launching the next one.
+ *
+ * @param complete		TRUE if we managed to look up our KUID successfully
  */
 static void
-dht_complete_bootstrap(void)
+dht_complete_bootstrap(gboolean complete)
 {
 	struct bootstrap *b;
 	struct kbucket *ours;
@@ -1197,6 +1218,7 @@ dht_complete_bootstrap(void)
 	b = walloc(sizeof *b);
 	b->current = ours->prefix;		/* Struct copy */
 	b->bits = ours->depth;
+	b->complete = complete;			/* Did we look up our KUID successfully?*/
 
 	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_COMPLETING);
 	keys_update_kball();		/* We know enough to compute the k-ball */
@@ -1209,10 +1231,15 @@ dht_complete_bootstrap(void)
 static void
 bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 {
+	gboolean own_id;
+
 	(void) unused_arg;
 
+	own_id = kuid_eq(kuid, our_kuid);
+
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
-		g_debug("DHT bootstrapping via our own ID %s completed: %s",
+		g_debug("DHT bootstrapping via %s ID %s completed: %s",
+			own_id ? "our own" : "random",
 			kuid_to_hex_string(kuid),
 			lookup_strerror(error));
 
@@ -1233,12 +1260,21 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 			dht_seeded() ? "successfully" : "not fully");
 
 	/*
+	 * If we were not looking for our own ID, start the procedure again.
+	 */
+
+	if (!own_id) {
+		dht_attempt_bootstrap();
+		return;
+	}
+
+	/*
 	 * To complete the bootstrap, we need to get a better knowledge of all the
 	 * buckets futher away than ours.
 	 */
 
 	if (dht_seeded())
-		dht_complete_bootstrap();
+		dht_complete_bootstrap(LOOKUP_E_OK == error);
 	else {
 		kuid_t id;
 
@@ -1250,6 +1286,9 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 
 		bootstrapping =
 			NULL != lookup_find_node(&id, NULL, bootstrap_status, NULL);
+
+		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS,
+			bootstrapping ? DHT_BOOT_SEEDED : DHT_BOOT_NONE);
 	}
 }
 
@@ -1275,6 +1314,9 @@ dht_attempt_bootstrap(void)
 
 	bootstrapping = TRUE;
 
+	if (GNET_PROPERTY(dht_debug))
+		g_debug("DHT attempting bootstrap -- looking for our own KUID");
+
 	/*
 	 * Lookup our own ID, discarding results as all we want is the side
 	 * effect of filling up our routing table with the k-closest nodes
@@ -1290,8 +1332,6 @@ dht_attempt_bootstrap(void)
 	} else {
 		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_OWN);
 	}
-
-	/* XXX set DHT property status to "bootstrapping" -- red icon */
 }
 
 /**
@@ -3437,12 +3477,14 @@ write_node(const knode_t *kn, FILE *f)
 {
 	knode_check(kn);
 
-	fprintf(f, "KUID %s\nVNDR %s\nVERS %u.%u\nHOST %s\nSEEN %s\nEND\n\n",
+	fprintf(f, "KUID %s\nVNDR %s\nVERS %u.%u\nHOST %s\n"
+		"CTIM %s\nSEEN %s\nEND\n\n",
 		kuid_to_hex_string(kn->id),
 		vendor_code_to_string(kn->vcode.u32),
 		kn->major, kn->minor,
 		host_addr_port_to_string(kn->addr, kn->port),
-		timestamp_utc_to_string(kn->last_seen));
+		timestamp_utc_to_string(kn->first_seen),
+		timestamp_utc_to_string2(kn->last_seen));
 }
 
 /**
@@ -3510,6 +3552,7 @@ dht_route_store(void)
 		"#  VNDR <vendor code>\n"
 		"#  VERS <major.minor>\n"
 		"#  HOST <IP and port>\n"
+		"#  CTIM <first time node was seen>\n"
 		"#  SEEN <last seen message>\n"
 		"#  END\n"
 		"#  \n\n",
@@ -3948,6 +3991,7 @@ typedef enum {
 	DHT_ROUTE_TAG_VERS,
 	DHT_ROUTE_TAG_HOST,
 	DHT_ROUTE_TAG_SEEN,
+	DHT_ROUTE_TAG_CTIM,
 	DHT_ROUTE_TAG_END,
 
 	DHT_ROUTE_TAG_MAX
@@ -3964,6 +4008,7 @@ static const struct dht_route_tag {
 
 #define DHT_ROUTE_TAG(x)	{ CAT2(DHT_ROUTE_TAG_,x), #x }
 
+	DHT_ROUTE_TAG(CTIM),
 	DHT_ROUTE_TAG(END),
 	DHT_ROUTE_TAG(HOST),
 	DHT_ROUTE_TAG(KUID),
@@ -4016,6 +4061,7 @@ dht_route_parse(FILE *f)
 	kuid_t kuid;
 	vendor_code_t vcode = { 0 };
 	time_t seen = (time_t) -1;
+	time_t ctim = (time_t) -1;
 	guint32 major, minor;
 
 	g_return_if_fail(f);
@@ -4092,6 +4138,10 @@ dht_route_parse(FILE *f)
 			if (!string_to_host_addr_port(value, NULL, &addr, &port))
 				goto damaged;
 			break;
+		case DHT_ROUTE_TAG_CTIM:
+			ctim = date2time(value, tm_time());
+			if ((time_t) -1 == ctim)
+				goto damaged;
 		case DHT_ROUTE_TAG_SEEN:
 			seen = date2time(value, tm_time());
 			if ((time_t) -1 == seen)
@@ -4100,6 +4150,15 @@ dht_route_parse(FILE *f)
 		case DHT_ROUTE_TAG_END:
 			{
 				size_t i;
+
+				/* The "CTIM" tag is optional */
+
+				if (!bit_array_get(tag_used, DHT_ROUTE_TAG_CTIM)) {
+					bit_array_set(tag_used, DHT_ROUTE_TAG_CTIM);
+					ctim = seen;
+				}
+
+				/* All other tags are mandatory */
 
 				for (i = 0; i < G_N_ELEMENTS(dht_route_tag_map); i++) {
 					if (!bit_array_get(tag_used, dht_route_tag_map[i].tag)) {
@@ -4134,6 +4193,7 @@ dht_route_parse(FILE *f)
 
 			kn = knode_new(&kuid, 0, addr, port, vcode, major, minor);
 			kn->last_seen = seen;
+			kn->first_seen = ctim;
 
 			/*
 			 * Add node to routing table.  If the KUID has changed since
