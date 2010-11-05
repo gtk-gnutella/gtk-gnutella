@@ -54,6 +54,7 @@ typedef struct knode {
 	knode_magic_t magic;
 	int refcnt;					/**< Reference count */
 	kuid_t *id;					/**< KUID of the node (atom) */
+	time_t first_seen;			/**< First time we heard about that node */
 	time_t last_seen;			/**< Last seen message from that node */
 	time_t last_sent;			/**< Last sent RPC to that node */
 	vendor_code_t vcode;		/**< Vendor code (vcode.u32 == 0 if unknown) */
