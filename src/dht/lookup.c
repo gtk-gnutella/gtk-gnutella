@@ -3354,7 +3354,7 @@ lookup_find_value(
  * Launch a "bucket refresh" lookup.
  *
  * @param kuid		the KUID of the node we're looking for
- * @param cb_done	callback to invoke when refresh is done
+ * @param done		callback to invoke when refresh is done
  * @param arg		additional user data to propagate to callbacks
  *
  * @return opaque pointer to the created lookup, NULL on failure (routing
