@@ -642,11 +642,26 @@ upload_new_stalling(const struct upload *u)
 static void
 upload_large_followup_rtt(const struct upload *u, time_delta_t d)
 {
+	gboolean ignore = FALSE;
+
+	/*
+	 * If IP has been stalling recently, then ignore.
+	 */
+
+	if (aging_lookup_revitalise(stalling_uploads, &u->addr))
+		ignore = TRUE;
+
 	if (GNET_PROPERTY(upload_debug)) {
-		g_debug("UL host %s (%s) took %s to send follow-up after request #%u",
+		g_debug("UL host %s (%s) took %s to send follow-up after request #%u%s",
 			host_addr_to_string(u->addr), upload_vendor_str(u),
-			compact_time(d), u->reqnum);
+			compact_time(d), u->reqnum, ignore ? " (IGNORED)" : "");
 	}
+
+	if (ignore)
+		return;
+
+	aging_insert(stalling_uploads,
+		wcopy(&u->addr, sizeof u->addr), STALL_FIRST);
 
 	if (d >= IO_STALLED) {
 		upload_stall();
@@ -702,7 +717,7 @@ upload_timer(time_t now)
 			 * counter.
 			 */
 
-			if (aging_lookup(stalling_uploads, &u->addr))
+			if (aging_lookup_revitalise(stalling_uploads, &u->addr))
 				skip = TRUE;
 
 			if (!(u->flags & UPLOAD_F_STALLED)) {
@@ -717,14 +732,14 @@ upload_timer(time_t now)
 
 				aging_insert(stalling_uploads, wcopy(&u->addr, sizeof u->addr),
 					skip ? STALL_AGAIN : STALL_FIRST);
-			} else {
+			} else if (!skip) {
 				wd_kick(stall_wd);
 			}
 		} else {
 			gboolean skip = FALSE;
 			gpointer stall;
 
-			stall = aging_lookup(stalling_uploads, &u->addr);
+			stall = aging_lookup_revitalise(stalling_uploads, &u->addr);
 			skip = (stall == STALL_AGAIN);
 
 			if (u->flags & UPLOAD_F_STALLED) {
