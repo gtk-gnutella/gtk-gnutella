@@ -152,7 +152,6 @@ struct rootdata {
 	guint64 dbkeys[KDA_K];	/**< SDBM keys pointing to contact information */
 	time_t last_update;		/**< When we last updated the key set */
 	guint8 count;			/**< Amount of dbkeys contained */
-	guint8 version;			/**< Structure version */
 };
 
 /**
@@ -160,7 +159,7 @@ struct rootdata {
  */
 static guint64 contactid = 1;		/* 0 is not a valid key (used as marker) */
 
-#define CONTACT_STRUCT_VERSION	0
+#define CONTACT_STRUCT_VERSION	1
 
 /**
  * Contact information.
@@ -169,11 +168,11 @@ static guint64 contactid = 1;		/* 0 is not a valid key (used as marker) */
 struct contact {
 	kuid_t *id;				/**< KUID of the node (atom) */
 	vendor_code_t vcode;	/**< Vendor code */
+	time_t first_seen;		/**< First seen time */
 	host_addr_t addr;		/**< IP of the node */
 	guint16 port;			/**< Port of the node */
 	guint8 major;			/**< Major version */
 	guint8 minor;			/**< Minor version */
-	guint8 version;			/**< Structure version */
 };
 
 static unsigned targets_managed;	/**< Amount of targets held in database */
@@ -452,6 +451,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 			if (c->port != kn->port || !host_addr_equal(c->addr, kn->addr)) {
 				c->port = kn->port;
 				c->addr = kn->addr;
+				c->first_seen = tm_time();	/* New node address */
 				dbmw_write(db_contact, dbkey_ptr, c, sizeof *c);
 				gnet_stats_count_general(
 					GNR_DHT_CACHED_ROOTS_CONTACT_REFRESHED, 1);
@@ -470,6 +470,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 			nc.port = kn->port;
 			nc.major = kn->major;
 			nc.minor = kn->minor;
+			nc.first_seen = kn->first_seen;
 			dbkey = contactid++;
 			contacts_managed++;
 			gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_HELD, +1);
@@ -563,6 +564,7 @@ roots_fill_vector(struct rootdata *rd,
 		kn = knode_new(c->id, 0,
 			c->addr, c->port, c->vcode, c->major, c->minor);
 		kn->flags |= KNODE_F_CACHED;
+		kn->first_seen = c->first_seen;
 		kvec[j++] = kn;
 	}
 
@@ -717,6 +719,7 @@ deserialize_rootdata(bstr_t *bs, gpointer valptr, size_t len)
 {
 	struct rootdata *rd = valptr;
 	unsigned i;
+	guint8 version;
 
 	g_assert(sizeof *rd == len);
 
@@ -728,20 +731,7 @@ deserialize_rootdata(bstr_t *bs, gpointer valptr, size_t len)
 		bstr_read_be64(bs, &rd->dbkeys[i]);
 	}
 
-	/*
-	 * Temporary, until 0.96.7 is out: we cannot blindly read the version
-	 * since it was lacking in previous experimental versions.  Therefore
-	 * only do it if we have unread data.
-	 *
-	 * The test will be removed in versions after 0.96.7, when we can be
-	 * certain that the new data format was serialized.
-	 *		--RAM, 2009-10-18
-	 */
-
-	if (bstr_unread_size(bs))
-		bstr_read_u8(bs, &rd->version);
-	else
-		rd->version = 0;
+	bstr_read_u8(bs, &version);
 }
 
 /**
@@ -769,6 +759,7 @@ serialize_contact(pmsg_t *mb, gconstpointer data)
 	 */
 
 	pmsg_write_u8(mb, CONTACT_STRUCT_VERSION);
+	pmsg_write_time(mb, c->first_seen);	/* Added at version 1 */
 }
 
 /**
@@ -779,6 +770,7 @@ deserialize_contact(bstr_t *bs, gpointer valptr, size_t len)
 {
 	struct contact *c = valptr;
 	kuid_t id;
+	guint8 version;
 
 	g_assert(sizeof *c == len);
 
@@ -790,21 +782,16 @@ deserialize_contact(bstr_t *bs, gpointer valptr, size_t len)
 	bstr_read_be16(bs, &c->port);
 	bstr_read_u8(bs, &c->major);
 	bstr_read_u8(bs, &c->minor);
+	bstr_read_u8(bs, &version);
 
 	/*
-	 * Temporary, until 0.96.7 is out: we cannot blindly read the version
-	 * since it was lacking in previous experimental versions.  Therefore
-	 * only do it if we have unread data.
-	 *
-	 * The test will be removed in versions after 0.96.7, when we can be
-	 * certain that the new data format was serialized.
-	 *		--RAM, 2009-10-18
+	 * "first_seen" was added at version 1.
 	 */
 
-	if (bstr_unread_size(bs))
-		bstr_read_u8(bs, &c->version);
+	if (version < 1)
+		c->first_seen = tm_time();
 	else
-		c->version = 0;
+		bstr_read_time(bs, &c->first_seen);
 
 	/*
 	 * Only create the KUID atom if there was no error in the deserialization
