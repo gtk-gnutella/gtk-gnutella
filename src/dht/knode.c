@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "knode.h"
 #include "kuid.h"
+#include "stable.h"		/* For stable_still_alive_probability() */
 
 #include "if/gnet_property_priv.h"
 #include "if/dht/kademlia.h"
@@ -400,6 +401,16 @@ knode_map_free(gpointer key, gpointer value, gpointer unused_u)
 
 	g_assert(key == kn->id);
 	knode_free(kn);
+}
+
+/**
+ * Convenience routine to compute theoretical probability of presence for
+ * a node, given its first and last seen times.
+ */
+double
+knode_still_alive_probability(const knode_t *kn)
+{
+	return stable_still_alive_probability(kn->first_seen, kn->last_seen);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
