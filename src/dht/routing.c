@@ -142,6 +142,7 @@ RCSID("$Id$")
 #define ALIVE_PERIOD_MS			(ALIVE_PERIOD * 1000)
 #define ALIVE_PERIOD_PASV		(20*60)		/* 20 minutes */
 #define ALIVE_PERIOD_PASV_MS	(ALIVE_PERIOD_PASV * 1000)
+#define ALIVE_PROBA_THRESH		0.3333		/* 33.33% */
 
 /**
  * Period for bucket refreshes.
@@ -1950,11 +1951,13 @@ promote_pending_node(struct kbucket *kb)
 			time_delta_t elapsed;
 
 			if (GNET_PROPERTY(dht_debug))
-				g_debug("DHT promoting %s node %s at %s to good in %s",
+				g_debug("DHT promoting %s node %s at %s to good in %s, "
+					"p=%.2lf%%",
 					knode_status_to_string(selected->status),
 					kuid_to_hex_string(selected->id),
 					host_addr_port_to_string(selected->addr, selected->port),
-					kbucket_to_string(kb));
+					kbucket_to_string(kb),
+					knode_still_alive_probability(selected) * 100.0);
 
 			hash_list_remove(kb->nodes->pending, selected);
 			list_update_stats(KNODE_PENDING, -1);
@@ -2083,9 +2086,10 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 			promote_pending_node(kb);
 
 		if (GNET_PROPERTY(dht_debug) > 2)
-			g_debug("DHT removed %s node %s from %s",
+			g_debug("DHT removed %s node %s from %s, p=%.2lf%%",
 				knode_status_to_string(tkn->status),
-				knode_to_string(tkn), kbucket_to_string(kb));
+				knode_to_string(tkn), kbucket_to_string(kb),
+				knode_still_alive_probability(tkn) * 100.0);
 
 		forget_node(tkn);
 	}
@@ -2127,13 +2131,16 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	if (tkn == kn && kn->status == new)
 		return;
 
-	if (GNET_PROPERTY(dht_debug) > 1)
-		g_debug("DHT node %s at %s (%s in table) moving from %s to %s",
+	if (GNET_PROPERTY(dht_debug) > 1) {
+		g_debug("DHT node %s at %s (%s in table) moving from %s to %s, "
+			"p=%.2lf%%",
 			kuid_to_hex_string(kn->id),
 			host_addr_port_to_string(kn->addr, kn->port),
 			in_table ? (tkn == kn ? "is" : "copy") : "not",
 			knode_status_to_string(((tkn && tkn != kn) ? tkn : kn)->status),
-			knode_status_to_string(new));
+			knode_status_to_string(new),
+			knode_still_alive_probability(tkn ? tkn : kn) * 100.0);
+	}
 
 	/*
 	 * If the node has been removed from the routing table already,
@@ -2188,7 +2195,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 		g_assert(removed != tkn);
 
 		/*
-		 * If removing node from the "good" list, attempt to put it back
+		 * When removing a node from the "good" list, attempt to put it back
 		 * to the "pending" list to avoid dropping a good node alltogether.
 		 */
 
@@ -2215,11 +2222,12 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 			c_class_update_count(removed, kb, -1);
 
 			if (GNET_PROPERTY(dht_debug))
-				g_debug("DHT dropped %s node %s at %s from %s",
+				g_debug("DHT dropped %s node %s at %s from %s, p=%.2lf%%",
 					knode_status_to_string(removed->status),
 					kuid_to_hex_string(removed->id),
 					host_addr_port_to_string(removed->addr, removed->port),
-					kbucket_to_string(kb));
+					kbucket_to_string(kb),
+					knode_still_alive_probability(removed) * 100.0);
 
 			forget_node(removed);
 		}
@@ -2511,6 +2519,8 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	hash_list_iter_t *iter;
 	time_t now = tm_time();
 	guint good_and_stale;
+	GSList *to_remove = NULL;
+	GSList *sl;
 
 	(void) unused_cq;
 
@@ -2529,6 +2539,36 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
 			list_count(kb, KNODE_PENDING));
 	}
+
+	/*
+	 * Remove stale nodes which are likely to be dead.
+	 */
+
+	iter = hash_list_iterator(kb->nodes->stale);
+	while (hash_list_iter_has_next(iter)) {
+		knode_t *kn = hash_list_iter_next(iter);
+
+		knode_check(kn);
+		g_assert(KNODE_STALE == kn->status);
+
+		if (knode_still_alive_probability(kn) < ALIVE_PROBA_THRESH) {
+			to_remove = g_slist_prepend(to_remove, kn);
+		}
+	}
+	hash_list_iter_release(&iter);
+
+	if (to_remove != NULL && GNET_PROPERTY(dht_debug)) {
+		unsigned count = g_slist_length(to_remove);
+		g_debug("DHT selected %u stale node%s to remove (likely dead)",
+			count, 1 == count ? "" : "s");
+	}
+
+	GM_SLIST_FOREACH(to_remove, sl) {
+		knode_t *kn = sl->data;
+		dht_remove_node_from_bucket(kn, kb);
+	}
+
+	g_slist_free(to_remove);
 
 	/*
 	 * If the sum of good + stale nodes is less than the maximum amount
