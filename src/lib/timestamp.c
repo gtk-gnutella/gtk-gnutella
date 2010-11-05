@@ -112,7 +112,20 @@ timestamp_utc_to_string_buf(time_t date, char *dst, size_t size)
 const char *
 timestamp_utc_to_string(time_t date)
 {
-	static char buf[80];
+	static char buf[32];
+	timestamp_utc_to_string_buf(date, buf, sizeof buf);
+	return buf;
+}
+
+/**
+ * Convert time to an ISO 8601 timestamp, e.g. "2002-06-09T14:54:42Z".
+ *
+ * @return pointer to static data.
+ */
+const char *
+timestamp_utc_to_string2(time_t date)
+{
+	static char buf[32];
 	timestamp_utc_to_string_buf(date, buf, sizeof buf);
 	return buf;
 }
