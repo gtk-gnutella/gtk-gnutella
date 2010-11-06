@@ -2093,8 +2093,12 @@ pcache_udp_pong_received(struct gnutella_node *n)
 
 	g_assert(NODE_IS_UDP(n));
 
-	if (!udp_ping_is_registered(gnutella_header_get_muid(&n->header)))
+	if (!udp_ping_is_registered(gnutella_header_get_muid(&n->header))) {
+		if (GNET_PROPERTY(bootstrap_debug) || GNET_PROPERTY(udp_debug)) {
+			g_message("UDP ignoring unsollicited %s", gmsg_infostr(n->header));
+		}
 		return;
+	}
 
 	port = peek_le16(&n->data[0]);
 	ipv4_addr = host_addr_peek_ipv4(&n->data[2]);
