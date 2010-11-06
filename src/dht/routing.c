@@ -2703,6 +2703,8 @@ dht_merge_siblings(struct kbucket *kb)
 
 	parent->one = parent->zero = NULL;
 	allocate_node_lists(parent);
+	install_alive_check(parent);
+	install_bucket_refresh(parent);
 	parent->nodes->last_lookup =
 		delta_time(kb->nodes->last_lookup, sibling->nodes->last_lookup) >= 0 ?
 			kb->nodes->last_lookup : sibling->nodes->last_lookup;
