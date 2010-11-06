@@ -1004,14 +1004,28 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 		return;
 	}
 
-	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug)) {
-		g_debug("DHT bucket refresh with %s "
-			"for %s %s (good: %u, stale: %u, pending: %u) completed: %s",
-			kuid_to_hex_string(kuid),
-			is_leaf(kb) ? "leaf" : "split", kbucket_to_string(kb),
-			safe_list_count(kb, KNODE_GOOD), safe_list_count(kb, KNODE_STALE),
-			safe_list_count(kb, KNODE_PENDING),
-			lookup_strerror(error));
+	/*
+	 * Check whether we can still find the KUID within the bucket.  If not,
+	 * it can mean two things: the bucket got split or the bucket got merged
+	 * back when we were looking.
+	 */
+
+	if (dht_find_bucket(kuid) != kb) {
+		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug)) {
+			g_debug("DHT bucket refresh with KUID %s completed: %s",
+				kuid_to_hex_string(kuid), lookup_strerror(error));
+		}
+	} else {
+		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug)) {
+			g_debug("DHT bucket refresh with %s "
+				"for %s %s (good: %u, stale: %u, pending: %u) completed: %s",
+				kuid_to_hex_string(kuid),
+				is_leaf(kb) ? "leaf" : "split", kbucket_to_string(kb),
+				safe_list_count(kb, KNODE_GOOD),
+				safe_list_count(kb, KNODE_STALE),
+				safe_list_count(kb, KNODE_PENDING),
+				lookup_strerror(error));
+		}
 	}
 
 	gnet_stats_count_general(GNR_DHT_COMPLETED_BUCKET_REFRESH, 1);
