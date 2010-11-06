@@ -1307,11 +1307,21 @@ dht_attempt_bootstrap(void)
 		return;
 
 	/*
-	 * If we are already completely bootstrapped, ignore.
+	 * If we are already completely bootstrapped, there is nothing to do
+	 * in passive node.
+	 *
+	 * An active node needs to get an accurate knowledge of its closest
+	 * neighbours, so launch an unmonitored KUID lookup.
 	 */
 
-	if (DHT_BOOT_COMPLETED == GNET_PROPERTY(dht_boot_status))
+	if (DHT_BOOT_COMPLETED == GNET_PROPERTY(dht_boot_status)) {
+		if (dht_is_active()) {
+			if (GNET_PROPERTY(dht_debug))
+				g_debug("DHT finalizing bootstrap -- looking for our own KUID");
+			lookup_find_node(our_kuid, NULL, NULL, NULL);
+		}
 		return;
+	}
 
 	bootstrapping = TRUE;
 
