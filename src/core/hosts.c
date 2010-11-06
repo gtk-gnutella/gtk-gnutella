@@ -139,7 +139,7 @@ host_timer(void)
 
 	max_nodes = (GNET_PROPERTY(current_peermode) == NODE_P_LEAF) ?
 		GNET_PROPERTY(max_ultrapeers) : GNET_PROPERTY(max_connections);
-	count = node_count();
+	count = node_count();			/* Established + connecting */
 	missing = node_keep_missing();
 
 	if (GNET_PROPERTY(host_debug) > 1)
@@ -241,7 +241,7 @@ host_timer(void)
 
             missing = to_add;
 
-			if (missing > 0 && (0 == node_count() || host_low_on_pongs)) {
+			if (missing > 0 && (0 == connected_nodes() || host_low_on_pongs)) {
 				gnet_host_t host[HOST_DHT_MAX];
 				int hcount;
 				int i;
@@ -255,6 +255,11 @@ host_timer(void)
 					addr = gnet_host_get_addr(&host[i]);
 					port = gnet_host_get_port(&host[i]);
 					if (!hcache_node_is_bad(addr)) {
+						if (GNET_PROPERTY(host_debug) > 3) {
+							g_debug("host_timer - UHC pinging and connecting "
+								"to DHT node at %s",
+								host_addr_port_to_string(addr, port));
+						}
 						/* Try to use the host as an UHC before connecting */
 						udp_send_ping(NULL, addr, port, TRUE);
 						if (!host_gnutella_connect(addr, port)) {
@@ -354,13 +359,6 @@ host_add(const host_addr_t addr, guint16 port, gboolean do_connect)
 	/*
 	 * If we are under the number of connections wanted, we add this host
 	 * to the connection list.
-	 *
-	 * Note: we're not using `node_count()' for the comparison with
-	 * `up_connections' but connected_nodes().	The node_add() routine also
-	 * compare `node_count' with `max_connections' to ensure we don't
-	 * launch too many connections, but comparing here as well may help
-	 * avoid useless call to connected_nodes() and/or node_add().
-	 *				--RAM, 20/09/2001
 	 */
 
 
@@ -371,7 +369,8 @@ host_add(const host_addr_t addr, guint16 port, gboolean do_connect)
 		host_is_nearby(addr) &&
 		node_remove_worst(TRUE)
 	) {
-		/* If we are above the max connections, delete a non-nearby
+		/*
+		 * If we are above the max connections, delete a non-nearby
 		 * connection before adding this better one
 		 */
 		node_add(addr, port, 0);

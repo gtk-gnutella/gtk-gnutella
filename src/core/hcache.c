@@ -68,6 +68,7 @@ RCSID("$Id$")
 #include "lib/path.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
+#include "lib/vmm.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property.h"
@@ -92,7 +93,8 @@ typedef struct hostcache_entry {
 } hostcache_entry_t;
 
 /** No metadata for host */
-#define NO_METADATA			GINT_TO_POINTER(1)
+static const void *no_metadata;
+#define NO_METADATA			(no_metadata)
 
 /**
  * A hostcache table.
@@ -753,7 +755,10 @@ hcache_add_internal(hcache_type_t type, time_t added,
     switch (type) {
     case HCACHE_FRESH_ANY:
     case HCACHE_FRESH_ULTRA:
-        hash_list_append(hc->hostlist, host_atom);
+		/*
+		 * Prepend, so that we use the freshest entries.
+		 */
+        hash_list_prepend(hc->hostlist, host_atom);
         break;
 
     case HCACHE_VALID_ANY:
@@ -1101,7 +1106,7 @@ hcache_prune(hcache_type_t type)
 
     hcache_require_caught(hc);
 	while (extra++ < 0) {
-		gnet_host_t *h = hash_list_head(hc->hostlist);
+		gnet_host_t *h = hash_list_tail(hc->hostlist);	/* Oldest entry */
 		if (NULL == h) {
 			g_warning("BUG: asked to remove hosts, "
                 "but hostcache list is empty: %s", hc->name);
@@ -1529,6 +1534,7 @@ void
 hcache_init(void)
 {
 	ht_known_hosts = g_hash_table_new(gnet_host_hash, gnet_host_eq);
+	no_metadata = vmm_trap_page();
 
     caches[HCACHE_FRESH_ANY] = hcache_alloc(
         HCACHE_FRESH_ANY,
