@@ -482,10 +482,9 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen)
 	cnt = paylen / 6;
 
 	if (GNET_PROPERTY(bootstrap_debug))
-		g_debug("extracting %d host%s in UDP IPP pong %s from %s (%s)",
+		g_debug("extracting %d host%s in UDP IPP pong %s from %s",
 			cnt, cnt == 1 ? "" : "s",
-			guid_hex_str(gnutella_header_get_muid(&n->header)), node_addr(n),
-			uhc_connecting ? "expected" : "unsollicited");
+			guid_hex_str(gnutella_header_get_muid(&n->header)), node_addr(n));
 
 	for (i = 0; i < cnt; i++) {
 		host_addr_t ha;
@@ -498,7 +497,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen)
 
 		if (GNET_PROPERTY(bootstrap_debug) > 2)
 			g_debug("BOOT collected %s from UDP IPP pong from %s",
-				host_addr_to_string(ha), node_addr(n));
+				host_addr_port_to_string(ha, port), node_addr(n));
 	}
 
 	if (!uhc_connecting)
