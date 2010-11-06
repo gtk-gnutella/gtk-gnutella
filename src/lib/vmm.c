@@ -4059,7 +4059,11 @@ vmm_track_close(void)
 	hash_table_foreach(tracked, vmm_log_pages, leaksort);
 	leak_dump(leaksort);
 	leak_close(leaksort);
-	hash_table_destroy_real(tracked);
+
+	/*
+	 * Do not destroy ``tracked'', in case the final messages we emit cause
+	 * a memory allocation and the VMM layer is called again.
+	 */
 }
 
 /**
