@@ -98,6 +98,27 @@ knode_seen_cmp(gconstpointer a, gconstpointer b)
 }
 
 /**
+ * Comparison of two knodes based on their probability of being dead.
+ */
+int
+knode_dead_probability_cmp(gconstpointer a, gconstpointer b)
+{
+	const knode_t *k1 = a;
+	const knode_t *k2 = b;
+	double p1, p2;
+
+	knode_check(k1);
+	knode_check(k2);
+
+	p1 = stable_still_alive_probability(k1->first_seen, k1->last_seen);
+	p2 = stable_still_alive_probability(k2->first_seen, k2->last_seen);
+
+	/* Higher alive chances => lower dead probability */
+
+	return (p2 - p1) < 1e-15 ? 0 : p2 > p1 ? +1 : -1;
+}
+
+/**
  * Allocate new Kademlia node.
  *
  * @param id		the KUID of the node

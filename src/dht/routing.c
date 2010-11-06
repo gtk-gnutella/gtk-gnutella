@@ -787,10 +787,11 @@ forget_hashlist_node(gpointer knode, gpointer unused_data)
 
 	/*
 	 * We do not use forget_node() here because freeing of a bucket's hash
-	 * list can only happen at two well-defined times: after a bucket split
-	 * (to release the parent node) or when the DHT is shutting down.
+	 * list can only happen at three well-defined times: after a bucket split
+	 * (to release the parent node), after a bucket merge (to release the
+	 * children nodes) or when the DHT is shutting down.
 	 *
-	 * In both cases (and surely in the first one), it can happen that the
+	 * In all cases (and surely in the first two), it can happen that the
 	 * nodes are still referenced somewhere else, and still need to be
 	 * ref-uncounted, leaving all other attributes as-is.  Unless the node
 	 * is going to be disposed of, at which time we must force the status
@@ -1683,6 +1684,16 @@ allocate_child(struct kbucket *parent)
 }
 
 /**
+ * Free bucket.
+ */
+static void
+free_bucket(struct kbucket *kb)
+{
+	free_node_lists(kb);
+	wfree(kb, sizeof *kb);
+}
+
+/**
  * Split k-bucket, dispatching the nodes it contains to the "zero" and "one"
  * children depending on their KUID bit at this depth.
  */
@@ -1791,28 +1802,45 @@ dht_split_bucket(struct kbucket *kb)
 
 /**
  * Add node to k-bucket with proper status.
+ *
+ * @param kb		the k-bucket to which node should be added
+ * @param kn		the node to add
+ * @param status	the status the node is in now
+ * @param is_new	whether we're adding a new node
  */
 static void
-add_node(struct kbucket *kb, knode_t *kn, knode_status_t new)
+add_node_internal(struct kbucket *kb,
+	knode_t *kn, knode_status_t status, gboolean is_new)
 {
-	hash_list_t *hl = list_for(kb, new);
+	hash_list_t *hl = list_for(kb, status);
 
-	knode_check(kn);
-	g_assert(KNODE_UNKNOWN == kn->status);
-	g_assert(hash_list_length(hl) < list_maxsize_for(new));
-	g_assert(new != KNODE_UNKNOWN);
+	g_assert(hash_list_length(hl) < list_maxsize_for(status));
+	g_assert(status != KNODE_UNKNOWN);
+	g_assert(kn->status == status);
 
-	kn->status = new;
 	hash_list_append(hl, knode_refcnt_inc(kn));
 	g_hash_table_insert(kb->nodes->all, kn->id, kn);
 	c_class_update_count(kn, kb, +1);
 	stats.dirty = TRUE;
 
 	if (GNET_PROPERTY(dht_debug) > 2)
-		g_debug("DHT added new node %s to %s",
-			knode_to_string(kn), kbucket_to_string(kb));
+		g_debug("DHT added %snode %s to %s",
+			is_new ? "new " : "", knode_to_string(kn), kbucket_to_string(kb));
 
-	check_leaf_list_consistency(kb, hl, new);
+	check_leaf_list_consistency(kb, hl, status);
+}
+
+/**
+ * Add new node to k-bucket with proper status.
+ */
+static void
+add_node(struct kbucket *kb, knode_t *kn, knode_status_t status)
+{
+	knode_check(kn);
+	g_assert(KNODE_UNKNOWN == kn->status);
+
+	kn->status = status;
+	add_node_internal(kb, kn, status, TRUE);
 }
 
 /**
@@ -2183,6 +2211,31 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 
 	check_leaf_bucket_consistency(kb);
 
+	/*
+	 * When moving a stale node back to the good list, we could be in a
+	 * situation where we have to evict a good node.  Try to split the
+	 * bucket first.
+	 */
+
+	if (KNODE_GOOD == new) {
+		while (
+			hash_list_length(kb->nodes->good) >= K_BUCKET_GOOD &&
+			is_splitable(kb)
+		) {
+			int byte;
+			guchar mask;
+
+			if (GNET_PROPERTY(dht_debug)) {
+				g_debug("DHT splitting %s to make room in good list for %s",
+					kbucket_to_string(kb), knode_to_string(tkn));
+			}
+
+			dht_split_bucket(kb);
+			kuid_position(kb->depth, &byte, &mask);
+			kb = (tkn->id->v[byte] & mask) ? kb->one : kb->zero;
+		}
+	}
+
 	old = tkn->status;
 	hl = list_for(kb, old);
 	if (!hash_list_remove(hl, tkn))
@@ -2207,6 +2260,8 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 		/*
 		 * When removing a node from the "good" list, attempt to put it back
 		 * to the "pending" list to avoid dropping a good node alltogether.
+		 * This will only happen for non-splitable buckets, otherwise the
+		 * splitting done above will have made some room in the "good" list.
 		 */
 
 		list_update_stats(new, -1);
@@ -2484,6 +2539,224 @@ dht_remove_timeouting_node(knode_t *kn)
 		kn->rpc_timeouts = KNODE_MAX_TIMEOUTS;
 }
 
+struct max_depth {
+	int max_depth;
+};
+
+static void
+compute_max_depth(struct kbucket *kb, gpointer u)
+{
+	struct max_depth *md = u;
+
+	if (kb->depth > md->max_depth)
+		md->max_depth = kb->depth;
+}
+
+/**
+ * Compute max depth of the bucket tree.
+ */
+static int
+dht_max_depth(void)
+{
+	struct max_depth md;
+
+	md.max_depth = 0;
+	recursively_apply(root, compute_max_depth, &md);
+
+	return md.max_depth;
+}
+
+/**
+ * Build a list of all nodes from the two buckets belonging to specified list.
+ */
+static GSList *
+merged_node_list(knode_status_t status,
+	const struct kbucket *kb1, const struct kbucket *kb2)
+{
+	hash_list_iter_t *iter;
+	GSList *result = NULL;
+
+	iter = hash_list_iterator(list_for(kb1, status));
+	while (hash_list_iter_has_next(iter)) {
+		knode_t *kn = hash_list_iter_next(iter);
+
+		knode_check(kn);
+		g_assert(status == kn->status);
+
+		result = g_slist_prepend(result, kn);
+	}
+	hash_list_iter_release(&iter);
+
+	iter = hash_list_iterator(list_for(kb2, status));
+	while (hash_list_iter_has_next(iter)) {
+		knode_t *kn = hash_list_iter_next(iter);
+
+		knode_check(kn);
+		g_assert(status == kn->status);
+
+		result = g_slist_prepend(result, kn);
+	}
+	hash_list_iter_release(&iter);
+
+	return result;
+}
+
+/**
+ * Insert nodes into the specified k-bucket's list.
+ *
+ * Only the first ``n'' items of the list are inserted, where ``n'' is the
+ * configured maximum length for the bucket's list.
+ *
+ * @param kb		the k-bucket into which we insert nodes
+ * @param status	the status of nodes we're inserting
+ * @param nodes		a single linked-list of nodes to insert
+ */
+static void
+insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
+{
+	hash_list_t *hl;
+	size_t maxsize;
+	GSList *sl;
+
+	hl = list_for(kb, status);
+	maxsize = list_maxsize_for(status);
+
+	g_assert(0 == hash_list_length(hl));
+
+	GM_SLIST_FOREACH(nodes, sl) {
+		knode_t *kn = sl->data;
+
+		knode_check(kn);
+		g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
+
+		if (c_class_get_count(kn, kb) >= K_BUCKET_MAX_IN_NET) {
+			if (GNET_PROPERTY(dht_debug)) {
+				g_debug("DHT rejecting %s: "
+					"too many hosts from same class-C network in %s",
+					knode_to_string(kn), kbucket_to_string(kb));
+			}
+			continue;
+		}
+
+		add_node_internal(kb, kn, status, FALSE);
+
+		if (hash_list_length(hl) >= maxsize)
+			break;
+	}
+}
+
+/**
+ * Merge bucket and its sibling back if both are depleted enough.
+ */
+static void
+dht_merge_siblings(struct kbucket *kb)
+{
+	struct kbucket *sibling;
+	unsigned good_nodes;
+	struct kbucket *parent;
+	GSList *nodes;
+
+	g_assert(is_leaf(kb));
+
+	sibling = sibling_of(kb);
+
+	if (!is_leaf(sibling))
+		return;
+
+	good_nodes = list_count(kb, KNODE_GOOD) + list_count(sibling, KNODE_GOOD);
+
+	if (good_nodes >= K_BUCKET_GOOD)
+		return;
+
+	/*
+	 * We can merge the two buckets into one.
+	 */
+
+	parent = kb->parent;
+
+	g_assert(sibling->parent == parent);
+	g_assert(!parent->ours == !(kb->ours || sibling->ours));
+	g_assert(parent->split_depth <= MIN(kb->split_depth, sibling->split_depth));
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_debug("DHT merging %s with its sibling (total of %u good node%s)",
+			kbucket_to_string(kb), good_nodes, 1 == good_nodes ? "" :"s");
+	}
+
+	/*
+	 * Make parent a new leaf, disconnecting old leaves from tree.
+	 */
+
+	parent->one = parent->zero = NULL;
+	allocate_node_lists(parent);
+	parent->nodes->last_lookup =
+		delta_time(kb->nodes->last_lookup, sibling->nodes->last_lookup) >= 0 ?
+			kb->nodes->last_lookup : sibling->nodes->last_lookup;
+
+	/*
+	 * Insert all good nodes to the parent bucket.
+	 */
+
+	nodes = merged_node_list(KNODE_GOOD, kb, sibling);
+	insert_nodes(parent, KNODE_GOOD, nodes);
+	g_slist_free(nodes);
+
+	/*
+	 * Stale and pending nodes are sorted by increasing "dead probability",
+	 * meaning the ones most likely still alive will be at the beginning
+	 * of each sorted list.
+	 */
+
+	nodes = merged_node_list(KNODE_STALE, kb, sibling);
+	nodes = g_slist_sort(nodes, knode_dead_probability_cmp);
+	insert_nodes(parent, KNODE_STALE, nodes);
+	g_slist_free(nodes);
+
+	nodes = merged_node_list(KNODE_PENDING, kb, sibling);
+	nodes = g_slist_sort(nodes, knode_dead_probability_cmp);
+	insert_nodes(parent, KNODE_PENDING, nodes);
+	g_slist_free(nodes);
+
+	/*
+	 * Update statistics.
+	 */
+
+	stats.buckets -= 2;
+	stats.leaves--;			/* -2 + 1 == -1 */
+
+	gnet_stats_count_general(GNR_DHT_ROUTING_BUCKETS, -2);
+	gnet_stats_count_general(GNR_DHT_ROUTING_LEAVES, -1);
+
+	if (stats.max_depth == kb->depth) {
+		/*
+		 * Due to possible irregular splitting around our KUID, we can't assume
+		 * the merged k-buckets will be the only ones at the bottom.  Hence we
+		 * must recompute the max depth, now that the merged buckets have been
+		 * cut off the tree.
+		 */
+
+		stats.max_depth = dht_max_depth();
+		gnet_stats_set_general(GNR_DHT_ROUTING_MAX_DEPTH, stats.max_depth);
+	}
+
+	/*
+	 * Free old leaves.
+	 */
+
+	free_bucket(kb);
+	free_bucket(sibling);
+
+	check_leaf_bucket_consistency(parent);
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_debug("DHT merged buckets into %s "
+			"(good: %u, stale: %u, pending: %u) max depth: %d",
+			kbucket_to_string(parent),
+			list_count(parent, KNODE_GOOD), list_count(parent, KNODE_STALE),
+			list_count(parent, KNODE_PENDING), stats.max_depth);
+	}
+}
+
 /**
  * An RPC to the node timed out.
  * Can be called for a node that is no longer part of the routing table.
@@ -2542,6 +2815,17 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 
 	install_alive_check(kb);
 
+	if (!GNET_PROPERTY(is_inet_connected)) {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_debug("DHT not connected to Internet, "
+				"skipping alive check on %s (good: %u, stale: %u, pending: %u)",
+				kbucket_to_string(kb),
+				list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
+				list_count(kb, KNODE_PENDING));
+		}
+		return;
+	}
+
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT starting alive check on %s "
 			"(good: %u, stale: %u, pending: %u)",
@@ -2552,6 +2836,9 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 
 	/*
 	 * Remove stale nodes which are likely to be dead.
+	 *
+	 * We do that before performing the alive check to reduce the amount
+	 * of useless pings, but also to better spot depleted buckets.
 	 */
 
 	iter = hash_list_iterator(kb->nodes->stale);
@@ -2697,6 +2984,14 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	hash_list_iter_release(&iter);
 
 	gnet_stats_count_general(GNR_DHT_BUCKET_ALIVE_CHECK, 1);
+
+	/*
+	 * In case both this bucket and its sibling are depleted enough, consider
+	 * merging the two leaves back into one bucket with less maintenance
+	 * overhead: less periodic lookups, less nodes to ping.
+	 */
+
+	dht_merge_siblings(kb);
 }
 
 /**
@@ -3634,8 +3929,7 @@ dht_free_bucket(struct kbucket *kb, gpointer unused_u)
 {
 	(void) unused_u;
 
-	free_node_lists(kb);
-	wfree(kb, sizeof *kb);
+	free_bucket(kb);
 }
 
 /**
