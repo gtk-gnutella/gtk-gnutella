@@ -2659,6 +2659,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 
 		if (forget) {
 			forget_node(kn);
+			continue;
 		} else if (c_class_get_count(kn, kb) >= K_BUCKET_MAX_IN_NET) {
 			if (GNET_PROPERTY(dht_debug)) {
 				g_debug("DHT rejecting %s: "
