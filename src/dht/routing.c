@@ -2657,7 +2657,9 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 		knode_check(kn);
 		g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
 
-		if (c_class_get_count(kn, kb) >= K_BUCKET_MAX_IN_NET) {
+		if (forget) {
+			forget_node(kn);
+		} else if (c_class_get_count(kn, kb) >= K_BUCKET_MAX_IN_NET) {
 			if (GNET_PROPERTY(dht_debug)) {
 				g_debug("DHT rejecting %s: "
 					"too many hosts from same class-C network in %s",
@@ -2665,11 +2667,17 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 			}
 			forget_node(kn);
 			continue;
-		} else if (forget) {
-			forget_node(kn);
 		}
 
 		add_node_internal(kb, kn, status, FALSE);
+
+		/*
+		 * As soon as the list is full, forget the nodes.
+		 *
+		 * Since the nodes were sorted by increasing probability of being
+		 * dead, we're hopefully keeping the best nodes during the
+		 * merging.
+		 */
 
 		if (hash_list_length(hl) >= maxsize)
 			forget = TRUE;
