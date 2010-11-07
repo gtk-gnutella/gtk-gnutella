@@ -49,7 +49,7 @@ struct guid;
 void oob_proxy_init(void);
 void oob_proxy_close(void);
 
-void oob_proxy_create(struct gnutella_node *n);
+gboolean oob_proxy_create(struct gnutella_node *n);
 gboolean oob_proxy_pending_results(
 	struct gnutella_node *n, const struct guid *muid,
 	int hits, gboolean udp_firewalled, const struct array *token);

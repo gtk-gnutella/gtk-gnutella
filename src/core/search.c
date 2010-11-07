@@ -5495,9 +5495,14 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		NODE_IS_LEAF(n) &&
 		host_is_valid(listen_addr(), socket_listen_port())
 	) {
-		oob_proxy_create(n);
-		oob = TRUE;
-		gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
+		/*
+		 * OOB-proxying can fail if we have an MUID collision.
+		 */
+
+		if (oob_proxy_create(n)) {
+			oob = TRUE;
+			gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
+		}
 	}
 
 	/*

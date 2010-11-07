@@ -178,8 +178,10 @@ oob_proxy_rec_destroy(cqueue_t *unused_cq, gpointer obj)
 
 /**
  * Create a new OOB-proxied query.
+ *
+ * @return TRUE on success, FALSE on MUID collision.
  */
-void
+gboolean
 oob_proxy_create(gnutella_node_t *n)
 {
 	struct guid proxied_muid;
@@ -202,15 +204,38 @@ oob_proxy_create(gnutella_node_t *n)
 	poke_le16(&proxied_muid.v[13], socket_listen_port());
 
 	/*
-	 * Record the mapping, and make sure it expires in PROXY_EXPIRE_MS.
+	 * Look whether we already have something for this proxied MUID.
+	 *
+	 * If it is coming from the same leaf, just increase the timeout.
+	 * Otherwise we have an MUID collision.
 	 */
 
-	opr = oob_proxy_rec_make(gnutella_header_get_muid(&n->header),
-			&proxied_muid, NODE_ID(n));
-	gm_hash_table_insert_const(proxied_queries, opr->proxied_muid, opr);
+	opr = g_hash_table_lookup(proxied_queries, &proxied_muid);
 
-	opr->expire_ev = cq_insert(callout_queue, PROXY_EXPIRE_MS,
-		oob_proxy_rec_destroy, opr);
+	if (opr != NULL) {
+		if (opr->node_id != NODE_ID(n)) {
+			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug)) {
+				g_warning("QUERY OOB-proxying of query %s from %s <%s> as %s "
+					"failed: proxied MUID collision",
+					data_hex_str(opr->leaf_muid->v, GUID_RAW_SIZE),
+					node_addr(n), node_vendor(n),
+					guid_hex_str(&proxied_muid));
+			}
+			return FALSE;
+		}
+		cq_resched(callout_queue, opr->expire_ev, PROXY_EXPIRE_MS);
+	} else {
+		/*
+		 * Record the mapping, and make sure it expires in PROXY_EXPIRE_MS.
+		 */
+
+		opr = oob_proxy_rec_make(gnutella_header_get_muid(&n->header),
+				&proxied_muid, NODE_ID(n));
+		gm_hash_table_insert_const(proxied_queries, opr->proxied_muid, opr);
+
+		opr->expire_ev = cq_insert(callout_queue, PROXY_EXPIRE_MS,
+			oob_proxy_rec_destroy, opr);
+	}
 
 	/*
 	 * We're now acting as if the query was being emitted by ourselves.
@@ -227,6 +252,8 @@ oob_proxy_create(gnutella_node_t *n)
 			node_addr(n), node_vendor(n),
 			guid_hex_str(opr->proxied_muid));
 	}
+
+	return TRUE;
 }
 
 /**

@@ -1758,6 +1758,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		!(dq->flags & DQ_F_LEAF_GUIDED) &&
 		NULL == oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header))
 	) {
+		gboolean proxied = FALSE;
 		if (
 			!GNET_PROPERTY(is_udp_firewalled) &&
 			GNET_PROPERTY(proxy_oob_queries) &&
@@ -1779,9 +1780,21 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 						"guided" : "unguided"
 				);
 
-			oob_proxy_create(n);
-			gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
-		} else if (flags_valid && (flags & QUERY_F_OOB_REPLY)) {
+			if (oob_proxy_create(n)) {
+				gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
+				proxied = TRUE;
+			} else {
+				if (GNET_PROPERTY(dq_debug)) {
+					g_warning("DQ node #%s %s <%s>: "
+						"cannot OOB-proxy query \"%s\" (%s): MUID collision",
+						node_id_to_string(NODE_ID(n)), node_addr(n),
+						node_vendor(n), n->data + 2,
+						(flags_valid && (flags & QUERY_F_LEAF_GUIDED)) ?
+							"guided" : "unguided");
+				}
+			}
+		}
+		if (!proxied && flags_valid && (flags & QUERY_F_OOB_REPLY)) {
 			/*
 			 * Running without UDP support, or UDP-firewalled...
 			 * Must remove the OOB flag so that results be routed back.
