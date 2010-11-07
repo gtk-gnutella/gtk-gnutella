@@ -2644,6 +2644,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 	hash_list_t *hl;
 	size_t maxsize;
 	GSList *sl;
+	gboolean forget = FALSE;
 
 	hl = list_for(kb, status);
 	maxsize = list_maxsize_for(status);
@@ -2662,13 +2663,16 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 					"too many hosts from same class-C network in %s",
 					knode_to_string(kn), kbucket_to_string(kb));
 			}
+			forget_node(kn);
 			continue;
+		} else if (forget) {
+			forget_node(kn);
 		}
 
 		add_node_internal(kb, kn, status, FALSE);
 
 		if (hash_list_length(hl) >= maxsize)
-			break;
+			forget = TRUE;
 	}
 }
 
