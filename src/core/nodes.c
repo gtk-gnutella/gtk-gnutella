@@ -8238,7 +8238,7 @@ node_remove_useless_leaf(gboolean *is_gtkg)
 
 		if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME) {
 			worst = n;
-			continue;
+			break;
 		}
 
 		if (n->gnet_files_count == 0)
@@ -8318,17 +8318,31 @@ node_remove_useless_ultra(gboolean *is_gtkg)
         if (whitelist_check(n->addr))
             continue;
 
+		if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME) {
+			worst = n;
+			break;
+		}
+
+		/*
+		 * An UP to which we cannot write compressed data is relatively
+		 * useless because it may flow control more often and will use up
+		 * more bandwidth.
+		 */
+
+		if (!NODE_TX_COMPRESSED(n)) {
+			worst = n;
+			break;
+		}
+
+		if (!NODE_RX_COMPRESSED(n))			/* No RX compression => candidate */
+			target = n->connect_date;
+
 		/*
 		 * Our targets are firewalled nodes, nodes which do not support
 		 * the inter-QRP table, nodes which have no leaves (as detected
 		 * by the fact that they do not send QRP updates on a regular
 		 * basis).
 		 */
-
-		if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME) {
-			worst = n;
-			continue;
-		}
 
 		if (n->flags & NODE_F_PROXIED)		/* Firewalled node */
 			target = n->connect_date;
