@@ -5208,30 +5208,6 @@ search_request_preprocess(struct gnutella_node *n)
 	}
 
 	/*
-	 * If the query comes from a leaf node and has the "firewalled"
-	 * bit set, chances are the leaf is UDP-firewalled as well.
-	 * Clear the OOB flag.
-	 * If there is a SHA1 URN, validate it and extract the binary digest
-	 * into sha1_digest[], and set `sha1_query' to the base32 value.
-	 */
-
-	if (
-		oob &&
-		(flags & QUERY_F_FIREWALLED) &&
-		NODE_IS_LEAF(n)
-	) {
-		query_strip_oob_flag(n, n->data);
-		oob = FALSE;
-
-		if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug)) {
-			g_debug("QUERY %s node %s <%s>: removed OOB flag "
-				"(leaf node is TCP-firewalled)",
-				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				node_addr(n), node_vendor(n));
-		}
-	}
-
-	/*
 	 * If the query comes from a node farther than our TTL (i.e. the TTL we'll
 	 * use to send our reply), don't bother processing it: the reply won't
 	 * be able to reach the issuing node.
