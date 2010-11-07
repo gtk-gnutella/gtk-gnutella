@@ -107,7 +107,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 			if (n->tx_compressed && GUI_PROPERTY(show_gnet_info_txc))
 				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TXc=%u,%d%%",
-						n->sent, (int) (n->tx_compression_ratio * 100));
+						n->sent, (int) (n->tx_compression_ratio * 100.0));
 			else
 				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%u",
 						n->sent);
@@ -139,7 +139,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			if (n->rx_compressed && GUI_PROPERTY(show_gnet_info_rxc))
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" RXc=%u,%d%%",
-					n->received, (int) (n->rx_compression_ratio * 100));
+					n->received, (int) (n->rx_compression_ratio * 100.0));
 			else
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" RX=%u", n->received);
