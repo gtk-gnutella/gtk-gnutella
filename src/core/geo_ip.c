@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/host_addr.h"
 #include "lib/iprange.h"
 #include "lib/iso3166.h"
 #include "lib/parse.h"
@@ -368,7 +369,7 @@ gip_country(const host_addr_t ha)
 guint16
 gip_country_safe(const host_addr_t ha)
 {
-	if (tm_time() - geo_mtime > 15552000)		/* ~6 months */
+	if (delta_time(tm_time(), geo_mtime) > 15552000)	/* ~6 months */
 		return ISO3166_INVALID;
 
 	return gip_country(ha);

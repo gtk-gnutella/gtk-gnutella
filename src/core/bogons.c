@@ -44,9 +44,11 @@ RCSID("$Id$")
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/host_addr.h"
 #include "lib/iprange.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 
@@ -61,6 +63,7 @@ static const char bogons_file[] = "bogons.txt";
 static const char bogons_what[] = "Bogus IP addresses";
 
 static struct iprange_db *bogons_db; /**< The database of bogus CIDR ranges */
+static time_t bogons_mtime;			 /**< Modification time of loaded file */
 
 /**
  * Load bogons data from the supplied FILE.
@@ -76,8 +79,14 @@ bogons_load(FILE *f)
 	int linenum = 0;
 	int bits;
 	iprange_err_t error;
+	struct stat buf;
 
 	bogons_db = iprange_new();
+	if (-1 == fstat(fileno(f), &buf)) {
+		g_warning("cannot stat %s: %s", bogons_file, g_strerror(errno));
+	} else {
+		bogons_mtime = buf.st_mtime;
+	}
 
 	while (fgets(line, sizeof(line), f)) {
 		linenum++;
@@ -227,6 +236,16 @@ bogons_close(void)
 gboolean
 bogons_check(const host_addr_t ha)
 {
+	/*
+	 * If the bogons file is too ancient, there is a risk it may flag an
+	 * IP as bogus whereas it is no longer reserved.  IPv4 address shortage
+	 * makes that likely.
+	 *		--RAM, 2010-11-07
+	 */
+
+	if (delta_time(tm_time(), bogons_mtime) > 15552000)	/* ~6 months */
+		return !host_addr_is_routable(ha);
+
 	if (NET_TYPE_IPV4 == host_addr_net(ha)) {
 		guint32 ip = host_addr_ipv4(ha);
 		return bogons_db && iprange_get(bogons_db, ip);
