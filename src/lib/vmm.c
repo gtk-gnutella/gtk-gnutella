@@ -1060,6 +1060,14 @@ pmap_insert_region(struct pmap *pm,
 			if (vmm_debugging(2)) {
 				g_debug("VMM good, reloaded kernel pmap contains region");
 			}
+		} else if (G_UNLIKELY(stop_freeing)) {
+			/*
+			 * We're so advanced in the shutdown that we don't really care
+			 * if the kernel starts allocating in areas we thought were
+			 * already allocated by foreign code.
+			 */
+			g_assert(vmf_is_foreign(vmf));
+			g_assert(ptr_cmp(end, vmf_end(vmf)) <= 0);
 		} else {
 			if (vmm_debugging(0)) {
 				g_warning("pmap already contains the new region [0x%lx, 0x%lx]",
