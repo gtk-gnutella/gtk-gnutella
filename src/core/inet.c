@@ -104,9 +104,9 @@ struct ip_record {
 /**
  * States of our small automaton to try to detect reception of unsolicited
  * messages if we do not get them naturally: there are only a few such messages
- * that can only be viewed as unsolicited.
+ * that can truly be viewed as unsolicited.
  *
- * SO if we don't get these, we enter the mode UNSOLICITED_PREPARE in which
+ * So if we don't get these, we enter the UNSOLICITED_PREPARE mode in which
  * we just record the addresses of whom we send things to.  We ignore any
  * unsolicited checks for non-matching addresses at this point.  After
  * FW_UDP_WINDOW seconds have elapsed, we enter UNSOLICITED_CHECK and the
