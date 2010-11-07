@@ -307,7 +307,7 @@ ev_link(cqueue_t *cq, cevent_t *ev)
 		}
 	}
 
-	g_assert(0);		/* Must have found an event to insert before */
+	g_assert_not_reached();	/* Must have found an event to insert before */
 }
 
 /**

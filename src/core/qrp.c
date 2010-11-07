@@ -718,7 +718,7 @@ qrt_step_compress(struct bgtask *h, gpointer u, int ticks)
 	case 1:						/* More work required */
 		break;
 	default:
-		g_assert(0);			/* Bug in zlib_deflate() */
+		g_assert_not_reached();	/* Bug in zlib_deflate() */
 	}
 
 	return BGR_MORE;		/* More work required */
