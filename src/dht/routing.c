@@ -767,6 +767,31 @@ forget_node(knode_t *kn)
 }
 
 /**
+ * Forget node previously held in the routing table which is dropped
+ * during a merge operation.
+ *
+ * Used to reset the status before freeing the node, to be able to assert
+ * that no node from the routing table can be freed outside this file.
+ */
+static void
+forget_merged_node(knode_t *kn)
+{
+	knode_check(kn);
+	g_assert(kn->status != KNODE_UNKNOWN);
+	g_assert(kn->refcnt > 0);
+
+	kn->flags &= ~KNODE_F_ALIVE;
+	kn->status = KNODE_UNKNOWN;
+
+	/*
+	 * Freeing will happen in forget_hashlist_node() when the buckets
+	 * being merged are freed up.
+	 */
+
+	gnet_stats_count_general(GNR_DHT_ROUTING_EVICTED_NODES, 1);
+}
+
+/**
  * Hash list iterator callback.
  */
 static void
@@ -2644,6 +2669,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 	hash_list_t *hl;
 	size_t maxsize;
 	GSList *sl;
+	gboolean forget = FALSE;
 
 	hl = list_for(kb, status);
 	maxsize = list_maxsize_for(status);
@@ -2656,12 +2682,16 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 		knode_check(kn);
 		g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
 
-		if (c_class_get_count(kn, kb) >= K_BUCKET_MAX_IN_NET) {
+		if (forget) {
+			forget_merged_node(kn);
+			continue;
+		} else if (c_class_get_count(kn, kb) >= K_BUCKET_MAX_IN_NET) {
 			if (GNET_PROPERTY(dht_debug)) {
 				g_debug("DHT rejecting %s: "
 					"too many hosts from same class-C network in %s",
 					knode_to_string(kn), kbucket_to_string(kb));
 			}
+			forget_merged_node(kn);
 			continue;
 		}
 
@@ -2676,7 +2706,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 		 */
 
 		if (hash_list_length(hl) >= maxsize)
-			break;
+			forget = TRUE;
 	}
 }
 
