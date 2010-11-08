@@ -2644,7 +2644,6 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 	hash_list_t *hl;
 	size_t maxsize;
 	GSList *sl;
-	gboolean forget = FALSE;
 
 	hl = list_for(kb, status);
 	maxsize = list_maxsize_for(status);
@@ -2657,23 +2656,19 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 		knode_check(kn);
 		g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
 
-		if (forget) {
-			forget_node(kn);
-			continue;
-		} else if (c_class_get_count(kn, kb) >= K_BUCKET_MAX_IN_NET) {
+		if (c_class_get_count(kn, kb) >= K_BUCKET_MAX_IN_NET) {
 			if (GNET_PROPERTY(dht_debug)) {
 				g_debug("DHT rejecting %s: "
 					"too many hosts from same class-C network in %s",
 					knode_to_string(kn), kbucket_to_string(kb));
 			}
-			forget_node(kn);
 			continue;
 		}
 
 		add_node_internal(kb, kn, status, FALSE);
 
 		/*
-		 * As soon as the list is full, forget the nodes.
+		 * As soon as the list is full, stop inserting the nodes.
 		 *
 		 * Since the nodes were sorted by increasing probability of being
 		 * dead, we're hopefully keeping the best nodes during the
@@ -2681,7 +2676,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 		 */
 
 		if (hash_list_length(hl) >= maxsize)
-			forget = TRUE;
+			break;
 	}
 }
 
