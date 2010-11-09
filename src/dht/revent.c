@@ -317,10 +317,10 @@ revent_pmsg_free(pmsg_t *mb, gpointer arg)
 		 * Message was successfully sent from the queue.
 		 */
 
-		if (ops->msg_sent) {
-			kn->last_sent = tm_time();
+		kn->last_sent = tm_time();
+
+		if (ops->msg_sent)
 			(*ops->msg_sent)(obj, mb);
-		}
 
 		if (*ops->debug > 4)
 			g_debug("DHT %s[%s] sent %s (%d bytes) to %s, RTT=%u",
