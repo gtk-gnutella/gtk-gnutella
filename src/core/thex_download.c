@@ -399,7 +399,7 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 	n_nodes = size / TTH_RAW_SIZE;
 	n_leaves = tt_node_count_at_depth(ctx->filesize, ctx->depth);
 
-	/* Shareaza use a fixed depth of 9, allow one level less like others */
+	/* Shareaza uses a fixed depth of 9, allow one level less like others */
 	good_depth = tt_good_depth(ctx->filesize);
 
 	ctx->depth = MIN(ctx->depth, good_depth);
