@@ -3088,7 +3088,7 @@ lookup_create(const kuid_t *kuid, lookup_type_t type,
 		NL_MAX_LIFETIME, lookup_expired, nl);
 
 	g_hash_table_insert(nlookups, &nl->lid, nl);
-	dht_lookup_notify(kuid);
+	dht_lookup_notify(kuid, type);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
 		g_debug("DHT LOOKUP[%s] starting %s lookup for %s",

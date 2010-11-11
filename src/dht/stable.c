@@ -61,7 +61,7 @@
  * of presence of a node for "h" more hours given that it was already
  * alive for H hours (with H >= 1):
  *
- *    P(x >= h)|x >= H = -F(H + h) / -F(H) = H / (H + h)
+ *    P(x >= (H + h))|x >= H = -F(H + h) / -F(H) = H / (H + h)
  *
  * For the [0, 1] interval, we use the following probability density:
  *
@@ -79,6 +79,19 @@
  *     f(x) = 1/2          for x in [0, 1]
  *     f(x) = 1 / (2*x^2)  for x >= 1
  *
+ * If a node has been alive "H" hours already (H >= 1), what is the time
+ * increment h (in hours) that satisfies:
+ *
+ *    p = P(x >= (H + h))|x >= H
+ *
+ * where p is a given probability of presence?  This satisfies the equation:
+ *
+ *    p = H / (H + h)
+ *
+ * and solving for h we have:
+ *
+ *    h = H * (1 - p) / p
+ *
  * Applications:
  *
  * - for publishing operations, given the set of nodes to which the value
@@ -92,6 +105,11 @@
  *   period and, if high enough, increase the expiration date for the published
  *   value, so as to reserve the entry slot in the key (given we have a fixed
  *   limited amount of values per keys) to the most stable publishers.
+ *
+ * - for alive node checks: when a node has been up at least one hour, we
+ *   can compute how much time we can wait before pinging the node again,
+ *   knowing that we want to be sure that it is still likely to be up with
+ *   a probability of "p" (for instance p = 95%).
  *
  * Implementation:
  *

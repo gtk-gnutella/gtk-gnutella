@@ -37,6 +37,8 @@
 
 RCSID("$Id$")
 
+#include <math.h>		/* For pow() */
+
 #include "knode.h"
 #include "kuid.h"
 #include "stable.h"		/* For stable_still_alive_probability() */
@@ -106,16 +108,36 @@ knode_dead_probability_cmp(gconstpointer a, gconstpointer b)
 	const knode_t *k1 = a;
 	const knode_t *k2 = b;
 	double p1, p2;
+	double e;
 
-	knode_check(k1);
-	knode_check(k2);
-
-	p1 = stable_still_alive_probability(k1->first_seen, k1->last_seen);
-	p2 = stable_still_alive_probability(k2->first_seen, k2->last_seen);
+	p1 = knode_still_alive_probability(k1);
+	p2 = knode_still_alive_probability(k2);
 
 	/* Higher alive chances => lower dead probability */
 
-	return (p2 - p1) < 1e-15 ? 0 : p2 > p1 ? +1 : -1;
+	e = p2 - p1;
+	if (e < 0.0)
+		e = -e;
+
+	if (e < 1e-15) {
+		time_delta_t d;
+
+		/*
+		 * Probabilities of presence are comparable.
+		 * The more ancient node is more likely to be alive.
+		 * Otherwise, the one we heard from last is more likely to be alive.
+		 */
+
+		d = delta_time(k1->first_seen, k2->first_seen);
+		if (0 == d) {
+			d = delta_time(k1->last_seen, k2->last_seen);
+			return 0 == d ? 0 : d > 0 ? -1 : +1;
+		} else {
+			return d > 0 ? +1 : -1;
+		}
+	} else {
+		return p2 > p1 ? +1 : -1;
+	}
 }
 
 /**
@@ -176,12 +198,7 @@ knode_can_recontact(const knode_t *kn)
 	if (!kn->rpc_timeouts)
 		return TRUE;				/* Timeout condition was cleared */
 
-	/*
-	 * The grace period we want is 8 seconds times 2^timeouts, so it
-	 * ends up being 2^(timeouts + 3).
-	 */
-
-	grace = 1 << (kn->rpc_timeouts + 3);
+	grace = 1 << kn->rpc_timeouts;
 	elapsed = delta_time(tm_time(), kn->last_sent);
 
 	return elapsed > grace;
@@ -424,14 +441,33 @@ knode_map_free(gpointer key, gpointer value, gpointer unused_u)
 	knode_free(kn);
 }
 
+#define KNODE_ALIVE_DECIMATION	0.85
+
 /**
  * Convenience routine to compute theoretical probability of presence for
- * a node, given its first and last seen times.
+ * a node, adjusted down when RPC timeouts occurred recently.
  */
 double
 knode_still_alive_probability(const knode_t *kn)
 {
-	return stable_still_alive_probability(kn->first_seen, kn->last_seen);
+	double p;
+
+	knode_check(kn);
+
+	p = stable_still_alive_probability(kn->first_seen, kn->last_seen);
+
+	/*
+	 * If RPC timeouts occurred, the theoretical probability is further
+	 * adjusted down.  The decimation is arbitrary of course, but the
+	 * rationale is that an RPC timeout somehow is an information that the
+	 * node may not be alive.  Of course, it could be an UDP drop, an IP
+	 * drop somewhere, but this is why we don't use 0.0 as the decimation!
+	 */
+
+	if (0 == kn->rpc_timeouts)
+		return p;
+	else
+		return p * pow(KNODE_ALIVE_DECIMATION, (double) kn->rpc_timeouts);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

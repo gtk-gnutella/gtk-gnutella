@@ -109,6 +109,7 @@ RCSID("$Id$")
 
 #define K_BUCKET_MAX_DEPTH	(KUID_RAW_BITSIZE - 1)
 #define K_BUCKET_MAX_DEPTH_PASSIVE	4
+#define K_BUCKET_MIN_DEPTH_PASSIVE	2
 
 /**
  * How many sub-divisions of a bucket can happen.
@@ -128,7 +129,7 @@ RCSID("$Id$")
  * This is a way to fight against ID attacks from a hostile network: we
  * stop inserting hosts from that over-present network.
  */
-#define K_BUCKET_MAX_IN_NET	3		/* At most 3 hosts from same class C net */
+#define K_BUCKET_MAX_IN_NET	3	/* At most 3 hosts from same class C net */
 
 #define C_MASK	0xffffff00		/* Class C network mask */
 
@@ -138,11 +139,19 @@ RCSID("$Id$")
  * Every period, we make sure our "good" contacts are still alive and
  * check whether the "stale" contacts can be permanently dropped.
  */
-#define ALIVE_PERIOD			(10*60)		/* 10 minutes */
+#define ALIVE_PERIOD			(5*60)		/* 5 minutes */
 #define ALIVE_PERIOD_MS			(ALIVE_PERIOD * 1000)
-#define ALIVE_PERIOD_PASV		(20*60)		/* 20 minutes */
+#define ALIVE_PERIOD_PASV		(10*60)		/* 10 minutes */
 #define ALIVE_PERIOD_PASV_MS	(ALIVE_PERIOD_PASV * 1000)
-#define ALIVE_PROBA_THRESH		0.3333		/* 33.33% */
+#define ALIVE_PROBA_LOW_THRESH	0.5			/* 50% */
+#define ALIVE_PROBA_HIGH_THRESH	0.9			/* 90% */
+#define ALIVE_PERIOD_MAX		(60*60)		/* 1 hour */
+
+/**
+ * Period for staleness checks.
+ */
+#define STALE_PERIOD			(1*30)		/* 30 seconds */
+#define STALE_PERIOD_MS			(STALE_PERIOD * 1000)
 
 /**
  * Period for bucket refreshes.
@@ -164,6 +173,7 @@ struct kbnodes {
 	GHashTable *c_class;		/**< Counts class-C networks in bucket */
 	cevent_t *aliveness;		/**< Periodic aliveness checks */
 	cevent_t *refresh;			/**< Periodic bucket refresh */
+	cevent_t *staleness;		/**< Periodic staleness checks */
 	time_t last_lookup;			/**< Last time node lookup was performed */
 };
 
@@ -181,7 +191,9 @@ struct kbucket {
 	struct kbnodes *nodes;		/**< Node information, in leaf k-buckets */
 	guchar depth;				/**< Depth in tree (meaningful bits) */
 	guchar split_depth;			/**< Depth at which we left our space */
-	gboolean ours;				/**< Whether our KUID falls in that bucket */
+	unsigned ours:1;			/**< Whether our KUID falls in that bucket */
+	unsigned no_split:1;		/**< Hysteresis: forbid splits for a while */
+	unsigned frozen_depth:1;	/**< Do not split until next bucket refresh */
 };
 
 /**
@@ -248,6 +260,7 @@ static const gchar dht_route_what[] = "the DHT routing table";
 static const kuid_t kuid_null;
 
 static void bucket_alive_check(cqueue_t *cq, gpointer obj);
+static void bucket_stale_check(cqueue_t *cq, gpointer obj);
 static void bucket_refresh(cqueue_t *cq, gpointer obj);
 static void dht_route_retrieve(void);
 static struct kbucket *dht_find_bucket(const kuid_t *id);
@@ -458,7 +471,7 @@ is_splitable(const struct kbucket *kb)
 	 */
 
 	if (!dht_is_active())
-		return kb->depth < K_BUCKET_MAX_DEPTH_PASSIVE;
+		return kb->depth < K_BUCKET_MAX_DEPTH_PASSIVE && !kb->no_split;
 
 	/*
 	 * The following logic only applies to active DHT nodes.
@@ -469,6 +482,26 @@ is_splitable(const struct kbucket *kb)
 
 	if (kb->ours)
 		return TRUE;		/* We can always split our own bucket */
+
+	/*
+	 * Merge/split hysteresis:
+	 *
+	 * After a bucket merge, further splits are forbidden in the bucket
+	 * until the next "alive check" happens.
+	 */
+
+	if (kb->no_split)
+		return FALSE;
+
+	/*
+	 * Frozen depth due to lack of lookups:
+	 *
+	 * After a forced merge, further splits are forbidden in the bucket
+	 * until the next bucket refresh.
+	 */
+
+	if (kb->frozen_depth)
+		return FALSE;
 
 	/*
 	 * We are an active node. Allow for KDA_B extra splits for buckets that
@@ -712,15 +745,20 @@ other_size_free(struct other_size *os)
 static char *
 kbucket_to_string(const struct kbucket *kb)
 {
-	static char buf[80];
+	static char buf[128];
 	char kuid[KUID_RAW_SIZE * 2 + 1];
 
 	g_assert(kb);
 
 	bin_to_hex_buf((char *) &kb->prefix, KUID_RAW_SIZE, kuid, sizeof kuid);
 
-	gm_snprintf(buf, sizeof buf, "k-bucket %s (depth %d%s)",
-		kuid, kb->depth, kb->ours ? ", ours" : "");
+	gm_snprintf(buf, sizeof buf, "k-bucket %s (%sdepth %d%s%s)"
+			" [good: %u, stale: %u, pending: %u]",
+		kuid, kb->frozen_depth ? "frozen " : "",
+		kb->depth, kb->ours ? ", ours" : "",
+		kb->no_split ? ", no-split" : "",
+		list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
+		list_count(kb, KNODE_PENDING));
 
 	return buf;
 }
@@ -759,6 +797,7 @@ forget_node(knode_t *kn)
 	g_assert(kn->status != KNODE_UNKNOWN);
 	g_assert(kn->refcnt > 0);
 
+	list_update_stats(kn->status, -1);		/* Node leaving routing table */
 	kn->flags &= ~KNODE_F_ALIVE;
 	kn->status = KNODE_UNKNOWN;
 	knode_free(kn);
@@ -780,6 +819,7 @@ forget_merged_node(knode_t *kn)
 	g_assert(kn->status != KNODE_UNKNOWN);
 	g_assert(kn->refcnt > 0);
 
+	list_update_stats(kn->status, -1);		/* Node leaving routing table */
 	kn->flags &= ~KNODE_F_ALIVE;
 	kn->status = KNODE_UNKNOWN;
 
@@ -812,6 +852,8 @@ forget_hashlist_node(gpointer knode, gpointer unused_data)
 	 * ref-uncounted, leaving all other attributes as-is.  Unless the node
 	 * is going to be disposed of, at which time we must force the status
 	 * to KNODE_UNKNOWN for knode_dispose().
+	 *
+	 * Furthermore, at this point, all the node accounting has been done.
 	 */
 
 	if (DHT_BOOT_SHUTDOWN == GNET_PROPERTY(dht_boot_status))
@@ -868,6 +910,7 @@ free_node_lists(struct kbucket *kb)
 
 		acct_net_free(&knodes->c_class);
 		cq_cancel(callout_queue, &knodes->aliveness);
+		cq_cancel(callout_queue, &knodes->staleness);
 		cq_cancel(callout_queue, &knodes->refresh);
 		wfree(knodes, sizeof *knodes);
 		kb->nodes = NULL;
@@ -907,13 +950,40 @@ install_alive_check(struct kbucket *kb)
 }
 
 /**
- * Install periodic refreshing of bucket.
+ * Install periodic stale node checking for buckets.
  */
 static void
-install_bucket_refresh(struct kbucket *kb)
+install_stale_check(struct kbucket *kb)
+{
+	int delay;
+	int adj;
+
+	g_assert(is_leaf(kb));
+
+	delay = STALE_PERIOD_MS;
+
+	/*
+	 * Adjust delay randomly by +/- 5% to avoid callbacks firing at the
+	 * same time for all the buckets.
+	 */
+
+	adj = STALE_PERIOD_MS / 10;
+	adj = adj / 2 - random_value(adj);
+
+	kb->nodes->staleness =
+		cq_insert(callout_queue, delay + adj, bucket_stale_check, kb);
+}
+
+/**
+ * Install periodic refreshing of bucket.
+ *
+ * @param kb		the bucket
+ * @param elapsed	time since last node lookup (0 if none)
+ */
+static void
+install_bucket_refresh(struct kbucket *kb, time_delta_t elapsed)
 {
 	int period = REFRESH_PERIOD;
-	time_delta_t elapsed;
 
 	g_assert(is_leaf(kb));
 
@@ -937,8 +1007,6 @@ install_bucket_refresh(struct kbucket *kb)
 	 * lookups were done recently.
 	 */
 
-	elapsed = delta_time(tm_time(), kb->nodes->last_lookup);
-
 	if (elapsed >= period)
 		kb->nodes->refresh = cq_insert(callout_queue, 1, bucket_refresh, kb);
 	else {
@@ -956,6 +1024,27 @@ install_bucket_refresh(struct kbucket *kb)
 		kb->nodes->refresh =
 			cq_insert(callout_queue, delay + adj, bucket_refresh, kb);
 	}
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_debug("DHT refresh scheduled in %lu secs for %s (last lookup %s ago)",
+			(unsigned long)
+				cq_remaining(callout_queue, kb->nodes->refresh) / 1000,
+			kbucket_to_string(kb), compact_time(elapsed));
+	}
+}
+
+/**
+ * Install all the periodic checks for the new bucket.
+ *
+ * @param kb		the bucket
+ * @param elapsed	elapsed time since last known node lookup (0 if none)
+ */
+static void
+install_bucket_periodic_checks(struct kbucket *kb, time_delta_t elapsed)
+{
+	install_alive_check(kb);
+	install_stale_check(kb);
+	install_bucket_refresh(kb, elapsed);
 }
 
 /**
@@ -1060,13 +1149,10 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 
 	g_assert(is_leaf(kb));
 
-	g_debug("DHT bucket refresh with %s "
-		"for %s %s (good: %u, stale: %u, pending: %u) completed: %s",
+	g_debug("DHT bucket refresh with %s for %s %s completed: %s",
 		kuid_to_hex_string(kuid),
 		kb == okb ? "leaf" : was_split ? "split" : "merged",
-		kbucket_to_string(kb),
-		list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
-		list_count(kb, KNODE_PENDING), lookup_strerror(error));
+		kbucket_to_string(kb), lookup_strerror(error));
 }
 
 /**
@@ -1085,11 +1171,8 @@ dht_bucket_refresh(struct kbucket *kb, gboolean forced)
 
 	if (GNET_PROPERTY(dht_boot_status) != DHT_BOOT_COMPLETED) {
 		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT not fully bootstrapped, denying %srefresh of %s "
-				"(good: %u, stale: %u, pending: %u)",
-				forced ? "forced " : "",
-				kbucket_to_string(kb), list_count(kb, KNODE_GOOD),
-				list_count(kb, KNODE_STALE), list_count(kb, KNODE_PENDING));
+			g_warning("DHT not fully bootstrapped, denying %srefresh of %s",
+				forced ? "forced " : "", kbucket_to_string(kb));
 		return;
 	}
 
@@ -1103,26 +1186,19 @@ dht_bucket_refresh(struct kbucket *kb, gboolean forced)
 	if (list_count(kb, KNODE_GOOD) == K_BUCKET_GOOD && !is_splitable(kb)) {
 		gnet_stats_count_general(GNR_DHT_DENIED_UNSPLITABLE_BUCKET_REFRESH, 1);
 		if (GNET_PROPERTY(dht_debug))
-			g_debug("DHT denying %srefresh of non-splitable full %s "
-				"(good: %u, stale: %u, pending: %u)",
-				forced ? "forced " : "",
-				kbucket_to_string(kb), list_count(kb, KNODE_GOOD),
-				list_count(kb, KNODE_STALE), list_count(kb, KNODE_PENDING));
+			g_debug("DHT denying %srefresh of non-splitable full %s",
+				forced ? "forced " : "", kbucket_to_string(kb));
 		return;
 	}
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT initiating %srefresh of %ssplitable %s "
-			"(good: %u, stale: %u, pending: %u)",
+		g_debug("DHT initiating %srefresh of %ssplitable %s",
 			forced ? "forced " : "",
-			is_splitable(kb) ? "" : "non-", kbucket_to_string(kb),
-			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
-			list_count(kb, KNODE_PENDING));
+			is_splitable(kb) ? "" : "non-", kbucket_to_string(kb));
 	}
 
-	if (forced) {
+	if (forced)
 		gnet_stats_count_general(GNR_DHT_FORCED_BUCKET_REFRESH, 1);
-	}
 
 	/*
 	 * Generate a random KUID falling within this bucket's range.
@@ -1347,6 +1423,40 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 }
 
 /**
+ * Initiate DHT bootstrapping.
+ */
+static void
+dht_initiate_bootstrap(void)
+{
+	if (bootstrapping) {
+		if (GNET_PROPERTY(dht_debug))
+			g_debug("DHT already bootstrapping, ignoring request to bootstrap");
+		return;
+	}
+
+	bootstrapping = TRUE;
+
+	if (GNET_PROPERTY(dht_debug))
+		g_debug("DHT attempting bootstrap -- looking for our own KUID");
+
+	/*
+	 * Lookup our own ID, discarding results as all we want is the side
+	 * effect of filling up our routing table with the k-closest nodes
+	 * to our ID.
+	 */
+
+	if (!lookup_find_node(our_kuid, NULL, bootstrap_status, NULL)) {
+		if (GNET_PROPERTY(dht_debug))
+			g_debug("DHT bootstrapping impossible: routing table empty");
+
+		bootstrapping = FALSE;
+		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
+	} else {
+		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_OWN);
+	}
+}
+
+/**
  * Attempt DHT bootstrapping.
  */
 void
@@ -1373,29 +1483,11 @@ dht_attempt_bootstrap(void)
 				g_debug("DHT finalizing bootstrap -- looking for our own KUID");
 			lookup_find_node(our_kuid, NULL, NULL, NULL);
 		}
+		bootstrapping = FALSE;
 		return;
 	}
 
-	bootstrapping = TRUE;
-
-	if (GNET_PROPERTY(dht_debug))
-		g_debug("DHT attempting bootstrap -- looking for our own KUID");
-
-	/*
-	 * Lookup our own ID, discarding results as all we want is the side
-	 * effect of filling up our routing table with the k-closest nodes
-	 * to our ID.
-	 */
-
-	if (!lookup_find_node(our_kuid, NULL, bootstrap_status, NULL)) {
-		if (GNET_PROPERTY(dht_debug))
-			g_debug("DHT bootstrapping impossible: routing table empty");
-
-		bootstrapping = FALSE;
-		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
-	} else {
-		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_OWN);
-	}
+	dht_initiate_bootstrap();
 }
 
 /**
@@ -1440,8 +1532,7 @@ dht_initialize(gboolean post_init)
 	root = walloc0(sizeof *root);
 	root->ours = TRUE;
 	allocate_node_lists(root);
-	install_alive_check(root);
-	install_bucket_refresh(root);
+	install_bucket_periodic_checks(root, 0);
 
 	stats.buckets++;
 	gnet_stats_count_general(GNR_DHT_ROUTING_BUCKETS, +1);
@@ -1771,6 +1862,7 @@ dht_split_bucket(struct kbucket *kb)
 
 	kb->one = one = allocate_child(kb);
 	kb->zero = zero = allocate_child(kb);
+	kb->no_split = FALSE;			/* We're splitting it anyway */
 
 	/*
 	 * See which one of our two children is within our tree.
@@ -1797,10 +1889,15 @@ dht_split_bucket(struct kbucket *kb)
 	 * buckets is becoming ours.
 	 */
 
-	install_alive_check(kb->zero);
-	install_bucket_refresh(kb->zero);
-	install_alive_check(kb->one);
-	install_bucket_refresh(kb->one);
+	{
+		time_delta_t d = 0;
+
+		if (kb->nodes->last_lookup != 0)
+			d = delta_time(tm_time(), kb->nodes->last_lookup);
+
+		install_bucket_periodic_checks(kb->zero, d);
+		install_bucket_periodic_checks(kb->one, d);
+	}
 
 	if (GNET_PROPERTY(dht_debug) > 2) {
 		const char *tag;
@@ -1873,7 +1970,6 @@ add_node_internal(struct kbucket *kb,
 	hash_list_append(hl, knode_refcnt_inc(kn));
 	g_hash_table_insert(kb->nodes->all, kn->id, kn);
 	c_class_update_count(kn, kb, +1);
-	stats.dirty = TRUE;
 
 	if (GNET_PROPERTY(dht_debug) > 2)
 		g_debug("DHT added %snode %s to %s",
@@ -1893,6 +1989,7 @@ add_node(struct kbucket *kb, knode_t *kn, knode_status_t status)
 
 	kn->status = status;
 	add_node_internal(kb, kn, status, TRUE);
+	list_update_stats(status, +1);
 }
 
 /**
@@ -1909,6 +2006,8 @@ static gboolean
 dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 {
 	gboolean added = FALSE;
+	guint good;
+	guint stale;
 
 	knode_check(kn);
 	g_assert(is_leaf(kb));
@@ -1918,21 +2017,31 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 	/*
 	 * Not enough good entries for the bucket, add at tail of list
 	 * (most recently seen).
+	 *
+	 * Any stale node we have can be switched back to good, so we need
+	 * to avoid early splitting of the bucket by assuming the stale nodes
+	 * could become good again.
+	 *
+	 * At the same time, we don't want to be in a situation where we have
+	 * only stale nodes in the bucket, so we systematically add to the good
+	 * list if it holds less than the maximum amount of nodes.
 	 */
 
-	if (hash_list_length(kb->nodes->good) < K_BUCKET_GOOD) {
+	good = list_count(kb, KNODE_GOOD);
+	stale = list_count(kb, KNODE_STALE);
+
+	if (good < K_BUCKET_GOOD / 2 || good + stale < K_BUCKET_GOOD) {
 		add_node(kb, kn, KNODE_GOOD);
-		stats.good++;
-		gnet_stats_count_general(GNR_DHT_ROUTING_GOOD_NODES, +1);
 		added = TRUE;
 		goto done;
 	}
 
 	/*
 	 * The bucket is full with good entries, split it first if possible.
+	 * Note that we avoid splitting if there are stale entries.
 	 */
 
-	while (is_splitable(kb)) {
+	while (0 == stale && is_splitable(kb)) {
 		int byte;
 		guchar mask;
 
@@ -1943,8 +2052,6 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 
 		if (hash_list_length(kb->nodes->good) < K_BUCKET_GOOD) {
 			add_node(kb, kn, KNODE_GOOD);
-			stats.good++;
-			gnet_stats_count_general(GNR_DHT_ROUTING_GOOD_NODES, +1);
 			added = TRUE;
 			goto done;
 		}
@@ -1960,10 +2067,8 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 	 * lookup (listed in the RPC reply).
 	 */
 
-	if (traffic && hash_list_length(kb->nodes->pending) < K_BUCKET_PENDING) {
+	if (traffic && list_count(kb, KNODE_PENDING) < K_BUCKET_PENDING) {
 		add_node(kb, kn, KNODE_PENDING);
-		gnet_stats_count_general(GNR_DHT_ROUTING_PENDING_NODES, +1);
-		stats.pending++;
 		added = TRUE;
 	}
 
@@ -2001,6 +2106,9 @@ static void
 promote_pending_node(struct kbucket *kb)
 {
 	knode_t *last;
+	unsigned good_and_stale;
+	knode_t *selected;
+	hash_list_iter_t *iter;
 
 	g_assert(is_leaf(kb));
 
@@ -2011,85 +2119,87 @@ promote_pending_node(struct kbucket *kb)
 
 	g_assert(last->status == KNODE_PENDING);
 
-	if (hash_list_length(kb->nodes->good) < K_BUCKET_GOOD) {
-		knode_t *selected = NULL;
+	good_and_stale = list_count(kb, KNODE_GOOD) + list_count(kb, KNODE_STALE);
+
+	if (good_and_stale >= K_BUCKET_GOOD)
+		return;				/* Promoting could cause a split soon */
+
+	/*
+	 * Only promote a node that we know is not shutdowning.
+	 *
+	 * We iterate from the tail of the list, which is where most recently
+	 * seen nodes lie.
+	 */
+
+	selected = NULL;
+	iter = hash_list_iterator_tail(kb->nodes->pending);
+
+	while (hash_list_iter_has_previous(iter)) {
+		knode_t *kn = hash_list_iter_previous(iter);
+
+		knode_check(kn);
+		g_assert(KNODE_PENDING == kn->status);
+
+		if (!(kn->flags & KNODE_F_SHUTDOWNING)) {
+			selected = kn;
+			break;
+		}
+	}
+
+	hash_list_iter_release(&iter);
+
+	if (selected) {
+		time_delta_t elapsed;
+
+		if (GNET_PROPERTY(dht_debug))
+			g_debug("DHT promoting %s node %s at %s to good in %s, "
+				"p=%.2lf%%",
+				knode_status_to_string(selected->status),
+				kuid_to_hex_string(selected->id),
+				host_addr_port_to_string(selected->addr, selected->port),
+				kbucket_to_string(kb),
+				knode_still_alive_probability(selected) * 100.0);
+
+		hash_list_remove(kb->nodes->pending, selected);
+		list_update_stats(KNODE_PENDING, -1);
 
 		/*
-		 * Only promote a node that we know is not shutdowning.
-		 * It will become unavailable soon.
-		 *
-		 * We iterate from the tail of the list, which is where most recently
-		 * seen nodes lie.
+		 * If there's only one reference to this node, attempt to move
+		 * it around if it can serve memory compaction.
 		 */
 
-		hash_list_iter_t *iter;
-		iter = hash_list_iterator_tail(kb->nodes->pending);
-		while (hash_list_iter_has_previous(iter)) {
-			knode_t *kn = hash_list_iter_previous(iter);
+		selected = move_node(kb, selected);
 
-			knode_check(kn);
-			g_assert(KNODE_PENDING == kn->status);
+		/*
+		 * Picked up node is the most recently seen pending node (at the
+		 * tail of the list), but it is not necessarily the latest seen
+		 * node when put among the good nodes, so we must insert at the
+		 * proper position in the list.
+		 */
 
-			if (!(kn->flags & KNODE_F_SHUTDOWNING)) {
-				selected = kn;
-				break;
+		selected->status = KNODE_GOOD;
+		hash_list_insert_sorted(kb->nodes->good, selected, knode_seen_cmp);
+		list_update_stats(KNODE_GOOD, +1);
+
+		/*
+		 * If we haven't heard about the selected pending node for a while,
+		 * ping it to make sure it's still alive.
+		 */
+
+		elapsed = delta_time(tm_time(), selected->last_seen);
+
+		if (elapsed >= alive_period()) {
+			if (GNET_PROPERTY(dht_debug)) {
+				g_debug("DHT pinging promoted node (last seen %s)",
+					short_time(elapsed));
+			}
+			if (dht_lazy_rpc_ping(selected)) {
+				gnet_stats_count_general(
+					GNR_DHT_ROUTING_PINGED_PROMOTED_NODES, 1);
 			}
 		}
-		hash_list_iter_release(&iter);
 
-		if (selected) {
-			time_delta_t elapsed;
-
-			if (GNET_PROPERTY(dht_debug))
-				g_debug("DHT promoting %s node %s at %s to good in %s, "
-					"p=%.2lf%%",
-					knode_status_to_string(selected->status),
-					kuid_to_hex_string(selected->id),
-					host_addr_port_to_string(selected->addr, selected->port),
-					kbucket_to_string(kb),
-					knode_still_alive_probability(selected) * 100.0);
-
-			hash_list_remove(kb->nodes->pending, selected);
-			list_update_stats(KNODE_PENDING, -1);
-
-			/*
-			 * If there's only one reference to this node, attempt to move
-			 * it around if it can serve memory compaction.
-			 */
-
-			selected = move_node(kb, selected);
-
-			/*
-			 * Picked up node is the most recently seen pending node (at the
-			 * tail of the list), but it is not necessarily the latest seen
-			 * node when put among the good nodes, so we must insert at the
-			 * proper position in the list.
-			 */
-
-			selected->status = KNODE_GOOD;
-			hash_list_insert_sorted(kb->nodes->good, selected, knode_seen_cmp);
-			list_update_stats(KNODE_GOOD, +1);
-
-			/*
-			 * If we haven't heard about the selected pending node for a while,
-			 * ping it to make sure it's still alive.
-			 */
-
-			elapsed = delta_time(tm_time(), selected->last_seen);
-
-			if (elapsed >= alive_period()) {
-				if (GNET_PROPERTY(dht_debug)) {
-					g_debug("DHT pinging promoted node (last seen %s)",
-						short_time(elapsed));
-				}
-				if (dht_lazy_rpc_ping(selected)) {
-					gnet_stats_count_general(
-						GNR_DHT_ROUTING_PINGED_PROMOTED_NODES, 1);
-				}
-			}
-
-			gnet_stats_count_general(GNR_DHT_ROUTING_PROMOTED_PENDING_NODES, 1);
-		}
+		gnet_stats_count_general(GNR_DHT_ROUTING_PROMOTED_PENDING_NODES, 1);
 	}
 }
 
@@ -2169,11 +2279,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 
 	if (hash_list_remove(hl, tkn)) {
 		g_hash_table_remove(kb->nodes->all, tkn->id);
-		list_update_stats(tkn->status, -1);
 		c_class_update_count(tkn, kb, -1);
-
-		if (was_good)
-			promote_pending_node(kb);
 
 		if (GNET_PROPERTY(dht_debug) > 2)
 			g_debug("DHT removed %s node %s from %s, p=%.2lf%%",
@@ -2182,6 +2288,9 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 				knode_still_alive_probability(tkn) * 100.0);
 
 		forget_node(tkn);
+
+		if (was_good)
+			promote_pending_node(kb);
 	}
 
 	check_leaf_bucket_consistency(kb);
@@ -2316,8 +2425,6 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 		 * splitting done above will have made some room in the "good" list.
 		 */
 
-		list_update_stats(new, -1);
-
 		if (
 			KNODE_GOOD == removed->status &&
 			hash_list_length(kb->nodes->pending) < K_BUCKET_PENDING
@@ -2326,6 +2433,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 
 			removed->status = KNODE_PENDING;
 			hash_list_append(kb->nodes->pending, removed);
+			list_update_stats(new, -1);
 			list_update_stats(KNODE_PENDING, +1);
 
 			if (GNET_PROPERTY(dht_debug))
@@ -2360,7 +2468,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 
 	/*
 	 * If moving a node out of the good list, move the node at the tail of
-	 * the pending list to the good one.
+	 * the pending list to the good one if we can miss good nodes.
 	 */
 
 	if (old == KNODE_GOOD)
@@ -2474,7 +2582,7 @@ record_node(knode_t *kn, gboolean traffic)
 
 	if (c_class_get_count(kn, kb) >= K_BUCKET_MAX_IN_NET) {
 		if (GNET_PROPERTY(dht_debug))
-			g_debug("DHT rejecting new node %s at %s: "
+			g_warning("DHT rejecting new node %s at %s: "
 				"too many hosts from same class-C network in %s",
 				kuid_to_hex_string(kn->id),
 				host_addr_port_to_string(kn->addr, kn->port),
@@ -2692,6 +2800,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 					knode_to_string(kn), kbucket_to_string(kb));
 			}
 			forget_merged_node(kn);
+			gnet_stats_count_general(GNR_DHT_ROUTING_EVICTED_QUOTA_NODES, 1);
 			continue;
 		}
 
@@ -2712,9 +2821,11 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 
 /**
  * Merge bucket and its sibling back if both are depleted enough.
+ *
+ * @return TRUE if merging was completed, FALSE otherwise.
  */
-static void
-dht_merge_siblings(struct kbucket *kb)
+static gboolean
+dht_merge_siblings(struct kbucket *kb, gboolean forced)
 {
 	struct kbucket *sibling;
 	unsigned good_nodes;
@@ -2723,15 +2834,15 @@ dht_merge_siblings(struct kbucket *kb)
 
 	g_assert(is_leaf(kb));
 
-	sibling = sibling_of(kb);
+	sibling = sibling_of(kb);	/* Will be ourselves if we're the root */
 
-	if (!is_leaf(sibling))
-		return;
+	if (!is_leaf(sibling) || sibling == kb)
+		return FALSE;
 
 	good_nodes = list_count(kb, KNODE_GOOD) + list_count(sibling, KNODE_GOOD);
 
-	if (good_nodes >= K_BUCKET_GOOD)
-		return;
+	if (!forced && good_nodes >= K_BUCKET_GOOD)
+		return FALSE;
 
 	/*
 	 * We can merge the two buckets into one.
@@ -2744,7 +2855,8 @@ dht_merge_siblings(struct kbucket *kb)
 	g_assert(parent->split_depth <= MIN(kb->split_depth, sibling->split_depth));
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT merging %s with its sibling (total of %u good node%s)",
+		g_debug("DHT merging %s%s with its sibling (total of %u good node%s)",
+			forced ? "(forced) " : "",
 			kbucket_to_string(kb), good_nodes, 1 == good_nodes ? "" :"s");
 	}
 
@@ -2754,17 +2866,29 @@ dht_merge_siblings(struct kbucket *kb)
 
 	parent->one = parent->zero = NULL;
 	allocate_node_lists(parent);
-	install_alive_check(parent);
-	install_bucket_refresh(parent);
+
+	parent->no_split = TRUE;	/* Hysteresis: no split until alive check */
 	parent->nodes->last_lookup =
 		delta_time(kb->nodes->last_lookup, sibling->nodes->last_lookup) >= 0 ?
 			kb->nodes->last_lookup : sibling->nodes->last_lookup;
+
+	/*
+	 * If forced merge, make sure we do not split the bucket again until
+	 * the next bucket refresh.
+	 */
+
+	if (forced) {
+		parent->frozen_depth = TRUE;
+		gnet_stats_count_general(GNR_DHT_FORCED_BUCKET_MERGE, 1);
+	}
 
 	/*
 	 * Insert all good nodes to the parent bucket.
 	 */
 
 	nodes = merged_node_list(KNODE_GOOD, kb, sibling);
+	if (forced)
+		nodes = g_slist_sort(nodes, knode_dead_probability_cmp);
 	insert_nodes(parent, KNODE_GOOD, nodes);
 	g_slist_free(nodes);
 
@@ -2783,6 +2907,21 @@ dht_merge_siblings(struct kbucket *kb)
 	nodes = g_slist_sort(nodes, knode_dead_probability_cmp);
 	insert_nodes(parent, KNODE_PENDING, nodes);
 	g_slist_free(nodes);
+
+	/*
+	 * Now that the nodes have been propagated, install periodic checks.
+	 * This is done after popuplating the parent for logging purposes
+	 * (node counts in the merged bucket).
+	 */
+
+	{
+		time_delta_t d = 0;
+
+		if (parent->nodes->last_lookup != 0)
+			d = delta_time(tm_time(), parent->nodes->last_lookup);
+
+		install_bucket_periodic_checks(parent, d);
+	}
 
 	/*
 	 * Update statistics.
@@ -2816,12 +2955,29 @@ dht_merge_siblings(struct kbucket *kb)
 	check_leaf_bucket_consistency(parent);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT merged buckets into %s "
-			"(good: %u, stale: %u, pending: %u) max depth: %d",
-			kbucket_to_string(parent),
-			list_count(parent, KNODE_GOOD), list_count(parent, KNODE_STALE),
-			list_count(parent, KNODE_PENDING), stats.max_depth);
+		g_debug("DHT merged buckets into %s max depth: %d",
+			kbucket_to_string(parent), stats.max_depth);
 	}
+
+	/*
+	 * Check whether we merged back too high in the tree.
+	 */
+
+	if (parent == root) {
+		g_warning("DHT no longer seeded after bucket merge");
+		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
+	} else if (parent->parent == root) {
+		g_warning("DHT no longer bootstrapped after bucket merge");
+		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_SEEDED);
+	}
+
+	/*
+	 * Attempt to recursively merge.
+	 */
+
+	dht_merge_siblings(parent, FALSE);		/* Never forced */
+
+	return TRUE;		/* Something was merged */
 }
 
 /**
@@ -2850,6 +3006,12 @@ dht_node_timed_out(knode_t *kn)
 	if (++kn->rpc_timeouts >= KNODE_MAX_TIMEOUTS) {
 		dht_remove_timeouting_node(kn);
 	} else {
+		/*
+		 * Nodes marked "shutdowning" may come back again soon, so we move
+		 * them to the pending list, which is scanned regularily to see
+		 * whether the hosts come back.
+		 */
+
 		if (kn->flags & KNODE_F_SHUTDOWNING) {
 			dht_set_node_status(kn, KNODE_PENDING);
 		} else {
@@ -2859,16 +3021,13 @@ dht_node_timed_out(knode_t *kn)
 }
 
 /**
- * Periodic check of live contacts in the "good" list and all the "stale"
- * contacts that can be recontacted.
+ * Periodic check of stale contacts.
  */
 static void
-bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
+bucket_stale_check(cqueue_t *unused_cq, gpointer obj)
 {
 	struct kbucket *kb = obj;
 	hash_list_iter_t *iter;
-	time_t now = tm_time();
-	guint good_and_stale;
 	GSList *to_remove = NULL;
 	GSList *sl;
 
@@ -2880,32 +3039,25 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	 * Re-instantiate the periodic callback for next time.
 	 */
 
-	install_alive_check(kb);
+	install_stale_check(kb);
+
+	if (0 == list_count(kb, KNODE_STALE))
+		return;		/* No stale nodes, nothing to do */
 
 	if (!GNET_PROPERTY(is_inet_connected)) {
 		if (GNET_PROPERTY(dht_debug)) {
-			g_debug("DHT not connected to Internet, "
-				"skipping alive check on %s (good: %u, stale: %u, pending: %u)",
-				kbucket_to_string(kb),
-				list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
-				list_count(kb, KNODE_PENDING));
+			g_debug("DHT not connected to Internet, skipping stale check on %s",
+				kbucket_to_string(kb));
 		}
 		return;
 	}
 
-	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT starting alive check on %s "
-			"(good: %u, stale: %u, pending: %u)",
-			kbucket_to_string(kb),
-			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
-			list_count(kb, KNODE_PENDING));
-	}
+	if (GNET_PROPERTY(dht_debug))
+		g_debug("DHT starting stale check on %s", kbucket_to_string(kb));
 
 	/*
 	 * Remove stale nodes which are likely to be dead.
-	 *
-	 * We do that before performing the alive check to reduce the amount
-	 * of useless pings, but also to better spot depleted buckets.
+	 * Ping all the stale nodes we can recontact.
 	 */
 
 	iter = hash_list_iterator(kb->nodes->stale);
@@ -2915,8 +3067,12 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 		knode_check(kn);
 		g_assert(KNODE_STALE == kn->status);
 
-		if (knode_still_alive_probability(kn) < ALIVE_PROBA_THRESH) {
+		if (knode_still_alive_probability(kn) < ALIVE_PROBA_LOW_THRESH) {
 			to_remove = g_slist_prepend(to_remove, kn);
+		} else if (knode_can_recontact(kn)) {
+			if (dht_lazy_rpc_ping(kn)) {
+				gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_STALE_NODES, 1);
+			}
 		}
 	}
 	hash_list_iter_release(&iter);
@@ -2933,6 +3089,52 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	}
 
 	g_slist_free(to_remove);
+}
+
+/**
+ * Periodic check of live contacts.
+ */
+static void
+bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
+{
+	struct kbucket *kb = obj;
+	hash_list_iter_t *iter;
+	time_t now = tm_time();
+	guint good_and_stale;
+
+	(void) unused_cq;
+
+	g_assert(is_leaf(kb));
+
+	/*
+	 * Re-instantiate the periodic callback for next time.
+	 */
+
+	install_alive_check(kb);
+
+	if (!GNET_PROPERTY(is_inet_connected)) {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_debug("DHT not connected to Internet, skipping alive check on %s",
+				kbucket_to_string(kb));
+		}
+		return;
+	}
+
+	if (GNET_PROPERTY(dht_debug))
+		g_debug("DHT starting alive check on %s", kbucket_to_string(kb));
+
+	/*
+	 * If we're no longer bootstrapped, restart the bootstrapping process.
+	 */
+
+	if (!dht_bootstrapped() && !bootstrapping)
+		dht_initiate_bootstrap();
+
+	/*
+	 * Turn off any split avoidance from previous bucket merge.
+	 */
+
+	kb->no_split = FALSE;
 
 	/*
 	 * If the sum of good + stale nodes is less than the maximum amount
@@ -2948,10 +3150,8 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 		guint new_count;
 
 		if (GNET_PROPERTY(dht_debug)) {
-			g_debug("DHT missing %u good node%s (has %u + %u stale) in %s",
-				missing, 1 == missing ? "" : "s",
-				list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
-				kbucket_to_string(kb));
+			g_debug("DHT missing %u good node%s in %s",
+				missing, 1 == missing ? "" : "s", kbucket_to_string(kb));
 		}
 
 		do {
@@ -2966,10 +3166,8 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 		if (GNET_PROPERTY(dht_debug)) {
 			guint promoted = K_BUCKET_GOOD - good_and_stale - missing;
 			if (promoted) {
-				g_debug("DHT promoted %u pending node%s "
-					"(now has %u good) in %s",
-					promoted, 1 == promoted ? "" : "s",
-					list_count(kb, KNODE_GOOD), kbucket_to_string(kb));
+				g_debug("DHT promoted %u pending node%s in %s",
+					promoted, 1 == promoted ? "" : "s", kbucket_to_string(kb));
 			}
 		}
 	}
@@ -2996,33 +3194,36 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	iter = hash_list_iterator(kb->nodes->good);
 	while (hash_list_iter_has_next(iter)) {
 		knode_t *kn = hash_list_iter_next(iter);
+		time_delta_t d;
 
 		knode_check(kn);
 		g_assert(KNODE_GOOD == kn->status);
 
-		if (delta_time(now, kn->last_seen) < alive_period())
+		d = delta_time(now, kn->last_seen);
+
+		if (d < alive_period())
 			break;		/* List is sorted: least recently seen at the head */
+
+		/*
+		 * We use our probalistic model to ensure that nodes which have been
+		 * alive for a while are not pinged too frequently:
+		 *
+		 * Given probability p = ALIVE_PROBA_HIGH_THRESH, if the likelyhood
+		 * that the node be still alive is above that threshold, do not
+		 * send a ping yet.  We enforce at least one ping per ALIVE_PERIOD_MAX
+		 * seconds.
+		 */
+
+		if (
+			d < ALIVE_PERIOD_MAX &&
+			knode_still_alive_probability(kn) > ALIVE_PROBA_HIGH_THRESH
+		) {
+			gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_SKIPPED, 1);
+			continue;
+		}
 
 		if (dht_lazy_rpc_ping(kn)) {
 			gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_GOOD_NODES, 1);
-		}
-	}
-	hash_list_iter_release(&iter);
-
-	/*
-	 * Ping all the stale nodes we can recontact.
-	 */
-
-	iter = hash_list_iterator(kb->nodes->stale);
-	while (hash_list_iter_has_next(iter)) {
-		knode_t *kn = hash_list_iter_next(iter);
-
-		knode_check(kn);
-
-		if (knode_can_recontact(kn)) {
-			if (dht_lazy_rpc_ping(kn)) {
-				gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_STALE_NODES, 1);
-			}
 		}
 	}
 	hash_list_iter_release(&iter);
@@ -3058,7 +3259,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	 * overhead: less periodic lookups, less nodes to ping.
 	 */
 
-	dht_merge_siblings(kb);
+	dht_merge_siblings(kb, FALSE);
 }
 
 /**
@@ -3068,19 +3269,93 @@ static void
 bucket_refresh(cqueue_t *unused_cq, gpointer obj)
 {
 	struct kbucket *kb = obj;
+	time_delta_t elapsed;
 
 	g_assert(is_leaf(kb));
 
 	(void) unused_cq;
 
 	/*
-	 * Re-instantiate for next time
+	 * To adapt the size of the routing table to the local usage of the node
+	 * we do not always record lookups that fall in the bucket: we wish to know
+	 * which buckets are useful for node lookups and which ones happen because
+	 * of normal refresh/token operations.
+	 *
+	 * The idea is that for all buckets which are split at an additional depth
+	 * underneath the original split leaving the closest subtree (because the
+	 * b = K_BUCKET_SUBDIVIDE is such that b > 1) we only want to track the
+	 * user lookups we perform for IDs falling within them.
+	 *
+	 * The other excess buckets cost on routing table maintenance so we do
+	 * not wish to keep them around unless they are required for our lookups.
+	 *
+	 * However, to allow proper convergence for IDs surrounding our KUID, we
+	 * need to maintain the b -1 extra split levels to allow other nodes in
+	 * the DHT to converge by at least "b" bits each time they query us with
+	 * a FIND_NODE.
 	 */
 
-	kb->nodes->last_lookup = tm_time();
-	install_bucket_refresh(kb);
+	if (kb->ours && dht_is_active()) {
+		install_bucket_refresh(kb, 0);
+		goto refresh;
+	}
 
+	/*
+	 * Check whether we had a lookup in the bucket during the period.
+	 * If we did, install_bucket_refresh() will have installed a callback
+	 * in the future exactly REFRESH_PERIOD seconds after our last lookup,
+	 * so there's nothing to do for now.
+	 */
+
+	elapsed = delta_time(tm_time(), kb->nodes->last_lookup);
+
+	if (elapsed < REFRESH_PERIOD) {
+		kb->frozen_depth = FALSE;		/* A priori, allow further splits */
+		install_bucket_refresh(kb, elapsed);
+		return;
+	}
+
+	/*
+	 * No lookup for the last REFRESH_PERIOD seconds in the bucket.
+	 */
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_debug("DHT last lookup in %s was %s ago",
+			kbucket_to_string(kb), compact_time(elapsed));
+	}
+
+	install_bucket_refresh(kb, 0);	/* Full period before rescheduling */
+
+	if (dht_is_active()) {
+		/*
+		 * For an active node, provided we're not close enough to our KUID
+		 * and we are beneath the split depth, attempt a merge.
+		 */
+
+		if (kb->depth > kb->split_depth && !keys_is_nearby(&kb->prefix))
+			goto merge;
+	} else {
+		/*
+		 * For a passive node, we want to maintain a depth sufficient to
+		 * prevent sudden depletion of the routing table in case all the
+		 * peers were to leave between two alive checks.
+		 */
+
+		if (kb->depth > K_BUCKET_MIN_DEPTH_PASSIVE)
+			goto merge;
+	}
+
+refresh:
 	dht_bucket_refresh(kb, FALSE);
+	return;
+
+merge:
+	if (dht_merge_siblings(kb, TRUE))		/* Forced merging attempt */
+		return;
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_debug("DHT merge impossible for %s", kbucket_to_string(kb));
+	}
 }
 
 /**
@@ -3607,9 +3882,9 @@ fill_closest_in_bucket(
 
 	/*
 	 * If we can determine that we do not have enough good nodes in the bucket
-	 * to fill the vector, consider "pending" nodes (excluding shutdowning
-	 * ones), provided we got traffic from them recently (defined by the
-	 * aliveness period).
+	 * to fill the vector, consider "stale" nodes and then "pending" nodes
+	 * (excluding shutdowning ones), provided we got traffic from them
+	 * recently (defined by the aliveness period).
 	 */
 
 	good = hash_list_list(kb->nodes->good);
@@ -3630,6 +3905,42 @@ fill_closest_in_bucket(
 
 		good = g_list_remove(good, kn);
 	}
+
+	/*
+	 * Only stale nodes that are still somewhat likely to be alive are
+	 * included in the set, provided we're not limited to only
+	 * known-to-be-alive nodes (which by definition stale nodes might not be).
+	 *
+	 * When we answer FIND_NODE requests from others, we'll never include
+	 * stale nodes (alive will be TRUE).  But for our own lookups, it's good
+	 * to include stale nodes because we may discover they're still alive
+	 * without having to ping them explicitly.
+	 */
+
+	if (!alive) {
+		GList *stale = hash_list_list(kb->nodes->stale);
+
+		while (stale) {
+			knode_t *kn = stale->data;
+
+			knode_check(kn);
+			g_assert(KNODE_STALE == kn->status);
+
+			if (
+				(!exclude || !kuid_eq(kn->id, exclude)) &&
+				knode_still_alive_probability(kn) >= ALIVE_PROBA_LOW_THRESH
+			) {
+				nodes = g_list_prepend(nodes, kn);
+				available++;
+			}
+
+			stale = g_list_remove(stale, kn);
+		}
+	}
+
+	/*
+	 * Pending nodes come last, if we miss nodes.
+	 */
 
 	if (available < kcnt) {
 		GList *pending = hash_list_list(kb->nodes->pending);
@@ -3859,26 +4170,30 @@ dht_fill_random(gnet_host_t *hvec, int hcnt)
 
 /**
  * Invoked when a lookup is performed on the ID, so that we may update
- * the time of the last refresh in the ID's bucket.
+ * the time of the last node lookup falling within the bucket.
  */
 void
-dht_lookup_notify(const kuid_t *id)
+dht_lookup_notify(const kuid_t *id, lookup_type_t type)
 {
-	int period;
 	struct kbucket *kb;
 
 	g_assert(id);
 
+	/*
+	 * Special lookup types are ignored:
+	 * 
+	 * LOOKUP_REFRESH are our own periodic bucket refresh.  No need to record
+	 * the last time they happen.
+	 *
+	 * LOOKUP_TOKEN are not true lookups: we're only going to query one node
+	 * and they should therefore never be tracked.
+	 */
+
+	if (LOOKUP_TOKEN == type || LOOKUP_REFRESH == type)
+		return;
+
 	kb = dht_find_bucket(id);
 	kb->nodes->last_lookup = tm_time();
-
-	if (dht_is_active()) {
-		period = kb->ours ? OUR_REFRESH_PERIOD : REFRESH_PERIOD;
-	} else {
-		period = REFRESH_PERIOD;
-	}
-	
-	cq_resched(callout_queue, kb->nodes->refresh, period * 1000);
 }
 
 /**

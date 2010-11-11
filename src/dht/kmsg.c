@@ -95,11 +95,14 @@ RCSID("$Id$")
  * Firewalled LimeWire nodes seem to send very frequent pings, some nodes
  * re-pinging every 10 seconds.  Under no circumstances should a node ping
  * another one so frequently: alive checks are supposed to happen every
- * 10 minutes for an active node, and even less often for a passive node, and
- * nodes should be smart and avoid pinging another if they've got traffic
- * from them recently.
+ * 5 minutes for nodes.  Moreover, nodes should be smart and avoid pinging
+ * another if they got traffic from it recently.
+ *
+ * We need to allow for re-pinging though, because pongs could be dropped
+ * on the way back and the other host could resend its ping after some
+ * timeout.
  */
-#define KMSG_PING_FREQ			300		/**< 1 ping per 5 minutes per IP */
+#define KMSG_PING_FREQ			30		/**< 1 ping per 30 seconds per IP */
 
 static aging_table_t *kmsg_aging_pings;
 

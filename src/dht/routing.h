@@ -40,6 +40,7 @@
 
 #include "kuid.h"
 #include "knode.h"
+#include "lookup.h"		/* For lookup_type_t */
 
 #include "if/dht/kademlia.h"
 #include "if/dht/dht.h"
@@ -68,7 +69,7 @@ void dht_remove_node(knode_t *kn);
 void dht_record_activity(knode_t *kn);
 void dht_node_timed_out(knode_t *kn);
 
-void dht_lookup_notify(const kuid_t *id);
+void dht_lookup_notify(const kuid_t *id, lookup_type_t type);
 void dht_verify_node(knode_t *kn, knode_t *new);
 void dht_update_subspace_size_estimate(
 	patricia_t *pt, const kuid_t *kuid, int amount);

@@ -321,7 +321,7 @@ keys_is_nearby(const kuid_t *id)
 	common_bits = common_leading_bits(id, KUID_RAW_BITSIZE,
 			get_our_kuid(), KUID_RAW_BITSIZE);
 
-	radius = (kball.closest_bits - kball.furthest_bits) / 2;
+	radius = 1 + (kball.closest_bits - kball.furthest_bits) / 2;
 
 	if (kball.furthest_bits < radius)
 		return common_bits > 0;
