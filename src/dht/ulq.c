@@ -615,6 +615,28 @@ ulq_do_service(cqueue_t *unused_cq, gpointer unused_obj)
 	service_ev = NULL;
 
 	/*
+	 * If the DHT is not bootstrapped, we cannot perform user lookups.
+	 */
+
+	if (!dht_bootstrapped()) {
+		if (GNET_PROPERTY(dht_ulq_debug))
+			g_warning("DHT ULQ deferring servicing: DHT not bootstrapped");
+		ulq_delay_servicing();
+		return;
+	}
+
+	/*
+	 * If we're no longer connected to the Internet, no servicing.
+	 */
+
+	if (!GNET_PROPERTY(is_inet_connected)) {
+		if (GNET_PROPERTY(dht_ulq_debug))
+			g_warning("DHT ULQ deferring servicing: not connected to Internet");
+		ulq_delay_servicing();
+		return;
+	}
+
+	/*
 	 * DHT lookups can stress the outgoing UDP queue.
 	 *
 	 * If the UDP queue is flow-controlled, do not add another DHT lookup
