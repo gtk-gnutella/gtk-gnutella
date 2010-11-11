@@ -431,6 +431,10 @@ dht_rpc_answer(const guid_t *muid,
 	 * Exponential moving average for RTT is computed on the last n=3 terms.
 	 * The smoothing factor, sm=2/(n+1), is therefore 0.5, which is easy
 	 * to compute.
+	 *
+	 * Note that we use the starting point of the RPC, not the time at which
+	 * we actually sent the message from the queue because we also want to
+	 * take our own latency into account.
 	 */
 
 	tm_now_exact(&now);

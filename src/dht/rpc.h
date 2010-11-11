@@ -75,6 +75,14 @@ struct gnutella_node;
  * We provide both the knode that replied and the "gnutella node" which
  * contains the IP:port from which the UDP message came and which should be
  * used should we have anything to send back to the host.
+ *
+ * @param type			DHT_RPC_REPLY or DHT_RPC_TIMEOUT
+ * @param kn			the node to which the RPC was sent
+ * @param n				the Gnutella node replying
+ * @param function		the type of Kademlia message we got (0 on TIMEOUT)
+ * @param payload		the payload we got for the Kademlia message
+ * @param len			the length of the payload
+ * @param arg			user-defined callback parameter
  */
 typedef void (*dht_rpc_cb_t)(enum dht_rpc_ret type,
 	const knode_t *kn,
