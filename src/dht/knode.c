@@ -451,8 +451,20 @@ double
 knode_still_alive_probability(const knode_t *kn)
 {
 	double p;
+	static gboolean inited;
+	static double decimation[KNODE_MAX_TIMEOUTS];
 
 	knode_check(kn);
+
+	if (G_UNLIKELY(!inited)) {
+		size_t i;
+
+		for (i = 0; i < G_N_ELEMENTS(decimation); i++) {
+			decimation[i] = pow(KNODE_ALIVE_DECIMATION, (double) (i + 1));
+		}
+
+		inited = TRUE;
+	}
 
 	p = stable_still_alive_probability(kn->first_seen, kn->last_seen);
 
@@ -466,8 +478,10 @@ knode_still_alive_probability(const knode_t *kn)
 
 	if (0 == kn->rpc_timeouts)
 		return p;
-	else
-		return p * pow(KNODE_ALIVE_DECIMATION, (double) kn->rpc_timeouts);
+	else {
+		size_t i = MIN(kn->rpc_timeouts, G_N_ELEMENTS(decimation)) - 1;
+		return p * decimation[i];
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
