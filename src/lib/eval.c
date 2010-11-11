@@ -261,7 +261,7 @@ get_home(void)
 		
 		name = getlogin();
 		if (name) {
-			static const struct passwd *pp;
+			const struct passwd *pp;
 
 			pp = getpwnam(name);
 			if (pp)
@@ -272,7 +272,7 @@ get_home(void)
 
 #if defined(HAS_GETUID)
 	if (!dir) {
-		static const struct passwd *pp;
+		const struct passwd *pp;
 		
 		pp = getpwuid(getuid());
 		if (pp)
