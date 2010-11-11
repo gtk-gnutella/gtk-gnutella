@@ -39,6 +39,10 @@
 
 RCSID("$Id$")
 
+#ifdef I_PWD
+#include <pwd.h>				/* For getpwuid() and struct passwd */
+#endif
+
 #include "entropy.h"
 #include "compat_misc.h"
 #include "compat_sleep_ms.h"
@@ -50,7 +54,7 @@ RCSID("$Id$")
 #include "override.h"			/* Must be the last header included */
 
 static void
-sha1_feed_ulong(SHA1Context *ctx, gulong value)
+sha1_feed_ulong(SHA1Context *ctx, unsigned long value)
 {
 	SHA1Input(ctx, &value, sizeof value);
 }
@@ -72,6 +76,32 @@ sha1_feed_string(SHA1Context *ctx, const char *s)
 {
 	if (s) {
 		SHA1Input(ctx, s, strlen(s));
+	}
+}
+
+static void
+sha1_feed_stat(SHA1Context *ctx, const char *path)
+{
+	struct stat buf;
+
+	if (-1 != stat(path, &buf)) {
+		SHA1Input(ctx, &buf, sizeof buf);
+	} else {
+		sha1_feed_string(ctx, path);
+		sha1_feed_ulong(ctx, errno);
+	}
+}
+
+static void
+sha1_feed_fstat(SHA1Context *ctx, int fd)
+{
+	struct stat buf;
+
+	if (-1 != fstat(fd, &buf)) {
+		SHA1Input(ctx, &buf, sizeof buf);
+	} else {
+		sha1_feed_ulong(ctx, fd);
+		sha1_feed_ulong(ctx, errno);
 	}
 }
 
@@ -179,25 +209,48 @@ entropy_collect(struct sha1 *digest)
 	sha1_feed_string(&ctx, g_get_real_name());
 #endif	/* GLib >= 2.0 */
 
+#ifdef HAS_GETLOGIN
+	{
+		const char *name = getlogin();
+		sha1_feed_string(&ctx, name);
+	}
+#endif	/* HAS_GETLOGIN */
+
+	{
+		const struct passwd *pp = getpwuid(getuid());
+
+		sha1_feed_pointer(&ctx, pp);	/* pp points to static data */
+		if (pp != NULL) {
+			SHA1Input(&ctx, pp, sizeof *pp);
+		} else {
+			sha1_feed_ulong(&ctx, errno);
+		}
+	}
+
 	sha1_feed_string(&ctx, eval_subst("~"));
-	if (-1 != stat(eval_subst("~"), &buf)) {
-		SHA1Input(&ctx, &buf, sizeof buf);
-	}
-	if (-1 != stat(".", &buf)) {
-		SHA1Input(&ctx, &buf, sizeof buf);
-	}
-	if (-1 != stat("..", &buf)) {
-		SHA1Input(&ctx, &buf, sizeof buf);
-	}
-	if (-1 != stat("/", &buf)) {
-		SHA1Input(&ctx, &buf, sizeof buf);
-	}
-	if (-1 != fstat(STDIN_FILENO, &buf)) {
-		SHA1Input(&ctx, &buf, sizeof buf);
-	}
-	if (-1 != fstat(STDOUT_FILENO, &buf)) {
-		SHA1Input(&ctx, &buf, sizeof buf);
-	}
+	sha1_feed_stat(&ctx, eval_subst("~"));
+	sha1_feed_stat(&ctx, ".");
+	sha1_feed_stat(&ctx, "..");
+	sha1_feed_stat(&ctx, "/");
+	sha1_feed_stat(&ctx, "/bin");
+	sha1_feed_stat(&ctx, "/boot");
+	sha1_feed_stat(&ctx, "/dev");
+	sha1_feed_stat(&ctx, "/etc");
+	sha1_feed_stat(&ctx, "/home");
+	sha1_feed_stat(&ctx, "/lib");
+	sha1_feed_stat(&ctx, "/mnt");
+	sha1_feed_stat(&ctx, "/opt");
+	sha1_feed_stat(&ctx, "/proc");
+	sha1_feed_stat(&ctx, "/root");
+	sha1_feed_stat(&ctx, "/sbin");
+	sha1_feed_stat(&ctx, "/sys");
+	sha1_feed_stat(&ctx, "/tmp");
+	sha1_feed_stat(&ctx, "/usr");
+	sha1_feed_stat(&ctx, "/var");
+
+	sha1_feed_fstat(&ctx, STDIN_FILENO);
+	sha1_feed_fstat(&ctx, STDOUT_FILENO);
+	sha1_feed_fstat(&ctx, STDERR_FILENO);
 
 	sha1_feed_double(&ctx, fs_free_space_pct(eval_subst("~")));
 	sha1_feed_double(&ctx, fs_free_space_pct("/"));
@@ -216,6 +269,7 @@ entropy_collect(struct sha1 *digest)
 	sha1_feed_pointer(&ctx, &ctx);
 	sha1_feed_pointer(&ctx, cast_func_to_pointer(&entropy_collect));
 	sha1_feed_pointer(&ctx, cast_func_to_pointer(&exit));	/* libc */
+	sha1_feed_pointer(&ctx, &errno);
 	sha1_feed_pointer(&ctx, sbrk(0));
 
 	{
@@ -225,6 +279,7 @@ entropy_collect(struct sha1 *digest)
 		for (i = 0; NULL != environ[i]; i++) {
 			sha1_feed_string(&ctx, environ[i]);
 		}
+		sha1_feed_ulong(&ctx, i);
 	}
 
 	sha1_feed_string(&ctx, ttyname(STDIN_FILENO));
