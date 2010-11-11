@@ -1067,13 +1067,13 @@ pmap_insert_region(struct pmap *pm,
 			 * already allocated by foreign code.
 			 */
 			g_assert(vmf_is_foreign(vmf));
-			g_assert(ptr_cmp(end, vmf_end(vmf)) <= 0);
 			if (!foreign) {
 				/* Reset foreign pages, then find new insertion point */
 				pmap_overrule(pm, start, size);
 				vmf = pmap_lookup(pm, start, &idx);
 				goto insert;
 			}
+			g_assert(ptr_cmp(end, vmf_end(vmf)) <= 0);
 		} else {
 			if (vmm_debugging(0)) {
 				g_warning("pmap already contains the new region [0x%lx, 0x%lx]",
