@@ -542,8 +542,6 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 				hint_followed == 1 ? "" : "s");
 		}
 
-		hint_followed = 0;
-
 		/*
 		 * Because the hint was not followed and we're not dealing with
 		 * "foreign" memory here, we have to over-rule any chunk of the map
@@ -557,6 +555,9 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 
 		pmap_overrule(vmm_pmap(), p, size);
 
+		if (NULL == hint)
+			goto done;
+
 		/*
 		 * Kernel did not use our hint, maybe it was wrong because something
 		 * got mapped at the place where we thought there was nothing...
@@ -566,6 +567,8 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 * that we avoid further attempts at the same location for blocks
 		 * of similar sizes.
 		 */
+
+		hint_followed = 0;
 
 		if (vmm_pmap() == &kernel_pmap) {
 			if (vmm_debugging(0)) {
@@ -652,6 +655,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 	} else if (hint != NULL) {
 		hint_followed++;
 	}
+done:
 	return p;
 }
 #else	/* !HAS_MMAP */
