@@ -533,8 +533,8 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 			return_value_unless(MAP_FAILED != p, NULL);
 		}
 		p = NULL;
-	} else if (hint != NULL && p != hint) {
-		if (vmm_debugging(0)) {
+	} else if (p != hint) {
+		if (hint != NULL && vmm_debugging(0)) {
 			g_warning("VMM kernel did not follow hint 0x%lx for %luKiB region, "
 				"picked 0x%lx (after %lu followed hint%s)",
 				(unsigned long) hint, (unsigned long) (size / 1024),
@@ -1060,20 +1060,6 @@ pmap_insert_region(struct pmap *pm,
 			if (vmm_debugging(2)) {
 				g_debug("VMM good, reloaded kernel pmap contains region");
 			}
-		} else if (G_UNLIKELY(stop_freeing)) {
-			/*
-			 * We're so advanced in the shutdown that we don't really care
-			 * if the kernel starts allocating in areas we thought were
-			 * already allocated by foreign code.
-			 */
-			g_assert(vmf_is_foreign(vmf));
-			if (!foreign) {
-				/* Reset foreign pages, then find new insertion point */
-				pmap_overrule(pm, start, size);
-				vmf = pmap_lookup(pm, start, &idx);
-				goto insert;
-			}
-			g_assert(ptr_cmp(end, vmf_end(vmf)) <= 0);
 		} else {
 			if (vmm_debugging(0)) {
 				g_warning("pmap already contains the new region [0x%lx, 0x%lx]",
