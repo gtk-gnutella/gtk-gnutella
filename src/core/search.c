@@ -78,6 +78,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/compat_misc.h"
 #include "lib/concat.h"
+#include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
@@ -111,6 +112,8 @@ RCSID("$Id$")
 
 #define MUID_MAX			4	 /**< Max amount of MUID we keep per search */
 #define SEARCH_MIN_RETRY	1800 /**< Minimum search retry timeout */
+
+#define SEARCH_GC_PERIOD	120	 /**< Every 2 minutes */
 
 static GHashTable *muid_to_query_map;
 static hash_list_t *query_muids;
@@ -842,8 +845,16 @@ search_results_identify_spam(gnet_results_set_t *rs)
 	}
 }
 
+/*
+ * OOB reply acks (aka "ora") are kept around to implement OOBv3: we need to
+ * remember the random token we sent when claiming the results, to make sure
+ * that we only get the hits when we actually claimed them, and that we only
+ * get the ones we claimed.
+ */
+
 static hash_list_t *oob_reply_acks;
-static const time_delta_t oob_reply_ack_timeout = 120;
+
+#define OOB_REPLY_ACK_TIMEOUT	120		/* 2 minutes */
 
 struct ora {
 	const struct guid *muid;	/* GUID atom */
@@ -944,7 +955,7 @@ oob_reply_acks_garbage_collect(void)
 		struct ora *ora;
 
 		ora = hash_list_head(oob_reply_acks);
-		if (!ora || delta_time(now, ora->sent) <= oob_reply_ack_timeout)
+		if (!ora || delta_time(now, ora->sent) <= OOB_REPLY_ACK_TIMEOUT)
 			break;
 	} while (oob_reply_acks_remove_oldest());
 }
@@ -999,9 +1010,16 @@ search_results_are_requested(const struct guid *muid,
 
 	ora = ora_lookup(muid, addr, port, token);
 	if (ora) {
-		if (delta_time(tm_time(), ora->sent) <= oob_reply_ack_timeout)
+		if (delta_time(tm_time(), ora->sent) <= OOB_REPLY_ACK_TIMEOUT)
 			return TRUE;
+
+		/*
+		 * Entry expired, we're no longer interested.
+		 */
+
 		hash_list_remove(oob_reply_acks, ora);
+		ora_free(&ora);
+		/* FALL THROUGH */
 	}
 	return FALSE;
 }
@@ -2846,6 +2864,20 @@ search_dequeue_all_nodes(gnet_search_t sh)
 		search_notify_closed(sh);
 }
 
+/**
+ * Garbage collector -- callout queue periodic callback.
+ */
+static gboolean
+search_gc(void *unused_cq)
+{
+	(void) unused_cq;
+
+	query_muid_map_garbage_collect();
+	oob_reply_acks_garbage_collect();
+
+	return TRUE;		/* Keep calling */
+}
+
 /***
  *** Public functions
  ***/
@@ -2863,6 +2895,8 @@ search_init(void)
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 	oob_reply_acks_init();
 	query_muid_map_init();	
+
+	cq_periodic_add(callout_queue, SEARCH_GC_PERIOD * 1000, search_gc, NULL);
 }
 
 void
@@ -3878,6 +3912,7 @@ search_get_kept_results_by_handle(gnet_search_t sh)
  * @param hits				the amount of hits available (255 mean 255+ hits).
  * @param udp_firewalled	the remote host is UDP-firewalled and cannot
  *							receive unsolicited UDP traffic.
+ * @param secure			whether we use OOBv3
  */
 void
 search_oob_pending_results(
@@ -3973,7 +4008,6 @@ search_oob_pending_results(
 	/*
 	 * Ok, ask them the hits then.
 	 */
-
 
 	vmsg_send_oob_reply_ack(n, muid, ask, &token_opaque);
 
