@@ -3850,6 +3850,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 {
 	gboolean store_queue = FALSE;		/* Shall we call download_store()? */
 	enum dl_list list_target;
+	gboolean verify_sha1 = FALSE;
 
 	download_check(d);
 	file_info_check(d->file_info);
@@ -3879,8 +3880,11 @@ download_stop_v(struct download *d, download_status_t new_status,
 					 * complete our request, hence we did not go to
 					 * download_write_data() to see that the file was now
 					 * complete.
+					 *
+					 * We need to stop this donwload first, so defer
+					 * launching verification until we've completed cleanup.
 					 */
-					download_verify_sha1(d);
+					verify_sha1 = TRUE;
 				}
 			}
 			buffers_free(d);
@@ -4042,6 +4046,15 @@ download_stop_v(struct download *d, download_status_t new_status,
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
+
+	/*
+	 * If by stopping this download we completed the file, launch SHA1
+	 * verification.
+	 */
+
+	if (verify_sha1) {
+		download_verify_sha1(d);
+	}
 }
 
 /**
