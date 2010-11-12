@@ -668,8 +668,7 @@ static void
 ulq_delay_servicing(void)
 {
 	if (NULL == service_ev)
-		service_ev = cq_insert(callout_queue,
-			ULQ_UDP_DELAY, ulq_do_service, NULL);
+		service_ev = cq_main_insert(ULQ_UDP_DELAY, ulq_do_service, NULL);
 }
 
 /**
@@ -679,7 +678,7 @@ static void
 ulq_needs_servicing(void)
 {
 	if (NULL == service_ev)
-		service_ev = cq_insert(callout_queue, 1, ulq_do_service, NULL);
+		service_ev = cq_main_insert(1, ulq_do_service, NULL);
 }
 
 /**
@@ -903,7 +902,7 @@ ulq_close(gboolean exiting)
 	size_t i;
 	gboolean one = TRUE;
 
-	cq_cancel(callout_queue, &service_ev);
+	cq_cancel(&service_ev);
 	slist_free(&sched.runq);
 
 	for (i = 0; i < G_N_ELEMENTS(ulq); i++) {

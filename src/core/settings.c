@@ -2157,11 +2157,12 @@ file_descriptor_x_changed(property_t prop)
 
 	g_assert(ev != NULL);
 
-	if (*ev == NULL)
-		*ev = cq_insert(callout_queue, RESET_PROP_TM, reset_property_cb,
-			GUINT_TO_POINTER(prop));
-	else
-		cq_resched(callout_queue, *ev, RESET_PROP_TM);
+	if (*ev == NULL) {
+		*ev = cq_main_insert(RESET_PROP_TM,
+			reset_property_cb, GUINT_TO_POINTER(prop));
+	} else {
+		cq_resched(*ev, RESET_PROP_TM);
+	}
 
     return FALSE;
 }
@@ -2539,8 +2540,8 @@ settings_callbacks_shutdown(void)
 {
     guint n;
 
-	cq_cancel(callout_queue, &ev_file_descriptor_shortage);
-	cq_cancel(callout_queue, &ev_file_descriptor_runout);
+	cq_cancel(&ev_file_descriptor_shortage);
+	cq_cancel(&ev_file_descriptor_runout);
 
     for (n = 0; n < PROPERTY_MAP_SIZE; n ++) {
         if (property_map[n].cb) {

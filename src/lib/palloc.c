@@ -232,7 +232,7 @@ pool_install_heartbeat(pool_t *p)
 {
 
 	pool_check(p);
-	p->heartbeat_ev = cq_insert(callout_queue, 1000, pool_heartbeat, p);
+	p->heartbeat_ev = cq_main_insert(1000, pool_heartbeat, p);
 }
 
 /**
@@ -297,7 +297,7 @@ pool_free(pool_t *p)
 
 	g_slist_free(p->buffers);
 	G_FREE_NULL(p->name);
-	cq_cancel(callout_queue, &p->heartbeat_ev);
+	cq_cancel(&p->heartbeat_ev);
 	p->magic = 0;
 	wfree(p, sizeof *p);
 }

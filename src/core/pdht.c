@@ -243,7 +243,7 @@ pdht_bg_free_null(struct pdht_bg **pbg_ptr)
 	struct pdht_bg *pbg = *pbg_ptr;
 
 	if (pbg != NULL) {
-		cq_cancel(callout_queue, &pbg->ev);
+		cq_cancel(&pbg->ev);
 		WFREE_NULL(pbg->status,
 			lookup_result_path_length(pbg->rs) * sizeof *pbg->status);
 		lookup_result_free(pbg->rs);
@@ -517,7 +517,7 @@ pdht_publish_done(gpointer arg,
 			pp->bg->delay / 1000);
 	}
 
-	pp->bg->ev = cq_insert(callout_queue, pp->bg->delay, pdht_bg_publish, pp);
+	pp->bg->ev = cq_main_insert(pp->bg->delay, pdht_bg_publish, pp);
 	return;
 
 terminate:
@@ -1089,7 +1089,7 @@ pdht_publish_error_async(pdht_publish_t *pp, pdht_error_t code)
 	pa->pp = pp;
 	pa->code = code;
 
-	cq_insert(callout_queue, 1, pdht_report_async_error, pa);
+	cq_main_insert(1, pdht_report_async_error, pa);
 }
 
 /**
@@ -1303,7 +1303,7 @@ pdht_prox_done(gpointer u_arg, pdht_error_t code, const pdht_info_t *info)
 		}
 	}
 
-	cq_cancel(callout_queue, &pdht_proxy.publish_ev);
+	cq_cancel(&pdht_proxy.publish_ev);
 
 	/*
 	 * Logging.
@@ -1524,7 +1524,7 @@ pdht_prox_publish(gboolean force)
 	 * a while, cancel any previously installed timer first.
 	 */
 
-	cq_cancel(callout_queue, &pdht_proxy.publish_ev);
+	cq_cancel(&pdht_proxy.publish_ev);
 
 	now = tm_time();
 
@@ -1625,8 +1625,7 @@ static void
 pdht_prox_install_republish(time_t t)
 {
 	g_assert(NULL == pdht_proxy.publish_ev);
-	pdht_proxy.publish_ev =
-		cq_insert(callout_queue, t * 1000, pdht_prox_timer, NULL);
+	pdht_proxy.publish_ev = cq_main_insert(t * 1000, pdht_prox_timer, NULL);
 	pdht_proxy.last_delayed = tm_time();
 }
 
@@ -1821,7 +1820,7 @@ pdht_close(void)
 	if (pdht_proxy.pp != NULL) {
 		pdht_free_publish(pdht_proxy.pp, TRUE);
 	}
-	cq_cancel(callout_queue, &pdht_proxy.publish_ev);
+	cq_cancel(&pdht_proxy.publish_ev);
 
 	g_hash_table_foreach(aloc_publishes, free_publish_kv, NULL);
 	g_hash_table_destroy(aloc_publishes);

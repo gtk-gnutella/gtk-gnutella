@@ -497,7 +497,7 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 		 */
 
 		if (0 == dq->pending && dq->results_ev)
-			cq_resched(callout_queue, dq->results_ev, 1);
+			cq_resched(dq->results_ev, 1);
 
 	} else {
 		/*
@@ -828,8 +828,8 @@ dq_free(dquery_t *dq)
 			node_id_to_string(dq->node_id), dq->ttl, dq->up_sent, dq->horizon,
 			dq->results, dq->linger_results);
 
-	cq_cancel(callout_queue, &dq->results_ev);
-	cq_cancel(callout_queue, &dq->expire_ev);
+	cq_cancel(&dq->results_ev);
+	cq_cancel(&dq->expire_ev);
 
 	/*
 	 * Update statistics.
@@ -988,7 +988,7 @@ dq_expired(cqueue_t *unused_cq, gpointer obj)
 	 * that come back after we stopped querying.
 	 */
 
-	cq_cancel(callout_queue, &dq->results_ev);
+	cq_cancel(&dq->results_ev);
 	dq_terminate(dq);
 }
 
@@ -1139,7 +1139,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 		g_debug("DQ[%s] status reply timeout set to %d s",
 			dquery_id_to_string(dq->qid), timeout / 1000);
 
-	dq->results_ev = cq_insert(callout_queue, timeout, dq_results_expired, dq);
+	dq->results_ev = cq_main_insert(timeout, dq_results_expired, dq);
 }
 
 /**
@@ -1164,9 +1164,9 @@ dq_terminate(dquery_t *dq)
 	delay = (dq->flags & DQ_F_USR_CANCELLED) ? 1 : DQ_LINGER_TIMEOUT;
 
 	if (dq->expire_ev != NULL)
-		cq_resched(callout_queue, dq->expire_ev, delay);
+		cq_resched(dq->expire_ev, delay);
 	else
-		dq->expire_ev = cq_insert(callout_queue, delay, dq_expired, dq);
+		dq->expire_ev = cq_main_insert(delay, dq_expired, dq);
 
 	dq->flags &= ~DQ_F_WAITING;
 	dq->flags |= DQ_F_LINGER;
@@ -1402,7 +1402,7 @@ dq_send_next(dquery_t *dq)
 		if (GNET_PROPERTY(dq_debug) > 19)
 			g_debug("DQ[%s] waiting for %u ms (pending=%u)",
 				dquery_id_to_string(dq->qid), dq->result_timeout, dq->pending);
-		dq->results_ev = cq_insert(callout_queue,
+		dq->results_ev = cq_main_insert(
 			dq->result_timeout, dq_results_expired, dq);
 		return;
 	}
@@ -1496,7 +1496,7 @@ dq_send_next(dquery_t *dq)
 			dquery_id_to_string(dq->qid), (int) (tm_time() - dq->start),
 			timeout, dq->pending);
 
-	dq->results_ev = cq_insert(callout_queue, timeout, dq_results_expired, dq);
+	dq->results_ev = cq_main_insert(timeout, dq_results_expired, dq);
 	return;
 
 terminate:
@@ -1573,7 +1573,7 @@ dq_send_probe(dquery_t *dq)
 	 * assse how popular the query is.
 	 */
 
-	dq->results_ev = cq_insert(callout_queue,
+	dq->results_ev = cq_main_insert(
 		MIN(found, DQ_PROBE_UP) * (DQ_PROBE_TIMEOUT + dq->result_timeout),
 		dq_results_expired, dq);
 
@@ -1609,7 +1609,7 @@ dq_common_init(dquery_t *dq)
 	 * DQ_MAX_LIFETIME ms, whatever happens.
 	 */
 
-	dq->expire_ev = cq_insert(callout_queue, DQ_MAX_LIFETIME, dq_expired, dq);
+	dq->expire_ev = cq_main_insert(DQ_MAX_LIFETIME, dq_expired, dq);
 
 	/*
 	 * Record the query as being "alive".
@@ -2209,7 +2209,7 @@ dq_got_query_status(const struct guid *muid,
 		dq->flags |= DQ_F_USR_CANCELLED;
 
 		if (!(dq->flags & DQ_F_LINGER)) {
-			cq_cancel(callout_queue, &dq->results_ev);
+			cq_cancel(&dq->results_ev);
 			dq_terminate(dq);
 		}
 		return;
@@ -2222,7 +2222,7 @@ dq_got_query_status(const struct guid *muid,
 	if (dq->flags & DQ_F_WAITING) {
 		g_assert(dq->results_ev != NULL);	/* The "timeout" for status */
 
-		cq_cancel(callout_queue, &dq->results_ev);
+		cq_cancel(&dq->results_ev);
 		dq->flags &= ~DQ_F_WAITING;
 
 		dq_send_next(dq);

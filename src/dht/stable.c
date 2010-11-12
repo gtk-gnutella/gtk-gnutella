@@ -507,8 +507,8 @@ stable_close(void)
 {
 	storage_close(db_lifedata, db_stable_base);
 	db_lifedata = NULL;
-	cq_periodic_remove(callout_queue, &stable_sync_ev);
-	cq_periodic_remove(callout_queue, &stable_prune_ev);
+	cq_periodic_remove(&stable_sync_ev);
+	cq_periodic_remove(&stable_prune_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

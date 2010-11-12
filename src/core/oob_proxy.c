@@ -136,7 +136,7 @@ static void
 oob_proxy_rec_free(struct oob_proxy_rec *opr)
 {
 	oob_proxy_rec_check(opr);
-	cq_cancel(callout_queue, &opr->expire_ev);
+	cq_cancel(&opr->expire_ev);
 	atom_guid_free_null(&opr->leaf_muid);
 	atom_guid_free_null(&opr->proxied_muid);
 	node_id_unref(opr->node_id);
@@ -223,7 +223,7 @@ oob_proxy_create(gnutella_node_t *n)
 			}
 			return FALSE;
 		}
-		cq_resched(callout_queue, opr->expire_ev, PROXY_EXPIRE_MS);
+		cq_resched(opr->expire_ev, PROXY_EXPIRE_MS);
 	} else {
 		/*
 		 * Record the mapping, and make sure it expires in PROXY_EXPIRE_MS.
@@ -233,7 +233,7 @@ oob_proxy_create(gnutella_node_t *n)
 				&proxied_muid, NODE_ID(n));
 		gm_hash_table_insert_const(proxied_queries, opr->proxied_muid, opr);
 
-		opr->expire_ev = cq_insert(callout_queue, PROXY_EXPIRE_MS,
+		opr->expire_ev = cq_main_insert(PROXY_EXPIRE_MS,
 			oob_proxy_rec_destroy, opr);
 	}
 
@@ -367,7 +367,7 @@ oob_proxy_pending_results(
 	 */
 
 	g_assert(opr->expire_ev != NULL);
-	cq_resched(callout_queue, opr->expire_ev, PROXY_EXPIRE_MS);
+	cq_resched(opr->expire_ev, PROXY_EXPIRE_MS);
 
 	/*
 	 * Claim the results (all of it).
@@ -429,7 +429,7 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 	 */
 
 	g_assert(opr->expire_ev != NULL);
-	cq_resched(callout_queue, opr->expire_ev, PROXY_EXPIRE_MS);
+	cq_resched(opr->expire_ev, PROXY_EXPIRE_MS);
 
 	/*
 	 * Fetch the leaf node.

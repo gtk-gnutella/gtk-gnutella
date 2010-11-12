@@ -378,8 +378,8 @@ uhc_send_ping(void)
 
 		g_assert(uhc_ctx.timeout_ev == NULL);
 
-		uhc_ctx.timeout_ev = cq_insert(callout_queue,
-				UHC_TIMEOUT, uhc_ping_timeout, NULL);
+		uhc_ctx.timeout_ev = cq_main_insert(UHC_TIMEOUT,
+			uhc_ping_timeout, NULL);
 	} else {
 		g_warning("BOOT failed to send UDP SCP to %s",
 			host_addr_port_to_string(uhc_ctx.addr, uhc_ctx.port));
@@ -526,7 +526,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen)
 	if (cnt > 0) {
 		char msg[256];
 
-		cq_cancel(callout_queue, &uhc_ctx.timeout_ev);
+		cq_cancel(&uhc_ctx.timeout_ev);
 		uhc_connecting = FALSE;
 
 		gm_snprintf(msg, sizeof(msg),
@@ -577,7 +577,7 @@ uhc_init(void)
 void
 uhc_close(void)
 {
-	cq_cancel(callout_queue, &uhc_ctx.timeout_ev);
+	cq_cancel(&uhc_ctx.timeout_ev);
 	uhc_connecting = FALSE;
 
 	if (uhc_list) {

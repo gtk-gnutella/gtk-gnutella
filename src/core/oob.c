@@ -169,7 +169,7 @@ results_make(const struct guid *muid, GSList *files, int count,
 	r->secure = secure;
 	r->ggep_h = ggep_h;
 
-	r->ev_expire = cq_insert(callout_queue, OOB_EXPIRE_MS, results_destroy, r);
+	r->ev_expire = cq_main_insert(OOB_EXPIRE_MS, results_destroy, r);
 	r->refcount++;
 
 	gm_hash_table_insert_const(results_by_muid, r->muid, r);
@@ -193,12 +193,12 @@ results_free_remove(struct oob_results *r)
 	oob_results_check(r);
 	
 	if (r->ev_expire) {
-		cq_cancel(callout_queue, &r->ev_expire);
+		cq_cancel(&r->ev_expire);
 		g_assert(r->refcount > 0);
 		r->refcount--;
 	}
 	if (r->ev_timeout) {
-		cq_cancel(callout_queue, &r->ev_timeout);
+		cq_cancel(&r->ev_timeout);
 		g_assert(r->refcount > 0);
 		r->refcount--;
 	}
@@ -391,7 +391,7 @@ free_pmsg(gpointer item, gpointer unused_udata)
 static void
 servent_free(struct gservent *s)
 {
-	cq_cancel(callout_queue, &s->ev_service);
+	cq_cancel(&s->ev_service);
 	wfree(s->host, sizeof *s->host);
 	fifo_free_all(s->fifo, free_pmsg, NULL);
 	wfree(s, sizeof *s);
@@ -583,8 +583,7 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 			 * If we don't get any ACK back, we'll discard the results.
 			 */
 
-			r->ev_timeout = cq_insert(callout_queue, OOB_TIMEOUT_MS,
-					results_timeout, r);
+			r->ev_timeout = cq_main_insert(OOB_TIMEOUT_MS, results_timeout, r);
 			r->refcount++;
 		}
 	} else {

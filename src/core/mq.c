@@ -331,7 +331,7 @@ mq_free(mqueue_t *q)
 	if (q->qlink)
 		qlink_free(q);
 
-	cq_cancel(callout_queue, &q->swift_ev);
+	cq_cancel(&q->swift_ev);
 	g_list_free(q->qhead);
 	pmsg_slist_free(&q->qwait);
 
@@ -516,8 +516,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 	if (q->flags & MQ_SWIFT) {
 		q->flowc_written = 0;
 		q->last_size = q->size;
-		q->swift_ev = cq_insert(callout_queue,
-			q->swift_elapsed, mq_swift_timer, q);
+		q->swift_ev = cq_main_insert(q->swift_elapsed, mq_swift_timer, q);
 	}
 }
 
@@ -574,9 +573,7 @@ mq_enter_flowc(mqueue_t *q)
 	q->last_size = q->size;
 	q->swift_elapsed = node_flowc_swift_grace(q->node) * 1000;
 	q->swift_elapsed = MAX(q->swift_elapsed, 1);
-
-	q->swift_ev =
-		cq_insert(callout_queue, q->swift_elapsed, mq_enter_swift, q);
+	q->swift_ev = cq_main_insert(q->swift_elapsed, mq_enter_swift, q);
 
 	node_tx_enter_flowc(q->node);	/* Signal flow control */
 
@@ -602,7 +599,7 @@ mq_leave_flowc(mqueue_t *q)
 	if (q->qlink)
 		qlink_free(q);
 
-	cq_cancel(callout_queue, &q->swift_ev);
+	cq_cancel(&q->swift_ev);
 	node_tx_leave_flowc(q->node);	/* Signal end flow control */
 }
 

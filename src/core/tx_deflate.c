@@ -208,7 +208,7 @@ deflate_nagle_stop(txdrv_t *tx)
 	g_assert(attr->flags & DF_NAGLE);
 	g_assert(NULL != attr->tm_ev);
 
-	cq_cancel(attr->cq, &attr->tm_ev);
+	cq_cancel(&attr->tm_ev);
 	attr->flags &= ~DF_NAGLE;
 }
 
@@ -842,7 +842,7 @@ tx_deflate_destroy(txdrv_t *tx)
 			gnet_host_to_string(&tx->host), zlib_strerror(ret));
 
 	wfree(attr->outz, sizeof *attr->outz);
-	cq_cancel(attr->cq, &attr->tm_ev);
+	cq_cancel(&attr->tm_ev);
 	wfree(attr, sizeof *attr);
 }
 
@@ -979,7 +979,7 @@ tx_deflate_flush(txdrv_t *tx)
 
 	if (attr->flags & DF_NAGLE) {
 		g_assert(NULL != attr->tm_ev);
-		cq_expire(attr->cq, attr->tm_ev);
+		cq_expire(attr->tm_ev);
 	} else if (!(attr->flags & DF_FLOWC))
 		deflate_flush_send(tx);
 }

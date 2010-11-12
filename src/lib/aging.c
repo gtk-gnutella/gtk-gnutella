@@ -163,7 +163,7 @@ aging_free_kv(gpointer key, gpointer value, gpointer udata)
 	if (ag->kvfree != NULL)
 		(*ag->kvfree)(key, aval->value);
 
-	cq_cancel(aging_cq, &aval->cq_ev);
+	cq_cancel(&aval->cq_ev);
 	wfree(aval, sizeof *aval);
 }
 
@@ -251,7 +251,7 @@ aging_lookup_revitalise(const aging_table_t *ag, gconstpointer key)
 	if (aval != NULL) {
 		g_assert(aval->cq_ev != NULL);
 		aval->last_insert = tm_time();
-		cq_resched(aging_cq, aval->cq_ev, 1000 * aval->ttl);
+		cq_resched(aval->cq_ev, 1000 * aval->ttl);
 	}
 
 	return aval == NULL ? NULL : aval->value;
@@ -333,7 +333,7 @@ aging_insert(aging_table_t *ag, gpointer key, gpointer value)
 		aval->ttl = MIN(aval->ttl, INT_MAX / 1000);
 		aval->last_insert = now;
 
-		cq_resched(aging_cq, aval->cq_ev, 1000 * aval->ttl);
+		cq_resched(aval->cq_ev, 1000 * aval->ttl);
 	} else {
 		aval = walloc(sizeof(*aval));
 

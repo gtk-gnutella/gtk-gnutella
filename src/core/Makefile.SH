@@ -122,6 +122,7 @@ SRC = \
 	ioheader.c \
 	ipp_cache.c \
 	local_shell.c \
+	lrhc.c \
 	matching.c \
 	move.c \
 	mq.c \
@@ -214,6 +215,7 @@ OBJ = \
 	ioheader.o \
 	ipp_cache.o \
 	local_shell.o \
+	lrhc.o \
 	matching.o \
 	move.o \
 	mq.o \

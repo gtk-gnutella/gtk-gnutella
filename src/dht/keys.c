@@ -1058,8 +1058,7 @@ deserialize_keydata(bstr_t *bs, gpointer valptr, size_t len)
 static void
 install_periodic_kball(int period)
 {
-	kball_ev = cq_insert(callout_queue, period * 1000,
-		keys_periodic_kball, NULL);
+	kball_ev = cq_main_insert(period * 1000, keys_periodic_kball, NULL);
 }
 
 /**
@@ -1460,8 +1459,8 @@ keys_close(void)
 	kuid_atom_free_null(&kball.furthest);
 	kuid_atom_free_null(&kball.closest);
 
-	cq_cancel(callout_queue, &kball_ev);
-	cq_periodic_remove(callout_queue, &keys_periodic_ev);
+	cq_cancel(&kball_ev);
+	cq_periodic_remove(&keys_periodic_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

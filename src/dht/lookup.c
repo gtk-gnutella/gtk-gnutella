@@ -356,8 +356,8 @@ lookup_free(nlookup_t *nl)
 	patricia_foreach(nl->path, knode_patricia_free, NULL);
 	patricia_foreach(nl->ball, knode_patricia_free, NULL);
 
-	cq_cancel(callout_queue, &nl->expire_ev);
-	cq_cancel(callout_queue, &nl->delay_ev);
+	cq_cancel(&nl->expire_ev);
+	cq_cancel(&nl->delay_ev);
 	kuid_atom_free_null(&nl->kuid);
 
 	map_destroy(nl->tokens);
@@ -954,10 +954,9 @@ lookup_value_install_timer(nlookup_t *nl)
 {
 	lookup_value_check(nl);
 
-	cq_cancel(callout_queue, &nl->expire_ev);
-	cq_cancel(callout_queue, &nl->delay_ev);
-	nl->expire_ev = cq_insert(callout_queue,
-		NL_MAX_FETCHTIME, lookup_value_expired, nl);
+	cq_cancel(&nl->expire_ev);
+	cq_cancel(&nl->delay_ev);
+	nl->expire_ev = cq_main_insert(NL_MAX_FETCHTIME, lookup_value_expired, nl);
 }
 
 /**
@@ -1179,7 +1178,7 @@ lookup_value_free(nlookup_t *nl, gboolean free_vvec)
 
 	g_slist_free(fv->seckeys);
 	map_destroy(fv->seen);
-	cq_cancel(callout_queue, &fv->delay_ev);
+	cq_cancel(&fv->delay_ev);
 	wfree(fv, sizeof *fv);
 
 	nl->u.fv.fv = NULL;
@@ -2820,8 +2819,7 @@ lookup_delay(nlookup_t *nl)
 			revent_id_to_string(nl->lid), NL_FIND_DELAY / 1000.0);
 
 	nl->flags |= NL_F_DELAYED;
-	nl->delay_ev = cq_insert(callout_queue, NL_FIND_DELAY,
-		lookup_delay_expired, nl);
+	nl->delay_ev = cq_main_insert(NL_FIND_DELAY, lookup_delay_expired, nl);
 }
 
 /**
@@ -2838,7 +2836,7 @@ lookup_async_iterate(nlookup_t *nl)
 	g_assert(!(nl->flags & NL_F_DELAYED));
 
 	nl->flags |= NL_F_DELAYED;
-	nl->delay_ev = cq_insert(callout_queue, 1, lookup_delay_expired, nl);
+	nl->delay_ev = cq_main_insert(1, lookup_delay_expired, nl);
 }
 
 /**
@@ -3082,10 +3080,8 @@ lookup_create(const kuid_t *kuid, lookup_type_t type,
 	nl->ball = patricia_create(KUID_RAW_BITSIZE);
 	nl->err = error;
 	nl->arg = arg;
+	nl->expire_ev = cq_main_insert(NL_MAX_LIFETIME, lookup_expired, nl);
 	tm_now_exact(&nl->start);
-
-	nl->expire_ev = cq_insert(callout_queue,
-		NL_MAX_LIFETIME, lookup_expired, nl);
 
 	g_hash_table_insert(nlookups, &nl->lid, nl);
 	dht_lookup_notify(kuid, type);
@@ -3345,7 +3341,7 @@ lookup_find_value(
 	 * Therefore, defer the startup a little.
 	 */
 
-	cq_insert(callout_queue, 1, lookup_value_check_here, nl);
+	cq_main_insert(1, lookup_value_check_here, nl);
 
 	return nl;
 }
@@ -3412,9 +3408,10 @@ lookup_value_delay(nlookup_t *nl)
 
 	fv = lookup_fv(nl);
 
-	if (NULL == fv->delay_ev)
-		fv->delay_ev = cq_insert(callout_queue, NL_VAL_DELAY,
+	if (NULL == fv->delay_ev) {
+		fv->delay_ev = cq_main_insert(NL_VAL_DELAY,
 			lookup_value_delay_expired, nl);
+	}
 }
 
 /**

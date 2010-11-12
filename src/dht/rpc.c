@@ -125,7 +125,7 @@ rpc_cb_free(struct rpc_cb *rcb, gboolean in_shutdown)
 	}
 	atom_guid_free_null(&rcb->muid);
 	knode_free(rcb->kn);
-	cq_cancel(callout_queue, &rcb->timeout);
+	cq_cancel(&rcb->timeout);
 	rcb->magic = 0;
 	wfree(rcb, sizeof *rcb);
 }
@@ -245,7 +245,7 @@ rpc_call_prepare(
 	rcb->flags = flags;
 	rcb->muid = atom_guid_get(&muid);
 	rcb->addr = kn->addr;
-	rcb->timeout = cq_insert(callout_queue, delay, rpc_timed_out, rcb);
+	rcb->timeout = cq_main_insert(delay, rpc_timed_out, rcb);
 	rcb->cb = cb;
 	rcb->arg = arg;
 	tm_now_exact(&rcb->start);	/* To measure RTT when we get the reply */
@@ -362,7 +362,7 @@ dht_rpc_answer(const guid_t *muid,
 		return FALSE;
 
 	rpc_cb_check(rcb);
-	cq_cancel(callout_queue, &rcb->timeout);
+	cq_cancel(&rcb->timeout);
 
 	/*
 	 * The node that was registered during the creation of the RPC was

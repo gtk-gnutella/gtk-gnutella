@@ -393,7 +393,7 @@ tcache_close(void)
 {
 	storage_delete(db_tokdata);
 	db_tokdata = NULL;
-	cq_periodic_remove(callout_queue, &tcache_prune_ev);
+	cq_periodic_remove(&tcache_prune_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

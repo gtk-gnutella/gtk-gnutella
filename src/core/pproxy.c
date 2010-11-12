@@ -1040,7 +1040,7 @@ cproxy_free(struct cproxy *cp)
 		cp->http_handle = NULL;
 	}
 	atom_str_free_null(&cp->server);
-	cq_cancel(callout_queue, &cp->udp_ev);
+	cq_cancel(&cp->udp_ev);
 
 	cp->magic = 0;
 	wfree(cp, sizeof *cp);
@@ -1336,8 +1336,7 @@ cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
 
 	if (packet.data) {
 		if (download_send_udp_push(packet, cp->addr, cp->port)) {
-			cp->udp_ev = cq_insert(callout_queue, CPROXY_UDP_MS,
-				cproxy_udp_timeout, cp);
+			cp->udp_ev = cq_main_insert(CPROXY_UDP_MS, cproxy_udp_timeout, cp);
 		} else {
 			cproxy_http_request(cp);
 		}

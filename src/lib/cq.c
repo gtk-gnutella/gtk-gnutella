@@ -59,6 +59,7 @@ struct cevent {
 	enum cevent_magic ce_magic;	/**< Magic number (must be at the top) */
 	struct cevent *ce_bnext;	/**< Next item in hash bucket */
 	struct cevent *ce_bprev;	/**< Prev item in hash bucket */
+	cqueue_t *ce_cq;			/**< Callout queue where event is registered */
 	cq_service_t ce_fn;			/**< Callback routine */
 	gpointer ce_arg;			/**< Argument to pass to said callback */
 	cq_time_t ce_time;			/**< Absolute trigger time (virtual cq time) */
@@ -221,14 +222,17 @@ cq_name(const cqueue_t *cq)
  * Link event into the callout queue.
  */
 static void
-ev_link(cqueue_t *cq, cevent_t *ev)
+ev_link(cevent_t *ev)
 {
 	struct chash *ch;		/* Hashing bucket */
 	cq_time_t trigger;		/* Trigger time */
 	cevent_t *hev;			/* To loop through the hash bucket */
+	cqueue_t *cq;
 
-	cqueue_check(cq);
 	cevent_check(ev);
+
+	cq = ev->ce_cq;
+	cqueue_check(cq);
 	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
 
 	trigger = ev->ce_time;
@@ -314,12 +318,14 @@ ev_link(cqueue_t *cq, cevent_t *ev)
  * Unlink event from callout queue.
  */
 static void
-ev_unlink(cqueue_t *cq, cevent_t *ev)
+ev_unlink(cevent_t *ev)
 {
 	struct chash *ch;			/* Hashing bucket */
+	cqueue_t *cq;
 
-	cqueue_check(cq);
 	cevent_check(ev);
+	cq = ev->ce_cq;
+	cqueue_check(cq);
 
 	ch = &cq->cq_hash[EV_HASH(ev->ce_time)];
 	cq->cq_items--;
@@ -372,8 +378,9 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, gpointer arg)
 	ev->ce_time = cq->cq_time + delay;
 	ev->ce_fn = fn;
 	ev->ce_arg = arg;
+	ev->ce_cq = cq;
 
-	ev_link(cq, ev);
+	ev_link(ev);
 
 	return ev;
 }
@@ -390,16 +397,19 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, gpointer arg)
  * the list before firing it off.
  */
 void
-cq_cancel(cqueue_t *cq, cevent_t **handle_ptr)
+cq_cancel(cevent_t **handle_ptr)
 {
 	cevent_t *ev = *handle_ptr;
 
 	if (ev) {
-		cqueue_check(cq);
+		cqueue_t *cq;
+
 		cevent_check(ev);
+		cq = ev->ce_cq;
+		cqueue_check(cq);
 		g_assert(cq->cq_items > 0);
 
-		ev_unlink(cq, ev);
+		ev_unlink(ev);
 		ev->ce_magic = 0;			/* Prevent further use as a valid event */
 		wfree(ev, sizeof *ev);
 		*handle_ptr = NULL;
@@ -412,10 +422,13 @@ cq_cancel(cqueue_t *cq, cevent_t **handle_ptr)
  * expired, i.e. that the event has not triggered yet.
  */
 void
-cq_resched(cqueue_t *cq, cevent_t *ev, int delay)
+cq_resched(cevent_t *ev, int delay)
 {
-	cqueue_check(cq);
+	cqueue_t *cq;
+
 	cevent_check(ev);
+	cq = ev->ce_cq;
+	cqueue_check(cq);
 
 	/*
 	 * If is perfectly possible that whilst running cq_clock() and
@@ -436,19 +449,22 @@ cq_resched(cqueue_t *cq, cevent_t *ev, int delay)
 	 * as doing the unlink/link blindly anyway.
 	 */
 
-	ev_unlink(cq, ev);
+	ev_unlink(ev);
 	ev->ce_time = cq->cq_time + delay;
-	ev_link(cq, ev);
+	ev_link(ev);
 }
 
 /**
  * What is the remaining (virtual) time until a given event expires?
  */
 cq_time_t
-cq_remaining(cqueue_t *cq, const cevent_t *ev)
+cq_remaining(const cevent_t *ev)
 {
-	cqueue_check(cq);
+	cqueue_t *cq;
+
 	cevent_check(ev);
+	cq = ev->ce_cq;
+	cqueue_check(cq);
 
 	if (ev->ce_time <= cq->cq_time)
 		return 0;
@@ -460,19 +476,22 @@ cq_remaining(cqueue_t *cq, const cevent_t *ev)
  * Expire timeout by removing it out of the queue and firing its callback.
  */
 void
-cq_expire(cqueue_t *cq, cevent_t *ev)
+cq_expire(cevent_t *ev)
 {
+	cqueue_t *cq;
 	cq_service_t fn;
 	gpointer arg;
 
-	cqueue_check(cq);
 	cevent_check(ev);
+	cq = ev->ce_cq;
+	cqueue_check(cq);
+
 	fn = ev->ce_fn;
 	arg = ev->ce_arg;
 
 	g_assert(fn);
 
-	cq_cancel(cq, &ev);			/* Remove event from queue before firing */
+	cq_cancel(&ev);			/* Remove event from queue before firing */
 
 	/*
 	 * All the callout queue data structures were updated.
@@ -532,7 +551,7 @@ cq_clock(cqueue_t *cq, int elapsed)
 	cq->cq_current = ch;
 
 	while ((ev = ch->ch_head) && ev->ce_time <= now) {
-		cq_expire(cq, ev);
+		cq_expire(ev);
 		processed++;
 	}
 
@@ -560,7 +579,7 @@ cq_clock(cqueue_t *cq, int elapsed)
 		cq->cq_current = ch;
 
 		while ((ev = ch->ch_head) && ev->ce_time <= now) {
-			cq_expire(cq, ev);
+			cq_expire(ev);
 			processed++;
 		}
 
@@ -612,6 +631,21 @@ cq_heartbeat(cqueue_t *cq)
 		delay = cq->cq_period;;
 
 	cq_clock(cq, delay);
+}
+
+/**
+ * Convenience routine: insert event in the main callout queue.
+ *
+ * Same as calling:
+ *
+ *     cq_insert(callout_queue, delay, fn, arg);
+ *
+ * only it is shorter.
+ */
+cevent_t *
+cq_main_insert(int delay, cq_service_t fn, gpointer arg)
+{
+	return cq_insert(callout_queue, delay, fn, arg);
 }
 
 /**
@@ -691,12 +725,16 @@ cperiodic_check(const struct cperiodic * const cp)
  * Free allocated periodic event.
  */
 static void
-cq_periodic_free(cqueue_t *cq, cperiodic_t *cp)
+cq_periodic_free(cperiodic_t *cp)
 {
-	cqueue_check(cq);
-	cperiodic_check(cp);
+	cqueue_t *cq;
 
-	cq_cancel(cq, &cp->ev);
+	cperiodic_check(cp);
+	cevent_check(cp->ev);
+	cq = cp->ev->ce_cq;
+	cqueue_check(cq);
+
+	cq_cancel(&cp->ev);
 	unregister_object(cq->cq_periodic, cp);
 	cp->magic = 0;
 	wfree(cp, sizeof *cp);
@@ -722,7 +760,7 @@ periodic_trampoline(cqueue_t *cq, gpointer data)
 	if ((*cp->event)(cp->arg))
 		cp->ev = cq_insert(cq, cp->period, periodic_trampoline, cp);
 	else {
-		cq_periodic_free(cq, cp);
+		cq_periodic_free(cp);
 	}
 }
 
@@ -764,13 +802,11 @@ cq_periodic_add(cqueue_t *cq, int period, cq_invoke_t event, gpointer arg)
  * Remove periodic event, if non-NULL, and nullify the variable holding it.
  */
 void
-cq_periodic_remove(cqueue_t *cq, cperiodic_t **cp_ptr)
+cq_periodic_remove(cperiodic_t **cp_ptr)
 {
-	cqueue_check(cq);
-
 	if (*cp_ptr) {
 		cperiodic_t *cp = *cp_ptr;
-		cq_periodic_free(cq, cp);
+		cq_periodic_free(cp);
 		*cp_ptr = NULL;
 	}
 }
@@ -795,7 +831,6 @@ cq_periodic_remove(cqueue_t *cq, cperiodic_t **cp_ptr)
  */
 struct csubqueue {
 	struct cqueue sub_cq;		/* The sub-queue */
-	cqueue_t *parent;			/* The parent callout queue */
 	cperiodic_t *heartbeat;		/* The heartbeat timer in parent */
 };
 
@@ -824,7 +859,6 @@ cq_submake(const char *name, cqueue_t *parent, int period)
 	cq_initialize(&csq->sub_cq, name, parent->cq_time, period);
 	csq->sub_cq.cq_magic = CSUBQUEUE_MAGIC;
 
-	csq->parent = parent;
 	csq->heartbeat = cq_periodic_add(parent, period,
 		heartbeat_trampoline, &csq->sub_cq);
 
@@ -839,12 +873,11 @@ cq_submake(const char *name, cqueue_t *parent, int period)
  * freeing the sub-queue object.
  */
 static void
-subqueue_free(struct csubqueue * csq)
+subqueue_free(struct csubqueue *csq)
 {
 	csubqueue_check(csq);
-	cqueue_check(csq->parent);
 	
-	cq_periodic_remove(csq->parent, &csq->heartbeat);
+	cq_periodic_remove(&csq->heartbeat);
 	csq->sub_cq.cq_magic = 0;
 	wfree(csq, sizeof *csq);
 }

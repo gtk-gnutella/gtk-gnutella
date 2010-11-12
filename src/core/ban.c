@@ -143,7 +143,7 @@ ipf_free(struct addr_info *ipf)
 {
 	g_assert(ipf);
 
-	cq_cancel(ban_cq, &ipf->cq_ev);
+	cq_cancel(&ipf->cq_ev);
 	atom_str_free_null(&ipf->ban_msg);
 	zfree(ipf_zone, ipf);
 }
@@ -322,7 +322,7 @@ ban_allow(const host_addr_t addr)
 	 */
 
 	if (ipf->counter > (float) MAX_REQUEST) {
-		cq_cancel(ban_cq, &ipf->cq_ev);	/* Cancel ipf_destroy */
+		cq_cancel(&ipf->cq_ev);		/* Cancel ipf_destroy */
 
 		ipf->banned = TRUE;
 		atom_str_change(&ipf->ban_msg, "Too frequent connections");
@@ -348,7 +348,7 @@ ban_allow(const host_addr_t addr)
 
 		delay = 1000.0 * ipf->counter / decay_coeff;
 		delay = MAX(delay, 1);
-		cq_resched(ban_cq, ipf->cq_ev, delay);
+		cq_resched(ipf->cq_ev, delay);
 	}
 
 	return BAN_OK;
@@ -382,9 +382,9 @@ ban_record(const host_addr_t addr, const char *msg)
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
 	if (ipf->banned)
-		cq_resched(ban_cq, ipf->cq_ev, MAX_BAN * 1000);
+		cq_resched(ipf->cq_ev, MAX_BAN * 1000);
 	else {
-		cq_cancel(ban_cq, &ipf->cq_ev);	/* Cancel ipf_destroy */
+		cq_cancel(&ipf->cq_ev);		/* Cancel ipf_destroy */
 		ipf->banned = TRUE;
 		ipf->cq_ev = cq_insert(ban_cq, MAX_BAN * 1000, ipf_unban, ipf);
 	}

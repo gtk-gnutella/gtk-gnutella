@@ -98,7 +98,7 @@ val_free(struct used_val *v)
 	g_assert(v);
 	g_assert(is_host_addr(v->addr));
 
-	cq_cancel(callout_queue, &v->cq_ev);
+	cq_cancel(&v->cq_ev);
 	wfree(v, sizeof *v);
 }
 
@@ -144,7 +144,7 @@ static void
 val_reused(struct used_val *v, int precision)
 {
 	v->precision = precision;
-	cq_resched(callout_queue, v->cq_ev, REUSE_DELAY * 1000);
+	cq_resched(v->cq_ev, REUSE_DELAY * 1000);
 }
 
 /**

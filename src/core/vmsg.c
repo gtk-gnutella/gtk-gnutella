@@ -3326,8 +3326,7 @@ vmsg_init(void)
 	}
 
 	head_pings = hash_list_new(guid_hash, guid_eq);
-	head_ping_ev = cq_insert(callout_queue, HEAD_PING_PERIODIC_MS,
-					head_ping_timer, NULL);
+	head_ping_ev = cq_main_insert(HEAD_PING_PERIODIC_MS, head_ping_timer, NULL);
 }
 
 void
@@ -3336,7 +3335,7 @@ vmsg_close(void)
 	vmsg_close_weight();
 	head_ping_expire(TRUE);
 	hash_list_free(&head_pings);
-	cq_cancel(callout_queue, &head_ping_ev);
+	cq_cancel(&head_ping_ev);
 	g_hash_table_destroy(ht_vmsg);
 	ht_vmsg = NULL;
 }

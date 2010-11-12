@@ -229,8 +229,8 @@ ntp_probe(void)
 	if (GNET_PROPERTY(dbg))
 		g_debug("NTP sent probe to localhost");
 
-	cq_cancel(callout_queue, &wait_ev);
-	wait_ev = cq_insert(callout_queue, NTP_WAIT_MS, ntp_no_reply, NULL);
+	cq_cancel(&wait_ev);
+	wait_ev = cq_main_insert(NTP_WAIT_MS, ntp_no_reply, NULL);
 }
 
 /**
@@ -273,7 +273,7 @@ ntp_got_reply(struct gnutella_socket *s)
 	 * Since we know NTP runs locally, disarm the timeout.
 	 */
 
-	cq_cancel(callout_queue, &wait_ev);
+	cq_cancel(&wait_ev);
 
 	gnet_prop_set_boolean_val(PROP_HOST_RUNS_NTP, TRUE);
 	gnet_prop_set_boolean_val(PROP_NTP_DETECTED, TRUE);
@@ -319,7 +319,7 @@ ntp_init(void)
 void
 ntp_close(void)
 {
-	cq_cancel(callout_queue, &wait_ev);
+	cq_cancel(&wait_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

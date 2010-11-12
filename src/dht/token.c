@@ -175,8 +175,7 @@ token_rotate(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_cq;
 	(void) unused_obj;
 
-	rotate_ev = cq_insert(callout_queue, T_REFRESH_PERIOD_MS,
-		token_rotate, NULL);
+	rotate_ev = cq_main_insert(T_REFRESH_PERIOD_MS, token_rotate, NULL);
 
 	for (i = 0; i < G_N_ELEMENTS(keys) - 1; i++)
 		keys[i + 1] = keys[i];
@@ -224,8 +223,7 @@ token_init(void)
 	for (i = 0; i < G_N_ELEMENTS(keys); i++)
 		random_bytes(&keys[i], sizeof(keys[i]));
 
-	rotate_ev = cq_insert(callout_queue, T_REFRESH_PERIOD_MS,
-		token_rotate, NULL);
+	rotate_ev = cq_main_insert(T_REFRESH_PERIOD_MS, token_rotate, NULL);
 }
 
 /**
@@ -234,7 +232,7 @@ token_init(void)
 void
 token_close(void)
 {
-	cq_cancel(callout_queue, &rotate_ev);
+	cq_cancel(&rotate_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

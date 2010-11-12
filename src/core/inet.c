@@ -292,7 +292,7 @@ move_to_unsolicited_prepare(void)
 		g_debug("FW: set for unsolicited traffic detection in %d secs",
 			FW_UDP_WINDOW);
 
-	unsolicited_udp_ev = cq_insert(callout_queue, FW_UDP_WINDOW * 1000,
+	unsolicited_udp_ev = cq_main_insert(FW_UDP_WINDOW * 1000,
 		move_to_unsolicited_check, NULL);
 	outgoing_udp_state = UNSOLICITED_PREPARE;
 }
@@ -307,7 +307,7 @@ move_to_unsolicited_off(void)
 		g_debug("FW: turning off unsolicited traffic detection");
 
 	outgoing_udp_state = UNSOLICITED_OFF;
-	cq_cancel(callout_queue, &unsolicited_udp_ev);	/* Paranoid */
+	cq_cancel(&unsolicited_udp_ev);		/* Paranoid */
 }
 
 /**
@@ -746,7 +746,7 @@ void
 inet_close(void)
 {
 	aging_destroy(&outgoing_udp);
-	cq_cancel(callout_queue, &unsolicited_udp_ev);
+	cq_cancel(&unsolicited_udp_ev);
 	wd_free_null(&outgoing_wd);
 	wd_free_null(&incoming_wd);
 	wd_free_null(&incoming_udp_wd);

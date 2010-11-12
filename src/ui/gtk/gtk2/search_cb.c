@@ -297,9 +297,9 @@ on_tree_view_search_results_select_row(GtkTreeView *unused_tv,
 	(void) unused_udata;
 
 	if (row_selected_ev) {
-		cq_resched(callout_queue, row_selected_ev, ROW_SELECT_TIMEOUT);
+		cq_resched(row_selected_ev, ROW_SELECT_TIMEOUT);
 	} else {
-		row_selected_ev = cq_insert(callout_queue, ROW_SELECT_TIMEOUT,
+		row_selected_ev = cq_main_insert(ROW_SELECT_TIMEOUT,
 							row_selected_expire, NULL);
 	}
 }
@@ -410,7 +410,7 @@ search_gui_callbacks_shutdown(void)
 	/*
  	 *	Remove delayed callbacks
  	 */
-	cq_cancel(callout_queue, &row_selected_ev);
+	cq_cancel(&row_selected_ev);
 }
 
 /* -*- mode: cc-mode; tab-width:4; -*- */

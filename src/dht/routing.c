@@ -909,9 +909,9 @@ free_node_lists(struct kbucket *kb)
 		knodes->all = NULL;
 
 		acct_net_free(&knodes->c_class);
-		cq_cancel(callout_queue, &knodes->aliveness);
-		cq_cancel(callout_queue, &knodes->staleness);
-		cq_cancel(callout_queue, &knodes->refresh);
+		cq_cancel(&knodes->aliveness);
+		cq_cancel(&knodes->staleness);
+		cq_cancel(&knodes->refresh);
 		wfree(knodes, sizeof *knodes);
 		kb->nodes = NULL;
 	}
@@ -945,8 +945,7 @@ install_alive_check(struct kbucket *kb)
 	adj = alive_period_ms() / 10;
 	adj = adj / 2 - random_value(adj);
 
-	kb->nodes->aliveness =
-		cq_insert(callout_queue, delay + adj, bucket_alive_check, kb);
+	kb->nodes->aliveness = cq_main_insert(delay + adj, bucket_alive_check, kb);
 }
 
 /**
@@ -970,8 +969,7 @@ install_stale_check(struct kbucket *kb)
 	adj = STALE_PERIOD_MS / 10;
 	adj = adj / 2 - random_value(adj);
 
-	kb->nodes->staleness =
-		cq_insert(callout_queue, delay + adj, bucket_stale_check, kb);
+	kb->nodes->staleness = cq_main_insert(delay + adj, bucket_stale_check, kb);
 }
 
 /**
@@ -1008,7 +1006,7 @@ install_bucket_refresh(struct kbucket *kb, time_delta_t elapsed)
 	 */
 
 	if (elapsed >= period)
-		kb->nodes->refresh = cq_insert(callout_queue, 1, bucket_refresh, kb);
+		kb->nodes->refresh = cq_main_insert(1, bucket_refresh, kb);
 	else {
 		int delay = (period - elapsed) * 1000;
 		int adj;
@@ -1021,14 +1019,12 @@ install_bucket_refresh(struct kbucket *kb, time_delta_t elapsed)
 		adj = delay / 10;
 		adj = adj / 2 - random_value(adj);
 
-		kb->nodes->refresh =
-			cq_insert(callout_queue, delay + adj, bucket_refresh, kb);
+		kb->nodes->refresh = cq_main_insert(delay + adj, bucket_refresh, kb);
 	}
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT refresh scheduled in %lu secs for %s (last lookup %s ago)",
-			(unsigned long)
-				cq_remaining(callout_queue, kb->nodes->refresh) / 1000,
+			(unsigned long) cq_remaining(kb->nodes->refresh) / 1000,
 			kbucket_to_string(kb), compact_time(elapsed));
 	}
 }

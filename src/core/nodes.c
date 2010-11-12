@@ -454,8 +454,7 @@ node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 	 * Next sync will occur in NODE_TSYNC_PERIOD_MS milliseconds.
 	 */
 
-	n->tsync_ev =
-		cq_insert(callout_queue, NODE_TSYNC_PERIOD_MS, node_tsync_udp, n);
+	n->tsync_ev = cq_main_insert(NODE_TSYNC_PERIOD_MS, node_tsync_udp, n);
 }
 
 /**
@@ -475,8 +474,7 @@ node_can_tsync(gnutella_node_t *n)
 	 * Schedule a time sync in NODE_TSYNC_WAIT_MS milliseconds.
 	 */
 
-	n->tsync_ev =
-		cq_insert(callout_queue, NODE_TSYNC_WAIT_MS, node_tsync_udp, n);
+	n->tsync_ev = cq_main_insert(NODE_TSYNC_WAIT_MS, node_tsync_udp, n);
 }
 
 /**
@@ -1832,8 +1830,8 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 		socket_free_null(&n->socket);
 	}
 
-	cq_cancel(callout_queue, &n->tsync_ev);
-	cq_cancel(callout_queue, &n->dht_nope_ev);
+	cq_cancel(&n->tsync_ev);
+	cq_cancel(&n->dht_nope_ev);
 
 	/* Routine pre-condition asserted that n->status != GTA_NODE_REMOVING */
 
@@ -9384,7 +9382,7 @@ node_proxying_remove(gnutella_node_t *n)
 		route_proxy_remove(node_guid(n));
 
 		pdht_cancel_nope(node_guid(n), FALSE);
-		cq_cancel(callout_queue, &n->dht_nope_ev);
+		cq_cancel(&n->dht_nope_ev);
 	}
 }
 
@@ -9415,8 +9413,8 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 	if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME)
 		return;
 
-	n->dht_nope_ev = cq_insert(callout_queue,
-		(DHT_VALUE_NOPE_EXPIRE - (5*60)) * 1000, node_publish_dht_nope, n);
+	n->dht_nope_ev = cq_main_insert((DHT_VALUE_NOPE_EXPIRE - (5*60)) * 1000,
+		node_publish_dht_nope, n);
 
 	/*
 	 * If the DHT is disabled, try later.
@@ -9556,8 +9554,8 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 	 */
 
 	if (NODE_IS_LEAF(n) && NULL == n->dht_nope_ev) {
-		n->dht_nope_ev = cq_insert(callout_queue,
-			NODE_USELESS_GRACE * 1000, node_publish_dht_nope, n);
+		n->dht_nope_ev = cq_main_insert(NODE_USELESS_GRACE * 1000,
+			node_publish_dht_nope, n);
 	}
 
 	return TRUE;
@@ -9668,7 +9666,7 @@ node_is_firewalled(gnutella_node_t *n)
 		NODE_IS_LEAF(n) &&
 		NULL == n->dht_nope_ev		/* Not scheduled for NOPE already */
 	) {
-		n->dht_nope_ev = cq_insert(callout_queue, 1, node_publish_dht_nope, n);
+		n->dht_nope_ev = cq_main_insert(1, node_publish_dht_nope, n);
 	}
 }
 

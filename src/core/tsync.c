@@ -81,7 +81,7 @@ tsync_free(struct tsync *ts)
 	g_assert(ts);
 	g_assert(ts->magic == TSYNC_MAGIC);
 
-	cq_cancel(callout_queue, &ts->expire_ev);
+	cq_cancel(&ts->expire_ev);
 	node_id_unref(ts->node_id);
 	ts->magic = 0;
 	wfree(ts, sizeof(*ts));
@@ -149,7 +149,7 @@ tsync_send(struct gnutella_node *n, const node_id_t node_id)
 	 * the next TSYNC_EXPIRE_MS millisecs.
 	 */
 
-	ts->expire_ev = cq_insert(callout_queue, TSYNC_EXPIRE_MS, tsync_expire, ts);
+	ts->expire_ev = cq_main_insert(TSYNC_EXPIRE_MS, tsync_expire, ts);
 
 	g_hash_table_insert(tsync_by_time, &ts->sent, ts);
 
@@ -200,7 +200,7 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 
 	g_assert(ts->expire_ev != NULL);
 
-	cq_resched(callout_queue, ts->expire_ev, TSYNC_EXPIRE_MS);
+	cq_resched(ts->expire_ev, TSYNC_EXPIRE_MS);
 }
 
 /**

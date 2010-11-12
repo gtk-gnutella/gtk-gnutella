@@ -403,7 +403,7 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	}
 	else if (delta_time(dmb->created, stamp) < 0) {
 		dmb->created = stamp;
-		cq_resched(dmesh_cq, dmb->cq_ev, lifetime * 1000);
+		cq_resched(dmb->cq_ev, lifetime * 1000);
 	}
 }
 
@@ -420,7 +420,7 @@ dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, guint16 port)
 	dmb = g_hash_table_lookup(ban_mesh, &info);
 
 	if (dmb) {
-		cq_cancel(dmesh_cq, &dmb->cq_ev);
+		cq_cancel(&dmb->cq_ev);
 		dmesh_ban_remove_entry(dmb);
 	}
 }
@@ -3410,7 +3410,7 @@ dmesh_close(void)
 
 	for (sl = banned; sl; sl = g_slist_next(sl)) {
 		struct dmesh_banned *dmb = sl->data;
-		cq_cancel(dmesh_cq, &dmb->cq_ev);
+		cq_cancel(&dmb->cq_ev);
 		dmesh_ban_expire(dmesh_cq, dmb);
 	}
 

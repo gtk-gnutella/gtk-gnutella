@@ -125,10 +125,9 @@ static void
 cursor_update(void)
 {
 	if (cursor_ev) {
-		cq_resched(callout_queue, cursor_ev, ROW_SELECT_TIMEOUT);
+		cq_resched(cursor_ev, ROW_SELECT_TIMEOUT);
 	} else {
-		cursor_ev = cq_insert(callout_queue, ROW_SELECT_TIMEOUT,
-						cursor_expire, NULL);
+		cursor_ev = cq_main_insert(ROW_SELECT_TIMEOUT, cursor_expire, NULL);
 	}
 }
 
@@ -650,7 +649,7 @@ fi_gui_init(void)
 void
 fi_gui_shutdown(void)
 {
-	cq_cancel(callout_queue, &cursor_ev);
+	cq_cancel(&cursor_ev);
 
 	clist_save_visibility(clist_download_files, PROP_FILE_INFO_COL_VISIBLE);
 	clist_save_widths(clist_download_files, PROP_FILE_INFO_COL_WIDTHS);

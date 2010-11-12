@@ -229,7 +229,7 @@ publisher_entry_free(struct publisher_entry *pe, gboolean do_remove)
 		pdht_cancel_file(pe->sha1, FALSE);
 
 	atom_sha1_free_null(&pe->sha1);
-	cq_cancel(publish_cq, &pe->publish_ev);
+	cq_cancel(&pe->publish_ev);
 	wfree(pe, sizeof *pe);
 }
 
@@ -438,7 +438,7 @@ publisher_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 	if (pe->backgrounded) {
 		time_delta_t elapsed = delta_time(tm_time(), pe->last_delayed);
 		g_assert(pe->last_delayed > 0);
-		cq_cancel(publish_cq, &pe->publish_ev);
+		cq_cancel(&pe->publish_ev);
 		if (delay > elapsed) {
 			delay -= elapsed;
 		} else {

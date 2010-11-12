@@ -78,10 +78,11 @@ cqueue_t *cq_make(const char *name, cq_time_t now, int period);
 cqueue_t *cq_submake(const char *name, cqueue_t *parent, int period);
 void cq_free_null(cqueue_t **cq_ptr);
 cevent_t *cq_insert(cqueue_t *cq, int delay, cq_service_t fn, gpointer arg);
-cq_time_t cq_remaining(cqueue_t *cq, const cevent_t *ev);
-void cq_expire(cqueue_t *cq, cevent_t *ev);
-void cq_cancel(cqueue_t *cq, cevent_t **handle_ptr);
-void cq_resched(cqueue_t *cq, cevent_t *handle, int delay);
+cevent_t *cq_main_insert(int delay, cq_service_t fn, gpointer arg);
+cq_time_t cq_remaining(const cevent_t *ev);
+void cq_expire(cevent_t *ev);
+void cq_cancel(cevent_t **handle_ptr);
+void cq_resched(cevent_t *handle, int delay);
 void cq_clock(cqueue_t *cq, int elapsed);
 int cq_ticks(const cqueue_t *cq);
 int cq_count(const cqueue_t *cq);
@@ -90,7 +91,7 @@ void cq_heartbeat(cqueue_t *cq);
 
 cperiodic_t *cq_periodic_add(cqueue_t *cq,
 	int period, cq_invoke_t event, gpointer arg);
-void cq_periodic_remove(cqueue_t *cq, cperiodic_t **cp_ptr);
+void cq_periodic_remove(cperiodic_t **cp_ptr);
 cidle_t *cq_idle_add(cqueue_t *cq, cq_invoke_t event, gpointer arg);
 void cq_idle_remove(cidle_t **ci_ptr);
 

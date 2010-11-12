@@ -324,7 +324,7 @@ mi_val_free(struct mesh_info_val *miv)
 {
 	g_assert(miv);
 
-	cq_cancel(callout_queue, &miv->cq_ev);
+	cq_cancel(&miv->cq_ev);
 	wfree(miv, sizeof(*miv));
 }
 
@@ -394,7 +394,7 @@ mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 		guint32 oldstamp;
 
 		g_assert(miv->cq_ev);
-		cq_resched(callout_queue, miv->cq_ev, MESH_INFO_TIMEOUT);
+		cq_resched(miv->cq_ev, MESH_INFO_TIMEOUT);
 
 		oldstamp = miv->stamp;
 		miv->stamp = (guint32) now;
@@ -412,7 +412,7 @@ mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 
 	mik = mi_key_make(addr, sha1);
 	miv = mi_val_make((guint32) now);
-	miv->cq_ev = cq_insert(callout_queue, MESH_INFO_TIMEOUT, mi_clean, mik);
+	miv->cq_ev = cq_main_insert(MESH_INFO_TIMEOUT, mi_clean, mik);
 
 	g_hash_table_insert(mesh_info, mik, miv);
 

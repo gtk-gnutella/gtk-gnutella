@@ -201,7 +201,7 @@ free_rootinfo(struct rootinfo *ri)
 {
 	rootinfo_check(ri);
 
-	cq_cancel(roots_cq, &ri->expire_ev);
+	cq_cancel(&ri->expire_ev);
 	kuid_atom_free_null(&ri->kuid);
 	wfree(ri, sizeof *ri);
 }
@@ -500,7 +500,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 	dbmw_write(db_rootdata, kuid, rd, sizeof *rd);
 
 	if (ri->expire_ev) {
-		cq_resched(roots_cq, ri->expire_ev, ROOTKEY_LIFETIME);
+		cq_resched(ri->expire_ev, ROOTKEY_LIFETIME);
 	} else {
 		ri->expire_ev = cq_insert(roots_cq, ROOTKEY_LIFETIME, roots_expire, ri);
 	}

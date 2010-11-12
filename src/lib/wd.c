@@ -133,7 +133,7 @@ wd_start(watchdog_t *wd)
 
 	/* watchdog period given in seconds */
 	wd->last_kick = 0;
-	wd->ev = cq_insert(callout_queue, wd->period * 1000, wd_expired, wd);
+	wd->ev = cq_main_insert(wd->period * 1000, wd_expired, wd);
 }
 
 /**
@@ -183,7 +183,7 @@ wd_sleep(watchdog_t *wd)
 	if (NULL == wd->ev)
 		return FALSE;
 
-	cq_cancel(callout_queue, &wd->ev);
+	cq_cancel(&wd->ev);
 
 	return TRUE;
 }
@@ -203,7 +203,7 @@ wd_expire(watchdog_t *wd)
 	if (NULL == wd->ev)
 		return FALSE;
 
-	cq_cancel(callout_queue, &wd->ev);
+	cq_cancel(&wd->ev);
 	(*wd->trigger)(wd, wd->arg);
 
 	if (wd->ev != NULL) {

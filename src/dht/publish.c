@@ -377,8 +377,8 @@ publish_free(publish_t *pb)
 	publish_check(pb);
 
 	kuid_atom_free_null(&pb->key);
-	cq_cancel(callout_queue, &pb->expire_ev);
-	cq_cancel(callout_queue, &pb->delay_ev);
+	cq_cancel(&pb->expire_ev);
+	cq_cancel(&pb->delay_ev);
 
 	switch (pb->type) {
 	case PUBLISH_CACHE:
@@ -786,8 +786,7 @@ publish_delay(publish_t *pb)
 			revent_id_to_string(pb->pid), PB_DELAY / 1000.0);
 
 	pb->flags |= PB_F_DELAYED;
-	pb->delay_ev = cq_insert(callout_queue, PB_DELAY,
-		publish_delay_expired, pb);
+	pb->delay_ev = cq_main_insert(PB_DELAY, publish_delay_expired, pb);
 }
 
 /**
@@ -804,7 +803,7 @@ publish_async_iterate(publish_t *pb)
 	g_assert(!(pb->flags & PB_F_DELAYED));
 
 	pb->flags |= PB_F_DELAYED;
-	pb->delay_ev = cq_insert(callout_queue, 1, publish_delay_expired, pb);
+	pb->delay_ev = cq_main_insert(1, publish_delay_expired, pb);
 }
 
 /**
@@ -1991,16 +1990,16 @@ publish_create(const kuid_t *key, publish_type_t type, int cnt)
 
 	switch (type) {
 	case PUBLISH_CACHE:
-		pb->expire_ev = cq_insert(callout_queue,
-			PB_MAX_LIFETIME, publish_cache_expired, pb);
+		pb->expire_ev = cq_main_insert(PB_MAX_LIFETIME,
+			publish_cache_expired, pb);
 		break;
 	case PUBLISH_VALUE:
-		pb->expire_ev = cq_insert(callout_queue,
-			PB_VALUE_MAX_LIFETIME, publish_store_expired, pb);
+		pb->expire_ev = cq_main_insert(PB_VALUE_MAX_LIFETIME,
+			publish_store_expired, pb);
 		break;
 	case PUBLISH_OFFLOAD:
-		pb->expire_ev = cq_insert(callout_queue,
-			PB_OFFLOAD_MAX_LIFETIME, publish_offload_expired, pb);
+		pb->expire_ev = cq_main_insert(PB_OFFLOAD_MAX_LIFETIME,
+			publish_offload_expired, pb);
 		break;
 	}
 
@@ -2285,7 +2284,7 @@ publish_offload(const knode_t *kn, GSList *keys)
 
 		publish_offload_set_token(pb, toklen, token);
 		/* Need to start iterating asynchronously */
-		pb->delay_ev = cq_insert(callout_queue, 1, publish_delay_expired, pb);
+		pb->delay_ev = cq_main_insert(1, publish_delay_expired, pb);
 	} else {
 		nlookup_t *nl;
 
