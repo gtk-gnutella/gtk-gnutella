@@ -257,7 +257,6 @@ void dump_hex(FILE *, const char *, gconstpointer, int);
 void dump_string(FILE *out, const char *str, size_t len, const char *trailer);
 gboolean is_printable_iso8859_string(const char *s);
 void locale_strlower(char *, const char *);
-int highest_bit_set(guint32 n) G_GNUC_CONST;
 size_t common_leading_bits(
 	gconstpointer k1, size_t k1bits, gconstpointer k2, size_t k2bits);
 float force_range(float value, float min, float max);

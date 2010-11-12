@@ -55,6 +55,7 @@ RCSID("$Id$")
 #include "sha1.h"
 #include "parse.h"
 #include "path.h"
+#include "pow2.h"
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
@@ -1225,24 +1226,6 @@ tth_to_urn_string(const struct tth *tth)
 	g_assert(tth);
 	tth_to_urn_string_buf(tth, buf, sizeof buf);
 	return buf;
-}
-
-/**
- * Determine the highest bit set in `n', -1 if value was 0.
- */
-int
-highest_bit_set(guint32 n)
-{
-	int h = 0;
-	guint32 r = n;
-
-	if (r == 0)
-		return -1;
-
-	while (r >>= 1)			/* Will find largest bit set */
-		h++;
-
-	return h;
 }
 
 /**

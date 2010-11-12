@@ -58,4 +58,40 @@ next_pow2(guint32 n)
 	return n + 1;
 }
 
+/**
+ * Determine the highest bit set in `n', -1 if value was 0.
+ */
+int
+highest_bit_set(guint32 n)
+{
+	int h = 0;
+	guint32 r = n;
+
+	if (r == 0)
+		return -1;
+
+	while (r >>= 1)			/* Will find largest bit set */
+		h++;
+
+	return h;
+}
+
+/**
+ * Determine the highest bit set in `n', -1 if value was 0.
+ */
+int
+highest_bit_set64(guint64 n)
+{
+	int h = 0;
+	guint64 r = n;
+
+	if (r == 0)
+		return -1;
+
+	while (r >>= 1)			/* Will find largest bit set */
+		h++;
+
+	return h;
+}
+
 /* vi: set ts=4 sw=4 cindent: */

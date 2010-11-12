@@ -150,6 +150,7 @@ RCSID("$Id$")
 #include "patricia.h"
 #include "endian.h"
 #include "misc.h"
+#include "pow2.h"
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
 
