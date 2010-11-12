@@ -1083,8 +1083,6 @@ pmap_insert_region(struct pmap *pm,
 		/* FALL THROUGH */
 	}
 
-insert:
-
 	g_assert(pm->count < pm->size);
 	g_assert(idx <= pm->count);
 
