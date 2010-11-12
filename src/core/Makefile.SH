@@ -214,7 +214,6 @@ OBJ = \
 	ioheader.o \
 	ipp_cache.o \
 	local_shell.o \
-	lrhc.o \
 	matching.o \
 	move.o \
 	mq.o \
