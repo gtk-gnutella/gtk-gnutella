@@ -122,7 +122,6 @@ SRC = \
 	ioheader.c \
 	ipp_cache.c \
 	local_shell.c \
-	lrhc.c \
 	matching.c \
 	move.c \
 	mq.c \
