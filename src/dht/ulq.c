@@ -615,12 +615,12 @@ ulq_do_service(cqueue_t *unused_cq, gpointer unused_obj)
 	service_ev = NULL;
 
 	/*
-	 * If the DHT is not bootstrapped, we cannot perform user lookups.
+	 * If the DHT is not properly seeded, do not perform user lookups.
 	 */
 
-	if (!dht_bootstrapped()) {
+	if (!dht_seeded()) {
 		if (GNET_PROPERTY(dht_ulq_debug))
-			g_warning("DHT ULQ deferring servicing: DHT not bootstrapped");
+			g_warning("DHT ULQ deferring servicing: DHT not seeded");
 		ulq_delay_servicing();
 		return;
 	}
