@@ -2090,6 +2090,11 @@ lookup_load_path(nlookup_t *nl)
 				memcpy(tok->v, token, toklen);
 			}
 
+			/*
+			 * If it is not safe to add the node to the path, just leave it
+			 * in the shortlist: it will be removed later on when iterating.
+			 */
+
 			if (lookup_node_is_safe(nl, kn, NULL, 0)) {
 				/*
 				 * Since we're going to remove the node from the shortlist,
@@ -2101,8 +2106,6 @@ lookup_load_path(nlookup_t *nl)
 				patricia_insert(nl->path, kn->id, kn);
 				map_insert(nl->queried, kn->id, knode_refcnt_inc(kn));
 				lookup_c_class_update_count(nl, kn, +1);
-			} else {
-				knode_free(kn);		/* Will be removed from shortlist below */
 			}
 		}
 	}
