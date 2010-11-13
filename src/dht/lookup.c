@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "lookup.h"
+#include "acct.h"
 #include "kuid.h"
 #include "kmsg.h"
 #include "roots.h"
@@ -59,6 +60,7 @@ RCSID("$Id$")
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
 #include "lib/map.h"
+#include "lib/misc.h"			/* For common_leading_bits() */
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
 #include "lib/tm.h"
@@ -73,6 +75,13 @@ RCSID("$Id$")
 #define NL_VAL_MAX_RETRY	3		/* Max RPC retries to fetch sec keys */
 #define NL_FIND_DELAY		5000	/* 5 seconds, in ms */
 #define NL_VAL_DELAY		1000	/* 1 second, in ms */
+
+/**
+ * Maximum number of nodes from a class C network that we can return in
+ * the lookup path.  This is a way to fight against ID attacks (known as
+ * "Sybil attacks") by making such attacks harder to conduct.
+ */
+#define NL_MAX_IN_NET		3		/* At most 3 hosts from same class-C net */
 
 /**
  * Table keeping track of all the node lookup objects that we have created
@@ -145,6 +154,7 @@ struct nlookup {
 	patricia_t *ball;			/**< The k-closest nodes we've found so far */
 	cevent_t *expire_ev;		/**< Global expiration event for lookup */
 	cevent_t *delay_ev;			/**< Delay event for retries */
+	GHashTable *c_class;		/**< Counts class-C networks in path */
 	union {
 		struct {
 			lookup_cb_ok_t ok;		/**< OK callback for "find node" */
@@ -161,6 +171,7 @@ struct nlookup {
 	struct revent_id lid;		/**< Lookup ID (unique to this object) */
 	lookup_type_t type;			/**< Type of lookup (NODE or VALUE) */
 	enum parallelism mode;		/**< Parallelism mode */
+	int max_common_bits;		/**< Max common bits we allow */
 	int initial_contactable;	/**< Amount of contactable nodes initially */
 	int amount;					/**< Amount of closest nodes we'd like */
 	int msg_pending;			/**< Amount of messages pending */
@@ -209,6 +220,7 @@ struct nlookup {
 #define NL_F_DELAYED		(1U << 2)	/**< Iteration has been delayed */
 #define NL_F_COMPLETED		(1U << 3)	/**< Completed, waiting final RPCs */
 #define NL_F_DONT_REMOVE	(1U << 4)	/**< No removal from table on free */
+#define NL_F_PASV_PROTECT	(1U << 5)	/**< Passive protection triggered */
 
 static inline void
 lookup_check(const nlookup_t *nl)
@@ -368,6 +380,7 @@ lookup_free(nlookup_t *nl)
 	map_destroy(nl->fixed);
 	patricia_destroy(nl->path);
 	patricia_destroy(nl->ball);
+	acct_net_free(&nl->c_class);
 
 	if (!(nl->flags & NL_F_DONT_REMOVE))
 		g_hash_table_remove(nlookups, &nl->lid);
@@ -1922,6 +1935,121 @@ remove_from_shortlist(gpointer key, size_t keybits, gpointer value, gpointer u)
 }
 
 /**
+ * Get number of class C networks identical to that of the node which are
+ * already held in the path (queried nodes which replied).
+ */
+static int
+lookup_c_class_get_count(const nlookup_t *nl, const knode_t *kn)
+{
+	lookup_check(nl);
+	knode_check(kn);
+
+	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
+		return 0;
+
+	return acct_net_get(nl->c_class, kn->addr, NET_CLASS_C_MASK);
+}
+
+/**
+ * Update count of hosts in a given class C network within the lookup path.
+ *
+ * @param nl		node lookup
+ * @param kn		node whose address is the purpose of the update
+ * @param pmone		plus or minus one
+ */
+static void
+lookup_c_class_update_count(const nlookup_t *nl, const knode_t *kn, int pmone)
+{
+	lookup_check(nl);
+	knode_check(kn);
+	g_assert(pmone == +1 || pmone == -1);
+	
+	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
+		return;
+
+	acct_net_update(nl->c_class, kn->addr, NET_CLASS_C_MASK, pmone);
+}
+
+/**
+ * Perform passive checks to fight against Sybil attacks.
+ *
+ * @param nl		node lookup
+ * @param kn		the node we want to check
+ * @param buf		buffer where we can write the error, if rejected
+ * @param len		buffer length (nothing written if 0)
+ *
+ * @return TRUE if node is safe to query / add to path, FALSE otherwise,
+ * filling buf if len is non-zero with the rejection reason.
+ */
+static gboolean
+lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
+	char *buf, size_t len)
+{
+	const char *msg;
+	gnr_stats_t gnr_stat;
+
+	lookup_check(nl);
+	knode_check(kn);
+	g_assert(0 == len || buf != NULL);
+
+	/*
+	 * The following are safety precautions described in the article:
+	 *
+	 * "Efficient DHT attack mitigation through peers's ID distribution" by
+	 * Thibault Cholez et al., published in June 2010.
+	 *
+	 * The preventive rules implemeted here attempt to fight Sybil attacks:
+	 *
+	 * - We limit the amount of hosts coming from the same class-C network.
+	 *   This makes it more difficult to attack a KUID because rogue nodes
+	 *   have to be spread among many subnets.
+	 *
+	 * - We discard nodes too close from the target as being suspicious.
+	 *   The maximum amount of common bits allowed is determined at lookup
+	 *   creation based on the current estimated DHT size. Given that KUIDs
+	 *   are randomly generated, the chance the threshold be hit by accident
+	 *   is only 1 / 2^KDA_K.  And even then, there's no real damage done
+	 *   to the lookup path because that should only impact 1 node among the
+	 *   KDA_K closest.  The chance that 2 be affected is negligible in
+	 *   practice, unless an attack is under way in which case we want to
+	 *   exclude these nodes anyway.
+	 *
+	 * Naturally, lookups aimed at a specific node to grab its security token
+	 * must avoid performing the "too close" check, by construction!
+	 */
+
+	if (lookup_c_class_get_count(nl, kn) >= NL_MAX_IN_NET) {
+		msg = "reached class-C net quota";
+		gnr_stat = GNR_DHT_LOOKUP_REJECTED_NODE_ON_NET_QUOTA;
+		goto unsafe;
+	} else if (
+		nl->type != LOOKUP_TOKEN &&		/* These aim at a known KUID! */
+		UNSIGNED(nl->max_common_bits) <
+			common_leading_bits(kn->id, KUID_RAW_BITSIZE,
+				nl->kuid, KUID_RAW_BITSIZE)
+	) {
+		msg = "suspiciously close to target";
+		gnr_stat = GNR_DHT_LOOKUP_REJECTED_NODE_ON_PROXIMITY;
+		goto unsafe;
+	}
+
+	return TRUE;
+
+unsafe:
+	if (len != 0)
+		g_strlcpy(buf, msg, len);
+
+	gnet_stats_count_general(gnr_stat, 1);
+
+	if (!(nl->flags & NL_F_PASV_PROTECT)) {
+		nl->flags |= NL_F_PASV_PROTECT;
+		gnet_stats_count_general(GNR_DHT_PASSIVELY_PROTECTED_LOOKUP_PATH, 1);
+	}
+
+	return FALSE;
+}
+
+/**
  * Move to the lookup path all the nodes from the shortlist for which we have
  * a valid (cached) security token already.
  *
@@ -1962,15 +2090,20 @@ lookup_load_path(nlookup_t *nl)
 				memcpy(tok->v, token, toklen);
 			}
 
-			/*
-			 * Since we're going to remove the node from the shortlist,
-			 * there's no need to alter the reference count when adding
-			 * to the path.
-			 */
+			if (lookup_node_is_safe(nl, kn, NULL, 0)) {
+				/*
+				 * Since we're going to remove the node from the shortlist,
+				 * there's no need to alter the reference count when adding
+				 * to the path.
+				 */
 
-			map_insert(nl->tokens, kn->id, ltok);
-			patricia_insert(nl->path, kn->id, kn);
-			map_insert(nl->queried, kn->id, knode_refcnt_inc(kn));
+				map_insert(nl->tokens, kn->id, ltok);
+				patricia_insert(nl->path, kn->id, kn);
+				map_insert(nl->queried, kn->id, knode_refcnt_inc(kn));
+				lookup_c_class_update_count(nl, kn, +1);
+			} else {
+				knode_free(kn);		/* Will be removed from shortlist below */
+			}
 		}
 	}
 
@@ -2011,6 +2144,7 @@ lookup_handle_reply(
 	sec_token_t *token = NULL;
 	const char *reason;
 	char msg[256];
+	char unsafe[48];
 	int n = 0;
 	guint8 contacts;
 
@@ -2104,6 +2238,17 @@ lookup_handle_reply(
 		if (kuid_eq(get_our_kuid(), cn->id)) {
 			gm_snprintf(msg, sizeof msg,
 				"%s bears our KUID", knode_to_string(cn));
+			goto skip;
+		}
+
+		/*
+		 * Protect against Sybil attacks. no need to keep a contact that
+		 * we won't query anyway.
+		 */
+
+		if (!lookup_node_is_safe(nl, cn, unsafe, sizeof unsafe)) {
+			gm_snprintf(msg, sizeof msg, "unsafe %s: %s",
+				knode_to_string(cn), unsafe);
 			goto skip;
 		}
 
@@ -2299,6 +2444,18 @@ lookup_handle_reply(
 	}
 
 	/*
+	 * Avoid putting unsafe hosts in the path.
+	 */
+
+	if (!lookup_node_is_safe(nl, kn, unsafe, sizeof unsafe)) {
+		if (GNET_PROPERTY(dht_lookup_debug)) {
+			g_debug("DHT LOOKUP[%s] ignoring reply from %s: %s",
+				revent_id_to_string(nl->lid), knode_to_string(kn), unsafe);
+		}
+		goto done;
+	}
+
+	/*
 	 * We parsed the whole message correctly, so we can add this node to
 	 * our lookup path and remember its security token.
 	 */
@@ -2308,6 +2465,8 @@ lookup_handle_reply(
 
 	patricia_insert(nl->path, kn->id, knode_refcnt_inc(kn));
 	patricia_insert(nl->ball, kn->id, knode_refcnt_inc(kn));
+
+	lookup_c_class_update_count(nl, kn, +1);
 
 	if (token) {
 		lookup_token_t *ltok = walloc(sizeof *ltok);
@@ -2919,11 +3078,21 @@ lookup_iterate(nlookup_t *nl)
 
 	while (i < alpha && patricia_iter_has_next(iter)) {
 		knode_t *kn = patricia_iter_next_value(iter);
+		char reason[48];
 
 		if (!knode_can_recontact(kn))
 			continue;
 
-		if (!map_contains(nl->queried, kn->id)) {
+		/*
+		 * Skip unsafe hosts.
+		 */
+
+		if (!lookup_node_is_safe(nl, kn, reason, sizeof reason)) {
+			if (GNET_PROPERTY(dht_lookup_debug)) {
+				g_debug("DHT LOOKUP[%s] ignoring %s: %s",
+					revent_id_to_string(nl->lid), knode_to_string(kn), reason);
+			}
+		} else if (!map_contains(nl->queried, kn->id)) {
 			lookup_send(nl, kn);
 			if (nl->flags & NL_F_UDP_DROP)
 				break;				/* Synchronous UDP drop detected */
@@ -2937,7 +3106,7 @@ lookup_iterate(nlookup_t *nl)
 	patricia_iterator_release(&iter);
 
 	/*
-	 * Remove the nodes to whom we sent a message.
+	 * Remove the nodes to whom we sent a message, or which we want to ignore.
 	 */
 
 	g_assert(0 == i || to_remove != NULL);
@@ -3078,9 +3247,11 @@ lookup_create(const kuid_t *kuid, lookup_type_t type,
 	nl->tokens = map_create_patricia(KUID_RAW_BITSIZE);
 	nl->path = patricia_create(KUID_RAW_BITSIZE);
 	nl->ball = patricia_create(KUID_RAW_BITSIZE);
+	nl->c_class = acct_net_create();
 	nl->err = error;
 	nl->arg = arg;
 	nl->expire_ev = cq_main_insert(NL_MAX_LIFETIME, lookup_expired, nl);
+	nl->max_common_bits = KDA_K + dht_get_kball_furthest();
 	tm_now_exact(&nl->start);
 
 	g_hash_table_insert(nlookups, &nl->lid, nl);

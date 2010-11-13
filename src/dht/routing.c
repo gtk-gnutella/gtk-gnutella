@@ -96,6 +96,7 @@ RCSID("$Id$")
 #include "lib/host_addr.h"
 #include "lib/map.h"
 #include "lib/patricia.h"
+#include "lib/pow2.h"
 #include "lib/stats.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -230,6 +231,7 @@ struct kstats {
 	int stale;					/**< Number of stale nodes */
 	int pending;				/**< Number of pending nodes */
 	int max_depth;				/**< Maximum tree depth */
+	int kball_furthest;			/**< Theoretical k-ball furthest frontier */
 	struct ksize local;			/**< Local estimate based our neighbours */
 	struct ksize average;		/**< Cached average DHT size estimate */
 	struct ksize lookups[K_REGIONS];	/**< Estimates derived from lookups */
@@ -3536,7 +3538,7 @@ update_cached_size_estimate(void)
 	 * We give as much weight to our local estimate as we give to the other
 	 * collected data from different lookups on different parts of the
 	 * KUID space because we know the subtree closest to our KUID in a much
-	 * deeper and complete way, and thuse we can use much more nodes to
+	 * deeper and complete way, and thus we can use much more nodes to
 	 * compute that local estimate.
 	 *
 	 * We still need to average with other parts of the KUID space because
@@ -3551,11 +3553,27 @@ update_cached_size_estimate(void)
 	stats.average.computed = now;
 	stats.average.amount = K_LOCAL_ESTIMATE;
 
+	/*
+	 * Compute the theoretical k-ball furthest frontier based on the estimated
+	 * DHT size: if all the KUIDs are uniformely distributed, then we can
+	 * expect that our k-closest neighbours will have an amount of common
+	 * leading bits with our KUID of:
+	 *
+	 *     E[log2(estimated_DHT_size / KDA_K)]
+	 *
+	 * with E[x] being the integer part of x.
+	 *
+	 * Note that E[log2(x)] = highest_bit_set(x), making computation easy.
+	 */
+
+	stats.kball_furthest = highest_bit_set64(estimate / KDA_K);
+
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT cached average local size estimate is %s "
-			"(%d point%s, skipped %d)",
+			"(%d point%s, skipped %d), k-ball furthest: %d bit%s",
 			uint64_to_string2(stats.average.estimate),
-			count, 1 == count ? "" : "s", n + 1 - count);
+			count, 1 == count ? "" : "s", n + 1 - count,
+			stats.kball_furthest, 1 == stats.kball_furthest ? "" : "s");
 		if (n > 1) {
 			g_debug(
 				"DHT collected average is %.0f (%d points), sdev = %.2f",
@@ -3769,6 +3787,19 @@ dht_get_size_estimate(void)
 
 	kuid_set64(&size_estimate, stats.average.estimate);
 	return &size_estimate;
+}
+
+/**
+ * Get theoretical k-ball furthest frontier: the amount of KUID leading
+ * bits nodes at the edge of our k-closest set are likely to share with us.
+ */
+int
+dht_get_kball_furthest(void)
+{
+	if (stats.average.computed == 0)
+		dht_update_size_estimate();
+
+	return stats.kball_furthest;
 }
 
 /**
