@@ -3006,6 +3006,7 @@ lookup_iterate(nlookup_t *nl)
 {
 	patricia_iter_t *iter;
 	GSList *to_remove = NULL;
+	GSList *ignored = NULL;
 	GSList *sl;
 	int i = 0;
 	int alpha = KDA_ALPHA;
@@ -3092,6 +3093,7 @@ lookup_iterate(nlookup_t *nl)
 				g_debug("DHT LOOKUP[%s] ignoring %s: %s",
 					revent_id_to_string(nl->lid), knode_to_string(kn), reason);
 			}
+			ignored = g_slist_prepend(ignored, knode_refcnt_inc(kn));
 		} else if (!map_contains(nl->queried, kn->id)) {
 			lookup_send(nl, kn);
 			if (nl->flags & NL_F_UDP_DROP)
@@ -3113,11 +3115,23 @@ lookup_iterate(nlookup_t *nl)
 
 	GM_SLIST_FOREACH(to_remove, sl) {
 		knode_t *kn = sl->data;
-
 		lookup_shortlist_remove(nl, kn);
 	}
-
 	g_slist_free(to_remove);
+
+	/*
+	 * Now explicitly free ignored hosts: because removal from the shortlist
+	 * will use knode_refcnt_dec(), which expects nodes to still be alive
+	 * after being removed (since they are moved to nl->queried usually),
+	 * all the ignored hosts were put into a list with their ref count
+	 * increased.
+	 */
+
+	GM_SLIST_FOREACH(ignored, sl) {
+		knode_t *kn = sl->data;
+		knode_free(kn);
+	}
+	g_slist_free(ignored);
 
 	/*
 	 * If we detected an UDP message dropping and did not send any
