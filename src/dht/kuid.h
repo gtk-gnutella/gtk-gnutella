@@ -49,6 +49,7 @@ int kuid_cmp3(const kuid_t *target, const kuid_t *kuid1, const kuid_t *kuid2);
 int kuid_cmp(const kuid_t *kuid1, const kuid_t *kuid2);
 void kuid_xor_distance(kuid_t *res, const kuid_t *k1, const kuid_t *k2);
 gboolean kuid_match_nth(const kuid_t *k1, const kuid_t *k2, int bits);
+size_t kuid_common_prefix(const kuid_t *k1, const kuid_t *k2);
 void kuid_random_within(kuid_t *dest, const kuid_t *prefix, int bits);
 void kuid_flip_nth_leading_bit(kuid_t *res, int n);
 

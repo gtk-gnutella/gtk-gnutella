@@ -267,8 +267,6 @@ bits_within_kball(size_t common_bits)
 gboolean
 keys_within_kball(const kuid_t *id)
 {
-	size_t common_bits;
-
 	/*
 	 * Until we get notified that the DHT is seeded (i.e. that we looked up
 	 * our own KUID in the DHT), it is difficult to determine accurately the
@@ -278,10 +276,7 @@ keys_within_kball(const kuid_t *id)
 	if (!kball.seeded)
 		return TRUE;			/* Assume close enough to our KUID */
 
-	common_bits = common_leading_bits(id, KUID_RAW_BITSIZE,
-			get_our_kuid(), KUID_RAW_BITSIZE);
-
-	return common_bits > kball.furthest_bits;
+	return kuid_common_prefix(id, get_our_kuid()) > kball.furthest_bits;
 }
 
 /**
@@ -293,8 +288,7 @@ keys_within_kball(const kuid_t *id)
 gboolean
 keys_is_foreign(const kuid_t *id)
 {
-	return 0 == common_leading_bits(id, KUID_RAW_BITSIZE,
-		get_our_kuid(), KUID_RAW_BITSIZE);
+	return 0 == kuid_common_prefix(id, get_our_kuid());
 }
 
 /**
@@ -318,9 +312,7 @@ keys_is_nearby(const kuid_t *id)
 	if (!kball.seeded)
 		return TRUE;			/* Assume close enough to our KUID */
 
-	common_bits = common_leading_bits(id, KUID_RAW_BITSIZE,
-			get_our_kuid(), KUID_RAW_BITSIZE);
-
+	common_bits = kuid_common_prefix(id, get_our_kuid());
 	radius = 1 + (kball.closest_bits - kball.furthest_bits) / 2;
 
 	if (kball.furthest_bits < radius)
@@ -708,10 +700,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		size_t common;
 		gboolean in_kball;
 
-		common = common_leading_bits(
-			get_our_kuid(), KUID_RAW_BITSIZE,
-			id, KUID_RAW_BITSIZE);
-
+		common = kuid_common_prefix(get_our_kuid(), id);
 		in_kball = bits_within_kball(common);
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
@@ -1190,10 +1179,8 @@ keys_update_kball(void)
 		kuid_atom_change(&kball.furthest, furthest->id);
 		kuid_atom_change(&kball.closest, closest->id);
 
-		fbits = common_leading_bits(kball.furthest, KUID_RAW_BITSIZE,
-			our_kuid, KUID_RAW_BITSIZE);
-		cbits = common_leading_bits(kball.closest, KUID_RAW_BITSIZE,
-			our_kuid, KUID_RAW_BITSIZE);
+		fbits = kuid_common_prefix(kball.furthest, our_kuid);
+		cbits = kuid_common_prefix(kball.closest, our_kuid);
 
 		g_assert(fbits <= cbits);
 		g_assert(cbits <= KUID_RAW_BITSIZE);
@@ -1237,9 +1224,7 @@ keys_decimation_factor(const kuid_t *key)
 	size_t common;
 	int delta;
 
-	common = common_leading_bits(
-		get_our_kuid(), KUID_RAW_BITSIZE,
-		key, KUID_RAW_BITSIZE);
+	common = kuid_common_prefix(get_our_kuid(), key);
 
 	/*
 	 * If key falls within our k-ball, no decimation.

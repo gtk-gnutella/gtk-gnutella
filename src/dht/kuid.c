@@ -214,6 +214,15 @@ kuid_match_nth(const kuid_t *k1, const kuid_t *k2, int bits)
 }
 
 /**
+ * Return length of common prefix between two KUIDs.
+ */
+size_t
+kuid_common_prefix(const kuid_t *k1, const kuid_t *k2)
+{
+	return common_leading_bits(k1, KUID_RAW_BITSIZE, k2, KUID_RAW_BITSIZE);
+}
+
+/**
  * Generate a new random KUID that falls within the specified prefix.
  *
  * @param dest		where to write the generated KUID
