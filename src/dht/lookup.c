@@ -2715,22 +2715,6 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 		return TRUE;	/* Iterate */
 
 	/*
-	 * We can stop a value lookup if we hit the KUID we're looking
-	 * for, because that node returned a node list and not a value.
-	 * It does not stop a node lookup (curiously!), because we want the
-	 * k-closest nodes as well, not just that node.
-	 */
-
-	if (LOOKUP_VALUE == nl->type && kuid_eq(kn->id, nl->kuid)) {
-		if (GNET_PROPERTY(dht_lookup_debug) > 1)
-			g_debug("DHT LOOKUP[%s] ending due to target ID match",
-				revent_id_to_string(nl->lid));
-
-		lookup_completed(nl);
-		return FALSE;		/* Do not iterate */
-	}
-
-	/*
 	 * If we are in a loose parallelism mode and the amount of items in
 	 * the path (nodes from which we got a reply) plus the amount of
 	 * outstanding RPCs reaches over the amount of closest nodes they want,
