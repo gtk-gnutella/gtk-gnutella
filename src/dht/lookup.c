@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2008-2009, Raphael Manfredi
+ * Copyright (c) 2008-2010, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,12 +30,14 @@
  * Kademlia node/value lookups.
  *
  * @author Raphael Manfredi
- * @date 2008-2009
+ * @date 2008-2010
  */
 
 #include "common.h"
 
 RCSID("$Id$")
+
+#include <math.h>		/* For log() */
 
 #include "lookup.h"
 #include "acct.h"
@@ -60,7 +62,6 @@ RCSID("$Id$")
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
 #include "lib/map.h"
-#include "lib/misc.h"			/* For common_leading_bits() */
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
 #include "lib/tm.h"
@@ -82,6 +83,14 @@ RCSID("$Id$")
  * "Sybil attacks") by making such attacks harder to conduct.
  */
 #define NL_MAX_IN_NET		3		/* At most 3 hosts from same class-C net */
+
+/**
+ * For active countermeasures, Kullback-Leibler divergence thresholds.
+ */
+#define KL_ABNORMAL_THRESH	0.7		/**< Abnormal K-L divergence threshold */
+#define KL_COUNTER_THRESH	0.3		/**< Countermeasure objective */
+
+static double log2_frequency[KDA_K][KDA_K];
 
 /**
  * Table keeping track of all the node lookup objects that we have created
@@ -221,6 +230,7 @@ struct nlookup {
 #define NL_F_COMPLETED		(1U << 3)	/**< Completed, waiting final RPCs */
 #define NL_F_DONT_REMOVE	(1U << 4)	/**< No removal from table on free */
 #define NL_F_PASV_PROTECT	(1U << 5)	/**< Passive protection triggered */
+#define NL_F_ACTV_PROTECT	(1U << 6)	/**< Active protection triggered */
 
 static inline void
 lookup_check(const nlookup_t *nl)
@@ -1734,7 +1744,7 @@ lookup_shortlist_add(nlookup_t *nl, const knode_t *kn)
  * Remove a node from the shortlist.
  */
 static void
-lookup_shortlist_remove(nlookup_t *nl, knode_t *kn)
+lookup_shortlist_remove(const nlookup_t *nl, knode_t *kn)
 {
 	lookup_check(nl);
 	knode_check(kn);
@@ -1748,6 +1758,450 @@ lookup_shortlist_remove(nlookup_t *nl, knode_t *kn)
 
 	if (patricia_remove(nl->ball, kn->id))
 		knode_refcnt_dec(kn);
+}
+
+/**
+ * Remove a node from the path.
+ */
+static void
+lookup_path_remove(const nlookup_t *nl, knode_t *kn)
+{
+	lookup_check(nl);
+	knode_check(kn);
+
+	if (GNET_PROPERTY(dht_lookup_debug)) {
+		g_debug("DHT LOOKUP[%s] removing %s from path (%u-bit common prefix)",
+			revent_id_to_string(nl->lid), knode_to_string(kn),
+			(unsigned) kuid_common_prefix(nl->kuid, kn->id));
+	}
+
+	if (patricia_remove(nl->path, kn->id))
+		knode_refcnt_dec(kn);
+
+	/*
+	 * Any removal from the path is replicated on the ball.
+	 */
+
+	if (patricia_remove(nl->ball, kn->id))
+		knode_refcnt_dec(kn);
+}
+
+struct kl_item {
+	double contrib;		/* The divergence contribution of the prefix */
+	size_t prefix;		/* Prefix size */
+};
+
+static int
+kl_item_revcmp(const void *a, const void *b)
+{
+	const struct kl_item *kl_a = a;
+	const struct kl_item *kl_b = b;
+	double d;
+
+	d = kl_a->contrib - kl_b->contrib;
+	if (d < 0.0)
+		d = -d;
+
+	/* Reverse comparison: largest values come first */
+
+	return d < 1e-15 ? 0 : kl_a->contrib < kl_b->contrib ? +1 : -1;
+}
+
+/**
+ * Perform active checks to fight against Sybil attacks.
+ *
+ * @param nl		node lookup
+ *
+ * @return TRUE if path is safe and can be used as such, FALSE if it was
+ * deemed unsafe and was stripped from suspicious entries, requiring further
+ * iteration to complete the lookup.
+ */
+static gboolean
+lookup_path_is_safe(nlookup_t *nl)
+{
+	patricia_iter_t *iter;
+	double M[KDA_K + 1];
+	size_t prefix[KDA_K + 1];
+	struct kl_item items[KDA_K + 1];
+	GList *nodelist[KDA_K + 1];
+	size_t nodes;
+	double dkl, previous_dkl;
+	int min_common_bits, max_common_bits;
+	size_t i;
+	gboolean shifted = FALSE;
+
+	lookup_check(nl);
+
+	/*
+	 * The following are safety precautions described in the article:
+	 *
+	 * "Efficient DHT attack mitigation through peers's ID distribution" by
+	 * Thibault Cholez et al., published in June 2010.
+	 * 
+	 * The idea is that Sybil attacks will necessarily change the statistical
+	 * distribution of the KUIDs surrounding the target.  By comparing the
+	 * actual KUID prefix distribution with the theoretical one, we can detect
+	 * that something is unusual.
+	 *
+	 * The divergence between the theoretical distribution of prefixes and
+	 * the actual one is measured by computing the Kullback-Leibler divergence
+	 * (K-L divergence for short).
+	 *
+	 * The measured distribution of prefixes sharing "i" leading bits with the
+	 * target is M(i).  For instance, if 6 nodes from the 20 closest share
+	 * 13 bits with the target, M(13) = 6/ 20 = 0.3.
+	 *
+	 * The prefix length b_min at which we start looking is the theoretical
+	 * k-ball furthest threshold, which dht_get_kball_furthest() gives us.
+	 * It is computed as:
+	 *
+	 *    b_min = E[log2(estimated_DHT_size / KDA_K)]
+	 *
+	 * with E[x] being the integer part of x.
+	 *
+	 * The maximum prefix length we consider, b_max, is computed as:
+	 *
+	 *    b_max = b_min + KDA_K
+	 *
+	 * Starting at b_min, the theoretical distribution of prefixes, T(i) is
+	 * computed as:
+	 *
+	 *	  T(i) = 1 / 2^(i - b_min + 1)
+	 *
+	 * So if b_min is 13, T(13) = 1/ 2, T(14) = 1/2^2, T(15) = 1/2^3, etc...
+	 * Up to T(b_max) = 1 / 2^(KDA_K + 1).
+	 *
+	 * The K-L divergence of T from M is given by:
+	 *
+	 *    Dkl(M|T) = SUM(M(i) * log2(M(i) / T(i))
+	 *            i = b_min to b_max
+	 *
+	 * Intuitively, the larger M(i)/T(i), the larger the divergence added
+	 * by the i-bit prefix.  Given that an attack will focus on getting close
+	 * to the KUID target, T(i) will get smaller and smaller as "i" increases
+	 * and a large M(i) will indicate a potential attack.
+	 *
+	 * Since Dkl is a summation, we can determine which prefix length
+	 * contributes the most towards the divergence and therefore remove these
+	 * nodes from the path as a counter-measure.
+	 *
+	 * The beauty of that protection is that the more efficient the Sybil
+	 * attack is designed to be, the more we'll spot it and defeat it!
+	 */
+
+	switch (nl->type) {
+	case LOOKUP_TOKEN:
+		return TRUE;			/* Looking only for 1 specific node */
+	case LOOKUP_REFRESH:
+	case LOOKUP_NODE:
+	case LOOKUP_VALUE:
+	case LOOKUP_STORE:
+		break;
+	}
+
+	max_common_bits = nl->max_common_bits;
+	min_common_bits = max_common_bits - KDA_K;
+
+	g_assert(min_common_bits >= 0);		/* by construction */
+
+	/*
+	 * Compute the measured distribution M[].
+	 */
+
+compute:
+
+	iter = patricia_metric_iterator_lazy(nl->path, nl->kuid, TRUE);
+	nodes = 0;
+	memset(prefix, 0, sizeof prefix);
+	i = 0;
+
+	while (i++ < KDA_K && patricia_iter_has_next(iter)) {
+		knode_t *kn = patricia_iter_next_value(iter);
+		size_t common;
+
+		knode_check(kn);
+
+		common = kuid_common_prefix(kn->id, nl->kuid);
+		if (
+			common >= UNSIGNED(min_common_bits) &&
+			common <= UNSIGNED(max_common_bits)
+		) {
+			size_t j = common - min_common_bits;
+			g_assert(j < G_N_ELEMENTS(prefix));
+			prefix[j]++;
+			nodes++;
+		}
+	}
+
+	patricia_iterator_release(&iter);
+
+	if (0 == nodes)
+		return TRUE;	/* No node falling within our K-L divergence window */
+
+	/*
+	 * Compute the K-L divergence.
+	 */
+
+	STATIC_ASSERT(G_N_ELEMENTS(prefix) == G_N_ELEMENTS(M));
+	STATIC_ASSERT(G_N_ELEMENTS(items) == G_N_ELEMENTS(M));
+	STATIC_ASSERT(G_N_ELEMENTS(nodelist) == G_N_ELEMENTS(M));
+	STATIC_ASSERT(G_N_ELEMENTS(M) >= UNSIGNED(KDA_K + 1));
+
+	g_assert(nodes <= KDA_K);
+	g_assert(size_is_positive(nodes));
+
+	for (i = 0; i < G_N_ELEMENTS(prefix); i++) {
+		g_assert(prefix[i] <= nodes);
+		M[i] = (double) prefix[i] / nodes;
+	}
+
+	dkl = 0.0;
+
+	for (i = 0; i < G_N_ELEMENTS(M); i++) {
+		double ct;
+
+		items[i].prefix = i + min_common_bits;
+
+		if (0 == prefix[i]) {
+			items[i].contrib = 0.0;
+			continue;
+		}
+
+		/*
+		 * For faster computations, note that:
+		 *
+		 * log2(M(j) / T(j)) = log2(M(j)) - log2(T(j))
+		 *
+		 * T(j) = 1 / 2^(j - b_min + 1)
+		 * log2(T(j)) = b_min - j - 1
+		 *
+		 * But in M[], indices are i = j - b_min, hence:
+		 *
+		 * log2(T(i)) = -(i + 1)
+		 *
+		 * For the M(i), we precomputed the log2 values for all the possible
+		 * frequencies in the log2_frequency[][] matrix.
+		 */
+
+		ct = M[i] * (log2_frequency[nodes - 1][prefix[i] - 1] + (i + 1.0));
+		dkl += ct;
+		items[i].contrib = ct;
+
+		if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+			g_debug("DHT LOOKUP[%s] %u-bit prefix: "
+				"freq = %lf (%u/%u node%s, log2=%lf), theoric = %lf => "
+				"K-L contribution: %lf",
+				revent_id_to_string(nl->lid), (unsigned) (i + min_common_bits),
+				M[i], (unsigned) prefix[i], (unsigned) nodes,
+				1 == prefix[i] ? "" : "s",
+				log2_frequency[nodes - 1][prefix[i] - 1],
+				1.0 / pow(2.0, i + 1.0), ct);
+		}
+	}
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence to %s = %lf",
+			revent_id_to_string(nl->lid), (unsigned) nodes,
+			(unsigned) patricia_count(nl->path),
+			1 == nodes ? "" : "s", kuid_to_hex_string(nl->kuid), dkl);
+	}
+
+	if (dkl <= KL_ABNORMAL_THRESH)
+		return TRUE;
+
+	/*
+	 * When the size of the DHT is small enough, e.g. 100k nodes or less,
+	 * the distribution of nodes in a given subspace may not be what we
+	 * expect.  For instance, with 70k hosts, the average prefix length
+	 * of the 20 closest neighbours is 11.77 bits.  It could be that we
+	 * end up having a large proportion of 12-bit prefixes and only one node
+	 * with a common 11-bit prefix in the k-closest set.
+	 *
+	 * Furthermore, the average DHT size is not computed with an accuracy
+	 * allowing us to make too harsh decisions as to which bit governs
+	 * the k-ball furthest frontier for a particular KUID.
+	 *
+	 * Allow shifting the window by 1 bit if we believe we are in such a
+	 * situation: we had all KDA_K nodes in the previous window but the
+	 * first prefix has at most 1 node.
+	 *
+	 * This logic was not described in the original paper cited above.
+	 *		--RAM, 2010-11-14
+	 */
+
+	if (!shifted && KDA_K == nodes && prefix[0] <= 1) {
+		min_common_bits++;
+		max_common_bits++;
+		shifted = TRUE;
+
+		if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+			g_debug("DHT LOOKUP[%s] shifting K-L window to [%d, %d] bits",
+				revent_id_to_string(nl->lid), min_common_bits, max_common_bits);
+		}
+
+		goto compute;	/* Try again once with shifted window */
+	}
+
+	/*
+	 * Distribution of prefixes is deemed abnormal, time for counter-measures.
+	 */
+
+	if (!(nl->flags & NL_F_ACTV_PROTECT)) {
+		nl->flags |= NL_F_ACTV_PROTECT;
+		gnet_stats_count_general(GNR_DHT_ACTIVELY_PROTECTED_LOOKUP_PATH, 1);
+	}
+
+	/*
+	 * We're going to evict nodes from the path, so extract them in lists,
+	 * one list of nodes per prefix size.
+	 */
+
+	iter = patricia_metric_iterator_lazy(nl->path, nl->kuid, TRUE);
+	memset(nodelist, 0, sizeof nodelist);
+	i = 0;
+
+	while (i++ < KDA_K && patricia_iter_has_next(iter)) {
+		knode_t *kn = patricia_iter_next_value(iter);
+		size_t common;
+
+		knode_check(kn);
+
+		common = kuid_common_prefix(kn->id, nl->kuid);
+		if (
+			common >= UNSIGNED(min_common_bits) &&
+			common <= UNSIGNED(max_common_bits)
+		) {
+			size_t j = common - min_common_bits;
+			g_assert(j < G_N_ELEMENTS(nodelist));
+			nodelist[j] = g_list_prepend(nodelist[j], kn);
+		}
+	}
+
+	patricia_iterator_release(&iter);
+
+	/*
+	 * Now determine which prefix size contributes the most to the
+	 * divergence between the measured and theoretical distributions.
+	 */
+
+strip_one_node:			/* do {} while () in disguise, avoids indentation */
+
+	g_assert(nodes >= 1U);
+
+	qsort(&items, G_N_ELEMENTS(items), sizeof(items[0]), kl_item_revcmp);
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+		g_debug("DHT LOOKUP[%s] largest K-L divergence %lf from %u-bit prefix",
+			revent_id_to_string(nl->lid), items[0].contrib, items[0].prefix);
+	}
+
+	/*
+	 * Pick a random node in the offending prefix.
+	 */
+
+	{
+		size_t n = items[0].prefix;		/* Prefix size, in bits */
+		size_t j = n - min_common_bits;	/* Index in prefix[] */
+		size_t count;
+		size_t nth;
+		GList *lnk;
+
+		g_assert(size_is_non_negative(j) && j < G_N_ELEMENTS(prefix));
+		count = prefix[j];
+
+		g_assert(size_is_positive(count));
+		nth = random_value(count - 1);
+		lnk = g_list_nth(nodelist[j], nth);
+
+		g_assert(lnk != NULL);			/* There is an nth item in the list */
+		lookup_path_remove(nl, lnk->data);
+		nodelist[j] = g_list_delete_link(nodelist[j], lnk);
+
+		prefix[j]--;
+		nodes--;
+
+		gnet_stats_count_general(GNR_DHT_LOOKUP_REJECTED_NODE_ON_DIVERGENCE, 1);
+	}
+
+	if (0 == nodes)
+		goto done;
+
+	/*
+	 * Update the K-L divergence now that we removed one node.
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(prefix); i++) {
+		g_assert(prefix[i] <= nodes);
+		M[i] = (double) prefix[i] / nodes;
+	}
+
+	previous_dkl = dkl;
+	dkl = 0.0;
+
+	for (i = 0; i < G_N_ELEMENTS(M); i++) {
+		double ct;
+
+		items[i].prefix = i + min_common_bits;
+
+		if (0 == prefix[i]) {
+			items[i].contrib = 0.0;
+			continue;
+		}
+
+		ct = M[i] * (log2_frequency[nodes - 1][prefix[i] - 1] + (i + 1.0));
+		dkl += ct;
+		items[i].contrib = ct;
+
+		if (GNET_PROPERTY(dht_lookup_debug) > 3) {
+			g_debug("DHT LOOKUP[%s] updated %u-bit prefix: "
+				"freq = %lf (%u/%u node%s, log2=%lf), theoric = %lf => "
+				"K-L contribution: %lf",
+				revent_id_to_string(nl->lid), (unsigned) (i + min_common_bits),
+				M[i], (unsigned) prefix[i], (unsigned) nodes,
+				1 == prefix[i] ? "" : "s",
+				log2_frequency[nodes - 1][prefix[i] - 1],
+				1.0 / pow(2.0, i + 1.0), ct);
+		}
+	}
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence down to %lf",
+			revent_id_to_string(nl->lid), (unsigned) nodes,
+			(unsigned) patricia_count(nl->path), 1 == nodes ? "" : "s", dkl);
+	}
+
+	/*
+	 * Continue stripping nodes from the path until the divergence is down to
+	 * a reasonable level or starts rising again, meaning we're starting to
+	 * tweak the distribution.
+	 *
+	 * This is different from the logic explained in the cited paper, but I
+	 * believe it is much better as we remove nodes randomly based on their
+	 * perceived abnormal distribution and at the same time avoid distorting
+	 * legitimate distributions that only *appear* to be abnormal by stopping
+	 * the counter-measures early.
+	 *		--RAM, 2010-11-14
+	 */
+
+	if (dkl > KL_COUNTER_THRESH && dkl < previous_dkl)
+		goto strip_one_node;
+
+done:
+
+	for (i = 0; i < G_N_ELEMENTS(nodelist); i++) {
+		g_list_free(nodelist[i]);
+	}
+
+	if (GNET_PROPERTY(dht_lookup_debug)) {
+		g_debug("DHT LOOKUP[%s] after counter-measures: path holds %u node%s, "
+			"K-L divergence is %lf (%u node%s in window)",
+			revent_id_to_string(nl->lid),
+			(unsigned) patricia_count(nl->path),
+			1 == patricia_count(nl->path) ? "" : "s", dkl,
+			(unsigned) nodes, 1 == nodes ? "" : "s");
+	}
+
+	return FALSE;		/* Path was unsafe, must continue iterating */
 }
 
 /**
@@ -1798,7 +2252,13 @@ lookup_closest_ok(nlookup_t *nl)
 			revent_id_to_string(nl->lid), knode_to_string(kn));
 	}
 
-	return enough;
+	/*
+	 * If we have enough nodes, look at the distribution of the k-closest
+	 * nodes we have in the path to spot Sybil attacks, possibly removing
+	 * offending nodes.
+	 */
+
+	return enough && lookup_path_is_safe(nl);
 }
 
 /**
@@ -2024,9 +2484,7 @@ lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
 		goto unsafe;
 	} else if (
 		nl->type != LOOKUP_TOKEN &&		/* These aim at a known KUID! */
-		UNSIGNED(nl->max_common_bits) <
-			common_leading_bits(kn->id, KUID_RAW_BITSIZE,
-				nl->kuid, KUID_RAW_BITSIZE)
+		UNSIGNED(nl->max_common_bits) < kuid_common_prefix(kn->id, nl->kuid)
 	) {
 		msg = "suspiciously close to target";
 		gnr_stat = GNR_DHT_LOOKUP_REJECTED_NODE_ON_PROXIMITY;
@@ -2062,11 +2520,14 @@ static void
 lookup_load_path(nlookup_t *nl)
 {
 	patricia_iter_t *iter;
+	char reason[48];
+	size_t reason_len;
 
 	lookup_check(nl);
 	g_assert(LOOKUP_STORE == nl->type);
 
 	iter = patricia_metric_iterator_lazy(nl->shortlist, nl->kuid, TRUE);
+	reason_len = GNET_PROPERTY(dht_lookup_debug) ? sizeof reason : 0;
 
 	while (patricia_iter_has_next(iter)) {
 		knode_t *kn;
@@ -2095,7 +2556,7 @@ lookup_load_path(nlookup_t *nl)
 			 * in the shortlist: it will be removed later on when iterating.
 			 */
 
-			if (lookup_node_is_safe(nl, kn, NULL, 0)) {
+			if (lookup_node_is_safe(nl, kn, reason, reason_len)) {
 				/*
 				 * Since we're going to remove the node from the shortlist,
 				 * there's no need to alter the reference count when adding
@@ -2106,6 +2567,9 @@ lookup_load_path(nlookup_t *nl)
 				patricia_insert(nl->path, kn->id, kn);
 				map_insert(nl->queried, kn->id, knode_refcnt_inc(kn));
 				lookup_c_class_update_count(nl, kn, +1);
+			} else if (GNET_PROPERTY(dht_lookup_debug)) {
+				g_debug("DHT LOOKUP[%s] not loading %s in path: %s",
+					revent_id_to_string(nl->lid), knode_to_string(kn), reason);
 			}
 		}
 	}
@@ -2150,9 +2614,12 @@ lookup_handle_reply(
 	char unsafe[48];
 	int n = 0;
 	guint8 contacts;
+	size_t unsafe_len;
 
 	lookup_check(nl);
 	knode_check(kn);
+
+	unsafe_len = GNET_PROPERTY(dht_lookup_debug) ? sizeof unsafe : 0;
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 		tm_t now;
@@ -2249,7 +2716,7 @@ lookup_handle_reply(
 		 * we won't query anyway.
 		 */
 
-		if (!lookup_node_is_safe(nl, cn, unsafe, sizeof unsafe)) {
+		if (!lookup_node_is_safe(nl, cn, unsafe, unsafe_len)) {
 			gm_snprintf(msg, sizeof msg, "unsafe %s: %s",
 				knode_to_string(cn), unsafe);
 			goto skip;
@@ -2450,7 +2917,7 @@ lookup_handle_reply(
 	 * Avoid putting unsafe hosts in the path.
 	 */
 
-	if (!lookup_node_is_safe(nl, kn, unsafe, sizeof unsafe)) {
+	if (!lookup_node_is_safe(nl, kn, unsafe, unsafe_len)) {
 		if (GNET_PROPERTY(dht_lookup_debug)) {
 			g_debug("DHT LOOKUP[%s] ignoring reply from %s: %s",
 				revent_id_to_string(nl->lid), knode_to_string(kn), unsafe);
@@ -2997,6 +3464,8 @@ lookup_iterate(nlookup_t *nl)
 	GSList *sl;
 	int i = 0;
 	int alpha = KDA_ALPHA;
+	char reason[48];
+	int reason_len;
 
 	lookup_check(nl);
 
@@ -3059,6 +3528,7 @@ lookup_iterate(nlookup_t *nl)
 	 * the proper message (either FIND_NODE or FIND_VALUE).
 	 */
 
+	reason_len = GNET_PROPERTY(dht_lookup_debug) ? sizeof reason_len : 0;
 	iter = patricia_metric_iterator_lazy(nl->shortlist, nl->kuid, TRUE);
 
 	nl->flags |= NL_F_SENDING;		/* Protect against synchronous UDP drops */
@@ -3066,7 +3536,6 @@ lookup_iterate(nlookup_t *nl)
 
 	while (i < alpha && patricia_iter_has_next(iter)) {
 		knode_t *kn = patricia_iter_next_value(iter);
-		char reason[48];
 
 		if (!knode_can_recontact(kn))
 			continue;
@@ -3075,7 +3544,7 @@ lookup_iterate(nlookup_t *nl)
 		 * Skip unsafe hosts.
 		 */
 
-		if (!lookup_node_is_safe(nl, kn, reason, sizeof reason)) {
+		if (!lookup_node_is_safe(nl, kn, reason, reason_len)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
 				g_debug("DHT LOOKUP[%s] ignoring %s: %s",
 					revent_id_to_string(nl->lid), knode_to_string(kn), reason);
@@ -4023,7 +4492,33 @@ done:
 void
 lookup_init(void)
 {
+	double log_2 = log(2.0);
+	size_t i;
+
 	nlookups = g_hash_table_new(revent_id_hash, revent_id_equal);
+
+	/*
+	 * Build lower triangular matrix of all possible log2(frequency).
+	 *
+	 *   A is a square matrix, K x K
+	 *
+	 *   0 <= i < K and 0 <= j < K
+	 *
+	 *   Aij = 0                           j > i
+	 *   Aij = log2((j+1) / (i+1))         j <= i
+	 */
+
+	for (i = 0; i < KDA_K; i++) {
+		size_t j;
+		double count = i + 1.0;
+		for (j = 0; j < count; j++) {
+			double f = (j + 1.0) / count;
+			log2_frequency[i][j] = log(f) / log_2;
+		}
+		for (j = count; j < KDA_K; j++) {
+			log2_frequency[i][j] = 0.0;		/* In case used by mistake */
+		}
+	}
 }
 
 /**
