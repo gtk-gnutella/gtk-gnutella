@@ -1214,7 +1214,7 @@ keys_update_kball(void)
 		 */
 
 		tbits = dht_get_kball_furthest();	/* Theoretical */
-		cbits = MIN(cbits, tbits);		/* Put frontier as far as possible */
+		fbits = MIN(fbits, tbits);		/* Put frontier as far as possible */
 
 		kball.furthest_bits = fbits & 0xff;
 		kball.closest_bits = cbits & 0xff;
