@@ -1619,8 +1619,11 @@ lookup_completed(nlookup_t *nl)
 		size_t path_len = patricia_count(nl->path);
 		knode_t *closest = patricia_closest(nl->path, nl->kuid);
 
-		g_debug("DHT LOOKUP[%s] path holds %lu item%s, closest is %s",
-			revent_id_to_string(nl->lid), (gulong) path_len,
+		g_debug("DHT LOOKUP[%s] %spath holds %lu item%s, closest is %s",
+			revent_id_to_string(nl->lid),
+			(nl->flags & NL_F_ACTV_PROTECT) ? "actively protected " :
+			(nl->flags & NL_F_PASV_PROTECT) ? "passively protected " : "",
+			(gulong) path_len,
 			1 == path_len ? "" : "s",
 			closest ? knode_to_string(closest) : "unknown");
 
@@ -1628,7 +1631,13 @@ lookup_completed(nlookup_t *nl)
 			log_patricia_dump(nl, nl->path, "final path", 2);
 	}
 
-	dht_update_subspace_size_estimate(nl->path, nl->kuid, nl->amount);
+	/*
+	 * Do not update the size estimate if we had to actively protect the
+	 * path as it distorts our computations (leads to under-estimates).
+	 */
+
+	if (!(nl->flags & NL_F_ACTV_PROTECT))
+		dht_update_subspace_size_estimate(nl->path, nl->kuid, nl->amount);
 
 	/*
 	 * We cache the found nodes so that subsequent lookups for a similar
