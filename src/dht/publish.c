@@ -143,6 +143,7 @@ RCSID("$Id$")
 #include "knode.h"
 #include "kuid.h"
 #include "revent.h"
+#include "roots.h"
 #include "tcache.h"
 #include "routing.h"		/* For get_our_kuid() */
 #include "stable.h"
@@ -444,6 +445,54 @@ publish_value_notify(const publish_t *pb, publish_error_t code)
 }
 
 /**
+ * Update the roots cache after a value publishing: tell the cache to keep
+ * only the nodes which replied.
+ */
+static void
+publish_roots_update(const publish_t *pb)
+{
+	size_t max;
+	size_t i;
+	patricia_t *path;
+
+	publish_check(pb);
+	g_assert(PUBLISH_VALUE == pb->type);
+	g_assert(!(pb->flags & PB_F_BACKGROUND));	/* Only after first pass */
+	g_assert(pb->key != NULL);
+
+	max = pb->target.v.rs->path_len;
+	path = patricia_create(KUID_RAW_BITSIZE);
+
+	for (i = 0; i < max; i++) {
+		switch (pb->target.v.status[i]) {
+		case STORE_SC_OUT_OF_RANGE:
+			goto path_loaded;
+		case STORE_SC_TIMEOUT:
+		case STORE_SC_FIREWALLED:
+			continue;		/* Ignore these nodes */
+		default:
+			{
+				knode_t *kn = pb->target.v.rs->path[i].kn;
+				knode_check(kn);
+				patricia_insert(path, kn->id, kn);	/* No need to refcnt */
+			}
+			break;
+		}
+	}
+
+path_loaded:
+	if (GNET_PROPERTY(dht_publish_debug) > 1) {
+		size_t count = patricia_count(path);
+		g_debug("DHT PUBLISH[%s] updating roots cache with %lu entr%s near %s",
+			revent_id_to_string(pb->pid), (unsigned long) count,
+			1 == count ? "y" : "ies", kuid_to_hex_string(pb->key));
+	}
+
+	roots_record(path, pb->key);
+	patricia_destroy(path);
+}
+
+/**
  * Terminate the publishing.
  */
 static void
@@ -511,8 +560,11 @@ publish_terminate(publish_t *pb, publish_error_t code)
 			size_t i;
 
 			for (i = pb->target.v.idx; i < max; i++) {
-				pb->target.v.status[i] = STORE_SC_TIMEOUT;	/* non-retryable */
+				/* Sets non-retryable status code */
+				pb->target.v.status[i] = STORE_SC_OUT_OF_RANGE;
 			}
+
+			publish_roots_update(pb);	/* Remove timeouting nodes */
 		}
 		break;
 	case PUBLISH_OFFLOAD:
@@ -1150,7 +1202,7 @@ publish_value_candidates(const lookup_rs_t *rs, const guint16 *status)
 
 	/*
 	 * During the initial STORE, we took care of marking all the trailing
-	 * nodes in the path with the non-retryable status STORE_SC_TIMEOUT so
+	 * nodes in the path with the non-retryable status STORE_SC_OUT_OF_RANGE so
 	 * that we do not attempt to contact new nodes during subsequent requests.
 	 */
 
