@@ -423,7 +423,9 @@ knode_patricia_free(gpointer key, size_t u_kbits, gpointer value, gpointer u_d)
 	(void) u_kbits;
 	(void) u_d;
 
+	knode_check(kn);
 	g_assert(key == kn->id);
+
 	knode_free(kn);
 }
 
