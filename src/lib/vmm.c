@@ -2780,7 +2780,7 @@ vmm_alloc(size_t size)
 
 	p = alloc_pages(size, TRUE, hole);
 	if (NULL == p)
-		g_error("cannot allocate %lu bytes: out of virtual memmory",
+		g_error("cannot allocate %lu bytes: out of virtual memory",
 			(unsigned long) size);
 
 	assert_vmm_is_allocated(p, size);
@@ -2819,7 +2819,7 @@ vmm_alloc0(size_t size)
 
 	p = alloc_pages(size, TRUE, hole);
 	if (NULL == p)
-		g_error("cannot allocate %lu bytes: out of virtual memmory",
+		g_error("cannot allocate %lu bytes: out of virtual memory",
 			(unsigned long) size);
 
 	assert_vmm_is_allocated(p, size);
