@@ -2542,21 +2542,21 @@ lookup_load_path(nlookup_t *nl)
 		 */
 
 		if (tcache_get(kn->id, &toklen, &token, &last_update)) {
-			lookup_token_t *ltok = walloc(sizeof *ltok);
-			sec_token_t *tok = token_alloc(toklen);
-
-			ltok->retrieved = last_update;
-			ltok->token = tok;
-			if (toklen) {
-				memcpy(tok->v, token, toklen);
-			}
-
 			/*
 			 * If it is not safe to add the node to the path, just leave it
 			 * in the shortlist: it will be removed later on when iterating.
 			 */
 
 			if (lookup_node_is_safe(nl, kn, reason, reason_len)) {
+				lookup_token_t *ltok = walloc(sizeof *ltok);
+				sec_token_t *tok = token_alloc(toklen);
+
+				ltok->retrieved = last_update;
+				ltok->token = tok;
+				if (toklen) {
+					memcpy(tok->v, token, toklen);
+				}
+
 				/*
 				 * Since we're going to remove the node from the shortlist,
 				 * there's no need to alter the reference count when adding
