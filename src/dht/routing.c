@@ -3620,10 +3620,10 @@ dht_update_subspace_size_estimate(
 
 	/*
 	 * If subspace is that of our KUID, we have more precise information
-	 * in the routing table.
+	 * in the routing table when we are an active node.
 	 */
 
-	if (kuid_leading_u8(our_kuid) == subspace)
+	if (dht_is_active() && kuid_leading_u8(our_kuid) == subspace)
 		return;
 
 	/*
