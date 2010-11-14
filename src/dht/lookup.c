@@ -64,6 +64,7 @@ RCSID("$Id$")
 #include "lib/map.h"
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
+#include "lib/random.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/vendors.h"

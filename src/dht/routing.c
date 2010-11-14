@@ -97,6 +97,7 @@ RCSID("$Id$")
 #include "lib/map.h"
 #include "lib/patricia.h"
 #include "lib/pow2.h"
+#include "lib/random.h"
 #include "lib/stats.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"

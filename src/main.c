@@ -128,6 +128,7 @@
 #include "lib/patricia.h"
 #include "lib/pattern.h"
 #include "lib/pow2.h"
+#include "lib/random.h"
 #include "lib/socket.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"

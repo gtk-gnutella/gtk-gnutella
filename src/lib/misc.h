@@ -40,7 +40,6 @@
  * - Size string conversions
  * - SHA1<->base32 string conversion
  * - Tests
- * - Random numbers
  * - Stuff...
  *
  * @author Raphael Manfredi
@@ -234,16 +233,6 @@ dir_entry_mode(const struct dirent *dir_entry)
 }
 
 /*
- * Random numbers
- */
-
-void random_init(void);
-guint32 random_value(guint32 max) WARN_UNUSED_RESULT;
-guint32 random_u32(void) WARN_UNUSED_RESULT;
-void random_bytes(void *dst, size_t size);
-void guid_random_fill(struct guid *);
-
-/*
  * Stuff
  */
 
@@ -287,7 +276,6 @@ signal_handler_t set_signal(int signo, signal_handler_t handler);
 
 void normalize_dir_separators(char *);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
-guint32 cpu_noise(void);
 
 static inline guint
 pointer_hash_func(const void *p)
@@ -522,6 +510,8 @@ round_size_fast(size_t align, size_t n)
 
 	return (n + mask) & ~mask;
 }
+
+void guid_random_fill(struct guid *);
 
 /*
  * Syscall wrappers for errno == 0 bug. --RAM, 27/10/2003

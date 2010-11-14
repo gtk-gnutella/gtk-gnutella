@@ -27,22 +27,27 @@
  * @ingroup lib
  * @file
  *
- * Arc4 random number generator.
+ * Random numbers.
  *
  * @author Raphael Manfredi
  * @date 2010
  */
 
-#ifndef _arc4random_h_
-#define _arc4random_h_
+#ifndef _random_h_
+#define _random_h_
 
 #include "common.h"
 
-#ifndef HAS_ARC4RANDOM
-guint32 arc4random(void);
-void arc4random_stir(void);
-#endif
+/*
+ * Random numbers
+ */
 
-#endif /* _arc4random_h_ */
+void random_init(void);
+guint32 random_value(guint32 max) WARN_UNUSED_RESULT;
+guint32 random_u32(void) WARN_UNUSED_RESULT;
+void random_bytes(void *dst, size_t size);
+guint32 random_cpu_noise(void);
+
+#endif /* _random_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

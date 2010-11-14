@@ -70,6 +70,7 @@ RCSID("$Id$")
 #include "lib/hashlist.h"
 #include "lib/header.h"
 #include "lib/parse.h"
+#include "lib/random.h"
 #include "lib/strtok.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"

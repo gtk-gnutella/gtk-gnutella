@@ -39,7 +39,7 @@ RCSID("$Id$")
 
 #include "map.h"
 #include "debug.h"
-#include "misc.h"
+#include "random.h"
 #include "patricia.h"
 #include "walloc.h"
 #include "tm.h"					/* For tests */

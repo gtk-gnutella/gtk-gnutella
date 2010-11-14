@@ -56,6 +56,7 @@ RCSID("$Id$")
 #include "parse.h"
 #include "path.h"
 #include "pow2.h"
+#include "random.h"
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
@@ -1300,113 +1301,6 @@ force_range(float val, float min, float max)
 		val;
 }
 
-#ifdef HAS_ARC4RANDOM
-/**
- * @return random value between 0 and (2**32)-1. All 32 bit are random.
- */
-guint32
-random_u32(void)
-{
-	return arc4random();
-}
-#else	/* !HAS_ARC4RANDOM */
-/* rotates a 32-bit value by 16 bit */
-static inline guint32
-uint32_rot16(guint32 value)
-{
-	return (value << 16) | (value >> 16);
-}
-
-/**
- * @return random value between 0 and (2**32)-1. All 32 bit are random.
- */
-guint32
-random_u32(void)
-{
-	/*
-	 * random() returns only values between 0 and (2**31)-1, so the
-	 * MSB is always zero. Therefore mix two random values to get
-	 * full 32 random bits.
-	 */
-	return uint32_rot16(random()) ^ (65587 * random());
-}
-#endif	/* HAS_ARC4RANDOM */
-
-/**
- * @return random value between (0..max).
- */
-guint32
-random_value(guint32 max)
-{
-	return (guint32) ((max + 1.0) * random_u32() / ((guint32) -1 + 1.0));
-}
-
-/**
- * Fills buffer 'dst' with 'size' bytes of random data.
- */
-void
-random_bytes(void *dst, size_t size)
-{
-	char *p = dst;
-
-	while (size > 4) {
-		const guint32 value = random_u32();
-		memcpy(p, &value, 4);
-		p += 4;
-		size -= 4;
-	}
-	if (size > 0) {
-		const guint32 value = random_u32();
-		memcpy(p, &value, size);
-	}
-}
-
-/**
- * Initialize random number generator.
- */
-void
-random_init(void)
-{
-	guint32 seed;
-	struct sha1 digest;
-
-	entropy_collect(&digest);
-	seed = sha1_hash(&digest);	/* Reduces 160 bits to 32 */
-
-	srandom(seed);	/* Just in case initstate() enables the alarm device */
-
-#if defined(HAS_INITSTATE)
-	{
-		static gulong state[256 / sizeof(gulong)];
-		
-		initstate(seed, cast_to_gchar_ptr(state), sizeof state);
-	}
-#endif /* HAS_INITSTATE */
-
-	/*
-	 * Randomly ask for a few random bytes so that even if the same seed
-	 * is selected by two peers, the first random values they generate
-	 * will differ.  This matters when the first thing they will do is
-	 * generate a GUID or a KUID...
-	 *
-	 * This adds roughly 10 bits of additional salt to the 32-bit seed since
-	 * it can compute at most 66*20 = 1320 random numbers, that amount being
-	 * random (based on the SHA1 noise we have already computed).
-	 */
-
-	{
-		int i;
-		guint32 count = 0;
-
-		for (i = 0; i < SHA1_RAW_SIZE; i++) {
-			int j = (guchar) digest.data[i] % 67;
-
-			while (j-- > 0)
-				count += random_u32();		/* Avoid compiler warnings */
-		}
-	}
-}
-
 /**
  * Check whether buffer contains printable data, suitable for "%s" printing.
  * If not, consider dump_hex().
@@ -2064,25 +1958,6 @@ memcmp_diff(const void *a, const void *b, size_t size)
 	}
 
 	return n;
-}
-
-guint32
-cpu_noise(void)
-{
-	static guchar data[512];
-	struct sha1 digest;
-	SHA1Context ctx;
-	guint32 r, i;
-	
-	r = random_u32();
-	i = r % G_N_ELEMENTS(data);
-	data[i] = r;
-
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, data, i);
-	SHA1Result(&ctx, &digest);
-
-	return peek_le32(digest.data);
 }
 
 /**

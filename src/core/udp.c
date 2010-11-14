@@ -57,7 +57,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/hashlist.h"
-#include "lib/misc.h"
+#include "lib/random.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */

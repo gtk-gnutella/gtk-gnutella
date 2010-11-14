@@ -68,6 +68,7 @@ RCSID("$Id$")
 #include "lib/host_addr.h"
 #include "lib/glib-missing.h"
 #include "lib/pmsg.h"
+#include "lib/random.h"
 #include "lib/stringify.h"
 #include "lib/unsigned.h"
 #include "lib/vendors.h"

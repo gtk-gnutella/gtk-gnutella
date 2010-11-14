@@ -48,7 +48,7 @@ RCSID("$Id$")
 #include "lib/getline.h"
 #include "lib/halloc.h"
 #include "lib/list.h"
-#include "lib/misc.h"
+#include "lib/random.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"

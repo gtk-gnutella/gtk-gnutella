@@ -102,6 +102,7 @@
 #include "lib/magnet.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
+#include "lib/random.h"
 #include "lib/sequence.h"
 #include "lib/strtok.h"
 #include "lib/stringify.h"

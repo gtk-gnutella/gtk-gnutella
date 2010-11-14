@@ -76,6 +76,7 @@ RCSID("$Id$")
 #include "lib/hashlist.h"
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
+#include "lib/random.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/urn.h"

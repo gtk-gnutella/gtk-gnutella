@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "lib/sha1.h"
 #include "lib/base64.h"
 #include "lib/crc.h"
+#include "lib/random.h"
 #include "lib/tm.h"
 #include "lib/override.h"	/* Must be the last header included */
 

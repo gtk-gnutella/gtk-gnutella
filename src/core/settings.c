@@ -78,6 +78,7 @@
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
+#include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/tm.h"
 #include "lib/vmm.h"

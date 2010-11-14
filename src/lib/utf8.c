@@ -69,6 +69,7 @@ RCSID("$Id$")
 #include "concat.h"
 #include "halloc.h"
 #include "misc.h"
+#include "random.h"
 #include "debug.h"
 #include "glib-missing.h"
 #include "stringify.h"

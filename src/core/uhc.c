@@ -56,6 +56,7 @@ RCSID("$Id$")
 #include "lib/hashlist.h"
 #include "lib/halloc.h"
 #include "lib/parse.h"
+#include "lib/random.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"

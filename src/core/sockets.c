@@ -80,6 +80,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/random.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"

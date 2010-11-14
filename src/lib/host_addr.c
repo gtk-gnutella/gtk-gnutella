@@ -57,6 +57,7 @@ RCSID("$Id$")
 #include "endian.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
 #include "parse.h"
+#include "random.h"
 #include "stringify.h"
 #include "walloc.h"
 

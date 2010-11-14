@@ -114,6 +114,7 @@ LSRC = \
 	pmsg.c \
 	pow2.c \
 	prop.c \
+	random.c \
 	sequence.c \
 	sha1.c \
 	slist.c \

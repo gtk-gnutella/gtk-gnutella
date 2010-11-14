@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 17581 2010-10-29 13:53:39Z rmanfredi $
+# $X-Id: Jmakefile 17743 2010-11-14 20:47:28Z rmanfredi $
 
 GENERIC = bit_array.h bit_field.h
 
@@ -101,6 +101,7 @@ depend:: $(GENERIC)
 LSRC = \
 	adns.c \
 	aging.c \
+	arc4random.c \
 	ascii.c \
 	atoms.c \
 	base16.c \
@@ -165,6 +166,7 @@ LSRC = \
 	pmsg.c \
 	pow2.c \
 	prop.c \
+	random.c \
 	sequence.c \
 	sha1.c \
 	slist.c \
@@ -196,6 +198,7 @@ LSRC = \
 LOBJ = \
 	adns.o \
 	aging.o \
+	arc4random.o \
 	ascii.o \
 	atoms.o \
 	base16.o \
@@ -260,6 +263,7 @@ LOBJ = \
 	pmsg.o \
 	pow2.o \
 	prop.o \
+	random.o \
 	sequence.o \
 	sha1.o \
 	slist.o \

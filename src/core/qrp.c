@@ -57,6 +57,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/halloc.h"
 #include "lib/pow2.h"
+#include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"

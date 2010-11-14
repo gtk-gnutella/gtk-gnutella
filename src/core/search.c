@@ -88,6 +88,7 @@ RCSID("$Id$")
 #include "lib/iso3166.h"
 #include "lib/listener.h"
 #include "lib/magnet.h"
+#include "lib/random.h"
 #include "lib/sbool.h"
 #include "lib/tm.h"
 #include "lib/vector.h"

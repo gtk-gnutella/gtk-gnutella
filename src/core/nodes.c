@@ -111,6 +111,7 @@ RCSID("$Id$")
 #include "lib/listener.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
+#include "lib/random.h"
 #include "lib/sequence.h"
 #include "lib/strtok.h"
 #include "lib/stringify.h"

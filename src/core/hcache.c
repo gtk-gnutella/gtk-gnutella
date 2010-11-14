@@ -66,6 +66,7 @@ RCSID("$Id$")
 #include "lib/getdate.h"
 #include "lib/hashlist.h"
 #include "lib/path.h"
+#include "lib/random.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/vmm.h"

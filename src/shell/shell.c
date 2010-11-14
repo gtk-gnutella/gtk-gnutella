@@ -56,6 +56,7 @@ RCSID("$Id$")
 #include "lib/inputevt.h"
 #include "lib/halloc.h"
 #include "lib/pmsg.h"
+#include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/slist.h"
 #include "lib/stringify.h"
@@ -830,7 +831,7 @@ shell_auth(struct gnutella_shell *sh, const char *str)
 	) {
 		ok = TRUE;
 	} else {
-		cpu_noise();
+		random_cpu_noise();
 	}
 
 done:

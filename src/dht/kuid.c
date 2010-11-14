@@ -44,7 +44,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
-#include "lib/misc.h"
+#include "lib/random.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /**

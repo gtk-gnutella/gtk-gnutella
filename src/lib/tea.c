@@ -43,7 +43,7 @@ RCSID("$Id$")
 #include "tea.h"
 
 #include "endian.h"
-#include "misc.h"			/* For tests only */
+#include "random.h"			/* For tests only */
 
 #include "override.h"		/* Must be the last header included */
 

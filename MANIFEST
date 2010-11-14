@@ -581,12 +581,12 @@ src/if/ui/gtk/upload_stats.h
 src/if/ui/gtk/uploads.h
 src/lib/Jmakefile
 src/lib/Makefile.SH
-src/lib/arc4random.c
-src/lib/arc4random.h
 src/lib/adns.c
 src/lib/adns.h
 src/lib/aging.c
 src/lib/aging.h
+src/lib/arc4random.c
+src/lib/arc4random.h
 src/lib/array.h
 src/lib/ascii.c
 src/lib/ascii.h
@@ -726,6 +726,8 @@ src/lib/pow2.c
 src/lib/pow2.h
 src/lib/prop.c
 src/lib/prop.h
+src/lib/random.c
+src/lib/random.h
 src/lib/sbool.h
 src/lib/sequence.c
 src/lib/sequence.h

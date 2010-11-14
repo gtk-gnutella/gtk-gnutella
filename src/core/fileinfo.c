@@ -80,6 +80,7 @@ RCSID("$Id$")
 #include "lib/magnet.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/random.h"
 #include "lib/stringify.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"

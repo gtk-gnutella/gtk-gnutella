@@ -44,7 +44,7 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/host_addr.h"
-#include "lib/misc.h"
+#include "lib/random.h"
 #include "lib/tea.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
