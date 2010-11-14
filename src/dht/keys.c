@@ -1175,6 +1175,7 @@ keys_update_kball(void)
 		knode_t *closest = patricia_closest(pt, our_kuid);
 		size_t fbits;
 		size_t cbits;
+		size_t tbits;
 
 		kuid_atom_change(&kball.furthest, furthest->id);
 		kuid_atom_change(&kball.closest, closest->id);
@@ -1202,6 +1203,18 @@ keys_update_kball(void)
 		}
 
 		STATIC_ASSERT(KUID_RAW_BITSIZE < 256);
+
+		/*
+		 * The furthest frontier is important because it determines whether
+		 * we need to apply timing decimation on published keys.
+		 * Relying solely on the exploration of our subtree is not enough
+		 * since there can be some aberration in the vincinity of our KUID.
+		 * Correct with the theoretical furthest bit value, determined
+		 * from the estimated DHT size.
+		 */
+
+		tbits = dht_get_kball_furthest();	/* Theoretical */
+		cbits = MIN(cbits, tbits);		/* Put frontier as far as possible */
 
 		kball.furthest_bits = fbits & 0xff;
 		kball.closest_bits = cbits & 0xff;
