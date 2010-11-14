@@ -34,7 +34,7 @@
  *
  * @author Raphael Manfredi
  * @date 2010
- * @author Davide Mazieres
+ * @author David Mazieres
  * @date 1996
  */
 
@@ -189,7 +189,7 @@ arc4random_stir(void)
 }
 
 void
-arc4random_addrandom(guchar *dat, int datlen)
+arc4random_addrandom(const unsigned char *dat, int datlen)
 {
 	/* THREAD_LOCK(); */
 	arc4_check_init();

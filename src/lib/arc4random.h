@@ -41,6 +41,7 @@
 #ifndef HAS_ARC4RANDOM
 guint32 arc4random(void);
 void arc4random_stir(void);
+void arc4random_addrandom(const unsigned char *dat, int datlen);
 #endif
 
 #endif /* _arc4random_h_ */
