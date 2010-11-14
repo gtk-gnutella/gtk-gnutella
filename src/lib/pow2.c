@@ -40,6 +40,36 @@ RCSID("$Id$")
 #include "pow2.h"
 #include "override.h"			/* Must be the last header included */
 
+static int log2_byte[256] = {
+	-1,		/* 0 */
+	0,		/* 1 */
+	1,		/* 2 */
+	1,
+	2,		/* 4 */
+	2, 2, 2,
+	3,		/* 8 */
+	3, 3, 3, 3, 3, 3, 3,
+	4,		/* 16 */
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	5,		/* 32 */
+	5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+	5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+	6,		/* 64 */
+	6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+	6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+	6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+	6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+	7,		/* 128 */
+	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+};
+
 /**
  * @returns the closest power of two greater or equal to `n'.
  * next_pow2(0) and next_pow2(0x8.......) return 0.
@@ -64,16 +94,17 @@ next_pow2(guint32 n)
 int
 highest_bit_set(guint32 n)
 {
-	int h = 0;
-	guint32 r = n;
+	int i;
+	guint32 h;
 
-	if (r == 0)
-		return -1;
+	for (i = 0, h = n; i < 32; i += 8, h >>= 8) {
+		guint32 byte = h & 0xffU;
+		if (byte == h)
+			return i + log2_byte[h];
+	}
 
-	while (r >>= 1)			/* Will find largest bit set */
-		h++;
-
-	return h;
+	g_assert_not_reached();
+	return -1;
 }
 
 /**
@@ -82,16 +113,10 @@ highest_bit_set(guint32 n)
 int
 highest_bit_set64(guint64 n)
 {
-	int h = 0;
-	guint64 r = n;
-
-	if (r == 0)
-		return -1;
-
-	while (r >>= 1)			/* Will find largest bit set */
-		h++;
-
-	return h;
+	if (n <= 0xffffffffU)
+		return highest_bit_set(n);
+	else
+		return 32 + highest_bit_set(n >> 32);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
