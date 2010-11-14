@@ -121,6 +121,7 @@ doc/devguide/I18N
 doc/devguide/README
 doc/devguide/RELEASE
 doc/devguide/STYLE
+doc/gnutella/DHT/DOVE
 doc/gnutella/DHT/README
 doc/gnutella/DHT/messages
 doc/gnutella/DHT/modes
@@ -580,6 +581,8 @@ src/if/ui/gtk/upload_stats.h
 src/if/ui/gtk/uploads.h
 src/lib/Jmakefile
 src/lib/Makefile.SH
+src/lib/arc4random.c
+src/lib/arc4random.h
 src/lib/adns.c
 src/lib/adns.h
 src/lib/aging.c
