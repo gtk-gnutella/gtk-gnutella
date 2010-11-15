@@ -1367,6 +1367,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	g_assert(LOOKUP_VALUE == nl->type);
 
 	type = nl->u.fv.vtype;
+	msg[0] = '\0';			/* Precaution */
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_debug("DHT LOOKUP[%s] got value for %s %s from hop %u %s",
@@ -1396,8 +1397,10 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 		dht_value_t *v = dht_value_deserialize(bs);
 
 		if (NULL == v) {
-			gm_snprintf(msg, sizeof msg, "cannot parse DHT value %d/%u",
-				i + 1, expanded);
+			if (GNET_PROPERTY(dht_lookup_debug)) {
+				gm_snprintf(msg, sizeof msg, "cannot parse DHT value %d/%u",
+					i + 1, expanded);
+			}
 			reason = msg;
 			goto bad;
 		}
@@ -1440,8 +1443,10 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 		kuid_t tmp;
 
 		if (!bstr_read(bs, tmp.v, KUID_RAW_SIZE)) {
-			gm_snprintf(msg, sizeof msg, "cannot read secondary key %d/%u",
-				i + 1, seckeys);
+			if (GNET_PROPERTY(dht_lookup_debug)) {
+				gm_snprintf(msg, sizeof msg, "cannot read secondary key %d/%u",
+					i + 1, seckeys);
+			}
 			reason = msg;
 			goto bad;
 		}
@@ -2630,6 +2635,7 @@ lookup_handle_reply(
 	knode_check(kn);
 
 	unsafe_len = GNET_PROPERTY(dht_lookup_debug) ? sizeof unsafe : 0;
+	msg[0] = '\0';
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 		tm_t now;
@@ -2692,14 +2698,17 @@ lookup_handle_reply(
 		msg[0] = '\0';
 
 		if (NULL == cn) {
-			gm_snprintf(msg, sizeof msg, "cannot parse contact #%d", n);
+			if (GNET_PROPERTY(dht_lookup_debug))
+				gm_snprintf(msg, sizeof msg, "cannot parse contact #%d", n);
 			reason = msg;
 			goto bad;
 		}
 
 		if (!knode_is_usable(cn)) {
-			gm_snprintf(msg, sizeof msg,
-				"%s has unusable address", knode_to_string(cn));
+			if (GNET_PROPERTY(dht_lookup_debug)) {
+				gm_snprintf(msg, sizeof msg,
+					"%s has unusable address", knode_to_string(cn));
+			}
 			goto skip;
 		}
 
@@ -2716,8 +2725,10 @@ lookup_handle_reply(
 		 */
 
 		if (kuid_eq(get_our_kuid(), cn->id)) {
-			gm_snprintf(msg, sizeof msg,
-				"%s bears our KUID", knode_to_string(cn));
+			if (GNET_PROPERTY(dht_lookup_debug)) {
+				gm_snprintf(msg, sizeof msg,
+					"%s bears our KUID", knode_to_string(cn));
+			}
 			goto skip;
 		}
 
@@ -2727,8 +2738,10 @@ lookup_handle_reply(
 		 */
 
 		if (!lookup_node_is_safe(nl, cn, unsafe, unsafe_len)) {
-			gm_snprintf(msg, sizeof msg, "unsafe %s: %s",
-				knode_to_string(cn), unsafe);
+			if (GNET_PROPERTY(dht_lookup_debug)) {
+				gm_snprintf(msg, sizeof msg, "unsafe %s: %s",
+					knode_to_string(cn), unsafe);
+			}
 			goto skip;
 		}
 
@@ -2785,20 +2798,26 @@ lookup_handle_reply(
 				if (map_contains(nl->pending, cn->id)) {
 					map_insert(nl->alternate, cn->id, knode_refcnt_inc(cn));
 
-					gm_snprintf(msg, sizeof msg,
-						"%s already queried, RPC pending, alternate IP %s",
-						knode_to_string(xn),
-						host_addr_port_to_string(cn->addr, cn->port));
+					if (GNET_PROPERTY(dht_lookup_debug)) {
+						gm_snprintf(msg, sizeof msg,
+							"%s already queried, RPC pending, alternate IP %s",
+							knode_to_string(xn),
+							host_addr_port_to_string(cn->addr, cn->port));
+					}
 				} else {
 					lookup_fix_contact(nl, xn, cn);
 
-					gm_snprintf(msg, sizeof msg,
-						"for now, fixed as %s and re-added to shortlist",
-						host_addr_port_to_string(cn->addr, cn->port));
+					if (GNET_PROPERTY(dht_lookup_debug)) {
+						gm_snprintf(msg, sizeof msg,
+							"for now, fixed as %s and re-added to shortlist",
+							host_addr_port_to_string(cn->addr, cn->port));
+					}
 				}
 			} else {
-				gm_snprintf(msg, sizeof msg,
-					"%s was already queried", knode_to_string(xn));
+				if (GNET_PROPERTY(dht_lookup_debug)) {
+					gm_snprintf(msg, sizeof msg,
+						"%s was already queried", knode_to_string(xn));
+				}
 			}
 			goto skip;
 		}
@@ -2838,13 +2857,17 @@ lookup_handle_reply(
 
 				map_insert(nl->alternate, cn->id, knode_refcnt_inc(cn));
 
-				gm_snprintf(msg, sizeof msg,
-					"%s still in our shorlist, recorded alternate IP %s",
-					knode_to_string(cn),
-					host_addr_port_to_string(cn->addr, cn->port));
+				if (GNET_PROPERTY(dht_lookup_debug)) {
+					gm_snprintf(msg, sizeof msg,
+						"%s still in our shorlist, recorded alternate IP %s",
+						knode_to_string(cn),
+						host_addr_port_to_string(cn->addr, cn->port));
+				}
 			} else {
-				gm_snprintf(msg, sizeof msg,
-					"%s is still in our shortlist", knode_to_string(cn));
+				if (GNET_PROPERTY(dht_lookup_debug)) {
+					gm_snprintf(msg, sizeof msg,
+						"%s is still in our shortlist", knode_to_string(cn));
+				}
 			}
 			goto skip;
 		}
@@ -4099,6 +4122,7 @@ lookup_value_handle_reply(nlookup_t *nl,
 	sk = lookup_sk(fv);
 	type = nl->u.fv.vtype;
 	kn = sk->kn;
+	msg[0] = '\0';		/* Precaution */
 
 	if (GNET_PROPERTY(dht_lookup_debug))
 		g_debug("DHT LOOKUP[%s] got value for %s %s from %s",
@@ -4122,7 +4146,8 @@ lookup_value_handle_reply(nlookup_t *nl,
 	}
 
 	if (expanded != 1) {
-		gm_snprintf(msg, sizeof msg, "expected 1 value, got %u", expanded);
+		if (GNET_PROPERTY(dht_lookup_debug))
+			gm_snprintf(msg, sizeof msg, "expected 1 value, got %u", expanded);
 		reason = msg;
 		goto bad;
 	}
