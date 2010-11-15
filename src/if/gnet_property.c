@@ -887,6 +887,9 @@ guint32  gnet_property_variable_omalloc_debug     = 0;
 static const guint32  gnet_property_variable_omalloc_debug_default = 0;
 guint32  gnet_property_variable_hcache_debug     = 0;
 static const guint32  gnet_property_variable_hcache_debug_default = 0;
+char   gnet_property_variable_randomness[KUID_RAW_SIZE];
+static const char   gnet_property_variable_randomness_default[KUID_RAW_SIZE];
+
 
 static prop_set_t *gnet_property;
 
@@ -8103,6 +8106,22 @@ gnet_prop_init(void) {
     gnet_property->props[376].data.guint32.choices = NULL;
     gnet_property->props[376].data.guint32.max   = 20;
     gnet_property->props[376].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_RANDOMNESS:
+     *
+     * General data:
+     */
+    gnet_property->props[377].name = "randomness";
+    gnet_property->props[377].desc = _("Random bits.");
+    gnet_property->props[377].ev_changed = event_new("randomness_changed");
+    gnet_property->props[377].save = TRUE;
+    gnet_property->props[377].vector_size = KUID_RAW_SIZE;
+
+    /* Type specific data: */
+    gnet_property->props[377].type               = PROP_TYPE_STORAGE;
+    gnet_property->props[377].data.storage.value = gnet_property_variable_randomness;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -644,6 +644,15 @@ settings_init(void)
 			GNET_PROPERTY(node_sendqueue_size));
 	}
 
+	/* propagate randomness from previous run */
+
+	{
+		sha1_t buf;		/* 160 bits */
+
+		gnet_prop_get_storage(PROP_RANDOMNESS, &buf, sizeof buf);
+		random_add(&buf, sizeof buf);
+	}
+
     settings_callbacks_init();
 	settings_init_running = FALSE;
 	return;
@@ -651,6 +660,18 @@ settings_init(void)
 no_config_dir:
 	g_warning(_("Cannot proceed without valid configuration directory"));
 	exit(EXIT_FAILURE); /* g_error() would dump core, that's ugly. */
+}
+
+/**
+ * Generate new randomness.
+ */
+void
+settings_add_randomness(void)
+{
+	sha1_t buf;		/* 160 bits */
+
+	random_bytes(&buf, SHA1_RAW_SIZE);
+	gnet_prop_set_storage(PROP_RANDOMNESS, &buf, sizeof buf);
 }
 
 /**

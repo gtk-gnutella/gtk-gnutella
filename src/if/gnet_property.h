@@ -413,6 +413,7 @@ typedef enum {
     PROP_DHT_CURRENT_MODE,
     PROP_OMALLOC_DEBUG,
     PROP_HCACHE_DEBUG,
+    PROP_RANDOMNESS,
     GNET_PROPERTY_END
 } gnet_property_t;
 

@@ -905,6 +905,7 @@ callout_queue_idle(void *unused_data)
 
 	/* Idle tasks always scheduled */
 	zgc(overloaded);
+	random_collect(settings_add_randomness);
 
 	if (!overloaded) {
 		/* Idle tasks scheduled only when CPU is not overloaded */

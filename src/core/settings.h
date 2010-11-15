@@ -63,6 +63,7 @@ void settings_save_if_dirty(void);
 void settings_shutdown(void);
 void settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer);
 guint32 settings_max_msg_size(void);
+void settings_add_randomness();
 void settings_close(void);
 
 guint32 get_average_servent_uptime(time_t now);

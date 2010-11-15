@@ -4420,4 +4420,11 @@ prop = {
     };
 };
 
+prop = {
+    name = "randomness";
+    desc = "Random bits.";
+    type = storage;
+    vector_size = KUID_RAW_SIZE;
+};
+
 /* vi: set ts=4: */

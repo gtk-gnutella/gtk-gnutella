@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "arc4random.h"
 #include "endian.h"
 #include "misc.h"
+#include "tm.h"
 #include "sha1.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -109,6 +110,84 @@ random_cpu_noise(void)
 }
 
 /**
+ * This routine is meant to be called periodically and generates a little
+ * bit of random information. Once in a while, when enough randomness has
+ * been collected, it feeds it to the random number generator.
+ *
+ * @param cb		routine to invoke if non-NULL when randomness is fed
+ */
+void
+random_collect(void (*cb)(void))
+{
+	static guchar data[128];
+	static size_t idx;
+	static tm_t last;
+	static time_delta_t prev;
+	static time_delta_t running;
+	static unsigned sum;
+	tm_t now;
+	time_delta_t d;
+	unsigned r, m;
+
+	tm_now_exact(&now);
+	d = tm_elapsed_ms(&now, &last);
+	m = tm2us(&now);
+
+	/*
+	 * We're generating one random byte at a time (8 bits).
+	 */
+
+	r = 0;
+
+	if (prev != d)
+		r |= (1 << 0);
+
+	if ((running & 0xf) >= (d & 0xf))
+		r |= (1 << 1);
+
+	if ((running & 0xf0) >= (d & 0xf0))
+		r |= (1 << 2);
+
+	if (((running + d) & 0xff) >= 0x80)
+		r |= (1 << 3);
+
+	r |= ((m / 127) & 0x78) << 1;		/* Sets 4 upper bits */
+
+	last = now;
+	prev = d;
+	running += d;
+
+	/*
+	 * Save random byte.
+	 */
+
+	sum += r + (r >> 4) + (r << 4);
+	data[idx++] = sum & 0xff;
+
+	/*
+	 * Feed extra bytes when we have enough.
+	 */
+
+	if (idx >= G_N_ELEMENTS(data)) {
+		arc4random_addrandom(data, sizeof data);
+		idx = 0;
+		if (cb != NULL)
+			(*cb)();		/* Let them know new randomness is available */
+	}
+}
+
+/**
+ * Add new randomness to the random number generator.
+ */
+void random_add(const void *data, size_t datalen)
+{
+	g_assert(data != NULL);
+	g_assert(datalen < MAX_INT_VAL(int));
+
+	arc4random_addrandom(deconstify_gpointer(data), (int) datalen);
+}
+
+/**
  * Initialize random number generator.
  */
 void
@@ -116,6 +195,5 @@ random_init(void)
 {
 	arc4random_stir();
 }
-
 
 /* vi: set ts=4 sw=4 cindent: */
