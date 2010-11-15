@@ -2525,6 +2525,37 @@ unsafe:
 }
 
 /**
+ * Record security token for node.
+ */
+static void
+lookup_add_token(const nlookup_t *nl,
+	const knode_t *kn, const lookup_token_t *ltok)
+{
+	lookup_token_t *old_token;
+
+	lookup_check(nl);
+	knode_check(kn);
+	g_assert(ltok != NULL);
+
+	/*
+	 * If a token was already known for the node, discard the previous one.
+	 *
+	 * This can happen when we load a cached path and we end up actively
+	 * discarding nodes from the path due to counter-measures, leading us
+	 * to start querying cached nodes, coming with a known token already.
+	 */
+
+	old_token = map_lookup(nl->tokens, kn->id);
+
+	if (old_token != NULL) {
+		map_remove(nl->tokens, kn->id);
+		lookup_token_free(old_token, TRUE);
+	}
+
+	map_insert(nl->tokens, kn->id, ltok);
+}
+
+/**
  * Move to the lookup path all the nodes from the shortlist for which we have
  * a valid (cached) security token already.
  *
@@ -2580,7 +2611,7 @@ lookup_load_path(nlookup_t *nl)
 				 * to the path.
 				 */
 
-				map_insert(nl->tokens, kn->id, ltok);
+				lookup_add_token(nl, kn, ltok);
 				patricia_insert(nl->path, kn->id, kn);
 				map_insert(nl->queried, kn->id, knode_refcnt_inc(kn));
 				lookup_c_class_update_count(nl, kn, +1);
@@ -2978,7 +3009,7 @@ lookup_handle_reply(
 
 		ltok->retrieved = tm_time();
 		ltok->token = token;
-		map_insert(nl->tokens, kn->id, ltok);
+		lookup_add_token(nl, kn, ltok);
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 4) {
 			char buf[80];
