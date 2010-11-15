@@ -1756,6 +1756,42 @@ lookup_shortlist_add(nlookup_t *nl, const knode_t *kn)
 }
 
 /**
+ * Get number of class C networks identical to that of the node which are
+ * already held in the path (queried nodes which replied).
+ */
+static int
+lookup_c_class_get_count(const nlookup_t *nl, const knode_t *kn)
+{
+	lookup_check(nl);
+	knode_check(kn);
+
+	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
+		return 0;
+
+	return acct_net_get(nl->c_class, kn->addr, NET_CLASS_C_MASK);
+}
+
+/**
+ * Update count of hosts in a given class C network within the lookup path.
+ *
+ * @param nl		node lookup
+ * @param kn		node whose address is the purpose of the update
+ * @param pmone		plus or minus one
+ */
+static void
+lookup_c_class_update_count(const nlookup_t *nl, const knode_t *kn, int pmone)
+{
+	lookup_check(nl);
+	knode_check(kn);
+	g_assert(pmone == +1 || pmone == -1);
+	
+	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
+		return;
+
+	acct_net_update(nl->c_class, kn->addr, NET_CLASS_C_MASK, pmone);
+}
+
+/**
  * Remove a node from the shortlist.
  */
 static void
@@ -1790,8 +1826,10 @@ lookup_path_remove(const nlookup_t *nl, knode_t *kn)
 			(unsigned) kuid_common_prefix(nl->kuid, kn->id));
 	}
 
-	if (patricia_remove(nl->path, kn->id))
+	if (patricia_remove(nl->path, kn->id)) {
+		lookup_c_class_update_count(nl, kn, -1);
 		knode_refcnt_dec(kn);
+	}
 
 	/*
 	 * Any removal from the path is replicated on the ball.
@@ -2407,42 +2445,6 @@ remove_from_shortlist(gpointer key, size_t keybits, gpointer value, gpointer u)
 	(void) value;
 
 	return map_contains(tokens, id);
-}
-
-/**
- * Get number of class C networks identical to that of the node which are
- * already held in the path (queried nodes which replied).
- */
-static int
-lookup_c_class_get_count(const nlookup_t *nl, const knode_t *kn)
-{
-	lookup_check(nl);
-	knode_check(kn);
-
-	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
-		return 0;
-
-	return acct_net_get(nl->c_class, kn->addr, NET_CLASS_C_MASK);
-}
-
-/**
- * Update count of hosts in a given class C network within the lookup path.
- *
- * @param nl		node lookup
- * @param kn		node whose address is the purpose of the update
- * @param pmone		plus or minus one
- */
-static void
-lookup_c_class_update_count(const nlookup_t *nl, const knode_t *kn, int pmone)
-{
-	lookup_check(nl);
-	knode_check(kn);
-	g_assert(pmone == +1 || pmone == -1);
-	
-	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
-		return;
-
-	acct_net_update(nl->c_class, kn->addr, NET_CLASS_C_MASK, pmone);
 }
 
 /**
