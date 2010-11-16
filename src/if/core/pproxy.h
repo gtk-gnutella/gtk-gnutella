@@ -46,11 +46,13 @@
 struct download;
 struct guid;
 
+enum cproxy_magic { CPROXY_MAGIC = 0xc8301U };
+
 /**
  * A client push proxy request.
  */
 struct cproxy {
-	guint32 magic;
+	enum cproxy_magic magic;
 	struct download *d;		/**< Which download triggered us */
 
 	cevent_t *udp_ev;		/**< UDP PUSH timeout */

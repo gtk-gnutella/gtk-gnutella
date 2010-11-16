@@ -1012,7 +1012,6 @@ pproxy_close(void)
  *** Client-side of push-proxy
  ***/
 
-#define CPROXY_MAGIC	0xc8301U
 #define CPROXY_UDP_MS	5000		/**< in milliseconds */
 
 static void cproxy_http_request(struct cproxy *cp);
@@ -1280,7 +1279,7 @@ cproxy_http_newstate(struct http_async *handle, http_state_t newstate)
 }
 
 static void
-cproxy_udp_timeout(cqueue_t *unused_cq, gpointer obj)
+cproxy_http_start(cqueue_t *unused_cq, gpointer obj)
 {
 	struct cproxy *cp = obj;
 
@@ -1289,6 +1288,19 @@ cproxy_udp_timeout(cqueue_t *unused_cq, gpointer obj)
 
 	cp->udp_ev = NULL;
 	cproxy_http_request(cp);
+}
+
+/**
+ * Asynchronous calling of cproxy_http_request(), so that the call happens
+ * on another call stack, after cproxy_create() has returned.
+ */
+static void
+cproxy_async_http_request(struct cproxy *cp)
+{
+	g_assert(cp != NULL);
+	g_assert(CPROXY_MAGIC == cp->magic);
+
+	cp->udp_ev = cq_main_insert(1, cproxy_http_start, cp);
 }
 
 /**
@@ -1336,12 +1348,12 @@ cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
 
 	if (packet.data) {
 		if (download_send_udp_push(packet, cp->addr, cp->port)) {
-			cp->udp_ev = cq_main_insert(CPROXY_UDP_MS, cproxy_udp_timeout, cp);
+			cp->udp_ev = cq_main_insert(CPROXY_UDP_MS, cproxy_http_start, cp);
 		} else {
-			cproxy_http_request(cp);
+			cproxy_async_http_request(cp);	/* Must be asynchronous */
 		}
 	} else {
-		cproxy_http_request(cp);
+		cproxy_async_http_request(cp);		/* Must be asynchronous */
 	}
 
 	return cp;
