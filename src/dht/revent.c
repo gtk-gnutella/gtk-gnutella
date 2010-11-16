@@ -387,6 +387,7 @@ revent_rpc_cb(
 	gpointer obj;
 
 	(void) unused_n;
+	knode_check(kn);
 	rpi_check(rpi);
 
 	ops = rpi->ops;
