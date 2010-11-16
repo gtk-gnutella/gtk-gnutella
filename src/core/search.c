@@ -5190,9 +5190,9 @@ search_request_preprocess(struct gnutella_node *n)
 			gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
 
 			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
-				g_debug("QUERY dropped from node %s <%s>: invalid OOB flag "
+				g_debug("QUERY dropped from %s: invalid OOB flag "
 					"(return address mismatch: %s, node: %s)",
-					node_addr(n), node_vendor(n),
+					node_infostr(n),
 					host_addr_port_to_string(addr, port), node_gnet_addr(n));
 
 			goto drop;

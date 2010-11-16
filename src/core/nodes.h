@@ -578,6 +578,7 @@ void node_current_peermode_changed(node_peer_t mode);
 const char *node_addr(const gnutella_node_t *n);
 const char *node_addr2(const gnutella_node_t *n);
 const char *node_gnet_addr(const gnutella_node_t *n);
+const char *node_infostr(const gnutella_node_t *n);
 
 void node_connect_back(const gnutella_node_t *n, guint16 port);
 void node_connected_back(struct gnutella_socket *s);

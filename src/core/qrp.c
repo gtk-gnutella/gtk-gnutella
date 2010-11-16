@@ -2433,7 +2433,7 @@ qrp_send_reset(struct gnutella_node *n, int slots, int inf_val)
 
 	if (GNET_PROPERTY(qrp_debug) > 1)
 		g_debug("QRP sent RESET slots=%d, infinity=%d to %s",
-			slots, inf_val, node_gnet_addr(n));
+			slots, inf_val, node_infostr(n));
 }
 
 /**
@@ -2485,7 +2485,7 @@ qrp_send_patch(struct gnutella_node *n,
 
 	if (GNET_PROPERTY(qrp_debug) > 2)
 		g_debug("QRP sent PATCH #%d/%d (%d bytes) to %s",
-			seqno, seqsize, len, node_gnet_addr(n));
+			seqno, seqsize, len, node_infostr(n));
 }
 
 /***
@@ -2612,7 +2612,7 @@ qrt_compressed(struct bgtask *unused_h, gpointer unused_u,
 		goto error;
 	else if (status == BGS_ERROR) {		/* Error during processing */
 		g_warning("could not compress query routing patch to send to %s",
-			node_gnet_addr(qup->node));
+			node_infostr(qup->node));
 		goto error;
 	}
 
@@ -2725,9 +2725,9 @@ qrt_patch_available(gpointer arg, struct routing_patch *rp)
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
 	if (GNET_PROPERTY(qrp_debug) > 2)
-		g_debug("QRP global routing patch %s (node %s)",
+		g_debug("QRP global routing patch %s (%s)",
 			rp == NULL ? "computation was cancelled" : "is now available",
-			node_gnet_addr(qup->node));
+			node_infostr(qup->node));
 
 	qup->listener = NULL;
 	qup->patch = (rp == NULL) ? NULL : qrt_patch_ref(rp);
@@ -2769,7 +2769,7 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 		if (old->slots != routing_table->slots) {
 			if (GNET_PROPERTY(qrp_debug))
 				g_warning("QRP old QRT for %s had %d slots, new one has %d",
-					node_gnet_addr(n), old->slots, routing_table->slots);
+					node_infostr(n), old->slots, routing_table->slots);
 			old_table = NULL;	/* Will trigger a RESET, as if the first time */
 		}
 	}
@@ -2795,16 +2795,16 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 		) {
 			if (GNET_PROPERTY(qrp_debug) > 2)
 				g_debug(
-					"QRP default routing patch is already there (node %s)",
-					node_gnet_addr(n));
+					"QRP default routing patch is already there (%s)",
+					node_infostr(n));
 
 			qup->patch = qrt_patch_ref(routing_patch);
 			qrt_compressed(NULL, NULL, BGS_OK, qup);
 		} else {
 			if (GNET_PROPERTY(qrp_debug) > 1)
 				g_debug("QRP must wait for default routing patch "
-					"(node %s): %s",
-					node_gnet_addr(n),
+					"(%s): %s",
+					node_infostr(n),
 					NULL == routing_patch ? "none present" : "has wrong size");
 
 			qup->listener =
@@ -3064,8 +3064,8 @@ qrt_receive_create(struct gnutella_node *n, struct routing_table *query_table)
 
 	if (ret != Z_OK) {
 		wfree(inz, sizeof *inz);
-		g_warning("unable to initialize QRP decompressor for node %s: %s",
-			node_gnet_addr(n), zlib_strerror(ret));
+		g_warning("unable to initialize QRP decompressor for %s: %s",
+			node_infostr(n), zlib_strerror(ret));
 		return NULL;
 	}
 
@@ -3171,10 +3171,9 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, int len,
 
 	if (qrcv->current_index >= rt->slots) {
 		struct gnutella_node *n = qrcv->node;
-		g_warning("%s node %s <%s> overflowed its QRP %d-bit patch of %s slots"
+		g_warning("%s overflowed its QRP %d-bit patch of %s slots"
 			" (%s message #%d/%d)",
-			node_type(n), node_gnet_addr(n), node_vendor(n),
-			qrcv->entry_bits,
+			node_infostr(n), qrcv->entry_bits,
 			compact_size(rt->client_slots, FALSE),
 			patch->compressor ? "compressed" : "plain",
 			patch->seq_no, patch->seq_size);
@@ -3343,9 +3342,9 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, int len,
 			if ((guint) qrcv->current_slot >= rt->client_slots) {
 				if (j != (epb - 1) || i != (len - 1)) {
 					struct gnutella_node *n = qrcv->node;
-					g_warning("%s node %s <%s> overflowed its QRP "
+					g_warning("%s overflowed its QRP "
 						"%d-bit patch of %s slots",
-						node_type(n), node_gnet_addr(n), node_vendor(n),
+						node_infostr(n),
 						qrcv->entry_bits,
 						compact_size(rt->client_slots, FALSE));
 					node_bye_if_writable(n, 413,
@@ -3381,9 +3380,9 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte,
 
 	if (qrcv->current_index >= rt->slots) {
 		struct gnutella_node *n = qrcv->node;
-		g_warning("%s node %s <%s> overflowed its QRP %d-bit patch of %s slots"
+		g_warning("%s overflowed its QRP %d-bit patch of %s slots"
 			" (current_index=%d, slots=%d at %s message #%u/%u)",
-			node_type(n), node_gnet_addr(n), node_vendor(n), qrcv->entry_bits,
+			node_infostr(n), qrcv->entry_bits,
 			compact_size(rt->client_slots, FALSE),
 			qrcv->current_index, rt->slots,
 			patch->compressor ? "compressed" : "plain",
@@ -3402,9 +3401,9 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte,
 
 	if (last_patch_slot > rt->client_slots) {
 		struct gnutella_node *n = qrcv->node;
-		g_warning("%s node %s <%s> overflowed its QRP %d-bit patch of "
+		g_warning("%s overflowed its QRP %d-bit patch of "
 			"%s slots by extra %s at %s message #%u/%u",
-			node_type(n), node_gnet_addr(n), node_vendor(n), qrcv->entry_bits,
+			node_infostr(n), qrcv->entry_bits,
 			compact_size(rt->client_slots, FALSE),
 			uint32_to_string(last_patch_slot - rt->client_slots),
 			patch->compressor ? "compressed" : "plain",
@@ -3646,8 +3645,8 @@ qrt_handle_reset(
 
 	ret = inflateReset(qrcv->inz);
 	if (ret != Z_OK) {
-		g_warning("unable to reset QRP decompressor for node %s: %s",
-			node_gnet_addr(n), zlib_strerror(ret));
+		g_warning("unable to reset QRP decompressor for %s: %s",
+			node_infostr(n), zlib_strerror(ret));
 		node_bye_if_writable(n, 500, "Error resetting QRP inflater: %s",
 			zlib_strerror(ret));
 		return FALSE;
@@ -3658,8 +3657,8 @@ qrt_handle_reset(
 	 */
 
 	if (!is_pow2(reset->table_length)) {
-		g_warning("node %s <%s> sent us non power-of-two QRP length: %u",
-			node_gnet_addr(n), node_vendor(n), reset->table_length);
+		g_warning("%s sent us non power-of-two QRP length: %u",
+			node_infostr(n), reset->table_length);
 		node_bye_if_writable(n, 413, "Invalid QRP table length %u",
 			reset->table_length);
 		return FALSE;
@@ -3675,8 +3674,8 @@ qrt_handle_reset(
 	 */
 
 	if (reset->infinity < 1) {
-		g_warning("node %s <%s> sent us invalid QRP infinity: %u",
-			node_gnet_addr(n), node_vendor(n), (guint) reset->infinity);
+		g_warning("%s sent us invalid QRP infinity: %u",
+			node_infostr(n), (guint) reset->infinity);
 		node_bye_if_writable(n, 413, "Invalid QRP infinity %u",
 			(guint) reset->infinity);
 		return FALSE;
@@ -3700,7 +3699,7 @@ qrt_handle_reset(
 	rt = qrcv->table = walloc(sizeof *rt);
 
 	rt->magic = QRP_ROUTE_MAGIC;
-	rt->name = g_strdup_printf("QRT node %s", node_gnet_addr(n));
+	rt->name = g_strdup_printf("QRT %s", node_infostr(n));
 	rt->refcnt = 1;
 	rt->generation = old_generation + 1;
 	rt->infinity = reset->infinity;
@@ -3725,8 +3724,8 @@ qrt_handle_reset(
 	}
 
 	if (GNET_PROPERTY(qrp_debug) && qrcv->shrink_factor > 1)
-		g_warning("QRP QRT from %s <%s> will be shrunk by a factor of %d",
-			node_gnet_addr(n), node_vendor(n), qrcv->shrink_factor);
+		g_warning("QRP QRT from %s will be shrunk by a factor of %d",
+			node_infostr(n), qrcv->shrink_factor);
 
 	qrcv->expansion = walloc(qrcv->shrink_factor);
 
@@ -3821,8 +3820,8 @@ qrt_handle_patch(
 	 */
 
 	if (qrcv->table == NULL) {
-		g_warning("node %s <%s> did not sent any QRP RESET before PATCH",
-			node_gnet_addr(n), node_vendor(n));
+		g_warning("%s did not sent any QRP RESET before PATCH",
+			node_infostr(n));
 		node_bye_if_writable(n, 413, "No QRP RESET received before PATCH");
 		return FALSE;
 	}
@@ -3832,9 +3831,8 @@ qrt_handle_patch(
 	 */
 
 	if (patch->seq_no != qrcv->seqno) {
-		g_warning("%s node %s <%s> sent us invalid QRP seqno %u (expected %u)",
-			node_type(n), node_gnet_addr(n), node_vendor(n),
-			(guint) patch->seq_no, qrcv->seqno);
+		g_warning("%s sent us invalid QRP seqno %u (expected %u)",
+			node_infostr(n), (guint) patch->seq_no, qrcv->seqno);
 		node_bye_if_writable(n, 413, "Invalid QRP seq number %u (expected %u)",
 			(guint) patch->seq_no, qrcv->seqno);
 		return FALSE;
@@ -3869,16 +3867,16 @@ qrt_handle_patch(
 			/* Use default handler. */
 			break;
 		default:
-			g_warning("node %s <%s> sent invalid QRP entry bits %u for PATCH",
-				node_gnet_addr(n), node_vendor(n), qrcv->entry_bits);
+			g_warning("%s sent invalid QRP entry bits %u for PATCH",
+				node_infostr(n), qrcv->entry_bits);
 			node_bye_if_writable(n, 413, "Invalid QRP entry bits %u for PATCH",
 				qrcv->entry_bits);
 			return FALSE;
 		}
 	} else if (patch->seq_size != qrcv->seqsize) {
-		g_warning("node %s <%s> changed QRP seqsize to %u at message #%d "
+		g_warning("%s changed QRP seqsize to %u at message #%d "
 			"(started with %u)",
-			node_gnet_addr(n), node_vendor(n),
+			node_infostr(n),
 			(guint) patch->seq_size, qrcv->seqno, qrcv->seqsize);
 		node_bye_if_writable(n, 413,
 			"Changed QRP seq size to %u at message #%d (began with %u)",
@@ -3892,9 +3890,9 @@ qrt_handle_patch(
 	 */
 
 	if (qrcv->entry_bits != patch->entry_bits) {
-		g_warning("%s node %s <%s> changed QRP patch entry bits to %u "
+		g_warning("%s changed QRP patch entry bits to %u "
 			"at message #%d (started with %u)",
-			node_type(n), node_gnet_addr(n), node_vendor(n),
+			node_infostr(n),
 			(guint) patch->entry_bits, qrcv->seqno, qrcv->entry_bits);
 		node_bye_if_writable(n, 413,
 			"Changed QRP patch entry bits to %u at message #%d (began with %u)",
@@ -3928,11 +3926,9 @@ qrt_handle_patch(
 			}
 
 			if (ret != Z_OK) {
-				g_warning("decompression of QRP patch #%u/%u failed for "
-					"%s node %s <%s>: %s",
+				g_warning("decompression of QRP patch #%u/%u failed for %s: %s",
 					(guint) patch->seq_no, (guint) patch->seq_size,
-					node_type(n), node_gnet_addr(n), node_vendor(n),
-					zlib_strerror(ret));
+					node_infostr(n), zlib_strerror(ret));
 				node_bye_if_writable(n, 413,
 					"QRP patch #%u/%u decompression failed: %s",
 					(guint) patch->seq_no, (guint) patch->seq_size,
@@ -3953,10 +3949,9 @@ qrt_handle_patch(
 		 */
 
 		if (seen_end && qrcv->seqno <= qrcv->seqsize) {
-			g_warning("saw end of compressed QRP patch at #%u/%u for "
-				"%s node %s <%s>",
+			g_warning("saw end of compressed QRP patch at #%u/%u for %s",
 				(guint) patch->seq_no, (guint) patch->seq_size,
-				node_type(n), node_gnet_addr(n), node_vendor(n));
+				node_infostr(n));
 			node_bye_if_writable(n, 413,
 				"Early end of compressed QRP patch at #%u/%u",
 				(guint) patch->seq_no, (guint) patch->seq_size);
@@ -3981,10 +3976,9 @@ qrt_handle_patch(
 		 */
 
 		if (qrcv->current_index < rt->slots) {
-			g_warning("QRP %d-bit patch from %s node %s <%s> covered only "
-				"%d/%d slots",
-				qrcv->entry_bits, node_type(n), node_gnet_addr(n),
-				node_vendor(n), qrcv->current_index, rt->slots);
+			g_warning("QRP %d-bit patch from %s covered only %d/%d slots",
+				qrcv->entry_bits, node_infostr(n),
+				qrcv->current_index, rt->slots);
 			node_bye_if_writable(n, 413,
 				"Incomplete %d-bit QRP patch covered %d/%d slots",
 				qrcv->entry_bits, qrcv->current_index, rt->slots);
@@ -4032,10 +4026,10 @@ qrt_handle_patch(
 		if (GNET_PROPERTY(qrp_debug) > 2)
 			g_debug("QRP got whole %d-bit patch "
 				"(gen=%d, slots=%d (*%d), fill=%d%%, throw=%d) "
-				"from %s %s <%s>: SHA1=%s",
+				"from %s: SHA1=%s",
 				qrcv->entry_bits, rt->generation, rt->slots,
 				qrcv->shrink_factor, rt->fill_ratio, rt->pass_throw,
-				node_type(n), node_gnet_addr(n), node_vendor(n),
+				node_infostr(n),
 				rt->digest ? sha1_base32(rt->digest) : "<not computed>");
 
 		/*

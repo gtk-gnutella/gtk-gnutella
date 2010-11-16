@@ -967,9 +967,8 @@ node_supports_dht(struct gnutella_node *n, dht_mode_t mode)
 	node_check(n);
 
 	if (GNET_PROPERTY(node_debug) || GNET_PROPERTY(dht_debug)) {
-		g_debug("%s node %s <%s> supports DHT (%s mode)",
-			node_type(n), node_gnet_addr(n), node_vendor(n),
-			dht_mode_to_string(mode));
+		g_debug("%s supports DHT (%s mode)",
+			node_infostr(n), dht_mode_to_string(mode));
 	}
 
 	if (mode != DHT_MODE_INACTIVE) {
@@ -9328,6 +9327,25 @@ node_gnet_addr(const gnutella_node_t *n)
 }
 
 /**
+ * Node information string:
+ *
+ *   "leaf node 1.2.3.4:5 <vendor>"
+ *   "ultra node 6.7.8.9 <vendor>"
+ *
+ * @return pointer to static buffer.
+ */
+const char *
+node_infostr(const gnutella_node_t *n)
+{
+	static char buf[80];
+
+	gm_snprintf(buf, sizeof buf, "%s node %s <%s>",
+		node_type(n), node_gnet_addr(n), node_vendor(n));
+
+	return buf;
+}
+
+/**
  * Connect back to node on specified port and emit a "\n\n" sequence.
  *
  * This is called when a "Connect Back" vendor-specific message (BEAR/7v1)
@@ -9431,17 +9449,15 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 
 	if (NULL == n->guid) {
 		if (GNET_PROPERTY(node_debug)) {
-			g_warning("can't publish we act as push-proxy for %s node %s <%s>: "
-				"no GUID known yet",
-				node_type(n), node_gnet_addr(n), node_vendor(n));
+			g_warning("can't publish we act as push-proxy for %s: "
+				"no GUID known yet", node_infostr(n));
 		}
 		return;
 	}
 
 	if (GNET_PROPERTY(node_debug)) {
-		g_debug("publishing we act as push-proxy for %s node %s <%s> GUID %s",
-			node_type(n), node_gnet_addr(n), node_vendor(n),
-			guid_hex_str(n->guid));
+		g_debug("publishing we act as push-proxy for %s GUID %s",
+			node_infostr(n), guid_hex_str(n->guid));
 	}
 
 	pdht_publish_proxy(n);
@@ -9647,9 +9663,8 @@ node_is_firewalled(gnutella_node_t *n)
 		return;		/* Already knew about it */
 
 	if (GNET_PROPERTY(node_debug)) {
-		g_debug("%s node %s <%s> is firewalled (%s push-proxied)",
-			node_type(n), node_gnet_addr(n), node_vendor(n),
-			(n->flags & NODE_F_PROXIED) ? "already" : "not");
+		g_debug("%s is firewalled (%s push-proxied)",
+			node_infostr(n), (n->flags & NODE_F_PROXIED) ? "already" : "not");
 	}
 
 	n->attrs |= NODE_A_FIREWALLED;
