@@ -67,14 +67,6 @@ RCSID("$Id$")
 
 #include "override.h"			/* Must be the last header included */
 
-#if !defined(HAS_ARC4RANDOM) && (!defined(HAS_SRANDOM) || !defined(HAS_RANDOM))
-#error "No sufficient PRNG functions available."
-/*
- * srandom() and random() are available as open-source implementations. Use
- * that or a stronger PRNG but do NOT use crappy toys like srand()/rand()!
- */
-#endif	/* HAS_SRANDOM && HAS_RANDOM */
-
 /**
  * Checks whether ``prefix'' is a prefix of ``str''.
  * Maybe skip_prefix() would be a better name.
