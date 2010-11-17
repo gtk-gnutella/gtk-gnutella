@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 17744 2010-11-14 21:33:08Z rmanfredi $
+# $X-Id: Jmakefile 17762 2010-11-17 18:26:32Z rmanfredi $
 
 GENERIC = bit_array.h bit_field.h
 
@@ -153,6 +153,7 @@ LSRC = \
 	malloc.c \
 	map.c \
 	mime_type.c \
+	mingw32.c \
 	misc.c \
 	offtime.c \
 	omalloc.c \
@@ -250,6 +251,7 @@ LOBJ = \
 	malloc.o \
 	map.o \
 	mime_type.o \
+	mingw32.o \
 	misc.o \
 	offtime.o \
 	omalloc.o \
