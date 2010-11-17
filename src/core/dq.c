@@ -1286,11 +1286,11 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, int ttl)
 	mb = pmsg_clone_extend(mb, dq_pmsg_free, pmi);
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_debug("DQ[%s] (%d secs) queuing ttl=%d to #%s %s <%s> Q=%d bytes",
+		g_debug("DQ[%s] (%d secs) queuing ttl=%d to %s #%s Q=%d bytes",
 			dquery_id_to_string(dq->qid),
 			(int) delta_time(tm_time(), dq->start),
-			pmi->ttl, node_id_to_string(NODE_ID(n)),
-			node_addr(n), node_vendor(n), (int) NODE_MQUEUE_PENDING(n));
+			pmi->ttl, node_infostr(n),
+			node_id_to_string(NODE_ID(n)), (int) NODE_MQUEUE_PENDING(n));
 
 	dq->pending++;
 
@@ -1773,8 +1773,8 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 			 */
 
 			if (GNET_PROPERTY(dq_debug) > 19)
-				g_debug("DQ node #%s %s <%s> OOB-proxying query \"%s\" (%s)",
-					node_id_to_string(NODE_ID(n)), node_addr(n), node_vendor(n),
+				g_debug("DQ %s #%s OOB-proxying query \"%s\" (%s)",
+					node_infostr(n), node_id_to_string(NODE_ID(n)),
 					n->data + 2,
 					(flags_valid && (flags & QUERY_F_LEAF_GUIDED)) ?
 						"guided" : "unguided"
@@ -1785,10 +1785,10 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 				proxied = TRUE;
 			} else {
 				if (GNET_PROPERTY(dq_debug)) {
-					g_warning("DQ node #%s %s <%s>: "
+					g_warning("DQ %s #%s: "
 						"cannot OOB-proxy query \"%s\" (%s): MUID collision",
-						node_id_to_string(NODE_ID(n)), node_addr(n),
-						node_vendor(n), n->data + 2,
+						node_infostr(n), node_id_to_string(NODE_ID(n)),
+						n->data + 2,
 						(flags_valid && (flags & QUERY_F_LEAF_GUIDED)) ?
 							"guided" : "unguided");
 				}
@@ -1805,8 +1805,8 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 
 			if (GNET_PROPERTY(dq_debug) > 19)
 				g_debug(
-					"DQ node #%s %s <%s> stripped OOB on query \"%s\" (%s)",
-					node_id_to_string(NODE_ID(n)), node_addr(n), node_vendor(n),
+					"DQ %s #%s stripped OOB on query \"%s\" (%s)",
+					node_infostr(n), node_id_to_string(NODE_ID(n)),
 					n->data + 2,
 					(flags_valid && (flags & QUERY_F_LEAF_GUIDED)) ?
 						"guided" : "unguided"
@@ -1842,8 +1842,8 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		dq->lmuid = atom_guid_get(leaf_muid);
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_debug("DQ node #%s %s <%s> (%s leaf-guidance) %s%squeries \"%s\"",
-			node_id_to_string(NODE_ID(n)), node_addr(n), node_vendor(n),
+		g_debug("DQ %s #%s (%s leaf-guidance) %s%squeries \"%s\"",
+			node_infostr(n), node_id_to_string(NODE_ID(n)),
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "with" : "no",
 			flags_valid && (flags & QUERY_F_OOB_REPLY) ? "OOB-" : "",
 			oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header))

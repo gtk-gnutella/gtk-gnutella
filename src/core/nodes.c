@@ -1103,8 +1103,8 @@ node_timer(time_t now)
 			time_delta_t rx_quiet = delta_time(now, n->last_rx);
 
 			if (n->n_weird >= MAX_WEIRD_MSG) {
-				g_message("removing %s node %s <%s> due to security violation",
-					node_type(n), node_addr(n), node_vendor(n));
+				g_message("removing %s due to security violation",
+					node_infostr(n));
 				ban_record(n->addr,
 					"IP with Gnutella security violations");
 				node_bye_if_writable(n, 412, "Security violation");
@@ -1735,13 +1735,13 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 		n->remove_msg = NULL;
 
 	if (GNET_PROPERTY(node_debug) > 3)
-		g_debug("node %s <%s> removed: %s", node_addr(n), node_vendor(n),
+		g_debug("%s removed: %s", node_infostr(n),
 			n->remove_msg ? n->remove_msg : "<no reason>");
 
 	if (GNET_PROPERTY(node_debug) > 4) {
-		g_debug("NODE [%d.%d] %s <%s> TX=%d (drop=%d) RX=%d (drop=%d) "
+		g_debug("NODE [%d.%d] %s TX=%d (drop=%d) RX=%d (drop=%d) "
 			"Dup=%d Bad=%d W=%d",
-			n->proto_major, n->proto_minor, node_addr(n), node_vendor(n),
+			n->proto_major, n->proto_minor, node_infostr(n),
 			n->sent, n->tx_dropped, n->received, n->rx_dropped,
 			n->n_dups, n->n_bad, n->n_weird);
 		g_debug("NODE \"%s%s\" %s PING (drop=%d acpt=%d spec=%d sent=%d) "
@@ -2646,8 +2646,8 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 
 	if (mq_pending(n->outq) == 0) {
 		if (GNET_PROPERTY(node_debug))
-			g_debug("successfully sent BYE %d \"%s\" to %s (%s)",
-				code, n->error_str, node_addr(n), node_vendor(n));
+			g_debug("successfully sent BYE %d \"%s\" to %s",
+				code, n->error_str, node_infostr(n));
 
 			if (n->socket != NULL && !socket_uses_tls(n->socket)) {
 				/* Socket could have been nullified on a write error */
@@ -2656,8 +2656,8 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 			node_shutdown_mode(n, BYE_GRACE_DELAY);
 	} else {
 		if (GNET_PROPERTY(node_debug))
-			g_debug("delayed sending of BYE %d \"%s\" to %s (%s)",
-				code, n->error_str, node_addr(n), node_vendor(n));
+			g_debug("delayed sending of BYE %d \"%s\" to %s",
+				code, n->error_str, node_infostr(n));
 
 		n->flags |= NODE_F_BYE_SENT;
 
@@ -3782,8 +3782,8 @@ node_got_bye(struct gnutella_node *n)
 		c = *p;
 		if (c == '\0') {			/* NUL marks the end of the message */
 			if (GNET_PROPERTY(node_debug) && cnt != message_len - 1) {
-				g_warning("BYE message %u from %s <%s> has early NUL",
-					code, node_addr(n), node_vendor(n));
+				g_warning("BYE message %u from %s has early NUL",
+					code, node_infostr(n));
 			}
 			break;
 		} else if (c == '\r') {
@@ -3802,8 +3802,8 @@ node_got_bye(struct gnutella_node *n)
 		if (is_ascii_cntrl(c) && !warned) {
 			warned = TRUE;
 			if (GNET_PROPERTY(node_debug))
-				g_warning("BYE message %u from %s <%s> contains control chars",
-					code, node_addr(n), node_vendor(n));
+				g_warning("BYE message %u from %s contains control chars",
+					code, node_infostr(n));
 		}
 	}
 
@@ -3817,9 +3817,8 @@ node_got_bye(struct gnutella_node *n)
 	}
 
 	if (GNET_PROPERTY(node_debug))
-		g_warning("%s node %s (%s) sent us BYE %d %.*s",
-			node_type(n), node_addr(n), node_vendor(n),
-			code, (int) MIN(120, message_len), message);
+		g_warning("%s sent us BYE %d %.*s",
+			node_infostr(n), code, (int) MIN(120, message_len), message);
 
 	node_remove(n, _("Got BYE %d %.*s"), code,
 		(int) MIN(120, message_len), message);
@@ -4797,8 +4796,8 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		!GNET_PROPERTY(gnet_deflate_enabled) &&
 		(n->attrs & NODE_A_RX_INFLATE)
 	) {
-		g_warning("Content-Encoding \"deflate\" although disabled - from"
-			   " node %s <%s>", node_addr(n), node_vendor(n));
+		g_warning("Content-Encoding \"deflate\" although disabled - from %s",
+			node_infostr(n));
         node_bye(n, 400, "Compression was not accepted");
 		return;
 	}
@@ -4811,9 +4810,8 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		n->attrs &= ~NODE_A_ULTRA;
 		if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
 			n->flags |= NODE_F_LEAF;		/* Remote accepted to become leaf */
-			if (GNET_PROPERTY(node_debug)) g_warning(
-				"node %s <%s> accepted to become our leaf",
-				node_addr(n), node_vendor(n));
+			if (GNET_PROPERTY(node_debug))
+				g_debug("%s accepted to become our leaf", node_infostr(n));
 		}
 	}
 
@@ -4836,9 +4834,9 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major >= n->qrp_major || minor >= n->qrp_minor)
 			if (GNET_PROPERTY(node_debug)) g_warning(
-				"node %s <%s> now claims QRP version %u.%u, "
+				"%s now claims QRP version %u.%u, "
 				"but advertised %u.%u earlier",
-				node_addr(n), node_vendor(n), major, minor,
+				node_infostr(n), major, minor,
 				(guint) n->qrp_major, (guint) n->qrp_minor);
 		n->qrp_major = (guint8) major;
 		n->qrp_minor = (guint8) minor;
@@ -5134,8 +5132,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	if (field) {
 		static const char msg[] = N_("Not a network member");
 		if (GNET_PROPERTY(node_debug)) {
-			g_warning("rejecting authentication challenge from %s <%s>",
-				node_addr(n), node_vendor(n));
+			g_warning("rejecting authentication challenge from %s",
+				node_infostr(n));
 		}
 		/* Remove from fresh/valid caches */
 		hcache_purge(n->gnet_addr, n->gnet_port);
@@ -5196,10 +5194,12 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		guint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
-		if (major != 0 || minor != 1)
-			if (GNET_PROPERTY(node_debug)) g_warning(
-				"node %s <%s> claims Bye-Packet version %u.%u",
-				node_addr(n), node_vendor(n), major, minor);
+		if (major != 0 || minor != 1) {
+			if (GNET_PROPERTY(node_debug)) {
+				g_warning("%s claims Bye-Packet version %u.%u",
+					node_infostr(n), major, minor);
+			}
+		}
 		n->attrs |= NODE_A_BYE_PACKET;
 	}
 
@@ -5212,8 +5212,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || (major == 0 && minor > 2))
 			if (GNET_PROPERTY(node_debug))
-				g_warning("node %s <%s> claims Vendor-Message version %u.%u",
-				node_addr(n), node_vendor(n), major, minor);
+				g_warning("%s claims Vendor-Message version %u.%u",
+				node_infostr(n), major, minor);
 
 		n->attrs |= NODE_A_CAN_VENDOR;
 	}
@@ -5238,8 +5238,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		 */
 
 		if ((time_t) -1 == up)
-			g_warning("cannot parse X-Live-Since \"%s\" from %s (%s)",
-				field, node_addr(n), node_vendor(n));
+			g_warning("cannot parse X-Live-Since \"%s\" from %s",
+				field, node_infostr(n));
 		else
 			n->up_date = MIN(clock_gmt2loc(up), now);
 	} else {
@@ -5253,8 +5253,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			else if (3 == sscanf(field, "%dDD %dHH %dMM", &days, &hours, &mins))
 				n->up_date = now - 86400 * days - 3600 * hours - 60 * mins;
 			else
-				g_warning("cannot parse Uptime \"%s\" from %s (%s)",
-					field, node_addr(n), node_vendor(n));
+				g_warning("cannot parse Uptime \"%s\" from %s",
+					field, node_infostr(n));
 		}
 	}
 
@@ -5327,7 +5327,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			if (field) {
 				if (GNET_PROPERTY(node_debug)) {
 					g_warning("rejecting private network host suggestions "
-						"from %s <%s>", node_addr(n), node_vendor(n));
+						"from %s", node_infostr(n));
 				}
             
 				/* Remove node and suggestions from fresh/valid caches */
@@ -5400,10 +5400,12 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		guint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
-		if (major > 0 || minor > 2)
-			if (GNET_PROPERTY(node_debug))
-				g_warning("node %s <%s> claims QRP version %u.%u",
-				node_addr(n), node_vendor(n), major, minor);
+		if (major > 0 || minor > 2) {
+			if (GNET_PROPERTY(node_debug)) {
+				g_warning("%s claims QRP version %u.%u",
+					node_infostr(n), major, minor);
+			}
+		}
 		n->qrp_major = (guint8) major;
 		n->qrp_minor = (guint8) minor;
 	}
@@ -5417,10 +5419,11 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		guint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
-		if (major > 0 || minor > 1)
-			if (GNET_PROPERTY(node_debug)) g_warning(
-				"node %s <%s> claims Ultra QRP version %u.%u",
-				node_addr(n), node_vendor(n), major, minor);
+		if (major > 0 || minor > 1) {
+			if (GNET_PROPERTY(node_debug))
+				g_warning("%s claims Ultra QRP version %u.%u",
+					node_infostr(n), major, minor);
+		}
 		n->uqrp_major = (guint8) major;
 		n->uqrp_minor = (guint8) minor;
 		if (n->attrs & NODE_A_ULTRA)
@@ -5436,10 +5439,12 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		guint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
-		if (major > 0 || minor > 1)
-			if (GNET_PROPERTY(node_debug))
-				g_warning("node %s <%s> claims dynamic querying version %u.%u",
-					node_addr(n), node_vendor(n), major, minor);
+		if (major > 0 || minor > 1) {
+			if (GNET_PROPERTY(node_debug)) {
+				g_warning("%s claims dynamic querying version %u.%u",
+					node_infostr(n), major, minor);
+			}
+		}
 		if (n->attrs & NODE_A_ULTRA)
 			n->attrs |= NODE_A_DYN_QUERY;	/* Only used by ultra nodes */
 	}
@@ -5454,9 +5459,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		value = parse_uint32(field, NULL, 10, &error);
 		if (error || value < 1 || value > 255) {
 			value = GNET_PROPERTY(max_ttl);
-			if (GNET_PROPERTY(node_debug)) g_warning(
-				"node %s <%s> request bad Max-TTL %s, using %u",
-				node_addr(n), node_vendor(n), field, value);
+			if (GNET_PROPERTY(node_debug)) {
+				g_warning("%s requests bad Max-TTL %s, using %u",
+				node_infostr(n), field, value);
+			}
 		}
 		n->max_ttl = MIN(GNET_PROPERTY(max_ttl), value);
 	} else if (n->attrs & NODE_A_ULTRA)
@@ -5471,9 +5477,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		value = parse_uint32(field, NULL, 10, &error);
 		if (value < 1 || value > 200) {
-			if (GNET_PROPERTY(node_debug)) g_warning(
-				"node %s <%s> advertises weird degree %s",
-				node_addr(n), node_vendor(n), field);
+			if (GNET_PROPERTY(node_debug)) {
+				g_warning("%s advertises weird degree %s",
+					node_infostr(n), field);
+			}
 			/* Assume something reasonable! */
 			value = GNET_PROPERTY(max_connections);
 		}
@@ -5599,8 +5606,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 					n->up_date != 0 &&
 					delta_time(n->up_date, GNET_PROPERTY(start_stamp)) < 0
 				) {
-					g_warning("accepting request from %s <%s> to become a leaf",
-						node_addr(n), node_vendor(n));
+					g_warning("accepting request from %s to become a leaf",
+						node_infostr(n));
 
 					node_bye_all_but_one(n, 203, "Becoming a leaf node");
 					n->flags |= NODE_F_ULTRA;
@@ -5610,10 +5617,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				} else if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF) {
 					static const char msg[] = N_("Not becoming a leaf node");
 
-					if (GNET_PROPERTY(node_debug) > 2) g_warning(
-						"denying request from %s <%s> to become a leaf",
-						node_addr(n), node_vendor(n));
-
+					if (GNET_PROPERTY(node_debug) > 2) {
+						g_warning("denying request from %s to become a leaf",
+							node_infostr(n));
+					}
 					node_send_error(n, 403, msg);
 					node_remove(n, _(msg));
 					goto free_gnet_response;
@@ -5631,9 +5638,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		}
 
 		if (field && !(n->attrs & NODE_A_ULTRA))
-			g_warning("node %s <%s> is not an ultrapeer but sent the "
-				"X-Ultrapeer-Needed header",
-				node_addr(n), node_vendor(n));
+			g_warning("%s is not an ultrapeer but sent the "
+				"X-Ultrapeer-Needed header", node_infostr(n));
 
 		/*
 		 * Prepare our final acknowledgment.
@@ -7824,8 +7830,7 @@ static void
 node_bye_sent(struct gnutella_node *n)
 {
 	if (GNET_PROPERTY(node_debug))
-		g_debug("finally sent BYE \"%s\" to %s (%s)",
-			n->error_str, node_addr(n), node_vendor(n));
+		g_debug("finally sent BYE \"%s\" to %s", n->error_str, node_infostr(n));
 
 	/*
 	 * Shutdown the node.
@@ -8834,15 +8839,14 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 	g_return_val_if_fail(!n->guid, TRUE);
 
 	if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
-		g_warning("node %s (%s) uses our GUID", node_addr(n), node_vendor(n));
+		g_warning("%s uses our GUID", node_infostr(n));
 		gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
 		goto error;
 	}
 
 	if (guid_eq(guid, &blank_guid)) {
-		if (GNET_PROPERTY(node_debug) > 0) {
-			g_warning("node %s (%s) uses blank GUID",
-				node_addr(n), node_vendor(n));
+		if (GNET_PROPERTY(node_debug)) {
+			g_warning("%s uses blank GUID", node_infostr(n));
 		}
 		goto error;
 	}
@@ -8850,8 +8854,8 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 	owner = node_by_guid(guid);
 	if (owner) {
 		if (GNET_PROPERTY(node_debug)) {
-			g_warning("node %s (%s) uses same GUID as %s (%s)",
-				node_addr(n), node_vendor(n),
+			g_warning("%s uses same GUID as %s <%s>",
+				node_infostr(n),
 				node_addr2(owner), node_vendor(owner));
 		}
 		gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
@@ -9480,9 +9484,10 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 	 */
 
 	if (GNET_PROPERTY(is_firewalled)) {
-		if (GNET_PROPERTY(node_debug)) g_warning(
-			"denying push-proxyfication for %s <%s>: firewalled",
-			node_addr(n), node_vendor(n));
+		if (GNET_PROPERTY(node_debug)) {
+			g_warning("denying push-proxyfication for %s: firewalled",
+				node_infostr(n));
+		}
 		return FALSE;
 	}
 
@@ -9494,12 +9499,13 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 		!host_is_valid(listen_addr(), socket_listen_port()) &&
 		!host_is_valid(listen_addr6(), socket_listen_port())
 	) {
-		if (GNET_PROPERTY(node_debug)) g_warning(
-			"denying push-proxyfication for %s <%s>: "
-			"current IPs %s/%s are invalid",
-			node_addr(n), node_vendor(n),
-			host_addr_port_to_string(listen_addr(), socket_listen_port()),
-			host_addr_port_to_string(listen_addr6(), socket_listen_port()));
+		if (GNET_PROPERTY(node_debug)) {
+			g_warning("denying push-proxyfication for %s: "
+				"our current IPs %s/%s are invalid",
+				node_infostr(n),
+				host_addr_port_to_string(listen_addr(), socket_listen_port()),
+				host_addr_port_to_string(listen_addr6(), socket_listen_port()));
+		}
 		return FALSE;
 	}
 
@@ -9514,8 +9520,8 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 
 	if (NODE_F_PROXIED & n->flags) {
 		if (GNET_PROPERTY(node_debug)) {
-			g_warning("spurious push-proxyfication request from %s <%s>",
-				node_addr(n), node_vendor(n));
+			g_warning("spurious push-proxyfication request from %s",
+				node_infostr(n));
 		}
 		return TRUE;	/* Route already recorded */
 	}
@@ -9526,9 +9532,8 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 				char guid_buf[GUID_HEX_SIZE + 1];
 
 				guid_to_string_buf(guid, guid_buf, sizeof guid_buf);
-				g_warning("node %s <%s> has GUID %s but used %s",
-					guid_hex_str(node_guid(n)), node_addr(n), node_vendor(n),
-					guid_buf);
+				g_warning("%s has GUID %s but used %s",
+					node_infostr(n), guid_hex_str(node_guid(n)), guid_buf);
 			}
 			return FALSE;
 		}
@@ -9552,9 +9557,8 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 		node_fire_node_flags_changed(n);
 	} else {
 		if (GNET_PROPERTY(node_debug)) {
-			g_warning("push-proxyfication failed for %s <%s>: "
-				"conflicting GUID %s",
-				node_addr(n), node_vendor(n), guid_hex_str(guid));
+			g_warning("push-proxyfication failed for %s: conflicting GUID %s",
+				node_infostr(n), guid_hex_str(guid));
 		}
 		return FALSE;
 	}
@@ -9585,16 +9589,15 @@ void
 node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port)
 {
 	if (!(n->flags & NODE_F_PROXY)) {
-		g_warning("got spurious push-proxy ack from %s <%s>",
-			node_addr(n), node_vendor(n));
+		g_warning("got spurious push-proxy ack from %s", node_infostr(n));
 		return;
 	}
 
 	n->flags &= ~NODE_F_PROXY;
 
 	if (!GNET_PROPERTY(is_firewalled)) {
-		g_warning("ignoring push-proxy ack from %s <%s>: no longer firewalled",
-			node_addr(n), node_vendor(n));
+		g_warning("ignoring push-proxy ack from %s: no longer firewalled",
+			node_infostr(n));
 		return;
 	}
 
@@ -9607,15 +9610,14 @@ node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port)
 		is_host_addr(n->gnet_addr) &&
 		(!host_addr_equal(addr, n->gnet_addr) || port != n->gnet_port)
 	)
-		g_warning("push-proxy address %s from %s <%s> does not match "
+		g_warning("push-proxy address %s from %s does not match "
 			"its advertised node address %s:%u",
-			host_addr_port_to_string(addr, port), node_addr(n), node_vendor(n),
+			host_addr_port_to_string(addr, port), node_infostr(n),
 			host_addr_to_string(n->gnet_addr), n->gnet_port);
 
 	if (!host_addr_equal(addr, n->addr)) {
-		g_warning("push-proxy address %s from %s <%s> not on same host",
-			host_addr_port_to_string(addr, port),
-			node_addr(n), node_vendor(n));
+		g_warning("push-proxy address %s from %s not on same host",
+			host_addr_port_to_string(addr, port), node_infostr(n));
 		if (is_host_addr(n->gnet_addr) && host_addr_equal(addr, n->gnet_addr))
 			g_warning("however address %s matches the advertised node address",
 				host_addr_port_to_string(addr, port));

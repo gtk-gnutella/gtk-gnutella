@@ -215,10 +215,10 @@ oob_proxy_create(gnutella_node_t *n)
 	if (opr != NULL) {
 		if (opr->node_id != NODE_ID(n)) {
 			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug)) {
-				g_warning("QUERY OOB-proxying of query %s from %s <%s> as %s "
+				g_warning("QUERY OOB-proxying of query %s from %s as %s "
 					"failed: proxied MUID collision",
 					data_hex_str(opr->leaf_muid->v, GUID_RAW_SIZE),
-					node_addr(n), node_vendor(n),
+					node_infostr(n),
 					guid_hex_str(&proxied_muid));
 			}
 			return FALSE;
@@ -247,10 +247,9 @@ oob_proxy_create(gnutella_node_t *n)
 	message_add(gnutella_header_get_muid(&n->header), GTA_MSG_SEARCH, NULL);
 
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug)) {
-		g_debug("QUERY OOB-proxying query %s from %s <%s> as %s",
+		g_debug("QUERY OOB-proxying query %s from %s as %s",
 			data_hex_str(opr->leaf_muid->v, GUID_RAW_SIZE),
-			node_addr(n), node_vendor(n),
-			guid_hex_str(opr->proxied_muid));
+			node_infostr(n), guid_hex_str(opr->proxied_muid));
 	}
 
 	return TRUE;
@@ -488,10 +487,9 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 	dh_route(n, leaf, results);
 
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
-		g_debug("QUERY OOB-proxied %s routed %d hit%s to %s <%s> from %s %s",
+		g_debug("QUERY OOB-proxied %s routed %d hit%s to %s from %s %s",
 			guid_hex_str(opr->proxied_muid), results, results == 1 ? "" : "s",
-			node_addr(leaf), node_vendor(leaf),
-			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr2(n));
+			node_infostr(leaf), NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr2(n));
 
 	return TRUE;			/* We routed the message */
 }

@@ -198,10 +198,9 @@ alive_ping_can_send(pmsg_t *mb, const mqueue_t *q)
 
 	alive_ping_drop(a, muid);
 
-	if (GNET_PROPERTY(dbg) > 1)
-		printf("ALIVE node %s (%s) dropped old alive ping %s, %d remain\n",
-			node_addr(a->node), node_vendor(a->node),
-			guid_hex_str(muid), a->count);
+	if (GNET_PROPERTY(alive_debug))
+		g_debug("ALIVE %s dropped old alive ping %s, %d remain",
+			node_infostr(a->node), guid_hex_str(muid), a->count);
 
 	return FALSE;		/* Don't send message */
 }
@@ -218,10 +217,10 @@ alive_pmsg_free(pmsg_t *mb, gpointer arg)
 
 	if (pmsg_was_sent(mb)) {
 		n->n_ping_sent++;
-		if (GNET_PROPERTY(dbg) > 1)
-			printf("ALIVE sent ping %s to node %s (%s)\n",
+		if (GNET_PROPERTY(alive_debug))
+			g_debug("ALIVE sent ping %s to %s",
 				guid_hex_str(cast_to_guid_ptr_const(pmsg_start(mb))),
-				node_addr(n), node_vendor(n));
+				node_infostr(n));
 	} else {
 		struct guid *muid = cast_to_guid_ptr(pmsg_start(mb));
 		struct alive *a = n->alive_pings;
@@ -311,10 +310,10 @@ ap_ack(const struct alive_ping *ap, struct alive *a)
 
 	a->avg_rt += (delay >> 2) - (a->avg_rt >> 2);
 
-	if (GNET_PROPERTY(dbg) > 4)
-		printf("ALIVE node %s (%s) "
-		"delay=%dms min=%dms, max=%dms, agv=%dms [%d queued]\n",
-			node_addr(a->node), node_vendor(a->node),
+	if (GNET_PROPERTY(alive_debug) > 1)
+		g_debug("ALIVE %s "
+		"delay=%dms min=%dms, max=%dms, agv=%dms [%d queued]",
+			node_infostr(a->node),
 			a->last_rt, a->min_rt, a->max_rt, a->avg_rt, a->count);
 }
 
@@ -354,10 +353,9 @@ alive_ack_ping(gpointer obj, const struct guid *muid)
 		const struct alive_ping *ap = sl->data;
 
 		if (guid_eq(ap->muid, muid)) {		/* Found it! */
-			if (GNET_PROPERTY(dbg) > 1)
-				printf("ALIVE got alive pong %s from %s (%s)\n",
-					guid_hex_str(muid), node_addr(a->node),
-					node_vendor(a->node));
+			if (GNET_PROPERTY(alive_debug))
+				g_debug("ALIVE got alive pong %s from %s",
+					guid_hex_str(muid), node_infostr(a->node));
 			ap_ack(ap, a);
 			alive_trim_upto(a, sl);
 			return TRUE;
@@ -398,9 +396,9 @@ alive_ack_first(gpointer obj, const struct guid *muid)
 
 	ap = sl->data;
 
-	if (GNET_PROPERTY(dbg) > 1)
-		printf("ALIVE TTL=0 ping from %s (%s), assuming it acks %s\n",
-			node_addr(a->node), node_vendor(a->node), guid_hex_str(ap->muid));
+	if (GNET_PROPERTY(alive_debug))
+		g_debug("ALIVE TTL=0 ping from %s, assuming it acks %s",
+			node_infostr(a->node), guid_hex_str(ap->muid));
 
 	ap_ack(ap, a);
 	alive_remove_link(a, sl);

@@ -378,9 +378,8 @@ handle_features_supported(struct gnutella_node *n,
 	count = peek_le16(payload);
 
 	if (GNET_PROPERTY(vmsg_debug) > 1)
-		g_debug("VMSG node %s <%s> supports %u extra feature%s",
-			node_addr(n), node_vendor(n), count,
-			count == 1 ? "" : "s");
+		g_debug("VMSG %s supports %u extra feature%s",
+			node_infostr(n), count, count == 1 ? "" : "s");
 
 	if (VMSG_CHECK_SIZE(n, vmsg, size, count * VMS_FEATURE_SIZE + sizeof count))
 		return;
@@ -401,9 +400,8 @@ handle_features_supported(struct gnutella_node *n,
 		description += 6;
 
 		if (GNET_PROPERTY(vmsg_debug) > 2)
-			g_debug("VMSG node %s <%s> supports feature %s/%u",
-				node_addr(n), node_vendor(n),
-				feature, version);
+			g_debug("VMSG %s supports feature %s/%u",
+				node_infostr(n), feature, version);
 
 		if (0 != version && 0 == strcmp(feature, "TLS!")) {
 			node_supports_tls(n);
@@ -483,8 +481,8 @@ handle_tcp_connect_back(struct gnutella_node *n,
 	port = peek_le16(payload);
 	if (port == 0) {
 		if (GNET_PROPERTY(vmsg_debug)) {
-			g_warning("got improper port #%d in %s from %s <%s>",
-				port, vmsg->name, node_addr(n), node_vendor(n));
+			g_warning("got improper port #%d in %s from %s",
+				port, vmsg->name, node_infostr(n));
 		}
 		return;
 	}
@@ -539,8 +537,8 @@ handle_udp_connect_back(struct gnutella_node *n,
 	port = peek_le16(payload);
 	if (0 == port) {
 		if (GNET_PROPERTY(vmsg_debug)) {
-			g_warning("got improper port #%d in %s from %s <%s>",
-				port, vmsg->name, node_addr(n), node_vendor(n));
+			g_warning("got improper port #%d in %s from %s",
+				port, vmsg->name, node_infostr(n));
 		}
 		return;
 	}
@@ -692,8 +690,7 @@ vmsg_send_proxy_req(struct gnutella_node *n, const struct guid *muid)
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
 	if (GNET_PROPERTY(vmsg_debug) > 2) {
-		g_debug("VMSG sent proxy REQ to %s <%s>",
-			node_addr(n), node_vendor(n));
+		g_debug("VMSG sent proxy REQ to %s", node_infostr(n));
 	}
 }
 
@@ -729,14 +726,13 @@ handle_proxy_ack(struct gnutella_node *n,
 	}
 
 	if (!host_is_valid(ha, port)) {
-		g_warning("got improper address %s in %s from %s <%s>",
-			host_addr_port_to_string(ha, port), vmsg->name,
-			node_addr(n), node_vendor(n));
+		g_warning("got improper address %s in %s from %s",
+			host_addr_port_to_string(ha, port), vmsg->name, node_infostr(n));
 		return;
 	}
 	if (hostiles_check(ha)) {
-		g_message("VMSG got proxy ACK from hostile host %s <%s>: proxy at %s",
-			node_addr(n), node_vendor(n), host_addr_port_to_string(ha, port));
+		g_message("VMSG got proxy ACK from hostile %s: proxy at %s",
+			node_infostr(n), host_addr_port_to_string(ha, port));
 		return;
 	}
 
@@ -834,9 +830,8 @@ vmsg_send_qstat_answer(struct gnutella_node *n,
 	poke_le16(payload, hits);
 
 	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sending %s with hits=%u to %s <%s>",
-			gmsg_infostr_full(v_tmp, msgsize),
-			hits, node_addr(n), node_vendor(n));
+		g_debug("VMSG sending %s with hits=%u to %s",
+			gmsg_infostr_full(v_tmp, msgsize), hits, node_infostr(n));
 
 	gmsg_ctrl_sendto_one(n, v_tmp, msgsize);	/* Send it ASAP */
 }
@@ -897,7 +892,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
 			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, node_addr(n));
+			vmsg->id, vmsg->version, node_infostr(n));
 		return;
 	}
 
@@ -2955,9 +2950,8 @@ handle_messages_supported(struct gnutella_node *n,
 	count = peek_le16(payload);
 
 	if (GNET_PROPERTY(vmsg_debug) > 1)
-		g_debug("VMSG node %s <%s> supports %u vendor message%s",
-			node_addr(n), node_vendor(n), count,
-			count == 1 ? "" : "s");
+		g_debug("VMSG %s supports %u vendor message%s",
+			node_infostr(n), count, count == 1 ? "" : "s");
 
 	if (VMSG_CHECK_SIZE(n, vmsg, size, count * VMS_ITEM_SIZE + sizeof count))
 		return;
@@ -2980,8 +2974,8 @@ handle_messages_supported(struct gnutella_node *n,
 
 		if (!find_message(&vm, vendor, id, version)) {
 			if (GNET_PROPERTY(vmsg_debug) > 1)
-				g_warning("VMSG node %s <%s> supports unknown %s/%dv%d",
-					node_addr(n), node_vendor(n),
+				g_warning("VMSG %s supports unknown %s/%dv%d",
+					node_infostr(n),
 					vendor_code_to_string(vendor.u32), id, version);
 			continue;
 		}

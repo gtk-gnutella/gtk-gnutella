@@ -656,7 +656,7 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 
 	if (GNET_PROPERTY(log_dropped_gnutella))
 		gmsg_log_split_dropped(&n->header, n->data, n->size,
-			"from %s <%s>: %s", node_addr(n), node_vendor(n),
+			"from %s: %s", node_infostr(n),
 			gnet_stats_drop_reason_to_string(reason));
 }
 
@@ -724,7 +724,7 @@ gnet_stats_count_dropped_nosize(
 
 	if (GNET_PROPERTY(log_dropped_gnutella))
 		gmsg_log_split_dropped(&n->header, n->data, 0,
-			"from %s <%s>: %s", node_addr(n), node_vendor(n),
+			"from %s: %s", node_infostr(n),
 			gnet_stats_drop_reason_to_string(reason));
 }
 

@@ -2014,10 +2014,9 @@ pcache_ping_received(struct gnutella_node *n)
 			NODE_A_PONG_CACHING
 	) {
 		if (GNET_PROPERTY(pcache_debug))
-			g_warning("node %s (%s) [%d.%d] claimed ping reduction, "
-				"got ping with hops=%d", node_addr(n),
-				node_vendor(n),
-				n->proto_major, n->proto_minor,
+			g_warning("%s [%d.%d] claimed ping reduction, "
+				"got ping with hops=%d",
+				node_infostr(n), n->proto_major, n->proto_minor,
 				gnutella_header_get_hops(&n->header));
 		n->attrs |= NODE_A_PONG_ALIEN;		/* Warn only once */
 	}
@@ -2269,17 +2268,16 @@ pcache_pong_received(struct gnutella_node *n)
 
 		if (swapped_count > PCACHE_MAX_FILES) {
 			if (GNET_PROPERTY(pcache_debug) && host_addr_equal(addr, n->addr))
-				g_warning("node %s (%s) sent us a pong with "
+				g_warning("%s sent us a pong with "
 					"large file count %u (0x%x), dropped",
-					node_addr(n), node_vendor(n), files_count, files_count);
+					node_infostr(n), files_count, files_count);
 			n->rx_dropped++;
 			return;
 		} else {
 			if (GNET_PROPERTY(pcache_debug) && host_addr_equal(addr, n->addr))
-				g_warning(
-				"node %s (%s) sent us a pong with suspect file count %u "
-				"(fixed to %u)",
-				node_addr(n), node_vendor(n), files_count, swapped_count);
+				g_warning("%s sent us a pong with suspect file count %u "
+					"(fixed to %u)",
+					node_infostr(n), files_count, swapped_count);
 			files_count = swapped_count;
 			fixed = TRUE;
 		}
@@ -2311,8 +2309,8 @@ pcache_pong_received(struct gnutella_node *n)
 				n->gnet_port = port;
 			} else if (!(n->flags & NODE_F_ALIEN_IP)) {
 				if (GNET_PROPERTY(pcache_debug)) g_warning(
-					"node %s (%s) sent us a pong for itself with alien IP %s",
-					node_addr(n), node_vendor(n), host_addr_to_string(addr));
+					"%s sent us a pong for itself with alien IP %s",
+					node_infostr(n), host_addr_to_string(addr));
 				n->flags |= NODE_F_ALIEN_IP;	/* Probably firewalled */
 			}
 		}
@@ -2341,11 +2339,12 @@ pcache_pong_received(struct gnutella_node *n)
 			is_host_addr(n->gnet_pong_addr) &&
 			!host_addr_equal(addr, n->gnet_pong_addr)
 		) {
-			if (GNET_PROPERTY(pcache_debug) && n->n_ping_sent > 2) g_warning(
-				"node %s (%s) sent us a pong for new IP %s (used %s before)",
-				node_addr(n), node_vendor(n),
-				host_addr_port_to_string(addr, port),
-				host_addr_to_string(n->gnet_pong_addr));
+			if (GNET_PROPERTY(pcache_debug) && n->n_ping_sent > 2) {
+				g_warning("%s sent us a pong for new IP %s (used %s before)",
+					node_infostr(n),
+					host_addr_port_to_string(addr, port),
+					host_addr_to_string(n->gnet_pong_addr));
+			}
 		}
 
 		n->gnet_pong_addr = addr;

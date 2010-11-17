@@ -416,6 +416,7 @@ typedef enum {
     PROP_RANDOMNESS,
     PROP_AVERAGE_SERVENT_DOWNTIME,
     PROP_SHUTDOWN_TIME,
+    PROP_ALIVE_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

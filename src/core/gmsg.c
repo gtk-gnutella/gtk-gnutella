@@ -1150,8 +1150,7 @@ gmsg_node_infostr(const gnutella_node_t *n)
 	w = gmsg_infostr_to_buf(&n->header, buf, sizeof buf);
 
 	if (gnutella_header_get_hops(n->header) == 1) {
-		gm_snprintf(&buf[w], sizeof buf - w, " //%s <%s>//",
-			node_addr(n), node_vendor(n));
+		gm_snprintf(&buf[w], sizeof buf - w, " //%s//", node_infostr(n));
 	}
 
 	return buf;
@@ -1233,8 +1232,7 @@ gmsg_log_bad(const struct gnutella_node *n, const char *reason, ...)
 		rbuf[0] = '\0';
 	}
 
-	g_debug("BAD <%s> %s %s%s",
-		node_vendor(n), node_addr(n), buf, rbuf);
+	g_debug("BAD %s %s%s", node_infostr(n), buf, rbuf);
 }
 
 /**

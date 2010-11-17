@@ -1984,11 +1984,11 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	 */
 
 	if (sha1_errors) {
-		if (GNET_PROPERTY(search_debug)) g_warning(
-				"%s from %s (via \"%s\" at %s) "
-				"had %u SHA1 error%s over %u record%s",
+		if (GNET_PROPERTY(search_debug))
+			g_warning("%s from %s (via %s) had %u SHA1 error%s "
+				"over %u record%s",
 				gmsg_node_infostr(n), vendor ? vendor : "????",
-				node_vendor(n), node_addr(n),
+				node_infostr(n),
 				sha1_errors, sha1_errors == 1 ? "" : "s",
 				nr, nr == 1 ? "" : "s");
 		gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
@@ -2001,23 +2001,20 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	 */
 
 	if (alt_errors && GNET_PROPERTY(search_debug)) {
-		g_warning(
-				"%s from %s (via \"%s\" at %s) "
-				"had %u ALT error%s over %u record%s",
-				gmsg_node_infostr(n), vendor ? vendor : "????",
-				node_vendor(n), node_addr(n),
-				alt_errors, alt_errors == 1 ? "" : "s",
-				nr, nr == 1 ? "" : "s");
+		g_warning("%s from %s (via %s) had %u ALT error%s over %u record%s",
+			gmsg_node_infostr(n), vendor ? vendor : "????",
+			node_infostr(n),
+			alt_errors, alt_errors == 1 ? "" : "s",
+			nr, nr == 1 ? "" : "s");
 	}
 
 	if (alt_without_hash && GNET_PROPERTY(search_debug)) {
-		g_warning(
-				"%s from %s (via \"%s\" at %s) "
-				"had %u ALT extension%s with no hash over %u record%s",
-				gmsg_node_infostr(n), vendor ? vendor : "????",
-				node_vendor(n), node_addr(n),
-				alt_without_hash, alt_without_hash == 1 ? "" : "s",
-				nr, nr == 1 ? "" : "s");
+		g_warning("%s from %s (via %s) had %u ALT extension%s "
+			"with no hash over %u record%s",
+			gmsg_node_infostr(n), vendor ? vendor : "????",
+			node_infostr(n),
+			alt_without_hash, alt_without_hash == 1 ? "" : "s",
+			nr, nr == 1 ? "" : "s");
 	}
 
 	if (GNET_PROPERTY(search_debug) > 1) {
@@ -2079,9 +2076,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
   bad_packet:
 	if (GNET_PROPERTY(search_debug) > 2) {
 		g_warning(
-			"BAD %s from %s (via \"%s\" at %s) -- %u/%u records parsed",
+			"BAD %s from %s (via %s) -- %u/%u records parsed",
 			 gmsg_node_infostr(n), vendor ? vendor : "????",
-			 node_vendor(n), node_addr(n), nr, rs->num_recs);
+			 node_infostr(n), nr, rs->num_recs);
 		if (GNET_PROPERTY(search_debug) > 1)
 			dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
 	}
@@ -2109,9 +2106,8 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		if (vendor) {
 			n->n_weird++;
 			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
-				"%s node %s (%s) had no tag in its query hits, now has %s in %s",
-				n->n_weird, node_type(n),
-				node_addr(n), node_vendor(n), vendor, gmsg_node_infostr(n));
+				"%s had no tag in its query hits, now has %s in %s",
+				n->n_weird, node_infostr(n), vendor, gmsg_node_infostr(n));
 			n->attrs &= ~NODE_A_QHD_NO_VTAG;
 		}
 	} else {
@@ -2128,9 +2124,8 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		if (n->vcode.u32 != T_0000 && vendor == NULL) {
 			n->n_weird++;
 			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
-				"%s node %s (%s) had tag \"%s\" in its query hits, "
-				"now has none in %s",
-				n->n_weird, node_type(n), node_addr(n), node_vendor(n),
+				"%s had tag \"%s\" in its query hits, now has none in %s",
+				n->n_weird, node_infostr(n),
 				vendor_code_to_string(n->vcode.u32),
 				gmsg_node_infostr(n));
 		}
@@ -2159,10 +2154,11 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			vendor_code_to_string_buf(n->vcode.u32, vc_old, sizeof vc_old);
 			vendor_code_to_string_buf(rs->vcode.u32, vc_new, sizeof vc_new);
 
-			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
-				"%s node %s (%s) moved from tag %4.4s to %4.4s in %s",
-				n->n_weird, node_type(n), node_addr(n), node_vendor(n),
-				vc_old, vc_new, gmsg_node_infostr(n));
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_warning("[weird #%d] %s moved from tag %4.4s to %4.4s in %s",
+					n->n_weird, node_infostr(n),
+					vc_old, vc_new, gmsg_node_infostr(n));
+			}
 		}
 
 		n->vcode = rs->vcode;
@@ -2181,9 +2177,8 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 				char guid_buf[GUID_HEX_SIZE + 1];
 
 				guid_to_string_buf(rs->guid, guid_buf, sizeof guid_buf);
-				g_warning("[weird #%d] "
-					"%s node %s (%s) has GUID %s but used %s in %s",
-					n->n_weird, node_type(n), node_addr(n), node_vendor(n),
+				g_warning("[weird #%d] %s has GUID %s but used %s in %s",
+					n->n_weird, node_infostr(n),
 					guid_hex_str(node_guid(n)), guid_buf,
 					gmsg_node_infostr(n));
 			}
@@ -2222,12 +2217,14 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			)
 		) {
 			n->n_weird++;
-			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
-				"%s node (%s) advertised %s but now says Query Hits from %s",
-				n->n_weird, node_addr(n), node_vendor(n),
-				host_addr_to_string(is_host_addr(n->gnet_qhit_addr) ?
-					n->gnet_qhit_addr : n->gnet_pong_addr),
-				host_addr_port_to_string(rs->addr, rs->port));
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_warning("[weird #%d] %s advertised %s but now says "
+					"Query Hits from %s",
+					n->n_weird, node_infostr(n),
+					host_addr_to_string(is_host_addr(n->gnet_qhit_addr) ?
+						n->gnet_qhit_addr : n->gnet_pong_addr),
+					host_addr_port_to_string(rs->addr, rs->port));
+			}
 		}
 		n->gnet_qhit_addr = rs->addr;
 	}
@@ -4650,10 +4647,9 @@ query_strip_oob_flag(const gnutella_node_t *n, char *data)
 	gnet_stats_count_general(GNR_OOB_QUERIES_STRIPPED, 1);
 
 	if (GNET_PROPERTY(query_debug) > 2 || GNET_PROPERTY(oob_proxy_debug) > 2)
-		g_debug(
-			"QUERY %s from node %s <%s>: removed OOB delivery (flags = 0x%x)",
+		g_debug("QUERY %s from %s: removed OOB delivery (flags = 0x%x)",
 			guid_hex_str(gnutella_header_get_muid(&n->header)),
-				node_addr(n), node_vendor(n), flags);
+			node_infostr(n), flags);
 }
 
 /**
@@ -4668,10 +4664,9 @@ query_set_oob_flag(const gnutella_node_t *n, char *data)
 	poke_be16(data, flags);
 
 	if (GNET_PROPERTY(query_debug))
-		g_debug(
-			"QUERY %s from node %s <%s>: set OOB delivery (flags = 0x%x)",
+		g_debug("QUERY %s from %s: set OOB delivery (flags = 0x%x)",
 			guid_hex_str(gnutella_header_get_muid(&n->header)),
-			node_addr(n), node_vendor(n), flags);
+			node_infostr(n), flags);
 }
 
 /**
@@ -5096,13 +5091,13 @@ search_request_preprocess(struct gnutella_node *n)
 		if (found != NULL) {
 			if (GNET_PROPERTY(share_debug)) g_warning(
 				"dropping query \"%s%s\" (hops=%u, TTL=%u) "
-				"already seen recently from %s (%s)",
+				"already seen recently from %s",
 				last_sha1_digest == NULL ? "" : "urn:sha1:",
 				last_sha1_digest == NULL ?
 					search : sha1_base32(last_sha1_digest),
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
-				node_addr(n), node_vendor(n));
+				node_infostr(n));
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 			goto drop;		/* Drop the message! */
 		}
@@ -5211,18 +5206,17 @@ search_request_preprocess(struct gnutella_node *n)
 				oob = FALSE;
 
 				if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
-					g_debug("QUERY %s node %s <%s>: removed OOB flag "
+					g_debug("QUERY %s from %s: removed OOB flag "
 						"(invalid return address: %s)",
 						guid_hex_str(gnutella_header_get_muid(&n->header)),
-						node_addr(n), node_vendor(n),
-						host_addr_port_to_string(addr, port));
+						node_infostr(n), host_addr_port_to_string(addr, port));
 			} else {
 				gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
 
 				if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
-					g_debug("QUERY dropped, relayed via node %s <%s>: "
+					g_debug("QUERY dropped, relayed via %s: "
 						"invalid return address: %s",
-						node_addr(n), node_vendor(n),
+						node_infostr(n),
 						host_addr_port_to_string(addr, port));
 
 				goto drop;
@@ -5477,8 +5471,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		if (ctl_limit(n->addr, CTL_D_QUERY)) {
 			if (GNET_PROPERTY(ctl_debug) > 3) {
-				g_debug("CTL ignoring neighbour query from %s [%s] <%s>",
-					node_addr(n), gip_country_cc(n->addr), node_vendor(n));
+				g_debug("CTL ignoring neighbour query from %s [%s]",
+					node_infostr(n), gip_country_cc(n->addr));
 			}
 			goto finish;
 		}

@@ -429,6 +429,7 @@ extern const guint32  gnet_property_variable_hcache_debug;
 extern const char    gnet_property_variable_randomness[KUID_RAW_SIZE];
 extern const guint32  gnet_property_variable_average_servent_downtime;
 extern const time_t  gnet_property_variable_shutdown_time;
+extern const guint32  gnet_property_variable_alive_debug;
 
 
 prop_set_t *gnet_prop_init(void);
