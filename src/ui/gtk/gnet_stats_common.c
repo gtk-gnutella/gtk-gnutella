@@ -202,6 +202,8 @@ general_type_str(gint value)
 		N_("DHT routing table evicted nodes due to quota"),
 		N_("DHT routing table promoted pending nodes"),
 		N_("DHT routing table pinged promoted nodes"),
+		N_("DHT routing table rejected node due to bucket network quota"),
+		N_("DHT routing table rejected node due to global network quota"),
 		N_("DHT completed bucket refreshes"),
 		N_("DHT forced bucket refreshes"),
 		N_("DHT forced bucket merges"),

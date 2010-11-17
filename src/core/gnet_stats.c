@@ -212,6 +212,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"dht_routing_evicted_quota_nodes",
 	"dht_routing_promoted_pending_nodes",
 	"dht_routing_pinged_promoted_nodes",
+	"dht_routing_rejected_node_bucket_quota",
+	"dht_routing_rejected_node_global_quota",
 	"dht_completed_bucket_refresh",
 	"dht_forced_bucket_refresh",
 	"dht_forced_bucket_merge",

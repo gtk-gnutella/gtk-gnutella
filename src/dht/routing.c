@@ -131,7 +131,8 @@ RCSID("$Id$")
  * This is a way to fight against ID attacks from a hostile network: we
  * stop inserting hosts from that over-present network.
  */
-#define K_BUCKET_MAX_IN_NET	3	/* At most 3 hosts from same class C net */
+#define K_BUCKET_MAX_IN_NET	3	/* Max hosts/bucket from each class C net */
+#define K_WHOLE_MAX_IN_NET	10	/* Max hosts in same /24 in whole table */
 
 #define C_MASK	0xffffff00		/* Class C network mask */
 
@@ -178,6 +179,8 @@ struct kbnodes {
 	cevent_t *staleness;		/**< Periodic staleness checks */
 	time_t last_lookup;			/**< Last time node lookup was performed */
 };
+
+static GHashTable *c_class;		/**< Counts class-C networks in whole table */
 
 /**
  * The routing table is a binary tree.  Each node holds a k-bucket containing
@@ -357,6 +360,40 @@ gboolean
 dht_is_active(void)
 {
 	return GNET_PROPERTY(dht_current_mode) == DHT_MODE_ACTIVE;
+}
+
+/**
+ * Get number of class C networks identical to that of the node which are
+ * already held in the routing table.
+ */
+static int
+dht_c_class_get_count(knode_t *kn)
+{
+	knode_check(kn);
+
+	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
+		return 0;
+
+	return acct_net_get(c_class, kn->addr, NET_CLASS_C_MASK);
+}
+
+/**
+ * Update count of class C networks in the routing table when node is added
+ * or removed.
+ *
+ * @param kn	the node added or removed
+ * @param pmone	plus or minus one
+ */
+static void
+dht_c_class_update_count(knode_t *kn, int pmone)
+{
+	knode_check(kn);
+	g_assert(pmone == +1 || pmone == -1);
+
+	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
+		return;
+
+	acct_net_update(c_class, kn->addr, NET_CLASS_C_MASK, pmone);
 }
 
 /**
@@ -1542,6 +1579,7 @@ dht_initialize(gboolean post_init)
 	}
 	stats.lookdata = statx_make_nodata();
 	stats.netdata = statx_make_nodata();
+	c_class = acct_net_create();
 
 	g_assert(0 == stats.good);
 
@@ -1724,6 +1762,7 @@ c_class_update_count(knode_t *kn, struct kbucket *kb, int pmone)
 		return;
 
 	acct_net_update(kb->nodes->c_class, kn->addr, NET_CLASS_C_MASK, pmone);
+	dht_c_class_update_count(kn, pmone);
 }
 
 /**
@@ -1802,6 +1841,18 @@ split_among(gpointer key, gpointer value, gpointer user_data)
 	hash_list_append(hl, knode_refcnt_inc(kn));
 	g_hash_table_insert(target->nodes->all, kn->id, kn);
 	c_class_update_count(kn, target, +1);
+
+	/*
+	 * Nodes were already accounted for in the general routing table statistics
+	 * because they were present in the parent bucket, the one being split.
+	 * Since the node lists in the parent bucket are going to be destroyed
+	 * after the split is completed, and given c_class_update_count() also
+	 * updates the global table, we must not count the same nodes twice.
+	 * We decrease the count here as if we removed the node from the
+	 * parent's bucket, after inserting it in the child one.
+	 */
+
+	dht_c_class_update_count(kn, -1);	/* Don't count it twice */
 
 	check_leaf_list_consistency(target, hl, kn->status);
 }
@@ -2586,6 +2637,22 @@ record_node(knode_t *kn, gboolean traffic)
 				kuid_to_hex_string(kn->id),
 				host_addr_port_to_string(kn->addr, kn->port),
 				kbucket_to_string(kb));
+		gnet_stats_count_general(GNR_DHT_ROUTING_REJECTED_NODE_BUCKET_QUOTA, 1);
+		return FALSE;
+	}
+
+	/*
+	 * Protect the whole routing table by preventing too many hosts from
+	 * a given class C network to be recorded.
+	 */
+
+	if (dht_c_class_get_count(kn) >= K_WHOLE_MAX_IN_NET) {
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT rejecting new node %s at %s: "
+				"too many hosts from same class-C network in routing table",
+				kuid_to_hex_string(kn->id),
+				host_addr_port_to_string(kn->addr, kn->port));
+		gnet_stats_count_general(GNR_DHT_ROUTING_REJECTED_NODE_GLOBAL_QUOTA, 1);
 		return FALSE;
 	}
 
@@ -2788,6 +2855,14 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 
 		knode_check(kn);
 		g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
+
+		/*
+		 * Regardless of whether we forget the node or add it to the merged
+		 * bucket, start to remove it from the global routing table stats.
+		 * If we keep it, it will be accounted for by add_node_internal().
+		 */
+
+		dht_c_class_update_count(kn, -1);
 
 		if (forget) {
 			forget_merged_node(kn);
@@ -3358,6 +3433,8 @@ merge:
 }
 
 /**
+ * DHT size estimation -- method #1 (similar to the LimeWire estimation).
+ *
  * Given a PATRICIA trie containing the closest nodes we could find relative
  * to a given KUID, derive an estimation of the DHT size.
  *
@@ -3366,7 +3443,7 @@ merge:
  * @param amount	the amount of k-closest nodes they wanted
  */
 static guint64
-dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
+dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 {
 	patricia_iter_t *iter;
 	size_t i;
@@ -3476,6 +3553,299 @@ dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 	kuid_add_u8(&estimate, 1);
 
 	return kuid_to_guint64(&estimate);
+}
+
+/**
+ * DHT size estimation -- method #2 (based on prefix size).
+ *
+ * Given a PATRICIA trie containing the closest nodes we could find relative
+ * to a given KUID, derive an estimation of the DHT size.
+ *
+ * @param pt		the PATRICIA trie holding the lookup path
+ * @param kuid		the KUID that was looked for
+ */
+static guint64
+dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
+{
+	patricia_iter_t *iter;
+	size_t count;
+	size_t retained;
+	kuid_t *id;
+	size_t prefix[KUID_RAW_BITSIZE + 1];
+	size_t cumulative[KUID_RAW_BITSIZE + 1];
+	size_t i;
+	size_t b_min;
+	size_t b_max;
+	guint64 estimate;
+	double bits, weight, total_weight;
+
+	/*
+	 * Here is the algorithm used to compute the size estimate.
+	 *
+	 * We know that the average DHT size allows us to estimate the minimal
+	 * amount of common leading bits that all nodes in the vincinity of a
+	 * target kUID will share.  This is given by:
+	 *
+	 *    b_min = E[log2(estimated_DHT_size / KDA_K)]
+	 *
+	 * with E[x] being the integer part of x.
+	 *
+	 * We're reversing this process here: given the nodes we found close to a
+	 * given target, we compute the median of the common prefix size.  The
+	 * median is the value that will split the sample in two sets with the
+	 * same cardinality.
+	 *
+	 * By computing the distribution of prefixes and then the cumulative
+	 * distribution, we can find the median, b_min.
+	 *
+	 * After the median, assume the nodes will follow a geometric distribution.
+	 * That is, we expect the amount of nodes with i+1 common leading bits
+	 * to be half the amount of nodes with i common leading bits, for all the
+	 * i >= b_min.  This stems from the expected random distribution of the
+	 * KUIDs, so there is only a 1/2 chance that the next bit will be common
+	 * with the target, and only 1/2 chance that the bit after that will also
+	 * be common, etc...
+	 *
+	 * We can then compute the average amount of common leading bits within
+	 * the vincinity of the targeted KUID.
+	 *
+	 * For instance, say we find b_min = 11.  Then we have 10 nodes with
+	 * a prefix of 11 bits, 4 with a prefix of 12 bits and 3 with a prefix of
+	 * 13 bits, for a total of 17 nodes.
+	 *
+	 * The average amount is:
+	 *
+	 *   b_avg = (11*10 + 12*4 + 13*3) / (10 + 4 + 3) = 11.58
+	 *
+	 * If we further ponder with the estimated frequencies, we get a slightly
+	 * lower average, probably more accurate:
+	 *
+	 *   b_avg = (11*10/2^0 + 12*4/2^1 + 13*3/2^2)/12.75 = 11.27
+	 *
+	 * The estimated DHT size is then 17 * 2^11.27 = 41981 nodes.
+	 *
+	 * Because we are dealing with discrete and imperfect distributions, the
+	 * error margin on the estimated size is large.
+	 */
+
+	iter = patricia_metric_iterator_lazy(pt, kuid, TRUE);
+	memset(prefix, 0, sizeof prefix);
+	retained = 0;
+	count = patricia_count(pt);
+
+	while (patricia_iter_next(iter, (void *) &id, NULL, NULL)) {
+		size_t common = kuid_common_prefix(id, kuid);
+		prefix[common]++;
+
+		/*
+		 * Nodes need to be "close enough" from the target in order for the
+		 * prefix sizes to be expected to follow a geometric distribution
+		 * following the median.
+		 */
+
+		if (retained++ >= KDA_K - 1)
+			break;
+	}
+
+	patricia_iterator_release(&iter);
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_debug("DHT target KUID is %s (%u node%s in path, retained %u)",
+			kuid_to_hex_string(kuid), (unsigned) count, 1 == count ? "" : "s",
+			(unsigned) retained);
+	}
+
+	if (0 == retained)
+		return count + 1;		/* Cannot estimate another size */
+
+	/*
+	 * Compute cumulative distribution.
+	 */
+
+	memset(cumulative, 0, sizeof cumulative);
+
+	cumulative[0] = prefix[0];
+
+	for (b_min = 0, i = 1; i < G_N_ELEMENTS(prefix); i++) {
+		cumulative[i] = cumulative[i - 1] + prefix[i];
+		if (0 == b_min && cumulative[i] >= retained / 2)
+			b_min = i;
+	}
+
+	if (GNET_PROPERTY(dht_debug))
+		g_debug("DHT median of common prefix size is %u", (unsigned) b_min);
+
+	/*
+	 * Compute average amount of common bits.
+	 *
+	 * After the median amount, we decimate by successive powers of 2 for
+	 * each additional bit.  Before the median, we multiply by successive
+	 * powers of 2, and we only consider the 2 bits before, to account for
+	 * a small skewness in the ID distribution.
+	 */
+
+	b_max = b_min + 31;
+	b_max = MIN(b_max, KUID_RAW_BITSIZE + 1);
+	weight = total_weight = bits = 0.0;
+	retained = 0;
+
+	for (i = b_min >= 2 ? b_min - 2 : 0; i < b_max; i++) {
+		if (prefix[i] != 0) {
+			if (i >= b_min) {
+				/* After the median */
+				weight = (double) prefix[i] / (1U << (i - b_min));
+			} else {
+				/* Before the median */
+				weight = (double) prefix[i] * (1U << (b_min - i));
+			}
+			bits += i * weight;
+			total_weight += weight;
+			retained += prefix[i];
+		}
+	}
+
+	bits /= total_weight;
+	estimate = (guint64) (retained * pow(2.0, bits));
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_debug("DHT average common prefix is %lf bits over %u node%s",
+			bits, retained, 1 == retained ? "" : "s");
+	}
+
+	return estimate;
+}
+
+/**
+ * DHT size estimation -- method #3 (based on average node distance).
+ *
+ * Given a PATRICIA trie containing the closest nodes we could find relative
+ * to a given KUID, derive an estimation of the DHT size.
+ *
+ * @param pt		the PATRICIA trie holding the lookup path
+ * @param kuid		the KUID that was looked for
+ */
+static guint64
+dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
+{
+	patricia_iter_t *iter;
+	size_t count;
+	size_t intervals;
+	kuid_t prev;
+	kuid_t accum;
+	kuid_t remain;
+	kuid_t first;
+	kuid_t avg;
+	kuid_t *id;
+
+	/*
+	 * Here is the algorithm used to compute the size estimate.
+	 *
+	 * We traverse the nodes in the path, starting with one closest to the
+	 * KUID target and moving further away.  As long as we stay in the close
+	 * neighbourhood (the k-closest nodes), we can consider that the average
+	 * distance of the nodes in this local space is representative.
+	 *
+	 * To get a more accurate average distance, we compute the distance between
+	 * two consecutive nodes, plus the average distance between the first and
+	 * third node (2 intervals), then between the first and the fourth node
+	 * (3 intervals), etc...
+	 *
+	 * Once we have this average distance between nodes, we can estimate the
+	 * global size by dividing the maximum network size 2^160 by the average
+	 * size between nodes.
+	 */
+
+	iter = patricia_metric_iterator_lazy(pt, kuid, TRUE);
+	count = intervals = 0;
+	kuid_zero(&accum);
+
+	while (patricia_iter_next(iter, (void *) &id, NULL, NULL)) {
+		if (count++ > 0) {
+			kuid_t dist;
+			kuid_xor_distance(&dist, &prev, id); /* Between consecutive IDs */
+			kuid_add(&accum, &dist);
+			intervals++;
+			kuid_xor_distance(&dist, &first, id);	/* With first ID */
+			kuid_add(&accum, &dist);
+			intervals += count;
+		} else {
+			kuid_copy(&first, id);
+		}
+		kuid_copy(&prev, id);
+		if (count >= KDA_K)
+			break;
+	}
+
+	patricia_iterator_release(&iter);
+
+	/*
+	 * Compute the average distance.
+	 *
+	 * This algorithm is sensitive to the distance being computed, of course.
+	 * It tends to under-estimate slightly the DHT size compared to other
+	 * methods so to account for that, we add 1 to the amount of intervals.
+	 * The average will be a little bit lower than what it should be, so the
+	 * overall size will be a little bit larger.
+	 */
+
+	if (count == 1)
+		return 1 + patricia_count(pt);
+
+	kuid_set32(&prev, intervals + 1);
+	kuid_divide(&accum, &prev, &avg, &remain);
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_debug("DHT average distance of %u KUIDs near %s is %s (%lf)",
+			(unsigned) count - 1,
+			kuid_to_hex_string(kuid), kuid_to_hex_string2(&avg),
+			kuid_to_double(&avg));
+	}
+
+	/*
+	 * To estimate the amount of nodes, we're going to assume the distance
+	 * is uniform and representative of the whole population.  The total
+	 * population is therefore 2^160 / average_distance.
+	 */
+
+	kuid_zero(&prev);
+	kuid_not(&prev);		/* Max amount we can represent: 2^160 - 1 */
+
+	kuid_divide(&prev, &avg, &accum, &remain);
+
+	return kuid_to_guint64(&accum);
+}
+
+/**
+ * Given a PATRICIA trie containing the closest nodes we could find relative
+ * to a given KUID, derive an estimation of the DHT size.
+ *
+ * @param pt		the PATRICIA trie holding the lookup path
+ * @param kuid		the KUID that was looked for
+ * @param amount	the amount of k-closest nodes they wanted
+ */
+static guint64
+dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
+{
+	guint64 estimate_1, estimate_2, estimate_3;
+
+	estimate_1 = dht_compute_size_estimate_1(pt, kuid, amount);
+	estimate_2 = dht_compute_size_estimate_2(pt, kuid);
+	estimate_3 = dht_compute_size_estimate_3(pt, kuid);
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_debug("DHT estimated size with method #1: %s",
+			uint64_to_string(estimate_1));
+		g_debug("DHT estimated size with method #2: %s",
+			uint64_to_string(estimate_2));
+		g_debug("DHT estimated size with method #3: %s",
+			uint64_to_string(estimate_3));
+	}
+
+	/*
+	 * Average, will not overflow, 2^64 is a lot of nodes...
+	 */
+
+	return (estimate_1 + estimate_2 + estimate_3) / 3;
 }
 
 /**
@@ -4407,6 +4777,7 @@ dht_close(gboolean exiting)
 	}
 	statx_free(stats.lookdata);
 	statx_free(stats.netdata);
+	acct_net_free(&c_class);
 
 	memset(&stats, 0, sizeof stats);		/* Clear all stats */
 	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
