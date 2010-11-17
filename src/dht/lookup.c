@@ -90,12 +90,12 @@ RCSID("$Id$")
  *
  * The article from Thibault Cholez et al. uses the natural logarithm,
  * whereas we're using log2().  Hence, the thresholds from the article
- * are multiplied by ln(2): the abnormal threshold of 0.7 becomes 0.4852...,
- * rounded to 0.49. The counter-threshold of 0.3 becomes 0.2079..., rounded
- * to 0.21.
+ * are divided by ln(2): the abnormal threshold of 0.7 becomes 1.0098...,
+ * rounded to 1.01. The counter-threshold of 0.3 becomes 0.4328..., rounded
+ * to 0.43.
  */
-#define KL_ABNORMAL_THRESH	0.49	/**< Abnormal K-L divergence threshold */
-#define KL_COUNTER_THRESH	0.21	/**< Countermeasure objective */
+#define KL_ABNORMAL_THRESH	1.01	/**< Abnormal K-L divergence threshold */
+#define KL_COUNTER_THRESH	0.43	/**< Countermeasure objective */
 
 static double log2_frequency[KDA_K][KDA_K];
 
