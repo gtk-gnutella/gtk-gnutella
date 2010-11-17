@@ -4427,4 +4427,22 @@ prop = {
     vector_size = KUID_RAW_SIZE;
 };
 
+prop = {
+    name = "average_servent_downtime";
+    desc = "Average servent downtime.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "shutdown_time";
+    desc = "Time when last shutdown occurred.";
+    type = timestamp;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

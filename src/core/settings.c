@@ -527,6 +527,29 @@ settings_init_session_id(void)
 	gnet_prop_set_storage(PROP_SESSION_ID, digest.data, size);
 }
 
+static void
+settings_update_downtime(void)
+{
+	time_t downtime;
+	guint32 average;
+
+	if (GNET_PROPERTY(shutdown_time) != 0) {
+		downtime = delta_time(tm_time(), GNET_PROPERTY(shutdown_time));
+	} else {
+		downtime = 0;
+	}
+	average = GNET_PROPERTY(average_servent_downtime);
+
+	/*
+	 * The average downtime is computed as an EMA on 3 terms.
+	 * The smoothing factor sm=2/(3+1) is therefore 0.5.
+	 */
+
+	average += (downtime >> 1) - (average >> 1);
+
+	gnet_prop_set_guint32_val(PROP_AVERAGE_SERVENT_DOWNTIME, average);
+}
+
 void
 settings_init(void)
 {
@@ -653,7 +676,8 @@ settings_init(void)
 		random_add(&buf, sizeof buf);
 	}
 
-    settings_callbacks_init();
+	settings_update_downtime();
+	settings_callbacks_init();
 	settings_init_running = FALSE;
 	return;
 
@@ -1191,6 +1215,8 @@ update_uptimes(void)
 		get_average_ip_lifetime(now, NET_TYPE_IPV4));
 	gnet_prop_set_guint32_val(PROP_AVERAGE_IP6_UPTIME,
 		get_average_ip_lifetime(now, NET_TYPE_IPV6));
+
+	gnet_prop_set_timestamp_val(PROP_SHUTDOWN_TIME, now);
 }
 
 /***

@@ -452,6 +452,7 @@ gtk_gnutella_exit(int exit_code)
 	 * the properties and exit.
 	 */
 
+	gnet_prop_set_timestamp_val(PROP_SHUTDOWN_TIME, tm_time());
 	DO(settings_save_if_dirty);
 
 	safe_to_exit = TRUE;	/* Will immediately exit if re-entered */
@@ -679,6 +680,7 @@ slow_main_timer(time_t now)
 		break;
 	case 5:
 		dht_route_store_if_dirty();
+		gnet_prop_set_timestamp_val(PROP_SHUTDOWN_TIME, tm_time());
 		break;
 	default:
 		g_assert_not_reached();

@@ -890,6 +890,10 @@ static const guint32  gnet_property_variable_hcache_debug_default = 0;
 char   gnet_property_variable_randomness[KUID_RAW_SIZE];
 static const char   gnet_property_variable_randomness_default[KUID_RAW_SIZE];
 
+guint32  gnet_property_variable_average_servent_downtime     = 0;
+static const guint32  gnet_property_variable_average_servent_downtime_default = 0;
+time_t  gnet_property_variable_shutdown_time     = 0;
+static const time_t  gnet_property_variable_shutdown_time_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -8122,6 +8126,46 @@ gnet_prop_init(void) {
     /* Type specific data: */
     gnet_property->props[377].type               = PROP_TYPE_STORAGE;
     gnet_property->props[377].data.storage.value = gnet_property_variable_randomness;
+
+
+    /*
+     * PROP_AVERAGE_SERVENT_DOWNTIME:
+     *
+     * General data:
+     */
+    gnet_property->props[378].name = "average_servent_downtime";
+    gnet_property->props[378].desc = _("Average servent downtime.");
+    gnet_property->props[378].ev_changed = event_new("average_servent_downtime_changed");
+    gnet_property->props[378].save = TRUE;
+    gnet_property->props[378].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[378].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[378].data.guint32.def   = (void *) &gnet_property_variable_average_servent_downtime_default;
+    gnet_property->props[378].data.guint32.value = (void *) &gnet_property_variable_average_servent_downtime;
+    gnet_property->props[378].data.guint32.choices = NULL;
+    gnet_property->props[378].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[378].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_SHUTDOWN_TIME:
+     *
+     * General data:
+     */
+    gnet_property->props[379].name = "shutdown_time";
+    gnet_property->props[379].desc = _("Time when last shutdown occurred.");
+    gnet_property->props[379].ev_changed = event_new("shutdown_time_changed");
+    gnet_property->props[379].save = TRUE;
+    gnet_property->props[379].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[379].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[379].data.timestamp.def   = (void *) &gnet_property_variable_shutdown_time_default;
+    gnet_property->props[379].data.timestamp.value = (void *) &gnet_property_variable_shutdown_time;
+    gnet_property->props[379].data.timestamp.choices = NULL;
+    gnet_property->props[379].data.timestamp.max   = (time_t) ((1U << 31) - 1);
+    gnet_property->props[379].data.timestamp.min   = 0x0000000000000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
