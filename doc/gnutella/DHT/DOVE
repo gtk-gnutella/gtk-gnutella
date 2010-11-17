@@ -4,7 +4,7 @@
                         Raphael Manfredi
                   <Raphael_Manfredi@pobox.com>
 
-                       November, 1st 2010
+                       November 1st, 2010
 
 
   THIS DOCUMENT IS STILL A DRAFT  / FINAL VERSION WILL BE PUBLISHED LATER
@@ -36,6 +36,11 @@ And whilst we are specifying new DHT message formats (or extensions of existing
 formats), we even attempt to change the way-too-verbose STORE_ACK message
 format by using DOVE-architected flags to "fix" the protocol, again in a
 complete backward compatible way.
+
+Further DHT enhancement proposals will be published at a later time but will
+require DOVE support to be successfully deployed.  Hence it is important that
+all the DHT implementations follow DOVE so that we can scale up the feature
+set progressively.
 
 
 2. DHT Message Format
@@ -477,31 +482,34 @@ Currently, DOVE specifies only 5 standard keys:
   mask, whose bits are "1" for each of the flags that the node understood and
   processed.
 
-  For instance, if the node understood only bit 0 and 3, it would reply with
+  For instance, if the node understood only bits 0 and 3, it would reply with
   a 1-byte mask containing 0b1001, i.e. 0x09.
 
-- "A": This key (byte 0x41) has a payload of exactly 1 byte.  Its value
+- "H": This key (byte 0x48) has a payload of exactly 1 byte.  Its value
   indicates the bit number of the highest flag bit in "F" which has meaning.
   In other words, it indicates the subset of the flags that were set.  A value
   of 17 for instance would mean that bits 0 to 17 (included) are meaningful
   and set in "F".  It does NOT indicate a level of support, so if the flag
   at bit 15 is understood but does not need to be supplied in "F", and only
-  bits up to 14 are set, then "A" would indicate 14, despite the fact that
+  bits up to 14 are set, then "H" would indicate 14, despite the fact that
   the node supports bit 15 as well.
 
   As an optimization, if the highest meaningful flag is also set in "F", then
-  there is no need to supply "A", because all the bits up to that position
-  MUST be supported and set by the servent.  So "A" is useful when flags must
+  there is no need to supply "H", because all the bits up to that position
+  MUST be supported and set by the servent.  So "H" is useful when flags must
   be specified as explicit "0" and they happen to be in the highest bits of
   the flags to be sent.  For instance, if "F" turns on bit 18 and there is no
-  "A", then the recipient MUST assume that all bits up to 18 inclusive are
+  "H", then the recipient MUST assume that all bits up to 18 inclusive are
   meaningful, and that no flag with a higher bit position than bit 18 was set.
+
+All other 1-letter keys are RESERVED for now and will be defined as part of
+future enhancements.
 
 
 7. Additional Message Header Flags
 
 These flags are specified in the "F" key of the DOVE extension, not in the
-Kademlia header Contact's Flag field.  When used, the "A" key COULD be also
+Kademlia header Contact's Flag field.  When used, the "H" key COULD be also
 present to indicate the highest bit with significance in the flags.
 
 Because they are specified here, their meaning is universal and does not
@@ -530,8 +538,9 @@ We shall now detail how each of these flags operate.
 7.1. The "Extended DHT Value" flag
 
 This flag makes sense only in RPC messages that can request DHT Values, i.e.
-only in "FIND_VALUE", and in replies to "FIND_NODE" preparing "STORE"
-requests, to indicate support for "STORE" operations.
+only in "FIND_VALUE", and in "FIND_NODE" lookups preparing a forthcoming
+"STORE" request, to enquire whether the remote host will be able to
+understand Extended DHT Values as input.
 
 In "FIND_VALUE", this tells nodes that they can reply with extended values.
 
@@ -595,7 +604,7 @@ The Value Extension format is:
 
 <------- Length of the DHT Value ---------->
 +--------------+--------------+------------+
-| VLE-8 length | DOVE payload | Value data |
+| VLE-8 length | Ext. payload | Value data |
 +--------------+--------------+------------+
 <--encode(n)--><---n bytes---><---data----->
 <-- Extended Value Header --->
@@ -603,6 +612,18 @@ The Value Extension format is:
 It can be interpreted as such only when the bit 7 of byte 57 is set,
 indicating Value Extension.  Note that this limits the range of possible
 major version numbers for values to 127.
+
+Note that regardless of whether the Extension Payload is a DOVE payload or
+not, its length is VLE-8 encoded.  That is, other extension formats may one
+day be specified for the Extended Value Header, but the total length of this
+extended header is architected as being encoded in VLE-8 and it must be
+emitted before the extension so that it may be skipped altogether without
+further analysis.
+
+If there is a DOVE payload in the Extension Payload, it MUST come first
+and it must start with the usual 'V' marker.  The DOVE payload follows
+the exact same format as the one described in section 5 above "Extended
+Header Format".
 
 In the DOVE payload we also define the same 5 Special Keys we specified
 for the Kademlia header extension:
@@ -614,7 +635,7 @@ for the Kademlia header extension:
 - "v": This is the same format and semantics as the "v" key in the Kademlia
   header extension.
 
-"F", "f" and "A" are also supported, however the meaning of the flags are
+"F", "f" and "H" are also supported, however the meaning of the flags are
 different: they apply to the DHT Value, not to the message.  The defined
 flags are:
 
@@ -702,7 +723,7 @@ DOVE re-architects a more compact STORE Status Code as the following:
 +---------------+------------------------------------------+
 
 This block is known as the Compact STORE Status Code.  If there is no DOVE
-payload, the Extended Length value is 0 (encoded as 0x80, in VLE-8).
+payload, the Extended Length value is 0 (encoded as 0x80, in VLE-8 of course).
 
 The Compact Status is a VLE-8 encoded value, unlike the original
 LimeWire Code, and with the following extended value range:
@@ -775,7 +796,7 @@ If the "Compact STORE Status" bit is not set, then the error string is
 returned as part of LimeWire's specified Status Code.
 
 If the "Compact STORE Status" bit is set, then the error string is returned
-as the value for the "EM" key (Error Message) within the DOVE payload of
+as the value of the "EM" key (Error Message) within the DOVE payload of
 the Compact STORE Status Code block.
 
 Again, please do not turn on this flag if you are not debugging your servent
@@ -786,7 +807,7 @@ always scarce, if not expensive.
 8. Minimum Features
 
 In order to be able to advertise the DOVE bit in the Contact's Flag field of
-the Kademlia message header, a node must implement the following minimal DOVE
+the Kademlia message header, a node MUST implement the following minimal DOVE
 features:
 
 * Proper parsing of the DOVE payload in Message Headers.
@@ -807,8 +828,8 @@ within Gnutella in a backward compatible way without requiring an increase
 of the DHT message version number, which can stay at 0.0 for now.
 
 DOVE introduces the possibility to exchange additional information in messages
-and additional meta-information about values in flexible and extensible key/value
-pairs.
+and additional meta-information about values in flexible and extensible
+key/value pairs, with as little structural overhead as possible.
 
 DOVE negotiates its potentially binary-incompatible extensions so that no
 legacy node is presented data that it cannot parse, hopefully.
