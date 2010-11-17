@@ -699,6 +699,8 @@ src/lib/map.h
 src/lib/mime_type.c
 src/lib/mime_type.h
 src/lib/mime_types.h
+src/lib/mingw32.c
+src/lib/mingw32.h
 src/lib/misc.c
 src/lib/misc.h
 src/lib/offtime.c

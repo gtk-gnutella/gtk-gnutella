@@ -101,6 +101,7 @@ LSRC = \
 	malloc.c \
 	map.c \
 	mime_type.c \
+	mingw32.c \
 	misc.c \
 	offtime.c \
 	omalloc.c \
