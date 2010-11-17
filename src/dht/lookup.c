@@ -394,6 +394,7 @@ lookup_free(nlookup_t *nl)
 	map_destroy(nl->tokens);
 	patricia_destroy(nl->shortlist);
 	map_destroy(nl->queried);
+	map_destroy(nl->unsafe);
 	map_destroy(nl->alternate);
 	map_destroy(nl->pending);
 	map_destroy(nl->fixed);
