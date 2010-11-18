@@ -57,6 +57,7 @@ int statx_n(const statx_t *);
 double statx_avg(const statx_t *);
 double statx_sdev(const statx_t *);
 double statx_var(const statx_t *);
+double statx_stderr(const statx_t *);
 double *statx_data(const statx_t *);
 
 #endif /* _stats_h_ */

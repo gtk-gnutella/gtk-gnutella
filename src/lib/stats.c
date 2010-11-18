@@ -272,6 +272,15 @@ statx_var(const statx_t *sx)
 }
 
 /**
+ * @return the standard error of the mean.
+ */
+double
+statx_stderr(const statx_t *sx)
+{
+	return sqrt(statx_var(sx) / sx->n);
+}
+
+/**
  * @return an array of datapoints which can be freed via hfree() when done.
  */
 double *
