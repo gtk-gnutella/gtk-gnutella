@@ -101,6 +101,7 @@ void pcache_close(void);
 void pcache_set_peermode(node_peer_t mode);
 void pcache_possibly_expired(time_t now);
 void pcache_outgoing_connection(struct gnutella_node *n);
+void pcache_collect_dht_hosts(struct gnutella_node *n);
 void pcache_ping_received(struct gnutella_node *n);
 void pcache_pong_received(struct gnutella_node *n);
 void pcache_pong_fake(struct gnutella_node *n,

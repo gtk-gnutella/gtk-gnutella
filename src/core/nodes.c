@@ -971,10 +971,15 @@ node_supports_dht(struct gnutella_node *n, dht_mode_t mode)
 			node_infostr(n), dht_mode_to_string(mode));
 	}
 
-	if (mode != DHT_MODE_INACTIVE) {
-		/* Not interested by flagging DHT support if node not joining */
-		n->attrs |= NODE_A_CAN_DHT;
-	}
+	n->attrs |= NODE_A_CAN_DHT;
+
+	/*
+	 * If the DHT is enabled but we are not bootstrapped yet, send a "DHTIPP"
+	 * ping to the node and its neighbours to get more hosts.
+	 */
+
+	if (dht_enabled() && !dht_seeded())
+		pcache_collect_dht_hosts(n);
 }
 
 /**

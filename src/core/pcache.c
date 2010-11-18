@@ -1173,6 +1173,19 @@ pcache_outgoing_connection(struct gnutella_node *n)
 }
 
 /**
+ * Called to attempt collecting DHT hosts for bootstrapping.
+ * Ping is sent to neighbour with a TTL=2 so that "DHTIPP" is included (we're
+ * not sending an UHC ping).
+ */
+void
+pcache_collect_dht_hosts(struct gnutella_node *n)
+{
+	g_assert(NODE_IS_CONNECTED(n));
+
+	send_ping(n, 2);
+}
+
+/**
  * Expire the whole cache.
  */
 static void
