@@ -133,6 +133,7 @@ host_timer(void)
 	guint16 port;
 	host_type_t htype;
 	guint max_nodes;
+	gboolean empty_cache = FALSE;
 
 	if (in_shutdown || !GNET_PROPERTY(online_mode))
 		return;
@@ -178,10 +179,6 @@ host_timer(void)
 	if (count < max_nodes)
 		missing -= whitelist_connect();
 
-	if (GNET_PROPERTY(host_debug) && missing > 0)
-		g_debug("host_timer - missing %d host%s",
-			missing, missing == 1 ? "" : "s");
-
 	/*
 	 * If we are under the number of connections wanted, we add hosts
 	 * to the connection list
@@ -202,13 +199,22 @@ host_timer(void)
 	if (hcache_size(htype) == 0)
 		htype = HOST_ANY;
 
+	if (hcache_size(htype) == 0)
+		empty_cache = TRUE;
+
+	if (GNET_PROPERTY(host_debug) && missing > 0)
+		g_debug("host_timer - missing %d host%s%s",
+			missing, missing == 1 ? "" : "s",
+			empty_cache ? " [empty caches]" : "");
+
     if (!GNET_PROPERTY(stop_host_get)) {
         if (missing > 0) {
 			static time_t last_try;
             unsigned fan, max_pool, to_add;
 
             max_pool = MAX(GNET_PROPERTY(quick_connect_pool_size), max_nodes);
-            fan = (missing * GNET_PROPERTY(quick_connect_pool_size))/ max_nodes;
+            fan = (missing * GNET_PROPERTY(quick_connect_pool_size))/ max_pool;
+			fan = MAX(1, fan);
             to_add = GNET_PROPERTY(is_inet_connected) ? fan : (guint) missing;
 
 			/*
@@ -283,7 +289,7 @@ host_timer(void)
 				}
 			}
 
-			if (missing > 0 && host_cache_allow_bypass()) {
+			if (missing > 0 && (empty_cache || host_cache_allow_bypass())) {
 				if (!uhc_is_waiting()) {
 					if (GNET_PROPERTY(host_debug))
 						g_debug("host_timer - querying UDP host cache");
