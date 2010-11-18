@@ -3875,11 +3875,12 @@ update_cached_size_estimate(void)
 {
 	time_t now = tm_time();
 	int i;
-	int count = 0;
-	guint64 estimate = 0;
+	guint64 estimate;
 	int n;
 	guint64 min = 0;
 	guint64 max = MAX_INT_VAL(guint64);
+	guint64 avg_stderr;
+	statx_t *st;
 
 	/*
 	 * Only retain the points that fall within one standard deviation of
@@ -3893,14 +3894,16 @@ update_cached_size_estimate(void)
 		if (sdev < avg)
 			min = avg - sdev;
 		max = avg + sdev;
+		avg_stderr = sdev / sqrt(n);
 	}
+
+	st = statx_make_nodata();
 
 	for (i = 0; i < K_REGIONS; i++) {
 		if (delta_time(now, stats.lookups[i].computed) <= ESTIMATE_LIFE) {
 			guint64 val = stats.lookups[i].estimate;
 			if (val >= min && val <= max) {
-				estimate += val;
-				count++;
+				statx_add(st, (double) val);
 			}
 		}
 	}
@@ -3916,9 +3919,11 @@ update_cached_size_estimate(void)
 	 * we could be facing a density anomaly in the KUID space around our node.
 	 */
 
-	estimate += stats.local.estimate;
-	count++;
-	estimate /= count;
+	if (dht_is_active() || statx_n(st) == 0)
+		statx_add(st, stats.local.estimate);
+
+	estimate = (guint64) statx_avg(st);
+	avg_stderr = statx_n(st) > 1 ? (guint64) statx_stderr(st) : 0;
 
 	stats.average.estimate = estimate;
 	stats.average.computed = now;
@@ -3937,22 +3942,25 @@ update_cached_size_estimate(void)
 	 * Note that E[log2(x)] = highest_bit_set(x), making computation easy.
 	 */
 
-	stats.kball_furthest = highest_bit_set64(estimate / KDA_K);
+	stats.kball_furthest = highest_bit_set64((estimate + avg_stderr) / KDA_K);
 	stats.kball_furthest = MAX(0, stats.kball_furthest);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT cached average local size estimate is %s "
+		int count = statx_n(st);
+		g_debug("DHT cached average local size estimate is %s, +/- %s "
 			"(%d point%s, skipped %d), k-ball furthest: %d bit%s",
-			uint64_to_string2(stats.average.estimate),
+			uint64_to_string(stats.average.estimate),
+			uint64_to_string2(avg_stderr),
 			count, 1 == count ? "" : "s", n + 1 - count,
 			stats.kball_furthest, 1 == stats.kball_furthest ? "" : "s");
 		if (n > 1) {
 			g_debug(
-				"DHT collected average is %.0f (%d points), sdev = %.2f",
-				statx_avg(stats.lookdata), n, statx_sdev(stats.lookdata));
+				"DHT collected average is %.0f (%d points), avg_stderr = %.2f",
+				statx_avg(stats.lookdata), n, statx_stderr(stats.lookdata));
 		}
 	}
 
+	statx_free(st);
 	report_estimated_size();
 }
 
@@ -5013,6 +5021,10 @@ dht_probe(host_addr_t addr, guint16 port)
 	knode_t *kn;
 	vendor_code_t vc;
 	guid_t muid;
+
+	if (GNET_PROPERTY(dht_debug))
+		g_debug("DHT sending probe to %s",
+			host_addr_port_to_string(addr, port));
 
 	/*
 	 * Build a fake Kademlia node, with an zero KUID.  This node will never
