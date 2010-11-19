@@ -111,7 +111,6 @@ typedef int socket_fd_t;
 #endif
 
 #ifdef MINGW32
-
 struct passwd
 {
 	char *pw_name;                /* Username.  */
@@ -342,6 +341,13 @@ typedef void (*GCallback) (void);
 #ifndef S_ISLNK
 #define S_ISLNK(mode) (((mode) & S_IFMT) == S_IFLNK)
 #endif	/* S_ISLNK */
+
+/*
+ * Allow code to blindly say lstat() even if not defined.
+ */
+#ifndef HAS_LSTAT
+#define lsat(_p,_b)	stat((_p),(_b))
+#endif
 
 /*
  * These macros determine the maximum/minimum value of the given integer type
