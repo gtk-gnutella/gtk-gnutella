@@ -40,6 +40,7 @@
 
 RCSID("$Id$")
 
+#include "ascii.h"
 #include "path.h"
 #include "halloc.h"
 #include "override.h"			/* Must be the last header included */
@@ -109,15 +110,17 @@ path_does_not_exist(const char *pathname)
  * Check whether path is an absolute path.
  */
 gboolean
-is_absolute_path(const char *pathname)
+is_absolute_path(const char *path)
 {
-	g_assert(pathname);
+	g_assert(path != NULL);
+
+	return '/' == path[0] || G_DIR_SEPARATOR == path[0]
 #ifdef MINGW32
-	return '/' == pathname[0] || 
-		(':' == pathname[1] &&  G_DIR_SEPARATOR == pathname[2]);
-#else
-	return '/' == pathname[0] || G_DIR_SEPARATOR == pathname[0];
+		|| (	is_ascii_alpha(path[0]) &&
+				':' == path[1] &&
+				G_DIR_SEPARATOR == path[2])
 #endif
+		;
 }
 
 /**
