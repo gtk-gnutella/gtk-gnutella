@@ -220,23 +220,18 @@ socket_evt_fd(struct gnutella_socket *s)
 	socket_check(s);
 	switch (s->direction) {
 	case SOCK_CONN_LISTENING:
-#ifndef MINGW32
-		g_assert(s->file_desc >= 0);
-#endif
+		g_assert(s->file_desc != INVALID_SOCKET);
 		fd = s->file_desc;
 		break;
 
 	case SOCK_CONN_INCOMING:
 	case SOCK_CONN_OUTGOING:
 	case SOCK_CONN_PROXY_OUTGOING:
-		g_assert(s->wio.fd);
+		g_assert(s->wio.fd != NULL);
 		fd = s->wio.fd(&s->wio);
-#ifndef MINGW32
-		g_assert(fd >= 0);
-#endif
 		break;
 	}
-	g_assert(INVALID_SOCKET != fd);
+	g_assert(fd != INVALID_SOCKET);
 
 	return fd;
 }
@@ -504,7 +499,7 @@ void
 socket_tos_lowdelay(const struct gnutella_socket *s)
 {
 #ifdef MINGW32
-	(void)s;
+	(void) s;
 #else
 	static gboolean failed;
 
@@ -523,7 +518,7 @@ void
 socket_tos_throughput(const struct gnutella_socket *s)
 {
 #ifdef MINGW32
-	(void)s;
+	(void) s;
 #else
 	static gboolean failed;
 
@@ -2618,9 +2613,7 @@ static void
 socket_set_accept_filters(struct gnutella_socket *s)
 {
 	socket_check(s);
-#ifndef MINGW32
-	g_assert(s->file_desc >= 0);
-#endif
+	g_assert(s->file_desc != INVALID_SOCKET);
 
 	if (GNET_PROPERTY(tcp_defer_accept_timeout) <= 0)
 		return;
@@ -2669,10 +2662,8 @@ socket_set_fastack(struct gnutella_socket *s)
 	static const int on = 1;
 
 	socket_check(s);
-#ifndef MINGW32
-	g_return_if_fail(s->file_desc >= 0);
-#endif
-	
+	g_return_if_fail(s->file_desc != INVALID_SOCKET);
+
 	if (!(SOCK_F_TCP & s->flags))
 		return;
 
@@ -2694,9 +2685,7 @@ void
 socket_set_quickack(struct gnutella_socket *s, int on)
 {
 	socket_check(s);
-#ifndef MINGW32
-	g_return_if_fail(s->file_desc >= 0);
-#endif
+	g_return_if_fail(s->file_desc != INVALID_SOCKET);
 
 	if (!(SOCK_F_TCP & s->flags))
 		return;
@@ -2770,7 +2759,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 	host_addr_t addr, guint16 port, enum socket_type type, guint32 flags)
 {
 	static const int enable = 1;
-	int fd, family, err;
+	int fd, family;
 
 	socket_check(s);
 
@@ -2876,8 +2865,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	socket_addr_t addr;
 	socklen_t addr_len;
 	int res;
-	int err = 0;
-	
+
 	socket_check(s);
 
 	/*
@@ -2946,10 +2934,11 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	}
 
 #ifdef MINGW32
-	if (-1 == res && WSAEINPROGRESS != errno && WSAEWOULDBLOCK != errno) {
+	if (-1 == res && WSAEINPROGRESS != errno && WSAEWOULDBLOCK != errno)
 #else
-	if (-1 == res && EINPROGRESS != errno) {
+	if (-1 == res && EINPROGRESS != errno)
 #endif
+	{
 		if (proxy_is_enabled() && !is_host_addr(GNET_PROPERTY(proxy_addr))) {
 			if (!is_temporary_error(errno)) {
 				g_warning("Proxy isn't properly configured (%s:%u)",
@@ -2959,7 +2948,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 		}
 
 		g_warning("Unable to connect to %s: (%s)",
-			host_addr_port_to_string(s->addr, s->port), g_strerror(err));
+			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
 		goto failure;
 	}
 
@@ -3132,7 +3121,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 {
 	gboolean socket_failed;
 	socket_fd_t fd;
-	int err, saved_errno, family;
+	int saved_errno, family;
 
 	g_assert(SOCK_DGRAM == type || SOCK_STREAM == type);
 
