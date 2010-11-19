@@ -3050,7 +3050,7 @@ lookup_handle_reply(
 		continue;
 
 	skip:
-		if (GNET_PROPERTY(dht_lookup_debug) > unsafe[0] ? 1 : 4)
+		if (GNET_PROPERTY(dht_lookup_debug) > UNSIGNED(unsafe[0] ? 1 : 4))
 			g_debug("DHT LOOKUP[%s] ignoring %scontact #%d: %s",
 				revent_id_to_string(nl->lid),
 				map_contains(nl->fixed, cn->id) ? "(fixed) " : "",
