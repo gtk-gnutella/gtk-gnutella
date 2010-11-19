@@ -178,6 +178,7 @@ iovec_set_len(iovec_t* iovec, size_t len) {
 	return iovec->len = len;
 }
 
+const char *mingw_gethome(void);
 const char* mingw_strerror(int errnum);
 int mingw_open(const char *pathname, int flags, ...);
 int mingw_rename(const char *oldpath, const char *newpath);

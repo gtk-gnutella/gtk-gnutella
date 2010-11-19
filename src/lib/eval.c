@@ -34,9 +34,6 @@
  */
 
 #include "common.h"
-#ifdef MINGW32
-#include <shlobj.h>
-#endif
 RCSID("$Id$")
 
 #ifdef I_PWD
@@ -248,23 +245,11 @@ eval_subst(const char *str)
 static const char *
 get_home(void)
 {
-#ifdef MINGW32
-	char *dir;
-	char path[MAX_PATH];
-	int result = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA , NULL, 0, path );
-	
-	if (result != E_INVALIDARG) {
-		dir = path;
-		//dir = malloc(strlen(path) + 1);
-		//dir = strncpy(dir, path, strlen(path) + 1);
-	} else {
-		g_warning("Could not determine home directory");
-		dir[0] = '/';
-		dir[1] = '\0';
-	} 
-#else
 	const char *dir;
 
+#ifdef MINGW32
+	dir = mingw_gethome();
+#else
 	dir = getenv("HOME");
 
 	if (dir && !is_absolute_path(dir)) {
@@ -301,10 +286,11 @@ get_home(void)
 		dir = g_get_home_dir();
 
 	if (!dir) {
-		g_warning("Could not determine home directory");
+		g_warning("could not determine home directory");
 		dir = "/";
 	}
-#endif
+#endif	/* MINGW32 */
+
 	return atom_str_get(dir);
 }
 

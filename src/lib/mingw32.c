@@ -39,6 +39,7 @@ RCSID("$Id$")
 #ifdef MINGW32
 
 #include <mswsock.h>
+#include <shlobj.h>
 
 #include "override.h"			/* Must be the last header included */
 
@@ -58,6 +59,23 @@ RCSID("$Id$")
 #undef getsockopt
 #undef setsockopt
 #undef sendto
+
+const char *
+mingw_gethome(void)
+{
+	static char path[MAX_PATH];
+	int ret;
+
+	ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA , NULL, 0, path);
+	
+	if (E_INVALIDARG == result) {
+		g_warning("could not determine home directory");
+		path[0] = '/';
+		path[1] = '\0';
+	} 
+
+	return path;
+}
 
 int 
 mingw_open(const char *pathname, int flags, ...)
