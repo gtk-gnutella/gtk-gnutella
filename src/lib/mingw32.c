@@ -65,8 +65,7 @@ mingw_open(const char *pathname, int flags, ...)
 	int res;
 	mode_t mode = 0;
 	
-	if (flags & O_CREAT)
-    {
+	if (flags & O_CREAT) {
         va_list  args;
 
         va_start(args, flags);
@@ -95,7 +94,26 @@ mingw_write(int fd, const void *buf, size_t count)
 	return res;
 }
 
-/*** Socket wrappers ***/
+int
+mingw_truncate(const char *path, off_t len)
+{
+	int fd, ret, saved_errno;
+
+	fd = open(path, O_RDWR);
+	if (-1 == fd)
+		return -1;
+
+	ret = ftruncate(fd, len);
+	saved_errno = errno;
+	close(fd);
+	errno = saved_errno;
+
+	return ret;
+}
+
+/***
+ *** Socket wrappers
+ ***/
 int mingw_getaddrinfo(const char *node, const char *service,
                       const struct addrinfo *hints,
                       struct addrinfo **res)
@@ -159,8 +177,10 @@ mingw_shutdown(socket_fd_t sockfd, int how)
 	errno = WSAGetLastError();
 	return res;
 }
+
 int 
-mingw_getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen)
+mingw_getsockopt(int sockfd, int level, int optname,
+	void *optval, socklen_t *optlen)
 {
 	int res = getsockopt(sockfd, level, optname, optval, optlen);
 	errno = WSAGetLastError();
@@ -300,5 +320,7 @@ ssize_t mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 	errno = WSAGetLastError();
 	return res;
 }
-#endif
+
+#endif	/* MINGW32 */
+
 /* vi: set ts=4 sw=4 cindent: */

@@ -874,13 +874,7 @@ file_info_strip_trailer(fileinfo_t *fi, const char *pathname)
 	
 	fi_tigertree_free(fi);
 
-#ifdef MINGW32
-	int fd = open(pathname, O_RDWR);
-	if (-1 == ftruncate(fd, fi->size))
-#else
-	if (-1 == truncate(pathname, fi->size))
-#endif
-	{
+	if (-1 == truncate(pathname, fi->size)) {
 		if (ENOENT == errno) {
 			file_info_mark_stripped(fi);
 		}
@@ -889,9 +883,6 @@ file_info_strip_trailer(fileinfo_t *fi, const char *pathname)
 	} else {
 		file_info_mark_stripped(fi);
 	}
-#ifdef MINGW32
-	close(fd);
-#endif
 }
 
 /**

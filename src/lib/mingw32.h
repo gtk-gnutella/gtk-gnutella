@@ -130,6 +130,7 @@
 #define read mingw_read
 #define readv mingw_s_readv
 #define write mingw_write
+#define truncate mingw_truncate
 #define sendto mingw_sendto
 
 #define sockaddr_un sockaddr_in
@@ -180,6 +181,7 @@ iovec_set_len(iovec_t* iovec, size_t len) {
 const char* mingw_strerror(int errnum);
 int mingw_open(const char *pathname, int flags, ...);
 int mingw_rename(const char *oldpath, const char *newpath);
+int mingw_truncate(const char *path, off_t len);
 
 ssize_t mingw_read(int fd, void *buf, size_t count);
 ssize_t mingw_write(int fd, const void *buf, size_t count);
@@ -213,7 +215,7 @@ ssize_t mingw_sendto(socket_fd_t, const void *buf, size_t len, int flags,
 ssize_t s_write(socket_fd_t fd, const void *buf, size_t count);
 ssize_t s_read(socket_fd_t fd, void *buf, size_t count);
 size_t mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt);
-ssize_t recvmsg (socket_fd_t s, struct msghdr *hdr, int flags);
+ssize_t recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 
 int s_close(socket_fd_t fd);
 ssize_t mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt);
