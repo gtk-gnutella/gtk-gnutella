@@ -1249,7 +1249,11 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 				goto finish;
 			}
 		} else if (!S_ISLNK(sb.st_mode)) {
+#ifdef MINGW32	
+			if (stat(fullpath, &sb)) {
+#else
 			if (lstat(fullpath, &sb)) {
+#endif
 				g_warning("lstat() failed %s: %s", fullpath, g_strerror(errno));
 				goto finish;
 			}

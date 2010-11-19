@@ -572,6 +572,20 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 	add_pixmap_directory(PACKAGE_SOURCE_DIR G_DIR_SEPARATOR_S "pixmaps");
 #endif
 
+#ifdef MINGW32
+	char file_name[1024];
+	HANDLE current_proccess = GetCurrentProcess();	
+	DWORD length = GetModuleFileName(
+		NULL,
+		file_name,
+		sizeof(file_name)
+	);
+	
+	file_name[length - strlen("gtk-gnutella.exe")] = '\0';
+	g_strlcpy(&file_name[strlen(file_name)], "pixmaps", sizeof(file_name));
+	add_pixmap_directory(file_name);
+#endif
+
     gui_main_window_set(create_main_window());
 	gui_init_main_window();
 

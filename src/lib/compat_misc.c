@@ -43,11 +43,16 @@ RCSID("$Id$")
 #include "compat_misc.h"
 #include "override.h"			/* Must be the last header included */
 
+#ifdef MINGW32
+#include <winsock2.h>
+#include <mswsock.h>
+#endif
+
 guint
 compat_max_fd(void)
 {
 #ifdef MINGW32
-	/* FIXME WIN32 */
+	/* FIXME MINGW32 */
 	return 1024;
 #else
 	return getdtablesize();
@@ -58,7 +63,7 @@ int
 compat_mkdir(const char *path, mode_t mode)
 {
 #ifdef MINGW32
-	/* FIXME WIN32 */
+	/* FIXME MINGW32 */
 	return mkdir(path);
 #else
 	return mkdir(path, mode);
@@ -90,6 +95,9 @@ compat_is_superuser(void)
 int
 compat_daemonize(const char *directory)
 {
+#ifdef MINGW32	/* FIXME MINGW32 */
+	return 0;
+#else
 	pid_t pid;
 	int i;
 
@@ -156,6 +164,7 @@ compat_daemonize(const char *directory)
 	}
 
 	return 0;
+#endif
 }
 
 /**
@@ -251,5 +260,35 @@ compat_fadvise_dontneed(int fd, off_t offset, off_t size)
 	(void) size;
 #endif	/* HAS_POSIX_FADVISE */
 }
+
+
+#ifdef MINGW32
+gchar strerrbuf[1024];
+const gchar* mingw_strerror(gint errnum)
+{	
+	FormatMessage(
+        FORMAT_MESSAGE_FROM_SYSTEM,
+        NULL, errnum,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPTSTR) strerrbuf,
+        sizeof(strerrbuf), NULL );
+	
+	return strerrbuf;
+}
+
+int 
+mingw_rename(const char *oldpath, const char *newpath)
+{
+	return MoveFileEx(oldpath, newpath, MOVEFILE_REPLACE_EXISTING);
+}
+
+
+
+// void srandom(unsigned int seed)
+// {
+	// srand(seed);
+// }
+
+#endif
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -321,9 +321,9 @@ cleanup:
  * @return TRUE if OK.  On error, the stream is brought back to a clean state.
  */
 gboolean
-ggep_stream_writev(ggep_stream_t *gs, const struct iovec *iov, int iovcnt)
+ggep_stream_writev(ggep_stream_t *gs, const iovec_t *iov, int iovcnt)
 {
-	const struct iovec *xiov;
+	const iovec_t *xiov;
 	int i;
 
 	g_assert(ggep_stream_is_valid(gs));
@@ -338,7 +338,8 @@ ggep_stream_writev(ggep_stream_t *gs, const struct iovec *iov, int iovcnt)
 		g_assert(gs->zd != NULL);
 
 		for (i = iovcnt, xiov = iov; i--; xiov++) {
-			if (!zlib_deflate_data(gs->zd, xiov->iov_base, xiov->iov_len))
+			if (!zlib_deflate_data(gs->zd, 
+				iovec_base(xiov), iovec_len(xiov)))
 				goto cleanup;
 		}
 
@@ -351,7 +352,8 @@ ggep_stream_writev(ggep_stream_t *gs, const struct iovec *iov, int iovcnt)
 
 	if (gs->flags & GGEP_F_COBS) {
 		for (i = iovcnt, xiov = iov; i--; xiov++) {
-			if (!cobs_stream_write(&gs->cs, xiov->iov_base, xiov->iov_len))
+			if (!cobs_stream_write(&gs->cs, 
+				  iovec_base(xiov), iovec_len(xiov)))
 				goto cleanup;
 		}
 
@@ -363,7 +365,8 @@ ggep_stream_writev(ggep_stream_t *gs, const struct iovec *iov, int iovcnt)
 	 */
 
 	for (i = iovcnt, xiov = iov; i--; xiov++) {
-		if (!ggep_stream_append(gs, xiov->iov_base, xiov->iov_len))
+		if (!ggep_stream_append(gs, 
+			  iovec_base(xiov), iovec_len(xiov)))
 			goto cleanup;
 	}
 
@@ -382,12 +385,12 @@ cleanup:
 gboolean
 ggep_stream_write(ggep_stream_t *gs, gconstpointer data, size_t len)
 {
-	struct iovec iov;
-	const struct iovec *p_iov = &iov;
+	iovec_t iov;
+	const iovec_t *p_iov = &iov;
 
 	g_assert(len <= INT_MAX);
-	iov.iov_base = deconstify_gpointer(data);
-	iov.iov_len = len;
+	iovec_set_base(&iov, deconstify_gpointer(data));
+	iovec_set_len(&iov, len);
 
 	return ggep_stream_writev(gs, p_iov, 1);
 }
@@ -655,7 +658,7 @@ ggep_stream_close(ggep_stream_t *gs)
  */
 gboolean
 ggep_stream_packv(ggep_stream_t *gs,
-	const char *id, const struct iovec *iov, int iovcnt, guint32 wflags)
+	const char *id, const iovec_t *iov, int iovcnt, guint32 wflags)
 {
 	g_assert(iovcnt >= 0);
 
@@ -692,15 +695,15 @@ gboolean
 ggep_stream_pack(ggep_stream_t *gs,
 	const char *id, gconstpointer payload, size_t plen, guint32 wflags)
 {
-	struct iovec iov;
-	const struct iovec *p_iov = &iov;
+	iovec_t iov;
+	const iovec_t *p_iov = &iov;
 
 	g_assert(id);
 	g_assert(0 == plen || NULL != payload);
 	g_assert(plen <= INT_MAX);
 
-	iov.iov_base = deconstify_gpointer(payload);
-	iov.iov_len = plen;
+	iovec_set_base(&iov, deconstify_gpointer(payload));
+	iovec_set_len(&iov, plen);
 
 	return ggep_stream_packv(gs, id, p_iov, 1, wflags);
 }

@@ -39,6 +39,7 @@
 #ifndef _compat_misc_h_
 #define _compat_misc_h_
 
+
 int compat_mkdir(const char *path, mode_t mode);
 guint compat_max_fd(void);
 gboolean compat_is_superuser(void);

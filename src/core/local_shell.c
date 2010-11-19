@@ -497,6 +497,7 @@ local_shell(const char *socket_path)
 			goto failure;
 	}
 
+#ifndef MINGW32
 	{
 		static const struct sockaddr_un zero_un;
 
@@ -508,6 +509,7 @@ local_shell(const char *socket_path)
 		}
 		strncpy(addr.sun_path, socket_path, sizeof addr.sun_path);
 	}
+#endif
 
 	fd = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (fd < 0) {
@@ -588,7 +590,11 @@ get_socket_path(void)
 		if (!home_dir) {
 			home_dir = "/";
 		}
+#ifdef MINGW32
+		cfg_dir = path_compose(home_dir, "/gtk-gnutella");
+#else
 		cfg_dir = path_compose(home_dir, "/.gtk-gnutella");
+#endif
 	}
 	if (cfg_dir) {
 		return path_compose(cfg_dir, "/ipc/socket");

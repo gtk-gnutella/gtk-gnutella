@@ -112,7 +112,12 @@ gboolean
 is_absolute_path(const char *pathname)
 {
 	g_assert(pathname);
+#ifdef MINGW32
+	return '/' == pathname[0] || 
+		(':' == pathname[1] &&  G_DIR_SEPARATOR == pathname[2]);
+#else
 	return '/' == pathname[0] || G_DIR_SEPARATOR == pathname[0];
+#endif
 }
 
 /**

@@ -329,7 +329,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 					g_debug("file \"%s\" trying to send SIGZERO to PID %lu",
 						file, (unsigned long) pid);
 				}
-
+#ifndef MINGW32	/* FIXME MINGW32 */
 				if (0 == kill(pid, 0)) {
 					if (fd_ptr) {
 						g_warning("another gtk-gnutella process seems to "
@@ -337,6 +337,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 					}
 					goto failed;
 				}
+#endif
 			}
 		}
 	}
@@ -425,7 +426,11 @@ settings_early_init(void)
 			g_error("$GTK_GNUTELLA_DIR must point to an absolute path!");
 		}
 	} else { 
+#ifdef MINGW32
+		config_dir = make_pathname(home_dir, "gtk-gnutella");
+#else
 		config_dir = make_pathname(home_dir, ".gtk-gnutella");
+#endif
 	}
 }
 

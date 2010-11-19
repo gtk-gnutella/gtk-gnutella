@@ -54,14 +54,14 @@ RCSID("$Id$")
  * NB: the output is a linear buffer, not a vector.
  */
 char *
-cobs_encodev(struct iovec *iov, int iovcnt, size_t *retlen)
+cobs_encodev(iovec_t *iov, int iovcnt, size_t *retlen)
 {
 	size_t maxsize, len;
 	char *out;
 	char *o;						/* Iterates over output */
 	char *cp;						/* Where we'll write the code length */
 	guchar code, last_code = 0;
-	struct iovec *xiov;
+	iovec_t *xiov;
 	int i;
 
 	g_assert(iov);
@@ -93,8 +93,8 @@ cobs_encodev(struct iovec *iov, int iovcnt, size_t *retlen)
 } while (0)
 
 	for (i = iovcnt, xiov = iov; i--; xiov++) {
-		const char *p = xiov->iov_base;		/* Iterates over buffer */
-		const char *end = &p[xiov->iov_len];	/* First byte off buffer */
+		const char *p = iovec_base(xiov);		/* Iterates over buffer */
+		const char *end = &p[iovec_len(xiov)];	/* First byte off buffer */
 
 		while (p != end) {
 			const char c = *p++;
@@ -136,10 +136,10 @@ cobs_encodev(struct iovec *iov, int iovcnt, size_t *retlen)
 char *
 cobs_encode(char *buf, size_t len, size_t *retlen)
 {
-	struct iovec iov;
+	iovec_t iov;
 
-	iov.iov_base = buf;
-	iov.iov_len = len;
+	iovec_set_base(&iov, buf);
+	iovec_set_len(&iov, len);
 	*retlen = len;
 
 	return cobs_encodev(&iov, 1, retlen);

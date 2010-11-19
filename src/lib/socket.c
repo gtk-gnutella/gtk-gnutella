@@ -42,7 +42,7 @@ socket_set_nonblocking(int fd)
 	gulong nonblock = 1;
 
 	ioctlsocket(fd, FIONBIO, &nonblock);
-	ioctlsocket(fd, FIONBIO, &nonblock); /* Twice? */
+	errno = WSAGetLastError();
 }
 #else
 {

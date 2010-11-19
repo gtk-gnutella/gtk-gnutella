@@ -373,11 +373,11 @@ str_vec_count(char *strv[])
  * @param argv The original ``argv'' argument from main().
  * @param env_ptr The original ``env'' variable.
  */
-static struct iovec
+static iovec_t
 gm_setproctitle_init(int argc, char *argv[], char *env_ptr[])
 {
 	size_t env_count, n;
-	struct iovec *iov;
+	iovec_t *iov;
 
 	g_assert(argc > 0);
 	g_assert(argv);
@@ -428,15 +428,15 @@ gm_setproctitle(const char *title)
 }
 #else /* !HAS_SETPROCTITLE */
 {
-	static struct iovec *args;
+	static iovec_t *args;
 	static size_t n;
 
 	if (!args) {
-		struct iovec iov;
+		iovec_t iov;
 		
 		iov = gm_setproctitle_init(orig_argc, orig_argv, orig_env);
-		args = cast_to_gpointer(iov.iov_base); /* Solaris has caddr_t */
-		n = iov.iov_len;
+		args = cast_to_gpointer(iovec_base(&iov)); /* Solaris has caddr_t */
+		n = iovec_len(&iov);
 	}
 
 	/* Scatter the title over the argv[] and env[] elements */

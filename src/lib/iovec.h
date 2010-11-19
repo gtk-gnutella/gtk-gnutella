@@ -32,10 +32,10 @@
  * Allocates an array of "struct iov" elements.
  * @param n The desired array length in elements.
  */
-static inline struct iovec *
+static inline iovec_t *
 iov_alloc_n(size_t n)
 {
-	struct iovec *iov;
+	iovec_t *iov;
 
 	if (n > (size_t) -1 / sizeof *iov) {
 		g_assert_not_reached(); /* We don't want to handle failed allocations */
@@ -45,15 +45,15 @@ iov_alloc_n(size_t n)
 	return iov;
 }
 
-static inline struct iovec
+static inline iovec_t
 iov_get(gpointer base, size_t size)
 {
-	static const struct iovec zero_iov;
-	struct iovec iov;
+	static const iovec_t zero_iov;
+	iovec_t iov;
 
 	iov = zero_iov;
-	iov.iov_base = base;
-	iov.iov_len = size;
+	iovec_set_base(&iov, base);
+	iovec_set_len(&iov, size);
 	return iov;
 }
 
@@ -65,13 +65,13 @@ iov_get(gpointer base, size_t size)
  * @param n The array length in elements.
  */
 static inline void
-iov_reset_n(struct iovec *iov, size_t n)
+iov_reset_n(iovec_t *iov, size_t n)
 {
 	size_t i;
 
 	g_assert(iov);
 	for (i = 0; i < n; i++) {
-		static const struct iovec zero_iov;
+		static const iovec_t zero_iov;
 		iov[i] = zero_iov;
 	}
 }
@@ -87,7 +87,7 @@ iov_reset_n(struct iovec *iov, size_t n)
  * @return The amount of elements initialized. Thus, MIN(iov_cnt, argc).
  */
 static inline size_t 
-iov_init_from_string_vector(struct iovec *iov, size_t iov_cnt,
+iov_init_from_string_vector(iovec_t *iov, size_t iov_cnt,
 	char *argv[], size_t argc)
 {
 	size_t i, n;
@@ -98,8 +98,8 @@ iov_init_from_string_vector(struct iovec *iov, size_t iov_cnt,
 
 	n = MIN(iov_cnt, argc);
 	for (i = 0; i < n; i++) {
-		iov[i].iov_base = argv[i];
-		iov[i].iov_len = argv[i] ? (1 + strlen(argv[i])) : 0;
+		iovec_set_base(&iov[i], argv[i]);
+		iovec_set_len(&iov[i], argv[i] ? (1 + strlen(argv[i])) : 0);
 	}
 	return n;
 }
@@ -110,12 +110,12 @@ iov_init_from_string_vector(struct iovec *iov, size_t iov_cnt,
  * @return TRUE if b->iov_base directly follows after &a->iov_base[a->iov_len].
  */
 static inline gboolean
-iov_is_contiguous(const struct iovec * const a, const struct iovec * const b)
+iov_is_contiguous(const iovec_t * const a, const iovec_t * const b)
 {
 	g_assert(a);
 	g_assert(b);
 
-	return (size_t) a->iov_base + a->iov_len == (size_t) b->iov_base;
+	return (size_t) iovec_base(a) + iovec_len(a) == (size_t) iovec_base(b);
 }
 
 /**
@@ -126,9 +126,9 @@ iov_is_contiguous(const struct iovec * const a, const struct iovec * const b)
  * @return The amount contiguous bytes.
  */
 static inline size_t 
-iov_contiguous_size(const struct iovec *iov, size_t iov_cnt)
+iov_contiguous_size(const iovec_t *iov, size_t iov_cnt)
 {
-	struct iovec iov0;
+	iovec_t iov0;
 	size_t i;
 
 	g_assert(iov);
@@ -136,16 +136,16 @@ iov_contiguous_size(const struct iovec *iov, size_t iov_cnt)
 	iov0 = iov[0];
 
 	for (i = 1; i < iov_cnt && iov_is_contiguous(&iov0, &iov[i]); i++) {
-		size_t n = iov[i].iov_len;
+		size_t n = iovec_len(&iov[i]);
 
-		if (n >= (size_t) -1 - iov0.iov_len) {
+		if (n >= (size_t) -1 - iovec_len(&iov0)) {
 			/* Abort if size would overflow */
-			iov0.iov_len = (size_t) -1;
+			iovec_set_len(&iov0, (size_t) -1);
 			break;
 		}
-		iov0.iov_len += n;
+		iovec_set_len(&iov0, iovec_len(&iov0) + n);
 	}
-	return iov0.iov_len;
+	return iovec_len(&iov0);
 }
 
 /**
@@ -156,13 +156,13 @@ iov_contiguous_size(const struct iovec *iov, size_t iov_cnt)
  * @param byte_offset The offset relative to iov->iov_base.
  */
 static inline void
-iov_clear(struct iovec *iov, size_t byte_offset)
+iov_clear(iovec_t *iov, size_t byte_offset)
 {
 	g_assert(iov);
 	
-	if (byte_offset < iov->iov_len) {
-		char *p = iov->iov_base;
-		memset(&p[byte_offset], 0, iov->iov_len - byte_offset);
+	if (byte_offset < iovec_len(iov)) {
+		char *p = iovec_base(iov);
+		memset(&p[byte_offset], 0, iovec_len(iov) - byte_offset);
 	}
 }
 
@@ -175,7 +175,7 @@ iov_clear(struct iovec *iov, size_t byte_offset)
  * @return The sum of all buffer sizes.
  */
 static inline size_t
-iov_calculate_size(struct iovec *iov, size_t iov_cnt)
+iov_calculate_size(iovec_t *iov, size_t iov_cnt)
 {
 	size_t size = 0;
 	size_t i;
@@ -183,7 +183,7 @@ iov_calculate_size(struct iovec *iov, size_t iov_cnt)
 	g_assert(iov);
 
 	for (i = 0; i < iov_cnt; i++) {
-		size_t n = iov[i].iov_len;
+		size_t n = iovec_len(&iov[i]);
 
 		if (n >= (size_t) -1 - size) {
 			/* Abort if size would overflow */
@@ -206,7 +206,7 @@ iov_calculate_size(struct iovec *iov, size_t iov_cnt)
  * @return The amount of bytes copied excluding the terminating NUL.
  */
 static inline size_t
-iov_scatter_string(struct iovec *iov, size_t iov_cnt, const char *s)
+iov_scatter_string(iovec_t *iov, size_t iov_cnt, const char *s)
 {
 	size_t i, len, avail, size;
 
@@ -224,8 +224,8 @@ iov_scatter_string(struct iovec *iov, size_t iov_cnt, const char *s)
 	for (i = 0; i < iov_cnt; i++) {
 		size_t n;
 
-		n = MIN(iov[i].iov_len, avail);
-		memmove(iov[i].iov_base, s, n);
+		n = MIN(iovec_len(&iov[i]), avail);
+		memmove(iovec_base(&iov[i]), s, n);
 		avail -= n;
 		s += n;
 		if (0 == avail) {

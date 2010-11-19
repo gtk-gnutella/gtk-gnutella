@@ -67,6 +67,10 @@ RCSID("$Id$")
 #include "stacktrace.h"
 #endif
 
+#ifdef MINGW32
+#include <windows.h>
+#endif
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
@@ -245,7 +249,15 @@ page_start(const void *p)
 
 static long
 compat_pagesize_intern(void)
-#if defined (_SC_PAGESIZE) || defined(_SC_PAGE_SIZE)
+#ifdef MINGW32
+{
+	SYSTEM_INFO system_info;
+	
+	GetSystemInfo(&system_info);
+	
+	return system_info.dwPageSize;
+}
+#elif defined (_SC_PAGESIZE) || defined(_SC_PAGE_SIZE)
 {
 	long ret;
 
@@ -355,7 +367,7 @@ vmm_dump_pmap(void)
 	}
 }
 
-#ifdef HAS_MMAP
+#if defined(HAS_MMAP) || defined(MINGW32)
 /**
  * Find a hole in the virtual memory map where we could allocate "size" bytes.
  */
@@ -492,7 +504,7 @@ pmap_insert_foreign(struct pmap *pm, const void *start, size_t size)
  */
 static void *
 vmm_mmap_anonymous(size_t size, const void *hole)
-#if defined(HAS_MMAP)
+#if defined(HAS_MMAP) || defined(MINGW32)
 {
 	static int flags, failed, fd = -1;
 	void *hint, *p;
@@ -517,7 +529,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 	flags = MAP_PRIVATE | MAP_ANON;
 #elif defined (MAP_ANONYMOUS)
 	flags = MAP_PRIVATE | MAP_ANONYMOUS;
-#else
+#elif !defined(MINGW32)
 	flags = MAP_PRIVATE;
 	if (-1 == fd) {
 		fd = get_non_stdio_fd(open("/dev/zero", O_RDWR, 0));
@@ -526,7 +538,31 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 	}
 #endif	/* MAP_ANON */
 
+#ifdef MINGW32
+	(void) flags;
+	p = (void *) VirtualAlloc(
+		/* __in_opt  LPVOID lpAddress */ hint,
+		/* __in      SIZE_T dwSize */ size,
+		/* __in      DWORD flAllocationType */  MEM_COMMIT | MEM_RESERVE,
+		/* __in      DWORD flProtect */ PAGE_READWRITE
+	);
+	if (p == NULL)
+	{
+		p = (void *) VirtualAlloc(
+			/* __in_opt  LPVOID lpAddress */ 0,
+			/* __in      SIZE_T dwSize */ size,
+			/* __in      DWORD flAllocationType */ MEM_COMMIT | MEM_RESERVE,
+			/* __in      DWORD flProtect */ PAGE_READWRITE
+		);
+	}
+	if (p == NULL)
+	{
+		p = MAP_FAILED;
+		errno = GetLastError();
+	}
+#else
 	p = mmap(hint, size, PROT_READ | PROT_WRITE, flags, fd, 0);
+#endif
 	if (MAP_FAILED == p) {
 		if (ENOMEM != errno) {
 			failed = 1;
@@ -599,9 +635,31 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 				 * exactly two pages, then we know the next page is foreign.
 				 */
 
+#ifdef MINGW32
+				g_assert(fd == -1);
+				try = (void *) VirtualAlloc(
+					/* __in_opt  LPVOID lpAddress */ hint,
+					/* __in      SIZE_T dwSize */ kernel_pagesize,
+					/* __in      DWORD flAllocationType */ MEM_COMMIT | MEM_RESERVE,
+					/* __in      DWORD flProtect */ PAGE_READWRITE
+				);
+				if (try == NULL) {
+					try = (void *) VirtualAlloc(
+						/* __in_opt  LPVOID lpAddress */ NULL,
+						/* __in      SIZE_T dwSize */ kernel_pagesize,
+						/* __in      DWORD flAllocationType */ MEM_COMMIT | MEM_RESERVE,
+						/* __in      DWORD flProtect */ PAGE_READWRITE
+					);
+				}
+				
+				if (try == NULL) {
+					try = MAP_FAILED;
+					errno = GetLastError();
+				}
+#else
 				try = mmap(hint, kernel_pagesize,
 						PROT_READ | PROT_WRITE, flags, fd, 0);
-
+#endif
 				if (try != MAP_FAILED) {
 					if (try != hint) {
 						pmap_insert_foreign(&local_pmap, hint, kernel_pagesize);
@@ -633,10 +691,16 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 								(unsigned long) hint);
 						}
 					}
+#if MINGW32
+					if (0 == VirtualFree(try, 0, MEM_RELEASE)) {
+						errno = GetLastError();
+#else
 					if (0 != munmap(try, kernel_pagesize)) {
+#endif
 						g_warning("VMM cannot free single page at 0x%lx: %s",
 							(unsigned long) try, g_strerror(errno));
 					}
+
 				} else {
 					if (vmm_debugging(0)) {
 						g_warning("VMM cannot allocate one page at 0x%lx: %s",
@@ -751,7 +815,50 @@ free_pages_intern(void *p, size_t size, gboolean update_pmap)
 	if (G_UNLIKELY(stop_freeing))
 		goto pmap_update;
 
-#if defined(HAS_MMAP)
+#if defined(MINGW32)
+	{
+		int ret;
+		MEMORY_BASIC_INFORMATION inf;
+		void *pRemaining;
+		size_t sizeRemaining = size;
+		pRemaining = p;
+		
+		/* 
+		 * FIXME: This is more a workaround to avoid leaking to much memory!
+		 * There needs to be a better way!
+		 * Perhaps we can create a CreateFileMapping with an InvalidFileHandle,
+		 * this will create a anonymous file handle and as a size argument
+		 * use the largest size allowed. 
+		 * Next create a MapViewOfFile like mmap with an ANONYMOUS PAGE. 
+		 * However it won't be possible to Protect a section of the page in this
+		 * case.
+		 *		-- JA 19/11/2010
+		 */
+		while(sizeRemaining > 0)
+		{
+			VirtualQuery(pRemaining, &inf, sizeof(inf));
+
+			if (pRemaining != inf.AllocationBase || inf.RegionSize != sizeRemaining)
+				g_debug("src: 0x%x, BaseAddress: 0x%x, AllocBase: 0x%x, Size 0x%x(0x%x)", 
+					pRemaining, inf.BaseAddress, inf.AllocationBase, inf.RegionSize, size);
+
+			if (inf.RegionSize == size) {
+				ret = VirtualFree(pRemaining, 0, MEM_RELEASE);
+				sizeRemaining = 0;
+			} else if (inf.RegionSize < size) {
+				ret = VirtualFree(pRemaining, 0, MEM_RELEASE);
+				sizeRemaining -= inf.RegionSize;
+				pRemaining += inf.RegionSize;
+			} else {
+				ret = VirtualFree(pRemaining, sizeRemaining, MEM_DECOMMIT);
+				g_warning("RegionSize is smaller then requested decommit size");
+			}
+		}
+		
+		errno = GetLastError();
+		return_unless(0 != ret);
+	}
+#elif defined(HAS_MMAP)
 	{
 		int ret;
 
@@ -2961,7 +3068,22 @@ prot_strdup(const char *s)
 	p = alloc_pages(size, FALSE, NULL);
 	if (p) {
 		memcpy(p, s, n);
+#ifdef MINGW32
+	DWORD oldProtect = 0;
+	BOOL res = VirtualProtect(
+		/* __in   LPVOID lpAddress */ (LPVOID) p,
+		/* __in   SIZE_T dwSize */ size,
+		/* __in   DWORD flNewProtect */ PAGE_READONLY,
+		/* __out  PDWORD lpflOldProtect */ &oldProtect
+	);
+	if (res == 0)
+	{
+		errno = GetLastError();
+		g_debug("VMM Protect failed %d", errno);
+	}
+#else
 		mprotect(p, size, PROT_READ);
+#endif
 		pmap_insert_foreign(vmm_pmap(), p, size);
 	}
 	return p;
@@ -2985,7 +3107,22 @@ vmm_trap_page(void)
 	if (NULL == trap_page) {
 		void *p = alloc_pages(kernel_pagesize, FALSE, NULL);
 		RUNTIME_ASSERT(p);
+#ifdef MINGW32		
+		DWORD oldProtect = 0;
+		BOOL res = VirtualProtect(
+			/* __in   LPVOID lpAddress */ (LPVOID) p,
+			/* __in   SIZE_T dwSize */ kernel_pagesize,
+			/* __in   DWORD flNewProtect */ PAGE_NOACCESS,
+			/* __out  PDWORD lpflOldProtect */ &oldProtect
+		);
+		if (res == 0)
+		{
+			errno = GetLastError();
+			g_error("VMM vmm_trap_page failed %s", g_strerror(errno));
+		}
+#else
 		mprotect(p, kernel_pagesize, PROT_NONE);
+#endif
 		trap_page = p;
 	}
 	return trap_page;
@@ -3284,7 +3421,9 @@ vmm_init(const void *sp)
 
 	RUNTIME_ASSERT(sp != &i);
 
+#ifndef MINGW32
 	initial_brk = sbrk(0);
+#endif
 	initial_sp = sp;
 	sp_increasing = ptr_cmp(&i, sp) > 0;
 
@@ -3444,7 +3583,7 @@ vmm_close(void)
 void *
 vmm_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 {
-#ifdef HAS_MMAP
+#if defined(HAS_MMAP)
 	void *p = mmap(addr, length, prot, flags, fd, offset);
 
 	if (p != MAP_FAILED) {
@@ -3482,7 +3621,7 @@ vmm_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 int
 vmm_munmap(void *addr, size_t length)
 {
-#ifdef HAS_MMAP
+#if defined(HAS_MMAP)
 	int ret;
 
 	assert_vmm_is_allocated(addr, length);

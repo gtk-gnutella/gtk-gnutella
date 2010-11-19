@@ -37,11 +37,11 @@ struct file_object *file_object_open(const char *pathname, int accmode);
 ssize_t file_object_pwrite(const struct file_object *fo,
 					const void *data, size_t buf, filesize_t offset);
 ssize_t file_object_pwritev(const struct file_object *fo,
-					const struct iovec *iov, int iov_cnt, filesize_t offset);
+					const iovec_t *iov, int iov_cnt, filesize_t offset);
 ssize_t file_object_pread(const struct file_object *fo,
 					void *data, size_t size, filesize_t pos);
 ssize_t file_object_preadv(const struct file_object *fo,
-					struct iovec *iov, int iov_cnt, filesize_t offset);
+					iovec_t *iov, int iov_cnt, filesize_t offset);
 
 int file_object_get_fd(const struct file_object *fo);
 const char *file_object_get_pathname(const struct file_object *fo);

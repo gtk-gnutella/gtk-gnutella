@@ -358,7 +358,7 @@ tx_chunk_write(txdrv_t *tx, gconstpointer data, size_t len)
  * @return amount of bytes written, or -1 on error.
  */
 static ssize_t
-tx_chunk_writev(txdrv_t *tx, struct iovec *iov, int iovcnt)
+tx_chunk_writev(txdrv_t *tx, iovec_t *iov, int iovcnt)
 {
 	ssize_t written = 0;
 
@@ -368,12 +368,13 @@ tx_chunk_writev(txdrv_t *tx, struct iovec *iov, int iovcnt)
 	 */
 
 	while (iovcnt--) {
-		ssize_t r = tx_chunk_write(tx, iov->iov_base, iov->iov_len);
+		ssize_t r = tx_chunk_write(tx, 
+			  iovec_base(iov), iovec_len(iov));
 		if (-1 == r)
 			return -1;
 		if (r > 0)
 			written += r;
-		if ((size_t) r != iov->iov_len)		/* Not able to write everything */
+		if ((size_t) r != iovec_len(iov))	/* Not able to write everything */
 			break;							/* Lower-level flow-controls us */
 		iov++;
 	}

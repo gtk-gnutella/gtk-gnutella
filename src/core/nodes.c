@@ -7341,8 +7341,9 @@ node_drain_hello(gpointer data, int source, inputevt_cond_t cond)
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		int error;
 		socklen_t error_len = sizeof error;
-
+#ifndef MINGW32	/* FIXME MINGW32 */
 		getsockopt(source, SOL_SOCKET, SO_ERROR, &error, &error_len);
+#endif
 		node_remove(n, _("Write error during HELLO: %s"), g_strerror(error));
 		return;
 	}

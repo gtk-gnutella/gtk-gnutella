@@ -188,10 +188,13 @@ entropy_collect(struct sha1 *digest)
 	SHA1Input(&ctx, env, sizeof env);	/* "env" is an array */
 
 	/* Add some host/user dependent noise */
+#ifndef MINGW32
+	/* FIXME MINGW, Add PERFORMANCE_INFORMATION  here? */
 	sha1_feed_ulong(&ctx, getuid());
 	sha1_feed_ulong(&ctx, getgid());
 	sha1_feed_ulong(&ctx, getpid());
 	sha1_feed_ulong(&ctx, getppid());
+#endif
 	sha1_feed_ulong(&ctx, compat_max_fd());
 
 	sha1_feed_string(&ctx, __DATE__);
@@ -216,6 +219,7 @@ entropy_collect(struct sha1 *digest)
 	}
 #endif	/* HAS_GETLOGIN */
 
+#ifndef MINGW32
 	{
 		const struct passwd *pp = getpwuid(getuid());
 
@@ -226,6 +230,7 @@ entropy_collect(struct sha1 *digest)
 			sha1_feed_ulong(&ctx, errno);
 		}
 	}
+#endif
 
 	sha1_feed_string(&ctx, eval_subst("~"));
 	sha1_feed_stat(&ctx, eval_subst("~"));
@@ -270,8 +275,9 @@ entropy_collect(struct sha1 *digest)
 	sha1_feed_pointer(&ctx, cast_func_to_pointer(&entropy_collect));
 	sha1_feed_pointer(&ctx, cast_func_to_pointer(&exit));	/* libc */
 	sha1_feed_pointer(&ctx, &errno);
+#ifndef MINGW32
 	sha1_feed_pointer(&ctx, sbrk(0));
-
+#endif
 	{
 		extern char **environ;
 		size_t i;
@@ -282,7 +288,9 @@ entropy_collect(struct sha1 *digest)
 		sha1_feed_ulong(&ctx, i);
 	}
 
+#ifndef MINGW32
 	sha1_feed_string(&ctx, ttyname(STDIN_FILENO));
+#endif
 
 #ifdef HAS_GETRUSAGE
 	{

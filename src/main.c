@@ -202,6 +202,7 @@ sig_hup(int n)
 	sig_hup_received = 1;
 }
 
+#ifdef SIGCHLD
 static void
 sig_chld(int n)
 {
@@ -211,6 +212,7 @@ sig_chld(int n)
 		continue;
 	errno = saved_errno;
 }
+#endif
 
 #if defined(FRAGCHECK) || defined(MALLOC_STATS)
 static volatile sig_atomic_t signal_malloc = 0;
@@ -332,9 +334,13 @@ gtk_gnutella_atexit(void)
 			g_warning("cleanup aborted while in %s().", exit_step);
 			return;
 		}
+#ifndef MINGW32	/* FIXME MINGW32 */
 		alarm(ATEXIT_TIMEOUT);
+#endif
 		gtk_gnutella_exit(1);	/* Won't exit() since from_atexit is set */
+#ifndef MINGW32	
 		alarm(0);
+#endif
 		g_warning("cleanup all done.");
 	}
 }
@@ -708,6 +714,7 @@ slow_main_timer(time_t now)
 static time_t
 check_cpu_usage(void)
 {
+#ifndef MINGW32	/* FIXME MINGW32 */
 	static tm_t last_tm;
 	static double last_cpu = 0.0;
 	static int ticks = 0;
@@ -818,7 +825,7 @@ check_cpu_usage(void)
 				avg);
 		gnet_prop_set_boolean_val(PROP_OVERLOADED_CPU, FALSE);
 	}
-
+#endif
 	return tm_time();		/* Exact, since tm_now_exact() called on entry */
 }
 
@@ -953,15 +960,12 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 	ct = localtime(&now);
 
 	switch (level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL)) {
-#define CASE(x) case CAT2(G_LOG_LEVEL_,x): prefix = #x; break;
-
-	CASE(CRITICAL)
-	CASE(ERROR)
-	CASE(WARNING)
-	CASE(MESSAGE)
-	CASE(INFO)
-	CASE(DEBUG)
-#undef CASE
+	case G_LOG_LEVEL_CRITICAL: prefix = "critical"; break;
+	case G_LOG_LEVEL_ERROR:    prefix = "error";    break;
+	case G_LOG_LEVEL_WARNING:  prefix = "warning";  break;
+	case G_LOG_LEVEL_MESSAGE:  prefix = "message";  break;
+	case G_LOG_LEVEL_INFO:     prefix = "info";     break;
+	case G_LOG_LEVEL_DEBUG:    prefix = "debug";    break;
 	default:
 		prefix = "UNKNOWN";
 	}
@@ -1524,10 +1528,12 @@ main(int argc, char **argv)
 	 * use mmap() with /dev/zero and then accidently close this
 	 * file descriptor.
 	 */
+#ifndef MINGW32
 	close_file_descriptors(3); /* Just in case */
 	if (reserve_standard_file_descriptors()) {
 		exit(EXIT_FAILURE);
 	}
+#endif
 
 	/* First inits -- initialize custom memory allocator, if needed */
 
@@ -1539,7 +1545,9 @@ main(int argc, char **argv)
 	malloc_init_vtable();
 
 	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
+#ifdef SIGHUP	/* FIXME MINGW32 */
 	set_signal(SIGHUP, sig_hup);
+#endif
 #ifdef SIGCHLD
 	set_signal(SIGCHLD, sig_chld);
 #endif
@@ -1555,8 +1563,10 @@ main(int argc, char **argv)
 	/* Early inits */
 
 	parse_arguments(argc, argv);
+#ifndef MINGW32
 	crash_init(options[main_arg_exec_on_crash].arg, argv[0],
 		options[main_arg_pause_on_crash].used);
+#endif
 	handle_arguments_asap();
 
 	log_init();
@@ -1571,6 +1581,12 @@ main(int argc, char **argv)
 	handle_arguments();
 
 	/* Our regular inits */
+	
+#ifdef MINGW32
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
+		g_error("Error at WSAStartup()\n");
+#endif
 
 #ifndef OFFICIAL_BUILD
 	g_warning("%s \"%s\"",

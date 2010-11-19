@@ -99,9 +99,10 @@ typedef enum {
 	SOCKET_MAGIC = 0x1fb7ddeb
 } socket_magic_t;
 
+
 struct gnutella_socket {
 	socket_magic_t magic;	/**< magic for consistency checks */
-	int file_desc;			/**< file descriptor */
+	socket_fd_t file_desc;			/**< file descriptor */
 	guint32 flags;			/**< operating flags */
 	guint gdk_tag;			/**< gdk tag */
 
@@ -239,10 +240,10 @@ gboolean socket_is_local(const struct gnutella_socket *s);
 void socket_timer(time_t now);
 void socket_shutdown(void);
 
-ssize_t safe_readv(wrap_io_t *wio, struct iovec *iov, int iovcnt);
-ssize_t safe_readv_fd(int fd, struct iovec *iov, int iovcnt);
-ssize_t safe_writev(wrap_io_t *wio, const struct iovec *iov, int iovcnt);
-ssize_t safe_writev_fd(int fd, const struct iovec *iov, int iovcnt);
+ssize_t safe_readv(wrap_io_t *wio, iovec_t *iov, int iovcnt);
+ssize_t safe_readv_fd(int fd, iovec_t *iov, int iovcnt);
+ssize_t safe_writev(wrap_io_t *wio, const iovec_t *iov, int iovcnt);
+ssize_t safe_writev_fd(int fd, const iovec_t *iov, int iovcnt);
 
 #endif /* _core_sockets_h_ */
 

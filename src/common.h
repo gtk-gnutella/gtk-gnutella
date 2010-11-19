@@ -74,34 +74,16 @@
 #endif
 
 #ifdef MINGW32
-#include <ws2tcpip.h>
-#include <winsock.h>
-#define ECONNRESET WSAECONNRESET
-#define ECONNREFUSED WSAECONNREFUSED
-#define ECONNABORTED WSAECONNABORTED
-#define ENETUNREACH WSAENETUNREACH
-#define EHOSTUNREACH WSAEHOSTUNREACH
-#define ETIMEDOUT WSAETIMEDOUT
-#define EINPROGRESS WSAEINPROGRESS
-#define ENOTCONN WSAENOTCONN
-#define ENOBUFS WSAENOBUFS
-#define EADDRNOTAVAIL WSAEADDRNOTAVAIL
-#define ENETRESET WSAENETRESET
-#define ENETDOWN WSAENETDOWN
-#define EHOSTDOWN WSAEHOSTDOWN
-#define ENOPROTOOPT WSAENOPROTOOPT
-#define EPROTONOSUPPORT WSAEPROTONOSUPPORT
+#include "lib/mingw32.h"
+#else
 
-#define SHUT_RD   SD_RECEIVE
-#define SHUT_WR   SD_SEND
-#define SHUT_RDWR SD_BOTH
+typedef struct iovec iovec_t;
+typedef int socket_fd_t;
+#define INVALID_SOCKET -1
 
-#define S_IXGRP  _S_IEXEC
-#define S_IWGRP  _S_IWRITE
-#define S_IRGRP  _S_IREAD
-
-#define S_IRWXG _S_IREAD
-#define S_IRWXO _S_IREAD
+#define s_write write
+#define s_read read
+#define s_close close
 
 #endif /* !MINGW32 */
 
@@ -121,12 +103,14 @@
 #include <sys/stat.h>
 #endif
 
+#ifndef MINGW32
+#define iovec_base(iov) ((iov)->iov_base)
+#define iovec_set_base(iov, base) ((iov)->iov_base = base)
+#define iovec_len(iov) ((iov)->iov_len)
+#define iovec_set_len(iov, len) ((iov)->iov_len = len)
+#endif
+
 #ifdef MINGW32
-struct iovec 
-{
-	char  *iov_base;
-	int  iov_len; 
-};
 
 struct passwd
 {
@@ -140,6 +124,16 @@ struct passwd
 	char *pw_shell;               /* Shell program.  */
 #endif /* 0 */
 };
+
+struct flock
+  {
+    short int l_type;   /* Type of lock: F_RDLCK, F_WRLCK, or F_UNLCK.  */
+    short int l_whence; /* Where `l_start' is relative to (like `lseek').  */
+    off_t l_start;    /* Offset where the lock begins.  */
+    off_t l_len;      /* Size of the locked area; zero means until EOF.  */
+    pid_t l_pid;      /* Process holding the lock.  */
+  };
+  
 
 #else /* !MINGW32 */
 
@@ -653,6 +647,7 @@ get_rcsid_string(void)	\
 	((guint32) (unsigned char) ((d) & 0xffU)))
 
 #include "casts.h"
+
 
 #endif /* _common_h_ */
 

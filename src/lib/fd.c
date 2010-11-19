@@ -47,6 +47,7 @@ RCSID("$Id$")
 void
 set_close_on_exec(int fd)
 {
+#ifndef MINGW32	/* MINGW32 FIXME */
 	int flags;
 
 	flags = fcntl(fd, F_GETFD);
@@ -54,6 +55,7 @@ set_close_on_exec(int fd)
 		flags |= FD_CLOEXEC;
 		fcntl(fd, F_SETFD, flags);
 	}
+#endif
 }
 
 static inline gboolean
@@ -106,6 +108,7 @@ close_file_descriptors(const int first_fd)
 int
 reserve_standard_file_descriptors(void)
 {
+#ifndef MINGW32	/* MINGW32 FIXME */
 	int fd;
 
 	/*
@@ -119,11 +122,15 @@ reserve_standard_file_descriptors(void)
 			return -1;
 	}
 	return 0; 
+#else
+	return 0;
+#endif
 }
 
 static gboolean
 need_get_non_stdio_fd(void)
 {
+#ifndef MINGW32	/* MINGW32 FIXME */
 	int fd;
 
 	/* Assume that STDIN_FILENO is open. */
@@ -139,6 +146,7 @@ need_get_non_stdio_fd(void)
 			return TRUE;
 		}
 	}
+#endif
 	return FALSE;
 }
 
@@ -170,8 +178,12 @@ get_non_stdio_fd(int fd)
 		int nfd, saved_errno;
 
 		saved_errno = errno;
+#ifndef MINGW32	/* MINGW32 FIXME */
 		nfd = fcntl(fd, F_DUPFD, 256);
 		if (nfd > 0) {
+#else
+		if ( TRUE ) {
+#endif
 			close(fd);
 			fd = nfd;
 		}
@@ -183,12 +195,14 @@ get_non_stdio_fd(int fd)
 void
 fd_set_nonblocking(int fd)
 {
+#ifndef MINGW32	/* MINGW32 FIXME */
 	int ret, flags;
 
 	ret = fcntl(fd, F_GETFL, 0);
 	flags = ret | VAL_O_NONBLOCK;
 	if (flags != ret)
 		fcntl(fd, F_SETFL, flags);
+#endif
 }
 
 /**

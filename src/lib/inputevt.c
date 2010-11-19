@@ -396,7 +396,7 @@ update_poll_event(struct poll_ctx *poll_ctx, int fd,
 			ssize_t ret;
 			size_t size;
 			size = i * sizeof pfd[0];
-			ret = write(poll_ctx->fd, &pfd, size);
+			ret = s_write(poll_ctx->fd, &pfd, size);
 			if ((ssize_t) -1 == ret) {
 				g_error("update_poll_event(): write() failed: %s",
 						g_strerror(errno));

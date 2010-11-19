@@ -111,7 +111,7 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 	g_assert(s);
 	g_assert(s->file_desc >= 0);
 
-	ret = write(s->file_desc, buf, size);
+	ret = s_write(s->file_desc, buf, size);
 	tls_transport_debug("tls_push", s->file_desc, size, ret);
 	return ret;
 }
@@ -125,7 +125,7 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	g_assert(s);
 	g_assert(s->file_desc >= 0);
 
-	ret = read(s->file_desc, buf, size);
+	ret = s_read(s->file_desc, buf, size);
 	tls_transport_debug("tls_pull", s->file_desc, size, ret);
 	return ret;
 }
@@ -681,7 +681,7 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 }
 
 static ssize_t
-tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
+tls_writev(struct wrap_io *wio, const iovec_t *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
 	ssize_t ret, done;
@@ -706,7 +706,7 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 }
 
 static ssize_t
-tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
+tls_readv(struct wrap_io *wio, iovec_t *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
 	ssize_t ret, done;

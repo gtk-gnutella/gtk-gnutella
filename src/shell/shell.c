@@ -536,7 +536,7 @@ shell_write_data(struct gnutella_shell *sh)
 {
 	struct gnutella_socket *s;
 	ssize_t written;
-	struct iovec *iov;
+	iovec_t *iov;
 	int iov_cnt;
 
 	shell_check(sh);

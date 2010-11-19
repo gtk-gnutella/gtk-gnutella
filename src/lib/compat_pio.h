@@ -40,10 +40,9 @@
  * problem.
  */
 
-struct iovec;
 ssize_t compat_pwrite(int, const void *, size_t, filesize_t);
 ssize_t compat_pread(int, void *, size_t, const filesize_t);
-ssize_t compat_pwritev(int, const struct iovec *, int, filesize_t);
-ssize_t compat_preadv(int, struct iovec *, int, filesize_t);
+ssize_t compat_pwritev(int, const iovec_t *, int, filesize_t);
+ssize_t compat_preadv(int, iovec_t *, int, filesize_t);
 
 /* vi: set ts=4 sw=4 cindent: */

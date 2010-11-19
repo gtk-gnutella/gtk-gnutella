@@ -164,7 +164,7 @@ crash_time(char *buf, size_t buflen)
 static void
 crash_message(const char *reason)
 {
-	struct iovec iov[8];
+	iovec_t iov[8];
 	unsigned iov_cnt = 0;
 	char pid_buf[22];
 	char time_buf[18];
@@ -189,6 +189,7 @@ crash_message(const char *reason)
 static void
 crash_exec(const char *pathname, const char *argv0)
 {
+#ifndef MINGW32	/* FIXME MINGW32 */
    	const char *pid_str;
 	char pid_buf[22];
 	pid_t pid;
@@ -232,6 +233,7 @@ crash_exec(const char *pathname, const char *argv0)
 			waitpid(pid, &status, 0);
 		}
 	}
+#endif
 }
 
 static void
@@ -255,9 +257,11 @@ crash_handler(int signo)
 	if (vars.pause_process) {
 		sigset_t oset;
 
+		#ifndef MINGW32
 		if (sigprocmask(SIG_BLOCK, NULL, &oset) != -1) {
 			sigsuspend(&oset);
 		}
+#endif
 	}
 	raise(SIGABRT);
 }

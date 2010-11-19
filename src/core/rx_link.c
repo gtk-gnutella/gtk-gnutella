@@ -69,7 +69,7 @@ is_readable(gpointer data, int unused_source, inputevt_cond_t cond)
 	rxdrv_t *rx = data;
 	struct attr *attr = rx->opaque;
 	pdata_t *db[32];
-	struct iovec iov[G_N_ELEMENTS(db)];
+	iovec_t iov[G_N_ELEMENTS(db)];
 	pmsg_t *mb;
 	ssize_t r;
 	guint i, iov_cnt;
@@ -102,8 +102,8 @@ is_readable(gpointer data, int unused_source, inputevt_cond_t cond)
 		
 		db[i] = rxbuf_new();
 		len = pdata_len(db[i]);
-		iov[i].iov_base = pdata_start(db[i]);
-		iov[i].iov_len = len;
+		iovec_set_base(&iov[i], pdata_start(db[i]));
+		iovec_set_len(&iov[i], len);
 		i++;
 
 		if (len >= avail)

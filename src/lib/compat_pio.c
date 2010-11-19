@@ -96,7 +96,7 @@ compat_pwrite(const int fd,
  */
 ssize_t
 compat_pwritev(const int fd,
-	const struct iovec * const iov, const int iov_cnt, const filesize_t pos)
+	const iovec_t * const iov, const int iov_cnt, const filesize_t pos)
 #ifdef HAS_PWRITEV
 {
 	off_t offset = filesize_to_off_t(pos);
@@ -113,7 +113,9 @@ compat_pwritev(const int fd,
 		errno = EINVAL;
 		return -1;
 	} else if (1 == iov_cnt) {
-		return compat_pwrite(fd, iov->iov_base, iov->iov_len, pos);
+		return compat_pwrite(fd, 
+			iovec_base(iov), iovec_len(iov), 
+			pos);
 	} else if (0 != seek_to_filepos(fd, pos)) {
 		return -1;
 	} else {
@@ -169,7 +171,7 @@ compat_pread(const int fd,
  */
 ssize_t
 compat_preadv(const int fd,
-	struct iovec * const iov, const int iov_cnt, const filesize_t pos)
+	iovec_t * const iov, const int iov_cnt, const filesize_t pos)
 #ifdef HAS_PREADV
 {
 	off_t offset = filesize_to_off_t(pos);
@@ -187,7 +189,9 @@ compat_preadv(const int fd,
 		errno = EINVAL;
 		return -1;
 	} else if (1 == iov_cnt) {
-		return compat_pread(fd, iov->iov_base, iov->iov_len, pos);
+		return compat_pread(fd, 
+			iovec_base(iov), iovec_len(iov), 
+			pos);
 	} else if (0 != seek_to_filepos(fd, pos)) {
 		return -1;
 	} else {

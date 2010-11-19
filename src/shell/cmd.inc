@@ -25,7 +25,9 @@ SHELL_CMD(quit)
 SHELL_CMD(rescan)
 SHELL_CMD(search)
 SHELL_CMD(set)
+#ifndef MINGW32
 SHELL_CMD(shutdown)
+#endif
 SHELL_CMD(stats)
 SHELL_CMD(status)
 SHELL_CMD(uploads)

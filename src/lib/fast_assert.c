@@ -51,7 +51,7 @@ assertion_message(const assertion_data * const data, int fatal)
 {
 	char line_buf[22];
 	char time_buf[18];
-	struct iovec iov[16];
+	iovec_t iov[16];
 	unsigned iov_cnt = 0;
 
 	crash_time(time_buf, sizeof time_buf);

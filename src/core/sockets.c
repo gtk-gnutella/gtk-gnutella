@@ -215,12 +215,14 @@ socket_type_to_string(enum socket_type type)
 int
 socket_evt_fd(struct gnutella_socket *s)
 {
-	int fd = -1;
+	socket_fd_t fd = INVALID_SOCKET;
 
 	socket_check(s);
 	switch (s->direction) {
 	case SOCK_CONN_LISTENING:
+#ifndef MINGW32
 		g_assert(s->file_desc >= 0);
+#endif
 		fd = s->file_desc;
 		break;
 
@@ -229,10 +231,12 @@ socket_evt_fd(struct gnutella_socket *s)
 	case SOCK_CONN_PROXY_OUTGOING:
 		g_assert(s->wio.fd);
 		fd = s->wio.fd(&s->wio);
+#ifndef MINGW32
 		g_assert(fd >= 0);
+#endif
 		break;
 	}
-	g_assert(-1 != fd);
+	g_assert(INVALID_SOCKET != fd);
 
 	return fd;
 }
@@ -499,10 +503,14 @@ socket_tos_normal(const struct gnutella_socket *s)
 void
 socket_tos_lowdelay(const struct gnutella_socket *s)
 {
+#ifdef MINGW32
+	(void)s;
+#else
 	static gboolean failed;
 
 	if (!failed)
 		failed = 0 != socket_tos(s, IPTOS_LOWDELAY);
+#endif
 }
 
 /**
@@ -514,10 +522,14 @@ socket_tos_lowdelay(const struct gnutella_socket *s)
 void
 socket_tos_throughput(const struct gnutella_socket *s)
 {
+#ifdef MINGW32
+	(void)s;
+#else
 	static gboolean failed;
 
 	if (!failed)
 		failed = 0 != socket_tos(s, IPTOS_THROUGHPUT);
+#endif
 }
 
 /**
@@ -576,8 +588,8 @@ proxy_is_enabled(void)
  * Clowes It was modified to work with gtk_gnutella and non-blocking sockets.
  * --DW
  */
-static int
-proxy_connect(int fd)
+static socket_fd_t
+proxy_connect(socket_fd_t fd)
 {
 	static gboolean in_progress = FALSE;
 	socket_addr_t server;
@@ -594,7 +606,7 @@ proxy_connect(int fd)
 
 		if (in_progress) {
 			errno = VAL_EAGAIN;
-			return -1;
+			return INVALID_SOCKET;
 		}
 	}
 
@@ -603,7 +615,7 @@ proxy_connect(int fd)
 		!GNET_PROPERTY(proxy_port)
 	) {
 		errno = EINVAL;
-		return -1;
+		return INVALID_SOCKET;
 	}
 
 	len = socket_addr_set(&server,
@@ -651,7 +663,11 @@ send_socks4(struct gnutella_socket *s)
 		const char *name;
 		size_t name_size;
 
+#ifdef MINGW32
+		user = NULL;
+#else
 		user = getpwuid(getuid());
+#endif
 		name = user != NULL ? user->pw_name : "";
 		name_size = 1 + strlen(name);
 
@@ -671,7 +687,7 @@ send_socks4(struct gnutella_socket *s)
 	}
 
 	/* Send the socks header info */
-	ret = write(s->file_desc, s->buf, length);
+	ret = s_write(s->file_desc, s->buf, length);
 
 	if ((size_t) ret != length) {
 		g_warning("Error attempting to send SOCKS request (%s)",
@@ -697,7 +713,7 @@ recv_socks4(struct gnutella_socket *s)
 	STATIC_ASSERT(8 == sizeof reply);
 	socket_check(s);
 
-	ret = read(s->file_desc, cast_to_gpointer(&reply), size);
+	ret = s_read(s->file_desc, cast_to_gpointer(&reply), size);
 	if ((ssize_t) -1 == ret) {
 		g_warning("Error attempting to receive SOCKS reply (%s)",
 			g_strerror(errno));
@@ -758,15 +774,15 @@ connect_http(struct gnutella_socket *s)
 				{ "CONNECT " }, { NULL }, { " HTTP/1.0\r\nHost: " }, { NULL },
 				{ "\r\n\r\n" },
 			};
-			struct iovec iov[G_N_ELEMENTS(parts)];
+			iovec_t iov[G_N_ELEMENTS(parts)];
 			const char *host_port = host_addr_port_to_string(s->addr, s->port);
 			size_t size = 0;
 			guint i;
 
 			for (i = 0; i < G_N_ELEMENTS(iov); i++) {
-				iov[i].iov_base = deconstify_gchar(
-									parts[i].s ? parts[i].s : host_port);
-				size += iov[i].iov_len = strlen(iov[i].iov_base);
+				iovec_set_base(&iov[i], deconstify_gchar(
+									parts[i].s ? parts[i].s : host_port));
+				size += iovec_set_len(&iov[i],strlen(iovec_base(&iov[i])));
 			}
 
 			ret = writev(s->file_desc, iov, G_N_ELEMENTS(iov));
@@ -780,7 +796,7 @@ connect_http(struct gnutella_socket *s)
 		break;
 
 	case 1:
-		ret = read(s->file_desc, s->buf, s->buf_size - 1);
+		ret = s_read(s->file_desc, s->buf, s->buf_size - 1);
 		if (ret == (ssize_t) -1) {
 			g_warning("Receiving answer from HTTP proxy failed: %s",
 				g_strerror(errno));
@@ -837,7 +853,7 @@ connect_http(struct gnutella_socket *s)
 		}
 		break;
 	case 2:
-		ret = read(s->file_desc, s->buf, s->buf_size - 1);
+		ret = s_read(s->file_desc, s->buf, s->buf_size - 1);
 		if (ret == (ssize_t) -1) {
 			g_warning("Receiving answer from HTTP proxy failed: %s",
 				g_strerror(errno));
@@ -922,7 +938,7 @@ connect_socksv5(struct gnutella_socket *s)
 	case 0:
 		/* Now send the method negotiation */
 		size = sizeof verstring;
-		ret = write(sockid, verstring, size);
+		ret = s_write(sockid, verstring, size);
 		if ((size_t) ret != size) {
 			g_warning("Sending SOCKS method negotiation failed: %s",
 				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
@@ -934,7 +950,7 @@ connect_socksv5(struct gnutella_socket *s)
 	case 1:
 		/* Now receive the reply as to which method we're using */
 		size = 2;
-		ret = read(sockid, s->buf, size);
+		ret = s_read(sockid, s->buf, size);
 		if (ret == (ssize_t) -1) {
 			g_warning("Receiving SOCKS method negotiation reply failed: %s",
 				g_strerror(errno));
@@ -973,7 +989,11 @@ connect_socksv5(struct gnutella_socket *s)
 			const struct passwd *pw;
 
 			/* Determine the current *nix username */
+#ifdef MINGW32
+			pw = NULL;
+#else
 			pw = getpwuid(getuid());
+#endif
 			name = pw != NULL ? pw->pw_name : NULL;
 		}
 
@@ -999,7 +1019,7 @@ connect_socksv5(struct gnutella_socket *s)
 					GNET_PROPERTY(socks_pass));
 
 		/* Send out the authentication */
-		ret = write(sockid, s->buf, size);
+		ret = s_write(sockid, s->buf, size);
 		if ((size_t) ret != size) {
 			g_warning("Sending SOCKS authentication failed: %s",
 				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
@@ -1012,7 +1032,7 @@ connect_socksv5(struct gnutella_socket *s)
 	case 3:
 		/* Receive the authentication response */
 		size = 2;
-		ret = read(sockid, s->buf, size);
+		ret = s_read(sockid, s->buf, size);
 		if (ret == (ssize_t) -1) {
 			g_warning("Receiving SOCKS authentication reply failed: %s",
 				g_strerror(errno));
@@ -1063,7 +1083,7 @@ connect_socksv5(struct gnutella_socket *s)
 
 		/* Now send the connection */
 
-		ret = write(sockid, s->buf, size);
+		ret = s_write(sockid, s->buf, size);
 		if ((size_t) ret != size) {
 			g_warning("Send SOCKS connect command failed: %s",
 				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
@@ -1076,7 +1096,7 @@ connect_socksv5(struct gnutella_socket *s)
 		/* Now receive the reply to see if we connected */
 
 		size = 10;
-		ret = read(sockid, s->buf, size);
+		ret = s_read(sockid, s->buf, size);
 		if ((ssize_t) -1 == ret) {
 			g_warning("Receiving SOCKS connection reply failed: %s",
 				g_strerror(errno));
@@ -1365,7 +1385,7 @@ socket_free(struct gnutella_socket *s)
 	}
 
 	if (socket_with_tls(s)) {
-		if (s->file_desc != -1 && socket_uses_tls(s)) {
+		if (s->file_desc != INVALID_SOCKET && socket_uses_tls(s)) {
 			if (SOCK_CONN_INCOMING != s->direction) {
 				tls_cache_insert(s->addr, s->port);
 			}
@@ -1374,14 +1394,14 @@ socket_free(struct gnutella_socket *s)
 		tls_free(s);
 	}
 
-	if (s->file_desc != -1) {
+	if (s->file_desc != INVALID_SOCKET) {
 		socket_cork(s, FALSE);
 		socket_tx_shutdown(s);
-		if (close(s->file_desc)) {
+		if (s_close(s->file_desc)) {
 			g_warning("socket_free: close(%d) failed: %s",
 				s->file_desc, g_strerror(errno));
 		}
-		s->file_desc = -1;
+		s->file_desc = INVALID_SOCKET;
 	}
 	socket_free_buffer(s);
 	socket_dealloc(&s);
@@ -1473,8 +1493,11 @@ socket_read(gpointer data, int source, inputevt_cond_t cond)
 	) {
 		if (s->tls.enabled && s->tls.stage < SOCK_TLS_INITIALIZED) {
 			ssize_t ret;
+#ifdef MINGW32
+			char c;
+#else
 			guchar c;
-
+#endif
 			/* Peek at the socket buffer to check whether the incoming
 			 * connection uses TLS or not. */
 			ret = recv(s->file_desc, &c, sizeof c, MSG_PEEK);
@@ -2381,10 +2404,10 @@ socket_udp_accept(struct gnutella_socket *s)
 	{
 		static const struct msghdr zero_msg;
 		struct msghdr msg;
-		struct iovec iov;
+		iovec_t iov;
 
-		iov.iov_base = s->buf;
-		iov.iov_len = s->buf_size;
+		iovec_set_base(&iov, s->buf);
+		iovec_set_len(&iov, s->buf_size);
 
 		msg = zero_msg;
 		msg.msg_name = cast_to_gpointer(from);
@@ -2413,7 +2436,11 @@ socket_udp_accept(struct gnutella_socket *s)
 
 		/* msg_flags is missing at least in some versions of IRIX. */
 #ifdef HAS_MSGHDR_MSG_FLAGS
+#ifdef WSAEMSGSIZE
+		truncated = 0 != (WSAEMSGSIZE & errno);
+#else
 		truncated = 0 != (MSG_TRUNC & msg.msg_flags);
+#endif
 #else	/* HAS_MSGHDR_MSG_FLAGS */
 		truncated = FALSE;	/* We can't detect truncation with recvmsg() */
 #endif /* HAS_MSGHDR_MSG_FLAGS */
@@ -2494,7 +2521,11 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 	(void) unused_source;
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
+#ifdef MINGW32
+		char error;
+#else
 		int error;
+#endif
 		socklen_t error_len = sizeof error;
 
 		getsockopt(s->file_desc, SOL_SOCKET, SO_ERROR, &error, &error_len);
@@ -2518,7 +2549,8 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 	do {
 		ssize_t r;
 
-		r = socket_udp_accept(s);
+		r = socket_udp_accept(s);		
+		
 		if ((ssize_t) -1 == r) {
 			if (!is_temporary_error(errno)) {
 				g_warning("ignoring datagram reception error: %s",
@@ -2586,7 +2618,9 @@ static void
 socket_set_accept_filters(struct gnutella_socket *s)
 {
 	socket_check(s);
+#ifndef MINGW32
 	g_assert(s->file_desc >= 0);
+#endif
 
 	if (GNET_PROPERTY(tcp_defer_accept_timeout) <= 0)
 		return;
@@ -2635,7 +2669,9 @@ socket_set_fastack(struct gnutella_socket *s)
 	static const int on = 1;
 
 	socket_check(s);
+#ifndef MINGW32
 	g_return_if_fail(s->file_desc >= 0);
+#endif
 	
 	if (!(SOCK_F_TCP & s->flags))
 		return;
@@ -2658,7 +2694,9 @@ void
 socket_set_quickack(struct gnutella_socket *s, int on)
 {
 	socket_check(s);
+#ifndef MINGW32
 	g_return_if_fail(s->file_desc >= 0);
+#endif
 
 	if (!(SOCK_F_TCP & s->flags))
 		return;
@@ -2732,7 +2770,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 	host_addr_t addr, guint16 port, enum socket_type type, guint32 flags)
 {
 	static const int enable = 1;
-	int fd, family;
+	int fd, family, err;
 
 	socket_check(s);
 
@@ -2759,7 +2797,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 		errno = EINVAL;
 		return -1;
 	}
-
+	
 	fd = socket(family, SOCK_STREAM, 0);
 	if (fd < 0) {
 		/*
@@ -2838,7 +2876,8 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	socket_addr_t addr;
 	socklen_t addr_len;
 	int res;
-
+	int err = 0;
+	
 	socket_check(s);
 
 	/*
@@ -2906,7 +2945,11 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 				socket_addr_get_const_sockaddr(&addr), addr_len);
 	}
 
+#ifdef MINGW32
+	if (-1 == res && WSAEINPROGRESS != errno && WSAEWOULDBLOCK != errno) {
+#else
 	if (-1 == res && EINPROGRESS != errno) {
+#endif
 		if (proxy_is_enabled() && !is_host_addr(GNET_PROPERTY(proxy_addr))) {
 			if (!is_temporary_error(errno)) {
 				g_warning("Proxy isn't properly configured (%s:%u)",
@@ -2916,7 +2959,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 		}
 
 		g_warning("Unable to connect to %s: (%s)",
-			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
+			host_addr_port_to_string(s->addr, s->port), g_strerror(err));
 		goto failure;
 	}
 
@@ -3003,9 +3046,9 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 	) {
 		s->net = host_addr_net(addr);
 
-		if (-1 != s->file_desc) {
-			close(s->file_desc);
-			s->file_desc = -1;
+		if (INVALID_SOCKET != s->file_desc) {
+			s_close(s->file_desc);
+			s->file_desc = INVALID_SOCKET;
 		}
 		if (can_tls) {
 			s->flags |= SOCK_F_TLS;
@@ -3083,27 +3126,28 @@ socket_connect_by_name(const char *host, guint16 port,
  *
  * @return The new file descriptor of socket or -1 on failure.
  */
-static int
+static socket_fd_t
 socket_create_and_bind(const host_addr_t bind_addr,
 	const guint16 port, const int type)
 {
 	gboolean socket_failed;
-	int fd, saved_errno, family;
+	socket_fd_t fd;
+	int err, saved_errno, family;
 
 	g_assert(SOCK_DGRAM == type || SOCK_STREAM == type);
 
 	if (port < 2) {
 		errno = EINVAL;
-		return -1;
+		return INVALID_SOCKET;
 	}
 	if (NET_TYPE_NONE == host_addr_net(bind_addr)) {
 		errno = EINVAL;
-		return -1;
+		return INVALID_SOCKET;
 	}
 	family = host_addr_family(bind_addr);
 	if (-1 == family) {
 		errno = EINVAL;
-		return -1;
+		return INVALID_SOCKET;
 	}
 	fd = socket(family, type, 0);
 	if (fd < 0) {
@@ -3132,11 +3176,11 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		len = socket_addr_set(&addr, bind_addr, port);
 		if (-1 == bind(fd, socket_addr_get_const_sockaddr(&addr), len)) {
 			saved_errno = errno;
-			close(fd);
-			fd = -1;
+			s_close(fd);
+			fd = INVALID_SOCKET;
 		} else {
 			saved_errno = 0;
-		}
+		}		
 	}
 
 #if defined(HAS_SOCKER_GET)
@@ -3201,11 +3245,13 @@ socket_is_local(const struct gnutella_socket *s)
 			is_local = FALSE;
 			g_warning("socket_is_local(): getsockname() failed: %s",
 				g_strerror(errno));
+#ifndef MINGW32
 		} else if (AF_LOCAL != addr.sun_family) {
 			is_local = FALSE;
 			g_warning("socket_is_local(): "
 				"address family mismatch! (expected %u, got %u)",
 				(guint) AF_LOCAL, (guint) addr.sun_family);
+#endif
 		}
 	}
 
@@ -3226,6 +3272,7 @@ socket_local_listen(const char *pathname)
 	g_return_val_if_fail(pathname, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 
+#ifndef MINGW32
 	{
 		static const struct sockaddr_un zero_un;
 		size_t size = sizeof addr.sun_path;
@@ -3237,6 +3284,7 @@ socket_local_listen(const char *pathname)
 			return NULL; 
 		}
 	}
+#endif
 
 	fd = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (fd < 0) {
@@ -3261,7 +3309,7 @@ socket_local_listen(const char *pathname)
 		if (0 != ret) {
 			g_warning("socket_local_listen(): bind() failed: %s",
 				g_strerror(saved_errno));
-			close(fd);
+			s_close(fd);
 			return NULL;
 		}
 	}
@@ -3685,7 +3733,7 @@ socket_plain_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 	socket_check(s);
 	g_assert(!socket_uses_tls(s));
 
-	return write(s->file_desc, buf, size);
+	return s_write(s->file_desc, buf, size);
 }
 
 static ssize_t
@@ -3696,11 +3744,11 @@ socket_plain_read(struct wrap_io *wio, gpointer buf, size_t size)
 	socket_check(s);
 	g_assert(!socket_uses_tls(s));
 
-	return read(s->file_desc, buf, size);
+	return s_read(s->file_desc, buf, size);
 }
 
 static ssize_t
-socket_plain_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
+socket_plain_writev(struct wrap_io *wio, const iovec_t *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
 
@@ -3711,7 +3759,7 @@ socket_plain_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 }
 
 static ssize_t
-socket_plain_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
+socket_plain_readv(struct wrap_io *wio, iovec_t *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
 
@@ -3746,7 +3794,7 @@ socket_plain_sendto(
 	if ((ssize_t) -1 == ret && GNET_PROPERTY(udp_debug)) {
 		int e = errno;
 
-		g_warning("sendto() failed: %s", g_strerror(e));
+		g_warning("sendto() failed: %s", g_strerror(errno));
 		errno = e;
 	}
 	return ret;
@@ -3777,7 +3825,7 @@ socket_no_write(struct wrap_io *unused_wio,
 
 static ssize_t
 socket_no_writev(struct wrap_io *unused_wio,
-		const struct iovec *unused_iov, int unused_iovcnt)
+		const iovec_t *unused_iov, int unused_iovcnt)
 {
 	(void) unused_wio;
 	(void) unused_iov;
@@ -3799,7 +3847,7 @@ socket_no_read(struct wrap_io *unused_wio,
 
 static ssize_t
 socket_no_readv(struct wrap_io *unused_wio,
-		struct iovec *unused_iov, int unused_iovcnt)
+		iovec_t *unused_iov, int unused_iovcnt)
 {
 	(void) unused_wio;
 	(void) unused_iov;
@@ -3858,19 +3906,19 @@ socket_wio_link(struct gnutella_socket *s)
  * MAX_IOV_COUNT entries at a time.
  */
 ssize_t
-safe_readv(wrap_io_t *wio, struct iovec *iov, int iovcnt)
+safe_readv(wrap_io_t *wio, iovec_t *iov, int iovcnt)
 {
 	size_t got = 0;
-	struct iovec *end = iov + iovcnt;
-	struct iovec *siov;
+	iovec_t *end = iov + iovcnt;
+	iovec_t *siov;
 	int siovcnt = MAX_IOV_COUNT;
 	int iovgot = 0;
 
 	for (siov = iov; siov < end; siov += siovcnt) {
 		ssize_t r;
 		size_t size;
-		struct iovec *xiv;
-		struct iovec *xend;
+		iovec_t *xiv;
+		iovec_t *xend;
 
 		siovcnt = iovcnt - iovgot;
 		if (siovcnt > MAX_IOV_COUNT)
@@ -3894,7 +3942,7 @@ safe_readv(wrap_io_t *wio, struct iovec *iov, int iovcnt)
 		 */
 
 		for (size = 0, xiv = siov, xend = siov + siovcnt; xiv < xend; xiv++)
-			size += xiv->iov_len;
+			size += iovec_len(xiv);
 
 		if ((size_t) r < size)
 			break;
@@ -3908,19 +3956,19 @@ safe_readv(wrap_io_t *wio, struct iovec *iov, int iovcnt)
  * MAX_IOV_COUNT entries at a time.
  */
 ssize_t
-safe_readv_fd(int fd, struct iovec *iov, int iovcnt)
+safe_readv_fd(int fd, iovec_t *iov, int iovcnt)
 {
 	size_t got = 0;
-	struct iovec *end = iov + iovcnt;
-	struct iovec *siov;
+	iovec_t *end = iov + iovcnt;
+	iovec_t *siov;
 	int siovcnt = MAX_IOV_COUNT;
 	int iovgot = 0;
 
 	for (siov = iov; siov < end; siov += siovcnt) {
 		ssize_t r;
 		size_t size;
-		struct iovec *xiv;
-		struct iovec *xend;
+		iovec_t *xiv;
+		iovec_t *xend;
 
 		siovcnt = iovcnt - iovgot;
 		if (siovcnt > MAX_IOV_COUNT)
@@ -3944,7 +3992,7 @@ safe_readv_fd(int fd, struct iovec *iov, int iovcnt)
 		 */
 
 		for (size = 0, xiv = siov, xend = siov + siovcnt; xiv < xend; xiv++)
-			size += xiv->iov_len;
+			size += iovec_len(xiv);
 
 		if ((size_t) r < size)
 			break;
@@ -3958,15 +4006,15 @@ safe_readv_fd(int fd, struct iovec *iov, int iovcnt)
  * MAX_IOV_COUNT entries at a time.
  */
 ssize_t
-safe_writev(wrap_io_t *wio, const struct iovec *iov, int iovcnt)
+safe_writev(wrap_io_t *wio, const iovec_t *iov, int iovcnt)
 {
-	const struct iovec *siov, *end = &iov[iovcnt];
+	const iovec_t *siov, *end = &iov[iovcnt];
 	int siovcnt = MAX_IOV_COUNT;
 	int iovsent = 0;
 	size_t sent = 0;
 
 	for (siov = iov; siov < end; siov += siovcnt) {
-		const struct iovec *xiv, *xend;
+		const iovec_t *xiv, *xend;
 		size_t size;
 		ssize_t r;
 
@@ -3992,7 +4040,7 @@ safe_writev(wrap_io_t *wio, const struct iovec *iov, int iovcnt)
 		 */
 
 		for (size = 0, xiv = siov, xend = siov + siovcnt; xiv < xend; xiv++)
-			size += xiv->iov_len;
+			size += iovec_len(xiv);
 
 		if ((size_t) r < size)
 			break;
@@ -4006,15 +4054,15 @@ safe_writev(wrap_io_t *wio, const struct iovec *iov, int iovcnt)
  * MAX_IOV_COUNT entries at a time.
  */
 ssize_t
-safe_writev_fd(int fd, const struct iovec *iov, int iovcnt)
+safe_writev_fd(int fd, const iovec_t *iov, int iovcnt)
 {
-	const struct iovec *siov, *end = &iov[iovcnt];
+	const iovec_t *siov, *end = &iov[iovcnt];
 	int siovcnt = MAX_IOV_COUNT;
 	int iovsent = 0;
 	size_t sent = 0;
 
 	for (siov = iov; siov < end; siov += siovcnt) {
-		const struct iovec *xiv, *xend;
+		const iovec_t *xiv, *xend;
 		size_t size;
 		ssize_t r;
 
@@ -4040,7 +4088,7 @@ safe_writev_fd(int fd, const struct iovec *iov, int iovcnt)
 		 */
 
 		for (size = 0, xiv = siov, xend = siov + siovcnt; xiv < xend; xiv++)
-			size += xiv->iov_len;
+			size += iovec_len(xiv);
 
 		if ((size_t) r < size)
 			break;

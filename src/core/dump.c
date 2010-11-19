@@ -224,7 +224,7 @@ dump_flush(struct dump *dump)
 {
 	while (dump->fill > 0) {
 		ssize_t written;
-		struct iovec *iov;
+		iovec_t *iov;
 		int iov_cnt;
 
 		iov = pmsg_slist_to_iovec(dump->slist, &iov_cnt, NULL);

@@ -65,8 +65,8 @@ G_STMT_START { \
 	if (iov_cnt < G_N_ELEMENTS(iov)) { \
 		const char *ptr = (x); \
 		if (ptr) { \
-			iov[iov_cnt].iov_base = (char *) ptr; \
-			iov[iov_cnt].iov_len = strlen(ptr); \
+			iovec_set_base(&iov[iov_cnt], (char *) ptr); \
+			iovec_set_len(&iov[iov_cnt], strlen(ptr)); \
 			iov_cnt++; \
 		} \
 	} \

@@ -1558,12 +1558,12 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
  * errno set to EAGAIN.
  */
 ssize_t
-bio_writev(bio_source_t *bio, struct iovec *iov, int iovcnt)
+bio_writev(bio_source_t *bio, iovec_t *iov, int iovcnt)
 {
 	size_t available;
 	ssize_t r;
 	size_t len;
-	struct iovec *siov;
+	iovec_t *siov;
 	int slen = -1;			/* Avoid "may be used uninitialized" warning */
 
 	bio_check(bio);
@@ -1574,7 +1574,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, int iovcnt)
 	 */
 
 	for (r = 0, siov = iov, len = 0; r < iovcnt; r++, siov++)
-		len += siov->iov_len;
+		len += iovec_len(siov);
 
 	/*
 	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN
@@ -1598,7 +1598,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, int iovcnt)
 		size_t curlen;
 
 		for (r = 0, siov = iov, curlen = 0; r < iovcnt; r++, siov++) {
-			curlen += siov->iov_len;
+			curlen += iovec_len(siov);
 
 			/*
 			 * Exact size reached, we just need to adjust down the iov count.
@@ -1618,10 +1618,10 @@ bio_writev(bio_source_t *bio, struct iovec *iov, int iovcnt)
 			 */
 
 			if (curlen > available) {
-				slen = siov->iov_len;		/* Save for later restore */
-				siov->iov_len -= (curlen - available);
+				slen = iovec_len(siov);		/* Save for later restore */
+				iovec_set_len(siov, iovec_len(siov) - (curlen - available));
 				iovcnt = r + 1;
-				g_assert(siov->iov_len > 0);
+				g_assert(iovec_len(siov) > 0);
 				break;
 			}
 		}
@@ -1670,7 +1670,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, int iovcnt)
 
 	if (len > available && siov) {
 		g_assert(slen >= 0);			/* Ensure it was initialized */
-		siov->iov_len = slen;
+		iovec_set_len(siov, slen);
 	}
 
 	return r;
@@ -1963,7 +1963,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 
 		g_assert(mmap_access == 0);
 		mmap_access = 1;
-		r = write(out_fd, data, amount);
+		r = s_write(out_fd, data, amount);
 		mmap_access = 0;
 
 		switch (r) {
@@ -2081,12 +2081,12 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
  * errno set to EAGAIN.
  */
 ssize_t
-bio_readv(bio_source_t *bio, struct iovec *iov, int iovcnt)
+bio_readv(bio_source_t *bio, iovec_t *iov, int iovcnt)
 {
 	size_t available;
 	ssize_t r;
 	size_t len;
-	struct iovec *siov;
+	iovec_t *siov;
 	int slen = -1;			/* Avoid "may be used uninitialized" warning */
 
 	bio_check(bio);
@@ -2097,7 +2097,7 @@ bio_readv(bio_source_t *bio, struct iovec *iov, int iovcnt)
 	 */
 
 	for (r = 0, siov = iov, len = 0; r < iovcnt; r++, siov++)
-		len += siov->iov_len;
+		len += iovec_len(siov);
 
 	/*
 	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN
@@ -2121,7 +2121,7 @@ bio_readv(bio_source_t *bio, struct iovec *iov, int iovcnt)
 		size_t curlen;
 
 		for (r = 0, siov = iov, curlen = 0; r < iovcnt; r++, siov++) {
-			curlen += siov->iov_len;
+			curlen += iovec_len(siov);
 
 			/*
 			 * Exact size reached, we just need to adjust down the iov count.
@@ -2141,10 +2141,12 @@ bio_readv(bio_source_t *bio, struct iovec *iov, int iovcnt)
 			 */
 
 			if (curlen > available) {
-				slen = siov->iov_len;		/* Save for later restore */
-				siov->iov_len -= (curlen - available);
+				slen = iovec_len(siov);	/* Save for later restore */
+				iovec_set_len(siov, 
+					iovec_len(siov) - (curlen - available)
+				);
 				iovcnt = r + 1;
-				g_assert(siov->iov_len > 0);
+				g_assert(iovec_len(siov) > 0);
 				break;
 			}
 		}
@@ -2194,7 +2196,7 @@ bio_readv(bio_source_t *bio, struct iovec *iov, int iovcnt)
 
 	if (len > available && siov) {
 		g_assert(slen >= 0);			/* Ensure it was initialized */
-		siov->iov_len = slen;
+		iovec_set_len(siov, slen);
 	}
 
 	return r;

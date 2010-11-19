@@ -880,7 +880,7 @@ tx_deflate_write(txdrv_t *tx, gconstpointer data, size_t len)
  * @return amount of bytes written, or -1 on error.
  */
 static ssize_t
-tx_deflate_writev(txdrv_t *tx, struct iovec *iov, int iovcnt)
+tx_deflate_writev(txdrv_t *tx, iovec_t *iov, int iovcnt)
 {
 	struct attr *attr = tx->opaque;
 	int sent = 0;
@@ -903,13 +903,13 @@ tx_deflate_writev(txdrv_t *tx, struct iovec *iov, int iovcnt)
 		if (attr->flags & (DF_FLOWC|DF_SHUTDOWN))
 			return sent;
 
-		ret = deflate_add(tx, iov->iov_base, iov->iov_len);
+		ret = deflate_add(tx, iovec_base(iov), iovec_len(iov));
 
 		if (-1 == ret)
 			return -1;
 
 		sent += ret;
-		if ((guint) ret < iov->iov_len) {
+		if ((guint) ret < iovec_len(iov)) {
 			/* Could not write all, flow-controlled */
 			break;
 		}

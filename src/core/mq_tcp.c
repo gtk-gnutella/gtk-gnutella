@@ -96,7 +96,7 @@ static void
 mq_tcp_service(gpointer data)
 {
 	mqueue_t *q = (mqueue_t *) data;
-	static struct iovec iov[MQ_MAXIOV];
+	static iovec_t iov[MQ_MAXIOV];
 	int iovsize;
 	int iovcnt;
 	int sent;
@@ -128,7 +128,7 @@ again:
 	maxsize = MAX(MQ_MINSEND, maxsize);
 
 	for (l = q->qtail; l && iovsize > 0; /* empty */) {
-		struct iovec *ie;
+		iovec_t *ie;
 		pmsg_t *mb = (pmsg_t *) l->data;
 		char *mbs = pmsg_start(mb);
 
@@ -148,9 +148,9 @@ again:
 			l = g_list_previous(l);
 			iovsize--;
 			ie = &iov[iovcnt++];
-			ie->iov_base = deconstify_gpointer(mb->m_rptr);
-			ie->iov_len = pmsg_size(mb);
-			maxsize -= ie->iov_len;
+			iovec_set_base(ie, deconstify_gpointer(mb->m_rptr));
+			iovec_set_len(ie, pmsg_size(mb));
+			maxsize -= iovec_len(ie);
 			if (pmsg_prio(mb))
 				has_prioritary = TRUE;
 		} else {
@@ -214,10 +214,10 @@ again:
 	saturated = FALSE;
 
 	for (l = q->qtail; l && r > 0 && iovsize > 0; iovsize--) {
-		struct iovec *ie = &iov[iovcnt++];
+		iovec_t *ie = &iov[iovcnt++];
 		pmsg_t *mb = (pmsg_t *) l->data;
 
-		if ((guint) r >= ie->iov_len) {			/* Completely written */
+		if ((guint) r >= iovec_len(ie)) {		/* Completely written */
 			char *mb_start = pmsg_start(mb);
 			guint8 function = gmsg_function(mb_start);
 			sent++;
@@ -233,10 +233,10 @@ again:
 			default:
 				break;
 			}
-			r -= ie->iov_len;
+			r -= iovec_len(ie);
 			if (q->qlink)
 				q->cops->qlink_remove(q, l);
-			l = q->cops->rmlink_prev(q, l, ie->iov_len);
+			l = q->cops->rmlink_prev(q, l, iovec_len(ie));
 		} else {
 			g_assert(r > 0 && r < pmsg_size(mb));
 			g_assert(r < q->size);

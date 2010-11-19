@@ -790,6 +790,9 @@ done:
 void
 adns_init(void)
 {
+#ifdef MINGW32	
+	/* FIXME MINGW32 */
+#else
 	int fd_query[2] = {-1, -1};
 	int fd_reply[2] = {-1, -1};
 	pid_t pid;
@@ -865,6 +868,7 @@ prefork_failure:
 	}
 
 	adns_cache = adns_cache_init();
+#endif
 }
 
 /**
@@ -1066,7 +1070,9 @@ adns_close(void)
 		adns_query_event_id = 0;
 	}
 	
-	adns_cache_free(adns_cache);
+	/* If adns is not used it will not be initialized */
+	if (adns_cache)
+		adns_cache_free(adns_cache);
 	adns_cache = NULL;
 }
 

@@ -42,8 +42,8 @@ typedef struct wrap_io {
 	gpointer ctx;
 	ssize_t (*write)(struct wrap_io *, gconstpointer, size_t);
 	ssize_t (*read)(struct wrap_io *, gpointer, size_t);
-	ssize_t (*writev)(struct wrap_io *, const struct iovec *, int);
-	ssize_t (*readv)(struct wrap_io *, struct iovec *, int);
+	ssize_t (*writev)(struct wrap_io *, const iovec_t *, int);
+	ssize_t (*readv)(struct wrap_io *, iovec_t *, int);
 	ssize_t (*sendto)(struct wrap_io *, const gnet_host_t *,
 						gconstpointer, size_t);
 	int (*flush)(struct wrap_io *);

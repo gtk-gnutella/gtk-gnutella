@@ -477,7 +477,7 @@ file_object_pwrite(const struct file_object * const fo,
  */
 ssize_t
 file_object_pwritev(const struct file_object * const fo,
-	const struct iovec * const iov, const int iov_cnt, const filesize_t offset)
+	const iovec_t * iov, const int iov_cnt, const filesize_t offset)
 {
 	file_object_check(fo);
 	g_assert(iov);
@@ -518,7 +518,7 @@ file_object_pread(const struct file_object * const fo,
  */
 ssize_t
 file_object_preadv(const struct file_object * const fo,
-	struct iovec * const iov, const int iov_cnt, const filesize_t offset)
+	iovec_t * const iov, const int iov_cnt, const filesize_t offset)
 {
 	file_object_check(fo);
 	g_assert(iov);

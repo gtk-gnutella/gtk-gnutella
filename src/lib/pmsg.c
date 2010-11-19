@@ -653,10 +653,10 @@ pdata_unref(pdata_t *db)
  *		 is applied because writev() could fail with EINVAL otherwise
  *		 which would simply add more unnecessary complexity.
  */
-struct iovec *
+iovec_t *
 pmsg_slist_to_iovec(slist_t *slist, int *iovcnt_ptr, size_t *size_ptr)
 {
-	struct iovec *iov;
+	iovec_t *iov;
 	size_t held = 0;
 	int n;
 
@@ -683,8 +683,8 @@ pmsg_slist_to_iovec(slist_t *slist, int *iovcnt_ptr, size_t *size_ptr)
 			g_assert(size > 0);
 			held += size;
 
-			iov[i].iov_base = deconstify_gpointer(pmsg_read_base(mb));
-			iov[i].iov_len = size;
+			iovec_set_base(&iov[i], deconstify_gpointer(pmsg_read_base(mb)));
+			iovec_set_len(&iov[i], size);
 		}
 		slist_iter_free(&iter);
 	} else {
