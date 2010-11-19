@@ -35,6 +35,7 @@
 
 #ifndef _mingw32_h_
 #define _mingw32_h_
+#ifdef MINGW32
 
 #define WINVER 0x0501
 #include <ws2tcpip.h>
@@ -222,6 +223,7 @@ ssize_t     mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt);
 #define rename(oldpath, newpath) mingw_rename(oldpath, newpath)
 #define g_strerror(errnum) mingw_strerror(errnum)
 
+#endif
 #endif /* _mingw32_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

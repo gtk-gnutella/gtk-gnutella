@@ -34,9 +34,11 @@
  */
 
 #include "common.h"
-#include <mswsock.h>
-
 RCSID("$Id$")
+
+#ifdef MINGW32
+
+#include <mswsock.h>
 
 #include "override.h"			/* Must be the last header included */
 
@@ -298,5 +300,5 @@ ssize_t mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 	errno = WSAGetLastError();
 	return res;
 }
-
+#endif
 /* vi: set ts=4 sw=4 cindent: */
