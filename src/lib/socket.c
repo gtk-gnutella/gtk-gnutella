@@ -36,18 +36,16 @@ RCSID("$Id$")
  *  Sets a socket to non-blocking behaviour
  */
 void 
-socket_set_nonblocking(int fd)
-#ifdef MINGW32
+socket_set_nonblocking(socket_fd_t fd)
 {
+#ifdef MINGW32
 	gulong nonblock = 1;
 
 	ioctlsocket(fd, FIONBIO, &nonblock);
 	errno = WSAGetLastError();
-}
 #else
-{
 	fd_set_nonblocking(fd);
-}
 #endif
+}
 
 /* vi: set ts=4 sw=4 cindent: */

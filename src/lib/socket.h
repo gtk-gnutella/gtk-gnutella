@@ -28,7 +28,7 @@
 
 #include "common.h"
 
-void socket_set_nonblocking(int fd);
+void socket_set_nonblocking(socket_fd_t fd);
 
 #endif	/* _lib_socket_h_ */
 /* vi: set ts=4 sw=4 cindent: */
