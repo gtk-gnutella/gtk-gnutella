@@ -249,16 +249,13 @@ page_start(const void *p)
 
 static long
 compat_pagesize_intern(void)
+{
 #ifdef MINGW32
-{
 	SYSTEM_INFO system_info;
-	
+
 	GetSystemInfo(&system_info);
-	
 	return system_info.dwPageSize;
-}
 #elif defined (_SC_PAGESIZE) || defined(_SC_PAGE_SIZE)
-{
 	long ret;
 
 	errno = 0;
@@ -271,12 +268,10 @@ compat_pagesize_intern(void)
 		return_value_unless(0 == errno, 0);
 	}
 	return ret;
-}
-#else
-{
+#else /* !_SC_PAGESIZE && !_SC_PAGE_SIZE */
 	return getpagesize();
+#endif /* MINGW32 */
 }
-#endif /* _SC_PAGE_SIZE */
 
 size_t
 compat_pagesize(void)
@@ -478,14 +473,72 @@ vmm_first_hole(const void **hole_ptr)
 
 	return 0;
 }
-#else	/* !HAS_MMAP */
+
+/**
+ * Wrapper on mmap() and munmap() to allocate/free anonymous memory.
+ */
+#ifdef MINGW32
+static inline void *
+vmm_valloc(void *hint, size_t size)
+{
+	return mingw_valloc(hint, size);
+}
+
+static inline int
+vmm_vfree(void *addr, size_t size)
+{
+	return mingw_vfree(addr, size);
+}
+
+static inline int
+vmm_vfree_fragment(void *addr, size_t size)
+{
+	return mingw_vfree_fragment(addr, size);
+}
+#else	/* !MINGW32 */
+static void *
+vmm_valloc(void *hint, size_t size)
+{
+	static int fd = -1;
+	int flags;
+
+#if defined(MAP_ANON)
+	flags = MAP_PRIVATE | MAP_ANON;
+#elif defined (MAP_ANONYMOUS)
+	flags = MAP_PRIVATE | MAP_ANONYMOUS;
+#else
+	flags = MAP_PRIVATE;
+	if (-1 == fd) {
+		fd = get_non_stdio_fd(open("/dev/zero", O_RDWR, 0));
+		return_value_unless(fd >= 0, NULL);
+		set_close_on_exec(fd);
+	}
+#endif	/* MAP_ANON */
+
+	return mmap(hint, size, PROT_READ | PROT_WRITE, flags, fd, 0);
+}
+
+static inline int
+vmm_vfree(void *addr, size_t size)
+{
+	return munmap(addr, size);
+}
+
+static inline int
+vmm_vfree_fragment(void *addr, size_t size)
+{
+	return munmap(addr, size);
+}
+#endif	/* MINGW32 */
+
+#else	/* !HAS_MMAP && !MINGW32 */
 static inline size_t
 vmm_first_hole(const void **unused)
 {
 	(void) unused;
 	return 0;
 }
-#endif	/* HAS_MMAP */
+#endif	/* HAS_MMAP || MINGW32 */
 
 /**
  * Insert foreign region in the pmap.
@@ -506,7 +559,7 @@ static void *
 vmm_mmap_anonymous(size_t size, const void *hole)
 #if defined(HAS_MMAP) || defined(MINGW32)
 {
-	static int flags, failed, fd = -1;
+	static int failed;
 	void *hint, *p;
 	static guint64 hint_followed;
 
@@ -525,44 +578,8 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 			(unsigned long) hint, (unsigned long) (size / 1024));
 	}
 
-#if defined(MAP_ANON)
-	flags = MAP_PRIVATE | MAP_ANON;
-#elif defined (MAP_ANONYMOUS)
-	flags = MAP_PRIVATE | MAP_ANONYMOUS;
-#elif !defined(MINGW32)
-	flags = MAP_PRIVATE;
-	if (-1 == fd) {
-		fd = get_non_stdio_fd(open("/dev/zero", O_RDWR, 0));
-		return_value_unless(fd >= 0, NULL);
-		set_close_on_exec(fd);
-	}
-#endif	/* MAP_ANON */
+	p = vmm_valloc(hint, size);
 
-#ifdef MINGW32
-	(void) flags;
-	p = (void *) VirtualAlloc(
-		/* __in_opt  LPVOID lpAddress */ hint,
-		/* __in      SIZE_T dwSize */ size,
-		/* __in      DWORD flAllocationType */  MEM_COMMIT | MEM_RESERVE,
-		/* __in      DWORD flProtect */ PAGE_READWRITE
-	);
-	if (p == NULL)
-	{
-		p = (void *) VirtualAlloc(
-			/* __in_opt  LPVOID lpAddress */ 0,
-			/* __in      SIZE_T dwSize */ size,
-			/* __in      DWORD flAllocationType */ MEM_COMMIT | MEM_RESERVE,
-			/* __in      DWORD flProtect */ PAGE_READWRITE
-		);
-	}
-	if (p == NULL)
-	{
-		p = MAP_FAILED;
-		errno = GetLastError();
-	}
-#else
-	p = mmap(hint, size, PROT_READ | PROT_WRITE, flags, fd, 0);
-#endif
 	if (MAP_FAILED == p) {
 		if (ENOMEM != errno) {
 			failed = 1;
@@ -635,31 +652,8 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 				 * exactly two pages, then we know the next page is foreign.
 				 */
 
-#ifdef MINGW32
-				g_assert(fd == -1);
-				try = (void *) VirtualAlloc(
-					/* __in_opt  LPVOID lpAddress */ hint,
-					/* __in      SIZE_T dwSize */ kernel_pagesize,
-					/* __in      DWORD flAllocationType */ MEM_COMMIT | MEM_RESERVE,
-					/* __in      DWORD flProtect */ PAGE_READWRITE
-				);
-				if (try == NULL) {
-					try = (void *) VirtualAlloc(
-						/* __in_opt  LPVOID lpAddress */ NULL,
-						/* __in      SIZE_T dwSize */ kernel_pagesize,
-						/* __in      DWORD flAllocationType */ MEM_COMMIT | MEM_RESERVE,
-						/* __in      DWORD flProtect */ PAGE_READWRITE
-					);
-				}
-				
-				if (try == NULL) {
-					try = MAP_FAILED;
-					errno = GetLastError();
-				}
-#else
-				try = mmap(hint, kernel_pagesize,
-						PROT_READ | PROT_WRITE, flags, fd, 0);
-#endif
+				try = vmm_valloc(hint, kernel_pagesize);
+
 				if (try != MAP_FAILED) {
 					if (try != hint) {
 						pmap_insert_foreign(&local_pmap, hint, kernel_pagesize);
@@ -691,12 +685,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 								(unsigned long) hint);
 						}
 					}
-#if MINGW32
-					if (0 == VirtualFree(try, 0, MEM_RELEASE)) {
-						errno = GetLastError();
-#else
-					if (0 != munmap(try, kernel_pagesize)) {
-#endif
+					if (0 != vmm_vfree(try, kernel_pagesize)) {
 						g_warning("VMM cannot free single page at 0x%lx: %s",
 							(unsigned long) try, g_strerror(errno));
 					}
@@ -815,54 +804,11 @@ free_pages_intern(void *p, size_t size, gboolean update_pmap)
 	if (G_UNLIKELY(stop_freeing))
 		goto pmap_update;
 
-#if defined(MINGW32)
+#if defined(HAS_MMAP) || defined(MINGW32)
 	{
-		int ret;
-		MEMORY_BASIC_INFORMATION inf;
-		void *pRemaining;
-		size_t sizeRemaining = size;
-		pRemaining = p;
-		
-		/* 
-		 * FIXME: This is more a workaround to avoid leaking to much memory!
-		 * There needs to be a better way!
-		 * Perhaps we can create a CreateFileMapping with an InvalidFileHandle,
-		 * this will create a anonymous file handle and as a size argument
-		 * use the largest size allowed. 
-		 * Next create a MapViewOfFile like mmap with an ANONYMOUS PAGE. 
-		 * However it won't be possible to Protect a section of the page in this
-		 * case.
-		 *		-- JA 19/11/2010
-		 */
-		while(sizeRemaining > 0)
-		{
-			VirtualQuery(pRemaining, &inf, sizeof(inf));
+		int ret = 0;
 
-			if (pRemaining != inf.AllocationBase || inf.RegionSize != sizeRemaining)
-				g_debug("src: 0x%x, BaseAddress: 0x%x, AllocBase: 0x%x, Size 0x%x(0x%x)", 
-					pRemaining, inf.BaseAddress, inf.AllocationBase, inf.RegionSize, size);
-
-			if (inf.RegionSize == size) {
-				ret = VirtualFree(pRemaining, 0, MEM_RELEASE);
-				sizeRemaining = 0;
-			} else if (inf.RegionSize < size) {
-				ret = VirtualFree(pRemaining, 0, MEM_RELEASE);
-				sizeRemaining -= inf.RegionSize;
-				pRemaining += inf.RegionSize;
-			} else {
-				ret = VirtualFree(pRemaining, sizeRemaining, MEM_DECOMMIT);
-				g_warning("RegionSize is smaller then requested decommit size");
-			}
-		}
-		
-		errno = GetLastError();
-		return_unless(0 != ret);
-	}
-#elif defined(HAS_MMAP)
-	{
-		int ret;
-
-		ret = munmap(p, size);
+		ret = vmm_vfree_fragment(p, size);
 		return_unless(0 == ret);
 	}
 #elif defined(HAS_POSIX_MEMALIGN) || defined(HAS_MEMALIGN)
@@ -3068,22 +3014,7 @@ prot_strdup(const char *s)
 	p = alloc_pages(size, FALSE, NULL);
 	if (p) {
 		memcpy(p, s, n);
-#ifdef MINGW32
-	DWORD oldProtect = 0;
-	BOOL res = VirtualProtect(
-		/* __in   LPVOID lpAddress */ (LPVOID) p,
-		/* __in   SIZE_T dwSize */ size,
-		/* __in   DWORD flNewProtect */ PAGE_READONLY,
-		/* __out  PDWORD lpflOldProtect */ &oldProtect
-	);
-	if (res == 0)
-	{
-		errno = GetLastError();
-		g_debug("VMM Protect failed %d", errno);
-	}
-#else
 		mprotect(p, size, PROT_READ);
-#endif
 		pmap_insert_foreign(vmm_pmap(), p, size);
 	}
 	return p;
@@ -3107,22 +3038,7 @@ vmm_trap_page(void)
 	if (NULL == trap_page) {
 		void *p = alloc_pages(kernel_pagesize, FALSE, NULL);
 		RUNTIME_ASSERT(p);
-#ifdef MINGW32		
-		DWORD oldProtect = 0;
-		BOOL res = VirtualProtect(
-			/* __in   LPVOID lpAddress */ (LPVOID) p,
-			/* __in   SIZE_T dwSize */ kernel_pagesize,
-			/* __in   DWORD flNewProtect */ PAGE_NOACCESS,
-			/* __out  PDWORD lpflOldProtect */ &oldProtect
-		);
-		if (res == 0)
-		{
-			errno = GetLastError();
-			g_error("VMM vmm_trap_page failed %s", g_strerror(errno));
-		}
-#else
 		mprotect(p, kernel_pagesize, PROT_NONE);
-#endif
 		trap_page = p;
 	}
 	return trap_page;

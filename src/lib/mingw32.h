@@ -35,6 +35,7 @@
 
 #ifndef _mingw32_h_
 #define _mingw32_h_
+
 #ifdef MINGW32
 
 #define WINVER 0x0501
@@ -133,6 +134,8 @@
 #define truncate mingw_truncate
 #define sendto mingw_sendto
 
+#define mprotect mingw_mprotect
+
 #define sockaddr_un sockaddr_in
 
 typedef SOCKET socket_fd_t;
@@ -224,7 +227,13 @@ ssize_t mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt);
 #define rename(oldpath, newpath) mingw_rename(oldpath, newpath)
 #define g_strerror(errnum) mingw_strerror(errnum)
 
-#endif
+void *mingw_valloc(void *hint, size_t size);
+int mingw_vfree(void *addr, size_t size);
+int mingw_vfree_fragment(void *addr, size_t size);
+int mingw_mprotect(void *addr, size_t len, int prot);
+
+#endif	/* MINGW32 */
+
 #endif /* _mingw32_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

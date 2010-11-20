@@ -339,6 +339,143 @@ ssize_t mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 	return res;
 }
 
+/***
+ *** Memory allocation routines.
+ ***/
+
+void *
+mingw_valloc(void *hint, size_t size)
+{
+	void *p;
+
+	p = (void *) VirtualAlloc(
+		/* __in_opt  LPVOID lpAddress */ hint,
+		/* __in      SIZE_T dwSize */ size,
+		/* __in      DWORD flAllocationType */  MEM_COMMIT | MEM_RESERVE,
+		/* __in      DWORD flProtect */ PAGE_READWRITE
+	);
+	if (p == NULL) {
+		p = (void *) VirtualAlloc(
+			/* __in_opt  LPVOID lpAddress */ NULL,
+			/* __in      SIZE_T dwSize */ size,
+			/* __in      DWORD flAllocationType */ MEM_COMMIT | MEM_RESERVE,
+			/* __in      DWORD flProtect */ PAGE_READWRITE
+		);
+	}
+	if (p == NULL) {
+		p = MAP_FAILED;
+		errno = GetLastError();
+	}
+
+	return p;
+}
+
+int
+mingw_vfree(void *addr, size_t size)
+{
+	(void) size;
+
+	if (0 == VirtualFree(try, 0, MEM_RELEASE)) {
+		errno = GetLastError();
+		return -1;
+	}
+
+	return 0;	/* OK */
+}
+
+int
+mingw_vfree_fragment(void *addr, size_t size)
+{
+	int ret;
+	MEMORY_BASIC_INFORMATION inf;
+	void *remain_ptr = p;
+	size_t remain_size = size;
+	
+	/* 
+	 * FIXME: This is more a workaround to avoid leaking too much memory!
+	 * There needs to be a better way!
+	 * Perhaps we can create a CreateFileMapping with an InvalidFileHandle,
+	 * this will create a anonymous file handle and as a size argument
+	 * use the largest size allowed. 
+	 * Next create a MapViewOfFile like mmap with an ANONYMOUS PAGE. 
+	 * However it won't be possible to Protect a section of the page in this
+	 * case.
+	 *		-- JA 19/11/2010
+	 */
+
+	while (remain_size > 0) {
+		if (0 == VirtualQuery(remain_ptr, &inf, sizeof inf))
+			goto error;
+
+		if (
+			remain_ptr != inf.AllocationBase ||
+			inf.RegionSize != remain_size
+		) {
+			g_debug("src: 0x%x, BaseAddress: 0x%x, AllocBase: 0x%x, "
+				"Size 0x%x(0x%x)", 
+				remain_ptr, inf.BaseAddress,
+				inf.AllocationBase, inf.RegionSize, size);
+		}
+		if (inf.RegionSize == size) {
+			if (0 == VirtualFree(remain_ptr, 0, MEM_RELEASE))
+				goto error;
+			remain_size = 0;
+		} else if (inf.RegionSize < size) {
+			if (0 == VirtualFree(remain_ptr, 0, MEM_RELEASE))
+				goto error;
+			remain_size -= inf.RegionSize;
+			remain_ptr += inf.RegionSize;
+		} else {
+			g_warning("RegionSize is smaller then requested decommit size");
+			if (0 == VirtualFree(remain_ptr, remain_size, MEM_DECOMMIT))
+				goto error;
+		}
+	}
+
+	return 0;		/* OK */
+
+error:
+	errno = GetLastError();
+	return -1;
+}
+
+int
+mingw_mprotect(void *addr, size_t len, int prot)
+{
+	DWORD oldProtect = 0;
+	DWORD newProtect;
+	BOOL res;
+
+	switch (prot) {
+	case PROT_NONE:
+		newProtect = PAGE_NOACCESS;
+		break;
+	case PROT_READ:
+		newProtect = PAGE_READONLY;
+		break;
+	case PROT_READ | PROT_WRITE:
+		newProtect = PAGE_READWRITE;
+		break;
+	default:
+		g_error("mingw_mprotect(): unsupported protection flags 0x%x", prot);
+	}
+
+	res = VirtualProtect(
+		/* __in   LPVOID lpAddress */ (LPVOID) addr,
+		/* __in   SIZE_T dwSize */ len,
+		/* __in   DWORD flNewProtect */ newProtect,
+		/* __out  PDWORD lpflOldProtect */ &oldProtect
+	);
+	if (!res) {
+		errno = GetLastError();
+		g_debug("VMM mprotect(0x%lx, %u) failed: errno=%d",
+			(unsigned long) addr, (unsigned) len, errno);
+		return -1;
+	}
+
+	return 0;	/* OK */
+}
+
 #endif	/* MINGW32 */
 
 /* vi: set ts=4 sw=4 cindent: */
