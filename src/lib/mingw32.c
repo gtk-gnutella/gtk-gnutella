@@ -476,6 +476,36 @@ mingw_mprotect(void *addr, size_t len, int prot)
 	return 0;	/* OK */
 }
 
+/***
+ *** Miscellaneous.
+ ***/
+
+int
+mingw_statvfs(const char *path, struct mingw_statvfs *buf)
+{
+	BOOL ret;
+	DWORD SectorsPerCluster;
+	DWORD BytesPerSector;
+	DWORD NumberOfFreeClusters;
+	DWORD TotalNumberOfClusters;
+
+	ret = GetDiskFreeSpace(path,
+		&SectorsPerCluster, &BytesPerSector,
+		&NumberOfFreeClusters,
+		&TotalNumberOfClusters);
+
+	if (!ret) {
+		errno = GetLastError();
+		return -1;
+	}
+
+	buf->f_csize = SectorsPerCluster * BytesPerSector;
+	buf->f_clusters = TotalNumberOfClusters;
+	buf->f_cavail = NumberOfFreeClusters;
+
+	return 0;
+}
+
 #endif	/* MINGW32 */
 
 /* vi: set ts=4 sw=4 cindent: */

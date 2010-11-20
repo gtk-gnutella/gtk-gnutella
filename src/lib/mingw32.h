@@ -165,6 +165,13 @@ struct msghdr {
 	int msg_flags;				/* Flags on received message.  */
 };
 
+struct mingw_statvfs {
+	unsigned long f_csize;		/* Cluster size, in bytes */
+	unsigned long f_cavail;		/* Available clusters */
+	unsigned long f_clusters;	/* Total amount of clusters */
+	
+};
+
 static inline char *
 iovec_base(const iovec_t* iovec) {
 	return iovec->buf;
@@ -236,6 +243,8 @@ void *mingw_valloc(void *hint, size_t size);
 int mingw_vfree(void *addr, size_t size);
 int mingw_vfree_fragment(void *addr, size_t size);
 int mingw_mprotect(void *addr, size_t len, int prot);
+
+int mingw_statvfs(const char *path, struct mingw_statvfs *buf);
 
 #endif	/* MINGW32 */
 
