@@ -560,7 +560,7 @@ mingw_getrusage(int who, struct rusage *usage)
 		0 == GetProcessTimes(GetCurrentProcess(),
 			&CreationTime, &ExitTime, &KernelTime, &UserTime)
 	) {
-		errno = GetLastError();		/* FIXME: must map to UNIX error codes */
+		errno = GetLastError();
 		return -1;
 	}
 
