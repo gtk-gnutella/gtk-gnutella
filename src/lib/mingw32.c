@@ -517,6 +517,30 @@ mingw_random_bytes(void *buf, size_t len)
  *** Miscellaneous.
  ***/
 
+gchar strerrbuf[1024];
+const gchar* mingw_strerror(gint errnum)
+{	
+	FormatMessage(
+        FORMAT_MESSAGE_FROM_SYSTEM,
+        NULL, errnum,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPTSTR) strerrbuf,
+        sizeof(strerrbuf), NULL );
+	
+	return strerrbuf;
+}
+
+int 
+mingw_rename(const char *oldpath, const char *newpath)
+{
+	if (0 == MoveFileEx(oldpath, newpath, MOVEFILE_REPLACE_EXISTING)) {
+		errno = GetLastError();
+		return -1;
+	}
+
+	return 0;
+}
+
 int
 mingw_statvfs(const char *path, struct mingw_statvfs *buf)
 {
