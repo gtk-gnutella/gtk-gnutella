@@ -109,7 +109,7 @@ RCSID("$Id$")
 #define MAX_VALUES_IP	128		/**< Max # of values allowed per IP address */
 #define MAX_VALUES_NET	1024	/**< Max # of values allowed per class C net */
 
-#define MAX_VALUES		131072	/**< Max # of values we accept to manage */
+#define MAX_VALUES		262144	/**< Max # of values we accept to manage */
 #define EXPIRE_PERIOD	30		/**< Asynchronous expire period: 30 secs */
 
 #define VALUES_DB_CACHE_SIZE 1024	/**< Amount of values to keep cached */
