@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "misc.h"
 #include "sha1.h"
 #include "tm.h"
+#include "vmm.h"				/* For vmm_trap_page() */
 
 #include "override.h"			/* Must be the last header included */
 
@@ -286,9 +287,7 @@ entropy_collect(struct sha1 *digest)
 	sha1_feed_pointer(&ctx, cast_func_to_pointer(&entropy_collect));
 	sha1_feed_pointer(&ctx, cast_func_to_pointer(&exit));	/* libc */
 	sha1_feed_pointer(&ctx, &errno);
-#ifndef MINGW32
-	sha1_feed_pointer(&ctx, sbrk(0));
-#endif
+	sha1_feed_pointer(&ctx, vmm_trap_page());
 	{
 		extern char **environ;
 		size_t i;
