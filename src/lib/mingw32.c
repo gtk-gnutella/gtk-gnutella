@@ -570,6 +570,24 @@ mingw_getrusage(int who, struct rusage *usage)
 	return 0;
 }
 
+const char *
+mingw_getlogin(void)
+{
+	static char buf[128];
+	static char *result;
+	static gboolean inited;
+	DWORD size;
+
+	if (G_LIKELY(inited))
+		return result;
+
+	size = sizeof buf;
+	result = 0 == GetUserName(buf, &size) ? NULL : buf;
+
+	inited = TRUE;
+	return result;
+}
+
 #endif	/* MINGW32 */
 
 /* vi: set ts=4 sw=4 cindent: */

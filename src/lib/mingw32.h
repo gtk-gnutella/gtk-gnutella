@@ -140,6 +140,7 @@
 
 #define mprotect mingw_mprotect
 #define getrusage mingw_getrusage
+#define getlogin mingw_getlogin
 
 #define sockaddr_un sockaddr_in
 
@@ -175,6 +176,10 @@ struct mingw_statvfs {
 
 #ifndef HAS_GETRUSAGE
 #define HAS_GETRUSAGE			/* We emulate it */
+#endif
+
+#ifndef HAS_GETLOGIN
+#define HAS_GETLOGIN			/* We emulate it */
 #endif
 
 #define RUSAGE_SELF 0
@@ -260,6 +265,8 @@ int mingw_vfree_fragment(void *addr, size_t size);
 int mingw_mprotect(void *addr, size_t len, int prot);
 
 int mingw_statvfs(const char *path, struct mingw_statvfs *buf);
+int mingw_getrusage(int who, struct rusage *usage);
+const char *mingw_getlogin(void);
 
 #endif	/* MINGW32 */
 
