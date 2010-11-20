@@ -505,6 +505,71 @@ mingw_statvfs(const char *path, struct mingw_statvfs *buf)
 	return 0;
 }
 
+/**
+ * Convert a FILETIME into a timeval.
+ *
+ * @param ft		the FILETIME structure to convert
+ * @param tv		the struct timeval to fill in
+ */
+static void
+mingw_filetime_to_timeval(FILETIME *ft, struct timeval *tv)
+{
+	ULARGE_INTEGER v;
+
+	/*
+	 * From MSDN documentation:
+	 *
+	 * A FILETIME Contains a 64-bit value representing the number of
+	 * 100-nanosecond intervals since January 1, 1601 (UTC).
+	 *
+	 * All times are expressed using FILETIME data structures.
+	 * Such a structure contains two 32-bit values that combine to form
+	 * a 64-bit count of 100-nanosecond time units.
+	 *
+	 * It is not recommended that you add and subtract values from the
+	 * FILETIME structure to obtain relative times. Instead, you should copy
+	 * the low- and high-order parts of the file time to a ULARGE_INTEGER
+	 * structure, perform 64-bit arithmetic on the QuadPart member, and copy
+	 * the LowPart and HighPart members into the FILETIME structure.
+	 */
+
+	memcpy(&v, ft, sizeof *ft);
+	v.QuadPart /= 10L;				/* Convert into microseconds */
+	tv->tv_sec = li.QuadPart / 1000000L;
+	tv->tv_usec = li.QuadPart % 1000000L;
+}
+
+int
+mingw_getrusage(int who, struct rusage *usage)
+{
+	FILETIME CreationTime;
+	FILETIME ExitTime;
+	FILETIME KernelTime;
+	FILETIME UserTime;
+
+	if (who != RUSAGE_SELF) {
+		errno = EINVAL;
+		return -1;
+	}
+	if (NULL == usage) {
+		errno = EACCESS;
+		return -1;
+	}
+
+	if (
+		0 == GetProcessTimes(GetCurrentProcess(),
+			&CreationTime, &ExitTime, &KernelTime, &UserTime)
+	) {
+		errno = GetLastError();		/* FIXME: must map to UNIX error codes */
+		return -1;
+	}
+
+	mingw_filetime_to_timeval(&UserTime, &usage->ru_utime);
+	mingw_filetime_to_timeval(&KernelTime, &usage->ru_stime);
+
+	return 0;
+}
+
 #endif	/* MINGW32 */
 
 /* vi: set ts=4 sw=4 cindent: */

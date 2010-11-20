@@ -139,6 +139,7 @@
 #define sendto mingw_sendto
 
 #define mprotect mingw_mprotect
+#define getrusage mingw_getrusage
 
 #define sockaddr_un sockaddr_in
 
@@ -170,6 +171,20 @@ struct mingw_statvfs {
 	unsigned long f_cavail;		/* Available clusters */
 	unsigned long f_clusters;	/* Total amount of clusters */
 	
+};
+
+#ifndef HAS_GETRUSAGE
+#define HAS_GETRUSAGE			/* We emulate it */
+#endif
+
+#define RUSAGE_SELF 0
+#define RUSAGE_CHILDREN (-1)
+#define RUSAGE_BOTH (-2)
+#define RUSAGE_THREAD 1
+
+struct rusage {
+	struct timeval ru_utime;	/* user time used */
+	struct timeval ru_stime;	/* system time used */
 };
 
 static inline char *
