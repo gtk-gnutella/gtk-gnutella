@@ -82,10 +82,9 @@ mingw_getphysmemsize(void)
 {
 	MEMORYSTATUSEX memStatus;
 	
-	memStatus.dwLength = sizeof (memStatus);
+	memStatus.dwLength = sizeof memStatus;
 
-	if (!GlobalMemoryStatusEx(&memStatus))
-	{
+	if (!GlobalMemoryStatusEx(&memStatus)) {
 		errno = GetLastError();
 		return -1;
 	}
