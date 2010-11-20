@@ -535,37 +535,34 @@ mingw_filetime_to_timeval(FILETIME *ft, struct timeval *tv)
 
 	memcpy(&v, ft, sizeof *ft);
 	v.QuadPart /= 10L;				/* Convert into microseconds */
-	tv->tv_sec = li.QuadPart / 1000000L;
-	tv->tv_usec = li.QuadPart % 1000000L;
+	tv->tv_sec = v.QuadPart / 1000000L;
+	tv->tv_usec = v.QuadPart % 1000000L;
 }
 
 int
 mingw_getrusage(int who, struct rusage *usage)
 {
-	FILETIME CreationTime;
-	FILETIME ExitTime;
-	FILETIME KernelTime;
-	FILETIME UserTime;
+	FILETIME creation_time, exit_time, kernel_time, user_time;
 
 	if (who != RUSAGE_SELF) {
 		errno = EINVAL;
 		return -1;
 	}
 	if (NULL == usage) {
-		errno = EACCESS;
+		errno = EACCES;
 		return -1;
 	}
 
 	if (
 		0 == GetProcessTimes(GetCurrentProcess(),
-			&CreationTime, &ExitTime, &KernelTime, &UserTime)
+			&creation_time, &exit_time, &kernel_time, &user_time)
 	) {
 		errno = GetLastError();
 		return -1;
 	}
 
-	mingw_filetime_to_timeval(&UserTime, &usage->ru_utime);
-	mingw_filetime_to_timeval(&KernelTime, &usage->ru_stime);
+	mingw_filetime_to_timeval(&user_time, &usage->ru_utime);
+	mingw_filetime_to_timeval(&kernel_time, &usage->ru_stime);
 
 	return 0;
 }
