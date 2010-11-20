@@ -249,13 +249,8 @@ page_start(const void *p)
 
 static long
 compat_pagesize_intern(void)
+#if defined (_SC_PAGESIZE) || defined(_SC_PAGE_SIZE)
 {
-#ifdef MINGW32
-	SYSTEM_INFO system_info;
-
-	GetSystemInfo(&system_info);
-	return system_info.dwPageSize;
-#elif defined (_SC_PAGESIZE) || defined(_SC_PAGE_SIZE)
 	long ret;
 
 	errno = 0;
@@ -268,10 +263,12 @@ compat_pagesize_intern(void)
 		return_value_unless(0 == errno, 0);
 	}
 	return ret;
-#else /* !_SC_PAGESIZE && !_SC_PAGE_SIZE */
-	return getpagesize();
-#endif /* MINGW32 */
 }
+#else /* !_SC_PAGESIZE && !_SC_PAGE_SIZE */
+{
+	return getpagesize();
+}
+#endif /* _SC_PAGESIZE || _SC_PAGE_SIZE */
 
 size_t
 compat_pagesize(void)
