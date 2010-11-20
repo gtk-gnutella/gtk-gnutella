@@ -42,6 +42,9 @@
 #include <ws2tcpip.h>
 #include <winsock2.h>
 
+#include <glib.h>
+
+
 #define ECONNRESET WSAECONNRESET
 #define ECONNREFUSED WSAECONNREFUSED
 #define ECONNABORTED WSAECONNABORTED
@@ -183,6 +186,7 @@ iovec_set_len(iovec_t* iovec, size_t len) {
 }
 
 const char *mingw_gethome(void);
+guint64 mingw_getphysmemsize(void);
 const char* mingw_strerror(int errnum);
 int mingw_open(const char *pathname, int flags, ...);
 int mingw_rename(const char *oldpath, const char *newpath);

@@ -51,7 +51,11 @@
  */
 guint64
 getphysmemsize(void)
-#if defined (_SC_PHYS_PAGES)
+#ifdef MINGW32
+{
+	return mingw_getphysmemsize();
+}
+#elif defined (_SC_PHYS_PAGES)
 {
 	size_t pagesize = compat_pagesize();
 	long pages;

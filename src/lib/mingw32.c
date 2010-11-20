@@ -77,6 +77,21 @@ mingw_gethome(void)
 	return path;
 }
 
+guint64
+mingw_getphysmemsize(void)
+{
+	MEMORYSTATUSEX memStatus;
+	
+	memStatus.dwLength = sizeof (memStatus);
+
+	if (!GlobalMemoryStatusEx(&memStatus))
+	{
+		errno = GetLastError();
+		return -1;
+	}
+	return memStatus.ullTotalPhys;
+}
+
 int 
 mingw_open(const char *pathname, int flags, ...)
 {
@@ -377,7 +392,6 @@ mingw_vfree(void *addr, size_t size)
 int
 mingw_vfree_fragment(void *addr, size_t size)
 {
-	int ret;
 	MEMORY_BASIC_INFORMATION inf;
 	void *remain_ptr = addr;
 	size_t remain_size = size;
