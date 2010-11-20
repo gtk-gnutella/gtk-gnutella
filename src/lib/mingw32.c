@@ -39,8 +39,10 @@ RCSID("$Id$")
 
 #ifdef MINGW32
 
+#include <windows.h>
 #include <mswsock.h>
 #include <shlobj.h>
+
 
 #include "override.h"			/* Must be the last header included */
 
@@ -431,9 +433,11 @@ mingw_vfree_fragment(void *addr, size_t size)
 			remain_size -= inf.RegionSize;
 			remain_ptr += inf.RegionSize;
 		} else {
-			g_warning("RegionSize is smaller then requested decommit size");
+			g_warning("RegionSize is smaller then requested decommit size, leaking!");
+#if 0	/* Seems to crash otherwise */
 			if (0 == VirtualFree(remain_ptr, remain_size, MEM_DECOMMIT))
 				goto error;
+#endif
 		}
 	}
 
@@ -618,7 +622,7 @@ mingw_uname(struct utsname *buf)
 
 	osvi.dwOSVersionInfoSize = sizeof osvi;
 	if (GetVersionEx((OSVERSIONINFO *) &osvi)) {
-		gm_snprintf(buf->release, sizeof buf->release, "%u.%u".
+		gm_snprintf(buf->release, sizeof buf->release, "%u.%u",
 			osvi.dwMajorVersion, osvi.dwMinorVersion);
 		gm_snprintf(buf->version, sizeof buf->version, "%u",
 			osvi.dwBuildNumber);
