@@ -111,7 +111,7 @@ get_fs_info(const char *path, struct fs_info *fsi)
 		struct mingw_statvfs buf;
 
 		if (-1 == mingw_statvfs(path, &buf)) {
-			g_warning("statvfs(\"%s\") failed: errno = %d", path, errno);
+			g_warning("statvfs(\"%s\") failed: %s", path, g_strerror(errno));
 		} else {
 			free_space = ((filesize_t) 0 + buf.f_cavail) * buf.f_csize;
 			total_space = ((filesize_t) 0 + buf.f_clusters) * buf.f_csize;
