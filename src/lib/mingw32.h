@@ -80,9 +80,10 @@
 
 #define MAP_PRIVATE 0	/* FIXME */
 
-#define PROT_READ PAGE_READONLY
-#define PROT_WRITE PAGE_READWRITE
-#define PROT_NONE PAGE_NOACCESS
+/* We-re emulating mprotect() */
+#define PROT_NONE	0x0
+#define PROT_READ	0x1
+#define PROT_WRITE	0x2
 
 #define O_NONBLOCK 0
 
