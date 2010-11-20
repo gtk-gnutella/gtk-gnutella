@@ -216,6 +216,7 @@ entropy_collect(struct sha1 *digest)
 	{
 		const char *name = getlogin();
 		sha1_feed_string(&ctx, name);
+		sha1_feed_pointer(&ctx, name);	/* name points to static data */
 	}
 #endif	/* HAS_GETLOGIN */
 
