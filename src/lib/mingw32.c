@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2010, Jeroen Asselman
+ * Copyright (c) 2010, Jeroen Asselman & Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,6 +30,7 @@
  * Win32 cross-compiling utility routines.
  *
  * @author Jeroen Asselman
+ * @author Raphael Manfredi
  * @date 2010
  */
 
@@ -583,6 +584,50 @@ mingw_getlogin(void)
 
 	inited = TRUE;
 	return result;
+}
+
+int
+mingw_getpagesize(void)
+{
+	SYSTEM_INFO system_info;
+
+	GetSystemInfo(&system_info);
+	return system_info.dwPageSize;
+}
+
+int
+mingw_uname(struct utsname *buf)
+{
+	SYSTEM_INFO system_info;
+	OSVERSIONINFOEX osvi;
+	DWORD len;
+	const char *cpu;
+
+	memset(buf, 0, sizeof *buf);
+
+	GetSystemInfo(&system_info);
+	g_strlcpy(buf->sysname, "Windows", sizeof buf->sysname);
+
+	switch (system_info.wProcessorArchitecture) {
+	case PROCESSOR_ARCHITECTURE_AMD64:	cpu = "x64"; break;
+	case PROCESSOR_ARCHITECTURE_IA64:	cpu = "ia64"; break;
+	case PROCESSOR_ARCHITECTURE_INTEL:	cpu = "x86"; break;
+	default:							cpu = "unknown"; break;
+	}
+	g_strlcpy(buf->machine, cpu, sizeof buf->machine);
+
+	osvi.dwOSVersionInfoSize = sizeof osvi;
+	if (GetVersionEx((OSVERSIONINFO *) &osvi)) {
+		gm_snprintf(buf->release, sizeof buf->release, "%u.%u".
+			osvi.dwMajorVersion, osvi.dwMinorVersion);
+		gm_snprintf(buf->version, sizeof buf->version, "%u",
+			osvi.dwBuildNumber);
+	}
+
+	len = sizeof buf->nodename;
+	GetComputerName(buf->nodename, &len);
+
+	return 0;
 }
 
 #endif	/* MINGW32 */

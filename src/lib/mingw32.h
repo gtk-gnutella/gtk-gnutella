@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2010, Jeroen Asselman
+ * Copyright (c) 2010, Jeroen Asselman & Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,6 +30,7 @@
  * Win32 cross-compiling utility routines.
  *
  * @author Jeroen Asselman
+ * @author Raphael Manfredi
  * @date 2010
  */
 
@@ -142,6 +143,8 @@
 #define mprotect mingw_mprotect
 #define getrusage mingw_getrusage
 #define getlogin mingw_getlogin
+#define getpagesize mingw_getpagesize
+#define uname mingw_uname
 
 #define sockaddr_un sockaddr_in
 
@@ -183,6 +186,10 @@ struct mingw_statvfs {
 #define HAS_GETLOGIN			/* We emulate it */
 #endif
 
+#ifndef HAS_UNAME
+#define HAS_UNAME				/* We emulate it */
+#endif
+
 #define RUSAGE_SELF 0
 #define RUSAGE_CHILDREN (-1)
 #define RUSAGE_BOTH (-2)
@@ -191,6 +198,16 @@ struct mingw_statvfs {
 struct rusage {
 	struct timeval ru_utime;	/* user time used */
 	struct timeval ru_stime;	/* system time used */
+};
+
+#define UTSNAME_LENGTH	65
+
+struct utsname {
+	char sysname[UTSNAME_LENGTH];
+	char nodename[UTSNAME_LENGTH];
+	char release[UTSNAME_LENGTH];
+	char version[UTSNAME_LENGTH];
+	char machine[UTSNAME_LENGTH];
 };
 
 static inline char *
@@ -268,6 +285,8 @@ int mingw_mprotect(void *addr, size_t len, int prot);
 int mingw_statvfs(const char *path, struct mingw_statvfs *buf);
 int mingw_getrusage(int who, struct rusage *usage);
 const char *mingw_getlogin(void);
+int mingw_getpagesize(void);
+int mingw_uname(struct utsname *buf);
 
 #endif	/* MINGW32 */
 
