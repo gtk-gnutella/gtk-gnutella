@@ -9347,7 +9347,7 @@ node_gnet_addr(const gnutella_node_t *n)
 const char *
 node_infostr(const gnutella_node_t *n)
 {
-	static char buf[80];
+	static char buf[128];
 
 	gm_snprintf(buf, sizeof buf, "%s node %s <%s>",
 		node_type(n), node_gnet_addr(n), node_vendor(n));
