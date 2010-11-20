@@ -79,7 +79,7 @@
 
 typedef struct iovec iovec_t;
 typedef int socket_fd_t;
-#define INVALID_SOCKET -1
+#define INVALID_SOCKET (-1)
 
 #define s_write write
 #define s_read read
