@@ -282,6 +282,8 @@ int mingw_vfree(void *addr, size_t size);
 int mingw_vfree_fragment(void *addr, size_t size);
 int mingw_mprotect(void *addr, size_t len, int prot);
 
+int mingw_random_bytes(void *buf, size_t len);
+
 int mingw_statvfs(const char *path, struct mingw_statvfs *buf);
 int mingw_getrusage(int who, struct rusage *usage);
 const char *mingw_getlogin(void);

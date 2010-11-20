@@ -481,6 +481,39 @@ mingw_mprotect(void *addr, size_t len, int prot)
 }
 
 /***
+ *** Random numbers.
+ ***/
+
+/**
+ * Fill supplied buffer with random bytes.
+ * @return amount of generated random bytes.
+ */
+int
+mingw_random_bytes(void *buf, size_t len)
+{
+	HCRYPTPROV crypth = NULL;
+
+	g_assert(len <= MAX_INT_VAL(int));
+
+	if (
+		!CryptAcquireContext(&crypth, NULL, NULL, PROV_RSA_FULL,
+			CRYPT_VERIFYCONTEXT | CRYPT_SILENT))
+	) {
+		errno = GetLastError();
+		return 0;
+	}
+
+	memset(buf, 0, len);
+	if (!CryptGenRandom(crypth, len, buf)) {
+		errno = GetLastError();
+		len = 0;
+	}
+	CryptReleaseContext(crypth, 0);
+
+	return (int) len;
+}
+
+/***
  *** Miscellaneous.
  ***/
 

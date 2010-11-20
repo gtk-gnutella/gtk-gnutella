@@ -133,6 +133,16 @@ entropy_collect(struct sha1 *digest)
 	SHA1Reset(&ctx);
 	SHA1Input(&ctx, &start, sizeof start);
 
+#ifdef MINGW32
+	{
+		guint8 data[128];
+		if (0 == mingw_random_bytes(data, sizeof data)) {
+			g_warning("unable to generate random bytes: %s", g_strerror(errno));
+		} else {
+			SHA1Input(&ctx, data, sizeof data);
+		}
+	}
+#else	/* !MINGW32 */
 	/*
 	 * If we have a /dev/urandom character device, use it.
 	 * Otherwise, launch ps and grab its output.
@@ -175,6 +185,7 @@ entropy_collect(struct sha1 *digest)
 		else
 			fclose(f);
 	}
+#endif	/* MINGW32 */
 
 	/*
 	 * Add local CPU state noise.
@@ -190,12 +201,11 @@ entropy_collect(struct sha1 *digest)
 
 	/* Add some host/user dependent noise */
 #ifndef MINGW32
-	/* FIXME MINGW, Add PERFORMANCE_INFORMATION  here? */
 	sha1_feed_ulong(&ctx, getuid());
 	sha1_feed_ulong(&ctx, getgid());
-	sha1_feed_ulong(&ctx, getpid());
 	sha1_feed_ulong(&ctx, getppid());
 #endif
+	sha1_feed_ulong(&ctx, getpid());
 	sha1_feed_ulong(&ctx, compat_max_fd());
 
 	sha1_feed_string(&ctx, __DATE__);
