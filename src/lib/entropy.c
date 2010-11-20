@@ -236,13 +236,13 @@ entropy_collect(struct sha1 *digest)
 	sha1_feed_stat(&ctx, eval_subst("~"));
 	sha1_feed_stat(&ctx, ".");
 	sha1_feed_stat(&ctx, "..");
+	sha1_feed_stat(&ctx, "/");
 #ifdef MINGW32
 	sha1_feed_stat(&ctx, "C:/");
 	sha1_feed_stat(&ctx, "C:/Windows");
 	sha1_feed_stat(&ctx, "C:/Temp");
 	sha1_feed_stat(&ctx, "C:/Program Files");
 #else	/* !MINGW32 */
-	sha1_feed_stat(&ctx, "/");
 	sha1_feed_stat(&ctx, "/bin");
 	sha1_feed_stat(&ctx, "/boot");
 	sha1_feed_stat(&ctx, "/dev");
