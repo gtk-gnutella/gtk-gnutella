@@ -3524,6 +3524,7 @@ vmm_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 	(void) length;
 	(void) prot;
 	(void) flags;
+	(void) fd;
 	(void) offset;
 	g_assert_not_reached();
 

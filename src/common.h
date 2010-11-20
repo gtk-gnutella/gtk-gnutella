@@ -346,7 +346,7 @@ typedef void (*GCallback) (void);
  * Allow code to blindly say lstat() even if not defined.
  */
 #ifndef HAS_LSTAT
-#define lsat(_p,_b)	stat((_p),(_b))
+#define lstat(_p,_b)	stat((_p),(_b))
 #endif
 
 /*

@@ -68,7 +68,7 @@ mingw_gethome(void)
 
 	ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA , NULL, 0, path);
 	
-	if (E_INVALIDARG == result) {
+	if (E_INVALIDARG == ret) {
 		g_warning("could not determine home directory");
 		path[0] = '/';
 		path[1] = '\0';
@@ -197,7 +197,7 @@ mingw_shutdown(socket_fd_t sockfd, int how)
 }
 
 int 
-mingw_getsockopt(int sockfd, int level, int optname,
+mingw_getsockopt(socket_fd_t sockfd, int level, int optname,
 	void *optval, socklen_t *optlen)
 {
 	int res = getsockopt(sockfd, level, optname, optval, optlen);
@@ -297,7 +297,7 @@ recvmsg (socket_fd_t s, struct msghdr *hdr, int flags)
 	
 	if (hdr->msg_iovlen > 100)
     {
-		g_debug("recvmsg: msg_iovlen to large:%d", hdr->msg_iovlen);
+		g_warning("recvmsg: msg_iovlen to large:%d", hdr->msg_iovlen);
         errno = EINVAL;
         return -1;
     }
@@ -319,13 +319,10 @@ recvmsg (socket_fd_t s, struct msghdr *hdr, int flags)
 		  buf, i, &received, &dflags,
 		  hdr->msg_name, &ifromLen, NULL, NULL) == 0)
 	{
-		g_debug("Received %d bytes with flags %d [%d]", received, flags, i); 
 		return received;
 	}
 	
 	errno = WSAGetLastError();
-	
-	g_debug("recvmsg: Error [%d] %s", errno, mingw_strerror(errno));
 	
 	return -1;
 #endif
@@ -348,19 +345,13 @@ mingw_valloc(void *hint, size_t size)
 {
 	void *p;
 
-	p = (void *) VirtualAlloc(
-		/* __in_opt  LPVOID lpAddress */ hint,
-		/* __in      SIZE_T dwSize */ size,
-		/* __in      DWORD flAllocationType */  MEM_COMMIT | MEM_RESERVE,
-		/* __in      DWORD flProtect */ PAGE_READWRITE
-	);
+	p = (void *) VirtualAlloc(hint, size, 
+		MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+		
 	if (p == NULL) {
-		p = (void *) VirtualAlloc(
-			/* __in_opt  LPVOID lpAddress */ NULL,
-			/* __in      SIZE_T dwSize */ size,
-			/* __in      DWORD flAllocationType */ MEM_COMMIT | MEM_RESERVE,
-			/* __in      DWORD flProtect */ PAGE_READWRITE
-		);
+		p = (void *) VirtualAlloc(NULL, size,
+			MEM_COMMIT | MEM_RESERVE,
+			PAGE_READWRITE);
 	}
 	if (p == NULL) {
 		p = MAP_FAILED;
@@ -375,7 +366,7 @@ mingw_vfree(void *addr, size_t size)
 {
 	(void) size;
 
-	if (0 == VirtualFree(try, 0, MEM_RELEASE)) {
+	if (0 == VirtualFree(addr, 0, MEM_RELEASE)) {
 		errno = GetLastError();
 		return -1;
 	}
@@ -388,7 +379,7 @@ mingw_vfree_fragment(void *addr, size_t size)
 {
 	int ret;
 	MEMORY_BASIC_INFORMATION inf;
-	void *remain_ptr = p;
+	void *remain_ptr = addr;
 	size_t remain_size = size;
 	
 	/* 
@@ -460,12 +451,7 @@ mingw_mprotect(void *addr, size_t len, int prot)
 		g_error("mingw_mprotect(): unsupported protection flags 0x%x", prot);
 	}
 
-	res = VirtualProtect(
-		/* __in   LPVOID lpAddress */ (LPVOID) addr,
-		/* __in   SIZE_T dwSize */ len,
-		/* __in   DWORD flNewProtect */ newProtect,
-		/* __out  PDWORD lpflOldProtect */ &oldProtect
-	);
+	res = VirtualProtect((LPVOID) addr, len, newProtect, &oldProtect);
 	if (!res) {
 		errno = GetLastError();
 		g_debug("VMM mprotect(0x%lx, %u) failed: errno=%d",
