@@ -240,8 +240,11 @@ entropy_collect(struct sha1 *digest)
 #ifdef MINGW32
 	sha1_feed_stat(&ctx, "C:/");
 	sha1_feed_stat(&ctx, "C:/Windows");
-	sha1_feed_stat(&ctx, "C:/Temp");
+	sha1_feed_stat(&ctx, "C:/Windows/Temp");
 	sha1_feed_stat(&ctx, "C:/Program Files");
+	sha1_feed_stat(&ctx, "C:/Program Files (x86)");
+	sha1_feed_stat(&ctx, "C:/Users");
+	sha1_feed_stat(&ctx, "C:/Documents and Settings");
 #else	/* !MINGW32 */
 	sha1_feed_stat(&ctx, "/bin");
 	sha1_feed_stat(&ctx, "/boot");
