@@ -85,6 +85,7 @@ gboolean vmm_is_fragment(const void *base, size_t size);
 gboolean vmm_grows_upwards(void);
 
 void set_vmm_debug(guint32 level);
+gboolean vmm_is_debugging(guint32 level);
 void vmm_init(const void *sp);
 void vmm_malloc_inited(void);
 void vmm_post_init(void);

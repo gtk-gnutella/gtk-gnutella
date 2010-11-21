@@ -42,13 +42,14 @@ RCSID("$Id$")
 #include <windows.h>
 #include <mswsock.h>
 #include <shlobj.h>
-
+#include <wincrypt.h>
 
 #include "override.h"			/* Must be the last header included */
 
 #undef open
 #undef read
 #undef write
+#undef mkdir
 
 #undef getaddrinfo
 #undef freeaddrinfo
@@ -62,6 +63,11 @@ RCSID("$Id$")
 #undef getsockopt
 #undef setsockopt
 #undef sendto
+
+#define VMM_MINSIZE (1024*1024*100)	/* At least 100 MB */
+#define ALTVMM 1
+
+extern gboolean vmm_is_debugging(guint32 level);
 
 const char *
 mingw_gethome(void)
@@ -369,10 +375,85 @@ ssize_t mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 /***
  *** Memory allocation routines.
  ***/
+static void *mingw_vmm_res_mem;
+static size_t mingw_vmm_res_size;
+static int mingw_vmm_res_nonhinted = 0;
 
 void *
 mingw_valloc(void *hint, size_t size)
 {
+#ifdef ALTVMM
+	void *p;
+	if (!hint && mingw_vmm_res_nonhinted >= 0) {
+		if (!mingw_vmm_res_mem) {
+				/* Determine maximum possible memory first */
+				MEMORYSTATUSEX memStatus;
+				SYSTEM_INFO system_info;
+				GetNativeSystemInfo(&system_info);
+
+				mingw_vmm_res_size = 
+					system_info.lpMaximumApplicationAddress 
+					- 
+					system_info.lpMinimumApplicationAddress;
+
+				memStatus.dwLength = sizeof memStatus;					
+				if (GlobalMemoryStatusEx(&memStatus)) {
+					if (memStatus.ullTotalPhys < mingw_vmm_res_size)
+						mingw_vmm_res_size = memStatus.ullTotalPhys;
+				}
+				
+				/* Try to reserve it */
+				while (!mingw_vmm_res_mem && mingw_vmm_res_size > VMM_MINSIZE) {				
+					mingw_vmm_res_mem = p = VirtualAlloc(
+						NULL, mingw_vmm_res_size, MEM_RESERVE, PAGE_NOACCESS
+					);
+					
+					if (!mingw_vmm_res_mem)
+						mingw_vmm_res_size -= 
+							system_info.dwAllocationGranularity;
+				}
+				
+				/*
+				 * XXX: Now the maximum amount of memory is reserved. Perhaps we
+				 * need to free some space for libraries loaded at runtime? 
+				 */
+				 
+				if (!mingw_vmm_res_mem)
+					g_error("could not allocated %u of memory", mingw_vmm_res_size);
+				else if (vmm_is_debugging(0)) 
+					g_debug("reserved %u MiB of memory", mingw_vmm_res_size / (1024 * 1024));
+		} else {
+			SYSTEM_INFO system_info;
+
+			GetSystemInfo(&system_info);
+			
+			if (vmm_is_debugging(0)) 
+				g_debug("No hint given for 0x%x", size);
+			p = mingw_vmm_res_mem + 
+				(++mingw_vmm_res_nonhinted * system_info.dwPageSize);
+		}
+		if (!p) {
+			errno = GetLastError();
+			if (vmm_is_debugging(0)) 
+				g_debug("Could not allocate memory: %s", g_strerror(errno));
+		}
+	} else if (!hint && mingw_vmm_res_nonhinted < 0) {
+		errno = EPERM;
+		return MAP_FAILED;
+	} else {
+		mingw_vmm_res_nonhinted = -1;	/* Can't handle non hinted allocs anymore */
+		p = hint;
+	}
+	
+	p = (void *) VirtualAlloc(p, size, MEM_COMMIT, PAGE_READWRITE);
+		
+	if (p == NULL) {
+		p = MAP_FAILED;
+		errno = GetLastError();
+	}
+
+	return p;
+#else
 	void *p;
 
 	p = (void *) VirtualAlloc(hint, size, 
@@ -389,11 +470,23 @@ mingw_valloc(void *hint, size_t size)
 	}
 
 	return p;
+#endif
 }
 
 int
 mingw_vfree(void *addr, size_t size)
 {
+#ifdef ALTVMM
+	(void) addr;
+	(void) size;
+	
+	/* 
+	 * VMM hint should always be respected. So this function should not never
+	 * be reached from VMM
+	 */
+	
+	g_assert_not_reached();
+#else
 	(void) size;
 
 	if (0 == VirtualFree(addr, 0, MEM_RELEASE)) {
@@ -402,11 +495,20 @@ mingw_vfree(void *addr, size_t size)
 	}
 
 	return 0;	/* OK */
+#endif
 }
 
 int
 mingw_vfree_fragment(void *addr, size_t size)
 {
+#ifdef ALTVMM
+	if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
+		errno = GetLastError();
+		return -1;
+	}
+
+	return 0;
+#else
 	MEMORY_BASIC_INFORMATION inf;
 	void *remain_ptr = addr;
 	size_t remain_size = size;
@@ -459,6 +561,7 @@ mingw_vfree_fragment(void *addr, size_t size)
 error:
 	errno = GetLastError();
 	return -1;
+#endif
 }
 
 int
@@ -504,13 +607,13 @@ mingw_mprotect(void *addr, size_t len, int prot)
 int
 mingw_random_bytes(void *buf, size_t len)
 {
-	HCRYPTPROV crypth = NULL;
+	HCRYPTPROV crypth = 0;
 
 	g_assert(len <= MAX_INT_VAL(int));
 
 	if (
 		!CryptAcquireContext(&crypth, NULL, NULL, PROV_RSA_FULL,
-			CRYPT_VERIFYCONTEXT | CRYPT_SILENT))
+			CRYPT_VERIFYCONTEXT | CRYPT_SILENT)
 	) {
 		errno = GetLastError();
 		return 0;
@@ -679,7 +782,7 @@ mingw_uname(struct utsname *buf)
 
 	memset(buf, 0, sizeof *buf);
 
-	GetSystemInfo(&system_info);
+	GetNativeSystemInfo(&system_info);
 	g_strlcpy(buf->sysname, "Windows", sizeof buf->sysname);
 
 	switch (system_info.wProcessorArchitecture) {

@@ -179,10 +179,16 @@ static void vmm_track_post_init(void);
 static void vmm_track_close(void);
 #endif
 
+
 static inline gboolean
 vmm_debugging(guint32 lvl)
 {
 	return safe_to_malloc && vmm_debug > lvl;
+}
+
+gboolean vmm_is_debugging(guint32 level) 
+{ 
+	return vmm_debugging(level);
 }
 
 static inline struct pmap *
@@ -3367,7 +3373,9 @@ vmm_init(const void *sp)
 	/*
 	 * Determine how the kernel is growing the virtual memory region.
 	 */
-
+#ifdef MINGW32
+	kernel_mapaddr_increasing = 1;
+#else
 	{
 		void *p = alloc_pages(kernel_pagesize, FALSE, NULL);
 		void *q = alloc_pages(kernel_pagesize, FALSE, NULL);
@@ -3377,7 +3385,7 @@ vmm_init(const void *sp)
 		free_pages(q, kernel_pagesize, FALSE);
 		free_pages(p, kernel_pagesize, FALSE);
 	}
-
+#endif
 #ifdef TRACK_VMM
 	vmm_track_init();
 #endif

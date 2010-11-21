@@ -144,6 +144,7 @@
 #define getrusage mingw_getrusage
 #define getlogin mingw_getlogin
 #define getpagesize mingw_getpagesize
+#undef getdtablesize
 #define getdtablesize mingw_getdtablesize
 #define uname mingw_uname
 #define mkdir mingw_mkdir
