@@ -35,15 +35,21 @@
  */
 
 #include "common.h"
-RCSID("$Id$")
+
+/*
+ * This whole file is only compiled under Windows.
+ */
 
 #ifdef MINGW32
+
+RCSID("$Id$")
 
 #include <windows.h>
 #include <mswsock.h>
 #include <shlobj.h>
 #include <wincrypt.h>
 
+#include "misc.h"
 #include "override.h"			/* Must be the last header included */
 
 #undef open
@@ -418,30 +424,35 @@ mingw_valloc(void *hint, size_t size)
 				 * need to free some space for libraries loaded at runtime? 
 				 */
 				 
-				if (!mingw_vmm_res_mem)
-					g_error("could not allocated %u of memory", mingw_vmm_res_size);
-				else if (vmm_is_debugging(0)) 
-					g_debug("reserved %u MiB of memory", mingw_vmm_res_size / (1024 * 1024));
+				if (!mingw_vmm_res_mem) {
+					g_error("could not reserve %s of memory",
+						compact_size(mingw_vmm_res_size));
+				} else if (vmm_is_debugging(0)) {
+					g_debug("reserved %s of memory",
+						compact_size(mingw_vmm_res_size));
+				}
 		} else {
 			SYSTEM_INFO system_info;
 
 			GetSystemInfo(&system_info);
 			
 			if (vmm_is_debugging(0)) 
-				g_debug("No hint given for 0x%x", size);
+				g_debug("no hint given for %s allocation", compact_size(size));
 			p = mingw_vmm_res_mem + 
 				(++mingw_vmm_res_nonhinted * system_info.dwPageSize);
 		}
 		if (!p) {
 			errno = GetLastError();
 			if (vmm_is_debugging(0)) 
-				g_debug("Could not allocate memory: %s", g_strerror(errno));
+				g_debug("could not allocate %s of memory: %s",
+					compact_size(size), g_strerror(errno));
 		}
 	} else if (!hint && mingw_vmm_res_nonhinted < 0) {
 		errno = EPERM;
 		return MAP_FAILED;
 	} else {
-		mingw_vmm_res_nonhinted = -1;	/* Can't handle non hinted allocs anymore */
+		/* Can't handle non-hinted allocations anymore */
+		mingw_vmm_res_nonhinted = -1;
 		p = hint;
 	}
 	
@@ -481,8 +492,8 @@ mingw_vfree(void *addr, size_t size)
 	(void) size;
 	
 	/* 
-	 * VMM hint should always be respected. So this function should not never
-	 * be reached from VMM
+	 * VMM hint should always be respected. So this function should not
+	 * be reached from VMM, ever.
 	 */
 	
 	g_assert_not_reached();
@@ -548,7 +559,8 @@ mingw_vfree_fragment(void *addr, size_t size)
 			remain_size -= inf.RegionSize;
 			remain_ptr += inf.RegionSize;
 		} else {
-			g_warning("RegionSize is smaller then requested decommit size, leaking!");
+			g_warning("RegionSize is smaller then requested decommit"
+				" size, leaking!");
 #if 0	/* Seems to crash otherwise */
 			if (0 == VirtualFree(remain_ptr, remain_size, MEM_DECOMMIT))
 				goto error;
@@ -588,8 +600,10 @@ mingw_mprotect(void *addr, size_t len, int prot)
 	res = VirtualProtect((LPVOID) addr, len, newProtect, &oldProtect);
 	if (!res) {
 		errno = GetLastError();
-		g_debug("VMM mprotect(0x%lx, %u) failed: errno=%d",
-			(unsigned long) addr, (unsigned) len, errno);
+		if (vmm_is_debugging(0)) {
+			g_debug("VMM mprotect(0x%lx, %u) failed: errno=%d",
+				(unsigned long) addr, (unsigned) len, errno);
+		}
 		return -1;
 	}
 
