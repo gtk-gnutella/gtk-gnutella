@@ -393,6 +393,7 @@ ssize_t mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 /***
  *** Memory allocation routines.
  ***/
+
 static void *mingw_vmm_res_mem;
 static size_t mingw_vmm_res_size;
 static int mingw_vmm_res_nonhinted = 0;
@@ -404,46 +405,46 @@ mingw_valloc(void *hint, size_t size)
 	void *p;
 	if (!hint && mingw_vmm_res_nonhinted >= 0) {
 		if (!mingw_vmm_res_mem) {
-				/* Determine maximum possible memory first */
-				MEMORYSTATUSEX memStatus;
-				SYSTEM_INFO system_info;
-				GetNativeSystemInfo(&system_info);
-				void *mem_later;
-				
-				mingw_vmm_res_size = 
-					system_info.lpMaximumApplicationAddress 
-					- 
-					system_info.lpMinimumApplicationAddress;
+			/* Determine maximum possible memory first */
+			MEMORYSTATUSEX memStatus;
+			SYSTEM_INFO system_info;
+			GetNativeSystemInfo(&system_info);
+			void *mem_later;
+			
+			mingw_vmm_res_size = 
+				system_info.lpMaximumApplicationAddress 
+				- 
+				system_info.lpMinimumApplicationAddress;
 
-				memStatus.dwLength = sizeof memStatus;					
-				if (GlobalMemoryStatusEx(&memStatus)) {
-					if (memStatus.ullTotalPhys < mingw_vmm_res_size)
-						mingw_vmm_res_size = memStatus.ullTotalPhys;
-				}
+			memStatus.dwLength = sizeof memStatus;					
+			if (GlobalMemoryStatusEx(&memStatus)) {
+				if (memStatus.ullTotalPhys < mingw_vmm_res_size)
+					mingw_vmm_res_size = memStatus.ullTotalPhys;
+			}
+			
+			/* Declare some space for feature allocs without hinting */
+			mem_later = VirtualAlloc(
+				NULL, VMM_MINSIZE, MEM_RESERVE, PAGE_NOACCESS);
 				
-				/* Declare some space for feature allocs without hinting */
-				mem_later = VirtualAlloc(
-					NULL, VMM_MINSIZE, MEM_RESERVE, PAGE_NOACCESS);
-					
-				/* Try to reserve it */
-				while (!mingw_vmm_res_mem && mingw_vmm_res_size > VMM_MINSIZE) {				
-					mingw_vmm_res_mem = p = VirtualAlloc(
-						NULL, mingw_vmm_res_size, MEM_RESERVE, PAGE_NOACCESS);
-					
-					if (!mingw_vmm_res_mem)
-						mingw_vmm_res_size -= 
-							system_info.dwAllocationGranularity;
-				}
+			/* Try to reserve it */
+			while (!mingw_vmm_res_mem && mingw_vmm_res_size > VMM_MINSIZE) {
+				mingw_vmm_res_mem = p = VirtualAlloc(
+					NULL, mingw_vmm_res_size, MEM_RESERVE, PAGE_NOACCESS);
 				
-				VirtualFree(mem_later, 0, MEM_RELEASE);
-				 
-				if (!mingw_vmm_res_mem) {
-					g_error("could not reserve %s of memory",
-						compact_size(mingw_vmm_res_size, FALSE));
-				} else if (vmm_is_debugging(0)) {
-					g_debug("reserved %s of memory",
-						compact_size(mingw_vmm_res_size, FALSE));
-				}
+				if (!mingw_vmm_res_mem)
+					mingw_vmm_res_size -= 
+						system_info.dwAllocationGranularity;
+			}
+			
+			VirtualFree(mem_later, 0, MEM_RELEASE);
+			 
+			if (!mingw_vmm_res_mem) {
+				g_error("could not reserve %s of memory",
+					compact_size(mingw_vmm_res_size, FALSE));
+			} else if (vmm_is_debugging(0)) {
+				g_debug("reserved %s of memory",
+					compact_size(mingw_vmm_res_size, FALSE));
+			}
 		} else {
 			SYSTEM_INFO system_info;
 
