@@ -134,7 +134,8 @@ mingw_open(const char *pathname, int flags, ...)
     }
 
 	res = open(pathname, flags, mode);
-	errno = GetLastError();
+	if (res == -1)
+		errno = GetLastError();
 	return res;
 }
 
@@ -142,7 +143,8 @@ ssize_t
 mingw_read(int fd, void *buf, size_t count)
 {
 	ssize_t res = read(fd, buf, count);
-	errno = GetLastError();
+	if (res == -1)
+		errno = GetLastError();
 	return res;
 }
 
@@ -150,7 +152,8 @@ ssize_t
 mingw_write(int fd, const void *buf, size_t count)
 {
 	ssize_t res = write(fd, buf, count);
-	errno = GetLastError();
+	if (res == -1)
+		errno = GetLastError();
 	return res;
 }
 
@@ -160,11 +163,13 @@ mingw_truncate(const char *path, off_t len)
 	int fd, ret, saved_errno;
 
 	fd = open(path, O_RDWR);
-	if (-1 == fd)
+	if (-1 == fd) {
+		errno = GetLastError();
 		return -1;
+	}
 
 	ret = ftruncate(fd, len);
-	saved_errno = errno;
+	saved_errno = (res == -1) ? GetLastError() : 0;
 	close(fd);
 	errno = saved_errno;
 
@@ -179,21 +184,22 @@ int mingw_getaddrinfo(const char *node, const char *service,
                       struct addrinfo **res)
 {
 	int result = getaddrinfo(node, service, hints, res);
-	errno = WSAGetLastError();
+	if (result != 0)
+		errno = WSAGetLastError();
 	return result;
 }			
 
 void mingw_freeaddrinfo(struct addrinfo *res)
 {
 	freeaddrinfo(res);
-	errno = WSAGetLastError();
 }
 
 socket_fd_t 
 mingw_socket(int domain, int type, int protocol)
 {
 	socket_fd_t res = socket(domain, type, protocol);
-	errno = WSAGetLastError();
+	if (res == INVALID_SOCKET)
+		errno = WSAGetLastError();
 	return res;
 }
 
@@ -201,7 +207,8 @@ int
 mingw_bind(socket_fd_t sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {
 	int res = bind(sockfd, addr, addrlen);
-	errno = WSAGetLastError();
+	if (res == -1)
+		errno = WSAGetLastError();
 	return res;
 }
 
@@ -210,7 +217,8 @@ mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 	  socklen_t addrlen)
 {
 	socket_fd_t res = connect(sockfd, addr, addrlen);
-	errno = WSAGetLastError();
+	if (res == INVALID_SOCKET)
+		errno = WSAGetLastError();
 	return res;
 }
 
@@ -218,7 +226,8 @@ int
 mingw_listen(socket_fd_t sockfd, int backlog)
 {
 	int res = listen(sockfd, backlog);
-	errno = WSAGetLastError();
+	if (res == -1)
+		errno = WSAGetLastError();
 	return res;
 }
 
@@ -226,7 +235,8 @@ socket_fd_t
 mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	socket_fd_t res = accept(sockfd, addr, addrlen);
-	errno = WSAGetLastError();
+	if (res == INVALID_SOCKET)
+		errno = WSAGetLastError();
 	return res;
 }
 
@@ -234,7 +244,8 @@ int
 mingw_shutdown(socket_fd_t sockfd, int how)
 {
 	int res = shutdown(sockfd, how);
-	errno = WSAGetLastError();
+	if (res == -1)
+		errno = WSAGetLastError();
 	return res;
 }
 
@@ -243,7 +254,8 @@ mingw_getsockopt(socket_fd_t sockfd, int level, int optname,
 	void *optval, socklen_t *optlen)
 {
 	int res = getsockopt(sockfd, level, optname, optval, optlen);
-	errno = WSAGetLastError();
+	if (res == -1)
+		errno = WSAGetLastError();
 	return res;
 }
 
@@ -252,7 +264,8 @@ mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 	  const void *optval, socklen_t optlen)
 {
 	int res = setsockopt(sockfd, level, optname, optval, optlen);
-	errno = WSAGetLastError();
+	if (res == -1)
+		errno = WSAGetLastError();
 	return res;
 }
 
@@ -261,7 +274,8 @@ ssize_t
 s_write(socket_fd_t fd, const void *buf, size_t count)
 {
 	ssize_t res = send(fd, buf, count, 0);
-	errno = WSAGetLastError();
+	if (res == -1)
+		errno = WSAGetLastError();
 	return res;
 }
 
@@ -269,7 +283,8 @@ ssize_t
 s_read(socket_fd_t fd, void *buf, size_t count)
 {
 	ssize_t res = recv(fd, buf, count, 0);
-	errno = WSAGetLastError();
+	if (res == -1)
+		errno = WSAGetLastError();
 	return res;
 }
 
@@ -277,39 +292,35 @@ int
 s_close(socket_fd_t fd)
 {
 	int res = closesocket(fd);
-	errno = WSAGetLastError();
+	if (res == -1)
+		errno = WSAGetLastError();
 	return res;
 }
 
 size_t 
 mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 {
-	DWORD bytesReceived, flags = 0;
-	WSARecv(fd,
-		(LPWSABUF) iov, iovcnt,
-		&bytesReceived, &flags,
-		NULL, NULL);
+	DWORD r, flags = 0;
+	int res = WSARecv(fd, (LPWSABUF) iov, iovcnt, &r, &flags, NULL, NULL);
 
-	errno = WSAGetLastError();
-	return bytesReceived;
+	if (res != 0)
+		errno = WSAGetLastError();
+	return r;
 }
 
 ssize_t 
 mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 {
-	DWORD bytesSent;
-	
-	WSASend(fd,
-		(LPWSABUF) iov, iovcnt,
-		&bytesSent, 0, 
-		NULL, NULL);
+	DWORD w;
+	int res = WSASend(fd, (LPWSABUF) iov, iovcnt, &w, 0, NULL, NULL);
   
-	errno = WSAGetLastError();
-	return bytesSent;
+	if (res != 0)
+		errno = WSAGetLastError();
+	return w;
 };
 
 ssize_t 
-recvmsg (socket_fd_t s, struct msghdr *hdr, int flags) 
+recvmsg(socket_fd_t s, struct msghdr *hdr, int flags) 
 {
 #if 0
 	DWORD received;
@@ -325,8 +336,11 @@ recvmsg (socket_fd_t s, struct msghdr *hdr, int flags)
 	
 	
 	int res = WSARecvMsg(s, &msg, &received, NULL, NULL);
-	errno = WSAGetLastError();
-	return res;
+	if (res != 0) {
+		errno = WSAGetLastError();
+		return -1;
+	}
+	return received;
 
 #else
 	/* WSARecvMsg is available in windows, but not in mingw */
@@ -337,14 +351,12 @@ recvmsg (socket_fd_t s, struct msghdr *hdr, int flags)
 	INT ifromLen;
 	DWORD dflags;
 	
-	if (hdr->msg_iovlen > 100)
-    {
-		g_warning("recvmsg: msg_iovlen to large:%d", hdr->msg_iovlen);
+	if (hdr->msg_iovlen > 100) {
+		g_warning("recvmsg: msg_iovlen to large: %d", hdr->msg_iovlen);
         errno = EINVAL;
         return -1;
     }
 
-	
     for (i = 0; i < hdr->msg_iovlen; i++) {
 		buf[i].buf = iovec_base(&hdr->msg_iov[i]),
 		buf[i].len = iovec_len(&hdr->msg_iov[i]);
@@ -357,16 +369,15 @@ recvmsg (socket_fd_t s, struct msghdr *hdr, int flags)
 	ifromLen = hdr->msg_namelen;
 	dflags = flags;
 	
-    if (WSARecvFrom (s, 
-		  buf, i, &received, &dflags,
-		  hdr->msg_name, &ifromLen, NULL, NULL) == 0)
-	{
-		return received;
+    if (
+		0 != WSARecvFrom(s, buf, i, &received, &dflags,
+			hdr->msg_name, &ifromLen, NULL, NULL)
+	) {
+		errno = WSAGetLastError();
+		return -1;
 	}
 	
-	errno = WSAGetLastError();
-	
-	return -1;
+	return received;
 #endif
 }
 
@@ -374,7 +385,8 @@ ssize_t mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 	  const struct sockaddr *dest_addr, socklen_t addrlen)
 {
 	ssize_t res = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
-	errno = WSAGetLastError();
+	if (res == -1)
+		errno = WSAGetLastError();
 	return res;
 }
 
@@ -411,8 +423,7 @@ mingw_valloc(void *hint, size_t size)
 				/* Try to reserve it */
 				while (!mingw_vmm_res_mem && mingw_vmm_res_size > VMM_MINSIZE) {				
 					mingw_vmm_res_mem = p = VirtualAlloc(
-						NULL, mingw_vmm_res_size, MEM_RESERVE, PAGE_NOACCESS
-					);
+						NULL, mingw_vmm_res_size, MEM_RESERVE, PAGE_NOACCESS);
 					
 					if (!mingw_vmm_res_mem)
 						mingw_vmm_res_size -= 
@@ -663,7 +674,7 @@ const gchar* mingw_strerror(gint errnum)
 int 
 mingw_rename(const char *oldpath, const char *newpath)
 {
-	if (0 == MoveFileEx(oldpath, newpath, MOVEFILE_REPLACE_EXISTING)) {
+	if (!MoveFileEx(oldpath, newpath, MOVEFILE_REPLACE_EXISTING)) {
 		errno = GetLastError();
 		return -1;
 	}
