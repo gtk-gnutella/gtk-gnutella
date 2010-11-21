@@ -652,6 +652,21 @@ stacktrace_where_print(FILE *f)
 }
 
 /**
+ * Print current stack trace to specified file, with specified offset.
+ *
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ */
+void
+stacktrace_where_print_offset(FILE *f, size_t offset)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	stack_print(f, stack, count);
+}
+
+/**
  * Hashing routine for a "struct stacktracea".
  */
 size_t
