@@ -47,6 +47,7 @@ RCSID("$Id$")
 
 #include "lib/aging.h"
 #include "lib/cq.h"
+#include "lib/stacktrace.h"
 #include "lib/tm.h"
 #include "lib/wd.h"
 #include "lib/walloc.h"
@@ -238,6 +239,17 @@ is_local_addr(const host_addr_t addr)
 	return FALSE;
 }
 
+/**
+ * Log current stacktrace when debugging, so that we can see which part of
+ * the code caused a state change in the firewalled state.
+ */
+static void
+inet_where(void)
+{
+	if (GNET_PROPERTY(fw_debug) > 1)
+		stacktrace_where_print_offset(stderr, 1);
+}
+
 /***
  *** Firewall status management routines.
  ***/
@@ -337,8 +349,10 @@ inet_udp_got_solicited(void)
 {
 	gnet_prop_set_boolean_val(PROP_RECV_SOLICITED_UDP, TRUE);
 
-	if (wd_wakeup(solicited_udp_wd) && GNET_PROPERTY(fw_debug))
+	if (wd_wakeup(solicited_udp_wd) && GNET_PROPERTY(fw_debug)) {
 		g_debug("FW: got solicited UDP traffic");
+		inet_where();
+	}
 
 	wd_kick(solicited_udp_wd);
 }
@@ -452,6 +466,7 @@ inet_got_incoming(const host_addr_t addr)
 		GNET_PROPERTY(fw_debug)
 	) {
 		g_debug("FW: got incoming connection => connected");
+		inet_where();
 	}
 
 	if (!GNET_PROPERTY(is_inet_connected))
@@ -484,8 +499,10 @@ void
 inet_udp_got_unsolicited_incoming(void)
 {
 	if (outgoing_udp_state != UNSOLICITED_OFF) {
-		if (GNET_PROPERTY(fw_debug))
+		if (GNET_PROPERTY(fw_debug)) {
 			g_debug("FW: got unsolicited UDP message => not firewalled");
+			inet_where();
+		}
 		move_to_unsolicited_off();
 	}
 
@@ -510,6 +527,7 @@ inet_udp_got_incoming(const host_addr_t addr)
 		GNET_PROPERTY(fw_debug)
 	) {
 		g_debug("FW: got incoming UDP traffic => connected");
+		inet_where();
 	}
 
 	if (!GNET_PROPERTY(is_inet_connected))
