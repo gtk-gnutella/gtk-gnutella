@@ -403,13 +403,16 @@ mingw_valloc(void *hint, size_t size)
 {
 #ifdef ALTVMM
 	void *p;
-	if (!hint && mingw_vmm_res_nonhinted >= 0) {
-		if (!mingw_vmm_res_mem) {
-			/* Determine maximum possible memory first */
+
+	if (NULL == hint && mingw_vmm_res_nonhinted >= 0) {
+		if (NULL == mingw_vmm_res_mem) {
 			MEMORYSTATUSEX memStatus;
 			SYSTEM_INFO system_info;
-			GetNativeSystemInfo(&system_info);
 			void *mem_later;
+
+			/* Determine maximum possible memory first */
+
+			GetNativeSystemInfo(&system_info);
 			
 			mingw_vmm_res_size = 
 				system_info.lpMaximumApplicationAddress 
@@ -427,18 +430,19 @@ mingw_valloc(void *hint, size_t size)
 				NULL, VMM_MINSIZE, MEM_RESERVE, PAGE_NOACCESS);
 				
 			/* Try to reserve it */
-			while (!mingw_vmm_res_mem && mingw_vmm_res_size > VMM_MINSIZE) {
+			while (
+				NULL == mingw_vmm_res_mem && mingw_vmm_res_size > VMM_MINSIZE
+			) {
 				mingw_vmm_res_mem = p = VirtualAlloc(
 					NULL, mingw_vmm_res_size, MEM_RESERVE, PAGE_NOACCESS);
 				
-				if (!mingw_vmm_res_mem)
-					mingw_vmm_res_size -= 
-						system_info.dwAllocationGranularity;
+				if (NULL == mingw_vmm_res_mem)
+					mingw_vmm_res_size -= system_info.dwAllocationGranularity;
 			}
 			
 			VirtualFree(mem_later, 0, MEM_RELEASE);
 			 
-			if (!mingw_vmm_res_mem) {
+			if (NULL == mingw_vmm_res_mem) {
 				g_error("could not reserve %s of memory",
 					compact_size(mingw_vmm_res_size, FALSE));
 			} else if (vmm_is_debugging(0)) {
@@ -446,27 +450,25 @@ mingw_valloc(void *hint, size_t size)
 					compact_size(mingw_vmm_res_size, FALSE));
 			}
 		} else {
-			SYSTEM_INFO system_info;
-
-			GetSystemInfo(&system_info);
-			
 			if (vmm_is_debugging(0)) 
 				g_debug("no hint given for %s allocation", 
 					compact_size(size, FALSE));
 			p = mingw_vmm_res_mem + 
-				(++mingw_vmm_res_nonhinted * system_info.dwPageSize);
+				(++mingw_vmm_res_nonhinted * mingw_getpagesize());
 		}
-		if (!p) {
+		if (NULL == p) {
 			errno = GetLastError();
 			if (vmm_is_debugging(0)) 
 				g_debug("could not allocate %s of memory: %s",
 					compact_size(size, FALSE), g_strerror(errno));
 		}
-	} else if (!hint && mingw_vmm_res_nonhinted < 0) {
-		/* Non hinted request after hinted request are used. Allow usage of
-		 * non VMM space */
-		p = (void *) VirtualAlloc(NULL, size, 
-			MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	} else if (NULL == hint && mingw_vmm_res_nonhinted < 0) {
+		/*
+		 * Non hinted request after hinted request are used. Allow usage of
+		 * non VMM space
+		 */
+
+		p = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 		
 		if (p == NULL) {
 			errno = GetLastError();
@@ -479,7 +481,7 @@ mingw_valloc(void *hint, size_t size)
 		p = hint;
 	}
 	
-	p = (void *) VirtualAlloc(p, size, MEM_COMMIT, PAGE_READWRITE);
+	p = VirtualAlloc(p, size, MEM_COMMIT, PAGE_READWRITE);
 		
 	if (p == NULL) {
 		p = MAP_FAILED;
@@ -813,10 +815,14 @@ mingw_getlogin(void)
 int
 mingw_getpagesize(void)
 {
+	static int result;
 	SYSTEM_INFO system_info;
 
+	if (G_LIKELY(result != 0))
+		return result;
+
 	GetSystemInfo(&system_info);
-	return system_info.dwPageSize;
+	return result = system_info.dwPageSize;
 }
 
 int
