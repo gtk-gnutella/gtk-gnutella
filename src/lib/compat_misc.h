@@ -39,11 +39,9 @@
 #ifndef _compat_misc_h_
 #define _compat_misc_h_
 
-
-int compat_mkdir(const char *path, mode_t mode);
-guint compat_max_fd(void);
 gboolean compat_is_superuser(void);
 int compat_daemonize(const char *directory);
+gboolean compat_process_is_alive(pid_t pid);
 
 void compat_fadvise_sequential(int fd, off_t offset, off_t size);
 void compat_fadvise_noreuse(int fd, off_t offset, off_t size);

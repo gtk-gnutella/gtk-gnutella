@@ -88,7 +88,7 @@ close_file_descriptors(const int first_fd)
 	if (try_close_from(first_fd))
 		return;
 
-	fd = compat_max_fd() - 1;
+	fd = getdtablesize() - 1;
 	while (fd >= first_fd) {
 		if (close(fd)) {
 #if defined(F_MAXFD)

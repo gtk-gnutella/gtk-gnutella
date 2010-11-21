@@ -144,7 +144,9 @@
 #define getrusage mingw_getrusage
 #define getlogin mingw_getlogin
 #define getpagesize mingw_getpagesize
+#define getdtablesize mingw_getdtablesize
 #define uname mingw_uname
+#define mkdir mingw_mkdir
 
 #define sockaddr_un sockaddr_in
 
@@ -232,10 +234,12 @@ iovec_set_len(iovec_t* iovec, size_t len) {
 
 const char *mingw_gethome(void);
 guint64 mingw_getphysmemsize(void);
+guint mingw_getdtablesize(void);
 const char* mingw_strerror(int errnum);
 int mingw_open(const char *pathname, int flags, ...);
 int mingw_rename(const char *oldpath, const char *newpath);
 int mingw_truncate(const char *path, off_t len);
+int mingw_mkdir(const char *path, mode_t mode);
 
 ssize_t mingw_read(int fd, void *buf, size_t count);
 ssize_t mingw_write(int fd, const void *buf, size_t count);
@@ -283,6 +287,7 @@ int mingw_vfree_fragment(void *addr, size_t size);
 int mingw_mprotect(void *addr, size_t len, int prot);
 
 int mingw_random_bytes(void *buf, size_t len);
+gboolean mingw_process_is_alive(pid_t pid);
 
 int mingw_statvfs(const char *path, struct mingw_statvfs *buf);
 int mingw_getrusage(int who, struct rusage *usage);

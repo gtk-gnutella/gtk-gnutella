@@ -43,28 +43,6 @@ RCSID("$Id$")
 #include "compat_misc.h"
 #include "override.h"			/* Must be the last header included */
 
-guint
-compat_max_fd(void)
-{
-#ifdef MINGW32
-	/* FIXME MINGW32 */
-	return 1024;
-#else
-	return getdtablesize();
-#endif
-}
-
-int
-compat_mkdir(const char *path, mode_t mode)
-{
-#ifdef MINGW32
-	/* FIXME MINGW32 */
-	return mkdir(path);
-#else
-	return mkdir(path, mode);
-#endif
-}
-
 gboolean
 compat_is_superuser(void)
 {
@@ -79,6 +57,16 @@ compat_is_superuser(void)
 #endif /* HAS_GETEUID */
 
 	return ret;
+}
+
+gboolean
+compat_process_is_alive(pid_t pid)
+{
+#ifdef MINGW32
+	return mingw_process_is_alive(pid);
+#else
+	return -1 != kill(pid, 0);
+#endif
 }
 
 /**

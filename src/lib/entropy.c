@@ -206,7 +206,7 @@ entropy_collect(struct sha1 *digest)
 	sha1_feed_ulong(&ctx, getppid());
 #endif
 	sha1_feed_ulong(&ctx, getpid());
-	sha1_feed_ulong(&ctx, compat_max_fd());
+	sha1_feed_ulong(&ctx, getdtablesize());
 
 	sha1_feed_string(&ctx, __DATE__);
 	sha1_feed_string(&ctx, __TIME__);

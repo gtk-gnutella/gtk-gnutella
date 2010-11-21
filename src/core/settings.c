@@ -326,18 +326,16 @@ ensure_unicity(const char *file, int *fd_ptr)
 				pid_t pid = u;
 
 				if (GNET_PROPERTY(lockfile_debug)) {
-					g_debug("file \"%s\" trying to send SIGZERO to PID %lu",
+					g_debug("file \"%s\" checking whether PID %lu is alive",
 						file, (unsigned long) pid);
 				}
-#ifndef MINGW32	/* FIXME MINGW32 */
-				if (0 == kill(pid, 0)) {
+				if (compat_process_is_alive(pid)) {
 					if (fd_ptr) {
 						g_warning("another gtk-gnutella process seems to "
 							"be using \"%s\" (pid=%lu)", file, (gulong) pid);
 					}
 					goto failed;
 				}
-#endif
 			}
 		}
 	}
@@ -576,7 +574,7 @@ settings_init(void)
 #endif /* RLIMIT_DATA */
 
     properties = gnet_prop_init();
-	max_fd = compat_max_fd();
+	max_fd = getdtablesize();
 	
 	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, max_fd);
 	gnet_prop_set_guint64_val(PROP_SYS_PHYSMEM, amount);
@@ -592,7 +590,7 @@ settings_init(void)
 
 	if (!is_directory(config_dir)) {
 		g_warning(_("creating configuration directory \"%s\""), config_dir);
-		if (-1 == compat_mkdir(config_dir, CONFIG_DIR_MODE)) {
+		if (-1 == mkdir(config_dir, CONFIG_DIR_MODE)) {
 			g_warning("mkdir(\"%s\") failed: \"%s\"",
 				config_dir, g_strerror(errno));
 			goto no_config_dir;
@@ -1393,7 +1391,7 @@ enable_local_socket_changed(property_t prop)
 			const char *ipc_dir;
 
 			ipc_dir = settings_ipc_dir();
-			if (0 == compat_mkdir(ipc_dir, IPC_DIR_MODE) || EEXIST == errno) {
+			if (0 == mkdir(ipc_dir, IPC_DIR_MODE) || EEXIST == errno) {
 				const char *socket_path;
 
 				socket_path = settings_local_socket_path();

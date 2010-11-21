@@ -1485,7 +1485,7 @@ create_directory(const char *dir, mode_t mode)
 		goto failure;
 	}
 
-	if (compat_mkdir(dir, mode)) {
+	if (mkdir(dir, mode)) {
 		error = errno;
 		if (EEXIST == error) {
 			goto finish;
@@ -1495,7 +1495,7 @@ create_directory(const char *dir, mode_t mode)
 			if (create_directory(upper, mode)) {
 				error = errno;
 		 	} else {
-				if (compat_mkdir(dir, mode)) {
+				if (mkdir(dir, mode)) {
 					error = errno;
 				} else {
 					error = 0;

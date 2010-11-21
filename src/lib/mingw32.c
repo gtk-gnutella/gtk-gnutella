@@ -94,6 +94,19 @@ mingw_getphysmemsize(void)
 	return memStatus.ullTotalPhys;
 }
 
+guint
+mingw_getdtablesize(void)
+{
+	return 1024;	/* FIXME: max number of file descriptors per process */
+}
+
+int
+mingw_mkdir(const char *path, mode_t mode)
+{
+	(void) mode;	/* FIXME: handle mode */
+	return mkdir(path);
+}
+
 int 
 mingw_open(const char *pathname, int flags, ...)
 {
@@ -689,6 +702,20 @@ mingw_uname(struct utsname *buf)
 	GetComputerName(buf->nodename, &len);
 
 	return 0;
+}
+
+gboolean
+mingw_process_is_alive(pid_t pid)
+{
+	HANDLE p;
+
+	p = OpenProcess(SYNCHRONIZE, FALSE, pid);
+
+	if (NULL == p)
+		return FALSE;
+
+	CloseHandle(p);
+	return TRUE;
 }
 
 #endif	/* MINGW32 */
