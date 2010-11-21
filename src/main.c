@@ -960,12 +960,12 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 	ct = localtime(&now);
 
 	switch (level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL)) {
-	case G_LOG_LEVEL_CRITICAL: prefix = "critical"; break;
-	case G_LOG_LEVEL_ERROR:    prefix = "error";    break;
-	case G_LOG_LEVEL_WARNING:  prefix = "warning";  break;
-	case G_LOG_LEVEL_MESSAGE:  prefix = "message";  break;
-	case G_LOG_LEVEL_INFO:     prefix = "info";     break;
-	case G_LOG_LEVEL_DEBUG:    prefix = "debug";    break;
+	case G_LOG_LEVEL_CRITICAL: prefix = "CRITICAL"; break;
+	case G_LOG_LEVEL_ERROR:    prefix = "ERROR";    break;
+	case G_LOG_LEVEL_WARNING:  prefix = "WARNING";  break;
+	case G_LOG_LEVEL_MESSAGE:  prefix = "MESSAGE";  break;
+	case G_LOG_LEVEL_INFO:     prefix = "INFO";     break;
+	case G_LOG_LEVEL_DEBUG:    prefix = "DEBUG";    break;
 	default:
 		prefix = "UNKNOWN";
 	}
@@ -980,8 +980,8 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 	fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n",
 		(TM_YEAR_ORIGIN + ct->tm_year) % 100, ct->tm_mon + 1, ct->tm_mday,
 		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
-		(level & G_LOG_FLAG_RECURSION) ? " (recursive)" : "",
-		(level & G_LOG_FLAG_FATAL) ? " (FATAL)" : "",
+		(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
+		(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
 		safer);
 
 	if (safer != message) {
