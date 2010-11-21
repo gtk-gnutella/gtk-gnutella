@@ -169,7 +169,7 @@ mingw_truncate(const char *path, off_t len)
 	}
 
 	ret = ftruncate(fd, len);
-	saved_errno = (res == -1) ? GetLastError() : 0;
+	saved_errno = (ret == -1) ? GetLastError() : 0;
 	close(fd);
 	errno = saved_errno;
 
@@ -408,7 +408,8 @@ mingw_valloc(void *hint, size_t size)
 				MEMORYSTATUSEX memStatus;
 				SYSTEM_INFO system_info;
 				GetNativeSystemInfo(&system_info);
-
+				void *mem_later;
+				
 				mingw_vmm_res_size = 
 					system_info.lpMaximumApplicationAddress 
 					- 
@@ -420,6 +421,10 @@ mingw_valloc(void *hint, size_t size)
 						mingw_vmm_res_size = memStatus.ullTotalPhys;
 				}
 				
+				/* Declare some space for feature allocs without hinting */
+				mem_later = VirtualAlloc(
+					NULL, VMM_MINSIZE, MEM_RESERVE, PAGE_NOACCESS);
+					
 				/* Try to reserve it */
 				while (!mingw_vmm_res_mem && mingw_vmm_res_size > VMM_MINSIZE) {				
 					mingw_vmm_res_mem = p = VirtualAlloc(
@@ -430,17 +435,14 @@ mingw_valloc(void *hint, size_t size)
 							system_info.dwAllocationGranularity;
 				}
 				
-				/*
-				 * XXX: Now the maximum amount of memory is reserved. Perhaps we
-				 * need to free some space for libraries loaded at runtime? 
-				 */
+				VirtualFree(mem_later, 0, MEM_RELEASE);
 				 
 				if (!mingw_vmm_res_mem) {
 					g_error("could not reserve %s of memory",
-						compact_size(mingw_vmm_res_size));
+						compact_size(mingw_vmm_res_size, FALSE));
 				} else if (vmm_is_debugging(0)) {
 					g_debug("reserved %s of memory",
-						compact_size(mingw_vmm_res_size));
+						compact_size(mingw_vmm_res_size, FALSE));
 				}
 		} else {
 			SYSTEM_INFO system_info;
@@ -448,7 +450,8 @@ mingw_valloc(void *hint, size_t size)
 			GetSystemInfo(&system_info);
 			
 			if (vmm_is_debugging(0)) 
-				g_debug("no hint given for %s allocation", compact_size(size));
+				g_debug("no hint given for %s allocation", 
+					compact_size(size, FALSE));
 			p = mingw_vmm_res_mem + 
 				(++mingw_vmm_res_nonhinted * system_info.dwPageSize);
 		}
@@ -456,11 +459,19 @@ mingw_valloc(void *hint, size_t size)
 			errno = GetLastError();
 			if (vmm_is_debugging(0)) 
 				g_debug("could not allocate %s of memory: %s",
-					compact_size(size), g_strerror(errno));
+					compact_size(size, FALSE), g_strerror(errno));
 		}
 	} else if (!hint && mingw_vmm_res_nonhinted < 0) {
-		errno = EPERM;
-		return MAP_FAILED;
+		/* Non hinted request after hinted request are used. Allow usage of
+		 * non VMM space */
+		p = (void *) VirtualAlloc(NULL, size, 
+			MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+		
+		if (p == NULL) {
+			errno = GetLastError();
+			p = MAP_FAILED;
+		}
+		return p;
 	} else {
 		/* Can't handle non-hinted allocations anymore */
 		mingw_vmm_res_nonhinted = -1;
@@ -524,7 +535,17 @@ int
 mingw_vfree_fragment(void *addr, size_t size)
 {
 #ifdef ALTVMM
-	if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
+	
+	if (mingw_vmm_res_mem < addr &&
+		mingw_vmm_res_mem + mingw_vmm_res_size > addr)
+	{
+		/* Allocated in non reserved space */
+		if (!VirtualFree(addr, 0, MEM_DECOMMIT)) {
+			errno = GetLastError();
+			return -1;
+		}
+	} else if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
+		/* Allocated in reserved space */
 		errno = GetLastError();
 		return -1;
 	}
