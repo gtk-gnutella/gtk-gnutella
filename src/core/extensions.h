@@ -182,6 +182,7 @@ void ext_close(void);
 
 void ext_prepare(extvec_t *exv, int exvcnt);
 int ext_parse(const char *buf, int len, extvec_t *exv, int exvcnt);
+int ext_parse_nul(const char *buf, int len, char **endptr, extvec_t *, int);
 void ext_reset(extvec_t *exv, int exvcnt);
 
 gboolean ext_is_printable(const extvec_t *e);

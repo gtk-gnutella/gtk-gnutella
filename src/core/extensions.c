@@ -125,6 +125,12 @@ typedef struct extdesc {
 #define ext_ggep_deflate	ext_u.extu_ggep.extu_deflate
 #define ext_ggep_id			ext_u.extu_ggep.extu_id
 
+/**
+ * Flags for ext_parse_buffer.
+ */
+
+#define EXT_F_NUL_END		(1 << 0)	/**< Stop at first NUL byte */
+
 static const char * const extype[] = {
 	"UNKNOWN",					/**< EXT_UNKNOWN */
 	"XML",						/**< EXT_XML */
@@ -985,13 +991,21 @@ ext_merge_adjacent(extvec_t *exv, extvec_t *next)
 }
 
 /**
- * Parse extension block of `len' bytes starting at `buf' and fill the
- * supplied extension vector `exv', whose size is `exvcnt' entries.
+ * Parse buffer for extensions, filling supplied extension vector with
+ * the extensions which were successfully parsed.
+ *
+ * @param buf		start of data to parse
+ * @param len		length of data available (may stop parsing earlier)
+ * @param flags		flags controlling how parsing is done
+ * @param exv		extension vector to fill-in
+ * @param exvcnt	length of extension vector
+ * @param endptr	if non-NULL, filled	with pointer to next byte
  *
  * @return the number of filled entries.
  */
-int
-ext_parse(const char *buf, int len, extvec_t *exv, int exvcnt)
+static int
+ext_parse_buffer(const char *buf, size_t len, int flags,
+	extvec_t *exv, int exvcnt, char **endptr)
 {
 	const char *p = buf, *end = &buf[len];
 	int cnt = 0;
@@ -1032,6 +1046,8 @@ ext_parse(const char *buf, int len, extvec_t *exv, int exvcnt)
 		case '\0':
 			p++;
 			if (p == end)
+				goto out;
+			if ((flags & EXT_F_NUL_END) && '\0' == *(p - 1))
 				goto out;
 			found = ext_none_parse(&p, len-1, exv, exvcnt);
 			if (!found) {
@@ -1096,7 +1112,37 @@ ext_parse(const char *buf, int len, extvec_t *exv, int exvcnt)
 	}
 
 out:
+	if (endptr != NULL)
+		*endptr = deconstify_gpointer(p);	/* Beyond what we parsed */
+
 	return cnt;
+}
+
+/**
+ * Parse extension block of `len' bytes starting at `buf' and fill the
+ * supplied extension vector `exv', whose size is `exvcnt' entries.
+ *
+ * @return the number of filled entries.
+ */
+int
+ext_parse(const char *buf, int len, extvec_t *exv, int exvcnt)
+{
+	return ext_parse_buffer(buf, len, 0, exv, exvcnt, NULL);
+}
+
+/**
+ * Parse extension block of `len' bytes starting at `buf' and fill the
+ * supplied extension vector `exv', whose size is `exvcnt' entries.
+ * Stop parsing at the first NUL byte.
+ *
+ * @return the number of filled entries, and fills `end' with the address
+ * of the first byte beyond the parsed area, which may be beyond the initial
+ * buffer if there was no NUL byte to stop the parsing.
+ */
+int
+ext_parse_nul(const char *buf, int len, char **end, extvec_t *exv, int exvcnt)
+{
+	return ext_parse_buffer(buf, len, EXT_F_NUL_END, exv, exvcnt, end);
 }
 
 /**

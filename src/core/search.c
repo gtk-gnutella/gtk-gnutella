@@ -1431,7 +1431,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	gboolean seen_bitprint = FALSE;
 	gboolean multiple_sha1 = FALSE;
 	gboolean multiple_alt = FALSE;
+	gboolean tag_has_nul = FALSE;
 	const char *vendor = NULL;
+	const char *badmsg = NULL;
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -1450,11 +1452,10 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 	rs->ttl	= gnutella_header_get_ttl(&n->header);
 	rs->hops = gnutella_header_get_hops(&n->header);
+
 	if (!browse) {
-		/*
-		 * NB: route_message() increases hops by 1 for messages we handle.
-		 */
-		rs->hops--;
+		g_assert(rs->hops > 0);
+		rs->hops--; 	/* route_message() increased hop count by 1 */
 	}
 
 	{
@@ -1536,6 +1537,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 	if (rs->num_recs == 0) {
         gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
+		badmsg = "no results";
 		goto bad_packet;
 	}
 
@@ -1558,6 +1560,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		if (!s) {
 			/* There cannot be two NULs: end of packet! */
 			gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
+			badmsg = "no NUL after filename";
 			goto bad_packet;
         }
 		s++;
@@ -1579,13 +1582,14 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			 * Inspect the tag, looking for next NUL.
 			 */
 
-			/* Find to second NUL */
+			/* Find second NUL */
 			s = memchr(s, '\0', endptr - s);
 			if (s) {
 				/* Found second NUL */
 				taglen = s - tag;
 			} else {
                 gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
+				badmsg = "no second NUL to close record";
 				goto bad_packet;
             }
 		} else {
@@ -1605,6 +1609,8 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		rc->size = size;
 		rc->filename = filename;
 
+		rs->records = g_slist_prepend(rs->records, rc);
+
 		/*
 		 * If we have a tag, parse it for extensions.
 		 */
@@ -1613,14 +1619,52 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			extvec_t exv[MAX_EXTVEC];
 			int exvcnt;
 			int i;
+			char *endtag;
+			size_t parselen;
 			gnet_host_vec_t *hvec = NULL;		/* For GGEP "ALT" */
 			gboolean has_hash = FALSE;
 			gboolean has_unknown = FALSE;
 
 			g_assert(taglen > 0);
 
+			/*
+			 * We're not only parsing the tag, we're parsing until the
+			 * end of the query hit to be able to detect wrong encodings.
+			 * Parsing will stop at the first NUL byte seen after a valid
+			 * extension but will happily swallow NUL in a GGEP payload,
+			 * which is completely invalid in a query hit of course.
+			 */
+
+			parselen = ptr_diff(endptr, tag);
+			g_assert(parselen >= taglen);
+
 			ext_prepare(exv, MAX_EXTVEC);
-			exvcnt = ext_parse(tag, taglen, exv, MAX_EXTVEC);
+			exvcnt = ext_parse_nul(tag, parselen, &endtag, exv, MAX_EXTVEC);
+
+			/*
+			 * If all went well, endptr is at the end of the tag, past its
+			 * NUL byte.  So the length of the data parsed is taglen + 1,
+			 * to account for the NUL being swallowed by the parser.
+			 *
+			 * Otherwise, since we computed the end of the tag by looking
+			 * for the next NUL byte, it means the servent did not use COBS
+			 * in GGEP or sent garbage data.
+			 */
+
+			g_assert(ptr_cmp(endtag, tag) >= 0);
+
+			if (ptr_diff(endtag, tag) != taglen + 1) {
+				tag_has_nul = TRUE;
+				if (endtag == tag || *(endtag - 1) != '\0') {
+					/* Cannot continue parsing */
+					ext_reset(exv, MAX_EXTVEC);
+					gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
+					badmsg = "NUL found within result tag data";
+					goto bad_packet;
+				}
+			}
+
+			s = endtag;		/* Resume parsing here for next record */
 
 			/*
 			 * Look for a valid SHA1 or a tag string we can display.
@@ -1886,8 +1930,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				}
 			}
 		}
-
-		rs->records = g_slist_prepend(rs->records, rc);
 	}
 
 	/*
@@ -1938,9 +1980,39 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		}
 	}
 
+	if (tag_has_nul) {
+		/*
+		 * So that we know who generates such a bad query hit...
+		 */
+
+		if (0 == rs->hops && !NODE_IS_UDP(n) && vendor != NULL) {
+			/*
+			 * These vendors are known to generate proper hits usually.
+			 */
+
+			switch (rs->vcode.u32) {
+			case T_GTKG:
+			case T_LIME:
+				if (
+					GNET_PROPERTY(node_debug) &&
+					!(n->flags & NODE_F_NOT_GENUINE)
+				) {
+					g_message("NODE %s is not a genuine %s: "
+						"sends bad query hits",
+						node_infostr(n), vendor ? vendor : "node");
+				}
+				n->flags |= NODE_F_NOT_GENUINE;
+				break;
+			}
+		}
+        gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
+		badmsg = "at least one filenme tag had NUL bytes";
+		goto bad_packet;
+	}
 
 	if (nr != rs->num_recs) {
         gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
+		badmsg = "inconsistent number of records";
 		goto bad_packet;
     }
 
@@ -1949,17 +2021,27 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	rs->guid = atom_guid_get(cast_to_guid_ptr_const(endptr));
 	if (guid_eq(rs->guid, GNET_PROPERTY(servent_guid))) {
         gnet_stats_count_dropped(n, MSG_DROP_OWN_RESULT);
+		badmsg = "own result";
+		if (0 == rs->hops) {
+			n->n_weird++;
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_warning("[weird #%d] %s sending our own results with hops=0",
+					 n->n_weird, node_infostr(n));
+			}
+		}
 		goto bad_packet;		
 	}
 
 	/* Very funny */
 	if (guid_eq(rs->guid, gnutella_header_get_muid(&n->header))) {
 		gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
+		badmsg = "bad MUID";
 		goto bad_packet;		
 	}
 
 	if (guid_eq(rs->guid, &blank_guid)) {
 		gnet_stats_count_dropped(n, MSG_DROP_BLANK_SERVENT_ID);
+		badmsg = "blank GUID";
 		goto bad_packet;		
 	}
 
@@ -1968,6 +2050,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		search_results_handle_trailer(n, rs, trailer, endptr - trailer)
 	) {
         gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
+		badmsg = "bad trailer";
 		goto bad_packet;		
 	}
 
@@ -1992,6 +2075,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				sha1_errors, sha1_errors == 1 ? "" : "s",
 				nr, nr == 1 ? "" : "s");
 		gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
+		badmsg = "malformed SHA1";
 		goto bad_packet;		/* Will drop this bad query hit */
 	}
 
@@ -2074,11 +2158,11 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	 */
 
   bad_packet:
-	if (GNET_PROPERTY(search_debug) > 2) {
+	if (GNET_PROPERTY(search_debug)) {
 		g_warning(
-			"BAD %s from %s (via %s) -- %u/%u records parsed",
-			 gmsg_node_infostr(n), vendor ? vendor : "????",
-			 node_infostr(n), nr, rs->num_recs);
+			"BAD %s from %s (via %s) -- %u/%u record%s parsed: %s",
+			 gmsg_node_infostr(n), vendor ? vendor : "????", node_infostr(n),
+			 nr, rs->num_recs, 1 == rs->num_recs ? "" : "s", badmsg);
 		if (GNET_PROPERTY(search_debug) > 1)
 			dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
 	}
@@ -2100,7 +2184,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 	g_assert(gnutella_header_get_hops(&n->header) == 1);
 
-    vendor = vendor_get_name(rs->vcode.u32);
+	vendor = vendor_get_name(rs->vcode.u32);
 
 	if (n->attrs & NODE_A_QHD_NO_VTAG) {	/* Known to have no tag */
 		if (vendor) {
@@ -2116,7 +2200,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		 */
 
 		if (n->vendor == NULL && vendor)
-            node_set_vendor(n, vendor);
+			node_set_vendor(n, vendor);
 
 		if (vendor == NULL)
 			n->attrs |= NODE_A_QHD_NO_VTAG;	/* No vendor tag */
@@ -2209,7 +2293,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	) {
 		if (
 			(is_host_addr(n->gnet_qhit_addr) &&
-			 	!host_addr_equal(n->gnet_qhit_addr, rs->addr)
+				!host_addr_equal(n->gnet_qhit_addr, rs->addr)
 				) ||
 			(!is_host_addr(n->gnet_qhit_addr) &&
 				is_host_addr(n->gnet_pong_addr) &&
@@ -2258,8 +2342,8 @@ build_search_msg(search_ctrl_t *sch)
 	STATIC_ASSERT(25 == sizeof msg.data);
 	size = sizeof msg.data;
 	
-    g_assert(sch != NULL);
-    g_assert(sbool_get(sch->active));
+	g_assert(sch != NULL);
+	g_assert(sbool_get(sch->active));
 	g_assert(!sbool_get(sch->frozen));
 	g_assert(sch->muids);
 
@@ -2478,8 +2562,8 @@ search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
 	guint i;
 	guint wocnt;
 
-    g_assert(sch != NULL);
-    g_assert(qhv != NULL);
+	g_assert(sch != NULL);
+	g_assert(qhv != NULL);
 	g_assert(GNET_PROPERTY(current_peermode) == NODE_P_ULTRA);
 
 	qhvec_reset(qhv);
@@ -2513,8 +2597,8 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	gnutella_msg_search_t *msg;
 	size_t size;
 
-    g_assert(sch != NULL);
-    g_assert(sbool_get(sch->active));
+	g_assert(sch != NULL);
+	g_assert(sbool_get(sch->active));
 	g_assert(!sbool_get(sch->frozen));
 
 	if (NULL == (msg = build_search_msg(sch)))
@@ -2585,8 +2669,8 @@ node_added_callback(gpointer data)
 	search_ctrl_t *sch = data;
 	g_assert(node_added != NULL);
 	g_assert(data != NULL);
-    g_assert(sch != NULL);
-    g_assert(sbool_get(sch->active));
+	g_assert(sch != NULL);
+	g_assert(sbool_get(sch->active));
 
 	/*
 	 * If we're in UP mode, we're using dynamic querying for our own queries.
@@ -2601,9 +2685,9 @@ node_added_callback(gpointer data)
 	 */
 
 	if (
-        !search_already_sent_to_node(sch, node_added) &&
+		!search_already_sent_to_node(sch, node_added) &&
 		!sbool_get(sch->frozen)
-    ) {
+	) {
 		search_send_packet(sch, node_added);
 	}
 }
@@ -2825,7 +2909,7 @@ search_send_closed(gpointer key, gpointer unused_value, gpointer udata)
 static void
 search_notify_closed(gnet_search_t sh)
 {
-    search_ctrl_t *sch = search_find_by_handle(sh);
+	search_ctrl_t *sch = search_find_by_handle(sh);
 
 	g_hash_table_foreach(sch->sent_node_ids, search_send_closed, sch);
 }
@@ -2888,7 +2972,7 @@ search_init(void)
 
 	searches = g_hash_table_new(pointer_hash_func, NULL);
 	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
-    search_handle_map = idtable_new();
+	search_handle_map = idtable_new();
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 	oob_reply_acks_init();
@@ -2900,21 +2984,21 @@ search_init(void)
 void
 search_shutdown(void)
 {
-    while (sl_search_ctrl != NULL) {
+	while (sl_search_ctrl != NULL) {
 		search_ctrl_t *sch = sl_search_ctrl->data;
 		
-        g_warning("force-closing search left over by GUI: %s", sch->query);
-        search_close(sch->search_handle);
-    }
+		g_warning("force-closing search left over by GUI: %s", sch->query);
+		search_close(sch->search_handle);
+	}
 
-    g_assert(idtable_ids(search_handle_map) == 0);
+	g_assert(idtable_ids(search_handle_map) == 0);
 
 	g_hash_table_destroy(searches);
 	searches = NULL;
 	g_hash_table_destroy(search_by_muid);
 	search_by_muid = NULL;
-    idtable_destroy(search_handle_map);
-    search_handle_map = NULL;
+	idtable_destroy(search_handle_map);
+	search_handle_map = NULL;
 	qhvec_free(query_hashvec);
 
 	zdestroy(rs_zone);
@@ -2967,7 +3051,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 	search_free_alt_locs(rc);
 
 	if (ignored) {
-    	const char *vendor = vendor_get_name(rs->vcode.u32);
+		const char *vendor = vendor_get_name(rs->vcode.u32);
 		g_warning("ignored %u invalid alt-loc%s in hits from %s (%s)",
 			ignored, ignored == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),
@@ -3074,7 +3158,7 @@ search_results_set_auto_download(gnet_results_set_t *rs)
 				rs->addr,
 				rs->port,
 				rs->guid,
-			   	rs->hostname,
+				rs->hostname,
 				rc->sha1,
 				rc->tth,
 				rs->stamp,
@@ -3122,7 +3206,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	 * will copy the information for its own perusal (and filtering).
 	 */
 	{
-    	search_ctrl_t *sch = search_find_by_handle(sh);
+		search_ctrl_t *sch = search_find_by_handle(sh);
 		
 		g_assert(sch != NULL);
 		if (!sbool_get(sch->frozen))
@@ -3130,10 +3214,10 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 						GUINT_TO_POINTER(sch->search_handle));
 	}
 
-    /*
+	/*
 	 * We're also going to dispatch the results to all the opened passive
 	 * searches, since they may have customized filters.
-     */
+	 */
 
 	if (GNET_PROPERTY(browse_copied_to_passive)) {
 		guint32 max_items = search_max_results_for_ui();
@@ -3155,7 +3239,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 		search = NULL;
 	}
 
-    search_free_r_set(rs);
+	search_free_r_set(rs);
 }
 
 /**
@@ -3230,7 +3314,7 @@ search_results(gnutella_node_t *n, int *results)
 	 * to determine and display their vendor ID.
 	 */
 
-	if (rs->hops == 0 && !NODE_IS_UDP(n))
+	if (0 == rs->hops && !NODE_IS_UDP(n))
 		update_neighbour_info(n, rs);
 
 	/*
