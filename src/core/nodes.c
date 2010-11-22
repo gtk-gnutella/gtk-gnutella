@@ -8245,7 +8245,10 @@ node_remove_useless_leaf(gboolean *is_gtkg)
 		 * any querying via hops-flow or lack of QRT.
 		 */
 
-		if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME) {
+		if (
+			(n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME ||
+			(n->flags & NODE_F_NOT_GENUINE)
+		) {
 			worst = n;
 			break;
 		}
@@ -8327,7 +8330,10 @@ node_remove_useless_ultra(gboolean *is_gtkg)
         if (whitelist_check(n->addr))
             continue;
 
-		if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME) {
+		if (
+			(n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME ||
+			(n->flags & NODE_F_NOT_GENUINE)
+		) {
 			worst = n;
 			break;
 		}
