@@ -124,9 +124,18 @@ open_read(
 	path_orig = h_strdup_printf("%s.%s", path, orig_ext);
 	in = fopen(path, "r");
 	if (in) {
+#ifdef MINGW32
+		/* Windows can't rename an open file */
+		fclose(in);
 		if (renaming && -1 == rename(path, path_orig))
+#else
+		if (renaming && -1 == rename(path, path_orig))
+#endif
 			g_warning("[%s] could not rename \"%s\" as \"%s\": %s",
 				what, path, path_orig, g_strerror(errno));
+#ifdef MINGW32
+			in = fopen(path_orig, "r");
+#endif
 		goto out;
     } else {
 		if (errno != ENOENT) {

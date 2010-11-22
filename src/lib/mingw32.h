@@ -117,7 +117,7 @@
 #define POLLNVAL	0x0020	/* Invalid request: fd not open */
 
 #define getppid()		1
-#define fcntl(fd, cmd, ...) (-1)
+#define fcntl mingw_fcntl
 #define ffs __builtin_ffs
 
 #define socket mingw_socket
@@ -150,6 +150,9 @@
 #define mkdir mingw_mkdir
 
 #define sockaddr_un sockaddr_in
+
+#define cpufreq_min	mingw_cpufreq_min
+#define cpufreq_max	mingw_cpufreq_max
 
 typedef SOCKET socket_fd_t;
 typedef WSABUF iovec_t;
@@ -233,6 +236,8 @@ iovec_set_len(iovec_t* iovec, size_t len) {
 	return iovec->len = len;
 }
 
+int mingw_fcntl(int fd, int cmd, ... /* arg */ );
+
 const char *mingw_gethome(void);
 guint64 mingw_getphysmemsize(void);
 guint mingw_getdtablesize(void);
@@ -291,6 +296,8 @@ int mingw_random_bytes(void *buf, size_t len);
 gboolean mingw_process_is_alive(pid_t pid);
 
 int mingw_statvfs(const char *path, struct mingw_statvfs *buf);
+guint64 mingw_cpufreq_min(void);
+guint64 mingw_cpufreq_max(void);
 int mingw_getrusage(int who, struct rusage *usage);
 const char *mingw_getlogin(void);
 int mingw_getpagesize(void);

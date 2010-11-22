@@ -3139,7 +3139,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		return INVALID_SOCKET;
 	}
 	fd = socket(family, type, 0);
-	if (fd < 0) {
+	if (fd == INVALID_SOCKET) {
 		socket_failed = TRUE;
 		saved_errno = errno;
 	} else {
@@ -3184,7 +3184,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 	}
 #endif /* HAS_SOCKER_GET */
 
-	if (fd < 0) {
+	if (fd == INVALID_SOCKET) {
 		const char *type_str = SOCK_DGRAM == type ? "datagram" : "stream";
 		const char *net_str = net_type_to_string(host_addr_net(bind_addr));
 

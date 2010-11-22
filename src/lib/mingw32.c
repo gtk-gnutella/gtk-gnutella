@@ -76,6 +76,56 @@ RCSID("$Id$")
 
 extern gboolean vmm_is_debugging(guint32 level);
 
+int 
+mingw_fcntl(int fd, int cmd, ... /* arg */ )
+{
+	int res = -1;
+	
+	switch (cmd) {
+		case F_SETFL:
+		case F_GETFL:
+		{
+			long arg;
+			va_list  args;
+			va_start(args, cmd);
+			arg = (long) va_arg(args, long);
+			va_end(args);
+
+			/* GetFileInformationByHandle, SetFileInformationByHandle */			
+			break;
+		}	
+		case F_SETLK:
+		{
+			HANDLE file =  (HANDLE)_get_osfhandle(fd);
+			struct flock*  arg;
+			va_list  args;
+			va_start(args, cmd);
+			arg = (struct flock*) va_arg(args, struct flock*);
+			
+			off_t len = arg->l_len == 0 ? 0xFFFF : arg->l_len;
+			
+			if (arg->l_type == F_WRLCK) {
+				
+				if (!LockFile(file, arg->l_start, 0, len, 0))
+					errno = GetLastError();
+				else
+					res = 0;
+			} else if (arg->l_type == F_UNLCK) {
+				if (!UnlockFile(file, arg->l_start, 0, len, 0))
+					errno = GetLastError();
+				else
+					res = 0;
+			}
+			
+			va_end(args);
+			
+			break;
+		}		
+	}
+	
+	return res;
+}
+
 const char *
 mingw_gethome(void)
 {
@@ -699,6 +749,11 @@ const gchar* mingw_strerror(gint errnum)
 int 
 mingw_rename(const char *oldpath, const char *newpath)
 {
+	/*
+	 * XXX: Try to rename a file with SetFileInformationByHandle
+	 * and FILE_INFO_BY_HANDLE_CLASS 
+	 */
+	
 	if (!MoveFileEx(oldpath, newpath, MOVEFILE_REPLACE_EXISTING)) {
 		errno = GetLastError();
 		return -1;
@@ -730,6 +785,20 @@ mingw_statvfs(const char *path, struct mingw_statvfs *buf)
 	buf->f_clusters = TotalNumberOfClusters;
 	buf->f_cavail = NumberOfFreeClusters;
 
+	return 0;
+}
+
+guint64 
+mingw_cpufreq_min(void)
+{
+	/* To be implemented */
+	return 0;
+}
+
+guint64 
+mingw_cpufreq_max(void)
+{
+	/* To be implemented */
 	return 0;
 }
 
