@@ -946,16 +946,15 @@ mingw_process_is_alive(pid_t pid)
 
 	p = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
 
-	if (NULL != p ) {
-		GetModuleBaseName(p, NULL, process_name, sizeof(process_name) );
-		GetModuleBaseName(GetCurrentProcess(), NULL, our_process_name, sizeof(our_process_name) );
+	if (NULL != p) {
+		GetModuleBaseName(p, NULL, process_name, sizeof process_name);
+		GetModuleBaseName(GetCurrentProcess(),
+			NULL, our_process_name, sizeof our_process_name);
 		
 		res = g_strcmp0(process_name, our_process_name) == 0;
-		
 		CloseHandle(p);
     }
   
-	CloseHandle(p);
 	return res;
 }
 
