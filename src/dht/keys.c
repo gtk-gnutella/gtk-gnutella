@@ -1059,7 +1059,7 @@ struct load_ctx {
 };
 
 /**
- * Hashtalbe iterator to update key's request load.
+ * Hashtable iterator to update key's request load.
  *
  * @return TRUE if the key item holds no value and must be removed.
  */
