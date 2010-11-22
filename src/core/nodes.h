@@ -278,6 +278,7 @@ typedef struct gnutella_node {
  */
 
 enum {
+	NODE_F_NOT_GENUINE	= 1 << 27,	/**< Vendor cannot be genuine */
 	NODE_F_VMSG_SUPPORT	= 1 << 26,	/**< Indicated which VMSGs are supported */
 	NODE_F_CAN_TLS		= 1 << 25,	/**< Indicated support for TLS */
 	NODE_F_TLS			= 1 << 24,	/**< TLS-tunneled */
@@ -445,8 +446,10 @@ enum {
  */
 
 #define node_vendor(n)		((n)->vendor != NULL ? (n)->vendor : "????")
-#define node_type(n)		\
-	(NODE_IS_LEAF(n) ? "leaf" : NODE_IS_ULTRA(n) ? "ultra" : "legacy")
+#define node_type(n)			\
+	(NODE_IS_UDP(n) ? "UDP" :	\
+	 NODE_IS_LEAF(n) ? "leaf" :	\
+	 NODE_IS_ULTRA(n) ? "ultra" : "legacy")
 
 #define node_inc_sent(n)            node_add_sent(n, 1)
 #define node_inc_txdrop(n)          node_add_txdrop(n, 1)
