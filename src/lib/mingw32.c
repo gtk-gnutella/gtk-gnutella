@@ -48,6 +48,7 @@ RCSID("$Id$")
 #include <mswsock.h>
 #include <shlobj.h>
 #include <wincrypt.h>
+#include <psapi.h>
 
 #include "misc.h"
 #include "override.h"			/* Must be the last header included */
@@ -863,15 +864,30 @@ mingw_uname(struct utsname *buf)
 gboolean
 mingw_process_is_alive(pid_t pid)
 {
+	char our_process_name[1024];
+	char process_name[1024];
 	HANDLE p;
+	BOOL res = FALSE;
 
-	p = OpenProcess(SYNCHRONIZE, FALSE, pid);
+	pid_t our_pid = GetCurrentProcessId();
 
-	if (NULL == p)
+	/* PID might be reused */
+	if (our_pid == pid)
 		return FALSE;
 
+	p = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+
+	if (NULL != p ) {
+		GetModuleBaseName(p, NULL, process_name, sizeof(process_name) );
+		GetModuleBaseName(GetCurrentProcess(), NULL, our_process_name, sizeof(our_process_name) );
+		
+		res = g_strcmp0(process_name, our_process_name) == 0;
+		
+		CloseHandle(p);
+    }
+  
 	CloseHandle(p);
-	return TRUE;
+	return res;
 }
 
 #endif	/* MINGW32 */
