@@ -503,7 +503,7 @@ st_search(
 	guint random_offset;  /* Randomizer for search returns */
 
 	search = UNICODE_CANONIZE(search_term);
-	if (GNET_PROPERTY(search_debug) > 4 && 0 != strcmp(search, search_term)) {
+	if (GNET_PROPERTY(query_debug) > 4 && 0 != strcmp(search, search_term)) {
 		g_debug("original search term: \"%s\"", search_term);
 		g_debug("canonical search term: \"%s\"", search);
 	}
