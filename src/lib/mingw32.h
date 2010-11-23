@@ -154,6 +154,7 @@
 #define cpufreq_min	mingw_cpufreq_min
 #define cpufreq_max	mingw_cpufreq_max
 
+
 typedef SOCKET socket_fd_t;
 typedef WSABUF iovec_t;
 

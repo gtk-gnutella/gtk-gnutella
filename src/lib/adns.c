@@ -790,9 +790,7 @@ done:
 void
 adns_init(void)
 {
-#ifdef MINGW32	
-	/* FIXME MINGW32 */
-#else
+#ifndef MINGW32	
 	int fd_query[2] = {-1, -1};
 	int fd_reply[2] = {-1, -1};
 	pid_t pid;
@@ -867,8 +865,12 @@ prefork_failure:
 		CLOSE_IF_VALID(fd_reply[1]);
 	}
 
-	adns_cache = adns_cache_init();
+#else
+#if MINGW32_ADNS
+	mingw_adns_init();
 #endif
+#endif
+	adns_cache = adns_cache_init();
 }
 
 /**
@@ -877,6 +879,9 @@ prefork_failure:
 static gboolean
 adns_send_request(const struct adns_request *req)
 {
+#ifdef MINGW32_ADNS
+	return mingw_adns_send_request(req);
+#else
 	char buf[sizeof *req];
 	size_t size;
 	ssize_t written;
@@ -939,6 +944,7 @@ adns_send_request(const struct adns_request *req)
 	}
 
 	return TRUE;
+#endif
 }
 
 /**
@@ -1061,6 +1067,9 @@ adns_reverse_lookup(const host_addr_t addr,
 void
 adns_close(void)
 {
+#ifdef MINGW32_ADNS
+	mingw_adns_close();
+#endif
 	if (adns_reply_event_id) {
 		inputevt_remove(adns_reply_event_id);
 		adns_reply_event_id = 0;

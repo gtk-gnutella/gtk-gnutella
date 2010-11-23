@@ -50,6 +50,11 @@ RCSID("$Id$")
 #include <wincrypt.h>
 #include <psapi.h>
 
+#include <glib.h>
+#include <glib/gprintf.h>
+
+#include "host_addr.h"			/* ADNS */
+
 #include "misc.h"
 #include "override.h"			/* Must be the last header included */
 
@@ -957,6 +962,148 @@ mingw_process_is_alive(pid_t pid)
   
 	return res;
 }
+
+#ifdef MINGW32_ADNS
+/* Not a clean implementation yet */
+/***
+ *** ADNS
+ ***/
+#define mingw_thread_msg_quit 0x9
+#define mingw_thread_msg_adns 0x100
+#define mingw_thread_msg_adns_resolve 0x1000
+#define mingw_thread_msg_adns_resolve_cb 0x1001
+
+unsigned int mingw_gtkg_adns_thread_id;
+DWORD mingw_gtkg_main_thread_id;
+
+
+struct adns_common {
+	void (*user_callback)(void);
+	gpointer user_data;
+	gboolean reverse;
+};
+
+struct adns_reverse_query {
+	host_addr_t addr;
+};
+
+struct adns_query {
+	enum net_type net;
+	char hostname[MAX_HOSTLEN + 1];
+};
+
+struct adns_reply {
+	char hostname[MAX_HOSTLEN + 1];
+	host_addr_t addrs[10];
+};
+
+struct adns_reverse_reply {
+	char hostname[MAX_HOSTLEN + 1];
+	host_addr_t addr;
+};
+
+struct adns_request {
+	struct adns_common common;
+	union {
+		struct adns_query by_addr;
+		struct adns_reverse_query reverse;
+	} query;
+};
+
+struct adns_response {
+	struct adns_common common;
+	union {
+		struct adns_reply by_addr;
+		struct adns_reverse_reply reverse;
+	} reply;
+};
+
+
+gboolean
+mingw_adns_send_request(const struct adns_request *req)
+{
+	char *hostname = strdup(req->query.by_addr.hostname);
+	
+	PostThreadMessage(mingw_gtkg_adns_thread_id, 
+		mingw_thread_msg_adns_resolve, (LPARAM) hostname, 0);
+		
+	return TRUE;
+}
+
+unsigned __stdcall 
+mingw_adns_thread_resolve(void *dummy)
+{
+	(void) dummy;
+	
+	MSG msg;
+	
+	while (1) {
+		GetMessage(&msg, (HANDLE)-1, 0, 0);
+	
+		printf("mingw_adns: message %d\r\n", msg.message);
+	
+		if(msg.message == mingw_thread_msg_quit)
+			goto exit;
+			
+		char *hostname = (char *) msg.wParam;		
+		struct addrinfo *results;
+		
+		getaddrinfo(hostname, NULL, NULL, &results);
+
+		PostThreadMessage(mingw_gtkg_main_thread_id, 
+			mingw_thread_msg_adns_resolve_cb, (LPARAM) results, 0);
+	}
+	
+exit:
+	_endthreadex(0);
+	return 0;
+}
+
+void
+mingw_adns_init(void)
+{
+	/*
+	 * Create ADNS thread, take care, gtkg is completely mono-threaded
+	 * so it is _not_ thread safe, don't access any public functions or 
+	 * variables!
+	 */
+	 
+	mingw_gtkg_main_thread_id = GetCurrentThreadId();
+	
+	(HANDLE)_beginthreadex( NULL, 0, mingw_adns_thread_resolve, NULL, 0, 
+		&mingw_gtkg_adns_thread_id );
+}
+
+void
+mingw_adns_close(void)
+{
+	/* Quit our ADNS thread */
+	PostThreadMessage(mingw_gtkg_adns_thread_id, mingw_thread_msg_quit, 0, 0);
+}
+
+void
+mingw_timer(void)
+{
+	MSG msg;
+
+	if (PeekMessage(&msg, (HANDLE)-1, 0, 0, PM_NOREMOVE)) {
+		g_debug("message waiting: %d", msg.message);
+		
+		switch (msg.message)
+		{
+			case mingw_thread_msg_adns_resolve_cb:
+			{
+				/* Need to verify the msg.wParam with IsBadReadPtr */
+				struct addrinfo *results;
+				results = (struct addrinfo *) msg.wParam;
+				freeaddrinfo(results);
+				break;
+			}
+		}
+	}
+	
+}
+#endif /* ADNS Disabled */
 
 #endif	/* MINGW32 */
 

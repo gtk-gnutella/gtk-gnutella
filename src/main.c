@@ -860,6 +860,9 @@ main_timer(void *unused_data)
 		reopen_log_files();
 	}
 
+#ifdef MINGW32_ADNS
+	mingw_timer();
+#endif
 	bsched_timer();					/* Scheduling update */
 	host_timer();					/* Host connection */
     hcache_timer(now);
