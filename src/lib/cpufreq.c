@@ -42,6 +42,8 @@ RCSID("$Id$")
 
 #include "override.h"			/* Must be the last header included */
 
+#define CPUFREQ_PATH "/sys/devices/system/cpu/cpu0/cpufreq/scaling_"
+
 /**
  * Minimum CPU scaling frequency supported.
  *
@@ -56,12 +58,19 @@ cpufreq_min(void)
 	if (done)
 		return freq;
 
-	/* Only Linux is supported for now */
-
 	done = TRUE;
-	freq = 1000 * filehead_uint64(
-		"/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq",
-		TRUE, NULL);
+
+#ifdef MINGW32
+	/*
+	 * Value is only used at startup for the logs, and is not used in
+	 * computations.  Windows does not report it anyway, so hardwire some
+	 * constant value.
+	 */
+	freq = 10000000;		/* 10 MHz, not important */
+#else
+	/* Only Linux is supported for now */
+	freq = 1000 * filehead_uint64(CPUFREQ_PATH "min_freq", TRUE, NULL);
+#endif	/* MINGW32 */
 
 	return freq;
 }
@@ -80,12 +89,14 @@ cpufreq_max(void)
 	if (done)
 		return freq;
 
-	/* Only Linux is supported for now */
-
 	done = TRUE;
-	freq = 1000 * filehead_uint64(
-		"/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq",
-		TRUE, NULL);
+
+#ifdef MINGW32
+	freq = mingw_cpufreq(MINGW_CPUFREQ_MAX);
+#else
+	/* Only Linux is supported for now */
+	freq = 1000 * filehead_uint64(CPUFREQ_PATH "max_freq", TRUE, NULL);
+#endif	/* MINGW32 */
 
 	return freq;
 }
@@ -104,11 +115,12 @@ cpufreq_current(void)
 	if (!supported)
 		return 0;
 
+#ifdef MINGW32
+	freq = mingw_cpufreq(MINGW_CPUFREQ_CURRENT);
+#else
 	/* Only Linux is supported for now */
-
-	freq = 1000 * filehead_uint64(
-		"/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq",
-		TRUE, NULL);
+	freq = 1000 * filehead_uint64(CPUFREQ_PATH "cur_freq", TRUE, NULL);
+#endif	/* MINGW32 */
 
 	if (0 == freq)
 		supported = FALSE;

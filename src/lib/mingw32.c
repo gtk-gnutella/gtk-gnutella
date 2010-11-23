@@ -49,6 +49,8 @@ RCSID("$Id$")
 #include <shlobj.h>
 #include <wincrypt.h>
 #include <psapi.h>
+#include <winnt.h>
+#include <powrprof.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -56,6 +58,7 @@ RCSID("$Id$")
 #include "host_addr.h"			/* ADNS */
 
 #include "misc.h"
+#include "walloc.h"
 #include "override.h"			/* Must be the last header included */
 
 #undef open
@@ -795,20 +798,6 @@ mingw_statvfs(const char *path, struct mingw_statvfs *buf)
 	return 0;
 }
 
-guint64 
-mingw_cpufreq_min(void)
-{
-	/* To be implemented */
-	return 0;
-}
-
-guint64 
-mingw_cpufreq_max(void)
-{
-	/* To be implemented */
-	return 0;
-}
-
 /**
  * Convert a FILETIME into a timeval.
  *
@@ -963,6 +952,52 @@ mingw_process_is_alive(pid_t pid)
     }
   
 	return res;
+}
+
+static int
+mingw_cpu_count(void)
+{
+	static int result;
+	SYSTEM_INFO system_info;
+
+	if (G_LIKELY(result != 0))
+		return result;
+
+	GetSystemInfo(&system_info);
+	return result = system_info.dwNumberOfProcessors;
+}
+
+guint64
+mingw_cpufreq(enum mingw_cpufreq freq)
+{
+	int cpus = mingw_cpu_count();
+	PROCESSOR_POWER_INFORMATION powarray[16];
+	PROCESSOR_POWER_INFORMATION *p;
+	size_t len;
+	guint64 result = 0;
+
+	len = cpus * sizeof *p;;
+	if (cpus <= G_N_ELEMENTS(powarray)) {
+		p = powarray;
+	} else {
+		p = walloc(len);
+	}
+
+	if (0 == CallNtPowerInformation(ProcessorInformation, NULL, 0, p, len)) {
+		switch (freq) {
+		case MINGW_CPUFREQ_CURRENT:
+			result = p[0].CurrentMhz * 1000000;		/* Convert to Hz */
+			break;
+		case MINGW_CPUFREQ_MAX:
+			result = p[0].MaxMhz * 1000000;			/* Convert to Hz */
+			break;
+		}
+	}
+
+	if (p != powarray)
+		wfree(p, len);
+
+	return result;
 }
 
 #ifdef MINGW32_ADNS

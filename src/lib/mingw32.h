@@ -151,10 +151,6 @@
 
 #define sockaddr_un sockaddr_in
 
-#define cpufreq_min	mingw_cpufreq_min
-#define cpufreq_max	mingw_cpufreq_max
-
-
 typedef SOCKET socket_fd_t;
 typedef WSABUF iovec_t;
 
@@ -303,6 +299,13 @@ int mingw_getrusage(int who, struct rusage *usage);
 const char *mingw_getlogin(void);
 int mingw_getpagesize(void);
 int mingw_uname(struct utsname *buf);
+
+enum mingw_cpufreq {
+	MINGW_CPUFREQ_CURRENT,
+	MINGW_CPUFREQ_MAX
+};
+
+guint64 mingw_cpufreq(enum mingw_cpufreq freq);
 
 #endif	/* MINGW32 */
 
