@@ -1251,17 +1251,15 @@ dht_bucket_refresh(struct kbucket *kb, gboolean forced)
 	 * Launch refresh.
 	 *
 	 * We're more aggressive for our k-bucket because we do not want to
-	 * end the lookup when we have k items in our path: we really want
-	 * to find the closest node we can.
-	 *
-	 * Likewise for forced refreshes, we want to converge to the random KUID
-	 * in order to hopefully fill the bucket, somehow.
+	 * end the lookup when we have k items in our path falling in the bucket:
+	 * we really want to find the closest node we can, even if that means
+	 * splitting our bucket further.
 	 */
 
-	if (kb->ours || forced)
+	if (kb->ours)
 		(void) lookup_find_node(&id, NULL, bucket_refresh_status, kb);
 	else
-		(void) lookup_bucket_refresh(&id, bucket_refresh_status, kb);
+		(void) lookup_bucket_refresh(&id, kb->depth, bucket_refresh_status, kb);
 }
 
 /**

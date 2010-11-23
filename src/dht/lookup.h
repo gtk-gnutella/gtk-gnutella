@@ -130,7 +130,7 @@ lookup_result_check(const lookup_rs_t *rs)
 void lookup_init(void);
 void lookup_close(gboolean exiting);
 
-nlookup_t *lookup_bucket_refresh(const kuid_t *kuid,
+nlookup_t *lookup_bucket_refresh(const kuid_t *kuid, size_t bits,
 	lookup_cb_err_t done, gpointer arg);
 nlookup_t *lookup_find_value(const kuid_t *kuid, dht_value_type_t type,
 	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg);

@@ -175,6 +175,8 @@ struct nlookup {
 	union {
 		struct {
 			lookup_cb_ok_t ok;		/**< OK callback for "find node" */
+			size_t bits;			/**< For refresh: common leading bits */
+			size_t found;			/**< For refresh: found nodes in bucket */
 		} fn;
 		struct {
 			lookup_cbv_ok_t ok;		/**< OK callback for "find value" */
@@ -3400,19 +3402,31 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 	 * When performing a lookup to refresh a k-bucket, we're not interested
 	 * in the result directly.  Instead, we're looking to get good contacts.
 	 * Therefore, we can stop as soon as the lookup path contains the
-	 * required amount of nodes.
+	 * required amount of nodes in the bucket.
 	 */
 
-	if (
-		LOOKUP_REFRESH == nl->type &&
-		patricia_count(nl->path) >= UNSIGNED(nl->amount)
-	) {
-		if (GNET_PROPERTY(dht_lookup_debug) > 1)
-			g_debug("DHT LOOKUP[%s] ending due to path size",
-				revent_id_to_string(nl->lid));
+	if (LOOKUP_REFRESH == nl->type) {
+		/*
+		 * Count nodes added to the path that have enough common leading
+		 * bits with the targeted KUID and which therefore should fall in
+		 * the bucket being refreshed.
+		 */
 
-		lookup_completed(nl);
-		return FALSE;		/* Do not iterate */
+		if (kuid_common_prefix(nl->kuid, kn->id) >= nl->u.fn.bits)
+			nl->u.fn.found++;
+
+		if (nl->u.fn.found >= UNSIGNED(nl->amount)) {
+			if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+				g_debug("DHT LOOKUP[%s] ending due to amount of nodes sharing "
+					"%u common leading bit%s",
+					revent_id_to_string(nl->lid),
+					(unsigned) nl->u.fn.bits, 1 == nl->u.fn.bits ? "" : "s");
+			}
+			lookup_completed(nl);
+			return FALSE;			/* Do not iterate */
+		}
+
+		/* FALL THROUGH */
 	}
 
 	/*
@@ -4183,6 +4197,7 @@ lookup_find_value(
  * Launch a "bucket refresh" lookup.
  *
  * @param kuid		the KUID of the node we're looking for
+ * @param bits		the amount of common leading bits to fall in the bucket
  * @param done		callback to invoke when refresh is done
  * @param arg		additional user data to propagate to callbacks
  *
@@ -4191,7 +4206,7 @@ lookup_find_value(
  */
 nlookup_t *
 lookup_bucket_refresh(
-	const kuid_t *kuid, lookup_cb_err_t done, gpointer arg)
+	const kuid_t *kuid, size_t bits, lookup_cb_err_t done, gpointer arg)
 {
 	nlookup_t *nl;
 
@@ -4200,7 +4215,9 @@ lookup_bucket_refresh(
 
 	nl = lookup_create(kuid, LOOKUP_REFRESH, done, arg);
 	nl->amount = KDA_K;
-	nl->mode = LOOKUP_BOUNDED;
+	nl->mode = LOOKUP_STRICT;	/* Not required to be quick */
+	nl->u.fn.bits = bits;		/* Amount of common bits to fall in bucket */
+	nl->u.fn.found = 0;
 
 	if (!lookup_load_shortlist(nl)) {
 		lookup_free(nl);
