@@ -242,7 +242,7 @@ int mingw_fcntl(int fd, int cmd, ... /* arg */ );
 const char *mingw_gethome(void);
 guint64 mingw_getphysmemsize(void);
 guint mingw_getdtablesize(void);
-const char* mingw_strerror(int errnum);
+const char *mingw_strerror(int errnum);
 int mingw_open(const char *pathname, int flags, ...);
 int mingw_rename(const char *oldpath, const char *newpath);
 int mingw_truncate(const char *path, off_t len);

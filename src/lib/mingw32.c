@@ -738,15 +738,17 @@ mingw_random_bytes(void *buf, size_t len)
  *** Miscellaneous.
  ***/
 
-gchar strerrbuf[1024];
-const gchar* mingw_strerror(gint errnum)
+static char strerrbuf[1024];
+
+const char *
+mingw_strerror(gint errnum)
 {	
 	FormatMessage(
         FORMAT_MESSAGE_FROM_SYSTEM,
         NULL, errnum,
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         (LPTSTR) strerrbuf,
-        sizeof(strerrbuf), NULL );
+        sizeof strerrbuf, NULL );
 	
 	return strerrbuf;
 }
