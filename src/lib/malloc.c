@@ -810,10 +810,10 @@ real_check_missed_free(void *p)
 
 	rb = hash_table_lookup(reals, p);
 	if (rb != NULL) {
+#ifdef TRACK_MALLOC
 		if (not_leaking != NULL) {
 			hash_table_remove(not_leaking, p);
 		}
-#ifdef TRACK_MALLOC
 		if (blocks != NULL) {
 			struct block *b;
 
@@ -948,7 +948,6 @@ real_check_free(void *p)
 static void
 real_free(void *p)
 {
-	size_t size = 0;
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 	gboolean owned = FALSE;
 	gboolean real = FALSE;
@@ -997,7 +996,6 @@ real_free(void *p)
 		if (not_leaking != NULL)
 			hash_table_remove(not_leaking, p);
 	} else {
-		size = b->size;
 		owned = b->owned;
 		free_record(p, _WHERE_, __LINE__);	/* p is an "user" address */
 	}
@@ -1033,8 +1031,6 @@ real_free(void *p)
 			}
 		}
 	}
-#else
-	(void) size;
 #endif	/* TRACK_MALLOC || MALLOC_VTABLE */
 
 #ifdef MALLOC_SAFE
@@ -1127,7 +1123,7 @@ real_realloc(void *ptr, size_t size)
 		}
 #endif	/* TRACK_MALLOC */
 
-#if defined(TRACK_MALLOC) && defined(MALLOC_SAFE)
+#ifdef MALLOC_SAFE
 		{
 			struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
 			size_t len = real_malloc_safe_size(size);
@@ -1163,9 +1159,9 @@ real_realloc(void *ptr, size_t size)
 #endif	/* MALLOC_SAFE_HEAD */
 			}
 		}
-#else	/* !(TRACK_MALLOC && MALLOC_SAFE) */
+#else	/* !MALLOC_SAFE */
 		result = n = realloc(p, size);
-#endif	/* TRACK_MALLOC && MALLOC_SAFE */
+#endif	/* MALLOC_SAFE */
 
 		if (n == NULL)
 			g_error("cannot realloc block into a %lu-byte one", (gulong) size);
