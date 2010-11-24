@@ -3347,7 +3347,7 @@ malloc_init_vtable(void)
  * Called from main() to init data structures.
  */
 void
-malloc_init(const char *argv0)
+malloc_init(void)
 {
 	gboolean has_setting = FALSE;
 	struct malloc_settings {
@@ -3372,18 +3372,6 @@ malloc_init(const char *argv0)
 	} settings;
 
 	memset(&settings, 0, sizeof settings);
-
-	/*
-	 * Load symbols from the executable.
-	 */
-
-	if (argv0 != NULL) {
-#ifdef MALLOC_FRAMES
-		stacktrace_init(argv0, FALSE);
-#else
-		stacktrace_init(argv0, TRUE);	/* Deferred to first need */
-#endif
-	}
 
 #ifdef MALLOC_PERIODIC
 	/*

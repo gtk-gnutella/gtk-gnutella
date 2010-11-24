@@ -541,12 +541,38 @@ stacktrace_load_symbols(void)
 		load_symbols(program_path);
 	}
 
-	return;
+	goto done;
 
 error:
 	if (program_path != NULL) {
 		g_warning("cannot load symbols for %s", program_path);
 	}
+
+	/* FALL THROUGH */
+
+done:
+	if (program_path != NULL)
+		free(program_path);
+	program_path = NULL;
+}
+
+/**
+ * Post-init operations.
+ */
+void
+stacktrace_post_init(void)
+{
+#ifdef MALLOC_FRAMES
+	/*
+	 * When we keep around allocation frames (to be able to report memory
+	 * leaks later), it is best to load symbols immediately in case the
+	 * program is changed (moved around) during the execution and we find out
+	 * we cannot load the symbols later at exit time, when we have leaks to
+	 * report and cannot map the PC addresses to functions.
+	 */
+
+	stacktrace_load_symbols();
+#endif
 }
 
 /**

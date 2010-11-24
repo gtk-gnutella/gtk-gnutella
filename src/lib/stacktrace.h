@@ -75,6 +75,7 @@ void stacktrace_where_print_offset(FILE *f, size_t offset);
 struct stackatom *stacktrace_get_atom(const struct stacktrace *st);
 
 void stacktrace_init(const char *argv0, gboolean deferred);
+void stacktrace_post_init(void);
 void stacktrace_close(void);
 
 #endif /* _stacktrace_h_ */

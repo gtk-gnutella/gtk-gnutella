@@ -130,6 +130,7 @@
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/socket.h"
+#include "lib/stacktrace.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
 #include "lib/tea.h"
@@ -714,7 +715,6 @@ slow_main_timer(time_t now)
 static time_t
 check_cpu_usage(void)
 {
-#ifndef MINGW32	/* FIXME MINGW32 */
 	static tm_t last_tm;
 	static double last_cpu = 0.0;
 	static int ticks = 0;
@@ -825,7 +825,6 @@ check_cpu_usage(void)
 				avg);
 		gnet_prop_set_boolean_val(PROP_OVERLOADED_CPU, FALSE);
 	}
-#endif
 	return tm_time();		/* Exact, since tm_now_exact() called on entry */
 }
 
@@ -1573,7 +1572,8 @@ main(int argc, char **argv)
 	handle_arguments_asap();
 
 	log_init();
-	malloc_init(argv[0]);
+	stacktrace_init(argv[0], TRUE);	/* Deferred to first need */
+	malloc_init();
 	vmm_malloc_inited();
 	zinit();
 	walloc_init();
@@ -1581,7 +1581,8 @@ main(int argc, char **argv)
 	eval_init();
 	settings_early_init();
 
-	handle_arguments();
+	handle_arguments();		/* Returning from here means we're good to go */
+	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
 	/* Our regular inits */
 	

@@ -371,7 +371,7 @@ struct frame *get_frame_atom(hash_table_t **hptr, const struct stacktrace *st);
  * Public interface, available no matter which compile options are used.
  */
 
-void malloc_init(const char *argv0);
+void malloc_init(void);
 void malloc_init_vtable(void);
 void malloc_close(void);
 
