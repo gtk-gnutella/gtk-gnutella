@@ -61,6 +61,7 @@ RCSID("$Id$")
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
 
+#undef stat
 #undef open
 #undef read
 #undef write
@@ -81,6 +82,17 @@ RCSID("$Id$")
 
 #define VMM_MINSIZE (1024*1024*100)	/* At least 100 MB */
 #define ALTVMM 1
+
+typedef struct processor_power_information {
+  ULONG Number;
+  ULONG MaxMhz;
+  ULONG CurrentMhz;
+  ULONG MhzLimit;
+  ULONG MaxIdleState;
+  ULONG CurrentIdleState;
+} PROCESSOR_POWER_INFORMATION;
+
+
 
 extern gboolean vmm_is_debugging(guint32 level);
 
@@ -176,6 +188,15 @@ mingw_mkdir(const char *path, mode_t mode)
 {
 	(void) mode;	/* FIXME: handle mode */
 	return mkdir(path);
+}
+
+int 
+mingw_stat(const char *path, struct stat *buf)
+{
+	int res = stat(path, buf);
+	if (res == -1)
+		errno = GetLastError();
+	return res;
 }
 
 int 

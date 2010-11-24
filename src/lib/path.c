@@ -116,9 +116,11 @@ is_absolute_path(const char *path)
 
 	return '/' == path[0] || G_DIR_SEPARATOR == path[0]
 #ifdef MINGW32
-		|| (	is_ascii_alpha(path[0]) &&
+		|| (
+				is_ascii_alpha(path[0]) && 
 				':' == path[1] &&
 				(G_DIR_SEPARATOR == path[2] || '/' == path[2])
+			)
 #endif
 		;
 }
