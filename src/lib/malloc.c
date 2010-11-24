@@ -3344,10 +3344,10 @@ malloc_init_vtable(void)
 }
 
 /**
- * Called from main() to init data structures.
+ * Called from main() to log settings at startup.
  */
 void
-malloc_init(void)
+malloc_show_settings(void)
 {
 	gboolean has_setting = FALSE;
 	struct malloc_settings {

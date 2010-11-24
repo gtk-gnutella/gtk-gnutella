@@ -1572,8 +1572,7 @@ main(int argc, char **argv)
 	handle_arguments_asap();
 
 	log_init();
-	stacktrace_init(argv[0], TRUE);	/* Deferred to first need */
-	malloc_init();
+	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
 	vmm_malloc_inited();
 	zinit();
 	walloc_init();
@@ -1583,6 +1582,7 @@ main(int argc, char **argv)
 
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
+	malloc_show_settings();
 
 	/* Our regular inits */
 	
