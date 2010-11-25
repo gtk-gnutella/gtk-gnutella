@@ -117,11 +117,8 @@ sha1_feed_fstat(SHA1Context *ctx, int fd)
 void
 entropy_collect(struct sha1 *digest)
 {
-	struct stat buf;
-	FILE *f = NULL;
 	SHA1Context ctx;
 	tm_t start, end;
-	gboolean is_pipe = TRUE;
 	jmp_buf env;
 
 	/*
@@ -143,47 +140,53 @@ entropy_collect(struct sha1 *digest)
 		}
 	}
 #else	/* !MINGW32 */
-	/*
-	 * If we have a /dev/urandom character device, use it.
-	 * Otherwise, launch ps and grab its output.
-	 */
+	{
+		struct stat buf;
+		FILE *f = NULL;
+		gboolean is_pipe = TRUE;
 
-	if (-1 != stat("/dev/urandom", &buf) && S_ISCHR(buf.st_mode)) {
-		f = fopen("/dev/urandom", "r");
-		is_pipe = FALSE;
-		SHA1Input(&ctx, &buf, sizeof buf);
-	} else if (-1 != access("/bin/ps", X_OK)) {
-		f = popen("/bin/ps -ef", "r");
-	} else if (-1 != access("/usr/bin/ps", X_OK)) {
-		f = popen("/usr/bin/ps -ef", "r");
-	} else if (-1 != access("/usr/ucb/ps", X_OK)) {
-		f = popen("/usr/ucb/ps aux", "r");
-	}
-
-	if (f == NULL)
-		g_warning("was unable to %s on your system",
-			is_pipe ? "find the ps command" : "open /dev/urandom");
-	else {
 		/*
-		 * Compute the SHA1 of the output (either ps or /dev/urandom).
+		 * If we have a /dev/urandom character device, use it.
+		 * Otherwise, launch ps and grab its output.
 		 */
 
-		for (;;) {
-			guint8 data[1024];
-			int r;
-			int len = is_pipe ? sizeof(data) : 128;
-
-			r = fread(data, 1, len, f);
-			if (r)
-				SHA1Input(&ctx, data, r);
-			if (r < len || !is_pipe)		/* Read once from /dev/urandom */
-				break;
+		if (-1 != stat("/dev/urandom", &buf) && S_ISCHR(buf.st_mode)) {
+			f = fopen("/dev/urandom", "r");
+			is_pipe = FALSE;
+			SHA1Input(&ctx, &buf, sizeof buf);
+		} else if (-1 != access("/bin/ps", X_OK)) {
+			f = popen("/bin/ps -ef", "r");
+		} else if (-1 != access("/usr/bin/ps", X_OK)) {
+			f = popen("/usr/bin/ps -ef", "r");
+		} else if (-1 != access("/usr/ucb/ps", X_OK)) {
+			f = popen("/usr/ucb/ps aux", "r");
 		}
 
-		if (is_pipe)
-			pclose(f);
-		else
-			fclose(f);
+		if (f == NULL)
+			g_warning("was unable to %s on your system",
+				is_pipe ? "find the ps command" : "open /dev/urandom");
+		else {
+			/*
+			 * Compute the SHA1 of the output (either ps or /dev/urandom).
+			 */
+
+			for (;;) {
+				guint8 data[1024];
+				int r;
+				int len = is_pipe ? sizeof(data) : 128;
+
+				r = fread(data, 1, len, f);
+				if (r)
+					SHA1Input(&ctx, data, r);
+				if (r < len || !is_pipe)	/* Read once from /dev/urandom */
+					break;
+			}
+
+			if (is_pipe)
+				pclose(f);
+			else
+				fclose(f);
+		}
 	}
 #endif	/* MINGW32 */
 
