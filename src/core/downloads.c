@@ -3886,6 +3886,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 					 * launching verification until we've completed cleanup.
 					 */
 					verify_sha1 = TRUE;
+					new_status = GTA_DL_COMPLETED;	/* Forced */
 				}
 			}
 			buffers_free(d);
