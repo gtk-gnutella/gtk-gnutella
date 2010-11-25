@@ -1,0 +1,59 @@
+#!/bin/sh
+
+#
+# $Id: svn-revision 12303 2006-11-11 08:11:46Z cbiere $
+#
+# Copyright (c) 2010, Raphael Manfredi
+#
+# Computes gtk-gnutella's version from source files.
+#
+#----------------------------------------------------------------------
+# This file is part of gtk-gnutella.
+#
+#  gtk-gnutella is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  gtk-gnutella is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with gtk-gnutella; if not, write to the Free Software
+#  Foundation, Inc.:
+#      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#----------------------------------------------------------------------
+#
+
+LC_ALL=C
+export LC_ALL
+unset CDPATH
+
+TOP="$1"
+
+cd $TOP
+if test ! -d scripts -o ! -d src; then
+	echo "Directory '$TOP' is not the top-level directory" 2>&1
+	exit 1;
+fi
+
+oldrev=`grep Revision src/revision.h 2>/dev/null | head -n1 | cut -d' ' -f4`
+
+if test -d .svn; then
+	revnum=`svn info . 2>/dev/null | grep '^Revision' | \
+		head -n1 | cut -d' ' -f2`
+else
+	revnum="$oldrev" # keep as is
+fi
+
+FILE=src/gtk-gnutella.h
+
+version=`grep "define GTA_VERSION" $FILE | head -n1 | awk '{ print $3 }'`
+subversion=`grep "define GTA_SUBVERSION" $FILE | head -n1 | awk '{ print $3 }'`
+patchlevel=`grep "define GTA_PATCHLEVEL" $FILE | head -n1 | awk '{ print $3 }'`
+revchar=`grep "define GTA_REVCHAR" $FILE | head -n1 | awk '{ print $3 }'`
+revchar=`echo $revchar | sed -e 's/"//g'`
+
+echo $version.$subversion.$patchlevel$revchar-$revnum
