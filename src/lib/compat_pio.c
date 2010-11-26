@@ -113,8 +113,8 @@ compat_pwritev(const int fd,
 		errno = EINVAL;
 		return -1;
 	} else if (1 == iov_cnt) {
-		return compat_pwrite(fd, 
-			iovec_base(iov), iovec_len(iov), 
+		return compat_pwrite(fd,
+			iovec_base(iov), iovec_len(iov),
 			pos);
 	} else if (0 != seek_to_filepos(fd, pos)) {
 		return -1;
@@ -157,7 +157,6 @@ compat_pread(const int fd,
 }
 #endif	/* HAS_PREAD */
 
-
 /**
  * Read data from a file object from the given offset.
  *
@@ -189,8 +188,8 @@ compat_preadv(const int fd,
 		errno = EINVAL;
 		return -1;
 	} else if (1 == iov_cnt) {
-		return compat_pread(fd, 
-			iovec_base(iov), iovec_len(iov), 
+		return compat_pread(fd,
+			iovec_base(iov), iovec_len(iov),
 			pos);
 	} else if (0 != seek_to_filepos(fd, pos)) {
 		return -1;

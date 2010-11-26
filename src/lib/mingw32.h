@@ -123,13 +123,14 @@
 
 #define socket mingw_socket
 #define bind mingw_bind
-#define writev mingw_s_writev
 #define getsockopt mingw_getsockopt
 #define setsockopt mingw_setsockopt
 #define connect mingw_connect
 #define listen mingw_listen
 #define accept mingw_accept
 #define shutdown mingw_shutdown
+#define s_writev mingw_s_writev
+#define s_readv mingw_s_readv
 
 #define getaddrinfo mingw_getaddrinfo
 #define freeaddrinfo mingw_freeaddrinfo
@@ -137,8 +138,11 @@
 #define stat(path, buf) mingw_stat(path, buf)
 #define open mingw_open
 #define read mingw_read
-#define readv mingw_s_readv
+#define readv mingw_readv
+//#define compat_preadv mingw_preadv
 #define write mingw_write
+#define writev mingw_writev
+//#define compat_pwritev mingw_pwritev
 #define truncate mingw_truncate
 #define sendto mingw_sendto
 
@@ -155,6 +159,7 @@
 
 typedef SOCKET socket_fd_t;
 typedef WSABUF iovec_t;
+typedef guint64 filesize_t;
 
 struct pollfd {
 	SOCKET fd;		/* file descriptor */
@@ -180,7 +185,7 @@ struct mingw_statvfs {
 	unsigned long f_csize;		/* Cluster size, in bytes */
 	unsigned long f_cavail;		/* Available clusters */
 	unsigned long f_clusters;	/* Total amount of clusters */
-	
+
 };
 
 #ifndef HAS_GETRUSAGE
@@ -220,7 +225,7 @@ iovec_base(const iovec_t* iovec) {
 	return iovec->buf;
 }
 
-static inline size_t 
+static inline size_t
 iovec_len(const iovec_t* iovec) {
 	return iovec->len;
 }
@@ -230,7 +235,7 @@ iovec_set_base(iovec_t* iovec, char *base) {
 	return iovec->buf = base;
 }
 
-static inline size_t 
+static inline size_t
 iovec_set_len(iovec_t* iovec, size_t len) {
 	return iovec->len = len;
 }
@@ -248,7 +253,11 @@ int mingw_truncate(const char *path, off_t len);
 int mingw_mkdir(const char *path, mode_t mode);
 
 ssize_t mingw_read(int fd, void *buf, size_t count);
+ssize_t mingw_readv(int fd, iovec_t *iov, int iov_cnt);
+ssize_t mingw_preadv(int fd, iovec_t *iov, int iov_cnt, filesize_t pos);
 ssize_t mingw_write(int fd, const void *buf, size_t count);
+ssize_t mingw_writev(int fd, const iovec_t *iov, int iov_cnt);
+ssize_t mingw_pwritev(int fd, const iovec_t *iov, int iov_cnt, filesize_t pos);
 
 /*
  * Socket functions

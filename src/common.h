@@ -82,7 +82,9 @@ typedef int socket_fd_t;
 #define INVALID_SOCKET (-1)
 
 #define s_write write
+#define s_writev writev
 #define s_read read
+#define s_readv readv
 #define s_close close
 
 #endif /* !MINGW32 */
@@ -132,7 +134,7 @@ struct flock
     off_t l_len;      /* Size of the locked area; zero means until EOF.  */
     pid_t l_pid;      /* Process holding the lock.  */
   };
-  
+
 
 #else /* !MINGW32 */
 
@@ -277,7 +279,9 @@ struct flock
 #define inline
 #endif
 
+#ifndef MINGW32
 typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
+#endif
 
 #ifdef I_STDARG
 #include <stdarg.h>
@@ -359,7 +363,7 @@ typedef void (*GCallback) (void);
 
 #define MAX_INT_VAL_STEP(t) \
 	((t) 1 << (CHAR_BIT * sizeof(t) - 1 - ((t) -1 < 1)))
-	 
+
 #define MAX_INT_VAL(t) \
 	((MAX_INT_VAL_STEP(t) - 1) + MAX_INT_VAL_STEP(t))
 
@@ -433,7 +437,7 @@ typedef void (*GCallback) (void);
  *
  * void my_memcpy(void *dst, const void *src, size_t n) NON_NULL_PARAM((1, 2));
  */
-#if defined(HASATTRIBUTE) && HAS_GCC(3, 3) 
+#if defined(HASATTRIBUTE) && HAS_GCC(3, 3)
 #define NON_NULL_PARAM(x) __attribute__((__nonnull__ x))
 #else /* GCC < 3.3 */
 #define NON_NULL_PARAM(x)

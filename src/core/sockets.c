@@ -273,7 +273,7 @@ socket_evt_set(struct gnutella_socket *s,
 	}
 	s->gdk_tag = inputevt_add(fd, cond, handler, data);
 	g_assert(0 != s->gdk_tag);
-	
+
 	if (!(INPUT_EVENT_W & cond) && s->wio.flush(&s->wio) < 0) {
 		if (!is_temporary_error(errno)) {
 			g_warning("socket_evt_set: flush error: %s", g_strerror(errno));
@@ -780,7 +780,7 @@ connect_http(struct gnutella_socket *s)
 				size += iovec_set_len(&iov[i],strlen(iovec_base(&iov[i])));
 			}
 
-			ret = writev(s->file_desc, iov, G_N_ELEMENTS(iov));
+			ret = s_writev(s->file_desc, iov, G_N_ELEMENTS(iov));
 			if ((size_t) ret != size) {
 				g_warning("Sending info to HTTP proxy failed: %s",
 					ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
@@ -1168,7 +1168,7 @@ socket_check_ipv6_address(void)
 		addr = zero_host_addr;
 		first_addr = zero_host_addr;
 		old_addr = listen_addr6();
-		
+
 		sl_addrs = host_addr_get_interface_addrs(NET_TYPE_IPV6);
 		for (sl = sl_addrs; NULL != sl; sl = g_slist_next(sl)) {
 			host_addr_t *addr_ptr;
@@ -2291,7 +2291,7 @@ cmsg_nxthdr(const struct msghdr *msg_, const struct cmsghdr *cmsg_)
 {
 	struct msghdr *msg = (struct msghdr *) msg_;
 	struct cmsghdr *cmsg = (struct cmsghdr *) cmsg_;
-    
+
 	return CMSG_NXTHDR(msg, cmsg);
 }
 #endif	/* CMSG_FIRSTHDR && CMSG_NXTHDR */
@@ -2544,8 +2544,8 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 	do {
 		ssize_t r;
 
-		r = socket_udp_accept(s);		
-		
+		r = socket_udp_accept(s);
+
 		if ((ssize_t) -1 == r) {
 			if (!is_temporary_error(errno)) {
 				g_warning("ignoring datagram reception error: %s",
@@ -2786,7 +2786,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 		errno = EINVAL;
 		return -1;
 	}
-	
+
 	fd = socket(family, SOCK_STREAM, 0);
 	if (fd < 0) {
 		/*
@@ -2964,7 +2964,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	return 0;
 
 failure:
-	
+
 	if (!(s->adns & SOCK_ADNS_PENDING)) {
 		socket_destroy(s, _("Connection failed"));
 	}
@@ -3169,7 +3169,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 			fd = INVALID_SOCKET;
 		} else {
 			saved_errno = 0;
-		}		
+		}
 	}
 
 #if defined(HAS_SOCKER_GET)
@@ -3270,7 +3270,7 @@ socket_local_listen(const char *pathname)
 		addr.sun_family = AF_LOCAL;
 		if (g_strlcpy(addr.sun_path, pathname, size) >= size) {
 			g_warning("socket_local_listen(): pathname is too long");
-			return NULL; 
+			return NULL;
 		}
 	}
 #endif
@@ -3288,7 +3288,7 @@ socket_local_listen(const char *pathname)
 	{
 		int ret, saved_errno;
 		mode_t mask;
-	
+
 		/* umask 177 -> mode 200; write-only for user */
 		mask = umask(S_IRUSR | S_IXUSR | S_IRWXG | S_IRWXO);
     	ret = bind(fd, cast_to_gconstpointer(&addr), sizeof addr);
@@ -3744,7 +3744,7 @@ socket_plain_writev(struct wrap_io *wio, const iovec_t *iov, int iovcnt)
 	socket_check(s);
 	g_assert(!socket_uses_tls(s));
 
-	return writev(s->file_desc, iov, iovcnt);
+	return s_writev(s->file_desc, iov, iovcnt);
 }
 
 static ssize_t
@@ -3755,7 +3755,7 @@ socket_plain_readv(struct wrap_io *wio, iovec_t *iov, int iovcnt)
 	socket_check(s);
 	g_assert(!socket_uses_tls(s));
 
-	return readv(s->file_desc, iov, iovcnt);
+	return s_readv(s->file_desc, iov, iovcnt);
 }
 
 static ssize_t
@@ -3964,7 +3964,7 @@ safe_readv_fd(int fd, iovec_t *iov, int iovcnt)
 			siovcnt = MAX_IOV_COUNT;
 		g_assert(siovcnt > 0);
 
-		r = readv(fd, siov, siovcnt);
+		r = s_readv(fd, siov, siovcnt);
 
 		if ((ssize_t) -1 == r || 0 == r) {
 			if (r == 0 || got)
@@ -4060,7 +4060,7 @@ safe_writev_fd(int fd, const iovec_t *iov, int iovcnt)
 			siovcnt = MAX_IOV_COUNT;
 		g_assert(siovcnt > 0);
 
-		r = writev(fd, siov, siovcnt);
+		r = s_writev(fd, siov, siovcnt);
 
 		if ((ssize_t) -1 == r || 0 == r) {
 			if (r == 0 || sent)

@@ -81,7 +81,6 @@ RCSID("$Id$")
 #undef sendto
 
 #define VMM_MINSIZE (1024*1024*100)	/* At least 100 MB */
-#define ALTVMM 1
 
 typedef struct processor_power_information {
   ULONG Number;
@@ -96,24 +95,18 @@ typedef struct processor_power_information {
 
 extern gboolean vmm_is_debugging(guint32 level);
 
-int 
+int
 mingw_fcntl(int fd, int cmd, ... /* arg */ )
 {
 	int res = -1;
-	
+
 	switch (cmd) {
 		case F_SETFL:
 		case F_GETFL:
 		{
-			long arg;
-			va_list  args;
-			va_start(args, cmd);
-			arg = (long) va_arg(args, long);
-			va_end(args);
-
-			/* GetFileInformationByHandle, SetFileInformationByHandle */			
+			res = O_RDWR;
 			break;
-		}	
+		}
 		case F_SETLK:
 		{
 			HANDLE file =  (HANDLE)_get_osfhandle(fd);
@@ -121,11 +114,11 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 			va_list  args;
 			va_start(args, cmd);
 			arg = (struct flock*) va_arg(args, struct flock*);
-			
+
 			off_t len = arg->l_len == 0 ? 0xFFFF : arg->l_len;
-			
+
 			if (arg->l_type == F_WRLCK) {
-				
+
 				if (!LockFile(file, arg->l_start, 0, len, 0))
 					errno = GetLastError();
 				else
@@ -136,13 +129,13 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 				else
 					res = 0;
 			}
-			
+
 			va_end(args);
-			
+
 			break;
-		}		
+		}
 	}
-	
+
 	return res;
 }
 
@@ -153,12 +146,12 @@ mingw_gethome(void)
 	int ret;
 
 	ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA , NULL, 0, path);
-	
+
 	if (E_INVALIDARG == ret) {
 		g_warning("could not determine home directory");
 		path[0] = '/';
 		path[1] = '\0';
-	} 
+	}
 
 	return path;
 }
@@ -167,7 +160,7 @@ guint64
 mingw_getphysmemsize(void)
 {
 	MEMORYSTATUSEX memStatus;
-	
+
 	memStatus.dwLength = sizeof memStatus;
 
 	if (!GlobalMemoryStatusEx(&memStatus)) {
@@ -180,7 +173,7 @@ mingw_getphysmemsize(void)
 guint
 mingw_getdtablesize(void)
 {
-	return 1024;	/* FIXME: max number of file descriptors per process */
+	return _getmaxstdio();
 }
 
 int
@@ -190,7 +183,7 @@ mingw_mkdir(const char *path, mode_t mode)
 	return mkdir(path);
 }
 
-int 
+int
 mingw_stat(const char *path, struct stat *buf)
 {
 	int res = stat(path, buf);
@@ -199,12 +192,12 @@ mingw_stat(const char *path, struct stat *buf)
 	return res;
 }
 
-int 
+int
 mingw_open(const char *pathname, int flags, ...)
 {
 	int res;
 	mode_t mode = 0;
-	
+
 	if (flags & O_CREAT) {
         va_list  args;
 
@@ -219,13 +212,41 @@ mingw_open(const char *pathname, int flags, ...)
 	return res;
 }
 
-ssize_t 
+ssize_t
 mingw_read(int fd, void *buf, size_t count)
 {
 	ssize_t res = read(fd, buf, count);
 	if (res == -1)
 		errno = GetLastError();
 	return res;
+}
+
+ssize_t mingw_readv(int fd, iovec_t *iov, int iov_cnt)
+{
+    /*
+     * Might want to use WriteFileGather here, however this probably has an
+     * impact on the rest of the source code as well as this will be
+     * unbuffered and async.
+     */
+
+    int i;
+    ssize_t total_read = 0;
+
+    for(i = 0; i< iov_cnt; i++) {
+        size_t sread = mingw_read(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
+        total_read += sread;
+
+        if (sread != iovec_len(&iov[i]))
+            return total_read;
+    }
+
+    return total_read;
+}
+
+ssize_t mingw_preadv(int fd, iovec_t *iov, int iov_cnt, filesize_t pos)
+{
+    lseek(fd, pos, SEEK_SET);
+    return mingw_readv(fd, iov, iov_cnt);
 }
 
 ssize_t
@@ -236,6 +257,35 @@ mingw_write(int fd, const void *buf, size_t count)
 		errno = GetLastError();
 	return res;
 }
+
+ssize_t mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
+{
+    /*
+     * Might want to use WriteFileGather here, however this probably has an
+     * impact on the rest of the source code as well as this will be
+     * unbuffered and async.
+     */
+
+     int i;
+     ssize_t total_written = 0;
+
+     for(i = 0; i< iov_cnt; i++) {
+         size_t written = mingw_write(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
+         total_written += written;
+
+         if (written != iovec_len(&iov[i]))
+            return total_written;
+     }
+
+     return total_written;
+}
+
+ssize_t mingw_pwritev(int fd, const iovec_t *iov, int iov_cnt, filesize_t pos)
+{
+    lseek(fd, pos, SEEK_SET);
+    return mingw_writev(fd, iov, iov_cnt);
+}
+
 
 int
 mingw_truncate(const char *path, off_t len)
@@ -267,14 +317,14 @@ int mingw_getaddrinfo(const char *node, const char *service,
 	if (result != 0)
 		errno = WSAGetLastError();
 	return result;
-}			
+}
 
 void mingw_freeaddrinfo(struct addrinfo *res)
 {
 	freeaddrinfo(res);
 }
 
-socket_fd_t 
+socket_fd_t
 mingw_socket(int domain, int type, int protocol)
 {
 	socket_fd_t res = socket(domain, type, protocol);
@@ -283,7 +333,7 @@ mingw_socket(int domain, int type, int protocol)
 	return res;
 }
 
-int 
+int
 mingw_bind(socket_fd_t sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {
 	int res = bind(sockfd, addr, addrlen);
@@ -292,7 +342,7 @@ mingw_bind(socket_fd_t sockfd, const struct sockaddr *addr, socklen_t addrlen)
 	return res;
 }
 
-socket_fd_t 
+socket_fd_t
 mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 	  socklen_t addrlen)
 {
@@ -320,7 +370,7 @@ mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 	return res;
 }
 
-int 
+int
 mingw_shutdown(socket_fd_t sockfd, int how)
 {
 	int res = shutdown(sockfd, how);
@@ -329,7 +379,7 @@ mingw_shutdown(socket_fd_t sockfd, int how)
 	return res;
 }
 
-int 
+int
 mingw_getsockopt(socket_fd_t sockfd, int level, int optname,
 	void *optval, socklen_t *optlen)
 {
@@ -339,8 +389,8 @@ mingw_getsockopt(socket_fd_t sockfd, int level, int optname,
 	return res;
 }
 
-int 
-mingw_setsockopt(socket_fd_t sockfd, int level, int optname, 
+int
+mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 	  const void *optval, socklen_t optlen)
 {
 	int res = setsockopt(sockfd, level, optname, optval, optlen);
@@ -350,7 +400,7 @@ mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 }
 
 
-ssize_t 
+ssize_t
 s_write(socket_fd_t fd, const void *buf, size_t count)
 {
 	ssize_t res = send(fd, buf, count, 0);
@@ -359,7 +409,7 @@ s_write(socket_fd_t fd, const void *buf, size_t count)
 	return res;
 }
 
-ssize_t 
+ssize_t
 s_read(socket_fd_t fd, void *buf, size_t count)
 {
 	ssize_t res = recv(fd, buf, count, 0);
@@ -368,7 +418,7 @@ s_read(socket_fd_t fd, void *buf, size_t count)
 	return res;
 }
 
-int 
+int
 s_close(socket_fd_t fd)
 {
 	int res = closesocket(fd);
@@ -377,7 +427,7 @@ s_close(socket_fd_t fd)
 	return res;
 }
 
-size_t 
+size_t
 mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 {
 	DWORD r, flags = 0;
@@ -388,19 +438,19 @@ mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 	return r;
 }
 
-ssize_t 
+ssize_t
 mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 {
 	DWORD w;
 	int res = WSASend(fd, (LPWSABUF) iov, iovcnt, &w, 0, NULL, NULL);
-  
+
 	if (res != 0)
 		errno = WSAGetLastError();
 	return w;
 };
 
-ssize_t 
-recvmsg(socket_fd_t s, struct msghdr *hdr, int flags) 
+ssize_t
+recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
 {
 #if 0
 	DWORD received;
@@ -413,8 +463,8 @@ recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
 	msg.Control.len = hdr->msg_controllen;
 	msg.Control.buf = hdr->msg_control;
 	msg.dwFlags = hdr->msg_flags;
-	
-	
+
+
 	int res = WSARecvMsg(s, &msg, &received, NULL, NULL);
 	if (res != 0) {
 		errno = WSAGetLastError();
@@ -424,13 +474,13 @@ recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
 
 #else
 	/* WSARecvMsg is available in windows, but not in mingw */
-    
+
 	size_t i;
     WSABUF buf[hdr->msg_iovlen];
 	DWORD received;
 	INT ifromLen;
 	DWORD dflags;
-	
+
 	if (hdr->msg_iovlen > 100) {
 		g_warning("recvmsg: msg_iovlen to large: %d", hdr->msg_iovlen);
         errno = EINVAL;
@@ -441,14 +491,14 @@ recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
 		buf[i].buf = iovec_base(&hdr->msg_iov[i]),
 		buf[i].len = iovec_len(&hdr->msg_iov[i]);
 	}
-    
+
 
     hdr->msg_controllen = 0;
     hdr->msg_flags = 0;
 
 	ifromLen = hdr->msg_namelen;
 	dflags = flags;
-	
+
     if (
 		0 != WSARecvFrom(s, buf, i, &received, &dflags,
 			hdr->msg_name, &ifromLen, NULL, NULL)
@@ -456,7 +506,7 @@ recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
 		errno = WSAGetLastError();
 		return -1;
 	}
-	
+
 	return received;
 #endif
 }
@@ -481,7 +531,6 @@ static int mingw_vmm_res_nonhinted = 0;
 void *
 mingw_valloc(void *hint, size_t size)
 {
-#ifdef ALTVMM
 	void *p;
 
 	if (NULL == hint && mingw_vmm_res_nonhinted >= 0) {
@@ -493,35 +542,35 @@ mingw_valloc(void *hint, size_t size)
 			/* Determine maximum possible memory first */
 
 			GetNativeSystemInfo(&system_info);
-			
-			mingw_vmm_res_size = 
-				system_info.lpMaximumApplicationAddress 
-				- 
+
+			mingw_vmm_res_size =
+				system_info.lpMaximumApplicationAddress
+				-
 				system_info.lpMinimumApplicationAddress;
 
-			memStatus.dwLength = sizeof memStatus;					
+			memStatus.dwLength = sizeof memStatus;
 			if (GlobalMemoryStatusEx(&memStatus)) {
 				if (memStatus.ullTotalPhys < mingw_vmm_res_size)
 					mingw_vmm_res_size = memStatus.ullTotalPhys;
 			}
-			
+
 			/* Declare some space for feature allocs without hinting */
 			mem_later = VirtualAlloc(
 				NULL, VMM_MINSIZE, MEM_RESERVE, PAGE_NOACCESS);
-				
+
 			/* Try to reserve it */
 			while (
 				NULL == mingw_vmm_res_mem && mingw_vmm_res_size > VMM_MINSIZE
 			) {
 				mingw_vmm_res_mem = p = VirtualAlloc(
 					NULL, mingw_vmm_res_size, MEM_RESERVE, PAGE_NOACCESS);
-				
+
 				if (NULL == mingw_vmm_res_mem)
 					mingw_vmm_res_size -= system_info.dwAllocationGranularity;
 			}
-			
+
 			VirtualFree(mem_later, 0, MEM_RELEASE);
-			 
+
 			if (NULL == mingw_vmm_res_mem) {
 				g_error("could not reserve %s of memory",
 					compact_size(mingw_vmm_res_size, FALSE));
@@ -530,15 +579,15 @@ mingw_valloc(void *hint, size_t size)
 					compact_size(mingw_vmm_res_size, FALSE));
 			}
 		} else {
-			if (vmm_is_debugging(0)) 
-				g_debug("no hint given for %s allocation", 
+			if (vmm_is_debugging(0))
+				g_debug("no hint given for %s allocation",
 					compact_size(size, FALSE));
-			p = mingw_vmm_res_mem + 
+			p = mingw_vmm_res_mem +
 				(++mingw_vmm_res_nonhinted * mingw_getpagesize());
 		}
 		if (NULL == p) {
 			errno = GetLastError();
-			if (vmm_is_debugging(0)) 
+			if (vmm_is_debugging(0))
 				g_debug("could not allocate %s of memory: %s",
 					compact_size(size, FALSE), g_strerror(errno));
 		}
@@ -549,7 +598,7 @@ mingw_valloc(void *hint, size_t size)
 		 */
 
 		p = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-		
+
 		if (p == NULL) {
 			errno = GetLastError();
 			p = MAP_FAILED;
@@ -560,135 +609,49 @@ mingw_valloc(void *hint, size_t size)
 		mingw_vmm_res_nonhinted = -1;
 		p = hint;
 	}
-	
+
 	p = VirtualAlloc(p, size, MEM_COMMIT, PAGE_READWRITE);
-		
+
 	if (p == NULL) {
 		p = MAP_FAILED;
 		errno = GetLastError();
 	}
 
 	return p;
-#else
-	void *p;
-
-	p = (void *) VirtualAlloc(hint, size, 
-		MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-		
-	if (p == NULL) {
-		p = (void *) VirtualAlloc(NULL, size,
-			MEM_COMMIT | MEM_RESERVE,
-			PAGE_READWRITE);
-	}
-	if (p == NULL) {
-		p = MAP_FAILED;
-		errno = GetLastError();
-	}
-
-	return p;
-#endif
 }
 
 int
 mingw_vfree(void *addr, size_t size)
 {
-#ifdef ALTVMM
 	(void) addr;
 	(void) size;
-	
-	/* 
+
+	/*
 	 * VMM hint should always be respected. So this function should not
 	 * be reached from VMM, ever.
 	 */
-	
+
 	g_assert_not_reached();
-#else
-	(void) size;
-
-	if (0 == VirtualFree(addr, 0, MEM_RELEASE)) {
-		errno = GetLastError();
-		return -1;
-	}
-
-	return 0;	/* OK */
-#endif
 }
 
 int
 mingw_vfree_fragment(void *addr, size_t size)
 {
-#ifdef ALTVMM
-	
 	if (mingw_vmm_res_mem < addr &&
 		mingw_vmm_res_mem + mingw_vmm_res_size > addr)
 	{
-		/* Allocated in non reserved space */
-		if (!VirtualFree(addr, 0, MEM_DECOMMIT)) {
+		/* Allocated in reserved space */
+		if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
 			errno = GetLastError();
 			return -1;
 		}
-	} else if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
-		/* Allocated in reserved space */
+	} else if (!VirtualFree(addr, 0, MEM_RELEASE)) {
+		/* Allocated in non-reserved space */
 		errno = GetLastError();
 		return -1;
 	}
 
 	return 0;
-#else
-	MEMORY_BASIC_INFORMATION inf;
-	void *remain_ptr = addr;
-	size_t remain_size = size;
-	
-	/* 
-	 * FIXME: This is more a workaround to avoid leaking too much memory!
-	 * There needs to be a better way!
-	 * Perhaps we can create a CreateFileMapping with an InvalidFileHandle,
-	 * this will create a anonymous file handle and as a size argument
-	 * use the largest size allowed. 
-	 * Next create a MapViewOfFile like mmap with an ANONYMOUS PAGE. 
-	 * However it won't be possible to Protect a section of the page in this
-	 * case.
-	 *		-- JA 19/11/2010
-	 */
-
-	while (remain_size > 0) {
-		if (0 == VirtualQuery(remain_ptr, &inf, sizeof inf))
-			goto error;
-
-		if (
-			remain_ptr != inf.AllocationBase ||
-			inf.RegionSize != remain_size
-		) {
-			g_debug("src: 0x%x, BaseAddress: 0x%x, AllocBase: 0x%x, "
-				"Size 0x%x(0x%x)", 
-				remain_ptr, inf.BaseAddress,
-				inf.AllocationBase, inf.RegionSize, size);
-		}
-		if (inf.RegionSize == size) {
-			if (0 == VirtualFree(remain_ptr, 0, MEM_RELEASE))
-				goto error;
-			remain_size = 0;
-		} else if (inf.RegionSize < size) {
-			if (0 == VirtualFree(remain_ptr, 0, MEM_RELEASE))
-				goto error;
-			remain_size -= inf.RegionSize;
-			remain_ptr += inf.RegionSize;
-		} else {
-			g_warning("RegionSize is smaller then requested decommit"
-				" size, leaking!");
-#if 0	/* Seems to crash otherwise */
-			if (0 == VirtualFree(remain_ptr, remain_size, MEM_DECOMMIT))
-				goto error;
-#endif
-		}
-	}
-
-	return 0;		/* OK */
-
-error:
-	errno = GetLastError();
-	return -1;
-#endif
 }
 
 int
@@ -766,25 +729,25 @@ static char strerrbuf[1024];
 
 const char *
 mingw_strerror(gint errnum)
-{	
+{
 	FormatMessage(
         FORMAT_MESSAGE_FROM_SYSTEM,
         NULL, errnum,
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         (LPTSTR) strerrbuf,
         sizeof strerrbuf, NULL );
-	
+
 	return strerrbuf;
 }
 
-int 
+int
 mingw_rename(const char *oldpath, const char *newpath)
 {
 	/*
 	 * XXX: Try to rename a file with SetFileInformationByHandle
-	 * and FILE_INFO_BY_HANDLE_CLASS 
+	 * and FILE_INFO_BY_HANDLE_CLASS
 	 */
-	
+
 	if (!MoveFileEx(oldpath, newpath, MOVEFILE_REPLACE_EXISTING)) {
 		errno = GetLastError();
 		return -1;
@@ -967,11 +930,11 @@ mingw_process_is_alive(pid_t pid)
 		GetModuleBaseName(p, NULL, process_name, sizeof process_name);
 		GetModuleBaseName(GetCurrentProcess(),
 			NULL, our_process_name, sizeof our_process_name);
-		
+
 		res = g_strcmp0(process_name, our_process_name) == 0;
 		CloseHandle(p);
     }
-  
+
 	return res;
 }
 
@@ -1081,37 +1044,37 @@ gboolean
 mingw_adns_send_request(const struct adns_request *req)
 {
 	char *hostname = strdup(req->query.by_addr.hostname);
-	
-	PostThreadMessage(mingw_gtkg_adns_thread_id, 
+
+	PostThreadMessage(mingw_gtkg_adns_thread_id,
 		mingw_thread_msg_adns_resolve, (LPARAM) hostname, 0);
-		
+
 	return TRUE;
 }
 
-unsigned __stdcall 
+unsigned __stdcall
 mingw_adns_thread_resolve(void *dummy)
 {
 	(void) dummy;
-	
+
 	MSG msg;
-	
+
 	while (1) {
 		GetMessage(&msg, (HANDLE)-1, 0, 0);
-	
+
 		printf("mingw_adns: message %d\r\n", msg.message);
-	
+
 		if(msg.message == mingw_thread_msg_quit)
 			goto exit;
-			
-		char *hostname = (char *) msg.wParam;		
+
+		char *hostname = (char *) msg.wParam;
 		struct addrinfo *results;
-		
+
 		getaddrinfo(hostname, NULL, NULL, &results);
 
-		PostThreadMessage(mingw_gtkg_main_thread_id, 
+		PostThreadMessage(mingw_gtkg_main_thread_id,
 			mingw_thread_msg_adns_resolve_cb, (LPARAM) results, 0);
 	}
-	
+
 exit:
 	_endthreadex(0);
 	return 0;
@@ -1122,13 +1085,13 @@ mingw_adns_init(void)
 {
 	/*
 	 * Create ADNS thread, take care, gtkg is completely mono-threaded
-	 * so it is _not_ thread safe, don't access any public functions or 
+	 * so it is _not_ thread safe, don't access any public functions or
 	 * variables!
 	 */
-	 
+
 	mingw_gtkg_main_thread_id = GetCurrentThreadId();
-	
-	(HANDLE)_beginthreadex( NULL, 0, mingw_adns_thread_resolve, NULL, 0, 
+
+	(HANDLE)_beginthreadex( NULL, 0, mingw_adns_thread_resolve, NULL, 0,
 		&mingw_gtkg_adns_thread_id );
 }
 
@@ -1146,7 +1109,7 @@ mingw_timer(void)
 
 	if (PeekMessage(&msg, (HANDLE)-1, 0, 0, PM_NOREMOVE)) {
 		g_debug("message waiting: %d", msg.message);
-		
+
 		switch (msg.message)
 		{
 			case mingw_thread_msg_adns_resolve_cb:
@@ -1159,7 +1122,7 @@ mingw_timer(void)
 			}
 		}
 	}
-	
+
 }
 #endif /* ADNS Disabled */
 
