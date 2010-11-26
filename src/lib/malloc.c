@@ -251,10 +251,12 @@ struct realblock {
 static time_t init_time = 0;
 static time_t reset_time = 0;
 
+static gboolean free_record(gconstpointer o, const char *file, int line);
+#endif
+
+#if defined(TRACK_MALLOC) || defined(MALLOC_SAFE_HEAD)
 static hash_table_t *blocks = NULL;
 static hash_table_t *not_leaking = NULL;
-
-static gboolean free_record(gconstpointer o, const char *file, int line);
 #endif
 
 /*
@@ -1090,7 +1092,7 @@ real_realloc(void *ptr, size_t size)
 {
 	void *result;
 	void *p = ptr;
-#ifdef TRACK_MALLOC
+#if defined(TRACK_MALLOC) || defined(MALLOC_SAFE_HEAD)
 	struct block *b = NULL;
 #endif
 #ifdef MALLOC_PERIODIC
@@ -1107,7 +1109,7 @@ real_realloc(void *ptr, size_t size)
 	} else {
 		void *n;
 
-#ifdef TRACK_MALLOC
+#if defined(TRACK_MALLOC) || defined(MALLOC_SAFE_HEAD)
 		if (blocks) {
 			b = hash_table_lookup(blocks, p);
 #ifdef MALLOC_SAFE_HEAD
@@ -1121,7 +1123,7 @@ real_realloc(void *ptr, size_t size)
 			}
 #endif	/* MALLOC_SAFE_HEAD */
 		}
-#endif	/* TRACK_MALLOC */
+#endif	/* TRACK_MALLOC || MALLOC_SAFE_HEAD */
 
 #ifdef MALLOC_SAFE
 		{
