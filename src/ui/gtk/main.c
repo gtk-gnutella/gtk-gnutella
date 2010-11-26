@@ -574,7 +574,6 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 
 #ifdef MINGW32
 	char file_name[MAX_PATH_LEN];
-	HANDLE current_proccess = GetCurrentProcess();	
 	DWORD length = GetModuleFileName(
 		NULL,
 		file_name,
