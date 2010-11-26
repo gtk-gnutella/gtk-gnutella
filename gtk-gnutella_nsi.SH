@@ -17,7 +17,7 @@ case "$0" in
 */*) cd `expr X$0 : 'X\(.*\)/'` ;;
 esac
 echo "Extracting gtk-gnutella.nsi (with variable substitutions)"
-GTKG_VERSION=`$TOP/scripts/gtkg-version $TOP`
+GTKG_VERSION=`scripts/gtkg-version .`
 $sed -e 's/$//' >gtk-gnutella.nsi <<!GROK!THIS!
 ; NSIS2 Script
 ; by Alexander Shaduri <ashaduri 'at' gmail.com>.
