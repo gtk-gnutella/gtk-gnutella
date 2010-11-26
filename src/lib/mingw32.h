@@ -137,6 +137,7 @@
 
 #define stat(path, buf) mingw_stat(path, buf)
 #define open mingw_open
+#define lseek mingw_lseek
 #define read mingw_read
 #define readv mingw_readv
 //#define compat_preadv mingw_preadv
@@ -248,6 +249,7 @@ guint mingw_getdtablesize(void);
 const char *mingw_strerror(int errnum);
 int mingw_stat(const char *path, struct stat *buf);
 int mingw_open(const char *pathname, int flags, ...);
+off_t mingw_lseek(int fd, off_t offset, int whence);
 int mingw_rename(const char *oldpath, const char *newpath);
 int mingw_truncate(const char *path, off_t len);
 int mingw_mkdir(const char *path, mode_t mode);

@@ -67,6 +67,7 @@ RCSID("$Id$")
 #undef read
 #undef write
 #undef mkdir
+#undef lseek
 
 #undef getaddrinfo
 #undef freeaddrinfo
@@ -101,6 +102,8 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 
 	switch (cmd) {
 		case F_SETFL:
+			res = 0;
+			break;
 		case F_GETFL:
 		{
 			res = O_RDWR;
@@ -211,6 +214,15 @@ mingw_open(const char *pathname, int flags, ...)
 	return res;
 }
 
+off_t
+mingw_lseek(int fd, off_t offset, int whence)
+{
+	off_t res = lseek(fd, offset, whence);
+	if (res == (off_t) -1)
+		errno = GetLastError();
+	return res;
+}
+
 ssize_t
 mingw_read(int fd, void *buf, size_t count)
 {
@@ -220,7 +232,8 @@ mingw_read(int fd, void *buf, size_t count)
 	return res;
 }
 
-ssize_t mingw_readv(int fd, iovec_t *iov, int iov_cnt)
+ssize_t
+mingw_readv(int fd, iovec_t *iov, int iov_cnt)
 {
     /*
      * Might want to use WriteFileGather here, however this probably has an
@@ -232,19 +245,21 @@ ssize_t mingw_readv(int fd, iovec_t *iov, int iov_cnt)
     ssize_t total_read = 0;
 
     for(i = 0; i< iov_cnt; i++) {
-        size_t sread = mingw_read(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
-        total_read += sread;
+        ssize_t r = mingw_read(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
+        total_read += r;
 
-        if (sread != iovec_len(&iov[i]))
+        if (r != iovec_len(&iov[i]))
             return total_read;
     }
 
     return total_read;
 }
 
-ssize_t mingw_preadv(int fd, iovec_t *iov, int iov_cnt, filesize_t pos)
+ssize_t
+mingw_preadv(int fd, iovec_t *iov, int iov_cnt, filesize_t pos)
 {
-    lseek(fd, pos, SEEK_SET);
+    if ((off_t) -1 == mingw_lseek(fd, pos, SEEK_SET))
+		return -1;
     return mingw_readv(fd, iov, iov_cnt);
 }
 
@@ -257,7 +272,8 @@ mingw_write(int fd, const void *buf, size_t count)
 	return res;
 }
 
-ssize_t mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
+ssize_t
+mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
 {
     /*
      * Might want to use WriteFileGather here, however this probably has an
@@ -269,22 +285,23 @@ ssize_t mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
      ssize_t total_written = 0;
 
      for(i = 0; i< iov_cnt; i++) {
-         size_t written = mingw_write(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
-         total_written += written;
+         ssize_t w = mingw_write(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
+         total_written += w;
 
-         if (written != iovec_len(&iov[i]))
+         if (w != iovec_len(&iov[i]))
             return total_written;
      }
 
      return total_written;
 }
 
-ssize_t mingw_pwritev(int fd, const iovec_t *iov, int iov_cnt, filesize_t pos)
+ssize_t
+mingw_pwritev(int fd, const iovec_t *iov, int iov_cnt, filesize_t pos)
 {
-    lseek(fd, pos, SEEK_SET);
+	if ((off_t) -1 == mingw_lseek(fd, pos, SEEK_SET))
+		return -1;
     return mingw_writev(fd, iov, iov_cnt);
 }
-
 
 int
 mingw_truncate(const char *path, off_t len)
