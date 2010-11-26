@@ -736,7 +736,7 @@ mingw_strerror(gint errnum)
         (LPTSTR) strerrbuf,
         sizeof strerrbuf, NULL );
 
-	str_chomp(strerrbuf);	/* Remove final "\r\n" */
+	str_chomp(strerrbuf, 0);	/* Remove final "\r\n" */
 	return strerrbuf;
 }
 
