@@ -899,9 +899,9 @@ mingw_uname(struct utsname *buf)
 	osvi.dwOSVersionInfoSize = sizeof osvi;
 	if (GetVersionEx((OSVERSIONINFO *) &osvi)) {
 		gm_snprintf(buf->release, sizeof buf->release, "%u.%u",
-			osvi.dwMajorVersion, osvi.dwMinorVersion);
+			(unsigned) osvi.dwMajorVersion, (unsigned) osvi.dwMinorVersion);
 		gm_snprintf(buf->version, sizeof buf->version, "%u",
-			osvi.dwBuildNumber);
+			(unsigned) osvi.dwBuildNumber);
 	}
 
 	len = sizeof buf->nodename;
