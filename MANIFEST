@@ -97,6 +97,7 @@ U/packages/remotectrl.U
 U/packages/xmlconfig.U
 U/specific/d_headless.U
 U/specific/gtkgversion.U
+build-mingw.sh
 build.sh
 config.sh.xmingw
 config_h.SH                  Produces config.h
