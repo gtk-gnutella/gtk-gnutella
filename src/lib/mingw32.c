@@ -57,6 +57,7 @@ RCSID("$Id$")
 
 #include "host_addr.h"			/* ADNS */
 
+#include "glib-missing.h"
 #include "misc.h"
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
@@ -90,8 +91,6 @@ typedef struct processor_power_information {
   ULONG MaxIdleState;
   ULONG CurrentIdleState;
 } PROCESSOR_POWER_INFORMATION;
-
-
 
 extern gboolean vmm_is_debugging(guint32 level);
 
@@ -737,6 +736,7 @@ mingw_strerror(gint errnum)
         (LPTSTR) strerrbuf,
         sizeof strerrbuf, NULL );
 
+	str_chomp(strerrbuf);	/* Remove final "\r\n" */
 	return strerrbuf;
 }
 
@@ -961,7 +961,7 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 	guint64 result = 0;
 
 	len = cpus * sizeof *p;;
-	if (cpus <= G_N_ELEMENTS(powarray)) {
+	if (UNSIGNED(cpus) <= G_N_ELEMENTS(powarray)) {
 		p = powarray;
 	} else {
 		p = walloc(len);

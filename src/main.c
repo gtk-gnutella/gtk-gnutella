@@ -986,6 +986,10 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 		(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
 		safer);
 
+#ifdef MINGW32
+	fflush(stderr);		/* Buffered by default on Windows */
+#endif
+
 	if (safer != message) {
 		HFREE_NULL(safer);
 	}
