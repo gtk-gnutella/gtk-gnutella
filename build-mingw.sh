@@ -14,10 +14,10 @@
 PATH=$PATH:/mingw/lib/gtk/bin:/mingw/lib/xml2/bin
 export PATH
 
-OPTIMIZE='-O0 -g'
+OPTIMIZE='-O2 -g'
 INCDIRS='-I/mingw/lib/regex/include -I/mingw/lib/gtk/include'
 LIBDIRS='-L/mingw/lib/regex/lib -L/mingw/lib/gtk/lib'
-LIBS='-lwsock32 -lws2_32 -lregex -lz -liconv -lws2_32 \
+LIBS='-lwsock32 -lws2_32 -lregex -lz -liconv -lws2_32
 	-lpowrprof -lpsapi -lkernel32'
 
 # In case thet are too long one day, avoid line breaks
