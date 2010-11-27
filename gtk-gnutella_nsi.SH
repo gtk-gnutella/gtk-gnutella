@@ -35,7 +35,7 @@ $sed -e 's/$//' >gtk-gnutella.nsi <<!GROK!THIS!
 $sed -e 's/$//' >>gtk-gnutella.nsi <<'!NO!SUBS!'
 !define PRODUCT_NAME "gtk-gnutella"
 !define PRODUCT_NAME_SMALL "gtk-gnutella"
-!define PRODUCT_PUBLISHER "Raphael Manfredi"
+!define PRODUCT_PUBLISHER "gtk-gnutella developers"
 !define PRODUCT_WEB_SITE "http://gtk-gnutella.sourceforge.net"
 
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"

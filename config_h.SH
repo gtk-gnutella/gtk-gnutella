@@ -57,8 +57,8 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$d_linux LINUX_SYSTEM		/**/
 
 /* MEM_ALIGNBYTES:
- *	This symbol contains the number of bytes required to align an
- *	arbitrary standard type. Usual values are 2, 4 and 8.
+ *	This symbol contains the number of bytes required to align a
+ *	double. Usual values are 2, 4 and 8.
  */
 #define MEM_ALIGNBYTES $alignbytes	/**/
 
@@ -106,6 +106,9 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	such as printf formats. This is normally only supported by GNU cc.
  */
 #$d_attribut HASATTRIBUTE 	/**/
+#ifndef HASATTRIBUTE
+#define __attribute__(_arg_)
+#endif
 
 /* HAS_BCOPY:
  *	This symbol is defined if the bcopy() routine is available to
@@ -494,12 +497,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #define	P(args) ()
 #endif
 
-/* HAS_ARC4RANDOM:
- *	This symbol, if defined, indicates that the arc4random routine is
- *	available.
- */
-#$d_arc4random HAS_ARC4RANDOM		/**/
-
 /* HAS_BIND_TEXTDOMAIN_CODESET:
  *	This symbol, if defined, indicates that the bind_textdomain_codeset routine
  *	is available.
@@ -578,12 +575,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_hstrerror HAS_HSTRERROR		/**/
 
-/* HAS_INITSTATE:
- *	This symbol, if defined, indicates that the initstate routine is
- *	available to initialize the random() number generator.
- */
-#$d_initstate HAS_INITSTATE		/**/
-
 /* USE_IP_TOS:
  *	This symbol, if defined, indicates that the IP TOS services are
  *	available and can be used.  Be prepared to include <sys/socket.h>,
@@ -641,12 +632,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_posix_memalign HAS_POSIX_MEMALIGN
 
-/* HAS_RANDOM:
- *	This symbol, if defined, indicates that the random routine is
- *	available.
- */
-#$d_random HAS_RANDOM		/**/
-
 /* HAS_REGPARM:
  *	This symbol is defined when __attribute__((__regparm__(n))) can be used.
  */
@@ -679,12 +664,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	bound to privileged ports.
  */
 #$d_socker_get HAS_SOCKER_GET
-
-/* HAS_SRANDOM:
- *	This symbol, if defined, indicates that the srandom routine is
- *	available.
- */
-#$d_srandom HAS_SRANDOM		/**/
 
 /* HAS_STATFS:
  *	This symbol, if defined, indicates that the Linux statfs() system call
