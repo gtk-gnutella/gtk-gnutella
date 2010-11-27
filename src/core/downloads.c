@@ -7936,8 +7936,10 @@ download_overlap_check(struct download *d)
 			goto out;
 		} else if ((size_t) r != d->overlap_size) {
 			g_warning(
-				"short read (%u instead of %u bytes) on resuming data for "
-				"\"%s\"", (guint) r, (guint) d->overlap_size, fi->pathname);
+				"short read (got %u instead of %u bytes at offset %lu) "
+				"on resuming data for \"%s\"",
+				(guint) r, (guint) d->overlap_size,
+				(unsigned long) d->skip - d->overlap_size, fi->pathname);
 			download_stop(d, GTA_DL_ERROR, _("Short read on resume data"));
 			goto out;
 		}
