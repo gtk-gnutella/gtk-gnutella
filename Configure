@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Nov 28 19:55:40 CET 2010 [metaconfig 3.5-43]
+# Generated on Sun Nov 28 23:10:50 CET 2010 [metaconfig 3.5-43]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6368,7 +6368,7 @@ eval $trylink
 case "$d_socker_get" in
 "$undef") echo " "; echo "socker support is disabled." >&4;;
 *)
-$cat >try.c <<'EOC'
+	$cat >try.c <<'EOC'
 #include <sys/types.h>
 #include <socker.h>
 int main(void)
@@ -6378,21 +6378,24 @@ int main(void)
   return ret ? 0 : 1;
 }
 EOC
-
-sockercflags=`socker-config --cflags 2>/dev/null`
-sockerldflags=`socker-config --libs 2>/dev/null`
-
-saved_ccflags=$ccflags
-saved_ldflags=$ldflags
-ccflags="$ccflags $sockercflags"
-ldflags="$ldflags $sockerldflags"
-cyn="whether socket_get() allows binding to privileged ports"
-set d_socker_get
-eval $trylink
-
-ccflags=$saved_ccflags
-ldflags=$saved_ldflags
-;;
+	sockercflags=`socker-config --cflags 2>/dev/null`
+	sockerldflags=`socker-config --libs 2>/dev/null`
+	saved_ccflags=$ccflags
+	saved_ldflags=$ldflags
+	ccflags="$ccflags $sockercflags"
+	ldflags="$ldflags $sockerldflags"
+	cyn="whether socket_get() allows binding to privileged ports"
+	set d_socker_get
+	eval $trylink
+	ccflags=$saved_ccflags
+	ldflags=$saved_ldflags
+	case "$d_socker_get" in
+	"$undef")
+		sockercflags=''
+		sockerldflags=''
+		;;
+	esac
+	;;
 esac
 
 : see whether socket exists
