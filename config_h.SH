@@ -106,6 +106,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_gettblsz getdtablesize() $tablesize	/**/
 
+/* HAS_ARC4RANDOM:
+ *	This symbol, if defined, indicates that the arc4random routine is
+ *	available.
+ */
+#$d_arc4random HAS_ARC4RANDOM		/**/
+
 /* HASATTRIBUTE:
  *	This symbol indicates the C compiler can check for function attributes,
  *	such as printf formats. This is normally only supported by GNU cc.
@@ -431,6 +437,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	bound to privileged ports.
  */
 #$d_socker_get HAS_SOCKER_GET
+
+/* HAS_SOCKET:
+ *	This symbol, if defined, indicates that the BSD socket interface is
+ *	supported.
+ */
+#$d_socket HAS_SOCKET		/**/
 
 /* HAS_STATFS:
  *	This symbol, if defined, indicates that the Linux statfs() system call
