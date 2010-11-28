@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-30]
-: $X-Id: Jmake.tmpl 30 2009-10-28 07:45:28Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-49]
+: $X-Id: Jmake.tmpl 48 2010-11-28 23:05:09Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -50,7 +50,7 @@ SUBDIRS = src pixmaps po extra_files
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
+# $X-Id: Jmake.rules 48 2010-11-28 23:05:09Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile
@@ -59,7 +59,9 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 
 all::
 
-depend::
+depend:: sub_depend
+
+sub_depend::
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in src ;\
 	do \
@@ -121,6 +123,8 @@ tags::
 
 local_clobber::
 	$(RM) tags
+
+depend::
 
 ########################################################################
 # Rules for building in sub-directories -- do not edit
