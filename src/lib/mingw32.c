@@ -199,6 +199,7 @@ mingw_open(const char *pathname, int flags, ...)
 {
 	int res;
 	mode_t mode = 0;
+	flags |= O_BINARY;
 
 	if (flags & O_CREAT) {
         va_list  args;
@@ -227,26 +228,7 @@ ssize_t
 mingw_read(int fd, void *buf, size_t count)
 {
 	ssize_t res = read(fd, buf, count);
-	
-	while (res != count && res > 0)
-	{
-		/* 
-		 * XXX: If we don't lseek the current pos, the next read attempt will 
-		 * return an EOF, even if that is not true. Is it because windows 
-		 * handles gaps in files differently?
-		 */
-		lseek(fd, 0, SEEK_CUR);
-		ssize_t r = read(fd, buf + res, count - res);
-		
-		if (r == 0) {
-			break;
-		} else if (r > 0)
-			res += r;
-		else 
-			break;
-		
-	}
-	
+
 	if (res == -1)
 		errno = GetLastError();
 	return res;
