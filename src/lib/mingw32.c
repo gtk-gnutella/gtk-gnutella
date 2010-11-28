@@ -227,6 +227,26 @@ ssize_t
 mingw_read(int fd, void *buf, size_t count)
 {
 	ssize_t res = read(fd, buf, count);
+	
+	while (res != count && res > 0)
+	{
+		/* 
+		 * XXX: If we don't lseek the current pos, the next read attempt will 
+		 * return an EOF, even if that is not true. Is it because windows 
+		 * handles gaps in files differently?
+		 */
+		lseek(fd, 0, SEEK_CUR);
+		ssize_t r = read(fd, buf + res, count - res);
+		
+		if (r == 0) {
+			break;
+		} else if (r > 0)
+			res += r;
+		else 
+			break;
+		
+	}
+	
 	if (res == -1)
 		errno = GetLastError();
 	return res;
@@ -258,9 +278,23 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
 ssize_t
 mingw_preadv(int fd, iovec_t *iov, int iov_cnt, filesize_t pos)
 {
-    if ((off_t) -1 == mingw_lseek(fd, pos, SEEK_SET))
+	int saved_errno;
+	ssize_t res;
+	off_t cur_pos = mingw_lseek(fd, 0, SEEK_CUR);
+	
+	if ((off_t) -1 == cur_pos)
 		return -1;
-    return mingw_readv(fd, iov, iov_cnt);
+	
+    if ((off_t) -1 == mingw_lseek(fd, pos, SEEK_SET))
+		res = -1;
+	else
+		res = mingw_readv(fd, iov, iov_cnt);
+	
+	saved_errno = errno;
+	mingw_lseek(fd, cur_pos, SEEK_SET);
+	errno = saved_errno;
+	
+	return res;
 }
 
 ssize_t
@@ -287,7 +321,7 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
      for(i = 0; i< iov_cnt; i++) {
          ssize_t w = mingw_write(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
          total_written += w;
-
+		 
          if (w != iovec_len(&iov[i]))
             return total_written;
      }
@@ -298,9 +332,23 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
 ssize_t
 mingw_pwritev(int fd, const iovec_t *iov, int iov_cnt, filesize_t pos)
 {
-	if ((off_t) -1 == mingw_lseek(fd, pos, SEEK_SET))
+	int saved_errno;
+	ssize_t res;
+	off_t cur_pos = mingw_lseek(fd, 0, SEEK_CUR);
+	
+	if ((off_t) -1 == cur_pos)
 		return -1;
-    return mingw_writev(fd, iov, iov_cnt);
+		
+	if ((off_t) -1 == mingw_lseek(fd, pos, SEEK_SET))
+		res -1;
+	else
+		res = mingw_writev(fd, iov, iov_cnt);
+	
+	saved_errno = errno;
+	mingw_lseek(fd, cur_pos, SEEK_SET);
+	errno = saved_errno;
+	
+	return res;
 }
 
 int
