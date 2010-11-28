@@ -53,8 +53,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	This symbol, if defined, indicates that the program is running under
  *	a Linux system.
  */
+/* WINDOWS_SYSTEM:
+ *	This symbol, if defined, indicates that the program is running under
+ *	a Windows system.
+ */
 #$d_eunice VMS_SYSTEM		/**/
 #$d_linux LINUX_SYSTEM		/**/
+#$d_windows WINDOWS_SYSTEM		/**/
 
 /* MEM_ALIGNBYTES:
  *	This symbol contains the number of bytes required to align a
@@ -116,6 +121,23 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bcopy HAS_BCOPY	/**/
 
+/* HAS_BIND_TEXTDOMAIN_CODESET:
+ *	This symbol, if defined, indicates that the bind_textdomain_codeset routine
+ *	is available.
+ */
+#$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
+
+/* HAS_BUILTIN_POPCOUNT:
+ *	This symbol, if defined, indicates that __builtin_popcount routine is
+ *	available to compute the amount of '1' bits in a word.
+ */
+#$d_built_popcount HAS_BUILTIN_POPCOUNT	/**/
+
+/* HAS_CLOSEFROM:
+ *	This symbol is defined when closefrom() can be used.
+ */
+#$d_closefrom HAS_CLOSEFROM
+
 /* HASCONST:
  *	This symbol, if defined, indicates that this C compiler knows about
  *	the const type. There is no need to actually test for that symbol
@@ -127,6 +149,39 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #define const
 #endif
 
+/* HAS_DEV_POLL:
+ *	This symbol is defined when /dev/poll can be used.
+ */
+#$d_dev_poll HAS_DEV_POLL
+
+/* HAS_DIRENT_D_TYPE:
+ *	This symbol, if defined, indicates that struct dirent has an
+ *	integer member d_type.
+ */
+#$d_dirent_d_type HAS_DIRENT_D_TYPE		/**/
+
+/* HAS_EPOLL:
+ *	This symbol is defined when epoll() can be used.
+ */
+#$d_epoll HAS_EPOLL
+
+/* FAST_ASSERTIONS:
+ *	This symbol, when defined, indicates that the program should make
+ *	use of its own asserting and failure reporting code, instead of
+ *	the one from GLib.
+ */
+#$d_fast_assert FAST_ASSERTIONS	/**/
+
+/* HAS_GETADDRINFO:
+ *	This symbol is defined when getaddrinfo() can be used.
+ */
+#$d_getaddrinfo HAS_GETADDRINFO
+
+/* HAS_GETEUID:
+ *	This symbol is defined when geteuid() can be used.
+ */
+#$d_geteuid HAS_GETEUID
+
 /* HAS_UNAME:
  *	This symbol, if defined, indicates that the C program may use the
  *	uname() routine to derive the host name.  See also HAS_GETHOSTNAME
@@ -134,11 +189,27 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_uname HAS_UNAME		/**/
 
+/* HAS_GETIFADDRS:
+ *	This symbol is defined when getifaddrs() and freeifaddrs() can be used.
+ */
+#$d_getifaddrs HAS_GETIFADDRS
+
+/* HAS_GETINVENT:
+ *    This symbol, if defined, indicates that the getinvent() routine is
+ *    available.
+ */
+#$d_getinvent       HAS_GETINVENT           /**/
+
 /* HAS_GETLOGIN:
  *	This symbol, if defined, indicates that the getlogin routine is
  *	available to get the login name.
  */
 #$d_getlogin HAS_GETLOGIN		/**/
+
+/* HAS_GETUID:
+ *	This symbol is defined when getuid() can be used.
+ */
+#$d_getuid HAS_GETUID
 
 /* HAS_GNULIBC:
  *	This symbol, if defined, indicates to the C program that 
@@ -150,17 +221,64 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #define _GNU_SOURCE
 #endif
 
+/* HAS_HERROR:
+ *	This symbol, if defined, indicates that the herror routine is
+ *	available.
+ */
+#$d_herror HAS_HERROR		/**/
+
+/* HAS_HSTRERROR:
+ *	This symbol, if defined, indicates that the hstrerror routine is
+ *	available.
+ */
+#$d_hstrerror HAS_HSTRERROR		/**/
+
+/* USE_IP_TOS:
+ *	This symbol, if defined, indicates that the IP TOS services are
+ *	available and can be used.  Be prepared to include <sys/socket.h>,
+ * either <netinet/in.h> or <sys/in.h>, and <netinet/ip.h> when
+ *	I_NETINET_IP is defined.
+ */
+#$d_iptos USE_IP_TOS		/**/
+
+/* HAS_IPV6:
+ *  This symbol is defined when IPv6 can be used
+ */
+#$d_ipv6 HAS_IPV6	/**/
+
 /* HAS_ISASCII:
  *	This manifest constant lets the C program know that isascii 
  *	is available.
  */
 #$d_isascii HAS_ISASCII		/**/
 
+/* HAS_KEVENT_INT_UDATA:
+ *	This symbol, if defined, indicates that struct kevent has an
+ *	integer member udata.
+ */
+#$d_kevent_int_udata HAS_KEVENT_INT_UDATA		/**/
+
+/* HAS_KQUEUE:
+ *	This symbol is defined when kqueue() can be used.
+ */
+#$d_kqueue HAS_KQUEUE
+
+/* HAS_LOCALE_CHARSET:
+ *	This symbol is defined when locale_charset() can be used.
+ */
+#$d_locale_charset HAS_LOCALE_CHARSET
+
 /* HAS_LSTAT:
  *	This symbol, if defined, indicates that the lstat routine is
  *	available to do file stats on symbolic links.
  */
 #$d_lstat HAS_LSTAT		/**/
+
+/* HAS_MADVISE:
+ *	This symbol, if defined, indicates that the madvise routine is
+ *	available.
+ */
+#$d_madvise HAS_MADVISE		/**/
 
 /* HAS_MEMALIGN:
  *	This symbol, if defined, indicates that the memalign routine is
@@ -188,12 +306,34 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_mmap HAS_MMAP		/**/
 
+/* HAS_MSGHDR_MSG_FLAGS:
+ *	This symbol, if defined, indicates that struct msghdr has a
+ *	member msg_flags.
+ */
+#$d_msghdr_msg_flags HAS_MSGHDR_MSG_FLAGS		/**/
+
+/* HAS_NANOSLEEP:
+ *	This symbol, if defined, indicates that the nanosleep() system call
+ *	is available.
+ */
+#$d_nanosleep HAS_NANOSLEEP		/**/
+
 /* HAS_POLL:
  *	This symbol, if defined, indicates that the poll routine is
  *	available to poll active file descriptors.  Please check I_POLL and
  *	I_SYS_POLL to know which header should be included as well.
  */
 #$d_poll HAS_POLL		/**/
+
+/* HAS_POSIX_FADVISE:
+ *	This symbol is defined when posix_fadvise() can be used.
+ */
+#$d_posix_fadvise HAS_POSIX_FADVISE
+
+/* HAS_POSIX_MEMALIGN:
+ *	This symbol is defined when posix_memalign() can be used.
+ */
+#$d_posix_memalign HAS_POSIX_MEMALIGN
 
 /* HAS_PREAD:
  *	This symbol, if defined, indicates that the pread routine is
@@ -221,6 +361,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_pwritev HAS_PWRITEV		/**/
 
+/* HAS_REGPARM:
+ *	This symbol is defined when __attribute__((__regparm__(n))) can be used.
+ */
+#$d_regparm HAS_REGPARM
+
 /* HAS_GETRUSAGE:
  *	This symbol, if defined, indicates that the getrusage() routine is
  *	available to get process statistics with a sub-second accuracy.
@@ -228,12 +373,29 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_rusage HAS_GETRUSAGE		/**/
 
+/* HAS_SA_INTERRUPT:
+ *	This symbol is defined when SA_INTERRUPT can be used in sigaction().
+ */
+#$d_sa_interrupt HAS_SA_INTERRUPT
+
 /* HAS_SELECT:
  *	This symbol, if defined, indicates that the select routine is
  *	available to select active file descriptors. If the timeout field
  *	is used, <sys/time.h> may need to be included.
  */
 #$d_select HAS_SELECT	/**/
+
+/* HAS_SENDFILE:
+ *	This symbol, if defined, indicates that the sendfile routine is
+ *	available.
+ */
+#$d_sendfile HAS_SENDFILE		/**/
+
+/* HAS_SETPROCTITLE:
+ *	This symbol is defined when setproctitle() can be used and takes a
+ *	format string.
+ */
+#$d_setproctitle HAS_SETPROCTITLE
 
 /* HAS_SIGACTION:
  *	This symbol, if defined, indicates that Vr4's sigaction() routine
@@ -259,6 +421,47 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #define Siglongjmp(buf,retval) longjmp((buf),(retval))
 #endif
 
+/* HAS_SOCKADDR_IN_SIN_LEN:
+ *	This symbol is defined if struct sockaddr_in has sin_len.
+ */
+#$d_sockaddr_in_sin_len HAS_SOCKADDR_IN_SIN_LEN
+
+/* HAS_SOCKER_GET:
+ *	This symbol is defined when socker_get() can be used to get sockets
+ *	bound to privileged ports.
+ */
+#$d_socker_get HAS_SOCKER_GET
+
+/* HAS_STATFS:
+ *	This symbol, if defined, indicates that the Linux statfs() system call
+ *	is available to get filesystem statistics.
+ */
+#$d_statfs HAS_STATFS		/**/
+
+/* HAS_STATVFS:
+ *	This symbol, if defined, indicates that the POSIX statvfs() system call
+ *	is available to get filesystem statistics.
+ */
+#$d_statvfs HAS_STATVFS		/**/
+
+/* HAS_STRLCAT:
+ *	This symbol, if defined, indicates that the strlcat routine is
+ *	available.
+ */
+#$d_strlcat HAS_STRLCAT		/**/
+
+/* HAS_STRLCPY:
+ *	This symbol, if defined, indicates that the strlcpy routine is
+ *	available.
+ */
+#$d_strlcpy HAS_STRLCPY		/**/
+
+/* HAS_SYSCTL:
+ *	This symbol, if defined, indicates that the sysctl routine is
+ *	available.
+ */
+#$d_sysctl HAS_SYSCTL		/**/
+
 /* HAS_TIMES:
  *	This symbol, if defined, indicates that the times() routine exists.
  *	Note that this became obsolete on some systems (SUNOS), which now
@@ -281,6 +484,18 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #define volatile
 #endif
 
+/* HAS_VSNPRINTF:
+ *	This symbol, if defined, indicates that the vsnprintf routine is
+ *	available.
+ */
+#$d_vsnprintf HAS_VSNPRINTF		/**/
+
+/* ENABLE_NLS:
+ *	This symbol, when defines, indicates that the program should enable
+ *	Native Language Support (NLS) for internationalization (I18N).
+ */
+#$d_enablenls ENABLE_NLS	/**/
+
 /* I_ARPA_INET:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <arpa/inet.h> to get inet_addr and friends declarations.
@@ -300,11 +515,41 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_fcntl I_FCNTL	/**/
 
+/* I_ICONV:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <iconv.h>.
+ */
+#$i_iconv I_ICONV	/**/
+
+/* I_IFADDRS:
+ *    This symbol, if defined, indicates to the C program that it should
+ *    include <ifaddrs.h>.
+ */
+#$i_ifaddrs I_IFADDRS         /**/
+
 /* I_INTTYPES:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <inttypes.h> to get format conversions of integer types.
  */
 #$i_inttypes I_INTTYPES		/**/
+
+/* I_INVENT:
+ *    This symbol, if defined, indicates to the C program that it should
+ *    include <invent.h>.
+ */
+#$i_invent I_INVENT         /**/
+
+/* I_LANGINFO:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <langinfo.h>.
+ */
+#$i_langinfo I_LANGINFO		/**/
+
+/* I_LIBCHARSET:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <libcharset.h>.
+ */
+#$i_libcharset I_LIBCHARSET		/**/
 
 /* I_MATH:
  *	This symbol, if defined, indicates to the C program that it should
@@ -312,11 +557,29 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_math I_MATH		/**/
 
+/* I_NETDB:
+ *    This symbol, if defined, indicates to the C program that it should
+ *    include <netdb.h>.
+ */
+#$i_netdb I_NETDB         /**/
+
+/* I_NET_IF:
+ *    This symbol, if defined, indicates to the C program that it should
+ *    include <net/if.h>.
+ */
+#$i_netif I_NET_IF         /**/
+
 /* I_NETINET_IN:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <netinet/in.h>. Otherwise, you may try <sys/in.h>.
  */
 #$i_niin I_NETINET_IN	/**/
+
+/* I_NETINET_IP:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <netinet/ip.h>.
+ */
+#$i_niip I_NETINET_IP	/**/
 
 /* I_PWD:
  *	This symbol, if defined, indicates to the C program that it should
@@ -354,6 +617,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_sysmman	I_SYS_MMAN		/**/
 
+/* I_SYS_MOUNT:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/mount.h> to get the struct statfs definition for the
+ *	statfs() system call.
+ */
+#$i_sysmount I_SYS_MOUNT		/**/
+
 /* I_SYS_PARAM:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <sys/param.h>.
@@ -366,6 +636,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_sysresrc I_SYS_RESOURCE		/**/
 
+/* I_SYS_SENDFILE:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/sendfile.h>.
+ */
+#$i_syssendfile I_SYS_SENDFILE		/**/
+
 /* I_SYS_SOCKET:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <sys/socket.h> before performing socket calls.
@@ -377,6 +653,19 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	include <sys/stat.h>.
  */
 #$i_sysstat	I_SYS_STAT		/**/
+
+/* I_SYS_STATVFS:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/statvfs.h> to get the struct statvfs definition for the
+ *	statvfs() system call.
+ */
+#$i_sysstatvfs I_SYS_STATVFS		/**/
+
+/* I_SYS_SYSCTL:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/sysctl.h>.
+ */
+#$i_syssysctl I_SYS_SYSCTL		/**/
 
 /* I_SYS_TIMES:
  *	This symbol, if defined, indicates to the C program that it should
@@ -395,6 +684,19 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	include <sys/un.h> to get UNIX domain socket definitions.
  */
 #$i_sysun I_SYS_UN		/**/
+
+/* I_SYS_UTSNAME:
+ *    This symbol, if defined, indicates to the C program that it should
+ *    include <sys/utsname.h>.
+ */
+#$i_sysutsname I_SYS_UTSNAME         /**/
+
+/* I_SYS_VFS:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/vfs.h> to get the struct statfs definition for the
+ *	statfs() system call.
+ */
+#$i_sysvfs I_SYS_VFS		/**/
 
 /* I_TIME:
  *	This symbol, if defined, indicates to the C program that it should
@@ -424,6 +726,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_stdarg I_STDARG		/**/
 
+/* LOCALE_EXP:
+ *	This symbol holds the possibly ~name expanded place where localization
+ *	files for the package are expected to be found.
+ *	Only meaningful when ENABLE_NLS is defined.
+ */
+#define LOCALE_EXP "$localeexp"
+
 /* VAL_O_NONBLOCK:
  *	This symbol is to be used during open() or fcntl(F_SETFL) to turn on
  *	non-blocking I/O for the file descriptor. Note that there is no way
@@ -437,6 +746,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #define VAL_O_NONBLOCK $o_nonblock
 #define VAL_EAGAIN $eagain
+
+/* OFFICIAL_BUILD:
+ * When defined, the build is "official".  Programs generated for an
+ *	official build MUST NOT peek into the place where the sources lie, via
+ *	PACKAGE_SOURCE_DIR or any other means.
+ */
+#$d_official OFFICIAL_BUILD	/**/
 
 /* PACKAGE:
  *	This variable contains the name of the package being built.
@@ -496,317 +812,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #else
 #define	P(args) ()
 #endif
-
-/* HAS_BIND_TEXTDOMAIN_CODESET:
- *	This symbol, if defined, indicates that the bind_textdomain_codeset routine
- *	is available.
- */
-#$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
-
-/* HAS_BUILTIN_POPCOUNT:
- *	This symbol, if defined, indicates that __builtin_popcount routine is
- *	available to compute the amount of '1' bits in a word.
- */
-#$d_built_popcount HAS_BUILTIN_POPCOUNT	/**/
-
-/* HAS_CLOSEFROM:
- *	This symbol is defined when closefrom() can be used.
- */
-#$d_closefrom HAS_CLOSEFROM
-
-/* HAS_DEV_POLL:
- *	This symbol is defined when /dev/poll can be used.
- */
-#$d_dev_poll HAS_DEV_POLL
-
-/* HAS_DIRENT_D_TYPE:
- *	This symbol, if defined, indicates that struct dirent has an
- *	integer member d_type.
- */
-#$d_dirent_d_type HAS_DIRENT_D_TYPE		/**/
-
-/* HAS_EPOLL:
- *	This symbol is defined when epoll() can be used.
- */
-#$d_epoll HAS_EPOLL
-
-/* FAST_ASSERTIONS:
- *	This symbol, when defined, indicates that the program should make
- *	use of its own asserting and failure reporting code, instead of
- *	the one from GLib.
- */
-#$d_fast_assert FAST_ASSERTIONS	/**/
-
-/* HAS_GETADDRINFO:
- *	This symbol is defined when getaddrinfo() can be used.
- */
-#$d_getaddrinfo HAS_GETADDRINFO
-
-/* HAS_GETEUID:
- *	This symbol is defined when geteuid() can be used.
- */
-#$d_geteuid HAS_GETEUID
-
-/* HAS_GETIFADDRS:
- *	This symbol is defined when getifaddrs() can be used.
- */
-#$d_getifaddrs HAS_GETIFADDRS
-
-/* HAS_GETINVENT:
- *    This symbol, if defined, indicates that the getinvent routine is
- *    available.
- */
-#$d_getinvent       HAS_GETINVENT           /**/
-
-/* HAS_GETUID:
- *	This symbol is defined when getuid() can be used.
- */
-#$d_getuid HAS_GETUID
-
-/* HAS_HERROR:
- *	This symbol, if defined, indicates that the herror routine is
- *	available.
- */
-#$d_herror HAS_HERROR		/**/
-
-/* HAS_HSTRERROR:
- *	This symbol, if defined, indicates that the hstrerror routine is
- *	available.
- */
-#$d_hstrerror HAS_HSTRERROR		/**/
-
-/* USE_IP_TOS:
- *	This symbol, if defined, indicates that the IP TOS services are
- *	available and can be used.  Be prepared to include <sys/socket.h>,
- * either <netinet/in.h> or <sys/in.h>, and <netinet/ip.h> when
- *	I_NETINET_IP is defined.
- */
-#$d_iptos USE_IP_TOS		/**/
-
-/* HAS_IPV6:
- *  This symbol is defined when IPv6 can be used
- */
-#$d_ipv6 HAS_IPV6	/**/
-
-/* HAS_KEVENT_INT_UDATA:
- *	This symbol, if defined, indicates that struct kevent has an
- *	integer member udata.
- */
-#$d_kevent_int_udata HAS_KEVENT_INT_UDATA		/**/
-
-/* HAS_KQUEUE:
- *	This symbol is defined when kqueue() can be used.
- */
-#$d_kqueue HAS_KQUEUE
-
-/* HAS_LOCALE_CHARSET:
- *	This symbol is defined when locale_charset() can be used.
- */
-#$d_locale_charset HAS_LOCALE_CHARSET
-
-/* HAS_MADVISE:
- *	This symbol, if defined, indicates that the madvise routine is
- *	available.
- */
-#$d_madvise HAS_MADVISE		/**/
-
-/* HAS_MSGHDR_MSG_FLAGS:
- *	This symbol, if defined, indicates that struct msghdr has a
- *	member msg_flags.
- */
-#$d_msghdr_msg_flags HAS_MSGHDR_MSG_FLAGS		/**/
-
-/* HAS_NANOSLEEP:
- *	This symbol, if defined, indicates that the nanosleep() system call
- *	is available.
- */
-#$d_nanosleep HAS_NANOSLEEP		/**/
-
-/* HAS_POSIX_FADVISE:
- *	This symbol is defined when posix_fadvise() can be used.
- */
-#$d_posix_fadvise HAS_POSIX_FADVISE
-
-/* HAS_POSIX_MEMALIGN:
- *	This symbol is defined when posix_memalign() can be used.
- */
-#$d_posix_memalign HAS_POSIX_MEMALIGN
-
-/* HAS_REGPARM:
- *	This symbol is defined when __attribute__((__regparm__(n))) can be used.
- */
-#$d_regparm HAS_REGPARM
-
-/* HAS_SA_INTERRUPT:
- *	This symbol is defined when SA_INTERRUPT can be used in sigaction().
- */
-#$d_sa_interrupt HAS_SA_INTERRUPT
-
-/* HAS_SENDFILE:
- *	This symbol, if defined, indicates that the sendfile routine is
- *	available.
- */
-#$d_sendfile HAS_SENDFILE		/**/
-
-/* HAS_SETPROCTITLE:
- *	This symbol is defined when setproctitle() can be used and takes a
- *	format string.
- */
-#$d_setproctitle HAS_SETPROCTITLE
-
-/* HAS_SOCKADDR_IN_SIN_LEN:
- *	This symbol is defined if struct sockaddr_in has sin_len.
- */
-#$d_sockaddr_in_sin_len HAS_SOCKADDR_IN_SIN_LEN
-
-/* HAS_SOCKER_GET:
- *	This symbol is defined when socker_get() can be used to get sockets
- *	bound to privileged ports.
- */
-#$d_socker_get HAS_SOCKER_GET
-
-/* HAS_STATFS:
- *	This symbol, if defined, indicates that the Linux statfs() system call
- *	is available to get filesystem statistics.
- */
-#$d_statfs HAS_STATFS		/**/
-
-/* HAS_STATVFS:
- *	This symbol, if defined, indicates that the POSIX statvfs() system call
- *	is available to get filesystem statistics.
- */
-#$d_statvfs HAS_STATVFS		/**/
-
-/* HAS_STRLCAT:
- *	This symbol, if defined, indicates that the strlcat routine is
- *	available.
- */
-#$d_strlcat HAS_STRLCAT		/**/
-
-/* HAS_STRLCPY:
- *	This symbol, if defined, indicates that the strlcpy routine is
- *	available.
- */
-#$d_strlcpy HAS_STRLCPY		/**/
-
-/* HAS_SYSCTL:
- *	This symbol, if defined, indicates that the sysctl routine is
- *	available.
- */
-#$d_sysctl HAS_SYSCTL		/**/
-
-/* HAS_VSNPRINTF:
- *	This symbol, if defined, indicates that the vsnprintf routine is
- *	available.
- */
-#$d_vsnprintf HAS_VSNPRINTF		/**/
-
-/* ENABLE_NLS:
- *	This symbol, when defines, indicates that the program should enable
- *	Native Language Support (NLS) for internationalization (I18N).
- */
-#$d_enablenls ENABLE_NLS	/**/
-
-/* I_ICONV:
- *	This symbol, if defined, indicates to the C program that it should
- *	include <iconv.h>.
- */
-#$i_iconv I_ICONV	/**/
-
-/* I_IFADDRS:
- *    This symbol, if defined, indicates to the C program that it should
- *    include <ifaddrs.h>.
- */
-#$i_ifaddrs I_IFADDRS         /**/
-
-/* I_INVENT:
- *    This symbol, if defined, indicates to the C program that it should
- *    include <invent.h>.
- */
-#$i_invent I_INVENT         /**/
-
-/* I_LANGINFO:
- *	This symbol, if defined, indicates to the C program that it should
- *	include <langinfo.h>.
- */
-#$i_langinfo I_LANGINFO		/**/
-
-/* I_LIBCHARSET:
- *	This symbol, if defined, indicates to the C program that it should
- *	include <libcharset.h>.
- */
-#$i_libcharset I_LIBCHARSET		/**/
-
-/* I_NETDB:
- *    This symbol, if defined, indicates to the C program that it should
- *    include <netdb.h>.
- */
-#$i_netdb I_NETDB         /**/
-
-/* I_NET_IF:
- *    This symbol, if defined, indicates to the C program that it should
- *    include <net/if.h>.
- */
-#$i_netif I_NET_IF         /**/
-
-/* I_NETINET_IP:
- *	This symbol, if defined, indicates to the C program that it should
- *	include <netinet/ip.h>.
- */
-#$i_niip I_NETINET_IP	/**/
-
-/* I_SYS_MOUNT:
- *	This symbol, if defined, indicates to the C program that it should
- *	include <sys/mount.h> to get the struct statfs definition for the
- *	statfs() system call.
- */
-#$i_sysmount I_SYS_MOUNT		/**/
-
-/* I_SYS_SENDFILE:
- *	This symbol, if defined, indicates to the C program that it should
- *	include <sys/sendfile.h>.
- */
-#$i_syssendfile I_SYS_SENDFILE		/**/
-
-/* I_SYS_STATVFS:
- *	This symbol, if defined, indicates to the C program that it should
- *	include <sys/statvfs.h> to get the struct statvfs definition for the
- *	statvfs() system call.
- */
-#$i_sysstatvfs I_SYS_STATVFS		/**/
-
-/* I_SYS_SYSCTL:
- *	This symbol, if defined, indicates to the C program that it should
- *	include <sys/sysctl.h>.
- */
-#$i_syssysctl I_SYS_SYSCTL		/**/
-
-/* I_SYS_UTSNAME:
- *    This symbol, if defined, indicates to the C program that it should
- *    include <sys/utsname.h>.
- */
-#$i_sysutsname I_SYS_UTSNAME         /**/
-
-/* I_SYS_VFS:
- *	This symbol, if defined, indicates to the C program that it should
- *	include <sys/vfs.h> to get the struct statfs definition for the
- *	statfs() system call.
- */
-#$i_sysvfs I_SYS_VFS		/**/
-
-/* LOCALE_EXP:
- *	This symbol holds the possibly ~name expanded place where localization
- *	files for the package are expected to be found.
- *	Only meaningful when ENABLE_NLS is defined.
- */
-#define LOCALE_EXP "$localeexp"
-
-/* OFFICIAL_BUILD:
- * When defined, the build is "official".  Programs generated for an
- *	official build MUST NOT peek into the place where the sources lie, via
- *	PACKAGE_SOURCE_DIR or any other means.
- */
-#$d_official OFFICIAL_BUILD	/**/
 
 /* HAS_DBUS:
  * This symbol is defined when dbus is present

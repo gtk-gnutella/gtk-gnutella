@@ -73,6 +73,10 @@
 #undef KERNEL
 #endif
 
+#ifdef WINDOWS_SYSTEM
+#define MINGW32
+#endif
+
 #ifdef MINGW32
 #include "lib/mingw32.h"
 #else
