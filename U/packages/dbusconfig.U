@@ -24,8 +24,6 @@
 ?T:modver version dbus vint dbusconfig
 ?LINT: set d_dbus
 : how can we find information about dbus?
-echo " "
-
 dbus="$undef"
 dbuscflags=
 dbusldflags=
@@ -35,6 +33,7 @@ modver=''
 case "$d_dbus" in
 "$undef") ;;
 *)
+	echo " "
 	echo "Checking how we can gather information about dbus..." >&4
 	if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
 		dbusconfig="pkg-config dbus-1"
@@ -81,7 +80,6 @@ EOM
 	fi
 	;;
 esac
-
 val=$dbus
 set d_dbus
 eval $setvar
