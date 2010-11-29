@@ -750,6 +750,8 @@ gnet_stats_count_flowc(const void *head, gboolean head_only)
 
 		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
 			t = stats_lut[opcode + MSG_DHT_BASE];
+		} else {
+			t = stats_lut[function];		/* Invalid opcode? */
 		}
 		hops = 0;
 		ttl = 0;
