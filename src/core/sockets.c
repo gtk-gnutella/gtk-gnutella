@@ -80,6 +80,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/portmap.h"
 #include "lib/random.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -1276,6 +1277,9 @@ socket_shutdown(void)
 		socket_destroy(s, NULL);
 	}
 
+	portmap_unmap_tcp_port(s_tcp_listen->local_port);
+	portmap_unmap_udp_port(s_udp_listen->local_port);
+	
 	/* No longer accept connections or UDP packets */
 	socket_free_null(&s_local_listen);
 	socket_free_null(&s_tcp_listen);
@@ -3394,6 +3398,8 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 	s->tls.enabled = tls_enabled();
 
 	socket_enable_accept(s);
+	
+	portmap_map_tcp_port(port);
 	return s;
 }
 
@@ -3498,6 +3504,8 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 
 	socket_recv_buf(s, SOCK_UDP_RECV_BUF, FALSE);
 
+	portmap_map_udp_port(port);
+	
 	return s;
 }
 

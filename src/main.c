@@ -127,6 +127,7 @@
 #include "lib/parse.h"
 #include "lib/patricia.h"
 #include "lib/pattern.h"
+#include "lib/portmap.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/socket.h"
@@ -182,6 +183,7 @@ static tm_t start_time;
 
 static int reopen_log_files(void);
 static gboolean stderr_disabled;
+
 
 /**
  * Force immediate shutdown of SIGALRM reception.
@@ -1595,6 +1597,8 @@ main(int argc, char **argv)
 	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
 		g_error("Error at WSAStartup()\n");
 #endif
+
+	portmap_init();
 
 #ifndef OFFICIAL_BUILD
 	g_warning("%s \"%s\"",

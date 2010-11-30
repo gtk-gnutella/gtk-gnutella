@@ -154,6 +154,7 @@ LSRC = \
 	map.c \
 	mime_type.c \
 	mingw32.c \
+	portmap.c \
 	misc.c \
 	offtime.c \
 	omalloc.c \
@@ -252,6 +253,7 @@ LOBJ = \
 	map.o \
 	mime_type.o \
 	mingw32.o \
+	portmap.o \
 	misc.o \
 	offtime.o \
 	omalloc.o \
