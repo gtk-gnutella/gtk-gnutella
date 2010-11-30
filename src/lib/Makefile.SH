@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-30]
-: $X-Id: Jmake.tmpl 30 2009-10-28 07:45:28Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-50]
+: $X-Id: Jmake.tmpl 48 2010-11-28 23:05:09Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -69,7 +69,7 @@ DBUS_CFLAGS =  $dbuscflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
+# $X-Id: Jmake.rules 48 2010-11-28 23:05:09Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 17762 2010-11-17 18:26:32Z rmanfredi $
+# $X-Id: Jmakefile 17867 2010-11-30 20:24:35Z rmanfredi $
 
 GENERIC = bit_array.h bit_field.h
 
@@ -154,7 +154,6 @@ LSRC = \
 	map.c \
 	mime_type.c \
 	mingw32.c \
-	portmap.c \
 	misc.c \
 	offtime.c \
 	omalloc.c \
@@ -166,6 +165,7 @@ LSRC = \
 	patricia.c \
 	pattern.c \
 	pmsg.c \
+	portmap.c \
 	pow2.c \
 	prop.c \
 	random.c \
@@ -253,7 +253,6 @@ LOBJ = \
 	map.o \
 	mime_type.o \
 	mingw32.o \
-	portmap.o \
 	misc.o \
 	offtime.o \
 	omalloc.o \
@@ -265,6 +264,7 @@ LOBJ = \
 	patricia.o \
 	pattern.o \
 	pmsg.o \
+	portmap.o \
 	pow2.o \
 	prop.o \
 	random.o \
@@ -310,12 +310,13 @@ libshared.a: $(LOBJ)
 	$(AR) $@ $(LOBJ)
 	$(RANLIB) $@
 
-depend:: ../../mkdep
+local_depend:: ../../mkdep
 
 ../../mkdep:
 	@echo "You have to run Configure in $(TOP) first."; exit 1
 
-depend::
+depend:: local_depend
+local_depend::
 	($(SED) '/^# DO NOT DELETE/q' Makefile && \
 	$(MKDEP) $(SOURCES) | \
 	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
@@ -381,6 +382,8 @@ tags::
 
 local_clobber::
 	$(RM) tags
+
+depend::
 
 ########################################################################
 # Empty rules for directories with no sub-directories -- do not edit
