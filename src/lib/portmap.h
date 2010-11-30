@@ -1,5 +1,5 @@
 /*
- * $Id: portmap.h 17849 2010-11-26 22:12:16Z rmanfredi $
+ * $Id$
  *
  * Copyright (c) 2010, Jeroen Asselman
  *
@@ -35,7 +35,6 @@
 
 #ifndef _portmap_h_
 #define _portmap_h_
-
 
 void portmap_init(void);
 void portmap_map_tcp_port(int port);

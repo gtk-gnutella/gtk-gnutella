@@ -1692,6 +1692,8 @@ set_signal(int signo, signal_handler_t handler)
 	return sigaction(signo, &sa, &osa) ? SIG_ERR : osa.sa_handler;
 #else
 	/* FIXME WIN32, probably: We can't just ignore all signal logic */
+	(void) signo;
+	(void) handler;
 	return NULL;
 #endif
 }

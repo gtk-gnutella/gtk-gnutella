@@ -655,6 +655,8 @@ src/lib/pattern.c
 src/lib/pattern.h
 src/lib/pmsg.c
 src/lib/pmsg.h
+src/lib/portmap.c
+src/lib/portmap.h
 src/lib/pow2.c
 src/lib/pow2.h
 src/lib/prop.c

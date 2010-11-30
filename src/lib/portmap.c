@@ -1,5 +1,5 @@
 /*
- * $Id: portmap.c 17860 2010-11-28 15:51:31Z nonamer $
+ * $Id$
  *
  * Copyright (c) 2010, Jeroen Asselman
  *
@@ -35,7 +35,7 @@
 
 #include "common.h"
 
-RCSID("$Id: portmap.c 17860 2010-11-28 15:51:31Z nonamer $")
+RCSID("$Id$")
 
 #include "glib-missing.h"
 
