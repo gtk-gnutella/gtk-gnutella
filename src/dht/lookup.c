@@ -2272,8 +2272,9 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 	qsort(&items, G_N_ELEMENTS(items), sizeof(items[0]), kl_item_revcmp);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_debug("DHT LOOKUP[%s] largest K-L divergence %lf from %u-bit prefix",
-			revent_id_to_string(nl->lid), items[0].contrib, items[0].prefix);
+		g_debug("DHT LOOKUP[%s] largest K-L divergence %lf from %lu-bit prefix",
+			revent_id_to_string(nl->lid), items[0].contrib,
+			(unsigned long) items[0].prefix);
 	}
 
 	/*
