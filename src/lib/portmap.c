@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include <miniupnpc/upnpcommands.h>
 #endif
 
+#include "lib/stringify.h"
 #include "override.h"			/* Must be the last header included */
 
 #ifdef MINIUPNPC
@@ -56,18 +57,20 @@ static char lanaddr[64];	/* UPnP local ip address */
 void 
 upnp_init(void)
 {
+	static int initialized;
 	struct UPNPDev * devlist;
 	struct UPNPDev * dev;
 	char * descXML;
 	int descXMLsize = 0;
+
 	g_debug("upnp_init()");
-	memset(&urls, 0, sizeof(struct UPNPUrls));
-	memset(&data, 0, sizeof(struct IGDdatas));
+	g_assert(!initialized);
+	initialized = TRUE;
+
 	devlist = upnpDiscover(2000, NULL, NULL, 0);
 	if (devlist) {
 		dev = devlist;
-		while (dev)
-		{
+		while (dev) {
 			if (strstr (dev->st, "InternetGatewayDevice"))
 				break;
 				
@@ -76,13 +79,13 @@ upnp_init(void)
 		if (!dev)
 			dev = devlist; /* defaulting to first device */
 
-		g_info("UPnP device %s\t st: %s",
-			   dev->descURL, dev->st);
+		g_info("UPnP device %s\t st: %s", dev->descURL, dev->st);
 
 		descXML = miniwget(dev->descURL, &descXMLsize);
 		if (descXML) {
-			parserootdesc (descXML, descXMLsize, &data);
-			free (descXML); descXML = 0;
+			parserootdesc(descXML, descXMLsize, &data);
+			free(descXML);
+			descXML = NULL;
 			GetUPNPUrls (&urls, &data, dev->descURL);
 		}
 		
@@ -94,67 +97,67 @@ upnp_init(void)
 }
 
 void
-upnp_add_redir (const char *proto, const char * addr, int port)
+upnp_add_redir (const char *proto, const char * addr, guint16 port)
 {
-	char port_str[16];
+	char port_str[UINT16_DEC_BUFLEN];
 	int r;
 	
 	if (NULL == addr)
 		addr = lanaddr;
 		
-	g_debug("upnp_add_redir %s %s:%d", proto, addr, port);
+	g_debug("upnp_add_redir %s %s:%u", proto, addr, port);
 	
-	if(urls.controlURL[0] == '\0') {
+	if (urls.controlURL[0] == '\0') {
 		g_warning("UPnP init was not done!");
 		return;
 	}
-	
-	sprintf(port_str, "%d", port);
+
+	uint16_to_string_buf(port, port_str, sizeof port_str);
 	r = UPNP_AddPortMapping(urls.controlURL, data.CIF.servicetype,
 		port_str, port_str, addr, 
 		"gtk-gnutella", proto, NULL);
 		
-	if(0 != r)
+	if (0 != r)
 		g_warning("AddPortMapping(%s, %s, %s) failed %d", 
 			port_str, port_str, addr, r);
 }
 
 void
-upnp_add_tcp_redir (const char * addr, int port)
+upnp_add_tcp_redir (const char * addr, guint16 port)
 {
 	upnp_add_redir("TCP", addr, port);
 }
 
 void
-upnp_add_udp_redir (const char * addr, int port)
+upnp_add_udp_redir (const char * addr, guint16 port)
 {
 	upnp_add_redir("UDP", addr, port);
 }
 void
-upnp_rem_redir (const char * proto, int port)
+upnp_rem_redir (const char * proto, guint16 port)
 {
-	char port_str[16];
+	char port_str[UINT16_DEC_BUFLEN];
 
 	g_debug("upnp_rem_redir %s :%d", proto, port);
 
-	if(urls.controlURL[0] == '\0') {
+	if (urls.controlURL[0] == '\0') {
 		g_warning("UPnP init was not done !");
 		return;
 	}
 	
-	sprintf(port_str, "%d", port);
+	uint16_to_string_buf(port, port_str, sizeof port_str);
 	UPNP_DeletePortMapping(urls.controlURL, data.CIF.servicetype, 
 		port_str, proto, NULL);
 }
 
 void
-upnp_rem_tcp_redir (int port)
+upnp_rem_tcp_redir (guint16 port)
 {
 	upnp_rem_redir("TCP", port);
 }
 
 void
-upnp_rem_udp_redir (int port)
+upnp_rem_udp_redir (guint16 port)
 {
 	upnp_rem_redir("UDP", port);
 }
@@ -171,7 +174,7 @@ portmap_init(void)
 }
 
 void 
-portmap_map_tcp_port(int port)
+portmap_map_tcp_port(guint16 port)
 {
 #ifdef MINIUPNPC
 	upnp_add_tcp_redir(NULL, port);
@@ -181,7 +184,7 @@ portmap_map_tcp_port(int port)
 }
 
 void 
-portmap_map_udp_port(int port)
+portmap_map_udp_port(guint16 port)
 {
 #ifdef MINIUPNPC
 	upnp_add_udp_redir(NULL, port);
@@ -191,7 +194,7 @@ portmap_map_udp_port(int port)
 }
 
 void
-portmap_unmap_tcp_port(int port)
+portmap_unmap_tcp_port(guint16 port)
 {
 #ifdef MINIUPNPC
 	upnp_rem_tcp_redir(port);
@@ -201,7 +204,7 @@ portmap_unmap_tcp_port(int port)
 }
 
 void
-portmap_unmap_udp_port(int port)
+portmap_unmap_udp_port(guint16 port)
 {
 #ifdef MINIUPNPC
 	upnp_rem_udp_redir(port);

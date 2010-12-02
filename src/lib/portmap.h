@@ -37,10 +37,10 @@
 #define _portmap_h_
 
 void portmap_init(void);
-void portmap_map_tcp_port(int port);
-void portmap_map_udp_port(int port);
-void portmap_unmap_tcp_port(int port);
-void portmap_unmap_udp_port(int port);
+void portmap_map_tcp_port(guint16);
+void portmap_map_udp_port(guint16);
+void portmap_unmap_tcp_port(guint16);
+void portmap_unmap_udp_port(guint16);
 
 #endif /* _portmap_h_ */
 
