@@ -246,13 +246,17 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
     int i;
     ssize_t total_read = 0;
 
-    for(i = 0; i< iov_cnt; i++) {
-        ssize_t r = mingw_read(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
-        total_read += r;
+	for(i = 0; i< iov_cnt; i++) {
+		ssize_t r = mingw_read(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
 
-        if (r != iovec_len(&iov[i]))
-            return total_read;
-    }
+		if (-1 == r)
+			break;
+
+		total_read += r;
+
+		if (UNSIGNED(r) != iovec_len(&iov[i]))
+			break;
+	}
 
     return total_read;
 }
@@ -297,16 +301,20 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
      * unbuffered and async.
      */
 
-     int i;
-     ssize_t total_written = 0;
+	int i;
+	ssize_t total_written = 0;
 
-     for(i = 0; i< iov_cnt; i++) {
-         ssize_t w = mingw_write(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
-         total_written += w;
-		 
-         if (w != iovec_len(&iov[i]))
-            return total_written;
-     }
+	for (i = 0; i< iov_cnt; i++) {
+		ssize_t w = mingw_write(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
+
+		if (-1 == w)
+			break;
+
+		total_written += w;
+
+		if (UNSIGNED(w) != iovec_len(&iov[i]))
+			break;
+	}
 
      return total_written;
 }
@@ -322,7 +330,7 @@ mingw_pwritev(int fd, const iovec_t *iov, int iov_cnt, filesize_t pos)
 		return -1;
 		
 	if ((off_t) -1 == mingw_lseek(fd, pos, SEEK_SET))
-		res -1;
+		res = -1;
 	else
 		res = mingw_writev(fd, iov, iov_cnt);
 	
@@ -577,7 +585,7 @@ static int mingw_vmm_res_nonhinted = 0;
 void *
 mingw_valloc(void *hint, size_t size)
 {
-	void *p;
+	void *p = NULL;
 
 	if (NULL == hint && mingw_vmm_res_nonhinted >= 0) {
 		if (NULL == mingw_vmm_res_mem) {
