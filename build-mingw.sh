@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# TODO: Integrate this into build.sh for there must be one and only one
+#	way to compile gtk-gnutella.
+#
 # Simple compilation wrapper to build gtk-gnutella on Windows with MINGW.
 # This script is meant to be run through the MSYS shell from MINGW.
 #
@@ -11,7 +14,7 @@
 # If not, adjust the PATH below, along with INCDIRS & LIBDIRS
 
 # The PATH is set so that pkg-config and xml2-config can be found
-PATH=$PATH:/mingw/lib/gtk/bin:/mingw/lib/xml2/bin
+PATH=$PATH${PATH:+:}/mingw/lib/gtk/bin:/mingw/lib/xml2/bin
 export PATH
 
 OPTIMIZE='-O2 -g'
