@@ -105,10 +105,8 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 			res = 0;
 			break;
 		case F_GETFL:
-		{
 			res = O_RDWR;
 			break;
-		}
 		case F_SETLK:
 		{
 			HANDLE file =  (HANDLE)_get_osfhandle(fd);
@@ -136,6 +134,10 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 
 			break;
 		}
+		default:
+			res = -1;
+			errno = EINVAL;
+			break;
 	}
 
 	return res;
@@ -199,13 +201,13 @@ mingw_open(const char *pathname, int flags, ...)
 {
 	int res;
 	mode_t mode = 0;
-	flags |= O_BINARY;
 
+	flags |= O_BINARY;
 	if (flags & O_CREAT) {
         va_list  args;
 
         va_start(args, flags);
-        mode = (mode_t) va_arg(args, int);
+        mode = (mode_t) va_arg(args, mode_t);
         va_end(args);
     }
 
@@ -244,10 +246,10 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
      */
 
     int i;
-    ssize_t total_read = 0;
+    ssize_t total_read = 0, r = -1;
 
-	for(i = 0; i< iov_cnt; i++) {
-		ssize_t r = mingw_read(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
+	for(i = 0; i < iov_cnt; i++) {
+		r = mingw_read(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
 
 		if (-1 == r)
 			break;
@@ -258,12 +260,13 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
 			break;
 	}
 
-    return total_read;
+    return total_read > 0 ? total_read : r;
 }
 
 ssize_t
 mingw_preadv(int fd, iovec_t *iov, int iov_cnt, filesize_t pos)
 {
+	/* FIXME: Use seek_to_filepos() instead! */
 	int saved_errno;
 	ssize_t res;
 	off_t cur_pos = mingw_lseek(fd, 0, SEEK_CUR);
@@ -277,6 +280,7 @@ mingw_preadv(int fd, iovec_t *iov, int iov_cnt, filesize_t pos)
 		res = mingw_readv(fd, iov, iov_cnt);
 	
 	saved_errno = errno;
+	/** FIXME: Should warn here on failure because this would mean havoc */
 	mingw_lseek(fd, cur_pos, SEEK_SET);
 	errno = saved_errno;
 	
@@ -302,10 +306,10 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
      */
 
 	int i;
-	ssize_t total_written = 0;
+	ssize_t total_written = 0, w = -1;
 
-	for (i = 0; i< iov_cnt; i++) {
-		ssize_t w = mingw_write(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
+	for (i = 0; i < iov_cnt; i++) {
+		w = mingw_write(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
 
 		if (-1 == w)
 			break;
@@ -316,12 +320,13 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
 			break;
 	}
 
-     return total_written;
+     return total_written > 0 ? total_written : w;
 }
 
 ssize_t
 mingw_pwritev(int fd, const iovec_t *iov, int iov_cnt, filesize_t pos)
 {
+	/* FIXME: Use seek_to_filepos() instead! */
 	int saved_errno;
 	ssize_t res;
 	off_t cur_pos = mingw_lseek(fd, 0, SEEK_CUR);
@@ -335,6 +340,7 @@ mingw_pwritev(int fd, const iovec_t *iov, int iov_cnt, filesize_t pos)
 		res = mingw_writev(fd, iov, iov_cnt);
 	
 	saved_errno = errno;
+	/** FIXME: Should warn here on failure because this would mean havoc */
 	mingw_lseek(fd, cur_pos, SEEK_SET);
 	errno = saved_errno;
 	
