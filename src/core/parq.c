@@ -3789,8 +3789,6 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 {
 	time_t now = tm_time();
 	struct parq_ul_queued *puq = NULL;
-	gboolean return_result = FALSE; /* True if the upload was really removed
-									   ie: Removed from memory */
 
 	upload_check(u);
 
@@ -3976,7 +3974,6 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 	if (u->parq_status) {
 		/* This means we called parq_upload_request() which returned FALSE */
 		u->parq_status = FALSE;
-		return_result = FALSE;
 		goto done;
 	}
 
@@ -4002,8 +3999,7 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 				u->name, (unsigned) delta_time(puq->disc_timeout, now));
 		}
 		parq_upload_free(puq);
-		return_result = TRUE;
-
+		return TRUE;
 	} else {
 		/*
 		 * A client is not allowed to disconnect over and over again
@@ -4029,7 +4025,7 @@ done:
 	puq->has_slot = FALSE;
 	puq->slot_granted = 0;
 
-	return return_result;
+	return FALSE;
 }
 
 static size_t
