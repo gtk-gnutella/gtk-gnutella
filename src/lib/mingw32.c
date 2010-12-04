@@ -153,8 +153,7 @@ mingw_gethome(void)
 
 	if (E_INVALIDARG == ret) {
 		g_warning("could not determine home directory");
-		path[0] = '/';
-		path[1] = '\0';
+		g_strlcpy(path, "/", sizeof path);
 	}
 
 	return path;
@@ -248,7 +247,7 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
     int i;
     ssize_t total_read = 0, r = -1;
 
-	for(i = 0; i < iov_cnt; i++) {
+	for (i = 0; i < iov_cnt; i++) {
 		r = mingw_read(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
 
 		if (-1 == r)
@@ -261,30 +260,6 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
 	}
 
     return total_read > 0 ? total_read : r;
-}
-
-ssize_t
-mingw_preadv(int fd, iovec_t *iov, int iov_cnt, filesize_t pos)
-{
-	/* FIXME: Use seek_to_filepos() instead! */
-	int saved_errno;
-	ssize_t res;
-	off_t cur_pos = mingw_lseek(fd, 0, SEEK_CUR);
-	
-	if ((off_t) -1 == cur_pos)
-		return -1;
-	
-    if ((off_t) -1 == mingw_lseek(fd, pos, SEEK_SET))
-		res = -1;
-	else
-		res = mingw_readv(fd, iov, iov_cnt);
-	
-	saved_errno = errno;
-	/** FIXME: Should warn here on failure because this would mean havoc */
-	mingw_lseek(fd, cur_pos, SEEK_SET);
-	errno = saved_errno;
-	
-	return res;
 }
 
 ssize_t
@@ -320,31 +295,7 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
 			break;
 	}
 
-     return total_written > 0 ? total_written : w;
-}
-
-ssize_t
-mingw_pwritev(int fd, const iovec_t *iov, int iov_cnt, filesize_t pos)
-{
-	/* FIXME: Use seek_to_filepos() instead! */
-	int saved_errno;
-	ssize_t res;
-	off_t cur_pos = mingw_lseek(fd, 0, SEEK_CUR);
-	
-	if ((off_t) -1 == cur_pos)
-		return -1;
-		
-	if ((off_t) -1 == mingw_lseek(fd, pos, SEEK_SET))
-		res = -1;
-	else
-		res = mingw_writev(fd, iov, iov_cnt);
-	
-	saved_errno = errno;
-	/** FIXME: Should warn here on failure because this would mean havoc */
-	mingw_lseek(fd, cur_pos, SEEK_SET);
-	errno = saved_errno;
-	
-	return res;
+	return total_written > 0 ? total_written : w;
 }
 
 int
@@ -369,9 +320,9 @@ mingw_truncate(const char *path, off_t len)
 /***
  *** Socket wrappers
  ***/
-int mingw_getaddrinfo(const char *node, const char *service,
-                      const struct addrinfo *hints,
-                      struct addrinfo **res)
+int
+mingw_getaddrinfo(const char *node, const char *service,
+	const struct addrinfo *hints, struct addrinfo **res)
 {
 	int result = getaddrinfo(node, service, hints, res);
 	if (result != 0)
@@ -379,7 +330,8 @@ int mingw_getaddrinfo(const char *node, const char *service,
 	return result;
 }
 
-void mingw_freeaddrinfo(struct addrinfo *res)
+void
+mingw_freeaddrinfo(struct addrinfo *res)
 {
 	freeaddrinfo(res);
 }
@@ -535,39 +487,41 @@ recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
 #else
 	/* WSARecvMsg is available in windows, but not in mingw */
 
-	size_t i;
-    WSABUF buf[hdr->msg_iovlen];
-	DWORD received;
-	INT ifromLen;
-	DWORD dflags;
-
-	if (hdr->msg_iovlen > 100) {
+	if (hdr->msg_iovlen < 1) {
+		errno = EINVAL;
+		return -1;
+	} else if (hdr->msg_iovlen > 100) {
 		g_warning("recvmsg: msg_iovlen to large: %d", hdr->msg_iovlen);
         errno = EINVAL;
         return -1;
-    }
+    } else {
+		size_t i;
+		DWORD received;
+		INT ifromLen;
+		DWORD dflags;
+		WSABUF buf[hdr->msg_iovlen]; /* ISO C99 VLA */
 
-    for (i = 0; i < hdr->msg_iovlen; i++) {
-		buf[i].buf = iovec_base(&hdr->msg_iov[i]),
-		buf[i].len = iovec_len(&hdr->msg_iov[i]);
+		for (i = 0; i < hdr->msg_iovlen; i++) {
+			buf[i].buf = iovec_base(&hdr->msg_iov[i]);
+			buf[i].len = iovec_len(&hdr->msg_iov[i]);
+		}
+
+		hdr->msg_controllen = 0;
+		hdr->msg_flags = 0;
+
+		ifromLen = hdr->msg_namelen;
+		dflags = flags;
+
+		if (
+				0 != WSARecvFrom(s, buf, i, &received, &dflags,
+					hdr->msg_name, &ifromLen, NULL, NULL)
+		   ) {
+			errno = WSAGetLastError();
+			return -1;
+		}
+
+		return received;
 	}
-
-
-    hdr->msg_controllen = 0;
-    hdr->msg_flags = 0;
-
-	ifromLen = hdr->msg_namelen;
-	dflags = flags;
-
-    if (
-		0 != WSARecvFrom(s, buf, i, &received, &dflags,
-			hdr->msg_name, &ifromLen, NULL, NULL)
-	) {
-		errno = WSAGetLastError();
-		return -1;
-	}
-
-	return received;
 #endif
 }
 
@@ -639,11 +593,15 @@ mingw_valloc(void *hint, size_t size)
 					compact_size(mingw_vmm_res_size, FALSE));
 			}
 		} else {
+			size_t n;
+
 			if (vmm_is_debugging(0))
 				g_debug("no hint given for %s allocation",
 					compact_size(size, FALSE));
-			p = mingw_vmm_res_mem +
-				(++mingw_vmm_res_nonhinted * mingw_getpagesize());
+
+			n = mingw_getpagesize();
+			n = size_saturate_mult(n, ++mingw_vmm_res_nonhinted);
+			p = ptr_add_offset(mingw_vmm_res_mem, n);
 		}
 		if (NULL == p) {
 			errno = GetLastError();
@@ -697,8 +655,8 @@ mingw_vfree(void *addr, size_t size)
 int
 mingw_vfree_fragment(void *addr, size_t size)
 {
-	if (mingw_vmm_res_mem < addr &&
-		mingw_vmm_res_mem + mingw_vmm_res_size > addr)
+	if (ptr_cmp(mingw_vmm_res_mem, addr) < 0 &&
+		ptr_cmp(ptr_add_offset(mingw_vmm_res_mem, mingw_vmm_res_size), addr) > 0)
 	{
 		/* Allocated in reserved space */
 		if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
@@ -739,8 +697,8 @@ mingw_mprotect(void *addr, size_t len, int prot)
 	if (!res) {
 		errno = GetLastError();
 		if (vmm_is_debugging(0)) {
-			g_debug("VMM mprotect(0x%lx, %u) failed: errno=%d",
-				(unsigned long) addr, (unsigned) len, errno);
+			g_debug("VMM mprotect(0x%lx, %lu) failed: errno=%d",
+				(unsigned long) addr, (unsigned long) len, errno);
 		}
 		return -1;
 	}
@@ -788,7 +746,7 @@ mingw_random_bytes(void *buf, size_t len)
 static char strerrbuf[1024];
 
 const char *
-mingw_strerror(gint errnum)
+mingw_strerror(int errnum)
 {
 	FormatMessage(
         FORMAT_MESSAGE_FROM_SYSTEM,
@@ -999,36 +957,39 @@ mingw_process_is_alive(pid_t pid)
 	return res;
 }
 
-static int
+static unsigned long
 mingw_cpu_count(void)
 {
-	static int result;
+	static unsigned long result;
 	SYSTEM_INFO system_info;
 
-	if (G_LIKELY(result != 0))
-		return result;
-
-	GetSystemInfo(&system_info);
-	return result = system_info.dwNumberOfProcessors;
+	if (G_UNLIKELY(result == 0)) {
+		GetSystemInfo(&system_info);
+		result = system_info.dwNumberOfProcessors;
+		g_assert(result > 0);
+	}
+	return result;
 }
 
 guint64
 mingw_cpufreq(enum mingw_cpufreq freq)
 {
-	int cpus = mingw_cpu_count();
-	PROCESSOR_POWER_INFORMATION powarray[16];
-	PROCESSOR_POWER_INFORMATION *p;
+	unsigned long cpus = mingw_cpu_count();
+	PROCESSOR_POWER_INFORMATION *p, powarray[16];
 	size_t len;
 	guint64 result = 0;
 
-	len = cpus * sizeof *p;;
-	if (UNSIGNED(cpus) <= G_N_ELEMENTS(powarray)) {
+	len = size_saturate_mult(cpus, sizeof *p);
+	if (cpus <= G_N_ELEMENTS(powarray)) {
 		p = powarray;
 	} else {
 		p = walloc(len);
 	}
 
 	if (0 == CallNtPowerInformation(ProcessorInformation, NULL, 0, p, len)) {
+		/* FIXME: In case of mulitple CPUs (or cores?) they can likely
+		 *		  have different values especially for the current freq
+		 */
 		switch (freq) {
 		case MINGW_CPUFREQ_CURRENT:
 			result = p[0].CurrentMhz * 1000000;		/* Convert to Hz */
@@ -1106,6 +1067,7 @@ mingw_adns_send_request(const struct adns_request *req)
 {
 	char *hostname = strdup(req->query.by_addr.hostname);
 
+	/* FIXME: hostname is leaked */
 	PostThreadMessage(mingw_gtkg_adns_thread_id,
 		mingw_thread_msg_adns_resolve, (LPARAM) hostname, 0);
 
@@ -1124,16 +1086,19 @@ mingw_adns_thread_resolve(void *dummy)
 
 		printf("mingw_adns: message %d\r\n", msg.message);
 
-		if(msg.message == mingw_thread_msg_quit)
+		if (msg.message == mingw_thread_msg_quit)
 			goto exit;
 
-		char *hostname = (char *) msg.wParam;
-		struct addrinfo *results;
+		{
+			char *hostname = (char *) msg.wParam;
+			struct addrinfo *results;
 
-		getaddrinfo(hostname, NULL, NULL, &results);
+			getaddrinfo(hostname, NULL, NULL, &results);
+			/* FIXME: insert free(hostname) here? */
 
-		PostThreadMessage(mingw_gtkg_main_thread_id,
-			mingw_thread_msg_adns_resolve_cb, (LPARAM) results, 0);
+			PostThreadMessage(mingw_gtkg_main_thread_id,
+				mingw_thread_msg_adns_resolve_cb, (LPARAM) results, 0);
+		}
 	}
 
 exit:
