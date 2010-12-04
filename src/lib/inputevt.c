@@ -850,10 +850,10 @@ inputevt_remove(guint id)
 			g_warning("update_poll_event(%d, %d) failed: %s",
 				poll_ctx->fd, fd, g_strerror(errno));
 		}
-	
+
 		/* Mark as removed */
 		relay->handler = zero_handler;
-		
+
 		if (poll_ctx->dispatching) {
 			/*
 			 * Don't clear the "used" bit yet because this slot must

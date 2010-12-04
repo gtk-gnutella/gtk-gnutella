@@ -628,7 +628,7 @@ cq_heartbeat(cqueue_t *cq)
 	 */
 
 	if (delay < 0 || delay > 10 * cq->cq_period)
-		delay = cq->cq_period;;
+		delay = cq->cq_period;
 
 	cq_clock(cq, delay);
 }
