@@ -53,6 +53,10 @@ RCSID("$Id$")
 /**
  * Write the given data to a file descriptor at the given offset.
  *
+ * @attention This is not exactly always emulating a pwrite() call because
+ * the system call will not change the current file offset whilst this
+ * emulation may change it when the real pwrite() call is missing.
+ *
  * @param fd A valid file descriptor.
  * @param data An initialized buffer holding the data to write.
  * @param size The amount of bytes to write (i.e., the size of data).
@@ -85,6 +89,10 @@ compat_pwrite(const int fd,
 
 /**
  * Write the given data to a file descriptor at the given offset.
+ *
+ * @attention This is not exactly always emulating a pwritev() call because
+ * the system call will not change the current file offset whilst this
+ * emulation may change it when the real pwritev() call is missing.
  *
  * @param fd A valid file descriptor.
  * @param iov An initialized I/O vector buffer.
@@ -127,6 +135,10 @@ compat_pwritev(const int fd,
 /**
  * Read data from the file object from the given offset.
  *
+ * @attention This is not exactly always emulating a pread() call because
+ * the system call will not change the current file offset whilst this
+ * emulation may change it when the real pread() call is missing.
+ *
  * @param fd A valid file descriptor.
  * @param data A buffer for holding the data to be read.
  * @param size The amount of bytes to read (i.e., the size of data).
@@ -159,6 +171,10 @@ compat_pread(const int fd,
 
 /**
  * Read data from a file object from the given offset.
+ *
+ * @attention This is not exactly always emulating a preadv() call because
+ * the system call will not change the current file offset whilst this
+ * emulation may change it when the real preadv() call is missing.
  *
  * @param fd A valid file descriptor.
  * @param iov An initialized I/O vector buffer.
