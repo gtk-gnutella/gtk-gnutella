@@ -1365,8 +1365,10 @@ socket_free(struct gnutella_socket *s)
 		bws_sock_connect_timeout(s->type);
 
 	if (s->flags & SOCK_F_UDP) {
-		if (s->resource.handle)
-			wfree(s->resource.handle, sizeof(socket_addr_t));
+		if (s->resource.udp != NULL) {
+			WFREE_NULL(s->resource.udp->socket_addr, sizeof(socket_addr_t));
+			WFREE_NULL(s->resource.udp, sizeof *s->resource.udp);
+		}
 	}
 	if (s->last_update) {
 		g_assert(sl_incoming);
@@ -2383,7 +2385,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	 * Receive the datagram in the socket's buffer.
 	 */
 
-	from_addr = s->resource.handle;
+	from_addr = s->resource.udp->socket_addr;
 
 	/* Initialize from_addr so that it matches the socket's network type. */
 	from_len = socket_addr_init(from_addr, s->net);
@@ -2500,9 +2502,11 @@ socket_udp_accept(struct gnutella_socket *s)
 
 	/*
 	 * Signal reception of a datagram to the UDP layer.
+	 *
+	 * Note: for the Gnutella datagram socket this is udp_received().
 	 */
 
-	udp_received(s, truncated);
+	(*s->resource.udp->data_ind)(s, truncated);
 	return r;
 }
 
@@ -3193,14 +3197,14 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		const char *net_str = net_type_to_string(host_addr_net(bind_addr));
 
 		if (socket_failed) {
-			g_warning("Unable to create the %s (%s) socket (%s)",
+			g_warning("unable to create the %s (%s) socket (%s)",
 				type_str, net_str, g_strerror(errno));
 		} else {
 			char bind_addr_str[HOST_ADDR_PORT_BUFLEN];
 
 			host_addr_port_to_string_buf(bind_addr, port,
 				bind_addr_str, sizeof bind_addr_str);
-			g_warning("Unable to bind() the %s (%s) socket to %s (%s)",
+			g_warning("unable to bind() the %s (%s) socket to %s (%s)",
 				type_str, net_str, bind_addr_str, g_strerror(errno));
 		}
 	} else {
@@ -3443,9 +3447,13 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 
 /**
  * Creates a non-blocking listening UDP socket.
+ *
+ * Upon datagram reception, the ``data_ind'' callback is invoked. The received
+ * data will be held in s->buf, being s->pos byte-long.
  */
 struct gnutella_socket *
-socket_udp_listen(host_addr_t bind_addr, guint16 port)
+socket_udp_listen(host_addr_t bind_addr, guint16 port,
+	socket_udp_data_ind_t data_ind)
 {
 	struct gnutella_socket *s;
 	int fd;
@@ -3471,11 +3479,18 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 	socket_enable_recvdstaddr(s);
 
 	/*
+	 * Allocate the UDP context and register the datagram reception callback.
+	 */
+	
+	s->resource.udp = walloc(sizeof *s->resource.udp);
+	s->resource.udp->data_ind = data_ind;
+
+	/*
 	 * Attach the socket information so that we may record the origin
 	 * of the datagrams we receive.
 	 */
 
-	s->resource.handle = walloc(sizeof(socket_addr_t));
+	s->resource.udp->socket_addr = walloc(sizeof(socket_addr_t));
 
 	/* Get the port of the socket, if needed */
 

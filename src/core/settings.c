@@ -56,6 +56,7 @@
 #include "ipp_cache.h"
 #include "ctl.h"
 #include "pdht.h"
+#include "udp.h"				/* For udp_received() */
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1327,7 +1328,7 @@ enable_udp_changed(property_t prop)
 		if (s_tcp_listen) {
 			g_assert(!s_udp_listen);
 			s_udp_listen = socket_udp_listen(get_bind_addr(NET_TYPE_IPV4),
-								GNET_PROPERTY(listen_port));
+								GNET_PROPERTY(listen_port), udp_received);
 			if (!s_udp_listen) {
 				gcu_statusbar_warning(_("Failed to create IPv4 UDP socket"));
 			}
@@ -1335,7 +1336,7 @@ enable_udp_changed(property_t prop)
 		if (s_tcp_listen6) {
 			g_assert(!s_udp_listen6);
 			s_udp_listen6 = socket_udp_listen(get_bind_addr(NET_TYPE_IPV6),
-								GNET_PROPERTY(listen_port));
+								GNET_PROPERTY(listen_port), udp_received);
 			if (!s_udp_listen6) {
 				gcu_statusbar_warning(_("Failed to create IPv6 UDP socket"));
 			}
@@ -1444,7 +1445,7 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 		s_tcp_listen = socket_tcp_listen(bind_addr, port);
 		if (GNET_PROPERTY(enable_udp)) {
 			g_assert(!s_udp_listen);
-			s_udp_listen = socket_udp_listen(bind_addr, port);
+			s_udp_listen = socket_udp_listen(bind_addr, port, udp_received);
 			if (!s_udp_listen) {
 				socket_free_null(&s_tcp_listen);
 			}
@@ -1459,7 +1460,7 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 		s_tcp_listen6 = socket_tcp_listen(bind_addr, port);
 		if (GNET_PROPERTY(enable_udp)) {
 			g_assert(!s_udp_listen6);
-			s_udp_listen6 = socket_udp_listen(bind_addr, port);
+			s_udp_listen6 = socket_udp_listen(bind_addr, port, udp_received);
 			if (!s_udp_listen6) {
 				socket_free_null(&s_tcp_listen6);
 			}

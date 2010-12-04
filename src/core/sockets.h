@@ -66,6 +66,7 @@ struct socket_tls_ctx {
 };
 
 struct sockaddr;
+struct udpctx;
 
 /*
  * Connection directions.
@@ -102,7 +103,7 @@ typedef enum {
 
 struct gnutella_socket {
 	socket_magic_t magic;	/**< magic for consistency checks */
-	socket_fd_t file_desc;			/**< file descriptor */
+	socket_fd_t file_desc;	/**< file descriptor */
 	guint32 flags;			/**< operating flags */
 	guint gdk_tag;			/**< gdk tag */
 
@@ -130,6 +131,7 @@ struct gnutella_socket {
 		struct upload *upload;
 		struct pproxy *pproxy;
 		struct cproxy *cproxy;
+		struct udpctx *udp;
 		gpointer handle;
 	} resource;
 
@@ -138,6 +140,25 @@ struct gnutella_socket {
 	size_t pos;			/**< write position in the buffer */
 	size_t buf_size;	/**< allocated buffer size */
 	char *buf;			/**< buffer to put in the data read */
+};
+
+/**
+ * The UDP data indication callback.
+ *
+ * @param s				the receiving socket
+ * @param truncated		whether received data was truncated
+ *
+ * Data is held in s->buf and is s->pos byte-long.
+ */
+typedef void (*socket_udp_data_ind_t)(
+	struct gnutella_socket *s, gboolean truncated);
+
+/**
+ * UDP socket context.
+ */
+struct udpctx {
+	void *socket_addr;					/**< To get reception address */
+	socket_udp_data_ind_t data_ind;		/**< Callback on datagram reception */
 };
 
 static inline void
@@ -213,7 +234,8 @@ struct gnutella_socket *socket_connect(const host_addr_t, guint16,
 struct gnutella_socket *socket_connect_by_name(
 	const char *host, guint16, enum socket_type, guint32 flags);
 struct gnutella_socket *socket_tcp_listen(const host_addr_t, guint16);
-struct gnutella_socket *socket_udp_listen(const host_addr_t, guint16);
+struct gnutella_socket *socket_udp_listen(const host_addr_t, guint16,
+	socket_udp_data_ind_t data_ind);
 struct gnutella_socket *socket_local_listen(const char *pathname);
 
 void socket_evt_set(struct gnutella_socket *s,
