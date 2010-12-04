@@ -2572,6 +2572,10 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 		if (avail <= 32)
 			break;
 
+		/* Process one event at a time if configured as such */
+		if (s->flags & SOCK_F_SINGLE)
+			break;
+
 		/* Do not monopolize CPU for too long -- break out after 150 ms */
 		tm_now_exact(&end);
 		if (tm_elapsed_ms(&end, &start) > 150)
@@ -2580,6 +2584,7 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 	} while (i < MAX_UDP_RECV_LOOP);
 
 	if (i > 16 && GNET_PROPERTY(socket_debug)) {
+		tm_now_exact(&end);
 		g_debug(
 			"socket_udp_event() iterated %u times, read %lu bytes in %u usecs",
 			i, (unsigned long) rd, (unsigned) tm_elapsed_us(&end, &start));
@@ -3117,9 +3122,9 @@ socket_connect_by_name(const char *host, guint16 port,
  * of type NET_TYPE_NONE. The socket is also set to non-blocking mode
  * and the FD_CLOEXEC flag is set as well.
  *
- * @param bind_addr The address to bind the socket to.
- * @param port The UDP or TCP port to use.
- * @param type Either SOCK_DGRAM or SOCK_STREAM.
+ * @param bind_addr	The address to bind the socket to (may be unspecified).
+ * @param port		The UDP or TCP port to use (0 means: let kernek pick)
+ * @param type		Either SOCK_DGRAM or SOCK_STREAM.
  *
  * @return The new file descriptor of socket or -1 on failure.
  */
@@ -3133,7 +3138,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 
 	g_assert(SOCK_DGRAM == type || SOCK_STREAM == type);
 
-	if (port < 2) {
+	if (1 == port) {
 		errno = EINVAL;
 		return INVALID_SOCKET;
 	}
@@ -3446,6 +3451,20 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 }
 
 /**
+ * Mark socket a "single" to make sure we only read one single message at
+ * a time.
+ */
+void
+socket_set_single(struct gnutella_socket *s, gboolean on)
+{
+	if (on) {
+		s->flags |= SOCK_F_SINGLE;
+	} else {
+		s->flags &= ~SOCK_F_SINGLE;
+	}
+}
+ 
+/**
  * Creates a non-blocking listening UDP socket.
  *
  * Upon datagram reception, the ``data_ind'' callback is invoked. The received
@@ -3519,8 +3538,11 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port,
 
 	socket_recv_buf(s, SOCK_UDP_RECV_BUF, FALSE);
 
+#if 0
+	/* FIXME: will have to be done elsewhere */
 	portmap_map_udp_port(port);
-	
+#endif
+
 	return s;
 }
 

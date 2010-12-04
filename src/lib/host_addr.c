@@ -217,6 +217,28 @@ host_addr_is_loopback(const host_addr_t addr)
 }
 
 /**
+ * Checks whether the given address is unspecified (all zeroes).
+ */
+gboolean
+host_addr_is_unspecified(const host_addr_t addr)
+{
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+		return host_addr_ipv4(addr) == 0;
+
+	case NET_TYPE_IPV6:
+		return host_addr_equal(addr, ipv6_unspecified);
+
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		break;
+	}
+
+	g_assert_not_reached();
+	return FALSE;
+}
+
+/**
  * Check whether host can be reached from the Internet.
  * We rule out IPs of private networks, plus some other invalid combinations.
  */

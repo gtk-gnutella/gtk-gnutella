@@ -526,6 +526,7 @@ int host_addr_family(const host_addr_t ha);
 gboolean is_private_addr(const host_addr_t addr);
 gboolean host_addr_is_routable(const host_addr_t addr);
 gboolean host_addr_is_loopback(const host_addr_t addr);
+gboolean host_addr_is_unspecified(const host_addr_t addr);
 
 static inline gboolean
 host_addr_is_ipv4_mapped(const host_addr_t addr)

@@ -237,6 +237,7 @@ struct gnutella_socket *socket_tcp_listen(const host_addr_t, guint16);
 struct gnutella_socket *socket_udp_listen(const host_addr_t, guint16,
 	socket_udp_data_ind_t data_ind);
 struct gnutella_socket *socket_local_listen(const char *pathname);
+void socket_set_single(struct gnutella_socket *s, gboolean on);
 
 void socket_evt_set(struct gnutella_socket *s,
 	inputevt_cond_t cond, inputevt_handler_t handler, gpointer data);

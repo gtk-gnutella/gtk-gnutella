@@ -45,7 +45,6 @@ RCSID("$Id$")
 #include "inet.h"
 #include "mq_udp.h"
 #include "nodes.h"
-#include "ntp.h"
 #include "pcache.h"
 #include "routing.h"
 #include "sockets.h"
@@ -202,39 +201,6 @@ log:
 }
 
 /**
- * Check whether we got a valid NTP reply.
- */
-static gboolean
-is_ntp_reply(struct gnutella_socket *s)
-{
-	host_addr_t addr;
-	gboolean got_reply = FALSE;
-	
-	if (!host_addr_convert(s->addr, &addr, NET_TYPE_IPV4))
-		addr = s->addr;
-
-	switch (host_addr_net(addr)) {
-	case NET_TYPE_IPV4:
-		got_reply = 0x7f000001 == host_addr_ipv4(addr); /* 127.0.0.1:123 */
-		break;
-	case NET_TYPE_IPV6:
-		/* Only the loopback address (::1) qualifies as private */
-		got_reply = is_private_addr(addr); /* [::1]:123 */
-		break;
-	case NET_TYPE_LOCAL:
-	case NET_TYPE_NONE:
-		g_assert_not_reached();
-	}
-
-	if (got_reply) {
-		g_info("NTP detected at %s", host_addr_to_string(addr));
-		ntp_got_reply(s);
-	}
-
-	return got_reply;
-}
-
-/**
  * Notification from the socket layer that we got a new datagram.
  *
  * If `truncated' is true, then the message was too large for the
@@ -248,14 +214,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 	gboolean dht = FALSE;
 
 	/*
-	 * If reply comes from the NTP port, notify that they're running NTP.
-	 */
-
-	if (NTP_PORT == s->port && is_ntp_reply(s))
-		return;
-
-	/*
-	 * This must be regular Gnutella traffic then.
+	 * This must be regular Gnutella / DHT traffic.
 	 */
 
 	inet_udp_got_incoming(s->addr);

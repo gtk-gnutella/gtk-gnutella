@@ -96,6 +96,7 @@
 #include "core/tx.h"
 #include "core/udp.h"
 #include "core/uhc.h"
+#include "core/urpc.h"
 #include "core/upload_stats.h"
 #include "core/verify_sha1.h"
 #include "core/verify_tth.h"
@@ -574,6 +575,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(share_close);
 	DO(node_close);
 	DO(udp_close);
+	DO(urpc_close);
 	DO(routing_close);	/* After node_close() */
 	DO(bsched_close);
 	DO(dmesh_close);
@@ -1649,6 +1651,7 @@ main(int argc, char **argv)
 
 	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
 	udp_init();
+	urpc_init();
 	vmsg_init();
 	tsync_init();
 	watcher_init();

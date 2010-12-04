@@ -112,6 +112,7 @@ SRC = \
 	uhc.c \
 	upload_stats.c \
 	uploads.c \
+	urpc.c \
 	verify.c \
 	verify_sha1.c \
 	verify_tth.c \

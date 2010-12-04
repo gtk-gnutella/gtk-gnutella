@@ -50,7 +50,6 @@ void ntp_init(void);
 void ntp_close(void);
 
 void ntp_probe(void);
-void ntp_got_reply(struct gnutella_socket *s);
 
 #endif /* _core_ntp_h_ */
 

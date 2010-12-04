@@ -402,6 +402,8 @@ src/core/upload_stats.c
 src/core/upload_stats.h
 src/core/uploads.c
 src/core/uploads.h
+src/core/urpc.c
+src/core/urpc.h
 src/core/verify.c
 src/core/verify.h
 src/core/verify_sha1.c

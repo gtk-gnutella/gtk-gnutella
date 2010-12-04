@@ -39,14 +39,12 @@ RCSID("$Id$")
 
 #include "ntp.h"
 #include "settings.h"
-#include "sockets.h"
+#include "urpc.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
-#include "lib/cq.h"
 #include "lib/endian.h"
-#include "lib/gnet_host.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/override.h"				/* Must be the last header included */
@@ -62,8 +60,6 @@ RCSID("$Id$")
 
 #define NTP_MINSIZE		sizeof(struct ntp_msg)
 #define NTP_MAXSIZE		(NTP_MINSIZE + NTP_AUTHSIZE)
-
-static cevent_t *wait_ev;			/**< Callout queue waiting event */
 
 /**
  * An NTP message, as described in RFC2030 (trailing auth-data ignored).
@@ -81,6 +77,8 @@ struct ntp_msg {
 	guchar receive_timestamp[8];
 	guchar transmit_timestamp[8];
 };
+
+static gboolean ntp_localhost_replied;
 
 /**
  * Fill 8-byte buffer with NTP's representation of a tm_t time.
@@ -107,10 +105,10 @@ ntp_tm_deserialize(const guchar src[8], tm_t *dest)
  * timeframe.
  */
 static void
-ntp_no_reply(cqueue_t *unused_cq, gpointer unused_udata)
+ntp_no_reply(void)
 {
-	(void) unused_cq;
-	(void) unused_udata;
+	if (ntp_localhost_replied)
+		return;
 
 	if (GNET_PROPERTY(dbg))
 		g_debug("NTP no reply from localhost");
@@ -124,49 +122,113 @@ ntp_no_reply(cqueue_t *unused_cq, gpointer unused_udata)
 	 */
 
 	gnet_prop_set_boolean_val(PROP_NTP_DETECTED, FALSE);
-	wait_ev = NULL;
+}
+
+/**
+ * Got a reply from an NTP daemon.
+ */
+static void
+ntp_got_reply(host_addr_t addr, const void *payload, size_t len)
+{
+	const struct ntp_msg *m;
+	guint8 version;
+	guint8 mode;
+	tm_t received;
+	tm_t sent;
+	tm_t replied;
+	tm_t got;
+	tm_t offset;
+	double clock_offset;
+
+	tm_now_exact(&got);
+
+	g_info("NTP detected at %s", host_addr_to_string(addr));
+
+	if (len != NTP_MINSIZE && len != NTP_MAXSIZE) {
+		g_warning("got weird reply from NTP server (%lu bytes)",
+			(unsigned long) len);
+		return;
+	}
+
+	m = payload;
+	mode = m->flags & 0x7;
+	version = (m->flags >> 3) & 0x7;
+
+	if (mode != NTP_SERVER) {
+		g_warning("got reply from NTP server with weird mode (%d)", mode);
+		return;
+	}
+
+	if (GNET_PROPERTY(dbg))
+		g_debug("NTP got %s reply from NTP-%u server, stratum %u",
+			NTP_MINSIZE == len ? "regular" : "auth", version, m->stratum);
+
+	/*
+	 * We know NTP runs locally.
+	 */
+
+	gnet_prop_set_boolean_val(PROP_HOST_RUNS_NTP, TRUE);
+	gnet_prop_set_boolean_val(PROP_NTP_DETECTED, TRUE);
+
+	/*
+	 * Compute the initial clock offset.
+	 * This is given by: ((received - sent) + (replied - got)) / 2
+	 */
+
+	ntp_tm_deserialize(m->originate_timestamp, &sent);
+	ntp_tm_deserialize(m->receive_timestamp, &received);
+	ntp_tm_deserialize(m->transmit_timestamp, &replied);
+
+	offset = received;		/* Struct copy */
+	tm_sub(&offset, &sent);
+	tm_add(&offset, &replied);
+	tm_sub(&offset, &got);
+
+	clock_offset = tm2f(&offset) / 2;		/* Should be close to 0 */
+
+	if (GNET_PROPERTY(dbg) > 1)
+		g_debug("NTP local clock offset is %.6f secs",
+			(double) clock_offset);
+
+	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, (guint32) clock_offset);
+
+	g_info("detected NTP-%u, stratum %u, offset %.6f secs",
+		version, m->stratum, (double) clock_offset);
+}
+
+/**
+ * Reception / timeout callback for NTP probes.
+ */
+static void
+ntp_received(enum urpc_ret type, host_addr_t addr, guint16 unused_port,
+	const void *payload, size_t len, void *unused_arg)
+{
+	(void) unused_port;
+	(void) unused_arg;
+
+	if (URPC_TIMEOUT == type) {
+		ntp_no_reply();
+		return;
+	}
+
+	ntp_localhost_replied = TRUE;
+	ntp_got_reply(addr, payload, len);
 }
 
 static gboolean
 ntp_send_probe(const host_addr_t addr)
 {
 	static const struct ntp_msg zero_m;
-	struct gnutella_socket *s;
 	struct ntp_msg m;
-	gnet_host_t to;
 	tm_t now;
-	ssize_t r;	
 
 	m = zero_m;
 	m.flags = (NTP_VERSION << 3) | NTP_CLIENT;
 	tm_now_exact(&now);
 	ntp_tm_serialize(m.transmit_timestamp, &now);
 
-	gnet_host_set(&to, addr, NTP_PORT);
-
-	s = NULL;
-	switch (host_addr_net(addr)) {
-	case NET_TYPE_IPV4:
-		s = s_udp_listen;
-		break;
-	case NET_TYPE_IPV6:
-		s = s_udp_listen6;
-		break;
-	case NET_TYPE_LOCAL:
-	case NET_TYPE_NONE:
-		break;
-	}
-	if (!s) {
-		errno = EINVAL;
-		return FALSE;
-	}
-	
-	r = s->wio.sendto(&s->wio, &to, &m, sizeof m);
-	/* Reset errno if there was no "real" error to prevent getting a
-	 * bogus and possibly misleading error message later. */
-	if ((ssize_t) -1 != r)
-		errno = 0;
-	return r == sizeof m;
+	return 0 == urpc_send("NTP", addr, NTP_PORT, &m, sizeof m, NTP_WAIT_MS,
+		ntp_received, NULL);
 }
 
 static gboolean
@@ -219,89 +281,11 @@ ntp_send_probes(void)
 void
 ntp_probe(void)
 {
-	if (!udp_active() || !ntp_send_probes())
+	if (!ntp_send_probes())
 		return;
-
-	/*
-	 * Arm timer to see whether we get a reply in the next NTP_WAIT_MS.
-	 */
 
 	if (GNET_PROPERTY(dbg))
 		g_debug("NTP sent probe to localhost");
-
-	cq_cancel(&wait_ev);
-	wait_ev = cq_main_insert(NTP_WAIT_MS, ntp_no_reply, NULL);
-}
-
-/**
- * Got a reply from an NTP daemon.
- */
-void
-ntp_got_reply(struct gnutella_socket *s)
-{
-	struct ntp_msg *m;
-	guint8 version;
-	guint8 mode;
-	tm_t received;
-	tm_t sent;
-	tm_t replied;
-	tm_t got;
-	tm_t offset;
-	double clock_offset;
-
-	tm_now_exact(&got);
-
-	if (s->pos != NTP_MINSIZE && s->pos != NTP_MAXSIZE) {
-		g_warning("got weird reply from NTP server (%d bytes)", (int) s->pos);
-		return;
-	}
-
-	m = (struct ntp_msg *) s->buf;
-	mode = m->flags & 0x7;
-	version = (m->flags >> 3) & 0x7;
-
-	if (mode != NTP_SERVER) {
-		g_warning("got reply from NTP server with weird mode (%d)", mode);
-		return;
-	}
-
-	if (GNET_PROPERTY(dbg))
-		g_debug("NTP got %s reply from NTP-%u server, stratum %u",
-			s->pos == NTP_MINSIZE ? "regular" : "auth", version, m->stratum);
-
-	/*
-	 * Since we know NTP runs locally, disarm the timeout.
-	 */
-
-	cq_cancel(&wait_ev);
-
-	gnet_prop_set_boolean_val(PROP_HOST_RUNS_NTP, TRUE);
-	gnet_prop_set_boolean_val(PROP_NTP_DETECTED, TRUE);
-
-	/*
-	 * Compute the initial clock offset.
-	 * This is given by: ((received - sent) + (replied - got)) / 2
-	 */
-
-	ntp_tm_deserialize(m->originate_timestamp, &sent);
-	ntp_tm_deserialize(m->receive_timestamp, &received);
-	ntp_tm_deserialize(m->transmit_timestamp, &replied);
-
-	offset = received;		/* Struct copy */
-	tm_sub(&offset, &sent);
-	tm_add(&offset, &replied);
-	tm_sub(&offset, &got);
-
-	clock_offset = tm2f(&offset) / 2;		/* Should be close to 0 */
-
-	if (GNET_PROPERTY(dbg) > 1)
-		g_debug("NTP local clock offset is %.6f secs",
-			(double) clock_offset);
-
-	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, (guint32) clock_offset);
-
-	g_info("detected NTP-%u, stratum %u, offset %.6f secs",
-		version, m->stratum, (double) clock_offset);
 }
 
 /**
@@ -319,7 +303,6 @@ ntp_init(void)
 void
 ntp_close(void)
 {
-	cq_cancel(&wait_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
