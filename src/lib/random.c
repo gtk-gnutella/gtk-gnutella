@@ -161,6 +161,9 @@ random_collect(void (*cb)(void))
 	 * Save random byte.
 	 */
 
+	g_assert(size_is_non_negative(idx));
+	g_assert(idx < G_N_ELEMENTS(data));
+
 	sum += r + (r >> 4) + (r << 4);
 	data[idx++] = sum & 0xff;
 
