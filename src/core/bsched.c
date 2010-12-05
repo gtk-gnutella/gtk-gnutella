@@ -477,6 +477,12 @@ bsched_early_init(void)
 	bws_set[BSCHED_BWS_LOOPBACK_IN] = bsched_make("loopback in",
 		BS_T_STREAM, BS_F_READ, 0, 1000);
 
+	bws_set[BSCHED_BWS_PRIVATE_OUT] = bsched_make("private out",
+		BS_T_STREAM, BS_F_WRITE, 0, 1000);
+
+	bws_set[BSCHED_BWS_PRIVATE_IN] = bsched_make("private in",
+		BS_T_STREAM, BS_F_READ, 0, 1000);
+
 	bws_set[BSCHED_BWS_DHT_OUT] = bsched_make("DHT out",
 		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_dht_out), 1000);
 
@@ -485,6 +491,8 @@ bsched_early_init(void)
 
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_IN));
+	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_PRIVATE_IN));
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GLIN));
 	bws_list = g_slist_prepend(bws_list, 
@@ -497,6 +505,8 @@ bsched_early_init(void)
 						GUINT_TO_POINTER(BSCHED_BWS_DHT_IN));
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_OUT));
+	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_PRIVATE_OUT));
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GLOUT));
 	bws_list = g_slist_prepend(bws_list, 
@@ -511,6 +521,8 @@ bsched_early_init(void)
 	bws_in_list = g_slist_prepend(bws_in_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_IN));
 	bws_in_list = g_slist_prepend(bws_in_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_PRIVATE_IN));
+	bws_in_list = g_slist_prepend(bws_in_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GLIN));
 	bws_in_list = g_slist_prepend(bws_in_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GIN));
@@ -523,6 +535,8 @@ bsched_early_init(void)
 
 	bws_out_list = g_slist_prepend(bws_out_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_OUT));
+	bws_out_list = g_slist_prepend(bws_out_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_PRIVATE_OUT));
 	bws_out_list = g_slist_prepend(bws_out_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GLOUT));
 	bws_out_list = g_slist_prepend(bws_out_list, 
@@ -3056,19 +3070,26 @@ bsched_enough_up_bandwidth(void)
 	return TRUE;
 }
 
-
+/**
+ * Return appropriate bandwidth secheduler for outgoing traffic based on the
+ * destination address.
+ */
 bsched_bws_t
 bsched_out_select_by_addr(const host_addr_t addr)
 {
-	return host_addr_is_loopback(addr)
-			? BSCHED_BWS_LOOPBACK_OUT : BSCHED_BWS_OUT;
+	return host_addr_is_loopback(addr) ? BSCHED_BWS_LOOPBACK_OUT :
+			is_private_addr(addr) ? BSCHED_BWS_PRIVATE_OUT : BSCHED_BWS_OUT;
 }
 
+/**
+ * Return appropriate bandwidth secheduler for incoming traffic based on the
+ * source address.
+ */
 bsched_bws_t
 bsched_in_select_by_addr(const host_addr_t addr)
 {
-	return host_addr_is_loopback(addr)
-			? BSCHED_BWS_LOOPBACK_IN : BSCHED_BWS_IN;
+	return host_addr_is_loopback(addr) ? BSCHED_BWS_LOOPBACK_IN :
+		is_private_addr(addr) ? BSCHED_BWS_PRIVATE_IN : BSCHED_BWS_IN;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
