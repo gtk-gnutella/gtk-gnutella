@@ -508,7 +508,7 @@ bsched_early_init(void)
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_DHT_OUT));
 
-	bws_out_list = g_slist_prepend(bws_in_list, 
+	bws_in_list = g_slist_prepend(bws_in_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_IN));
 	bws_in_list = g_slist_prepend(bws_in_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GLIN));
