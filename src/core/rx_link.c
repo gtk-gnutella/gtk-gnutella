@@ -79,6 +79,7 @@ is_readable(gpointer data, int unused_source, inputevt_cond_t cond)
 	g_assert(attr->bio);			/* Input enabled */
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
+		errno = EIO;
 		attr->cb->read_error(rx->owner, _("Read failed (Input Exception)"));
 		return;
 	}

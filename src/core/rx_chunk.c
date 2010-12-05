@@ -370,6 +370,7 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 			 * our user so that the connection is terminated.
 			 */
 
+			errno = EIO;
 			attr->cb->chunk_error(rx->owner,
 					"dechunk() failed: %s", error_str);
 			g_warning("dechunk_data(): %s", error_str);

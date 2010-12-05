@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2010, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * HTTP routines.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2010
  */
 
 #ifndef _core_http_h_
@@ -215,6 +215,8 @@ typedef void (*http_op_gotreply_t)(const struct http_async *,
 #define HTTP_ASYNC_BAD_LOCATION_URI	13	/**< Invalid URI in Location header */
 #define HTTP_ASYNC_CLOSED			14	/**< Connection was closed, all OK */
 #define HTTP_ASYNC_REDIRECTED		15	/**< Redirected, following disabled */
+#define HTTP_ASYNC_BAD_HEADER		16	/**< Unparseable header value */
+#define HTTP_ASYNC_DATA2BIG			17	/**< Data too big */
 
 extern guint http_async_errno;
 
@@ -259,6 +261,15 @@ typedef struct http_buffer {
 #define http_buffer_unread(hb)		((hb)->hb_end - (hb)->hb_rptr)
 
 #define http_buffer_add_read(hb,tx)	do { (hb)->hb_rptr += (tx); } while (0)
+
+/**
+ * Callback used when http_async_wget() completes.
+ *
+ * @param data		the retrieved data, NULL on error, freed with hfree().
+ * @param len		length of data returned (NOT the length of the data buffer)
+ * @param arg		additional user-supplied argument
+ */
+typedef void (*http_wget_cb_t)(char *data, size_t len, void *arg);
 
 /*
  * Public interface
@@ -337,7 +348,11 @@ void http_async_set_op_reqsent(struct http_async *ha, http_op_reqsent_t op);
 void http_async_set_op_gotreply(struct http_async *ha, http_op_gotreply_t op);
 const char *http_async_remote_host_port(const struct http_async *ha);
 
+struct http_async *http_async_wget(const char *url,
+	size_t maxlen, http_wget_cb_t cb, void *arg);
+
 void http_close(void);
+void http_test(void);
 
 #endif	/* _core_http_h_ */
 

@@ -1743,6 +1743,7 @@ main(int argc, char **argv)
 	bsched_enable_all();
 	version_ancient_warn();
 	dht_attempt_bootstrap();
+	http_test();
 
 	if (running_topless) {
 		topless_main_run();

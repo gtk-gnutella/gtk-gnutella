@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2010, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,10 +30,10 @@
  * HTTP routines.
  *
  * The whole HTTP logic is not contained here.  Only generic supporting
- * routines are here.
+ * routines are defined, as well as the asynchronous HTTP logic.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2010
  */
 
 #include "common.h"
@@ -48,14 +48,21 @@ RCSID("$Id$")
 #include "version.h"
 #include "token.h"
 #include "clock.h"
+#include "rx.h"
+#include "rx_link.h"
+#include "rx_inflate.h"
+#include "rx_chunk.h"
 
 #include "lib/atoms.h"
 #include "lib/ascii.h"
 #include "lib/concat.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
+#include "lib/gnet_host.h"
+#include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/parse.h"
+#include "lib/pmsg.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
@@ -65,6 +72,13 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/override.h"			/* Must be the last header included */
+
+/*
+ * Define to have asynchronous HTTP layer testing at startup.
+ */
+#if 0
+#define HTTP_TESTING
+#endif
 
 http_url_error_t http_url_errno;	/**< Error from http_url_parse() */
 
@@ -1492,6 +1506,8 @@ static const char * const error_str[] = {
 	"Invalid URI in Location header",		/**< HTTP_ASYNC_BAD_LOCATION_URI */
 	"Connection was closed, all OK",		/**< HTTP_ASYNC_CLOSED */
 	"Redirected, following disabled",		/**< HTTP_ASYNC_REDIRECTED */
+	"Unparseable header value",				/**< HTTP_ASYNC_BAD_HEADER */
+	"Data too large",						/**< HTTP_ASYNC_DATA2BIG */
 };
 
 guint http_async_errno;		/**< Used to return error codes during setup */
@@ -1550,7 +1566,7 @@ struct http_async {
 	http_state_change_t state_chg;	/**< Optional: callback for state changes */
 	time_t last_update;				/**< Time of last activity */
 	gpointer io_opaque;				/**< Opaque I/O callback information */
-	bio_source_t *bio;				/**< Bandwidth-limited source */
+	rxdrv_t *rx;					/**< RX stack for downloading data */
 	gpointer user_opaque;			/**< User opaque data */
 	http_user_free_t user_free;		/**< Free routine for opaque data */
 	struct http_async *parent;		/**< Parent request, for redirections */
@@ -1622,11 +1638,9 @@ http_async_info(
  * non-NULL function pointer is given.
  */
 void
-http_async_set_opaque(struct http_async *handle, gpointer data,
+http_async_set_opaque(struct http_async *ha, gpointer data,
 	http_user_free_t fn)
 {
-	struct http_async *ha = handle;
-
 	http_async_check(ha);
 	g_assert(data != NULL);
 
@@ -1640,7 +1654,7 @@ http_async_set_opaque(struct http_async *handle, gpointer data,
 gpointer
 http_async_get_opaque(struct http_async *ha)
 {
-	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+	http_async_check(ha);
 
 	return ha->user_opaque;
 }
@@ -1665,10 +1679,8 @@ http_async_free_recursive(struct http_async *ha)
 		io_free(ha->io_opaque);
 		ha->io_opaque = NULL;
 	}
-	if (ha->bio) {
-		bsched_source_remove(ha->bio);
-		ha->bio = NULL;
-	}
+	if (ha->rx)
+		rx_disable(ha->rx);			/* No further reads */
 	socket_free_null(&ha->socket);
 	if (ha->user_free) {
 		(*ha->user_free)(ha->user_opaque);
@@ -1726,6 +1738,9 @@ http_async_free(struct http_async *ha)
 
 /**
  * Free all structures that have already been logically freed.
+ *
+ * This is done asynchronously with respect to any data reception, which
+ * guarantees that nobody can reference the structure any more.
  */
 static void
 http_async_free_pending(void)
@@ -1736,6 +1751,10 @@ http_async_free_pending(void)
 		struct http_async *ha = l->data;
 
 		g_assert(ha->flags & HA_F_FREED);
+
+		if (ha->rx != NULL)
+			rx_free(ha->rx);		/* RX must be dismantled asynchronously */
+
 		wfree(ha, sizeof(*ha));
 	}
 
@@ -1881,6 +1900,7 @@ http_async_build_request(const struct http_async *ha,
 		"%s %s HTTP/1.1\r\n"
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n"
+		"Accept-Encoding: deflate\r\n"
 		"Connection: close\r\n"
 		"\r\n",
 		verb, path,
@@ -2038,7 +2058,7 @@ http_async_create(
 	ha->error_ind = error_ind;
 	ha->state_chg = NULL;
 	ha->io_opaque = NULL;
-	ha->bio = NULL;
+	ha->rx = NULL;
 	ha->last_update = tm_time();
 	ha->user_opaque = NULL;
 	ha->user_free = NULL;
@@ -2060,6 +2080,21 @@ http_async_create(
 		parent->children = g_slist_prepend(parent->children, ha);
 
 	return ha;
+}
+
+/**
+ * @return the server hostname, if known, otherwise the IP address.
+ */
+static const char *
+http_async_host(const struct http_async *ha)
+{
+	static char buf[HOST_ADDR_BUFLEN];
+
+	if (ha->host != NULL)
+		return ha->host;
+
+	host_addr_to_string_buf(ha->socket->addr, buf, sizeof buf);
+	return buf;
 }
 
 /**
@@ -2316,84 +2351,118 @@ http_redirect(struct http_async *ha, char *url)
 	 */
 
 	g_assert(ha->io_opaque);
-	g_assert(ha->bio == NULL);		/* Have not started to read data */
+	g_assert(ha->rx == NULL);		/* Have not started to read data */
 
 	io_free(ha->io_opaque);
 	ha->io_opaque = NULL;
 }
 
-/**
- * Tell the user that we got new data for his request.
- * If `eof' is TRUE, this is the last data we'll get.
- */
-static void
-http_got_data(struct http_async *ha, gboolean eof)
+/***
+ *** RX link callbacks.
+ ***/
+
+static gboolean http_data_ind(rxdrv_t *rx, pmsg_t *mb);
+
+static G_GNUC_PRINTF(2, 3) void
+http_async_rx_error(gpointer o, const char *reason, ...)
 {
-	struct gnutella_socket *s = ha->socket;
+	struct http_async *ha = o;
+	va_list args;
+	int saved_errno;
 
 	http_async_check(ha);
-	g_assert(s);
-	g_assert(eof || s->pos > 0);		/* If not EOF, there must be data */
 
-	if (s->pos > 0) {
-		ha->last_update = tm_time();
-		(*ha->data_ind)(ha, s->buf, s->pos);
-		if (ha->flags & HA_F_FREED)		/* Callback decided to cancel/close */
-			return;
-		s->pos = 0;
+	saved_errno = errno;
+
+	if (GNET_PROPERTY(http_debug)) {
+		char buf[128];
+
+		va_start(args, reason);
+		gm_vsnprintf(buf, sizeof buf, reason, args);
+		va_end(args);
+		g_warning("HTTP RX error from %s for \"%s\": %s",
+			http_async_host(ha), ha->url, buf);
 	}
 
-	if (eof) {
-		(*ha->data_ind)(ha, NULL, 0);	/* Indicates EOF */
-		if (ha->flags & HA_F_FREED)		/* Callback decided to cancel/close */
-			return;
+	http_async_syserr(ha, saved_errno);
+}
+
+static void
+http_async_rx_done(gpointer o)
+{
+	struct http_async *ha = o;
+
+	http_async_check(ha);
+	http_data_ind(ha->rx, NULL);	/* Signals EOF */
+}
+
+static const struct rx_link_cb http_async_rx_link_cb = {
+	NULL,					/* add_rx_given */
+	http_async_rx_error,	/* read_error */
+	http_async_rx_done,		/* got_eof */
+};
+
+static const struct rx_chunk_cb http_async_rx_chunk_cb = {
+	http_async_rx_error,	/* chunk_error */
+	http_async_rx_done,		/* chunk_end */
+};
+
+static const struct rx_inflate_cb http_async_rx_inflate_cb = {
+	NULL,					/* add_rx_inflated */
+	http_async_rx_error,	/* read_error */
+};
+
+/***
+ *** HTTP RX handling.
+ ***/
+
+/**
+ * Tell the user that we got new data for his request.
+ * If ``data'' is NULL, this is the last data we'll get (EOF reached).
+ *
+ * @return TRUE if we can continue reading data.
+ */
+static gboolean
+http_got_data(struct http_async *ha, char *data, size_t len)
+{
+	http_async_check(ha);
+	/* If not EOF, there must be data */
+	g_assert(NULL == data || size_is_positive(len));
+
+	ha->last_update = tm_time();
+	(*ha->data_ind)(ha, data, len);
+
+	if (ha->flags & HA_F_FREED)		/* Callback decided to cancel/close */
+		return FALSE;
+
+	if (NULL == data) {				/* EOF reached */
 		http_async_free(ha);
+		return FALSE;
 	}
+
+	return TRUE;
 }
 
 /**
- * Called when data are available on the socket.
- * Read them and pass them to http_got_data().
+ * Called when data are available on the RX stack.
+ *
+ * @return FALSE if an error occurred.
  */
-static void
-http_data_read(gpointer data, int unused_source, inputevt_cond_t cond)
+static gboolean
+http_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
-	struct http_async *ha = data;
-	struct gnutella_socket *s = ha->socket;
-	ssize_t r;
+	struct http_async *ha = rx_owner(rx);
+	gboolean ok;
 
 	http_async_check(ha);
-	(void) unused_source;
 
-	if (cond & INPUT_EVENT_EXCEPTION) {
-		socket_eof(s);
-		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
-		return;
-	}
+	if (NULL == mb)
+		return http_got_data(ha, NULL, 0);
 
-	g_assert((int) s->pos >= 0 && s->pos <= s->buf_size);
+	ok = http_got_data(ha, pmsg_start(mb), pmsg_size(mb));
+	pmsg_free(mb);
 
-	if (s->pos == s->buf_size) {
-		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
-		return;
-	}
-
-	r = bio_read(ha->bio, &s->buf[s->pos], s->buf_size - s->pos);
-	if (r == 0) {
-		socket_eof(s);
-		http_got_data(ha, TRUE);			/* Signals EOF */
-		return;
-	} else if ((ssize_t) -1 == r) {
-		if (!is_temporary_error(errno)) {
-			socket_eof(s);
-			http_async_syserr(ha, errno);
-		}
-		return;
-	}
-
-	s->pos += r;
-
-	http_got_data(ha, FALSE);				/* EOF not reached yet */
+	return ok;
 }
 
 /**
@@ -2508,20 +2577,87 @@ http_got_header(struct http_async *ha, header_t *header)
 	 */
 
 	g_assert(s->gdk_tag == 0);
-	g_assert(ha->bio == NULL);
+	g_assert(ha->rx == NULL);
 
-	ha->bio = bsched_source_add(BSCHED_BWS_IN, &s->wio,
-		BIO_F_READ, http_data_read, ha);
+	/*
+	 * Lowest RX layer: the link level, doing network I/O.
+	 */
+
+	{
+		struct rx_link_args args;
+		gnet_host_t host;
+
+		args.cb = &http_async_rx_link_cb;
+		args.bws = bsched_in_select_by_addr(s->addr);
+		args.wio = &s->wio;
+		gnet_host_set(&host, s->addr, s->port);
+
+		ha->rx = rx_make(ha, &host, rx_link_get_ops(), &args);
+	}
+
+	/*
+	 * Transport encoding: the dechunking layer is right above the
+	 * link level and removed chunk marks, providing a stream of bytes
+	 * to upper level.
+	 */
+
+	buf = header_get(header, "Transport-Encoding");
+	if (buf != NULL && 0 == strcmp(buf, "chunked")) {
+		struct rx_chunk_args args;
+
+		args.cb = &http_async_rx_chunk_cb;
+
+		ha->rx = rx_make_above(ha->rx, rx_chunk_get_ops(), &args);
+	}
+
+	/*
+	 * Decompressing layer: if server is sending compressed data, the
+	 * inflating layer provides a stream of decompressed bytes to upper
+	 * level.
+	 */
+
+	buf = header_get(header, "Content-Encoding");
+	if (buf != NULL && 0 == strcmp(buf, "deflate")) {
+		struct rx_inflate_args args;
+
+		args.cb = &http_async_rx_inflate_cb;
+
+		ha->rx = rx_make_above(ha->rx, rx_inflate_get_ops(), &args);
+	}
+
+	/*
+	 * Ready to receive using the RX stack.
+	 */
+
+	rx_set_data_ind(ha->rx, http_data_ind);
+	rx_enable(ha->rx);
+
+	http_async_newstate(ha, HTTP_AS_RECEIVING);
 
 	/*
 	 * We may have something left in the input buffer.
 	 * Give them the data immediately.
 	 */
 
-	http_async_newstate(ha, HTTP_AS_RECEIVING);
+	if (s->pos > 0) {
+		pdata_t *db;
+		pmsg_t *mb;
 
-	if (s->pos > 0)
-		http_got_data(ha, FALSE);
+		/*
+		 * Prepare data buffer out of the socket's buffer.
+		 */
+
+		db = pdata_allocb_ext(s->buf, s->pos, pdata_free_nop, NULL);
+		mb = pmsg_alloc(PMSG_P_DATA, db, 0, s->pos);
+		s->pos = 0;
+
+		/*
+		 * The message is given to the RX stack, and it will be freed by
+		 * the last function consuming it.
+		 */
+
+		rx_recv(rx_bottom(ha->rx), mb);
+	}
 }
 
 /**
@@ -2560,9 +2696,9 @@ http_async_state(struct http_async *ha)
 	return ha->state;
 }
 
-/**
- ** HTTP header parsing dispatching callbacks.
- **/
+/***
+ *** HTTP header parsing dispatching callbacks.
+ ***/
 
 /**
  * Called when full header was collected.
@@ -2839,6 +2975,215 @@ http_async_log_error(struct http_async *handle,
 }
 
 /***
+ *** Higher-level API to get whole content.
+ ***/
+
+enum http_wget_magic { HTTP_WGET_MAGIC = 0x22e19f43U };
+
+/**
+ * Additional context for wget requests.
+ */
+typedef struct http_wget {
+	enum http_wget_magic magic;		/**< magic */
+	struct http_async *ha;			/**< HTTP asynchronous request */
+	http_wget_cb_t cb;				/**< User callback to invoke when done */
+	void *arg;						/**< User argument for callback */
+	char *data;						/**< Collected data */
+	size_t maxlen;					/**< Maximum allowed data length */
+	size_t len;						/**< Length of collected data */
+	size_t content_len;				/**< Promised length, maxlen if none */
+	size_t datasize;				/**< Size of allocated buffer for data */
+} http_wget_t;
+
+static inline void
+http_wget_check(const http_wget_t * const wg)
+{
+	g_assert(NULL != wg);
+	g_assert(HTTP_WGET_MAGIC == wg->magic);
+}
+
+/**
+ * Free http_wget_t object.
+ */
+static void
+http_wget_free(void *data)
+{
+	http_wget_t *wg = data;
+
+	http_wget_check(wg);
+
+	HFREE_NULL(wg->data);
+	wfree(wg, sizeof *wg);
+}
+
+/**
+ * Callback for http_async_wget(), invoked when all headers have been read.
+ * @return TRUE if we can continue with the request.
+ */
+static gboolean
+wget_header_ind(struct http_async *ha, struct header *header,
+	int unused_code, const char *unused_message)
+{
+	http_wget_t *wg = http_async_get_opaque(ha);
+	const char *buf;
+
+	http_wget_check(wg);
+	(void) unused_code;
+	(void) unused_message;
+
+	/*
+	 * Make sure they're not returning content that is larger than the
+	 * maximum size we're willing to handle.
+	 *
+	 * Note that the Content-Length header may be missing if the server
+	 * is returning chunked output, in which case we will have to dynamically
+	 * adjust the reception buffer size.
+	 */
+
+	buf = header_get(header, "Content-Length");
+	if (buf != NULL) {
+		guint64 len;
+		int error;
+
+		len = parse_uint64(buf, NULL, 10, &error);
+		if (error) {
+			if (GNET_PROPERTY(http_debug)) {
+				g_warning("HTTP cannot parse Content-Length header "
+					"from %s for \"%s\": value is \"%s\"",
+					http_async_host(ha), ha->url, buf);
+			}
+			http_async_error(ha, HTTP_ASYNC_BAD_HEADER);
+			return FALSE;
+		}
+
+		if (len > wg->maxlen) {
+			http_async_error(ha, HTTP_ASYNC_DATA2BIG);
+			return FALSE;
+		}
+
+		wg->content_len = len;
+	}
+
+	/*
+	 * If they advertised a content length, allocate the appropriate buffer
+	 * to hold it.  Otherwise, allocate 1/16th of the maximum size: each
+	 * time we resize we'll double the size of the buffer, so there will
+	 * be at most 4 resize operations.
+	 */
+
+	wg->datasize = (buf != NULL) ? wg->content_len : (wg->maxlen >> 4);
+	wg->data = halloc(wg->datasize);
+
+	return TRUE;
+}
+
+/**
+ * Callback for http_async_wget(), invoked when new HTTP payload data is read.
+ * When data is NULL, it indicates an EOF condition.
+ */
+static void
+wget_data_ind(struct http_async *ha, char *data, int len)
+{
+	http_wget_t *wg = http_async_get_opaque(ha);
+	size_t new_length;
+
+	http_wget_check(wg);
+
+	if (NULL == data) {
+		char *result;
+
+		/*
+		 * Reached EOF, we're done.  User becomes the owner of the data now.
+		 */
+
+		result = wg->data;
+		wg->data = NULL;			/* So we don't free it ourselves */
+		(*wg->cb)(result, wg->len, wg->arg);
+		return;
+	}
+
+	/*
+	 * Ensure there is enough room in the buffer to grab the new data.
+	 */
+
+	new_length = size_saturate_add(wg->len, len);
+
+	if (new_length > wg->content_len) {
+		http_async_error(ha, HTTP_ASYNC_DATA2BIG);
+		return;
+	}
+
+	if (new_length > wg->datasize) {
+		size_t new_size = size_saturate_mult(wg->datasize, 2);
+
+		wg->data = hrealloc(wg->data, new_size);
+		wg->datasize = new_size;
+	}
+
+	/*
+	 * Append new data to the one we already got.
+	 */
+
+	memcpy(&wg->data[wg->len], data, len);
+	wg->len = new_length;
+}
+
+/**
+ * Callback for http_async_wget(), invoked on errors.
+ */
+static void
+wget_error_ind(struct http_async *ha, http_errtype_t type, void *val)
+{
+	http_wget_t *wg = http_async_get_opaque(ha);
+
+	http_wget_check(wg);
+
+	http_async_log_error(ha, type, val, "HTTP wget");
+
+	if (
+		type == HTTP_ASYNC_ERROR &&
+		GPOINTER_TO_INT(val) == HTTP_ASYNC_CANCELLED
+	)
+		return;		/* Don't invoke any callback on explicit user cancel */
+
+	(*wg->cb)(NULL, 0, wg->arg);		/* Signal error */
+}
+
+/**
+ * Asynchronously fetch the given URL, grabbing all the data into a memory
+ * buffer and invoking the supplied callback when done.
+ *
+ * @param url		the URL to retrieve
+ * @param maxlen	maximum data length we accept to allocate and grab
+ * @param cb		callback to invoked on completion / error
+ * @param arg		user-defined value, passed as-is to callback
+ *
+ * @return an asynchronous HTTP handle on success, NULL if we were not able
+ * to launch the request (in which case the callback is not invoked and
+ * http_async_errno is set to indicate the error).
+ */
+struct http_async *
+http_async_wget(const char *url, size_t maxlen, http_wget_cb_t cb, void *arg)
+{
+	struct http_async *ha;
+
+	ha = http_async_get(url, wget_header_ind, wget_data_ind, wget_error_ind);
+
+	if (ha != NULL) {
+		http_wget_t *wg = walloc0(sizeof *wg);
+		wg->magic = HTTP_WGET_MAGIC;
+		wg->ha = ha;
+		wg->maxlen = maxlen;
+		wg->content_len = maxlen;	/* Until we see a Content-Length header */
+		wg->cb = cb;
+		wg->arg = arg;
+		http_async_set_opaque(ha, wg, http_wget_free);
+	}
+
+	return ha;
+}
+
+/***
  *** I/O header parsing callbacks.
  ***/
 
@@ -2916,7 +3261,7 @@ retry:
 	for (l = sl_outgoing; l; l = l->next) {
 		struct http_async *ha = l->data;
 		int elapsed = delta_time(now, ha->last_update);
-		int timeout = ha->bio
+		int timeout = ha->rx
 			? GNET_PROPERTY(download_connected_timeout)
 			: GNET_PROPERTY(download_connecting_timeout);
 
@@ -2956,5 +3301,74 @@ http_close(void)
 	while (sl_outgoing)
 		http_async_error(sl_outgoing->data, HTTP_ASYNC_CANCELLED);
 }
+
+/***
+ *** HTTP asynchronous fetching logic test.
+ ***/
+
+#ifdef HTTP_TESTING
+static void
+http_transaction_failed(char *data, size_t len, void *arg)
+{
+	const char *url = arg;
+
+	if (NULL == data) {
+		g_message("HTTP expected-to-fail wget of \"%s\" OK", url);
+	} else {
+		g_warning("HTTP expected-to-fail wget of \"%s\" FAILED: got %lu bytes",
+			url, (unsigned long) len);
+	}
+}
+
+static void
+http_transaction_done(char *data, size_t len, void *arg)
+{
+	char *url = arg;
+
+	if (NULL == data) {
+		g_warning("HTTP async wget of \"%s\" FAILED", url);
+	} else {
+		void *ha;
+
+		g_message("HTTP async wget of \"%s\" SUCCEEDED (%lu byte%s)",
+			url, (unsigned long) len, 1 == len ? "" : "s");
+		g_debug("---- Begin HTTP Payload ----");
+		write(STDERR_FILENO, data, len);
+		g_debug("---- End HTTP Payload ----");
+		hfree(data);
+
+		ha = http_async_wget(url, len / 2, http_transaction_failed, url);
+		if (NULL == ha) {
+			g_warning("HTTP cannot start second wget of \"%s\": %s",
+				url, http_async_strerror(http_async_errno));
+		} else {
+			g_info("HTTP expected-to-fail wget \"%s\" started", url);
+		}
+	}
+}
+
+void
+http_test(void)
+{
+	void *ha;
+	char *url = "http://www.perl.com/index.html";
+
+	g_message("HTTP starting async wget of \"%s\"", url);
+
+	ha = http_async_wget(url, 500000, http_transaction_done, url);
+	if (NULL == ha) {
+		g_warning("HTTP cannot start wget of \"%s\": %s",
+			url, http_async_strerror(http_async_errno));
+	} else {
+		g_info("HTTP wget \"%s\" started", url);
+	}
+}
+#else	/* !HTTP_TESTING */
+void
+http_test(void)
+{
+	/* Nothing */
+}
+#endif	/* HTTP_TESTING */
 
 /* vi: set ts=4 sw=4 cindent: */
