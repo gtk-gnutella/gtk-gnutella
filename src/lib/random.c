@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "endian.h"
 #include "misc.h"
 #include "tm.h"
+#include "unsigned.h"
 #include "sha1.h"
 
 #include "override.h"			/* Must be the last header included */
