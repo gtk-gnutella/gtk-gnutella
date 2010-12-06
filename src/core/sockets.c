@@ -1827,7 +1827,7 @@ socket_connected(gpointer data, int source, inputevt_cond_t cond)
 	struct gnutella_socket *s = data;
 
 	socket_check(s);
-	g_assert(source == s->file_desc);
+	g_assert((socket_fd_t) source == s->file_desc);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {	/* Error while connecting */
 		bws_sock_connect_failed(s->type);
@@ -3729,7 +3729,7 @@ void
 socket_tx_shutdown(struct gnutella_socket *s)
 {
 	socket_check(s);
-	g_assert(s->file_desc >= 0);
+	g_assert(s->file_desc != INVALID_SOCKET);
 
 	if (s->flags & SOCK_F_SHUTDOWN)
 		return;
