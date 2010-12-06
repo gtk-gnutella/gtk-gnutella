@@ -59,6 +59,7 @@ RCSID("$Id$")
 
 #include "glib-missing.h"
 #include "misc.h"
+#include "unsigned.h"
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
 
@@ -206,7 +207,7 @@ mingw_open(const char *pathname, int flags, ...)
         va_list  args;
 
         va_start(args, flags);
-        mode = (mode_t) va_arg(args, mode_t);
+        mode = (mode_t) va_arg(args, int);
         va_end(args);
     }
 
