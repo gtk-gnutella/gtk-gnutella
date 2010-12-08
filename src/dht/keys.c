@@ -94,6 +94,7 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/dbmap.h"
 #include "lib/dbmw.h"
+#include "lib/glib-missing.h"
 #include "lib/pmsg.h"
 #include "lib/patricia.h"
 #include "lib/stringify.h"
@@ -1419,7 +1420,7 @@ keys_offload(const knode_t *kn)
 	if (ctx.count)
 		publish_offload(kn, ctx.found);
 
-	g_slist_free(ctx.found);
+	gm_slist_free_null(&ctx.found);
 }
 
 /**
@@ -1450,8 +1451,7 @@ keys_close(void)
 
 	if (keys) {
 		g_hash_table_foreach(keys, keys_free_kv, NULL);
-		g_hash_table_destroy(keys);
-		keys = NULL;
+		gm_hash_table_destroy_null(&keys);
 	}
 
 	kuid_atom_free_null(&kball.furthest);

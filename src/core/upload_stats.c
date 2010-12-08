@@ -616,8 +616,7 @@ upload_stats_free_all(void)
 			wfree(s, sizeof *s);
 		}
 		hash_list_free(&upload_stats_list);
-		g_hash_table_destroy(upload_stats_by_sha1);
-		upload_stats_by_sha1 = NULL;
+		gm_hash_table_destroy_null(&upload_stats_by_sha1);
 	}
 	dirty = TRUE;
 }

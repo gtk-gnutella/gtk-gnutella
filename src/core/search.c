@@ -154,8 +154,7 @@ query_muid_map_close(void)
 	while (query_muid_map_remove_oldest())
 		continue;
 
-	g_hash_table_destroy(muid_to_query_map);
-	muid_to_query_map = NULL;
+	gm_hash_table_destroy_null(&muid_to_query_map);
 	hash_list_free(&query_muids);
 }
 
@@ -392,7 +391,7 @@ static void
 search_free_sent_nodes(search_ctrl_t *sch)
 {
 	g_hash_table_foreach_remove(sch->sent_nodes, search_free_sent_node, NULL);
-	g_hash_table_destroy(sch->sent_nodes);
+	gm_hash_table_destroy_null(&sch->sent_nodes);
 }
 
 static void
@@ -442,8 +441,7 @@ static void
 search_free_sent_node_ids(search_ctrl_t *sch)
 {
 	g_hash_table_foreach_remove(sch->sent_node_ids, free_node_id, NULL);
-	g_hash_table_destroy(sch->sent_node_ids);
-	sch->sent_node_ids = NULL;
+	gm_hash_table_destroy_null(&sch->sent_node_ids);
 }
 
 static void
@@ -542,7 +540,7 @@ search_free_r_set(gnet_results_set_t *rs)
 	atom_str_free_null(&rs->query);
 	search_free_proxies(rs);
 
-	g_slist_free(rs->records);
+	gm_slist_free_null(&rs->records);
 	zfree(rs_zone, rs);
 }
 
@@ -2993,10 +2991,8 @@ search_shutdown(void)
 
 	g_assert(idtable_ids(search_handle_map) == 0);
 
-	g_hash_table_destroy(searches);
-	searches = NULL;
-	g_hash_table_destroy(search_by_muid);
-	search_by_muid = NULL;
+	gm_hash_table_destroy_null(&searches);
+	gm_hash_table_destroy_null(&search_by_muid);
 	idtable_destroy(search_handle_map);
 	search_handle_map = NULL;
 	qhvec_free(query_hashvec);
@@ -3235,8 +3231,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 		search_results_set_flag_records(rs);
 		search_results_set_auto_download(rs);
 		search_fire_got_results(search, rs);
-		g_slist_free(search);
-		search = NULL;
+		gm_slist_free_null(&search);
 	}
 
 	search_free_r_set(rs);
@@ -3530,8 +3525,7 @@ search_close(gnet_search_t sh)
 				g_hash_table_remove(search_by_muid, sl->data);
 				wfree(sl->data, GUID_RAW_SIZE);
 			}
-			g_slist_free(sch->muids);
-			sch->muids = NULL;
+			gm_slist_free_null(&sch->muids);
 		}
 
 		search_free_sent_nodes(sch);
@@ -4407,8 +4401,7 @@ search_locally(gnet_search_t sh, const char *query)
 		rs->status |= ST_PARSED_TRAILER;	/* Avoid <unparsed> in the GUI */
 		search = g_slist_prepend(NULL, GUINT_TO_POINTER(sch->search_handle));
 		search_fire_got_results(search, rs);	/* Dispatch browse results */
-		g_slist_free(search);
-		search = NULL;
+		gm_slist_free_null(&search);
 	}
     search_free_r_set(rs);
 
@@ -4529,7 +4522,7 @@ share_query_context_free(struct query_context *ctx)
 	 * Don't free the `files' list, as we passed it to the query hit builder.
 	 */
 
-	g_hash_table_destroy(ctx->shared_files);
+	gm_hash_table_destroy_null(&ctx->shared_files);
 	wfree(ctx, sizeof *ctx);
 }
 

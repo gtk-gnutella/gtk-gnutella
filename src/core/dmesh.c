@@ -624,10 +624,12 @@ dm_free(struct dmesh *dm)
 	 */
 	
 	gm_hash_table_foreach_key(dm->by_host, wfree_packed_host, NULL);
-	g_hash_table_destroy(dm->by_host);
-	g_hash_table_destroy(dm->by_guid);	/* Keys were GUID in the dmesh_entry */
-	atom_sha1_free(dm->sha1);
+	gm_hash_table_destroy_null(&dm->by_host);
 
+	/* Keys were GUID in the dmesh_entry, no need to free them */
+	gm_hash_table_destroy_null(&dm->by_guid);
+
+	atom_sha1_free_null(&dm->sha1);
 	wfree(dm, sizeof *dm);
 }
 
@@ -3399,7 +3401,7 @@ dmesh_close(void)
 	dmesh_ban_store();
 
 	g_hash_table_foreach_remove(mesh, dmesh_free_kv, NULL);
-	g_hash_table_destroy(mesh);
+	gm_hash_table_destroy_null(&mesh);
 
 	/*
 	 * Construct a list of banned mesh entries to remove, then manually
@@ -3415,10 +3417,9 @@ dmesh_close(void)
 		dmesh_ban_expire(dmesh_cq, dmb);
 	}
 
-	g_slist_free(banned);
-
-	g_hash_table_destroy(ban_mesh);
-	g_hash_table_destroy(ban_mesh_by_sha1);
+	gm_slist_free_null(&banned);
+	gm_hash_table_destroy_null(&ban_mesh);
+	gm_hash_table_destroy_null(&ban_mesh_by_sha1);
 
 	cq_free_null(&dmesh_cq);
 }

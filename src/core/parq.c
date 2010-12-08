@@ -2557,8 +2557,7 @@ parq_upload_timer(time_t now)
 		}
 	}
 
-	g_slist_free(to_remove);
-	to_remove = NULL;
+	gm_slist_free_null(&to_remove);
 
 	/*
 	 * If the last queue is not active anymore (ie it should be removed
@@ -5169,8 +5168,7 @@ parq_close_pre(void)
 		parq_del_banned_source(banned->addr);
 	}
 
-	g_slist_free(to_remove);
-	to_remove = NULL;
+	gm_slist_free_null(&to_remove);
 
 	/*
 	 * First locate all queued items (dead or alive). And place them in the
@@ -5197,8 +5195,7 @@ parq_close_pre(void)
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
 		parq_upload_free(sl->data);
 
-	g_slist_free(to_remove);
-	to_remove = NULL;
+	gm_slist_free_null(&to_remove);
 
 	for (sl = to_removeq; sl != NULL; sl = g_slist_next(sl)) {
 		struct parq_ul_queue *queue = sl->data;
@@ -5213,23 +5210,13 @@ parq_close_pre(void)
 		parq_upload_free_queue(queue);
 	}
 
-	g_slist_free(to_removeq);
-	to_removeq = NULL;
+	gm_slist_free_null(&to_removeq);
 
-	g_hash_table_destroy(ul_all_parq_by_addr_and_name);
-	ul_all_parq_by_addr_and_name = NULL;
-
-	g_hash_table_destroy(ul_all_parq_by_addr);
-	ul_all_parq_by_addr = NULL;
-
-	g_hash_table_destroy(ul_all_parq_by_id);
-	ul_all_parq_by_id = NULL;
-
-	g_hash_table_destroy(ht_banned_source);
-	ht_banned_source = NULL;
-
-	g_list_free(parq_banned_sources);
-	parq_banned_sources = NULL;
+	gm_hash_table_destroy_null(&ul_all_parq_by_addr_and_name);
+	gm_hash_table_destroy_null(&ul_all_parq_by_addr);
+	gm_hash_table_destroy_null(&ul_all_parq_by_id);
+	gm_hash_table_destroy_null(&ht_banned_source);
+	gm_list_free_null(&parq_banned_sources);
 
 	hash_list_free(&ul_parq_queue);
 	aging_destroy(&ul_queue_sent);

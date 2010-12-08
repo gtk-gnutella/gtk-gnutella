@@ -53,6 +53,7 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
+#include "lib/glib-missing.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
@@ -832,8 +833,7 @@ vp_gui_shutdown(void)
     guc_fi_remove_listener(vp_gui_fi_ranges_changed, EV_FI_RANGES_CHANGED);
 
     g_hash_table_foreach(vp_info_hash, vp_free_key_value, NULL);
-    g_hash_table_destroy(vp_info_hash);
-	vp_info_hash = NULL;
+    gm_hash_table_destroy_null(&vp_info_hash);
 }
 
 /*

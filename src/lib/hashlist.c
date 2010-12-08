@@ -190,18 +190,15 @@ hash_list_free(hash_list_t **hl_ptr)
 					cast_to_gconstpointer(hl), hl->refcount);
 		}
 
-		g_hash_table_destroy(hl->ht);
-		hl->ht = NULL;
+		gm_hash_table_destroy_null(&hl->ht);
 
 		for (iter = hl->head; NULL != iter; iter = g_list_next(iter)) {
 			struct hash_list_item *item = iter->data;
 			wfree(item, sizeof *item);
 		}
-		g_list_free(hl->head);
-		hl->head = NULL;
+		gm_list_free_null(&hl->head);
 
 		hl->magic = 0;
-
 		wfree(hl, sizeof *hl);
 		*hl_ptr = NULL;
 	}

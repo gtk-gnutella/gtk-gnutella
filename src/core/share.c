@@ -548,8 +548,7 @@ free_extensions(void)
 {
 	if (extensions) {
 		g_hash_table_foreach(extensions, free_extensions_helper, NULL);
-		g_hash_table_destroy(extensions);
-		extensions = NULL;
+		gm_hash_table_destroy_null(&extensions);
 	}
 }
 
@@ -606,8 +605,7 @@ shared_dirs_free(void)
 	for (sl = shared_dirs; sl; sl = g_slist_next(sl)) {
 		atom_str_free(sl->data);
 	}
-	g_slist_free(shared_dirs);
-	shared_dirs = NULL;
+	gm_slist_free_null(&shared_dirs);
 }
 
 /**
@@ -1092,11 +1090,7 @@ share_free(void)
 	GSList *sl;
 
 	st_destroy(search_table);
-
-	if (file_basenames) {
-		g_hash_table_destroy(file_basenames);
-		file_basenames = NULL;
-	}
+	gm_hash_table_destroy_null(&file_basenames);
 
 	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
 		struct shared_file *sf = sl->data;
@@ -1105,8 +1099,7 @@ share_free(void)
 		shared_file_deindex(sf);
 		shared_file_unref(&sf);
 	}
-	g_slist_free(shared_files);
-	shared_files = NULL;
+	gm_slist_free_null(&shared_files);
 
 	HFREE_NULL(file_table);
 	HFREE_NULL(sorted_file_table);
@@ -1694,8 +1687,7 @@ static void
 share_special_close(void)
 {
 	g_hash_table_foreach(special_names, special_free_kv, NULL);
-	g_hash_table_destroy(special_names);
-	special_names = NULL;
+	gm_hash_table_destroy_null(&special_names);
 }
 
 /**

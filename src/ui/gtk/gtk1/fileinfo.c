@@ -670,13 +670,9 @@ fi_gui_shutdown(void)
 		clist_download_sources = NULL;
 	}
 
-	g_hash_table_destroy(fi_sources);
-	fi_sources = NULL;
-
-	g_hash_table_destroy(file_rows);
-	file_rows = NULL;
-	g_hash_table_destroy(source_rows);
-	source_rows = NULL;
+	gm_hash_table_destroy_null(&fi_sources);
+	gm_hash_table_destroy_null(&file_rows);
+	gm_hash_table_destroy_null(&source_rows);
 }
 
 void

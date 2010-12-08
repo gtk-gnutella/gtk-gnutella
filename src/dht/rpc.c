@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/host_addr.h"
+#include "lib/glib-missing.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -657,8 +658,7 @@ void
 dht_rpc_close(void)
 {
 	g_hash_table_foreach(pending, rpc_free_kv, NULL);
-	g_hash_table_destroy(pending);
-	pending = NULL;
+	gm_hash_table_destroy_null(&pending);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

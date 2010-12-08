@@ -57,6 +57,7 @@ RCSID("$Id$")
 
 #include "lib/array.h"
 #include "lib/header.h"
+#include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
 #include "lib/concat.h"
 #include "lib/halloc.h"
@@ -438,8 +439,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 		g_assert(bh->hits != NULL);		/* At least 1 hit enqueued */
 
 		bh->hits = g_slist_reverse(bh->hits);	/* Preserve order */
- 		g_slist_free(files);
-		files = NULL;
+ 		gm_slist_free_null(&files);
 	}
 
 	/*
@@ -532,7 +532,7 @@ browse_host_close(struct special_upload *ctx, gboolean fully_served)
 		pmsg_t *mb = sl->data;
 		pmsg_free(mb);
 	}
-	g_slist_free(bh->hits);
+	gm_slist_free_null(&bh->hits);
 
 	if (bh->w_buf) {
 		wfree(bh->w_buf, bh->w_buf_size);

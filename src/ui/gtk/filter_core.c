@@ -306,10 +306,9 @@ shadow_cancel(shadow_t *shadow)
      * removed and current lists now. Then we remove the shadow
      * kill it also.
      */
-    g_list_free(shadow->removed);
-    g_list_free(shadow->added);
-    g_list_free(shadow->current);
-    shadow->removed = shadow->added = shadow->current = NULL;
+    gm_list_free_null(&shadow->removed);
+    gm_list_free_null(&shadow->added);
+    gm_list_free_null(&shadow->current);
 
     shadow_filters = g_list_remove(shadow_filters, shadow);
     G_FREE_NULL(shadow);
@@ -354,7 +353,7 @@ shadow_commit(shadow_t *shadow)
      * We also free the memory of the filter->ruleset GList.
      * We don't need them anymore.
      */
-    g_list_free(shadow->filter->ruleset);
+    gm_list_free_null(&shadow->filter->ruleset);
 
     /*
      * Now the actual filter is corrupted, because
@@ -379,9 +378,9 @@ shadow_commit(shadow_t *shadow)
      * and free it's ressources. Note that we do not free
      * shadow->current because this is the new filter ruleset.
      */
-    g_list_free(shadow->added);
-    g_list_free(shadow->removed);
-    shadow->added = shadow->removed = shadow->current = NULL;
+    gm_list_free_null(&shadow->added);
+    gm_list_free_null(&shadow->removed);
+    shadow->current = NULL;
     shadow->filter = NULL;
     shadow_filters = g_list_remove(shadow_filters, shadow);
     G_FREE_NULL(shadow);
@@ -938,8 +937,7 @@ filter_revert_changes(void)
 
         filter_gui_filter_add(filter, filter->ruleset);
     }
-    g_list_free(filters_removed);
-    filters_removed = NULL;
+    gm_list_free_null(&filters_removed);
 
     /*
      * Update the rulecounts. Since we don't have any shadows anymore, we
@@ -1421,8 +1419,7 @@ filter_free_rule(rule_t *r)
         switch (r->u.text.type) {
         case RULE_TEXT_WORDS:
             g_list_foreach(r->u.text.u.words, (GFunc)pattern_free, NULL);
-            g_list_free(r->u.text.u.words);
-            r->u.text.u.words = NULL;
+            gm_list_free_null(&r->u.text.u.words);
             break;
         case RULE_TEXT_SUBSTR:
             pattern_free(r->u.text.u.pattern);

@@ -45,6 +45,7 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/glib-missing.h"
 #include "lib/stringify.h"
 #include "lib/halloc.h"
 #include "lib/walloc.h"
@@ -1712,7 +1713,7 @@ void
 ext_close(void)
 {
 	g_hash_table_foreach_remove(ext_names, ext_names_kv_free, NULL);
-	g_hash_table_destroy(ext_names);
+	gm_hash_table_destroy_null(&ext_names);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

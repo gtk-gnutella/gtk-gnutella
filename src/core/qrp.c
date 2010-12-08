@@ -1020,7 +1020,7 @@ merge_context_free(gpointer p)
 
 		qrt_unref(rt);
 	}
-	g_slist_free(ctx->tables);
+	gm_slist_free_null(&ctx->tables);
 
 	HFREE_NULL(ctx->arena);
 	ctx->magic = 0;
@@ -1529,7 +1529,7 @@ unique_substrings(GHashTable *ht, int *retcount)
 	u.unique = g_hash_table_new(g_str_hash, g_str_equal);
 	g_hash_table_foreach(ht, unique_substr, &u);
 	*retcount = g_hash_table_size(u.unique);
-	g_hash_table_destroy(u.unique);		/* Created words ref'ed by u.head */
+	gm_hash_table_destroy_null(&u.unique);	/* Created words ref'ed by u.head */
 
 	return u.head;
 }
@@ -1574,8 +1574,7 @@ dispose_ht_seen_words(void)
 	g_assert(ht_seen_words);
 
 	g_hash_table_foreach(ht_seen_words, free_word, NULL);
-	g_hash_table_destroy(ht_seen_words);
-	ht_seen_words = NULL;
+	gm_hash_table_destroy_null(&ht_seen_words);
 }
 
 /**
@@ -1606,7 +1605,7 @@ qrp_context_free(gpointer p)
 		g_assert(size > 0);
 		wfree(word, size);
 	}
-	g_slist_free(ctx->sl_substrings);
+	gm_slist_free_null(&ctx->sl_substrings);
 
 	HFREE_NULL(ctx->table);
 
@@ -2289,8 +2288,7 @@ qrt_patch_computed(struct bgtask *unused_h, gpointer unused_u,
 	ctx->magic = 0;
 	wfree(ctx, sizeof *ctx);
 
-	g_slist_free(qrt_patch_computed_listeners);
-	qrt_patch_computed_listeners = NULL;
+	gm_slist_free_null(&qrt_patch_computed_listeners);
 }
 
 /**
@@ -2397,8 +2395,7 @@ qrt_compress_cancel_all(void)
 	for (sl = sl_compress_tasks; sl; sl = g_slist_next(sl))
 		bg_task_cancel(sl->data);
 
-	g_slist_free(sl_compress_tasks);
-	sl_compress_tasks = NULL;
+	gm_slist_free_null(&sl_compress_tasks);
 }
 
 /***

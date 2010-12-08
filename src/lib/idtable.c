@@ -77,7 +77,7 @@ idtable_new(void)
 void
 idtable_destroy(idtable_t *tbl)
 {
-	g_hash_table_destroy(tbl->ht);
+	gm_hash_table_destroy_null(&tbl->ht);
 	wfree(tbl, sizeof *tbl);
 }
 

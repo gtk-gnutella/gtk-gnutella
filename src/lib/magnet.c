@@ -718,16 +718,13 @@ magnet_resource_free(struct magnet_resource **res_ptr)
 			struct magnet_source *ms = sl->data;
 			magnet_source_free(&ms);
 		}
-		g_slist_free(res->sources);
-		res->sources = NULL;
+		gm_slist_free_null(&res->sources);
 
 		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
 			const char *s = sl->data;
 			atom_str_free_null(&s);
 		}
-		g_slist_free(res->searches);
-		res->searches = NULL;
-		
+		gm_slist_free_null(&res->searches);
 		wfree(res, sizeof *res);
 		*res_ptr = NULL;
 	}

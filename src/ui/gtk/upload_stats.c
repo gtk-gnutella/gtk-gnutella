@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "upload_stats.h"
 #include "notebooks.h"
 
+#include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define UPDATE_MIN		60		/**< Update screen every minute at least */
@@ -124,8 +125,7 @@ upload_stats_common_gui_init(void)
 void
 upload_stats_common_gui_shutdown(void)
 {
-	g_hash_table_destroy(pending);
-	pending = NULL;
+	gm_hash_table_destroy_null(&pending);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

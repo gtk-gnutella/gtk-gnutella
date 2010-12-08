@@ -343,12 +343,10 @@ nodes_gui_shutdown(void)
     guc_node_remove_node_flags_changed_listener(nodes_gui_node_flags_changed);
 
 	g_hash_table_foreach_remove(ht_node_info_changed, free_node_id, NULL);
-    g_hash_table_destroy(ht_node_info_changed);
-    ht_node_info_changed = NULL;
+    gm_hash_table_destroy_null(&ht_node_info_changed);
 
 	g_hash_table_foreach_remove(ht_node_flags_changed, free_node_id, NULL);
-    g_hash_table_destroy(ht_node_flags_changed);
-    ht_node_flags_changed = NULL;
+    gm_hash_table_destroy_null(&ht_node_flags_changed);
 
 	nodes_gui_remove_all_nodes();
 }

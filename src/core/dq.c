@@ -861,7 +861,7 @@ dq_free(dquery_t *dq)
 	}
 
 	g_hash_table_foreach_remove(dq->queried, free_node_id, NULL);
-	g_hash_table_destroy(dq->queried);
+	gm_hash_table_destroy_null(&dq->queried);
 
 	qhvec_free(dq->qhv);
 	dq_free_next_up(dq);
@@ -2270,7 +2270,7 @@ dq_search_closed(gnet_search_t handle)
 	GM_SLIST_FOREACH(ctx.cancelled, sl) {
 		dq_free(sl->data);
 	}
-	g_slist_free(ctx.cancelled);
+	gm_slist_free_null(&ctx.cancelled);
 }
 
 /**
@@ -2436,20 +2436,16 @@ void
 dq_close(void)
 {
 	g_hash_table_foreach(dqueries, free_query, NULL);
-	g_hash_table_destroy(dqueries);
-	dqueries = NULL;
+	gm_hash_table_destroy_null(&dqueries);
 
 	g_hash_table_foreach(by_node_id, free_query_list, NULL);
-	g_hash_table_destroy(by_node_id);
-	by_node_id = NULL;
+	gm_hash_table_destroy_null(&by_node_id);
 
 	g_hash_table_foreach(by_muid, free_muid, NULL);
-	g_hash_table_destroy(by_muid);
-	by_muid = NULL;
+	gm_hash_table_destroy_null(&by_muid);
 
 	g_hash_table_foreach(by_leaf_muid, free_leaf_muid, NULL);
-	g_hash_table_destroy(by_leaf_muid);
-	by_leaf_muid = NULL;
+	gm_hash_table_destroy_null(&by_leaf_muid);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

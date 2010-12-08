@@ -95,8 +95,7 @@ header_features_cleanup(xfeature_t xf)
 		G_FREE_NULL(header->name);
 		wfree(header, sizeof *header);
 	}
-	g_list_free(features->list);
-	features->list = NULL;
+	gm_list_free_null(&features->list);
 }
 
 void

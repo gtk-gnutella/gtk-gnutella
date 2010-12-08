@@ -1087,8 +1087,7 @@ void
 bitzi_close(void)
 {
 	g_return_if_fail(bitzi_cache_ht);
-	g_hash_table_destroy(bitzi_cache_ht);
-	bitzi_cache_ht = NULL;
+	gm_hash_table_destroy_null(&bitzi_cache_ht);
 
 	{
 		GList *iter;
@@ -1096,8 +1095,7 @@ bitzi_close(void)
 		for (iter = bitzi_cache; iter != NULL; iter = g_list_next(iter)) {
 			bitzi_destroy(iter->data);
 		}
-		g_list_free(bitzi_cache);
-		bitzi_cache = NULL;
+		gm_list_free_null(&bitzi_cache);
 	}
 
 	{
@@ -1107,8 +1105,7 @@ bitzi_close(void)
 			bitzi_request_t *req = iter->data;
 			bitzi_request_free(&req);
 		}
-		g_slist_free(bitzi_rq);
-		bitzi_rq = NULL;
+		gm_slist_free_null(&bitzi_rq);
 	}
 	
 	g_return_if_fail(bitzi_heartbeat_id);

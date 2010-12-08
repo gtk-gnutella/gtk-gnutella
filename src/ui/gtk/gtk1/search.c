@@ -1523,8 +1523,7 @@ discard_selection_of_ctree(struct search *search)
 		g_assert(node);
 		gtk_ctree_select(ctree, node);
 	}
-	g_slist_free(selection);
-	selection = NULL;
+	gm_slist_free_null(&selection);
 
 	while (GTK_CLIST(ctree)->selection) {
 		GtkCTreeNode *node;
@@ -1596,8 +1595,7 @@ download_selection_of_ctree(struct search *search)
 				gui_color_get(GUI_COLOR_DOWNLOADING));
         }
 	}
-	g_slist_free(selection);
-	selection = NULL;
+	gm_slist_free_null(&selection);
 
 	if (remove_downloaded) {
 		discard_selection_of_ctree(search);

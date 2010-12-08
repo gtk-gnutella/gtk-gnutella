@@ -593,20 +593,16 @@ nodes_gui_shutdown(void)
 	gtk_tree_view_set_model(treeview_nodes, NULL);
 
 	g_hash_table_foreach_remove(nodes_handles, free_node_data, NULL);
-	g_hash_table_destroy(nodes_handles);
-	nodes_handles = NULL;
+	gm_hash_table_destroy_null(&nodes_handles);
 
 	g_hash_table_foreach_remove(ht_node_info_changed, free_node_id, NULL);
-    g_hash_table_destroy(ht_node_info_changed);
-    ht_node_info_changed = NULL;
+    gm_hash_table_destroy_null(&ht_node_info_changed);
 
 	g_hash_table_foreach_remove(ht_node_flags_changed, free_node_id, NULL);
-    g_hash_table_destroy(ht_node_flags_changed);
-    ht_node_flags_changed = NULL;
+    gm_hash_table_destroy_null(&ht_node_flags_changed);
 
 	g_hash_table_foreach_remove(ht_pending_lookups, free_node_id, NULL);
-    g_hash_table_destroy(ht_pending_lookups);
-    ht_pending_lookups = NULL;
+    gm_hash_table_destroy_null(&ht_pending_lookups);
 }
 
 /**

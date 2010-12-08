@@ -65,6 +65,7 @@ RCSID("$Id$")
 
 #include "cq.h"
 #include "hashlist.h"
+#include "glib-missing.h"
 #include "unsigned.h"
 #include "palloc.h"
 #include "walloc.h"
@@ -295,7 +296,7 @@ pool_free(pool_t *p)
 		p->dealloc(sl->data, FALSE);
 	}
 
-	g_slist_free(p->buffers);
+	gm_slist_free_null(&p->buffers);
 	G_FREE_NULL(p->name);
 	cq_cancel(&p->heartbeat_ev);
 	p->magic = 0;

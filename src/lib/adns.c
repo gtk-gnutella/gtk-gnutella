@@ -244,8 +244,7 @@ adns_cache_free(adns_cache_t *cache)
 	for (i = 0; i < G_N_ELEMENTS(cache->entries); i++) {
 		adns_cache_free_entry(cache, i);
 	}
-	g_hash_table_destroy(cache->ht);
-	cache->ht = NULL;
+	gm_hash_table_destroy_null(&cache->ht);
 	G_FREE_NULL(cache);
 }
 

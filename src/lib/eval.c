@@ -114,7 +114,7 @@ eval_close(void)
 		home = NULL;
 	}
 	g_hash_table_foreach(constants, constants_free_kv, NULL);
-	g_hash_table_destroy(constants);
+	gm_hash_table_destroy_null(&constants);
 }
 
 /**

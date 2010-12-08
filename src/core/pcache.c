@@ -65,6 +65,7 @@ RCSID("$Id$")
 #include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/endian.h"
+#include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
@@ -1143,8 +1144,7 @@ pcache_clear_recent(host_type_t type)
 		free_cached_pong(cp);
 	}
 
-	g_list_free(rec->recent_pongs);
-	rec->recent_pongs = NULL;
+	gm_list_free_null(&rec->recent_pongs);
 	rec->last_returned_pong = NULL;
 	rec->recent_pong_count = 0;
 }
@@ -1202,9 +1202,7 @@ pcache_expire(void)
 			entries++;
 			free_cached_pong(sl->data);
 		}
-		g_slist_free(cl->pongs);
-
-		cl->pongs = NULL;
+		gm_slist_free_null(&cl->pongs);
 		cl->cursor = NULL;
 	}
 
@@ -1228,7 +1226,7 @@ pcache_close(void)
 		host_type_t type = types[i];
 
 		pcache_clear_recent(type);
-		g_hash_table_destroy(recent_pongs[type].ht_recent_pongs);
+		gm_hash_table_destroy_null(&recent_pongs[type].ht_recent_pongs);
 	}
 
 	aging_destroy(&udp_pings);

@@ -505,7 +505,7 @@ bg_task_free(struct bgtask *bt)
 		if (bt->item_free)
 			(*bt->item_free)(l->data);
 	}
-	g_slist_free(bt->wq);
+	gm_slist_free_null(&bt->wq);
 
 	if (count)
 		g_warning("freed %d pending item%s for daemon \"%s\" task",
@@ -829,8 +829,7 @@ bg_reclaim_dead(void)
 	for (sl = dead_tasks; sl; sl = g_slist_next(sl)) {
 		bg_task_free(sl->data);
 	}
-	g_slist_free(dead_tasks);
-	dead_tasks = NULL;
+	gm_slist_free_null(&dead_tasks);
 }
 
 /**
@@ -1081,10 +1080,8 @@ bg_task_terminate_all(GSList **ptr)
 			count++;
 			bg_task_terminate(iter->data);
 		}
-		g_slist_free(copy);
-		copy = NULL;
-		g_slist_free(*ptr);
-		*ptr = NULL;
+		gm_slist_free_null(&copy);
+		gm_slist_free_null(ptr);
 	}
 	return count;
 }

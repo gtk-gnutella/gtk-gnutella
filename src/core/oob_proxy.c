@@ -542,7 +542,7 @@ void
 oob_proxy_close(void)
 {
 	g_hash_table_foreach(proxied_queries, free_oob_proxy_kv, NULL);
-	g_hash_table_destroy(proxied_queries);
+	gm_hash_table_destroy_null(&proxied_queries);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

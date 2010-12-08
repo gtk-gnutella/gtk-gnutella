@@ -303,8 +303,7 @@ header_reset(header_t *o)
 
 	if (o->headers) {
 		g_hash_table_foreach_remove(o->headers, free_header_data, NULL);
-		g_hash_table_destroy(o->headers);
-		o->headers = NULL;
+		gm_hash_table_destroy_null(&o->headers);
 	}
 	if (o->fields) {
 		slist_foreach(o->fields, header_reset_item, NULL);

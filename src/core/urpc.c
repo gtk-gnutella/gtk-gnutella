@@ -296,8 +296,7 @@ void
 urpc_close(void)
 {
 	g_hash_table_foreach(pending, urpc_free_kv, NULL);
-	g_hash_table_destroy(pending);
-	pending = NULL;
+	gm_hash_table_destroy_null(&pending);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -1500,9 +1500,8 @@ free_server(struct dl_server *server)
 				n);
 		}
 	}
-	g_hash_table_destroy(server->sha1_counts);
-	server->sha1_counts = NULL;
 
+	gm_hash_table_destroy_null(&server->sha1_counts);
 	atom_str_free_null(&server->vendor);
 	atom_guid_free_null(&server->key->guid);
 	wfree(server->key, sizeof(struct dl_key));
@@ -2988,8 +2987,7 @@ download_requeue_all_active(const fileinfo_t *fi)
 			download_queue(d, _("Requeued due to file removal"));
 		}
 	}
-	g_slist_free(sources);
-	sources = NULL;
+	gm_slist_free_null(&sources);
 }
 
 /**
@@ -3077,8 +3075,7 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 		if (is_running)
 			download_queue(d, _("Requeued by file info change"));
 	}
-	g_slist_free(sources);
-	sources = NULL;
+	gm_slist_free_null(&sources);
 }
 
 /**
@@ -4629,8 +4626,7 @@ queue_suspend_downloads_with_file(fileinfo_t *fi, gboolean suspend)
 			d->flags &= ~DL_F_SUSPENDED;
 		}
 	}
-	g_slist_free(sources);
-	sources = NULL;
+	gm_slist_free_null(&sources);
 
 	if (suspend)
 		fi->flags |= FI_F_SUSPEND;
@@ -4773,8 +4769,7 @@ queue_remove_downloads_with_file(fileinfo_t *fi, struct download *skip)
 
 		download_remove(d);
 	}
-	g_slist_free(sources);
-	sources = NULL;
+	gm_slist_free_null(&sources);
 }
 
 
@@ -6839,8 +6834,7 @@ download_index_changed(const host_addr_t addr, guint16 port,
 		download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
 			_("Stopped (Index changed)"));
 	}
-	g_slist_free(to_stop);
-	to_stop = NULL;
+	gm_slist_free_null(&to_stop);
 
 	/*
 	 * This is a sanity check: we should not have any duplicate request
@@ -7111,16 +7105,14 @@ download_free_removed(void)
 		download_free(&d);
 	}
 
-	g_slist_free(sl_removed);
-	sl_removed = NULL;
+	gm_slist_free_null(&sl_removed);
 
 	for (sl = sl_removed_servers; sl; sl = g_slist_next(sl)) {
 		struct dl_server *s = sl->data;
 		free_server(s);
 	}
 
-	g_slist_free(sl_removed_servers);
-	sl_removed_servers = NULL;
+	gm_slist_free_null(&sl_removed_servers);
 }
 
 /* ----------------------------------------- */
@@ -14140,8 +14132,7 @@ download_resume_bg_tasks(void)
 		}
 	}
 
-	g_slist_free(to_remove);
-	to_remove = NULL;
+	gm_slist_free_null(&to_remove);
 
 	/*
 	 * Clear the marks.
@@ -14210,14 +14201,9 @@ download_close(void)
 	hash_list_free(&sl_downloads);
 	hash_list_free(&sl_unqueued);
 
-	g_hash_table_destroy(dl_by_guid);
-	dl_by_guid = NULL;
-
-	g_hash_table_destroy(dl_by_host);
-	dl_by_host = NULL;
-
-	g_hash_table_destroy(dl_by_addr);
-	dl_by_addr = NULL;
+	gm_hash_table_destroy_null(&dl_by_guid);
+	gm_hash_table_destroy_null(&dl_by_host);
+	gm_hash_table_destroy_null(&dl_by_addr);
 }
 
 static char *

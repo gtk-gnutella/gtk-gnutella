@@ -919,8 +919,7 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 		
 		dbg_property_show_list(props);
 		dbg_property_update_selection();
-		g_slist_free(props);
-		props = NULL;
+		gm_slist_free_null(&props);
 	}
 	G_FREE_NULL(text);
 }

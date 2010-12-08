@@ -92,6 +92,7 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
+#include "lib/glib-missing.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
 #include "lib/map.h"
@@ -945,9 +946,7 @@ free_node_lists(struct kbucket *kb)
 		 * all be empty, it means this table is now referencing freed objects.
 		 */
 
-		g_hash_table_destroy(knodes->all);
-		knodes->all = NULL;
-
+		gm_hash_table_destroy_null(&knodes->all);
 		acct_net_free(&knodes->c_class);
 		cq_cancel(&knodes->aliveness);
 		cq_cancel(&knodes->staleness);

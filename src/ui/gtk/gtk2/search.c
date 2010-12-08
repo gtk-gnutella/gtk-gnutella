@@ -1521,8 +1521,7 @@ search_gui_request_bitzi_data(struct search *search)
 	}
 
 	g_hash_table_foreach(results, search_gui_request_bitzi_data_helper, NULL);
-	g_hash_table_destroy(results);
-	results = NULL;
+	gm_hash_table_destroy_null(&results);
 
 	/* Make sure the column is actually visible. */
 	search_gui_make_meta_column_visible(search);

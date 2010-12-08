@@ -57,6 +57,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
+#include "lib/glib-missing.h"
 #include "lib/pmsg.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -280,9 +281,7 @@ sq_clear(squeue_t *sq)
 		smsg_discard(sb);
 	}
 
-	g_list_free(sq->searches);
-
-	sq->searches = NULL;
+	gm_list_free_null(&sq->searches);
 	sq->count = 0;
 }
 
@@ -295,7 +294,7 @@ sq_free(squeue_t *sq)
 	g_assert(sq);
 
 	sq_clear(sq);
-	g_hash_table_destroy(sq->handles);
+	gm_hash_table_destroy_null(&sq->handles);
 	wfree(sq, sizeof(*sq));
 }
 

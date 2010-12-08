@@ -2579,8 +2579,7 @@ void
 publish_close(gboolean exiting)
 {
 	g_hash_table_foreach(publishes, free_publish, &exiting);
-	g_hash_table_destroy(publishes);
-	publishes = NULL;
+	gm_hash_table_destroy_null(&publishes);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

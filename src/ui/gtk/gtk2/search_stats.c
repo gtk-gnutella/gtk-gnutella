@@ -549,8 +549,7 @@ search_stats_gui_shutdown(void)
 {
 	tree_view_save_widths(treeview_search_stats, PROP_SEARCH_STATS_COL_WIDTHS);
     search_stats_gui_set_type(NO_SEARCH_STATS);
-    g_hash_table_destroy(stat_hash);
-	stat_hash = NULL;
+    gm_hash_table_destroy_null(&stat_hash);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

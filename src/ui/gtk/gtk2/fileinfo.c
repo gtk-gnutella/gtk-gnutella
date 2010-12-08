@@ -44,8 +44,9 @@ RCSID("$Id$")
 
 #include "if/gui_property.h"
 
-#include "lib/walloc.h"
+#include "lib/glib-missing.h"
 #include "lib/utf8.h"
+#include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -816,8 +817,7 @@ fi_gui_shutdown(void)
 		store_sources = NULL;
 	}
 
-	g_hash_table_destroy(fi_sources);
-	fi_sources = NULL;
+	gm_hash_table_destroy_null(&fi_sources);
 }
 
 void

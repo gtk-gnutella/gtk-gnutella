@@ -937,7 +937,7 @@ html_view_free(struct html_view **html_view_ptr)
 			for (iter = html_view->to_free; iter; iter = g_slist_next(iter)) {
 				G_FREE_NULL(iter->data);
 			}
-			g_slist_free(html_view->to_free);
+			gm_slist_free_null(&html_view->to_free);
 		}
 		wfree(html_view, sizeof *html_view);
 		*html_view_ptr = NULL;

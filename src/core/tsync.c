@@ -345,7 +345,7 @@ void
 tsync_close(void)
 {
 	g_hash_table_foreach(tsync_by_time, free_tsync_kv, NULL);
-	g_hash_table_destroy(tsync_by_time);
+	gm_hash_table_destroy_null(&tsync_by_time);
 }
 
 

@@ -788,8 +788,7 @@ downloads_gui_update_popup_sources(void)
 	for (iter_ = files_selected_; /*NOTHING */; iter_ = g_slist_next(iter_)) { \
 		struct fileinfo_data *item; \
 		if (NULL == iter_) { \
-			g_slist_free(files_selected_); \
-			files_selected_ = NULL; \
+			gm_slist_free_null(&files_selected_); \
 			fi_gui_files_thaw(); \
 			break; \
 		} \
@@ -808,8 +807,7 @@ downloads_gui_update_popup_sources(void)
 	for (/* NOTHING*/; /* NOTHING */; iter_ = g_slist_next(iter_)) { \
 		struct download *item; \
 		if (NULL == iter_) { \
-			g_slist_free(sources_selected_); \
-			sources_selected_ = NULL; \
+			gm_slist_free_null(&sources_selected_); \
 			fi_gui_files_thaw(); \
 			break; \
 		} \
@@ -2332,12 +2330,9 @@ fi_gui_common_shutdown(void)
 	fi_gui_clear_info();
 	g_hash_table_foreach_remove(fi_handles, fi_handles_shutdown, NULL);
 
-	g_hash_table_destroy(fi_handles);
-	fi_handles = NULL;
-	g_hash_table_destroy(fi_updates);
-	fi_updates = NULL;
-	g_hash_table_destroy(src_updates);
-	src_updates = NULL;
+	gm_hash_table_destroy_null(&fi_handles);
+	gm_hash_table_destroy_null(&fi_updates);
+	gm_hash_table_destroy_null(&src_updates);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

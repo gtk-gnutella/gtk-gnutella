@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "sequence.h"
+#include "glib-missing.h"
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
 
@@ -397,10 +398,10 @@ sequence_destroy(sequence_t *s)
 
 	switch (s->type) {
 	case SEQUENCE_GSLIST:
-		g_slist_free(s->u.gsl);
+		gm_slist_free_null(&s->u.gsl);
 		break;
 	case SEQUENCE_GLIST:
-		g_list_free(s->u.gl);
+		gm_list_free_null(&s->u.gl);
 		break;
 	case SEQUENCE_LIST:
 		list_free(&s->u.l);

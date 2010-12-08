@@ -529,8 +529,7 @@ spam_close(void)
 		regfree(&item->pattern);
 		wfree(item, sizeof *item);
 	}
-	g_slist_free(spam_lut.sl_names);
-	spam_lut.sl_names = NULL;
+	gm_slist_free_null(&spam_lut.sl_names);
 	spam_sha1_close();
 }
 

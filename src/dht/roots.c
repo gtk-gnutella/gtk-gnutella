@@ -78,6 +78,7 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/dbmap.h"
 #include "lib/dbmw.h"
+#include "lib/glib-missing.h"
 #include "lib/map.h"
 #include "lib/patricia.h"
 #include "lib/stringify.h"
@@ -970,7 +971,7 @@ roots_init_rootinfo(void)
 	dbmw_foreach_remove(db_contact, remove_orphan, &ctx);
 
 	g_hash_table_foreach(ctx.dbkeys, free_dbkey_kv, NULL);
-	g_hash_table_destroy(ctx.dbkeys);
+	gm_hash_table_destroy_null(&ctx.dbkeys);
 
 	count = dbmw_count(db_rootdata);
 

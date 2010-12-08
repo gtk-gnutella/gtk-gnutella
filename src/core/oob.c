@@ -54,6 +54,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/fifo.h"
+#include "lib/glib-missing.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/walloc.h"
@@ -216,8 +217,7 @@ results_free_remove(struct oob_results *r)
 			shared_file_t *sf = sl->data;
 			shared_file_unref(&sf);
 		}
-		g_slist_free(r->files);
-		r->files = NULL;
+		gm_slist_free_null(&r->files);
 
 		g_assert(num_oob_records > 0);
 		num_oob_records--;
@@ -719,12 +719,10 @@ oob_shutdown(void)
 	oob_shutdown_running = TRUE;
 
 	g_hash_table_foreach(results_by_muid, free_oob_kv, NULL);
-	g_hash_table_destroy(results_by_muid);
-	results_by_muid = NULL;
+	gm_hash_table_destroy_null(&results_by_muid);
 
 	g_hash_table_foreach(servent_by_host, free_servent_kv, NULL);
-	g_hash_table_destroy(servent_by_host);
-	servent_by_host = NULL;
+	gm_hash_table_destroy_null(&servent_by_host);
 
 	g_assert(num_oob_records >= 0);
 	if (num_oob_records > 0)

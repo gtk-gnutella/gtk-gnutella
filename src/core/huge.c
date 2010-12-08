@@ -56,6 +56,7 @@ RCSID("$Id$")
 #include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/glib-missing.h"
 #include "lib/parse.h"
 #include "lib/pattern.h"
 #include "lib/sha1.h"
@@ -920,8 +921,7 @@ huge_close(void)
 	dump_cache(FALSE);
 
 	g_hash_table_foreach_remove(sha1_cache, cache_free_entry, NULL);
-	g_hash_table_destroy(sha1_cache);
-	sha1_cache = NULL;
+	gm_hash_table_destroy_null(&sha1_cache);
 
 	pattern_free(has_http_urls);
 	has_http_urls = NULL;

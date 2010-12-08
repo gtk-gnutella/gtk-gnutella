@@ -475,7 +475,7 @@ url_params_free(url_params_t *up)
 	g_assert(up != NULL);
 
 	g_hash_table_foreach(up->params, free_params_kv, NULL);
-	g_hash_table_destroy(up->params);
+	gm_hash_table_destroy_null(&up->params);
 
 	wfree(up, sizeof *up);
 }

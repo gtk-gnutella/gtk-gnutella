@@ -332,10 +332,9 @@ mq_free(mqueue_t *q)
 		qlink_free(q);
 
 	cq_cancel(&q->swift_ev);
-	g_list_free(q->qhead);
+	gm_list_free_null(&q->qhead);
 	pmsg_slist_free(&q->qwait);
 
-	q->qhead = NULL;
 	q->magic = 0;
 	wfree(q, sizeof(*q));
 }

@@ -56,6 +56,7 @@ RCSID("$Id$")
 #include "lib/base32.h"
 #include "lib/bstr.h"
 #include "lib/endian.h"
+#include "lib/glib-missing.h"
 #include "lib/sha1.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -996,12 +997,10 @@ void
 gdht_close(void)
 {
 	g_hash_table_foreach(sha1_lookups, free_sha1_lookups_kv, NULL);
-	g_hash_table_destroy(sha1_lookups);
-	sha1_lookups = NULL;
+	gm_hash_table_destroy_null(&sha1_lookups);
 
 	g_hash_table_foreach(guid_lookups, free_guid_lookups_kv, NULL);
-	g_hash_table_destroy(guid_lookups);
-	guid_lookups = NULL;
+	gm_hash_table_destroy_null(&guid_lookups);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

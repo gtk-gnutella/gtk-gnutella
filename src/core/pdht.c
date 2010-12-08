@@ -1414,7 +1414,6 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 
 	sequence_release(&seq);
 	g_list_free(list);
-	list = NULL;
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT PROX using %lu push-prox%s for local node (%s)",
@@ -1823,12 +1822,10 @@ pdht_close(void)
 	cq_cancel(&pdht_proxy.publish_ev);
 
 	g_hash_table_foreach(aloc_publishes, free_publish_kv, NULL);
-	g_hash_table_destroy(aloc_publishes);
-	aloc_publishes = NULL;
+	gm_hash_table_destroy_null(&aloc_publishes);
 
 	g_hash_table_foreach(nope_publishes, free_publish_kv, NULL);
-	g_hash_table_destroy(nope_publishes);
-	nope_publishes = NULL;
+	gm_hash_table_destroy_null(&nope_publishes);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

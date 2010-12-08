@@ -30,6 +30,7 @@ RCSID("$Id$")
 #include <gtk/gtkcheckmenuitem.h>
 
 #include "gtkcolumnchooser.h"
+#include "lib/glib-missing.h"
 #include "lib/override.h"				/* Must be the last header included */
 
 static GtkWidgetClass *parent_class;
@@ -247,7 +248,7 @@ gtk_column_chooser_finalize(GObject *object)
     g_return_if_fail(GTK_IS_COLUMN_CHOOSER(object));
 
     cc = GTK_COLUMN_CHOOSER(object);
-    g_hash_table_destroy(cc->col_map);
+    gm_hash_table_destroy_null(&cc->col_map);
 	G_OBJECT_CLASS(parent_class)->finalize(G_OBJECT(object));
 }
 
@@ -312,7 +313,7 @@ gtk_column_chooser_finalize(GtkObject *object)
 	g_return_if_fail(GTK_IS_COLUMN_CHOOSER(object));
 
     cc = GTK_COLUMN_CHOOSER(object);
-    g_hash_table_destroy(cc->col_map);
+    gm_hash_table_destroy_null(&cc->col_map);
 	GTK_OBJECT_CLASS(parent_class)->finalize(object);
 }
 

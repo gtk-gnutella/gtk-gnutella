@@ -43,6 +43,7 @@ RCSID("$Id$")
 
 #include "lib/ascii.h"
 #include "lib/iso3166.h"
+#include "lib/glib-missing.h"
 #include "lib/misc.h"
 #include "lib/halloc.h"
 #include "lib/walloc.h"
@@ -659,8 +660,7 @@ void
 ctl_close(void)
 {
 	ctl_reset();
-	g_hash_table_destroy(ctl_by_country);
-	ctl_by_country = NULL;
+	gm_hash_table_destroy_null(&ctl_by_country);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

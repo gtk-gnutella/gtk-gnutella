@@ -178,12 +178,9 @@ slist_free(slist_t **slist_ptr)
 					cast_to_gconstpointer(slist), slist->refcount);
 		}
 
-		g_slist_free(slist->head);
-		slist->head = NULL;
+		gm_slist_free_null(&slist->head);
 		slist->tail = NULL;
-
 		slist->magic = 0;
-
 		wfree(slist, sizeof *slist);
 		*slist_ptr = NULL;
 	}

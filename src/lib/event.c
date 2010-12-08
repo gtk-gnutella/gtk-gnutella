@@ -36,6 +36,7 @@
 RCSID("$Id$")
 
 #include "event.h"
+#include "glib-missing.h"
 #include "misc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
@@ -158,7 +159,7 @@ real_event_table_destroy(struct event_table *t, gboolean cleanup)
     if (cleanup)
         event_table_remove_all(t);
 
-    g_hash_table_destroy(t->events);
+    gm_hash_table_destroy_null(&t->events);
 }
 
 void

@@ -576,7 +576,7 @@ tree_selection_collect_data(GtkTreeSelection *selection,
     /*
      * Cleanup before exit.
      */
-    g_slist_free(cdata.to_unselect);
+    gm_slist_free_null(&cdata.to_unselect);
 
     return cdata.results;
 }

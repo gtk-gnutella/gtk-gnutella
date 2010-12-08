@@ -43,6 +43,7 @@ RCSID("$Id$")
 
 #include "if/gui_property_priv.h"
 
+#include "lib/glib-missing.h"
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -964,9 +965,8 @@ on_button_filter_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
 
 	for (sl = sl_rules; sl != NULL; sl = g_slist_next(sl))	
 		filter_remove_rule_from_session(work_filter, sl->data);
-	g_slist_free(sl_rules);
-	sl_rules = NULL;
-	
+	gm_slist_free_null(&sl_rules);
+
     gtk_notebook_set_current_page(
         GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_buttons);

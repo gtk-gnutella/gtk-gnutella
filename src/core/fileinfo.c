@@ -953,8 +953,7 @@ file_info_chunklist_free(fileinfo_t *fi)
 		struct dl_file_chunk *fc = sl->data;
 		dl_file_chunk_free(&fc);
 	}
-	g_slist_free(fi->chunklist);
-	fi->chunklist = NULL;
+	gm_slist_free_null(&fi->chunklist);
 }
 
 /**
@@ -989,8 +988,7 @@ fi_free(fileinfo_t *fi)
 			const char *s = sl->data;
 			atom_str_free_null(&s);
 		}
-		g_slist_free(fi->alias);
-		fi->alias = NULL;
+		gm_slist_free_null(&fi->alias);
 	}
 	if (fi->seen_on_network) {
 		fi_free_ranges(fi->seen_on_network);
@@ -2307,10 +2305,10 @@ file_info_close(void)
 	for (i = 0; i < G_N_ELEMENTS(fi_events); i++) {
 		event_destroy(fi_events[i]);
 	}
-	g_hash_table_destroy(fi_by_sha1);
-	g_hash_table_destroy(fi_by_namesize);
-	g_hash_table_destroy(fi_by_guid);
-	g_hash_table_destroy(fi_by_outname);
+	gm_hash_table_destroy_null(&fi_by_sha1);
+	gm_hash_table_destroy_null(&fi_by_namesize);
+	gm_hash_table_destroy_null(&fi_by_guid);
+	gm_hash_table_destroy_null(&fi_by_outname);
 
 	HFREE_NULL(tbuf.arena);
 }
@@ -3182,8 +3180,7 @@ file_info_retrieve(void)
 					fi_alias(fi, s, TRUE);
 					atom_str_free_null(&s);
 				}
-				g_slist_free(aliases);
-				aliases = NULL;
+				gm_slist_free_null(&aliases);
 			}
 
 			empty = FALSE;
@@ -5747,8 +5744,6 @@ fi_free_ranges(GSList *ranges)
 
 	g_slist_free(ranges);
 }
-
-
 
 /**
  * @return NULL terminated array of char * pointing to the aliases.

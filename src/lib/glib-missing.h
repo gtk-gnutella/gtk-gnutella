@@ -112,6 +112,10 @@ size_t strlcat(char *dst, const char *src, size_t dst_size);
 #define g_strlcat strlcat
 #endif
 
+void gm_slist_free_null(GSList **sl_ptr);
+void gm_list_free_null(GList **l_ptr);
+void gm_hash_table_destroy_null(GHashTable **h_ptr);
+
 char *gm_string_finalize(GString *gs);
 
 size_t gm_vsnprintf(char *str, size_t n, char const *fmt, va_list args);

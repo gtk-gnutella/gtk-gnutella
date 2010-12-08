@@ -40,6 +40,7 @@ RCSID("$Id$")
 
 #include "atoms.h"
 #include "cq.h"
+#include "glib-missing.h"
 #include "misc.h"
 #include "tm.h"
 #include "walloc.h"
@@ -1115,14 +1116,12 @@ cq_free(cqueue_t *cq)
 
 	if (cq->cq_periodic) {
 		g_hash_table_foreach_remove(cq->cq_periodic, free_periodic, NULL);
-		g_hash_table_destroy(cq->cq_periodic);
-		cq->cq_periodic = NULL;
+		gm_hash_table_destroy_null(&cq->cq_periodic);
 	}
 
 	if (cq->cq_idle) {
 		g_hash_table_foreach_remove(cq->cq_idle, free_idle, cq);
-		g_hash_table_destroy(cq->cq_idle);
-		cq->cq_idle = NULL;
+		gm_hash_table_destroy_null(&cq->cq_idle);
 	}
 
 	G_FREE_NULL(cq->cq_hash);

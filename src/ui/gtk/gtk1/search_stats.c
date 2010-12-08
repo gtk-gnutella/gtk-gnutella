@@ -416,8 +416,7 @@ search_stats_gui_shutdown(void)
 		GTK_CLIST(gui_main_window_lookup("clist_search_stats")),
 		PROP_SEARCH_STATS_COL_WIDTHS);
     search_stats_gui_set_type(NO_SEARCH_STATS);
-    g_hash_table_destroy(stat_hash);
-	stat_hash = NULL;
+    gm_hash_table_destroy_null(&stat_hash);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

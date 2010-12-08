@@ -1168,7 +1168,7 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, int hcount)
 		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
 	}
 	hash_list_iter_release(&iter);
-	g_hash_table_destroy(seen_host);	/* Keys point directly into vector */
+	gm_hash_table_destroy_null(&seen_host);	/* Keys point into vector */
 
 	return i;				/* Amount of hosts we filled */
 }
@@ -1688,8 +1688,7 @@ hcache_close(void)
 
     g_assert(g_hash_table_size(ht_known_hosts) == 0);
 
-	g_hash_table_destroy(ht_known_hosts);
-    ht_known_hosts = NULL;
+	gm_hash_table_destroy_null(&ht_known_hosts);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "mq.h"
 #include "pcache.h"
 #include "lib/atoms.h"
+#include "lib/glib-missing.h"
 #include "lib/pmsg.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -128,7 +129,7 @@ alive_free(gpointer obj)
 	for (sl = a->pings; sl; sl = g_slist_next(sl))
 		ap_free(sl->data);
 
-	g_slist_free(a->pings);
+	gm_slist_free_null(&a->pings);
 	wfree(a, sizeof *a);
 }
 

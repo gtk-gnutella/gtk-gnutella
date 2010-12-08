@@ -87,8 +87,7 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 		}
 		shell_write(sh, "\n");
 	}
-	g_slist_free(props);
-	props = NULL;
+	gm_slist_free_null(&props);
 
 	return REPLY_READY;
 }

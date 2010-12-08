@@ -73,10 +73,8 @@ static void
 free_cache(struct lru_cache *cache)
 {
 	hash_list_free(&cache->used);
-	g_hash_table_destroy(cache->pagnum);
-	cache->pagnum = NULL;
-	vmm_free(cache->arena, cache->pages * DBM_PBLKSIZ);
-	cache->arena = NULL;
+	gm_hash_table_destroy_null(&cache->pagnum);
+	VMM_FREE_NULL(cache->arena, cache->pages * DBM_PBLKSIZ);
 	WFREE_NULL(cache->numpag, cache->pages * sizeof(long));
 	WFREE_NULL(cache->dirty, cache->pages);
 	cache->pages = cache->next = 0;

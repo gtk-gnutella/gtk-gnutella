@@ -1686,9 +1686,9 @@ free_record(gconstpointer o, const char *file, int line)
 		g_assert(r->reallocations == NULL);
 		free(r);
 	}
-	g_slist_free(b->reallocations);
-
+	gm_slist_free_null(&b->reallocations);
 	free(b);
+
 	return owned;
 }
 
@@ -2826,7 +2826,7 @@ leak_close(gpointer o)
 	struct leak_set *ls = o;
 
 	g_hash_table_foreach_remove(ls->places, leak_free_kv, NULL);
-	g_hash_table_destroy(ls->places);
+	gm_hash_table_destroy_null(&ls->places);
 
 	real_free(ls);
 }

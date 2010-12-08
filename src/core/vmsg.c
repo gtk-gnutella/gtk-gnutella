@@ -3331,8 +3331,7 @@ vmsg_close(void)
 	head_ping_expire(TRUE);
 	hash_list_free(&head_pings);
 	cq_cancel(&head_ping_ev);
-	g_hash_table_destroy(ht_vmsg);
-	ht_vmsg = NULL;
+	gm_hash_table_destroy_null(&ht_vmsg);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

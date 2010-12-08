@@ -558,10 +558,8 @@ search_gui_close_search(search_t *search)
 
 	filter_close_search(search);
 
-	g_hash_table_destroy(search->dups);
-	search->dups = NULL;
-	g_hash_table_destroy(search->parents);
-	search->parents = NULL;
+	gm_hash_table_destroy_null(&search->dups);
+	gm_hash_table_destroy_null(&search->parents);
 
     guc_search_close(search->search_handle);
 	wfree(search, sizeof *search);
@@ -786,11 +784,7 @@ search_gui_results_set_free(results_set_t *rs)
      * Free list of searches set was intended for.
      */
 
-    if (rs->schl) {
-        g_slist_free(rs->schl);
-        rs->schl = NULL;
-    }
-
+	gm_slist_free_null(&rs->schl);
 	atom_guid_free_null(&rs->guid);
 	atom_str_free_null(&rs->version);
 	atom_str_free_null(&rs->hostname);
@@ -2134,8 +2128,7 @@ search_gui_flush(time_t now, gboolean force)
 					"no search for cached search result while dispatching");
 			}
         }
-		g_slist_free(schl);
-		schl = NULL;
+		gm_slist_free_null(&schl);
 
         /*
          * Some of the records might have not been used by searches, and need
@@ -2167,8 +2160,7 @@ search_gui_flush(time_t now, gboolean force)
     for (sl = frozen; sl != NULL; sl = g_slist_next(sl)) {
 		search_gui_end_massive_update(sl->data);
     }
-    g_slist_free(frozen);
-	frozen = NULL;
+    gm_slist_free_null(&frozen);
 
 	if (GUI_PROPERTY(gui_debug)) {
 		tm_now_exact(&t1);
@@ -2606,8 +2598,7 @@ search_gui_query_free(struct query **query_ptr)
 		struct query *query = *query_ptr;
 
 		G_FREE_NULL(query->text);	
-		g_list_free(query->rules);
-		query->rules = NULL;
+		gm_list_free_null(&query->rules);
 		wfree(query, sizeof *query);
 		*query_ptr = NULL;
 	}
@@ -4343,8 +4334,7 @@ search_gui_shutdown(void)
 	zdestroy(rc_zone);
 	rc_zone = NULL;
 
-    g_list_free(list_search_history);
-    list_search_history = NULL;
+    gm_list_free_null(&list_search_history);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

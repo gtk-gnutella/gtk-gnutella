@@ -986,8 +986,7 @@ publisher_close(void)
 	 */
 
 	g_hash_table_foreach(publisher_sha1, free_entry, NULL);
-	g_hash_table_destroy(publisher_sha1);
-	publisher_sha1 = NULL;
+	gm_hash_table_destroy_null(&publisher_sha1);
 
 	storage_close(db_pubdata, db_pubdata_base);
 	db_pubdata = NULL;

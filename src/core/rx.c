@@ -44,6 +44,8 @@ RCSID("$Id$")
 
 #include "rx.h"
 #include "nodes.h"
+
+#include "lib/glib-missing.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -272,8 +274,7 @@ rx_collect(void)
 		rx_deep_free(rx);
 	}
 
-	g_slist_free(rx_freed);
-	rx_freed = NULL;
+	gm_slist_free_null(&rx_freed);
 }
 
 /**

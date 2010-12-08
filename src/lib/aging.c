@@ -40,6 +40,7 @@ RCSID("$Id$")
 
 #include "aging.h"
 #include "cq.h"
+#include "glib-missing.h"
 #include "misc.h"
 #include "tm.h"
 #include "walloc.h"
@@ -179,7 +180,7 @@ aging_destroy(aging_table_t **ag_ptr)
 		aging_check(ag);
 
 		g_hash_table_foreach(ag->table, aging_free_kv, ag);
-		g_hash_table_destroy(ag->table);
+		gm_hash_table_destroy_null(&ag->table);
 		ag->magic = 0;
 		wfree(ag, sizeof *ag);
 

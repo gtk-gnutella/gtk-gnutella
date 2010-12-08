@@ -95,12 +95,13 @@ struct inputevt_array {
 #define USE_POLL 1
 #endif	/* */
 
-#include "inputevt.h"
-#include "fd.h"
-#include "misc.h"
-#include "walloc.h"
-#include "tm.h"
 #include "bit_array.h"
+#include "fd.h"
+#include "inputevt.h"
+#include "glib-missing.h"
+#include "misc.h"
+#include "tm.h"
+#include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
 /*
@@ -693,8 +694,7 @@ inputevt_purge_removed(struct poll_ctx *poll_ctx)
 		}
 	}
 
-	g_slist_free(poll_ctx->removed);
-	poll_ctx->removed = NULL;
+	gm_slist_free_null(&poll_ctx->removed);
 }
 
 static void
@@ -1110,7 +1110,7 @@ inputevt_close(void)
 	
 	poll_ctx = get_global_poll_ctx();
 	inputevt_purge_removed(poll_ctx);
-	g_hash_table_destroy(poll_ctx->ht);
+	gm_hash_table_destroy_null(&poll_ctx->ht);
 	G_FREE_NULL(poll_ctx->used);
 	G_FREE_NULL(poll_ctx->relay);
 	G_FREE_NULL(poll_ctx->ev_arr.ev);

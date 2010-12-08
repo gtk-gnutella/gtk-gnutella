@@ -330,10 +330,7 @@ static void
 target_map_reset(void)
 {
 	target_new_id(TRUE); /* Reset */
-	if (target_map) {
-		g_hash_table_destroy(target_map);
-		target_map = NULL;
-	}
+	gm_hash_table_destroy_null(&target_map);
 }
 
 /**

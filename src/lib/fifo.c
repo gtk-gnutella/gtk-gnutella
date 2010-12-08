@@ -41,6 +41,7 @@
 RCSID("$Id$")
 
 #include "fifo.h"
+#include "glib-missing.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -74,7 +75,7 @@ fifo_free(fifo_t *f)
 {
 	fifo_real_t *fr = (fifo_real_t *) f;
 
-	g_list_free(fr->head);
+	gm_list_free_null(&fr->head);
 	wfree(fr, sizeof(*fr));
 }
 

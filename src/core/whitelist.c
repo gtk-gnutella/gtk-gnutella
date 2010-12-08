@@ -680,8 +680,7 @@ whitelist_close(void)
 		whitelist_free(sl->data);
 	}
 
-    g_slist_free(sl_whitelist);
-    sl_whitelist = NULL;
+    gm_slist_free_null(&sl_whitelist);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

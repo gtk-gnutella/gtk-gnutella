@@ -715,11 +715,9 @@ uploads_gui_shutdown(void)
 	gtk_list_store_clear(store_uploads);
 
 	g_hash_table_foreach(upload_handles, free_handle, NULL);
-	g_hash_table_destroy(upload_handles);
-	upload_handles = NULL;
+	gm_hash_table_destroy_null(&upload_handles);
 	G_SLIST_FOREACH(sl_removed_uploads, free_row_data);
-	g_slist_free(sl_removed_uploads);
-	sl_removed_uploads = NULL;
+	gm_slist_free_null(&sl_removed_uploads);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

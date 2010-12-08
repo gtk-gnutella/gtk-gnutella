@@ -613,12 +613,12 @@ ban_close(void)
 	GList *l;
 
 	g_hash_table_foreach(info, free_info, NULL);
-	g_hash_table_destroy(info);
+	gm_hash_table_destroy_null(&info);
 
 	for (l = banned_head; l; l = g_list_next(l))
 		(void) close(GPOINTER_TO_INT(l->data));		/* Reclaim fd */
 
-	g_list_free(banned_head);
+	gm_list_free_null(&banned_head);
 	zdestroy(ipf_zone);
 	cq_free_null(&ban_cq);
 }

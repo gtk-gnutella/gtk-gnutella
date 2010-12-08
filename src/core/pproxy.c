@@ -856,8 +856,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 					cnt, cnt == 1 ? "" : "s", guid_hex_str(pp->guid));
 		}
 
-		g_slist_free(nodes);
-		nodes = NULL;
+		gm_slist_free_null(&nodes);
 		return;
 	}
 
@@ -1005,7 +1004,7 @@ pproxy_close(void)
 		wfree(pp, sizeof *pp);
 	}
 
-	g_slist_free(pproxies);
+	gm_slist_free_null(&pproxies);
 }
 
 /***

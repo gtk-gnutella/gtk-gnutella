@@ -795,8 +795,7 @@ main_gui_shutdown(void)
 	gui_save_window(gui_main_window(), PROP_WINDOW_COORDS);
 
 	for (i = 0; i < G_N_ELEMENTS(visibility_listeners); i++) {
-		g_slist_free(visibility_listeners[i]);
-		visibility_listeners[i] = NULL;
+		gm_slist_free_null(&visibility_listeners[i]);
 	}
 	slist_free(&timers);
 

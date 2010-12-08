@@ -61,6 +61,7 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
+#include "lib/glib-missing.h"
 #include "lib/map.h"
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
@@ -1211,7 +1212,7 @@ lookup_value_free(nlookup_t *nl, gboolean free_vvec)
 		seckeys_free(sk);
 	}
 
-	g_slist_free(fv->seckeys);
+	gm_slist_free_null(&fv->seckeys);
 	map_destroy(fv->seen);
 	cq_cancel(&fv->delay_ev);
 	wfree(fv, sizeof *fv);
@@ -2360,7 +2361,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 done:
 
 	for (i = 0; i < G_N_ELEMENTS(nodelist); i++) {
-		g_list_free(nodelist[i]);
+		gm_list_free_null(&nodelist[i]);
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug)) {
@@ -4768,7 +4769,7 @@ void
 lookup_close(gboolean exiting)
 {
 	g_hash_table_foreach(nlookups, free_lookup, &exiting);
-	g_hash_table_destroy(nlookups);
+	gm_hash_table_destroy_null(&nlookups);
 	nlookups = NULL;
 }
 

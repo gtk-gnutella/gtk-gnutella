@@ -1570,13 +1570,11 @@ locale_close(void)
 #endif
 
 	G_SLIST_FOREACH(sl_filename_charsets, conv_to_utf8_free);
-	g_slist_free(sl_filename_charsets);
-	sl_filename_charsets = NULL;
+	gm_slist_free_null(&sl_filename_charsets);
 	HFREE_NULL(charset);
 
 	g_hash_table_foreach_remove(utf32_compose_roots, compose_free_slist, NULL);
-	g_hash_table_destroy(utf32_compose_roots);
-	utf32_compose_roots = NULL;
+	gm_hash_table_destroy_null(&utf32_compose_roots);
 }
 
 /**

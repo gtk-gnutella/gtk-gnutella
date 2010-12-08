@@ -1228,9 +1228,9 @@ atoms_close(void)
 		table_desc_t *td = &atoms[i];
 
 		g_hash_table_foreach_remove(td->table, atom_warn_free, td);
-		g_hash_table_destroy(td->table);
+		gm_hash_table_destroy_null(&td->table);
 	}
-	g_hash_table_destroy(ht_all_atoms);
+	gm_hash_table_destroy_null(&ht_all_atoms);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

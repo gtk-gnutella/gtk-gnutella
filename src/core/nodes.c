@@ -8479,10 +8479,7 @@ node_remove_worst(gboolean non_local)
         if (score > worst) {
             worst = score;
             num = 0;
-            if (m) {
-                g_slist_free(m);
-                m = NULL;
-            }
+			gm_slist_free_null(&m);
         }
         if (score == worst) {
             m = g_slist_prepend(m, n);
@@ -8731,11 +8728,9 @@ node_close(void)
 		atom_str_free_null(&bad_node->vendor);
 		wfree(bad_node, sizeof(*bad_node));
 	}
-	g_slist_free(unstable_servents);
-	unstable_servents = NULL;
+	gm_slist_free_null(&unstable_servents);
 
-	g_hash_table_destroy(unstable_servent);
-	unstable_servent = NULL;
+	gm_hash_table_destroy_null(&unstable_servent);
 
 	/* Clean up node info */
 	while (sl_nodes) {
@@ -8781,14 +8776,9 @@ node_close(void)
 
 	HFREE_NULL(payload_inflate_buffer);
 
-    g_hash_table_destroy(ht_connected_nodes);
-    ht_connected_nodes = NULL;
-
-	g_hash_table_destroy(nodes_by_id);
-	nodes_by_id = NULL;
-
-	g_hash_table_destroy(nodes_by_guid);
-	nodes_by_guid = NULL;
+    gm_hash_table_destroy_null(&ht_connected_nodes);
+	gm_hash_table_destroy_null(&nodes_by_id);
+	gm_hash_table_destroy_null(&nodes_by_guid);
 
 	qhvec_free(query_hashvec);
 	query_hashvec = NULL;

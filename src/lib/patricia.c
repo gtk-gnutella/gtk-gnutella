@@ -149,6 +149,7 @@ RCSID("$Id$")
 
 #include "patricia.h"
 #include "endian.h"
+#include "glib-missing.h"
 #include "misc.h"
 #include "random.h"
 #include "pow2.h"
@@ -2221,7 +2222,7 @@ patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, gpointer u)
 		sl = g_slist_next(sl);
 	}
 
-	g_slist_free(ctx.sl);
+	gm_slist_free_null(&ctx.sl);
 
 	return ctx.removed;
 }

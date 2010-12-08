@@ -486,7 +486,7 @@ map_destroy(map_t *m)
 
 	switch (m->type) {
 	case MAP_HASH:
-		g_hash_table_destroy(m->u.ht);
+		gm_hash_table_destroy_null(&m->u.ht);
 		break;
 	case MAP_PATRICIA:
 		patricia_destroy(m->u.pt);

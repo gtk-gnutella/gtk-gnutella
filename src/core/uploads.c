@@ -5444,8 +5444,7 @@ upload_close(void)
     upload_handle_map = NULL;
 
 	g_hash_table_foreach(mesh_info, mi_free_kv, NULL);
-	g_hash_table_destroy(mesh_info);
-	mesh_info = NULL;
+	gm_hash_table_destroy_null(&mesh_info);
 
 	aging_destroy(&stalling_uploads);
 	wd_free_null(&early_stall_wd);

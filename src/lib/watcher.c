@@ -222,7 +222,7 @@ void
 watcher_close(void)
 {
 	g_hash_table_foreach(monitored, free_monitored_kv, NULL);
-	g_hash_table_destroy(monitored);
+	gm_hash_table_destroy_null(&monitored);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

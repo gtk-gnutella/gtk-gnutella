@@ -254,10 +254,8 @@ bsched_free(bsched_t *bs)
 		bio->bws = BSCHED_BWS_INVALID;	/* Mark orphan source */
 	}
 
-	g_list_free(bs->sources);
-	bs->sources = NULL;
-	g_slist_free(bs->stealers);
-	bs->stealers = NULL;
+	gm_list_free_null(&bs->sources);
+	gm_slist_free_null(&bs->stealers);
 	HFREE_NULL(bs->name);
 	bs->magic = 0;
 	wfree(bs, sizeof *bs);
@@ -354,10 +352,7 @@ bsched_reset_stealers(bsched_t *bs)
 {
 	bsched_check(bs);
 
-	if (bs->stealers) {
-		g_slist_free(bs->stealers);
-		bs->stealers = NULL;
-	}
+	gm_slist_free_null(&bs->stealers);
 }
 
 /**
@@ -603,14 +598,9 @@ bsched_close(void)
 		bsched_free(bsched_get(bws));
 	}
 
-	g_slist_free(bws_list);
-	bws_list = NULL;
-
-	g_slist_free(bws_out_list);
-	bws_out_list = NULL;
-
-	g_slist_free(bws_in_list);
-	bws_in_list = NULL;
+	gm_slist_free_null(&bws_list);
+	gm_slist_free_null(&bws_out_list);
+	gm_slist_free_null(&bws_in_list);
 
 	for (i = 0; i < NUM_BSCHED_BWS; i++) {
 		bws_set[i] = NULL;

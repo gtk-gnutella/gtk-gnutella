@@ -181,12 +181,10 @@ list_free(list_t **list_ptr)
 					cast_to_gconstpointer(list), list->refcount);
 		}
 
-		g_list_free(list->head);
-		list->head = NULL;
+		gm_list_free_null(&list->head);
 		list->tail = NULL;
 
 		list->magic = 0;
-
 		wfree(list, sizeof *list);
 		*list_ptr = NULL;
 	}

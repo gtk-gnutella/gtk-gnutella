@@ -641,6 +641,42 @@ g_list_sort_with_data(
 }
 #endif	/* USE_GLIB1 */
 
+/**
+ * Free GSList and nullify pointer holding it.
+ */
+void
+gm_slist_free_null(GSList **sl_ptr)
+{
+	if (*sl_ptr != NULL) {
+		g_slist_free(*sl_ptr);
+		*sl_ptr = NULL;
+	}
+}
+
+/**
+ * Free GList and nullify pointer holding it.
+ */
+void
+gm_list_free_null(GList **l_ptr)
+{
+	if (*l_ptr != NULL) {
+		g_list_free(*l_ptr);
+		*l_ptr = NULL;
+	}
+}
+
+/**
+ * Destroy GHashTable and nullify pointer holding it.
+ */
+void
+gm_hash_table_destroy_null(GHashTable **h_ptr)
+{
+	if (*h_ptr != NULL) {
+		g_hash_table_destroy(*h_ptr);
+		*h_ptr = NULL;
+	}
+}
+
 /***
  *** This set of routines must be kept at the tail of the file because they
  *** undefine malloc, g_malloc, etc... which are possibly set up by override.h.

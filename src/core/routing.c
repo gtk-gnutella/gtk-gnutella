@@ -930,18 +930,14 @@ free_route_list(struct message *m)
 	for (sl = m->routes; sl; sl = g_slist_next(sl))
 		remove_one_message_reference(sl->data);
 
-	g_slist_free(m->routes);
-	m->routes = NULL;
+	gm_slist_free_null(&m->routes);
 
 	/*
 	 * If the message was a broadcasted one, we kept track of the TTL of
 	 * each message along the route.  This needs to be freed as well.
 	 */
 
-	if (m->ttls) {
-		g_slist_free(m->ttls);		/* Data is are integers, nothing to free */
-		m->ttls = NULL;
-	}
+	gm_slist_free_null(&m->ttls);	/* Data are ints, nothing to free */
 }
 
 /**
@@ -2224,8 +2220,7 @@ routing_close(void)
 
 	g_assert(routing.messages_hashed);
 
-	g_hash_table_destroy(routing.messages_hashed);
-	routing.messages_hashed = NULL;
+	gm_hash_table_destroy_null(&routing.messages_hashed);
 
 	for (cnt = 0; cnt < MAX_CHUNKS; cnt++) {
 		struct message **chunk = routing.chunks[cnt];
@@ -2243,24 +2238,21 @@ routing_close(void)
 	}
 
 	g_hash_table_foreach(ht_banned_push, free_banned_push, NULL);
-	g_hash_table_destroy(ht_banned_push);
-	ht_banned_push = NULL;
+	gm_hash_table_destroy_null(&ht_banned_push);
 
 	cnt = g_hash_table_size(ht_proxyfied);
 	if (cnt != 0)
 		g_warning("push-proxification table still holds %u node%s",
 			cnt, cnt == 1 ? "" : "s");
 
-	g_hash_table_destroy(ht_proxyfied);
-	ht_proxyfied = NULL;
+	gm_hash_table_destroy_null(&ht_proxyfied);
 
 	cnt = g_hash_table_size(ht_starving_guid);
 	if (cnt != 0)
 		g_warning("starving GUID table still holds %u entr%s",
 			cnt, cnt == 1 ? "y" : "ies");
 
-	g_hash_table_destroy(ht_starving_guid);
-	ht_starving_guid = NULL;
+	gm_hash_table_destroy_null(&ht_starving_guid);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

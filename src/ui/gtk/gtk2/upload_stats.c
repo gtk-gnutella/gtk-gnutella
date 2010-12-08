@@ -519,7 +519,7 @@ upload_stats_gui_clear_all(void)
 	if (ht_uploads) {
 		g_hash_table_foreach_remove(ht_uploads, free_upload_data, NULL);
 		g_hash_table_destroy(ht_uploads);
-		ht_uploads = g_hash_table_new(NULL, NULL);
+		ht_uploads = NOT_LEAKING(g_hash_table_new(NULL, NULL));
 	}
 }
 

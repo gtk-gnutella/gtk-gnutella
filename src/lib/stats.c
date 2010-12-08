@@ -110,9 +110,8 @@ statx_clear(statx_t *sx)
 		double *vp = (double *) l->data;
 		wfree(vp, sizeof(*vp));
 	}
-	g_slist_free(sx->data);
+	gm_slist_free_null(&sx->data);
 
-	sx->data = NULL;
 	sx->n = 0;
 	sx->sx = 0.0;
 	sx->sx2 = 0.0;
@@ -211,8 +210,7 @@ statx_remove_oldest(statx_t *sx)
 			double *vp = (double *) l->data;
 			val = *vp;
 			wfree(vp, sizeof(*vp));
-			g_slist_free(sx->data);
-			sx->data = NULL;
+			gm_slist_free_null(&sx->data);
 			break;
 		} else if (NULL == g_slist_next(next)) {
 			/* The item after `l' is the last item of the list */
