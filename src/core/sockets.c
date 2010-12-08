@@ -3119,11 +3119,16 @@ socket_connect_by_name(const char *host, guint16 port,
 
 /**
  * Creates a listening socket and binds it to `bind_addr' unless it is
- * of type NET_TYPE_NONE. The socket is also set to non-blocking mode
- * and the FD_CLOEXEC flag is set as well.
+ * an unspecified address in which case the kernel will pick an address.
+ * If the port is 0, then the socket will be "anonymous": it will be bound
+ * to a port chosen by the kernel, which is inappropriate for listening
+ * sockets of course.
+ *
+ * The socket is also set to non-blocking mode and the FD_CLOEXEC flag is
+ * set as well.
  *
  * @param bind_addr	The address to bind the socket to (may be unspecified).
- * @param port		The UDP or TCP port to use (0 means: let kernek pick)
+ * @param port		The UDP or TCP port to use (0 means: let kernel pick)
  * @param type		Either SOCK_DGRAM or SOCK_STREAM.
  *
  * @return The new file descriptor of socket or -1 on failure.
@@ -3135,6 +3140,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 	gboolean socket_failed;
 	socket_fd_t fd;
 	int saved_errno, family;
+	int protocol;
 
 	g_assert(SOCK_DGRAM == type || SOCK_STREAM == type);
 
@@ -3151,7 +3157,10 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		errno = EINVAL;
 		return INVALID_SOCKET;
 	}
-	fd = socket(family, type, 0);
+
+	protocol = (SOCK_DGRAM == type) ? IPPROTO_UDP : IPPROTO_TCP;
+	fd = socket(family, type, protocol);
+
 	if (fd == INVALID_SOCKET) {
 		socket_failed = TRUE;
 		saved_errno = errno;
