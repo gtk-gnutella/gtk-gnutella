@@ -898,9 +898,42 @@ host_addr_to_name(host_addr_t addr)
 #endif	/* HAS_GETNAMEINFO */
 }
 
+#ifdef HAS_GETADDRINFO
+host_addr_t
+addrinfo_to_addr(const struct addrinfo *ai)
+{
+	host_addr_t addr = zero_host_addr;
+
+	switch (ai->ai_family) {
+	case PF_INET:
+		if (ai->ai_addrlen >= 4) {
+			const struct sockaddr_in *sin4;
+
+			sin4 = cast_to_gconstpointer(ai->ai_addr);
+			addr = host_addr_peek_ipv4(&sin4->sin_addr.s_addr);
+		}
+		break;
+
+#ifdef HAS_IPV6
+	case PF_INET6:
+		if (ai->ai_addrlen >= 16) {
+			const struct sockaddr_in6 *sin6;
+
+			sin6 = cast_to_gconstpointer(ai->ai_addr);
+			addr = host_addr_peek_ipv6(cast_to_gconstpointer(
+						sin6->sin6_addr.s6_addr));
+		}
+		break;
+#endif /* HAS_IPV6 */
+	}
+
+	return addr;
+}
+#endif	/* HAS_GETADDRINFO */
+
 static GSList *
 resolve_hostname(const char *host, enum net_type net)
-#if defined(HAS_GETADDRINFO)
+#ifdef HAS_GETADDRINFO
 {
 	static const struct addrinfo zero_hints;
 	struct addrinfo hints, *ai, *ai0 = NULL;
@@ -928,29 +961,7 @@ resolve_hostname(const char *host, enum net_type net)
 		if (!ai->ai_addr)
 			continue;
 
-		addr = zero_host_addr;
-		switch (ai->ai_family) {
-		case PF_INET:
-			if (ai->ai_addrlen >= 4) {
-				const struct sockaddr_in *sin4;
-
-				sin4 = cast_to_gconstpointer(ai->ai_addr);
-				addr = host_addr_peek_ipv4(&sin4->sin_addr.s_addr);
-			}
-			break;
-
-#ifdef HAS_IPV6
-		case PF_INET6:
-			if (ai->ai_addrlen >= 16) {
-				const struct sockaddr_in6 *sin6;
-
-				sin6 = cast_to_gconstpointer(ai->ai_addr);
-				addr = host_addr_peek_ipv6(cast_to_gconstpointer(
-							sin6->sin6_addr.s6_addr));
-			}
-			break;
-#endif /* HAS_IPV6 */
-		}
+		addr = addrinfo_to_addr(ai);
 
 		if (is_host_addr(addr) && !g_hash_table_lookup(ht, &addr)) {
 			host_addr_t *addr_copy;

@@ -558,6 +558,10 @@ GSList *name_to_host_addr(const char *host, enum net_type net);
 void host_addr_free_list(GSList **sl_ptr);
 
 host_addr_t name_to_single_host_addr(const char *host, enum net_type net);
+#ifdef HAS_GETADDRINFO
+struct addrinfo;
+host_addr_t addrinfo_to_addr(const struct addrinfo *ai);
+#endif
 
 const char *host_addr_to_name(const host_addr_t addr);
 gboolean string_to_host_or_addr(const char *s, const char **endptr,
