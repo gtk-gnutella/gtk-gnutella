@@ -38,9 +38,8 @@
 
 #include "common.h" 
 
-typedef struct fifo {
-	gpointer data;
-} fifo_t;
+struct fifo;
+typedef struct fifo fifo_t;
 
 typedef void (*fifo_free_t)(gpointer item, gpointer udata);
 

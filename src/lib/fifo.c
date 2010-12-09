@@ -48,11 +48,11 @@ RCSID("$Id$")
 /**
  * The real FIFO structure (the advertised fifo_t is just a facade).
  */
-typedef struct fifo_real {
+struct fifo {
 	GList *head;			/**< Head of FIFO, where data is prepended */
 	GList *tail;			/**< Tail of FIFO, where data is removed from */
 	int count;				/**< Amount of entries in FIFO */
-} fifo_real_t;
+};
 
 /**
  * Create new FIFO.
@@ -60,11 +60,11 @@ typedef struct fifo_real {
 fifo_t *
 fifo_make(void)
 {
-	fifo_real_t *fr;
+	fifo_t *f;
 
-	fr = walloc0(sizeof(*fr));
+	f = walloc0(sizeof(*f));
 
-	return (fifo_t *) fr;
+	return f;
 }
 
 /**
@@ -73,10 +73,8 @@ fifo_make(void)
 void
 fifo_free(fifo_t *f)
 {
-	fifo_real_t *fr = (fifo_real_t *) f;
-
-	gm_list_free_null(&fr->head);
-	wfree(fr, sizeof(*fr));
+	gm_list_free_null(&f->head);
+	wfree(f, sizeof *f);
 }
 
 /**
@@ -89,10 +87,9 @@ fifo_free(fifo_t *f)
 void
 fifo_free_all(fifo_t *f, fifo_free_t cb, gpointer udata)
 {
-	fifo_real_t *fr = (fifo_real_t *) f;
 	GList *l;
 
-	for (l = fr->head; l; l = g_list_next(l))
+	for (l = f->head; l; l = g_list_next(l))
 		(*cb)(l->data, udata);
 
 	fifo_free(f);
@@ -104,9 +101,7 @@ fifo_free_all(fifo_t *f, fifo_free_t cb, gpointer udata)
 int
 fifo_count(fifo_t *f)
 {
-	fifo_real_t *fr = (fifo_real_t *) f;
-
-	return fr->count;
+	return f->count;
 }
 
 /**
@@ -115,17 +110,15 @@ fifo_count(fifo_t *f)
 void
 fifo_put(fifo_t *f, gconstpointer data)
 {
-	fifo_real_t *fr = (fifo_real_t *) f;
+	g_assert(f->count == 0 || f->head != NULL);
+	g_assert(f->count == 0 || f->tail != NULL);
+	g_assert(f->head == NULL || f->count != 0);
+	g_assert(f->tail == NULL || f->count != 0);
 
-	g_assert(fr->count == 0 || fr->head != NULL);
-	g_assert(fr->count == 0 || fr->tail != NULL);
-	g_assert(fr->head == NULL || fr->count != 0);
-	g_assert(fr->tail == NULL || fr->count != 0);
-
-	fr->head = g_list_prepend(fr->head, (gpointer) data);
-	if (fr->tail == NULL)
-		fr->tail = fr->head;
-	fr->count++;
+	f->head = g_list_prepend(f->head, (gpointer) data);
+	if (f->tail == NULL)
+		f->tail = f->head;
+	f->count++;
 }
 
 /**
@@ -136,34 +129,33 @@ fifo_put(fifo_t *f, gconstpointer data)
 gpointer
 fifo_remove(fifo_t *f)
 {
-	fifo_real_t *fr = (fifo_real_t *) f;
 	GList *prev;
 	gpointer data;
 
-	if (fr->count == 0)
+	if (f->count == 0)
 		return NULL;
 
-	g_assert(fr->tail != NULL);
+	g_assert(f->tail != NULL);
 
-	data = fr->tail->data;
-	prev = g_list_previous(fr->tail);
+	data = f->tail->data;
+	prev = g_list_previous(f->tail);
 
 	if (prev == NULL) {
-		g_assert(fr->tail == fr->head);
-		g_assert(fr->count == 1);
-		fr->head = fr->tail = g_list_remove(fr->head, data);
+		g_assert(f->tail == f->head);
+		g_assert(f->count == 1);
+		f->head = f->tail = g_list_remove(f->head, data);
 	} else {
-		fr->head = g_list_remove_link(fr->head, fr->tail);
-		g_list_free_1(fr->tail);
-		fr->tail = prev;
+		g_list_remove_link(prev, f->tail);
+		g_list_free_1(f->tail);
+		f->tail = prev;
 	}
 
-	fr->count--;
+	f->count--;
 
-	g_assert(fr->count == 0 || fr->head != NULL);
-	g_assert(fr->count == 0 || fr->tail != NULL);
-	g_assert(fr->head == NULL || fr->count != 0);
-	g_assert(fr->tail == NULL || fr->count != 0);
+	g_assert(f->count == 0 || f->head != NULL);
+	g_assert(f->count == 0 || f->tail != NULL);
+	g_assert(f->head == NULL || f->count != 0);
+	g_assert(f->tail == NULL || f->count != 0);
 
 	return data;
 }
