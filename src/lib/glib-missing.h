@@ -224,6 +224,9 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
 #define GM_SLIST_FOREACH(slist, iter) \
 	for ((iter) = (slist); NULL != (iter); (iter) = g_slist_next(iter))
 
+#define GM_LIST_FOREACH(list, iter) \
+	for ((iter) = (list); NULL != (iter); (iter) = g_list_next(iter))
+
 /***
  *** Extra logging conveniences not defined by glib-1.x or glib-2.x.
  ***/
