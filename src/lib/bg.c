@@ -92,8 +92,8 @@ struct bgtask {
 	jmp_buf env;			/**< Only valid when TASK_F_RUNNING */
 	tm_t start;				/**< Start time of scheduling "tick" */
 	int ticks;				/**< Scheduling ticks for time slice */
-	int ticks_used;		/**< Amount of ticks used by processing step */
-	int prev_ticks;		/**< Ticks used when measuring `elapsed' below */
+	int ticks_used;			/**< Amount of ticks used by processing step */
+	int prev_ticks;			/**< Ticks used when measuring `elapsed' below */
 	int elapsed;			/**< Elapsed during last run, in usec */
 	double tick_cost;		/**< Time in ms. spent by each tick */
 	bgsig_cb_t sigh[BG_SIG_COUNT];	/**< Signal handlers */
