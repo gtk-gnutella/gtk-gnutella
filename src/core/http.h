@@ -40,6 +40,7 @@
 
 #include "if/core/http.h"
 #include "lib/host_addr.h"
+#include "lib/header.h"
 
 #define HTTP_PORT		80		/**< Registered HTTP port */
 
@@ -267,9 +268,12 @@ typedef struct http_buffer {
  *
  * @param data		the retrieved data, NULL on error, freed with hfree().
  * @param len		length of data returned (NOT the length of the data buffer)
+ * @param code		HTTP status code
+ * @param header	HTTP reply headers (may be NULL when data is NULL)
  * @param arg		additional user-supplied argument
  */
-typedef void (*http_wget_cb_t)(char *data, size_t len, void *arg);
+typedef void (*http_wget_cb_t)(
+	char *data, size_t len, int code, header_t *header, void *arg);
 
 /*
  * Public interface
@@ -347,6 +351,9 @@ void http_async_set_op_request(struct http_async *ha, http_op_request_t op);
 void http_async_set_op_reqsent(struct http_async *ha, http_op_reqsent_t op);
 void http_async_set_op_gotreply(struct http_async *ha, http_op_gotreply_t op);
 const char *http_async_remote_host_port(const struct http_async *ha);
+
+header_t *http_header_parse(const char *data, size_t len, int *code, char **msg,
+	unsigned *major, unsigned *minor, const char **endptr);
 
 struct http_async *http_async_wget(const char *url,
 	size_t maxlen, http_wget_cb_t cb, void *arg);

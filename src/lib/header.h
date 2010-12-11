@@ -72,7 +72,9 @@ int header_num_lines(const header_t *h);
  */
 
 header_t *header_make(void);
+header_t *header_refcnt_inc(header_t *o);
 void header_free(header_t *o);
+void header_free_null(header_t **o_ptr);
 void header_reset(header_t *o);
 int header_append(header_t *o, const char *text, int len);
 void header_dump(FILE *out, const header_t *o, const char *trailer);

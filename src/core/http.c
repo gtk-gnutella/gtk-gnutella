@@ -1758,8 +1758,7 @@ http_async_free_pending(void)
 		wfree(ha, sizeof(*ha));
 	}
 
-	g_slist_free(sl_ha_freed);
-	sl_ha_freed = NULL;
+	gm_slist_free_null(&sl_ha_freed);
 }
 
 /**
@@ -2987,12 +2986,14 @@ typedef struct http_wget {
 	enum http_wget_magic magic;		/**< magic */
 	struct http_async *ha;			/**< HTTP asynchronous request */
 	http_wget_cb_t cb;				/**< User callback to invoke when done */
+	header_t *header;				/**< HTTP reply header */
 	void *arg;						/**< User argument for callback */
 	char *data;						/**< Collected data */
 	size_t maxlen;					/**< Maximum allowed data length */
 	size_t len;						/**< Length of collected data */
 	size_t content_len;				/**< Promised length, maxlen if none */
 	size_t datasize;				/**< Size of allocated buffer for data */
+	int code;						/**< HTTP status code */
 } http_wget_t;
 
 static inline void
@@ -3013,6 +3014,7 @@ http_wget_free(void *data)
 	http_wget_check(wg);
 
 	HFREE_NULL(wg->data);
+	header_free_null(&wg->header);
 	wfree(wg, sizeof *wg);
 }
 
@@ -3022,14 +3024,21 @@ http_wget_free(void *data)
  */
 static gboolean
 wget_header_ind(struct http_async *ha, struct header *header,
-	int unused_code, const char *unused_message)
+	int code, const char *unused_message)
 {
 	http_wget_t *wg = http_async_get_opaque(ha);
 	const char *buf;
 
 	http_wget_check(wg);
-	(void) unused_code;
 	(void) unused_message;
+
+	/*
+	 * Save HTTP status code and headers so that they can be given to
+	 * the completion callback.
+	 */
+
+	wg->code = code;
+	wg->header = header_refcnt_inc(header);
 
 	/*
 	 * Make sure they're not returning content that is larger than the
@@ -3098,7 +3107,7 @@ wget_data_ind(struct http_async *ha, char *data, int len)
 
 		result = wg->data;
 		wg->data = NULL;			/* So we don't free it ourselves */
-		(*wg->cb)(result, wg->len, wg->arg);
+		(*wg->cb)(result, wg->len, wg->code, wg->header, wg->arg);
 		return;
 	}
 
@@ -3146,7 +3155,7 @@ wget_error_ind(struct http_async *ha, http_errtype_t type, void *val)
 	)
 		return;		/* Don't invoke any callback on explicit user cancel */
 
-	(*wg->cb)(NULL, 0, wg->arg);		/* Signal error */
+	(*wg->cb)(NULL, 0, wg->code, wg->header, wg->arg);	/* Signal error */
 }
 
 /**
@@ -3181,6 +3190,124 @@ http_async_wget(const char *url, size_t maxlen, http_wget_cb_t cb, void *arg)
 	}
 
 	return ha;
+}
+
+/**
+ * Parse buffer for HTTP status line and headers.
+ *
+ * @param data		the data to parse
+ * @param len		length of data
+ * @param code		if non-NULL, filled with HTTP status code
+ * @param msg		if non-NULL, filled with halloc()'ed status message
+ * @param major		if non-NULL, filled with HTTP major version
+ * @param minor		if non-NULL, filled with HTTP minor version
+ * @param endptr	if non-NULL, filled with first unparsed character in data
+ *
+ * @return NULL on error, the parsed header object that must be reclaimed
+ * with header_free() when done.
+ */
+header_t *
+http_header_parse(const char *data, size_t len, int *code, char **msg,
+	unsigned *major, unsigned *minor, const char **endptr)
+{
+	getline_t *gl;
+	const char *p = data;
+	size_t remain = len;
+	size_t parsed;
+	header_t *h = NULL;
+	int ack_code;
+	const char *ack_msg = NULL;
+	int error;
+
+	gl = getline_make(MAX_LINE_SIZE);
+
+	/*
+	 * First line is the HTTP status line, e.g. "HTTP/1.1 200 OK"
+	 */
+
+	switch (getline_read(gl, p, remain, &parsed)) {
+	case READ_OVERFLOW:
+	case READ_MORE:
+		goto failed;
+	case READ_DONE:
+		g_assert(parsed <= remain);
+		p += parsed;
+		remain -= parsed;
+		break;
+	}
+
+	/*
+	 * Analyze status message.
+	 */
+
+	ack_code = http_status_parse(getline_str(gl), "HTTP",
+		&ack_msg, major, minor);
+
+	if (-1 == ack_code)
+		goto failed;
+
+	if (code != NULL)
+		*code = ack_code;
+	if (msg != NULL)
+		*msg = h_strdup(ack_msg);
+
+	/*
+	 * We parsed the status line, now grab the header.
+	 */
+
+	h = header_make();
+	getline_reset(gl);
+
+nextline:
+	switch (getline_read(gl, p, remain, &parsed)) {
+	case READ_OVERFLOW:
+	case READ_MORE:
+		goto failed;
+	case READ_DONE:
+		g_assert(parsed <= remain);
+		p += parsed;
+		remain -= parsed;
+		break;
+	}
+
+	error = header_append(h, getline_str(gl), getline_length(gl));
+
+	switch (error) {
+	case HEAD_OK:
+		getline_reset(gl);
+		goto nextline;
+	case HEAD_EOH:				/* Reached the end of the header */
+		break;
+	default:
+		goto failed;
+	}
+
+	/*
+	 * All done, successfully parsed.
+	 */
+
+	if (endptr != NULL)
+		*endptr = p;
+
+	getline_free(gl);
+
+	return h;		/* Caller will have to invoke header_free() */
+
+	/*
+	 * Parsing failed, somehow.
+	 */
+
+failed:
+	if (h != NULL)
+		header_free(h);
+	if (gl != NULL)
+		getline_free(gl);
+	if (msg != NULL && ack_msg != NULL) {
+		hfree(*msg);
+		*msg = NULL;
+	}
+
+	return NULL;
 }
 
 /***
@@ -3308,12 +3435,15 @@ http_close(void)
 
 #ifdef HTTP_TESTING
 static void
-http_transaction_failed(char *data, size_t len, void *arg)
+http_transaction_failed(char *data, size_t len, int code, header_t *h, void *a)
 {
-	const char *url = arg;
+	const char *url = a;
+
+	(void) h;
 
 	if (NULL == data) {
-		g_message("HTTP expected-to-fail wget of \"%s\" OK", url);
+		g_message("HTTP expected-to-fail wget of \"%s\" OK (HTTP %d)",
+			url, code);
 	} else {
 		g_warning("HTTP expected-to-fail wget of \"%s\" FAILED: got %lu bytes",
 			url, (unsigned long) len);
@@ -3321,17 +3451,20 @@ http_transaction_failed(char *data, size_t len, void *arg)
 }
 
 static void
-http_transaction_done(char *data, size_t len, void *arg)
+http_transaction_done(char *data, size_t len, int code, header_t *h, void *arg)
 {
 	char *url = arg;
 
 	if (NULL == data) {
-		g_warning("HTTP async wget of \"%s\" FAILED", url);
+		g_warning("HTTP async wget of \"%s\" FAILED (HTTP %d)", url, code);
 	} else {
 		void *ha;
 
 		g_message("HTTP async wget of \"%s\" SUCCEEDED (%lu byte%s)",
 			url, (unsigned long) len, 1 == len ? "" : "s");
+		g_debug("---- Begin HTTP Header ----");
+		header_dump(stderr, h, NULL);
+		g_debug("---- End HTTP Header ----");
 		g_debug("---- Begin HTTP Payload ----");
 		write(STDERR_FILENO, data, len);
 		g_debug("---- End HTTP Payload ----");

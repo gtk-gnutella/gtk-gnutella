@@ -67,6 +67,7 @@ struct header {
 	int flags;					/**< Various operating flags */
 	int size;					/**< Total header size, in bytes */
 	int num_lines;				/**< Total header lines seen */
+	int refcnt;					/**< Reference count on the structure */
 };
 
 /**
@@ -89,7 +90,7 @@ struct header {
  */
 
 typedef struct {
-	char *name;				/**< Field name */
+	char *name;					/**< Field name */
 	slist_t *lines;				/**< List of lines making this header */
 } header_field_t;
 
@@ -256,6 +257,7 @@ header_make(void)
 	header_t *o;
 
 	o = walloc0(sizeof *o);
+	o->refcnt = 1;
 	return o;
 }
 
@@ -273,6 +275,17 @@ free_header_data(gpointer key, gpointer value, gpointer unused_udata)
 }
 
 /**
+ * Take an extra reference on the header object.
+ * @return the header object.
+ */
+header_t *
+header_refcnt_inc(header_t *o)
+{
+	o->refcnt++;
+	return o;
+}
+
+/**
  * Destroy header object.
  */
 void
@@ -280,8 +293,25 @@ header_free(header_t *o)
 {
 	g_assert(o);
 
+	if (--(o->refcnt) != 0)
+		return;
+
 	header_reset(o);
 	wfree(o, sizeof *o);
+}
+
+/**
+ * Destroy header object and nullify pointer holding it.
+ */
+void
+header_free_null(header_t **o_ptr)
+{
+	header_t *o = *o_ptr;
+
+	if (o != NULL) {
+		header_free(o);
+		*o_ptr = NULL;
+	}
 }
 
 static void
@@ -829,14 +859,16 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
 	g_assert(len <= INT_MAX);	/* Legacy bug */
 
 	if (
-		size_saturate_add(curlen, size_saturate_add(len, slen)) > UNSIGNED(hf->maxlen)
+		size_saturate_add(curlen, size_saturate_add(len, slen)) >
+			UNSIGNED(hf->maxlen)
 	) {
 		/*
 		 * Emit sperator, if any and data was already emitted.
 		 */
 
 		if (separator != NULL && hf->data_emitted) {
-			sslen = (size_t)-1 != sslen ? sslen : stripped_strlen(separator, slen);
+			sslen = (size_t)-1 != sslen ? sslen :
+				stripped_strlen(separator, slen);
 			g_string_append_len(hf->header, separator, sslen);
 		}
 
