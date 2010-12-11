@@ -53,13 +53,8 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	This symbol, if defined, indicates that the program is running under
  *	a Linux system.
  */
-/* WINDOWS_SYSTEM:
- *	This symbol, if defined, indicates that the program is running under
- *	a Windows system.
- */
 #$d_eunice VMS_SYSTEM		/**/
 #$d_linux LINUX_SYSTEM		/**/
-#$d_windows WINDOWS_SYSTEM		/**/
 
 /* MEM_ALIGNBYTES:
  *	This symbol contains the number of bytes required to align a
@@ -105,6 +100,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	to either ulimit(4,0) or NOFILE, if getdtablesize() isn't available.
  */
 #$d_gettblsz getdtablesize() $tablesize	/**/
+
+/* HAS_WSAPOLL:
+ *	This symbol, if defined, indicates that the WSAPoll() routine is
+ *	available to poll active file descriptors. 
+ */
+#$d_WSAPoll HAS_WSAPOLL		/**/
 
 /* HAS_ARC4RANDOM:
  *	This symbol, if defined, indicates that the arc4random routine is
@@ -737,6 +738,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	be included.
  */
 #$i_stdarg I_STDARG		/**/
+
+/* I_WINSOCK2:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <Winsock2.h>.
+ */
+#$i_winsock2 I_WINSOCK2		/**/
 
 /* LOCALE_EXP:
  *	This symbol holds the possibly ~name expanded place where localization

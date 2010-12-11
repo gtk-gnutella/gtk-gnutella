@@ -279,9 +279,7 @@ struct flock
 #define inline
 #endif
 
-#ifndef MINGW32
 typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
-#endif
 
 #ifdef I_STDARG
 #include <stdarg.h>

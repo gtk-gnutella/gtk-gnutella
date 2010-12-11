@@ -41,7 +41,10 @@
 
 #define WINVER 0x0501
 #include <ws2tcpip.h>
+
+#ifdef I_WINSOCK2
 #include <winsock2.h>
+#endif	/* I_WINSOCK2 */
 
 #include <sys/stat.h>
 #include <glib.h>
@@ -105,6 +108,9 @@
 
 #define S_IFLNK 0120000 /* Symbolic link */
 
+#ifdef HAS_WSAPOLL
+#define poll mingw_poll
+#else /* !HAS_WSAPOLL */
 /* winsock doesn't feature poll(), so there is a version implemented
  * in terms of select() in mingw.c. The following definitions
  * are copied from linux man pages. A poll() macro is defined to
@@ -116,6 +122,13 @@
 #define POLLERR		0x0008	/* Error condition */
 #define POLLHUP		0x0010	/* Hung up */
 #define POLLNVAL	0x0020	/* Invalid request: fd not open */
+
+struct pollfd {
+	SOCKET fd;		/* file descriptor */
+	short events;	/* requested events */
+	short revents;	/* returned events */
+};
+#endif	/* !HAS_WSAPOLL */
 
 #define getppid()		1
 #define fcntl mingw_fcntl
@@ -140,10 +153,8 @@
 #define lseek mingw_lseek
 #define read mingw_read
 #define readv mingw_readv
-//#define compat_preadv mingw_preadv
 #define write mingw_write
 #define writev mingw_writev
-//#define compat_pwritev mingw_pwritev
 #define truncate mingw_truncate
 #define sendto mingw_sendto
 
@@ -160,13 +171,6 @@
 
 typedef SOCKET socket_fd_t;
 typedef WSABUF iovec_t;
-typedef guint64 filesize_t;
-
-struct pollfd {
-	SOCKET fd;		/* file descriptor */
-	short events;	/* requested events */
-	short revents;	/* returned events */
-};
 
 struct msghdr {
 	void *msg_name;				/* Address to send to/receive from */

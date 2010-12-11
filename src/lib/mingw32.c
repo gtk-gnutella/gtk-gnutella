@@ -144,6 +144,17 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 	return res;
 }
 
+#ifdef HAS_WSAPOLL
+int
+mingw_poll(struct pollfd *fds, unsigned long nfds, int timeout)
+{
+	int res = WSAPoll(fds, nfds, timeout);
+	if (res == -1)
+		errno = GetLastError();
+	return res;
+}
+#endif	/* HAS_WSAPOLL */
+
 const char *
 mingw_gethome(void)
 {
