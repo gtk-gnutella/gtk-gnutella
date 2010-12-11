@@ -46,7 +46,20 @@
 
 RCSID("$Id$")
 
-#ifdef HAS_KQUEUE
+#if defined(HAS_KQUEUE)
+#define USE_KQUEUE
+#elif defined(HAS_EPOLL)
+#define USE_EPOLL
+#elif defined(HAS_DEV_POLL)
+#define USE_DEV_POLL
+#elif defined(HAS_POLL) || defined(HAS_WSAPOLL)
+#define USE_POLL
+#define USE_GLIB_IO_CHANNELS	/* Use poll() for GLib IO Channels  */
+#else
+#define USE_GLIB_IO_CHANNELS	/* Use GLib IO Channels with default function */
+#endif
+
+#ifdef USE_KQUEUE
 #include <sys/event.h>
 /*
  * Some kqueue() implementations have a "struct kevent" with "udata"
@@ -62,38 +75,49 @@ RCSID("$Id$")
 #define PTR_TO_KEVENT_UDATA(x) (x)
 #endif /* HAVE_KEVENT_INT_UDATA */
 
-/* In case any system has both, kqueue() is preferred */
-#undef HAS_EPOLL
-#undef HAS_DEV_POLL
-
 struct inputevt_array {
 	struct kevent *ev;
 };
 
-#endif /* HAS_KQUEUE */
+#endif /* USE_KQUEUE */
 
-#ifdef HAS_EPOLL
+#ifdef USE_EPOLL
 #include <sys/epoll.h>
 
 struct inputevt_array {
 	struct epoll_event *ev;
 };
-#undef HAS_DEV_POLL
 
-#endif /* HAS_EPOLL */
+#endif /* USE_EPOLL */
 
-#ifdef HAS_DEV_POLL
+#ifdef USE_DEV_POLL
 #include <stropts.h>	/* ioctl() */
 #include <sys/devpoll.h>
 
 struct inputevt_array {
 	struct pollfd *ev;
 };
-#endif /* HAS_DEV_POLL */
+#endif /* USE_DEV_POLL */
 
-#if !(defined(HAS_DEV_POLL) || defined(HAS_EPOLL) || defined(HAS_KQUEUE))
-#define USE_POLL 1
-#endif	/* */
+#ifdef USE_POLL
+struct inputevt_array {
+	struct pollfd *ev;
+};
+#endif	/* USE_POLL */
+
+
+/**
+ * The following functions must be implemented by any I/O event handler:
+ *
+ * 	int create_poll_fd(void);
+ * 	int check_poll_events(struct poll_ctx *poll_ctx);
+ * 	inline inputevt_cond_t get_poll_event_cond(gpointer p);
+ * 	int get_poll_event_fd(gpointer p);
+ * 	void poll_event_set_data_avail(gpointer p);
+ * 	int update_poll_event(struct poll_ctx *poll_ctx, int fd,
+ * 		inputevt_cond_t old, inputevt_cond_t cur);
+ *
+ */
 
 #include "bit_array.h"
 #include "fd.h"
@@ -151,7 +175,7 @@ typedef struct relay_list {
 
 static const inputevt_handler_t zero_handler;
 
-#if !defined(USE_POLL)
+#if !defined(USE_GLIB_IO_CHANNELS)
 struct poll_ctx {
 	struct inputevt_array ev_arr;
 	inputevt_relay_t **relay;	/**< The relay contexts */
@@ -172,18 +196,18 @@ get_global_poll_ctx(void)
 	return &poll_ctx;
 }
 
-#endif /* !USE_POLL */
+#endif /* !USE_GLIB_IO_CHANNELS */
 
-#ifndef HAS_KQUEUE
+#ifndef USE_KQUEUE
 size_t
 inputevt_data_available(void)
 {
 	return 0;
 }
-#endif	/* !HAS_KQUEUE */
+#endif	/* !USE_KQUEUE */
 
 
-#if defined(HAS_KQUEUE)
+#if defined(USE_KQUEUE)
 
 static guint data_available;	/** Used by inputevt_data_available(). */
 
@@ -286,9 +310,9 @@ check_poll_events(struct poll_ctx *poll_ctx)
 			poll_ctx->ev_arr.ev, poll_ctx->num_ev, &zero_ts);
 }
 
-#endif /* HAS_KQUEUE */
+#endif /* USE_KQUEUE */
 
-#if defined(HAS_EPOLL)
+#if defined(USE_EPOLL)
 
 static inline int
 get_poll_event_fd(gpointer p)
@@ -358,9 +382,9 @@ check_poll_events(struct poll_ctx *poll_ctx)
 	return epoll_wait(poll_ctx->fd, poll_ctx->ev_arr.ev, poll_ctx->num_ev, 0);
 }
 
-#endif	/* HAS_EPOLL */
+#endif	/* USE_EPOLL */
 
-#if defined(HAS_DEV_POLL)
+#if defined(USE_DEV_POLL)
 static int
 create_poll_fd(void)
 {
@@ -590,7 +614,7 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 	WFREE_NULL(w_buf, w_size);
 	return ret;
 }
-#endif	/* HAS_DEV_POLL */
+#endif	/* USE_DEV_POLL */
 
 /**
  * Frees the relay structure when its time comes.
@@ -650,7 +674,7 @@ inputevt_add_source_with_glib(inputevt_relay_t *relay)
 	return id;
 }
 
-#if !defined(USE_POLL)
+#if !defined(USE_GLIB_IO_CHANNELS)
 
 /**
  * Purge removed sources.
@@ -1023,9 +1047,9 @@ inputevt_init(void)
 
 		set_close_on_exec(poll_ctx->fd);	/* Just in case */
 
-#ifdef HAS_DEV_POLL
+#ifdef USE_DEV_POLL
 		g_main_set_poll_func(poll_func);
-#endif	/* HAS_DEV_POLL */
+#endif	/* USE_DEV_POLL */
 
 		poll_ctx->ht = g_hash_table_new(NULL, NULL);
 		ch = g_io_channel_unix_new(poll_ctx->fd);
@@ -1038,9 +1062,9 @@ inputevt_init(void)
 	}
 }
 
-#endif /* !USE_POLL */
+#endif /* !USE_GLIB_IO_CHANNELS */
 
-#ifdef USE_POLL
+#ifdef USE_GLIB_IO_CHANNELS
 static guint 
 inputevt_add_source(inputevt_relay_t *relay)
 {
@@ -1056,9 +1080,11 @@ inputevt_remove(guint id)
 void
 inputevt_init(void)
 {
-	/* Nothing to do */
+#ifdef USE_POLL
+	g_main_set_poll_func(poll);
+#endif	/* USE_POLL */
 }
-#endif /* USE_POLL */
+#endif /* USE_GLIB_IO_CHANNELS */
 
 /**
  * Adds an event source to the main GLIB monitor queue.
@@ -1105,7 +1131,7 @@ inputevt_add(int fd, inputevt_cond_t cond,
 void
 inputevt_close(void)
 {
-#if !defined(USE_POLL)
+#if !defined(USE_GLIB_IO_CHANNELS)
 	struct poll_ctx *poll_ctx;
 	
 	poll_ctx = get_global_poll_ctx();
