@@ -2019,30 +2019,32 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 	socklen_t len;
 	host_addr_t addr = zero_host_addr;
 	guint16 port = 0;
+	gboolean success = FALSE;
 
 	len = sizeof sin4;
 	if (-1 != getsockname(fd, cast_to_gpointer(&sin4), &len)) {
 		addr = host_addr_peek_ipv4(&sin4.sin_addr.s_addr);
 		port = sin4.sin_port;
+		success = TRUE;
 	}
 
 #ifdef HAS_IPV6
-	if (!is_host_addr(addr)) {
+	if (!success) {
 		struct sockaddr_in6 sin6;
 
 		len = sizeof sin6;
 		if (-1 != getsockname(fd, cast_to_gpointer(&sin6), &len)) {
 			addr = host_addr_peek_ipv6(sin6.sin6_addr.s6_addr);
 			port = sin6.sin6_port;
+			success = TRUE;
 		}
 	}
 #endif	/* HAS_IPV6 */
 
-	if (!is_host_addr(addr))
-		return -1;
-
-	socket_addr_set(p_addr, addr, port);
-	return 0;
+	if (success) {
+		socket_addr_set(p_addr, addr, port);
+	}
+	return success ? 0 : -1;
 }
 
 static int
