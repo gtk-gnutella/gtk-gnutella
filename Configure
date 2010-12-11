@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Dec 11 17:45:00 CET 2010 [metaconfig 3.5-]
+# Generated on Sat Dec 11 19:33:17 CET 2010 [metaconfig 3.5-]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6283,7 +6283,7 @@ int main(void)
 }
 EOC
 cyn=select
-set d_select '-dWs_32'
+set d_select '-lWs_32'
 eval $trylink
 
 : see if sendfile exists
