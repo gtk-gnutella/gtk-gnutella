@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Dec 11 16:17:06 CET 2010 [metaconfig 3.5-]
+# Generated on Sat Dec 11 16:44:14 CET 2010 [metaconfig 3.5-]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -455,6 +455,7 @@ i_sysmount=''
 i_sysparam=''
 i_syspoll=''
 i_sysresrc=''
+i_sysselct=''
 i_syssendfile=''
 i_syssock=''
 i_sysstat=''
@@ -602,7 +603,6 @@ locincpth=""
 : no include file wanted by default
 inclwanted=''
 
-i_sysselct=''
 i_whoami=''
 libnames=''
 : change the next line if compiling for Xenix/286 on Xenix/386
@@ -6247,17 +6247,32 @@ eval $trylink
 set sys/types.h i_systypes
 eval $inhdr
 
+: see if sys/select.h has to be included
+set sys/select.h i_sysselct
+eval $inhdr
+
+: see if this is a winsock2.h system
+set winsock2.h i_winsock2
+eval $inhdr
+
 : see if select exists
 $cat >try.c <<EOC
 #$i_unistd I_UNISTD
 #$i_systypes I_SYS_TYPES
+#$i_sysselct I_SYS_SELECT
+#$i_winsock2 I_WINSOCK2
 #ifdef I_SYS_TYPES
 #include <sys/types.h>
 #endif
 #ifdef I_UNISTD
 #include <unistd.h>
 #endif
+#ifdef I_SYS_SELECT
 #include <sys/select.h>
+#endif
+#ifdef I_WINSOCK2
+#include <Winsock2.h>
+#endif
 int main(void)
 {
 	static int ret, n;
@@ -8724,10 +8739,6 @@ eval $inhdr
 set sys/utsname.h i_sysutsname
 eval $inhdr
 
-: see if this is a winsock2.h system
-set winsock2.h i_winsock2
-eval $inhdr
-
 : see if this is a iconv.h system
 set iconv.h i_iconv
 eval $inhdr
@@ -9333,6 +9344,7 @@ i_sysmount='$i_sysmount'
 i_sysparam='$i_sysparam'
 i_syspoll='$i_syspoll'
 i_sysresrc='$i_sysresrc'
+i_sysselct='$i_sysselct'
 i_syssendfile='$i_syssendfile'
 i_syssock='$i_syssock'
 i_sysstat='$i_sysstat'
