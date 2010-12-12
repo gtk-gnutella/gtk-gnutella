@@ -505,6 +505,7 @@ mingw_recvfrom(socket_fd_t s, void *buf, size_t len, int flags
 {
 	DWORD received, dflags = flags;
 	INT ifromLen;
+	int res;
 
 	res = WSARecvFrom(s, buf, len, &received, &dflags,
 			src_addr, &ifromLen, NULL, NULL);
