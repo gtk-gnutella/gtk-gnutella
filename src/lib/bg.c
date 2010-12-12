@@ -412,7 +412,7 @@ bg_task_create(const char *name,	/**< Task name (for tracing) */
  *
  * The `steps' given represent the processing to be done on each item of
  * the work queue.  The `start_cb' callback is invoked before working on a
- * new item, so that the context can be initialized.  The `end+cb' callback
+ * new item, so that the context can be initialized.  The `end_cb' callback
  * is invoked when the item has been processed (successfully or not).
  *
  * Since a daemon is not supposed to exit (although it can), there is no
