@@ -638,7 +638,6 @@ static int
 poll_func(GPollFD *gfds, guint n, int timeout_ms)
 {
 	struct poll_ctx *poll_ctx;
-	gboolean do_check = FALSE;
 	int ret;
 
 	poll_ctx = get_global_poll_ctx();
@@ -646,20 +645,12 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 	g_assert(poll_ctx->initialized);
 	g_assert(poll_ctx->fd >= 0);
 
-	if (n > 0) {
-		guint i;
-
-		for (i = 0; i < n; i++) {
-			if (gfds[i].fd == poll_ctx->fd) {
-				gfds[i].events = 0;
-				gfds[i].revents = 0;
-				do_check = TRUE;
-			}
-		}
+	if (0 == poll_ctx->num_ready) {
+		check_for_events(poll_ctx, &timeout_ms);
 	}
 
-	if (do_check && 0 == poll_ctx->num_ready) {
-		check_for_events(poll_ctx, &timeout_ms);
+	if (poll_ctx->num_ready > 0) {
+		inputevt_timer(poll_ctx);
 	}
 
 	/* FIXME: This crude hack prevents thrashing as GLib uses zero
@@ -671,22 +662,6 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 	ret = default_poll_func(gfds, n, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
 		g_warning("poll() failed: %s", g_strerror(errno));
-	}
-	if (do_check) {
-		guint i;
-
-		g_assert(ret < 0 || (guint) ret <= n);
-
-		for (i = 0; i < n; i++) {
-			if (gfds[i].fd == poll_ctx->fd) {
-				gfds[i].events = READ_CONDITION;
-				gfds[i].revents = poll_ctx->num_ready ? G_IO_IN : 0;
-			}
-		}
-	}
-
-	if (do_check && poll_ctx->num_ready > 0) {
-		ret = 1 + MAX(0, ret);
 	}
 	return ret;
 }
@@ -1154,17 +1129,16 @@ inputevt_init(void)
 
 		poll_ctx->ht = g_hash_table_new(NULL, NULL);
 		poll_ctx->pollfds = g_hash_table_new(NULL, NULL);
-#ifdef MINGW32
-		ch = g_io_channel_win32_new_fd(poll_ctx->fd);
-#else
+
+#ifndef MINGW32
 		ch = g_io_channel_unix_new(poll_ctx->fd);
-#endif
 
 #if GLIB_CHECK_VERSION(2, 0, 0)
 		g_io_channel_set_encoding(ch, NULL, NULL); /* binary data */
 #endif /* GLib >= 2.0 */
 
 		(void) g_io_add_watch(ch, READ_CONDITION, dispatch_poll, poll_ctx);
+#endif	/* MINGW32 */
 	}
 }
 
