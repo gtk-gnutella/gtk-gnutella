@@ -73,6 +73,7 @@ RCSID("$Id$")
 #undef getaddrinfo
 #undef freeaddrinfo
 
+#undef select
 #undef socket
 #undef bind
 #undef connect
@@ -338,6 +339,19 @@ mingw_truncate(const char *path, off_t len)
 /***
  *** Socket wrappers
  ***/
+ 
+int 
+mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
+	fd_set *exceptfds, struct timeval *timeout)
+{
+	int res = select(nfds, readfds, writefds, exceptfds, timeout);
+	
+	if (res < 0)
+		errno = WSAGetLastError();
+		
+	return res;
+}
+
 int
 mingw_getaddrinfo(const char *node, const char *service,
 	const struct addrinfo *hints, struct addrinfo **res)

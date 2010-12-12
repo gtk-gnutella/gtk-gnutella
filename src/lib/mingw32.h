@@ -116,6 +116,7 @@
 #define fcntl mingw_fcntl
 #define ffs __builtin_ffs
 
+#define select mingw_select
 #define socket mingw_socket
 #define bind mingw_bind
 #define getsockopt mingw_getsockopt
@@ -264,6 +265,9 @@ ssize_t mingw_pwritev(int fd, const iovec_t *iov, int iov_cnt, filesize_t pos);
  * socket-specific and hence do not need to be distinguished by a prefix.
  * Naturally, s_read() is mapped to read() on UNIX.
  */
+
+int mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
+	fd_set *exceptfds, struct timeval *timeout);
 
 int mingw_getaddrinfo(const char *node, const char *service,
 		const struct addrinfo *hints, struct addrinfo **res);
