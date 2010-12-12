@@ -509,6 +509,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_vsnprintf HAS_VSNPRINTF		/**/
 
+/* EBCDIC:
+ *     This symbol, if defined, indicates that this system uses
+ *	EBCDIC encoding.
+ */
+#$ebcdic	EBCDIC 		/**/
+
 /* ENABLE_NLS:
  *	This symbol, when defines, indicates that the program should enable
  *	Native Language Support (NLS) for internationalization (I18N).
@@ -600,6 +606,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_niip I_NETINET_IP	/**/
 
+/* I_POLL:
+ *	This symbol, if defined, indicates that the program may include
+ *	<poll.h>.  If there is no <poll.h>, then you may check I_SYS_POLL
+ *	instead to see whether there is a <sys/poll.h> to include.
+ */
+#$i_poll I_POLL	/**/
+
 /* I_PWD:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <pwd.h>.
@@ -649,11 +662,24 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_sysparam I_SYS_PARAM		/**/
 
+/* I_SYS_POLL:
+ *	This symbol, if defined, indicates that the program may include
+ *	<sys/poll.h>.  When I_POLL is also defined, it's probably safest
+ *	to only include <poll.h>.
+ */
+#$i_syspoll I_SYS_POLL	/**/
+
 /* I_SYS_RESOURCE:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <sys/resource.h>.
  */
 #$i_sysresrc I_SYS_RESOURCE		/**/
+
+/* I_SYS_SELECT:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/select.h> in order to get definition of struct timeval.
+ */
+#$i_sysselct I_SYS_SELECT	/**/
 
 /* I_SYS_SENDFILE:
  *	This symbol, if defined, indicates to the C program that it should

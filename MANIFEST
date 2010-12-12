@@ -638,8 +638,6 @@ src/lib/mingw32.c
 src/lib/mingw32.h
 src/lib/misc.c
 src/lib/misc.h
-src/lib/nv.c
-src/lib/nv.h
 src/lib/offtime.c
 src/lib/offtime.h
 src/lib/omalloc.c
@@ -715,8 +713,6 @@ src/lib/vendors.c
 src/lib/vendors.h
 src/lib/vmm.c
 src/lib/vmm.h
-src/lib/vxml.c
-src/lib/vxml.h
 src/lib/walloc.c
 src/lib/walloc.h
 src/lib/watcher.c
