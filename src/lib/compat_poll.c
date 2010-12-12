@@ -106,6 +106,8 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 
 	ret = select(max_fd + 1, &rfds, &wfds, &efds, timeout < 0 ? NULL : &tv);
 	if (ret > 0) {
+
+		n = MIN(n, FD_SETSIZE);	/* POLLERR is already set above */
 		for (i = 0; i < n; i++) {
 			int fd = fds[i].fd;
 
