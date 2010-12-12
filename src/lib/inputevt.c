@@ -632,13 +632,12 @@ poll_events_to_gio_cond(short events)
 		| ((POLLNVAL & events) ? G_IO_NVAL : 0);
 }
 
+gint (*default_poll_func)(GPollFD *, guint, gint);
+
 static int
 poll_func(GPollFD *gfds, guint n, int timeout_ms)
 {
 	struct poll_ctx *poll_ctx;
-	struct pollfd local_pfds[16], *pfds;
-	size_t w_size = 0;
-	gpointer w_buf = NULL;
 	gboolean do_check = FALSE;
 	int ret;
 
@@ -650,51 +649,32 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 	if (n > 0) {
 		guint i;
 
-		if (n > G_N_ELEMENTS(local_pfds)) {
-			w_size = n * sizeof *pfds;
-			w_buf = walloc(w_size);
-			pfds = w_buf;
-		} else {
-			pfds = local_pfds;
-		}
-
 		for (i = 0; i < n; i++) {
-			pfds[i].fd = gfds[i].fd;
-			if (gfds[i].fd != poll_ctx->fd) {
-				pfds[i].events = poll_events_from_gio_cond(
-									gfds[i].events & ~(G_IO_ERR | G_IO_NVAL));
-			} else {
-				pfds[i].events = 0;
+			if (gfds[i].fd == poll_ctx->fd) {
+				gfds[i].events = 0;
+				gfds[i].revents = 0;
 				do_check = TRUE;
 			}
-			pfds[i].revents = 0;
-			gfds[i].revents = 0;
 		}
-	} else {
-		pfds = NULL;
 	}
 
-	if (do_check) {
+	if (do_check && 0 == poll_ctx->num_ready) {
 		check_for_events(poll_ctx, &timeout_ms);
 	}
 
-	ret = compat_poll(pfds, n, timeout_ms);
+	ret = default_poll_func(gfds, n, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
 		g_warning("poll() failed: %s", g_strerror(errno));
 	}
-	if (do_check || ret > 0) {
+	if (do_check) {
 		guint i;
 
 		g_assert(ret < 0 || (guint) ret <= n);
 
 		for (i = 0; i < n; i++) {
-			g_assert(gfds[i].fd == pfds[i].fd);
-			if (gfds[i].fd != poll_ctx->fd) {
-				if (ret > 0) {
-					gfds[i].revents = poll_events_to_gio_cond(pfds[i].revents);
-				}
-			} else if (poll_ctx->num_ready > 0) {
-				gfds[i].revents = G_IO_IN;
+			if (gfds[i].fd == poll_ctx->fd) {
+				gfds[i].events = READ_CONDITION;
+				gfds[i].revents = poll_ctx->num_ready ? G_IO_IN : 0;
 			}
 		}
 	}
@@ -702,8 +682,6 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 	if (do_check && poll_ctx->num_ready > 0) {
 		ret = 1 + MAX(0, ret);
 	}
-
-	WFREE_NULL(w_buf, w_size);
 	return ret;
 }
 #endif	/* USE_DEV_POLL || USE_POLL */
@@ -1164,6 +1142,7 @@ inputevt_init(void)
 		set_close_on_exec(poll_ctx->fd);	/* Just in case */
 
 #if defined(USE_DEV_POLL) || defined(USE_POLL)
+		default_poll_func = g_main_context_get_poll_func(NULL);
 		g_main_set_poll_func(poll_func);
 #endif	/* USE_DEV_POLL */
 
