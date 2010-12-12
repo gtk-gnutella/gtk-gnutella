@@ -2526,7 +2526,7 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 #ifdef MINGW32
-		char error;
+		char error;	/* FIXME: Why??? */
 #else
 		int error;
 #endif
