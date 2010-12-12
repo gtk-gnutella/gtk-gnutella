@@ -64,11 +64,11 @@ RCSID("$Id$")
  * A wrapper for poll() that falls back to select() when poll() is missing.
  */
 int
-compat_poll(struct pollfd *fds, size_t n, int timeout)
+compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 #ifdef USE_SELECT_FOR_POLL
 {
 	struct timeval tv;
-	size_t i;
+	unsigned i;
 	fd_set rfds, wfds, efds;
 	int ret, max_fd = -1;
 
@@ -79,7 +79,7 @@ compat_poll(struct pollfd *fds, size_t n, int timeout)
 	for (i = 0; i < n; i++) {
 		int fd = fds[i].fd;
 
-		if (fd < 0 || fd >= FD_SETSIZE) {
+		if (fd < 0 || fd >= FD_SETSIZE || i >= FD_SETSIZE) {
 			fds[i].revents = POLLERR;
 			continue;
 		}
