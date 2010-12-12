@@ -73,22 +73,6 @@
 #undef KERNEL
 #endif
 
-#ifdef MINGW32
-#include "lib/mingw32.h"
-#else
-
-typedef struct iovec iovec_t;
-typedef int socket_fd_t;
-#define INVALID_SOCKET (-1)
-
-#define s_write write
-#define s_writev writev
-#define s_read read
-#define s_readv readv
-#define s_close close
-
-#endif /* !MINGW32 */
-
 #ifdef I_SYS_SOCKET
 #include <sys/socket.h>
 #endif
@@ -105,11 +89,8 @@ typedef int socket_fd_t;
 #include <sys/stat.h>
 #endif
 
-#ifndef MINGW32
-#define iovec_base(iov) ((iov)->iov_base)
-#define iovec_set_base(iov, base) ((iov)->iov_base = base)
-#define iovec_len(iov) ((iov)->iov_len)
-#define iovec_set_len(iov, len) ((iov)->iov_len = len)
+#ifdef I_NETINET_IN
+#include <netinet/in.h>
 #endif
 
 #ifdef MINGW32
@@ -140,12 +121,12 @@ struct flock
 
 #include <sys/uio.h>		/* For writev(), readv(), struct iovec */
 #include <sys/wait.h>
-
-#ifdef I_NETINET_IN
-#include <netinet/in.h>
-#endif
-
 #include <netinet/tcp.h>
+
+#define iovec_base(iov) ((iov)->iov_base)
+#define iovec_set_base(iov, base) ((iov)->iov_base = base)
+#define iovec_len(iov) ((iov)->iov_len)
+#define iovec_set_len(iov, len) ((iov)->iov_len = len)
 
 #endif /* MINGW32 */
 
@@ -227,14 +208,6 @@ struct flock
 #include <poll.h>
 #endif	/* HAS_POLL */
 
-#if !defined(AF_LOCAL) && defined(AF_UNIX)
-#define AF_LOCAL AF_UNIX
-#endif	/* !AF_LOCAL && AF_UNIX */
-
-#if !defined(PF_LOCAL) && defined(PF_UNIX)
-#define PF_LOCAL PF_UNIX
-#endif	/* !PF_LOCAL && PF_UNIX */
-
 /* For pedantic lint checks, define USE_LINT. We override some definitions
  * and hide ``inline'' to prevent certain useless warnings. */
 #ifdef USE_LINT
@@ -280,6 +253,27 @@ struct flock
 #endif
 
 typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
+
+#ifdef MINGW32
+#include "lib/mingw32.h"
+#else	/* !MINGW32 */
+typedef struct iovec iovec_t;
+typedef int socket_fd_t;
+#define INVALID_SOCKET (-1)
+#define s_write write
+#define s_writev writev
+#define s_read read
+#define s_readv readv
+#define s_close close
+#endif /* MINGW32 */
+
+#if !defined(AF_LOCAL) && defined(AF_UNIX)
+#define AF_LOCAL AF_UNIX
+#endif	/* !AF_LOCAL && AF_UNIX */
+
+#if !defined(PF_LOCAL) && defined(PF_UNIX)
+#define PF_LOCAL PF_UNIX
+#endif	/* !PF_LOCAL && PF_UNIX */
 
 #ifdef I_STDARG
 #include <stdarg.h>
