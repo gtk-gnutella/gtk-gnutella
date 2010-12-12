@@ -368,6 +368,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_pwritev HAS_PWRITEV		/**/
 
+/* HAS_RECVMSG:
+ *	This symbol, if defined, indicates that the recvmsg() function
+ *	is available.
+ */
+#$d_recvmsg HAS_RECVMSG		/**/
+
 /* HAS_REGPARM:
  *	This symbol is defined when __attribute__((__regparm__(n))) can be used.
  */
@@ -502,12 +508,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available.
  */
 #$d_vsnprintf HAS_VSNPRINTF		/**/
-
-/* EBCDIC:
- *     This symbol, if defined, indicates that this system uses
- *	EBCDIC encoding.
- */
-#$ebcdic	EBCDIC 		/**/
 
 /* ENABLE_NLS:
  *	This symbol, when defines, indicates that the program should enable
