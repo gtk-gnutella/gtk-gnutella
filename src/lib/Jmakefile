@@ -60,6 +60,7 @@ LSRC = \
 	cobs.c \
 	compat_misc.c \
 	compat_pio.c \
+	compat_poll.c \
 	compat_sleep_ms.c \
 	concat.c \
 	cpufreq.c \

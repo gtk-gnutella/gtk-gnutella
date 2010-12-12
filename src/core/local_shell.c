@@ -83,25 +83,12 @@ RCSID("$Id$")
 
 #include "lib/misc.h"
 #include "lib/socket.h"
+#include "lib/compat_poll.h"
 #include "core/local_shell.h"
 
 #include "lib/override.h"
 
 #endif	/* LOCAL_SHELL_STANDALONE */
-
-/* Fallback on select() if they miss poll() */
-#ifndef HAS_POLL
-#ifdef HAS_SELECT
-#define USE_SELECT_FOR_SHELL
-#endif
-#endif
-
-#if defined(__APPLE__) && defined(__MACH__)
-/* poll() seems to be broken on Darwin */
-#ifndef USE_SELECT_FOR_SHELL
-#define USE_SELECT_FOR_SHELL
-#endif
-#endif	/* Darwin */
 
 #ifdef USE_READLINE
 #include <readline/readline.h>
@@ -251,74 +238,6 @@ write_data(int fd, struct shell_buf *sb)
 	}
 	return 0;
 }
-
-static int
-compat_poll(struct pollfd *fds, size_t n, int timeout)
-#ifdef USE_SELECT_FOR_SHELL
-{
-	struct timeval tv;
-	size_t i;
-	fd_set rfds, wfds, efds;
-	int ret, max_fd = -1;
-
-	FD_ZERO(&rfds);
-	FD_ZERO(&wfds);
-	FD_ZERO(&efds);
-
-	for (i = 0; i < n; i++) {
-		int fd = fds[i].fd;
-
-		if (fd < 0 || fd >= FD_SETSIZE) {
-			fds[i].revents = POLLERR;
-			continue;
-		}
-		
-		max_fd = MAX(fd, max_fd);
-		fds[i].revents = 0;
-
-		if (POLLIN & fds[i].events) {
-			FD_SET(fd, &rfds);
-		}
-		if (POLLOUT & fds[i].events) {
-			FD_SET(fd, &wfds);
-		}
-		FD_SET(fd, &efds);
-	}
-
-	if (timeout < 0) {
-		tv.tv_sec = 0;
-		tv.tv_usec = 0;
-	} else {
-		tv.tv_sec = timeout / 1000;
-		tv.tv_usec = (timeout % 1000) * 1000UL;
-	}
-
-	ret = select(max_fd + 1, &rfds, &wfds, &efds, timeout < 0 ? NULL : &tv);
-	if (ret > 0) {
-		for (i = 0; i < n; i++) {
-			int fd = fds[i].fd;
-
-			if (fd < 0 || fd >= FD_SETSIZE) {
-				continue;
-			}
-			if (FD_ISSET(fd, &rfds)) {
-				fds[i].revents |= POLLIN;
-			}
-			if (FD_ISSET(fd, &wfds)) {
-				fds[i].revents |= POLLOUT;
-			}
-			if (FD_ISSET(fd, &efds)) {
-				fds[i].revents |= POLLERR;
-			}
-		}
-	}
-	return ret;
-}
-#else	/* !USE_SELECT_FOR_SHELL */
-{
-	return poll(fds, n, timeout);
-}
-#endif	/* USE_SELECT_FOR_SHELL */
 
 /**
  * Sleeps until any I/O event happens or the timeout expires.

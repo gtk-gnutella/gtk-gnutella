@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-50]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-57]
 : $X-Id: Jmake.tmpl 48 2010-11-28 23:05:09Z rmanfredi $
 
 case $CONFIG in
@@ -112,6 +112,7 @@ LSRC = \
 	cobs.c \
 	compat_misc.c \
 	compat_pio.c \
+	compat_poll.c \
 	compat_sleep_ms.c \
 	concat.c \
 	cpufreq.c \
@@ -211,6 +212,7 @@ LOBJ = \
 	cobs.o \
 	compat_misc.o \
 	compat_pio.o \
+	compat_poll.o \
 	compat_sleep_ms.o \
 	concat.o \
 	cpufreq.o \

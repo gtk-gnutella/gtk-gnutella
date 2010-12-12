@@ -204,10 +204,6 @@ struct flock
 #include <netinet/ip.h>
 #endif
 
-#if defined(HAS_POLL)
-#include <poll.h>
-#endif	/* HAS_POLL */
-
 /* For pedantic lint checks, define USE_LINT. We override some definitions
  * and hide ``inline'' to prevent certain useless warnings. */
 #ifdef USE_LINT

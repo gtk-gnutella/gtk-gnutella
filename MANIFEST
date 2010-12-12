@@ -540,6 +540,8 @@ src/lib/bstr.c
 src/lib/bstr.h
 src/lib/cobs.c
 src/lib/cobs.h
+src/lib/compat_poll.c
+src/lib/compat_poll.h
 src/lib/compat_misc.c
 src/lib/compat_misc.h
 src/lib/compat_pio.c
@@ -636,6 +638,8 @@ src/lib/mingw32.c
 src/lib/mingw32.h
 src/lib/misc.c
 src/lib/misc.h
+src/lib/nv.c
+src/lib/nv.h
 src/lib/offtime.c
 src/lib/offtime.h
 src/lib/omalloc.c
@@ -711,6 +715,8 @@ src/lib/vendors.c
 src/lib/vendors.h
 src/lib/vmm.c
 src/lib/vmm.h
+src/lib/vxml.c
+src/lib/vxml.h
 src/lib/walloc.c
 src/lib/walloc.h
 src/lib/watcher.c

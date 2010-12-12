@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2008, Christian Biere
+ * Copyright (c) 2006, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,53 +27,40 @@
  * @ingroup lib
  * @file
  *
- * Process suspension.
+ * Compatible poll() wrapper which falls back to select() if poll() is
+ * missing or is known to be broken on some platform.
  *
  * @author Christian Biere
- * @date 2008
+ * @date 2006
  */
 
 #include "common.h"
 
-RCSID("$Id$")
-
-#include "compat_sleep_ms.h"
-#include "compat_poll.h"
-
-#include "override.h"		/* Must be the last header included */
-
-/**
- * Suspend process execution for a duration specified in milliseconds.
- * @param ms milliseconds to sleep.
- */
-void
-compat_sleep_ms(unsigned int ms)
-{
-	while (ms > 0) {
-		unsigned int d;
-
-		/*
-		 * Limit sleep duration per step as accommodation for the
-		 * different limits of the diverse methods of suspending the
-		 * process.
-		 */
-		d = MIN(ms, 500);
-		ms -= d;
-
-#if defined(HAS_USLEEP)
-		usleep(d * 1000);
-#elif defined(HAS_NANOSLEEP)
-		{
-			struct timespec ts;
-
-			ts.tv_nsec = d * 1000000;
-			ts.tv_sec = 0;
-			nanosleep(&ts, NULL);
-		}
+#ifdef HAS_POLL
+#if defined(I_POLL)
+#include <poll.h>
+#elif defined(I_SYS_POLL)
+#include <sys/poll.h>
+#endif
 #else
-		compat_poll(NULL, 0, d);
-#endif	/* HAS_USLEEP */
-	}
-}
+/*
+ * Poll events (requested and returned).
+ */
+
+#define POLLIN		0x0001	/* There is data to read */
+#define POLLPRI		0x0002	/* There is urgent data to read */
+#define POLLOUT		0x0004	/* Writing now will not block */
+#define POLLERR		0x0008	/* Error condition */
+#define POLLHUP		0x0010	/* Hung up */
+#define POLLNVAL	0x0020	/* Invalid request: fd not open */
+
+struct pollfd {
+	socket_fd_t fd;		/**< File descriptor to poll */
+	short events;		/**< Types of events poller cares about */
+	short revents;		/**< Types of events that actually occurred */
+};
+#endif
+
+int compat_poll(struct pollfd *fds, size_t n, int timeout);
 
 /* vi: set ts=4 sw=4 cindent: */

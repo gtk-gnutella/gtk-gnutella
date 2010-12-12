@@ -52,9 +52,9 @@ RCSID("$Id$")
 #define USE_EPOLL
 #elif defined(HAS_DEV_POLL)
 #define USE_DEV_POLL
-#elif defined(HAS_POLL) || defined(HAS_WSAPOLL)
+#elif defined(HAS_POLL) || defined(HAS_WSAPOLL) || defined(HAS_SELECT)
 #define USE_POLL
-#define USE_GLIB_IO_CHANNELS	/* Use poll() for GLib IO Channels  */
+#define USE_GLIB_IO_CHANNELS	/* Use compat_poll() for GLib IO Channels  */
 #else
 #define USE_GLIB_IO_CHANNELS	/* Use GLib IO Channels with default function */
 #endif
@@ -120,6 +120,7 @@ struct inputevt_array {
  */
 
 #include "bit_array.h"
+#include "compat_poll.h"
 #include "fd.h"
 #include "inputevt.h"
 #include "glib-missing.h"
@@ -586,7 +587,7 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 		check_dev_poll(poll_ctx, &timeout_ms);
 	}
 
-	ret = poll(pfds, n, timeout_ms);
+	ret = compat_poll(pfds, n, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
 		g_warning("poll() failed: %s", g_strerror(errno));
 	}
@@ -1081,7 +1082,7 @@ void
 inputevt_init(void)
 {
 #ifdef USE_POLL
-	g_main_set_poll_func(poll);
+	g_main_set_poll_func(compat_poll);
 #endif	/* USE_POLL */
 }
 #endif /* USE_GLIB_IO_CHANNELS */
