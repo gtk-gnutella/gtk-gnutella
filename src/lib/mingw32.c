@@ -504,14 +504,16 @@ mingw_recvfrom(socket_fd_t s, void *buf, size_t len, int flags,
 	struct sockaddr *src_addr, socklen_t *addrlen)
 {
 	DWORD received, dflags = flags;
+	INT ifromLen = *addrlen;
 	int res;
 
 	res = WSARecvFrom(s, buf, len, &received, &dflags,
-			src_addr, addrlen, NULL, NULL);
+			src_addr, &ifromLen, NULL, NULL);
 	if (0 != res) {
 		errno = WSAGetLastError();
 		return -1;
 	}
+	*addrlen = ifromLen;
 	/* Not sure about behaviour on truncation */
 	g_return_val_if_fail(received <= len, len);
 	return received;
