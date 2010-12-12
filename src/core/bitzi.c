@@ -881,7 +881,8 @@ bitzi_cache_remove_by_sha1(const struct sha1 *sha1)
  * should always get some sort of data back from the service.
  */
 bitzi_data_t *
-bitzi_query_by_sha1(const struct sha1 *sha1, filesize_t filesize, gboolean refresh)
+bitzi_query_by_sha1(const struct sha1 *sha1,
+	filesize_t filesize, gboolean refresh)
 {
 	bitzi_data_t *data;
 	bitzi_request_t	*request;
