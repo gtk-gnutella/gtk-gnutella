@@ -2304,7 +2304,7 @@ cmsg_nxthdr(const struct msghdr *msg_, const struct cmsghdr *cmsg_)
 }
 #endif	/* CMSG_FIRSTHDR && CMSG_NXTHDR */
 
-static gboolean
+static inline gboolean
 socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 #if defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR)
 {
@@ -2376,7 +2376,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	struct sockaddr *from;
 	socklen_t from_len;
 	ssize_t r;
-	gboolean truncated, has_dst_addr = FALSE;
+	gboolean truncated = FALSE, has_dst_addr = FALSE;
 	host_addr_t dst_addr;
 
 	socket_check(s);
@@ -2397,6 +2397,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	from = socket_addr_get_sockaddr(from_addr);
 	g_assert(from);
 
+#ifdef HAS_RECVMSG
 	/*
 	 * Detect truncation of the UDP message via MSG_TRUNC.
 	 *
@@ -2440,20 +2441,16 @@ socket_udp_accept(struct gnutella_socket *s)
 		/* msg_flags is missing at least in some versions of IRIX. */
 #if defined(HAS_MSGHDR_MSG_FLAGS)
 		truncated = 0 != (MSG_TRUNC & msg.msg_flags);
-#elif defined(MINGW32)
-#ifdef WSAEMSGSIZE
-		truncated = 0 != (WSAEMSGSIZE & errno);
-#else
-		truncated = FALSE;	/* We can't detect truncation with recvmsg() */
 #endif
-#else	/* !HAS_MSGHDR_MSG_FLAGS && !MINGW32 */
-		truncated = FALSE;	/* We can't detect truncation with recvmsg() */
-#endif /* HAS_MSGHDR_MSG_FLAGS */
 
 		if ((ssize_t) -1 != r && !GNET_PROPERTY(force_local_ip)) {
 			has_dst_addr = socket_udp_extract_dst_addr(&msg, &dst_addr);
 		}
 	}
+#else	/* !HAS_RECVMSG */
+	r = recvfrom(s->file_desc, s->buf, s->buf_size, 0,
+			cast_to_gpointer(from), &from_len);
+#endif	/* HAS_RECVMSG */
 
 	if ((ssize_t) -1 == r)
 		return (ssize_t) -1;
