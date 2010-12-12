@@ -500,7 +500,7 @@ mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
 #endif	/* HAS_WSARECVMSG */
 
 ssize_t
-mingw_recvfrom(socket_fd_t s, void *buf, size_t len, int flags
+mingw_recvfrom(socket_fd_t s, void *buf, size_t len, int flags,
 	struct sockaddr *src_addr, socklen_t *addrlen)
 {
 	DWORD received, dflags = flags;

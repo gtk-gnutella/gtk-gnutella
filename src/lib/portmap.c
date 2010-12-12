@@ -112,7 +112,7 @@ upnp_add_redir (const char *proto, const char * addr, guint16 port)
 		return;
 	}
 
-	uint16_to_string_buf(port, port_str, sizeof port_str);
+	uint32_to_string_buf(port, port_str, sizeof port_str);
 	r = UPNP_AddPortMapping(urls.controlURL, data.CIF.servicetype,
 		port_str, port_str, addr, 
 		"gtk-gnutella", proto, NULL);
@@ -145,7 +145,7 @@ upnp_rem_redir (const char * proto, guint16 port)
 		return;
 	}
 	
-	uint16_to_string_buf(port, port_str, sizeof port_str);
+	uint32_to_string_buf(port, port_str, sizeof port_str);
 	UPNP_DeletePortMapping(urls.controlURL, data.CIF.servicetype, 
 		port_str, proto, NULL);
 }
