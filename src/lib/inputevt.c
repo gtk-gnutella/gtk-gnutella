@@ -525,7 +525,7 @@ collect_events(struct poll_ctx *poll_ctx, int timeout_ms)
 {
 	int ret;
 
-	ret = poll(poll_ctx->ev_arr.ev, poll_ctx->num_ev, timeout_ms);
+	ret = compat_poll(poll_ctx->ev_arr.ev, poll_ctx->num_ev, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
 		g_warning("collect_events(): poll() failed: %s", g_strerror(errno));
 	}
@@ -661,6 +661,12 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 	if (do_check && 0 == poll_ctx->num_ready) {
 		check_for_events(poll_ctx, &timeout_ms);
 	}
+
+	/* FIXME: This crude hack prevents thrashing as GLib uses zero
+	 *		  as timeout most of the time resulting in about 100% CPU
+	 *		  utilization.
+	 */
+	timeout_ms = MAX(1, timeout_ms);
 
 	ret = default_poll_func(gfds, n, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
