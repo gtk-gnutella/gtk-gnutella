@@ -79,14 +79,12 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 	for (i = 0; i < n; i++) {
 		int fd = fds[i].fd;
 
-#ifndef MINGW32
-		if (fd < 0 
-			|| fd >= FD_SETSIZE 
-			|| i >= FD_SETSIZE) {
+#ifdef MINGW32
+		if (!is_a_socket(fd))
 #else
-		if (!is_a_socket(fd)) {
+		if (fd < 0 || fd >= FD_SETSIZE || i >= FD_SETSIZE)
 #endif
-		
+		{
 			fds[i].revents = POLLERR;
 			continue;
 		}
