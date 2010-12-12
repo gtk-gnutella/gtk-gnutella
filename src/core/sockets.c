@@ -2438,13 +2438,15 @@ socket_udp_accept(struct gnutella_socket *s)
 		r = recvmsg(s->file_desc, &msg, 0);
 
 		/* msg_flags is missing at least in some versions of IRIX. */
-#ifdef HAS_MSGHDR_MSG_FLAGS
+#if defined(HAS_MSGHDR_MSG_FLAGS)
+		truncated = 0 != (MSG_TRUNC & msg.msg_flags);
+#elif defined(MINGW32)
 #ifdef WSAEMSGSIZE
 		truncated = 0 != (WSAEMSGSIZE & errno);
 #else
-		truncated = 0 != (MSG_TRUNC & msg.msg_flags);
+		truncated = FALSE;	/* We can't detect truncation with recvmsg() */
 #endif
-#else	/* HAS_MSGHDR_MSG_FLAGS */
+#else	/* !HAS_MSGHDR_MSG_FLAGS && !MINGW32 */
 		truncated = FALSE;	/* We can't detect truncation with recvmsg() */
 #endif /* HAS_MSGHDR_MSG_FLAGS */
 
