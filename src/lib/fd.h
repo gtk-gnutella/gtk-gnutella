@@ -46,6 +46,7 @@ void fd_set_nonblocking(int fd);
 int fd_close(int *fd_ptr, gboolean);
 int get_non_stdio_fd(int fd);
 gboolean is_a_socket(int fd);
+gboolean is_a_fifo(int fd);
 
 #endif /* _fd_h_ */
 

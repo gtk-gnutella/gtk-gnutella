@@ -242,6 +242,13 @@ fd_close(int *fd_ptr, gboolean clear_cache)
  */
 gboolean
 is_a_socket(int fd)
+#ifdef S_ISSOCK
+{
+	struct stat sb;
+
+	return fd >= 0 && 0 == fstat(fd, &sb) && 0 != S_ISSOCK(sb.st_mode);
+}
+#else
 {
 	int ret, opt_val;
 	socklen_t opt_len;
@@ -254,6 +261,13 @@ is_a_socket(int fd)
 			cast_to_void_ptr(&opt_val), &opt_len);
 	return 0 == ret;
 }
+#endif
 
+gboolean
+is_a_fifo(int fd)
+{
+	struct stat sb;
 
+	return fd >= 0 && 0 == fstat(fd, &sb) && 0 != S_ISFIFO(sb.st_mode);
+}
 /* vi: set ts=4 sw=4 cindent: */
