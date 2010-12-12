@@ -84,13 +84,7 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 			|| fd >= FD_SETSIZE 
 			|| i >= FD_SETSIZE) {
 #else
-		int opt_val;
-		int opt_len = sizeof(int);
-
-		/* FIXME MINGW32 Should find a better implementation on windows */
-		if (getsockopt(fd, SOL_SOCKET, SO_ACCEPTCONN, (
-			char*)&opt_val, &opt_len)
-			== SOCKET_ERROR) {
+		if (!is_a_socket(fd)) {
 #endif
 		
 			fds[i].revents = POLLERR;

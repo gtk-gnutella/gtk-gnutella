@@ -45,6 +45,7 @@ void set_close_on_exec(int fd);
 void fd_set_nonblocking(int fd);
 int fd_close(int *fd_ptr, gboolean);
 int get_non_stdio_fd(int fd);
+gboolean is_a_socket(int fd);
 
 #endif /* _fd_h_ */
 

@@ -233,4 +233,27 @@ fd_close(int *fd_ptr, gboolean clear_cache)
 	return ret;
 }
 
+/**
+ * Uses getsockopt() to determine whether the given file descriptor is
+ * a socket.
+ *
+ * @param fd An arbitrary file descriptor.
+ * @return TRUE if fd is a socket, FALSE otherwise.
+ */
+gboolean
+is_a_socket(int fd)
+{
+	int ret, opt_val;
+	socklen_t opt_len;
+
+	if (fd < 0)
+		return FALSE;
+
+	opt_len = sizeof(opt_val);
+	ret = getsockopt(fd, SOL_SOCKET, SO_ACCEPTCONN,
+			cast_to_void_ptr(&opt_val), &opt_len);
+	return 0 == ret;
+}
+
+
 /* vi: set ts=4 sw=4 cindent: */
