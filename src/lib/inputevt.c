@@ -1180,6 +1180,12 @@ inputevt_add(int fd, inputevt_cond_t cond,
 	g_assert(fd >= 0);
 	g_assert(zero_handler != handler);
 
+	/**
+	 * FIXME: The following is not really required but added for debugging
+	 *		  purposes.
+	 */
+	g_assert(is_a_socket(fd) || is_a_fifo(fd));
+
 	switch (cond) {
 	case INPUT_EVENT_RX:
 	case INPUT_EVENT_R:
