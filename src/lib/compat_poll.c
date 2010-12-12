@@ -79,7 +79,20 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 	for (i = 0; i < n; i++) {
 		int fd = fds[i].fd;
 
-		if (fd < 0 || fd >= FD_SETSIZE || i >= FD_SETSIZE) {
+#ifndef MINGW32
+		if (fd < 0 
+			|| fd >= FD_SETSIZE 
+			|| i >= FD_SETSIZE) {
+#else
+		int opt_val;
+		int opt_len = sizeof(int);
+
+		/* FIXME MINGW32 Should find a better implementation on windows */
+		if (getsockopt(fd, SOL_SOCKET, SO_ACCEPTCONN, (
+			char*)&opt_val, &opt_len)
+			== SOCKET_ERROR) {
+#endif
+		
 			fds[i].revents = POLLERR;
 			continue;
 		}
@@ -105,13 +118,18 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 	}
 
 	ret = select(max_fd + 1, &rfds, &wfds, &efds, timeout < 0 ? NULL : &tv);
+	
 	if (ret > 0) {
 
 		n = MIN(n, FD_SETSIZE);	/* POLLERR is already set above */
 		for (i = 0; i < n; i++) {
 			int fd = fds[i].fd;
 
-			if (fd < 0 || fd >= FD_SETSIZE) {
+			if (fd < 0 
+#ifndef MINGW32
+				|| fd >= FD_SETSIZE
+#endif
+			) {
 				continue;
 			}
 			if (FD_ISSET(fd, &rfds)) {
