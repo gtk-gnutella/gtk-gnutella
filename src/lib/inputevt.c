@@ -1154,7 +1154,11 @@ inputevt_init(void)
 
 		poll_ctx->ht = g_hash_table_new(NULL, NULL);
 		poll_ctx->pollfds = g_hash_table_new(NULL, NULL);
+#ifdef MINGW32
+		ch = g_io_channel_win32_new_fd(poll_ctx->fd);
+#else
 		ch = g_io_channel_unix_new(poll_ctx->fd);
+#endif
 
 #if GLIB_CHECK_VERSION(2, 0, 0)
 		g_io_channel_set_encoding(ch, NULL, NULL); /* binary data */
