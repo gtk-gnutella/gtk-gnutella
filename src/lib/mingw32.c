@@ -500,14 +500,17 @@ mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
 #endif	/* HAS_WSARECVMSG */
 
 ssize_t
-mingw_recvfrom(socket_fd_t s, void *buf, size_t len, int flags,
+mingw_recvfrom(socket_fd_t s, void *data, size_t len, int flags,
 	struct sockaddr *src_addr, socklen_t *addrlen)
 {
 	DWORD received, dflags = flags;
+	WSABUF buf;
 	INT ifromLen = *addrlen;
 	int res;
 
-	res = WSARecvFrom(s, buf, len, &received, &dflags,
+	buf.buf = data;
+	buf.len = len;
+	res = WSARecvFrom(s, &buf, 1, &received, &dflags,
 			src_addr, &ifromLen, NULL, NULL);
 	if (0 != res) {
 		errno = WSAGetLastError();
