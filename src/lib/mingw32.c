@@ -249,6 +249,8 @@ mingw_read(int fd, void *buf, size_t count)
 {
 	ssize_t res = read(fd, buf, count);
 
+	g_assert(res == -1 || (res >= 0 && res <= count));
+	
 	if (res == -1)
 		errno = GetLastError();
 	return res;
@@ -262,15 +264,21 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
      * impact on the rest of the source code as well as this will be
      * unbuffered and async.
      */
+	int i;
+    ssize_t max_to_read = 0, total_read = 0, r = -1;
 
-    int i;
-    ssize_t total_read = 0, r = -1;
-
+	for (i = 0; i < iov_cnt; i++) {
+		max_to_read += iovec_len(&iov[i]);
+	}
+	
 	for (i = 0; i < iov_cnt; i++) {
 		r = mingw_read(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
 
 		if (-1 == r)
 			break;
+
+		g_assert(r >= 0);
+		g_assert(r <= iovec_len(&iov[i]));
 
 		total_read += r;
 
@@ -278,6 +286,8 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
 			break;
 	}
 
+	g_assert(total_read <= max_to_read);
+	
     return total_read > 0 ? total_read : r;
 }
 
