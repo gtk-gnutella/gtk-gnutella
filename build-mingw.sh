@@ -29,6 +29,5 @@ LIBDIRS=`echo $LIBDIRS`
 LIBS=`echo $LIBS`
 
 ./Configure -der -Dgtkversion=2 -Dcc=gcc \
-	-Dd_select -Dd_msghdr_msg_flags -Dd_getaddrinfo \
 	-Doptimize="$OPTIMIZE" \
 	-Dccflags="-DMINGW32 $INCDIRS" -Dldflags="$LIBDIRS" -Dlibs="$LIBS"

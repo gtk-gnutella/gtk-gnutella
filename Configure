@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Dec 12 00:47:25 CET 2010 [metaconfig 3.5-57]
+# Generated on Sun Dec 12 11:15:29 CET 2010 [metaconfig 3.5-57]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4652,6 +4652,7 @@ $cat >try.c <<EOC
 #$i_niin I_NETINET_IN
 #$i_arpainet I_ARPA_INET
 #$i_netdb I_NETDB
+#$d_windows WINDOWS_SYSTEM
 #include <sys/types.h>
 #ifdef I_SYS_SOCKET
 #include <sys/socket.h>
@@ -4664,6 +4665,9 @@ $cat >try.c <<EOC
 #endif
 #ifdef I_NETDB
 #include <netdb.h>
+#endif
+#ifdef WINDOWS_SYSTEM
+#define WINVER 0x0501
 #endif
 #ifdef I_WINSOCK2
 #include <Winsock2.h>
@@ -5615,8 +5619,12 @@ esac
 $cat >iptos <<EOM
 #$i_syssock I_SYS_SOCKET
 #$i_winsock2 I_WINSOCK2
+#$d_windows WINDOWS_SYSTEM
 #ifdef I_SYS_SOCKET
 #include <sys/socket.h>
+#endif
+#ifdef WINDOWS_SYSTEM
+#define WINVER 0x0501
 #endif
 #ifdef I_WINSOCK2
 #include <Winsock2.h>
@@ -5628,7 +5636,7 @@ YES
 EOM
 $cppstdin $cppflags $cppminus <iptos >iptos.h 2>/dev/null
 val="$undef"
-if $contains 'YES' iptos.h >/dev/null 2>&1; then
+if $contains YES iptos.h >/dev/null 2>&1; then
 	val="$define"
 	echo "You have IP TOS support in <$inh>." >&4
 elif $test "x$i_niip" = "x$define"; then
@@ -5644,13 +5652,15 @@ YES
 #endif
 EOM
 	$cppstdin $cppflags $cppminus <iptos >iptos.h 2>/dev/null
-	if $contains 'YES' iptos.h >/dev/null 2>&1; then
+	if $contains YES iptos.h >/dev/null 2>&1; then
 		val="$define"
 		echo "You have IP TOS support in <netinet/ip.h>." >&4
-	else
-		echo "Sorry, you seem to be lacking IP TOS support." >&4
 	fi
 fi
+case "$val" in
+"$define") ;;
+*) echo "Sorry, you seem to be lacking IP TOS support." >&4;;
+esac
 set d_iptos
 eval $setvar
 $rm -f iptos iptos.h
@@ -5664,6 +5674,7 @@ case "$d_ipv6" in
 	$cat >try.c <<EOC
 #$i_syssock I_SYS_SOCKET
 #$i_winsock2 I_WINSOCK2
+#$i_ws2tcpip I_WS2TCPIP
 #$i_niin I_NETINET_IN
 #$i_arpainet I_ARPA_INET
 #$i_netdb I_NETDB
@@ -5679,6 +5690,12 @@ case "$d_ipv6" in
 #endif
 #ifdef I_NETDB
 #include <netdb.h>
+#endif
+#ifdef I_WINSOCK2
+#include "Winsock2.h"
+#endif
+#ifdef I_WS2TCPIP
+#include "Ws2tcpip.h"
 #endif
 #define STATIC_ASSERT(x)	\
 	do { switch (0) { case ((x) ? 1 : 0): case 0: break; } } while(0)
@@ -5995,11 +6012,15 @@ $cat >try.c <<EOC
 #$i_sysselct I_SYS_SELECT
 #$i_winsock2 I_WINSOCK2
 #$i_mswsock I_MSWSOCK
+#$d_windows WINDOWS_SYSTEM
 #ifdef I_SYS_TYPES
 #include <sys/types.h>
 #endif
 #ifdef I_SYS_SOCKET
 #include <sys/socket.h>
+#endif
+#ifdef WINDOWS_SYSTEM
+#define WINVER 0x0501
 #endif
 #ifdef I_WINSOCK2
 #include <Winsock2.h>
@@ -8330,6 +8351,7 @@ EOM
 case "$voidflags" in
 '')
 	$cat >try.c <<'EOCP'
+extern int doit();
 #if TRY & 1
 void sub() {
 #else
@@ -8337,21 +8359,34 @@ sub() {
 #endif
 	extern void moo();	/* function returning void */
 	void (*goo)();		/* ptr to func returning void */
-#if TRY & 8
-	void *hue;		/* generic ptr */
-#endif
 #if TRY & 2
-	void (*foo[10])();
+	static void (*foo[10])();
+#endif
+#if TRY & 8
+	void *hue;			/* generic ptr */
+	char buf[] = "buf";
+	int *iptr;
 #endif
 
-#if TRY & 4
-	if(goo == moo) {
-		exit(0);
+#if TRY & 2
+	if (doit()) {
+		foo[0] = moo;
+		(*foo[0])();
 	}
 #endif
-	exit(0);
+#if TRY & 4
+	if (doit())
+		goo = moo;
+	if (goo == moo)
+		doit();
+#endif
+#if TRY & 8
+	hue = buf;
+	if (doit())
+		iptr = hue;
+#endif
+	doit();
 }
-int main() { sub(); }
 EOCP
 	if $cc $ccflags -c -DTRY=$defvoidused try.c >.out 2>&1 ; then
 		voidflags=$defvoidused
@@ -8402,9 +8437,7 @@ echo "Hmm, your compiler has some difficulty with void. Checking further..." >&4
 	fi
 esac
 case "$voidflags" in
-"$defvoidused")
-	echo "Good.  I already know it supports void to the level $package wants."
-	;;
+"$defvoidused") ;;
 *)
 	dflt="$voidflags";
 	test -f flags && $cat flags
