@@ -110,22 +110,28 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 			break;
 		case F_SETLK:
 		{
-			HANDLE file =  (HANDLE)_get_osfhandle(fd);
-			struct flock*  arg;
+			HANDLE file = (HANDLE)_get_osfhandle(fd);
+			DWORD start_high, start_low;
+			DWORD len_high, len_low;
+			struct flock* arg;
 			va_list  args;
+
 			va_start(args, cmd);
 			arg = (struct flock*) va_arg(args, struct flock*);
-
-			off_t len = arg->l_len == 0 ? 0xFFFF : arg->l_len;
+			
+			len_high = arg->l_len >> 32;
+			len_low = arg->l_len & MAX_INT_VAL(guint32);
+			start_high = arg->l_start >> 32;
+			start_low = arg->l_start & MAX_INT_VAL(guint32);
 
 			if (arg->l_type == F_WRLCK) {
 
-				if (!LockFile(file, arg->l_start, 0, len, 0))
+				if (!LockFile(file, start_low, start_high, len_low, len_high))
 					errno = GetLastError();
 				else
 					res = 0;
 			} else if (arg->l_type == F_UNLCK) {
-				if (!UnlockFile(file, arg->l_start, 0, len, 0))
+				if (!UnlockFile(file, start_low, start_high, len_low, len_high))
 					errno = GetLastError();
 				else
 					res = 0;
