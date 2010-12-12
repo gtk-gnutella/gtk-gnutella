@@ -210,8 +210,6 @@ get_global_poll_ctx(void)
 	return &poll_ctx;
 }
 
-static void inputevt_timer(struct poll_ctx *poll_ctx);
-
 #endif /* !USE_GLIB_IO_CHANNELS */
 
 #ifndef USE_KQUEUE
@@ -632,13 +630,16 @@ poll_events_to_gio_cond(short events)
 		| ((POLLNVAL & events) ? G_IO_NVAL : 0);
 }
 
-gint (*default_poll_func)(GPollFD *, guint, gint);
+static gint (*default_poll_func)(GPollFD *, guint, gint);
+
+static gboolean
+dispatch_poll(GIOChannel *unused_source,
+	GIOCondition unused_cond, gpointer udata);
 
 static int
 poll_func(GPollFD *gfds, guint n, int timeout_ms)
 {
 	struct poll_ctx *poll_ctx;
-	int ret;
 
 	poll_ctx = get_global_poll_ctx();
 	g_assert(poll_ctx);
@@ -650,7 +651,7 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 	}
 
 	if (poll_ctx->num_ready > 0) {
-		inputevt_timer(poll_ctx);
+		dispatch_poll(NULL, 0, poll_ctx);
 	}
 
 	/* FIXME: This crude hack prevents thrashing as GLib uses zero
@@ -659,11 +660,7 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 	 */
 	timeout_ms = MAX(1, timeout_ms);
 
-	ret = default_poll_func(gfds, n, timeout_ms);
-	if (-1 == ret && !is_temporary_error(errno)) {
-		g_warning("poll() failed: %s", g_strerror(errno));
-	}
-	return ret;
+	return default_poll_func(gfds, n, timeout_ms);
 }
 #endif	/* USE_DEV_POLL || USE_POLL */
 
@@ -1118,27 +1115,27 @@ inputevt_init(void)
 		g_warning("create_poll_fd() failed: %s", g_strerror(errno));
 		/* This is no hard error, we fall back to the GLib source watcher */
 	} else {
-		GIOChannel *ch;
-
 		set_close_on_exec(poll_ctx->fd);	/* Just in case */
-
-#if defined(USE_DEV_POLL) || defined(USE_POLL)
-		default_poll_func = g_main_context_get_poll_func(NULL);
-		g_main_set_poll_func(poll_func);
-#endif	/* USE_DEV_POLL */
 
 		poll_ctx->ht = g_hash_table_new(NULL, NULL);
 		poll_ctx->pollfds = g_hash_table_new(NULL, NULL);
 
-#ifndef MINGW32
-		ch = g_io_channel_unix_new(poll_ctx->fd);
+#if defined(USE_DEV_POLL) || defined(USE_POLL)
+		default_poll_func = g_main_context_get_poll_func(NULL);
+		g_main_set_poll_func(poll_func);
+#else
+		{
+			GIOChannel *ch;
+
+			ch = g_io_channel_unix_new(poll_ctx->fd);
 
 #if GLIB_CHECK_VERSION(2, 0, 0)
-		g_io_channel_set_encoding(ch, NULL, NULL); /* binary data */
+			g_io_channel_set_encoding(ch, NULL, NULL); /* binary data */
 #endif /* GLib >= 2.0 */
 
-		(void) g_io_add_watch(ch, READ_CONDITION, dispatch_poll, poll_ctx);
-#endif	/* MINGW32 */
+			(void) g_io_add_watch(ch, READ_CONDITION, dispatch_poll, poll_ctx);
+		}
+#endif	/* USE_DEV_POLL */
 	}
 }
 
