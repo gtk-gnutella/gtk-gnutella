@@ -157,6 +157,12 @@ struct pollfd {
 #define writev mingw_writev
 #define truncate mingw_truncate
 #define sendto mingw_sendto
+#define recvfrom mingw_recvfrom
+
+#ifdef HAS_WSARECVMSG
+#define recvmsg mingw_recvmsg
+ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
+#endif	/* HAS_WSARECVMSG */
 
 #define mprotect mingw_mprotect
 #define getrusage mingw_getrusage
@@ -294,7 +300,8 @@ ssize_t mingw_sendto(socket_fd_t, const void *buf, size_t len, int flags,
 ssize_t s_write(socket_fd_t fd, const void *buf, size_t count);
 ssize_t s_read(socket_fd_t fd, void *buf, size_t count);
 size_t mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt);
-ssize_t recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
+ssize_t mingw_recvfrom(socket_fd_t, void *, size_t, int,
+			struct sockaddr *, socklen_t *);
 
 int s_close(socket_fd_t fd);
 ssize_t mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt);

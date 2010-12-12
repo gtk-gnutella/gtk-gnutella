@@ -146,7 +146,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 
 #ifdef HAS_WSAPOLL
 int
-mingw_poll(struct pollfd *fds, unsigned long nfds, int timeout)
+mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 {
 	int res = WSAPoll(fds, nfds, timeout);
 	if (res == -1)
@@ -472,6 +472,53 @@ mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 		errno = WSAGetLastError();
 	return w;
 };
+
+#if HAS_WSARECVMSG
+/* FIXME: WSARecvMsg is not included in MingW yet */
+ssize_t
+mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
+{
+	DWORD received;
+	WSAMSG msg;
+	int res;
+
+	msg.name = hdr->msg_name;
+	msg.namelen = hdr->msg_namelen;
+	msg.lpBuffers = hdr->msg_iov;
+	msg.dwBufferCount = hdr->msg_iovlen;
+	msg.Control.len = hdr->msg_controllen;
+	msg.Control.buf = hdr->msg_control;
+	msg.dwFlags = hdr->msg_flags;
+
+	res = WSARecvMsg(s, &msg, &received, NULL, NULL);
+	if (res != 0) {
+		errno = WSAGetLastError();
+		return -1;
+	}
+	return received;
+}	
+#endif	/* HAS_WSARECVMSG */
+
+ssize_t
+mingw_recvfrom(socket_fd_t s, void *buf, size_t len, int flags
+	struct sockaddr *src_addr, socklen_t *addrlen)
+{
+	DWORD received, dflags = flags;
+	INT ifromLen;
+
+	res = WSARecvFrom(s, buf, len, &received, &dflags,
+			src_addr, &ifromLen, NULL, NULL);
+	if (0 != res) {
+		errno = WSAGetLastError();
+		return -1;
+	}
+	if (addrlen) {
+		*addrlen = ifromLen;
+	}
+	/* Not sure about behaviour on truncation */
+	g_return_val_if_fail(received <= len, len);
+	return received;
+}
 
 ssize_t
 recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
