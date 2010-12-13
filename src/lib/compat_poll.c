@@ -138,6 +138,8 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 				fds[i].revents |= POLLERR;
 			}
 		}
+	} else if (ret < 0) {
+		g_warning("error during select %s", g_strerror(errno));
 	}
 	return ret;
 }

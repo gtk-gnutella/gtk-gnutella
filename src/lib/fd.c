@@ -257,7 +257,7 @@ is_a_socket(int fd)
 		return FALSE;
 
 	opt_len = sizeof(opt_val);
-	ret = getsockopt(fd, SOL_SOCKET, SO_ACCEPTCONN,
+	ret = getsockopt(fd, SOL_SOCKET, SO_TYPE,
 			cast_to_void_ptr(&opt_val), &opt_len);
 	return 0 == ret;
 }
