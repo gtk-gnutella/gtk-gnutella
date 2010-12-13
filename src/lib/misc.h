@@ -262,8 +262,6 @@ char *data_hex_str(const char *data, size_t len);
 
 int create_directory(const char *dir, mode_t mode);
 
-int parse_major_minor(const char *src, char const **endptr,
-	guint *major, guint *minor);
 char *is_strprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
 char *is_strcaseprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
 gboolean is_strsuffix(const char *str, size_t len, const char *suffix);

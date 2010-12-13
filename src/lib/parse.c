@@ -242,6 +242,49 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 }
 
 /**
+ * Parses a "major.minor" string.
+ *
+ * @param src		the string to parse.
+ * @param endptr	if not NULL, it will point to the next character after
+ * 					the parsed address on success. On failure it will point
+ *					to the character which caused the failure.
+ * @param major		if non-NULL, where the major value is writtten
+ * @param minor		if non-NULL, where the minor value is writtten
+ *
+ * @return 0 if OK, an errno code otherwise.
+ */
+int
+parse_major_minor(const char *src, char const **endptr,
+	guint *major, guint *minor)
+{
+	const char *ep;
+	int error;
+	guint32 maj, min;
+
+	g_assert(src);
+
+	maj = parse_uint32(src, &ep, 10, &error);
+	if (error) {
+		min = 0;	/* dumb compiler */
+	} else if (*ep != '.') {
+		error = EINVAL;
+		min = 0;	/* dumb compiler */
+	} else {
+		ep++; /* Skip the '.' */
+		min = parse_uint32(ep, &ep, 10, &error);
+	}
+
+	if (endptr)
+		*endptr = ep;
+	if (major)
+		*major = error ? 0 : maj;
+	if (minor)
+		*minor = error ? 0 : min;
+
+	return error;
+}
+
+/**
  * @returns 0 if ``s'' is not a valid IPv4 address. Otherwise, the parsed
  * 			IPv4 address in host byte order.
  */

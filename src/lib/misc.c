@@ -1518,37 +1518,6 @@ failure:
 	return -1;
 }
 
-int
-parse_major_minor(const char *src, char const **endptr,
-	guint *major, guint *minor)
-{
-	const char *ep;
-	int error;
-	guint32 maj, min;
-
-	g_assert(src);
-
-	maj = parse_uint32(src, &ep, 10, &error);
-	if (error) {
-		min = 0;	/* dumb compiler */
-	} else if (*ep != '.') {
-		error = EINVAL;
-		min = 0;	/* dumb compiler */
-	} else {
-		ep++; /* Skip the '.' */
-		min = parse_uint32(ep, &ep, 10, &error);
-	}
-
-	if (endptr)
-		*endptr = ep;
-	if (major)
-		*major = error ? 0 : maj;
-	if (minor)
-		*minor = error ? 0 : min;
-
-	return error;
-}
-
 /**
  * Find amount of common leading bits between two IP addresses.
  */
