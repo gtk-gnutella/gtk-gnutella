@@ -933,6 +933,10 @@ inputevt_remove(guint id)
 		/* Mark as removed */
 		relay->handler = zero_handler;
 
+#ifdef USE_POLL
+		poll_ctx->ev_arr.ev[id].fd = -1;
+#endif	/* USE_POLL */
+
 		if (poll_ctx->dispatching) {
 			/*
 			 * Don't clear the "used" bit yet because this slot must
