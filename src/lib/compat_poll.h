@@ -61,6 +61,6 @@ struct pollfd {
 };
 #endif
 
-int compat_poll(struct pollfd *fds, size_t n, int timeout);
+int compat_poll(struct pollfd *fds, unsigned n, int timeout);
 
 /* vi: set ts=4 sw=4 cindent: */
