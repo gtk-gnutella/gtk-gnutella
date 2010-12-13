@@ -97,6 +97,7 @@ RCSID("$Id$")
 #include "lib/host_addr.h"
 #include "lib/map.h"
 #include "lib/patricia.h"
+#include "lib/parse.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/stats.h"
