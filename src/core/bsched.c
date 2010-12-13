@@ -2156,6 +2156,17 @@ bio_readv(bio_source_t *bio, iovec_t *iov, int iovcnt)
 		}
 	}
 
+	{
+		int i;
+		ssize_t max_to_read = 0;
+
+		for (i = 0; i < iovcnt; i++) {
+			max_to_read += iovec_len(&iov[i]);
+		}
+		
+		g_assert(max_to_read <= available);
+	}
+	
 	/*
 	 * Read into I/O vector, updating used bandwidth.
 	 *

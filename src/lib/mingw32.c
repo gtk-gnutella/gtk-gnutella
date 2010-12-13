@@ -277,8 +277,8 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
 		if (-1 == r)
 			break;
 
-		g_assert(r >= 0);
-		g_assert(r <= iovec_len(&iov[i]));
+		g_assert(r >= (ssize_t)0);
+		g_assert(r <= (ssize_t)iovec_len(&iov[i]));
 
 		total_read += r;
 
@@ -485,10 +485,22 @@ size_t
 mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 {
 	DWORD r, flags = 0;
+	int i;
+    ssize_t max_to_read = 0;
+
+	/* Prepare for assertion check on function exit */
+	for (i = 0; i < iovcnt; i++) {
+		max_to_read += iovec_len(&iov[i]);
+	}
+	
 	int res = WSARecv(fd, (LPWSABUF) iov, iovcnt, &r, &flags, NULL, NULL);
 
-	if (res != 0)
+	if (res != 0) {
+		r = -1;
 		errno = WSAGetLastError();
+	}
+	g_assert(r == -1 || r <= max_to_read);
+	
 	return r;
 }
 
@@ -498,8 +510,10 @@ mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 	DWORD w;
 	int res = WSASend(fd, (LPWSABUF) iov, iovcnt, &w, 0, NULL, NULL);
 
-	if (res != 0)
+	if (res != 0) {
+		w = -1;
 		errno = WSAGetLastError();
+	}
 	return w;
 };
 
