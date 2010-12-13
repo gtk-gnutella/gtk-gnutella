@@ -654,12 +654,6 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 		dispatch_poll(NULL, 0, poll_ctx);
 	}
 
-	/* FIXME: This crude hack prevents thrashing as GLib uses zero
-	 *		  as timeout most of the time resulting in about 100% CPU
-	 *		  utilization.
-	 */
-	timeout_ms = MAX(1, timeout_ms);
-
 	return default_poll_func(gfds, n, timeout_ms);
 }
 #endif	/* USE_DEV_POLL || USE_POLL */
