@@ -107,7 +107,7 @@ upnp_add_redir (const char *proto, const char * addr, guint16 port)
 		
 	g_debug("upnp_add_redir %s %s:%u", proto, addr, port);
 	
-	if (urls.controlURL[0] == '\0') {
+	if (urls.controlURL == NULL || urls.controlURL[0] == '\0') {
 		g_warning("UPnP init was not done!");
 		return;
 	}
@@ -140,7 +140,7 @@ upnp_rem_redir (const char * proto, guint16 port)
 
 	g_debug("upnp_rem_redir %s :%d", proto, port);
 
-	if (urls.controlURL[0] == '\0') {
+	if (urls.controlURL == NULL || urls.controlURL[0] == '\0') {
 		g_warning("UPnP init was not done !");
 		return;
 	}
