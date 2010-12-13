@@ -475,19 +475,17 @@ s_close(socket_fd_t fd)
 	return res;
 }
 
-size_t
+ssize_t
 mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 {
 	DWORD r, flags = 0;
-	
 	int res = WSARecv(fd, (LPWSABUF) iov, iovcnt, &r, &flags, NULL, NULL);
 
 	if (res != 0) {
-		r = -1;
 		errno = WSAGetLastError();
+		return (ssize_t) -1;
 	}
-	
-	return r;
+	return (ssize_t) r;
 }
 
 ssize_t
@@ -497,10 +495,10 @@ mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 	int res = WSASend(fd, (LPWSABUF) iov, iovcnt, &w, 0, NULL, NULL);
 
 	if (res != 0) {
-		w = -1;
 		errno = WSAGetLastError();
+		return (ssize_t) -1;
 	}
-	return w;
+	return (ssize_t) w;
 };
 
 #if HAS_WSARECVMSG
@@ -553,70 +551,7 @@ mingw_recvfrom(socket_fd_t s, void *data, size_t len, int flags,
 }
 
 ssize_t
-recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
-{
-#if 0
-	DWORD received;
-	WSAMSG msg;
-
-	msg.name = hdr->msg_name;
-	msg.namelen = hdr->msg_namelen;
-	msg.lpBuffers = hdr->msg_iov;
-	msg.dwBufferCount = hdr->msg_iovlen;
-	msg.Control.len = hdr->msg_controllen;
-	msg.Control.buf = hdr->msg_control;
-	msg.dwFlags = hdr->msg_flags;
-
-
-	int res = WSARecvMsg(s, &msg, &received, NULL, NULL);
-	if (res != 0) {
-		errno = WSAGetLastError();
-		return -1;
-	}
-	return received;
-
-#else
-	/* WSARecvMsg is available in windows, but not in mingw */
-
-	if (hdr->msg_iovlen < 1) {
-		errno = EINVAL;
-		return -1;
-	} else if (hdr->msg_iovlen > 100) {
-		g_warning("recvmsg: msg_iovlen to large: %d", hdr->msg_iovlen);
-        errno = EINVAL;
-        return -1;
-    } else {
-		size_t i;
-		DWORD received;
-		INT ifromLen;
-		DWORD dflags;
-		WSABUF buf[hdr->msg_iovlen]; /* ISO C99 VLA */
-
-		for (i = 0; i < hdr->msg_iovlen; i++) {
-			buf[i].buf = iovec_base(&hdr->msg_iov[i]);
-			buf[i].len = iovec_len(&hdr->msg_iov[i]);
-		}
-
-		hdr->msg_controllen = 0;
-		hdr->msg_flags = 0;
-
-		ifromLen = hdr->msg_namelen;
-		dflags = flags;
-
-		if (
-				0 != WSARecvFrom(s, buf, i, &received, &dflags,
-					hdr->msg_name, &ifromLen, NULL, NULL)
-		   ) {
-			errno = WSAGetLastError();
-			return -1;
-		}
-
-		return received;
-	}
-#endif
-}
-
-ssize_t mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
+mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 	  const struct sockaddr *dest_addr, socklen_t addrlen)
 {
 	ssize_t res = sendto(sockfd, buf, len, flags, dest_addr, addrlen);

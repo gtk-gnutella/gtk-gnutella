@@ -285,7 +285,7 @@ ssize_t mingw_sendto(socket_fd_t, const void *buf, size_t len, int flags,
 		const struct sockaddr *dest_addr, socklen_t addrlen);
 ssize_t s_write(socket_fd_t fd, const void *buf, size_t count);
 ssize_t s_read(socket_fd_t fd, void *buf, size_t count);
-size_t mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt);
+ssize_t mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt);
 ssize_t mingw_recvfrom(socket_fd_t, void *, size_t, int,
 			struct sockaddr *, socklen_t *);
 
