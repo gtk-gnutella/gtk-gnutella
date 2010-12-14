@@ -1528,8 +1528,9 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 	amount = len > available ? available : len;
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED bio_write(wio=%d, len=%d) available=%d",
-			bio->wio->fd(bio->wio), (int) len, (int) available);
+		g_debug("BSCHED bio_write(wio=%d, len=%lu) available=%lu",
+			bio->wio->fd(bio->wio), (unsigned long) len,
+			(unsigned long) available);
 
 	r = bio->wio->write(bio->wio, data, amount);
 
@@ -1542,8 +1543,8 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 	 */
 
 	if ((ssize_t) -1 == r && 0 == errno) {
-		g_warning("wio->write(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->wio->fd(bio->wio), (int) len);
+		g_warning("wio->write(fd=%d, len=%lu) returned -1 with errno = 0, "
+			"assuming EAGAIN", bio->wio->fd(bio->wio), (unsigned long) len);
 		errno = VAL_EAGAIN;
 	}
 
@@ -1640,8 +1641,9 @@ bio_writev(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	 */
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED bio_writev(fd=%d, len=%d) available=%d",
-			bio->wio->fd(bio->wio), (int) len, (int) available);
+		g_debug("BSCHED bio_writev(fd=%d, len=%lu) available=%lu",
+			bio->wio->fd(bio->wio), (unsigned long) len,
+			(unsigned long) available);
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_writev(bio->wio, iov, iovcnt);
@@ -1657,8 +1659,8 @@ bio_writev(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	 */
 
 	if ((ssize_t) -1 == r && 0 == errno) {
-		g_warning("writev(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->wio->fd(bio->wio), (int) len);
+		g_warning("writev(fd=%d, len=%lu) returned -1 with errno = 0, "
+			"assuming EAGAIN", bio->wio->fd(bio->wio), (unsigned long) len);
 		errno = VAL_EAGAIN;
 	}
 
@@ -1716,8 +1718,9 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 	}
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED bio_sendto(wio=%d, len=%d) available=%d",
-			bio->wio->fd(bio->wio), (int) len, (int) available);
+		g_debug("BSCHED bio_sendto(wio=%d, len=%lu) available=%lu",
+			bio->wio->fd(bio->wio), (unsigned long) len,
+			(unsigned long) available);
 
 	g_assert(bio->wio != NULL);
 	g_assert(bio->wio->sendto != NULL);
@@ -1732,8 +1735,8 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 	 */
 
 	if ((ssize_t) -1 == r && 0 == errno) {
-		g_warning("wio->sendto(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->wio->fd(bio->wio), (int) len);
+		g_warning("wio->sendto(fd=%d, len=%lu) returned -1 with errno = 0, "
+			"assuming EAGAIN", bio->wio->fd(bio->wio), (unsigned long) len);
 		errno = VAL_EAGAIN;
 	}
 
@@ -1853,8 +1856,9 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 	amount = len > available ? available : len;
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED bsched_write(fd=%d, len=%d) available=%d",
-			bio->wio->fd(bio->wio), (int) len, (int) available);
+		g_debug("BSCHED bsched_write(fd=%d, len=%lu) available=%lu",
+			bio->wio->fd(bio->wio), (unsigned long) len,
+			(unsigned long) available);
 
 #ifdef USE_MMAP
 	{
@@ -2015,9 +2019,9 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 
 	if (r >= 0 && *offset != start + r) {		/* Paranoid, as usual */
 		g_warning("FIXED SENDFILE returned offset: "
-			"was set to %s instead of %s (%d byte%s written)",
+			"was set to %s instead of %s (%lu byte%s written)",
 			uint64_to_string(*offset), uint64_to_string2(start + r),
-			(int) r, r == 1 ? "" : "s");
+			(unsigned long) r, r == 1 ? "" : "s");
 		*offset = start + r;
 	} else if ((ssize_t) -1 == r) {
 		*offset = start;	/* Paranoid: in case sendfile() touched it */
@@ -2065,8 +2069,9 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 
 	amount = len > available ? available : len;
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED bsched_read(fd=%d, len=%d) available=%d",
-			bio->wio->fd(bio->wio), (int) len, (int) available);
+		g_debug("BSCHED bsched_read(fd=%d, len=%lu) available=%lu",
+			bio->wio->fd(bio->wio), (unsigned long) len,
+			(unsigned long) available);
 
 	r = bio->wio->read(bio->wio, data, amount);
 	if (r > 0) {
@@ -2165,8 +2170,9 @@ bio_readv(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	 */
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED bio_readv(fd=%d, len=%d) available=%d",
-			bio->wio->fd(bio->wio), (int) len, (int) available);
+		g_debug("BSCHED bio_readv(fd=%d, len=%lu) available=%lu",
+			bio->wio->fd(bio->wio), (unsigned long) len,
+			(unsigned long) available);
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_readv(bio->wio, iov, iovcnt);
@@ -2182,8 +2188,8 @@ bio_readv(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	 */
 
 	if ((ssize_t) -1 == r && 0 == errno) {
-		g_warning("readv(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->wio->fd(bio->wio), (int) len);
+		g_warning("readv(fd=%d, len=%lu) returned -1 with errno = 0, "
+			"assuming EAGAIN", bio->wio->fd(bio->wio), (unsigned long) len);
 		errno = VAL_EAGAIN;
 	}
 
