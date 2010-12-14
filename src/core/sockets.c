@@ -2525,11 +2525,8 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 	(void) unused_source;
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-#ifdef MINGW32
-		char error;	/* FIXME: Why??? */
-#else
 		int error;
-#endif
+
 		socklen_t error_len = sizeof error;
 
 		getsockopt(s->file_desc, SOL_SOCKET, SO_ERROR, &error, &error_len);
