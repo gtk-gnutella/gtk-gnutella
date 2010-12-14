@@ -613,7 +613,9 @@ gtk_gnutella_exit(int exit_code)
 	DO(file_object_close);
 	DO(settings_close);	/* Must come after hcache_close() */
 	DO(misc_close);
+#ifdef MINGW32
 	DO(mingw_close);
+#endif
 	DO(inputevt_close);
 	DO(locale_close);
 	DO(cq_close);
