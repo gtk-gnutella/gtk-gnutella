@@ -320,7 +320,15 @@ enum mingw_cpufreq {
 
 guint64 mingw_cpufreq(enum mingw_cpufreq freq);
 
+typedef struct pollfd {
+  SOCKET fd;
+  short  events;
+  short  revents;
+} WSAPOLLFD;
+
+int mingw_poll(struct pollfd *fds, unsigned n, int timeout);
 void mingw_init(void);
+void mingw_close(void);
 
 #endif	/* MINGW32 */
 

@@ -47,6 +47,22 @@
  * Poll events (requested and returned).
  */
 
+#ifdef MINGW32
+
+#define POLLRDNORM  0x0100
+#define POLLRDBAND  0x0200
+#define POLLIN      (POLLRDNORM | POLLRDBAND)
+#define POLLPRI     0x0000	/* XXX: Is actually 0x0400, however this is not supported by the winsock provider */
+#define POLLWRNORM  0x0010
+#define POLLOUT     (POLLWRNORM)
+#define POLLWRBAND  0x0020
+
+#define POLLERR     0x0001	/* Error condition */
+#define POLLHUP     0x0002	/* Hung up */
+#define POLLNVAL    0x0004	/* Invalid socket */
+
+#else
+
 #define POLLIN		0x0001	/* There is data to read */
 #define POLLPRI		0x0002	/* There is urgent data to read */
 #define POLLOUT		0x0004	/* Writing now will not block */
@@ -54,11 +70,15 @@
 #define POLLHUP		0x0010	/* Hung up */
 #define POLLNVAL	0x0020	/* Invalid request: fd not open */
 
+
 struct pollfd {
 	socket_fd_t fd;		/**< File descriptor to poll */
 	short events;		/**< Types of events poller cares about */
 	short revents;		/**< Types of events that actually occurred */
 };
+
+#endif
+
 #endif
 
 int compat_poll(struct pollfd *fds, unsigned n, int timeout);

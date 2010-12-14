@@ -86,6 +86,10 @@ RCSID("$Id$")
 
 #define VMM_MINSIZE (1024*1024*100)	/* At least 100 MB */
 
+#define WS2_LIBRARY "ws2_32.dll"
+static HINSTANCE libws2_32;
+
+
 typedef struct processor_power_information {
   ULONG Number;
   ULONG MaxMhz;
@@ -96,6 +100,9 @@ typedef struct processor_power_information {
 } PROCESSOR_POWER_INFORMATION;
 
 extern gboolean vmm_is_debugging(guint32 level);
+
+typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
+WSAPoll_func_t WSAPoll = NULL;
 
 int
 mingw_fcntl(int fd, int cmd, ... /* arg */ )
@@ -421,6 +428,7 @@ mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 int
 mingw_shutdown(socket_fd_t sockfd, int how)
 {
+
 	int res = shutdown(sockfd, how);
 	if (res == -1)
 		errno = WSAGetLastError();
@@ -1032,6 +1040,21 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 	return result;
 }
 
+int
+mingw_poll(struct pollfd *fds, unsigned n, int timeout)
+{
+	if (WSAPoll == NULL) {
+		int res = WSAPoll(fds, n, timeout);
+		
+		if (res == SOCKET_ERROR)
+			errno = WSAGetLastError();
+		return res;
+	}
+	else {
+		return compat_poll(fds, n, timeout);
+	}
+}
+
 #ifdef MINGW32_ADNS
 /* Not a clean implementation yet */
 /***
@@ -1184,7 +1207,24 @@ mingw_init(void)
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
 		g_error("Error at WSAStartup()\n");
+		
+	libws2_32 = LoadLibrary(WS2_LIBRARY);
+    if (libws2_32 != NULL) {
+        WSAPoll = (WSAPoll_func_t) GetProcAddress(libws2_32, "WSAPoll");
+    }
 }
+
+void 
+mingw_close(void)
+{
+	if (libws2_32 != NULL) {
+		FreeLibrary(libws2_32);
+		
+		libws2_32 = NULL;
+		WSAPoll = NULL;
+	}
+}
+
 #endif	/* MINGW32 */
 
 /* vi: set ts=4 sw=4 cindent: */

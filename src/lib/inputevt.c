@@ -55,7 +55,7 @@ RCSID("$Id$")
 #define USE_EPOLL
 #elif defined(HAS_DEV_POLL)
 #define USE_DEV_POLL
-#elif defined(HAS_POLL) || defined(HAS_WSAPOLL) || defined(HAS_SELECT)
+#elif defined(HAS_POLL) || defined(HAS_WSAPOLL) || defined(HAS_SELECT) || defined(MINGW32)
 #define USE_POLL
 #else
 #define USE_GLIB_IO_CHANNELS	/* Use GLib IO Channels with default function */
@@ -523,7 +523,11 @@ collect_events(struct poll_ctx *poll_ctx, int timeout_ms)
 {
 	int ret;
 
+#ifdef MINGW32
+	ret = mingw_poll(poll_ctx->ev_arr.ev, poll_ctx->num_ev, timeout_ms);
+#else
 	ret = compat_poll(poll_ctx->ev_arr.ev, poll_ctx->num_ev, timeout_ms);
+#endif
 	if (-1 == ret && !is_temporary_error(errno)) {
 		g_warning("collect_events(): poll() failed: %s", g_strerror(errno));
 	}
