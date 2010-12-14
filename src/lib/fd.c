@@ -47,7 +47,9 @@ RCSID("$Id$")
 void
 set_close_on_exec(int fd)
 {
-#ifndef MINGW32	/* MINGW32 FIXME */
+#ifdef MINGW32	/* MINGW32 FIXME */
+	(void) fd;
+#else
 	int flags;
 
 	flags = fcntl(fd, F_GETFD);
@@ -178,12 +180,13 @@ get_non_stdio_fd(int fd)
 		int nfd, saved_errno;
 
 		saved_errno = errno;
-#ifndef MINGW32	/* MINGW32 FIXME */
-		nfd = fcntl(fd, F_DUPFD, 256);
-		if (nfd > 0) {
+#ifdef MINGW32	/* MINGW32 FIXME */
+		if (FALSE)
 #else
-		if ( TRUE ) {
+		nfd = fcntl(fd, F_DUPFD, 256);
+		if (nfd > 0)
 #endif
+		{
 			close(fd);
 			fd = nfd;
 		}
@@ -195,7 +198,9 @@ get_non_stdio_fd(int fd)
 void
 fd_set_nonblocking(int fd)
 {
-#ifndef MINGW32	/* MINGW32 FIXME */
+#ifdef MINGW32	/* MINGW32 FIXME */
+	(void) fd;
+#else
 	int ret, flags;
 
 	ret = fcntl(fd, F_GETFL, 0);
