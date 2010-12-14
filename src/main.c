@@ -1595,9 +1595,8 @@ main(int argc, char **argv)
 	/* Our regular inits */
 	
 #ifdef MINGW32
-	WSADATA wsaData;
-	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
-		g_error("Error at WSAStartup()\n");
+	mingw_init();
+	
 #endif
 
 	portmap_init();

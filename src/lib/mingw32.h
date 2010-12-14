@@ -39,6 +39,8 @@
 
 #ifdef MINGW32
 
+#define FD_SETSIZE      4096
+
 #define WINVER 0x0501
 #include <ws2tcpip.h>
 
@@ -317,6 +319,8 @@ enum mingw_cpufreq {
 };
 
 guint64 mingw_cpufreq(enum mingw_cpufreq freq);
+
+void mingw_init(void);
 
 #endif	/* MINGW32 */
 

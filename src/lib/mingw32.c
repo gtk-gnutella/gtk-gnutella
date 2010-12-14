@@ -1178,6 +1178,13 @@ mingw_timer(void)
 }
 #endif /* ADNS Disabled */
 
+void
+mingw_init(void)
+{
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
+		g_error("Error at WSAStartup()\n");
+}
 #endif	/* MINGW32 */
 
 /* vi: set ts=4 sw=4 cindent: */
