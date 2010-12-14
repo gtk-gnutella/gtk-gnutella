@@ -504,7 +504,7 @@ update_poll_event(struct poll_ctx *poll_ctx, int fd,
 		g_assert(id <= poll_ctx->num_ev);
 
 		pfd = &poll_ctx->ev_arr.ev[id];
-		g_assert(UNSIGNED(pfd->fd) == fd);
+		g_assert(UNSIGNED(pfd->fd) == UNSIGNED(fd));
 
 		pfd->revents = 0;
 		if (cur) {
