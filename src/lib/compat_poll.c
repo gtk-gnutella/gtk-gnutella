@@ -39,6 +39,7 @@
 RCSID("$Id$")
 
 #include "compat_poll.h"
+#include "fd.h"					/* For assertions */
 
 #ifdef I_SYS_SELECT
 #include <sys/select.h>
@@ -70,7 +71,8 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 	struct timeval tv;
 	unsigned i;
 	fd_set rfds, wfds, efds;
-	int ret, max_fd = -1;
+	int ret;
+	socket_fd_t max_fd = (socket_fd_t) 0;
 
 #ifdef MINGW32
 	/*
@@ -89,7 +91,7 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 		socket_fd_t fd = fds[i].fd;
 
 		/* XXX: Temporarily added for debug purposes! */
-		g_assert(-1 == fd || is_a_socket(fd) || is_a_fifo(fd));
+		g_assert(INVALID_SOCKET == fd || is_a_socket(fd) || is_a_fifo(fd));
 		/* XXX */
 
 #ifdef MINGW32
