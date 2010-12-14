@@ -77,7 +77,7 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 	 * Only Windows versions starting at Vista have WSAPoll(), but we
 	 * know all Windows have select() under MinGW.
 	 */
-	if (mingw32_has_wsapoll())
+	if (mingw_has_wsapoll())
 		return mingw_poll(fds, n, timeout);
 #endif
 
