@@ -7331,7 +7331,7 @@ node_drain_hello(gpointer data, int source, inputevt_cond_t cond)
 
 	node_check(n);
 	socket_check(n->socket);
-	g_assert(n->socket->file_desc == source);
+	g_assert(n->socket->file_desc == (socket_fd_t) source);
 	g_assert(n->hello.ptr != NULL);
 	g_assert(n->hello.size > 0);
 	g_assert(n->hello.len < n->hello.size);
@@ -7341,11 +7341,14 @@ node_drain_hello(gpointer data, int source, inputevt_cond_t cond)
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		int error;
 		socklen_t error_len = sizeof error;
-#ifndef MINGW32	/* FIXME MINGW32 */
+#ifdef MINGW32	/* FIXME MINGW32 */
+		(void) error;
+		(void) error_len;
+		node_remove(n, _("Write error during HELLO"));
+#else
 		getsockopt(source, SOL_SOCKET, SO_ERROR, &error, &error_len);
-#endif
 		node_remove(n, _("Write error during HELLO: %s"), g_strerror(error));
-		return;
+#endif
 	}
 
 	node_init_outgoing(n);
