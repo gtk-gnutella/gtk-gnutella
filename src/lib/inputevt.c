@@ -55,7 +55,7 @@ RCSID("$Id$")
 #define USE_EPOLL
 #elif defined(HAS_DEV_POLL)
 #define USE_DEV_POLL
-#elif defined(HAS_POLL) || defined(HAS_WSAPOLL) || defined(HAS_SELECT) || defined(MINGW32)
+#elif defined(HAS_POLL) || defined(HAS_SELECT) || defined(MINGW32)
 #define USE_POLL
 #else
 #define USE_GLIB_IO_CHANNELS	/* Use GLib IO Channels with default function */

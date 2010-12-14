@@ -158,16 +158,38 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 	return res;
 }
 
-#ifdef HAS_WSAPOLL
+/**
+ * Is WSAPoll() supported?
+ */
+gboolean
+mingw_has_wsapoll(void)
+{
+	/*
+	 * Since there is no binding in MinGW for WSAPoll(), we use the dynamic
+	 * linker to fetch the routine address in the library.
+	 * Currently, Configure cannot statically determine whether the
+	 * feature exists...
+	 *		--RAM, 2010-12-14
+	 */
+
+	return WSAPoll != NULL;
+}
+
+/**
+ * Drop-in replacement for poll(), provided WSAPoll() exists.
+ */
 int
 mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 {
-	int res = WSAPoll(fds, nfds, timeout);
+	int res;
+
+	if (NULL == WSAPoll)
+		return WSAEOPNOTSUPP;
+	res = WSAPoll(fds, nfds, timeout);
 	if (SOCKET_ERROR == res)
-		errno = GetLastError();
+		errno = WSAGetLastError();
 	return res;
 }
-#endif	/* HAS_WSAPOLL */
 
 const char *
 mingw_gethome(void)

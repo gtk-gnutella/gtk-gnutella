@@ -322,6 +322,7 @@ typedef struct pollfd {
   short  revents;
 } WSAPOLLFD;
 
+gboolean mingw_has_wsapoll(void);
 int mingw_poll(struct pollfd *fds, unsigned n, int timeout);
 void mingw_init(void);
 void mingw_close(void);
