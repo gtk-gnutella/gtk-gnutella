@@ -496,7 +496,7 @@ update_poll_event(struct poll_ctx *poll_ctx, int fd,
 		void *value;
 		unsigned int id;
 
-		value = g_hash_table_lookup(poll_ctx->pollfds, GINT_TO_POINTER(fd));
+		value = g_hash_table_lookup(poll_ctx->pollfds, GUINT_TO_POINTER(fd));
 		g_assert(NULL != value);
 		
 		id = GPOINTER_TO_UINT(value);
@@ -504,7 +504,7 @@ update_poll_event(struct poll_ctx *poll_ctx, int fd,
 		g_assert(id <= poll_ctx->num_ev);
 
 		pfd = &poll_ctx->ev_arr.ev[id];
-		g_assert(pfd->fd == fd);
+		g_assert(UNSIGNED(pfd->fd) == fd);
 
 		pfd->revents = 0;
 		if (cur) {
