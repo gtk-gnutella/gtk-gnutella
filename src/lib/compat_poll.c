@@ -86,7 +86,7 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 	FD_ZERO(&efds);
 
 	for (i = 0; i < n; i++) {
-		int fd = fds[i].fd;
+		socket_fd_t fd = fds[i].fd;
 
 		/* XXX: Temporarily added for debug purposes! */
 		g_assert(-1 == fd || is_a_socket(fd) || is_a_fifo(fd));
