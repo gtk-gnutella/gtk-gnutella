@@ -177,14 +177,18 @@ mingw_has_wsapoll(void)
 
 /**
  * Drop-in replacement for poll(), provided WSAPoll() exists.
+ *
+ * Use mingw_has_wsapoll() to check for WSAPoll() availability at runtime.
  */
 int
 mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 {
 	int res;
 
-	if (NULL == WSAPoll)
-		return WSAEOPNOTSUPP;
+	if (NULL == WSAPoll) {
+		errno = WSAEOPNOTSUPP;
+		return -1;
+	}
 	res = WSAPoll(fds, nfds, timeout);
 	if (SOCKET_ERROR == res)
 		errno = WSAGetLastError();
