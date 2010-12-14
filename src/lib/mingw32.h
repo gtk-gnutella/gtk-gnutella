@@ -110,10 +110,6 @@
 
 #define S_IFLNK 0120000 /* Symbolic link */
 
-#ifdef HAS_WSAPOLL
-#define poll mingw_poll
-#endif
-
 #define getppid()		1
 #define fcntl mingw_fcntl
 #define ffs __builtin_ffs

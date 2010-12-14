@@ -163,7 +163,7 @@ int
 mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 {
 	int res = WSAPoll(fds, nfds, timeout);
-	if (res == -1)
+	if (SOCKET_ERROR == res)
 		errno = GetLastError();
 	return res;
 }
@@ -1038,21 +1038,6 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 		wfree(p, len);
 
 	return result;
-}
-
-int
-mingw_poll(struct pollfd *fds, unsigned n, int timeout)
-{
-	if (WSAPoll == NULL) {
-		int res = WSAPoll(fds, n, timeout);
-		
-		if (res == SOCKET_ERROR)
-			errno = WSAGetLastError();
-		return res;
-	}
-	else {
-		return compat_poll(fds, n, timeout);
-	}
 }
 
 #ifdef MINGW32_ADNS

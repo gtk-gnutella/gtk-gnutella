@@ -65,7 +65,12 @@ RCSID("$Id$")
  */
 int
 compat_poll(struct pollfd *fds, unsigned int n, int timeout)
-#ifdef USE_SELECT_FOR_POLL
+#if defined(HAS_WSAPOLL)
+{
+	/* Only Windows versions starting at Vista have WSAPoll() */
+	return mingw_poll(fds, n, timeout);
+}
+#elif defined(USE_SELECT_FOR_POLL)
 {
 	struct timeval tv;
 	unsigned i;
@@ -143,10 +148,10 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 	}
 	return ret;
 }
-#else	/* !USE_SELECT_FOR_POLL */
+#else	/* !HAS_WSAPOLL && !USE_SELECT_FOR_POLL */
 {
 	return poll(fds, n, timeout);
 }
-#endif	/* USE_SELECT_FOR_POLL */
+#endif	/* HAS_WSAPOLL || USE_SELECT_FOR_POLL */
 
 /* vi: set ts=4 sw=4 cindent: */
