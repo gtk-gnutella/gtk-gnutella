@@ -1124,7 +1124,7 @@ inputevt_init(void)
 
 #if defined(USE_DEV_POLL) || defined(USE_POLL)
 		default_poll_func = g_main_context_get_poll_func(NULL);
-		g_main_set_poll_func(poll_func);
+		g_main_context_set_poll_func(NULL, poll_func);
 #else
 		{
 			GIOChannel *ch;
@@ -1160,7 +1160,7 @@ void
 inputevt_init(void)
 {
 #ifdef USE_POLL
-	g_main_set_poll_func(compat_poll);
+	g_main_context_set_poll_func(NULL, compat_poll);
 #endif	/* USE_POLL */
 }
 #endif /* USE_GLIB_IO_CHANNELS */
