@@ -88,7 +88,12 @@ GList *g_list_sort_with_data(
 	GList *l, GCompareDataFunc cmp, gpointer user_data);
 
 #define g_string_printf		g_string_sprintf
-#endif
+
+typedef void *GMainContext;
+
+GPollFunc g_main_context_get_poll_func(GMainContext *context);
+void g_main_context_set_poll_func(GMainContext *context, GPollFunc func);
+#endif	/* USE_GLIB1 */
 
 #ifdef USE_GLIB2
 #define gm_hash_table_remove	g_hash_table_remove
@@ -251,7 +256,7 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
 #endif
 #else	/* !__GNUC__ */
 static inline void
-g_info (const gchar *format, ...)
+g_info(const gchar *format, ...)
 {
   va_list args;
   va_start(args, format);
@@ -260,7 +265,7 @@ g_info (const gchar *format, ...)
 }
 #if !GLIB_CHECK_VERSION(2,0,0)
 static void
-g_debug (const gchar *format, ...)
+g_debug(const gchar *format, ...)
 {
   va_list args;
   va_start(args, format);

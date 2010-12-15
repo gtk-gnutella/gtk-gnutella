@@ -45,6 +45,7 @@ RCSID("$Id$")
 
 #include "glib-missing.h"
 #include "ascii.h"
+#include "compat_poll.h"
 #include "iovec.h"
 #include "unsigned.h"
 #include "utf8.h"
@@ -469,6 +470,41 @@ g_string_append_len(GString *gs, const char *val, gssize len)
 		g_string_append_c(gs, *p++);
 
 	return gs;
+}
+#endif	/* USE_GLIB1 */
+
+#ifdef USE_GLIB1
+/*
+ * Emulations for missing routines in glib 1.x to get/set glib's poll function.
+ * They should be working substitutes given gtk-gnutella's usage pattern.
+ */
+
+static GPollFunc gpoll_func;
+
+static gint
+compat_poll_wrapper(GPollFD *ufds, guint nfsd, gint timeout)
+{
+	return compat_poll((struct pollfd *) ufds, nfsd, timeout);
+}
+
+GPollFunc
+g_main_context_get_poll_func(GMainContext *context)
+{
+	g_assert(NULL == context);
+
+	if (NULL == gpoll_func) {
+		gpoll_func = compat_poll_wrapper;
+	}
+	return gpoll_func;
+}
+
+void
+g_main_context_set_poll_func(GMainContext *context, GPollFunc func)
+{
+	g_assert(NULL == context);
+
+	gpoll_func = NULL == func ? compat_poll_wrapper : func;
+	g_main_set_poll_func(gpoll_func);
 }
 #endif	/* USE_GLIB1 */
 
