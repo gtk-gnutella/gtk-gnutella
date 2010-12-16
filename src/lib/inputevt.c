@@ -61,7 +61,23 @@ RCSID("$Id$")
 #define USE_GLIB_IO_CHANNELS	/* Use GLib IO Channels with default function */
 #endif
 
-/* XXX: Enable for testing only */
+/**
+ * Debugging options.
+ */
+#if 1
+#define INPUTEVT_SAFETY_ASSERT	/* Enable safety_assert() */
+#endif
+#if 1
+#define INPUTEVT_DEBUGGING		/* Additional debugging traces */
+#endif
+
+#ifdef INPUTEVT_SAFETY_ASSERT
+#define safety_assert(x)	g_assert(x)
+#else
+#define safety_assert(x)
+#endif
+
+/* XXX: Enable and tweak, for testing only */
 #if 0
 #undef USE_EPOLL
 #undef USE_KQUEUE
@@ -79,7 +95,7 @@ RCSID("$Id$")
  * To prevent incorrect casts and compiler warnings the two macros below
  * should be used to access this struct member.
  */
-#if defined(HAS_KEVENT_INT_UDATA)
+#ifdef HAS_KEVENT_INT_UDATA
 #define KEVENT_UDATA_TO_PTR(x) ulong_to_pointer(x)
 #define PTR_TO_KEVENT_UDATA(x) pointer_to_ulong(x)
 #else
@@ -129,6 +145,9 @@ struct inputevt_array {
  * 	int update_poll_event(struct poll_ctx *poll_ctx, int fd,
  * 		inputevt_cond_t old, inputevt_cond_t cur);
  *
+ * When INPUTEVT_DEBUGGING is set, one also needs:
+ *
+ *  const char *polling_method(void);
  */
 
 #include "bit_array.h"
@@ -221,7 +240,7 @@ inputevt_data_available(void)
 #endif	/* !USE_KQUEUE */
 
 
-#if defined(USE_KQUEUE)
+#ifdef USE_KQUEUE
 
 static guint data_available;	/** Used by inputevt_data_available(). */
 
@@ -276,6 +295,14 @@ create_poll_fd(void)
 	return kqueue();
 }
 
+#ifdef INPUTEVT_DEBUGGING
+static const char *
+polling_method(void)
+{
+	return "kqueue()";
+}
+#endif
+
 static int
 update_poll_event(struct poll_ctx *poll_ctx, int fd,
 	inputevt_cond_t old, inputevt_cond_t cur)
@@ -326,7 +353,7 @@ check_poll_events(struct poll_ctx *poll_ctx)
 
 #endif /* USE_KQUEUE */
 
-#if defined(USE_EPOLL)
+#ifdef USE_EPOLL
 
 static inline int
 get_poll_event_fd(gpointer p)
@@ -355,6 +382,14 @@ create_poll_fd(void)
 {
 	return epoll_create(1024 /* Just an arbitrary value as hint */);
 }
+
+#ifdef INPUTEVT_DEBUGGING
+static const char *
+polling_method(void)
+{
+	return "epoll()";
+}
+#endif
 
 static int
 update_poll_event(struct poll_ctx *poll_ctx, int fd,
@@ -398,12 +433,20 @@ check_poll_events(struct poll_ctx *poll_ctx)
 
 #endif	/* USE_EPOLL */
 
-#if defined(USE_DEV_POLL)
+#ifdef USE_DEV_POLL
 static int
 create_poll_fd(void)
 {
 	return get_non_stdio_fd(open("/dev/poll", O_RDWR));
 }
+
+#ifdef INPUTEVT_DEBUGGING
+static const char *
+polling_method(void)
+{
+	return "/dev/poll";
+}
+#endif
 
 static int
 update_poll_event(struct poll_ctx *poll_ctx, int fd,
@@ -480,6 +523,14 @@ create_poll_fd(void)
 {
 	return 1;	/* fake */
 }
+
+#ifdef INPUTEVT_DEBUGGING
+static const char *
+polling_method(void)
+{
+	return "poll()";
+}
+#endif
 
 static int
 update_poll_event(struct poll_ctx *poll_ctx, int fd,
@@ -644,6 +695,7 @@ static int
 poll_func(GPollFD *gfds, guint n, int timeout_ms)
 {
 	struct poll_ctx *poll_ctx;
+	int r;
 
 	poll_ctx = get_global_poll_ctx();
 	g_assert(poll_ctx);
@@ -658,7 +710,16 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 		dispatch_poll(NULL, 0, poll_ctx);
 	}
 
-	return default_poll_func(gfds, n, timeout_ms);
+	r = default_poll_func(gfds, n, timeout_ms);
+
+#ifdef INPUTEVT_DEBUGGING
+	if (-1 == r) {
+		g_warning("INPUTEVT default poll function failed: %s",
+			g_strerror(errno));
+	}
+#endif
+
+	return r;
 }
 #endif	/* USE_DEV_POLL || USE_POLL */
 
@@ -1106,7 +1167,12 @@ void
 inputevt_init(void)
 {
 	struct poll_ctx *poll_ctx;
-	
+
+#ifdef INPUTEVT_DEBUGGING
+	g_info("INPUTEVT using customized I/O dispatching with %s",
+		polling_method());
+#endif
+
 	poll_ctx = get_global_poll_ctx();
 	g_assert(!poll_ctx->initialized);
 	
@@ -1162,6 +1228,18 @@ inputevt_init(void)
 #ifdef USE_POLL
 	g_main_context_set_poll_func(NULL, compat_poll);
 #endif	/* USE_POLL */
+
+#ifdef INPUTEVT_DEBUGGING
+	{
+		const char *method;
+#ifdef USE_POLL
+		method = polling_method();
+#else
+		method = "glib's polling";
+#endif	/* USE_POLL */
+		g_info("INPUTEVT using glib's I/O channels with %s", method);
+	}
+#endif	/* INPUTEVT_DEBUGGING */
 }
 #endif /* USE_GLIB_IO_CHANNELS */
 
@@ -1182,11 +1260,7 @@ inputevt_add(int fd, inputevt_cond_t cond,
 	g_assert(fd >= 0);
 	g_assert(zero_handler != handler);
 
-	/**
-	 * FIXME: The following is not really required but added for debugging
-	 *		  purposes.
-	 */
-	g_assert(is_a_socket(fd) || is_a_fifo(fd));
+	safety_assert(is_a_socket(fd) || is_a_fifo(fd));
 
 	switch (cond) {
 	case INPUT_EVENT_RX:
