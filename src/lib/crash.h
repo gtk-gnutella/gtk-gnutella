@@ -75,7 +75,7 @@ G_STMT_START { \
 /**
  * Print unsigned quantity into supplied buffer and returns the address
  * within that buffer where the printed string starts (value is generated
- * bacwards from the end of the buffer).
+ * backwards from the end of the buffer).
  *
  * This routine can be used safely in signal handlers.
  */
