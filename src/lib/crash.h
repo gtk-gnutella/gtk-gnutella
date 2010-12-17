@@ -51,7 +51,7 @@
  * When using this macro, the following local variable are expected to
  * be visible on the stack:
  *
- *    struct iovec iov[16];
+ *    iovec_t iov[16];
  *    unsigned iov_cnt = 0;
  *
  * The size of the I/O vector may be anything, 16 above is just an example.
