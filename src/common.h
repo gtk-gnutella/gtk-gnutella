@@ -646,7 +646,6 @@ get_rcsid_string(void)	\
 
 #include "casts.h"
 
-
 #endif /* _common_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
