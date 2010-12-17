@@ -3864,6 +3864,8 @@ vxml_handle_decl(vxml_parser_t *vp, gboolean doctype)
 static void
 vxml_parser_new_element(vxml_parser_t *vp)
 {
+	const char *start;
+
 	vxml_parser_check(vp);
 
 	g_assert(vxml_output_size(&vp->out) != 0);
@@ -3874,7 +3876,22 @@ vxml_parser_new_element(vxml_parser_t *vp)
 	 */
 
 	vxml_output_append(&vp->out, VXC_NUL);
-	atom_str_change(&vp->element, vxml_output_start(&vp->out));
+
+	/*
+	 * Strip namespace indication from the element name if asked to.
+	 */
+
+	start = vxml_output_start(&vp->out);
+
+	if (vp->options & VXML_O_NS_STRIP) {
+		const char *local_name;
+
+		local_name = strchr(start, ':');
+		if (local_name != NULL)
+			start = local_name + 1;
+	}
+
+	atom_str_change(&vp->element, start);
 	vxml_output_discard(&vp->out);
 }
 
