@@ -89,8 +89,16 @@ char *utf8_strupper_copy(const char *src);
 char *utf8_canonize(const char *src);
 char *utf8_normalize(const char *src, uni_norm_t norm);
 gboolean utf8_is_decomposed(const char *src, gboolean nfkd);
-
 guint NON_NULL_PARAM((2)) utf8_encode_char(guint32 uc, char *buf, size_t size);
+guint32 utf8_decode_char_buffer(const char *s, size_t len, guint *retlen)
+	NON_NULL_PARAM((1,3));
+
+int NON_NULL_PARAM((2)) utf16_encode_char(guint32 uc, guint16 *dst);
+guint32 utf16_le_decode_char_buffer(const char *s, size_t len, guint *retlen)
+	NON_NULL_PARAM((1,3));
+guint32 utf16_be_decode_char_buffer(const char *s, size_t len, guint *retlen)
+	NON_NULL_PARAM((1,3));
+
 size_t utf32_to_utf8(const guint32 *in, char *out, size_t size);
 guint32 utf32_lowercase(guint32 uc);
 gboolean utf32_canonical_sorted(const guint32 *src);
@@ -99,6 +107,10 @@ size_t utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size);
 size_t utf32_decompose_nfkd(const guint32 *in, guint32 *out, size_t size);
 size_t utf32_strlower(guint32 *dst, const guint32 *src, size_t size);
 size_t utf32_strupper(guint32 *dst, const guint32 *src, size_t size);
+guint32 utf32_be_decode_char_buffer(const char *s, size_t len, guint *retlen)
+	NON_NULL_PARAM((1,3));
+guint32 utf32_le_decode_char_buffer(const char *s, size_t len, guint *retlen)
+	NON_NULL_PARAM((1,3));
 
 /**
  * This is a highly specialized function (read: don't use it if you don't
@@ -192,6 +204,21 @@ static inline gboolean
 utf32_is_valid(guint32 cp)
 {
   return cp < 0x10ffffU && !utf32_is_non_character(cp);
+}
+
+/**
+ * Determines whether the given UTF-32 codepoint is valid in Unicode.
+ *
+ * @param uc an UTF-32 codepoint.
+ * @return	If the given codepoint is a surrogate, a BOM, out of range
+ *			or an invalid codepoint FALSE is returned; otherwise TRUE.
+ */
+static inline G_GNUC_CONST gboolean
+utf32_bad_codepoint(guint32 uc)
+{
+	return	uc > 0x10FFFF ||
+		0xFFFE == (uc & 0xFFFE) || /* BOM or illegal xxFFFF */
+		utf32_is_surrogate(uc);
 }
 
 static inline unsigned
@@ -375,9 +402,14 @@ gboolean locale_is_utf8(void);
 gboolean utf8_can_latinize(const char *src);
 size_t utf8_latinize(char *dst, size_t dst_size, const char *src);
 
-int utf16_encode_char(guint32 uc, guint16 *dst);
-
 #define UNICODE_CANONIZE(x) utf8_canonize(x)
+
+/*
+ * Charset validation and conversion utilities.
+ */
+
+const char *get_iconv_charset_alias(const char *cs);
+char *charset_to_utf8(const char *cs, const char *src, size_t src_len);
 
 #endif	/* _utf8_h_ */
 

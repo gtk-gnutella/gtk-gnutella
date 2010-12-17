@@ -1,7 +1,8 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2010, Raphael Manfredi
+ * Copyright (c) 2004-2006, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -33,9 +34,9 @@
  * written by Larry Wall et al.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2010
  * @author Christian Biere
- * @date 2004-2005
+ * @date 2004-2006
  */
 
 #include "common.h"
@@ -52,27 +53,30 @@ RCSID("$Id$")
 #include <libcharset.h>
 #else /* !I_LIBCHARSET */
 
-#if defined(I_LANGINFO)
+#ifdef I_LANGINFO
 #include <langinfo.h>
 #endif
 
 #endif /* I_LIBCHARSET */
 
-#if defined(I_ICONV)
+#ifdef I_ICONV
 #include <iconv.h>
 #endif	/* I_ICONV */
 
 #include "utf8_tables.h"
 
 #include "utf8.h"
+#include "atoms.h"
 #include "ascii.h"
 #include "concat.h"
+#include "endian.h"
 #include "halloc.h"
 #include "misc.h"
 #include "random.h"
 #include "debug.h"
 #include "glib-missing.h"
 #include "stringify.h"
+#include "unsigned.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -121,11 +125,16 @@ static UConverter *conv_icu_locale = NULL;
 static UConverter *conv_icu_utf8 = NULL;
 #endif /* xxxUSE_ICU */
 
+/**
+ * This table records mappings "charset name" -> struct conv_to_utf8.
+ */
+static GHashTable *charset2conv_to_utf8;
+
 struct conv_to_utf8 {
-	char *name;	/**< Name of the source charset; g_strdup()ed */
+	const char *name;		/**< Name of the source charset (atom) */
 	iconv_t cd;		/**< iconv() conversion descriptor; -1 or iconv_open()ed */
-	gboolean is_ascii;	/**< Set to TRUE if name is "ASCII" */
-	gboolean is_utf8;	/**< Set to TRUE if name is "UTF-8" */
+	gboolean is_ascii;		/**< Set to TRUE if name is "ASCII" */
+	gboolean is_utf8;		/**< Set to TRUE if name is "UTF-8" */
 	gboolean is_iso8859;	/**< Set to TRUE if name matches "ISO-8859-*" */
 };
 
@@ -372,21 +381,6 @@ uniskip(guint32 uc)
 }
 
 /**
- * Determines whether the given UTF-32 codepoint is valid in Unicode.
- *
- * @param uc an UTF-32 codepoint.
- * @return	If the given codepoint is a surrogate, a BOM, out of range
- *			or an invalid codepoint FALSE is returned; otherwise TRUE.
- */
-static inline G_GNUC_CONST gboolean
-utf32_bad_codepoint(guint32 uc)
-{
-	return	uc > 0x10FFFF ||
-		0xFFFE == (uc & 0xFFFE) || /* Check for BOM and illegal xxFFFF */
-		UNICODE_IS_SURROGATE(uc);
-}
-
-/**
  * @param uc the unicode character to encode.
  * @returns 0 if the unicode codepoint is invalid. Otherwise the
  *          length of the UTF-8 character is returned.
@@ -398,14 +392,14 @@ utf8_encoded_char_len(guint32 uc)
 }
 
 /**
- * Needs short description here.
+ * Encodes Unicode character as UTF-8 into buffer.
  *
- * @param uc	the unicode character to encode.
- * @param buf	the destination buffer. MUST BE at least 4 bytes long.
- * @param size	no document.
+ * @param uc	the Unicode character to encode.
+ * @param buf	the destination buffer.
+ * @param size	the length of the destination buffer.
  *
- * @returns		0 if the unicode character is invalid. Otherwise the
- *				length of the UTF-8 character is returned.
+ * @returns 0 if the Unicode character could not be encoded.
+ * Otherwise the length of the generated UTF-8 character.
  */
 guint NON_NULL_PARAM((2))
 utf8_encode_char(guint32 uc, char *buf, size_t size)
@@ -413,7 +407,7 @@ utf8_encode_char(guint32 uc, char *buf, size_t size)
 	guint len, i;
 
 	len = utf8_encoded_char_len(uc);
-	if (len <= size) {
+	if (G_LIKELY(len <= size)) {
 		i = len;
 		while (i > 1) {
 			i--;
@@ -421,6 +415,8 @@ utf8_encode_char(guint32 uc, char *buf, size_t size)
 			uc >>= UTF8_ACCU_SHIFT;
 		}
 		buf[0] = uc | UTF8_LENGTH_MARK(len);
+	} else {
+		len = 0;
 	}
 
 	return len;
@@ -862,6 +858,73 @@ failure:
 }
 
 /**
+ * Decodes a single UTF-8 character.
+ *
+ * The string is not necessarily NUL-terminated, so the remaining length
+ * of the string is passed.
+ *
+ * @returns the character value of the first character in the string `s',
+ * which is assumed to be in UTF-8 encoding.
+ * `retlen' will be set to the length, in bytes, of that character.
+ *
+ * If `s' does not point to a well-formed UTF-8 character or if the string
+ * is to short to hold the character entirely, `retlen' is set to 0 and the
+ * function returns 0.
+ */
+guint32
+utf8_decode_char_buffer(const char *s, size_t len, guint *retlen)
+{
+	guint32 uc = (guchar) *s;
+	guint n = utf8_skip(uc);
+
+	/*
+	 * utf8_skip() returns zero for an invalid initial byte.
+	 * It rejects also surrogates (U+D800..U+DFFF) implicitely.
+	 */
+
+	*retlen = n;
+
+	if (1 != n) {
+		guchar c;
+		guint i;
+
+		if (0 == n || len < n)
+			goto failure;
+
+		/* The second byte needs special handling */
+
+		c = *++s;
+		i = uc & 0x3F;
+		if (c > utf8_2nd_byte_tab[i].end || c < utf8_2nd_byte_tab[i].start)
+			goto failure;
+
+		n--;
+		uc &= 0x3F >> n;
+
+		for (;;) {
+			uc = UTF8_ACCUMULATE(uc, c);
+			if (--n == 0)
+				break;
+			c = *++s;
+
+			/* Any further bytes must be in the range 0x80...0xBF. */
+			if (0x80 != (0xC0 & c))
+				goto failure;
+		}
+
+		/* Check for BOMs (*FFFE) and invalid codepoints (*FFFF) */
+		if (0xFFFE == (0xFFFE & uc))
+			goto failure;
+	}
+
+	return uc;
+
+failure:
+	*retlen = 0;
+	return 0;
+}
+
+/**
  * Are the first bytes of string `s' forming a valid UTF-8 character?
  *
  * @param s a NUL-terminated string or at minimum a buffer with 4 bytes.
@@ -1038,7 +1101,7 @@ utf8_strcpy_max(char *dst, size_t dst_size, const char *src, size_t max_chars)
 }
 
 /**
- * Encodes a single UTF-32 character as UTF-16 into a buffer.
+ * Encodes a single UTF-32 character as UTF-16 big-endian into a buffer.
  * See also RFC 2781.
  *
  * @param uc the unicode character to encode.
@@ -1060,6 +1123,214 @@ utf16_encode_char(guint32 uc, guint16 *dst)
 		dst[1] = (uc & 0x3ff) | UNI_SURROGATE_SECOND;
 		return 2;
 	}
+	return 0;
+}
+
+/**
+ * Decodes a single UTF-16 character (big-endian representation).
+ *
+ * The string is not necessarily NUL-terminated, so the remaining length
+ * of the string is passed.
+ *
+ * @returns the character value of the first character in the string `s',
+ * which is assumed to be in UTF-16 encoding.
+ * `retlen' will be set to the length, in bytes, of that character.
+ *
+ * If `s' does not point to a well-formed UTF-16 character or is too short
+ * to contain the whole character, `retlen' is set to 0 and the function
+ * returns 0.
+ */
+guint32
+utf16_be_decode_char_buffer(const char *s, size_t len, guint *retlen)
+{
+	guchar c;
+	guint16 first;
+
+	if (len < 2)
+		goto malformed;
+
+	c = *s++;
+
+	if (0 == c)
+		goto malformed;
+
+	first = (guint16) c << 8;
+	c = *s++;
+	if (0 == c)
+		goto malformed;
+	first |= (guint16) c;
+
+	len -= 2;
+
+	if ((first & 0xfc00) == UNI_SURROGATE_FIRST) {
+		guint16 second;
+		guint32 uc;
+
+		if (len < 2)
+			goto single_char;
+
+		c = *s++;
+		if (0 == c)
+			goto single_char;
+		second = (guint16) c << 8;
+		c = *s++;
+		if (0 == c)
+			goto single_char;
+		second |= (guint16) c;
+
+		if ((second & 0xfc00) != UNI_SURROGATE_SECOND)
+			goto single_char;
+
+		uc = ((guint32) (first & 0x3ff) << 10) | (guint32) (second & 0x3ff);
+
+		*retlen = 4;
+		return uc + 0x10000;
+	}
+
+single_char:
+		*retlen = 2;
+		return first;
+
+malformed:
+	*retlen = 0;
+	return 0;
+}
+
+/**
+ * Decodes a single UTF-16 character (little-endian representation).
+ *
+ * The string is not necessarily NUL-terminated, so the remaining length
+ * of the string is passed.
+ *
+ * @returns the character value of the first character in the string `s',
+ * which is assumed to be in UTF-16 encoding.
+ * `retlen' will be set to the length, in bytes, of that character.
+ *
+ * If `s' does not point to a well-formed UTF-16 character or is too short
+ * to contain the whole character, `retlen' is set to 0 and the function
+ * returns 0.
+ */
+guint32
+utf16_le_decode_char_buffer(const char *s, size_t len, guint *retlen)
+{
+	guchar c;
+	guint16 first;
+
+	if (len < 2)
+		goto malformed;
+
+	c = *s++;
+
+	if (0 == c)
+		goto malformed;
+
+	first = (guint16) c ;
+	c = *s++;
+	if (0 == c)
+		goto malformed;
+	first |= (guint16) c << 8;
+
+	len -= 2;
+
+	if ((first & 0xFC00) == UNI_SURROGATE_FIRST) {
+		guint16 second;
+		guint32 uc;
+
+		if (len < 2)
+			goto single_char;
+
+		c = *s++;
+		if (0 == c)
+			goto single_char;
+		second = (guint16) c;
+		c = *s++;
+		if (0 == c)
+			goto single_char;
+		second |= (guint16) c << 8;
+
+		if ((second & 0xFC00) != UNI_SURROGATE_SECOND)
+			goto single_char;
+
+		uc = ((guint32) (first & 0x3ff) << 10) | (guint32) (second & 0x3ff);
+
+		*retlen = 4;
+		return uc + 0x10000;
+	}
+
+single_char:
+	*retlen = 2;
+	return first;
+
+malformed:
+	*retlen = 0;
+	return 0;
+}
+
+/**
+ * Decodes a single UTF-32 character (big-endian representation).
+ *
+ * The string is not necessarily NUL-terminated, so the remaining length
+ * of the string is passed.
+ *
+ * @returns the character value of the first character in the string `s',
+ * which is assumed to be in UTF-32 encoding.
+ * `retlen' will be set to the length, in bytes, of that character.
+ *
+ * If `s' does not point to a well-formed UTF-32 character or is too short
+ * to contain the whole character, `retlen' is set to 0 and the function
+ * returns 0.
+ */
+guint32
+utf32_be_decode_char_buffer(const char *s, size_t len, guint *retlen)
+{
+	guint32 uc;
+
+	if (len < 4)
+		goto malformed;
+
+	uc = peek_be32(s);
+	if (utf32_bad_codepoint(uc))
+		goto malformed;
+
+	*retlen = 4;
+	return uc;
+
+malformed:
+	*retlen = 0;
+	return 0;
+}
+
+/**
+ * Decodes a single UTF-32 character (little-endian representation).
+ *
+ * The string is not necessarily NUL-terminated, so the remaining length
+ * of the string is passed.
+ *
+ * @returns the character value of the first character in the string `s',
+ * which is assumed to be in UTF-32 encoding.
+ * `retlen' will be set to the length, in bytes, of that character.
+ *
+ * If `s' does not point to a well-formed UTF-32 character or is too short
+ * to contain the whole character, `retlen' is set to 0 and the function
+ * returns 0.
+ */
+guint32
+utf32_le_decode_char_buffer(const char *s, size_t len, guint *retlen)
+{
+	guint32 uc;
+
+	if (len < 4)
+		goto malformed;
+
+	uc = peek_le32(s);
+	if (utf32_bad_codepoint(uc))
+		goto malformed;
+
+	*retlen = 4;
+	return uc;
+
+malformed:
+	*retlen = 0;
 	return 0;
 }
 
@@ -1144,10 +1415,10 @@ static const char *codesets[] = {
 };
 
 /**
- * @returns a string representing the current locale as an alias which is
+ * @returns a string representing the specified charset as an alias which is
  * understood by GNU iconv. The returned pointer points to a static buffer.
  */
-static const char *
+const char *
 get_iconv_charset_alias(const char *cs)
 {
 	const char *start = codesets[0], *first_end = NULL;
@@ -1241,18 +1512,63 @@ conv_to_utf8_new(const char *cs)
 
 	t = walloc(sizeof *t);
 	t->cd = (iconv_t) -1;
-	t->name = h_strdup(cs);
+	t->name = atom_str_get(cs);
 	t->is_utf8 = 0 == strcmp(cs, "UTF-8");
 	t->is_ascii = 0 == strcmp(cs, "ASCII");
 	t->is_iso8859 = NULL != is_strprefix(cs, "ISO-8859-");
+
+	gm_hash_table_insert_const(charset2conv_to_utf8, t->name, t);
+
 	return t;
 }
 
 static void
 conv_to_utf8_free(struct conv_to_utf8 *cu)
 {
-	HFREE_NULL(cu->name);
+	atom_str_free_null(&cu->name);
+	if (cu->cd != (iconv_t) -1) {
+		iconv_close(cu->cd);
+		cu->cd = (iconv_t) -1;
+	}
 	wfree(cu, sizeof *cu);
+}
+
+/**
+ * Initialize "to UTF-8" convertors.
+ */
+static void
+conv_to_utf8_init(struct conv_to_utf8 *cu)
+{
+	g_assert(cu != NULL);
+
+	if (0 == strcmp("@locale", cu->name) || 0 == strcmp(charset, cu->name))
+		cu->cd = cd_locale_to_utf8;
+	else if (UTF8_CD_INVALID != utf8_name_to_cd(cu->name))
+		cu->cd = utf8_cd_get(utf8_name_to_cd(cu->name));
+	else if ((iconv_t) -1 == (cu->cd = iconv_open("UTF-8", cu->name)))
+			g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", cu->name);
+}
+
+/**
+ * Get iconv() descriptor to convert from given charset name to UTF-8.
+ *
+ * @param cs	normalized character set name
+ *
+ * @return iconv_t to translate given charset name into UTF-8, -1 on error.
+ */
+static iconv_t
+conv_to_utf8_cd_get(const char *cs)
+{
+	struct conv_to_utf8 *cu;
+
+	cu = g_hash_table_lookup(charset2conv_to_utf8, cs);
+	if (NULL == cu)
+		cu = conv_to_utf8_new(cs);
+
+	if ((iconv_t) -1 == cu->cd)
+		conv_to_utf8_init(cu);
+
+	return cu->cd;
 }
 
 /**
@@ -1387,7 +1703,7 @@ conversion_init(void)
 
 	g_assert(charset);
 	g_assert(pfcs);
-	
+
 	/*
 	 * Don't use iconv() for UTF-8 -> UTF-8 conversion, it's
 	 * pointless and apparently some implementations don't filter
@@ -1439,16 +1755,24 @@ conversion_init(void)
 	/* Initialize filename charsets -> UTF-8 conversion */
 	
 	for (sl = sl_filename_charsets; sl != NULL; sl = g_slist_next(sl)) {
-		struct conv_to_utf8 *t;
-
-		t = sl->data;
-		if (0 == strcmp("@locale", t->name) || 0 == strcmp(charset, t->name))
-			t->cd = cd_locale_to_utf8;
-		else if (UTF8_CD_INVALID != utf8_name_to_cd(t->name))
-			t->cd = utf8_cd_get(utf8_name_to_cd(t->name));
-		else if ((iconv_t) -1 == (t->cd = iconv_open("UTF-8", t->name)))
-				g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", t->name);
+		conv_to_utf8_init(sl->data);
 	}
+}
+
+static void
+conversion_free_kv(gpointer u_key, gpointer value, gpointer u_data)
+{
+	(void) u_key;
+	(void) u_data;
+
+	conv_to_utf8_free(value);
+}
+
+static void
+conversion_close(void)
+{
+	g_hash_table_foreach(charset2conv_to_utf8, conversion_free_kv, NULL);
+	gm_hash_table_destroy_null(&charset2conv_to_utf8);
 }
 
 void
@@ -1489,7 +1813,14 @@ locale_init(void)
 	 * If the character set could not be properly detected, use ASCII as
 	 * default for the filename character set, even though we use ISO-8859-1 as
 	 * default locale character set.
+	 *
+	 * Since get_filename_charsets() can create conv_to_utf8 objects, we
+	 * need to create the mapping table storing all these objects by name,
+	 * not waiting for the conversion_init() call which comes later and will
+	 * peruse the list we build here in sl_filename_charsets.
 	 */
+
+	charset2conv_to_utf8 = g_hash_table_new(g_str_hash, g_str_equal);
 	sl_filename_charsets = get_filename_charsets(charset ? charset : "ASCII");
 	g_assert(sl_filename_charsets);
 	g_assert(sl_filename_charsets->data);
@@ -1502,8 +1833,6 @@ locale_init(void)
 			break;
 		}
 	}
-
-	conversion_init();
 
 #if 0  /* xxxUSE_ICU */
 	{
@@ -1527,6 +1856,7 @@ locale_init(void)
 	}
 #endif
 
+	conversion_init();
 	unicode_compose_init();
 
 #if 0 && !defined(OFFICIAL_BUILD)
@@ -1569,7 +1899,16 @@ locale_close(void)
 	}
 #endif
 
-	G_SLIST_FOREACH(sl_filename_charsets, conv_to_utf8_free);
+	conversion_close();
+
+	/*
+	 * conv_to_utf8 structures from sl_filename_charsets have been inserted
+	 * into the conversion hash table charset2conv_to_utf8 which is cleaned up
+	 * by conversion_close().
+	 *
+	 * Hence we only need to free the list itself now.
+	 */
+
 	gm_slist_free_null(&sl_filename_charsets);
 	HFREE_NULL(charset);
 
@@ -1586,10 +1925,11 @@ locale_close(void)
  * @note
  * NOTE: This assumes 8-bit (char-based) encodings.
  *
- * @param cd an iconv context; if it is (iconv_t) -1, NULL will be returned.
- * @param dst the destination buffer; may be NULL IFF dst_size is zero.
- * @param dst_size the size of the destination buffer in bytes.
- * @param src the source string to convert.
+ * @param cd		an iconv context; if it is -1, NULL will be returned.
+ * @param dst		the destination buffer; may be NULL IFF dst_size is zero.
+ * @param dst_size	the size of the destination buffer in bytes.
+ * @param src		the source string to convert.
+ * @param src_len	the length of the source; if -1, computed as strlen(src)
  * @param abort_on_error If TRUE, the conversion is be aborted and zero
  *						 is returned on any error. Otherwise, if iconv()
  *						 returns EINVAL or EILSEQ an underscore is written
@@ -1601,7 +1941,7 @@ locale_close(void)
  */
 static size_t
 complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
-	gboolean abort_on_error)
+	size_t src_len, gboolean abort_on_error)
 {
 	size_t src_left, size = 0;
 
@@ -1622,7 +1962,8 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 		goto error;
 	}
 
-	src_left = strlen(src);
+	src_left = (size_t) -1 == src_len ? strlen(src) : src_len;
+
 	while (src_left > 0) {
 		char buf[4096];
 		size_t ret, n_read, n_written;
@@ -1712,12 +2053,13 @@ error:
  * zero "dst" won't be touched and may be NULL. For best performance
  * a small local buffer should be used as "dst" so that complete_iconv()
  * does not have to run twice, especially if the result is only used
- * temporary and copying is not necessary.
+ * temporarily and copying is not necessary.
  *
- * @param cd an iconv context; if it is (iconv_t) -1, NULL will be returned.
- * @param src the source string to convert.
- * @param dst the destination buffer; may be NULL IFF dst_size is zero.
- * @param dst_size the size of the dst buffer.
+ * @param cd		an iconv context; if it is -1, NULL will be returned.
+ * @param dst		the destination buffer; may be NULL IFF dst_size is zero.
+ * @param dst_size 	the size of the dst buffer.
+ * @param src		the source string to convert.
+ * @param src_len	the length of src; if -1, computed with strlen(src)
  * @param abort_on_error If TRUE, NULL is returned if iconv() returns EINVAL
  *						 or EILSEQ during the conversion. Otherwise, an
  *						 underscore is used as replacement character and
@@ -1728,7 +2070,7 @@ error:
  */
 static char *
 hyper_iconv(iconv_t cd, char *dst, size_t dst_size, const char *src,
-	gboolean abort_on_error)
+	size_t src_len, gboolean abort_on_error)
 {
 	size_t size;
 
@@ -1736,14 +2078,14 @@ hyper_iconv(iconv_t cd, char *dst, size_t dst_size, const char *src,
 	g_assert(src);
 	g_assert(0 == dst_size || dst);
 
-	size = complete_iconv(cd, dst, dst_size, src, abort_on_error);
+	size = complete_iconv(cd, dst, dst_size, src, src_len, abort_on_error);
 	if (0 == size) {
 		dst = NULL;
 	} else if (size > dst_size) {
 		size_t n;
 
 		dst = g_malloc(size);
-		n = complete_iconv(cd, dst, size, src, abort_on_error);
+		n = complete_iconv(cd, dst, size, src, src_len, abort_on_error);
 		if (n != size) {
 			g_error("size=%ld, n=%ld, src=\"%s\" dst=\"%s\"",
 				(gulong) size, (gulong) n, src, dst);
@@ -1759,17 +2101,20 @@ hyper_iconv(iconv_t cd, char *dst, size_t dst_size, const char *src,
  * but must not overlap otherwise. If ``dst'' is to small, the resulting string
  * will be truncated but the UTF-8 encoding is preserved in any case.
  *
- * @param src a NUL-terminated string.
- * @param dst the destination buffer.
- * @param size the size in bytes of the destination buffer.
+ * @param dst		the destination buffer.
+ * @param size		the size in bytes of the destination buffer.
+ * @param src		a NUL-terminated string (unless src_len != -1)
+ * @param src_len	then length of src, -1 if src is NUL-terminated
+ *
  * @return the length in bytes of resulting string assuming size was
  *         sufficiently large.
  */
-size_t
-utf8_enforce(char *dst, size_t size, const char *src)
+static size_t
+utf8_enforce_len(char *dst, size_t size, const char *src, size_t src_len)
 {
 	const char *s = src;
 	char *d = dst;
+	size_t remain = (size_t) -1 == src_len ? 1 : src_len;
 
 	g_assert(0 == size || NULL != dst);
 	g_assert(NULL != src);
@@ -1777,10 +2122,20 @@ utf8_enforce(char *dst, size_t size, const char *src)
 	/** TODO: Add overlap check */
 
 	if (size-- > 0) {
-		while ('\0' != *s) {
+		while (size_is_positive(remain) && '\0' != *s) {
 			size_t clen;
 
-			clen = utf8_char_len(s);
+			if (src_len != (size_t) -1) {
+				guint len = utf8_skip(*s);
+				if (len > remain)
+					break;			/* Whole character does not fit */
+				clen = utf8_char_len(s);
+				g_assert(clen <= len);
+				remain -= clen;
+			} else {
+				clen = utf8_char_len(s);
+			}
+
 			if (MAX(1, clen) > size)
 				break;
 
@@ -1802,6 +2157,26 @@ utf8_enforce(char *dst, size_t size, const char *src)
 		d++;
 
 	return d - dst;
+}
+
+/**
+ * Copies the NUL-terminated string ``src'' to ``dst'' replacing all invalid
+ * characters (non-UTF-8) with underscores. ``src'' and ``dst'' may be identical
+ * but must not overlap otherwise. If ``dst'' is to small, the resulting string
+ * will be truncated but the UTF-8 encoding is preserved in any case.
+ *
+ * @param dst		the destination buffer.
+ * @param size		the size in bytes of the destination buffer.
+ * @param src		a NUL-terminated string (unless src_len != -1)
+ * @param src_len	then length of src, -1 if src is NUL-terminated
+ *
+ * @return the length in bytes of resulting string assuming size was
+ *         sufficiently large.
+ */
+size_t
+utf8_enforce(char *dst, size_t size, const char *src)
+{
+	return utf8_enforce_len(dst, size, src, (size_t) -1);
 }
 
 /**
@@ -1846,27 +2221,28 @@ ascii_enforce(char *dst, size_t size, const char *src)
  * Applies utf8_enforce to the string "src" copying the
  * result into "dst" if "dst_size" is sufficiently large.
  *
- * @param dst the destination buffer.
- * @param dst_size the size in bytes of the destination buffer.
- * @param src a NUL-terminated string.
+ * @param dst		the destination buffer.
+ * @param dst_size	the size in bytes of the destination buffer.
+ * @param src		a NUL-terminated string (unless src_len != -1).
+ * @param src_len	length of string; computed with strlen(src) if -1.
+ *
  * @return If dst_size was sufficient dst is returned, otherwise
  *		   a newly allocated buffer.
- *         
  */
 static char *
-hyper_utf8_enforce(char *dst, size_t dst_size, const char *src)
+hyper_utf8_enforce(char *dst, size_t dst_size, const char *src, size_t src_len)
 {
 	size_t n;
 
 	g_assert(src);
 	g_assert(0 == dst_size || dst);
 
-	n = utf8_enforce(dst, dst_size, src);
+	n = utf8_enforce_len(dst, dst_size, src, src_len);
 	if (n >= dst_size) {
 		size_t size = 1 + n;
 
 		dst = g_malloc(size);
-		n = utf8_enforce(dst, size, src);
+		n = utf8_enforce_len(dst, size, src, src_len);
 		g_assert(size - 1 == n);
 	}
 	return dst;
@@ -1921,10 +2297,12 @@ utf8_to_filename_charset(const char *src)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd_utf8_to_filename, sbuf, sizeof sbuf, src, FALSE);
+	dst = hyper_iconv(cd_utf8_to_filename,
+			sbuf, sizeof sbuf, src, (size_t) -1, FALSE);
+
 	if (!dst)
 		dst = primary_filename_charset_is_utf8()
-			? hyper_utf8_enforce(sbuf, sizeof sbuf, src)
+			? hyper_utf8_enforce(sbuf, sizeof sbuf, src, (size_t) -1)
 			: hyper_ascii_enforce(sbuf, sizeof sbuf, src);
 
 	return sbuf != dst ? dst : g_strdup(sbuf);
@@ -1970,27 +2348,50 @@ utf8_to_locale(const char *src)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd_utf8_to_locale, NULL, 0, src, FALSE);
+	dst = hyper_iconv(cd_utf8_to_locale, NULL, 0, src, (size_t) -1, FALSE);
 	if (!dst)
 		dst = locale_is_utf8()
-			? hyper_utf8_enforce(NULL, 0, src)
+			? hyper_utf8_enforce(NULL, 0, src, (size_t) -1)
 			: hyper_ascii_enforce(NULL, 0, src);
 	return dst;
 }
 
+/**
+ * Convert arbitrary buffer to UTF-8 using the proper converter.
+ *
+ * @param cd		the converter
+ * @param src		the string, NUL-terminated unless src_len != -1
+ * @param src_len	length of src; of -1, will be computed using srtlen(src)
+ *
+ * @return newly allocated string in UTF-8.
+ */
 static char *
-convert_to_utf8(iconv_t cd, const char *src)
+convert_to_utf8_len(iconv_t cd, const char *src, size_t src_len)
 {
 	char sbuf[4096];
 	char *dst;
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd, sbuf, sizeof sbuf, src, FALSE);
+	dst = hyper_iconv(cd, sbuf, sizeof sbuf, src, src_len, FALSE);
 	if (!dst)
-		dst = hyper_utf8_enforce(sbuf, sizeof sbuf, src);
+		dst = hyper_utf8_enforce(sbuf, sizeof sbuf, src, src_len);
 
 	return sbuf != dst ? dst : g_strdup(sbuf);
+}
+
+/**
+ * Convert NUL-terminated string to UTF-8 using the proper converter.
+ *
+ * @param cd		the converter
+ * @param src		the string, NUL-terminated
+ *
+ * @return newly allocated string in UTF-8.
+ */
+static char *
+convert_to_utf8(iconv_t cd, const char *src)
+{
+	return convert_to_utf8_len(cd, src, (size_t) -1);
 }
 
 /**
@@ -2036,8 +2437,36 @@ utf8_to_iso8859_1(const char *src)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd_utf8_to_iso8859_1, NULL, 0, src, FALSE);
+	dst = hyper_iconv(cd_utf8_to_iso8859_1, NULL, 0, src, (size_t) -1, FALSE);
 	return dst ? dst : hyper_ascii_enforce(NULL, 0, src);
+}
+
+/**
+ * Converts an arbitrary buffer from a given charset to UTF-8.
+ *
+ * @param cs		the charset name
+ * @param src		source buffer
+ * @param src_len	length of source buffer
+ *
+ * @return a newly allocated UTF-8 encoded string, NULL on error.
+ */
+char *
+charset_to_utf8(const char *cs, const char *src, size_t src_len)
+{
+	const char *alias;
+	char *result = NULL;
+
+	alias = get_iconv_charset_alias(cs);
+
+	if (alias != NULL) {
+		iconv_t cd;
+
+		cd = conv_to_utf8_cd_get(alias);
+		if (cd != (iconv_t) -1)
+			result = convert_to_utf8_len(cd, src, src_len);
+	}
+
+	return result;
 }
 
 #if CHAR_BIT == 8
@@ -2327,9 +2756,9 @@ convert_to_utf8_normalized(iconv_t cd, const char *src, uni_norm_t norm)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd, sbuf, sizeof sbuf, src, FALSE);
+	dst = hyper_iconv(cd, sbuf, sizeof sbuf, src, (size_t) -1, FALSE);
 	if (!dst)
-		dst = hyper_utf8_enforce(sbuf, sizeof sbuf, src);
+		dst = hyper_utf8_enforce(sbuf, sizeof sbuf, src, (size_t) -1);
 
 	g_assert(dst);
 	g_assert(dst != src);
@@ -2406,7 +2835,7 @@ filename_to_utf8_normalized(const char *src, uni_norm_t norm)
 			 */
 			continue;
 		} else {
-			dbuf = hyper_iconv(t->cd, NULL, 0, src, TRUE);
+			dbuf = hyper_iconv(t->cd, NULL, 0, src, (size_t) -1, TRUE);
 			if (dbuf) {
 				s = dbuf;
 				break;
@@ -2419,7 +2848,7 @@ filename_to_utf8_normalized(const char *src, uni_norm_t norm)
 			g_warning("Could not properly convert to UTF-8: \"%s\"", src);
 		}
 		g_assert(NULL == dbuf);
-		dbuf = hyper_utf8_enforce(NULL, 0, src);
+		dbuf = hyper_utf8_enforce(NULL, 0, src, (size_t) -1);
 		s = dbuf;
 	}
 
@@ -5496,7 +5925,8 @@ regression_utf8_bijection(void)
 static void
 regression_utf8_unknown_conversion(void)
 {
-	const char *input = "\xe6\x3f\x8b\x20\xe3\x3f\x99\xe3\x82\x8b\x20\xe3\x82\xb7\xe3\x3f\xb9";
+	const char *input = "\xe6\x3f\x8b\x20\xe3\x3f\x99\xe3"
+		"\x82\x8b\x20\xe3\x82\xb7\xe3\x3f\xb9";
 	const char *output;
 
 	output = unknown_to_utf8(input, NULL);
