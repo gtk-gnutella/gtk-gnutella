@@ -271,6 +271,23 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 #endif	/* HAS_VSNPRINTF */
 
 /**
+ * Whether gm_vsnprintf() or gm_snprintf() can safely be called from
+ * a signal handler.
+ *
+ * @return TRUE if a gm_vsnprintf() or gm_snprintf() would not cause any
+ * memory allocation and therefore can be safely used in a signal handler.
+ */
+gboolean
+gm_xprintf_is_signal_safe(void)
+{
+#ifdef	HAS_VSNPRINTF
+	return TRUE;
+#else
+	return FALSE;
+#endif
+}
+
+/**
  * This is the smallest common denominator between the g_vsnprintf() from
  * GLib 1.2 and the one from GLib 2.x. The older version has no defined
  * return value, it could be the resulting string length or the size of

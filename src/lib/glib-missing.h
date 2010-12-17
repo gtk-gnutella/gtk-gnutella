@@ -123,6 +123,7 @@ void gm_hash_table_destroy_null(GHashTable **h_ptr);
 
 char *gm_string_finalize(GString *gs);
 
+gboolean gm_xprintf_is_signal_safe(void);
 size_t gm_vsnprintf(char *str, size_t n, char const *fmt, va_list args);
 size_t gm_snprintf(char *str, size_t n,
 	char const *fmt, ...) G_GNUC_PRINTF (3, 4);
