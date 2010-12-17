@@ -50,6 +50,8 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
+enum header_magic { HEADER_MAGIC = 0xb1b8484fU };
+
 /*
  * The `headers' field is a hash table indexed by field name (case-insensitive).
  * Each value (GString) holds a private copy of the string making that header,
@@ -62,6 +64,7 @@ RCSID("$Id$")
  */
 
 struct header {
+	enum header_magic magic;
 	GHashTable *headers;		/**< Indexed by name */
 	slist_t *fields;			/**< Ordered list of header_field_t */
 	int flags;					/**< Various operating flags */
@@ -69,6 +72,16 @@ struct header {
 	int num_lines;				/**< Total header lines seen */
 	int refcnt;					/**< Reference count on the structure */
 };
+
+static inline void
+header_check(const header_t * const h)
+{
+	g_assert(h != NULL);
+	g_assert(HEADER_MAGIC == h->magic);
+	g_assert(h->refcnt > 0);
+}
+
+enum header_field { HEADER_FIELD_MAGIC = 0xde29aad7U };
 
 /**
  * A header field.
@@ -90,9 +103,17 @@ struct header {
  */
 
 typedef struct {
+	enum header_field magic;
 	char *name;					/**< Field name */
 	slist_t *lines;				/**< List of lines making this header */
 } header_field_t;
+
+static inline void
+header_field_check(const header_field_t * const hf)
+{
+	g_assert(hf != NULL);
+	g_assert(HEADER_FIELD_MAGIC == hf->magic);
+}
 
 /***
  *** Operating flags
@@ -151,6 +172,7 @@ hfield_make(const char *name)
 	header_field_t *h;
 
 	h = walloc0(sizeof *h);
+	h->magic = HEADER_FIELD_MAGIC;
 	h->name = h_strdup(name);
 
 	return h;
@@ -169,11 +191,14 @@ hfield_free_item(gpointer p, gpointer unused_data)
 static void
 hfield_free(header_field_t *h)
 {
+	header_field_check(h);
+
 	if (h->lines) {
 		slist_foreach(h->lines, hfield_free_item, NULL);
 		slist_free(&h->lines);
 	}
 	HFREE_NULL(h->name);
+	h->magic = 0;
 	wfree(h, sizeof *h);
 }
 
@@ -184,6 +209,8 @@ hfield_free(header_field_t *h)
 static void
 hfield_append(header_field_t *h, const char *text)
 {
+	header_field_check(h);
+
 	if (!h->lines) {
 		h->lines = slist_new();
 	}
@@ -199,6 +226,7 @@ hfield_dump(const header_field_t *h, FILE *out)
 	slist_iter_t *iter;
 	gboolean first;
 
+	header_field_check(h);
 	g_assert(h->lines);
 
 	fprintf(out, "%s: ", h->name);
@@ -242,6 +270,8 @@ hfield_dump(const header_field_t *h, FILE *out)
 static GHashTable *
 header_get_table(header_t *o)
 {
+	header_check(o);
+
 	if (!o->headers)
 		o->headers = g_hash_table_new(ascii_strcase_hash, ascii_strcase_eq);
 
@@ -257,6 +287,7 @@ header_make(void)
 	header_t *o;
 
 	o = walloc0(sizeof *o);
+	o->magic = HEADER_MAGIC;
 	o->refcnt = 1;
 	return o;
 }
@@ -281,6 +312,8 @@ free_header_data(gpointer key, gpointer value, gpointer unused_udata)
 header_t *
 header_refcnt_inc(header_t *o)
 {
+	header_check(o);
+
 	o->refcnt++;
 	return o;
 }
@@ -291,12 +324,15 @@ header_refcnt_inc(header_t *o)
 void
 header_free(header_t *o)
 {
-	g_assert(o);
+	header_check(o);
 
-	if (--(o->refcnt) != 0)
+	if (o->refcnt > 1) {
+		o->refcnt--;
 		return;
+	}
 
 	header_reset(o);
+	o->magic = 0;
 	wfree(o, sizeof *o);
 }
 
@@ -329,7 +365,7 @@ header_reset(header_t *o)
 {
 	static const header_t zero_header;
 
-	g_assert(o);
+	header_check(o);
 
 	if (o->headers) {
 		g_hash_table_foreach_remove(o->headers, free_header_data, NULL);
@@ -352,6 +388,8 @@ header_get(const header_t *o, const char *field)
 {
 	GString *v;
 
+	header_check(o);
+
 	if (o->headers) {
 		v = g_hash_table_lookup(o->headers, deconstify_gchar(field));
 	} else {
@@ -373,6 +411,8 @@ header_get_extended(const header_t *o, const char *field, size_t *len_ptr)
 {
 	GString *v;
 
+	header_check(o);
+
 	if (o->headers) {
 		v = g_hash_table_lookup(o->headers, deconstify_gchar(field));
 	} else {
@@ -393,6 +433,8 @@ add_header(header_t *o, const char *field, const char *text)
 {
 	GHashTable *ht;
 	GString *v;
+
+	header_check(o);
 
 	ht = header_get_table(o);
 	v = g_hash_table_lookup(ht, field);
@@ -427,7 +469,9 @@ add_continuation(header_t *o, const char *field, const char *text)
 {
 	GString *v;
 
+	header_check(o);
 	g_assert(o->headers);
+
 	v = g_hash_table_lookup(o->headers, field);
 	g_assert(v);
 	g_string_append_c(v, ' ');
@@ -448,6 +492,7 @@ header_append(header_t *o, const char *text, int len)
 	guchar c;
 	header_field_t *hf;
 
+	header_check(o);
 	g_assert(len >= 0);
 
 	if (o->flags & HEAD_F_EOH)
@@ -627,6 +672,8 @@ header_dump_item(gpointer p, gpointer user_data)
 void
 header_dump(FILE *out, const header_t *o, const char *trailer)
 {
+	header_check(o);
+
 	if (o->fields) {
 		slist_foreach(o->fields, header_dump_item, out);
 	}
