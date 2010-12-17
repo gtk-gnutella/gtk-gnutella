@@ -120,6 +120,7 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/iso3166.h"
+#include "lib/log.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
 #include "lib/offtime.h"
@@ -142,6 +143,7 @@
 #include "lib/utf8.h"
 #include "lib/vendors.h"
 #include "lib/vmm.h"
+#include "lib/vxml.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
@@ -183,8 +185,6 @@ static volatile const char *exit_step = "gtk_gnutella_exit";
 static tm_t start_time;
 
 static int reopen_log_files(void);
-static gboolean stderr_disabled;
-
 
 /**
  * Force immediate shutdown of SIGALRM reception.
@@ -945,94 +945,6 @@ scan_files_once(void *unused_data)
 	return FALSE;
 }
 
-static const char * const log_domains[] = {
-	G_LOG_DOMAIN, "Gtk", "GLib", "Pango"
-};
-
-static void
-log_handler(const char *unused_domain, GLogLevelFlags level,
-	const char *message, void *unused_data)
-{
-	int saved_errno = errno;
-	time_t now;
-	struct tm *ct;
-	const char *prefix;
-	char *safer;
-
-	(void) unused_domain;
-	(void) unused_data;
-
-	if (stderr_disabled)
-		return;
-
-	now = tm_time_exact();
-	ct = localtime(&now);
-
-	switch (level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL)) {
-	case G_LOG_LEVEL_CRITICAL: prefix = "CRITICAL"; break;
-	case G_LOG_LEVEL_ERROR:    prefix = "ERROR";    break;
-	case G_LOG_LEVEL_WARNING:  prefix = "WARNING";  break;
-	case G_LOG_LEVEL_MESSAGE:  prefix = "MESSAGE";  break;
-	case G_LOG_LEVEL_INFO:     prefix = "INFO";     break;
-	case G_LOG_LEVEL_DEBUG:    prefix = "DEBUG";    break;
-	default:
-		prefix = "UNKNOWN";
-	}
-
-	if (level & G_LOG_FLAG_RECURSION) {
-		/* Probably logging from memory allocator, string should be safe */
-		safer = deconstify_gpointer(message);
-	} else {
-		safer = control_escape(message);
-	}
-
-	fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n",
-		(TM_YEAR_ORIGIN + ct->tm_year) % 100, ct->tm_mon + 1, ct->tm_mday,
-		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
-		(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
-		(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
-		safer);
-
-#ifdef MINGW32
-	fflush(stderr);		/* Buffered by default on Windows */
-#endif
-
-	if (safer != message) {
-		HFREE_NULL(safer);
-	}
-
-#if 0
-	/* Define to debug Glib or Gtk problems */
-	if (domain) {
-		unsigned i;
-
-		for (i = 0; i < G_N_ELEMENTS(log_domains); i++) {
-			const char *dom = log_domains[i];
-			if (dom && 0 == strcmp(domain, dom)) {
-				raise(SIGTRAP);
-				break;
-			}
-		}
-	}
-#endif
-
-	errno = saved_errno;
-}
-
-static void
-log_init(void)
-{
-	unsigned i;
-
-	for (i = 0; i < G_N_ELEMENTS(log_domains); i++) {
-		g_log_set_handler(log_domains[i],
-			G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL |
-			G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING |
-			G_LOG_LEVEL_MESSAGE | G_LOG_LEVEL_INFO | G_LOG_LEVEL_DEBUG,
-			log_handler, NULL);
-	}
-}
-
 extern char **environ;
 
 enum main_arg {
@@ -1174,28 +1086,14 @@ reopen_log_files(void)
 	gboolean failure = FALSE;
 
 	if (options[main_arg_log_stdout].used) {
-		if (freopen(options[main_arg_log_stdout].arg, "a", stdout)) {
-			setvbuf(stdout, NULL, _IOLBF, 0);
-		} else {
-			fprintf(stderr, "freopen(..., \"a\", stdout) failed: %s",
-				g_strerror(errno));
+		if (!log_reopen(stdout, options[main_arg_log_stdout].arg))
 			failure = TRUE;
-		}
 	}
 	if (options[main_arg_log_stderr].used) {
-		const char *pathname = options[main_arg_log_stderr].arg;
-		
-		if (freopen(pathname, "a", stderr)) {
-			stderr_disabled = 0 == strcmp(pathname, "/dev/null");
-			setvbuf(stderr, NULL, _IOLBF, 0);
-		} else {
-			fprintf(stderr, "freopen(..., \"a\", stderr) failed: %s",
-				g_strerror(errno));
+		if (!log_reopen(stderr, options[main_arg_log_stderr].arg))
 			failure = TRUE;
-			stderr_disabled = TRUE;
-		}
 	} else if (options[main_arg_daemonize].used) {
-		stderr_disabled = TRUE;
+		log_disable_stderr(TRUE);
 	}
 
 	return failure ? -1 : 0;
@@ -1599,10 +1497,7 @@ main(int argc, char **argv)
 	
 #ifdef MINGW32
 	mingw_init();
-	
 #endif
-
-	portmap_init();
 
 #ifndef OFFICIAL_BUILD
 	g_warning("%s \"%s\"",
@@ -1662,9 +1557,19 @@ main(int argc, char **argv)
 	bsched_early_init();	/* before settings_init() */
 	ipp_cache_init();		/* before settings_init() */
 	settings_init();
+
+	/*
+	 * From now on, settings_init() was called so properties have been loaded.
+	 * Routines requiring access to properties should therefore be put below.
+	 */
+
 	vmm_post_init();		/* after settings_init() */
-	map_test();				/* after settings_init() */
-	ipp_cache_load_all();	/* after settings_init() */
+
+	if (debugging(0))
+		stacktrace_load_symbols();
+
+	map_test();
+	ipp_cache_load_all();
 	tls_global_init();
 	hostiles_init();
 	spam_init();
@@ -1712,6 +1617,7 @@ main(int argc, char **argv)
 	publisher_init();
 
 	dht_init();
+	portmap_init();
 
 	if (!running_topless) {
 		main_gui_init();
@@ -1746,6 +1652,7 @@ main(int argc, char **argv)
 	version_ancient_warn();
 	dht_attempt_bootstrap();
 	http_test();
+	vxml_test();
 
 	if (running_topless) {
 		topless_main_run();

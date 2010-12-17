@@ -97,6 +97,7 @@ LSRC = \
 	inputevt.c \
 	iprange.c \
 	iso3166.c \
+	log.c \
 	list.c \
 	magnet.c \
 	malloc.c \
@@ -104,6 +105,7 @@ LSRC = \
 	mime_type.c \
 	mingw32.c \
 	misc.c \
+	nv.c \
 	offtime.c \
 	omalloc.c \
 	options.c \
@@ -139,6 +141,7 @@ LSRC = \
 	vector.c \
 	vendors.c \
 	vmm.c \
+	vxml.c \
 	walloc.c \
 	watcher.c \
 	wd.c \
