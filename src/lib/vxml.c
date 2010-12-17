@@ -59,7 +59,7 @@ RCSID("$Id$")
 #endif
 
 #define VXML_OUT_SIZE	1024	/**< Initial output buffer size */
-#define VXML_LOOKAHEAD	8		/**< Look-ahead buffer size */
+#define VXML_LOOKAHEAD	4		/**< Look-ahead buffer size */
 
 struct vxml_buffer;
 
@@ -4680,7 +4680,7 @@ vxml_run_simple_test(int num, const char *name,
 	vxml_parser_add_input(vp, data, len);
 	e = vxml_parse(vp);
 	if (vxml_debugging(0)) {
-		g_info("VXML test #%d (simple \"%s\"): %s",
+		g_info("VXML %s test #%d (simple \"%s\"): %s",
 			error == e ? "SUCCESSFUL" : "FAILED",
 			num, name, vxml_strerror(e));
 	}
