@@ -408,7 +408,6 @@ vxml_parser_where(const vxml_parser_t *vp)
 	return buf;
 }
 
-
 /**
  * Emit unconditional warning.
  */
@@ -1234,11 +1233,11 @@ vxml_intuit_encoding(vxml_parser_t *vp)
 	switch (twocc) {
 	case 0xFEFFU:
 		vp->encoding = VXML_ENC_UTF16_BE;
-		vxml_parser_skip(vp, 2);		/* Skip BOM marker */
+		vxml_parser_skip(vp, 2);			/* Skip BOM marker */
 		goto intuited;
 	case 0xFFFEU:
 		vp->encoding = VXML_ENC_UTF16_LE;
-		vxml_parser_skip(vp, 2);		/* Skip BOM marker */
+		vxml_parser_skip(vp, 2);			/* Skip BOM marker */
 		goto intuited;
 	case 0xEFBBU:
 		if (0xBFU == head[2]) {
@@ -1590,9 +1589,6 @@ vxml_parser_handle_name(vxml_parser_t *vp, struct vxml_output *vo, guint32 c)
 	 * Name     ::= NameStartChar (NameChar)*
 	 * NameChar ::= NameStartChar | "-" | "." | [0-9] | #xB7 |
 	 *              [#x0300-#x036F] | [#x203F-#x2040]
-	 *
-	 * As soon as we reach a non-NameChar character, we must be at a ';'
-	 * or we have an invalid entity reference.
 	 */
 
 	uc = (0 == c) ? vxml_next_char(vp) : c;
@@ -1607,7 +1603,7 @@ vxml_parser_handle_name(vxml_parser_t *vp, struct vxml_output *vo, guint32 c)
 		return FALSE;
 	}
 
-	vxml_output_append(vo, uc);	/* The NameStartChar */
+	vxml_output_append(vo, uc);		/* The NameStartChar */
 
 	while (0 != (uc = vxml_next_char(vp))) {
 		if (!vxml_is_valid_name_char(uc)) {
@@ -2197,8 +2193,11 @@ vxml_expand_reference(vxml_parser_t *vp, gboolean charonly)
 	}
 
 	/*
-	 * Has to be an EntityRef, which means this character has to
-	 * be a valid NameStartChar, or we have an invalid input.
+	 * We're facing an EntityRef.
+	 *
+	 * If it must not be expanded, emit the '&' character we already read
+	 * in the output buffer, and abort, signalling success: in effect we
+	 * did not expand anything and the entity will go through, un-expanded.
 	 */
 
 	if (charonly) {
@@ -2206,6 +2205,11 @@ vxml_expand_reference(vxml_parser_t *vp, gboolean charonly)
 		vxml_unread_char(vp, uc);
 		return TRUE;							/* Entity not expanded */
 	}
+
+	/*
+	 * Has to be an EntityRef, which means this character has to
+	 * be a valid NameStartChar, or we have an invalid input.
+	 */
 
 	if (!vxml_parser_handle_name(vp, &vp->entity, uc))
 		return FALSE;
@@ -2294,6 +2298,10 @@ vxml_parser_do_notify_text(vxml_parser_t *vp,
 
 	text = vxml_output_start(&vp->out);
 	len = vxml_output_size(&vp->out);
+
+	g_assert(len >= 1);						/* There must be something */
+	g_assert(text[len - 1] != '\0');		/* No NUL already */
+
 	vxml_output_append(&vp->out, VXC_NUL);	/* NUL-terminated */
 
 	if (vp->elem_token_valid && ops->tokenized_text != NULL) {
@@ -2598,6 +2606,7 @@ vxml_parser_pi_has_ended(vxml_parser_t *vp, guint32 uc)
 
 	if (VXC_QM == uc) {			/* Reached a '?' */
 		guint32 nc = vxml_next_char(vp);
+
 		if (VXC_GT == nc) {		/* Followed by a '>', end of PI */
 			vxml_output_discard(&vp->out);	/* Clear any pending text */
 			return TRUE;
@@ -2975,7 +2984,11 @@ vxml_parser_handle_quoted_string(vxml_parser_t *vp, struct vxml_output *vo,
 	 *   <element attribute='a-&EndAttr;>
 	 * "
 	 *
-	 * To support that, we ignore any quote coming out of non-user buffers.
+	 * To support that, we ignore any quote coming out of a buffer that
+	 * was generated after the one from which we got the initial quote from.
+	 * Indeed, entity expansion is done in buffers whose generation numbers
+	 * will be necessarily larger than the buffer from which we started
+	 * the expansion.
 	 */
 
 	while (0 != (uc = vxml_next_char(vp))) {
@@ -4620,7 +4633,7 @@ const char simple[] =
 	"<a v='simple'>this is a <b>simple</b> valid document\n"
 	"<!-- comment -->\n"
 	"with <c x=\"a\" y='b'/> no XML declaration\n"
-	"<![CDATA[but with <x>verbatim<y>&unknown;</x> data]]></a>";
+	"<![CDATA[but with <x>verbatim<y>&unknown;</x>[[/]] data]]></a>";
 
 const char bad_comment[] = "<!-- comment --->";
 
@@ -4667,8 +4680,9 @@ vxml_run_simple_test(int num, const char *name,
 	vxml_parser_add_input(vp, data, len);
 	e = vxml_parse(vp);
 	if (vxml_debugging(0)) {
-		g_info("VXML test #%d (simple \"%s\"): %s (%sexpected)",
-			num, name, vxml_strerror(e), error == e ? "" : "un");
+		g_info("VXML test #%d (simple \"%s\"): %s",
+			error == e ? "SUCCESSFUL" : "FAILED",
+			num, name, vxml_strerror(e));
 	}
 	g_assert(error == e);
 	vxml_parser_free(vp);
@@ -4695,7 +4709,8 @@ vxml_run_callback_test(int num, const char *name,
 	vxml_parser_add_input(vp, data, len);
 	e = vxml_parse_callbacks_tokens(vp, ops, tvec, tlen, &info);
 	if (vxml_debugging(0)) {
-		g_info("VXML test #%d (callback \"%s\"): %s",
+		g_info("VXML %s test #%d (callback \"%s\"): %s",
+			VXML_E_OK == e ? "SUCCESSFUL" : "FAILED",
 			num, name, vxml_strerror(e));
 	}
 	g_assert(VXML_E_OK == e);
