@@ -48,12 +48,18 @@ RCSID("$Id$")
 #include "stacktrace.h"
 #include "atoms.h"		/* For binary_hash() */
 #include "ascii.h"
+#include "base16.h"
 #include "concat.h"
+#include "crash.h"		/* For print_str() */
 #include "glib-missing.h"
+#include "log.h"
 #include "misc.h"
+#include "offtime.h"
 #include "omalloc.h"
 #include "parse.h"
 #include "path.h"
+#include "stringify.h"
+#include "tm.h"
 #include "unsigned.h"
 #include "vmm.h"
 
@@ -109,6 +115,71 @@ static void *getreturnaddr(size_t level);
 static void *getframeaddr(size_t level);
 
 /**
+ * Safe logging to avoid recursion from the log handler.
+ */
+static void
+s_logv(GLogLevelFlags level, const char *format, va_list args)
+{
+	if (!log_would_recurse())
+		g_logv(G_LOG_DOMAIN, level, format, args);
+	else {
+		char buf[256];
+		time_t now;
+		struct tm *ct;
+		const char *prefix;
+
+		gm_vsnprintf(buf, sizeof buf, format, args);
+		now = tm_time_exact();
+		ct = localtime(&now);
+
+		switch (level) {
+		case G_LOG_LEVEL_CRITICAL: prefix = "CRITICAL"; break;
+		case G_LOG_LEVEL_ERROR:    prefix = "ERROR";    break;
+		case G_LOG_LEVEL_WARNING:  prefix = "WARNING";  break;
+		case G_LOG_LEVEL_MESSAGE:  prefix = "MESSAGE";  break;
+		case G_LOG_LEVEL_INFO:     prefix = "INFO";     break;
+		case G_LOG_LEVEL_DEBUG:    prefix = "DEBUG";    break;
+		default:
+			prefix = "UNKNOWN";
+		}
+
+		fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s): %s\n",
+			(TM_YEAR_ORIGIN + ct->tm_year) % 100, ct->tm_mon + 1, ct->tm_mday,
+			ct->tm_hour, ct->tm_min, ct->tm_sec, prefix, buf);
+	}
+	va_end(args);
+}
+
+
+/**
+ * Safe warning to avoid recursion, since stack tracing can be triggered
+ * from the log handler.
+ */
+static void
+s_warning(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv(G_LOG_LEVEL_WARNING, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe info to avoid recursion, since stack tracing can be triggered
+ * from the log handler.
+ */
+static void
+s_info(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv(G_LOG_LEVEL_INFO, format, args);
+	va_end(args);
+}
+
+/**
  * Search executable within the user's PATH.
  *
  * @return full path if found, NULL otherwise.
@@ -122,14 +193,14 @@ locate_from_path(const char *argv0)
 	char *result = NULL;
 
 	if (filepath_basename(argv0) != argv0) {
-		g_warning("can't locate \"%s\" in PATH: name contains '%c' already",
+		s_warning("can't locate \"%s\" in PATH: name contains '%c' already",
 			argv0, G_DIR_SEPARATOR);
 		return NULL;
 	}
 
 	path = getenv("PATH");
 	if (NULL == path) {
-		g_warning("can't locate \"%s\" in PATH: no such environment variable",
+		s_warning("can't locate \"%s\" in PATH: no such environment variable",
 			argv0);
 		return NULL;
 	}
@@ -184,7 +255,7 @@ trace_remove(size_t i)
 	t = &trace_array.base[i];
 	free(t->name);
 	if (i < trace_array.count - 1)
-		memmove(t, t + 1, trace_array.count - i - 1);
+		memmove(t, t + 1, (trace_array.count - i - 1) * sizeof *t);
 	trace_array.count--;
 }
 
@@ -214,7 +285,7 @@ trace_sort(void)
 	if (old_count != trace_array.count) {
 		size_t delta = old_count - trace_array.count;
 		g_assert(size_is_non_negative(delta));
-		g_warning("stripped %lu duplicate symbol%s",
+		s_warning("stripped %lu duplicate symbol%s",
 			(unsigned long) delta, 1 == delta ? "" : "s");
 	}
 }
@@ -273,8 +344,60 @@ trace_lookup(void *pc)
 	return NULL;				/* Not found */
 }
 
+/**
+ * Format pointer into specified buffer.
+ *
+ * This is equivalent to saying:
+ *
+ *    gm_snprintf(buf, buflen, "0x%lx", pointer_to_ulong(pc));
+ *
+ * but is safe to use in a signal handler.
+ */
+static void
+trace_fmt_pointer(char *buf, size_t buflen, void *p)
+{
+	if (buflen < 4) {
+		buf[0] = '\0';
+		return;
+	}
+
+	buf[0] = '0';
+	buf[1] = 'x';
+	pointer_to_string_buf(p, &buf[2], buflen - 2);
+}
+
+/**
+ * Format "name+offset" into specified buffer.
+ *
+ * This is equivalent to saying:
+ *
+ *    gm_snprintf(buf, buflen, "%s+%u", name, offset);
+ *
+ * but is safe to use in a signal handler.
+ */
+static void
+trace_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
+{
+	size_t namelen;
+
+	namelen = g_strlcpy(buf, name, buflen);
+	if (namelen >= buflen - 2)
+		return;
+
+	buf[namelen] = '+';
+	size_t_to_string_buf(offset, &buf[namelen+1], buflen - (namelen + 1));
+}
+
 /*
- * @eturn symbolic name for given pc offset, if found, otherwise
+ * Attempt to transform a PC (Program Counter) address into a symbolic name,
+ * showing the function name and the offset within that routine.
+ *
+ * The way formatting is done allows this routine to be used from a
+ * signal handler.
+ *
+ * @param pc	the PC to translate into symbolic form
+ *
+ * @return symbolic name for given pc offset, if found, otherwise
  * the hexadecimal value.
  */
 static const char *
@@ -283,17 +406,16 @@ trace_name(void *pc)
 	static char buf[256];
 
 	if (0 == trace_array.count) {
-		gm_snprintf(buf, sizeof buf, "0x%lx", pointer_to_ulong(pc));
+		trace_fmt_pointer(buf, sizeof buf, pc);
 	} else {
 		struct trace *t;
 
 		t = trace_lookup(pc);
 
 		if (NULL == t || &trace_array.base[trace_array.count -1] == t) {
-			gm_snprintf(buf, sizeof buf, "0x%lx", pointer_to_ulong(pc));
+			trace_fmt_pointer(buf, sizeof buf, pc);
 		} else {
-			gm_snprintf(buf, sizeof buf, "%s+%u", t->name,
-				(unsigned) ptr_diff(pc, t->start));
+			trace_fmt_name(buf, sizeof buf, t->name, ptr_diff(pc, t->start));
 		}
 	}
 
@@ -367,14 +489,14 @@ load_symbols(const char *path)
 
 	rw = gm_snprintf(tmp, sizeof tmp, "nm -p %s", path);
 	if (rw != strlen(path) + CONST_STRLEN("nm -p ")) {
-		g_warning("full path \"%s\" too long, cannot load symbols", path);
+		s_warning("full path \"%s\" too long, cannot load symbols", path);
 		goto done;
 	}
 
 	f = popen(tmp, "r");
 
 	if (NULL == f) {
-		g_warning("can't run \"%s\": %s", tmp, g_strerror(errno));
+		s_warning("can't run \"%s\": %s", tmp, g_strerror(errno));
 		goto done;
 	}
 
@@ -388,8 +510,7 @@ load_symbols(const char *path)
 	hash_table_destroy_real(nm_ctx.atoms);
 
 done:
-	g_info("loaded %u symbols from \"%s\"",
-		(unsigned) trace_array.count, path);
+	s_info("loaded %u symbols from \"%s\"", (unsigned) trace_array.count, path);
 
 	trace_sort();
 }
@@ -409,7 +530,7 @@ program_path_allocate(const char *argv0)
 	if (-1 == stat(argv0, &buf)) {
 		file = locate_from_path(argv0);
 		if (NULL == file) {
-			g_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
+			s_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
 			goto error;
 		}
 	}
@@ -425,7 +546,7 @@ program_path_allocate(const char *argv0)
 
 		while ((c = *p++)) {
 			if (strchr(meta, c)) {
-				g_warning("found shell meta-character '%c' in path \"%s\", "
+				s_warning("found shell meta-character '%c' in path \"%s\", "
 					"not loading symbols", c, file);
 				goto error;
 			}
@@ -464,9 +585,9 @@ stacktrace_init(const char *argv0, gboolean deferred)
 		struct stat buf;
 
 		if (-1 == stat(program_path, &buf)) {
-			g_warning("cannot stat \"%s\": %s",
+			s_warning("cannot stat \"%s\": %s",
 				program_path, g_strerror(errno));
-			g_warning("will not be loading symbols for %s", argv0);
+			s_warning("will not be loading symbols for %s", argv0);
 			goto done;
 		}
 
@@ -510,7 +631,7 @@ stacktrace_close(void)
 /**
  * Load symbols if not done already.
  */
-static void
+void
 stacktrace_load_symbols(void)
 {
 	if (symbols_loaded)
@@ -527,13 +648,13 @@ stacktrace_load_symbols(void)
 		struct stat buf;
 
 		if (-1 == stat(program_path, &buf)) {
-			g_warning("cannot stat \"%s\": %s",
+			s_warning("cannot stat \"%s\": %s",
 				program_path, g_strerror(errno));
 			goto error;
 		}
 
 		if (buf.st_mtime != program_mtime) {
-			g_warning("executable file \"%s\" has been tampered with",
+			s_warning("executable file \"%s\" has been tampered with",
 				program_path);
 			goto error;
 		}
@@ -545,7 +666,7 @@ stacktrace_load_symbols(void)
 
 error:
 	if (program_path != NULL) {
-		g_warning("cannot load symbols for %s", program_path);
+		s_warning("cannot load symbols for %s", program_path);
 	}
 
 	/* FALL THROUGH */
@@ -587,12 +708,34 @@ stacktrace_post_init(void)
 static size_t
 stack_unwind(void *stack[], size_t count, size_t offset)
 {
-    size_t i;
+    size_t i = offset;
+	void *frame = getframeaddr(i);
+	size_t d;
+	gboolean increasing;
+	
+	d = ptr_diff(getframeaddr(i + 1), frame);
+	increasing = size_is_positive(d);
 
-    for (i = offset; getframeaddr(i + 1) != NULL && i - offset < count; i++) {
+	for (;; i++) {
+		void *nframe = getframeaddr(i + 1);
+
+		if (NULL == nframe || i - offset >= count)
+			break;
+
         if (NULL == (stack[i - offset] = getreturnaddr(i)))
 			break;
-    }
+
+		/*
+		 * Safety precaution: if the distance between one frame and the
+		 * next is too large, we're probably facing stack corruption and
+		 * are beginning to hit random places in memory.  Break out.
+		 */
+
+		d = increasing ? ptr_diff(nframe, frame) : ptr_diff(frame, nframe);
+		if (d > 0x1000)		/* Arbitrary, large enough to be uncommon */
+			break;
+		frame = nframe;
+	}
 
 	return i - offset;
 }
@@ -619,6 +762,25 @@ stacktrace_get_offset(struct stacktrace *st, size_t offset)
 }
 
 /**
+ * Stop as soon as we reach main() before backtracing into libc.
+ *
+ * @param where		symbolic name of the current routine
+ *
+ * @return TRUE if we reached main().
+ */
+static gboolean
+stack_reached_main(const char *where)
+{
+	/*
+	 * Stop as soon as we reach main() before backtracing into libc
+	 */
+
+	if ('_' == *where)					/* HACK ALERT: handle "_main()" */
+		where++;
+	return is_strprefix(where, "main+") != NULL;	/* HACK ALERT */
+}
+
+/**
  * Print array of PCs, using symbolic names if possible.
  *
  * @param f			where to print the stack
@@ -634,10 +796,36 @@ stack_print(FILE *f, void * const *stack, size_t count)
 
 	for (i = 0; i < count; i++) {
 		const char *where = trace_name(stack[i]);
-		fprintf(f, "\t%s\n", where);
 
-		/* Stop as soon as we reach main() before backtracing into libc */
-		if (is_strprefix(where, "main+"))	/* HACK ALERT */
+		fprintf(f, "\t%s\n", where);
+		if (stack_reached_main(where))
+			break;
+	}
+}
+
+/**
+ * Safely print array of PCs, using symbolic names if possible.
+ *
+ * @param fd		where to print the stack
+ * @param stack		array of Program Counters making up the stack
+ * @param count		number of items in stack[] to print, at most.
+ */
+static void
+stack_safe_print(int fd, void * const *stack, size_t count)
+{
+	size_t i;
+
+	for (i = 0; i < count; i++) {
+		const char *where = trace_name(stack[i]);
+		iovec_t iov[3];
+		unsigned iov_cnt = 0;
+
+		print_str("\t");		/* 0 */
+		print_str(where);		/* 1 */
+		print_str("\n");		/* 2 */
+		IGNORE_RESULT(writev(fd, iov, iov_cnt));
+
+		if (stack_reached_main(where))
 			break;
 	}
 }
@@ -680,6 +868,7 @@ stacktrace_where_print(FILE *f)
 /**
  * Print current stack trace to specified file, with specified offset.
  *
+ * @param f			file where stack should be printed
  * @param offset	amount of immediate callers to remove (ourselves excluded)
  */
 void
@@ -690,6 +879,26 @@ stacktrace_where_print_offset(FILE *f, size_t offset)
 
 	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 	stack_print(f, stack, count);
+}
+
+/**
+ * Safely print current stack trace to specified file, with specified offset.
+ *
+ * Safety comes from the fact that this routine may be safely called from
+ * a signal handler.  However, symbolic names will not be loaded from the
+ * executable if they haven't already.
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ */
+void
+stacktrace_where_safe_print_offset(int fd, size_t offset)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	stack_safe_print(fd, stack, count);
 }
 
 /**

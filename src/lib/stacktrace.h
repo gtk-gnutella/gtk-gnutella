@@ -71,10 +71,12 @@ void stacktrace_atom_print(FILE *f, const struct stackatom *st);
 
 void stacktrace_where_print(FILE *f);
 void stacktrace_where_print_offset(FILE *f, size_t offset);
+void stacktrace_where_safe_print_offset(int fd, size_t offset);
 
 struct stackatom *stacktrace_get_atom(const struct stacktrace *st);
 
 void stacktrace_init(const char *argv0, gboolean deferred);
+void stacktrace_load_symbols(void);
 void stacktrace_post_init(void);
 void stacktrace_close(void);
 
