@@ -37,9 +37,10 @@
 
 RCSID("$Id$")
 
-#include "lib/crash.h"				/* For print_str() and crash_time() */
-#include "lib/fast_assert.h"
-#include "lib/override.h"			/* Must be the last header included */
+#include "crash.h"				/* For print_str() and crash_time() */
+#include "fast_assert.h"
+#include "stacktrace.h"
+#include "override.h"			/* Must be the last header included */
 
 /**
  * @note For maximum safety this is kept signal-safe, so that we can
@@ -87,6 +88,7 @@ void NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_warning(const assertion_data * const data)
 {
 	assertion_message(data, FALSE);
+	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
 }
 
 void G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
