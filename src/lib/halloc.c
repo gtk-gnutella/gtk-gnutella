@@ -704,7 +704,7 @@ vprintf_get_size(const char *format, va_list ap)
  * A clone of g_strdup_vprintf() using halloc().
  * The resulting string must be freed by hfree().
  */
-static char *
+char *
 h_strdup_vprintf(const char *format, va_list ap)
 {
 	va_list ap2;

@@ -187,8 +187,10 @@
 #define g_string_sprintfa(s,fmt,...) \
 	string_sprintf_tracka((s),_WHERE_,__LINE__,(fmt), __VA_ARGS__)
 
+#define h_strdup_vprintf(fmt, ap) \
+	strdup_vprintf_track(_WHERE_, __LINE__, (fmt), ap)
 #define h_strdup_printf(fmt, ...) \
-	strdup_printf_track(_WHERE_, __LINE__, fmt, __VA_ARGS__)
+	strdup_printf_track(_WHERE_, __LINE__, (fmt), __VA_ARGS__)
 
 #define h_strconcat(s, ...) \
 	strconcat_track(_WHERE_, __LINE__, s, __VA_ARGS__)
@@ -249,6 +251,8 @@ char *strndup_track(const char *s, size_t n, const char *file, int line);
 gpointer memdup_track(gconstpointer p, size_t size, const char *file, int line);
 char *strjoinv_track(const char *s, char **vec, const char *file, int line);
 char *strconcat_track(const char *file, int line, const char *s, ...);
+char *strdup_vprintf_track(const char *file, int line,
+	const char *fmt, va_list ap);
 char *strdup_printf_track(const char *file, int line, const char *fmt, ...)
 	G_GNUC_PRINTF(3, 4);
 char **strsplit_track(

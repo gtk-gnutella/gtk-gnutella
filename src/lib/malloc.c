@@ -2061,6 +2061,19 @@ strconcat_track(const char *file, int line, const char *s, ...)
  * Perform printf into newly allocated string.
  */
 char *
+strdup_vprintf_track(const char *file, int line, const char *fmt, va_list ap)
+{
+	char *o;
+
+	o = g_strdup_vprintf(fmt, ap);
+
+	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
+}
+
+/**
+ * Perform printf into newly allocated string.
+ */
+char *
 strdup_printf_track(const char *file, int line, const char *fmt, ...)
 {
 	va_list args;
