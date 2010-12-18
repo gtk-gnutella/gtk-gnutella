@@ -55,6 +55,7 @@ nv_pair_t *nv_pair_make(char *name, const void *value, size_t length);
 nv_pair_t *nv_pair_make_nocopy(char *name, const void *value, size_t length);
 const char *nv_pair_name(const nv_pair_t *nvp);
 void *nv_pair_value(const nv_pair_t *nvp);
+const char *nv_pair_value_str(const nv_pair_t *nvp);
 void *nv_pair_value_len(const nv_pair_t *nvp, size_t *retlen);
 void nv_pair_free(nv_pair_t *nvp);
 void nv_pair_free_null(nv_pair_t **nvp_ptr);
@@ -69,6 +70,7 @@ void nv_table_insert_nocopy(const nv_table_t *nvt,
 	const char *name, const void *value, size_t length);
 gboolean nv_table_remove(const nv_table_t *nvt, const char *name);
 nv_pair_t *nv_table_lookup(const nv_table_t *nvt, const char *name);
+size_t nv_table_count(const nv_table_t *nvt);
 
 #endif /* _nv_h_ */
 

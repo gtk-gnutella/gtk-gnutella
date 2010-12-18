@@ -199,8 +199,10 @@ nv_pair_value_len(const nv_pair_t *nvp, size_t *retlen)
 /**
  * Get the pair value, without length information.
  *
- * This should only be used for string values, whose end is known.
- * Otherwise, use nv_pair_value_len().
+ * A NULL means a zero-length quantity.
+ *
+ * This should only be used for string values, whose end is known, or
+ * for fixed-sized objects.  Otherwise, use nv_pair_value_len().
  */
 void *
 nv_pair_value(const nv_pair_t *nvp)
@@ -208,6 +210,22 @@ nv_pair_value(const nv_pair_t *nvp)
 	nv_pair_check(nvp);
 
 	return nvp->value;
+}
+
+/**
+ * Get the pair value, known to be a string, without length information.
+ *
+ * This should only be used for string values, whose end is known.
+ * Otherwise, use nv_pair_value_len().
+ */
+const char *
+nv_pair_value_str(const nv_pair_t *nvp)
+{
+	static const char empty[] = "";
+
+	nv_pair_check(nvp);
+
+	return NULL == nvp->value ? empty : nvp->value;
 }
 
 /**
@@ -409,6 +427,17 @@ nv_table_lookup(const nv_table_t *nvt, const char *name)
 	g_assert(name != NULL);
 
 	return g_hash_table_lookup(nvt->ht, name);
+}
+
+/**
+ * Return amount of entries in the table.
+ */
+size_t
+nv_table_count(const nv_table_t *nvt)
+{
+	nv_table_check(nvt);
+
+	return g_hash_table_size(nvt->ht);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
