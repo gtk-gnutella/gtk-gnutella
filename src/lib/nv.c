@@ -430,6 +430,26 @@ nv_table_lookup(const nv_table_t *nvt, const char *name)
 }
 
 /**
+ * Get value string associated with a name/value pair in the table.
+ *
+ * @return NULL if name/value pair does not exist, otherwise the string value.
+ */
+const char *
+nv_table_lookup_str(const nv_table_t *nvt, const char *name)
+{
+	nv_pair_t *nvp;
+
+	nv_table_check(nvt);
+	g_assert(name != NULL);
+
+	nvp = g_hash_table_lookup(nvt->ht, name);
+	if (NULL == nvp)
+		return NULL;
+
+	return nv_pair_value_str(nvp);	/* Guaranteed to not be NULL */
+}
+
+/**
  * Return amount of entries in the table.
  */
 size_t

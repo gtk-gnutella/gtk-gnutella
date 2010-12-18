@@ -70,6 +70,7 @@ void nv_table_insert_nocopy(const nv_table_t *nvt,
 	const char *name, const void *value, size_t length);
 gboolean nv_table_remove(const nv_table_t *nvt, const char *name);
 nv_pair_t *nv_table_lookup(const nv_table_t *nvt, const char *name);
+const char *nv_table_lookup_str(const nv_table_t *nvt, const char *name);
 size_t nv_table_count(const nv_table_t *nvt);
 
 #endif /* _nv_h_ */
