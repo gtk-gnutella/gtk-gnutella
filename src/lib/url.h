@@ -70,6 +70,9 @@ size_t url_params_count(const url_params_t *up);
 void url_params_free(url_params_t *up);
 char *url_normalize(char *url, url_policy_t pol);
 
+gboolean url_is_absolute(const char *url);
+char *url_absolute_within(const char *base, const char *relative);
+
 #endif	/* _url_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -41,6 +41,7 @@ RCSID("$Id$")
 #include "glib-missing.h"
 #include "halloc.h"
 #include "host_addr.h"
+#include "misc.h"			/* For is_strprefix() */
 #include "parse.h"
 #include "path.h"
 #include "url.h"
@@ -89,6 +90,7 @@ is_transparent_char(const int c, const enum escape_mask m)
 }
 
 static const char hex_alphabet[] = "0123456789ABCDEF";
+static const char http_prefix[] = "http://";
 
 /**
  * Parsed URL parameters (from query string).
@@ -519,7 +521,7 @@ url_safe_char(char c, url_policy_t p)
 
 /**
  * @attention
- * NB: May modify ``url'' in all cased; pass a copy if necessary!
+ * NB: May modify ``url'' in all cases; pass a copy if necessary!
  *
  * @returns NULL if ``url'' isn't a valid resp. allowed URL. Otherwise,
  * it returns either a pointer to the original URL or a newly allocated
@@ -534,7 +536,6 @@ url_safe_char(char c, url_policy_t p)
 char *
 url_normalize(char *url, url_policy_t pol)
 {
-	static const char http_prefix[] = "http://";
 	const char *p, *uri, *endptr, *tld = NULL, *warn = NULL;
 	char c, *q;
 	host_addr_t addr;
@@ -718,6 +719,99 @@ url_normalize(char *url, url_policy_t pol)
 
 bad:
 	return NULL;
+}
+
+/**
+ * Is URL absolute?
+ */
+gboolean
+url_is_absolute(const char *url)
+{
+	return is_strprefix(url, http_prefix) != NULL;
+}
+
+/**
+ * Interpret possible relative URL in the context of a base (absolute) one.
+ *
+ * If the relative URL is actually absolute, return it.  Otherwise returns
+ * a newly allocated string that must tbe freed with hfree().
+ *
+ * @param base		the base URL
+ * @param relative	the supposedly relative URL
+ *
+ * @return the relative URL if absolute, otherwise a newly allocated string.
+ */
+char *
+url_absolute_within(const char *base, const char *relative)
+{
+	char *dbase = NULL;
+
+	g_assert(url_is_absolute(base));
+
+	if (url_is_absolute(relative))
+		return deconstify_char(relative);		/* Was already absolute */
+
+	if (is_strprefix(relative, "//"))
+		/* Was missing the scheme */
+		return h_strconcat("http:", relative, NULL);
+
+	if (is_strprefix(relative, "#")) {
+		char *p;
+
+		if (NULL == (p = strchr(base, '#'))) {
+			return h_strconcat(base, relative, NULL);
+		} else {
+			/* Replace the fragment */
+			dbase = h_strdup(base);
+			p = dbase + (p - base);
+			g_assert(*p == '#');
+			*p = '\0';
+			goto concatenate;
+		}
+	}
+
+	if (is_strprefix(relative, "/")) {
+		char *p;
+		
+		dbase = h_strdup(base);
+		p = is_strprefix(dbase, http_prefix);
+		g_assert(p != NULL);		/* base was absolute */
+		p = strchr(p, '/');
+
+		if (NULL == p) {
+			/* base was "http://host" with no trailing path */
+			hfree(dbase);
+			return h_strconcat(base, relative, NULL);
+		} else {
+			/* replace relative path in the base */
+			*p = '\0';
+			goto concatenate;
+		}
+	} else {
+		char *p;
+
+		/*
+		 * Find the last '/' in the base and append the relative URL after it.
+		 */
+
+		dbase = h_strdup(base);
+		p = strrchr(dbase, '/');
+		g_assert(p != NULL);		/* base was absolute */
+		*(++p) = '\0';				/* truncate string after last '/' */
+
+		/* FALL THROUGH */
+	}
+
+concatenate:
+	{
+		char *result;
+
+		g_assert(dbase != NULL);
+
+		result = h_strconcat(dbase, relative, NULL);
+		hfree(dbase);
+		return result;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
