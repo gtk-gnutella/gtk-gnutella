@@ -190,6 +190,7 @@ struct vxml_parser {
 	nv_table_t *pe_entities;		/**< Entities defined in <!DOCTYPE...> */
 	nv_table_t *attrs;				/**< Current element attributes */
 	const char *element;			/**< Current element (atom, NULL if none) */
+	char *user_error;				/**< User-defined error string */
 	const struct vxml_uctx *uctx;	/**< Previous user context, for re-entry */
 	struct vxml_output out;			/**< Output parsing buffer (UTF-8) */
 	struct vxml_output entity;		/**< Entity parsing buffer (UTF-8) */
@@ -719,6 +720,7 @@ vxml_parser_free(vxml_parser_t *vp)
 	vxml_output_free(&vp->out);
 	vxml_output_free(&vp->entity);
 	atom_str_free_null(&vp->charset);
+	HFREE_NULL(vp->user_error);
 
 	vp->magic = 0;
 	wfree(vp, sizeof *vp);
@@ -901,6 +903,7 @@ vxml_strerror(vxml_error_t error)
 	case VXML_E_NESTED_DOCTYPE_DECL:	return "Nested DOCTYPE declaration";
 	case VXML_E_INVALID_VERSION:		return "Invalid version number";
 	case VXML_E_VERSION_OUT_OF_RANGE:	return "Version number out of range";
+	case VXML_E_USER:					return "User-defined error";
 	case VXML_E_UNKNOWN_CHAR_ENCODING_NAME:
 		return "Unknown character encoding name";
 	case VXML_E_INVALID_CHAR_ENCODING_NAME:
@@ -912,6 +915,19 @@ vxml_strerror(vxml_error_t error)
 	}
 
 	return "Invalid VXML error code";
+}
+
+/**
+ * Same as vxml_strerror() but also support user-defined error, whose string
+ * is stored in the parser.
+ */
+const char *
+vxml_parser_strerror(const vxml_parser_t *vp, vxml_error_t error)
+{
+	if (VXML_E_USER == error && vp->user_error != NULL)
+		return vp->user_error;
+	else
+		return vxml_strerror(error);
 }
 
 /**
@@ -984,6 +1000,34 @@ vxml_fatal_error(vxml_parser_t *vp, vxml_error_t error)
 	}
 
 	vxml_record_fatal_error(vp, error);
+}
+
+/**
+ * Sets fatal user error (from callbacks).
+ *
+ * To report errors, users should call vxml_parser_strerror(), otherwise
+ * the user's error string will not show up.
+ *
+ * @param vp		the XML parser
+ * @param errstr	the human-readable error (may be NULL)
+ */
+void
+vxml_fatal_user_error(vxml_parser_t *vp, const char *errstr, ...)
+{
+	vxml_parser_check(vp);
+
+	if (errstr != NULL) {
+		char *msg;
+		va_list args;
+
+		va_start(args, errstr);
+		msg = h_strdup_vprintf(errstr, args);
+		va_end(args);
+		HFREE_NULL(vp->user_error);
+		vp->user_error = msg;
+	}
+
+	vxml_record_fatal_error(vp, VXML_E_USER);
 }
 
 /**

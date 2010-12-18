@@ -85,6 +85,7 @@ typedef enum {
 	VXML_E_UNKNOWN_CHAR_ENCODING_NAME,	/**< Unknown character encoding name */
 	VXML_E_INVALID_CHAR_ENCODING_NAME,	/**< Invalid character encoding name */
 	VXML_E_UNREADABLE_CHAR_ENCODING,	/**< Unreadable input */
+	VXML_E_USER,						/**< User-defined error */
 
 	VXML_E_MAX
 } vxml_error_t;
@@ -206,6 +207,7 @@ void vxml_test(void);
 void set_vxml_debug(guint32 level);
 gboolean vxml_debugging(guint32 level);
 const char *vxml_strerror(vxml_error_t error);
+const char *vxml_parser_strerror(const vxml_parser_t *vp, vxml_error_t error);
 vxml_parser_t *vxml_parser_make(const char *name, guint32 options);
 void vxml_parser_free(vxml_parser_t *vp);
 void vxml_parser_add_input(vxml_parser_t *vp, const char *data, size_t length);
@@ -217,6 +219,7 @@ vxml_error_t vxml_parse_callbacks(vxml_parser_t *vp,
 vxml_error_t vxml_parse_callbacks_tokens(vxml_parser_t *vp,
 	const struct vxml_ops *ops,
 	struct vxml_token *tvec, size_t tlen, void *data);
+void vxml_fatal_user_error(vxml_parser_t *vp, const char *errstr, ...);
 
 #endif /* _vxml_h_ */
 
