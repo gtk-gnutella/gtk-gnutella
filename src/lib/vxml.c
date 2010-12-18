@@ -2705,12 +2705,12 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 
 	nvp = nv_table_lookup(vp->attrs, "version");
 
-	if (NULL == nvp || NULL == nv_pair_value(nvp)) {
+	if (NULL == nvp) {
 		vp->major = 1;
 		vp->minor = 0;
 		vp->versource = VXML_VERSRC_IMPLIED;
 	} else {
-		char *version = nv_pair_value(nvp);
+		const char *version = nv_pair_value_str(nvp);
 		guint major, minor;
 		if (0 != parse_major_minor(version, NULL, &major, &minor)) {
 			vxml_fatal_error_str(vp, VXML_E_INVALID_VERSION, version);
@@ -2727,8 +2727,8 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 
 	nvp = nv_table_lookup(vp->attrs, "encoding");
 
-	if (nvp != NULL && nv_pair_value(nvp) != NULL) {
-		char *encoding = nv_pair_value(nvp);
+	if (nvp != NULL) {
+		const char *encoding = nv_pair_value_str(nvp);
 
 		/*
 		 * Check whether it's one of the known UTF-xx charsets.
@@ -2801,8 +2801,8 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 
 	nvp = nv_table_lookup(vp->attrs, "standalone");
 
-	if (nvp != NULL && nv_pair_value(nvp) != NULL) {
-		char *standalone = nv_pair_value(nvp);
+	if (nvp != NULL) {
+		const char *standalone = nv_pair_value_str(nvp);
 
 		if (0 == strcasecmp("yes", standalone))
 			vp->standalone = TRUE;
