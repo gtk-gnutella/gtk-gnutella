@@ -1836,7 +1836,7 @@ failure:
 }
 
 /**
- * Creates the canonical representation of a path.
+ * Creates the canonical representation of a path, delimited by '/'.
  *
  * ``dst'' and ``src'' may be identical but must not overlap otherwise.
  *
@@ -1847,60 +1847,56 @@ failure:
 int
 canonize_path(char *dst, const char *path)
 {
-  const char *p;
-  char c, *q, *ep;
+	const char *p;
+	char c, *q, *ep;
 
-  g_assert(dst);
-  g_assert(path);
-  /** TODO: Add overlap check. */
+	g_assert(dst);
+	g_assert(path);
+	/** TODO: Add overlap check. */
 
-  /* Scan path */
-  for (p = path, q = dst; '\0' != (c = *p); q++, p++) {
+	/* Scan path */
+	for (p = path, q = dst; '\0' != (c = *p); q++, p++) {
 
-    /* Handle relative paths i.e., /. and /.. */
-    if ('/' != c) {
-      *q = c;
-      continue;
-    }
+		/* Handle relative paths i.e., /. and /.. */
+		if ('/' != c) {
+			*q = c;
+			continue;
+		}
 
-    /* Special handling for '/' follows */
+		/* Special handling for '/' follows */
 
-    do {
+		do {
+			*q = '/';
 
-      *q = '/';
+			while ('/' == p[1]) {
+				p++;
+			}
 
-      while ('/' == p[1]) {
-        p++;
-      }
+			if (0 == strcmp(p, "/.")) {
+				/* Ignoring trailing "/." in URI */
+				p++;
+			} else if (0 == strcmp(p, "/..")) {
+				return -1;
+			} else if (NULL != (ep = is_strprefix(p, "/./"))) {
+				/* Ignoring unnecessary "/./" in URI */
+				p = ep - 1;
+			} else if (NULL != (ep = is_strprefix(p, "/../"))) {
+				p = ep - 1;
 
-      if (0 == strcmp(p, "/.")) {
-        p++;
-        /* Ignoring trailing "/." in URI */
-      } else if (0 == strcmp(p, "/..")) {
-        return -1;
-      } else if (NULL != (ep = is_strprefix(p, "/./"))) {
-        p = ep - 1;
-        /* Ignoring unnecessary "/./" in URI */
-      } else if (NULL != (ep = is_strprefix(p, "/../"))) {
-        p = ep - 1;
+				/* Ascending one component in URI */
+				do {
+					if (q == dst)
+						return -1; /* beyond root */
+				} while ('/' != *--q);
+			} else {
+				break;
+			}
+		} while ('/' == p[0] && ('/' == p[1] || '.' == p[1]));
+	}
 
-        /* Ascending one component in URI */
-        do {
-          if (q == dst)
-            return -1; /* beyond root */
-        } while ('/' != *--q);
+	*q = '\0';
 
-      } else {
-        break;
-      }
-
-    } while ('/' == p[0] && ('/' == p[1] || '.' == p[1]));
-
-  }
-
-  *q = '\0';
-
-  return 0;
+	return 0;
 }
 
 /**
