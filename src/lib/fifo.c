@@ -145,7 +145,7 @@ fifo_remove(fifo_t *f)
 		g_assert(f->count == 1);
 		f->head = f->tail = g_list_remove(f->head, data);
 	} else {
-		g_list_remove_link(prev, f->tail);
+		IGNORE_RESULT(g_list_remove_link(prev, f->tail));
 		g_list_free_1(f->tail);
 		f->tail = prev;
 	}

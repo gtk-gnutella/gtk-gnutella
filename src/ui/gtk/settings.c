@@ -79,7 +79,7 @@ RCSID("$Id$")
  * If debugging is activated, you will get a list of unmapped and
  * ignored properties on startup.
  * To ignore a property, just set the cb, fn_toplevel and wid attributes
- * in the property_map to IGNORE,
+ * in the property_map to IGNORE_CB,
  * To create a listener which is not bound to a signle widget, set
  * the fn_toplevel and wid attributed of your property_map entry to
  * NULL.
@@ -113,7 +113,7 @@ typedef struct prop_map {
 } prop_map_t;
 
 #define NOT_IN_MAP	(-1)
-#define IGNORE		NULL
+#define IGNORE_CB		NULL
 
 static prop_set_stub_t *gui_prop_set_stub;
 static prop_set_stub_t *gnet_prop_set_stub;
@@ -2632,7 +2632,7 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
     g_assert(map != NULL);
     g_assert(def != NULL);
 
-    if (map->cb != IGNORE) {
+    if (map->cb != IGNORE_CB) {
         if (GUI_PROPERTY(gui_debug) >= 8)
             printf("settings_gui_config_widget: %s\n", def->name);
 
@@ -4258,7 +4258,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         NULL,
         PROP_NODE_SENDQUEUE_SIZE,
-        IGNORE,
+        IGNORE_CB,
         FALSE,
         NULL,
         FREQ_UPDATES, 0
@@ -5360,7 +5360,7 @@ settings_gui_get_map_entry(property_t prop)
  * You can't connect more then one callback to a single property change.
  * You can however IGNORE a property change to suppress a warning in
  * debugging mode. This is done by settings the cb field (callback) in
- * property_map to IGNORE.
+ * property_map to IGNORE_CB.
  *
  * The tooltips for the widgets are set from to the description from the
  * property definition.
@@ -5428,7 +5428,7 @@ settings_gui_init_prop_map(void)
                 def->name, init_list[idx]);
         }
 
-        if (property_map[n].cb != IGNORE) {
+        if (property_map[n].cb != IGNORE_CB) {
             settings_gui_config_widget(&property_map[n], def);
 
             /*
@@ -5548,7 +5548,7 @@ settings_gui_shutdown(void)
      * Remove the listeners
      */
     for (n = 0; n < G_N_ELEMENTS(property_map); n ++) {
-        if (property_map[n].cb != IGNORE) {
+        if (property_map[n].cb != IGNORE_CB) {
             property_map[n].stub->prop_changed_listener.remove(
                 property_map[n].prop,
                 property_map[n].cb);
