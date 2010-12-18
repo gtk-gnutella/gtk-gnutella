@@ -38,15 +38,8 @@
 
 #include "common.h"
 
-/**
- * Parsed URL parameters (from query string).
- */
-typedef struct {
-	GHashTable *params;		/**< parameter => value (malloc'ed) */
-	int count;				/**< Amount of parameters */
-} url_params_t;
-
-#define url_params_count(x)	((x)->count)
+struct url_params;
+typedef struct url_params url_params_t;
 
 typedef enum {
 	URL_POLICY_ALLOW_IP_AS_HOST		= (1 << 0),
@@ -72,7 +65,8 @@ char *url_unescape(char *url, gboolean inplace);
 char *url_from_absolute_path(const char *path);
 
 url_params_t *url_params_parse(char *query);
-const char *url_params_get(url_params_t *up, const char *name);
+const char *url_params_get(const url_params_t *up, const char *name);
+size_t url_params_count(const url_params_t *up);
 void url_params_free(url_params_t *up);
 char *url_normalize(char *url, url_policy_t pol);
 

@@ -91,6 +91,14 @@ is_transparent_char(const int c, const enum escape_mask m)
 static const char hex_alphabet[] = "0123456789ABCDEF";
 
 /**
+ * Parsed URL parameters (from query string).
+ */
+struct url_params {
+	GHashTable *params;		/**< parameter => value (halloc'ed) */
+	size_t count;			/**< Amount of parameters */
+};
+
+/**
  * Escape undesirable characters using %xx, where xx is an hex code.
  *
  * @param `url' no brief description.
@@ -343,7 +351,7 @@ url_unescape(char *url, gboolean inplace)
 		return url;
 
 	/*
-	 * The "+ 1" in the g_malloc() call below is for the impossible case where
+	 * The "+ 1" in the halloc() call below is for the impossible case where
 	 * the string would finish on a truncated escape sequence.  In that
 	 * case, we would not have enough room for the final trailing NUL.
 	 */
@@ -450,7 +458,7 @@ url_params_parse(char *query)
  * The value returned has already been URL-unescaped.
  */
 const char *
-url_params_get(url_params_t *up, const char *name)
+url_params_get(const url_params_t *up, const char *name)
 {
 	g_assert(up != NULL);
 	g_assert(up->params != NULL);
@@ -480,6 +488,15 @@ url_params_free(url_params_t *up)
 	wfree(up, sizeof *up);
 }
 
+/**
+ * How many URL parameters are present?
+ */
+size_t
+url_params_count(const url_params_t *up)
+{
+	return up->count;
+}
+
 static gboolean
 url_safe_char(char c, url_policy_t p)
 {
@@ -506,7 +523,7 @@ url_safe_char(char c, url_policy_t p)
  *
  * @returns NULL if ``url'' isn't a valid resp. allowed URL. Otherwise,
  * it returns either a pointer to the original URL or a newly allocated
- * string holding a modified copy.
+ * string holding a modified copy.  Use hfree() to free the allocated string.
  *
  * The URL is validated according to the specified policy. Unnecessary
  * parts such as ":80" (for the port) and "/./" are removed: the hostname
@@ -690,7 +707,7 @@ url_normalize(char *url, url_policy_t pol)
 		char *s;
 
 		g_assert(len > 0);
-		s = g_malloc(len + sizeof "/");
+		s = halloc(len + sizeof "/");
 		memcpy(s, url, len);
 		s[len] = '/';
 		s[len + 1] = '\0';
