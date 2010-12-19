@@ -58,7 +58,7 @@ const void *parse_pointer(const char *, char const **, int *)
 gboolean parse_ipv6_addr(const char *s, uint8_t *dst, const char **endptr)
 	NON_NULL_PARAM((1));
 int parse_major_minor(const char *src, char const **endptr,
-	guint *major, guint *minor)
+	unsigned *major, unsigned *minor)
 	NON_NULL_PARAM((1));
 
 guint32  string_to_ip(const char *);

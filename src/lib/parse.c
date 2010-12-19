@@ -255,7 +255,7 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
  */
 int
 parse_major_minor(const char *src, char const **endptr,
-	guint *major, guint *minor)
+	unsigned *major, unsigned *minor)
 {
 	const char *ep;
 	int error;
