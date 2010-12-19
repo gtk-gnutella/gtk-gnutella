@@ -261,14 +261,6 @@ static guint32 vxml_debug;
 #define VXC_RBRAK	0x5DU	/* ']' */
 
 /**
- * A token description, the mapping between a name and a numerical value.
- */
-struct vxml_parser_token {
-	const char *name;
-	unsigned value;
-};
-
-/**
  * Default entities.
  */
 static struct vxml_parser_token vxml_default_entities[] = {
@@ -1012,7 +1004,7 @@ vxml_fatal_error(vxml_parser_t *vp, vxml_error_t error)
  * @param errstr	the human-readable error (may be NULL)
  */
 void
-vxml_fatal_user_error(vxml_parser_t *vp, const char *errstr, ...)
+vxml_parser_error(vxml_parser_t *vp, const char *errstr, ...)
 {
 	vxml_parser_check(vp);
 
@@ -1808,7 +1800,7 @@ truncated:
  *
  * @return the token value if found, 0 if not found.
  */
-static unsigned
+unsigned
 vxml_token_lookup(const char *name,
 	const struct vxml_parser_token *tokens, size_t len)
 {
@@ -2320,6 +2312,70 @@ vxml_parser_notify_text(const vxml_parser_t *vp, const struct vxml_ops *ops)
 }
 
 /**
+ * Strip leading and trailing blanks in UTF-8 text.
+ *
+ * @param text		start of text to strip
+ * @param len_ptr	initial length of text, updated with new length
+ *
+ * @returns start of new text, and adjusted length in case we stripped.
+ */
+static const char *
+vxml_stip_blanks(char *text, size_t *len_ptr)
+{
+	guint32 uc;
+	guint retlen;
+	size_t len;
+	char *p;
+	gboolean seen_non_blank = FALSE;
+	char *last_non_blank;
+	const char *first_non_blank;
+	const char *end;
+
+	g_assert(text != NULL);
+	g_assert(len_ptr != NULL);
+
+	first_non_blank = last_non_blank = p = text;
+	len = *len_ptr;		/* In bytes */
+	end = text + len;
+
+	if (0 == len)
+		return text;
+
+	g_assert(size_is_non_negative(len));
+
+	while (len != 0 && 0 != (uc = utf8_decode_char_buffer(p, len, &retlen))) {
+		p += retlen;
+		len -= retlen;
+
+		g_assert(size_is_non_negative(len));
+		g_assert(p <= end);
+
+		if (seen_non_blank) {
+			if (!vxml_is_white_space_char(uc))
+				last_non_blank = p;				/* next char */
+		} else {
+			if (!vxml_is_white_space_char(uc)) {
+				seen_non_blank = TRUE;
+				last_non_blank = p;				/* next char */
+				first_non_blank = p - retlen;	/* this char */
+			}
+		}
+	}
+
+	g_assert(size_is_non_negative(ptr_diff(last_non_blank, first_non_blank)));
+
+	if (last_non_blank != p) {
+		g_assert(size_is_positive(ptr_diff(p, last_non_blank)));
+		g_assert(size_is_positive(ptr_diff(end, last_non_blank)));
+		*last_non_blank = '\0';
+	}
+
+	*len_ptr = ptr_diff(last_non_blank, first_non_blank);
+
+	return first_non_blank;
+}
+
+/**
  * Notify user on available element text.
  */
 static void
@@ -2347,6 +2403,42 @@ vxml_parser_do_notify_text(vxml_parser_t *vp,
 	g_assert(text[len - 1] != '\0');		/* No NUL already */
 
 	vxml_output_append(&vp->out, VXC_NUL);	/* NUL-terminated */
+
+	if (vxml_debugging(10)) {
+		g_debug("VXML \"%s\" notifying text (%lu bytes) in <%s>, "
+			"token is %svalid",
+			vp->name, (unsigned long) len, vp->element,
+			vp->elem_token_valid ? "" : "in");
+	}
+
+	/*
+	 * Optionally strip leading and trailing blanks from text.
+	 */
+
+	if (vp->options & VXML_O_STRIP_BLANKS) {
+		text = vxml_stip_blanks(deconstify_char(text), &len);
+
+		g_assert('\0' == text[len]);		/* Still NUL-terminated */
+		g_assert(len <= vxml_output_size(&vp->out) - 1);
+
+		if (vxml_debugging(10)) {
+			if (len != vxml_output_size(&vp->out) - 1) {
+				const char *previous_end = vxml_output_start(&vp->out) +
+					vxml_output_size(&vp->out) - 1;
+				const char *current_end = text + len;
+
+				g_debug("VXML \"%s\" stripped blanks "
+					"(leading: %s, trailing %s), text down to %lu byte%s",
+					vp->name,
+					text ==  vxml_output_start(&vp->out) ? "no" : "yes",
+					previous_end == current_end ? "no" : "yes",
+					(unsigned long) len, 1 == len ? "" : "s");
+			}
+		}
+
+		if (0 == len)
+			return;			/* Nothing left to notify */
+	}
 
 	if (vp->elem_token_valid && ops->tokenized_text != NULL) {
 		(*ops->tokenized_text)(vp, vp->elem_token, text, len, vp->depth,
@@ -2413,6 +2505,13 @@ vxml_parser_do_notify_end(vxml_parser_t *vp,
 
 	if (NULL == ops)
 		return;
+
+	if (vxml_debugging(10)) {
+		if (ops->tokenized_end != NULL || ops->plain_end != NULL) {
+			g_debug("VXML \"%s\" notifying end of <%s>, token is %svalid",
+				vp->name, vp->element, vp->elem_token_valid ? "" : "in");
+		}
+	}
 
 	if (vp->elem_token_valid && ops->tokenized_end != NULL) {
 		(*ops->tokenized_end)(vp, vp->elem_token,
@@ -2625,11 +2724,14 @@ vxml_handle_attribute(vxml_parser_t *vp)
 		g_assert('\0' == value[len]);		/* Properly NUL-terminated */
 
 		nv_table_insert(vp->attrs, name, value, len + 1);
+		atom_str_free(name);
 
 		if (vxml_debugging(18)) {
 			vxml_parser_debug(vp, "vxml_handle_attribute: "
 				"value is \"%s\"", value);
 		}
+
+		vxml_output_discard(&vp->out);
 	}
 
 	return TRUE;
@@ -3916,6 +4018,29 @@ vxml_handle_decl(vxml_parser_t *vp, gboolean doctype)
 }
 
 /**
+ * Set parser's current element to given string, or clear it if NULL.
+ */
+static void
+vxml_parser_set_element(vxml_parser_t *vp, const char *element)
+{
+	vxml_parser_check(vp);
+
+	if (element != NULL) {
+		const char *atom = vp->element;
+		atom_str_change(&vp->element, element);
+		if (atom != vp->element)
+			vp->elem_token_valid = FALSE;
+	} else {
+		atom_str_free_null(&vp->element);
+		vp->elem_token_valid = FALSE;
+	}
+
+	if (vxml_debugging(19))
+		vxml_parser_debug(vp, "VXML current element: \"%s\"",
+			NULL == vp->element ? "(none)" : vp->element);
+}
+
+/**
  * Create new element out of the parser's output buffer.
  */
 static void
@@ -3940,7 +4065,7 @@ vxml_parser_new_element(vxml_parser_t *vp)
 
 	start = vxml_output_start(&vp->out);
 
-	if (vp->options & VXML_O_NS_STRIP) {
+	if (vp->options & VXML_O_STRIP_NS) {
 		const char *local_name;
 
 		local_name = strchr(start, ':');
@@ -3948,7 +4073,7 @@ vxml_parser_new_element(vxml_parser_t *vp)
 			start = local_name + 1;
 	}
 
-	atom_str_change(&vp->element, start);
+	vxml_parser_set_element(vp, start);
 	vxml_output_discard(&vp->out);
 }
 
@@ -3987,6 +4112,9 @@ vxml_tokenize_element(vxml_parser_t *vp, nv_table_t *tokens, const char *name)
 
 		vp->elem_token_valid = TRUE;
 		vp->elem_token = vt->id;
+
+		if (vxml_debugging(19))
+			vxml_parser_debug(vp, "VXML tokenized \"%s\" as %u", name, vt->id);
 	}
 }
 
@@ -4078,7 +4206,12 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 		vxml_fatal_error(vp, VXML_E_INVALID_TAG_NESTING);
 	}
 
+	/*
+	 * Update current element.
+	 */
+
 	atom_str_free(element);
+	vxml_parser_set_element(vp, vp->depth != 0 ? vp->path->data : NULL);
 
 	return ok;
 }
@@ -4101,8 +4234,21 @@ vxml_parser_end_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	 * Notify if necessary.
 	 */
 
-	if (vxml_parser_path_leave(vp))
-		vxml_parser_do_notify_end(vp, ctx->ops, ctx->data);
+	vxml_parser_do_notify_end(vp, ctx->ops, ctx->data);
+
+	/*
+	 * Update path.
+	 */
+
+	if (vxml_parser_path_leave(vp)) {
+		/*
+		 * Moving up in the path, recompute current element token, unless
+		 * we reached back the root.
+		 */
+
+		if (vp->element != NULL)
+			vxml_tokenize_element(vp, ctx->tokens, vp->element);
+	}
 }
 
 /**
@@ -4544,6 +4690,11 @@ vxml_parse_engine(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 
 		if (!vxml_handle_tag(vp, ctx))
 			break;
+
+		if (vxml_debugging(19)) {
+			vxml_parser_debug(vp, "back to main loop in <%s>",
+				vp->element != NULL ? vp->element : "(none)");
+		}
 	}
 
 	/*
@@ -4710,6 +4861,9 @@ const char evaluation[] =
 	"]>\n"
 	"&example;";
 
+const char blanks[] =
+	"<test><![CDATA[   <x> <y>  &unknown; </x> [[/]] data      ]]></test>";
+
 static void
 vxml_run_simple_test(int num, const char *name,
 	const char *data, size_t len, guint32 flags, vxml_error_t error)
@@ -4735,12 +4889,14 @@ vxml_run_simple_test(int num, const char *name,
 struct vxml_test_info {
 	int num;
 	const char *name;
+	void *data;
 };
 
 static void
 vxml_run_callback_test(int num, const char *name,
 	const char *data, size_t len, guint32 flags,
-	const struct vxml_ops *ops, struct vxml_token *tvec, size_t tlen)
+	const struct vxml_ops *ops, struct vxml_token *tvec, size_t tlen,
+	void *udata)
 {
 	vxml_error_t e;
 	vxml_parser_t *vp;
@@ -4748,6 +4904,7 @@ vxml_run_callback_test(int num, const char *name,
 
 	info.num = num;
 	info.name = name;
+	info.data = udata;
 
 	vp = vxml_parser_make(name, flags);
 	vxml_parser_add_input(vp, data, len);
@@ -4783,7 +4940,8 @@ tricky_text(vxml_parser_t *vp,
 	g_assert(0 == strcmp(text, "This sample shows a error-prone method."));
 }
 
-#define P_TOKEN	1
+#define T_TEST	0
+#define T_P		1
 
 static void
 evaluation_text(vxml_parser_t *vp,
@@ -4801,14 +4959,40 @@ evaluation_text(vxml_parser_t *vp,
 
 	if (vxml_debugging(0)) {
 		g_info("VXML test #%d \"%s\": "
-			"tricky_text: got \"%s\" (%lu byte%s) in <token #%u> at depth %u",
+			"evaluation_text: "
+			"got \"%s\" (%lu byte%s) in <token #%u> at depth %u",
 			info->num, info->name, text, (unsigned long) len,
 			1 == len ? "" : "s",
 			id, depth);
 	}
 
-	g_assert(P_TOKEN == id);
+	g_assert(T_P == id);
 	g_assert(0 == strcmp(text, expected));
+}
+
+static void
+blank_text(vxml_parser_t *vp,
+	unsigned id, const char *text, size_t len,
+	unsigned depth, GList *path, void *data)
+{
+	struct vxml_test_info *info = data;
+	const char *unstripped = "   <x> <y>  &unknown; </x> [[/]] data      ";
+	const char *stripped = "<x> <y>  &unknown; </x> [[/]] data";
+	gboolean stripping = GPOINTER_TO_UINT(info->data);
+
+	(void) path;
+	(void) vp;
+
+	if (vxml_debugging(0)) {
+		g_info("VXML test #%d \"%s\": "
+			"blank_text: got \"%s\" (%lu byte%s) in <token #%u> at depth %u",
+			info->num, info->name, text, (unsigned long) len,
+			1 == len ? "" : "s",
+			id, depth);
+	}
+
+	g_assert(T_TEST == id);
+	g_assert(0 == strcmp(text, stripping ? stripped : unstripped));
 }
 
 void
@@ -4816,8 +5000,8 @@ vxml_test(void)
 {
 	struct vxml_ops ops;
 	struct vxml_token tvec[2] = {
-		{ "test", 0 },
-		{ "p", P_TOKEN },
+		{ "test",	T_TEST },
+		{ "p",		T_P },
 	};
 
 	vxml_run_simple_test(1,
@@ -4834,13 +5018,21 @@ vxml_test(void)
 	ops.plain_text = tricky_text;
 
 	vxml_run_callback_test(5, "tricky", tricky, CONST_STRLEN(tricky),
-		VXML_O_FATAL, &ops, tvec, 2);
+		VXML_O_FATAL, &ops, tvec, 2, NULL);
 
 	memset(&ops, 0, sizeof ops);
 	ops.tokenized_text = evaluation_text;
 
 	vxml_run_callback_test(6, "evaluation", evaluation,
-		CONST_STRLEN(evaluation), 0, &ops, tvec, 2);
+		CONST_STRLEN(evaluation), 0, &ops, tvec, 2, NULL);
+
+	memset(&ops, 0, sizeof ops);
+	ops.tokenized_text = blank_text;
+
+	vxml_run_callback_test(7, "blanks", blanks, CONST_STRLEN(blanks),
+		0, &ops, tvec, 2, GUINT_TO_POINTER(FALSE));
+	vxml_run_callback_test(8, "blanks", blanks, CONST_STRLEN(blanks),
+		VXML_O_STRIP_BLANKS, &ops, tvec, 2, GUINT_TO_POINTER(TRUE));
 }
 #else	/* !VXML_TESTING */
 void

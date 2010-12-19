@@ -45,9 +45,10 @@ typedef struct vxml_parser vxml_parser_t;
 /**
  * Parsing options.
  */
-#define VXML_O_NS_STRIP			(1 << 0)  /**< Strip namespace from elements */
+#define VXML_O_STRIP_NS			(1 << 0)  /**< Strip namespace from elements */
 #define VXML_O_STRICT_COMMENTS	(1 << 1)  /**< Disable '--' in comments */
-#define VXML_O_FATAL			(1 << 2)  /** Abort on fatal error */
+#define VXML_O_FATAL			(1 << 2)  /**< Abort on fatal error */
+#define VXML_O_STRIP_BLANKS		(1 << 3)  /**< Strip leading/ending blanks */
 
 /**
  * Error codes.
@@ -198,7 +199,15 @@ struct vxml_token {
 	const char *name;		/**< Element name (UTF-8) */
 	unsigned id;			/**< Corresponding token */
 };
- 
+
+/**
+ * A parsing token description, the mapping between a name and a number.
+ */
+struct vxml_parser_token {
+	const char *name;
+	unsigned value;
+};
+
 /*
  * Public interface.
  */
@@ -219,7 +228,9 @@ vxml_error_t vxml_parse_callbacks(vxml_parser_t *vp,
 vxml_error_t vxml_parse_callbacks_tokens(vxml_parser_t *vp,
 	const struct vxml_ops *ops,
 	struct vxml_token *tvec, size_t tlen, void *data);
-void vxml_fatal_user_error(vxml_parser_t *vp, const char *errstr, ...);
+void vxml_parser_error(vxml_parser_t *vp, const char *errstr, ...);
+unsigned vxml_token_lookup(const char *name,
+	const struct vxml_parser_token *tokens, size_t len);
 
 #endif /* _vxml_h_ */
 
