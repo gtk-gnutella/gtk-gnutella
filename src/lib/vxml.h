@@ -97,13 +97,10 @@ typedef enum {
  * @param vp		the parser
  * @param name		the element name (UTF-8 string)
  * @param attrs		element attributes (name/value pair table)
- * @param depth		the tree depth
- * @param path		the element path to the root (list of strings).
  * @param data		user-specified callback argument
  */
 typedef void (*vxml_p_element_start_cb_t)(vxml_parser_t *vp,
-	const char *name, const nv_table_t *attrs,
-	unsigned depth, GList *path, void *data);
+	const char *name, const nv_table_t *attrs, void *data);
 
 /**
  * Start tokenized element callback signature.
@@ -111,13 +108,10 @@ typedef void (*vxml_p_element_start_cb_t)(vxml_parser_t *vp,
  * @param vp		the parser
  * @param id		the element token ID (user-defined)
  * @param attrs		element attributes (name/value pair table)
- * @param depth		the tree depth
- * @param path		the element path to the root (list of strings).
  * @param data		user-specified callback argument
  */
 typedef void (*vxml_t_element_start_cb_t)(vxml_parser_t *vp,
-	unsigned id, const nv_table_t *attrs,
-	unsigned depth, GList *path, void *data);
+	unsigned id, const nv_table_t *attrs, void *data);
 
 /**
  * Plain element text callback signature.
@@ -126,13 +120,10 @@ typedef void (*vxml_t_element_start_cb_t)(vxml_parser_t *vp,
  * @param name		the element name (UTF-8 string)
  * @param text		the text data (NUL-terminated, in UTF-8)
  * @param len		length of text data
- * @param depth		the tree depth
- * @param path		the element path to the root (list of strings).
  * @param data		user-specified callback argument
  */
 typedef void (*vxml_p_text_cb_t)(vxml_parser_t *vp,
-	const char *name, const char *text, size_t len,
-	unsigned depth, GList *path, void *data);
+	const char *name, const char *text, size_t len, void *data);
 
 /**
  * Tokenized element text callback signature.
@@ -141,37 +132,30 @@ typedef void (*vxml_p_text_cb_t)(vxml_parser_t *vp,
  * @param id		the element token ID (user-defined)
  * @param text		the text data (NUL-terminated, in UTF-8)
  * @param len		length of text data
- * @param depth		the tree depth
- * @param path		the element path to the root (list of strings).
  * @param data		user-specified callback argument
  */
 typedef void (*vxml_t_text_cb_t)(vxml_parser_t *vp,
-	unsigned id, const char *text, size_t len,
-	unsigned depth, GList *path, void *data);
+	unsigned id, const char *text, size_t len, void *data);
 
 /**
  * End plain element callback signature.
  *
  * @param vp		the parser
  * @param name		the element name (UTF-8 string)
- * @param depth		the tree depth
- * @param path		the element path to the root (list of strings).
  * @param data		user-specified callback argument
  */
 typedef void (*vxml_p_element_end_cb_t)(vxml_parser_t *vp,
-	const char *name, unsigned depth, GList *path, void *data);
+	const char *name, void *data);
 
 /**
  * End tokenized element callback signature.
  *
  * @param vp		the parser
  * @param id		the element token ID (user-defined)
- * @param depth		the tree depth
- * @param path		the element path to the root (list of strings).
  * @param data		user-specified callback argument
  */
 typedef void (*vxml_t_element_end_cb_t)(vxml_parser_t *vp,
-	unsigned id, unsigned depth, GList *path, void *data);
+	unsigned id, void *data);
 
 /**
  * Regroups the parsing callbacks on elements.
@@ -215,6 +199,7 @@ struct vxml_parser_token {
 void vxml_test(void);
 void set_vxml_debug(guint32 level);
 gboolean vxml_debugging(guint32 level);
+
 const char *vxml_strerror(vxml_error_t error);
 const char *vxml_parser_strerror(const vxml_parser_t *vp, vxml_error_t error);
 vxml_parser_t *vxml_parser_make(const char *name, guint32 options);
@@ -228,9 +213,15 @@ vxml_error_t vxml_parse_callbacks(vxml_parser_t *vp,
 vxml_error_t vxml_parse_callbacks_tokens(vxml_parser_t *vp,
 	const struct vxml_ops *ops,
 	struct vxml_token *tvec, size_t tlen, void *data);
-void vxml_parser_error(vxml_parser_t *vp, const char *errstr, ...);
+
 unsigned vxml_token_lookup(const char *name,
 	const struct vxml_parser_token *tokens, size_t len);
+
+void vxml_parser_error(vxml_parser_t *vp, const char *errstr, ...);
+unsigned vxml_parser_depth(const vxml_parser_t *vp);
+const char *vxml_parser_current_element(const vxml_parser_t *vp);
+const char *vxml_parser_parent_element(const vxml_parser_t *vp);
+const char *vxml_parser_nth_parent_element(const vxml_parser_t *vp, size_t n);
 
 #endif /* _vxml_h_ */
 
