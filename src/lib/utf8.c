@@ -812,7 +812,7 @@ utf8_decode_char_fast(const char *s, guint *retlen)
 
 	/*
 	 * utf8_skip() returns zero for an invalid initial byte.
-	 * It rejects also surrogates (U+D800..U+DFFF) implicitely.
+	 * It also rejects surrogates (U+D800..U+DFFF) implicitely.
 	 */
 
 	*retlen = n;
@@ -874,14 +874,19 @@ failure:
 guint32
 utf8_decode_char_buffer(const char *s, size_t len, guint *retlen)
 {
-	guint32 uc = (guchar) *s;
-	guint n = utf8_skip(uc);
+	guint32 uc;
+	guint n;
+
+	if (0 == len)
+		goto failure;
 
 	/*
 	 * utf8_skip() returns zero for an invalid initial byte.
-	 * It rejects also surrogates (U+D800..U+DFFF) implicitely.
+	 * It also rejects surrogates (U+D800..U+DFFF) implicitely.
 	 */
 
+	uc = (guchar) *s;
+	n = utf8_skip(uc);
 	*retlen = n;
 
 	if (1 != n) {
