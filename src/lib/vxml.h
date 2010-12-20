@@ -49,6 +49,7 @@ typedef struct vxml_parser vxml_parser_t;
 #define VXML_O_STRICT_COMMENTS	(1 << 1)  /**< Disable '--' in comments */
 #define VXML_O_FATAL			(1 << 2)  /**< Abort on fatal error */
 #define VXML_O_STRIP_BLANKS		(1 << 3)  /**< Strip leading/ending blanks */
+#define VXML_O_NO_DUP_ATTR		(1 << 4)  /**< Forbid duplicate attributes */
 
 /**
  * Error codes.
@@ -80,6 +81,7 @@ typedef enum {
 	VXML_E_EXPECTED_DOCTYPE_DECL,		/**< Was expecting DOCTYPE decl. */
 	VXML_E_UNEXPECTED_LT,				/**< Was not expecting a '<' */
 	VXML_E_UNEXPECTED_XML_PI,			/**< Spurious "<?xml ...> */
+	VXML_E_UNEXPECTED_TAG_END,			/**< Unexpected tag end */
 	VXML_E_NESTED_DOCTYPE_DECL,			/**< Was not expecting DOCTYPE decl. */
 	VXML_E_INVALID_VERSION,				/**< Invalid version number */
 	VXML_E_VERSION_OUT_OF_RANGE,		/**< Version number out of range */
@@ -87,6 +89,7 @@ typedef enum {
 	VXML_E_INVALID_CHAR_ENCODING_NAME,	/**< Invalid character encoding name */
 	VXML_E_UNREADABLE_CHAR_ENCODING,	/**< Unreadable input */
 	VXML_E_USER,						/**< User-defined error */
+	VXML_E_DUP_ATTRIBUTE,				/**< Duplicate attribute */
 
 	VXML_E_MAX
 } vxml_error_t;
@@ -219,6 +222,8 @@ unsigned vxml_token_lookup(const char *name,
 
 void vxml_parser_error(vxml_parser_t *vp, const char *errstr, ...);
 unsigned vxml_parser_depth(const vxml_parser_t *vp);
+size_t vxml_parser_offset(const vxml_parser_t *vp);
+size_t vxml_parser_line(const vxml_parser_t *vp);
 const char *vxml_parser_current_element(const vxml_parser_t *vp);
 const char *vxml_parser_parent_element(const vxml_parser_t *vp);
 const char *vxml_parser_nth_parent_element(const vxml_parser_t *vp, size_t n);

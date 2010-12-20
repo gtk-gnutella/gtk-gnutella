@@ -173,6 +173,26 @@ vxml_output_check(const struct vxml_output * const vo)
 	g_assert(VXML_OUTPUT_MAGIC == vo->magic);
 }
 
+enum vxml_location_magic { VXML_LOCATION_MAGIC = 0xe4b3365bU };
+
+/**
+ * Location context which is reset when sub-parsing.
+ */
+struct vxml_location {
+	enum vxml_location_magic magic;
+	size_t offset;					/**< Parsing offset, relative to input */
+	size_t line;					/**< Current input line, for errors */
+	unsigned depth;					/**< Parsing depth */
+	unsigned tag_start;				/**< # of content-holding tags started */
+};
+
+static inline void
+vxml_location_check(const struct vxml_location * const vl)
+{
+	g_assert(vl != NULL);
+	g_assert(VXML_LOCATION_MAGIC == vl->magic);
+}
+
 enum vxml_parser_magic { VXML_PARSER_MAGIC = 0x718b5b1bU };
 
 /**
@@ -191,20 +211,16 @@ struct vxml_parser {
 	nv_table_t *attrs;				/**< Current element attributes */
 	const char *element;			/**< Current element (atom, NULL if none) */
 	char *user_error;				/**< User-defined error string */
-	const struct vxml_uctx *uctx;	/**< Previous user context, for re-entry */
 	struct vxml_output out;			/**< Output parsing buffer (UTF-8) */
 	struct vxml_output entity;		/**< Entity parsing buffer (UTF-8) */
 	guint32 unread[VXML_LOOKAHEAD];	/**< Unread character stack */
 	size_t unread_offset;			/**< Current offset in unread[] */
-	size_t offset;					/**< Parsing offset, relative to input */
-	size_t line;					/**< Current input line, for errors */
 	enum vxml_encoding encoding;	/**< Character encoding */
 	enum vxml_encsrc encsource;		/**< How we determined character encoding */
 	enum vxml_endsrc endianness;	/**< How we determined endianness */
 	enum vxml_versionsrc versource;	/**< How we determined the version */
 	vxml_error_t error;				/**< Parsing error code (0 means OK) */
 	unsigned generation;			/**< Generation number for buffers */
-	unsigned depth;					/**< Parsing depth (= path length) */
 	unsigned elem_token;			/**< Current element token */
 	unsigned tags;					/**< Counts all < elements (and <?, <!) */
 	unsigned ignores;				/**< Counts nested ignored DTD sections */
@@ -217,6 +233,8 @@ struct vxml_parser {
 	unsigned elem_token_valid:1;	/**< Field "elem_token" is valid */
 	unsigned elem_no_content:1;		/**< Element has no content (no end tag) */
 	unsigned standalone:1;			/**< Is document standalone? */
+	struct vxml_location glob;		/**< Global location in parser */
+	struct vxml_location loc;		/**< Current location in parser */
 };
 
 static inline void
@@ -233,6 +251,7 @@ vxml_parser_check(const struct vxml_parser * const vp)
 #define VXML_F_FATAL_ERROR	(1 << 1)	/**< Fatal error condition */
 #define VXML_F_EMPTY_TAG	(1 << 2)	/**< Last tag had no content */
 #define VXML_F_XML_DECL		(1 << 3)	/**< Set when "<?xml... ?>" was seen */
+#define VXML_F_SUBPARSE		(1 << 4)	/**< Can issue sub-parsing */
 
 static guint32 vxml_debug;
 
@@ -372,31 +391,49 @@ vxml_parser_where(const vxml_parser_t *vp)
 {
 	static char buf[2048];
 	size_t rw = 0;
-	GList *rpath;
-	GList *rlevel;
+	GList *rpath, *rp;
+	GList *rlevel, *rl;
 
-	rpath = g_list_reverse(g_list_copy(vp->path));
-	rlevel = g_list_reverse(g_list_copy(vp->level));
+	rpath = rp = g_list_reverse(g_list_copy(vp->path));
+	rlevel = rl = g_list_reverse(g_list_copy(vp->level));
 
 	g_assert((rpath != NULL) == (rlevel != NULL));	/* Same length */
 
-	if (NULL == rpath) {
+	/*
+	 * If sub-parsing an XML fragment, strip the leading part of the
+	 * path corresponding to the external (out of current scope) part.
+	 */
+
+	if (vp->glob.depth != vp->loc.depth) {
+		size_t offset;
+
+		g_assert(vp->glob.depth >= vp->loc.depth);
+
+		offset = vp->glob.depth - vp->loc.depth;
+		rp = g_list_nth(rp, offset);
+		rl = g_list_nth(rl, offset);
+	}
+
+	if (NULL == rp) {
 		gm_snprintf(buf, sizeof buf, "/");
 	} else {
-		while (rpath != NULL) {
-			char *element = rpath->data;
-			unsigned sibling = GPOINTER_TO_UINT(rlevel->data);
+		while (rp != NULL) {
+			char *element = rp->data;
+			unsigned sibling = GPOINTER_TO_UINT(rl->data);
 
-			rpath = g_list_next(rpath);
-			rlevel = g_list_next(rlevel);
+			rp = g_list_next(rp);
+			rl = g_list_next(rl);
 
-			g_assert((rpath != NULL) == (rlevel != NULL));	/* Same length */
+			g_assert((rp != NULL) == (rl != NULL));	/* Same length */
 
 			rw += gm_snprintf(&buf[rw], sizeof buf - rw, "/%s", element);
-			if (sibling > ((NULL == rpath) ? 0 : 1))
+			if (sibling > ((NULL == rp) ? 0 : 1))
 				rw += gm_snprintf(&buf[rw], sizeof buf - rw, "[%u]", sibling);
 		}
 	}
+
+	g_list_free(rpath);
+	g_list_free(rlevel);
 
 	return buf;
 }
@@ -417,7 +454,8 @@ vxml_parser_warn(const vxml_parser_t *vp, const char *format, ...)
 	g_warning("VXML \"%s\" %soffset %lu, line %lu, at %s: %s",
 		vp->name,
 		VXML_ENC_CHARSET == vp->encoding ? "converted " : "",
-		(unsigned long) vp->offset, (unsigned long) vp->line,
+		(unsigned long) vxml_parser_offset(vp),
+		(unsigned long) vxml_parser_line(vp),
 		vxml_parser_where(vp), buf);
 }
 
@@ -437,7 +475,8 @@ vxml_parser_debug(const vxml_parser_t *vp, const char *format, ...)
 	g_debug("VXML \"%s\" %soffset %lu, line %lu, at %s: %s",
 		vp->name,
 		VXML_ENC_CHARSET == vp->encoding ? "converted " : "",
-		(unsigned long) vp->offset, (unsigned long) vp->line,
+		(unsigned long) vxml_parser_offset(vp),
+		(unsigned long) vxml_parser_line(vp),
 		vxml_parser_where(vp), buf);
 }
 
@@ -449,7 +488,29 @@ vxml_parser_depth(const vxml_parser_t *vp)
 {
 	vxml_parser_check(vp);
 
-	return vp->depth;
+	return vp->loc.depth;
+}
+
+/**
+ * Return current parser offset, after last read character.
+ */
+size_t
+vxml_parser_offset(const vxml_parser_t *vp)
+{
+	vxml_parser_check(vp);
+
+	return vp->loc.offset;
+}
+
+/**
+ * Return current parser line number.
+ */
+size_t
+vxml_parser_line(const vxml_parser_t *vp)
+{
+	vxml_parser_check(vp);
+
+	return vp->loc.line;
 }
 
 /**
@@ -463,7 +524,7 @@ const char *
 vxml_parser_current_element(const vxml_parser_t *vp)
 {
 	vxml_parser_check(vp);
-	g_assert(vp->depth > 0);
+	g_assert(uint_is_positive(vxml_parser_depth(vp)));
 	g_assert(vp->path != NULL);
 
 	return vp->path->data;
@@ -482,10 +543,10 @@ const char *
 vxml_parser_parent_element(const vxml_parser_t *vp)
 {
 	vxml_parser_check(vp);
-	g_assert(vp->depth > 0);
+	g_assert(uint_is_positive(vxml_parser_depth(vp)));
 	g_assert(vp->path != NULL);
 
-	return vp->depth > 1 ? g_list_next(vp->path)->data : NULL;
+	return vxml_parser_depth(vp) > 1 ? g_list_next(vp->path)->data : NULL;
 }
 
 /**
@@ -503,15 +564,30 @@ vxml_parser_nth_parent_element(const vxml_parser_t *vp, size_t n)
 
 	vxml_parser_check(vp);
 	g_assert(size_is_non_negative(n));
-	g_assert(vp->depth > 0);
+	g_assert(uint_is_positive(vxml_parser_depth(vp)));
 	g_assert(vp->path != NULL);
 
-	if (n >= vp->depth)
+	if (n >= vxml_parser_depth(vp))
 		return NULL;
 
 	l = g_list_nth(vp->path, n);
 
 	return NULL == l ? NULL : l->data;
+}
+
+/**
+ * Intialize parser location.
+ */
+static void
+vxml_location_init(struct vxml_location *vl)
+{
+	g_assert(vl != NULL);
+
+	vl->magic = VXML_LOCATION_MAGIC;
+	vl->depth = 0;
+	vl->offset = 0;
+	vl->line = 1;
+	vl->tag_start = 0;
 }
 
 /**
@@ -750,9 +826,9 @@ vxml_parser_make(const char *name, guint32 options)
 	vp->options = options;
 	vp->major = 1;
 	vp->minor = 0;
-	vp->line = 1;
 	vxml_output_init(&vp->out);
 	vxml_output_init(&vp->entity);
+	vxml_location_init(&vp->glob);
 
 	return vp;
 }
@@ -785,6 +861,7 @@ vxml_parser_free(vxml_parser_t *vp)
 	vxml_output_free(&vp->out);
 	vxml_output_free(&vp->entity);
 	atom_str_free_null(&vp->charset);
+	atom_str_free_null(&vp->element);
 	HFREE_NULL(vp->user_error);
 
 	vp->magic = 0;
@@ -965,10 +1042,12 @@ vxml_strerror(vxml_error_t error)
 	case VXML_E_EXPECTED_COND_TOKEN:	return "Expected INCLUDE or IGNORE";
 	case VXML_E_UNEXPECTED_LT:			return "Was not expecting '<'";
 	case VXML_E_UNEXPECTED_XML_PI:		return "Unexpected <?xml...?>";
+	case VXML_E_UNEXPECTED_TAG_END:		return "Unexpected tag end";
 	case VXML_E_NESTED_DOCTYPE_DECL:	return "Nested DOCTYPE declaration";
 	case VXML_E_INVALID_VERSION:		return "Invalid version number";
 	case VXML_E_VERSION_OUT_OF_RANGE:	return "Version number out of range";
 	case VXML_E_USER:					return "User-defined error";
+	case VXML_E_DUP_ATTRIBUTE:			return "Duplicate attribute";
 	case VXML_E_UNKNOWN_CHAR_ENCODING_NAME:
 		return "Unknown character encoding name";
 	case VXML_E_INVALID_CHAR_ENCODING_NAME:
@@ -1025,11 +1104,12 @@ vxml_document_where(vxml_parser_t *vp)
 	vxml_parser_check(vp);
 
 	gm_snprintf(buf, sizeof buf,
-		"parsing \"%s\" (%s %u.%u), %soffset %lu, line %lu, at %s",
-		vp->name,
+		"%sparsing \"%s\" (%s %u.%u), %soffset %lu, line %lu, at %s",
+		vp->glob.depth != vp->loc.depth ? "sub-" : "", vp->name,
 		vxml_versionsrc_to_string(vp->versource), vp->major, vp->minor,
 		VXML_ENC_CHARSET == vp->encoding ? "converted " : "",
-		(unsigned long) vp->offset, (unsigned long) vp->line,
+		(unsigned long) vxml_parser_offset(vp),
+		(unsigned long) vxml_parser_line(vp),
 		vxml_parser_where(vp));
 
 	return buf;
@@ -1221,8 +1301,10 @@ restart:
 		size_t needed = amount - skipped;
 
 		if (avail >= needed) {
-			if (vb->user)
-				vp->offset += needed;	/* Only count on external input */
+			if (vb->user) {
+				vp->loc.offset += needed;	/* Only count on external input */
+				vp->glob.offset += needed;
+			}
 			if (avail == needed) {
 				vxml_parser_remove_buffer(vp, vb);
 			} else {
@@ -1231,8 +1313,10 @@ restart:
 			break;
 		} else {
 			skipped += avail;
-			if (vb->user)
-				vp->offset += avail;	/* Only count on external input */
+			if (vb->user) {
+				vp->loc.offset += avail;	/* Only count on external input */
+				vp->glob.offset += avail;	/* Only count on external input */
+			}
 			vxml_parser_remove_buffer(vp, vb);
 			goto restart;		/* List updated, restart from first buffer */
 		}
@@ -1502,8 +1586,10 @@ next_buffer:
 		(*vb->reader)(vb->vb_rptr, vxml_buffer_remains(vb), &retlen);
 
 	vb->vb_rptr += retlen;
-	if (vb->user)
-		vp->offset += retlen;		/* Only counts user-supplied data */
+	if (vb->user) {
+		vp->loc.offset += retlen;		/* Only counts user-supplied data */
+		vp->glob.offset += retlen;
+	}
 	vp->last_uc_generation = vb->generation;
 
 	if (vxml_debugging(19)) {
@@ -1552,8 +1638,10 @@ vxml_next_char(vxml_parser_t *vp)
 	}
 
 new_line:
-	if (user_input)
-		vp->line++;
+	if (user_input) {
+		vp->glob.line++;
+		vp->loc.line++;
+	}
 
 	return VXC_LF;	/* '\n' */
 }
@@ -2331,6 +2419,67 @@ done:
 }
 
 /**
+ * Set parser's current element to given string, or clear it if NULL.
+ */
+static void
+vxml_parser_set_element(vxml_parser_t *vp, const char *element)
+{
+	if (element != NULL) {
+		const char *atom = vp->element;
+		atom_str_change(&vp->element, element);
+		if (atom != vp->element)
+			vp->elem_token_valid = FALSE;
+	} else {
+		atom_str_free_null(&vp->element);
+		vp->elem_token_valid = FALSE;
+	}
+
+	if (vxml_debugging(19))
+		vxml_parser_debug(vp, "VXML current element: \"%s\"",
+			NULL == vp->element ? "(none)" : vp->element);
+}
+
+/**
+ * Attempt element tokenization.
+ *
+ * @param vp		the XML parser
+ * @param tokens	if non-NULL, additional tokens to consider for elements
+ */
+static void
+vxml_tokenize_element(vxml_parser_t *vp, nv_table_t *tokens, const char *name)
+{
+	nv_pair_t *nvp = NULL;
+
+	g_assert(name != NULL);
+
+	vp->elem_token_valid = FALSE;
+
+	/*
+	 * If they supplied a token table, use that before the parser's defaults.
+	 */
+
+	if (tokens != NULL) {
+		nvp = nv_table_lookup(tokens, name);
+	}
+	if (NULL == nvp && vp->tokens != NULL) {
+		nvp = nv_table_lookup(vp->tokens, name);
+	}
+
+	if (nvp != NULL) {
+		struct vxml_token *vt;
+
+		vt = nv_pair_value(nvp);
+		g_assert(0 == strcmp(name, vt->name));
+
+		vp->elem_token_valid = TRUE;
+		vp->elem_token = vt->id;
+
+		if (vxml_debugging(19))
+			vxml_parser_debug(vp, "VXML tokenized \"%s\" as %u", name, vt->id);
+	}
+}
+
+/**
  * Do we have to notify user on available element text?
  */
 static gboolean
@@ -2515,15 +2664,54 @@ vxml_parser_notify_start(const vxml_parser_t *vp, const struct vxml_ops *ops)
  * Notify user on element start.
  */
 static void
-vxml_parser_do_notify_start(vxml_parser_t *vp,
-	const struct vxml_ops *ops, void *data)
+vxml_parser_do_notify_start(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 {
+	const struct vxml_ops *ops;
+	struct vxml_location saved_location;
+
+	ops = ctx->ops;
+
+	if (vxml_debugging(10)) {
+		if (ops->tokenized_end != NULL || ops->plain_end != NULL) {
+			g_debug("VXML \"%s\" notifying start of <%s>, token is %svalid",
+				vp->name, vp->element, vp->elem_token_valid ? "" : "in");
+		}
+	}
+
+	/*
+	 * The callback for element start can re-enter the parser to only parse
+	 * the fragment of the XML contained in the tag itself.
+	 *
+	 * Upon return from the notification, we need to undo any sub-parsing
+	 * settings to resume the document parsing where we left of.
+	 */
+
+	/* Save context */
+	saved_location = vp->loc;			/* Struct copy */
+	vp->flags |= VXML_F_SUBPARSE;
+
 	if (vp->elem_token_valid && ops->tokenized_start != NULL) {
-		(*ops->tokenized_start)(vp, vp->elem_token, vp->attrs, data);
+		(*ops->tokenized_start)(vp, vp->elem_token, vp->attrs, ctx->data);
 	} else if (ops->plain_start != NULL) {
-		(*ops->plain_start)(vp, vp->element, vp->attrs, data);
+		(*ops->plain_start)(vp, vp->element, vp->attrs, ctx->data);
 	} else {
 		g_error("vxml_parser_notify_start() must be called before");
+	}
+
+	/*
+	 * Upon return, if the VXML_F_SUBPARSE flag is still set, we did not
+	 * recurse.
+	 */
+
+	if (vp->flags & VXML_F_SUBPARSE) {
+		vp->flags &= ~VXML_F_SUBPARSE;
+	} else {
+		/* Restore context */
+		vp->loc = saved_location;		/* Struct copy */
+
+		vxml_parser_set_element(vp, vp->loc.depth != 0 ? vp->path->data : NULL);
+		if (vp->element != NULL)
+			vxml_tokenize_element(vp, ctx->tokens, vp->element);
 	}
 }
 
@@ -2534,7 +2722,7 @@ static void
 vxml_parser_do_notify_end(vxml_parser_t *vp,
 	const struct vxml_ops *ops, void *data)
 {
-	if (NULL == ops)
+	if (NULL == ops || 0 == vp->loc.depth)
 		return;
 
 	if (vxml_debugging(10)) {
@@ -2742,10 +2930,49 @@ vxml_handle_attribute(vxml_parser_t *vp)
 	{
 		char *value = deconstify_gchar(vxml_output_start(&vp->out));
 		size_t len = vxml_output_size(&vp->out) - 1;
+		const char *start = name;
 
 		g_assert('\0' == value[len]);		/* Properly NUL-terminated */
 
-		nv_table_insert(vp->attrs, name, value, len + 1);
+		/*
+		 * Stip name space in attribute names as well when told to do so.
+		 */
+
+		if (vp->options & VXML_O_STRIP_NS) {
+			const char *local_name;
+
+			local_name = strchr(start, ':');
+			if (local_name != NULL) {
+				start = local_name + 1;
+
+				if (vxml_debugging(18)) {
+					vxml_parser_debug(vp, "vxml_handle_attribute: "
+						"stripped name is \"%s\"", start);
+				}
+			}
+		}
+
+		/*
+		 * Warn if an attribute is redefined (ignoring redefinition).
+		 *
+		 * Note that the conflicts can arise from namespace stripping, so
+		 * we warn using the possibly stripped name but log an error with the
+		 * original (complete) name.
+		 */
+
+		if (nv_table_lookup(vp->attrs, start) != NULL) {
+			if (vxml_debugging(0))
+				vxml_parser_warn(vp, "duplicate attribute \"%s\"", start);
+
+			if (vp->options & VXML_O_NO_DUP_ATTR) {
+				vxml_fatal_error_str(vp, VXML_E_DUP_ATTRIBUTE, name);
+				atom_str_free(name);
+				return FALSE;
+			}
+		} else {
+			nv_table_insert(vp->attrs, start, value, len + 1);
+		}
+
 		atom_str_free(name);
 
 		if (vxml_debugging(18)) {
@@ -4012,27 +4239,6 @@ vxml_handle_decl(vxml_parser_t *vp, gboolean doctype)
 }
 
 /**
- * Set parser's current element to given string, or clear it if NULL.
- */
-static void
-vxml_parser_set_element(vxml_parser_t *vp, const char *element)
-{
-	if (element != NULL) {
-		const char *atom = vp->element;
-		atom_str_change(&vp->element, element);
-		if (atom != vp->element)
-			vp->elem_token_valid = FALSE;
-	} else {
-		atom_str_free_null(&vp->element);
-		vp->elem_token_valid = FALSE;
-	}
-
-	if (vxml_debugging(19))
-		vxml_parser_debug(vp, "VXML current element: \"%s\"",
-			NULL == vp->element ? "(none)" : vp->element);
-}
-
-/**
  * Create new element out of the parser's output buffer.
  */
 static void
@@ -4068,46 +4274,6 @@ vxml_parser_new_element(vxml_parser_t *vp)
 }
 
 /**
- * Attempt element tokenization.
- *
- * @param vp		the XML parser
- * @param tokens	if non-NULL, additional tokens to consider for elements
- */
-static void
-vxml_tokenize_element(vxml_parser_t *vp, nv_table_t *tokens, const char *name)
-{
-	nv_pair_t *nvp = NULL;
-
-	g_assert(name != NULL);
-
-	vp->elem_token_valid = FALSE;
-
-	/*
-	 * If they supplied a token table, use that before the parser's defaults.
-	 */
-
-	if (tokens != NULL) {
-		nvp = nv_table_lookup(tokens, name);
-	}
-	if (NULL == nvp && vp->tokens != NULL) {
-		nvp = nv_table_lookup(vp->tokens, name);
-	}
-
-	if (nvp != NULL) {
-		struct vxml_token *vt;
-
-		vt = nv_pair_value(nvp);
-		g_assert(0 == strcmp(name, vt->name));
-
-		vp->elem_token_valid = TRUE;
-		vp->elem_token = vt->id;
-
-		if (vxml_debugging(19))
-			vxml_parser_debug(vp, "VXML tokenized \"%s\" as %u", name, vt->id);
-	}
-}
-
-/**
  * Update element path and parser depth when we enter a new element.
  */
 static void
@@ -4120,7 +4286,8 @@ vxml_parser_path_enter(vxml_parser_t *vp, const char *elem_name)
 	 * is the set of elements we have to traverse to reach the root.
 	 */
 
-	vp->depth++;
+	vp->loc.depth++;
+	vp->glob.depth++;
 	element = atom_str_get(elem_name);
 	vp->path = g_list_prepend(vp->path, deconstify_gpointer(element));
 
@@ -4163,8 +4330,15 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	char *element;
 	gboolean ok = TRUE;
 
+	if (0 == vp->loc.depth) {
+		atom_str_free_null(&vp->element);
+		vxml_fatal_error(vp, VXML_E_UNEXPECTED_TAG_END);
+		return FALSE;
+	}
+
 	g_assert(vp->element != NULL);
-	g_assert(uint_is_positive(vp->depth));
+	g_assert(uint_is_positive(vp->loc.depth));
+	g_assert(uint_is_positive(vp->glob.depth));
 	g_assert(vp->path != NULL);
 
 	element = vp->path->data;
@@ -4172,12 +4346,13 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	if (vxml_debugging(18)) {
 		vxml_parser_debug(vp, "vxml_parser_path_leave: "
 			"leaving '%s' at depth %u (parsed \"%s\")",
-			element, vp->depth, vp->element);
+			element, vp->loc.depth, vp->element);
 	}
 
 	vp->path = g_list_remove(vp->path, vp->path->data);
 	vp->level = g_list_remove(vp->level, vp->level->data);
-	vp->depth--;
+	vp->loc.depth--;
+	vp->glob.depth--;
 
 	/*
 	 * Ensure that tags do match.
@@ -4200,7 +4375,7 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	 */
 
 	atom_str_free(element);
-	vxml_parser_set_element(vp, vp->depth != 0 ? vp->path->data : NULL);
+	vxml_parser_set_element(vp, vp->loc.depth != 0 ? vp->path->data : NULL);
 
 	return ok;
 }
@@ -4252,7 +4427,7 @@ vxml_parser_end_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 static void
 vxml_parser_begin_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 {
-	gboolean empty = FALSE;
+	gboolean empty;
 
 	vxml_parser_path_enter(vp, vp->element);
 	vxml_tokenize_element(vp, ctx->tokens, vp->element);
@@ -4264,42 +4439,29 @@ vxml_parser_begin_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	}
 
 	/*
-	 * We have to notify users, but if the item has no content, we may need to
-	 * issue the end-item callback right after.  In that case, the operation
-	 * will not be atomic since user code may recurse and when we come back
-	 * it would be too late to issue the "end element" procesing.
-	 *
-	 * Protect against that situation by setting the VXML_F_EMPTY_TAG to
-	 * make sure we'll cleanup immediately upon re-entry before resuming
-	 * normal parsing.  We also need to save the current parsing context
-	 * for the cleanup operation to know what is relevant.
+	 * Flag empty tags in case they want to re-enter the parser to parse
+	 * the content of that tag, without knowing a priori that it will be empty.
 	 */
 
 	if (vp->elem_no_content) {
 		empty = TRUE;
 		vp->flags |= VXML_F_EMPTY_TAG;
-		vp->uctx = ctx;
 	}
 
 	/*
 	 * Invoke user callback.
 	 */
 
-	vxml_parser_do_notify_start(vp, ctx->ops, ctx->data);
+	vxml_parser_do_notify_start(vp, ctx);
+
+	vp->flags &= ~VXML_F_EMPTY_TAG;
 
 	/*
-	 * If we had an empty tag, check whether the VXML_F_EMPTY_TAG flag is
-	 * still set.  Since this flag is cleared each time we re-enter the
-	 * parser, having it set means that there was no re-entry.  Conversely,
-	 * if it has been cleared, the empty element processing was already
-	 * taken care of.
+	 * End element if it was empty.
 	 */
 
-	if (empty && (vp->flags & VXML_F_EMPTY_TAG)) {
-		g_assert(vp->elem_no_content);
-		vp->flags &= ~VXML_F_EMPTY_TAG;
+	if (empty)
 		vxml_parser_end_element(vp, ctx);
-	}
 }
 
 /**
@@ -4459,6 +4621,18 @@ vxml_handle_tag(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 		return vxml_handle_tag_end(vp, ctx);
 
 	/*
+	 * Count real (content-holding) tags, as opposed to processing instructions,
+	 * comments or DTD-related tags.
+	 *
+	 * This matters when sub-parsing, because we don't want to stop parsing
+	 * until we've seen at least one content-holding tag: the sub-root of the
+	 * fragment we're parsing.
+	 */
+
+	vp->loc.tag_start++;
+	vp->glob.tag_start++;
+
+	/*
 	 * This is a tag start, collect its name in the output buffer.
 	 *
 	 * STag			::= '<' Name (S  Attribute)* S? '>'
@@ -4549,8 +4723,9 @@ vxml_parse_engine(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	guint32 uc;
 
 	if (vxml_debugging(5)) {
-		g_debug("VXML parsing \"%s\" depth=%u offset=%lu starting",
-			vp->name, vp->depth, (unsigned long) vp->offset);
+		g_debug("VXML %sparsing \"%s\" depth=%u offset=%lu starting",
+			vp->glob.depth != 0 ? "sub-" : "",
+			vp->name, vp->glob.depth, (unsigned long) vp->glob.offset);
 	}
 
 	/*
@@ -4572,22 +4747,52 @@ vxml_parse_engine(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	}
 
 	if (vxml_debugging(5)) {
-		g_debug("VXML parsing \"%s\" with %s: %s (%s)",
+		g_debug("VXML %sparsing \"%s\" with %s: %s (%s)",
+			vp->glob.depth != 0 ? "sub-" : "",
 			vp->name, vxml_encsrc_to_string(vp->encsource),
 			vxml_encoding_to_string(vp->encoding),
 			vxml_endsrc_to_string(vp->endianness));
 	}
 
 	/*
-	 * If we're re-entering the parsing engine we need to clean the parser
-	 * object to forget about contextual information remaining after
-	 * the previous callback was invoked.
+	 * If the depth is not 0, we're re-entering.
 	 */
 
-	vxml_output_discard(&vp->out);		/* Discard any previous text */
+	if (vp->glob.depth != 0) {
+		/*
+		 * Only "element start" callbacks can re-enter, and this is indicated
+		 * by having the callback dispatching code set the internal
+		 * VXML_F_SUBPARSE flag before invoking user code.
+		 *
+		 * This guarantees that the parsing context (as modified below) was
+		 * properly saved and will be properly restored upon return.
+		 */
+
+		if (!(vp->flags & VXML_F_SUBPARSE))
+			g_error("VXML \"%s\" unsupported re-entry from callback", vp->name);
+
+		/*
+		 * Since we're about to modify the parsing context, clear the
+		 * VXML_F_SUBPARSE flag now so that the original context can be
+		 * restored when we return from the recursive parsing.
+		 *
+		 * We're not fully done with sub-parsing initialization though so
+		 * we remember the fact that we are in a sub-parsing call.
+		 */
+
+		vp->flags &= ~VXML_F_SUBPARSE;
+	}
 
 	/*
-	 * If re-entering the parsing enging from a "start element" type of
+	 * We're re-entering the parsing engine so we need to clean the parser
+	 * location to start afresh and have all positions logged relatively
+	 * to our starting point.
+	 */
+
+	vxml_location_init(&vp->loc);
+
+	/*
+	 * If re-entering the parsing engine from a "start element" type of
 	 * callback when the element was empty, we need to end the element
 	 * before resuming processing.
 	 *
@@ -4596,9 +4801,23 @@ vxml_parse_engine(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 
 	if (vp->flags & VXML_F_EMPTY_TAG) {
 		vp->flags &= ~VXML_F_EMPTY_TAG;
-		vxml_parser_end_element(vp, vp->uctx);
-		vp->uctx = NULL;
+
+		if (vxml_debugging(18)) {
+			vxml_parser_debug(vp, "recursed withing empty element \"%s\"",
+				vp->element);
+		}
+
+		goto done;	/* Sub-parsing was short -- no content to parse */
 	}
+
+	/*
+	 * Reset parser global state.
+	 */
+
+	atom_str_free_null(&vp->element);
+	vp->elem_token_valid = FALSE;
+	vxml_output_discard(&vp->out);		/* Discard any previous text */
+	vxml_output_discard(&vp->entity);
 
 	/*
 	 * Parse input.
@@ -4611,7 +4830,7 @@ vxml_parse_engine(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 		 *   - Abort on any character not starting an element or a reference.
 		 */
 
-		if (0 == vp->depth) {
+		if (0 == vxml_parser_depth(vp)) {
 			if (vxml_is_white_space_char(uc))
 				continue;
 			if (uc == VXC_LT)			/* A '<' */
@@ -4666,11 +4885,19 @@ vxml_parse_engine(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 		}
 
 		if (!vxml_handle_tag(vp, ctx))
-			break;
+			goto done;
 
 		if (vxml_debugging(19)) {
 			vxml_parser_debug(vp, "back to main loop in <%s>",
 				vp->element != NULL ? vp->element : "(none)");
+		}
+
+		if (0 == vp->loc.depth && vp->loc.tag_start != 0) {
+			if (vxml_debugging(17)) {
+				vxml_parser_debug(vp, "ending %sparsing",
+					vp->glob.depth != 0 ? "sub-" : "");
+			}
+			goto done;
 		}
 	}
 
@@ -4680,15 +4907,16 @@ vxml_parse_engine(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	 * of a tag.
 	 */
 
-	if (vp->depth != 0) {
+	if (vp->loc.depth != 0)
 		vxml_fatal_error(vp, VXML_E_TRUNCATED_INPUT);
-		goto done;
-	}
+
+	/* FALL THROUGH */
 
 done:
 	if (vxml_debugging(5)) {
-		g_debug("VXML parsing \"%s\" depth=%u offset=%lu exiting (%s)",
-			vp->name, vp->depth, (unsigned long) vp->offset,
+		g_debug("VXML %sparsing \"%s\" depth=%u offset=%lu exiting (%s)",
+			vp->glob.depth != 0 ? "sub-" : "",
+			vp->name, vp->glob.depth, (unsigned long) vp->glob.offset,
 			vxml_strerror(vp->error));
 	}
 }
@@ -4841,6 +5069,12 @@ const char evaluation[] =
 const char blanks[] =
 	"<test><![CDATA[   <x> <y>  &unknown; </x> [[/]] data      ]]></test>";
 
+const char subparse[] =
+	"<a><b>text-b<c/><d>text-d</d>text2-b</b>text-a</a>";
+
+const char tag_end[] = "</a>";
+const char dup_attr[] = "<a dup='1' dup='2'/>";
+
 static void
 vxml_run_simple_test(int num, const char *name,
 	const char *data, size_t len, guint32 flags, vxml_error_t error)
@@ -4885,7 +5119,11 @@ vxml_run_callback_test(int num, const char *name,
 
 	vp = vxml_parser_make(name, flags);
 	vxml_parser_add_input(vp, data, len);
-	e = vxml_parse_callbacks_tokens(vp, ops, tvec, tlen, &info);
+	if (tvec != NULL) {
+		e = vxml_parse_callbacks_tokens(vp, ops, tvec, tlen, &info);
+	} else {
+		e = vxml_parse_callbacks(vp, ops, &info);
+	}
 	if (vxml_debugging(0)) {
 		g_info("VXML %s test #%d (callback \"%s\"): %s",
 			VXML_E_OK == e ? "SUCCESSFUL" : "FAILED",
@@ -4900,6 +5138,7 @@ tricky_text(vxml_parser_t *vp,
 	const char *name, const char *text, size_t len, void *data)
 {
 	struct vxml_test_info *info = data;
+	gboolean *seen_text = info->data;
 
 	if (vxml_debugging(0)) {
 		g_info("VXML test #%d \"%s\": "
@@ -4909,12 +5148,17 @@ tricky_text(vxml_parser_t *vp,
 			name, vxml_parser_depth(vp));
 	}
 
+	*seen_text = TRUE;
+
 	g_assert(name != NULL);
 	g_assert(0 == strcmp(text, "This sample shows a error-prone method."));
 }
 
 #define T_TEST	0
 #define T_P		1
+#define T_B		2
+#define T_C		3
+#define T_D		4
 
 static void
 evaluation_text(vxml_parser_t *vp,
@@ -4960,14 +5204,135 @@ blank_text(vxml_parser_t *vp,
 	g_assert(0 == strcmp(text, stripping ? stripped : unstripped));
 }
 
+static void
+subparse_text(vxml_parser_t *vp,
+	const char *name, const char *text, size_t len, void *data)
+{
+	(void) text;
+	(void) data;
+
+	g_assert(6 == len);		/* "text-a" */
+	g_assert(0 == strcmp("text-a", text));
+	g_assert(0 == strcmp("a", name));
+	g_assert(1 == vxml_parser_depth(vp));
+}
+
+static void
+subparse_end(vxml_parser_t *vp, const char *name, void *data)
+{
+	(void) data;
+
+	g_assert(0 == strcmp("a", name));
+	g_assert(1 == vxml_parser_depth(vp));
+}
+
+static void
+subparse_token_start(vxml_parser_t *vp,
+	unsigned id, const nv_table_t *attrs, void *data)
+{
+	g_assert(NULL == attrs);
+
+	(void) data;
+
+	switch (id) {
+	case T_B:
+		g_assert(vxml_parser_depth(vp) == 1);
+		g_assert(vxml_parser_parent_element(vp) == NULL);
+		break;
+	case T_C:
+		g_assert(vxml_parser_depth(vp) == 2);
+		g_assert(0 == strcmp("b", vxml_parser_parent_element(vp)));
+		g_assert(NULL == vxml_parser_nth_parent_element(vp, 2));
+		g_assert(VXML_E_OK == vxml_parse(vp));
+		break;
+	case T_D:
+		g_assert(vxml_parser_depth(vp) == 2);
+		g_assert(0 == strcmp("b", vxml_parser_parent_element(vp)));
+		g_assert(0 == strcmp("d", vxml_parser_current_element(vp)));
+		break;
+	default:
+		g_assert_not_reached();
+	}
+}
+
+static void
+subparse_token_text(vxml_parser_t *vp,
+	unsigned id, const char *text, size_t len, void *data)
+{
+	(void) data;
+	(void) vp;
+
+	switch (id) {
+	case T_B:
+	case T_D:
+		g_assert(len != 0);
+		g_assert(is_strprefix(text, "text-") || is_strprefix(text, "text2-"));
+		break;
+	default:
+		g_assert_not_reached();
+	}
+}
+
+static void
+subparse_token_end(vxml_parser_t *vp, unsigned id, void *data)
+{
+	(void) data;
+
+	switch (id) {
+	case T_B:
+		g_assert(vxml_parser_depth(vp) == 1);
+		g_assert(vxml_parser_parent_element(vp) == NULL);
+		break;
+	case T_C:
+		g_assert(vxml_parser_depth(vp) == 2);
+		g_assert(0 == strcmp("b", vxml_parser_parent_element(vp)));
+		g_assert(NULL == vxml_parser_nth_parent_element(vp, 2));
+		break;
+	case T_D:
+		g_assert(vxml_parser_depth(vp) == 2);
+		g_assert(0 == strcmp("b", vxml_parser_parent_element(vp)));
+		g_assert(0 == strcmp("d", vxml_parser_current_element(vp)));
+		break;
+	default:
+		g_assert_not_reached();
+	}
+}
+
+static void
+subparse_start(vxml_parser_t *vp,
+	const char *name, const nv_table_t *attrs, void *data)
+{
+	vxml_error_t e;
+	struct vxml_ops ops;
+	struct vxml_token tvec[] = {
+		{ "b",	T_B },
+		{ "c",	T_C },
+		{ "d",	T_D },
+	};
+
+	g_assert(NULL == attrs);
+	g_assert(0 == strcmp("a", name));
+	g_assert(1 == vxml_parser_depth(vp));
+
+	memset(&ops, 0, sizeof ops);
+	ops.tokenized_start = subparse_token_start;
+	ops.tokenized_end = subparse_token_end;
+	ops.tokenized_text = subparse_token_text;
+
+	e = vxml_parse_callbacks_tokens(vp, &ops, tvec, G_N_ELEMENTS(tvec), data);
+
+	g_assert(VXML_E_OK == e);
+}
+
 void
 vxml_test(void)
 {
 	struct vxml_ops ops;
-	struct vxml_token tvec[2] = {
+	struct vxml_token tvec[] = {
 		{ "test",	T_TEST },
 		{ "p",		T_P },
 	};
+	gboolean seen_text;
 
 	vxml_run_simple_test(1,
 		"simple", simple, CONST_STRLEN(simple), 0, VXML_E_OK);
@@ -4981,9 +5346,11 @@ vxml_test(void)
 
 	memset(&ops, 0, sizeof ops);
 	ops.plain_text = tricky_text;
+	seen_text = FALSE;
 
 	vxml_run_callback_test(5, "tricky", tricky, CONST_STRLEN(tricky),
-		VXML_O_FATAL, &ops, tvec, 2, NULL);
+		VXML_O_FATAL, &ops, tvec, 2, &seen_text);
+	g_assert(TRUE == seen_text);
 
 	memset(&ops, 0, sizeof ops);
 	ops.tokenized_text = evaluation_text;
@@ -4998,6 +5365,22 @@ vxml_test(void)
 		0, &ops, tvec, 2, GUINT_TO_POINTER(FALSE));
 	vxml_run_callback_test(8, "blanks", blanks, CONST_STRLEN(blanks),
 		VXML_O_STRIP_BLANKS, &ops, tvec, 2, GUINT_TO_POINTER(TRUE));
+
+	memset(&ops, 0, sizeof ops);
+	ops.plain_start = subparse_start;
+	ops.plain_end = subparse_end;
+	ops.plain_text = subparse_text;
+
+	vxml_run_callback_test(9, "subparse", subparse, CONST_STRLEN(subparse),
+		VXML_O_FATAL, &ops, NULL, 0, NULL);
+
+	vxml_run_simple_test(10, "tag_end",
+		tag_end, CONST_STRLEN(tag_end), 0, VXML_E_UNEXPECTED_TAG_END);
+
+	vxml_run_simple_test(11, "dup_attr", dup_attr, CONST_STRLEN(dup_attr),
+		0, VXML_E_OK);
+	vxml_run_simple_test(12, "dup_attr", dup_attr, CONST_STRLEN(dup_attr),
+		VXML_O_NO_DUP_ATTR, VXML_E_DUP_ATTRIBUTE);
 }
 #else	/* !VXML_TESTING */
 void
