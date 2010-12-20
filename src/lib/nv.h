@@ -47,16 +47,20 @@ typedef struct nv_pair nv_pair_t;
 struct nv_table;
 typedef struct nv_table nv_table_t;
 
+typedef void (*nv_table_cb_t)(nv_pair_t *nv, void *u);
+typedef gboolean (*nv_table_cbr_t)(nv_pair_t *nv, void *u);
+
 /*
  * Public interface.
  */
 
-nv_pair_t *nv_pair_make(char *name, const void *value, size_t length);
-nv_pair_t *nv_pair_make_nocopy(char *name, const void *value, size_t length);
+nv_pair_t *nv_pair_make(const char *name, const void *value, size_t length);
+nv_pair_t *nv_pair_make_nocopy(const char *name, const void *value, size_t len);
 const char *nv_pair_name(const nv_pair_t *nvp);
 void *nv_pair_value(const nv_pair_t *nvp);
 const char *nv_pair_value_str(const nv_pair_t *nvp);
 void *nv_pair_value_len(const nv_pair_t *nvp, size_t *retlen);
+void nv_pair_free_value(nv_pair_t *nvp);
 void nv_pair_free(nv_pair_t *nvp);
 void nv_pair_free_null(nv_pair_t **nvp_ptr);
 nv_pair_t *nv_pair_refcnt_inc(nv_pair_t *nvp);
@@ -72,6 +76,9 @@ gboolean nv_table_remove(const nv_table_t *nvt, const char *name);
 nv_pair_t *nv_table_lookup(const nv_table_t *nvt, const char *name);
 const char *nv_table_lookup_str(const nv_table_t *nvt, const char *name);
 size_t nv_table_count(const nv_table_t *nvt);
+
+unsigned nv_table_foreach_remove(const nv_table_t *, nv_table_cbr_t, void *);
+void nv_table_foreach(const nv_table_t *, nv_table_cb_t, void *);
 
 #endif /* _nv_h_ */
 

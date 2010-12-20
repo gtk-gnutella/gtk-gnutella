@@ -136,7 +136,8 @@ nv_pair_make_full(const char *name, const void *value, size_t length,
  * Create a new name/value pair.
  *
  * The name string is always copied, but the value is not: it has to be
- * statically allocated data.
+ * statically allocated data or be managed by the creator (freeing it before
+ * the name/value pair is freed).
  *
  * If the length is 0, the value must be NULL.
  *
@@ -147,7 +148,7 @@ nv_pair_make_full(const char *name, const void *value, size_t length,
  * @return the allocated name/value pair.
  */
 nv_pair_t *
-nv_pair_make_nocopy(char *name, const void *value, size_t length)
+nv_pair_make_nocopy(const char *name, const void *value, size_t length)
 {
 	return nv_pair_make_full(name, value, length, FALSE);
 }
@@ -165,7 +166,7 @@ nv_pair_make_nocopy(char *name, const void *value, size_t length)
  * @return the allocated name/value pair.
  */
 nv_pair_t *
-nv_pair_make(char *name, const void *value, size_t length)
+nv_pair_make(const char *name, const void *value, size_t length)
 {
 	return nv_pair_make_full(name, value, length, TRUE);
 }
@@ -239,6 +240,22 @@ nv_pair_refcnt_inc(nv_pair_t *nvp)
 
 	nvp->refcnt++;
 	return nvp;
+}
+
+/**
+ * Free the value of the name/value pair, making it a zero-length value.
+ */
+void
+nv_pair_free_value(nv_pair_t *nvp)
+{
+	nv_pair_check(nvp);
+
+	if (nvp->allocated)
+		HFREE_NULL(nvp->value);
+
+	nvp->value = NULL;
+	nvp->length = 0;
+	nvp->allocated = FALSE;
 }
 
 /**
@@ -458,6 +475,83 @@ nv_table_count(const nv_table_t *nvt)
 	nv_table_check(nvt);
 
 	return g_hash_table_size(nvt->ht);
+}
+
+struct nvt_foreach_remove_ctx {
+	nv_table_cbr_t func;		/**< User callback */
+	void *data;					/**< User additional argument data */
+};
+
+static gboolean
+nv_table_foreach_remove_helper(gpointer ukey, gpointer value, gpointer data)
+{
+	nv_pair_t *nvp = value;
+	struct nvt_foreach_remove_ctx *ctx = data;
+
+	nv_pair_check(nvp);
+	(void) ukey;
+
+	return (*ctx->func)(nvp, ctx->data);
+}
+
+/**
+ * Iterate over table, optionally removing entries when callback returns TRUE.
+ *
+ * @param nvt		the table
+ * @param func		callback invoked for each item
+ * @param data		user-defined argument
+ *
+ * @return the number of entries removed.
+ */
+unsigned
+nv_table_foreach_remove(const nv_table_t *nvt, nv_table_cbr_t func, void *data)
+{
+	struct nvt_foreach_remove_ctx ctx;
+
+	nv_table_check(nvt);
+
+	ctx.func = func;
+	ctx.data = data;
+
+	return g_hash_table_foreach_remove(nvt->ht,
+		nv_table_foreach_remove_helper, &ctx);
+}
+
+struct nvt_foreach_ctx {
+	nv_table_cb_t func;			/**< User callback */
+	void *data;					/**< User additional argument data */
+};
+
+static void
+nv_table_foreach_helper(gpointer ukey, gpointer value, gpointer data)
+{
+	nv_pair_t *nvp = value;
+	struct nvt_foreach_ctx *ctx = data;
+
+	nv_pair_check(nvp);
+	(void) ukey;
+
+	(*ctx->func)(nvp, ctx->data);
+}
+
+/**
+ * Iterate over table.
+ *
+ * @param nvt		the table
+ * @param func		callback invoked for each item
+ * @param data		user-defined argument
+ */
+void
+nv_table_foreach(const nv_table_t *nvt, nv_table_cb_t func, void *data)
+{
+	struct nvt_foreach_ctx ctx;
+
+	nv_table_check(nvt);
+
+	ctx.func = func;
+	ctx.data = data;
+
+	g_hash_table_foreach(nvt->ht, nv_table_foreach_helper, &ctx);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
