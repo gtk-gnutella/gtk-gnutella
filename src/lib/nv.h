@@ -50,6 +50,14 @@ typedef struct nv_table nv_table_t;
 typedef void (*nv_table_cb_t)(nv_pair_t *nv, void *u);
 typedef gboolean (*nv_table_cbr_t)(nv_pair_t *nv, void *u);
 
+/**
+ * Free routine signature for the value of a name/value pair.
+ *
+ * @param p		the pointer to the value being freed
+ * @param len	the value length, as given at the nv_pair_t creation time
+ */
+typedef void (*nv_pair_val_free_t)(void *p, size_t len);
+
 /*
  * Public interface.
  */
@@ -64,6 +72,7 @@ void nv_pair_free_value(nv_pair_t *nvp);
 void nv_pair_free(nv_pair_t *nvp);
 void nv_pair_free_null(nv_pair_t **nvp_ptr);
 nv_pair_t *nv_pair_refcnt_inc(nv_pair_t *nvp);
+void nv_pair_set_value_free(nv_pair_t *nvp, nv_pair_val_free_t vf);
 
 nv_table_t *nv_table_make(void);
 void nv_table_free(nv_table_t *nvt);

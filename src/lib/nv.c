@@ -57,11 +57,12 @@ enum nv_pair_magic { NV_PAIR_MAGIC = 0x60f7c898U };
  */
 struct nv_pair {
 	enum nv_pair_magic magic;
-	const char *name;		/**< The name (atom) */
-	void *value;			/**< The value (halloc()'ed); can be NULL */
-	size_t length;			/**< Length of value (0 if value is NULL) */
-	int refcnt;				/**< Reference count */
-	unsigned allocated:1;	/**< Whether data was allocated */
+	const char *name;				/**< The name (atom) */
+	void *value;					/**< The value (halloc()'ed); can be NULL */
+	nv_pair_val_free_t value_free;	/**< Value free routine (optional) */
+	size_t length;					/**< Length of value (0 if value is NULL) */
+	int refcnt;						/**< Reference count */
+	unsigned allocated:1;			/**< Whether data was allocated */
 };
 
 static inline void
@@ -117,7 +118,7 @@ nv_pair_make_full(const char *name, const void *value, size_t length,
 	g_assert(0 == length || value != NULL);
 	g_assert(NULL == value || size_is_positive(length));
 
-	nvp = walloc(sizeof *nvp);
+	nvp = walloc0(sizeof *nvp);
 	nvp->magic = NV_PAIR_MAGIC;
 	nvp->refcnt = 1;
 	nvp->name = atom_str_get(name);
@@ -249,9 +250,13 @@ void
 nv_pair_free_value(nv_pair_t *nvp)
 {
 	nv_pair_check(nvp);
+	g_assert(nvp->value != NULL);
 
-	if (nvp->allocated)
+	if (nvp->allocated) {
 		HFREE_NULL(nvp->value);
+	} else if (nvp->value_free != NULL) {
+		(*nvp->value_free)(nvp->value, nvp->length);
+	}
 
 	nvp->value = NULL;
 	nvp->length = 0;
@@ -269,9 +274,15 @@ nv_pair_free(nv_pair_t *nvp)
 	if (--(nvp->refcnt) != 0)
 		return;
 
+	if (nvp->value != NULL) {
+		if (nvp->allocated) {
+			HFREE_NULL(nvp->value);
+		} else if (nvp->value_free != NULL) {
+			(*nvp->value_free)(nvp->value, nvp->length);
+			nvp->value = NULL;
+		}
+	}
 	atom_str_free_null(&nvp->name);
-	if (nvp->allocated)
-		HFREE_NULL(nvp->value);
 	nvp->magic = 0;
 	wfree(nvp, sizeof *nvp);
 }
@@ -288,6 +299,20 @@ nv_pair_free_null(nv_pair_t **nvp_ptr)
 		nv_pair_free(nvp);
 		*nvp_ptr = NULL;
 	}
+}
+
+/**
+ * Set free routine for values.
+ */
+void
+nv_pair_set_value_free(nv_pair_t *nvp, nv_pair_val_free_t vf)
+{
+	nv_pair_check(nvp);
+	g_assert(vf != NULL);
+	g_assert(nvp->value != NULL);
+	g_assert(!nvp->allocated);
+
+	nvp->value_free = vf;
 }
 
 /**
