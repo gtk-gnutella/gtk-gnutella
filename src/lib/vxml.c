@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "halloc.h"
 #include "nv.h"
 #include "parse.h"
+#include "symtab.h"
 #include "unsigned.h"
 #include "utf8.h"
 #include "walloc.h"
@@ -201,6 +202,7 @@ enum vxml_path_entry_magic { VXML_PATH_ENTRY_MAGIC = 0x3f4d2959U };
 struct vxml_path_entry {
 	enum vxml_path_entry_magic magic;
 	const char *element;			/**< Element name (atom) */
+	const char *namespace;			/**< Element namespace (atom or NULL) */
 	unsigned token;					/**< Tokenized value for element */
 	unsigned children;				/**< Amount of children elements seen */
 	unsigned token_valid:1;			/**< Whether token is valid */
@@ -228,7 +230,10 @@ struct vxml_parser {
 	nv_table_t *entities;			/**< Entities defined in document */
 	nv_table_t *pe_entities;		/**< Entities defined in <!DOCTYPE...> */
 	nv_table_t *attrs;				/**< Current element attributes */
+	nv_table_t *ns;					/**< Current element namespace decl. */
+	symtab_t *namespaces;			/**< Symbol table for namespaces */
 	const char *element;			/**< Current element (atom, NULL if none) */
+	const char *namespace;			/**< Element's namesapace (atom, or NULL) */
 	char *user_error;				/**< User-defined error string */
 	struct vxml_output out;			/**< Output parsing buffer (UTF-8) */
 	struct vxml_output entity;		/**< Entity parsing buffer (UTF-8) */
@@ -297,6 +302,14 @@ static guint32 vxml_debug;
 #define VXC_QM		0x3FU	/* '?' */
 #define VXC_LBRAK	0x5BU	/* '[' */
 #define VXC_RBRAK	0x5DU	/* ']' */
+
+/**
+ * Important string constants.
+ */
+
+static const char VXS_EMPTY[] = "";
+static const char VXS_XMLNS[] = "xmlns";
+static const char VXS_DEFAULT_NS[] = ":DEFAULT";
 
 /**
  * Default entities.
@@ -843,6 +856,7 @@ vxml_path_entry_free(struct vxml_path_entry *pe)
 	vxml_path_entry_check(pe);
 
 	atom_str_free_null(&pe->element);
+	atom_str_free_null(&pe->namespace);
 	pe->magic = 0;
 	wfree(pe, sizeof *pe);
 }
@@ -868,6 +882,7 @@ vxml_parser_make(const char *name, guint32 options)
 	vp->endianness = VXML_ENDIANSRC_DEFAULT;
 	vp->versource = VXML_VERSRC_DEFAULT;
 	vp->options = options;
+	vp->namespaces = symtab_make();
 	vp->major = 1;
 	vp->minor = 0;
 	vxml_output_init(&vp->out);
@@ -901,10 +916,13 @@ vxml_parser_free(vxml_parser_t *vp)
 	nv_table_free_null(&vp->entities);
 	nv_table_free_null(&vp->pe_entities);
 	nv_table_free_null(&vp->attrs);
+	nv_table_free_null(&vp->ns);
 	vxml_output_free(&vp->out);
 	vxml_output_free(&vp->entity);
 	atom_str_free_null(&vp->charset);
 	atom_str_free_null(&vp->element);
+	atom_str_free_null(&vp->namespace);
+	symtab_free_null(&vp->namespaces);
 	HFREE_NULL(vp->user_error);
 
 	vp->magic = 0;
@@ -1091,6 +1109,10 @@ vxml_strerror(vxml_error_t error)
 	case VXML_E_VERSION_OUT_OF_RANGE:	return "Version number out of range";
 	case VXML_E_USER:					return "User-defined error";
 	case VXML_E_DUP_ATTRIBUTE:			return "Duplicate attribute";
+	case VXML_E_DUP_DEFAULT_NAMESPACE:	return "Duplicate default namespace";
+	case VXML_E_BAD_CHAR_IN_NAMESPACE:	return "Bad character in namespace";
+	case VXML_E_NAMESPACE_REDEFINITION:	return "Invalid namespace redefinition";
+	case VXML_E_EMPTY_NAME:				return "Empty name";
 	case VXML_E_UNKNOWN_CHAR_ENCODING_NAME:
 		return "Unknown character encoding name";
 	case VXML_E_INVALID_CHAR_ENCODING_NAME:
@@ -2462,10 +2484,218 @@ done:
 }
 
 /**
+ * Free routine for namespace name/value pairs.
+ */
+static void
+vxml_namespace_free(void *p, size_t unused_len)
+{
+	(void) unused_len;
+
+	atom_str_free(p);
+}
+
+/**
+ * Create a new namespace name/value pair, with an attached free routine
+ * so that underlying memory is reclaimed as soon as the name/value pair
+ * is freed.
+ *
+ * @param ns		the name space
+ * @param uri		the name space URI
+ * @param uri_len	the string length of the URI (computed if 0)
+ */
+static nv_pair_t *
+vxml_namespace_make(const char *ns, const char *uri, size_t uri_len)
+{
+	nv_pair_t *nv;
+	const char *uri_atom;
+	size_t len;
+
+	g_assert(ns != NULL);
+	g_assert(uri != NULL);
+
+	uri_atom = atom_str_get(uri);
+	len = (0 == uri_len) ? strlen(uri_atom) : uri_len;
+	nv = nv_pair_make_nocopy(ns, uri_atom, uri_len + 1);	/* Trailing NUL */
+	nv_pair_set_value_free(nv, vxml_namespace_free);
+
+	return nv;
+}
+
+/**
+ * Insert a new namespace (described by the name/value pair associating the
+ * local namespace name with the URI value of the namespace) into the parser.
+ *
+ * @param vp	the XML parser
+ * @param ns	the namespace name/value to insert
+ * @param err	error to report if symbol table can't record namespace
+ */
+static void
+vxml_parser_namespace_insert(vxml_parser_t *vp, nv_pair_t *ns, vxml_error_t err)
+{
+	g_assert(ns != NULL);
+
+	/*
+	 * Name spaces start to become alive as soon as they are declared.
+	 *
+	 * Since at this stage we have not entered the tag yet (namespaces are
+	 * declared in tag attributes, parsed before we officially enter the
+	 * element and increase the parsing depth), we need to increase the depth
+	 * by one to define the lexical scope of that namespace correctly.
+	 *
+	 * Furthermore, we use the global depth of the parser, not the local
+	 * one in case sub-parsing is used.  Indeed, namespaces defined earlier
+	 * apply until their lexical scope is left, and this requires a common
+	 * global depth scale.
+	 */
+
+	if (!symtab_insert_pair(vp->namespaces, ns, vp->glob.depth + 1)) {
+		vxml_fatal_error_str(vp, err, nv_pair_value_str(ns));
+		nv_pair_free(ns);
+	}
+}
+
+/**
+ * Fetch namespace URI value, given local namespace tag alias.
+ *
+ * @return namespace URI if found, an empty string otherwise.
+ */
+static const char *
+vxml_parser_namespace_lookup(const vxml_parser_t *vp, const char *ns)
+{
+	const char *uri;
+
+	g_assert(ns != NULL);
+
+	uri = symtab_lookup(vp->namespaces, ns);
+	return NULL == uri ? VXS_EMPTY : uri;
+}
+
+/**
+ * Resolve the current namespace local alias into an URI, considering that
+ * a NULL local alias means no explicit namespace.
+ *
+ * @return namespace URI if found, an empty string otherwise.
+ */
+static const char *
+vxml_parser_namespace_uri(const vxml_parser_t *vp, const char *ns)
+{
+	return vxml_parser_namespace_lookup(vp, NULL == ns ? VXS_DEFAULT_NS: ns);
+}
+
+/**
+ * Get current element's namespace URI.
+ *
+ * @return the current element's namespace URI, the empty string if none
+ * was defined or if namespace support was disabled in the parser.
+ */
+const char *
+vxml_parser_current_namespace(const vxml_parser_t *vp)
+{
+	struct vxml_path_entry *pe;
+
+	vxml_parser_check(vp);
+	g_assert(uint_is_positive(vxml_parser_depth(vp)));
+	g_assert(vp->path != NULL);
+
+	pe = vp->path->data;
+	vxml_path_entry_check(pe);
+
+	return vxml_parser_namespace_uri(vp, pe->namespace);
+}
+
+/**
+ * Define a new default namespace.
+ *
+ * The new namespace is included in the global namespace table and will.
+ * persist until the end of the current element is reached.
+ *
+ * @return TRUE if OK, FALSE on error with vp->error set.
+ */
+static gboolean
+vxml_parser_namespace_default(vxml_parser_t *vp, const char *value, size_t len)
+{
+	nv_pair_t *default_ns;
+
+	if (vp->options & VXML_O_NO_NAMESPACES)
+		return TRUE;
+
+	/*
+	 * The value of VXS_DEFAULT_NS is an invalid local tag alias name since
+	 * it starts with a ':' character.  As such, we know there cannot be
+	 * any conflict with a user-defined namespace alias.
+	 */
+
+	default_ns = vxml_namespace_make(VXS_DEFAULT_NS, value, len);
+	vxml_parser_namespace_insert(vp, default_ns, VXML_E_DUP_DEFAULT_NAMESPACE);
+
+	return TRUE;
+}
+
+/**
+ * Declare a new namespace.
+ *
+ * The new namespace is not included in the global namespace table until
+ * the end of the tag is reached.
+ *
+ * @return TRUE if OK, FALSE on error with vp->error set.
+ */
+static gboolean
+vxml_parser_namespace_decl(vxml_parser_t *vp,
+	const char *name, const char *value, size_t value_len)
+{
+	nv_pair_t *ns;
+
+	if (vp->options & VXML_O_NO_NAMESPACES)
+		return TRUE;
+
+	if (0 == value_len) {
+		vxml_fatal_error(vp, VXML_E_EMPTY_NAME);
+		return FALSE;
+	}
+
+	if (strchr(name, ':') != NULL) {
+		vxml_fatal_error(vp, VXML_E_BAD_CHAR_IN_NAMESPACE);
+		return FALSE;
+	}
+
+	if (NULL == vp->ns)
+		vp->ns = nv_table_make();
+
+	/*
+	 * No duplicate declarations, regardless of VXML_O_NO_DUP_ATTR.
+	 *
+	 * FIXME: to detect properly duplicate attributes, we should replace
+	 * the namespace name by its URI, catenate it with the local attribute
+	 * name and insert that in the hash table.  A conflict would mean a
+	 * duplicate.  The default namespace would apply if an unqualified name
+	 * is given.  This would impose to declare the URI of 'xml:'.
+	 * The symbol table will take care of duplicates in 'xmlns:'...
+	 * Current algorithm, with all its limitations, is good enough for now.
+	 *		--RAM, 2010-12-20
+	 */
+
+	if (nv_table_lookup(vp->ns, name) != NULL) {
+		vxml_fatal_error(vp, VXML_E_DUP_ATTRIBUTE);
+		return FALSE;
+	}
+
+	/*
+	 * Register the namespace to be alive during the entire lexical scope
+	 * of the element.
+	 */
+
+	ns = vxml_namespace_make(name, value, value_len);
+	nv_table_insert_pair(vp->ns, nv_pair_refcnt_inc(ns));
+	vxml_parser_namespace_insert(vp, ns, VXML_E_NAMESPACE_REDEFINITION);
+
+	return TRUE;
+}
+
+/**
  * Set parser's current element to given string, or clear it if NULL.
  */
 static void
-vxml_parser_set_element(vxml_parser_t *vp, const char *element)
+vxml_parser_set_element(vxml_parser_t *vp, const char *element, const char *ns)
 {
 	if (element != NULL) {
 		const char *atom = vp->element;
@@ -2477,9 +2707,22 @@ vxml_parser_set_element(vxml_parser_t *vp, const char *element)
 		vp->elem_token_valid = FALSE;
 	}
 
-	if (vxml_debugging(19))
-		vxml_parser_debug(vp, "VXML current element: \"%s\"",
-			NULL == vp->element ? "(none)" : vp->element);
+	if (ns != NULL) {
+		atom_str_change(&vp->namespace, ns);
+	} else {
+		atom_str_free_null(&vp->namespace);
+	}
+
+	if (vxml_debugging(19)) {
+		const char *uri;
+		const char *colon = vp->namespace ? ":" : "";
+
+		uri = vxml_parser_namespace_uri(vp, vp->namespace);
+
+		vxml_parser_debug(vp, "VXML current element: \"%s%s%s\" (%s)",
+			NULL == vp->namespace ? "" : vp->namespace, colon,
+			NULL == vp->element ? "(none)" : vp->element, uri);
+	}
 }
 
 /*
@@ -2491,11 +2734,11 @@ vxml_parser_update_current_element(vxml_parser_t *vp)
 	if (vp->path != NULL) {
 		struct vxml_path_entry *pe = vp->path->data;
 		vxml_path_entry_check(pe);
-		vxml_parser_set_element(vp, pe->element);
+		vxml_parser_set_element(vp, pe->element, pe->namespace);
 		vp->elem_token = pe->token;
 		vp->elem_token_valid = pe->token_valid;
 	} else {
-		vxml_parser_set_element(vp, NULL);
+		vxml_parser_set_element(vp, NULL, NULL);
 	}
 }
 
@@ -2572,7 +2815,7 @@ vxml_parser_notify_text(const vxml_parser_t *vp, const struct vxml_ops *ops)
  * @returns start of new text, and adjusted length in case we stripped.
  */
 static const char *
-vxml_stip_blanks(char *text, size_t *len_ptr)
+vxml_strip_blanks(char *text, size_t *len_ptr)
 {
 	guint32 uc;
 	guint retlen;
@@ -2595,7 +2838,11 @@ vxml_stip_blanks(char *text, size_t *len_ptr)
 
 	g_assert(size_is_non_negative(len));
 
-	while (len != 0 && 0 != (uc = utf8_decode_char_buffer(p, len, &retlen))) {
+	/*
+	 * Text is NUL-terminated, so we can use utf8_decode_char_fast().
+	 */
+
+	while (0 != (uc = utf8_decode_char_fast(p, &retlen))) {
 		p += retlen;
 		len -= retlen;
 
@@ -2666,7 +2913,7 @@ vxml_parser_do_notify_text(vxml_parser_t *vp,
 	 */
 
 	if (vp->options & VXML_O_STRIP_BLANKS) {
-		text = vxml_stip_blanks(deconstify_char(text), &len);
+		text = vxml_strip_blanks(deconstify_char(text), &len);
 
 		g_assert('\0' == text[len]);		/* Still NUL-terminated */
 		g_assert(len <= vxml_output_size(&vp->out) - 1);
@@ -2912,15 +3159,17 @@ vxml_parser_handle_attrval(vxml_parser_t *vp, struct vxml_output *vo)
  * Handle one element attribute.
  *
  * @param vp			the XML parser
+ * @param in_document	true if we are within a document tag (and not a PI)
  *
  * @return TRUE if the handling was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
 static gboolean
-vxml_handle_attribute(vxml_parser_t *vp)
+vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
 {
 	guint32 uc;
 	const char *name;
+	gboolean ok = TRUE;
 
 	/*
 	 * If there is no attribute yet for the current element, create a new
@@ -2987,24 +3236,67 @@ vxml_handle_attribute(vxml_parser_t *vp)
 	{
 		char *value = deconstify_gchar(vxml_output_start(&vp->out));
 		size_t len = vxml_output_size(&vp->out) - 1;
-		const char *start = name;
+		const char *start;
 
 		g_assert('\0' == value[len]);		/* Properly NUL-terminated */
 
 		/*
-		 * Stip name space in attribute names as well when told to do so.
+		 * The xmlns: namespace is handled by the parser and not made
+		 * visible to the user.  It is used to declare name spaces.
+		 *
+		 * The xmlns attribute is used to declare a default namespace
+		 * for the tag's content.
+		 *
+		 * This does not apply to attributes in processing instructions.
 		 */
 
-		if (vp->options & VXML_O_STRIP_NS) {
+		if (in_document && NULL != (start = is_strprefix(name, VXS_XMLNS))) {
+			if (*start == ':') {
+				/* xmlns:ns='blah' */
+				ok = vxml_parser_namespace_decl(vp, start + 1, value, len);
+			} else {
+				/* xmlns='blah' */
+				ok = vxml_parser_namespace_default(vp, value, len);
+			}
+			goto done;
+		}
+
+		start = name;
+
+		/*
+		 * Stip name space in attribute names, unless we're running with
+		 * no namespace support.
+		 */
+
+		if (!(vp->options & VXML_O_NO_NAMESPACES)) {
 			const char *local_name;
 
 			local_name = strchr(start, ':');
 			if (local_name != NULL) {
+				unsigned retlen;
+
 				start = local_name + 1;
 
 				if (vxml_debugging(18)) {
 					vxml_parser_debug(vp, "vxml_handle_attribute: "
 						"stripped name is \"%s\"", start);
+				}
+
+				/*
+				 * After stripping, the name must not be empty and it must
+				 * start with a valid character, as if the namespace had
+				 * not been there.
+				 */
+
+				if ('\0' == *start) {
+					vxml_fatal_error_str(vp, VXML_E_EMPTY_NAME, name);
+					goto error;
+				}
+
+				uc = utf8_decode_char_fast(start, &retlen);
+				if (!vxml_is_valid_name_start_char(uc)) {
+					vxml_fatal_error_uc(vp, VXML_E_BAD_CHAR_IN_NAME, uc);
+					goto error;
 				}
 			}
 		}
@@ -3015,6 +3307,14 @@ vxml_handle_attribute(vxml_parser_t *vp)
 		 * Note that the conflicts can arise from namespace stripping, so
 		 * we warn using the possibly stripped name but log an error with the
 		 * original (complete) name.
+		 *
+		 * In practice, this will very rarely occur.  Qualified attribute
+		 * names are really required in the xml: namespace and conflicts
+		 * there are unlikely.  For "private" tags in a namespace, attributes
+		 * will be namespace-specific and will not mix with those from other
+		 * namespaces, so stripping should not create conflicts.
+		 *
+		 * Conflicts are non-fatal unless the option VXML_O_NO_DUP_ATTR is set.
 		 */
 
 		if (nv_table_lookup(vp->attrs, start) != NULL) {
@@ -3023,24 +3323,27 @@ vxml_handle_attribute(vxml_parser_t *vp)
 
 			if (vp->options & VXML_O_NO_DUP_ATTR) {
 				vxml_fatal_error_str(vp, VXML_E_DUP_ATTRIBUTE, name);
-				atom_str_free(name);
-				return FALSE;
+				goto error;
 			}
 		} else {
 			nv_table_insert(vp->attrs, start, value, len + 1);
 		}
 
-		atom_str_free(name);
-
 		if (vxml_debugging(18)) {
 			vxml_parser_debug(vp, "vxml_handle_attribute: "
 				"value is \"%s\"", value);
 		}
-
-		vxml_output_discard(&vp->out);
 	}
 
-	return TRUE;
+done:
+	vxml_output_discard(&vp->out);
+	atom_str_free(name);
+
+	return ok;
+
+error:
+	ok = FALSE;
+	goto done;
 }
 
 /**
@@ -3140,7 +3443,7 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 		 * is handled at the top of the loop.
 		 */
 
-		if (!vxml_handle_attribute(vp))
+		if (!vxml_handle_attribute(vp, FALSE))
 			return FALSE;
 
 		need_space = TRUE;
@@ -4302,6 +4605,7 @@ static void
 vxml_parser_new_element(vxml_parser_t *vp)
 {
 	const char *start;
+	char *ns = NULL;
 
 	g_assert(vxml_output_size(&vp->out) != 0);
 
@@ -4313,20 +4617,25 @@ vxml_parser_new_element(vxml_parser_t *vp)
 	vxml_output_append(&vp->out, VXC_NUL);
 
 	/*
-	 * Strip namespace indication from the element name if asked to.
+	 * Strip namespace indication from the element name unless they requested
+	 * no namespace support.
 	 */
 
 	start = vxml_output_start(&vp->out);
 
-	if (vp->options & VXML_O_STRIP_NS) {
+	if (!(vp->options & VXML_O_NO_NAMESPACES)) {
 		const char *local_name;
 
 		local_name = strchr(start, ':');
-		if (local_name != NULL)
+		if (local_name != NULL) {
+			ns = h_strndup(start, local_name - start);
 			start = local_name + 1;
+		}
 	}
 
-	vxml_parser_set_element(vp, start);
+	vxml_parser_set_element(vp, start, ns);
+
+	HFREE_NULL(ns);
 	vxml_output_discard(&vp->out);
 }
 
@@ -4335,13 +4644,14 @@ vxml_parser_new_element(vxml_parser_t *vp)
  *
  * @param vp			the XML parser
  * @param name			the element name (string)
+ * @param ns			the element's namespace symbolic name (string or NULL)
  * @param token			the element token (only valid if token_valid is TRUE)
  * @param token_valid	whether element was tokenized successfully
  *
  */
 static void
 vxml_parser_path_enter(vxml_parser_t *vp,
-	const char *name, unsigned token, gboolean token_valid)
+	const char *name, const char *ns, unsigned token, gboolean token_valid)
 {
 	struct vxml_path_entry *pe;
 
@@ -4356,6 +4666,7 @@ vxml_parser_path_enter(vxml_parser_t *vp,
 	pe = walloc(sizeof *pe);
 	pe->magic = VXML_PATH_ENTRY_MAGIC;
 	pe->element = atom_str_get(name);
+	pe->namespace = NULL == ns ? NULL : atom_str_get(ns);
 	pe->token = token;
 	pe->token_valid = token_valid;
 
@@ -4410,10 +4721,6 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 			pe->element, vp->loc.depth, vp->element);
 	}
 
-	vp->path = g_list_remove(vp->path, pe);
-	vp->loc.depth--;
-	vp->glob.depth--;
-
 	/*
 	 * Ensure that tags do match.
 	 *
@@ -4428,7 +4735,44 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	if (0 != strcmp(vp->element, pe->element))
 		vxml_fatal_error(vp, VXML_E_INVALID_TAG_NESTING);
 
+	/*
+	 * Unless namespace support was disabled, make sure the tag namespaces
+	 * match.  Use global URI for comparison, meaning that if "x" and "y"
+	 * both refer to the same URI, one can open a tag with <x:a> and close
+	 * it with </y:a>.  This is logical since "a" refers to the same tag,
+	 * conceptually.
+	 */
+
+	if (!(vp->options & VXML_O_NO_NAMESPACES)) {
+		const char *start_uri = vxml_parser_namespace_uri(vp, pe->namespace);
+		const char *end_uri = vxml_parser_namespace_uri(vp, vp->namespace);
+
+		if (vxml_debugging(18)) {
+			vxml_parser_debug(vp, "vxml_parser_path_leave: "
+				"leaving namespace '%s' at depth %u (parsed \"%s\")",
+				start_uri, vp->loc.depth, end_uri);
+		}
+
+		if (0 != strcmp(start_uri, end_uri))
+			vxml_fatal_error(vp, VXML_E_INVALID_TAG_NESTING);
+	}
+
+	/*
+	 * We always use the global depth to manage the symbol table.
+	 */
+
+	symtab_leave(vp->namespaces, vp->glob.depth);
+
+	/*
+	 * Now remove the element from the path, and update the current element
+	 * information for the next item in the path (i.e. the parent element).
+	 */
+
+	vp->path = g_list_remove(vp->path, pe);
+	vp->loc.depth--;
+	vp->glob.depth--;
 	vxml_path_entry_free(pe);
+
 	vxml_parser_update_current_element(vp);
 }
 
@@ -4469,7 +4813,7 @@ vxml_parser_begin_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	gboolean empty;
 
 	vxml_tokenize_element(vp, ctx->tokens, vp->element);
-	vxml_parser_path_enter(vp, vp->element,
+	vxml_parser_path_enter(vp, vp->element, vp->namespace,
 		vp->elem_token, vp->elem_token_valid);
 
 	if (!vxml_parser_notify_start(vp, ctx->ops)) {
@@ -4626,6 +4970,7 @@ vxml_handle_tag(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	vp->tags++;
 	vxml_output_discard(&vp->out);
 	nv_table_free_null(&vp->attrs);
+	nv_table_free_null(&vp->ns);
 
 	/*
 	 * If we haven't seen the leading "<?xml ...?>" and we're at the second
@@ -4732,7 +5077,7 @@ vxml_handle_tag(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 
 		g_assert(seen_space);
 
-		if (!vxml_handle_attribute(vp))
+		if (!vxml_handle_attribute(vp, TRUE))
 			return FALSE;
 
 		need_space = TRUE;
@@ -4857,6 +5202,7 @@ vxml_parse_engine(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	 */
 
 	atom_str_free_null(&vp->element);
+	atom_str_free_null(&vp->namespace);
 	vp->elem_token_valid = FALSE;
 	vxml_output_discard(&vp->out);		/* Discard any previous text */
 	vxml_output_discard(&vp->entity);
@@ -5117,6 +5463,10 @@ const char subparse[] =
 const char tag_end[] = "</a>";
 const char dup_attr[] = "<a dup='1' dup='2'/>";
 
+const char namespaces[] =
+	"<a xmlns=''><x:b xmlns:x='urn:x-ns' xmlns:y='urn:y-ns' x:fr='y'>\n"
+	"<y:c xmlns='urn:y-ns'><d>foo</d></c></x:b></a>";
+
 static void
 vxml_run_simple_test(int num, const char *name,
 	const char *data, size_t len, guint32 flags, vxml_error_t error)
@@ -5366,6 +5716,20 @@ subparse_start(vxml_parser_t *vp,
 	g_assert(VXML_E_OK == e);
 }
 
+static void
+namespace_text(vxml_parser_t *vp,
+	const char *name, const char *text, size_t len, void *data)
+{
+	(void) data;
+	(void) len;
+
+	if (0 != strcmp("d", name))
+		return;
+
+	g_assert(0 == strcmp("foo", text));
+	g_assert(0 == strcmp("urn:y-ns", vxml_parser_current_namespace(vp)));
+}
+
 void
 vxml_test(void)
 {
@@ -5423,6 +5787,20 @@ vxml_test(void)
 		0, VXML_E_OK);
 	vxml_run_simple_test(12, "dup_attr", dup_attr, CONST_STRLEN(dup_attr),
 		VXML_O_NO_DUP_ATTR, VXML_E_DUP_ATTRIBUTE);
+
+	/*
+	 * With no namespace support, the test cannot parse correctly because
+	 * we open a tag with <y:c> and close it with </c>.  It works with
+	 * namespaces thanks to the default namespace being set by <y:c>.
+	 */
+
+	memset(&ops, 0, sizeof ops);
+	ops.plain_text = namespace_text;
+
+	vxml_run_callback_test(13, "namespaces", namespaces,
+		CONST_STRLEN(namespaces), VXML_O_FATAL, &ops, NULL, 0, NULL);
+	vxml_run_simple_test(14, "namespaces", namespaces, CONST_STRLEN(namespaces),
+		VXML_O_NO_NAMESPACES, VXML_E_INVALID_TAG_NESTING);
 }
 #else	/* !VXML_TESTING */
 void

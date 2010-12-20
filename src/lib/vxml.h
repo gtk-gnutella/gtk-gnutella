@@ -45,7 +45,7 @@ typedef struct vxml_parser vxml_parser_t;
 /**
  * Parsing options.
  */
-#define VXML_O_STRIP_NS			(1 << 0)  /**< Strip namespace from elements */
+#define VXML_O_NO_NAMESPACES	(1 << 0)  /**< Ignore namespaces */
 #define VXML_O_STRICT_COMMENTS	(1 << 1)  /**< Disable '--' in comments */
 #define VXML_O_FATAL			(1 << 2)  /**< Abort on fatal error */
 #define VXML_O_STRIP_BLANKS		(1 << 3)  /**< Strip leading/ending blanks */
@@ -90,6 +90,10 @@ typedef enum {
 	VXML_E_UNREADABLE_CHAR_ENCODING,	/**< Unreadable input */
 	VXML_E_USER,						/**< User-defined error */
 	VXML_E_DUP_ATTRIBUTE,				/**< Duplicate attribute */
+	VXML_E_DUP_DEFAULT_NAMESPACE,		/**< Duplicate default namespace */
+	VXML_E_BAD_CHAR_IN_NAMESPACE,		/**< Bad character in namespace */
+	VXML_E_NAMESPACE_REDEFINITION,		/**< Invalid namespace redefinition */
+	VXML_E_EMPTY_NAME,					/**< Empty name */
 
 	VXML_E_MAX
 } vxml_error_t;
@@ -227,6 +231,7 @@ size_t vxml_parser_line(const vxml_parser_t *vp);
 const char *vxml_parser_current_element(const vxml_parser_t *vp);
 const char *vxml_parser_parent_element(const vxml_parser_t *vp);
 const char *vxml_parser_nth_parent_element(const vxml_parser_t *vp, size_t n);
+const char *vxml_parser_current_namespace(const vxml_parser_t *vp);
 
 #endif /* _vxml_h_ */
 

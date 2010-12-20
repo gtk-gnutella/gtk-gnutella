@@ -690,6 +690,8 @@ src/lib/stringify.c
 src/lib/stringify.h
 src/lib/strtok.c
 src/lib/strtok.h
+src/lib/symtab.c
+src/lib/symtab.h
 src/lib/tea.c
 src/lib/tea.h
 src/lib/tiger.c

@@ -129,6 +129,7 @@ LSRC = \
 	stats.c \
 	stringify.c \
 	strtok.c \
+	symtab.c \
 	tea.c \
 	tiger.c \
 	tigertree.c \
