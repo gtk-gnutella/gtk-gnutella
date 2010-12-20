@@ -176,7 +176,7 @@ vxml_output_check(const struct vxml_output * const vo)
 enum vxml_location_magic { VXML_LOCATION_MAGIC = 0xe4b3365bU };
 
 /**
- * Location context which is reset when sub-parsing.
+ * Location context.
  */
 struct vxml_location {
 	enum vxml_location_magic magic;
@@ -193,6 +193,26 @@ vxml_location_check(const struct vxml_location * const vl)
 	g_assert(VXML_LOCATION_MAGIC == vl->magic);
 }
 
+enum vxml_path_entry_magic { VXML_PATH_ENTRY_MAGIC = 0x3f4d2959U };
+
+/**
+ * A path entry.
+ */
+struct vxml_path_entry {
+	enum vxml_path_entry_magic magic;
+	const char *element;			/**< Element name (atom) */
+	unsigned token;					/**< Tokenized value for element */
+	unsigned children;				/**< Amount of children elements seen */
+	unsigned token_valid:1;			/**< Whether token is valid */
+};
+
+static inline void
+vxml_path_entry_check(const struct vxml_path_entry * const pe)
+{
+	g_assert(pe != NULL);
+	g_assert(VXML_PATH_ENTRY_MAGIC == pe->magic);
+}
+
 enum vxml_parser_magic { VXML_PARSER_MAGIC = 0x718b5b1bU };
 
 /**
@@ -203,8 +223,7 @@ struct vxml_parser {
 	const char *name;				/**< Parser name (static string) */
 	const char *charset;			/**< Document's charset (atom) */
 	GSList *input;					/**< List of input buffers to parse */
-	GList *path;					/**< Path to current element (strings) */
-	GList *level;					/**< Level of elements in path (int) */
+	GList *path;					/**< Path (list of vxml_path_entry) */
 	nv_table_t *tokens;				/**< For element tokenization */
 	nv_table_t *entities;			/**< Entities defined in document */
 	nv_table_t *pe_entities;		/**< Entities defined in <!DOCTYPE...> */
@@ -392,12 +411,8 @@ vxml_parser_where(const vxml_parser_t *vp)
 	static char buf[2048];
 	size_t rw = 0;
 	GList *rpath, *rp;
-	GList *rlevel, *rl;
 
 	rpath = rp = g_list_reverse(g_list_copy(vp->path));
-	rlevel = rl = g_list_reverse(g_list_copy(vp->level));
-
-	g_assert((rpath != NULL) == (rlevel != NULL));	/* Same length */
 
 	/*
 	 * If sub-parsing an XML fragment, strip the leading part of the
@@ -405,35 +420,31 @@ vxml_parser_where(const vxml_parser_t *vp)
 	 */
 
 	if (vp->glob.depth != vp->loc.depth) {
-		size_t offset;
-
 		g_assert(vp->glob.depth >= vp->loc.depth);
-
-		offset = vp->glob.depth - vp->loc.depth;
-		rp = g_list_nth(rp, offset);
-		rl = g_list_nth(rl, offset);
+		rp = g_list_nth(rp, vp->glob.depth - vp->loc.depth);
 	}
 
 	if (NULL == rp) {
 		gm_snprintf(buf, sizeof buf, "/");
 	} else {
 		while (rp != NULL) {
-			char *element = rp->data;
-			unsigned sibling = GPOINTER_TO_UINT(rl->data);
+			struct vxml_path_entry *pe = rp->data;
+			const char *element;
+			unsigned children;
+
+			vxml_path_entry_check(pe);
+			element = pe->element;
+			children = pe->children;
 
 			rp = g_list_next(rp);
-			rl = g_list_next(rl);
-
-			g_assert((rp != NULL) == (rl != NULL));	/* Same length */
 
 			rw += gm_snprintf(&buf[rw], sizeof buf - rw, "/%s", element);
-			if (sibling > ((NULL == rp) ? 0 : 1))
-				rw += gm_snprintf(&buf[rw], sizeof buf - rw, "[%u]", sibling);
+			if (children > ((NULL == rp) ? 0 : 1))
+				rw += gm_snprintf(&buf[rw], sizeof buf - rw, "[%u]", children);
 		}
 	}
 
 	g_list_free(rpath);
-	g_list_free(rlevel);
 
 	return buf;
 }
@@ -523,11 +534,16 @@ vxml_parser_line(const vxml_parser_t *vp)
 const char *
 vxml_parser_current_element(const vxml_parser_t *vp)
 {
+	struct vxml_path_entry *pe;
+
 	vxml_parser_check(vp);
 	g_assert(uint_is_positive(vxml_parser_depth(vp)));
 	g_assert(vp->path != NULL);
 
-	return vp->path->data;
+	pe = vp->path->data;
+	vxml_path_entry_check(pe);
+
+	return pe->element;
 }
 
 /**
@@ -546,7 +562,14 @@ vxml_parser_parent_element(const vxml_parser_t *vp)
 	g_assert(uint_is_positive(vxml_parser_depth(vp)));
 	g_assert(vp->path != NULL);
 
-	return vxml_parser_depth(vp) > 1 ? g_list_next(vp->path)->data : NULL;
+	if (vxml_parser_depth(vp) > 1) {
+		struct vxml_path_entry *pe = g_list_next(vp->path)->data;
+		vxml_path_entry_check(pe);
+		return pe->element;
+
+	} else {
+		return NULL;
+	}
 }
 
 /**
@@ -560,19 +583,27 @@ vxml_parser_parent_element(const vxml_parser_t *vp)
 const char *
 vxml_parser_nth_parent_element(const vxml_parser_t *vp, size_t n)
 {
-	GList *l;
-
 	vxml_parser_check(vp);
 	g_assert(size_is_non_negative(n));
 	g_assert(uint_is_positive(vxml_parser_depth(vp)));
 	g_assert(vp->path != NULL);
 
-	if (n >= vxml_parser_depth(vp))
+	if (n >= vxml_parser_depth(vp)) {
 		return NULL;
+	} else {
+		GList *l;
+		struct vxml_path_entry *pe;
 
-	l = g_list_nth(vp->path, n);
+		l = g_list_nth(vp->path, n);
+		pe = NULL == l ? NULL : l->data;
 
-	return NULL == l ? NULL : l->data;
+		if (pe != NULL) {
+			vxml_path_entry_check(pe);
+			return pe->element;
+		} else {
+			return NULL;
+		}
+	}
 }
 
 /**
@@ -804,6 +835,19 @@ vxml_output_append(struct vxml_output *vo, guint32 uc)
 }
 
 /**
+ * Free a path entry.
+ */
+static void
+vxml_path_entry_free(struct vxml_path_entry *pe)
+{
+	vxml_path_entry_check(pe);
+
+	atom_str_free_null(&pe->element);
+	pe->magic = 0;
+	wfree(pe, sizeof *pe);
+}
+
+/**
  * Allocate a new versatile XML parser.
  *
  * @param name			parser name, for logging and errors
@@ -850,10 +894,9 @@ vxml_parser_free(vxml_parser_t *vp)
 	gm_slist_free_null(&vp->input);
 
 	GM_LIST_FOREACH(vp->path, l) {
-		atom_str_free(l->data);
+		vxml_path_entry_free(l->data);
 	}
 	gm_list_free_null(&vp->path);
-	gm_list_free_null(&vp->level);
 	nv_table_free_null(&vp->tokens);
 	nv_table_free_null(&vp->entities);
 	nv_table_free_null(&vp->pe_entities);
@@ -2439,6 +2482,23 @@ vxml_parser_set_element(vxml_parser_t *vp, const char *element)
 			NULL == vp->element ? "(none)" : vp->element);
 }
 
+/*
+ * Update current element.
+ */
+static void
+vxml_parser_update_current_element(vxml_parser_t *vp)
+{
+	if (vp->path != NULL) {
+		struct vxml_path_entry *pe = vp->path->data;
+		vxml_path_entry_check(pe);
+		vxml_parser_set_element(vp, pe->element);
+		vp->elem_token = pe->token;
+		vp->elem_token_valid = pe->token_valid;
+	} else {
+		vxml_parser_set_element(vp, NULL);
+	}
+}
+
 /**
  * Attempt element tokenization.
  *
@@ -2708,10 +2768,7 @@ vxml_parser_do_notify_start(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	} else {
 		/* Restore context */
 		vp->loc = saved_location;		/* Struct copy */
-
-		vxml_parser_set_element(vp, vp->loc.depth != 0 ? vp->path->data : NULL);
-		if (vp->element != NULL)
-			vxml_tokenize_element(vp, ctx->tokens, vp->element);
+		vxml_parser_update_current_element(vp);
 	}
 }
 
@@ -4275,37 +4332,32 @@ vxml_parser_new_element(vxml_parser_t *vp)
 
 /**
  * Update element path and parser depth when we enter a new element.
+ *
+ * @param vp			the XML parser
+ * @param name			the element name (string)
+ * @param token			the element token (only valid if token_valid is TRUE)
+ * @param token_valid	whether element was tokenized successfully
+ *
  */
 static void
-vxml_parser_path_enter(vxml_parser_t *vp, const char *elem_name)
+vxml_parser_path_enter(vxml_parser_t *vp,
+	const char *name, unsigned token, gboolean token_valid)
 {
-	const char *element;
+	struct vxml_path_entry *pe;
+
+	vp->loc.depth++;
+	vp->glob.depth++;
 
 	/*
 	 * The vp->path list contains the (reverse) path of the item, that
 	 * is the set of elements we have to traverse to reach the root.
 	 */
 
-	vp->loc.depth++;
-	vp->glob.depth++;
-	element = atom_str_get(elem_name);
-	vp->path = g_list_prepend(vp->path, deconstify_gpointer(element));
-
-	/*
-	 * The vp->level list mirrors the path but stores the "sibling" number
-	 * as an unsigned integer.  That number reflects the position of the
-	 * element in its parent node.
-	 *
-	 * This is meant as an aid in case there is an error: the path and the
-	 * sibling numbers allow one to see exactly in which part of the
-	 * tree we were when an error occurred.
-	 */
-
-	if (vp->level != NULL) {
-		unsigned sibling = GPOINTER_TO_UINT(vp->level->data);
-		g_assert(uint_is_non_negative(sibling));
-		vp->level->data = GUINT_TO_POINTER(sibling + 1);
-	}
+	pe = walloc(sizeof *pe);
+	pe->magic = VXML_PATH_ENTRY_MAGIC;
+	pe->element = atom_str_get(name);
+	pe->token = token;
+	pe->token_valid = token_valid;
 
 	/*
 	 * Numbering starts at 0: our first children will move that to 1.
@@ -4316,24 +4368,32 @@ vxml_parser_path_enter(vxml_parser_t *vp, const char *elem_name)
 	 * of the element.
 	 */
 
-	vp->level = g_list_prepend(vp->level, GUINT_TO_POINTER(0));
+	pe->children = 0;
+
+	if (vp->path != NULL) {
+		struct vxml_path_entry *parent = vp->path->data;
+
+		vxml_path_entry_check(parent);
+		g_assert(uint_is_non_negative(parent->children));
+
+		parent->children++;
+	}
+
+	vp->path = g_list_prepend(vp->path, pe);
 }
 
 /**
  * Update element path and parser depth when we leave an element.
- *
- * @return TRUE if OK, FALSE if we detected a nesting error.
  */
-static gboolean
+static void
 vxml_parser_path_leave(vxml_parser_t *vp)
 {
-	char *element;
-	gboolean ok = TRUE;
+	struct vxml_path_entry *pe;
 
 	if (0 == vp->loc.depth) {
 		atom_str_free_null(&vp->element);
 		vxml_fatal_error(vp, VXML_E_UNEXPECTED_TAG_END);
-		return FALSE;
+		return;
 	}
 
 	g_assert(vp->element != NULL);
@@ -4341,16 +4401,16 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	g_assert(uint_is_positive(vp->glob.depth));
 	g_assert(vp->path != NULL);
 
-	element = vp->path->data;
+	pe = vp->path->data;
+	vxml_path_entry_check(pe);
 
 	if (vxml_debugging(18)) {
 		vxml_parser_debug(vp, "vxml_parser_path_leave: "
 			"leaving '%s' at depth %u (parsed \"%s\")",
-			element, vp->loc.depth, vp->element);
+			pe->element, vp->loc.depth, vp->element);
 	}
 
-	vp->path = g_list_remove(vp->path, vp->path->data);
-	vp->level = g_list_remove(vp->level, vp->level->data);
+	vp->path = g_list_remove(vp->path, pe);
 	vp->loc.depth--;
 	vp->glob.depth--;
 
@@ -4365,19 +4425,11 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	 * level of that element, we must find a matching closing tag ("</a>").
 	 */
 
-	if (0 != strcmp(vp->element, element)) {
-		ok = FALSE;
+	if (0 != strcmp(vp->element, pe->element))
 		vxml_fatal_error(vp, VXML_E_INVALID_TAG_NESTING);
-	}
 
-	/*
-	 * Update current element.
-	 */
-
-	atom_str_free(element);
-	vxml_parser_set_element(vp, vp->loc.depth != 0 ? vp->path->data : NULL);
-
-	return ok;
+	vxml_path_entry_free(pe);
+	vxml_parser_update_current_element(vp);
 }
 
 /**
@@ -4393,24 +4445,11 @@ static void
 vxml_parser_end_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 {
 	/*
-	 * Notify if necessary.
+	 * Notify if necessary, then update the path.
 	 */
 
 	vxml_parser_do_notify_end(vp, ctx->ops, ctx->data);
-
-	/*
-	 * Update path.
-	 */
-
-	if (vxml_parser_path_leave(vp)) {
-		/*
-		 * Moving up in the path, recompute current element token, unless
-		 * we reached back the root.
-		 */
-
-		if (vp->element != NULL)
-			vxml_tokenize_element(vp, ctx->tokens, vp->element);
-	}
+	vxml_parser_path_leave(vp);
 }
 
 /**
@@ -4429,8 +4468,9 @@ vxml_parser_begin_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 {
 	gboolean empty;
 
-	vxml_parser_path_enter(vp, vp->element);
 	vxml_tokenize_element(vp, ctx->tokens, vp->element);
+	vxml_parser_path_enter(vp, vp->element,
+		vp->elem_token, vp->elem_token_valid);
 
 	if (!vxml_parser_notify_start(vp, ctx->ops)) {
 		if (vp->elem_no_content)
@@ -4721,6 +4761,8 @@ static void
 vxml_parse_engine(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 {
 	guint32 uc;
+
+	vxml_location_check(&vp->glob);
 
 	if (vxml_debugging(5)) {
 		g_debug("VXML %sparsing \"%s\" depth=%u offset=%lu starting",
