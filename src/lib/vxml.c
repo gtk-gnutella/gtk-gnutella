@@ -307,9 +307,11 @@ static guint32 vxml_debug;
  * Important string constants.
  */
 
-static const char VXS_EMPTY[] = "";
-static const char VXS_XMLNS[] = "xmlns";
-static const char VXS_DEFAULT_NS[] = ":DEFAULT";
+static const char VXS_EMPTY[]		= "";
+static const char VXS_XMLNS[]		= "xmlns";
+static const char VXS_DEFAULT_NS[]	= ":DEFAULT";
+static const char VXS_XML[]			= "xml";
+static const char VXS_XML_URI[]		= "http://www.w3.org/XML/1998/namespace";
 
 /**
  * Default entities.
@@ -389,6 +391,8 @@ static const char *vxml_token_strings[VXT_MAX_TOKEN];
 
 static gboolean vxml_handle_decl(vxml_parser_t *vp, gboolean doctype);
 static gboolean vxml_handle_special(vxml_parser_t *vp, gboolean dtd);
+static void vxml_parser_namespace_global(vxml_parser_t *vp,
+	const char *ns, const char *uri);
 
 /**
  * Set the VXML debug level.
@@ -516,14 +520,14 @@ vxml_parser_depth(const vxml_parser_t *vp)
 }
 
 /**
- * Return current parser offset, after last read character.
+ * Return current parser offset, at the last read character.
  */
 size_t
 vxml_parser_offset(const vxml_parser_t *vp)
 {
 	vxml_parser_check(vp);
 
-	return vp->loc.offset;
+	return vp->loc.offset - 1;	/* Offset points to next character already */
 }
 
 /**
@@ -888,6 +892,7 @@ vxml_parser_make(const char *name, guint32 options)
 	vxml_output_init(&vp->out);
 	vxml_output_init(&vp->entity);
 	vxml_location_init(&vp->glob);
+	vxml_parser_namespace_global(vp, VXS_XML, VXS_XML_URI);
 
 	return vp;
 }
@@ -1112,6 +1117,7 @@ vxml_strerror(vxml_error_t error)
 	case VXML_E_DUP_DEFAULT_NAMESPACE:	return "Duplicate default namespace";
 	case VXML_E_BAD_CHAR_IN_NAMESPACE:	return "Bad character in namespace";
 	case VXML_E_NAMESPACE_REDEFINITION:	return "Invalid namespace redefinition";
+	case VXML_E_UNKNOWN_NAMESPACE:		return "Unknown namespace prefix";
 	case VXML_E_EMPTY_NAME:				return "Empty name";
 	case VXML_E_UNKNOWN_CHAR_ENCODING_NAME:
 		return "Unknown character encoding name";
@@ -2522,6 +2528,24 @@ vxml_namespace_make(const char *ns, const char *uri, size_t uri_len)
 }
 
 /**
+ * Insert a global namespace.
+ */
+static void
+vxml_parser_namespace_global(vxml_parser_t *vp, const char *ns, const char *uri)
+{
+	nv_pair_t *sym;
+
+	g_assert(vp->namespaces != NULL);
+
+	sym = vxml_namespace_make(ns, uri, strlen(uri));
+
+	if (!symtab_insert_pair(vp->namespaces, sym, 0)) {
+		g_error("VXML \"%s\" cannot insert global namespace \"%s\" as \"%s\"",
+			vp->name, ns, uri);
+	}
+}
+
+/**
  * Insert a new namespace (described by the name/value pair associating the
  * local namespace name with the URI value of the namespace) into the parser.
  *
@@ -2555,7 +2579,7 @@ vxml_parser_namespace_insert(vxml_parser_t *vp, nv_pair_t *ns, vxml_error_t err)
 }
 
 /**
- * Fetch namespace URI value, given local namespace tag alias.
+ * Fetch namespace URI value, given local namespace prefix.
  *
  * @return namespace URI if found, an empty string otherwise.
  */
@@ -2571,15 +2595,28 @@ vxml_parser_namespace_lookup(const vxml_parser_t *vp, const char *ns)
 }
 
 /**
- * Resolve the current namespace local alias into an URI, considering that
- * a NULL local alias means no explicit namespace.
+ * Resolve the current namespace local prefix into an URI, considering that
+ * a NULL local prefix means no explicit namespace and that means the default
+ * namespace for elements (there is no default namespace for unprefixed
+ * attributes).
  *
  * @return namespace URI if found, an empty string otherwise.
  */
 static const char *
 vxml_parser_namespace_uri(const vxml_parser_t *vp, const char *ns)
 {
-	return vxml_parser_namespace_lookup(vp, NULL == ns ? VXS_DEFAULT_NS: ns);
+	return vxml_parser_namespace_lookup(vp, NULL == ns ? VXS_DEFAULT_NS : ns);
+}
+
+/**
+ * Is the namespace prefix known?
+ */
+static gboolean
+vxml_parser_namespace_exists(const vxml_parser_t *vp, const char *ns)
+{
+	g_assert(ns != NULL);
+
+	return symtab_lookup(vp->namespaces, ns) != NULL;
 }
 
 /**
@@ -2620,9 +2657,9 @@ vxml_parser_namespace_default(vxml_parser_t *vp, const char *value, size_t len)
 		return TRUE;
 
 	/*
-	 * The value of VXS_DEFAULT_NS is an invalid local tag alias name since
+	 * The value of VXS_DEFAULT_NS is an invalid local prefix name since
 	 * it starts with a ':' character.  As such, we know there cannot be
-	 * any conflict with a user-defined namespace alias.
+	 * any conflict with a user-defined namespace prefix.
 	 */
 
 	default_ns = vxml_namespace_make(VXS_DEFAULT_NS, value, len);
@@ -2643,8 +2680,6 @@ static gboolean
 vxml_parser_namespace_decl(vxml_parser_t *vp,
 	const char *name, const char *value, size_t value_len)
 {
-	nv_pair_t *ns;
-
 	if (vp->options & VXML_O_NO_NAMESPACES)
 		return TRUE;
 
@@ -2684,9 +2719,12 @@ vxml_parser_namespace_decl(vxml_parser_t *vp,
 	 * of the element.
 	 */
 
-	ns = vxml_namespace_make(name, value, value_len);
-	nv_table_insert_pair(vp->ns, nv_pair_refcnt_inc(ns));
-	vxml_parser_namespace_insert(vp, ns, VXML_E_NAMESPACE_REDEFINITION);
+	{
+		nv_pair_t *ns = vxml_namespace_make(name, value, value_len);
+
+		nv_table_insert_pair(vp->ns, nv_pair_refcnt_inc(ns));
+		vxml_parser_namespace_insert(vp, ns, VXML_E_NAMESPACE_REDEFINITION);
+	}
 
 	return TRUE;
 }
@@ -2740,6 +2778,26 @@ vxml_parser_update_current_element(vxml_parser_t *vp)
 	} else {
 		vxml_parser_set_element(vp, NULL, NULL);
 	}
+}
+
+/**
+ * Ensure that current element's namespace prefix is known.
+ *
+ * @return TRUE if OK, FALSE otherwise with vp->error set.
+ */
+static gboolean
+vxml_parser_element_prefix_known(vxml_parser_t *vp)
+{
+	if (
+		!(vp->options & VXML_O_NO_NAMESPACES) &&
+		vp->namespace != NULL &&
+		!vxml_parser_namespace_exists(vp, vp->namespace)
+	) {
+		vxml_fatal_error_str(vp, VXML_E_UNKNOWN_NAMESPACE, vp->namespace);
+		return FALSE;
+	}
+
+	return  TRUE;
 }
 
 /**
@@ -3250,7 +3308,11 @@ vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
 		 * This does not apply to attributes in processing instructions.
 		 */
 
-		if (in_document && NULL != (start = is_strprefix(name, VXS_XMLNS))) {
+		if (
+			in_document &&
+			!(vp->options & VXML_O_NO_NAMESPACES) &&
+			NULL != (start = is_strprefix(name, VXS_XMLNS))
+		) {
 			if (*start == ':') {
 				/* xmlns:ns='blah' */
 				ok = vxml_parser_namespace_decl(vp, start + 1, value, len);
@@ -3274,6 +3336,19 @@ vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
 			local_name = strchr(start, ':');
 			if (local_name != NULL) {
 				unsigned retlen;
+				char *ns = h_strndup(start, local_name - start);
+
+				/*
+				 * If a namespace prefix is specified, it must be known.
+				 *
+				 * The special "xmlns" prefix (which is undeclared) has been
+				 * already handled above.
+				 */
+
+				if (!vxml_parser_namespace_exists(vp, ns)) {
+					vxml_fatal_error_str(vp, VXML_E_UNKNOWN_NAMESPACE, ns);
+					goto error;
+				}
 
 				start = local_name + 1;
 
@@ -3294,7 +3369,7 @@ vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
 				}
 
 				uc = utf8_decode_char_fast(start, &retlen);
-				if (!vxml_is_valid_name_start_char(uc)) {
+				if (!vxml_is_valid_name_start_char(uc) || VXC_COLON == uc) {
 					vxml_fatal_error_uc(vp, VXML_E_BAD_CHAR_IN_NAME, uc);
 					goto error;
 				}
@@ -4816,6 +4891,13 @@ vxml_parser_begin_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	vxml_parser_path_enter(vp, vp->element, vp->namespace,
 		vp->elem_token, vp->elem_token_valid);
 
+	/*
+	 * If a namespace prefix is specified, it must be known now.
+	 */
+
+	if (!vxml_parser_element_prefix_known(vp))
+		return;
+
 	if (!vxml_parser_notify_start(vp, ctx->ops)) {
 		if (vp->elem_no_content)
 			vxml_parser_end_element(vp, ctx);
@@ -4876,6 +4958,13 @@ vxml_handle_tag_end(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 		return FALSE;
 
 	vxml_parser_new_element(vp);	/* Update vp->element */
+
+	/*
+	 * If a namespace prefix is specified, it must be known now.
+	 */
+
+	if (!vxml_parser_element_prefix_known(vp))
+		return FALSE;
 
 	if (!vxml_parser_skip_spaces(vp))
 		return FALSE;
@@ -5467,12 +5556,19 @@ const char namespaces[] =
 	"<a xmlns=''><x:b xmlns:x='urn:x-ns' xmlns:y='urn:y-ns' x:fr='y'>\n"
 	"<y:c xmlns='urn:y-ns'><d>foo</d></c></x:b></a>";
 
+const char bad_prefix1[] = "<x:a xmlns:x='urn:x-ns'><b/></z:a>";
+const char bad_prefix2[] = "<x:a xmlns:x='urn:x-ns'><y:b/></x:a>";
+const char bad_prefix3[] = "<x:a xmlns:x='urn:x-ns' z:foo=''></x:a>";
+const char bad_prefix4[] = "<x:a xmlns:x='urn:x-ns' x::foo=''></x:a>";
+
 static void
 vxml_run_simple_test(int num, const char *name,
 	const char *data, size_t len, guint32 flags, vxml_error_t error)
 {
 	vxml_error_t e;
 	vxml_parser_t *vp;
+
+	g_assert('\0' == data[len]);	/* Given length is correct */
 
 	if (VXML_E_OK == error)
 		flags |= VXML_O_FATAL;
@@ -5487,6 +5583,24 @@ vxml_run_simple_test(int num, const char *name,
 	}
 	g_assert(error == e);
 	vxml_parser_free(vp);
+}
+
+static void
+vxml_run_ns_simple_test(int num, const char *name,
+	const char *data, size_t len, guint32 flags,
+	vxml_error_t error_no_ns, vxml_error_t error_with_ns)
+{
+	char buf[128];
+
+	g_assert(!(flags & VXML_O_NO_NAMESPACES));
+	g_assert('\0' == data[len]);	/* Given length is correct */
+
+	gm_snprintf(buf, sizeof buf, "%s (no NS)", name);
+	vxml_run_simple_test(num, buf, data, len,
+		flags | VXML_O_NO_NAMESPACES, error_no_ns);
+
+	gm_snprintf(buf, sizeof buf, "%s (with NS)", name);
+	vxml_run_simple_test(num, buf, data, len, flags, error_with_ns);
 }
 
 struct vxml_test_info {
@@ -5504,6 +5618,8 @@ vxml_run_callback_test(int num, const char *name,
 	vxml_error_t e;
 	vxml_parser_t *vp;
 	struct vxml_test_info info;
+
+	g_assert('\0' == data[len]);	/* Given length is correct */
 
 	info.num = num;
 	info.name = name;
@@ -5801,6 +5917,22 @@ vxml_test(void)
 		CONST_STRLEN(namespaces), VXML_O_FATAL, &ops, NULL, 0, NULL);
 	vxml_run_simple_test(14, "namespaces", namespaces, CONST_STRLEN(namespaces),
 		VXML_O_NO_NAMESPACES, VXML_E_INVALID_TAG_NESTING);
+
+	vxml_run_ns_simple_test(15, "bad_prefix1", bad_prefix1,
+		CONST_STRLEN(bad_prefix1), 0,
+		VXML_E_INVALID_TAG_NESTING, VXML_E_UNKNOWN_NAMESPACE);
+
+	vxml_run_ns_simple_test(16, "bad_prefix2", bad_prefix2,
+		CONST_STRLEN(bad_prefix2), 0,
+		VXML_E_OK, VXML_E_UNKNOWN_NAMESPACE);
+
+	vxml_run_ns_simple_test(17, "bad_prefix3", bad_prefix3,
+		CONST_STRLEN(bad_prefix3), 0,
+		VXML_E_OK, VXML_E_UNKNOWN_NAMESPACE);
+
+	vxml_run_ns_simple_test(18, "bad_prefix4", bad_prefix4,
+		CONST_STRLEN(bad_prefix4), 0,
+		VXML_E_OK, VXML_E_BAD_CHAR_IN_NAME);
 }
 #else	/* !VXML_TESTING */
 void

@@ -93,6 +93,7 @@ typedef enum {
 	VXML_E_DUP_DEFAULT_NAMESPACE,		/**< Duplicate default namespace */
 	VXML_E_BAD_CHAR_IN_NAMESPACE,		/**< Bad character in namespace */
 	VXML_E_NAMESPACE_REDEFINITION,		/**< Invalid namespace redefinition */
+	VXML_E_UNKNOWN_NAMESPACE,			/**< Unknown namespace prefix */
 	VXML_E_EMPTY_NAME,					/**< Empty name */
 
 	VXML_E_MAX
