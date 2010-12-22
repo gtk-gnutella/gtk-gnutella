@@ -55,7 +55,7 @@ RCSID("$Id$")
 /*
  * Define to have XML parsing testing at startup.
  */
-#if 0
+#if 1
 #define VXML_TESTING
 #endif
 
@@ -1005,7 +1005,7 @@ vxml_parser_set_tokens(vxml_parser_t *vp,
 	g_assert(tvec == NULL || size_is_positive(tlen));
 
 	if (tvec != NULL) {
-		vp->tokens = nv_table_make();
+		vp->tokens = nv_table_make(FALSE);
 		vxml_fill_tokens(vp->tokens, tvec, tlen);
 	}
 }
@@ -2694,7 +2694,7 @@ vxml_parser_namespace_decl(vxml_parser_t *vp,
 	}
 
 	if (NULL == vp->ns)
-		vp->ns = nv_table_make();
+		vp->ns = nv_table_make(FALSE);
 
 	/*
 	 * No duplicate declarations, regardless of VXML_O_NO_DUP_ATTR.
@@ -3235,7 +3235,7 @@ vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
 	 */
 
 	if (NULL == vp->attrs)
-		vp->attrs = nv_table_make();
+		vp->attrs = nv_table_make(TRUE);
 
 	/*
 	 * Attribute	::= Name Eq AttValue  
@@ -3991,7 +3991,7 @@ vxml_parser_handle_entity_decl(vxml_parser_t *vp, const char *name,
 		nvt_ptr = with_percent ? &vp->pe_entities : &vp->entities;
 		nvt = *nvt_ptr;
 		if (NULL == nvt)
-			nvt = *nvt_ptr = nv_table_make();
+			nvt = *nvt_ptr = nv_table_make(FALSE);
 
 		value = vxml_output_start(&vp->out);
 		len = vxml_output_size(&vp->out) - 1;
@@ -5435,7 +5435,7 @@ vxml_parse_callbacks_tokens(vxml_parser_t *vp, const struct vxml_ops *ops,
 	g_assert(tvec != NULL);
 	g_assert(size_is_positive(tlen));
 
-	tokens = nv_table_make();
+	tokens = nv_table_make(FALSE);
 	vxml_fill_tokens(tokens, tvec, tlen);
 
 	ctx.ops = ops;

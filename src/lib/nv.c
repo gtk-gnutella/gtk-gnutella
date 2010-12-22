@@ -42,8 +42,8 @@ RCSID("$Id$")
 
 #include "nv.h"
 #include "atoms.h"
-#include "glib-missing.h"
 #include "halloc.h"
+#include "map.h"
 #include "unsigned.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
@@ -82,7 +82,7 @@ enum nv_table_magic { NV_TABLE_MAGIC = 0xa557a3b2U };
  */
 struct nv_table {
 	enum nv_table_magic magic;
-	GHashTable *ht;				/**< Hash table name -> nv_pair */
+	map_t *map;					/**< Map of name -> nv_pair */
 };
 
 static inline void
@@ -90,7 +90,7 @@ nv_table_check(const nv_table_t * const nvt)
 {
 	g_assert(nvt != NULL);
 	g_assert(NV_TABLE_MAGIC == nvt->magic);
-	g_assert(nvt->ht != NULL);
+	g_assert(nvt->map != NULL);
 }
 
 /**
@@ -317,21 +317,27 @@ nv_pair_set_value_free(nv_pair_t *nvp, nv_pair_val_free_t vf)
 
 /**
  * Create a new name/value table.
+ *
+ * Optionally it can remember the order in which keys are added so that
+ * the hash table can later be traversed in that same order.
  */
 nv_table_t *
-nv_table_make(void)
+nv_table_make(gboolean ordered)
 {
 	nv_table_t *nvt;
 
 	nvt = walloc(sizeof *nvt);
 	nvt->magic = NV_TABLE_MAGIC;
-	nvt->ht = g_hash_table_new(g_str_hash, g_str_equal);
+	if (ordered)
+		nvt->map = map_create_ordered_hash(g_str_hash, g_str_equal);
+	else
+		nvt->map = map_create_hash(g_str_hash, g_str_equal);
 
 	return nvt;
 }
 
 /**
- * g_hash_table_foreach() iterator to free up values in the nv_table_t.
+ * map_foreach() iterator to free up values in the nv_table_t.
  */
 static void
 nv_table_free_value(gpointer u_key, gpointer value, gpointer u_data)
@@ -349,8 +355,8 @@ nv_table_free(nv_table_t *nvt)
 {
 	nv_table_check(nvt);
 
-	g_hash_table_foreach(nvt->ht, nv_table_free_value, NULL);
-	gm_hash_table_destroy_null(&nvt->ht);
+	map_foreach(nvt->map, nv_table_free_value, NULL);
+	map_destroy_null(&nvt->map);
 	nvt->magic = 0;
 	wfree(nvt, sizeof *nvt);
 }
@@ -383,12 +389,12 @@ nv_table_insert_pair(const nv_table_t *nvt, nv_pair_t *nvp)
 	nv_table_check(nvt);
 	nv_pair_check(nvp);
 
-	old = g_hash_table_lookup(nvt->ht, nvp->name);
+	old = map_lookup(nvt->map, nvp->name);
 	if (old != NULL) {
-		g_hash_table_remove(nvt->ht, nvp->name);
+		map_remove(nvt->map, nvp->name);
 		nv_pair_free(old);
 	}
-	gm_hash_table_insert_const(nvt->ht, nvp->name, nvp);
+	map_insert(nvt->map, nvp->name, nvp);
 }
 
 /**
@@ -448,11 +454,11 @@ nv_table_remove(const nv_table_t *nvt, const char *name)
 	nv_table_check(nvt);
 	g_assert(name != NULL);
 
-	nvp = g_hash_table_lookup(nvt->ht, name);
+	nvp = map_lookup(nvt->map, name);
 	if (NULL == nvp)
 		return FALSE;
 
-	g_hash_table_remove(nvt->ht, name);
+	map_remove(nvt->map, name);
 	nv_pair_free(nvp);
 	return TRUE;
 }
@@ -468,7 +474,7 @@ nv_table_lookup(const nv_table_t *nvt, const char *name)
 	nv_table_check(nvt);
 	g_assert(name != NULL);
 
-	return g_hash_table_lookup(nvt->ht, name);
+	return map_lookup(nvt->map, name);
 }
 
 /**
@@ -484,7 +490,7 @@ nv_table_lookup_str(const nv_table_t *nvt, const char *name)
 	nv_table_check(nvt);
 	g_assert(name != NULL);
 
-	nvp = g_hash_table_lookup(nvt->ht, name);
+	nvp = map_lookup(nvt->map, name);
 	if (NULL == nvp)
 		return NULL;
 
@@ -499,7 +505,7 @@ nv_table_count(const nv_table_t *nvt)
 {
 	nv_table_check(nvt);
 
-	return g_hash_table_size(nvt->ht);
+	return map_count(nvt->map);
 }
 
 struct nvt_foreach_remove_ctx {
@@ -538,8 +544,7 @@ nv_table_foreach_remove(const nv_table_t *nvt, nv_table_cbr_t func, void *data)
 	ctx.func = func;
 	ctx.data = data;
 
-	return g_hash_table_foreach_remove(nvt->ht,
-		nv_table_foreach_remove_helper, &ctx);
+	return map_foreach_remove(nvt->map, nv_table_foreach_remove_helper, &ctx);
 }
 
 struct nvt_foreach_ctx {
@@ -576,7 +581,7 @@ nv_table_foreach(const nv_table_t *nvt, nv_table_cb_t func, void *data)
 	ctx.func = func;
 	ctx.data = data;
 
-	g_hash_table_foreach(nvt->ht, nv_table_foreach_helper, &ctx);
+	map_foreach(nvt->map, nv_table_foreach_helper, &ctx);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

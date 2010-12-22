@@ -74,7 +74,7 @@ void nv_pair_free_null(nv_pair_t **nvp_ptr);
 nv_pair_t *nv_pair_refcnt_inc(nv_pair_t *nvp);
 void nv_pair_set_value_free(nv_pair_t *nvp, nv_pair_val_free_t vf);
 
-nv_table_t *nv_table_make(void);
+nv_table_t *nv_table_make(gboolean ordered);
 void nv_table_free(nv_table_t *nvt);
 void nv_table_free_null(nv_table_t **nvt_ptr);
 void nv_table_insert_pair(const nv_table_t *nvt, nv_pair_t *nvp);
