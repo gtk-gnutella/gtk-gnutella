@@ -77,6 +77,7 @@ size_t map_count(const map_t *m);
 gpointer map_implementation(const map_t *m);
 gpointer map_release(map_t *m);
 void map_destroy(map_t *m);
+void map_destroy_null(map_t **m_ptr);
 
 void map_foreach(const map_t *m, map_cb_t cb, gpointer u);
 size_t map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u);

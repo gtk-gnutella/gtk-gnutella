@@ -589,6 +589,20 @@ map_destroy(map_t *m)
 	wfree(m, sizeof *m);
 }
 
+/**
+ * Destroy a map, nullifying its pointer.
+ */
+void
+map_destroy_null(map_t **m_ptr)
+{
+	map_t *m = *m_ptr;
+
+	if (m != NULL) {
+		map_destroy(m);
+		*m_ptr = NULL;
+	}
+}
+
 /***
  *** Timing tests.
  ***/
