@@ -185,7 +185,7 @@ symtab_make(void)
 
 	syt = walloc(sizeof *syt);
 	syt->magic = SYMTAB_MAGIC;
-	syt->table = nv_table_make();
+	syt->table = nv_table_make(FALSE);
 
 	return syt;
 }
