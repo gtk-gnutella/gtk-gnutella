@@ -93,7 +93,7 @@ ohash_table_new(GHashFunc hash_func, GEqualFunc key_eq_func)
  * Free an ordered hash table.
  */
 void
-ohash_table_free(ohash_table_t *oh)
+ohash_table_destroy(ohash_table_t *oh)
 {
 	ohash_table_check(oh);
 
@@ -107,12 +107,12 @@ ohash_table_free(ohash_table_t *oh)
  * Free ordered hash table and nullify its pointer.
  */
 void
-ohash_table_free_null(ohash_table_t **oh_ptr)
+ohash_table_destroy_null(ohash_table_t **oh_ptr)
 {
 	ohash_table_t *oh = *oh_ptr;
 
 	if (oh != NULL) {
-		ohash_table_free(oh);
+		ohash_table_destroy(oh);
 		*oh_ptr = NULL;
 	}
 }
@@ -172,6 +172,17 @@ ohash_table_remove(ohash_table_t *oh, const void *key)
 	hash_list_remove(oh->hl, key);
 
 	return TRUE;
+}
+
+/**
+ * Check whether a key is contained in the table.
+ */
+gboolean
+ohash_table_contains(const ohash_table_t *oh, const void *key)
+{
+	ohash_table_check(oh);
+
+	return hash_list_contains(oh->hl, key);
 }
 
 /**
