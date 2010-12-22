@@ -3347,10 +3347,12 @@ vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
 
 				if (!vxml_parser_namespace_exists(vp, ns)) {
 					vxml_fatal_error_str(vp, VXML_E_UNKNOWN_NAMESPACE, ns);
+					hfree(ns);
 					goto error;
 				}
 
 				start = local_name + 1;
+				HFREE_NULL(ns);
 
 				if (vxml_debugging(18)) {
 					vxml_parser_debug(vp, "vxml_handle_attribute: "
