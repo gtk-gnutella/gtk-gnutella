@@ -389,6 +389,114 @@ hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 	return orig_key;
 }
 
+enum hash_list_position_magic { HASH_LIST_POSITION_MAGIC = 0xc69eede3U };
+
+struct hash_list_position {
+	enum hash_list_position_magic magic;
+	hash_list_t *hl;
+	GList *prev;
+	unsigned stamp;
+};
+
+static inline void
+hash_list_position_check(const struct hash_list_position * const hlp)
+{
+	g_assert(hlp != NULL);
+	g_assert(HASH_LIST_POSITION_MAGIC == hlp->magic);
+	hash_list_check(hlp->hl);
+}
+
+/**
+ * Forget a position token.
+ */
+void
+hash_list_forget_position(void *position)
+{
+	struct hash_list_position *pt = position;
+
+	hash_list_position_check(pt);
+	pt->magic = 0;
+	wfree(pt, sizeof *pt);
+}
+
+/**
+ * Insert key at the saved position, obtained through a previous
+ * hash_list_remove_position() call.
+ *
+ * The position token is destroyed.
+ */
+void
+hash_list_insert_position(hash_list_t *hl, const void *key, void *position)
+{
+	struct hash_list_position *pt = position;
+	struct hash_list_item *item;
+
+	hash_list_check(hl);
+	hash_list_position_check(pt);
+	g_assert(1 == hl->refcount);
+	g_assert(pt->hl == hl);
+	g_assert(pt->stamp == hl->stamp);
+
+	item = walloc(sizeof *item);
+	hl->head = gm_list_insert_after(hl->head, pt->prev, item);
+	if (pt->prev == hl->tail) {
+		if (NULL == hl->tail) {
+			hl->tail = hl->head;
+		} else {
+			hl->tail = g_list_last(pt->prev);
+		}
+	}
+	item->orig_key = key;
+	item->list = NULL == pt->prev ?  hl->head : g_list_next(pt->prev);
+	hash_list_insert_item(hl, item);
+
+	hash_list_forget_position(position);
+}
+
+/**
+ * Remove `data' from the list but remembers the item's position so that
+ * re-insertion can happen at the same place using the supplied token.
+ *
+ * If no re-insertion is required, the token must be freed with
+ * hash_list_forget_position().
+ *
+ * @return a token that can be used to re-insert the key at the same
+ * position in the list via hash_list_insert_position(), or NULL if
+ * the data was not found.
+ */
+void *
+hash_list_remove_position(hash_list_t *hl, const void *key)
+{
+	struct hash_list_item *item;
+	struct hash_list_position *pt;
+
+	hash_list_check(hl);
+	g_assert(1 == hl->refcount);
+
+	item = g_hash_table_lookup(hl->ht, key);
+	if (NULL == item)
+		return NULL;
+
+	hash_list_remove_item(hl, item);
+
+	/*
+	 * Record position in the list so that re-insertion can happen after
+	 * the predecessor of the item.  For sanity checks, we save the hash_list_t
+	 * object as well to make sure items are re-inserted in the proper list!
+	 *
+	 * No update (insertion / deletion) must happen between the removal and
+	 * the re-insertion, and this is checked by the saved stamp.
+	 */
+
+	pt = walloc(sizeof *pt);
+	pt->magic = HASH_LIST_POSITION_MAGIC;
+	pt->hl = hl;
+	pt->prev = g_list_previous(item->list);
+	pt->stamp = hl->stamp;
+
+	return pt;
+}
+
 /**
  * Remove `data' from the list.
  * @return The data that was associated with the given key.
@@ -882,6 +990,38 @@ hash_list_foreach(const hash_list_t *hl, GFunc func, void *user_data)
 	}
 
 	hash_list_regression(hl);
+}
+
+/**
+ * Apply `func' to all the items in the structure, removing the entry
+ * if `func' returns TRUE.
+ *
+ * @return the amount of entries removed from the list.
+ */
+size_t
+hash_list_foreach_remove(hash_list_t *hl, hashlist_cbr_t func, void *data)
+{
+	GList *list;
+	GList *next;
+	size_t removed = 0;
+	
+	hash_list_check(hl);
+	g_assert(NULL != func);
+
+	for (list = hl->head; NULL != list; list = next) {
+		struct hash_list_item *item;
+
+		next = g_list_next(list);
+		item = list->data;
+		if ((*func)(deconstify_gpointer(item->orig_key), data)) {
+			hash_list_remove_item(hl, item);
+			removed++;
+		}
+	}
+
+	hash_list_regression(hl);
+
+	return removed;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

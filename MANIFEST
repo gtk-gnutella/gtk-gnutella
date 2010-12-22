@@ -644,6 +644,8 @@ src/lib/nv.c
 src/lib/nv.h
 src/lib/offtime.c
 src/lib/offtime.h
+src/lib/ohash_table.c
+src/lib/ohash_table.h
 src/lib/omalloc.c
 src/lib/omalloc.h
 src/lib/options.c

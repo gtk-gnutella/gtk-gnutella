@@ -32,6 +32,8 @@
 typedef struct hash_list_iter hash_list_iter_t;
 typedef struct hash_list hash_list_t;
 
+typedef gboolean (*hashlist_cbr_t)(void *key, void *u);
+
 hash_list_t *hash_list_new(GHashFunc, GEqualFunc);
 void hash_list_free(hash_list_t **);
 void *hash_list_remove(hash_list_t *, const void *key);
@@ -65,5 +67,10 @@ void *hash_list_iter_previous(hash_list_iter_t *);
 gboolean hash_list_find(hash_list_t *, const void *key, const void **orig_key);
 gboolean hash_list_contains(hash_list_t *, const void *key);
 void hash_list_foreach(const hash_list_t *, GFunc, void *user_data);
+size_t hash_list_foreach_remove(hash_list_t *hl, hashlist_cbr_t func, void *u);
+
+void *hash_list_remove_position(hash_list_t *hl, const void *key);
+void hash_list_insert_position(hash_list_t *hl, const void *key, void *pos);
+void hash_list_forget_position(void *position);
 
 #endif	/* _hashlist_h_ */
