@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "map.h"
 #include "debug.h"
 #include "random.h"
+#include "ohash_table.h"
 #include "patricia.h"
 #include "walloc.h"
 #include "tm.h"					/* For tests */
@@ -52,6 +53,7 @@ RCSID("$Id$")
 enum map_type {
 	MAP_HASH = 0x1,			/* Hash table from glib */
 	MAP_PATRICIA,			/* PATRICIA tree */
+	MAP_ORDERED_HASH,		/* Ordered hash table */
 
 	MAP_MAXTYPE
 };
@@ -68,6 +70,7 @@ struct map {
 	union {
 		GHashTable *ht;
 		patricia_t *pt;
+		ohash_table_t *ot;
 	} u;
 };
 
@@ -95,6 +98,27 @@ map_create_hash(GHashFunc hash_func, GEqualFunc key_eq_func)
 	m->magic = MAP_MAGIC;
 	m->type = MAP_HASH;
 	m->u.ht = g_hash_table_new(hash_func, key_eq_func);
+
+	return m;
+}
+
+/**
+ * Create a map implemented as an ordered hash table.
+ *
+ * @param hash_func		the hash function for keys
+ * @param key_eq_func	the key comparison function
+ *
+ * @return the new map
+ */
+map_t *
+map_create_ordered_hash(GHashFunc hash_func, GEqualFunc key_eq_func)
+{
+	map_t *m;
+
+	m = walloc(sizeof *m);
+	m->magic = MAP_MAGIC;
+	m->type = MAP_ORDERED_HASH;
+	m->u.ot = ohash_table_new(hash_func, key_eq_func);
 
 	return m;
 }
@@ -132,6 +156,25 @@ map_create_from_hash(GHashTable *ht)
 	m->magic = MAP_MAGIC;
 	m->type = MAP_HASH;
 	m->u.ht = ht;
+
+	return m;
+}
+
+/**
+ * Create a map out of an existing ordered hash table.
+ * Use map_release() to discard the map encapsulation.
+ */
+map_t *
+map_create_from_ordered_hash(ohash_table_t *ot)
+{
+	map_t *m;
+
+	g_assert(ot);
+
+	m = walloc(sizeof *m);
+	m->magic = MAP_MAGIC;
+	m->type = MAP_ORDERED_HASH;
+	m->u.ot = ot;
 
 	return m;
 }
@@ -175,6 +218,25 @@ map_switch_to_hash(map_t *m, GHashTable *ht)
 }
 
 /**
+ * Switch the implementation of an existing map to an ordered hash table.
+ * Returns the previous implementation.
+ */
+gpointer
+map_switch_to_ordered_hash(map_t *m, ohash_table_t *ot)
+{
+	gpointer implementation;
+
+	map_check(m);
+	g_assert(ot);
+
+	implementation = map_implementation(m);
+	m->type = MAP_ORDERED_HASH;
+	m->u.ot = ot;
+
+	return implementation;
+}
+
+/**
  * Switch the implementation of an existing map to a PATRICIA tree.
  * Returns the previous implementation.
  */
@@ -205,6 +267,9 @@ map_insert(const map_t *m, gconstpointer key, gconstpointer value)
 	case MAP_HASH:
 		gm_hash_table_insert_const(m->u.ht, key, value);
 		break;
+	case MAP_ORDERED_HASH:
+		ohash_table_insert(m->u.ot, key, value);
+		break;
 	case MAP_PATRICIA:
 		patricia_insert(m->u.pt, key, value);
 		break;
@@ -224,6 +289,9 @@ map_replace(const map_t *m, gconstpointer key, gconstpointer value)
 	switch (m->type) {
 	case MAP_HASH:
 		gm_hash_table_replace_const(m->u.ht, key, value);
+		break;
+	case MAP_ORDERED_HASH:
+		ohash_table_replace(m->u.ot, key, value);
 		break;
 	case MAP_PATRICIA:
 		patricia_insert(m->u.pt, key, value);		/* Does replace */
@@ -247,6 +315,9 @@ map_remove(const map_t *m, gconstpointer key)
 	case MAP_HASH:
 		return gm_hash_table_remove(m->u.ht, key);
 		break;
+	case MAP_ORDERED_HASH:
+		return ohash_table_remove(m->u.ot, key);
+		break;
 	case MAP_PATRICIA:
 		return patricia_remove(m->u.pt, key);
 		break;
@@ -269,6 +340,8 @@ map_contains(const map_t *m, gconstpointer key)
 	switch (m->type) {
 	case MAP_HASH:
 		return g_hash_table_lookup_extended(m->u.ht, key, NULL, NULL);
+	case MAP_ORDERED_HASH:
+		return ohash_table_contains(m->u.ot, key);
 	case MAP_PATRICIA:
 		return patricia_contains(m->u.pt, key);
 	case MAP_MAXTYPE:
@@ -288,6 +361,8 @@ map_lookup(const map_t *m, gconstpointer key)
 	switch (m->type) {
 	case MAP_HASH:
 		return g_hash_table_lookup(m->u.ht, key);
+	case MAP_ORDERED_HASH:
+		return ohash_table_lookup(m->u.ot, key);
 	case MAP_PATRICIA:
 		return patricia_lookup(m->u.pt, key);
 	case MAP_MAXTYPE:
@@ -307,6 +382,8 @@ map_count(const map_t *m)
 	switch (m->type) {
 	case MAP_HASH:
 		return g_hash_table_size(m->u.ht);
+	case MAP_ORDERED_HASH:
+		return ohash_table_count(m->u.ot);
 	case MAP_PATRICIA:
 		return patricia_count(m->u.pt);
 	case MAP_MAXTYPE:
@@ -327,6 +404,8 @@ map_lookup_extended(const map_t *m, gconstpointer key,
 	switch (m->type) {
 	case MAP_HASH:
 		return g_hash_table_lookup_extended(m->u.ht, key, okey, oval);
+	case MAP_ORDERED_HASH:
+		return ohash_table_lookup_extended(m->u.ot, key, okey, oval);
 	case MAP_PATRICIA:
 		return patricia_lookup_extended(m->u.pt, key, okey, oval);
 	case MAP_MAXTYPE:
@@ -368,6 +447,9 @@ map_foreach(const map_t *m, map_cb_t cb, gpointer u)
 	switch (m->type) {
 	case MAP_HASH:
 		g_hash_table_foreach(m->u.ht, cb, u);
+		break;
+	case MAP_ORDERED_HASH:
+		ohash_table_foreach(m->u.ot, cb, u);
 		break;
 	case MAP_PATRICIA:
 		{
@@ -411,7 +493,8 @@ pat_foreach_remove_wrapper(
  *
  * @return the amount of items deleted.
  */
-size_t map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u)
+size_t
+map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u)
 {
 	map_check(m);
 	g_assert(cb);
@@ -419,6 +502,8 @@ size_t map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u)
 	switch (m->type) {
 	case MAP_HASH:
 		return g_hash_table_foreach_remove(m->u.ht, cb, u);
+	case MAP_ORDERED_HASH:
+		return ohash_table_foreach_remove(m->u.ot, cb, u);
 	case MAP_PATRICIA:
 		{
 			struct pat_foreach_remove ctx;
@@ -446,6 +531,8 @@ map_implementation(const map_t *m)
 	switch (m->type) {
 	case MAP_HASH:
 		return m->u.ht;
+	case MAP_ORDERED_HASH:
+		return m->u.ot;
 	case MAP_PATRICIA:
 		return m->u.pt;
 	case MAP_MAXTYPE:
@@ -454,7 +541,6 @@ map_implementation(const map_t *m)
 
 	return NULL;
 }
-
 
 /**
  * Release the map encapsulation, returning the underlying implementation
@@ -487,6 +573,9 @@ map_destroy(map_t *m)
 	switch (m->type) {
 	case MAP_HASH:
 		gm_hash_table_destroy_null(&m->u.ht);
+		break;
+	case MAP_ORDERED_HASH:
+		ohash_table_destroy_null(&m->u.ot);
 		break;
 	case MAP_PATRICIA:
 		patricia_destroy(m->u.pt);

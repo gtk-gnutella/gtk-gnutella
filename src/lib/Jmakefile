@@ -107,6 +107,7 @@ LSRC = \
 	misc.c \
 	nv.c \
 	offtime.c \
+	ohash_table.c \
 	omalloc.c \
 	options.c \
 	pagetable.c \
