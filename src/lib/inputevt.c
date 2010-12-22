@@ -1296,6 +1296,7 @@ inputevt_close(void)
 	poll_ctx = get_global_poll_ctx();
 	inputevt_purge_removed(poll_ctx);
 	gm_hash_table_destroy_null(&poll_ctx->ht);
+	gm_hash_table_destroy_null(&poll_ctx->pollfds);
 	G_FREE_NULL(poll_ctx->used);
 	G_FREE_NULL(poll_ctx->relay);
 	G_FREE_NULL(poll_ctx->ev_arr.ev);
