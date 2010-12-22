@@ -1686,7 +1686,7 @@ free_record(gconstpointer o, const char *file, int line)
 		g_assert(r->reallocations == NULL);
 		free(r);
 	}
-	gm_slist_free_null(&b->reallocations);
+	g_slist_free(b->reallocations);
 	free(b);
 
 	return owned;
