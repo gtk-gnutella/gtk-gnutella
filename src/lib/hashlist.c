@@ -27,7 +27,7 @@
  * @ingroup lib
  * @file
  *
- * Needs brief description here.
+ * List with fast indexing of items.
  *
  * An hashlist is a dual structure where data are both stored in a two-way
  * list, preserving ordering, and indexed in a hash table.
@@ -35,6 +35,9 @@
  * This structure can quickly determine whether it contains some piece of
  * data, as well as quickly remove data.  It can be iterated over, in the
  * order of the items or in reverse order.
+ *
+ * It is NOT a hash table preserving the order of keys.  This structure only
+ * stores items, not an association between a key and a value.
  *
  * @author Christian Biere
  * @date 2003
