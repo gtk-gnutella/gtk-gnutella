@@ -50,18 +50,8 @@ typedef enum getline_result {
 	READ_OVERFLOW	/**< Reached max line size */
 } getline_result_t;
 
-/**
- * A getline "object".
- */
-
-typedef struct getline {
-	size_t maxlen;				/**< Maximum authorized length */
-	size_t size;				/**< Current allocated size for `line' */
-	char *line;				/**< Accumulator, NUL terminated when done */
-	size_t pos;					/**< Next writing position in line[] */
-} getline_t;
-
-#define getline_maxlen(o)	((o)->maxlen)
+struct getline;
+typedef struct getline getline_t;
 
 /*
  * Public interface.

@@ -41,6 +41,7 @@ RCSID("$Id$")
 #include "halloc.h"
 #include "walloc.h"
 #include "misc.h"		/* For RCSID */
+#include "unsigned.h"
 #include "override.h"	/* Must be the last header included */
 
 /*
@@ -51,6 +52,27 @@ RCSID("$Id$")
 #define START_LENGTH 	512
 #define GROW_LENGTH		1024
 
+enum getline_magic { GETLINE_MAGIC = 0x30aee25cU };
+
+/**
+ * A getline "object".
+ */
+
+struct getline {
+	enum getline_magic magic;
+	size_t maxlen;			/**< Maximum authorized length */
+	size_t size;			/**< Current allocated size for `line' */
+	char *line;				/**< Accumulator, NUL terminated when done */
+	size_t pos;				/**< Next writing position in line[] */
+};
+
+static inline void
+getline_check(const struct getline * const gl)
+{
+	g_assert(gl != NULL);
+	g_assert(GETLINE_MAGIC == gl->magic);
+}
+
 /**
  * Create a new line reading object, capable of holding a line of at most
  * `maxlen' bytes.
@@ -60,10 +82,10 @@ getline_make(size_t maxlen)
 {
 	getline_t *o;
 
-	g_assert(maxlen > 0);
+	g_assert(size_is_positive(maxlen));
 
 	o = walloc0(sizeof *o);
-
+	o->magic = GETLINE_MAGIC;
 	o->maxlen = maxlen;
 	o->size = MIN(START_LENGTH, maxlen);
 	o->line = halloc(o->size);
@@ -74,7 +96,8 @@ getline_make(size_t maxlen)
 void
 getline_set_maxlen(getline_t *o, size_t maxlen)
 {
-	g_assert(o);
+	getline_check(o);
+
 	o->maxlen = MAX(o->maxlen, maxlen);
 }
 
@@ -84,8 +107,7 @@ getline_set_maxlen(getline_t *o, size_t maxlen)
 void
 getline_free(getline_t *o)
 {
-	g_assert(o);
-	g_assert(o->line);
+	getline_check(o);
 
 	HFREE_NULL(o->line);
 	wfree(o, sizeof *o);
@@ -98,8 +120,8 @@ getline_free(getline_t *o)
 void
 getline_reset(getline_t *o)
 {
-	g_assert(o);
-	g_assert(o->line);
+	getline_check(o);
+	g_assert(o->line != NULL);
 
 	o->pos = 0;
 }
@@ -124,6 +146,8 @@ getline_read(getline_t *o, const char *data, size_t len, size_t *used)
 {
 	getline_result_t result = READ_MORE;
 	size_t used_bytes, needed, missing;
+
+	getline_check(o);
 
 	/*
 	 * Make sure we have enough room to either grab all `len' bytes or
@@ -186,6 +210,7 @@ getline_read(getline_t *o, const char *data, size_t len, size_t *used)
 const char *
 getline_str(const getline_t *o)
 {
+	getline_check(o);
 	g_assert(o->pos < o->size);
 
 	o->line[o->pos] = '\0';		/* Ensure it is NUL-terminated */
@@ -198,6 +223,7 @@ getline_str(const getline_t *o)
 size_t
 getline_length(const getline_t *o)
 {
+	getline_check(o);
 	return o->pos;
 }
 
@@ -207,8 +233,8 @@ getline_length(const getline_t *o)
 void
 getline_copy(const getline_t *source, getline_t *dest)
 {
-	g_assert(source);
-	g_assert(dest);
+	getline_check(source);
+	getline_check(dest);
 	g_assert(source->pos < dest->maxlen);
 	g_assert(source != dest);
 
