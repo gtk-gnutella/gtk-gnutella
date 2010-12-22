@@ -30,8 +30,12 @@
  * Ordered hash table preserving the order of its keys.
  *
  * Because this is implemented as a compound structure, the "foreach_remove"
- * operations are rather expensive and should be avoided if possible.
- * To cleanup the structure, use ohash_table_random_foreach().
+ * operations are rather expensive when removal is not systematic, and should
+ * be avoided if possible.
+ *
+ * With removal callbacks which always return TRUE, it is better to iterate
+ * with ohash_table_random_foreach_remove(), which will be more efficient
+ * than ohash_table_foreach_remove().
  *
  * @author Raphael Manfredi
  * @date 2010
