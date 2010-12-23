@@ -225,7 +225,8 @@ vxml_error_t vxml_parse_callbacks_tokens(vxml_parser_t *vp,
 unsigned vxml_token_lookup(const char *name,
 	const struct vxml_parser_token *tokens, size_t len);
 
-void vxml_parser_error(vxml_parser_t *vp, const char *errstr, ...);
+void vxml_parser_error(vxml_parser_t *vp,
+		const char *errstr, ...) G_GNUC_PRINTF(2, 3);
 unsigned vxml_parser_depth(const vxml_parser_t *vp);
 size_t vxml_parser_offset(const vxml_parser_t *vp);
 size_t vxml_parser_line(const vxml_parser_t *vp);

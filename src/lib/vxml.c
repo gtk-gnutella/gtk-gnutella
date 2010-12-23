@@ -469,6 +469,9 @@ vxml_parser_where(const vxml_parser_t *vp)
 /**
  * Emit unconditional warning.
  */
+static void vxml_parser_warn(const vxml_parser_t *vp,
+	const char *format, ...) G_GNUC_PRINTF(2, 3);
+
 static void
 vxml_parser_warn(const vxml_parser_t *vp, const char *format, ...)
 {
@@ -490,6 +493,9 @@ vxml_parser_warn(const vxml_parser_t *vp, const char *format, ...)
 /**
  * Emit debugging message.
  */
+static void vxml_parser_debug(const vxml_parser_t *vp,
+	const char *format, ...) G_GNUC_PRINTF(2, 3);
+
 static void
 vxml_parser_debug(const vxml_parser_t *vp, const char *format, ...)
 {
@@ -1231,12 +1237,15 @@ vxml_parser_error(vxml_parser_t *vp, const char *errstr, ...)
 	vxml_parser_check(vp);
 
 	if (errstr != NULL) {
+		va_list args, errargs;
 		char *msg;
-		va_list args;
 
 		va_start(args, errstr);
-		msg = h_strdup_vprintf(errstr, args);
+		VA_COPY(errargs, args);
+		msg = h_strdup_vprintf(errstr, errargs);
+		va_end(errargs);
 		va_end(args);
+
 		HFREE_NULL(vp->user_error);
 		vp->user_error = msg;
 	}
