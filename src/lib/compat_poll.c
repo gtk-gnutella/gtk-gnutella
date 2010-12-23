@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include <sys/select.h>
 #endif
 
+#include "lib/fd.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /* Fallback on select() if they miss poll() */
@@ -61,27 +62,15 @@ RCSID("$Id$")
 #endif
 #endif	/* Darwin */
 
-/**
- * A wrapper for poll() that falls back to select() when poll() is missing.
- */
-int
-compat_poll(struct pollfd *fds, unsigned int n, int timeout)
-#ifdef USE_SELECT_FOR_POLL
+#ifdef HAS_SELECT
+static inline int
+emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 {
 	struct timeval tv;
 	unsigned i;
 	fd_set rfds, wfds, efds;
 	int ret;
 	socket_fd_t max_fd = (socket_fd_t) 0;
-
-#ifdef MINGW32
-	/*
-	 * Only Windows versions starting at Vista have WSAPoll(), but we
-	 * know all Windows have select() under MinGW.
-	 */
-	if (mingw_has_wsapoll())
-		return mingw_poll(fds, n, timeout);
-#endif
 
 	FD_ZERO(&rfds);
 	FD_ZERO(&wfds);
@@ -153,6 +142,27 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 		g_warning("error during select %s", g_strerror(errno));
 	}
 	return ret;
+}
+#endif	/* HAS_SELECT */
+/**
+ * A wrapper for poll() that falls back to select() when poll() is missing.
+ */
+int
+compat_poll(struct pollfd *fds, unsigned int n, int timeout)
+#ifdef USE_SELECT_FOR_POLL
+{
+	return emulate_poll_with_select(fds, n, timeout);
+}
+#elif defined(MINGW32)
+{
+	/*
+	 * Only Windows versions starting at Vista have WSAPoll(), but we
+	 * know all Windows have select() under MinGW.
+	 */
+	if (mingw_has_wsapoll())
+		return mingw_poll(fds, n, timeout);
+	else
+		return emulate_poll_with_select(fds, n, timeout);
 }
 #else	/* !USE_SELECT_FOR_POLL */
 {

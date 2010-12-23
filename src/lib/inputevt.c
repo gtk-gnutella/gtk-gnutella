@@ -625,11 +625,7 @@ collect_events(struct poll_ctx *poll_ctx, int timeout_ms)
 {
 	int ret;
 
-#ifdef MINGW32
-	ret = mingw_poll(poll_ctx->ev_arr.ev, poll_ctx->num_ev, timeout_ms);
-#else
 	ret = compat_poll(poll_ctx->ev_arr.ev, poll_ctx->num_ev, timeout_ms);
-#endif
 	if (-1 == ret && !is_temporary_error(errno)) {
 		g_warning("collect_events(): poll() failed: %s", g_strerror(errno));
 	}
