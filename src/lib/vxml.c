@@ -2514,13 +2514,21 @@ vxml_namespace_make(const char *ns, const char *uri, size_t uri_len)
 {
 	nv_pair_t *nv;
 	const char *uri_atom;
-	size_t len;
 
 	g_assert(ns != NULL);
 	g_assert(uri != NULL);
 
-	uri_atom = atom_str_get(uri);
-	len = (0 == uri_len) ? strlen(uri_atom) : uri_len;
+	if (0 == uri_len)
+		uri_len = strlen(uri);
+
+	if ('\0' != uri[uri_len]) {
+		char *uri_copy = g_strndup(uri, uri_len);
+		uri_atom = atom_str_get(uri_copy);
+		G_FREE_NULL(uri_copy);
+	} else {
+		uri_atom = atom_str_get(uri);
+	}
+
 	nv = nv_pair_make_nocopy(ns, uri_atom, uri_len + 1);	/* Trailing NUL */
 	nv_pair_set_value_free(nv, vxml_namespace_free);
 
