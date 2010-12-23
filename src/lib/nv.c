@@ -75,7 +75,7 @@ nv_pair_check(const nv_pair_t * const nvp)
 	g_assert(nvp->refcnt > 0);
 }
 
-enum nv_table_magic { NV_TABLE_MAGIC = 0xa557a3b2U };
+enum nv_table_magic { NV_TABLE_MAGIC = 0x2557a3b2U };
 
 /*
  * A name/value pair table.

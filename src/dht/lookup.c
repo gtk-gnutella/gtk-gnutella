@@ -2003,8 +2003,8 @@ kullback_leibler_div(const nlookup_t *nl, size_t nodes, int bmin,
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 			g_debug("DHT LOOKUP[%s] %u-bit prefix: "
-				"freq = %lf (%u/%u node%s, log2=%lf), theoric = %lf => "
-				"K-L contribution: %lf",
+				"freq = %f (%u/%u node%s, log2=%f), theoric = %f => "
+				"K-L contribution: %f",
 				revent_id_to_string(nl->lid), (unsigned) (i + bmin),
 				M[i], (unsigned) prefix[i], (unsigned) nodes,
 				1 == prefix[i] ? "" : "s",
@@ -2136,7 +2136,7 @@ compute:
 	dkl = kullback_leibler_div(nl, nodes, min_common_bits, prefix, items);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence to %s = %lf",
+		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence to %s = %f",
 			revent_id_to_string(nl->lid), (unsigned) nodes,
 			(unsigned) patricia_count(nl->path),
 			1 == nodes ? "" : "s", kuid_to_hex_string(nl->kuid), dkl);
@@ -2273,7 +2273,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 	qsort(&items, G_N_ELEMENTS(items), sizeof(items[0]), kl_item_revcmp);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_debug("DHT LOOKUP[%s] largest K-L divergence %lf from %lu-bit prefix",
+		g_debug("DHT LOOKUP[%s] largest K-L divergence %f from %lu-bit prefix",
 			revent_id_to_string(nl->lid), items[0].contrib,
 			(unsigned long) items[0].prefix);
 	}
@@ -2319,7 +2319,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 	dkl = kullback_leibler_div(nl, nodes, min_common_bits, prefix, items);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence down to %lf",
+		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence down to %f",
 			revent_id_to_string(nl->lid), (unsigned) nodes,
 			(unsigned) patricia_count(nl->path), 1 == nodes ? "" : "s", dkl);
 	}
@@ -2366,7 +2366,7 @@ done:
 
 	if (GNET_PROPERTY(dht_lookup_debug)) {
 		g_debug("DHT LOOKUP[%s] after counter-measures: path holds %u node%s, "
-			"K-L divergence is %lf (%u node%s in window, stripped %u)",
+			"K-L divergence is %f (%u node%s in window, stripped %u)",
 			revent_id_to_string(nl->lid),
 			(unsigned) patricia_count(nl->path),
 			1 == patricia_count(nl->path) ? "" : "s", dkl,

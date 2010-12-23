@@ -50,7 +50,7 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
-enum header_magic { HEADER_MAGIC = 0xb1b8484fU };
+enum header_magic { HEADER_MAGIC = 0x71b8484fU };
 
 /*
  * The `headers' field is a hash table indexed by field name (case-insensitive).
@@ -81,7 +81,7 @@ header_check(const header_t * const h)
 	g_assert(h->refcnt > 0);
 }
 
-enum header_field { HEADER_FIELD_MAGIC = 0xde29aad7U };
+enum header_field { HEADER_FIELD_MAGIC = 0x6e29aad7U };
 
 /**
  * A header field.

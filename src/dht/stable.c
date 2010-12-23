@@ -374,7 +374,7 @@ prune_old(gpointer key, gpointer value, size_t u_len, gpointer u_data)
 	}
 
 	if (GNET_PROPERTY(dht_stable_debug) > 4) {
-		g_debug("DHT STABLE node %s life=%s last_seen=%s, p=%.2lf%%%s",
+		g_debug("DHT STABLE node %s life=%s last_seen=%s, p=%.2f%%%s",
 			kuid_to_hex_string(id),
 			compact_time(delta_time(ld->last_seen, ld->first_seen)),
 			compact_time2(d), p * 100.0,

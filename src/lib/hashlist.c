@@ -389,7 +389,7 @@ hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 	return orig_key;
 }
 
-enum hash_list_position_magic { HASH_LIST_POSITION_MAGIC = 0xc69eede3U };
+enum hash_list_position_magic { HASH_LIST_POSITION_MAGIC = 0x169eede3U };
 
 struct hash_list_position {
 	enum hash_list_position_magic magic;

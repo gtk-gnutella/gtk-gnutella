@@ -57,7 +57,7 @@ RCSID("$Id$")
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-enum symtab_magic { SYMTAB_MAGIC = 0xce264d27U };
+enum symtab_magic { SYMTAB_MAGIC = 0x3e264d27U };
 
 /**
  * A symbol table.
@@ -77,7 +77,7 @@ symtab_check(const struct symtab * const syt)
 	g_assert(SYMTAB_MAGIC == syt->magic);
 }
 
-enum symtab_value_magic { SYMTAB_VALUE_MAGIC = 0x86864892U };
+enum symtab_value_magic { SYMTAB_VALUE_MAGIC = 0x46864892U };
 
 /**
  * Values in the symbol table.

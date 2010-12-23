@@ -52,7 +52,7 @@ RCSID("$Id$")
 
 #include "override.h"			/* Must be the last header included */
 
-enum ohash_table_magic { OHASH_TABLE_MAGIC = 0xaa3e2b74U };
+enum ohash_table_magic { OHASH_TABLE_MAGIC = 0x4a3e2b74U };
 
 /**
  * An ordered hash table.

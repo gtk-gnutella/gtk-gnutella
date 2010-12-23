@@ -74,7 +74,7 @@ struct vxml_buffer;
  */
 typedef guint32 (*vxml_reader_t)(const char *str, size_t len, guint *retlen);
 
-enum vxml_buffer_magic { VXML_BUFFER_MAGIC = 0xb5203c2aU };
+enum vxml_buffer_magic { VXML_BUFFER_MAGIC = 0x55203c2aU };
 
 /**
  * An input buffer being parsed.
@@ -113,7 +113,7 @@ enum vxml_encoding {
 	VXML_ENC_UTF16_LE,
 	VXML_ENC_UTF32_BE,
 	VXML_ENC_UTF32_LE,
-	VXML_ENC_CHARSET,
+	VXML_ENC_CHARSET
 };
 
 /**
@@ -123,7 +123,7 @@ enum vxml_encsrc {
 	VXML_ENCSRC_DEFAULT,			/**< Default encoding rules (UTF-8 then) */
 	VXML_ENCSRC_INTUITED,			/**< Intuited from document start */
 	VXML_ENCSRC_EXPLICIT,			/**< Explicit character encoding */
-	VXML_ENCSRC_SUPPLIED,			/**< User-supplied character encoding */
+	VXML_ENCSRC_SUPPLIED			/**< User-supplied character encoding */
 };
 
 /**
@@ -133,7 +133,7 @@ enum vxml_endsrc {
 	VXML_ENDIANSRC_DEFAULT,			/**< Default endianness (big-endian then) */
 	VXML_ENDIANSRC_INTUITED,		/**< Intuited from document start */
 	VXML_ENDIANSRC_EXPLICIT,		/**< Uses 8-bit characters or UTF-8 */
-	VXML_ENDIANSRC_SUPPLIED,		/**< User-supplied endianness */
+	VXML_ENDIANSRC_SUPPLIED			/**< User-supplied endianness */
 };
 
 /**
@@ -142,7 +142,7 @@ enum vxml_endsrc {
 enum vxml_versionsrc {
 	VXML_VERSRC_DEFAULT,			/**< Default version (1.0 then) */
 	VXML_VERSRC_IMPLIED,			/**< Implied: no explicit declaration */
-	VXML_VERSRC_EXPLICIT,			/**< Explicit version declared */
+	VXML_VERSRC_EXPLICIT			/**< Explicit version declared */
 };
 
 /**
@@ -154,7 +154,7 @@ struct vxml_uctx {
 	void *data;					/**< Additional argument for callbacks */
 };
 
-enum vxml_output_magic { VXML_OUTPUT_MAGIC = 0x9e43f7a7U };
+enum vxml_output_magic { VXML_OUTPUT_MAGIC = 0x7e43f7a7U };
 
 /**
  * Output buffer: data stored there is in UTF-8.
@@ -174,7 +174,7 @@ vxml_output_check(const struct vxml_output * const vo)
 	g_assert(VXML_OUTPUT_MAGIC == vo->magic);
 }
 
-enum vxml_location_magic { VXML_LOCATION_MAGIC = 0xe4b3365bU };
+enum vxml_location_magic { VXML_LOCATION_MAGIC = 0x24b3365bU };
 
 /**
  * Location context.

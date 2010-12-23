@@ -2201,7 +2201,7 @@ promote_pending_node(struct kbucket *kb)
 
 		if (GNET_PROPERTY(dht_debug))
 			g_debug("DHT promoting %s node %s at %s to good in %s, "
-				"p=%.2lf%%",
+				"p=%.2f%%",
 				knode_status_to_string(selected->status),
 				kuid_to_hex_string(selected->id),
 				host_addr_port_to_string(selected->addr, selected->port),
@@ -2330,7 +2330,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 		c_class_update_count(tkn, kb, -1);
 
 		if (GNET_PROPERTY(dht_debug) > 2)
-			g_debug("DHT removed %s node %s from %s, p=%.2lf%%",
+			g_debug("DHT removed %s node %s from %s, p=%.2f%%",
 				knode_status_to_string(tkn->status),
 				knode_to_string(tkn), kbucket_to_string(kb),
 				knode_still_alive_probability(tkn) * 100.0);
@@ -2380,7 +2380,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 
 	if (GNET_PROPERTY(dht_debug) > 1) {
 		g_debug("DHT node %s at %s (%s in table) moving from %s to %s, "
-			"p=%.2lf%%",
+			"p=%.2f%%",
 			kuid_to_hex_string(kn->id),
 			host_addr_port_to_string(kn->addr, kn->port),
 			in_table ? (tkn == kn ? "is" : "copy") : "not",
@@ -2495,7 +2495,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 			c_class_update_count(removed, kb, -1);
 
 			if (GNET_PROPERTY(dht_debug))
-				g_debug("DHT dropped %s node %s at %s from %s, p=%.2lf%%",
+				g_debug("DHT dropped %s node %s at %s from %s, p=%.2f%%",
 					knode_status_to_string(removed->status),
 					kuid_to_hex_string(removed->id),
 					host_addr_port_to_string(removed->addr, removed->port),
@@ -3706,7 +3706,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 	estimate = (guint64) (retained * pow(2.0, bits));
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT average common prefix is %lf bits over %lu node%s",
+		g_debug("DHT average common prefix is %f bits over %lu node%s",
 			bits, (unsigned long) retained, 1 == retained ? "" : "s");
 	}
 
@@ -3793,7 +3793,7 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 	kuid_divide(&accum, &prev, &avg, &remain);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT average distance of %u KUIDs near %s is %s (%lf)",
+		g_debug("DHT average distance of %u KUIDs near %s is %s (%f)",
 			(unsigned) count - 1,
 			kuid_to_hex_string(kuid), kuid_to_hex_string2(&avg),
 			kuid_to_double(&avg));
