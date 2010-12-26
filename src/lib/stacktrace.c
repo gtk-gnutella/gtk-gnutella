@@ -150,6 +150,8 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 	va_end(args);
 }
 
+static void s_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
+static void s_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
 
 /**
  * Safe warning to avoid recursion, since stack tracing can be triggered
