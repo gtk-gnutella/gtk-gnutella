@@ -2242,7 +2242,7 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 				gchar *substr;
 				gint flags;
 
-				substr = g_strndup(start, endptr - start);
+				substr = h_strndup(start, endptr - start);
 				if (GUI_PROPERTY(gui_debug)) {
 					g_debug("%s: \"%s\"",
 							filter < 0 ? "negative" : "positive", substr);
@@ -2256,7 +2256,7 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 				rule = filter_new_text_rule(substr, RULE_TEXT_SUBSTR, FALSE,
 							target, flags);
 				query->rules = g_list_prepend(query->rules, rule);
-				G_FREE_NULL(substr);
+				HFREE_NULL(substr);
 			}
 		} else {
 			p = start;

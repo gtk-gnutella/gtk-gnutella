@@ -1614,9 +1614,9 @@ get_filename_charsets(const char *locale)
 			if (is_strcaseprefix(s, "@locale") == ep) {
 				cs = locale;
 			} else {
-				char *q = g_strndup(s, ep - s);
+				char *q = h_strndup(s, ep - s);
 				cs = get_iconv_charset_alias(q);
-				G_FREE_NULL(q);
+				HFREE_NULL(q);
 			}
 
 			/*

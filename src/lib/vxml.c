@@ -2529,9 +2529,9 @@ vxml_namespace_make(const char *ns, const char *uri, size_t uri_len)
 		uri_len = strlen(uri);
 
 	if ('\0' != uri[uri_len]) {
-		char *uri_copy = g_strndup(uri, uri_len);
+		char *uri_copy = h_strndup(uri, uri_len);
 		uri_atom = atom_str_get(uri_copy);
-		G_FREE_NULL(uri_copy);
+		HFREE_NULL(uri_copy);
 	} else {
 		uri_atom = atom_str_get(uri);
 	}

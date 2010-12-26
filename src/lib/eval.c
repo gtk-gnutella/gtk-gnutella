@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "atoms.h"
 #include "debug.h"
 #include "glib-missing.h"
+#include "halloc.h"
 #include "path.h"
 #include "unsigned.h"
 
@@ -332,7 +333,7 @@ get_variable(const char *s, const char **end)
 	{
 		char *name;
 
-		name = g_strndup(s, p - s);
+		name = h_strndup(s, p - s);
 		value = getenv(name);
 
 		if (value == NULL)
@@ -341,7 +342,7 @@ get_variable(const char *s, const char **end)
 		if (common_dbg > 4)
 			printf("variable \"%s\" is \"%s\"\n", name, value);
 
-		G_FREE_NULL(name);
+		HFREE_NULL(name);
 	}
 
 	return value;

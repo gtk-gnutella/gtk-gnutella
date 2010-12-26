@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/concat.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/html.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -147,12 +148,12 @@ html_output_print(struct html_output *output, const struct array *text)
 			str = array_init(text->data, text->size);
 			to_free = NULL;
 		} else {
-			to_free = g_strndup(text->data, text->size);
+			to_free = h_strndup(text->data, text->size);
 			str = array_from_string(lazy_utf8_to_ui_string(to_free));
 		}
 		gtk_text_insert(ctx->html_view->widget,
 			NULL, NULL, NULL, str.data, str.size);
-		G_FREE_NULL(to_free);
+		HFREE_NULL(to_free);
 	}
 #endif
 }
@@ -308,7 +309,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 				gchar *filename;
 				GtkTextIter iter;
 
-				filename = g_strndup(value.data, value.size);
+				filename = h_strndup(value.data, value.size);
 				pixbuf = gdk_pixbuf_new_from_file(filename, NULL);
 				if (pixbuf) {
 					gtk_text_buffer_get_end_iter(buffer, &iter);
@@ -319,7 +320,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 						"\n[Image not found (\"%s\")]\n", filename);
 					text = msg;
 				}
-				G_FREE_NULL(filename);
+				HFREE_NULL(filename);
 			}
 			if (!text) {
 				text = "\n[image]\n";
