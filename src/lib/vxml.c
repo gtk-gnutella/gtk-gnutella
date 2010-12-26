@@ -1237,13 +1237,11 @@ vxml_parser_error(vxml_parser_t *vp, const char *errstr, ...)
 	vxml_parser_check(vp);
 
 	if (errstr != NULL) {
-		va_list args, errargs;
+		va_list args;
 		char *msg;
 
 		va_start(args, errstr);
-		VA_COPY(errargs, args);
-		msg = h_strdup_vprintf(errstr, errargs);
-		va_end(errargs);
+		msg = h_strdup_vprintf(errstr, args);
 		va_end(args);
 
 		HFREE_NULL(vp->user_error);
