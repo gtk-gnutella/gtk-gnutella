@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 18006 2010-12-22 17:06:04Z rmanfredi $
+# $X-Id: Jmakefile 18027 2010-12-27 11:59:54Z rmanfredi $
 
 GENERIC = bit_array.h bit_field.h
 
@@ -200,6 +200,7 @@ LSRC = \
 	watcher.c \
 	wd.c \
 	wordvec.c \
+	xattr.c \
 	zalloc.c \
 	zlib_util.c
 
@@ -305,6 +306,7 @@ LOBJ = \
 	watcher.o \
 	wd.o \
 	wordvec.o \
+	xattr.o \
 	zalloc.o \
 	zlib_util.o 
 
