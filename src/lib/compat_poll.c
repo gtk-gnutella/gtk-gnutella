@@ -69,24 +69,23 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 	struct timeval tv;
 	unsigned i;
 	fd_set rfds, wfds, efds;
-	int ret;
-	socket_fd_t max_fd = (socket_fd_t) 0;
+	int ret, max_fd = -1;
 
 	FD_ZERO(&rfds);
 	FD_ZERO(&wfds);
 	FD_ZERO(&efds);
 
 	for (i = 0; i < n; i++) {
-		socket_fd_t fd = fds[i].fd;
+		int fd = cast_to_fd(fds[i].fd);
 
 		/* XXX: Temporarily added for debug purposes! */
-		g_assert(INVALID_SOCKET == fd || is_a_socket(fd) || is_a_fifo(fd));
+		g_assert(!is_valid_fd(fd) || is_a_socket(fd) || is_a_fifo(fd));
 		/* XXX */
 
 #ifdef MINGW32
 		if (!is_a_socket(fd))
 #else
-		if (fd < 0 || fd >= FD_SETSIZE || i >= FD_SETSIZE)
+		if (!is_valid_fd(fd) || fd >= FD_SETSIZE || i >= FD_SETSIZE)
 #endif
 		{
 			fds[i].revents = POLLERR;
@@ -119,9 +118,9 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 
 		n = MIN(n, FD_SETSIZE);	/* POLLERR is already set above */
 		for (i = 0; i < n; i++) {
-			int fd = fds[i].fd;
+			int fd = cast_to_fd(fds[i].fd);
 
-			if (fd < 0 
+			if (is_valid_fd(fd)
 #ifndef MINGW32
 				|| fd >= FD_SETSIZE
 #endif

@@ -45,8 +45,20 @@ void set_close_on_exec(int fd);
 void fd_set_nonblocking(int fd);
 int fd_close(int *fd_ptr, gboolean);
 int get_non_stdio_fd(int fd);
-gboolean is_a_socket(socket_fd_t fd);
-gboolean is_a_fifo(socket_fd_t fd);
+gboolean is_a_socket(int fd);
+gboolean is_a_fifo(int fd);
+
+static inline int
+is_valid_fd(int fd)
+{
+	return fd >= 0;
+}
+
+static inline int
+cast_to_fd(unsigned int fd)
+{
+	return fd;
+}
 
 #endif /* _fd_h_ */
 
