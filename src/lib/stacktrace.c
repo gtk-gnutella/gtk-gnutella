@@ -50,7 +50,7 @@ RCSID("$Id$")
 #include "ascii.h"
 #include "base16.h"
 #include "concat.h"
-#include "crash.h"		/* For print_str() */
+#include "crash.h"		/* For print_str() and crash_signame() */
 #include "glib-missing.h"
 #include "log.h"
 #include "misc.h"
@@ -901,6 +901,103 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
 
 	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 	stack_safe_print(fd, stack, count);
+}
+
+static struct {
+	int fd;
+	Sigjmp_buf env;
+} print_context;
+
+/**
+ * Invoked when a fatal signal is received during stack unwinding.
+ */
+static void
+stacktrace_got_signal(int signo)
+{
+	iovec_t iov[3];
+	unsigned iov_cnt = 0;
+
+	print_str("WARNING: got ");
+	print_str(crash_signame(signo));
+	print_str(" during stack unwinding\n");
+	IGNORE_RESULT(writev(print_context.fd, iov, iov_cnt));
+
+	Siglongjmp(print_context.env, signo);
+}
+
+/**
+ * Wraps stacktrace_where_safe_print_offset() for extra caution.
+ *
+ * Caution comes from the fact that we trap all SIGSEGV and other harmful
+ * signals that could result from improper memory access during stack
+ * unwinding (due to a corrupted stack).
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ */
+void
+stacktrace_where_cautious_print_offset(int fd, size_t offset)
+{
+	static gboolean printing;
+	signal_handler_t old_sigsegv;
+#ifdef SIGBUS
+	signal_handler_t old_sigbus;
+#endif
+#ifdef SIGTRAP
+	signal_handler_t old_sigtrap;
+#endif
+
+	if (printing) {
+		iovec_t iov[3];
+		unsigned iov_cnt = 0;
+
+		print_str("WARNING: ignoring ");
+		print_str("recursive stacktrace_where_cautious_print_offset() call");
+		print_str("\n");
+		IGNORE_RESULT(writev(fd, iov, iov_cnt));
+		return;
+	}
+
+	/*
+	 * Install signal handlers for most of the harmful signals that
+	 * could happen during stack unwinding in case the stack is corrupted
+	 * and we start following wrong frame pointers.
+	 */
+
+	old_sigsegv = set_signal(SIGSEGV, stacktrace_got_signal);
+
+#ifdef SIGBUS
+	old_sigbus = set_signal(SIGBUS, stacktrace_got_signal);
+#endif
+#ifdef SIGTRAP
+	old_sigtrap = set_signal(SIGTRAP, stacktrace_got_signal);
+#endif
+
+	printing = TRUE;
+	print_context.fd = fd;
+
+	if (Sigsetjmp(print_context.env, 1)) {
+		iovec_t iov[1];
+		unsigned iov_cnt = 0;
+
+		print_str("WARNING: truncated stack frame\n");
+		IGNORE_RESULT(writev(fd, iov, iov_cnt));
+		goto restore;
+	}
+
+	stacktrace_where_safe_print_offset(fd, offset);
+
+restore:
+	printing = FALSE;
+
+	set_signal(SIGSEGV, old_sigsegv);
+
+#ifdef SIGBUS
+	set_signal(SIGBUS, old_sigbus);
+#endif
+#ifdef SIGTRAP
+	set_signal(SIGTRAP, old_sigtrap);
+#endif
 }
 
 /**

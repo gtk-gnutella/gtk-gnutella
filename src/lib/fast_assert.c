@@ -95,6 +95,7 @@ void G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_failure(const assertion_data * const data)
 {
 	assertion_message(data, TRUE);
+	stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
 	abort();
 }
 
