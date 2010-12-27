@@ -363,8 +363,6 @@ header_reset_item(gpointer p, gpointer unused_data)
 void
 header_reset(header_t *o)
 {
-	static const header_t zero_header;
-
 	header_check(o);
 
 	if (o->headers) {
@@ -375,7 +373,7 @@ header_reset(header_t *o)
 		slist_foreach(o->fields, header_reset_item, NULL);
 		slist_free(&o->fields);
 	}
-	*o = zero_header;
+	o->flags = o->size = o->num_lines = 0;
 }
 
 /**
