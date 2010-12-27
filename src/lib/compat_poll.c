@@ -76,6 +76,17 @@ RCSID("$Id$")
 #endif
 
 #ifdef HAS_SELECT
+
+static inline int
+is_okay_for_select(int fd)
+{
+	return is_valid_fd(fd)
+#ifndef MINGW32
+		&& fd < FD_SETSIZE
+#endif	/* !MINGW32 */
+		;
+}
+
 static inline int
 emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 {
@@ -93,7 +104,7 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 
 		safety_assert(!is_valid_fd(fd) || is_a_socket(fd) || is_a_fifo(fd));
 
-		if (!is_valid_fd(fd) || fd >= FD_SETSIZE || i >= FD_SETSIZE) {
+		if (!is_okay_for_select(fd) || i >= FD_SETSIZE) {
 			fds[i].revents = POLLERR;
 			continue;
 		}
@@ -126,13 +137,9 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 		for (i = 0; i < n; i++) {
 			int fd = cast_to_fd(fds[i].fd);
 
-			if (is_valid_fd(fd)
-#ifndef MINGW32
-				|| fd >= FD_SETSIZE
-#endif
-			) {
+			if (!is_okay_for_select(fd))
 				continue;
-			}
+
 			if (FD_ISSET(fd, &rfds)) {
 				fds[i].revents |= POLLIN;
 			}
