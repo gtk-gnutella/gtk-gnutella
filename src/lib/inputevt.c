@@ -64,10 +64,10 @@ RCSID("$Id$")
 /**
  * Debugging options.
  */
-#if 1
+#if 0
 #define INPUTEVT_SAFETY_ASSERT	/* Enable safety_assert() */
 #endif
-#if 1
+#if 0
 #define INPUTEVT_DEBUGGING		/* Additional debugging traces */
 #endif
 

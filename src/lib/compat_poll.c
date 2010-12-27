@@ -62,6 +62,19 @@ RCSID("$Id$")
 #endif
 #endif	/* Darwin */
 
+/**
+ * Debugging option.
+ */
+#if 0
+#define POLL_SAFETY_ASSERT	/* Enable safety_assert() */
+#endif
+
+#ifdef POLL_SAFETY_ASSERT
+#define safety_assert(x)	g_assert(x)
+#else
+#define safety_assert(x)
+#endif
+
 #ifdef HAS_SELECT
 static inline int
 emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
@@ -78,9 +91,7 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 	for (i = 0; i < n; i++) {
 		int fd = cast_to_fd(fds[i].fd);
 
-		/* XXX: Temporarily added for debug purposes! */
-		g_assert(!is_valid_fd(fd) || is_a_socket(fd) || is_a_fifo(fd));
-		/* XXX */
+		safety_assert(!is_valid_fd(fd) || is_a_socket(fd) || is_a_fifo(fd));
 
 #ifdef MINGW32
 		if (!is_a_socket(fd))
