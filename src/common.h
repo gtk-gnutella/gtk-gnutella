@@ -302,6 +302,14 @@ typedef void (*GCallback) (void);
  * Can only use the `args' obtained via va_start(args) ONCE.  If we need
  * to call another vararg routine, we need to copy the original args.
  * The __va_copy macro is a GNU extension.
+ *
+ * Using the `args' means calling va_arg(args, TYPE) on the variable argument
+ * list to process the arguments.  Passing the argument list as a va_list
+ * pointer does not use the `args' and does not require any VA_COPY to be done.
+ *
+ * After a VA_COPY(dest, src), one must call va_end(dest) to properly cleanup
+ * the copied list, just like one would do after a va_start(dest).  The va_end()
+ * should occur in the same routine where va_start() or VA_COPY() is done.
  */
 #ifdef va_copy
 #define VA_COPY(dest, src) va_copy(dest, src)
