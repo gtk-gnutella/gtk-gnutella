@@ -495,6 +495,29 @@ nv_table_insert(const nv_table_t *nvt,
 /**
  * Record a name/value pair.
  *
+ * The name and value are copied and both are strings.
+ *
+ * @param nvt		the name/value table
+ * @param name		the name of the pair
+ * @param value		the value to insert
+ */
+void
+nv_table_insert_str(const nv_table_t *nvt, const char *name, const char *value)
+{
+	nv_pair_t *nvp;
+	size_t value_len;
+
+	nv_table_check(nvt);
+	g_assert(value != NULL);
+
+	value_len = strlen(value);
+	nvp = nv_pair_make_full(name, value, value_len + 1, TRUE);
+	nv_table_insert_pair(nvt, nvp);
+}
+
+/**
+ * Record a name/value pair.
+ *
  * The name is atomized (copied) but the value is NOT copied.
  *
  * @param nvt		the name/value table

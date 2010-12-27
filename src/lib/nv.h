@@ -82,6 +82,7 @@ void nv_table_free(nv_table_t *nvt);
 void nv_table_free_null(nv_table_t **nvt_ptr);
 void nv_table_insert_pair(const nv_table_t *nvt, nv_pair_t *nvp);
 void nv_table_insert(const nv_table_t *nvt, const char *, const void *, size_t);
+void nv_table_insert_str(const nv_table_t *nvt, const char *n, const char *v);
 void nv_table_insert_nocopy(const nv_table_t *nvt,
 	const char *name, const void *value, size_t length);
 gboolean nv_table_remove(const nv_table_t *nvt, const char *name);
