@@ -731,6 +731,8 @@ src/lib/wd.c
 src/lib/wd.h
 src/lib/wordvec.c
 src/lib/wordvec.h
+src/lib/xattr.c
+src/lib/xattr.h
 src/lib/zalloc.c
 src/lib/zalloc.h
 src/lib/zlib_util.c

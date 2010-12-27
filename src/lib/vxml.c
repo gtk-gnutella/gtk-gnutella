@@ -50,6 +50,8 @@ RCSID("$Id$")
 #include "unsigned.h"
 #include "utf8.h"
 #include "walloc.h"
+#include "xattr.h"
+
 #include "override.h"	/* Must be the last header included */
 
 /*
@@ -229,8 +231,7 @@ struct vxml_parser {
 	nv_table_t *tokens;				/**< For element tokenization */
 	nv_table_t *entities;			/**< Entities defined in document */
 	nv_table_t *pe_entities;		/**< Entities defined in <!DOCTYPE...> */
-	nv_table_t *attrs;				/**< Current element attributes */
-	nv_table_t *ns;					/**< Current element namespace decl. */
+	xattr_table_t *attrs;			/**< Current element attributes */
 	symtab_t *namespaces;			/**< Symbol table for namespaces */
 	const char *element;			/**< Current element (atom, NULL if none) */
 	const char *namespace;			/**< Element's namesapace (atom, or NULL) */
@@ -926,8 +927,7 @@ vxml_parser_free(vxml_parser_t *vp)
 	nv_table_free_null(&vp->tokens);
 	nv_table_free_null(&vp->entities);
 	nv_table_free_null(&vp->pe_entities);
-	nv_table_free_null(&vp->attrs);
-	nv_table_free_null(&vp->ns);
+	xattr_table_free_null(&vp->attrs);
 	vxml_output_free(&vp->out);
 	vxml_output_free(&vp->entity);
 	atom_str_free_null(&vp->charset);
@@ -2708,36 +2708,18 @@ vxml_parser_namespace_decl(vxml_parser_t *vp,
 		return FALSE;
 	}
 
-	if (NULL == vp->ns)
-		vp->ns = nv_table_make(FALSE);
-
-	/*
-	 * No duplicate declarations, regardless of VXML_O_NO_DUP_ATTR.
-	 *
-	 * FIXME: to detect properly duplicate attributes, we should replace
-	 * the namespace name by its URI, catenate it with the local attribute
-	 * name and insert that in the hash table.  A conflict would mean a
-	 * duplicate.  The default namespace would apply if an unqualified name
-	 * is given.  This would impose to declare the URI of 'xml:'.
-	 * The symbol table will take care of duplicates in 'xmlns:'...
-	 * Current algorithm, with all its limitations, is good enough for now.
-	 *		--RAM, 2010-12-20
-	 */
-
-	if (nv_table_lookup(vp->ns, name) != NULL) {
-		vxml_fatal_error(vp, VXML_E_DUP_ATTRIBUTE);
-		return FALSE;
-	}
-
 	/*
 	 * Register the namespace to be alive during the entire lexical scope
 	 * of the element.
+	 *
+	 * The symbol table forbids redeclaration of a symbol at the same depth
+	 * so we can report the error if the same namespace prefix is redefined
+	 * within a single element.
 	 */
 
 	{
 		nv_pair_t *ns = vxml_namespace_make(name, value, value_len);
 
-		nv_table_insert_pair(vp->ns, nv_pair_refcnt_inc(ns));
 		vxml_parser_namespace_insert(vp, ns, VXML_E_NAMESPACE_REDEFINITION);
 	}
 
@@ -3242,6 +3224,8 @@ vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
 {
 	guint32 uc;
 	const char *name;
+	char *ns = NULL;
+	const char *uri = NULL;
 	gboolean ok = TRUE;
 
 	/*
@@ -3250,7 +3234,7 @@ vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
 	 */
 
 	if (NULL == vp->attrs)
-		vp->attrs = nv_table_make(TRUE);
+		vp->attrs = xattr_table_make();
 
 	/*
 	 * Attribute	::= Name Eq AttValue  
@@ -3347,31 +3331,31 @@ vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
 
 		if (!(vp->options & VXML_O_NO_NAMESPACES)) {
 			const char *local_name;
-
+	
 			local_name = strchr(start, ':');
 			if (local_name != NULL) {
 				unsigned retlen;
-				char *ns = h_strndup(start, local_name - start);
 
 				/*
-				 * If a namespace prefix is specified, it must be known.
+				 * When a namespace prefix is specified, it must be known.
 				 *
 				 * The special "xmlns" prefix (which is undeclared) has been
 				 * already handled above.
 				 */
 
+				ns = h_strndup(start, local_name - start);
+
 				if (!vxml_parser_namespace_exists(vp, ns)) {
 					vxml_fatal_error_str(vp, VXML_E_UNKNOWN_NAMESPACE, ns);
-					hfree(ns);
 					goto error;
 				}
 
+				uri = vxml_parser_namespace_lookup(vp, ns);
 				start = local_name + 1;
-				HFREE_NULL(ns);
 
 				if (vxml_debugging(18)) {
 					vxml_parser_debug(vp, "vxml_handle_attribute: "
-						"stripped name is \"%s\"", start);
+						"stripped name is \"%s\", URI is \"%s\"", start, uri);
 				}
 
 				/*
@@ -3396,29 +3380,20 @@ vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
 		/*
 		 * Warn if an attribute is redefined (ignoring redefinition).
 		 *
-		 * Note that the conflicts can arise from namespace stripping, so
-		 * we warn using the possibly stripped name but log an error with the
-		 * original (complete) name.
-		 *
-		 * In practice, this will very rarely occur.  Qualified attribute
-		 * names are really required in the xml: namespace and conflicts
-		 * there are unlikely.  For "private" tags in a namespace, attributes
-		 * will be namespace-specific and will not mix with those from other
-		 * namespaces, so stripping should not create conflicts.
-		 *
 		 * Conflicts are non-fatal unless the option VXML_O_NO_DUP_ATTR is set.
 		 */
 
-		if (nv_table_lookup(vp->attrs, start) != NULL) {
+		if (xattr_table_lookup(vp->attrs, uri, start) != NULL) {
 			if (vxml_debugging(0))
-				vxml_parser_warn(vp, "duplicate attribute \"%s\"", start);
+				vxml_parser_warn(vp, "duplicate attribute \"%s%s%s\"",
+					NULL == ns ? "" : ns, NULL == ns ? "" : ":", start);
 
 			if (vp->options & VXML_O_NO_DUP_ATTR) {
 				vxml_fatal_error_str(vp, VXML_E_DUP_ATTRIBUTE, name);
 				goto error;
 			}
 		} else {
-			nv_table_insert(vp->attrs, start, value, len + 1);
+			xattr_table_add(vp->attrs, uri, start, value);
 		}
 
 		if (vxml_debugging(18)) {
@@ -3430,6 +3405,7 @@ vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
 done:
 	vxml_output_discard(&vp->out);
 	atom_str_free(name);
+	HFREE_NULL(ns);
 
 	return ok;
 
@@ -3485,7 +3461,7 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 {
 	guint32 uc;
 	gboolean need_space;
-	nv_pair_t *nvp;
+	const char *value;
 
 	/*
 	 * The official grammar:
@@ -3548,21 +3524,20 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 	 * the grammar, but we're not a validating parser.
 	 */
 
-	nvp = nv_table_lookup(vp->attrs, "version");
+	value = xattr_table_lookup(vp->attrs, NULL, "version");
 
-	if (NULL == nvp) {
+	if (NULL == value) {
 		vp->major = 1;
 		vp->minor = 0;
 		vp->versource = VXML_VERSRC_IMPLIED;
 	} else {
-		const char *version = nv_pair_value_str(nvp);
 		guint major, minor;
-		if (0 != parse_major_minor(version, NULL, &major, &minor)) {
-			vxml_fatal_error_str(vp, VXML_E_INVALID_VERSION, version);
+		if (0 != parse_major_minor(value, NULL, &major, &minor)) {
+			vxml_fatal_error_str(vp, VXML_E_INVALID_VERSION, value);
 			return FALSE;
 		}
 		if (major > MAX_INT_VAL(guint8) || minor > MAX_INT_VAL(guint8)) {
-			vxml_fatal_error_str(vp, VXML_E_VERSION_OUT_OF_RANGE, version);
+			vxml_fatal_error_str(vp, VXML_E_VERSION_OUT_OF_RANGE, value);
 			return FALSE;
 		}
 		vp->major = major;
@@ -3570,19 +3545,17 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 		vp->versource = VXML_VERSRC_EXPLICIT;
 	}
 
-	nvp = nv_table_lookup(vp->attrs, "encoding");
+	value = xattr_table_lookup(vp->attrs, NULL, "encoding");
 
-	if (nvp != NULL) {
-		const char *encoding = nv_pair_value_str(nvp);
-
+	if (value != NULL) {
 		/*
 		 * Check whether it's one of the known UTF-xx charsets.
 		 */
 
-		if (is_strcaseprefix(encoding, "UTF-8")) {
+		if (is_strcaseprefix(value, "UTF-8")) {
 			if (VXML_ENCSRC_INTUITED == vp->encsource) {
 				if (vp->encoding != VXML_ENC_UTF8) {
-					vxml_encoding_ignored(vp, encoding);
+					vxml_encoding_ignored(vp, value);
 				} else {
 					vp->encsource = VXML_ENCSRC_EXPLICIT;
 				}
@@ -3591,12 +3564,12 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 				vp->encsource = VXML_ENCSRC_EXPLICIT;
 			}
 		} else if (
-			is_strcaseprefix(encoding, "UTF-16") ||
-			is_strcaseprefix(encoding, "UCS-2")
+			is_strcaseprefix(value, "UTF-16") ||
+			is_strcaseprefix(value, "UCS-2")
 		) {
 			if (VXML_ENCSRC_INTUITED == vp->encsource) {
 				if (!vxml_encoding_is_utf16(vp->encoding)) {
-					vxml_encoding_ignored(vp, encoding);
+					vxml_encoding_ignored(vp, value);
 				} else {
 					vp->encsource = VXML_ENCSRC_EXPLICIT;
 				}
@@ -3605,12 +3578,12 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 				vp->encsource = VXML_ENCSRC_EXPLICIT;
 			}
 		} else if (
-			is_strcaseprefix(encoding, "UTF-32") ||
-			is_strcaseprefix(encoding, "UCS-4")
+			is_strcaseprefix(value, "UTF-32") ||
+			is_strcaseprefix(value, "UCS-4")
 		) {
 			if (VXML_ENCSRC_INTUITED == vp->encsource) {
 				if (!vxml_encoding_is_utf32(vp->encoding)) {
-					vxml_encoding_ignored(vp, encoding);
+					vxml_encoding_ignored(vp, value);
 				} else {
 					vp->encsource = VXML_ENCSRC_EXPLICIT;
 				}
@@ -3621,17 +3594,17 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 		} else {
 			const char *charset;
 
-			if (!is_ascii_string(encoding)) {
+			if (!is_ascii_string(value)) {
 				vxml_fatal_error_str(vp,
-					VXML_E_INVALID_CHAR_ENCODING_NAME, encoding);
+					VXML_E_INVALID_CHAR_ENCODING_NAME, value);
 				return FALSE;
 			}
 
-			charset = get_iconv_charset_alias(encoding);
+			charset = get_iconv_charset_alias(value);
 
 			if (NULL == charset) {
 				vxml_fatal_error_str(vp,
-					VXML_E_UNKNOWN_CHAR_ENCODING_NAME, encoding);
+					VXML_E_UNKNOWN_CHAR_ENCODING_NAME, value);
 				return FALSE;
 			}
 
@@ -3644,12 +3617,10 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 		vp->encsource = VXML_ENCSRC_DEFAULT;
 	}
 
-	nvp = nv_table_lookup(vp->attrs, "standalone");
+	value = xattr_table_lookup(vp->attrs, NULL, "standalone");
 
-	if (nvp != NULL) {
-		const char *standalone = nv_pair_value_str(nvp);
-
-		if (0 == strcasecmp("yes", standalone))
+	if (value != NULL) {
+		if (0 == strcasecmp("yes", value))
 			vp->standalone = TRUE;
 	}
 
@@ -5075,8 +5046,7 @@ vxml_handle_tag(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 
 	vp->tags++;
 	vxml_output_discard(&vp->out);
-	nv_table_free_null(&vp->attrs);
-	nv_table_free_null(&vp->ns);
+	xattr_table_free_null(&vp->attrs);
 
 	/*
 	 * If we haven't seen the leading "<?xml ...?>" and we're at the second
@@ -5578,6 +5548,11 @@ const char bad_prefix2[] = "<x:a xmlns:x='urn:x-ns'><y:b/></x:a>";
 const char bad_prefix3[] = "<x:a xmlns:x='urn:x-ns' z:foo=''></x:a>";
 const char bad_prefix4[] = "<x:a xmlns:x='urn:x-ns' x::foo=''></x:a>";
 
+const char bad_namespace1[] = "<a xmlns:x='urn:x-ns' xmlns:x='urn:y-ns'/>";
+const char bad_namespace2[] = "<a xmlns:x='urn:x-ns'><b x:a='' x:a=''/></a>";
+const char bad_namespace3[] =
+	"<a xmlns:x='urn:x-ns' xmlns:y='urn:x-ns'><b x:a='' y:a=''/></a>";
+
 static void
 vxml_run_simple_test(int num, const char *name,
 	const char *data, size_t len, guint32 flags, vxml_error_t error)
@@ -5753,7 +5728,7 @@ subparse_end(vxml_parser_t *vp, const char *name, void *data)
 
 static void
 subparse_token_start(vxml_parser_t *vp,
-	unsigned id, const nv_table_t *attrs, void *data)
+	unsigned id, const xattr_table_t *attrs, void *data)
 {
 	g_assert(NULL == attrs);
 
@@ -5825,7 +5800,7 @@ subparse_token_end(vxml_parser_t *vp, unsigned id, void *data)
 
 static void
 subparse_start(vxml_parser_t *vp,
-	const char *name, const nv_table_t *attrs, void *data)
+	const char *name, const xattr_table_t *attrs, void *data)
 {
 	vxml_error_t e;
 	struct vxml_ops ops;
@@ -5950,6 +5925,22 @@ vxml_test(void)
 	vxml_run_ns_simple_test(18, "bad_prefix4", bad_prefix4,
 		CONST_STRLEN(bad_prefix4), 0,
 		VXML_E_OK, VXML_E_BAD_CHAR_IN_NAME);
+
+	vxml_run_ns_simple_test(19, "bad_namespace1", bad_namespace1,
+		CONST_STRLEN(bad_namespace1), 0,
+		VXML_E_OK, VXML_E_NAMESPACE_REDEFINITION);
+
+	vxml_run_ns_simple_test(20, "bad_namespace2", bad_namespace2,
+		CONST_STRLEN(bad_namespace2), 0,
+		VXML_E_OK, VXML_E_OK);
+
+	vxml_run_ns_simple_test(21, "bad_namespace2", bad_namespace2,
+		CONST_STRLEN(bad_namespace2), VXML_O_NO_DUP_ATTR,
+		VXML_E_DUP_ATTRIBUTE, VXML_E_DUP_ATTRIBUTE);
+
+	vxml_run_ns_simple_test(22, "bad_namespace3", bad_namespace3,
+		CONST_STRLEN(bad_namespace3), VXML_O_NO_DUP_ATTR,
+		VXML_E_OK, VXML_E_DUP_ATTRIBUTE);
 }
 #else	/* !VXML_TESTING */
 void

@@ -37,7 +37,7 @@
 #define _vxml_h_
 
 #include "common.h"
-#include "nv.h"
+#include "xattr.h"
 
 struct vxml_parser;
 typedef struct vxml_parser vxml_parser_t;
@@ -108,7 +108,7 @@ typedef enum {
  * @param data		user-specified callback argument
  */
 typedef void (*vxml_p_element_start_cb_t)(vxml_parser_t *vp,
-	const char *name, const nv_table_t *attrs, void *data);
+	const char *name, const xattr_table_t *attrs, void *data);
 
 /**
  * Start tokenized element callback signature.
@@ -119,7 +119,7 @@ typedef void (*vxml_p_element_start_cb_t)(vxml_parser_t *vp,
  * @param data		user-specified callback argument
  */
 typedef void (*vxml_t_element_start_cb_t)(vxml_parser_t *vp,
-	unsigned id, const nv_table_t *attrs, void *data);
+	unsigned id, const xattr_table_t *attrs, void *data);
 
 /**
  * Plain element text callback signature.
