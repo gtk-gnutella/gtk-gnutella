@@ -89,3 +89,12 @@ END
 NAME [.](r00|uue)$
 ADDED 2010-10-27
 END
+
+NAME [Ww][Ww][Ww].[Ll][Ii][Mm][Ee][Ww][Ii][Rr][Ee][Ll][Aa][Ww].[Cc][Oo][Mm]$
+ADDED 2010-12-27
+END
+
+NAME for.*fans[.]mov$
+ADDED 2010-12-27
+SIZE 1000000-10000000
+END
