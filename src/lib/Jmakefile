@@ -149,6 +149,7 @@ LSRC = \
 	wd.c \
 	wordvec.c \
 	xattr.c \
+	xnode.c \
 	zalloc.c \
 	zlib_util.c
 

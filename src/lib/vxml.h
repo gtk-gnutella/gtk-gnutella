@@ -38,6 +38,7 @@
 
 #include "common.h"
 #include "xattr.h"
+#include "xnode.h"
 
 struct vxml_parser;
 typedef struct vxml_parser vxml_parser_t;
@@ -221,6 +222,7 @@ vxml_error_t vxml_parse_callbacks(vxml_parser_t *vp,
 vxml_error_t vxml_parse_callbacks_tokens(vxml_parser_t *vp,
 	const struct vxml_ops *ops,
 	struct vxml_token *tvec, size_t tlen, void *data);
+vxml_error_t vxml_parse_tree(vxml_parser_t *vp, xnode_t **root);
 
 unsigned vxml_token_lookup(const char *name,
 	const struct vxml_parser_token *tokens, size_t len);

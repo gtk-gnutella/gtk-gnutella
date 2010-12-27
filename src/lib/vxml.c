@@ -46,11 +46,13 @@ RCSID("$Id$")
 #include "halloc.h"
 #include "nv.h"
 #include "parse.h"
+#include "slist.h"
 #include "symtab.h"
 #include "unsigned.h"
 #include "utf8.h"
 #include "walloc.h"
 #include "xattr.h"
+#include "xnode.h"
 
 #include "override.h"	/* Must be the last header included */
 
@@ -4759,17 +4761,19 @@ vxml_parser_path_enter(vxml_parser_t *vp,
 }
 
 /**
- * Update element path and parser depth when we leave an element.
+ * Ensure element ending is valid.
+ *
+ * @return TRUE if the element end is expected and for the proper tag, FALSE
+ * otherwise with vp->error set.
  */
-static void
-vxml_parser_path_leave(vxml_parser_t *vp)
+static gboolean
+vxml_parser_path_proper_ending(vxml_parser_t *vp)
 {
 	struct vxml_path_entry *pe;
 
 	if (0 == vp->loc.depth) {
-		atom_str_free_null(&vp->element);
 		vxml_fatal_error(vp, VXML_E_UNEXPECTED_TAG_END);
-		return;
+		return FALSE;
 	}
 
 	g_assert(vp->element != NULL);
@@ -4781,8 +4785,8 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	vxml_path_entry_check(pe);
 
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_parser_path_leave: "
-			"leaving '%s' at depth %u (parsed \"%s\")",
+		vxml_parser_debug(vp, "vxml_parser_path_proper_ending: "
+			"would be leaving '%s' at depth %u (parsed \"%s\")",
 			pe->element, vp->loc.depth, vp->element);
 	}
 
@@ -4797,8 +4801,10 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	 * level of that element, we must find a matching closing tag ("</a>").
 	 */
 
-	if (0 != strcmp(vp->element, pe->element))
+	if (0 != strcmp(vp->element, pe->element)) {
 		vxml_fatal_error(vp, VXML_E_INVALID_TAG_NESTING);
+		return FALSE;
+	}
 
 	/*
 	 * Unless namespace support was disabled, make sure the tag namespaces
@@ -4813,13 +4819,39 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 		const char *end_uri = vxml_parser_namespace_uri(vp, vp->namespace);
 
 		if (vxml_debugging(18)) {
-			vxml_parser_debug(vp, "vxml_parser_path_leave: "
+			vxml_parser_debug(vp, "vxml_parser_path_proper_ending: "
 				"leaving namespace '%s' at depth %u (parsed \"%s\")",
 				start_uri, vp->loc.depth, end_uri);
 		}
 
-		if (0 != strcmp(start_uri, end_uri))
+		if (0 != strcmp(start_uri, end_uri)) {
 			vxml_fatal_error(vp, VXML_E_INVALID_TAG_NESTING);
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+/**
+ * Update element path and parser depth when we leave an element.
+ */
+static void
+vxml_parser_path_leave(vxml_parser_t *vp)
+{
+	struct vxml_path_entry *pe;
+
+	g_assert(vp->element != NULL);
+	g_assert(uint_is_positive(vp->loc.depth));
+	g_assert(uint_is_positive(vp->glob.depth));
+	g_assert(vp->path != NULL);
+
+	pe = vp->path->data;
+	vxml_path_entry_check(pe);
+
+	if (vxml_debugging(18)) {
+		vxml_parser_debug(vp, "vxml_parser_path_leave: "
+			"leaving '%s' at depth %u", pe->element, vp->loc.depth);
 	}
 
 	/*
@@ -4853,6 +4885,16 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 static void
 vxml_parser_end_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 {
+	/*
+	 * Before invoking user-callbacks, if any, make sure tags nest properly.
+	 *
+	 * This helps parsing callbacks because users are assurred that the ending
+	 * callbacks invocation match the starting callbacks in a LIFO order.
+	 */
+
+	if (!vxml_parser_path_proper_ending(vp))
+		return;
+
 	/*
 	 * Notify if necessary, then update the path.
 	 */
@@ -4902,6 +4944,8 @@ vxml_parser_begin_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	if (vp->elem_no_content) {
 		empty = TRUE;
 		vp->flags |= VXML_F_EMPTY_TAG;
+	} else {
+		empty = FALSE;
 	}
 
 	/*
@@ -5474,6 +5518,9 @@ vxml_parse_callbacks(vxml_parser_t *vp, const struct vxml_ops *ops, void *data)
 
 /**
  * Parse data until the end of the document, to make sure it is well-formed.
+ *
+ * @return 0 if parsing was OK, an error code otherwise.  Use the
+ * vxml_strerror() routine to get a translation into an error message.
  */
 vxml_error_t
 vxml_parse(vxml_parser_t *vp)
@@ -5487,6 +5534,231 @@ vxml_parse(vxml_parser_t *vp)
 	ctx.data = NULL;
 
 	vxml_parse_engine(vp, &ctx);
+	return vp->error;
+}
+
+enum vxml_ptree_ctx_magic { VXML_PTREE_CTX_MAGIC = 0x29c7441e };
+
+/**
+ * Context for XML parsing tree building.
+ */
+struct vxml_ptree_ctx {
+	enum vxml_ptree_ctx_magic magic;
+	slist_t *stack;			/* Element stack */
+	xnode_t *current;		/* Current element */
+};
+
+static inline void
+vxml_ptree_ctx_check(const struct vxml_ptree_ctx * const ptx)
+{
+	g_assert(ptx != NULL);
+	g_assert(VXML_PTREE_CTX_MAGIC == ptx->magic);
+}
+
+/**
+ * Create a new XML parsing tree context.
+ */
+static struct vxml_ptree_ctx *
+vxml_ptree_ctx_alloc(void)
+{
+	struct vxml_ptree_ctx *ptx;
+
+	ptx = walloc0(sizeof *ptx);
+	ptx->magic = VXML_PTREE_CTX_MAGIC;
+	ptx->stack = slist_new();
+
+	return ptx;
+}
+
+/**
+ * Wrapper to free one element in the stack.
+ */
+static void
+vxml_ptree_item_free(void *p)
+{
+	xnode_tree_free(p);
+}
+
+/**
+ * Free XML parsing tree context.
+ */
+static void
+vxml_ptree_ctx_free(struct vxml_ptree_ctx *ptx)
+{
+	vxml_ptree_ctx_check(ptx);
+
+	xnode_tree_free_null(&ptx->current);
+	slist_free_all(&ptx->stack, vxml_ptree_item_free);
+
+	ptx->magic = 0;
+	wfree(ptx, sizeof *ptx);
+}
+
+/**
+ * Entering new node, make it the new current node.
+ */
+static void
+vxml_ptree_ctx_push(struct vxml_ptree_ctx *ptx, xnode_t *xn)
+{
+	if (ptx->current != NULL)
+		slist_prepend(ptx->stack, ptx->current);
+
+	ptx->current = xn;
+}
+
+/**
+ * Leaving node, make current a child of the previous node on the stack.
+ */
+static void
+vxml_ptree_ctx_pop(struct vxml_ptree_ctx *ptx)
+{
+	xnode_t *parent;
+
+	g_assert(ptx->current != NULL);
+
+	parent = slist_shift(ptx->stack);
+
+	if (parent != NULL) {
+		xnode_add_child(parent, ptx->current);
+		ptx->current = parent;
+	}
+}
+
+/**
+ * xattr_table_foreach() callback to add property to element.
+ */
+static void
+vxml_xnode_prop_add(const char *uri, const char *local,
+	const char *value, void *data)
+{
+	xnode_t *element = data;
+
+	xnode_prop_ns_set(element, uri, local, value);
+}
+
+/**
+ * Merge properties from an XML attribute table into the element.
+ */
+static void
+vxml_xnode_prop_merge(xnode_t *element, const xattr_table_t *attrs)
+{
+	if (NULL == attrs)
+		return;
+
+	xattr_table_foreach(attrs, vxml_xnode_prop_add, element);
+}
+
+/**
+ * Parsing callback when beginning an element.
+ */
+static void
+vxml_ptree_start(vxml_parser_t *vp,
+	const char *name, const xattr_table_t *attrs, void *data)
+{
+	struct vxml_ptree_ctx *ptx = data;
+	xnode_t *xn;
+	const char *ns_uri;
+
+	vxml_ptree_ctx_check(ptx);
+
+	/*
+	 * The parser returns an empty URI string if there is no namespace,
+	 * but we have to use NULL in the tree in that case.  Note that an empty
+	 * URI is valid syntactically, i.e. it matches the URI grammar, but it
+	 * is forbidden by the XML specifications for namespaces.
+	 */
+
+	ns_uri = vxml_parser_current_namespace(vp);
+	if ('\0' == *ns_uri)
+		ns_uri = NULL;
+
+	xn = xnode_new_element(NULL, ns_uri, name);
+	vxml_xnode_prop_merge(xn, attrs);
+	vxml_ptree_ctx_push(ptx, xn);
+}
+
+/**
+ * Parsing callback for text parts.
+ *
+ * If users don't want to be bothered with blank nodes in the tree or leading
+ * and trailing blanks in the text, they can activate the VXML_O_STRIP_BLANKS
+ * parsing option.
+ */
+static void
+vxml_ptree_text(vxml_parser_t *vp,
+	const char *name, const char *text, size_t len, void *data)
+{
+	struct vxml_ptree_ctx *ptx = data;
+	xnode_t *xn;
+
+	vxml_ptree_ctx_check(ptx);
+	g_assert(xnode_is_element(ptx->current));
+
+	(void) len;
+	(void) name;
+	(void) vp;
+
+	xn = xnode_new_text(NULL, text, TRUE);
+	xnode_add_child(ptx->current, xn);
+}
+
+/**
+ * Parsing callback when leaving an element.
+ */
+static void
+vxml_ptree_end(vxml_parser_t *vp, const char *name, void *data)
+{
+	struct vxml_ptree_ctx *ptx = data;
+
+	vxml_ptree_ctx_check(ptx);
+	g_assert(xnode_is_element(ptx->current));
+
+	(void) vp;
+	(void) name;
+
+	vxml_ptree_ctx_pop(ptx);
+}
+
+/**
+ * Parse data until the end of the document, building an XML tree.
+ *
+ * @param vp		the XML parser
+ * @param root		where the root of the tree is returned
+ *
+ * @return 0 if parsing was OK, an error code otherwise.  Use the
+ * vxml_strerror() routine to get a translation into an error message.
+ */
+vxml_error_t
+vxml_parse_tree(vxml_parser_t *vp, xnode_t **root)
+{
+	struct vxml_uctx ctx;
+	struct vxml_ops ops;
+	struct vxml_ptree_ctx *ptx;
+
+	vxml_parser_check(vp);
+
+	memset(&ops, 0, sizeof ops);
+	ops.plain_start = vxml_ptree_start;
+	ops.plain_end = vxml_ptree_end;
+	ops.plain_text = vxml_ptree_text;
+
+	ptx = vxml_ptree_ctx_alloc();
+
+	ctx.ops = &ops;
+	ctx.tokens = NULL;
+	ctx.data = ptx;
+
+	vxml_parse_engine(vp, &ctx);
+
+	if (VXML_E_OK == vp->error) {
+		g_assert(ptx->current != NULL);
+		g_assert(0 == slist_length(ptx->stack));
+
+		*root = ptx->current;
+		ptx->current = NULL;
+	}
+	vxml_ptree_ctx_free(ptx);
+
 	return vp->error;
 }
 
@@ -5554,6 +5826,8 @@ const char bad_namespace1[] = "<a xmlns:x='urn:x-ns' xmlns:x='urn:y-ns'/>";
 const char bad_namespace2[] = "<a xmlns:x='urn:x-ns'><b x:a='' x:a=''/></a>";
 const char bad_namespace3[] =
 	"<a xmlns:x='urn:x-ns' xmlns:y='urn:x-ns'><b x:a='' y:a=''/></a>";
+
+const char faulty[] = "<a>text<b>other text<c>x</c><d><e>text</a>";
 
 static void
 vxml_run_simple_test(int num, const char *name,
@@ -5633,6 +5907,33 @@ vxml_run_callback_test(int num, const char *name,
 	}
 	g_assert(VXML_E_OK == e);
 	vxml_parser_free(vp);
+}
+
+static xnode_t *
+vxml_run_tree_test(int num, const char *name,
+	const char *data, size_t len, guint32 flags, vxml_error_t error)
+{
+	vxml_error_t e;
+	vxml_parser_t *vp;
+	xnode_t *root;
+
+	g_assert('\0' == data[len]);	/* Given length is correct */
+
+	if (VXML_E_OK == error)
+		flags |= VXML_O_FATAL;
+
+	vp = vxml_parser_make(name, flags);
+	vxml_parser_add_input(vp, data, len);
+	e = vxml_parse_tree(vp, &root);
+	if (vxml_debugging(0)) {
+		g_info("VXML %s test #%d (tree \"%s\"): %s",
+			error == e ? "SUCCESSFUL" : "FAILED",
+			num, name, vxml_strerror(e));
+	}
+	g_assert(error == e);
+	vxml_parser_free(vp);
+
+	return VXML_E_OK == e ? root : NULL;
 }
 
 static void
@@ -5849,6 +6150,7 @@ vxml_test(void)
 		{ "p",		T_P },
 	};
 	gboolean seen_text;
+	xnode_t *root;
 
 	vxml_run_simple_test(1,
 		"simple", simple, CONST_STRLEN(simple), 0, VXML_E_OK);
@@ -5943,6 +6245,16 @@ vxml_test(void)
 	vxml_run_ns_simple_test(22, "bad_namespace3", bad_namespace3,
 		CONST_STRLEN(bad_namespace3), VXML_O_NO_DUP_ATTR,
 		VXML_E_OK, VXML_E_DUP_ATTRIBUTE);
+
+	root = vxml_run_tree_test(23,
+		"simple", simple, CONST_STRLEN(simple), 0, VXML_E_OK);
+	xnode_tree_free(root);
+
+	vxml_run_tree_test(24, "dup_attr", dup_attr,
+		CONST_STRLEN(dup_attr), VXML_O_NO_DUP_ATTR, VXML_E_DUP_ATTRIBUTE);
+
+	vxml_run_tree_test(25, "faulty", faulty,
+		CONST_STRLEN(faulty), 0, VXML_E_INVALID_TAG_NESTING);
 }
 #else	/* !VXML_TESTING */
 void
