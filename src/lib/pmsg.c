@@ -649,7 +649,7 @@ pdata_unref(pdata_t *db)
  * It should be freed via hfree().
  *
  * NOTE: The iovec will hold no more than MAX_IOV_COUNT items. That means
- *       the iovec might not cover the whole buffered data. This limited
+ *       the iovec might not cover the whole buffered data. This limit
  *		 is applied because writev() could fail with EINVAL otherwise
  *		 which would simply add more unnecessary complexity.
  */
