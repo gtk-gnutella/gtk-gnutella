@@ -1561,8 +1561,10 @@ vxml_read_char(vxml_parser_t *vp, guint32 *uc)
 	struct vxml_buffer *vb;
 	guint retlen;
 
-	if (vp->flags & VXML_F_FATAL_ERROR)
+	if (vp->flags & VXML_F_FATAL_ERROR) {
+		*uc = 0;
 		return 0;
+	}
 
 	/*
 	 * If we have unread characters pending, serve them in a LIFO manner.
