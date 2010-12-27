@@ -51,6 +51,7 @@ RCSID("$Id$")
 #include "offtime.h"
 #include "timestamp.h"
 #include "tm.h"
+#include "unsigned.h"			/* For size_is_positive() */
 #include "crash.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -162,7 +163,7 @@ crash_time(char *buf, size_t buflen)
 }
 
 static void
-crash_message(const char *reason)
+crash_message(const char *signame)
 {
 	iovec_t iov[8];
 	unsigned iov_cnt = 0;
@@ -175,7 +176,7 @@ crash_message(const char *reason)
 	print_str(" CRASH (pid=");		/* 1 */
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
 	print_str(") by ");				/* 3 */
-	print_str(reason);				/* 4 */
+	print_str(signame);				/* 4 */
 	if (vars.pathname) {
 		print_str(" -- calling ");	/* 5 */
 		print_str(vars.pathname);	/* 6 */
@@ -236,19 +237,61 @@ crash_exec(const char *pathname, const char *argv0)
 #endif
 }
 
+static const char SIGNAL_NUM[] = "signal #";
+
+/**
+ * Converts signal number to a name.
+ *
+ * @return signal name, either in symbolic form (e.g. "SIGSEGV") or as
+ * a numeric value (e.g. "signal #11") if no symbolic form is known.
+ */
+const char *
+crash_signame(int signo)
+{
+	static char sig_buf[32];
+	unsigned i;
+	char *start;
+	size_t offset;
+
+	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+		if (signals[i].signo == signo)
+			return signals[i].name;
+	}
+
+	/*
+	 * print_number() works backwards within the supplied buffer, so we
+	 * need to construct the final string accordingly.
+	 */
+
+	start = deconstify_char(print_number(sig_buf, sizeof sig_buf, signo));
+	offset = start - sig_buf;
+
+	g_assert(size_is_positive(offset));
+	g_assert(offset > CONST_STRLEN(SIGNAL_NUM));
+
+	/*
+	 * Prepend constant SIGNAL_NUM string right before the number, without
+	 * the trailing NUL (hence the use of memcpy).
+	 */
+
+	memcpy(start - CONST_STRLEN(SIGNAL_NUM),
+		SIGNAL_NUM, CONST_STRLEN(SIGNAL_NUM));
+
+	return start - CONST_STRLEN(SIGNAL_NUM);
+}
+
 static void
 crash_handler(int signo)
 {
-	const char *name = NULL;
+	const char *name;
 	unsigned i;
 
 	(void) signo;
 
+	name = crash_signame(signo);
+
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		set_signal(signals[i].signo, SIG_DFL);
-		if (signals[i].signo == signo) {
-			name = signals[i].name;
-		}
 	}
 	crash_message(name);
 	if (vars.pathname) {

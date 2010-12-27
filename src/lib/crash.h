@@ -102,6 +102,7 @@ print_number(char *dst, size_t size, unsigned long value)
 
 void crash_init(const char *pathname, const char *argv0, int pause_process);
 void crash_time(char *buf, size_t buflen);
+const char *crash_signame(int signo);
 
 #endif	/* _crash_h_ */
 /* vi: set ts=4 sw=4 cindent: */
