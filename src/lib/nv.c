@@ -32,6 +32,19 @@
  * The name is necessary a string.
  * The value is an arbitrary data buffer.
  *
+ * All names are stored as atoms, which means they are always copied.
+ *
+ * Values may be copied or not.  When they are copied, they are freed when
+ * the name / value pair is freed.  A value can be NULL, in which case its
+ * length must be 0.
+ *
+ * Name / Value pairs can be stored in tables indexed by name.  Tables can be
+ * ordered (keeping track of the insertion so that further iterations be done
+ * in that order) or un-ordered.
+ *
+ * Note that entries in the table are pairs, so it is always possible to check
+ * for the existence of a name, even if the associated value is NULL.
+ *
  * @author Raphael Manfredi
  * @date 2010
  */
