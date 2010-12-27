@@ -605,7 +605,7 @@ update_poll_event(struct poll_ctx *ctx, int fd,
 
 	g_assert(rl->poll_idx < ctx->num_poll_idx);
 	pfd = &ctx->ev_arr.ev[rl->poll_idx];
-	g_assert(UNSIGNED(pfd->fd) == UNSIGNED(fd));
+	g_assert(cast_to_fd(pfd->fd) == fd);
 
 	if (old != cur) {
 		pfd->revents = 0;
@@ -856,7 +856,6 @@ inputevt_purge_removed(struct poll_ctx *poll_ctx)
 
 		fd = relay->fd;
 		g_assert(fd >= 0);
-		memset(relay, 'X', sizeof *relay);
 		wfree(relay, sizeof *relay);
 		poll_ctx->relay[id] = NULL;
 		
@@ -869,7 +868,6 @@ inputevt_purge_removed(struct poll_ctx *poll_ctx)
 			g_assert(0 == rl->readers && 0 == rl->writers);
 			inputevt_poll_idx_free(poll_ctx, rl->poll_idx);
 			rl->poll_idx = -1;
-			memset(rl, 'X', sizeof *rl);
 			wfree(rl, sizeof *rl);
 			g_hash_table_remove(poll_ctx->ht, GINT_TO_POINTER(fd));
 		}
@@ -1056,7 +1054,6 @@ inputevt_remove(guint id)
 				g_assert(0 == rl->readers && 0 == rl->writers);
 				inputevt_poll_idx_free(poll_ctx, rl->poll_idx);
 				rl->poll_idx = -1;
-				memset(rl, 'X', sizeof *rl);
 				wfree(rl, sizeof *rl);
 				g_hash_table_remove(poll_ctx->ht, GINT_TO_POINTER(fd));
 			}
