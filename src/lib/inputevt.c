@@ -262,7 +262,7 @@ inputevt_poll_idx_new(struct poll_ctx *ctx, int fd)
 
 		g_assert(idx < ctx->num_ev);
 		pfd = &ctx->ev_arr.ev[idx];
-		g_assert(-1 == pfd->fd);
+		g_assert(-1 == cast_to_fd(pfd->fd));
 		pfd->fd = fd;
 		pfd->revents = 0;
 		pfd->events = 0;
@@ -286,7 +286,7 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned idx)
 
 		g_assert(idx < ctx->num_ev);
 		pfd = &ctx->ev_arr.ev[idx];
-		g_assert(-1 != pfd->fd);
+		g_assert(is_valid_fd(pfd->fd));
 		pfd->fd = -1;
 		pfd->revents = 0;
 		pfd->events = 0;
