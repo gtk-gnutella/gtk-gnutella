@@ -718,7 +718,6 @@ h_strdup_vprintf(const char *format, va_list ap)
 
 	buf = halloc(size);
 	ret = vsnprintf(buf, size, format, ap);
-	va_end(ap);
 
 	g_assert(UNSIGNED(ret) == size - 1);
 
