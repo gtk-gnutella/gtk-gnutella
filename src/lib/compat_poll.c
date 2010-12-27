@@ -93,12 +93,7 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 
 		safety_assert(!is_valid_fd(fd) || is_a_socket(fd) || is_a_fifo(fd));
 
-#ifdef MINGW32
-		if (!is_a_socket(fd))
-#else
-		if (!is_valid_fd(fd) || fd >= FD_SETSIZE || i >= FD_SETSIZE)
-#endif
-		{
+		if (!is_valid_fd(fd) || fd >= FD_SETSIZE || i >= FD_SETSIZE) {
 			fds[i].revents = POLLERR;
 			continue;
 		}
