@@ -265,9 +265,9 @@ magnet_parse_location(const char *uri, const char **error_str)
 		return NULL;
 
 	if (host) {
-		char *h = g_strndup(host, host_end - host);
+		char *h = h_strndup(host, host_end - host);
 		ms->hostname = atom_str_get(h);
-		G_FREE_NULL(h);
+		HFREE_NULL(h);
 	}
 
 	ms->addr = addr;
@@ -655,7 +655,7 @@ magnet_parse(const char *url, const char **error_str)
 			size_t value_len;
 
 			value_len = endptr - p;
-			value = g_strndup(p, value_len);
+			value = h_strndup(p, value_len);
 
 			plus_to_space(value);
 			if (url_unescape(value, TRUE)) {
@@ -663,7 +663,7 @@ magnet_parse(const char *url, const char **error_str)
 			} else {
 				g_message("badly encoded value in MAGNET URI: \"%s\"", value);
 			}
-			G_FREE_NULL(value);
+			HFREE_NULL(value);
 		}
 
 		while ('&' == endptr[0]) {
