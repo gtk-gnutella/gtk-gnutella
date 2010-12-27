@@ -776,9 +776,13 @@ connect_http(struct gnutella_socket *s)
 			guint i;
 
 			for (i = 0; i < G_N_ELEMENTS(iov); i++) {
+				size_t n;
+
 				iovec_set_base(&iov[i], deconstify_gchar(
 									parts[i].s ? parts[i].s : host_port));
-				size += iovec_set_len(&iov[i],strlen(iovec_base(&iov[i])));
+				n = strlen(iovec_base(&iov[i]));
+				iovec_set_len(&iov[i], n);
+				size += n;
 			}
 
 			ret = s_writev(s->file_desc, iov, G_N_ELEMENTS(iov));

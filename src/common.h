@@ -123,10 +123,29 @@ struct flock
 #include <sys/wait.h>
 #include <netinet/tcp.h>
 
-#define iovec_base(iov) ((iov)->iov_base)
-#define iovec_set_base(iov, base) ((iov)->iov_base = base)
-#define iovec_len(iov) ((iov)->iov_len)
-#define iovec_set_len(iov, len) ((iov)->iov_len = len)
+static inline void *
+iovec_base(const struct iovec *iov)
+{
+	return iov->iov_base;
+}
+
+static inline void
+iovec_set_base(struct iovec *iov, void *base)
+{
+	iov->iov_base = base;
+}
+
+static inline size_t
+iovec_len(const struct iovec *iov)
+{
+	return iov->iov_len;
+}
+
+static inline void
+iovec_set_len(struct iovec *iov, size_t len)
+{
+	iov->iov_len = len;
+}
 
 #endif /* MINGW32 */
 

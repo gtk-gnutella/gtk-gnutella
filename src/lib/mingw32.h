@@ -212,24 +212,28 @@ struct utsname {
 	char machine[UTSNAME_LENGTH];
 };
 
-static inline char *
-iovec_base(const iovec_t* iovec) {
+static inline void *
+iovec_base(const iovec_t* iovec)
+{
 	return iovec->buf;
 }
 
 static inline size_t
-iovec_len(const iovec_t* iovec) {
+iovec_len(const iovec_t* iovec)
+{
 	return iovec->len;
 }
 
-static inline char *
-iovec_set_base(iovec_t* iovec, char *base) {
-	return iovec->buf = base;
+static inline void
+iovec_set_base(iovec_t* iovec, void *base)
+{
+	iovec->buf = base;
 }
 
-static inline size_t
-iovec_set_len(iovec_t* iovec, size_t len) {
-	return iovec->len = len;
+static inline void
+iovec_set_len(iovec_t* iovec, size_t len)
+{
+	iovec->len = len;
 }
 
 int mingw_fcntl(int fd, int cmd, ... /* arg */ );
