@@ -108,6 +108,7 @@ void lru_init(DBM *db)
 	struct lru_cache *cache;
 
 	g_assert(NULL == db->cache);
+	g_assert(-1 == db->pagbno);		/* We must be called before first access */
 
 	cache = walloc0(sizeof *cache);
 	if (-1 == setup_cache(cache, LRU_PAGES, FALSE))
@@ -472,14 +473,14 @@ char *
 lru_cached_page(DBM *db, long num)
 {
 	struct lru_cache *cache = db->cache;
-	void *key, *value;
+	void *value;
 
 	g_assert(num >= 0);
 
 	if (
 		cache != NULL &&
 		g_hash_table_lookup_extended(cache->pagnum,
-			ulong_to_pointer(num), &key, &value)
+			ulong_to_pointer(num), NULL, &value)
 	) {
 		long idx = pointer_to_int(value);
 
@@ -528,7 +529,7 @@ gboolean
 readbuf(DBM *db, long num, gboolean *loaded)
 {
 	struct lru_cache *cache = db->cache;
-	void *key, *value;
+	void *value;
 	long idx;
 	gboolean good_page = TRUE;
 
@@ -536,7 +537,7 @@ readbuf(DBM *db, long num, gboolean *loaded)
 
 	if (
 		g_hash_table_lookup_extended(cache->pagnum,
-			ulong_to_pointer(num), &key, &value)
+			ulong_to_pointer(num), NULL, &value)
 	) {
 		hash_list_moveto_head(cache->used, value);
 		idx = pointer_to_int(value);
@@ -567,11 +568,87 @@ gboolean
 cachepag(DBM *db, char *pag, long num)
 {
 	struct lru_cache *cache = db->cache;
+	void *value;
 
 	g_assert(num >= 0);
-	g_assert(!gm_hash_table_contains(cache->pagnum, ulong_to_pointer(num)));
 
-	if (cache->write_deferred) {
+	/*
+	 * Coming from makroom() where we allocated a new page, starting at "pag".
+	 *
+	 * Normally the page should not be cached, but it is possible we iterated
+	 * over the hash table and traversed the page on disk as a hole, and cached
+	 * it during the process.  If present, it must be clean and should hold
+	 * no data (otherwise the bitmap forest in the .dir file is corrupted).
+	 *
+	 * Otherwise, we cache the new page and hold it there if we we can defer
+	 * writes, or flush it to disk immediately (without caching it).
+	 */
+
+	if (
+		g_hash_table_lookup_extended(cache->pagnum,
+			ulong_to_pointer(num), NULL, &value)
+	) {
+		long idx;
+		unsigned short *ino;
+		unsigned weird = 0;
+		char *cpag;
+
+		/*
+		 * Do not move the page to the head of the cache list.
+		 *
+		 * This page should not have been cached (it wass supposed to be a
+		 * hole up to now) and its being cached now does not constitute usage.
+		 */
+
+		idx = pointer_to_int(value);
+		g_assert(idx >= 0 && idx < cache->pages);
+		g_assert(cache->numpag[idx] == num);
+
+		/*
+		 * Not a read hit since we're about to supersede the data
+		 */
+
+		cpag = cache->arena + OFF_PAG(idx);
+		ino = (unsigned short *) cpag;
+
+		if (ino[0] != 0) {
+			weird++;
+			g_warning("sdbm: \"%s\": new page #%ld was cached but not empty",
+				db->name, num);
+		}
+		if (cache->dirty[idx]) {
+			weird++;
+			g_warning("sdbm: \"%s\": new page #%ld was cached and not clean",
+				db->name, num);
+		}
+		if (weird > 0) {
+			g_warning("sdbm: \"%s\": previous warning%s indicate possible "
+				"corruption in the bitmap forest",
+				db->name, 1 == weird ? "" : "s");
+		}
+
+		/*
+		 * Supersede cached page with new page created by makroom().
+		 */
+
+		memmove(cpag, pag, DBM_PBLKSIZ);
+
+		if (cache->write_deferred) {
+			cache->dirty[idx] = TRUE;
+			return TRUE;
+		} else {
+			if (flushpag(db, pag, num)) {
+				cache->dirty[idx] = FALSE;
+				return TRUE;
+			} else {
+				cache->dirty[idx] = TRUE;
+				return FALSE;
+			}
+		}
+
+		g_assert_not_reached();
+
+	} else if (cache->write_deferred) {
 		long idx;
 		char *cpag;
 

@@ -347,15 +347,13 @@ fetch_pagbuf(DBM *db, long pagnum)
 
 #ifdef LRU
 	/* Initialize LRU cache on the first page requested */
-	if (NULL == db->cache) {
-		g_assert(-1 == db->pagbno);
+	if (G_UNLIKELY(NULL == db->cache)) {
 		lru_init(db);
 	}
 #endif
 
 	/*
 	 * See if the block we need is already in memory.
-	 * note: this lookaside cache has about 10% hit rate.
 	 */
 
 	if (pagnum != db->pagbno) {
@@ -379,6 +377,10 @@ fetch_pagbuf(DBM *db, long pagnum)
 
 		/*
 		 * Note: here we assume a "hole" is read as 0s.
+		 *
+		 * On DOS / Windows machines, we explicitly write 0s at the end of
+		 * the file each time we extend it past the old tail, so there are
+		 * no holes on these systems.  See makroom().
 		 */
 
 		db->pagread++;
