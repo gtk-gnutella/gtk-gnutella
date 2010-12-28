@@ -587,7 +587,7 @@ program_path_allocate(const char *argv0)
 	 */
 
 	{
-		const char meta[] = "$&`:;()<>|";
+		const char meta[] = "$&`;()<>|";
 		const char *p = file;
 		int c;
 
