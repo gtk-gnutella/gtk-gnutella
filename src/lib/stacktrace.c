@@ -433,6 +433,15 @@ trace_atom(struct nm_parser *ctx, const char *name)
 {
 	const char *result;
 
+#ifdef MINGW32
+	/*
+	 * On Windows, there is an obnoxious '_' prepended to all routine names.
+	 */
+
+	if ('_' == *name)
+		name++;
+#endif
+
 	result = hash_table_lookup(ctx->atoms, name);
 
 	if (NULL == result) {
@@ -822,8 +831,6 @@ stack_reached_main(const char *where)
 	 * Stop as soon as we reach main() before backtracing into libc
 	 */
 
-	if ('_' == *where)					/* HACK ALERT: handle "_main()" */
-		where++;
 	return is_strprefix(where, "main+") != NULL;	/* HACK ALERT */
 }
 
