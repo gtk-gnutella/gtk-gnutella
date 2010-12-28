@@ -6150,7 +6150,7 @@ vxml_test(void)
 		{ "p",		T_P },
 	};
 	gboolean seen_text;
-	xnode_t *root;
+	xnode_t *root, *xn;
 
 	vxml_run_simple_test(1,
 		"simple", simple, CONST_STRLEN(simple), 0, VXML_E_OK);
@@ -6255,6 +6255,41 @@ vxml_test(void)
 
 	vxml_run_tree_test(25, "faulty", faulty,
 		CONST_STRLEN(faulty), 0, VXML_E_INVALID_TAG_NESTING);
+
+	root = vxml_run_tree_test(26,
+		"subparse", subparse, CONST_STRLEN(subparse), 0, VXML_E_OK);
+
+	/*
+	 * We parsed: "<a><b>text-b<c/><d>text-d</d>text2-b</b>text-a</a>"
+	 */
+
+	g_assert(0 == strcmp("a", xnode_element_name(root)));
+
+	xn = xnode_first_child(root);
+	g_assert(xn != NULL);
+	g_assert(root == xnode_parent(xn));
+	g_assert(0 == strcmp("b", xnode_element_name(xn)));
+
+	xn = xnode_first_child(xn);
+	g_assert(xnode_is_text(xn));
+	g_assert(0 == strcmp("text-b", xnode_text(xn)));
+
+	xn = xnode_next_sibling(xn);
+	g_assert(xnode_is_element(xn));
+	g_assert(0 == strcmp("c", xnode_element_name(xn)));
+	g_assert(NULL == xnode_first_child(xn));
+
+	xn = xnode_next_sibling(xn);
+	g_assert(xnode_is_element(xn));
+	g_assert(0 == strcmp("d", xnode_element_name(xn)));
+
+	xn = xnode_next_sibling(xn);
+	g_assert(xnode_is_text(xn));
+	g_assert(0 == strcmp("text2-b", xnode_text(xn)));
+
+	g_assert(NULL == xnode_next_sibling(xn));
+
+	xnode_tree_free(root);
 }
 #else	/* !VXML_TESTING */
 void
