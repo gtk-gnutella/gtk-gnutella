@@ -132,6 +132,12 @@ void gm_savemain(int argc, char **argv, char **env);
 const char *gm_getproctitle(void);
 void gm_setproctitle(const char *title);
 
+static inline gboolean
+gm_hash_table_contains(GHashTable *ht, gconstpointer key)
+{
+	return g_hash_table_lookup_extended(ht, key, NULL, NULL);
+}
+
 static inline void
 gm_hash_table_insert_const(GHashTable *ht,
 	gconstpointer key, gconstpointer value)
