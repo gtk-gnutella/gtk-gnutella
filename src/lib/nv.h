@@ -64,6 +64,7 @@ typedef void (*nv_pair_val_free_t)(void *p, size_t len);
 
 nv_pair_t *nv_pair_make(const char *name, const void *value, size_t length);
 nv_pair_t *nv_pair_make_nocopy(const char *name, const void *value, size_t len);
+nv_pair_t * nv_pair_make_static_str(const char *name, const void *value);
 const char *nv_pair_name(const nv_pair_t *nvp);
 void *nv_pair_value(const nv_pair_t *nvp);
 const char *nv_pair_value_str(const nv_pair_t *nvp);

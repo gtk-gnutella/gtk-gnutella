@@ -77,6 +77,7 @@ struct nv_pair {
 	size_t length;					/**< Length of value (0 if value is NULL) */
 	int refcnt;						/**< Reference count */
 	unsigned allocated:1;			/**< Whether data was allocated */
+	unsigned atom:1;				/**< Whether name is an atom */
 };
 
 static inline void
@@ -113,21 +114,24 @@ nv_table_check(const nv_table_t * const nvt)
 /**
  * Create a new name/value pair.
  *
- * The name string is always copied, but the value is not, unless "copy" is
- * requested.  If the value is not duplicated, it will not be freed either
- * when the name/value pair is discarded, so the data has better be statically
- * allocated or it will leak, since there is no free callback.
+ * The name string is atomized when "atom" is TRUE.
+ *
+ * The value is duplicated when "copy" is TRUE.  If the value is not duplicated,
+ * it will not be freed either when the name/value pair is discarded, so the
+ * data has better be statically allocated or it will leak, unless a free
+ * callback is attached later.
  *
  * @param name		the name
  * @param value		the value buffer (can be NULL)
  * @param length	length of value (must be zero if value is NULL)
  * @param copy		whether we should duplicate the value
+ * @param atom		whether we should copy the name as an atom
  *
  * @return the allocated name/value pair.
  */
 static nv_pair_t *
 nv_pair_make_full(const char *name, const void *value, size_t length,
-	gboolean copy)
+	gboolean copy, gboolean atom)
 {
 	nv_pair_t *nvp;
 
@@ -138,7 +142,8 @@ nv_pair_make_full(const char *name, const void *value, size_t length,
 	nvp = walloc0(sizeof *nvp);
 	nvp->magic = NV_PAIR_MAGIC;
 	nvp->refcnt = 1;
-	nvp->name = atom_str_get(name);
+	nvp->name = atom ? atom_str_get(name) : name;
+	nvp->atom = booleanize(atom);
 	if (value != NULL) {
 		nvp->value = deconstify_gpointer(copy ? hcopy(value, length) : value);
 	} else {
@@ -148,6 +153,26 @@ nv_pair_make_full(const char *name, const void *value, size_t length,
 	nvp->allocated = copy && value != NULL;
 
 	return nvp;
+}
+
+/**
+ * Create a new name/value pair (both static strings).
+ *
+ * Neither the name nor the value are copied.
+ *
+ * @param name		the name
+ * @param value		the value string (can be NULL)
+ *
+ * @return the allocated name/value pair.
+ */
+nv_pair_t *
+nv_pair_make_static_str(const char *name, const void *value)
+{
+	size_t len;
+
+	len = (NULL == value) ? 0 : strlen(value);
+
+	return nv_pair_make_full(name, value, len, FALSE, FALSE);
 }
 
 /**
@@ -168,7 +193,7 @@ nv_pair_make_full(const char *name, const void *value, size_t length,
 nv_pair_t *
 nv_pair_make_nocopy(const char *name, const void *value, size_t length)
 {
-	return nv_pair_make_full(name, value, length, FALSE);
+	return nv_pair_make_full(name, value, length, FALSE, TRUE);
 }
 
 /**
@@ -186,7 +211,7 @@ nv_pair_make_nocopy(const char *name, const void *value, size_t length)
 nv_pair_t *
 nv_pair_make(const char *name, const void *value, size_t length)
 {
-	return nv_pair_make_full(name, value, length, TRUE);
+	return nv_pair_make_full(name, value, length, TRUE, TRUE);
 }
 
 /**
@@ -299,7 +324,8 @@ nv_pair_free(nv_pair_t *nvp)
 			nvp->value = NULL;
 		}
 	}
-	atom_str_free_null(&nvp->name);
+	if (nvp->atom)
+		atom_str_free_null(&nvp->name);
 	nvp->magic = 0;
 	wfree(nvp, sizeof *nvp);
 }
@@ -399,7 +425,7 @@ nv_table_hl_free_value(void *key, void *u_data)
 }
 
 /**
- * Free a name/value table.
+ * Free a name/value table, reclaiming all the name/value pairs held.
  */
 void
 nv_table_free(nv_table_t *nvt)
@@ -488,7 +514,9 @@ nv_table_insert(const nv_table_t *nvt,
 
 	nv_table_check(nvt);
 
-	nvp = nv_pair_make_full(name, 0 == length ? NULL : value, length, TRUE);
+	nvp = nv_pair_make_full(name, 0 == length ? NULL : value,
+		length, TRUE, TRUE);
+
 	nv_table_insert_pair(nvt, nvp);
 }
 
@@ -511,7 +539,7 @@ nv_table_insert_str(const nv_table_t *nvt, const char *name, const char *value)
 	g_assert(value != NULL);
 
 	value_len = strlen(value);
-	nvp = nv_pair_make_full(name, value, value_len + 1, TRUE);
+	nvp = nv_pair_make_full(name, value, value_len + 1, TRUE, TRUE);
 	nv_table_insert_pair(nvt, nvp);
 }
 
@@ -533,7 +561,8 @@ nv_table_insert_nocopy(const nv_table_t *nvt,
 
 	nv_table_check(nvt);
 
-	nvp = nv_pair_make_full(name, 0 == length ? NULL : value, length, FALSE);
+	nvp = nv_pair_make_full(name, 0 == length ? NULL : value,
+		length, FALSE, TRUE);
 	nv_table_insert_pair(nvt, nvp);
 }
 
