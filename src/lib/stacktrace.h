@@ -73,6 +73,7 @@ void stacktrace_where_print(FILE *f);
 void stacktrace_where_print_offset(FILE *f, size_t offset);
 void stacktrace_where_safe_print_offset(int fd, size_t offset);
 void stacktrace_where_cautious_print_offset(int fd, size_t offset);
+gboolean stacktrace_cautious_was_logged(void);
 
 struct stackatom *stacktrace_get_atom(const struct stacktrace *st);
 

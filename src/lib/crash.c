@@ -52,9 +52,10 @@ RCSID("$Id$")
 #include "timestamp.h"
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
+#include "stacktrace.h"
 #include "crash.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "override.h"			/* Must be the last header included */
 
 static time_delta_t crash_gmtoff;	/**< Offset to GMT, supposed to be fixed */
 
@@ -163,9 +164,30 @@ crash_time(char *buf, size_t buflen)
 }
 
 static void
-crash_message(const char *signame)
+crash_message(const char *signame, gboolean trace)
 {
-	iovec_t iov[8];
+	iovec_t iov[7];
+	unsigned iov_cnt = 0;
+	char pid_buf[22];
+	char time_buf[18];
+
+	crash_time(time_buf, sizeof time_buf);
+
+	print_str(time_buf);				/* 0 */
+	print_str(" CRASH (pid=");			/* 1 */
+	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(") by ");					/* 3 */
+	print_str(signame);					/* 4 */
+	if (trace)
+		print_str(" -- stack was:");	/* 5 */
+	print_str("\n");					/* 6, at most */
+	IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+}
+
+static void
+crash_end_of_line(void)
+{
+	iovec_t iov[7];
 	unsigned iov_cnt = 0;
 	char pid_buf[22];
 	char time_buf[18];
@@ -175,15 +197,16 @@ crash_message(const char *signame)
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
-	print_str(") by ");				/* 3 */
-	print_str(signame);				/* 4 */
+	print_str(") end of line");		/* 3 */
 	if (vars.pathname) {
-		print_str(" -- calling ");	/* 5 */
-		print_str(vars.pathname);	/* 6 */
+		print_str(" -- calling ");	/* 4 */
+		print_str(vars.pathname);	/* 5 */
 	} else if (vars.pause_process) {
-		print_str(" -- pausing");	/* 5 */
+		print_str(" -- pausing");	/* 4 */
+	} else {
+		print_str(".");				/* 4 */
 	}
-	print_str("\n");				/* 7, at most */
+	print_str("\n");				/* 6, at most */
 	IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 }
 
@@ -285,22 +308,28 @@ crash_handler(int signo)
 {
 	const char *name;
 	unsigned i;
+	gboolean trace;
 
 	(void) signo;
 
 	name = crash_signame(signo);
+	trace = !stacktrace_cautious_was_logged();
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		set_signal(signals[i].signo, SIG_DFL);
 	}
-	crash_message(name);
+	crash_message(name, trace);
+	if (trace) {
+		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
+	}
+	crash_end_of_line();
 	if (vars.pathname) {
 		crash_exec(vars.pathname, vars.argv0);
 	}
 	if (vars.pause_process) {
 		sigset_t oset;
 
-		#ifndef MINGW32
+#ifndef MINGW32
 		if (sigprocmask(SIG_BLOCK, NULL, &oset) != -1) {
 			sigsuspend(&oset);
 		}

@@ -903,10 +903,24 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
 	stack_safe_print(fd, stack, count);
 }
 
+/**
+ * Context for cautious stack printing, used in desperate situations
+ * when we're about to crash anyway.
+ */
 static struct {
 	int fd;
 	Sigjmp_buf env;
+	gboolean done;
 } print_context;
+
+/*
+ * Was a cautious stacktrace already logged?
+ */
+gboolean
+stacktrace_cautious_was_logged(void)
+{
+	return print_context.done;
+}
 
 /**
  * Invoked when a fatal signal is received during stack unwinding.
@@ -986,6 +1000,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 	}
 
 	stacktrace_where_safe_print_offset(fd, offset);
+	print_context.done = TRUE;
 
 restore:
 	printing = FALSE;
