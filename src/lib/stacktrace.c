@@ -489,6 +489,45 @@ load_symbols(const char *path)
 	FILE *f;
 	struct nm_parser nm_ctx;
 
+#ifdef MINGW32
+	/*
+	 * Open the "gtk-gnutella.nm" file nearby the executable.
+	 */
+
+	{
+		const char *nm;
+		struct stat ebuf, nbuf;
+
+		nm = mingw_filename_nearby("gtk-gnutella.nm");
+
+		if (-1 == stat(nm, &nbuf)) {
+			s_warning("can't stat \"%s\": %s", nm, g_strerror(errno));
+			goto done;
+		}
+
+		if (-1 == stat(path, &ebuf)) {
+			s_warning("can't stat \"%s\": %s", path, g_strerror(errno));
+			goto done;
+		}
+
+		if (delta_time(ebuf.st_mtime, nbuf.st_mtime) > 0) {
+			s_warning("executable \"%s\" more recent than symbol file \"%s\"",
+				path, nm);
+			goto done;
+		}
+
+		f = fopen(nm, "rb");
+
+		if (NULL == f) {
+			s_warning("can't open \"%s\": %s", nm, g_strerror(errno));
+			goto done;
+		}
+	}
+#else	/* !MINGW32 */
+	/*
+	 * Launch "nm -p" on our executable to grab the symbols.
+	 */
+
 	rw = gm_snprintf(tmp, sizeof tmp, "nm -p %s", path);
 	if (rw != strlen(path) + CONST_STRLEN("nm -p ")) {
 		s_warning("full path \"%s\" too long, cannot load symbols", path);
@@ -501,6 +540,7 @@ load_symbols(const char *path)
 		s_warning("can't run \"%s\": %s", tmp, g_strerror(errno));
 		goto done;
 	}
+#endif	/* MINGW32 */
 
 	nm_ctx.atoms = hash_table_new_full_real(str_hash, g_str_equal);
 
@@ -508,7 +548,12 @@ load_symbols(const char *path)
 		parse_nm(&nm_ctx, tmp);
 	}
 
+#ifdef MINGW32
+	fclose(f);
+#else
 	pclose(f);
+#endif
+
 	hash_table_destroy_real(nm_ctx.atoms);
 
 done:
