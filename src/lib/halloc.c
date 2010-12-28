@@ -725,6 +725,33 @@ h_strdup_vprintf(const char *format, va_list ap)
 }
 
 /**
+ * Like h_strdup_vprintf() but returns the length of the generated string.
+ * The resulting string must be freed by hfree().
+ */
+char *
+h_strdup_len_vprintf(const char *format, va_list ap, size_t *len)
+{
+	va_list ap2;
+	char *buf;
+	size_t size;
+	int ret;
+
+	VA_COPY(ap2, ap);
+	size = vprintf_get_size(format, ap2);
+	va_end(ap2);
+
+	buf = halloc(size);
+	ret = vsnprintf(buf, size, format, ap);
+
+	g_assert(UNSIGNED(ret) == size - 1);
+
+	if (len != NULL)
+		*len = UNSIGNED(ret);
+
+	return buf;
+}
+
+/**
  * A clone of g_strdup_printf(), using halloc().
  * The resulting string must be freed by hfree().
  */

@@ -189,6 +189,8 @@
 
 #define h_strdup_vprintf(fmt, ap) \
 	strdup_vprintf_track(_WHERE_, __LINE__, (fmt), ap)
+#define h_strdup_len_vprintf(fmt, ap, len) \
+	strdup_len_vprintf_track(_WHERE_, __LINE__, (fmt), ap, len)
 #define h_strdup_printf(fmt, ...) \
 	strdup_printf_track(_WHERE_, __LINE__, (fmt), __VA_ARGS__)
 
@@ -253,6 +255,8 @@ char *strjoinv_track(const char *s, char **vec, const char *file, int line);
 char *strconcat_track(const char *file, int line, const char *s, ...);
 char *strdup_vprintf_track(const char *file, int line,
 	const char *fmt, va_list ap);
+char *strdup_len_vprintf_track(const char *file, int line,
+	const char *fmt, va_list ap, size_t *len);
 char *strdup_printf_track(const char *file, int line, const char *fmt, ...)
 	G_GNUC_PRINTF(3, 4);
 char **strsplit_track(

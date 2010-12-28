@@ -84,6 +84,7 @@ char *h_strconcat(const char *str1, ...) WARN_UNUSED_RESULT G_GNUC_MALLOC
 	G_GNUC_NULL_TERMINATED;
 char *h_strdup_printf(const char *format, ...) G_GNUC_PRINTF(1, 2);
 char *h_strdup_vprintf(const char *format, va_list ap);
+char *h_strdup_len_vprintf(const char *format, va_list ap, size_t *len);
 #endif	/* !TRACK_MALLOC */
 
 void halloc_init(gboolean replace_malloc);

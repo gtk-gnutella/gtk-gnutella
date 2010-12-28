@@ -2071,6 +2071,26 @@ strdup_vprintf_track(const char *file, int line, const char *fmt, va_list ap)
 }
 
 /**
+ * Perform printf into newly allocated string, returning length of generated
+ * string in `len'.
+ */
+char *
+strdup_len_vprintf_track(const char *file, int line,
+	const char *fmt, va_list ap, size_t *len)
+{
+	char *o;
+	size_t l;
+
+	o = g_strdup_vprintf(fmt, ap);
+	l = strlen(o);
+
+	if (len != NULL)
+		*len = l;
+
+	return malloc_record(o, l + 1, FALSE, file, line);
+}
+
+/**
  * Perform printf into newly allocated string.
  */
 char *
