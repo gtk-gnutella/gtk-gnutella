@@ -331,8 +331,9 @@ int mingw_poll(struct pollfd *fds, unsigned n, int timeout);
 void mingw_init(void);
 void mingw_close(void);
 
-#endif	/* MINGW32 */
+const char *mingw_filename_nearby(const char *file);
 
+#endif	/* MINGW32 */
 #endif /* _mingw32_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
