@@ -913,11 +913,11 @@ parq_download_parse_queue_status(struct download *d,
 
 		value = get_header_value(buf, "ID", &header_value_length);
 		if (header_value_length > 0) {
-			temp = g_strndup(value, header_value_length);
+			temp = h_strndup(value, header_value_length);
 
 			parq_dl_update_id(d, temp);
 
-			G_FREE_NULL(temp);
+			HFREE_NULL(temp);
 		}
 		break;
 	default:
