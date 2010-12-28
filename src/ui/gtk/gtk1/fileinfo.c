@@ -353,8 +353,7 @@ fi_gui_source_show(struct download *key)
 
 	clist = clist_download_sources;
 	g_return_if_fail(clist);
-	g_return_if_fail(
-		!g_hash_table_lookup_extended(fi_sources, key, NULL, NULL));
+	g_return_if_fail(!gm_hash_table_contains(fi_sources, key));
 
 	for (i = 0; i < G_N_ELEMENTS(titles); i++) {
 		titles[i] = "";

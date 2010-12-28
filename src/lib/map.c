@@ -339,7 +339,7 @@ map_contains(const map_t *m, gconstpointer key)
 
 	switch (m->type) {
 	case MAP_HASH:
-		return g_hash_table_lookup_extended(m->u.ht, key, NULL, NULL);
+		return gm_hash_table_contains(m->u.ht, key);
 	case MAP_ORDERED_HASH:
 		return ohash_table_contains(m->u.ot, key);
 	case MAP_PATRICIA:

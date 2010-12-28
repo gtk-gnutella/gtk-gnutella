@@ -90,7 +90,7 @@ gboolean
 idtable_is_id_used(const idtable_t *tbl, guint32 id)
 {
 	gpointer key = GUINT_TO_POINTER(id);
-	return g_hash_table_lookup_extended(tbl->ht, key, NULL, NULL);
+	return gm_hash_table_contains(tbl->ht, key);
 }
 
 /**

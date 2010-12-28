@@ -207,7 +207,7 @@ static void keys_periodic_kball(cqueue_t *unused_cq, gpointer unused_obj);
 gboolean
 keys_exists(const kuid_t *key)
 {
-	return g_hash_table_lookup_extended(keys, key, NULL, NULL);
+	return gm_hash_table_contains(keys, key);
 }
 
 /**

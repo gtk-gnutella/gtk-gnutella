@@ -569,7 +569,7 @@ cachepag(DBM *db, char *pag, long num)
 	struct lru_cache *cache = db->cache;
 
 	g_assert(num >= 0);
-	g_assert(!g_hash_table_lookup(cache->pagnum, ulong_to_pointer(num)));
+	g_assert(!gm_hash_table_contains(cache->pagnum, ulong_to_pointer(num)));
 
 	if (cache->write_deferred) {
 		long idx;

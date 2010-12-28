@@ -919,7 +919,7 @@ atom_exists(enum atom_type type, gconstpointer key)
 	g_assert(key != NULL);
 
 	return atom_is_registered(type, key) > 0 ||
-		g_hash_table_lookup_extended(atoms[type].table, key, NULL, NULL);
+		gm_hash_table_contains(atoms[type].table, key);
 }
 
 /**
