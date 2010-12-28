@@ -1212,7 +1212,7 @@ mingw_timer(void)
 }
 #endif /* ADNS Disabled */
 
-static const GTKG_NAME[] = "gtk-gnutella.exe";
+static const char GTKG_NAME[] = "gtk-gnutella.exe";
 
 /**
  * Build path of file located nearby our executable.
