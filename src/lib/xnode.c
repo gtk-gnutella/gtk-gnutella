@@ -197,6 +197,17 @@ xnode_is_processing_instruction(const xnode_t *xn)
 }
 
 /**
+ * @return whether node has content (children).
+ */
+gboolean
+xnode_has_content(const xnode_t *xn)
+{
+	xnode_check(xn);
+
+	return xn->first_child != NULL;
+}
+
+/**
  * @return node's text, NULL if not a text node.
  */
 const char *
@@ -210,6 +221,21 @@ xnode_text(const xnode_t *xn)
 		return xn->u.t.text;
 	else
 		return NULL;
+}
+
+/**
+ * @return whether node's text must be output verbatim (no escaping of '&'
+ * done on output because text refers to entites).
+ */
+gboolean
+xnode_text_has_entities(const xnode_t *xn)
+{
+	xnode_check(xn);
+
+	if (xn->type != XNODE_T_TEXT)
+		return FALSE;
+
+	return xn->u.t.asis;
 }
 
 /**
@@ -489,6 +515,66 @@ xnode_add_namespace(xnode_t *element, const char *prefix, const char *uri)
 }
 
 /**
+ * Get property from element node (with namespace).
+ *
+ * If there is no such property on the node, NULL is returned.
+ * The string returned must be duplicated if it is meant to be used after
+ * the node is reclaimed.
+ *
+ * @param element		the element node
+ * @param uri			the namespace URI for the property (can be NULL)
+ * @param name			the property name
+ *
+ * @return the property value, NULL if the property does not exist.
+ */
+const char *
+xnode_prop_ns_get(const xnode_t *element, const char *uri, const char *name)
+{
+	xnode_check(element);
+	g_assert(name != NULL);
+	g_assert(XNODE_T_ELEMENT == element->type);
+
+	if (NULL == element->u.e.attrs)
+		return NULL;
+
+	return xattr_table_lookup(element->u.e.attrs, uri, name);
+}
+
+/**
+ * Get property from element node (no namespace).
+ *
+ * If there is no such property on the node, NULL is returned.
+ * The string returned must be duplicated if it is meant to be used after
+ * the node is reclaimed.
+ *
+ * @param element		the element node
+ * @param name			the property name
+ *
+ * @return the property value, NULL if the property does not exist.
+ */
+const char *
+xnode_prop_get(const xnode_t *element, const char *name)
+{
+	return xnode_prop_ns_get(element, NULL, name);
+}
+
+/**
+ * Apply function to each property, in the order they were defined.
+ */
+void
+xnode_prop_foreach(const xnode_t *element, xattr_table_cb_t func, void *data)
+{
+	xnode_check(element);
+	g_assert(XNODE_T_ELEMENT == element->type);
+	g_assert(func != NULL);
+
+	if (NULL == element->u.e.attrs)
+		return;
+
+	xattr_table_foreach(element->u.e.attrs, func, data);
+}
+
+/**
  * Set property in element node (with namespace).
  *
  * If there is an existing property on the node, the previous content is
@@ -558,7 +644,7 @@ xnode_prop_ns_vprintf(xnode_t *element,
 	gboolean result;
 
 	VA_COPY(args2, args);
-	if (gm_vsnprintf(buf, sizeof buf, fmt, args2) > sizeof buf - 1) {
+	if (gm_vsnprintf(buf, sizeof buf, fmt, args2) >= sizeof buf - 1) {
 		value = h_strdup_vprintf(fmt, args);
 	} else {
 		value = buf;

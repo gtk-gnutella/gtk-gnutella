@@ -110,6 +110,7 @@ LSRC = \
 	ohash_table.c \
 	omalloc.c \
 	options.c \
+	ostream.c \
 	pagetable.c \
 	parse.c \
 	palloc.c \
@@ -149,6 +150,7 @@ LSRC = \
 	wd.c \
 	wordvec.c \
 	xattr.c \
+	xfmt.c \
 	xnode.c \
 	zalloc.c \
 	zlib_util.c

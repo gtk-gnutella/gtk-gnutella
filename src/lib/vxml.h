@@ -202,6 +202,14 @@ struct vxml_parser_token {
 };
 
 /*
+ * Public constants.
+ */
+
+extern const char VXS_XMLNS[];		/* "xmlns" */
+extern const char VXS_XML[];		/* "xml" */
+extern const char VXS_XML_URI[];	/* "http://www.w3.org/XML/1998/namespace" */
+
+/*
  * Public interface.
  */
 

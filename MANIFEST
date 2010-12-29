@@ -650,6 +650,8 @@ src/lib/omalloc.c
 src/lib/omalloc.h
 src/lib/options.c
 src/lib/options.h
+src/lib/ostream.c
+src/lib/ostream.h
 src/lib/override.h
 src/lib/pagetable.c
 src/lib/pagetable.h
@@ -733,6 +735,8 @@ src/lib/wordvec.c
 src/lib/wordvec.h
 src/lib/xattr.c
 src/lib/xattr.h
+src/lib/xfmt.c
+src/lib/xfmt.h
 src/lib/xnode.c
 src/lib/xnode.h
 src/lib/zalloc.c

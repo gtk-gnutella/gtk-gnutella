@@ -46,12 +46,14 @@ RCSID("$Id$")
 #include "halloc.h"
 #include "nv.h"
 #include "parse.h"
+#include "ostream.h"
 #include "slist.h"
 #include "symtab.h"
 #include "unsigned.h"
 #include "utf8.h"
 #include "walloc.h"
 #include "xattr.h"
+#include "xfmt.h"
 #include "xnode.h"
 
 #include "override.h"	/* Must be the last header included */
@@ -311,10 +313,11 @@ static guint32 vxml_debug;
  */
 
 static const char VXS_EMPTY[]		= "";
-static const char VXS_XMLNS[]		= "xmlns";
 static const char VXS_DEFAULT_NS[]	= ":DEFAULT";
-static const char VXS_XML[]			= "xml";
-static const char VXS_XML_URI[]		= "http://www.w3.org/XML/1998/namespace";
+
+const char VXS_XMLNS[]			= "xmlns";
+const char VXS_XML[]			= "xml";
+const char VXS_XML_URI[]		= "http://www.w3.org/XML/1998/namespace";
 
 /**
  * Default entities.
@@ -5698,7 +5701,7 @@ vxml_ptree_text(vxml_parser_t *vp,
 	(void) name;
 	(void) vp;
 
-	xn = xnode_new_text(NULL, text, TRUE);
+	xn = xnode_new_text(NULL, text, FALSE);
 	xnode_add_child(ptx->current, xn);
 }
 
@@ -5771,7 +5774,8 @@ const char simple[] =
 	"<a v='simple'>this is a <b>simple</b> valid document\n"
 	"<!-- comment -->\n"
 	"with <c x=\"a\" y='b'/> no XML declaration\n"
-	"<![CDATA[but with <x>verbatim<y>&unknown;</x>[[/]] data]]></a>";
+	"<![CDATA[but with <x>verbatim<y>&unknown;</x>[[/]] data]]><d/>\n"
+	"<e x='a &amp;&apos; \"b\"'>and &#x26;amp; &lt;non tag&gt; text</e></a>";
 
 const char bad_comment[] = "<!-- comment --->";
 
@@ -5815,7 +5819,7 @@ const char dup_attr[] = "<a dup='1' dup='2'/>";
 
 const char namespaces[] =
 	"<a xmlns=''><x:b xmlns:x='urn:x-ns' xmlns:y='urn:y-ns' x:fr='y'>\n"
-	"<y:c xmlns='urn:y-ns'><d>foo</d></c></x:b></a>";
+	"<y:c xmlns='urn:y-ns' xml:lang='fr'><d>foo</d></c></x:b></a>";
 
 const char bad_prefix1[] = "<x:a xmlns:x='urn:x-ns'><b/></z:a>";
 const char bad_prefix2[] = "<x:a xmlns:x='urn:x-ns'><y:b/></x:a>";
@@ -5909,6 +5913,30 @@ vxml_run_callback_test(int num, const char *name,
 	vxml_parser_free(vp);
 }
 
+static void
+vxml_tree_dump(const xnode_t *root, FILE *f)
+{
+	ostream_t *os = ostream_open_file(f);
+	xfmt_tree(root, os, XFMT_O_PROLOGUE | XFMT_O_SKIP_BLANKS);
+	ostream_close(os);
+}
+
+static struct xfmt_prefix vxml_xfmt_prefixes[] = {
+	{ "urn:x-ns", "x" },
+	{ "urn:y-ns", "y" },
+};
+
+static void
+vxml_tree_extended_dump(const xnode_t *root, FILE *f, const char *default_ns)
+{
+	ostream_t *os = ostream_open_file(f);
+
+	xfmt_tree_extended(root, os, XFMT_O_PROLOGUE | XFMT_O_SKIP_BLANKS,
+		vxml_xfmt_prefixes, G_N_ELEMENTS(vxml_xfmt_prefixes), default_ns);
+
+	ostream_close(os);
+}
+
 static xnode_t *
 vxml_run_tree_test(int num, const char *name,
 	const char *data, size_t len, guint32 flags, vxml_error_t error)
@@ -5932,6 +5960,11 @@ vxml_run_tree_test(int num, const char *name,
 	}
 	g_assert(error == e);
 	vxml_parser_free(vp);
+
+	if (vxml_debugging(0) && VXML_E_OK == e) {
+		g_info("VXML test #%d -- parsed tree of \"%s\":", num, name);
+		vxml_tree_dump(root, stderr);
+	}
 
 	return VXML_E_OK == e ? root : NULL;
 }
@@ -6248,6 +6281,7 @@ vxml_test(void)
 
 	root = vxml_run_tree_test(23,
 		"simple", simple, CONST_STRLEN(simple), 0, VXML_E_OK);
+
 	xnode_tree_free(root);
 
 	vxml_run_tree_test(24, "dup_attr", dup_attr,
@@ -6288,6 +6322,16 @@ vxml_test(void)
 	g_assert(0 == strcmp("text2-b", xnode_text(xn)));
 
 	g_assert(NULL == xnode_next_sibling(xn));
+
+	xnode_tree_free(root);
+
+	root = vxml_run_tree_test(27,
+		"namespaces", namespaces, CONST_STRLEN(namespaces), 0, VXML_E_OK);
+
+	if (vxml_debugging(0)) {
+		g_debug("VXML extended tree dump with default namespace:");
+		vxml_tree_extended_dump(root, stderr, "urn:x-ns");
+	}
 
 	xnode_tree_free(root);
 }

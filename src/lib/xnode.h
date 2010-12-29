@@ -37,6 +37,7 @@
 #define _xnode_h_
 
 #include "common.h"
+#include "xattr.h"
 
 /**
  * XML node types.
@@ -76,6 +77,9 @@ gboolean xnode_is_text(const xnode_t *xn);
 gboolean xnode_is_comment(const xnode_t *xn);
 gboolean xnode_is_element(const xnode_t *xn);
 gboolean xnode_is_processing_instruction(const xnode_t *xn);
+gboolean xnode_has_content(const xnode_t *xn);
+gboolean xnode_text_has_entities(const xnode_t *xn);
+
 const char *xnode_text(const xnode_t *xn);
 const char *xnode_element_name(const xnode_t *xn);
 const char *xnode_element_ns(const xnode_t *xn);
@@ -91,6 +95,10 @@ void xnode_add_first_child(xnode_t *parent, xnode_t *node);
 void xnode_add_sibling(xnode_t *previous, xnode_t *node);
 
 void xnode_add_namespace(xnode_t *e, const char *prefix, const char *uri);
+
+const char *xnode_prop_ns_get(const xnode_t *, const char *u, const char *n);
+const char *xnode_prop_get(const xnode_t *, const char *n);
+void xnode_prop_foreach(const xnode_t *, xattr_table_cb_t func, void *data);
 
 gboolean xnode_prop_ns_set(xnode_t *element,
 	const char *uri, const char *name, const char *value);
