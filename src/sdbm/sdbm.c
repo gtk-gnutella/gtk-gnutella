@@ -747,7 +747,7 @@ makroom(DBM *db, long int hash, size_t need)
 		 * new split page...  A problem, unless the database is volatile.
 		 */
 
-#if defined(DOSISH) || defined(WIN32)
+#ifdef DOSISH		/* DOS-behaviour -- filesystem holes not supported */
 		{
 			static const char zer[DBM_PBLKSIZ];
 			long oldtail;
@@ -766,7 +766,7 @@ makroom(DBM *db, long int hash, size_t need)
 				oldtail += DBM_PBLKSIZ;
 			}
 		}
-#endif	/* DOSISH || WIN32 */
+#endif	/* DOSISH */
 
 		if (hash & (db->hmask + 1)) {
 			/*

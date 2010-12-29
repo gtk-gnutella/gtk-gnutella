@@ -24,9 +24,3 @@
 #define debug(x)
 #endif
 
-/*
- * Compiling for Windows...
- */
-#ifdef MINGW32
-#define DOSISH
-#endif
