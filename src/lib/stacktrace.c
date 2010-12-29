@@ -1051,7 +1051,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 		goto restore;
 	}
 
-	stacktrace_where_safe_print_offset(fd, offset);
+	stacktrace_where_safe_print_offset(fd, offset + 1);
 	print_context.done = TRUE;
 
 restore:
