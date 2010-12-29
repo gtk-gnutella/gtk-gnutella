@@ -635,19 +635,10 @@ cachepag(DBM *db, char *pag, long num)
 
 		if (cache->write_deferred) {
 			cache->dirty[idx] = TRUE;
-			return TRUE;
 		} else {
-			if (flushpag(db, pag, num)) {
-				cache->dirty[idx] = FALSE;
-				return TRUE;
-			} else {
-				cache->dirty[idx] = TRUE;
-				return FALSE;
-			}
+			cache->dirty[idx] = !flushpag(db, pag, num);
 		}
-
-		g_assert_not_reached();
-
+		return TRUE;
 	} else if (cache->write_deferred) {
 		long idx;
 		char *cpag;
