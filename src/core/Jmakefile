@@ -92,6 +92,7 @@ SRC = \
 	search.c \
 	settings.c \
 	share.c \
+	soap.c \
 	sockets.c \
 	spam.c \
 	spam_sha1.c \

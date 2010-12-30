@@ -360,6 +360,8 @@ src/core/settings.c
 src/core/settings.h
 src/core/share.c
 src/core/share.h
+src/core/soap.c
+src/core/soap.h
 src/core/sockets.c
 src/core/sockets.h
 src/core/spam.c
