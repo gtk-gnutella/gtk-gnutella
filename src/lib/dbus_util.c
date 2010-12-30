@@ -43,6 +43,7 @@
 RCSID("$Id$")
 
 #include "dbus_util.h"
+#include "misc.h"			/* For str_chomp() */
 
 #ifdef HAS_DBUS
 
@@ -69,6 +70,7 @@ dbus_util_init(void)
 	bus = dbus_bus_get(DBUS_BUS_SESSION, &error);
 
 	if (NULL == bus) {
+		str_chomp(error.message, 0);
 		g_message("could not open connection to DBus bus: %s", error.message);
 		dbus_error_free(&error);
 	} else {
