@@ -91,7 +91,7 @@ struct xfmt_pass2 {
 };
 
 static const char XFMT_DECL[]		= "<?xml version='1.1' standalone='yes'?>";
-static const char XFMT_DECL_10[]	= "<?xml version='1.0''?>";
+static const char XFMT_DECL_10[]	= "<?xml version=\"1.0\"?>";
 static const char XFMT_EMPTY[]		= "/>\n";
 static const char XFMT_GT[]			= ">";
 
@@ -99,7 +99,7 @@ static const char XFMT_GT[]			= ">";
  * Record the need to declare URI at current depth.
  */
 static void
-xfmt_uri_declare(const char *uri, struct xfmt_pass1 *xp1)
+xfmt_uri_declare(const char *uri, struct xfmt_pass1 *xp1, gboolean element)
 {
 	void *v = g_hash_table_lookup(xp1->uri2depth, uri);
 
@@ -118,7 +118,7 @@ xfmt_uri_declare(const char *uri, struct xfmt_pass1 *xp1)
 			gm_hash_table_insert_const(xp1->uri2depth, uri,
 				uint_to_pointer(xp1->depth));
 			g_hash_table_remove(xp1->multiple, uri);
-		} else if (xp1->depth == d) {
+		} else if (xp1->depth == d && element) {
 			gm_hash_table_insert_const(xp1->multiple, uri, NULL);
 		}
 	}
@@ -186,7 +186,7 @@ xfmt_handle_pass1_attr(const char *uri,
 	(void) value;
 
 	if (uri != NULL) {
-		xfmt_uri_declare(uri, xp1);
+		xfmt_uri_declare(uri, xp1, FALSE);
 
 		if (xp1->attr_uris != NULL) {
 			gm_hash_table_insert_const(xp1->attr_uris, uri, NULL);
@@ -208,7 +208,7 @@ xfmt_handle_pass1_enter(xnode_t *xn, void *data)
 		const char *uri = xnode_element_ns(xn);
 
 		if (uri != NULL)
-			xfmt_uri_declare(uri, xp1);
+			xfmt_uri_declare(uri, xp1, TRUE);
 
 		xnode_prop_foreach(xn, xfmt_handle_pass1_attr, xp1);
 		xnode_ns_foreach(xn, xfmt_handle_pass1_ns, xp1);
@@ -930,8 +930,10 @@ xfmt_invert_uri_kv(void *key, void *value, void *data)
 	 * needs to be declared in the parent.
 	 */
 
-	if (gm_hash_table_contains(ictx->multiple, uri))
+	if (gm_hash_table_contains(ictx->multiple, uri)) {
+		g_assert(depth > 1);
 		depth--;
+	}
 
 	sl = g_hash_table_lookup(ictx->depth2uri, uint_to_pointer(depth));
 	sl = g_slist_prepend(sl, uri);
@@ -1119,5 +1121,21 @@ xfmt_tree(const xnode_t *root, ostream_t *os, guint32 options)
 {
 	return xfmt_tree_extended(root, os, options, NULL, 0, NULL);
 }
+
+/**
+ * Convenience routine: dump tree without prologue to specified file.
+ *
+ * @return TRUE on success.
+ */
+gboolean
+xfmt_tree_dump(const xnode_t *root, FILE *f)
+{
+	ostream_t *os;
+
+	os = ostream_open_file(f);
+	xfmt_tree(root, os, XFMT_O_SKIP_BLANKS);
+	return 0 == ostream_close_file(os);
+}
+
 
 /* vi: set ts=4 sw=4 cindent: */

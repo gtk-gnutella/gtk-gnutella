@@ -67,6 +67,8 @@ gboolean xfmt_tree_extended(const xnode_t *root, ostream_t *os,
 	const struct xfmt_prefix *pvec, size_t pvcnt,
 	const char *default_ns);
 
+gboolean xfmt_tree_dump(const xnode_t *root, FILE *f);
+
 #endif /* _xfmt_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
