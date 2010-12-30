@@ -617,10 +617,10 @@ xnode_detach(xnode_t *xn)
 		if (xn == parent->first_child) {
 			if (xn == parent->last_child) {
 				g_assert(NULL == xn->sibling);
-				xn->parent->first_child = xn->parent->last_child = NULL;
+				parent->first_child = parent->last_child = NULL;
 			} else {
 				g_assert(xn->sibling != NULL);
-				xn->parent->first_child = xn->sibling;
+				parent->first_child = xn->sibling;
 			}
 		} else {
 			xnode_t *ch;
