@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-50]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-57]
 : $X-Id: Jmake.tmpl 48 2010-11-28 23:05:09Z rmanfredi $
 
 case $CONFIG in
@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 17878 2010-12-04 15:37:11Z rmanfredi $
+# $X-Id: Jmakefile 18080 2010-12-30 23:24:52Z rmanfredi $
 
 SRC = \
 	alive.c \
@@ -148,6 +148,7 @@ SRC = \
 	search.c \
 	settings.c \
 	share.c \
+	soap.c \
 	sockets.c \
 	spam.c \
 	spam_sha1.c \
@@ -241,6 +242,7 @@ OBJ = \
 	search.o \
 	settings.o \
 	share.o \
+	soap.o \
 	sockets.o \
 	spam.o \
 	spam_sha1.o \
