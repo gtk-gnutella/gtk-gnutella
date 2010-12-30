@@ -251,6 +251,8 @@ ostream_has_ioerr(const ostream_t *os)
 
 /**
  * Close stream opened to a file, along with the underlying FILE / fd.
+ *
+ * @return 0 on success, -1 on error.
  */
 int
 ostream_close_file(ostream_t *os)
