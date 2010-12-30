@@ -38,6 +38,7 @@
 
 #include "common.h"
 #include "slist.h"
+#include "pmsg.h"
 
 struct ostream;
 typedef struct ostream ostream_t;
@@ -54,6 +55,7 @@ ostream_t *ostream_open_fd(int fd);
 ostream_t *ostream_open_file(FILE *f);
 int ostream_close_file(ostream_t *os);
 gboolean ostream_has_ioerr(const ostream_t *os);
+ostream_t *ostream_open_pmsg(pmsg_t *mb);
 gboolean ostream_close(ostream_t *os);
 
 ssize_t ostream_write(ostream_t *os, const void *data, size_t len);
