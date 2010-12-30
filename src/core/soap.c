@@ -289,7 +289,7 @@ soap_process_reply(soap_rpc_t *sr)
 	}
 
 	/*
-	 * Parse the SOAP enveloppe.
+	 * Parse the SOAP envelope.
 	 */
 
 	vp = vxml_parser_make(sr->action, VXML_O_STRIP_BLANKS);
@@ -318,7 +318,7 @@ soap_process_reply(soap_rpc_t *sr)
 	 * Look for the <SOAP:Body> element.
 	 */
 
-	for (xn = xnode_first_child(root); xn; xn = xnode_next_sibling(xn)) {
+	for (xn = xnode_first_child(root); TRUE; xn = xnode_next_sibling(xn)) {
 		if (NULL == xn || !xnode_within_namespace(xn, SOAP_NAMESPACE))
 			goto bad_soap;
 		if (0 == strcmp(SOAP_X_BODY, xnode_element_name(xn)))
