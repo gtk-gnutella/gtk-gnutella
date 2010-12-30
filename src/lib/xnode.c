@@ -107,6 +107,79 @@ xnode_type(const xnode_t *xn)
 }
 
 /**
+ * Short string description for XML node, for debugging purposes.
+ *
+ * This is not a serialization of the XML node for inclusion in a document.
+ *
+ * @param xn	node to inspect (may be NULL)
+ * @param buf	buffer where value should be printed
+ * @param len	buffer length
+ *
+ * @return the length of the resulting string
+ */
+size_t
+xnode_to_string_buf(const xnode_t *xn, char *buf, size_t len)
+{
+	if (NULL == xn)
+		return g_strlcpy(buf, "{null XML node pointer}", len);
+
+	xnode_check(xn);
+
+	switch (xn->type) {
+	case XNODE_T_ELEMENT:
+		if (xn->u.e.ns_uri != NULL) {
+			return gm_snprintf(buf, len, "<%s:%s%s>",
+				xn->u.e.ns_uri, xn->u.e.name,
+				xn->u.e.attrs != NULL ? " ..." : "");
+		} else {
+			return gm_snprintf(buf, len, "<%s%s>",
+				xn->u.e.name, xn->u.e.attrs != NULL ? " ..." : "");
+		}
+		break;
+	case XNODE_T_COMMENT:
+		return g_strlcpy(buf, "{XML comment node}", len);
+	case XNODE_T_PI:
+		return gm_snprintf(buf, len, "<?%s...?>", xn->u.pi.name);
+	case XNODE_T_TEXT:
+		return g_strlcpy(buf, "{XML text node}", len);
+	case XNODE_T_MAX:
+		g_assert_not_reached();
+	}
+
+	return 0;
+}
+
+/**
+ * Short string description for XML node, for debugging purposes.
+ *
+ * This is not a serialization of the XML node for inclusion in a document.
+ *
+ * @param xn	node to inspect (may be NULL)
+ *
+ * @return short description of node (pointer to static buffer).
+ */
+const char *
+xnode_to_string(const xnode_t *xn)
+{
+	static char buf[256];
+
+	xnode_to_string_buf(xn, buf, sizeof buf);
+	return buf;
+}
+
+/**
+ * Same as xnode_to_string().
+ */
+const char *
+xnode_to_string2(const xnode_t *xn)
+{
+	static char buf[256];
+
+	xnode_to_string_buf(xn, buf, sizeof buf);
+	return buf;
+}
+
+/**
  * @return parent node, or NULL if the node is the root node.
  */
 xnode_t *
@@ -205,6 +278,48 @@ xnode_has_content(const xnode_t *xn)
 	xnode_check(xn);
 
 	return xn->first_child != NULL;
+}
+
+/**
+ * @return whether node is an element node of corresponding namespace and name.
+ */
+gboolean
+xnode_is_element_named(const xnode_t *xn, const char *uri, const char *name)
+{
+	xnode_check(xn);
+	g_assert(name != NULL);
+
+	if (XNODE_T_ELEMENT == xn->type) {
+		if (NULL == uri) {
+			if (xn->u.e.ns_uri != NULL)
+				return FALSE;
+		} else {
+			if (NULL == xn->u.e.ns_uri)
+				return FALSE;
+			if (0 != strcmp(uri, xn->u.e.ns_uri))
+				return FALSE;
+		}
+		g_assert(xn->u.e.name != NULL);
+		return 0 == strcmp(xn->u.e.name, name);
+	} else {
+		return FALSE;
+	}
+}
+
+/**
+ * @return whether (element) node is within a specific namespace.
+ */
+gboolean
+xnode_within_namespace(const xnode_t *xn, const char *uri)
+{
+	xnode_check(xn);
+	g_assert(uri != NULL);
+
+	if (XNODE_T_ELEMENT == xn->type) {
+		return xn->u.e.ns_uri != NULL && 0 == strcmp(xn->u.e.ns_uri, uri);
+	} else {
+		return FALSE;	/* Only elements or attributes have namespaces */
+	}
 }
 
 /**
@@ -481,6 +596,54 @@ xnode_add_sibling(xnode_t *previous, xnode_t *node)
 
 	if (NULL == node->sibling)
 		previous->parent->last_child = node;
+}
+
+/**
+ * Detach node and all its sub-tree from a tree, making it the new root of
+ * a smaller tree.
+ */
+void
+xnode_detach(xnode_t *xn)
+{
+	xnode_check(xn);
+
+	if (NULL == xn->parent) {
+		g_assert(NULL == xn->sibling);
+	} else {
+		xnode_t *parent = xn->parent;
+
+		xn->parent = NULL;
+
+		if (xn == parent->first_child) {
+			if (xn == parent->last_child) {
+				g_assert(NULL == xn->sibling);
+				xn->parent->first_child = xn->parent->last_child = NULL;
+			} else {
+				g_assert(xn->sibling != NULL);
+				xn->parent->first_child = xn->sibling;
+			}
+		} else {
+			xnode_t *ch;
+			gboolean found = FALSE;
+
+			for (ch = parent->first_child; ch != NULL; ch = ch->sibling) {
+				if (ch->sibling == xn) {
+					found = TRUE;
+					break;
+				}
+			}
+			g_assert(found);
+
+			ch->sibling = xn->sibling;
+
+			if (xn == parent->last_child) {
+				g_assert(NULL == xn->sibling);
+				parent->last_child = ch;
+			}
+		}
+
+		xn->sibling = NULL;
+	}
 }
 
 /**

@@ -72,6 +72,10 @@ typedef void (*xnode_ns_cb_t)(const char *prefix, const char *uri, void *data);
  * Public interface.
  */
 
+const char *xnode_to_string(const xnode_t *xn);
+const char *xnode_to_string2(const xnode_t *xn);
+size_t xnode_to_string_buf(const xnode_t *xn, char *buf, size_t len);
+
 xnode_type_t xnode_type(const xnode_t *xn);
 xnode_t *xnode_parent(const xnode_t *xn);
 xnode_t *xnode_first_child(const xnode_t *xn);
@@ -83,6 +87,8 @@ gboolean xnode_is_element(const xnode_t *xn);
 gboolean xnode_is_processing_instruction(const xnode_t *xn);
 gboolean xnode_has_content(const xnode_t *xn);
 gboolean xnode_text_has_entities(const xnode_t *xn);
+gboolean xnode_is_element_named(const xnode_t *x, const char *u, const char *n);
+gboolean xnode_within_namespace(const xnode_t *xn, const char *uri);
 
 const char *xnode_text(const xnode_t *xn);
 const char *xnode_element_name(const xnode_t *xn);
@@ -97,6 +103,7 @@ xnode_t *xnode_new_text(xnode_t *parent, const char *text, gboolean verbatim);
 void xnode_add_child(xnode_t *parent, xnode_t *node);
 void xnode_add_first_child(xnode_t *parent, xnode_t *node);
 void xnode_add_sibling(xnode_t *previous, xnode_t *node);
+void xnode_detach(xnode_t *xn);
 
 void xnode_add_namespace(xnode_t *e, const char *prefix, const char *uri);
 void xnode_ns_foreach(const xnode_t *element, xnode_ns_cb_t func, void *data);
