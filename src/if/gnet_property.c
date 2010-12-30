@@ -900,6 +900,17 @@ guint32  gnet_property_variable_vxml_debug     = 0;
 static const guint32  gnet_property_variable_vxml_debug_default = 0;
 guint32  gnet_property_variable_upnp_debug     = 0;
 static const guint32  gnet_property_variable_upnp_debug_default = 0;
+guint32  gnet_property_variable_soap_debug     = 0;
+static const guint32  gnet_property_variable_soap_debug_default = 0;
+guint32  gnet_property_variable_soap_trace     = SOCK_TRACE_NONE;
+static const guint32  gnet_property_variable_soap_trace_default = SOCK_TRACE_NONE;
+prop_def_choice_t gnet_property_variable_soap_trace_choices[] = { 
+    {N_("none"), SOCK_TRACE_NONE},
+    {N_("input only"), SOCK_TRACE_IN},
+    {N_("output only"), SOCK_TRACE_OUT},
+    {N_("input & output"), SOCK_TRACE_BOTH},
+    {NULL, 0}
+};
 
 static prop_set_t *gnet_property;
 
@@ -8232,6 +8243,46 @@ gnet_prop_init(void) {
     gnet_property->props[382].data.guint32.choices = NULL;
     gnet_property->props[382].data.guint32.max   = 20;
     gnet_property->props[382].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_SOAP_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[383].name = "soap_debug";
+    gnet_property->props[383].desc = _("Debug level for the SOAP layer.");
+    gnet_property->props[383].ev_changed = event_new("soap_debug_changed");
+    gnet_property->props[383].save = TRUE;
+    gnet_property->props[383].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[383].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[383].data.guint32.def   = (void *) &gnet_property_variable_soap_debug_default;
+    gnet_property->props[383].data.guint32.value = (void *) &gnet_property_variable_soap_debug;
+    gnet_property->props[383].data.guint32.choices = NULL;
+    gnet_property->props[383].data.guint32.max   = 20;
+    gnet_property->props[383].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_SOAP_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[384].name = "soap_trace";
+    gnet_property->props[384].desc = _("Defines SOAP exchanges tracing type.");
+    gnet_property->props[384].ev_changed = event_new("soap_trace_changed");
+    gnet_property->props[384].save = TRUE;
+    gnet_property->props[384].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[384].type               = PROP_TYPE_MULTICHOICE;
+    gnet_property->props[384].data.guint32.def   = (void *) &gnet_property_variable_soap_trace_default;
+    gnet_property->props[384].data.guint32.value = (void *) &gnet_property_variable_soap_trace;
+    gnet_property->props[384].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[384].data.guint32.min   = 0x00000000;
+    gnet_property->props[384].data.guint32.choices = (void *) &gnet_property_variable_soap_trace_choices;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

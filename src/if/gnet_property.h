@@ -419,6 +419,8 @@ typedef enum {
     PROP_ALIVE_DEBUG,
     PROP_VXML_DEBUG,
     PROP_UPNP_DEBUG,
+    PROP_SOAP_DEBUG,
+    PROP_SOAP_TRACE,
     GNET_PROPERTY_END
 } gnet_property_t;
 

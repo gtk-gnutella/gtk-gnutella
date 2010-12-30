@@ -4478,4 +4478,40 @@ prop = {
     };
 };
 
+prop = {
+	name = "soap_debug";
+	desc = "Debug level for the SOAP layer.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+    name = "soap_trace";
+    desc = "Defines SOAP exchanges tracing type.";
+    type = multichoice;
+    data = {
+        default = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "none";
+        value = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "input only";
+        value = SOCK_TRACE_IN;
+    };
+    choice = {
+        name = "output only";
+        value = SOCK_TRACE_OUT;
+    };
+    choice = {
+        name = "input & output";
+        value = SOCK_TRACE_BOTH;
+    };
+};
+
 /* vi: set ts=4: */
