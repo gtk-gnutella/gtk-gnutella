@@ -63,6 +63,10 @@ typedef void (*xnode_cb_t)(xnode_t *xn, void *data);
  */
 typedef gboolean (*xnode_cbe_t)(xnode_t *xn, void *data);
 
+/**
+ * Namespace declaration iteration callback.
+ */
+typedef void (*xnode_ns_cb_t)(const char *prefix, const char *uri, void *data);
 
 /*
  * Public interface.
@@ -95,6 +99,7 @@ void xnode_add_first_child(xnode_t *parent, xnode_t *node);
 void xnode_add_sibling(xnode_t *previous, xnode_t *node);
 
 void xnode_add_namespace(xnode_t *e, const char *prefix, const char *uri);
+void xnode_ns_foreach(const xnode_t *element, xnode_ns_cb_t func, void *data);
 
 const char *xnode_prop_ns_get(const xnode_t *, const char *u, const char *n);
 const char *xnode_prop_get(const xnode_t *, const char *n);

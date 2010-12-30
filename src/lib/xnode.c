@@ -514,6 +514,43 @@ xnode_add_namespace(xnode_t *element, const char *prefix, const char *uri)
 	nv_table_insert(element->u.e.ns, prefix, uri, uri_len + 1);
 }
 
+struct xnode_ns_foreach_ctx {
+	xnode_ns_cb_t func;
+	void *data;
+};
+
+/**
+ * Wrapper function for xnode_ns_foreach().
+ */
+static void
+xnode_ns_foreach_wrap(nv_pair_t *nv, void *u)
+{
+	struct xnode_ns_foreach_ctx *ctx = u;
+
+	(*ctx->func)(nv_pair_name(nv), nv_pair_value_str(nv), ctx->data);
+}
+
+/**
+ * Apply function to each declared namespace, in the order they were defined.
+ */
+void
+xnode_ns_foreach(const xnode_t *element, xnode_ns_cb_t func, void *data)
+{
+	struct xnode_ns_foreach_ctx ctx;
+
+	xnode_check(element);
+	g_assert(XNODE_T_ELEMENT == element->type);
+	g_assert(func != NULL);
+
+	if (NULL == element->u.e.ns)
+		return;
+
+	ctx.func = func;
+	ctx.data = data;
+
+	nv_table_foreach(element->u.e.ns, xnode_ns_foreach_wrap, &ctx);
+}
+
 /**
  * Get property from element node (with namespace).
  *

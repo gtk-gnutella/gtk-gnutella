@@ -68,6 +68,7 @@ struct xfmt_pass1 {
 	GHashTable *uri2depth;		/**< URI -> earliest depth seen */
 	GHashTable *multiple;		/**< Records URIs seen in multiple siblings */
 	GHashTable *attr_uris;		/**< URIs used by attributes */
+	nv_table_t *uri2prefix;		/**< URI -> prefixes (declared in tree) */
 	unsigned depth;				/**< Current tree depth */
 };
 
@@ -124,6 +125,55 @@ xfmt_uri_declare(const char *uri, struct xfmt_pass1 *xp1)
 }
 
 /**
+ * Record a tree-defined mapping between a prefix and a namespace URI.
+ */
+static void
+xfmt_prefix_record(struct xfmt_pass1 *xp1, const char *prefix, const char *uri)
+{
+	nv_pair_t *nv;
+
+	/*
+	 * Our policy is to use one single prefix for a given namespace URI
+	 * throughout the document.  Although several prefixes could be used.
+	 * this is confusing to read and serves no value: a human will be mislead
+	 * into thinking the two namespaces are different because they carry
+	 * distinct prefixes, and a machine will not care about the prefix value.
+	 */
+
+	nv = nv_table_lookup(xp1->uri2prefix, uri);
+	if (nv != NULL) {
+		/*
+		 * Silently ignore the mapping if we already have seen an identical one
+		 * in the XML tree.
+		 */
+
+		if (strcmp(prefix, nv_pair_value_str(nv)) != 0) {
+			g_warning("XFMT ignoring prefix '%s' for '%s': "
+				"already saw '%s' earlier in the tree", prefix, uri,
+				nv_pair_value_str(nv));
+		}
+	} else {
+		/*
+		 * New mapping.
+		 */
+
+		nv = nv_pair_make_static_str(uri, prefix);
+		nv_table_insert_pair(xp1->uri2prefix, nv);
+	}
+}
+
+/**
+ * Process element-defined namespace/prefix associations.
+ */
+static void
+xfmt_handle_pass1_ns(const char *prefix, const char *uri, void *data)
+{
+	struct xfmt_pass1 *xp1 = data;
+
+	xfmt_prefix_record(xp1, prefix, uri);
+}
+
+/**
  * Check attributes for URI usage.
  */
 static void
@@ -161,6 +211,7 @@ xfmt_handle_pass1_enter(xnode_t *xn, void *data)
 			xfmt_uri_declare(uri, xp1);
 
 		xnode_prop_foreach(xn, xfmt_handle_pass1_attr, xp1);
+		xnode_ns_foreach(xn, xfmt_handle_pass1_ns, xp1);
 	}
 
 	return TRUE;
@@ -413,8 +464,26 @@ xfmt_prefix_declare(struct xfmt_pass2 *xp2, const char *uri, const char *prefix)
 {
 	nv_pair_t *nv;
 
-	nv = nv_pair_make_static_str(uri, prefix);
-	nv_table_insert_pair(xp2->uri2prefix, nv);
+	nv = nv_table_lookup(xp2->uri2prefix, uri);
+	if (nv != NULL) {
+		/*
+		 * Silently ignore the mapping if we already have seen an identical one
+		 * in the XML tree during the first pass.
+		 */
+
+		if (strcmp(prefix, nv_pair_value_str(nv)) != 0) {
+			g_warning("XFMT ignoring supplied prefix '%s' for '%s': "
+				"already saw '%s' in the tree", prefix, uri,
+				nv_pair_value_str(nv));
+		}
+	} else {
+		/*
+		 * New mapping.
+		 */
+
+		nv = nv_pair_make_static_str(uri, prefix);
+		nv_table_insert_pair(xp2->uri2prefix, nv);
+	}
 }
 
 /**
@@ -919,6 +988,7 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 	memset(&xp1, 0, sizeof xp1);
 	xp1.uri2depth = g_hash_table_new(g_str_hash, g_str_equal);
 	xp1.multiple = g_hash_table_new(g_str_hash, g_str_equal);
+	xp1.uri2prefix = nv_table_make(FALSE);
 
 	if (default_ns != NULL)
 		xp1.attr_uris = g_hash_table_new(g_str_hash, g_str_equal);
@@ -953,7 +1023,7 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 	xp2.options = options;
 	xp2.default_ns = dflt_ns;
 	xp2.attr_uris = xp1.attr_uris;
-	xp2.uri2prefix = nv_table_make(FALSE);
+	xp2.uri2prefix = xp1.uri2prefix;
 	xp2.uris = symtab_make();
 	xp2.prefixes = symtab_make();
 	xp2.depth = 0;
