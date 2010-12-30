@@ -1160,7 +1160,7 @@ cproxy_http_header_ind(struct http_async *handle, header_t *header,
 /**
  * Redefines the HTTP request building.
  *
- * See http_async_build_request() for the model and details about
+ * See http_async_build_get_request() for the model and details about
  * the various parameters.
  *
  * @return length of generated request.
@@ -1401,8 +1401,8 @@ cproxy_http_request(struct cproxy *cp)
 	 */
 
 	http_async_set_opaque(handle, cp, NULL);
-	http_async_set_op_request(handle, cproxy_build_request);
-	http_async_set_op_reqsent(handle, cproxy_sent_request);
+	http_async_set_op_get_request(handle, cproxy_build_request);
+	http_async_set_op_headsent(handle, cproxy_sent_request);
 	http_async_set_op_gotreply(handle, cproxy_got_reply);
 	http_async_on_state_change(handle, cproxy_http_newstate);
 }

@@ -71,6 +71,40 @@ typedef enum {
 } http_layer_t;
 
 /**
+ * Type of option control operations.
+ */
+typedef enum {
+	HTTP_CTL_ADD = 0,
+	HTTP_CTL_REMOVE,
+	HTTP_CTL_SET
+} http_ctl_op_t;
+
+/**
+ * Available HTTP options.
+ */
+#define HTTP_O_READ_REPLY	(1 << 0)	/**< Read data for non-200 replies */
+#define HTTP_O_REDIRECT		(1 << 1)	/**< Allow redirections */
+
+/**
+ * Free routine used to free POST data.
+ *
+ * @param p		the data to be freed
+ * @param arg	additional argument for the free routine
+ */
+typedef void (*http_data_free_t)(gpointer p, gpointer arg);
+
+/**
+ * Post data.
+ */
+typedef struct http_post_data {
+	const char *content_type;		/**< Content-Type header for data */
+	char *data;						/**< The data to send */
+	size_t datalen;					/**< Length of data to send */
+	http_data_free_t data_free;		/**< Optional free routine for data */
+	void *data_free_arg;			/**< Additional argument to free routine */
+} http_post_data_t;
+
+/**
  * The callback used to generate custom headers.
  *
  * @param `buf' is where the callback can generate extra data.
@@ -142,17 +176,19 @@ struct header;
 struct http_async;
 struct gnutella_socket;
 
+typedef struct http_async http_async_t;
+
 /**
  * Callback used from asynchronous request to indicate that we got headers.
  * Indicates whether we should continue or not, given the HTTP response code.
  */
 typedef gboolean (*http_header_cb_t)(
-	struct http_async *, struct header *, int code, const char *message);
+	http_async_t *, struct header *, int code, const char *message);
 
 /**
  * Callback used from asynchronous request to indicate that data is available.
  */
-typedef void (*http_data_cb_t)(struct http_async *, char *data, int len);
+typedef void (*http_data_cb_t)(http_async_t *, char *data, int len);
 
 typedef enum {				/**< Type of error reported by http_error_cb_t */
 	HTTP_ASYNC_SYSERR,		/**< System error, value is errno */
@@ -173,7 +209,7 @@ typedef struct {
  */
 
 typedef void (*http_error_cb_t)(
-			struct http_async *, http_errtype_t error, gpointer val);
+			http_async_t *, http_errtype_t error, gpointer val);
 
 /**
  * Callback to free user opaque data.
@@ -185,14 +221,18 @@ typedef void (*http_user_free_t)(gpointer data);
  * Asynchronous operations that the user may redefine.
  */
 
-typedef size_t (*http_op_request_t)(const struct http_async *,
+typedef size_t (*http_op_get_request_t)(const http_async_t *,
 	char *buf, size_t len, const char *verb, const char *path);
 
-typedef void (*http_op_reqsent_t)(const struct http_async *,
+typedef size_t (*http_op_post_request_t)(const http_async_t *,
+	char *buf, size_t len, const char *verb, const char *path,
+	const char *content_type, size_t content_len);
+
+typedef void (*http_op_reqsent_t)(const http_async_t *,
 	const struct gnutella_socket *s, const char *req, size_t len,
 	gboolean deferred);
 
-typedef void (*http_op_gotreply_t)(const struct http_async *,
+typedef void (*http_op_gotreply_t)(const http_async_t *,
 	const struct gnutella_socket *s,
 	const char *status, const struct header *header);
 
@@ -209,7 +249,7 @@ typedef void (*http_op_gotreply_t)(const struct http_async *,
 #define HTTP_ASYNC_CANCELLED		6	/**< User cancel */
 #define HTTP_ASYNC_EOF				7	/**< Got EOF */
 #define HTTP_ASYNC_BAD_STATUS		8	/**< Unparseable HTTP status */
-#define HTTP_ASYNC_NO_LOCATION		9	/**< Got moved status, but no location */
+#define HTTP_ASYNC_NO_LOCATION		9	/**< Got moved reply, but no location */
 #define HTTP_ASYNC_CONN_TIMEOUT		10	/**< Connection timeout */
 #define HTTP_ASYNC_TIMEOUT			11	/**< Data timeout */
 #define HTTP_ASYNC_NESTED			12	/**< Nested redirections */
@@ -218,6 +258,7 @@ typedef void (*http_op_gotreply_t)(const struct http_async *,
 #define HTTP_ASYNC_REDIRECTED		15	/**< Redirected, following disabled */
 #define HTTP_ASYNC_BAD_HEADER		16	/**< Unparseable header value */
 #define HTTP_ASYNC_DATA2BIG			17	/**< Data too big */
+#define HTTP_ASYNC_MAN_FAILURE		18	/**< Mandatory request not understood */
 
 extern guint http_async_errno;
 
@@ -243,16 +284,19 @@ extern http_url_error_t http_url_errno;
  * Callback to notify about state changes in HTTP request.
  */
 
-typedef void (*http_state_change_t)(struct http_async *, http_state_t newstate);
+typedef void (*http_state_change_t)(http_async_t *, http_state_t newstate);
 
 /**
  * HTTP data buffered when it cannot be sent out immediately.
  */
 
+enum http_buffer_magic { HTTP_BUFFER_MAGIC = 0xf613d362U };
+
 typedef struct http_buffer {
+	enum http_buffer_magic magic;
 	char *hb_arena;				/**< The whole thing */
-	char *hb_rptr;					/**< Reading pointer within arena */
-	char *hb_end;					/**< First char after buffer */
+	char *hb_rptr;				/**< Reading pointer within arena */
+	char *hb_end;				/**< First char after buffer */
 	int hb_len;					/**< Total arena length */
 } http_buffer_t;
 
@@ -262,6 +306,13 @@ typedef struct http_buffer {
 #define http_buffer_unread(hb)		((hb)->hb_end - (hb)->hb_rptr)
 
 #define http_buffer_add_read(hb,tx)	do { (hb)->hb_rptr += (tx); } while (0)
+
+static inline void
+http_buffer_check(const http_buffer_t * const b)
+{
+	g_assert(b != NULL);
+	g_assert(HTTP_BUFFER_MAGIC == b->magic);
+}
 
 /**
  * Callback used when http_async_wget() completes.
@@ -313,13 +364,13 @@ const char *http_url_strerror(http_url_error_t errnum);
 gboolean http_url_parse(
 	const char *url, guint16 *port, const char **host, const char **path);
 
-struct http_async *http_async_get(
+http_async_t *http_async_get(
 	const char *url,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
-struct http_async *http_async_get_addr(
+http_async_t *http_async_get_addr(
 	const char *path,
 	const host_addr_t,
 	guint16 port,
@@ -327,35 +378,56 @@ struct http_async *http_async_get_addr(
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
+http_async_t *
+http_async_post(
+	const char *url,
+	http_post_data_t *post_data,
+	http_header_cb_t header_ind,
+	http_data_cb_t data_ind,
+	http_error_cb_t error_ind);
+
+http_async_t *
+http_async_post_addr(
+	const char *path,
+	const host_addr_t addr,
+	guint16 port,
+	http_post_data_t *post_data,
+	http_header_cb_t header_ind,
+	http_data_cb_t data_ind,
+	http_error_cb_t error_ind);
+
 const char *http_async_strerror(guint errnum);
 const char *http_async_info(
-	struct http_async *handle, const char **req, const char **path,
+	http_async_t *handle, const char **req, const char **path,
 	host_addr_t *addr, guint16 *port);
-void http_async_connected(struct http_async *handle);
-void http_async_close(struct http_async *handle);
-void http_async_cancel(struct http_async *handle);
-void http_async_error(struct http_async *handle, int code);
-http_state_t http_async_state(struct http_async *handle);
+void http_async_connected(http_async_t *handle);
+void http_async_close(http_async_t *handle);
+void http_async_cancel(http_async_t *handle);
+void http_async_cancel_null(http_async_t **handle_ptr);
+void http_async_error(http_async_t *handle, int code);
+http_state_t http_async_state(http_async_t *handle);
 
-void http_async_set_opaque(struct http_async *handle,
+void http_async_set_opaque(http_async_t *handle,
 		gpointer data, http_user_free_t fn);
-gpointer http_async_get_opaque(struct http_async *handle);
-gboolean http_async_log_error(struct http_async *handle,
+gpointer http_async_get_opaque(const http_async_t *handle);
+gboolean http_async_log_error(http_async_t *handle,
 		http_errtype_t type, gpointer v, const char *prefix);
-gboolean http_async_log_error_dbg(struct http_async *handle,
+gboolean http_async_log_error_dbg(http_async_t *handle,
 		http_errtype_t type, gpointer v, const char *prefix, gboolean all);
 
-void http_async_on_state_change(struct http_async *ha, http_state_change_t fn);
-void http_async_allow_redirects(struct http_async *ha, gboolean allow);
-void http_async_set_op_request(struct http_async *ha, http_op_request_t op);
-void http_async_set_op_reqsent(struct http_async *ha, http_op_reqsent_t op);
-void http_async_set_op_gotreply(struct http_async *ha, http_op_gotreply_t op);
-const char *http_async_remote_host_port(const struct http_async *ha);
+void http_async_on_state_change(http_async_t *ha, http_state_change_t fn);
+void http_async_set_op_get_request(http_async_t *, http_op_get_request_t);
+void http_async_set_op_post_request(http_async_t *, http_op_post_request_t);
+void http_async_set_op_headsent(http_async_t *ha, http_op_reqsent_t op);
+void http_async_set_op_datasent(http_async_t *ha, http_op_reqsent_t op);
+void http_async_set_op_gotreply(http_async_t *ha, http_op_gotreply_t op);
+void http_async_option_ctl(http_async_t *ha, guint32 mask, http_ctl_op_t what);
+const char *http_async_remote_host_port(const http_async_t *ha);
 
 header_t *http_header_parse(const char *data, size_t len, int *code, char **msg,
 	unsigned *major, unsigned *minor, const char **endptr);
 
-struct http_async *http_async_wget(const char *url,
+http_async_t *http_async_wget(const char *url,
 	size_t maxlen, http_wget_cb_t cb, void *arg);
 
 void http_close(void);
