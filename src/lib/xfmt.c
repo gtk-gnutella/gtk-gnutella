@@ -1134,7 +1134,7 @@ xfmt_tree_dump(const xnode_t *root, FILE *f)
 
 	os = ostream_open_file(f);
 	xfmt_tree(root, os, XFMT_O_SKIP_BLANKS);
-	return 0 == ostream_close_file(os);
+	return 0 == ostream_close(os);
 }
 
 
