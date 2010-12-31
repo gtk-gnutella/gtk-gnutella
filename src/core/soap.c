@@ -167,6 +167,7 @@ soap_rpc_free(soap_rpc_t *sr)
 {
 	soap_rpc_check(sr);
 
+	atom_str_free_null(&sr->url);
 	atom_str_free_null(&sr->action);
 	cq_cancel(&sr->delay_ev);
 	http_async_cancel_null(&sr->ha);
@@ -540,10 +541,12 @@ soap_data_ind(http_async_t *ha, char *data, int len)
 	/*
 	 * When data is NULL, we reached EOF and we're done.  Time to process
 	 * the data we got back.
+	 *
+	 * The HTTP asynchronous handle is nullified since it is about to be
+	 * closed by the HTTP layer upon return.
 	 */
 
 	if (NULL == data) {
-		http_async_close(ha);
 		sr->ha = NULL;
 		soap_process_reply(sr);
 		return;
@@ -869,7 +872,7 @@ soap_rpc(const char *url, const char *action, size_t maxlen, guint32 options,
 
 	mb = pmsg_new(PMSG_P_DATA, NULL, SOAP_MAX_PAYLOAD);
 	os = ostream_open_pmsg(mb);
-	xfmt_tree(root, os, XFMT_O_NO_INDENT | XFMT_O_PROLOGUE | XFMT_O_FORCE_10);
+	xfmt_tree(root, os, XFMT_O_NO_INDENT);
 
 	if (!ostream_close(os)) {
 		failed = TRUE;
