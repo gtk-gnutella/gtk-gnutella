@@ -1655,7 +1655,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 			char *comment = config_comment(p->desc);
 
 			fprintf(config, "%s\n", comment);
-			G_FREE_NULL(comment);
+			HFREE_NULL(comment);
 		}
 
 		switch (p->type) {
