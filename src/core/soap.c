@@ -44,6 +44,7 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/glib-missing.h"
@@ -239,6 +240,32 @@ soap_rpc_cancel(soap_rpc_t *sr)
 }
 
 /**
+ * Check whether a string contains a leading "id".
+ *
+ * An "id" is a string delimited by non-alphanumeric characters.
+ *
+ * For instance, given the string "text/xml2", "text/xml" is not a leading id,
+ * although it is a string prefix.  But given the string "text/xml; xxx",
+ * the "text/xml" string becomes a valid leading id since the next character
+ * ';' after the prefix is not an alphanumeric one.
+ *
+ * @return TRUE is string starts with the given id.
+ */
+static gboolean
+soap_starts_with_id(const char *str, const char *id)
+{
+	const char *p;
+
+	p = is_strprefix(str, id);
+
+	if (NULL == p) {
+		return FALSE;
+	} else {
+		return !is_ascii_alnum(*p);
+	}
+}
+
+/**
  * Process the SOAP reply from the server.
  */
 static void
@@ -271,6 +298,9 @@ soap_process_reply(soap_rpc_t *sr)
 	 * Other reply codes indicate an error.  On 4xx replies we may not
 	 * have any XML to parse.  On 5xx replies, we should usually have
 	 * a <Fault> indication under the <Body>.
+	 *
+	 * The strategy used here is to parse the XML reply into a tree and then
+	 * analyse the tree, ignoring the HTTP status code which is redundant.
 	 */
 
 	buf = header_get(sr->header, "Content-Type");
@@ -278,8 +308,8 @@ soap_process_reply(soap_rpc_t *sr)
 		goto no_xml;
 
 	if (
-		!is_strprefix(buf, SOAP_TEXT_REPLY) &&
-		!is_strprefix(buf, SOAP_APPLICATION_REPLY)
+		!soap_starts_with_id(buf, SOAP_TEXT_REPLY) &&
+		!soap_starts_with_id(buf, SOAP_APPLICATION_REPLY)
 	) {
 		if (GNET_PROPERTY(soap_debug)) {
 			g_debug("SOAP \"%s\" at \"%s\": got unexpected Content-Type: %s",
@@ -513,6 +543,8 @@ soap_data_ind(http_async_t *ha, char *data, int len)
 	 */
 
 	if (NULL == data) {
+		http_async_close(ha);
+		sr->ha = NULL;
 		soap_process_reply(sr);
 		return;
 	}
