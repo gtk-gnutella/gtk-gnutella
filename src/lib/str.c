@@ -47,6 +47,7 @@ RCSID("$Id$")
 
 #include <math.h>		/* For frexp() */
 
+#include "ascii.h"
 #include "str.h"
 #include "glib-missing.h"
 #include "halloc.h"
@@ -128,7 +129,7 @@ str_create(str_t *str, size_t szhint)
 		szhint = STR_DEFSIZE;
 
 	str->s_magic = STR_MAGIC;
-	str->s_data = (char *) halloc(szhint);
+	str->s_data = halloc(szhint);
 	str->s_len = 0;
 	str->s_size = szhint;
 	str->s_flags = 0;
@@ -329,7 +330,7 @@ str_resize(str_t *str, size_t newsize)
 	 * with the requested `newsize'.
 	 */
 
-	str->s_data = (char *) hrealloc(str->s_data, newsize);
+	str->s_data = hrealloc(str->s_data, newsize);
 	str->s_size = newsize;
 	if (str->s_len > newsize)
 		str->s_len = newsize;
@@ -376,7 +377,7 @@ str_grow(str_t *str, size_t size)
 	if (str->s_flags & STR_FOREIGN_PTR)
 		g_error("str_grow() called on \"foreign\" string");
 
-	str->s_data = (char *) hrealloc(str->s_data, size);
+	str->s_data = hrealloc(str->s_data, size);
 	str->s_size = size;
 }
 
@@ -1019,7 +1020,7 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 
 		char *eptr = Nullch;
 		size_t elen = 0;
-		char ebuf[TYPE_DIGITS(int) * 2 + 16]; /* large enough for "%#.#f" */
+		char ebuf[TYPE_DIGITS(long) * 2 + 16]; /* large enough for "%#.#f" */
 
 		static char *efloatbuf = Nullch;
 		static size_t efloatsize = 0;
@@ -1088,7 +1089,8 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 		case '4': case '5': case '6':
 		case '7': case '8': case '9':
 			width = 0;
-			while (isdigit(*q))
+			/* FIXME: Integer overflow */
+			while (is_ascii_digit(*q))
 				width = width * 10 + (*q++ - '0');
 			break;
 
@@ -1117,7 +1119,8 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 			}
 			else {
 				precis = 0;
-				while (isdigit(*q))
+				/* FIXME: Integer overflow */
+				while (is_ascii_digit(*q))
 					precis = precis * 10 + (*q++ - '0');
 			}
 			has_precis = TRUE;
