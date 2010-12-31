@@ -1089,9 +1089,10 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 		case '4': case '5': case '6':
 		case '7': case '8': case '9':
 			width = 0;
-			/* FIXME: Integer overflow */
-			while (is_ascii_digit(*q))
-				width = width * 10 + (*q++ - '0');
+			while (is_ascii_digit(*q)) {
+				width = size_saturate_mult(width, 10);
+				width = size_saturate_add(width, *q++ - '0');
+			}
 			break;
 
 		case '*':
@@ -1119,9 +1120,10 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 			}
 			else {
 				precis = 0;
-				/* FIXME: Integer overflow */
-				while (is_ascii_digit(*q))
-					precis = precis * 10 + (*q++ - '0');
+				while (is_ascii_digit(*q)) {
+					precis = size_saturate_mult(precis, 10);
+					precis = size_saturate_add(precis, *q++ - '0');
+				}
 			}
 			has_precis = TRUE;
 		}
