@@ -116,7 +116,13 @@ is_strcaseprefix(const char *str, const char *prefix)
 
 	for (s = str, p = prefix; '\0' != (a = *p); p++) {
 		int b = *s++;
-		if (ascii_tolower(a) != ascii_tolower(b))
+
+		/*
+		 * Optimize a bit: if case matches, or we're dealing with a non-letter
+		 * character, there's no need to invoke acscii_tolower().
+		 */
+
+		if (a != b && ascii_tolower(a) != ascii_tolower(b))
 			return NULL;
 	}
 
