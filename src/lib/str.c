@@ -923,7 +923,7 @@ str_gm_snprintf(char *dst, size_t size, const char *fmt, ...)
  * %o   an unsigned integer, in octal
  * %x   an unsigned integer, in hexadecimal
  * %e   a floating-point number, in scientific notation
- * %f   a floating-point number, in fixed decimal notatio
+ * %f   a floating-point number, in fixed decimal notation
  * %g   a floating-point number, in %e or %f notation
  *
  * The routine alos allows the following widely-supported conversions:
@@ -1437,7 +1437,7 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 		}
 		*p = '\0';
 		str->s_len = p - str->s_data;	/* trailing NUL does not count */
-		remain -= need + 1;
+		remain -= need;
 		continue;
 
 	careful:
