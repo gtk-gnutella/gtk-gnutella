@@ -4736,7 +4736,7 @@ node_can_accept_protocol(struct gnutella_node *n, header_t *head)
 		field &&
 		GNET_PROPERTY(current_peermode) != NODE_P_LEAF &&
 		!(n->flags & NODE_F_LEAF) &&
-		strtok_has(field, ",", "application/x-gnutella2")
+		strtok_case_has(field, ",", "application/x-gnutella2")
 	) {
 		static const char msg[] = N_("Protocol not acceptable");
 
