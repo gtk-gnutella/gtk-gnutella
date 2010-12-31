@@ -129,6 +129,7 @@ LSRC = \
 	sorted_array.c \
 	stacktrace.c \
 	stats.c \
+	str.c \
 	stringify.c \
 	strtok.c \
 	symtab.c \
