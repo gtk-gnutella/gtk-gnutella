@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "xfmt.h"
 #include "ascii.h"
+#include "halloc.h"
 #include "misc.h"		/* For CONST_STRLEN() */
 #include "nv.h"
 #include "ostream.h"
