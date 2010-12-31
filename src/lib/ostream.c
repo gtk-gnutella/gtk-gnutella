@@ -328,7 +328,7 @@ ostream_write(ostream_t *os, const void *data, size_t len)
 	case OSTREAM_T_MEM:
 		pmsg_slist_append(os->u.sl, data, len);
 		w = len;
-		/* FIXME: Fallthrough or bug??? */
+		break;
 	case OSTREAM_T_PMSG:
 		w = pmsg_write(os->u.mb, data, len);
 		w = (len == UNSIGNED(w)) ? w : -1;
