@@ -257,7 +257,7 @@ ostream_has_ioerr(const ostream_t *os)
 int
 ostream_close_file(ostream_t *os)
 {
-	int ret;
+	int ret = -1;
 
 	g_assert(ostream_is_file(os));
 
@@ -310,9 +310,10 @@ ostream_close(ostream_t *os)
 ssize_t
 ostream_write(ostream_t *os, const void *data, size_t len)
 {
-	ssize_t w;
+	ssize_t w = (ssize_t) -1;
 
 	ostream_check(os);
+	len = MIN(len, MAX_INT_VAL(ssize_t));
 
 	switch (os->type) {
 	case OSTREAM_T_FILE:
@@ -327,6 +328,7 @@ ostream_write(ostream_t *os, const void *data, size_t len)
 	case OSTREAM_T_MEM:
 		pmsg_slist_append(os->u.sl, data, len);
 		w = len;
+		/* FIXME: Fallthrough or bug??? */
 	case OSTREAM_T_PMSG:
 		w = pmsg_write(os->u.mb, data, len);
 		w = (len == UNSIGNED(w)) ? w : -1;
