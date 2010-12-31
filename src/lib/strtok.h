@@ -58,6 +58,7 @@ const char *strtok_ptr(const strtok_t *s);
 char strtok_char(const strtok_t *s);
 char strtok_delim(const strtok_t *s);
 gboolean strtok_has(const char *string, const char *delim, const char *what);
+gboolean strtok_case_has(const char *str, const char *delim, const char *what);
 
 void strtok_test(void);
 

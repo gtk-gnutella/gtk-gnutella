@@ -286,6 +286,7 @@ extend_token(strtok_t *s)
  * @param no_end	whether trailing spaces in token should be stripped
  * @param length	if non-NULL, gets filled with the returned token length
  * @param looked	the token which we're looking for, NULL if none
+ * @param caseless	whether token matching is to be done case-insensitively
  * @param found		if non-NULL, gets filled with whether we found ``looked''
  *
  * @return pointer to the next token, which must be duplicated if it needs to
@@ -295,7 +296,7 @@ extend_token(strtok_t *s)
 static const char *
 strtok_next_internal(strtok_t *s, const char *delim,
 	gboolean no_lead, gboolean no_end, size_t *length,
-	const char *looked, gboolean *found)
+	const char *looked, gboolean caseless, gboolean *found)
 {
 	size_t tlen;
 	int c;
@@ -356,7 +357,7 @@ strtok_next_internal(strtok_t *s, const char *delim,
 
 		/* Check whether token can match the ``looked'' up string */
 
-		if (looked) {
+		if (looked != NULL) {
 			if (!seen_non_blank && !is_ascii_blank(c))
 				seen_non_blank = TRUE;
 
@@ -380,8 +381,12 @@ strtok_next_internal(strtok_t *s, const char *delim,
 				}
 
 				x = peek_u8(l++);
-				if (c != x)
+				if (caseless) {
+					if (ascii_tolower(c) != ascii_tolower(x))
+						goto skip_until_delim;
+				} else if (c != x) {
 					goto skip_until_delim;
+				}
 			}
 			continue;		/* No need to collect token when looking... */
 		}
@@ -421,7 +426,7 @@ end_token:
 
 	/* Check whether token can match the ``looked'' up string */
 
-	if (looked) {
+	if (looked != NULL) {
 		if (l == NULL)
 			l = looked;
 		if (*l != '\0')
@@ -501,7 +506,8 @@ const char *
 strtok_next_extended(strtok_t *s, const char *delim,
 	gboolean no_lead, gboolean no_end)
 {
-	return strtok_next_internal(s, delim, no_lead, no_end, NULL, NULL, NULL);
+	return strtok_next_internal(s, delim, no_lead, no_end,
+		NULL, NULL, FALSE, NULL);
 }
 
 /**
@@ -522,7 +528,7 @@ strtok_next(strtok_t *s, const char *delim)
 	g_assert(delim != NULL);
 
 	return strtok_next_internal(s, delim, s->no_lead, s->no_end,
-		NULL, NULL, NULL);
+		NULL, NULL, FALSE, NULL);
 }
 
 /**
@@ -540,7 +546,7 @@ strtok_next_length(strtok_t *s, const char *delim, size_t *length)
 	g_assert(delim != NULL);
 
 	return strtok_next_internal(s, delim, s->no_lead, s->no_end, length,
-		NULL, NULL);
+		NULL, FALSE, NULL);
 }
 
 /**
@@ -560,7 +566,38 @@ strtok_has(const char *string, const char *delim, const char *what)
 
 	st = strtok_make(string, TRUE, TRUE);
 
-	while (strtok_next_internal(st, delim, TRUE, TRUE, NULL, what, &found)) {
+	while (
+		strtok_next_internal(st, delim, TRUE, TRUE, NULL, what, FALSE, &found)
+	) {
+		if (found)
+			break;
+	}
+
+	strtok_free(st);
+
+	return found;
+}
+
+/**
+ * Does a string, delimited by the supplied token separators, contain
+ * the given string, with a case-insensitive (ASCII) comparison?
+ * Leading and trailing whitespaces are ignored in tokens.
+ *
+ * @param string		the string to tokenize
+ * @param delim			the token delimitors
+ * @param what			the token to look for, case-insensitively
+ */
+gboolean
+strtok_case_has(const char *string, const char *delim, const char *what)
+{
+	strtok_t *st;
+	gboolean found = FALSE;
+
+	st = strtok_make(string, TRUE, TRUE);
+
+	while (
+		strtok_next_internal(st, delim, TRUE, TRUE, NULL, what, TRUE, &found)
+	) {
 		if (found)
 			break;
 	}
@@ -625,6 +662,7 @@ strtok_test(void)
 	g_assert(strtok_has(string, ";,/", "d"));
 	g_assert(strtok_has(string, ";", "b, c"));
 	g_assert(!strtok_has(string, ";,/", "de"));
+	g_assert(!strtok_case_has(string, ";,/", "de"));
 
 	string = "with  space  #1 ; with space  #2 ;";
 
@@ -635,6 +673,7 @@ strtok_test(void)
 	string = "word";
 	g_assert(strtok_has(string, ";", "word"));
 	g_assert(strtok_has(string, ",;/", "word"));
+	g_assert(strtok_case_has(string, ";", "WoRD"));
 }
 
 /* vi: set ts=4 sw=4 cindent: */
