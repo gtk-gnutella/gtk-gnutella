@@ -341,18 +341,18 @@ str_resize(str_t *str, size_t newsize)
 /*
  * str_makeroom
  *
- * Ensure there is enough room for `l' more bytes worth of data in `s' by
+ * Ensure there is enough room for `len' more bytes worth of data in `s' by
  * calling str_resize if necessary.
  */
 static inline void
-str_makeroom(str_t *s, size_t l)
+str_makeroom(str_t *s, size_t len)
 {
-	size_t ln = l + s->s_len;
+	size_t n = size_saturate_add(len, s->s_len);
 
-	if (s->s_size < ln) {
+	if (s->s_size < n) {
 		size_t newsize = s->s_size;
 
-		while (newsize < ln) {
+		while (newsize < n) {
 			if (newsize <= STR_MAXGROW)
 				newsize = size_saturate_mult(newsize, STR_GROW);
 			else
