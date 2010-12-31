@@ -11735,7 +11735,7 @@ picked:
 		rw = gm_snprintf(request_buf, maxsize,
 				"%s %s HTTP/1.1\r\n", method, escaped_uri);
 		if (escaped_uri != d->uri) {
-			G_FREE_NULL(escaped_uri);
+			HFREE_NULL(escaped_uri);
 		}
 	} else if (sha1) {
 		rw = gm_snprintf(request_buf, maxsize,
@@ -12819,7 +12819,7 @@ download_store_magnet(FILE *f, const struct download *d)
 	url = download_build_magnet(d);
 	if (url) {
 		fprintf(f, "%s\n\n", url);
-		G_FREE_NULL(url);
+		HFREE_NULL(url);
 	}
 }
 
@@ -14252,8 +14252,7 @@ download_url_for_uri(const struct download *d, const char *uri)
 
 	result = g_strconcat(prefix, host, "/", uri, (void *) 0);
 
-	if (hostp)
-		G_FREE_NULL(hostp);
+	HFREE_NULL(hostp);
 
 	return result;
 }
@@ -14959,14 +14958,14 @@ download_handle_http(const char *url)
 		magnet = magnet_resource_new();
 		magnet_add_source_by_url(magnet, escaped_url);
 		if (escaped_url != url) {
-			G_FREE_NULL(escaped_url);
+			HFREE_NULL(escaped_url);
 		}
 		magnet_url = magnet_to_string(magnet);
 		magnet_resource_free(&magnet);
 	}
 	
 	success = download_handle_magnet(magnet_url);
-	G_FREE_NULL(magnet_url);
+	HFREE_NULL(magnet_url);
 
 	return success;
 }

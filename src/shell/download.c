@@ -48,6 +48,7 @@ RCSID("$Id$")
 
 #include "lib/ascii.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 
@@ -344,7 +345,7 @@ shell_exec_download_show(struct gnutella_shell *sh,
 		} else if (0 == strcmp(property, "magnet")) {
 			char *magnet = file_info_build_magnet(fi->fi_handle);
 			show_property(sh, property, EMPTY_STRING(magnet));
-			G_FREE_NULL(magnet);
+			HFREE_NULL(magnet);
 		}
 	}
 	guc_fi_free_info(info);

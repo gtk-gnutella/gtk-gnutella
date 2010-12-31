@@ -59,6 +59,7 @@ RCSID("$Id$")
 #include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/slist.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -227,13 +228,13 @@ shell_toggle_interactive(struct gnutella_shell *sh)
  * @param start		the beginning of the string to parse
  * @param endptr	written with the address of the first char following token
  *
- * @return next token, or a NULL pointer on error.
+ * @return next token allocated through halloc(), or a NULL pointer on error.
  */
 static char *
 shell_next_token(struct gnutella_shell *sh,
 	const char *start, const char **endptr)
 {
-	GString *token;
+	str_t *token;
 	gboolean escape = FALSE;
 	gboolean quote  = FALSE;
 	gboolean squote  = FALSE;
@@ -243,22 +244,22 @@ shell_next_token(struct gnutella_shell *sh,
 	shell_check(sh);
 	g_assert(s != NULL);
 
-	token = g_string_sized_new(40);
+	token = str_new(40);
 
 	for (c = *s; '\0' != c; c = *++s) {
 		if (escape || '\\' == c) {
 			escape = !escape;
 			if (!escape)
-				g_string_append_c(token, c);
+				str_putc(token, c);
 		} else if ('"' == c) {
 			if (squote) {
-				g_string_append_c(token, c);
+				str_putc(token, c);
 				continue;		/* Grab a quote inside 'string' */
 			}
 			quote = !quote;
 		} else if ('\'' == c) {
 			if (quote) {
-				g_string_append_c(token, c);
+				str_putc(token, c);
 				continue;		/* Grab a single quote inside "string" */
 			}
 			squote = !squote;
@@ -267,9 +268,9 @@ shell_next_token(struct gnutella_shell *sh,
 				break;
 			if (';' == c)
 				break;
-			g_string_append_c(token, c);
+			str_putc(token, c);
 		} else {
-			g_string_append_c(token, c);
+			str_putc(token, c);
 		}
 	}
 
@@ -288,10 +289,10 @@ shell_next_token(struct gnutella_shell *sh,
 	}
 
 	*endptr = s;
-	return gm_string_finalize(token);
+	return str_s2c(token);
 
 error:
-	g_string_free(token, TRUE);
+	str_destroy(token);
 	return NULL;
 }
 
@@ -367,7 +368,7 @@ shell_free_argv(const char ***argv_ptr)
 		char **argv = deconstify_gpointer(*argv_ptr);
 
 		while (NULL != argv[0]) {
-			G_FREE_NULL(argv[0]);
+			HFREE_NULL(argv[0]);
 			argv++;
 		}
 		HFREE_NULL(*argv_ptr);

@@ -73,7 +73,6 @@ GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data);
 GList *g_list_delete_link(GList *l, GList *lnk);
 GSList *g_slist_delete_link(GSList *sl, GSList *lnk);
 GList *g_list_insert_before(GList *l, GList *lk, gpointer data);
-GString *g_string_append_len(GString *gs, const char *val, gssize len);
 
 void g_hash_table_replace(GHashTable *ht, gpointer key, gpointer value);
 gboolean gm_hash_table_remove(GHashTable *ht, gconstpointer key);
@@ -86,8 +85,6 @@ typedef int (*GCompareDataFunc)
 
 GList *g_list_sort_with_data(
 	GList *l, GCompareDataFunc cmp, gpointer user_data);
-
-#define g_string_printf		g_string_sprintf
 
 typedef void *GMainContext;
 
@@ -112,7 +109,6 @@ size_t strlcpy(char *dst, const char *src, size_t dst_size);
 size_t strlcat(char *dst, const char *src, size_t dst_size);
 #endif /* HAS_STRLCAT */
 
-#define g_string_printf g_string_sprintf
 #define g_strlcpy strlcpy
 #define g_strlcat strlcat
 #endif
@@ -120,8 +116,6 @@ size_t strlcat(char *dst, const char *src, size_t dst_size);
 void gm_slist_free_null(GSList **sl_ptr);
 void gm_list_free_null(GList **l_ptr);
 void gm_hash_table_destroy_null(GHashTable **h_ptr);
-
-char *gm_string_finalize(GString *gs);
 
 gboolean gm_xprintf_is_signal_safe(void);
 size_t gm_vsnprintf(char *str, size_t n, char const *fmt, va_list args);

@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/parse.h"
 #include "lib/misc.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/file.h"
 
@@ -89,7 +90,7 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 	const char *endptr;
 	size_t length;
 	int error, fd[2];
-	GString *gs;
+	str_t *s;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -115,7 +116,8 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		goto failure;
 	}
 
-	gs = g_string_sized_new(128);
+	s = str_new(128);
+
 	while (length > 0) {
 		char data[16], valid[sizeof data];
 		size_t i;
@@ -123,37 +125,37 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		STATIC_ASSERT(sizeof data == sizeof valid);
 		read_memory(fd, addr, length, data, sizeof data, valid);
 
-		gs = g_string_assign(gs, pointer_to_string(addr));
-		gs = g_string_append(gs, "  ");
+		str_cpy(s, pointer_to_string(addr));
+		str_cat(s, "  ");
 
 		for (i = 0; i < G_N_ELEMENTS(data); i++) {
 			if (length > i) {
 				unsigned char c = data[i];
 
 				if (valid[i]) {
-					gs = g_string_append_c(gs, hex_digit((c >> 4) & 0xf));
-					gs = g_string_append_c(gs, hex_digit(c & 0x0f));
-					gs = g_string_append_c(gs, ' ');
+					str_putc(s, hex_digit((c >> 4) & 0xf));
+					str_putc(s, hex_digit(c & 0x0f));
+					str_putc(s, ' ');
 				} else {
-					gs = g_string_append(gs, "XX ");
+					str_cat(s, "XX ");
 				}
 			} else {
-				gs = g_string_append(gs, "   ");
+				str_cat(s, "   ");
 			}
 		}
-		gs = g_string_append(gs, " |");
+		str_cat(s, " |");
 
 		for (i = 0; i < G_N_ELEMENTS(data); i++) {
 			if (length > i) {
 				unsigned char c = data[i];
 				c = is_ascii_print(c) ? c : '.';
-				gs = g_string_append_c(gs, c);
+				str_putc(s, c);
 			} else {
-				gs = g_string_append_c(gs, ' ');
+				str_putc(s, ' ');
 			}
 		}
-		gs = g_string_append(gs, "|\n");
-		shell_write(sh, gs->str);
+		str_cat(s, "|\n");
+		shell_write(sh, str_2c(s));
 
 		if (length < G_N_ELEMENTS(data))
 			break;
@@ -161,7 +163,7 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		length -= G_N_ELEMENTS(data);
 		addr += G_N_ELEMENTS(data);
 	}
-	g_string_free(gs, TRUE);
+	str_destroy(s);
 	close(fd[0]);
 	close(fd[1]);
 	return REPLY_READY;

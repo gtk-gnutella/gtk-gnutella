@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/html.h"
+#include "lib/str.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 
@@ -73,7 +74,7 @@ struct html_view {
 struct html_context {
 	struct html_view *html_view;
 	struct html_output *output;
-	GString *title;
+	str_t *title;
 	const gchar *lang, *href;
 
 #if GTK_CHECK_VERSION(2,0,0)
@@ -97,11 +98,9 @@ html_context_free(struct html_context **ctx_ptr)
 {
 	struct html_context *ctx = *ctx_ptr;
 	if (ctx) {
-		if (ctx->title) {
-			g_string_free(ctx->title, TRUE);
-			ctx->title = NULL;
-		}
+		str_destroy_null(&ctx->title);
 		html_output_free(&ctx->output);
+		wfree(ctx, sizeof *ctx);
 		*ctx_ptr = NULL;
 	}
 }
@@ -127,7 +126,7 @@ html_output_print(struct html_output *output, const struct array *text)
 
 	ctx = html_output_get_udata(output);
 	if (ctx->title) {
-		g_string_append_len(ctx->title, text->data, text->size);
+		str_cat_len(ctx->title, text->data, text->size);
 		return;
 	}
 #if GTK_CHECK_VERSION(2,0,0)
@@ -412,12 +411,11 @@ html_output_tag(struct html_output *output, const struct array *tag)
 
 				window = gtk_widget_get_toplevel(
 							GTK_WIDGET(ctx->html_view->widget));
-				gtk_window_set_title(GTK_WINDOW(window), ctx->title->str);
-				g_string_free(ctx->title, TRUE);
-				ctx->title = NULL;
+				gtk_window_set_title(GTK_WINDOW(window), str_2c(ctx->title));
+				str_destroy_null(&ctx->title);
 			}
 		} else {
-			ctx->title = g_string_new("");
+			ctx->title = str_new(0);
 		}
 		break;
 	case HTML_TAG_HR:
@@ -573,12 +571,11 @@ html_output_tag(struct html_output *output, const struct array *tag)
 
 				window = gtk_widget_get_toplevel(
 							GTK_WIDGET(ctx->html_view->widget));
-				gtk_window_set_title(GTK_WINDOW(window), ctx->title->str);
-				g_string_free(ctx->title, TRUE);
-				ctx->title = NULL;
+				gtk_window_set_title(GTK_WINDOW(window), str_2c(ctx->title));
+				str_destroy_null(&ctx->title);
 			}
 		} else {
-			ctx->title = g_string_new("");
+			ctx->title = str_new(0);
 		}
 		break;
 	case HTML_TAG_A:

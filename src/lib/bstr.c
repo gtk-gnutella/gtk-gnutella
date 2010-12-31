@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "endian.h"
 #include "glib-missing.h"
 #include "host_addr.h"
+#include "str.h"
 #include "stringify.h"
 #include "unsigned.h"
 #include "walloc.h"
@@ -49,17 +50,27 @@ RCSID("$Id$")
 
 #define BSTR_ERRLEN		160			/**< Default length for error string */
 
+enum bstr_magic { BSTR_MAGIC = 0x2dc80bd8 };
+
 /**
  * A binary stream.
  */
 struct bstr {
+	enum bstr_magic magic;
 	const unsigned char *start;		/**< First byte in buffer */
 	const unsigned char *rptr;		/**< First unread byte in buffer */
 	const unsigned char *end;		/**< First byte beyond buffer */
-	GString *error;					/**< Last parsing error */
+	str_t *error;					/**< Last parsing error */
 	guint32 flags;					/**< Configuration flags */
 	gboolean ok;					/**< Whether everything is OK so far */
 };
+
+static inline void
+bstr_check(const struct bstr * const bs)
+{
+	g_assert(bs != NULL);
+	g_assert(BSTR_MAGIC == bs->magic);
+}
 
 /*
  * Internal operating flags start at bit 16.
@@ -80,7 +91,9 @@ reset_stream(bstr_t *bs, const void *arena, size_t len, guint32 flags)
 	bs->rptr = arena;
 	bs->start = bs->rptr;
 	bs->end = bs->start + len;
-	bs->error = NULL;
+
+	if (bs->error != NULL)
+		str_setlen(bs->error, 0);
 }
 
 /**
@@ -99,8 +112,8 @@ mark_unusable(bstr_t *bs)
 static void
 alloc_error(bstr_t *bs)
 {
-	if (!bs->error)
-		bs->error = g_string_sized_new(BSTR_ERRLEN);
+	if (NULL == bs->error)
+		bs->error = str_new(BSTR_ERRLEN);
 }
 
 /**
@@ -114,7 +127,7 @@ error_eos(bstr_t *bs, size_t expected, const char *where)
 
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
-		g_string_printf(bs->error,
+		str_printf(bs->error,
 			"%s: end of stream reached at offset %lu; expected %s more byte%s",
 			where, (unsigned long) (bs->end - bs->start),
 			expected ? size_t_to_string(expected) : "some",
@@ -142,7 +155,8 @@ bstr_open(const void *arena, size_t len, guint32 flags)
 	g_assert(arena);
 	g_assert(0 == (flags & BSTR_F_PRIVATE));
 
-	bs = walloc(sizeof *bs);
+	bs = walloc0(sizeof *bs);
+	bs->magic = BSTR_MAGIC;
 	reset_stream(bs, arena, len, flags);
 
 	if (len == 0)
@@ -162,6 +176,7 @@ bstr_open(const void *arena, size_t len, guint32 flags)
 void
 bstr_reset(bstr_t *bs, const void *arena, size_t len, guint32 flags)
 {
+	bstr_check(bs);
 	g_assert(arena);
 	g_assert(0 == (flags & BSTR_F_PRIVATE));
 
@@ -184,6 +199,7 @@ bstr_create(void)
 	bstr_t *bs;
 
 	bs = walloc0(sizeof *bs);
+	bs->magic = BSTR_MAGIC;
 	mark_unusable(bs);
 
 	return bs;
@@ -196,11 +212,9 @@ bstr_create(void)
 void
 bstr_close(bstr_t *bs)
 {
-	if (bs->error) {
-		g_string_free(bs->error, TRUE);
-		bs->error = NULL;
-	}
+	bstr_check(bs);
 
+	str_destroy_null(&bs->error);
 	mark_unusable(bs);
 }
 
@@ -210,11 +224,15 @@ bstr_close(bstr_t *bs)
 void
 bstr_free(bstr_t **bs_ptr)
 {
-	g_assert(bs_ptr);
-	if (*bs_ptr) {
-		bstr_t *bs = *bs_ptr;
+	bstr_t *bs;
 
+	g_assert(bs_ptr != NULL);
+
+	bs = *bs_ptr;
+
+	if (bs != NULL) {
 		bstr_close(bs);
+		bs->magic = 0;
 		wfree(bs, sizeof *bs);
 		*bs_ptr = NULL;
 	}
@@ -226,6 +244,8 @@ bstr_free(bstr_t **bs_ptr)
 void
 bstr_clear_error(bstr_t *bs)
 {
+	bstr_check(bs);
+
 	if (bs->ok)
 		return;
 
@@ -238,8 +258,8 @@ bstr_clear_error(bstr_t *bs)
 
 	bs->ok = TRUE;
 
-	if (bs->error)
-		g_string_truncate(bs->error, 0);
+	if (bs->error != NULL)
+		str_setlen(bs->error, 0);
 }
 
 /**
@@ -248,6 +268,8 @@ bstr_clear_error(bstr_t *bs)
 gboolean
 bstr_has_error(const bstr_t *bs)
 {
+	bstr_check(bs);
+
 	return !bs->ok;
 }
 
@@ -257,6 +279,8 @@ bstr_has_error(const bstr_t *bs)
 gboolean
 bstr_ended(const bstr_t *bs)
 {
+	bstr_check(bs);
+
 	return bs->ok && bs->end == bs->rptr;
 }
 
@@ -266,12 +290,14 @@ bstr_ended(const bstr_t *bs)
 const char *
 bstr_error(const bstr_t *bs)
 {
+	bstr_check(bs);
+
 	if (bs->ok)
 		return "OK";
 	else if (bs->flags & BSTR_F_PENDING)
 		return "stream waiting for a reset";
 	else if (bs->flags & BSTR_F_ERROR)
-		return bs->error->str;
+		return str_2c(bs->error);
 	else if (bs->flags & BSTR_F_EOS)
 		return "end of stream reached";
 	else
@@ -287,7 +313,7 @@ invalid_len(bstr_t *bs, size_t len, const char *what, const char *where)
 {
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
-		g_string_printf(bs->error,
+		str_printf(bs->error,
 			"%s: invalid %s length %lu at offset %lu",
 			where, what, (unsigned long ) len,
 			(unsigned long) (bs->rptr - bs->start));
@@ -306,7 +332,7 @@ invalid_len_max(
 {
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
-		g_string_printf(bs->error,
+		str_printf(bs->error,
 			"%s: invalid %s length %lu (max is %lu) at offset %lu",
 			where, what, (unsigned long) len, (unsigned long) max,
 			(unsigned long) (bs->rptr - bs->start));
@@ -324,7 +350,7 @@ invalid_encoding(bstr_t *bs, const char *what, const char *where)
 {
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
-		g_string_printf(bs->error,
+		str_printf(bs->error,
 			"%s: invalid encoding at offset %lu: %s",
 			where, (unsigned long) (bs->rptr - bs->start), what);
 	}
@@ -341,7 +367,7 @@ report_error(bstr_t *bs, const char *what, const char *where)
 {
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
-		g_string_printf(bs->error,
+		str_printf(bs->error,
 			"%s: error at offset %lu: %s",
 			where, (unsigned long) (bs->rptr - bs->start), what);
 	}
@@ -355,7 +381,9 @@ report_error(bstr_t *bs, const char *what, const char *where)
 size_t
 bstr_unread_size(const bstr_t *bs)
 {
+	bstr_check(bs);
 	g_assert(bs->end >= bs->rptr);
+
 	return bs->end - bs->rptr;
 }
 
@@ -384,6 +412,8 @@ expect(bstr_t *bs, size_t expected, const char *where)
 const void *
 bstr_read_base(const bstr_t *bs)
 {
+	bstr_check(bs);
+
 	return bs->rptr;
 }
 
@@ -398,6 +428,7 @@ bstr_read_base(const bstr_t *bs)
 gboolean
 bstr_skip(bstr_t *bs, size_t count)
 {
+	bstr_check(bs);
 	g_assert(size_is_non_negative(count));
 
 	if (!count)
@@ -422,6 +453,7 @@ bstr_skip(bstr_t *bs, size_t count)
 gboolean
 bstr_read(bstr_t *bs, void *buf, size_t count)
 {
+	bstr_check(bs);
 	g_assert(size_is_positive(count));
 	g_assert(buf);
 
@@ -444,6 +476,7 @@ bstr_read(bstr_t *bs, void *buf, size_t count)
 gboolean
 bstr_read_u8(bstr_t *bs, guint8 *pv)
 {
+	bstr_check(bs);
 	g_assert(pv);
 
 	if (!expect(bs, 1, "bstr_read_u8"))
@@ -464,6 +497,7 @@ bstr_read_u8(bstr_t *bs, guint8 *pv)
 gboolean
 bstr_read_boolean(bstr_t *bs, gboolean *pv)
 {
+	bstr_check(bs);
 	g_assert(pv);
 
 	if (!expect(bs, 1, "bstr_read_boolean"))
@@ -484,6 +518,7 @@ bstr_read_boolean(bstr_t *bs, gboolean *pv)
 gboolean
 bstr_read_le16(bstr_t *bs, guint16 *pv)
 {
+	bstr_check(bs);
 	g_assert(pv);
 
 	if (!expect(bs, 2, "bstr_read_le16"))
@@ -505,6 +540,7 @@ bstr_read_le16(bstr_t *bs, guint16 *pv)
 gboolean
 bstr_read_be16(bstr_t *bs, guint16 *pv)
 {
+	bstr_check(bs);
 	g_assert(pv);
 
 	if (!expect(bs, 2, "bstr_read_be16"))
@@ -526,6 +562,7 @@ bstr_read_be16(bstr_t *bs, guint16 *pv)
 gboolean
 bstr_read_le32(bstr_t *bs, guint32 *pv)
 {
+	bstr_check(bs);
 	g_assert(pv);
 
 	if (!expect(bs, 4, "bstr_read_le32"))
@@ -547,6 +584,7 @@ bstr_read_le32(bstr_t *bs, guint32 *pv)
 gboolean
 bstr_read_be32(bstr_t *bs, guint32 *pv)
 {
+	bstr_check(bs);
 	g_assert(pv);
 
 	if (!expect(bs, 4, "bstr_read_be32"))
@@ -568,6 +606,7 @@ bstr_read_be32(bstr_t *bs, guint32 *pv)
 gboolean
 bstr_read_be64(bstr_t *bs, guint64 *pv)
 {
+	bstr_check(bs);
 	g_assert(pv);
 
 	if (!expect(bs, 8, "bstr_read_be64"))
@@ -589,6 +628,7 @@ bstr_read_be64(bstr_t *bs, guint64 *pv)
 gboolean
 bstr_read_time(bstr_t *bs, time_t *pv)
 {
+	bstr_check(bs);
 	g_assert(pv);
 
 	if (!expect(bs, 4, "bstr_read_time"))
@@ -610,6 +650,7 @@ bstr_read_time(bstr_t *bs, time_t *pv)
 gboolean
 bstr_read_float_be(bstr_t *bs, float *pv)
 {
+	bstr_check(bs);
 	g_assert(pv);
 
 	if (!expect(bs, 4, "bstr_read_float"))
@@ -634,6 +675,7 @@ bstr_read_ipv4_addr(bstr_t *bs, host_addr_t *ha)
 {
 	static const char where[] = "bstr_read_ipv4_addr";
 
+	bstr_check(bs);
 	g_assert(ha);
 
 	if (!expect(bs, 4, where))
@@ -658,6 +700,7 @@ bstr_read_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 {
 	static const char where[] = "bstr_read_ipv6_addr";
 
+	bstr_check(bs);
 	g_assert(ha);
 
 	if (!expect(bs, 16, where))
@@ -686,6 +729,7 @@ bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 	static const char where[] = "bstr_read_packed_ipv4_or_ipv6_addr";
 	guint8 len;
 
+	bstr_check(bs);
 	g_assert(ha);
 
 	if (!expect(bs, 1, where))
@@ -730,6 +774,7 @@ bstr_read_packed_array_u8(bstr_t *bs, size_t max, void *ptr, guint8 *pr)
 	static const char where[] = "bstr_read_packed_array_u8";
 	guint8 len;
 
+	bstr_check(bs);
 	g_assert(ptr);
 	g_assert(pr);
 
@@ -772,6 +817,7 @@ bstr_read_ule64(bstr_t *bs, guint64 *pv)
 	guint8 shift = 0;
 	guint8 n = 0;
 
+	bstr_check(bs);
 	g_assert(pv);
 
 	if (!expect(bs, 1, where))	/* Need at least one byte */
@@ -816,6 +862,7 @@ bstr_read_fixed_string(bstr_t *bs, size_t *slen, char *buf, size_t len)
 	guint64 length;
 	size_t n;
 
+	bstr_check(bs);
 	g_assert(slen);
 	g_assert(buf);
 	g_assert(size_is_positive(len));

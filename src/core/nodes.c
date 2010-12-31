@@ -41,56 +41,56 @@ RCSID("$Id$")
 
 #include "gtk-gnutella.h"
 
-#include "sockets.h"
-#include "search.h"
-#include "share.h"
-#include "routing.h"
-#include "hosts.h"
-#include "nodes.h"
+#include "alive.h"
+#include "ban.h"
+#include "bh_upload.h"
+#include "bsched.h"
+#include "clock.h"
+#include "ctl.h"
+#include "dh.h"
+#include "dq.h"
+#include "dump.h"
+#include "extensions.h"
+#include "features.h"
+#include "geo_ip.h"
 #include "gmsg.h"
+#include "gnet_stats.h"
+#include "hcache.h"
+#include "hostiles.h"
+#include "hosts.h"
+#include "hsep.h"
+#include "http.h"
+#include "ioheader.h"
+#include "ipp_cache.h"
 #include "mq.h"
 #include "mq_tcp.h"
 #include "mq_udp.h"
+#include "nodes.h"
+#include "pcache.h"
+#include "pdht.h"
+#include "pproxy.h"
+#include "qrp.h"
+#include "routing.h"
+#include "rx.h"
+#include "rx_inflate.h"
+#include "rx_link.h"
+#include "rxbuf.h"
+#include "search.h"
+#include "settings.h"
+#include "share.h"
+#include "sockets.h"
 #include "sq.h"
+#include "token.h"
+#include "tsync.h"
 #include "tx.h"
-#include "tx_link.h"
 #include "tx_deflate.h"
 #include "tx_dgram.h"
-#include "rxbuf.h"
-#include "rx.h"
-#include "rx_link.h"
-#include "rx_inflate.h"
-#include "pcache.h"
-#include "bsched.h"
-#include "http.h"
-#include "version.h"
-#include "alive.h"
-#include "uploads.h"			/* For handle_push_request() */
-#include "whitelist.h"
-#include "gnet_stats.h"
-#include "ban.h"
-#include "hcache.h"
-#include "qrp.h"
-#include "vmsg.h"
-#include "token.h"
-#include "hostiles.h"
-#include "clock.h"
-#include "hsep.h"
-#include "dq.h"
-#include "dh.h"
-#include "ioheader.h"
-#include "settings.h"
-#include "features.h"
+#include "tx_link.h"
 #include "udp.h"
-#include "tsync.h"
-#include "geo_ip.h"
-#include "extensions.h"
-#include "bh_upload.h"
-#include "ipp_cache.h"
-#include "dump.h"
-#include "ctl.h"
-#include "pproxy.h"
-#include "pdht.h"
+#include "uploads.h"			/* For handle_push_request() */
+#include "version.h"
+#include "vmsg.h"
+#include "whitelist.h"
 
 #include "lib/adns.h"
 #include "lib/aging.h"
@@ -99,22 +99,23 @@ RCSID("$Id$")
 #include "lib/concat.h"
 #include "lib/cq.h"
 #include "lib/dbus_util.h"
+#include "lib/endian.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
-#include "lib/halloc.h"
-#include "lib/hashlist.h"
-#include "lib/iovec.h"
-#include "lib/endian.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
+#include "lib/hashlist.h"
 #include "lib/header.h"
+#include "lib/iovec.h"
 #include "lib/listener.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/sequence.h"
-#include "lib/strtok.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/strtok.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
@@ -9948,23 +9949,23 @@ node_ua_cmp(const void *np1, const void *np2)
  * We further escape the escape character with itself, if found.
  */
 static void
-node_crawl_append_vendor(GString *ua, const char *vendor)
+node_crawl_append_vendor(str_t *ua, const char *vendor)
 {
 	const char *p = vendor;
 	char c;
 
 	while ((c = *p++)) {
 		if (c == NODE_CR_ESCAPE_CHAR) {
-			g_string_append_c(ua, NODE_CR_ESCAPE_CHAR);
-			g_string_append_c(ua, NODE_CR_ESCAPE_CHAR);
+			str_putc(ua, NODE_CR_ESCAPE_CHAR);
+			str_putc(ua, NODE_CR_ESCAPE_CHAR);
 		} else if (c == NODE_CR_SEPARATOR) {
-			g_string_append_c(ua, NODE_CR_ESCAPE_CHAR);
-			g_string_append_c(ua, c);
+			str_putc(ua, NODE_CR_ESCAPE_CHAR);
+			str_putc(ua, c);
 		} else
-			g_string_append_c(ua, c);
+			str_putc(ua, c);
 	}
 
-	g_string_append_c(ua, NODE_CR_SEPARATOR);
+	str_putc(ua, NODE_CR_SEPARATOR);
 }
 
 /**
@@ -9986,7 +9987,7 @@ node_crawl_append_vendor(GString *ua, const char *vendor)
 static int
 node_crawl_fill(pmsg_t *mb,
 	gnutella_node_t **ary, int start, int len, int want,
-	guint8 features, time_t now, GString *ua, gboolean gtkg)
+	guint8 features, time_t now, str_t *ua, gboolean gtkg)
 {
 	int i, j;
 	int written = 0;
@@ -10075,7 +10076,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 	pmsg_t *mb = NULL;
 	pdata_t *db;
 	guchar *payload;					/* Start of constructed payload */
-	GString *agents = NULL;				/* The string holding user-agents */
+	str_t *agents = NULL;				/* The string holding user-agents */
 	time_t now;
 
 	g_assert(NODE_IS_UDP(n));
@@ -10196,7 +10197,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 	now = tm_time();
 
 	if (features & NODE_CR_USER_AGENT)
-		agents = g_string_sized_new((un + ln) * 15);
+		agents = str_new((un + ln) * 15);
 
 	/*
 	 * Insert GTKG nodes first, and if there is room, non-GTKG nodes starting
@@ -10250,7 +10251,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 		zlib_deflater_t *zd;
 		int ret;
 
-		g_assert(agents->len > 0);
+		g_assert(str_len(agents) > 0);
 
 		/*
 		 * Append our own vendor string to the list.
@@ -10259,11 +10260,11 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 		node_crawl_append_vendor(agents, version_string);
 
 		zd = zlib_deflater_make(
-			agents->str,
-			agents->len - 1,			/* Drop trailing separator */
+			str_2c(agents),
+			str_len(agents) - 1,		/* Drop trailing separator */
 			Z_DEFAULT_COMPRESSION);
 
-		ret = zlib_deflate(zd, agents->len - 1);	/* Compress the whole */
+		ret = zlib_deflate(zd, str_len(agents) - 1); /* Compress the whole */
 
 		if (ret != 0) {
 			if (ret == -1)
@@ -10278,8 +10279,8 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 			int remains;
 
 			if (GNET_PROPERTY(node_debug)) g_debug(
-				"crawler compressed %d bytes user-agent string into %d",
-				(int) (agents->len - 1), dlen);
+				"crawler compressed %lu bytes user-agent string into %d",
+				(unsigned long) (str_len(agents) - 1), dlen);
 
 			/*
 			 * If we have room to include it, do so.
@@ -10316,8 +10317,7 @@ cleanup:
 		wfree(ultras, ultras_len);
 	if (leaves)
 		wfree(leaves, leaves_len);
-	if (agents)
-		g_string_free(agents, TRUE);
+	str_destroy_null(&agents);
 }
 
 /**

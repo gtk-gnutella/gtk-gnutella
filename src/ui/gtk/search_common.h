@@ -225,9 +225,6 @@ int gui_record_sha1_eq(const void *, const void *);
 int gui_record_host_eq(const void *, const void *);
 int gui_record_sha1_or_name_eq(const void *, const void *);
 
-/* FIXME: This does not belong here. */
-char *gnet_host_vec_to_string(const gnet_host_vec_t *);
-
 #endif /* _gtk_search_common_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

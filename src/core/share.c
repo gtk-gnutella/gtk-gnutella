@@ -41,41 +41,43 @@
 RCSID("$Id$")
 
 #include "share.h"
-#include "gmsg.h"
-#include "huge.h"
-#include "qrp.h"
 #include "extensions.h"
-#include "nodes.h"
-#include "uploads.h"
+#include "fileinfo.h"
 #include "ggep_type.h"
+#include "gmsg.h"
 #include "gnet_stats.h"
 #include "guid.h"
-#include "qhit.h"
+#include "hosts.h"
+#include "huge.h"
+#include "nodes.h"
 #include "oob.h"
 #include "oob_proxy.h"
-#include "fileinfo.h"
-#include "settings.h"
-#include "hosts.h"
-#include "upload_stats.h"
 #include "publisher.h"
+#include "qhit.h"
+#include "qrp.h"
+#include "settings.h"
+#include "upload_stats.h"
+#include "uploads.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/bg.h"
 #include "lib/endian.h"
 #include "lib/file.h"
+#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/listener.h"
 #include "lib/mime_type.h"
-#include "lib/glib-missing.h"
+#include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 enum shared_file_magic {
@@ -615,19 +617,19 @@ void
 shared_dirs_update_prop(void)
 {
     GSList *sl;
-    GString *s;
+    str_t *s;
 
-    s = g_string_new("");
+    s = str_new(0);
 
     for (sl = shared_dirs; sl != NULL; sl = g_slist_next(sl)) {
-        g_string_append(s, sl->data);
+        str_cat(s, sl->data);
         if (g_slist_next(sl) != NULL)
-            g_string_append(s, ":");
+            str_putc(s, ':');
     }
 
-    gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, s->str);
+    gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, str_2c(s));
 
-    g_string_free(s, TRUE);
+    str_destroy(s);
 }
 
 /**

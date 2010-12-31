@@ -955,7 +955,7 @@ on_popup_downloads_copy_magnet_activate(GtkMenuItem *unused_menuitem,
 	if (file) {
 		char *magnet = fi_gui_file_get_magnet(file);
 		clipboard_set_text(gui_main_window(), magnet);
-		G_FREE_NULL(magnet);
+		HFREE_NULL(magnet);
 	}
 }
 

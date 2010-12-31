@@ -44,8 +44,10 @@ RCSID("$Id$")
 #include "misc.h"			/* For is_strprefix() */
 #include "parse.h"
 #include "path.h"
+#include "str.h"
 #include "url.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 #define ESCAPE_CHAR		'%'
@@ -247,33 +249,35 @@ url_escape_into(const char *url, char *target, int len)
 
 /**
  * Don't touch '?', '&', '=', ':', '[', ']', %HH.
+ *
+ * @return newly allocated string through halloc().
  */
 char *
 url_fix_escape(const char *url)
 {
 	const char *p;
-	GString *gs;
+	str_t *s;
 	guchar c;
 
-	gs = g_string_new(NULL);
+	s = str_new(0);
 
 	for (p = url; '\0' != (c = *p); p++) {
 		if (
 			is_transparent_char(c, FIX_MASK) ||
 			('%' == c && is_ascii_xdigit(p[1]) && is_ascii_xdigit(p[2]))
 		) {
-			gs = g_string_append_c(gs, c);
+			str_putc(s, c);
 		} else {
 			char buf[3];
 
 			buf[0] = ESCAPE_CHAR;
 			buf[1] = hex_alphabet[c >> 4];
 			buf[2] = hex_alphabet[c & 0xf];
-			gs = g_string_append_len(gs, buf, sizeof buf);
+			str_cat_len(s, buf, sizeof buf);
 		}
 	}
 
-	return gm_string_finalize(gs);
+	return str_s2c(s);
 }
 
 /**

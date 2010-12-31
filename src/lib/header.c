@@ -38,15 +38,16 @@
 RCSID("$Id$")
 
 #include "header.h"
-#include "atoms.h"
 #include "ascii.h"
+#include "atoms.h"
+#include "getline.h"		/* For MAX_LINE_SIZE */
 #include "glib-missing.h"
 #include "halloc.h"
-#include "unsigned.h"
 #include "misc.h"
-#include "walloc.h"
-#include "getline.h"		/* For MAX_LINE_SIZE */
 #include "slist.h"
+#include "str.h"
+#include "unsigned.h"
+#include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -54,7 +55,7 @@ enum header_magic { HEADER_MAGIC = 0x71b8484fU };
 
 /*
  * The `headers' field is a hash table indexed by field name (case-insensitive).
- * Each value (GString) holds a private copy of the string making that header,
+ * Each value (str_t *) holds a private copy of the string making that header,
  * with all continuations removed (leading spaces collapsed into one), and
  * indentical fields concatenated using ", " separators, per RFC2616.
  *
@@ -301,7 +302,7 @@ free_header_data(gpointer key, gpointer value, gpointer unused_udata)
 	(void) unused_udata;
 
 	HFREE_NULL(key);			/* XXX if shared, don't do that */
-	g_string_free(value, TRUE);
+	str_destroy(value);
 	return TRUE;
 }
 
@@ -384,7 +385,7 @@ header_reset(header_t *o)
 char *
 header_get(const header_t *o, const char *field)
 {
-	GString *v;
+	str_t *v;
 
 	header_check(o);
 
@@ -393,7 +394,7 @@ header_get(const header_t *o, const char *field)
 	} else {
 		v = NULL;
 	}
-	return v ? v->str : NULL;
+	return str_2c(v);
 }
 
 /**
@@ -407,7 +408,7 @@ header_get(const header_t *o, const char *field)
 char *
 header_get_extended(const header_t *o, const char *field, size_t *len_ptr)
 {
-	GString *v;
+	str_t *v;
 
 	header_check(o);
 
@@ -417,9 +418,9 @@ header_get_extended(const header_t *o, const char *field, size_t *len_ptr)
 		v = NULL;
 	}
 	if (v && len_ptr != NULL) {
-		*len_ptr = v->len;
+		*len_ptr = str_len(v);
 	}
-	return v ? v->str : NULL;
+	return str_2c(v);
 }
 
 /**
@@ -430,7 +431,7 @@ static void
 add_header(header_t *o, const char *field, const char *text)
 {
 	GHashTable *ht;
-	GString *v;
+	str_t *v;
 
 	header_check(o);
 
@@ -442,8 +443,8 @@ add_header(header_t *o, const char *field, const char *text)
 		 * the value, comma-separated.
 		 */
 
-		g_string_append(v, ", ");
-		g_string_append(v, text);
+		str_cat(v, ", ");
+		str_cat(v, text);
 
 	} else {
 		char *key;
@@ -453,7 +454,7 @@ add_header(header_t *o, const char *field, const char *text)
 		 */
 
 		key = h_strdup(field);
-		v = g_string_new(text);
+		v = str_new_from(text);
 		g_hash_table_insert(ht, key, v);
 	}
 }
@@ -465,15 +466,15 @@ add_header(header_t *o, const char *field, const char *text)
 static void
 add_continuation(header_t *o, const char *field, const char *text)
 {
-	GString *v;
+	str_t *v;
 
 	header_check(o);
 	g_assert(o->headers);
 
 	v = g_hash_table_lookup(o->headers, field);
-	g_assert(v);
-	g_string_append_c(v, ' ');
-	g_string_append(v, text);
+	g_assert(v != NULL);
+	str_putc(v, ' ');
+	str_cat(v, text);
 }
 
 /**
@@ -696,7 +697,7 @@ struct header_fmt {
 	enum header_fmt_magic magic;
 	size_t max_size;		/**< Maximum line length, including "\r\n" + NUL */
 	size_t maxlen;			/**< Maximum line length before continuation */
-	GString *header;		/**< Header being built */
+	str_t *header;			/**< Header being built */
 	const char *sep;		/**< Optional separator */
 	size_t seplen;			/**< Length of separator string */
 	size_t stripped_seplen;	/**< Length of separator without trailing space */
@@ -767,7 +768,7 @@ header_fmt_make(const char *field, const char *separator,
 
 	hf = walloc(sizeof(*hf));
 	hf->magic = HEADER_FMT_MAGIC;
-	hf->header = g_string_sized_new(len_hint ? len_hint : HEADER_FMT_DFLT_LEN);
+	hf->header = str_new(len_hint ? len_hint : HEADER_FMT_DFLT_LEN);
 	hf->maxlen = HEADER_FMT_LINE_LEN;
 	hf->data_emitted = FALSE;
 	hf->frozen = FALSE;
@@ -775,10 +776,10 @@ header_fmt_make(const char *field, const char *separator,
 	hf->sep = atom_str_get(separator ? separator : "");
 	hf->seplen = strlen(hf->sep);
 	hf->stripped_seplen = stripped_strlen(hf->sep, hf->seplen);
-	g_string_append(hf->header, field);
-	g_string_append(hf->header, ": ");
+	str_cat(hf->header, field);
+	str_cat(hf->header, ": ");
 
-	hf->current_len = hf->header->len;
+	hf->current_len = str_len(hf->header);
 
 	/*
 	 * If right from the start the header would be larger than the configured
@@ -786,9 +787,9 @@ header_fmt_make(const char *field, const char *separator,
 	 * will be "", the empty string.
 	 */
 
-	if (hf->header->len + sizeof("\r\n") > hf->max_size) {
+	if (str_len(hf->header) + sizeof("\r\n") > hf->max_size) {
 		hf->empty = TRUE;
-		g_string_truncate(hf->header, 0);
+		str_setlen(hf->header, 0);
 	} else {
 		hf->empty = FALSE;
 	}
@@ -821,7 +822,7 @@ header_fmt_free(header_fmt_t **hf_ptr)
 	if (hf) {
 		header_fmt_check(hf);
 
-		g_string_free(hf->header, TRUE);
+		str_destroy_null(&hf->header);
 		atom_str_free_null(&hf->sep);
 		hf->magic = 0;
 		wfree(hf, sizeof *hf);
@@ -853,7 +854,7 @@ header_fmt_value_fits(const header_fmt_t *hf, size_t len)
 	 * followed by "\r\n\t" (3 chars).
 	 */
 
-	final_len = size_saturate_add(hf->header->len, len);
+	final_len = size_saturate_add(str_len(hf->header), len);
 
 	n = size_saturate_add(hf->current_len, size_saturate_add(len, hf->seplen));
 	if (n <= hf->maxlen) {
@@ -896,7 +897,7 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
 	if (hf->empty)
 		return FALSE;
 
-	gslen = hf->header->len;
+	gslen = str_len(hf->header);
 	len = strlen(str);
 	curlen = hf->current_len;
 	g_assert(size_is_non_negative(curlen));
@@ -914,32 +915,32 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
 		if (separator != NULL && hf->data_emitted) {
 			sslen = (size_t)-1 != sslen ? sslen :
 				stripped_strlen(separator, slen);
-			g_string_append_len(hf->header, separator, sslen);
+			str_cat_len(hf->header, separator, sslen);
 		}
 
-		g_string_append(hf->header, "\r\n\t");	/* Includes continuation */
+		str_cat(hf->header, "\r\n\t");			/* Includes continuation */
 		curlen = 1;								/* One tab */
 	} else if (hf->data_emitted) {
-		g_string_append(hf->header, separator);
+		str_cat(hf->header, separator);
 		curlen += slen;
 	}
 
-	g_string_append(hf->header, str);
+	str_cat(hf->header, str);
 
 	/*
 	 * Check for overflows, undoing string changes if needed.
 	 */
 
-	if (hf->header->len + sizeof("\r\n") > hf->max_size) {
+	if (str_len(hf->header) + sizeof("\r\n") > hf->max_size) {
 		success = FALSE;
-		g_string_truncate(hf->header, gslen);	/* Undo! */
+		str_setlen(hf->header, gslen);			/* Undo! */
 	} else {
 		success = TRUE;
 		hf->data_emitted = TRUE;
 		hf->current_len = curlen + len;
 	}
 
-	g_assert(hf->header->len + sizeof("\r\n") <= hf->max_size);
+	g_assert(str_len(hf->header) + sizeof("\r\n") <= hf->max_size);
 
 	return success;
 }
@@ -1000,7 +1001,7 @@ header_fmt_length(const header_fmt_t *hf)
 {
 	header_fmt_check(hf);
 
-	return hf->header->len;
+	return str_len(hf->header);
 }
 
 /**
@@ -1014,10 +1015,10 @@ header_fmt_end(header_fmt_t *hf)
 	g_assert(!hf->frozen);
 
 	if (!hf->empty)
-		g_string_append(hf->header, "\r\n");
+		str_cat(hf->header, "\r\n");
 	hf->frozen = TRUE;
 
-	g_assert(UNSIGNED(hf->header->len) < hf->max_size);
+	g_assert(str_len(hf->header) < hf->max_size);
 }
 
 /**
@@ -1028,7 +1029,7 @@ header_fmt_string(const header_fmt_t *hf)
 {
 	header_fmt_check(hf);
 
-	return hf->header->str;		/* Guaranteed to be always NUL-terminated */
+	return str_2c(hf->header);	/* Guaranteed to be always NUL-terminated */
 }
 
 /**
@@ -1044,11 +1045,11 @@ header_fmt_to_string(const header_fmt_t *hf)
 
 	header_fmt_check(hf);
 
-	if (UNSIGNED(hf->header->len) >= sizeof line) {
+	if (str_len(hf->header) >= sizeof line) {
 		g_warning("trying to format too long an HTTP line (%lu bytes)",
-			(unsigned long) hf->header->len);
+			(unsigned long) str_len(hf->header));
 	}
-	clamp_strncpy(line, sizeof line, hf->header->str, hf->header->len);
+	clamp_strncpy(line, sizeof line, str_2c(hf->header), str_len(hf->header));
 	return line;
 }
 

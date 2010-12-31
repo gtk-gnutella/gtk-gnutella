@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "parse.h"
 #include "path.h"
 #include "sha1.h"
+#include "str.h"
 #include "stringify.h"
 #include "timestamp.h"
 #include "tm.h"
@@ -1486,11 +1487,11 @@ config_comment(const char *s)
 {
 	const char *word;
 	size_t line_len;
-	GString *out;
+	str_t *out;
 
 	g_assert(s != NULL);
 
-	out = g_string_new(NULL);
+	out = str_new(0);
 	word = skip_ascii_spaces(s); /* Ignore leading whitespace. */
 	line_len = 0;
 
@@ -1503,22 +1504,22 @@ config_comment(const char *s)
 		word_len = endptr - word;
 		if (line_len >= max_len || word_len >= max_len - line_len) {
 			if (line_len > 0)
-				g_string_append_c(out, '\n');
+				str_putc(out, '\n');
 			line_len = 0;
 		}
 		if (0 == line_len) {
-			g_string_append_c(out, '#');
+			str_putc(out, '#');
 			line_len++;
 		}
 		/* All kind of ASCII whitespace is normalized to a single space. */
-		g_string_append_c(out, ' ');
+		str_putc(out, ' ');
 		line_len++;
-		g_string_append_len(out, word, word_len);
+		str_cat_len(out, word, word_len);
 		line_len += word_len;
 		word = skip_ascii_spaces(endptr);
 	}
 
-	return gm_string_finalize(out);
+	return str_s2c(out);
 }
 
 /**
@@ -1632,7 +1633,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 			"#\n# Description of contents\n"
 			"%s\n\n",
 			comment);
-		G_FREE_NULL(comment);
+		HFREE_NULL(comment);
 	}
 
 	for (n = 0; n < ps->size; n++) {

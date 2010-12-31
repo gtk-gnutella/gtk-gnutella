@@ -59,6 +59,7 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/halloc.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -160,7 +161,7 @@ search_set_xml(GtkWidget *widget, const char *xml)
 		xml_txt = NULL;
 	}
 	gtk_text_buffer_set_text(txt, EMPTY_STRING(xml_txt), -1);
-	G_FREE_NULL(xml_txt);
+	HFREE_NULL(xml_txt);
 }
 
 void
@@ -398,7 +399,7 @@ on_popup_search_copy_magnet_activate(GtkMenuItem *unused_item,
 		url = search_gui_get_magnet(search,
 					search_gui_get_record(model, &iter));
 		clipboard_set_text(GTK_WIDGET(tv), url);
-		G_FREE_NULL(url);
+		HFREE_NULL(url);
 	}
 	gtk_tree_path_free(path);
 }

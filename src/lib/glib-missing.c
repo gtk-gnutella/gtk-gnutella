@@ -472,25 +472,6 @@ gm_getproctitle(void)
 }
 
 #ifdef USE_GLIB1
-#undef g_string_append_len		/* Macro when -DTRACK_MALLOC */
-#undef g_string_append_c		/* Macro when -DTRACK_MALLOC */
-/**
- * Appends len bytes of val to string. Because len is provided, val may
- * contain embedded nuls and need not be nul-terminated.
- */
-GString *
-g_string_append_len(GString *gs, const char *val, gssize len)
-{
-	const char *p = val;
-
-	while (len--)
-		g_string_append_c(gs, *p++);
-
-	return gs;
-}
-#endif	/* USE_GLIB1 */
-
-#ifdef USE_GLIB1
 /*
  * Emulations for missing routines in glib 1.x to get/set glib's poll function.
  * They should be working substitutes given gtk-gnutella's usage pattern.
@@ -524,25 +505,6 @@ g_main_context_set_poll_func(GMainContext *context, GPollFunc func)
 	g_main_set_poll_func(gpoll_func);
 }
 #endif	/* USE_GLIB1 */
-
-/**
- * Frees the GString context but keeps the string data itself and returns
- * it. With Gtk+ 2.x g_string_free(gs, FALSE) would do the job but the
- * variant in Gtk+ 1.2 returns nothing.
- *
- * @return The string data.
- */
-char *
-gm_string_finalize(GString *gs)
-{
-	char *s;
-
-	g_return_val_if_fail(gs, NULL);
-	g_return_val_if_fail(gs->str, NULL);
-	s = gs->str;
-	g_string_free(gs, FALSE);
-	return s;
-}
 
 /**
  * Detects a loop in a singly-linked list.

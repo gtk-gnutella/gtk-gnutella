@@ -37,7 +37,9 @@
 
 RCSID("$Id$")
 
+#include "search.h"
 #include "bogons.h"
+#include "ctl.h"
 #include "dh.h"
 #include "dmesh.h"
 #include "downloads.h"
@@ -60,7 +62,6 @@ RCSID("$Id$")
 #include "qhit.h"
 #include "qrp.h"
 #include "routing.h"
-#include "search.h"
 #include "settings.h"		/* For listen_ip() */
 #include "share.h"
 #include "sockets.h"
@@ -68,7 +69,6 @@ RCSID("$Id$")
 #include "sq.h"
 #include "version.h"
 #include "vmsg.h"
-#include "ctl.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
@@ -90,14 +90,15 @@ RCSID("$Id$")
 #include "lib/magnet.h"
 #include "lib/random.h"
 #include "lib/sbool.h"
+#include "lib/str.h"
 #include "lib/tm.h"
+#include "lib/urn.h"
+#include "lib/utf8.h"
 #include "lib/vector.h"
 #include "lib/vendors.h"
-#include "lib/wordvec.h"
 #include "lib/walloc.h"
+#include "lib/wordvec.h"
 #include "lib/zalloc.h"
-#include "lib/utf8.h"
-#include "lib/urn.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -1419,7 +1420,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	char *endptr, *s, *tag;
 	guint32 nr = 0;
 	guint32 size, idx, taglen;
-	GString *info;
+	str_t *info;
 	unsigned sha1_errors = 0;
 	unsigned alt_errors = 0;
 	unsigned alt_without_hash = 0;
@@ -1442,7 +1443,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		return NULL;
 	}
 
-	info = g_string_sized_new(80);
+	info = str_new(80);
 
 	rs = search_new_r_set();
 	rs->stamp = tm_time();
@@ -1668,7 +1669,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			 * Look for a valid SHA1 or a tag string we can display.
 			 */
 
-			g_string_truncate(info, 0);
+			str_setlen(info, 0);
 
 			for (i = 0; i < exvcnt; i++) {
 				extvec_t *e = &exv[i];
@@ -1876,10 +1877,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				case EXT_T_UNKNOWN:
 					has_unknown = TRUE;
 					if (ext_paylen(e) && ext_has_ascii_word(e)) {
-						if (info->len)
-							g_string_append(info, "; ");
-						g_string_append_len(info,
-							ext_payload(e), ext_paylen(e));
+						if (str_len(info))
+							str_cat(info, "; ");
+						str_cat_len(info, ext_payload(e), ext_paylen(e));
 					}
 					break;
 				default:
@@ -1910,8 +1910,8 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			if (exvcnt)
 				ext_reset(exv, MAX_EXTVEC);
 
-			if (info->len)
-				rc->tag = atom_str_get(info->str);
+			if (str_len(info) > 0)
+				rc->tag = atom_str_get(str_2c(info));
 
 			if (hvec != NULL) {
 				if (!has_hash)
@@ -2120,8 +2120,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	{
 		host_addr_t c_addr;
 
-		g_string_free(info, TRUE);
-		info = NULL;
+		str_destroy_null(&info);
 
 		/*
 		 * Prefer an UDP source IP for the country computation.
@@ -2166,7 +2165,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	}
 
 	search_free_r_set(rs);
-	g_string_free(info, TRUE);
+	str_destroy(info);
 
 	return NULL;				/* Forget set, comes from a bad node */
 }

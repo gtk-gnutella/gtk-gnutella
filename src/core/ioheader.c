@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "lib/header.h"
 #include "lib/inputevt.h"
 #include "lib/misc.h"
+#include "lib/str.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -70,7 +71,7 @@ struct io_header {
 	const struct io_error *error;	/**< Error callbacks */
 	io_done_cb_t process_header;	/**< Called when all headers are read */
 	io_start_cb_t header_read_start;/**< Called when reading first byte */
-	GString *text;					/**< Full header text */
+	str_t *text;					/**< Full header text */
 	guint read_bytes;				/**< Amount of bytes read */
 	int flags;
 };
@@ -106,8 +107,7 @@ io_free(gpointer opaque)
 		header_free(ih->header);
 	if (ih->getline)
 		getline_free(ih->getline);
-	if (ih->text)
-		g_string_free(ih->text, TRUE);
+	str_destroy_null(&ih->text);
 
 	ih->magic = 0;
 	wfree(ih, sizeof(*ih));
@@ -154,7 +154,7 @@ io_gettext(const gpointer opaque)
 	g_assert(ih->flags & IO_SAVE_HEADER);	/* They must have requested this */
 	g_assert(ih->text);
 
-	return ih->text->str;
+	return str_2c(ih->text);
 }
 
 /**
@@ -223,9 +223,9 @@ nextline:
 		 */
 
 		g_assert(ih->text != NULL);
-		/* No g_string_append_len() in glib 1.2, use g_string_append() --RAM */
-		g_string_append(ih->text, getline_str(ih->getline));
-		g_string_append_c(ih->text, '\n');
+		str_cat_len(ih->text,
+			getline_str(ih->getline), getline_length(ih->getline));
+		str_putc(ih->text, '\n');
 	}
 
 	if (ih->flags & IO_SAVE_FIRST) {
@@ -473,7 +473,7 @@ io_get_header(
 	ih->process_header = done;
 	ih->header_read_start = start;
 	ih->header = (flags & IO_SINGLE_LINE) ? NULL : header_make();
-	ih->text = (flags & IO_SAVE_HEADER) ? g_string_sized_new(DFLT_SIZE) : NULL;
+	ih->text = (flags & IO_SAVE_HEADER) ? str_new(DFLT_SIZE) : NULL;
 	ih->read_bytes = 0;
 
 	/*
@@ -535,13 +535,12 @@ io_continue_header(
 		g_assert(ih->flags & IO_SAVE_HEADER);
 
 		if (flags & IO_SAVE_HEADER)
-			g_string_truncate(ih->text, 0);
+			str_setlen(ih->text, 0);
 		else {
-			g_string_free(ih->text, TRUE);
-			ih->text = NULL;
+			str_destroy_null(&ih->text);
 		}
 	} else if (flags & IO_SAVE_HEADER)
-		ih->text = g_string_sized_new(DFLT_SIZE);
+		ih->text = str_new(DFLT_SIZE);
 
 	header_reset(ih->header);
 	ih->flags = flags;

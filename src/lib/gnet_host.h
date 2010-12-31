@@ -152,6 +152,8 @@ gnet_host_vec_get(const gnet_host_vec_t *hvec, guint i)
 	return host;
 }
 
+char *gnet_host_vec_to_string(const gnet_host_vec_t *);
+
 gnet_host_vec_t *gnet_host_vec_alloc(void);
 void gnet_host_vec_free(gnet_host_vec_t **vec_ptr);
 gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *);

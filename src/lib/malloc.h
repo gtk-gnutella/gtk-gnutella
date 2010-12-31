@@ -308,32 +308,6 @@ GList *track_list_insert_before(
 	GList *l, GList *lk, gpointer data, const char *file, int line);
 GList *track_list_delete_link(GList *l, GList *lk, const char *file, int line);
 
-GString *string_new_track(const char *p, const char *file, int line);
-GString *string_sized_new_track(size_t size, const char *file, int line);
-GString *string_append_track(
-	GString *s, const char *p, const char *file, int line);
-GString *string_append_c_track(
-	GString *s, char c, const char *file, int line);
-GString *string_append_len_track(
-	GString *s, const char *val,  gssize len, const char *file, int line);
-GString *string_assign_track(
-	GString *s, const char *p, const char *file, int line);
-void string_free_track(GString *s, int freestr, const char *file, int line);
-GString *string_prepend_track(
-	GString *s, const char *p, const char *file, int line);
-GString *string_prepend_c_track(
-	GString *s, char c, const char *file, int line);
-GString *string_insert_track(
-	GString *s, int pos, const char *p, const char *file, int line);
-GString *string_insert_c_track(
-	GString *s, int pos, char c, const char *file, int line);
-GString *string_sprintf_track(
-	GString *s, const char *file, int line, const char *fmt, ...)
-	G_GNUC_PRINTF(4, 5);
-GString *string_sprintfa_track(
-	GString *s, const char *file, int line, const char *fmt, ...)
-	G_GNUC_PRINTF(4, 5);
-
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
 
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined (TRACK_VMM)

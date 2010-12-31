@@ -48,11 +48,12 @@ RCSID("$Id$")
 #include "magnet.h"
 #include "parse.h"
 #include "sequence.h"
+#include "str.h"
 #include "stringify.h"
 #include "tm.h"
+#include "unsigned.h"
 #include "url.h"
 #include "urn.h"
-#include "unsigned.h"
 #include "utf8.h"
 #include "walloc.h"
 
@@ -876,47 +877,40 @@ magnet_set_filesize(struct magnet_resource *res, filesize_t size)
 }
 
 static inline void
-magnet_append_item(GString **gs_ptr, gboolean escape_value,
+magnet_append_item(str_t *s, gboolean escape_value,
 	const char *key, const char *value)
 {
-	GString *gs;
-
-	g_return_if_fail(gs_ptr);
-	g_return_if_fail(*gs_ptr);
+	g_return_if_fail(s);
 	g_return_if_fail(key);
 	g_return_if_fail(value);
 
-	gs = *gs_ptr;
-
-	if (0 == gs->len) {
-		gs = g_string_append(gs, "magnet:?");
+	if (0 == str_len(s)) {
+		str_cat(s, "magnet:?");
 	} else {
-		gs = g_string_append_c(gs, '&');
+		str_putc(s, '&');
 	}
-	gs = g_string_append(gs, key);
-	gs = g_string_append_c(gs, '=');
+	str_cat(s, key);
+	str_putc(s, '=');
 
 	if (escape_value) {
 		char *escaped;
 
 		escaped = url_escape_query(value);
-		gs = g_string_append(gs, escaped);
+		str_cat(s, escaped);
 		if (escaped != value) {
 			HFREE_NULL(escaped);
 		}
 	} else {
-		gs = g_string_append(gs, value);
+		str_cat(s, value);
 	}
-
-	*gs_ptr = gs;
 }
 
 static char *
 proxy_sequence_to_string(const sequence_t *s)
 {
-	GString *gs;
+	str_t *str;
 
-	gs = g_string_new(NULL);
+	str = str_new(0);
 
 	if (!sequence_is_empty(s)) {
 		sequence_iter_t *iter;
@@ -924,13 +918,13 @@ proxy_sequence_to_string(const sequence_t *s)
 		iter = sequence_forward_iterator(s);
 		while (sequence_iter_has_next(iter)) {
 			gnet_host_t *host = sequence_iter_next(iter);
-			gs = g_string_append_c(gs, ':');
-			g_string_append(gs, gnet_host_to_string(host));
+			str_putc(str, ':');
+			str_cat(str, gnet_host_to_string(host));
 		}
 		sequence_iterator_release(&iter);
 	}
 
-	return gm_string_finalize(gs);
+	return str_s2c(str);
 }
 
 static char *
@@ -947,13 +941,13 @@ proxies_to_string(GSList *proxies)
  *
  * @return An empty string (""), if the list is empty or the address NULL;
  * otherwise a colon-separated list of IP:port, beginning with a colon. The
- * string is newly allocated.
+ * string is newly allocated via halloc().
  */
 char *
 magnet_proxies_to_string(const sequence_t *proxies)
 {
 	if (NULL == proxies)
-		return g_strdup("");
+		return h_strdup("");
 	
 	return proxy_sequence_to_string(proxies);
 }
@@ -1020,56 +1014,57 @@ magnet_source_to_string(const struct magnet_source *s)
 /**
  * Create a string representation of the magnet resource.
  *
- * @return A newly allocated string.
+ * @return A newly allocated string via halloc().
  */
 char *
 magnet_to_string(const struct magnet_resource *res)
 {
-	GString *gs;
 	GSList *sl;
+	str_t *s;
 
 	g_return_val_if_fail(res, NULL);
 	
-	gs = g_string_new(NULL);
+	s = str_new(0);
+
 	if (res->display_name) {
-		magnet_append_item(&gs, TRUE, "dn", res->display_name);
+		magnet_append_item(s, TRUE, "dn", res->display_name);
 	}
 	if (0 != res->size) {
 		char buf[UINT64_DEC_BUFLEN];
 
 		uint64_to_string_buf(res->size, buf, sizeof buf);
-		magnet_append_item(&gs, FALSE, "xl", buf);
+		magnet_append_item(s, FALSE, "xl", buf);
 	}
 	if (res->sha1) {
-		magnet_append_item(&gs, FALSE, "xt",
+		magnet_append_item(s, FALSE, "xt",
 			bitprint_to_urn_string(res->sha1, res->tth));
 	}
 	if (res->parq_id) {
-		magnet_append_item(&gs, TRUE, "x.parq-id", res->parq_id);
+		magnet_append_item(s, TRUE, "x.parq-id", res->parq_id);
 	}
 	if (res->vendor) {
-		magnet_append_item(&gs, TRUE, "x.vndr", res->vendor);
+		magnet_append_item(s, TRUE, "x.vndr", res->vendor);
 	}
 	if (res->guid) {
-		magnet_append_item(&gs, TRUE, "x.guid", res->guid);
+		magnet_append_item(s, TRUE, "x.guid", res->guid);
 	}
 	if (res->dht) {
-		magnet_append_item(&gs, TRUE, "x.dht", "1");
+		magnet_append_item(s, TRUE, "x.dht", "1");
 	}
 
 	for (sl = res->sources; NULL != sl; sl = g_slist_next(sl)) {
 		char *url;
 
 		url = magnet_source_to_string(sl->data);
-		magnet_append_item(&gs, TRUE, "xs", url);
+		magnet_append_item(s, TRUE, "xs", url);
 		G_FREE_NULL(url);
 	}
 
 	for (sl = res->searches; NULL != sl; sl = g_slist_next(sl)) {
-		magnet_append_item(&gs, TRUE, "kt", sl->data);
+		magnet_append_item(s, TRUE, "kt", sl->data);
 	}
 
-	return gm_string_finalize(gs);
+	return str_s2c(s);
 }
 
 /*

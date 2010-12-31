@@ -72,6 +72,7 @@ RCSID("$Id$")
 #include "lib/parse.h"
 #include "lib/random.h"
 #include "lib/slist.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
@@ -1647,7 +1648,7 @@ search_gui_color_for_record(const record_t * const rc)
 static void
 search_gui_set_record_info(results_set_t *rs)
 {
-	GString *vinfo = g_string_sized_new(40);
+	str_t *vinfo = str_new(40);
 	GSList *iter;
 	guint i;
 
@@ -1655,26 +1656,26 @@ search_gui_set_record_info(results_set_t *rs)
 
 	for (i = 0; i < G_N_ELEMENTS(open_flags); i++) {
 		if (rs->status & open_flags[i].flag) {
-			if (vinfo->len)
-				g_string_append(vinfo, ", ");
-			g_string_append(vinfo, _(open_flags[i].status));
+			if (str_len(vinfo) > 0)
+				str_cat(vinfo, ", ");
+			str_cat(vinfo, _(open_flags[i].status));
 		}
 	}
 
 	if (!(rs->status & ST_PARSED_TRAILER)) {
-		if (vinfo->len)
-			g_string_append(vinfo, ", ");
-		g_string_append(vinfo, _("<unparsed>"));
+		if (str_len(vinfo) > 0)
+			str_cat(vinfo, ", ");
+		str_cat(vinfo, _("<unparsed>"));
 	}
 
 	if (rs->status & ST_TLS) {
-		g_string_append(vinfo, vinfo->len ? ", TLS" : "TLS");
+		str_cat(vinfo, str_len(vinfo) > 0 ? ", TLS" : "TLS");
 	}
 	if (rs->status & ST_BH) {
-		if (vinfo->len > 0) {
-			g_string_append(vinfo, ", ");
+		if (str_len(vinfo) > 0) {
+			str_cat(vinfo, ", ");
 		}
-		g_string_append(vinfo, _("browsable"));
+		str_cat(vinfo, _("browsable"));
 	}
 
 	for (iter = rs->records; iter != NULL; iter = g_slist_next(iter)) {
@@ -1683,9 +1684,10 @@ search_gui_set_record_info(results_set_t *rs)
 		record_check(rc);
 		g_assert(rs == rc->results_set);
 		g_assert(NULL == rc->info);
-		rc->info = search_gui_get_info(rc, vinfo->len ? vinfo->str : NULL);
+		rc->info = search_gui_get_info(rc,
+			str_len(vinfo) > 0 ? str_2c(vinfo) : NULL);
 	}
-  	g_string_free(vinfo, TRUE);
+  	str_destroy(vinfo);
 }
 
 /**
@@ -2348,7 +2350,7 @@ search_gui_handle_url(const gchar *url, const gchar **error_str)
 		magnet = magnet_resource_new();
 		magnet_add_source_by_url(magnet, escaped_url);
 		if (escaped_url != url) {
-			G_FREE_NULL(escaped_url);
+			HFREE_NULL(escaped_url);
 		}
 		magnet_url = magnet_to_string(magnet);
 		magnet_resource_free(&magnet);
@@ -2360,7 +2362,7 @@ search_gui_handle_url(const gchar *url, const gchar **error_str)
 	} else {
 		statusbar_gui_message(15, _("Ignored unusable URL."));
 	}
-	G_FREE_NULL(magnet_url);
+	HFREE_NULL(magnet_url);
 
 	return success;
 }
@@ -2383,13 +2385,14 @@ search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 		 * URLs except on accident and probably incorrectly. Try to
 		 * correct the escaping but don't touch '?', '&', '=', ':'.
 		 */
+
 		escaped_urn = url_fix_escape(urn);
 
 		/* Magnet values are ALWAYS escaped. */
 		magnet = magnet_resource_new();
 		success = magnet_set_exact_topic(magnet, escaped_urn);
 		if (escaped_urn != urn) {
-			G_FREE_NULL(escaped_urn);
+			HFREE_NULL(escaped_urn);
 		}
 		if (!success) {
 			*error_str = _("The given urn type is not supported.");
@@ -2401,7 +2404,7 @@ search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 	}
 	
 	success = search_gui_handle_magnet(magnet_url, error_str);
-	G_FREE_NULL(magnet_url);
+	HFREE_NULL(magnet_url);
 
 	return success;
 }
@@ -2845,9 +2848,9 @@ search_xml_indent(const gchar *text)
 	const gchar *p, *q;
 	gboolean quoted, is_special, is_end, is_start, is_singleton, has_cdata;
 	guint i, depth = 0;
-	GString *gs;
+	str_t *s;
 
-	gs = g_string_new("");
+	s = str_new(0);
 	q = text;
 
 	quoted = FALSE;
@@ -2874,12 +2877,12 @@ search_xml_indent(const gchar *text)
 
 				uc = html_decode_entity(p, &endptr);
 				if (uc > 0x00 && uc <= 0xff && '<' != uc && '>' != uc) {
-					gs = g_string_append_c(gs, uc);
+					str_putc(s, uc);
 					p = endptr - 1;
 					continue;
 				}
 			}
-			gs = g_string_append_c(gs, is_ascii_space(*p) ? ' ' : *p);
+			str_putc(s, is_ascii_space(*p) ? ' ' : *p);
 		}
 		if ('\0' == *p)
 			break;
@@ -2900,9 +2903,9 @@ search_xml_indent(const gchar *text)
 			depth--;
 		}
 		if (p != text && !(is_end && had_cdata)) {
-			gs = g_string_append_c(gs, '\n');
+			str_putc(s, '\n');
 			for (i = 0; i < depth; i++)
-				gs = g_string_append_c(gs, '\t');
+				str_putc(s, '\t');
 		}
 
 		quoted = FALSE;
@@ -2913,11 +2916,11 @@ search_xml_indent(const gchar *text)
 
 			if (is_ascii_space(*q)) {
 				if (quoted || is_special) {
-					gs = g_string_append_c(gs, ' ');
+					str_putc(s, ' ');
 				} else {
-					gs = g_string_append(gs, "\n");
+					str_putc(s, '\n');
 					for (i = 0; i < depth + 1; i++)
-						gs = g_string_append_c(gs, '\t');
+						str_putc(s, '\t');
 				}
 				continue;
 			}
@@ -2928,13 +2931,13 @@ search_xml_indent(const gchar *text)
 
 				uc = html_decode_entity(q, &endptr);
 				if (uc > 0x00 && uc <= 0xff && '"' != uc) {
-					gs = g_string_append_c(gs, uc);
+					str_putc(s, uc);
 					q = endptr - 1;
 					continue;
 				}
 			}
 
-			gs = g_string_append_c(gs, *q);
+			str_putc(s, *q);
 			
 			if ('"' == *q) {
 				quoted ^= TRUE;
@@ -2950,7 +2953,7 @@ search_xml_indent(const gchar *text)
 		}
 	}
 
-	return gm_string_finalize(gs);
+	return str_s2c(s);
 }
 
 /**
@@ -3596,34 +3599,6 @@ search_gui_get_handle(const struct search *search)
 	return search->search_handle;
 }
 
-/* FIXME: This doesn't belong here. gnet_host_vec functions should be
- *		  under lib not core.
- */
-gchar *
-gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
-{
-	GString *gs;
-	guint i, n;
-
-	g_return_val_if_fail(hvec, NULL);
-
-	gs = g_string_new("");
-	n = gnet_host_vec_count(hvec);
-	for (i = 0; i < n; i++) {
-		gnet_host_t host;
-		gchar buf[128];
-
-		if (i > 0) {
-			g_string_append(gs, ", ");
-		}
-		host = gnet_host_vec_get(hvec, i);
-		host_addr_port_to_string_buf(gnet_host_get_addr(&host),
-			gnet_host_get_port(&host), buf, sizeof buf);
-		g_string_append(gs, buf);
-	}
-	return gm_string_finalize(gs);
-}
-
 gboolean
 search_gui_item_is_inspected(const record_t *rc)
 {
@@ -3695,7 +3670,7 @@ search_gui_set_details(const record_t *rc)
 	if (rc->alt_locs) {
 		gchar *hosts = gnet_host_vec_to_string(rc->alt_locs);
 		search_gui_append_detail(_("Alt-Locs"), hosts);
-		G_FREE_NULL(hosts);
+		HFREE_NULL(hosts);
 	}
 
 	if (utf8_can_latinize(rc->utf8_name)) {
@@ -3756,7 +3731,7 @@ search_gui_set_details(const record_t *rc)
 		if (rs->proxies) {
 			gchar *hosts = gnet_host_vec_to_string(rs->proxies);
 			search_gui_append_detail(_("Push-proxies"), hosts);
-			G_FREE_NULL(hosts);
+			HFREE_NULL(hosts);
 		}
 
 		search_gui_append_detail(_("Packet information"), NULL);
@@ -4079,7 +4054,7 @@ search_gui_set_bitzi_metadata(const record_t *rc)
 	 * conversion must be reversed to get the original encoding back.
 	 */
 	text = utf8_to_iso8859_1(tmp);
-	G_FREE_NULL(tmp);
+	HFREE_NULL(tmp);
 
 	search_gui_set_bitzi_metadata_text(
 		lazy_unknown_to_utf8_normalized(text, UNI_NORM_GUI, NULL));

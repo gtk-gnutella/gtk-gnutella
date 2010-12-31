@@ -57,6 +57,7 @@ RCSID("$Id$")
 #include "gnet_host.h"
 #include "stringify.h"
 #include "sequence.h"
+#include "str.h"
 #include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -217,6 +218,34 @@ gnet_host_vec_free(gnet_host_vec_t **vec_ptr)
 		wfree(vec, sizeof *vec);
 		*vec_ptr = NULL;
 	}
+}
+
+/*
+ * @return stringified host vector as newly allocated string via halloc()
+ */
+char *
+gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
+{
+	str_t *s;
+	guint i, n;
+
+	g_return_val_if_fail(hvec, NULL);
+
+	s = str_new(0);
+	n = gnet_host_vec_count(hvec);
+	for (i = 0; i < n; i++) {
+		gnet_host_t host;
+		gchar buf[128];
+
+		if (i > 0) {
+			str_cat(s, ", ");
+		}
+		host = gnet_host_vec_get(hvec, i);
+		host_addr_port_to_string_buf(gnet_host_get_addr(&host),
+			gnet_host_get_port(&host), buf, sizeof buf);
+		str_cat(s, buf);
+	}
+	return str_s2c(s);
 }
 
 /**

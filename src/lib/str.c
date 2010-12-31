@@ -55,7 +55,7 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
-#define STR_DEFSIZE		512		/* Default string size */
+#define STR_DEFSIZE		64		/* Default string size */
 #define STR_GROW		2		/* Grow factor, if size less than STR_MAXGROW */
 #define STR_MAXGROW		4096	/* Above this size, increase by STR_CHUNK */
 #define STR_CHUNK		4096	/* Size increase if above STR_MAXGROW */
@@ -80,6 +80,7 @@ str_check(const struct str * const s)
 {
 	g_assert(s != NULL);
 	g_assert(STR_MAGIC == s->s_magic);
+	g_assert(s->s_len <= s->s_size);
 }
 
 /**
@@ -100,6 +101,10 @@ str_len(const str_t *s)
 
 /**
  * Allocate a new string structure, of the specified hint size.
+ *
+ * @param szhint	initial length of the data buffer (0 for default)
+ *
+ * @return newly allocated string.
  */
 str_t *
 str_new(size_t szhint)
@@ -111,6 +116,8 @@ str_new(size_t szhint)
 
 /**
  * Fill in an existing string structure, of the specified hint size.
+ *
+ * @return its "str" argument.
  */
 str_t *
 str_create(str_t *str, size_t szhint)
@@ -127,6 +134,27 @@ str_create(str_t *str, size_t szhint)
 	str->s_flags = 0;
 
 	return str;
+}
+
+/**
+ * Create a new string from supplied C string (may be NULL).
+ */
+str_t *
+str_new_from(const char *string)
+{
+	str_t *s;
+
+	if (NULL == string) {
+		s = str_new(STR_DEFSIZE);
+	} else {
+		size_t len;
+
+		len = strlen(string);
+		s = str_new(len + 1 + (len / 4));
+		str_cat_len(s, string, len);
+	}
+
+	return s;
 }
 
 /**
@@ -255,6 +283,20 @@ str_destroy(str_t *str)
 }
 
 /**
+ * Destroy string and nullify pointer.
+ */
+void
+str_destroy_null(str_t **s_ptr)
+{
+	str_t *s = *s_ptr;
+
+	if (s != NULL) {
+		str_destroy(s);
+		*s_ptr = NULL;
+	}
+}
+
+/**
  * Expand/shrink data space, returning the new data location.
  */
 char *
@@ -340,6 +382,7 @@ str_grow(str_t *str, size_t size)
 
 /**
  * Change logical length of the string in the arena.
+
  * A hidden trailing NUL is added.
  */
 void
@@ -350,16 +393,19 @@ str_setlen(str_t *str, size_t len)
 	str_check(str);
 	g_assert(size_is_non_negative(len));
 
-	curlen = str->s_len;
-
 	if (len == 0) {
 		str_reset(str);
 		return;
 	}
 
-	if (curlen > len) {
+	curlen = str->s_len;
+
+	if (len == curlen)
+		return;
+
+	if (curlen > len) {						/* Truncating */
 		str->s_data[len] = '\0';			/* We know we have the room */
-		str->s_len = len;
+		str->s_len = len;					/* Truncated string */
 		return;
 	}
 
@@ -367,11 +413,14 @@ str_setlen(str_t *str, size_t len)
 		str_makeroom(str, len - str->s_size + 1);	/* Allow hidden NUL */
 
 	str->s_data[len] = '\0';
+	memset(str->s_data + curlen, 0, len - curlen);	/* Zero expanded area */
 	str->s_len = len;
 }
 
 /**
  * Returns a pointer to the data, as a `C' string (NUL-terminated).
+ *
+ * As a convenience, returns NULL if "str" is NULL.
  *
  * NB: The returned string is still held within the str_t object. Use str_s2c()
  * to get the C string and dispose of the str_t overhead.
@@ -380,6 +429,9 @@ char *
 str_2c(str_t *str)
 {
 	size_t len;
+
+	if (NULL == str)
+		return NULL;
 
 	str_check(str);
 
@@ -397,6 +449,10 @@ str_2c(str_t *str)
  * Destroy the str_t container and keep only its data arena, returning a
  * pointer to it as a `C' string (NUL-terminated).
  *
+ * The returned string must be freed via hfree().
+ *
+ * As a convenience, returns NULL if "str" is NULL.
+ *
  * NB: Upon return, the str_t object is gone. Use str_2c() to get a C string
  * still held within the object.
  */
@@ -405,6 +461,9 @@ str_s2c(str_t *str)
 {
 	char *cstr;
 	size_t len;
+
+	if (NULL == str)
+		return NULL;
 
 	str_check(str);
 
@@ -416,9 +475,30 @@ str_s2c(str_t *str)
 	str_resize(str, len + 1);		/* Ensure string fits neatly */
 	cstr = str->s_data;
 	cstr[len] = '\0';				/* Ensure trailing NUL for C */
-	hfree(str);
+
+	str->s_magic = 0;
+	wfree(str, sizeof *str);
 
 	return cstr;
+}
+
+/**
+ * Same as str_s2c() but also nullifies the string pointer, since it is
+ * becoming invalid.
+ *
+ * If "s_ptr" was pointing to NULL, returns a NULL as well.
+ */
+char *
+str_s2c_null(str_t **s_ptr)
+{
+	char *result;
+
+	g_assert(s_ptr != NULL);
+
+	result = str_s2c(*s_ptr);
+	*s_ptr = NULL;
+
+	return result;
 }
 
 /**
@@ -475,12 +555,12 @@ str_reset(str_t *str)
  * a hidden char (thereby making the arena a C string).
  */
 void
-str_cpy(str_t *str, char *string)
+str_cpy(str_t *str, const char *string)
 {
 	str_check(str);
 
 	str->s_len = 0;
-	str_cat(str, string);
+	str_cat_len(str, string, strlen(string));
 }
 
 /**
@@ -488,21 +568,35 @@ str_cpy(str_t *str, char *string)
  * keeping this trailing NUL as a hidden char (not accounted for in s_len).
  */
 void
-str_cat(str_t *str, char *string)
+str_cat(str_t *str, const char *string)
 {
-	size_t len;
-
 	str_check(str);
 	g_assert(string != NULL);
 
-	len = strlen(string);
+	str_cat_len(str, string, strlen(string));
+}
 
-	if (!len)
+/**
+ * Append "len" bytes of data to string.
+ *
+ * Since the len is provided, the data need not have a trailing NUL.
+ * Although it may contain embedded NUL, it should not however because this
+ * will disrupt the perception of the resulting string as C string.
+ */
+void
+str_cat_len(str_t *str, const char *string, size_t len)
+{
+	str_check(str);
+	g_assert(string != NULL);
+	g_assert(size_is_non_negative(len));
+
+	if (0 == len)
 		return;
 
-	str_makeroom(str, len+1);		/* Will copy trailing NUL */
-	memcpy(str->s_data + str->s_len, string, len + 1);
+	str_makeroom(str, len + 1);		/* Allow for trailing NUL */
+	memcpy(str->s_data + str->s_len, string, len);
 	str->s_len += len;				/* Trailing NUL remains hidden */
+	str->s_data[str->s_len] = '\0';	/* Keep buffer NUL-terminated */
 }
 
 /**
@@ -510,7 +604,7 @@ str_cat(str_t *str, char *string)
  * string is shorter than `len'.
  */
 void
-str_ncat(str_t *str, char *string, size_t len)
+str_ncat(str_t *str, const char *string, size_t len)
 {
 	char *p;
 	char c;

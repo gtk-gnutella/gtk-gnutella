@@ -60,6 +60,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/utf8.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -115,7 +116,7 @@ search_set_xml_metadata(const record_t *rc)
 	indented = (rc && rc->xml) ? search_xml_indent(rc->xml) : NULL;
 	set_text_buffer(gui_main_window_lookup("text_result_info_xml"),
 		EMPTY_STRING(indented));
-	G_FREE_NULL(indented);
+	HFREE_NULL(indented);
 }
 
 void
@@ -436,7 +437,7 @@ on_popup_search_copy_magnet_activate(GtkMenuItem *unused_item,
 	if (selected_record) {
 		char *magnet = search_gui_get_magnet(search, selected_record);
 		clipboard_set_text(gui_main_window(), magnet);
-		G_FREE_NULL(magnet);
+		HFREE_NULL(magnet);
 	}
 }
 
