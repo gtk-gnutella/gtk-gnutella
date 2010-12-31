@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 18068 2010-12-29 20:18:33Z rmanfredi $
+# $X-Id: Jmakefile 18085 2010-12-31 12:16:02Z rmanfredi $
 
 GENERIC = bit_array.h bit_field.h
 
@@ -181,6 +181,7 @@ LSRC = \
 	sorted_array.c \
 	stacktrace.c \
 	stats.c \
+	str.c \
 	stringify.c \
 	strtok.c \
 	symtab.c \
@@ -290,6 +291,7 @@ LOBJ = \
 	sorted_array.o \
 	stacktrace.o \
 	stats.o \
+	str.o \
 	stringify.o \
 	strtok.o \
 	symtab.o \
