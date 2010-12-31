@@ -116,7 +116,7 @@ is_strcaseprefix(const char *str, const char *prefix)
 
 	for (s = str, p = prefix; '\0' != (a = *p); p++) {
 		int b = *s++;
-		if (a != b && ascii_tolower(a) != ascii_tolower(b))
+		if (ascii_tolower(a) != ascii_tolower(b))
 			return NULL;
 	}
 
