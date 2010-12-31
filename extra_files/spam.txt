@@ -94,7 +94,7 @@ NAME [Ww][Ww][Ww].[Ll][Ii][Mm][Ee][Ww][Ii][Rr][Ee][Ll][Aa][Ww].[Cc][Oo][Mm]
 ADDED 2010-12-27
 END
 
-NAME [ ]for[ ].*[ ]fans[.](mov|mpg)$
+NAME [ ]for[ ].*[ ]fans[.](avi|mov|mpg)$
 ADDED 2010-12-27
 SIZE 1000000-10000000
 END
