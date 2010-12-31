@@ -1532,7 +1532,7 @@ done:
 size_t
 str_vcatf(str_t *str, char *fmt, va_list *args)
 {
-	return str_vncatf(str, MAX_INT_VAL(size_t), fmt, args);
+	return str_vncatf(str, MAXINT, fmt, args);
 }
 
 /**
@@ -1545,7 +1545,7 @@ str_vprintf(str_t *str, char *fmt, va_list *args)
 	str_check(str);
 
 	str->s_len = 0;
-	return str_vncatf(str, MAX_INT_VAL(size_t), fmt, args);
+	return str_vncatf(str, MAXINT, fmt, args);
 }
 
 /**
@@ -1559,7 +1559,7 @@ str_catf(str_t *str, char *fmt, ...)
 	size_t formatted;
 
 	va_start(args, fmt);
-	formatted = str_vncatf(str, MAX_INT_VAL(size_t), fmt, &args);
+	formatted = str_vncatf(str, MAXINT, fmt, &args);
 	va_end(args);
 
 	return formatted;
@@ -1597,7 +1597,7 @@ str_printf(str_t *str, char *fmt, ...)
 	str->s_len = 0;
 
 	va_start(args, fmt);
-	formatted = str_vncatf(str, MAX_INT_VAL(size_t), fmt, &args);
+	formatted = str_vncatf(str, MAXINT, fmt, &args);
 	va_end(args);
 
 	return formatted;
@@ -1637,7 +1637,7 @@ str_msg(char *fmt, ...)
 	str = str_new(0);
 
 	va_start(args, fmt);
-	str_vncatf(str, MAX_INT_VAL(size_t), fmt, &args); /* We know length is 0 */
+	str_vncatf(str, MAXINT, fmt, &args); /* We know length is 0 */
 	va_end(args);
 
 	str_resize(str, str->s_len + 1);	/* Make it fit exactly, but.. */
@@ -1662,7 +1662,7 @@ str_cmsg(char *fmt, ...)
 
 	str->s_len = 0;
 	va_start(args, fmt);
-	str_vncatf(str, MAX_INT_VAL(size_t), fmt, &args);
+	str_vncatf(str, MAXINT, fmt, &args);
 	va_end(args);
 
 	return str_dup(str);
