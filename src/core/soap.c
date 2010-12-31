@@ -241,23 +241,23 @@ soap_rpc_cancel(soap_rpc_t *sr)
 }
 
 /**
- * Check whether a string contains a leading "id".
+ * Check whether a string contains a leading case-insensitive (ASCII) "token".
  *
- * An "id" is a string delimited by non-alphanumeric characters.
+ * A "token" is a string delimited by non-alphanumeric characters.
  *
- * For instance, given the string "text/xml2", "text/xml" is not a leading id,
- * although it is a string prefix.  But given the string "text/xml; xxx",
- * the "text/xml" string becomes a valid leading id since the next character
+ * For instance, given the string "text/xml2", "text/xml" is not a leading
+ * token, although it is a string prefix.  But given the string "text/xml; xxx",
+ * the "text/xml" string becomes a valid leading token since the next character
  * ';' after the prefix is not an alphanumeric one.
  *
- * @return TRUE is string starts with the given id.
+ * @return TRUE is string starts with the given token.
  */
 static gboolean
-soap_starts_with_id(const char *str, const char *id)
+soap_starts_with_caseless_token(const char *str, const char *token)
 {
 	const char *p;
 
-	p = is_strprefix(str, id);
+	p = is_strcaseprefix(str, token);
 
 	if (NULL == p) {
 		return FALSE;
@@ -308,9 +308,13 @@ soap_process_reply(soap_rpc_t *sr)
 	if (NULL == buf)
 		goto no_xml;
 
+	/*
+	 * MIME type and subtypes are case-insensitive (see RFC 2616, section 3.7).
+	 */
+
 	if (
-		!soap_starts_with_id(buf, SOAP_TEXT_REPLY) &&
-		!soap_starts_with_id(buf, SOAP_APPLICATION_REPLY)
+		!soap_starts_with_caseless_token(buf, SOAP_TEXT_REPLY) &&
+		!soap_starts_with_caseless_token(buf, SOAP_APPLICATION_REPLY)
 	) {
 		if (GNET_PROPERTY(soap_debug)) {
 			g_debug("SOAP \"%s\" at \"%s\": got unexpected Content-Type: %s",
