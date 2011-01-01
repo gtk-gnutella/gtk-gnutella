@@ -1409,8 +1409,8 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 			/* output mangled stuff ... */
 			if (c == '\0')
 				--q;
-			eptr = p;
-			elen = q - p;
+			eptr = f;
+			elen = q - f;
 
 			/* ... right here, because formatting flags should not apply */
 			if (elen > remain) {
