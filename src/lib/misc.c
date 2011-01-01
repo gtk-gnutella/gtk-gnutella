@@ -1673,6 +1673,18 @@ set_signal(int signo, signal_handler_t handler)
 #endif
 }
 
+/*
+ * Hashing of pointers.
+ *
+ * The identity function makes a poor hash for pointers.
+ */
+unsigned
+pointer_hash_func(const void *p)
+{
+	unsigned long v = pointer_to_ulong(p);
+	return (((guint64) 0x4F1BBCDCUL * v) >> 32) ^ v;
+}
+
 static inline const char *
 html_escape_replacement(char c, size_t *len)
 {

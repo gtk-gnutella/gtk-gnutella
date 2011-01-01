@@ -275,12 +275,7 @@ signal_handler_t set_signal(int signo, signal_handler_t handler);
 void normalize_dir_separators(char *);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 
-static inline guint
-pointer_hash_func(const void *p)
-{
-	unsigned long v = pointer_to_ulong(p);
-	return (((guint64) 0x4F1BBCDCUL * v) >> 32) ^ v;
-}
+unsigned pointer_hash_func(const void *p);
 
 /**
  * An strcpy() that returns the length of the copied string.
