@@ -187,7 +187,7 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
 		len = strlen(ptr);
 
 	if (0 == size)
-		size = len + 1;			/* Allow for trailing hidden NUL */
+		size = len + 1;			/* Must include hidden NUL in foreign string */
 
 	str->s_flags |= STR_FOREIGN_PTR;
 	str->s_len = len;
@@ -228,7 +228,7 @@ str_make(char *ptr, size_t len)
 	str = walloc(sizeof *str);
 	(void) str_create(str, len + 1);		/* Allow for trailing NUL */
 	str->s_len = len;						/* Final NUL not accounted for */
-	memcpy(str->s_data, ptr, len + 1);		/* Copy trailing NUL */
+	memcpy(str->s_data, ptr, len);			/* Don't copy trailing NUL */
 
 	return str;
 }
@@ -245,10 +245,9 @@ str_clone(str_t *str)
 	str_check(str);
 
 	len = str->s_len;
-	n = str_new(len + 1);
+	n = str_new(len + 1);	/* Allow for trailing NUL in str_2c() */
 	n->s_len = len;
 	memcpy(n->s_data, str->s_data, len);
-	n->s_data[len] = '\0';
 
 	return n;
 }
@@ -392,8 +391,6 @@ str_grow(str_t *str, size_t size)
 
 /**
  * Change logical length of the string in the arena.
-
- * A hidden trailing NUL is added.
  */
 void
 str_setlen(str_t *str, size_t len)
@@ -414,7 +411,6 @@ str_setlen(str_t *str, size_t len)
 		return;
 
 	if (curlen > len) {						/* Truncating */
-		str->s_data[len] = '\0';			/* We know we have the room */
 		str->s_len = len;					/* Truncated string */
 		return;
 	}
@@ -422,7 +418,6 @@ str_setlen(str_t *str, size_t len)
 	if (len >= str->s_size)
 		str_makeroom(str, len - str->s_size + 1);	/* Allow hidden NUL */
 
-	str->s_data[len] = '\0';
 	memset(str->s_data + curlen, 0, len - curlen);	/* Zero expanded area */
 	str->s_len = len;
 }
@@ -551,7 +546,6 @@ str_putc(str_t *str, char c)
 
 /**
  * Empty string.
- * A hidden trailing NUL is added.
  */
 void
 str_reset(str_t *str)
@@ -559,8 +553,6 @@ str_reset(str_t *str)
 	str_check(str);
 
 	str->s_len = 0;
-	str_makeroom(str, 1);
-	str->s_data[0] = '\0';
 }
 
 /**
@@ -609,7 +601,6 @@ str_cat_len(str_t *str, const char *string, size_t len)
 	str_makeroom(str, len + 1);		/* Allow for trailing NUL */
 	memcpy(str->s_data + str->s_len, string, len);
 	str->s_len += len;				/* Trailing NUL remains hidden */
-	str->s_data[str->s_len] = '\0';	/* Keep buffer NUL-terminated */
 }
 
 /**
@@ -640,7 +631,6 @@ str_ncat(str_t *str, const char *string, size_t len)
 	}
 
 	str->s_len = p - str->s_data;
-	*p = '\0';							/* Hidden NUL appended */
 }
 
 /**
@@ -665,13 +655,6 @@ str_shift(str_t *str, size_t n)
 
 	len = str->s_len;
 	memmove(str->s_data, str->s_data + n, len - n);			/* Overlap-safe */
-
-	/* 
-	 * Always insert a hidden trailing NUL, regardless of whether one was
-	 * already present.
-	 */
-
-	str->s_data[len - n] = '\0';		/* Not accounted for in s_len */
 	str->s_len -= n;
 }
 
@@ -679,8 +662,10 @@ str_shift(str_t *str, size_t n)
  * Insert char before given position. If outside string bounds, do nothing.
  * If index is negative, insert from the end of the string, i.e. -1 means
  * before the last character, and so on.
+ *
+ * @return TRUE if insertion took place, FALSE if it was ignored.
  */
-void
+gboolean
 str_ichar(str_t *str, ssize_t idx, char c)
 {
 	size_t len;
@@ -693,32 +678,38 @@ str_ichar(str_t *str, ssize_t idx, char c)
 		idx += len;
 
 	if (idx < 0 || (size_t) idx >= len)			/* Off string */
-		return;
+		return FALSE;
 
 	str_makeroom(str, 1);
 	memmove(str->s_data + idx + 1, str->s_data + idx, len - idx);
 	str->s_data[idx] = c;
 	str->s_len++;
+
+	return TRUE;
 }
 
 /**
  * Insert string before given position. If outside string bounds, do nothing.
  * If index is negative, insert from the end of the string, i.e. -1 means
  * before the last character, etc...
+ *
+ * @return TRUE if insertion took place, FALSE if it was ignored.
  */
-void
+gboolean
 str_istr(str_t *str, ssize_t idx, const char *string)
 {
 	str_check(str);
 	g_assert(string != NULL);
 
-	str_instr(str, idx, string, strlen(string));
+	return str_instr(str, idx, string, strlen(string));
 }
 
 /**
  * Same as str_istr, only the first `n' chars of string are inserted.
+ *
+ * @return TRUE if insertion took place, FALSE if it was ignored.
  */
-void
+gboolean
 str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 {
 	size_t len;
@@ -730,18 +721,20 @@ str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 	len = str->s_len;
 
 	if (0 == n)							/* Empty string */
-		return;
+		return TRUE;					/* Did nothing but nothing to do */
 
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
 	if (idx < 0 || (size_t) idx >= len)			/* Off string */
-		return;
+		return FALSE;
 
 	str_makeroom(str, n);
 	memmove(str->s_data + idx + n, str->s_data + idx, len - idx);
 	memmove(str->s_data + idx, string, n);
 	str->s_len += n;
+
+	return TRUE;
 }
 
 /**
@@ -769,14 +762,12 @@ str_remove(str_t *str, ssize_t idx, size_t n)
 		return;
 
 	if (n >= (len - idx)) {				/* A mere truncation till end */
-		str->s_data[idx] = '\0';
 		str->s_len = idx;
 		return;
 	}
 
 	memmove(str->s_data + idx, str->s_data + idx + n, len - idx - n);
 	str->s_len -= n;
-	str->s_data[str->s_len] = '\0';
 }
 
 /**
@@ -788,8 +779,10 @@ str_remove(str_t *str, ssize_t idx, size_t n)
  * If the amount is greater than the characters held in the string after the
  * starting position, it is silently truncated down to the amount of bytes
  * held until the end of the string.
+ *
+ * @return TRUE if we replaced, FALSE if we ignored due to out-of-bound index.
  */
-void
+gboolean
 str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 {
 	size_t length;
@@ -806,7 +799,7 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 		idx += len;
 
 	if (idx < 0 || (size_t) idx >= len)			/* Off string */
-		return;
+		return FALSE;
 
 	if (amount > (len - idx))			/* More than what remains afterwards */
 		amount = len - idx;
@@ -837,7 +830,7 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 	if (length == 0) {
 		if (amount)							/* Not fully covered spot */
 			str_remove(str, idx, amount);	/* Remove extra characters */
-		return;
+		return TRUE;
 	}
 
 	/*
@@ -851,6 +844,8 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 		str_ncat(str, string, length);
 	else
 		str_instr(str, idx, string, length);
+
+	return TRUE;
 }
 
 /**
@@ -1446,7 +1441,6 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 			memset(p, ' ', gap);
 			p += gap;
 		}
-		*p = '\0';
 		str->s_len = p - str->s_data;	/* trailing NUL does not count */
 		remain -= need;
 		continue;
@@ -1651,8 +1645,7 @@ str_msg(char *fmt, ...)
 	str_vncatf(str, INT_MAX, fmt, &args); /* We know length is 0 */
 	va_end(args);
 
-	str_resize(str, str->s_len + 1);	/* Make it fit exactly, but.. */
-	str->s_data[str->s_len] = '\0';		/* ...with a hidden trailing NUL */
+	str_resize(str, str->s_len + 1);	/* Allow for possible trailing NUL */
 
 	return str;
 }
@@ -1669,7 +1662,7 @@ str_cmsg(char *fmt, ...)
 	va_list args;
 	
 	if (NULL == str)
-		str = str_new(0);
+		str = NOT_LEAKING(str_new(0));
 
 	str->s_len = 0;
 	va_start(args, fmt);
