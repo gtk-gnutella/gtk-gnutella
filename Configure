@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Dec 12 13:36:16 CET 2010 [metaconfig 3.5-57]
+# Generated on Sat Jan  1 22:47:44 CET 2011 [metaconfig 3.5-57]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -297,10 +297,10 @@ cppstdin=''
 d_gettblsz=''
 nofile=''
 tablesize=''
-d_WSAPoll=''
 d_access=''
 d_arc4random=''
 d_attribut=''
+d_backtrace=''
 d_bcopy=''
 d_bindtxtcode=''
 d_built_popcount=''
@@ -378,6 +378,7 @@ d_strchr=''
 d_strlcat=''
 d_strlcpy=''
 d_sysctl=''
+d_system=''
 clocktype=''
 d_times=''
 d_usleep=''
@@ -4192,31 +4193,6 @@ EOM
 	;;
 esac
 
-: see if WSAPoll exists
-$cat >try.c <<EOC
-#include <sys/types.h>
-#include <Winsock2.h>
-int main(void)
-{
-	static int ret, timeout;
-	static unsigned n;
-	static struct pollfd pfd;
-	pfd.fd |= 1;
-	pfd.revents |= 1;
-	pfd.events |= POLLIN;
-	pfd.events |= POLLOUT;
-	pfd.events |= POLLPRI;
-	pfd.events |= POLLERR;
-	pfd.events |= POLLHUP;
-	pfd.events |= POLLNVAL;
-	ret |= WSAPoll(&pfd, n, timeout);
-	return ret ? 0 : 1;
-}
-EOC
-cyn=WSAPoll
-set d_WSAPoll
-eval $trylink
-
 : Initialize h_fcntl
 h_fcntl=false
 
@@ -4311,6 +4287,20 @@ int main(void) { return 0; }
 EOCP
 cyn="whether your compiler can handle __attribute__"
 set d_attribut
+eval $trylink
+
+: see if backtrace exists
+$cat >try.c <<EOC
+#include <execinfo.h>
+int main(void)
+{
+	void *buf[2];
+	int ret = backtrace(buf, 2);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=backtrace
+set d_backtrace
 eval $trylink
 
 : see if bcopy exists
@@ -6762,6 +6752,23 @@ int main(void)
 EOC
 cyn=sysctl
 set d_sysctl
+eval $trylink
+
+: see if system exists
+$cat >try.c <<EOC
+#$i_stdlib I_STDLIB
+#ifdef I_STDLIB
+#include <stdlib.h>
+#endif
+int main(void)
+{
+	static int ret;
+	ret |= system("command");
+	return ret ? 0 : 1;
+}
+EOC
+cyn=system
+set d_system
 eval $trylink
 
 : define an is-a-typedef? function
@@ -9339,10 +9346,10 @@ cppminus='$cppminus'
 cpprun='$cpprun'
 cppstdin='$cppstdin'
 csh='$csh'
-d_WSAPoll='$d_WSAPoll'
 d_access='$d_access'
 d_arc4random='$d_arc4random'
 d_attribut='$d_attribut'
+d_backtrace='$d_backtrace'
 d_bcopy='$d_bcopy'
 d_bindtxtcode='$d_bindtxtcode'
 d_bsd='$d_bsd'
@@ -9435,6 +9442,7 @@ d_strchr='$d_strchr'
 d_strlcat='$d_strlcat'
 d_strlcpy='$d_strlcpy'
 d_sysctl='$d_sysctl'
+d_system='$d_system'
 d_times='$d_times'
 d_uname='$d_uname'
 d_useglib1='$d_useglib1'

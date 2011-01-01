@@ -101,12 +101,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_gettblsz getdtablesize() $tablesize	/**/
 
-/* HAS_WSAPOLL:
- *	This symbol, if defined, indicates that the WSAPoll() routine is
- *	available to poll active file descriptors. 
- */
-#$d_WSAPoll HAS_WSAPOLL		/**/
-
 /* HAS_ARC4RANDOM:
  *	This symbol, if defined, indicates that the arc4random routine is
  *	available.
@@ -121,6 +115,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #ifndef HASATTRIBUTE
 #define __attribute__(_arg_)
 #endif
+
+/* HAS_BACKTRACE:
+ *	This symbol, if defined, indicates that the backtrace() routine is
+ *	available to get a stack trace.  The <execinfo.h> header must be
+ *	included to use this routine.
+ */
+#$d_backtrace HAS_BACKTRACE	/**/
 
 /* HAS_BCOPY:
  *	This symbol is defined if the bcopy() routine is available to
@@ -423,6 +424,19 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	to optionally save the process's signal mask.  See
  *	Sigjmp_buf, Sigsetjmp, and Siglongjmp.
  */
+/* Sigjmp_buf:
+ *	This is the buffer type to be used with Sigsetjmp and Siglongjmp.
+ */
+/* Sigsetjmp:
+ *	This macro is used in the same way as sigsetjmp(), but will invoke
+ *	traditional setjmp() if sigsetjmp isn't available.
+ *	See HAS_SIGSETJMP.
+ */
+/* Siglongjmp:
+ *	This macro is used in the same way as siglongjmp(), but will invoke
+ *	traditional longjmp() if siglongjmp isn't available.
+ *	See HAS_SIGSETJMP.
+ */
 #$d_sigsetjmp HAS_SIGSETJMP	/**/
 #ifdef HAS_SIGSETJMP
 #define Sigjmp_buf sigjmp_buf
@@ -480,6 +494,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available.
  */
 #$d_sysctl HAS_SYSCTL		/**/
+
+/* HAS_SYSTEM:
+ *	This symbol, if defined, indicates that the system routine is
+ *	available to issue a shell command.
+ */
+#$d_system HAS_SYSTEM	/**/
 
 /* HAS_TIMES:
  *	This symbol, if defined, indicates that the times() routine exists.

@@ -70,6 +70,10 @@ RCSID("$Id$")
 
 #include "override.h"	/* Must be the last header included */
 
+#ifdef HAS_BACKTRACE
+#include <execinfo.h>
+#endif
+
 /*
  * Ensure we use the raw allocation routines even when compiled
  * with -DTRACK_MALLOC.
@@ -111,8 +115,10 @@ struct nm_parser {
 
 static hash_table_t *stack_atoms;
 
+#ifndef HAS_BACKTRACE
 static void *getreturnaddr(size_t level);
 static void *getframeaddr(size_t level);
+#endif
 
 /**
  * Safe logging to avoid recursion from the log handler.
@@ -763,6 +769,24 @@ stacktrace_post_init(void)
  */
 static size_t
 stack_unwind(void *stack[], size_t count, size_t offset)
+#ifdef HAS_BACKTRACE
+{
+	void *trace[STACKTRACE_DEPTH_MAX];
+	int depth;
+    size_t amount;
+
+	depth = backtrace(trace, G_N_ELEMENTS(trace));
+
+	if (depth <= offset + 1)		/* +1 to include ourselves */
+		return 0;
+
+	amount = offset + 1 - UNSIGNED(depth);	/* Amount we can copy */
+	amount = MIN(amount, count);
+	memcpy(stack, &trace[offset + 1], amount * sizeof trace[0]);
+
+	return amount;
+}
+#else	/* !HAS_BACKTRACE */
 {
     size_t i;
 	void *frame;
@@ -821,7 +845,7 @@ stack_unwind(void *stack[], size_t count, size_t offset)
 
 	return i - offset;
 }
-
+#endif	/* HAS_BACKTRACE */
 
 /**
  * Fill supplied stacktrace structure with the backtrace.
@@ -1192,6 +1216,8 @@ stacktrace_get_atom(const struct stacktrace *st)
  ***		--RAM, 2010-10-24
  ***/
 
+#ifndef HAS_BACKTRACE
+
 /*
  * getreturnaddr() and getframeaddr() are:
  *
@@ -1509,5 +1535,7 @@ getframeaddr(size_t level)
 	return NULL;
 }
 #endif	/* GCC >= 3.0 */
+
+#endif	/* !HAS_BACKTRACE */
 
 /* vi: set ts=4 sw=4 cindent:  */
