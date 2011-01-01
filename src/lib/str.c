@@ -169,7 +169,7 @@ str_new_from(const char *string)
  * own the pointer.
  *
  * If `len' is (size_t) -1, an strlen() is ran on `ptr' to compute the length.
- * If `size' is 0, it is set to `len + 1'.
+ * If `size' is 0, it is set to `len + 1' (after length computation, if any).
  */
 void
 str_foreign(str_t *str, char *ptr, size_t len, size_t size)
@@ -177,7 +177,7 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
 	str_check(str);
 
 	g_assert(ptr != NULL);
-	g_assert(size_is_non_negative(len));
+	g_assert(size_is_non_negative(len + 1));
 	g_assert(size_is_non_negative(size));
 
 	if (str->s_data && !(str->s_flags & STR_FOREIGN_PTR))
@@ -220,7 +220,7 @@ str_make(char *ptr, size_t len)
 	str_t *str;
 
 	g_assert(ptr != NULL);
-	g_assert(size_is_non_negative(len));
+	g_assert(size_is_non_negative(len + 1));
 
 	if ((size_t) -1 == len)
 		len = strlen(ptr);					/* Can still be zero, but it's OK */
