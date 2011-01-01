@@ -1048,7 +1048,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 		char plus = 0;
 		char intsize = 0;
 		size_t width = 0;
-		int zeros = 0;
+		size_t zeros = 0;
 		bool has_precis = FALSE;
 		size_t precis = 0;
 
@@ -1290,11 +1290,12 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 			mptr = ebuf + sizeof ebuf;
 			switch (base) {
 				unsigned dig;
+				const char *hex;
 			case 16:
-				p = (c == 'X') ? "0123456789ABCDEF" : "0123456789abcdef";
+				hex = (c == 'X') ? "0123456789ABCDEF" : "0123456789abcdef";
 				do {
 					dig = uv & 15;
-					*--mptr = p[dig];
+					*--mptr = hex[dig];
 				} while (uv >>= 4);
 				if (alt) {
 					esignbuf[esignlen++] = '0';
@@ -1499,8 +1500,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 		str->s_len += remain;				/* know how much we'll append */
 		q = p + remain;						/* first char past limit */
 		if (esignlen && fill == '0') {
-			for (i = 0; i < esignlen && p < q; i++)
-				*p++ = esignbuf[i];
+			p += clamp_memcpy(p, q - p, esignbuf, esignlen);
 			if (p >= q)
 				goto done;
 			remain -= esignlen;
@@ -1516,15 +1516,13 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 			remain -= gap;
 		}
 		if (esignlen && fill != '0') {
-			for (i = 0; i < esignlen && p < q; i++)
-				*p++ = esignbuf[i];
+			p += clamp_memcpy(p, q - p, esignbuf, esignlen);
 			if (p >= q)
 				goto done;
 			remain -= esignlen;
 		}
 		if (zeros) {
-			for (i = zeros; i && p < q; i--)
-				*p++ = '0';
+			p += clamp_memset(p, q - p, '0', zeros);
 			if (p >= q)
 				goto done;
 			remain -= zeros;
