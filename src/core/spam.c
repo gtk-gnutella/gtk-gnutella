@@ -540,7 +540,7 @@ spam_close(void)
  * @returns TRUE if found, and FALSE if not.
  */
 gboolean
-spam_check_filename_and_size(const char *filename, filesize_t size)
+spam_check_filename_size(const char *filename, filesize_t size)
 {
 	const GSList *sl;
 

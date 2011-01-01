@@ -796,7 +796,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		} else if (record->sha1 && spam_sha1_check(record->sha1)) {
 			rs->status |= ST_URN_SPAM;
 			record->flags |= SR_SPAM;
-		} else if (spam_check_filename_and_size(record->filename, record->size)) {
+		} else if (spam_check_filename_size(record->filename, record->size)) {
 			rs->status |= ST_NAME_SPAM;
 			record->flags |= SR_SPAM;
 		} else if (
