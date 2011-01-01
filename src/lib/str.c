@@ -1330,8 +1330,14 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 			else
 				nv = 0.0;
 
+			/*
+			 * The "(nv * 0) == 0" check ensures nv is a valid number,
+			 * and not NaN, +Inf or -Inf, since frexp() has undefined
+			 * behaviour for these three special values.
+			 */
+
 			need = 0;
-			if (c != 'e' && c != 'E') {
+			if (c != 'e' && c != 'E' && (nv * 0) == 0) {
 				int i = INT_MIN;
 				(void) frexp(nv, &i);
 				if (i == INT_MIN)
