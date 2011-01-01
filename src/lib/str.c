@@ -88,6 +88,7 @@ str_check(const struct str * const s)
  * Flags for s_flags
  */
 #define STR_FOREIGN_PTR		(1 << 0)	/**< We don't own the pointer */
+#define STR_OBJECT			(1 << 1)	/**< Object created, not a structure */
 
 /**
  * @return length of string.
@@ -110,9 +111,13 @@ str_len(const str_t *s)
 str_t *
 str_new(size_t szhint)
 {
-	str_t *n = walloc(sizeof *n);
+	str_t *str;
 
-	return str_create(n, szhint);
+	str = walloc(sizeof *str);
+	str_create(str, szhint);
+	str->s_flags |= STR_OBJECT;		/* Signals: we allocated the object */
+
+	return str;
 }
 
 /**
@@ -128,11 +133,11 @@ str_create(str_t *str, size_t szhint)
 	if (szhint == 0)
 		szhint = STR_DEFSIZE;
 
+	str->s_flags = 0;
 	str->s_magic = STR_MAGIC;
 	str->s_data = halloc(szhint);
 	str->s_len = 0;
 	str->s_size = szhint;
-	str->s_flags = 0;
 
 	return str;
 }
@@ -277,6 +282,9 @@ void
 str_destroy(str_t *str)
 {
 	str_check(str);
+
+	if (!(str->s_flags & STR_OBJECT))
+		g_error("str_destroy() called on \"static\" string object");
 
 	str_free(str);
 	str->s_magic = 0;
@@ -457,7 +465,7 @@ str_2c(str_t *str)
  * NB: Upon return, the str_t object is gone. Use str_2c() to get a C string
  * still held within the object.
  */
-char *
+static char *
 str_s2c(str_t *str)
 {
 	char *cstr;
@@ -468,10 +476,13 @@ str_s2c(str_t *str)
 
 	str_check(str);
 
-	len = str->s_len;
+	if (!(str->s_flags & STR_OBJECT))
+		g_error("str_s2c() called on \"static\" string object");
 
 	if (str->s_flags & STR_FOREIGN_PTR)
 		g_error("str_s2c() called on \"foreign\" string");
+
+	len = str->s_len;
 
 	str_resize(str, len + 1);		/* Ensure string fits neatly */
 	cstr = str->s_data;

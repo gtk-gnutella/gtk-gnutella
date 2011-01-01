@@ -924,7 +924,7 @@ proxy_sequence_to_string(const sequence_t *s)
 		sequence_iterator_release(&iter);
 	}
 
-	return str_s2c(str);
+	return str_s2c_null(&str);
 }
 
 static char *
@@ -1064,7 +1064,7 @@ magnet_to_string(const struct magnet_resource *res)
 		magnet_append_item(s, TRUE, "kt", sl->data);
 	}
 
-	return str_s2c(s);
+	return str_s2c_null(&s);
 }
 
 /*

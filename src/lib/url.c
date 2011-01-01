@@ -277,7 +277,7 @@ url_fix_escape(const char *url)
 		}
 	}
 
-	return str_s2c(s);
+	return str_s2c_null(&s);
 }
 
 /**

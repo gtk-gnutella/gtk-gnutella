@@ -1519,7 +1519,7 @@ config_comment(const char *s)
 		word = skip_ascii_spaces(endptr);
 	}
 
-	return str_s2c(out);
+	return str_s2c_null(&out);
 }
 
 /**

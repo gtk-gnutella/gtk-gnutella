@@ -245,7 +245,7 @@ gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
 			gnet_host_get_port(&host), buf, sizeof buf);
 		str_cat(s, buf);
 	}
-	return str_s2c(s);
+	return str_s2c_null(&s);
 }
 
 /**

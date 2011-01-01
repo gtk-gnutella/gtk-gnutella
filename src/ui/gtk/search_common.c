@@ -2953,7 +2953,7 @@ search_xml_indent(const gchar *text)
 		}
 	}
 
-	return str_s2c(s);
+	return str_s2c_null(&s);
 }
 
 /**

@@ -56,7 +56,6 @@ void str_free(str_t *str);
 void str_destroy(str_t *str);
 void str_destroy_null(str_t **s_ptr);
 char *str_2c(str_t *str);
-char *str_s2c(str_t *str);
 char *str_s2c_null(str_t **s_ptr);
 char *str_dup(str_t *str);
 str_t *str_clone(str_t *str);

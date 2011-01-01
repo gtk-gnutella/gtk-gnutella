@@ -289,7 +289,7 @@ shell_next_token(struct gnutella_shell *sh,
 	}
 
 	*endptr = s;
-	return str_s2c(token);
+	return str_s2c_null(&token);
 
 error:
 	str_destroy(token);
