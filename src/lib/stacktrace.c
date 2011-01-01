@@ -777,7 +777,7 @@ stack_unwind(void *stack[], size_t count, size_t offset)
 
 	depth = backtrace(trace, G_N_ELEMENTS(trace));
 
-	if (depth <= offset + 1)		/* +1 to include ourselves */
+	if (UNSIGNED(depth) <= offset + 1)		/* +1 to include ourselves */
 		return 0;
 
 	amount = offset + 1 - UNSIGNED(depth);	/* Amount we can copy */
