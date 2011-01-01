@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "ascii.h"
 #include "str.h"
 #include "glib-missing.h"
+#include "misc.h"			/* For clamp_strcpy */
 #include "halloc.h"
 #include "unsigned.h"
 #include "walloc.h"
@@ -99,6 +100,22 @@ str_len(const str_t *s)
 	str_check(s);
 
 	return s->s_len;
+}
+
+/**
+ * Allocate a new non-leaking string structure.
+ *
+ * This should only be used with static string objects that are never freed.
+ */
+str_t *
+str_new_not_leaking(size_t szhint)
+{
+	str_t *str;
+
+	str = NOT_LEAKING_Z(str_new(szhint));
+	NOT_LEAKING(str->s_data);
+
+	return str;
 }
 
 /**
@@ -875,13 +892,16 @@ str_escape(str_t *str, char c, char e)
 }
 
 /**
- * Wrapper over gm_vsnprintf() to avoid GCC warning on the use of printf()
+ * Wrapper over vsnprintf() to avoid GCC warning on the use of printf()
  * routines with a non-litteral string format buffer.
  *
  * Do NOT add a G_GNUC_PRINTF(3, 4) attribute for this routine.
+ *
+ * NOTE: this routine is only called to format floating point numbers from
+ * within str_vncatf().
  */
 static void
-str_gm_snprintf(char *dst, size_t size, const char *fmt, ...)
+str_snprintf(char *dst, size_t size, const char *fmt, ...)
 {
 	va_list args;
 
@@ -889,7 +909,24 @@ str_gm_snprintf(char *dst, size_t size, const char *fmt, ...)
 	g_assert(fmt != NULL);
 
 	va_start(args, fmt);
-	(void) gm_vsnprintf(dst, size, fmt, args);
+
+	/*
+	 * Do not use gm_vsnprintf() here, because if vsnprintf() is missing,
+	 * it could get back here as it relies on str_vncatf().
+	 *
+	 * Better avoid any overhead and directly call the routines we need.
+	 */
+
+#ifdef HAS_VSNPRINTF
+	vsnprintf(dst, size, fmt, args);
+#else
+	{
+		char *buf = g_strdup_vprintf(fmt, args);
+		clamp_strcpy(dst, size, buf);
+		G_FREE_NULL(buf);
+	}
+#endif	/* HAS_VSNPRINTF */
+
 	va_end(args);
 }
 
@@ -965,12 +1002,13 @@ str_gm_snprintf(char *dst, size_t size, const char *fmt, ...)
  * as the '-' flag: left-justification.
  */
 size_t
-str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
+str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 {
 	static const char nullstr[] = "(null)";
+	const char *f;
+	const char *q;
 	char *p;
-	char *q;
-	char *fmtend;
+	const char *fmtend;
 	size_t fmtlen;
 	size_t origlen;
 	size_t remain = maxlen;
@@ -1003,7 +1041,7 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 
 	fmtend = fmt + fmtlen;
 
-	for (p = fmt; p < fmtend; p = q) {
+	for (f = fmt; f < fmtend; f = q) {
 		bool alt = FALSE;
 		bool left = FALSE;
 		char fill = ' ';
@@ -1037,18 +1075,18 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 
 		g_assert(size_is_non_negative(remain));
 
-		for (q = p; q < fmtend && *q != '%'; ++q) ;
+		for (q = f; q < fmtend && *q != '%'; q++) ;
 
-		if (q > p) {
-			size_t len = q - p;
+		if (q > f) {
+			size_t len = q - f;
 			if (len > remain) {
-				str_ncat(str, p, remain);
+				str_ncat(str, f, remain);
 				goto done;						/* Reached maxlen */
 			} else {
-				str_ncat(str, p, len);
+				str_ncat(str, f, len);
 				remain -= len;
 			}
-			p = q;
+			f = q;
 		}
 		if (q++ >= fmtend)
 			break;
@@ -1322,7 +1360,7 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 			need += 20; /* fudge factor */
 			if (efloatsize < need) {
 				efloatsize = need + 20;			/* more fudge */
-				efloatbuf = hrealloc(efloatbuf, efloatsize);
+				efloatbuf = NOT_LEAKING(hrealloc(efloatbuf, efloatsize));
 			}
 
 			mptr = ebuf + sizeof ebuf;
@@ -1348,7 +1386,7 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 			*--mptr = '%';
 
 			/* should be big enough */
-			str_gm_snprintf(efloatbuf, efloatsize, mptr, nv);
+			str_snprintf(efloatbuf, efloatsize, mptr, nv);
 
 			eptr = efloatbuf;
 			elen = strlen(efloatbuf);
@@ -1535,7 +1573,7 @@ done:
  * Returns the amount of formatted chars.
  */
 size_t
-str_vcatf(str_t *str, char *fmt, va_list *args)
+str_vcatf(str_t *str, const char *fmt, va_list *args)
 {
 	return str_vncatf(str, INT_MAX, fmt, args);
 }
@@ -1545,7 +1583,7 @@ str_vcatf(str_t *str, char *fmt, va_list *args)
  * Returns the amount of formatted chars.
  */
 size_t
-str_vprintf(str_t *str, char *fmt, va_list *args)
+str_vprintf(str_t *str, const char *fmt, va_list *args)
 {
 	str_check(str);
 
@@ -1558,7 +1596,7 @@ str_vprintf(str_t *str, char *fmt, va_list *args)
  * Returns the amount of formatted chars.
  */
 size_t
-str_catf(str_t *str, char *fmt, ...)
+str_catf(str_t *str, const char *fmt, ...)
 {
 	va_list args;
 	size_t formatted;
@@ -1575,7 +1613,7 @@ str_catf(str_t *str, char *fmt, ...)
  * Returns the amount of formatted chars.
  */
 size_t
-str_ncatf(str_t *str, size_t n, char *fmt, ...)
+str_ncatf(str_t *str, size_t n, const char *fmt, ...)
 {
 	va_list args;
 	size_t formatted;
@@ -1592,7 +1630,7 @@ str_ncatf(str_t *str, size_t n, char *fmt, ...)
  * Returns the amount of formatted chars.
  */
 size_t
-str_printf(str_t *str, char *fmt, ...)
+str_printf(str_t *str, const char *fmt, ...)
 {
 	va_list args;
 	size_t formatted;
@@ -1613,7 +1651,7 @@ str_printf(str_t *str, char *fmt, ...)
  * Returns the amount of formatted chars.
  */
 size_t
-str_nprintf(str_t *str, size_t n, char *fmt, ...)
+str_nprintf(str_t *str, size_t n, const char *fmt, ...)
 {
 	va_list args;
 	size_t formatted;
@@ -1634,7 +1672,7 @@ str_nprintf(str_t *str, size_t n, char *fmt, ...)
  * Returns the new string item, which may be disposed of with str_destroy().
  */
 str_t *
-str_msg(char *fmt, ...)
+str_msg(const char *fmt, ...)
 {
 	str_t *str;
 	va_list args;
@@ -1656,13 +1694,13 @@ str_msg(char *fmt, ...)
  * the string, it is already done.
  */
 char *
-str_cmsg(char *fmt, ...)
+str_cmsg(const char *fmt, ...)
 {
 	static str_t *str;
 	va_list args;
 	
 	if (NULL == str)
-		str = NOT_LEAKING(str_new(0));
+		str = str_new_not_leaking(0);
 
 	str->s_len = 0;
 	va_start(args, fmt);

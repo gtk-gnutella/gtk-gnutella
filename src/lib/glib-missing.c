@@ -47,6 +47,8 @@ RCSID("$Id$")
 #include "ascii.h"
 #include "compat_poll.h"
 #include "iovec.h"
+#include "misc.h"			/* For clamp_strcpy() */
+#include "str.h"
 #include "unsigned.h"
 #include "utf8.h"
 
@@ -238,7 +240,7 @@ gm_hash_table_remove(GHashTable *ht, gconstpointer key)
  */
 static inline size_t
 buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
-#ifdef	HAS_VSNPRINTF
+#ifdef HAS_VSNPRINTF
 {
 	int retval;	/* printf()-functions really return int, not size_t */
 	
@@ -259,14 +261,15 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 }
 #else	/* !HAS_VSNPRINTF */
 {
-	char *buf;
-	size_t len;
+	static str_t *s;
   
 	g_assert(size > 0);	
-	buf	= g_strdup_vprintf(fmt, args);
-	len = clamp_strcpy(dst, size, buf);
-	G_FREE_NULL(buf);
-	return len;
+
+	if (NULL == s)
+		s = str_new_not_leaking(0);
+
+	str_vprintf(s, fmt, &args);
+	return clamp_strcpy(dst, size, str_2c(s));
 }
 #endif	/* HAS_VSNPRINTF */
 

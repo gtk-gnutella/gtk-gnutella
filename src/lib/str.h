@@ -48,6 +48,7 @@ typedef struct str str_t;
 size_t str_len(const str_t *s);
 str_t *str_new(size_t szhint);
 str_t *str_new_from(const char *string);
+str_t *str_new_not_leaking(size_t szhint);
 str_t *str_create(str_t *str, size_t szhint);
 str_t *str_make(char *ptr, size_t len);
 void str_foreign(str_t *str, char *buffer, size_t len, size_t size);
@@ -75,15 +76,17 @@ void str_remove(str_t *str, ssize_t idx, size_t n);
 gboolean str_replace(str_t *str, ssize_t idx, size_t amt, const char *string);
 void str_escape(str_t *str, char c, char e);
 
-size_t str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args);
-size_t str_vcatf(str_t *str, char *fmt, va_list *args);
-size_t str_vprintf(str_t *str, char *fmt, va_list *args);
-size_t str_catf(str_t *str, char *fmt, ...) G_GNUC_PRINTF(2, 3);
-size_t str_ncatf(str_t *str, size_t n, char *fmt, ...) G_GNUC_PRINTF(3, 4);
-size_t str_printf(str_t *str, char *fmt, ...) G_GNUC_PRINTF(2, 3);
-size_t str_nprintf(str_t *str, size_t n, char *fmt, ...) G_GNUC_PRINTF(3, 4);
-str_t *str_msg(char *fmt, ...) G_GNUC_PRINTF(1, 2);
-char *str_cmsg(char *fmt, ...) G_GNUC_PRINTF(1, 2);
+size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args);
+size_t str_vcatf(str_t *str, const char *fmt, va_list *args);
+size_t str_vprintf(str_t *str, const char *fmt, va_list *args);
+size_t str_catf(str_t *str, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+size_t str_ncatf(str_t *str, size_t n, const char *fmt, ...)
+	G_GNUC_PRINTF(3, 4);
+size_t str_printf(str_t *str, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+size_t str_nprintf(str_t *str, size_t n, const char *fmt, ...)
+	G_GNUC_PRINTF(3, 4);
+str_t *str_msg(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
+char *str_cmsg(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
 
 #endif /* _str_h_ */
 
