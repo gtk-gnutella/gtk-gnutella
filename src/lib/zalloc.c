@@ -504,7 +504,10 @@ zalloc_not_leaking(const void *o)
 	 * purpose of leak tracking, we track physical block start.
 	 */
 
-	u = hash_table_lookup(alloc_used_to_real, o);
+	if (G_LIKELY(alloc_used_to_real != NULL))
+		u = hash_table_lookup(alloc_used_to_real, o);
+	else
+		u = NULL;		/* Very early in startup */
 
 	hash_table_insert(not_leaking, u != NULL ? u : o, GINT_TO_POINTER(1));
 

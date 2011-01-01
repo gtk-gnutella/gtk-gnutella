@@ -218,6 +218,15 @@
 #define GLISTTRACK(o)	glist_record((o), _WHERE_, __LINE__)
 #define NOT_LEAKING(o)	malloc_not_leaking(o)
 
+#if defined(REMAP_ZALLOC)
+#define NOT_LEAKING_Z(o)	malloc_not_leaking(o)
+#elif defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
+#define NOT_LEAKING_Z(o)	zalloc_not_leaking(o)
+void *zalloc_not_leaking(const void *o);
+#else
+#define NOT_LEAKING_Z(o)
+#endif
+
 #else	/* !TRACK_MALLOC || MALLOC_SOURCE */
 
 #define STRTRACK(o)		(o)
@@ -226,10 +235,12 @@
 #define GLISTTRACK(o)	(o)
 
 #if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
-#define NOT_LEAKING(o)	zalloc_not_leaking(o)
+#define NOT_LEAKING(o)		zalloc_not_leaking(o)
+#define NOT_LEAKING_Z(o)	zalloc_not_leaking(o)
 void *zalloc_not_leaking(const void *o);
 #else
-#define NOT_LEAKING(o)	(o)
+#define NOT_LEAKING(o)		(o)
+#define NOT_LEAKING_Z(o)	(o)
 #endif
 
 #endif	/* TRACK_MALLOC && !MALLOC_SOURCE */
