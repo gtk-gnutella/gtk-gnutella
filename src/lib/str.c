@@ -1064,7 +1064,6 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 		static size_t efloatsize = 0;
 
 		char c;
-		int i;
 		unsigned base;
 		long iv;
 		unsigned long uv;
@@ -1134,13 +1133,12 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 			break;
 
 		case '*':
-			if (args)
-				i = va_arg(*args, int);
-			else
-				i = 0;
-			left |= (i < 0);
-			width = (i < 0) ? -UNSIGNED(i) : UNSIGNED(i);
-			q++;
+			{
+				int i = args ? va_arg(*args, int) : 0;
+				left |= (i < 0);
+				width = (i < 0) ? -UNSIGNED(i) : UNSIGNED(i);
+				q++;
+			}
 			break;
 		}
 
@@ -1149,10 +1147,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 		if (*q == '.') {
 			q++;
 			if (*q == '*') {
-				if (args)
-					i = va_arg(*args, int);
-				else
-					i = 0;
+				int i = args ? va_arg(*args, int) : 0;
 				precis = (i < 0) ? 0 : i;
 				q++;
 			}
@@ -1347,7 +1342,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 
 			need = 0;
 			if (c != 'e' && c != 'E') {
-				i = INT_MIN;
+				int i = INT_MIN;
 				(void) frexp(nv, &i);
 				if (i == INT_MIN)
 					g_error("frexp");
@@ -1397,12 +1392,12 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 			/* SPECIAL */
 
 		case 'n':
-			i = str->s_len - origlen;
 			if (args) {
+				size_t n = str->s_len - origlen;
 				switch (intsize) {
-				case 'h':		*(va_arg(*args, short*)) = i; break;
-				case 'l':		*(va_arg(*args, long*)) = i; break;
-				default:		*(va_arg(*args, int*)) = i; break;
+				case 'h': *(va_arg(*args, short*)) = MIN(n, SHRT_MAX); break;
+				case 'l': *(va_arg(*args, long*)) = MIN(n, LONG_MAX); break;
+				default:  *(va_arg(*args, int*)) = MIN(n, INT_MAX); break;
 				}
 			}
 			continue;	/* not "break" */
@@ -1708,4 +1703,4 @@ str_cmsg(const char *fmt, ...)
 	return str_dup(str);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
