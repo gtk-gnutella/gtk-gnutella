@@ -277,7 +277,7 @@ urpc_send(const char *what,
 void
 urpc_init(void)
 {
-	pending = g_hash_table_new(NULL, NULL);
+	pending = g_hash_table_new(pointer_hash_func, NULL);
 }
 
 static void

@@ -673,7 +673,7 @@ register_object(GHashTable **hptr, gpointer o)
 	g_assert(o != NULL);
 
 	if (NULL == h)
-		*hptr = h = g_hash_table_new(NULL, NULL);
+		*hptr = h = g_hash_table_new(pointer_hash_func, NULL);
 
 	g_assert(!g_hash_table_lookup(h, o));
 

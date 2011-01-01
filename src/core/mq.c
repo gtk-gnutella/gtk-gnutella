@@ -196,7 +196,7 @@ mq_add_linkable(mqueue_t *q, GList *l)
 	g_assert(l->data != NULL);
 	
 	if (qown == NULL)
-		qown = NOT_LEAKING(g_hash_table_new(NULL, NULL));
+		qown = NOT_LEAKING(g_hash_table_new(pointer_hash_func, NULL));
 
 	owner = g_hash_table_lookup(qown, l);
 	if (owner) {
@@ -248,7 +248,7 @@ mq_check_track(mqueue_t *q, int offset, const char *where, int line)
 	g_assert(q);
 
 	if (qown == NULL)
-		qown = NOT_LEAKING(g_hash_table_new(NULL, NULL));
+		qown = NOT_LEAKING(g_hash_table_new(pointer_hash_func, NULL));
 
 	if (q->magic != MQ_MAGIC)
 		g_error("BUG: %s at %s:%d", mq_info(q), where, line);
