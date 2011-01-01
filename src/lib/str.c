@@ -1107,8 +1107,7 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 			else
 				i = 0;
 			left |= (i < 0);
-			/* FIXME: what if i=INT_MIN ??*/
-			width = (i < 0) ? -i : i;
+			width = (i < 0) ? -UNSIGNED(i) : UNSIGNED(i);
 			q++;
 			break;
 		}
