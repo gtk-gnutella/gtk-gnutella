@@ -1228,11 +1228,6 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 			}
 			else {
 				iv = 0;
-				switch (intsize) {
-				case 'h':		iv = (short) iv; break;
-				default:		iv = (int) iv; break;
-				case 'l':		iv = (long) iv; break;
-				}
 			}
 			if (iv >= 0) {
 				uv = iv;
@@ -1274,11 +1269,6 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 			}
 			else {
 				uv = 0;
-				switch (intsize) {
-				case 'h':		uv = (unsigned short)uv; break;
-				case 'l':		uv = (unsigned long)uv; break;
-				default:		uv = (unsigned)uv; break;
-				}
 			}
 
 		integer:
