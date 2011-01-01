@@ -306,9 +306,9 @@ str_destroy_null(str_t **s_ptr)
 }
 
 /**
- * Expand/shrink data space, returning the new data location.
+ * Expand/shrink data space, if possible.
  */
-char *
+static void
 str_resize(str_t *str, size_t newsize)
 {
 	str_check(str);
@@ -322,7 +322,7 @@ str_resize(str_t *str, size_t newsize)
 
 	if (str->s_flags & STR_FOREIGN_PTR) {
 		if (str->s_size >= newsize)
-			return str->s_data;
+			return;
 		g_error("str_resize() would expand \"foreign\" string");
 	}
 
@@ -331,7 +331,7 @@ str_resize(str_t *str, size_t newsize)
 	 */
 
 	if (str->s_size == newsize)
-		return str->s_data;
+		return;
 
 	/*
 	 * Make the data space "exactly" fit (modulo malloc alignment constraints)
@@ -343,7 +343,7 @@ str_resize(str_t *str, size_t newsize)
 	if (str->s_len > newsize)
 		str->s_len = newsize;
 
-	return str->s_data;
+	return;
 }
 
 /*
@@ -669,6 +669,7 @@ str_shift(str_t *str, size_t n)
 	 * accounted for in the s_len field.
 	 */
 
+	/* FIXME: UMR(Uninitialized Memory Read) means Undefined Behavior! */
 	if (str->s_size > len && str->s_data[len] == '\0')		/* May cause UMR */
 		str->s_data[len - n] = '\0';
 
@@ -906,13 +907,6 @@ str_gm_snprintf(char *dst, size_t size, const char *fmt, ...)
 #define bool			int
 #define BIT_DIGITS(n)	(((n)*146)/485 + 1)			/* log2(10) =~ 146/485 */
 #define TYPE_DIGITS(t)	BIT_DIGITS(sizeof(t) * 8)
-#define Nullch			((char *) 0)
-#ifndef MAXINT
-#define MAXINT			MAX_INT_VAL(int)
-#endif
-#ifndef MININT
-#define MININT			(-MAXINT - ((3 & -1) == 3))
-#endif
 
 /**
  * Append to string the variable formatted argument list, just like sprintf()
@@ -979,13 +973,13 @@ str_gm_snprintf(char *dst, size_t size, const char *fmt, ...)
 size_t
 str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 {
+	static const char nullstr[] = "(null)";
 	char *p;
 	char *q;
 	char *fmtend;
 	size_t fmtlen;
 	size_t origlen;
 	size_t remain = maxlen;
-	static char nullstr[] = "(null)";
 
 	str_check(str);
 	g_assert(size_is_non_negative(maxlen));
@@ -1004,7 +998,7 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 
 	if (2 == fmtlen && fmt[0] == '%' && fmt[1] == 's') {
 		if (args) {
-			char *s = va_arg(*args, char*);
+			const char *s = va_arg(*args, char*);
 			size_t len;
 			s = s ? s : nullstr;
 			len = strlen(s);
@@ -1029,11 +1023,12 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 		char esignbuf[4];
 		int esignlen = 0;
 
-		char *eptr = Nullch;
+		const char *eptr = NULL;
+		char *mptr;
 		size_t elen = 0;
 		char ebuf[TYPE_DIGITS(long) * 2 + 16]; /* large enough for "%#.#f" */
 
-		static char *efloatbuf = Nullch;
+		static char *efloatbuf = NULL;
 		static size_t efloatsize = 0;
 
 		char c;
@@ -1112,6 +1107,7 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 			else
 				i = 0;
 			left |= (i < 0);
+			/* FIXME: what if i=INT_MIN ??*/
 			width = (i < 0) ? -i : i;
 			q++;
 			break;
@@ -1162,7 +1158,7 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 
 		case 'c':
 			if (args)
-				c = va_arg(*args, int);
+				c = va_arg(*args, int) & MAX_INT_VAL(unsigned char);
 			else
 				c = 0;
 			eptr = &c;
@@ -1172,12 +1168,9 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 		case 's':
 			if (args) {
 				eptr = va_arg(*args, char*);
-				if (eptr)
-					elen = strlen(eptr);
-				else {
+				if (NULL == eptr)
 					eptr = nullstr;
-					elen = sizeof nullstr - 1;
-				}
+				elen = strlen(eptr);
 			}
 
 		string:
@@ -1263,14 +1256,14 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 			}
 
 		integer:
-			eptr = ebuf + sizeof ebuf;
+			mptr = ebuf + sizeof ebuf;
 			switch (base) {
 				unsigned dig;
 			case 16:
 				p = (c == 'X') ? "0123456789ABCDEF" : "0123456789abcdef";
 				do {
 					dig = uv & 15;
-					*--eptr = p[dig];
+					*--mptr = p[dig];
 				} while (uv >>= 4);
 				if (alt) {
 					esignbuf[esignlen++] = '0';
@@ -1280,18 +1273,22 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 			case 8:
 				do {
 					dig = uv & 7;
-					*--eptr = '0' + dig;
+					*--mptr = '0' + dig;
 				} while (uv >>= 3);
-				if (alt && *eptr != '0')
-					*--eptr = '0';
+				if (alt && *mptr != '0')
+					*--mptr = '0';
 				break;
-			default:			/* it had better be ten or less */
+			case 10:
 				do {
 					dig = uv % base;
-					*--eptr = '0' + dig;
+					*--mptr = '0' + dig;
 				} while (uv /= base);
 				break;
+			default:
+				g_assert_not_reached();
+				break;
 			}
+			eptr = mptr;
 			elen = (ebuf + sizeof ebuf) - eptr;
 			if (has_precis && precis > elen)
 				zeros = precis - elen;
@@ -1318,9 +1315,9 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 
 			need = 0;
 			if (c != 'e' && c != 'E') {
-				i = MININT;
+				i = INT_MIN;
 				(void) frexp(nv, &i);
-				if (i == MININT)
+				if (i == INT_MIN)
 					g_error("frexp");
 				if (i > 0)
 					need = BIT_DIGITS(i);
@@ -1335,30 +1332,30 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 				efloatbuf = hrealloc(efloatbuf, efloatsize);
 			}
 
-			eptr = ebuf + sizeof ebuf;
-			*--eptr = '\0';
-			*--eptr = c;
+			mptr = ebuf + sizeof ebuf;
+			*--mptr = '\0';
+			*--mptr = c;
 			if (has_precis) {
 				base = precis;
-				do { *--eptr = '0' + (base % 10); } while (base /= 10);
-				*--eptr = '.';
+				do { *--mptr = '0' + (base % 10); } while (base /= 10);
+				*--mptr = '.';
 			}
 			if (width) {
 				base = width;
-				do { *--eptr = '0' + (base % 10); } while (base /= 10);
+				do { *--mptr = '0' + (base % 10); } while (base /= 10);
 			}
 			if (fill == '0')
-				*--eptr = fill;
+				*--mptr = fill;
 			if (left)
-				*--eptr = '-';
+				*--mptr = '-';
 			if (plus)
-				*--eptr = plus;
+				*--mptr = plus;
 			if (alt)
-				*--eptr = '#';
-			*--eptr = '%';
+				*--mptr = '#';
+			*--mptr = '%';
 
 			/* should be big enough */
-			str_gm_snprintf(efloatbuf, efloatsize, eptr, nv);
+			str_gm_snprintf(efloatbuf, efloatsize, mptr, nv);
 
 			eptr = efloatbuf;
 			elen = strlen(efloatbuf);
@@ -1428,20 +1425,20 @@ str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args)
 		str_makeroom(str, need + 1);	/* will NUL terminate it */
 		p = str->s_data + str->s_len;	/* next "free" char in arena */
 		if (esignlen && fill == '0') {
-			for (i = 0; i < esignlen; i++)
-				*p++ = esignbuf[i];
+			memcpy(p, esignbuf, esignlen);
+			p += esignlen;
 		}
 		if (gap && !left) {
 			memset(p, fill, gap);
 			p += gap;
 		}
 		if (esignlen && fill != '0') {
-			for (i = 0; i < esignlen; i++)
-				*p++ = esignbuf[i];
+			memcpy(p, esignbuf, esignlen);
+			p += esignlen;
 		}
 		if (zeros) {
-			for (i = zeros; i; i--)
-				*p++ = '0';
+			memset(p, '0', zeros);
+			p += zeros;
 		}
 		if (elen) {
 			memcpy(p, eptr, elen);
@@ -1548,7 +1545,7 @@ done:
 size_t
 str_vcatf(str_t *str, char *fmt, va_list *args)
 {
-	return str_vncatf(str, MAXINT, fmt, args);
+	return str_vncatf(str, INT_MAX, fmt, args);
 }
 
 /**
@@ -1561,7 +1558,7 @@ str_vprintf(str_t *str, char *fmt, va_list *args)
 	str_check(str);
 
 	str->s_len = 0;
-	return str_vncatf(str, MAXINT, fmt, args);
+	return str_vncatf(str, INT_MAX, fmt, args);
 }
 
 /**
@@ -1575,7 +1572,7 @@ str_catf(str_t *str, char *fmt, ...)
 	size_t formatted;
 
 	va_start(args, fmt);
-	formatted = str_vncatf(str, MAXINT, fmt, &args);
+	formatted = str_vncatf(str, INT_MAX, fmt, &args);
 	va_end(args);
 
 	return formatted;
@@ -1613,7 +1610,7 @@ str_printf(str_t *str, char *fmt, ...)
 	str->s_len = 0;
 
 	va_start(args, fmt);
-	formatted = str_vncatf(str, MAXINT, fmt, &args);
+	formatted = str_vncatf(str, INT_MAX, fmt, &args);
 	va_end(args);
 
 	return formatted;
@@ -1653,7 +1650,7 @@ str_msg(char *fmt, ...)
 	str = str_new(0);
 
 	va_start(args, fmt);
-	str_vncatf(str, MAXINT, fmt, &args); /* We know length is 0 */
+	str_vncatf(str, INT_MAX, fmt, &args); /* We know length is 0 */
 	va_end(args);
 
 	str_resize(str, str->s_len + 1);	/* Make it fit exactly, but.. */
@@ -1678,7 +1675,7 @@ str_cmsg(char *fmt, ...)
 
 	str->s_len = 0;
 	va_start(args, fmt);
-	str_vncatf(str, MAXINT, fmt, &args);
+	str_vncatf(str, INT_MAX, fmt, &args);
 	va_end(args);
 
 	return str_dup(str);
