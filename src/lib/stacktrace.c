@@ -764,13 +764,39 @@ stacktrace_post_init(void)
 static size_t
 stack_unwind(void *stack[], size_t count, size_t offset)
 {
-    size_t i = offset;
-	void *frame = getframeaddr(i);
+    size_t i;
+	void *frame;
 	size_t d;
 	gboolean increasing;
-	
-	d = ptr_diff(getframeaddr(i + 1), frame);
+
+	/*
+	 * Go carefully to stack frame "offset", in case the stack is
+	 * currently corrupted.
+	 */
+
+	frame = getframeaddr(0);
+	if (NULL == frame)
+		return 0;
+
+	d = ptr_diff(getframeaddr(1), frame);
 	increasing = size_is_positive(d);
+
+	for (i = 0; i < offset; i++) {
+		void *nframe = getframeaddr(i + 1);
+
+		if (NULL == nframe)
+			return 0;
+
+		d = increasing ? ptr_diff(nframe, frame) : ptr_diff(frame, nframe);
+		if (d > 0x1000)		/* Arbitrary, large enough to be uncommon */
+			return 0;
+
+		frame = nframe;
+	}
+
+	/*
+	 * At this point, i == offset and frame == getframeaddr(offset).
+	 */
 
 	for (;; i++) {
 		void *nframe = getframeaddr(i + 1);
@@ -992,7 +1018,7 @@ stacktrace_got_signal(int signo)
 }
 
 /**
- * Wraps stacktrace_where_safe_print_offset() for extra caution.
+ * Like stacktrace_where_safe_print_offset() but with extra caution.
  *
  * Caution comes from the fact that we trap all SIGSEGV and other harmful
  * signals that could result from improper memory access during stack
@@ -1004,6 +1030,9 @@ stacktrace_got_signal(int signo)
 void
 stacktrace_where_cautious_print_offset(int fd, size_t offset)
 {
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
 	static gboolean printing;
 	signal_handler_t old_sigsegv;
 #ifdef SIGBUS
@@ -1051,7 +1080,17 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 		goto restore;
 	}
 
-	stacktrace_where_safe_print_offset(fd, offset + 1);
+	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+
+	if (0 == count) {
+		iovec_t iov[1];
+		unsigned iov_cnt = 0;
+		print_str("WARNING: corrupted stack\n");
+		IGNORE_RESULT(writev(fd, iov, iov_cnt));
+	} else {
+		stack_safe_print(fd, stack, count);
+	}
+
 	print_context.done = TRUE;
 
 restore:
