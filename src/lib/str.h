@@ -69,10 +69,10 @@ void str_cat_len(str_t *str, const char *string, size_t len);
 void str_ncat(str_t *str, const char *string, size_t len);
 void str_shift(str_t *str, size_t len);
 void str_ichar(str_t *str, ssize_t idx, char c);
-void str_istr(str_t *str, ssize_t idx, char *string);
-void str_instr(str_t *str, ssize_t idx, char *string, size_t n);
+void str_istr(str_t *str, ssize_t idx, const char *string);
+void str_instr(str_t *str, ssize_t idx, const char *string, size_t n);
 void str_remove(str_t *str, ssize_t idx, size_t n);
-void str_replace(str_t *str, ssize_t idx, size_t amount, char *string);
+void str_replace(str_t *str, ssize_t idx, size_t amount, const char *string);
 void str_escape(str_t *str, char c, char e);
 
 size_t str_vncatf(str_t *str, size_t maxlen, char *fmt, va_list *args);

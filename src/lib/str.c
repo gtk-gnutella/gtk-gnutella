@@ -206,7 +206,7 @@ str_from_foreign(str_t *str, char *ptr, size_t len, size_t size)
 
 	str->s_magic = STR_MAGIC;
 	str->s_flags = 0;
-	str->s_data = 0;
+	str->s_data = NULL;
 	str_foreign(str, ptr, len, size);
 }
 
@@ -706,7 +706,7 @@ str_ichar(str_t *str, ssize_t idx, char c)
  * before the last character, etc...
  */
 void
-str_istr(str_t *str, ssize_t idx, char *string)
+str_istr(str_t *str, ssize_t idx, const char *string)
 {
 	str_check(str);
 	g_assert(string != NULL);
@@ -718,7 +718,7 @@ str_istr(str_t *str, ssize_t idx, char *string)
  * Same as str_istr, only the first `n' chars of string are inserted.
  */
 void
-str_instr(str_t *str, ssize_t idx, char *string, size_t n)
+str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 {
 	size_t len;
 
@@ -789,7 +789,7 @@ str_remove(str_t *str, ssize_t idx, size_t n)
  * held until the end of the string.
  */
 void
-str_replace(str_t *str, ssize_t idx, size_t amount, char *string)
+str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 {
 	size_t length;
 	size_t len;
