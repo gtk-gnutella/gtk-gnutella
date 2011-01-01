@@ -347,6 +347,24 @@ clamp_memcpy(char *dst, size_t dst_size, const char *src, size_t src_len)
 }
 
 /**
+ * Sets MIN(dst_size, src_len) bytes starting at dst to 'c'.
+ *
+ * @param dst the destination buffer.
+ * @param dst_size the size of dst in number of bytes.
+ * @param c the value to set each byte to. 
+ * @param n the number of bytes to set.
+ *
+ * @return The number of set bytes.
+ */
+static inline size_t
+clamp_memset(char *dst, size_t dst_size, char c, size_t n)
+{
+	n = MIN(dst_size, n);
+	memset(dst, c, n);
+	return n;
+}
+
+/**
  * Copies at most MIN(dst_size - 1, src_len) characters from the buffer "src"
  * to the buffer "dst", ensuring the resulting string in "dst" is
  * NUL-terminated and truncating it if necessary. If "src_len" is (size_t)-1,
