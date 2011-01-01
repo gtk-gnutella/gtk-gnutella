@@ -168,7 +168,7 @@ str_new_from(const char *string)
  * of `len' bytes. The resulting string is made "foreign" since we don't
  * own the pointer.
  *
- * If `len' is 0, an strlen() is ran on `ptr' to compute the length.
+ * If `len' is (size_t) -1, an strlen() is ran on `ptr' to compute the length.
  * If `size' is 0, it is set to `len + 1'.
  */
 void
@@ -183,7 +183,7 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
 	if (str->s_data && !(str->s_flags & STR_FOREIGN_PTR))
 		str_free(str);
 
-	if (len == 0)
+	if ((size_t) -1 == len)
 		len = strlen(ptr);
 
 	if (size == 0)
@@ -196,7 +196,8 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
 }
 
 /**
- * Like str_foreign(), but string structure has not been initialized yet.
+ * Like str_foreign(), but string structure has not been initialized yet
+ * and is a static buffer.
  */
 void
 str_from_foreign(str_t *str, char *ptr, size_t len, size_t size)
@@ -211,7 +212,7 @@ str_from_foreign(str_t *str, char *ptr, size_t len, size_t size)
 
 /**
  * Make an str_t object out of a specified C string, which is duplicated.
- * If specified length is 0, it is computed using strlen().
+ * If specified length is (size_t) -1, it is computed using strlen().
  */
 str_t *
 str_make(char *ptr, size_t len)
@@ -221,7 +222,7 @@ str_make(char *ptr, size_t len)
 	g_assert(ptr != NULL);
 	g_assert(size_is_non_negative(len));
 
-	if (!len)
+	if ((size_t) -1 == len)
 		len = strlen(ptr);					/* Can still be zero, but it's OK */
 
 	str = walloc(sizeof *str);
@@ -665,14 +666,11 @@ str_shift(str_t *str, size_t n)
 	memmove(str->s_data, str->s_data + n, len - n);			/* Overlap-safe */
 
 	/* 
-	 * If there was a trailing hidden NUL, propagate it, since it was not
-	 * accounted for in the s_len field.
+	 * Always insert a hidden trailing NUL, regardless of whether one was
+	 * already present.
 	 */
 
-	/* FIXME: UMR(Uninitialized Memory Read) means Undefined Behavior! */
-	if (str->s_size > len && str->s_data[len] == '\0')		/* May cause UMR */
-		str->s_data[len - n] = '\0';
-
+	str->s_data[len - n] = '\0';		/* Not accounted for in s_len */
 	str->s_len -= n;
 }
 
