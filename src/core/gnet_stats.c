@@ -114,13 +114,17 @@ gnet_stats_general_to_string(gnr_stats_t type)
 
 	static const char * const type_string[] = {
 	"routing_errors",
+	"dups_with_higher_ttl",
+	"spam_sha1_hits",
+	"spam_name_hits",
+	"spam_fake_hits",
+	"spam_dup_hits",
 	"local_searches",
 	"local_hits",
 	"local_query_hits",
 	"oob_proxied_query_hits",
 	"oob_queries",
 	"oob_queries_stripped",
-	"dups_with_higher_ttl",
 	"query_oob_proxied_dups",
 	"oob_hits_for_proxied_queries",
 	"oob_hits_with_alien_ip",

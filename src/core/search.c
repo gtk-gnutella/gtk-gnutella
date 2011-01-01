@@ -719,6 +719,9 @@ search_results_identify_dupes(gnet_results_set_t *rs)
 		}
 	}
 
+	if (rs->status & ST_DUP_SPAM)
+		gnet_stats_count_general(GNR_SPAM_DUP_HITS, 1);
+
 	g_hash_table_destroy(ht);
 }
 
@@ -765,6 +768,19 @@ is_lime_return_path(const extvec_t *e)
 	return s[0] != '\0' && is_ascii_digit(s[1]);
 }
 
+/**
+ * Mark fake spam.
+ */
+static void
+search_results_mark_fake_spam(gnet_results_set_t *rs)
+{
+	if (!(rs->status & ST_FAKE_SPAM)) {
+		/* Count only once per result set */
+		gnet_stats_count_general(GNR_SPAM_FAKE_HITS, 1);
+		rs->status |= ST_FAKE_SPAM;
+	}
+}
+
 static void
 search_results_identify_spam(gnet_results_set_t *rs)
 {
@@ -788,17 +804,19 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			 */
 			record->flags |= SR_SPAM;
 		} else if (!record->file_index && T_GTKG == rs->vcode.u32) {
-			rs->status |= ST_FAKE_SPAM;
+			search_results_mark_fake_spam(rs);
 			record->flags |= SR_SPAM;
 		} else if (n_alt > 16 || (T_LIME == rs->vcode.u32 && n_alt > 10)) {
-			rs->status |= ST_FAKE_SPAM;
+			search_results_mark_fake_spam(rs);
 			record->flags |= SR_SPAM;
 		} else if (record->sha1 && spam_sha1_check(record->sha1)) {
 			rs->status |= ST_URN_SPAM;
 			record->flags |= SR_SPAM;
+			gnet_stats_count_general(GNR_SPAM_SHA1_HITS, 1);
 		} else if (spam_check_filename_size(record->filename, record->size)) {
 			rs->status |= ST_NAME_SPAM;
 			record->flags |= SR_SPAM;
+			gnet_stats_count_general(GNR_SPAM_NAME_HITS, 1);
 		} else if (
 			record->xml &&
 			is_action_url_spam(record->xml, strlen(record->xml))
@@ -817,15 +835,15 @@ search_results_identify_spam(gnet_results_set_t *rs)
 
 	if (!is_vendor_acceptable(rs->vcode)) {
 		/* A proper vendor code is mandatory */
-		rs->status |= ST_FAKE_SPAM;
+		search_results_mark_fake_spam(rs);
 	} else if (T_LIME == rs->vcode.u32 && !has_ct) {
 		/*
 		 * If there are no timestamps, this is most-likely not from LimeWire.
 		 * Cabos frequently fails to add timestamps for unknown reasons.
 		 */
-		rs->status |= ST_FAKE_SPAM;
+		search_results_mark_fake_spam(rs);
 	} else if (is_odd_guid(rs->guid)) {
-		rs->status |= ST_FAKE_SPAM;
+		search_results_mark_fake_spam(rs);
 	} else if (!(ST_SPAM & rs->status)) {
 		/*
 		 * Avoid costly checks if already marked as spam.
@@ -1381,7 +1399,9 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			gnet_host_vec_add(rs->proxies, n->addr, n->port);
 		} else {
 			rs->status |= ST_UNREQUESTED | ST_FAKE_SPAM;
+			/* Count only as unrequested, not as fake spam */
 			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
+
 			if (GNET_PROPERTY(search_debug) > 1) {
 				g_debug("received unrequested query hit from %s",
                 	host_addr_port_to_string(n->addr, n->port));

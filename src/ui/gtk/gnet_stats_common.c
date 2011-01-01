@@ -104,13 +104,17 @@ general_type_str(gint value)
 {
 	static const char * const strs[] = {
 		N_("Routing errors"),
+		N_("Duplicates with higher TTL"),
+		N_("SPAM SHA1 database hits"),
+		N_("SPAM filename and size hits"),
+		N_("SPAM fake hits"),
+		N_("SPAM duplicate hits"),
 		N_("Searches to local DB"),
 		N_("Hits on local DB"),
 		N_("Query hits received for local queries"),
 		N_("Query hits received for OOB-proxied queries"),
 		N_("Queries requesting OOB hit delivery"),
 		N_("Stripped OOB flag on queries"),
-		N_("Duplicates with higher TTL"),
 		N_("Duplicate OOB-proxied queries"),
 		N_("OOB hits received for OOB-proxied queries"),
 		N_("OOB hits bearing alien IP address"),
