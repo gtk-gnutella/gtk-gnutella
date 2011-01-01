@@ -113,7 +113,7 @@ str_new_not_leaking(size_t szhint)
 	str_t *str;
 
 	str = NOT_LEAKING_Z(str_new(szhint));
-	NOT_LEAKING(str->s_data);
+	(void) NOT_LEAKING(str->s_data);
 
 	return str;
 }
