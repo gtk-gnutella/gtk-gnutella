@@ -186,7 +186,7 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
 	if ((size_t) -1 == len)
 		len = strlen(ptr);
 
-	if (size == 0)
+	if (0 == size)
 		size = len + 1;			/* Allow for trailing hidden NUL */
 
 	str->s_flags |= STR_FOREIGN_PTR;
@@ -227,7 +227,7 @@ str_make(char *ptr, size_t len)
 
 	str = walloc(sizeof *str);
 	(void) str_create(str, len + 1);		/* Allow for trailing NUL */
-	str->s_len = len;
+	str->s_len = len;						/* Final NUL not accounted for */
 	memcpy(str->s_data, ptr, len + 1);		/* Copy trailing NUL */
 
 	return str;
@@ -271,7 +271,7 @@ str_free(str_t *str)
 	else
 		str->s_flags &= ~STR_FOREIGN_PTR;		/* Clear foreign indication */
 
-	str->s_data = 0;
+	str->s_data = NULL;
 	str->s_len = 0;
 	str->s_size = 0;
 }
@@ -403,7 +403,7 @@ str_setlen(str_t *str, size_t len)
 	str_check(str);
 	g_assert(size_is_non_negative(len));
 
-	if (len == 0) {
+	if (0 == len) {
 		str_reset(str);
 		return;
 	}
@@ -538,7 +538,7 @@ str_dup(str_t *str)
 }
 
 /**
- * Append a character to the string.
+ * Append a character to the string (NUL allowed).
  */
 void
 str_putc(str_t *str, char c)
@@ -620,6 +620,7 @@ void
 str_ncat(str_t *str, const char *string, size_t len)
 {
 	char *p;
+	const char *q;
 	char c;
 
 	str_check(str);
@@ -629,17 +630,17 @@ str_ncat(str_t *str, const char *string, size_t len)
 	if (0 == len)
 		return;
 
-	str_makeroom(str, len);
+	str_makeroom(str, len + 1);			/* Allow for trailing NUL */
 	p = str->s_data + str->s_len; 
+	q = string;
 
-	while (len > 0 && (c = *string++)) {
+	while (len > 0 && '\0' != (c = *q++)) {
 		*p++ = c;
 		len--;
 	}
 
 	str->s_len = p - str->s_data;
-	if (str->s_size > str->s_len)
-		*p = '\0';						/* Hidden NUL appended if possible */
+	*p = '\0';							/* Hidden NUL appended */
 }
 
 /**
@@ -728,7 +729,7 @@ str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 
 	len = str->s_len;
 
-	if (!n)								/* Empty string */
+	if (0 == n)							/* Empty string */
 		return;
 
 	if (idx < 0)						/* Stands for chars before end */
@@ -842,8 +843,8 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 	/*
 	 * Replacement string was larger than the replaced spot. Insert
 	 * remaining characters after the spot we just superseded. If we're at
-	 * the end of the string, i.e. if idx is str->s_len, call str_cat()
-	 * instead since str_instr() won't do anything when index is off bounds..
+	 * the end of the string, i.e. if idx is str->s_len, call str_ncat()
+	 * instead since str_instr() won't do anything when index is off bounds.
 	 */
 
 	if ((size_t) idx == str->s_len)
