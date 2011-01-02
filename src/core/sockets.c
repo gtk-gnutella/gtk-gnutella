@@ -344,6 +344,18 @@ static int sol_tcp_cached = -1;
 static int sol_ip_cached = -1;
 static int sol_ipv6_cached = -1;
 
+#ifdef IPTOS_LOWDELAY
+#define iptos_lowdelay IPTOS_LOWDELAY
+#else
+#define iptos_lowdelay 0
+#endif
+
+#ifdef IPTOS_THROUGHPUT
+#define iptos_throughput IPTOS_THROUGHPUT
+#else
+#define iptos_throughput 0
+#endif
+
 /**
  * Compute and cache values for SOL_TCP and SOL_IP.
  */
@@ -378,7 +390,7 @@ get_sol(void)
 /**
  * @returns SOL_TCP.
  */
-static int
+static inline int
 sol_tcp(void)
 {
 	g_assert(sol_got);
@@ -388,7 +400,7 @@ sol_tcp(void)
 /**
  * @returns SOL_IP.
  */
-static int
+static inline int
 sol_ip(void)
 {
 	g_assert(sol_got);
@@ -398,14 +410,12 @@ sol_ip(void)
 /**
  * @returns SOL_IPV6.
  */
-static int
+static inline int
 sol_ipv6(void)
 {
 	g_assert(sol_got);
 	return sol_ipv6_cached;
 }
-
-#ifdef USE_IP_TOS
 
 /**
  * Set the TOS on the socket.  Routers can use this information to
@@ -414,6 +424,7 @@ sol_ipv6(void)
 static int
 socket_tos(const struct gnutella_socket *s, int tos)
 {
+#ifdef USE_IP_TOS
 	socket_check(s);
 	g_return_val_if_fail(NET_TYPE_NONE != s->net, 0);
 
@@ -423,23 +434,67 @@ socket_tos(const struct gnutella_socket *s, int tos)
 		-1 == setsockopt(s->file_desc, sol_ip(), IP_TOS, &tos, sizeof tos)
 	) {
 		if (ECONNRESET != errno) {
-			const char *tosname;
+			const char *name;
 
-			switch (tos) {
-			case 0: tosname = "default"; break;
-			case IPTOS_LOWDELAY: tosname = "low delay"; break;
-			case IPTOS_THROUGHPUT: tosname = "throughput"; break;
-			default:
-				tosname = NULL;
+			/* Intentionally not switch() in case some values are identical */
+			if (0 == tos) {
+				name = "default";
+			} else if (iptos_lowdelay == tos) {
+				name = "low delay";
+			} else if (iptos_throughput == tos) {
+				name = "throughput";
+			} else {
 				g_assert_not_reached();
 			}
 			g_warning("unable to set IP_TOS to %s (%d) on fd#%d: %s",
-				tosname, tos, s->file_desc, g_strerror(errno));
+				name, tos, s->file_desc, g_strerror(errno));
 		}
 		return -1;
 	}
 
 	return 0;
+#else
+	(void) s;
+	(void) tos;
+	return -1;
+#endif /* USE_IP_TOS */
+}
+
+/**
+ * Set the Type of Service (TOS) field to "normal."
+ */
+void
+socket_tos_normal(const struct gnutella_socket *s)
+{
+	socket_tos(s, 0);
+}
+
+/**
+ * Set the Type of Service (TOS) field to "lowdelay." This may cause
+ * your host and/or any routers along the path to put its packets in
+ * a higher-priority queue, and/or to route them along the lowest-
+ * latency path without regard for bandwidth.
+ */
+void
+socket_tos_lowdelay(const struct gnutella_socket *s)
+{
+	static gboolean failed;
+
+	failed = failed || socket_tos(s, iptos_lowdelay);
+}
+
+/**
+ * Set the Type of Service (TOS) field to "throughput." This may cause
+ * your host and/or any routers along the path to put its packets in
+ * a lower-priority queue, and/or to route them along the highest-
+ * bandwidth path without regard for latency.
+ */
+void
+socket_tos_throughput(const struct gnutella_socket *s)
+{
+	static gboolean failed;
+
+	failed = failed || socket_tos(s, iptos_throughput);
 }
 
 /**
@@ -463,69 +518,6 @@ socket_tos_default(const struct gnutella_socket *s)
 	default:
 		socket_tos_normal(s);
 	}
-}
-#else
-static int
-socket_tos(const struct gnutella_socket *unused_s, int unused_tos)
-{
-	(void) unused_s;
-	(void) unused_tos;
-	return 0;
-}
-
-void
-socket_tos_default(const struct gnutella_socket *unused_s)
-{
-	(void) unused_s;
-	/* Empty */
-}
-#endif /* USE_IP_TOS */
-
-/**
- * Set the Type of Service (TOS) field to "normal."
- */
-void
-socket_tos_normal(const struct gnutella_socket *s)
-{
-	socket_tos(s, 0);
-}
-
-/**
- * Set the Type of Service (TOS) field to "lowdelay." This may cause
- * your host and/or any routers along the path to put its packets in
- * a higher-priority queue, and/or to route them along the lowest-
- * latency path without regard for bandwidth.
- */
-void
-socket_tos_lowdelay(const struct gnutella_socket *s)
-{
-#ifdef MINGW32
-	(void) s;
-#else
-	static gboolean failed;
-
-	if (!failed)
-		failed = 0 != socket_tos(s, IPTOS_LOWDELAY);
-#endif
-}
-
-/**
- * Set the Type of Service (TOS) field to "throughput." This may cause
- * your host and/or any routers along the path to put its packets in
- * a lower-priority queue, and/or to route them along the highest-
- * bandwidth path without regard for latency.
- */
-void
-socket_tos_throughput(const struct gnutella_socket *s)
-{
-#ifdef MINGW32
-	(void) s;
-#else
-	static gboolean failed;
-
-	if (!failed)
-		failed = 0 != socket_tos(s, IPTOS_THROUGHPUT);
-#endif
 }
 
 /**
@@ -652,19 +644,11 @@ send_socks4(struct gnutella_socket *s)
 		length = sizeof *req;
 	}
 
-	/* FIXME: Shouldn't this use the configured username instead? */
-	/* Determine the current username */
 	{
-		const struct passwd *user;
 		const char *name;
 		size_t name_size;
 
-#ifdef MINGW32
-		user = NULL;
-#else
-		user = getpwuid(getuid());
-#endif
-		name = user != NULL ? user->pw_name : "";
+		name = EMPTY_STRING(GNET_PROPERTY(socks_user));
 		name_size = 1 + strlen(name);
 
 		/* Make sure the request fits into the socket buffer */
@@ -983,20 +967,7 @@ connect_socksv5(struct gnutella_socket *s)
 		/* If the socks server chose username/password authentication */
 		/* (method 2) then do that */
 
-		if (GNET_PROPERTY(socks_user) != NULL) {
-			name = GNET_PROPERTY(socks_user);
-		} else {
-			const struct passwd *pw;
-
-			/* Determine the current *nix username */
-#ifdef MINGW32
-			pw = NULL;
-#else
-			pw = getpwuid(getuid());
-#endif
-			name = pw != NULL ? pw->pw_name : NULL;
-		}
-
+		name = GNET_PROPERTY(socks_user);
 		if (name == NULL) {
 			g_warning("No Username to authenticate with.");
 			return ECONNREFUSED;
@@ -1498,11 +1469,8 @@ socket_read(gpointer data, int source, inputevt_cond_t cond)
 	) {
 		if (s->tls.enabled && s->tls.stage < SOCK_TLS_INITIALIZED) {
 			ssize_t ret;
-#ifdef MINGW32
 			char c;
-#else
-			guchar c;
-#endif
+
 			/* Peek at the socket buffer to check whether the incoming
 			 * connection uses TLS or not. */
 			ret = recv(s->file_desc, &c, sizeof c, MSG_PEEK);
@@ -2948,12 +2916,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 				socket_addr_get_const_sockaddr(&addr), addr_len);
 	}
 
-#ifdef MINGW32
-	if (-1 == res && WSAEINPROGRESS != errno && WSAEWOULDBLOCK != errno)
-#else
-	if (-1 == res && EINPROGRESS != errno)
-#endif
-	{
+	if (-1 == res && EINPROGRESS != errno && !is_temporary_error(errno)) {
 		if (proxy_is_enabled() && !is_host_addr(GNET_PROPERTY(proxy_addr))) {
 			if (!is_temporary_error(errno)) {
 				g_warning("Proxy isn't properly configured (%s:%u)",
@@ -3258,13 +3221,13 @@ socket_is_local(const struct gnutella_socket *s)
 			is_local = FALSE;
 			g_warning("socket_is_local(): getsockname() failed: %s",
 				g_strerror(errno));
-#ifndef MINGW32
+#ifdef AF_LOCAL
 		} else if (AF_LOCAL != addr.sun_family) {
 			is_local = FALSE;
 			g_warning("socket_is_local(): "
 				"address family mismatch! (expected %u, got %u)",
 				(guint) AF_LOCAL, (guint) addr.sun_family);
-#endif
+#endif	/* !AF_LOCAL */
 		}
 	}
 
@@ -3278,6 +3241,7 @@ socket_is_local(const struct gnutella_socket *s)
 struct gnutella_socket *
 socket_local_listen(const char *pathname)
 {
+#if defined(AF_LOCAL) && defined(PF_LOCAL)
 	struct sockaddr_un addr;
 	struct gnutella_socket *s;
 	int fd;
@@ -3285,7 +3249,6 @@ socket_local_listen(const char *pathname)
 	g_return_val_if_fail(pathname, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 
-#ifndef MINGW32
 	{
 		static const struct sockaddr_un zero_un;
 		size_t size = sizeof addr.sun_path;
@@ -3297,7 +3260,6 @@ socket_local_listen(const char *pathname)
 			return NULL;
 		}
 	}
-#endif
 
 	fd = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (fd < 0) {
@@ -3355,6 +3317,10 @@ socket_local_listen(const char *pathname)
 
 	socket_enable_accept(s);
 	return s;
+#else	/* !(AF_LOCAL && PF_LOCAL) */
+	(void) pathname;
+	return NULL;
+#endif	/* AF_LOCAL && PF_LOCAL */
 }
 
 /**
