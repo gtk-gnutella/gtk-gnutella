@@ -583,6 +583,235 @@ http_extract_version(
 }
 
 /***
+ *** HTTP token and parameter parsing within field value.
+ ***/
+
+/**
+ * Checks whether header field value starts with specified token, in a case
+ * sensitive or insensitive way.
+ *
+ * The value of header fields like Content-Type: can be split between a leading
+ * token and optional parameters, introduced by ';'.  This routine only focuses
+ * on the starting token.  For instance, it will match the following two
+ * lines:
+ *
+ *     Field-Name: token
+ *     Field-Name: token; param1=value1 param2="value2"
+ *
+ * However, HTTP allows multiple occurrences of header fields to be collapsed
+ * into one single field, with header values separated by ','.  Therefore,
+ * the token must either end with '\0' (no parameter) or ';', but a ',' would
+ * indicate a multiple-valued field, which is not the scope of this routine.
+ *
+ * Note that trailing white space after the token are ignored, so we allow
+ * blanks between the end of the token and ';' or '\0'.
+ *
+ * @param buf		the field value we're matching against
+ * @param token		the token to look for
+ * @param sensitive	if TRUE, match token case-sensitively
+ *
+ * @return NULL if no match, a pointer to the first character past the token
+ * and any whitespace otherwise (either pointing to NUL or ';').
+ */
+char *
+http_field_starts_with(const char *buf, const char *token, gboolean sensitive)
+{
+	const char *p;
+
+	p = sensitive ? is_strprefix(buf, token) : is_strcaseprefix(buf, token);
+
+	if (NULL == p)
+		return NULL;
+
+	p = skip_ascii_spaces(p);
+
+	if (';' == *p || '\0' == *p)
+		return deconstify_char(p);
+
+	return NULL;
+}
+
+/**
+ * Skip to first unquoted character matching the one specified, or to the end
+ * of the string, whichever comes first.
+ *
+ * Strings within double quotes are handled properly, with '\' being the
+ * authorized escaping character.
+ *
+ * @param p		start of string
+ * @param mc	matching character we're looking for
+ *
+ * @return a pointer in the string to the first occurrence of mc, or a pointer
+ * to the end of the string.
+ */
+static const char *
+skip_to_unquoted(const char *p, int mc)
+{
+	int c;
+	gboolean in_quote = FALSE;
+
+	while ('\0' != (c = *p)) {
+		if (in_quote) {
+			if ('\\' == c) {
+				p++;				/* Ignore escaped character */
+				if ('\0' == *p)		/* Unless it's NUL */
+					break;
+			} else if ('"' == c)
+				in_quote = FALSE;
+		} else {
+			if (c == mc)
+				break;
+			else if ('"' == c)
+				in_quote = TRUE;
+		}
+		p++;
+	}
+
+	return p;
+}
+
+/**
+ * Collect a parameter value in specified buffer, stripping optional
+ * enclosing quotes and un-escaping any escaped character.
+ *
+ * @param start		first character for value
+ * @param value		where value must be stored
+ * @param len		length of the value buffer
+ *
+ * @return TRUE if we managed to fill the value, FALSE on error (value too
+ * large to fit in the buffer, or badly delimited end).
+ */
+static gboolean
+http_value_collect(const char *start, char *value, size_t len)
+{
+	size_t pos = 0;
+	const char *p = start;
+	gboolean has_quote = FALSE;
+	int c;
+
+	g_assert(value != NULL);
+	g_assert(size_is_non_negative(len));
+
+	c = *p;
+	if ('"' == c) {			/* Leading quote is stripped */
+		has_quote = TRUE;
+		p++;
+	}
+
+	while ('\0' != (c = *p++) && pos < len) {
+		if ('"' == c) {
+			if (has_quote)
+				goto ok;
+			return FALSE;		/* No quote in the middle of a value */
+		} else if ('\\' == c) {
+			c = *p++;
+			if ('\0' == c)
+				return FALSE;	/* No NUL after an escape */
+		}
+		value[pos++] = c;
+	}
+
+	if (has_quote)
+		return FALSE;
+
+	if (pos == len)
+		return FALSE;			/* Value too large */
+
+ok:
+	g_assert(pos < len);
+
+	value[pos] = '\0';
+	return TRUE;
+}
+
+/**
+ * Look for an optional parmeter in the header line and return its value.
+ *
+ * HTTP parameters are optional elements separated from the header value
+ * by a ';' character.  For instance, in a Content-Type header may look
+ * like this:
+ *
+ *		Content-Type: text/html; charset=utf-8
+ *
+ * The only parameter here is "charset" and its value is "utf-8".
+ *
+ * Parameter names are case-insensitive, but values may or may not be,
+ * depending on the parameter semantics.
+ *
+ * If the same parameter occurs more than once, only the first value is
+ * returned.
+ *
+ * The value length for a parameter is limited to 255 bytes.  Longer values
+ * are simply ignored, i.e. the parameter will appear to be not present.
+ * This low size limit protects against malformed headers, since all common
+ * parameters are supposed to be much shorter than that.
+ *
+ * The function skips to the first ';' unquoted character and then starts
+ * to look for parameters.
+ *
+ * @param field			the header field string
+ * @param name			the parameter name being looked for
+ *
+ * @return NULL if the parameter is not found, its value otherwise.   The value
+ * is held in a static buffer, so it needs to be duplicated if it needs to be
+ * used after another invocation of this routine.
+ */
+const char *
+http_parameter_get(const char *field, const char *name)
+{
+	static char value[256];
+	const char *p;
+
+	/*
+	 * The grammar for parameters, from RFC 2616:
+	 *
+	 *    parameter      ::= attribute '=' value
+	 *    attribute      ::= token
+	 *    value          ::= token | quoted-string
+	 *    quoted-string  ::= '"' (qdtext | quoted-pair)* '"'
+	 *    qdtext         ::= <any TEXT except '"'>
+	 *    quoted-pair    ::= '\' CHAR
+	 *
+	 * Parameters are introduced by a ';' character.
+	 */
+
+	p = field;
+
+	for (;;) {
+		int c;
+		const char *eq;
+
+		p = skip_to_unquoted(p, ';');
+
+		c = *p++;			/* Go past the separator */
+		if ('\0' == c)		/* Reached end of string */
+			break;
+
+		p = skip_ascii_spaces(p);
+		if ('\0' == *p)
+			break;
+
+		/* At the possible start of a parameter name (attribute) */
+
+		eq = is_strcaseprefix(p, name);
+		if (NULL == eq)
+			continue;
+
+		if (*eq != '=')
+			continue;
+
+		/* Found parameter, collect value in static buffer */
+
+		if (!http_value_collect(eq + 1, value, sizeof value))
+			break;
+
+		return value;
+	}
+
+	return NULL;
+}
+
+/***
  *** HTTP URL parsing.
  ***/
 
@@ -3535,6 +3764,9 @@ http_async_wget(const char *url, size_t maxlen, http_wget_cb_t cb, void *arg)
 
 /**
  * Parse buffer for HTTP status line and headers.
+ *
+ * This is meant to be used by HTTP over UDP, to parse the HTTP reply
+ * held in the datagram.
  *
  * @param data		the data to parse
  * @param len		length of data

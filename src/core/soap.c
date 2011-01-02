@@ -241,32 +241,6 @@ soap_rpc_cancel(soap_rpc_t *sr)
 }
 
 /**
- * Check whether a string contains a leading case-insensitive (ASCII) "token".
- *
- * A "token" is a string delimited by non-alphanumeric characters.
- *
- * For instance, given the string "text/xml2", "text/xml" is not a leading
- * token, although it is a string prefix.  But given the string "text/xml; xxx",
- * the "text/xml" string becomes a valid leading token since the next character
- * ';' after the prefix is not an alphanumeric one.
- *
- * @return TRUE is string starts with the given token.
- */
-static gboolean
-soap_starts_with_caseless_token(const char *str, const char *token)
-{
-	const char *p;
-
-	p = is_strcaseprefix(str, token);
-
-	if (NULL == p) {
-		return FALSE;
-	} else {
-		return !is_ascii_alnum(*p);
-	}
-}
-
-/**
  * Process the SOAP reply from the server.
  */
 static void
@@ -278,6 +252,7 @@ soap_process_reply(soap_rpc_t *sr)
 	vxml_error_t e;
 	xnode_t *root = NULL;
 	xnode_t *xn = NULL;
+	const char *charset;
 
 	if (sr->reply_len != 0 && (GNET_PROPERTY(soap_trace) & SOCK_TRACE_IN)) {
 		g_debug("----Got SOAP HTTP reply data from %s:", sr->url);
@@ -313,8 +288,8 @@ soap_process_reply(soap_rpc_t *sr)
 	 */
 
 	if (
-		!soap_starts_with_caseless_token(buf, SOAP_TEXT_REPLY) &&
-		!soap_starts_with_caseless_token(buf, SOAP_APPLICATION_REPLY)
+		!http_field_starts_with(buf, SOAP_TEXT_REPLY, FALSE) &&
+		!http_field_starts_with(buf, SOAP_APPLICATION_REPLY, FALSE)
 	) {
 		if (GNET_PROPERTY(soap_debug)) {
 			g_debug("SOAP \"%s\" at \"%s\": got unexpected Content-Type: %s",
@@ -324,11 +299,23 @@ soap_process_reply(soap_rpc_t *sr)
 	}
 
 	/*
+	 * Extract charset if given.
+	 */
+
+	charset = http_parameter_get(buf, "charset");
+
+	/*
 	 * Parse the SOAP envelope.
 	 */
 
 	vp = vxml_parser_make(sr->action, VXML_O_STRIP_BLANKS);
 	vxml_parser_add_input(vp, sr->reply_data, sr->reply_len);
+
+	if (!vxml_parser_set_charset(vp, charset)) {
+		g_warning("SOAP \"%s\" at \"%s\": ignoring unknown charset \"%s\"",
+			sr->action, sr->url, charset);
+	}
+
 	e = vxml_parse_tree(vp, &root);
 	vxml_parser_free(vp);
 

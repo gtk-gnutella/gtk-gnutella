@@ -222,6 +222,7 @@ const char *vxml_parser_strerror(const vxml_parser_t *vp, vxml_error_t error);
 vxml_parser_t *vxml_parser_make(const char *name, guint32 options);
 void vxml_parser_free(vxml_parser_t *vp);
 void vxml_parser_add_input(vxml_parser_t *vp, const char *data, size_t length);
+gboolean vxml_parser_set_charset(vxml_parser_t *vp, const char *charset);
 void vxml_parser_set_tokens(vxml_parser_t *vp,
 	struct vxml_token *tvec, size_t tlen);
 vxml_error_t vxml_parse(vxml_parser_t *vp);

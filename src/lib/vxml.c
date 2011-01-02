@@ -1407,6 +1407,42 @@ restart:
 }
 
 /**
+ * Set input charset (meta data extracted from HTTP header, for instance).
+ *
+ * @param vp		the XML parser
+ * @param charset	the name of the charset (NULL ok, means unknown)
+ *
+ * @return TRUE if the charset was accepted.
+ */
+gboolean
+vxml_parser_set_charset(vxml_parser_t *vp, const char *charset)
+{
+	const char *alias;
+
+	vxml_parser_check(vp);
+
+	if (NULL == charset)
+		return TRUE;
+
+	alias = get_iconv_charset_alias(charset);
+
+	if (NULL == alias)
+		return FALSE;
+
+	if (is_strcaseprefix(alias, "UTF-8")) {
+		 vp->encoding = VXML_ENC_UTF8;
+	} else {
+		vp->charset = atom_str_get(alias);
+		vp->encoding = VXML_ENC_CHARSET;
+	}
+
+	vp->encsource = VXML_ENCSRC_SUPPLIED;
+	vxml_parser_reset_buffer_reader(vp);
+
+	return TRUE;
+}
+
+/**
  * Attempt to intuit the document encoding based on the start of the document.
  *
  * @return TRUE if we can continue parsing, FALSE on fatal error.

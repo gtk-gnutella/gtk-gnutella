@@ -427,6 +427,10 @@ const char *http_async_remote_host_port(const http_async_t *ha);
 header_t *http_header_parse(const char *data, size_t len, int *code, char **msg,
 	unsigned *major, unsigned *minor, const char **endptr);
 
+char *http_field_starts_with(const char *buf,
+	const char *token, gboolean sensitive);
+const char *http_parameter_get(const char *field, const char *name);
+
 http_async_t *http_async_wget(const char *url,
 	size_t maxlen, http_wget_cb_t cb, void *arg);
 
