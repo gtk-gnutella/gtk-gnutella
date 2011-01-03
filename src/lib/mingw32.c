@@ -1212,8 +1212,6 @@ mingw_timer(void)
 }
 #endif /* ADNS Disabled */
 
-static const char GTKG_NAME[] = "gtk-gnutella.exe";
-
 /**
  * Build path of file located nearby our executable.
  *
@@ -1223,12 +1221,13 @@ const char *
 mingw_filename_nearby(const char *file)
 {
 	static char path[MAX_PATH_LEN];
-	DWORD length;
-	size_t offset;
+	static size_t offset;
 
-	length = GetModuleFileName(NULL, path, sizeof path);
-	offset = length - CONST_STRLEN(GTKG_NAME);
-	g_strlcpy(&path[offset], file, sizeof path - offset);
+	if ('\0' == path[0]) {
+		(void) GetModuleFileName(NULL, path, sizeof path);
+		offset = filepath_basename(path) - path;
+	}
+	clamp_strcpy(&path[offset], file, sizeof path - offset, file);
 
 	return path;
 }
