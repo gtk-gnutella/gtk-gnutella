@@ -59,6 +59,7 @@ RCSID("$Id$")
 
 #include "glib-missing.h"
 #include "misc.h"
+#include "path.h"				/* For filepath_basename() */
 #include "unsigned.h"
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
@@ -1227,7 +1228,7 @@ mingw_filename_nearby(const char *file)
 		(void) GetModuleFileName(NULL, path, sizeof path);
 		offset = filepath_basename(path) - path;
 	}
-	clamp_strcpy(&path[offset], file, sizeof path - offset, file);
+	clamp_strcpy(&path[offset], sizeof path - offset, file);
 
 	return path;
 }
