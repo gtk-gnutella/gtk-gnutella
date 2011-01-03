@@ -7340,16 +7340,16 @@ node_drain_hello(gpointer data, int source, inputevt_cond_t cond)
 	g_assert(n->hello.pos + n->hello.len < n->hello.size);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		int error;
-		socklen_t error_len = sizeof error;
-#ifdef MINGW32	/* FIXME MINGW32 */
-		(void) error;
-		(void) error_len;
-		node_remove(n, _("Write error during HELLO"));
-#else
-		getsockopt(source, SOL_SOCKET, SO_ERROR, &error, &error_len);
-		node_remove(n, _("Write error during HELLO: %s"), g_strerror(error));
-#endif
+		if (is_running_on_mingw()) {
+			/* FIXME: Shouldn't we use WSAGetLastError() here? */
+			node_remove(n, _("Write error during HELLO"));
+		} else {
+			int error;
+			socklen_t error_len = sizeof error;
+			getsockopt(source, SOL_SOCKET, SO_ERROR, &error, &error_len);
+			node_remove(n, _("Write error during HELLO: %s"),
+				g_strerror(error));
+		}
 	}
 
 	node_init_outgoing(n);

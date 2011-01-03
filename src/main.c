@@ -132,7 +132,6 @@
 #include "lib/portmap.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
-#include "lib/socket.h"
 #include "lib/stacktrace.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
@@ -1439,12 +1438,12 @@ main(int argc, char **argv)
 	 * use mmap() with /dev/zero and then accidently close this
 	 * file descriptor.
 	 */
-#ifndef MINGW32
-	close_file_descriptors(3); /* Just in case */
-	if (reserve_standard_file_descriptors()) {
-		exit(EXIT_FAILURE);
+	if (!is_running_on_mingw()) {
+		close_file_descriptors(3); /* Just in case */
+		if (reserve_standard_file_descriptors()) {
+			exit(EXIT_FAILURE);
+		}
 	}
-#endif
 
 	/* First inits -- initialize custom memory allocator, if needed */
 
@@ -1474,10 +1473,10 @@ main(int argc, char **argv)
 	/* Early inits */
 
 	parse_arguments(argc, argv);
-#ifndef MINGW32
-	crash_init(options[main_arg_exec_on_crash].arg, argv[0],
-		options[main_arg_pause_on_crash].used);
-#endif
+	if (!is_running_on_mingw()) {
+		crash_init(options[main_arg_exec_on_crash].arg, argv[0],
+			options[main_arg_pause_on_crash].used);
+	}	
 	handle_arguments_asap();
 
 	log_init();

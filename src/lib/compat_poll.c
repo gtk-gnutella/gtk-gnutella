@@ -80,11 +80,7 @@ RCSID("$Id$")
 static inline int
 is_okay_for_select(int fd)
 {
-	return is_valid_fd(fd)
-#ifndef MINGW32
-		&& fd < FD_SETSIZE
-#endif	/* !MINGW32 */
-		;
+	return is_valid_fd(fd) && (is_running_on_mingw() || fd < FD_SETSIZE);
 }
 
 static inline int

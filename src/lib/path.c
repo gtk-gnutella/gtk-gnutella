@@ -42,6 +42,7 @@ RCSID("$Id$")
 
 #include "ascii.h"
 #include "path.h"
+#include "misc.h"
 #include "halloc.h"
 #include "override.h"			/* Must be the last header included */
 
@@ -114,15 +115,14 @@ is_absolute_path(const char *path)
 {
 	g_assert(path != NULL);
 
-	return '/' == path[0] || G_DIR_SEPARATOR == path[0]
-#ifdef MINGW32
-		|| (
-				is_ascii_alpha(path[0]) && 
-				':' == path[1] &&
-				(G_DIR_SEPARATOR == path[2] || '/' == path[2])
-			)
-#endif
-		;
+	if (is_dir_separator(path[0]))
+		return TRUE;
+
+	/* On Windows also check for something like C:\ and x:/ */
+	return is_running_on_mingw() &&
+			is_ascii_alpha(path[0]) && 
+			':' == path[1] &&
+			is_dir_separator(path[2]);
 }
 
 /**
@@ -180,7 +180,7 @@ filepath_directory_end(const char *pathname, char separator)
 	
 	p = strrchr(pathname, separator);
 	if (p) {
-		while (p != pathname && ('/' == p[-1] || G_DIR_SEPARATOR == p[-1])) {
+		while (p != pathname && is_dir_separator(p[-1])) {
 			p--;
 		}
 	}

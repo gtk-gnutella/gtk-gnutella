@@ -439,14 +439,12 @@ trace_atom(struct nm_parser *ctx, const char *name)
 {
 	const char *result;
 
-#ifdef MINGW32
 	/*
 	 * On Windows, there is an obnoxious '_' prepended to all routine names.
 	 */
 
-	if ('_' == *name)
+	if (is_running_on_mingw() && '_' == name[0])
 		name++;
-#endif
 
 	result = hash_table_lookup(ctx->atoms, name);
 

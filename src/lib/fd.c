@@ -47,9 +47,7 @@ RCSID("$Id$")
 void
 set_close_on_exec(int fd)
 {
-#ifdef MINGW32	/* MINGW32 FIXME */
-	(void) fd;
-#else
+#ifdef FD_CLOEXEC
 	int flags;
 
 	flags = fcntl(fd, F_GETFD);
@@ -57,7 +55,9 @@ set_close_on_exec(int fd)
 		flags |= FD_CLOEXEC;
 		fcntl(fd, F_SETFD, flags);
 	}
-#endif
+#else
+	(void) fd;
+#endif	/* FD_CLOEXEC */
 }
 
 static inline gboolean
@@ -110,8 +110,10 @@ close_file_descriptors(const int first_fd)
 int
 reserve_standard_file_descriptors(void)
 {
-#ifndef MINGW32	/* MINGW32 FIXME */
 	int fd;
+
+	if (is_running_on_mingw())
+		return 0;
 
 	/*
 	 * POSIX guarantees that open() and dup() return the lowest unassigned file
@@ -123,17 +125,16 @@ reserve_standard_file_descriptors(void)
 		if (open("/dev/null", O_RDWR, 0) != fd)
 			return -1;
 	}
-	return 0; 
-#else
 	return 0;
-#endif
 }
 
 static gboolean
 need_get_non_stdio_fd(void)
 {
-#ifndef MINGW32	/* MINGW32 FIXME */
 	int fd;
+
+	if (is_running_on_mingw())
+		return FALSE;
 
 	/* Assume that STDIN_FILENO is open. */
 	fd = fcntl(STDIN_FILENO, F_DUPFD, 256);
@@ -148,7 +149,6 @@ need_get_non_stdio_fd(void)
 			return TRUE;
 		}
 	}
-#endif
 	return FALSE;
 }
 
@@ -180,13 +180,8 @@ get_non_stdio_fd(int fd)
 		int nfd, saved_errno;
 
 		saved_errno = errno;
-#ifdef MINGW32	/* MINGW32 FIXME */
-		if (FALSE)
-#else
 		nfd = fcntl(fd, F_DUPFD, 256);
-		if (nfd > 0)
-#endif
-		{
+		if (nfd > 0) {
 			close(fd);
 			fd = nfd;
 		}
@@ -197,18 +192,23 @@ get_non_stdio_fd(int fd)
 
 void
 fd_set_nonblocking(int fd)
+#ifdef MINGW32
 {
-#ifdef MINGW32	/* MINGW32 FIXME */
-	(void) fd;
+	unsigned long nonblock = 1;
+
+	if (ioctlsocket(fd, FIONBIO, &nonblock))
+		errno = WSAGetLastError();
+}
 #else
+{
 	int ret, flags;
 
 	ret = fcntl(fd, F_GETFL, 0);
 	flags = ret | VAL_O_NONBLOCK;
 	if (flags != ret)
 		fcntl(fd, F_SETFL, flags);
-#endif
 }
+#endif	/* MINGW32 */
 
 /**
  * Closes the file and sets the descriptor to -1. Does nothing if
