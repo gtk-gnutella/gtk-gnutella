@@ -94,6 +94,10 @@
 #endif
 
 #ifdef MINGW32
+
+/* Provided for convenience to reduce ifdef hell */
+#define is_running_on_mingw() 1
+
 struct passwd
 {
 	char *pw_name;                /* Username.  */
@@ -119,10 +123,17 @@ struct flock
 
 #else /* !MINGW32 */
 
+/* Provided for convenience to reduce ifdef hell */
+#define is_running_on_mingw() 0
+
 #include <sys/uio.h>		/* For writev(), readv(), struct iovec */
 #include <sys/wait.h>
 #include <netinet/tcp.h>
 
+/**
+ * These functions are required because under MINGW struct iovec has
+ * different member names and order.
+ */
 static inline void *
 iovec_base(const struct iovec *iov)
 {
@@ -272,9 +283,14 @@ typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
 #ifdef MINGW32
 #include "lib/mingw32.h"
 #else	/* !MINGW32 */
+
 typedef struct iovec iovec_t;
+
+/* FIXME: Get rid of these: */
 typedef int socket_fd_t;
 #define INVALID_SOCKET (-1)
+
+/* FIXME: Explain these: */
 #define s_write write
 #define s_writev writev
 #define s_read read
