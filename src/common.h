@@ -130,34 +130,6 @@ struct flock
 #include <sys/wait.h>
 #include <netinet/tcp.h>
 
-/**
- * These functions are required because under MINGW struct iovec has
- * different member names and order.
- */
-static inline void *
-iovec_base(const struct iovec *iov)
-{
-	return iov->iov_base;
-}
-
-static inline void
-iovec_set_base(struct iovec *iov, void *base)
-{
-	iov->iov_base = base;
-}
-
-static inline size_t
-iovec_len(const struct iovec *iov)
-{
-	return iov->iov_len;
-}
-
-static inline void
-iovec_set_len(struct iovec *iov, size_t len)
-{
-	iov->iov_len = len;
-}
-
 #endif /* MINGW32 */
 
 #ifdef I_ARPA_INET
@@ -285,6 +257,34 @@ typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
 #else	/* !MINGW32 */
 
 typedef struct iovec iovec_t;
+
+/**
+ * These functions are required because under MINGW struct iovec has
+ * different member names and order.
+ */
+static inline void *
+iovec_base(const struct iovec *iov)
+{
+	return iov->iov_base;
+}
+
+static inline void
+iovec_set_base(struct iovec *iov, void *base)
+{
+	iov->iov_base = base;
+}
+
+static inline size_t
+iovec_len(const struct iovec *iov)
+{
+	return iov->iov_len;
+}
+
+static inline void
+iovec_set_len(struct iovec *iov, size_t len)
+{
+	iov->iov_len = len;
+}
 
 /* FIXME: Get rid of these: */
 typedef int socket_fd_t;
