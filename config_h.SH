@@ -459,6 +459,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_sockaddr_in_sin_len HAS_SOCKADDR_IN_SIN_LEN
 
+/* HAS_SOCKADDR_UN:
+ *	This symbol is defined if struct sockaddr_un exists, allowing the
+ *	creation of file sockets.
+ */
+#$d_sockaddr_un HAS_SOCKADDR_UN
+
 /* HAS_SOCKER_GET:
  *	This symbol is defined when socker_get() can be used to get sockets
  *	bound to privileged ports.

@@ -394,7 +394,7 @@ local_shell_mainloop(int fd)
  */
 void
 local_shell(const char *socket_path)
-#if defined(AF_LOCAL) && (defined(HAS_POLL) || defined(HAS_SELECT))
+#if defined(HAS_SOCKADDR_UN) && (defined(HAS_POLL) || defined(HAS_SELECT))
 {
 	struct sockaddr_un addr;
 	int fd;
@@ -449,12 +449,12 @@ local_shell(const char *socket_path)
 failure:
 	exit(EXIT_FAILURE);
 }
-#else	/* !(AF_LOCAL && (HAS_POLL || HAS_SELECT)) */
+#else	/* !(HAS_SOCKADDR_UN && (HAS_POLL || HAS_SELECT)) */
 {
 	fprintf(stderr, "No shell for you!\n");
 	exit(EXIT_FAILURE);
 }
-#endif	/* AF_LOCAL && (HAS_POLL || HAS_SELECT) */
+#endif	/* HAS_SOCKADDR_UN && (HAS_POLL || HAS_SELECT) */
 
 #ifdef LOCAL_SHELL_STANDALONE
 static char *
