@@ -3228,8 +3228,8 @@ socket_is_local(const struct gnutella_socket *s)
 				(guint) AF_LOCAL, (guint) addr.sun_family);
 		}
 	}
-#else	/* !HAS_SOCKADDR_UN */
-	is_local = FALSE;
+#else
+	g_assert(!is_local);
 #endif	/* HAS_SOCKADDR_UN */
 
 	return is_local;
