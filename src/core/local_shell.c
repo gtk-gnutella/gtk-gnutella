@@ -65,7 +65,7 @@ is_temporary_error(int e)
 }
 
 void 
-socket_set_nonblocking(int fd)
+fd_set_nonblocking(int fd)
 {
 	int ret, flags;
 
@@ -82,7 +82,7 @@ socket_set_nonblocking(int fd)
 RCSID("$Id$")
 
 #include "lib/misc.h"
-#include "lib/socket.h"
+#include "lib/fd.h"
 #include "lib/compat_poll.h"
 #include "core/local_shell.h"
 
@@ -394,7 +394,7 @@ local_shell_mainloop(int fd)
  */
 void
 local_shell(const char *socket_path)
-#if defined(HAS_POLL) || defined(HAS_SELECT)
+#if defined(AF_LOCAL) && (defined(HAS_POLL) || defined(HAS_SELECT))
 {
 	struct sockaddr_un addr;
 	int fd;
@@ -416,7 +416,6 @@ local_shell(const char *socket_path)
 			goto failure;
 	}
 
-#ifndef MINGW32
 	{
 		static const struct sockaddr_un zero_un;
 
@@ -428,7 +427,6 @@ local_shell(const char *socket_path)
 		}
 		strncpy(addr.sun_path, socket_path, sizeof addr.sun_path);
 	}
-#endif
 
 	fd = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (fd < 0) {
@@ -442,7 +440,7 @@ local_shell(const char *socket_path)
 		goto failure;
 	}
 
-	socket_set_nonblocking(fd);
+	fd_set_nonblocking(fd);
 
 	if (0 != local_shell_mainloop(fd))
 		goto failure;
@@ -451,12 +449,12 @@ local_shell(const char *socket_path)
 failure:
 	exit(EXIT_FAILURE);
 }
-#else	/* !HAS_POLL && !HAS_SELECT*/
+#else	/* !(AF_LOCAL && (HAS_POLL || HAS_SELECT)) */
 {
 	fprintf(stderr, "No shell for you!\n");
 	exit(EXIT_FAILURE);
 }
-#endif	/* HAS_POLL || HAS_SELECT */
+#endif	/* AF_LOCAL && (HAS_POLL || HAS_SELECT) */
 
 #ifdef LOCAL_SHELL_STANDALONE
 static char *
@@ -509,11 +507,8 @@ get_socket_path(void)
 		if (!home_dir) {
 			home_dir = "/";
 		}
-#ifdef MINGW32
-		cfg_dir = path_compose(home_dir, "/gtk-gnutella");
-#else
-		cfg_dir = path_compose(home_dir, "/.gtk-gnutella");
-#endif
+		cfg_dir = path_compose(home_dir,
+				"/" (is_running_on_mingw() ? "" : ".") "gtk-gnutella");
 	}
 	if (cfg_dir) {
 		return path_compose(cfg_dir, "/ipc/socket");

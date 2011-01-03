@@ -214,6 +214,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_getlogin HAS_GETLOGIN		/**/
 
+/* HAS_GETPPID:
+ *	This symbol, if defined, indicates that the getppid routine is
+ *	available to get the parent process ID.
+ */
+#$d_getppid HAS_GETPPID		/**/
+
 /* HAS_GETUID:
  *	This symbol is defined when getuid() can be used.
  */

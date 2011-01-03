@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-49]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-62]
 : $X-Id: Jmake.tmpl 48 2010-11-28 23:05:09Z rmanfredi $
 
 case $CONFIG in
@@ -83,7 +83,7 @@ XML2_CFLAGS =  $xmlcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 48 2010-11-28 23:05:09Z rmanfredi $
+# $X-Id: Jmake.rules 64 2011-01-01 21:57:17Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -265,10 +265,10 @@ local_depend::
 all:: gtk-gnutella
 
 local_realclean::
-	$(RM) gtk-gnutella
+	$(RM) gtk-gnutella$(_EXE)
 
 gtk-gnutella:  $(OBJ) $(EXTRA)
-	$(RM) $@
+	$(RM) $@$(_EXE)
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@  $(OBJ) $(EXTRA) $(JLDFLAGS) $(LIBS)

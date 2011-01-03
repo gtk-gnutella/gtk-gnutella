@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-49]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-62]
 : $X-Id: Jmake.tmpl 48 2010-11-28 23:05:09Z rmanfredi $
 
 case $CONFIG in
@@ -50,7 +50,7 @@ SUBDIRS = src pixmaps po extra_files
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 48 2010-11-28 23:05:09Z rmanfredi $
+# $X-Id: Jmake.rules 64 2011-01-01 21:57:17Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile

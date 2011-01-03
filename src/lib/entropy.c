@@ -203,11 +203,13 @@ entropy_collect(struct sha1 *digest)
 	SHA1Input(&ctx, env, sizeof env);	/* "env" is an array */
 
 	/* Add some host/user dependent noise */
-#ifndef MINGW32
+#ifdef HAS_GETUID
 	sha1_feed_ulong(&ctx, getuid());
 	sha1_feed_ulong(&ctx, getgid());
+#endif	/* HAS_GETUID */
+#ifdef HAS_GETPPID
 	sha1_feed_ulong(&ctx, getppid());
-#endif
+#endif	/* HAS_GETPPID */
 	sha1_feed_ulong(&ctx, getpid());
 	sha1_feed_ulong(&ctx, getdtablesize());
 
@@ -234,7 +236,7 @@ entropy_collect(struct sha1 *digest)
 	}
 #endif	/* HAS_GETLOGIN */
 
-#ifndef MINGW32
+#ifdef HAS_GETUID
 	{
 		const struct passwd *pp = getpwuid(getuid());
 
@@ -245,7 +247,7 @@ entropy_collect(struct sha1 *digest)
 			sha1_feed_ulong(&ctx, errno);
 		}
 	}
-#endif
+#endif	/* HAS_GETUID */
 
 	sha1_feed_string(&ctx, eval_subst("~"));
 	sha1_feed_stat(&ctx, eval_subst("~"));
@@ -253,6 +255,7 @@ entropy_collect(struct sha1 *digest)
 	sha1_feed_stat(&ctx, "..");
 	sha1_feed_stat(&ctx, "/");
 #ifdef MINGW32
+	/* FIXME: These paths are valid for English installations only! */
 	sha1_feed_stat(&ctx, "C:/");
 	sha1_feed_stat(&ctx, "C:/Windows");
 	sha1_feed_stat(&ctx, "C:/Windows/Temp");

@@ -426,11 +426,8 @@ settings_early_init(void)
 			g_error("$GTK_GNUTELLA_DIR must point to an absolute path!");
 		}
 	} else { 
-#ifdef MINGW32
-		config_dir = make_pathname(home_dir, "gtk-gnutella");
-#else
-		config_dir = make_pathname(home_dir, ".gtk-gnutella");
-#endif
+		config_dir = make_pathname(home_dir,
+			is_running_on_mingw() ? "gtk-gnutella" : ".gtk-gnutella");
 	}
 }
 
