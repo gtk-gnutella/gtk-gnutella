@@ -64,6 +64,12 @@ typedef struct short_string {
 	char str[SIZE_FIELD_MAX];
 } short_string_t;
 
+static inline int
+is_dir_separator(int c)
+{
+	return '/' == c || G_DIR_SEPARATOR == c;
+}
+
 /**
  * Converts an integer to a single hexadecimal ASCII digit. The are no checks,
  * this is just a convenience function.
@@ -92,7 +98,7 @@ g_strip_context(const char *id, const char *val)
 static inline WARN_UNUSED_RESULT char *
 skip_dir_separators(const char *s)
 {
-	while ('/' == s[0] || G_DIR_SEPARATOR == s[0])
+	while (is_dir_separator(s[0]))
 		s++;
 
 	return deconstify_gchar(s);
