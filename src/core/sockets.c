@@ -3211,6 +3211,7 @@ socket_is_local(const struct gnutella_socket *s)
 	g_assert(is_local ^ (is_tcp | is_udp));
 	g_assert(is_local || is_tcp || is_udp);
 
+#ifdef HAS_SOCKADDR_UN
 	if (is_local) {
 		static const struct sockaddr_un zero_addr;
 		struct sockaddr_un addr = zero_addr;
@@ -3220,15 +3221,16 @@ socket_is_local(const struct gnutella_socket *s)
 			is_local = FALSE;
 			g_warning("socket_is_local(): getsockname() failed: %s",
 				g_strerror(errno));
-#ifdef AF_LOCAL
 		} else if (AF_LOCAL != addr.sun_family) {
 			is_local = FALSE;
 			g_warning("socket_is_local(): "
 				"address family mismatch! (expected %u, got %u)",
 				(guint) AF_LOCAL, (guint) addr.sun_family);
-#endif	/* !AF_LOCAL */
 		}
 	}
+#else	/* !HAS_SOCKADDR_UN */
+	is_local = FALSE;
+#endif	/* HAS_SOCKADDR_UN */
 
 	return is_local;
 }
@@ -3240,7 +3242,7 @@ socket_is_local(const struct gnutella_socket *s)
 struct gnutella_socket *
 socket_local_listen(const char *pathname)
 {
-#if defined(AF_LOCAL) && defined(PF_LOCAL)
+#ifdef HAS_SOCKADDR_UN
 	struct sockaddr_un addr;
 	struct gnutella_socket *s;
 	int fd;
@@ -3316,10 +3318,10 @@ socket_local_listen(const char *pathname)
 
 	socket_enable_accept(s);
 	return s;
-#else	/* !(AF_LOCAL && PF_LOCAL) */
+#else	/* !HAS_SOCKADDR_UN */
 	(void) pathname;
 	return NULL;
-#endif	/* AF_LOCAL && PF_LOCAL */
+#endif	/* HAS_SOCKADDR_UN */
 }
 
 /**

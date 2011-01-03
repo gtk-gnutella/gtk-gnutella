@@ -451,6 +451,7 @@ failure:
 }
 #else	/* !(HAS_SOCKADDR_UN && (HAS_POLL || HAS_SELECT)) */
 {
+	(void) socket_path;
 	fprintf(stderr, "No shell for you!\n");
 	exit(EXIT_FAILURE);
 }

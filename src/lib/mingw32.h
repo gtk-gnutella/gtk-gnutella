@@ -154,8 +154,6 @@ ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 #define uname mingw_uname
 #define mkdir mingw_mkdir
 
-#define sockaddr_un sockaddr_in
-
 typedef SOCKET socket_fd_t;
 typedef WSABUF iovec_t;
 
