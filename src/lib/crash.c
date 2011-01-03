@@ -329,6 +329,8 @@ crash_handler(int signo)
 			write(STDERR_FILENO, RECURSIVE, CONST_STRLEN(RECURSIVE));
 			set_signal(signo, SIG_DFL);
 			raise(signo);
+		} else if (3 == crashed) {
+			raise(signo);
 		}
 		exit(1);	/* Die, die, die! */
 	}
