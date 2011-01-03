@@ -246,13 +246,14 @@ soap_rpc_cancel(soap_rpc_t *sr)
 static void
 soap_process_reply(soap_rpc_t *sr)
 {
-	soap_rpc_check(sr);
 	const char *buf;
 	vxml_parser_t *vp;
 	vxml_error_t e;
 	xnode_t *root = NULL;
 	xnode_t *xn = NULL;
 	const char *charset;
+
+	soap_rpc_check(sr);
 
 	if (sr->reply_len != 0 && (GNET_PROPERTY(soap_trace) & SOCK_TRACE_IN)) {
 		g_debug("----Got SOAP HTTP reply data from %s:", sr->url);
