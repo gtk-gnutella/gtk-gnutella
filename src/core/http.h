@@ -290,7 +290,7 @@ typedef void (*http_state_change_t)(http_async_t *, http_state_t newstate);
  * HTTP data buffered when it cannot be sent out immediately.
  */
 
-enum http_buffer_magic { HTTP_BUFFER_MAGIC = 0xf613d362U };
+enum http_buffer_magic { HTTP_BUFFER_MAGIC = 0x5613d362U };
 
 typedef struct http_buffer {
 	enum http_buffer_magic magic;
