@@ -167,18 +167,31 @@ host_addr_is_6to4(const host_addr_t ha)
 		0x2002 == peek_be16(&ha.addr.ipv6[0]);
 }
 
+static inline gboolean
+host_addr_is_teredo(const host_addr_t ha)
+{
+	return NET_TYPE_IPV6 == host_addr_net(ha) &&
+		0x20010000UL == peek_be32(&ha.addr.ipv6[0]);
+}
+
 static inline guint32
-host_addr_6to4_ipv4(const host_addr_t ha)
+host_addr_6to4_client_ipv4(const host_addr_t ha)
 {
 	return peek_be32(&ha.addr.ipv6[2]);	/* 2002:AABBCCDD::/48 */
 }
 
+static inline guint32
+host_addr_teredo_client_ipv4(const host_addr_t ha)
+{
+	return ~peek_be32(&ha.addr.ipv6[12]);	/* 2001::~A~B~C~D */
+}
+
 gboolean
-host_addr_6to4_to_ipv4(const host_addr_t from, host_addr_t *to)
+host_addr_6to4_client(const host_addr_t from, host_addr_t *to)
 {
 	if (host_addr_is_6to4(from)) {
 		if (to) {
-			*to = host_addr_peek_ipv4(&from.addr.ipv6[2]);
+			*to = host_addr_get_ipv4(host_addr_6to4_client_ipv4(from));
 		}
 		return TRUE;
 	} else {
@@ -187,6 +200,42 @@ host_addr_6to4_to_ipv4(const host_addr_t from, host_addr_t *to)
 		}
 		return FALSE;
 	}
+}
+
+gboolean
+host_addr_teredo_client(const host_addr_t from, host_addr_t *to)
+{
+	if (host_addr_is_teredo(from)) {
+		if (to) {
+			*to = host_addr_get_ipv4(host_addr_teredo_client_ipv4(from));
+		}
+		return TRUE;
+	} else {
+		if (to) {
+			*to = zero_host_addr;
+		}
+		return FALSE;
+	}
+}
+
+static gboolean
+host_addr_is_tunneled(const host_addr_t ha)
+{
+	return host_addr_is_teredo(ha) || host_addr_is_6to4(ha);
+}
+
+gboolean
+host_addr_tunnel_client(const host_addr_t from, host_addr_t *to)
+{
+	return host_addr_teredo_client(from, to) || host_addr_6to4_client(from, to);
+}
+
+guint32
+host_addr_tunnel_client_ipv4(const host_addr_t from)
+{
+	host_addr_t to;
+	(void) host_addr_tunnel_client(from, &to);
+	return host_addr_ipv4(to);
 }
 
 /**
@@ -263,8 +312,8 @@ host_addr_is_routable(const host_addr_t addr)
 				!host_addr_matches(ha, ipv6_site_local, 10) &&
 				!host_addr_matches(ha, ipv6_link_local, 10) &&
 				!(
-						host_addr_is_6to4(ha) &&
-						!ipv4_addr_is_routable(host_addr_6to4_ipv4(ha))
+						host_addr_is_tunneled(ha) &&
+						!ipv4_addr_is_routable(host_addr_tunnel_client_ipv4(ha))
 				);
 
 	case NET_TYPE_LOCAL:
