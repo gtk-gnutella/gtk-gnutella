@@ -164,9 +164,9 @@ crash_time(char *buf, size_t buflen)
 }
 
 static void
-crash_message(const char *signame, gboolean trace)
+crash_message(const char *signame, gboolean trace, gboolean recursive)
 {
-	iovec_t iov[7];
+	iovec_t iov[8];
 	unsigned iov_cnt = 0;
 	char pid_buf[22];
 	char time_buf[18];
@@ -177,10 +177,12 @@ crash_message(const char *signame, gboolean trace)
 	print_str(" CRASH (pid=");			/* 1 */
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
 	print_str(") by ");					/* 3 */
-	print_str(signame);					/* 4 */
+	if (recursive)
+		print_str("recursive ");		/* 4 */
+	print_str(signame);					/* 5 */
 	if (trace)
-		print_str(" -- stack was:");	/* 5 */
-	print_str("\n");					/* 6, at most */
+		print_str(" -- stack was:");	/* 6 */
+	print_str("\n");					/* 7, at most */
 	IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 }
 
@@ -303,22 +305,53 @@ crash_signame(int signo)
 	return start - CONST_STRLEN(SIGNAL_NUM);
 }
 
+static const char RECURSIVE[] = "\nERROR: too many recursive crashes\n";
+
 static void
 crash_handler(int signo)
 {
+	static unsigned crashed;
 	const char *name;
 	unsigned i;
 	gboolean trace;
+	gboolean recursive = 0 == crashed;
 
-	(void) signo;
+	/*
+	 * SIGBUS and SIGSEGV are configured by set_signal() to be reset to the
+	 * default behaviour on delivery, and are not masked during signal delivery.
+	 *
+	 * This allows us to usefully trap them again to detect recursive faults
+	 * that would otherwise remain invisible.
+	 */
 
-	name = crash_signame(signo);
-	trace = !stacktrace_cautious_was_logged();
+	if (crashed++ > 1) {
+		if (2 == crashed) {
+			write(STDERR_FILENO, RECURSIVE, CONST_STRLEN(RECURSIVE));
+			set_signal(signo, SIG_DFL);
+			raise(signo);
+		}
+		exit(1);	/* Die, die, die! */
+	}
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
-		set_signal(signals[i].signo, SIG_DFL);
+		int sig = signals[i].signo;
+		switch (sig) {
+#ifdef SIGBUS
+		case SIGBUS:
+#endif
+		case SIGSEGV:
+			set_signal(sig, crash_handler);
+			break;
+		default:
+			set_signal(sig, SIG_DFL);
+			break;
+		}
 	}
-	crash_message(name, trace);
+
+	trace = recursive ? FALSE : !stacktrace_cautious_was_logged();
+	name = crash_signame(signo);
+
+	crash_message(name, trace, recursive);
 	if (trace) {
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
 	}
