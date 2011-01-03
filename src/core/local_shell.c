@@ -45,6 +45,14 @@
 
 #ifdef LOCAL_SHELL_STANDALONE
 
+/**
+ * @bug	 As compat_poll() was outsourced the stand-alone requires poll() now.
+ */
+#define HAS_SOCKADDR_UN
+#define HAS_POLL
+#define is_running_on_mingw() 0
+#define compat_poll poll
+
 #include <sys/types.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -263,7 +271,7 @@ wait_for_io(struct pollfd *fds, size_t n, int timeout)
 	return ret;
 }
 
-static int
+static inline int
 local_shell_mainloop(int fd)
 {
 	static struct shell_buf client, server;
@@ -509,10 +517,10 @@ get_socket_path(void)
 			home_dir = "/";
 		}
 		cfg_dir = path_compose(home_dir,
-				"/" (is_running_on_mingw() ? "" : ".") "gtk-gnutella");
+					is_running_on_mingw() ? "gtk-gnutella" : ".gtk-gnutella");
 	}
 	if (cfg_dir) {
-		return path_compose(cfg_dir, "/ipc/socket");
+		return path_compose(cfg_dir, "ipc/socket");
 	} else {
 		return NULL;
 	}
