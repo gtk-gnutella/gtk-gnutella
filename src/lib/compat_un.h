@@ -63,6 +63,14 @@ typedef struct sockaddr_un sockaddr_unix_t;
 
 #define SUN_PATH_SZ			108		/* Traditional length is low */
 
+/**
+ * Our definition of a UNIX socket address (defining a filesystem path).
+ *
+ * For testing on machines equipped with "stuct sockaddr_un" already,
+ * this structure is not named "sockaddr_un".  Hence, the code relies on
+ * the sockaddr_unix_t typedef to be able to compile whether or not
+ * HAS_SOCKADDR_UN is defined.
+ */
 struct compat_sockaddr_un {
 	sa_family_t sun_family;		/* AF_LOCAL */
 	char sun_path[SUN_PATH_SZ];
