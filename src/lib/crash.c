@@ -314,7 +314,7 @@ crash_handler(int signo)
 	const char *name;
 	unsigned i;
 	gboolean trace;
-	gboolean recursive = 0 == crashed;
+	gboolean recursive = crashed > 0;
 
 	/*
 	 * SIGBUS and SIGSEGV are configured by set_signal() to be reset to the
