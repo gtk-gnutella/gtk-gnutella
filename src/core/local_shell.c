@@ -52,6 +52,10 @@
 #define HAS_POLL
 #define is_running_on_mingw() 0
 #define compat_poll poll
+#define compat_connect connect
+#define compat_socket socket
+
+typedef struct sockaddr_un sockaddr_unix_t;
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -89,10 +93,12 @@ fd_set_nonblocking(int fd)
 
 RCSID("$Id$")
 
+#include "core/local_shell.h"
+
 #include "lib/misc.h"
 #include "lib/fd.h"
 #include "lib/compat_poll.h"
-#include "core/local_shell.h"
+#include "lib/compat_un.h"
 
 #include "lib/override.h"
 
@@ -402,9 +408,9 @@ local_shell_mainloop(int fd)
  */
 void
 local_shell(const char *socket_path)
-#if defined(HAS_SOCKADDR_UN) && (defined(HAS_POLL) || defined(HAS_SELECT))
+#if defined(HAS_POLL) || defined(HAS_SELECT)
 {
-	struct sockaddr_un addr;
+	sockaddr_unix_t addr;
 	int fd;
 
 	signal(SIGINT, SIG_DFL);
@@ -425,7 +431,7 @@ local_shell(const char *socket_path)
 	}
 
 	{
-		static const struct sockaddr_un zero_un;
+		static const sockaddr_unix_t zero_un;
 
 		addr = zero_un;
 		addr.sun_family = AF_LOCAL;
@@ -436,12 +442,12 @@ local_shell(const char *socket_path)
 		strncpy(addr.sun_path, socket_path, sizeof addr.sun_path);
 	}
 
-	fd = socket(PF_LOCAL, SOCK_STREAM, 0);
+	fd = compat_socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (fd < 0) {
 		perror("socket(PF_LOCAL, SOCK_STREAM, 0) failed");
 		goto failure;
 	}
-	if (0 != connect(fd, (const void *) &addr, sizeof addr)) {
+	if (0 != compat_connect(fd, (const void *) &addr, sizeof addr)) {
 		perror("local_shell(): connect() failed");
 		close(fd);
 		fd = -1;
@@ -457,13 +463,13 @@ local_shell(const char *socket_path)
 failure:
 	exit(EXIT_FAILURE);
 }
-#else	/* !(HAS_SOCKADDR_UN && (HAS_POLL || HAS_SELECT)) */
+#else	/* !(HAS_POLL || HAS_SELECT)) */
 {
 	(void) socket_path;
 	fprintf(stderr, "No shell for you!\n");
 	exit(EXIT_FAILURE);
 }
-#endif	/* HAS_SOCKADDR_UN && (HAS_POLL || HAS_SELECT) */
+#endif	/* HAS_POLL || HAS_SELECT */
 
 #ifdef LOCAL_SHELL_STANDALONE
 static char *

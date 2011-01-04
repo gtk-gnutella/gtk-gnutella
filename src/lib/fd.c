@@ -42,6 +42,7 @@ RCSID("$Id$")
 
 #include "fd.h"
 #include "compat_misc.h"
+#include "compat_un.h"
 #include "override.h"			/* Must be the last header included */
 
 void
@@ -183,6 +184,7 @@ get_non_stdio_fd(int fd)
 		nfd = fcntl(fd, F_DUPFD, 256);
 		if (nfd > 0) {
 			close(fd);
+			compat_socket_duped(fd, nfd);
 			fd = nfd;
 		}
 		errno = saved_errno;

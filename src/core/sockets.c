@@ -73,6 +73,7 @@ RCSID("$Id$")
 
 #include "lib/adns.h"
 #include "lib/ascii.h"
+#include "lib/compat_un.h"
 #include "lib/fd.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
@@ -1372,7 +1373,7 @@ socket_free(struct gnutella_socket *s)
 	if (s->file_desc != INVALID_SOCKET) {
 		socket_cork(s, FALSE);
 		socket_tx_shutdown(s);
-		if (s_close(s->file_desc)) {
+		if (compat_socket_close(s->file_desc)) {
 			g_warning("socket_free: close(%d) failed: %s",
 				s->file_desc, g_strerror(errno));
 		}
@@ -1438,11 +1439,17 @@ destroy:
 }
 
 /**
- * Used for incoming connections, for outgoing too??
- * Read bytes on an unknown incoming socket. When the first line
- * has been read it's decided on what type cof connection this is.
+ * Used for incoming connections.
+ *
+ * Read intial bytes on an unknown incoming socket.
+ * When the first line has been read, we parse it to decide what type of
+ * connection we're facing.
+ *
  * If the first line is not complete on the first call, this function
  * will be called as often as necessary to fetch a full line.
+ *
+ * This routine is no longer called once the type of connection has been
+ * determined.
  */
 static void
 socket_read(gpointer data, int source, inputevt_cond_t cond)
@@ -1462,10 +1469,22 @@ socket_read(gpointer data, int source, inputevt_cond_t cond)
 
 	g_assert(0 == s->pos);		/* We read a line, then leave this callback */
 
-	if (
-		s->direction == SOCK_CONN_INCOMING &&
-		s->tls.enabled
-	) {
+	/*
+	 * Application-level hook for the UNIX socket emulation layer.
+	 */
+
+	if (s->direction == SOCK_CONN_INCOMING && (s->flags & SOCK_F_LOCAL)) {
+		gboolean error;
+
+		if (compat_accept_check(s->file_desc, &error)) {
+			if (error)
+				socket_destroy(s, "UNIX emulation input error");
+			return;
+		}
+		/* FALL THROUGH */
+	}
+
+	if (s->direction == SOCK_CONN_INCOMING && s->tls.enabled) {
 		if (s->tls.enabled && s->tls.stage < SOCK_TLS_INITIALIZED) {
 			ssize_t ret;
 			char c;
@@ -1983,72 +2002,6 @@ socket_connected(gpointer data, int source, inputevt_cond_t cond)
 
 }
 
-static int
-socket_addr_getsockname(socket_addr_t *p_addr, int fd)
-{
-	struct sockaddr_in sin4;
-	socklen_t len;
-	host_addr_t addr = zero_host_addr;
-	guint16 port = 0;
-	gboolean success = FALSE;
-
-	len = sizeof sin4;
-	if (-1 != getsockname(fd, cast_to_gpointer(&sin4), &len)) {
-		addr = host_addr_peek_ipv4(&sin4.sin_addr.s_addr);
-		port = sin4.sin_port;
-		success = TRUE;
-	}
-
-#ifdef HAS_IPV6
-	if (!success) {
-		struct sockaddr_in6 sin6;
-
-		len = sizeof sin6;
-		if (-1 != getsockname(fd, cast_to_gpointer(&sin6), &len)) {
-			addr = host_addr_peek_ipv6(sin6.sin6_addr.s6_addr);
-			port = sin6.sin6_port;
-			success = TRUE;
-		}
-	}
-#endif	/* HAS_IPV6 */
-
-	if (success) {
-		socket_addr_set(p_addr, addr, port);
-	}
-	return success ? 0 : -1;
-}
-
-static int
-socket_addr_getpeername(socket_addr_t *p_addr, int fd)
-{
-	socklen_t addr_len;
-
-	g_return_val_if_fail(p_addr, -1);
-	g_return_val_if_fail(fd >= 0, -1);
-
-	errno = 0;
-	addr_len = socket_addr_init(p_addr, NET_TYPE_IPV4);
-	if (
-		-1 != getpeername(fd, socket_addr_get_sockaddr(p_addr), &addr_len) &&
-		AF_INET == socket_addr_get_family(p_addr)
-	) {
-		return 0;
-	}
-
-#ifdef HAS_IPV6
-	errno = 0;
-	addr_len = socket_addr_init(p_addr, NET_TYPE_IPV6);
-	if (
-		-1 != getpeername(fd, socket_addr_get_sockaddr(p_addr), &addr_len) &&
-		AF_INET6 == socket_addr_get_family(p_addr)
-	) {
-		return 0;
-	}
-#endif	/* HAS_IPV6 */
-
-	return -1;
-}
-
 /**
  * Tries to guess the local IP address.
  */
@@ -2125,7 +2078,9 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 	}
 
 	addr_len = socket_addr_init(&addr, s->net);
-	fd = accept(s->file_desc, socket_addr_get_sockaddr(&addr), &addr_len);
+	fd = compat_accept(s->file_desc,
+			socket_addr_get_sockaddr(&addr), &addr_len);
+
 	if (fd < 0) {
 		/*
 		 * If we ran out of file descriptors, try to reclaim one from the
@@ -2137,7 +2092,7 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 			reclaim_fd != NULL && (*reclaim_fd)()
 		) {
 			addr_len = socket_addr_init(&addr, s->net);
-			fd = accept(s->file_desc, socket_addr_get_sockaddr(&addr),
+			fd = compat_accept(s->file_desc, socket_addr_get_sockaddr(&addr),
 					&addr_len);
 		}
 
@@ -2159,7 +2114,8 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 	}
 	fd = get_non_stdio_fd(fd);
 
-	bws_sock_accepted(SOCK_TYPE_HTTP);	/* Do not charge Gnet b/w for that */
+	if (s->flags & SOCK_F_TCP)
+		bws_sock_accepted(SOCK_TYPE_HTTP);	/* Do not charge Gnet for that */
 
 	/*
 	 * Create a new struct socket for this incoming connection
@@ -3211,13 +3167,12 @@ socket_is_local(const struct gnutella_socket *s)
 	g_assert(is_local ^ (is_tcp | is_udp));
 	g_assert(is_local || is_tcp || is_udp);
 
-#ifdef HAS_SOCKADDR_UN
 	if (is_local) {
-		static const struct sockaddr_un zero_addr;
-		struct sockaddr_un addr = zero_addr;
+		static const sockaddr_unix_t zero_addr;
+		sockaddr_unix_t addr = zero_addr;
 		socklen_t len = sizeof addr;
 
-		if (getsockname(s->file_desc, cast_to_gpointer(&addr), &len)) {
+		if (compat_getsockname(s->file_desc, cast_to_gpointer(&addr), &len)) {
 			is_local = FALSE;
 			g_warning("socket_is_local(): getsockname() failed: %s",
 				g_strerror(errno));
@@ -3228,9 +3183,6 @@ socket_is_local(const struct gnutella_socket *s)
 				(guint) AF_LOCAL, (guint) addr.sun_family);
 		}
 	}
-#else
-	g_assert(!is_local);
-#endif	/* HAS_SOCKADDR_UN */
 
 	return is_local;
 }
@@ -3242,8 +3194,7 @@ socket_is_local(const struct gnutella_socket *s)
 struct gnutella_socket *
 socket_local_listen(const char *pathname)
 {
-#ifdef HAS_SOCKADDR_UN
-	struct sockaddr_un addr;
+	sockaddr_unix_t addr;
 	struct gnutella_socket *s;
 	int fd;
 
@@ -3251,7 +3202,7 @@ socket_local_listen(const char *pathname)
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 
 	{
-		static const struct sockaddr_un zero_un;
+		static const sockaddr_unix_t zero_un;
 		size_t size = sizeof addr.sun_path;
 
 		addr = zero_un;
@@ -3262,7 +3213,7 @@ socket_local_listen(const char *pathname)
 		}
 	}
 
-	fd = socket(PF_LOCAL, SOCK_STREAM, 0);
+	fd = compat_socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (fd < 0) {
 		g_warning("socket(PF_LOCAL, SOCK_STREAM, 0) failed: %s",
 			g_strerror(errno));
@@ -3278,14 +3229,14 @@ socket_local_listen(const char *pathname)
 
 		/* umask 177 -> mode 200; write-only for user */
 		mask = umask(S_IRUSR | S_IXUSR | S_IRWXG | S_IRWXO);
-    	ret = bind(fd, cast_to_gconstpointer(&addr), sizeof addr);
+    	ret = compat_bind(fd, cast_to_gconstpointer(&addr), sizeof addr);
 		saved_errno = errno;
 		(void) umask(mask);
 
 		if (0 != ret) {
 			g_warning("socket_local_listen(): bind() failed: %s",
 				g_strerror(saved_errno));
-			s_close(fd);
+			compat_socket_close(fd);
 			return NULL;
 		}
 	}
@@ -3308,7 +3259,7 @@ socket_local_listen(const char *pathname)
 
 	/* listen() the socket */
 
-	if (listen(fd, 5) == -1) {
+	if (compat_listen(fd, 5) == -1) {
 		g_warning("Unable to listen() the socket (%s)", g_strerror(errno));
 		socket_destroy(s, "Unable to listen on socket");
 		return NULL;
@@ -3318,10 +3269,6 @@ socket_local_listen(const char *pathname)
 
 	socket_enable_accept(s);
 	return s;
-#else	/* !HAS_SOCKADDR_UN */
-	(void) pathname;
-	return NULL;
-#endif	/* HAS_SOCKADDR_UN */
 }
 
 /**
