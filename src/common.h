@@ -290,7 +290,13 @@ iovec_set_len(struct iovec *iov, size_t len)
 typedef int socket_fd_t;
 #define INVALID_SOCKET (-1)
 
-/* FIXME: Explain these: */
+/*
+ * The following are for file-like operations on sockets, which we need to trap
+ * so that we grab the possible error condition through WSAGetLastError().
+ *
+ * To distinguish them from regular read() or write() on plain file descriptors,
+ * we prefix them with "s_".
+ */
 #define s_write write
 #define s_writev writev
 #define s_read read

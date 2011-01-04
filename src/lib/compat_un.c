@@ -82,6 +82,7 @@ RCSID("$Id$")
 #include "compat_un.h"
 #include "file.h"
 #include "host_addr.h"
+#include "glib-missing.h"
 #include "misc.h"
 #include "parse.h"
 #include "random.h"
@@ -555,7 +556,7 @@ regular:
 	return accept(sd, addr, addrlen);
 
 bad_protocol:
-	close(fd);
+	s_close(fd);
 	errno = EPROTO;
 	return -1;
 }
@@ -721,7 +722,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	 * Connection succeeded, send the client cookies to the server.
 	 */
 
-	rw = write(sd, client, sizeof client);
+	rw = s_write(sd, client, sizeof client);
 
 	if (rw != sizeof client)
 		return -1;
@@ -736,7 +737,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	{
 		char buf[4];
 
-		if (sizeof buf != read(sd, buf, sizeof buf))
+		if (sizeof buf != s_read(sd, buf, sizeof buf))
 			return -1;
 
 		if (0 != memcmp(&buf, &server[0], sizeof buf))
@@ -822,7 +823,7 @@ compat_socket_close(int sd)
 	/* FALL THROUGH */
 
 regular:
-	return close(sd);
+	return s_close(sd);
 }
 
 /**
@@ -903,7 +904,7 @@ compat_accept_check(int sd, gboolean *error)
 
 	g_assert(suna->pos < sizeof suna->buf);
 
-	rw = read(sd, &suna->buf[suna->pos], sizeof suna->buf - suna->pos);
+	rw = s_read(sd, &suna->buf[suna->pos], sizeof suna->buf - suna->pos);
 
 	if (rw <= 0) {
 		*error = TRUE;
@@ -930,7 +931,7 @@ compat_accept_check(int sd, gboolean *error)
 	 * Client cookie matched, assure the client that we're the proper server.
 	 */
 
-	rw = write(sd, suna->lsun->u.l.server_cookie, sizeof(guint32));
+	rw = s_write(sd, suna->lsun->u.l.server_cookie, sizeof(guint32));
 
 	if (rw != sizeof(guint32)) {
 		*error = TRUE;
