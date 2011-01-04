@@ -2,18 +2,11 @@
 # The list below comes from http://www.cymru.com/Documents/bogon-bn-nonagg.txt
 # This file was manually updated on Wed Oct  6 13:33:59 CEST 2010
 0.0.0.0/8
-5.0.0.0/8
 10.0.0.0/8
-23.0.0.0/8
-36.0.0.0/8
-37.0.0.0/8
 39.0.0.0/8
-42.0.0.0/8
-100.0.0.0/8
 102.0.0.0/8
 103.0.0.0/8
 104.0.0.0/8
-105.0.0.0/8
 106.0.0.0/8
 127.0.0.0/8
 169.254.0.0/16
