@@ -393,11 +393,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_rusage HAS_GETRUSAGE		/**/
 
-/* HAS_SA_INTERRUPT:
- *	This symbol is defined when SA_INTERRUPT can be used in sigaction().
- */
-#$d_sa_interrupt HAS_SA_INTERRUPT
-
 /* HAS_SELECT:
  *	This symbol, if defined, indicates that the select routine is
  *	available to select active file descriptors. If the timeout field
