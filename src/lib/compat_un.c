@@ -250,7 +250,7 @@ compat_socket(int domain, int type, int protocol)
 int
 compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 {
-	struct compat_sockaddr_un *saddr = (struct compat_sockaddr_un *) my_addr;
+	sockaddr_unix_t *saddr = (sockaddr_unix_t *) my_addr;
 	struct sock_un *sun;
 	guint16 port;
 	int fd;
@@ -510,7 +510,7 @@ compat_accept(int sd, struct sockaddr *addr, socklen_t *addrlen)
 	 */
 
 	if (addr != NULL) {
-		struct compat_sockaddr_un *saddr = (struct compat_sockaddr_un *) addr;
+		sockaddr_unix_t *saddr = (sockaddr_unix_t *) addr;
 
 		g_assert(addrlen != NULL);
 
@@ -589,7 +589,7 @@ sock_un_parse_cookie(const char *p, const char **endptr, guint32 *value)
 int
 compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 {
-	struct compat_sockaddr_un *saddr = (struct compat_sockaddr_un *) addr;
+	sockaddr_unix_t *saddr = (sockaddr_unix_t *) addr;
 	struct sock_un *sun;
 	int fd;
 	guint16 port;
@@ -835,7 +835,7 @@ int
 compat_getsockname(int sd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	struct sock_un *sun;
-	struct compat_sockaddr_un *saddr = (struct compat_sockaddr_un *) addr;
+	sockaddr_unix_t *saddr = (sockaddr_unix_t *) addr;
 
 	if (NULL == un_desc)
 		goto regular;
