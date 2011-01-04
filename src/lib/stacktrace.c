@@ -498,7 +498,6 @@ static void
 load_symbols(const char *path)
 {
 	char tmp[MAX_PATH_LEN + 80];
-	size_t rw;
 	FILE *f;
 	struct nm_parser nm_ctx;
 
@@ -541,17 +540,21 @@ load_symbols(const char *path)
 	 * Launch "nm -p" on our executable to grab the symbols.
 	 */
 
-	rw = gm_snprintf(tmp, sizeof tmp, "nm -p %s", path);
-	if (rw != strlen(path) + CONST_STRLEN("nm -p ")) {
-		s_warning("full path \"%s\" too long, cannot load symbols", path);
-		goto done;
-	}
+	{
+		size_t rw;
 
-	f = popen(tmp, "r");
+		rw = gm_snprintf(tmp, sizeof tmp, "nm -p %s", path);
+		if (rw != strlen(path) + CONST_STRLEN("nm -p ")) {
+			s_warning("full path \"%s\" too long, cannot load symbols", path);
+			goto done;
+		}
 
-	if (NULL == f) {
-		s_warning("can't run \"%s\": %s", tmp, g_strerror(errno));
-		goto done;
+		f = popen(tmp, "r");
+
+		if (NULL == f) {
+			s_warning("can't run \"%s\": %s", tmp, g_strerror(errno));
+			goto done;
+		}
 	}
 #endif	/* MINGW32 */
 
