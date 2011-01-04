@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-62]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-57]
 : $X-Id: Jmake.tmpl 48 2010-11-28 23:05:09Z rmanfredi $
 
 case $CONFIG in
@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 18085 2010-12-31 12:16:02Z rmanfredi $
+# $X-Id: Jmakefile 18150 2011-01-04 21:48:17Z rmanfredi $
 
 GENERIC = bit_array.h bit_field.h
 
@@ -114,6 +114,7 @@ LSRC = \
 	compat_pio.c \
 	compat_poll.c \
 	compat_sleep_ms.c \
+	compat_un.c \
 	concat.c \
 	cpufreq.c \
 	cq.c \
@@ -223,6 +224,7 @@ LOBJ = \
 	compat_pio.o \
 	compat_poll.o \
 	compat_sleep_ms.o \
+	compat_un.o \
 	concat.o \
 	cpufreq.o \
 	cq.o \
