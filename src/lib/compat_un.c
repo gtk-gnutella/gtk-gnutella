@@ -30,7 +30,7 @@
  * UNIX socket family emulation (aka local sockets).
  *
  * To emulate the UNIX socket family, we use INET sockets with a file as the
- * rendez-vous point (instead of named socket filesystem).
+ * rendez-vous point (instead of a named socket entry in the filesystem).
  *
  * The special (albeit plain) file we create has the following format:
  *

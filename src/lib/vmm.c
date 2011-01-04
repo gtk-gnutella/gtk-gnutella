@@ -3578,7 +3578,7 @@ vmm_munmap(void *addr, size_t length)
 
 #ifdef TRACK_VMM
 /**
- * This table assotiates an allocate pointer with a page_track structure.
+ * This table assotiates an allocated pointer with a page_track structure.
  */
 static hash_table_t *tracked;		/**< Allocations tracked */
 static hash_table_t *not_leaking;	/**< Known non-leaks */
