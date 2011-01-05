@@ -252,9 +252,9 @@ struct flock
 
 typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
 
-#ifdef MINGW32
 #include "lib/mingw32.h"
-#else	/* !MINGW32 */
+
+#ifndef MINGW32
 
 typedef struct iovec iovec_t;
 
@@ -302,7 +302,7 @@ typedef int socket_fd_t;
 #define s_read read
 #define s_readv readv
 #define s_close close
-#endif /* MINGW32 */
+#endif /* !MINGW32 */
 
 #if !defined(AF_LOCAL) && defined(AF_UNIX)
 #define AF_LOCAL AF_UNIX

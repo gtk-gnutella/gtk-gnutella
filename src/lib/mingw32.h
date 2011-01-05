@@ -338,6 +338,11 @@ void mingw_close(void);
 const char *mingw_filename_nearby(const char *file);
 gboolean mingw_stdin_pending(void);
 
+#else	/* !MINGW32 */
+
+#define mingw_init()
+#define mingw_close()
+
 #endif	/* MINGW32 */
 #endif /* _mingw32_h_ */
 
