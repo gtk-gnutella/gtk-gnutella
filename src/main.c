@@ -612,9 +612,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(file_object_close);
 	DO(settings_close);	/* Must come after hcache_close() */
 	DO(misc_close);
-#ifdef MINGW32
 	DO(mingw_close);
-#endif
 	DO(inputevt_close);
 	DO(locale_close);
 	DO(cq_close);
@@ -1487,10 +1485,7 @@ main(int argc, char **argv)
 	atoms_init();
 	eval_init();
 	settings_early_init();
-
-#ifdef MINGW32
 	mingw_init();
-#endif
 
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
