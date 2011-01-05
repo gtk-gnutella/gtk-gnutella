@@ -74,8 +74,6 @@ int shell_options_parse(struct gnutella_shell *,
 	SHELL_HELP_PROTO(name); \
 	SHELL_SUMMARY_PROTO(name);
 
-#undef shutdown		/* may be remapped under MINGW32 */
-
 #include "cmd.inc"
 #undef SHELL_CMD
 
