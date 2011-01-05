@@ -133,7 +133,7 @@ struct line_buf {
  * the buffer is not further filled before it is completely empty.
  */
 static int
-read_data(int fd, struct shell_buf *sb)
+read_data(int fd, struct shell_buf *sb, gboolean is_socket)
 {
 	if (!sb) {
 		return -1;
@@ -141,7 +141,19 @@ read_data(int fd, struct shell_buf *sb)
 	if (0 == sb->fill && sb->readable) {
 		ssize_t ret;
 
-		ret = read(fd, sb->buf, sb->size);
+		/*
+		 * On Windows, we have to call s_read() for sockets, not read(),
+		 * or it does not work since winsock descriptors are distinct
+		 * from other file objects and the Windows kernel is too stupid
+		 * to do the dirty work for us.
+		 *		--RAM, 2011-01-05
+		 */
+
+		if (is_socket)
+			ret = s_read(fd, sb->buf, sb->size);
+		else
+			ret = read(fd, sb->buf, sb->size);
+
 		switch (ret) {
 		case 0:
 			sb->eof = 1;
@@ -217,7 +229,7 @@ read_data_with_readline(struct line_buf *line, struct shell_buf *sb)
  * Attempts to flush the shell buffer to the given file descriptor.
  */
 static int
-write_data(int fd, struct shell_buf *sb)
+write_data(int fd, struct shell_buf *sb, gboolean is_socket)
 {
 	if (!sb) {
 		return -1;
@@ -226,7 +238,17 @@ write_data(int fd, struct shell_buf *sb)
 	if (sb->fill > 0 && sb->writable) {
 		ssize_t ret;
 
-		ret = write(fd, &sb->buf[sb->pos], sb->fill);
+		/*
+		 * On Windows, we have to call s_write() for sockets, not write().
+		 * API fragmentation (winsocks versus other handles) at its best.
+		 *		--RAM, 2011-01-05
+		 */
+
+		if (is_socket)
+			ret = s_write(fd, &sb->buf[sb->pos], sb->fill);
+		else
+			ret = write(fd, &sb->buf[sb->pos], sb->fill);
+
 		switch (ret) {
 		case 0:
 			sb->hup = 1;
@@ -319,17 +341,17 @@ local_shell_mainloop(int fd)
 				return -1;
 			}
 		} else {
-			if (read_data(STDIN_FILENO, &client)) {
+			if (read_data(STDIN_FILENO, &client, FALSE)) {
 				return -1;
 			}
 		}
-		if (write_data(fd, &client)) {
+		if (write_data(fd, &client, TRUE)) {
 			return -1;
 		}
-		if (read_data(fd, &server)) {
+		if (read_data(fd, &server, TRUE)) {
 			return -1;
 		}
-		if (write_data(STDOUT_FILENO, &server)) {
+		if (write_data(STDOUT_FILENO, &server, FALSE)) {
 			return -1;
 		}
 
@@ -362,14 +384,17 @@ local_shell_mainloop(int fd)
 			struct pollfd fds[3];
 			int ret;
 
-			if (client.eof || client.fill > 0) {
+			if (client.eof || client.fill > 0 || is_running_on_mingw()) {
 				fds[0].fd = -1;
 				fds[0].events = 0;
 			} else {
 				fds[0].fd = STDIN_FILENO;
 				fds[0].events = POLLIN;
 			}
-			if ((server.fill > 0 || server.wrote) && !server.hup) {
+			if (
+				!is_running_on_mingw() &&
+				((server.fill > 0 || server.wrote) && !server.hup)
+			) {
 				fds[1].fd = STDOUT_FILENO;
 				fds[1].events = POLLOUT;
 			} else {
@@ -386,7 +411,27 @@ local_shell_mainloop(int fd)
 			}
 			fds[2].fd = fds[2].events ? fd : -1;
 
-			ret = wait_for_io(fds, 3, -1);
+			/*
+			 * On Windows, don't poll forever but timeout after 350 ms
+			 * so that we can handle stdin.  As soon as they hit the keyboard,
+			 * we'll block on the read() though, when stdin is a console:
+			 * input is line-buffered and the WIN32 calls under the read()
+			 * front-end such as ReadFile() or ReadConsole() are responsible
+			 * for that blocking.  It's not much a problem for the shell since
+			 * in GTKG the remote server will not emit messages when waiting
+			 * for the next command.
+			 *
+			 * Setting the console in unbuffered mode is a bad idea because
+			 * in that case Windows also turns echo off.  Great feature.
+			 *
+			 * The 350 ms timeout means there's a slight delay when a new
+			 * command is typed, but it's acceptable in practice and seems
+			 * a good compromise: it is reasonably responsive whilst not
+			 * wasting too much CPU doing active polling for new stdin input.
+			 *		--RAM, 2011-01-05
+			 */
+
+			ret = wait_for_io(fds, 3, is_running_on_mingw() ? 350 : -1);
 			if (ret < 0) {
 				return -1;
 			}
@@ -395,6 +440,21 @@ local_shell_mainloop(int fd)
 
 			server.readable = 0 != (fds[2].revents & (POLLIN | POLLHUP));
 			server.writable = 0 != (fds[1].revents & POLLOUT);
+
+#ifdef MINGW32
+			/*
+			 * Under Windows, since we cannot poll() on stdin / stdout,
+			 * we have to explicitly and actively probe stdin for more
+			 * character data, when it's a tty.  For files or pipes, we
+			 * assume stdin is always readable.
+			 * Likewise, we assume stdout is always writable on Windows,
+			 * which in practice is not going to be a problem.
+			 *		--RAM, 2011-01-05
+			 */
+
+			client.readable = tty ? mingw_stdin_pending() : TRUE;
+			server.writable = TRUE;
+#endif	/* MINGW32 */
 		}
 	}
 	return 0;

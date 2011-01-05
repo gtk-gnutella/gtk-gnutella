@@ -51,6 +51,7 @@ RCSID("$Id$")
 #include <psapi.h>
 #include <winnt.h>
 #include <powrprof.h>
+#include <conio.h>				/*  For _kbhit() */
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -1231,6 +1232,15 @@ mingw_filename_nearby(const char *file)
 	clamp_strcpy(&path[offset], sizeof path - offset, file);
 
 	return path;
+}
+
+/**
+ * Check whether there is pending data for us to read on a tty stdin.
+ */
+gboolean
+mingw_stdin_pending(void)
+{
+	return _kbhit();
 }
 
 void
