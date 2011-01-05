@@ -1488,16 +1488,16 @@ main(int argc, char **argv)
 	eval_init();
 	settings_early_init();
 
+#ifdef MINGW32
+	mingw_init();
+#endif
+
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 	malloc_show_settings();
 
 	/* Our regular inits */
 	
-#ifdef MINGW32
-	mingw_init();
-#endif
-
 #ifndef OFFICIAL_BUILD
 	g_warning("%s \"%s\"",
 		_("unofficial build, accessing files from"),
