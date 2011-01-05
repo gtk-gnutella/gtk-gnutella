@@ -41,6 +41,7 @@ RCSID("$Id$")
 #include "atoms.h"
 #include "debug.h"
 #include "fd.h"
+#include "file.h"
 #include "inputevt.h"
 #include "ascii.h"
 #include "glib-missing.h"
@@ -155,18 +156,6 @@ static int adns_query_fd = -1;
 static guint adns_query_event_id = 0;
 static guint adns_reply_event_id = 0;
 static gboolean is_helper = FALSE;		/**< Are we the DNS helper process? */
-
-/**
- * Private macros.
- */
-
-#define CLOSE_IF_VALID(fd)	\
-do {						\
-	if (-1 != (fd))	{		\
-		close(fd);			\
-		fd = -1;			\
-	} 						\
-} while(0)
 
 /**
  * Private functions.
@@ -771,7 +760,7 @@ abort:
 	g_warning("adns_query_callback: removed myself");
 	inputevt_remove(adns_query_event_id);
 	adns_query_event_id = 0;
-	CLOSE_IF_VALID(adns_query_fd);
+	file_close(&adns_query_fd);
 	g_warning("adns_query_callback: using fallback");
 	adns_fallback(&remain->req);
 done:
@@ -857,10 +846,10 @@ prefork_failure:
 
 	if (!adns_reply_event_id) {
 		g_warning("Cannot use ADNS; DNS lookups may cause stalling");
-		CLOSE_IF_VALID(fd_query[0]);
-		CLOSE_IF_VALID(fd_query[1]);
-		CLOSE_IF_VALID(fd_reply[0]);
-		CLOSE_IF_VALID(fd_reply[1]);
+		file_close(&fd_query[0]);
+		file_close(&fd_query[1]);
+		file_close(&fd_reply[0]);
+		file_close(&fd_reply[1]);
 	}
 
 #else
@@ -919,7 +908,7 @@ adns_send_request(const struct adns_request *req)
 				g_strerror(errno));
 			inputevt_remove(adns_reply_event_id);
 			adns_reply_event_id = 0;
-			CLOSE_IF_VALID(adns_query_fd);
+			file_close(&adns_query_fd);
 			return FALSE;
 		}
 		written = 0;

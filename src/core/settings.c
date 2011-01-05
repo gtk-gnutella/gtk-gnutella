@@ -126,6 +126,9 @@ static void settings_callbacks_init(void);
 static void settings_callbacks_shutdown(void);
 static void update_uptimes(void);
 
+static int pidfile_fd = -1;
+static int save_file_path_lock = -1;
+
 /* ----------------------------------------- */
 
 /**
@@ -473,11 +476,9 @@ settings_unique_usage(const char *path, const char *lockfile, int *fd_ptr)
 static int
 settings_ensure_unicity(void)
 {
-	int fd;
-
 	g_assert(config_dir);
 
-	return settings_unique_usage(config_dir, pidfile, &fd);
+	return settings_unique_usage(config_dir, pidfile, &pidfile_fd);
 }
 
 int
@@ -497,7 +498,6 @@ settings_is_unique_instance(void)
 static int
 settings_ensure_unique_save_file_path(void)
 {
-	static int save_file_path_lock = -1;
 	int fd;
 	int ret;
 
@@ -1004,6 +1004,9 @@ settings_save_if_dirty(void)
 void
 settings_close(void)
 {
+	file_close(&pidfile_fd);
+	file_close(&save_file_path_lock);
+
 	settings_remove_lockfile(config_dir, pidfile);
 	settings_remove_lockfile(GNET_PROPERTY(save_file_path), dirlockfile);
     gnet_prop_shutdown();

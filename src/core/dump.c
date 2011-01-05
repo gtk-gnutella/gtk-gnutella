@@ -155,14 +155,12 @@ dump_disable(struct dump *dump)
 	pmsg_slist_free(&dump->slist);
 	dump->fill = 0;
 
-	if (dump->fd >= 0) {
-		close(dump->fd);
-		dump->fd = -1;
-	}
+	if (dump->fd >= 0)
+		file_close(&dump->fd);
+	
 	dump->initialized = FALSE;
-	if (*dump->dump_var) {
+	if (*dump->dump_var)
 		gnet_prop_set_boolean_val(dump->dump_property, FALSE);
-	}
 }
 
 /**

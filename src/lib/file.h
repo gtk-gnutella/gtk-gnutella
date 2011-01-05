@@ -70,6 +70,7 @@ int file_absolute_open(const char *path, int flags, int mode);
 int file_open_missing(const char *path, int flags);
 int file_create(const char *path, int flags, int mode);
 int file_create_missing(const char *path, int flags, int mode);
+int file_close(int *fd_ptr);
 FILE *file_fopen(const char *path, const char *mode);
 FILE *file_fopen_missing(const char *path, const char *mode);
 
