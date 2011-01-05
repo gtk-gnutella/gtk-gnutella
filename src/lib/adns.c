@@ -41,7 +41,6 @@ RCSID("$Id$")
 #include "atoms.h"
 #include "debug.h"
 #include "fd.h"
-#include "file.h"
 #include "inputevt.h"
 #include "ascii.h"
 #include "glib-missing.h"
@@ -760,7 +759,7 @@ abort:
 	g_warning("adns_query_callback: removed myself");
 	inputevt_remove(adns_query_event_id);
 	adns_query_event_id = 0;
-	file_close(&adns_query_fd);
+	fd_close(&adns_query_fd, FALSE);
 	g_warning("adns_query_callback: using fallback");
 	adns_fallback(&remain->req);
 done:
@@ -846,10 +845,10 @@ prefork_failure:
 
 	if (!adns_reply_event_id) {
 		g_warning("Cannot use ADNS; DNS lookups may cause stalling");
-		file_close(&fd_query[0]);
-		file_close(&fd_query[1]);
-		file_close(&fd_reply[0]);
-		file_close(&fd_reply[1]);
+		fd_close(&fd_query[0], FALSE);
+		fd_close(&fd_query[1], FALSE);
+		fd_close(&fd_reply[0], FALSE);
+		fd_close(&fd_reply[1], FALSE);
 	}
 
 #else
@@ -908,7 +907,7 @@ adns_send_request(const struct adns_request *req)
 				g_strerror(errno));
 			inputevt_remove(adns_reply_event_id);
 			adns_reply_event_id = 0;
-			file_close(&adns_query_fd);
+			fd_close(&adns_query_fd, FALSE);
 			return FALSE;
 		}
 		written = 0;

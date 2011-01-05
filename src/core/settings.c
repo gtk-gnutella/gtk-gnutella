@@ -1004,8 +1004,8 @@ settings_save_if_dirty(void)
 void
 settings_close(void)
 {
-	file_close(&pidfile_fd);
-	file_close(&save_file_path_lock);
+	fd_close(&pidfile_fd, TRUE);
+	fd_close(&save_file_path_lock, TRUE);
 
 	settings_remove_lockfile(config_dir, pidfile);
 	settings_remove_lockfile(GNET_PROPERTY(save_file_path), dirlockfile);

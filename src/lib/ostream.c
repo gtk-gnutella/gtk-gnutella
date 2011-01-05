@@ -45,7 +45,6 @@ RCSID("$Id$")
 
 #include "ostream.h"
 #include "fd.h"
-#include "file.h"
 #include "halloc.h"
 #include "pmsg.h"
 #include "slist.h"
@@ -268,7 +267,7 @@ ostream_close_file(ostream_t *os)
 		os->u.f = NULL;
 		break;
 	case OSTREAM_T_FD:
-		ret = file_close(&os->u.fd);
+		ret = fd_close(&os->u.fd, FALSE);
 		break;
 	case OSTREAM_T_MEM:
 	case OSTREAM_T_PMSG:

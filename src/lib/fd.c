@@ -220,23 +220,30 @@ fd_set_nonblocking(int fd)
  * @param clear_cache If TRUE posix_fadvise() is called with
  *		  POSIX_FADV_DONTNEED. This should only be used for regular
  *		  files.
+ *
+ * @return 0 on success, -1 on error.
  */
 int
 fd_close(int *fd_ptr, gboolean clear_cache)
 {
 	int ret;
+	int fd;
 
-	g_assert(fd_ptr);
-	g_assert(*fd_ptr >= -1);
+	g_assert(fd_ptr != NULL);
 
-	if (*fd_ptr < 0)
+	fd = *fd_ptr;
+	g_assert(fd >= -1);
+
+	if (fd < 0)
 		return 0;
 
 	if (clear_cache) {
-		compat_fadvise_dontneed(*fd_ptr, 0, 0);
+		compat_fadvise_dontneed(fd, 0, 0);
 	}
-	ret = close(*fd_ptr);
+
+	ret = close(fd);
 	*fd_ptr = -1;
+
 	return ret;
 }
 

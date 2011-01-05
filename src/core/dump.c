@@ -156,7 +156,7 @@ dump_disable(struct dump *dump)
 	dump->fill = 0;
 
 	if (dump->fd >= 0)
-		file_close(&dump->fd);
+		fd_close(&dump->fd, FALSE);
 	
 	dump->initialized = FALSE;
 	if (*dump->dump_var)
