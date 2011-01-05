@@ -923,6 +923,7 @@ compat_accept_check(int sd, gboolean *error)
 			return TRUE;
 		}
 	} else {
+		random_cpu_noise();
 		*error = FALSE;
 		return TRUE;
 	}
