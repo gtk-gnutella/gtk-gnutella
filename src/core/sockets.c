@@ -82,6 +82,7 @@ RCSID("$Id$")
 #include "lib/header.h"
 #include "lib/portmap.h"
 #include "lib/random.h"
+#include "lib/socket.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
@@ -2122,7 +2123,7 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 	 */
 
 	set_close_on_exec(fd);
-	fd_set_nonblocking(fd);
+	socket_set_nonblocking(fd);
 
 	t = socket_alloc();
 
@@ -2769,7 +2770,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 	setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
 	setsockopt(s->file_desc, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
 
-	fd_set_nonblocking(s->file_desc);
+	socket_set_nonblocking(s->file_desc);
 	set_close_on_exec(s->file_desc);
 	socket_set_linger(s->file_desc);
 	socket_tos_normal(s);
@@ -2888,8 +2889,8 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	s->local_port = socket_local_port(s);
 	bws_sock_connect(s->type);
 
-	/* Set the file descriptor non blocking */
-	fd_set_nonblocking(s->file_desc);
+	/* Set the socket descriptor non blocking */
+	socket_set_nonblocking(s->file_desc);
 
 	g_assert(0 == s->gdk_tag);
 
@@ -3144,7 +3145,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 	} else {
 		fd = get_non_stdio_fd(fd);
 		set_close_on_exec(fd);
-		fd_set_nonblocking(fd);
+		socket_set_nonblocking(fd);
 	}
 
 	return fd;
@@ -3252,7 +3253,7 @@ socket_local_listen(const char *pathname)
 	socket_wio_link(s);				/* Link to the I/O functions */
 
 	set_close_on_exec(fd);
-	fd_set_nonblocking(fd);
+	socket_set_nonblocking(fd);
 
 	s->net = NET_TYPE_NONE;
 	s->local_port = 0;
