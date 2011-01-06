@@ -1243,6 +1243,53 @@ mingw_stdin_pending(void)
 	return _kbhit();
 }
 
+/**
+ * Get file ID.
+ *
+ * @return TRUE on success.
+ */
+static gboolean
+mingw_get_file_id(const char *path, guint64 *id)
+{
+	HANDLE h;
+	BY_HANDLE_FILE_INFORMATION fi;
+	gboolean ok;
+
+	h = CreateFile(path, 0,
+			FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+			NULL, OPEN_EXISTING, 0, NULL);
+
+	if (INVALID_HANDLE_VALUE == h)
+		return FALSE;
+
+	ok = 0 != GetFileInformationByHandle(h, &fi);
+	CloseHandle(h);
+
+	if (!ok)
+		return FALSE;
+
+	*id = fi.nFileIndexHigh << 32 | fi.nFileIndexLow;
+
+	return TRUE;
+}
+
+/**
+ * Are the two files sharing the same file ID?
+ */
+gboolean
+mingw_same_file_id(const char *pathname_a, const char *pathname_b)
+{
+	guint64 ia, ib;
+
+	if (!mingw_get_file_id(pathname_a, &ia))
+		return FALSE;
+
+	if (!mingw_get_file_id(pathname_b, &ib))
+		return FALSE;
+
+	return ia == ib;
+}
+
 void
 mingw_init(void)
 {
