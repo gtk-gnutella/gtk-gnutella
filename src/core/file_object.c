@@ -485,8 +485,7 @@ file_object_rename(const char * const old_name, const char * const new_name)
 	 * On Windows, close all the files prior renaming.
 	 */
 
-#ifdef MINGW32
-	{
+	if (is_running_on_mingw()) {
 		GSList *sl;
 
 		GM_SLIST_FOREACH(objects, sl) {
@@ -495,7 +494,6 @@ file_object_rename(const char * const old_name, const char * const new_name)
 			fd_close(&fo->fd, TRUE);
 		}
 	}
-#endif
 
 	/*
 	 * Rename the file.
@@ -529,8 +527,7 @@ file_object_rename(const char * const old_name, const char * const new_name)
 	 * On Windows, reopen all the files.
 	 */
 
-#ifdef MINGW32
-	{
+	if (is_running_on_mingw()) {
 		GSList *sl;
 
 		GM_SLIST_FOREACH(objects, sl) {
@@ -539,9 +536,8 @@ file_object_rename(const char * const old_name, const char * const new_name)
 			fo->fd = file_absolute_open(fo->pathname, fo->accmode, 0);
 		}
 	}
-#endif
 
-	g_slist_free(objects);
+	gm_slist_free_null(&objects);
 
 	if (!ok)
 		errno = saved_errno;
