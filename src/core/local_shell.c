@@ -77,7 +77,7 @@ is_temporary_error(int e)
 }
 
 void 
-socket_set_nonblocking(int fd)
+fd_set_nonblocking(int fd)
 {
 	int ret, flags;
 
@@ -99,7 +99,6 @@ RCSID("$Id$")
 #include "lib/fd.h"
 #include "lib/compat_poll.h"
 #include "lib/compat_un.h"
-#include "lib/socket.h"
 
 #include "lib/override.h"
 
@@ -514,7 +513,7 @@ local_shell(const char *socket_path)
 		goto failure;
 	}
 
-	socket_set_nonblocking(fd);
+	fd_set_nonblocking(fd);
 
 	if (0 != local_shell_mainloop(fd))
 		goto failure;

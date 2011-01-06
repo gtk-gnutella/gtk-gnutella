@@ -126,7 +126,6 @@ LSRC = \
 	sequence.c \
 	sha1.c \
 	slist.c \
-	socket.c \
 	sorted_array.c \
 	stacktrace.c \
 	stats.c \

@@ -686,8 +686,6 @@ src/lib/sha1.c
 src/lib/sha1.h
 src/lib/slist.c
 src/lib/slist.h
-src/lib/socket.c
-src/lib/socket.h
 src/lib/sorted_array.c
 src/lib/sorted_array.h
 src/lib/stacktrace.c
