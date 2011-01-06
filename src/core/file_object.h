@@ -48,6 +48,7 @@ const char *file_object_get_pathname(const struct file_object *fo);
 
 void file_object_release(struct file_object **fo_ptr);
 void file_object_revoke(const char *pathname);
+gboolean file_object_rename(const char * const o, const char * const n);
 
 #endif /* _core_file_object_h_ */
 /* vi: set ts=4 sw=4 cindent: */

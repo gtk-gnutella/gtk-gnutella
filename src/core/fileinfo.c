@@ -3657,7 +3657,6 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 		g_assert(xfi == fi);
 		g_hash_table_remove(fi_by_outname, fi->pathname);
 	}
-	file_object_revoke(fi->pathname);
 
 	atom_str_change(&fi->pathname, pathname);
 
@@ -6705,9 +6704,7 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 				success = TRUE;
 			}
 		} else if (S_ISREG(sb.st_mode)) {
-			if (0 == rename(fi->pathname, pathname)) {
-				success = TRUE;
-			}
+			success = file_object_rename(fi->pathname, pathname);
 		}
 		if (success) {
 			file_info_moved(fi, pathname);

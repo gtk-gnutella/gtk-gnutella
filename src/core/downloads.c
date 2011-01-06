@@ -13330,7 +13330,7 @@ download_move(struct download *d, const char *dir, const char *ext)
 
 		if (same_dir) {
 			dest = file_info_unique_filename(dir, name, ext);
-			if (NULL == dest || -1 == rename(fi->pathname, dest))
+			if (NULL == dest || !file_object_rename(fi->pathname, dest))
 				goto error;
 			goto renamed;
 		}
@@ -13350,7 +13350,7 @@ download_move(struct download *d, const char *dir, const char *ext)
 	if (NULL == dest)
 		goto error;
 
-	if (-1 != rename(fi->pathname, dest))
+	if (file_object_rename(fi->pathname, dest))
 		goto renamed;
 
 	/*
@@ -13397,7 +13397,7 @@ download_move(struct download *d, const char *dir, const char *ext)
 	goto cleanup;
 
 error:
-	g_warning("cannot rename %s as %s: %s",
+	g_warning("could not rename \"%s\" as \"%s\": %s",
 		fi->pathname, dest, g_strerror(errno));
 	download_move_error(d);
 	goto cleanup;
@@ -13452,6 +13452,10 @@ download_move_done(struct download *d, const char *pathname, guint elapsed)
 	g_assert(d->status == GTA_DL_MOVING);
 
 	fi = d->file_info;
+
+	if (fi->flags & FI_F_MOVING)
+		file_object_revoke(fi->pathname);		/* File was copied over */
+
 	fi->copy_elapsed = elapsed;
 	fi->copied = fi->size;
 	fi->flags &= ~FI_F_MOVING;
@@ -13478,7 +13482,6 @@ download_move_done(struct download *d, const char *pathname, guint elapsed)
 		/* Send a notification */
 		dbus_util_send_message(DBS_EVT_DOWNLOAD_DONE, download_pathname(d));
 	} else {
-		file_object_revoke(fi->pathname);
 		download_moved_with_bad_sha1(d);
 	}
 	file_info_changed(fi);
@@ -13516,8 +13519,8 @@ download_move_error(struct download *d)
 
 	file_info_strip_binary(fi);
 
-	if (NULL == dest || -1 == rename(fi->pathname, dest)) {
-		g_warning("Could not rename \"%s\" as \"%s\": %s",
+	if (NULL == dest || !file_object_rename(fi->pathname, dest)) {
+		g_warning("could not rename completed file \"%s\" as \"%s\": %s",
 			fi->pathname, dest, g_strerror(errno));
 		download_set_status(d, GTA_DL_DONE);
 	} else {

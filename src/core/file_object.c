@@ -94,6 +94,7 @@ RCSID("$Id$")
 #include "lib/compat_pio.h"
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/glib-missing.h"
 #include "lib/iovec.h"
 #include "lib/path.h"
 #include "lib/walloc.h"
@@ -303,8 +304,8 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 	fo->pathname = atom_str_get(pathname);
 
 	file_object_check(fo);
-	g_hash_table_insert(file_object_mode_get_table(fo->accmode),
-		deconstify_gchar(fo->pathname), fo);
+	gm_hash_table_insert_const(file_object_mode_get_table(fo->accmode),
+		fo->pathname, fo);
 
 	return fo;
 }
@@ -443,6 +444,102 @@ file_object_revoke(const char * const pathname)
 			file_object_remove(fo);
 		}
 	}
+}
+
+/**
+ * Renames a file and transparently re-opens all the file objets pointing to
+ * the old name, re-inserting the file objects with the new names, assuming
+ * renaming was successful.
+ *
+ * @param old_name	An absolute pathname, the old file name.
+ * @param new_name	An absolute pathname, the new file name.
+ *
+ * @return TRUE if renaming was successful, FALSE otherwise, with errno set.
+ */
+gboolean
+file_object_rename(const char * const old_name, const char * const new_name)
+{
+	const int accmodes[] = { O_RDONLY, O_WRONLY, O_RDWR };
+	unsigned i;
+	GSList *objects = NULL;
+	gboolean ok = TRUE;
+
+	g_return_val_if_fail(old_name, FALSE);
+	g_return_val_if_fail(new_name, FALSE);
+	g_return_val_if_fail(is_absolute_path(old_name), FALSE);
+	g_return_val_if_fail(is_absolute_path(new_name), FALSE);
+
+	for (i = 0; i < G_N_ELEMENTS(accmodes); i++) {
+		struct file_object *fo;
+
+		fo = file_object_find(old_name, accmodes[i]);
+		if (fo != NULL) {
+			if (NULL == g_slist_find(objects, fo)) {
+				objects = g_slist_prepend(objects, fo);
+			}
+		}
+	}
+
+	/*
+	 * On Windows, close all the files prior renaming.
+	 */
+
+#ifdef MINGW32
+	{
+		GSList *sl;
+
+		GM_SLIST_FOREACH(objects, sl) {
+			struct file_object *fo = sl->data;
+
+			fd_close(&fo->fd, TRUE);
+		}
+	}
+#endif
+
+	/*
+	 * Rename the file.
+	 */
+
+	ok = rename(old_name, new_name) != -1;
+
+	/*
+	 * If we successfully renamed the file, re-index the file objects with
+	 * their new name.
+	 */
+
+	if (ok) {
+		GSList *sl;
+
+		GM_SLIST_FOREACH(objects, sl) {
+			struct file_object *fo = sl->data;
+
+			g_hash_table_remove(file_object_mode_get_table(fo->accmode),
+				fo->pathname);
+			atom_str_change(&fo->pathname, new_name);
+			gm_hash_table_insert_const(file_object_mode_get_table(fo->accmode),
+				fo->pathname, fo);
+		}
+	}
+
+	/*
+	 * On Windows, reopen all the files.
+	 */
+
+#ifdef MINGW32
+	{
+		GSList *sl;
+
+		GM_SLIST_FOREACH(objects, sl) {
+			struct file_object *fo = sl->data;
+
+			fo->fd = file_absolute_open(fo->pathname, fo->accmode, 0);
+		}
+	}
+#endif
+
+	g_slist_free(objects);
+
+	return ok;
 }
 
 /**
