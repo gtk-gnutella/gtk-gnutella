@@ -478,3 +478,19 @@ Ladies and gentleman, here's the
           ...
      }
 
+9.5 When dereferencing a function pointer held in a structure, don't say:
+    
+        s->func(a, b)       # WRONG
+
+    but rather:
+
+        (*s->func)(a, b)    # RIGHT
+
+    It emphasizes the fact that we're de-referencing a function pointer and
+    it proctects against a possible
+
+        #define func(a,b,c)
+
+    somewhere, i.e. a 3-argument macro.  In the first case, cpp will cause
+    a compilation error, whereas in the second case there will be no macro
+    expansion.
