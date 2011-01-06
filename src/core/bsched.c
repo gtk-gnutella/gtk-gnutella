@@ -1724,7 +1724,7 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 
 	g_assert(bio->wio != NULL);
 	g_assert(bio->wio->sendto != NULL);
-	r = bio->wio->sendto(bio->wio, to, data, len);
+	r = (*bio->wio->sendto)(bio->wio, to, data, len);
 
 	/*
 	 * XXX hack for broken libc, which can return -1 with errno = 0!

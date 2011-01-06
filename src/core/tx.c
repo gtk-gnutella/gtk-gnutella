@@ -53,18 +53,18 @@ RCSID("$Id$")
  * Dynamic dispatch of polymorphic routines.
  */
 
-#define TX_INIT(o,a)		((o)->ops->init((o), (a)))
-#define TX_DESTROY(o)		((o)->ops->destroy((o)))
-#define TX_WRITE(o,d,l)		((o)->ops->write((o), (d), (l)))
-#define TX_WRITEV(o,i,c)	((o)->ops->writev((o), (i), (c)))
-#define TX_SENDTO(o,t,d,l)	((o)->ops->sendto((o), (t), (d), (l)))
-#define TX_ENABLE(o)		((o)->ops->enable((o)))
-#define TX_DISABLE(o)		((o)->ops->disable((o)))
-#define TX_PENDING(o)		((o)->ops->pending((o)))
-#define TX_BIO_SOURCE(o)	((o)->ops->bio_source((o)))
-#define TX_FLUSH(o)			((o)->ops->flush((o)))
-#define TX_SHUTDOWN(o)		((o)->ops->shutdown((o)))
-#define TX_CLOSE(o,c,a)		((o)->ops->close((o), (c), (a)))
+#define TX_INIT(o,a)		((*(o)->ops->init)((o), (a)))
+#define TX_DESTROY(o)		((*(o)->ops->destroy)((o)))
+#define TX_WRITE(o,d,l)		((*(o)->ops->write)((o), (d), (l)))
+#define TX_WRITEV(o,i,c)	((*(o)->ops->writev)((o), (i), (c)))
+#define TX_SENDTO(o,t,d,l)	((*(o)->ops->sendto)((o), (t), (d), (l)))
+#define TX_ENABLE(o)		((*(o)->ops->enable)((o)))
+#define TX_DISABLE(o)		((*(o)->ops->disable)((o)))
+#define TX_PENDING(o)		((*(o)->ops->pending)((o)))
+#define TX_BIO_SOURCE(o)	((*(o)->ops->bio_source)((o)))
+#define TX_FLUSH(o)			((*(o)->ops->flush)((o)))
+#define TX_SHUTDOWN(o)		((*(o)->ops->shutdown)(o))
+#define TX_CLOSE(o,c,a)		((*(o)->ops->close)((o), (c), (a)))
 
 /**
  * To guarantee that destruction of the stack always happens asynchronously

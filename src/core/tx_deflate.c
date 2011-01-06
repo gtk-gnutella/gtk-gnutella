@@ -308,7 +308,7 @@ retry:
 		tx->flags |= TX_ERROR;
 
 		/* XXX: The callback must not destroy the tx! */
-		attr->cb->shutdown(tx->owner, "Compression flush failed: %s",
+		(*attr->cb->shutdown)(tx->owner, "Compression flush failed: %s",
 				zlib_strerror(ret));
 		return FALSE;
 	}
@@ -480,7 +480,7 @@ deflate_add(txdrv_t *tx, gconstpointer data, int len)
 
 		if (Z_OK != ret) {
 			attr->flags |= DF_SHUTDOWN;
-			attr->cb->shutdown(tx->owner, "Compression failed: %s",
+			(*attr->cb->shutdown)(tx->owner, "Compression failed: %s",
 				zlib_strerror(ret));
 			return -1;
 		}

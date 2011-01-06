@@ -1175,7 +1175,7 @@ upload_free_resources(struct upload *u)
 	atom_sha1_free_null(&u->sha1);
 	atom_guid_free_null(&u->guid);
 	if (u->special) {
-		u->special->close(u->special, FALSE);
+		(*u->special->close)(u->special, FALSE);
 		u->special = NULL;
 	}
 	/*
@@ -2375,7 +2375,7 @@ upload_send_error(struct upload *u, int code, const char *msg)
 		if (upload_send_http_status(u, TRUE, code, msg)) {
 			struct upload *cu;
 			if (u->special) {
-				u->special->close(u->special, FALSE);
+				(*u->special->close)(u->special, FALSE);
 				u->special = NULL;
 			}
 			u->reqnum++;
@@ -5271,7 +5271,7 @@ upload_special_flushed(gpointer arg)
 	 * for the next request.
 	 */
 
-	u->special->close(u->special, TRUE);
+	(*u->special->close)(u->special, TRUE);
 	u->special = NULL;
 
 	if (GNET_PROPERTY(upload_debug))

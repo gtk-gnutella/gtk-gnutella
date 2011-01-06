@@ -214,7 +214,7 @@ urpc_send(const char *what,
 	 */
 
 	gnet_host_set(&to, addr, port);
-	r = s->wio.sendto(&s->wio, &to, data, len);
+	r = (s->wio.sendto)(&s->wio, &to, data, len);
 
 	/*
 	 * Reset errno if there was no "real" error to prevent getting a
