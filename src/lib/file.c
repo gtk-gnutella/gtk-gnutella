@@ -366,6 +366,7 @@ do_open(const char *path, int flags, int mode,
 	int fd;
 
 	if (absolute && !is_absolute_path(path)) {
+		g_warning("do_open(): can't open absolute \"%s\": relative path", path);
 		errno = EPERM;
 		return -1;
 	}
