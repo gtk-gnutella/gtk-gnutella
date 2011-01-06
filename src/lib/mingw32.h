@@ -127,7 +127,7 @@
 #define connect mingw_connect
 #define listen mingw_listen
 #define accept mingw_accept
-#define shutdown(s,x) mingw_shutdown(s,x)
+#define shutdown mingw_shutdown
 #define s_writev mingw_s_writev
 #define s_readv mingw_s_readv
 

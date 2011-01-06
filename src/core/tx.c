@@ -49,8 +49,6 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-#undef shutdown		/* Under Windows, this is redefined */
-
 /*
  * Dynamic dispatch of polymorphic routines.
  */
