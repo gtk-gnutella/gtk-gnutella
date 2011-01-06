@@ -463,6 +463,7 @@ file_object_rename(const char * const old_name, const char * const new_name)
 	unsigned i;
 	GSList *objects = NULL;
 	gboolean ok = TRUE;
+	int saved_errno;
 
 	g_return_val_if_fail(old_name, FALSE);
 	g_return_val_if_fail(new_name, FALSE);
@@ -502,6 +503,9 @@ file_object_rename(const char * const old_name, const char * const new_name)
 
 	ok = rename(old_name, new_name) != -1;
 
+	if (!ok)
+		saved_errno = errno;
+
 	/*
 	 * If we successfully renamed the file, re-index the file objects with
 	 * their new name.
@@ -538,6 +542,9 @@ file_object_rename(const char * const old_name, const char * const new_name)
 #endif
 
 	g_slist_free(objects);
+
+	if (!ok)
+		errno = saved_errno;
 
 	return ok;
 }
