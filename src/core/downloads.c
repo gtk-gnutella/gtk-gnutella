@@ -6291,8 +6291,7 @@ create_download(
 	fileinfo_t *file_info,
 	const gnet_host_vec_t *proxies,
 	guint32 cflags,
-	const char *parq_id,
-	gboolean use_mesh)
+	const char *parq_id)
 {
 	struct dl_server *server;
 	struct download *d;
@@ -6300,6 +6299,7 @@ create_download(
 	fileinfo_t *fi;
 	const char *msg = NULL;
 	const char *file_name = NULL;
+	gboolean use_mesh = FALSE;
 
 	g_assert(host_addr_initialized(addr));
 
@@ -6404,6 +6404,17 @@ create_download(
 		msg = fi ? "fileinfo is NULL" : "file is seeding";
 		goto fail;
 	}
+
+	/*
+	 * Only attempt to collect information from the download mesh when this
+	 * is the first source added.  Later additions to the mesh will try to
+	 * add the source to the fileinfo.
+	 *
+	 * However, if the fileinfo did not have any SHA1 yet, and we supply one
+	 * now, we have to look at the mesh because earlier entries could not.
+	 */
+
+	use_mesh = (NULL == fi->sha1 && sha1 != NULL) || 0 == fi->refcount;
 
 	if (tth) {
 		if (NULL == fi->tth) {
@@ -6569,7 +6580,14 @@ create_download(
 		parq_dl_add_id(d, parq_id);
 	}
 
-	if (use_mesh && sha1 && size)
+	/*
+	 * Only attempt to collect information from the download mesh when this
+	 * is the first source added.  Later additions to the mesh will try to
+	 * add the source to the fileinfo, and further source additions will
+	 * only re-process information that was already handled before.
+	 */
+
+	if (use_mesh && sha1 != NULL && size > 0)
 		dmesh_multiple_downloads(sha1, size, d->file_info);
 
 	return d;
@@ -6650,9 +6668,7 @@ download_auto_new_common(const char *file_name,
 		fi,
 		proxies,
 		flags,
-		NULL, 	/* PARQ ID */
-		FALSE	/* Don't use download mesh */
-	);
+		NULL); 	/* PARQ ID */
 
 	return;
 
@@ -6976,8 +6992,7 @@ download_new_by_hostname_helper(const host_addr_t *addrs, size_t n,
 			req->fi,
 			NULL,
 			req->flags,
-			req->parq_id,
-			TRUE);
+			req->parq_id);
 	}
 	download_request_free(&req);
 }
@@ -7040,7 +7055,7 @@ download_new(const char *filename,
 	}
 	return NULL != create_download(filename, uri, size, addr,
 					port, guid, hostname, sha1, tth, stamp,
-					fi, proxies, flags, parq_id, TRUE);
+					fi, proxies, flags, parq_id);
 }
 
 /**
@@ -7070,8 +7085,8 @@ download_orphan_new(const char *filename, filesize_t size,
 			fi,
 			NULL,	/* proxies */
 			0,		/* cflags */
-			NULL,	/* PARQ ID */
-			TRUE);	/* use mesh */
+			NULL	/* PARQ ID */
+	);
 	fi->ntime = ntime;
 
 	if (GNET_PROPERTY(download_debug)) {
@@ -13190,7 +13205,7 @@ download_retrieve_old(FILE *f)
 
 		d = create_download(d_name, NULL, d_size, d_addr,
 				d_port, &d_guid, d_hostname, has_sha1 ? &sha1 : NULL,
-				NULL, 1, NULL, NULL, flags, parq_id, TRUE);
+				NULL, 1, NULL, NULL, flags, parq_id);
 
 		if (d == NULL) {
 			if (GNET_PROPERTY(download_debug))
@@ -14434,8 +14449,7 @@ download_browse_start(const char *hostname,
 			fi,
 			proxies,
 			flags,
-			NULL,	/* PARQ ID */
-			FALSE);	/* don't use mesh */
+			NULL);	/* PARQ ID */
 
 	if (d) {
 		gnet_host_t host;
@@ -14570,8 +14584,7 @@ download_thex_start(const char *uri,
 			fi,
 			proxies,
 			flags,
-			NULL,		/* PARQ ID */
-			FALSE);		/* No mesh */
+			NULL);		/* PARQ ID */
 
 	if (d) {
 		gnet_host_t host;
