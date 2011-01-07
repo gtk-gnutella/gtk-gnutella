@@ -124,10 +124,10 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 			DWORD start_high, start_low;
 			DWORD len_high, len_low;
 			struct flock *arg;
-			va_list  args;
+			va_list args;
 
 			va_start(args, cmd);
-			arg = (struct flock *) va_arg(args, struct flock *);
+			arg = va_arg(args, struct flock *);
 			
 			len_high = (guint64) arg->l_len >> 32;
 			len_low = arg->l_len & MAX_INT_VAL(guint32);
@@ -152,8 +152,22 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 			break;
 		}
 		case F_DUPFD:
-			res = dup(fd);
-			/* FIXME: This is not a valid implementation of F_DUPFD! */
+			{
+				va_list args;
+				int min;
+				int i;
+
+				va_start(args, cmd);
+				min = va_arg(args, int);
+				va_end(args);
+
+				for (i = min; i < FD_SETSIZE; i++) {
+					res = dup2(fd, i);
+
+					if (res != -1 || EMFILE == errno)
+						break;
+				}
+			}
 			break;
 		default:
 			res = -1;
@@ -1298,8 +1312,9 @@ void
 mingw_init(void)
 {
 	WSADATA wsaData;
+
 	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
-		g_error("Error at WSAStartup()\n");
+		g_error("WSAStartup() failed");
 		
 	libws2_32 = LoadLibrary(WS2_LIBRARY);
     if (libws2_32 != NULL) {
