@@ -111,9 +111,11 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 {
 	int res = -1;
 
-	/* If fd isn't opened, eof() sets errno to EBADF*/
-	if (-1 == _eof(fd))
+	/* If fd isn't opened, eof() sets errno to EBADF */
+	if (-1 == _eof(fd) && EBADF == GetLastError()) {
+		errno = EBADF;
 		return -1;
+	}
 
 	switch (cmd) {
 		case F_SETFL:
@@ -168,7 +170,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 				for (i = min; i < FD_SETSIZE; i++) {
 					if (-1 != _eof(i))	/* Returns 0 or 1, if i is a valid fd */
 						continue;
-					if (EBADF != errno)	/* Valid fd but EOF not supported */
+					if (EBADF != GetLastError()) /* EOF not supported */
 						continue;
 					return dup2(fd, i);
 				}
