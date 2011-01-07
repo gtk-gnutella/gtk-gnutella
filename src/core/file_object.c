@@ -686,12 +686,13 @@ file_object_preadv(const struct file_object * const fo,
 /**
  * Get opened file status.
  *
- * @return TRUE if OK, FALSE on failure with errno set.
+ * @return 0 if OK, -1 on failure with errno set.
  */
-gboolean
-file_object_stat(const struct file_object * const fo, struct stat *buf)
+int
+file_object_fstat(const struct file_object * const fo, struct stat *buf)
 {
-	return fstat(fo->fd, buf) != -1;
+	file_object_check(fo);
+	return fstat(fo->fd, buf);
 }
 
 /**

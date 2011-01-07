@@ -210,7 +210,7 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 		goto abort_read;
 	}
 
-	if (!file_object_stat(md->rd, &buf)) {
+	if (file_object_fstat(md->rd, &buf)) {
 		md->error = errno;
 		g_warning("can't fstat \"%s\": %s",
 			download_pathname(d), g_strerror(errno));
