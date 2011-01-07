@@ -305,8 +305,6 @@ crash_signame(int signo)
 	return start - CONST_STRLEN(SIGNAL_NUM);
 }
 
-static const char RECURSIVE[] = "\nERROR: too many recursive crashes\n";
-
 static void
 crash_handler(int signo)
 {
@@ -326,7 +324,10 @@ crash_handler(int signo)
 
 	if (crashed++ > 1) {
 		if (2 == crashed) {
-			write(STDERR_FILENO, RECURSIVE, CONST_STRLEN(RECURSIVE));
+			unsigned iov_cnt = 0;
+			iovec_t iov[1];
+			print_str("\nERROR: too many recursive crashes\n");
+			IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 			set_signal(signo, SIG_DFL);
 			raise(signo);
 		} else if (3 == crashed) {
