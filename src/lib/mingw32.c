@@ -170,9 +170,6 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 					}
 
 					res = dup2(fd, i);
-
-					if (res != -1 || EMFILE == errno)
-						break;
 				}
 			}
 			break;
