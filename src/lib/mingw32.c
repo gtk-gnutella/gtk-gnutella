@@ -170,6 +170,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 					}
 
 					res = dup2(fd, i);
+					break;
 				}
 			}
 			break;
