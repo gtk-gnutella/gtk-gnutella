@@ -162,16 +162,15 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 				va_end(args);
 
 				for (i = min; i < FD_SETSIZE; i++) {
-					int duped = dup(i);
-
-					if (duped != -1) {
-						close(duped);
-						continue;		/* File descriptor ``i'' is used */
-					}
-
-					res = dup2(fd, i);
-					break;
+					if (-1 != eof(i))	/* Returns 0 or 1, if i is a valid fd */
+						continue;
+					if (EBADF != errno)	/* Valid fd but EOF not supported */
+						continue;
+					if (fd == i)	/* This could cause dup2() to deadlock */
+						break;
+					return dup2(fd, i);
 				}
+				errno = EMFILE;
 			}
 			break;
 		default:
