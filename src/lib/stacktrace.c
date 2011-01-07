@@ -971,6 +971,23 @@ stacktrace_where_print(FILE *f)
 }
 
 /**
+ * Print current stack trace to specified file if symbols where loaded.
+ */
+void
+stacktrace_where_sym_print(FILE *f)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	stacktrace_load_symbols();
+	if (0 == trace_array.count)
+		return;		/* No symbols loaded */
+
+	count = stack_unwind(stack, G_N_ELEMENTS(stack), 1);
+	stack_print(f, stack, count);
+}
+
+/**
  * Print current stack trace to specified file, with specified offset.
  *
  * @param f			file where stack should be printed
