@@ -248,8 +248,8 @@ fd_close(int *fd_ptr, gboolean clear_cache)
 }
 
 /**
- * Uses getsockopt() to determine whether the given file descriptor is
- * a socket.
+ * Uses fstat() or getsockopt() to determine whether the given file descriptor
+ * is a socket.
  *
  * @param fd An arbitrary file descriptor.
  * @return TRUE if fd is a socket, FALSE otherwise.
@@ -277,6 +277,11 @@ is_a_socket(int fd)
 }
 #endif
 
+/**
+ * Check if a file descriptor is a FIFO.
+ * @param fd An arbitrary file descriptor.
+ * @return TRUE if fd is a FIFO, FALSE otherwise.
+ */
 gboolean
 is_a_fifo(int fd)
 {
@@ -285,4 +290,15 @@ is_a_fifo(int fd)
 	return is_valid_fd(fd) && 0 == fstat(fd, &sb) && 0 != S_ISFIFO(sb.st_mode);
 }
 
+/**
+ * Check if a file descriptor is opened and set errno to EBADF on failure.
+ *
+ * @param fd An arbitrary file descriptor.
+ * @return TRUE if fd is opened, FALSE otherwise.
+ */
+gboolean
+is_open_fd(int fd)
+{
+	return -1 != fcntl(fd, F_GETFL);
+}
 /* vi: set ts=4 sw=4 cindent: */

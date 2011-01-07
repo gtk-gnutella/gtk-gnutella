@@ -47,6 +47,7 @@ int fd_close(int *fd_ptr, gboolean);
 int get_non_stdio_fd(int fd);
 gboolean is_a_socket(int fd);
 gboolean is_a_fifo(int fd);
+gboolean is_open_fd(int fd);
 
 static inline int
 is_valid_fd(int fd)
