@@ -153,6 +153,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 		}
 		case F_DUPFD:
 			res = dup(fd);
+			/* FIXME: This is not a valid implementation of F_DUPFD! */
 			break;
 		default:
 			res = -1;
