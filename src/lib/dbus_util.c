@@ -74,7 +74,7 @@ dbus_util_init(void)
 
 	if (NULL == bus) {
 		char *msg = h_strdup(error.message);
-		str_chomp(msg, 0);
+		strchomp(msg, 0);
 		g_message("could not open connection to DBus bus: %s", msg);
 		hfree(msg);
 		dbus_error_free(&error);

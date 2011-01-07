@@ -73,6 +73,7 @@ gboolean str_ichar(str_t *str, ssize_t idx, char c);
 gboolean str_istr(str_t *str, ssize_t idx, const char *string);
 gboolean str_instr(str_t *str, ssize_t idx, const char *string, size_t n);
 void str_remove(str_t *str, ssize_t idx, size_t n);
+void str_chomp(str_t *s);
 gboolean str_replace(str_t *str, ssize_t idx, size_t amt, const char *string);
 void str_escape(str_t *str, char c, char e);
 

@@ -245,7 +245,7 @@ dir_entry_mode(const struct dirent *dir_entry)
 void misc_init(void);
 void misc_close(void);
 
-size_t str_chomp(char *str, size_t len);
+size_t strchomp(char *str, size_t len);
 int hex2int(guchar c);
 gboolean is_printable(const char *buf, int len);
 void dump_hex(FILE *, const char *, gconstpointer, int);

@@ -866,6 +866,28 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 }
 
 /**
+ * Remove antepenultimate char of string if it is a "\r" followed by "\n".
+ * Remove final char of string if it is a plain "\n" or "\r".
+ */
+void
+str_chomp(str_t *s)
+{
+	size_t len;
+
+	str_check(s);
+
+	len = s->s_len;
+
+	if (len >= 2 && s->s_data[len - 2] == '\r' && s->s_data[len - 1] == '\n') {
+		s->s_len -= 2;
+	} else if (
+		len >= 1 && (s->s_data[len - 1] == '\r' || s->s_data[len - 1] == '\n')
+	) {
+		s->s_len--;
+	}
+}
+
+/**
  * Escape (in-place) all 'c' characters in string by prepending an escape 'e'
  * char in front of them.
  */

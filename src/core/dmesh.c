@@ -3230,7 +3230,7 @@ dmesh_retrieve(void)
 		if (skip)
 			continue;
 
-		str_chomp(tmp, 0);		/* Remove final "\n" */
+		strchomp(tmp, 0);	/* Remove final "\n" */
 
 		if (has_sha1) {
 			if (GNET_PROPERTY(dmesh_debug))
@@ -3334,7 +3334,7 @@ dmesh_ban_retrieve(void)
 		if (tmp[0] == '\n')
 			continue;			/* Skip empty lines */
 
-		str_chomp(tmp, 0);		/* Remove final "\n" */
+		strchomp(tmp, 0);		/* Remove final "\n" */
 
 		stamp = parse_uint64(tmp, &p, 10, &error);
 		if (error || *p != ' ') {

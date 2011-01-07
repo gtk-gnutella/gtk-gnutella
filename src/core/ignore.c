@@ -173,7 +173,7 @@ sha1_parse(FILE *f, const char *file)
 		if (ign_tmp[0] == '#' || ign_tmp[0] == '\n')
 			continue;			/* Skip comments and blank lines */
 
-		len = str_chomp(ign_tmp, 0);		/* Remove final "\n" */
+		len = strchomp(ign_tmp, 0);		/* Remove final "\n" */
 
 		/*
 		 * Decode leading base32 encoded SHA1.
@@ -248,7 +248,7 @@ namesize_parse(FILE *f, const char *file)
 		if (ign_tmp[0] == '#' || ign_tmp[0] == '\n')
 			continue;			/* Skip comments and blank lines */
 
-		str_chomp(ign_tmp, 0);	/* Remove final "\n" */
+		strchomp(ign_tmp, 0);	/* Remove final "\n" */
 
 		size = parse_uint64(ign_tmp, &p, 10, &error);
 		if (error || !is_ascii_blank(*p)) {

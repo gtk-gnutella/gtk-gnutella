@@ -480,7 +480,7 @@ parse_nm(struct nm_parser *ctx, char *line)
 
 	if ('t' == ascii_tolower(*p)) {
 		p = skip_ascii_blanks(&p[1]);
-		str_chomp(p, 0);
+		strchomp(p, 0);
 		trace_insert(addr, trace_atom(ctx, p));
 	}
 }

@@ -2940,7 +2940,7 @@ file_info_retrieve(void)
 		 * Reaching an empty line means the end of the fileinfo description.
 		 */
 
-		str_chomp(line, len);
+		strchomp(line, len);
 
 		if ('\0' == *line && fi) {
 			fileinfo_t *dfi;

@@ -13056,7 +13056,7 @@ download_retrieve_old(FILE *f)
 
 		switch (recline) {
 		case 1:						/* The file name */
-			(void) str_chomp(dl_tmp, 0);
+			strchomp(dl_tmp, 0);
 			/* Un-escape in place */
 			if (!url_unescape(dl_tmp, TRUE)) {
 				g_warning("download_retrieve(): "
@@ -13172,7 +13172,7 @@ download_retrieve_old(FILE *f)
 				goto out;
 			}
 			if (dl_tmp[0] != '*') {
-				(void) str_chomp(dl_tmp, 0);		/* Strip final "\n" */
+				strchomp(dl_tmp, 0);	/* Strip final "\n" */
 				parq_id = g_strdup(dl_tmp);
 			}
 			break;

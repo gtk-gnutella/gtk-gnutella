@@ -194,7 +194,7 @@ parse_dispatch_lines(gpointer handle, const gchar *buf, size_t len,
 
 		line = h_strdup(getline_str(ctx->getline));
 		line_len = getline_length(ctx->getline);
-		line_len = str_chomp(line, line_len);
+		line_len = strchomp(line, line_len);
 
 		error = !(*cb)(ctx, line, line_len); /* An ERROR was reported */
 		HFREE_NULL(line);

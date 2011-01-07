@@ -179,7 +179,7 @@ local_hostname(void)
  * @returns new string length.
  */
 size_t
-str_chomp(char *str, size_t len)
+strchomp(char *str, size_t len)
 {
 	if (len == 0) {
 		len = strlen(str);

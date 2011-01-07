@@ -820,7 +820,7 @@ mingw_strerror(int errnum)
         (LPTSTR) strerrbuf,
         sizeof strerrbuf, NULL );
 
-	str_chomp(strerrbuf, 0);	/* Remove final "\r\n" */
+	strchomp(strerrbuf, 0);		/* Remove final "\r\n" */
 	return strerrbuf;
 }
 
