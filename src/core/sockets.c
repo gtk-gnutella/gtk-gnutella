@@ -2480,7 +2480,8 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 		r = socket_udp_accept(s);
 
 		if ((ssize_t) -1 == r) {
-			if (!is_temporary_error(errno)) {
+			/* ECONNRESET is meaningless with UDP but happens on Windows */
+			if (!is_temporary_error(errno) && errno != ECONNRESET) {
 				g_warning("ignoring datagram reception error: %s",
 					g_strerror(errno));
 			}
