@@ -162,6 +162,13 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 				va_end(args);
 
 				for (i = min; i < FD_SETSIZE; i++) {
+					int duped = dup(i);
+
+					if (duped != -1) {
+						close(duped);
+						continue;		/* File descriptor ``i'' is used */
+					}
+
 					res = dup2(fd, i);
 
 					if (res != -1 || EMFILE == errno)
