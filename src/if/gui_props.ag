@@ -217,7 +217,7 @@ prop = {
     type = guint32;
     vector_size = 8;
     data = {
-        default = "{ 60, 20, 20, 20, 20, 20, 20, 20 }";
+        default = "{ 120, 60, 60, 60, 60, 60, 60, 20 }";
     };
 };
 
@@ -228,7 +228,7 @@ prop = {
     type = guint32;
     vector_size = 10;
     data = {
-        default = "{ 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 }";
+        default = "{ 120, 60, 60, 60, 60, 60, 60, 60, 60, 20 }";
     };
 };
 
@@ -239,7 +239,7 @@ prop = {
     type = guint32;
     vector_size = 10;
     data = {
-        default = "{ 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 }";
+        default = "{ 120, 60, 60, 60, 60, 60, 60, 60, 60, 20 }";
     };
 };
 
@@ -250,7 +250,7 @@ prop = {
     type = guint32;
     vector_size = 10;
     data = {
-        default = "{ 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 }";
+        default = "{ 120, 60, 60, 60, 60, 60, 60, 60, 60, 20 }";
     };
 };
 
@@ -273,7 +273,7 @@ prop = {
     type = guint32;
     vector_size = 2;
     data = {
-        default = "{ 60, 20 }";
+        default = "{ 240, 55 }";
     };
 };
 
@@ -284,7 +284,7 @@ prop = {
     type = guint32;
     vector_size = 10;
     data = {
-        default = "{ 60, 40, 40, 40, 40, 40, 40, 40, 40, 40 }";
+        default = "{ 120, 60, 60, 60, 60, 60, 60, 60, 60, 20 }";
     };
 };
 
@@ -891,7 +891,7 @@ prop = {
     type = guint32;
     vector_size = 2;
     data = {
-        default = "{ 60, 20 }";
+        default = "{ 240, 55 }";
     };
 };
 
