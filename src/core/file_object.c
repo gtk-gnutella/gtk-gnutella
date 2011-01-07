@@ -437,7 +437,7 @@ file_object_rename(const char * const old_name, const char * const new_name)
 	unsigned i;
 	GSList *objects = NULL;
 	gboolean ok = TRUE;
-	int saved_errno;
+	int saved_errno = 0;
 
 	errno = EINVAL;		/* In case one of the soft assertions fails */
 
@@ -535,7 +535,7 @@ file_object_unlink(const char * const path)
 	unsigned i;
 	GSList *objects = NULL;
 	gboolean ok = TRUE;
-	int saved_errno;
+	int saved_errno = 0;
 
 	errno = EINVAL;		/* In case one of the soft assertions fails */
 
