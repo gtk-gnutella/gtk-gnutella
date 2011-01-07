@@ -675,17 +675,17 @@ gnet_stats_gui_shutdown(void)
 		GtkTreeView **tv;
 	} widths[] = {
 		{ 	PROP_GNET_STATS_GENERAL_COL_WIDTHS,
-			&treeview_gnet_stats_general },
+				&treeview_gnet_stats_general },
 		{ 	PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
-			&treeview_gnet_stats_drop_reasons },
+				&treeview_gnet_stats_drop_reasons },
 		{ 	PROP_GNET_STATS_MSG_COL_WIDTHS,
-			&treeview_gnet_stats_messages },
+				&treeview_gnet_stats_messages },
 		{ 	PROP_GNET_STATS_FC_COL_WIDTHS,
-			&treeview_gnet_stats_flowc },
+				&treeview_gnet_stats_flowc },
 		{ 	PROP_GNET_STATS_RECV_COL_WIDTHS,
-			&treeview_gnet_stats_recv },
+				&treeview_gnet_stats_recv },
 		{ 	PROP_GNET_STATS_HORIZON_COL_WIDTHS,
-			&treeview_gnet_stats_horizon },
+				&treeview_gnet_stats_horizon },
 	};
 	size_t i;
 
@@ -693,7 +693,7 @@ gnet_stats_gui_shutdown(void)
 	    (GCallback) gnet_stats_gui_horizon_update);
 
 	for (i = 0; i < G_N_ELEMENTS(widths); i++) {
-		tree_view_save_widths(*(widths->tv), widths->prop);
+		tree_view_save_widths(*widths[i].tv, widths[i].prop);
 	}
 }
 
