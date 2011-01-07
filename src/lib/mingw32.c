@@ -111,6 +111,10 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 {
 	int res = -1;
 
+	/* If fd isn't opened, eof() sets errno to EBADF*/
+	if (-1 == _eof(fd))
+		return -1;
+
 	switch (cmd) {
 		case F_SETFL:
 			res = 0;
@@ -162,12 +166,10 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 				va_end(args);
 
 				for (i = min; i < FD_SETSIZE; i++) {
-					if (-1 != eof(i))	/* Returns 0 or 1, if i is a valid fd */
+					if (-1 != _eof(i))	/* Returns 0 or 1, if i is a valid fd */
 						continue;
 					if (EBADF != errno)	/* Valid fd but EOF not supported */
 						continue;
-					if (fd == i)	/* This could cause dup2() to deadlock */
-						break;
 					return dup2(fd, i);
 				}
 				errno = EMFILE;
