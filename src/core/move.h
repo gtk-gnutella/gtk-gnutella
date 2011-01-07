@@ -38,6 +38,8 @@
 
 #include "common.h"
 
+struct download;
+
 /*
  * Public interface.
  */

@@ -421,32 +421,6 @@ file_object_release(struct file_object **fo_ptr)
 }
 
 /**
- * Revokes all file objects associated with the pathname. This is useful
- * after moving a file to prevent that file_object_open() returns a file
- * object associated with the now removed file.
- *
- * @param pathname An absolute pathname.
- */
-void
-file_object_revoke(const char * const pathname)
-{
-	const int accmodes[] = { O_RDONLY, O_WRONLY, O_RDWR };
-	unsigned i;
-
-	g_return_if_fail(pathname);
-	g_return_if_fail(is_absolute_path(pathname));
-
-	for (i = 0; i < G_N_ELEMENTS(accmodes); i++) {
-		struct file_object *fo;
-
-		fo = file_object_find(pathname, accmodes[i]);
-		if (fo) {
-			file_object_remove(fo);
-		}
-	}
-}
-
-/**
  * Renames a file and transparently re-opens all the file objets pointing to
  * the old name, re-inserting the file objects with the new names, assuming
  * renaming was successful.
@@ -464,6 +438,8 @@ file_object_rename(const char * const old_name, const char * const new_name)
 	GSList *objects = NULL;
 	gboolean ok = TRUE;
 	int saved_errno;
+
+	errno = EINVAL;		/* In case one of the soft assertions fails */
 
 	g_return_val_if_fail(old_name, FALSE);
 	g_return_val_if_fail(new_name, FALSE);
@@ -538,6 +514,86 @@ file_object_rename(const char * const old_name, const char * const new_name)
 	}
 
 	gm_slist_free_null(&objects);
+
+	if (!ok)
+		errno = saved_errno;
+
+	return ok;
+}
+
+/**
+ * Deletes a file.
+ *
+ * @param path		An absolute pathname, the file to unkink()
+ *
+ * @return TRUE if unlinking was successful, FALSE otherwise, with errno set.
+ */
+gboolean
+file_object_unlink(const char * const path)
+{
+	const int accmodes[] = { O_RDONLY, O_WRONLY, O_RDWR };
+	unsigned i;
+	GSList *objects = NULL;
+	gboolean ok = TRUE;
+	int saved_errno;
+
+	errno = EINVAL;		/* In case one of the soft assertions fails */
+
+	g_return_val_if_fail(path, FALSE);
+	g_return_val_if_fail(is_absolute_path(path), FALSE);
+
+	for (i = 0; i < G_N_ELEMENTS(accmodes); i++) {
+		struct file_object *fo;
+
+		fo = file_object_find(path, accmodes[i]);
+		if (fo != NULL) {
+			if (NULL == g_slist_find(objects, fo)) {
+				objects = g_slist_prepend(objects, fo);
+			}
+		}
+	}
+
+	/*
+	 * On Windows, close all the files prior unlinking.
+	 */
+
+	if (is_running_on_mingw()) {
+		GSList *sl;
+
+		GM_SLIST_FOREACH(objects, sl) {
+			struct file_object *fo = sl->data;
+
+			fd_close(&fo->fd, TRUE);
+		}
+	}
+
+	/*
+	 * Unlink the file.
+	 */
+
+	ok = unlink(path) != -1;
+
+	if (!ok)
+		saved_errno = errno;
+
+	/*
+	 * If we successfully unliked the file, revoke the file objects.
+	 *
+	 * This will prevent further file_object_open() pointing to the (now
+	 * removed) path from returning an existing file object.
+	 */
+
+	if (ok) {
+		GSList *sl;
+
+		GM_SLIST_FOREACH(objects, sl) {
+			struct file_object *fo = sl->data;
+
+			file_object_remove(fo);
+		}
+	}
+
+	g_slist_free(objects);
 
 	if (!ok)
 		errno = saved_errno;
@@ -625,6 +681,17 @@ file_object_preadv(const struct file_object * const fo,
 	g_assert(iov_cnt > 0);
 
 	return compat_preadv(fo->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT), offset);
+}
+
+/**
+ * Get opened file status.
+ *
+ * @return TRUE if OK, FALSE on failure with errno set.
+ */
+gboolean
+file_object_stat(const struct file_object * const fo, struct stat *buf)
+{
+	return fstat(fo->fd, buf) != -1;
 }
 
 /**

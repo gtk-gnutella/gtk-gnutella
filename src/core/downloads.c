@@ -13452,10 +13452,6 @@ download_move_done(struct download *d, const char *pathname, guint elapsed)
 	g_assert(d->status == GTA_DL_MOVING);
 
 	fi = d->file_info;
-
-	if (fi->flags & FI_F_MOVING)
-		file_object_revoke(fi->pathname);		/* File was copied over */
-
 	fi->copy_elapsed = elapsed;
 	fi->copied = fi->size;
 	fi->flags &= ~FI_F_MOVING;

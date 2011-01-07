@@ -37,9 +37,10 @@
 
 RCSID("$Id$")
 
+#include "move.h"
 #include "downloads.h"
 #include "fileinfo.h"
-#include "move.h"
+#include "file_object.h"
 
 #include "lib/atoms.h"
 #include "lib/bg.h"
@@ -75,8 +76,8 @@ struct moved {
 	time_t start;			/**< Start time, to determine copying rate */
 	filesize_t size;		/**< Size of file */
 	filesize_t copied;		/**< Amount of data copied so far */
-	int rd;				/**< Opened file descriptor for read, -1 if none */
-	int wd;				/**< Opened file descriptor for write, -1 if none */
+	struct file_object *rd;	/**< The file object to read the file. */
+	int wd;					/**< File descriptor for write, -1 if none */
 	int error;				/**< Error code */
 };
 
@@ -155,7 +156,7 @@ d_free(gpointer ctx)
 
 	g_assert(md->magic == MOVED_MAGIC);
 
-	fd_close(&md->rd, TRUE);
+	file_object_release(&md->rd);
 	fd_close(&md->wd, TRUE);
 	HFREE_NULL(md->buffer);
 	md->magic = 0;
@@ -185,7 +186,7 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 	const char *name;
 
 	g_assert(md->magic == MOVED_MAGIC);
-	g_assert(md->rd == -1);
+	g_assert(md->rd == NULL);
 	g_assert(md->wd == -1);
 	g_assert(md->target == NULL);
 
@@ -194,13 +195,22 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 
 	md->d = we->d;
 
-	md->rd = file_absolute_open(download_pathname(d), O_RDONLY, 0);
-	if (md->rd < 0) {
-		md->error = errno;
+	md->rd = file_object_open(download_pathname(d), O_RDONLY);
+	if (NULL == md->rd) {
+		int fd = file_absolute_open(download_pathname(d), O_RDONLY, 0);
+		if (fd < 0) {
+			md->error = errno;
+			goto abort_read;
+		}
+		md->rd = file_object_new(fd, download_pathname(d), O_RDONLY);
+	}
+
+	if (NULL == md->rd) {
+		md->error = EINVAL;
 		goto abort_read;
 	}
 
-	if (-1 == fstat(md->rd, &buf)) {
+	if (!file_object_stat(md->rd, &buf)) {
 		md->error = errno;
 		g_warning("can't fstat \"%s\": %s",
 			download_pathname(d), g_strerror(errno));
@@ -232,17 +242,17 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 	md->copied = 0;
 	md->error = 0;
 
-	compat_fadvise_sequential(md->rd, 0, 0);
+	compat_fadvise_sequential(file_object_get_fd(md->rd), 0, 0);
 
 	if (GNET_PROPERTY(move_debug) > 1)
 		g_debug("MOVE starting moving \"%s\" to \"%s\"",
-				download_basename(d), md->target);
+				file_object_get_pathname(md->rd), md->target);
 
 	return;
 
 abort_read:
 	md->error = errno;
-	fd_close(&md->rd, TRUE);
+	file_object_release(&md->rd);
 	g_warning("can't copy \"%s\" to \"%s\"", download_pathname(d), we->dest);
 	return;
 }
@@ -262,12 +272,12 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 
 	bg_task_signal(h, BG_SIG_TERM, NULL);
 
-	if (md->rd < 0) {			/* Did not start properly */
+	if (NULL == md->rd) {			/* Did not start properly */
 		g_assert(md->error);
 		goto finish;
 	}
 
-	fd_close(&md->rd, TRUE);
+	file_object_release(&md->rd);
 	if (fd_close(&md->wd, TRUE)) {
 		md->error = errno;
 		g_warning("error whilst closing copy target \"%s\": %s",
@@ -311,7 +321,7 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 			goto error;
 		}
 
-		if (-1 == unlink(download_pathname(md->d)))
+		if (!file_object_unlink(download_pathname(md->d)))
 			g_warning("cannot unlink \"%s\": %s",
 				download_basename(md->d), g_strerror(errno));
 	} else {
@@ -320,6 +330,8 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 				md->target, g_strerror(errno));
 	}
 
+	/* FALL THROUGH */
+
 error:
 	elapsed = delta_time(tm_time(), md->start);
 	elapsed = MAX(1, elapsed);		/* time warp? clock not monotic? */
@@ -327,6 +339,8 @@ error:
 	if (GNET_PROPERTY(move_debug) > 1)
 		g_debug("MOVE moved file \"%s\" at %lu bytes/sec [error=%d]\n",
 			download_basename(md->d), (gulong) md->size / elapsed, md->error);
+ 
+	/* FALL THROUGH */
 
 finish:
 	if (md->error == 0) {
@@ -352,7 +366,7 @@ d_step_copy(struct bgtask *h, gpointer u, int ticks)
 
 	g_assert(md->magic == MOVED_MAGIC);
 
-	if (md->rd < 0)				/* Could not open the file */
+	if (NULL == md->rd)			/* Could not open the file */
 		return BGR_DONE;		/* Computation done */
 
 	if (md->size == 0)			/* Empty file */
@@ -375,18 +389,20 @@ d_step_copy(struct bgtask *h, gpointer u, int ticks)
 
 	g_assert(amount > 0);
 
-	r = read(md->rd, md->buffer, amount);
+	r = file_object_pread(md->rd, md->buffer, amount, md->copied);
 	if ((ssize_t) -1 == r) {
 		md->error = errno;
 		g_warning("error while reading \"%s\" for moving: %s",
-			download_basename(md->d), g_strerror(errno));
+			file_object_get_pathname(md->rd), g_strerror(errno));
 		return BGR_DONE;
 	} else if (r == 0) {
 		g_warning("EOF while reading \"%s\" for moving!",
-			download_basename(md->d));
+			file_object_get_pathname(md->rd));
 		md->error = -1;
 		return BGR_DONE;
 	}
+
+	g_assert((size_t) r == amount);
 
 	/*
 	 * Any partially read block counts as one block, hence the second term.
@@ -440,7 +456,7 @@ move_init(void)
 
 	md = walloc(sizeof(*md));
 	md->magic = MOVED_MAGIC;
-	md->rd = -1;
+	md->rd = NULL;
 	md->wd = -1;
 	md->buffer = halloc(COPY_BUF_SIZE);
 	md->target = NULL;

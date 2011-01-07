@@ -2559,7 +2559,7 @@ file_info_unlink(fileinfo_t *fi)
 	if (FILE_INFO_COMPLETE(fi))
 		return;
 
-	if (-1 == unlink(fi->pathname)) {
+	if (!file_object_unlink(fi->pathname)) {
 		/*
 		 * File might not exist on disk yet if nothing was downloaded.
 		 */
