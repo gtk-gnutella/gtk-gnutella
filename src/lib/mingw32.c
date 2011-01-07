@@ -123,15 +123,15 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 			HANDLE file = (HANDLE)_get_osfhandle(fd);
 			DWORD start_high, start_low;
 			DWORD len_high, len_low;
-			struct flock* arg;
+			struct flock *arg;
 			va_list  args;
 
 			va_start(args, cmd);
-			arg = (struct flock*) va_arg(args, struct flock*);
+			arg = (struct flock *) va_arg(args, struct flock *);
 			
-			len_high = arg->l_len >> 32;
+			len_high = (guint64) arg->l_len >> 32;
 			len_low = arg->l_len & MAX_INT_VAL(guint32);
-			start_high = arg->l_start >> 32;
+			start_high = (guint64) arg->l_start >> 32;
 			start_low = arg->l_start & MAX_INT_VAL(guint32);
 
 			if (arg->l_type == F_WRLCK) {
@@ -151,6 +151,9 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 
 			break;
 		}
+		case F_DUPFD:
+			res = dup(fd);
+			break;
 		default:
 			res = -1;
 			errno = EINVAL;
@@ -1268,7 +1271,7 @@ mingw_get_file_id(const char *path, guint64 *id)
 	if (!ok)
 		return FALSE;
 
-	*id = fi.nFileIndexHigh << 32 | fi.nFileIndexLow;
+	*id = (guint64) fi.nFileIndexHigh << 32 | (guint64) fi.nFileIndexLow;
 
 	return TRUE;
 }
