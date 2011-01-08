@@ -172,7 +172,14 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 						continue;
 					if (EBADF != GetLastError()) /* EOF not supported */
 						continue;
-					return dup2(fd, i);
+					res = dup2(fd, i);
+					if (-1 == res) {
+						errno = GetLastError();
+					} else {
+						/* On Windows dup2 returns 0 instead of fd on success */
+						res = fd;
+					}
+					return res;
 				}
 				errno = EMFILE;
 			}

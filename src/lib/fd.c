@@ -132,9 +132,11 @@ reserve_standard_file_descriptors(void)
 
 		/* The following shouldn't happen on POSIX */
 		if (fd != ret) {
-			int fd2 = dup2(ret, fd);
-			close(ret);
-			if (fd2 != fd)
+			int fd2 = ret;
+			
+			ret = dup2(fd2, fd);
+			close(fd2);
+			if (-1 == ret || !is_open_fd(fd))
 				return -1;
 		}
 	}
