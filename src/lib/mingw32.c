@@ -71,6 +71,7 @@ RCSID("$Id$")
 #undef write
 #undef mkdir
 #undef lseek
+#undef dup2
 
 #undef getaddrinfo
 #undef freeaddrinfo
@@ -284,6 +285,17 @@ mingw_stat(const char *path, struct stat *buf)
 	int res = stat(path, buf);
 	if (res == -1)
 		errno = GetLastError();
+	return res;
+}
+
+int
+mingw_dup2(int oldfd, int newfd)
+{
+	int res = dup2(oldfd, newfd);
+	if (res == -1)
+		errno = GetLastError();
+	else
+		res = newfd;	/* Windows's dup2() returns 0 on success */
 	return res;
 }
 

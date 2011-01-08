@@ -136,6 +136,7 @@
 
 #define stat(path, buf) mingw_stat(path, buf)
 #define open mingw_open
+#define dup2 mingw_dup2
 #define lseek mingw_lseek
 #define read mingw_read
 #define readv mingw_readv
