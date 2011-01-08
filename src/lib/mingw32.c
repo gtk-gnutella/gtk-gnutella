@@ -111,8 +111,8 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 {
 	int res = -1;
 
-	/* If fd isn't opened, eof() sets errno to EBADF */
-	if (-1 == _eof(fd) && EBADF == GetLastError()) {
+	/* If fd isn't opened, _get_osfhandle() fails with errno set to EBADF */
+	if (INVALID_HANDLE_VALUE == _get_osfhandle(fd)) {
 		errno = EBADF;
 		return -1;
 	}
@@ -168,9 +168,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 				va_end(args);
 
 				for (i = min; i < FD_SETSIZE; i++) {
-					if (-1 != _eof(i))	/* Returns 0 or 1, if i is a valid fd */
-						continue;
-					if (EBADF != GetLastError()) /* EOF not supported */
+					if (INVALID_HANDLE_VALUE != _get_osfhandle(i))
 						continue;
 					res = dup2(fd, i);
 					if (-1 == res) {
