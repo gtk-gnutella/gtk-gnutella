@@ -167,6 +167,12 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 				min = va_arg(args, int);
 				va_end(args);
 
+				if (min < 0 || min >= getdtablesize()) {
+					errno = EINVAL;
+					return -1;
+				}
+
+				/* FIXME: Why FD_SETSIZE? */
 				for (i = min; i < FD_SETSIZE; i++) {
 					if (INVALID_HANDLE_VALUE != _get_osfhandle(i))
 						continue;
@@ -258,7 +264,7 @@ mingw_getphysmemsize(void)
 	return memStatus.ullTotalPhys;
 }
 
-guint
+int
 mingw_getdtablesize(void)
 {
 	return _getmaxstdio();
