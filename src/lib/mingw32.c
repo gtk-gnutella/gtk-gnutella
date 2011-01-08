@@ -158,36 +158,37 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 			break;
 		}
 		case F_DUPFD:
-			{
-				va_list args;
-				int min;
-				int i;
+		{
+			va_list args;
+			int min, max;
+			int i;
 
-				va_start(args, cmd);
-				min = va_arg(args, int);
-				va_end(args);
+			va_start(args, cmd);
+			min = va_arg(args, int);
+			va_end(args);
 
-				if (min < 0 || min >= getdtablesize()) {
-					errno = EINVAL;
-					return -1;
-				}
+			max = getdtablesize();
 
-				/* FIXME: Why FD_SETSIZE? */
-				for (i = min; i < FD_SETSIZE; i++) {
-					if (INVALID_HANDLE_VALUE != _get_osfhandle(i))
-						continue;
-					res = dup2(fd, i);
-					if (-1 == res) {
-						errno = GetLastError();
-					} else {
-						/* On Windows dup2 returns 0 instead of fd on success */
-						res = fd;
-					}
-					return res;
-				}
-				errno = EMFILE;
+			if (min < 0 || min >= max) {
+				errno = EINVAL;
+				return -1;
 			}
+
+			for (i = min; i < max; i++) {
+				if (INVALID_HANDLE_VALUE != _get_osfhandle(i))
+					continue;
+				res = dup2(fd, i);
+				if (-1 == res) {
+					errno = GetLastError();
+				} else {
+					/* On Windows dup2 returns 0 instead of fd on success */
+					res = fd;
+				}
+				return res;
+			}
+			errno = EMFILE;
 			break;
+		}
 		default:
 			res = -1;
 			errno = EINVAL;
