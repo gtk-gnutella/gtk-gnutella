@@ -103,7 +103,7 @@ close_file_descriptors(const int first_fd)
 	}
 }
 
-/*
+/**
  * Ensures that fd 0, 1 and 2 are opened.
  *
  * @return 0 on success, -1 on failure.
@@ -121,10 +121,21 @@ reserve_standard_file_descriptors(void)
 	 * descriptor. Check this but don't rely on it.
 	 */
 	for (fd = 0; fd < 3; fd++) {
-		if (-1 != fcntl(fd, F_GETFL))
+		int ret;
+
+		if (is_open_fd(fd))
 			continue;
-		if (open("/dev/null", O_RDWR, 0) != fd)
+		ret = open("/dev/null", O_RDWR, 0);
+		if (-1 == ret)
 			return -1;
+
+		/* The following shouldn't happen on POSIX */
+		if (fd != ret) {
+			int fd2 = dup2(ret, fd);
+			close(ret);
+			if (fd2 != fd)
+				return -1;
+		}
 	}
 	return 0;
 }
