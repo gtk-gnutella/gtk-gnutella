@@ -113,6 +113,7 @@ reserve_standard_file_descriptors(void)
 {
 	int fd;
 
+	/* FIXME: Is this check required or does the code work on MINGW32 now? */
 	if (is_running_on_mingw())
 		return 0;
 

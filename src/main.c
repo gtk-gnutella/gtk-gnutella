@@ -1436,6 +1436,7 @@ main(int argc, char **argv)
 	 * use mmap() with /dev/zero and then accidently close this
 	 * file descriptor.
 	 */
+	/* FIXME: Is this check required or does the code work on MINGW32 now? */
 	if (!is_running_on_mingw()) {
 		close_file_descriptors(3); /* Just in case */
 		if (reserve_standard_file_descriptors()) {
