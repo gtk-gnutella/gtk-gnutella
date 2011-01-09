@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "fd.h"
 #include "compat_misc.h"
 #include "compat_un.h"
+#include "glib-missing.h"		/* For g_info() */
 #include "override.h"			/* Must be the last header included */
 
 void
@@ -113,10 +114,6 @@ reserve_standard_file_descriptors(void)
 {
 	int fd;
 
-	/* FIXME: Is this check required or does the code work on MINGW32 now? */
-	if (is_running_on_mingw())
-		return 0;
-
 	/*
 	 * POSIX guarantees that open() and dup() return the lowest unassigned file
 	 * descriptor. Check this but don't rely on it.
@@ -147,9 +144,6 @@ static gboolean
 need_get_non_stdio_fd(void)
 {
 	int fd;
-
-	if (is_running_on_mingw())
-		return FALSE;
 
 	/* Assume that STDIN_FILENO is open. */
 	fd = fcntl(STDIN_FILENO, F_DUPFD, 256);
@@ -190,6 +184,8 @@ get_non_stdio_fd(int fd)
 	if (!initialized) {
 		initialized = TRUE;
 		needed = need_get_non_stdio_fd();
+		g_info("stdio %s handle file descriptors larger than 256",
+			needed ? "cannot" : "can");
 	}
 	if (needed && fd > 2 && fd < 256) {
 		int nfd, saved_errno;

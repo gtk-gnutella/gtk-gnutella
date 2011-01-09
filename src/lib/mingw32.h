@@ -248,6 +248,7 @@ guint64 mingw_getphysmemsize(void);
 int mingw_getdtablesize(void);
 const char *mingw_strerror(int errnum);
 int mingw_stat(const char *path, struct stat *buf);
+int mingw_dup2(int oldfd, int newfd);
 int mingw_open(const char *pathname, int flags, ...);
 off_t mingw_lseek(int fd, off_t offset, int whence);
 int mingw_rename(const char *oldpath, const char *newpath);
