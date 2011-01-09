@@ -46,6 +46,8 @@
 
 RCSID("$Id$")
 
+#include "crash.h"
+#include "compat_sleep_ms.h"
 #include "fd.h"
 #include "misc.h"
 #include "offtime.h"
@@ -53,7 +55,6 @@ RCSID("$Id$")
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
 #include "stacktrace.h"
-#include "crash.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -214,8 +215,8 @@ crash_end_of_line(void)
 
 static void
 crash_exec(const char *pathname, const char *argv0)
+#ifdef HAS_FORK
 {
-#ifndef MINGW32	/* FIXME MINGW32 */
    	const char *pid_str;
 	char pid_buf[22];
 	pid_t pid;
@@ -259,8 +260,20 @@ crash_exec(const char *pathname, const char *argv0)
 			waitpid(pid, &status, 0);
 		}
 	}
-#endif
 }
+#else	/* !HAS_FORK */
+{
+	iovec_t iov[3];
+	unsigned iov_cnt = 0;
+
+	(void) argv0;
+
+	print_str("WARNING: cannot exec \"");
+	print_str(pathname);
+	print_str("\" on this platform\n");
+	IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+}
+#endif
 
 static const char SIGNAL_NUM[] = "signal #";
 
@@ -362,15 +375,28 @@ crash_handler(int signo)
 	if (vars.pathname) {
 		crash_exec(vars.pathname, vars.argv0);
 	}
-	if (vars.pause_process) {
+
+	if (vars.pause_process)
+#if defined(HAS_SIGPROCMASK)
+	{
 		sigset_t oset;
 
-#ifndef MINGW32
 		if (sigprocmask(SIG_BLOCK, NULL, &oset) != -1) {
 			sigsuspend(&oset);
 		}
-#endif
 	}
+#elif defined(HAS_PAUSE)
+	{
+		pause();
+	}
+#else	/* !HAS_SIGPROCMASK && !HAS_PAUSE */
+	{
+		for (;;) {
+			compat_sleep_ms(MAX_INT_VAL(unsigned));
+		}
+	}
+#endif	/* HAS_SIGPROCMASK || HAS_PAUSE */
+
 	raise(SIGABRT);
 }
 

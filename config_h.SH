@@ -186,6 +186,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_fast_assert FAST_ASSERTIONS	/**/
 
+/* HAS_FORK:
+ *	This symbol, if defined, indicates that the fork routine is
+ *	available.
+ */
+#$d_fork HAS_FORK		/**/
+
 /* HAS_GETADDRINFO:
  *	This symbol is defined when getaddrinfo() can be used.
  */
@@ -338,6 +344,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_nanosleep HAS_NANOSLEEP		/**/
 
+/* HAS_PAUSE:
+ *	This symbol, if defined, indicates that the pause routine is
+ *	available to suspend a process until a signal is received.
+ */
+#$d_pause HAS_PAUSE		/**/
+
 /* HAS_POLL:
  *	This symbol, if defined, indicates that the poll routine is
  *	available to poll active file descriptors.  Please check I_POLL and
@@ -423,6 +435,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	is available.
  */
 #$d_sigaction HAS_SIGACTION	/**/
+
+/* HAS_SIGPROCMASK:
+ *	This symbol, if defined, indicates that the sigprocmask() routine is
+ *	available to examine and change blocked signals.
+ */
+#$d_sigprocmask HAS_SIGPROCMASK	/**/
 
 /* HAS_SIGSETJMP:
  *	This variable indicates to the C program that the sigsetjmp()

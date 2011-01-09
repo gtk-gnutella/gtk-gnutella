@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Jan  9 15:14:41 CET 2011 [metaconfig 3.5-69]
+# Generated on Mon Jan 10 00:49:24 CET 2011 [metaconfig 3.5-69]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -317,6 +317,7 @@ d_dev_poll=''
 d_dirent_d_type=''
 d_epoll=''
 d_fast_assert=''
+d_fork=''
 d_getaddrinfo=''
 d_geteuid=''
 aphostname=''
@@ -352,6 +353,7 @@ d_msghdr_msg_flags=''
 d_nanosleep=''
 d_nls=''
 d_open3=''
+d_pause=''
 d_poll=''
 d_portable=''
 d_posix_fadvise=''
@@ -367,6 +369,7 @@ d_select=''
 d_sendfile=''
 d_setproctitle=''
 d_sigaction=''
+d_sigprocmask=''
 d_sigsetjmp=''
 d_sockaddr_in_sin_len=''
 d_sockaddr_un=''
@@ -4704,6 +4707,24 @@ EOC
 ;;
 esac
 
+: see if fork exists
+$cat >try.c <<EOC
+#include <sys/types.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static pid_t pid;
+	pid |= fork();
+	return pid ? 0 : 1;
+}
+EOC
+cyn=fork
+set d_fork
+eval $trylink
+
 : see if arpa/inet.h has to be included
 set arpa/inet.h i_arpainet
 eval $inhdr
@@ -6207,6 +6228,23 @@ set d_open3
 eval $setvar
 $rm -f open3*
 
+: see if pause exists
+$cat >try.c <<EOC
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static int ret;
+	ret |= pause();
+	return ret ? 0 : 1;
+}
+EOC
+cyn=pause
+set d_pause
+eval $trylink
+
 : see if there is a poll.h file
 set poll.h i_poll
 eval $inhdr
@@ -6560,6 +6598,20 @@ int main(void)
 EOC
 cyn=sigaction
 set d_sigaction
+eval $trylink
+
+: see if sigprocmask exists
+$cat >try.c <<EOC
+#include <signal.h>
+int main(void)
+{
+	sigset_t oset;
+	ret |= sigprocmask(SIG_BLOCK, NULL, &oset);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=sigprocmask
+set d_sigprocmask
 eval $trylink
 
 : see if sigsetjmp exists
@@ -9505,6 +9557,7 @@ d_eofnblk='$d_eofnblk'
 d_epoll='$d_epoll'
 d_eunice='$d_eunice'
 d_fast_assert='$d_fast_assert'
+d_fork='$d_fork'
 d_getaddrinfo='$d_getaddrinfo'
 d_geteuid='$d_geteuid'
 d_gethname='$d_gethname'
@@ -9546,6 +9599,7 @@ d_official='$d_official'
 d_oldsock='$d_oldsock'
 d_open3='$d_open3'
 d_os2='$d_os2'
+d_pause='$d_pause'
 d_phostname='$d_phostname'
 d_poll='$d_poll'
 d_portable='$d_portable'
@@ -9569,6 +9623,7 @@ d_select='$d_select'
 d_sendfile='$d_sendfile'
 d_setproctitle='$d_setproctitle'
 d_sigaction='$d_sigaction'
+d_sigprocmask='$d_sigprocmask'
 d_sigsetjmp='$d_sigsetjmp'
 d_sockaddr_in_sin_len='$d_sockaddr_in_sin_len'
 d_sockaddr_un='$d_sockaddr_un'
