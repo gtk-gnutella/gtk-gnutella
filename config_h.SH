@@ -62,6 +62,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #define MEM_ALIGNBYTES $alignbytes	/**/
 
+/* ARCHLIB_EXP:
+ *	This symbol contains the ~name expanded version of ARCHLIB, to be used
+ *	in programs that are not prepared to deal with ~ expansion at run-time.
+ */
+#$d_archlib ARCHLIB_EXP "$archlibexp"		/**/
+
 /* BIN:
  *	This symbol holds the path of the bin directory where the package will
  *	be installed. Program must be prepared to deal with ~name substitution.

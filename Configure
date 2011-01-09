@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Jan  9 14:59:58 CET 2011 [metaconfig 3.5-69]
+# Generated on Sun Jan  9 15:14:41 CET 2011 [metaconfig 3.5-69]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -2484,145 +2484,60 @@ case "$cf_by" in
 	esac ;;
 esac
 
-: set up the script used to warn in case of inconsistency
-cat <<EOS >whoa
-$startsh
-EOS
-cat <<'EOSC' >>whoa
-dflt=y
+: determine the architecture name
 echo " "
-echo "*** WHOA THERE!!! ***" >&4
-echo "    The $hint value for \$$var on this machine was \"$was\"!" >&4
-rp="    Keep the $hint value?"
-. ./myread
-case "$ans" in
-y) td=$was; tu=$was;;
-esac
-EOSC
-
-: function used to set '$1' to '$val'
-setvar='var=$1; eval "was=\$$1"; td=$define; tu=$undef;
-case "$val$was" in
-$define$undef) . ./whoa; eval "$var=\$td";;
-$undef$define) . ./whoa; eval "$var=\$tu";;
-*) eval "$var=$val";;
-esac'
-
-: determine whether this is an official build
-case "$official" in
-false)
-	official=false
-	val="$undef"
-
-	./warn 'This build will not be suitable for distribution.' 4>&4
-
-;;
+if xxx=`./loc arch blurfl $pth`; $test -f "$xxx"; then
+	tarch=`arch`"-$osname"
+elif xxx=`./loc uname blurfl $pth`; $test -f "$xxx" ; then
+	if uname -m > tmparch 2>&1 ; then
+		tarch=`$sed -e 's/ *$//' -e 's/ /_/g' \
+			-e 's/$/'"-$osname/" tmparch`
+	else
+		tarch="$osname"
+	fi
+	$rm -f tmparch
+else
+	tarch="$osname"
+fi
+case "$myarchname" in
+''|"$tarch") ;;
 *)
-	val="$define"
-	official=true
+	echo "(Your architecture name used to be $myarchname.)"
+	archname=''
 	;;
 esac
-set d_official
-eval $setvar
-
-: ask them whether they want remote control support
-$cat <<EOM
-
-$spackage has a raw remote control service.
-
-Currently you can create searches, connect to nodes, and print and 
-set the values of properties as well as read the 'tooltips'.  It is
-not completely functional, but you may choose to enable it here at
-compile time.  The feature will need activation from the GUI.
-
-For more information, see doc/other/shell.txt
-
-EOM
-case "$remotectrl" in
-true) dflt=y;;
-*) dflt=n;;
+case "$archname" in
+'') dflt="$tarch";;
+*) dflt="$archname";;
 esac
-rp="Enable remote control service"
+rp='What is your architecture name'
 . ./myread
-val="$ans"
-case "$ans" in
-y) val="$define";;
-*) val="$undef";;
-esac
-set d_remotectrl
-eval $setvar
-case "$d_remotectrl" in
-$define) remotectrl=true;;
-*) remotectrl=false;;
+archname="$ans"
+myarchname="$tarch"
+
+: allow them to override the AFS root
+case "$afsroot" in
+'')	afsroot=/afs ;;
+*)	afsroot=$afsroot ;;
 esac
 
-: look whether they wish to run headless
-$cat <<EOM
-
-$spackage can run without any GUI interface in so-called "headless" mode.
-Therefore, monitoring of operations for $package will have to be done
-without relying on any GUI, and the configuration is done via files only.
-
-EOM
-case "$d_headless" in
-"$define") dflt=y;;
-*) dflt=n;;
-esac
-rp="Run without any GUI interface"
-. ./myread
-case "$ans" in
-y) val="$define";;
-*) val="$undef";;
-esac
-set d_headless
-eval $setvar
-
-: ask them wich GTK+ version they want
+: is AFS running?
 echo " "
-case "$d_headless" in
-"$define")
-	echo "Turning off GTK+ since you want to run without any GUI" >&4
-	d_usegtk1="$undef";
-	d_usegtk2="$undef";
-	;;
-*)
-	$cat <<'EOM'
-I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
-The GTK1 frontend will use much less CPU than the GTK2 one, so if you
-have a slow CPU, you are encouraged to choose GTK1.
-
-EOM
-	case "$gtkversion" in
-	'') dflt=1;;
-	2) dflt=2;;
-	*) dflt=1;;
-	esac
-	rp="Use which GTK toolkit (1 or 2)"
-	. ./myread
-	case "$ans" in
-	2)
-		gtkversion=2; gtkpackage=gtk+-2.0
-		d_usegtk2="$define"; d_usegtk1="$undef";;
-	*)
-		gtkversion=1; gtkpackage=gtk+
-		d_usegtk1="$define"; d_usegtk2="$undef";;
-	esac
+case "$afs" in
+$define|true)	afs=true ;;
+$undef|false)	afs=false ;;
+*)	if $test -d $afsroot; then
+		afs=true
+	else
+		afs=false
+	fi
 	;;
 esac
-
-: decide which version of GLib to use -- tied to the choice of GTK
-case "$gtkversion" in
-1) ver=1;;
-*) ver=2;;
-esac
-case "$ver" in
-2)
-	glibversion=2; glibpackage="glib-2.0 gobject-2.0"
-	d_useglib2="$define"; d_useglib1="$undef";;
-*)
-	glibversion=1; glibpackage=glib
-	d_useglib1="$define"; d_useglib2="$undef";;
-esac
+if $afs; then
+	echo "AFS may be running... I'll be extra cautious then..." >&4
+else
+	echo "AFS does not seem to be running..." >&4
+fi
 
 : decide how portable to be
 case "$d_portable" in
@@ -2989,93 +2904,6 @@ prefixit='case "$3" in
 	esac;;
 esac'
 
-: allow them to override the AFS root
-case "$afsroot" in
-'')	afsroot=/afs ;;
-*)	afsroot=$afsroot ;;
-esac
-
-: is AFS running?
-echo " "
-case "$afs" in
-$define|true)	afs=true ;;
-$undef|false)	afs=false ;;
-*)	if $test -d $afsroot; then
-		afs=true
-	else
-		afs=false
-	fi
-	;;
-esac
-if $afs; then
-	echo "AFS may be running... I'll be extra cautious then..." >&4
-else
-	echo "AFS does not seem to be running..." >&4
-fi
-
-: determine where public executables go
-echo " "
-set dflt bin bin
-eval $prefixit
-fn=d~
-rp='Pathname where the public executables will reside?'
-. ./getfile
-if $test "X$ansexp" != "X$binexp"; then
-	installbin=''
-fi
-bin="$ans"
-binexp="$ansexp"
-if $afs; then
-	$cat <<EOM
-
-Since you are running AFS, I need to distinguish the directory in which
-executables reside from the directory in which they are installed (and from
-which they are presumably copied to the former directory by occult means).
-
-EOM
-	case "$installbin" in
-	'') dflt=`echo $binexp | sed 's#^/afs/#/afs/.#'`;;
-	*) dflt="$installbin";;
-	esac
-	fn=de~
-	rp='Where will public executables be installed?'
-	. ./getfile
-	installbin="$ans"
-else
-	installbin="$binexp"
-fi
-
-: determine the architecture name
-echo " "
-if xxx=`./loc arch blurfl $pth`; $test -f "$xxx"; then
-	tarch=`arch`"-$osname"
-elif xxx=`./loc uname blurfl $pth`; $test -f "$xxx" ; then
-	if uname -m > tmparch 2>&1 ; then
-		tarch=`$sed -e 's/ *$//' -e 's/ /_/g' \
-			-e 's/$/'"-$osname/" tmparch`
-	else
-		tarch="$osname"
-	fi
-	$rm -f tmparch
-else
-	tarch="$osname"
-fi
-case "$myarchname" in
-''|"$tarch") ;;
-*)
-	echo "(Your architecture name used to be $myarchname.)"
-	archname=''
-	;;
-esac
-case "$archname" in
-'') dflt="$tarch";;
-*) dflt="$archname";;
-esac
-rp='What is your architecture name'
-. ./myread
-archname="$ans"
-myarchname="$tarch"
-
 : determine where private executables go
 set dflt privlib lib/$package
 eval $prefixit
@@ -3172,6 +3000,178 @@ if $test X"$archlib" = X"$privlib"; then
 	d_archlib="$undef"
 else
 	d_archlib="$define"
+fi
+
+: set up the script used to warn in case of inconsistency
+cat <<EOS >whoa
+$startsh
+EOS
+cat <<'EOSC' >>whoa
+dflt=y
+echo " "
+echo "*** WHOA THERE!!! ***" >&4
+echo "    The $hint value for \$$var on this machine was \"$was\"!" >&4
+rp="    Keep the $hint value?"
+. ./myread
+case "$ans" in
+y) td=$was; tu=$was;;
+esac
+EOSC
+
+: function used to set '$1' to '$val'
+setvar='var=$1; eval "was=\$$1"; td=$define; tu=$undef;
+case "$val$was" in
+$define$undef) . ./whoa; eval "$var=\$td";;
+$undef$define) . ./whoa; eval "$var=\$tu";;
+*) eval "$var=$val";;
+esac'
+
+: determine whether this is an official build
+case "$official" in
+false)
+	official=false
+	val="$undef"
+
+	./warn 'This build will not be suitable for distribution.' 4>&4
+
+;;
+*)
+	val="$define"
+	official=true
+	;;
+esac
+set d_official
+eval $setvar
+
+: ask them whether they want remote control support
+$cat <<EOM
+
+$spackage has a raw remote control service.
+
+Currently you can create searches, connect to nodes, and print and 
+set the values of properties as well as read the 'tooltips'.  It is
+not completely functional, but you may choose to enable it here at
+compile time.  The feature will need activation from the GUI.
+
+For more information, see doc/other/shell.txt
+
+EOM
+case "$remotectrl" in
+true) dflt=y;;
+*) dflt=n;;
+esac
+rp="Enable remote control service"
+. ./myread
+val="$ans"
+case "$ans" in
+y) val="$define";;
+*) val="$undef";;
+esac
+set d_remotectrl
+eval $setvar
+case "$d_remotectrl" in
+$define) remotectrl=true;;
+*) remotectrl=false;;
+esac
+
+: look whether they wish to run headless
+$cat <<EOM
+
+$spackage can run without any GUI interface in so-called "headless" mode.
+Therefore, monitoring of operations for $package will have to be done
+without relying on any GUI, and the configuration is done via files only.
+
+EOM
+case "$d_headless" in
+"$define") dflt=y;;
+*) dflt=n;;
+esac
+rp="Run without any GUI interface"
+. ./myread
+case "$ans" in
+y) val="$define";;
+*) val="$undef";;
+esac
+set d_headless
+eval $setvar
+
+: ask them wich GTK+ version they want
+echo " "
+case "$d_headless" in
+"$define")
+	echo "Turning off GTK+ since you want to run without any GUI" >&4
+	d_usegtk1="$undef";
+	d_usegtk2="$undef";
+	;;
+*)
+	$cat <<'EOM'
+I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
+The GTK1 frontend will use much less CPU than the GTK2 one, so if you
+have a slow CPU, you are encouraged to choose GTK1.
+
+EOM
+	case "$gtkversion" in
+	'') dflt=1;;
+	2) dflt=2;;
+	*) dflt=1;;
+	esac
+	rp="Use which GTK toolkit (1 or 2)"
+	. ./myread
+	case "$ans" in
+	2)
+		gtkversion=2; gtkpackage=gtk+-2.0
+		d_usegtk2="$define"; d_usegtk1="$undef";;
+	*)
+		gtkversion=1; gtkpackage=gtk+
+		d_usegtk1="$define"; d_usegtk2="$undef";;
+	esac
+	;;
+esac
+
+: decide which version of GLib to use -- tied to the choice of GTK
+case "$gtkversion" in
+1) ver=1;;
+*) ver=2;;
+esac
+case "$ver" in
+2)
+	glibversion=2; glibpackage="glib-2.0 gobject-2.0"
+	d_useglib2="$define"; d_useglib1="$undef";;
+*)
+	glibversion=1; glibpackage=glib
+	d_useglib1="$define"; d_useglib2="$undef";;
+esac
+
+: determine where public executables go
+echo " "
+set dflt bin bin
+eval $prefixit
+fn=d~
+rp='Pathname where the public executables will reside?'
+. ./getfile
+if $test "X$ansexp" != "X$binexp"; then
+	installbin=''
+fi
+bin="$ans"
+binexp="$ansexp"
+if $afs; then
+	$cat <<EOM
+
+Since you are running AFS, I need to distinguish the directory in which
+executables reside from the directory in which they are installed (and from
+which they are presumably copied to the former directory by occult means).
+
+EOM
+	case "$installbin" in
+	'') dflt=`echo $binexp | sed 's#^/afs/#/afs/.#'`;;
+	*) dflt="$installbin";;
+	esac
+	fn=de~
+	rp='Where will public executables be installed?'
+	. ./getfile
+	installbin="$ans"
+else
+	installbin="$binexp"
 fi
 
 : determine where manual pages are on this system
