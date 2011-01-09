@@ -178,14 +178,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 			for (i = min; i < max; i++) {
 				if (INVALID_HANDLE_VALUE != (HANDLE) _get_osfhandle(i))
 					continue;
-				res = dup2(fd, i);
-				if (-1 == res) {
-					errno = GetLastError();
-				} else {
-					/* On Windows dup2 returns 0 instead of fd on success */
-					res = fd;
-				}
-				return res;
+				return mingw_dup2(fd, i);
 			}
 			errno = EMFILE;
 			break;
@@ -291,11 +284,21 @@ mingw_stat(const char *path, struct stat *buf)
 int
 mingw_dup2(int oldfd, int newfd)
 {
-	int res = dup2(oldfd, newfd);
-	if (res == -1)
-		errno = GetLastError();
-	else
-		res = newfd;	/* Windows's dup2() returns 0 on success */
+	int res;
+  
+	if (oldfd == newfd) {
+		/* Windows does not like dup2(fd, fd) */
+		if (is_open_fd(oldfd))
+			res = newfd;
+		else
+			res = -1;
+	} else {
+		res = dup2(oldfd, newfd);
+		if (res == -1)
+			errno = GetLastError();
+		else
+			res = newfd;	/* Windows's dup2() returns 0 on success */
+	}
 	return res;
 }
 
