@@ -530,6 +530,24 @@ settings_init_session_id(void)
 }
 
 static void
+settings_update_firewalled(void)
+{
+	/*
+	 * The determination of the UDP firewalled status is not 100% safe,
+	 * since any datagram received from a host whith whom we recently
+	 * communicated could lead us into believing we are receiving usolicited
+	 * traffic.
+	 *
+	 * Therefore, at startup time, assume UDP is firewalled if TCP is.  We
+	 * do not touch the "recv_solicited_udp" status since that one can be
+	 * accurately determined.
+	 */
+
+	if (GNET_PROPERTY(is_firewalled))
+		gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, TRUE);
+}
+
+static void
 settings_update_downtime(void)
 {
 	time_t downtime;
@@ -679,6 +697,7 @@ settings_init(void)
 	}
 
 	settings_update_downtime();
+	settings_update_firewalled();
 	settings_callbacks_init();
 	settings_init_running = FALSE;
 	return;
