@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-62]
-: $X-Id: Jmake.tmpl 48 2010-11-28 23:05:09Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-68]
+: $X-Id: Jmake.tmpl 68 2011-01-09 12:46:28Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -52,6 +52,8 @@ LIBS = $libs
 MANSRC = $installmansrc
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
+NM = $nm
+PRIVLIB = $installprivlib
 RM = $rm -f
 SED = $sed
 
@@ -95,7 +97,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 16382 2009-04-02 20:38:04Z rmanfredi $
+# $X-Id: Jmakefile 18222 2011-01-09 12:58:07Z rmanfredi $
 
 all::
 
@@ -295,6 +297,23 @@ main.o: revision.h
 
 revision.h: .FORCE
 	$(TOP)/scripts/svn-revision $(TOP) $@
+
+all:: gtk-gnutella.nm
+
+local_realclean::
+	$(RM) gtk-gnutella.nm
+
+gtk-gnutella.nm: gtk-gnutella
+	$(NM) -p gtk-gnutella > $@
+
+local_install:: gtk-gnutella.nm
+	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	(set -x; test -d $(INSTALL_PREFIX)$(PRIVLIB) || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(PRIVLIB)); \
+	$(INSTALL) -c -m 444 gtk-gnutella.nm $(INSTALL_PREFIX)$(PRIVLIB)
+
+local_deinstall::
+	$(RM) $(INSTALL_PREFIX)$(PRIVLIB)/gtk-gnutella.nm
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
