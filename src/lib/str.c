@@ -1700,9 +1700,8 @@ str_msg(const char *fmt, ...)
 }
 
 /**
- * Create a new string, sprintf() the arguments inside and return a C string,
- * which may be disposed of by a regular hfree(). There is no need to strdup()
- * the string, it is already done.
+ * sprintf() the arguments inside a dynamic string and return the result in a
+ * freshly allocated C string, which needs to be disposed of by hfree().
  */
 char *
 str_cmsg(const char *fmt, ...)
@@ -1719,6 +1718,50 @@ str_cmsg(const char *fmt, ...)
 	va_end(args);
 
 	return str_dup(str);
+}
+
+/**
+ * sprintf() the arguments inside a static string and return a C string.
+ *
+ * This string must not be disposed of, as it is held in a static buffer
+ * which will be reset upon next call.  It needs to be duplicated if meant to
+ * be perused later.
+ */
+const char *
+str_smsg(const char *fmt, ...)
+{
+	static str_t *str;
+	va_list args;
+	
+	if (NULL == str)
+		str = str_new_not_leaking(0);
+
+	str->s_len = 0;
+	va_start(args, fmt);
+	str_vncatf(str, INT_MAX, fmt, &args);
+	va_end(args);
+
+	return str_2c(str);
+}
+
+/**
+ * Same as str_smsg(), but in a different string.
+ */
+const char *
+str_smsg2(const char *fmt, ...)
+{
+	static str_t *str;
+	va_list args;
+	
+	if (NULL == str)
+		str = str_new_not_leaking(0);
+
+	str->s_len = 0;
+	va_start(args, fmt);
+	str_vncatf(str, INT_MAX, fmt, &args);
+	va_end(args);
+
+	return str_2c(str);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

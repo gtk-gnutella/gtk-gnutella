@@ -88,6 +88,8 @@ size_t str_nprintf(str_t *str, size_t n, const char *fmt, ...)
 	G_GNUC_PRINTF(3, 4);
 str_t *str_msg(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
 char *str_cmsg(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
+const char *str_smsg(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
+const char *str_smsg2(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
 
 #endif /* _str_h_ */
 
