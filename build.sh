@@ -17,6 +17,7 @@ build_dbus=
 build_gnutls=
 build_halloc=
 build_ipv6=
+build_libdir=
 build_localedir=
 build_nls=
 build_official=
@@ -27,9 +28,9 @@ build_verbose='-s'
 
 while [ $# -gt 0 ]; do
 	case "$1" in
-	--bindir=*)		build_bindir="${1#--*=}";;
-	--cc=*)			CC="${1#--*=}";;
-	--cflags=*)		CFLAGS="${1#--*=}";;
+	--bindir=*)			build_bindir="${1#--*=}";;
+	--cc=*)				CC="${1#--*=}";;
+	--cflags=*)			CFLAGS="${1#--*=}";;
 	--configure-only)	build_configure_only='yes';;
 	--datadir=*)		build_datadir="${1#--*=}";;
 	--disable-dbus)		build_dbus='d_dbus';;
@@ -38,19 +39,19 @@ while [ $# -gt 0 ]; do
 	--disable-nls)		build_nls='d_enablenls';;
 	--disable-socker)	build_socker='d_socker_get';;
 	--enable-halloc)	build_halloc='true';;
-	--gtk1)			build_ui='gtkversion=1';;
-	--gtk2)			build_ui='gtkversion=2';;
+	--gtk1)				build_ui='gtkversion=1';;
+	--gtk2)				build_ui='gtkversion=2';;
 	--ldflags=*)		LDFLAGS="${1#--*=}";;
+	--libdir=*)			build_libdir="${1#--*=}";;
 	--localedir=*)		build_localedir="${1#--*=}";;
-	--mandir=*)		build_mandir="${1#--*=}";;
-	--make=*)		MAKE="${1#--*=}";;
-	--prefix=*)		PREFIX="${1#--*=}";;
-	--topless)		build_ui='d_headless';;
+	--mandir=*)			build_mandir="${1#--*=}";;
+	--make=*)			MAKE="${1#--*=}";;
+	--prefix=*)			PREFIX="${1#--*=}";;
+	--topless)			build_ui='d_headless';;
 	--unofficial)		build_official='false';;
-	--verbose)		build_verbose='';;
-	--yacc=*)		YACC="${1#--*=}";;
-	--) 		break
-			;;
+	--verbose)			build_verbose='';;
+	--yacc=*)			YACC="${1#--*=}";;
+	--) 				break;;
 	*)
 echo 'The following switches are available, defaults are shown in brackets:'
 echo
@@ -65,6 +66,7 @@ echo '  --disable-socker Disable support for Socker.'
 echo '  --prefix=PATH    Path prefix used for installing files. [$PREFIX]'
 echo '  --bindir=PATH    Directory for installing executables. [$PREFIX/bin]'
 echo '  --datadir=PATH   Directory for installing application data. [$PREFIX/share]'
+echo '  --libdir=PATH    Directory for installing library data. [$PREFIX/lib]'
 echo '  --localedir=PATH Directory for installing locale data. [$PREFIX/share/locale]'
 echo '  --mandir=PATH    Directory for installing manual pages. [$PREFIX/man]'
 echo '  --cc=TOOL        C compiler to use. [$CC]'
@@ -110,6 +112,9 @@ build_mandir=${build_mandir:+"$build_mandir"}
 build_datadir=${build_datadir:-$PREFIX/share/gtk-gnutella}
 build_datadir=${build_datadir:+"$build_datadir"}
 
+build_libdir=${build_libdir:-$PREFIX/lib/gtk-gnutella}
+build_libdir=${build_libdir:+"$build_libdir"}
+
 build_localedir=${build_localedir:-$PREFIX/share/locale}
 build_localedir=${build_localedir:+"$build_localedir"}
 
@@ -140,6 +145,7 @@ rm -f config.sh
 	${YACC:+-D "yacc=$YACC"} \
 	${build_bindir:+-D "bindir=$build_bindir"} \
 	${build_datadir:+-D "privlib=$build_datadir"} \
+	${build_libdir:+-D "archlib=$build_libdir"} \
 	${build_localedir:+-D "locale=$build_localedir"} \
 	${build_mandir:+-D "sysman=$build_mandir"} \
 	${build_official:+-D "official=$build_official"} \
