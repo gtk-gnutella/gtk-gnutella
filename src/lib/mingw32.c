@@ -113,7 +113,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 	int res = -1;
 
 	/* If fd isn't opened, _get_osfhandle() fails with errno set to EBADF */
-	if (INVALID_HANDLE_VALUE == _get_osfhandle(fd)) {
+	if (INVALID_HANDLE_VALUE == (HANDLE) _get_osfhandle(fd)) {
 		errno = EBADF;
 		return -1;
 	}
@@ -176,7 +176,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 			}
 
 			for (i = min; i < max; i++) {
-				if (INVALID_HANDLE_VALUE != _get_osfhandle(i))
+				if (INVALID_HANDLE_VALUE != (HANDLE) _get_osfhandle(i))
 					continue;
 				res = dup2(fd, i);
 				if (-1 == res) {
