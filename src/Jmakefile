@@ -139,6 +139,6 @@ revision.h: .FORCE
 AllTarget(gtk-gnutella.nm)
 
 gtk-gnutella.nm: gtk-gnutella
-	$(NM) -p gtk-gnutella > $@
+	$(NM) -p gtk-gnutella$(_EXE) > $@
 
 InstallNonExec(gtk-gnutella.nm, $(ARCHLIB))
