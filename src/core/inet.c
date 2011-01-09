@@ -67,8 +67,8 @@ RCSID("$Id$")
 #define FW_STARTUP_GRACE		300		/**< Startup period: we send pongs */
 #define FW_GRACE_INTERVAL		3600	/**< Every hour, new grace period */
 #define FW_PERIODIC_GRACE		120		/**< We send pongs for 2 minutes */
-#define FW_INCOMING_WINDOW		3600	/**< Incoming monitoring window */
-#define FW_SOLICITED_WINDOW		3600	/**< Solicited UDP monitoring window */
+#define FW_INCOMING_WINDOW		1800	/**< Incoming monitoring window */
+#define FW_SOLICITED_WINDOW		1800	/**< Solicited UDP monitoring window */
 
 static time_t fw_time = 0;				/**< When we last became firewalled */
 
@@ -247,7 +247,7 @@ static void
 inet_where(void)
 {
 	if (GNET_PROPERTY(fw_debug) > 1)
-		stacktrace_where_print_offset(stderr, 1);
+		stacktrace_where_sym_print_offset(stderr, 1);
 }
 
 /***
@@ -504,6 +504,11 @@ inet_udp_got_unsolicited_incoming(void)
 			inet_where();
 		}
 		move_to_unsolicited_off();
+	} else if (GNET_PROPERTY(is_udp_firewalled)) {
+		if (GNET_PROPERTY(fw_debug)) {
+			g_debug("FW: got unsolicited UDP message");
+			inet_where();
+		}
 	}
 
 	if (GNET_PROPERTY(is_udp_firewalled))
