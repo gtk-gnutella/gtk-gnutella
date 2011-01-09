@@ -53,7 +53,6 @@ MANSRC = $installmansrc
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 NM = $nm
-PRIVLIB = $installprivlib
 RM = $rm -f
 SED = $sed
 
@@ -97,7 +96,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 18222 2011-01-09 12:58:07Z rmanfredi $
+# $X-Id: Jmakefile 18225 2011-01-09 13:53:10Z rmanfredi $
 
 all::
 
@@ -308,12 +307,12 @@ gtk-gnutella.nm: gtk-gnutella
 
 local_install:: gtk-gnutella.nm
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
-	(set -x; test -d $(INSTALL_PREFIX)$(PRIVLIB) || \
-		$(INSTALLDIR) $(INSTALL_PREFIX)$(PRIVLIB)); \
-	$(INSTALL) -c -m 444 gtk-gnutella.nm $(INSTALL_PREFIX)$(PRIVLIB)
+	(set -x; test -d $(INSTALL_PREFIX)$(ARCHLIB) || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(ARCHLIB)); \
+	$(INSTALL) -c -m 444 gtk-gnutella.nm $(INSTALL_PREFIX)$(ARCHLIB)
 
 local_deinstall::
-	$(RM) $(INSTALL_PREFIX)$(PRIVLIB)/gtk-gnutella.nm
+	$(RM) $(INSTALL_PREFIX)$(ARCHLIB)/gtk-gnutella.nm
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
