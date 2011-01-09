@@ -47,7 +47,7 @@ void inet_init(void);
 void inet_close(void);
 
 void inet_firewalled(void);
-void inet_udp_firewalled(void);
+void inet_udp_firewalled(gboolean new_env);
 
 gboolean inet_can_answer_ping(void);
 

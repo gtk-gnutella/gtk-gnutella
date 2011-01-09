@@ -1499,7 +1499,7 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 
 	if (check_firewalled) {
 		inet_firewalled();
-		inet_udp_firewalled();
+		inet_udp_firewalled(TRUE);
 	}
 }
 
@@ -1570,7 +1570,7 @@ listen_port_changed(property_t prop)
 
 	if (!settings_init_running) {
 		inet_firewalled();
-		inet_udp_firewalled();
+		inet_udp_firewalled(TRUE);
 		inet_udp_check_unsolicited();
 	}
 

@@ -48,7 +48,9 @@ RCSID("$Id$")
 #include "lib/aging.h"
 #include "lib/cq.h"
 #include "lib/stacktrace.h"
+#include "lib/str.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/wd.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -94,6 +96,7 @@ static watchdog_t *solicited_udp_wd;
  */
 
 #define FW_UDP_WINDOW			120		/**< 2 minutes, in most firewalls */
+#define FW_UDP_MAX_PERIODS		8		/**< Maximum # of delay periods */
 
 static aging_table_t *outgoing_udp;		/**< IP addresses to whom we send */
 
@@ -113,6 +116,19 @@ struct ip_record {
  * FW_UDP_WINDOW seconds have elapsed, we enter UNSOLICITED_CHECK and the
  * first time we get an unsolicited packet, we know...  At which point we
  * move back to UNSOLICTED_OFF to turn off these checks.
+ *
+ * We stay UNSOLICITED_OFF during a period, then turn to UNSOLICITED_PREPARE
+ * followed by UNSOLICITED_CHECK.  In case they are really UDP firewalled,
+ * we would be alternating active checking and passive monitoring every
+ * FW_INCOMING_WINDOW.  To avoid wasting too much CPU time on these active
+ * checks, we maintain a counter of how many periods we have to let go before
+ * switching, as indicated by ``unsolicited_wait_periods''.  This variable
+ * starts at 0, and is then incremented each time we move from UNSOLICITED_OFF
+ * to UNSOLICITED_PREPARE.  It is reset to 0 when we determine we are not
+ * UDP firewalled.
+ *
+ * The variable `unsolicited_checks_in'' counts the number of periods we have
+ * to wait before running active unsolicited checks again.
  */
 
 enum solicited_states {
@@ -123,6 +139,8 @@ enum solicited_states {
 
 static enum solicited_states outgoing_udp_state = UNSOLICITED_OFF;
 static cevent_t *unsolicited_udp_ev;
+static unsigned unsolicited_wait_periods;
+static unsigned unsolicited_checks_in;
 
 /***
  *** External connection status management structures.
@@ -268,12 +286,19 @@ inet_firewalled(void)
 
 /**
  * Called when we enter the firewalled status (UDP).
+ *
+ * @param new_env	when TRUE, we become firewalled due to a new environment
  */
 void
-inet_udp_firewalled(void)
+inet_udp_firewalled(gboolean new_env)
 {
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, TRUE);
 	node_became_udp_firewalled();
+
+	if (new_env)
+		unsolicited_wait_periods = 0;
+
+	unsolicited_checks_in = unsolicited_wait_periods;
 }
 
 /**
@@ -307,6 +332,16 @@ move_to_unsolicited_prepare(void)
 	unsolicited_udp_ev = cq_main_insert(FW_UDP_WINDOW * 1000,
 		move_to_unsolicited_check, NULL);
 	outgoing_udp_state = UNSOLICITED_PREPARE;
+
+	/*
+	 * Next time, wait more watchdog periods before launching the active
+	 * unsolicited traffic checks.  We cap the number of periods we can
+	 * defer the checks to FW_UDP_MAX_PERIODS.
+	 */
+
+	unsolicited_wait_periods++;
+	unsolicited_wait_periods =
+		MIN(unsolicited_wait_periods, FW_UDP_MAX_PERIODS);
 }
 
 /**
@@ -315,8 +350,10 @@ move_to_unsolicited_prepare(void)
 static void
 move_to_unsolicited_off(void)
 {
-	if (GNET_PROPERTY(fw_debug))
-		g_debug("FW: turning off unsolicited traffic detection");
+	if (GNET_PROPERTY(fw_debug)) {
+		g_debug("FW: turning off unsolicited traffic detection "
+			"(wait periods = %u)", unsolicited_wait_periods);
+	}
 
 	outgoing_udp_state = UNSOLICITED_OFF;
 	cq_cancel(&unsolicited_udp_ev);		/* Paranoid */
@@ -333,9 +370,10 @@ got_no_udp_solicited(watchdog_t *unused_wd, gpointer unused_obj)
 	(void) unused_wd;
 	(void) unused_obj;
 
-	if (GNET_PROPERTY(fw_debug))
+	if (GNET_PROPERTY(fw_debug)) {
 		g_debug("FW: got no solicited UDP traffic for %d secs",
 			FW_SOLICITED_WINDOW);
+	}
 
 	gnet_prop_set_boolean_val(PROP_RECV_SOLICITED_UDP, FALSE);
 	return FALSE;			/* Disarm watchdog */
@@ -367,9 +405,10 @@ got_no_connection(watchdog_t *unused_wd, gpointer unused_obj)
 	(void) unused_wd;
 	(void) unused_obj;
 
-	if (GNET_PROPERTY(fw_debug))
+	if (GNET_PROPERTY(fw_debug)) {
 		g_debug("FW: got no connection to port %u for %d secs",
 			socket_listen_port(), FW_INCOMING_WINDOW);
+	}
 
 	inet_firewalled();
 	return FALSE;			/* Disarm watchdog */
@@ -385,13 +424,15 @@ got_no_udp_unsolicited(watchdog_t *unused_wd, gpointer unused_obj)
 	(void) unused_wd;
 	(void) unused_obj;
 
-	if (GNET_PROPERTY(fw_debug))
+	if (GNET_PROPERTY(fw_debug)) {
 		g_debug("FW: got no unsolicited UDP datagram to port %u for %d secs",
 			socket_listen_port(), FW_INCOMING_WINDOW);
+	}
 
 	/*
 	 * If we are in the UNSOLICITED_OFF state, move to UNSOLICITED_PREPARE
-	 * for FW_UDP_WINDOW seconds.
+	 * for FW_UDP_WINDOW seconds, provided ``unsolicited_checks_in'' is 0.
+	 * Otherwise, decrease that amount and wait.
 	 *
 	 * Otherwise, move to UNSOLICITED_OFF and state we are firewalled.
 	 */
@@ -399,14 +440,27 @@ got_no_udp_unsolicited(watchdog_t *unused_wd, gpointer unused_obj)
 	STATIC_ASSERT(FW_UDP_WINDOW < FW_SOLICITED_WINDOW);
 
 	if (UNSOLICITED_OFF == outgoing_udp_state) {
-		move_to_unsolicited_prepare();
+		g_assert(uint_is_non_negative(unsolicited_checks_in));
+		if (0 == unsolicited_checks_in)
+			move_to_unsolicited_prepare();
+		else {
+			unsolicited_checks_in--;
+
+			if (GNET_PROPERTY(fw_debug)) {
+				g_debug("FW: will look for unsolicited UDP %s %s period%s",
+					0 == unsolicited_checks_in ? "at" : "in",
+					0 == unsolicited_checks_in ? "next" :
+						str_smsg("%u", unsolicited_checks_in + 1),
+					0 == unsolicited_checks_in ? "" : "s");
+			}
+		}
 	} else {
 		if (GNET_PROPERTY(fw_debug)) {
 			g_debug("FW: no unsolicited UDP again for %d secs on port %u "
 				"=> firewalled", FW_SOLICITED_WINDOW, socket_listen_port());
 		}
 		move_to_unsolicited_off();
-		inet_udp_firewalled();
+		inet_udp_firewalled(FALSE);
 	}
 
 	return TRUE;		/* Let watchdog fire again at next period */
@@ -437,6 +491,8 @@ inet_udp_not_firewalled(void)
 	if (GNET_PROPERTY(fw_debug))
 		g_debug("FW: we're not UDP-firewalled for port %u",
 			socket_listen_port());
+
+	unsolicited_wait_periods = 0;
 }
 
 /**
