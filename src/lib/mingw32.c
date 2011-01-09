@@ -58,6 +58,7 @@ RCSID("$Id$")
 
 #include "host_addr.h"			/* ADNS */
 
+#include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
