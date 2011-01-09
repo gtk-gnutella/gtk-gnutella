@@ -52,6 +52,7 @@ RCSID("$Id$")
 #include "concat.h"
 #include "crash.h"		/* For print_str() and crash_signame() */
 #include "glib-missing.h"
+#include "halloc.h"
 #include "log.h"
 #include "misc.h"
 #include "offtime.h"
@@ -114,6 +115,8 @@ struct nm_parser {
 };
 
 static hash_table_t *stack_atoms;
+
+static const char NM_FILE[] = "gtk-gnutella.nm";
 
 #ifndef HAS_BACKTRACE
 static void *getreturnaddr(size_t level);
@@ -492,6 +495,45 @@ str_hash(const void *p)
 }
 
 /**
+ * Open specified file containing code symbols.
+ *
+ * @param exe	the executable path, to assess freshness of nm file
+ * @param nm	the path to the nm file, symbols from the executable
+ *
+ * @return opened file if successfull, NULL on error with the error already
+ * logged appropriately.
+ */
+static FILE *
+stacktrace_open_symbols(const char *exe, const char *nm)
+{
+	struct stat ebuf, nbuf;
+	FILE *f;
+
+	if (-1 == stat(nm, &nbuf)) {
+		s_warning("can't stat \"%s\": %s", nm, g_strerror(errno));
+		return NULL;
+	}
+
+	if (-1 == stat(exe, &ebuf)) {
+		s_warning("can't stat \"%s\": %s", exe, g_strerror(errno));
+		return NULL;
+	}
+
+	if (delta_time(ebuf.st_mtime, nbuf.st_mtime) > 0) {
+		s_warning("executable \"%s\" more recent than symbol file \"%s\"",
+			exe, nm);
+		return NULL;
+	}
+
+	f = fopen(nm, is_running_on_mingw() ? "rb" : "r");
+
+	if (NULL == f)
+		s_warning("can't open \"%s\": %s", nm, g_strerror(errno));
+
+	return f;
+}
+
+/**
  * Load symbols from the executable we're running.
  */
 static void
@@ -500,6 +542,7 @@ load_symbols(const char *path)
 	char tmp[MAX_PATH_LEN + 80];
 	FILE *f;
 	struct nm_parser nm_ctx;
+	gboolean retried = FALSE;
 
 #ifdef MINGW32
 	/*
@@ -508,32 +551,12 @@ load_symbols(const char *path)
 
 	{
 		const char *nm;
-		struct stat ebuf, nbuf;
 
-		nm = mingw_filename_nearby("gtk-gnutella.nm");
+		nm = mingw_filename_nearby(NM_FILE);
+		f = stacktrace_open_symbols(path, nm);
 
-		if (-1 == stat(nm, &nbuf)) {
-			s_warning("can't stat \"%s\": %s", nm, g_strerror(errno));
+		if (NULL == f)
 			goto done;
-		}
-
-		if (-1 == stat(path, &ebuf)) {
-			s_warning("can't stat \"%s\": %s", path, g_strerror(errno));
-			goto done;
-		}
-
-		if (delta_time(ebuf.st_mtime, nbuf.st_mtime) > 0) {
-			s_warning("executable \"%s\" more recent than symbol file \"%s\"",
-				path, nm);
-			goto done;
-		}
-
-		f = fopen(nm, "rb");
-
-		if (NULL == f) {
-			s_warning("can't open \"%s\": %s", nm, g_strerror(errno));
-			goto done;
-		}
 	}
 #else	/* !MINGW32 */
 	/*
@@ -560,20 +583,39 @@ load_symbols(const char *path)
 
 	nm_ctx.atoms = hash_table_new_full_real(str_hash, g_str_equal);
 
+retry:
 	while (fgets(tmp, sizeof tmp, f)) {
 		parse_nm(&nm_ctx, tmp);
 	}
 
-#ifdef MINGW32
-	fclose(f);
-#else
-	pclose(f);
-#endif
+	if (retried || is_running_on_mingw())
+		fclose(f);
+	else
+		pclose(f);
+
+	/*
+	 * If we did not load any symbol, maybe the executable was stripped?
+	 * Try to open the symbols from the installed nm file.
+	 */
+
+	if (!retried && 0 == trace_array.count) {
+		char *nm = make_pathname(ARCHLIB_EXP, NM_FILE);
+
+		s_warning("no symbols loaded, trying with pre-computed \"%s\"", nm);
+		f = stacktrace_open_symbols(path, nm);
+		retried = TRUE;
+		HFREE_NULL(nm);
+
+		if (f != NULL)
+			goto retry;
+
+		/* FALL THROUGH */
+	}
 
 	hash_table_destroy_real(nm_ctx.atoms);
 
 done:
-	s_info("loaded %u symbols from \"%s\"", (unsigned) trace_array.count, path);
+	s_info("loaded %u symbols for \"%s\"", (unsigned) trace_array.count, path);
 
 	trace_sort();
 }
