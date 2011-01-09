@@ -129,3 +129,20 @@ main.o: revision.h
 revision.h: .FORCE
 	$(TOP)/scripts/svn-revision $(TOP) $@
 
+/*
+ * Generate a gtk-gnutella.nm file containing the executable's symbols.
+ *
+ * This allows the installed program to be stripped whilst retaining the
+ * ability to get symbolic stack traces.
+ */
+
+AllTarget(gtk-gnutella.nm)
+
+gtk-gnutella.nm: gtk-gnutella
+	$(NM) -p gtk-gnutella > $@
+
+/*
+ * FIXME: on linux, PRIVLIB is wrongly set to /usr/share, but the nm file
+ * is specific to a given install and architecture, not shareable.
+ */
+InstallNonExec(gtk-gnutella.nm, $(PRIVLIB))
