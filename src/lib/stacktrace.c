@@ -971,6 +971,16 @@ stacktrace_where_print(FILE *f)
 }
 
 /**
+ * @return whether we got any symbols.
+ */
+static gboolean
+stacktrace_got_symbols(void)
+{
+	stacktrace_load_symbols();
+	return trace_array.count != 0;
+}
+
+/**
  * Print current stack trace to specified file if symbols where loaded.
  */
 void
@@ -979,8 +989,7 @@ stacktrace_where_sym_print(FILE *f)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	stacktrace_load_symbols();
-	if (0 == trace_array.count)
+	if (!stacktrace_got_symbols())
 		return;		/* No symbols loaded */
 
 	count = stack_unwind(stack, G_N_ELEMENTS(stack), 1);
@@ -998,6 +1007,26 @@ stacktrace_where_print_offset(FILE *f, size_t offset)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
+
+	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	stack_print(f, stack, count);
+}
+
+/**
+ * Print current stack trace to specified file, with specified offset,
+ * provided symbols were loaded.
+ *
+ * @param f			file where stack should be printed
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ */
+void
+stacktrace_where_sym_print_offset(FILE *f, size_t offset)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	if (!stacktrace_got_symbols())
+		return;		/* No symbols loaded */
 
 	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 	stack_print(f, stack, count);
