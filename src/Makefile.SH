@@ -97,7 +97,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 18225 2011-01-09 13:53:10Z rmanfredi $
+# $X-Id: Jmakefile 18235 2011-01-09 16:36:38Z rmanfredi $
 
 all::
 
@@ -304,7 +304,7 @@ local_realclean::
 	$(RM) gtk-gnutella.nm
 
 gtk-gnutella.nm: gtk-gnutella
-	$(NM) -p gtk-gnutella > $@
+	$(NM) -p gtk-gnutella$(_EXE) > $@
 
 local_install:: gtk-gnutella.nm
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
