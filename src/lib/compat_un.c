@@ -517,10 +517,10 @@ compat_accept(int sd, struct sockaddr *addr, socklen_t *addrlen)
 		len = *addrlen;
 		memset(addr, 0, len);
 
-		if (len >= sizeof saddr->sun_family)
+		if (UNSIGNED(len) >= sizeof saddr->sun_family)
 			saddr->sun_family = AF_LOCAL;
 
-		if (len > sizeof saddr->sun_family) {
+		if (UNSIGNED(len) > sizeof saddr->sun_family) {
 			clamp_strcpy(saddr->sun_path,
 				len - sizeof saddr->sun_family, sun->path);
 		}
