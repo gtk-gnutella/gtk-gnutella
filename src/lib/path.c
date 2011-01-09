@@ -67,11 +67,13 @@ make_pathname(const char *dir, const char *file)
 
 	n = strlen(dir);
 	if ((n > 0 && dir[n - 1] == G_DIR_SEPARATOR) || file[0] == G_DIR_SEPARATOR)
-		 sep = "";
-	else if (strchr(dir, G_DIR_SEPARATOR))
-		 sep = G_DIR_SEPARATOR_S;
+		sep = "";
+	else if (G_DIR_SEPARATOR != '/' && n > 0 && dir[n-1] == '/' || *file == '/')
+		sep = "";
+	else if (G_DIR_SEPARATOR != '/' && strchr(dir, G_DIR_SEPARATOR))
+		sep = G_DIR_SEPARATOR_S;
 	else
-		 sep = "/";
+		sep = "/";
 
 	return h_strconcat(dir, sep, file, (void *) 0);
 }
@@ -146,7 +148,7 @@ filepath_exists(const char *dir, const char *file)
 
 /**
  * Returns a pointer to the basename of the given pathname. A slash is
- * always considered a  separator but G_DIR_SEPARATOR is considered as
+ * always considered a valid separator but G_DIR_SEPARATOR is considered as
  * well. Thus "/whatever/blah\\yadda" returns a pointer to yadda iff
  * G_DIR_SEPARATOR is a backslash and otherwise points to "blah[...]".
  *
