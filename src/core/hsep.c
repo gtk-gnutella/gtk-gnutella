@@ -734,6 +734,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	g_assert(n->hsep);
 
 	hsep = n->hsep;
+	memset(other, 0, sizeof other);
 
 	/*
 	 * If we are a leaf, we just need to send one triple,
