@@ -66,9 +66,12 @@ make_pathname(const char *dir, const char *file)
 	g_assert(file);
 
 	n = strlen(dir);
-	if ((n > 0 && dir[n - 1] == G_DIR_SEPARATOR) || file[0] == G_DIR_SEPARATOR)
+
+	if (G_DIR_SEPARATOR == file[0] || '/' == file[0])
 		sep = "";
-	else if (G_DIR_SEPARATOR != '/' && n > 0 && dir[n-1] == '/' || *file == '/')
+	else if (n > 0 && G_DIR_SEPARATOR == dir[n - 1])
+		sep = "";
+	else if (G_DIR_SEPARATOR != '/' && n > 0 && '/' == dir[n - 1])
 		sep = "";
 	else if (G_DIR_SEPARATOR != '/' && strchr(dir, G_DIR_SEPARATOR))
 		sep = G_DIR_SEPARATOR_S;
