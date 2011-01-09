@@ -161,7 +161,18 @@ need_get_non_stdio_fd(void)
 	return FALSE;
 }
 
+static gboolean reserve_low_fd;
+
 /**
+ * Check whether low file descriptors must be reserved for stdio.
+ */
+gboolean
+must_reserve_low_descriptors(void)
+{
+	return reserve_low_fd;
+}
+
+/*
  * If we detect that stdio cannot handle file descriptors above 255, this
  * functions tries to reassign 'fd' to a file descriptor above 255 in order to
  * reserve lower file descriptors for stdio. File descriptors below 3 or above
@@ -179,15 +190,13 @@ need_get_non_stdio_fd(void)
 int
 get_non_stdio_fd(int fd)
 {
-	static gboolean initialized, needed;
+	static gboolean initialized;
 
 	if (!initialized) {
 		initialized = TRUE;
-		needed = need_get_non_stdio_fd();
-		g_info("stdio %s handle file descriptors larger than 256",
-			needed ? "cannot" : "can");
+		reserve_low_fd = need_get_non_stdio_fd();
 	}
-	if (needed && fd > 2 && fd < 256) {
+	if (reserve_low_fd && fd > 2 && fd < 256) {
 		int nfd, saved_errno;
 
 		saved_errno = errno;

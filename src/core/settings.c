@@ -642,6 +642,8 @@ settings_init(void)
 	}
 
 	if (debugging(0)) {
+		g_info("stdio %s handle file descriptors larger than 256",
+			must_reserve_low_descriptors() ? "cannot" : "can");
 		g_info("detected amount of physical RAM: %s",
 			short_size(memory, GNET_PROPERTY(display_metric_units)));
 		g_info("process can use at maximum: %s",

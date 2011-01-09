@@ -41,6 +41,7 @@
 
 void close_file_descriptors(const int first_fd);
 int reserve_standard_file_descriptors(void);
+gboolean must_reserve_low_descriptors(void);
 void set_close_on_exec(int fd);
 void fd_set_nonblocking(int fd);
 int fd_close(int *fd_ptr, gboolean);
