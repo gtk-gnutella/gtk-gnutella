@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-68]
-: $X-Id: Jmake.tmpl 68 2011-01-09 12:46:28Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-69]
+: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -40,6 +40,7 @@ INSTALLDIR = $INSTALLDIR
 ########################################################################
 # Parameters set by Configure -- edit config.sh if changes are needed
 
+ARCHLIB = $installarchlib
 BINDIR = $installbin
 CC = $cc
 CTAGS = ctags
