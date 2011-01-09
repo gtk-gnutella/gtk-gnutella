@@ -2569,7 +2569,7 @@ filter_init_presets(void)
 	for (i = 0; i < G_N_ELEMENTS(tab); i++) {
 		filter_preset_init(_(tab[i].name), tab[i].regex, tab[i].minsize);
 	}
-	filter_update_targets();
+	filter_apply_changes();
 }
 
 static filter_t *
