@@ -524,6 +524,65 @@ url_safe_char(char c, url_policy_t p)
 }
 
 /**
+ * Creates the canonical representation of a path in place, delimited by '/'.
+ *
+ * @param path a NUL-terminated string representing the input path.
+ * @return zero on sucess, non-zero on failure.
+ */
+int
+url_canonize_path(char *path)
+{
+	const char *p;
+	char c, *q, *ep, *dst = path;
+
+	g_assert(path);
+
+	/* Scan path */
+	for (p = path, q = dst; '\0' != (c = *p); q++, p++) {
+
+		/* Handle relative paths i.e., /. and /.. */
+		if ('/' != c) {
+			*q = c;
+			continue;
+		}
+
+		/* Special handling for '/' follows */
+
+		do {
+			*q = '/';
+
+			while ('/' == p[1]) {
+				p++;
+			}
+
+			if (0 == strcmp(p, "/.")) {
+				/* Ignoring trailing "/." in URI */
+				p++;
+			} else if (0 == strcmp(p, "/..")) {
+				return -1;
+			} else if (NULL != (ep = is_strprefix(p, "/./"))) {
+				/* Ignoring unnecessary "/./" in URI */
+				p = ep - 1;
+			} else if (NULL != (ep = is_strprefix(p, "/../"))) {
+				p = ep - 1;
+
+				/* Ascending one component in URI */
+				do {
+					if (q == dst)
+						return -1; /* beyond root */
+				} while ('/' != *--q);
+			} else {
+				break;
+			}
+		} while ('/' == p[0] && ('/' == p[1] || '.' == p[1]));
+	}
+
+	*q = '\0';
+
+	return 0;
+}
+
+/**
  * @attention
  * NB: May modify ``url'' in all cases; pass a copy if necessary!
  *
@@ -678,7 +737,7 @@ url_normalize(char *url, url_policy_t pol)
 	}
 	uri = q;
 
-	if (0 != canonize_path(q, q)) {
+	if (0 != url_canonize_path(q)) {
 		warn = "Could not canonize URI";
 		goto bad;
 	}

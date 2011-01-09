@@ -273,7 +273,6 @@ char *is_strcaseprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
 gboolean is_strsuffix(const char *str, size_t len, const char *suffix);
 size_t html_escape(const char *src, char *dst, size_t dst_size);
 guint32 html_decode_entity(const char *src, const char **endptr);
-int canonize_path(char *dst, const char *path);
 
 typedef void (*signal_handler_t)(int signo);
 signal_handler_t set_signal(int signo, signal_handler_t handler);

@@ -4853,7 +4853,7 @@ upload_request(struct upload *u, header_t *header)
 	if (
 		'/' != uri[0] ||
 		!url_unescape(uri, TRUE) ||
-		0 != canonize_path(uri, uri)
+		0 != url_canonize_path(uri)
 	) {
 		upload_send_error(u, 400, "Bad Path");
 		return;

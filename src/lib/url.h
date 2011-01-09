@@ -72,6 +72,7 @@ char *url_normalize(char *url, url_policy_t pol);
 
 gboolean url_is_absolute(const char *url);
 char *url_absolute_within(const char *base, const char *relative);
+int url_canonize_path(char *path);
 
 #endif	/* _url_h_ */
 
