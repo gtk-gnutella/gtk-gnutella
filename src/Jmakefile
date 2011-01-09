@@ -141,8 +141,4 @@ AllTarget(gtk-gnutella.nm)
 gtk-gnutella.nm: gtk-gnutella
 	$(NM) -p gtk-gnutella > $@
 
-/*
- * FIXME: on linux, PRIVLIB is wrongly set to /usr/share, but the nm file
- * is specific to a given install and architecture, not shareable.
- */
-InstallNonExec(gtk-gnutella.nm, $(PRIVLIB))
+InstallNonExec(gtk-gnutella.nm, $(ARCHLIB))
