@@ -68,8 +68,10 @@ make_pathname(const char *dir, const char *file)
 	n = strlen(dir);
 	if ((n > 0 && dir[n - 1] == G_DIR_SEPARATOR) || file[0] == G_DIR_SEPARATOR)
 		 sep = "";
-	else
+	else if (strchr(dir, G_DIR_SEPARATOR))
 		 sep = G_DIR_SEPARATOR_S;
+	else
+		 sep = "/";
 
 	return h_strconcat(dir, sep, file, (void *) 0);
 }
