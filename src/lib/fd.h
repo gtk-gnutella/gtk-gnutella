@@ -41,11 +41,11 @@
 
 void close_file_descriptors(const int first_fd);
 int reserve_standard_file_descriptors(void);
-gboolean must_reserve_low_descriptors(void);
 void set_close_on_exec(int fd);
 void fd_set_nonblocking(int fd);
 int fd_close(int *fd_ptr, gboolean);
 int get_non_stdio_fd(int fd);
+gboolean need_get_non_stdio_fd();
 gboolean is_a_socket(int fd);
 gboolean is_a_fifo(int fd);
 gboolean is_open_fd(int fd);

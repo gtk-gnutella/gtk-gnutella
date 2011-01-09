@@ -140,36 +140,31 @@ reserve_standard_file_descriptors(void)
 	return 0;
 }
 
-static gboolean
+gboolean
 need_get_non_stdio_fd(void)
 {
-	int fd;
+	static int needed = -1;
 
-	/* Assume that STDIN_FILENO is open. */
-	fd = fcntl(STDIN_FILENO, F_DUPFD, 256);
-	if (fd >= 0) {
-		FILE *f;
+	if (G_UNLIKELY(needed < 0)) {
+		int fd;
+		/* Assume that STDIN_FILENO is open. */
+		fd = fcntl(STDIN_FILENO, F_DUPFD, 256);
+		if (fd >= 0) {
+			FILE *f;
 
-		f = fdopen(fd, "r");
-		if (f) {
-			fclose(f);
+			f = fdopen(fd, "r");
+			if (f) {
+				fclose(f);
+				needed = FALSE;
+			} else {
+				close(fd);
+				needed = TRUE;
+			}
 		} else {
-			close(fd);
-			return TRUE;
+			needed = FALSE;
 		}
 	}
-	return FALSE;
-}
-
-static gboolean reserve_low_fd;
-
-/**
- * Check whether low file descriptors must be reserved for stdio.
- */
-gboolean
-must_reserve_low_descriptors(void)
-{
-	return reserve_low_fd;
+	return needed;
 }
 
 /*
@@ -190,13 +185,7 @@ must_reserve_low_descriptors(void)
 int
 get_non_stdio_fd(int fd)
 {
-	static gboolean initialized;
-
-	if (!initialized) {
-		initialized = TRUE;
-		reserve_low_fd = need_get_non_stdio_fd();
-	}
-	if (reserve_low_fd && fd > 2 && fd < 256) {
+	if (need_get_non_stdio_fd() && fd > 2 && fd < 256) {
 		int nfd, saved_errno;
 
 		saved_errno = errno;
