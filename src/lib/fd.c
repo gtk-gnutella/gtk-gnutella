@@ -275,7 +275,7 @@ is_a_socket(int fd)
 	int ret, opt_val;
 	socklen_t opt_len;
 
-	if (is_valid_fd(fd))
+	if (!is_valid_fd(fd))
 		return FALSE;
 
 	opt_len = sizeof(opt_val);
