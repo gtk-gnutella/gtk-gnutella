@@ -820,6 +820,12 @@ collect_events(struct poll_ctx *ctx, int timeout_ms)
 {
 	int ret;
 
+#ifdef MINGW32
+	/* FIXME: Just a workaround; select() requires at least one valid fd */
+	if (0 == ctx->num_ev)
+		return 0;
+#endif /* MINGW32 */
+
 #ifdef USE_WIN_SELECT
 	if (!mingw_has_wsapoll())
 		return collect_events_with_select(ctx, timeout_ms);
