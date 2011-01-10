@@ -108,13 +108,22 @@ extern gboolean vmm_is_debugging(guint32 level);
 typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
 WSAPoll_func_t WSAPoll = NULL;
 
+static inline gboolean
+mingw_fd_is_opened(int fd)
+{
+	unsigned long dummy;
+
+	return (HANDLE) _get_osfhandle(fd) != INVALID_HANDLE_VALUE ||
+		 0 == WSAHtonl((SOCKET) fd, 666, &dummy);
+}
+
 int
 mingw_fcntl(int fd, int cmd, ... /* arg */ )
 {
 	int res = -1;
 
 	/* If fd isn't opened, _get_osfhandle() fails with errno set to EBADF */
-	if (INVALID_HANDLE_VALUE == (HANDLE) _get_osfhandle(fd) && !is_a_socket(fd)) {
+	if (!mingw_fd_is_opened(fd)) {
 		errno = EBADF;
 		return -1;
 	}
@@ -128,7 +137,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 			break;
 		case F_SETLK:
 		{
-			HANDLE file = (HANDLE)_get_osfhandle(fd);
+			HANDLE file = (HANDLE) _get_osfhandle(fd);
 			DWORD start_high, start_low;
 			DWORD len_high, len_low;
 			struct flock *arg;
@@ -177,7 +186,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 			}
 
 			for (i = min; i < max; i++) {
-				if (INVALID_HANDLE_VALUE != (HANDLE) _get_osfhandle(i))
+				if (mingw_fd_is_opened(i))
 					continue;
 				return mingw_dup2(fd, i);
 			}
