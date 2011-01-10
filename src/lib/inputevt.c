@@ -484,13 +484,11 @@ create_poll_fd(int *fd_ptr)
 	return is_valid_fd(fd);
 }
 
-#ifdef INPUTEVT_DEBUGGING
-static const char *
+static inline const char *
 polling_method(void)
 {
 	return "kqueue()";
 }
-#endif
 
 static int
 update_poll_event(struct poll_ctx *poll_ctx, int fd,
@@ -568,13 +566,11 @@ create_poll_fd(int *fd_ptr)
 	return is_valid_fd(fd);
 }
 
-#ifdef INPUTEVT_DEBUGGING
-static const char *
+static inline const char *
 polling_method(void)
 {
 	return "epoll()";
 }
-#endif
 
 static int
 update_poll_event(struct poll_ctx *poll_ctx, int fd,
@@ -627,13 +623,11 @@ create_poll_fd(int *fd_ptr)
 	return is_valid_fd(fd);
 }
 
-#ifdef INPUTEVT_DEBUGGING
-static const char *
+static inline const char *
 polling_method(void)
 {
 	return "/dev/poll";
 }
-#endif
 
 static int
 update_poll_event(struct poll_ctx *poll_ctx, int fd,
@@ -740,8 +734,7 @@ update_poll_event_with_select(struct poll_ctx *ctx, int fd,
 
 #if defined(USE_POLL) || defined(USE_WIN_SELECT)
 
-#ifdef INPUTEVT_DEBUGGING
-static const char *
+static inline const char *
 polling_method(void)
 {
 #ifdef USE_WIN_SELECT
@@ -751,7 +744,6 @@ polling_method(void)
 
 	return "poll()";
 }
-#endif
 
 static int
 update_poll_event(struct poll_ctx *ctx, int fd,
