@@ -123,3 +123,8 @@ NAME \[(torrentfix[.]com[ ]edition|201.[ ]deluxe)\].torrent$
 ADDED 2011-01-10
 SIZE 0-4000
 END
+
+NAME [(](High[ ]Quality|Full[ ]Version)[)][.]mp3$
+ADDED 2011-01-10
+SIZE 100000-8000000
+END
