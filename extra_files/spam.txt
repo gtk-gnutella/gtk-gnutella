@@ -101,12 +101,17 @@ END
 
 NAME \[(isohunt[.]com|release[ ]from[ ]torrentsearch[.]com|thepiratebay[.]org)\][.](rar|zip)$
 ADDED 2011-01-10
-SIZE 0-2000000
+SIZE 10000-2000000
 END
 
 NAME (Crack[ ]by[ ]netflix|crack[ ]from[ ]Vikea)[.](rar|zip)$
 ADDED 2011-01-10
-SIZE 0-2000000
+SIZE 10000-2000000
+END
+
+NAME ^\[201.nova[.]com\].*\[last\][.](rar|zip)$
+ADDED 2011-01-10
+SIZE 10000-2000000
 END
 
 NAME (^\[201. edition\][ ].*\[download\]|\[remix by DJF leak\]).mov$
@@ -114,7 +119,7 @@ ADDED 2011-01-10
 SIZE 4000000-8000000
 END
 
-NAME \[torrentfix[.]com[ ]edition\].torrent$
+NAME \[(torrentfix[.]com[ ]edition|201.[ ]deluxe)\].torrent$
 ADDED 2011-01-10
 SIZE 0-4000
 END
