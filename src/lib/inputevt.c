@@ -817,10 +817,22 @@ check_poll_events(struct poll_ctx *poll_ctx)
 static inline int
 get_poll_event_fd_with_select(const struct poll_ctx *ctx, unsigned idx)
 {
-	int fd;
+	int fd, ofd;
 
 	g_assert(idx < G_N_ELEMENTS(ctx->fd_array));
 	fd = ctx->fd_array[idx];
+	g_assert(is_open_fd(fd));
+
+#ifdef MINGW32
+	ofd = cast_to_fd(ctx->orfds.fd_array[idx]);
+	g_assert(fd == ofd || -1 == ofd);
+
+	ofd = cast_to_fd(ctx->owfds.fd_array[idx]);
+	g_assert(fd == ofd || -1 == ofd);
+
+	ofd = cast_to_fd(ctx->oxfds.fd_array[idx]);
+	g_assert(fd == ofd || -1 == ofd);
+#endif	/* MINGW32 */
 
 	return fd;
 }
