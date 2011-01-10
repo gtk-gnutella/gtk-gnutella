@@ -80,6 +80,7 @@ RCSID("$Id$")
 #ifndef HAS_SOCKADDR_UN
 
 #include "compat_un.h"
+#include "fd.h"
 #include "file.h"
 #include "host_addr.h"
 #include "glib-missing.h"
@@ -254,6 +255,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 	struct sock_un *sun;
 	guint16 port;
 	int fd;
+	ssize_t rw;
 
 	g_assert(my_addr != NULL);
 
@@ -339,34 +341,43 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 
 	/* Magic: "<?socket?>" */
 
-	/* FIXME: Don't ignore partial writes! */
-	if (-1 == write(fd, SOCK_FILE_MAGIC, CONST_STRLEN(SOCK_FILE_MAGIC)))
+	rw = write(fd, SOCK_FILE_MAGIC, CONST_STRLEN(SOCK_FILE_MAGIC));
+	if (-1 == rw)
 		goto io_error;
+	else if (rw != CONST_STRLEN(SOCK_FILE_MAGIC))
+		goto partial_write;
 
 	/* Listening port number */
 
 	{
 		const char *port_str = uint32_to_string(port);
+		size_t port_len = strlen(port_str);
 
-		/* FIXME: Don't ignore partial writes! */
-		if (-1 == write(fd, port_str, strlen(port_str)))
+		rw = write(fd, port_str, port_len);
+		if (-1 == rw)
 			goto io_error;
+		else if (UNSIGNED(rw) != port_len)
+			goto partial_write;
 	}
 
 	/* Socket type */
 
 	{
 		const char *type = sun->stream ? " s " : " d ";
+		size_t type_len = strlen(type);
 
-		/* FIXME: Don't ignore partial writes! */
-		if (-1 == write(fd, type, strlen(type)))
+		rw = write(fd, type, type_len);
+		if (-1 == rw)
 			goto io_error;
+		else if (UNSIGNED(rw) != type_len)
+			goto partial_write;
 	}
 
 	/* Server and client cookies */
 
 	{
 		str_t *str = str_new(64);
+		size_t slen;
 
 		STATIC_ASSERT(4 == SUN_CLT_COOKIE_LEN);
 
@@ -376,15 +387,17 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 			sun->u.l.client_cookie[2], sun->u.l.client_cookie[3],
 			'\0');
 
-		/* FIXME: Don't ignore partial writes! */
-		if (-1 == write(fd, str_2c(str), str_len(str)))
-			goto io_error;
-
+		slen = str_len(str);
+		rw = write(fd, str_2c(str), slen);
 		str_destroy(str);
+
+		if (-1 == rw)
+			goto io_error;
+		else if (UNSIGNED(rw) != slen)
+			goto partial_write;
 	}
 
-	/* FIXME: fd_close() to prevent 2x close() there could be hidden threads! */
-	if (-1 == close(fd))
+	if (-1 == fd_close(&fd, TRUE))
 		goto io_error;
 
 	sun->bound = TRUE;
@@ -402,6 +415,10 @@ already_bound:
 name_too_long:
 	errno = ENAMETOOLONG;
 	return -1;
+
+partial_write:
+	errno = EIO;			/* For lack of better option */
+	/* FALL THROUGH */
 
 io_error:
 	{
@@ -663,11 +680,12 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 
 		g_assert(UNSIGNED(rw) <= sizeof buf);
 
-		/* FIXME: buf[-1] if rw is zero! */
-		if (buf[rw - 1] != '\0')
+		if (0 == rw || buf[rw - 1] != '\0')
 			goto not_a_socket;
 
-		/* FIXME: Unitialized memory read! */
+		if (UNSIGNED(rw) < CONST_STRLEN(SOCK_FILE_MAGIC))
+			goto not_a_socket;
+
 		p = is_strprefix(buf, SOCK_FILE_MAGIC);
 		if (NULL == p)
 			goto not_a_socket;
@@ -744,7 +762,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	{
 		guint32 value;
 
-		if (sizeof value != s_read(sd, value, sizeof value))
+		if (sizeof value != s_read(sd, &value, sizeof value))
 			return -1;
 
 		if (value != server[0])
