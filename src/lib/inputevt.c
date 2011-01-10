@@ -345,8 +345,7 @@ inputevt_poll_idx_new(struct poll_ctx *ctx, int fd)
 		unsigned n = ctx->num_poll_idx;
 
 		ctx->num_poll_idx = 0 != n ? n << 1 : 32;
-		ctx->used_poll_idx =
-			bit_array_resize(ctx->used_poll_idx, n, ctx->num_poll_idx);
+		bit_array_resize(&ctx->used_poll_idx, n, ctx->num_poll_idx);
 		idx = n;
 	}
 	g_assert((unsigned) -1 != idx);
@@ -1382,8 +1381,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 		}
 #endif /* USE_POLL */
 
-		poll_ctx->used_event_id =
-			bit_array_resize(poll_ctx->used_event_id, n, poll_ctx->num_ev);
+		bit_array_resize(&poll_ctx->used_event_id, n, poll_ctx->num_ev);
 
 		if (0 == n) {
 			/* ID 0 is reserved for compatibility with GLib's IDs */
