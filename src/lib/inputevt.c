@@ -1569,6 +1569,7 @@ inputevt_add(int fd, inputevt_cond_t cond,
 	g_assert(is_valid_fd(fd));
 	g_assert(zero_handler != handler);
 
+	safety_assert(is_open_fd(fd));
 	safety_assert(is_a_socket(fd) || is_a_fifo(fd));
 
 	switch (cond) {
