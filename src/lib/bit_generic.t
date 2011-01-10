@@ -52,8 +52,8 @@
  *
  * @attention DO NOT USE IN MEMORY ALLOCATING ROUTINES!
  */
-static inline bit_generic_t *
-bit_generic_resize(bit_generic_t *base, size_t old_n, size_t new_n)
+static inline void
+bit_generic_resize(bit_generic_t **base_ptr, size_t old_n, size_t new_n)
 {
 	size_t old_size, new_size;
 	void *p;
@@ -62,12 +62,12 @@ bit_generic_resize(bit_generic_t *base, size_t old_n, size_t new_n)
 	
 	new_size = BIT_GENERIC_BYTE_SIZE(new_n);
 	old_size = BIT_GENERIC_BYTE_SIZE(old_n);
-	p = g_realloc(base, new_size);
+	p = g_realloc(*base_ptr, new_size);
 	if (old_size < new_size) {
 		char *bytes = p;
 		memset(&bytes[old_size], 0, new_size - old_size);
 	}
-	return p;
+	*base_ptr = p;
 }
 
 /**
