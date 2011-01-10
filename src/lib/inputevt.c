@@ -282,7 +282,7 @@ fd_set_clear(fd_set *fds, unsigned idx, int fd)
 	g_assert(fds->fd_count <= FD_SETSIZE);
 
 	fds->fd_array[idx] = -1;
-	if (fds->fd_count == idx)
+	if (fds->fd_count == idx + 1)
 		fds->fd_count--;
 }
 #else
