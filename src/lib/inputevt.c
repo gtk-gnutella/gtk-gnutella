@@ -669,7 +669,7 @@ update_poll_event(struct poll_ctx *ctx, int fd,
 	if (old != cur) {
 		ctx->rfds.fd_array[rl->poll_idx] = (INPUT_EVENT_R & cur) ? fd : -1;
 		ctx->wfds.fd_array[rl->poll_idx] = (INPUT_EVENT_W & cur) ? fd : -1;
-		ctx->wfds.fd_array[rl->poll_idx] = (INPUT_EVENT_EXCEPTION & cur) ? fd : -1;
+		ctx->xfds.fd_array[rl->poll_idx] = (INPUT_EVENT_EXCEPTION & cur) ? fd : -1;
 	}
 	return 0;
 }
