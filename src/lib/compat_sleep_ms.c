@@ -48,41 +48,40 @@ RCSID("$Id$")
  */
 void
 compat_sleep_ms(unsigned int ms)
+#if defined(HAS_NANOSLEEP)
+{
+	struct timespec ts;
+
+	/**
+	 * Prefer nanosleep() over usleep() because it is guaranteed to
+	 * not interact with signals.
+	 */
+
+	ts.tv_sec = ms / 1000;
+	ts.tv_nsec = (ms % 1000) * 1000000UL;
+	nanosleep(&ts, NULL);
+}
+#elif defined(HAS_USLEEP)
 {
 	while (ms > 0) {
 		unsigned int d;
 
-		/*
-		 * Limit sleep duration per step as accommodation for the
-		 * different limits of the diverse methods of suspending the
-		 * process e.g. 1 seond for usleep() and nanosleep().
-		 * There is obviously some overhead when using multiple calls.
+		/**
+		 * usleep() may fail if the delay is not less than 1000 milliseconds.
+		 * Therefore, usleep() is called multiple times for longer delays.
 		 */
 
-		d = MIN(ms, 900);
+		d = MIN(ms, 990);
 		ms -= d;
 
-		/*
-		 * Prefer nanosleep() over usleep() because it is guaranteed to
-		 * not interact with signals.
-		 */
-
-#if defined(HAS_NANOSLEEP)
-		{
-			struct timespec ts;
-
-			ts.tv_sec = d / 1000;
-			ts.tv_nsec = (d % 1000) * 1000000UL;
-			/* Value must be less than 1000000000! (< 1 second) */
-			nanosleep(&ts, NULL);
-		}
-#elif defined(HAS_USLEEP)
 		/* Value must be less than 1000000! (< 1 second) */
 		usleep(d * 1000UL);
-#else
-		compat_poll(NULL, 0, d);
-#endif	/* HAS_NANOSLEEP || HAS_USLEEP */
 	}
 }
+#else
+{
+	compat_poll(NULL, 0, d);
+}
+#endif	/* HAS_NANOSLEEP || HAS_USLEEP */
 
 /* vi: set ts=4 sw=4 cindent: */
