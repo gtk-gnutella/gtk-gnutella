@@ -105,6 +105,13 @@ typedef enum msg_drop_reason {
 	MSG_DROP_REASON_COUNT /**< number of known reasons to drop a message */
 } msg_drop_reason_t;
 
+/*
+ * Any change in the following enum needs to be reported to:
+ *
+ *	gnet_stats_general_to_string()	[core]
+ *  general_type_str()				[ui/gtk]
+ */
+
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
 	GNR_DUPS_WITH_HIGHER_TTL,
@@ -112,6 +119,7 @@ typedef enum {
 	GNR_SPAM_NAME_HITS,
 	GNR_SPAM_FAKE_HITS,
 	GNR_SPAM_DUP_HITS,
+	GNR_SPAM_CAUGHT_HOSTILE_IP,
 	GNR_LOCAL_SEARCHES,
 	GNR_LOCAL_HITS,
 	GNR_LOCAL_QUERY_HITS,

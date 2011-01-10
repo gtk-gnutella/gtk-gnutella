@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "hostiles.h"
 #include "settings.h"
 #include "nodes.h"
+#include "gnet_stats.h"
 
 #include "lib/file.h"
 #include "lib/ascii.h"
@@ -342,11 +343,14 @@ hostiles_dynamic_add_ipv4(guint32 ipv4)
 		count++;
 	g_hash_table_insert(ht_dynamic_ipv4, key, ulong_to_pointer(count));
 
+	if (1 == count)
+		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_IP, 1);
+
 	if (GNET_PROPERTY(ban_debug > 0)) {
 		char buf[HOST_ADDR_BUFLEN];
 
 		host_addr_to_string_buf(host_addr_get_ipv4(ipv4), buf, sizeof buf);
-		g_info("Dynamically caught hostile: %s (count=%lu)", buf, count);
+		g_info("dynamically caught hostile: %s (count=%lu)", buf, count);
 	}
 }
 

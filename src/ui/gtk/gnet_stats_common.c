@@ -109,6 +109,7 @@ general_type_str(gint value)
 		N_("SPAM filename and size hits"),
 		N_("SPAM fake hits"),
 		N_("SPAM duplicate hits"),
+		N_("SPAM dynamically caught hostile IP addresses"),
 		N_("Searches to local DB"),
 		N_("Hits on local DB"),
 		N_("Query hits received for local queries"),
