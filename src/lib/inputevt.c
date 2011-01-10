@@ -56,7 +56,8 @@ RCSID("$Id$")
 #elif defined(HAS_DEV_POLL)
 #define USE_DEV_POLL
 #elif defined(HAS_SELECT) && defined(MINGW32)
-#define USE_WIN_SELECT
+#define USE_POLL		/* Use if WSAPoll() if possible */
+#define USE_WIN_SELECT	/* Fallback without WSAPoll() */
 #elif defined(HAS_POLL) || defined(HAS_SELECT)
 #define USE_POLL
 #else
@@ -79,8 +80,8 @@ RCSID("$Id$")
 #define safety_assert(x)
 #endif
 
-/* XXX: Enable and tweak, for testing only */
-#if 0
+/* Enable and tweak, for testing only */
+#if 0 /* XXX */
 #undef USE_POLL
 #undef USE_EPOLL
 #undef USE_KQUEUE
@@ -89,8 +90,19 @@ RCSID("$Id$")
 #undef USE_WIN_SELECT
 /* Override by manual #define below */
 #define USE_WIN_SELECT
-#endif
-/* XXX */
+#define USE_POLL
+
+/* The following lines are for test-compiling without MINGW */
+#ifndef MINGW32
+#define mingw_has_wsapoll() 0
+typedef struct {
+	unsigned short fd_count;
+	unsigned fd_array[FD_SETSIZE];
+} XXXfd_set;
+#define fd_set XXXfd_set
+#endif	/* !MINGW32 */
+
+#endif /* XXX */
 
 #ifdef USE_KQUEUE
 #include <sys/event.h>
@@ -132,7 +144,7 @@ struct inputevt_array {
 };
 #endif /* USE_DEV_POLL */
 
-#ifdef USE_POLL
+#if defined(USE_POLL) || defined(USE_WIN_SELECT)
 struct inputevt_array {
 	struct pollfd *ev;
 };
@@ -227,12 +239,11 @@ struct poll_ctx {
 	unsigned initialized:1;		/**< TRUE if the context has been initialized */
 	unsigned use_glib_io:1;		/**< TRUE if falling back GLib IO Channels */
 	unsigned dispatching:1;		/**< TRUE if dispatching events */
+	struct inputevt_array ev_arr;
 #ifdef USE_WIN_SELECT
 	fd_set rfds;
 	fd_set wfds;
 	fd_set xfds;
-#else
-	struct inputevt_array ev_arr;
 #endif	/* USE_WIN_SELECT */
 };
 
@@ -314,13 +325,15 @@ inputevt_poll_idx_new(struct poll_ctx *ctx, int fd)
 		pfd->revents = 0;
 		pfd->events = 0;
 	}
-#elif defined(USE_WIN_SELECT)
+#endif	/* USE_POLL */
+
+#if defined(USE_WIN_SELECT)
 	{
 		fd_set_register(&ctx->rfds, idx);
 		fd_set_register(&ctx->wfds, idx);
 		fd_set_register(&ctx->xfds, idx);
 	}
-#endif	/* USE_POLL */
+#endif	/* USE_WIN_SELECT */
 
 	return idx;
 }
@@ -335,7 +348,7 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned idx)
 
 	g_assert(idx < ctx->num_ev);
 
-#if defined(USE_POLL)
+#ifdef USE_POLL
 	{
 		struct pollfd *pfd = &ctx->ev_arr.ev[idx];
 
@@ -344,13 +357,15 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned idx)
 		pfd->revents = 0;
 		pfd->events = 0;
 	}
-#elif defined(USE_WIN_SELECT)
+#endif	/* USE_POLL */
+
+#ifdef USE_WIN_SELECT
 	{
 		fd_set_clear(&ctx->rfds, idx);
 		fd_set_clear(&ctx->wfds, idx);
 		fd_set_clear(&ctx->xfds, idx);
 	}
-#endif	/* USE_POLL */
+#endif	/* USE_WIN_SELECT */
 }
 
 #endif /* !USE_GLIB_IO_CHANNELS */
@@ -631,7 +646,6 @@ static gboolean
 create_poll_fd(int *fd_ptr)
 {
 	*fd_ptr = -1;	/* There is no special file descriptor */
-
 	return TRUE;	
 }
 #endif	/* USE_POLL || USE_WIN_SELECT */
@@ -650,7 +664,7 @@ poll_event_set_data_avail(const struct poll_ctx *unused_ctx,
 
 #ifdef USE_WIN_SELECT
 static int
-update_poll_event(struct poll_ctx *ctx, int fd,
+update_poll_event_with_select(struct poll_ctx *ctx, int fd,
 	inputevt_cond_t old, inputevt_cond_t cur)
 {
 	relay_list_t *rl;
@@ -675,11 +689,17 @@ update_poll_event(struct poll_ctx *ctx, int fd,
 }
 #endif /* USE_WIN_SELECT */
 
-#ifdef USE_POLL
+#if defined(USE_POLL) || defined(USE_WIN_SELECT)
+
 #ifdef INPUTEVT_DEBUGGING
 static const char *
 polling_method(void)
 {
+#ifdef USE_WIN_SELECT
+	if (!mingw_has_wsapoll())
+		return "select()";
+#endif	/* USE_WIN_SELECT */
+
 	return "poll()";
 }
 #endif
@@ -690,6 +710,11 @@ update_poll_event(struct poll_ctx *ctx, int fd,
 {
 	struct pollfd *pfd;
 	relay_list_t *rl;
+
+#ifdef USE_WIN_SELECT
+	if (!mingw_has_wsapoll())
+		return update_poll_event_with_select(ctx, fd, old, cur);
+#endif	/* USE_WIN_SELECT */
 
 	g_assert(is_valid_fd(fd));
 
@@ -717,12 +742,39 @@ update_poll_event(struct poll_ctx *ctx, int fd,
 	return 0;
 }
 
+#ifdef USE_WIN_SELECT
 static int
-collect_events(struct poll_ctx *poll_ctx, int timeout_ms)
+collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
+{
+	struct timeval tv;
+	int ret;
+
+	tv.tv_sec = timeout_ms / 1000;
+	tv.tv_usec = (timeout_ms % 1000) * 1000UL;
+	/* FIXME: INT_MAX is just a hack */
+	ret = select(INT_MAX,
+			(void *) &ctx->rfds,
+			(void *) &ctx->wfds,
+			(void *) &ctx->xfds,
+			timeout_ms < 0 ? NULL : &tv);
+	if (-1 == ret && !is_temporary_error(errno)) {
+		g_warning("collect_events(): select() failed: %s", g_strerror(errno));
+	}
+	return ret;
+}
+#endif	/* USE_WIN_SELECT */
+
+static int
+collect_events(struct poll_ctx *ctx, int timeout_ms)
 {
 	int ret;
 
-	ret = compat_poll(poll_ctx->ev_arr.ev, poll_ctx->num_ev, timeout_ms);
+#ifdef USE_WIN_SELECT
+	if (!mingw_has_wsapoll())
+		return collect_events_with_select(ctx, timeout_ms);
+#endif	/* USE_WIN_SELECT */
+
+	ret = compat_poll(ctx->ev_arr.ev, ctx->num_ev, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
 		g_warning("collect_events(): poll() failed: %s", g_strerror(errno));
 	}
@@ -744,7 +796,7 @@ check_poll_events(struct poll_ctx *poll_ctx)
 
 #ifdef USE_WIN_SELECT
 static inline int
-get_poll_event_fd(const struct poll_ctx *ctx, unsigned idx)
+get_poll_event_fd_with_select(const struct poll_ctx *ctx, unsigned idx)
 {
 	int r, w, x;
 
@@ -757,7 +809,7 @@ get_poll_event_fd(const struct poll_ctx *ctx, unsigned idx)
 }
 
 static inline inputevt_cond_t 
-get_poll_event_cond(const struct poll_ctx *ctx, unsigned idx)
+get_poll_event_cond_with_select(const struct poll_ctx *ctx, unsigned idx)
 {
 	int r, w, x;
 
@@ -775,18 +827,64 @@ get_poll_event_cond(const struct poll_ctx *ctx, unsigned idx)
 static inline int
 get_poll_event_fd(const struct poll_ctx *ctx, unsigned idx)
 {
-	const struct pollfd *pfd = &ctx->ev_arr.ev[idx];
+	const struct pollfd *pfd;
+
+#ifdef USE_WIN_SELECT
+	if (!mingw_has_wsapoll())
+		return get_poll_event_fd_with_select(ctx, idx);
+#endif	/* USE_WIN_SELECT */
+
+	pfd = &ctx->ev_arr.ev[idx];
 	return pfd->fd;
 }
 
 static inline inputevt_cond_t 
 get_poll_event_cond(const struct poll_ctx *ctx, unsigned idx)
 {
-	const struct pollfd *ev = &ctx->ev_arr.ev[idx];
-	return ((POLLIN | POLLHUP) & ev->revents ? INPUT_EVENT_R : 0)
-		| (POLLOUT & ev->revents ? INPUT_EVENT_W : 0)
-		| ((POLLERR | POLLNVAL) & ev->revents ? INPUT_EVENT_EXCEPTION : 0);
+	const struct pollfd *pfd;
+
+#ifdef USE_WIN_SELECT
+	if (!mingw_has_wsapoll())
+		return get_poll_event_cond_with_select(ctx, idx);
+#endif	/* USE_WIN_SELECT */
+
+	pfd = &ctx->ev_arr.ev[idx];
+	return ((POLLIN | POLLHUP) & pfd->revents ? INPUT_EVENT_R : 0)
+		| (POLLOUT & pfd->revents ? INPUT_EVENT_W : 0)
+		| ((POLLERR | POLLNVAL) & pfd->revents ? INPUT_EVENT_EXCEPTION : 0);
 }
+
+static inline short
+poll_events_from_gio_cond(gushort events)
+{
+	return 0
+		| ((G_IO_IN   & events) ? POLLIN   : 0)
+		| ((G_IO_OUT  & events) ? POLLOUT  : 0)
+		| ((G_IO_PRI  & events) ? POLLPRI  : 0)
+		| ((G_IO_HUP  & events) ? POLLHUP  : 0)
+		| ((G_IO_ERR  & events) ? POLLERR  : 0)
+		| ((G_IO_NVAL & events) ? POLLNVAL : 0);
+}
+
+static inline gushort
+poll_events_to_gio_cond(short events)
+{
+	return 0
+		| ((POLLIN   & events) ? G_IO_IN   : 0)
+		| ((POLLOUT  & events) ? G_IO_OUT  : 0)
+		| ((POLLPRI  & events) ? G_IO_PRI  : 0)
+		| ((POLLHUP  & events) ? G_IO_HUP  : 0)
+		| ((POLLERR  & events) ? G_IO_ERR  : 0)
+		| ((POLLNVAL & events) ? G_IO_NVAL : 0);
+}
+#endif	/* USE_POLL || USE_DEV_POLL */
+
+#if defined(USE_POLL) || defined(USE_DEV_POLL) || defined(USE_WIN_SELECT)
+static gint (*default_poll_func)(GPollFD *, guint, gint);
+
+static gboolean
+dispatch_poll(GIOChannel *unused_source,
+	GIOCondition unused_cond, gpointer udata);
 
 static void
 check_for_events(struct poll_ctx *poll_ctx, int *timeout_ms_ptr)
@@ -826,36 +924,6 @@ check_for_events(struct poll_ctx *poll_ctx, int *timeout_ms_ptr)
 	} 
 }
 
-static inline short
-poll_events_from_gio_cond(gushort events)
-{
-	return 0
-		| ((G_IO_IN   & events) ? POLLIN   : 0)
-		| ((G_IO_OUT  & events) ? POLLOUT  : 0)
-		| ((G_IO_PRI  & events) ? POLLPRI  : 0)
-		| ((G_IO_HUP  & events) ? POLLHUP  : 0)
-		| ((G_IO_ERR  & events) ? POLLERR  : 0)
-		| ((G_IO_NVAL & events) ? POLLNVAL : 0);
-}
-
-static inline gushort
-poll_events_to_gio_cond(short events)
-{
-	return 0
-		| ((POLLIN   & events) ? G_IO_IN   : 0)
-		| ((POLLOUT  & events) ? G_IO_OUT  : 0)
-		| ((POLLPRI  & events) ? G_IO_PRI  : 0)
-		| ((POLLHUP  & events) ? G_IO_HUP  : 0)
-		| ((POLLERR  & events) ? G_IO_ERR  : 0)
-		| ((POLLNVAL & events) ? G_IO_NVAL : 0);
-}
-
-static gint (*default_poll_func)(GPollFD *, guint, gint);
-
-static gboolean
-dispatch_poll(GIOChannel *unused_source,
-	GIOCondition unused_cond, gpointer udata);
-
 static int
 poll_func(GPollFD *gfds, guint n, int timeout_ms)
 {
@@ -885,7 +953,7 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 
 	return r;
 }
-#endif	/* USE_DEV_POLL || USE_POLL */
+#endif	/* USE_DEV_POLL || USE_POLL || USE_WIN_SELECT */
 
 /**
  * Frees the relay structure when its time comes.
@@ -1225,12 +1293,10 @@ inputevt_add_source(inputevt_relay_t *relay)
 
 		poll_ctx->num_ev = 0 != n ? n << 1 : 32;
 
-#ifndef	USE_WIN_SELECT
 		{
 			size_t size = poll_ctx->num_ev * sizeof poll_ctx->ev_arr.ev[0];
 			poll_ctx->ev_arr.ev = g_realloc(poll_ctx->ev_arr.ev, size);
 		}
-#endif	/* !USE_WIN_SELECT */
 
 #ifdef USE_POLL
 		for (i = n; i < poll_ctx->num_ev; i++) {
@@ -1348,7 +1414,7 @@ inputevt_init(void)
 		fd_set_zero(&ctx->xfds);
 #endif	/* USE_WIN_SELECT */
 
-#if defined(USE_DEV_POLL) || defined(USE_POLL)
+#if defined(USE_DEV_POLL) || defined(USE_POLL) || defined(USE_WIN_SELECT)
 		default_poll_func = g_main_context_get_poll_func(NULL);
 		g_main_context_set_poll_func(NULL, poll_func);
 #else
@@ -1462,9 +1528,7 @@ inputevt_close(void)
 	G_FREE_NULL(poll_ctx->used_poll_idx);
 	G_FREE_NULL(poll_ctx->used_event_id);
 	G_FREE_NULL(poll_ctx->relay);
-#ifndef USE_WIN_SELECT
 	G_FREE_NULL(poll_ctx->ev_arr.ev);
-#endif	/* !USE_WIN_SELECT */
 	close(poll_ctx->fd);
 	poll_ctx->initialized = FALSE;
 #endif
