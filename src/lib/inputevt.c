@@ -70,7 +70,7 @@ RCSID("$Id$")
 #if 0
 #define INPUTEVT_SAFETY_ASSERT	/* Enable safety_assert() */
 #endif
-#if 0
+#if 1
 #define INPUTEVT_DEBUGGING		/* Additional debugging traces */
 #endif
 
@@ -88,18 +88,20 @@ RCSID("$Id$")
 #undef USE_DEV_POLL
 #undef USE_GLIB_IO_CHANNELS
 #undef USE_WIN_SELECT
+
 /* Override by manual #define below */
 #define USE_WIN_SELECT
 #define USE_POLL
 
 /* The following lines are for test-compiling without MINGW */
-#ifndef MINGW32
+#if 0 && !defined(MINGW32)
 #define mingw_has_wsapoll() 0
 typedef struct {
 	unsigned short fd_count;
 	unsigned fd_array[FD_SETSIZE];
-} XXXfd_set;
-#define fd_set XXXfd_set
+} FAKE_fd_set;
+#define fd_set FAKE_fd_set
+#define MINGW32 1
 #endif	/* !MINGW32 */
 
 #endif /* XXX */
@@ -241,9 +243,10 @@ struct poll_ctx {
 	unsigned dispatching:1;		/**< TRUE if dispatching events */
 	struct inputevt_array ev_arr;
 #ifdef USE_WIN_SELECT
-	fd_set rfds;
-	fd_set wfds;
-	fd_set xfds;
+	fd_set rfds, orfds;
+	fd_set wfds, owfds;
+	fd_set xfds, oxfds;
+	int	fd_array[FD_SETSIZE];
 #endif	/* USE_WIN_SELECT */
 };
 
@@ -258,18 +261,23 @@ get_global_poll_ctx(void)
 static inline void
 fd_set_register(fd_set *fds, unsigned idx)
 {
+	g_assert(fds);
 	g_assert(idx < FD_SETSIZE);
+#ifdef MINGW32
 	g_assert(fds->fd_count <= FD_SETSIZE);
 	g_assert(-1 == cast_to_fd(fds->fd_array[idx]));
 
 	if (fds->fd_count <= idx) {
 		fds->fd_count = idx + 1;
 	}
+#endif	/* MINGW32 */
 }
 
 static inline void
-fd_set_clear(fd_set *fds, unsigned idx)
+fd_set_clear(fd_set *fds, unsigned idx, int fd)
+#ifdef MINGW32
 {
+	(void) fd;
 	g_assert(idx < FD_SETSIZE);
 	g_assert(fds->fd_count <= FD_SETSIZE);
 
@@ -277,9 +285,16 @@ fd_set_clear(fd_set *fds, unsigned idx)
 	if (fds->fd_count == idx)
 		fds->fd_count--;
 }
+#else
+{
+	g_assert(idx < FD_SETSIZE);
+	FD_CLR(fd, fds);
+}
+#endif	/* MINGW32 */
 
 static inline void
 fd_set_zero(fd_set *fds)
+#ifdef MINGW32
 {
 	unsigned i;
 
@@ -288,6 +303,29 @@ fd_set_zero(fd_set *fds)
 		fds->fd_array[i] = -1;
 	}
 }
+#else
+{
+	FD_ZERO(fds);
+}
+#endif	/* MINGW32 */
+
+static inline void
+fd_set_modify(fd_set *fds, unsigned idx, int fd, int value)
+#ifdef MINGW32
+{
+	(void) fd;
+	fds->fd_array[idx] = value;
+}
+#else
+{
+	(void) idx;
+	if (value < 0)
+		FD_CLR(fd, fds);
+	else
+		FD_SET(fd, fds);
+}
+#endif	/* MINGW32 */
+
 #endif	/* USE_WIN_SELECT */
 
 static inline unsigned
@@ -329,6 +367,9 @@ inputevt_poll_idx_new(struct poll_ctx *ctx, int fd)
 
 #if defined(USE_WIN_SELECT)
 	{
+		g_assert(-1 == ctx->fd_array[idx]);
+		ctx->fd_array[idx] = fd;
+
 		fd_set_register(&ctx->rfds, idx);
 		fd_set_register(&ctx->wfds, idx);
 		fd_set_register(&ctx->xfds, idx);
@@ -361,9 +402,17 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned idx)
 
 #ifdef USE_WIN_SELECT
 	{
-		fd_set_clear(&ctx->rfds, idx);
-		fd_set_clear(&ctx->wfds, idx);
-		fd_set_clear(&ctx->xfds, idx);
+		int fd;
+
+		g_assert(idx < G_N_ELEMENTS(ctx->fd_array));
+		fd = ctx->fd_array[idx];
+
+		g_assert(is_valid_fd(fd));
+		ctx->fd_array[idx] = -1;
+
+		fd_set_clear(&ctx->rfds, idx, fd);
+		fd_set_clear(&ctx->wfds, idx, fd);
+		fd_set_clear(&ctx->xfds, idx, fd);
 	}
 #endif	/* USE_WIN_SELECT */
 }
@@ -681,9 +730,9 @@ update_poll_event_with_select(struct poll_ctx *ctx, int fd,
 	g_assert(rl->poll_idx < ctx->num_poll_idx);
 
 	if (old != cur) {
-		ctx->rfds.fd_array[rl->poll_idx] = (INPUT_EVENT_R & cur) ? fd : -1;
-		ctx->wfds.fd_array[rl->poll_idx] = (INPUT_EVENT_W & cur) ? fd : -1;
-		ctx->xfds.fd_array[rl->poll_idx] = (INPUT_EVENT_EXCEPTION & cur) ? fd : -1;
+		fd_set_modify(&ctx->rfds, rl->poll_idx, fd, (INPUT_EVENT_R & cur) ? fd : -1);
+		fd_set_modify(&ctx->wfds, rl->poll_idx, fd, (INPUT_EVENT_W & cur) ? fd : -1);
+		fd_set_modify(&ctx->xfds, rl->poll_idx, fd, fd);
 	}
 	return 0;
 }
@@ -748,15 +797,25 @@ collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
 {
 	struct timeval tv;
 	int ret;
+	fd_set rfds, wfds, xfds;
 
 	tv.tv_sec = timeout_ms / 1000;
 	tv.tv_usec = (timeout_ms % 1000) * 1000UL;
-	/* FIXME: INT_MAX is just a hack */
-	ret = select(INT_MAX,
-			(void *) &ctx->rfds,
-			(void *) &ctx->wfds,
-			(void *) &ctx->xfds,
+
+	memcpy(&rfds, &ctx->rfds, sizeof rfds);
+	memcpy(&wfds, &ctx->wfds, sizeof wfds);
+	memcpy(&xfds, &ctx->xfds, sizeof xfds);
+
+	ret = select(INT_MAX, /* FIXME: INT_MAX is just a hack */
+			(void *) &rfds,
+			(void *) &wfds,
+			(void *) &xfds,
 			timeout_ms < 0 ? NULL : &tv);
+	if (ret > 0) {
+		memcpy(&ctx->orfds, &rfds, sizeof rfds);
+		memcpy(&ctx->owfds, &wfds, sizeof wfds);
+		memcpy(&ctx->oxfds, &xfds, sizeof xfds);
+	}
 	if (-1 == ret && !is_temporary_error(errno)) {
 		g_warning("collect_events(): select() failed: %s", g_strerror(errno));
 	}
@@ -798,29 +857,42 @@ check_poll_events(struct poll_ctx *poll_ctx)
 static inline int
 get_poll_event_fd_with_select(const struct poll_ctx *ctx, unsigned idx)
 {
-	int r, w, x;
+	int fd;
 
-	r = ctx->rfds.fd_array[idx];
-	w = ctx->wfds.fd_array[idx];
-	x = ctx->xfds.fd_array[idx];
+	g_assert(idx < G_N_ELEMENTS(ctx->fd_array));
+	fd = ctx->fd_array[idx];
 
-	/* Each should be either -1 or fd */
-	return r & w & x;
+	return fd;
 }
 
 static inline inputevt_cond_t 
 get_poll_event_cond_with_select(const struct poll_ctx *ctx, unsigned idx)
+#ifdef MINGW32
 {
 	int r, w, x;
 
-	r = ctx->rfds.fd_array[idx];
-	w = ctx->wfds.fd_array[idx];
-	x = ctx->xfds.fd_array[idx];
-	
+	r = ctx->orfds.fd_array[idx];
+	w = ctx->owfds.fd_array[idx];
+	x = ctx->oxfds.fd_array[idx];
+
 	return (is_valid_fd(r) ? INPUT_EVENT_R : 0)
 		| (is_valid_fd(w) ? INPUT_EVENT_W : 0)
 		| (is_valid_fd(x) ? INPUT_EVENT_EXCEPTION : 0);
 }
+#else
+{
+	int fd;
+
+	g_assert(idx < G_N_ELEMENTS(ctx->fd_array));
+	fd = ctx->fd_array[idx];
+	g_assert(is_valid_fd(fd));
+
+	return (FD_ISSET(fd, &ctx->orfds) ? INPUT_EVENT_R : 0)
+		| (FD_ISSET(fd, &ctx->owfds) ? INPUT_EVENT_W : 0)
+		| (FD_ISSET(fd, &ctx->oxfds) ? INPUT_EVENT_EXCEPTION : 0);
+}
+#endif	/* MINGW32*/
+
 #endif	/* USE_WIN_SELECT */
 
 #if defined(USE_POLL) || defined(USE_DEV_POLL)
@@ -1089,6 +1161,10 @@ inputevt_timer(struct poll_ctx *poll_ctx)
 	
 	poll_ctx->dispatching = TRUE;
 
+	/**
+	 * FIXME:	select() returns the total number of events
+	 *			which could be 3 * ctx->num_ev.
+	 */
 	for (i = 0; n > 0 && UNSIGNED(i) < poll_ctx->num_ev; i++) {
 		inputevt_cond_t cond;
 		relay_list_t *rl;
@@ -1409,6 +1485,12 @@ inputevt_init(void)
 		ctx->ht = g_hash_table_new(NULL, NULL);
 
 #if defined(USE_WIN_SELECT)
+		{
+			size_t i;
+
+			for (i = 0; i < G_N_ELEMENTS(ctx->fd_array); i++)
+				ctx->fd_array[i] = -1;
+		}
 		fd_set_zero(&ctx->rfds);
 		fd_set_zero(&ctx->wfds);
 		fd_set_zero(&ctx->xfds);
