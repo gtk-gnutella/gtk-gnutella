@@ -114,7 +114,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 	int res = -1;
 
 	/* If fd isn't opened, _get_osfhandle() fails with errno set to EBADF */
-	if (INVALID_HANDLE_VALUE == (HANDLE) _get_osfhandle(fd)) {
+	if (INVALID_HANDLE_VALUE == (HANDLE) _get_osfhandle(fd) && !is_a_socket(fd)) {
 		errno = EBADF;
 		return -1;
 	}
