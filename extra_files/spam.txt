@@ -98,3 +98,8 @@ NAME [ ]for[ ].*[ ]fans[.](avi|mov|mpg)$
 ADDED 2010-12-27
 SIZE 1000000-10000000
 END
+
+NAME \[(isohunt[.]com|release from torrentsearch[.com]|thepiratebay[.]org)\][.](rar|rar)$
+ADDED 2011-01-10
+SIZE 0-2000000
+END
