@@ -813,6 +813,15 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			rs->status |= ST_URN_SPAM;
 			record->flags |= SR_SPAM;
 			gnet_stats_count_general(GNR_SPAM_SHA1_HITS, 1);
+		} else if (
+			T_LIME == rs->vcode.u32 &&
+			NULL == record->xml &&
+			(is_strsuffix(record->filename, (size_t)-1, ".avi") ||
+				is_strsuffix(record->filename, (size_t)-1, ".mpg"))
+		) {
+			/* LimeWire adds XML metadata for AVI files */
+			search_results_mark_fake_spam(rs);
+			record->flags |= SR_SPAM;
 		} else if (spam_check_filename_size(record->filename, record->size)) {
 			rs->status |= ST_NAME_SPAM;
 			record->flags |= SR_SPAM;
@@ -826,13 +835,6 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		} else if (is_evil_filename(record->filename)) {
 			rs->status |= ST_EVIL;
 			record->flags |= SR_IGNORED;
-		} else if (
-			T_LIME == rs->vcode.u32 &&
-			NULL == record->xml &&
-			is_strsuffix(record->filename, (size_t)-1, ".avi")
-		) {
-			/* LimeWire adds XML metadata for AVI files */
-			search_results_mark_fake_spam(rs);
 		}
 
 		has_tth |= NULL != record->tth;
