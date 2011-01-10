@@ -688,7 +688,7 @@ update_poll_event_with_select(struct poll_ctx *ctx, int fd,
 	if (old != cur) {
 		fd_set_modify(&ctx->rfds, rl->poll_idx, fd, (INPUT_EVENT_R & cur) ? fd : -1);
 		fd_set_modify(&ctx->wfds, rl->poll_idx, fd, (INPUT_EVENT_W & cur) ? fd : -1);
-		fd_set_modify(&ctx->xfds, rl->poll_idx, fd, fd);
+		fd_set_modify(&ctx->xfds, rl->poll_idx, fd, cur ? fd : -1);
 	}
 	return 0;
 }
