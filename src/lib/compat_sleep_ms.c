@@ -57,22 +57,28 @@ compat_sleep_ms(unsigned int ms)
 		 * different limits of the diverse methods of suspending the
 		 * process.
 		 */
-		d = MIN(ms, 500);
+
+		d = MIN(ms, 2000000);
 		ms -= d;
 
-#if defined(HAS_USLEEP)
-		usleep(d * 1000);
-#elif defined(HAS_NANOSLEEP)
+		/*
+		 * Prefer nanosleep() over usleep() because it is guaranteed to
+		 * not interact with signals.
+		 */
+
+#if defined(HAS_NANOSLEEP)
 		{
 			struct timespec ts;
 
-			ts.tv_nsec = d * 1000000;
-			ts.tv_sec = 0;
+			ts.tv_sec = ms / 1000;
+			ts.tv_nsec = (d - ts.tv_sec * 1000) * 1000000;
 			nanosleep(&ts, NULL);
 		}
+#elif defined(HAS_USLEEP)
+		usleep(d * 1000);
 #else
 		compat_poll(NULL, 0, d);
-#endif	/* HAS_USLEEP */
+#endif	/* HAS_NANOSLEEP || HAS_USLEEP */
 	}
 }
 
