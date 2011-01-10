@@ -263,60 +263,23 @@ fd_set_register(fd_set *fds, unsigned idx)
 {
 	g_assert(fds);
 	g_assert(idx < FD_SETSIZE);
-#ifdef MINGW32
-	g_assert(fds->fd_count <= FD_SETSIZE);
-	g_assert(-1 == cast_to_fd(fds->fd_array[idx]));
-
-	if (fds->fd_count <= idx) {
-		fds->fd_count = idx + 1;
-	}
-#endif	/* MINGW32 */
 }
 
 static inline void
 fd_set_clear(fd_set *fds, unsigned idx, int fd)
-#ifdef MINGW32
-{
-	(void) fd;
-	g_assert(idx < FD_SETSIZE);
-	g_assert(fds->fd_count <= FD_SETSIZE);
-
-	fds->fd_array[idx] = -1;
-	if (fds->fd_count == idx + 1)
-		fds->fd_count--;
-}
-#else
 {
 	g_assert(idx < FD_SETSIZE);
 	FD_CLR(fd, fds);
 }
-#endif	/* MINGW32 */
 
 static inline void
 fd_set_zero(fd_set *fds)
-#ifdef MINGW32
-{
-	unsigned i;
-
-	fds->fd_count = 0;
-	for (i = 0; i < G_N_ELEMENTS(fds->fd_array); i++) {
-		fds->fd_array[i] = -1;
-	}
-}
-#else
 {
 	FD_ZERO(fds);
 }
-#endif	/* MINGW32 */
 
 static inline void
 fd_set_modify(fd_set *fds, unsigned idx, int fd, int value)
-#ifdef MINGW32
-{
-	(void) fd;
-	fds->fd_array[idx] = value;
-}
-#else
 {
 	(void) idx;
 	if (value < 0)
@@ -324,7 +287,6 @@ fd_set_modify(fd_set *fds, unsigned idx, int fd, int value)
 	else
 		FD_SET(fd, fds);
 }
-#endif	/* MINGW32 */
 
 #endif	/* USE_WIN_SELECT */
 
@@ -865,19 +827,6 @@ get_poll_event_fd_with_select(const struct poll_ctx *ctx, unsigned idx)
 
 static inline inputevt_cond_t 
 get_poll_event_cond_with_select(const struct poll_ctx *ctx, unsigned idx)
-#ifdef MINGW32
-{
-	int r, w, x;
-
-	r = ctx->orfds.fd_array[idx];
-	w = ctx->owfds.fd_array[idx];
-	x = ctx->oxfds.fd_array[idx];
-
-	return (is_valid_fd(r) ? INPUT_EVENT_R : 0)
-		| (is_valid_fd(w) ? INPUT_EVENT_W : 0)
-		| (is_valid_fd(x) ? INPUT_EVENT_EXCEPTION : 0);
-}
-#else
 {
 	int fd;
 
@@ -889,7 +838,6 @@ get_poll_event_cond_with_select(const struct poll_ctx *ctx, unsigned idx)
 		| (FD_ISSET(fd, &ctx->owfds) ? INPUT_EVENT_W : 0)
 		| (FD_ISSET(fd, &ctx->oxfds) ? INPUT_EVENT_EXCEPTION : 0);
 }
-#endif	/* MINGW32*/
 
 #endif	/* USE_WIN_SELECT */
 
