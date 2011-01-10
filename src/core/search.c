@@ -3361,6 +3361,12 @@ search_results(gnutella_node_t *n, int *results)
 		} else if (ST_HOSTILE & rs->status) {
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		}
+
+		if (
+			(ST_UDP | ST_GOOD_TOKEN) == ((ST_UDP | ST_GOOD_TOKEN) & rs->status)
+		) {
+			hostiles_dynamic_add(rs->last_hop);
+		}
 	} else {
 		if (
 			!dq_got_results(gnutella_header_get_muid(&n->header),

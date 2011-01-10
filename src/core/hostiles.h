@@ -44,6 +44,7 @@ gboolean hostiles_check(const host_addr_t addr);
 void hostiles_init(void);
 void hostiles_close(void);
 
+void hostiles_dynamic_add(const host_addr_t addr);
 #endif /* _core_hostiles_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

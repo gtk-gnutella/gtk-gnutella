@@ -80,6 +80,13 @@ static const char * const hostiles_what[NUM_HOSTILES] = {
 static struct iprange_db *hostile_db[NUM_HOSTILES];	/**< The hostile database */
 
 /**
+ * Hostile addresses dynamically collected at runtime for duration of a
+ * session. If the hashtable reaches a certain size, we could create
+ * a more efficient "iprange_db" from it.
+ */
+static GHashTable *ht_dynamic_ipv4;
+
+/**
  * Frees all entries in the given hostiles.
  */
 static void
@@ -301,6 +308,7 @@ use_global_hostiles_txt_changed(property_t unused_prop)
 void
 hostiles_init(void)
 {
+	ht_dynamic_ipv4 = g_hash_table_new(NULL, NULL);
 	hostiles_retrieve(HOSTILE_PRIVATE);
     gnet_prop_add_prop_changed_listener(PROP_USE_GLOBAL_HOSTILES_TXT,
 		use_global_hostiles_txt_changed, TRUE);
@@ -320,6 +328,45 @@ hostiles_close(void)
 
 	gnet_prop_remove_prop_changed_listener(PROP_USE_GLOBAL_HOSTILES_TXT,
 		use_global_hostiles_txt_changed);
+	gm_hash_table_destroy_null(&ht_dynamic_ipv4);
+}
+
+static void
+hostiles_dynamic_add_ipv4(guint32 ipv4)
+{
+	unsigned long count;
+	void *key = uint_to_pointer(ipv4);
+
+	count = pointer_to_ulong(g_hash_table_lookup(ht_dynamic_ipv4, key));
+	if (count < ULONG_MAX)
+		count++;
+	g_hash_table_insert(ht_dynamic_ipv4, key, ulong_to_pointer(count));
+
+	if (GNET_PROPERTY(ban_debug > 0)) {
+		char buf[HOST_ADDR_BUFLEN];
+
+		host_addr_to_string_buf(host_addr_get_ipv4(ipv4), buf, sizeof buf);
+		g_info("Dynamically caught hostile: %s (count=%lu)", buf, count);
+	}
+}
+
+void
+hostiles_dynamic_add(const host_addr_t addr)
+{
+	host_addr_t ipv4_addr;
+
+	if (
+		host_addr_convert(addr, &ipv4_addr, NET_TYPE_IPV4) ||
+		host_addr_tunnel_client(addr, &ipv4_addr)
+	) {
+		hostiles_dynamic_add_ipv4(host_addr_ipv4(ipv4_addr));
+	}
+}
+
+static inline gboolean
+hostiles_dynamic_check_ipv4(guint32 ipv4)
+{
+	return gm_hash_table_contains(ht_dynamic_ipv4, uint_to_pointer(ipv4));
 }
 
 /**
@@ -341,6 +388,8 @@ hostiles_check(const host_addr_t ha)
 		int i;
 
 		ip = host_addr_ipv4(to);
+		if (hostiles_dynamic_check_ipv4(ip))
+			return TRUE;
 
 		for (i = 0; i < NUM_HOSTILES; i++) {
 			if (i == HOSTILE_GLOBAL && !GNET_PROPERTY(use_global_hostiles_txt))
