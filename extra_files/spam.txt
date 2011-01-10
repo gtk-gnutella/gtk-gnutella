@@ -104,7 +104,17 @@ ADDED 2011-01-10
 SIZE 0-2000000
 END
 
-NAME (^\[201. edition\][ ].*\[download\]|\[remix by DJF leak\]).mov
+NAME (Crack[ ]by[ ]netflix|crack[ ]from[ ]Vikea)[.](rar|zip)$
+ADDED 2011-01-10
+SIZE 0-2000000
+END
+
+NAME (^\[201. edition\][ ].*\[download\]|\[remix by DJF leak\]).mov$
 ADDED 2011-01-10
 SIZE 4000000-8000000
+END
+
+NAME \[torrentfix[.]com[ ]edition\].torrent$
+ADDED 2011-01-10
+SIZE 0-4000
 END
