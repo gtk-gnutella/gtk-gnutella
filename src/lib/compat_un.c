@@ -104,7 +104,6 @@ enum sock_un_magic { SOCK_UN_MAGIC = 0x3f0885fa };
  */
 struct sock_un {
 	enum sock_un_magic magic;
-	char path[SUN_PATH_SZ];
 	int refcnt;
 	union {
 		struct {					/* listening socket */
@@ -123,6 +122,7 @@ struct sock_un {
 	unsigned listening:1;
 	unsigned connected:1;
 	unsigned validated:1;
+	char path[SUN_PATH_SZ];
 };
 
 static inline void
@@ -339,6 +339,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 
 	/* Magic: "<?socket?>" */
 
+	/* FIXME: Don't ignore partial writes! */
 	if (-1 == write(fd, SOCK_FILE_MAGIC, CONST_STRLEN(SOCK_FILE_MAGIC)))
 		goto io_error;
 
@@ -347,6 +348,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 	{
 		const char *port_str = uint32_to_string(port);
 
+		/* FIXME: Don't ignore partial writes! */
 		if (-1 == write(fd, port_str, strlen(port_str)))
 			goto io_error;
 	}
@@ -356,6 +358,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 	{
 		const char *type = sun->stream ? " s " : " d ";
 
+		/* FIXME: Don't ignore partial writes! */
 		if (-1 == write(fd, type, strlen(type)))
 			goto io_error;
 	}
@@ -373,12 +376,14 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 			sun->u.l.client_cookie[2], sun->u.l.client_cookie[3],
 			'\0');
 
+		/* FIXME: Don't ignore partial writes! */
 		if (-1 == write(fd, str_2c(str), str_len(str)))
 			goto io_error;
 
 		str_destroy(str);
 	}
 
+	/* FIXME: fd_close() to prevent 2x close() there could be hidden threads! */
 	if (-1 == close(fd))
 		goto io_error;
 
@@ -652,15 +657,17 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 		size_t i;
 
 		rw = read(fd, buf, sizeof buf);
-		if (-1 == rw)
+		if ((ssize_t) -1 == rw)
 			goto io_error;
 		close(fd);
 
 		g_assert(UNSIGNED(rw) <= sizeof buf);
 
+		/* FIXME: buf[-1] if rw is zero! */
 		if (buf[rw - 1] != '\0')
 			goto not_a_socket;
 
+		/* FIXME: Unitialized memory read! */
 		p = is_strprefix(buf, SOCK_FILE_MAGIC);
 		if (NULL == p)
 			goto not_a_socket;
@@ -735,12 +742,12 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	 */
 
 	{
-		char buf[4];
+		guint32 value;
 
-		if (sizeof buf != s_read(sd, buf, sizeof buf))
+		if (sizeof value != s_read(sd, value, sizeof value))
 			return -1;
 
-		if (0 != memcmp(&buf, &server[0], sizeof buf))
+		if (value != server[0])
 			goto refused;
 	}
 
