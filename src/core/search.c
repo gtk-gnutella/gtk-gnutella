@@ -826,6 +826,13 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		} else if (is_evil_filename(record->filename)) {
 			rs->status |= ST_EVIL;
 			record->flags |= SR_IGNORED;
+		} else if (
+			T_LIME == rs->vcode.u32 &&
+			NULL == record->xml &&
+			is_strsuffix(record->filename, (size_t)-1, ".avi")
+		) {
+			/* LimeWire adds XML metadata for AVI files */
+			search_results_mark_fake_spam(rs);
 		}
 
 		has_tth |= NULL != record->tth;
