@@ -6607,7 +6607,7 @@ int main(void)
 {
 	static int ret;
 	sigset_t oset;
-	ret |= sigprocmask(SIG_BLOCK, NULL, &oset);
+	ret |= sigprocmask(SIG_BLOCK, &oset, &oset);
 	return ret ? 0 : 1;
 }
 EOC
