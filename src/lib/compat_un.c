@@ -683,8 +683,10 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 		if (0 == rw || buf[rw - 1] != '\0')
 			goto not_a_socket;
 
-		if (UNSIGNED(rw) < CONST_STRLEN(SOCK_FILE_MAGIC))
-			goto not_a_socket;
+		/*
+		 * Since buf[] is NUL-terminated, is_strprefix() is safe even if
+		 * the string is shorter than the constant prefix.
+		 */
 
 		p = is_strprefix(buf, SOCK_FILE_MAGIC);
 		if (NULL == p)
