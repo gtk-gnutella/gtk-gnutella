@@ -1498,7 +1498,7 @@ inputevt_init(void)
 		default_poll_func = g_main_context_get_poll_func(NULL);
 		g_main_context_set_poll_func(NULL, poll_func);
 #else
-		{
+		if (is_valid_fd(ctx->fd)) {
 			GIOChannel *ch;
 
 			ch = g_io_channel_unix_new(ctx->fd);
