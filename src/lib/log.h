@@ -59,6 +59,7 @@ struct logstat {
  */
 
 void log_init(void);
+void log_atoms_inited(void);
 void log_close(void);
 void log_set_disabled(enum log_file which, gboolean disabled);
 void log_set(enum log_file which, const char *path);

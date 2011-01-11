@@ -1476,6 +1476,7 @@ main(int argc, char **argv)
 	zinit();
 	walloc_init();
 	atoms_init();
+	log_atoms_inited();		/* Atom layer is up */
 	eval_init();
 	settings_early_init();
 

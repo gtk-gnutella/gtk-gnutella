@@ -50,16 +50,19 @@ static const char * const log_domains[] = {
 	G_LOG_DOMAIN, "Gtk", "GLib", "Pango"
 };
 
+static gboolean atoms_are_inited;
+
 /**
  * A Log file we manage.
  */
 struct logfile {
 	const char *name;		/**< Name (static string) */
-	const char *path;		/**< File path (atom) */
+	const char *path;		/**< File path (atom or static constant) */
 	FILE *f;				/**< File descriptor */
 	time_t otime;			/**< Opening time, for stats */
 	unsigned disabled:1;	/**< Disabled when opened to /dev/null */
 	unsigned changed:1;		/**< Logfile path was changed, pending reopen */
+	unsigned path_is_atom:1;	/**< Path is an atom */
 };
 
 /**
@@ -262,13 +265,26 @@ log_set_disabled(enum log_file which, gboolean disabled)
 void
 log_set(enum log_file which, const char *path)
 {
+	struct logfile *lf;
+
 	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
 	g_assert(path != NULL);
 
-	if (NULL == logfile[which].path || strcmp(path, logfile[which].path) != 0)
-		logfile[which].changed = TRUE;		/* Pending a reopen */
+	lf = &logfile[which];
 
-	atom_str_change(&logfile[which].path, path);
+	if (NULL == lf->path || strcmp(path, lf->path) != 0)
+		lf->changed = TRUE;		/* Pending a reopen */
+
+	if (atoms_are_inited) {
+		if (lf->path_is_atom)
+			atom_str_change(&logfile[which].path, path);
+		else
+			lf->path = atom_str_get(path);
+		lf->path_is_atom = TRUE;
+	} else {
+		g_assert(!lf->path_is_atom);
+		lf->path = path;		/* Must be a constant */
+	}
 }
 
 /**
@@ -368,6 +384,15 @@ log_init(void)
 }
 
 /**
+ * Signals that the atom layer is up.
+ */
+void
+log_atoms_inited(void)
+{
+	atoms_are_inited = TRUE;
+}
+
+/**
  * Shutdown the logging layer.
  */
 void
@@ -376,7 +401,10 @@ log_close(void)
 	size_t i;
 
 	for (i = 0; i < G_N_ELEMENTS(logfile); i++) {
-		atom_str_free_null(&logfile[i].path);
+		struct logfile *lf = &logfile[i];
+
+		if (lf->path_is_atom)
+			atom_str_free_null(&lf->path);
 	}
 }
 
