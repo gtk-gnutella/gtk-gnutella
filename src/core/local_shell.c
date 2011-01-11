@@ -120,7 +120,7 @@ static inline ssize_t
 unix_read(int fd, void *buf, size_t size)
 {
 	if (is_running_on_mingw()) {
-		ssize_t ret = s_read(fd, buf, MIN(size, UNSIGNED(INT_MAX)));
+		ssize_t ret = s_read(fd, buf, size);
 		if (ret >= 0 || ENOTSOCK != errno)
 			return ret;
 		/* FALL THROUGH -- fd is a plain file, not a socket */
@@ -133,7 +133,7 @@ static inline ssize_t
 unix_write(int fd, const void *buf, size_t size)
 {
 	if (is_running_on_mingw()) {
-		ssize_t ret = s_write(fd, buf, MIN(size, UNSIGNED(INT_MAX)));
+		ssize_t ret = s_write(fd, buf, size);
 		if (ret >= 0 || ENOTSOCK != errno)
 			return ret;
 		/* FALL THROUGH -- fd is a plain file, not a socket */
