@@ -354,6 +354,32 @@ hostiles_dynamic_add_ipv4(guint32 ipv4)
 	}
 }
 
+static gboolean
+hostiles_static_check_ipv4(guint32 ipv4)
+{
+	int i;
+
+	for (i = 0; i < NUM_HOSTILES; i++) {
+		if (i == HOSTILE_GLOBAL && !GNET_PROPERTY(use_global_hostiles_txt))
+			continue;
+
+		if (
+			NULL != hostile_db[i] &&
+			NULL != iprange_get(hostile_db[i], ipv4)
+		)
+			return TRUE;
+	}
+	return FALSE;
+}
+
+/**
+ * Adds an IP address temporarily to the list of hostile addresses.
+ * The address is forgotten when the process terminates.
+ *
+ * @note Only IPv4 addresses are handled, others are ignored.
+ *
+ * @param addr The address to blacklist.
+ */
 void
 hostiles_dynamic_add(const host_addr_t addr)
 {
@@ -363,7 +389,10 @@ hostiles_dynamic_add(const host_addr_t addr)
 		host_addr_convert(addr, &ipv4_addr, NET_TYPE_IPV4) ||
 		host_addr_tunnel_client(addr, &ipv4_addr)
 	) {
-		hostiles_dynamic_add_ipv4(host_addr_ipv4(ipv4_addr));
+		guint32 ip = host_addr_ipv4(ipv4_addr);
+
+		if (!hostiles_static_check_ipv4(ip))
+			hostiles_dynamic_add_ipv4(ip);
 	}
 }
 
@@ -388,23 +417,10 @@ hostiles_check(const host_addr_t ha)
 		host_addr_convert(ha, &to, NET_TYPE_IPV4) ||
 		host_addr_tunnel_client(ha, &to)
 	) {
-		guint32 ip;
-		int i;
+		guint32 ip = host_addr_ipv4(to);
 
-		ip = host_addr_ipv4(to);
-		if (hostiles_dynamic_check_ipv4(ip))
-			return TRUE;
-
-		for (i = 0; i < NUM_HOSTILES; i++) {
-			if (i == HOSTILE_GLOBAL && !GNET_PROPERTY(use_global_hostiles_txt))
-				continue;
-
-			if (
-				NULL != hostile_db[i] &&
-				NULL != iprange_get(hostile_db[i], ip)
-			)
-				return TRUE;
-		}
+		return hostiles_dynamic_check_ipv4(ip) ||
+			hostiles_static_check_ipv4(ip);
 	}
 
 	return FALSE;
