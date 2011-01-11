@@ -1483,10 +1483,7 @@ recursive_scan_step_request_sha1(struct bgtask *bt, void *data, int ticks)
 		shared_file_check(sf);
 
 		/* We must not change the file index after request_sha1() */
-		if (!request_sha1(sf)) {
-			file_table[i] = NULL;
-			continue;
-		}
+		request_sha1(sf);
 
 		/*
 		 * In order to transparently handle files requested with the wrong

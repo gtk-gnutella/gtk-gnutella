@@ -58,7 +58,7 @@ void huge_close(void);		/**< Call this when servent is shutdown */
 
 struct tth;
 
-gboolean request_sha1(struct shared_file *);
+void request_sha1(struct shared_file *);
 gboolean sha1_is_cached(const struct shared_file *sf);
 gboolean huge_update_hashes(struct shared_file *sf,
 	const struct sha1 *sha1, const struct tth *tth);

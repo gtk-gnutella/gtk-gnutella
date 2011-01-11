@@ -409,6 +409,24 @@ sha1_read_cache(void)
 	}
 }
 
+static gboolean
+huge_spam_check(struct shared_file *sf, const struct sha1 *sha1)
+{
+	if (NULL != sha1 && spam_sha1_check(sha1)) {
+		g_warning("file \"%s\" is listed as spam (SHA1)", shared_file_path(sf));
+		return TRUE;
+	}
+
+	if (
+		spam_check_filename_size(shared_file_name_nfc(sf),
+			shared_file_size(sf))
+	) {
+		g_warning("file \"%s\" is listed as spam (Name)", shared_file_path(sf));
+		return TRUE;
+	}
+	return FALSE;
+}
+
 /**
  ** Asynchronous computation of hash value
  **/
@@ -438,11 +456,11 @@ huge_update_hashes(struct shared_file *sf,
 		g_warning("file \"%s\" was modified whilst SHA1 was computed",
 			shared_file_path(sf));
 		shared_file_set_modification_time(sf, sb.st_mtime);
-		return request_sha1(sf);					/* Retry! */
+		request_sha1(sf);					/* Retry! */
+		return TRUE;
 	}
 
-	if (spam_sha1_check(sha1)) {
-		g_warning("file \"%s\" is listed as spam", shared_file_path(sf));
+	if (huge_spam_check(sf, sha1)) {
 		shared_file_remove(sf);
 		return FALSE;
 	}
@@ -623,11 +641,8 @@ sha1_is_cached(const struct shared_file *sf)
 
 /**
  * External interface to call for getting the hash for a shared_file.
- *
- * @return if shared_file_remove() was called, FALSE is returned and
- *         "sf" is no longer valid. Otherwise TRUE is returned.
  */
-gboolean
+void
 request_sha1(struct shared_file *sf)
 {
 	struct sha1_cache_entry *cached;
@@ -636,18 +651,11 @@ request_sha1(struct shared_file *sf)
 
 	cached = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
 	if (cached && cached_entry_up_to_date(cached, sf)) {
-		if (spam_sha1_check(cached->sha1)) {
-			g_warning("file \"%s\" is listed as spam", shared_file_path(sf));
-			shared_file_remove(sf);
-			return FALSE;
-		} else {
-			cache_dirty = TRUE;
-			cached->shared = TRUE;
-			shared_file_set_sha1(sf, cached->sha1);
-			shared_file_set_tth(sf, cached->tth);
-			request_tigertree(sf, FALSE);
-			return TRUE;
-		}
+		cache_dirty = TRUE;
+		cached->shared = TRUE;
+		shared_file_set_sha1(sf, cached->sha1);
+		shared_file_set_tth(sf, cached->tth);
+		request_tigertree(sf, FALSE);
 	} else {
 
 		if (GNET_PROPERTY(dbg) > 4) {
@@ -663,7 +671,6 @@ request_sha1(struct shared_file *sf)
 		}
 
 		queue_shared_file_for_sha1_computation(sf);
-		return TRUE;
 	}
 }
 
