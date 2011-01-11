@@ -131,6 +131,60 @@ uint_is_positive(unsigned v)
 }
 
 /**
+ * Calculate the sum of a and b but saturate towards the maximum value.
+ * @return maximum if a + b > maximum, otherwise a + b.
+ */
+static inline guint64
+guint64_saturate_add(guint64 a, guint64 b)
+{
+	guint64 ret = a + b;
+	if (G_UNLIKELY(ret < a))
+		return MAX_INT_VAL(guint64);
+	return ret;
+}
+
+/**
+ * Calculate the product of a and b but saturate towards MAX_UINT64.
+ * @return MAX_UINT64 if a * b > MAX_UINT64, otherwise a * b.
+ */
+static inline guint64
+guint64_saturate_mult(guint64 a, guint64 b)
+{
+	if (0 == a)
+		return 0;
+	if (G_UNLIKELY(MAX_INT_VAL(guint64) / a < b))
+		return MAX_INT_VAL(guint64);
+	return a * b;
+}
+
+/**
+ * Calculate the sum of a and b but saturate towards the maximum value.
+ * @return maximum if a + b > maximum, otherwise a + b.
+ */
+static inline guint32
+guint32_saturate_add(guint32 a, guint32 b)
+{
+	guint32 ret = a + b;
+	if (G_UNLIKELY(ret < a))
+		return MAX_INT_VAL(guint32);
+	return ret;
+}
+
+/**
+ * Calculate the product of a and b but saturate towards MAX_UINT32.
+ * @return MAX_UINT32 if a * b > MAX_UINT32, otherwise a * b.
+ */
+static inline guint32
+guint32_saturate_mult(guint32 a, guint32 b)
+{
+	if (0 == a)
+		return 0;
+	if (G_UNLIKELY(MAX_INT_VAL(guint32) / a < b))
+		return MAX_INT_VAL(guint32);
+	return a * b;
+}
+
+/**
  * Check whether a signed representation of value would be non-negative.
  * @return TRUE if size is greater than or equal to zero, yet smaller than the
  * maximum positive quantity that can be represented.
@@ -150,33 +204,6 @@ static inline gboolean
 guint32_is_positive(guint32 v)
 {
 	return guint32_is_non_negative(v - 1);
-}
-
-/*
- * Calculate the sum of a and b but saturate towards the maximum value.
- * @return maximum if a + b > maximum, otherwise a + b.
- */
-static inline guint32
-guint32_saturate_add(guint32 a, guint32 b)
-{
-	guint32 ret = a + b;
-	if (G_UNLIKELY(ret < a))
-		return MAX_INT_VAL(guint32);
-	return ret;
-}
-
-/*
- * Calculate the product of a and b but saturate towards MAX_UINT32.
- * @return MAX_UINT32 if a * b > MAX_UINT32, otherwise a * b.
- */
-static inline guint32
-guint32_saturate_mult(guint32 a, guint32 b)
-{
-	if (0 == a)
-		return 0;
-	if (G_UNLIKELY(MAX_INT_VAL(guint32) / a < b))
-		return MAX_INT_VAL(guint32);
-	return a * b;
 }
 
 /*
