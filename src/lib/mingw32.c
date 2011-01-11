@@ -283,6 +283,13 @@ mingw_mkdir(const char *path, mode_t mode)
 }
 
 int
+mingw_pipe(int fd[2])
+{
+	/* Buffer size of 8192 is arbitrary */
+	return _pipe(fd, 8192, _O_BINARY);
+}
+
+int
 mingw_stat(const char *path, struct stat *buf)
 {
 	int res = stat(path, buf);

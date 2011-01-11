@@ -158,6 +158,7 @@ ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 #undef getdtablesize
 #define getdtablesize mingw_getdtablesize
 #define mkdir mingw_mkdir
+#define pipe mingw_pipe
 
 typedef SOCKET socket_fd_t;
 typedef WSABUF iovec_t;
@@ -283,6 +284,7 @@ off_t mingw_lseek(int fd, off_t offset, int whence);
 int mingw_rename(const char *oldpath, const char *newpath);
 int mingw_truncate(const char *path, off_t len);
 int mingw_mkdir(const char *path, mode_t mode);
+int mingw_pipe(int fd[2]);
 
 ssize_t mingw_read(int fd, void *buf, size_t count);
 ssize_t mingw_readv(int fd, iovec_t *iov, int iov_cnt);
