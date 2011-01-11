@@ -182,23 +182,25 @@ log_reopen(enum log_file which)
 {
 	gboolean success = TRUE;
 	FILE *f;
+	struct logfile *lf;
 
 	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
 	g_assert(logfile[which].path != NULL);	/* log_set() called */
 
-	f = logfile[which].f;
+	lf = &logfile[which];
+	f = lf->f;
 	g_assert(f != NULL);
 
-	if (freopen(logfile[which].path, "a", f)) {
+	if (freopen(lf->path, "a", f)) {
 		setvbuf(f, NULL, _IOLBF, 0);
-		logfile[which].disabled = 0 == strcmp(logfile[which].path, DEV_NULL);
-		logfile[which].otime = tm_time();
-		logfile[which].changed = FALSE;
+		lf->disabled = 0 == strcmp(lf->path, DEV_NULL);
+		lf->otime = tm_time();
+		lf->changed = FALSE;
 	} else {
 		fprintf(stderr, "freopen(\"%s\", \"a\", ...) failed: %s",
-			logfile[which].path, g_strerror(errno));
-		logfile[which].disabled = TRUE;
-		logfile[which].otime = 0;
+			lf->path, g_strerror(errno));
+		lf->disabled = TRUE;
+		lf->otime = 0;
 		success = FALSE;
 	}
 
@@ -295,15 +297,19 @@ log_set(enum log_file which, const char *path)
 gboolean
 log_rename(enum log_file which, const char *newname)
 {
+	struct logfile *lf;
+
 	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
 	g_assert(newname != NULL);
 
-	if (NULL == logfile[which].path) {
+	lf = &logfile[which];
+
+	if (NULL == lf->path) {
 		errno = EBADF;			/* File not managed, cannot rename */
 		return FALSE;
 	}
 
-	if (logfile[which].disabled) {
+	if (lf->disabled) {
 		errno = EIO;			/* File redirected to /dev/null */
 		return FALSE;
 	}
@@ -317,13 +323,13 @@ log_rename(enum log_file which, const char *newname)
 	 */
 
 	if (is_running_on_mingw()) {
-		if (!freopen(DEV_NULL, "a", logfile[which].f)) {
+		if (!freopen(DEV_NULL, "a", lf->f)) {
 			errno = EIO;
 			return FALSE;
 		}
 	}
 
-	if (-1 == rename(logfile[which].path, newname))
+	if (-1 == rename(lf->path, newname))
 		return FALSE;
 
 	return log_reopen(which);
