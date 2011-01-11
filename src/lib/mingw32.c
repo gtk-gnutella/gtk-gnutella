@@ -345,8 +345,9 @@ mingw_lseek(int fd, off_t offset, int whence)
 ssize_t
 mingw_read(int fd, void *buf, size_t count)
 {
-	ssize_t res = read(fd, buf, count);
+	ssize_t res;
 
+	res = read(fd, buf, MAX(count, UINT_MAX));
 	g_assert(res == -1 || (res >= 0 && UNSIGNED(res) <= count));
 	
 	if (res == -1)
@@ -386,7 +387,7 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
 ssize_t
 mingw_write(int fd, const void *buf, size_t count)
 {
-	ssize_t res = write(fd, buf, count);
+	ssize_t res = write(fd, buf, MIN(count, UINT_MAX));
 	if (res == -1)
 		errno = GetLastError();
 	return res;
@@ -563,7 +564,10 @@ mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 ssize_t
 s_write(socket_fd_t fd, const void *buf, size_t count)
 {
-	ssize_t res = send(fd, buf, count, 0);
+	ssize_t res;
+
+ 	count = MIN(count, UNSIGNED(INT_MAX));	
+	res = send(fd, buf, count, 0);
 	if (res == -1)
 		errno = WSAGetLastError();
 	return res;
@@ -572,7 +576,10 @@ s_write(socket_fd_t fd, const void *buf, size_t count)
 ssize_t
 s_read(socket_fd_t fd, void *buf, size_t count)
 {
-	ssize_t res = recv(fd, buf, count, 0);
+	ssize_t res;
+   
+ 	count = MIN(count, UNSIGNED(INT_MAX));	
+	res = recv(fd, buf, count, 0);
 	if (res == -1)
 		errno = WSAGetLastError();
 	return res;
@@ -648,6 +655,7 @@ mingw_recvfrom(socket_fd_t s, void *data, size_t len, int flags,
 	INT ifromLen = *addrlen;
 	int res;
 
+ 	len = MIN(len, UNSIGNED(INT_MAX));	
 	buf.buf = data;
 	buf.len = len;
 	res = WSARecvFrom(s, &buf, 1, &received, &dflags,
@@ -666,7 +674,10 @@ ssize_t
 mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 	  const struct sockaddr *dest_addr, socklen_t addrlen)
 {
-	ssize_t res = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
+	ssize_t res;
+	
+ 	len = MIN(len, UNSIGNED(INT_MAX));	
+	res = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
 	if (res == -1)
 		errno = WSAGetLastError();
 	return res;
