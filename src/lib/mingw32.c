@@ -473,8 +473,21 @@ mingw_freeaddrinfo(struct addrinfo *res)
 socket_fd_t
 mingw_socket(int domain, int type, int protocol)
 {
-	socket_fd_t res = socket(domain, type, protocol);
-	if (res == INVALID_SOCKET)
+	socket_fd_t res;
+
+	/*
+	 * Use WSASocket() to avoid creating "overlapped" sockets (i.e. sockets
+	 * that can support asynchronous I/O).  This normally allows sockets to be
+	 * use in read() and write() calls, transparently, as if they were files
+	 * but it does not seem to work in the local_shell() code.
+	 *
+	 * It could however save on some system resources (avoiding creating and
+	 * maintaining data structures that we won't be using anyway).
+	 *		--RAM, 2011-01-11
+	 */
+
+	res = WSASocket(domain, type, protocol, NULL, 0, 0);
+	if (INVALID_SOCKET == res)
 		errno = WSAGetLastError();
 	return res;
 }
@@ -926,6 +939,7 @@ mingw_statvfs(const char *path, struct mingw_statvfs *buf)
 	return 0;
 }
 
+#ifdef EMULATE_GETRUSAGE
 /**
  * Convert a FILETIME into a timeval.
  *
@@ -987,6 +1001,7 @@ mingw_getrusage(int who, struct rusage *usage)
 
 	return 0;
 }
+#endif	/* EMULATE_GETRUSAGE */
 
 const char *
 mingw_getlogin(void)
@@ -1019,6 +1034,7 @@ mingw_getpagesize(void)
 	return result = system_info.dwPageSize;
 }
 
+#ifdef EMULATE_UNAME
 int
 mingw_uname(struct utsname *buf)
 {
@@ -1053,6 +1069,68 @@ mingw_uname(struct utsname *buf)
 
 	return 0;
 }
+#endif	/* EMULATE_UNAME */
+
+#ifdef EMULATE_NANOSLEEP
+int
+mingw_nanosleep(const struct timespec *req, struct timespec *rem)
+{
+	static HANDLE t = NULL;
+	LARGE_INTEGER v;
+
+	if (G_UNLIKELY(NULL == t)) {
+		t = CreateWaitableTimer(NULL, TRUE, NULL);
+
+		if (NULL == t)
+			g_warning("unable to create waitable timer, ignoring nanosleep()");
+
+		errno = ENOMEM;		/* System problem anyway */
+		return -1;
+	}
+
+	if (req->tv_sec < 0 || req->tv_nsec < 0 || req->tv_nsec > 999999999) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (0 == req->tv_sec && 0 == req->tv_nsec)
+		return 0;
+
+	/*
+	 * For Windows, the time specification unit is 100 nsec.
+	 * We therefore round the amount of nanoseconds to the nearest value.
+	 * Negative values indicate relative time.
+	 */
+
+	v.QuadPart = (gint64) req->tv_sec * 10000000 +
+		(gint64) (req->tv_nsec + 50) / 100;
+	v.QuadPart = -v.QuadPart;
+
+	if (0 == SetWaitableTimer(t, &v, 0, NULL, NULL, FALSE)) {
+		errno = GetLastError();
+		g_warning("could not set timer, unable to nanosleep(): %s",
+			g_strerror(errno));
+		return -1;
+	}
+
+	if (WaitForSingleObject(t, INFINITE) != WAIT_OBJECT_0) {
+		g_warning("timer returned an unexpected value, nanosleep() failed");
+		errno = EINTR;
+		return -1;
+	}
+
+	/*
+	 * There's no residual time, there cannot be early terminations.
+	 */
+
+	if (G_UNLIKELY(rem != NULL)) {
+		rem->tv_sec = 0;
+		rem->tv_nsec = 0;
+	}
+
+	return 0;
+}
+#endif
 
 gboolean
 mingw_process_is_alive(pid_t pid)

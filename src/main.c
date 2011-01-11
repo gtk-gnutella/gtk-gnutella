@@ -1478,13 +1478,13 @@ main(int argc, char **argv)
 
 	log_init();
 	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
+	mingw_init();
 	vmm_malloc_inited();
 	zinit();
 	walloc_init();
 	atoms_init();
 	eval_init();
 	settings_early_init();
-	mingw_init();
 
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */

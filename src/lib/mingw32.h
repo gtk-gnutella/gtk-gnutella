@@ -152,12 +152,10 @@ ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 #endif	/* HAS_WSARECVMSG */
 
 #define mprotect mingw_mprotect
-#define getrusage mingw_getrusage
 #define getlogin mingw_getlogin
 #define getpagesize mingw_getpagesize
 #undef getdtablesize
 #define getdtablesize mingw_getdtablesize
-#define uname mingw_uname
 #define mkdir mingw_mkdir
 
 typedef SOCKET socket_fd_t;
@@ -185,17 +183,17 @@ struct mingw_statvfs {
 
 };
 
-#ifndef HAS_GETRUSAGE
-#define HAS_GETRUSAGE			/* We emulate it */
-#endif
-
 #ifndef HAS_GETLOGIN
 #define HAS_GETLOGIN			/* We emulate it */
 #endif
 
-#ifndef HAS_UNAME
-#define HAS_UNAME				/* We emulate it */
-#endif
+/*
+ * getrusage() emulation.
+ */
+#ifndef HAS_GETRUSAGE
+#define HAS_GETRUSAGE			/* We emulate it */
+#define EMULATE_GETRUSAGE
+#define getrusage mingw_getrusage
 
 #define RUSAGE_SELF 0
 #define RUSAGE_CHILDREN (-1)
@@ -207,6 +205,17 @@ struct rusage {
 	struct timeval ru_stime;	/* system time used */
 };
 
+int mingw_getrusage(int who, struct rusage *usage);
+#endif	/* !HAS_GETRUSAGE */
+
+/*
+ * uname() emulation.
+ */
+#ifndef HAS_UNAME
+#define HAS_UNAME				/* We emulate it */
+#define EMULATE_UNAME
+#define uname mingw_uname
+
 #define UTSNAME_LENGTH	65
 
 struct utsname {
@@ -216,6 +225,25 @@ struct utsname {
 	char version[UTSNAME_LENGTH];
 	char machine[UTSNAME_LENGTH];
 };
+
+int mingw_uname(struct utsname *buf);
+#endif	/* !HAS_UNAME */
+
+/*
+ * nanosleep() emulation.
+ */
+#ifndef HAS_NANOSLEEP
+#define HAS_NANOSLEEP			/* We emulate it */
+#define EMULATE_NANOSLEEP
+#define nanosleep mingw_nanosleep
+
+struct timespec {
+	time_t tv_sec;				/* seconds */
+	long tv_nsec;				/* nanoseconds */
+};
+
+int mingw_nanosleep(const struct timespec *req, struct timespec *rem);
+#endif	/* !HAS_NANOSLEEP */
 
 static inline void *
 iovec_base(const iovec_t* iovec)
@@ -314,10 +342,8 @@ gboolean mingw_process_is_alive(pid_t pid);
 int mingw_statvfs(const char *path, struct mingw_statvfs *buf);
 guint64 mingw_cpufreq_min(void);
 guint64 mingw_cpufreq_max(void);
-int mingw_getrusage(int who, struct rusage *usage);
 const char *mingw_getlogin(void);
 int mingw_getpagesize(void);
-int mingw_uname(struct utsname *buf);
 
 enum mingw_cpufreq {
 	MINGW_CPUFREQ_CURRENT,
