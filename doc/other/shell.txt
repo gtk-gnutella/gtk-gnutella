@@ -78,6 +78,10 @@ Commands
   - help 
     Shows available commands.
 
+  - intr
+    Toggle interactive mode.
+    Interactive mode is automatically turned on when run from a terminal.
+
   - quit
     Close the shell connection.
 
@@ -90,6 +94,31 @@ Commands
     NOTE: This command does not yet for gtk-gnutella Topless because large
     parts of the code responsible for handling searches and search results
     are implemented in the GUI.
+
+  - log cwd
+    Shows the current working directory, which is were relative logfiles
+    are kept.
+
+  - log rename out|err <path>
+    Renames current "out" or "err" logfile as <path> and reopens the previous
+    logfile.  This can be used to safely "rotate" logfiles.
+
+  - log reopen [out|err|all]
+    Reopens specified logfile, or all of them.  If the names have not been
+    changed with "log set" first, this has no visible effect.
+
+  - log set out|err <path>
+    Sets a new name for log files.  Only the name is changed, and the
+    logfile needs to be re-opened to have output redirected to that file.
+    Absolute or relative paths can be given.  Use "log cwd" to know the
+    current working directory.
+
+  - log status [out|err|all]
+    Display a small status showing the status of each file, its operating
+    flags (managed or (U)nmanaged, (D)isabled or (E)nabled, pending a (R)eopen
+    or already (O)pened), the time since the file was last opened, its
+    current size and the path name ("-" if un-managed yet).
+    By default, supply status for all logfiles, unless one is named explicitly.
 
   - node add <ip> [port]
     Try to connect to given <ip>. [port] is optional. If no [port] is given
@@ -177,18 +206,18 @@ Commands
     Renames the target file for a download with the given download ID.
 
   - stats
-	Print statistics (general counters) in a parseable way for other programs
-	to peruse.  For instance:
+    Print statistics (general counters) in a parseable way for other programs
+    to peruse.  For instance:
 
-		echo stats | gtk-gnutella --shell | grep switching
+        echo stats | gtk-gnutella --shell | grep switching
 
-	would print:
+    would print:
 
-		attempted_resource_switching 7
-		successful_resource_switching 7
-		queued_after_switching 0
+        attempted_resource_switching 7
+        successful_resource_switching 7
+        queued_after_switching 0
 
-	These strings are never translated: consider them as variable names.
+    These strings are never translated: consider them as variable names.
 
 Notes:
 ------

@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2010-2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Logging support.
  *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2010-2011
  */
 
 #include "common.h"
@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "log.h"
+#include "atoms.h"
 #include "halloc.h"
 #include "stacktrace.h"
 #include "offtime.h"
@@ -50,16 +51,30 @@ static const char * const log_domains[] = {
 };
 
 /**
+ * A Log file we manage.
+ */
+struct logfile {
+	const char *name;		/**< Name (static string) */
+	const char *path;		/**< File path (atom) */
+	FILE *f;				/**< File descriptor */
+	time_t otime;			/**< Opening time, for stats */
+	unsigned disabled:1;	/**< Disabled when opened to /dev/null */
+	unsigned changed:1;		/**< Logfile path was changed, pending reopen */
+};
+
+/**
+ * Set of log files.
+ */
+static struct logfile logfile[LOG_MAX_FILES];
+
+/**
  * This is used to protect critical sections of the log_handler() routine
  * so that routines we may call do not blindly log messages unless they
  * have checked with logging_would_recurse() that it will not cause recursion.
  */
 static volatile sig_atomic_t in_log_handler;
 
-/**
- * Whether we can write to stderr.
- */
-static gboolean stderr_disabled;
+static const char DEV_NULL[] = "/dev/null";
 
 /**
  * Prevent recursive logging messages, which are fatal.
@@ -87,7 +102,7 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 	(void) unused_domain;
 	(void) unused_data;
 
-	if (stderr_disabled)
+	if (logfile[LOG_STDERR].disabled)
 		return;
 
 	in_log_handler = TRUE;
@@ -160,20 +175,71 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
  * @return TRUE on success.
  */
 gboolean
-log_reopen(FILE *f, const char *path)
+log_reopen(enum log_file which)
 {
 	gboolean success = TRUE;
+	FILE *f;
 
-	if (freopen(path, "a", f)) {
+	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+	g_assert(logfile[which].path != NULL);	/* log_set() called */
+
+	f = logfile[which].f;
+	g_assert(f != NULL);
+
+	if (freopen(logfile[which].path, "a", f)) {
 		setvbuf(f, NULL, _IOLBF, 0);
-		if (f == stderr)
-			stderr_disabled = 0 == strcmp(path, "/dev/null");
+		logfile[which].disabled = 0 == strcmp(logfile[which].path, DEV_NULL);
+		logfile[which].otime = tm_time();
+		logfile[which].changed = FALSE;
 	} else {
 		fprintf(stderr, "freopen(\"%s\", \"a\", ...) failed: %s",
-			path, g_strerror(errno));
-		if (f == stderr)
-			stderr_disabled = TRUE;
+			logfile[which].path, g_strerror(errno));
+		logfile[which].disabled = TRUE;
+		logfile[which].otime = 0;
 		success = FALSE;
+	}
+
+	return success;
+}
+
+/**
+ * Reopen log file, if managed.
+ *
+ * @return TRUE on success
+ */
+gboolean
+log_reopen_if_managed(enum log_file which)
+{
+	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+
+	if (NULL == logfile[which].path)
+		return TRUE;		/* Unmanaged logfile */
+
+	return log_reopen(which);
+}
+
+/**
+ * Reopen all log files we manage.
+ *
+ * @return TRUE if OK.
+ */
+gboolean
+log_reopen_all(gboolean daemonized)
+{
+	size_t i;
+	gboolean success = TRUE;
+
+	for (i = 0; i < G_N_ELEMENTS(logfile); i++) {
+		struct logfile *lf = &logfile[i];
+
+		if (NULL == lf->path) {
+			if (daemonized)
+				log_set_disabled(i, TRUE);
+			continue;			/* Un-managed */
+		}
+
+		if (!log_reopen(i))
+			success = FALSE;
 	}
 
 	return success;
@@ -183,9 +249,96 @@ log_reopen(FILE *f, const char *path)
  * Enable or disable stderr output.
  */
 void
-log_disable_stderr(gboolean disable)
+log_set_disabled(enum log_file which, gboolean disabled)
 {
-	stderr_disabled = disable;
+	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+
+	logfile[which].disabled = disabled;
+}
+
+/**
+ * Set a managed log file.
+ */
+void
+log_set(enum log_file which, const char *path)
+{
+	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+	g_assert(path != NULL);
+
+	if (NULL == logfile[which].path || strcmp(path, logfile[which].path) != 0)
+		logfile[which].changed = TRUE;		/* Pending a reopen */
+
+	atom_str_change(&logfile[which].path, path);
+}
+
+/**
+ * Rename current managed logfile, then re-opens it as the old name.
+ *
+ * @return TRUE on success, FALSE on errors with errno set.
+ */
+gboolean
+log_rename(enum log_file which, const char *newname)
+{
+	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+	g_assert(newname != NULL);
+
+	if (NULL == logfile[which].path) {
+		errno = EBADF;			/* File not managed, cannot rename */
+		return FALSE;
+	}
+
+	if (logfile[which].disabled) {
+		errno = EIO;			/* File redirected to /dev/null */
+		return FALSE;
+	}
+
+	/*
+	 * On Windows, one cannot rename an opened file.
+	 *
+	 * So first re-open the file to /dev/null.  We don't want to close
+	 * any of stderr or stdout because we may not be able to reopen them
+	 * properly.
+	 */
+
+	if (is_running_on_mingw()) {
+		if (!freopen(DEV_NULL, "a", logfile[which].f)) {
+			errno = EIO;
+			return FALSE;
+		}
+	}
+
+	if (-1 == rename(logfile[which].path, newname))
+		return FALSE;
+
+	return log_reopen(which);
+}
+
+/**
+ * Get statistics about managed log file, filling supplied structure.
+ */
+void
+log_stat(enum log_file which, struct logstat *buf)
+{
+	struct logfile *lf;
+
+	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+	g_assert(buf != NULL);
+
+	lf = &logfile[which];
+	buf->name = lf->name;
+	buf->path = lf->path;
+	buf->otime = lf->otime;
+	buf->disabled = lf->disabled;
+	buf->need_reopen = lf->changed;
+
+	{
+		struct stat sbuf;
+
+		if (-1 == fstat(fileno(lf->f), &sbuf))
+			buf->size = 0;
+		else
+			buf->size = sbuf.st_size;
+	}
 }
 
 /**
@@ -203,6 +356,27 @@ log_init(void)
 			G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING |
 			G_LOG_LEVEL_MESSAGE | G_LOG_LEVEL_INFO | G_LOG_LEVEL_DEBUG,
 			log_handler, NULL);
+	}
+
+	logfile[LOG_STDOUT].f = stdout;
+	logfile[LOG_STDOUT].name = "out";
+	logfile[LOG_STDOUT].otime = tm_time();
+
+	logfile[LOG_STDERR].f = stderr;
+	logfile[LOG_STDERR].name = "err";
+	logfile[LOG_STDERR].otime = tm_time();
+}
+
+/**
+ * Shutdown the logging layer.
+ */
+void
+log_close(void)
+{
+	size_t i;
+
+	for (i = 0; i < G_N_ELEMENTS(logfile); i++) {
+		atom_str_free_null(&logfile[i].path);
 	}
 }
 

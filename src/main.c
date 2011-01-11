@@ -183,8 +183,6 @@ static jmp_buf atexit_env;
 static volatile const char *exit_step = "gtk_gnutella_exit";
 static tm_t start_time;
 
-static int reopen_log_files(void);
-
 /**
  * Force immediate shutdown of SIGALRM reception.
  */
@@ -616,6 +614,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(inputevt_close);
 	DO(locale_close);
 	DO(cq_close);
+	DO(log_close);		/* Does not disable logging */
 
 	/*
 	 * Memory shutdown must come last.
@@ -653,6 +652,301 @@ sig_terminate(int n)
 		exit(EXIT_FAILURE);		/* Terminate ASAP */
 }
 
+extern char **environ;
+
+enum main_arg {
+	main_arg_compile_info,
+	main_arg_daemonize,
+	main_arg_exec_on_crash,
+	main_arg_geometry,
+	main_arg_help,
+	main_arg_log_stderr,
+	main_arg_log_stdout,
+	main_arg_no_halloc,
+	main_arg_no_xshm,
+	main_arg_pause_on_crash,
+	main_arg_ping,
+	main_arg_shell,
+	main_arg_topless,
+	main_arg_version,
+
+	/* Passed through for Gtk+/GDK/GLib */
+	main_arg_class,
+	main_arg_g_fatal_warnings,
+	main_arg_gdk_debug,
+	main_arg_gdk_no_debug,
+	main_arg_gtk_debug,
+	main_arg_gtk_no_debug,
+	main_arg_gtk_module,
+	main_arg_name,
+
+	num_main_args
+};
+
+enum arg_type {
+	ARG_TYPE_NONE,
+	ARG_TYPE_TEXT,
+	ARG_TYPE_PATH
+};
+
+static struct {
+	const enum main_arg id;
+	const char * const name;
+	const char * const summary;
+	const enum arg_type type;
+	const char *arg;	/* memory will be allocated via halloc() */
+	gboolean used;
+} options[] = {
+#define OPTION(name, type, summary) \
+	{ main_arg_ ## name , #name, summary, ARG_TYPE_ ## type, NULL, FALSE }
+
+	OPTION(compile_info,	NONE, "Display compile-time information."),
+	OPTION(daemonize, 		NONE, "Daemonize the process."),
+	OPTION(exec_on_crash, 	PATH, "Execute a command on crash."),
+	OPTION(geometry,		TEXT, "Placement of the main GUI window."),
+	OPTION(help, 			NONE, "Print this message."),
+	OPTION(log_stderr,		PATH, "Log standard output to a file."),
+	OPTION(log_stdout,		PATH, "Log standard error output to a file."),
+#ifdef USE_HALLOC
+	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
+#else
+	OPTION(no_halloc,		NONE, NULL),	/* ignore silently */
+#endif	/* USE_HALLOC */
+	OPTION(no_xshm,			NONE, "Disable MIT shared memory extension."),
+	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
+	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
+	OPTION(shell,			NONE, "Access the local shell interface."),
+#ifdef USE_TOPLESS
+	OPTION(topless,			NONE, NULL),	/* accept but hide */
+#else
+	OPTION(topless,			NONE, "Disable the graphical user-interface."),
+#endif	/* USE_TOPLESS */
+	OPTION(version,			NONE, "Show version information."),
+
+	/* These are handled by Gtk+/GDK/GLib */
+	OPTION(class,				TEXT, NULL),
+	OPTION(g_fatal_warnings,	NONE, NULL),
+	OPTION(gdk_debug,			TEXT, NULL),
+	OPTION(gdk_no_debug,		TEXT, NULL),
+	OPTION(gtk_debug,			TEXT, NULL),
+	OPTION(gtk_no_debug,		TEXT, NULL),
+	OPTION(gtk_module,			TEXT, NULL),
+	OPTION(name,				TEXT, NULL),
+#undef OPTION
+};
+
+static inline char
+underscore_to_hyphen(char c)
+{
+	return '_' == c ? '-' : c;
+}
+
+/**
+ * Checks whether two strings qualify as equivalent, the ASCII underscore
+ * character and the ASCII hyphen character are considered equivalent.
+ *
+ * @return whether the two strings qualify as equivalent or not.
+ */
+static gboolean
+option_match(const char *a, const char *b)
+{
+	g_assert(a);
+	g_assert(b);
+
+	for (;;) {	
+		if (underscore_to_hyphen(*a) != underscore_to_hyphen(*b))
+			return FALSE;
+		if ('\0' == *a)
+			break;
+		a++;
+		b++;
+	}
+
+	return TRUE;
+}
+
+/**
+ * Copies the given option name to a static buffer replacing underscores
+ * with hyphens.
+ *
+ * @return a pointer to a static buffer holding the pretty version of the
+ *         option name. 
+ */
+static const char *
+option_pretty_name(const char *name)
+{
+	static char buf[128];
+	size_t i;
+
+	for (i = 0; i < G_N_ELEMENTS(buf) - 1; i++) {
+		if ('\0' == name[i])
+			break;
+		buf[i] = underscore_to_hyphen(name[i]);
+	}
+	buf[i] = '\0';
+	return buf;
+}
+
+static void
+usage(int exit_code)
+{
+	FILE *f;
+	unsigned i;
+
+	f = EXIT_SUCCESS == exit_code ? stdout : stderr;
+	fprintf(f, "Usage: gtk-gnutella [ options ... ]\n");
+	
+	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
+	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+		g_assert(options[i].id == i);
+
+		if (options[i].summary) {
+			const char *arg, *name;
+			size_t pad;
+
+			arg = "";
+			name = option_pretty_name(options[i].name);
+			switch (options[i].type) {
+			case ARG_TYPE_NONE:
+				break;
+			case ARG_TYPE_TEXT:
+				arg = " <argument>";
+				break;
+			case ARG_TYPE_PATH:
+				arg = " <path>";
+				break;
+			}
+			
+			pad = strlen(name) + strlen(arg);
+			if (pad < 24) {
+				pad = 24 - pad;
+			} else {
+				pad = 0;
+			}
+
+			fprintf(f, "  --%s%s%-*s%s\n",
+				name, arg, (int) MIN(pad, INT_MAX), "", options[i].summary);
+		}
+	}
+	
+	exit(exit_code);
+}
+
+/* NOTE: This function must not allocate any memory. */
+static void
+prehandle_arguments(char **argv)
+{
+	argv++;
+
+	while (argv[0]) {
+		const char *s;
+		unsigned i;
+
+		s = is_strprefix(argv[0], "--");
+		if (NULL == s || '\0' == s[0])
+			break;
+
+		argv++;
+
+		for (i = 0; i < G_N_ELEMENTS(options); i++) {
+			if (option_match(options[i].name, s))
+				break;
+		}
+		if (G_N_ELEMENTS(options) == i)
+			return;
+
+		if (main_arg_no_halloc == i) {
+			options[i].used = TRUE;
+		}
+
+		switch (options[i].type) {
+		case ARG_TYPE_NONE:
+			break;
+		case ARG_TYPE_TEXT:
+		case ARG_TYPE_PATH:
+			if (NULL == argv[0] || '-' == argv[0][0])
+				return;
+
+			argv++;
+			break;
+		}
+	}
+}
+
+/**
+ * Parse arguments, but do not take any action (excepted re-opening log files).
+ */
+static void
+parse_arguments(int argc, char **argv)
+{
+	const char *argv0;
+	unsigned i;
+
+	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
+	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+		g_assert(options[i].id == i);
+	}
+
+#ifdef USE_TOPLESS
+	options[main_arg_topless].used = TRUE;
+#endif	/* USE_TOPLESS */
+
+	argv0 = argv[0];
+	argv++;
+	argc--;
+
+	while (argc > 0) {
+		const char *s;
+
+		s = is_strprefix(argv[0], "--");
+		if (!s)
+			usage(EXIT_FAILURE);
+		if ('\0' == s[0])
+			break;
+
+		argv++;
+		argc--;
+
+		for (i = 0; i < G_N_ELEMENTS(options); i++) {
+			if (option_match(options[i].name, s))
+				break;
+		}
+		if (G_N_ELEMENTS(options) == i) {
+			fprintf(stderr, "Unknown option \"--%s\"\n", s);
+			usage(EXIT_FAILURE);
+		}
+
+		options[i].used = TRUE;
+		switch (options[i].type) {
+		case ARG_TYPE_NONE:
+			break;
+		case ARG_TYPE_TEXT:
+		case ARG_TYPE_PATH:
+			if (argc < 0 || NULL == argv[0] || '-' == argv[0][0]) {
+				fprintf(stderr, "Missing argument for \"--%s\"\n", s);
+				usage(EXIT_FAILURE);
+			}
+			switch (options[i].type) {
+			case ARG_TYPE_TEXT:
+				options[i].arg = NOT_LEAKING(h_strdup(argv[0]));
+				break;
+			case ARG_TYPE_PATH:
+				options[i].arg = NOT_LEAKING(absolute_pathname(argv[0]));
+				if (NULL == options[i].arg) {
+					fprintf(stderr,
+						"Could not determine absolute path for \"--%s\"\n", s);
+					usage(EXIT_FAILURE);
+				}
+				break;
+			case ARG_TYPE_NONE:
+				g_assert_not_reached();
+			}
+			argv++;
+			argc--;
+			break;
+		}
+	}
+}
 static void
 slow_main_timer(time_t now)
 {
@@ -860,7 +1154,7 @@ main_timer(void *unused_data)
 
 	if (sig_hup_received) {
 		sig_hup_received = 0;
-		reopen_log_files();
+		log_reopen_all(options[main_arg_daemonize].used);
 	}
 
 #ifdef MINGW32_ADNS
@@ -942,321 +1236,19 @@ scan_files_once(void *unused_data)
 	return FALSE;
 }
 
-extern char **environ;
-
-enum main_arg {
-	main_arg_compile_info,
-	main_arg_daemonize,
-	main_arg_exec_on_crash,
-	main_arg_geometry,
-	main_arg_help,
-	main_arg_log_stderr,
-	main_arg_log_stdout,
-	main_arg_no_halloc,
-	main_arg_no_xshm,
-	main_arg_pause_on_crash,
-	main_arg_ping,
-	main_arg_shell,
-	main_arg_topless,
-	main_arg_version,
-
-	/* Passed through for Gtk+/GDK/GLib */
-	main_arg_class,
-	main_arg_g_fatal_warnings,
-	main_arg_gdk_debug,
-	main_arg_gdk_no_debug,
-	main_arg_gtk_debug,
-	main_arg_gtk_no_debug,
-	main_arg_gtk_module,
-	main_arg_name,
-
-	num_main_args
-};
-
-enum arg_type {
-	ARG_TYPE_NONE,
-	ARG_TYPE_TEXT,
-	ARG_TYPE_PATH
-};
-
-static struct {
-	const enum main_arg id;
-	const char * const name;
-	const char * const summary;
-	const enum arg_type type;
-	const char *arg;	/* memory will be allocated via halloc() */
-	gboolean used;
-} options[] = {
-#define OPTION(name, type, summary) \
-	{ main_arg_ ## name , #name, summary, ARG_TYPE_ ## type, NULL, FALSE }
-
-	OPTION(compile_info,	NONE, "Display compile-time information."),
-	OPTION(daemonize, 		NONE, "Daemonize the process."),
-	OPTION(exec_on_crash, 	PATH, "Execute a command on crash."),
-	OPTION(geometry,		TEXT, "Placement of the main GUI window."),
-	OPTION(help, 			NONE, "Print this message."),
-	OPTION(log_stderr,		PATH, "Log standard output to a file."),
-	OPTION(log_stdout,		PATH, "Log standard error output to a file."),
-#ifdef USE_HALLOC
-	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
-#else
-	OPTION(no_halloc,		NONE, NULL),	/* ignore silently */
-#endif	/* USE_HALLOC */
-	OPTION(no_xshm,			NONE, "Disable MIT shared memory extension."),
-	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
-	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
-	OPTION(shell,			NONE, "Access the local shell interface."),
-#ifdef USE_TOPLESS
-	OPTION(topless,			NONE, NULL),	/* accept but hide */
-#else
-	OPTION(topless,			NONE, "Disable the graphical user-interface."),
-#endif	/* USE_TOPLESS */
-	OPTION(version,			NONE, "Show version information."),
-
-	/* These are handled by Gtk+/GDK/GLib */
-	OPTION(class,				TEXT, NULL),
-	OPTION(g_fatal_warnings,	NONE, NULL),
-	OPTION(gdk_debug,			TEXT, NULL),
-	OPTION(gdk_no_debug,		TEXT, NULL),
-	OPTION(gtk_debug,			TEXT, NULL),
-	OPTION(gtk_no_debug,		TEXT, NULL),
-	OPTION(gtk_module,			TEXT, NULL),
-	OPTION(name,				TEXT, NULL),
-#undef OPTION
-};
-
-static inline char
-underscore_to_hyphen(char c)
-{
-	return '_' == c ? '-' : c;
-}
-
 /**
- * Checks whether two strings qualify as equivalent, the ASCII underscore
- * character and the ASCII hyphen character are considered equivalent.
- *
- * @return whether the two strings qualify as equivalent or not.
- */
-static gboolean
-option_match(const char *a, const char *b)
-{
-	g_assert(a);
-	g_assert(b);
-
-	for (;;) {	
-		if (underscore_to_hyphen(*a) != underscore_to_hyphen(*b))
-			return FALSE;
-		if ('\0' == *a)
-			break;
-		a++;
-		b++;
-	}
-
-	return TRUE;
-}
-
-/**
- * Copies the given option name to a static buffer replacing underscores
- * with hyphens.
- *
- * @return a pointer to a static buffer holding the pretty version of the
- *         option name. 
- */
-static const char *
-option_pretty_name(const char *name)
-{
-	static char buf[128];
-	size_t i;
-
-	for (i = 0; i < G_N_ELEMENTS(buf) - 1; i++) {
-		if ('\0' == name[i])
-			break;
-		buf[i] = underscore_to_hyphen(name[i]);
-	}
-	buf[i] = '\0';
-	return buf;
-}
-
-static int
-reopen_log_files(void)
-{
-	gboolean failure = FALSE;
-
-	if (options[main_arg_log_stdout].used) {
-		if (!log_reopen(stdout, options[main_arg_log_stdout].arg))
-			failure = TRUE;
-	}
-	if (options[main_arg_log_stderr].used) {
-		if (!log_reopen(stderr, options[main_arg_log_stderr].arg))
-			failure = TRUE;
-	} else if (options[main_arg_daemonize].used) {
-		log_disable_stderr(TRUE);
-	}
-
-	return failure ? -1 : 0;
-}
-
-static void
-usage(int exit_code)
-{
-	FILE *f;
-	unsigned i;
-
-	f = EXIT_SUCCESS == exit_code ? stdout : stderr;
-	fprintf(f, "Usage: gtk-gnutella [ options ... ]\n");
-	
-	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
-	for (i = 0; i < G_N_ELEMENTS(options); i++) {
-		g_assert(options[i].id == i);
-
-		if (options[i].summary) {
-			const char *arg, *name;
-			size_t pad;
-
-			arg = "";
-			name = option_pretty_name(options[i].name);
-			switch (options[i].type) {
-			case ARG_TYPE_NONE:
-				break;
-			case ARG_TYPE_TEXT:
-				arg = " <argument>";
-				break;
-			case ARG_TYPE_PATH:
-				arg = " <path>";
-				break;
-			}
-			
-			pad = strlen(name) + strlen(arg);
-			if (pad < 24) {
-				pad = 24 - pad;
-			} else {
-				pad = 0;
-			}
-
-			fprintf(f, "  --%s%s%-*s%s\n",
-				name, arg, (int) MIN(pad, INT_MAX), "", options[i].summary);
-		}
-	}
-	
-	exit(exit_code);
-}
-
-/* NOTE: This function must not allocate any memory. */
-static void
-prehandle_arguments(char **argv)
-{
-	argv++;
-
-	while (argv[0]) {
-		const char *s;
-		unsigned i;
-
-		s = is_strprefix(argv[0], "--");
-		if (NULL == s || '\0' == s[0])
-			break;
-
-		argv++;
-
-		for (i = 0; i < G_N_ELEMENTS(options); i++) {
-			if (option_match(options[i].name, s))
-				break;
-		}
-		if (G_N_ELEMENTS(options) == i)
-			return;
-
-		if (main_arg_no_halloc == i) {
-			options[i].used = TRUE;
-		}
-
-		switch (options[i].type) {
-		case ARG_TYPE_NONE:
-			break;
-		case ARG_TYPE_TEXT:
-		case ARG_TYPE_PATH:
-			if (NULL == argv[0] || '-' == argv[0][0])
-				return;
-
-			argv++;
-			break;
-		}
-	}
-}
-
-/**
- * Parse arguments, but do not take any action (excepted re-opening log files).
+ * Initialize logging.
  */
 static void
-parse_arguments(int argc, char **argv)
+initialize_logfiles(void)
 {
-	const char *argv0;
-	unsigned i;
+	if (options[main_arg_log_stdout].used)
+		log_set(LOG_STDOUT, options[main_arg_log_stdout].arg);
 
-	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
-	for (i = 0; i < G_N_ELEMENTS(options); i++) {
-		g_assert(options[i].id == i);
-	}
+	if (options[main_arg_log_stderr].used)
+		log_set(LOG_STDERR, options[main_arg_log_stderr].arg);
 
-#ifdef USE_TOPLESS
-	options[main_arg_topless].used = TRUE;
-#endif	/* USE_TOPLESS */
-
-	argv0 = argv[0];
-	argv++;
-	argc--;
-
-	while (argc > 0) {
-		const char *s;
-
-		s = is_strprefix(argv[0], "--");
-		if (!s)
-			usage(EXIT_FAILURE);
-		if ('\0' == s[0])
-			break;
-
-		argv++;
-		argc--;
-
-		for (i = 0; i < G_N_ELEMENTS(options); i++) {
-			if (option_match(options[i].name, s))
-				break;
-		}
-		if (G_N_ELEMENTS(options) == i) {
-			fprintf(stderr, "Unknown option \"--%s\"\n", s);
-			usage(EXIT_FAILURE);
-		}
-
-		options[i].used = TRUE;
-		switch (options[i].type) {
-		case ARG_TYPE_NONE:
-			break;
-		case ARG_TYPE_TEXT:
-		case ARG_TYPE_PATH:
-			if (argc < 0 || NULL == argv[0] || '-' == argv[0][0]) {
-				fprintf(stderr, "Missing argument for \"--%s\"\n", s);
-				usage(EXIT_FAILURE);
-			}
-			switch (options[i].type) {
-			case ARG_TYPE_TEXT:
-				options[i].arg = NOT_LEAKING(h_strdup(argv[0]));
-				break;
-			case ARG_TYPE_PATH:
-				options[i].arg = NOT_LEAKING(absolute_pathname(argv[0]));
-				if (NULL == options[i].arg) {
-					fprintf(stderr,
-						"Could not determine absolute path for \"--%s\"\n", s);
-					usage(EXIT_FAILURE);
-				}
-				break;
-			case ARG_TYPE_NONE:
-				g_assert_not_reached();
-			}
-			argv++;
-			argc--;
-			break;
-		}
-	}
-
-	if (0 != reopen_log_files()) {
+	if (!log_reopen_all(options[main_arg_daemonize].used)) {
 		exit(EXIT_FAILURE);
 	}
 }
@@ -1410,7 +1402,7 @@ handle_arguments(void)
 			exit(EXIT_FAILURE);
 		}
 		/* compat_daemonize() assigned stdout and stderr to /dev/null */
-		if (0 != reopen_log_files()) {
+		if (!log_reopen_all(TRUE)) {
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -1469,14 +1461,15 @@ main(int argc, char **argv)
 
 	/* Early inits */
 
+	log_init();
 	parse_arguments(argc, argv);
+	initialize_logfiles();
 	if (!is_running_on_mingw()) {
 		crash_init(options[main_arg_exec_on_crash].arg, argv[0],
 			options[main_arg_pause_on_crash].used);
 	}	
 	handle_arguments_asap();
 
-	log_init();
 	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
 	mingw_init();
 	vmm_malloc_inited();

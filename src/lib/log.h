@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2010-2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Logging support.
  *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2010-2011
  */
 
 #ifndef _log_h_
@@ -38,14 +38,36 @@
 
 #include "common.h"
 
+enum log_file {
+	LOG_STDOUT = 0,
+	LOG_STDERR,
+
+	LOG_MAX_FILES
+};
+
+struct logstat {
+	const char *name;		/**< Logfile name */
+	const char *path;		/**< File path (NULL if not managed) */
+	time_t otime;			/**< Opening time, for stats */
+	filesize_t size;		/**< Current file size, in bytes */
+	unsigned disabled:1;	/**< Whether logging is disabled */
+	unsigned need_reopen:1;	/**< Logfile pending a reopen */
+};
+
 /*
  * Public interface.
  */
 
 void log_init(void);
-void log_disable_stderr(gboolean disable);
-gboolean log_reopen(FILE *f, const char *path);
+void log_close(void);
+void log_set_disabled(enum log_file which, gboolean disabled);
+void log_set(enum log_file which, const char *path);
+gboolean log_reopen(enum log_file which);
+gboolean log_rename(enum log_file which, const char *newname);
+gboolean log_reopen_if_managed(enum log_file which);
 gboolean log_would_recurse(void);
+gboolean log_reopen_all(gboolean daemonized);
+void log_stat(enum log_file which, struct logstat *buf);
 
 #endif /* _log_h_ */
 
