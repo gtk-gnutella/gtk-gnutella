@@ -342,7 +342,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 	/* Magic: "<?socket?>" */
 
 	rw = write(fd, SOCK_FILE_MAGIC, CONST_STRLEN(SOCK_FILE_MAGIC));
-	if (-1 == rw)
+	if ((ssize_t) -1 == rw)
 		goto io_error;
 	else if (rw != CONST_STRLEN(SOCK_FILE_MAGIC))
 		goto partial_write;
@@ -354,7 +354,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 		size_t port_len = strlen(port_str);
 
 		rw = write(fd, port_str, port_len);
-		if (-1 == rw)
+		if ((ssize_t) -1 == rw)
 			goto io_error;
 		else if (UNSIGNED(rw) != port_len)
 			goto partial_write;
@@ -367,7 +367,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 		size_t type_len = strlen(type);
 
 		rw = write(fd, type, type_len);
-		if (-1 == rw)
+		if ((ssize_t) -1 == rw)
 			goto io_error;
 		else if (UNSIGNED(rw) != type_len)
 			goto partial_write;
@@ -391,7 +391,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 		rw = write(fd, str_2c(str), slen);
 		str_destroy(str);
 
-		if (-1 == rw)
+		if ((ssize_t) -1 == rw)
 			goto io_error;
 		else if (UNSIGNED(rw) != slen)
 			goto partial_write;
@@ -742,7 +742,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 		rw = connect(sd, socket_addr_get_const_sockaddr(&local), len);
 	}
 
-	if (-1 == rw)
+	if ((ssize_t) -1 == rw)
 		return -1;
 
 	/*
