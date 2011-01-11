@@ -50,10 +50,24 @@
  */
 #define HAS_SOCKADDR_UN
 #define HAS_POLL
+#define FALSE 0
+#define TRUE 1
 #define is_running_on_mingw() 0
 #define compat_poll poll
 #define compat_connect connect
 #define compat_socket socket
+#define unix_read read
+#define unix_write write
+
+static inline void
+fd_close(int *fd_ptr, int unused_param)
+{
+	(void) unused_param;
+	if (*fd_ptr >= 0) {
+		close(*fd_ptr);
+		*fd_ptr = -1;
+	}
+}
 
 typedef struct sockaddr_un sockaddr_unix_t;
 
@@ -102,6 +116,32 @@ RCSID("$Id$")
 
 #include "lib/override.h"
 
+static inline ssize_t
+unix_read(int fd, void *buf, size_t size)
+{
+#ifdef MINGW32
+#undef recv
+	ssize_t ret = recv(fd, buf, MIN(size, INT_MAX), 0);
+	if (ret >= 0 || ENOTSOCK != GetLastError())
+		return ret;
+#endif	/* MINGW32 */
+
+	return read(fd, buf, size);
+}
+
+static inline ssize_t
+unix_write(int fd, const void *buf, size_t size)
+{
+#ifdef MINGW32
+#undef send
+	ssize_t ret = send(fd, buf, MIN(size, INT_MAX), 0);
+	if (ret >= 0 || ENOTSOCK != GetLastError())
+		return ret;
+#endif	/* MINGW32 */
+
+	return write(fd, buf, size);
+}
+
 #endif	/* LOCAL_SHELL_STANDALONE */
 
 #ifdef USE_READLINE
@@ -128,12 +168,13 @@ struct line_buf {
 	size_t pos;			/**< Read position relative to buf */
 };
 
+
 /**
  * Attempts to fill the shell buffer from the given file descriptor, however,
  * the buffer is not further filled before it is completely empty.
  */
 static int
-read_data(int fd, struct shell_buf *sb, gboolean is_socket)
+read_data(int fd, struct shell_buf *sb)
 {
 	if (!sb) {
 		return -1;
@@ -149,11 +190,7 @@ read_data(int fd, struct shell_buf *sb, gboolean is_socket)
 		 *		--RAM, 2011-01-05
 		 */
 
-		if (is_socket)
-			ret = s_read(fd, sb->buf, sb->size);
-		else
-			ret = read(fd, sb->buf, sb->size);
-
+		ret = unix_read(fd, sb->buf, sb->size);
 		switch (ret) {
 		case 0:
 			sb->eof = 1;
@@ -229,7 +266,7 @@ read_data_with_readline(struct line_buf *line, struct shell_buf *sb)
  * Attempts to flush the shell buffer to the given file descriptor.
  */
 static int
-write_data(int fd, struct shell_buf *sb, gboolean is_socket)
+write_data(int fd, struct shell_buf *sb)
 {
 	if (!sb) {
 		return -1;
@@ -244,11 +281,7 @@ write_data(int fd, struct shell_buf *sb, gboolean is_socket)
 		 *		--RAM, 2011-01-05
 		 */
 
-		if (is_socket)
-			ret = s_write(fd, &sb->buf[sb->pos], sb->fill);
-		else
-			ret = write(fd, &sb->buf[sb->pos], sb->fill);
-
+		ret = unix_write(fd, &sb->buf[sb->pos], sb->fill);
 		switch (ret) {
 		case 0:
 			sb->hup = 1;
@@ -341,17 +374,17 @@ local_shell_mainloop(int fd)
 				return -1;
 			}
 		} else {
-			if (read_data(STDIN_FILENO, &client, FALSE)) {
+			if (read_data(STDIN_FILENO, &client)) {
 				return -1;
 			}
 		}
-		if (write_data(fd, &client, TRUE)) {
+		if (write_data(fd, &client)) {
 			return -1;
 		}
-		if (read_data(fd, &server, TRUE)) {
+		if (read_data(fd, &server)) {
 			return -1;
 		}
-		if (write_data(STDOUT_FILENO, &server, FALSE)) {
+		if (write_data(STDOUT_FILENO, &server)) {
 			return -1;
 		}
 
