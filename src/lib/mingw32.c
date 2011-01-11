@@ -947,9 +947,9 @@ mingw_statvfs(const char *path, struct mingw_statvfs *buf)
  * @param tv		the struct timeval to fill in
  */
 static void
-mingw_filetime_to_timeval(FILETIME *ft, struct timeval *tv)
+mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv)
 {
-	ULARGE_INTEGER v;
+	guint64 v;
 
 	/*
 	 * From MSDN documentation:
@@ -968,10 +968,11 @@ mingw_filetime_to_timeval(FILETIME *ft, struct timeval *tv)
 	 * the LowPart and HighPart members into the FILETIME structure.
 	 */
 
-	memcpy(&v, ft, sizeof *ft);
-	v.QuadPart /= 10L;				/* Convert into microseconds */
-	tv->tv_sec = v.QuadPart / 1000000L;
-	tv->tv_usec = v.QuadPart % 1000000L;
+	v = ft->dwLowDateTime | ((ft->dwHighDateTime + (guint64) 0) << 32);
+	tv->tv_usec = v % 10000000UL;
+	v /= 10000000UL;
+	/* If time_t is a 32-bit integer, there could be an overflow */
+	tv->tv_sec = MIN(v, UNSIGNED(MAX_INT_VAL(time_t)));
 }
 
 int
@@ -1076,7 +1077,17 @@ int
 mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 {
 	static HANDLE t = NULL;
-	LARGE_INTEGER v;
+	LARGE_INTEGER dueTime;
+	guint64 value;
+
+	/*
+	 * There's no residual time, there cannot be early terminations.
+	 */
+
+	if (NULL != rem) {
+		rem->tv_sec = 0;
+		rem->tv_nsec = 0;
+	}
 
 	if (G_UNLIKELY(NULL == t)) {
 		t = CreateWaitableTimer(NULL, TRUE, NULL);
@@ -1088,7 +1099,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 		return -1;
 	}
 
-	if (req->tv_sec < 0 || req->tv_nsec < 0 || req->tv_nsec > 999999999) {
+	if (req->tv_sec < 0 || req->tv_nsec < 0 || req->tv_nsec > 999999999L) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -1098,15 +1109,16 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 
 	/*
 	 * For Windows, the time specification unit is 100 nsec.
-	 * We therefore round the amount of nanoseconds to the nearest value.
+	 * We therefore round up the amount of nanoseconds to the nearest value.
 	 * Negative values indicate relative time.
 	 */
 
-	v.QuadPart = (gint64) req->tv_sec * 10000000 +
-		(gint64) (req->tv_nsec + 50) / 100;
-	v.QuadPart = -v.QuadPart;
+	value = guint64_saturate_add(
+				guint64_saturate_mult(req->tv_sec, 10000000UL),
+				(req->tv_nsec + 99) / 100);
+	dueTime.QuadPart = -MIN(value, MAX_INT_VAL(gint64));
 
-	if (0 == SetWaitableTimer(t, &v, 0, NULL, NULL, FALSE)) {
+	if (0 == SetWaitableTimer(t, &dueTime, 0, NULL, NULL, FALSE)) {
 		errno = GetLastError();
 		g_warning("could not set timer, unable to nanosleep(): %s",
 			g_strerror(errno));
@@ -1117,15 +1129,6 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 		g_warning("timer returned an unexpected value, nanosleep() failed");
 		errno = EINTR;
 		return -1;
-	}
-
-	/*
-	 * There's no residual time, there cannot be early terminations.
-	 */
-
-	if (G_UNLIKELY(rem != NULL)) {
-		rem->tv_sec = 0;
-		rem->tv_nsec = 0;
 	}
 
 	return 0;
