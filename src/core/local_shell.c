@@ -121,7 +121,7 @@ unix_read(int fd, void *buf, size_t size)
 {
 #ifdef MINGW32
 #undef recv
-	ssize_t ret = recv(fd, buf, MIN(size, INT_MAX), 0);
+	ssize_t ret = recv(fd, buf, MIN(size, UNSIGNED(INT_MAX)), 0);
 	if (ret >= 0 || ENOTSOCK != GetLastError())
 		return ret;
 #endif	/* MINGW32 */
@@ -134,7 +134,7 @@ unix_write(int fd, const void *buf, size_t size)
 {
 #ifdef MINGW32
 #undef send
-	ssize_t ret = send(fd, buf, MIN(size, INT_MAX), 0);
+	ssize_t ret = send(fd, buf, MIN(size, UNSIGNED(INT_MAX)), 0);
 	if (ret >= 0 || ENOTSOCK != GetLastError())
 		return ret;
 #endif	/* MINGW32 */
