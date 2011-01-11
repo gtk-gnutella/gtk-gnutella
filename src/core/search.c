@@ -3372,7 +3372,8 @@ search_results(gnutella_node_t *n, int *results)
 		}
 
 		if (
-			(ST_UDP | ST_GOOD_TOKEN) == ((ST_UDP | ST_GOOD_TOKEN) & rs->status)
+			(ST_UDP | ST_GOOD_TOKEN) == ((ST_UDP | ST_GOOD_TOKEN) & rs->status) ||
+			(0 == rs->hops && !NODE_IS_UDP(n))
 		) {
 			hostiles_dynamic_add(rs->last_hop);
 		}
