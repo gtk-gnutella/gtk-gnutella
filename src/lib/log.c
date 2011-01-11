@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "halloc.h"
 #include "stacktrace.h"
 #include "offtime.h"
+#include "str.h"
 #include "stringify.h"
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
@@ -153,6 +154,9 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 	if (safer != message) {
 		HFREE_NULL(safer);
 	}
+
+	if (is_running_on_mingw())
+		fflush(stderr);			/* Unbuffering does not work on Windows */
 
 #if 0
 	/* Define to debug Glib or Gtk problems */
@@ -298,6 +302,8 @@ gboolean
 log_rename(enum log_file which, const char *newname)
 {
 	struct logfile *lf;
+	int saved_errno = 0;
+	gboolean ok = TRUE;
 
 	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
 	g_assert(newname != NULL);
@@ -317,20 +323,61 @@ log_rename(enum log_file which, const char *newname)
 	/*
 	 * On Windows, one cannot rename an opened file.
 	 *
-	 * So first re-open the file to /dev/null.  We don't want to close
-	 * any of stderr or stdout because we may not be able to reopen them
-	 * properly.
+	 * So first re-open the file to some temporary file.  We don't want to
+	 * close any of stderr or stdout because we may not be able to reopen them
+	 * properly.  We don't reopen the file to /dev/null in case there is
+	 * something wrong and we're renaming stderr: we would then be totally
+	 * blind in case we cannot reopen again the file to its final destination.
+	 * Reopening to /dev/null also seems to have nasty side effectson that
+	 * platform: it closes the file and we cannot reopen it.
 	 */
 
+	fflush(lf->f);		/* Precaution, before renaming */
+
 	if (is_running_on_mingw()) {
-		if (!freopen(DEV_NULL, "a", lf->f)) {
+		const char *tmp = str_smsg("%s.__tmp__", lf->path);
+		if (!freopen(tmp, "a", lf->f)) {
 			errno = EIO;
 			return FALSE;
 		}
 	}
 
-	if (-1 == rename(lf->path, newname))
+	if (-1 == rename(lf->path, newname)) {
+		saved_errno = errno;
+		ok = FALSE;
+	}
+
+	/*
+	 * Whether renaming succeeded or not, we need to restore the file
+	 * to its original destination, and unlink the temporary file.
+	 *
+	 * We use the __tmp__ suffix to make sure there is no name collision
+	 * with a user file that would happen to be there.
+	 */
+
+	if (is_running_on_mingw()) {
+		const char *tmp = str_smsg("%s.__tmp__", lf->path);
+		freopen(lf->path, "a", lf->f);
+		if (-1 == unlink(tmp)) {
+			g_warning("cannot unlink temporary log file \"%s\": %s",
+				tmp, g_strerror(errno));
+		}
+	}
+
+	if (!ok) {
+		g_warning("could not rename \"%s\" as \"%s\": %s",
+			lf->path, newname, g_strerror(saved_errno));
+		errno = saved_errno;
 		return FALSE;
+	}
+
+	/*
+	 * On UNIX, renaming the file keeps the file descriptor pointing to the
+	 * renamed entry, so we reopen the original log file.
+	 *
+	 * On Windows it has already been done above.  We call log_reopen()
+	 * nonetheless, to reset the opening time.
+	 */
 
 	return log_reopen(which);
 }
@@ -356,9 +403,13 @@ log_stat(enum log_file which, struct logstat *buf)
 	{
 		struct stat sbuf;
 
-		if (-1 == fstat(fileno(lf->f), &sbuf))
+		fflush(lf->f);
+
+		if (-1 == fstat(fileno(lf->f), &sbuf)) {
+			g_warning("cannot stat logfile \"%s\" at \"%s\": %s",
+				lf->name, lf->path, g_strerror(errno));
 			buf->size = 0;
-		else
+		} else
 			buf->size = sbuf.st_size;
 	}
 }
