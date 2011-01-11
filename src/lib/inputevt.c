@@ -152,11 +152,11 @@ struct inputevt_array {
  * The following functions must be implemented by any I/O event handler:
  *
  * 	gboolean create_poll_fd(int *fd_ptr);
- * 	int check_poll_events(struct poll_ctx *poll_ctx);
+ * 	int check_poll_events(struct poll_ctx *ctx);
  * 	inputevt_cond_t get_poll_event_cond(unsigned idx);
  * 	int get_poll_event_fd(unsigned idx);
  * 	void poll_event_set_data_avail(void *p);
- * 	int update_poll_event(struct poll_ctx *poll_ctx, int fd,
+ * 	int update_poll_event(struct poll_ctx *ctx, int fd,
  * 		inputevt_cond_t old, inputevt_cond_t cur);
  *
  * When INPUTEVT_DEBUGGING is set, one also needs:
@@ -242,8 +242,8 @@ struct poll_ctx {
 static inline struct poll_ctx *
 get_global_poll_ctx(void)
 {
-	static struct poll_ctx poll_ctx;
-	return &poll_ctx;
+	static struct poll_ctx ctx;
+	return &ctx;
 }
 
 static inline unsigned
@@ -396,7 +396,7 @@ polling_method(void)
 }
 
 static int
-update_poll_event(struct poll_ctx *poll_ctx, int fd,
+update_poll_event(struct poll_ctx *ctx, int fd,
 	inputevt_cond_t old, inputevt_cond_t cur)
 {
 	static const struct timespec zero_ts;
@@ -425,22 +425,21 @@ update_poll_event(struct poll_ctx *poll_ctx, int fd,
 		i++;
 	}
 
-	if (-1 == (ret = kevent(poll_ctx->fd, kev, i, NULL, 0, &zero_ts)))
+	if (-1 == (ret = kevent(ctx->fd, kev, i, NULL, 0, &zero_ts)))
 		g_error("kevent() failed: %s", g_strerror(errno));
 
 	return ret;
 }
 
 static int
-check_poll_events(struct poll_ctx *poll_ctx)
+check_poll_events(struct poll_ctx *ctx)
 {
 	static const struct timespec zero_ts;
 	
-	g_assert(poll_ctx);
-	g_assert(poll_ctx->initialized);
+	g_assert(ctx);
+	g_assert(ctx->initialized);
 
-	return kevent(poll_ctx->fd, NULL, 0,
-			poll_ctx->ev_arr.ev, poll_ctx->num_ev, &zero_ts);
+	return kevent(ctx->fd, NULL, 0, ctx->ev_arr.ev, ctx->num_ev, &zero_ts);
 }
 
 #endif /* USE_KQUEUE */
@@ -478,7 +477,7 @@ polling_method(void)
 }
 
 static int
-update_poll_event(struct poll_ctx *poll_ctx, int fd,
+update_poll_event(struct poll_ctx *ctx, int fd,
 	inputevt_cond_t old, inputevt_cond_t cur)
 {
 	static const struct epoll_event zero_ev;
@@ -505,16 +504,16 @@ update_poll_event(struct poll_ctx *poll_ctx, int fd,
 	else
 		op = EPOLL_CTL_MOD;
 
-	return epoll_ctl(poll_ctx->fd, op, fd, &ev);
+	return epoll_ctl(ctx->fd, op, fd, &ev);
 }
 
 static int
-check_poll_events(struct poll_ctx *poll_ctx)
+check_poll_events(struct poll_ctx *ctx)
 {
-	g_assert(poll_ctx);
-	g_assert(poll_ctx->initialized);
+	g_assert(ctx);
+	g_assert(ctx->initialized);
 	
-	return epoll_wait(poll_ctx->fd, poll_ctx->ev_arr.ev, poll_ctx->num_ev, 0);
+	return epoll_wait(ctx->fd, ctx->ev_arr.ev, ctx->num_ev, 0);
 }
 
 #endif	/* USE_EPOLL */
@@ -535,7 +534,7 @@ polling_method(void)
 }
 
 static int
-update_poll_event(struct poll_ctx *poll_ctx, int fd,
+update_poll_event(struct poll_ctx *ctx, int fd,
 	inputevt_cond_t old, inputevt_cond_t cur)
 {
 	old &= INPUT_EVENT_RW;
@@ -564,7 +563,7 @@ update_poll_event(struct poll_ctx *poll_ctx, int fd,
 			ssize_t ret;
 			size_t size;
 			size = i * sizeof pfd[0];
-			ret = write(poll_ctx->fd, &pfd, size);
+			ret = write(ctx->fd, &pfd, size);
 			g_assert((size_t) ret == size || (ssize_t)-1 == ret);
 		}
 	}
@@ -572,16 +571,16 @@ update_poll_event(struct poll_ctx *poll_ctx, int fd,
 }
 
 static int
-collect_events(struct poll_ctx *poll_ctx, int timeout_ms)
+collect_events(struct poll_ctx *ctx, int timeout_ms)
 {
 	struct dvpoll dvp; 
 	int ret;
 
 	dvp.dp_timeout = timeout_ms;
-	dvp.dp_nfds = poll_ctx->num_ev;
-	dvp.dp_fds = poll_ctx->ev_arr.ev;
+	dvp.dp_nfds = ctx->num_ev;
+	dvp.dp_fds = ctx->ev_arr.ev;
 
-	ret = ioctl(poll_ctx->fd, DP_POLL, &dvp);
+	ret = ioctl(ctx->fd, DP_POLL, &dvp);
 	if (-1 == ret && !is_temporary_error(errno)) {
 		g_warning("check_dev_poll(): ioctl() failed: %s", g_strerror(errno));
 	}
@@ -756,12 +755,10 @@ collect_events(struct poll_ctx *ctx, int timeout_ms)
 
 #if defined(USE_POLL) || defined(USE_DEV_POLL)
 static int
-check_poll_events(struct poll_ctx *poll_ctx)
+check_poll_events(struct poll_ctx *ctx)
 {
-	int ret;
-
-	ret = poll_ctx->num_ready;
-	poll_ctx->num_ready = 0;
+	int ret = ctx->num_ready;
+	ctx->num_ready = 0;
 	return ret;
 }
 #endif	/* USE_POLL || USE_DEV_POLL */
@@ -816,18 +813,18 @@ dispatch_poll(GIOChannel *unused_source,
 	GIOCondition unused_cond, void *udata);
 
 static void
-check_for_events(struct poll_ctx *poll_ctx, int *timeout_ms_ptr)
+check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 {
 	tm_t before, after;
 	time_delta_t d;
 	int ret, timeout_ms;
 
-	g_assert(poll_ctx);
+	g_assert(ctx);
 	g_assert(timeout_ms_ptr);
-	g_assert(0 == poll_ctx->num_ready);
+	g_assert(0 == ctx->num_ready);
 
-	if (poll_ctx->num_ev <= 0) {
-		poll_ctx->num_ready = 0;
+	if (ctx->num_ev <= 0) {
+		ctx->num_ready = 0;
 		return;
 	}
 
@@ -835,7 +832,7 @@ check_for_events(struct poll_ctx *poll_ctx, int *timeout_ms_ptr)
 	timeout_ms = MAX(0, timeout_ms);
 
 	tm_now_exact(&before);
-	ret = collect_events(poll_ctx, timeout_ms);
+	ret = collect_events(ctx, timeout_ms);
 	tm_now_exact(&after);
 	d = tm_elapsed_ms(&after, &before);
 	if (d >= timeout_ms || ret > 0) {
@@ -843,7 +840,7 @@ check_for_events(struct poll_ctx *poll_ctx, int *timeout_ms_ptr)
 	} else {
 		timeout_ms -= d;
 	}
-	poll_ctx->num_ready = MAX(0, ret);
+	ctx->num_ready = MAX(0, ret);
 
 	/* If the original timeout was negative (=INFINITE) and no event
 	 * has occured, the timeout isn't touched.
@@ -856,19 +853,19 @@ check_for_events(struct poll_ctx *poll_ctx, int *timeout_ms_ptr)
 static int
 poll_func(GPollFD *gfds, unsigned n, int timeout_ms)
 {
-	struct poll_ctx *poll_ctx;
+	struct poll_ctx *ctx;
 	int r;
 
-	poll_ctx = get_global_poll_ctx();
-	g_assert(poll_ctx);
-	g_assert(poll_ctx->initialized);
+	ctx = get_global_poll_ctx();
+	g_assert(ctx);
+	g_assert(ctx->initialized);
 
-	if (0 == poll_ctx->num_ready) {
-		check_for_events(poll_ctx, &timeout_ms);
+	if (0 == ctx->num_ready) {
+		check_for_events(ctx, &timeout_ms);
 	}
 
-	if (poll_ctx->num_ready > 0) {
-		dispatch_poll(NULL, 0, poll_ctx);
+	if (ctx->num_ready > 0) {
+		dispatch_poll(NULL, 0, ctx);
 	}
 
 	r = default_poll_func(gfds, n, timeout_ms);
@@ -948,11 +945,11 @@ inputevt_add_source_with_glib(inputevt_relay_t *relay)
  * Purge removed sources.
  */
 static void
-inputevt_purge_removed(struct poll_ctx *poll_ctx)
+inputevt_purge_removed(struct poll_ctx *ctx)
 {
 	GSList *sl;
 
-	for (sl = poll_ctx->removed; NULL != sl; sl = g_slist_next(sl)) {
+	for (sl = ctx->removed; NULL != sl; sl = g_slist_next(sl)) {
 		inputevt_relay_t *relay;
 		relay_list_t *rl;
 		unsigned id;
@@ -960,53 +957,52 @@ inputevt_purge_removed(struct poll_ctx *poll_ctx)
 
 		id = GPOINTER_TO_UINT(sl->data);
 		g_assert(id > 0);
-		g_assert(id < poll_ctx->num_ev);
+		g_assert(id < ctx->num_ev);
 
-		g_assert(0 != bit_array_get(poll_ctx->used_event_id, id));
-		bit_array_clear(poll_ctx->used_event_id, id);
+		g_assert(0 != bit_array_get(ctx->used_event_id, id));
+		bit_array_clear(ctx->used_event_id, id);
 
-		relay = poll_ctx->relay[id];
+		relay = ctx->relay[id];
 		g_assert(relay);
 		g_assert(zero_handler == relay->handler);
 
 		fd = relay->fd;
 		g_assert(is_valid_fd(fd));
 		wfree(relay, sizeof *relay);
-		poll_ctx->relay[id] = NULL;
+		ctx->relay[id] = NULL;
 		
-		rl = g_hash_table_lookup(poll_ctx->ht, GINT_TO_POINTER(fd));
+		rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
 		g_assert(NULL != rl);
 		g_assert(NULL != rl->sl);
 	
 		rl->sl = g_slist_remove(rl->sl, GUINT_TO_POINTER(id));
 		if (NULL == rl->sl) {
 			g_assert(0 == rl->readers && 0 == rl->writers);
-			inputevt_poll_idx_free(poll_ctx, rl->poll_idx);
+			inputevt_poll_idx_free(ctx, rl->poll_idx);
 			rl->poll_idx = -1;
 			wfree(rl, sizeof *rl);
-			g_hash_table_remove(poll_ctx->ht, GINT_TO_POINTER(fd));
+			g_hash_table_remove(ctx->ht, GINT_TO_POINTER(fd));
 		}
 	}
 
-	gm_slist_free_null(&poll_ctx->removed);
+	gm_slist_free_null(&ctx->removed);
 }
 
 static void
-inputevt_timer(struct poll_ctx *poll_ctx)
+inputevt_timer(struct poll_ctx *ctx)
 {
 	int n, i;
 
-	g_assert(poll_ctx);
-	g_assert(poll_ctx->initialized);
-	g_assert(poll_ctx->ht);
+	g_assert(ctx);
+	g_assert(ctx->initialized);
+	g_assert(ctx->ht);
 
 	/* Maybe this must safely fail for general use, thus no assertion */
-	g_return_if_fail(!poll_ctx->dispatching);
+	g_return_if_fail(!ctx->dispatching);
 
-	n = check_poll_events(poll_ctx);
+	n = check_poll_events(ctx);
 	if (-1 == n && !is_temporary_error(errno)) {
-		g_warning("check_poll_events(%d) failed: %s",
-			poll_ctx->fd, g_strerror(errno));
+		g_warning("check_poll_events(%d) failed: %s", ctx->fd, g_strerror(errno));
 	}
 
 	if (n < 1) {
@@ -1014,31 +1010,27 @@ inputevt_timer(struct poll_ctx *poll_ctx)
 		return;
 	}
 	g_assert(n > 0);
-	g_assert(UNSIGNED(n) <= poll_ctx->num_ev);
+	g_assert(UNSIGNED(n) <= ctx->num_ev);
 	
-	poll_ctx->dispatching = TRUE;
+	ctx->dispatching = TRUE;
 
-	/**
-	 * FIXME:	select() returns the total number of events
-	 *			which could be 3 * ctx->num_ev.
-	 */
-	for (i = 0; n > 0 && UNSIGNED(i) < poll_ctx->num_ev; i++) {
+	for (i = 0; n > 0 && UNSIGNED(i) < ctx->num_ev; i++) {
 		inputevt_cond_t cond;
 		relay_list_t *rl;
 		GSList *sl;
 		int fd;
 
-		fd = get_poll_event_fd(poll_ctx, i);
+		fd = get_poll_event_fd(ctx, i);
 		g_assert(fd >= -1);
 		if (!is_valid_fd(fd))
 			continue;
 
-		cond = get_poll_event_cond(poll_ctx, i);
+		cond = get_poll_event_cond(ctx, i);
 		if (0 == cond)
 			continue;
 
 		n--;
-		rl = g_hash_table_lookup(poll_ctx->ht, GINT_TO_POINTER(fd));
+		rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
 		g_assert(NULL != rl);
 		g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
 
@@ -1050,9 +1042,9 @@ inputevt_timer(struct poll_ctx *poll_ctx)
 			sl = g_slist_next(sl);
 
 			g_assert(id > 0);
-			g_assert(id < poll_ctx->num_ev);
+			g_assert(id < ctx->num_ev);
 
-			relay = poll_ctx->relay[id];
+			relay = ctx->relay[id];
 			g_assert(relay);
 			g_assert(relay->fd == fd);
 
@@ -1060,17 +1052,17 @@ inputevt_timer(struct poll_ctx *poll_ctx)
 				continue;
 
 			if (relay->condition & cond) {
-				poll_event_set_data_avail(poll_ctx, i);
+				poll_event_set_data_avail(ctx, i);
 				relay->handler(relay->data, fd, cond);
 			}
 		}
 	}
 	
-	if (poll_ctx->removed) {
-		inputevt_purge_removed(poll_ctx);
+	if (ctx->removed) {
+		inputevt_purge_removed(ctx);
 	}
 	
-	poll_ctx->dispatching = FALSE;
+	ctx->dispatching = FALSE;
 }
 
 static gboolean
@@ -1105,13 +1097,13 @@ dispatch_poll(GIOChannel *unused_source,
 void
 inputevt_remove(unsigned id)
 {
-	struct poll_ctx *poll_ctx;
+	struct poll_ctx *ctx;
 
-	poll_ctx = get_global_poll_ctx();
-	g_assert(poll_ctx->initialized);
+	ctx = get_global_poll_ctx();
+	g_assert(ctx->initialized);
 	g_assert(0 != id);
 
-	if (poll_ctx->use_glib_io) {
+	if (ctx->use_glib_io) {
 		g_source_remove(id);
 	} else {
 		inputevt_relay_t *relay;
@@ -1119,17 +1111,17 @@ inputevt_remove(unsigned id)
 		inputevt_cond_t old, cur;
 		int fd;
 
-		g_assert(poll_ctx->ht);
-		g_assert(id < poll_ctx->num_ev);
-		g_assert(0 != bit_array_get(poll_ctx->used_event_id, id));
+		g_assert(ctx->ht);
+		g_assert(id < ctx->num_ev);
+		g_assert(0 != bit_array_get(ctx->used_event_id, id));
 
-		relay = poll_ctx->relay[id];
+		relay = ctx->relay[id];
 		g_assert(NULL != relay);
 		g_assert(zero_handler != relay->handler);
 		g_assert(is_valid_fd(relay->fd));
 
 		fd = relay->fd;
-		rl = g_hash_table_lookup(poll_ctx->ht, GINT_TO_POINTER(fd));
+		rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
 		g_assert(NULL != rl);
 		g_assert(NULL != rl->sl);
 
@@ -1149,126 +1141,124 @@ inputevt_remove(unsigned id)
 		cur = (rl->readers ? INPUT_EVENT_R : 0) |
 			(rl->writers ? INPUT_EVENT_W : 0);
 	
-		if (-1 == update_poll_event(poll_ctx, fd, old, cur)) {
+		if (-1 == update_poll_event(ctx, fd, old, cur)) {
 			g_warning("update_poll_event(%d, %d) failed: %s",
-				poll_ctx->fd, fd, g_strerror(errno));
+				ctx->fd, fd, g_strerror(errno));
 		}
 
 		/* Mark as removed */
 		relay->handler = zero_handler;
 
-		if (poll_ctx->dispatching) {
+		if (ctx->dispatching) {
 			/*
 			 * Don't clear the "used_event_id" bit yet because this slot must
 			 * not be recycled whilst dispatching events.
 			 */
-			poll_ctx->removed = g_slist_prepend(poll_ctx->removed,
-									GUINT_TO_POINTER(id));
+			ctx->removed = g_slist_prepend(ctx->removed, GUINT_TO_POINTER(id));
 		} else {
 			wfree(relay, sizeof *relay);
 			
 			rl->sl = g_slist_remove(rl->sl, GUINT_TO_POINTER(id));
 			if (NULL == rl->sl) {
 				g_assert(0 == rl->readers && 0 == rl->writers);
-				inputevt_poll_idx_free(poll_ctx, rl->poll_idx);
+				inputevt_poll_idx_free(ctx, rl->poll_idx);
 				rl->poll_idx = -1;
 				wfree(rl, sizeof *rl);
-				g_hash_table_remove(poll_ctx->ht, GINT_TO_POINTER(fd));
+				g_hash_table_remove(ctx->ht, GINT_TO_POINTER(fd));
 			}
 
-			bit_array_clear(poll_ctx->used_event_id, id);
+			bit_array_clear(ctx->used_event_id, id);
 		}
 	}
 }
 
 static inline unsigned
-inputevt_get_free_id(const struct poll_ctx *poll_ctx)
+inputevt_get_free_id(const struct poll_ctx *ctx)
 {
-	if (0 == poll_ctx->num_ev)
+	if (0 == ctx->num_ev)
 		return (unsigned) -1;
 	
-	return bit_array_first_clear(poll_ctx->used_event_id,
-				0, poll_ctx->num_ev - 1);
+	return bit_array_first_clear(ctx->used_event_id, 0, ctx->num_ev - 1);
 }
 
 static unsigned
 inputevt_add_source(inputevt_relay_t *relay)
 {
-	struct poll_ctx *poll_ctx;
+	struct poll_ctx *ctx;
 	inputevt_cond_t old;
 	unsigned f, id;
 
-	poll_ctx = get_global_poll_ctx();
-	g_assert(poll_ctx->initialized);
+	ctx = get_global_poll_ctx();
+	g_assert(ctx->initialized);
 	g_assert(is_valid_fd(relay->fd));
 	
 	/*
 	 * Linux systems with 2.4 kernels usually have all epoll stuff
 	 * in their headers but the system calls just return ENOSYS.
 	 */
-	if (poll_ctx->use_glib_io)
+	if (ctx->use_glib_io)
 		return inputevt_add_source_with_glib(relay);
 
-	g_assert(poll_ctx->ht);
+	g_assert(ctx->ht);
 
-	f = inputevt_get_free_id(poll_ctx);
-	g_assert((unsigned) -1 == f || f < poll_ctx->num_ev);
+	f = inputevt_get_free_id(ctx);
+	g_assert((unsigned) -1 == f || f < ctx->num_ev);
 
 	if ((unsigned) -1 != f) {
 		id = f;
 	} else {
-		unsigned i, n = poll_ctx->num_ev;
+		unsigned i, n = ctx->num_ev;
 
 		/*
 		 * If there was no free ID, the arrays are resized to the
 		 * double size.
 		 */
 
-		poll_ctx->num_ev = 0 != n ? n << 1 : 32;
+		ctx->num_ev = 0 != n ? n << 1 : 32;
 
 		{
-			size_t size = poll_ctx->num_ev * sizeof poll_ctx->ev_arr.ev[0];
-			poll_ctx->ev_arr.ev = g_realloc(poll_ctx->ev_arr.ev, size);
+			size_t size = ctx->num_ev * sizeof ctx->ev_arr.ev[0];
+			ctx->ev_arr.ev = g_realloc(ctx->ev_arr.ev, size);
 		}
 
 #ifdef USE_POLL
-		for (i = n; i < poll_ctx->num_ev; i++) {
-			struct pollfd *pfd = &poll_ctx->ev_arr.ev[i];
+		for (i = n; i < ctx->num_ev; i++) {
+			struct pollfd *pfd = &ctx->ev_arr.ev[i];
 			pfd->fd = -1;
 			pfd->events = 0;
 			pfd->revents = 0;
 		}
 #endif /* USE_POLL */
 
-		bit_array_resize(&poll_ctx->used_event_id, n, poll_ctx->num_ev);
+		bit_array_resize(&ctx->used_event_id, n, ctx->num_ev);
 
 		if (0 == n) {
 			/* ID 0 is reserved for compatibility with GLib's IDs */
-			bit_array_set(poll_ctx->used_event_id, 0);
+			bit_array_set(ctx->used_event_id, 0);
 			id = 1;
 		} else {
 			id = n;
 		}
 
 		{
-			size_t size = poll_ctx->num_ev * sizeof poll_ctx->relay[0];
-			poll_ctx->relay = g_realloc(poll_ctx->relay, size);
-			for (i = n; i < poll_ctx->num_ev; i++)
-				poll_ctx->relay[i] = NULL;
+			size_t size = ctx->num_ev * sizeof ctx->relay[0];
+			ctx->relay = g_realloc(ctx->relay, size);
+			for (i = n; i < ctx->num_ev; i++)
+				ctx->relay[i] = NULL;
 		}
 	}
 
-	g_assert(id < poll_ctx->num_ev);
-	bit_array_set(poll_ctx->used_event_id, id);
-	g_assert(0 != bit_array_get(poll_ctx->used_event_id, id));
+	g_assert(id < ctx->num_ev);
+	bit_array_set(ctx->used_event_id, id);
+	g_assert(0 != bit_array_get(ctx->used_event_id, id));
 
-	poll_ctx->relay[id] = relay;
+	ctx->relay[id] = relay;
 
 	{
 		void *key = GINT_TO_POINTER(relay->fd);
 		relay_list_t *rl;
 
-		rl = g_hash_table_lookup(poll_ctx->ht, key);
+		rl = g_hash_table_lookup(ctx->ht, key);
 		if (rl) {
 
 			if (rl->writers || rl->readers)	{
@@ -1280,9 +1270,9 @@ inputevt_add_source(inputevt_relay_t *relay)
 				x = GPOINTER_TO_UINT(rl->sl->data);
 				g_assert(x != id);
 				g_assert(x > 0);
-				g_assert(x < poll_ctx->num_ev);
+				g_assert(x < ctx->num_ev);
 
-				r = poll_ctx->relay[x];
+				r = ctx->relay[x];
 				g_assert(r);
 				g_assert(r->fd == relay->fd);
 			}
@@ -1293,7 +1283,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 			rl->readers = 0;
 			rl->writers = 0;
 			rl->sl = NULL;
-			rl->poll_idx = inputevt_poll_idx_new(poll_ctx, relay->fd);
+			rl->poll_idx = inputevt_poll_idx_new(ctx, relay->fd);
 			old = 0;
 		}
 
@@ -1303,15 +1293,12 @@ inputevt_add_source(inputevt_relay_t *relay)
 			rl->writers++;
 
 		rl->sl = g_slist_prepend(rl->sl, GUINT_TO_POINTER(id));
-		g_hash_table_insert(poll_ctx->ht, key, rl);
+		g_hash_table_insert(ctx->ht, key, rl);
 	}
 
-	if (
-			-1 == update_poll_event(poll_ctx, relay->fd,
-				old, (old | relay->condition))
-	   ) {
+	if (-1 == update_poll_event(ctx, relay->fd, old, (old | relay->condition))) {
 		g_error("update_poll_event(%d, %d, ...) failed: %s",
-				poll_ctx->fd, relay->fd, g_strerror(errno));
+			ctx->fd, relay->fd, g_strerror(errno));
 	}
 
 	g_assert(0 != id);	
@@ -1448,17 +1435,17 @@ void
 inputevt_close(void)
 {
 #if !defined(USE_GLIB_IO_CHANNELS)
-	struct poll_ctx *poll_ctx;
+	struct poll_ctx *ctx;
 	
-	poll_ctx = get_global_poll_ctx();
-	inputevt_purge_removed(poll_ctx);
-	gm_hash_table_destroy_null(&poll_ctx->ht);
-	G_FREE_NULL(poll_ctx->used_poll_idx);
-	G_FREE_NULL(poll_ctx->used_event_id);
-	G_FREE_NULL(poll_ctx->relay);
-	G_FREE_NULL(poll_ctx->ev_arr.ev);
-	close(poll_ctx->fd);
-	poll_ctx->initialized = FALSE;
+	ctx = get_global_poll_ctx();
+	inputevt_purge_removed(ctx);
+	gm_hash_table_destroy_null(&ctx->ht);
+	G_FREE_NULL(ctx->used_poll_idx);
+	G_FREE_NULL(ctx->used_event_id);
+	G_FREE_NULL(ctx->relay);
+	G_FREE_NULL(ctx->ev_arr.ev);
+	fd_close(&ctx->fd, FALSE);
+	ctx->initialized = FALSE;
 #endif
 }
 
