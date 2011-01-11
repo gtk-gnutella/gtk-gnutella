@@ -55,9 +55,6 @@ RCSID("$Id$")
 #define USE_EPOLL
 #elif defined(HAS_DEV_POLL)
 #define USE_DEV_POLL
-#elif defined(HAS_SELECT) && defined(MINGW32)
-#define USE_POLL		/* Use if WSAPoll() if possible */
-#define USE_WIN_SELECT	/* Fallback without WSAPoll() */
 #elif defined(HAS_POLL) || defined(HAS_SELECT)
 #define USE_POLL
 #else
@@ -67,10 +64,10 @@ RCSID("$Id$")
 /**
  * Debugging options.
  */
-#if 1
+#if 0
 #define INPUTEVT_SAFETY_ASSERT	/* Enable safety_assert() */
 #endif
-#if 1
+#if 0
 #define INPUTEVT_DEBUGGING		/* Additional debugging traces */
 #endif
 
