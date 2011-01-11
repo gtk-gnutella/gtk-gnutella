@@ -64,10 +64,10 @@ RCSID("$Id$")
 /**
  * Debugging options.
  */
-#if 0
+#if 1
 #define INPUTEVT_SAFETY_ASSERT	/* Enable safety_assert() */
 #endif
-#if 0
+#if 1
 #define INPUTEVT_DEBUGGING		/* Additional debugging traces */
 #endif
 
@@ -244,6 +244,19 @@ get_global_poll_ctx(void)
 {
 	static struct poll_ctx poll_ctx;
 	return &poll_ctx;
+}
+
+static inline unsigned
+get_poll_idx(const struct poll_ctx *ctx, int fd)
+{
+	relay_list_t *rl;
+
+	safety_assert(is_valid_fd(fd));
+	safety_assert(is_open_fd(fd));
+
+	rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
+	g_assert(NULL != rl);
+	return rl->poll_idx;
 }
 
 static inline unsigned
@@ -643,10 +656,95 @@ update_poll_event(struct poll_ctx *ctx, int fd,
 	return 0;
 }
 
+#ifdef MINGW32
+static inline int
+collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
+{
+	struct timeval tv;
+	fd_set r, w, x;
+	unsigned i, num_fd = 0;
+	int ret;
+
+	/* FD_ZERO() */
+	r.fd_count = 0;
+	w.fd_count = 0;
+	x.fd_count = 0;
+
+	g_assert(ctx->num_ev <= FD_SETSIZE);
+
+	for (i = 0; i < ctx->num_ev; i++) {
+		struct pollfd *pfd = &ctx->ev_arr.ev[i];
+
+		pfd->revents = 0;
+		if (!is_valid_fd(pfd->fd))
+			continue;
+
+		safety_assert(is_open_fd(pfd->fd));
+		num_fd++;
+
+		/* FD_SET() */
+		if (POLLIN & pfd->events) {
+			safety_assert(r.fd_count < FD_SETSIZE);
+			r.fd_array[r.fd_count++] = pfd->fd;
+		}
+		if (POLLOUT & pfd->events) {
+			safety_assert(w.fd_count < FD_SETSIZE);
+			w.fd_array[w.fd_count++] = pfd->fd;
+		}
+		safety_assert(x.fd_count < FD_SETSIZE);
+		x.fd_array[x.fd_count++] = pfd->fd;
+	}
+
+	/* On Windows select() requires at least one valid fd */
+	if (0 == num_fd)
+		return 0;
+
+	if (timeout_ms < 0) {
+		tv.tv_sec = 0;
+		tv.tv_usec = 0;
+	} else {
+		tv.tv_sec = timeout_ms / 1000;
+		tv.tv_usec = (timeout_ms % 1000) * 1000UL;
+	}
+
+	ret = select(FD_SETSIZE, (void *) &r, (void *) &w, (void *) &x,
+			timeout_ms < 0 ? NULL : &tv);
+
+	if (ret < 0) {
+		if (!is_temporary_error(errno)) {
+			g_warning("select() failed: %s", g_strerror(errno));
+		}
+		return -1;
+	}
+
+	if (ret > 0) {
+		/* FD_ISSET() */
+		for (i = 0; i < UNSIGNED(r.fd_count); i++) {
+			int fd = cast_to_fd(r.fd_array[i]);
+			ctx->ev_arr.ev[get_poll_idx(ctx, fd)].revents |= POLLIN; 
+		}
+		for (i = 0; i < UNSIGNED(w.fd_count); i++) {
+			int fd = cast_to_fd(w.fd_array[i]);
+			ctx->ev_arr.ev[get_poll_idx(ctx, fd)].revents |= POLLOUT;
+		}
+		for (i = 0; i < UNSIGNED(x.fd_count); i++) {
+			int fd = cast_to_fd(x.fd_array[i]);
+			ctx->ev_arr.ev[get_poll_idx(ctx, fd)].revents |= POLLERR;
+		}
+	}
+	return ret;
+}
+#endif /* MINGW32 */
+
 static int
 collect_events(struct poll_ctx *ctx, int timeout_ms)
 {
 	int ret;
+
+#ifdef MINGW32
+	if (!mingw_has_wsapoll())
+		return collect_events_with_select(ctx, timeout_ms);
+#endif	/* MINGW32 */
 
 	ret = compat_poll(ctx->ev_arr.ev, ctx->num_ev, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
