@@ -84,10 +84,8 @@ RCSID("$Id$")
 #undef USE_KQUEUE
 #undef USE_DEV_POLL
 #undef USE_GLIB_IO_CHANNELS
-#undef USE_WIN_SELECT
 
 /* Override by manual #define below */
-#define USE_WIN_SELECT
 #define USE_POLL
 
 /* The following lines are for test-compiling without MINGW */
@@ -143,7 +141,7 @@ struct inputevt_array {
 };
 #endif /* USE_DEV_POLL */
 
-#if defined(USE_POLL) || defined(USE_WIN_SELECT)
+#if defined(USE_POLL)
 struct inputevt_array {
 	struct pollfd *ev;
 };
@@ -155,9 +153,9 @@ struct inputevt_array {
  *
  * 	gboolean create_poll_fd(int *fd_ptr);
  * 	int check_poll_events(struct poll_ctx *poll_ctx);
- * 	inline inputevt_cond_t get_poll_event_cond(unsigned idx);
+ * 	inputevt_cond_t get_poll_event_cond(unsigned idx);
  * 	int get_poll_event_fd(unsigned idx);
- * 	void poll_event_set_data_avail(gpointer p);
+ * 	void poll_event_set_data_avail(void *p);
  * 	int update_poll_event(struct poll_ctx *poll_ctx, int fd,
  * 		inputevt_cond_t old, inputevt_cond_t cur);
  *
@@ -210,7 +208,7 @@ inputevt_cond_to_string(inputevt_cond_t cond)
  */
 typedef struct {
 	inputevt_handler_t handler;
-	gpointer data;
+	void *data;
 	inputevt_cond_t condition;
 	int fd;
 } inputevt_relay_t;
@@ -231,20 +229,14 @@ struct poll_ctx {
 	bit_array_t *used_poll_idx;	/**< -"-, which Poll IDX slots are used */
 	GSList *removed;			/**< List of removed IDs */
 	GHashTable *ht;				/**< Records file descriptors */
-	guint num_ev;				/**< Length of the "ev" and "relay" arrays */
-	guint num_poll_idx;			/**< Length of used_poll_idx array */
-	guint num_ready;			/**< Used for /dev/poll only */
+	unsigned num_ev;			/**< Length of the "ev" and "relay" arrays */
+	unsigned num_poll_idx;		/**< Length of used_poll_idx array */
+	unsigned num_ready;			/**< Used for /dev/poll only */
 	int fd;						/**< The ``master'' fd for epoll or kqueue */
 	unsigned initialized:1;		/**< TRUE if the context has been initialized */
 	unsigned use_glib_io:1;		/**< TRUE if falling back GLib IO Channels */
 	unsigned dispatching:1;		/**< TRUE if dispatching events */
 	struct inputevt_array ev_arr;
-#ifdef USE_WIN_SELECT
-	fd_set rfds, orfds;
-	fd_set wfds, owfds;
-	fd_set xfds, oxfds;
-	int	fd_array[FD_SETSIZE];
-#endif	/* USE_WIN_SELECT */
 };
 
 static inline struct poll_ctx *
@@ -253,39 +245,6 @@ get_global_poll_ctx(void)
 	static struct poll_ctx poll_ctx;
 	return &poll_ctx;
 }
-
-#ifdef USE_WIN_SELECT
-static inline void
-fd_set_register(fd_set *fds, unsigned idx)
-{
-	g_assert(fds);
-	g_assert(idx < FD_SETSIZE);
-}
-
-static inline void
-fd_set_clear(fd_set *fds, unsigned idx, int fd)
-{
-	g_assert(idx < FD_SETSIZE);
-	FD_CLR(fd, fds);
-}
-
-static inline void
-fd_set_zero(fd_set *fds)
-{
-	FD_ZERO(fds);
-}
-
-static inline void
-fd_set_modify(fd_set *fds, unsigned idx, int fd, int value)
-{
-	(void) idx;
-	if (value < 0)
-		FD_CLR(fd, fds);
-	else
-		FD_SET(fd, fds);
-}
-
-#endif	/* USE_WIN_SELECT */
 
 static inline unsigned
 inputevt_poll_idx_new(struct poll_ctx *ctx, int fd)
@@ -324,17 +283,6 @@ inputevt_poll_idx_new(struct poll_ctx *ctx, int fd)
 	}
 #endif	/* USE_POLL */
 
-#if defined(USE_WIN_SELECT)
-	{
-		g_assert(-1 == ctx->fd_array[idx]);
-		ctx->fd_array[idx] = fd;
-
-		fd_set_register(&ctx->rfds, idx);
-		fd_set_register(&ctx->wfds, idx);
-		fd_set_register(&ctx->xfds, idx);
-	}
-#endif	/* USE_WIN_SELECT */
-
 	return idx;
 }
 
@@ -359,21 +307,6 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned idx)
 	}
 #endif	/* USE_POLL */
 
-#ifdef USE_WIN_SELECT
-	{
-		int fd;
-
-		g_assert(idx < G_N_ELEMENTS(ctx->fd_array));
-		fd = ctx->fd_array[idx];
-
-		g_assert(is_valid_fd(fd));
-		ctx->fd_array[idx] = -1;
-
-		fd_set_clear(&ctx->rfds, idx, fd);
-		fd_set_clear(&ctx->wfds, idx, fd);
-		fd_set_clear(&ctx->xfds, idx, fd);
-	}
-#endif	/* USE_WIN_SELECT */
 }
 
 #endif /* !USE_GLIB_IO_CHANNELS */
@@ -389,7 +322,7 @@ inputevt_data_available(void)
 
 #ifdef USE_KQUEUE
 
-static guint data_available;	/** Used by inputevt_data_available(). */
+static unsigned data_available;	/** Used by inputevt_data_available(). */
 
 static inline int
 get_poll_event_fd(const struct poll_ctx *ctx, unsigned idx)
@@ -456,7 +389,7 @@ update_poll_event(struct poll_ctx *poll_ctx, int fd,
 	static const struct timespec zero_ts;
 	struct kevent kev[2];
 	size_t i;
-	gpointer udata;
+	void *udata;
 	int ret;
 
 	if ((INPUT_EVENT_RW & old) == (INPUT_EVENT_RW & cur))
@@ -643,14 +576,14 @@ collect_events(struct poll_ctx *poll_ctx, int timeout_ms)
 }
 #endif	/* USE_DEV_POLL */
 
-#if defined(USE_POLL) || defined(USE_WIN_SELECT)
+#if defined(USE_POLL)
 static gboolean
 create_poll_fd(int *fd_ptr)
 {
 	*fd_ptr = -1;	/* There is no special file descriptor */
 	return TRUE;	
 }
-#endif	/* USE_POLL || USE_WIN_SELECT */
+#endif	/* USE_POLL */
 
 
 #ifndef USE_KQUEUE
@@ -664,42 +597,15 @@ poll_event_set_data_avail(const struct poll_ctx *unused_ctx,
 }
 #endif	/* !USE_KQUEUE */
 
-#ifdef USE_WIN_SELECT
-static int
-update_poll_event_with_select(struct poll_ctx *ctx, int fd,
-	inputevt_cond_t old, inputevt_cond_t cur)
-{
-	relay_list_t *rl;
-
-	g_assert(is_valid_fd(fd));
-
-	old &= INPUT_EVENT_RW;
-	cur &= INPUT_EVENT_RW;
-
-	rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
-	g_assert(NULL != rl);
-	g_assert(NULL != rl->sl);
-
-	g_assert(rl->poll_idx < ctx->num_poll_idx);
-
-	if (old != cur) {
-		fd_set_modify(&ctx->rfds, rl->poll_idx, fd, (INPUT_EVENT_R & cur) ? fd : -1);
-		fd_set_modify(&ctx->wfds, rl->poll_idx, fd, (INPUT_EVENT_W & cur) ? fd : -1);
-		fd_set_modify(&ctx->xfds, rl->poll_idx, fd, cur ? fd : -1);
-	}
-	return 0;
-}
-#endif /* USE_WIN_SELECT */
-
-#if defined(USE_POLL) || defined(USE_WIN_SELECT)
+#if defined(USE_POLL)
 
 static inline const char *
 polling_method(void)
 {
-#ifdef USE_WIN_SELECT
+#ifdef MINGW32
 	if (!mingw_has_wsapoll())
 		return "Windows select()";
-#endif	/* USE_WIN_SELECT */
+#endif	/* MINGW32 */
 
 	return "poll()";
 }
@@ -710,11 +616,6 @@ update_poll_event(struct poll_ctx *ctx, int fd,
 {
 	struct pollfd *pfd;
 	relay_list_t *rl;
-
-#ifdef USE_WIN_SELECT
-	if (!mingw_has_wsapoll())
-		return update_poll_event_with_select(ctx, fd, old, cur);
-#endif	/* USE_WIN_SELECT */
 
 	g_assert(is_valid_fd(fd));
 
@@ -742,53 +643,10 @@ update_poll_event(struct poll_ctx *ctx, int fd,
 	return 0;
 }
 
-#ifdef USE_WIN_SELECT
-static int
-collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
-{
-	struct timeval tv;
-	int ret;
-	fd_set rfds, wfds, xfds;
-
-	tv.tv_sec = timeout_ms / 1000;
-	tv.tv_usec = (timeout_ms % 1000) * 1000UL;
-
-	memcpy(&rfds, &ctx->rfds, sizeof rfds);
-	memcpy(&wfds, &ctx->wfds, sizeof wfds);
-	memcpy(&xfds, &ctx->xfds, sizeof xfds);
-
-	ret = select(INT_MAX, /* FIXME: INT_MAX is just a hack */
-			(void *) &rfds,
-			(void *) &wfds,
-			(void *) &xfds,
-			timeout_ms < 0 ? NULL : &tv);
-	if (ret > 0) {
-		memcpy(&ctx->orfds, &rfds, sizeof rfds);
-		memcpy(&ctx->owfds, &wfds, sizeof wfds);
-		memcpy(&ctx->oxfds, &xfds, sizeof xfds);
-	}
-	if (-1 == ret && !is_temporary_error(errno)) {
-		g_warning("collect_events(): select() failed: %s", g_strerror(errno));
-	}
-	return ret;
-}
-#endif	/* USE_WIN_SELECT */
-
 static int
 collect_events(struct poll_ctx *ctx, int timeout_ms)
 {
 	int ret;
-
-#ifdef MINGW32
-	/* FIXME: Just a workaround; select() requires at least one valid fd */
-	if (0 == ctx->num_ev)
-		return 0;
-#endif /* MINGW32 */
-
-#ifdef USE_WIN_SELECT
-	if (!mingw_has_wsapoll())
-		return collect_events_with_select(ctx, timeout_ms);
-#endif	/* USE_WIN_SELECT */
 
 	ret = compat_poll(ctx->ev_arr.ev, ctx->num_ev, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
@@ -798,7 +656,7 @@ collect_events(struct poll_ctx *ctx, int timeout_ms)
 }
 #endif	/* USE_POLL */
 
-#if defined(USE_POLL) || defined(USE_DEV_POLL) || defined(USE_WIN_SELECT)
+#if defined(USE_POLL) || defined(USE_DEV_POLL)
 static int
 check_poll_events(struct poll_ctx *poll_ctx)
 {
@@ -808,81 +666,27 @@ check_poll_events(struct poll_ctx *poll_ctx)
 	poll_ctx->num_ready = 0;
 	return ret;
 }
-#endif	/* USE_POLL || USE_DEV_POLL || USE_WIN_SELECT */
-
-#ifdef USE_WIN_SELECT
-static inline int
-get_poll_event_fd_with_select(const struct poll_ctx *ctx, unsigned idx)
-{
-	int fd, ofd;
-
-	g_assert(idx < G_N_ELEMENTS(ctx->fd_array));
-	fd = ctx->fd_array[idx];
-	g_assert(is_open_fd(fd));
-
-#ifdef MINGW32
-	ofd = cast_to_fd(ctx->orfds.fd_array[idx]);
-	g_assert(fd == ofd || -1 == ofd);
-
-	ofd = cast_to_fd(ctx->owfds.fd_array[idx]);
-	g_assert(fd == ofd || -1 == ofd);
-
-	ofd = cast_to_fd(ctx->oxfds.fd_array[idx]);
-	g_assert(fd == ofd || -1 == ofd);
-#endif	/* MINGW32 */
-
-	return fd;
-}
-
-static inline inputevt_cond_t 
-get_poll_event_cond_with_select(const struct poll_ctx *ctx, unsigned idx)
-{
-	int fd;
-
-	g_assert(idx < G_N_ELEMENTS(ctx->fd_array));
-	fd = ctx->fd_array[idx];
-	g_assert(is_valid_fd(fd));
-
-	return (FD_ISSET(fd, &ctx->orfds) ? INPUT_EVENT_R : 0)
-		| (FD_ISSET(fd, &ctx->owfds) ? INPUT_EVENT_W : 0)
-		| (FD_ISSET(fd, &ctx->oxfds) ? INPUT_EVENT_EXCEPTION : 0);
-}
-
-#endif	/* USE_WIN_SELECT */
+#endif	/* USE_POLL || USE_DEV_POLL */
 
 #if defined(USE_POLL) || defined(USE_DEV_POLL)
 static inline int
 get_poll_event_fd(const struct poll_ctx *ctx, unsigned idx)
 {
-	const struct pollfd *pfd;
-
-#ifdef USE_WIN_SELECT
-	if (!mingw_has_wsapoll())
-		return get_poll_event_fd_with_select(ctx, idx);
-#endif	/* USE_WIN_SELECT */
-
-	pfd = &ctx->ev_arr.ev[idx];
+	const struct pollfd *pfd = &ctx->ev_arr.ev[idx];
 	return pfd->fd;
 }
 
 static inline inputevt_cond_t 
 get_poll_event_cond(const struct poll_ctx *ctx, unsigned idx)
 {
-	const struct pollfd *pfd;
-
-#ifdef USE_WIN_SELECT
-	if (!mingw_has_wsapoll())
-		return get_poll_event_cond_with_select(ctx, idx);
-#endif	/* USE_WIN_SELECT */
-
-	pfd = &ctx->ev_arr.ev[idx];
+	const struct pollfd *pfd = &ctx->ev_arr.ev[idx];
 	return ((POLLIN | POLLHUP) & pfd->revents ? INPUT_EVENT_R : 0)
 		| (POLLOUT & pfd->revents ? INPUT_EVENT_W : 0)
 		| ((POLLERR | POLLNVAL) & pfd->revents ? INPUT_EVENT_EXCEPTION : 0);
 }
 
 static inline short
-poll_events_from_gio_cond(gushort events)
+poll_events_from_gio_cond(unsigned short events)
 {
 	return 0
 		| ((G_IO_IN   & events) ? POLLIN   : 0)
@@ -893,7 +697,7 @@ poll_events_from_gio_cond(gushort events)
 		| ((G_IO_NVAL & events) ? POLLNVAL : 0);
 }
 
-static inline gushort
+static inline unsigned short
 poll_events_to_gio_cond(short events)
 {
 	return 0
@@ -906,12 +710,12 @@ poll_events_to_gio_cond(short events)
 }
 #endif	/* USE_POLL || USE_DEV_POLL */
 
-#if defined(USE_POLL) || defined(USE_DEV_POLL) || defined(USE_WIN_SELECT)
-static gint (*default_poll_func)(GPollFD *, guint, gint);
+#if defined(USE_POLL) || defined(USE_DEV_POLL)
+static int (*default_poll_func)(GPollFD *, unsigned, int);
 
 static gboolean
 dispatch_poll(GIOChannel *unused_source,
-	GIOCondition unused_cond, gpointer udata);
+	GIOCondition unused_cond, void *udata);
 
 static void
 check_for_events(struct poll_ctx *poll_ctx, int *timeout_ms_ptr)
@@ -952,7 +756,7 @@ check_for_events(struct poll_ctx *poll_ctx, int *timeout_ms_ptr)
 }
 
 static int
-poll_func(GPollFD *gfds, guint n, int timeout_ms)
+poll_func(GPollFD *gfds, unsigned n, int timeout_ms)
 {
 	struct poll_ctx *poll_ctx;
 	int r;
@@ -980,13 +784,13 @@ poll_func(GPollFD *gfds, guint n, int timeout_ms)
 
 	return r;
 }
-#endif	/* USE_DEV_POLL || USE_POLL || USE_WIN_SELECT */
+#endif	/* USE_DEV_POLL || USE_POLL_*/
 
 /**
  * Frees the relay structure when its time comes.
  */
 static void
-inputevt_relay_destroy(gpointer data)
+inputevt_relay_destroy(void *data)
 {
 	inputevt_relay_t *relay = data;
 	wfree(relay, sizeof *relay);
@@ -997,7 +801,7 @@ inputevt_relay_destroy(gpointer data)
  * The input condition flags are properly mapped before being passed on.
  */
 static gboolean
-inputevt_dispatch(GIOChannel *source, GIOCondition condition, gpointer data)
+inputevt_dispatch(GIOChannel *source, GIOCondition condition, void *data)
 {
 	inputevt_cond_t cond = 0;
 	inputevt_relay_t *relay = data;
@@ -1017,11 +821,11 @@ inputevt_dispatch(GIOChannel *source, GIOCondition condition, gpointer data)
 	return TRUE;
 }
 
-static guint
+static unsigned
 inputevt_add_source_with_glib(inputevt_relay_t *relay)
 {
 	GIOChannel *ch;
-	guint id;
+	unsigned id;
 	
 	ch = g_io_channel_unix_new(relay->fd);
 
@@ -1053,7 +857,7 @@ inputevt_purge_removed(struct poll_ctx *poll_ctx)
 	for (sl = poll_ctx->removed; NULL != sl; sl = g_slist_next(sl)) {
 		inputevt_relay_t *relay;
 		relay_list_t *rl;
-		guint id;
+		unsigned id;
 		int fd;
 
 		id = GPOINTER_TO_UINT(sl->data);
@@ -1142,7 +946,7 @@ inputevt_timer(struct poll_ctx *poll_ctx)
 
 		for (sl = rl->sl; NULL != sl; /* NOTHING */) {
 			inputevt_relay_t *relay;
-			guint id;
+			unsigned id;
 
 			id = GPOINTER_TO_UINT(sl->data);
 			sl = g_slist_next(sl);
@@ -1173,7 +977,7 @@ inputevt_timer(struct poll_ctx *poll_ctx)
 
 static gboolean
 dispatch_poll(GIOChannel *unused_source,
-	GIOCondition unused_cond, gpointer udata)
+	GIOCondition unused_cond, void *udata)
 {
 	(void) unused_cond;
 	(void) unused_source;
@@ -1201,7 +1005,7 @@ dispatch_poll(GIOChannel *unused_source,
  * must be kept in mind, that file descriptor numbers are recycled.
  */
 void
-inputevt_remove(guint id)
+inputevt_remove(unsigned id)
 {
 	struct poll_ctx *poll_ctx;
 
@@ -1279,22 +1083,22 @@ inputevt_remove(guint id)
 	}
 }
 
-static inline guint
+static inline unsigned
 inputevt_get_free_id(const struct poll_ctx *poll_ctx)
 {
 	if (0 == poll_ctx->num_ev)
-		return (guint) -1;
+		return (unsigned) -1;
 	
 	return bit_array_first_clear(poll_ctx->used_event_id,
 				0, poll_ctx->num_ev - 1);
 }
 
-static guint 
+static unsigned
 inputevt_add_source(inputevt_relay_t *relay)
 {
 	struct poll_ctx *poll_ctx;
 	inputevt_cond_t old;
-	guint f, id;
+	unsigned f, id;
 
 	poll_ctx = get_global_poll_ctx();
 	g_assert(poll_ctx->initialized);
@@ -1310,12 +1114,12 @@ inputevt_add_source(inputevt_relay_t *relay)
 	g_assert(poll_ctx->ht);
 
 	f = inputevt_get_free_id(poll_ctx);
-	g_assert((guint) -1 == f || f < poll_ctx->num_ev);
+	g_assert((unsigned) -1 == f || f < poll_ctx->num_ev);
 
-	if ((guint) -1 != f) {
+	if ((unsigned) -1 != f) {
 		id = f;
 	} else {
-		guint i, n = poll_ctx->num_ev;
+		unsigned i, n = poll_ctx->num_ev;
 
 		/*
 		 * If there was no free ID, the arrays are resized to the
@@ -1363,7 +1167,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 	poll_ctx->relay[id] = relay;
 
 	{
-		gpointer key = GINT_TO_POINTER(relay->fd);
+		void *key = GINT_TO_POINTER(relay->fd);
 		relay_list_t *rl;
 
 		rl = g_hash_table_lookup(poll_ctx->ht, key);
@@ -1371,7 +1175,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 
 			if (rl->writers || rl->readers)	{
 				inputevt_relay_t *r;
-				guint x;
+				unsigned x;
 
 				g_assert(NULL != rl->sl);
 
@@ -1439,19 +1243,7 @@ inputevt_init(void)
 
 		ctx->ht = g_hash_table_new(NULL, NULL);
 
-#if defined(USE_WIN_SELECT)
-		{
-			size_t i;
-
-			for (i = 0; i < G_N_ELEMENTS(ctx->fd_array); i++)
-				ctx->fd_array[i] = -1;
-		}
-		fd_set_zero(&ctx->rfds);
-		fd_set_zero(&ctx->wfds);
-		fd_set_zero(&ctx->xfds);
-#endif	/* USE_WIN_SELECT */
-
-#if defined(USE_DEV_POLL) || defined(USE_POLL) || defined(USE_WIN_SELECT)
+#if defined(USE_DEV_POLL) || defined(USE_POLL)
 		default_poll_func = g_main_context_get_poll_func(NULL);
 		g_main_context_set_poll_func(NULL, poll_func);
 #else
@@ -1476,14 +1268,14 @@ inputevt_init(void)
 #endif /* !USE_GLIB_IO_CHANNELS */
 
 #ifdef USE_GLIB_IO_CHANNELS
-static guint 
+static unsigned
 inputevt_add_source(inputevt_relay_t *relay)
 {
 	return inputevt_add_source_with_glib(relay);
 }
 
 void
-inputevt_remove(guint id)
+inputevt_remove(unsigned id)
 {
 	g_source_remove(id);
 }
@@ -1516,9 +1308,9 @@ inputevt_init(void)
  * Behaves exactly the same, except destroy notification has
  * been removed (since gtkg does not use it).
  */
-guint
+unsigned
 inputevt_add(int fd, inputevt_cond_t cond,
-	inputevt_handler_t handler, gpointer data)
+	inputevt_handler_t handler, void *data)
 {
 	inputevt_relay_t *relay = walloc(sizeof *relay);
 	gboolean ok = FALSE;
