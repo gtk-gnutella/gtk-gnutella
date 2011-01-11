@@ -1117,6 +1117,13 @@ node_timer(time_t now)
 				continue;
 			}
 
+			if (hostiles_check(n->addr)) {
+				g_message("removing %s as dynamically detected hostile peer",
+					node_infostr(n));
+				node_bye_if_writable(n, 415, "Hostile Peer");
+				continue;
+			}
+
 			/*
 			 * If quiet period is nearing timeout and node supports
 			 * time-sync, send them one if none is pending.
