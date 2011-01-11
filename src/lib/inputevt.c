@@ -87,7 +87,7 @@ RCSID("$Id$")
 
 /* Override by manual #define below */
 #define USE_POLL
-
+ 
 /* The following lines are for test-compiling without MINGW */
 #if 0 && !defined(MINGW32)
 #define mingw_has_wsapoll() 0
@@ -135,13 +135,9 @@ struct inputevt_array {
 #ifdef USE_DEV_POLL
 #include <stropts.h>	/* ioctl() */
 #include <sys/devpoll.h>
-
-struct inputevt_array {
-	struct pollfd *ev;
-};
 #endif /* USE_DEV_POLL */
 
-#if defined(USE_POLL)
+#if defined(USE_POLL) || defined(USE_DEV_POLL)
 struct inputevt_array {
 	struct pollfd *ev;
 };
@@ -1324,16 +1320,17 @@ inputevt_init(void)
 	ctx->initialized = TRUE;
 
 	if (create_poll_fd(&ctx->fd)) {
-		set_close_on_exec(ctx->fd);	/* Just in case */
-
 		ctx->ht = g_hash_table_new(NULL, NULL);
 
 #if defined(USE_DEV_POLL) || defined(USE_POLL)
 		default_poll_func = g_main_context_get_poll_func(NULL);
 		g_main_context_set_poll_func(NULL, poll_func);
-#else
+#endif	/* USE_DEV_POLL || USE_POLL */
+
 		if (is_valid_fd(ctx->fd)) {
 			GIOChannel *ch;
+
+			set_close_on_exec(ctx->fd);	/* Just in case */
 
 			ch = g_io_channel_unix_new(ctx->fd);
 
@@ -1343,7 +1340,6 @@ inputevt_init(void)
 
 			(void) g_io_add_watch(ch, READ_CONDITION, dispatch_poll, ctx);
 		}
-#endif	/* USE_DEV_POLL */
 	} else {
 		ctx->use_glib_io = TRUE;
 		g_warning("create_poll_fd() failed: %s", g_strerror(errno));
