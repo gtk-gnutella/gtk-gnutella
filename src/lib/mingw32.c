@@ -1198,10 +1198,12 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 		 */
 		switch (freq) {
 		case MINGW_CPUFREQ_CURRENT:
-			result = p[0].CurrentMhz * 1000000;		/* Convert to Hz */
+			/* Convert to Hz */
+			result = guint64_saturate_mult(p[0].CurrentMhz, 1000000UL);
 			break;
 		case MINGW_CPUFREQ_MAX:
-			result = p[0].MaxMhz * 1000000;			/* Convert to Hz */
+			/* Convert to Hz */
+			result = guint64_saturate_mult(p[0].MaxMhz, 1000000UL);
 			break;
 		}
 	}
