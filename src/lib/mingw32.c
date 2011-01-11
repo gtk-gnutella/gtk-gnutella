@@ -986,7 +986,7 @@ mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv)
 	 * the LowPart and HighPart members into the FILETIME structure.
 	 */
 
-	v = ft->dwLowDateTime | ((ft->dwHighDateTime + (guint64) 0) << 32) / 10;
+	v = (ft->dwLowDateTime | ((ft->dwHighDateTime + (guint64) 0) << 32)) / 10;
 	tv->tv_usec = v % 1000000UL;
 	v /= 1000000UL;
 	/* If time_t is a 32-bit integer, there could be an overflow */
