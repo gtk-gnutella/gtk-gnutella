@@ -980,7 +980,8 @@ inputevt_poll_idx_compact(struct poll_ctx *ctx)
 
 		str_cat(str, "}");
 		g_info("%s (used=%u, unused=%u)",
-			str_s2c_null(&str), ctx->max_poll_idx - num_unused, num_unused);
+			str_2c(str), ctx->max_poll_idx - num_unused, num_unused);
+		str_destroy_null(&str);
 	}
 
 	/* Indices [max_poll_idx...num_poll_idx[ must not be used! */
