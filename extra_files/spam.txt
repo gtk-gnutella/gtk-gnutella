@@ -129,7 +129,7 @@ ADDED 2011-01-10
 SIZE 100000-8000000
 END
 
-NAME [(](BuBanee|GOOD|new album)[)][.]wma$
+NAME [(](BuBanee|GOOD|new album)[)].*[.]wma$
 ADDED 2011-01-11
 SIZE 100000-8000000
 END
