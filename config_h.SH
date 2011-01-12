@@ -586,6 +586,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_dirent I_DIRENT		/**/
 
+/* I_EXECINFO:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <execinfo.h> for backtrace() support.
+ */
+#$i_execinfo I_EXECINFO		/**/
+
 /* I_FCNTL:
  *	This manifest constant tells the C program to include <fcntl.h>.
  */

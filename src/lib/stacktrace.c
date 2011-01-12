@@ -71,8 +71,8 @@ RCSID("$Id$")
 
 #include "override.h"	/* Must be the last header included */
 
-#ifdef HAS_BACKTRACE
-#include <execinfo.h>
+#ifdef I_EXECINFO
+#include <execinfo.h>	/* For backtrace() */
 #endif
 
 /*
@@ -814,9 +814,11 @@ static size_t
 stack_unwind(void *stack[], size_t count, size_t offset)
 #ifdef HAS_BACKTRACE
 {
-	void *trace[STACKTRACE_DEPTH_MAX];
+	void *trace[STACKTRACE_DEPTH_MAX + 1];
 	int depth;
     size_t amount;
+
+	g_assert(size_is_positive(offset));
 
 	depth = backtrace(trace, G_N_ELEMENTS(trace));
 
@@ -835,6 +837,16 @@ stack_unwind(void *stack[], size_t count, size_t offset)
 	void *frame;
 	size_t d;
 	gboolean increasing;
+
+	g_assert(size_is_positive(offset));
+
+	/*
+	 * The getframeaddr() and getreturnaddr() are already written to
+	 * skip 1 frame, to make sure their caller does not appear in the
+	 * stack, so decrease the offset by 1.
+	 */
+
+	offset--;
 
 	/*
 	 * Go carefully to stack frame "offset", in case the stack is
