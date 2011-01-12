@@ -247,6 +247,16 @@ struct timespec {
 int mingw_nanosleep(const struct timespec *req, struct timespec *rem);
 #endif	/* !HAS_NANOSLEEP */
 
+/*
+ * backtrace() emulation.
+ */
+#ifndef HAS_BACKTRACE
+#define HAS_BACKTRACE			/* We emulate it */
+#define EMULATE_BACKTRACE
+
+int mingw_backtrace(void **buffer, int size);
+#endif	/* !HAS_BACKTRACE */
+
 static inline void *
 iovec_base(const iovec_t* iovec)
 {

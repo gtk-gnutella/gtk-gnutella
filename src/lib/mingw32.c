@@ -51,7 +51,8 @@ RCSID("$Id$")
 #include <psapi.h>
 #include <winnt.h>
 #include <powrprof.h>
-#include <conio.h>				/*  For _kbhit() */
+#include <conio.h>				/* For _kbhit() */
+#include <imagehlp.h>			/* For backtrace() emulation */
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -1053,21 +1054,37 @@ mingw_getpagesize(void)
 	return result = system_info.dwPageSize;
 }
 
+/**
+ * Compute the system processor architecture, once.
+ */
+static int
+mingw_proc_arch(void)
+{
+	static SYSTEM_INFO system_info;
+	static gboolean done;
+
+	if (done)
+		return system_info.wProcessorArchitecture;
+
+	done = TRUE;
+	GetNativeSystemInfo(&system_info);
+	return system_info.wProcessorArchitecture;
+}
+
+
 #ifdef EMULATE_UNAME
 int
 mingw_uname(struct utsname *buf)
 {
-	SYSTEM_INFO system_info;
 	OSVERSIONINFOEX osvi;
 	DWORD len;
 	const char *cpu;
 
 	memset(buf, 0, sizeof *buf);
 
-	GetNativeSystemInfo(&system_info);
 	g_strlcpy(buf->sysname, "Windows", sizeof buf->sysname);
 
-	switch (system_info.wProcessorArchitecture) {
+	switch (mingw_proc_arch()) {
 	case PROCESSOR_ARCHITECTURE_AMD64:	cpu = "x64"; break;
 	case PROCESSOR_ARCHITECTURE_IA64:	cpu = "ia64"; break;
 	case PROCESSOR_ARCHITECTURE_INTEL:	cpu = "x86"; break;
@@ -1377,6 +1394,71 @@ mingw_timer(void)
 
 }
 #endif /* ADNS Disabled */
+
+#ifdef EMULATE_BACKTRACE
+int
+mingw_backtrace(void **buffer, int size)
+{
+	CONTEXT c;
+	STACKFRAME s;
+	DWORD image;
+	HANDLE proc, thread;
+	int i;
+	int skip;
+
+	proc = GetCurrentProcess();
+	thread = GetCurrentThread();
+
+	memset(&s, 0, sizeof s);
+	memset(&c, 0, sizeof c);
+	c.ContextFlags = CONTEXT_FULL;
+
+	/*
+	 * We'd need RtlCaptureContext() but it's not avaialable through MinGW.
+	 *
+	 * Although MSDN says the context will be corrupted, we're not doing
+	 * context-switching here.  What's important is that the stack addresses
+	 * be filled, and experience shows they are properly filled in.
+	 */
+
+	GetThreadContext(thread, &c);
+
+	/*
+	 * We're MINGW32, so even on a 64-bit processor we're going to run
+	 * in 32-bit mode, using WOW64 support (if running on a 64-bit Windows).
+	 *
+	 * FIXME: How is this going to behave on AMD64?  There's no definition
+	 * of a context for this machine, and I can't test it.
+	 *		--RAM, 2011-01-12
+	 */
+
+	image = IMAGE_FILE_MACHINE_I386;
+	s.AddrPC.Offset = c.Eip;
+	s.AddrPC.Mode = AddrModeFlat;
+	s.AddrStack.Offset = c.Esp;
+	s.AddrStack.Mode = AddrModeFlat;
+	s.AddrFrame.Offset = c.Ebp;
+	s.AddrFrame.Mode = AddrModeFlat;
+
+	i = 0;
+	skip = 2;	/* Experience shows we have to skip the first 2 frames */
+
+	while (
+		i < size &&
+		StackWalk(image, proc, thread, &s, &c, NULL, NULL, NULL, NULL)
+	) {
+		if (0 == s.AddrPC.Offset)
+			break;
+
+		if (skip-- > 0)
+			continue;
+
+		buffer[i++] = ulong_to_pointer(s.AddrPC.Offset);
+	}
+
+	return i;
+}
+#endif	/* EMULATE_BACKTRACE */
 
 /**
  * Build path of file located nearby our executable.
