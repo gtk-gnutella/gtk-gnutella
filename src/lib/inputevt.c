@@ -245,20 +245,8 @@ get_global_poll_ctx(void)
 }
 
 static inline unsigned
-get_poll_idx(const struct poll_ctx *ctx, int fd)
-{
-	relay_list_t *rl;
-
-	safety_assert(is_valid_fd(fd));
-	safety_assert(is_open_fd(fd));
-
-	rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
-	g_assert(NULL != rl);
-	return rl->poll_idx;
-}
-
-static inline unsigned
 inputevt_poll_idx_new(struct poll_ctx *ctx, int fd)
+#if defined(USE_POLL)
 {
 	unsigned idx;
 
@@ -285,7 +273,6 @@ inputevt_poll_idx_new(struct poll_ctx *ctx, int fd)
 	if (idx == ctx->max_poll_idx)
 		ctx->max_poll_idx = idx + 1;
 
-#if defined(USE_POLL)
 	{
 		struct pollfd *pfd = &ctx->ev_arr.ev[idx];
 
@@ -294,42 +281,74 @@ inputevt_poll_idx_new(struct poll_ctx *ctx, int fd)
 		pfd->revents = 0;
 		pfd->events = 0;
 	}
-#endif	/* USE_POLL */
 
 	g_assert(ctx->max_poll_idx <= ctx->num_poll_idx);
 	return idx;
 }
+#else
+{
+	(void) ctx;
+	(void) fd;
+	return -1;
+}
+#endif	/* USE_POLL */
 
 static inline void
-inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned idx)
+inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned *idx_ptr)
+#ifdef USE_POLL
 {
+	const unsigned idx = *idx_ptr;
+
+	g_assert(!ctx->dispatching);
 	g_assert((unsigned) -1 != idx);
 	g_assert(idx < ctx->num_poll_idx);
 	g_assert(0 != bit_array_get(ctx->used_poll_idx, idx));
-	bit_array_clear(ctx->used_poll_idx, idx);
 
 	g_assert(idx < ctx->num_ev);
 
-	if (idx >= ctx->max_poll_idx - 1) {
-		size_t last = bit_array_last_set(ctx->used_poll_idx,
-						0, ctx->num_poll_idx - 1) + 1;
-		g_assert(last <= ctx->num_ev);
-		ctx->max_poll_idx = last;
-	}
-
-#ifdef USE_POLL
 	{
 		struct pollfd *pfd = &ctx->ev_arr.ev[idx];
+		const unsigned last_idx = ctx->max_poll_idx - 1;
+
+		g_assert(idx < ctx->max_poll_idx);
+		g_assert(last_idx < ctx->max_poll_idx);
+
+		if (idx == last_idx) {
+			pfd = &ctx->ev_arr.ev[idx];
+			bit_array_clear(ctx->used_poll_idx, idx);
+			ctx->max_poll_idx--;
+		} else {
+			relay_list_t *rl;
+
+			pfd = &ctx->ev_arr.ev[last_idx];
+			safety_assert(is_valid_fd(pfd->fd));
+
+			rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(pfd->fd));
+			safety_assert(NULL != rl);
+			safety_assert(last_idx == rl->poll_idx);
+
+			rl->poll_idx = idx;
+			ctx->ev_arr.ev[idx] = *pfd;
+			bit_array_clear(ctx->used_poll_idx, last_idx);
+			ctx->max_poll_idx = bit_array_last_set(ctx->used_poll_idx,
+									0, last_idx) + 1;
+		}
 
 		g_assert(is_valid_fd(pfd->fd));
 		pfd->fd = -1;
 		pfd->revents = 0;
 		pfd->events = 0;
 	}
-#endif	/* USE_POLL */
 
 	g_assert(ctx->max_poll_idx <= ctx->num_poll_idx);
+	*idx_ptr = -1;
 }
+#else
+{
+	(void) ctx;
+	(void) idx_ptr;
+}
+#endif	/* USE_POLL */
 
 #endif /* !USE_GLIB_IO_CHANNELS */
 
@@ -665,7 +684,20 @@ update_poll_event(struct poll_ctx *ctx, int fd,
 }
 
 #ifdef MINGW32
-static inline int
+static unsigned
+get_poll_idx(const struct poll_ctx *ctx, int fd)
+{
+	relay_list_t *rl;
+
+	safety_assert(is_valid_fd(fd));
+	safety_assert(is_open_fd(fd));
+
+	rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
+	g_assert(NULL != rl);
+	return rl->poll_idx;
+}
+
+static int
 collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
 {
 	struct timeval tv;
@@ -991,32 +1023,6 @@ inputevt_poll_idx_compact(struct poll_ctx *ctx)
 		g_assert(!bit_array_get(ctx->used_poll_idx, i));
 	}
 #endif /* INPUTEVT_DEBUGGING */
-
-	for (i = 0; i < ctx->max_poll_idx; i++) {
-		unsigned idx, old_idx;
-		struct pollfd pfd;
-		relay_list_t *rl;
-
-		if (bit_array_get(ctx->used_poll_idx, i)) {
-			safety_assert(is_valid_fd(ctx->ev_arr.ev[i].fd));
-			continue;
-		}
-		safety_assert(!is_valid_fd(ctx->ev_arr.ev[i].fd));
-
-		old_idx = ctx->max_poll_idx - 1;
-		pfd = ctx->ev_arr.ev[old_idx];
-
-		rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(pfd.fd));
-		safety_assert(NULL != rl);
-		safety_assert(rl->poll_idx == old_idx);
-
-		inputevt_poll_idx_free(ctx, old_idx);
-		idx = inputevt_poll_idx_new(ctx, pfd.fd);
-		safety_assert(idx == i);
-
-		rl->poll_idx = idx;
-		ctx->ev_arr.ev[idx] = pfd;
-	}
 }
 #else
 {
@@ -1061,10 +1067,9 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 		rl->sl = g_slist_remove(rl->sl, GUINT_TO_POINTER(id));
 		if (NULL == rl->sl) {
 			g_assert(0 == rl->readers && 0 == rl->writers);
-			inputevt_poll_idx_free(ctx, rl->poll_idx);
-			rl->poll_idx = -1;
-			wfree(rl, sizeof *rl);
+			inputevt_poll_idx_free(ctx, &rl->poll_idx);
 			g_hash_table_remove(ctx->ht, GINT_TO_POINTER(fd));
+			wfree(rl, sizeof *rl);
 		}
 	}
 
@@ -1142,11 +1147,11 @@ inputevt_timer(struct poll_ctx *ctx)
 		}
 	}
 	
+	ctx->dispatching = FALSE;
+
 	if (ctx->removed) {
 		inputevt_purge_removed(ctx);
 	}
-	
-	ctx->dispatching = FALSE;
 }
 
 static gboolean
@@ -1245,10 +1250,9 @@ inputevt_remove(unsigned id)
 			rl->sl = g_slist_remove(rl->sl, GUINT_TO_POINTER(id));
 			if (NULL == rl->sl) {
 				g_assert(0 == rl->readers && 0 == rl->writers);
-				inputevt_poll_idx_free(ctx, rl->poll_idx);
-				rl->poll_idx = -1;
-				wfree(rl, sizeof *rl);
+				inputevt_poll_idx_free(ctx, &rl->poll_idx);
 				g_hash_table_remove(ctx->ht, GINT_TO_POINTER(fd));
+				wfree(rl, sizeof *rl);
 			}
 
 			bit_array_clear(ctx->used_event_id, id);
