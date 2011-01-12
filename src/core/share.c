@@ -56,6 +56,7 @@ RCSID("$Id$")
 #include "qhit.h"
 #include "qrp.h"
 #include "settings.h"
+#include "spam.h"
 #include "upload_stats.h"
 #include "uploads.h"
 
@@ -880,6 +881,12 @@ share_scan_add_file(const char *relative_path,
 	sf->mtime = sb->st_mtime;
 
 	if (shared_file_set_names(sf, name)) {
+		shared_file_free(&sf);
+		return NULL;
+	}
+
+	if (spam_check_filename_size(sf->name_nfc, sf->file_size)) {
+		g_warning("file \"%s\" is listed as spam (Name)", sf->name_nfc);
 		shared_file_free(&sf);
 		return NULL;
 	}
