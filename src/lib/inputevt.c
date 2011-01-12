@@ -1012,7 +1012,7 @@ inputevt_poll_idx_compact(struct poll_ctx *ctx)
 
 		inputevt_poll_idx_free(ctx, old_idx);
 		idx = inputevt_poll_idx_new(ctx, pfd.fd);
-		safety_assert(idx = i);
+		safety_assert(idx == i);
 
 		rl->poll_idx = idx;
 		ctx->ev_arr.ev[idx] = pfd;
