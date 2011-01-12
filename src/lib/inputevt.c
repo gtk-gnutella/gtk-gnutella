@@ -69,6 +69,7 @@ RCSID("$Id$")
 #endif
 #if 1
 #define INPUTEVT_DEBUGGING		/* Additional debugging traces */
+#include "str.h"
 #endif
 
 #ifdef INPUTEVT_SAFETY_ASSERT
@@ -227,6 +228,7 @@ struct poll_ctx {
 	GHashTable *ht;				/**< Records file descriptors */
 	unsigned num_ev;			/**< Length of the "ev" and "relay" arrays */
 	unsigned num_poll_idx;		/**< Length of used_poll_idx array */
+	unsigned max_poll_idx;
 	unsigned num_ready;			/**< Used for /dev/poll only */
 	int fd;						/**< The ``master'' fd for epoll or kqueue */
 	unsigned initialized:1;		/**< TRUE if the context has been initialized */
@@ -280,6 +282,8 @@ inputevt_poll_idx_new(struct poll_ctx *ctx, int fd)
 	bit_array_set(ctx->used_poll_idx, idx);
 
 	g_assert(idx < ctx->num_ev);
+	if (idx == ctx->max_poll_idx)
+		ctx->max_poll_idx = idx + 1;
 
 #if defined(USE_POLL)
 	{
@@ -292,6 +296,7 @@ inputevt_poll_idx_new(struct poll_ctx *ctx, int fd)
 	}
 #endif	/* USE_POLL */
 
+	g_assert(ctx->max_poll_idx <= ctx->num_poll_idx);
 	return idx;
 }
 
@@ -305,6 +310,13 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned idx)
 
 	g_assert(idx < ctx->num_ev);
 
+	if (idx >= ctx->max_poll_idx - 1) {
+		size_t last = bit_array_last_set(ctx->used_poll_idx,
+						0, ctx->num_poll_idx - 1) + 1;
+		g_assert(last <= ctx->num_ev);
+		ctx->max_poll_idx = last;
+	}
+
 #ifdef USE_POLL
 	{
 		struct pollfd *pfd = &ctx->ev_arr.ev[idx];
@@ -316,6 +328,7 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned idx)
 	}
 #endif	/* USE_POLL */
 
+	g_assert(ctx->max_poll_idx <= ctx->num_poll_idx);
 }
 
 #endif /* !USE_GLIB_IO_CHANNELS */
@@ -665,9 +678,10 @@ collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
 	w.fd_count = 0;
 	x.fd_count = 0;
 
-	g_assert(ctx->num_ev <= FD_SETSIZE);
+	g_assert(ctx->max_poll_idx <= ctx->num_poll_idx);
+	g_assert(ctx->max_poll_idx <= FD_SETSIZE);
 
-	for (i = 0; i < ctx->num_ev; i++) {
+	for (i = 0; i < ctx->max_poll_idx; i++) {
 		struct pollfd *pfd = &ctx->ev_arr.ev[i];
 
 		pfd->revents = 0;
@@ -714,15 +728,15 @@ collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
 
 	if (ret > 0) {
 		/* FD_ISSET() */
-		for (i = 0; i < UNSIGNED(r.fd_count); i++) {
+		for (i = UNSIGNED(r.fd_count); i-- > 0; /* NOTHING */) {
 			int fd = cast_to_fd(r.fd_array[i]);
 			ctx->ev_arr.ev[get_poll_idx(ctx, fd)].revents |= POLLIN; 
 		}
-		for (i = 0; i < UNSIGNED(w.fd_count); i++) {
+		for (i = UNSIGNED(w.fd_count); i-- > 0; /* NOTHING */) {
 			int fd = cast_to_fd(w.fd_array[i]);
 			ctx->ev_arr.ev[get_poll_idx(ctx, fd)].revents |= POLLOUT;
 		}
-		for (i = 0; i < UNSIGNED(x.fd_count); i++) {
+		for (i = UNSIGNED(x.fd_count); i-- > 0; /* NOTHING */) {
 			int fd = cast_to_fd(x.fd_array[i]);
 			ctx->ev_arr.ev[get_poll_idx(ctx, fd)].revents |= POLLERR;
 		}
@@ -741,7 +755,7 @@ collect_events(struct poll_ctx *ctx, int timeout_ms)
 		return collect_events_with_select(ctx, timeout_ms);
 #endif	/* MINGW32 */
 
-	ret = compat_poll(ctx->ev_arr.ev, ctx->num_ev, timeout_ms);
+	ret = compat_poll(ctx->ev_arr.ev, ctx->max_poll_idx, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
 		g_warning("collect_events(): poll() failed: %s", g_strerror(errno));
 	}
@@ -819,7 +833,8 @@ check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 	g_assert(timeout_ms_ptr);
 	g_assert(0 == ctx->num_ready);
 
-	if (ctx->num_ev <= 0) {
+	g_assert(ctx->max_poll_idx <= ctx->num_poll_idx);
+	if (ctx->max_poll_idx <= 0) {
 		ctx->num_ready = 0;
 		return;
 	}
@@ -937,6 +952,77 @@ inputevt_add_source_with_glib(inputevt_relay_t *relay)
 
 #if !defined(USE_GLIB_IO_CHANNELS)
 
+void
+inputevt_poll_idx_compact(struct poll_ctx *ctx)
+#ifdef USE_POLL
+{
+	unsigned i;
+
+#ifdef INPUTEVT_DEBUGGING
+	{
+		str_t *str = str_new_from("pollfd[] = {");
+		unsigned num_unused = 0;
+
+		g_assert(ctx->max_poll_idx <= ctx->num_poll_idx);
+		for (i = ctx->max_poll_idx; i-- > 0; /* NOTHING */) {
+			num_unused += !bit_array_get(ctx->used_poll_idx, i);
+		}
+		g_assert(num_unused <= ctx->max_poll_idx);
+
+		g_assert(ctx->max_poll_idx <= ctx->num_poll_idx);
+		for (i = 0; i < ctx->max_poll_idx; i++) {
+			int fd = cast_to_fd(ctx->ev_arr.ev[i].fd);
+
+			g_assert(is_valid_fd(fd) == bit_array_get(ctx->used_poll_idx, i));
+			str_catf(str, "%s%d", i > 0 ? "," : "", fd);
+		}
+		g_assert(num_unused <= ctx->max_poll_idx);
+
+		str_cat(str, "}");
+		g_info("%s (used=%u, unused=%u)",
+			str_s2c_null(&str), ctx->max_poll_idx - num_unused, num_unused);
+	}
+
+	/* Indices [max_poll_idx...num_poll_idx[ must not be used! */
+	for (i = ctx->max_poll_idx; i < ctx->num_poll_idx; i++) {
+		int fd = cast_to_fd(ctx->ev_arr.ev[i].fd);
+		g_assert(!is_valid_fd(fd));
+		g_assert(!bit_array_get(ctx->used_poll_idx, i));
+	}
+#endif /* INPUTEVT_DEBUGGING */
+
+	for (i = 0; i < ctx->max_poll_idx; i++) {
+		unsigned idx, old_idx;
+		struct pollfd pfd;
+		relay_list_t *rl;
+
+		if (bit_array_get(ctx->used_poll_idx, i)) {
+			safety_assert(is_valid_fd(ctx->ev_arr.ev[i].fd));
+			continue;
+		}
+		safety_assert(!is_valid_fd(ctx->ev_arr.ev[i].fd));
+
+		old_idx = ctx->max_poll_idx - 1;
+		pfd = ctx->ev_arr.ev[old_idx];
+
+		rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(pfd.fd));
+		safety_assert(NULL != rl);
+		safety_assert(rl->poll_idx == old_idx);
+
+		inputevt_poll_idx_free(ctx, old_idx);
+		idx = inputevt_poll_idx_new(ctx, pfd.fd);
+		safety_assert(idx = i);
+
+		rl->poll_idx = idx;
+		ctx->ev_arr.ev[idx] = pfd;
+	}
+}
+#else
+{
+	(void) ctx;
+}
+#endif	/* USE_POLL*/
+
 /**
  * Purge removed sources.
  */
@@ -982,6 +1068,7 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 	}
 
 	gm_slist_free_null(&ctx->removed);
+	inputevt_poll_idx_compact(ctx);
 }
 
 static void
@@ -1281,6 +1368,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 			rl->sl = NULL;
 			rl->poll_idx = inputevt_poll_idx_new(ctx, relay->fd);
 			old = 0;
+			g_hash_table_insert(ctx->ht, key, rl);
 		}
 
 		if (INPUT_EVENT_R & relay->condition)
@@ -1289,7 +1377,6 @@ inputevt_add_source(inputevt_relay_t *relay)
 			rl->writers++;
 
 		rl->sl = g_slist_prepend(rl->sl, GUINT_TO_POINTER(id));
-		g_hash_table_insert(ctx->ht, key, rl);
 	}
 
 	if (-1 == update_poll_event(ctx, relay->fd, old, (old | relay->condition))) {
