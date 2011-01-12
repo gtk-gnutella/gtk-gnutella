@@ -264,11 +264,11 @@ bit_generic_first_clear(const bit_generic_t *base, size_t from, size_t to)
 static inline size_t
 bit_generic_last_set(const bit_generic_t *base, size_t from, size_t to)
 {
-	size_t i;
+	size_t i = to;
 
 	g_assert(from <= to);
 
-	for (i = to; i >= from; /* NOTHING */) {
+	for (;;) {
 		if (BIT_GENERIC_BITMASK == (i & BIT_GENERIC_BITMASK)) {
 			size_t n = (i - from) >> BIT_GENERIC_BITSHIFT;
 
@@ -287,6 +287,8 @@ bit_generic_last_set(const bit_generic_t *base, size_t from, size_t to)
 						}
 						g_assert_not_reached();
 					}
+					if (i == from)
+						break;
 					i -= BIT_GENERIC_BITSIZE;
 				}
 				continue;
@@ -294,6 +296,8 @@ bit_generic_last_set(const bit_generic_t *base, size_t from, size_t to)
 		}
 		if (bit_generic_get(base, i))
 			return i;
+		if (i == from)
+			break;
 		i--;
 	}
 
