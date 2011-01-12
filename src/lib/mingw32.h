@@ -253,6 +253,7 @@ int mingw_nanosleep(const struct timespec *req, struct timespec *rem);
 #ifndef HAS_BACKTRACE
 #define HAS_BACKTRACE			/* We emulate it */
 #define EMULATE_BACKTRACE
+#define backtrace mingw_backtrace
 
 int mingw_backtrace(void **buffer, int size);
 #endif	/* !HAS_BACKTRACE */
