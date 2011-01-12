@@ -315,8 +315,6 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned *idx_ptr)
 
 		if (idx == last_idx) {
 			pfd = &ctx->ev_arr.ev[idx];
-			bit_array_clear(ctx->used_poll_idx, idx);
-			ctx->max_poll_idx--;
 		} else {
 			relay_list_t *rl;
 
@@ -329,10 +327,9 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned *idx_ptr)
 
 			rl->poll_idx = idx;
 			ctx->ev_arr.ev[idx] = *pfd;
-			bit_array_clear(ctx->used_poll_idx, last_idx);
-			ctx->max_poll_idx = bit_array_last_set(ctx->used_poll_idx,
-									0, last_idx) + 1;
 		}
+		bit_array_clear(ctx->used_poll_idx, last_idx);
+		ctx->max_poll_idx--;
 
 		g_assert(is_valid_fd(pfd->fd));
 		pfd->fd = -1;
