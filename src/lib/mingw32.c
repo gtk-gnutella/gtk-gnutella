@@ -1472,7 +1472,14 @@ mingw_filename_nearby(const char *file)
 	static size_t offset;
 
 	if ('\0' == path[0]) {
-		(void) GetModuleFileName(NULL, path, sizeof path);
+		if (0 == GetModuleFileName(NULL, path, sizeof path)) {
+			static gboolean done;
+			if (!done) {
+				done = TRUE;
+				errno = GetLastError();
+				g_warning("cannot locate my executable: %s", g_strerror(errno));
+			}
+		}
 		offset = filepath_basename(path) - path;
 	}
 	clamp_strcpy(&path[offset], sizeof path - offset, file);
