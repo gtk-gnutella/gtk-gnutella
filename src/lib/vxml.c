@@ -4238,7 +4238,7 @@ vxml_parser_handle_doctype_decl(vxml_parser_t *vp, const char *name)
 /**
  * Handle the inside of a "<![CDATA[" verbatim section, until closing "]]>".
  *
- * All the characters without the section is verbatim text that is sent
+ * All the characters within the section make up verbatim text that is sent
  * as-is to the parser's output. There is no markup nor entity processing.
  */
 static gboolean
