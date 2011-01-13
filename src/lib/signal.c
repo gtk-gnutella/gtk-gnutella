@@ -148,7 +148,7 @@ signal_name(int signo)
 	return start - CONST_STRLEN(SIGNAL_NUM);
 }
 
-static volatile unsigned in_signal_handler;
+static volatile sig_atomic_t in_signal_handler;
 
 /**
  * Are we in a signal handler?
