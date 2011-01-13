@@ -146,14 +146,25 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 
 			va_start(args, cmd);
 			arg = va_arg(args, struct flock *);
-			
-			len_high = (guint64) arg->l_len >> 32;
-			len_low = arg->l_len & MAX_INT_VAL(guint32);
+			va_end(args);
+
+			if (arg->l_whence != SEEK_SET) {
+				errno = EINVAL;
+				return -1;		/* This emulation only supports SEEK_SET */
+			}
+
+			if (0 == arg->l_len) {
+				/* Special, 0 means the whole file */
+				len_high = MAX_INT_VAL(guint32);
+				len_low = MAX_INT_VAL(guint32);
+			} else {
+				len_high = (guint64) arg->l_len >> 32;
+				len_low = arg->l_len & MAX_INT_VAL(guint32);
+			}
 			start_high = (guint64) arg->l_start >> 32;
 			start_low = arg->l_start & MAX_INT_VAL(guint32);
 
 			if (arg->l_type == F_WRLCK) {
-
 				if (!LockFile(file, start_low, start_high, len_low, len_high))
 					errno = GetLastError();
 				else
@@ -164,9 +175,6 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 				else
 					res = 0;
 			}
-
-			va_end(args);
-
 			break;
 		}
 		case F_DUPFD:
@@ -1454,6 +1462,26 @@ mingw_backtrace(void **buffer, int size)
 			continue;
 
 		buffer[i++] = ulong_to_pointer(s.AddrPC.Offset);
+
+		{
+			DWORD off;
+			IMAGEHLP_SYMBOL *sym;
+			char buf[256];
+
+			sym = (IMAGEHLP_SYMBOL *) buf;
+			sym->SizeOfStruct = sizeof *sym;
+			sym->MaxNameLength = sizeof buf - sym->SizeOfStruct - 1;
+
+			if (SymGetSymFromAddr(proc, s.AddrPC.Offset, &off, sym)) {
+				char undecorated[256];
+				UnDecorateSymbolName(sym->Name, undecorated,
+					sizeof undecorated, UNDNAME_COMPLETE);
+				g_debug("0x%p -> %s+%ld", ulong_to_pointer(s.AddrPC.Offset),
+					undecorated, off);
+			} else {
+				g_debug("0x%p -> ???", ulong_to_pointer(s.AddrPC.Offset));
+			}
+		}
 	}
 
 	return i;
