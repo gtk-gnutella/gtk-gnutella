@@ -207,19 +207,6 @@ struct flock
 #endif
 
 /*
- * For pedantic lint checks, define USE_LINT. We override some definitions
- * and hide ``inline'' to prevent certain useless warnings.
- */
-
-#ifdef USE_LINT
-#undef G_GNUC_INTERNAL
-#define G_GNUC_INTERNAL
-#undef G_INLINE_FUNC
-#define G_INLINE_FUNC
-#define inline
-#endif
-
-/*
  * Determine how large an I/O vector the kernel can accept.
  */
 
@@ -235,7 +222,23 @@ struct flock
 #define MAX_IOV_COUNT	16				/**< Unknown, use required minimum */
 #endif
 
+/*
+ * For pedantic lint checks, define USE_LINT. We override some definitions
+ * and hide ``inline'' to prevent certain useless warnings.
+ */
+
+#ifdef USE_LINT
+#define inline
+#endif
+
 #include <glib.h>
+
+#ifdef USE_LINT
+#undef G_GNUC_INTERNAL
+#define G_GNUC_INTERNAL
+#undef G_INLINE_FUNC
+#define G_INLINE_FUNC
+#endif
 
 #if defined(USE_GLIB1) && !defined(GLIB_MAJOR_VERSION)
 #error "Install GLib 1.2 to compile gtk-gnutella against GLib 1.2."
