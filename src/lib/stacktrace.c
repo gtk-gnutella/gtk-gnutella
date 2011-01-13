@@ -804,13 +804,16 @@ stacktrace_post_init(void)
 /**
  * Unwind current stack into supplied stacktrace array.
  *
+ * If possible, do not inline stack_unwind() as this would perturb offsetting
+ * of stack elements to ignore.
+ *
  * @param stack		array where stack should be written
  * @param count		amount of items in stack[]
  * @param offset	amount of immediate callers to remove (ourselves excluded)
  *
  * @return the amount of entries filled in stack[].
  */
-static size_t
+static NO_INLINE size_t
 stack_unwind(void *stack[], size_t count, size_t offset)
 #ifdef HAS_BACKTRACE
 {
