@@ -49,8 +49,8 @@ RCSID("$Id$")
 #include "crash.h"
 #include "compat_sleep_ms.h"
 #include "fd.h"
-#include "misc.h"
 #include "offtime.h"
+#include "signal.h"
 #include "timestamp.h"
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
@@ -66,22 +66,20 @@ static struct {
 	int pause_process;
 } vars;
 
-static const struct {
-	const char name[16];
-	int signo;
-} signals[] = {
-#define D(x) { #x, x }
+/**
+ * Signals that usually indicate a crash.
+ */
+static int signals[] = {
 #ifdef SIGBUS
-	D(SIGBUS),
+	SIGBUS,
 #endif
 #ifdef SIGTRAP
-	D(SIGTRAP),
+	SIGTRAP,
 #endif
-	D(SIGABRT),
-	D(SIGFPE),
-	D(SIGILL),
-	D(SIGSEGV)
-#undef D
+	SIGABRT,
+	SIGFPE,
+	SIGILL,
+	SIGSEGV,
 };
 
 /**
@@ -277,47 +275,6 @@ crash_exec(const char *pathname, const char *argv0)
 
 static const char SIGNAL_NUM[] = "signal #";
 
-/**
- * Converts signal number to a name.
- *
- * @return signal name, either in symbolic form (e.g. "SIGSEGV") or as
- * a numeric value (e.g. "signal #11") if no symbolic form is known.
- */
-const char *
-crash_signame(int signo)
-{
-	static char sig_buf[32];
-	unsigned i;
-	char *start;
-	size_t offset;
-
-	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
-		if (signals[i].signo == signo)
-			return signals[i].name;
-	}
-
-	/*
-	 * print_number() works backwards within the supplied buffer, so we
-	 * need to construct the final string accordingly.
-	 */
-
-	start = deconstify_char(print_number(sig_buf, sizeof sig_buf, signo));
-	offset = start - sig_buf;
-
-	g_assert(size_is_positive(offset));
-	g_assert(offset > CONST_STRLEN(SIGNAL_NUM));
-
-	/*
-	 * Prepend constant SIGNAL_NUM string right before the number, without
-	 * the trailing NUL (hence the use of memcpy).
-	 */
-
-	memcpy(start - CONST_STRLEN(SIGNAL_NUM),
-		SIGNAL_NUM, CONST_STRLEN(SIGNAL_NUM));
-
-	return start - CONST_STRLEN(SIGNAL_NUM);
-}
-
 static void
 crash_handler(int signo)
 {
@@ -328,7 +285,7 @@ crash_handler(int signo)
 	gboolean recursive = crashed > 0;
 
 	/*
-	 * SIGBUS and SIGSEGV are configured by set_signal() to be reset to the
+	 * SIGBUS and SIGSEGV are configured by signal_set() to be reset to the
 	 * default behaviour on delivery, and are not masked during signal delivery.
 	 *
 	 * This allows us to usefully trap them again to detect recursive faults
@@ -341,7 +298,7 @@ crash_handler(int signo)
 			iovec_t iov[1];
 			print_str("\nERROR: too many recursive crashes\n");
 			IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
-			set_signal(signo, SIG_DFL);
+			signal_set(signo, SIG_DFL);
 			raise(signo);
 		} else if (3 == crashed) {
 			raise(signo);
@@ -350,22 +307,22 @@ crash_handler(int signo)
 	}
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
-		int sig = signals[i].signo;
+		int sig = signals[i];
 		switch (sig) {
 #ifdef SIGBUS
 		case SIGBUS:
 #endif
 		case SIGSEGV:
-			set_signal(sig, crash_handler);
+			signal_set(sig, crash_handler);
 			break;
 		default:
-			set_signal(sig, SIG_DFL);
+			signal_set(sig, SIG_DFL);
 			break;
 		}
 	}
 
 	trace = recursive ? FALSE : !stacktrace_cautious_was_logged();
-	name = crash_signame(signo);
+	name = signal_name(signo);
 
 	crash_message(name, trace, recursive);
 	if (trace) {
@@ -416,7 +373,7 @@ crash_init(const char *pathname, const char *argv0, int pause_process)
 	vars.pause_process = pause_process;
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
-		set_signal(signals[i].signo, crash_handler);
+		signal_set(signals[i], crash_handler);
 	}
 
 	crash_gmtoff = timestamp_gmt_offset(tm_time_exact(), NULL);

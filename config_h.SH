@@ -878,6 +878,27 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #define PRIVLIB_EXP "$privlibexp"		/**/
 
+/* SIG_NAME:
+ *	This symbol contains a list of signal names in order of
+ *	signal number. This is intended
+ *	to be used as a static array initialization, like this:
+ *		char *sig_name[] = { SIG_NAME };
+ *	The signals in the list are separated with commas, and each signal
+ *	is surrounded by double quotes. There is no leading SIG in the signal
+ *	name, i.e. SIGQUIT is known as "QUIT".
+ *	Gaps in the signal numbers (up to NSIG) are filled in with NUMnn,
+ *	etc., where nn is the actual signal number (e.g. NUM37).
+ *	The signal number for sig_name[i] is stored in sig_num[i].
+ *	The last element is 0 to terminate the list with a NULL.  This
+ *	corresponds to the 0 at the end of the sig_num list.
+ */
+/* SIG_COUNT:
+ *	This variable contains a number larger than the largest
+ *	signal number.  This is usually the same as the NSIG macro.
+ */
+#define SIG_NAME $sig_name_init		/**/
+#define SIG_COUNT $sig_count			/**/
+
 /* VOIDFLAGS:
  *	This symbol indicates how much support of the void type is given by this
  *	compiler.  What various bits mean:

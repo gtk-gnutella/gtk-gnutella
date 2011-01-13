@@ -48,6 +48,7 @@ RCSID("$Id$")
 #include "lib/halloc.h"
 #include "lib/walloc.h"
 #include "lib/parse.h"
+#include "lib/signal.h"
 #include "lib/stringify.h"
 #include "lib/vmm.h"
 
@@ -1777,10 +1778,10 @@ signal_handler(int signo)
 
 	switch (signo) {
 	case SIGBUS:
-		set_signal(signo, old_sigbus_handler);
+		signal_set(signo, old_sigbus_handler);
 		break;
 	case SIGSEGV:
-		set_signal(signo, old_sigsegv_handler);
+		signal_set(signo, old_sigsegv_handler);
 		break;
 	}
 	raise(signo);
@@ -1875,8 +1876,8 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 			 * signals that do not occur whilst mmap_access is set
 			 * are delegated to the original handler.
 			 */
-			old_sigbus_handler = set_signal(SIGBUS, signal_handler);
-			old_sigsegv_handler = set_signal(SIGSEGV, signal_handler);
+			old_sigbus_handler = signal_set(SIGBUS, signal_handler);
+			old_sigsegv_handler = signal_set(SIGSEGV, signal_handler);
 		}
 
 		if (

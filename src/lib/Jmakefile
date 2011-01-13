@@ -125,6 +125,7 @@ LSRC = \
 	random.c \
 	sequence.c \
 	sha1.c \
+	signal.c \
 	slist.c \
 	sorted_array.c \
 	stacktrace.c \

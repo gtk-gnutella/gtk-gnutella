@@ -1641,58 +1641,6 @@ ip_range_split(
 	}
 }
 
-/**
- * Installs a signal handler.
- *
- * The signal handler is not reset to the default handler after delivery unless
- * the signal is SIGSEGV or SIGBUS, in which case not only is the default 
- * handler reset but further occurrence of the signal will retrigger even
- * within signal delivery.
- *
- * If the signal is SIGALRM, the handler is installed so that interrupted
- * system calls fail with EINTR. Handlers for other all signals are installed
- * so that interrupted system calls are restarted instead.
- *
- * @param signo the signal number.
- * @param handler the signal handler to install.
- *
- * @return the previous signal handler or SIG_ERR on failure.
- */
-signal_handler_t
-set_signal(int signo, signal_handler_t handler)
-{
-#ifdef HAS_SIGACTION
-	static const struct sigaction zero_sa;
-	struct sigaction sa, osa;
-	
-	g_assert(handler != SIG_ERR);
-
-	sa = zero_sa;
-	sa.sa_handler = handler;
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = signo != SIGALRM ? SA_RESTART : 0;
-
-	switch (signo) {
-#ifdef SIGBUS
-	case SIGBUS:
-#endif
-	case SIGSEGV:
-#ifdef SA_NODEFER
-		sa.sa_flags |= SA_NODEFER;
-#endif
-#ifdef SA_RESETHAND
-		sa.sa_flags |= SA_RESETHAND;
-#endif
-		break;
-	}
-
-	return sigaction(signo, &sa, &osa) ? SIG_ERR : osa.sa_handler;
-#else
-	/* FIXME WIN32, probably: We can't just ignore all signal logic */
-	return signal(signo, handler);
-#endif
-}
-
 /*
  * Hashing of pointers.
  *

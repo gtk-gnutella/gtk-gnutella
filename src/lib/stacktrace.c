@@ -59,6 +59,7 @@ RCSID("$Id$")
 #include "omalloc.h"
 #include "parse.h"
 #include "path.h"
+#include "signal.h"
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
@@ -1094,7 +1095,7 @@ stacktrace_where_sym_print_offset(FILE *f, size_t offset)
  *
  * Safety comes from the fact that this routine may be safely called from
  * a signal handler.  However, symbolic names will not be loaded from the
- * executable if they haven't already.
+ * executable if they haven't already and we're in a signal handler.
  *
  * @param fd		file descriptor where stack should be printed
  * @param offset	amount of immediate callers to remove (ourselves excluded)
@@ -1106,6 +1107,8 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
 	size_t count;
 
 	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	if (!signal_in_handler())
+		stacktrace_load_symbols();
 	stack_safe_print(fd, stack, count);
 }
 
@@ -1138,7 +1141,7 @@ stacktrace_got_signal(int signo)
 	unsigned iov_cnt = 0;
 
 	print_str("WARNING: got ");
-	print_str(crash_signame(signo));
+	print_str(signal_name(signo));
 	print_str(" during stack unwinding\n");
 	IGNORE_RESULT(writev(print_context.fd, iov, iov_cnt));
 
@@ -1187,13 +1190,13 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 	 * and we start following wrong frame pointers.
 	 */
 
-	old_sigsegv = set_signal(SIGSEGV, stacktrace_got_signal);
+	old_sigsegv = signal_set(SIGSEGV, stacktrace_got_signal);
 
 #ifdef SIGBUS
-	old_sigbus = set_signal(SIGBUS, stacktrace_got_signal);
+	old_sigbus = signal_set(SIGBUS, stacktrace_got_signal);
 #endif
 #ifdef SIGTRAP
-	old_sigtrap = set_signal(SIGTRAP, stacktrace_got_signal);
+	old_sigtrap = signal_set(SIGTRAP, stacktrace_got_signal);
 #endif
 
 	printing = TRUE;
@@ -1216,6 +1219,8 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 		print_str("WARNING: corrupted stack\n");
 		IGNORE_RESULT(writev(fd, iov, iov_cnt));
 	} else {
+		if (!signal_in_handler())
+			stacktrace_load_symbols();
 		stack_safe_print(fd, stack, count);
 	}
 
@@ -1224,13 +1229,13 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 restore:
 	printing = FALSE;
 
-	set_signal(SIGSEGV, old_sigsegv);
+	signal_set(SIGSEGV, old_sigsegv);
 
 #ifdef SIGBUS
-	set_signal(SIGBUS, old_sigbus);
+	signal_set(SIGBUS, old_sigbus);
 #endif
 #ifdef SIGTRAP
-	set_signal(SIGTRAP, old_sigtrap);
+	signal_set(SIGTRAP, old_sigtrap);
 #endif
 }
 

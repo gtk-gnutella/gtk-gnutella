@@ -274,9 +274,6 @@ gboolean is_strsuffix(const char *str, size_t len, const char *suffix);
 size_t html_escape(const char *src, char *dst, size_t dst_size);
 guint32 html_decode_entity(const char *src, const char **endptr);
 
-typedef void (*signal_handler_t)(int signo);
-signal_handler_t set_signal(int signo, signal_handler_t handler);
-
 void normalize_dir_separators(char *);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 

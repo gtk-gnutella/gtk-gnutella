@@ -38,12 +38,13 @@
 RCSID("$Id$")
 
 #include "adns.h"
+#include "ascii.h"
 #include "atoms.h"
 #include "debug.h"
 #include "fd.h"
-#include "inputevt.h"
-#include "ascii.h"
 #include "glib-missing.h"
+#include "inputevt.h"
+#include "signal.h"
 #include "tm.h"
 #include "walloc.h"
 
@@ -469,7 +470,7 @@ adns_helper(int fd_in, int fd_out)
 	gm_setproctitle(g_get_prgname());
 
 #ifdef SIGQUIT 
-	set_signal(SIGQUIT, SIG_IGN);	/* Avoid core dumps on SIGQUIT */
+	signal_set(SIGQUIT, SIG_IGN);	/* Avoid core dumps on SIGQUIT */
 #endif
 
 	is_helper = TRUE;

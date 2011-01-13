@@ -123,6 +123,7 @@
 #include "lib/log.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
+#include "lib/misc.h"
 #include "lib/offtime.h"
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
@@ -132,6 +133,7 @@
 #include "lib/portmap.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
+#include "lib/signal.h"
 #include "lib/stacktrace.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
@@ -329,7 +331,7 @@ gtk_gnutella_atexit(void)
 #endif
         
 #ifdef SIGALRM
-		set_signal(SIGALRM, sig_alarm);
+		signal_set(SIGALRM, sig_alarm);
 #endif
 		if (setjmp(atexit_env)) {
 			g_warning("cleanup aborted while in %s().", exit_step);
@@ -1137,7 +1139,7 @@ main_timer(void *unused_data)
 	(void) unused_data;
 	if (signal_received || shutdown_requested) {
 		if (signal_received) {
-			g_warning("caught signal #%d, exiting...", signal_received);
+			g_warning("caught %s, exiting...", signal_name(signal_received));
 		}
 		gtk_gnutella_exit(EXIT_FAILURE);
 	}
@@ -1443,20 +1445,20 @@ main(int argc, char **argv)
 	halloc_init(!options[main_arg_no_halloc].used);
 	malloc_init_vtable();
 
-	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
+	signal_set(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 #ifdef SIGHUP	/* FIXME MINGW32 */
-	set_signal(SIGHUP, sig_hup);
+	signal_set(SIGHUP, sig_hup);
 #endif
 #ifdef SIGCHLD
-	set_signal(SIGCHLD, sig_chld);
+	signal_set(SIGCHLD, sig_chld);
 #endif
 #ifdef SIGPIPE
-	set_signal(SIGPIPE, SIG_IGN);
+	signal_set(SIGPIPE, SIG_IGN);
 #endif
 
 #if defined(FRAGCHECK) || defined(MALLOC_STATS)
-	set_signal(SIGUSR1, sig_malloc);
-	set_signal(SIGUSR2, sig_malloc);
+	signal_set(SIGUSR1, sig_malloc);
+	signal_set(SIGUSR2, sig_malloc);
 #endif
 
 	/* Early inits */
@@ -1616,11 +1618,11 @@ main(int argc, char **argv)
 
 	/* Some signal handlers */
 
-	set_signal(SIGTERM, sig_terminate);
-	set_signal(SIGINT, sig_terminate);
+	signal_set(SIGTERM, sig_terminate);
+	signal_set(SIGINT, sig_terminate);
 
 #ifdef SIGXFSZ
-	set_signal(SIGXFSZ, SIG_IGN);
+	signal_set(SIGXFSZ, SIG_IGN);
 #endif
 
 	/* Setup the main timers */
