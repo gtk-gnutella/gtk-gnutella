@@ -249,7 +249,10 @@ int mingw_nanosleep(const struct timespec *req, struct timespec *rem);
 
 /*
  * backtrace() emulation.
+ *
+ * DISABLED: does not bring any advantage currently. --RAM, 2011-01-13
  */
+#if 0
 #ifndef HAS_BACKTRACE
 #define HAS_BACKTRACE			/* We emulate it */
 #define EMULATE_BACKTRACE
@@ -257,6 +260,7 @@ int mingw_nanosleep(const struct timespec *req, struct timespec *rem);
 
 int mingw_backtrace(void **buffer, int size);
 #endif	/* !HAS_BACKTRACE */
+#endif	/* (disabled) */
 
 static inline void *
 iovec_base(const iovec_t* iovec)
