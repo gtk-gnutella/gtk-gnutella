@@ -206,8 +206,11 @@ struct flock
 #include <netinet/ip.h>
 #endif
 
-/* For pedantic lint checks, define USE_LINT. We override some definitions
- * and hide ``inline'' to prevent certain useless warnings. */
+/*
+ * For pedantic lint checks, define USE_LINT. We override some definitions
+ * and hide ``inline'' to prevent certain useless warnings.
+ */
+
 #ifdef USE_LINT
 #undef G_GNUC_INTERNAL
 #define G_GNUC_INTERNAL
@@ -240,14 +243,6 @@ struct flock
 
 #if defined(USE_GLIB2) && !defined(GLIB_MAJOR_VERSION)
 #error "Install GLib 2.x to compile gtk-gnutella against GLib 2.x."
-#endif
-
-#ifdef USE_LINT
-#undef G_GNUC_INTERNAL
-#define G_GNUC_INTERNAL
-#undef G_INLINE_FUNC
-#define G_INLINE_FUNC
-#define inline
 #endif
 
 typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
@@ -495,23 +490,28 @@ typedef void (*GCallback) (void);
 #define PRINTF_FUNC_PTR(x, y)
 #endif
 
-/* Functions using this attribute cause a warning if the returned
- * value is not used. */
+/*
+ * Functions using this attribute cause a warning if the returned
+ * value is not used.
+ */
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 4)
 #define WARN_UNUSED_RESULT __attribute__((__warn_unused_result__))
 #else /* GCC < 3.4 */
 #define WARN_UNUSED_RESULT
 #endif
 
-/* Instructs the compiler to emit code for this function even if it is
- * or seems to be unused. */
+/*
+ * Instructs the compiler to emit code for this function even if it is
+ * or seems to be unused.
+ */
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
 #define KEEP_FUNCTION __attribute__((__used__))
 #else /* GCC < 3.1 || !GCC */
 #define KEEP_FUNCTION
 #endif
 
-/* The antidote for WARN_UNUSED_RESULT. This attribute is sometimes
+/*
+ * The antidote for WARN_UNUSED_RESULT. This attribute is sometimes
  * misused for functions that return a result which SHOULD NOT be
  * ignored in contrast to MUST NOT. Unfortunately, a simple "(void)"
  * does not suppress this warning.
@@ -519,8 +519,10 @@ typedef void (*GCallback) (void);
 #define IGNORE_RESULT(x) \
 	G_STMT_START { switch (0 != (x)) { default: ; } }  G_STMT_END
 
-/* Functions using this attribute cause a warning if the variable
- * argument list does not contain a NULL pointer. */
+/*
+ * Functions using this attribute cause a warning if the variable
+ * argument list does not contain a NULL pointer.
+ */
 #ifndef G_GNUC_NULL_TERMINATED
 #if defined(HASATTRIBUTE) && HAS_GCC(4, 0)
 #define G_GNUC_NULL_TERMINATED __attribute__((__sentinel__))
@@ -529,9 +531,11 @@ typedef void (*GCallback) (void);
 #endif	/* GCC >= 4 */
 #endif	/* G_GNUC_NULL_TERMINATED */
 
-/* Define G_LIKELY() and G_UNLIKELY() so that they are available when
+/*
+ * Define G_LIKELY() and G_UNLIKELY() so that they are available when
  * using GLib 1.2 as well. These allow optimization by static branch
- * prediction with GCC. */
+ * prediction with GCC.
+ */
 #ifndef G_LIKELY
 #if HAS_GCC(3, 4)	/* Just a guess, a Configure check would be better */
 #define G_LIKELY(x)		(__builtin_expect(x, 1))
@@ -554,6 +558,12 @@ typedef void (*GCallback) (void);
 #define ALWAYS_INLINE __attribute__((__always_inline__))
 #else
 #define ALWAYS_INLINE
+#endif	/* GCC >= 3.1 */
+
+#if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
+#define NO_INLINE __attribute__((__noinline__))
+#else
+#define NO_INLINE
 #endif	/* GCC >= 3.1 */
 
 #if defined(HASATTRIBUTE) && defined(HAS_REGPARM)
