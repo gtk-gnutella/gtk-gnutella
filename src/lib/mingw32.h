@@ -382,7 +382,7 @@ void mingw_init(void);
 void mingw_close(void);
 
 const char *mingw_filename_nearby(const char *file);
-gboolean mingw_stdin_pending(void);
+gboolean mingw_stdin_pending(gboolean fifo);
 gboolean mingw_same_file_id(const char *pathname_a, const char *pathname_b);
 
 #else	/* !MINGW32 */

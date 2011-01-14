@@ -337,11 +337,35 @@ local_shell_mainloop(int fd)
 {
 	static struct shell_buf client, server;
 	int tty = isatty(STDIN_FILENO);
+	gboolean intr = tty != 0;
 #ifdef USE_READLINE
 	int use_readline = tty;
 #else
 	int use_readline = 0;
 #endif	/* USE_READLINE */
+
+	if (!tty && is_running_on_mingw()) {
+		if (is_a_fifo(STDIN_FILENO)) {
+			/*
+			 * If stdin is a pipe, we can run with:
+			 *
+			 *    echo status | gtk-gnutella --shell
+			 *
+			 * or in interactive mode as in:
+			 *
+			 *	  gtk-gnutella --shell
+			 *
+			 * When running in an xterm and not from a Console window, stdin
+			 * is indeed a pipe!
+			 *
+			 * To check the difference, look at whether we already have
+			 * data on the pipe: chance are that if they run interactively,
+			 * they will not type ahead but wait for the prompt.
+			 */
+
+			intr = !mingw_stdin_pending(TRUE);
+		}
+	}
 
 	{
 		static char client_buf[4096], server_buf[4096];
@@ -357,7 +381,7 @@ local_shell_mainloop(int fd)
 		 * Only send the empty INTR command when interactive.
 		 */
 
-		if (tty) {
+		if (intr) {
 			client.fill = sizeof interactive - 1;
 			memcpy(client_buf, interactive, client.fill);
 		} else {
@@ -445,7 +469,7 @@ local_shell_mainloop(int fd)
 			fds[2].fd = fds[2].events ? fd : -1;
 
 			/*
-			 * On Windows, don't poll forever but timeout after 350 ms
+			 * On Windows, don't poll forever but timeout after 150 ms
 			 * so that we can handle stdin.  As soon as they hit the keyboard,
 			 * we'll block on the read() though, when stdin is a console:
 			 * input is line-buffered and the WIN32 calls under the read()
@@ -457,14 +481,14 @@ local_shell_mainloop(int fd)
 			 * Setting the console in unbuffered mode is a bad idea because
 			 * in that case Windows also turns echo off.  Great feature.
 			 *
-			 * The 350 ms timeout means there's a slight delay when a new
+			 * The 150 ms timeout means there's a slight delay when a new
 			 * command is typed, but it's acceptable in practice and seems
 			 * a good compromise: it is reasonably responsive whilst not
 			 * wasting too much CPU doing active polling for new stdin input.
 			 *		--RAM, 2011-01-05
 			 */
 
-			ret = wait_for_io(fds, 3, is_running_on_mingw() ? 350 : -1);
+			ret = wait_for_io(fds, 3, is_running_on_mingw() ? 150 : -1);
 			if (ret < 0) {
 				return -1;
 			}
@@ -485,7 +509,7 @@ local_shell_mainloop(int fd)
 			 *		--RAM, 2011-01-05
 			 */
 
-			client.readable = tty ? mingw_stdin_pending() : TRUE;
+			client.readable = intr ? mingw_stdin_pending(!tty) : TRUE;
 			server.writable = TRUE;
 #endif	/* MINGW32 */
 		}

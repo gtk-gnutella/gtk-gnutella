@@ -1516,12 +1516,35 @@ mingw_filename_nearby(const char *file)
 }
 
 /**
- * Check whether there is pending data for us to read on a tty stdin.
+ * Check whether there is pending data for us to read on a pipe.
+ */
+static gboolean
+mingw_fifo_pending(int fd)
+{
+	HANDLE h = (HANDLE) _get_osfhandle(fd);
+	DWORD pending;
+
+	if (INVALID_HANDLE_VALUE == h)
+		return FALSE;
+
+	if (0 == PeekNamedPipe(h, NULL, 0, NULL, &pending, NULL)) {
+		errno = GetLastError();
+		if (ERROR_BROKEN_PIPE == errno)
+			return TRUE;		/* Let them read EOF */
+		g_warning("peek failed for fd #%d: %s", fd, g_strerror(errno));
+		return FALSE;
+	}
+
+	return pending != 0;
+}
+
+/**
+ * Check whether there is pending data for us to read on a tty / fifo stdin.
  */
 gboolean
-mingw_stdin_pending(void)
+mingw_stdin_pending(gboolean fifo)
 {
-	return _kbhit();
+	return fifo ? mingw_fifo_pending(STDIN_FILENO) : _kbhit();
 }
 
 /**
