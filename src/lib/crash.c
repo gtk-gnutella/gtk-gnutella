@@ -278,7 +278,7 @@ static const char SIGNAL_NUM[] = "signal #";
 static void
 crash_handler(int signo)
 {
-	static unsigned crashed;
+	static volatile sig_atomic_t crashed;
 	const char *name;
 	unsigned i;
 	gboolean trace;
