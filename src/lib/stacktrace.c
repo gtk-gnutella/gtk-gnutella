@@ -115,14 +115,126 @@ struct nm_parser {
 	hash_table_t *atoms;		/**< To create string "atoms" */
 };
 
-static hash_table_t *stack_atoms;
+/**
+ * Auto-tuning stack trace offset.
+ *
+ * On some platforms, the level of offsetting we have to do to the stack
+ * varies.  This variable contains the additionnal stack offsetting we have
+ * to do.
+ */
+static size_t stack_auto_offset;
 
+static hash_table_t *stack_atoms;
 static const char NM_FILE[] = "gtk-gnutella.nm";
 
 #ifndef HAS_BACKTRACE
 static void *getreturnaddr(size_t level);
 static void *getframeaddr(size_t level);
 #endif
+
+/**
+ * Unwind current stack into supplied stacktrace array.
+ *
+ * If possible, do not inline stack_unwind() as this would perturb offsetting
+ * of stack elements to ignore.
+ *
+ * @param stack		array where stack should be written
+ * @param count		amount of items in stack[]
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ *
+ * @return the amount of entries filled in stack[].
+ */
+static NO_INLINE size_t
+stack_unwind(void *stack[], size_t count, size_t offset)
+#ifdef HAS_BACKTRACE
+{
+	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
+	int depth;
+    size_t amount;		/* Amount of entries we can copy in result */
+	size_t idx;
+
+	g_assert(size_is_non_negative(offset));
+
+	depth = backtrace(trace, G_N_ELEMENTS(trace));
+	idx = size_saturate_add(offset, stack_auto_offset);
+
+	g_assert(size_is_non_negative(idx));
+
+	if (UNSIGNED(depth) <= idx)
+		return 0;
+
+	amount = idx - UNSIGNED(depth);
+	amount = MIN(amount, count);
+	memcpy(stack, &trace[idx], amount * sizeof trace[0]);
+
+	return amount;
+}
+#else	/* !HAS_BACKTRACE */
+{
+    size_t i;
+	void *frame;
+	size_t d;
+	gboolean increasing;
+
+	/*
+	 * Adjust the offset according to the auto-tunings.
+	 */
+
+	offset = size_saturate_add(offset, stack_auto_offset);
+
+	/*
+	 * Go carefully to stack frame "offset", in case the stack is
+	 * currently corrupted.
+	 */
+
+	frame = getframeaddr(0);
+	if (NULL == frame)
+		return 0;
+
+	d = ptr_diff(getframeaddr(1), frame);
+	increasing = size_is_positive(d);
+
+	for (i = 0; i < offset; i++) {
+		void *nframe = getframeaddr(i + 1);
+
+		if (NULL == nframe)
+			return 0;
+
+		d = increasing ? ptr_diff(nframe, frame) : ptr_diff(frame, nframe);
+		if (d > 0x1000)		/* Arbitrary, large enough to be uncommon */
+			return 0;
+
+		frame = nframe;
+	}
+
+	/*
+	 * At this point, i == offset and frame == getframeaddr(offset).
+	 */
+
+	for (;; i++) {
+		void *nframe = getframeaddr(i + 1);
+
+		if (NULL == nframe || i - offset >= count)
+			break;
+
+        if (NULL == (stack[i - offset] = getreturnaddr(i)))
+			break;
+
+		/*
+		 * Safety precaution: if the distance between one frame and the
+		 * next is too large, we're probably facing stack corruption and
+		 * are beginning to hit random places in memory.  Break out.
+		 */
+
+		d = increasing ? ptr_diff(nframe, frame) : ptr_diff(frame, nframe);
+		if (d > 0x1000)		/* Arbitrary, large enough to be uncommon */
+			break;
+		frame = nframe;
+	}
+
+	return i - offset;
+}
+#endif	/* HAS_BACKTRACE */
 
 /**
  * Safe logging to avoid recursion from the log handler.
@@ -396,8 +508,10 @@ trace_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
 	if (namelen >= buflen - 2)
 		return;
 
-	buf[namelen] = '+';
-	size_t_to_string_buf(offset, &buf[namelen+1], buflen - (namelen + 1));
+	if (offset != 0) {
+		buf[namelen] = '+';
+		size_t_to_string_buf(offset, &buf[namelen+1], buflen - (namelen + 1));
+	}
 }
 
 /*
@@ -407,13 +521,14 @@ trace_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
  * The way formatting is done allows this routine to be used from a
  * signal handler.
  *
- * @param pc	the PC to translate into symbolic form
+ * @param pc		the PC to translate into symbolic form
+ * @param offset	whether offset should be added, in symbolic form.
  *
  * @return symbolic name for given pc offset, if found, otherwise
  * the hexadecimal value.
  */
 static const char *
-trace_name(void *pc)
+trace_name(void *pc, gboolean offset)
 {
 	static char buf[256];
 
@@ -427,7 +542,8 @@ trace_name(void *pc)
 		if (NULL == t || &trace_array.base[trace_array.count -1] == t) {
 			trace_fmt_pointer(buf, sizeof buf, pc);
 		} else {
-			trace_fmt_name(buf, sizeof buf, t->name, ptr_diff(pc, t->start));
+			trace_fmt_name(buf, sizeof buf, t->name,
+				offset ? ptr_diff(pc, t->start) : 0);
 		}
 	}
 
@@ -672,6 +788,54 @@ error:
 }
 
 /**
+ * Tune the level of offsetting we have to do to get the current caller.
+ */
+static NO_INLINE void
+stacktrace_auto_tune(void)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+	size_t i;
+
+	count = stack_unwind(stack, G_N_ELEMENTS(stack), 0);
+
+	/*
+	 * Look at the first item in the stack that is after ourselves.
+	 * and within close range (the unwinding is close to the start of
+	 * the routine so the PC of the caller should be close).
+	 */
+
+	for (i = 0; i < count; i++) {
+		size_t d = ptr_diff(stack[i], stacktrace_auto_tune);
+
+		if (size_is_non_negative(d) && d < 72)	/* close enough */
+			break;
+	}
+
+	/*
+	 * If we did not find a suitable candidate, warn but that's OK.
+	 */
+
+	if (count == i) {
+		s_warning("could not auto-tune stacktrace offsets, using defaults");
+		stack_auto_offset = 1;
+		return;
+	}
+
+	/*
+	 * We expect to have to skip one stack frame, that of the current
+	 * function.  Anything else deserves a warning.
+	 */
+
+	stack_auto_offset = i;
+
+	if (stack_auto_offset != 1) {
+		s_warning("auto-tuned stacktrace offsets to skip %lu stack frames",
+			(unsigned long) stack_auto_offset);
+	}
+}
+
+/**
  * Initialize stack tracing.
  *
  * @param argv0		the value of argv[0], from main(): the program's filename
@@ -698,7 +862,7 @@ stacktrace_init(const char *argv0, gboolean deferred)
 		}
 
 		program_mtime = buf.st_mtime;
-		return;
+		goto tune;
 	}
 
 	load_symbols(program_path);
@@ -711,6 +875,12 @@ done:
 		program_path = NULL;
 	}
 	symbols_loaded = TRUE;		/* Don't attempt again */
+
+	/* FALL THROUGH */
+
+tune:
+	load_symbols(program_path);	// XXX
+	stacktrace_auto_tune();
 }
 
 /**
@@ -803,110 +973,6 @@ stacktrace_post_init(void)
 }
 
 /**
- * Unwind current stack into supplied stacktrace array.
- *
- * If possible, do not inline stack_unwind() as this would perturb offsetting
- * of stack elements to ignore.
- *
- * @param stack		array where stack should be written
- * @param count		amount of items in stack[]
- * @param offset	amount of immediate callers to remove (ourselves excluded)
- *
- * @return the amount of entries filled in stack[].
- */
-static NO_INLINE size_t
-stack_unwind(void *stack[], size_t count, size_t offset)
-#ifdef HAS_BACKTRACE
-{
-	void *trace[STACKTRACE_DEPTH_MAX + 1];
-	int depth;
-    size_t amount;
-
-	g_assert(size_is_positive(offset));
-
-	depth = backtrace(trace, G_N_ELEMENTS(trace));
-
-	if (UNSIGNED(depth) <= offset + 1)		/* +1 to include ourselves */
-		return 0;
-
-	amount = offset + 1 - UNSIGNED(depth);	/* Amount we can copy */
-	amount = MIN(amount, count);
-	memcpy(stack, &trace[offset + 1], amount * sizeof trace[0]);
-
-	return amount;
-}
-#else	/* !HAS_BACKTRACE */
-{
-    size_t i;
-	void *frame;
-	size_t d;
-	gboolean increasing;
-
-	g_assert(size_is_positive(offset));
-
-	/*
-	 * The getframeaddr() and getreturnaddr() are already written to
-	 * skip 1 frame, to make sure their caller does not appear in the
-	 * stack, so decrease the offset by 1.
-	 */
-
-	offset--;
-
-	/*
-	 * Go carefully to stack frame "offset", in case the stack is
-	 * currently corrupted.
-	 */
-
-	frame = getframeaddr(0);
-	if (NULL == frame)
-		return 0;
-
-	d = ptr_diff(getframeaddr(1), frame);
-	increasing = size_is_positive(d);
-
-	for (i = 0; i < offset; i++) {
-		void *nframe = getframeaddr(i + 1);
-
-		if (NULL == nframe)
-			return 0;
-
-		d = increasing ? ptr_diff(nframe, frame) : ptr_diff(frame, nframe);
-		if (d > 0x1000)		/* Arbitrary, large enough to be uncommon */
-			return 0;
-
-		frame = nframe;
-	}
-
-	/*
-	 * At this point, i == offset and frame == getframeaddr(offset).
-	 */
-
-	for (;; i++) {
-		void *nframe = getframeaddr(i + 1);
-
-		if (NULL == nframe || i - offset >= count)
-			break;
-
-        if (NULL == (stack[i - offset] = getreturnaddr(i)))
-			break;
-
-		/*
-		 * Safety precaution: if the distance between one frame and the
-		 * next is too large, we're probably facing stack corruption and
-		 * are beginning to hit random places in memory.  Break out.
-		 */
-
-		d = increasing ? ptr_diff(nframe, frame) : ptr_diff(frame, nframe);
-		if (d > 0x1000)		/* Arbitrary, large enough to be uncommon */
-			break;
-		frame = nframe;
-	}
-
-	return i - offset;
-}
-#endif	/* HAS_BACKTRACE */
-
-/**
  * Fill supplied stacktrace structure with the backtrace.
  * Trace will start with our caller.
  */
@@ -958,7 +1024,7 @@ stack_print(FILE *f, void * const *stack, size_t count)
 	stacktrace_load_symbols();
 
 	for (i = 0; i < count; i++) {
-		const char *where = trace_name(stack[i]);
+		const char *where = trace_name(stack[i], TRUE);
 
 		fprintf(f, "\t%s\n", where);
 		if (stack_reached_main(where))
@@ -979,7 +1045,7 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 	size_t i;
 
 	for (i = 0; i < count; i++) {
-		const char *where = trace_name(stack[i]);
+		const char *where = trace_name(stack[i], TRUE);
 		iovec_t iov[3];
 		unsigned iov_cnt = 0;
 
@@ -1013,6 +1079,33 @@ stacktrace_atom_print(FILE *f, const struct stackatom *st)
 	g_assert(st != NULL);
 
 	stack_print(f, st->stack, st->len);
+}
+
+/**
+ * Return symbolic name of the n-th caller in the stack, if possible.
+ *
+ * With n = 0, this should be the current routine name.
+ *
+ * @return pointer to static data.  An empty name means there are not enough
+ * items in the stack.
+ */
+const char *
+stacktrace_caller_name(size_t n)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	g_assert(size_is_non_negative(n));
+	g_assert(n <= STACKTRACE_DEPTH_MAX);
+
+	count = stack_unwind(stack, G_N_ELEMENTS(stack), 1);
+	if (n >= count)
+		return "";
+
+	if (!signal_in_handler())
+		stacktrace_load_symbols();
+
+	return trace_name(stack[n], FALSE);
 }
 
 /**
@@ -1164,7 +1257,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	static gboolean printing;
+	static volatile sig_atomic_t printing;
 	signal_handler_t old_sigsegv;
 #ifdef SIGBUS
 	signal_handler_t old_sigbus;
@@ -1355,6 +1448,17 @@ stacktrace_get_atom(const struct stacktrace *st)
  * SUCH DAMAGE.
  *
  * $X-Id: execinfo.c,v 1.3 2004/07/19 05:21:09 sobomax Exp $
+ *
+ * Changes were made to make these routines work on Windows under MinGW:
+ *
+ * Instead of having getreturnaddr(0) return __builtin_return_address(1),
+ * it now returns __builtin_return_address(0).  Similar changes were made
+ * to getframeaddr().  Moreover, the maximum level handled in the switch
+ * is now 132, to cope with necessary offsetting required by user code
+ * which uses an extra layer of functions to access stack_unwind().
+ *
+ * In order to work correctly, the proper stack offsetting must be computed
+ * at run-time.  See stacktrace_auto_tune().
  */
 
 #if HAS_GCC(3, 0)
@@ -1362,134 +1466,139 @@ static void *
 getreturnaddr(size_t level)
 {
     switch (level) {
-    case 0:		return __builtin_return_address(1);
-    case 1:		return __builtin_return_address(2);
-    case 2:		return __builtin_return_address(3);
-    case 3:		return __builtin_return_address(4);
-    case 4:		return __builtin_return_address(5);
-    case 5:		return __builtin_return_address(6);
-    case 6:		return __builtin_return_address(7);
-    case 7:		return __builtin_return_address(8);
-    case 8:		return __builtin_return_address(9);
-    case 9:		return __builtin_return_address(10);
-    case 10:	return __builtin_return_address(11);
-    case 11:	return __builtin_return_address(12);
-    case 12:	return __builtin_return_address(13);
-    case 13:	return __builtin_return_address(14);
-    case 14:	return __builtin_return_address(15);
-    case 15:	return __builtin_return_address(16);
-    case 16:	return __builtin_return_address(17);
-    case 17:	return __builtin_return_address(18);
-    case 18:	return __builtin_return_address(19);
-    case 19:	return __builtin_return_address(20);
-    case 20:	return __builtin_return_address(21);
-    case 21:	return __builtin_return_address(22);
-    case 22:	return __builtin_return_address(23);
-    case 23:	return __builtin_return_address(24);
-    case 24:	return __builtin_return_address(25);
-    case 25:	return __builtin_return_address(26);
-    case 26:	return __builtin_return_address(27);
-    case 27:	return __builtin_return_address(28);
-    case 28:	return __builtin_return_address(29);
-    case 29:	return __builtin_return_address(30);
-    case 30:	return __builtin_return_address(31);
-    case 31:	return __builtin_return_address(32);
-    case 32:	return __builtin_return_address(33);
-    case 33:	return __builtin_return_address(34);
-    case 34:	return __builtin_return_address(35);
-    case 35:	return __builtin_return_address(36);
-    case 36:	return __builtin_return_address(37);
-    case 37:	return __builtin_return_address(38);
-    case 38:	return __builtin_return_address(39);
-    case 39:	return __builtin_return_address(40);
-    case 40:	return __builtin_return_address(41);
-    case 41:	return __builtin_return_address(42);
-    case 42:	return __builtin_return_address(43);
-    case 43:	return __builtin_return_address(44);
-    case 44:	return __builtin_return_address(45);
-    case 45:	return __builtin_return_address(46);
-    case 46:	return __builtin_return_address(47);
-    case 47:	return __builtin_return_address(48);
-    case 48:	return __builtin_return_address(49);
-    case 49:	return __builtin_return_address(50);
-    case 50:	return __builtin_return_address(51);
-    case 51:	return __builtin_return_address(52);
-    case 52:	return __builtin_return_address(53);
-    case 53:	return __builtin_return_address(54);
-    case 54:	return __builtin_return_address(55);
-    case 55:	return __builtin_return_address(56);
-    case 56:	return __builtin_return_address(57);
-    case 57:	return __builtin_return_address(58);
-    case 58:	return __builtin_return_address(59);
-    case 59:	return __builtin_return_address(60);
-    case 60:	return __builtin_return_address(61);
-    case 61:	return __builtin_return_address(62);
-    case 62:	return __builtin_return_address(63);
-    case 63:	return __builtin_return_address(64);
-    case 64:	return __builtin_return_address(65);
-    case 65:	return __builtin_return_address(66);
-    case 66:	return __builtin_return_address(67);
-    case 67:	return __builtin_return_address(68);
-    case 68:	return __builtin_return_address(69);
-    case 69:	return __builtin_return_address(70);
-    case 70:	return __builtin_return_address(71);
-    case 71:	return __builtin_return_address(72);
-    case 72:	return __builtin_return_address(73);
-    case 73:	return __builtin_return_address(74);
-    case 74:	return __builtin_return_address(75);
-    case 75:	return __builtin_return_address(76);
-    case 76:	return __builtin_return_address(77);
-    case 77:	return __builtin_return_address(78);
-    case 78:	return __builtin_return_address(79);
-    case 79:	return __builtin_return_address(80);
-    case 80:	return __builtin_return_address(81);
-    case 81:	return __builtin_return_address(82);
-    case 82:	return __builtin_return_address(83);
-    case 83:	return __builtin_return_address(84);
-    case 84:	return __builtin_return_address(85);
-    case 85:	return __builtin_return_address(86);
-    case 86:	return __builtin_return_address(87);
-    case 87:	return __builtin_return_address(88);
-    case 88:	return __builtin_return_address(89);
-    case 89:	return __builtin_return_address(90);
-    case 90:	return __builtin_return_address(91);
-    case 91:	return __builtin_return_address(92);
-    case 92:	return __builtin_return_address(93);
-    case 93:	return __builtin_return_address(94);
-    case 94:	return __builtin_return_address(95);
-    case 95:	return __builtin_return_address(96);
-    case 96:	return __builtin_return_address(97);
-    case 97:	return __builtin_return_address(98);
-    case 98:	return __builtin_return_address(99);
-    case 99:	return __builtin_return_address(100);
-    case 100:	return __builtin_return_address(101);
-    case 101:	return __builtin_return_address(102);
-    case 102:	return __builtin_return_address(103);
-    case 103:	return __builtin_return_address(104);
-    case 104:	return __builtin_return_address(105);
-    case 105:	return __builtin_return_address(106);
-    case 106:	return __builtin_return_address(107);
-    case 107:	return __builtin_return_address(108);
-    case 108:	return __builtin_return_address(109);
-    case 109:	return __builtin_return_address(110);
-    case 110:	return __builtin_return_address(111);
-    case 111:	return __builtin_return_address(112);
-    case 112:	return __builtin_return_address(113);
-    case 113:	return __builtin_return_address(114);
-    case 114:	return __builtin_return_address(115);
-    case 115:	return __builtin_return_address(116);
-    case 116:	return __builtin_return_address(117);
-    case 117:	return __builtin_return_address(118);
-    case 118:	return __builtin_return_address(119);
-    case 119:	return __builtin_return_address(120);
-    case 120:	return __builtin_return_address(121);
-    case 121:	return __builtin_return_address(122);
-    case 122:	return __builtin_return_address(123);
-    case 123:	return __builtin_return_address(124);
-    case 124:	return __builtin_return_address(125);
-    case 125:	return __builtin_return_address(126);
-    case 126:	return __builtin_return_address(127);
-    case 127:	return __builtin_return_address(128);
+	case 0:		return __builtin_return_address(0);
+	case 1:		return __builtin_return_address(1);
+	case 2:		return __builtin_return_address(2);
+	case 3:		return __builtin_return_address(3);
+	case 4:		return __builtin_return_address(4);
+	case 5:		return __builtin_return_address(5);
+	case 6:		return __builtin_return_address(6);
+	case 7:		return __builtin_return_address(7);
+	case 8:		return __builtin_return_address(8);
+	case 9:		return __builtin_return_address(9);
+	case 10:	return __builtin_return_address(10);
+	case 11:	return __builtin_return_address(11);
+	case 12:	return __builtin_return_address(12);
+	case 13:	return __builtin_return_address(13);
+	case 14:	return __builtin_return_address(14);
+	case 15:	return __builtin_return_address(15);
+	case 16:	return __builtin_return_address(16);
+	case 17:	return __builtin_return_address(17);
+	case 18:	return __builtin_return_address(18);
+	case 19:	return __builtin_return_address(19);
+	case 20:	return __builtin_return_address(20);
+	case 21:	return __builtin_return_address(21);
+	case 22:	return __builtin_return_address(22);
+	case 23:	return __builtin_return_address(23);
+	case 24:	return __builtin_return_address(24);
+	case 25:	return __builtin_return_address(25);
+	case 26:	return __builtin_return_address(26);
+	case 27:	return __builtin_return_address(27);
+	case 28:	return __builtin_return_address(28);
+	case 29:	return __builtin_return_address(29);
+	case 30:	return __builtin_return_address(30);
+	case 31:	return __builtin_return_address(31);
+	case 32:	return __builtin_return_address(32);
+	case 33:	return __builtin_return_address(33);
+	case 34:	return __builtin_return_address(34);
+	case 35:	return __builtin_return_address(35);
+	case 36:	return __builtin_return_address(36);
+	case 37:	return __builtin_return_address(37);
+	case 38:	return __builtin_return_address(38);
+	case 39:	return __builtin_return_address(39);
+	case 40:	return __builtin_return_address(40);
+	case 41:	return __builtin_return_address(41);
+	case 42:	return __builtin_return_address(42);
+	case 43:	return __builtin_return_address(43);
+	case 44:	return __builtin_return_address(44);
+	case 45:	return __builtin_return_address(45);
+	case 46:	return __builtin_return_address(46);
+	case 47:	return __builtin_return_address(47);
+	case 48:	return __builtin_return_address(48);
+	case 49:	return __builtin_return_address(49);
+	case 50:	return __builtin_return_address(50);
+	case 51:	return __builtin_return_address(51);
+	case 52:	return __builtin_return_address(52);
+	case 53:	return __builtin_return_address(53);
+	case 54:	return __builtin_return_address(54);
+	case 55:	return __builtin_return_address(55);
+	case 56:	return __builtin_return_address(56);
+	case 57:	return __builtin_return_address(57);
+	case 58:	return __builtin_return_address(58);
+	case 59:	return __builtin_return_address(59);
+	case 60:	return __builtin_return_address(60);
+	case 61:	return __builtin_return_address(61);
+	case 62:	return __builtin_return_address(62);
+	case 63:	return __builtin_return_address(63);
+	case 64:	return __builtin_return_address(64);
+	case 65:	return __builtin_return_address(65);
+	case 66:	return __builtin_return_address(66);
+	case 67:	return __builtin_return_address(67);
+	case 68:	return __builtin_return_address(68);
+	case 69:	return __builtin_return_address(69);
+	case 70:	return __builtin_return_address(70);
+	case 71:	return __builtin_return_address(71);
+	case 72:	return __builtin_return_address(72);
+	case 73:	return __builtin_return_address(73);
+	case 74:	return __builtin_return_address(74);
+	case 75:	return __builtin_return_address(75);
+	case 76:	return __builtin_return_address(76);
+	case 77:	return __builtin_return_address(77);
+	case 78:	return __builtin_return_address(78);
+	case 79:	return __builtin_return_address(79);
+	case 80:	return __builtin_return_address(80);
+	case 81:	return __builtin_return_address(81);
+	case 82:	return __builtin_return_address(82);
+	case 83:	return __builtin_return_address(83);
+	case 84:	return __builtin_return_address(84);
+	case 85:	return __builtin_return_address(85);
+	case 86:	return __builtin_return_address(86);
+	case 87:	return __builtin_return_address(87);
+	case 88:	return __builtin_return_address(88);
+	case 89:	return __builtin_return_address(89);
+	case 90:	return __builtin_return_address(90);
+	case 91:	return __builtin_return_address(91);
+	case 92:	return __builtin_return_address(92);
+	case 93:	return __builtin_return_address(93);
+	case 94:	return __builtin_return_address(94);
+	case 95:	return __builtin_return_address(95);
+	case 96:	return __builtin_return_address(96);
+	case 97:	return __builtin_return_address(97);
+	case 98:	return __builtin_return_address(98);
+	case 99:	return __builtin_return_address(99);
+	case 100:	return __builtin_return_address(100);
+	case 101:	return __builtin_return_address(101);
+	case 102:	return __builtin_return_address(102);
+	case 103:	return __builtin_return_address(103);
+	case 104:	return __builtin_return_address(104);
+	case 105:	return __builtin_return_address(105);
+	case 106:	return __builtin_return_address(106);
+	case 107:	return __builtin_return_address(107);
+	case 108:	return __builtin_return_address(108);
+	case 109:	return __builtin_return_address(109);
+	case 110:	return __builtin_return_address(110);
+	case 111:	return __builtin_return_address(111);
+	case 112:	return __builtin_return_address(112);
+	case 113:	return __builtin_return_address(113);
+	case 114:	return __builtin_return_address(114);
+	case 115:	return __builtin_return_address(115);
+	case 116:	return __builtin_return_address(116);
+	case 117:	return __builtin_return_address(117);
+	case 118:	return __builtin_return_address(118);
+	case 119:	return __builtin_return_address(119);
+	case 120:	return __builtin_return_address(120);
+	case 121:	return __builtin_return_address(121);
+	case 122:	return __builtin_return_address(122);
+	case 123:	return __builtin_return_address(123);
+	case 124:	return __builtin_return_address(124);
+	case 125:	return __builtin_return_address(125);
+	case 126:	return __builtin_return_address(126);
+	case 127:	return __builtin_return_address(127);
+	case 128:	return __builtin_return_address(128);
+	case 129:	return __builtin_return_address(129);
+	case 130:	return __builtin_return_address(130);
+	case 131:	return __builtin_return_address(131);
+	case 132:	return __builtin_return_address(132);
     default:	return NULL;
     }
 }
@@ -1498,134 +1607,139 @@ static void *
 getframeaddr(size_t level)
 {
     switch (level) {
-    case 0:		return __builtin_frame_address(1);
-    case 1:		return __builtin_frame_address(2);
-    case 2:		return __builtin_frame_address(3);
-    case 3:		return __builtin_frame_address(4);
-    case 4:		return __builtin_frame_address(5);
-    case 5:		return __builtin_frame_address(6);
-    case 6:		return __builtin_frame_address(7);
-    case 7:		return __builtin_frame_address(8);
-    case 8:		return __builtin_frame_address(9);
-    case 9:		return __builtin_frame_address(10);
-    case 10:	return __builtin_frame_address(11);
-    case 11:	return __builtin_frame_address(12);
-    case 12:	return __builtin_frame_address(13);
-    case 13:	return __builtin_frame_address(14);
-    case 14:	return __builtin_frame_address(15);
-    case 15:	return __builtin_frame_address(16);
-    case 16:	return __builtin_frame_address(17);
-    case 17:	return __builtin_frame_address(18);
-    case 18:	return __builtin_frame_address(19);
-    case 19:	return __builtin_frame_address(20);
-    case 20:	return __builtin_frame_address(21);
-    case 21:	return __builtin_frame_address(22);
-    case 22:	return __builtin_frame_address(23);
-    case 23:	return __builtin_frame_address(24);
-    case 24:	return __builtin_frame_address(25);
-    case 25:	return __builtin_frame_address(26);
-    case 26:	return __builtin_frame_address(27);
-    case 27:	return __builtin_frame_address(28);
-    case 28:	return __builtin_frame_address(29);
-    case 29:	return __builtin_frame_address(30);
-    case 30:	return __builtin_frame_address(31);
-    case 31:	return __builtin_frame_address(32);
-    case 32:	return __builtin_frame_address(33);
-    case 33:	return __builtin_frame_address(34);
-    case 34:	return __builtin_frame_address(35);
-    case 35:	return __builtin_frame_address(36);
-    case 36:	return __builtin_frame_address(37);
-    case 37:	return __builtin_frame_address(38);
-    case 38:	return __builtin_frame_address(39);
-    case 39:	return __builtin_frame_address(40);
-    case 40:	return __builtin_frame_address(41);
-    case 41:	return __builtin_frame_address(42);
-    case 42:	return __builtin_frame_address(43);
-    case 43:	return __builtin_frame_address(44);
-    case 44:	return __builtin_frame_address(45);
-    case 45:	return __builtin_frame_address(46);
-    case 46:	return __builtin_frame_address(47);
-    case 47:	return __builtin_frame_address(48);
-    case 48:	return __builtin_frame_address(49);
-    case 49:	return __builtin_frame_address(50);
-    case 50:	return __builtin_frame_address(51);
-    case 51:	return __builtin_frame_address(52);
-    case 52:	return __builtin_frame_address(53);
-    case 53:	return __builtin_frame_address(54);
-    case 54:	return __builtin_frame_address(55);
-    case 55:	return __builtin_frame_address(56);
-    case 56:	return __builtin_frame_address(57);
-    case 57:	return __builtin_frame_address(58);
-    case 58:	return __builtin_frame_address(59);
-    case 59:	return __builtin_frame_address(60);
-    case 60:	return __builtin_frame_address(61);
-    case 61:	return __builtin_frame_address(62);
-    case 62:	return __builtin_frame_address(63);
-    case 63:	return __builtin_frame_address(64);
-    case 64:	return __builtin_frame_address(65);
-    case 65:	return __builtin_frame_address(66);
-    case 66:	return __builtin_frame_address(67);
-    case 67:	return __builtin_frame_address(68);
-    case 68:	return __builtin_frame_address(69);
-    case 69:	return __builtin_frame_address(70);
-    case 70:	return __builtin_frame_address(71);
-    case 71:	return __builtin_frame_address(72);
-    case 72:	return __builtin_frame_address(73);
-    case 73:	return __builtin_frame_address(74);
-    case 74:	return __builtin_frame_address(75);
-    case 75:	return __builtin_frame_address(76);
-    case 76:	return __builtin_frame_address(77);
-    case 77:	return __builtin_frame_address(78);
-    case 78:	return __builtin_frame_address(79);
-    case 79:	return __builtin_frame_address(80);
-    case 80:	return __builtin_frame_address(81);
-    case 81:	return __builtin_frame_address(82);
-    case 82:	return __builtin_frame_address(83);
-    case 83:	return __builtin_frame_address(84);
-    case 84:	return __builtin_frame_address(85);
-    case 85:	return __builtin_frame_address(86);
-    case 86:	return __builtin_frame_address(87);
-    case 87:	return __builtin_frame_address(88);
-    case 88:	return __builtin_frame_address(89);
-    case 89:	return __builtin_frame_address(90);
-    case 90:	return __builtin_frame_address(91);
-    case 91:	return __builtin_frame_address(92);
-    case 92:	return __builtin_frame_address(93);
-    case 93:	return __builtin_frame_address(94);
-    case 94:	return __builtin_frame_address(95);
-    case 95:	return __builtin_frame_address(96);
-    case 96:	return __builtin_frame_address(97);
-    case 97:	return __builtin_frame_address(98);
-    case 98:	return __builtin_frame_address(99);
-    case 99:	return __builtin_frame_address(100);
-    case 100:	return __builtin_frame_address(101);
-    case 101:	return __builtin_frame_address(102);
-    case 102:	return __builtin_frame_address(103);
-    case 103:	return __builtin_frame_address(104);
-    case 104:	return __builtin_frame_address(105);
-    case 105:	return __builtin_frame_address(106);
-    case 106:	return __builtin_frame_address(107);
-    case 107:	return __builtin_frame_address(108);
-    case 108:	return __builtin_frame_address(109);
-    case 109:	return __builtin_frame_address(110);
-    case 110:	return __builtin_frame_address(111);
-    case 111:	return __builtin_frame_address(112);
-    case 112:	return __builtin_frame_address(113);
-    case 113:	return __builtin_frame_address(114);
-    case 114:	return __builtin_frame_address(115);
-    case 115:	return __builtin_frame_address(116);
-    case 116:	return __builtin_frame_address(117);
-    case 117:	return __builtin_frame_address(118);
-    case 118:	return __builtin_frame_address(119);
-    case 119:	return __builtin_frame_address(120);
-    case 120:	return __builtin_frame_address(121);
-    case 121:	return __builtin_frame_address(122);
-    case 122:	return __builtin_frame_address(123);
-    case 123:	return __builtin_frame_address(124);
-    case 124:	return __builtin_frame_address(125);
-    case 125:	return __builtin_frame_address(126);
-    case 126:	return __builtin_frame_address(127);
-    case 127:	return __builtin_frame_address(128);
+	case 0:		return __builtin_frame_address(0);
+	case 1:		return __builtin_frame_address(1);
+	case 2:		return __builtin_frame_address(2);
+	case 3:		return __builtin_frame_address(3);
+	case 4:		return __builtin_frame_address(4);
+	case 5:		return __builtin_frame_address(5);
+	case 6:		return __builtin_frame_address(6);
+	case 7:		return __builtin_frame_address(7);
+	case 8:		return __builtin_frame_address(8);
+	case 9:		return __builtin_frame_address(9);
+	case 10:	return __builtin_frame_address(10);
+	case 11:	return __builtin_frame_address(11);
+	case 12:	return __builtin_frame_address(12);
+	case 13:	return __builtin_frame_address(13);
+	case 14:	return __builtin_frame_address(14);
+	case 15:	return __builtin_frame_address(15);
+	case 16:	return __builtin_frame_address(16);
+	case 17:	return __builtin_frame_address(17);
+	case 18:	return __builtin_frame_address(18);
+	case 19:	return __builtin_frame_address(19);
+	case 20:	return __builtin_frame_address(20);
+	case 21:	return __builtin_frame_address(21);
+	case 22:	return __builtin_frame_address(22);
+	case 23:	return __builtin_frame_address(23);
+	case 24:	return __builtin_frame_address(24);
+	case 25:	return __builtin_frame_address(25);
+	case 26:	return __builtin_frame_address(26);
+	case 27:	return __builtin_frame_address(27);
+	case 28:	return __builtin_frame_address(28);
+	case 29:	return __builtin_frame_address(29);
+	case 30:	return __builtin_frame_address(30);
+	case 31:	return __builtin_frame_address(31);
+	case 32:	return __builtin_frame_address(32);
+	case 33:	return __builtin_frame_address(33);
+	case 34:	return __builtin_frame_address(34);
+	case 35:	return __builtin_frame_address(35);
+	case 36:	return __builtin_frame_address(36);
+	case 37:	return __builtin_frame_address(37);
+	case 38:	return __builtin_frame_address(38);
+	case 39:	return __builtin_frame_address(39);
+	case 40:	return __builtin_frame_address(40);
+	case 41:	return __builtin_frame_address(41);
+	case 42:	return __builtin_frame_address(42);
+	case 43:	return __builtin_frame_address(43);
+	case 44:	return __builtin_frame_address(44);
+	case 45:	return __builtin_frame_address(45);
+	case 46:	return __builtin_frame_address(46);
+	case 47:	return __builtin_frame_address(47);
+	case 48:	return __builtin_frame_address(48);
+	case 49:	return __builtin_frame_address(49);
+	case 50:	return __builtin_frame_address(50);
+	case 51:	return __builtin_frame_address(51);
+	case 52:	return __builtin_frame_address(52);
+	case 53:	return __builtin_frame_address(53);
+	case 54:	return __builtin_frame_address(54);
+	case 55:	return __builtin_frame_address(55);
+	case 56:	return __builtin_frame_address(56);
+	case 57:	return __builtin_frame_address(57);
+	case 58:	return __builtin_frame_address(58);
+	case 59:	return __builtin_frame_address(59);
+	case 60:	return __builtin_frame_address(60);
+	case 61:	return __builtin_frame_address(61);
+	case 62:	return __builtin_frame_address(62);
+	case 63:	return __builtin_frame_address(63);
+	case 64:	return __builtin_frame_address(64);
+	case 65:	return __builtin_frame_address(65);
+	case 66:	return __builtin_frame_address(66);
+	case 67:	return __builtin_frame_address(67);
+	case 68:	return __builtin_frame_address(68);
+	case 69:	return __builtin_frame_address(69);
+	case 70:	return __builtin_frame_address(70);
+	case 71:	return __builtin_frame_address(71);
+	case 72:	return __builtin_frame_address(72);
+	case 73:	return __builtin_frame_address(73);
+	case 74:	return __builtin_frame_address(74);
+	case 75:	return __builtin_frame_address(75);
+	case 76:	return __builtin_frame_address(76);
+	case 77:	return __builtin_frame_address(77);
+	case 78:	return __builtin_frame_address(78);
+	case 79:	return __builtin_frame_address(79);
+	case 80:	return __builtin_frame_address(80);
+	case 81:	return __builtin_frame_address(81);
+	case 82:	return __builtin_frame_address(82);
+	case 83:	return __builtin_frame_address(83);
+	case 84:	return __builtin_frame_address(84);
+	case 85:	return __builtin_frame_address(85);
+	case 86:	return __builtin_frame_address(86);
+	case 87:	return __builtin_frame_address(87);
+	case 88:	return __builtin_frame_address(88);
+	case 89:	return __builtin_frame_address(89);
+	case 90:	return __builtin_frame_address(90);
+	case 91:	return __builtin_frame_address(91);
+	case 92:	return __builtin_frame_address(92);
+	case 93:	return __builtin_frame_address(93);
+	case 94:	return __builtin_frame_address(94);
+	case 95:	return __builtin_frame_address(95);
+	case 96:	return __builtin_frame_address(96);
+	case 97:	return __builtin_frame_address(97);
+	case 98:	return __builtin_frame_address(98);
+	case 99:	return __builtin_frame_address(99);
+	case 100:	return __builtin_frame_address(100);
+	case 101:	return __builtin_frame_address(101);
+	case 102:	return __builtin_frame_address(102);
+	case 103:	return __builtin_frame_address(103);
+	case 104:	return __builtin_frame_address(104);
+	case 105:	return __builtin_frame_address(105);
+	case 106:	return __builtin_frame_address(106);
+	case 107:	return __builtin_frame_address(107);
+	case 108:	return __builtin_frame_address(108);
+	case 109:	return __builtin_frame_address(109);
+	case 110:	return __builtin_frame_address(110);
+	case 111:	return __builtin_frame_address(111);
+	case 112:	return __builtin_frame_address(112);
+	case 113:	return __builtin_frame_address(113);
+	case 114:	return __builtin_frame_address(114);
+	case 115:	return __builtin_frame_address(115);
+	case 116:	return __builtin_frame_address(116);
+	case 117:	return __builtin_frame_address(117);
+	case 118:	return __builtin_frame_address(118);
+	case 119:	return __builtin_frame_address(119);
+	case 120:	return __builtin_frame_address(120);
+	case 121:	return __builtin_frame_address(121);
+	case 122:	return __builtin_frame_address(122);
+	case 123:	return __builtin_frame_address(123);
+	case 124:	return __builtin_frame_address(124);
+	case 125:	return __builtin_frame_address(125);
+	case 126:	return __builtin_frame_address(126);
+	case 127:	return __builtin_frame_address(127);
+	case 128:	return __builtin_frame_address(128);
+	case 129:	return __builtin_frame_address(129);
+	case 130:	return __builtin_frame_address(130);
+	case 131:	return __builtin_frame_address(131);
+	case 132:	return __builtin_frame_address(132);
     default:	return NULL;
     }
 }

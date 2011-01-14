@@ -69,6 +69,7 @@ void stacktrace_get_offset(struct stacktrace *st, size_t offset);
 void stacktrace_print(FILE *f, const struct stacktrace *st);
 void stacktrace_atom_print(FILE *f, const struct stackatom *st);
 
+const char *stacktrace_caller_name(size_t n);
 void stacktrace_where_print(FILE *f);
 void stacktrace_where_sym_print(FILE *f);
 void stacktrace_where_sym_print_offset(FILE *f, size_t offset);
