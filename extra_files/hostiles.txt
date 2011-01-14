@@ -956,6 +956,7 @@
 # nats dot solidvpn dot com
 66.254.116.176
 # Black Oak Computers
+98.158.124.170
 216.131.127.58
 216.131.77.81
 # leaseweb/ocom
