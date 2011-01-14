@@ -93,6 +93,13 @@ wfree(gpointer p, size_t size)
 	g_free(p);
 }
 
+static inline void
+wfree0(gpointer p, size_t size)
+{
+	memset(p, 0, size);
+	g_free(p);
+}
+
 static inline gpointer
 wrealloc(gpointer p, size_t o, size_t n)
 {
@@ -113,6 +120,7 @@ wmove(void *p, size_t n)
 gpointer walloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 gpointer walloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void wfree(gpointer ptr, size_t size);
+void wfree0(gpointer ptr, size_t size);
 gpointer wrealloc(gpointer old, size_t old_size, size_t new_size)
 			WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *wmove(void *ptr, size_t size) WARN_UNUSED_RESULT;

@@ -41,6 +41,7 @@ RCSID("$Id$")
 #include "pow2.h"
 #include "unsigned.h"
 #include "halloc.h"
+#include "unsigned.h"
 #include "walloc.h"
 #include "zalloc.h"
 #include "vmm.h"
@@ -182,12 +183,8 @@ wfree(gpointer ptr, size_t size)
 	size_t rounded = zalloc_round(size);
 	size_t idx;
 
-	g_assert(ptr);
-	g_assert(size > 0);
-
-#ifdef WFREE_INVALIDATES_DATA
-	memset(ptr, 1, size);
-#endif
+	g_assert(ptr != NULL);
+	g_assert(size_is_positive(size));
 
 	if (rounded > WALLOC_MAX) {
 #ifdef TRACK_ZALLOC
@@ -208,9 +205,22 @@ wfree(gpointer ptr, size_t size)
 	g_assert(idx < WZONE_SIZE);
 
 	zone = wzone[idx];
-	g_assert(zone);
+	g_assert(zone != NULL);
 
 	zfree(zone, ptr);
+}
+
+/**
+ * Zero content and free a block allocated via walloc().
+ */
+void
+wfree0(gpointer ptr, size_t size)
+{
+	g_assert(ptr != NULL);
+	g_assert(size_is_positive(size));
+
+	memset(ptr, 0, size);
+	wfree(ptr, size);
 }
 
 /**
@@ -298,7 +308,7 @@ walloc_track(size_t size, const char *file, int line)
 	size_t rounded = zalloc_round(size);
 	size_t idx;
 
-	g_assert(size > 0);
+	g_assert(size_is_positive(size));
 
 	if (rounded > WALLOC_MAX) {
 		/* Too big for efficient zalloc() */
