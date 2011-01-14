@@ -1709,8 +1709,13 @@
 70.38.0.0/17
 
 # iWeb Dedicated CL IWEB-CL-T036-01SH
-72.55.168.32/27
+#72.55.184.39
 #72.55.168.48:6346
+72.55.128.0/18
+
+# iWeb Technologies Inc.
+#184.107.55.9
+184.107.0.0/16
 
 # FortressITX (range 69.72.128.0/17)
 # Sending back "sponsored results"
