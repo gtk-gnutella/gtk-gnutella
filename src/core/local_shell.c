@@ -337,14 +337,15 @@ local_shell_mainloop(int fd)
 {
 	static struct shell_buf client, server;
 	int tty = isatty(STDIN_FILENO);
-	gboolean intr = tty != 0;
+	int interactive = tty != 0;
 #ifdef USE_READLINE
 	int use_readline = tty;
 #else
 	int use_readline = 0;
 #endif	/* USE_READLINE */
 
-	if (!tty && is_running_on_mingw()) {
+#ifdef MINGW32
+	if (!tty) {
 		if (is_a_fifo(STDIN_FILENO)) {
 			/*
 			 * If stdin is a pipe, we can run with:
@@ -363,14 +364,14 @@ local_shell_mainloop(int fd)
 			 * they will not type ahead but wait for the prompt.
 			 */
 
-			intr = !mingw_stdin_pending(TRUE);
+			interactive = !mingw_stdin_pending(TRUE);
 		}
 	}
+#endif	/* MINGW32 */
 
 	{
 		static char client_buf[4096], server_buf[4096];
-		static const char helo[] = "HELO\n";
-		static const char interactive[] = "HELO\nINTR\n";
+		const char *helo = interactive ? "HELO\nINTR\n" : "HELO\n";
 
 		server.buf = server_buf;
 		server.size = sizeof server_buf;
@@ -381,13 +382,8 @@ local_shell_mainloop(int fd)
 		 * Only send the empty INTR command when interactive.
 		 */
 
-		if (intr) {
-			client.fill = sizeof interactive - 1;
-			memcpy(client_buf, interactive, client.fill);
-		} else {
-			client.fill = sizeof helo - 1;
-			memcpy(client_buf, helo, client.fill);
-		}
+		client.fill = strlen(helo);
+		memcpy(client_buf, helo, client.fill);
 	}
 
 	for (;;) {
@@ -509,7 +505,7 @@ local_shell_mainloop(int fd)
 			 *		--RAM, 2011-01-05
 			 */
 
-			client.readable = intr ? mingw_stdin_pending(!tty) : TRUE;
+			client.readable = interactive ? mingw_stdin_pending(!tty) : TRUE;
 			server.writable = TRUE;
 #endif	/* MINGW32 */
 		}
