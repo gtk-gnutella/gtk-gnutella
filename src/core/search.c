@@ -566,12 +566,14 @@ search_record_new(void)
  * need to invest too much into it and it can probably be removed in a couple
  * of months from now (2006-12-20).
  *
+ * Extended to look for FUD based spam (2011-01-14).
+ *
  * @param data The buffer to scan.
  * @param size The size of the buffer.
  * @return TRUE if spam was detected, FALSE if it looks alright.
  */
 static gboolean
-is_action_url_spam(const char * const data, size_t size)
+is_lime_xml_spam(const char * const data, size_t size)
 {
 	if (size > 0) {
 		static const char schema[] = "http://www.limewire.com/schemas/";
@@ -581,10 +583,14 @@ is_action_url_spam(const char * const data, size_t size)
 		p = compat_memmem(data, size, schema, CONST_STRLEN(schema));
 		if (p) {
 			static const char action[] = " action=\"http://";
+			static const char fud[] = "WWW" "." "LIMEWIRE" "LAW" "." "COM";
 
 			p += CONST_STRLEN(schema);
 			size -= p - data;
+
 			if (compat_memmem(p, size, action, CONST_STRLEN(action)))
+				return TRUE;
+			if (compat_memmem(p, size, fud, CONST_STRLEN(fud)))
 				return TRUE;
 		}
 	}
@@ -781,6 +787,18 @@ search_results_mark_fake_spam(gnet_results_set_t *rs)
 	}
 }
 
+static gboolean
+is_evil_timestamp(time_t t)
+{
+	switch (t) {
+	case 0x45185160:
+	case 0x45186D80:
+	case 0x34AC60DE:
+		return TRUE;
+	}
+	return FALSE;
+}
+
 static void
 search_results_identify_spam(gnet_results_set_t *rs)
 {
@@ -815,6 +833,12 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			gnet_stats_count_general(GNR_SPAM_SHA1_HITS, 1);
 		} else if (
 			T_LIME == rs->vcode.u32 &&
+			is_evil_timestamp(record->create_time)
+		) {
+			search_results_mark_fake_spam(rs);
+			record->flags |= SR_SPAM;
+		} else if (
+			T_LIME == rs->vcode.u32 &&
 			NULL == record->xml &&
 			(is_strsuffix(record->filename, (size_t)-1, ".avi") ||
 				is_strsuffix(record->filename, (size_t)-1, ".mpg"))
@@ -828,7 +852,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			gnet_stats_count_general(GNR_SPAM_NAME_HITS, 1);
 		} else if (
 			record->xml &&
-			is_action_url_spam(record->xml, strlen(record->xml))
+			is_lime_xml_spam(record->xml, strlen(record->xml))
 		) {
 			rs->status |= ST_URL_SPAM;
 			record->flags |= SR_SPAM;
@@ -1384,7 +1408,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		if (exvcnt)
 			ext_reset(exv, MAX_EXTVEC);
 	} else {
-		if (is_action_url_spam(trailer, trailer_size)) {
+		if (is_lime_xml_spam(trailer, trailer_size)) {
 			rs->status |= ST_URL_SPAM;
 		}
 	}
@@ -1884,11 +1908,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						time_t stamp;
 
 						ret = ggept_ct_extract(e, &stamp);
-						if (
-							GGEP_OK == ret &&
-							0x45185160 != stamp &&
-							0x45186D80 != stamp
-						) {
+						if (GGEP_OK == ret) {
 							rc->create_time = stamp;
 						} else {
 							search_log_bad_ggep(n, e, NULL);
