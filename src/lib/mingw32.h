@@ -135,7 +135,7 @@
 #define getaddrinfo mingw_getaddrinfo
 #define freeaddrinfo mingw_freeaddrinfo
 
-#define stat(path, buf) mingw_stat(path, buf)
+#define stat(path, buf) mingw_stat((path), (buf))
 #define open mingw_open
 #define dup2 mingw_dup2
 #define lseek mingw_lseek
@@ -346,7 +346,7 @@ ssize_t mingw_recvfrom(socket_fd_t, void *, size_t, int,
 int s_close(socket_fd_t fd);
 ssize_t mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt);
 
-#define rename(oldpath, newpath) mingw_rename(oldpath, newpath)
+#define rename(oldpath, newpath) mingw_rename((oldpath), (newpath))
 #define g_strerror(errnum) mingw_strerror(errnum)
 
 void *mingw_valloc(void *hint, size_t size);
