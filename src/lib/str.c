@@ -48,6 +48,7 @@ RCSID("$Id$")
 #include <math.h>		/* For frexp() and isfinite() */
 
 #include "ascii.h"
+#include "ckalloc.h"
 #include "str.h"
 #include "glib-missing.h"
 #include "misc.h"			/* For clamp_strcpy */
@@ -126,6 +127,61 @@ str_new_not_leaking(size_t szhint)
 
 	str = NOT_LEAKING_Z(str_new(szhint));
 	(void) NOT_LEAKING(str->s_data);
+
+	return str;
+}
+
+/**
+ * Allocate a new string structure from a pre-allocated chunk.
+ *
+ * The string buffer is non-resizeable so the string must be carefully sized.
+ *
+ * This is meant to be used in signal handlers, in order to construct logging
+ * messages or format strings.
+ *
+ * @param ck	the pre-allocated chunk from which allocation is done
+ * @param size	size of the string buffer.
+ *
+ * @return the allocated string object, NULL if there is no more memory
+ * available in the chunk.
+ */
+str_t *
+str_new_in_chunk(ckhunk_t *ck, size_t size)
+{
+	str_t *str;
+	char *arena;
+
+	g_assert(size_is_positive(size));
+
+	/*
+	 * Start by allocating the arena, which is by far the largest amount
+	 * to get from the chunk.
+	 */
+
+	arena = ckalloc(ck, size);
+	if (NULL == arena)
+		return NULL;
+
+	/*
+	 * Now that we allocated the arena, and since we cannot free individual
+	 * objects in a chunk, use critical allocation to be able to allocate
+	 * the str_t object, hopefully.
+	 */
+
+	str = ckalloc_critical(ck, sizeof *str);
+	if (NULL == str)
+		return NULL;
+
+	/*
+	 * Don't set the STR_OBJECT because the object is non-freeable.
+	 * Force STR_FOREIGN_PTR because the arena is non-freeable.
+	 */
+
+	str->s_magic = STR_MAGIC;
+	str->s_flags = STR_FOREIGN_PTR;
+	str->s_data = arena;
+	str->s_len = 0;
+	str->s_size = size;
 
 	return str;
 }

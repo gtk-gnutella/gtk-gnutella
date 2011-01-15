@@ -41,6 +41,8 @@
 struct str;
 typedef struct str str_t;
 
+struct ckhunk;		/* Avoids dependency on "ckalloc.h" here */
+
 /*
  * Public interface.
  */
@@ -49,6 +51,7 @@ size_t str_len(const str_t *s);
 str_t *str_new(size_t szhint);
 str_t *str_new_from(const char *string);
 str_t *str_new_not_leaking(size_t szhint);
+str_t *str_new_in_chunk(struct ckhunk *ck, size_t size);
 str_t *str_create(str_t *str, size_t szhint);
 str_t *str_make(char *ptr, size_t len);
 void str_foreign(str_t *str, char *buffer, size_t len, size_t size);
