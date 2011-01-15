@@ -540,6 +540,8 @@ src/lib/bit_field.ht
 src/lib/bit_generic.t
 src/lib/bstr.c
 src/lib/bstr.h
+src/lib/ckalloc.c
+src/lib/ckalloc.h
 src/lib/cobs.c
 src/lib/cobs.h
 src/lib/compat_misc.c
