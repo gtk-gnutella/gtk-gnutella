@@ -830,7 +830,7 @@ stacktrace_auto_tune(void)
 	stack_auto_offset = i;
 
 	if (stack_auto_offset != 1) {
-		s_warning("auto-tuned stacktrace offsets to skip %lu stack frames",
+		s_info("auto-tuned stacktrace offsets to skip %lu stack frames",
 			(unsigned long) stack_auto_offset);
 	}
 }
