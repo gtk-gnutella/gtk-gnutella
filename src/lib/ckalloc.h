@@ -49,6 +49,8 @@ void ckdestroy_null(ckhunk_t **ck_ptr);
 void *ckalloc(ckhunk_t *ck, size_t len);
 void *ckalloc_critical(ckhunk_t *ck, size_t len);
 void ckfree_all(ckhunk_t *ck);
+void *ckcopy(ckhunk_t *ck, const void *p, size_t size);
+char *ckstrdup(ckhunk_t *ck, const char *str);
 
 #endif /* _ckalloc_h_ */
 

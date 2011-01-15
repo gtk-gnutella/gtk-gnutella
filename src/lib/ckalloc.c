@@ -145,9 +145,17 @@ ckdestroy_null(ckhunk_t **ck_ptr)
 void
 ckfree_all(ckhunk_t *ck)
 {
+	sigset_t set;
+
 	ckhunk_check(ck);
 
+	if (!signal_enter_critical(&set))
+		return;
+
 	ck->avail = ck->arena + ckalloc_round(sizeof(struct ckhunk));
+
+	if (!signal_leave_critical(&set))
+		g_error("cannot leave critical section: %s", g_strerror(errno));
 }
 
 /**
@@ -199,9 +207,8 @@ ckalloc_internal(ckhunk_t *ck, size_t len, gboolean critical)
 	/* FALL THROUGH */
 
 done:
-	if (!signal_leave_critical(&set)) {
+	if (!signal_leave_critical(&set))
 		g_error("cannot leave critical section: %s", g_strerror(errno));
-	}
 
 	return p;
 }
@@ -242,6 +249,38 @@ void *
 ckalloc_critical(ckhunk_t *ck, size_t len)
 {
 	return ckalloc_internal(ck, len, TRUE);
+}
+
+/**
+ * Copy memory into new buffer.
+ *
+ * @return new buffer with copied data, NULL if memory could not be allocated.
+ */
+void *
+ckcopy(ckhunk_t *ck, const void *p, size_t size)
+{
+	void *cp;
+
+	ckhunk_check(ck);
+
+	cp = ckalloc(ck, size);
+	if (cp != NULL)
+		memcpy(cp, p, size);
+
+	return cp;
+}
+
+/**
+ * Convenience routine to duplicate a string.
+ *
+ * @return duplicated string, NULL if allocation failed or str was NULL.
+ */
+char *
+ckstrdup(ckhunk_t *ck, const char *str)
+{
+	ckhunk_check(ck);
+
+	return str ? ckcopy(ck, str, 1 + strlen(str)) : NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent:  */
