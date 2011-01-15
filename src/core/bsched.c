@@ -48,7 +48,6 @@ RCSID("$Id$")
 #include "lib/halloc.h"
 #include "lib/walloc.h"
 #include "lib/parse.h"
-#include "lib/signal.h"
 #include "lib/stringify.h"
 #include "lib/vmm.h"
 
@@ -1750,44 +1749,6 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 	return r;
 }
 
-#ifdef USE_MMAP
-static sigjmp_buf mmap_env;
-static volatile sig_atomic_t mmap_access;
-static volatile signal_handler_t old_sigbus_handler;
-static volatile signal_handler_t old_sigsegv_handler;
-
-/**
- * Handles SIGBUS or SIGSEGV when accessing mmap()ed areas. This may
- * happen when the underlying file gets truncated or the device fails
- * with an I/O error. When using read() one would see "errno == EIO"
- * or similar. With mmap() we have to catch this ourselves.
- */
-static void
-signal_handler(int signo)
-{
-	if (mmap_access) {
-		mmap_access = 0;
-		siglongjmp(mmap_env, signo);
-	}
-	
-	/*
-	 * If this signal did not occur whilst accessing a mmap()ed area,
-	 * there is something wrong and we delegate the signal to the old
-	 * handler.
-	 */
-
-	switch (signo) {
-	case SIGBUS:
-		signal_set(signo, old_sigbus_handler);
-		break;
-	case SIGSEGV:
-		signal_set(signo, old_sigsegv_handler);
-		break;
-	}
-	raise(signo);
-}
-#endif /* !USE_MMAP */
-
 /**
  * Write at most `len' bytes to source's fd, as bandwidth permits.
  *
@@ -1801,7 +1762,7 @@ ssize_t
 bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 	size_t len)
 {
-#if !defined(USE_MMAP) && !defined(HAS_SENDFILE)
+#if !defined(HAS_MMAP) && !defined(HAS_SENDFILE)
 
 	(void) ctx;
 	(void) bio;
@@ -1823,7 +1784,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 	 * 2.95.x that ``amount'' *might* be clobbered by sigsetjmp - which is
 	 * actually not the case.
 	 */
-	volatile size_t amount;
+	size_t amount;
 	size_t available;
 	ssize_t r;
 	int out_fd;
@@ -1861,24 +1822,9 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 			bio->wio->fd(bio->wio), (unsigned long) len,
 			(unsigned long) available);
 
-#ifdef USE_MMAP
+#if defined(HAS_MMAP) && !defined(HAS_SENDFILE)
 	{
-		static gboolean first_call = TRUE;
 		const char *data;
-		int n;
-
-		if (first_call) {
-			first_call = FALSE;
-			
-			/*
-			 * It would be a waste to change the signal handler each
-			 * time. Therefore, the handler is set up only once and
-			 * signals that do not occur whilst mmap_access is set
-			 * are delegated to the original handler.
-			 */
-			old_sigbus_handler = signal_set(SIGBUS, signal_handler);
-			old_sigsegv_handler = signal_set(SIGSEGV, signal_handler);
-		}
 
 		if (
 			ctx->map == NULL ||
@@ -1946,22 +1892,6 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 		}
 
 		g_assert(ctx->map != NULL);
-
-		if (0 != (n = sigsetjmp(mmap_env, 1))) {
-			switch (n) {
-			case SIGBUS:
-				g_warning("bio_sendfile(): Caught SIGBUS");
-				break;
-			case SIGSEGV:
-				g_warning("bio_sendfile(): Caught SIGSEGV");
-				break;
-			default:
-				g_assert_not_reached();
-			}
-			errno = EPIPE;	/* Don't consider this fatal, keep mmap() enabled */
-			return -1;
-		}
-
 		data = ctx->map;
 
 		g_assert(start >= ctx->map_start);
@@ -1970,11 +1900,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 		g_assert(ctx->map_end > start);
 		amount = MIN(ctx->map_end - start, amount);
 
-		g_assert(mmap_access == 0);
-		mmap_access = 1;
 		r = s_write(out_fd, data, amount);
-		mmap_access = 0;
-
 		switch (r) {
 		case (ssize_t) -1:
 			break;

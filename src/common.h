@@ -189,15 +189,6 @@ struct flock
 #else	/* !I_SYS_SENDFILE */
 #ifdef HAS_SENDFILE
 #define USE_BSD_SENDFILE	/**< No <sys/sendfile.h>, assume BSD version */
-#else
-/*
- * Proper mmap() support for memory-mapped files requires ISO C functions like
- * sigsetjmp().
- */
-#if defined(HAS_MMAP) && defined(HAS_SIGSETJMP)
-#define USE_MMAP 1
-#endif	/* ISO C */
-
 #endif	/* HAS_SENDFILE */
 #endif	/* I_SYS_SENDFILE_H */
 

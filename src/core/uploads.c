@@ -430,7 +430,7 @@ static inline gboolean
 use_sendfile(struct upload *u)
 {
 	upload_check(u);
-#if defined(USE_MMAP) || defined(HAS_SENDFILE)
+#if defined(HAS_MMAP) || defined(HAS_SENDFILE)
 	return !sendfile_failed && !socket_uses_tls(u->socket);
 #else
 	return FALSE;
@@ -1152,7 +1152,7 @@ upload_free_resources(struct upload *u)
 	atom_str_free_null(&u->name);
 	file_object_release(&u->file);
 
-#ifdef USE_MMAP
+#ifdef HAS_MMAP
 	if (u->sendfile_ctx.map) {
 		size_t len = u->sendfile_ctx.map_end - u->sendfile_ctx.map_start;
 
@@ -1160,7 +1160,7 @@ upload_free_resources(struct upload *u)
 		vmm_munmap(u->sendfile_ctx.map, len);
 		u->sendfile_ctx.map = NULL;
 	}
-#endif /* USE_MMAP */
+#endif /* HAS_MMAP */
 
 	HFREE_NULL(u->buffer);
 	if (u->io_opaque) {				/* I/O data */
