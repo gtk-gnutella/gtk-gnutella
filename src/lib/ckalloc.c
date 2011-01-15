@@ -29,7 +29,8 @@
  *
  * Memory allocator for objects that are allocated once out of an existing
  * chunk and cannot be individually freed, but altogether with every other
- * object allocated in the chunk.
+ * object allocated in the chunk or via checkpoint / restore of the chunk
+ * allocation state to "free" memory allocated since the checkpoint.
  *
  * This allocator is meant to be used in situations where traditional memory
  * allocation cannot work, and is safe to use in signal handlers.  As a result,
@@ -152,6 +153,71 @@ ckused(const ckhunk_t *ck)
 		return FALSE;
 	
 	return ck->avail != ck->arena + ckalloc_round(sizeof(struct ckhunk));
+}
+
+/**
+ * Checkpoint current allocation context.
+ *
+ * @return current allocation pointer, to "save" the allocation context.
+ */
+void *
+cksave(const ckhunk_t *ck)
+{
+	ckhunk_check(ck);
+
+	if (NULL == ck)
+		return NULL;
+
+	return ck->avail;
+}
+
+/**
+ * Restore allocation context to the saved pointer.
+ */
+void
+ckrestore(ckhunk_t *ck, void *saved)
+{
+	sigset_t set;
+	char *start;
+	size_t d;
+
+	ckhunk_check(ck);
+
+	if (NULL == ck)
+		return;
+
+	/*
+	 * Make sure the saved context lies within the chunk boundaries
+	 * and is properly aligned.
+	 */
+
+	start = ck->arena + ckalloc_round(sizeof(struct ckhunk));
+
+	g_assert(ptr_cmp(start, saved) <= 0);
+	g_assert(ptr_cmp(ck->end, saved) >= 0);
+
+	d = ptr_diff(saved, start);
+	g_assert(d == ckalloc_round(d));
+
+	/*
+	 * No need to enter a critical section if there was no change
+	 * since the checkpoint.
+	 */
+
+	if (0 == ptr_cmp(saved, ck->avail))
+		return;
+
+	/*
+	 * Restore the allocation context, in essence freeing all the memory
+	 * allocated since the cksave() checkpoint.
+	 */
+
+	if (!signal_enter_critical(&set))
+		return;
+
+	ck->avail = saved;
+
+	signal_leave_critical(&set);
 }
 
 /**

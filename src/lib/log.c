@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "log.h"
 #include "atoms.h"
+#include "ckalloc.h"
 #include "crash.h"
 #include "halloc.h"
 #include "stacktrace.h"
@@ -49,7 +50,7 @@ RCSID("$Id$")
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
 
-#define LOG_MSG_MAXLEN		1024	/**< Maximum length within signal handler */
+#define LOG_MSG_MAXLEN		512		/**< Maximum length within signal handler */
 
 static const char * const log_domains[] = {
 	G_LOG_DOMAIN, "Gtk", "GLib", "Pango"
@@ -101,6 +102,8 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 		static str_t *cstr;
 		const char *prefix;
 		str_t *msg;
+		ckhunk_t *ck = NULL;
+		void *saved = NULL;
 
 		/*
 		 * An error is fatal, and indicates something is terribly wrong.
@@ -116,17 +119,14 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 		 * able to format the log message by using the pre-allocated signal
 		 * chunk and creating a string object out of it.
 		 *
-		 * Memory allocated from the signal chunk will be automatically
-		 * released at the end of the signal delivery so we must not attemp
-		 * to free the string.
-		 *
 		 * When not from a signal handler, we use a static string object to
-		 * perform the formatting, and that object does not require freeing
-		 * either.
+		 * perform the formatting.
 		 */
 
 		if (in_signal_handler) {
-			msg = str_new_in_chunk(signal_chunk(), LOG_MSG_MAXLEN);
+			ck = signal_chunk();
+			saved = cksave(ck);
+			msg = str_new_in_chunk(ck, LOG_MSG_MAXLEN);
 
 			if (NULL == msg) {
 				iovec_t iov[6];
@@ -141,6 +141,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 				print_str(stacktrace_caller_name(2));	/* 4 */
 				print_str("\n");		/* 5 */
 				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+				ckrestore(ck, saved);
 				return;
 			}
 		} else {
@@ -199,6 +200,18 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 			else
 				stacktrace_where_print_offset(stderr, 2);
 		}
+
+		/*
+		 * Free up the string memory by restoring the allocation context
+		 * using the checkpoint we made before allocating that string.
+		 *
+		 * This allows signal handlers to log as many messages they want,
+		 * the only penalty being the critical section overhead for each
+		 * message logged.
+		 */
+
+		if (in_signal_handler)
+			ckrestore(ck, saved);
 	}
 }
 
