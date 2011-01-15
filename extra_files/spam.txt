@@ -104,7 +104,7 @@ ADDED 2011-01-10
 SIZE 10000-2000000
 END
 
-NAME [c]rack (by|from) (netflix|Vikea|zer0 team)[.](rar|zip)$
+NAME [Cc]rack (by|from) (netflix|Vikea|zer0 team|\[Lihrem\])[.](rar|zip)$
 ADDED 2011-01-10
 SIZE 500000-1000000
 END
