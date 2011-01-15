@@ -168,6 +168,12 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 			prefix = "UNKNOWN";
 		}
 
+		/*
+		 * Avoid stdio's fprintf() from within a signal handler since we
+		 * don't know how the string will be formattted, nor whether
+		 * re-entering fprintf() through a signal handler would be safe.
+		 */
+
 		if (in_signal_handler) {
 			iovec_t iov[6];
 			unsigned iov_cnt = 0;
@@ -205,13 +211,16 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 		 * Free up the string memory by restoring the allocation context
 		 * using the checkpoint we made before allocating that string.
 		 *
-		 * This allows signal handlers to log as many messages they want,
+		 * This allows signal handlers to log as many messages as they want,
 		 * the only penalty being the critical section overhead for each
 		 * message logged.
 		 */
 
 		if (in_signal_handler)
 			ckrestore(ck, saved);
+
+		if (is_running_on_mingw() && !in_signal_handler)
+			fflush(stderr);		/* Unbuffering does not work on Windows */
 	}
 }
 
@@ -295,6 +304,9 @@ s_debug(const char *format, ...)
 	va_end(args);
 }
 
+/**
+ * Regular log handler used for glib's logging routines (the g_xxx() ones).
+ */
 static void
 log_handler(const char *unused_domain, GLogLevelFlags level,
 	const char *message, void *unused_data)
