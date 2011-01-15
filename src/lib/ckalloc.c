@@ -76,8 +76,8 @@ struct ckhunk {
 static inline void
 ckhunk_check(const struct ckhunk * const ck)
 {
-	g_assert(ck != NULL);
-	g_assert(CKHUNK_MAGIC == ck->magic);
+	/* A NULL `ck' argument is allowed in the interface, for robustness */
+	g_assert(NULL == ck || CKHUNK_MAGIC == ck->magic);
 }
 
 /**
@@ -120,6 +120,7 @@ static void
 ckdestroy(ckhunk_t *ck)
 {
 	ckhunk_check(ck);
+	g_assert(ck != NULL);
 
 	ck->magic = 0;
 	vmm_free(ck->arena, ck->size);
@@ -146,6 +147,9 @@ gboolean
 ckused(const ckhunk_t *ck)
 {
 	ckhunk_check(ck);
+
+	if (NULL == ck)
+		return FALSE;
 	
 	return ck->avail != ck->arena + ckalloc_round(sizeof(struct ckhunk));
 }
@@ -159,6 +163,9 @@ ckfree_all(ckhunk_t *ck)
 	sigset_t set;
 
 	ckhunk_check(ck);
+
+	if (NULL == ck)
+		return;
 
 	if (!signal_enter_critical(&set))
 		return;
@@ -191,6 +198,9 @@ ckalloc_internal(ckhunk_t *ck, size_t len, gboolean critical)
 
 	ckhunk_check(ck);
 	g_assert(size_is_positive(len));
+
+	if (NULL == ck)
+		return NULL;
 
 	if (!signal_enter_critical(&set))
 		return NULL;
@@ -270,6 +280,9 @@ ckcopy(ckhunk_t *ck, const void *p, size_t size)
 	void *cp;
 
 	ckhunk_check(ck);
+
+	if (NULL == ck)
+		return NULL;
 
 	cp = ckalloc(ck, size);
 	if (cp != NULL)
