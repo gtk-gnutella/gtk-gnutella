@@ -99,6 +99,18 @@ str_len(const str_t *s)
 {
 	str_check(s);
 
+	/*
+	 * Make a "foreign" string appear shorter because when we convert it
+	 * to C we will need to append a trailing NUL, truncating the last
+	 * character.
+	 */
+
+	if (G_UNLIKELY(s->s_flags & STR_FOREIGN_PTR)) {
+		if (s->s_len == s->s_size)
+			return s->s_len - 1;
+		/* FALL THROUGH */
+	}
+
 	return s->s_len;
 }
 
@@ -459,8 +471,14 @@ str_2c(str_t *str)
 
 	len = str->s_len;
 
-	if (len == str->s_size)
-		str_grow(str, len + 1);		/* Allow room for trailing NUL */
+	if (len == str->s_size) {
+		if (str->s_flags & STR_FOREIGN_PTR) {
+			len--;						/* Truncate the string */
+			str->s_len = len;
+		} else {
+			str_grow(str, len + 1);		/* Allow room for trailing NUL */
+		}
+	}
 
 	str->s_data[len] = '\0';		/* Don't increment str->s_len */
 
@@ -492,12 +510,15 @@ str_s2c(str_t *str)
 	if (!(str->s_flags & STR_OBJECT))
 		g_error("str_s2c() called on \"static\" string object");
 
-	if (str->s_flags & STR_FOREIGN_PTR)
-		g_error("str_s2c() called on \"foreign\" string");
-
 	len = str->s_len;
 
-	str_resize(str, len + 1);		/* Ensure string fits neatly */
+	if (str->s_flags & STR_FOREIGN_PTR) {
+		if (len == str->s_size)
+			len--;						/* Truncate the string */
+	} else {
+		str_resize(str, len + 1);		/* Ensure string fits neatly */
+	}
+
 	cstr = str->s_data;
 	cstr[len] = '\0';				/* Ensure trailing NUL for C */
 
@@ -639,6 +660,53 @@ str_ncat(str_t *str, const char *string, size_t len)
 		return;
 
 	str_makeroom(str, len + 1);			/* Allow for trailing NUL */
+	p = str->s_data + str->s_len; 
+	q = string;
+
+	while (len > 0 && '\0' != (c = *q++)) {
+		*p++ = c;
+		len--;
+	}
+
+	str->s_len = p - str->s_data;
+}
+
+/**
+ * Append specified amount of bytes into the string, or less if the
+ * string is shorter than `len' or if the string arena is foreign and not
+ * large enough to hold all the data.
+ */
+static void
+str_ncat_foreign(str_t *str, const char *string, size_t len)
+{
+	char *p;
+	const char *q;
+	char c;
+
+	str_check(str);
+	g_assert(string != NULL);
+	g_assert(size_is_non_negative(len));
+
+	if (0 == len)
+		return;
+
+	if (str->s_flags & STR_FOREIGN_PTR) {
+		size_t n;
+
+		if (str->s_len == str->s_size)
+			return;		/* Nothing can fit */
+
+		n = size_saturate_add(len, str->s_len);
+
+		if (n >= str->s_size)
+			len = str->s_size - str->s_len - 1;		/* -1 for trailing NUL */
+
+		if (0 == len)
+			return;
+	} else {
+		str_makeroom(str, len + 1);			/* Allow for trailing NUL */
+	}
+
 	p = str->s_data + str->s_len; 
 	q = string;
 
@@ -969,8 +1037,19 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * Formatting is constrained by the specified amount of chars, and the routine
  * returns the amount of chars physically appended to the string.
  *
+ * When formatting into a string with a foreign pointer (which cannot be
+ * resized), the output is truncated if there is not enough space left in
+ * the string buffer.
+ *
+ * This routine can be safely called from a signal handler provided the
+ * following conditions are met:
+ *
+ * - The string is a foreign buffer.
+ * - No floating-point formatting is attempted (%f, %e, %g, %F, %E or %G)
+ *
  * Adpated from Perl 5.004_04 by Raphael Manfredi to use str_t intead of SV,
- * removing Perlism such as %_ and %V. Also added the `maxlen' constraint.
+ * removing Perlism such as %_ and %V. Also added the `maxlen' constraint and
+ * handling of "foreign" strings.
  *
  * Here are the supported universally-known conversions:
  *
@@ -1044,6 +1123,21 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 	origlen = str->s_len;
 
 	/*
+	 * Clamp available space for foreign strings, which cannot be resized.
+	 *
+	 * We still allow calls to str_makeroom() on such strings though, because
+	 * it will be allowed to proceed if it does not try to exceed the size
+	 * of the foreign buffer, so we use that as assertions that our logic
+	 * is correct.
+	 *
+	 * However, this routine uses str_ncat_foreign() instead of str_ncat()
+	 * to be able to truncate the output if there is not enough space.
+	 */
+
+	if (str->s_flags & STR_FOREIGN_PTR)
+		remain = str->s_size - str->s_len;
+
+	/*
 	 * Special-case "" and "%s".
 	 */
 
@@ -1056,7 +1150,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 			size_t len;
 			s = s ? s : nullstr;
 			len = strlen(s);
-			str_ncat(str, s, len > maxlen ? maxlen : len);
+			str_ncat_foreign(str, s, len > maxlen ? maxlen : len);
 		}
 		goto done;
 	}
@@ -1101,10 +1195,10 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 		if (q > f) {
 			size_t len = q - f;
 			if (len > remain) {
-				str_ncat(str, f, remain);
+				str_ncat_foreign(str, f, remain);
 				goto done;						/* Reached maxlen */
 			} else {
-				str_ncat(str, f, len);
+				str_ncat_foreign(str, f, len);
 				remain -= len;
 			}
 			f = q;
@@ -1437,10 +1531,10 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 
 			/* ... right here, because formatting flags should not apply */
 			if (elen > remain) {
-				str_ncat(str, eptr, remain);
+				str_ncat_foreign(str, eptr, remain);
 				goto done;						/* Reached maxlen */
 			} else {
-				str_ncat(str, eptr, elen);
+				str_ncat_foreign(str, eptr, elen);
 				remain -= elen;
 			}
 			continue;	/* not "break" */
@@ -1468,7 +1562,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 		 * here NEEDS TO BE REPORTED to the next section.
 		 */
 
-		str_makeroom(str, need + 1);	/* will NUL terminate it */
+		str_makeroom(str, need);		/* we do not NUL terminate it */
 		p = str->s_data + str->s_len;	/* next "free" char in arena */
 		if (esignlen && fill == '0') {
 			memcpy(p, esignbuf, esignlen);
@@ -1509,7 +1603,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 		 * to code here MAY NEED TO BE REPORTED to the above section.
 		 */
 
-		str_makeroom(str, remain);			/* no room for NUL terminate */
+		str_makeroom(str, remain);			/* we do not NUL terminate it */
 		p = str->s_data + str->s_len;		/* next "free" char in arena */
 		str->s_len += remain;				/* know how much we'll append */
 		q = p + remain;						/* first char past limit */
