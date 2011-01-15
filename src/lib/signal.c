@@ -330,7 +330,19 @@ signal_enter_critical(sigset_t *oset)
 #ifdef HAS_SIGPROCMASK
 	{
 		sigset_t set;
+
+		/*
+		 * If we are nesting critical sections, we have already blocked
+		 * all the signals, so there's no need to do anything.  Just count
+		 * the sections so that we restore the signal mask only when we
+		 * leave the outermost one.
+		 */
+
+		if (in_critical_section)
+			goto ok;
+
 		sigfillset(&set);		/* Block everything */
+
 		if (-1 == sigprocmask(SIG_SETMASK, &set, oset))
 			return FALSE;
 	}
@@ -359,8 +371,10 @@ signal_leave_critical(const sigset_t *oset)
 		return;
 
 #ifdef HAS_SIGPROCMASK
-	if (-1 == sigprocmask(SIG_SETMASK, oset, NULL))
-		g_error("cannot leave critical section: %s", g_strerror(errno));
+	if (!in_critical_section) {
+		if (-1 == sigprocmask(SIG_SETMASK, oset, NULL))
+			g_error("cannot leave critical section: %s", g_strerror(errno));
+	}
 #else
 	(void) oset;
 #endif
