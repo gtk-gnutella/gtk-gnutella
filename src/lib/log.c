@@ -129,7 +129,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 			msg = str_new_in_chunk(signal_chunk(), LOG_MSG_MAXLEN);
 
 			if (NULL == msg) {
-				iovec_t iov[5];
+				iovec_t iov[6];
 				unsigned iov_cnt = 0;
 				char time_buf[18];
 
@@ -139,6 +139,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 				print_str(format);		/* 2 */
 				print_str("\" from ");	/* 3 */
 				print_str(stacktrace_caller_name(2));	/* 4 */
+				print_str("\n");		/* 5 */
 				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 				return;
 			}
