@@ -36,17 +36,21 @@
 #ifndef _signal_h_
 #define _signal_h_
 
+typedef void (*signal_handler_t)(int signo);
+
 /*
  * Public interface.
  */
 
-typedef void (*signal_handler_t)(int signo);
 signal_handler_t signal_set(int signo, signal_handler_t handler);
 const char *signal_name(int signo);
 gboolean signal_in_handler(void);
+struct ckhunk *signal_chunk(void);
 
 gboolean signal_enter_critical(sigset_t *oset);
-gboolean signal_leave_critical(const sigset_t *oset);
+void signal_leave_critical(const sigset_t *oset);
+
+void signal_close(void);
 
 #endif /* _signal_h_ */
 

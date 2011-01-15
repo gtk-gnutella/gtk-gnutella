@@ -48,6 +48,7 @@ ckhunk_t *ckinit(size_t size, size_t reserved);
 void ckdestroy_null(ckhunk_t **ck_ptr);
 void *ckalloc(ckhunk_t *ck, size_t len);
 void *ckalloc_critical(ckhunk_t *ck, size_t len);
+gboolean ckused(const ckhunk_t *ck);
 void ckfree_all(ckhunk_t *ck);
 void *ckcopy(ckhunk_t *ck, const void *p, size_t size);
 char *ckstrdup(ckhunk_t *ck, const char *str);

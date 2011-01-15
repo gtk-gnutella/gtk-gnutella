@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "signal.h"
+#include "ckalloc.h"
 #include "misc.h"
 #include "crash.h"
 #include "unsigned.h"
@@ -47,6 +48,9 @@ RCSID("$Id$")
 #ifndef SIG_ERR
 #define SIG_ERR ((signal_handler_t) -1)
 #endif
+
+#define SIGNAL_CHUNK_SIZE		4096	/**< Safety allocation pool */
+#define SIGNAL_CHUNK_RESERVE	512		/**< Critical amount reserved */
 
 /**
  * Table mapping a signal number with a symbolic name.
@@ -82,6 +86,14 @@ static char *signal_names[] = { SIG_NAME };	/* Computed by Configure */
  * Array recording signal handlers for signals.
  */
 static signal_handler_t signal_handler[SIG_COUNT];
+
+/**
+ * A chunk of memory that can be used to safely allocate data within a
+ * signal handler.  Any allocated data is freed when the last signal handler
+ * exits, so this is not a way to allocate data from a signal handler that
+ * will be still accessible upon return.
+ */
+static ckhunk_t *sig_chunk;
 
 static const char SIGNAL_NUM[] = "signal #";
 static const char SIG_PREFIX[] = "SIG";
@@ -160,6 +172,16 @@ signal_in_handler(void)
 }
 
 /**
+ * Returns the pre-allocated safe chunk for allocating memory within
+ * a signal handler.
+ */
+ckhunk_t *
+signal_chunk(void)
+{
+	return sig_chunk;
+}
+
+/**
  * Wrapper for signal delivery.
  */
 static void
@@ -181,6 +203,23 @@ signal_trampoline(int signo)
 	in_signal_handler++;
 	(*handler)(signo);
 	in_signal_handler--;
+
+	/*
+	 * When leaving the last signal handler, cleanup the emergency chunk.
+	 *
+	 * Before requesting a critical section, look whether something was
+	 * allocated already in the emergency chunk.
+	 */
+
+	if (ckused(sig_chunk)) {
+		sigset_t set;
+
+		if (signal_enter_critical(&set)) {
+			if (0 == in_signal_handler)
+				ckfree_all(sig_chunk);
+			signal_leave_critical(&set);
+		}
+	}
 }
 
 /**
@@ -218,6 +257,7 @@ signal_set(int signo, signal_handler_t handler)
 			signal_handler[i] = SIG_DFL;	/* Can't assume it's NULL */
 		}
 
+		sig_chunk = ckinit(SIGNAL_CHUNK_SIZE, SIGNAL_CHUNK_RESERVE);
 		inited = TRUE;
 	}
 
@@ -265,6 +305,8 @@ signal_set(int signo, signal_handler_t handler)
 	return (SIG_DFL == ret || SIG_IGN == ret) ? ret : old_handler;
 }
 
+static volatile sig_atomic_t in_critical_section;
+
 /**
  * Block all signals, for entering a critical section.
  *
@@ -282,39 +324,55 @@ signal_enter_critical(sigset_t *oset)
 	 * interrupted by a signal on that platform.
 	 */
 
-	if (is_running_on_mingw()) {
-		return TRUE;
-	}
+	if (is_running_on_mingw())
+		goto ok;
 
 #ifdef HAS_SIGPROCMASK
 	{
 		sigset_t set;
 		sigfillset(&set);		/* Block everything */
-		return -1 != sigprocmask(SIG_SETMASK, &set, oset);
+		if (-1 == sigprocmask(SIG_SETMASK, &set, oset))
+			return FALSE;
 	}
 #else
 	(void) oset;
 	return FALSE;
 #endif
+
+ok:
+	in_critical_section++;
+
+	return TRUE;
 }
 
 /**
  * Unblock signals that were blocked when we entered the critical section.
- *
- * @return TRUE if OK, FALSE on error with errno set.
  */
-gboolean
+void
 signal_leave_critical(const sigset_t *oset)
 {
+	g_assert(in_critical_section > 0);
+
+	in_critical_section--;
+
 	if (is_running_on_mingw())
-		return TRUE;
+		return;
 
 #ifdef HAS_SIGPROCMASK
-	return -1 != sigprocmask(SIG_SETMASK, oset, NULL);
+	if (-1 == sigprocmask(SIG_SETMASK, oset, NULL))
+		g_error("cannot leave critical section: %s", g_strerror(errno));
 #else
 	(void) oset;
-	return TRUE;	/* Does not matter, we were not in a critical section */
 #endif
+}
+
+/**
+ * Called at shutdown.
+ */
+void
+signal_close(void)
+{
+	ckdestroy_null(&sig_chunk);
 }
 
 /* vi: set ts=4 sw=4 cindent:  */

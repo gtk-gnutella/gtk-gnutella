@@ -140,6 +140,17 @@ ckdestroy_null(ckhunk_t **ck_ptr)
 }
 
 /**
+ * @return whether someething has been allocated.
+ */
+gboolean
+ckused(const ckhunk_t *ck)
+{
+	ckhunk_check(ck);
+	
+	return ck->avail != ck->arena + ckalloc_round(sizeof(struct ckhunk));
+}
+
+/**
  * Free all the objects allocated in the chunk.
  */
 void
@@ -154,8 +165,7 @@ ckfree_all(ckhunk_t *ck)
 
 	ck->avail = ck->arena + ckalloc_round(sizeof(struct ckhunk));
 
-	if (!signal_leave_critical(&set))
-		g_error("cannot leave critical section: %s", g_strerror(errno));
+	signal_leave_critical(&set);
 }
 
 /**
@@ -207,9 +217,7 @@ ckalloc_internal(ckhunk_t *ck, size_t len, gboolean critical)
 	/* FALL THROUGH */
 
 done:
-	if (!signal_leave_critical(&set))
-		g_error("cannot leave critical section: %s", g_strerror(errno));
-
+	signal_leave_critical(&set);
 	return p;
 }
 
