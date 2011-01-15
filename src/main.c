@@ -193,7 +193,7 @@ sig_alarm(int n)
 {
 	(void) n;
 	if (from_atexit) {
-		g_warning("exit cleanup timed out -- forcing exit");
+		s_warning("exit cleanup timed out -- forcing exit");
 		longjmp(atexit_env, 1);
 	}
 }
