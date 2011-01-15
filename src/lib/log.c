@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "halloc.h"
 #include "stacktrace.h"
 #include "offtime.h"
+#include "signal.h"
 #include "str.h"
 #include "stringify.h"
 #include "tm.h"
@@ -72,24 +73,120 @@ struct logfile {
 static struct logfile logfile[LOG_MAX_FILES];
 
 /**
- * This is used to protect critical sections of the log_handler() routine
- * so that routines we may call do not blindly log messages unless they
- * have checked with logging_would_recurse() that it will not cause recursion.
+ * This is used to protect critical sections of the log_handler() routine.
+ *
+ * Routines that pose a risk of emitting a message recursively (e.g. routines
+ * that can be called by log_handler(), or signal handlers) should use the
+ * safe s_xxx() logging routines instead of the corresponding g_xxx().
  */
 static volatile sig_atomic_t in_log_handler;
 
 static const char DEV_NULL[] = "/dev/null";
 
 /**
- * Prevent recursive logging messages, which are fatal.
- *
- * Routines called from our log handler must check for that before emitting
- * a log to prevent any fatal recursion.
+ * Safe logging to avoid recursion from the log handler, and safe to use
+ * from a signal handler if needed.
  */
-gboolean
-log_would_recurse(void)
+static void
+s_logv(GLogLevelFlags level, const char *format, va_list args)
 {
-	return in_log_handler;
+	gboolean in_signal_handler = signal_in_handler();
+
+	if (!in_log_handler && !in_signal_handler) {
+		g_logv(G_LOG_DOMAIN, level, format, args);
+	} else {
+		char buf[256];
+		time_t now;
+		struct tm *ct;
+		const char *prefix;
+
+		/* FIXME: incomplete for signal handlers */
+
+		gm_vsnprintf(buf, sizeof buf, format, args);
+		now = tm_time_exact();
+		ct = localtime(&now);
+
+		switch (level) {
+		case G_LOG_LEVEL_CRITICAL: prefix = "CRITICAL"; break;
+		case G_LOG_LEVEL_ERROR:    prefix = "ERROR";    break;
+		case G_LOG_LEVEL_WARNING:  prefix = "WARNING";  break;
+		case G_LOG_LEVEL_MESSAGE:  prefix = "MESSAGE";  break;
+		case G_LOG_LEVEL_INFO:     prefix = "INFO";     break;
+		case G_LOG_LEVEL_DEBUG:    prefix = "DEBUG";    break;
+		default:
+			prefix = "UNKNOWN";
+		}
+
+		fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s): %s\n",
+			(TM_YEAR_ORIGIN + ct->tm_year) % 100, ct->tm_mon + 1, ct->tm_mday,
+			ct->tm_hour, ct->tm_min, ct->tm_sec, prefix, buf);
+	}
+	va_end(args);
+}
+
+/**
+ * Safe critical message.
+ */
+void
+s_critical(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv(G_LOG_LEVEL_CRITICAL, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe warning message.
+ */
+void
+s_warning(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv(G_LOG_LEVEL_WARNING, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe regular message.
+ */
+void
+s_message(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv(G_LOG_LEVEL_MESSAGE, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe info message.
+ */
+void
+s_info(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv(G_LOG_LEVEL_INFO, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe debug message.
+ */
+void
+s_debug(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv(G_LOG_LEVEL_DEBUG, format, args);
+	va_end(args);
 }
 
 static void
@@ -357,7 +454,7 @@ log_rename(enum log_file which, const char *newname)
 
 	if (is_running_on_mingw()) {
 		const char *tmp = str_smsg("%s.__tmp__", lf->path);
-		freopen(lf->path, "a", lf->f);
+		IGNORE_RESULT(freopen(lf->path, "a", lf->f));
 		if (-1 == unlink(tmp)) {
 			g_warning("cannot unlink temporary log file \"%s\": %s",
 				tmp, g_strerror(errno));

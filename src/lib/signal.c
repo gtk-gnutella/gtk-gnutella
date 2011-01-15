@@ -265,4 +265,56 @@ signal_set(int signo, signal_handler_t handler)
 	return (SIG_DFL == ret || SIG_IGN == ret) ? ret : old_handler;
 }
 
+/**
+ * Block all signals, for entering a critical section.
+ *
+ * @param oset		the old signal set, to be passed to signal_leave_critical()
+ *
+ * @return TRUE if OK, FALSE on error with errno set.
+ */
+gboolean
+signal_enter_critical(sigset_t *oset)
+{
+	g_assert(oset != NULL);
+
+	/*
+	 * There are no signals on Windows, so there is no risk we can be
+	 * interrupted by a signal on that platform.
+	 */
+
+	if (is_running_on_mingw()) {
+		return TRUE;
+	}
+
+#ifdef HAS_SIGPROCMASK
+	{
+		sigset_t set;
+		sigfillset(&set);		/* Block everything */
+		return -1 != sigprocmask(SIG_SETMASK, &set, oset);
+	}
+#else
+	(void) oset;
+	return FALSE;
+#endif
+}
+
+/**
+ * Unblock signals that were blocked when we entered the critical section.
+ *
+ * @return TRUE if OK, FALSE on error with errno set.
+ */
+gboolean
+signal_leave_critical(const sigset_t *oset)
+{
+	if (is_running_on_mingw())
+		return TRUE;
+
+#ifdef HAS_SIGPROCMASK
+	return -1 != sigprocmask(SIG_SETMASK, oset, NULL);
+#else
+	(void) oset;
+	return TRUE;	/* Does not matter, we were not in a critical section */
+#endif
+}
+
 /* vi: set ts=4 sw=4 cindent:  */

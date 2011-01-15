@@ -237,73 +237,6 @@ stack_unwind(void *stack[], size_t count, size_t offset)
 #endif	/* HAS_BACKTRACE */
 
 /**
- * Safe logging to avoid recursion from the log handler.
- */
-static void
-s_logv(GLogLevelFlags level, const char *format, va_list args)
-{
-	if (!log_would_recurse())
-		g_logv(G_LOG_DOMAIN, level, format, args);
-	else {
-		char buf[256];
-		time_t now;
-		struct tm *ct;
-		const char *prefix;
-
-		gm_vsnprintf(buf, sizeof buf, format, args);
-		now = tm_time_exact();
-		ct = localtime(&now);
-
-		switch (level) {
-		case G_LOG_LEVEL_CRITICAL: prefix = "CRITICAL"; break;
-		case G_LOG_LEVEL_ERROR:    prefix = "ERROR";    break;
-		case G_LOG_LEVEL_WARNING:  prefix = "WARNING";  break;
-		case G_LOG_LEVEL_MESSAGE:  prefix = "MESSAGE";  break;
-		case G_LOG_LEVEL_INFO:     prefix = "INFO";     break;
-		case G_LOG_LEVEL_DEBUG:    prefix = "DEBUG";    break;
-		default:
-			prefix = "UNKNOWN";
-		}
-
-		fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s): %s\n",
-			(TM_YEAR_ORIGIN + ct->tm_year) % 100, ct->tm_mon + 1, ct->tm_mday,
-			ct->tm_hour, ct->tm_min, ct->tm_sec, prefix, buf);
-	}
-	va_end(args);
-}
-
-static void s_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
-static void s_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
-
-/**
- * Safe warning to avoid recursion, since stack tracing can be triggered
- * from the log handler.
- */
-static void
-s_warning(const char *format, ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	s_logv(G_LOG_LEVEL_WARNING, format, args);
-	va_end(args);
-}
-
-/**
- * Safe info to avoid recursion, since stack tracing can be triggered
- * from the log handler.
- */
-static void
-s_info(const char *format, ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	s_logv(G_LOG_LEVEL_INFO, format, args);
-	va_end(args);
-}
-
-/**
  * Search executable within the user's PATH.
  *
  * @return full path if found, NULL otherwise.
@@ -879,7 +812,6 @@ done:
 	/* FALL THROUGH */
 
 tune:
-	load_symbols(program_path);	// XXX
 	stacktrace_auto_tune();
 }
 

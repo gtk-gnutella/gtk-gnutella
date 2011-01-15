@@ -45,6 +45,9 @@ signal_handler_t signal_set(int signo, signal_handler_t handler);
 const char *signal_name(int signo);
 gboolean signal_in_handler(void);
 
+gboolean signal_enter_critical(sigset_t *oset);
+gboolean signal_leave_critical(const sigset_t *oset);
+
 #endif /* _signal_h_ */
 
 /* vi: set ts=4 sw=4 cindent:  */

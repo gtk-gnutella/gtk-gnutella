@@ -66,9 +66,18 @@ void log_set(enum log_file which, const char *path);
 gboolean log_reopen(enum log_file which);
 gboolean log_rename(enum log_file which, const char *newname);
 gboolean log_reopen_if_managed(enum log_file which);
-gboolean log_would_recurse(void);
 gboolean log_reopen_all(gboolean daemonized);
 void log_stat(enum log_file which, struct logstat *buf);
+
+/*
+ * Safe logging interface (to avoid recursive logging, or from signal handlers).
+ */
+
+void s_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
 
 #endif /* _log_h_ */
 
