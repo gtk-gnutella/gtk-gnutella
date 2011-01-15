@@ -630,6 +630,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(malloc_close);
 	DO(hdestroy);
 	DO(omalloc_close);
+	DO(signal_close);
 	DO(vmm_close);
 
 	if (debugging(0) || signal_received || shutdown_requested) {
