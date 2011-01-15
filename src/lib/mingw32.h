@@ -185,8 +185,6 @@ struct mingw_statvfs {
 
 };
 
-typedef unsigned long sigset_t;	/* To let code compile, this is unused */
-
 #ifndef HAS_GETLOGIN
 #define HAS_GETLOGIN			/* We emulate it */
 #endif
