@@ -990,7 +990,7 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * %X   like %x, but using upper-case letters
  * %E   like %e, but using an upper-case "E"
  * %G   like %g, but with an upper-case "E" (if applicable)
- * %p   a pointer (outputs the value's address in hexadecimal)
+ * %p   a pointer (outputs the value's address in lower-cased hexadecimal)
  * %n   special: *stores* the number of characters output so far
  *      into the next variable in the parameter list
  *
@@ -1234,6 +1234,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 			else
 				uv = 0;
 			base = 16;
+			c = 'x';		/* Request lower-cased pointer */
 			goto integer;
 
 		case 'D':
