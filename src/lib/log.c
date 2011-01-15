@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "log.h"
 #include "atoms.h"
+#include "crash.h"
 #include "halloc.h"
 #include "stacktrace.h"
 #include "offtime.h"
@@ -47,6 +48,8 @@ RCSID("$Id$")
 #include "stringify.h"
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
+
+#define LOG_MSG_MAXLEN		1024	/**< Maximum length within signal handler */
 
 static const char * const log_domains[] = {
 	G_LOG_DOMAIN, "Gtk", "GLib", "Pango"
@@ -95,16 +98,62 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 	if (!in_log_handler && !in_signal_handler) {
 		g_logv(G_LOG_DOMAIN, level, format, args);
 	} else {
-		char buf[256];
-		time_t now;
-		struct tm *ct;
+		static str_t *cstr;
 		const char *prefix;
+		str_t *msg;
 
-		/* FIXME: incomplete for signal handlers */
+		/*
+		 * An error is fatal, and indicates something is terribly wrong.
+		 * Avoid allocating memory as much as possible, acting as if we
+		 * were in a signal handler.
+		 */
 
-		gm_vsnprintf(buf, sizeof buf, format, args);
-		now = tm_time_exact();
-		ct = localtime(&now);
+		if (G_LOG_LEVEL_ERROR == level)
+			in_signal_handler = TRUE;
+
+		/*
+		 * Within a signal handler, we can safely allocate memory to be
+		 * able to format the log message by using the pre-allocated signal
+		 * chunk and creating a string object out of it.
+		 *
+		 * Memory allocated from the signal chunk will be automatically
+		 * released at the end of the signal delivery so we must not attemp
+		 * to free the string.
+		 *
+		 * When not from a signal handler, we use a static string object to
+		 * perform the formatting, and that object does not require freeing
+		 * either.
+		 */
+
+		if (in_signal_handler) {
+			msg = str_new_in_chunk(signal_chunk(), LOG_MSG_MAXLEN);
+
+			if (NULL == msg) {
+				iovec_t iov[5];
+				unsigned iov_cnt = 0;
+				char time_buf[18];
+
+				crash_time(time_buf, sizeof time_buf);
+				print_str(time_buf);	/* 0 */
+				print_str(" (CRITICAL): no memory to format string \""); /* 1 */
+				print_str(format);		/* 2 */
+				print_str("\" from ");	/* 3 */
+				print_str(stacktrace_caller_name(2));	/* 4 */
+				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+				return;
+			}
+		} else {
+			if (NULL == cstr)
+				cstr = str_new_not_leaking(0);
+			msg = cstr;
+		}
+
+		/*
+		 * The str_vprintf() routine is safe to use in signal handlers provided
+		 * we do not attempt to format floating point numbers.
+		 */
+
+		str_vprintf(msg, format, &args);
 
 		switch (level) {
 		case G_LOG_LEVEL_CRITICAL: prefix = "CRITICAL"; break;
@@ -117,11 +166,39 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 			prefix = "UNKNOWN";
 		}
 
-		fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s): %s\n",
-			(TM_YEAR_ORIGIN + ct->tm_year) % 100, ct->tm_mon + 1, ct->tm_mday,
-			ct->tm_hour, ct->tm_min, ct->tm_sec, prefix, buf);
+		if (in_signal_handler) {
+			iovec_t iov[6];
+			unsigned iov_cnt = 0;
+			char time_buf[18];
+
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);	/* 0 */
+			print_str(" (");		/* 1 */
+			print_str(prefix);		/* 2 */
+			print_str("): ");		/* 3 */
+			print_str(str_2c(msg));	/* 4 */
+			print_str("\n");		/* 5 */
+			IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+		} else {
+			time_t now = tm_time_exact();
+			struct tm *ct = localtime(&now);
+
+			fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s): %s\n",
+				(TM_YEAR_ORIGIN + ct->tm_year) % 100,
+				ct->tm_mon + 1, ct->tm_mday,
+				ct->tm_hour, ct->tm_min, ct->tm_sec, prefix, str_2c(msg));
+		}
+
+		if (
+			G_LOG_LEVEL_CRITICAL == level ||
+			G_LOG_LEVEL_ERROR == level
+		) {
+			if (in_signal_handler)
+				stacktrace_where_safe_print_offset(STDERR_FILENO, 2);
+			else
+				stacktrace_where_print_offset(stderr, 2);
+		}
 	}
-	va_end(args);
 }
 
 /**
@@ -135,6 +212,21 @@ s_critical(const char *format, ...)
 	va_start(args, format);
 	s_logv(G_LOG_LEVEL_CRITICAL, format, args);
 	va_end(args);
+}
+
+/**
+ * Safe error.
+ */
+void
+s_error(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv(G_LOG_LEVEL_ERROR, format, args);
+	va_end(args);
+
+	raise(SIGABRT);		/* In case we did not enter g_logv() */
 }
 
 /**
