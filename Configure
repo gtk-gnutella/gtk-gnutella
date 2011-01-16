@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Jan 16 19:06:42 CET 2011 [metaconfig 3.5-62]
+# Generated on Sun Jan 16 19:37:06 CET 2011 [metaconfig 3.5-62]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4406,7 +4406,8 @@ $cat >try.c <<EOC
 int main(void)
 {
 	void *buf[2];
-	static int ret |= backtrace(buf, 2);
+	static int ret;
+	ret |= backtrace(buf, 2);
 	return ret ? 0 : 1;
 }
 EOC
