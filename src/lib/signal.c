@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "misc.h"
 #include "crash.h"
 #include "unsigned.h"
+#include "glib-missing.h"       /* For g_strlcpy() */
 
 #include "override.h"	/* Must be the last header included */
 
