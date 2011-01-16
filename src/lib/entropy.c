@@ -172,11 +172,13 @@ entropy_collect(struct sha1 *digest)
 
 			for (;;) {
 				guint8 data[1024];
-				int r;
-				int len = is_pipe ? sizeof(data) : 128;
+				size_t r, len = sizeof(data);
+
+				if (is_pipe)
+					len = MIN(128, len);	/* 128 is probably magic */
 
 				r = fread(data, 1, len, f);
-				if (r)
+				if (r > 0)
 					SHA1Input(&ctx, data, r);
 				if (r < len || !is_pipe)	/* Read once from /dev/urandom */
 					break;
@@ -254,32 +256,32 @@ entropy_collect(struct sha1 *digest)
 	sha1_feed_stat(&ctx, ".");
 	sha1_feed_stat(&ctx, "..");
 	sha1_feed_stat(&ctx, "/");
-#ifdef MINGW32
+	if (is_running_on_mingw()) {
 	/* FIXME: These paths are valid for English installations only! */
-	sha1_feed_stat(&ctx, "C:/");
-	sha1_feed_stat(&ctx, "C:/Windows");
-	sha1_feed_stat(&ctx, "C:/Windows/Temp");
-	sha1_feed_stat(&ctx, "C:/Program Files");
-	sha1_feed_stat(&ctx, "C:/Program Files (x86)");
-	sha1_feed_stat(&ctx, "C:/Users");
-	sha1_feed_stat(&ctx, "C:/Documents and Settings");
-#else	/* !MINGW32 */
-	sha1_feed_stat(&ctx, "/bin");
-	sha1_feed_stat(&ctx, "/boot");
-	sha1_feed_stat(&ctx, "/dev");
-	sha1_feed_stat(&ctx, "/etc");
-	sha1_feed_stat(&ctx, "/home");
-	sha1_feed_stat(&ctx, "/lib");
-	sha1_feed_stat(&ctx, "/mnt");
-	sha1_feed_stat(&ctx, "/opt");
-	sha1_feed_stat(&ctx, "/proc");
-	sha1_feed_stat(&ctx, "/root");
-	sha1_feed_stat(&ctx, "/sbin");
-	sha1_feed_stat(&ctx, "/sys");
-	sha1_feed_stat(&ctx, "/tmp");
-	sha1_feed_stat(&ctx, "/usr");
-	sha1_feed_stat(&ctx, "/var");
-#endif	/* MINGW32 */
+		sha1_feed_stat(&ctx, "C:/");
+		sha1_feed_stat(&ctx, "C:/Windows");
+		sha1_feed_stat(&ctx, "C:/Windows/Temp");
+		sha1_feed_stat(&ctx, "C:/Program Files");
+		sha1_feed_stat(&ctx, "C:/Program Files (x86)");
+		sha1_feed_stat(&ctx, "C:/Users");
+		sha1_feed_stat(&ctx, "C:/Documents and Settings");
+	} else {
+		sha1_feed_stat(&ctx, "/bin");
+		sha1_feed_stat(&ctx, "/boot");
+		sha1_feed_stat(&ctx, "/dev");
+		sha1_feed_stat(&ctx, "/etc");
+		sha1_feed_stat(&ctx, "/home");
+		sha1_feed_stat(&ctx, "/lib");
+		sha1_feed_stat(&ctx, "/mnt");
+		sha1_feed_stat(&ctx, "/opt");
+		sha1_feed_stat(&ctx, "/proc");
+		sha1_feed_stat(&ctx, "/root");
+		sha1_feed_stat(&ctx, "/sbin");
+		sha1_feed_stat(&ctx, "/sys");
+		sha1_feed_stat(&ctx, "/tmp");
+		sha1_feed_stat(&ctx, "/usr");
+		sha1_feed_stat(&ctx, "/var");
+	}
 
 	sha1_feed_fstat(&ctx, STDIN_FILENO);
 	sha1_feed_fstat(&ctx, STDOUT_FILENO);
@@ -314,9 +316,9 @@ entropy_collect(struct sha1 *digest)
 		sha1_feed_ulong(&ctx, i);
 	}
 
-#ifndef MINGW32
+#ifdef HAS_TTYNAME
 	sha1_feed_string(&ctx, ttyname(STDIN_FILENO));
-#endif
+#endif	/* HAS_TTYNAME */
 
 #ifdef HAS_GETRUSAGE
 	{

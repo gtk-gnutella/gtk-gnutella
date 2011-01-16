@@ -442,13 +442,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_sigprocmask HAS_SIGPROCMASK	/**/
 
-/* HAS_SIGSETJMP:
- *	This variable indicates to the C program that the sigsetjmp()
- *	routine is available to save the calling process's registers
- *	and stack environment for later use by siglongjmp(), and
- *	to optionally save the process's signal mask.  See
- *	Sigjmp_buf, Sigsetjmp, and Siglongjmp.
- */
 /* Sigjmp_buf:
  *	This is the buffer type to be used with Sigsetjmp and Siglongjmp.
  */
@@ -538,6 +531,14 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  * use getrusage(). It may be necessary to include <sys/times.h>.
  */
 #$d_times HAS_TIMES		/**/
+
+/* HAS_TTYNAME:
+ *	This symbol, if defined, indicates that the ttyname() routine is
+ *	available to determine the pathname of the terminal associated with
+ *	a file descriptor.  The <unistd.h> header must be included to use
+ *	this routine.
+ */
+#$d_ttyname HAS_TTYNAME	/**/
 
 /* HAS_USLEEP:
  *	This symbol, if defined, indicates that the usleep routine is
