@@ -113,6 +113,88 @@ unique_pathname(const char *path, const char *filename,
 	return pathname;
 }
 
+static inline gboolean
+filename_is_evil_char(int c)
+{
+	/**
+	 * NOTE: Parentheses "()" are not included because $ (dollar) and ` (tick)
+	 *		 are considered evil. Applications and users failing to escape
+	 *		 characters on the shell would still have trouble but it's not
+	 *		 as serious and certainly not our fault.
+	 */
+	switch (c) {
+	case '$':
+	case '&':
+	case '*':
+	case '\\':
+	case '`':
+	case ':':
+	case ';':
+	case '\'':
+	case '"':
+	case '<':
+	case '>':
+	case '?':
+	case '|':
+	case '~':
+	case '\177':
+		return TRUE;
+	}
+	return FALSE;
+}
+
+static gboolean
+filename_is_reserved(const char *filename)
+{
+	const char *endptr;
+
+	if ('\0' == filename[0])
+		return TRUE;
+
+	/**
+	 * FIXME: Doesn't this apply to CYGWIN, too?
+	 */
+	if (!is_running_on_mingw())
+		return FALSE;
+
+	/**
+	 * The following may be a superset because PRN1 is (probably) not reserved.
+	 */
+
+	if (!(
+	 	(endptr = is_strcaseprefix(filename, "aux")) ||
+		(endptr = is_strcaseprefix(filename, "com")) ||
+		(endptr = is_strcaseprefix(filename, "con")) ||
+		(endptr = is_strcaseprefix(filename, "lpt")) ||
+		(endptr = is_strcaseprefix(filename, "nul")) ||
+		(endptr = is_strcaseprefix(filename, "prn"))
+	))
+		return FALSE;
+	
+	switch (*endptr) {
+	case '\0':
+		return TRUE;
+	case '.':
+		/* con.txt is reserved con.blah.txt isn't */
+		return NULL == strchr(&endptr[1], '.');
+	case '1': case '2': case '3': case '4': case '5': case '6': case '7':
+	case '8': case '9': 
+		/* lpt0, com0 are not reserved */
+		endptr++;
+		switch (*endptr) {
+		case '\0':
+			return TRUE;
+		case '.':
+			/* com1.txt is reserved com1.blah.txt isn't */
+			return NULL == strchr(&endptr[1], '.');
+		}
+		break;
+	}
+
+	/* com1blah.txt is not reserved */
+	return FALSE;
+}
+
 /**
  * Creates a valid and sanitized filename from the supplied string. For most
  * Unix-like platforms anything goes but for security reasons, shell meta
@@ -122,12 +204,11 @@ unique_pathname(const char *path, const char *filename,
  * @param no_spaces if TRUE, spaces are replaced with underscores.
  * @param no_evil if TRUE, "evil" characters are replaced with underscores.
  *
- * @returns a newly allocated string or ``filename'' if it was a valid filename
- *		    already.
+ * @returns a newly allocated string using halloc() or ``filename''
+ *			if it was a valid filename already.
  */
 char *
-filename_sanitize(const char *filename,
-		gboolean no_spaces, gboolean no_evil)
+filename_sanitize(const char *filename, gboolean no_spaces, gboolean no_evil)
 {
 	const char *s;
 	char *q;
@@ -146,7 +227,6 @@ filename_sanitize(const char *filename,
 
 	/* Replace shell meta characters and likely problematic characters */
 	{
-		static const char evil[] = "$&*\\`:;()'\"<>?|~\177";
 		size_t i;
 		guchar c;
 		
@@ -158,13 +238,27 @@ filename_sanitize(const char *filename,
 				|| '/' == c 
 				|| (0 == i && ('.' == c || '-' == c))
 				|| (no_spaces && is_ascii_space(c))
-				|| (no_evil && NULL != strchr(evil, c))
+				|| (no_evil && filename_is_evil_char(c))
 		   ) {
 				if (!q)
 					q = h_strdup(s);
-				q[i] = '_';
+				q[i] = '_';	/* replace undesired char with underscore */
 			}
 		}
+
+		/**
+		 * Windows does not like filenames ending with a space or period.
+		 */
+		while (i-- > 0 && (is_ascii_space(s[i]) || '.' == s[i])) {
+			if (!q)
+				q = h_strdup(s);
+			q[i] = '\0';	/* truncate string */
+		}
+	}
+
+	if (filename_is_reserved(q ? q : s)) {
+		HFREE_NULL(q);
+		q = h_strdup("noname");
 	}
 
 	return q ? q : deconstify_gchar(s);
