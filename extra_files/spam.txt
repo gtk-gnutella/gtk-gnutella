@@ -133,3 +133,7 @@ NAME [(](BuBanee|GOOD|new album)[)].*[.]wma$
 ADDED 2011-01-11
 SIZE 100000-8000000
 END
+
+NAME (^|[[:punct:]]|[[:space:]])([rR][eE][eE][lL][kK][iI][dD][dD][yY][mM][oO][vV]|[rR]@[yY][gG][oO][lL][dD]|([0-9]|1[012345])[yY][oO]|[pP][tT][hHsS][cC]|[pP][rR][eE][tT][eE][eE][nN]|[pP][eE][dD][oO]|[hH][uU][sS][sS][yY][fF][aA][nN])([[:punct:]]|[[:space:]])
+ADDED 2011-01-16
+END
