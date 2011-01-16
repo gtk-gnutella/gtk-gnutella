@@ -496,7 +496,7 @@ inet_udp_not_firewalled(void)
 }
 
 /**
- * Called when we got an incoming connection from another computer at `ip'.
+ * Called when we got an incoming connection from another computer at `addr'.
  */
 void
 inet_got_incoming(const host_addr_t addr)
