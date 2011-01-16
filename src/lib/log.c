@@ -85,6 +85,11 @@ static struct logfile logfile[LOG_MAX_FILES];
  */
 static volatile sig_atomic_t in_log_handler;
 
+/**
+ * This is used to detect recurstion in s_logv().
+ */
+static volatile sig_atomic_t in_safe_handler;
+
 static const char DEV_NULL[] = "/dev/null";
 
 /**
@@ -113,6 +118,93 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 
 		if (G_LOG_LEVEL_ERROR == level)
 			in_signal_handler = TRUE;
+
+		/*
+		 * Detect recursion, but don't make it fatal.
+		 */
+
+		if (in_safe_handler) {
+			iovec_t iov[6];
+			unsigned iov_cnt = 0;
+			char time_buf[18];
+
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);	/* 0 */
+			print_str(" (CRITICAL): recursion to format string \""); /* 1 */
+			print_str(format);		/* 2 */
+			print_str("\" from ");	/* 3 */
+			print_str(stacktrace_caller_name(2));	/* 4 */
+			print_str("\n");		/* 5 */
+			IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+
+			/*
+			 * A recursion with an error message is always fatal.
+			 */
+
+			if (G_LOG_LEVEL_ERROR == level) {
+				/*
+				 * In case the error occurs within a critical section with
+				 * all the signals blocked, make sure to unblock SIGBART.
+				 */
+
+#ifdef HAS_SIGPROCMASK
+				{
+					sigset_t set;
+
+					sigemptyset(&set);
+					sigaddset(&set, SIGABRT);
+					sigprocmask(SIG_UNBLOCK, &set, NULL);
+				}
+#endif	/* HAS_SIGPROCMASK */
+
+				raise(SIGABRT);
+
+				/*
+				 * Back from raise(), that's bad.
+				 *
+				 * Either we don't have sigprocmask(), or it failed to
+				 * unblock SIGBART.  Invoke the crash_handler() manually
+				 * then so that we can pause() or exec() as configured
+				 * in case of a crash.
+				 */
+
+				{
+					iov_cnt = 0;
+
+					crash_time(time_buf, sizeof time_buf);
+					print_str(time_buf);	/* 0 */
+					print_str(" (CRITICAL): back from raise(SIGBART)"); /* 1 */
+					print_str(" -- invoking crash_handler()\n");		/* 2 */
+					IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+
+					crash_handler(SIGABRT);
+
+					/*
+					 * We can be back from crash_handler() if they haven't
+					 * configured any pause() or exec() in case of a crash.
+					 * Since SIGBART is blocked, there won't be any core.
+					 */
+
+					iov_cnt = 0;
+
+					crash_time(time_buf, sizeof time_buf);
+					print_str(time_buf);	/* 0 */
+					print_str(" (CRITICAL): back from crash_handler()"); /* 1 */
+					print_str(" -- exiting\n");		/* 2 */
+					IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+
+					exit(1);
+				}
+			}
+
+			return;
+		}
+
+		/*
+		 * OK, no recursion so far.  Emit log.
+		 */
+
+		in_safe_handler = TRUE;
 
 		/*
 		 * Within a signal handler, we can safely allocate memory to be
@@ -221,6 +313,8 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 
 		if (is_running_on_mingw() && !in_signal_handler)
 			fflush(stderr);		/* Unbuffering does not work on Windows */
+
+		in_safe_handler = FALSE;
 	}
 }
 

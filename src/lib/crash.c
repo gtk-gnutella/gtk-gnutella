@@ -275,7 +275,10 @@ crash_exec(const char *pathname, const char *argv0)
 
 static const char SIGNAL_NUM[] = "signal #";
 
-static void
+/**
+ * The signal handler used to trap harmful signals.
+ */
+void
 crash_handler(int signo)
 {
 	static volatile sig_atomic_t crashed;

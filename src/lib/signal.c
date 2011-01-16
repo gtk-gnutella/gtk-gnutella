@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "signal.h"
 #include "ckalloc.h"
+#include "log.h"
 #include "misc.h"
 #include "crash.h"
 #include "unsigned.h"
@@ -373,7 +374,7 @@ signal_leave_critical(const sigset_t *oset)
 #ifdef HAS_SIGPROCMASK
 	if (!in_critical_section) {
 		if (-1 == sigprocmask(SIG_SETMASK, oset, NULL))
-			g_error("cannot leave critical section: %s", g_strerror(errno));
+			s_error("cannot leave critical section: %s", g_strerror(errno));
 	}
 #else
 	(void) oset;
