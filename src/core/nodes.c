@@ -850,13 +850,28 @@ node_slow_timer(time_t now)
 	 * If we're running in ultra node and we are TCP-firewalled, then
 	 * switch to leaf mode.
 	 *
-	 * We don't check whether they are firewalled if they asked to run as
-	 * an ultranode here -- this will be caught by the check below when
-	 * no leaf can connect.
+	 * We don't check whether they are firewalled at the time they ask to
+	 * run as an ultranode -- however this will be caught by the check below
+	 * when no leaf can connect.
+	 *
+	 * LimeWire ultra nodes don't answer push-proxy requests from peer ultras,
+	 * so a firewalled ultra will get no push-proxy and will not be able
+	 * to serve content.  A firewalled ultra node  will also not accept
+	 * leaves, meaning it will not participate to the concentration of
+	 * peers required for an efficient search network.  Furthermore, in a
+	 * high-outdegree network, a firewalled node "steals" both a hop for
+	 * queries (thereby decreasing their usefulness) and a slot from the
+	 * neighbouring ultra nodes (which could be more effectively given to a
+	 * well-connected ultra node).
+	 *
+	 * NOTE: this check happens regardless of the configured peer mode.
+	 *
+	 * Overriding is possible locally for testing purposes by setting
+	 * the "allow_firewalled_ultra" property.
 	 */
 
 	if (
-		GNET_PROPERTY(configured_peermode) == NODE_P_AUTO &&
+		!GNET_PROPERTY(allow_firewalled_ultra) &&
 		GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
 		GNET_PROPERTY(is_firewalled)
 	) {

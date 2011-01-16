@@ -421,6 +421,7 @@ typedef enum {
     PROP_UPNP_DEBUG,
     PROP_SOAP_DEBUG,
     PROP_SOAP_TRACE,
+    PROP_ALLOW_FIREWALLED_ULTRA,
     GNET_PROPERTY_END
 } gnet_property_t;
 

@@ -911,6 +911,8 @@ prop_def_choice_t gnet_property_variable_soap_trace_choices[] = {
     {N_("input & output"), SOCK_TRACE_BOTH},
     {NULL, 0}
 };
+gboolean gnet_property_variable_allow_firewalled_ultra     = FALSE;
+static const gboolean gnet_property_variable_allow_firewalled_ultra_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -8283,6 +8285,23 @@ gnet_prop_init(void) {
     gnet_property->props[384].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[384].data.guint32.min   = 0x00000000;
     gnet_property->props[384].data.guint32.choices = (void *) &gnet_property_variable_soap_trace_choices;
+
+
+    /*
+     * PROP_ALLOW_FIREWALLED_ULTRA:
+     *
+     * General data:
+     */
+    gnet_property->props[385].name = "allow_firewalled_ultra";
+    gnet_property->props[385].desc = _("For testing purposes, allow to run as an ultranode even if the node cannot accept incoming TCP connections.");
+    gnet_property->props[385].ev_changed = event_new("allow_firewalled_ultra_changed");
+    gnet_property->props[385].save = TRUE;
+    gnet_property->props[385].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[385].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[385].data.boolean.def   = (void *) &gnet_property_variable_allow_firewalled_ultra_default;
+    gnet_property->props[385].data.boolean.value = (void *) &gnet_property_variable_allow_firewalled_ultra;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

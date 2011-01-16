@@ -4514,4 +4514,14 @@ prop = {
     };
 };
 
+prop = {
+    name = "allow_firewalled_ultra";
+    desc = "For testing purposes, allow to run as an ultranode even if "
+		"the node cannot accept incoming TCP connections.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */
