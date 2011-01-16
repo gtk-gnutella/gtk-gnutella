@@ -251,17 +251,17 @@ mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 const char *
 mingw_gethome(void)
 {
-	static char path[MAX_PATH];
+	static char pathname[MAX_PATH];
 	int ret;
 
-	ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA , NULL, 0, path);
+	ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA , NULL, 0, pathname);
 
 	if (E_INVALIDARG == ret) {
 		g_warning("could not determine home directory");
-		g_strlcpy(path, "/", sizeof path);
+		g_strlcpy(pathname, "/", sizeof pathname);
 	}
 
-	return path;
+	return pathname;
 }
 
 guint64
@@ -285,10 +285,10 @@ mingw_getdtablesize(void)
 }
 
 int
-mingw_mkdir(const char *path, mode_t mode)
+mingw_mkdir(const char *pathname, mode_t mode)
 {
 	(void) mode;	/* FIXME: handle mode */
-	return mkdir(path);
+	return mkdir(pathname);
 }
 
 int
@@ -299,9 +299,9 @@ mingw_pipe(int fd[2])
 }
 
 int
-mingw_stat(const char *path, struct stat *buf)
+mingw_stat(const char *pathname, struct stat *buf)
 {
-	int res = stat(path, buf);
+	int res = stat(pathname, buf);
 	if (res == -1)
 		errno = GetLastError();
 	return res;
@@ -343,6 +343,7 @@ mingw_open(const char *pathname, int flags, ...)
         va_end(args);
     }
 
+	/* FIXME: This should use _wopen() for Unicode support */
 	res = open(pathname, flags, mode);
 	if (res == -1)
 		errno = GetLastError();
@@ -437,11 +438,12 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
 }
 
 int
-mingw_truncate(const char *path, off_t len)
+mingw_truncate(const char *pathname, off_t len)
 {
 	int fd, ret, saved_errno;
 
-	fd = open(path, O_RDWR);
+	/* FIXME: This should use _wopen() for Unicode support */
+	fd = open(pathname, O_RDWR);
 	if (-1 == fd) {
 		errno = GetLastError();
 		return -1;
@@ -925,14 +927,14 @@ mingw_strerror(int errnum)
 }
 
 int
-mingw_rename(const char *oldpath, const char *newpath)
+mingw_rename(const char *oldpathname, const char *newpathname)
 {
 	/*
 	 * XXX: Try to rename a file with SetFileInformationByHandle
 	 * and FILE_INFO_BY_HANDLE_CLASS
 	 */
 
-	if (!MoveFileEx(oldpath, newpath, MOVEFILE_REPLACE_EXISTING)) {
+	if (!MoveFileEx(oldpathname, newpathname, MOVEFILE_REPLACE_EXISTING)) {
 		errno = GetLastError();
 		return -1;
 	}
@@ -941,7 +943,7 @@ mingw_rename(const char *oldpath, const char *newpath)
 }
 
 int
-mingw_statvfs(const char *path, struct mingw_statvfs *buf)
+mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 {
 	BOOL ret;
 	DWORD SectorsPerCluster;
@@ -949,7 +951,7 @@ mingw_statvfs(const char *path, struct mingw_statvfs *buf)
 	DWORD NumberOfFreeClusters;
 	DWORD TotalNumberOfClusters;
 
-	ret = GetDiskFreeSpace(path,
+	ret = GetDiskFreeSpace(pathname,
 		&SectorsPerCluster, &BytesPerSector,
 		&NumberOfFreeClusters,
 		&TotalNumberOfClusters);
@@ -1489,18 +1491,18 @@ mingw_backtrace(void **buffer, int size)
 #endif	/* EMULATE_BACKTRACE */
 
 /**
- * Build path of file located nearby our executable.
+ * Build pathname of file located nearby our executable.
  *
  * @return pointer to static data.
  */
 const char *
-mingw_filename_nearby(const char *file)
+mingw_filename_nearby(const char *filename)
 {
-	static char path[MAX_PATH_LEN];
+	static char pathname[MAX_PATH_LEN];
 	static size_t offset;
 
-	if ('\0' == path[0]) {
-		if (0 == GetModuleFileName(NULL, path, sizeof path)) {
+	if ('\0' == pathname[0]) {
+		if (0 == GetModuleFileName(NULL, pathname, sizeof pathname)) {
 			static gboolean done;
 			if (!done) {
 				done = TRUE;
@@ -1508,11 +1510,11 @@ mingw_filename_nearby(const char *file)
 				g_warning("cannot locate my executable: %s", g_strerror(errno));
 			}
 		}
-		offset = filepath_basename(path) - path;
+		offset = filepath_basename(pathname) - pathname;
 	}
-	clamp_strcpy(&path[offset], sizeof path - offset, file);
+	clamp_strcpy(&pathname[offset], sizeof pathname - offset, filename);
 
-	return path;
+	return pathname;
 }
 
 /**
@@ -1553,13 +1555,14 @@ mingw_stdin_pending(gboolean fifo)
  * @return TRUE on success.
  */
 static gboolean
-mingw_get_file_id(const char *path, guint64 *id)
+mingw_get_file_id(const char *pathname, guint64 *id)
 {
 	HANDLE h;
 	BY_HANDLE_FILE_INFORMATION fi;
 	gboolean ok;
 
-	h = CreateFile(path, 0,
+	/* FIXME: This should use CreateFileW()? for Unicode support */
+	h = CreateFile(pathname, 0,
 			FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
 			NULL, OPEN_EXISTING, 0, NULL);
 
