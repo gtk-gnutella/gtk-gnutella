@@ -215,6 +215,9 @@ filename_sanitize(const char *filename, gboolean no_spaces, gboolean no_evil)
 
 	g_assert(filename);
 
+	/* Leading spaces are just confusing */
+	filename = skip_ascii_spaces(filename);
+
 	/* Make sure the filename isn't too long */
 	if (strlen(filename) >= FILENAME_MAXBYTES) {
 		q = halloc(FILENAME_MAXBYTES);
