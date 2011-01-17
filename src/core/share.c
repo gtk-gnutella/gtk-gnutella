@@ -1180,6 +1180,10 @@ recursive_scan_opendir(struct recursive_scan *ctx, const char * const dir)
 	if (directory_is_unshareable(dir))
 		return;
 
+	/**
+	 * FIXME: On Windows FindFirstFile/FindNextFile/FindClose
+	 *		  must be used to get the Unicode filenames.		
+	 */
 	if (!(ctx->directory = opendir(dir))) {
 		g_warning("can't open directory %s: %s", dir, g_strerror(errno));
 		return;
