@@ -326,7 +326,7 @@ socket_register_fd_reclaimer(reclaim_fd_t callback)
 
 static GSList *sl_incoming = NULL;	/**< To spot inactive sockets */
 
-static void guess_local_addr(struct gnutella_socket *s);
+static void guess_local_addr(const struct gnutella_socket *s);
 static void socket_destroy(struct gnutella_socket *s, const char *reason);
 static void socket_connected(gpointer data, int source, inputevt_cond_t cond);
 static void socket_wio_link(struct gnutella_socket *s);
@@ -2003,23 +2003,42 @@ socket_connected(gpointer data, int source, inputevt_cond_t cond)
 }
 
 /**
- * Tries to guess the local IP address.
+ * Extract the local address from the socket, filling ``addrptr'' with the
+ * extracted IP address.
+ *
+ * @return TRUE on success, FALSE on error with errno set.
  */
-static void
-guess_local_addr(struct gnutella_socket *s)
+gboolean
+socket_local_addr(const struct gnutella_socket *s, host_addr_t *addrptr)
 {
 	socket_addr_t saddr;
 	int fd;
 
-	g_return_if_fail(s);
+	g_return_val_if_fail(s, FALSE);
 
 	fd = s->file_desc;
-	g_return_if_fail(fd >= 0);
+	g_return_val_if_fail(is_valid_fd(s->file_desc), FALSE);
 
 	if (!socket_is_local(s) && 0 == socket_addr_getsockname(&saddr, fd)) {
 		host_addr_t addr;
 
 		addr = socket_addr_get_addr(&saddr);
+		*addrptr = addr;		/* Struct copy */
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
+/**
+ * Tries to guess the local IP address.
+ */
+static void
+guess_local_addr(const struct gnutella_socket *s)
+{
+	host_addr_t addr;
+
+	if (socket_local_addr(s, &addr)) {
 		switch (host_addr_net(addr)) {
 		case NET_TYPE_IPV4:
 		case NET_TYPE_IPV6:
@@ -2036,7 +2055,7 @@ guess_local_addr(struct gnutella_socket *s)
  * @return socket's local port, or -1 on error.
  */
 static int
-socket_local_port(struct gnutella_socket *s)
+socket_local_port(const struct gnutella_socket *s)
 {
 	socket_addr_t addr;
 

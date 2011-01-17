@@ -259,6 +259,7 @@ gboolean socket_omit_token(struct gnutella_socket *s);
 void socket_set_bind_address(const host_addr_t addr);
 int socket_evt_fd(struct gnutella_socket *s);
 gboolean socket_is_local(const struct gnutella_socket *s);
+gboolean socket_local_addr(const struct gnutella_socket *s, host_addr_t *ap);
 
 void socket_timer(time_t now);
 void socket_shutdown(void);
