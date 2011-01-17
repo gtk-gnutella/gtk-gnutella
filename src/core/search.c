@@ -869,10 +869,15 @@ search_results_identify_spam(gnet_results_set_t *rs)
 	if (!is_vendor_acceptable(rs->vcode)) {
 		/* A proper vendor code is mandatory */
 		search_results_mark_fake_spam(rs);
-	} else if (T_LIME == rs->vcode.u32 && !has_ct) {
-		/*
+	} else if (
+		T_LIME == rs->vcode.u32 &&
+		!has_ct &&
+		0 != strcmp("jp", iso3166_country_cc(rs->country))
+	) {
+		/**
 		 * If there are no timestamps, this is most-likely not from LimeWire.
 		 * Cabos frequently fails to add timestamps for unknown reasons.
+		 * Cabos is almost exclusively used in Japan.
 		 */
 		search_results_mark_fake_spam(rs);
 	} else if (is_odd_guid(rs->guid)) {
