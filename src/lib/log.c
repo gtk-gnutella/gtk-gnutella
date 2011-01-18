@@ -247,7 +247,15 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 		 * we do not attempt to format floating point numbers.
 		 */
 
-		str_vprintf(msg, format, &args);
+		str_vprintf(msg, format, args);
+/**
+ * FIXME: Above line causes following GCC warning:
+log.c: In function ‘s_logv’:
+	log.c:250: warning: passing argument 3 of ‘str_vprintf’ from incompatible pointe
+	r type
+	str.h:85: note: expected ‘struct __va_list_tag (*)[1]’ but argument is of type ‘
+	struct __va_list_tag *’
+*/
 
 		switch (level) {
 		case G_LOG_LEVEL_CRITICAL: prefix = "CRITICAL"; break;
