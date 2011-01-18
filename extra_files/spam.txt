@@ -137,3 +137,8 @@ END
 NAME (^|[[:punct:]]|[[:space:]])([rR][eE][eE][lL][kK][iI][dD][dD][yY][mM][oO][vV]|[rR]@[yY][gG][oO][lL][dD]|([0-9]|1[012345])[yY][oO]|[pP][tT][hHsS][cC]|[pP][rR][eE][tT][eE][eE][nN]|[pP][eE][dD][oO]|[hH][uU][sS][sS][yY][fF][aA][nN])([[:punct:]]|[[:space:]])
 ADDED 2011-01-16
 END
+
+NAME [a-zA-Z0-9_ !.,;&$()#+-]{128}[.]txt
+SIZE 100-1000
+ADDED 2011-01-18
+END
