@@ -1391,7 +1391,9 @@
 64.32.4.192/26
 
 # LimeWire/4.16.6 (potentially fake); port 20001; all kinds of massive spam
-66.45.226.48/28
+#66.45.226.48/28
+#66.45.248.106
+66.45.224.0/19
 
 # gtk-gnutella; 33_gui_*; EXE/RAR/ZIP
 #Ubiquity Server Solutions Los Angeles
