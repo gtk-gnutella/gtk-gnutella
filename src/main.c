@@ -1415,7 +1415,7 @@ main(int argc, char **argv)
 {
 	int sp;
 
-	mingw_init_early();
+	mingw_early_init();
 	
 	if (compat_is_superuser()) {
 		fprintf(stderr, "Never ever run this as root! You may use:\n\n");
