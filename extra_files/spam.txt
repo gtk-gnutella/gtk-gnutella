@@ -82,11 +82,11 @@ SIZE 1000000-20000000
 ADDED 2008-11-12
 END
 
-NAME ([[:blank:]]{6}|[[:blank:]]$)
+NAME ([[:blank:]]{9}|[[:blank:]]$)
 ADDED 2009-04-25
 END
  
-NAME [.](r00|uue)$
+NAME [.](r00|uue|au)$
 ADDED 2010-10-27
 END
 
