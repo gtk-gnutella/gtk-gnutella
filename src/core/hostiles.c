@@ -47,8 +47,9 @@ RCSID("$Id$")
 #include "nodes.h"
 #include "gnet_stats.h"
 
-#include "lib/file.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
+#include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/iprange.h"
 #include "lib/halloc.h"
@@ -85,7 +86,16 @@ static struct iprange_db *hostile_db[NUM_HOSTILES];	/**< The hostile database */
  * session. If the hashtable reaches a certain size, we could create
  * a more efficient "iprange_db" from it.
  */
-static GHashTable *ht_dynamic_ipv4;
+static hash_list_t *hl_dynamic_ipv4;
+
+#define HOSTILES_DYNAMIC_PERIOD_MS	60161	/**< [ms]; about 1 minute (prime) */
+#define HOSTILES_DYNAMIC_PENALTY	43201	/**< [s]; about 12 hours (prime) */
+
+struct hostiles_dynamic_entry {
+	guint32 ipv4;	/* MUST be at offset 0 due to uint32_hash/eq */
+	unsigned long relative_time;
+};
+
 
 /**
  * Frees all entries in the given hostiles.
@@ -303,54 +313,89 @@ use_global_hostiles_txt_changed(property_t unused_prop)
     return FALSE;
 }
 
-/**
- * Called on startup. Loads the hostiles.txt into memory.
- */
-void
-hostiles_init(void)
+static struct hostiles_dynamic_entry *
+hostiles_dynamic_new(guint32 ipv4)
 {
-	ht_dynamic_ipv4 = g_hash_table_new(NULL, NULL);
-	hostiles_retrieve(HOSTILE_PRIVATE);
-    gnet_prop_add_prop_changed_listener(PROP_USE_GLOBAL_HOSTILES_TXT,
-		use_global_hostiles_txt_changed, TRUE);
+	struct hostiles_dynamic_entry entry;
+
+	entry.ipv4 = ipv4;
+	entry.relative_time = tm_relative_time();
+	return wcopy(&entry, sizeof entry);
+}
+
+static void
+hostiles_dynamic_free(struct hostiles_dynamic_entry **entry_ptr)
+{
+	struct hostiles_dynamic_entry *entry = *entry_ptr;
+
+	if (entry) {
+		wfree(entry, sizeof *entry);
+		*entry_ptr = NULL;
+	}
+}
+
+static void
+hostiles_dynamic_expire(gboolean forced)
+{
+	unsigned long now = tm_relative_time();
+
+	for (;;) {
+		struct hostiles_dynamic_entry *entry;
+
+		entry = hash_list_head(hl_dynamic_ipv4);
+		if (NULL == entry)
+			break;
+
+		if (
+			!forced &&
+			delta_time(now, entry->relative_time) < HOSTILES_DYNAMIC_PENALTY
+		)
+			break;
+
+		if (!forced && GNET_PROPERTY(ban_debug > 0)) {
+			char buf[HOST_ADDR_BUFLEN];
+
+			host_addr_to_string_buf(host_addr_get_ipv4(entry->ipv4),
+				buf, sizeof buf);
+			g_info("removing dynamically caught hostile: %s", buf);
+		}
+		hash_list_remove_head(hl_dynamic_ipv4);
+		hostiles_dynamic_free(&entry);
+	}
 }
 
 /**
- * Frees all entries in all the hostiles.
+ * Callout queue periodic event to perform periodic monitoring of the
+ * registered files.
  */
-void
-hostiles_close(void)
+static gboolean
+hostiles_dynamic_timer(void *unused_udata)
 {
-	int i;
+	(void) unused_udata;
 
-	for (i = 0; i < NUM_HOSTILES; i++) {
-		hostiles_close_one(i);
-	}
-
-	gnet_prop_remove_prop_changed_listener(PROP_USE_GLOBAL_HOSTILES_TXT,
-		use_global_hostiles_txt_changed);
-	gm_hash_table_destroy_null(&ht_dynamic_ipv4);
+	hostiles_dynamic_expire(FALSE);
+	return TRUE;		/* Keep calling */
 }
 
 static void
 hostiles_dynamic_add_ipv4(guint32 ipv4)
 {
-	unsigned long count;
-	void *key = uint_to_pointer(ipv4);
+	struct hostiles_dynamic_entry *entry;
 
-	count = pointer_to_ulong(g_hash_table_lookup(ht_dynamic_ipv4, key));
-	if (count < ULONG_MAX)
-		count++;
-	g_hash_table_insert(ht_dynamic_ipv4, key, ulong_to_pointer(count));
+	if (hash_list_find(hl_dynamic_ipv4, &ipv4, cast_to_void_ptr(&entry))) {
+		entry->relative_time = tm_relative_time();
+		hash_list_moveto_tail(hl_dynamic_ipv4, entry);
+	} else {
+		entry = hostiles_dynamic_new(ipv4);
+		hash_list_append(hl_dynamic_ipv4, entry);
 
-	if (1 == count)
 		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_IP, 1);
+		if (GNET_PROPERTY(ban_debug > 0)) {
+			char buf[HOST_ADDR_BUFLEN];
 
-	if (GNET_PROPERTY(ban_debug > 0)) {
-		char buf[HOST_ADDR_BUFLEN];
-
-		host_addr_to_string_buf(host_addr_get_ipv4(ipv4), buf, sizeof buf);
-		g_info("dynamically caught hostile: %s (count=%lu)", buf, count);
+			host_addr_to_string_buf(host_addr_get_ipv4(ipv4), buf, sizeof buf);
+			g_info("dynamically caught hostile: %s", buf);
+		}
 	}
 }
 
@@ -377,6 +422,12 @@ hostiles_static_check_ipv4(guint32 ipv4)
  * The address is forgotten when the process terminates.
  *
  * @note Only IPv4 addresses are handled, others are ignored.
+ *		 While this could easily handle IPv6 addresses, too,
+ *		 it must be considered that complete prefixes have to
+ *		 banned because the list could quickly grow out of
+ *		 proportion. In case of Teredo and 6to4 they're already
+ *		 handled and indeed these equal IPv6 prefixes not just
+ *		 individual addresses.
  *
  * @param addr The address to blacklist.
  */
@@ -399,7 +450,11 @@ hostiles_dynamic_add(const host_addr_t addr)
 static inline gboolean
 hostiles_dynamic_check_ipv4(guint32 ipv4)
 {
-	return gm_hash_table_contains(ht_dynamic_ipv4, uint_to_pointer(ipv4));
+	/**
+	 * We could check relative_time here but entries are sufficiently
+	 * frequently expired and the timeout is arbitrary anyway.
+	 */
+	return hash_list_contains(hl_dynamic_ipv4, &ipv4);
 }
 
 /**
@@ -424,6 +479,38 @@ hostiles_check(const host_addr_t ha)
 	}
 
 	return FALSE;
+}
+
+/**
+ * Called on startup. Loads the hostiles.txt into memory.
+ */
+void
+hostiles_init(void)
+{
+	hl_dynamic_ipv4 = hash_list_new(uint32_hash, uint32_eq);
+	cq_periodic_add(callout_queue,
+		HOSTILES_DYNAMIC_PERIOD_MS, hostiles_dynamic_timer, NULL);
+	hostiles_retrieve(HOSTILE_PRIVATE);
+    gnet_prop_add_prop_changed_listener(PROP_USE_GLOBAL_HOSTILES_TXT,
+		use_global_hostiles_txt_changed, TRUE);
+}
+
+/**
+ * Frees all entries in all the hostiles.
+ */
+void
+hostiles_close(void)
+{
+	int i;
+
+	for (i = 0; i < NUM_HOSTILES; i++) {
+		hostiles_close_one(i);
+	}
+
+	gnet_prop_remove_prop_changed_listener(PROP_USE_GLOBAL_HOSTILES_TXT,
+		use_global_hostiles_txt_changed);
+	hostiles_dynamic_expire(TRUE);
+	hash_list_free(&hl_dynamic_ipv4);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
