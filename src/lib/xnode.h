@@ -68,6 +68,13 @@ typedef gboolean (*xnode_cbe_t)(xnode_t *xn, void *data);
  */
 typedef void (*xnode_ns_cb_t)(const char *prefix, const char *uri, void *data);
 
+/**
+ * Node lookup callback to determine whether we have found a matching node.
+ *
+ * @return TRUE if node matches.
+ */
+typedef gboolean (*xnode_match_t)(const xnode_t *xn, void *data);
+
 /*
  * Public interface.
  */
@@ -127,6 +134,9 @@ gboolean xnode_prop_ns_printf(xnode_t *element,
 void xnode_tree_foreach(xnode_t *root, xnode_cb_t func, void *data);
 void xnode_tree_enter_leave(xnode_t *root,
 	xnode_cbe_t enter, xnode_cb_t leave, void *data);
+xnode_t *xnode_tree_find(xnode_t *root, xnode_match_t func, void *data);
+xnode_t *xnode_tree_find_depth(xnode_t *root, unsigned depth,
+	xnode_match_t func, void *data);
 
 void xnode_tree_free(xnode_t *root);
 void xnode_tree_free_null(xnode_t **root_ptr);

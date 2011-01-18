@@ -979,6 +979,81 @@ xnode_tree_foreach(xnode_t *root, xnode_cb_t func, void *data)
 }
 
 /**
+ * Recursively apply matching function on each node, in depth-first order,
+ * until it returns TRUE, at which time we return the matching node.
+ *
+ * @return the first matching node in the traversal path, NULL if none matched.
+ */
+xnode_t *
+xnode_tree_find(xnode_t *root, xnode_match_t func, void *data)
+{
+	xnode_t *xn, *next;
+
+	xnode_check(root);
+
+	if ((*func)(root, data))
+		return root;
+
+	for (xn = root->first_child; xn != NULL; xn = next) {
+		xnode_t *found;
+		next = xn->sibling;
+		found = xnode_tree_find(xn, func, data);
+		if (found != NULL)
+			return found;
+	}
+
+	return NULL;
+}
+
+/**
+ * Internal routine for xnode_tree_find_depth().
+ *
+ * @return the first matching node in the traversal path, NULL if none matched.
+ */
+static xnode_t *
+xnode_tree_find_until_depth(xnode_t *root,
+	unsigned curdepth, unsigned maxdepth,
+	xnode_match_t func, void *data)
+{
+	xnode_t *xn, *next;
+
+	xnode_check(root);
+
+	if ((*func)(root, data))
+		return root;
+
+	if (maxdepth == curdepth)
+		return NULL;
+
+	for (xn = root->first_child; xn != NULL; xn = next) {
+		xnode_t *found;
+		next = xn->sibling;
+		found = xnode_tree_find_until_depth(xn,
+			curdepth + 1, maxdepth, func, data);
+		if (found != NULL)
+			return found;
+	}
+
+	return NULL;
+}
+
+/**
+ * Same as xnode_tree_find() but limit search to specified depth: 0 means
+ * the root node only, 1 corresponds the immediate children of the root, and
+ * so on.
+ *
+ * @return the first matching node in the traversal path, NULL if none matched.
+ */
+xnode_t *
+xnode_tree_find_depth(xnode_t *root, unsigned depth,
+	xnode_match_t func, void *data)
+{
+	g_assert(uint_is_non_negative(depth));
+
+	return xnode_tree_find_until_depth(root, 0, depth, func, data);
+}
+
+/**
  * Recursively apply two functions on each node, in depth-first mode.
  *
  * The first function "enter" is called when we enter a node and the
