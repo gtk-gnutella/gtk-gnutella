@@ -68,6 +68,7 @@
 
 typedef GTimeVal tm_t;
 
+void tm_init(void);
 void f2tm(double t, tm_t *tm);
 void tm_elapsed(tm_t *elapsed, const tm_t *t1, const tm_t *t0);
 void tm_sub(tm_t *tm, const tm_t *dec);
@@ -218,6 +219,21 @@ tm_time(void)
 	return (time_t) tm_cached_now.tv_sec;
 }
 
+tm_t tm_start_time(void);
+
+/**
+ * Returns the current time relative to the startup time (cached).
+ *
+ * @note For convenience unsigned long is used, so that we can
+ *		 always cast them to pointers and back again. The guaranteed
+ *		 width of 32-bit should be sufficient for session duration.
+ *		 Where this is unsufficient, stick to time_t.
+ */
+static inline unsigned long
+tm_relative_time(void)
+{
+	return delta_time(tm_time(), tm_start_time().tv_sec);
+}
 #endif /* _tm_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

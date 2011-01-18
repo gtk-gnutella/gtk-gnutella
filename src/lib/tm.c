@@ -278,4 +278,18 @@ tm_cputime(double *user, double *sys)
 	return u + s;
 }
 
+static tm_t start_time;
+
+void
+tm_init(void)
+{
+	tm_now_exact(&start_time);
+}
+
+tm_t
+tm_start_time(void)
+{
+	return start_time;
+}
+
 /* vi: set ts=4 sw=4 cindent: */

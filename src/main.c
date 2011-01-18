@@ -183,7 +183,6 @@ static volatile sig_atomic_t shutdown_requested;
 static volatile sig_atomic_t sig_hup_received;
 static jmp_buf atexit_env;
 static volatile const char *exit_step = "gtk_gnutella_exit";
-static tm_t start_time;
 
 /**
  * Force immediate shutdown of SIGALRM reception.
@@ -523,7 +522,7 @@ gtk_gnutella_exit(int exit_code)
 	 */
 
 	if (debugging(0)) {
-		tm_t since = start_time;
+		tm_t since = tm_start_time();
 		log_cpu_usage(&since, NULL, NULL);
 	}
 
@@ -961,7 +960,7 @@ slow_main_timer(time_t now)
 		static double sys = 0.0;
 
 		if (since.tv_sec == 0)
-			since = start_time;
+			since = tm_start_time();
 
 		log_cpu_usage(&since, &user, &sys);
 	}
@@ -1423,7 +1422,7 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	tm_now_exact(&start_time);
+	tm_init();
 	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
 
 	/*
