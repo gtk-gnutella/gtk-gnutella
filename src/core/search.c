@@ -117,6 +117,74 @@ RCSID("$Id$")
 
 #define SEARCH_GC_PERIOD	120	 /**< Every 2 minutes */
 
+static guint32 search_id;				/**< Unique search counter */
+static GHashTable *searches;			/**< All alive searches */
+
+/**
+ * Structure for search results.
+ */
+typedef struct search_ctrl {
+    gnet_search_t search_handle;	/**< Search handle */
+	guint32 id;						/**< Unique ID */
+
+	/* no more "speed" field -- use marked field now --RAM, 06/07/2003 */
+
+	const char *query;	/**< The normalized search query (atom) */
+	const char *name;	/**< The original search term (atom) */
+	time_t  time;		/**< Time when this search was started */
+	GSList *muids;		/**< Message UIDs of this search */
+
+	sbool passive;	/**< Is this a passive search? */
+	sbool frozen;	/**< NOTE: If TRUE, the query is not issued to nodes
+				  		anymore and "don't update window" */
+	sbool browse;	/**< Special "browse host" search */
+	sbool local;	/**< Special "local" search */
+	sbool active;	/**< Whether to actively issue queries. */
+
+	/*
+	 * Keep a record of nodes we've sent this search w/ this muid to.
+	 */
+
+	GHashTable *sent_nodes;		/**< Sent node by ip:port */
+	GHashTable *sent_node_ids;	/**< IDs of nodes to which we sent query */
+
+	GHook *new_node_hook;
+	guint reissue_timeout_id;
+	guint reissue_timeout;		/**< timeout per search, 0 = search stopped */
+	time_t create_time;			/**< Time at which this search was created */
+	guint lifetime;				/**< Initial lifetime (in hours) */
+	guint query_emitted;		/**< # of queries emitted since last retry */
+	guint32 items;				/**< Items displayed in the GUI */
+	guint32 kept_results;		/**< Results we kept for last query */
+
+	/*
+	 * For browse-host requests.
+	 */
+
+	struct download *download;	/**< Associated download for browse-host */
+} search_ctrl_t;
+
+/*
+ * List of all searches, and of passive searches only.
+ */
+static GSList *sl_search_ctrl;		/**< All searches */
+static GSList *sl_passive_ctrl;		/**< Only passive searches */
+
+/*
+ * Table holding all the active MUIDs for all the searches, pointing back
+ * to the searches directly (i.e. it maps MUID -> search_ctrl_t).
+ * The keys are not atoms but directly the MUID objects allocated and held
+ * in the search's set of MUIDs.
+ */
+static GHashTable *search_by_muid;
+
+static zone_t *rs_zone;		/**< Allocation of results_set */
+static zone_t *rc_zone;		/**< Allocation of record */
+
+static idtable_t *search_handle_map;
+static query_hashvec_t *query_hashvec;
+
+
 static GHashTable *muid_to_query_map;
 static hash_list_t *query_muids;
 
@@ -217,76 +285,13 @@ map_muid_to_query_string(const struct guid *muid)
 	
 	if (hash_list_find(query_muids, muid, &orig_key)) {
 		return g_hash_table_lookup(muid_to_query_map, orig_key);
+	} else {
+		search_ctrl_t *sch = g_hash_table_lookup(search_by_muid, muid);
+		if (sch && sch->query)
+			return sch->query;
 	}
 	return NULL;
 }
-
-static guint32 search_id;				/**< Unique search counter */
-static GHashTable *searches;			/**< All alive searches */
-
-/**
- * Structure for search results.
- */
-typedef struct search_ctrl {
-    gnet_search_t search_handle;	/**< Search handle */
-	guint32 id;						/**< Unique ID */
-
-	/* no more "speed" field -- use marked field now --RAM, 06/07/2003 */
-
-	const char *query;	/**< The normalized search query (atom) */
-	const char *name;	/**< The original search term (atom) */
-	time_t  time;		/**< Time when this search was started */
-	GSList *muids;		/**< Message UIDs of this search */
-
-	sbool passive;	/**< Is this a passive search? */
-	sbool frozen;	/**< NOTE: If TRUE, the query is not issued to nodes
-				  		anymore and "don't update window" */
-	sbool browse;	/**< Special "browse host" search */
-	sbool local;	/**< Special "local" search */
-	sbool active;	/**< Whether to actively issue queries. */
-
-	/*
-	 * Keep a record of nodes we've sent this search w/ this muid to.
-	 */
-
-	GHashTable *sent_nodes;		/**< Sent node by ip:port */
-	GHashTable *sent_node_ids;	/**< IDs of nodes to which we sent query */
-
-	GHook *new_node_hook;
-	guint reissue_timeout_id;
-	guint reissue_timeout;		/**< timeout per search, 0 = search stopped */
-	time_t create_time;			/**< Time at which this search was created */
-	guint lifetime;				/**< Initial lifetime (in hours) */
-	guint query_emitted;		/**< # of queries emitted since last retry */
-	guint32 items;				/**< Items displayed in the GUI */
-	guint32 kept_results;		/**< Results we kept for last query */
-
-	/*
-	 * For browse-host requests.
-	 */
-
-	struct download *download;	/**< Associated download for browse-host */
-} search_ctrl_t;
-
-/*
- * List of all searches, and of passive searches only.
- */
-static GSList *sl_search_ctrl;		/**< All searches */
-static GSList *sl_passive_ctrl;		/**< Only passive searches */
-
-/*
- * Table holding all the active MUIDs for all the searches, pointing back
- * to the searches directly (i.e. it maps MUID -> search_ctrl_t).
- * The keys are not atoms but directly the MUID objects allocated and held
- * in the search's set of MUIDs.
- */
-static GHashTable *search_by_muid;
-
-static zone_t *rs_zone;		/**< Allocation of results_set */
-static zone_t *rc_zone;		/**< Allocation of record */
-
-static idtable_t *search_handle_map;
-static query_hashvec_t *query_hashvec;
 
 static inline search_ctrl_t *
 search_find_by_handle(gnet_search_t n)
@@ -691,11 +696,11 @@ static void
 search_results_identify_dupes(gnet_results_set_t *rs)
 {
 	GHashTable *ht = g_hash_table_new(pointer_hash_func, NULL);
-	gnet_record_t *record;
 	GSList *sl;
 
 	/* Look for identical file index */
 	GM_SLIST_FOREACH(rs->records, sl) {
+		gnet_record_t *record;
 		const void *key;
 
 		record = sl->data;
@@ -710,6 +715,7 @@ search_results_identify_dupes(gnet_results_set_t *rs)
 
 	/* Look for identical SHA-1 */
 	GM_SLIST_FOREACH(rs->records, sl) {
+		gnet_record_t *record;
 		const void *key;
 
 		record = sl->data;
@@ -803,7 +809,7 @@ static void
 search_results_identify_spam(gnet_results_set_t *rs)
 {
 	const GSList *sl;
-	guint8 has_ct = FALSE, has_tth = FALSE, has_xml = FALSE;
+	guint8 has_ct = 0, has_tth = 0, has_xml = 0, expected_xml = 0;
 
 	GM_SLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *record = sl->data;
@@ -837,15 +843,6 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		) {
 			search_results_mark_fake_spam(rs);
 			record->flags |= SR_SPAM;
-		} else if (
-			T_LIME == rs->vcode.u32 &&
-			NULL == record->xml &&
-			(is_strsuffix(record->filename, (size_t)-1, ".avi") ||
-				is_strsuffix(record->filename, (size_t)-1, ".mpg"))
-		) {
-			/* LimeWire adds XML metadata for AVI files */
-			search_results_mark_fake_spam(rs);
-			record->flags |= SR_SPAM;
 		} else if (spam_check_filename_size(record->filename, record->size)) {
 			rs->status |= ST_NAME_SPAM;
 			record->flags |= SR_SPAM;
@@ -864,10 +861,23 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		has_tth |= NULL != record->tth;
 		has_xml |= NULL != record->xml;
 		has_ct  |= (time_t)-1 != record->create_time;
+		expected_xml |= T_LIME == rs->vcode.u32 &&
+			(is_strsuffix(record->filename, (size_t)-1, ".avi") ||
+				is_strsuffix(record->filename, (size_t)-1, ".mpg"));
 	}
 
 	if (!is_vendor_acceptable(rs->vcode)) {
 		/* A proper vendor code is mandatory */
+		search_results_mark_fake_spam(rs);
+	} else if (
+		expected_xml && !has_xml &&
+		0 != strcmp("jp", iso3166_country_cc(rs->country))
+	) {
+		/**
+		 * LimeWire adds XML metadata for AVI and MPG files
+		 * which may be merged into the trailer for all records.
+		 * Make an exception for Cabos popular in Japan.
+		 */
 		search_results_mark_fake_spam(rs);
 	} else if (
 		T_LIME == rs->vcode.u32 &&
@@ -877,7 +887,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		/**
 		 * If there are no timestamps, this is most-likely not from LimeWire.
 		 * Cabos frequently fails to add timestamps for unknown reasons.
-		 * Cabos is almost exclusively used in Japan.
+		 * Make an exception for Cabos popular in Japan.
 		 */
 		search_results_mark_fake_spam(rs);
 	} else if (is_odd_guid(rs->guid)) {
@@ -1513,13 +1523,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	if (!browse) {
 		g_assert(rs->hops > 0);
 		rs->hops--; 	/* route_message() increased hop count by 1 */
-	}
-
-	{
-		const char *query;
-
-		query = map_muid_to_query_string(gnutella_header_get_muid(&n->header));
-		rs->query = query ? atom_str_get(query) : NULL;
 	}
 
 	/* Transfer the Query Hit info to our internal results_set struct */
@@ -2197,6 +2200,33 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			rs->status &= ~ST_FIREWALL;		/* Clear "Push" indication */
 		}
 	}
+
+	{
+		const char *query;
+
+		query = map_muid_to_query_string(gnutella_header_get_muid(&n->header));
+		rs->query = query ? atom_str_get(query) : NULL;
+
+		/**
+		 * Morpheus ignores all non-ASCII characters in query strings
+		 * which results in completely bogus results. For example, if you
+		 * search for "<chinese>.txt" every filename ending with .txt will
+		 * match!
+		 */
+		if (
+			T_MRPH == rs->vcode.u32 &&
+			rs->query && !is_ascii_string(rs->query)
+		) {
+			GSList *sl;
+
+			rs->status |= ST_MORPHEUS_BOGUS;
+			GM_SLIST_FOREACH(rs->records, sl) {
+				gnet_record_t *record = sl->data;
+				record->flags |= SR_DONT_SHOW | SR_IGNORED;
+			}
+		}
+	}
+
 
 	search_results_identify_spam(rs);
 
@@ -3373,6 +3403,18 @@ search_results(gnutella_node_t *n, int *results)
 	if (selected_searches != NULL && ctl_limit(rs->addr, CTL_D_QHITS))
 		dispatch_it = FALSE;
 
+
+	if (
+		(rs->status & (ST_SPAM | ST_EVIL)) &&
+		(
+		 	(ST_UDP|ST_GOOD_TOKEN) == ((ST_UDP|ST_GOOD_TOKEN) & rs->status) ||
+			(0 == rs->hops && !NODE_IS_UDP(n))
+		)
+	) {
+		hostiles_dynamic_add(rs->last_hop);
+		rs->status |= ST_HOSTILE;
+	}
+
 	/*
 	 * Let dynamic querying know about the result count, in case
 	 * there is a dynamic query opened for this.
@@ -3385,7 +3427,7 @@ search_results(gnutella_node_t *n, int *results)
 	 * `drop_it' as this is reserved for bad packets.
 	 */
 
-	if (rs->status & (ST_SPAM | ST_EVIL | ST_HOSTILE)) {
+	if (rs->status & (ST_SPAM | ST_EVIL | ST_HOSTILE | ST_MORPHEUS_BOGUS)) {
 		forward_it = FALSE;
 		/* It's not really dropped, just not forwarded, count it anyway. */
 		if (ST_SPAM & rs->status) {
@@ -3394,14 +3436,8 @@ search_results(gnutella_node_t *n, int *results)
 			gnet_stats_count_dropped(n, MSG_DROP_EVIL);
 		} else if (ST_HOSTILE & rs->status) {
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
-		}
-
-		if (
-			(ST_UDP|ST_GOOD_TOKEN) == ((ST_UDP|ST_GOOD_TOKEN) & rs->status) ||
-			(0 == rs->hops && !NODE_IS_UDP(n))
-		) {
-			hostiles_dynamic_add(rs->last_hop);
-			rs->status |= ST_HOSTILE;
+		} else if (ST_MORPHEUS_BOGUS & rs->status) {
+			gnet_stats_count_dropped(n, MSG_DROP_MORPHEUS_BOGUS);
 		}
 	} else {
 		if (

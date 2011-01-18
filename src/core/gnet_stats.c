@@ -89,6 +89,7 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Malformed Query Hit"),			 /**< MSG_DROP_BAD_RESULT */
 		N_("Bad return address"),			 /**< MSG_DROP_BAD_RETURN_ADDRESS */
 		N_("Hostile IP address"),			 /**< MSG_DROP_HOSTILE_IP */
+		N_("Bogus result from Morpheus"),	 /**< MSG_DROP_MORPHEUS_BOGUS */
 		N_("Spam"),							 /**< MSG_DROP_SPAM */
 		N_("Evil filename"),				 /**< MSG_DROP_EVIL */
 		N_("Payload inflating error"),		 /**< MSG_DROP_INFLATE_ERROR */
