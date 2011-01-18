@@ -872,7 +872,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 	} else if (
 		T_LIME == rs->vcode.u32 &&
 		!has_ct &&
-		0 != strcmp("jp", iso3166_country_cc(rs->country))
+		(!has_xml || 0 != strcmp("jp", iso3166_country_cc(rs->country)))
 	) {
 		/**
 		 * If there are no timestamps, this is most-likely not from LimeWire.
