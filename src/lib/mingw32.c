@@ -1614,7 +1614,7 @@ mingw_init(void)
 }
 
 void
-mingw_init_early(void)
+mingw_early_init(void)
 {
 	int console_err;
 
