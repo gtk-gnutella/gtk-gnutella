@@ -1624,16 +1624,16 @@ mingw_init_early(void)
 		freopen("CONIN$", "rb", stdin);
 	} else {
 		console_err = GetLastError();
-		switch (console_err)
-		{
-			case ERROR_INVALID_HANDLE:
-			case ERROR_GEN_FAILURE:
-				/* We had no console, and we got no console. */
-				/* FIXME: Redirect */
-				break;
-			case ERROR_ACCESS_DENIED:
-				/* Ignore, we allready have a console */
-				break;
+
+		switch (console_err) {
+		case ERROR_INVALID_HANDLE:
+		case ERROR_GEN_FAILURE:
+			/* We had no console, and we got no console. */
+			/* FIXME: Redirect */
+			break;
+		case ERROR_ACCESS_DENIED:
+			/* Ignore, we already have a console */
+			break;
 		}
 	}
 }
