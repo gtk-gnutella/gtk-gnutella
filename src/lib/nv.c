@@ -172,7 +172,7 @@ nv_pair_make_static_str(const char *name, const void *value)
 
 	len = (NULL == value) ? 0 : strlen(value);
 
-	return nv_pair_make_full(name, value, len, FALSE, FALSE);
+	return nv_pair_make_full(name, 0 == len ? NULL : value, len, FALSE, FALSE);
 }
 
 /**
