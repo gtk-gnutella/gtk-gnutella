@@ -130,7 +130,6 @@
 #include "lib/parse.h"
 #include "lib/patricia.h"
 #include "lib/pattern.h"
-#include "lib/portmap.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/signal.h"
@@ -150,6 +149,7 @@
 #include "lib/wordvec.h"
 #include "lib/zalloc.h"
 #include "shell/shell.h"
+#include "upnp/upnp.h"
 
 #include "ui/gtk/gui.h"
 
@@ -505,7 +505,6 @@ gtk_gnutella_exit(int exit_code)
 			g_info("GUI shutdown completed");
 	}
 
-	DO(cq_halt);			/* No more callbacks, with everything shutdown */
 	DO(hcache_shutdown);	/* Save host caches to disk */
 	DO(settings_shutdown);
 	DO(oob_shutdown);		/* No longer deliver outstanding OOB hits */
@@ -540,7 +539,7 @@ gtk_gnutella_exit(int exit_code)
 			short_time(exit_grace));
 	}
 
-	while (node_bye_pending()) {
+	while (node_bye_pending() || upnp_delete_pending()) {
 		time_t now = time(NULL);
 		time_delta_t d;
 
@@ -559,8 +558,10 @@ gtk_gnutella_exit(int exit_code)
 	if (debugging(0) || signal_received || shutdown_requested)
 		g_info("running final shutdown sequence...");
 
+	DO(cq_halt);			/* No more callbacks, with everything shutdown */
 	DO(search_shutdown);	/* Disable now, since we can get queries above */
 
+	DO(upnp_close);
 	DO(bitzi_close);
 	DO(ntp_close);
 	DO(gdht_close);
@@ -1309,6 +1310,7 @@ handle_compile_info_argument(void)
 	printf("user-interface=%s\n", GTA_INTERFACE);
 	printf("bindir=%s\n", BIN);
 	printf("datadir=%s\n", PRIVLIB_EXP);
+	printf("libdir=%s\n", ARCHLIB_EXP);
 	printf("localedir=%s\n", LOCALE_EXP);
 
 #if !defined(OFFICIAL_BUILD) && defined(PACKAGE_SOURCE_DIR)
@@ -1544,6 +1546,7 @@ main(int argc, char **argv)
 	}
 
 	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
+	upnp_init();
 	udp_init();
 	urpc_init();
 	vmsg_init();
@@ -1614,7 +1617,7 @@ main(int argc, char **argv)
 	publisher_init();
 
 	dht_init();
-	portmap_init();
+	upnp_post_init();
 
 	if (!running_topless) {
 		main_gui_init();

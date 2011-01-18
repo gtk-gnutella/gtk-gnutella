@@ -1,0 +1,111 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2010, Raphael Manfredi
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup upnp
+ * @file
+ *
+ * UPnP service control.
+ *
+ * @author Raphael Manfredi
+ * @date 2010
+ */
+
+#ifndef _upnp_control_h_
+#define _upnp_control_h_
+
+#include "common.h"
+#include "service.h"
+#include "upnp.h"
+
+#include "lib/host_addr.h"
+#include "lib/nv.h"
+
+/**
+ * Control completion callback.
+ *
+ * @param code		UPNP error code, 0 for OK
+ * @param value		returned value structure
+ * @param size		size of structure, for assertions
+ * @param arg		user-supplied callback argument
+ */
+typedef void (*upnp_ctrl_cb_t)(
+	int code, void *value, size_t size, void *arg);
+
+/**
+ * Returned values for upnp_ctrl_GetExternalIPAddress().
+ */
+struct upnp_GetExternalIPAddress {
+	host_addr_t external_ip;		/**< External IP address */
+};
+
+/**
+ * Returned values for upnp_ctrl_GetConnectionTypeInfo().
+ */
+struct upnp_GetConnectionTypeInfo {
+	const char *connection_type;	/**< Current connection type */
+	const char *possible_types;		/**< Possible connection types */
+};
+
+/**
+ * Returned values for upnp_ctrl_GetSpecificPortMappingEntry().
+ */
+struct upnp_GetSpecificPortMappingEntry {
+	guint16 internal_port;			/**< Local port */
+	host_addr_t internal_client;	/**< Local IP address */
+	gboolean enabled;				/**< Whether mapping is enabled */
+	const char *description;		/**< Description associated with mapping */
+	time_delta_t lease_duration;	/**< Duration of the lease */
+};
+
+/*
+ * Public interface.
+ */
+
+struct upnp_ctrl;
+typedef struct upnp_ctrl upnp_ctrl_t;
+
+void upnp_ctrl_cancel(upnp_ctrl_t *ucd, gboolean callback);
+void upnp_ctrl_cancel_null(upnp_ctrl_t **ucd_ptr, gboolean callback);
+
+upnp_ctrl_t *upnp_ctrl_GetExternalIPAddress(const upnp_service_t *usd,
+	upnp_ctrl_cb_t cb, void *arg);
+upnp_ctrl_t *upnp_ctrl_GetConnectionTypeInfo(const upnp_service_t *usd,
+	upnp_ctrl_cb_t cb, void *arg);
+upnp_ctrl_t *upnp_ctrl_GetSpecificPortMappingEntry(const upnp_service_t *usd,
+	enum upnp_map_proto proto, guint16 port,
+	upnp_ctrl_cb_t cb, void *arg);
+upnp_ctrl_t *upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
+	enum upnp_map_proto proto, guint16 ext_port,
+	host_addr_t int_addr, guint16 int_port,
+	const char *desc, time_delta_t lease,
+	upnp_ctrl_cb_t cb, void *arg);
+upnp_ctrl_t *upnp_ctrl_DeletePortMapping(const upnp_service_t *usd,
+	enum upnp_map_proto proto, guint16 port,
+	upnp_ctrl_cb_t cb, void *arg);
+
+#endif /* _upnp_control_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

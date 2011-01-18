@@ -68,6 +68,8 @@ RCSID("$Id$")
 
 #include "shell/shell.h"
 
+#include "upnp/upnp.h"
+
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
@@ -80,7 +82,6 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
-#include "lib/portmap.h"
 #include "lib/random.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -1252,8 +1253,8 @@ socket_shutdown(void)
 		socket_destroy(s, NULL);
 	}
 
-	portmap_unmap_tcp_port(s_tcp_listen->local_port);
-	portmap_unmap_udp_port(s_udp_listen->local_port);
+	upnp_unmap_tcp(s_tcp_listen->local_port);
+	upnp_unmap_udp(s_udp_listen->local_port);
 	
 	/* No longer accept connections or UDP packets */
 	socket_free_null(&s_local_listen);
@@ -2024,7 +2025,7 @@ socket_local_addr(const struct gnutella_socket *s, host_addr_t *addrptr)
 
 		addr = socket_addr_get_addr(&saddr);
 		*addrptr = addr;		/* Struct copy */
-		return TRUE;
+		return host_addr_net(addr) != NET_TYPE_NONE;
 	} else {
 		return FALSE;
 	}
@@ -3352,8 +3353,6 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 	s->tls.enabled = tls_enabled();
 
 	socket_enable_accept(s);
-	
-	portmap_map_tcp_port(port);
 	return s;
 }
 
@@ -3482,11 +3481,6 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port,
 	 */
 
 	socket_recv_buf(s, SOCK_UDP_RECV_BUF, FALSE);
-
-#if 0
-	/* FIXME: will have to be done elsewhere */
-	portmap_map_udp_port(port);
-#endif
 
 	return s;
 }

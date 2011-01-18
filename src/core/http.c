@@ -1907,6 +1907,20 @@ http_async_get_opaque(const http_async_t *ha)
 }
 
 /**
+ * Retrieve local IP address, if available, filling ``addrp''.
+ *
+ * @return TRUE if the IP address is available with the address being filled
+ * in ``addrp'', FALSE otherwise.
+ */
+gboolean
+http_async_get_local_addr(const http_async_t *ha, host_addr_t *addrp)
+{
+	http_async_check(ha);
+
+	return socket_local_addr(ha->socket, addrp);
+}
+
+/**
  * Provide additional options to adjust the behaviour.
  *
  * Options are given by a mask.  One can either add new options, remove

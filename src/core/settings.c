@@ -58,6 +58,8 @@
 #include "pdht.h"
 #include "udp.h"				/* For udp_received() */
 
+#include "upnp/upnp.h"
+
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/core/main.h"		/* For debugging() */
@@ -1458,6 +1460,10 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 	if (0 == port)
 		return;
 
+	/*
+	 * If UDP is enabled, also listen on the same UDP port.
+	 */
+
 	if (
 		NET_USE_BOTH == GNET_PROPERTY(network_protocol) ||
 		NET_USE_IPV4 == GNET_PROPERTY(network_protocol)
@@ -1465,10 +1471,13 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV4);
 
 		s_tcp_listen = socket_tcp_listen(bind_addr, port);
+
 		if (GNET_PROPERTY(enable_udp)) {
-			g_assert(!s_udp_listen);
+			g_assert(NULL == s_udp_listen);
+
 			s_udp_listen = socket_udp_listen(bind_addr, port, udp_received);
-			if (!s_udp_listen) {
+
+			if (NULL == s_udp_listen) {
 				socket_free_null(&s_tcp_listen);
 			}
 		}
@@ -1481,18 +1490,16 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 
 		s_tcp_listen6 = socket_tcp_listen(bind_addr, port);
 		if (GNET_PROPERTY(enable_udp)) {
-			g_assert(!s_udp_listen6);
+			g_assert(NULL == s_udp_listen6);
+
 			s_udp_listen6 = socket_udp_listen(bind_addr, port, udp_received);
+
 			if (!s_udp_listen6) {
 				socket_free_null(&s_tcp_listen6);
 			}
 		}
 	}
 	
-	/*
-	 * If UDP is enabled, also listen on the same UDP port.
-	 */
-
 	if (GNET_PROPERTY(enable_udp)) {
 		node_update_udp_socket();
 	}
@@ -1517,6 +1524,12 @@ listen_port_changed(property_t prop)
 		GNET_PROPERTY(listen_port) != 0
 	)
 		return FALSE;
+
+	if (old_port != (guint32) -1) {
+		upnp_unmap_tcp(old_port);
+		upnp_unmap_udp(old_port);
+	}
+
 	old_port = GNET_PROPERTY(listen_port);
 
 	/*
@@ -1567,6 +1580,17 @@ listen_port_changed(property_t prop)
 		old_port = port;
 		gnet_prop_set_guint32_val(prop, port);
 	}
+
+	/*
+	 * Install port mapping on the UPnP Internet Gateway Device, if any.
+	 * We only support IPv4 for now.
+	 */
+
+	if (s_tcp_listen != NULL)
+		upnp_map_tcp(old_port);
+
+	if (s_udp_listen != NULL)
+			upnp_map_udp(old_port);
 
 	if (!settings_init_running) {
 		inet_firewalled();

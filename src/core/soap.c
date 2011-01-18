@@ -78,6 +78,7 @@ struct soap_rpc {
 	size_t content_len;			/**< Promised reply length, or maxlen if none */
 	size_t reply_size;			/**< Size of the reply_data buffer */
 	size_t reply_len;			/**< Length of the data in the reply */
+	host_addr_t local_addr;		/**< Local IP address */
 	http_async_t *ha;			/**< Underlying HTTP request */
 	header_t *header;			/**< HTTP reply headers */
 	cevent_t *delay_ev;			/**< Delay event */
@@ -90,6 +91,7 @@ struct soap_rpc {
 	unsigned regular:1;			/**< Whether we sent a regular POST */
 	unsigned mandatory:1;		/**< Whether we sent a mandatory POST */
 	unsigned retry:1;			/**< Whether we should retry */
+	unsigned got_local_addr:1;	/**< Whether we got the local IP address */
 };
 
 static inline void
@@ -188,7 +190,7 @@ soap_error(soap_rpc_t *sr, soap_error_t err)
 	soap_rpc_check(sr);
 
 	if (sr->error_cb != NULL)
-		(*sr->error_cb)(err, NULL, sr->arg);
+		(*sr->error_cb)(sr, err, NULL, sr->arg);
 
 	soap_rpc_free(sr);
 }
@@ -202,7 +204,7 @@ soap_reply(soap_rpc_t *sr, xnode_t *xn)
 	soap_rpc_check(sr);
 
 	if (sr->reply_cb != NULL)
-		(*sr->reply_cb)(xn, sr->arg);
+		(*sr->reply_cb)(sr, xn, sr->arg);
 
 	xnode_tree_free(xn);
 	soap_rpc_free(sr);
@@ -223,7 +225,7 @@ soap_fault(soap_rpc_t *sr, xnode_t *xn)
 	}
 
 	if (sr->error_cb != NULL)
-		(*sr->error_cb)(SOAP_E_FAULT, xn, sr->arg);
+		(*sr->error_cb)(sr, SOAP_E_FAULT, xn, sr->arg);
 
 	xnode_tree_free(xn);
 	soap_rpc_free(sr);
@@ -426,6 +428,13 @@ soap_header_ind(http_async_t *ha, header_t *header,
 		g_debug("SOAP \"%s\" at \"%s\": got HTTP %d %s", sr->action, sr->url,
 			code, message);
 	}
+
+	/*
+	 * Grab local socket address if they are interested.
+	 */
+
+	if (sr->options & SOAP_RPC_O_LOCAL_ADDR)
+		sr->got_local_addr = http_async_get_local_addr(ha, &sr->local_addr);
 
 	/*
 	 * If we sent a non-mandatory request and get a 405 "Method not allowed"
@@ -651,36 +660,71 @@ soap_build_request(const http_async_t *ha,
 	}
 
 	if (sr->mandatory) {
-		rw = gm_snprintf(buf, len,
-			"M-%s %s HTTP/1.1\r\n"
-			"Host: %s\r\n"
-			"User-Agent: %s\r\n"
-			"Accept-Encoding: deflate\r\n"
-			"Content-Type: %s\r\n"
-			"Content-Length: %s\r\n"
-			"Connection: close\r\n"
-			"Man: \"%s\"; ns=01\r\n"
-			"01-SOAPAction: \"%s\"\r\n"
-			"\r\n",
-			verb, path,
-			http_async_remote_host_port(ha),
-			version_string, content_type, size_t_to_string(content_len),
-			SOAP_NAMESPACE, sr->action);
+		if (sr->options & SOAP_RPC_O_ALL_CAPS) {
+			rw = gm_snprintf(buf, len,
+				"M-%s %s HTTP/1.1\r\n"
+				"HOST: %s\r\n"
+				"USER-AGENT: %s\r\n"
+				"ACCEPT-ENCODING: deflate\r\n"
+				"CONTENT-TYPE: %s\r\n"
+				"CONTENT-LENGTH: %s\r\n"
+				"CONNECTION: close\r\n"
+				"MAN: \"%s\"; ns=01\r\n"
+				"01-SOAPACTION: \"%s\"\r\n"
+				"\r\n",
+				verb, path,
+				http_async_remote_host_port(ha),
+				version_string, content_type, size_t_to_string(content_len),
+				SOAP_NAMESPACE, sr->action);
+		} else {
+			rw = gm_snprintf(buf, len,
+				"M-%s %s HTTP/1.1\r\n"
+				"Host: %s\r\n"
+				"User-Agent: %s\r\n"
+				"Accept-Encoding: deflate\r\n"
+				"Content-Type: %s\r\n"
+				"Content-Length: %s\r\n"
+				"Connection: close\r\n"
+				"Man: \"%s\"; ns=01\r\n"
+				"01-SOAPAction: \"%s\"\r\n"
+				"\r\n",
+				verb, path,
+				http_async_remote_host_port(ha),
+				version_string, content_type, size_t_to_string(content_len),
+				SOAP_NAMESPACE, sr->action);
+		}
 	} else {
-		rw = gm_snprintf(buf, len,
-			"%s %s HTTP/1.1\r\n"
-			"Host: %s\r\n"
-			"User-Agent: %s\r\n"
-			"Accept-Encoding: deflate\r\n"
-			"Content-Type: %s\r\n"
-			"Content-Length: %s\r\n"
-			"Connection: close\r\n"
-			"SOAPAction: \"%s\"\r\n"
-			"\r\n",
-			verb, path,
-			http_async_remote_host_port(ha),
-			version_string, content_type, size_t_to_string(content_len),
-			sr->action);
+		if (sr->options & SOAP_RPC_O_ALL_CAPS) {
+			rw = gm_snprintf(buf, len,
+				"%s %s HTTP/1.1\r\n"
+				"HOST: %s\r\n"
+				"USER-AGENT: %s\r\n"
+				"ACCEPT-ENCODING: deflate\r\n"
+				"CONTENT-TYPE: %s\r\n"
+				"CONTENT-LENGTH: %s\r\n"
+				"CONNECTION: close\r\n"
+				"SOAPACTION: \"%s\"\r\n"
+				"\r\n",
+				verb, path,
+				http_async_remote_host_port(ha),
+				version_string, content_type, size_t_to_string(content_len),
+				sr->action);
+		} else {
+			rw = gm_snprintf(buf, len,
+				"%s %s HTTP/1.1\r\n"
+				"Host: %s\r\n"
+				"User-Agent: %s\r\n"
+				"Accept-Encoding: deflate\r\n"
+				"Content-Type: %s\r\n"
+				"Content-Length: %s\r\n"
+				"Connection: close\r\n"
+				"SOAPAction: \"%s\"\r\n"
+				"\r\n",
+				verb, path,
+				http_async_remote_host_port(ha),
+				version_string, content_type, size_t_to_string(content_len),
+				sr->action);
+		}
 	}
 
 	return rw;
@@ -910,6 +954,23 @@ soap_rpc(const char *url, const char *action, size_t maxlen, guint32 options,
 	sr->delay_ev = cq_main_insert(1, soap_rpc_launch, sr);
 
 	return sr;
+}
+
+/**
+ * If the SOAP_RPC_O_LOCAL_ADDR option was sepcified, fetch the local IP
+ * address of the host into specified ``addrp''.
+ *
+ * @return TRUE if we successfully grabbed a local address.
+ */
+gboolean
+soap_rpc_local_addr(const soap_rpc_t *sr, host_addr_t *addrp)
+{
+	if (sr->got_local_addr) {
+		*addrp = sr->local_addr;		/* Struct copy */
+		return TRUE;
+	} else {
+		return FALSE;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

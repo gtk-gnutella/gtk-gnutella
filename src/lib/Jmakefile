@@ -120,7 +120,6 @@ LSRC = \
 	patricia.c \
 	pattern.c \
 	pmsg.c \
-	portmap.c \
 	pow2.c \
 	prop.c \
 	random.c \

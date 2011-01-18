@@ -17,7 +17,7 @@ esac
 case "$0" in
 */*) cd `expr X$0 : 'X\(.*\)/'` ;;
 esac
-CURRENT=src/lib
+CURRENT=src/upnp
 DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
 echo "Extracting ${DIR}Makefile (with variable substitutions)"
 
@@ -41,22 +41,19 @@ CC = $cc
 CTAGS = ctags
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
 JCPPFLAGS = $cppflags
-JYFLAGS = \$(YFLAGS) $yaccflags
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 RANLIB = $ranlib
 RM = $rm -f
 SED = $sed
-YACC = $yacc
 
 ########################################################################
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-SOURCES =  \$(LSRC)
-OBJECTS =  \$(LOBJ)
+SOURCES =   \$(SRC)
+OBJECTS =   \$(OBJ)
 GLIB_CFLAGS =  $glibcflags
-DBUS_CFLAGS =  $dbuscflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -81,257 +78,47 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 18345 2011-01-15 14:44:14Z rmanfredi $
+# $X-Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
 
-GENERIC = bit_array.h bit_field.h
+SRC = \
+	control.c \
+	discovery.c \
+	error.c \
+	service.c \
+	upnp.c
 
-bit_array.h: bit_array.ht bit_generic.t
-	$(TOP)/scripts/generic-cat bit_array.ht bit_generic.t array >$@
-
-bit_field.h: bit_field.ht bit_generic.t
-	$(TOP)/scripts/generic-cat bit_field.ht bit_generic.t field >$@
-
-all:: $(GENERIC)
-
-local_realclean::
-	$(RM) $(GENERIC)
-
-depend:: $(GENERIC)
-
-LSRC = \
-	adns.c \
-	aging.c \
-	arc4random.c \
-	ascii.c \
-	atoms.c \
-	base16.c \
-	base32.c \
-	base64.c \
-	bg.c \
-	bstr.c \
-	ckalloc.c \
-	cobs.c \
-	compat_misc.c \
-	compat_pio.c \
-	compat_poll.c \
-	compat_sleep_ms.c \
-	compat_un.c \
-	concat.c \
-	cpufreq.c \
-	cq.c \
-	crash.c \
-	crc.c \
-	dbmap.c \
-	dbmw.c \
-	dbus_util.c \
-	debug.c \
-	entropy.c \
-	eval.c \
-	event.c \
-	fast_assert.c \
-	fd.c \
-	fifo.c \
-	file.c \
-	filehead.c \
-	filename.c \
-	fragcheck.c \
-	fs_free_space.c \
-	getdate.c \
-	getline.c \
-	getphysmemsize.c \
-	glib-missing.c \
-	gnet_host.c \
-	halloc.c \
-	hashlist.c \
-	hashtable.c \
-	header.c \
-	host_addr.c \
-	html.c \
-	idtable.c \
-	inputevt.c \
-	iprange.c \
-	iso3166.c \
-	log.c \
-	list.c \
-	magnet.c \
-	malloc.c \
-	map.c \
-	mime_type.c \
-	mingw32.c \
-	misc.c \
-	nv.c \
-	offtime.c \
-	ohash_table.c \
-	omalloc.c \
-	options.c \
-	ostream.c \
-	pagetable.c \
-	parse.c \
-	palloc.c \
-	path.c \
-	patricia.c \
-	pattern.c \
-	pmsg.c \
-	pow2.c \
-	prop.c \
-	random.c \
-	sequence.c \
-	sha1.c \
-	signal.c \
-	slist.c \
-	sorted_array.c \
-	stacktrace.c \
-	stats.c \
-	str.c \
-	stringify.c \
-	strtok.c \
-	symtab.c \
-	tea.c \
-	tiger.c \
-	tigertree.c \
-	timestamp.c \
-	tm.c \
-	url.c \
-	url_factory.c \
-	urn.c \
-	utf8.c \
-	vector.c \
-	vendors.c \
-	vmm.c \
-	vxml.c \
-	walloc.c \
-	watcher.c \
-	wd.c \
-	wordvec.c \
-	xattr.c \
-	xfmt.c \
-	xnode.c \
-	zalloc.c \
-	zlib_util.c
-
-LOBJ = \
-	adns.o \
-	aging.o \
-	arc4random.o \
-	ascii.o \
-	atoms.o \
-	base16.o \
-	base32.o \
-	base64.o \
-	bg.o \
-	bstr.o \
-	ckalloc.o \
-	cobs.o \
-	compat_misc.o \
-	compat_pio.o \
-	compat_poll.o \
-	compat_sleep_ms.o \
-	compat_un.o \
-	concat.o \
-	cpufreq.o \
-	cq.o \
-	crash.o \
-	crc.o \
-	dbmap.o \
-	dbmw.o \
-	dbus_util.o \
-	debug.o \
-	entropy.o \
-	eval.o \
-	event.o \
-	fast_assert.o \
-	fd.o \
-	fifo.o \
-	file.o \
-	filehead.o \
-	filename.o \
-	fragcheck.o \
-	fs_free_space.o \
-	getdate.o \
-	getline.o \
-	getphysmemsize.o \
-	glib-missing.o \
-	gnet_host.o \
-	halloc.o \
-	hashlist.o \
-	hashtable.o \
-	header.o \
-	host_addr.o \
-	html.o \
-	idtable.o \
-	inputevt.o \
-	iprange.o \
-	iso3166.o \
-	log.o \
-	list.o \
-	magnet.o \
-	malloc.o \
-	map.o \
-	mime_type.o \
-	mingw32.o \
-	misc.o \
-	nv.o \
-	offtime.o \
-	ohash_table.o \
-	omalloc.o \
-	options.o \
-	ostream.o \
-	pagetable.o \
-	parse.o \
-	palloc.o \
-	path.o \
-	patricia.o \
-	pattern.o \
-	pmsg.o \
-	pow2.o \
-	prop.o \
-	random.o \
-	sequence.o \
-	sha1.o \
-	signal.o \
-	slist.o \
-	sorted_array.o \
-	stacktrace.o \
-	stats.o \
-	str.o \
-	stringify.o \
-	strtok.o \
-	symtab.o \
-	tea.o \
-	tiger.o \
-	tigertree.o \
-	timestamp.o \
-	tm.o \
-	url.o \
-	url_factory.o \
-	urn.o \
-	utf8.o \
-	vector.o \
-	vendors.o \
-	vmm.o \
-	vxml.o \
-	walloc.o \
-	watcher.o \
-	wd.o \
-	wordvec.o \
-	xattr.o \
-	xfmt.o \
-	xnode.o \
-	zalloc.o \
-	zlib_util.o 
+OBJ = \
+	control.o \
+	discovery.o \
+	error.o \
+	service.o \
+	upnp.o 
 
 # Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(DBUS_CFLAGS) -DCURDIR=$(CURRENT)
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) \
+	-DCORE_SOURCES -DUPNP_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
-all:: libshared.a
+IF = ../if
+GNET_PROPS = gnet_property_priv.h
+
+.FORCE:
+
+$(IF)/$(GNET_PROPS): .FORCE
+	@echo "Checking "$(GNET_PROPS)" in "$(IF)"..."
+	cd $(IF); $(MAKE) $(GNET_PROPS)
+	@echo "Continuing in $(CURRENT)..."
+
+libupnp.a:  $(IF)/$(GNET_PROPS)
+
+all:: libupnp.a
 
 local_realclean::
-	$(RM) libshared.a
+	$(RM) libupnp.a
 
-libshared.a: $(LOBJ)
+libupnp.a:  $(OBJ)
 	$(RM) $@
-	$(AR) $@ $(LOBJ)
+	$(AR) $@  $(OBJ)
 	$(RANLIB) $@
 
 local_depend:: ../../mkdep
@@ -350,13 +137,6 @@ local_depend::
 	cp Makefile Makefile.bak
 	cp Makefile.new Makefile
 	$(RM) Makefile.new
-
-getdate.c: getdate.y
-	-@if test -f $(TOP)/.package; then \
-		echo "	$(YACC) $(JYFLAGS) $<"; \
-		$(YACC) $(JYFLAGS) $<; \
-		echo "	$(MV) y.tab.c $@"; \
-		$(MV) y.tab.c $@; else touch $@; fi
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

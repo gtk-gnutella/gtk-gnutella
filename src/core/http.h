@@ -378,16 +378,14 @@ http_async_t *http_async_get_addr(
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
-http_async_t *
-http_async_post(
+http_async_t *http_async_post(
 	const char *url,
 	http_post_data_t *post_data,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
-http_async_t *
-http_async_post_addr(
+http_async_t *http_async_post_addr(
 	const char *path,
 	const host_addr_t addr,
 	guint16 port,
@@ -406,6 +404,8 @@ void http_async_cancel(http_async_t *handle);
 void http_async_cancel_null(http_async_t **handle_ptr);
 void http_async_error(http_async_t *handle, int code);
 http_state_t http_async_state(http_async_t *handle);
+
+gboolean http_async_get_local_addr(const http_async_t *ha, host_addr_t *addrp);
 
 void http_async_set_opaque(http_async_t *handle,
 		gpointer data, http_user_free_t fn);

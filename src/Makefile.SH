@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-69]
-: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-57]
+: $X-Id: Jmake.tmpl 48 2010-11-28 23:05:09Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -60,7 +60,7 @@ SED = $sed
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = core shell dht lib ui if sdbm
+SUBDIRS = core shell dht lib ui if sdbm upnp
 USRINC = $usrinc
 SOURCES =   \$(SRC)
 SOCKER_CFLAGS =  $sockercflags
@@ -131,8 +131,9 @@ CFLAGS = -I.. -I. \
 DPFLAGS = $(CFLAGS)
 LDFLAGS = \
 	-Lshell -lshell \
-	-Lcore -lcore \
+	-Lupnp -lupnp \
 	-Ldht -ldht \
+	-Lcore -lcore \
 !NO!SUBS!
 case "$d_headless" in
 undef)
@@ -142,7 +143,8 @@ undef)
 	;;
 esac
 $spitshell >>Makefile <<'!NO!SUBS!'
-	-ldht -lcore -Llib -lshared -Lsdbm -lsdbm -lshared \
+	-Llib -lshared \
+	-Lsdbm -lsdbm -lshared \
 	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
 	$(SOCKER_LDFLAGS)
 
@@ -182,6 +184,13 @@ sdbm/libsdbm.a: .FORCE
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  sdbm/libsdbm.a
+
+upnp/libupnp.a: .FORCE
+	@echo "Checking "libupnp.a" in "upnp"..."
+	cd upnp; $(MAKE) libupnp.a
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  upnp/libupnp.a
 !NO!SUBS!
 case "$d_headless" in
 undef)

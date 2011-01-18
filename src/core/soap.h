@@ -39,6 +39,7 @@
 #include "common.h"
 
 #include "lib/header.h"
+#include "lib/host_addr.h"
 #include "lib/xnode.h"
 
 struct soap_rpc;
@@ -64,25 +65,30 @@ typedef enum soap_error {
 /**
  * Callback used when we get a reply to a SOAP request.
  *
+ * @param sr		the SOAP RPC request
  * @param root		XML tree of SOAP reply
  * @param arg		additional user-supplied argument
  */
-typedef void (*soap_reply_cb_t)(xnode_t *root, void *arg);
+typedef void (*soap_reply_cb_t)(const soap_rpc_t *sr, xnode_t *root, void *arg);
 
 /**
  * Callback used when we get an error during a SOAP request.
  *
+ * @param sr		the SOAP RPC request
  * @param err		error code
  * @param fault		on SOAP faults, the XML tree of the fault
  * @param arg		additional user-supplied argument
  */
-typedef void (*soap_error_cb_t)(soap_error_t err, xnode_t *fault, void *arg);
+typedef void (*soap_error_cb_t)(const soap_rpc_t *sr,
+	soap_error_t err, xnode_t *fault, void *arg);
 
 /**
  * Options for soap_rpc().
  */
 #define SOAP_RPC_O_MAN_FORCE	(1 << 0)	/**< Force mandatory HTTP */
 #define SOAP_RPC_O_MAN_RETRY	(1 << 1)	/**< Allow mandatory HTTP retry */
+#define SOAP_RPC_O_LOCAL_ADDR	(1 << 2)	/**< Grab local IP address */
+#define SOAP_RPC_O_ALL_CAPS		(1 << 3)	/**< Emit all-caps header names */
 
 /*
  * Public interface.
@@ -95,6 +101,7 @@ soap_rpc_t *soap_rpc(const char *url, const char *action, size_t maxlen,
 	guint32 options, xnode_t *xn, const char *soap_ns,
 	soap_reply_cb_t reply_cb, soap_error_cb_t error_cb, void *arg);
 
+gboolean soap_rpc_local_addr(const soap_rpc_t *sr, host_addr_t *addrp);
 
 #endif /* _core_soap_h_ */
 
