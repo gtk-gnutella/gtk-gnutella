@@ -247,7 +247,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 		 * we do not attempt to format floating point numbers.
 		 */
 
-		str_vprintf(msg, format, args);
+		str_vprintf(msg, format, &args);
 /**
  * FIXME: Above line causes following GCC warning:
 log.c: In function ‘s_logv’:
