@@ -57,6 +57,8 @@ RCSID("$Id$")
 #include <glib.h>
 #include <glib/gprintf.h>
 
+#include <stdio.h>
+
 #include "host_addr.h"			/* ADNS */
 
 #include "fd.h"					/* For is_open_fd() */
@@ -1601,7 +1603,7 @@ void
 mingw_init(void)
 {
 	WSADATA wsaData;
-
+	
 	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
 		g_error("WSAStartup() failed");
 		
@@ -1609,6 +1611,31 @@ mingw_init(void)
     if (libws2_32 != NULL) {
         WSAPoll = (WSAPoll_func_t) GetProcAddress(libws2_32, "WSAPoll");
     }
+}
+
+void
+mingw_init_early(void)
+{
+	int console_err;
+
+	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+		freopen("CONOUT$","wb",stdout);
+		freopen("CONOUT$","wb",stderr);
+		freopen("CONIN$", "rb", stdin);
+	} else {
+		console_err = GetLastError();
+		switch (console_err)
+		{
+			case ERROR_INVALID_HANDLE:
+			case ERROR_GEN_FAILURE:
+				/* We had no console, and we got no console. */
+				/* FIXME: Redirect */
+				break;
+			case ERROR_ACCESS_DENIED:
+				/* Ignore, we allready have a console */
+				break;
+		}
+	}
 }
 
 void 

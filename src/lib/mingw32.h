@@ -378,6 +378,7 @@ typedef struct pollfd {
 
 gboolean mingw_has_wsapoll(void);
 int mingw_poll(struct pollfd *fds, unsigned n, int timeout);
+void mingw_early_init(void);
 void mingw_init(void);
 void mingw_close(void);
 
@@ -387,6 +388,7 @@ gboolean mingw_same_file_id(const char *pathname_a, const char *pathname_b);
 
 #else	/* !MINGW32 */
 
+#define mingw_early_init();
 #define mingw_init()
 #define mingw_close()
 

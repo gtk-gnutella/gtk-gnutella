@@ -1415,6 +1415,8 @@ main(int argc, char **argv)
 {
 	int sp;
 
+	mingw_init_early();
+	
 	if (compat_is_superuser()) {
 		fprintf(stderr, "Never ever run this as root! You may use:\n\n");
 		fprintf(stderr, "    su - username -c 'gtk-gnutella --daemonize'\n\n");
@@ -1431,7 +1433,13 @@ main(int argc, char **argv)
 	 * file descriptor.
 	 */
 
-	close_file_descriptors(3); /* Just in case */
+	/* 
+	 * Don't close the fd's on mingw, they might be redirected
+	 *		-- JA 18/01/2011
+	 */
+	if (!is_running_on_mingw())
+		close_file_descriptors(3); /* Just in case */
+		
 	if (reserve_standard_file_descriptors()) {
 		exit(EXIT_FAILURE);
 	}
