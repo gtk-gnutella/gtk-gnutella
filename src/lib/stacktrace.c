@@ -752,19 +752,8 @@ stacktrace_auto_tune(void)
 	if (count == i) {
 		s_warning("could not auto-tune stacktrace offsets, using defaults");
 		stack_auto_offset = 1;
-		return;
-	}
-
-	/*
-	 * We expect to have to skip one stack frame, that of the current
-	 * function.  Anything else deserves a warning.
-	 */
-
-	stack_auto_offset = i;
-
-	if (stack_auto_offset != 1) {
-		s_info("auto-tuned stacktrace offsets to skip %lu stack frames",
-			(unsigned long) stack_auto_offset);
+	} else {
+		stack_auto_offset = i;
 	}
 }
 
