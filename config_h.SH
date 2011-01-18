@@ -852,6 +852,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 /* VAL_EAGAIN:
  *	This symbol holds the errno error code set by read() when no data was
  *	present on the non-blocking file descriptor.
+ *
+ * FIXME: And who guarantees this isn't e.g. device-dependent?
+ *	   If EAGAIN is defined one should expect it.
+ *	   If EWOULDBLOCK is defined one should expect it.
+ *	   If both are defined one should expect both.
+ * 	   -- cbiere, 2011-01-18
  */
 #define VAL_O_NONBLOCK $o_nonblock
 #define VAL_EAGAIN $eagain
