@@ -931,3 +931,15 @@ src/ui/gtk/uploads_common.c
 src/ui/gtk/uploads_common.h
 src/ui/gtk/visual_progress.c
 src/ui/gtk/visual_progress.h
+src/upnp/Jmakefile
+src/upnp/Makefile.SH
+src/upnp/control.c
+src/upnp/control.h
+src/upnp/discovery.c
+src/upnp/discovery.h
+src/upnp/error.c
+src/upnp/error.h
+src/upnp/service.c
+src/upnp/service.h
+src/upnp/upnp.c
+src/upnp/upnp.h
