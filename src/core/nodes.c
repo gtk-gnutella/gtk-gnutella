@@ -811,7 +811,7 @@ node_slow_timer(time_t now)
 	if (need_fw_check) {
 		GSList *sl;
 		GSList *candidates = NULL;
-		size_t count = 0;
+		unsigned count = 0;
 
 		GM_SLIST_FOREACH(sl_nodes, sl) {
 			gnutella_node_t *n = sl->data;
