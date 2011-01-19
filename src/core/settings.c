@@ -1537,7 +1537,7 @@ listen_port_changed(property_t prop)
 
 	if (
 		GNET_PROPERTY(listen_port) == old_port &&
-		GNET_PROPERTY(listen_port) != 0
+		GNET_PROPERTY(listen_port) > 1
 	)
 		return FALSE;
 
