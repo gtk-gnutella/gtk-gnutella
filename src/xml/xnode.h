@@ -24,7 +24,7 @@
  */
 
 /**
- * @ingroup lib
+ * @ingroup xml
  * @file
  *
  * XML nodes, as items of an XML tree.
@@ -33,8 +33,8 @@
  * @date 2010
  */
 
-#ifndef _xnode_h_
-#define _xnode_h_
+#ifndef _xml_xnode_h_
+#define _xml_xnode_h_
 
 #include "common.h"
 #include "xattr.h"
@@ -141,6 +141,6 @@ xnode_t *xnode_tree_find_depth(xnode_t *root, unsigned depth,
 void xnode_tree_free(xnode_t *root);
 void xnode_tree_free_null(xnode_t **root_ptr);
 
-#endif /* _xnode_h_ */
+#endif /* _xml_xnode_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

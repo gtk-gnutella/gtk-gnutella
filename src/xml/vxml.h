@@ -24,7 +24,7 @@
  */
 
 /**
- * @ingroup lib
+ * @ingroup xml
  * @file
  *
  * Versatile XML processing.
@@ -33,8 +33,8 @@
  * @date 2010
  */
 
-#ifndef _vxml_h_
-#define _vxml_h_
+#ifndef _xml_vxml_h_
+#define _xml_vxml_h_
 
 #include "common.h"
 #include "xattr.h"
@@ -246,6 +246,6 @@ const char *vxml_parser_parent_element(const vxml_parser_t *vp);
 const char *vxml_parser_nth_parent_element(const vxml_parser_t *vp, size_t n);
 const char *vxml_parser_current_namespace(const vxml_parser_t *vp);
 
-#endif /* _vxml_h_ */
+#endif /* _xml_vxml_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

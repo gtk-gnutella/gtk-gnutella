@@ -24,7 +24,7 @@
  */
 
 /**
- * @ingroup lib
+ * @ingroup xml
  * @file
  *
  * XML attributes.
@@ -33,8 +33,8 @@
  * @date 2010
  */
 
-#ifndef _xattr_h_
-#define _xattr_h_
+#ifndef _xml_xattr_h_
+#define _xml_xattr_h_
 
 #include "common.h"
 
@@ -69,6 +69,6 @@ const char *xattr_table_lookup(const xattr_table_t *xat,
 void xattr_table_foreach(const xattr_table_t *xat,
 	xattr_table_cb_t func, void *data);
 
-#endif /* _xattr_h_ */
+#endif /* _xml_xattr_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

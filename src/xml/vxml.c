@@ -24,7 +24,7 @@
  */
 
 /**
- * @ingroup lib
+ * @ingroup xml
  * @file
  *
  * Versatile XML processing.

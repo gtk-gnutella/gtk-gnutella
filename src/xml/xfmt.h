@@ -24,7 +24,7 @@
  */
 
 /**
- * @ingroup lib
+ * @ingroup xml
  * @file
  *
  * XML tree formatter.
@@ -33,8 +33,8 @@
  * @date 2010
  */
 
-#ifndef _xfmt_h_
-#define _xfmt_h_
+#ifndef _xml_xfmt_h_
+#define _xml_xfmt_h_
 
 #include "common.h"
 
@@ -70,6 +70,6 @@ gboolean xfmt_tree_extended(const xnode_t *root, ostream_t *os,
 
 gboolean xfmt_tree_dump(const xnode_t *root, FILE *f);
 
-#endif /* _xfmt_h_ */
+#endif /* _xml_xfmt_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
