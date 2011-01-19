@@ -173,6 +173,8 @@ RCSID("$Id$")
 #define TCP_CRAWLER_FREQ		300		/**< once every 5 minutes */
 #define UDP_CRAWLER_FREQ		120		/**< once every 2 minutes */
 
+#define NODE_FW_CHECK			1200	/**< 20 minutes */
+
 const char *start_rfc822_date;			/**< RFC822 format of start_time */
 
 static GSList *sl_nodes;
@@ -747,12 +749,96 @@ can_become_ultra(time_t now)
 }
 
 /**
+ * Request that node becomes our push-proxy.
+ */
+static void
+send_proxy_request(gnutella_node_t *n)
+{
+	g_assert(n->attrs & NODE_A_CAN_VENDOR);
+	g_assert(GNET_PROPERTY(is_firewalled));
+	g_assert(!is_host_addr(n->proxy_addr));		/* Not proxying us yet */
+
+	n->flags |= NODE_F_PROXY;
+	vmsg_send_proxy_req(n, cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid)));
+}
+
+/**
+ * Use remote connected node to verify our firewalled status by requesting
+ * connect-back messages if necessary.
+ */
+static void
+node_check_local_firewalled_status(gnutella_node_t *n)
+{
+	g_assert(n->attrs & NODE_A_CAN_VENDOR);
+
+	if (GNET_PROPERTY(is_firewalled)) {
+		if (0 != socket_listen_port())
+			vmsg_send_tcp_connect_back(n, socket_listen_port());
+		if (!NODE_IS_LEAF(n))
+			send_proxy_request(n);
+	}
+	if (udp_active()) {
+		if (!GNET_PROPERTY(recv_solicited_udp))
+			udp_send_ping(NULL, n->addr, n->port, FALSE);
+		else if (
+			GNET_PROPERTY(is_udp_firewalled) &&
+			0 != socket_listen_port()
+		)
+			vmsg_send_udp_connect_back(n, socket_listen_port());
+	}
+}
+
+/**
  * Low frequency node timer.
  */
 void
 node_slow_timer(time_t now)
 {
-	
+	static time_t last_fw_check;
+	gboolean need_fw_check = FALSE;
+
+	/*
+	 * If we are firewalled, periodically request connect-back from random
+	 * nodes to make sure we're still un-reacheable.
+	 */
+
+	if (delta_time(tm_time(), last_fw_check) > NODE_FW_CHECK) {
+		last_fw_check = tm_time();
+		need_fw_check =
+			GNET_PROPERTY(is_firewalled) || GNET_PROPERTY(is_udp_firewalled);
+	}
+
+	if (need_fw_check) {
+		GSList *sl;
+		GSList *candidates = NULL;
+		size_t count = 0;
+
+		GM_SLIST_FOREACH(sl_nodes, sl) {
+			gnutella_node_t *n = sl->data;
+
+			if (NODE_IS_ULTRA(n) && (n->attrs & NODE_A_CAN_VENDOR)) {
+				candidates = g_slist_prepend(candidates, n);
+				count++;
+			}
+		}
+
+		if (GNET_PROPERTY(fw_debug) > 2) {
+			g_debug("FW: found %u ultra nodes to send connect-back messages",
+				count);
+		}
+
+		if (count > 0) {
+			gnutella_node_t *picked[2];
+
+			picked[0] = g_slist_nth_data(candidates, random_value(count - 1));
+			picked[1] = g_slist_nth_data(candidates, random_value(count - 1));
+
+			node_check_local_firewalled_status(picked[0]);
+			if (picked[0] != picked[1])
+				node_check_local_firewalled_status(picked[1]);
+		}
+	}
+
 	if (udp_active()) {
 		static time_t last_ping;
 
@@ -3195,20 +3281,6 @@ node_send_error(struct gnutella_node *n, int code, const char *msg, ...)
 }
 
 /**
- * Request that node becomes our push-proxy.
- */
-static void
-send_proxy_request(gnutella_node_t *n)
-{
-	g_assert(n->attrs & NODE_A_CAN_VENDOR);
-	g_assert(GNET_PROPERTY(is_firewalled));
-	g_assert(!is_host_addr(n->proxy_addr));		/* Not proxying us yet */
-
-	n->flags |= NODE_F_PROXY;
-	vmsg_send_proxy_req(n, cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid)));
-}
-
-/**
  * Called when we were not firewalled and suddenly become firewalled.
  * Send proxy requests to our current connections.
  */
@@ -3716,21 +3788,7 @@ node_is_now_connected(struct gnutella_node *n)
 	if (n->attrs & NODE_A_CAN_VENDOR) {
 		vmsg_send_messages_supported(n);
 		vmsg_send_features_supported(n);
-		if (GNET_PROPERTY(is_firewalled)) {
-			if (0 != socket_listen_port())
-				vmsg_send_tcp_connect_back(n, socket_listen_port());
-			if (!NODE_IS_LEAF(n))
-				send_proxy_request(n);
-		}
-		if (udp_active()) {
-			if (!GNET_PROPERTY(recv_solicited_udp))
-				udp_send_ping(NULL, n->addr, n->port, FALSE);
-			else if (
-				GNET_PROPERTY(is_udp_firewalled) &&
-				0 != socket_listen_port()
-			)
-				vmsg_send_udp_connect_back(n, socket_listen_port());
-		}
+		node_check_local_firewalled_status(n);
 	}
 
 	/*

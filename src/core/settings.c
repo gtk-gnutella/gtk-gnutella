@@ -1395,6 +1395,21 @@ enable_dht_changed(property_t prop)
 }
 
 static gboolean
+enable_upnp_changed(property_t prop)
+{
+	gboolean enabled;
+	
+    gnet_prop_get_boolean_val(prop, &enabled);
+	if (enabled) {
+		upnp_post_init();
+	} else {
+		upnp_disabled();
+	}
+
+	return FALSE;
+}
+
+static gboolean
 is_udp_firewalled_changed(property_t prop)
 {
 	gboolean fw;
@@ -2585,6 +2600,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_ENABLE_DHT,
 		enable_dht_changed,
+		FALSE,
+	},
+	{
+		PROP_ENABLE_UPNP,
+		enable_upnp_changed,
 		FALSE,
 	},
 	{

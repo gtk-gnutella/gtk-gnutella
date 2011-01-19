@@ -925,6 +925,17 @@ upnp_discover(unsigned timeout, upnp_discover_cb_t cb, void *arg)
 		mcast = host_addr_get_ipv4(string_to_ip(UPNP_MCAST_ADDR));
 	}
 
+	/*
+	 * If UPnP support was disabled, ignore request.
+	 */
+
+	if (!GNET_PROPERTY(enable_upnp)) {
+		if (GNET_PROPERTY(upnp_debug) > 10) {
+			g_debug("UPNP support disabled, not launching discovery");
+		}
+		return;
+	}
+
 	if (GNET_PROPERTY(upnp_debug) > 3) {
 		g_message("UPNP initating discovery (timeout %u ms)", timeout);
 	}

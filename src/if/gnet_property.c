@@ -913,6 +913,14 @@ prop_def_choice_t gnet_property_variable_soap_trace_choices[] = {
 };
 gboolean gnet_property_variable_allow_firewalled_ultra     = FALSE;
 static const gboolean gnet_property_variable_allow_firewalled_ultra_default = FALSE;
+gboolean gnet_property_variable_enable_upnp     = TRUE;
+static const gboolean gnet_property_variable_enable_upnp_default = TRUE;
+gboolean gnet_property_variable_upnp_possible     = FALSE;
+static const gboolean gnet_property_variable_upnp_possible_default = FALSE;
+gboolean gnet_property_variable_port_mapping_required     = TRUE;
+static const gboolean gnet_property_variable_port_mapping_required_default = TRUE;
+gboolean gnet_property_variable_port_mapping_possible     = FALSE;
+static const gboolean gnet_property_variable_port_mapping_possible_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -8302,6 +8310,74 @@ gnet_prop_init(void) {
     gnet_property->props[385].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[385].data.boolean.def   = (void *) &gnet_property_variable_allow_firewalled_ultra_default;
     gnet_property->props[385].data.boolean.value = (void *) &gnet_property_variable_allow_firewalled_ultra;
+
+
+    /*
+     * PROP_ENABLE_UPNP:
+     *
+     * General data:
+     */
+    gnet_property->props[386].name = "enable_upnp";
+    gnet_property->props[386].desc = _("Whether UPnP (Universal Plug and Play) should be enabled. Support for UPnP means gtk-gnutella will be able to discover your Internet Gateway Device (router) and request that the listening port be opened and redirected to your machine, thereby auto-configuring to make sure you are not firewalled.  By default you should leave it enabled unless you know how to configure your network equipment manually to prevent the firewalled condition for both TCP and UDP.");
+    gnet_property->props[386].ev_changed = event_new("enable_upnp_changed");
+    gnet_property->props[386].save = TRUE;
+    gnet_property->props[386].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[386].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[386].data.boolean.def   = (void *) &gnet_property_variable_enable_upnp_default;
+    gnet_property->props[386].data.boolean.value = (void *) &gnet_property_variable_enable_upnp;
+
+
+    /*
+     * PROP_UPNP_POSSIBLE:
+     *
+     * General data:
+     */
+    gnet_property->props[387].name = "upnp_possible";
+    gnet_property->props[387].desc = _("Whether gtk-gnutella was able to locate an Internet Gateway Device to install port mappings, if required.");
+    gnet_property->props[387].ev_changed = event_new("upnp_possible_changed");
+    gnet_property->props[387].save = FALSE;
+    gnet_property->props[387].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[387].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[387].data.boolean.def   = (void *) &gnet_property_variable_upnp_possible_default;
+    gnet_property->props[387].data.boolean.value = (void *) &gnet_property_variable_upnp_possible;
+
+
+    /*
+     * PROP_PORT_MAPPING_REQUIRED:
+     *
+     * General data:
+     */
+    gnet_property->props[388].name = "port_mapping_required";
+    gnet_property->props[388].desc = _("Whether gtk-gnutella thinks it needs to install port mappings on your network router to avoid the firewalled condition.");
+    gnet_property->props[388].ev_changed = event_new("port_mapping_required_changed");
+    gnet_property->props[388].save = TRUE;
+    gnet_property->props[388].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[388].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[388].data.boolean.def   = (void *) &gnet_property_variable_port_mapping_required_default;
+    gnet_property->props[388].data.boolean.value = (void *) &gnet_property_variable_port_mapping_required;
+
+
+    /*
+     * PROP_PORT_MAPPING_POSSIBLE:
+     *
+     * General data:
+     */
+    gnet_property->props[389].name = "port_mapping_possible";
+    gnet_property->props[389].desc = _("Whether gtk-gnutella can install port mappings, if needed.");
+    gnet_property->props[389].ev_changed = event_new("port_mapping_possible_changed");
+    gnet_property->props[389].save = FALSE;
+    gnet_property->props[389].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[389].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[389].data.boolean.def   = (void *) &gnet_property_variable_port_mapping_possible_default;
+    gnet_property->props[389].data.boolean.value = (void *) &gnet_property_variable_port_mapping_possible;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

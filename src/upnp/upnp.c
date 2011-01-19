@@ -61,15 +61,15 @@ RCSID("$Id$")
 #define UPNP_DISCOVERY_TIMEOUT	3000	/**< Timeout in ms */
 #define UPNP_MONITOR_DELAY		300		/**< Every 5 minutes */
 #define UPNP_MAPPING_LIFE		3600	/**< 1 hour */
-#define UPNP_MAPPING_GRACE		10		/**< 10 seconds */
+#define UPNP_MAPPING_CAUTION	120		/**< 2 minutes */
 #define UPNP_PUBLISH_RETRY		10		/**< 10 seconds */
-#define UPNP_PUBLISH_RETRY_CNT	6		/**< 6 times - roughly 1 minute */
+#define UPNP_PUBLISH_RETRY_CNT	12		/**< 2 ports 6 times, ~ 1 minute */
 
 #define UPNP_MONITOR_DELAY_MS	(UPNP_MONITOR_DELAY * 1000)
 #define UPNP_PUBLISH_RETRY_MS	(UPNP_PUBLISH_RETRY * 1000)
 
 #define UPNP_MAPPING_LIFE_MS \
-	((UPNP_MAPPING_LIFE - UPNP_MAPPING_GRACE) * 1000)
+	((UPNP_MAPPING_LIFE - UPNP_MAPPING_CAUTION) * 1000)
 
 /**
  * The local Internet Gateway Device.
@@ -106,6 +106,8 @@ static GHashTable *upnp_mappings;	/**< Tracks requested UPnP mappings */
 static host_addr_t upnp_local_addr;	/**< Computed local IP address */
 
 static const char UPNP_CONN_IP_ROUTED[]	= "IP_Routed";
+
+static void upnp_idg_discovered(void);
 
 /**
  * The state an Internet Gateway Device must be in to allow NAT.
@@ -262,6 +264,11 @@ upnp_record_igd(upnp_device_t *ud)
 		g_info("UPNP using Internet Gateway Device at \"%s\" (WAN IP: %s)",
 			ud->desc_url, host_addr_to_string(ud->u.igd.wan_ip));
 	}
+
+	gnet_prop_set_boolean_val(PROP_UPNP_POSSIBLE, TRUE);
+	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_POSSIBLE, TRUE);
+
+	upnp_idg_discovered();		/* Unconditionally publish all mappings */
 }
 
 /**
@@ -485,6 +492,9 @@ rediscover:
 	 * Initiate a re-discovery of UPnP devices on the network.
 	 */
 
+	gnet_prop_set_boolean_val(PROP_UPNP_POSSIBLE, FALSE);
+	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_POSSIBLE, FALSE);
+
 	upnp_dev_free_null(&igd.dev);
 	igd.discover = TRUE;
 }
@@ -498,6 +508,16 @@ upnp_monitor_igd(gpointer unused_obj)
 {
 	(void) unused_obj;
 
+	/*
+	 * When UPnP support is disabled, there is nothing to do.
+	 *
+	 * We do not remove the periodic monitoring callback since the condition
+	 * can change dynamically and this prevents additional bookkeeping.
+	 */
+
+	if (!GNET_PROPERTY(enable_upnp))
+		return TRUE;		/* Keep calling, nonetheless */
+
 	if (NULL == igd.dev) {
 		static unsigned counter;
 
@@ -505,9 +525,25 @@ upnp_monitor_igd(gpointer unused_obj)
 		 * We don't have any known Internet Gateway Device, look whether
 		 * they plugged one in, but not at every wakeup...
 		 *
+		 * If we're not firewalled, there's no reason to actively look for an
+		 * IGD yet.
+		 */
+
+		if (GNET_PROPERTY(is_firewalled) || GNET_PROPERTY(is_udp_firewalled)) {
+			gnet_prop_set_boolean_val(PROP_PORT_MAPPING_REQUIRED, TRUE);
+		} else {
+			if (GNET_PROPERTY(upnp_debug) > 5)
+				g_debug("UPNP still no need for port mapping");
+
+			gnet_prop_set_boolean_val(PROP_PORT_MAPPING_REQUIRED, FALSE);
+			return TRUE;	/* Keep calling in case we become firewalled */
+		}
+
+		/*
 		 * When ``igd.discover'' is TRUE, we force the discovery.
 		 * This is used to rediscover devices after monitoring of the known
-		 * IGD failed at the last period.
+		 * IGD failed at the last period, in case they replaced the IGD with
+		 * a new box.
 		 */
 
 		if (igd.discover) {
@@ -572,6 +608,7 @@ upnp_map_publish_reply(int code, void *value, size_t size, void *arg)
 				upnp_map_proto_to_string(um->proto), um->port,
 				code, upnp_strerror(code));
 		}
+		um->published = FALSE;
 	}
 }
 
@@ -600,6 +637,26 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 			UPNP_PUBLISH_RETRY_MS : UPNP_MAPPING_LIFE_MS,
 		upnp_map_publish, um);
 
+	/*
+	 * When UPnP support is disabled, we record port mappings internally
+	 * but do not publish them to the IGD.
+	 */
+
+	if (!GNET_PROPERTY(enable_upnp)) {
+		if (GNET_PROPERTY(upnp_debug) > 10) {
+			g_debug("UPNP support is disabled, "
+				"not publishing mapping for %s port %u",
+				upnp_map_proto_to_string(um->proto), um->port);
+		}
+		return;
+	}
+
+	/*
+	 * Mappings can be recorded at startup before we had a chance to
+	 * discover the IGD device, which is why we retry more often at the
+	 * beginning (every UPNP_PUBLISH_RETRY_MS for a while).
+	 */
+
 	if (NULL == igd.dev) {
 		if (GNET_PROPERTY(upnp_debug) > 5) {
 			g_message("UPNP no IGD yet to publish mapping for %s port %u",
@@ -620,6 +677,14 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 		upnp_get_local_addr(), um->port,
 		version_string, UPNP_MAPPING_LIFE,
 		upnp_map_publish_reply, um);
+
+	if (NULL == um->rpc) {
+		um->published = FALSE;
+		if (GNET_PROPERTY(upnp_debug)) {
+			g_warning("UPNP could not launch publishing for %s port %u",
+				upnp_map_proto_to_string(um->proto), um->port);
+		}
+	}
 }
 
 /**
@@ -740,6 +805,129 @@ upnp_map_remove(enum upnp_map_proto proto, guint16 port)
 }
 
 /**
+ * Callback on upnp_ctrl_DeletePortMapping() completion.
+ */
+static void
+upnp_map_mapping_deleted(int code, void *value, size_t size, void *arg)
+{
+	struct upnp_mapping *um = arg;
+
+	g_assert(NULL == value);
+	g_assert(0 == size);
+
+	um->rpc = NULL;			/* RPC completed */
+
+	if (UPNP_ERR_OK == code) {
+		if (GNET_PROPERTY(upnp_debug) > 2)
+			g_message("UPNP successfully deleted mapping for %s port %u",
+				upnp_map_proto_to_string(um->proto), um->port);
+	} else {
+		if (GNET_PROPERTY(upnp_debug)) {
+			g_warning("UPNP could not remove mapping for %s port %u: "
+				"%d => \"%s\"",
+				upnp_map_proto_to_string(um->proto), um->port,
+				code, upnp_strerror(code));
+		}
+	}
+
+	/*
+	 * We keep the mapping around, in case UPnP is re-enabled.
+	 */
+
+	um->published = FALSE;
+}
+
+/**
+ * Remove published mapping.
+ */
+static void
+upnp_remove_mapping_kv(void *key, void *u_value, void *u_data)
+{
+	struct upnp_mapping *um = key;
+	const upnp_service_t *usd;
+
+	(void) u_value;
+	(void) u_data;
+
+	if (!um->published)
+		return;
+
+	if (GNET_PROPERTY(upnp_debug) > 1) {
+		g_message("UPNP removing mapping for %s port %u",
+			upnp_map_proto_to_string(um->proto), um->port);
+	}
+
+
+	usd = upnp_service_get_wan_connection(igd.dev->services);
+	upnp_ctrl_cancel_null(&um->rpc, TRUE);
+
+	um->rpc = upnp_ctrl_DeletePortMapping(usd, um->proto, um->port,
+		upnp_map_mapping_deleted, um);
+
+	if (NULL == um->rpc) {
+		if (GNET_PROPERTY(upnp_debug)) {
+			g_warning("UPNP cannot remove mapping for %s port %u",
+				upnp_map_proto_to_string(um->proto), um->port);
+		}
+	}
+}
+
+/**
+ * UPnP support was disabled, so remove all the mappings we may have
+ * installed so far, but keep them locally (i.e. we unmap the ports at
+ * the IDG, but still remember which ports are mapped).
+ */
+void
+upnp_disabled(void)
+{
+	if (igd.dev != NULL) {
+		g_hash_table_foreach(upnp_mappings, upnp_remove_mapping_kv, NULL);
+	}
+}
+
+/**
+ * Request immediate (asynchronous) mapping publishing for all the mappings
+ * we may have recorded, regardless of whether they were already published
+ * before.
+ */
+static void
+upnp_publish_mapping_kv(void *key, void *u_value, void *u_data)
+{
+	struct upnp_mapping *um = key;
+
+	(void) u_value;
+	(void) u_data;
+
+	/*
+	 * Schedule publishing to happen at next callout queue tick.
+	 */
+
+	cq_cancel(&um->install_ev);
+	um->install_ev = cq_main_insert(1, upnp_map_publish, um);
+
+	if (GNET_PROPERTY(upnp_debug) > 2) {
+		g_message("UPNP requested immediate publishing for %s port %u",
+			upnp_map_proto_to_string(um->proto), um->port);
+	}
+}
+
+/**
+ * UPnP IDG was discovered.
+ *
+ * If we have mappings to install, do so immediately.
+ */
+static void
+upnp_idg_discovered(void)
+{
+	g_assert(igd.dev != NULL);
+
+	if (!GNET_PROPERTY(port_mapping_required))
+		return;
+
+	g_hash_table_foreach(upnp_mappings, upnp_publish_mapping_kv, NULL);
+}
+
+/**
  * Add TCP port redirection on the IGD device to this machine.
  */
 void
@@ -819,6 +1007,13 @@ upnp_init(void)
 void
 upnp_post_init(void)
 {
+	/*
+	 * In case UPnP support was disabled, upnp_discover() will do nothing.
+	 *
+	 * We call it nonethless since at high debugging levels it will log
+	 * that support is disabled.
+	 */
+
 	upnp_discover(UPNP_DISCOVERY_TIMEOUT, upnp_discovered, NULL);
 }
 

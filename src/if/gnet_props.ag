@@ -4524,4 +4524,50 @@ prop = {
     };
 };
 
+prop = {
+	name = "enable_upnp";
+	desc = "Whether UPnP (Universal Plug and Play) should be enabled. "
+		"Support for UPnP means gtk-gnutella will be able to discover your "
+		"Internet Gateway Device (router) and request that the listening port "
+		"be opened and redirected to your machine, thereby auto-configuring "
+		"to make sure you are not firewalled.  By default you should leave "
+		"it enabled unless you know how to configure your network equipment "
+		"manually to prevent the firewalled condition for both TCP and UDP.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
+    name = "upnp_possible";
+    desc = "Whether gtk-gnutella was able to locate an Internet Gateway "
+		"Device to install port mappings, if required.";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "port_mapping_required";
+    desc = "Whether gtk-gnutella thinks it needs to install port mappings "
+		"on your network router to avoid the firewalled condition.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "port_mapping_possible";
+    desc = "Whether gtk-gnutella can install port mappings, if needed.";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

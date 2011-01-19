@@ -435,6 +435,10 @@ extern const guint32  gnet_property_variable_upnp_debug;
 extern const guint32  gnet_property_variable_soap_debug;
 extern const guint32  gnet_property_variable_soap_trace;
 extern const gboolean gnet_property_variable_allow_firewalled_ultra;
+extern const gboolean gnet_property_variable_enable_upnp;
+extern const gboolean gnet_property_variable_upnp_possible;
+extern const gboolean gnet_property_variable_port_mapping_required;
+extern const gboolean gnet_property_variable_port_mapping_possible;
 
 
 prop_set_t *gnet_prop_init(void);

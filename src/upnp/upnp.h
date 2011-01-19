@@ -119,6 +119,7 @@ const char *upnp_map_proto_to_string(const enum upnp_map_proto proto);
 void upnp_init(void);
 void upnp_post_init(void);
 void upnp_close(void);
+void upnp_disabled(void);
 
 void upnp_map_tcp(guint16 port);
 void upnp_map_udp(guint16 port);
