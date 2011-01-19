@@ -1253,8 +1253,10 @@ socket_shutdown(void)
 		socket_destroy(s, NULL);
 	}
 
-	upnp_unmap_tcp(s_tcp_listen->local_port);
-	upnp_unmap_udp(s_udp_listen->local_port);
+	if (s_tcp_listen != NULL)
+		upnp_unmap_tcp(s_tcp_listen->local_port);
+	if (s_udp_listen != NULL)
+		upnp_unmap_udp(s_udp_listen->local_port);
 	
 	/* No longer accept connections or UDP packets */
 	socket_free_null(&s_local_listen);
