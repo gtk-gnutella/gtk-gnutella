@@ -774,7 +774,7 @@ node_check_local_firewalled_status(gnutella_node_t *n)
 	if (GNET_PROPERTY(is_firewalled)) {
 		if (0 != socket_listen_port())
 			vmsg_send_tcp_connect_back(n, socket_listen_port());
-		if (!NODE_IS_LEAF(n))
+		if (!NODE_IS_LEAF(n) && !is_host_addr(n->proxy_addr))
 			send_proxy_request(n);
 	}
 	if (udp_active()) {
