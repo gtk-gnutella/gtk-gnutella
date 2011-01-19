@@ -41,12 +41,13 @@
 RCSID("$Id$")
 
 #include "xattr.h"
-#include "atoms.h"
-#include "halloc.h"
-#include "hashlist.h"
-#include "walloc.h"
 
-#include "override.h"	/* Must be the last header included */
+#include "lib/atoms.h"
+#include "lib/halloc.h"
+#include "lib/hashlist.h"
+#include "lib/walloc.h"
+
+#include "lib/override.h"	/* Must be the last header included */
 
 enum xattr_table_magic { XATTR_TABLE_MAGIC = 0x44d9a5d8 };
 

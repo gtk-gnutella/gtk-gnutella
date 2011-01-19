@@ -38,9 +38,9 @@
 
 #include "common.h"
 
+#include "xml/xnode.h"
 #include "lib/header.h"
 #include "lib/host_addr.h"
-#include "lib/xnode.h"
 
 struct soap_rpc;
 typedef struct soap_rpc soap_rpc_t;

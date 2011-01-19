@@ -38,20 +38,21 @@
 RCSID("$Id$")
 
 #include "xfmt.h"
-#include "ascii.h"
-#include "halloc.h"
-#include "misc.h"		/* For CONST_STRLEN() */
-#include "nv.h"
-#include "ostream.h"
-#include "unsigned.h"
-#include "stacktrace.h"
-#include "symtab.h"
-#include "utf8.h"
 #include "vxml.h"
-#include "walloc.h"
 #include "xnode.h"
 
-#include "override.h"	/* Must be the last header included */
+#include "lib/ascii.h"
+#include "lib/halloc.h"
+#include "lib/misc.h"		/* For CONST_STRLEN() */
+#include "lib/nv.h"
+#include "lib/ostream.h"
+#include "lib/unsigned.h"
+#include "lib/stacktrace.h"
+#include "lib/symtab.h"
+#include "lib/utf8.h"
+#include "lib/walloc.h"
+
+#include "lib/override.h"	/* Must be the last header included */
 
 static const char XFMT_CDATA_START[]	= "<![CDATA[";
 static const char XFMT_CDATA_END[]		= "]]>";

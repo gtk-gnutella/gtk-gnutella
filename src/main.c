@@ -143,13 +143,13 @@
 #include "lib/utf8.h"
 #include "lib/vendors.h"
 #include "lib/vmm.h"
-#include "lib/vxml.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
 #include "lib/zalloc.h"
 #include "shell/shell.h"
 #include "upnp/upnp.h"
+#include "xml/vxml.h"
 
 #include "ui/gtk/gui.h"
 

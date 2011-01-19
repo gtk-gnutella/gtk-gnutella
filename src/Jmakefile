@@ -29,7 +29,7 @@
 
 all::		/* So that default target is not clobber! */
 
-SetSubdirs(core shell dht lib ui if sdbm upnp)
+SetSubdirs(core shell dht lib ui if sdbm upnp xml)
 DependSubdirs()
 
 SRC = main.c
@@ -84,6 +84,7 @@ LDFLAGS = \
 |case d_headless in undef
 	-Lui/gtk -lgtk-common -lgtkx -lgtk-common \
 -case
+	-Lxml -lxml \
 	-Llib -lshared \
 	-Lsdbm -lsdbm -lshared \
 	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
@@ -95,6 +96,7 @@ RemoteTargetDependency(gtk-gnutella, shell, libshell.a)
 RemoteTargetDependency(gtk-gnutella, dht, libdht.a)
 RemoteTargetDependency(gtk-gnutella, sdbm, libsdbm.a)
 RemoteTargetDependency(gtk-gnutella, upnp, libupnp.a)
+RemoteTargetDependency(gtk-gnutella, xml, libxml.a)
 |case d_headless in undef
 RemoteTargetDependency(gtk-gnutella, ui/gtk, libgtk-common.a)
 RemoteTargetDependency(gtk-gnutella, ui/gtk, libgtkx.a)

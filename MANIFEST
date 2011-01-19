@@ -729,8 +729,6 @@ src/lib/vendors.c
 src/lib/vendors.h
 src/lib/vmm.c
 src/lib/vmm.h
-src/lib/vxml.c
-src/lib/vxml.h
 src/lib/walloc.c
 src/lib/walloc.h
 src/lib/watcher.c
@@ -739,12 +737,6 @@ src/lib/wd.c
 src/lib/wd.h
 src/lib/wordvec.c
 src/lib/wordvec.h
-src/lib/xattr.c
-src/lib/xattr.h
-src/lib/xfmt.c
-src/lib/xfmt.h
-src/lib/xnode.c
-src/lib/xnode.h
 src/lib/zalloc.c
 src/lib/zalloc.h
 src/lib/zlib_util.c
@@ -941,3 +933,13 @@ src/upnp/service.c
 src/upnp/service.h
 src/upnp/upnp.c
 src/upnp/upnp.h
+src/xml/Jmakefile
+src/xml/Makefile.SH
+src/xml/vxml.c
+src/xml/vxml.h
+src/xml/xattr.c
+src/xml/xattr.h
+src/xml/xfmt.c
+src/xml/xfmt.h
+src/xml/xnode.c
+src/xml/xnode.h

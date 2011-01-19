@@ -46,14 +46,15 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
+#include "xml/xnode.h"
+#include "xml/xfmt.h"
+
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
 #include "lib/nv.h"
 #include "lib/parse.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
-#include "lib/xnode.h"
-#include "lib/xfmt.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 

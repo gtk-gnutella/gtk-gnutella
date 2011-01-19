@@ -38,15 +38,16 @@
 RCSID("$Id$")
 
 #include "xnode.h"
-#include "atoms.h"
-#include "glib-missing.h"
-#include "halloc.h"
-#include "hashlist.h"
-#include "nv.h"
-#include "walloc.h"
 #include "xattr.h"
 
-#include "override.h"	/* Must be the last header included */
+#include "lib/atoms.h"
+#include "lib/glib-missing.h"
+#include "lib/halloc.h"
+#include "lib/hashlist.h"
+#include "lib/nv.h"
+#include "lib/walloc.h"
+
+#include "lib/override.h"	/* Must be the last header included */
 
 enum xnode_magic { XNODE_MAGIC = 0x28aa3166 };
 

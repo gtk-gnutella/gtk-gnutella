@@ -146,14 +146,10 @@ LSRC = \
 	vector.c \
 	vendors.c \
 	vmm.c \
-	vxml.c \
 	walloc.c \
 	watcher.c \
 	wd.c \
 	wordvec.c \
-	xattr.c \
-	xfmt.c \
-	xnode.c \
 	zalloc.c \
 	zlib_util.c
 

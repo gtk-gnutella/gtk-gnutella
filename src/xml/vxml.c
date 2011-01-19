@@ -38,25 +38,26 @@
 RCSID("$Id$")
 
 #include "vxml.h"
-#include "atoms.h"
-#include "ascii.h"
-#include "endian.h"
-#include "glib-missing.h"
-#include "misc.h"
-#include "halloc.h"
-#include "nv.h"
-#include "parse.h"
-#include "ostream.h"
-#include "slist.h"
-#include "symtab.h"
-#include "unsigned.h"
-#include "utf8.h"
-#include "walloc.h"
 #include "xattr.h"
 #include "xfmt.h"
 #include "xnode.h"
 
-#include "override.h"	/* Must be the last header included */
+#include "lib/atoms.h"
+#include "lib/ascii.h"
+#include "lib/endian.h"
+#include "lib/glib-missing.h"
+#include "lib/misc.h"
+#include "lib/halloc.h"
+#include "lib/nv.h"
+#include "lib/parse.h"
+#include "lib/ostream.h"
+#include "lib/slist.h"
+#include "lib/symtab.h"
+#include "lib/unsigned.h"
+#include "lib/utf8.h"
+#include "lib/walloc.h"
+
+#include "lib/override.h"	/* Must be the last header included */
 
 /*
  * Define to have XML parsing testing at startup.

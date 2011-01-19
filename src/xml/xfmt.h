@@ -37,8 +37,9 @@
 #define _xfmt_h_
 
 #include "common.h"
+
 #include "xnode.h"
-#include "ostream.h"
+#include "lib/ostream.h"
 
 /**
  * Formatter options.

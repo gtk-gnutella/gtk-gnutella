@@ -60,7 +60,7 @@ SED = $sed
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = core shell dht lib ui if sdbm upnp
+SUBDIRS = core shell dht lib ui if sdbm upnp xml
 USRINC = $usrinc
 SOURCES =   \$(SRC)
 SOCKER_CFLAGS =  $sockercflags
@@ -143,6 +143,7 @@ undef)
 	;;
 esac
 $spitshell >>Makefile <<'!NO!SUBS!'
+	-Lxml -lxml \
 	-Llib -lshared \
 	-Lsdbm -lsdbm -lshared \
 	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
@@ -191,6 +192,13 @@ upnp/libupnp.a: .FORCE
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  upnp/libupnp.a
+
+xml/libxml.a: .FORCE
+	@echo "Checking "libxml.a" in "xml"..."
+	cd xml; $(MAKE) libxml.a
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  xml/libxml.a
 !NO!SUBS!
 case "$d_headless" in
 undef)

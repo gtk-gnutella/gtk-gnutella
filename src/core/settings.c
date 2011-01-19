@@ -68,6 +68,8 @@
 
 #include "if/bridge/c2ui.h"
 
+#include "xml/vxml.h"
+
 #include "lib/bit_array.h"
 #include "lib/cpufreq.h"
 #include "lib/cq.h"
@@ -85,7 +87,6 @@
 #include "lib/sha1.h"
 #include "lib/tm.h"
 #include "lib/vmm.h"
-#include "lib/vxml.h"
 #include "lib/zalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
