@@ -80,6 +80,14 @@ struct upnp_GetSpecificPortMappingEntry {
 	time_delta_t lease_duration;	/**< Duration of the lease */
 };
 
+/**
+ * Returned values for upnp_ctrl_GetTotalPacketsReceived() and similar
+ * requests that return a plain 32-bit rolling counter.
+ */
+struct upnp_counter {
+	guint32 value;					/** Returned counter value */
+};
+
 /*
  * Public interface.
  */
@@ -104,6 +112,8 @@ upnp_ctrl_t *upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
 	upnp_ctrl_cb_t cb, void *arg);
 upnp_ctrl_t *upnp_ctrl_DeletePortMapping(const upnp_service_t *usd,
 	enum upnp_map_proto proto, guint16 port,
+	upnp_ctrl_cb_t cb, void *arg);
+upnp_ctrl_t *upnp_ctrl_GetTotalPacketsReceived(const upnp_service_t *usd,
 	upnp_ctrl_cb_t cb, void *arg);
 
 #endif /* _upnp_control_h_ */

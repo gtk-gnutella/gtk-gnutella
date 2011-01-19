@@ -702,7 +702,7 @@ upnp_ctrl_get_uint16(nv_table_t *nvt, const char *name, guint16 *valp)
 }
 
 /**
- * Parse argument from specified name/value table into a time_delta_t.
+ * Parse argument from specified name/value table into an unsigned 32-bit.
  *
  * @param nvt		the name/value table holding arguments
  * @param name		the argument name whose value we need to parse
@@ -711,7 +711,7 @@ upnp_ctrl_get_uint16(nv_table_t *nvt, const char *name, guint16 *valp)
  * @return TRUE if OK with the value filled in, FALSE on failure.
  */
 static gboolean
-upnp_ctrl_get_time_delta(nv_table_t *nvt, const char *name, time_delta_t *valp)
+upnp_ctrl_get_uint32(nv_table_t *nvt, const char *name, guint32 *valp)
 {
 	const char *value;
 	guint32 val;
@@ -727,6 +727,28 @@ upnp_ctrl_get_time_delta(nv_table_t *nvt, const char *name, time_delta_t *valp)
 
 	*valp = val;
 	return TRUE;
+}
+
+/**
+ * Parse argument from specified name/value table into a time_delta_t.
+ *
+ * @param nvt		the name/value table holding arguments
+ * @param name		the argument name whose value we need to parse
+ * @param valp		where to put the parsed value
+ *
+ * @return TRUE if OK with the value filled in, FALSE on failure.
+ */
+static gboolean
+upnp_ctrl_get_time_delta(nv_table_t *nvt, const char *name, time_delta_t *valp)
+{
+	guint32 val;
+
+	if (upnp_ctrl_get_uint32(nvt, name, &val)) {
+		*valp = val;
+		return TRUE;
+	} else {
+		return FALSE;
+	}
 }
 
 /**
@@ -791,7 +813,7 @@ upnp_ctrl_ret_GetExternalIPAddress(nv_table_t *ret, size_t *lenp)
 }
 
 /**
- * Get external IP address.
+ * Get external IP address [IP or PPP connection].
  *
  * @param usd		the UPnP service to contact
  * @param cb		callback to invoke when reply is available
@@ -844,7 +866,7 @@ upnp_ctrl_ret_GetConnectionTypeInfo(nv_table_t *ret, size_t *lenp)
 }
 
 /**
- * Get connection type information.
+ * Get connection type information [IP or PPP connection].
  *
  * @param usd		the UPnP service to contact
  * @param cb		callback to invoke when reply is available
@@ -911,7 +933,7 @@ upnp_ctrl_ret_GetSpecificPortMappingEntry(nv_table_t *ret, size_t *lenp)
 }
 
 /**
- * Get information about a specific port mapping.
+ * Get information about a specific port mapping [IP or PPP connection].
  *
  * @param usd		the UPnP service to contact
  * @param proto		mapping protocol
@@ -944,7 +966,7 @@ upnp_ctrl_GetSpecificPortMappingEntry(const upnp_service_t *usd,
 }
 
 /**
- * Add a port forwarding (*:ext_port -> addr:port).
+ * Add a port forwarding (*:ext_port -> addr:port) [IP or PPP connection].
  *
  * @param usd		the UPnP service to contact
  * @param proto		mapping protocol
@@ -1012,7 +1034,7 @@ upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
 }
 
 /**
- * Delete a port mapping.
+ * Delete a port mapping [IP or PPP connection].
  *
  * @param usd		the UPnP service to contact
  * @param proto		mapping protocol
@@ -1042,6 +1064,47 @@ upnp_ctrl_DeletePortMapping(const upnp_service_t *usd,
 	return upnp_ctrl_launch(usd, "DeletePortMapping",
 		argv, G_N_ELEMENTS(argv), cb, arg,
 		NULL);
+}
+
+/**
+ * Process returned value from GetTotalPacketsReceived().
+ *
+ * @return walloc()'ed structure (whose size is written in lenp) containing
+ * the decompiled arguments, or NULL if the returned arguments cannot be
+ * processed.
+ */
+static void *
+upnp_ctrl_ret_GetTotalPacketsReceived(nv_table_t *ret, size_t *lenp)
+{
+	struct upnp_counter *r;
+	guint32 value;
+
+	if (!upnp_ctrl_get_uint32(ret, "NewTotalPacketsReceived", &value))
+		return NULL;
+
+	r = walloc(sizeof *r);
+	r->value = value;
+	*lenp = sizeof *r;
+
+	return r;
+}
+
+/**
+ * Get amount of received packets [config interface].
+ *
+ * @param usd		the UPnP service to contact
+ * @param cb		callback to invoke when reply is available
+ * @param arg		additional callback argument
+ *
+ * @return UPnP request handle if the SOAP RPC was initiated, NULL otherwise
+ * (in which case callbacks will never be called).
+ */
+upnp_ctrl_t *
+upnp_ctrl_GetTotalPacketsReceived(const upnp_service_t *usd,
+	upnp_ctrl_cb_t cb, void *arg)
+{
+	return upnp_ctrl_launch(usd, "GetTotalPacketsReceived", NULL, 0, cb, arg,
+		upnp_ctrl_ret_GetTotalPacketsReceived);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

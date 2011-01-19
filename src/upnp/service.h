@@ -68,6 +68,7 @@ const char *upnp_service_type_to_string(enum upnp_service_type type);
 upnp_service_t *upnp_service_gslist_find(
 	GSList *services, enum upnp_service_type type);
 upnp_service_t *upnp_service_get_wan_connection(GSList *services);
+upnp_service_t *upnp_service_get_common_if(GSList *services);
 
 #endif /* _upnp_service_h_ */
 

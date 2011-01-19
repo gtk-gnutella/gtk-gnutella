@@ -60,6 +60,7 @@ RCSID("$Id$")
 
 #define UPNP_DISCOVERY_TIMEOUT	3000	/**< Timeout in ms */
 #define UPNP_MONITOR_DELAY		300		/**< Every 5 minutes */
+#define UPNP_CHECK_DELAY		1800	/**< Every 30 minutes */
 #define UPNP_MAPPING_LIFE		3600	/**< 1 hour */
 #define UPNP_MAPPING_CAUTION	120		/**< 2 minutes */
 #define UPNP_PUBLISH_RETRY		10		/**< 10 seconds */
@@ -67,6 +68,7 @@ RCSID("$Id$")
 
 #define UPNP_MONITOR_DELAY_MS	(UPNP_MONITOR_DELAY * 1000)
 #define UPNP_PUBLISH_RETRY_MS	(UPNP_PUBLISH_RETRY * 1000)
+#define UPNP_CHECK_DELAY_MS		(UPNP_CHECK_DELAY * 1000)
 
 #define UPNP_MAPPING_LIFE_MS \
 	((UPNP_MAPPING_LIFE - UPNP_MAPPING_CAUTION) * 1000)
@@ -77,6 +79,7 @@ RCSID("$Id$")
 static struct {
 	upnp_device_t *dev;			/**< Our Internet Gateway Device */
 	upnp_ctrl_t *monitor;		/**< Regular monitoring event */
+	guint32 rcvd_pkts;			/**< Amount of received packets */
 	gboolean discover;			/**< Force discovery again */
 	unsigned delete_pending;	/**< Amount of pending mapping deletes */
 } igd;
@@ -107,7 +110,7 @@ static host_addr_t upnp_local_addr;	/**< Computed local IP address */
 
 static const char UPNP_CONN_IP_ROUTED[]	= "IP_Routed";
 
-static void upnp_idg_discovered(void);
+static void upnp_igd_discovered(void);
 
 /**
  * The state an Internet Gateway Device must be in to allow NAT.
@@ -258,6 +261,7 @@ upnp_record_igd(upnp_device_t *ud)
 	upnp_device_check(ud);
 
 	upnp_dev_free_null(&igd.dev);
+	igd.rcvd_pkts = 0;
 	igd.dev = ud;
 
 	if (GNET_PROPERTY(upnp_debug)) {
@@ -268,7 +272,7 @@ upnp_record_igd(upnp_device_t *ud)
 	gnet_prop_set_boolean_val(PROP_UPNP_POSSIBLE, TRUE);
 	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_POSSIBLE, TRUE);
 
-	upnp_idg_discovered();		/* Unconditionally publish all mappings */
+	upnp_igd_discovered();		/* Unconditionally publish all mappings */
 }
 
 /**
@@ -432,6 +436,57 @@ done:
 }
 
 /**
+ * Completion callback for IGD packet received requests.
+ *
+ * @param code		UPNP error code, 0 for OK
+ * @param value		returned value structure
+ * @param size		size of structure, for assertions
+ * @param arg		user-supplied callback argument
+ */
+static void
+upnp_packets_igd_callback(int code, void *value, size_t size, void *unused_arg)
+{
+	struct upnp_counter *ret = value;
+
+	(void) unused_arg;
+
+	g_assert(size == sizeof *ret);
+
+	igd.monitor = NULL;		/* Mark request completed */
+
+	if (NULL == igd.dev)
+		return;				/* We lost our IGD */
+
+	if (NULL == ret) {
+		if (GNET_PROPERTY(upnp_debug)) {
+			g_warning("UPNP device \"%s\" reports no total packets received "
+				"(error %d => \"%s\")",
+				igd.dev->desc_url, code, upnp_strerror(code));
+		}
+	} else {
+		if (GNET_PROPERTY(upnp_debug) > 5) {
+			g_debug("UPNP device \"%s\" reports %u received packets",
+				igd.dev->desc_url, ret->value);
+		}
+
+		/*
+		 * Treat amount of received packets as a monotonically increasing
+		 * value.  If it falls (including a possible roll-over once in a
+		 * while), assume the device rebooted.
+		 */
+
+		if (ret->value < igd.rcvd_pkts) {
+			if (GNET_PROPERTY(upnp_debug)) {
+				g_warning("UPNP device \"%s\" may have been rebooted",
+					igd.dev->desc_url);
+			}
+			upnp_igd_discovered();		/* Unconditionally publish mappings */
+		}
+		igd.rcvd_pkts = ret->value;
+	}
+}
+
+/**
  * Completion callback for IGD monitoring.
  *
  * @param code		UPNP error code, 0 for OK
@@ -483,6 +538,28 @@ upnp_monitor_igd_callback(int code, void *value, size_t size, void *unused_arg)
 			}
 			goto rediscover;
 		}
+	} else {
+		return;		/* We lost our IGD */
+	}
+
+	g_assert(igd.dev != NULL);
+
+	/*
+	 * Monitor total amount of packets received by the IGD.
+	 *
+	 * The idea is that if we find out the amount is suddenly less than the
+	 * previous amount, chances are that the device has been rebooted (or
+	 * the counter rolled-over, but for our purpose it does not matter).
+	 *
+	 * If we think the device might have been rebooted, chances are the
+	 * previous port mappings were lost, so we'll re-install them.
+	 */
+
+	{
+		upnp_service_t *usd = upnp_service_get_common_if(igd.dev->services);
+
+		igd.monitor = upnp_ctrl_GetTotalPacketsReceived(usd,
+				upnp_packets_igd_callback, NULL);
 	}
 
 	return;
@@ -497,6 +574,24 @@ rediscover:
 
 	upnp_dev_free_null(&igd.dev);
 	igd.discover = TRUE;
+}
+
+/**
+ * Check whether we appear to be firewalled, either for TCP or UDP,
+ * updating the "port_mapping_required" property accordingly.
+ *
+ * @return TRUE when we are firewalled and in need for port mappings.
+ */
+static gboolean
+upnp_port_mapping_required(void)
+{
+	if (GNET_PROPERTY(is_firewalled) || GNET_PROPERTY(is_udp_firewalled)) {
+		gnet_prop_set_boolean_val(PROP_PORT_MAPPING_REQUIRED, TRUE);
+	} else {
+		gnet_prop_set_boolean_val(PROP_PORT_MAPPING_REQUIRED, FALSE);
+	}
+
+	return GNET_PROPERTY(port_mapping_required);
 }
 
 /**
@@ -529,13 +624,10 @@ upnp_monitor_igd(gpointer unused_obj)
 		 * IGD yet.
 		 */
 
-		if (GNET_PROPERTY(is_firewalled) || GNET_PROPERTY(is_udp_firewalled)) {
-			gnet_prop_set_boolean_val(PROP_PORT_MAPPING_REQUIRED, TRUE);
-		} else {
+		if (!upnp_port_mapping_required()) {
 			if (GNET_PROPERTY(upnp_debug) > 5)
-				g_debug("UPNP still no need for port mapping");
+				g_debug("UPNP no need for port mapping");
 
-			gnet_prop_set_boolean_val(PROP_PORT_MAPPING_REQUIRED, FALSE);
 			return TRUE;	/* Keep calling in case we become firewalled */
 		}
 
@@ -621,6 +713,7 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 	struct upnp_mapping *um = obj;
 	const upnp_service_t *usd;
 	static unsigned delayed;
+	int delay;
 
 	(void) unused_cq;
 	upnp_mapping_check(um);
@@ -632,10 +725,22 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 	 * regularily the first few times before waiting for a looong time.
 	 */
 
-	um->install_ev = cq_main_insert(
-		(NULL == igd.dev && delayed++ < UPNP_PUBLISH_RETRY_CNT) ?
-			UPNP_PUBLISH_RETRY_MS : UPNP_MAPPING_LIFE_MS,
-		upnp_map_publish, um);
+	if (NULL == igd.dev) {
+		if (delayed++ < UPNP_PUBLISH_RETRY_CNT)
+			delay = UPNP_PUBLISH_RETRY_MS;
+		else if (upnp_port_mapping_required())
+			delay = UPNP_MONITOR_DELAY_MS;
+		else
+			delay = UPNP_CHECK_DELAY_MS;
+	} else {
+		delay = UPNP_MAPPING_LIFE_MS;
+	}
+
+	if (GNET_PROPERTY(upnp_debug) > 15) {
+		g_debug("UPNP publish callout delay set to %d seconds", delay / 1000);
+	}
+
+	um->install_ev = cq_main_insert(delay, upnp_map_publish, um);
 
 	/*
 	 * When UPnP support is disabled, we record port mappings internally
@@ -917,7 +1022,7 @@ upnp_publish_mapping_kv(void *key, void *u_value, void *u_data)
  * If we have mappings to install, do so immediately.
  */
 static void
-upnp_idg_discovered(void)
+upnp_igd_discovered(void)
 {
 	g_assert(igd.dev != NULL);
 

@@ -239,6 +239,17 @@ upnp_service_get_wan_connection(GSList *services)
 }
 
 /**
+ * Fetch the common interface config service.
+ *
+ * @return a WAN_CIF service if found, NULL if no such service is available.
+ */
+upnp_service_t *
+upnp_service_get_common_if(GSList *services)
+{
+	return upnp_service_gslist_find(services, UPNP_SVC_WAN_CIF);
+}
+
+/**
  * Known service types we can interact with.
  *
  * The leading "urn:" string is removed from the names since it is a
