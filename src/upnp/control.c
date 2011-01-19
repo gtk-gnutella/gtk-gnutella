@@ -53,6 +53,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/nv.h"
 #include "lib/parse.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 
@@ -994,6 +995,7 @@ upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
 	char int_addr_buf[HOST_ADDR_BUFLEN];
 	char lease_buf[UINT32_DEC_BUFLEN];
 	const char *protocol;
+	const char *description;
 
 	g_assert(lease >= 0);
 	g_assert(lease <= MAX_INT_VAL(gint32));
@@ -1005,6 +1007,7 @@ upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
 	host_addr_to_string_buf(int_addr, int_addr_buf, sizeof int_addr_buf);
 	protocol = upnp_map_proto_to_string(proto);
 	int32_to_string_buf(lease, lease_buf, sizeof lease_buf);
+	description = str_smsg("%s (%s)", desc, protocol);
 
 	argv[0] = nv_pair_make_static_str(ARG_REMOTE_HOST, EMPTY);	/* Wildcard */
 	argv[1] = nv_pair_make_static_str(ARG_EXTERNAL_PORT, ext_port_buf);
@@ -1012,7 +1015,7 @@ upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
 	argv[3] = nv_pair_make_static_str(ARG_INTERNAL_PORT, int_port_buf);
 	argv[4] = nv_pair_make_static_str(ARG_INTERNAL_CLIENT, int_addr_buf);
 	argv[5] = nv_pair_make_static_str(ARG_ENABLED, ONE);		/* Enable! */
-	argv[6] = nv_pair_make_static_str(ARG_PORTMAP_DESC, desc);
+	argv[6] = nv_pair_make_static_str(ARG_PORTMAP_DESC, description);
 	argv[7] = nv_pair_make_static_str(ARG_LEASE_DURATION, lease_buf);
 
 	/*

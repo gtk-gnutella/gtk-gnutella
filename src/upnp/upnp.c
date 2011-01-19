@@ -44,10 +44,11 @@ RCSID("$Id$")
 #include "service.h"
 
 #include "core/settings.h"		/* For listen_addr() */
-#include "core/version.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
+
+#include "if/core/main.h"		/* For main_get_build() */
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
@@ -128,6 +129,22 @@ gboolean
 upnp_delete_pending(void)
 {
 	return igd.delete_pending != 0;
+}
+
+/**
+ * Builds a suitable description string for port mappings.
+ *
+ * @return pointer to static string.
+ */
+static const char *
+upnp_mapping_description(void)
+{
+	static char buf[32];
+
+	if ('\0' == buf[0])
+		gm_snprintf(buf, sizeof buf, "gtk-gnutella/r%u", main_get_build());
+
+	return buf;
 }
 
 /**
@@ -780,7 +797,7 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 
 	um->rpc = upnp_ctrl_AddPortMapping(usd, um->proto, um->port,
 		upnp_get_local_addr(), um->port,
-		version_string, UPNP_MAPPING_LIFE,
+		upnp_mapping_description(), UPNP_MAPPING_LIFE,
 		upnp_map_publish_reply, um);
 
 	if (NULL == um->rpc) {
