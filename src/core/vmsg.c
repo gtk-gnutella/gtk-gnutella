@@ -516,7 +516,8 @@ vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port)
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
 	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent TCP connect-back REQ to %s", node_infostr(n));
+		g_debug("VMSG sent TCP connect-back REQ for port %u to %s",
+			port, node_infostr(n));
 }
 
 /**
@@ -595,7 +596,8 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
 	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent UDP connect-back v1 REQ to %s", node_infostr(n));
+		g_debug("VMSG sent UDP connect-back v1 REQ for port %u to %s",
+			port, node_infostr(n));
 }
 
 /**
