@@ -296,7 +296,7 @@ upnp_dscv_got_connection_type(
 {
 	struct upnp_GetConnectionTypeInfo *ret = value;
 
-	g_assert(size == sizeof *ret);
+	g_assert(NULL == value || size == sizeof *ret);
 
 	/*
 	 * Make sure the device is an IGD capable of doing NAT.
@@ -343,7 +343,7 @@ upnp_dscv_got_external_ip(
 {
 	struct upnp_GetExternalIPAddress *ret = value;
 
-	g_assert(size == sizeof *ret);
+	g_assert(NULL == value || size == sizeof *ret);
 
 	/*
 	 * Make sure we did get a routable IP address, otherwise remove the device.

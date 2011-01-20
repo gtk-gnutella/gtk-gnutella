@@ -467,7 +467,7 @@ upnp_packets_igd_callback(int code, void *value, size_t size, void *unused_arg)
 
 	(void) unused_arg;
 
-	g_assert(size == sizeof *ret);
+	g_assert(NULL == value || size == sizeof *ret);
 
 	igd.monitor = NULL;		/* Mark request completed */
 
@@ -518,7 +518,7 @@ upnp_monitor_igd_callback(int code, void *value, size_t size, void *unused_arg)
 
 	(void) unused_arg;
 
-	g_assert(size == sizeof *ret);
+	g_assert(NULL == value || size == sizeof *ret);
 
 	igd.monitor = NULL;		/* Mark request completed */
 
