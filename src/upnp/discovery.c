@@ -49,6 +49,7 @@ RCSID("$Id$")
 
 #include "core/sockets.h"
 #include "core/http.h"
+#include "core/version.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -832,11 +833,12 @@ upnp_msearch_send(struct gnutella_socket *s, host_addr_t addr,
 	len = gm_snprintf(req, sizeof req,
 		"M-SEARCH * HTTP/1.1\r\n"
 		"HOST: " UPNP_MCAST_ADDR ":" STRINGIFY(UPNP_PORT) "\r\n"
+		"USER-AGENT: %s\r\n"
 		"MAN: \"ssdp:discover\"\r\n"	/* Mandatory extension name */
 		"ST: %s\r\n"					/* Search type */
 		"MX: %u\r\n"	/* Max wait time -- reply randomly within time range */
 		"\r\n",
-		type, mx);
+		version_short_string, type, mx);
 
 	gnet_host_set(&to, addr, UPNP_PORT);
 	r = s->wio.sendto(&s->wio, &to, req, len);
