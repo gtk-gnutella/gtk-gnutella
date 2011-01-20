@@ -535,6 +535,7 @@ inet_got_incoming(const host_addr_t addr)
 	if (GNET_PROPERTY(is_firewalled)) {
 		wd_wakeup(incoming_wd);
 		inet_not_firewalled();
+		inet_where();
 	}
 
 	wd_kick(incoming_wd);
