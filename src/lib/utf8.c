@@ -3083,7 +3083,87 @@ LAZY_CONVERT(utf8_to_ui_string, (const char *src), (src))
 
 LAZY_CONVERT(locale_to_ui_string, (const char *src), (src))
 LAZY_CONVERT(locale_to_ui_string2, (const char *src), (src))
-	
+
+/**
+ * Converts a UTF-8 encoded string to a UTF-16 encoded string.
+ *
+ * The target string ``out'' is always be zero-terminated unless
+ * ``size'' is zero.
+ *
+ * @param in	the UTF-8 input string.
+ * @param out	the target buffer for converted UTF-16 string.
+ * @param size	the length of the outbuf buffer - characters not
+ *				bytes! Whether the buffer was too small can be
+ *				checked by comparing ``size'' with the return value.
+ *				The value of ``size'' MUST NOT exceed INT_MAX.
+ *
+ * @returns		the length in characters of completely converted
+ *				string.
+ */
+static size_t
+utf8_to_utf16(const char *in, guint16 *out, size_t size)
+{
+	const char *s = in;
+	guint16 *p = out;
+	guint retlen;
+
+	g_assert(in != NULL);
+	g_assert(size == 0 || out != NULL);
+	g_assert(size <= INT_MAX);
+
+	if (size > 0) {
+		guint32 uc;
+
+		while (size > 0) {
+			unsigned n;
+			guint16 buf[2];
+
+			uc = utf8_decode_char_fast(s, &retlen);
+			if (!uc)
+				break;
+
+			n = utf16_encode_char(uc, buf);
+			if (n >= size)
+				break;
+
+			size -= n;
+			if (n > 0) {
+				*p++ = peek_be16(&buf[0]);
+				if (n > 1) {
+					*p++ = peek_be16(&buf[1]);
+				}
+			}
+			s += retlen;
+		}
+		*p = 0x0000;
+	}
+
+	if (*s != '\0') {
+		guint32 uc;
+
+		while (0x0000 != (uc = utf8_decode_char_fast(s, &retlen))) {
+			guint16 buf[2];
+			s += retlen;
+			p += utf16_encode_char(uc, buf);
+		}
+	}
+
+	return p - out;
+}
+
+
+guint16 *
+utf8_to_utf16_string(const char *in)
+{
+	size_t n;
+	guint16 *out;
+
+	n = utf8_to_utf16(in, NULL, 0);
+	out = halloc(n * sizeof *out);
+	utf8_to_utf16(in, out, n);
+	return out;
+}
+
 /**
  * Converts a UTF-8 encoded string to a UTF-32 encoded string.
  *

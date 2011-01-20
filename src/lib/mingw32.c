@@ -66,7 +66,9 @@ RCSID("$Id$")
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
 #include "unsigned.h"
+#include "utf8.h"
 #include "walloc.h"
+
 #include "override.h"			/* Must be the last header included */
 
 #undef stat
@@ -346,7 +348,16 @@ mingw_open(const char *pathname, int flags, ...)
     }
 
 	/* FIXME: This should use _wopen() for Unicode support */
-	res = open(pathname, flags, mode);
+	if (utf8_is_valid_string(pathname)) {
+		guint16 *pathname_utf16;
+
+		pathname_utf16 = utf8_to_utf16_string(pathname);
+		res = _wopen(pathname_utf16, flags, mode);
+		HFREE_NULL(pathname_utf16);
+	} else {
+		res = open(pathname, flags, mode);
+	}
+
 	if (res == -1)
 		errno = GetLastError();
 	return res;
@@ -444,12 +455,9 @@ mingw_truncate(const char *pathname, off_t len)
 {
 	int fd, ret, saved_errno;
 
-	/* FIXME: This should use _wopen() for Unicode support */
-	fd = open(pathname, O_RDWR);
-	if (-1 == fd) {
-		errno = GetLastError();
+	fd = mingw_open(pathname, O_RDWR);
+	if (-1 == fd)
 		return -1;
-	}
 
 	ret = ftruncate(fd, len);
 	saved_errno = (ret == -1) ? GetLastError() : 0;
