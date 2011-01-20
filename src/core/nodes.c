@@ -823,8 +823,8 @@ node_slow_timer(time_t now)
 		}
 
 		if (GNET_PROPERTY(fw_debug) > 2) {
-			g_debug("FW: found %u ultra nodes to send connect-back messages",
-				count);
+			g_debug("FW: found %u ultra node%s to send connect-back messages",
+				count, 1 == count ? "" : "s");
 		}
 
 		if (count > 0) {
@@ -9430,8 +9430,12 @@ node_infostr(const gnutella_node_t *n)
 {
 	static char buf[128];
 
-	gm_snprintf(buf, sizeof buf, "%s node %s <%s>",
-		node_type(n), node_gnet_addr(n), node_vendor(n));
+	if (NODE_IS_UDP(n)) {
+		gm_snprintf(buf, sizeof buf, "UDP node %s", node_addr(n));
+	} else {
+		gm_snprintf(buf, sizeof buf, "%s node %s <%s>",
+			node_type(n), node_gnet_addr(n), node_vendor(n));
+	}
 
 	return buf;
 }

@@ -368,9 +368,9 @@ handle_features_supported(struct gnutella_node *n,
 
 	if (NODE_IS_UDP(n)) {
 		if (GNET_PROPERTY(vmsg_debug)) {
-			g_warning("got %s/%uv%u over UDP via %s, ignoring",
+			g_warning("got %s/%uv%u via %s, ignoring",
 				vendor_code_to_string(vmsg->vendor),
-				vmsg->id, vmsg->version, node_addr(n));
+				vmsg->id, vmsg->version, node_infostr(n));
 		}
 		return;
 	}
@@ -487,6 +487,9 @@ handle_tcp_connect_back(struct gnutella_node *n,
 		return;
 	}
 
+	if (GNET_PROPERTY(vmsg_debug) > 2)
+		g_debug("VMSG got TCP connect-back REQ from %s", node_infostr(n));
+
 	/* XXX forward to neighbours supporting the remote connect back message? */
 
 	node_connect_back(n, port);
@@ -511,6 +514,9 @@ vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port)
 	poke_le16(payload, port);
 
 	gmsg_sendto_one(n, v_tmp, msgsize);
+
+	if (GNET_PROPERTY(vmsg_debug) > 2)
+		g_debug("VMSG sent TCP connect-back REQ to %s", node_infostr(n));
 }
 
 /**
@@ -541,6 +547,11 @@ handle_udp_connect_back(struct gnutella_node *n,
 				port, vmsg->name, node_infostr(n));
 		}
 		return;
+	}
+
+	if (GNET_PROPERTY(vmsg_debug) > 2) {
+		g_debug("VMSG got UDP connect-back v%u REQ from %s",
+			vmsg->version, node_infostr(n));
 	}
 
 	/*
@@ -582,6 +593,9 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
 	memcpy(payload, GNET_PROPERTY(servent_guid), GUID_RAW_SIZE);
 
 	gmsg_sendto_one(n, v_tmp, msgsize);
+
+	if (GNET_PROPERTY(vmsg_debug) > 2)
+		g_debug("VMSG sent UDP connect-back v1 REQ to %s", node_infostr(n));
 }
 
 /**
@@ -617,10 +631,13 @@ vmsg_send_proxy_ack(struct gnutella_node *n,
 
 	/*
 	 * Reply with a control message, so that the issuer knows that we can
-	 * proxyfy pushes to it ASAP.
+	 * proxify pushes to it ASAP.
 	 */
 
 	gmsg_ctrl_sendto_one(n, v_tmp, msgsize);
+
+	if (GNET_PROPERTY(vmsg_debug) > 2)
+		g_debug("VMSG sent proxy ACK v%d to %s", version, node_infostr(n));
 }
 
 /**
@@ -720,9 +737,9 @@ handle_proxy_ack(struct gnutella_node *n,
 	port = peek_le16(payload);
 
 	if (GNET_PROPERTY(vmsg_debug) > 2) {
-		g_debug("VMSG got proxy ACK v%u from %s <%s>: proxy at %s",
+		g_debug("VMSG got proxy ACK v%u from %s: proxy at %s",
 			vmsg->version,
-			node_addr(n), node_vendor(n), host_addr_port_to_string(ha, port));
+			node_infostr(n), host_addr_port_to_string(ha, port));
 	}
 
 	if (!host_is_valid(ha, port)) {
@@ -867,8 +884,7 @@ vmsg_send_proxy_cancel(struct gnutella_node *n)
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
 	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent proxy CANCEL to %s <%s>",
-			node_addr(n), node_vendor(n));
+		g_debug("VMSG sent proxy CANCEL to %s", node_infostr(n));
 }
 
 /**
@@ -916,7 +932,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 		if (GNET_PROPERTY(vmsg_debug)) {
 			g_warning("no results advertised in %s/%uv%u from %s",
 				vendor_code_to_string(vmsg->vendor),
-				vmsg->id, vmsg->version, node_addr(n));
+				vmsg->id, vmsg->version, node_infostr(n));
 		}
 		goto not_handling;
 	}
@@ -932,7 +948,7 @@ not_handling:
 	if (GNET_PROPERTY(vmsg_debug)) {
 		g_warning("not handling %s/%uv%u from %s",
 			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, node_addr(n));
+			vmsg->id, vmsg->version, node_infostr(n));
 	}
 }
 
@@ -1024,7 +1040,7 @@ handle_oob_reply_ack(struct gnutella_node *n,
 	if (!NODE_IS_UDP(n)) {
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
 			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, node_addr(n));
+			vmsg->id, vmsg->version, node_infostr(n));
 		return;
 	}
 
@@ -1071,7 +1087,7 @@ ignore:
 	if (GNET_PROPERTY(vmsg_debug)) {
 		g_warning("got %s/%uv%u from %s via %s, ignoring",
 			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, msg, node_addr(n));
+			vmsg->id, vmsg->version, msg, node_infostr(n));
 	}
 }
 
@@ -1113,7 +1129,7 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n,
 
 	if (GNET_PROPERTY(vmsg_debug) > 2)
 		g_debug("VMSG sent OOB reply ACK %s to %s for %u hit%s",
-			guid_hex_str(muid), node_addr(n), want, want == 1 ? "" : "s");
+			guid_hex_str(muid), node_infostr(n), want, want == 1 ? "" : "s");
 }
 
 /**
@@ -1368,7 +1384,7 @@ handle_udp_crawler_ping(struct gnutella_node *n,
 	if (!NODE_IS_UDP(n)) {
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
 			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, node_addr(n));
+			vmsg->id, vmsg->version, node_infostr(n));
 		return;
 	}
 
@@ -1427,7 +1443,7 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 		guint8 nleaves = peek_u8(&payload[1]);
 
 		g_debug("VMSG sending %s with up=%u and leaves=%u to %s",
-			gmsg_infostr_full(v_tmp, msgsize), nup, nleaves, node_addr(n));
+			gmsg_infostr_full(v_tmp, msgsize), nup, nleaves, node_infostr(n));
 	}
 
 	udp_send_msg(n, v_tmp, msgsize);
@@ -1751,11 +1767,10 @@ handle_svn_release_notify(struct gnutella_node *n,
 		gnet_prop_set_string(PROP_LATEST_SVN_RELEASE_SIGNATURE, hex);
 		G_FREE_NULL(hex);
 	} else {
-		g_message("VMSG BAD %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
+		g_message("VMSG BAD %s v%u from %s (TTL=%u, hops=%u, size=%lu)",
 			vmsg->name,
 			vmsg->version,
-			node_addr(n),
-			NODE_IS_UDP(n) ? "UDP" : "TCP",
+			node_infostr(n),
 			gnutella_header_get_ttl(n->header),
 			gnutella_header_get_hops(n->header),
 			(unsigned long) size);
@@ -1871,7 +1886,7 @@ vmsg_send_head_pong_v1(struct gnutella_node *n, const struct sha1 *sha1,
 
 	if (GNET_PROPERTY(vmsg_debug) > 1) {
 		g_debug("VMSG sending HEAD Pong v1 to %s (%u bytes)",
-			node_addr(n), paysize);
+			node_infostr(n), paysize);
 	}
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
@@ -1986,7 +2001,7 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 
 	if (GNET_PROPERTY(vmsg_debug) > 1) {
 		g_debug("VMSG sending HEAD Pong v2 to %s (%u bytes)",
-			node_addr(n), paysize);
+			node_infostr(n), paysize);
 	}
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
@@ -2249,7 +2264,7 @@ vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, guint16 port,
 		if (GNET_PROPERTY(vmsg_debug) > 1) {
 			g_debug(
 				"VMSG sending HEAD Ping to %s (%u bytes) for urn:sha1:%s",
-					node_addr(n), paysize, sha1_base32(sha1));
+					node_infostr(n), paysize, sha1_base32(sha1));
 		}
 		vmsg_send_data(n, v_tmp, msgsize);
 	}
@@ -2308,7 +2323,7 @@ head_ping_target_by_guid(const struct guid *guid)
 			if (GNET_PROPERTY(vmsg_debug)) {
 				g_debug(
 					"VMSG HEAD Ping target %s does not support HEAD pings",
-					node_addr(n));
+					node_infostr(n));
 			}
 			n = NULL;
 		}
@@ -2344,11 +2359,10 @@ handle_head_ping(struct gnutella_node *n,
 		return;
 
 	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_debug("VMSG got %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
+		g_debug("VMSG got %s v%u from %s (TTL=%u, hops=%u, size=%lu)",
 			vmsg->name,
 			vmsg->version,
-			node_addr(n),
-			NODE_IS_UDP(n) ? "UDP" : "TCP",
+			node_infostr(n),
 			gnutella_header_get_ttl(n->header),
 			gnutella_header_get_hops(n->header),
 			(unsigned long) size);
@@ -2429,7 +2443,7 @@ handle_head_ping(struct gnutella_node *n,
 			if (head_ping_register_forwarded(muid, &sha1, n)) {
 				if (GNET_PROPERTY(vmsg_debug) > 1) {
 					g_debug("VMSG HEAD Ping: forwarding to %s",
-						node_addr(target));
+						node_infostr(target));
 				}
 				gmsg_split_sendto_one(target, header, n->data,
 					GTA_HEADER_SIZE + n->size);
@@ -2571,7 +2585,7 @@ forward_head_pong(struct gnutella_node *n,
 
 			if (GNET_PROPERTY(vmsg_debug)) {
 				g_debug("VMSG HEAD Pong: forwarding to %s",
-					node_addr(target));
+					node_infostr(target));
 			}
 
 			memcpy(header, n->header, GTA_HEADER_SIZE);
@@ -2878,11 +2892,10 @@ handle_head_pong(struct gnutella_node *n,
 		return;
 
 	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_debug("VMSG got %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
+		g_debug("VMSG got %s v%u from %s (TTL=%u, hops=%u, size=%lu)",
 			vmsg->name,
 			vmsg->version,
-			node_addr(n),
-			NODE_IS_UDP(n) ? "UDP" : "TCP",
+			node_infostr(n),
 			gnutella_header_get_ttl(n->header),
 			gnutella_header_get_hops(n->header),
 			(unsigned long) size);
