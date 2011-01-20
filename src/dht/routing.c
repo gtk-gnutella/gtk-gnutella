@@ -340,6 +340,7 @@ void
 dht_configured_mode_changed(dht_mode_t mode)
 {
 	dht_mode_t new_mode = mode;
+	gboolean bootstrap_needed = FALSE;
 
 	switch (mode) {
 	case DHT_MODE_INACTIVE:
@@ -349,10 +350,23 @@ dht_configured_mode_changed(dht_mode_t mode)
 	case DHT_MODE_ACTIVE:
 		if (GNET_PROPERTY(is_udp_firewalled))
 			new_mode = DHT_MODE_PASSIVE;
+		else if (GNET_PROPERTY(dht_current_mode) != DHT_MODE_ACTIVE)
+			bootstrap_needed = TRUE;
 		break;
 	}
 
 	gnet_prop_set_guint32_val(PROP_DHT_CURRENT_MODE, new_mode);
+
+	/*
+	 * When switching to the active mode, a bootstrap is required
+	 * since in non-active mode the routing table is shrinked and we
+	 * now have an expanded routing table space to fill in.
+	 */
+
+	if (bootstrap_needed) {
+		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
+		dht_attempt_bootstrap();
+	}
 }
 
 /**
