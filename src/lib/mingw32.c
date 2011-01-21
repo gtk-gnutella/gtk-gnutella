@@ -63,6 +63,7 @@ RCSID("$Id$")
 
 #include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
+#include "halloc.h"
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
 #include "unsigned.h"
