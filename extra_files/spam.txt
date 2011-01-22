@@ -138,7 +138,7 @@ NAME (^|[[:punct:]]|[[:space:]])([rR][eE][eE][lL][kK][iI][dD][dD][yY][mM][oO][vV
 ADDED 2011-01-16
 END
 
-NAME [a-zA-Z0-9_ !.,;&$()#+-]{128}[.]txt
+NAME [a-zA-Z0-9_ !.,;&$()#+-]{128}[.]txt$
 SIZE 100-1000
 ADDED 2011-01-18
 END
