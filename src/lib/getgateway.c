@@ -49,11 +49,11 @@ RCSID("$Id$")
 
 #include "getgateway.h"
 #include "host_addr.h"
-
-#include "override.h"			/* Must be the last header included */
 #include "ascii.h"
 #include "misc.h"
 #include "parse.h"
+
+#include "override.h"			/* Must be the last header included */
 
 /**
  * Compute default gateway address.
