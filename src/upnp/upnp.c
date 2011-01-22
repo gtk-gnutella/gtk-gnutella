@@ -64,8 +64,7 @@ RCSID("$Id$")
 #define UPNP_CHECK_DELAY		1800	/**< Every 30 minutes */
 #define UPNP_MAPPING_LIFE		3600	/**< 1 hour */
 #define UPNP_MAPPING_CAUTION	120		/**< 2 minutes */
-#define UPNP_PUBLISH_RETRY		10		/**< 10 seconds */
-#define UPNP_PUBLISH_RETRY_CNT	12		/**< 2 ports 6 times, ~ 1 minute */
+#define UPNP_PUBLISH_RETRY		2		/**< 2 seconds */
 
 #define UPNP_MONITOR_DELAY_MS	(UPNP_MONITOR_DELAY * 1000)
 #define UPNP_PUBLISH_RETRY_MS	(UPNP_PUBLISH_RETRY * 1000)
@@ -81,8 +80,9 @@ static struct {
 	upnp_device_t *dev;			/**< Our Internet Gateway Device */
 	upnp_ctrl_t *monitor;		/**< Regular monitoring event */
 	guint32 rcvd_pkts;			/**< Amount of received packets */
-	gboolean discover;			/**< Force discovery again */
 	unsigned delete_pending;	/**< Amount of pending mapping deletes */
+	unsigned discover:1;		/**< Force discovery again */
+	unsigned discovery_done:1;	/**< Was discovery completed? */
 } igd;
 
 enum upnp_mapping_magic { UPNP_MAPPING_MAGIC = 0x463a8514 };
@@ -363,6 +363,7 @@ upnp_discovered(GSList *devlist, void *unused_arg)
 
 	(void) unused_arg;
 
+	igd.discovery_done = TRUE;
 	count = g_slist_length(devlist);
 
 	if (0 == count)
@@ -450,6 +451,16 @@ done:
 	}
 
 	gm_slist_free_null(&devlist);
+}
+
+/**
+ * Launch an UPnP discovery.
+ */
+static void
+upnp_launch_discovery(void)
+{
+	igd.discovery_done = FALSE;
+	upnp_discover(UPNP_DISCOVERY_TIMEOUT, upnp_discovered, NULL);
 }
 
 /**
@@ -666,7 +677,7 @@ upnp_monitor_igd(gpointer unused_obj)
 			if (GNET_PROPERTY(upnp_debug) > 1) {
 				g_debug("UPNP initiating discovery");
 			}
-			upnp_discover(UPNP_DISCOVERY_TIMEOUT, upnp_discovered, NULL);
+			upnp_launch_discovery();
 		}
 	} else {
 		upnp_service_t *usd;
@@ -729,7 +740,6 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 {
 	struct upnp_mapping *um = obj;
 	const upnp_service_t *usd;
-	static unsigned delayed;
 	int delay;
 
 	(void) unused_cq;
@@ -743,7 +753,9 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 	 */
 
 	if (NULL == igd.dev) {
-		if (delayed++ < UPNP_PUBLISH_RETRY_CNT)
+		if (!GNET_PROPERTY(enable_upnp))
+			delay = 0;
+		else if (!igd.discovery_done)
 			delay = UPNP_PUBLISH_RETRY_MS;
 		else if (upnp_port_mapping_required())
 			delay = UPNP_MONITOR_DELAY_MS;
@@ -754,10 +766,11 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 	}
 
 	if (GNET_PROPERTY(upnp_debug) > 15) {
-		g_debug("UPNP publish callout delay set to %d seconds", delay / 1000);
+		g_debug("UPNP publish callout delay for %s port %u set to %d seconds",
+			upnp_map_proto_to_string(um->proto), um->port, delay / 1000);
 	}
 
-	um->install_ev = cq_main_insert(delay, upnp_map_publish, um);
+	um->install_ev = delay ? cq_main_insert(delay, upnp_map_publish, um) : NULL;
 
 	/*
 	 * When UPnP support is disabled, we record port mappings internally
@@ -1136,7 +1149,7 @@ upnp_post_init(void)
 	 * that support is disabled.
 	 */
 
-	upnp_discover(UPNP_DISCOVERY_TIMEOUT, upnp_discovered, NULL);
+	upnp_launch_discovery();
 }
 
 /**
