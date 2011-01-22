@@ -2077,7 +2077,16 @@ http_async_remove(http_async_t *ha, http_errtype_t type, gpointer code)
 	http_async_check(ha);
 
 	(*ha->error_ind)(ha, type, code);
-	http_async_free(ha);
+
+	/*
+	 * Callback may decide to cancel/close the request on errors, which
+	 * will mark the request with the HA_F_FREED flag (the object being
+	 * collected asynchronously so still being accessible upon callback
+	 * return).
+	 */
+
+	if (!(ha->flags & HA_F_FREED))
+		http_async_free(ha);
 }
 
 /**
