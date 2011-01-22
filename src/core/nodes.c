@@ -8261,6 +8261,13 @@ node_bye_all(void)
 		struct gnutella_node *n = sl->data;
 
 		/*
+		 * Servent is shutdowning, cancel all pending events.
+		 */
+
+		cq_cancel(&n->dht_nope_ev);
+		cq_cancel(&n->tsync_ev);
+
+		/*
 		 * Record the NODE_F_EOF_WAIT condition, so that when waiting for
 		 * all byes to come through, we can monitor which connections were
 		 * closed, and exit immediately when we have no more pending byes.
