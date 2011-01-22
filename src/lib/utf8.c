@@ -1114,21 +1114,36 @@ utf8_strcpy_max(char *dst, size_t dst_size, const char *src, size_t max_chars)
  * @returns 0 if the unicode character is invalid. Otherwise, the
  *          amount of UTF-16 characters is returned i.e., 1 or 2.
  */
-int
+static unsigned NON_NULL_PARAM((2)) 
 utf16_encode_char(guint32 uc, guint16 *dst)
 {
-	g_assert(dst != NULL);
-
-	if (uc <= 0xFFFF) {
+	if (uc < 0xFFFF) {
 		*dst = uc;
 		return 1;
-	} else if (uc <= 0x10FFFF) {
+	} else if (uc > 0xFFFFU && uc <= 0x10FFFFUL) {
 		uc -= 0x10000;
 		dst[0] = (uc >> 10) | UNI_SURROGATE_FIRST;
 		dst[1] = (uc & 0x3ff) | UNI_SURROGATE_SECOND;
 		return 2;
 	}
 	return 0;
+}
+
+/**
+ * @param uc the unicode character to encode.
+ * @returns 0 if the unicode codepoint is invalid. Otherwise the
+ *          length of the UTF-8 character is returned.
+ */
+unsigned
+utf16_encoded_char_len(guint32 uc)
+{
+	if (uc < 0xFFFF) {
+		return 1;
+	} else if (uc > 0xFFFFU && uc <= 0x10FFFFUL) {
+		return 2;
+	} else {
+		return 0;
+	}
 }
 
 /**
@@ -3105,45 +3120,44 @@ utf8_to_utf16(const char *in, guint16 *out, size_t size)
 {
 	const char *s = in;
 	guint16 *p = out;
-	guint retlen;
 
 	g_assert(in != NULL);
 	g_assert(size == 0 || out != NULL);
 	g_assert(size <= INT_MAX);
 
 	if (size > 0) {
-		guint32 uc;
 
+		size--;	/* Reserve one for NUL-termination */
 		while (size > 0) {
-			unsigned n;
+			guint32 uc;
 			guint16 buf[2];
+			unsigned int in_len, out_len;
 
-			uc = utf8_decode_char_fast(s, &retlen);
-			if (!uc)
+			uc = utf8_decode_char_fast(s, &in_len);
+			if (0x0000 == uc)
 				break;
 
-			n = utf16_encode_char(uc, buf);
-			if (n >= size)
+			out_len = utf16_encode_char(uc, buf);
+			if (out_len > size)
 				break;
 
-			size -= n;
-			if (n > 0) {
-				*p++ = buf[0];
-				if (n > 1) {
-					*p++ = buf[1];
-				}
+			size -= out_len;
+			s += in_len;
+			*p++ = buf[0];
+			if (out_len > 1) {
+				*p++ = buf[1];
 			}
-			s += retlen;
 		}
 		*p = 0x0000;
 	}
 
 	if (*s != '\0') {
 		guint32 uc;
+		unsigned in_len;
 
-		while (0x0000 != (uc = utf8_decode_char_fast(s, &retlen))) {
+		while (0x0000 != (uc = utf8_decode_char_fast(s, &in_len))) {
 			guint16 buf[2];
-			s += retlen;
+			s += in_len;
 			p += utf16_encode_char(uc, buf);
 		}
 	}
@@ -3162,7 +3176,7 @@ utf8_to_utf16_string(const char *in)
 	size_t n;
 	guint16 *out;
 
-	n = utf8_to_utf16(in, NULL, 0);
+	n = 1 + utf8_to_utf16(in, NULL, 0);
 	out = halloc(n * sizeof *out);
 	utf8_to_utf16(in, out, n);
 	return out;
@@ -3179,9 +3193,11 @@ utf16_decode_pair(guint16 c, guint16 next)
 {
 	guint32 w1, w2;
 
+	if (c < UNI_SURROGATE_FIRST)
+		return c;
 	if (UNI_ILLEGAL == c)
 		return (guint32) -1;
-	if (c < UNI_SURROGATE_FIRST || c > UNI_SURROGATE_LAST)
+	if (c > UNI_SURROGATE_LAST)
 		return c;
 	if (next < UNI_SURROGATE_SECOND || next > UNI_SURROGATE_LAST)
 		return (guint32) -1;
@@ -3197,13 +3213,7 @@ utf16_decode_char(const guint16 *s, guint *retlen)
 	guint32 uc;
 
 	uc = utf16_decode_pair(s[0], 0x0000 != s[0] ? s[1] : 0x0000);
-	if (uc <= 0xFFFFU) {
-		*retlen = 1;
-	} else if (uc <= 0x10FFFF) {
-		*retlen = 2;
-	} else {
-		*retlen = 0;
-	}
+	*retlen = utf16_encoded_char_len(uc);
 	return uc;
 }
 
@@ -3281,7 +3291,7 @@ utf16_to_utf8_string(const guint16 *in)
 	size_t n;
 	char *out;
 
-	n = utf16_to_utf8(in, NULL, 0);
+	n = 1 + utf16_to_utf8(in, NULL, 0);
 	out = halloc(n * sizeof *out);
 	utf16_to_utf8(in, out, n);
 	return out;
@@ -6690,7 +6700,7 @@ utf8_regression_checks(void)
 
 }
 
-#if 0 /* For testing mingw_open() with Unicode support */
+#if 1 /* For testing mingw_open() with Unicode support */
 #undef open
 int
 my_open(const char *pathname, int flags, ...)
@@ -6712,6 +6722,7 @@ my_open(const char *pathname, int flags, ...)
 
 		pathname_utf16 = utf8_to_utf16_string(pathname);
 		pathname_utf8 = utf16_to_utf8_string(pathname_utf16);
+		g_assert(0 == strcmp(pathname, pathname_utf8));
 		g_debug("pathname=\"%s\"", pathname_utf8);
 		res = open(pathname_utf8, flags, mode);
 		HFREE_NULL(pathname_utf8);
