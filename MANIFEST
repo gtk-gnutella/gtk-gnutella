@@ -600,6 +600,8 @@ src/lib/getdate.h
 src/lib/getdate.y
 src/lib/getline.c
 src/lib/getline.h
+src/lib/getgateway.c
+src/lib/getgateway.h
 src/lib/getphysmemsize.c
 src/lib/getphysmemsize.h
 src/lib/glib-missing.c

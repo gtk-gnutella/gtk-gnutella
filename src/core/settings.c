@@ -77,6 +77,7 @@
 #include "lib/debug.h"
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/getgateway.h"
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
@@ -655,6 +656,16 @@ settings_init(void)
 		g_info("max I/O vector size is %d items", MAX_IOV_COUNT);
 		g_info("virtual memory page size is %lu bytes",
 			(gulong) compat_pagesize());
+
+		/* XXX temporary */
+		{
+			host_addr_t addr;
+
+			if (0 == getgateway(&addr))
+				g_info("default gateway is %s", host_addr_to_string(addr));
+			else
+				g_warning("cannot find default gateway");
+		}
 
 		if (GNET_PROPERTY(cpu_freq_max)) {
 			g_info("CPU frequency scaling detected");

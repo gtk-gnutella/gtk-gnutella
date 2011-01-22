@@ -86,6 +86,7 @@ LSRC = \
 	fs_free_space.c \
 	getdate.c \
 	getline.c \
+	getgateway.c \
 	getphysmemsize.c \
 	glib-missing.c \
 	gnet_host.c \

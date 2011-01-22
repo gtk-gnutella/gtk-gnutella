@@ -373,6 +373,8 @@ const char *mingw_filename_nearby(const char *file);
 gboolean mingw_stdin_pending(gboolean fifo);
 gboolean mingw_same_file_id(const char *pathname_a, const char *pathname_b);
 
+int mingw_getgateway(guint32 *ip);
+
 #else	/* !MINGW32 */
 
 #define mingw_early_init();

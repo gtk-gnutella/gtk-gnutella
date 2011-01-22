@@ -53,6 +53,7 @@ RCSID("$Id$")
 #include <powrprof.h>
 #include <conio.h>				/* For _kbhit() */
 #include <imagehlp.h>			/* For backtrace() emulation */
+#include <iphlpapi.h>			/* For GetBestRoute() */
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -1521,6 +1522,28 @@ mingw_same_file_id(const char *pathname_a, const char *pathname_b)
 		return FALSE;
 
 	return ia == ib;
+}
+
+/**
+ * Compute default gateway address.
+ *
+ * @param ip		where IPv4 gateway address is to be written
+ *
+ * @return 0 on success, -1 on failure with errno set.
+ */
+int
+mingw_getgateway(guint32 *ip)
+{
+	MIB_IPFORWARDROW ipf;
+
+	memset(&ipf, 0, sizeof ipf);
+	if (GetBestRoute(0, 0, &ipf) != NO_ERROR) {
+		errno = GetLastError();
+		return -1;
+	}
+
+	*ip = ipf.dwForwardNextHop;
+	return 0;
 }
 
 void
