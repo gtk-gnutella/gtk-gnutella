@@ -3151,7 +3151,11 @@ utf8_to_utf16(const char *in, guint16 *out, size_t size)
 	return p - out;
 }
 
-
+/**
+ * Duplicate a UTF-8 encoded string an a UTF-16 encoded string.
+ *
+ * @return newly halloc()ed string.
+ */
 guint16 *
 utf8_to_utf16_string(const char *in)
 {
