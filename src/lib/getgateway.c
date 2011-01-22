@@ -65,6 +65,7 @@ getgateway(host_addr_t *addrp)
 		return -1;
 
 	*addrp = host_addr_get_ipv4(ip);
+	return 0;
 }
 #else
 {

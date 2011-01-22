@@ -350,7 +350,7 @@ mingw_open(const char *pathname, int flags, ...)
     }
 
 	/* FIXME: This should use _wopen() for Unicode support */
-	if (utf8_is_valid_string(pathname)) {
+	if (0 && utf8_is_valid_string(pathname)) {
 		guint16 *pathname_utf16;
 
 		pathname_utf16 = utf8_to_utf16_string(pathname);
@@ -1542,7 +1542,7 @@ mingw_getgateway(guint32 *ip)
 		return -1;
 	}
 
-	*ip = ipf.dwForwardNextHop;
+	*ip = ntohl(ipf.dwForwardNextHop);
 	return 0;
 }
 
