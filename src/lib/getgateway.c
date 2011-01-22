@@ -37,6 +37,10 @@
 
 RCSID("$Id$")
 
+#ifdef I_NET_ROUTE
+#include <net/route.h>
+#endif
+
 #if defined(I_LINUX_NETLINK) && defined(I_LINUX_RTNETLINK)
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>

@@ -666,6 +666,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_netif I_NET_IF         /**/
 
+/* I_NET_ROUTE:
+ *	This symbol, if defined, indicates to the C program that it can
+ *	include <net/route.h>.
+ */
+#$i_netroute I_NET_ROUTE	/**/
+
 /* I_NETINET_IN:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <netinet/in.h>. Otherwise, you may try <sys/in.h>.
