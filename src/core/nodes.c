@@ -4042,8 +4042,10 @@ parse_ip_port(const char *str, const char **endptr,
 	gboolean ret = FALSE;
 
 	s = skip_ascii_spaces(s);
-	if (!string_to_host_addr(s, &s, &addr) || !is_host_addr(addr))
+	if (!string_to_host_addr(s, &s, &addr) || !is_host_addr(addr)) {
+		port = 0;
 		goto done;
+	}
 
 	if (':' == s[0]) {
 		guint32 u;
@@ -4061,14 +4063,15 @@ parse_ip_port(const char *str, const char **endptr,
 
 	if (addr_ptr)
 		*addr_ptr = addr;
-	if (port_ptr)
-		*port_ptr = port;
 
 	ret = TRUE;
 	
 done:
 	if (endptr)
 		*endptr = s;
+
+	if (port_ptr)
+		*port_ptr = port;
 
 	return ret;
 }

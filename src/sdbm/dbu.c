@@ -154,6 +154,7 @@ doit(register cmd *act, char *file)
 			} else {
 				oops("bad input; %s", line);
 				val = nullitem;     /* shut compiler warnings */
+				key.dsize = 0;
 			}
 	
 			if (sdbm_store(db, key, val, DBM_REPLACE) < 0) {

@@ -1118,15 +1118,17 @@ static unsigned NON_NULL_PARAM((2))
 utf16_encode_char(guint32 uc, guint16 *dst)
 {
 	if (uc < 0xFFFF) {
-		*dst = uc;
+		dst[0] = uc;
+		dst[1] = 0;
 		return 1;
 	} else if (uc > 0xFFFFU && uc <= 0x10FFFFUL) {
 		uc -= 0x10000;
 		dst[0] = (uc >> 10) | UNI_SURROGATE_FIRST;
 		dst[1] = (uc & 0x3ff) | UNI_SURROGATE_SECOND;
 		return 2;
+	} else {
+		return 0;
 	}
-	return 0;
 }
 
 /**
@@ -3138,7 +3140,7 @@ utf8_to_utf16(const char *in, guint16 *out, size_t size)
 				break;
 
 			out_len = utf16_encode_char(uc, buf);
-			if (out_len > size)
+			if (0 == out_len || out_len > size)
 				break;
 
 			size -= out_len;
@@ -3156,9 +3158,8 @@ utf8_to_utf16(const char *in, guint16 *out, size_t size)
 		unsigned in_len;
 
 		while (0x0000 != (uc = utf8_decode_char_fast(s, &in_len))) {
-			guint16 buf[2];
 			s += in_len;
-			p += utf16_encode_char(uc, buf);
+			p += utf16_encoded_char_len(uc);
 		}
 	}
 
