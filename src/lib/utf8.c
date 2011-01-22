@@ -3179,13 +3179,15 @@ utf16_decode_pair(guint16 c, guint16 next)
 {
 	guint32 w1, w2;
 
-	if (c < 0xd800 || c > 0xdfff)
+	if (UNI_ILLEGAL == c)
+		return (guint32) -1;
+	if (c < UNI_SURROGATE_FIRST || c > UNI_SURROGATE_LAST)
 		return c;
-	if (next < 0xd800 || next > 0xdfff)
+	if (next < UNI_SURROGATE_SECOND || next > UNI_SURROGATE_LAST)
 		return (guint32) -1;
 
-	w1 = c & ~0xd800U;
-	w2 = next & ~0xdc00U;
+	w1 = c & ~UNI_SURROGATE_FIRST;
+	w2 = next & ~UNI_SURROGATE_SECOND;
 	return 0x10000UL | (w1 << 10) | w2;
 }
 
