@@ -907,7 +907,7 @@ upnp_map_remove(enum upnp_map_proto proto, guint16 port)
 		g_hash_table_remove(upnp_mappings, um);
 
 		if (GNET_PROPERTY(upnp_debug) > 1) {
-			g_warning("UPNP removing %spublished mapping for %s port %u",
+			g_debug("UPNP removing %spublished mapping for %s port %u",
 				um->published ? "" : "un",
 				upnp_map_proto_to_string(um->proto), um->port);
 		}
