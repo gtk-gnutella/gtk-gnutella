@@ -3128,9 +3128,9 @@ utf8_to_utf16(const char *in, guint16 *out, size_t size)
 
 			size -= n;
 			if (n > 0) {
-				*p++ = peek_be16(&buf[0]);
+				*p++ = buf[0];
 				if (n > 1) {
-					*p++ = peek_be16(&buf[1]);
+					*p++ = buf[1];
 				}
 			}
 			s += retlen;
@@ -3165,6 +3165,123 @@ utf8_to_utf16_string(const char *in)
 	n = utf8_to_utf16(in, NULL, 0);
 	out = halloc(n * sizeof *out);
 	utf8_to_utf16(in, out, n);
+	return out;
+}
+
+/**
+ * @note If decoding was successful and the resulting codepoint is
+ *		 greater than 0xFFFF, "next" has been used and should be skipped
+ * 		 when decoding successively.
+ * @return (guint32) -1 on failure, 
+ */
+static inline guint32
+utf16_decode_pair(guint16 c, guint16 next)
+{
+	guint32 w1, w2;
+
+	if (c < 0xd800 || c > 0xdfff)
+		return c;
+	if (next < 0xd800 || next > 0xdfff)
+		return (guint32) -1;
+
+	w1 = c & ~0xd800U;
+	w2 = next & ~0xdc00U;
+	return 0x10000UL | (w1 << 10) | w2;
+}
+
+static inline guint32
+utf16_decode_char(const guint16 *s, guint *retlen)
+{
+	guint32 uc;
+
+	uc = utf16_decode_pair(s[0], 0x0000 != s[0] ? s[1] : 0x0000);
+	if (uc <= 0xFFFFU) {
+		*retlen = 1;
+	} else if (uc <= 0x10FFFF) {
+		*retlen = 2;
+	} else {
+		*retlen = 0;
+	}
+	return uc;
+}
+
+/**
+ * Converts a UTF-16 encoded string to a UTF-8 encoded string.
+ *
+ * The target string ``out'' is always be zero-terminated unless
+ * ``size'' is zero.
+ *
+ * @param src	the UTF-16 input string.
+ * @param dst	the target buffer for converted UTF-8 string.
+ * @param size	the length of the outbuf buffer in bytes.
+ *				Whether the buffer was too small can be checked by
+ *				comparing ``size'' with the return value. The value
+ *				of ``size'' MUST NOT exceed INT_MAX.
+ *
+ * @returns the length in bytes of completely converted string.
+ */
+size_t
+utf16_to_utf8(const guint16 *src, char *dst, size_t size)
+{
+	char *p = dst;
+	guint32 uc;
+
+	g_assert(src != NULL);
+	g_assert(size == 0 || dst != NULL);
+	g_assert(size <= INT_MAX);
+
+	if (size > 0) {
+		size--;
+		while (0x0000 != *src && size > 0) {
+			guint in_len, out_len;
+
+			uc = utf16_decode_char(src, &in_len);
+			if (0x0000 == uc || 0 == in_len)
+				break;
+
+			out_len = utf8_encode_char(uc, p, size);
+			if (0 == out_len || out_len > size)
+				break;
+
+			src += in_len;
+			p += out_len;
+			size -= out_len;
+		}
+		*p = '\0';
+	}
+
+	while (0x0000 != *src) {
+		guint in_len, out_len;
+
+		uc = utf16_decode_char(src, &in_len);
+		if (0 == in_len)
+			break;
+
+		out_len = utf8_encoded_char_len(uc);
+		if (0 == out_len)
+			break;
+
+		p += out_len;
+		src += in_len;
+	}
+
+	return p - dst;
+}
+
+/**
+ * Converts an UTF-16 encoded string to UTF-8.
+ *
+ * @return newly halloc()ed string.
+ */
+char *
+utf16_to_utf8_string(const guint16 *in)
+{
+	size_t n;
+	char *out;
+
+	n = utf16_to_utf8(in, NULL, 0);
+	out = halloc(n * sizeof *out);
+	utf16_to_utf8(in, out, n);
 	return out;
 }
 
@@ -6570,5 +6687,39 @@ utf8_regression_checks(void)
 #endif
 
 }
+
+#if 0 /* For testing mingw_open() with Unicode support */
+#undef open
+int
+my_open(const char *pathname, int flags, ...)
+{
+	int res;
+	mode_t mode = 0;
+
+	if (flags & O_CREAT) {
+        va_list  args;
+
+        va_start(args, flags);
+        mode = (mode_t) va_arg(args, int);
+        va_end(args);
+    }
+
+	if (utf8_is_valid_string(pathname)) {
+		guint16 *pathname_utf16;
+		char *pathname_utf8;
+
+		pathname_utf16 = utf8_to_utf16_string(pathname);
+		pathname_utf8 = utf16_to_utf8_string(pathname_utf16);
+		g_debug("pathname=\"%s\"", pathname_utf8);
+		res = open(pathname_utf8, flags, mode);
+		HFREE_NULL(pathname_utf8);
+		HFREE_NULL(pathname_utf16);
+	} else {
+		res = open(pathname, flags, mode);
+	}
+	return res;
+}
+#endif	/* 0 */
+
 
 /* vi: set ts=4 sw=4 cindent: */
