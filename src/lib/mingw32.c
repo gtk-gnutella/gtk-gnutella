@@ -349,8 +349,7 @@ mingw_open(const char *pathname, int flags, ...)
         va_end(args);
     }
 
-	/* FIXME: This should use _wopen() for Unicode support */
-	if (0 && utf8_is_valid_string(pathname)) {
+	if (utf8_is_valid_string(pathname)) {
 		guint16 *pathname_utf16;
 
 		pathname_utf16 = utf8_to_utf16_string(pathname);
