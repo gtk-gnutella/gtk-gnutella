@@ -93,7 +93,6 @@ guint NON_NULL_PARAM((2)) utf8_encode_char(guint32 uc, char *buf, size_t size);
 guint32 utf8_decode_char_buffer(const char *s, size_t len, guint *retlen)
 	NON_NULL_PARAM((1,3));
 
-int NON_NULL_PARAM((2)) utf16_encode_char(guint32 uc, guint16 *dst);
 guint32 utf16_le_decode_char_buffer(const char *s, size_t len, guint *retlen)
 	NON_NULL_PARAM((1,3));
 guint32 utf16_be_decode_char_buffer(const char *s, size_t len, guint *retlen)
