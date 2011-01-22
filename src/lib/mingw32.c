@@ -308,7 +308,16 @@ int
 mingw_stat(const char *pathname, struct stat *buf)
 {
 	int res = stat(pathname, buf);
-	if (res == -1)
+	if (-1 == res)
+		errno = GetLastError();
+	return res;
+}
+
+int
+mingw_unlink(const char *pathname)
+{
+	int res = unlink(pathname);
+	if (-1 == res)
 		errno = GetLastError();
 	return res;
 }
@@ -326,7 +335,7 @@ mingw_dup2(int oldfd, int newfd)
 			res = -1;
 	} else {
 		res = dup2(oldfd, newfd);
-		if (res == -1)
+		if (-1 == res)
 			errno = GetLastError();
 		else
 			res = newfd;	/* Windows's dup2() returns 0 on success */
@@ -359,7 +368,7 @@ mingw_open(const char *pathname, int flags, ...)
 		res = open(pathname, flags, mode);
 	}
 
-	if (res == -1)
+	if (-1 == res)
 		errno = GetLastError();
 	return res;
 }
@@ -368,7 +377,7 @@ off_t
 mingw_lseek(int fd, off_t offset, int whence)
 {
 	off_t res = lseek(fd, offset, whence);
-	if (res == (off_t) -1)
+	if ((off_t) -1 == res)
 		errno = GetLastError();
 	return res;
 }
@@ -379,9 +388,9 @@ mingw_read(int fd, void *buf, size_t count)
 	ssize_t res;
 
 	res = read(fd, buf, MIN(count, UINT_MAX));
-	g_assert(res == -1 || (res >= 0 && UNSIGNED(res) <= count));
+	g_assert(-1 == res || (res >= 0 && UNSIGNED(res) <= count));
 	
-	if (res == -1)
+	if (-1 == res)
 		errno = GetLastError();
 	return res;
 }
@@ -419,7 +428,7 @@ ssize_t
 mingw_write(int fd, const void *buf, size_t count)
 {
 	ssize_t res = write(fd, buf, MIN(count, UINT_MAX));
-	if (res == -1)
+	if (-1 == res)
 		errno = GetLastError();
 	return res;
 }
@@ -461,7 +470,7 @@ mingw_truncate(const char *pathname, off_t len)
 		return -1;
 
 	ret = ftruncate(fd, len);
-	saved_errno = (ret == -1) ? GetLastError() : 0;
+	saved_errno = (-1 == ret) ? GetLastError() : 0;
 	close(fd);
 	errno = saved_errno;
 
@@ -526,7 +535,7 @@ int
 mingw_bind(socket_fd_t sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {
 	int res = bind(sockfd, addr, addrlen);
-	if (res == -1)
+	if (-1 == res)
 		errno = WSAGetLastError();
 	return res;
 }
@@ -536,7 +545,7 @@ mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 	  socklen_t addrlen)
 {
 	socket_fd_t res = connect(sockfd, addr, addrlen);
-	if (res == INVALID_SOCKET)
+	if (INVALID_SOCKET == res)
 		errno = WSAGetLastError();
 	return res;
 }
@@ -545,7 +554,7 @@ int
 mingw_listen(socket_fd_t sockfd, int backlog)
 {
 	int res = listen(sockfd, backlog);
-	if (res == -1)
+	if (-1 == res)
 		errno = WSAGetLastError();
 	return res;
 }
@@ -554,7 +563,7 @@ socket_fd_t
 mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	socket_fd_t res = accept(sockfd, addr, addrlen);
-	if (res == INVALID_SOCKET)
+	if (INVALID_SOCKET == res)
 		errno = WSAGetLastError();
 	return res;
 }
@@ -564,7 +573,7 @@ mingw_shutdown(socket_fd_t sockfd, int how)
 {
 
 	int res = shutdown(sockfd, how);
-	if (res == -1)
+	if (-1 == res)
 		errno = WSAGetLastError();
 	return res;
 }
@@ -574,7 +583,7 @@ mingw_getsockopt(socket_fd_t sockfd, int level, int optname,
 	void *optval, socklen_t *optlen)
 {
 	int res = getsockopt(sockfd, level, optname, optval, optlen);
-	if (res == -1)
+	if (-1 == res)
 		errno = WSAGetLastError();
 	return res;
 }
@@ -584,7 +593,7 @@ mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 	  const void *optval, socklen_t optlen)
 {
 	int res = setsockopt(sockfd, level, optname, optval, optlen);
-	if (res == -1)
+	if (-1 == res)
 		errno = WSAGetLastError();
 	return res;
 }
@@ -597,7 +606,7 @@ s_write(socket_fd_t fd, const void *buf, size_t count)
 
  	count = MIN(count, UNSIGNED(INT_MAX));	
 	res = send(fd, buf, count, 0);
-	if (res == -1)
+	if (-1 == res)
 		errno = WSAGetLastError();
 	return res;
 }
@@ -609,7 +618,7 @@ s_read(socket_fd_t fd, void *buf, size_t count)
    
  	count = MIN(count, UNSIGNED(INT_MAX));	
 	res = recv(fd, buf, count, 0);
-	if (res == -1)
+	if (-1 == res)
 		errno = WSAGetLastError();
 	return res;
 }
@@ -618,7 +627,7 @@ int
 s_close(socket_fd_t fd)
 {
 	int res = closesocket(fd);
-	if (res == -1)
+	if (-1 == res)
 		errno = WSAGetLastError();
 	return res;
 }
@@ -707,7 +716,7 @@ mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 	
  	len = MIN(len, UNSIGNED(INT_MAX));	
 	res = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
-	if (res == -1)
+	if (-1 == res)
 		errno = WSAGetLastError();
 	return res;
 }

@@ -138,6 +138,7 @@
 #define freeaddrinfo mingw_freeaddrinfo
 
 #define stat(path, buf) mingw_stat((path), (buf))
+#define unlink(path) mingw_unlink((path))
 #define open mingw_open
 #define dup2 mingw_dup2
 #define lseek mingw_lseek
