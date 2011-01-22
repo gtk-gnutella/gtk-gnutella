@@ -905,6 +905,9 @@ magnet_append_item(str_t *s, gboolean escape_value,
 	}
 }
 
+/**
+ * @return A halloc()ed string.
+ */
 static char *
 proxy_sequence_to_string(const sequence_t *s)
 {
@@ -927,6 +930,9 @@ proxy_sequence_to_string(const sequence_t *s)
 	return str_s2c_null(&str);
 }
 
+/**
+ * @return A halloc()ed string.
+ */
 static char *
 proxies_to_string(GSList *proxies)
 {
@@ -991,7 +997,8 @@ magnet_source_to_string(const struct magnet_source *s)
 					(unsigned) s->port);
 			}
 		} else if (s->guid) {
-			host = proxies = proxies_to_string(s->proxies);
+			proxies = proxies_to_string(s->proxies);
+			host = proxies;
 		} else {
 			host = host_addr_port_to_string(s->addr, s->port);
 		}
@@ -1005,7 +1012,7 @@ magnet_source_to_string(const struct magnet_source *s)
 			url = g_strconcat(prefix, host, port_buf, "/", (void *) 0);
 		}
 
-		G_FREE_NULL(proxies);
+		HFREE_NULL(proxies);
 	}
 
 	return url;
