@@ -37,6 +37,12 @@
 
 RCSID("$Id$")
 
+#if defined(I_LINUX_NETLINK) && defined(I_LINUX_RTNETLINK)
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
+#define USE_NETLINK
+#endif
+
 #include "getgateway.h"
 #include "host_addr.h"
 
@@ -65,6 +71,119 @@ getgateway(host_addr_t *addrp)
 		return -1;
 
 	*addrp = host_addr_get_ipv4(ip);
+	return 0;
+}
+#elif defined(USE_NETLINK)
+{
+	int fd;
+	char buf[1024];
+	struct nlmsghdr *nl;
+	struct rtmsg *rt;
+	ssize_t rw;
+	unsigned seq = 1;
+	unsigned pid = getpid();
+	host_addr_t gateway;
+	gboolean done;
+
+	/*
+	 * This implementation uses the linux netlink interface.
+	 */
+
+	fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
+	if (-1 == fd)
+		return -1;
+
+	memset(buf, 0, sizeof buf);
+	nl = (struct nlmsghdr *) buf;
+	nl->nlmsg_len = NLMSG_LENGTH(sizeof *rt);
+	nl->nlmsg_type = RTM_GETROUTE;
+	nl->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
+	nl->nlmsg_seq = seq;
+	nl->nlmsg_pid = pid;
+
+	rt = (struct rtmsg *) NLMSG_DATA(nl);
+	rt->rtm_family = AF_UNSPEC;
+	rt->rtm_table = RT_TABLE_MAIN;
+
+	rw = send(fd, nl, sizeof *rt + sizeof *nl, 0);
+	if (UNSIGNED(rw) != sizeof *rt + sizeof *nl)
+		goto error;
+
+	for (done = FALSE; !done; /* empty */) {
+		unsigned nlen;
+
+		rw = recv(fd, buf, sizeof buf, 0);
+		if ((ssize_t) -1 == rw) {
+			g_warning("getgateway(): recv() failed: %s", g_strerror(errno));
+			goto error;
+		}
+
+		nl = (struct nlmsghdr *) buf;
+
+		if (0 == NLMSG_OK(nl, UNSIGNED(rw)) || NLMSG_ERROR == nl->nlmsg_type)
+			goto error;
+
+		if (nl->nlmsg_seq != seq || nl->nlmsg_pid != pid)
+			continue;
+
+		if (!(nl->nlmsg_flags & NLM_F_MULTI) || NLMSG_DONE == nl->nlmsg_type)
+			done = TRUE;
+
+		/*
+		 * Parse each message in the reply.
+		 */
+
+		for (
+			nlen = UNSIGNED(rw);
+			NLMSG_OK(nl, nlen);
+			nl = NLMSG_NEXT(nl, nlen)
+		) {
+			struct rtattr *attr;
+			unsigned rlen;
+
+			rt = (struct rtmsg *) NLMSG_DATA(nl);
+
+			if (rt->rtm_table != RT_TABLE_MAIN)
+				continue;
+
+			if (rt->rtm_family != AF_INET && rt->rtm_family != AF_INET6)
+				continue;
+
+			/* 
+			 * Look for an attribute of type RTA_GATEWAY.
+			 */
+
+			for (
+				rlen = RTM_PAYLOAD(nl), attr = (struct rtattr *) RTM_RTA(rt);
+				RTA_OK(attr, rlen);
+				attr = RTA_NEXT(attr, rlen)
+			) {
+				if (RTA_GATEWAY == attr->rta_type) {
+					if (AF_INET == rt->rtm_family) {
+						struct in_addr *in = (struct in_addr *) RTA_DATA(attr);
+						gateway = host_addr_peek_ipv4(&in->s_addr);
+						goto found;
+					} else if (AF_INET6 == rt->rtm_family) {
+						struct in6_addr *in =
+							(struct in6_addr *) RTA_DATA(attr);
+						gateway = host_addr_peek_ipv6(in->s6_addr);
+						goto found;
+					}
+				}
+			}
+		}
+	}
+
+	/* FALL THROUGH */
+
+error:
+	close(fd);
+	errno = ENETUNREACH;
+	return -1;
+
+found:
+	close(fd);
+	*addrp = gateway;
 	return 0;
 }
 #else

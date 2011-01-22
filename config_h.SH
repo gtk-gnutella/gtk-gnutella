@@ -634,6 +634,20 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_libcharset I_LIBCHARSET		/**/
 
+/* I_LINUX_NETLINK:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <linux/netlink.h> to get definitions for the NLMSG_DATA() and
+ *	other NLMSG_NEXT() macros.
+ */
+#$i_linux_netlink I_LINUX_NETLINK		/**/
+
+/* I_LINUX_RTNETLINK:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <linux/rtnetlink.h> to get definitions for the RTA_DATA() and
+ *	other RTA_NEXT() macros.
+ */
+#$i_linux_rtnetlink I_LINUX_RTNETLINK		/**/
+
 /* I_MATH:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <math.h>.
