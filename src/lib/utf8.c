@@ -1229,7 +1229,7 @@ utf16_le_decode_char_buffer(const char *s, size_t len, guint *retlen)
 	if (0 == c)
 		goto malformed;
 
-	first = (guint16) c ;
+	first = (guint16) c;
 	c = *s++;
 	if (0 == c)
 		goto malformed;
