@@ -51,7 +51,9 @@
 #include <sys/stat.h>
 #include <glib.h>
 
-
+/*
+ * Winsock to UNIX symbolic error code remapping.
+ */
 #define EADDRINUSE WSAEADDRINUSE
 #define EADDRNOTAVAIL WSAEADDRNOTAVAIL
 #define ECONNABORTED WSAECONNABORTED
@@ -246,21 +248,6 @@ struct timespec {
 
 int mingw_nanosleep(const struct timespec *req, struct timespec *rem);
 #endif	/* !HAS_NANOSLEEP */
-
-/*
- * backtrace() emulation.
- *
- * DISABLED: does not bring any advantage currently. --RAM, 2011-01-13
- */
-#if 0
-#ifndef HAS_BACKTRACE
-#define HAS_BACKTRACE			/* We emulate it */
-#define EMULATE_BACKTRACE
-#define backtrace mingw_backtrace
-
-int mingw_backtrace(void **buffer, int size);
-#endif	/* !HAS_BACKTRACE */
-#endif	/* (disabled) */
 
 static inline void *
 iovec_base(const iovec_t* iovec)
