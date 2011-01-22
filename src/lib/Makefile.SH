@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 18407 2011-01-19 20:55:51Z rmanfredi $
+# $X-Id: Jmakefile 18430 2011-01-22 14:32:47Z rmanfredi $
 
 GENERIC = bit_array.h bit_field.h
 
@@ -138,6 +138,7 @@ LSRC = \
 	fs_free_space.c \
 	getdate.c \
 	getline.c \
+	getgateway.c \
 	getphysmemsize.c \
 	glib-missing.c \
 	gnet_host.c \
@@ -245,6 +246,7 @@ LOBJ = \
 	fs_free_space.o \
 	getdate.o \
 	getline.o \
+	getgateway.o \
 	getphysmemsize.o \
 	glib-missing.o \
 	gnet_host.o \
