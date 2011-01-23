@@ -617,13 +617,13 @@ fi_gui_init(void)
 			"key-press-event", on_details_key_press_event, NULL);
 
 		clipboard_attach(GTK_WIDGET(clist));
-		drag_attach(GTK_WIDGET(clist), download_details_get_text);
+		drag_attach_text(GTK_WIDGET(clist), download_details_get_text);
 	}
 
 	{
 		GtkCList *clist = clist_download_aliases;
 
-		drag_attach(GTK_WIDGET(clist), download_aliases_get_text);
+		drag_attach_text(GTK_WIDGET(clist), download_aliases_get_text);
 	}
 
 	{

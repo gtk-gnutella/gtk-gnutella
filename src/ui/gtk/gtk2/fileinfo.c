@@ -604,7 +604,7 @@ fi_gui_details_treeview_init(void)
     	gtk_tree_view_append_column(tv, column);
 	}
 
-	drag_attach(GTK_WIDGET(tv), download_details_get_text);
+	drag_attach_text(GTK_WIDGET(tv), download_details_get_text);
 }
 
 static void
@@ -731,7 +731,7 @@ fi_gui_init(void)
     	gtk_tree_view_append_column(tv, column);
 
 		tree_view_set_fixed_height_mode(tv, TRUE);
-		drag_attach(GTK_WIDGET(tv), fi_gui_get_alias);
+		drag_attach_text(GTK_WIDGET(tv), fi_gui_get_alias);
 	}
 
 	{

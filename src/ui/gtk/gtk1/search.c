@@ -1707,7 +1707,7 @@ search_gui_init(void)
 		gui_signal_connect(clist, "key-press-event",
 			on_search_details_key_press_event, NULL);
 		clipboard_attach(GTK_WIDGET(clist));
-		drag_attach(GTK_WIDGET(clist), search_gui_details_get_text);
+		drag_attach_text(GTK_WIDGET(clist), search_gui_details_get_text);
 	}
 
 	search_gui_common_init();

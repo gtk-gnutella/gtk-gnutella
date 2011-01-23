@@ -1143,7 +1143,7 @@ search_details_treeview_init(void)
 
 	gui_signal_connect(tv,
 		"key-press-event", on_search_details_key_press_event, NULL);
-	drag_attach(GTK_WIDGET(tv), search_gui_details_get_text);
+	drag_attach_text(GTK_WIDGET(tv), search_gui_details_get_text);
 }
 
 static GtkTreeModel *

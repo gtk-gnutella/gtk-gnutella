@@ -46,7 +46,8 @@ RCSID("$Id$")
  */
 
 struct drag_context {
-	drag_get_text_cb get_text;
+	drag_get_data_cb get_data;
+	gboolean uri_list;
 };
 
 /**
@@ -73,7 +74,7 @@ drag_free(struct drag_context **ptr)
 	struct drag_context *ctx = *ptr;
 
 	if (ctx) {
-		ctx->get_text = NULL;
+		ctx->get_data = NULL;
 		G_FREE_NULL(ctx);
 		*ptr = NULL;
 	}
@@ -103,13 +104,21 @@ drag_get_iter(GtkTreeView *tv, GtkTreeModel **model, GtkTreeIter *iter)
 
 
 static inline void
-selection_set_text(GtkSelectionData *data, const char *text)
+selection_set_data(GtkSelectionData *data, const char *text, gboolean uri_list)
 {
-	size_t len;
+	if (uri_list) {
+		const char *uris[2];
 
-	len = text ? strlen(text) : 0;
-	len = len < INT_MAX ? len : 0;
-	gtk_selection_data_set_text(data, text, len);
+		uris[0] = text;
+		uris[1] = NULL;
+		gtk_selection_data_set_uris(data, (char **) uris);
+	} else {
+		size_t len;
+
+		len = text ? strlen(text) : 0;
+		len = len < INT_MAX ? len : 0;
+		gtk_selection_data_set_text(data, text, len);
+	}
 }
 
 #else	/* Gtk < 2 */
@@ -140,7 +149,7 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, void *udata)
 	gui_signal_stop_emit_by_name(widget, "drag-begin");
 
 	g_return_if_fail(ctx);
-	g_return_if_fail(ctx->get_text);
+	g_return_if_fail(ctx->get_data);
 }
 
 
@@ -159,10 +168,10 @@ drag_data_get(GtkWidget *widget, GdkDragContext *unused_drag_ctx,
 	gui_signal_stop_emit_by_name(widget, "drag-data-get");
 
 	g_return_if_fail(ctx);
-	g_return_if_fail(ctx->get_text);
+	g_return_if_fail(ctx->get_data);
 
-	text = ctx->get_text(widget);
-	selection_set_text(data, text);
+	text = ctx->get_data(widget);
+	selection_set_data(data, text, ctx->uri_list);
 	G_FREE_NULL(text);
 }
 
@@ -176,7 +185,7 @@ drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, void *udata)
 	gui_signal_stop_emit_by_name(widget, "drag-end");
 
 	g_return_if_fail(ctx);
-	g_return_if_fail(ctx->get_text);
+	g_return_if_fail(ctx->get_data);
 }
 
 static void
@@ -185,7 +194,7 @@ destroy(GtkObject *widget, void *udata)
 	struct drag_context *ctx = udata;
 
 	g_return_if_fail(ctx);
-	g_return_if_fail(ctx->get_text);
+	g_return_if_fail(ctx->get_data);
 
 	gui_signal_disconnect(widget, drag_data_get, ctx);
 	gui_signal_disconnect(widget, drag_begin, ctx);
@@ -200,29 +209,43 @@ destroy(GtkObject *widget, void *udata)
  * Attaches a drag context to a widget, so that user can drag data from
  * the widget as text. The context can be attached to multiple widgets.
  */
-void 
-drag_attach(GtkWidget *widget, drag_get_text_cb callback)
+static void 
+drag_attach(GtkWidget *widget, drag_get_data_cb callback, gboolean uri_list)
 {
-    static const GtkTargetEntry targets[] = {
+    static const GtkTargetEntry text_targets[] = {
 #if GTK_CHECK_VERSION(2,0,0)
-        { "UTF8_STRING",				0, 3 },
-        { "text/plain;charset=utf-8",	0, 4 },
+        { "UTF8_STRING",				0, 1 },
+        { "text/plain;charset=utf-8",	0, 2 },
 #endif	/* Gtk+ >= 2.0 */
-        { "STRING",						0, 1 },
-        { "text/plain",					0, 2 },
+        { "STRING",						0, 3 },
+        { "text/plain",					0, 4 },
+	};
+    static const GtkTargetEntry uri_targets[] = {
+        { "text/uri-list",				0, 5 },
     };
 	struct drag_context *ctx;
+    const GtkTargetEntry *targets;
+	unsigned num_targets;
 
 	g_return_if_fail(widget);
 	g_return_if_fail(callback);
 
 	object_ref(widget);
 	ctx = drag_alloc();
-	ctx->get_text = callback;
+	ctx->get_data = callback;
+	ctx->uri_list = uri_list;
+
+	if (uri_list) {
+		targets = uri_targets;
+		num_targets = G_N_ELEMENTS(uri_targets);
+	} else {
+		targets = text_targets;
+		num_targets = G_N_ELEMENTS(text_targets);
+	}
 
 	/* Initialize drag support */
 	gtk_drag_source_set(widget,
-		GDK_BUTTON1_MASK | GDK_BUTTON2_MASK, targets, G_N_ELEMENTS(targets),
+		GDK_BUTTON1_MASK | GDK_BUTTON2_MASK, targets, num_targets,
 		GDK_ACTION_DEFAULT | GDK_ACTION_COPY | GDK_ACTION_ASK);
 
     gui_signal_connect(widget, "drag-data-get", drag_data_get, ctx);
@@ -231,4 +254,15 @@ drag_attach(GtkWidget *widget, drag_get_text_cb callback)
     gui_signal_connect(widget, "destroy",		destroy, ctx);
 }
 
+void 
+drag_attach_text(GtkWidget *widget, drag_get_data_cb callback)
+{
+	drag_attach(widget, callback, FALSE);
+}
+
+void 
+drag_attach_uri(GtkWidget *widget, drag_get_data_cb callback)
+{
+	drag_attach(widget, callback, TRUE);
+}
 /* vi: set ts=4 sw=4 cindent: */

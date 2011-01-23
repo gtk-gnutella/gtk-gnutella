@@ -1944,7 +1944,7 @@ notebook_downloads_init_page(GtkNotebook *notebook, int page_num)
 	gui_signal_connect(widget,
 		"key-press-event", on_files_key_press_event, NULL);
 	widget_add_popup_menu(widget, fi_gui_files_get_popup_menu);
-	drag_attach(widget, fi_gui_file_get_file_url_at_cursor);
+	drag_attach_uri(widget, fi_gui_file_get_file_url_at_cursor);
 
 	fi_gui_files_visualize();
 

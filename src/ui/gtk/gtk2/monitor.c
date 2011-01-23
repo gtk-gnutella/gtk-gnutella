@@ -176,7 +176,7 @@ monitor_gui_init(void)
 	gui_signal_connect(tree,
 		"button_press_event", on_treeview_monitor_button_press_event, NULL);
 
-	drag_attach(GTK_WIDGET(tree), monitor_gui_get_text);
+	drag_attach_text(GTK_WIDGET(tree), monitor_gui_get_text);
 }
 
 void

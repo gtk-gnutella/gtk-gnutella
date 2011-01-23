@@ -42,9 +42,10 @@
 /**
  * This callback must return either NULL or a newly-allocated string.
  */
-typedef gchar *(*drag_get_text_cb)(GtkWidget *);
+typedef char *(*drag_get_data_cb)(GtkWidget *);
 
-void drag_attach(GtkWidget *, drag_get_text_cb);
+void drag_attach_text(GtkWidget *, drag_get_data_cb);
+void drag_attach_uri(GtkWidget *, drag_get_data_cb);
 
 #if GTK_CHECK_VERSION(2,0,0)
 gboolean drag_get_iter(GtkTreeView *, GtkTreeModel **, GtkTreeIter *);

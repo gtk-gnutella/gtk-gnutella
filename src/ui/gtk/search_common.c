@@ -2784,7 +2784,7 @@ search_gui_new_search_full(const gchar *query_str,
 	gui_color_init(GTK_WIDGET(search->tree));
 	widget_add_popup_menu(search->tree, search_gui_get_popup_menu);	
 	if (search_gui_is_local(search)) {
-		drag_attach(search->tree, search_gui_get_local_file_url);
+		drag_attach_uri(search->tree, search_gui_get_local_file_url);
 	}
 
 	gtk_container_add(GTK_CONTAINER(search->scrolled_window), search->tree);
