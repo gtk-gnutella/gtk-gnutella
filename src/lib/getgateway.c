@@ -150,8 +150,11 @@ getgateway(host_addr_t *addrp)
 {
 	guint32 ip;
 
-	if (-1 == mingw_getgateway(&ip))
-		return -1;
+	if (-1 == mingw_getgateway(&ip)) {
+		g_warning("getgateway(): GetBestRoute() failed: %s",
+			g_strerror(errno));
+		return parse_netstat(addrp);	/* Avoids "unused function" warning */
+	}
 
 	*addrp = host_addr_get_ipv4(ip);
 	return 0;

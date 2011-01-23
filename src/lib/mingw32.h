@@ -77,6 +77,8 @@
 #define ETIMEDOUT WSAETIMEDOUT
 #define ENOTSOCK WSAENOTSOCK
 
+#define ENOTSUP ENOSYS		/* ENOTSUP missing in MinGW */
+
 #define SHUT_RD	SD_RECEIVE
 #define SHUT_WR	SD_SEND
 #define SHUT_RDWR SD_BOTH
