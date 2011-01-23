@@ -420,6 +420,29 @@ clamp_strcpy(char *dst, size_t dst_size, const char *src)
 	return clamp_strncpy(dst, dst_size, src, (size_t) -1);
 }
 
+/**
+ * Appends at most "dst_size - 1" characters from the NUL-terminated string
+ * "src" to the buffer "dst", ensuring the resulting string in "dst" is
+ * NUL-terminated and truncating it if necessary.
+ *
+ * @NOTE: The 'dst' buffer is NOT padded with NUL-bytes.
+ *
+ * @param dst the destination buffer. Must be initialized.
+ * @param dst_size the size of dst in number of bytes. 
+ * @param src a NUL-terminated string.
+ *
+ * @return The length of the resulting string in number of bytes.
+ */
+static inline size_t
+clamp_strcat(char *dst, size_t dst_size, const char *src)
+{
+	size_t dst_len;
+
+	dst_len = clamp_strlen(dst, dst_size);
+	dst += dst_len;
+	dst_size -= dst_len;
+	return dst_len + clamp_strcpy(dst, dst_size, src);
+}
 
 static inline const char *
 NULL_STRING(const char *s)
