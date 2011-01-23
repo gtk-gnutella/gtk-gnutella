@@ -79,7 +79,6 @@ void vmm_free(void *p, size_t size);
 
 size_t round_pagesize(size_t n);
 size_t compat_pagesize(void);
-const char *prot_strdup(const char *s);
 const void *vmm_trap_page(void);
 gboolean vmm_is_fragment(const void *base, size_t size);
 gboolean vmm_grows_upwards(void);

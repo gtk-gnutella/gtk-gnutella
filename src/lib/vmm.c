@@ -2997,33 +2997,6 @@ page_cache_timer(gpointer unused_udata)
 }
 
 /**
- * Copies the given string to a read-only buffer.
- *
- * @param s A NUL-terminated string. If NULL, NULL is returned.
- * @return	On success, a copy of the string is returned. On failure, NULL
- *			is returned.
- */
-const char *
-prot_strdup(const char *s)
-{
-	size_t n, size;
-	void *p;
-
-	if (!s)
-		return NULL;
-
-	n = strlen(s) + 1;
-	size = round_pagesize_fast(n);
-	p = alloc_pages(size, FALSE, NULL);
-	if (p) {
-		memcpy(p, s, n);
-		mprotect(p, size, PROT_READ);
-		pmap_insert_foreign(vmm_pmap(), p, size);
-	}
-	return p;
-}
-
-/**
  * Get a protected region bearing a non-NULL address.
  *
  * This is used as the address of sentinel objects for which we can do

@@ -79,6 +79,7 @@ void s_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_fatal_exit(int status, const char *format, ...) G_GNUC_PRINTF(2, 3);
 
 #endif /* _log_h_ */
 

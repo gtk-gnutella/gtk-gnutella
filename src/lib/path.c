@@ -48,11 +48,11 @@ RCSID("$Id$")
 
 /**
  * Create new pathname from the concatenation of the dirname and the basename
- * of the file. A directory separator is insert, unless "dir" already ends
- * with one or "filename" starts with one.
+ * of the file. A directory separator is inserted, unless "dir" already ends
+ * with one or "file" starts with one.
  *
- * @param dir The directory path.
- * @param file The filename.
+ * @param dir	the directory path
+ * @param file	the filename
  *
  * @return a newly allocated string that must be freed with hfree().
  */

@@ -100,6 +100,7 @@ static void
 s_logv(GLogLevelFlags level, const char *format, va_list args)
 {
 	gboolean in_signal_handler = signal_in_handler();
+	GLogLevelFlags loglvl;
 
 	if (!in_log_handler && !in_signal_handler) {
 		g_logv(G_LOG_DOMAIN, level, format, args);
@@ -257,7 +258,9 @@ log.c: In function ‘s_logv’:
 	struct __va_list_tag *’
 */
 
-		switch (level) {
+		loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
+
+		switch (loglvl) {
 		case G_LOG_LEVEL_CRITICAL: prefix = "CRITICAL"; break;
 		case G_LOG_LEVEL_ERROR:    prefix = "ERROR";    break;
 		case G_LOG_LEVEL_WARNING:  prefix = "WARNING";  break;
@@ -275,7 +278,7 @@ log.c: In function ‘s_logv’:
 		 */
 
 		if (in_signal_handler) {
-			iovec_t iov[6];
+			iovec_t iov[9];
 			unsigned iov_cnt = 0;
 			char time_buf[18];
 
@@ -283,18 +286,26 @@ log.c: In function ‘s_logv’:
 			print_str(time_buf);	/* 0 */
 			print_str(" (");		/* 1 */
 			print_str(prefix);		/* 2 */
-			print_str("): ");		/* 3 */
-			print_str(str_2c(msg));	/* 4 */
-			print_str("\n");		/* 5 */
+			print_str(")");			/* 3 */
+			if (level & G_LOG_FLAG_RECURSION)
+				print_str(" [RECURSIVE]");	/* 4 */
+			if (level & G_LOG_FLAG_FATAL)
+				print_str(" [FATAL]");		/* 5 */
+			print_str(": ");		/* 6 */
+			print_str(str_2c(msg));	/* 7 */
+			print_str("\n");		/* 8 */
 			IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 		} else {
 			time_t now = tm_time_exact();
 			struct tm *ct = localtime(&now);
 
-			fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s): %s\n",
+			fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n",
 				(TM_YEAR_ORIGIN + ct->tm_year) % 100,
 				ct->tm_mon + 1, ct->tm_mday,
-				ct->tm_hour, ct->tm_min, ct->tm_sec, prefix, str_2c(msg));
+				ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
+				(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
+				(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
+				str_2c(msg));
 		}
 
 		if (
@@ -304,7 +315,7 @@ log.c: In function ‘s_logv’:
 			if (in_signal_handler)
 				stacktrace_where_safe_print_offset(STDERR_FILENO, 2);
 			else
-				stacktrace_where_print_offset(stderr, 2);
+				stacktrace_where_sym_print_offset(stderr, 2);
 		}
 
 		/*
@@ -324,6 +335,20 @@ log.c: In function ‘s_logv’:
 
 		in_safe_handler = FALSE;
 	}
+}
+
+/**
+ * Safe fatal warning message, resulting in an exit with specified status.
+ */
+void
+s_fatal_exit(int status, const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv(G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL, format, args);
+	va_end(args);
+	exit(status);
 }
 
 /**
@@ -463,7 +488,7 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 		G_LOG_LEVEL_ERROR == loglvl ||
 		(level & (G_LOG_FLAG_RECURSION|G_LOG_FLAG_FATAL))
 	) {
-		stacktrace_where_print_offset(stderr, 3);
+		stacktrace_where_sym_print_offset(stderr, 3);
 	}
 
 	in_log_handler = FALSE;

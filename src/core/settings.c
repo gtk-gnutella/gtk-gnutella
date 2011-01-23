@@ -81,6 +81,7 @@
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/log.h"
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
@@ -104,6 +105,7 @@ static const mode_t CONFIG_DIR_MODE =
 
 static char *home_dir = NULL;
 static char *config_dir = NULL;
+static char *crash_dir = NULL;
 
 static prop_set_t *properties = NULL;
 
@@ -414,27 +416,46 @@ save_pid(int fd, const char *path)
 /* ----------------------------------------- */
 
 /**
- * Initializes "config_dir" and "home_dir".
+ * Initializes "config_dir", "home_dir" and "crash_dir".
  */
 void
 settings_early_init(void)
 {
 	config_dir = h_strdup(getenv("GTK_GNUTELLA_DIR"));
 	home_dir = h_strdup(eval_subst("~"));
-	if (home_dir) {
+
+	if (home_dir != NULL) {
 		if (!is_absolute_path(home_dir)) {
 			g_error("$HOME must point to an absolute path!");
 		}
 	} else {
 		g_error(_("Can't find your home directory!"));
 	}
-	if (config_dir) {
+
+	if (config_dir != NULL) {
 		if (!is_absolute_path(config_dir)) {
-			g_error("$GTK_GNUTELLA_DIR must point to an absolute path!");
+			s_fatal_exit(EXIT_FAILURE,
+				_("$GTK_GNUTELLA_DIR must point to an absolute path!"));
 		}
 	} else { 
 		config_dir = make_pathname(home_dir,
 			is_running_on_mingw() ? "gtk-gnutella" : ".gtk-gnutella");
+	}
+	if (!is_directory(config_dir)) {
+		g_info(_("creating configuration directory \"%s\""), config_dir);
+		if (-1 == mkdir(config_dir, CONFIG_DIR_MODE)) {
+			s_fatal_exit(EXIT_FAILURE, _("mkdir(\"%s\") failed: \"%s\""),
+				config_dir, g_strerror(errno));
+		}
+	}
+
+	crash_dir = make_pathname(config_dir, "crashes");
+	if (!is_directory(crash_dir)) {
+		g_info(_("creating directory \"%s\" to hold crash logs"), crash_dir);
+		if (-1 == mkdir(crash_dir, CONFIG_DIR_MODE)) {
+			g_warning(_("mkdir(\"%s\") failed: \"%s\""),
+				crash_dir, g_strerror(errno));
+		}
 	}
 }
 
@@ -606,17 +627,8 @@ settings_init(void)
 	settings_init_session_id();
 	memset(deconstify_gpointer(GNET_PROPERTY(servent_guid)), 0, GUID_RAW_SIZE);
 
-	if (NULL == config_dir || '\0' == config_dir[0])
+	if (NULL == config_dir || '\0' == *config_dir || !is_directory(config_dir))
 		goto no_config_dir;
-
-	if (!is_directory(config_dir)) {
-		g_warning(_("creating configuration directory \"%s\""), config_dir);
-		if (-1 == mkdir(config_dir, CONFIG_DIR_MODE)) {
-			g_warning("mkdir(\"%s\") failed: \"%s\"",
-				config_dir, g_strerror(errno));
-			goto no_config_dir;
-		}
-	}
 
 	/*
 	 * Parse the configuration.
@@ -719,8 +731,9 @@ settings_init(void)
 	return;
 
 no_config_dir:
-	g_warning(_("Cannot proceed without valid configuration directory"));
-	exit(EXIT_FAILURE); /* g_error() would dump core, that's ugly. */
+	/* g_error() would dump core, that's ugly. */
+	s_fatal_exit(EXIT_FAILURE,
+		_("Cannot proceed without valid configuration directory"));
 }
 
 /**
@@ -742,7 +755,7 @@ const char *
 settings_config_dir(void)
 {
 	g_assert(NULL != config_dir);
-	return (const char *) config_dir;
+	return config_dir;
 }
 
 /**
@@ -752,7 +765,17 @@ const char *
 settings_home_dir(void)
 {
 	g_assert(NULL != home_dir);
-	return (const char *) home_dir;
+	return home_dir;
+}
+
+/**
+ * Get the crash directory
+ */
+const char *
+settings_crash_dir(void)
+{
+	g_assert(NULL != crash_dir);
+	return crash_dir;
 }
 
 /**
@@ -1048,6 +1071,7 @@ settings_close(void)
 
 	HFREE_NULL(home_dir);
 	HFREE_NULL(config_dir);
+	HFREE_NULL(crash_dir);
 }
 
 static void

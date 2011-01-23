@@ -45,6 +45,7 @@ typedef struct ckhunk ckhunk_t;
  */
 
 ckhunk_t *ckinit(size_t size, size_t reserved);
+ckhunk_t *ckinit_not_leaking(size_t size, size_t reserved);
 void ckdestroy_null(ckhunk_t **ck_ptr);
 void *ckalloc(ckhunk_t *ck, size_t len);
 void *ckalloc_critical(ckhunk_t *ck, size_t len);
@@ -54,6 +55,10 @@ void ckrestore(ckhunk_t *ck, void *saved);
 void ckfree_all(ckhunk_t *ck);
 void *ckcopy(ckhunk_t *ck, const void *p, size_t size);
 char *ckstrdup(ckhunk_t *ck, const char *str);
+void ckreadonly(ckhunk_t *ck);
+void *ckallocro(ckhunk_t *ck, size_t len);
+void *ckcopyro(ckhunk_t *ck, const void *p, size_t size);
+char *ckstrdupro(ckhunk_t *ck, const char *str);
 
 #endif /* _ckalloc_h_ */
 

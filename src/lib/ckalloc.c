@@ -72,6 +72,7 @@ struct ckhunk {
 	char *arena;				/**< Start of allocated arena */
 	char *end;					/**< First byte past the arena */
 	char *avail;				/**< Beginning of free space for allocation */
+	unsigned read_only:1;		/**< Chunk marked read-only */
 };
 
 static inline void
@@ -86,11 +87,12 @@ ckhunk_check(const struct ckhunk * const ck)
  *
  * @param size		total arena size (including management overhead)
  * @param reserved	amount of memory to reserve for critical allocations
+ * @param leaking	whether not freeing this object would create a leak
  *
  * @return a new chunk allocator object.
  */
-ckhunk_t *
-ckinit(size_t size, size_t reserved)
+static ckhunk_t *
+ckinit_internal(size_t size, size_t reserved, gboolean leaking)
 {
 	void *arena;
 	ckhunk_t *ck;
@@ -100,7 +102,7 @@ ckinit(size_t size, size_t reserved)
 	g_assert(size >=
 		size_saturate_add(reserved, ckalloc_round(sizeof(struct ckhunk))));
 
-	arena = vmm_alloc(size);
+	arena = leaking ? vmm_alloc(size) : vmm_alloc_not_leaking(size);
 	ck = arena;
 	ck->magic = CKHUNK_MAGIC;
 	ck->size = size;
@@ -115,6 +117,34 @@ ckinit(size_t size, size_t reserved)
 }
 
 /**
+ * Initialize a new chunk allocator.
+ *
+ * @param size		total arena size (including management overhead)
+ * @param reserved	amount of memory to reserve for critical allocations
+ *
+ * @return a new chunk allocator object.
+ */
+ckhunk_t *
+ckinit(size_t size, size_t reserved)
+{
+	return ckinit_internal(size, reserved, TRUE);
+}
+
+/**
+ * Initialize a new non-leaking chunk allocator.
+ *
+ * @param size		total arena size (including management overhead)
+ * @param reserved	amount of memory to reserve for critical allocations
+ *
+ * @return a new chunk allocator object.
+ */
+ckhunk_t *
+ckinit_not_leaking(size_t size, size_t reserved)
+{
+	return ckinit_internal(size, reserved, FALSE);
+}
+
+/**
  * Destroy a chunk allocator.
  */
 static void
@@ -122,6 +152,7 @@ ckdestroy(ckhunk_t *ck)
 {
 	ckhunk_check(ck);
 	g_assert(ck != NULL);
+	g_assert(!ck->read_only);
 
 	ck->magic = 0;
 	vmm_free(ck->arena, ck->size);
@@ -186,6 +217,8 @@ ckrestore(ckhunk_t *ck, void *saved)
 	if (NULL == ck)
 		return;
 
+	g_assert(!ck->read_only);
+
 	/*
 	 * Make sure the saved context lies within the chunk boundaries
 	 * and is properly aligned.
@@ -233,6 +266,8 @@ ckfree_all(ckhunk_t *ck)
 	if (NULL == ck)
 		return;
 
+	g_assert(!ck->read_only);
+
 	if (!signal_enter_critical(&set))
 		return;
 
@@ -264,6 +299,7 @@ ckalloc_internal(ckhunk_t *ck, size_t len, gboolean critical)
 
 	ckhunk_check(ck);
 	g_assert(size_is_positive(len));
+	g_assert(!ck->read_only);
 
 	if (NULL == ck)
 		return NULL;
@@ -368,6 +404,98 @@ ckstrdup(ckhunk_t *ck, const char *str)
 	ckhunk_check(ck);
 
 	return str ? ckcopy(ck, str, 1 + strlen(str)) : NULL;
+}
+
+/**
+ * Turn chunk into a read-only memory area.
+ */
+void
+ckreadonly(ckhunk_t *ck)
+{
+	ckhunk_check(ck);
+
+	if (NULL == ck)
+		return;
+
+	if (!ck->read_only) {
+		ck->read_only = TRUE;
+		mprotect(ck, ck->size, PROT_READ);
+	}
+}
+
+/**
+ * Allocate memory from a read-only chunk.
+ */
+void *
+ckallocro(ckhunk_t *ck, size_t len)
+{
+	void *p;
+	sigset_t set;
+
+	ckhunk_check(ck);
+
+	if (NULL == ck)
+		return NULL;
+
+	g_assert(ck->read_only);
+
+	if (!signal_enter_critical(&set))
+		return NULL;
+
+	mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
+	ck->read_only = FALSE;
+	p = ckalloc_internal(ck, len, FALSE);
+	ck->read_only = TRUE;
+	mprotect(ck, ck->size, PROT_READ);
+
+	signal_leave_critical(&set);
+	return p;
+}
+
+/**
+ * Copy memory into new read-only buffer.
+ *
+ * @return new buffer with copied data, NULL if memory could not be allocated.
+ */
+void *
+ckcopyro(ckhunk_t *ck, const void *p, size_t size)
+{
+	void *cp;
+	sigset_t set;
+
+	ckhunk_check(ck);
+
+	if (NULL == ck)
+		return NULL;
+
+	g_assert(ck->read_only);
+
+	if (!signal_enter_critical(&set))
+		return NULL;
+
+	mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
+	ck->read_only = FALSE;
+	cp = ckalloc_internal(ck, size, FALSE);
+	if (cp != NULL)
+		memcpy(cp, p, size);
+	ck->read_only = TRUE;
+	mprotect(ck, ck->size, PROT_READ);
+
+	signal_leave_critical(&set);
+	return cp;
+}
+
+/**
+ * Convenience routine to duplicate a string into a read-only chunk.
+ *
+ * @return duplicated string, NULL if allocation failed or str was NULL.
+ */
+char *
+ckstrdupro(ckhunk_t *ck, const char *str)
+{
+	ckhunk_check(ck);
+
+	return str ? ckcopyro(ck, str, 1 + strlen(str)) : NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent:  */

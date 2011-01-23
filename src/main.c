@@ -1505,6 +1505,9 @@ main(int argc, char **argv)
 
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
+	if (!is_running_on_mingw()) {
+		crash_setdir(settings_crash_dir());
+	}
 	malloc_show_settings();
 
 	/* Our regular inits */

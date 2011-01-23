@@ -47,8 +47,10 @@
 RCSID("$Id$")
 
 #include "crash.h"
+#include "ckalloc.h"
 #include "compat_sleep_ms.h"
 #include "fd.h"
+#include "log.h"
 #include "offtime.h"
 #include "signal.h"
 #include "timestamp.h"
@@ -59,10 +61,13 @@ RCSID("$Id$")
 #include "override.h"			/* Must be the last header included */
 
 static time_delta_t crash_gmtoff;	/**< Offset to GMT, supposed to be fixed */
+static ckhunk_t *crash_mem;			/**< Reserved memory, read-only */
 
 static struct {
 	const char *pathname;	/* The file to execute. */
 	const char *argv0;		/* The original argv[0]. */
+	const char *cwd;		/* Current working directory (NULL if unknown) */
+	const char *crashdir;	/* Directory where crash logs are written */
 	unsigned pause_process:1;
 	unsigned invoke_gdb:1;
 } vars;
@@ -224,7 +229,7 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 }
 
 static void
-crash_exec(const char *pathname, const char *argv0)
+crash_exec(const char *pathname, const char *argv0, const char *cwd)
 #ifdef HAS_FORK
 {
    	const char *pid_str;
@@ -242,7 +247,7 @@ crash_exec(const char *pathname, const char *argv0)
 		close(STDIN_FILENO);
 		close(STDOUT_FILENO);
 		if (0 == pipe(fd)) {
-			static const char commands[] = "bt full\nquit\n";
+			static const char commands[] = "bt\nbt full\nquit\n";
 			size_t n = CONST_STRLEN(commands);
 
 			if (n == UNSIGNED(write(STDOUT_FILENO, commands, n)))
@@ -282,6 +287,8 @@ crash_exec(const char *pathname, const char *argv0)
 				char filename[64];
 				int flags = O_CREAT | O_WRONLY | O_TRUNC;
 				mode_t mode = S_IRUSR | S_IWUSR;
+				iovec_t iov[3];
+				unsigned iov_cnt = 0;
 
 				/** FIXME: This should be an absolute path due to --daemonize
 				 * 		   Also, we might want to place this in
@@ -297,6 +304,12 @@ crash_exec(const char *pathname, const char *argv0)
 					goto child_failure;
 				if (STDERR_FILENO != dup(STDOUT_FILENO))
 					goto child_failure;
+
+				print_str("Crash file for \"");		/* 0 */
+				print_str(argv0);					/* 1 */
+				print_str("\"\n");					/* 2 */
+
+				IGNORE_RESULT(writev(STDOUT_FILENO, iov, iov_cnt));
 			} else {
 				close(STDIN_FILENO);
 				close(STDOUT_FILENO);
@@ -320,7 +333,7 @@ child_failure:
 	default:
 		{
 			int status;
-			iovec_t iov[7];
+			iovec_t iov[9];
 			unsigned iov_cnt = 0;
 			char time_buf[18];
 
@@ -339,13 +352,19 @@ child_failure:
 				if (vars.invoke_gdb && 0 == WEXITSTATUS(status)) {
 					print_str("trace left in ");	/* 4 */
 					crash_logname(buf, sizeof buf, pid_str);
-					print_str(buf);					/* 5 */
+					if (*cwd != '\0') {
+						print_str(cwd);					/* 5 */
+						print_str(G_DIR_SEPARATOR_S);	/* 6 */
+						print_str(buf);					/* 7 */
+					} else {
+						print_str(buf);					/* 5 */
+					}
 				} else {
 					print_str("child exited with status ");	/* 4 */
 					print_str(print_number(buf, sizeof buf,
 						WEXITSTATUS(status)));				/* 5 */
 				}
-				print_str("\n");					/* 6, at most */
+				print_str("\n");					/* 8, at most */
 				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 			} else {
 				if (WIFSIGNALED(status)) {
@@ -389,6 +408,7 @@ crash_handler(int signo)
 {
 	static volatile sig_atomic_t crashed;
 	const char *name;
+	const char *cwd = "";
 	unsigned i;
 	gboolean trace;
 	gboolean recursive = crashed > 0;
@@ -430,6 +450,29 @@ crash_handler(int signo)
 		}
 	}
 
+	/*
+	 * Try to go back to the crashing directory, if configured, when we're
+	 * about to exec() a process, so that the core dump happens there,
+	 * even if we're daemonized.
+	 */
+
+	if (!recursive && vars.crashdir != NULL && vars.pathname != NULL) {
+		if (-1 == chdir(vars.crashdir)) {
+			if (vars.cwd != NULL) {
+				s_warning("cannot chdir() back to \"%s\", "
+					"staying in \"%s\" (errno = %d)",
+					vars.crashdir, vars.cwd, errno);
+				cwd = vars.cwd;
+			} else {
+				s_warning("cannot chdir() back to \"%s\" (errno = %d)",
+					vars.crashdir, errno);
+			}
+		} else {
+			cwd = vars.crashdir;
+			s_message("crashing in %s", vars.crashdir);
+		}
+	}
+
 	trace = recursive ? FALSE : !stacktrace_cautious_was_logged();
 	name = signal_name(signo);
 
@@ -438,8 +481,8 @@ crash_handler(int signo)
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
 	}
 	crash_end_of_line();
-	if (vars.pathname) {
-		crash_exec(vars.pathname, vars.argv0);
+	if (vars.pathname != NULL) {
+		crash_exec(vars.pathname, vars.argv0, cwd);
 	}
 
 	if (vars.pause_process)
@@ -469,24 +512,60 @@ crash_handler(int signo)
 /**
  * Installs a simple crash handler.
  * 
- * @param pathname The pathname of the program to execute on crash.
- * @param argv0 The original argv[0] from main().
+ * @param pathname	the pathname of the program to execute on crash.
+ * @param argv0		the original argv[0] from main().
  */
 void
 crash_init(const char *pathname, const char *argv0, int flags)
 {
 	unsigned i;
+	char pwd[MAX_PATH_LEN];
 
-	vars.pathname = prot_strdup(pathname);
-	vars.argv0 = prot_strdup(argv0);
+	crash_mem = ckinit_not_leaking(compat_pagesize(), 0);
+
+	if (NULL == getcwd(pwd, sizeof pwd)) {
+		g_warning("cannot get current working directory: %s",
+			g_strerror(errno));
+	} else {
+		vars.cwd = ckstrdup(crash_mem, pwd);
+		g_assert(vars.cwd != NULL);
+	}
+
+	vars.pathname = ckstrdup(crash_mem, pathname);
+	vars.argv0 = ckstrdup(crash_mem, argv0);
 	vars.pause_process = booleanize(CRASH_F_PAUSE & flags);
 	vars.invoke_gdb = booleanize(CRASH_F_GDB & flags);
+
+	g_assert(NULL == pathname || vars.pathname != NULL);
+	g_assert(NULL == argv0 || vars.argv0 != NULL);
+
+	ckreadonly(crash_mem);
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		signal_set(signals[i], crash_handler);
 	}
 
 	crash_gmtoff = timestamp_gmt_offset(tm_time_exact(), NULL);
+}
+
+/**
+ * Record current working directory and configured crash directory.
+ */
+void
+crash_setdir(const char *dir)
+{
+	char pwd[MAX_PATH_LEN];
+
+	g_assert(crash_mem != NULL);
+
+	if (getcwd(pwd, sizeof pwd) != NULL) {
+		if (vars.cwd != NULL && strcmp(pwd, vars.cwd) != 0) {
+			vars.cwd = ckstrdupro(crash_mem, pwd);
+		}
+	}
+
+	vars.crashdir = ckstrdupro(crash_mem, dir);
+	g_assert(NULL == dir || vars.crashdir != NULL);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
