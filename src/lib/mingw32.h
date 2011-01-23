@@ -140,6 +140,8 @@
 #define stat(path, buf) mingw_stat((path), (buf))
 #define unlink(path) mingw_unlink((path))
 #define open mingw_open
+#define fopen mingw_fopen
+#define freopen mingw_freopen
 #define opendir mingw_opendir
 #define readir mingw_opendir
 #define closedir mingw_closedir
@@ -164,6 +166,9 @@ ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 #undef getdtablesize
 #define getdtablesize mingw_getdtablesize
 #define mkdir mingw_mkdir
+#define access mingw_access
+#define chdir mingw_chdir
+#define remove mingw_remove
 #define pipe mingw_pipe
 
 typedef SOCKET socket_fd_t;
@@ -283,7 +288,7 @@ const char *mingw_gethome(void);
 guint64 mingw_getphysmemsize(void);
 int mingw_getdtablesize(void);
 const char *mingw_strerror(int errnum);
-int mingw_stat(const char *path, struct stat *buf);
+int mingw_stat(const char *pathname, struct stat *buf);
 int mingw_dup2(int oldfd, int newfd);
 int mingw_open(const char *pathname, int flags, ...);
 int mingw_unlink(const char *pathname);
@@ -291,9 +296,14 @@ void *mingw_opendir(const char *pathname);
 void *mingw_readdir(const void *);
 int *mingw_closedir(const void *);
 off_t mingw_lseek(int fd, off_t offset, int whence);
-int mingw_rename(const char *oldpath, const char *newpath);
-int mingw_truncate(const char *path, off_t len);
-int mingw_mkdir(const char *path, mode_t mode);
+int mingw_rename(const char *oldpathname, const char *newpathname);
+int mingw_truncate(const char *pathname, off_t len);
+int mingw_mkdir(const char *pathname, mode_t mode);
+int mingw_access(const char *pathname, int mode);
+int mingw_chdir(const char *pathname);
+int mingw_remove(const char *pathname);
+FILE *mingw_fopen(const char *pathname, const char *mode);
+FILE *mingw_freopen(const char *pathname, const char *mode, FILE *file);
 int mingw_pipe(int fd[2]);
 
 ssize_t mingw_read(int fd, void *buf, size_t count);
@@ -352,7 +362,7 @@ int mingw_mprotect(void *addr, size_t len, int prot);
 int mingw_random_bytes(void *buf, size_t len);
 gboolean mingw_process_is_alive(pid_t pid);
 
-int mingw_statvfs(const char *path, struct mingw_statvfs *buf);
+int mingw_statvfs(const char *pathname, struct mingw_statvfs *buf);
 guint64 mingw_cpufreq_min(void);
 guint64 mingw_cpufreq_max(void);
 const char *mingw_getlogin(void);

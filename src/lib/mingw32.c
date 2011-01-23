@@ -76,9 +76,14 @@ RCSID("$Id$")
 
 #undef stat
 #undef open
+#undef fopen
+#undef freopen
 #undef read
 #undef write
 #undef mkdir
+#undef access
+#undef chdir
+#undef remove
 #undef lseek
 #undef dup2
 #undef unlink
@@ -364,6 +369,51 @@ mingw_mkdir(const char *pathname, mode_t mode)
 
 	pncs = pncs_convert(pathname);
 	res = _wmkdir(pncs.pathname);
+	if (-1 == res)
+		errno = GetLastError();
+
+	pncs_release(&pncs);
+	return res;
+}
+
+int
+mingw_access(const char *pathname, int mode)
+{
+	int res;
+	pncs_t pncs;
+
+	pncs = pncs_convert(pathname);
+	res = _waccess(pncs.pathname, mode);
+	if (-1 == res)
+		errno = GetLastError();
+
+	pncs_release(&pncs);
+	return res;
+}
+
+int
+mingw_chdir(const char *pathname)
+{
+	int res;
+	pncs_t pncs;
+
+	pncs = pncs_convert(pathname);
+	res = _wchdir(pncs.pathname);
+	if (-1 == res)
+		errno = GetLastError();
+
+	pncs_release(&pncs);
+	return res;
+}
+
+int
+mingw_remove(const char *pathname)
+{
+	int res;
+	pncs_t pncs;
+
+	pncs = pncs_convert(pathname);
+	res = _wremove(pncs.pathname);
 	if (-1 == res)
 		errno = GetLastError();
 
@@ -1118,6 +1168,42 @@ mingw_rename(const char *oldpathname, const char *newpathname)
 
 	pncs_release(&new);
 	pncs_release(&old);
+	return res;
+}
+
+FILE *
+mingw_fopen(const char *pathname, const char *mode)
+{
+	pncs_t wpathname, wmode;
+	FILE *res;
+
+	wpathname = pncs_convert(pathname);
+	wmode = pncs_convert(mode);
+
+	res = _wfopen(wpathname, wmode);
+	if (NULL == res) {
+		errno = GetLastError();
+	}
+	pncs_release(&wpathname);
+	pncs_release(&wmode);
+	return res;
+}
+
+FILE *
+mingw_freopen(const char *pathname, const char *mode, FILE *file)
+{
+	pncs_t wpathname, wmode;
+	FILE *res;
+
+	wpathname = pncs_convert(pathname);
+	wmode = pncs_convert(mode);
+
+	res = _wfreopen(wpathname, wmode, file);
+	if (NULL == res) {
+		errno = GetLastError();
+	}
+	pncs_release(&wpathname);
+	pncs_release(&wmode);
 	return res;
 }
 
