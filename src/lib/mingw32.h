@@ -140,6 +140,9 @@
 #define stat(path, buf) mingw_stat((path), (buf))
 #define unlink(path) mingw_unlink((path))
 #define open mingw_open
+#define opendir mingw_opendir
+#define readir mingw_opendir
+#define closedir mingw_closedir
 #define dup2 mingw_dup2
 #define lseek mingw_lseek
 #define read mingw_read
@@ -283,6 +286,10 @@ const char *mingw_strerror(int errnum);
 int mingw_stat(const char *path, struct stat *buf);
 int mingw_dup2(int oldfd, int newfd);
 int mingw_open(const char *pathname, int flags, ...);
+int mingw_unlink(const char *pathname);
+void *mingw_opendir(const char *pathname);
+void *mingw_readdir(const void *);
+int *mingw_closedir(const void *);
 off_t mingw_lseek(int fd, off_t offset, int whence);
 int mingw_rename(const char *oldpath, const char *newpath);
 int mingw_truncate(const char *path, off_t len);
@@ -374,6 +381,7 @@ const char *mingw_filename_nearby(const char *file);
 gboolean mingw_stdin_pending(gboolean fifo);
 gboolean mingw_same_file_id(const char *pathname_a, const char *pathname_b);
 
+const char *dir_entry_filename(const void *dirent);
 int mingw_getgateway(guint32 *ip);
 
 #else	/* !MINGW32 */

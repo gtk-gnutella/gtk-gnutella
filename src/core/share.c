@@ -1209,9 +1209,10 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 
 	dir_entry = readdir(ctx->directory);
 	if (dir_entry) {
+		const char *filename = dir_entry_filename(dir_entry);
 		struct stat sb;
 
-		if (dir_entry->d_name[0] == '.') {
+		if ('.' == filename[0]) {
 			/* Hidden file, or "." or ".." */
 			goto finish;
 		}
@@ -1226,7 +1227,7 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 		default:
 			if (GNET_PROPERTY(share_debug)) {
 				g_warning("Skipping file of unknown type \"%s\" in \"%s\"",
-					ctx->current_dir, dir_entry->d_name);
+					ctx->current_dir, filename);
 			}
 			goto finish;
 		}
@@ -1241,14 +1242,14 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 
 		if (
 			S_ISREG(sb.st_mode) &&
-			!shared_file_valid_extension(dir_entry->d_name)
+			!shared_file_valid_extension(filename)
 		) {
 			goto finish;
 		}
 
 		ctx->ticks += 10;	/* Heavier work */
 
-		fullpath = make_pathname(ctx->current_dir, dir_entry->d_name);
+		fullpath = make_pathname(ctx->current_dir, filename);
 		if (S_ISREG(sb.st_mode) || S_ISDIR(sb.st_mode)) {
 			if (stat(fullpath, &sb)) {
 				g_warning("stat() failed %s: %s", fullpath, g_strerror(errno));

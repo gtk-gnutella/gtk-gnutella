@@ -5425,13 +5425,17 @@ file_info_scandir(const char *dir)
 	}
 
 	while (NULL != (dentry = readdir(d))) {
+		const char *filename;
+
 		HFREE_NULL(pathname);
+
+		filename = dir_entry_filename(dentry);
 
 		/**
 		 * Skip ".", "..", and hidden files. We don't create any
 	   	 * and we also must skip the lock file.
 		 */
-		if ('.' == dentry->d_name[0])
+		if ('.' == filename[0])
 			continue;
 
 		switch (dir_entry_mode(dentry)) {
@@ -5443,7 +5447,7 @@ file_info_scandir(const char *dir)
 			continue;
 		}
 
-		pathname = make_pathname(dir, dentry->d_name);
+		pathname = make_pathname(dir, filename);
 
 		if (!S_ISREG(dir_entry_mode(dentry))) {
 			struct stat sb;

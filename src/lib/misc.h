@@ -238,6 +238,14 @@ dir_entry_mode(const struct dirent *dir_entry)
 	return 0;
 }
 
+#ifndef MINGW32
+static inline const char *
+dir_entry_filename(const struct dirent *dir_entry)
+{
+	return dir_entry->d_name;
+}
+#endif	/* MINGW32 */
+
 /*
  * Stuff
  */

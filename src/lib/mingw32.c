@@ -81,6 +81,10 @@ RCSID("$Id$")
 #undef mkdir
 #undef lseek
 #undef dup2
+#undef unlink
+#undef opendir
+#undef readdir
+#undef closedir
 
 #undef getaddrinfo
 #undef freeaddrinfo
@@ -393,6 +397,8 @@ mingw_stat(const char *pathname, struct stat *buf)
 		buf->st_uid = _buf.st_uid;
 		buf->st_gid = _buf.st_gid;
 		buf->st_rdev = _buf.st_rdev;
+		/* Ensure off_t is not truncated */
+		STATIC_ASSERT(sizeof buf->st_size >= sizeof _buf.st_size);
 		buf->st_size = _buf.st_size;
 		buf->st_atime = _buf.st_atime;
 		buf->st_mtime = _buf.st_mtime;
@@ -457,11 +463,63 @@ mingw_open(const char *pathname, int flags, ...)
 
 	pncs = pncs_convert(pathname);
 	res = _wopen(pncs.pathname, flags, mode);
-	pncs_release(&pncs);
-
 	if (-1 == res)
 		errno = GetLastError();
+
+	pncs_release(&pncs);
 	return res;
+}
+
+void *
+mingw_opendir(const char *pathname)
+{
+	_WDIR *res;
+	pncs_t pncs;
+
+	pncs = pncs_convert(pathname);
+	res = _wopendir(pncs.pathname);
+	if (NULL == res)
+		errno = GetLastError();
+
+	pncs_release(&pncs);
+	return res;
+}
+
+void *
+mingw_readdir(const void *dir)
+{
+	struct _wdirent *res;
+
+	res = _wreaddir(dir);
+	if (NULL == res) {
+		errno = GetLastError();
+		return NULL;
+	}
+	return res;
+}
+
+int
+mingw_closedir(const void *dir)
+{
+	int res = _wclosedir(dir);
+	if (-1 == res)
+		errno = GetLastError();
+	return 0;
+}
+
+/**
+ * @note The returned UTF-8 string becomes invalid after the next
+ *		 call to dir_entry_filename().
+ */
+const char *
+dir_entry_filename(const void *dirent)
+{
+	const struct _wdirent *wdirent = dirent;
+	static char *filename;
+
+	HFREE_NULL(filename);
+	filename = utf16_to_utf8_string(wdirent->d_name);
+	return filename;
 }
 
 off_t
