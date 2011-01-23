@@ -1530,6 +1530,8 @@ main(int argc, char **argv)
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 	malloc_show_settings();
+	version_init();
+	crash_setver(version_get_string());
 
 	/* Our regular inits */
 	
@@ -1568,7 +1570,6 @@ main(int argc, char **argv)
 	locale_init();
 	adns_init();
 	file_object_init();
-	version_init();
 	socket_init();
 	gnet_stats_init();
 	iso3166_init();

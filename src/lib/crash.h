@@ -108,6 +108,7 @@ void crash_time(char *buf, size_t buflen);
 const char *crash_signame(int signo);
 void crash_handler(int signo);
 void crash_setdir(const char *dir);
+void crash_setver(const char *version);
 
 #endif	/* _crash_h_ */
 /* vi: set ts=4 sw=4 cindent: */

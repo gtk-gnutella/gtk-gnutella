@@ -68,6 +68,7 @@ static struct {
 	const char *argv0;		/* The original argv[0]. */
 	const char *cwd;		/* Current working directory (NULL if unknown) */
 	const char *crashdir;	/* Directory where crash logs are written */
+	const char *version;	/* Program version string (NULL if unknown) */
 	unsigned pause_process:1;
 	unsigned invoke_gdb:1;
 } vars;
@@ -287,7 +288,7 @@ crash_exec(const char *pathname, const char *argv0, const char *cwd)
 				char filename[64];
 				int flags = O_CREAT | O_WRONLY | O_TRUNC;
 				mode_t mode = S_IRUSR | S_IWUSR;
-				iovec_t iov[3];
+				iovec_t iov[6];
 				unsigned iov_cnt = 0;
 
 				/** FIXME: This should be an absolute path due to --daemonize
@@ -307,7 +308,12 @@ crash_exec(const char *pathname, const char *argv0, const char *cwd)
 
 				print_str("Crash file for \"");		/* 0 */
 				print_str(argv0);					/* 1 */
-				print_str("\"\n");					/* 2 */
+				print_str("\"");					/* 2 */
+				if (vars.version != NULL) {
+					print_str(" -- ");				/* 3 */
+					print_str(vars.version);		/* 4 */
+				}
+				print_str("\n");					/* 5 */
 
 				IGNORE_RESULT(writev(STDOUT_FILENO, iov, iov_cnt));
 			} else {
@@ -566,6 +572,18 @@ crash_setdir(const char *dir)
 
 	vars.crashdir = ckstrdupro(crash_mem, dir);
 	g_assert(NULL == dir || vars.crashdir != NULL);
+}
+
+/**
+ * Record program's version string.
+ */
+void
+crash_setver(const char *version)
+{
+	g_assert(crash_mem != NULL);
+
+	vars.version = ckstrdupro(crash_mem, version);
+	g_assert(NULL == version || vars.version != NULL);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
