@@ -312,6 +312,33 @@ child_failure:
 		{
 			int status;
 			waitpid(pid, &status, 0);
+			if (WIFEXITED(status)) {
+				iovec_t iov[7];
+				unsigned iov_cnt = 0;
+				char time_buf[18];
+
+				crash_time(time_buf, sizeof time_buf);
+
+				print_str(time_buf);				/* 0 */
+				print_str(" CRASH (pid=");			/* 1 */
+				print_str(pid_str);					/* 2 */
+				print_str(") ");					/* 3 */
+				if (vars.invoke_gdb && 0 == WEXITSTATUS(status)) {
+					char buf[64];
+					print_str("generated trace in ");	/* 4 */
+					clamp_strcpy(buf, sizeof buf, "gtk-gnutella-crash.");
+					clamp_strcat(buf, sizeof buf, pid_str);
+					clamp_strcat(buf, sizeof buf, ".log");
+					print_str(buf);						/* 5 */
+				} else {
+					char buf[22];
+					print_str("child exited with status ");	/* 4 */
+					print_str(print_number(buf, sizeof buf,
+						WEXITSTATUS(status)));				/* 5 */
+				}
+				print_str("\n");					/* 6, at most */
+				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+			}
 		}
 	}
 }
