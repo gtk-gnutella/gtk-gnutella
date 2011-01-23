@@ -311,12 +311,13 @@ child_failure:
 	default:
 		{
 			int status;
-			waitpid(pid, &status, 0);
-			if (WIFEXITED(status)) {
-				iovec_t iov[7];
-				unsigned iov_cnt = 0;
-				char time_buf[18];
+			iovec_t iov[7];
+			unsigned iov_cnt = 0;
+			char time_buf[18];
 
+			waitpid(pid, &status, 0);
+
+			if (WIFEXITED(status)) {
 				crash_time(time_buf, sizeof time_buf);
 
 				print_str(time_buf);				/* 0 */
@@ -325,11 +326,11 @@ child_failure:
 				print_str(") ");					/* 3 */
 				if (vars.invoke_gdb && 0 == WEXITSTATUS(status)) {
 					char buf[64];
-					print_str("generated trace in ");	/* 4 */
+					print_str("trace is in ");		/* 4 */
 					clamp_strcpy(buf, sizeof buf, "gtk-gnutella-crash.");
 					clamp_strcat(buf, sizeof buf, pid_str);
 					clamp_strcat(buf, sizeof buf, ".log");
-					print_str(buf);						/* 5 */
+					print_str(buf);					/* 5 */
 				} else {
 					char buf[22];
 					print_str("child exited with status ");	/* 4 */
@@ -337,6 +338,22 @@ child_failure:
 						WEXITSTATUS(status)));				/* 5 */
 				}
 				print_str("\n");					/* 6, at most */
+				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+			} else {
+				crash_time(time_buf, sizeof time_buf);
+
+				print_str(time_buf);					/* 0 */
+				print_str(" CRASH (pid=");				/* 1 */
+				print_str(pid_str);						/* 2 */
+				print_str(") ");						/* 3 */
+				if (WIFSIGNALED(status)) {
+					int signo = WTERMSIG(status);
+					print_str("child got a ");			/* 4 */
+					print_str(signal_name(signo));		/* 5 */
+				} else {
+					print_str("child exited abnormally");	/* 4 */
+				}
+				print_str("\n");						/* 6, at most */
 				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 			}
 		}
