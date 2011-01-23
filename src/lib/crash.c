@@ -355,7 +355,7 @@ child_failure:
 
 			if ((pid_t) -1 == ret) {
 				char buf[22];
-				print_str("could not wait for child (errno =");		/* 4 */
+				print_str("could not wait for child (errno = ");	/* 4 */
 				print_str(print_number(buf, sizeof buf, errno));	/* 5 */
 				print_str(")\n");									/* 6 */
 				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
