@@ -127,10 +127,12 @@ selection_set_data(GtkSelectionData *data, const char *text, gboolean uri_list)
 #define object_unref(obj)	gtk_object_unref(GTK_OBJECT(obj))
 
 static inline void
-selection_set_text(GtkSelectionData *data, const char *text)
+selection_set_data(GtkSelectionData *data, const char *text, gboolean uri_list)
 {
 	size_t len;
-	
+
+	(void) uri_list;
+	/* FIXME: Figure out how to support text/uri-list with Gtk+ 1.2 */
 	len = text ? strlen(text) : 0;
 	len = len < INT_MAX ? len : 0;
    	gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING, 8 /* CHAR_BIT */,
