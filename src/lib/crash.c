@@ -340,18 +340,22 @@ child_failure:
 		{
 			int status;
 			iovec_t iov[9];
-			unsigned iov_cnt = 0;
+			unsigned iov_cnt = 0, iov_prolog;
 			char time_buf[18];
 			pid_t ret;
 
 			ret = waitpid(pid, &status, 0);
+			close(STDIN_FILENO);
+			close(STDOUT_FILENO);
 
 			crash_time(time_buf, sizeof time_buf);
 
+			/* The following precedes each line */
 			print_str(time_buf);				/* 0 */
 			print_str(" CRASH (pid=");			/* 1 */
 			print_str(pid_str);					/* 2 */
 			print_str(") ");					/* 3 */
+			iov_prolog = iov_cnt;
 
 			if ((pid_t) -1 == ret) {
 				char buf[22];
@@ -397,7 +401,7 @@ child_failure:
 			 * No need to regenerate them, so start at index 4.
 			 */
 
-			iov_cnt = 4;
+			iov_cnt = iov_prolog;
 			print_str("end of line.\n");	/* 4 */
 			IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 		}
