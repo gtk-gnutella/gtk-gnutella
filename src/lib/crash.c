@@ -249,6 +249,12 @@ crash_exec(const char *pathname, const char *argv0)
 			clamp_strcpy(cmd, sizeof cmd, "gdb -q -p ");
 			clamp_strcat(cmd, sizeof cmd, pid_str);
 
+			/*
+			 * We use "/bin/sh -c" to launch gdb so that we don't have
+			 * to locate the executable in the PATH, letting the shell
+			 * do it for us.
+			 */
+
 			if (pipe_ok) {
 				argv[0] = "/bin/sh";
 				argv[1] = "-c";
