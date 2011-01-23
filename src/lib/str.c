@@ -1159,7 +1159,7 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * as the '-' flag: left-justification.
  */
 size_t
-str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
+str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 {
 	static const char nullstr[] = "(null)";
 	const char *f;
@@ -1202,7 +1202,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 
 	if (2 == fmtlen && fmt[0] == '%' && fmt[1] == 's') {
 		if (args) {
-			const char *s = va_arg(*args, char*);
+			const char *s = va_arg(args, char*);
 			size_t len;
 			s = s ? s : nullstr;
 			len = strlen(s);
@@ -1306,7 +1306,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 
 		case '*':
 			{
-				int i = args ? va_arg(*args, int) : 0;
+				int i = args ? va_arg(args, int) : 0;
 				left |= (i < 0);
 				width = (i < 0) ? -UNSIGNED(i) : UNSIGNED(i);
 				q++;
@@ -1319,7 +1319,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 		if (*q == '.') {
 			q++;
 			if (*q == '*') {
-				int i = args ? va_arg(*args, int) : 0;
+				int i = args ? va_arg(args, int) : 0;
 				precis = (i < 0) ? 0 : i;
 				q++;
 			}
@@ -1356,7 +1356,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 
 		case 'c':
 			if (args)
-				c = va_arg(*args, int) & MAX_INT_VAL(unsigned char);
+				c = va_arg(args, int) & MAX_INT_VAL(unsigned char);
 			else
 				c = 0;
 			eptr = &c;
@@ -1365,7 +1365,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 
 		case 's':
 			if (args) {
-				eptr = va_arg(*args, char*);
+				eptr = va_arg(args, char*);
 				if (NULL == eptr)
 					eptr = nullstr;
 				elen = strlen(eptr);
@@ -1380,7 +1380,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 
 		case 'p':
 			if (args)
-				uv = (unsigned long) va_arg(*args, void*);
+				uv = (unsigned long) va_arg(args, void*);
 			else
 				uv = 0;
 			base = 16;
@@ -1394,9 +1394,9 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 		case 'i':
 			if (args) {
 				switch (intsize) {
-				case 'h':		iv = (short) va_arg(*args, int); break;
-				default:		iv = va_arg(*args, int); break;
-				case 'l':		iv = va_arg(*args, long); break;
+				case 'h':		iv = (short) va_arg(args, int); break;
+				default:		iv = va_arg(args, int); break;
+				case 'l':		iv = va_arg(args, long); break;
 				}
 			}
 			else {
@@ -1435,9 +1435,9 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 		uns_integer:
 			if (args) {
 				switch (intsize) {
-				case 'h':  uv = (unsigned short) va_arg(*args, unsigned); break;
-				case 'l':  uv = va_arg(*args, unsigned long); break;
-				default:   uv = va_arg(*args, unsigned); break;
+				case 'h':  uv = (unsigned short) va_arg(args, unsigned); break;
+				case 'l':  uv = va_arg(args, unsigned long); break;
+				default:   uv = va_arg(args, unsigned); break;
 				}
 			}
 			else {
@@ -1499,7 +1499,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 			 */
 
 			if (args)
-				nv = va_arg(*args, double);
+				nv = va_arg(args, double);
 			else
 				nv = 0.0;
 
@@ -1564,9 +1564,9 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args)
 			if (args) {
 				size_t n = str->s_len - origlen;
 				switch (intsize) {
-				case 'h': *(va_arg(*args, short*)) = MIN(n, SHRT_MAX); break;
-				case 'l': *(va_arg(*args, long*)) = MIN(n, LONG_MAX); break;
-				default:  *(va_arg(*args, int*)) = MIN(n, INT_MAX); break;
+				case 'h': *(va_arg(args, short*)) = MIN(n, SHRT_MAX); break;
+				case 'l': *(va_arg(args, long*)) = MIN(n, LONG_MAX); break;
+				default:  *(va_arg(args, int*)) = MIN(n, INT_MAX); break;
 				}
 			}
 			continue;	/* not "break" */
@@ -1735,7 +1735,7 @@ done:
  * Returns the amount of formatted chars.
  */
 size_t
-str_vcatf(str_t *str, const char *fmt, va_list *args)
+str_vcatf(str_t *str, const char *fmt, va_list args)
 {
 	return str_vncatf(str, INT_MAX, fmt, args);
 }
@@ -1745,7 +1745,7 @@ str_vcatf(str_t *str, const char *fmt, va_list *args)
  * Returns the amount of formatted chars.
  */
 size_t
-str_vprintf(str_t *str, const char *fmt, va_list *args)
+str_vprintf(str_t *str, const char *fmt, va_list args)
 {
 	str_check(str);
 
@@ -1764,7 +1764,7 @@ str_catf(str_t *str, const char *fmt, ...)
 	size_t formatted;
 
 	va_start(args, fmt);
-	formatted = str_vncatf(str, INT_MAX, fmt, &args);
+	formatted = str_vncatf(str, INT_MAX, fmt, args);
 	va_end(args);
 
 	return formatted;
@@ -1781,7 +1781,7 @@ str_ncatf(str_t *str, size_t n, const char *fmt, ...)
 	size_t formatted;
 
 	va_start(args, fmt);
-	formatted = str_vncatf(str, n, fmt, &args);
+	formatted = str_vncatf(str, n, fmt, args);
 	va_end(args);
 
 	return formatted;
@@ -1802,7 +1802,7 @@ str_printf(str_t *str, const char *fmt, ...)
 	str->s_len = 0;
 
 	va_start(args, fmt);
-	formatted = str_vncatf(str, INT_MAX, fmt, &args);
+	formatted = str_vncatf(str, INT_MAX, fmt, args);
 	va_end(args);
 
 	return formatted;
@@ -1823,7 +1823,7 @@ str_nprintf(str_t *str, size_t n, const char *fmt, ...)
 	str->s_len = 0;
 
 	va_start(args, fmt);
-	formatted = str_vncatf(str, n, fmt, &args);
+	formatted = str_vncatf(str, n, fmt, args);
 	va_end(args);
 
 	return formatted;
@@ -1842,7 +1842,7 @@ str_msg(const char *fmt, ...)
 	str = str_new(0);
 
 	va_start(args, fmt);
-	str_vncatf(str, INT_MAX, fmt, &args); /* We know length is 0 */
+	str_vncatf(str, INT_MAX, fmt, args); /* We know length is 0 */
 	va_end(args);
 
 	str_resize(str, str->s_len + 1);	/* Allow for possible trailing NUL */
@@ -1865,7 +1865,7 @@ str_cmsg(const char *fmt, ...)
 
 	str->s_len = 0;
 	va_start(args, fmt);
-	str_vncatf(str, INT_MAX, fmt, &args);
+	str_vncatf(str, INT_MAX, fmt, args);
 	va_end(args);
 
 	return str_dup(str);
@@ -1889,7 +1889,7 @@ str_smsg(const char *fmt, ...)
 
 	str->s_len = 0;
 	va_start(args, fmt);
-	str_vncatf(str, INT_MAX, fmt, &args);
+	str_vncatf(str, INT_MAX, fmt, args);
 	va_end(args);
 
 	return str_2c(str);
@@ -1909,7 +1909,7 @@ str_smsg2(const char *fmt, ...)
 
 	str->s_len = 0;
 	va_start(args, fmt);
-	str_vncatf(str, INT_MAX, fmt, &args);
+	str_vncatf(str, INT_MAX, fmt, args);
 	va_end(args);
 
 	return str_2c(str);

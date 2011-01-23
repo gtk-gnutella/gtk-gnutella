@@ -80,9 +80,9 @@ void str_chomp(str_t *s);
 gboolean str_replace(str_t *str, ssize_t idx, size_t amt, const char *string);
 void str_escape(str_t *str, char c, char e);
 
-size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list *args);
-size_t str_vcatf(str_t *str, const char *fmt, va_list *args);
-size_t str_vprintf(str_t *str, const char *fmt, va_list *args);
+size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
+size_t str_vcatf(str_t *str, const char *fmt, va_list args);
+size_t str_vprintf(str_t *str, const char *fmt, va_list args);
 size_t str_catf(str_t *str, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
 size_t str_ncatf(str_t *str, size_t n, const char *fmt, ...)
 	G_GNUC_PRINTF(3, 4);
