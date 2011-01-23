@@ -536,7 +536,7 @@ mingw_opendir(const char *pathname)
 }
 
 void *
-mingw_readdir(const void *dir)
+mingw_readdir(void *dir)
 {
 	struct _wdirent *res;
 
@@ -549,7 +549,7 @@ mingw_readdir(const void *dir)
 }
 
 int
-mingw_closedir(const void *dir)
+mingw_closedir(void *dir)
 {
 	int res = _wclosedir(dir);
 	if (-1 == res)
@@ -1180,7 +1180,7 @@ mingw_fopen(const char *pathname, const char *mode)
 	wpathname = pncs_convert(pathname);
 	wmode = pncs_convert(mode);
 
-	res = _wfopen(wpathname, wmode);
+	res = _wfopen(wpathname.pathname, wmode.pathname);
 	if (NULL == res) {
 		errno = GetLastError();
 	}
@@ -1195,10 +1195,10 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 	pncs_t wpathname, wmode;
 	FILE *res;
 
-	wpathname = pncs_convert(pathname);
+	wpathname = pncs_convert(pathname.pathname);
 	wmode = pncs_convert(mode);
 
-	res = _wfreopen(wpathname, wmode, file);
+	res = _wfreopen(wpathname.pathname, wmode.pathname, file);
 	if (NULL == res) {
 		errno = GetLastError();
 	}
