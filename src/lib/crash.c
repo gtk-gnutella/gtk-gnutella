@@ -212,6 +212,17 @@ crash_end_of_line(void)
 	IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 }
 
+/**
+ * Construct name of GTKG crash log.
+ */
+static void
+crash_logname(char *buf, size_t len, const char *pidstr)
+{
+	clamp_strcpy(buf, len, "gtk-gnutella-crash.");
+	clamp_strcat(buf, len, pidstr);
+	clamp_strcat(buf, len, ".log");
+}
+
 static void
 crash_exec(const char *pathname, const char *argv0)
 #ifdef HAS_FORK
@@ -277,9 +288,7 @@ crash_exec(const char *pathname, const char *argv0)
 				 *		   $GTK_GNUTELLA_DIR instead of the rather arbitrary
 				 *		   current working directory.
 				 */
-				clamp_strcpy(filename, sizeof filename, "gtk-gnutella-crash.");
-				clamp_strcat(filename, sizeof filename, pid_str);
-				clamp_strcat(filename, sizeof filename, ".log");
+				crash_logname(filename, sizeof filename, pid_str);
 
 				/* STDIN must be kept open */
 				close(STDOUT_FILENO);
@@ -329,9 +338,7 @@ child_failure:
 
 				if (vars.invoke_gdb && 0 == WEXITSTATUS(status)) {
 					print_str("trace left in ");	/* 4 */
-					clamp_strcpy(buf, sizeof buf, "gtk-gnutella-crash.");
-					clamp_strcat(buf, sizeof buf, pid_str);
-					clamp_strcat(buf, sizeof buf, ".log");
+					crash_logname(buf, sizeof buf, pid_str);
 					print_str(buf);					/* 5 */
 				} else {
 					print_str("child exited with status ");	/* 4 */
