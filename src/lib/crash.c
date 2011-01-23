@@ -342,8 +342,9 @@ child_failure:
 			iovec_t iov[9];
 			unsigned iov_cnt = 0;
 			char time_buf[18];
+			pid_t ret;
 
-			waitpid(pid, &status, 0);
+			ret = waitpid(pid, &status, 0);
 
 			crash_time(time_buf, sizeof time_buf);
 
@@ -352,7 +353,13 @@ child_failure:
 			print_str(pid_str);					/* 2 */
 			print_str(") ");					/* 3 */
 
-			if (WIFEXITED(status)) {
+			if ((pid_t) -1 == ret) {
+				char buf[22];
+				print_str("could not wait for child (errno =");		/* 4 */
+				print_str(print_number(buf, sizeof buf, errno));	/* 5 */
+				print_str(")\n");									/* 6 */
+				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+			} else if (WIFEXITED(status)) {
 				char buf[64];
 
 				if (vars.invoke_gdb && 0 == WEXITSTATUS(status)) {
