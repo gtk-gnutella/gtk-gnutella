@@ -1482,6 +1482,27 @@ main(int argc, char **argv)
 		const char *pathname;
 		int flags = 0;
 
+#ifdef RLIMIT_CORE
+		{
+			struct rlimit lim;
+
+			/*
+			 * If core dumps are disabled, force gdb execution on crash
+			 * to be able to get some information before the process
+			 * disappears.
+			 */
+
+			if (-1 != getrlimit(RLIMIT_CORE, &lim)) {
+				if (
+					0 == lim.rlim_cur &&
+					!options[main_arg_exec_on_crash].used
+				) {
+					options[main_arg_gdb_on_crash].used = TRUE;
+				}
+			}
+		}
+#endif	/* RLIMIT_CORE */
+
 		if (options[main_arg_gdb_on_crash].used)
 			pathname = "gdb";
 		else
@@ -1502,12 +1523,12 @@ main(int argc, char **argv)
 	log_atoms_inited();		/* Atom layer is up */
 	eval_init();
 	settings_early_init();
-
-	handle_arguments();		/* Returning from here means we're good to go */
-	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 	if (!is_running_on_mingw()) {
 		crash_setdir(settings_crash_dir());
 	}
+
+	handle_arguments();		/* Returning from here means we're good to go */
+	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 	malloc_show_settings();
 
 	/* Our regular inits */
