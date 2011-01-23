@@ -56,6 +56,85 @@ RCSID("$Id$")
 #include "override.h"			/* Must be the last header included */
 
 /**
+ * Default implementation to get the default gateway by parsing the
+ * output of the "netstat -rn" command.
+ *
+ * @param addrp		where gateway address is to be written
+ *
+ * @return 0 on success, -1 on failure with errno set.
+ */
+static int
+parse_netstat(host_addr_t *addrp)
+#ifdef HAS_POPEN
+{
+	FILE *f = NULL;
+	char tmp[80];
+	guint32 gate = 0;
+
+	/*
+	 * This implementation should be a safe default on UNIX platforms, but
+	 * it is inefficient and as such can only constitute a fallback.
+	 */
+
+	if (-1 != access("/bin/netstat", X_OK)) {
+		f = popen("/bin/netstat -rn", "r");
+	} else if (-1 != access("/usr/bin/netstat", X_OK)) {
+		f = popen("/usr/bin/netstat -rn", "r");
+	}
+
+	if (NULL == f) {
+		errno = ENOENT;		/* netstat not found */
+		return -1;
+	}
+
+	/*
+	 * Typical netstat -rn output:
+	 *
+	 * Destination        Gateway            Flags .....
+	 * 0.0.0.0            192.168.0.200      UG
+	 * default            192.168.0.200      UG
+	 *
+	 * Some systems like linux display "0.0.0.0", but traditional UNIX
+	 * output is "default" for the default route.
+	 */
+
+	while (fgets(tmp, sizeof tmp, f)) {
+		char *p;
+		guint32 ip;
+
+		p = is_strprefix(tmp, "default");
+		if (NULL == p)
+			p = is_strprefix(tmp, "0.0.0.0");
+
+		if (NULL == p || !is_ascii_space(*p))
+			continue;
+
+		ip = string_to_ip(p);
+		if (ip != 0) {
+			gate = ip;
+			break;
+		}
+	}
+
+	pclose(f);
+
+	if (0 == gate) {
+		errno = ENETUNREACH;
+		return -1;
+	}
+
+	*addrp = host_addr_get_ipv4(gate);
+	return 0;
+}
+#else
+{
+	(void) addrp;
+	errno = ENOTSUP;
+	return -1;
+}
+#endif	/* HAS_POPEN */
+
+/**
  * Compute default gateway address.
  *
  * If there are two default gateways (e.g. one for IPv4 and one for IPv6),
@@ -182,8 +261,9 @@ getgateway(host_addr_t *addrp)
 
 error:
 	close(fd);
-	errno = ENETUNREACH;
-	return -1;
+
+	g_warning("getgateway(): netlink failed, using the netstat command");
+	return parse_netstat(addrp);
 
 found:
 	close(fd);
@@ -192,64 +272,7 @@ found:
 }
 #else
 {
-	FILE *f = NULL;
-	char tmp[80];
-	guint32 gate = 0;
-
-	/*
-	 * This implementation should be a safe default on UNIX platforms, but
-	 * it is inefficient and as such can only constitute a fallback.
-	 */
-
-	if (-1 != access("/bin/netstat", X_OK)) {
-		f = popen("/bin/netstat -rn", "r");
-	} else if (-1 != access("/usr/bin/netstat", X_OK)) {
-		f = popen("/usr/bin/netstat -rn", "r");
-	}
-
-	if (NULL == f) {
-		errno = ENOENT;		/* netstat not found */
-		return -1;
-	}
-
-	/*
-	 * Typical netstat -rn output:
-	 *
-	 * Destination        Gateway            Flags .....
-	 * 0.0.0.0            192.168.0.200      UG
-	 * default            192.168.0.200      UG
-	 *
-	 * Some systems like linux display "0.0.0.0", but traditional UNIX
-	 * output is "default" for the default route.
-	 */
-
-	while (fgets(tmp, sizeof tmp, f)) {
-		char *p;
-		guint32 ip;
-
-		p = is_strprefix(tmp, "default");
-		if (NULL == p)
-			p = is_strprefix(tmp, "0.0.0.0");
-
-		if (NULL == p || !is_ascii_space(*p))
-			continue;
-
-		ip = string_to_ip(p);
-		if (ip != 0) {
-			gate = ip;
-			break;
-		}
-	}
-
-	pclose(f);
-
-	if (0 == gate) {
-		errno = ENETUNREACH;
-		return -1;
-	}
-
-	*addrp = host_addr_get_ipv4(gate);
-	return 0;
+	return parse_netstat(addrp);
 }
 #endif
 

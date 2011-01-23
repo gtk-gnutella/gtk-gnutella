@@ -357,6 +357,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_poll HAS_POLL		/**/
 
+/* HAS_POPEN:
+ *	This symbol, if defined, indicates that the popen routine is
+ *	available to open a pipe from a process.
+ */
+#$d_popen HAS_POPEN		/**/
+
 /* HAS_POSIX_FADVISE:
  *	This symbol is defined when posix_fadvise() can be used.
  */

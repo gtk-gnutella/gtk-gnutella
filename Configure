@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Jan 22 21:55:07 CET 2011 [metaconfig 3.5-84]
+# Generated on Sun Jan 23 11:49:57 CET 2011 [metaconfig 3.5-84]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -357,6 +357,7 @@ d_nls=''
 d_open3=''
 d_pause=''
 d_poll=''
+d_popen=''
 d_portable=''
 d_posix_fadvise=''
 d_posix_memalign=''
@@ -6359,6 +6360,21 @@ cyn=poll
 set d_poll
 eval $trylink
 
+: see if popen exists
+$cat >try.c <<EOC
+#include <stdio.h>
+int main(void)
+{
+	FILE *f;
+
+	f = popen("command", "mode");
+	return f ? 0 : 1;
+}
+EOC
+cyn=popen
+set d_popen
+eval $trylink
+
 : can we use posix_fadvise?
 $cat >try.c <<'EOC'
 #include <sys/types.h>
@@ -9970,6 +9986,7 @@ d_os2='$d_os2'
 d_pause='$d_pause'
 d_phostname='$d_phostname'
 d_poll='$d_poll'
+d_popen='$d_popen'
 d_portable='$d_portable'
 d_posix_fadvise='$d_posix_fadvise'
 d_posix_memalign='$d_posix_memalign'
