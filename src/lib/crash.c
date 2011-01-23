@@ -199,14 +199,14 @@ crash_end_of_line(void)
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
-	print_str(") end of line");		/* 3 */
+	print_str(") ");				/* 3 */
 	if (vars.pathname) {
-		print_str(" -- calling ");	/* 4 */
+		print_str("calling ");		/* 4 */
 		print_str(vars.pathname);	/* 5 */
 	} else if (vars.pause_process) {
-		print_str(" -- pausing");	/* 4 */
+		print_str("pausing -- end of line.");	/* 4 */
 	} else {
-		print_str(".");				/* 4 */
+		print_str("end of line.");	/* 4 */
 	}
 	print_str("\n");				/* 6, at most */
 	IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
@@ -317,16 +317,17 @@ child_failure:
 
 			waitpid(pid, &status, 0);
 
-			if (WIFEXITED(status)) {
-				crash_time(time_buf, sizeof time_buf);
+			crash_time(time_buf, sizeof time_buf);
 
-				print_str(time_buf);				/* 0 */
-				print_str(" CRASH (pid=");			/* 1 */
-				print_str(pid_str);					/* 2 */
-				print_str(") ");					/* 3 */
+			print_str(time_buf);				/* 0 */
+			print_str(" CRASH (pid=");			/* 1 */
+			print_str(pid_str);					/* 2 */
+			print_str(") ");					/* 3 */
+
+			if (WIFEXITED(status)) {
 				if (vars.invoke_gdb && 0 == WEXITSTATUS(status)) {
 					char buf[64];
-					print_str("trace is in ");		/* 4 */
+					print_str("trace left in ");	/* 4 */
 					clamp_strcpy(buf, sizeof buf, "gtk-gnutella-crash.");
 					clamp_strcat(buf, sizeof buf, pid_str);
 					clamp_strcat(buf, sizeof buf, ".log");
@@ -340,12 +341,6 @@ child_failure:
 				print_str("\n");					/* 6, at most */
 				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 			} else {
-				crash_time(time_buf, sizeof time_buf);
-
-				print_str(time_buf);					/* 0 */
-				print_str(" CRASH (pid=");				/* 1 */
-				print_str(pid_str);						/* 2 */
-				print_str(") ");						/* 3 */
 				if (WIFSIGNALED(status)) {
 					int signo = WTERMSIG(status);
 					print_str("child got a ");			/* 4 */
@@ -356,6 +351,10 @@ child_failure:
 				print_str("\n");						/* 6, at most */
 				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 			}
+
+			iov_cnt = 4;
+			print_str("end of line.\n");	/* 4 */
+			IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 		}
 	}
 }
