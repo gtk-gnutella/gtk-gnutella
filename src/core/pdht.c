@@ -1368,7 +1368,7 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 	if (GNET_PROPERTY(is_firewalled))
 		seq = node_push_proxies();
 
-	if (!GNET_PROPERTY(is_firewalled) || sequence_is_empty(seq)) {
+	if (NULL == seq || sequence_is_empty(seq)) {
 		host_addr_t addr;
 		guint16 port = socket_listen_port();
 
