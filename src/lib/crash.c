@@ -527,25 +527,25 @@ crash_init(const char *pathname, const char *argv0, int flags)
 	unsigned i;
 	char pwd[MAX_PATH_LEN];
 
-	crash_mem = ckinit_not_leaking(compat_pagesize(), 0);
+	crash_mem = ck_init_not_leaking(compat_pagesize(), 0);
 
 	if (NULL == getcwd(pwd, sizeof pwd)) {
 		g_warning("cannot get current working directory: %s",
 			g_strerror(errno));
 	} else {
-		vars.cwd = ckstrdup(crash_mem, pwd);
+		vars.cwd = ck_strdup(crash_mem, pwd);
 		g_assert(vars.cwd != NULL);
 	}
 
-	vars.pathname = ckstrdup(crash_mem, pathname);
-	vars.argv0 = ckstrdup(crash_mem, argv0);
+	vars.pathname = ck_strdup(crash_mem, pathname);
+	vars.argv0 = ck_strdup(crash_mem, argv0);
 	vars.pause_process = booleanize(CRASH_F_PAUSE & flags);
 	vars.invoke_gdb = booleanize(CRASH_F_GDB & flags);
 
 	g_assert(NULL == pathname || vars.pathname != NULL);
 	g_assert(NULL == argv0 || vars.argv0 != NULL);
 
-	ckreadonly(crash_mem);
+	ck_readonly(crash_mem);
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		signal_set(signals[i], crash_handler);
@@ -566,11 +566,11 @@ crash_setdir(const char *dir)
 
 	if (getcwd(pwd, sizeof pwd) != NULL) {
 		if (vars.cwd != NULL && strcmp(pwd, vars.cwd) != 0) {
-			vars.cwd = ckstrdupro(crash_mem, pwd);
+			vars.cwd = ck_strdup_readonly(crash_mem, pwd);
 		}
 	}
 
-	vars.crashdir = ckstrdupro(crash_mem, dir);
+	vars.crashdir = ck_strdup_readonly(crash_mem, dir);
 	g_assert(NULL == dir || vars.crashdir != NULL);
 }
 
@@ -582,7 +582,7 @@ crash_setver(const char *version)
 {
 	g_assert(crash_mem != NULL);
 
-	vars.version = ckstrdupro(crash_mem, version);
+	vars.version = ck_strdup_readonly(crash_mem, version);
 	g_assert(NULL == version || vars.version != NULL);
 }
 

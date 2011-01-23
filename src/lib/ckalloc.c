@@ -92,7 +92,7 @@ ckhunk_check(const struct ckhunk * const ck)
  * @return a new chunk allocator object.
  */
 static ckhunk_t *
-ckinit_internal(size_t size, size_t reserved, gboolean leaking)
+ckinit(size_t size, size_t reserved, gboolean leaking)
 {
 	void *arena;
 	ckhunk_t *ck;
@@ -125,9 +125,9 @@ ckinit_internal(size_t size, size_t reserved, gboolean leaking)
  * @return a new chunk allocator object.
  */
 ckhunk_t *
-ckinit(size_t size, size_t reserved)
+ck_init(size_t size, size_t reserved)
 {
-	return ckinit_internal(size, reserved, TRUE);
+	return ckinit(size, reserved, TRUE);
 }
 
 /**
@@ -139,9 +139,9 @@ ckinit(size_t size, size_t reserved)
  * @return a new chunk allocator object.
  */
 ckhunk_t *
-ckinit_not_leaking(size_t size, size_t reserved)
+ck_init_not_leaking(size_t size, size_t reserved)
 {
-	return ckinit_internal(size, reserved, FALSE);
+	return ckinit(size, reserved, FALSE);
 }
 
 /**
@@ -162,7 +162,7 @@ ckdestroy(ckhunk_t *ck)
  * Destroy a chunk allocator, nullify its pointer.
  */
 void
-ckdestroy_null(ckhunk_t **ck_ptr)
+ck_destroy_null(ckhunk_t **ck_ptr)
 {
 	ckhunk_t *ck = *ck_ptr;
 
@@ -176,7 +176,7 @@ ckdestroy_null(ckhunk_t **ck_ptr)
  * @return whether someething has been allocated.
  */
 gboolean
-ckused(const ckhunk_t *ck)
+ck_used(const ckhunk_t *ck)
 {
 	ckhunk_check(ck);
 
@@ -192,7 +192,7 @@ ckused(const ckhunk_t *ck)
  * @return current allocation pointer, to "save" the allocation context.
  */
 void *
-cksave(const ckhunk_t *ck)
+ck_save(const ckhunk_t *ck)
 {
 	ckhunk_check(ck);
 
@@ -206,7 +206,7 @@ cksave(const ckhunk_t *ck)
  * Restore allocation context to the saved pointer.
  */
 void
-ckrestore(ckhunk_t *ck, void *saved)
+ck_restore(ckhunk_t *ck, void *saved)
 {
 	sigset_t set;
 	char *start;
@@ -257,7 +257,7 @@ ckrestore(ckhunk_t *ck, void *saved)
  * Free all the objects allocated in the chunk.
  */
 void
-ckfree_all(ckhunk_t *ck)
+ck_free_all(ckhunk_t *ck)
 {
 	sigset_t set;
 
@@ -291,7 +291,7 @@ ckfree_all(ckhunk_t *ck)
  * @return pointer to allocated memory, NULL if memory cannot be allocated.
  */
 static void *
-ckalloc_internal(ckhunk_t *ck, size_t len, gboolean critical)
+ckalloc(ckhunk_t *ck, size_t len, gboolean critical)
 {
 	void *p = NULL;
 	sigset_t set;
@@ -347,9 +347,9 @@ done:
  * @return pointer to allocated memory, NULL if memory cannot be allocated.
  */
 void *
-ckalloc(ckhunk_t *ck, size_t len)
+ck_alloc(ckhunk_t *ck, size_t len)
 {
-	return ckalloc_internal(ck, len, FALSE);
+	return ckalloc(ck, len, FALSE);
 }
 
 /**
@@ -366,9 +366,9 @@ ckalloc(ckhunk_t *ck, size_t len)
  * @return pointer to allocated memory, NULL if memory cannot be allocated.
  */
 void *
-ckalloc_critical(ckhunk_t *ck, size_t len)
+ck_alloc_critical(ckhunk_t *ck, size_t len)
 {
-	return ckalloc_internal(ck, len, TRUE);
+	return ckalloc(ck, len, TRUE);
 }
 
 /**
@@ -377,7 +377,7 @@ ckalloc_critical(ckhunk_t *ck, size_t len)
  * @return new buffer with copied data, NULL if memory could not be allocated.
  */
 void *
-ckcopy(ckhunk_t *ck, const void *p, size_t size)
+ck_copy(ckhunk_t *ck, const void *p, size_t size)
 {
 	void *cp;
 
@@ -386,7 +386,7 @@ ckcopy(ckhunk_t *ck, const void *p, size_t size)
 	if (NULL == ck)
 		return NULL;
 
-	cp = ckalloc(ck, size);
+	cp = ck_alloc(ck, size);
 	if (cp != NULL)
 		memcpy(cp, p, size);
 
@@ -399,18 +399,18 @@ ckcopy(ckhunk_t *ck, const void *p, size_t size)
  * @return duplicated string, NULL if allocation failed or str was NULL.
  */
 char *
-ckstrdup(ckhunk_t *ck, const char *str)
+ck_strdup(ckhunk_t *ck, const char *str)
 {
 	ckhunk_check(ck);
 
-	return str ? ckcopy(ck, str, 1 + strlen(str)) : NULL;
+	return str ? ck_copy(ck, str, 1 + strlen(str)) : NULL;
 }
 
 /**
  * Turn chunk into a read-only memory area.
  */
 void
-ckreadonly(ckhunk_t *ck)
+ck_readonly(ckhunk_t *ck)
 {
 	ckhunk_check(ck);
 
@@ -435,7 +435,7 @@ ckreadonly(ckhunk_t *ck)
  * Allocate memory from a read-only chunk.
  */
 void *
-ckallocro(ckhunk_t *ck, size_t len)
+ck_alloc_readonly(ckhunk_t *ck, size_t len)
 {
 	void *p;
 	sigset_t set;
@@ -452,7 +452,7 @@ ckallocro(ckhunk_t *ck, size_t len)
 
 	mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
 	ck->read_only = FALSE;
-	p = ckalloc_internal(ck, len, FALSE);
+	p = ckalloc(ck, len, FALSE);
 	ck->read_only = TRUE;
 	mprotect(ck, ck->size, PROT_READ);
 
@@ -466,7 +466,7 @@ ckallocro(ckhunk_t *ck, size_t len)
  * @return new buffer with copied data, NULL if memory could not be allocated.
  */
 void *
-ckcopyro(ckhunk_t *ck, const void *p, size_t size)
+ck_copy_readonly(ckhunk_t *ck, const void *p, size_t size)
 {
 	void *cp;
 	sigset_t set;
@@ -483,7 +483,7 @@ ckcopyro(ckhunk_t *ck, const void *p, size_t size)
 
 	mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
 	ck->read_only = FALSE;
-	cp = ckalloc_internal(ck, size, FALSE);
+	cp = ckalloc(ck, size, FALSE);
 	if (cp != NULL)
 		memcpy(cp, p, size);
 	ck->read_only = TRUE;
@@ -499,11 +499,11 @@ ckcopyro(ckhunk_t *ck, const void *p, size_t size)
  * @return duplicated string, NULL if allocation failed or str was NULL.
  */
 char *
-ckstrdupro(ckhunk_t *ck, const char *str)
+ck_strdup_readonly(ckhunk_t *ck, const char *str)
 {
 	ckhunk_check(ck);
 
-	return str ? ckcopyro(ck, str, 1 + strlen(str)) : NULL;
+	return str ? ck_copy_readonly(ck, str, 1 + strlen(str)) : NULL;
 }
 
-/* vi: set ts=4 sw=4 cindent:  */
+/* vi: set ts=4 sw=4 cindent: */

@@ -213,12 +213,12 @@ signal_trampoline(int signo)
 	 * allocated already in the emergency chunk.
 	 */
 
-	if (ckused(sig_chunk)) {
+	if (ck_used(sig_chunk)) {
 		sigset_t set;
 
 		if (signal_enter_critical(&set)) {
 			if (0 == in_signal_handler)
-				ckfree_all(sig_chunk);
+				ck_free_all(sig_chunk);
 			signal_leave_critical(&set);
 		}
 	}
@@ -259,7 +259,7 @@ signal_set(int signo, signal_handler_t handler)
 			signal_handler[i] = SIG_DFL;	/* Can't assume it's NULL */
 		}
 
-		sig_chunk = ckinit(SIGNAL_CHUNK_SIZE, SIGNAL_CHUNK_RESERVE);
+		sig_chunk = ck_init(SIGNAL_CHUNK_SIZE, SIGNAL_CHUNK_RESERVE);
 		inited = TRUE;
 	}
 
@@ -388,7 +388,7 @@ signal_leave_critical(const sigset_t *oset)
 void
 signal_close(void)
 {
-	ckdestroy_null(&sig_chunk);
+	ck_destroy_null(&sig_chunk);
 }
 
 /* vi: set ts=4 sw=4 cindent:  */

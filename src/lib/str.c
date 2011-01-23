@@ -158,7 +158,7 @@ str_new_in_chunk(ckhunk_t *ck, size_t size)
 	 * to get from the chunk.
 	 */
 
-	arena = ckalloc(ck, size);
+	arena = ck_alloc(ck, size);
 	if (NULL == arena)
 		return NULL;
 
@@ -168,7 +168,7 @@ str_new_in_chunk(ckhunk_t *ck, size_t size)
 	 * the str_t object, hopefully.
 	 */
 
-	str = ckalloc_critical(ck, sizeof *str);
+	str = ck_alloc_critical(ck, sizeof *str);
 	if (NULL == str)
 		return NULL;
 

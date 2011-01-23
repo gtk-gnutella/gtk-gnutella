@@ -218,7 +218,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 
 		if (in_signal_handler) {
 			ck = signal_chunk();
-			saved = cksave(ck);
+			saved = ck_save(ck);
 			msg = str_new_in_chunk(ck, LOG_MSG_MAXLEN);
 
 			if (NULL == msg) {
@@ -234,7 +234,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 				print_str(stacktrace_caller_name(2));	/* 4 */
 				print_str("\n");		/* 5 */
 				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
-				ckrestore(ck, saved);
+				ck_restore(ck, saved);
 				return;
 			}
 		} else {
@@ -328,7 +328,7 @@ log.c: In function ‘s_logv’:
 		 */
 
 		if (in_signal_handler)
-			ckrestore(ck, saved);
+			ck_restore(ck, saved);
 
 		if (is_running_on_mingw() && !in_signal_handler)
 			fflush(stderr);		/* Unbuffering does not work on Windows */

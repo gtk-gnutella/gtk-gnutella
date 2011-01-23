@@ -44,21 +44,21 @@ typedef struct ckhunk ckhunk_t;
  * Public interface.
  */
 
-ckhunk_t *ckinit(size_t size, size_t reserved);
-ckhunk_t *ckinit_not_leaking(size_t size, size_t reserved);
-void ckdestroy_null(ckhunk_t **ck_ptr);
-void *ckalloc(ckhunk_t *ck, size_t len);
-void *ckalloc_critical(ckhunk_t *ck, size_t len);
-gboolean ckused(const ckhunk_t *ck);
-void *cksave(const ckhunk_t *ck);
-void ckrestore(ckhunk_t *ck, void *saved);
-void ckfree_all(ckhunk_t *ck);
-void *ckcopy(ckhunk_t *ck, const void *p, size_t size);
-char *ckstrdup(ckhunk_t *ck, const char *str);
-void ckreadonly(ckhunk_t *ck);
-void *ckallocro(ckhunk_t *ck, size_t len);
-void *ckcopyro(ckhunk_t *ck, const void *p, size_t size);
-char *ckstrdupro(ckhunk_t *ck, const char *str);
+ckhunk_t *ck_init(size_t size, size_t reserved);
+ckhunk_t *ck_init_not_leaking(size_t size, size_t reserved);
+void ck_destroy_null(ckhunk_t **ck_ptr);
+void *ck_alloc(ckhunk_t *ck, size_t len);
+void *ck_alloc_critical(ckhunk_t *ck, size_t len);
+gboolean ck_used(const ckhunk_t *ck);
+void *ck_save(const ckhunk_t *ck);
+void ck_restore(ckhunk_t *ck, void *saved);
+void ck_free_all(ckhunk_t *ck);
+void *ck_copy(ckhunk_t *ck, const void *p, size_t size);
+char *ck_strdup(ckhunk_t *ck, const char *str);
+void ck_readonly(ckhunk_t *ck);
+void *ck_alloc_readonly(ckhunk_t *ck, size_t len);
+void *ck_copy_readonly(ckhunk_t *ck, const void *p, size_t size);
+char *ck_strdup_readonly(ckhunk_t *ck, const char *str);
 
 #endif /* _ckalloc_h_ */
 
