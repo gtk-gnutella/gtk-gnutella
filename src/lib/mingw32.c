@@ -59,6 +59,7 @@ RCSID("$Id$")
 #include <glib/gprintf.h>
 
 #include <stdio.h>
+#include <wchar.h>
 
 #include "host_addr.h"			/* ADNS */
 
@@ -378,11 +379,25 @@ mingw_stat(const char *pathname, struct stat *buf)
 {
 	pncs_t pncs;
 	int res;
+	struct _stat _buf;
    
 	pncs = pncs_convert(pathname);
-	res = _wstat(pncs.pathname, buf);
-	if (-1 == res)
+	res = _wstat(pncs.pathname, &_buf);
+	if (-1 == res) {
 		errno = GetLastError();
+	} else {
+		buf->st_dev = _buf.st_dev;
+		buf->st_ino = _buf.st_ino;
+		buf->st_mode = _buf.st_mode;
+		buf->st_nlink = _buf.st_nlink;
+		buf->st_uid = _buf.st_uid;
+		buf->st_gid = _buf.st_gid;
+		buf->st_rdev = _buf.st_rdev;
+		buf->st_size = _buf.st_size;
+		buf->st_atime = _buf.st_atime;
+		buf->st_mtime = _buf.st_mtime;
+		buf->st_ctime = _buf.st_ctime;
+	}
 
 	pncs_release(&pncs);
 	return res;
