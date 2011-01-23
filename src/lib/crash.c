@@ -391,6 +391,12 @@ child_failure:
 				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
 			}
 
+			/*
+			 * Items 0, 1, 2, 3 of the vector were already built above,
+			 * and contain the crash time, and the "CRASH (pid=xxx)" string.
+			 * No need to regenerate them, so start at index 4.
+			 */
+
 			iov_cnt = 4;
 			print_str("end of line.\n");	/* 4 */
 			IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
