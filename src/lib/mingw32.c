@@ -110,7 +110,6 @@ RCSID("$Id$")
 #define WS2_LIBRARY "ws2_32.dll"
 static HINSTANCE libws2_32;
 
-
 typedef struct processor_power_information {
   ULONG Number;
   ULONG MaxMhz;
@@ -440,6 +439,10 @@ mingw_stat(const char *pathname, struct stat *buf)
 	if (-1 == res) {
 		errno = GetLastError();
 	} else {
+		/*
+		 * We can't copy structs since field types within struct buf and
+		 * struct _buf differ, so we have to copy each field.
+		 */
 		buf->st_dev = _buf.st_dev;
 		buf->st_ino = _buf.st_ino;
 		buf->st_mode = _buf.st_mode;
@@ -1195,7 +1198,7 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 	pncs_t wpathname, wmode;
 	FILE *res;
 
-	wpathname = pncs_convert(pathname.pathname);
+	wpathname = pncs_convert(pathname);
 	wmode = pncs_convert(mode);
 
 	res = _wfreopen(wpathname.pathname, wmode.pathname, file);
