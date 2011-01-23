@@ -63,7 +63,8 @@ static time_delta_t crash_gmtoff;	/**< Offset to GMT, supposed to be fixed */
 static struct {
 	const char *pathname;	/* The file to execute. */
 	const char *argv0;		/* The original argv[0]. */
-	int pause_process;
+	unsigned pause_process:1;
+	unsigned invoke_gdb:1;
 } vars;
 
 /**
@@ -218,36 +219,85 @@ crash_exec(const char *pathname, const char *argv0)
    	const char *pid_str;
 	char pid_buf[22];
 	pid_t pid;
+	int fd[2];
+	int pipe_ok = 0;
 
 	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
 
 	/* Make sure we don't exceed the system-wide file descriptor limit */
 	close_file_descriptors(3);
 
+	if (vars.invoke_gdb) {
+		close(STDIN_FILENO);
+		close(STDOUT_FILENO);
+		if (0 == pipe(fd)) {
+			static const char commands[] = "bt full\nquit\n";
+			size_t n = CONST_STRLEN(commands);
+
+			if (n == UNSIGNED(write(STDOUT_FILENO, commands, n)))
+				pipe_ok = 1;
+		}
+	}
+
 	pid = fork();
 	switch (pid) {
 	case 0:
 		{
 			char const *argv[8];
+			char cmd[64];
 
-			argv[0] = pathname;
-			argv[1] = argv0;
-			argv[2] = pid_str;
-			argv[3] = NULL;
+			clamp_strcpy(cmd, sizeof cmd, "gdb -q -p ");
+			clamp_strcat(cmd, sizeof cmd, pid_str);
 
-			/* Assign stdin, stdout and stdout to /dev/null */
-			if (
-					close(STDIN_FILENO) ||
-					close(STDOUT_FILENO) ||
-					close(STDERR_FILENO) ||
-					STDIN_FILENO  != open("/dev/null", O_RDONLY, 0) ||
-					STDOUT_FILENO != open("/dev/null", O_WRONLY, 0) ||
-					STDERR_FILENO != dup(STDOUT_FILENO) ||
-					-1 == setsid() || 
-					execve(argv[0], (const void *) argv, NULL)
-			   ) {
-				_exit(EXIT_FAILURE);
+			if (pipe_ok) {
+				argv[0] = "/bin/sh";
+				argv[1] = "-c";
+				argv[2] = cmd;
+				argv[3] = NULL;
+			} else {
+				argv[0] = pathname;
+				argv[1] = argv0;
+				argv[2] = pid_str;
+				argv[3] = NULL;
 			}
+
+			if (pipe_ok) {
+				char filename[64];
+				int flags = O_CREAT | O_WRONLY | O_TRUNC;
+				mode_t mode = S_IRUSR | S_IWUSR;
+
+				/** FIXME: This should be an absolute path due to --daemonize
+				 * 		   Also, we might want to place this in
+				 *		   $GTK_GNUTELLA_DIR instead of the rather arbitrary
+				 *		   current working directory.
+				 */
+				clamp_strcpy(filename, sizeof filename, "gtk-gnutella-crash.");
+				clamp_strcat(filename, sizeof filename, pid_str);
+				clamp_strcat(filename, sizeof filename, ".log");
+
+				/* STDIN must be kept open */
+				close(STDOUT_FILENO);
+				close(STDERR_FILENO);
+				if (STDOUT_FILENO != open(filename, flags, mode))
+					goto child_failure;
+				if (STDERR_FILENO != dup(STDOUT_FILENO))
+					goto child_failure;
+			} else {
+				close(STDIN_FILENO);
+				close(STDOUT_FILENO);
+				close(STDERR_FILENO);
+				if (
+					STDIN_FILENO != open("/dev/null", O_RDONLY, 0) ||
+					STDOUT_FILENO != open("/dev/null", O_RDONLY, 0) ||
+					STDERR_FILENO != open("/dev/null", O_RDONLY, 0)
+				)
+					goto child_failure;
+			}
+
+			if (-1 == setsid() || execve(argv[0], (const void *) argv, NULL))
+				goto child_failure;
+child_failure:
+		_exit(EXIT_FAILURE);
 		}
 		break;
 	case -1:
@@ -367,13 +417,14 @@ crash_handler(int signo)
  * @param argv0 The original argv[0] from main().
  */
 void
-crash_init(const char *pathname, const char *argv0, int pause_process)
+crash_init(const char *pathname, const char *argv0, int flags)
 {
 	unsigned i;
 
 	vars.pathname = prot_strdup(pathname);
 	vars.argv0 = prot_strdup(argv0);
-	vars.pause_process = pause_process;
+	vars.pause_process = booleanize(CRASH_F_PAUSE & flags);
+	vars.invoke_gdb = booleanize(CRASH_F_GDB & flags);
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		signal_set(signals[i], crash_handler);

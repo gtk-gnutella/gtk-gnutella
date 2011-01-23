@@ -661,6 +661,7 @@ enum main_arg {
 	main_arg_compile_info,
 	main_arg_daemonize,
 	main_arg_exec_on_crash,
+	main_arg_gdb_on_crash,
 	main_arg_geometry,
 	main_arg_help,
 	main_arg_log_stderr,
@@ -706,6 +707,7 @@ static struct {
 	OPTION(compile_info,	NONE, "Display compile-time information."),
 	OPTION(daemonize, 		NONE, "Daemonize the process."),
 	OPTION(exec_on_crash, 	PATH, "Execute a command on crash."),
+	OPTION(gdb_on_crash, 	NONE, "Execute a gdb on crash."),
 	OPTION(geometry,		TEXT, "Placement of the main GUI window."),
 	OPTION(help, 			NONE, "Print this message."),
 	OPTION(log_stderr,		PATH, "Log standard output to a file."),
@@ -1477,8 +1479,17 @@ main(int argc, char **argv)
 	parse_arguments(argc, argv);
 	initialize_logfiles();
 	if (!is_running_on_mingw()) {
-		crash_init(options[main_arg_exec_on_crash].arg, argv[0],
-			options[main_arg_pause_on_crash].used);
+		const char *pathname;
+		int flags = 0;
+
+		if (options[main_arg_gdb_on_crash].used)
+			pathname = "gdb";
+		else
+			pathname = options[main_arg_exec_on_crash].arg;
+
+		flags |= options[main_arg_pause_on_crash].used ? CRASH_F_PAUSE : 0;
+		flags |= options[main_arg_gdb_on_crash].used ? CRASH_F_GDB : 0;
+		crash_init(pathname, argv[0], flags);
 	}	
 	handle_arguments_asap();
 
