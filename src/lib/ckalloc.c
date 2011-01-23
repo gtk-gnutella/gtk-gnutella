@@ -417,6 +417,14 @@ ckreadonly(ckhunk_t *ck)
 	if (NULL == ck)
 		return;
 
+	/*
+	 * The chunk is allocated with vmm_alloc() so its start is page-aligned.
+	 * To make sure we call mprotect() on an integer amount of pages, also
+	 * check that the chunk size is a multiple of the kernel page size.
+	 */
+
+	g_assert(round_pagesize(ck->size) == ck->size);
+
 	if (!ck->read_only) {
 		ck->read_only = TRUE;
 		mprotect(ck, ck->size, PROT_READ);
