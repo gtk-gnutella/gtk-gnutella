@@ -75,14 +75,15 @@ struct crash_vars {
 	unsigned invoke_gdb:1;
 };
 
-static struct crash_vars *vars; /** read-only after crash_init()! */
+static const struct crash_vars *vars; /** read-only after crash_init()! */
 
 #define crash_set_var(name, value) \
 G_STMT_START { \
-	g_assert(NULL != vars); \
-	mprotect(vars, sizeof *vars, PROT_READ | PROT_WRITE); \
-	vars->name = (value); \
-	mprotect(vars, sizeof *vars, PROT_READ); \
+	struct crash_vars *vars_ = deconstify_gpointer(vars); \
+	g_assert(NULL != vars_); \
+	mprotect(vars_, sizeof *vars_, PROT_READ | PROT_WRITE); \
+	vars_->name = (value); \
+	mprotect(vars_, sizeof *vars_, PROT_READ); \
 } G_STMT_END
 
 /**
