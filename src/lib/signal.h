@@ -46,6 +46,7 @@ signal_handler_t signal_set(int signo, signal_handler_t handler);
 const char *signal_name(int signo);
 gboolean signal_in_handler(void);
 struct ckhunk *signal_chunk(void);
+void signal_unblock(int signo);
 
 gboolean signal_enter_critical(sigset_t *oset);
 void signal_leave_critical(const sigset_t *oset);

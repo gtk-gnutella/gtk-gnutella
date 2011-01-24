@@ -469,6 +469,19 @@ crash_handler(int signo)
 	}
 
 	/*
+	 * Unblock SIGBUS or SIGSEGV if it is the signal we're handling, so
+	 * that we can have them delivered again.
+	 */
+
+#ifdef SIGBUS
+	if (SIGBUS == signo)
+		signal_unblock(signo);
+#endif
+
+	if (SIGSEGV == signo)
+		signal_unblock(signo);
+
+	/*
 	 * Try to go back to the crashing directory, if configured, when we're
 	 * about to exec() a process, so that the core dump happens there,
 	 * even if we're daemonized.

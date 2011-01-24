@@ -147,16 +147,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 				 * all the signals blocked, make sure to unblock SIGBART.
 				 */
 
-#ifdef HAS_SIGPROCMASK
-				{
-					sigset_t set;
-
-					sigemptyset(&set);
-					sigaddset(&set, SIGABRT);
-					sigprocmask(SIG_UNBLOCK, &set, NULL);
-				}
-#endif	/* HAS_SIGPROCMASK */
-
+				signal_unblock(SIGABRT);
 				raise(SIGABRT);
 
 				/*

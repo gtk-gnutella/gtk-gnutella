@@ -307,6 +307,25 @@ signal_set(int signo, signal_handler_t handler)
 	return (SIG_DFL == ret || SIG_IGN == ret) ? ret : old_handler;
 }
 
+/**
+ * Unblock signal.
+ */
+void
+signal_unblock(int signo)
+{
+	g_assert(signo > 0 && signo < SIG_COUNT);
+
+#ifdef HAS_SIGPROCMASK
+	{
+		sigset_t set;
+
+		sigemptyset(&set);
+		sigaddset(&set, signo);
+		sigprocmask(SIG_UNBLOCK, &set, NULL);
+	}
+#endif	/* HAS_SIGPROCMASK */
+}
+
 static volatile sig_atomic_t in_critical_section;
 
 /**
