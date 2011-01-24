@@ -634,7 +634,7 @@ process_meta_data(bitzi_request_t *request)
 		xmlChar *text;
 
 		xmlDocDumpMemory(doc, &text, NULL);
-		data->ticket = deconstify_gchar(xmlChar_to_gchar(text));
+		data->ticket = STRTRACK(deconstify_gchar(xmlChar_to_gchar(text)));
 
 		if (bitzi_cache_file) {
 			xmlDocDump(bitzi_cache_file, doc);
