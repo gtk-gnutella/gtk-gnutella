@@ -71,9 +71,10 @@
 #include "xml/vxml.h"
 
 #include "lib/bit_array.h"
+#include "lib/compat_misc.h"
 #include "lib/cpufreq.h"
 #include "lib/cq.h"
-#include "lib/compat_misc.h"
+#include "lib/crash.h"
 #include "lib/debug.h"
 #include "lib/fd.h"
 #include "lib/file.h"
@@ -668,6 +669,8 @@ settings_init(void)
 		g_info("max I/O vector size is %d items", MAX_IOV_COUNT);
 		g_info("virtual memory page size is %lu bytes",
 			(gulong) compat_pagesize());
+		g_info("core dumps are %s",
+			crash_coredumps_disabled() ? "disabled" : "enabled");
 
 		/* XXX temporary */
 		{
