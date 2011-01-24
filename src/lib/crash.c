@@ -295,6 +295,7 @@ crash_exec(const char *pathname, const char *argv0, const char *cwd)
 				argv[2] = cmd;
 				argv[3] = NULL;
 			} else {
+				/* FIXME: Use /bin/sh -c too? */
 				argv[0] = pathname;
 				argv[1] = argv0;
 				argv[2] = pid_str;
@@ -493,13 +494,13 @@ crash_handler(int signo)
 	 * that we can have them delivered again.
 	 */
 
+	switch (signo) {
 #ifdef SIGBUS
-	if (SIGBUS == signo)
-		signal_unblock(signo);
+	case SIGBUS:
 #endif
-
-	if (SIGSEGV == signo)
+	case SIGSEGV:
 		signal_unblock(signo);
+	}
 
 	/*
 	 * Try to go back to the crashing directory, if configured, when we're
