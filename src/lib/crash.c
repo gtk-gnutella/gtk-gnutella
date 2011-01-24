@@ -663,7 +663,7 @@ crash_setdir(const char *pathname)
 	g_assert(NULL != crash_mem);
 
 	if (NULL != getcwd(dir, sizeof dir)) {
-		if (NULL != vars->cwd && 0 != strcmp(dir, vars->cwd)) {
+		if (NULL == vars->cwd || 0 != strcmp(dir, vars->cwd)) {
 			ptr = ck_strdup_readonly(crash_mem, dir);
 			ck_memcpy(crash_mem, (void *) &vars->cwd, &ptr, sizeof vars->cwd);
 		}
