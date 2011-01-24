@@ -296,6 +296,7 @@ ckalloc(ckhunk_t *ck, size_t len, gboolean critical)
 	void *p = NULL;
 	sigset_t set;
 	char *new_avail;
+	size_t allocated;
 
 	ckhunk_check(ck);
 	g_assert(size_is_positive(len));
@@ -303,6 +304,8 @@ ckalloc(ckhunk_t *ck, size_t len, gboolean critical)
 
 	if (NULL == ck)
 		return NULL;
+
+	allocated = ckalloc_round(len);		/* Keep allocations aligned */
 
 	if (!signal_enter_critical(&set))
 		return NULL;
@@ -312,7 +315,7 @@ ckalloc(ckhunk_t *ck, size_t len, gboolean critical)
 	 * unless ``critical'' is TRUE.
 	 */
 
-	new_avail = ptr_add_offset(ck->avail, len);
+	new_avail = ptr_add_offset(ck->avail, allocated);
 	if (ptr_cmp(ck->end, new_avail) < 0)
 		goto done;
 
