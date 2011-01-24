@@ -1414,6 +1414,36 @@ handle_arguments(void)
 	}
 }
 
+/**
+ * Determines whether coredumps are disabled.
+ *
+ * @return TRUE if enabled, FALSE if disabled, -1 if unknown or on error.
+ */
+static int
+coredumps_disabled(void)
+#ifdef RLIMIT_CORE
+{
+	struct rlimit lim;
+
+	/*
+	 * If core dumps are disabled, force gdb execution on crash
+	 * to be able to get some information before the process
+	 * disappears.
+	 */
+
+	if (-1 != getrlimit(RLIMIT_CORE, &lim)) {
+		/* RLIM_INFINITY could be negative, thus not > 0 */
+		return 0 == lim.rlim_cur;
+	}
+	return -1;
+}
+#else
+{
+	errno = ENOTSUP;
+	return -1;
+}
+#endif	/* RLIMIT_CORE */
+
 int
 main(int argc, char **argv)
 {
@@ -1479,38 +1509,15 @@ main(int argc, char **argv)
 	parse_arguments(argc, argv);
 	initialize_logfiles();
 	if (!is_running_on_mingw()) {
-		const char *pathname;
 		int flags = 0;
-
-#ifdef RLIMIT_CORE
-		{
-			struct rlimit lim;
-
-			/*
-			 * If core dumps are disabled, force gdb execution on crash
-			 * to be able to get some information before the process
-			 * disappears.
-			 */
-
-			if (-1 != getrlimit(RLIMIT_CORE, &lim)) {
-				if (
-					0 == lim.rlim_cur &&
-					!options[main_arg_exec_on_crash].used
-				) {
-					options[main_arg_gdb_on_crash].used = TRUE;
-				}
-			}
-		}
-#endif	/* RLIMIT_CORE */
-
-		if (options[main_arg_gdb_on_crash].used)
-			pathname = "gdb";
-		else
-			pathname = options[main_arg_exec_on_crash].arg;
 
 		flags |= options[main_arg_pause_on_crash].used ? CRASH_F_PAUSE : 0;
 		flags |= options[main_arg_gdb_on_crash].used ? CRASH_F_GDB : 0;
-		crash_init(pathname, argv[0], flags);
+
+		if (!options[main_arg_exec_on_crash].used && coredumps_disabled()) {
+			flags |= CRASH_F_GDB;
+		}
+		crash_init(options[main_arg_exec_on_crash].arg, argv[0], flags);
 	}	
 	handle_arguments_asap();
 
