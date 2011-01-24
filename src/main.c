@@ -1425,12 +1425,6 @@ coredumps_disabled(void)
 {
 	struct rlimit lim;
 
-	/*
-	 * If core dumps are disabled, force gdb execution on crash
-	 * to be able to get some information before the process
-	 * disappears.
-	 */
-
 	if (-1 != getrlimit(RLIMIT_CORE, &lim)) {
 		/* RLIM_INFINITY could be negative, thus not > 0 */
 		return 0 == lim.rlim_cur;
@@ -1513,6 +1507,12 @@ main(int argc, char **argv)
 
 		flags |= options[main_arg_pause_on_crash].used ? CRASH_F_PAUSE : 0;
 		flags |= options[main_arg_gdb_on_crash].used ? CRASH_F_GDB : 0;
+
+		/*
+		 * If core dumps are disabled, force gdb execution on crash
+		 * to be able to get some information before the process
+		 * disappears, unless they specified --exec-on-crash already.
+		 */
 
 		if (!options[main_arg_exec_on_crash].used && coredumps_disabled()) {
 			flags |= CRASH_F_GDB;
