@@ -320,11 +320,6 @@ crash_exec(const char *pathname, const char *argv0, const char *cwd)
 				mode_t mode = S_IRUSR | S_IWUSR;
 				DECLARE_STR(6);
 
-				/** FIXME: This should be an absolute path due to --daemonize
-				 * 		   Also, we might want to place this in
-				 *		   $GTK_GNUTELLA_DIR instead of the rather arbitrary
-				 *		   current working directory.
-				 */
 				crash_logname(filename, sizeof filename, pid_str);
 
 				/* STDIN must be kept open */
@@ -589,11 +584,13 @@ crash_init(const char *pathname, const char *argv0, int flags)
 	unsigned i;
 	char dir[MAX_PATH_LEN];
 
-	/**
-	 * FIXME: Is crash_mem resized automagically?
-	 *		  A page is easily exceeded by MAX_PATH_LEN!
+	/*
+	 * Pre-size the chunk with enough space to hold 4 paths at the maximum
+	 * length.  In practice, paths will be much shorter than that so the
+	 * chunk will be shrunk at the end of the initialization phase.
 	 */
-	crash_mem = ck_init_not_leaking(compat_pagesize(), 0);
+
+	crash_mem = ck_init_not_leaking(4 * MAX_PATH_LEN, 0);
 	vars = vmm_alloc0(sizeof *vars);
 
 	if (CRASH_F_GDB & flags) {
@@ -665,6 +662,22 @@ void
 crash_setbuild(unsigned build)
 {
 	crash_set_var(build, build);
+}
+
+/**
+ * Final call to signal that crash initialization is done and we can now
+ * shrink the pre-sized data structures to avoid wasting too much space.
+ */
+void
+crash_post_init(void)
+{
+	/*
+	 * FIXME -- placeholder for now
+	 *
+	 * This will require implementation of ck_shrink(), which in turn will
+	 * rely on non-existing vmm_shrink() to be able to release the tail of
+	 * the allocated VM space (irreversibly).
+	 */
 }
 
 /* vi: set ts=4 sw=4 cindent: */
