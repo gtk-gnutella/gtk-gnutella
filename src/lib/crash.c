@@ -56,7 +56,6 @@ RCSID("$Id$")
 #include "timestamp.h"
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
-#include "vmm.h"
 #include "stacktrace.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -76,15 +75,6 @@ struct crash_vars {
 };
 
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
-
-#define crash_set_var(name, value) \
-G_STMT_START { \
-	struct crash_vars *vars_ = deconstify_gpointer(vars); \
-	g_assert(NULL != vars_); \
-	mprotect(vars_, sizeof *vars_, PROT_READ | PROT_WRITE); \
-	vars_->name = (value); \
-	mprotect(vars_, sizeof *vars_, PROT_READ); \
-} G_STMT_END
 
 /**
  * Signals that usually indicate a crash.
@@ -368,13 +358,13 @@ crash_exec(const char *pathname, const char *argv0, const char *cwd)
 				print_str("\n");					/* 5 */
 				flush_str(STDOUT_FILENO);
 			} else {
-				close(STDIN_FILENO);
-				close(STDOUT_FILENO);
-				close(STDERR_FILENO);
 				if (
+					close(STDIN_FILENO) ||
+					close(STDOUT_FILENO) ||
+					close(STDERR_FILENO) ||
 					STDIN_FILENO != open("/dev/null", O_RDONLY, 0) ||
-					STDOUT_FILENO != open("/dev/null", O_RDONLY, 0) ||
-					STDERR_FILENO != open("/dev/null", O_RDONLY, 0)
+					STDOUT_FILENO != open("/dev/null", O_WRONLY, 0) ||
+					STDERR_FILENO != dup(STDOUT_FILENO)
 				)
 					goto child_failure;
 			}
@@ -397,7 +387,9 @@ child_failure:
 
 			ret = waitpid(pid, &status, 0);
 			close(STDIN_FILENO);
+			open("/dev/null", O_RDONLY, 0);
 			close(STDOUT_FILENO);
+			open("/dev/null", O_WRONLY, 0);
 
 			crash_time(time_buf, sizeof time_buf);
 
@@ -616,6 +608,7 @@ crash_handler(int signo)
 void
 crash_init(const char *pathname, const char *argv0, int flags)
 {
+	struct crash_vars iv;
 	unsigned i;
 	char dir[MAX_PATH_LEN];
 
@@ -626,7 +619,6 @@ crash_init(const char *pathname, const char *argv0, int flags)
 	 */
 
 	crash_mem = ck_init_not_leaking(16 * MAX_PATH_LEN, 0);
-	vars = vmm_alloc0(sizeof *vars);
 
 	if (CRASH_F_GDB & flags) {
 		pathname = "gdb";
@@ -636,19 +628,20 @@ crash_init(const char *pathname, const char *argv0, int flags)
 		g_warning("cannot get current working directory: %s",
 			g_strerror(errno));
 	} else {
-		crash_set_var(cwd, ck_strdup(crash_mem, dir));
-		g_assert(NULL != vars->cwd);
+		iv.cwd = ck_strdup(crash_mem, dir);
+		g_assert(NULL != iv.cwd);
 	}
 
-	crash_set_var(pathname, ck_strdup(crash_mem, pathname));
-	g_assert(NULL == pathname || NULL != vars->pathname);
+	iv.pathname = ck_strdup(crash_mem, pathname);
+	g_assert(NULL == pathname || NULL != iv.pathname);
 
-	crash_set_var(argv0, ck_strdup(crash_mem, argv0));
-	g_assert(NULL == argv0 || NULL != vars->argv0);
+	iv.argv0 = ck_strdup(crash_mem, argv0);
+	g_assert(NULL == argv0 || NULL != iv.argv0);
 
-	crash_set_var(pause_process, booleanize(CRASH_F_PAUSE & flags));
-	crash_set_var(invoke_gdb, booleanize(CRASH_F_GDB & flags));
+	iv.pause_process =booleanize(CRASH_F_PAUSE & flags);
+	iv.invoke_gdb = booleanize(CRASH_F_GDB & flags);
 
+	vars = ck_copy(crash_mem, &iv, sizeof iv);
 	ck_readonly(crash_mem);
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
@@ -665,16 +658,19 @@ void
 crash_setdir(const char *pathname)
 {
 	char dir[MAX_PATH_LEN];
+	const char *ptr;
 
 	g_assert(NULL != crash_mem);
 
 	if (NULL != getcwd(dir, sizeof dir)) {
 		if (NULL != vars->cwd && 0 != strcmp(dir, vars->cwd)) {
-			crash_set_var(cwd, ck_strdup_readonly(crash_mem, dir));
+			ptr = ck_strdup_readonly(crash_mem, dir);
+			ck_memcpy(crash_mem, (void *) &vars->cwd, &ptr, sizeof vars->cwd);
 		}
 	}
 
-	crash_set_var(crashdir, ck_strdup_readonly(crash_mem, pathname));
+	ptr = ck_strdup_readonly(crash_mem, pathname);
+	ck_memcpy(crash_mem, (void *) &vars->crashdir, &ptr, sizeof vars->crashdir);
 	g_assert(NULL == pathname || NULL != vars->crashdir);
 }
 
@@ -684,9 +680,12 @@ crash_setdir(const char *pathname)
 void
 crash_setver(const char *version)
 {
+	const char *ptr;
+
 	g_assert(NULL != crash_mem);
 
-	crash_set_var(version, ck_strdup_readonly(crash_mem, version));
+	ptr = ck_strdup_readonly(crash_mem, version);
+	ck_memcpy(crash_mem, (void *) &vars->version, &ptr, sizeof vars->version);
 	g_assert(NULL == version || NULL != vars->version);
 }
 
@@ -696,7 +695,7 @@ crash_setver(const char *version)
 void
 crash_setbuild(unsigned build)
 {
-	crash_set_var(build, build);
+	ck_memcpy(crash_mem, (void *) &vars->build, &build, sizeof vars->build);
 }
 
 /**
