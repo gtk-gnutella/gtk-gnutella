@@ -60,7 +60,7 @@ struct sha1;
 typedef struct bitzi_data {
 	const struct sha1 *sha1;	/**< pointer to SHA-1 atom */
 	const char	*mime_type;		/**< mime type (string atom) */
-	const char	*mime_desc;		/**< mime details (fps, bitrate etc) (string atom) */
+	const char	*mime_desc;		/**< mime details (fps, bitrate etc) (atom) */
 	char *ticket;				/**< The ticket as text */
 	filesize_t	size;			/**< size of file */
 	bitzi_fj_t	judgement;
