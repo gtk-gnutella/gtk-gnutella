@@ -556,6 +556,8 @@ mingw_closedir(void *dir)
 /**
  * @note The returned UTF-8 string becomes invalid after the next
  *		 call to dir_entry_filename().
+ *		 In order to avoid a memory leak, you may pass NULL as
+ *		 parameter to free the memory.
  */
 const char *
 dir_entry_filename(const void *dirent)
@@ -564,7 +566,9 @@ dir_entry_filename(const void *dirent)
 	static char *filename;
 
 	HFREE_NULL(filename);
-	filename = utf16_to_utf8_string(wdirent->d_name);
+	if (NULL != wdirent) {
+		filename = utf16_to_utf8_string(wdirent->d_name);
+	}
 	return filename;
 }
 

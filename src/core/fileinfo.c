@@ -5484,6 +5484,7 @@ file_info_scandir(const char *dir)
 	}
 
 	HFREE_NULL(pathname);
+	dir_entry_filename(NULL);	/* release memory */
 	closedir(d);
 }
 

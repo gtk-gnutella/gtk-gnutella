@@ -239,10 +239,13 @@ dir_entry_mode(const struct dirent *dir_entry)
 }
 
 #ifndef MINGW32
+/**
+ * @note NULL is allowed as parameter, see MINGW32 implementation.
+ */
 static inline const char *
 dir_entry_filename(const struct dirent *dir_entry)
 {
-	return dir_entry->d_name;
+	return NULL != dir_entry ? dir_entry->d_name : NULL;
 }
 #endif	/* MINGW32 */
 
