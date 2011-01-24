@@ -172,8 +172,7 @@ crash_time(char *buf, size_t buflen)
 static void
 crash_message(const char *signame, gboolean trace, gboolean recursive)
 {
-	iovec_t iov[8];
-	unsigned iov_cnt = 0;
+	DECLARE_STR(8);
 	char pid_buf[22];
 	char time_buf[18];
 
@@ -189,14 +188,13 @@ crash_message(const char *signame, gboolean trace, gboolean recursive)
 	if (trace)
 		print_str(" -- stack was:");	/* 6 */
 	print_str("\n");					/* 7, at most */
-	IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+	flush_err_str();
 }
 
 static void
 crash_end_of_line(void)
 {
-	iovec_t iov[7];
-	unsigned iov_cnt = 0;
+	DECLARE_STR(7);
 	char pid_buf[22];
 	char time_buf[18];
 
@@ -215,7 +213,7 @@ crash_end_of_line(void)
 		print_str("end of line.");	/* 4 */
 	}
 	print_str("\n");				/* 6, at most */
-	IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+	flush_err_str();
 }
 
 /**
@@ -288,8 +286,7 @@ crash_exec(const char *pathname, const char *argv0, const char *cwd)
 				char filename[64];
 				int flags = O_CREAT | O_WRONLY | O_TRUNC;
 				mode_t mode = S_IRUSR | S_IWUSR;
-				iovec_t iov[6];
-				unsigned iov_cnt = 0;
+				DECLARE_STR(6);
 
 				/** FIXME: This should be an absolute path due to --daemonize
 				 * 		   Also, we might want to place this in
@@ -314,8 +311,7 @@ crash_exec(const char *pathname, const char *argv0, const char *cwd)
 					print_str(vars.version);		/* 4 */
 				}
 				print_str("\n");					/* 5 */
-
-				IGNORE_RESULT(writev(STDOUT_FILENO, iov, iov_cnt));
+				flush_str(STDOUT_FILENO);
 			} else {
 				close(STDIN_FILENO);
 				close(STDOUT_FILENO);
@@ -331,7 +327,7 @@ crash_exec(const char *pathname, const char *argv0, const char *cwd)
 			if (-1 == setsid() || execve(argv[0], (const void *) argv, NULL))
 				goto child_failure;
 child_failure:
-		_exit(EXIT_FAILURE);
+			_exit(EXIT_FAILURE);
 		}
 		break;
 	case -1:
@@ -339,8 +335,8 @@ child_failure:
 	default:
 		{
 			int status;
-			iovec_t iov[9];
-			unsigned iov_cnt = 0, iov_prolog;
+			DECLARE_STR(9);
+			unsigned iov_prolog;
 			char time_buf[18];
 			pid_t ret;
 
@@ -355,14 +351,14 @@ child_failure:
 			print_str(" CRASH (pid=");			/* 1 */
 			print_str(pid_str);					/* 2 */
 			print_str(") ");					/* 3 */
-			iov_prolog = iov_cnt;
+			iov_prolog = getpos_str();
 
 			if ((pid_t) -1 == ret) {
 				char buf[22];
 				print_str("could not wait for child (errno = ");	/* 4 */
 				print_str(print_number(buf, sizeof buf, errno));	/* 5 */
 				print_str(")\n");									/* 6 */
-				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+				flush_err_str();
 			} else if (WIFEXITED(status)) {
 				char buf[64];
 
@@ -382,7 +378,7 @@ child_failure:
 						WEXITSTATUS(status)));				/* 5 */
 				}
 				print_str("\n");					/* 8, at most */
-				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+				flush_err_str();
 			} else {
 				if (WIFSIGNALED(status)) {
 					int signo = WTERMSIG(status);
@@ -392,7 +388,7 @@ child_failure:
 					print_str("child exited abnormally");	/* 4 */
 				}
 				print_str("\n");						/* 6, at most */
-				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+				flush_err_str();
 			}
 
 			/*
@@ -401,23 +397,22 @@ child_failure:
 			 * No need to regenerate them, so start at index 4.
 			 */
 
-			iov_cnt = iov_prolog;
+			rewind_str(iov_prolog);
 			print_str("end of line.\n");	/* 4 */
-			IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+			flush_err_str();
 		}
 	}
 }
 #else	/* !HAS_FORK */
 {
-	iovec_t iov[3];
-	unsigned iov_cnt = 0;
+	DECLARE_STR(3);
 
 	(void) argv0;
 
 	print_str("WARNING: cannot exec \"");
 	print_str(pathname);
 	print_str("\" on this platform\n");
-	IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+	flush_err_str();
 }
 #endif
 
@@ -446,10 +441,10 @@ crash_handler(int signo)
 
 	if (crashed++ > 1) {
 		if (2 == crashed) {
-			unsigned iov_cnt = 0;
-			iovec_t iov[1];
+			DECLARE_STR(1);
+
 			print_str("\nERROR: too many recursive crashes\n");
-			IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+			flush_err_str();
 			signal_set(signo, SIG_DFL);
 			raise(signo);
 		} else if (3 == crashed) {

@@ -52,8 +52,7 @@ assertion_message(const assertion_data * const data, int fatal)
 {
 	char line_buf[22];
 	char time_buf[18];
-	iovec_t iov[16];
-	unsigned iov_cnt = 0;
+	DECLARE_STR(16);
 
 	crash_time(time_buf, sizeof time_buf);
 
@@ -73,7 +72,7 @@ assertion_message(const assertion_data * const data, int fatal)
 		print_str("\"");
 	}
 	print_str("\n");
-	IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+	flush_err_str();
 }
 
 /*

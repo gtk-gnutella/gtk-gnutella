@@ -125,8 +125,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 		 */
 
 		if (in_safe_handler) {
-			iovec_t iov[6];
-			unsigned iov_cnt = 0;
+			DECLARE_STR(6);
 			char time_buf[18];
 
 			crash_time(time_buf, sizeof time_buf);
@@ -136,7 +135,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 			print_str("\" from ");	/* 3 */
 			print_str(stacktrace_caller_name(2));	/* 4 */
 			print_str("\n");		/* 5 */
-			IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+			flush_err_str();
 
 			/*
 			 * A recursion with an error message is always fatal.
@@ -170,13 +169,13 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 				 */
 
 				{
-					iov_cnt = 0;
+					rewind_str(0);
 
 					crash_time(time_buf, sizeof time_buf);
 					print_str(time_buf);	/* 0 */
 					print_str(" (CRITICAL): back from raise(SIGBART)"); /* 1 */
 					print_str(" -- invoking crash_handler()\n");		/* 2 */
-					IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+					flush_err_str();
 
 					crash_handler(SIGABRT);
 
@@ -186,13 +185,12 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 					 * Since SIGBART is blocked, there won't be any core.
 					 */
 
-					iov_cnt = 0;
-
+					rewind_str(0);
 					crash_time(time_buf, sizeof time_buf);
 					print_str(time_buf);	/* 0 */
 					print_str(" (CRITICAL): back from crash_handler()"); /* 1 */
 					print_str(" -- exiting\n");		/* 2 */
-					IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+					flush_err_str();
 
 					exit(1);
 				}
@@ -222,8 +220,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 			msg = str_new_in_chunk(ck, LOG_MSG_MAXLEN);
 
 			if (NULL == msg) {
-				iovec_t iov[6];
-				unsigned iov_cnt = 0;
+				DECLARE_STR(6);
 				char time_buf[18];
 
 				crash_time(time_buf, sizeof time_buf);
@@ -233,7 +230,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 				print_str("\" from ");	/* 3 */
 				print_str(stacktrace_caller_name(2));	/* 4 */
 				print_str("\n");		/* 5 */
-				IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+				flush_err_str();
 				ck_restore(ck, saved);
 				return;
 			}
@@ -270,8 +267,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 		 */
 
 		if (in_signal_handler) {
-			iovec_t iov[9];
-			unsigned iov_cnt = 0;
+			DECLARE_STR(9);
 			char time_buf[18];
 
 			crash_time(time_buf, sizeof time_buf);
@@ -286,7 +282,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 			print_str(": ");		/* 6 */
 			print_str(str_2c(msg));	/* 7 */
 			print_str("\n");		/* 8 */
-			IGNORE_RESULT(writev(STDERR_FILENO, iov, iov_cnt));
+			flush_err_str();
 		} else {
 			time_t now = tm_time_exact();
 			struct tm *ct = localtime(&now);

@@ -967,13 +967,12 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 
 	for (i = 0; i < count; i++) {
 		const char *where = trace_name(stack[i], TRUE);
-		iovec_t iov[3];
-		unsigned iov_cnt = 0;
+		DECLARE_STR(3);
 
 		print_str("\t");		/* 0 */
 		print_str(where);		/* 1 */
 		print_str("\n");		/* 2 */
-		IGNORE_RESULT(writev(fd, iov, iov_cnt));
+		flush_str(fd);
 
 		if (stack_reached_main(where))
 			break;
@@ -1151,13 +1150,12 @@ stacktrace_cautious_was_logged(void)
 static void
 stacktrace_got_signal(int signo)
 {
-	iovec_t iov[3];
-	unsigned iov_cnt = 0;
+	DECLARE_STR(3);
 
 	print_str("WARNING: got ");
 	print_str(signal_name(signo));
 	print_str(" during stack unwinding\n");
-	IGNORE_RESULT(writev(print_context.fd, iov, iov_cnt));
+	flush_str(print_context.fd);
 
 	Siglongjmp(print_context.env, signo);
 }
@@ -1188,13 +1186,12 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 #endif
 
 	if (printing) {
-		iovec_t iov[3];
-		unsigned iov_cnt = 0;
+		DECLARE_STR(3);
 
 		print_str("WARNING: ignoring ");
 		print_str("recursive stacktrace_where_cautious_print_offset() call");
 		print_str("\n");
-		IGNORE_RESULT(writev(fd, iov, iov_cnt));
+		flush_str(fd);
 		return;
 	}
 
@@ -1217,21 +1214,18 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 	print_context.fd = fd;
 
 	if (Sigsetjmp(print_context.env, 1)) {
-		iovec_t iov[1];
-		unsigned iov_cnt = 0;
-
+		DECLARE_STR(1);
 		print_str("WARNING: truncated stack frame\n");
-		IGNORE_RESULT(writev(fd, iov, iov_cnt));
+		flush_str(fd);
 		goto restore;
 	}
 
 	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 
 	if (0 == count) {
-		iovec_t iov[1];
-		unsigned iov_cnt = 0;
+		DECLARE_STR(1);
 		print_str("WARNING: corrupted stack\n");
-		IGNORE_RESULT(writev(fd, iov, iov_cnt));
+		flush_str(fd);
 	} else {
 		if (!signal_in_handler())
 			stacktrace_load_symbols();

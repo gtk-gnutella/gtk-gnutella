@@ -44,33 +44,68 @@
 #include "common.h"
 
 /**
- * This macro is to be used in signal handlers, or wherever it is important
- * to be signal-safe, to record strings to be printed in an I/O vector,
- * which is then to be flushed via writev(), which is an atomic syscall.
+ * The following macros are intended for use in signal handlers, or wherever it
+ * is important to be signal-safe, to record strings to be printed in an I/O
+ * vector, which is then to be flushed via writev(), which is an atomic
+ * syscall.
  *
- * When using this macro, the following local variable are expected to
- * be visible on the stack:
+ * The following example demonstrates typical use:
  *
- *    iovec_t iov[16];
- *    unsigned iov_cnt = 0;
+ *	{
+ *		DECLARE_STR(10); // Can add up to 10 strings
+ *	    unsigned after_header;
  *
- * The size of the I/O vector may be anything, 16 above is just an example.
+ * 		print_str("Some constant text: ");
+ *		after_header = getpos_str();
+ * 		print_str(some_variable_text);
+ * 		print_str("\n");	// Append a newline character
+ *		flush_err_str();	// Sent all strings to STDERR_FILENO with writev()
  *
+ *		// The collected strings are still valid and flush_str()
+ *		// or flush_err_str() can be used multiple times.
+ *
+ *		rewind_str(after_header); // rewind to offset 1; keep the first string
+ *		print_str(some_other_text); 
+ *		flush_str(fd);	// Sent all strings to file descriptor fd with writev()
+ *	}
+ * 
  * @attention
  * There is no formatting done here, this is not a printf()-like function.
  * It only records an array of constant strings in a vector.
  */
-#define print_str(x) \
+
+#define DECLARE_STR(num_iov) \
+	unsigned print_str_iov_cnt_ = 0; \
+	iovec_t print_str_iov_[(num_iov)]
+
+#define print_str(text) \
 G_STMT_START { \
-	if (iov_cnt < G_N_ELEMENTS(iov)) { \
-		const char *ptr = (x); \
-		if (ptr) { \
-			iovec_set_base(&iov[iov_cnt], (char *) ptr); \
-			iovec_set_len(&iov[iov_cnt], strlen(ptr)); \
-			iov_cnt++; \
-		} \
+	const char *print_str_text_ = (text); \
+	if ( \
+		print_str_text_ && \
+		print_str_iov_cnt_ < G_N_ELEMENTS(print_str_iov_) \
+	) { \
+		iovec_set_base(&print_str_iov_[print_str_iov_cnt_], \
+			(char *) print_str_text_); \
+		iovec_set_len(&print_str_iov_[print_str_iov_cnt_], \
+			strlen(print_str_text_)); \
+		print_str_iov_cnt_++; \
 	} \
 } G_STMT_END
+
+#define flush_str(fd) \
+	IGNORE_RESULT(writev((fd), print_str_iov_, print_str_iov_cnt_))
+
+#define flush_err_str() flush_str(STDERR_FILENO)
+
+#define rewind_str(i) \
+G_STMT_START { \
+	unsigned rewind_str_i_ = (i); \
+	if (rewind_str_i_ <= print_str_iov_cnt_) \
+		print_str_iov_cnt_ = (i); \
+} G_STMT_END
+
+#define getpos_str(i) (print_str_iov_cnt_)
 
 /**
  * Print unsigned quantity into supplied buffer and returns the address
