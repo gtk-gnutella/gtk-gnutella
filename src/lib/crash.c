@@ -216,6 +216,7 @@ crash_end_of_line(void)
 	flush_err_str();
 }
 
+#ifdef HAS_FORK
 /**
  * Construct name of GTKG crash log.
  */
@@ -226,6 +227,7 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 	clamp_strcat(buf, len, pidstr);
 	clamp_strcat(buf, len, ".log");
 }
+#endif	/* HAS_FORK */
 
 static void
 crash_exec(const char *pathname, const char *argv0, const char *cwd)
@@ -408,6 +410,7 @@ child_failure:
 	DECLARE_STR(3);
 
 	(void) argv0;
+	(void) cwd;
 
 	print_str("WARNING: cannot exec \"");
 	print_str(pathname);
