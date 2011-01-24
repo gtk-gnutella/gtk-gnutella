@@ -58,6 +58,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/iso3166.h"
 #include "lib/mime_type.h"
 #include "lib/stringify.h"
@@ -1941,7 +1942,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 		}
 	}
 
-	G_FREE_NULL(text);
+	HFREE_NULL(text);
 }
 
 /**

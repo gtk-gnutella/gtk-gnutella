@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 #include "if/core/bitzi.h"    	/* bitzi_data_t */
 
+#include "lib/halloc.h"
 #include "lib/stringify.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -113,22 +114,22 @@ bitzi_gui_get_metadata(const bitzi_data_t *data)
 		data->judgement == BITZI_FJ_FAILURE ||
 		data->judgement == BITZI_FJ_WRONG_FILESIZE
 	) {
-		return g_strdup(bitzi_fj_to_string(data->judgement));
+		return h_strdup(bitzi_fj_to_string(data->judgement));
 	} else if (data->mime_type) {
 		if (data->mime_desc) {
-			return g_strdup_printf("%s (%1.1f): %s (%s)",
+			return h_strdup_printf("%s (%1.1f): %s (%s)",
 					bitzi_fj_to_string(data->judgement),
 					data->goodness,
 					data->mime_type,
 					data->mime_desc);
 		} else {
-			return g_strdup_printf("%s (%1.1f): %s",
+			return h_strdup_printf("%s (%1.1f): %s",
 					bitzi_fj_to_string(data->judgement),
 					data->goodness,
 					data->mime_type);
 		}
 	} else if (data->judgement != BITZI_FJ_UNKNOWN) {
-		return g_strdup_printf("%s (%1.1f): %s",
+		return h_strdup_printf("%s (%1.1f): %s",
 				bitzi_fj_to_string(data->judgement),
 				data->goodness,
 				_("No other data"));
