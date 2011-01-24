@@ -589,12 +589,12 @@ crash_init(const char *pathname, const char *argv0, int flags)
 	char dir[MAX_PATH_LEN];
 
 	/*
-	 * Pre-size the chunk with enough space to hold 4 paths at the maximum
+	 * Pre-size the chunk with enough space to hold 16 paths at the maximum
 	 * length.  In practice, paths will be much shorter than that so the
 	 * chunk will be shrunk at the end of the initialization phase.
 	 */
 
-	crash_mem = ck_init_not_leaking(4 * MAX_PATH_LEN, 0);
+	crash_mem = ck_init_not_leaking(16 * MAX_PATH_LEN, 0);
 	vars = vmm_alloc0(sizeof *vars);
 
 	if (CRASH_F_GDB & flags) {
@@ -675,13 +675,7 @@ crash_setbuild(unsigned build)
 void
 crash_post_init(void)
 {
-	/*
-	 * FIXME -- placeholder for now
-	 *
-	 * This will require implementation of ck_shrink(), which in turn will
-	 * rely on non-existing vmm_shrink() to be able to release the tail of
-	 * the allocated VM space (irreversibly).
-	 */
+	ck_shrink(crash_mem, 0);		/* Shrink as much as possible */
 }
 
 /* vi: set ts=4 sw=4 cindent: */

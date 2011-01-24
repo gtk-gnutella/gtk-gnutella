@@ -209,7 +209,7 @@ static void
 init_kernel_pagesize(void)
 {
 	kernel_pagesize = compat_pagesize();
-	RUNTIME_ASSERT(is_pow2(kernel_pagesize));
+	g_assert(is_pow2(kernel_pagesize));
 	kernel_pagemask = kernel_pagesize - 1;
 	kernel_pageshift = ffs(kernel_pagesize) - 1;
 }
@@ -287,11 +287,11 @@ compat_pagesize(void)
 		
 		initialized = 1;
 		n = compat_pagesize_intern();
-		RUNTIME_ASSERT(n > 0);
-		RUNTIME_ASSERT(n < INT_MAX);
-		RUNTIME_ASSERT(is_pow2(n));
+		g_assert(n > 0);
+		g_assert(n < INT_MAX);
+		g_assert(is_pow2(n));
 		psize = n;
-		RUNTIME_ASSERT((size_t) psize == (size_t) n);
+		g_assert((size_t) psize == (size_t) n);
 	}
 
 	return psize;
@@ -764,13 +764,13 @@ alloc_pages(size_t size, gboolean update_pmap, const void *hole)
 	void *p;
 	size_t generation = kernel_pmap.generation;
 
-	RUNTIME_ASSERT(kernel_pagesize > 0);
+	g_assert(kernel_pagesize > 0);
 
 	p = vmm_mmap_anonymous(size, hole);
 	return_value_unless(NULL != p, NULL);
 	
 	if (page_start(p) != p) {
-		RUNTIME_ASSERT(!"Aligned memory required");
+		g_assert(!"Aligned memory required");
 	}
 
 	if (vmm_debugging(5)) {
@@ -2733,8 +2733,8 @@ done:
 void
 vmm_madvise_normal(void *p, size_t size)
 {
-	RUNTIME_ASSERT(p);
-	RUNTIME_ASSERT(size_is_positive(size));
+	g_assert(p);
+	g_assert(size_is_positive(size));
 #if defined(HAS_MADVISE) && defined(MADV_NORMAL)
 	madvise(p, size, MADV_NORMAL);
 #endif	/* MADV_NORMAL */
@@ -2743,8 +2743,8 @@ vmm_madvise_normal(void *p, size_t size)
 void
 vmm_madvise_sequential(void *p, size_t size)
 {
-	RUNTIME_ASSERT(p);
-	RUNTIME_ASSERT(size_is_positive(size));
+	g_assert(p);
+	g_assert(size_is_positive(size));
 #if defined(HAS_MADVISE) && defined(MADV_SEQUENTIAL)
 	madvise(p, size, MADV_SEQUENTIAL);
 #endif	/* MADV_SEQUENTIAL */
@@ -2753,8 +2753,8 @@ vmm_madvise_sequential(void *p, size_t size)
 void
 vmm_madvise_free(void *p, size_t size)
 {
-	RUNTIME_ASSERT(p);
-	RUNTIME_ASSERT(size_is_positive(size));
+	g_assert(p);
+	g_assert(size_is_positive(size));
 #if defined(HAS_MADVISE) && defined(MADV_FREE)
 	madvise(p, size, MADV_FREE);
 #elif defined(HAS_MADVISE) && defined(MADV_DONTNEED)
@@ -2765,8 +2765,8 @@ vmm_madvise_free(void *p, size_t size)
 void
 vmm_madvise_willneed(void *p, size_t size)
 {
-	RUNTIME_ASSERT(p);
-	RUNTIME_ASSERT(size_is_positive(size));
+	g_assert(p);
+	g_assert(size_is_positive(size));
 #if defined(HAS_MADVISE) && defined(MADV_WILLNEED)
 	madvise(p, size, MADV_WILLNEED);
 #endif	/* MADV_WILLNEED */
@@ -2775,8 +2775,8 @@ vmm_madvise_willneed(void *p, size_t size)
 static void
 vmm_validate_pages(void *p, size_t size)
 {
-	RUNTIME_ASSERT(p);
-	RUNTIME_ASSERT(size_is_positive(size));
+	g_assert(p);
+	g_assert(size_is_positive(size));
 #ifdef VMM_PROTECT_FREE_PAGES
 	mprotect(p, size, PROT_READ | PROT_WRITE);
 #endif	/* VMM_PROTECT_FREE_PAGES */
@@ -2789,8 +2789,8 @@ vmm_validate_pages(void *p, size_t size)
 static void
 vmm_invalidate_pages(void *p, size_t size)
 {
-	RUNTIME_ASSERT(p);
-	RUNTIME_ASSERT(size_is_positive(size));
+	g_assert(p);
+	g_assert(size_is_positive(size));
 
 	if (G_UNLIKELY(stop_freeing))
 		return;
@@ -2816,7 +2816,7 @@ vmm_alloc(size_t size)
 	void *p;
 	const void *hole;
 
-	RUNTIME_ASSERT(size_is_positive(size));
+	g_assert(size_is_positive(size));
 	
 	size = round_pagesize_fast(size);
 	n = pagecount_fast(size);
@@ -2854,7 +2854,7 @@ vmm_alloc0(size_t size)
 	void *p;
 	const void *hole;
 
-	RUNTIME_ASSERT(size_is_positive(size));
+	g_assert(size_is_positive(size));
 
 	size = round_pagesize_fast(size);
 	n = pagecount_fast(size);
@@ -2889,16 +2889,16 @@ vmm_alloc0(size_t size)
 void
 vmm_free(void *p, size_t size)
 {
-	RUNTIME_ASSERT(0 == size || p);
+	g_assert(0 == size || p);
 
 	if (p) {
 		size_t n;
 
-		RUNTIME_ASSERT(round_pagesize_fast((size_t) p) == (size_t) p);
+		g_assert(page_start(p) == p);
 
 		size = round_pagesize_fast(size);
 		n = pagecount_fast(size);
-		RUNTIME_ASSERT(n >= 1);
+		g_assert(n >= 1);
 
 		assert_vmm_is_allocated(p, size);
 		assert_vmm_is_not_foreign(p);
@@ -2917,6 +2917,56 @@ vmm_free(void *p, size_t size)
 			page_cache_insert_pages(p, n);
 		} else {
 			free_pages(p, size, TRUE);
+		}
+	}
+}
+
+/**
+ * Shrink allocated space via vmm_alloc() down to specified size.
+ *
+ * Calling with a NULL pointer is OK when the size is 0.
+ * Otherwise calling with a new_size of 0 actually performs a vmm_free().
+ */
+void vmm_shrink(void *p, size_t size, size_t new_size)
+{
+	g_assert(0 == size || p != NULL);
+	g_assert(new_size <= size);
+	g_assert(page_start(p) == p);
+
+	if (0 == new_size) {
+		vmm_free(p, size);
+	} else if (p != NULL) {
+		size_t osize, nsize;
+
+		assert_vmm_is_allocated(p, size);
+		assert_vmm_is_not_foreign(p);
+
+		osize = round_pagesize_fast(size);
+		nsize = round_pagesize_fast(new_size);
+
+		g_assert(nsize <= osize);
+
+		if (osize != nsize) {
+			size_t n = pagecount_fast(osize - nsize);
+			void *q = ptr_add_offset(p, nsize);
+
+			g_assert(n >= 1);
+
+			/*
+			 * Memory regions that are larger than our highest-order cache
+			 * are allocated and freed as-is, and never broken into smaller
+			 * pages.  The purpose is to avoid excessive virtual memory space
+			 * fragmentation, leading at some point to the unability for the
+			 * kernel to find a large consecutive virtual memory region.
+			 */
+
+			if (n <= VMM_CACHE_LINES) {
+				vmm_invalidate_pages(q, osize - nsize);
+				page_cache_coalesce_pages(&q, &n);
+				page_cache_insert_pages(q, n);
+			} else {
+				free_pages(q, osize - nsize, TRUE);
+			}
 		}
 	}
 }
@@ -3013,7 +3063,7 @@ vmm_trap_page(void)
 
 	if (NULL == trap_page) {
 		void *p = alloc_pages(kernel_pagesize, FALSE, NULL);
-		RUNTIME_ASSERT(p);
+		g_assert(p);
 		mprotect(p, kernel_pagesize, PROT_NONE);
 		trap_page = p;
 	}
@@ -3122,7 +3172,7 @@ vmm_reserve_stack(size_t amount)
 		return;
 	}
 
-	RUNTIME_ASSERT(amount != 0);
+	g_assert(amount != 0);
 
 	/*
 	 * If stack and VM region grow in opposite directions, there is ample
@@ -3311,7 +3361,7 @@ vmm_init(const void *sp)
 {
 	int i;
 
-	RUNTIME_ASSERT(sp != &i);
+	g_assert(sp != &i);
 
 #ifndef MINGW32
 	initial_brk = sbrk(0);
@@ -3996,6 +4046,20 @@ vmm_free_track(void *p, size_t size, const char *file, int line)
 
 	vmm_free_record(p, size, file, line);
 	vmm_free(p, size);
+}
+
+/**
+ * Tracking version of vmm_shrink().
+ */
+void
+vmm_shrink_track(void *p, size_t size, size_t new_size,
+	const char *file, int line)
+{
+	/* The shrinking point becomes the new allocation point (file, line) */
+	vmm_free_record(p, size, file, line);
+	vmm_alloc_record(p, new_size, file, line);
+
+	vmm_shrink(p, size, new_size);
 }
 
 /**

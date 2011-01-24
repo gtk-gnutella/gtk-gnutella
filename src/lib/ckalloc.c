@@ -506,4 +506,55 @@ ck_strdup_readonly(ckhunk_t *ck, const char *str)
 	return str ? ck_copy_readonly(ck, str, 1 + strlen(str)) : NULL;
 }
 
+/**
+ * Shrink chunk to be at least the specified size.
+ *
+ * @return TRUE if we were able to shrink the chunk, FALSE if it was not
+ * possible to shrink it or if the specified size was larger than the
+ * actual size.
+ */
+gboolean
+ck_shrink(ckhunk_t *ck, size_t size)
+{
+	size_t nsize, used;
+	sigset_t set;
+
+	ckhunk_check(ck);
+
+	if (NULL == ck)
+		return FALSE;
+
+	nsize = round_pagesize(size);	/* VMM rounds up to the next page size */
+
+	if (ck->size <= nsize)
+		return FALSE;
+
+	used = round_pagesize(ptr_diff(ck->avail, ck->arena));
+	nsize = used > nsize ? used : nsize;
+
+	/*
+	 * We're going to shrink the arena down to nsize bytes only.
+	 */
+
+	g_assert(ck->size > nsize);
+
+	if (!signal_enter_critical(&set))
+		return FALSE;
+
+	if (ck->read_only)
+		mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
+
+	vmm_shrink(ck->arena, ck->size, nsize);
+	ck->size = nsize;
+	ck->end = ck->arena + ck->size;
+
+	if (ck->read_only)
+		mprotect(ck, ck->size, PROT_READ);
+
+	g_assert(ptr_cmp(ck->end, ck->avail) >= 0);
+
+	signal_leave_critical(&set);
+	return TRUE;
+}
+
 /* vi: set ts=4 sw=4 cindent: */

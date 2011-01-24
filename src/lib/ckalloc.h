@@ -59,6 +59,7 @@ void ck_readonly(ckhunk_t *ck);
 void *ck_alloc_readonly(ckhunk_t *ck, size_t len);
 void *ck_copy_readonly(ckhunk_t *ck, const void *p, size_t size);
 char *ck_strdup_readonly(ckhunk_t *ck, const char *str);
+gboolean ck_shrink(ckhunk_t *ck, size_t size);
 
 #endif /* _ckalloc_h_ */
 
