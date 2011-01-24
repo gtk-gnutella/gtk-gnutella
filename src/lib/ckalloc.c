@@ -105,10 +105,10 @@ ckinit(size_t size, size_t reserved, gboolean leaking)
 	arena = leaking ? vmm_alloc(size) : vmm_alloc_not_leaking(size);
 	ck = arena;
 	ck->magic = CKHUNK_MAGIC;
-	ck->size = size;
+	ck->size = round_pagesize(size);	/* Size allocated by the VMM layer */
 	ck->reserved = reserved;
 	ck->arena = arena;
-	ck->end = ck->arena + size;
+	ck->end = ck->arena + ck->size;
 	ck->avail = ck->arena + ckalloc_round(sizeof(struct ckhunk));
 
 	g_assert(ptr_cmp(ck->end, ck->avail) > 0);
