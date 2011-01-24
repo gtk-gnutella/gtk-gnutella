@@ -284,7 +284,7 @@ crash_exec(const char *pathname, const char *argv0, const char *cwd)
 
 			if (pipe_ok) {
 				char filename[64];
-				int flags = O_CREAT | O_WRONLY | O_TRUNC;
+				int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
 				mode_t mode = S_IRUSR | S_IWUSR;
 				DECLARE_STR(6);
 
@@ -540,6 +540,10 @@ crash_init(const char *pathname, const char *argv0, int flags)
 	char pwd[MAX_PATH_LEN];
 
 	crash_mem = ck_init_not_leaking(compat_pagesize(), 0);
+
+	if (CRASH_F_GDB & flags) {
+		pathname = "gdb";
+	}
 
 	if (NULL == getcwd(pwd, sizeof pwd)) {
 		g_warning("cannot get current working directory: %s",
