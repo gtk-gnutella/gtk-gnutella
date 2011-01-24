@@ -1414,30 +1414,6 @@ handle_arguments(void)
 	}
 }
 
-/**
- * Determines whether coredumps are disabled.
- *
- * @return TRUE if enabled, FALSE if disabled, -1 if unknown or on error.
- */
-static int
-coredumps_disabled(void)
-#ifdef RLIMIT_CORE
-{
-	struct rlimit lim;
-
-	if (-1 != getrlimit(RLIMIT_CORE, &lim)) {
-		/* RLIM_INFINITY could be negative, thus not > 0 */
-		return 0 == lim.rlim_cur;
-	}
-	return -1;
-}
-#else
-{
-	errno = ENOTSUP;
-	return -1;
-}
-#endif	/* RLIMIT_CORE */
-
 int
 main(int argc, char **argv)
 {
@@ -1518,7 +1494,10 @@ main(int argc, char **argv)
 		 * disappears, unless they specified --exec-on-crash already.
 		 */
 
-		if (!options[main_arg_exec_on_crash].used && coredumps_disabled()) {
+		if (
+			!options[main_arg_exec_on_crash].used &&
+			crash_coredumps_disabled()
+		) {
 			flags |= CRASH_F_GDB;
 		}
 		crash_init(options[main_arg_exec_on_crash].arg, argv[0], flags);

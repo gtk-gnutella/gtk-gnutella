@@ -146,6 +146,8 @@ void crash_setdir(const char *dir);
 void crash_setver(const char *version);
 void crash_setbuild(unsigned build);
 void crash_post_init(void);
+int crash_coredumps_disabled(void);
 
 #endif	/* _crash_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

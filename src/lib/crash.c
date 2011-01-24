@@ -75,7 +75,7 @@ struct crash_vars {
 	unsigned invoke_gdb:1;
 };
 
-static const struct crash_vars *vars; /** read-only after crash_init()! */
+static const struct crash_vars *vars; /**< read-only after crash_init()! */
 
 #define crash_set_var(name, value) \
 G_STMT_START { \
@@ -101,6 +101,30 @@ static int signals[] = {
 	SIGILL,
 	SIGSEGV,
 };
+
+/**
+ * Determines whether coredumps are disabled.
+ *
+ * @return TRUE if enabled, FALSE if disabled, -1 if unknown or on error.
+ */
+int
+crash_coredumps_disabled(void)
+#ifdef RLIMIT_CORE
+{
+	struct rlimit lim;
+
+	if (-1 != getrlimit(RLIMIT_CORE, &lim)) {
+		/* RLIM_INFINITY could be negative, thus not > 0 */
+		return 0 == lim.rlim_cur;
+	}
+	return -1;
+}
+#else
+{
+	errno = ENOTSUP;
+	return -1;
+}
+#endif	/* RLIMIT_CORE */
 
 typedef struct cursor {
 	char *buf;
@@ -165,7 +189,7 @@ crash_time(char *buf, size_t size)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	if (!off_time(tm_time() + crash_gmtoff, 0, &tm)) {
+	if (!off_time(tm_time_exact() + crash_gmtoff, 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
@@ -428,6 +452,14 @@ child_failure:
 			 * No need to regenerate them, so start at index 4.
 			 */
 
+			if (!crash_coredumps_disabled()) {
+				rewind_str(iov_prolog);
+				print_str("core dumped in ");	/* 4 */
+				print_str(cwd);					/* 5 */
+				print_str("\n");				/* 6 */
+				flush_err_str();
+			}
+
 			rewind_str(iov_prolog);
 			print_str("end of line.\n");	/* 4 */
 			flush_err_str();
@@ -536,7 +568,6 @@ crash_handler(int signo)
 			}
 		} else {
 			cwd = vars->crashdir;
-			s_message("crashing in %s", vars->crashdir);
 		}
 	}
 
