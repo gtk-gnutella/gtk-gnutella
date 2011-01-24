@@ -560,4 +560,48 @@ ck_shrink(ckhunk_t *ck, size_t size)
 	return TRUE;
 }
 
+/**
+ * Copy data into a memory area within a chunk which may be read-only.
+ *
+ * The copy operation is atomic with respect to signals, so the whole
+ * data is updated or none of it when a signal hits.
+ *
+ * @return TRUE of OK, FALSE on error.
+ */
+gboolean
+ck_memcpy(ckhunk_t *ck, void *dest, const void *src, size_t size)
+{
+	void *end;
+	void *chunk_start;
+	sigset_t set;
+
+	g_assert(ck != NULL);
+	g_assert(src != NULL);
+	g_assert(size_is_non_negative(size));
+	ckhunk_check(ck);
+
+	chunk_start = ck->arena + ckalloc_round(sizeof(struct ckhunk));
+	g_assert(ptr_cmp(dest, chunk_start) >= 0);
+
+	end = ptr_add_offset(dest, size);
+	g_assert(ptr_cmp(ck->end, end) >= 0);
+
+	if (0 == size)
+		return TRUE;
+
+	if (!signal_enter_critical(&set))
+		return FALSE;
+
+	if (ck->read_only)
+		mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
+
+	memcpy(dest, src, size);		/* The copy operation */
+
+	if (ck->read_only)
+		mprotect(ck, ck->size, PROT_READ);
+
+	signal_leave_critical(&set);
+	return TRUE;
+}
+
 /* vi: set ts=4 sw=4 cindent: */
