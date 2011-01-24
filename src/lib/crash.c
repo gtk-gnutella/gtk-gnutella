@@ -69,6 +69,7 @@ static struct {
 	const char *cwd;		/* Current working directory (NULL if unknown) */
 	const char *crashdir;	/* Directory where crash logs are written */
 	const char *version;	/* Program version string (NULL if unknown) */
+	unsigned build;			/* Build number, unique version number */
 	unsigned pause_process:1;
 	unsigned invoke_gdb:1;
 } vars;
@@ -223,7 +224,23 @@ crash_end_of_line(void)
 static void
 crash_logname(char *buf, size_t len, const char *pidstr)
 {
-	clamp_strcpy(buf, len, "gtk-gnutella-crash.");
+	clamp_strcpy(buf, len, "gtk-gnutella");
+
+	/*
+	 * File is opened with O_EXCL so we need to make the filename as unique
+	 * as possible.  Therefore, include the build number if available.
+	 */
+
+	if (vars.build != 0) {
+		char build_buf[22];
+		const char *build_str;
+
+		build_str = print_number(build_buf, sizeof build_buf, vars.build);
+		clamp_strcat(buf, len, "-r");
+		clamp_strcat(buf, len, build_str);
+	}
+
+	clamp_strcat(buf, len, "-crash.");
 	clamp_strcat(buf, len, pidstr);
 	clamp_strcat(buf, len, ".log");
 }
@@ -616,6 +633,15 @@ crash_setver(const char *version)
 
 	vars.version = ck_strdup_readonly(crash_mem, version);
 	g_assert(NULL == version || vars.version != NULL);
+}
+
+/**
+ * Record program's build number (0 disables any build number information).
+ */
+void
+crash_setbuild(unsigned build)
+{
+	vars.build = build;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

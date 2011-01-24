@@ -144,6 +144,7 @@ const char *crash_signame(int signo);
 void crash_handler(int signo);
 void crash_setdir(const char *dir);
 void crash_setver(const char *version);
+void crash_setbuild(unsigned build);
 
 #endif	/* _crash_h_ */
 /* vi: set ts=4 sw=4 cindent: */

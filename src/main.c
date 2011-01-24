@@ -1518,6 +1518,7 @@ main(int argc, char **argv)
 			flags |= CRASH_F_GDB;
 		}
 		crash_init(options[main_arg_exec_on_crash].arg, argv[0], flags);
+		crash_setbuild(main_get_build());
 	}	
 	handle_arguments_asap();
 
