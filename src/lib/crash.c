@@ -56,6 +56,7 @@ RCSID("$Id$")
 #include "timestamp.h"
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
+#include "vmm.h"
 #include "stacktrace.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -63,7 +64,7 @@ RCSID("$Id$")
 static time_delta_t crash_gmtoff;	/**< Offset to GMT, supposed to be fixed */
 static ckhunk_t *crash_mem;			/**< Reserved memory, read-only */
 
-static struct {
+struct crash_vars {
 	const char *pathname;	/* The file to execute. */
 	const char *argv0;		/* The original argv[0]. */
 	const char *cwd;		/* Current working directory (NULL if unknown) */
@@ -72,7 +73,17 @@ static struct {
 	unsigned build;			/* Build number, unique version number */
 	unsigned pause_process:1;
 	unsigned invoke_gdb:1;
-} vars;
+};
+
+static struct crash_vars *vars; /** read-only after crash_init()! */
+
+#define crash_set_var(name, value) \
+G_STMT_START { \
+	g_assert(NULL != vars); \
+	mprotect(vars, sizeof *vars, PROT_READ | PROT_WRITE); \
+	vars->name = (value); \
+	mprotect(vars, sizeof *vars, PROT_READ); \
+} G_STMT_END
 
 /**
  * Signals that usually indicate a crash.
@@ -205,10 +216,10 @@ crash_end_of_line(void)
 	print_str(" CRASH (pid=");		/* 1 */
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
-	if (vars.pathname) {
+	if (vars->pathname) {
 		print_str("calling ");		/* 4 */
-		print_str(vars.pathname);	/* 5 */
-	} else if (vars.pause_process) {
+		print_str(vars->pathname);	/* 5 */
+	} else if (vars->pause_process) {
 		print_str("pausing -- end of line.");	/* 4 */
 	} else {
 		print_str("end of line.");	/* 4 */
@@ -231,11 +242,11 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 	 * as possible.  Therefore, include the build number if available.
 	 */
 
-	if (vars.build != 0) {
+	if (0 != vars->build) {
 		char build_buf[22];
 		const char *build_str;
 
-		build_str = print_number(build_buf, sizeof build_buf, vars.build);
+		build_str = print_number(build_buf, sizeof build_buf, vars->build);
 		clamp_strcat(buf, len, "-r");
 		clamp_strcat(buf, len, build_str);
 	}
@@ -261,7 +272,7 @@ crash_exec(const char *pathname, const char *argv0, const char *cwd)
 	/* Make sure we don't exceed the system-wide file descriptor limit */
 	close_file_descriptors(3);
 
-	if (vars.invoke_gdb) {
+	if (vars->invoke_gdb) {
 		close(STDIN_FILENO);
 		close(STDOUT_FILENO);
 		if (0 == pipe(fd)) {
@@ -326,9 +337,9 @@ crash_exec(const char *pathname, const char *argv0, const char *cwd)
 				print_str("Crash file for \"");		/* 0 */
 				print_str(argv0);					/* 1 */
 				print_str("\"");					/* 2 */
-				if (vars.version != NULL) {
+				if (NULL != vars->version) {
 					print_str(" -- ");				/* 3 */
-					print_str(vars.version);		/* 4 */
+					print_str(vars->version);		/* 4 */
 				}
 				print_str("\n");					/* 5 */
 				flush_str(STDOUT_FILENO);
@@ -382,7 +393,7 @@ child_failure:
 			} else if (WIFEXITED(status)) {
 				char buf[64];
 
-				if (vars.invoke_gdb && 0 == WEXITSTATUS(status)) {
+				if (vars->invoke_gdb && 0 == WEXITSTATUS(status)) {
 					print_str("trace left in ");	/* 4 */
 					crash_logname(buf, sizeof buf, pid_str);
 					if (*cwd != '\0') {
@@ -512,20 +523,20 @@ crash_handler(int signo)
 	 * even if we're daemonized.
 	 */
 
-	if (!recursive && vars.crashdir != NULL && vars.pathname != NULL) {
-		if (-1 == chdir(vars.crashdir)) {
-			if (vars.cwd != NULL) {
+	if (!recursive && NULL != vars->crashdir && NULL != vars->pathname) {
+		if (-1 == chdir(vars->crashdir)) {
+			if (NULL != vars->cwd) {
 				s_warning("cannot chdir() back to \"%s\", "
 					"staying in \"%s\" (errno = %d)",
-					vars.crashdir, vars.cwd, errno);
-				cwd = vars.cwd;
+					vars->crashdir, vars->cwd, errno);
+				cwd = vars->cwd;
 			} else {
 				s_warning("cannot chdir() back to \"%s\" (errno = %d)",
-					vars.crashdir, errno);
+					vars->crashdir, errno);
 			}
 		} else {
-			cwd = vars.crashdir;
-			s_message("crashing in %s", vars.crashdir);
+			cwd = vars->crashdir;
+			s_message("crashing in %s", vars->crashdir);
 		}
 	}
 
@@ -537,11 +548,11 @@ crash_handler(int signo)
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
 	}
 	crash_end_of_line();
-	if (vars.pathname != NULL) {
-		crash_exec(vars.pathname, vars.argv0, cwd);
+	if (NULL != vars->pathname) {
+		crash_exec(vars->pathname, vars->argv0, cwd);
 	}
 
-	if (vars.pause_process)
+	if (vars->pause_process)
 #if defined(HAS_SIGPROCMASK)
 	{
 		sigset_t oset;
@@ -575,29 +586,35 @@ void
 crash_init(const char *pathname, const char *argv0, int flags)
 {
 	unsigned i;
-	char pwd[MAX_PATH_LEN];
+	char dir[MAX_PATH_LEN];
 
+	/**
+	 * FIXME: Is crash_mem resized automagically?
+	 *		  A page is easily exceeded by MAX_PATH_LEN!
+	 */
 	crash_mem = ck_init_not_leaking(compat_pagesize(), 0);
+	vars = vmm_alloc0(sizeof *vars);
 
 	if (CRASH_F_GDB & flags) {
 		pathname = "gdb";
 	}
 
-	if (NULL == getcwd(pwd, sizeof pwd)) {
+	if (NULL == getcwd(dir, sizeof dir)) {
 		g_warning("cannot get current working directory: %s",
 			g_strerror(errno));
 	} else {
-		vars.cwd = ck_strdup(crash_mem, pwd);
-		g_assert(vars.cwd != NULL);
+		crash_set_var(cwd, ck_strdup(crash_mem, dir));
+		g_assert(NULL != vars->cwd);
 	}
 
-	vars.pathname = ck_strdup(crash_mem, pathname);
-	vars.argv0 = ck_strdup(crash_mem, argv0);
-	vars.pause_process = booleanize(CRASH_F_PAUSE & flags);
-	vars.invoke_gdb = booleanize(CRASH_F_GDB & flags);
+	crash_set_var(pathname, ck_strdup(crash_mem, pathname));
+	g_assert(NULL == pathname || NULL != vars->pathname);
 
-	g_assert(NULL == pathname || vars.pathname != NULL);
-	g_assert(NULL == argv0 || vars.argv0 != NULL);
+	crash_set_var(argv0, ck_strdup(crash_mem, argv0));
+	g_assert(NULL == argv0 || NULL != vars->argv0);
+
+	crash_set_var(pause_process, booleanize(CRASH_F_PAUSE & flags));
+	crash_set_var(invoke_gdb, booleanize(CRASH_F_GDB & flags));
 
 	ck_readonly(crash_mem);
 
@@ -612,20 +629,20 @@ crash_init(const char *pathname, const char *argv0, int flags)
  * Record current working directory and configured crash directory.
  */
 void
-crash_setdir(const char *dir)
+crash_setdir(const char *pathname)
 {
-	char pwd[MAX_PATH_LEN];
+	char dir[MAX_PATH_LEN];
 
-	g_assert(crash_mem != NULL);
+	g_assert(NULL != crash_mem);
 
-	if (getcwd(pwd, sizeof pwd) != NULL) {
-		if (vars.cwd != NULL && strcmp(pwd, vars.cwd) != 0) {
-			vars.cwd = ck_strdup_readonly(crash_mem, pwd);
+	if (NULL != getcwd(dir, sizeof dir)) {
+		if (NULL != vars->cwd && 0 != strcmp(dir, vars->cwd)) {
+			crash_set_var(cwd, ck_strdup_readonly(crash_mem, dir));
 		}
 	}
 
-	vars.crashdir = ck_strdup_readonly(crash_mem, dir);
-	g_assert(NULL == dir || vars.crashdir != NULL);
+	crash_set_var(crashdir, ck_strdup_readonly(crash_mem, pathname));
+	g_assert(NULL == pathname || NULL != vars->crashdir);
 }
 
 /**
@@ -634,10 +651,10 @@ crash_setdir(const char *dir)
 void
 crash_setver(const char *version)
 {
-	g_assert(crash_mem != NULL);
+	g_assert(NULL != crash_mem);
 
-	vars.version = ck_strdup_readonly(crash_mem, version);
-	g_assert(NULL == version || vars.version != NULL);
+	crash_set_var(version, ck_strdup_readonly(crash_mem, version));
+	g_assert(NULL == version || NULL != vars->version);
 }
 
 /**
@@ -646,7 +663,7 @@ crash_setver(const char *version)
 void
 crash_setbuild(unsigned build)
 {
-	vars.build = build;
+	crash_set_var(build, build);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
