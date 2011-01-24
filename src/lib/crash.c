@@ -492,6 +492,9 @@ crash_handler(int signo)
 	/*
 	 * Unblock SIGBUS or SIGSEGV if it is the signal we're handling, so
 	 * that we can have them delivered again.
+	 *
+	 * In case the code we're calling also encounters an assertion failure,
+	 * we need to unblock SIGBABRT as well.
 	 */
 
 	switch (signo) {
@@ -499,6 +502,7 @@ crash_handler(int signo)
 	case SIGBUS:
 #endif
 	case SIGSEGV:
+	case SIGABRT:
 		signal_unblock(signo);
 	}
 
