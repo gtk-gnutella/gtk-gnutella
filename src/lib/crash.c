@@ -102,46 +102,46 @@ static int signals[] = {
 	SIGSEGV,
 };
 
+typedef struct cursor {
+	char *buf;
+	size_t size;
+} cursor_t;
+
 /**
  * Append positive value to buffer, formatted as "%02u".
- *
- * @return amount of characters written.
  */
-static size_t
-crash_append_fmt_02u(char *buf, size_t buflen, long v)
+static void
+crash_append_fmt_02u(cursor_t *cursor, long v)
 {
-	if (buflen < 2 || v < 0)
-		return 0;
+	if (cursor->size < 2 || v < 0)
+		return;
 
 	if (v >= 100)
 		v %= 100;
 
 	if (v < 10) {
-		buf[0] = '0';
-		buf[1] = dec_digit(v);
+		*cursor->buf++ = '0';
+		*cursor->buf++ = dec_digit(v);
 	} else {
 		int d = v % 10;
 		int c = v /= 10;
-		buf[0] = dec_digit(c);
-		buf[1] = dec_digit(d);
+		*cursor->buf++ = dec_digit(c);
+		*cursor->buf++ = dec_digit(d);
 	}
-
-	return 2;
+	cursor->size -= 2;
 }
 
 /**
  * Append a character to supplied buffer.
- *
- * @return amount of characters written.
  */
-static size_t
-crash_append_fmt_c(char *buf, size_t buflen, unsigned char c)
+static void
+crash_append_fmt_c(cursor_t *cursor, unsigned char c)
 {
-	if (buflen < 1)
-		return 0;
+	if (cursor->size < 1)
+		return;
 
-	buf[0] = c;
-	return 1;
+	*cursor->buf++ = c;
+	cursor->size--;
 }
 
 /**
@@ -152,34 +152,38 @@ crash_append_fmt_c(char *buf, size_t buflen, unsigned char c)
  * on unsafe calls.
  */
 void
-crash_time(char *buf, size_t buflen)
+crash_time(char *buf, size_t size)
 {
+	const size_t num_reserved = 1;
 	struct tm tm;
-	size_t rw = 0;
+	cursor_t cursor;
 
-	if (0 == buflen)
+	/* We need at least space for a NUL */
+	if (size < num_reserved)
 		return;
+
+	cursor.buf = buf;
+	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
 	if (!off_time(tm_time() + crash_gmtoff, 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
 
-	rw += crash_append_fmt_02u(&buf[rw], buflen - rw,
-		(TM_YEAR_ORIGIN + tm.tm_year) % 100);
-	rw += crash_append_fmt_c(&buf[rw], buflen - rw, '-');
-	rw += crash_append_fmt_02u(&buf[rw], buflen - rw, tm.tm_mon + 1);
-	rw += crash_append_fmt_c(&buf[rw], buflen - rw, '-');
-	rw += crash_append_fmt_02u(&buf[rw], buflen - rw, tm.tm_mday);
-	rw += crash_append_fmt_c(&buf[rw], buflen - rw, ' ');
-	rw += crash_append_fmt_02u(&buf[rw], buflen - rw, tm.tm_hour);
-	rw += crash_append_fmt_c(&buf[rw], buflen - rw, ':');
-	rw += crash_append_fmt_02u(&buf[rw], buflen - rw, tm.tm_min);
-	rw += crash_append_fmt_c(&buf[rw], buflen - rw, ':');
-	rw += crash_append_fmt_02u(&buf[rw], buflen - rw, tm.tm_sec);
+	crash_append_fmt_02u(&cursor, (TM_YEAR_ORIGIN + tm.tm_year) % 100);
+	crash_append_fmt_c(&cursor, '-');
+	crash_append_fmt_02u(&cursor, tm.tm_mon + 1);
+	crash_append_fmt_c(&cursor, '-');
+	crash_append_fmt_02u(&cursor, tm.tm_mday);
+	crash_append_fmt_c(&cursor, ' ');
+	crash_append_fmt_02u(&cursor, tm.tm_hour);
+	crash_append_fmt_c(&cursor, ':');
+	crash_append_fmt_02u(&cursor, tm.tm_min);
+	crash_append_fmt_c(&cursor, ':');
+	crash_append_fmt_02u(&cursor, tm.tm_sec);
 
-	rw++;	/* Trailing NUL */
-	buf[MIN(rw, buflen) - 1] = '\0';
+	cursor.size += num_reserved;	/* We reserved one byte for NUL above */
+	crash_append_fmt_c(&cursor, '\0');
 }
 
 static void
