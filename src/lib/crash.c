@@ -61,7 +61,7 @@ RCSID("$Id$")
 #include "override.h"			/* Must be the last header included */
 
 struct crash_vars {
-	ckhunk_t *mem;			/**< Reserved memory, read-only */
+	ckhunk_t *mem, *mem2;	/**< Reserved memory, read-only */
 	const char *argv0;		/**< The original argv[0]. */
 	const char *cwd;		/**< Current working directory (NULL if unknown) */
 	const char *crashdir;	/**< Directory where crash logs are written */
@@ -78,7 +78,7 @@ static const struct crash_vars *vars; /**< read-only after crash_init()! */
 /**
  * Signals that usually lead to a crash.
  */
-static int signals[] = {
+static const int signals[] = {
 #ifdef SIGBUS
 	SIGBUS,
 #endif
@@ -566,8 +566,6 @@ parent_failure:
 }
 #endif
 
-static const char SIGNAL_NUM[] = "signal #";
-
 /**
  * The signal handler used to trap harmful signals.
  */
@@ -698,8 +696,8 @@ crash_handler(int signo)
 /**
  * Installs a simple crash handler.
  * 
- * @param argv0		the original argv[0] from main().
- * @param flags		any combination of CRASH_F_GDB and CRASH_F_PAUSE
+ * @param argv0	the original argv[0] from main().
+ * @param flags	any combination of CRASH_F_GDB and CRASH_F_PAUSE
  */
 void
 crash_init(const char *argv0, int flags)
@@ -707,6 +705,19 @@ crash_init(const char *argv0, int flags)
 	struct crash_vars iv;
 	unsigned i;
 	char dir[MAX_PATH_LEN];
+	size_t size;
+
+	memset(&iv, 0, sizeof iv);
+
+	if (NULL == getcwd(dir, sizeof dir)) {
+		DECLARE_STR(3);
+
+		dir[0] = '\0';
+		print_str("cannot get current working directory: %s");
+		print_str(g_strerror(errno));
+		print_str("\n");
+		flush_err_str();
+	}
 
 	/*
 	 * Pre-size the chunk with enough space to hold 16 paths at the maximum
@@ -714,12 +725,15 @@ crash_init(const char *argv0, int flags)
 	 * chunk will be shrunk at the end of the initialization phase.
 	 */
 
-	iv.mem = ck_init_not_leaking(16 * MAX_PATH_LEN, 0);
+	size = 0;
+	size = size_saturate_add(size, sizeof iv);
+	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(argv0)));
+	size = size_saturate_add(size, 1 + strlen(dir));
+	size = size_saturate_add(size, 128 /* gtk-gnutella version string */);
 
-	if (NULL == getcwd(dir, sizeof dir)) {
-		g_warning("cannot get current working directory: %s",
-			g_strerror(errno));
-	} else {
+	iv.mem = ck_init_not_leaking(size, 0);
+
+	if ('\0' != dir[0]) {
 		iv.cwd = ck_strdup(iv.mem, dir);
 		g_assert(NULL != iv.cwd);
 	}
@@ -737,8 +751,14 @@ crash_init(const char *argv0, int flags)
 
 	iv.gmtoff = timestamp_gmt_offset(tm_time_exact(), NULL);
 	vars = ck_copy(iv.mem, &iv, sizeof iv);
-	ck_readonly(iv.mem);
+	ck_readonly(vars->mem);
 }
+
+#define crash_set_var(name, src) \
+G_STMT_START { \
+	STATIC_ASSERT(sizeof(src) == sizeof(vars->name)); \
+	ck_memcpy(vars->mem, (void *) &(vars->name), &(src), sizeof(vars->name)); \
+} G_STMT_END
 
 /**
  * Record current working directory and configured crash directory.
@@ -746,21 +766,35 @@ crash_init(const char *argv0, int flags)
 void
 crash_setdir(const char *pathname)
 {
+	const char *curdir = NULL, *crashdir;
+	ckhunk_t *mem2;
+	size_t size;
 	char dir[MAX_PATH_LEN];
-	const char *ptr;
 
 	g_assert(NULL != vars->mem);
 
 	if (NULL != getcwd(dir, sizeof dir)) {
 		if (NULL == vars->cwd || 0 != strcmp(dir, vars->cwd)) {
-			ptr = ck_strdup_readonly(vars->mem, dir);
-			ck_memcpy(vars->mem, (void *) &vars->cwd, &ptr, sizeof vars->cwd);
+			curdir = ck_strdup_readonly(vars->mem, dir);
+			g_assert(NULL != curdir);
 		}
 	}
 
-	ptr = ck_strdup_readonly(vars->mem, pathname);
-	ck_memcpy(vars->mem, (void *) &vars->crashdir, &ptr, sizeof vars->crashdir);
-	g_assert(NULL == pathname || NULL != vars->crashdir);
+	crashdir = ck_strdup_readonly(vars->mem, pathname);
+	g_assert(NULL == pathname || NULL != crashdir);
+
+	size = 0;
+	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(crashdir)));
+	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(curdir)));
+	mem2 = ck_init_not_leaking(size, 0);
+
+	crash_set_var(mem2, mem2);
+	crash_set_var(crashdir, crashdir);
+	if (curdir) {
+		crash_set_var(cwd, curdir);
+	}
+
+	ck_readonly(vars->mem2);
 }
 
 /**
@@ -774,17 +808,14 @@ crash_setver(const char *version)
 	g_assert(NULL != vars->mem);
 
 	ptr = ck_strdup_readonly(vars->mem, version);
-	ck_memcpy(vars->mem, (void *) &vars->version, &ptr, sizeof vars->version);
+	crash_set_var(version, ptr);
 	g_assert(NULL == version || NULL != vars->version);
 }
 
-/**
- * Record program's build number (0 disables any build number information).
- */
 void
 crash_setbuild(unsigned build)
 {
-	ck_memcpy(vars->mem, (void *) &vars->build, &build, sizeof vars->build);
+	crash_set_var(build, build);
 }
 
 /**
