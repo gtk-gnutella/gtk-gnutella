@@ -295,7 +295,7 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 		size_t n = CONST_STRLEN(commands);
 
 		if (n != UNSIGNED(write(STDOUT_FILENO, commands, n)))
-			goto child_failure;
+			goto parent_failure;
 	}
 
 	pid = fork();
