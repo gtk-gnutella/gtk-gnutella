@@ -915,13 +915,13 @@ crash_setdir(const char *pathname)
 		crash_logname(filename, sizeof filename, pid_str);
 
 		len = CONST_STRLEN("CRASHFILE=") + strlen(filename) +
-				strlen(crashdir) + CONST_STRLEN(G_DIR_SEPARATOR_S) + 1;
+				strlen(pathname) + CONST_STRLEN(G_DIR_SEPARATOR_S) + 1;
 		crashfile = ck_alloc(mem2, len);
 
 		g_assert(crashfile != NULL);	/* Chunk pre-sized, must have room */
 
 		clamp_strcpy(crashfile, len, "CRASHFILE=");
-		clamp_strcat(crashfile, len, crashdir);
+		clamp_strcat(crashfile, len, pathname);
 		clamp_strcat(crashfile, len, G_DIR_SEPARATOR_S);
 		clamp_strcat(crashfile, len, filename);
 		crash_set_var(crashfile, crashfile);
