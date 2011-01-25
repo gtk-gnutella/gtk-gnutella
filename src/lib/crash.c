@@ -53,6 +53,7 @@ RCSID("$Id$")
 #include "log.h"
 #include "offtime.h"
 #include "signal.h"
+#include "stringify.h"
 #include "timestamp.h"
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
@@ -150,7 +151,7 @@ crash_append_fmt_02u(cursor_t *cursor, long v)
 static void
 crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 {
-	char buf[SIZE_FIELD_MAX];
+	char buf[ULONG_DEC_BUFLEN];
 	const char *s;
 	size_t len;
 
@@ -160,7 +161,7 @@ crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 	if (cursor->size < len)
 		return;
 
-	clamp_strncpy(cursor->buf, cursor->size, s, len);
+	memcpy(cursor->buf, s, len);
 	cursor->buf += len;
 	cursor->size -= len;
 }
