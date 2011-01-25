@@ -142,7 +142,8 @@ print_number(char *dst, size_t size, unsigned long value)
 #define CRASH_F_PAUSE	(1 << 0)
 #define CRASH_F_GDB		(1 << 1)
 
-void crash_init(const char *argv0, int flags);
+void crash_init(const char *argv0, const char *progname,
+	int flags, const char *gdb_path);
 void crash_time(char *buf, size_t buflen);
 const char *crash_signame(int signo);
 void crash_handler(int signo);

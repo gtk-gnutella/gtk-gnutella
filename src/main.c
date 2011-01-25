@@ -661,6 +661,7 @@ enum main_arg {
 	main_arg_compile_info,
 	main_arg_daemonize,
 	main_arg_gdb_on_crash,
+	main_arg_gdb_path,
 	main_arg_geometry,
 	main_arg_help,
 	main_arg_log_stderr,
@@ -705,7 +706,13 @@ static struct {
 
 	OPTION(compile_info,	NONE, "Display compile-time information."),
 	OPTION(daemonize, 		NONE, "Daemonize the process."),
+#ifdef HAS_FORK
 	OPTION(gdb_on_crash, 	NONE, "Execute a gdb on crash."),
+	OPTION(gdb_path, 		PATH, "Path of \"gdb program\" to run on crash."),
+#else
+	OPTION(gdb_on_crash, 	NONE, NULL),	/* ignore silently, hide */
+	OPTION(gdb_path, 		NONE, NULL),
+#endif	/* HAS_FORK */
 	OPTION(geometry,		TEXT, "Placement of the main GUI window."),
 	OPTION(help, 			NONE, "Print this message."),
 	OPTION(log_stderr,		PATH, "Log standard output to a file."),
@@ -1494,7 +1501,8 @@ main(int argc, char **argv)
 
 		flags |= crash_coredumps_disabled() ? CRASH_F_GDB : 0;
 
-		crash_init(argv[0], flags);
+		crash_init(argv[0], GTA_PRODUCT_NAME,
+			flags, options[main_arg_gdb_path].arg);
 		crash_setbuild(main_get_build());
 	}	
 	handle_arguments_asap();
