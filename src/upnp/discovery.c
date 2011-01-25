@@ -956,7 +956,7 @@ upnp_discover(unsigned timeout, upnp_discover_cb_t cb, void *arg)
 				net_type_to_string(host_addr_net(bind_addr)),
 				g_strerror(errno));
 		}
-		return;
+		goto failed;
 	}
 
 	mx = timeout / 1000;		/* Timeout in seconds */
@@ -1014,7 +1014,7 @@ LABEL(broadcasted)
 	if (!sent) {
 		socket_free_null(&s);
 		g_warning("unable to broadcast any UPnP search request");
-		return;
+		goto failed;
 	}
 
 #undef LABEL
@@ -1032,6 +1032,13 @@ LABEL(broadcasted)
 	mcb->timeout_ev = cq_main_insert(timeout + 1000, upnp_dscv_timeout, mcb);
 
 	g_hash_table_insert(pending, s, mcb);
+	return;
+
+	/*
+	 * This is a synchronous callback, invoked before this function returns.
+	 */
+failed:
+	(*cb)(NULL, arg);		/* Signal error / timeout */
 }
 
 /**
