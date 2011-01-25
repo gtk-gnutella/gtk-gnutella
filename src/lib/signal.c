@@ -51,7 +51,7 @@ RCSID("$Id$")
 #define SIG_ERR ((signal_handler_t) -1)
 #endif
 
-#define SIGNAL_CHUNK_SIZE		4096	/**< Safety allocation pool */
+#define SIGNAL_CHUNK_SIZE		4000	/**< Safety allocation pool */
 #define SIGNAL_CHUNK_RESERVE	512		/**< Critical amount reserved */
 
 /**
