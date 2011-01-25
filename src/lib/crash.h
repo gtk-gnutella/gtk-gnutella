@@ -108,11 +108,15 @@ G_STMT_START { \
 #define getpos_str(i) (print_str_iov_cnt_)
 
 /**
- * Print unsigned quantity into supplied buffer and returns the address
- * within that buffer where the printed string starts (value is generated
- * backwards from the end of the buffer).
+ * Print an "unsigned long" as decimal NUL-terminated string into supplied
+ * buffer and returns the address within that buffer where the printed string
+ * starts (value is generated backwards from the end of the buffer).
  *
- * This routine can be used safely in signal handlers.
+ * @note This routine can be used safely in signal handlers.
+ * @param dst The destination buffer.
+ * @param size The length of dst; should be ULONG_DEC_BUFLEN or larger.
+ * @param value The value to print.
+ * @return The start of the NUL-terminated string, usually not dst!
  */
 static inline WARN_UNUSED_RESULT const char *
 print_number(char *dst, size_t size, unsigned long value)
