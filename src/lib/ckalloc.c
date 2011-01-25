@@ -85,7 +85,7 @@ ckhunk_check(const struct ckhunk * const ck)
 /**
  * Initialize a new chunk allocator.
  *
- * @param size		total arena size (including management overhead)
+ * @param size		usable arena size (excluding management overhead)
  * @param reserved	amount of memory to reserve for critical allocations
  * @param leaking	whether not freeing this object would create a leak
  *
