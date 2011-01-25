@@ -57,9 +57,17 @@
 #define IPV6_ADDR_BUFLEN \
 	  (sizeof "0001:0203:0405:0607:0809:1011:255.255.255.255")
 #define TIMESTAMP_BUF_LEN	(sizeof "9999-12-31 23:59:61")
+
+/**
+ * The following are over-estimated, so they include space for NUL, too.
+ * FIXME: Figure out a closer approximation to reduce waste.
+ */
 #define OFF_T_DEC_BUFLEN	(sizeof(off_t) * CHAR_BIT) /* very roughly */
 #define TIME_T_DEC_BUFLEN	(sizeof(time_t) * CHAR_BIT) /* very roughly */
 #define SIZE_T_DEC_BUFLEN	(sizeof(size_t) * CHAR_BIT) /* very roughly */
+#define USHRT_DEC_BUFLEN	(sizeof(unsigned short) * CHAR_BIT) /* roughly */
+#define UINT_DEC_BUFLEN		(sizeof(unsigned int) * CHAR_BIT) /* roughly */
+#define ULONG_DEC_BUFLEN	(sizeof(unsigned long) * CHAR_BIT) /* roughly */
 #define POINTER_BUFLEN		(sizeof(unsigned long) * CHAR_BIT) /* very roughly */
 
 #define HOST_ADDR_BUFLEN	(MAX(IPV4_ADDR_BUFLEN, IPV6_ADDR_BUFLEN))
