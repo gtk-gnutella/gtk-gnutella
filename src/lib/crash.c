@@ -867,32 +867,32 @@ G_STMT_START { \
 void
 crash_setdir(const char *pathname)
 {
-	const char *curdir = NULL, *crashdir;
+	const char *curdir = NULL;
 	ckhunk_t *mem2;
 	size_t size;
 	char dir[MAX_PATH_LEN];
 
 	g_assert(NULL != vars->mem);
 
+	if (
+		NULL != getcwd(dir, sizeof dir) &&
+		(NULL == vars->cwd || 0 != strcmp(dir, vars->cwd))
+	) {
+		curdir = dir;
+	}
+
 	size = 0;
-	size = size_saturate_add(size, 1 + MAX_PATH_LEN);
+	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(curdir)));
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(pathname)));
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(pathname)));
 	size = size_saturate_add(size, 128 /* CRASHFILE=<local-crashfile> */);
 	mem2 = ck_init_not_leaking(size, 0);
 
-	if (NULL != getcwd(dir, sizeof dir)) {
-		if (NULL == vars->cwd || 0 != strcmp(dir, vars->cwd)) {
-			curdir = ck_strdup(mem2, dir);
-			g_assert(NULL != curdir);
-		}
-	}
-
-	crashdir = ck_strdup(mem2, pathname);
-	g_assert(NULL == pathname || NULL != crashdir);
+	curdir = ck_strdup(mem2, curdir);
+	pathname = ck_strdup(mem2, pathname);
 
 	crash_set_var(mem2, mem2);
-	crash_set_var(crashdir, crashdir);
+	crash_set_var(crashdir, pathname);
 	if (curdir) {
 		crash_set_var(cwd, curdir);
 	}
