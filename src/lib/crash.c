@@ -60,20 +60,20 @@ RCSID("$Id$")
 
 #include "override.h"			/* Must be the last header included */
 
-static time_delta_t crash_gmtoff;	/**< Offset to GMT, supposed to be fixed */
-static ckhunk_t *crash_mem;			/**< Reserved memory, read-only */
-
 struct crash_vars {
+	ckhunk_t *mem;			/**< Reserved memory, read-only */
 	const char *argv0;		/* The original argv[0]. */
 	const char *cwd;		/* Current working directory (NULL if unknown) */
 	const char *crashdir;	/* Directory where crash logs are written */
 	const char *version;	/* Program version string (NULL if unknown) */
+	time_delta_t gmtoff;	/**< Offset to GMT, supposed to be fixed */
 	unsigned build;			/* Build number, unique version number */
 	unsigned pause_process:1;
 	unsigned invoke_gdb:1;
 };
 
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
+
 
 /**
  * Signals that usually indicate a crash.
@@ -178,7 +178,7 @@ crash_time(char *buf, size_t size)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	if (!off_time(tm_time_exact() + crash_gmtoff, 0, &tm)) {
+	if (!off_time(tm_time_exact() + vars->gmtoff, 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
@@ -608,30 +608,29 @@ crash_init(const char *argv0, int flags)
 	 * chunk will be shrunk at the end of the initialization phase.
 	 */
 
-	crash_mem = ck_init_not_leaking(16 * MAX_PATH_LEN, 0);
+	iv.mem = ck_init_not_leaking(16 * MAX_PATH_LEN, 0);
 
 	if (NULL == getcwd(dir, sizeof dir)) {
 		g_warning("cannot get current working directory: %s",
 			g_strerror(errno));
 	} else {
-		iv.cwd = ck_strdup(crash_mem, dir);
+		iv.cwd = ck_strdup(iv.mem, dir);
 		g_assert(NULL != iv.cwd);
 	}
 
-	iv.argv0 = ck_strdup(crash_mem, argv0);
+	iv.argv0 = ck_strdup(iv.mem, argv0);
 	g_assert(NULL == argv0 || NULL != iv.argv0);
 
 	iv.pause_process =booleanize(CRASH_F_PAUSE & flags);
 	iv.invoke_gdb = booleanize(CRASH_F_GDB & flags);
 
-	vars = ck_copy(crash_mem, &iv, sizeof iv);
-	ck_readonly(crash_mem);
-
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		signal_set(signals[i], crash_handler);
 	}
 
-	crash_gmtoff = timestamp_gmt_offset(tm_time_exact(), NULL);
+	iv.gmtoff = timestamp_gmt_offset(tm_time_exact(), NULL);
+	vars = ck_copy(iv.mem, &iv, sizeof iv);
+	ck_readonly(iv.mem);
 }
 
 /**
@@ -643,17 +642,17 @@ crash_setdir(const char *pathname)
 	char dir[MAX_PATH_LEN];
 	const char *ptr;
 
-	g_assert(NULL != crash_mem);
+	g_assert(NULL != vars->mem);
 
 	if (NULL != getcwd(dir, sizeof dir)) {
 		if (NULL == vars->cwd || 0 != strcmp(dir, vars->cwd)) {
-			ptr = ck_strdup_readonly(crash_mem, dir);
-			ck_memcpy(crash_mem, (void *) &vars->cwd, &ptr, sizeof vars->cwd);
+			ptr = ck_strdup_readonly(vars->mem, dir);
+			ck_memcpy(vars->mem, (void *) &vars->cwd, &ptr, sizeof vars->cwd);
 		}
 	}
 
-	ptr = ck_strdup_readonly(crash_mem, pathname);
-	ck_memcpy(crash_mem, (void *) &vars->crashdir, &ptr, sizeof vars->crashdir);
+	ptr = ck_strdup_readonly(vars->mem, pathname);
+	ck_memcpy(vars->mem, (void *) &vars->crashdir, &ptr, sizeof vars->crashdir);
 	g_assert(NULL == pathname || NULL != vars->crashdir);
 }
 
@@ -665,10 +664,10 @@ crash_setver(const char *version)
 {
 	const char *ptr;
 
-	g_assert(NULL != crash_mem);
+	g_assert(NULL != vars->mem);
 
-	ptr = ck_strdup_readonly(crash_mem, version);
-	ck_memcpy(crash_mem, (void *) &vars->version, &ptr, sizeof vars->version);
+	ptr = ck_strdup_readonly(vars->mem, version);
+	ck_memcpy(vars->mem, (void *) &vars->version, &ptr, sizeof vars->version);
 	g_assert(NULL == version || NULL != vars->version);
 }
 
@@ -678,7 +677,7 @@ crash_setver(const char *version)
 void
 crash_setbuild(unsigned build)
 {
-	ck_memcpy(crash_mem, (void *) &vars->build, &build, sizeof vars->build);
+	ck_memcpy(vars->mem, (void *) &vars->build, &build, sizeof vars->build);
 }
 
 /**
@@ -688,7 +687,7 @@ crash_setbuild(unsigned build)
 void
 crash_post_init(void)
 {
-	ck_shrink(crash_mem, 0);		/* Shrink as much as possible */
+	ck_shrink(vars->mem, 0);		/* Shrink as much as possible */
 }
 
 /* vi: set ts=4 sw=4 cindent: */
