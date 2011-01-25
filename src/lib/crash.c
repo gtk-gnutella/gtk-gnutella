@@ -826,6 +826,7 @@ void
 crash_post_init(void)
 {
 	ck_shrink(vars->mem, 0);		/* Shrink as much as possible */
+	ck_shrink(vars->mem2, 0);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
