@@ -660,7 +660,6 @@ extern char **environ;
 enum main_arg {
 	main_arg_compile_info,
 	main_arg_daemonize,
-	main_arg_exec_on_crash,
 	main_arg_gdb_on_crash,
 	main_arg_geometry,
 	main_arg_help,
@@ -706,7 +705,6 @@ static struct {
 
 	OPTION(compile_info,	NONE, "Display compile-time information."),
 	OPTION(daemonize, 		NONE, "Daemonize the process."),
-	OPTION(exec_on_crash, 	PATH, "Execute a command on crash."),
 	OPTION(gdb_on_crash, 	NONE, "Execute a gdb on crash."),
 	OPTION(geometry,		TEXT, "Placement of the main GUI window."),
 	OPTION(help, 			NONE, "Print this message."),
@@ -1491,16 +1489,12 @@ main(int argc, char **argv)
 		/*
 		 * If core dumps are disabled, force gdb execution on crash
 		 * to be able to get some information before the process
-		 * disappears, unless they specified --exec-on-crash already.
+		 * disappears.
 		 */
 
-		if (
-			!options[main_arg_exec_on_crash].used &&
-			crash_coredumps_disabled()
-		) {
-			flags |= CRASH_F_GDB;
-		}
-		crash_init(options[main_arg_exec_on_crash].arg, argv[0], flags);
+		flags |= crash_coredumps_disabled() ? CRASH_F_GDB : 0;
+
+		crash_init(argv[0], flags);
 		crash_setbuild(main_get_build());
 	}	
 	handle_arguments_asap();

@@ -64,7 +64,6 @@ static time_delta_t crash_gmtoff;	/**< Offset to GMT, supposed to be fixed */
 static ckhunk_t *crash_mem;			/**< Reserved memory, read-only */
 
 struct crash_vars {
-	const char *pathname;	/* The file to execute. */
 	const char *argv0;		/* The original argv[0]. */
 	const char *cwd;		/* Current working directory (NULL if unknown) */
 	const char *crashdir;	/* Directory where crash logs are written */
@@ -235,15 +234,14 @@ crash_end_of_line(void)
 	print_str(" CRASH (pid=");		/* 1 */
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
-	if (vars->pathname) {
-		print_str("calling ");		/* 4 */
-		print_str(vars->pathname);	/* 5 */
+	if (vars->invoke_gdb) {
+		print_str("calling gdb");	/* 4 */
 	} else if (vars->pause_process) {
 		print_str("pausing -- end of line.");	/* 4 */
 	} else {
 		print_str("end of line.");	/* 4 */
 	}
-	print_str("\n");				/* 6, at most */
+	print_str("\n");				/* 5, at most */
 	flush_err_str();
 }
 
@@ -277,38 +275,41 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 #endif	/* HAS_FORK */
 
 static void
-crash_exec(const char *pathname, const char *argv0, const char *cwd)
+crash_invoke_gdb(const char *argv0, const char *cwd)
 #ifdef HAS_FORK
 {
    	const char *pid_str;
 	char pid_buf[22];
 	pid_t pid;
 	int fd[2];
-	int pipe_ok = 0;
 
 	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
 
 	/* Make sure we don't exceed the system-wide file descriptor limit */
 	close_file_descriptors(3);
 
-	if (vars->invoke_gdb) {
-		close(STDIN_FILENO);
-		close(STDOUT_FILENO);
-		if (0 == pipe(fd)) {
-			static const char commands[] = "bt\nbt full\nquit\n";
-			size_t n = CONST_STRLEN(commands);
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	if (0 == pipe(fd)) {
+		static const char commands[] = "bt\nbt full\nquit\n";
+		size_t n = CONST_STRLEN(commands);
 
-			if (n == UNSIGNED(write(STDOUT_FILENO, commands, n)))
-				pipe_ok = 1;
-		}
+		if (n != UNSIGNED(write(STDOUT_FILENO, commands, n)))
+			goto child_failure;
 	}
 
 	pid = fork();
 	switch (pid) {
+	case -1:
+		goto parent_failure;
 	case 0:
 		{
+			const int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
+			const mode_t mode = S_IRUSR | S_IWUSR;
 			char const *argv[8];
+			char filename[64];
 			char cmd[64];
+			DECLARE_STR(6);
 
 			clamp_strcpy(cmd, sizeof cmd, "gdb -q -p ");
 			clamp_strcat(cmd, sizeof cmd, pid_str);
@@ -319,70 +320,47 @@ crash_exec(const char *pathname, const char *argv0, const char *cwd)
 			 * do it for us.
 			 */
 
-			if (pipe_ok) {
-				argv[0] = "/bin/sh";
-				argv[1] = "-c";
-				argv[2] = cmd;
-				argv[3] = NULL;
-			} else {
-				/* FIXME: Use /bin/sh -c too? */
-				argv[0] = pathname;
-				argv[1] = argv0;
-				argv[2] = pid_str;
-				argv[3] = NULL;
-			}
+			argv[0] = "/bin/sh";
+			argv[1] = "-c";
+			argv[2] = cmd;
+			argv[3] = NULL;
 
-			if (pipe_ok) {
-				char filename[64];
-				int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
-				mode_t mode = S_IRUSR | S_IWUSR;
-				DECLARE_STR(6);
+			crash_logname(filename, sizeof filename, pid_str);
 
-				crash_logname(filename, sizeof filename, pid_str);
-
-				/* STDIN must be kept open */
-				close(STDOUT_FILENO);
-				close(STDERR_FILENO);
-				if (STDOUT_FILENO != open(filename, flags, mode))
-					goto child_failure;
-				if (STDERR_FILENO != dup(STDOUT_FILENO))
-					goto child_failure;
-
-				print_str("Crash file for \"");		/* 0 */
-				print_str(argv0);					/* 1 */
-				print_str("\"");					/* 2 */
-				if (NULL != vars->version) {
-					print_str(" -- ");				/* 3 */
-					print_str(vars->version);		/* 4 */
-				}
-				print_str("\n");					/* 5 */
-				flush_str(STDOUT_FILENO);
-			} else {
-				if (
-					close(STDIN_FILENO) ||
-					close(STDOUT_FILENO) ||
-					close(STDERR_FILENO) ||
-					STDIN_FILENO != open("/dev/null", O_RDONLY, 0) ||
-					STDOUT_FILENO != open("/dev/null", O_WRONLY, 0) ||
-					STDERR_FILENO != dup(STDOUT_FILENO)
-				)
-					goto child_failure;
-			}
-
-			if (-1 == setsid() || execve(argv[0], (const void *) argv, NULL))
+			/* STDIN must be kept open */
+			close(STDOUT_FILENO);
+			close(STDERR_FILENO);
+			if (STDOUT_FILENO != open(filename, flags, mode))
 				goto child_failure;
-child_failure:
+			if (STDERR_FILENO != dup(STDOUT_FILENO))
+				goto child_failure;
+
+			print_str("Crash file for \"");		/* 0 */
+			print_str(argv0);					/* 1 */
+			print_str("\"");					/* 2 */
+			if (NULL != vars->version) {
+				print_str(" -- ");				/* 3 */
+				print_str(vars->version);		/* 4 */
+			}
+			print_str("\n");					/* 5 */
+			flush_str(STDOUT_FILENO);
+
+			if (-1 == setsid())
+				goto child_failure;
+
+			execve(argv[0], (const void *) argv, NULL);
+
+		child_failure:
 			_exit(EXIT_FAILURE);
-		}
+		}	
 		break;
-	case -1:
-		break;
+
 	default:
 		{
-			int status;
 			DECLARE_STR(9);
 			unsigned iov_prolog;
 			char time_buf[18];
+			int status;
 			pid_t ret;
 
 			ret = waitpid(pid, &status, 0);
@@ -457,17 +435,18 @@ child_failure:
 			flush_err_str();
 		}
 	}
+
+parent_failure:
+	return;
 }
 #else	/* !HAS_FORK */
 {
-	DECLARE_STR(3);
+	DECLARE_STR(1);
 
 	(void) argv0;
 	(void) cwd;
 
-	print_str("WARNING: cannot exec \"");
-	print_str(pathname);
-	print_str("\" on this platform\n");
+	print_str("WARNING: cannot exec gdb on this platform\n");
 	flush_err_str();
 }
 #endif
@@ -547,7 +526,7 @@ crash_handler(int signo)
 	 * even if we're daemonized.
 	 */
 
-	if (!recursive && NULL != vars->crashdir && NULL != vars->pathname) {
+	if (!recursive && NULL != vars->crashdir && vars->invoke_gdb) {
 		if (-1 == chdir(vars->crashdir)) {
 			if (NULL != vars->cwd) {
 				s_warning("cannot chdir() back to \"%s\", "
@@ -571,8 +550,8 @@ crash_handler(int signo)
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
 	}
 	crash_end_of_line();
-	if (NULL != vars->pathname) {
-		crash_exec(vars->pathname, vars->argv0, cwd);
+	if (vars->invoke_gdb) {
+		crash_invoke_gdb(vars->argv0, cwd);
 	}
 
 	if (vars->pause_process)
@@ -602,11 +581,11 @@ crash_handler(int signo)
 /**
  * Installs a simple crash handler.
  * 
- * @param pathname	the pathname of the program to execute on crash.
  * @param argv0		the original argv[0] from main().
+ * @param flags		any combination of CRASH_F_GDB and CRASH_F_PAUSE
  */
 void
-crash_init(const char *pathname, const char *argv0, int flags)
+crash_init(const char *argv0, int flags)
 {
 	struct crash_vars iv;
 	unsigned i;
@@ -620,10 +599,6 @@ crash_init(const char *pathname, const char *argv0, int flags)
 
 	crash_mem = ck_init_not_leaking(16 * MAX_PATH_LEN, 0);
 
-	if (CRASH_F_GDB & flags) {
-		pathname = "gdb";
-	}
-
 	if (NULL == getcwd(dir, sizeof dir)) {
 		g_warning("cannot get current working directory: %s",
 			g_strerror(errno));
@@ -631,9 +606,6 @@ crash_init(const char *pathname, const char *argv0, int flags)
 		iv.cwd = ck_strdup(crash_mem, dir);
 		g_assert(NULL != iv.cwd);
 	}
-
-	iv.pathname = ck_strdup(crash_mem, pathname);
-	g_assert(NULL == pathname || NULL != iv.pathname);
 
 	iv.argv0 = ck_strdup(crash_mem, argv0);
 	g_assert(NULL == argv0 || NULL != iv.argv0);
