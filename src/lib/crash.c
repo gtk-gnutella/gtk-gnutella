@@ -34,7 +34,7 @@
  * @ingroup lib
  * @file
  *
- * A simple crash handler.
+ * A not so simple crash handler.
  *
  * @author Christian Biere
  * @date 2006
@@ -774,20 +774,20 @@ crash_setdir(const char *pathname)
 
 	g_assert(NULL != vars->mem);
 
+	size = 0;
+	size = size_saturate_add(size, 1 + MAX_PATH_LEN);
+	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(pathname)));
+	mem2 = ck_init_not_leaking(size, 0);
+
 	if (NULL != getcwd(dir, sizeof dir)) {
 		if (NULL == vars->cwd || 0 != strcmp(dir, vars->cwd)) {
-			curdir = ck_strdup_readonly(vars->mem, dir);
+			curdir = ck_strdup(mem2, dir);
 			g_assert(NULL != curdir);
 		}
 	}
 
-	crashdir = ck_strdup_readonly(vars->mem, pathname);
+	crashdir = ck_strdup(mem2, pathname);
 	g_assert(NULL == pathname || NULL != crashdir);
-
-	size = 0;
-	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(crashdir)));
-	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(curdir)));
-	mem2 = ck_init_not_leaking(size, 0);
 
 	crash_set_var(mem2, mem2);
 	crash_set_var(crashdir, crashdir);

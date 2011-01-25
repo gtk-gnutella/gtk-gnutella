@@ -32,7 +32,7 @@
  * @ingroup lib
  * @file
  *
- * A simple crash handler.
+ * A not so simple crash handler.
  *
  * @author Christian Biere
  * @date 2006
