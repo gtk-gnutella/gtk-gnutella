@@ -288,9 +288,15 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 	/* Make sure we don't exceed the system-wide file descriptor limit */
 	close_file_descriptors(3);
 
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	if (0 == pipe(fd)) {
+	if (
+		close(STDIN_FILENO) ||
+		close(STDOUT_FILENO) ||
+		pipe(fd) ||
+		STDIN_FILENO != fd[0] ||
+		STDOUT_FILENO != fd[1]
+	) {
+		goto parent_failure;
+	} else {
 		static const char commands[] = "bt\nbt full\nquit\n";
 		size_t n = CONST_STRLEN(commands);
 
@@ -302,7 +308,7 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 	switch (pid) {
 	case -1:
 		goto parent_failure;
-	case 0:
+	case 0:	/* executed by child */
 		{
 			const int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
 			const mode_t mode = S_IRUSR | S_IWUSR;
@@ -328,11 +334,12 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 			crash_logname(filename, sizeof filename, pid_str);
 
 			/* STDIN must be kept open */
-			close(STDOUT_FILENO);
-			close(STDERR_FILENO);
-			if (STDOUT_FILENO != open(filename, flags, mode))
-				goto child_failure;
-			if (STDERR_FILENO != dup(STDOUT_FILENO))
+			if (
+				close(STDOUT_FILENO) ||
+				close(STDERR_FILENO) ||
+				STDOUT_FILENO != open(filename, flags, mode) ||
+				STDERR_FILENO != dup(STDOUT_FILENO)
+			)
 				goto child_failure;
 
 			print_str("Crash file for \"");		/* 0 */
@@ -355,7 +362,7 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 		}	
 		break;
 
-	default:
+	default:	/* executed by parent */
 		{
 			DECLARE_STR(9);
 			unsigned iov_prolog;
@@ -364,10 +371,14 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 			pid_t ret;
 
 			ret = waitpid(pid, &status, 0);
-			close(STDIN_FILENO);
-			open("/dev/null", O_RDONLY, 0);
-			close(STDOUT_FILENO);
-			open("/dev/null", O_WRONLY, 0);
+
+			if (
+				close(STDIN_FILENO) ||
+				close(STDOUT_FILENO) ||
+				STDIN_FILENO != open("/dev/null", O_RDONLY, 0) ||
+				STDOUT_FILENO != open("/dev/null", O_WRONLY, 0)
+			)
+				goto parent_failure;
 
 			crash_time(time_buf, sizeof time_buf);
 
