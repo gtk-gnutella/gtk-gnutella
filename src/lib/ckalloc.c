@@ -67,7 +67,7 @@ enum ckhunk_magic { CKHUNK_MAGIC = 0x09b1f3c2 };
  */
 struct ckhunk {
 	enum ckhunk_magic magic;
-	size_t size;				/**< Total arena size (including header) */
+	size_t size;				/**< Total arena size (excluding header) */
 	size_t reserved;			/**< Reserved memory size */
 	char *arena;				/**< Start of allocated arena */
 	char *end;					/**< First byte past the arena */
@@ -97,10 +97,11 @@ ckinit(size_t size, size_t reserved, gboolean leaking)
 	void *arena;
 	ckhunk_t *ck;
 
+	g_assert(size >= reserved);
+	size = size_saturate_add(size, ckalloc_round(sizeof(struct ckhunk)));
+
 	g_assert(size_is_positive(size));
 	g_assert(size_is_non_negative(reserved));
-	g_assert(size >=
-		size_saturate_add(reserved, ckalloc_round(sizeof(struct ckhunk))));
 
 	arena = leaking ? vmm_alloc(size) : vmm_alloc_not_leaking(size);
 	ck = arena;
@@ -527,6 +528,7 @@ ck_shrink(ckhunk_t *ck, size_t size)
 	if (NULL == ck)
 		return FALSE;
 
+	size = MAX(1, size);	/* round_pagesize(0) returns 0 */
 	nsize = round_pagesize(size);	/* VMM rounds up to the next page size */
 
 	if (ck->size <= nsize)
@@ -571,7 +573,6 @@ ck_shrink(ckhunk_t *ck, size_t size)
 gboolean
 ck_memcpy(ckhunk_t *ck, void *dest, const void *src, size_t size)
 {
-	void *end;
 	void *chunk_start;
 	sigset_t set;
 
@@ -582,9 +583,8 @@ ck_memcpy(ckhunk_t *ck, void *dest, const void *src, size_t size)
 
 	chunk_start = ck->arena + ckalloc_round(sizeof(struct ckhunk));
 	g_assert(ptr_cmp(dest, chunk_start) >= 0);
-
-	end = ptr_add_offset(dest, size);
-	g_assert(ptr_cmp(ck->end, end) >= 0);
+	g_assert(ptr_cmp(dest, ck->end) < 0);
+	g_assert(ptr_diff(ck->end, dest) >= size);
 
 	if (0 == size)
 		return TRUE;
