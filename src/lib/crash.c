@@ -62,21 +62,21 @@ RCSID("$Id$")
 
 struct crash_vars {
 	ckhunk_t *mem;			/**< Reserved memory, read-only */
-	const char *argv0;		/* The original argv[0]. */
-	const char *cwd;		/* Current working directory (NULL if unknown) */
-	const char *crashdir;	/* Directory where crash logs are written */
-	const char *version;	/* Program version string (NULL if unknown) */
+	const char *argv0;		/**< The original argv[0]. */
+	const char *cwd;		/**< Current working directory (NULL if unknown) */
+	const char *crashdir;	/**< Directory where crash logs are written */
+	const char *version;	/**< Program version string (NULL if unknown) */
 	time_delta_t gmtoff;	/**< Offset to GMT, supposed to be fixed */
-	unsigned build;			/* Build number, unique version number */
+	time_t start_time;		/**< Launch time (at crash_init() call) */
+	unsigned build;			/**< Build number, unique version number */
 	unsigned pause_process:1;
 	unsigned invoke_gdb:1;
 };
 
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
 
-
 /**
- * Signals that usually indicate a crash.
+ * Signals that usually lead to a crash.
  */
 static int signals[] = {
 #ifdef SIGBUS
@@ -145,6 +145,27 @@ crash_append_fmt_02u(cursor_t *cursor, long v)
 }
 
 /**
+ * Append positive value to buffer, formatted as "%u".
+ */
+static void
+crash_append_fmt_u(cursor_t *cursor, unsigned long v)
+{
+	char buf[SIZE_FIELD_MAX];
+	const char *s;
+	size_t len;
+
+	s = print_number(buf, sizeof buf, v);
+	len = strlen(s);
+
+	if (cursor->size < len)
+		return;
+
+	clamp_strncpy(cursor->buf, cursor->size, s, len);
+	cursor->buf += len;
+	cursor->size -= len;
+}
+
+/**
  * Append a character to supplied buffer.
  */
 static void
@@ -199,14 +220,67 @@ crash_time(char *buf, size_t size)
 	crash_append_fmt_c(&cursor, '\0');
 }
 
+/**
+ * Fill supplied buffer with the current running time.
+ *
+ * This routine can safely be used in a signal handler as it does not rely
+ * on unsafe calls.
+ */
+void
+crash_run_time(char *buf, size_t size)
+{
+	const size_t num_reserved = 1;
+	time_delta_t t;
+	cursor_t cursor;
+	guint s;
+
+	/* We need at least space for a NUL */
+	if (size < num_reserved)
+		return;
+
+	t = delta_time(tm_time_exact(), vars->start_time);
+	s = MAX(t, 0);		/* seconds */
+
+	cursor.buf = buf;
+	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
+
+	if (s > 86400) {
+		crash_append_fmt_u(&cursor, s / 86400);
+		crash_append_fmt_c(&cursor, 'd');
+		crash_append_fmt_c(&cursor, ' ');
+		crash_append_fmt_u(&cursor, (s % 86400) / 3600);
+		crash_append_fmt_c(&cursor, 'h');
+	} else if (s > 3600) {
+		crash_append_fmt_u(&cursor, s / 3600);
+		crash_append_fmt_c(&cursor, 'h');
+		crash_append_fmt_c(&cursor, ' ');
+		crash_append_fmt_u(&cursor, (s % 3600) / 60);
+		crash_append_fmt_c(&cursor, 'm');
+	} else if (s > 60) {
+		crash_append_fmt_u(&cursor, s / 60);
+		crash_append_fmt_c(&cursor, 'm');
+		crash_append_fmt_c(&cursor, ' ');
+		crash_append_fmt_u(&cursor, s % 60);
+		crash_append_fmt_c(&cursor, 's');
+	} else {
+		crash_append_fmt_u(&cursor, s);
+		crash_append_fmt_c(&cursor, 's');
+	}
+
+	cursor.size += num_reserved;	/* We reserved one byte for NUL above */
+	crash_append_fmt_c(&cursor, '\0');
+}
+
 static void
 crash_message(const char *signame, gboolean trace, gboolean recursive)
 {
-	DECLARE_STR(8);
+	DECLARE_STR(10);
 	char pid_buf[22];
 	char time_buf[18];
+	char runtime_buf[22];
 
 	crash_time(time_buf, sizeof time_buf);
+	crash_run_time(runtime_buf, sizeof runtime_buf);
 
 	print_str(time_buf);				/* 0 */
 	print_str(" CRASH (pid=");			/* 1 */
@@ -215,9 +289,11 @@ crash_message(const char *signame, gboolean trace, gboolean recursive)
 	if (recursive)
 		print_str("recursive ");		/* 4 */
 	print_str(signame);					/* 5 */
+	print_str(" after ");				/* 6 */
+	print_str(runtime_buf);				/* 7 */
 	if (trace)
-		print_str(" -- stack was:");	/* 6 */
-	print_str("\n");					/* 7, at most */
+		print_str(" -- stack was:");	/* 8 */
+	print_str("\n");					/* 9, at most */
 	flush_err_str();
 }
 
@@ -235,7 +311,7 @@ crash_end_of_line(void)
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
 	if (vars->invoke_gdb) {
-		print_str("calling gdb");	/* 4 */
+		print_str("calling gdb...");			/* 4 */
 	} else if (vars->pause_process) {
 		print_str("pausing -- end of line.");	/* 4 */
 	} else {
@@ -315,7 +391,11 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 			char const *argv[8];
 			char filename[64];
 			char cmd[64];
-			DECLARE_STR(6);
+			char rbuf[22];
+			char sbuf[22];
+			char tbuf[18];
+			time_delta_t t;
+			DECLARE_STR(15);
 
 			clamp_strcpy(cmd, sizeof cmd, "gdb -q -p ");
 			clamp_strcat(cmd, sizeof cmd, pid_str);
@@ -332,6 +412,9 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 			argv[3] = NULL;
 
 			crash_logname(filename, sizeof filename, pid_str);
+			crash_time(tbuf, sizeof tbuf);
+			crash_run_time(rbuf, sizeof rbuf);
+			t = delta_time(tm_time(), vars->start_time);
 
 			/* STDIN must be kept open */
 			if (
@@ -342,14 +425,35 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 			)
 				goto child_failure;
 
-			print_str("Crash file for \"");		/* 0 */
-			print_str(argv0);					/* 1 */
-			print_str("\"");					/* 2 */
-			if (NULL != vars->version) {
-				print_str(" -- ");				/* 3 */
-				print_str(vars->version);		/* 4 */
-			}
+			/*
+			 * Emit crash header.
+			 */
+
+			print_str("MIME-Version: 1.0\n");	/* 0 */
+			print_str("Content-Type: text/plain; charset=iso-8859-1\n"); /* 1 */
+			print_str("Content-Disposition: inline\n");	/* 2 */
+			print_str("X-Executable-Path: ");	/* 3 */
+			print_str(argv0);					/* 4 */
 			print_str("\n");					/* 5 */
+			if (NULL != vars->version) {
+				print_str("X-Version: ");		/* 6 */
+				print_str(vars->version);		/* 7 */
+				print_str("\n");				/* 8 */
+			}
+			print_str("X-Run-Elapsed: ");		/* 9 */
+			print_str(rbuf);					/* 10 */
+			print_str("\n");					/* 11 */
+			print_str("X-Run-Seconds: ");		/* 12 */
+			print_str(print_number(sbuf, sizeof sbuf, MAX(t, 0)));	/* 13 */
+			print_str("\n");					/* 14 */
+			flush_str(STDOUT_FILENO);
+			rewind_str(0);
+			print_str("X-Crash-Time: ");		/* 0 */
+			print_str(tbuf);					/* 1 */
+			print_str("\n");					/* 2 */
+			print_str("X-Core-Dump: ");			/* 3 */
+			print_str(crash_coredumps_disabled() ? "disabled" : "enabled");
+			print_str("\n\n");					/* 5 */
 			flush_str(STDOUT_FILENO);
 
 			if (-1 == setsid())
@@ -482,7 +586,9 @@ crash_handler(int signo)
 	 * default behaviour on delivery, and are not masked during signal delivery.
 	 *
 	 * This allows us to usefully trap them again to detect recursive faults
-	 * that would otherwise remain invisible.
+	 * that would otherwise remain invisible (on the path between the initial
+	 * signal handler and the dispatching of this crash handler routine) since
+	 * the default handler normally leads to fatal error triggering a core dump.
 	 */
 
 	if (crashed++ > 1) {
@@ -621,8 +727,9 @@ crash_init(const char *argv0, int flags)
 	iv.argv0 = ck_strdup(iv.mem, argv0);
 	g_assert(NULL == argv0 || NULL != iv.argv0);
 
-	iv.pause_process =booleanize(CRASH_F_PAUSE & flags);
+	iv.pause_process = booleanize(CRASH_F_PAUSE & flags);
 	iv.invoke_gdb = booleanize(CRASH_F_GDB & flags);
+	iv.start_time = tm_time_exact();
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		signal_set(signals[i], crash_handler);
