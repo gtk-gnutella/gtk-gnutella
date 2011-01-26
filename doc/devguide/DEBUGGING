@@ -251,8 +251,8 @@ will be called instead of gdb.
 
 The program must expect the following arguments:
 
-	argv[1] = argv0;
-	argv[2] = pid_str;
+    argv[1] = argv0;        /* Original command launched */
+    argv[2] = pid_str;      /* PID of the crashing process */
 
 The program also receives in the Crashfile environment variable the full path
 of the crash log file that is being generated.
@@ -260,24 +260,29 @@ of the crash log file that is being generated.
 For instance, assume you have created an executable file called "gdb-wrapper"
 with the following content:
 
+------------------------------------------------------------------------
 #!/bin/sh
+
+executable="$1"
 pid="$2"
-LC_ALL=C	# gdb is localized and the egrep rules wouldn't match
+
+LC_ALL=C    # gdb is localized and the egrep rules wouldn't match
 export LC_ALL
 unset LANG
 
 (
-	echo 'bt'
-	echo 'bt full'
-	echo 'quit'
-	while echo | cat 2>/dev/null # gdb does not handle stdin properly
-	do sleep 1
-	done
-) | gdb -q -n -se "$1" -p "$2" \
+    echo 'bt'
+    echo 'bt full'
+    echo 'quit'
+    while echo | cat 2>/dev/null # gdb does not handle stdin properly
+    do sleep 1
+    done
+) | gdb -q -n -se "$executable" -p "$pid" \
   | egrep -v -e ^Reading -e ^Loaded -e ^done -e ^Using -e ^\\[
 
+# Send the content of the crash logfile to someone@example.com
 (
-	cat - "$Crashfile" <<'EOM'
+    cat - "$Crashfile" <<'EOM'
 From: gtkg
 To: someone@example.com
 Subject: GTKG crash
@@ -285,9 +290,10 @@ Subject: GTKG crash
 EOM
 ) | /usr/sbin/sendmail -t
 exit
+------------------------------------------------------------------------
 
-This will run gdb, filtering out most of the noise it emits and will then
-e-mail this generated crash log to "someone@example.com", informing that
+That will run gdb, filtering out most of the noise it emits and will then
+e-mail the generated crash log to "someone@example.com", informing that
 the program crashed and why.
 
 Simply run gtk-gnutella with the following arguments:
