@@ -306,6 +306,10 @@ ckalloc(ckhunk_t *ck, size_t len, gboolean critical)
 	if (NULL == ck)
 		return NULL;
 
+	/**
+	 * FIXME: Don't increase the alignment, a single byte allocation
+	 *		  does not have be aligned by MEM_ALIGN_BYTES.
+	 */
 	allocated = ckalloc_round(len);		/* Keep allocations aligned */
 
 	if (!signal_enter_critical(&set))
@@ -390,6 +394,7 @@ ck_copy(ckhunk_t *ck, const void *p, size_t size)
 	if (NULL == ck)
 		return NULL;
 
+	/* FIXME: Don't increase alignment of p */
 	cp = ck_alloc(ck, size);
 	if (cp != NULL)
 		memcpy(cp, p, size);
@@ -487,6 +492,7 @@ ck_copy_readonly(ckhunk_t *ck, const void *p, size_t size)
 
 	mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
 	ck->read_only = FALSE;
+	/* FIXME: Don't increase alignment of p */
 	cp = ckalloc(ck, size, FALSE);
 	if (cp != NULL)
 		memcpy(cp, p, size);
