@@ -1382,9 +1382,17 @@ handle_arguments_asap(void)
 	if (options[main_arg_version].used) {
 		handle_version_argument();
 	}
-
 	if (options[main_arg_compile_info].used) {
 		handle_compile_info_argument();
+	}
+	if (options[main_arg_daemonize].used) {
+		if (0 != compat_daemonize(NULL)) {
+			exit(EXIT_FAILURE);
+		}
+		/* compat_daemonize() assigned stdout and stderr to /dev/null */
+		if (!log_reopen_all(TRUE)) {
+			exit(EXIT_FAILURE);
+		}
 	}
 }
 
@@ -1405,15 +1413,6 @@ handle_arguments(void)
 		} else {
 			/* gtk-gnutella was not running or the PID file could
 			 * not be created. */
-			exit(EXIT_FAILURE);
-		}
-	}
-	if (options[main_arg_daemonize].used) {
-		if (0 != compat_daemonize(NULL)) {
-			exit(EXIT_FAILURE);
-		}
-		/* compat_daemonize() assigned stdout and stderr to /dev/null */
-		if (!log_reopen_all(TRUE)) {
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -1518,11 +1517,18 @@ main(int argc, char **argv)
 	eval_init();
 	settings_early_init();
 
-	handle_arguments();		/* Returning from here means we're good to go */
 	if (!is_running_on_mingw()) {
-		/* MUST be called after handle_arguments() in case of --daemonize */
+		/*
+		 * This MUST be called after handle_arguments_asap() in case the
+		 * --daemonize switch is used.
+		 *
+		 * It can only be called after settings_early_init() since this
+		 * is where the crash directory is initialized.
+		 */
 		crash_setdir(settings_crash_dir());
 	}
+
+	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
 	malloc_show_settings();
