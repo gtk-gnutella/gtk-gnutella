@@ -447,23 +447,20 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 			 * Emit crash header.
 			 */
 
-			print_str("MIME-Version: 1.0\n");	/* 0 */
-			print_str("Content-Type: text/plain\n");	/* 1 */
-			print_str("Content-Disposition: inline\n");	/* 2 */
-			print_str("X-Executable-Path: ");	/* 3 */
-			print_str(argv0);					/* 4 */
-			print_str("\n");					/* 5 */
+			print_str("X-Executable-Path: ");	/* 0 */
+			print_str(argv0);					/* 1 */
+			print_str("\n");					/* 2 */
 			if (NULL != vars->version) {
-				print_str("X-Version: ");		/* 6 */
-				print_str(vars->version);		/* 7 */
-				print_str("\n");				/* 8 */
+				print_str("X-Version: ");		/* 3 */
+				print_str(vars->version);		/* 4 */
+				print_str("\n");				/* 5 */
 			}
-			print_str("X-Run-Elapsed: ");		/* 9 */
-			print_str(rbuf);					/* 10 */
+			print_str("X-Run-Elapsed: ");		/* 6 */
+			print_str(rbuf);					/* 7 */
+			print_str("\n");					/* 8 */
+			print_str("X-Run-Seconds: ");		/* 9 */
+			print_str(print_number(sbuf, sizeof sbuf, MAX(t, 0)));	/* 10 */
 			print_str("\n");					/* 11 */
-			print_str("X-Run-Seconds: ");		/* 12 */
-			print_str(print_number(sbuf, sizeof sbuf, MAX(t, 0)));	/* 13 */
-			print_str("\n");					/* 14 */
 			flush_str(STDOUT_FILENO);
 			rewind_str(0);
 			print_str("X-Crash-Time: ");		/* 0 */
