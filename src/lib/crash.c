@@ -185,7 +185,7 @@ crash_append_fmt_c(cursor_t *cursor, unsigned char c)
 
 /**
  * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS
- * and should be at least 18 chars long or the string will be truncated.
+ * and should be at least 18-byte long or the string will be truncated.
  *
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
@@ -220,6 +220,50 @@ crash_time(char *buf, size_t size)
 	crash_append_fmt_02u(&cursor, tm.tm_min);
 	crash_append_fmt_c(&cursor, ':');
 	crash_append_fmt_02u(&cursor, tm.tm_sec);
+
+	cursor.size += num_reserved;	/* We reserved one byte for NUL above */
+	crash_append_fmt_c(&cursor, '\0');
+}
+
+/**
+ * Fill supplied buffer with the current time formatted using the ISO format
+ * yyyy-mm-dd HH:MM:SSZ and should be at least 21-byte long or the string
+ * will be truncated.
+ *
+ * This routine can safely be used in a signal handler as it does not rely
+ * on unsafe calls.
+ */
+void
+crash_time_iso(char *buf, size_t size)
+{
+	const size_t num_reserved = 1;
+	struct tm tm;
+	cursor_t cursor;
+
+	/* We need at least space for a NUL */
+	if (size < num_reserved)
+		return;
+
+	cursor.buf = buf;
+	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
+
+	if (!off_time(tm_time_exact() + vars->gmtoff, 0, &tm)) {
+		buf[0] = '\0';
+		return;
+	}
+
+	crash_append_fmt_u(&cursor, TM_YEAR_ORIGIN + tm.tm_year);
+	crash_append_fmt_c(&cursor, '-');
+	crash_append_fmt_02u(&cursor, tm.tm_mon + 1);
+	crash_append_fmt_c(&cursor, '-');
+	crash_append_fmt_02u(&cursor, tm.tm_mday);
+	crash_append_fmt_c(&cursor, ' ');
+	crash_append_fmt_02u(&cursor, tm.tm_hour);
+	crash_append_fmt_c(&cursor, ':');
+	crash_append_fmt_02u(&cursor, tm.tm_min);
+	crash_append_fmt_c(&cursor, ':');
+	crash_append_fmt_02u(&cursor, tm.tm_sec);
+	crash_append_fmt_c(&cursor, 'Z');
 
 	cursor.size += num_reserved;	/* We reserved one byte for NUL above */
 	crash_append_fmt_c(&cursor, '\0');
@@ -361,7 +405,7 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 #endif	/* HAS_FORK */
 
 static void
-crash_invoke_gdb(const char *argv0, const char *cwd)
+crash_invoke_gdb(int signo, const char *argv0, const char *cwd)
 #ifdef HAS_FORK
 {
    	const char *pid_str;
@@ -407,7 +451,7 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 			char cmd[MAX_PATH_LEN];
 			char rbuf[22];
 			char sbuf[22];
-			char tbuf[18];
+			char tbuf[22];
 			time_delta_t t;
 			DECLARE_STR(15);
 
@@ -430,7 +474,7 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 			argv[3] = NULL;
 
 			crash_logname(filename, sizeof filename, pid_str);
-			crash_time(tbuf, sizeof tbuf);
+			crash_time_iso(tbuf, sizeof tbuf);
 			crash_run_time(rbuf, sizeof rbuf);
 			t = delta_time(tm_time(), vars->start_time);
 
@@ -461,6 +505,9 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 			print_str("X-Run-Seconds: ");		/* 9 */
 			print_str(print_number(sbuf, sizeof sbuf, MAX(t, 0)));	/* 10 */
 			print_str("\n");					/* 11 */
+			print_str("X-Crash-Signal: ");		/* 12 */
+			print_str(signal_name(signo));		/* 13 */
+			print_str("\n");					/* 14 */
 			flush_str(STDOUT_FILENO);
 			rewind_str(0);
 			print_str("X-Crash-Time: ");		/* 0 */
@@ -577,9 +624,9 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 				flush_err_str();
 			} else {
 				if (WIFSIGNALED(status)) {
-					int signo = WTERMSIG(status);
+					int sig = WTERMSIG(status);
 					print_str("child got a ");			/* 4 */
-					print_str(signal_name(signo));		/* 5 */
+					print_str(signal_name(sig));		/* 5 */
 				} else {
 					print_str("child exited abnormally");	/* 4 */
 				}
@@ -722,7 +769,7 @@ crash_handler(int signo)
 	}
 	crash_end_of_line();
 	if (vars->invoke_gdb) {
-		crash_invoke_gdb(vars->argv0, cwd);
+		crash_invoke_gdb(signo, vars->argv0, cwd);
 	}
 
 	if (vars->pause_process)

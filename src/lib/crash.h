@@ -145,6 +145,7 @@ print_number(char *dst, size_t size, unsigned long value)
 void crash_init(const char *argv0, const char *progname,
 	int flags, const char *gdb_path);
 void crash_time(char *buf, size_t buflen);
+void crash_time_iso(char *buf, size_t size);
 const char *crash_signame(int signo);
 void crash_handler(int signo);
 void crash_setdir(const char *dir);
