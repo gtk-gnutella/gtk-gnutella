@@ -266,7 +266,6 @@ crash_time_iso(char *buf, size_t size)
 	crash_append_fmt_02u(&cursor, tm.tm_min);
 	crash_append_fmt_c(&cursor, ':');
 	crash_append_fmt_02u(&cursor, tm.tm_sec);
-	crash_append_fmt_c(&cursor, 'Z');
 
 	cursor.size += num_reserved;	/* We reserved one byte for NUL above */
 	crash_append_fmt_c(&cursor, '\0');
