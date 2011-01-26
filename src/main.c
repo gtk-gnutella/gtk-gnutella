@@ -1517,12 +1517,14 @@ main(int argc, char **argv)
 	log_atoms_inited();		/* Atom layer is up */
 	eval_init();
 	settings_early_init();
-	if (!is_running_on_mingw()) {
-		crash_setdir(settings_crash_dir());
-	}
 
 	handle_arguments();		/* Returning from here means we're good to go */
+	if (!is_running_on_mingw()) {
+		/* MUST be called after handle_arguments() in case of --daemonize */
+		crash_setdir(settings_crash_dir());
+	}
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
+
 	malloc_show_settings();
 	version_init();
 	crash_setver(version_get_string());
