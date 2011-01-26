@@ -305,7 +305,7 @@ crash_message(const char *signame, gboolean trace, gboolean recursive)
 static void
 crash_end_of_line(void)
 {
-	DECLARE_STR(8);
+	DECLARE_STR(7);
 	char pid_buf[22];
 	char time_buf[18];
 
@@ -321,14 +321,13 @@ crash_end_of_line(void)
 		} else {
 			print_str("calling ");				/* 4 */
 			print_str(vars->gdb_path);			/* 5 */
-			print_str("...\n");					/* 6 */
 		}
 	} else if (vars->pause_process) {
 		print_str("pausing -- end of line.");	/* 4 */
 	} else {
 		print_str("end of line.");	/* 4 */
 	}
-	print_str("\n");				/* 7, at most */
+	print_str("\n");				/* 6, at most */
 	flush_err_str();
 }
 
@@ -445,7 +444,7 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 			 */
 
 			print_str("MIME-Version: 1.0\n");	/* 0 */
-			print_str("Content-Type: text/plain; charset=iso-8859-1\n"); /* 1 */
+			print_str("Content-Type: text/plain\n");	/* 1 */
 			print_str("Content-Disposition: inline\n");	/* 2 */
 			print_str("X-Executable-Path: ");	/* 3 */
 			print_str(argv0);					/* 4 */
