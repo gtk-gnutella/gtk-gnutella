@@ -183,7 +183,7 @@ eval_subst(const char *str)
 
 
 	if (common_dbg > 3)
-		printf("eval_subst: on entry: \"%s\"\n", buf);
+		g_debug("eval_subst: on entry: \"%s\"", buf);
 
 	for (p = buf, c = *p++; c; c = *p++) {
 		const char *val = NULL;
@@ -230,7 +230,7 @@ eval_subst(const char *str)
 	}
 
 	if (common_dbg > 3)
-		printf("eval_subst: on exit: \"%s\"\n", buf);
+		g_debug("eval_subst: on exit: \"%s\"", buf);
 
 	g_assert(len == strlen(buf));
 
@@ -340,7 +340,7 @@ get_variable(const char *s, const char **end)
 			value = "";
 
 		if (common_dbg > 4)
-			printf("variable \"%s\" is \"%s\"\n", name, value);
+			g_debug("variable \"%s\" is \"%s\"", name, value);
 
 		HFREE_NULL(name);
 	}
