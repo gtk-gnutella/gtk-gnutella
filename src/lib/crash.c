@@ -770,9 +770,8 @@ parent_failure:
 	DECLARE_STR(2);
 	char time_buf[18];
 
-	(void) argv0;
-	(void) cwd;
 	(void) signo;
+	(void) cwd;
 
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);
