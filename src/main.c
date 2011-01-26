@@ -1463,9 +1463,10 @@ main(int argc, char **argv)
 
 	prehandle_arguments(argv);
 	vmm_init(&sp);
+	signal_init();
 	halloc_init(!options[main_arg_no_halloc].used);
 	malloc_init_vtable();
-	signal_init();
+	vmm_malloc_inited();
 
 	signal_set(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 #ifdef SIGHUP	/* FIXME MINGW32 */
@@ -1510,7 +1511,6 @@ main(int argc, char **argv)
 
 	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
 	mingw_init();
-	vmm_malloc_inited();
 	zinit();
 	walloc_init();
 	atoms_init();

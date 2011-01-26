@@ -102,6 +102,21 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 	gboolean in_signal_handler = signal_in_handler();
 	GLogLevelFlags loglvl;
 
+	/*
+	 * Until the atom layer is up, consider it unsafe to call g_logv()
+	 * because it could allocate memory and we have not fully initialized
+	 * the memory layer yet (only the VMM layer can be assumed to be ready).
+	 *
+	 * Therefore, avoid any general memory allocation by behaving as if
+	 * we were in a signal handler.
+	 *
+	 * This allows the usage of s_xxx() logging routines very early in
+	 * the process.
+	 */
+
+	if (G_UNLIKELY(!atoms_are_inited))
+		in_signal_handler = TRUE;
+
 	if (!in_log_handler && !in_signal_handler) {
 		g_logv(G_LOG_DOMAIN, level, format, args);
 	} else {
