@@ -34,7 +34,7 @@
  * @ingroup lib
  * @file
  *
- * A not so simple crash handler.
+ * A ridiculously over-complicated crash handler.
  *
  * @author Christian Biere
  * @date 2006
@@ -63,11 +63,13 @@ RCSID("$Id$")
 #include "override.h"			/* Must be the last header included */
 
 struct crash_vars {
-	ckhunk_t *mem, *mem2;	/**< Reserved memory, read-only */
+	ckhunk_t *mem;			/**< Reserved memory, read-only */
+	ckhunk_t *mem2;			/**< Reserved memory, read-only */
+	ckhunk_t *mem3;			/**< Reserved memory, read-only */
 	const char *argv0;		/**< The original argv[0]. */
 	const char *progname;	/**< The program name */
-	const char *gdb_path;	/**< Path of gdb program (optional, may be NULL) */
-	const char *crashfile;	/**< Environment variable "CRASHFILE=..." */
+	const char *exec_path;	/**< Path of program (optional, may be NULL) */
+	const char *crashfile;	/**< Environment variable "Crashfile=..." */
 	const char *cwd;		/**< Current working directory (NULL if unknown) */
 	const char *crashdir;	/**< Directory where crash logs are written */
 	const char *version;	/**< Program version string (NULL if unknown) */
@@ -75,7 +77,8 @@ struct crash_vars {
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	unsigned build;			/**< Build number, unique version number */
 	unsigned pause_process:1;
-	unsigned invoke_gdb:1;
+	unsigned invoke_inspector:1;
+	unsigned dumps_core:1;
 };
 
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
@@ -204,7 +207,7 @@ crash_time(char *buf, size_t size)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	if (!off_time(tm_time_exact() + vars->gmtoff, 0, &tm)) {
+	if (!off_time(time(NULL) + vars->gmtoff, 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
@@ -247,7 +250,7 @@ crash_time_iso(char *buf, size_t size)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	if (!off_time(tm_time_exact() + vars->gmtoff, 0, &tm)) {
+	if (!off_time(time(NULL) + vars->gmtoff, 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
@@ -287,7 +290,7 @@ crash_run_time(char *buf, size_t size)
 	if (size < num_reserved)
 		return;
 
-	t = delta_time(tm_time_exact(), vars->start_time);
+	t = delta_time(time(NULL), vars->start_time);
 	s = MAX(t, 0);		/* seconds */
 
 	cursor.buf = buf;
@@ -359,12 +362,12 @@ crash_end_of_line(void)
 	print_str(" CRASH (pid=");		/* 1 */
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
-	if (vars->invoke_gdb) {
-		if (NULL == vars->gdb_path) {
-			print_str("calling gdb...");		/* 4 */
-		} else {
+	if (vars->invoke_inspector) {
+		if (NULL != vars->exec_path) {
 			print_str("calling ");				/* 4 */
-			print_str(vars->gdb_path);			/* 5 */
+			print_str(vars->exec_path);			/* 5 */
+		} else {
+			print_str("calling gdb...");		/* 4 */
 		}
 	} else if (vars->pause_process) {
 		print_str("pausing -- end of line.");	/* 4 */
@@ -375,7 +378,6 @@ crash_end_of_line(void)
 	flush_err_str();
 }
 
-#ifdef HAS_FORK
 /**
  * Construct name of GTKG crash log.
  */
@@ -402,10 +404,9 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 	clamp_strcat(buf, len, pidstr);
 	clamp_strcat(buf, len, ".log");
 }
-#endif	/* HAS_FORK */
 
 static void
-crash_invoke_gdb(int signo, const char *argv0, const char *cwd)
+crash_invoke_inspector(int signo, const char *cwd)
 #ifdef HAS_FORK
 {
    	const char *pid_str;
@@ -455,30 +456,58 @@ crash_invoke_gdb(int signo, const char *argv0, const char *cwd)
 			time_delta_t t;
 			DECLARE_STR(15);
 
-			clamp_strcpy(cmd, sizeof cmd,
-				NULL == vars->gdb_path ? "gdb" : vars->gdb_path);
-			clamp_strcat(cmd, sizeof cmd, " ");
-			clamp_strcat(cmd, sizeof cmd, argv0);
-			clamp_strcat(cmd, sizeof cmd, " -q -p ");
-			clamp_strcat(cmd, sizeof cmd, pid_str);
+			if (vars->exec_path) {
+				argv[0] = vars->exec_path;
+				argv[1] = vars->argv0;
+				argv[2] = pid_str;
+				argv[3] = NULL;
+			} else {
+				const char quote_ch = '\'';
+				size_t max_argv0;
 
-			/*
-			 * We use "/bin/sh -c" to launch gdb so that we don't have
-			 * to locate the executable in the PATH, letting the shell
-			 * do it for us.
-			 */
+				clamp_strcpy(cmd, sizeof cmd, "gdb -q -n -p ");
+				clamp_strcat(cmd, sizeof cmd, pid_str);
 
-			argv[0] = "/bin/sh";
-			argv[1] = "-c";
-			argv[2] = cmd;
-			argv[3] = NULL;
+				/**
+				 * The parameter -e argv0 is required on some platforms but
+				 * we only provide it if there is sufficient space and can be
+				 * safely quoted as shell command.
+				 */
+				max_argv0 = (sizeof cmd) - (strlen(cmd) + strlen(" -se ''"));
+				if (
+					NULL == strchr(vars->argv0, quote_ch) &&
+					strlen(vars->argv0) < max_argv0
+				) {
+					clamp_strcat(cmd, sizeof cmd, " -se '");
+					clamp_strcat(cmd, sizeof cmd, vars->argv0);
+					clamp_strcat(cmd, sizeof cmd, "'");
+				}
 
+				/*
+				 * We use "/bin/sh -c" to launch gdb so that we don't have
+				 * to locate the executable in the PATH, letting the shell
+				 * do it for us.
+				 */
+
+				argv[0] = "/bin/sh";
+				argv[1] = "-c";
+				argv[2] = cmd;
+				argv[3] = NULL;
+			}
 			crash_logname(filename, sizeof filename, pid_str);
 			crash_time_iso(tbuf, sizeof tbuf);
 			crash_run_time(rbuf, sizeof rbuf);
-			t = delta_time(tm_time(), vars->start_time);
+			t = delta_time(time(NULL), vars->start_time);
 
-			/* STDIN must be kept open */
+			/* STDIN must be kept open when piping to gdb */
+			if (vars->exec_path) {
+				if (
+					close(STDIN_FILENO) ||
+					STDIN_FILENO != open("/dev/null", O_RDONLY, 0)
+				)
+					goto child_failure;
+			}
+
 			if (
 				close(STDOUT_FILENO) ||
 				close(STDERR_FILENO) ||
@@ -492,7 +521,7 @@ crash_invoke_gdb(int signo, const char *argv0, const char *cwd)
 			 */
 
 			print_str("X-Executable-Path: ");	/* 0 */
-			print_str(argv0);					/* 1 */
+			print_str(vars->argv0);				/* 1 */
 			print_str("\n");					/* 2 */
 			if (NULL != vars->version) {
 				print_str("X-Version: ");		/* 3 */
@@ -514,17 +543,17 @@ crash_invoke_gdb(int signo, const char *argv0, const char *cwd)
 			print_str(tbuf);					/* 1 */
 			print_str("\n");					/* 2 */
 			print_str("X-Core-Dump: ");			/* 3 */
-			print_str(crash_coredumps_disabled() ? "disabled" : "enabled");
+			print_str(vars->dumps_core ? "enabled" : "disabled");
 			print_str("\n");					/* 5 */
-			if (vars->gdb_path != NULL) {
-				print_str("X-Debugger: ");		/* 6 */
-				print_str(vars->gdb_path);		/* 7 */
+			if (NULL != vars->cwd) {
+				print_str("X-Working-Directory: ");		/* 9 */
+				print_str(vars->cwd);					/* 10 */
+				print_str("\n");						/* 11 */
+			}
+			if (NULL != vars->exec_path) {
+				print_str("X-Exec-Path: ");		/* 6 */
+				print_str(vars->exec_path);		/* 7 */
 				print_str("\n");				/* 8 */
-				if (!is_absolute_path(vars->gdb_path) && vars->cwd != NULL) {
-					print_str("X-Working-Directory: ");		/* 9 */
-					print_str(vars->cwd);					/* 10 */
-					print_str("\n");						/* 11 */
-				}
 			}
 			print_str("\n");					/* 12 -- End of Header */
 			flush_str(STDOUT_FILENO);
@@ -534,27 +563,27 @@ crash_invoke_gdb(int signo, const char *argv0, const char *cwd)
 
 			/*
 			 * They may have specified a relative path for the program (argv0)
-			 * so go back to the initial working directory to allow gdb to
-			 * find it since we're passing the name in the argument list.
+			 * so go back to the initial working directory to allow the
+			 * inspector to find it since we're passing the name in the
+			 * argument list.
 			 */
 
 			if (
-				vars->cwd != NULL && (
-					(
-						vars->gdb_path != NULL &&
-						!is_absolute_path(vars->gdb_path)
-					) ||
-					!is_absolute_path(argv0)
+				NULL != vars->cwd &&
+				(
+					!is_absolute_path(EMPTY_STRING(vars->exec_path)) ||
+					!is_absolute_path(vars->argv0)
 				)
 			) {
-				chdir(vars->cwd);		/* Ignore error, it may still work */
+				/* Ignore error, it may still work */
+				IGNORE_RESULT(chdir(vars->cwd));
 			}
 
 			/*
-			 * Pass the CRASHFILE variable to the custom program.
+			 * Pass the Crashfile variable to the custom program.
 			 */
 
-			if (vars->gdb_path != NULL) {
+			if (NULL != vars->exec_path) {
 				const char *envp[2];
 
 				envp[0] = vars->crashfile;
@@ -605,7 +634,7 @@ crash_invoke_gdb(int signo, const char *argv0, const char *cwd)
 			} else if (WIFEXITED(status)) {
 				char buf[64];
 
-				if (vars->invoke_gdb && 0 == WEXITSTATUS(status)) {
+				if (vars->invoke_inspector && 0 == WEXITSTATUS(status)) {
 					print_str("trace left in ");	/* 4 */
 					crash_logname(buf, sizeof buf, pid_str);
 					if (*cwd != '\0') {
@@ -640,7 +669,7 @@ crash_invoke_gdb(int signo, const char *argv0, const char *cwd)
 			 * No need to regenerate them, so start at index 4.
 			 */
 
-			if (!crash_coredumps_disabled()) {
+			if (vars->dumps_core) {
 				rewind_str(iov_prolog);
 				print_str("core dumped in ");	/* 4 */
 				print_str(cwd);					/* 5 */
@@ -664,7 +693,7 @@ parent_failure:
 	(void) argv0;
 	(void) cwd;
 
-	print_str("WARNING: cannot exec gdb on this platform\n");
+	print_str("WARNING: cannot fork() on this platform\n");
 	flush_err_str();
 }
 #endif
@@ -744,7 +773,7 @@ crash_handler(int signo)
 	 * even if we're daemonized.
 	 */
 
-	if (!recursive && NULL != vars->crashdir && vars->invoke_gdb) {
+	if (!recursive && NULL != vars->crashdir && vars->invoke_inspector) {
 		if (-1 == chdir(vars->crashdir)) {
 			if (NULL != vars->cwd) {
 				s_warning("cannot chdir() back to \"%s\", "
@@ -768,8 +797,8 @@ crash_handler(int signo)
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
 	}
 	crash_end_of_line();
-	if (vars->invoke_gdb) {
-		crash_invoke_gdb(signo, vars->argv0, cwd);
+	if (vars->invoke_inspector) {
+		crash_invoke_inspector(signo, cwd);
 	}
 
 	if (vars->pause_process)
@@ -802,11 +831,11 @@ crash_handler(int signo)
  * @param argv0		the original argv[0] from main().
  * @param progname	the program name, to generate the proper crash file
  * @param flags		any combination of CRASH_F_GDB and CRASH_F_PAUSE
- * @parah gdb_path	path of gdb (implies CRASH_F_GDB if non-NULL)
+ * @parah exec_path	pathname of custom program to execute on crash
  */
 void
 crash_init(const char *argv0, const char *progname,
-	int flags, const char *gdb_path)
+	int flags, const char *exec_path)
 {
 	struct crash_vars iv;
 	unsigned i;
@@ -820,12 +849,8 @@ crash_init(const char *argv0, const char *progname,
 	 * vars->gtmoff must be set.
 	 */
 
-	iv.gmtoff = timestamp_gmt_offset(tm_time_exact(), NULL);
+	iv.gmtoff = timestamp_gmt_offset(time(NULL), NULL);
 	vars = &iv;
-
-	if (gdb_path != NULL) {
-		flags |= CRASH_F_GDB;
-	}
 
 	if (NULL == getcwd(dir, sizeof dir)) {
 		char time_buf[18];
@@ -841,31 +866,25 @@ crash_init(const char *argv0, const char *progname,
 		flush_err_str();
 	}
 
-	/*
-	 * If they specify a non-existent gdb_path, ignore it.
-	 */
-
-	if (gdb_path != NULL) {
+	if (NULL != exec_path) {
 		struct stat buf;
 
 		if (
-			-1 == stat(gdb_path, &buf) ||
+			-1 == stat(exec_path, &buf) ||
 			!S_ISREG(buf.st_mode) || 
-			-1 == access(gdb_path, X_OK)
+			-1 == access(exec_path, X_OK)
 		) {
 			char time_buf[18];
 			DECLARE_STR(4);
 
 			crash_time(time_buf, sizeof time_buf);
 
-			dir[0] = '\0';
 			print_str(time_buf);
-			print_str(" (WARNING): ignoring unusable gdb program \"");
-			print_str(gdb_path);
+			print_str(" (ERROR): unusable program \"");
+			print_str(exec_path);
 			print_str("\"\n");
 			flush_err_str();
-
-			gdb_path = NULL;
+			exit(EXIT_FAILURE);
 		}
 	}
 
@@ -877,9 +896,8 @@ crash_init(const char *argv0, const char *progname,
 	size = size_saturate_add(size, sizeof iv);
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(argv0)));
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(progname)));
-	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(gdb_path)));
+	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(exec_path)));
 	size = size_saturate_add(size, 1 + strlen(dir));
-	size = size_saturate_add(size, 128 /* gtk-gnutella version string */);
 
 	iv.mem = ck_init_not_leaking(size, 0);
 
@@ -894,12 +912,13 @@ crash_init(const char *argv0, const char *progname,
 	iv.progname = ck_strdup(iv.mem, progname);
 	g_assert(NULL == progname || NULL != iv.progname);
 
-	iv.gdb_path = ck_strdup(iv.mem, gdb_path);
-	g_assert(NULL == gdb_path || NULL != iv.gdb_path);
+	iv.exec_path = ck_strdup(iv.mem, exec_path);
+	g_assert(NULL == exec_path || NULL != iv.exec_path);
 
 	iv.pause_process = booleanize(CRASH_F_PAUSE & flags);
-	iv.invoke_gdb = booleanize(CRASH_F_GDB & flags);
-	iv.start_time = tm_time_exact();
+	iv.invoke_inspector = booleanize(CRASH_F_GDB & flags) || NULL != exec_path;
+	iv.dumps_core = booleanize(!crash_coredumps_disabled());
+	iv.start_time = time(NULL);
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		signal_set(signals[i], crash_handler);
@@ -909,11 +928,58 @@ crash_init(const char *argv0, const char *progname,
 	ck_readonly(vars->mem);
 }
 
+#ifdef HAS_FORK
+#define has_fork() 1
+#else
+#define has_fork() 0
+#endif
+
 #define crash_set_var(name, src) \
 G_STMT_START { \
 	STATIC_ASSERT(sizeof(src) == sizeof(vars->name)); \
 	ck_memcpy(vars->mem, (void *) &(vars->name), &(src), sizeof(vars->name)); \
 } G_STMT_END
+
+/**
+ * @param dst The destination buffer, may be NULL for dry run.
+ * @param dst_size The size of the destination buffer in bytes.
+ * @return Required buffer size.
+ */
+static size_t
+crashfile_name(char *dst, size_t dst_size, const char *pathname)
+{
+	const char *pid_str, *item;
+	char pid_buf[ULONG_DEC_BUFLEN];
+	char filename[80];
+	size_t size = 1;	/* Minimum is one byte for NUL */
+
+	/* @BUG: The ADNS helper process has a different PID.  */
+	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
+	crash_logname(filename, sizeof filename, pid_str);
+
+	if (NULL == dst) {
+		dst = deconstify_char("");
+		dst_size = 0;
+	}
+
+	item = "Crashfile=";
+	clamp_strcpy(dst, dst_size, item);
+	size = size_saturate_add(size, strlen(item));
+
+	item = pathname;
+	clamp_strcat(dst, dst_size, item);
+	size = size_saturate_add(size, strlen(item));
+
+	item = G_DIR_SEPARATOR_S;
+	clamp_strcat(dst, dst_size, item);
+	size = size_saturate_add(size, strlen(item));
+
+	item = filename;
+	clamp_strcat(dst, dst_size, item);
+	size = size_saturate_add(size, strlen(item));
+
+	return size;
+}
 
 /**
  * Record current working directory and configured crash directory.
@@ -923,7 +989,7 @@ crash_setdir(const char *pathname)
 {
 	const char *curdir = NULL;
 	ckhunk_t *mem2;
-	size_t size;
+	size_t size, crashfile_size = 0;
 	char dir[MAX_PATH_LEN];
 
 	g_assert(NULL != vars->mem);
@@ -935,12 +1001,30 @@ crash_setdir(const char *pathname)
 		curdir = dir;
 	}
 
+	/*
+	 * When they specified a exec_path, we generate the environment
+	 * string "Crashfile=pathname" which will be used to pass the name
+	 * of the crashfile to the program.
+	 */
+
+	if (has_fork() && NULL != vars->exec_path) {
+		crashfile_size = crashfile_name(NULL, 0, vars->exec_path);
+	}
+
 	size = 0;
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(curdir)));
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(pathname)));
-	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(pathname)));
-	size = size_saturate_add(size, 128 /* CRASHFILE=<local-crashfile> */);
+	size = size_saturate_add(size, crashfile_size);
+
 	mem2 = ck_init_not_leaking(size, 0);
+
+	if (crashfile_size > 0) {
+		char *crashfile = ck_alloc(mem2, crashfile_size);
+		g_assert(NULL != crashfile);	/* Chunk pre-sized, must have room */
+
+		crashfile_name(crashfile, crashfile_size, vars->exec_path);
+		crash_set_var(crashfile, crashfile);
+	}
 
 	curdir = ck_strdup(mem2, curdir);
 	pathname = ck_strdup(mem2, pathname);
@@ -951,37 +1035,6 @@ crash_setdir(const char *pathname)
 		crash_set_var(cwd, curdir);
 	}
 
-#ifdef HAS_FORK
-	/*
-	 * When they specified a gdb_path, we generate the environment
-	 * string "CRASHFILE=pathname" which will be used to pass the name
-	 * of the crashfile to the program.
-	 */
-
-	if (vars->gdb_path != NULL) {
-		const char *pid_str;
-		char pid_buf[22];
-		char filename[80];
-		size_t len;
-		char *crashfile;
-
-		pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
-		crash_logname(filename, sizeof filename, pid_str);
-
-		len = CONST_STRLEN("CRASHFILE=") + strlen(filename) +
-				strlen(pathname) + CONST_STRLEN(G_DIR_SEPARATOR_S) + 1;
-		crashfile = ck_alloc(mem2, len);
-
-		g_assert(crashfile != NULL);	/* Chunk pre-sized, must have room */
-
-		clamp_strcpy(crashfile, len, "CRASHFILE=");
-		clamp_strcat(crashfile, len, pathname);
-		clamp_strcat(crashfile, len, G_DIR_SEPARATOR_S);
-		clamp_strcat(crashfile, len, filename);
-		crash_set_var(crashfile, crashfile);
-	}
-#endif	/* HAS_FORK */
-
 	ck_readonly(vars->mem2);
 }
 
@@ -991,13 +1044,19 @@ crash_setdir(const char *pathname)
 void
 crash_setver(const char *version)
 {
-	const char *ptr;
+	ckhunk_t *mem3;
 
 	g_assert(NULL != vars->mem);
+	g_assert(NULL != version);
 
-	ptr = ck_strdup_readonly(vars->mem, version);
-	crash_set_var(version, ptr);
-	g_assert(NULL == version || NULL != vars->version);
+	mem3 = ck_init_not_leaking(1 + strlen(version), 0);
+	crash_set_var(mem3, mem3);
+
+	version = ck_strdup(vars->mem3, version);
+	crash_set_var(version, version);
+	g_assert(NULL != vars->version);
+
+	ck_readonly(vars->mem3);
 }
 
 void

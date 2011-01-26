@@ -226,7 +226,7 @@ The various symbols are:
 Gtk-gnutella usually sets the ~/.gtk-gnutella/crashes directory as the
 recipient for crash dumps.
 
-A crash file is automatically geneerated when the option --gdb-on-crash
+A crash file is automatically generated when the option --gdb-on-crash
 is set, or when gtk-gnutella determines that there are no core dumps
 possible and therefore needs to save some information about the crash
 condition before the process disappears.
@@ -249,27 +249,42 @@ to locate the debugger.
 Whith the --gdb-path option, one can specify the path to a program that
 will be called instead of gdb.
 
-The program must expect the arguments "pathname -q -p PID", which are
-normally passed to gdb to attach to the running process.  The "bt" and
-"bt full" commands will be sent by gtk-gnutella on stdin.
+The program must expect the following arguments:
 
-The program also receives in the CRASHFILE environment variable the full path
+	argv[1] = argv0;
+	argv[2] = pid_str;
+
+The program also receives in the Crashfile environment variable the full path
 of the crash log file that is being generated.
 
 For instance, assume you have created an executable file called "gdb-wrapper"
 with the following content:
 
-    #!/bin/sh
+#!/bin/sh
+pid="$2"
+LC_ALL=C	# gdb is localized and the egrep rules wouldn't match
+export LC_ALL
+unset LANG
 
-    gdb $@ -n | egrep -v -e ^Reading -e ^Loaded -e ^done -e ^Using -e ^\\[
+(
+	echo 'bt'
+	echo 'bt full'
+	echo 'quit'
+	while echo | cat 2>/dev/null # gdb does not handle stdin properly
+	do sleep 1
+	done
+) | gdb -q -n -se "$1" -p "$2" \
+  | egrep -v -e ^Reading -e ^Loaded -e ^done -e ^Using -e ^\\[
 
-    (cat <<'EOM'
-    From: gtkg
-    To: someone@example.com
-    Subject: GTKG crash
+(
+	cat - "$Crashfile" <<'EOM'
+From: gtkg
+To: someone@example.com
+Subject: GTKG crash
 
-    EOM
-    cat $CRASHFILE) | /usr/sbin/sendmail -t
+EOM
+) | /usr/sbin/sendmail -t
+exit
 
 This will run gdb, filtering out most of the noise it emits and will then
 e-mail this generated crash log to "someone@example.com", informing that
