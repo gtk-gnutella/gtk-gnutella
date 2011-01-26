@@ -485,14 +485,19 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 				goto child_failure;
 
 			/*
-			 * They may have specified a relative path for the program
-			 * to execute, in which case we must go back to the working
-			 * directory to be able to find it.
+			 * They may have specified a relative path for the program (argv0)
+			 * so go back to the initial working directory to allow gdb to
+			 * find it since we're passing the name in the argument list.
 			 */
 
 			if (
-				vars->gdb_path != NULL && vars->cwd != NULL &&
-				!is_absolute_path(vars->gdb_path)
+				vars->cwd != NULL && (
+					(
+						vars->gdb_path != NULL &&
+						!is_absolute_path(vars->gdb_path)
+					) ||
+					!is_absolute_path(argv0)
+				)
 			) {
 				chdir(vars->cwd);		/* Ignore error, it may still work */
 			}
