@@ -3374,24 +3374,28 @@ utf32_to_utf8(const guint32 *src, char *dst, size_t size)
 	g_assert(size <= INT_MAX);
 
 	if (size > 0) {
-		guint retlen;
 
 		size--;
 		while (0x0000 != (uc = *src) && size > 0) {
+			unsigned out_len = utf8_encode_char(uc, p, size);
 
-			retlen = utf8_encode_char(uc, p, size);
-			if (retlen == 0 || retlen > size)
+			if (0 == out_len || out_len > size)
 				break;
 
 			src++;
-			p += retlen;
-			size -= retlen;
+			p += out_len;
+			size -= out_len;
 		}
 		*p = '\0';
 	}
 
-	while (0x0000 != (uc = *src++))
-		p += utf8_encoded_char_len(uc);
+	while (0x0000 != (uc = *src++)) {
+		unsigned out_len = utf8_encoded_char_len(uc);
+
+		if (0 == out_len)
+			break;
+		p += out_len;
+	}
 
 	return p - dst;
 }
@@ -3418,7 +3422,7 @@ utf32_to_utf8_inplace(guint32 *buf)
 
 	for (src = buf; 0x0000 != (uc = *src++); dst += len) {
 		len = utf8_encode_char(uc, dst, sizeof *buf);
-		if (len == 0)
+		if (0 == len)
 			break;
 	}
 	*dst = '\0';
@@ -4052,7 +4056,8 @@ utf32_decompose_char(guint32 uc, size_t *len, gboolean nfkd)
 }
 
 /**
- * Determines the length of an UTF-32 string.
+ * Determines the length of a valid NUL-terminated UTF-32 string.
+ * @note Illegal codepoints are accepted and included in the count.
  *
  * @param s a NUL-terminated UTF-32 string.
  * @returns the length in characters (not bytes!) of the string ``s''.
