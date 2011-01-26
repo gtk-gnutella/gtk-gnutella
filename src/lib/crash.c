@@ -447,7 +447,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 			char filename[80];
 			char cmd[MAX_PATH_LEN];
 			char rbuf[22];
-			char sbuf[22];
+			char sbuf[ULONG_DEC_BUFLEN];
 			char tbuf[22];
 			time_delta_t t;
 			DECLARE_STR(15);
@@ -601,7 +601,6 @@ crash_invoke_inspector(int signo, const char *cwd)
 			unsigned iov_prolog;
 			char time_buf[18];
 			int status;
-			pid_t ret;
 			gboolean child_ok = FALSE;
 
 			/*
@@ -612,16 +611,18 @@ crash_invoke_inspector(int signo, const char *cwd)
 
 			{
 				static const char commands[] = "bt\nbt full\nquit\n";
-				size_t n = CONST_STRLEN(commands);
+				const size_t n = CONST_STRLEN(commands);
+				ssize_t ret;
 
-				if (n != UNSIGNED(write(STDOUT_FILENO, commands, n))) {
+				ret = write(STDOUT_FILENO, commands, n);
+				if (n != UNSIGNED(ret)) {
 					/*
 					 * EPIPE is acceptable if the child's immediate action
 					 * is to close stdin... The child could get scheduled
 					 * before the parent, so this must be handled.
 					 */
 
-					if ((size_t) -1 != n || errno != EPIPE) {
+					if ((ssize_t) -1 != ret || EPIPE != errno) {
 						stage = "sending commands to pipe";
 						goto parent_failure;
 					}
@@ -635,8 +636,6 @@ crash_invoke_inspector(int signo, const char *cwd)
 			 * "Hangup detected on fd 0".
 			 */
 
-			ret = waitpid(pid, &status, 0);
-
 			crash_time(time_buf, sizeof time_buf);
 
 			/* The following precedes each line */
@@ -646,8 +645,8 @@ crash_invoke_inspector(int signo, const char *cwd)
 			print_str(") ");					/* 3 */
 			iov_prolog = getpos_str();
 
-			if ((pid_t) -1 == ret) {
-				char buf[22];
+			if ((pid_t) -1 == waitpid(pid, &status, 0)) {
+				char buf[ULONG_DEC_BUFLEN];
 				print_str("could not wait for child (errno = ");	/* 4 */
 				print_str(print_number(buf, sizeof buf, errno));	/* 5 */
 				print_str(")\n");									/* 6 */
@@ -656,7 +655,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 				if (vars->invoke_inspector && 0 == WEXITSTATUS(status)) {
 					child_ok = TRUE;
 				} else {
-					char buf[22];
+					char buf[ULONG_DEC_BUFLEN];
 
 					print_str("child exited with status ");	/* 4 */
 					print_str(print_number(buf, sizeof buf,
@@ -974,7 +973,7 @@ crash_init(const char *argv0, const char *progname,
 	 * Pre-size the chunk with enough space to hold the given strings.
 	 */
 
-	size = 32;	/* Provision for alignment constraints */
+	size = 5 * MEM_ALIGNBYTES;	/* Provision for alignment constraints */
 	size = size_saturate_add(size, sizeof iv);
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(argv0)));
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(progname)));
@@ -1093,7 +1092,7 @@ crash_setdir(const char *pathname)
 		crashfile_size = crashfile_name(NULL, 0, pathname);
 	}
 
-	size = 32;	/* Provision for alignment constraints */
+	size = 3 * MEM_ALIGNBYTES;	/* Provision for alignment constraints */
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(curdir)));
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(pathname)));
 	size = size_saturate_add(size, crashfile_size);
