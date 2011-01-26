@@ -537,7 +537,7 @@ log_reopen(enum log_file which)
 		lf->otime = tm_time();
 		lf->changed = FALSE;
 	} else {
-		fprintf(stderr, "freopen(\"%s\", \"a\", ...) failed: %s",
+		s_critical("freopen(\"%s\", \"a\", ...) failed: %s",
 			lf->path, g_strerror(errno));
 		lf->disabled = TRUE;
 		lf->otime = 0;
