@@ -40,23 +40,21 @@
 #include <netdb.h>
 #endif
 
-#include "lib/eval.h"
-
+#include "settings.h"
 #include "bsched.h"
+#include "ctl.h"
 #include "downloads.h"
 #include "hcache.h"
 #include "hosts.h"
 #include "inet.h"
+#include "ipp_cache.h"
+#include "pdht.h"
+#include "routing.h"			/* For gnet_reset_guid() */
 #include "search.h"
-#include "settings.h"
 #include "share.h"
 #include "sockets.h"
-#include "upload_stats.h"
-#include "routing.h"			/* For gnet_reset_guid() */
-#include "ipp_cache.h"
-#include "ctl.h"
-#include "pdht.h"
 #include "udp.h"				/* For udp_received() */
+#include "upload_stats.h"
 
 #include "upnp/upnp.h"
 
@@ -76,6 +74,7 @@
 #include "lib/cq.h"
 #include "lib/crash.h"
 #include "lib/debug.h"
+#include "lib/eval.h"
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/getgateway.h"
@@ -427,10 +426,10 @@ settings_early_init(void)
 
 	if (home_dir != NULL) {
 		if (!is_absolute_path(home_dir)) {
-			g_error("$HOME must point to an absolute path!");
+			s_error("$HOME must point to an absolute path!");
 		}
 	} else {
-		g_error(_("Can't find your home directory!"));
+		s_error(_("Can't find your home directory!"));
 	}
 
 	if (config_dir != NULL) {
@@ -443,7 +442,7 @@ settings_early_init(void)
 			is_running_on_mingw() ? "gtk-gnutella" : ".gtk-gnutella");
 	}
 	if (!is_directory(config_dir)) {
-		g_info(_("creating configuration directory \"%s\""), config_dir);
+		s_info(_("creating configuration directory \"%s\""), config_dir);
 		if (-1 == mkdir(config_dir, CONFIG_DIR_MODE)) {
 			s_fatal_exit(EXIT_FAILURE, _("mkdir(\"%s\") failed: \"%s\""),
 				config_dir, g_strerror(errno));
@@ -452,9 +451,9 @@ settings_early_init(void)
 
 	crash_dir = make_pathname(config_dir, "crashes");
 	if (!is_directory(crash_dir)) {
-		g_info(_("creating directory \"%s\" to hold crash logs"), crash_dir);
+		s_info(_("creating directory \"%s\" to hold crash logs"), crash_dir);
 		if (-1 == mkdir(crash_dir, CONFIG_DIR_MODE)) {
-			g_warning(_("mkdir(\"%s\") failed: \"%s\""),
+			s_warning(_("mkdir(\"%s\") failed: \"%s\""),
 				crash_dir, g_strerror(errno));
 		}
 	}
