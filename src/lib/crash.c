@@ -390,6 +390,10 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 			goto parent_failure;
 	}
 
+#ifdef SIGCHLD
+	signal_set(SIGCHLD, SIG_DFL);
+#endif
+
 	pid = fork();
 	switch (pid) {
 	case -1:
