@@ -219,3 +219,64 @@ The various symbols are:
 		If enabled, report leaks for all the blocks allocated by glib/GTK
 		and intercepted trough the use of MALLOC_VTABLE which were not freed
 		at exit time.
+
+4. Automatic crash dump collection
+==================================
+
+Gtk-gnutella usually sets the ~/.gtk-gnutella/crashes directory as the
+recipient for crash dumps.
+
+A crash file is automatically geneerated when the option --gdb-on-crash
+is set, or when gtk-gnutella determines that there are no core dumps
+possible and therefore needs to save some information about the crash
+condition before the process disappears.
+
+The crash file will be named like this:
+
+    gtk-gnutella-r18523-crash.19394.log
+                 ^            ^
+                 |            PID of the process that crashed
+                 SVN revision number 
+
+The file contains an RFC822-style header giving information about the crash,
+followed by the output of gdb's "bt" and "bt full" commands ran on the
+crashing process.  The stack will only be useful when the executable was
+not stripped of debugging symbols.
+
+To launch "gdb", gtk-gnutella relies on the default PATH in the shell
+to locate the debugger.
+
+Whith the --gdb-path option, one can specify the path to a program that
+will be called instead of gdb.
+
+The program must expect the arguments "pathname -q -p PID", which are
+normally passed to gdb to attach to the running process.  The "bt" and
+"bt full" commands will be sent by gtk-gnutella on stdin.
+
+The program also receives in the CRASHFILE environment variable the full path
+of the crash log file that is being generated.
+
+For instance, assume you have created an executable file called "gdb-wrapper"
+with the following content:
+
+    #!/bin/sh
+
+    gdb $@ -n | egrep -v -e ^Reading -e ^Loaded -e ^done -e ^Using -e ^\\[
+
+    (cat <<'EOM'
+    From: gtkg
+    To: someone@example.com
+    Subject: GTKG crash
+
+    EOM
+    cat $CRASHFILE) | /usr/sbin/sendmail -t
+
+This will run gdb, filtering out most of the noise it emits and will then
+e-mail this generated crash log to "someone@example.com", informing that
+the program crashed and why.
+
+Simply run gtk-gnutella with the following arguments:
+
+    gtk-gnutella --gdb-on-crash --gdb-path ~/bin/gdb-wrapper \
+        --log-stderr ~/logs/gtkg.log
+
