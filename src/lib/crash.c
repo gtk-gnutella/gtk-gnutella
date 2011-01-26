@@ -410,6 +410,8 @@ crash_invoke_gdb(const char *argv0, const char *cwd)
 
 			clamp_strcpy(cmd, sizeof cmd,
 				NULL == vars->gdb_path ? "gdb" : vars->gdb_path);
+			clamp_strcat(cmd, sizeof cmd, " ");
+			clamp_strcat(cmd, sizeof cmd, argv0);
 			clamp_strcat(cmd, sizeof cmd, " -q -p ");
 			clamp_strcat(cmd, sizeof cmd, pid_str);
 
