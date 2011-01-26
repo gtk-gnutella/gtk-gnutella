@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "endian.h"		/* For peek_*() and poke_*() */
 #include "glib-missing.h"
 #include "hashtable.h"
+#include "log.h"
 #include "omalloc.h"
 #include "parse.h"		/* For parse_pointer() */
 #include "path.h"		/* For filepath_basename() */
@@ -3135,21 +3136,21 @@ malloc_init_vtable(void)
 		gchar *p = g_strdup(test_string);
 
 		if (0 != strcmp(test_string, p))
-			g_error("g_strdup() is not working");
+			s_error("g_strdup() is not working");
 		G_FREE_NULL(p);
 
 		p = g_malloc(CONST_STRLEN(test_string) + 20);
 		memcpy(p, test_string, CONST_STRLEN(test_string) + 1);
 		if (0 != strcmp(test_string, p))
-			g_error("g_malloc() is not working");
+			s_error("g_malloc() is not working");
 
 		p = g_realloc(p, CONST_STRLEN(test_string) + 1);
 		if (0 != strcmp(test_string, p))
-			g_error("g_realloc() is not working");
+			s_error("g_realloc() is not working");
 
 		p = g_realloc(p, CONST_STRLEN(test_string) + 512);
 		if (0 != strcmp(test_string, p))
-			g_error("g_realloc() is not working");
+			s_error("g_realloc() is not working");
 		G_FREE_NULL(p);
 	}
 #endif	/* MALLOC_VTABLE */
