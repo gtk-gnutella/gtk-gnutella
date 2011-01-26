@@ -51,6 +51,7 @@ void signal_unblock(int signo);
 gboolean signal_enter_critical(sigset_t *oset);
 void signal_leave_critical(const sigset_t *oset);
 
+void signal_init(void);
 void signal_close(void);
 
 #endif /* _signal_h_ */

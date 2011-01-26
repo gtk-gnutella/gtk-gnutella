@@ -1465,6 +1465,7 @@ main(int argc, char **argv)
 	vmm_init(&sp);
 	halloc_init(!options[main_arg_no_halloc].used);
 	malloc_init_vtable();
+	signal_init();
 
 	signal_set(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 #ifdef SIGHUP	/* FIXME MINGW32 */

@@ -244,7 +244,6 @@ signal_trampoline(int signo)
 signal_handler_t
 signal_set(int signo, signal_handler_t handler)
 {
-	static gboolean inited;
 	signal_handler_t ret, old_handler, trampoline;
 
 	g_assert(handler != SIG_ERR);
@@ -252,16 +251,8 @@ signal_set(int signo, signal_handler_t handler)
 
 	STATIC_ASSERT(SIG_COUNT == G_N_ELEMENTS(signal_handler));
 
-	if (!inited) {
-		size_t i;
-
-		for (i = 0; i < G_N_ELEMENTS(signal_handler); i++) {
-			signal_handler[i] = SIG_DFL;	/* Can't assume it's NULL */
-		}
-
-		sig_chunk = ck_init(SIGNAL_CHUNK_SIZE, SIGNAL_CHUNK_RESERVE);
-		inited = TRUE;
-	}
+	if (G_UNLIKELY(NULL == sig_chunk))		/* No signal_init() yet */
+		signal_init();
 
 	old_handler = signal_handler[signo];
 
@@ -399,6 +390,25 @@ signal_leave_critical(const sigset_t *oset)
 #else
 	(void) oset;
 #endif
+}
+
+/**
+ * Initialize the signal layer.
+ */
+void
+signal_init(void)
+{
+	if (NULL == sig_chunk) {		/* Allow multiple calls */
+		size_t i;
+
+		for (i = 0; i < G_N_ELEMENTS(signal_handler); i++) {
+			signal_handler[i] = SIG_DFL;	/* Can't assume it's NULL */
+		}
+
+		sig_chunk = ck_init(SIGNAL_CHUNK_SIZE, SIGNAL_CHUNK_RESERVE);
+	}
+
+	g_assert(sig_chunk != NULL);	/* We're initialized now */
 }
 
 /**
