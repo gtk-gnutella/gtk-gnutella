@@ -974,7 +974,7 @@ crash_init(const char *argv0, const char *progname,
 	 * Pre-size the chunk with enough space to hold the given strings.
 	 */
 
-	size = 0;
+	size = 32;	/* Provision for alignment constraints */
 	size = size_saturate_add(size, sizeof iv);
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(argv0)));
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(progname)));
@@ -1090,10 +1090,10 @@ crash_setdir(const char *pathname)
 	 */
 
 	if (has_fork() && NULL != vars->exec_path) {
-		crashfile_size = crashfile_name(NULL, 0, vars->exec_path);
+		crashfile_size = crashfile_name(NULL, 0, pathname);
 	}
 
-	size = 0;
+	size = 32;	/* Provision for alignment constraints */
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(curdir)));
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(pathname)));
 	size = size_saturate_add(size, crashfile_size);
@@ -1104,7 +1104,7 @@ crash_setdir(const char *pathname)
 		char *crashfile = ck_alloc(mem2, crashfile_size);
 		g_assert(NULL != crashfile);	/* Chunk pre-sized, must have room */
 
-		crashfile_name(crashfile, crashfile_size, vars->exec_path);
+		crashfile_name(crashfile, crashfile_size, pathname);
 		crash_set_var(crashfile, crashfile);
 	}
 
