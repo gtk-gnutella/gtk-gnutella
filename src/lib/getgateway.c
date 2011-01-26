@@ -273,8 +273,121 @@ found:
 	*addrp = gateway;
 	return 0;
 }
+#elif defined(I_NET_ROUTE) && defined(PF_ROUTE) && defined(RTM_GET)
+{
+	int fd;
+	char buf[1024];
+	struct rt_msghdr *rt;
+	struct sockaddr dest, mask;
+	struct sockaddr *gate;
+	char *payload;
+	char *p;
+	ssize_t rw;
+	int seq = 1;
+	int pid = getpid();
+	host_addr_t gateway;
+
+	/*
+	 * This implementation uses the BSD route socket interface.
+	 */
+
+	fd = socket(PF_ROUTE, SOCK_RAW, 0);
+	if (-1 == fd)
+		return -1;
+
+	memset(buf, 0, sizeof buf);
+	memset(&dest, 0, sizeof dest);
+	memset(&mask, 0, sizeof mask);
+
+	rt = (struct rt_msghdr *) buf;
+	payload = (char *) (rt + 1);
+	rt->rtm_type = RTM_GET;
+	rt->rtm_flags = RTF_UP | RTF_GATEWAY;
+	rt->rtm_version = RTM_VERSION;
+	rt->rtm_seq = seq;
+	rt->rtm_addrs = RTA_DST | RTA_NETMASK;
+
+	dest.sa_family = AF_UNSPEC;
+	mask.sa_family = AF_UNSPEC;
+
+	p = payload;
+	memcpy(p, &dest, sizeof dest);
+	p += sizeof dest;
+	memcpy(p, &mask, sizeof mask);
+	p += sizeof mask;
+
+	rt->rtm_msglen = (p - payload) + sizeof *rt;
+
+	rw = write(fd, rt, rt->rtm_msglen);
+	if (UNSIGNED(rw) != rt->rtm_msglen)
+		goto error;
+
+	for (;;) {
+		rw = read(fd, buf, sizeof buf);
+
+		if ((ssize_t) -1 == rw)
+			goto error;
+
+		if (rt->rtm_seq == seq && rt->rtm_pid == pid)
+			break;
+	}
+
+	close(fd);
+
+	if (rt->rtm_addrs != 0) {
+		int i;
+
+		for (p = payload, i = 1; i; i <<= 1) {
+			if (i & rt->rtm_addrs) {
+				if (i == RTA_GATEWAY) {
+					gate = (struct sockaddr *) p;
+					goto got_gateway;
+				}
+				p += sizeof *gate;
+			}
+		}
+	}
+
+	goto error;
+
+got_gateway:
+	if (AF_INET == ((struct sockaddr_in *) gate)->sin_family) {
+		struct sockaddr_in *sin = (struct sockaddr_in *) gate;
+		gateway = host_addr_peek_ipv4(&sin->sin_addr.s_addr);
+		goto found;
+	} else if (AF_INET6 == ((struct sockaddr_in6 *) gate)->sin6_family) {
+		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *) gate;
+		gateway = host_addr_peek_ipv6(sin6->sin6_addr.s6_addr);
+		goto found;
+	}
+
+	/* FALL THROUGH */
+
+error:
+	close(fd);
+
+	g_warning("getgateway(): route socket failed, using the netstat command");
+	return parse_netstat(addrp);
+
+found:
+	close(fd);
+	*addrp = gateway;
+	return 0;
+}
 #else
 {
+	static gboolean warned;
+
+	/*
+	 * Let's get information about which systems cannot benefit from a
+	 * native faster interface to get the default gateway.
+	 */
+
+	if (!warned) {
+		g_warning("getgateway(): using the slow netstat command");
+		warned = TRUE;
+	}
+
 	return parse_netstat(addrp);
 }
 #endif
