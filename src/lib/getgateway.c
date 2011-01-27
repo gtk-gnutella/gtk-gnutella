@@ -276,16 +276,19 @@ found:
 #elif defined(I_NET_ROUTE) && defined(PF_ROUTE) && defined(RTM_GET)
 {
 	int fd;
-	char buf[1024];
-	const struct rt_msghdr *rt;
 	struct sockaddr dest, mask;
 	struct sockaddr *gate;
-	char *payload;
 	char *p;
 	ssize_t rw;
 	int seq = 1;
 	pid_t pid = getpid();
 	host_addr_t gateway;
+	struct {
+		struct rt_msghdr head;
+		char data[512];
+	} rtm;
+	struct rt_msghdr *rt = &rtm.head;
+	char *payload = rtm.data;
 
 	/*
 	 * This implementation uses the BSD route socket interface.
@@ -295,12 +298,10 @@ found:
 	if (-1 == fd)
 		return -1;
 
-	memset(buf, 0, sizeof buf);
+	memset(rt, 0, sizeof *rt);
 	memset(&dest, 0, sizeof dest);
 	memset(&mask, 0, sizeof mask);
 
-	rt = (struct rt_msghdr *) buf; /* FIXME: ALIGNMENT FAILURE */
-	payload = (char *) &rt[1];
 	rt->rtm_type = RTM_GET;
 	rt->rtm_flags = RTF_UP | RTF_GATEWAY;
 	rt->rtm_version = RTM_VERSION;
@@ -310,7 +311,7 @@ found:
 	dest.sa_family = AF_UNSPEC;
 	mask.sa_family = AF_UNSPEC;
 
-	STATIC_ASSERT(sizeof *rt + 2 * sizeof dest <= sizeof buf);
+	STATIC_ASSERT(2 * sizeof dest <= sizeof rtm.data);
 
 	p = payload;
 	memcpy(p, &dest, sizeof dest);
@@ -320,14 +321,14 @@ found:
 
 	rt->rtm_msglen = (p - payload) + sizeof *rt;
 
-	g_assert(rt->rtm_msglen <= sizeof buf);
+	g_assert(rt->rtm_msglen <= sizeof rtm);
 
 	rw = write(fd, rt, rt->rtm_msglen);
 	if (UNSIGNED(rw) != rt->rtm_msglen)
 		goto error;
 
 	for (;;) {
-		rw = read(fd, buf, sizeof buf);
+		rw = read(fd, &rtm, sizeof rtm);
 
 		if ((ssize_t) -1 == rw)
 			goto error;
@@ -343,12 +344,13 @@ found:
 
 		p = payload;
 		for (bitmask = 1; 0 != bitmask; bitmask <<= 1) {
-			g_assert(ptr_diff(p, rt) < sizeof buf);
+			g_assert(ptr_diff(p, payload) < sizeof rtm.data);
 
 			if (rt->rtm_addrs & bitmask) {
 				if (RTA_GATEWAY & bitmask) {
-					gate = (struct sockaddr *) p; /* FIXME: Really aligned?*/
-					g_assert(ptr_diff(gate + 1, rt) <= sizeof buf);
+					/* Must be aligned because it's specified that way */
+					gate = (struct sockaddr *) p;
+					g_assert(ptr_diff(gate + 1, payload) <= sizeof rtm.data);
 					goto got_gateway;
 				}
 				p += sizeof *gate;
