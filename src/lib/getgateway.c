@@ -129,7 +129,15 @@ parse_netstat(host_addr_t *addrp)
 }
 #else
 {
+	static gboolean warned;
+
 	(void) addrp;
+
+	if (!warned) {
+		g_warning("getgateway(): no popen() on this platform");
+		warned = TRUE;
+	}
+
 	errno = ENOTSUP;
 	return -1;
 }
@@ -163,14 +171,17 @@ getgateway(host_addr_t *addrp)
 #elif defined(USE_NETLINK)
 {
 	int fd;
-	char buf[1024];
-	struct nlmsghdr *nl;
 	struct rtmsg *rt;
 	ssize_t rw;
 	unsigned seq = 1;
 	unsigned pid = getpid();
 	host_addr_t gateway;
 	gboolean done;
+	struct {
+		struct nlmsghdr head;
+		char space[1024];
+	} nlm;
+	struct nlmsghdr * const nlh = &nlm.head;
 
 	/*
 	 * This implementation uses the linux netlink interface.
@@ -180,32 +191,32 @@ getgateway(host_addr_t *addrp)
 	if (-1 == fd)
 		return -1;
 
-	memset(buf, 0, sizeof buf);
-	nl = (struct nlmsghdr *) buf;
-	nl->nlmsg_len = NLMSG_LENGTH(sizeof *rt);
-	nl->nlmsg_type = RTM_GETROUTE;
-	nl->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
-	nl->nlmsg_seq = seq;
-	nl->nlmsg_pid = pid;
+	memset(&nlm, 0, sizeof nlm);
+	nlh->nlmsg_len = NLMSG_LENGTH(sizeof *rt);
+	nlh->nlmsg_type = RTM_GETROUTE;
+	nlh->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
+	nlh->nlmsg_seq = seq;
+	nlh->nlmsg_pid = pid;
 
-	rt = (struct rtmsg *) NLMSG_DATA(nl);
+	rt = (struct rtmsg *) NLMSG_DATA(nlh);
 	rt->rtm_family = AF_UNSPEC;
 	rt->rtm_table = RT_TABLE_MAIN;
 
-	rw = send(fd, nl, sizeof *rt + sizeof *nl, 0);
-	if (UNSIGNED(rw) != sizeof *rt + sizeof *nl)
+	rw = send(fd, nlh, sizeof *rt + sizeof *nlh, 0);
+	if (UNSIGNED(rw) != sizeof *rt + sizeof *nlh)
 		goto error;
 
 	for (done = FALSE; !done; /* empty */) {
 		unsigned nlen;
+		struct nlmsghdr *nl;
 
-		rw = recv(fd, buf, sizeof buf, 0);
+		rw = recv(fd, &nlm, sizeof nlm, 0);
 		if ((ssize_t) -1 == rw) {
 			g_warning("getgateway(): recv() failed: %s", g_strerror(errno));
 			goto error;
 		}
 
-		nl = (struct nlmsghdr *) buf; /* FIXME: ALIGNMENT FAILURE */
+		nl = &nlm.head;
 
 		if (0 == NLMSG_OK(nl, UNSIGNED(rw)) || NLMSG_ERROR == nl->nlmsg_type)
 			goto error;
@@ -287,8 +298,8 @@ found:
 		struct rt_msghdr head;
 		char data[512];
 	} rtm;
-	struct rt_msghdr *rt = &rtm.head;
-	char *payload = rtm.data;
+	struct rt_msghdr * const rt = &rtm.head;
+	char * const payload = rtm.data;
 
 	/*
 	 * This implementation uses the BSD route socket interface.
