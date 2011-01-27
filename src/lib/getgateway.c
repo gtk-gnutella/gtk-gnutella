@@ -204,7 +204,7 @@ getgateway(host_addr_t *addrp)
 			goto error;
 		}
 
-		nl = (struct nlmsghdr *) buf;
+		nl = (struct nlmsghdr *) buf; /* FIXME: ALIGNMENT FAILURE */
 
 		if (0 == NLMSG_OK(nl, UNSIGNED(rw)) || NLMSG_ERROR == nl->nlmsg_type)
 			goto error;
@@ -277,14 +277,14 @@ found:
 {
 	int fd;
 	char buf[1024];
-	struct rt_msghdr *rt;
+	const struct rt_msghdr *rt;
 	struct sockaddr dest, mask;
 	struct sockaddr *gate;
 	char *payload;
 	char *p;
 	ssize_t rw;
 	int seq = 1;
-	int pid = getpid();
+	pid_t pid = getpid();
 	host_addr_t gateway;
 
 	/*
@@ -299,8 +299,8 @@ found:
 	memset(&dest, 0, sizeof dest);
 	memset(&mask, 0, sizeof mask);
 
-	rt = (struct rt_msghdr *) buf;
-	payload = (char *) (rt + 1);
+	rt = (struct rt_msghdr *) buf; /* FIXME: ALIGNMENT FAILURE */
+	payload = (char *) &rt[1];
 	rt->rtm_type = RTM_GET;
 	rt->rtm_flags = RTF_UP | RTF_GATEWAY;
 	rt->rtm_version = RTM_VERSION;
@@ -339,14 +339,15 @@ found:
 	close(fd);
 
 	if (rt->rtm_addrs != 0) {
-		int i;
+		unsigned bitmask;
 
-		for (p = payload, i = 1; i; i <<= 1) {
+		p = payload;
+		for (bitmask = 1; 0 != bitmask; bitmask <<= 1) {
 			g_assert(ptr_diff(p, rt) < sizeof buf);
 
-			if (i & rt->rtm_addrs) {
-				if (i == RTA_GATEWAY) {
-					gate = (struct sockaddr *) p;
+			if (rt->rtm_addrs & bitmask) {
+				if (RTA_GATEWAY & bitmask) {
+					gate = (struct sockaddr *) p; /* FIXME: Really aligned?*/
 					g_assert(ptr_diff(gate + 1, rt) <= sizeof buf);
 					goto got_gateway;
 				}
