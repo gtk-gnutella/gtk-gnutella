@@ -5340,7 +5340,7 @@ search_request_preprocess(struct gnutella_node *n)
 		}
 
 		if (is_my_address_and_port(addr, port)) {
-			gnet_stats_count_dropped(n, MSG_DROP_OWN_RESULT);
+			gnet_stats_count_dropped(n, MSG_DROP_OWN_QUERY);
 			goto drop;
 		}
 
