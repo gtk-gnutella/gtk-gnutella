@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "whitelist.h"
 
 #include "lib/atoms.h"
+#include "lib/fd.h"
 #include "lib/file.h"		/* For file_register_fd_reclaimer() */
 #include "lib/cq.h"
 #include "lib/misc.h"
@@ -402,6 +403,22 @@ ban_record(const host_addr_t addr, const char *msg)
 static GList *banned_head = NULL;
 static GList *banned_tail = NULL;
 
+static void
+ban_close_fd(void **data_ptr)
+{
+	void *data = *data_ptr;
+	int fd = GPOINTER_TO_INT(data);
+
+	g_assert(is_valid_fd(fd));
+	g_assert(fd > STDERR_FILENO);	/* fd 0-2 are not used for sockets */
+
+	if (GNET_PROPERTY(ban_debug) > 9) {
+		g_debug("closing BAN fd #%d", fd);
+	}
+	fd_close(&fd);	/* Reclaim fd */
+	*data_ptr = GINT_TO_POINTER(-1);
+}
+
 /**
  * Internal version of ban_reclaim_fd().
  *
@@ -423,10 +440,7 @@ reclaim_fd(void)
 	g_assert(banned_head != NULL);
 	g_assert(GNET_PROPERTY(banned_count) > 0);
 
-	(void) close(GPOINTER_TO_INT(banned_tail->data));	/* Reclaim fd */
-
-	if (GNET_PROPERTY(ban_debug) > 9)
-		g_debug("closed BAN fd #%d", GPOINTER_TO_INT(banned_tail->data));
+	ban_close_fd(&banned_tail->data);
 
 	prev = g_list_previous(banned_tail);
 	banned_head = g_list_remove_link(banned_head, banned_tail);
@@ -482,7 +496,8 @@ ban_force(struct gnutella_socket *s)
 
 	socket_check(s);
 	fd = s->file_desc;
-	g_return_if_fail(fd >= 0);
+	g_return_if_fail(is_valid_fd(fd));
+	g_return_if_fail(fd > STDERR_FILENO); /* fd 0-2 are not used for sockets */
 
 	if (GNET_PROPERTY(banned_count) >= GNET_PROPERTY(max_banned_fd)) {
 		g_assert(banned_tail);
@@ -615,8 +630,9 @@ ban_close(void)
 	g_hash_table_foreach(info, free_info, NULL);
 	gm_hash_table_destroy_null(&info);
 
-	for (l = banned_head; l; l = g_list_next(l))
-		(void) close(GPOINTER_TO_INT(l->data));		/* Reclaim fd */
+	for (l = banned_head; NULL != l; l = g_list_next(l)) {
+		ban_close_fd(&l->data); /* Reclaim fd */
+	}
 
 	gm_list_free_null(&banned_head);
 	zdestroy(ipf_zone);

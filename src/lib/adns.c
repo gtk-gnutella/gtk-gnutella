@@ -512,8 +512,8 @@ adns_helper(int fd_in, int fd_out)
 			break;
 	}
 
-	close(fd_in);
-	close(fd_out);
+	fd_close(&fd_in);
+	fd_close(&fd_out);
 	_exit(EXIT_SUCCESS);
 }
 
@@ -663,7 +663,7 @@ error:
 	inputevt_remove(adns_reply_event_id);
 	adns_reply_event_id = 0;
 	g_warning("adns_reply_callback: removed myself");
-	close(source);
+	fd_close(&source);
 }
 
 /**
@@ -814,8 +814,8 @@ adns_init(void)
 			g_error("adns_init: freopen(\"/dev/null\", \"a\", stderr) failed: "
 					"%s", g_strerror(errno));
 
-		close(fd_query[1]);
-		close(fd_reply[0]);
+		fd_close(&fd_query[1]);
+		fd_close(&fd_reply[0]);
 
 		set_close_on_exec(fd_query[0]);
 		set_close_on_exec(fd_reply[1]);
@@ -826,8 +826,8 @@ adns_init(void)
 	}
 
 	/* parent process */
-	close(fd_query[0]);
-	close(fd_reply[1]);
+	fd_close(&fd_query[0]);
+	fd_close(&fd_reply[1]);
 	
 	fd_query[1] = get_non_stdio_fd(fd_query[1]);
 	fd_reply[0] = get_non_stdio_fd(fd_reply[0]);

@@ -48,8 +48,9 @@ RCSID("$Id$")
 #endif
 
 #include "getgateway.h"
-#include "host_addr.h"
 #include "ascii.h"
+#include "fd.h"
+#include "host_addr.h"
 #include "misc.h"
 #include "parse.h"
 
@@ -263,13 +264,12 @@ getgateway(host_addr_t *addrp)
 	/* FALL THROUGH */
 
 error:
-	close(fd);
-
+	fd_close(&fd);
 	g_warning("getgateway(): netlink failed, using the netstat command");
 	return parse_netstat(addrp);
 
 found:
-	close(fd);
+	fd_close(&fd);
 	*addrp = gateway;
 	return 0;
 }
@@ -336,7 +336,7 @@ found:
 			break;
 	}
 
-	close(fd);
+	fd_close(&fd);
 
 	if (rt->rtm_addrs != 0) {
 		unsigned bitmask;
@@ -372,13 +372,12 @@ got_gateway:
 	/* FALL THROUGH */
 
 error:
-	close(fd);
-
+	fd_close(&fd);
 	g_warning("getgateway(): route socket failed, using the netstat command");
 	return parse_netstat(addrp);
 
 found:
-	close(fd);
+	fd_close(&fd);
 	*addrp = gateway;
 	return 0;
 }

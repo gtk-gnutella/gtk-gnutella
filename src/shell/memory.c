@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "cmd.h"
 
 #include "lib/ascii.h"
+#include "lib/fd.h"
 #include "lib/parse.h"
 #include "lib/misc.h"
 #include "lib/str.h"
@@ -164,8 +165,8 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		addr += G_N_ELEMENTS(data);
 	}
 	str_destroy(s);
-	close(fd[0]);
-	close(fd[1]);
+	fd_close(&fd[0]);
+	fd_close(&fd[1]);
 	return REPLY_READY;
 
 failure:

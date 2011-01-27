@@ -60,9 +60,8 @@
 #define unix_write write
 
 static inline void
-fd_close(int *fd_ptr, int unused_param)
+fd_close(int *fd_ptr)
 {
-	(void) unused_param;
 	if (*fd_ptr >= 0) {
 		close(*fd_ptr);
 		*fd_ptr = -1;

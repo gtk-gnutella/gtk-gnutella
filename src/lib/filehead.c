@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "filehead.h"
+#include "fd.h"
 #include "file.h"
 #include "parse.h"
 
@@ -74,14 +75,14 @@ filehead_uint64(const char *path, gboolean missing, int *errptr)
 	if (-1 == fd)
 		goto error;
 
-	r = read(fd, data, FILEHEAD_LINE_MAXLEN);
+	r = read(fd, data, sizeof data - 1); /* reserve one byte for NUL */
 
-	if (r == -1)
+	if ((ssize_t) -1 == r)
 		goto error_close;
 
-	g_assert(r >= 0 && r <= FILEHEAD_LINE_MAXLEN);
+	g_assert(r >= 0 && UNSIGNED(r) < sizeof data);
 
-	close(fd);
+	fd_close(&fd);
 	data[r] = '\0';
 	value = parse_uint64(data, NULL, 10, &error);
 
@@ -96,7 +97,7 @@ filehead_uint64(const char *path, gboolean missing, int *errptr)
 	return value;
 
 error_close:
-	close(fd);
+	fd_close(&fd);
 error:
 	if (errptr != NULL)
 		*errptr = errno;

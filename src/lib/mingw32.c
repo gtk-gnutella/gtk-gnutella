@@ -670,7 +670,7 @@ mingw_truncate(const char *pathname, off_t len)
 
 	ret = ftruncate(fd, len);
 	saved_errno = (-1 == ret) ? GetLastError() : 0;
-	close(fd);
+	fd_close(&fd);
 	errno = saved_errno;
 
 	return ret;

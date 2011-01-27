@@ -423,7 +423,7 @@ partial_write:
 io_error:
 	{
 		int saved_errno = errno;
-		close(fd);
+		fd_close(&fd);
 		errno = saved_errno;
 	}
 	return -1;
@@ -676,7 +676,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 		rw = read(fd, buf, sizeof buf);
 		if ((ssize_t) -1 == rw)
 			goto io_error;
-		close(fd);
+		fd_close(&fd);
 
 		g_assert(UNSIGNED(rw) <= sizeof buf);
 
@@ -784,7 +784,7 @@ bad_sd:
 io_error:
 	{
 		int saved_errno = errno;
-		close(fd);
+		fd_close(&fd);
 		errno = saved_errno;
 	}
 	return -1;
