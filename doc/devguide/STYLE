@@ -330,19 +330,41 @@ Ladies and gentleman, here's the
             /* Body */
         }
 
-4.6  When writing simple variable equality tests against a constant, do NOT
+4.6  The following paragraph is NIL and VOID.
+     <strike>
+     When writing simple variable equality tests against a constant, do NOT
      put the constant at the head of the test.  This is different from
-	 rules 4.2 and 4.3 in that those deal with potentially long function
-	 calls, where it is best to highlight how we're going to use the
-	 function's value.
+     rules 4.2 and 4.3 in that those deal with potentially long function
+     calls, where it is best to highlight how we're going to use the
+     function's value.
 
-		if (var == 4)	RIGHT
-		if (4 == var)	WRONG
+     if (var == 4)  RIGHT
+     if (4 == var)  WRONG
+     If the expression being tested is large, then it may be OK to
+     put the constant at the front.
 
-	 If the expression being tested is large, then it may be OK to
-	 put the constant at the front.
+    if (4 == (ax + by) / cz^wt)     OK
+    </strike>
 
-		if (4 == (ax + by) / cz^wt)		OK
+    In comparisons constants and const-qualified variables are always
+    to be put upfront. This avoids accidently assigning a value by
+    mistyping an operator (=, =!, >>=, <<=) making the expression an
+    assignment instead of a mere comparison. Literal constants (123) have
+    precedence over preprocessor constants (TRUE) which have precedence over
+    const-qualified variables (const int var). The operators > and <
+    are exempt from this rule. By consequent use of this rule, readability
+    is not affected.
+
+    const struct blah;
+    int var;
+    [...]
+
+    if (blah.member == var) /* RIGHT */
+    if (123 >= blah.member) /* RIGHT */
+    if (TRUE != blah.member) /* RIGHT */
+    if (TRUE != var) /* RIGHT */
+    if (123 <= var) /* RIGHT */
+
 
 5. NAMING **************************************************************
 
@@ -494,3 +516,5 @@ Ladies and gentleman, here's the
     somewhere, i.e. a 3-argument macro.  In the first case, cpp will cause
     a compilation error, whereas in the second case there will be no macro
     expansion.
+
+/* vi: set tw=78 ts=4 sw=4 et: */
