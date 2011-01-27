@@ -323,7 +323,7 @@ enum {
 	NODE_A_CAN_QRP		= 1 << 17,	/**< Node supports query routing */
 	NODE_A_CAN_HSEP		= 1 << 16,	/**< Node supports HSEP */
 	NODE_A_UDP			= 1 << 15,	/**< Node uses UDP for traffic */
-	NODE_A_UNUSED_1		= 1 << 14,	/**< UNUSED */
+	NODE_A_DQ_PROBE		= 1 << 14,	/**< Node can be safely probed by DQ */
 	NODE_A_CAN_SFLAG	= 1 << 13,	/**< Node supports flags in headers */
 	NODE_A_DYN_QUERY	= 1 << 12,	/**< Node can perform dynamic queries */
 	NODE_A_CRAWLABLE	= 1 << 11,	/**< Node can be UDP-crawled */

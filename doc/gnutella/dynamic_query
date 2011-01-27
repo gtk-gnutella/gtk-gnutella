@@ -418,6 +418,26 @@ The GDF           Gnutella Dynamic Query Protocol v0.1          May 2003
 
      X-Dynamic-Querying: 0.1
 
+2.5.3.2.4 Support for Query Probes
+
+   To indicate to peers that a servent understands query probes and will
+   not drop the next query as a duplicate if it comes with the same MUID
+   but a higher TTL, the following header should be emitted:
+
+	 X-Ext-Probes: 0.1
+
+   This was undocumented initially and was discovered by GTKG on 2011-01-27,
+   by browsing the archived LimeWire wiki documentation.
+
+   During the probe target selection, a node should make sure it will not
+   send a TTL=1 probe to an ultra node if the X-Ext-Probes header was not
+   present in the initial handshake.
+
+   Indeed, since the aim is to probe nodes with a high likelyhood of bringing
+   back results, it would be a shame to send only a TTL=1 probe and be
+   unable to send higher TTL queries should the initial probe fail to return
+   enough results!
+
 3. Conclusion
 
    This proposal addresses one of the most glaring flaws in the

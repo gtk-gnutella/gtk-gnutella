@@ -223,6 +223,7 @@ struct pmsg_info {
 	node_id_t node_id;	/**< The ID of the node we sent it to */
 	guint16 degree;		/**< The advertised degree of the destination node */
 	guint8 ttl;			/**< The TTL used for that query */
+	guint8 probe;		/**< Whether query is just a probe */
 };
 
 /*
@@ -383,9 +384,11 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, int connections)
  * @param degree  the degree of the node to which the message is sent
  * @param ttl     the TTL at which the message is sent
  * @param node_id the ID of the node to which we send the message
+ * @param probe	  whether the query is just a probe, with a lower TTL
  */
 static struct pmsg_info *
-dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl, const node_id_t node_id)
+dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl,
+	const node_id_t node_id, gboolean probe)
 {
 	struct pmsg_info *pmi;
 	const node_id_t key = node_id_ref(node_id);	
@@ -397,6 +400,7 @@ dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl, const node_id_t node_id)
 	pmi->degree = degree;
 	pmi->ttl = ttl;
 	pmi->node_id = node_id_ref(node_id);
+	pmi->probe = booleanize(probe);
 
 	gm_hash_table_insert_const(dq->queried, key, key);
 
@@ -509,10 +513,11 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 		dq->up_sent++;
 
 		if (GNET_PROPERTY(dq_debug) > 19) {
-			g_debug("DQ[%s] %snode #%s degree=%d sent message TTL=%d",
+			g_debug("DQ[%s] %snode #%s degree=%d sent message TTL=%d%s",
 				dquery_id_to_string(dq->qid),
 				node_id_self(dq->node_id) ? "(local) " : "",
-				node_id_to_string(pmi->node_id), pmi->degree, pmi->ttl);
+				node_id_to_string(pmi->node_id), pmi->degree, pmi->ttl,
+				pmi->probe ? " (probe)" : "");
 			g_debug("DQ[%s] %s(%d secs) queried %d UP%s, "
 				"horizon=%d, results=%d",
 				dquery_id_to_string(dq->qid),
@@ -520,6 +525,22 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 				(int) (tm_time() - dq->start),
 				dq->up_sent, dq->up_sent == 1 ? "" :"s",
 				dq->horizon, dq->results);
+		}
+
+		/*
+		 * If we sent a probe and not a highest-TTL query, then remove the
+		 * node from the list of queried nodes so that we can later on
+		 * requery it with a larger TTL message should the initial probing
+		 * not supply enough results.
+		 */
+
+		if (pmi->probe) {
+			node_id_t key;
+
+			key = g_hash_table_lookup(dq->queried, pmi->node_id);
+			g_assert(key);		/* Or something is seriously corrupted */
+			g_hash_table_remove(dq->queried, key);
+			node_id_unref(key);
 		}
 	}
 
@@ -610,6 +631,19 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, int ncount)
 		 */
 
 		if (n->received == 0)
+			continue;
+
+		/*
+		 * Skip nodes not bearing the NODE_A_DQ_PROBE attribute.
+		 *
+		 * These nodes would process our TTL=1 probe but then later consider
+		 * the same query with TTL=3 as a duplicate.  Since we target ultra
+		 * nodes likely to return a result when we send a probe, it would be
+		 * a shame to shield the potential for results by sending a TTL=1
+		 * probe query first if futher queries will be dropped!
+		 */
+
+		if (!(n->attrs & NODE_A_DQ_PROBE))
 			continue;
 
 		/*
@@ -1260,7 +1294,7 @@ node_mq_qrp_cmp(const void *np1, const void *np2)
  * adjusted down accordingly.
  */
 static void
-dq_send_query(dquery_t *dq, gnutella_node_t *n, int ttl)
+dq_send_query(dquery_t *dq, gnutella_node_t *n, int ttl, gboolean probe)
 {
 	struct pmsg_info *pmi;
 	pmsg_t *mb;
@@ -1269,7 +1303,7 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, int ttl)
 	g_assert(!g_hash_table_lookup(dq->queried, NODE_ID(n)));
 	g_assert(NODE_IS_WRITABLE(n));
 
-	pmi = dq_pmi_alloc(dq, n->degree, MIN(n->max_ttl, ttl), NODE_ID(n));
+	pmi = dq_pmi_alloc(dq, n->degree, MIN(n->max_ttl, ttl), NODE_ID(n), probe);
 
 	/*
 	 * Now for the magic...
@@ -1455,7 +1489,7 @@ dq_send_next(dquery_t *dq)
 			continue;
 		}
 
-		dq_send_query(dq, node, ttl);
+		dq_send_query(dq, node, ttl, FALSE);
 		sent = TRUE;
 		break;
 	}
@@ -1563,7 +1597,7 @@ dq_send_probe(dquery_t *dq)
 	 */
 
 	for (i = 0; i < DQ_PROBE_UP && i < found; i++)
-		dq_send_query(dq, nv[i], ttl);
+		dq_send_query(dq, nv[i], ttl, ttl < dq->ttl);
 
 	/*
 	 * Install a watchdog for the query, to go on if we don't get

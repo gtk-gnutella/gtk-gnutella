@@ -5578,6 +5578,41 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	} else if (n->attrs & NODE_A_ULTRA)
 		n->degree = NODE_LEGACY_DEGREE;
 
+	/* X-Ext-Probes -- can node accept higher TTL messages with same MUID? */
+
+	field = header_get(head, "X-Ext-Probes");
+	if (field) {
+		guint major, minor;
+
+		parse_major_minor(field, NULL, &major, &minor);
+		if (major > 0 || minor > 1) {
+			if (GNET_PROPERTY(node_debug))
+				g_warning("%s claims X-Ext-Probes version %u.%u",
+					node_infostr(n), major, minor);
+		}
+		n->attrs |= NODE_A_DQ_PROBE;	/* Can probe during dynamic querying */
+	} else {
+		/*
+		 * GTKG did not know about the X-Ext-Probes header until 2011-01-27.
+		 *
+		 * However, all GTKGs in the field today have the node_ttl_higher()
+		 * function that allows them to not consider a broadcasted message
+		 * as a duplicate if the current TTL of the message is higher than
+		 * the one already seen for that MUID.
+		 *
+		 * Since dynamic querying can send TTL=1 probes and then later a
+		 * TTL=3 (say) query to the same node, we must make sure we do not
+		 * send the probes to nodes that will consider the TTL=3 message as
+		 * a duplicate!
+		 *
+		 * NOTE: this test can be removed starting in 2013, where old GTKGs
+		 * not emitting X-Ext-Probes will be most likely gone.
+		 */
+
+		if (node_is_gtkg(n))
+			n->attrs |= NODE_A_DQ_PROBE;
+	}
+
 	/*
 	 * Check that remote host speaks a protocol we can accept.
 	 */
@@ -5812,7 +5847,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"GGEP: 0.5\r\n"
 				"Vendor-Message: 0.2\r\n"
 				"Remote-IP: %s\r\n"
-				"%s"
+				"%s"		/* Accept-Encoding */
 				"%s"		/* Content-Encoding */
 				"%s"		/* X-Ultrapeer */
 				"%s"		/* X-Ultrapeer-Needed */
@@ -5820,6 +5855,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"%s"		/* X-Ultrapeer-Query-Routing */
 				"%s"		/* X-Degree + X-Max-TTL */
 				"%s"		/* X-Dynamic-Querying */
+				"%s"		/* X-Ext-Probes */
 				"%s"		/* X-Requeries */
 				"%s%s%s"	/* X-Token (optional) */
 				"X-Live-Since: %s\r\n",
@@ -5846,6 +5882,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				degree,
 				GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
 					"X-Dynamic-Querying: 0.1\r\n" : "",
+				GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
+					"X-Ext-Probes: 0.1\r\n" : "",
 				GNET_PROPERTY(current_peermode) != NODE_P_NORMAL ?
 	 				"X-Requeries: False\r\n" : "",
 	 			token ? "X-Token: " : "",
@@ -7653,6 +7691,7 @@ node_init_outgoing(struct gnutella_node *n)
 			"%s"		/* X-Ultrapeer-Query-Routing */
 			"%s"		/* X-Degree + X-Max-TTL */
 			"%s"		/* X-Dynamic-Querying */
+			"%s"		/* X-Ext-Probes */
 			"%s",		/* X-Requeries */
 			GNUTELLA_HELLO,
 			n->proto_major, n->proto_minor,
@@ -7673,6 +7712,8 @@ node_init_outgoing(struct gnutella_node *n)
 			degree,
 			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
 				"X-Dynamic-Querying: 0.1\r\n" : "",
+			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
+				"X-Ext-Probes: 0.1\r\n" : "",
 			GNET_PROPERTY(current_peermode) != NODE_P_NORMAL ?
 				"X-Requeries: False\r\n" : ""
 		);
