@@ -171,17 +171,16 @@ getgateway(host_addr_t *addrp)
 #elif defined(USE_NETLINK)
 {
 	int fd;
-	struct rtmsg *rt;
 	ssize_t rw;
 	unsigned seq = 1;
-	unsigned pid = getpid();
+	__u32 pid = getpid(); /* not pid_t because nlmsg_pid is of type __u32 */
 	host_addr_t gateway;
 	gboolean done;
 	struct {
-		struct nlmsghdr head;
-		char space[1024];
+		struct nlmsghdr hdr;
+		struct rtmsg rtm;
+		unsigned char space[1024];	/* Unexplained magic buffer size */
 	} nlm;
-	struct nlmsghdr * const nlh = &nlm.head;
 
 	/*
 	 * This implementation uses the linux netlink interface.
@@ -192,31 +191,30 @@ getgateway(host_addr_t *addrp)
 		return -1;
 
 	memset(&nlm, 0, sizeof nlm);
-	nlh->nlmsg_len = NLMSG_LENGTH(sizeof *rt);
-	nlh->nlmsg_type = RTM_GETROUTE;
-	nlh->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
-	nlh->nlmsg_seq = seq;
-	nlh->nlmsg_pid = pid;
+	nlm.hdr.nlmsg_len = NLMSG_LENGTH(sizeof nlm.rtm);
+	nlm.hdr.nlmsg_type = RTM_GETROUTE;
+	nlm.hdr.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
+	nlm.hdr.nlmsg_seq = seq;
+	nlm.hdr.nlmsg_pid = pid;
 
-	rt = (struct rtmsg *) NLMSG_DATA(nlh);
-	rt->rtm_family = AF_UNSPEC;
-	rt->rtm_table = RT_TABLE_MAIN;
+	nlm.rtm.rtm_family = AF_UNSPEC;
+	nlm.rtm.rtm_table = RT_TABLE_MAIN;
 
-	rw = send(fd, nlh, sizeof *rt + sizeof *nlh, 0);
-	if (UNSIGNED(rw) != sizeof *rt + sizeof *nlh)
+	rw = send(fd, &nlm, sizeof nlm.hdr + sizeof nlm.rtm, 0);
+	if (UNSIGNED(rw) != sizeof nlm.hdr + sizeof nlm.rtm)
 		goto error;
 
 	for (done = FALSE; !done; /* empty */) {
 		unsigned nlen;
 		struct nlmsghdr *nl;
 
-		rw = recv(fd, &nlm, sizeof nlm, 0);
+		rw = recv(fd, &nlm, sizeof nlm, MSG_DONTWAIT);
 		if ((ssize_t) -1 == rw) {
 			g_warning("getgateway(): recv() failed: %s", g_strerror(errno));
 			goto error;
 		}
 
-		nl = &nlm.head;
+		nl = &nlm.hdr;
 
 		if (0 == NLMSG_OK(nl, UNSIGNED(rw)) || NLMSG_ERROR == nl->nlmsg_type)
 			goto error;
@@ -237,9 +235,10 @@ getgateway(host_addr_t *addrp)
 			nl = NLMSG_NEXT(nl, nlen)
 		) {
 			struct rtattr *attr;
+			const struct rtmsg *rt;
 			unsigned rlen;
 
-			rt = (struct rtmsg *) NLMSG_DATA(nl);
+			rt = (const struct rtmsg *) NLMSG_DATA(nl);
 
 			if (rt->rtm_table != RT_TABLE_MAIN)
 				continue;
@@ -360,6 +359,10 @@ found:
 			if (rt->rtm_addrs & bitmask) {
 				if (RTA_GATEWAY & bitmask) {
 					/* Must be aligned because it's specified that way */
+					/*
+					 * No, this isn't necessarily the case. memcpy()
+					 * may be required.
+					 */
 					gate = (struct sockaddr *) p;
 					g_assert(ptr_diff(gate + 1, payload) <= sizeof rtm.data);
 					goto got_gateway;
