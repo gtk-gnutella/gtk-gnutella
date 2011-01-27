@@ -358,11 +358,6 @@ found:
 
 			if (rt->rtm_addrs & bitmask) {
 				if (RTA_GATEWAY & bitmask) {
-					/* Must be aligned because it's specified that way */
-					/*
-					 * No, this isn't necessarily the case. memcpy()
-					 * may be required.
-					 */
 					gate = (struct sockaddr *) p;
 					g_assert(ptr_diff(gate + 1, payload) <= sizeof rtm.data);
 					goto got_gateway;
@@ -375,14 +370,33 @@ found:
 	goto error;
 
 got_gateway:
-	if (AF_INET == ((struct sockaddr_in *) gate)->sin_family) {
-		struct sockaddr_in *sin = (struct sockaddr_in *) gate;
-		gateway = host_addr_peek_ipv4(&sin->sin_addr.s_addr);
-		goto found;
-	} else if (AF_INET6 == ((struct sockaddr_in6 *) gate)->sin6_family) {
-		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *) gate;
-		gateway = host_addr_peek_ipv6(sin6->sin6_addr.s6_addr);
-		goto found;
+	{
+		struct sockaddr sa;
+
+		/*
+		 * The "gate" address may not be aligned.
+		 *
+		 * Note that on FreeBSD, the AF_INET6 gateway seems to never be
+		 * returned.  Moreover the size of "struct sockaddr" is lower than
+		 * that of "struct sockaddr_in6" so the code above that skips
+		 * addresses in the reply until it finds an RTA_GATEWAY one may
+		 * be incorrect the day BSD starts to return AF_INET6.
+		 *		--RAM, 2011-01-27
+		 */
+	
+		memcpy(&sa, gate, sizeof sa);
+
+		if (AF_INET == sa.sa_family) {
+			struct sockaddr_in sin;
+			memcpy(&sin, gate, sizeof sin);
+			gateway = host_addr_peek_ipv4(&sin.sin_addr.s_addr);
+			goto found;
+		} else if (AF_INET6 == sa.sa_family) {
+			struct sockaddr_in6 sin6;
+			memcpy(&sin6, gate, sizeof sin6);
+			gateway = host_addr_peek_ipv6(sin6.sin6_addr.s6_addr);
+			goto found;
+		}
 	}
 
 	/* FALL THROUGH */
