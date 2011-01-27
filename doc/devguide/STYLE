@@ -275,13 +275,13 @@ Ladies and gentleman, here's the
 
 4.1  Unnecessary parentheses should be avoided, for example:
 
-        return expression       RIGHT
-        return (expression) WRONG
+        return expression;      /* RIGHT */
+        return (expression);    /* WRONG */
 
 4.2  strcmp() result:
 
-        if (0 == strcmp(...))   RIGHT
-        if (!strcmp(...))       WRONG
+        if (0 == strcmp(...))   /* RIGHT */
+        if (!strcmp(...))       /* WRONG */
 
       Reason according to Raphael Manfredi:
       Although strictly equivalent, they don't read the same. The
@@ -295,8 +295,8 @@ Ladies and gentleman, here's the
 4.3  In general, explicitly tested returned values should appear first
      in the condition.  This is an extension of rule 4.2:
 
-        if (-1 == read(fd, buf, len))   RIGHT
-        if (read(fd, buf, len) == -1)   WRONG
+        if (-1 == read(fd, buf, len))   /* RIGHT */
+        if (read(fd, buf, len) == -1)   /* WRONG */
 
      This form emphasizes the relation of interest immediately, i.e.
      whether we're interested in "<", "=", or ">" comes first.
@@ -330,40 +330,59 @@ Ladies and gentleman, here's the
             /* Body */
         }
 
-4.6  The following paragraph is NIL and VOID.
-     <strike>
-     When writing simple variable equality tests against a constant, do NOT
-     put the constant at the head of the test.  This is different from
-     rules 4.2 and 4.3 in that those deal with potentially long function
-     calls, where it is best to highlight how we're going to use the
-     function's value.
+4.6  In comparisons constants and const-qualified variables are always
+     to be put upfront. This avoids accidentally assigning a value by
+     mistyping an operator (=, =!, >>=, <<=) making the expression an
+     assignment instead of a mere comparison. Literal constants (123) have
+     precedence over preprocessor constants (MAGIC) which have precedence over
+     const-qualified variables (const int var). The operators > and <
+     are exempt from this rule. By consisent use of this rule, readability
+     is not affected.
 
-     if (var == 4)  RIGHT
-     if (4 == var)  WRONG
-     If the expression being tested is large, then it may be OK to
-     put the constant at the front.
+        const struct blah;
+        int var;
+        [...]
 
-    if (4 == (ax + by) / cz^wt)     OK
-    </strike>
+        if (blah.member == var)    /* RIGHT */
+        if (123 >= blah.member)    /* RIGHT */
+        if (MAGIC != blah.member)  /* RIGHT */
+        if (MAGIC != var)          /* RIGHT */
+        if (123 <= var)            /* RIGHT */
 
-    In comparisons constants and const-qualified variables are always
-    to be put upfront. This avoids accidently assigning a value by
-    mistyping an operator (=, =!, >>=, <<=) making the expression an
-    assignment instead of a mere comparison. Literal constants (123) have
-    precedence over preprocessor constants (TRUE) which have precedence over
-    const-qualified variables (const int var). The operators > and <
-    are exempt from this rule. By consequent use of this rule, readability
-    is not affected.
+      When making a "within range" test, it is however accepted to have
+      the rule slightly relaxed, because it otherwise impacts readability
+      too severely:
 
-    const struct blah;
-    int var;
-    [...]
+        if (x >= 0 && x <= 12)     /* ACCEPTABLE */
 
-    if (blah.member == var) /* RIGHT */
-    if (123 >= blah.member) /* RIGHT */
-    if (TRUE != blah.member) /* RIGHT */
-    if (TRUE != var) /* RIGHT */
-    if (123 <= var) /* RIGHT */
+      For pointers checked for not being NULL, it is also acceptable
+      to say:
+
+        if (p != NULL)             /* ACCEPTABLE */
+
+      The reason is that the obvious typo of inverting the operator to "=!"
+      would be immediately caught by the compiler as assignment of an integer
+      to a pointer without a cast.
+
+      Furthermore, what should be really avoided is writing:
+
+        if (p)                     /* AVOID */
+
+      when "p" is a pointer because it does not highlight to the reader
+      the true nature of the test and can mislead him into thinking the
+      variable is a boolean.  In for() loops however, it is acceptable for
+      more compact expressions provided it is obvious that the variable is a
+      pointer (because it is assigned as a pointer or dereferenced):
+
+        for (p = start; p; p = p->next)     /* ACCEPTABLE */
+
+4.7   Useless boolean comparisons to constants must also be avoided:
+
+        if (TRUE == value)  /* WRONG */
+        if (value)          /* RIGHT */
+
+        if (TRUE != value)  /* WRONG */
+        if (!value)         /* RIGHT */
 
 
 5. NAMING **************************************************************
