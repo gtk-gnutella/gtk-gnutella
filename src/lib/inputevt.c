@@ -1529,7 +1529,7 @@ inputevt_close(void)
 	G_FREE_NULL(ctx->used_event_id);
 	G_FREE_NULL(ctx->relay);
 	G_FREE_NULL(ctx->ev_arr.ev);
-	fd_close(&ctx->fd, FALSE);
+	fd_close(&ctx->fd);
 	ctx->initialized = FALSE;
 #endif
 }

@@ -157,7 +157,7 @@ d_free(gpointer ctx)
 	g_assert(md->magic == MOVED_MAGIC);
 
 	file_object_release(&md->rd);
-	fd_close(&md->wd, TRUE);
+	fd_forget_and_close(&md->wd);
 	HFREE_NULL(md->buffer);
 	md->magic = 0;
 	wfree(md, sizeof(*md));
@@ -278,7 +278,7 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 	}
 
 	file_object_release(&md->rd);
-	if (fd_close(&md->wd, TRUE)) {
+	if (fd_forget_and_close(&md->wd)) {
 		md->error = errno;
 		g_warning("error whilst closing copy target \"%s\": %s",
 			md->target, g_strerror(errno));

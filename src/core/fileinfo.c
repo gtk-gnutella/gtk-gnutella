@@ -1248,7 +1248,7 @@ file_info_has_trailer(const char *path)
 		return -1;
 
 	valid = file_info_get_trailer(fd, &trailer, NULL, path);
-	fd_close(&fd, TRUE);
+	fd_forget_and_close(&fd);
 
 	return valid ? 1 : 0;
 }
@@ -1918,7 +1918,7 @@ G_STMT_START {				\
 		/* NOT REACHED */
 	}
 
-	fd_close(&fd, TRUE);
+	fd_forget_and_close(&fd);
 
 	fi_tigertree_check(fi);
 	file_info_merge_adjacent(fi);	/* Update fi->done */
@@ -1939,7 +1939,7 @@ eof:
 		fi_free(fi);
 		fi = NULL;
 	}
-	fd_close(&fd, TRUE);
+	fd_forget_and_close(&fd);
 	return NULL;
 #undef BAILOUT
 }

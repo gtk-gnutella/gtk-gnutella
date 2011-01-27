@@ -760,7 +760,7 @@ abort:
 	g_warning("adns_query_callback: removed myself");
 	inputevt_remove(adns_query_event_id);
 	adns_query_event_id = 0;
-	fd_close(&adns_query_fd, FALSE);
+	fd_close(&adns_query_fd);
 	g_warning("adns_query_callback: using fallback");
 	adns_fallback(&remain->req);
 done:
@@ -846,10 +846,10 @@ prefork_failure:
 
 	if (!adns_reply_event_id) {
 		g_warning("Cannot use ADNS; DNS lookups may cause stalling");
-		fd_close(&fd_query[0], FALSE);
-		fd_close(&fd_query[1], FALSE);
-		fd_close(&fd_reply[0], FALSE);
-		fd_close(&fd_reply[1], FALSE);
+		fd_close(&fd_query[0]);
+		fd_close(&fd_query[1]);
+		fd_close(&fd_reply[0]);
+		fd_close(&fd_reply[1]);
 	}
 
 #else
@@ -908,7 +908,7 @@ adns_send_request(const struct adns_request *req)
 				g_strerror(errno));
 			inputevt_remove(adns_reply_event_id);
 			adns_reply_event_id = 0;
-			fd_close(&adns_query_fd, FALSE);
+			fd_close(&adns_query_fd);
 			return FALSE;
 		}
 		written = 0;

@@ -179,7 +179,7 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n_leaves)
 		} else if ((size_t) ret != size) {
 			g_warning("tth_cache_insert(): incomplete write()");
 		}
-		fd_close(&fd, TRUE);
+		fd_forget_and_close(&fd);
 	}
 }
 
@@ -285,7 +285,7 @@ tth_cache_get_leaves(const struct tth *tth,
 				}
 			}
 		}
-		fd_close(&fd, TRUE);
+		fd_forget_and_close(&fd);
 	}
 	return num_leaves;
 }

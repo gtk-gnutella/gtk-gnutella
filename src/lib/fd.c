@@ -225,34 +225,43 @@ fd_set_nonblocking(int fd)
  * the descriptor is already -1.
  *
  * @param fd_ptr Must point to a non-negative file descriptor or -1.
- * @param clear_cache If TRUE posix_fadvise() is called with
- *		  POSIX_FADV_DONTNEED. This should only be used for regular
- *		  files.
  *
  * @return 0 on success, -1 on error.
  */
 int
-fd_close(int *fd_ptr, gboolean clear_cache)
+fd_close(int *fd_ptr)
 {
-	int ret;
-	int fd;
+	int ret, fd;
 
-	g_assert(fd_ptr != NULL);
+	g_assert(NULL != fd_ptr);
 
 	fd = *fd_ptr;
 	g_assert(fd >= -1);
 
-	if (fd < 0)
-		return 0;
-
-	if (clear_cache) {
-		compat_fadvise_dontneed(fd, 0, 0);
+	if (fd < 0) {
+		ret = 0;
+	} else {
+		ret = close(fd);
+		*fd_ptr = -1;
 	}
-
-	ret = close(fd);
-	*fd_ptr = -1;
-
 	return ret;
+}
+
+/**
+ * Identical to fd_close() except that it also calls posix_fadvise() with
+ * POSIX_FADV_DONTNEED for the complete file to clear it from the file
+ * cache. This is only be useful for regular files which we don't intend
+ * to access anytime soon again.
+ */
+int
+fd_forget_and_close(int *fd_ptr)
+{
+	g_assert(NULL != fd_ptr);
+
+	if (*fd_ptr >= 0) {
+		compat_fadvise_dontneed(*fd_ptr, 0, 0);
+	}
+	return fd_close(fd_ptr);
 }
 
 /**

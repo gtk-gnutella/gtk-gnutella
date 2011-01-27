@@ -267,7 +267,7 @@ ostream_close_file(ostream_t *os)
 		os->u.f = NULL;
 		break;
 	case OSTREAM_T_FD:
-		ret = fd_close(&os->u.fd, FALSE);
+		ret = fd_close(&os->u.fd);
 		break;
 	case OSTREAM_T_MEM:
 	case OSTREAM_T_PMSG:

@@ -224,7 +224,7 @@ big_free(DBM *db)
 	big_datfile_free_null(&dbg->file);
 	WFREE_NULL(dbg->bitbuf, BIG_BLKSIZE);
 	HFREE_NULL(dbg->scratch);
-	fd_close(&dbg->fd, TRUE);
+	fd_forget_and_close(&dbg->fd);
 	wfree(dbg, sizeof *dbg);
 }
 
@@ -1345,7 +1345,7 @@ big_clear(DBM *db)
 
 	g_assert(dbg->fd != -1);
 
-	if (-1 == fd_close(&dbg->fd, TRUE))
+	if (-1 == fd_forget_and_close(&dbg->fd))
 		return FALSE;
 
 	dbg->bitbno = -1;

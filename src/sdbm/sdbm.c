@@ -487,8 +487,8 @@ sdbm_close(DBM *db)
 		WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
 #endif
 		WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
-		fd_close(&db->dirf, TRUE);
-		fd_close(&db->pagf, TRUE);
+		fd_forget_and_close(&db->dirf);
+		fd_forget_and_close(&db->pagf);
 #ifdef BIGDATA
 		big_free(db);
 #endif

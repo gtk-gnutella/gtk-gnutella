@@ -343,7 +343,7 @@ file_object_free(struct file_object * const fo)
 		file_object_remove(fo);
 	}
 
-	fd_close(&fo->fd, FALSE);
+	fd_close(&fo->fd);
 	atom_str_free_null(&fo->pathname);
 	fo->magic = 0;
 	wfree(fo, sizeof *fo);
@@ -467,7 +467,7 @@ file_object_rename(const char * const old_name, const char * const new_name)
 		GM_SLIST_FOREACH(objects, sl) {
 			struct file_object *fo = sl->data;
 
-			fd_close(&fo->fd, TRUE);
+			fd_forget_and_close(&fo->fd);
 		}
 	}
 
@@ -563,7 +563,7 @@ file_object_unlink(const char * const path)
 		GM_SLIST_FOREACH(objects, sl) {
 			struct file_object *fo = sl->data;
 
-			fd_close(&fo->fd, TRUE);
+			fd_forget_and_close(&fo->fd);
 		}
 	}
 

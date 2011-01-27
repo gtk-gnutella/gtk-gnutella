@@ -1441,7 +1441,7 @@ pmap_load_data(struct pmap *pm)
 	ret = 0;
 
 failure:
-	fd_close(&fd, FALSE);
+	fd_close(&fd);
 	return ret;
 }
 

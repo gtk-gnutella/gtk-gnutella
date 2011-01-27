@@ -728,17 +728,18 @@ html_load_file(struct html_output *output, int fd)
 		goto error;
 	}
 	size = sb.st_size;
+	/* FIXME: Not available on MINGW! Replace with vmm_loadfile() */
 	p = vmm_mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (MAP_FAILED == p) {
 		perror("open");
 		goto error;
 	}
-	fd_close(&fd, FALSE);
+	fd_close(&fd);
 
 	ret = html_load_memory(output, array_init(p, size));
 
 error:
-	fd_close(&fd, TRUE);
+	fd_forget_and_close(&fd);
 	if (MAP_FAILED != p) {
 		vmm_munmap(p, size);
 	}

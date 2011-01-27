@@ -562,7 +562,7 @@ local_shell(const char *socket_path)
 	}
 	if (0 != compat_connect(fd, (const void *) &addr, sizeof addr)) {
 		perror("local_shell(): connect() failed");
-		fd_close(&fd, FALSE);
+		fd_close(&fd);
 		goto failure;
 	}
 

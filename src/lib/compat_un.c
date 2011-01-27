@@ -397,7 +397,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 			goto partial_write;
 	}
 
-	if (-1 == fd_close(&fd, TRUE))
+	if (-1 == fd_forget_and_close(&fd))
 		goto io_error;
 
 	sun->bound = TRUE;
