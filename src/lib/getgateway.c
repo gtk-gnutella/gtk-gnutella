@@ -310,6 +310,8 @@ found:
 	dest.sa_family = AF_UNSPEC;
 	mask.sa_family = AF_UNSPEC;
 
+	STATIC_ASSERT(sizeof *rt + 2 * sizeof dest <= sizeof buf);
+
 	p = payload;
 	memcpy(p, &dest, sizeof dest);
 	p += sizeof dest;
@@ -317,6 +319,8 @@ found:
 	p += sizeof mask;
 
 	rt->rtm_msglen = (p - payload) + sizeof *rt;
+
+	g_assert(rt->rtm_msglen <= sizeof buf);
 
 	rw = write(fd, rt, rt->rtm_msglen);
 	if (UNSIGNED(rw) != rt->rtm_msglen)
@@ -338,9 +342,12 @@ found:
 		int i;
 
 		for (p = payload, i = 1; i; i <<= 1) {
+			g_assert(ptr_diff(p, rt) < sizeof buf);
+
 			if (i & rt->rtm_addrs) {
 				if (i == RTA_GATEWAY) {
 					gate = (struct sockaddr *) p;
+					g_assert(ptr_diff(gate + 1, rt) <= sizeof buf);
 					goto got_gateway;
 				}
 				p += sizeof *gate;
