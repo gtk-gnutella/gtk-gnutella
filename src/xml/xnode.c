@@ -1040,8 +1040,8 @@ xnode_tree_find_until_depth(xnode_t *root,
 
 /**
  * Same as xnode_tree_find() but limit search to specified depth: 0 means
- * the root node only, 1 corresponds the immediate children of the root, and
- * so on.
+ * the root node only, 1 corresponds to the immediate children of the root,
+ * and so on.
  *
  * @return the first matching node in the traversal path, NULL if none matched.
  */

@@ -6211,6 +6211,14 @@ namespace_text(vxml_parser_t *vp,
 	g_assert(0 == strcmp("urn:y-ns", vxml_parser_current_namespace(vp)));
 }
 
+static gboolean
+vxml_node_is_named(const xnode_t *xn, void *data)
+{
+	const char *name = data;
+
+	return xnode_is_element(xn) && 0 == strcmp(name, xnode_element_name(xn));
+}
+
 void
 vxml_test(void)
 {
@@ -6335,6 +6343,12 @@ vxml_test(void)
 	 */
 
 	g_assert(0 == strcmp("a", xnode_element_name(root)));
+
+	xn = xnode_tree_find_depth(root, 1, vxml_node_is_named, "c");
+	g_assert(NULL == xn);
+
+	xn = xnode_tree_find_depth(root, 2, vxml_node_is_named, "c");
+	g_assert(xn != NULL);
 
 	xn = xnode_first_child(root);
 	g_assert(xn != NULL);
