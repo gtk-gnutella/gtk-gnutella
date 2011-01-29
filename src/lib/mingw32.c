@@ -1903,11 +1903,6 @@ mingw_early_init(void)
 		freopen("CONIN$", "rb", stdin);
 		freopen("CONOUT$", "wb", stdout);
 		freopen("CONOUT$", "wb", stderr);
-#if 1 /* XXX */
-		fprintf(stderr, "fileno(stdin)=%d\n", fileno(stdin));
-		fprintf(stderr, "fileno(stdout)=%d\n", fileno(stdout));
-		fprintf(stderr, "fileno(stderr)=%d\n", fileno(stderr));
-#endif /* XXX */
 	} else {
 		console_err = GetLastError();
 
