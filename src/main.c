@@ -1533,8 +1533,10 @@ main(int argc, char **argv)
 
 	malloc_show_settings();
 	version_init();
-	crash_setver(version_get_string());
-	crash_post_init();		/* Done with crash initialization */
+	if (!is_running_on_mingw()) {
+		crash_setver(version_get_string());
+		crash_post_init();		/* Done with crash initialization */
+	}
 
 	/* Our regular inits */
 	
