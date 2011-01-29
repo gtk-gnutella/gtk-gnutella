@@ -422,8 +422,10 @@ upnp_dscv_got_ctrl_reply(int code, void *value, size_t size, void *arg)
 	 */
 
 	if (!(*cb)(code, value, size, ud)) {
+		/* SOAP error, remove the device */
 		mcb->devices = g_slist_remove(mcb->devices, ud);
 		upnp_dscv_free(ud);
+		goto done;
 	}
 
 	/*
@@ -437,6 +439,7 @@ upnp_dscv_got_ctrl_reply(int code, void *value, size_t size, void *arg)
 			return;
 	}
 
+done:
 	upnp_dscv_updated(mcb);
 }
 
