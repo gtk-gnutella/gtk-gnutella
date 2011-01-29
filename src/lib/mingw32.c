@@ -125,7 +125,7 @@ typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
 WSAPoll_func_t WSAPoll = NULL;
 
 typedef struct pncs {
-	const wchar_t *utf16;
+	wchar_t *utf16;
 } pncs_t;
 
 static wchar_t *
