@@ -182,6 +182,54 @@ mingw_fd_is_opened(int fd)
 		 0 == WSAHtonl((SOCKET) fd, 666, &dummy);
 }
 
+/**
+ * Remap Windows-specific errors into POSIX ones.
+ */
+static int
+mingw_win2errno(int error)
+{
+	/*
+	 * This is required when using non-POSIX routines, for instance
+	 * _wmkdir() instead of mkdir(), so that regular errno procesing
+	 * can occur in the code.
+	 *
+	 * FIXME: Many errors are missing, only the first ones are handled.
+	 */
+
+	switch (error) {
+	case ERROR_ALREADY_EXISTS:
+		return EEXIST;
+	case ERROR_INVALID_FUNCTION:
+		return ENOSYS;
+	case ERROR_FILE_NOT_FOUND:
+		return ENOFILE;
+	case ERROR_PATH_NOT_FOUND:
+		return ENOENT;
+	case ERROR_TOO_MANY_OPEN_FILES:
+		return EMFILE;
+	case ERROR_ACCESS_DENIED:
+		return EPERM;
+	case ERROR_INVALID_HANDLE:
+		return EBADF;
+	case ERROR_NOT_ENOUGH_MEMORY:
+		return ENOMEM;
+	case ERROR_INVALID_ACCESS:
+		return EPERM;
+	case ERROR_OUTOFMEMORY:
+		return ENOMEM;
+	case ERROR_INVALID_DRIVE:
+		return ENXIO;
+	case ERROR_NOT_SAME_DEVICE:
+		return EXDEV;
+	case ERROR_NO_MORE_FILES:
+		return ENFILE;
+	case ERROR_WRITE_PROTECT:
+		return EPERM;
+	}
+
+	return error;
+}
+
 int
 mingw_fcntl(int fd, int cmd, ... /* arg */ )
 {
@@ -361,8 +409,9 @@ mingw_mkdir(const char *pathname, mode_t mode)
 
 	pncs = pncs_convert(pathname);
 	res = _wmkdir(pncs.utf16);
-	if (-1 == res)
-		errno = GetLastError();
+	if (-1 == res) {
+		errno = mingw_win2errno(GetLastError());
+	}
 
 	pncs_release(&pncs);
 	return res;
@@ -377,7 +426,7 @@ mingw_access(const char *pathname, int mode)
 	pncs = pncs_convert(pathname);
 	res = _waccess(pncs.utf16, mode);
 	if (-1 == res)
-		errno = GetLastError();
+		errno = mingw_win2errno(GetLastError());
 
 	pncs_release(&pncs);
 	return res;
@@ -392,7 +441,7 @@ mingw_chdir(const char *pathname)
 	pncs = pncs_convert(pathname);
 	res = _wchdir(pncs.utf16);
 	if (-1 == res)
-		errno = GetLastError();
+		errno = mingw_win2errno(GetLastError());
 
 	pncs_release(&pncs);
 	return res;
@@ -407,7 +456,7 @@ mingw_remove(const char *pathname)
 	pncs = pncs_convert(pathname);
 	res = _wremove(pncs.utf16);
 	if (-1 == res)
-		errno = GetLastError();
+		errno = mingw_win2errno(GetLastError());
 
 	pncs_release(&pncs);
 	return res;
@@ -430,7 +479,7 @@ mingw_stat(const char *pathname, struct stat *buf)
 	pncs = pncs_convert(pathname);
 	res = _wstat(pncs.utf16, &_buf);
 	if (-1 == res) {
-		errno = GetLastError();
+		errno = mingw_win2errno(GetLastError());
 	} else {
 		/*
 		 * We can't copy structs since field types within struct buf and
@@ -464,7 +513,7 @@ mingw_unlink(const char *pathname)
 	pncs = pncs_convert(pathname);
 	res = _wunlink(pncs.utf16);
 	if (-1 == res)
-		errno = GetLastError();
+		errno = mingw_win2errno(GetLastError());
 
 	pncs_release(&pncs);
 	return res;
@@ -510,7 +559,7 @@ mingw_open(const char *pathname, int flags, ...)
 	pncs = pncs_convert(pathname);
 	res = _wopen(pncs.utf16, flags, mode);
 	if (-1 == res)
-		errno = GetLastError();
+		errno = mingw_win2errno(GetLastError());
 
 	pncs_release(&pncs);
 	return res;
@@ -525,7 +574,7 @@ mingw_opendir(const char *pathname)
 	pncs = pncs_convert(pathname);
 	res = _wopendir(pncs.utf16);
 	if (NULL == res)
-		errno = GetLastError();
+		errno = mingw_win2errno(GetLastError());
 
 	pncs_release(&pncs);
 	return res;
@@ -538,7 +587,7 @@ mingw_readdir(void *dir)
 
 	res = _wreaddir(dir);
 	if (NULL == res) {
-		errno = GetLastError();
+		errno = mingw_win2errno(GetLastError());
 		return NULL;
 	}
 	return res;
@@ -549,7 +598,7 @@ mingw_closedir(void *dir)
 {
 	int res = _wclosedir(dir);
 	if (-1 == res)
-		errno = GetLastError();
+		errno = mingw_win2errno(GetLastError());
 	return 0;
 }
 

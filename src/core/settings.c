@@ -1475,7 +1475,8 @@ enable_local_socket_changed(property_t prop)
 				socket_path = settings_local_socket_path();
 				s_local_listen = socket_local_listen(socket_path);
 			} else {
-				g_warning("mkdir() failed: %s", g_strerror(errno));
+				g_warning("mkdir(\"%s\") failed: %s (errno = %d)",
+					ipc_dir, g_strerror(errno), errno);
 			}
 
 			if (!s_local_listen) {
