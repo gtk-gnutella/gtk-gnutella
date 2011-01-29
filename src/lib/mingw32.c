@@ -1828,12 +1828,20 @@ mingw_early_init(void)
 
 	_fcloseall();
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+		int fd;
+
 		fclose(stdin);
 		fclose(stdout);
 		fclose(stderr);
-		freopen("CONIN$", "rb", stdin);
-		freopen("CONOUT$","wb",stdout);
-		freopen("CONOUT$","wb",stderr);
+		
+		fd = open("CONIN$", O_BINARY | O_RDONLY);
+		stdin = fdopen(fd, "rb");
+	
+		fd = open("CONOUT$", O_BINARY | O_WRONLY);
+		stdout = fdopen(fd, "wb");
+
+		fd = open("CONOUT$", O_BINARY | O_WRONLY);
+		stderr = fdopen(fd, "wb");
 #if 1 /* XXX */
 		fprintf(stderr, "fileno(stdin)=%d\n", fileno(stdin));
 		fprintf(stderr, "fileno(stdout)=%d\n", fileno(stdout));
