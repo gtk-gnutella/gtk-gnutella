@@ -1488,7 +1488,7 @@ main(int argc, char **argv)
 	log_init();
 	parse_arguments(argc, argv);
 	initialize_logfiles();
-	if (!is_running_on_mingw()) {
+	{
 		int flags = 0;
 
 		flags |= options[main_arg_pause_on_crash].used ? CRASH_F_PAUSE : 0;
@@ -1517,26 +1517,22 @@ main(int argc, char **argv)
 	eval_init();
 	settings_early_init();
 
-	if (!is_running_on_mingw()) {
-		/*
-		 * This MUST be called after handle_arguments_asap() in case the
-		 * --daemonize switch is used.
-		 *
-		 * It can only be called after settings_early_init() since this
-		 * is where the crash directory is initialized.
-		 */
-		crash_setdir(settings_crash_dir());
-	}
+	/*
+	 * This MUST be called after handle_arguments_asap() in case the
+	 * --daemonize switch is used.
+	 *
+	 * It can only be called after settings_early_init() since this
+	 * is where the crash directory is initialized.
+	 */
+	crash_setdir(settings_crash_dir());
 
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
 	malloc_show_settings();
 	version_init();
-	if (!is_running_on_mingw()) {
-		crash_setver(version_get_string());
-		crash_post_init();		/* Done with crash initialization */
-	}
+	crash_setver(version_get_string());
+	crash_post_init();		/* Done with crash initialization */
 
 	/* Our regular inits */
 	
