@@ -1828,13 +1828,16 @@ mingw_early_init(void)
 
 	_fcloseall();
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+		fclose(stdin);
+		fclose(stdout);
+		fclose(stderr);
 		freopen("CONIN$", "rb", stdin);
 		freopen("CONOUT$","wb",stdout);
 		freopen("CONOUT$","wb",stderr);
 #if 1 /* XXX */
-		fprintf(stderr, "fileno(stin)=%d\n", fileno(stdin));
-		fprintf(stderr, "fileno(stout)=%d\n", fileno(stdout));
-		fprintf(stderr, "fileno(sterr)=%d\n", fileno(stderr));
+		fprintf(stderr, "fileno(stdin)=%d\n", fileno(stdin));
+		fprintf(stderr, "fileno(stdout)=%d\n", fileno(stdout));
+		fprintf(stderr, "fileno(stderr)=%d\n", fileno(stderr));
 #endif /* XXX */
 	} else {
 		console_err = GetLastError();
