@@ -1826,7 +1826,7 @@ mingw_early_init(void)
 {
 	int console_err;
 
-	fcloseall();
+	_fcloseall();
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
 		freopen("CONIN$", "rb", stdin);
 		freopen("CONOUT$","wb",stdout);
