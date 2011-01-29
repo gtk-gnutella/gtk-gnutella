@@ -188,12 +188,20 @@ mingw_fd_is_opened(int fd)
 static int
 mingw_win2errno(int error)
 {
+	static GHashTable *warned;
+
+	if (NULL == warned) {
+		warned = NOT_LEAKING(g_hash_table_new(NULL, NULL));
+	}
+
 	/*
 	 * This is required when using non-POSIX routines, for instance
 	 * _wmkdir() instead of mkdir(), so that regular errno procesing
 	 * can occur in the code.
 	 *
 	 * FIXME: Many errors are missing, only the first ones are handled.
+	 * A warning will be emitted when we hit an un-remapped error, but this
+	 * is going to be a painful iterative convergence.
 	 */
 
 	switch (error) {
@@ -225,6 +233,12 @@ mingw_win2errno(int error)
 		return ENFILE;
 	case ERROR_WRITE_PROTECT:
 		return EPERM;
+	default:
+		if (!gm_hash_table_contains(warned, int_to_pointer(error))) {
+			g_warning("Windows error code %d (%s) not remapped to a POSIX one",
+				error, g_strerror(error));
+			g_hash_table_insert(warned, int_to_pointer(error), NULL);
+		}
 	}
 
 	return error;
