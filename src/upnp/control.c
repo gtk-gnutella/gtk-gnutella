@@ -165,6 +165,7 @@ static gboolean
 upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 {
 	xnode_t *fcode, *fstring, *detail, *uerror;
+	const char *parse_error = NULL;
 
 	g_assert(fault != NULL);
 
@@ -196,27 +197,34 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 		deconstify_gchar(SOAP_FAULT_CODE));
 
 	if (NULL == fcode) {
-		return FALSE;
+		parse_error = "cannot find <faultcode>";
+		goto error;
 	} else {
 		const char *value;
 		const char *name;
 
 		value = xnode_text(fcode);
-		if (NULL == value)
-			return FALSE;
+		if (NULL == value) {
+			parse_error = "<faultcode> is not a text node";
+			goto error;
+		}
 
 		/*
 		 * We're only handling "Client" errors.
 		 */
 
 		name = strrchr(value, ':');
-		if (NULL == name)
-			return FALSE;
+		if (NULL == name) {
+			parse_error = "no ':' in fault code name";
+			goto error;
+		}
 
 		name++;
 
-		if (0 != strcmp(name, SOAP_CLIENT_FAULT))
-			return FALSE;
+		if (0 != strcmp(name, SOAP_CLIENT_FAULT)) {
+			parse_error = "not a Client fault";
+			goto error;
+		}
 	}
 
 	/*
@@ -241,22 +249,29 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 		deconstify_gchar(SOAP_FAULT_STRING));
 
 	if (NULL == fstring) {
-		return FALSE;
+		parse_error = "no <faultstring> found";
+		goto error;
 	} else {
 		const char *value = xnode_text(fstring);
 
-		if (NULL == value)
-			return FALSE;
+		if (NULL == value) {
+			parse_error = "<faultstring> is not a text node";
+			goto error;
+		}
 
-		if (0 != strcmp(value, SOAP_UPNP_ERROR))
-			return FALSE;
+		if (0 != strcmp(value, SOAP_UPNP_ERROR)) {
+			parse_error = "<faultstring> is not an UPnP error";
+			goto error;
+		}
 	}
 
 	detail = xnode_tree_find_depth(fault, 1, node_named_as,
 		deconstify_gchar(SOAP_FAULT_DETAIL));
 
-	if (NULL == detail)
-		return FALSE;
+	if (NULL == detail) {
+		parse_error = "no <detail> found";
+		goto error;
+	}
 
 	/*
 	 * First child must be a <UPnpError> tag.
@@ -273,16 +288,22 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 			xn = xnode_tree_find_depth(uerror, 1,
 				node_named_as, deconstify_gchar(UPNP_ERROR_CODE));
 
-			if (NULL == xn)
-				return FALSE;
+			if (NULL == xn) {
+				parse_error = "no <errorCode> found";
+				goto error;
+			}
 
 			value = xnode_text(xn);
-			if (NULL == value)
-				return FALSE;
+			if (NULL == value) {
+				parse_error = "<errorCode> is not a text node";
+				goto error;
+			}
 
 			*code = parse_uint32(value, NULL, 10, &err);
-			if (error)
-				return FALSE;
+			if (error) {
+				parse_error = "cannot parse <errorCode> value";
+				goto error;
+			}
 		}
 
 		if (error != NULL) {
@@ -291,8 +312,16 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 
 			*error = (NULL == xn) ? NULL : xnode_text(xn);
 		}
-		return TRUE;
+	} else {
+		parse_error = "no <UPnPError> found";
+		goto error;
 	}
+
+	return TRUE;
+
+error:
+	if (GNET_PROPERTY(upnp_debug))
+		g_warning("UPNP fault parsing error: %s", EMPTY_STRING(parse_error));
 
 	return FALSE;
 }
