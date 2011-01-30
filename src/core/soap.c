@@ -647,7 +647,8 @@ soap_build_request(const http_async_t *ha,
 {
 	soap_rpc_t *sr = http_async_get_opaque(ha);
 	size_t rw;
-	
+	const char *fixed_header;
+
 	soap_rpc_check(sr);
 	g_assert(len <= INT_MAX);
 
@@ -660,39 +661,51 @@ soap_build_request(const http_async_t *ha,
 		sr->regular = TRUE;
 	}
 
+	if (sr->options & SOAP_RPC_O_ALL_CAPS) {
+		fixed_header =
+			"ACCEPT-ENCODING: deflate\r\n"
+			"CONNECTION: close\r\n"
+			"CACHE-CONTROL: no-cache\r\n"
+			"PRAGMA: no-cache\r\n";
+	} else {
+		fixed_header =
+			"Accept-Encoding: deflate\r\n"
+			"Connection: close\r\n"
+			"Cache-Control: no-cache\r\n"
+			"Pragma: no-cache\r\n";
+	}
+
 	if (sr->mandatory) {
 		if (sr->options & SOAP_RPC_O_ALL_CAPS) {
 			rw = gm_snprintf(buf, len,
 				"M-%s %s HTTP/1.1\r\n"
 				"HOST: %s\r\n"
 				"USER-AGENT: %s\r\n"
-				"ACCEPT-ENCODING: deflate\r\n"
 				"CONTENT-TYPE: %s\r\n"
 				"CONTENT-LENGTH: %s\r\n"
-				"CONNECTION: close\r\n"
+				"%s"						/* Fixed header part */
 				"MAN: \"%s\"; ns=01\r\n"
 				"01-SOAPACTION: \"%s\"\r\n"
 				"\r\n",
 				verb, path,
 				http_async_remote_host_port(ha),
 				version_string, content_type, size_t_to_string(content_len),
-				SOAP_NAMESPACE, sr->action);
+				fixed_header, SOAP_NAMESPACE, sr->action);
 		} else {
 			rw = gm_snprintf(buf, len,
 				"M-%s %s HTTP/1.1\r\n"
 				"Host: %s\r\n"
 				"User-Agent: %s\r\n"
-				"Accept-Encoding: deflate\r\n"
 				"Content-Type: %s\r\n"
 				"Content-Length: %s\r\n"
-				"Connection: close\r\n"
+				"%s"						/* Fixed header part */
 				"Man: \"%s\"; ns=01\r\n"
 				"01-SOAPAction: \"%s\"\r\n"
 				"\r\n",
 				verb, path,
 				http_async_remote_host_port(ha),
 				version_string, content_type, size_t_to_string(content_len),
-				SOAP_NAMESPACE, sr->action);
+				fixed_header, SOAP_NAMESPACE, sr->action);
 		}
 	} else {
 		if (sr->options & SOAP_RPC_O_ALL_CAPS) {
@@ -700,31 +713,29 @@ soap_build_request(const http_async_t *ha,
 				"%s %s HTTP/1.1\r\n"
 				"HOST: %s\r\n"
 				"USER-AGENT: %s\r\n"
-				"ACCEPT-ENCODING: deflate\r\n"
 				"CONTENT-TYPE: %s\r\n"
 				"CONTENT-LENGTH: %s\r\n"
-				"CONNECTION: close\r\n"
+				"%s"						/* Fixed header part */
 				"SOAPACTION: \"%s\"\r\n"
 				"\r\n",
 				verb, path,
 				http_async_remote_host_port(ha),
 				version_string, content_type, size_t_to_string(content_len),
-				sr->action);
+				fixed_header, sr->action);
 		} else {
 			rw = gm_snprintf(buf, len,
 				"%s %s HTTP/1.1\r\n"
 				"Host: %s\r\n"
 				"User-Agent: %s\r\n"
-				"Accept-Encoding: deflate\r\n"
 				"Content-Type: %s\r\n"
 				"Content-Length: %s\r\n"
-				"Connection: close\r\n"
+				"%s"						/* Fixed header part */
 				"SOAPAction: \"%s\"\r\n"
 				"\r\n",
 				verb, path,
 				http_async_remote_host_port(ha),
 				version_string, content_type, size_t_to_string(content_len),
-				sr->action);
+				fixed_header, sr->action);
 		}
 	}
 
