@@ -215,6 +215,9 @@ filename_sanitize(const char *filename, gboolean no_spaces, gboolean no_evil)
 
 	g_assert(filename);
 
+	/* Almost all evil characters are forbidden on Windows, anyway */
+	no_evil |= is_running_on_mingw();
+
 	/* Leading spaces are just confusing */
 	filename = skip_ascii_spaces(filename);
 
