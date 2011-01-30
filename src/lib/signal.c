@@ -55,6 +55,18 @@ RCSID("$Id$")
 #define SIGNAL_CHUNK_RESERVE	512		/**< Critical amount reserved */
 
 /**
+ * On Windows, Configure's determination of SIG_COUNT varies depending on
+ * compiler flags or on the OS (e.g. Windows XP versus Windows 7) and that
+ * prevents binary compatiblity.  Also, under some compilation flags, SIG_COUNT
+ * is just incorrect (too small).
+ */
+#ifdef MINGW32
+#define SIGNAL_COUNT	32
+#else
+#define SIGNAL_COUNT	SIG_COUNT		/* Trust Configure on UNIX machines */
+#endif
+
+/**
  * Table mapping a signal number with a symbolic name.
  *
  * Contrary to the signal_names[] below, this is using compiled constants
@@ -81,13 +93,14 @@ static const struct {
 /**
  * Array mapping a signal number to a signal name (leading "SIG" ommitted).
  * This is used in case the signal is not found in the signals[] table.
+ * There are SIG_COUNT entries in that array (also computed by Configure).
  */
 static char *signal_names[] = { SIG_NAME };	/* Computed by Configure */
 
 /**
  * Array recording signal handlers for signals.
  */
-static signal_handler_t signal_handler[SIG_COUNT];
+static signal_handler_t signal_handler[SIGNAL_COUNT];
 
 /**
  * A chunk of memory that can be used to safely allocate data within a
@@ -191,7 +204,7 @@ signal_trampoline(int signo)
 {
 	signal_handler_t handler;
 
-	g_assert(signo > 0 && signo < SIG_COUNT);
+	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
 	handler = signal_handler[signo];
 
@@ -247,9 +260,9 @@ signal_set(int signo, signal_handler_t handler)
 	signal_handler_t ret, old_handler, trampoline;
 
 	g_assert(handler != SIG_ERR);
-	g_assert(signo > 0 && signo < SIG_COUNT);
+	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
-	STATIC_ASSERT(SIG_COUNT == G_N_ELEMENTS(signal_handler));
+	STATIC_ASSERT(SIGNAL_COUNT == G_N_ELEMENTS(signal_handler));
 
 	if (G_UNLIKELY(NULL == sig_chunk))		/* No signal_init() yet */
 		signal_init();
@@ -304,7 +317,7 @@ signal_set(int signo, signal_handler_t handler)
 void
 signal_unblock(int signo)
 {
-	g_assert(signo > 0 && signo < SIG_COUNT);
+	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
 #ifdef HAS_SIGPROCMASK
 	{
