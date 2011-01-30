@@ -10,6 +10,7 @@
 # glib/GTK installed in /mingw/lib/gtk (bundled .zip with all dependencies)
 # libxml2 installed in /mingw/lib/xml2
 # regex installed in /mingw/lib/regex
+# gnutls and its libraries installed in /mingw/lib/gtk (to use pkg-config)
 #
 # If not, adjust the PATH below, along with INCDIRS & LIBDIRS
 
@@ -17,9 +18,11 @@
 PATH=$PATH${PATH:+:}/mingw/lib/gtk/bin:/mingw/lib/xml2/bin
 export PATH
 
+lib=/mingw/lib
+
 OPTIMIZE='-O2 -g'
-INCDIRS='-I/mingw/lib/regex/include -I/mingw/lib/gtk/include'
-LIBDIRS='-L/mingw/lib/regex/lib -L/mingw/lib/gtk/lib'
+INCDIRS="-I$lib/regex/include -I$lib/gtk/include"
+LIBDIRS="-L$lib/regex/lib -L$lib/gtk/lib"
 LIBS='-lwsock32 -lws2_32 -lregex -lz -liconv -limagehlp -liphlpapi -lws2_32
 	-lpowrprof -lpsapi -lkernel32'
 
