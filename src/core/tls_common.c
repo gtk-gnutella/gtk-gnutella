@@ -693,9 +693,9 @@ tls_writev(struct wrap_io *wio, const iovec_t *iov, int iovcnt)
 	done = 0;
 	ret = 0;
 	for (i = 0; i < iovcnt; i++) {
-		const size_t size = iov[i].iov_len;
+		const size_t size = iovec_len(&iov[i]);
 
-		ret = tls_write(wio, iov[i].iov_base, size);
+		ret = tls_write(wio, iovec_base(&iov[i]), size);
 		if ((ssize_t) -1 == ret)
 			break;
 		done += (size_t) ret;
@@ -718,9 +718,9 @@ tls_readv(struct wrap_io *wio, iovec_t *iov, int iovcnt)
 	done = 0;
 	ret = 0;
 	for (i = 0; i < iovcnt; i++) {
-		const size_t size = iov[i].iov_len;
+		const size_t size = iovec_len(&iov[i]);
 
-		ret = tls_read(wio, iov[i].iov_base, size);
+		ret = tls_read(wio, iovec_base(&iov[i]), size);
 		if ((ssize_t) -1 == ret)
 			break;
 		done += (size_t) ret;
