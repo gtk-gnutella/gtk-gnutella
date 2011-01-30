@@ -85,7 +85,7 @@ get_fs_info(const char *path, struct fs_info *fsi)
 #if defined(HAS_STATVFS)
 	{
 		/* statvfs() is a POSIX.1-2001 system call */
-		Stat_tvfs buf;
+		struct statvfs buf;
 
 		if (-1 == statvfs(path, &buf)) {
 			g_warning("statvfs(\"%s\") failed: %s", path, g_strerror(errno));
@@ -97,7 +97,7 @@ get_fs_info(const char *path, struct fs_info *fsi)
 #elif defined(HAS_STATFS)
 	{
 		/* statfs() is deprecated but older systems may not have statvfs() */
-		Stat_tfs buf;
+		struct statfs buf;
 
 		if (-1 == statfs(path, &buf)) {
 			g_warning("statfs(\"%s\") failed: %s", path, g_strerror(errno));
