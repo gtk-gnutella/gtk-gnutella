@@ -1759,7 +1759,7 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
  * bandwidth constraints.
  */
 ssize_t
-bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, Off_t *offset,
+bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, fileoffset_t *offset,
 	size_t len)
 {
 #if !defined(HAS_MMAP) && !defined(HAS_SENDFILE)
@@ -1788,7 +1788,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, Off_t *offset,
 	size_t available;
 	ssize_t r;
 	int out_fd;
-	Off_t start;
+	fileoffset_t start;
 
 	g_assert(ctx);
 	bio_check(bio);
@@ -1799,7 +1799,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, Off_t *offset,
 
 	start = *offset;
 	g_assert(start >= 0);
-	g_assert(start + (Off_t) len > start);
+	g_assert(start + (fileoffset_t) len > start);
 
 	out_fd = bio->wio->fd(bio->wio);
 
@@ -1833,7 +1833,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, Off_t *offset,
 		) {
 			static const size_t min_map_size = 64 * 1024;
 			size_t map_len, old_len;
-			Off_t map_start;
+			fileoffset_t map_start;
 			int flags = MAP_PRIVATE;
 			void *addr;
 
@@ -1851,7 +1851,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, Off_t *offset,
 
 			if (
 				map_len < min_map_size &&
-				MAX_INT_VAL(Off_t) - map_start >= min_map_size
+				MAX_INT_VAL(fileoffset_t) - map_start >= min_map_size
 			) {
 				map_len = min_map_size;
 			}
@@ -1927,7 +1927,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, Off_t *offset,
 	 */
 
 	{
-		Off_t written = 0;
+		fileoffset_t written = 0;
 
 		r = sendfile(in_fd, out_fd, start, amount, NULL, &written, 0);
 		if ((ssize_t) -1 == r) {

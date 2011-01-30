@@ -192,7 +192,7 @@ struct msghdr {
 	int msg_flags;				/* Flags on received message.  */
 };
 
-typedef __int64 Off_t;
+typedef __int64 fileoffset_t;
 typedef struct _stati64 Stat_t;
 
 struct passwd {
@@ -210,8 +210,8 @@ struct passwd {
 struct flock {
     short int l_type;	/* Type of lock: F_RDLCK, F_WRLCK, or F_UNLCK.  */
     short int l_whence;	/* Where `l_start' is relative to (like `lseek').  */
-    Off_t l_start;		/* Offset where the lock begins.  */
-    Off_t l_len;		/* Size of the locked area; zero means until EOF.  */
+    fileoffset_t l_start;		/* Offset where the lock begins.  */
+    fileoffset_t l_len;		/* Size of the locked area; zero means until EOF.  */
     pid_t l_pid;		/* Process holding the lock.  */
 };
 
@@ -322,9 +322,9 @@ int mingw_unlink(const char *pathname);
 void *mingw_opendir(const char *pathname);
 void *mingw_readdir(void *);
 int mingw_closedir(void *);
-Off_t mingw_lseek(int fd, Off_t offset, int whence);
+fileoffset_t mingw_lseek(int fd, fileoffset_t offset, int whence);
 int mingw_rename(const char *oldpathname, const char *newpathname);
-int mingw_truncate(const char *pathname, Off_t len);
+int mingw_truncate(const char *pathname, fileoffset_t len);
 int mingw_mkdir(const char *pathname, mode_t mode);
 int mingw_access(const char *pathname, int mode);
 int mingw_chdir(const char *pathname);

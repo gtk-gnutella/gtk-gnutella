@@ -70,9 +70,9 @@ compat_pwrite(const int fd,
 	const void * const data, const size_t size, const filesize_t pos)
 #ifdef HAS_PWRITE
 {
-	Off_t offset = filesize_to_Off_t(pos);
+	fileoffset_t offset = filesize_to_fileoffset_t(pos);
 
-	if ((Off_t) -1 == offset) {
+	if ((fileoffset_t) -1 == offset) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -107,9 +107,9 @@ compat_pwritev(const int fd,
 	const iovec_t * const iov, const int iov_cnt, const filesize_t pos)
 #ifdef HAS_PWRITEV
 {
-	Off_t offset = filesize_to_Off_t(pos);
+	fileoffset_t offset = filesize_to_fileoffset_t(pos);
 
-	if (NULL == iov || iov_cnt < 1 || (Off_t) -1 == offset) {
+	if (NULL == iov || iov_cnt < 1 || (fileoffset_t) -1 == offset) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -152,9 +152,9 @@ compat_pread(const int fd,
 	void * const data, const size_t size, const filesize_t pos)
 #ifdef HAS_PREAD
 {
-	Off_t offset = filesize_to_Off_t(pos);
+	fileoffset_t offset = filesize_to_fileoffset_t(pos);
 
-	if ((Off_t) -1 == offset) {
+	if ((fileoffset_t) -1 == offset) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -189,9 +189,9 @@ compat_preadv(const int fd,
 	iovec_t * const iov, const int iov_cnt, const filesize_t pos)
 #ifdef HAS_PREADV
 {
-	Off_t offset = filesize_to_Off_t(pos);
+	fileoffset_t offset = filesize_to_fileoffset_t(pos);
 
-	if (NULL == iov || iov_cnt < 1 || (Off_t) -1 == offset) {
+	if (NULL == iov || iov_cnt < 1 || (fileoffset_t) -1 == offset) {
 		errno = EINVAL;
 		return -1;
 	} else {

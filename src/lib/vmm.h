@@ -101,7 +101,7 @@ void vmm_madvise_sequential(void *p, size_t size);
 void vmm_madvise_willneed(void *p, size_t size);
 
 void *vmm_mmap(void *addr, size_t length,
-	int prot, int flags, int fd, Off_t offset);
+	int prot, int flags, int fd, fileoffset_t offset);
 int vmm_munmap(void *addr, size_t length);
 
 #define VMM_FREE_NULL(p, size) \

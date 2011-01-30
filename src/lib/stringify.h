@@ -62,7 +62,7 @@
  * The following are over-estimated, so they include space for NUL, too.
  * FIXME: Figure out a closer approximation to reduce waste.
  */
-#define OFF_T_DEC_BUFLEN	(sizeof(Off_t) * CHAR_BIT) /* very roughly */
+#define OFF_T_DEC_BUFLEN	(sizeof(fileoffset_t) * CHAR_BIT) /* very roughly */
 #define TIME_T_DEC_BUFLEN	(sizeof(time_t) * CHAR_BIT) /* very roughly */
 #define SIZE_T_DEC_BUFLEN	(sizeof(size_t) * CHAR_BIT) /* very roughly */
 #define USHRT_DEC_BUFLEN	(sizeof(unsigned short) * CHAR_BIT) /* roughly */
@@ -76,13 +76,13 @@
 size_t int32_to_string_buf(gint32 v, char *dst, size_t size);
 size_t uint32_to_string_buf(guint32 v, char *dst, size_t size);
 size_t uint64_to_string_buf(guint64 v, char *dst, size_t size);
-size_t Off_t_to_string_buf(Off_t v, char *dst, size_t size);
+size_t fileoffset_t_to_string_buf(fileoffset_t v, char *dst, size_t size);
 size_t size_t_to_string_buf(size_t v, char *dst, size_t size);
 size_t pointer_to_string_buf(const void *ptr, char *dst, size_t size);
 const char *uint32_to_string(guint32);
 const char *uint64_to_string(guint64);
 const char *uint64_to_string2(guint64);
-const char *Off_t_to_string(Off_t);
+const char *fileoffset_t_to_string(fileoffset_t);
 const char *size_t_to_string(size_t);
 const char *pointer_to_string(const void *);
 const char *filesize_to_string(filesize_t);

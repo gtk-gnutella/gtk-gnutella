@@ -306,7 +306,7 @@ tt_finish(TTH_CONTEXT *ctx)
 	}
 
 	if (ctx->bpl > 1) {
-		Off_t n_blocks;
+		fileoffset_t n_blocks;
 		unsigned depth;
 
 		n_blocks = ctx->n;

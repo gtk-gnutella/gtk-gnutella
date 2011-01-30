@@ -372,7 +372,7 @@ pointer_to_string_buf(const void *ptr, char *dst, size_t size)
 }
 
 size_t
-Off_t_to_string_buf(Off_t v, char *dst, size_t size)
+fileoffset_t_to_string_buf(fileoffset_t v, char *dst, size_t size)
 {
 	char buf[OFF_T_DEC_BUFLEN];
 	char *p;
@@ -483,12 +483,12 @@ filesize_to_string2(filesize_t v)
 }
 
 const char *
-Off_t_to_string(Off_t v)
+fileoffset_t_to_string(fileoffset_t v)
 {
 	static char buf[OFF_T_DEC_BUFLEN];
 	size_t n;
 
-	n = Off_t_to_string_buf(v, buf, sizeof buf);
+	n = fileoffset_t_to_string_buf(v, buf, sizeof buf);
 	g_assert(n > 0);
 	g_assert(n < sizeof buf);
 	return buf;

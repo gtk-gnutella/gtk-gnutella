@@ -259,7 +259,7 @@ sdbm_prep(const char *dirname, const char *pagname,
 				fstat(db->dirf, &dstat) == 0
 				&& S_ISREG(dstat.st_mode)
 				&& dstat.st_size >= 0
-				&& dstat.st_size < (Off_t) 0 + (LONG_MAX / BYTESIZ)
+				&& dstat.st_size < (fileoffset_t) 0 + (LONG_MAX / BYTESIZ)
 			) {
 				/*
 				 * zero size: either a fresh database, or one with a single,

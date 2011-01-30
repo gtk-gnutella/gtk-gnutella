@@ -581,7 +581,7 @@ is_temporary_error(int error)
   return FALSE;
 }
 
-/* Wrapper around lseek() to handle filesize -> Off_t conversion. */
+/* Wrapper around lseek() to handle filesize -> fileoffset_t conversion. */
 int seek_to_filepos(int fd, filesize_t pos);
 filesize_t get_random_file_offset(const filesize_t size);
 

@@ -3526,7 +3526,7 @@ vmm_close(void)
  * Wrapper of the mmap() system call.
  */
 void *
-vmm_mmap(void *addr, size_t length, int prot, int flags, int fd, Off_t offset)
+vmm_mmap(void *addr, size_t length, int prot, int flags, int fd, fileoffset_t offset)
 {
 #if defined(HAS_MMAP)
 	void *p = mmap(addr, length, prot, flags, fd, offset);

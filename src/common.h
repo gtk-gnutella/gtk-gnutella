@@ -223,7 +223,7 @@ typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
 #ifndef MINGW32
 
 typedef struct iovec iovec_t;
-typedef off_t Off_t;
+typedef off_t fileoffset_t;
 typedef struct stat Stat_t;
 
 /**
@@ -386,7 +386,7 @@ typedef void (*GCallback) (void);
 #endif /* TIME_T_MAX */
 
 #ifndef OFF_T_MAX
-#define OFF_T_MAX MAX_INT_VAL(Off_t)
+#define OFF_T_MAX MAX_INT_VAL(fileoffset_t)
 #endif /* OFF_T_MAX */
 
 #ifndef SIZE_MAX

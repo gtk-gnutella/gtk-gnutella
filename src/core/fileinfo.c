@@ -1132,7 +1132,7 @@ file_info_get_trailer(int fd, struct trailer *tb, Stat_t *sb,
 	fi_magic_t magic;
 	guint32 tr[FI_TRAILER_INT];
 	Stat_t buf;
-	Off_t offset;
+	fileoffset_t offset;
 	guint64 filesize_hi;
 	size_t i = 0;
 
@@ -1153,11 +1153,11 @@ file_info_get_trailer(int fd, struct trailer *tb, Stat_t *sb,
 		return FALSE;
 	}
 
-	if (buf.st_size < (Off_t) sizeof tr)
+	if (buf.st_size < (fileoffset_t) sizeof tr)
 		return FALSE;
 
 	/*
-	 * Don't use SEEK_END with "-sizeof(tr)" to avoid problems when Off_t is
+	 * Don't use SEEK_END with "-sizeof(tr)" to avoid problems when fileoffset_t is
 	 * defined as an 8-byte wide quantity.  Since we have the file size
 	 * already, better use SEEK_SET.
 	 *		--RAM, 02/02/2003 after a bug report from Christian Biere
@@ -1165,7 +1165,7 @@ file_info_get_trailer(int fd, struct trailer *tb, Stat_t *sb,
 
 	offset = buf.st_size - sizeof tr;		/* Start of trailer */
 
-	/* No wrapper because this is a native Off_t value. */
+	/* No wrapper because this is a native fileoffset_t value. */
 	if (offset != lseek(fd, offset, SEEK_SET)) {
 		g_warning("file_info_get_trailer(): "
 			"error seek()ing in file \"%s\": %s", name, g_strerror(errno));
@@ -3669,7 +3669,7 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 		shared_file_set_path(fi->sf, fi->pathname);
 		if (
 			stat(fi->pathname, &sb) ||
-			fi->size + (Off_t)0 != sb.st_size + (filesize_t)0
+			fi->size + (fileoffset_t)0 != sb.st_size + (filesize_t)0
 		) {
 			sb.st_mtime = 0;
 		}

@@ -628,11 +628,11 @@ dir_entry_filename(const void *dirent)
 	return filename;
 }
 
-Off_t
-mingw_lseek(int fd, Off_t offset, int whence)
+fileoffset_t
+mingw_lseek(int fd, fileoffset_t offset, int whence)
 {
-	Off_t res = _lseeki64(fd, offset, whence);
-	if ((Off_t) -1 == res)
+	fileoffset_t res = _lseeki64(fd, offset, whence);
+	if ((fileoffset_t) -1 == res)
 		errno = GetLastError();
 	return res;
 }
@@ -716,17 +716,17 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
 }
 
 int
-mingw_truncate(const char *pathname, Off_t len)
+mingw_truncate(const char *pathname, fileoffset_t len)
 {
 	int fd;
-	Off_t offset;
+	fileoffset_t offset;
 
 	fd = mingw_open(pathname, O_RDWR);
 	if (-1 == fd)
 		return -1;
 
 	offset = mingw_lseek(fd, len, SEEK_SET);
-	if ((Off_t)-1 == offset || offset != len) {
+	if ((fileoffset_t)-1 == offset || offset != len) {
 		int saved_errno = errno;
 		fd_close(&fd);
 		errno = saved_errno;

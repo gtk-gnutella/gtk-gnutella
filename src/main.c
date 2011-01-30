@@ -1360,7 +1360,7 @@ handle_compile_info_argument(void)
 #endif	/* HAS_IPV6 */
 
 	printf("largefile-support=%s\n",
-		MAX_INT_VAL(Off_t) > MAX_INT_VAL(guint32) ? "enabled" : "disabled");
+		MAX_INT_VAL(fileoffset_t) > MAX_INT_VAL(guint32) ? "enabled" : "disabled");
 
 	exit(EXIT_SUCCESS);
 }

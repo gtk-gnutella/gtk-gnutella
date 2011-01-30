@@ -191,7 +191,7 @@ bdump(int datf)
 		return;
 
 	for (b = 0; b < UNSIGNED(buf.st_size); b += DBM_BBLKSIZ * DBM_BBLKSIZ * 8) {
-		if ((Off_t) -1 == lseek(datf, b, SEEK_SET))
+		if ((fileoffset_t) -1 == lseek(datf, b, SEEK_SET))
 			oops("seek failed: offset %lu", b);
 		if (-1 == read(datf, dat, sizeof dat))
 			oops("read failed: offset %lu", b);

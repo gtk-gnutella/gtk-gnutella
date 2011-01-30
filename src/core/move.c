@@ -313,11 +313,11 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 
 		if (
 			!S_ISREG(buf.st_mode) ||
-			(filesize_t) 0 + buf.st_size != (Off_t) 0 + md->copied
+			(filesize_t) 0 + buf.st_size != (fileoffset_t) 0 + md->copied
 		) {
 			md->error = ENOSPC;
 			g_warning("target size mismatch for \"%s\": got only %s",
-				md->target, Off_t_to_string(buf.st_size));
+				md->target, fileoffset_t_to_string(buf.st_size));
 			goto error;
 		}
 
