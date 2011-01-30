@@ -488,30 +488,30 @@ mingw_stat(const char *pathname, struct stat *buf)
 {
 	pncs_t pncs;
 	int res;
-	struct _stat _buf;
+	struct _stati64 sb;
    
 	pncs = pncs_convert(pathname);
-	res = _wstat(pncs.utf16, &_buf);
+	res = _wstati64(pncs.utf16, &sb);
 	if (-1 == res) {
 		errno = mingw_win2errno(GetLastError());
 	} else {
 		/*
 		 * We can't copy structs since field types within struct buf and
-		 * struct _buf differ, so we have to copy each field.
+		 * struct sb differ, so we have to copy each field.
 		 */
-		buf->st_dev = _buf.st_dev;
-		buf->st_ino = _buf.st_ino;
-		buf->st_mode = _buf.st_mode;
-		buf->st_nlink = _buf.st_nlink;
-		buf->st_uid = _buf.st_uid;
-		buf->st_gid = _buf.st_gid;
-		buf->st_rdev = _buf.st_rdev;
+		buf->st_dev = sb.st_dev;
+		buf->st_ino = sb.st_ino;
+		buf->st_mode = sb.st_mode;
+		buf->st_nlink = sb.st_nlink;
+		buf->st_uid = sb.st_uid;
+		buf->st_gid = sb.st_gid;
+		buf->st_rdev = sb.st_rdev;
 		/* Ensure Off_t is not truncated */
-		STATIC_ASSERT(sizeof buf->st_size >= sizeof _buf.st_size);
-		buf->st_size = _buf.st_size;
-		buf->st_atime = _buf.st_atime;
-		buf->st_mtime = _buf.st_mtime;
-		buf->st_ctime = _buf.st_ctime;
+		STATIC_ASSERT(sizeof buf->st_size >= sizeof sb.st_size);
+		buf->st_size = sb.st_size;
+		buf->st_atime = sb.st_atime;
+		buf->st_mtime = sb.st_mtime;
+		buf->st_ctime = sb.st_ctime;
 	}
 
 	pncs_release(&pncs);
@@ -638,7 +638,7 @@ dir_entry_filename(const void *dirent)
 Off_t
 mingw_lseek(int fd, Off_t offset, int whence)
 {
-	Off_t res = lseek(fd, offset, whence);
+	Off_t res = lseek64(fd, offset, whence);
 	if ((Off_t) -1 == res)
 		errno = GetLastError();
 	return res;
@@ -725,18 +725,28 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
 int
 mingw_truncate(const char *pathname, Off_t len)
 {
-	int fd, ret, saved_errno;
+	int fd;
+	Off_t offset;
 
 	fd = mingw_open(pathname, O_RDWR);
 	if (-1 == fd)
 		return -1;
 
-	ret = ftruncate(fd, len);
-	saved_errno = (-1 == ret) ? GetLastError() : 0;
+	offset = mingw_lseek(fd, len, SEEK_SET);
+	if ((Off_t)-1 == offset || offset != len) {
+		int saved_errno = errno;
+		fd_close(&fd);
+		errno = saved_errno;
+		return -1;
+	}
+	if (!SetEndOfFile((HANDLE) _get_osfhandle(fd))) {
+		int saved_errno = GetLastError();
+		fd_close(&fd);
+		errno = saved_errno;
+		return -1;
+	}
 	fd_close(&fd);
-	errno = saved_errno;
-
-	return ret;
+	return 0;
 }
 
 /***
