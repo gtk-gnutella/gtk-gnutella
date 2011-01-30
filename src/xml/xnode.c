@@ -282,6 +282,27 @@ xnode_has_content(const xnode_t *xn)
 }
 
 /**
+ * @return whether node is empty (has either no children, or a single one
+ * which is an empty text node).
+ */
+gboolean
+xnode_is_empty(const xnode_t *xn)
+{
+	const xnode_t *xc;
+
+	xnode_check(xn);
+
+	if (NULL == xn->first_child)
+		return TRUE;
+
+	xc = xn->first_child;
+	if (xc->sibling != NULL)
+		return FALSE;
+
+	return XNODE_T_TEXT == xc->type && '\0' == *xc->t.text;
+}
+
+/**
  * @return whether node is an element node of corresponding namespace and name.
  */
 gboolean

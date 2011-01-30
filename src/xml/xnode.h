@@ -93,6 +93,7 @@ gboolean xnode_is_comment(const xnode_t *xn);
 gboolean xnode_is_element(const xnode_t *xn);
 gboolean xnode_is_processing_instruction(const xnode_t *xn);
 gboolean xnode_has_content(const xnode_t *xn);
+gboolean xnode_is_empty(const xnode_t *xn);
 gboolean xnode_text_has_entities(const xnode_t *xn);
 gboolean xnode_is_element_named(const xnode_t *x, const char *u, const char *n);
 gboolean xnode_within_namespace(const xnode_t *xn, const char *uri);
