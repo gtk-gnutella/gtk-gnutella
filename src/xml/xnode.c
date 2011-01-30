@@ -299,7 +299,7 @@ xnode_is_empty(const xnode_t *xn)
 	if (xc->sibling != NULL)
 		return FALSE;
 
-	return XNODE_T_TEXT == xc->type && '\0' == *xc->t.text;
+	return XNODE_T_TEXT == xc->type && '\0' == *xc->u.t.text;
 }
 
 /**
