@@ -6350,6 +6350,9 @@ vxml_test(void)
 	xn = xnode_tree_find_depth(root, 2, vxml_node_is_named, "c");
 	g_assert(xn != NULL);
 
+	xn = xnode_tree_find_depth(root, 2, vxml_node_is_named, "d");
+	g_assert(xn != NULL);
+
 	xn = xnode_first_child(root);
 	g_assert(xn != NULL);
 	g_assert(root == xnode_parent(xn));
