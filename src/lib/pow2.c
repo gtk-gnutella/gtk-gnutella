@@ -98,8 +98,8 @@ highest_bit_set(guint32 n)
 	guint32 h;
 
 	for (i = 0, h = n; i < 32; i += 8, h >>= 8) {
-		guint32 byte = h & 0xffU;
-		if (byte == h)
+		guint32 byt = h & 0xffU;
+		if (byt == h)
 			return i + log2_byte[h];
 	}
 

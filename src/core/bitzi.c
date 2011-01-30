@@ -989,10 +989,10 @@ bitzi_load_cache(void)
 
 		for (;;) {
 			static const char xml_prefix[] = "<?xml";
-			gboolean eof, eot;
+			gboolean eofile, eot;
 
-			eof = NULL == fgets(tmp, sizeof(tmp), old_data);
-			eot = !eof && !truncated && is_strprefix(tmp, xml_prefix);
+			eofile = NULL == fgets(tmp, sizeof(tmp), old_data);
+			eot = !eofile && !truncated && is_strprefix(tmp, xml_prefix);
 
 			/*
 			 * Each XML ticket will start with an XML header at which
@@ -1000,7 +1000,7 @@ bitzi_load_cache(void)
 			 * context for the next ticket.
 			 */
 
-			if ((eof || eot) && request) {
+			if ((eofile || eot) && request) {
 				int result;
 
 				/* finish parsing */
@@ -1014,7 +1014,7 @@ bitzi_load_cache(void)
 				process_meta_data(request);
 			}
 
-			if (eof)
+			if (eofile)
 				break;
 
 			if (eot) {

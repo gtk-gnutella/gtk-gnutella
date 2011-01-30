@@ -824,14 +824,14 @@ bstr_read_ule64(bstr_t *bs, guint64 *pv)
 		return FALSE;
 
 	for (;;) {
-		guint8 byte;
-		if (!bstr_read_u8(bs, &byte))
+		guint8 byt;
+		if (!bstr_read_u8(bs, &byt))
 			return FALSE;
 		n++;
 		if (n > 10)
 			return invalid_encoding(bs, "no end seen after 10 bytes", where);
-		value |= (byte & 0x7f) << shift;	/* Got 7 more bits */
-		if (byte & 0x80)
+		value |= (byt & 0x7f) << shift;	/* Got 7 more bits */
+		if (byt & 0x80)
 			break;			/* Highest bit set, end of encoding */
 		shift += 7;
 	}

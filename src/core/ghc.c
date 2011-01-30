@@ -143,7 +143,7 @@ parse_context_set(gpointer handle, gint maxlines)
  */
 static void
 parse_dispatch_lines(gpointer handle, const gchar *buf, size_t len,
-		parse_dispatch_t cb, parse_eof_t eof)
+		parse_dispatch_t cb, parse_eof_t eofile)
 {
 	struct parse_context *ctx;
 	const gchar *p = buf;
@@ -159,8 +159,8 @@ parse_dispatch_lines(gpointer handle, const gchar *buf, size_t len,
 	g_assert(ctx->handle == handle);	/* Make sure it's the right context */
 
 	if (len == 0) {						/* Nothing to parse, got EOF */
-		if (eof)
-			(*eof)(ctx);
+		if (eofile != NULL)
+			(*eofile)(ctx);
 		return;
 	}
 

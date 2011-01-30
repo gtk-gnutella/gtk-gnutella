@@ -258,6 +258,8 @@ iovec_set_len(struct iovec *iov, size_t len)
 typedef int socket_fd_t;
 #define INVALID_SOCKET (-1)
 
+#define socket_fd(fd)		(fd)
+
 /*
  * The following are for file-like operations on sockets, which we need to trap
  * so that we grab the possible error condition through WSAGetLastError().

@@ -109,12 +109,12 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 		fds[i].revents = 0;
 
 		if (POLLIN & fds[i].events) {
-			FD_SET(fd, &rfds);
+			FD_SET(socket_fd(fd), &rfds);
 		}
 		if (POLLOUT & fds[i].events) {
-			FD_SET(fd, &wfds);
+			FD_SET(socket_fd(fd), &wfds);
 		}
-		FD_SET(fd, &efds);
+		FD_SET(socket_fd(fd), &efds);
 	}
 
 	if (timeout < 0) {

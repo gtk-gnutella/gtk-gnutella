@@ -184,6 +184,7 @@ static volatile sig_atomic_t sig_hup_received;
 static jmp_buf atexit_env;
 static volatile const char *exit_step = "gtk_gnutella_exit";
 
+#ifdef SIGALRM
 /**
  * Force immediate shutdown of SIGALRM reception.
  */
@@ -196,13 +197,16 @@ sig_alarm(int n)
 		longjmp(atexit_env, 1);
 	}
 }
+#endif	/* SIGALRM */
 
+#ifdef SIGHUP
 static void
 sig_hup(int n)
 {
 	(void) n;
 	sig_hup_received = 1;
 }
+#endif	/* SIGHUP */
 
 #ifdef SIGCHLD
 static void
@@ -1468,7 +1472,7 @@ main(int argc, char **argv)
 	vmm_malloc_inited();
 
 	signal_set(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
-#ifdef SIGHUP	/* FIXME MINGW32 */
+#ifdef SIGHUP
 	signal_set(SIGHUP, sig_hup);
 #endif
 #ifdef SIGCHLD

@@ -252,20 +252,20 @@ kuid_random_within(kuid_t *dest, const kuid_t *prefix, int bits)
 void
 kuid_flip_nth_leading_bit(kuid_t *res, int n)
 {
-	int byte;
+	int byt;
 	guchar mask;
 
 	g_assert(n >=0 && n < KUID_RAW_BITSIZE);
 
-	byte = n >> 3;
+	byt = n >> 3;
 	mask = 0x80 >> (n & 0x7);
 
-	g_assert(byte >= 0 && byte < KUID_RAW_SIZE);
+	g_assert(byt >= 0 && byt < KUID_RAW_SIZE);
 
-	if (res->v[byte] & mask)
-		res->v[byte] &= ~mask;		/* Bit was set, clear it */
+	if (res->v[byt] & mask)
+		res->v[byt] &= ~mask;		/* Bit was set, clear it */
 	else
-		res->v[byte] |= mask;		/* Bit was cleared, set it */
+		res->v[byt] |= mask;		/* Bit was cleared, set it */
 }
 
 /**
@@ -371,17 +371,17 @@ kuid_set64(kuid_t *res, guint64 val)
 void
 kuid_set_nth_bit(kuid_t *res, int n)
 {
-	int byte;
+	int byt;
 	guchar mask;
 
 	g_assert(n >=0 && n < KUID_RAW_BITSIZE);
 
-	byte = KUID_RAW_SIZE - (n / 8) - 1;
+	byt = KUID_RAW_SIZE - (n / 8) - 1;
 	mask = 1 << (n % 8);
 
-	g_assert(byte >= 0 && byte < KUID_RAW_SIZE);
+	g_assert(byt >= 0 && byt < KUID_RAW_SIZE);
 
-	res->v[byte] |= mask;
+	res->v[byt] |= mask;
 }
 
 /**

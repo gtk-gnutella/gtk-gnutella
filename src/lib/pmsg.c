@@ -805,12 +805,12 @@ pmsg_write_ule64(pmsg_t *mb, guint64 v)
 	g_assert(pmsg_available(mb) >= 10);	/* Will need 10 bytes at most */
 
 	do {
-		guint8 byte = (guint8) (value & 0x7f);	/* Lowest 7 bits */
+		guint8 byt = (guint8) (value & 0x7f);	/* Lowest 7 bits */
 		value >>= 7;
 		if (value != 0) {
-			byte |= 0x80;						/* Last byte emitted */
+			byt |= 0x80;						/* Last byte emitted */
 		}
-		pmsg_write_u8(mb, byte);
+		pmsg_write_u8(mb, byt);
 	} while (value != 0);
 }
 

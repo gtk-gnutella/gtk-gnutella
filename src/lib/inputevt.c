@@ -985,12 +985,11 @@ void
 inputevt_poll_idx_compact(struct poll_ctx *ctx)
 #ifdef USE_POLL
 {
-	unsigned i;
-
 #ifdef INPUTEVT_DEBUGGING
 	{
 		str_t *str = str_new_from("pollfd[] = {");
 		unsigned num_unused = 0;
+		unsigned i;
 
 		g_assert(ctx->max_poll_idx <= ctx->num_poll_idx);
 		for (i = ctx->max_poll_idx; i-- > 0; /* NOTHING */) {
@@ -1019,6 +1018,8 @@ inputevt_poll_idx_compact(struct poll_ctx *ctx)
 		g_assert(!is_valid_fd(fd));
 		g_assert(!bit_array_get(ctx->used_poll_idx, i));
 	}
+#else
+	(void) ctx;
 #endif /* INPUTEVT_DEBUGGING */
 }
 #else

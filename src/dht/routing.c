@@ -1680,11 +1680,11 @@ dht_bucket_manages(struct kbucket *kb, const kuid_t *id)
  * KUID and the mask that allows to test that bit.
  */
 static inline void
-kuid_position(guchar depth, int *byte, guchar *mask)
+kuid_position(guchar depth, int *byt, guchar *mask)
 {
 	g_assert(depth <= K_BUCKET_MAX_DEPTH);
 
-	*byte = depth >> 3;					/* depth / 8 */
+	*byt = depth >> 3;					/* depth / 8 */
 	*mask = 0x80 >> (depth & 0x7);		/* depth % 8 */
 }
 
@@ -1906,7 +1906,7 @@ static void
 dht_split_bucket(struct kbucket *kb)
 {
 	struct kbucket *one, *zero;
-	int byte;
+	int byt;
 	guchar mask;
 	struct node_balance balance;
 
@@ -1930,11 +1930,11 @@ dht_split_bucket(struct kbucket *kb)
 	 * See which one of our two children is within our tree.
 	 */
 
-	kuid_position(kb->depth, &byte, &mask);
+	kuid_position(kb->depth, &byt, &mask);
 
-	one->prefix.v[byte] |= mask;	/* This is "one", prefix for "zero" is 0 */
+	one->prefix.v[byt] |= mask;	/* This is "one", prefix for "zero" is 0 */
 
-	if (our_kuid->v[byte] & mask) {
+	if (our_kuid->v[byt] & mask) {
 		if (kb->ours) {
 			one->ours = TRUE;
 			zero->split_depth = zero->depth;
@@ -1965,7 +1965,7 @@ dht_split_bucket(struct kbucket *kb)
 		const char *tag;
 		tag = kb->split_depth ? "left our tree at" : "in our tree since";
 		g_debug("DHT split byte=%d mask=0x%x, %s depth %d",
-			byte, mask, tag, kb->split_depth);
+			byt, mask, tag, kb->split_depth);
 		g_debug("DHT split \"zero\" k-bucket is %s (depth %d, %s ours)",
 			kuid_to_hex_string(&zero->prefix), zero->depth,
 			zero->ours ? "is" : "not");
@@ -1980,7 +1980,7 @@ dht_split_bucket(struct kbucket *kb)
 
 	balance.one = one;
 	balance.zero = zero;
-	balance.byte = byte;
+	balance.byte = byt;
 	balance.mask = mask;
 
 	g_hash_table_foreach(kb->nodes->all, split_among, &balance);
@@ -2104,13 +2104,13 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 	 */
 
 	while (0 == stale && is_splitable(kb)) {
-		int byte;
+		int byt;
 		guchar mask;
 
 		dht_split_bucket(kb);
-		kuid_position(kb->depth, &byte, &mask);
+		kuid_position(kb->depth, &byt, &mask);
 
-		kb = (kn->id->v[byte] & mask) ? kb->one : kb->zero;
+		kb = (kn->id->v[byt] & mask) ? kb->one : kb->zero;
 
 		if (hash_list_length(kb->nodes->good) < K_BUCKET_GOOD) {
 			add_node(kb, kn, KNODE_GOOD);
@@ -2445,7 +2445,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 			hash_list_length(kb->nodes->good) >= K_BUCKET_GOOD &&
 			is_splitable(kb)
 		) {
-			int byte;
+			int byt;
 			guchar mask;
 
 			if (GNET_PROPERTY(dht_debug)) {
@@ -2454,8 +2454,8 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 			}
 
 			dht_split_bucket(kb);
-			kuid_position(kb->depth, &byte, &mask);
-			kb = (tkn->id->v[byte] & mask) ? kb->one : kb->zero;
+			kuid_position(kb->depth, &byt, &mask);
+			kb = (tkn->id->v[byt] & mask) ? kb->one : kb->zero;
 		}
 	}
 
@@ -4427,7 +4427,7 @@ recursively_fill_closest_from(
 	struct kbucket *kb,
 	knode_t **kvec, int kcnt, const kuid_t *exclude, gboolean alive)
 {
-	int byte;
+	int byt;
 	guchar mask;
 	struct kbucket *closest;
 	int added;
@@ -4438,13 +4438,13 @@ recursively_fill_closest_from(
 	if (is_leaf(kb))
 		return fill_closest_in_bucket(id, kb, kvec, kcnt, exclude, alive);
 
-	kuid_position(kb->depth, &byte, &mask);
+	kuid_position(kb->depth, &byt, &mask);
 
-	if ((kb->one->prefix.v[byte] & mask) == (id->v[byte] & mask)) {
-		g_assert((kb->zero->prefix.v[byte] & mask) != (id->v[byte] & mask));
+	if ((kb->one->prefix.v[byt] & mask) == (id->v[byt] & mask)) {
+		g_assert((kb->zero->prefix.v[byt] & mask) != (id->v[byt] & mask));
 		closest = kb->one;
 	} else {
-		g_assert((kb->zero->prefix.v[byte] & mask) == (id->v[byte] & mask));
+		g_assert((kb->zero->prefix.v[byt] & mask) == (id->v[byt] & mask));
 		closest = kb->zero;
 	}
 
