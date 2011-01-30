@@ -812,12 +812,12 @@ xfmt_handle_pass2_enter(xnode_t *xn, void *data)
 		 *
 		 * We consider an element with a single empty text child as
 		 * content-less, so we test with xnode_is_empty() instead of
-		 * xnode_has_content().
+		 * !xnode_has_content().
 		 */
 
 		xp2->had_text = FALSE;
 
-		if (!xnode_is_empty(xn)) {
+		if (xnode_is_empty(xn)) {
 			ostream_write(xp2->os, XFMT_EMPTY, CONST_STRLEN(XFMT_EMPTY));
 			xp2->last_was_nl = TRUE;
 			xfmt_pass2_leaving(xp2);	/* No children, no "leave" callback */
