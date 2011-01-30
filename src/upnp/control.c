@@ -203,9 +203,9 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 		const char *value;
 		const char *name;
 
-		value = xnode_text(fcode);
+		value = xnode_first_text(fcode);
 		if (NULL == value) {
-			parse_error = "<faultcode> is not a text node";
+			parse_error = "<faultcode> does not contain text";
 			goto error;
 		}
 
@@ -252,10 +252,11 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 		parse_error = "no <faultstring> found";
 		goto error;
 	} else {
-		const char *value = xnode_text(fstring);
+		const char *value;
 
+		value = xnode_first_text(fstring);
 		if (NULL == value) {
-			parse_error = "<faultstring> is not a text node";
+			parse_error = "<faultstring> does not contain text";
 			goto error;
 		}
 
@@ -293,14 +294,14 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 				goto error;
 			}
 
-			value = xnode_text(xn);
+			value = xnode_first_text(xn);
 			if (NULL == value) {
-				parse_error = "<errorCode> is not a text node";
+				parse_error = "<errorCode> doest not contain text";
 				goto error;
 			}
 
 			*code = parse_uint32(value, NULL, 10, &err);
-			if (error) {
+			if (err) {
 				parse_error = "cannot parse <errorCode> value";
 				goto error;
 			}
@@ -310,7 +311,7 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 			xn = xnode_tree_find_depth(uerror, 1,
 				node_named_as, deconstify_gchar(UPNP_ERROR_DESC));
 
-			*error = (NULL == xn) ? NULL : xnode_text(xn);
+			*error = (NULL == xn) ? NULL : xnode_first_text(xn);
 		}
 	} else {
 		parse_error = "no <UPnPError> found";

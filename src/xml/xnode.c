@@ -340,6 +340,23 @@ xnode_text(const xnode_t *xn)
 }
 
 /**
+ * @return node's first child text, NULL if the first child is not a
+ * text node, or an empty string if the node has no children.
+ */
+const char *
+xnode_first_text(const xnode_t *xn)
+{
+	xnode_check(xn);
+	const xnode_t *child;
+
+	child = xn->first_child;
+	if (NULL == child)
+		return "";
+
+	return xnode_text(child);
+}
+
+/**
  * @return whether node's text must be output verbatim (no escaping of '&'
  * done on output because text refers to entites).
  */

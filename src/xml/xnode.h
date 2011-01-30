@@ -98,6 +98,7 @@ gboolean xnode_is_element_named(const xnode_t *x, const char *u, const char *n);
 gboolean xnode_within_namespace(const xnode_t *xn, const char *uri);
 
 const char *xnode_text(const xnode_t *xn);
+const char *xnode_first_text(const xnode_t *xn);
 const char *xnode_element_name(const xnode_t *xn);
 const char *xnode_element_ns(const xnode_t *xn);
 const char *xnode_pi_name(const xnode_t *xn);
