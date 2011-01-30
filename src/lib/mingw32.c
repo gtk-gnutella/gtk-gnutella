@@ -733,7 +733,7 @@ mingw_truncate(const char *pathname, fileoffset_t len)
 		return -1;
 	}
 	if (!SetEndOfFile((HANDLE) _get_osfhandle(fd))) {
-		int saved_errno = GetLastError();
+		int saved_errno = mingw_win2errno(GetLastError());
 		fd_close(&fd);
 		errno = saved_errno;
 		return -1;
