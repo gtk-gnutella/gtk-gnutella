@@ -506,7 +506,7 @@ mingw_stat(const char *pathname, struct stat *buf)
 		buf->st_uid = _buf.st_uid;
 		buf->st_gid = _buf.st_gid;
 		buf->st_rdev = _buf.st_rdev;
-		/* Ensure off_t is not truncated */
+		/* Ensure Off_t is not truncated */
 		STATIC_ASSERT(sizeof buf->st_size >= sizeof _buf.st_size);
 		buf->st_size = _buf.st_size;
 		buf->st_atime = _buf.st_atime;
@@ -635,11 +635,11 @@ dir_entry_filename(const void *dirent)
 	return filename;
 }
 
-off_t
-mingw_lseek(int fd, off_t offset, int whence)
+Off_t
+mingw_lseek(int fd, Off_t offset, int whence)
 {
-	off_t res = lseek(fd, offset, whence);
-	if ((off_t) -1 == res)
+	Off_t res = lseek(fd, offset, whence);
+	if ((Off_t) -1 == res)
 		errno = GetLastError();
 	return res;
 }
@@ -723,7 +723,7 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
 }
 
 int
-mingw_truncate(const char *pathname, off_t len)
+mingw_truncate(const char *pathname, Off_t len)
 {
 	int fd, ret, saved_errno;
 

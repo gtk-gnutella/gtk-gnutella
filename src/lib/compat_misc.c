@@ -188,7 +188,7 @@ compat_memmem(const void *data, size_t data_size,
  * @param hint One of the POSIX_FADVISE_* values. These CANNOT be combined.
  */
 static void
-compat_fadvise(int fd, off_t offset, off_t size, int hint)
+compat_fadvise(int fd, Off_t offset, Off_t size, int hint)
 {
 	g_return_if_fail(fd >= 0);
 	g_return_if_fail(offset >= 0);
@@ -206,7 +206,7 @@ compat_fadvise(int fd, off_t offset, off_t size, int hint)
 #endif	/* HAS_POSIX_FADVISE */
 
 void
-compat_fadvise_sequential(int fd, off_t offset, off_t size)
+compat_fadvise_sequential(int fd, Off_t offset, Off_t size)
 {
 #ifdef HAS_POSIX_FADVISE
 	compat_fadvise(fd, offset, size, POSIX_FADV_SEQUENTIAL);
@@ -218,7 +218,7 @@ compat_fadvise_sequential(int fd, off_t offset, off_t size)
 }
 
 void
-compat_fadvise_noreuse(int fd, off_t offset, off_t size)
+compat_fadvise_noreuse(int fd, Off_t offset, Off_t size)
 {
 #ifdef HAS_POSIX_FADVISE
 	compat_fadvise(fd, offset, size, POSIX_FADV_NOREUSE);
@@ -230,7 +230,7 @@ compat_fadvise_noreuse(int fd, off_t offset, off_t size)
 }
 
 void
-compat_fadvise_dontneed(int fd, off_t offset, off_t size)
+compat_fadvise_dontneed(int fd, Off_t offset, Off_t size)
 {
 #ifdef HAS_POSIX_FADVISE
 	compat_fadvise(fd, offset, size, POSIX_FADV_DONTNEED);

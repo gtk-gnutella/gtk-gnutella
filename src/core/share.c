@@ -714,14 +714,14 @@ shared_file_unref(shared_file_t **sf_ptr)
  * Is file too big to be shared on Gnutella?
  *
  * Note: The original purpose was to avoid files larger than 2^32-1 bytes.
- *		 Keep it just in case that a platform has an off_t with more than
+ *		 Keep it just in case that a platform has an Off_t with more than
  *		 64 bits.
  */
 static inline gboolean
-too_big_for_gnutella(off_t size)
+too_big_for_gnutella(Off_t size)
 {
 	g_return_val_if_fail(size >= 0, TRUE);
-	return size + (filesize_t)0 > (filesize_t)-1 + (off_t)0;
+	return size + (filesize_t)0 > (filesize_t)-1 + (Off_t)0;
 }
 
 /**
@@ -1881,7 +1881,7 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 
 	if (
 			sf->mtime != buf.st_mtime ||
-			sf->file_size + (off_t) 0 != buf.st_size + (filesize_t) 0
+			sf->file_size + (Off_t) 0 != buf.st_size + (filesize_t) 0
 	) {
 		g_warning("shared file #%d \"%s\" changed, recomputing SHA1",
 			sf->file_index, sf->file_path);

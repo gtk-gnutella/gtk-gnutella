@@ -13,7 +13,7 @@ struct DBM {
 #ifdef LRU
 	void *cache;	/* LRU page cache */
 #endif
-	off_t pagtail;	/* end of page file descriptor, for iterating */
+	Off_t pagtail;	/* end of page file descriptor, for iterating */
 	long maxbno;	/* size of dirfile in bits */
 	long curbit;	/* current bit number */
 	long hmask;	/* current hash mask */

@@ -200,7 +200,7 @@ tth_cache_leave_count(const struct tth *tth, const struct stat *sb)
 		sb->st_size > TTH_MAX_LEAVES * TTH_RAW_SIZE
 	) {
 		g_warning("tth_cache_leave_count(%s): Bad filesize %s",
-			tth_base32(tth), off_t_to_string(sb->st_size));
+			tth_base32(tth), Off_t_to_string(sb->st_size));
 		return 0;
 	}
 

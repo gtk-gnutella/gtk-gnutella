@@ -542,7 +542,7 @@ huge_need_sha1(struct shared_file *sf)
 			return FALSE;
 		}
 		if (
-			cached->size + (off_t) 0 == sb.st_size + (filesize_t) 0 &&
+			cached->size + (Off_t) 0 == sb.st_size + (filesize_t) 0 &&
 			cached->mtime == sb.st_mtime
 		) {
 			if (GNET_PROPERTY(dbg) > 1) {

@@ -199,20 +199,20 @@ ptr_cmp(const void *a, const void *b)
 }
 
 /**
- * Converts a filesize_t to off_t.
+ * Converts a filesize_t to Off_t.
  *
- * @return On failure (off_t) -1 is returned.
+ * @return On failure (Off_t) -1 is returned.
  */
-static inline off_t G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
-filesize_to_off_t(filesize_t pos)
+static inline Off_t G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
+filesize_to_Off_t(filesize_t pos)
 {
-	off_t offset = pos > OFF_T_MAX ? (off_t) -1 : (off_t) pos;
+	Off_t offset = pos > OFF_T_MAX ? (Off_t) -1 : (Off_t) pos;
 
 	/* Handle -1 explicitly just in case there might be platform with
-	 * an non-standard unsigned off_t.
+	 * an non-standard unsigned Off_t.
 	 */
-	if ((off_t) -1 == offset || offset < 0) {
-		return (off_t) -1;
+	if ((Off_t) -1 == offset || offset < 0) {
+		return (Off_t) -1;
 	}
 	return offset;
 }

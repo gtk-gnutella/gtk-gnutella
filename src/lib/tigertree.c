@@ -306,7 +306,7 @@ tt_finish(TTH_CONTEXT *ctx)
 	}
 
 	if (ctx->bpl > 1) {
-		off_t n_blocks;
+		Off_t n_blocks;
 		unsigned depth;
 
 		n_blocks = ctx->n;

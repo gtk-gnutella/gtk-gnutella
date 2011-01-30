@@ -43,9 +43,9 @@ gboolean compat_is_superuser(void);
 int compat_daemonize(const char *directory);
 gboolean compat_process_is_alive(pid_t pid);
 
-void compat_fadvise_sequential(int fd, off_t offset, off_t size);
-void compat_fadvise_noreuse(int fd, off_t offset, off_t size);
-void compat_fadvise_dontneed(int fd, off_t offset, off_t size);
+void compat_fadvise_sequential(int fd, Off_t offset, Off_t size);
+void compat_fadvise_noreuse(int fd, Off_t offset, Off_t size);
+void compat_fadvise_dontneed(int fd, Off_t offset, Off_t size);
 void *compat_memmem(const void *data, size_t data_size,
 		const void *pattern, size_t pattern_size);
 

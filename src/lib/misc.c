@@ -282,7 +282,7 @@ is_same_file(const char *pathname_a, const char *pathname_b)
 }
 
 /**
- * A wrapper around lseek() for handling filesize_t to off_t conversion.
+ * A wrapper around lseek() for handling filesize_t to Off_t conversion.
  *
  * @param fd A valid file descriptor.
  * @param pos The position to seek to.
@@ -291,22 +291,22 @@ is_same_file(const char *pathname_a, const char *pathname_b)
 int
 seek_to_filepos(int fd, filesize_t pos)
 {
-	off_t offset;
+	Off_t offset;
 
-	offset = filesize_to_off_t(pos);
-	if ((off_t) -1 == offset) {
+	offset = filesize_to_Off_t(pos);
+	if ((Off_t) -1 == offset) {
 		errno = ERANGE;
 		return -1;
 	} else {
 		int saved_errno = errno;
-		off_t ret;
+		Off_t ret;
 
 		/* Clear errno to be sure we get no bogus errno code, if
 		 * the system does not agree with us that the lseek()
 		 * failed. */
 		errno = 0;
 		ret = lseek(fd, offset, SEEK_SET);
-		if ((off_t) -1 == ret || ret != offset) {
+		if ((Off_t) -1 == ret || ret != offset) {
 			return -1;
 		}
 		errno = saved_errno;
