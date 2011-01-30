@@ -1445,16 +1445,7 @@ main(int argc, char **argv)
 	 * file descriptor.
 	 */
 
-	/* 
-	 * Don't close the fd's on mingw, they might be redirected
-	 *		-- JA 18/01/2011
-	 *
-	 * FIXME: Explain why we would want to inherit any file descriptors
-	 *		  besides STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO.
-	 *		  What has this to do with redirection?
-	 */
-	if (!is_running_on_mingw())
-		close_file_descriptors(3); /* Just in case */
+	close_file_descriptors(3); /* Just in case */
 		
 	if (reserve_standard_file_descriptors()) {
 		exit(EXIT_FAILURE);
