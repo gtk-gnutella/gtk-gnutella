@@ -66,7 +66,7 @@ static reclaim_fd_t reclaim_fd = NULL;
 gboolean
 file_exists(const char *pathname)
 {
-  	Stat_t st;
+  	filestat_t st;
 
     g_assert(pathname);
     return 0 == stat(pathname, &st) && S_ISREG(st.st_mode);

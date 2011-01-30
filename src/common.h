@@ -224,7 +224,7 @@ typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
 
 typedef struct iovec iovec_t;
 typedef off_t fileoffset_t;
-typedef struct stat Stat_t;
+typedef struct stat filestat_t;
 
 /**
  * These functions are required because under MINGW struct iovec has

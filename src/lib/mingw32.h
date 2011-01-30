@@ -193,7 +193,7 @@ struct msghdr {
 };
 
 typedef __int64 fileoffset_t;
-typedef struct _stati64 Stat_t;
+typedef struct _stati64 filestat_t;
 
 struct passwd {
 	char *pw_name;                /* Username.  */
@@ -314,8 +314,8 @@ const char *mingw_gethome(void);
 guint64 mingw_getphysmemsize(void);
 int mingw_getdtablesize(void);
 const char *mingw_strerror(int errnum);
-int mingw_stat(const char *pathname, Stat_t *buf);
-int mingw_fstat(int fd, Stat_t *buf);
+int mingw_stat(const char *pathname, filestat_t *buf);
+int mingw_fstat(int fd, filestat_t *buf);
 int mingw_dup2(int oldfd, int newfd);
 int mingw_open(const char *pathname, int flags, ...);
 int mingw_unlink(const char *pathname);

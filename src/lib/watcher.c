@@ -69,7 +69,7 @@ static GHashTable *monitored;	/**< filename -> struct monitored */
 static time_t
 watcher_mtime(const char *filename)
 {
-	Stat_t buf;
+	filestat_t buf;
 
 	if (-1 == stat(filename, &buf))
 		return 0;

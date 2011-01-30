@@ -179,7 +179,7 @@ bdump(int datf)
 	int i;
 	unsigned char dat[DBM_BBLKSIZ];
 	int set[256];
-	Stat_t buf;
+	filestat_t buf;
 	unsigned long b;
 	unsigned long used = 0;
 	unsigned long total;

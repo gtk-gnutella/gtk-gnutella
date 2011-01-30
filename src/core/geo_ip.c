@@ -123,7 +123,7 @@ gip_load(FILE *f)
 	guint16 code;
 	int c;
 	struct range_context ctx;
-	Stat_t buf;
+	filestat_t buf;
 
 	geo_db = iprange_new();
 	if (-1 == fstat(fileno(f), &buf)) {

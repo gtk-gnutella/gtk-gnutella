@@ -108,7 +108,7 @@ absolute_pathname(const char *file)
 gboolean
 path_does_not_exist(const char *pathname)
 {
-	Stat_t st;
+	filestat_t st;
 
 	g_assert(pathname != NULL);
 	return stat(pathname, &st) && ENOENT == errno;
@@ -138,7 +138,7 @@ is_absolute_path(const char *path)
 gboolean
 filepath_exists(const char *dir, const char *file)
 {
-	Stat_t buf;
+	filestat_t buf;
 	gboolean exists;
 	char *path;
 

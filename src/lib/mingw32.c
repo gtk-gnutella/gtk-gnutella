@@ -485,7 +485,7 @@ mingw_pipe(int fd[2])
 }
 
 int
-mingw_stat(const char *pathname, Stat_t *buf)
+mingw_stat(const char *pathname, filestat_t *buf)
 {
 	pncs_t pncs;
 	int res;
@@ -500,7 +500,7 @@ mingw_stat(const char *pathname, Stat_t *buf)
 }
 
 int
-mingw_fstat(int fd, Stat_t *buf)
+mingw_fstat(int fd, filestat_t *buf)
 {
 	int res;
    

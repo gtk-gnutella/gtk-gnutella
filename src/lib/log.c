@@ -737,7 +737,7 @@ log_stat(enum log_file which, struct logstat *buf)
 	buf->need_reopen = lf->changed;
 
 	{
-		Stat_t sbuf;
+		filestat_t sbuf;
 
 		fflush(lf->f);
 

@@ -83,7 +83,7 @@ sha1_feed_string(SHA1Context *ctx, const char *s)
 static void
 sha1_feed_stat(SHA1Context *ctx, const char *path)
 {
-	Stat_t buf;
+	filestat_t buf;
 
 	if (-1 != stat(path, &buf)) {
 		SHA1Input(ctx, &buf, sizeof buf);
@@ -96,7 +96,7 @@ sha1_feed_stat(SHA1Context *ctx, const char *path)
 static void
 sha1_feed_fstat(SHA1Context *ctx, int fd)
 {
-	Stat_t buf;
+	filestat_t buf;
 
 	if (-1 != fstat(fd, &buf)) {
 		SHA1Input(ctx, &buf, sizeof buf);
@@ -141,7 +141,7 @@ entropy_collect(struct sha1 *digest)
 	}
 #else	/* !MINGW32 */
 	{
-		Stat_t buf;
+		filestat_t buf;
 		FILE *f = NULL;
 		gboolean is_pipe = TRUE;
 

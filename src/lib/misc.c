@@ -204,7 +204,7 @@ strchomp(char *str, size_t len)
 gboolean
 is_directory(const char *pathname)
 {
-	Stat_t st;
+	filestat_t st;
 
 	g_assert(pathname);
 	return 0 == stat(pathname, &st) && S_ISDIR(st.st_mode);
@@ -216,7 +216,7 @@ is_directory(const char *pathname)
 gboolean
 is_regular(const char *pathname)
 {
-	Stat_t st;
+	filestat_t st;
 
 	g_assert(pathname);
 	return 0 == stat(pathname, &st) && S_ISREG(st.st_mode);
@@ -229,7 +229,7 @@ gboolean
 is_symlink(const char *pathname)
 #if defined(HAS_LSTAT)
 {
-	Stat_t st;
+	filestat_t st;
 
 	g_assert(pathname);
 	if (0 != lstat(pathname, &st))
@@ -254,7 +254,7 @@ is_symlink(const char *pathname)
 int
 is_same_file(const char *pathname_a, const char *pathname_b)
 {
-	Stat_t sb_a, sb_b;
+	filestat_t sb_a, sb_b;
 
 	g_assert(pathname_a);
 	g_assert(pathname_b);
