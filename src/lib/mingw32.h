@@ -140,6 +140,7 @@
 #define freeaddrinfo mingw_freeaddrinfo
 
 #define stat(path, buf) mingw_stat((path), (buf))
+#define fstat(fd, buf) mingw_fstat((fd), (buf))
 #define unlink(path) mingw_unlink((path))
 #define open mingw_open
 #define fopen mingw_fopen
@@ -189,6 +190,29 @@ struct msghdr {
 	 */
 	size_t msg_controllen;		/* Ancillary data buffer length */
 	int msg_flags;				/* Flags on received message.  */
+};
+
+typedef __int64 Off_t;
+typedef struct _stati64 Stat_t;
+
+struct passwd {
+	char *pw_name;                /* Username.  */
+	char *pw_passwd;              /* Password.  */
+#if 0
+	__uid_t pw_uid;               /* User ID.  */
+	__gid_t pw_gid;               /* Group ID.  */
+	char *pw_gecos;               /* Real name.  */
+	char *pw_dir;                 /* Home directory.  */
+	char *pw_shell;               /* Shell program.  */
+#endif /* 0 */
+};
+
+struct flock {
+    short int l_type;	/* Type of lock: F_RDLCK, F_WRLCK, or F_UNLCK.  */
+    short int l_whence;	/* Where `l_start' is relative to (like `lseek').  */
+    Off_t l_start;		/* Offset where the lock begins.  */
+    Off_t l_len;		/* Size of the locked area; zero means until EOF.  */
+    pid_t l_pid;		/* Process holding the lock.  */
 };
 
 struct mingw_statvfs {
@@ -290,7 +314,8 @@ const char *mingw_gethome(void);
 guint64 mingw_getphysmemsize(void);
 int mingw_getdtablesize(void);
 const char *mingw_strerror(int errnum);
-int mingw_stat(const char *pathname, struct stat *buf);
+int mingw_stat(const char *pathname, Stat_t *buf);
+int mingw_fstat(int fd, Stat_t *buf);
 int mingw_dup2(int oldfd, int newfd);
 int mingw_open(const char *pathname, int flags, ...);
 int mingw_unlink(const char *pathname);

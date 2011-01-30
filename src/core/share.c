@@ -426,7 +426,7 @@ shared_file_t *
 shared_special(const char *path)
 {
 	shared_file_t *sf;
-	struct stat file_stat;
+	Stat_t file_stat;
 
 	sf = g_hash_table_lookup(special_names, path);
 
@@ -831,7 +831,7 @@ shared_file_valid_extension(const char *filename)
  */
 static shared_file_t * 
 share_scan_add_file(const char *relative_path,
-	const char *pathname, const struct stat *sb)
+	const char *pathname, const Stat_t *sb)
 {
 	shared_file_t *sf;
 	const char *name;
@@ -1210,7 +1210,7 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 	dir_entry = readdir(ctx->directory);
 	if (dir_entry) {
 		const char *filename = dir_entry_filename(dir_entry);
-		struct stat sb;
+		Stat_t sb;
 
 		if ('.' == filename[0]) {
 			/* Hidden file, or "." or ".." */
@@ -1835,7 +1835,7 @@ sha1_hash_available(const struct shared_file *sf)
 gboolean
 sha1_hash_is_uptodate(struct shared_file *sf)
 {
-	struct stat buf;
+	Stat_t buf;
 
 	shared_file_check(sf);
 

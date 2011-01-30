@@ -207,7 +207,7 @@ sdbm_prep(const char *dirname, const char *pagname,
 	const char *datname, int flags, int mode)
 {
 	DBM *db;
-	struct stat dstat;
+	Stat_t dstat;
 
 	if (
 		(db = sdbm_alloc()) == NULL ||
@@ -1399,7 +1399,7 @@ sdbm_shrink(DBM *db)
 	unsigned truncate_bno = 0;
 	long bno = 0;
 	filesize_t paglen;
-	struct stat buf;
+	Stat_t buf;
 	filesize_t offset;
 
 	if (-1 == fstat(db->pagf, &buf))

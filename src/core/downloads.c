@@ -2938,7 +2938,7 @@ download_passively_queued(struct download *d, gboolean queued)
 gboolean
 download_file_exists(const struct download *d)
 {
-	struct stat sb;
+	Stat_t sb;
 
 	download_check(d);
 	return -1 != stat(download_pathname(d), &sb) && S_ISREG(sb.st_mode);
@@ -7900,7 +7900,7 @@ download_overlap_check(struct download *d)
 	}
 
 	{
-		struct stat sb;
+		Stat_t sb;
 
 		if (-1 == fstat(file_object_get_fd(fo), &sb)) {
 			/* Should never happen */

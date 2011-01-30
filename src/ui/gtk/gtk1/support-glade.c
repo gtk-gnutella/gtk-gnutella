@@ -144,7 +144,7 @@ check_file_exists                      (const gchar     *directory,
                                         const gchar     *filename)
 {
   gchar *full_filename;
-  struct stat s;
+  Stat_t s;
   gint status;
 
   full_filename = (gchar*) g_malloc (strlen (directory) + 1

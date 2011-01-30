@@ -75,6 +75,7 @@ RCSID("$Id$")
 #include "override.h"			/* Must be the last header included */
 
 #undef stat
+#undef fstat
 #undef open
 #undef fopen
 #undef freopen
@@ -484,37 +485,29 @@ mingw_pipe(int fd[2])
 }
 
 int
-mingw_stat(const char *pathname, struct stat *buf)
+mingw_stat(const char *pathname, Stat_t *buf)
 {
 	pncs_t pncs;
 	int res;
-	struct _stati64 sb;
    
 	pncs = pncs_convert(pathname);
-	res = _wstati64(pncs.utf16, &sb);
-	if (-1 == res) {
+	res = _wstati64(pncs.utf16, buf);
+	if (-1 == res)
 		errno = mingw_win2errno(GetLastError());
-	} else {
-		/*
-		 * We can't copy structs since field types within struct buf and
-		 * struct sb differ, so we have to copy each field.
-		 */
-		buf->st_dev = sb.st_dev;
-		buf->st_ino = sb.st_ino;
-		buf->st_mode = sb.st_mode;
-		buf->st_nlink = sb.st_nlink;
-		buf->st_uid = sb.st_uid;
-		buf->st_gid = sb.st_gid;
-		buf->st_rdev = sb.st_rdev;
-		/* Ensure Off_t is not truncated */
-		STATIC_ASSERT(sizeof buf->st_size >= sizeof sb.st_size);
-		buf->st_size = sb.st_size;
-		buf->st_atime = sb.st_atime;
-		buf->st_mtime = sb.st_mtime;
-		buf->st_ctime = sb.st_ctime;
-	}
 
 	pncs_release(&pncs);
+	return res;
+}
+
+int
+mingw_fstat(int fd, Stat_t *buf)
+{
+	int res;
+   
+	res = _fstati64(fd, buf);
+	if (-1 == res)
+		errno = GetLastError();
+
 	return res;
 }
 
@@ -638,7 +631,7 @@ dir_entry_filename(const void *dirent)
 Off_t
 mingw_lseek(int fd, Off_t offset, int whence)
 {
-	Off_t res = lseek64(fd, offset, whence);
+	Off_t res = _lseeki64(fd, offset, whence);
 	if ((Off_t) -1 == res)
 		errno = GetLastError();
 	return res;
@@ -1901,8 +1894,6 @@ mingw_early_init(void)
 
 	_fcloseall();
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-		int fd;
-
 		fclose(stdin);
 		fclose(stdout);
 		fclose(stderr);

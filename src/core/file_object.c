@@ -689,7 +689,7 @@ file_object_preadv(const struct file_object * const fo,
  * @return 0 if OK, -1 on failure with errno set.
  */
 int
-file_object_fstat(const struct file_object * const fo, struct stat *buf)
+file_object_fstat(const struct file_object * const fo, Stat_t *buf)
 {
 	file_object_check(fo);
 	return fstat(fo->fd, buf);

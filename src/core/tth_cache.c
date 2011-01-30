@@ -184,7 +184,7 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n_leaves)
 }
 
 static size_t
-tth_cache_leave_count(const struct tth *tth, const struct stat *sb)
+tth_cache_leave_count(const struct tth *tth, const Stat_t *sb)
 {
 	g_return_val_if_fail(tth, 0);
 	g_return_val_if_fail(sb, 0);
@@ -219,7 +219,7 @@ tth_cache_lookup(const struct tth *tth, filesize_t filesize)
 
 	expected = tt_good_node_count(filesize);
 	if (expected > 1) {
-		struct stat sb;
+		Stat_t sb;
 		char *pathname;
 
 		pathname = tth_cache_pathname(tth);
@@ -262,7 +262,7 @@ tth_cache_get_leaves(const struct tth *tth,
 
 	fd = tth_cache_file_open(tth);
 	if (fd >= 0) {
-		struct stat sb;
+		Stat_t sb;
 
 		if (fstat(fd, &sb)) {
 			g_warning("tth_cache_get_leaves(%s): fstat() failed: %s",

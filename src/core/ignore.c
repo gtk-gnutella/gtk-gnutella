@@ -99,7 +99,7 @@ open_read_stamp(const char *file, time_t *stamp)
 {
 	FILE *f;
 	char *path;
-	struct stat buf;
+	Stat_t buf;
 
 	path = make_pathname(settings_config_dir(), file);
 	if (-1 == stat(path, &buf)) {

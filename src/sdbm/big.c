@@ -237,7 +237,7 @@ static int
 big_open(DBMBIG *dbg)
 {
 	struct datfile *file;
-	struct stat buf;
+	Stat_t buf;
 
 	g_assert(-1 == dbg->fd);
 	g_assert(dbg->file != NULL);
@@ -1232,7 +1232,7 @@ big_sync(DBM *db)
 static int
 big_open_lazy(DBMBIG *dbg, gboolean force)
 {
-	struct stat buf;
+	Stat_t buf;
 
 	g_assert(-1 == dbg->fd);
 

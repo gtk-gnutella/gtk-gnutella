@@ -326,7 +326,7 @@ whitelist_retrieve(void)
 {
     char line[1024];
     FILE *f;
-    struct stat st;
+    Stat_t st;
     int linenum = 0;
 	file_path_t fp[1];
 

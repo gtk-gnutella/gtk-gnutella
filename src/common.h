@@ -98,31 +98,6 @@
 /* Provided for convenience to reduce ifdef hell */
 #define is_running_on_mingw() 1
 
-typedef __i64 Off_t;
-
-struct passwd
-{
-	char *pw_name;                /* Username.  */
-	char *pw_passwd;              /* Password.  */
-#if 0
-	__uid_t pw_uid;               /* User ID.  */
-	__gid_t pw_gid;               /* Group ID.  */
-	char *pw_gecos;               /* Real name.  */
-	char *pw_dir;                 /* Home directory.  */
-	char *pw_shell;               /* Shell program.  */
-#endif /* 0 */
-};
-
-struct flock
-  {
-    short int l_type;   /* Type of lock: F_RDLCK, F_WRLCK, or F_UNLCK.  */
-    short int l_whence; /* Where `l_start' is relative to (like `lseek').  */
-    Off_t l_start;    /* Offset where the lock begins.  */
-    Off_t l_len;      /* Size of the locked area; zero means until EOF.  */
-    pid_t l_pid;      /* Process holding the lock.  */
-  };
-
-
 #else /* !MINGW32 */
 
 /* Provided for convenience to reduce ifdef hell */
@@ -242,13 +217,14 @@ struct flock
 #endif
 
 typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
-typedef off_t Off_t;
 
 #include "lib/mingw32.h"
 
 #ifndef MINGW32
 
 typedef struct iovec iovec_t;
+typedef off_t Off_t;
+typedef struct stat Stat_t;
 
 /**
  * These functions are required because under MINGW struct iovec has

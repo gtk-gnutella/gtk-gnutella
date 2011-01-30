@@ -182,7 +182,7 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 	struct moved *md = ctx;
 	struct work *we = item;
 	struct download *d = we->d;
-	struct stat buf;
+	Stat_t buf;
 	const char *name;
 
 	g_assert(md->magic == MOVED_MAGIC);
@@ -292,7 +292,7 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 	 */
 
 	if (md->error == 0) {
-		struct stat buf;
+		Stat_t buf;
 
 		g_assert(md->copied == md->size);
 

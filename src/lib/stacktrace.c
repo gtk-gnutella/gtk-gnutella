@@ -266,7 +266,7 @@ locate_from_path(const char *argv0)
 
 	for (tok = strtok(path, ":"); tok; tok = strtok(NULL, ":")) {
 		const char *dir = tok;
-		struct stat buf;
+		Stat_t buf;
 
 		if ('\0' == *dir)
 			dir = ".";
@@ -556,7 +556,7 @@ str_hash(const void *p)
 static FILE *
 stacktrace_open_symbols(const char *exe, const char *nm)
 {
-	struct stat ebuf, nbuf;
+	Stat_t ebuf, nbuf;
 	FILE *f;
 
 	if (-1 == stat(nm, &nbuf)) {
@@ -679,7 +679,7 @@ done:
 static char *
 program_path_allocate(const char *argv0)
 {
-	struct stat buf;
+	Stat_t buf;
 	const char *file = argv0;
 
 	if (-1 == stat(argv0, &buf)) {
@@ -774,7 +774,7 @@ stacktrace_init(const char *argv0, gboolean deferred)
 		goto done;
 
 	if (deferred) {
-		struct stat buf;
+		Stat_t buf;
 
 		if (-1 == stat(program_path, &buf)) {
 			s_warning("cannot stat \"%s\": %s",
@@ -842,7 +842,7 @@ stacktrace_load_symbols(void)
 	 */
 
 	if (program_path != NULL) {
-		struct stat buf;
+		Stat_t buf;
 
 		if (-1 == stat(program_path, &buf)) {
 			s_warning("cannot stat \"%s\": %s",

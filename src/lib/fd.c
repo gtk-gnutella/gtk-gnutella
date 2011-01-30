@@ -275,7 +275,7 @@ gboolean
 is_a_socket(int fd)
 #ifdef S_ISSOCK
 {
-	struct stat sb;
+	Stat_t sb;
 
 	return is_valid_fd(fd) && 0 == fstat(fd, &sb) && 0 != S_ISSOCK(sb.st_mode);
 }
@@ -302,7 +302,7 @@ is_a_socket(int fd)
 gboolean
 is_a_fifo(int fd)
 {
-	struct stat sb;
+	Stat_t sb;
 
 	return is_valid_fd(fd) && 0 == fstat(fd, &sb) && 0 != S_ISFIFO(sb.st_mode);
 }

@@ -948,7 +948,7 @@ crash_init(const char *argv0, const char *progname,
 	}
 
 	if (NULL != exec_path) {
-		struct stat buf;
+		Stat_t buf;
 
 		if (
 			-1 == stat(exec_path, &buf) ||

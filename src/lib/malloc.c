@@ -2787,7 +2787,7 @@ struct afiller {		/* Used by hash table iterator to fill alloc array */
 };
 
 /**
- * Compare two pointers to "struct stat" based on their allocation value,
+ * Compare two pointers to "Stat_t" based on their allocation value,
  * in reverse order. -- qsort() callback
  */
 static int
@@ -2800,7 +2800,7 @@ stats_allocated_cmp(const void *p1, const void *p2)
 }
 
 /**
- * Compare two pointers to "struct stat" based on their total allocation value,
+ * Compare two pointers to "Stat_t" based on their total allocation value,
  * in reverse order. -- qsort() callback
  */
 static int
@@ -2813,7 +2813,7 @@ stats_total_allocated_cmp(const void *p1, const void *p2)
 }
 
 /**
- * Compare two pointers to "struct stat" based on their residual value,
+ * Compare two pointers to "Stat_t" based on their residual value,
  * in reverse order. -- qsort() callback
  */
 static int
@@ -2831,7 +2831,7 @@ stats_residual_cmp(const void *p1, const void *p2)
 }
 
 /**
- * Compare two pointers to "struct stat" based on their total residual value,
+ * Compare two pointers to "Stat_t" based on their total residual value,
  * in reverse order. -- qsort() callback
  */
 static int

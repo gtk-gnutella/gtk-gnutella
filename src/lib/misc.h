@@ -564,8 +564,6 @@ void guid_random_fill(struct guid *);
  * Syscall wrappers for errno == 0 bug. --RAM, 27/10/2003
  */
 
-struct stat;
-
 static inline gboolean
 is_temporary_error(int error)
 {

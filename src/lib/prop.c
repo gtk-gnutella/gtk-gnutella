@@ -1527,7 +1527,7 @@ config_comment(const char *s)
  * based on the device ID and inode number.
  */
 static const char *
-unique_file_token(const struct stat *st)
+unique_file_token(const Stat_t *st)
 {
 	static char buf[SHA1_BASE16_SIZE + 1];		/* Hexadecimal format */
 	SHA1Context ctx;
@@ -1569,7 +1569,7 @@ void
 prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 {
 	FILE *config;
-	struct stat sb;
+	Stat_t sb;
 	char *newfile;
 	char *pathname;
 	guint n;
@@ -1938,7 +1938,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 	FILE *config;
 	char *path;
 	guint n = 1;
-	struct stat buf;
+	Stat_t buf;
 	gboolean truncated = FALSE;
 	gboolean good_id = FALSE;
 	const char *file_id;

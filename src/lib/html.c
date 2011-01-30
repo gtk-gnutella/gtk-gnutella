@@ -710,7 +710,7 @@ html_load_memory(struct html_output *output, const struct array data)
 int
 html_load_file(struct html_output *output, int fd)
 {
-	struct stat sb;
+	Stat_t sb;
 	size_t size = 0;
 	void *p = MAP_FAILED;
 	int ret = -1;

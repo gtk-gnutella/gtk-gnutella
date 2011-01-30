@@ -79,7 +79,7 @@ bogons_load(FILE *f)
 	int linenum = 0;
 	int bits;
 	iprange_err_t error;
-	struct stat buf;
+	Stat_t buf;
 
 	bogons_db = iprange_new();
 	if (-1 == fstat(fileno(f), &buf)) {

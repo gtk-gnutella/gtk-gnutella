@@ -201,7 +201,7 @@ add_persistent_cache_entry(const char *filename, filesize_t size,
 	pathname = make_pathname(settings_config_dir(), "sha1_cache");
 	f = file_fopen(pathname, "a");
 	if (f) {
-		struct stat sb;
+		Stat_t sb;
 
 		/*
 		 * If we're adding the very first entry (file empty), then emit header.
@@ -436,7 +436,7 @@ huge_update_hashes(struct shared_file *sf,
 	const struct sha1 *sha1, const struct tth *tth)
 {
 	struct sha1_cache_entry *cached;
-	struct stat sb;
+	Stat_t sb;
 
 	shared_file_check(sf);
 	g_return_val_if_fail(sha1, FALSE);
@@ -534,7 +534,7 @@ huge_need_sha1(struct shared_file *sf)
 
 	cached = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
 	if (cached) {
-		struct stat sb;
+		Stat_t sb;
 
 		if (-1 == stat(shared_file_path(sf), &sb)) {
 			g_warning("ignoring SHA1 recomputation request for \"%s\": %s",

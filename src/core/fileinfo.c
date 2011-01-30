@@ -1125,13 +1125,13 @@ fi_alias(fileinfo_t *fi, const char *name, gboolean record)
  * @returns TRUE if the trailer is "validated", FALSE otherwise.
  */
 static gboolean
-file_info_get_trailer(int fd, struct trailer *tb, struct stat *sb,
+file_info_get_trailer(int fd, struct trailer *tb, Stat_t *sb,
 	const char *name)
 {
 	ssize_t r;
 	fi_magic_t magic;
 	guint32 tr[FI_TRAILER_INT];
-	struct stat buf;
+	Stat_t buf;
 	Off_t offset;
 	guint64 filesize_hi;
 	size_t i = 0;
@@ -1615,7 +1615,7 @@ file_info_retrieve_binary(const char *pathname)
 	int fd;
 	guint32 version;
 	struct trailer trailer;
-	struct stat sb;
+	Stat_t sb;
 	gboolean t64;
 	GSList *chunklist = NULL;
 
@@ -1969,7 +1969,7 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 	 */
 
 	if (0 == fi->refcount && fi->done == fi->size) {
-		struct stat st;
+		Stat_t st;
 
 		if (-1 == stat(fi->pathname, &st)) {
 			return; 	/* Skip: not referenced, and file no longer exists */
@@ -3521,7 +3521,7 @@ file_info_create(const char *file, const char *path, filesize_t size,
 {
 	const char *pathname;
 	fileinfo_t *fi;
-	struct stat st;
+	Stat_t st;
 
 	pathname = file_info_new_outname(path, file);
 	g_return_val_if_fail(pathname, NULL);
@@ -3664,7 +3664,7 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 	gm_hash_table_insert_const(fi_by_outname, fi->pathname, fi);
 
 	if (fi->sf) {
-		struct stat sb;
+		Stat_t sb;
 	   
 		shared_file_set_path(fi->sf, fi->pathname);
 		if (
@@ -4464,7 +4464,7 @@ file_info_pos_status(fileinfo_t *fi, filesize_t pos /* XXX,
 static void
 fi_check_file(fileinfo_t *fi)
 {
-	struct stat buf;
+	Stat_t buf;
 
 	file_info_check(fi);
 	g_assert(fi->done);			/* Or file will not exist */
@@ -5450,7 +5450,7 @@ file_info_scandir(const char *dir)
 		pathname = make_pathname(dir, filename);
 
 		if (!S_ISREG(dir_entry_mode(dentry))) {
-			struct stat sb;
+			Stat_t sb;
 
 			if (-1 == stat(pathname, &sb)) {
 				g_warning("cannot stat %s: %s", pathname, g_strerror(errno));
@@ -6701,7 +6701,7 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 		HFREE_NULL(directory);
 	}
 	if (NULL != pathname) {
-		struct stat sb;
+		Stat_t sb;
 
 		if (stat(fi->pathname, &sb)) {
 			if (ENOENT == errno) {

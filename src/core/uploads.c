@@ -2785,7 +2785,7 @@ static gboolean
 upload_file_present(struct upload *u, struct shared_file *sf)
 {
 	fileinfo_t *fi;
-	struct stat sb;
+	Stat_t sb;
 
 	upload_check(u);
 
