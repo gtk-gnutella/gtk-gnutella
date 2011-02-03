@@ -418,8 +418,10 @@ tls_init(struct gnutella_socket *s)
 		goto failure;
 	}
 	if ((e = gnutls_certificate_type_set_priority(ctx->session, cert_list))) {
-		fn = "gnutls_certificate_type_set_priority";
-		goto failure;
+		if (GNUTLS_E_UNIMPLEMENTED_FEATURE != e) {
+			fn = "gnutls_certificate_type_set_priority";
+			goto failure;
+		}
 	}
 	if ((e = gnutls_compression_set_priority(ctx->session, comp_list))) {
 		fn = "gnutls_compression_set_priority";
