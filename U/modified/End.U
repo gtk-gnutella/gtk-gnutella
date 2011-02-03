@@ -82,7 +82,7 @@ Feature Summary (Version $gtkgversion):
 -------------------------------------------------
 GLib version                       : $glib_used
 GUI front-end                      : $frontend
-GNU TLS support                    : $gnutls
+GnuTLS support                     : $gnutls
 IPv6 support                       : $ipv6
 NLS (Native Language Support)      : $nls
 Fast assertions                    : $fastassert

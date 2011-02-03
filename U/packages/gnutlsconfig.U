@@ -11,19 +11,19 @@
 ?S: BLAH BLAH BLAH
 ?S:.
 ?S:gnutlscflags:
-?S:	This variable holds the compiler flags required to compile with GNU TLS.
+?S:	This variable holds the compiler flags required to compile with GnuTLS.
 ?S:.
 ?S:gnutlsldflags:
-?S:	This variable holds the linker flags required to link against GNU TLS.
+?S:	This variable holds the linker flags required to link against GnuTLS.
 ?S:.
 ?C:HAS_GNUTLS:
-?C: This symbol is defined when GNU TLS is present
+?C: This symbol is defined when GnuTLS is present
 ?C:.
 ?H:#$d_gnutls HAS_GNUTLS  /**/
 ?H:.
 ?T:modver version vint gnutls gnutlsconfig
 ?LINT: set d_gnutls
-: how can we find information about GNU TLS?
+: how can we find information about GnuTLS?
 echo " "
 
 gnutls="$undef"
@@ -35,7 +35,7 @@ modver=
 case "$d_gnutls" in
 "$undef") ;;
 *)
-echo "Checking how we can gather information about GNU TLS..." >&4
+echo "Checking how we can gather information about GnuTLS..." >&4
 if pkg-config gnutls --cflags >/dev/null 2>&1; then
 	gnutlsconfig="pkg-config gnutls"
 	modver=--modversion
@@ -43,7 +43,7 @@ elif libgnutls-config --cflags >/dev/null 2>&1; then
 	gnutlsconfig="libgnutls-config"
 	modver=--version
 else
-	echo "You don't seem to have GNU TLS installed?" >&4
+	echo "You don't seem to have GnuTLS installed?" >&4
 fi
 
 if [ "$gnutlsconfig" != false ]; then
@@ -57,18 +57,18 @@ case "$version" in
 *)
 	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
 	if test 0$vint -lt 010016; then
-		echo "Sorry, you have GNU TLS $version, I need at least 1.0.16." >&4
+		echo "Sorry, you have GnuTLS $version, I need at least 1.0.16." >&4
 	else
-		echo "Good, you have GNU TLS $version." >&4
+		echo "Good, you have GnuTLS $version." >&4
 		
 		$cat <<'EOM'
 
-GNU TLS allows encryption of downloads, uploads and Gnutella connections.
+GnuTLS allows encryption of downloads, uploads and Gnutella connections.
 
 For more information, see http://www.gnu.org/software/gnutls/.
 
 EOM
-		rp="Enable GNU TLS support"
+		rp="Enable GnuTLS support"
 		dflt=y
 		. ./myread
 		case "$ans" in

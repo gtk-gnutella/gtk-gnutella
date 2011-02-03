@@ -17,7 +17,7 @@ You'll have to install the following packages:
   apt-get install make            # the make tool; any version is fine
   apt-get install zlib1g-dev      # zlib
   apt-get install libxml2-dev     # libxml 2.x
-  apt-get install libgnutls-dev   # GNU TLS
+  apt-get install libgnutls-dev   # GnuTLS
   apt-get install gettext   	  # Native Language Support (NLS)
 
 For the Gtk+ 2.x front-end you'll need these:

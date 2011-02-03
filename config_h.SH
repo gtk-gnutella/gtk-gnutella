@@ -990,7 +990,7 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$d_useglib2 USE_GLIB2    /**/
 
 /* HAS_GNUTLS:
- * This symbol is defined when GNU TLS is present
+ * This symbol is defined when GnuTLS is present
  */
 #$d_gnutls HAS_GNUTLS  /**/
 

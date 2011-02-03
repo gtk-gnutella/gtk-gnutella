@@ -133,7 +133,7 @@ OBJ = \
 /* Add the libxml2 flags */
 ++XML2_CFLAGS $xmlcflags
 
-/* Add the GNU TLS flags */
+/* Add the GnuTLS flags */
 ++GNUTLS_CFLAGS $gnutlscflags
 
 /* Add the Socker flags */

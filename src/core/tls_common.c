@@ -822,7 +822,7 @@ tls_version_string(void)
 		const char *current = gnutls_check_version(NULL);
 		int differ = strcmp(current, LIBGNUTLS_VERSION);
 
-		concat_strings(buf, sizeof buf, "GNU TLS ", current,
+		concat_strings(buf, sizeof buf, "GnuTLS ", current,
 			differ ? " (compiled against " : "",
 			differ ? LIBGNUTLS_VERSION : "",
 			differ ? ")" : "",

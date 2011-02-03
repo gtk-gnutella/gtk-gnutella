@@ -47,7 +47,7 @@ OBJ = main.o
 ++DBUS_CFLAGS $dbuscflags
 ++DBUS_LDFLAGS $dbusldflags
 
-/* Add the GNU TLS flags */
+/* Add the GnuTLS flags */
 ++GNUTLS_CFLAGS $gnutlscflags
 ++GNUTLS_LDFLAGS $gnutlsldflags
 
