@@ -84,7 +84,6 @@ tls_adjust_send_size(struct gnutella_socket *s, size_t size)
 	return MIN(size, max_size);
 }
 
-#ifdef XXX_CUSTOM_PUSH_PULL
 static inline void
 tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
 {
@@ -112,6 +111,9 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 	g_assert(s->file_desc >= 0);
 
 	ret = s_write(s->file_desc, buf, size);
+	if ((ssize_t) -1 == ret) {
+		gnutls_transport_set_global_errno(errno);
+	}
 	tls_transport_debug("tls_push", s->file_desc, size, ret);
 	return ret;
 }
@@ -126,10 +128,12 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	g_assert(s->file_desc >= 0);
 
 	ret = s_read(s->file_desc, buf, size);
+	if ((ssize_t) -1 == ret) {
+		gnutls_transport_set_global_errno(errno);
+	}
 	tls_transport_debug("tls_pull", s->file_desc, size, ret);
 	return ret;
 }
-#endif /* XXX_CUSTOM_PUSH_PULL */
 
 /**
  * Change the monitoring condition on the socket.
@@ -247,7 +251,7 @@ tls_handshake(struct gnutella_socket *s)
 	g_return_val_if_fail(SOCK_TLS_INITIALIZED == s->tls.stage,
 		TLS_HANDSHAKE_ERROR);
 
-#ifdef XXX_CUSTOM_PUSH_PULL
+#if 1 /* XXX_CUSTOM_PUSH_PULL */
 	{
 		const void *ptr = gnutls_transport_get_ptr(session);
 		if (!ptr) {
@@ -427,11 +431,9 @@ tls_init(struct gnutella_socket *s)
 		fn = "gnutls_compression_set_priority";
 		goto failure;
 	}
-#ifdef XXX_CUSTOM_PUSH_PULL
 	gnutls_transport_set_ptr(ctx->session, NULL);
 	gnutls_transport_set_push_function(ctx->session, tls_push);
 	gnutls_transport_set_pull_function(ctx->session, tls_pull);
-#endif /* XXX_CUSTOM_PUSH_PULL */
 
 	return 0;
 

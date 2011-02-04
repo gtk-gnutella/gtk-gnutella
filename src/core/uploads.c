@@ -901,6 +901,7 @@ upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
 	struct upload *u;
 	struct gnutella_socket *s;
 
+	flags |= GNET_PROPERTY(tls_enforce) ? SOCK_F_TLS : 0;
 	s = socket_connect(addr, port, SOCK_TYPE_UPLOAD, flags);
 	if (!s) {
 		if (GNET_PROPERTY(upload_debug)) g_warning(

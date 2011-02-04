@@ -6658,6 +6658,8 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 
 	g_assert(s == NULL || s->resource.node == NULL);
 
+	flags |= GNET_PROPERTY(tls_enforce) ? SOCK_F_TLS : 0;
+
 	/*
 	 * During shutdown, don't accept any new connection.
 	 */

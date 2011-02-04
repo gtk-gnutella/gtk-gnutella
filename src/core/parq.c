@@ -2115,6 +2115,7 @@ parq_upload_send_queue(struct parq_ul_queued *puq)
 	struct gnutella_socket *s;
 	struct upload *u;
 	time_t now = tm_time();
+	guint32 flags = GNET_PROPERTY(tls_enforce) ? SOCK_F_TLS : 0;
 
 	g_assert(puq->flags & PARQ_UL_QUEUE);
 
@@ -2137,7 +2138,7 @@ parq_upload_send_queue(struct parq_ul_queued *puq)
 
 	gnet_stats_count_general(GNR_PARQ_QUEUE_SENDING_ATTEMPTS, 1);
 
-	s = socket_connect(puq->addr, puq->port, SOCK_TYPE_UPLOAD, 0);
+	s = socket_connect(puq->addr, puq->port, SOCK_TYPE_UPLOAD, flags);
 
 	if (!s) {
 		g_warning("[PARQ UL] could not send QUEUE #%d to %s (can't connect)",

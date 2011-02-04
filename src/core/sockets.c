@@ -2781,8 +2781,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 	s->port = port;
 	s->flags |= SOCK_F_TCP | flags;
 
-	s->tls.enabled = tls_enabled() &&
-		(GNET_PROPERTY(tls_enforce) || (SOCK_F_TLS & flags));
+	s->tls.enabled = tls_enabled() && (SOCK_F_TLS & flags);
 	s->tls.stage = SOCK_TLS_NONE;
 	s->tls.ctx = NULL;
 	s->tls.snarf = 0;

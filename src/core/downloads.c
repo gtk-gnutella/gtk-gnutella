@@ -5173,7 +5173,7 @@ download_connect(struct download *d)
 {
 	struct dl_server *server;
 	guint16 port;
-	guint32 tls = 0;
+	guint32 tls = GNET_PROPERTY(tls_enforce) ? SOCK_F_TLS : 0;
 
 	download_check(d);
 
@@ -5224,10 +5224,11 @@ download_connect(struct download *d)
 		server->dns_lookup = tm_time();
 		return socket_connect_by_name(
 			server->hostname, port, SOCK_TYPE_DOWNLOAD, d->cflags | tls);
-	} else
+	} else {
 		server->last_connect = tm_time();
 		return socket_connect(download_addr(d), port, SOCK_TYPE_DOWNLOAD,
 				d->cflags | tls);
+	}
 }
 
 /**
