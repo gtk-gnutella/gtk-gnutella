@@ -257,6 +257,8 @@ signal_set(int signo, signal_handler_t handler)
 
 	old_handler = signal_handler[signo];
 
+	g_assert(old_handler != SIG_ERR);
+
 	trampoline = (SIG_DFL == handler || SIG_IGN == handler) ?
 		handler : signal_trampoline;
 
