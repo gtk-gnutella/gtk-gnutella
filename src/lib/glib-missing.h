@@ -121,7 +121,7 @@ void gm_hash_table_destroy_null(GHashTable **h_ptr);
 gboolean gm_xprintf_is_signal_safe(void);
 size_t gm_vsnprintf(char *str, size_t n, char const *fmt, va_list args);
 size_t gm_snprintf(char *str, size_t n,
-	char const *fmt, ...) G_GNUC_PRINTF (3, 4);
+	char const *fmt, ...) G_GNUC_PRINTF(3, 4);
 
 void gm_savemain(int argc, char **argv, char **env);
 const char *gm_getproctitle(void);
@@ -271,8 +271,8 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
 								   format)
 #endif
 #else	/* !__GNUC__ */
-static inline void
-g_carp(const gchar *format, ...)
+static inline G_GNUC_PRINTF(1, 2) void
+g_carp(const char *format, ...)
 {
   va_list args;
   va_start(args, format);
@@ -280,17 +280,19 @@ g_carp(const gchar *format, ...)
   va_end(args);
   stacktrace_where_sym_print(stderr);
 }
-static inline void
-g_info(const gchar *format, ...)
+
+static inline G_GNUC_PRINTF(1, 2) void
+g_info(const char *format, ...)
 {
   va_list args;
   va_start(args, format);
   g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_INFO, format, args);
   va_end(args);
 }
+
 #if !GLIB_CHECK_VERSION(2,0,0)
-static void
-g_debug(const gchar *format, ...)
+static inline G_GNUC_PRINTF(1, 2) void
+g_debug(const char *format, ...)
 {
   va_list args;
   va_start(args, format);
