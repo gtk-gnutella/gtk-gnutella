@@ -230,8 +230,12 @@ static void
 sig_malloc(int n)
 {
 	switch (n) {
+#ifdef SIGUSR1
 	case SIGUSR1: signal_malloc = 1; break;
+#endif
+#ifdef SIGUSR2
 	case SIGUSR2: signal_malloc = 2; break;
+#endif
 	default: break;
 	}
 }
@@ -1474,8 +1478,12 @@ main(int argc, char **argv)
 #endif
 
 #if defined(FRAGCHECK) || defined(MALLOC_STATS)
+#ifdef SIGUSR1
 	signal_set(SIGUSR1, sig_malloc);
+#endif
+#ifdef SIGUSR2
 	signal_set(SIGUSR2, sig_malloc);
+#endif
 #endif
 
 	/* Early inits */
