@@ -135,6 +135,8 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	ret = s_read(s->file_desc, buf, size);
 	if ((ssize_t) -1 == ret) {
 		gnutls_transport_set_global_errno(errno);
+	} else if (0 == ret) {
+		socket_eof(s);
 	}
 	tls_transport_debug("tls_pull", s->file_desc, size, ret);
 	return ret;
@@ -674,6 +676,13 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 			}
 			errno = EIO;
 			break;
+		case GNUTLS_E_UNEXPECTED_PACKET_LENGTH:
+			if (SOCK_F_EOF & s->flags) {
+			   	/* Remote peer has hung up */
+				errno = EIO;
+				break;
+			}
+			/* FALLTHROUGH */
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
 				g_carp("tls_read(): gnutls_record_recv() failed: "
