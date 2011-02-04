@@ -48,6 +48,7 @@ RCSID("$Id$")
 
 #include "lib/array.h"
 #include "lib/concat.h"
+#include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
@@ -113,7 +114,7 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 	ssize_t ret;
 
 	g_assert(s);
-	g_assert(s->file_desc >= 0);
+	g_assert(cast_to_fd(s->file_desc) >= 0);
 
 	ret = s_write(s->file_desc, buf, size);
 	if ((ssize_t) -1 == ret) {
@@ -130,7 +131,7 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	ssize_t ret;
 
 	g_assert(s);
-	g_assert(s->file_desc >= 0);
+	g_assert(cast_to_fd(s->file_desc) >= 0);
 
 	ret = s_read(s->file_desc, buf, size);
 	if ((ssize_t) -1 == ret) {
