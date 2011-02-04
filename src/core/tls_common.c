@@ -87,18 +87,23 @@ tls_adjust_send_size(struct gnutella_socket *s, size_t size)
 static inline void
 tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
 {
-	if (GNET_PROPERTY(tls_debug) > 1) {
-		int saved_errno = errno;
-		gboolean error = (ssize_t) -1 == ret;
+	int saved_errno = errno;
 
-		g_debug("%s(): fd=%d size=%lu ret=%ld%s%s%s",
-			op, fd, (gulong) size, (glong) ret,
-			error ? " errno=\"" : "",
-			error ? g_strerror(saved_errno) : "",
-			error ? "\"" : "");
+	if ((ssize_t) -1 == ret) {
+		unsigned level = is_temporary_error(saved_errno) ? 2 : 0;
 
-		errno = saved_errno;
+		if (GNET_PROPERTY(tls_debug) > level) {
+			g_carp("%s(): fd=%d size=%lu ret=%ld errno=\"%s\"",
+				op, fd, (gulong) size, (glong) ret,
+				g_strerror(saved_errno));
+		}
+	} else {
+		if (GNET_PROPERTY(tls_debug) > 2) {
+			g_carp("%s(): fd=%d size=%lu ret=%ld",
+				op, fd, (gulong) size, (glong) ret);
+		}
 	}
+	errno = saved_errno;
 }
 
 static ssize_t
@@ -432,6 +437,7 @@ tls_init(struct gnutella_socket *s)
 		goto failure;
 	}
 	gnutls_transport_set_ptr(ctx->session, NULL);
+	gnutls_transport_set_lowat(ctx->session, 0);
 	gnutls_transport_set_push_function(ctx->session, tls_push);
 	gnutls_transport_set_pull_function(ctx->session, tls_pull);
 
