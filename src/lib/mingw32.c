@@ -63,16 +63,20 @@ RCSID("$Id$")
 
 #include "host_addr.h"			/* ADNS */
 
+#include "crash.h"
 #include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
 #include "halloc.h"
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
+#include "stringify.h"			/* For ULONG_DEC_BUFLEN */
 #include "unsigned.h"
 #include "utf8.h"
 #include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
+
+#undef signal
 
 #undef stat
 #undef fstat
@@ -243,6 +247,50 @@ mingw_win2errno(int error)
 	}
 
 	return error;
+}
+
+static signal_handler_t mingw_sighandler[SIGNAL_COUNT];
+
+signal_handler_t
+mingw_signal(int signo, signal_handler_t handler)
+{
+	signal_handler_t res;
+
+	g_assert(handler != SIG_ERR);
+
+	if (signo <= 0 || signo >= SIGNAL_COUNT) {
+		errno = EINVAL;
+		return SIG_ERR;
+	}
+
+	res = signal(signo, handler);
+	if (SIG_ERR != res) {
+		mingw_sighandler[signo] = handler;
+	}
+
+	return res;
+}
+
+/**
+ * Synthetize a fatal signal as the kernel would on an exception.
+ */
+static void
+mingw_sigraise(int signo)
+{
+	g_assert(signo > 0 && signo < SIGNAL_COUNT);
+
+	if (SIG_IGN == mingw_sighandler[signo]) {
+		/* Nothing */
+	} else if (SIG_DFL == mingw_sighandler[signo]) {
+		DECLARE_STR(3);
+
+		print_str("Got uncaught ");			/* 0 */
+		print_str(signal_name(signo));		/* 1 */
+		print_str(" -- crashing.\n");		/* 2 */
+		flush_err_str();
+	} else {
+		(*mingw_sighandler[signo])(signo);
+	}
 }
 
 int
@@ -1887,10 +1935,83 @@ mingw_init(void)
     }
 }
 
+/**
+ * Our default exception handler.
+ */
+static LONG
+mingw_exception(EXCEPTION_POINTERS *ei)
+{
+	EXCEPTION_RECORD *er;
+
+	er = ei->ExceptionRecord;
+
+	switch (er->ExceptionCode) {
+	case EXCEPTION_BREAKPOINT:
+	case EXCEPTION_SINGLE_STEP:
+		mingw_sigraise(SIGTRAP);
+		break;
+	case EXCEPTION_ACCESS_VIOLATION:
+	case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+	case EXCEPTION_STACK_OVERFLOW:
+	case EXCEPTION_IN_PAGE_ERROR:
+		mingw_sigraise(SIGSEGV);
+		break;
+	case EXCEPTION_DATATYPE_MISALIGNMENT:
+		mingw_sigraise(SIGBUS);
+		break;
+	case EXCEPTION_FLT_DENORMAL_OPERAND:
+	case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+	case EXCEPTION_FLT_INEXACT_RESULT:
+	case EXCEPTION_FLT_INVALID_OPERATION:
+	case EXCEPTION_FLT_OVERFLOW:
+	case EXCEPTION_FLT_STACK_CHECK:
+	case EXCEPTION_FLT_UNDERFLOW:
+	case EXCEPTION_INT_DIVIDE_BY_ZERO:
+	case EXCEPTION_INT_OVERFLOW:
+		mingw_sigraise(SIGFPE);
+		break;
+	case EXCEPTION_ILLEGAL_INSTRUCTION:
+	case EXCEPTION_PRIV_INSTRUCTION:
+		mingw_sigraise(SIGILL);
+		break;
+	case EXCEPTION_NONCONTINUABLE_EXCEPTION:
+	case EXCEPTION_INVALID_DISPOSITION:
+		{
+			DECLARE_STR(1);
+
+			print_str("Got fatal exception -- crashing.\n");
+			flush_err_str();
+		}
+		break;
+	default:
+		{
+			char buf[ULONG_DEC_BUFLEN];
+			const char *s;
+			DECLARE_STR(3);
+
+			s = print_number(buf, sizeof buf, er->ExceptionCode);
+			print_str("Got unknown exception #");		/* 0 */
+			print_str(s);								/* 1 */
+			print_str(" -- crashing.\n");				/* 2 */
+			flush_err_str();
+		}
+		break;
+	}
+
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
 void
 mingw_early_init(void)
 {
 	int console_err;
+
+	/* Disable any Windows pop-up on crash or file access error */
+	SetErrorMode(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS |
+		SEM_NOGPFAULTERRORBOX);
+
+	/* Trap all unhandled exceptions */
+	SetUnhandledExceptionFilter(mingw_exception);
 
 	_fcloseall();
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {

@@ -51,6 +51,8 @@
 #include <sys/stat.h>
 #include <glib.h>
 
+#include "signal.h"		/* For signal_handler_t */
+
 /*
  * Winsock to UNIX symbolic error code remapping.
  */
@@ -119,6 +121,10 @@
 #define F_UNLCK	2
 
 #define S_IFLNK 0120000 /* Symbolic link */
+
+#define signal(n, h) mingw_signal((n), (h))
+#define SIGBUS	10		/* Simulated, unassigned signal number in MinGW32 */
+#define SIGTRAP	12		/* Simulated, unassigned signal number in MinGW32 */
 
 #define getppid()		1
 #define fcntl mingw_fcntl
@@ -307,6 +313,8 @@ iovec_set_len(iovec_t* iovec, size_t len)
 {
 	iovec->len = len;
 }
+
+signal_handler_t mingw_signal(int signo, signal_handler_t handler);
 
 int mingw_fcntl(int fd, int cmd, ... /* arg */ );
 
