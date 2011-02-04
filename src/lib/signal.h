@@ -36,6 +36,18 @@
 #ifndef _signal_h_
 #define _signal_h_
 
+/**
+ * On Windows, Configure's determination of SIG_COUNT varies depending on
+ * compiler flags or on the OS (e.g. Windows XP versus Windows 7) and that
+ * prevents binary compatiblity.  Also, under some compilation flags, SIG_COUNT
+ * is just incorrect (too small).
+ */
+#ifdef MINGW32
+#define SIGNAL_COUNT	32
+#else
+#define SIGNAL_COUNT	SIG_COUNT		/* Trust Configure on UNIX machines */
+#endif
+
 typedef void (*signal_handler_t)(int signo);
 
 /*

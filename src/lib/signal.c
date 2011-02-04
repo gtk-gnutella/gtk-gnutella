@@ -55,18 +55,6 @@ RCSID("$Id$")
 #define SIGNAL_CHUNK_RESERVE	512		/**< Critical amount reserved */
 
 /**
- * On Windows, Configure's determination of SIG_COUNT varies depending on
- * compiler flags or on the OS (e.g. Windows XP versus Windows 7) and that
- * prevents binary compatiblity.  Also, under some compilation flags, SIG_COUNT
- * is just incorrect (too small).
- */
-#ifdef MINGW32
-#define SIGNAL_COUNT	32
-#else
-#define SIGNAL_COUNT	SIG_COUNT		/* Trust Configure on UNIX machines */
-#endif
-
-/**
  * Table mapping a signal number with a symbolic name.
  *
  * Contrary to the signal_names[] below, this is using compiled constants
