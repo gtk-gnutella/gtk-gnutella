@@ -94,13 +94,13 @@ tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
 		unsigned level = is_temporary_error(saved_errno) ? 2 : 0;
 
 		if (GNET_PROPERTY(tls_debug) > level) {
-			g_carp("%s(): fd=%d size=%lu ret=%ld errno=\"%s\"",
+			g_debug("%s(): fd=%d size=%lu ret=%ld errno=\"%s\"",
 				op, fd, (gulong) size, (glong) ret,
 				g_strerror(saved_errno));
 		}
 	} else {
 		if (GNET_PROPERTY(tls_debug) > 2) {
-			g_carp("%s(): fd=%d size=%lu ret=%ld",
+			g_debug("%s(): fd=%d size=%lu ret=%ld",
 				op, fd, (gulong) size, (glong) ret);
 		}
 	}
