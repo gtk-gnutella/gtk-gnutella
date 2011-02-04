@@ -300,7 +300,7 @@ tls_handshake(struct gnutella_socket *s)
 		break;
 	default:
 		if (do_warn && GNET_PROPERTY(tls_debug)) {
-			g_warning("gnutls_handshake() failed: host=%s (%s) error=\"%s\"",
+			g_carp("gnutls_handshake() failed: host=%s (%s) error=\"%s\"",
 				host_addr_port_to_string(s->addr, s->port),
 				SOCK_CONN_INCOMING == s->direction ? "incoming" : "outgoing",
 				gnutls_strerror(ret));
@@ -555,7 +555,7 @@ tls_write_intern(struct wrap_io *wio, gconstpointer buf, size_t size)
 
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
-				g_warning("tls_write(): gnutls_record_send() failed: "
+				g_carp("tls_write(): gnutls_record_send() failed: "
 					"host=%s snarf=%lu error=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),
 					(unsigned long) s->tls.snarf,
@@ -668,7 +668,7 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 			break;
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
-				g_warning("tls_read(): gnutls_record_recv() failed: "
+				g_carp("tls_read(): gnutls_record_recv() failed: "
 					"host=%s error=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),
 					gnutls_strerror(ret));
@@ -805,7 +805,7 @@ tls_bye(struct gnutella_socket *s)
 			break;
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
-				g_warning("gnutls_bye() failed: host=%s error=\"%s\"",
+				g_carp("gnutls_bye() failed: host=%s error=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),
 					gnutls_strerror(ret));
 			}
