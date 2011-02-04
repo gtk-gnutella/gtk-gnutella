@@ -263,9 +263,23 @@ mingw_signal(int signo, signal_handler_t handler)
 		return SIG_ERR;
 	}
 
-	res = signal(signo, handler);
-	if (SIG_ERR != res) {
+	/*
+	 * Don't call signal() with SIGBUS or SIGTRAP: since we're faking them,
+	 * we'll get an error back as "unrecognized argument value".
+	 */
+
+	switch (signo) {
+	case SIGBUS:
+	case SIGTRAP:
+		res = mingw_sighandler[signo];
 		mingw_sighandler[signo] = handler;
+		break;
+	default:
+		res = signal(signo, handler);
+		if (SIG_ERR != res) {
+			mingw_sighandler[signo] = handler;
+		}
+		break;
 	}
 
 	return res;
