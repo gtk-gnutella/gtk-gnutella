@@ -309,6 +309,12 @@ tls_handshake(struct gnutella_socket *s)
 			}
 		}
 		break;
+	case GNUTLS_E_UNEXPECTED_PACKET_LENGTH:
+		if (SOCK_F_EOF & s->flags) {
+		   	/* Remote peer has hung up */
+			break;
+		}
+		/* FALLTHROUGH */
 	default:
 		if (do_warn && GNET_PROPERTY(tls_debug)) {
 			g_carp("gnutls_handshake() failed: host=%s (%s) error=\"%s\"",
