@@ -114,7 +114,7 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 	ssize_t ret;
 
 	g_assert(s);
-	g_assert(cast_to_fd(s->file_desc) >= 0);
+	g_assert(is_valid_fd(s->file_desc));
 
 	ret = s_write(s->file_desc, buf, size);
 	if ((ssize_t) -1 == ret) {
@@ -131,7 +131,7 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	ssize_t ret;
 
 	g_assert(s);
-	g_assert(cast_to_fd(s->file_desc) >= 0);
+	g_assert(is_valid_fd(s->file_desc));
 
 	ret = s_read(s->file_desc, buf, size);
 	if ((ssize_t) -1 == ret) {
@@ -259,24 +259,9 @@ tls_handshake(struct gnutella_socket *s)
 	g_return_val_if_fail(SOCK_TLS_INITIALIZED == s->tls.stage,
 		TLS_HANDSHAKE_ERROR);
 
-#if 1 /* XXX_CUSTOM_PUSH_PULL */
-	{
-		const void *ptr = gnutls_transport_get_ptr(session);
-		if (!ptr) {
-			gnutls_transport_set_ptr(session, s);
-		}
+	if (NULL == gnutls_transport_get_ptr(session)) {
+		gnutls_transport_set_ptr(session, s);
 	}
-#else
-	{
-		int fd = GPOINTER_TO_INT(gnutls_transport_get_ptr(session));
-		if (fd < 0) {
-			fd = s->file_desc;
-			g_assert(fd >= 0);
-			gnutls_transport_set_ptr(session, GINT_TO_POINTER(fd));
-		}
-	}
-#endif	/* XXX_CUSTOM_PUSH_PULL */
-
 
 	ret = gnutls_handshake(session);
 	switch (ret) {
