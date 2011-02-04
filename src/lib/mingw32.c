@@ -272,7 +272,7 @@ mingw_signal(int signo, signal_handler_t handler)
 }
 
 /**
- * Synthetize a fatal signal as the kernel would on an exception.
+ * Synthesize a fatal signal as the kernel would on an exception.
  */
 static void
 mingw_sigraise(int signo)
