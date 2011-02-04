@@ -269,12 +269,12 @@ tls_handshake(struct gnutella_socket *s)
 	ret = gnutls_handshake(session);
 	switch (ret) {
 	case 0:
-		if (GNET_PROPERTY(tls_debug)) {
+		if (GNET_PROPERTY(tls_debug > 3)) {
 			g_debug("TLS handshake succeeded");
 		}
 		tls_socket_evt_change(s, SOCK_CONN_INCOMING == s->direction
 									? INPUT_EVENT_R : INPUT_EVENT_W);
-		if (GNET_PROPERTY(tls_debug)) {
+		if (GNET_PROPERTY(tls_debug > 3)) {
 			tls_print_session_info(s->addr, s->port, session);
 		}
 		return TLS_HANDSHAKE_FINISHED;
@@ -593,7 +593,7 @@ tls_flush(struct wrap_io *wio)
 	socket_check(s);
 
 	if (s->tls.snarf) {
-		if (GNET_PROPERTY(tls_debug)) {
+		if (GNET_PROPERTY(tls_debug > 1)) {
 			g_debug("tls_flush: snarf=%lu host=%s",
 					(gulong) s->tls.snarf,
 					host_addr_port_to_string(s->addr, s->port));
