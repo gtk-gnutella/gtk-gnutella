@@ -43,6 +43,7 @@
 #define _glib_missing_h_
 
 #include "common.h"
+#include "stacktrace.h"		/* For stacktrace_where_sym_print() */
 
 #ifdef USE_GLIB1
 typedef gboolean (*GEqualFunc)(gconstpointer a, gconstpointer b);
@@ -238,6 +239,13 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
  ***/
 
 #if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#define g_carp(...)					\
+	G_STMT_START {					\
+		g_log (G_LOG_DOMAIN,		\
+   			G_LOG_LEVEL_WARNING,	\
+   			__VA_ARGS__);			\
+		stacktrace_where_sym_print(stderr); \
+	} G_STMT_END
 #define g_info(...)		g_log (G_LOG_DOMAIN,		\
 							   G_LOG_LEVEL_INFO,	\
 							   __VA_ARGS__)
@@ -247,6 +255,13 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
 							   __VA_ARGS__)
 #endif
 #elif defined (__GNUC__)
+#define g_carp(format...)			\
+	G_STMT_START {					\
+		g_log (G_LOG_DOMAIN,		\
+   			G_LOG_LEVEL_WARNING,	\
+   			format);				\
+		stacktrace_where_sym_print(stderr); \
+	} G_STMT_END
 #define g_info(format...)	g_log (G_LOG_DOMAIN,		\
 								   G_LOG_LEVEL_INFO,	\
 								   format)
@@ -256,6 +271,15 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
 								   format)
 #endif
 #else	/* !__GNUC__ */
+static inline void
+g_carp(const gchar *format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, format, args);
+  va_end(args);
+  stacktrace_where_sym_print(stderr);
+}
 static inline void
 g_info(const gchar *format, ...)
 {

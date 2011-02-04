@@ -374,6 +374,25 @@ s_error(const char *format, ...)
 }
 
 /**
+ * Safe verbose warning message.
+ */
+void
+s_carp(const char *format, ...)
+{
+	gboolean in_signal_handler = signal_in_handler();
+	va_list args;
+
+	va_start(args, format);
+	s_logv(G_LOG_LEVEL_WARNING, format, args);
+	va_end(args);
+
+	if (in_signal_handler)
+		stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
+	else
+		stacktrace_where_sym_print_offset(stderr, 1);
+}
+
+/**
  * Safe warning message.
  */
 void
