@@ -93,8 +93,13 @@ assertion_warning(const assertion_data * const data)
 void G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_failure(const assertion_data * const data)
 {
+	static gboolean seen_fatal;
+
 	assertion_message(data, TRUE);
-	stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
+	if (!seen_fatal) {
+		seen_fatal = TRUE;
+		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
+	}
 	abort();
 }
 
