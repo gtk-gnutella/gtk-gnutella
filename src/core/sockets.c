@@ -1508,7 +1508,7 @@ socket_read(gpointer data, int source, inputevt_cond_t cond)
 				g_assert(1 == ret);
 
 				if (GNET_PROPERTY(tls_debug) > 2)
-					g_debug("socket_read(): c=0x%02x", c);
+					g_debug("socket_read(): c=0x%02x", (unsigned char) c);
 
 				if (is_ascii_alnum(c) || '\n' == c || '\r' == c) {
 					s->tls.enabled = FALSE;
