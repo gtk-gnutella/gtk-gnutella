@@ -60,7 +60,15 @@ RCSID("$Id$")
 
 #ifdef HAS_GNUTLS
 
-/* Disabled because incoming connections get stuck after gnutls_handshake */
+/**
+ * Disabled because incoming connections get stuck after gnutls_handshake.
+ * This cannot work trivially because we are losing physical events on
+ * the socket to GnuTLS. If there is still data buffered to be read,
+ * there won't be any further events on the socket. GnuTLS uses some
+ * hacks including recv() with MSG_PEEK to keep the socket select()able.
+ * So we would either have to do the same or synthesize events using
+ * gnutls_record_check_pending().
+ */
 #undef USE_TLS_CUSTOM_IO
 
 struct tls_context {
@@ -110,6 +118,38 @@ tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
 	errno = saved_errno;
 }
 
+/**
+ * Change the monitoring condition on the socket.
+ */
+static void
+tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
+{
+	g_assert(s);
+	g_assert(socket_with_tls(s));	/* No USES yet, may not have handshaked */
+	g_assert(INPUT_EVENT_EXCEPTION != cond);
+
+	if (0 == s->gdk_tag)
+		return;
+
+	if (cond != s->tls.cb_cond) {
+		int saved_errno = errno;
+
+		if (GNET_PROPERTY(tls_debug) > 1) {
+			int fd = socket_evt_fd(s);
+			g_debug("tls_socket_evt_change: fd=%d, cond=%s -> %s",
+				fd, inputevt_cond_to_string(s->tls.cb_cond),
+				inputevt_cond_to_string(cond));
+		}
+		if (s->gdk_tag) {
+			inputevt_remove(s->gdk_tag);
+			s->gdk_tag = 0;
+		}
+		socket_evt_set(s, cond, s->tls.cb_handler, s->tls.cb_data);
+		errno = saved_errno;
+	}
+}
+
+
 static inline ssize_t
 tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size) 
 {
@@ -144,37 +184,6 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	}
 	tls_transport_debug("tls_pull", s->file_desc, size, ret);
 	return ret;
-}
-
-/**
- * Change the monitoring condition on the socket.
- */
-static void
-tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
-{
-	g_assert(s);
-	g_assert(socket_with_tls(s));	/* No USES yet, may not have handshaked */
-	g_assert(INPUT_EVENT_EXCEPTION != cond);
-
-	if (0 == s->gdk_tag)
-		return;
-
-	if (cond != s->tls.cb_cond) {
-		int saved_errno = errno;
-
-		if (GNET_PROPERTY(tls_debug) > 1) {
-			int fd = socket_evt_fd(s);
-			g_debug("tls_socket_evt_change: fd=%d, cond=%s -> %s",
-				fd, inputevt_cond_to_string(s->tls.cb_cond),
-				inputevt_cond_to_string(cond));
-		}
-		if (s->gdk_tag) {
-			inputevt_remove(s->gdk_tag);
-			s->gdk_tag = 0;
-		}
-		socket_evt_set(s, cond, s->tls.cb_handler, s->tls.cb_data);
-		errno = saved_errno;
-	}
 }
 
 static gnutls_dh_params
@@ -262,7 +271,7 @@ tls_handshake(struct gnutella_socket *s)
 	g_return_val_if_fail(SOCK_TLS_INITIALIZED == s->tls.stage,
 		TLS_HANDSHAKE_ERROR);
 
-#if USE_TLS_CUSTOM_IO
+#ifdef USE_TLS_CUSTOM_IO
 	if (NULL == gnutls_transport_get_ptr(session)) {
 		gnutls_transport_set_ptr(session, s);
 	}
