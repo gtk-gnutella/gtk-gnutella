@@ -2014,9 +2014,9 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 
 	if (er->NumberParameters >= 2) {
 		switch (er->ExceptionInformation[0]) {
-		case 0:		prot = "read";
-		case 1:		prot = "write";
-		case 8:		prot = "execute";
+		case 0:		prot = "read"; break;
+		case 1:		prot = "write"; break;
+		case 8:		prot = "execute"; break;
 		}
 		va = ulong_to_pointer(er->ExceptionInformation[1]);
 	}
