@@ -208,7 +208,7 @@ get_dh_params(void)
 
 static void
 tls_print_session_info(const host_addr_t addr, guint16 port,
-	gnutls_session session)
+	gnutls_session session, gboolean incoming)
 {
 	const char *proto, *cert, *kx, *ciph, *mac, *comp;
 
@@ -223,7 +223,7 @@ tls_print_session_info(const host_addr_t addr, guint16 port,
 	mac = gnutls_mac_get_name(gnutls_mac_get (session));
 
 	g_debug(
-		"TLS session info:\n"
+		"TLS session info (%s):\n"
 		"Host:         %s\n"
 		"Protocol:     %s\n"
 		"Certificate:  %s\n"
@@ -231,6 +231,7 @@ tls_print_session_info(const host_addr_t addr, guint16 port,
 		"Cipher:       %s\n"
 		"MAC:          %s\n"
 		"Compression:  %s",
+		incoming ? "incoming" : "outgoing",
 		host_addr_port_to_string(addr, port),
 		NULL_STRING(proto),
 		NULL_STRING(cert),
@@ -291,7 +292,8 @@ tls_handshake(struct gnutella_socket *s)
 		tls_socket_evt_change(s, SOCK_CONN_INCOMING == s->direction
 									? INPUT_EVENT_R : INPUT_EVENT_W);
 		if (GNET_PROPERTY(tls_debug > 3)) {
-			tls_print_session_info(s->addr, s->port, session);
+			tls_print_session_info(s->addr, s->port, session,
+				SOCK_CONN_INCOMING == s->direction);
 		}
 		return TLS_HANDSHAKE_FINISHED;
 	case GNUTLS_E_AGAIN:
