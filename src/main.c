@@ -1510,9 +1510,9 @@ main(int argc, char **argv)
 			flags, options[main_arg_exec_on_crash].arg);
 		crash_setbuild(main_get_build());
 	}	
+	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
 	handle_arguments_asap();
 
-	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
 	mingw_init();
 	zinit();
 	walloc_init();
