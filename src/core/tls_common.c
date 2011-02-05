@@ -300,7 +300,6 @@ tls_handshake(struct gnutella_socket *s)
 #endif
 
 	ret = gnutls_handshake(session);
-	tls_signal_pending(s);
 	switch (ret) {
 	case 0:
 		if (GNET_PROPERTY(tls_debug) > 3) {
@@ -312,6 +311,7 @@ tls_handshake(struct gnutella_socket *s)
 			tls_print_session_info(s->addr, s->port, session,
 				SOCK_CONN_INCOMING == s->direction);
 		}
+		tls_signal_pending(s);
 		return TLS_HANDSHAKE_FINISHED;
 	case GNUTLS_E_AGAIN:
 	case GNUTLS_E_INTERRUPTED:
@@ -320,6 +320,7 @@ tls_handshake(struct gnutella_socket *s)
 		if (GNET_PROPERTY(tls_debug) > 3) {
 			g_debug("TLS handshake proceeding...");
 		}
+		tls_signal_pending(s);
 		return TLS_HANDSHAKE_RETRY;
 	case GNUTLS_E_PULL_ERROR:
 	case GNUTLS_E_PUSH_ERROR:
@@ -361,8 +362,6 @@ tls_handshake(struct gnutella_socket *s)
 int
 tls_init(struct gnutella_socket *s)
 {
-	int e = 0;
-	const char *fn = NULL;
 	static const int cipher_list[] = {
 		GNUTLS_CIPHER_AES_256_CBC,
 		GNUTLS_CIPHER_AES_128_CBC,
@@ -398,6 +397,10 @@ tls_init(struct gnutella_socket *s)
 	};
 	struct tls_context *ctx;
 	gboolean server = SOCK_CONN_INCOMING == s->direction;
+	const char *fn;
+	int e;
+
+#define TRY(function) (fn = (#function)), e = function
 
 	socket_check(s);
 
@@ -405,10 +408,9 @@ tls_init(struct gnutella_socket *s)
 	ctx->s = s;
 	s->tls.ctx = ctx;
 
-	if ((e = gnutls_init(&ctx->session,
-				server ? GNUTLS_SERVER : GNUTLS_CLIENT))
+	if (
+		TRY(gnutls_init)(&ctx->session, server ? GNUTLS_SERVER : GNUTLS_CLIENT)
 	) {
-		fn = "gnutls_init";
 		ctx->session = NULL;
 		goto failure;
 	}
@@ -421,60 +423,47 @@ tls_init(struct gnutella_socket *s)
 #endif	/* USE_TLS_CUSTOM_IO */
 
 	if (server) {
-		if ((e = gnutls_anon_allocate_server_credentials(&ctx->server_cred))) {
-			fn = "gnutls_anon_allocate_server_credentials";
+		if (TRY(gnutls_anon_allocate_server_credentials)(&ctx->server_cred))
 			goto failure;
-		}
+
 		gnutls_anon_set_server_dh_params(ctx->server_cred, get_dh_params());
 		gnutls_dh_set_prime_bits(ctx->session, TLS_DH_BITS);
 
-		if ((e = gnutls_credentials_set(ctx->session,
-				GNUTLS_CRD_ANON, ctx->server_cred))) {
-			fn = "gnutls_credentials_set";
+		if (TRY(gnutls_credentials_set)(ctx->session,
+				GNUTLS_CRD_ANON, ctx->server_cred))
 			goto failure;
-		}
+
 		if (server_cert_cred) {
-			if ((e = gnutls_credentials_set(ctx->session,
-					GNUTLS_CRD_CERTIFICATE, server_cert_cred))) {
-				fn = "gnutls_credentials_set";
+			if (TRY(gnutls_credentials_set)(ctx->session,
+					GNUTLS_CRD_CERTIFICATE, server_cert_cred))
 				goto failure;
-			}
 		}
 	} else {
-		if ((e = gnutls_anon_allocate_client_credentials(&ctx->client_cred))) {
-			fn = "gnutls_anon_allocate_client_credentials";
+		if (TRY(gnutls_anon_allocate_client_credentials)(&ctx->client_cred))
 			goto failure;
-		}
-		if ((e = gnutls_credentials_set(ctx->session,
-				GNUTLS_CRD_ANON, ctx->client_cred))) {
-			fn = "gnutls_credentials_set";
+
+		if (TRY(gnutls_credentials_set)(ctx->session,
+				GNUTLS_CRD_ANON, ctx->client_cred))
 			goto failure;
-		}
 	}
 
 	gnutls_set_default_priority(ctx->session);
-	if ((e = gnutls_cipher_set_priority(ctx->session, cipher_list))) {
-		fn = "gnutls_cipher_set_priority";
+	if (TRY(gnutls_cipher_set_priority)(ctx->session, cipher_list))
 		goto failure;
-	}
-	if ((e = gnutls_kx_set_priority(ctx->session, kx_list))) {
-		fn = "gnutls_kx_set_priority";
+
+	if (TRY(gnutls_kx_set_priority)(ctx->session, kx_list))
 		goto failure;
-	}
-	if ((e = gnutls_mac_set_priority(ctx->session, mac_list))) {
-		fn = "gnutls_mac_set_priority";
+
+	if (TRY(gnutls_mac_set_priority)(ctx->session, mac_list))
 		goto failure;
-	}
-	if ((e = gnutls_certificate_type_set_priority(ctx->session, cert_list))) {
-		if (GNUTLS_E_UNIMPLEMENTED_FEATURE != e) {
-			fn = "gnutls_certificate_type_set_priority";
+
+	if (TRY(gnutls_certificate_type_set_priority)(ctx->session, cert_list)) {
+		if (GNUTLS_E_UNIMPLEMENTED_FEATURE != e)
 			goto failure;
-		}
 	}
-	if ((e = gnutls_compression_set_priority(ctx->session, comp_list))) {
-		fn = "gnutls_compression_set_priority";
+
+	if (TRY(gnutls_compression_set_priority)(ctx->session, comp_list))
 		goto failure;
-	}
 
 	return 0;
 
@@ -482,6 +471,7 @@ failure:
 	g_warning("%s() failed: %s", EMPTY_STRING(fn), gnutls_strerror(e));
 	tls_free(s);
 	return -1;
+#undef TRY
 }
 
 void
