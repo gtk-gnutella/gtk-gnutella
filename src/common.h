@@ -293,10 +293,20 @@ typedef int socket_fd_t;
 #ifdef USE_GLIB1
 typedef void (*GCallback) (void);
 #define G_STRLOC __FILE__ ":" STRINGIFY(__LINE__)
+
+#if defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 19901L)
+#define G_STRFUNC (__func__)
+#elif defined(__GNUC__)
+#define G_STRFUNC (__PRETTY_FUNCTION__)
+#else
+#define G_STRFUNC (G_STRLOC)
 #endif
+
+#endif	/* USE_GLIB1 */
+
 #ifdef USE_GLIB2
 #include <glib-object.h>
-#endif
+#endif	/* USE_GLIB2 */
 
 /*
  * Array size determination
