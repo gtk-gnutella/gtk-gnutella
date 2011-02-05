@@ -683,8 +683,11 @@ program_path_allocate(const char *argv0)
 	const char *file = argv0;
 
 	if (-1 == stat(argv0, &buf)) {
+		int saved_errno = errno;
 		file = locate_from_path(argv0);
 		if (NULL == file) {
+			s_warning("could not stat() \"%s\": %s",
+				argv0, g_strerror(saved_errno));
 			s_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
 			goto error;
 		}
