@@ -70,6 +70,8 @@ void stacktrace_print(FILE *f, const struct stacktrace *st);
 void stacktrace_atom_print(FILE *f, const struct stackatom *st);
 
 const char *stacktrace_caller_name(size_t n);
+const char *stacktrace_routine_name(const void *pc, gboolean offset);
+
 void stacktrace_where_print(FILE *f);
 void stacktrace_where_sym_print(FILE *f);
 void stacktrace_where_sym_print_offset(FILE *f, size_t offset);

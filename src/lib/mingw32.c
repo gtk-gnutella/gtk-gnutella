@@ -69,6 +69,7 @@ RCSID("$Id$")
 #include "halloc.h"
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
+#include "stacktrace.h"
 #include "stringify.h"			/* For ULONG_DEC_BUFLEN */
 #include "unsigned.h"
 #include "utf8.h"
@@ -1986,17 +1987,26 @@ mingw_exception_to_string(int code)
 static void
 mingw_exception_log(int code, const void *pc)
 {
-	DECLARE_STR(6);
+	DECLARE_STR(9);
 	char time_buf[18];
+	const char *name;
 
 	crash_time(time_buf, sizeof time_buf);
+	name = stacktrace_routine_name(pc, TRUE);
+	if (is_strprefix(name, "0x"))
+		name = NULL;
 
 	print_str(time_buf);										/* 0 */
 	print_str(" (CRITICAL): received exception at PC=0x");		/* 1 */
 	print_str(pointer_to_string(pc));							/* 2 */
-	print_str(": ");											/* 3 */
-	print_str(mingw_exception_to_string(code));					/* 4 */
-	print_str("\n");											/* 5 */
+	if (name != NULL) {
+		print_str(" (");										/* 3 */
+		print_str(name);										/* 4 */
+		print_str(")");											/* 5 */
+	}
+	print_str(": ");											/* 6 */
+	print_str(mingw_exception_to_string(code));					/* 7 */
+	print_str("\n");											/* 8 */
 
 	flush_err_str();
 }

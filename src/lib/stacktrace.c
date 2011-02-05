@@ -382,7 +382,7 @@ trace_insert(const void *start, const char *name)
  * @return trace structure if found, NULL otherwise.
  */
 static struct trace *
-trace_lookup(void *pc)
+trace_lookup(const void *pc)
 {
 	struct trace *low = trace_array.base,
 				 *high = &trace_array.base[trace_array.count -1],
@@ -411,7 +411,7 @@ trace_lookup(void *pc)
  * but is safe to use in a signal handler.
  */
 static void
-trace_fmt_pointer(char *buf, size_t buflen, void *p)
+trace_fmt_pointer(char *buf, size_t buflen, const void *p)
 {
 	if (buflen < 4) {
 		buf[0] = '\0';
@@ -455,13 +455,13 @@ trace_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
  * signal handler.
  *
  * @param pc		the PC to translate into symbolic form
- * @param offset	whether offset should be added, in symbolic form.
+ * @param offset	whether decimal offset should be added, in symbolic form.
  *
  * @return symbolic name for given pc offset, if found, otherwise
  * the hexadecimal value.
  */
 static const char *
-trace_name(void *pc, gboolean offset)
+trace_name(const void *pc, gboolean offset)
 {
 	static char buf[256];
 
@@ -472,7 +472,7 @@ trace_name(void *pc, gboolean offset)
 
 		t = trace_lookup(pc);
 
-		if (NULL == t || &trace_array.base[trace_array.count -1] == t) {
+		if (NULL == t || &trace_array.base[trace_array.count - 1] == t) {
 			trace_fmt_pointer(buf, sizeof buf, pc);
 		} else {
 			trace_fmt_name(buf, sizeof buf, t->name,
@@ -1026,6 +1026,22 @@ stacktrace_caller_name(size_t n)
 		stacktrace_load_symbols();
 
 	return trace_name(stack[n], FALSE);
+}
+
+/**
+ * Return symbolic name of the routine to which a PC belongs.
+ *
+ * @param pc		the PC we're looking for
+ * @param offset	whether we want additional offset within routine
+ *
+ * @return pointer to static data.  If symbols were not loaded or no matching
+ * routine was found (the PC belongs to a shared library for instance), then
+ * a formatted hexadecimal value is returned.
+ */
+const char *
+stacktrace_routine_name(const void *pc, gboolean offset)
+{
+	return trace_name(pc, offset);
 }
 
 /**
