@@ -60,6 +60,9 @@ RCSID("$Id$")
 
 #ifdef HAS_GNUTLS
 
+/* Disabled because incoming connections get stuck after gnutls_handshake */
+#undef USE_TLS_CUSTOM_IO
+
 struct tls_context {
 	gnutls_session session;
 	gnutls_anon_server_credentials server_cred;
@@ -107,7 +110,7 @@ tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
 	errno = saved_errno;
 }
 
-static ssize_t
+static inline ssize_t
 tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size) 
 {
 	struct gnutella_socket *s = ptr;
@@ -124,7 +127,7 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 	return ret;
 }
 
-static ssize_t
+static inline ssize_t
 tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size) 
 {
 	struct gnutella_socket *s = ptr;
@@ -259,14 +262,21 @@ tls_handshake(struct gnutella_socket *s)
 	g_return_val_if_fail(SOCK_TLS_INITIALIZED == s->tls.stage,
 		TLS_HANDSHAKE_ERROR);
 
+#if USE_TLS_CUSTOM_IO
 	if (NULL == gnutls_transport_get_ptr(session)) {
 		gnutls_transport_set_ptr(session, s);
 	}
+#else
+	if (GPOINTER_TO_INT(gnutls_transport_get_ptr(session)) < 0) {
+		g_assert(is_valid_fd(s->file_desc));
+		gnutls_transport_set_ptr(session, GINT_TO_POINTER(s->file_desc));
+	}
+#endif
 
 	ret = gnutls_handshake(session);
 	switch (ret) {
 	case 0:
-		if (GNET_PROPERTY(tls_debug > 3)) {
+		if (GNET_PROPERTY(tls_debug) > 3) {
 			g_debug("TLS handshake succeeded");
 		}
 		tls_socket_evt_change(s, SOCK_CONN_INCOMING == s->direction
@@ -279,6 +289,9 @@ tls_handshake(struct gnutella_socket *s)
 	case GNUTLS_E_INTERRUPTED:
 		tls_socket_evt_change(s, gnutls_record_get_direction(session)
 				? INPUT_EVENT_WX : INPUT_EVENT_RX);
+		if (GNET_PROPERTY(tls_debug) > 3) {
+			g_debug("TLS handshake proceeding...");
+		}
 		return TLS_HANDSHAKE_RETRY;
 	case GNUTLS_E_PULL_ERROR:
 	case GNUTLS_E_PUSH_ERROR:
@@ -315,7 +328,6 @@ tls_handshake(struct gnutella_socket *s)
 /**
  * Initiates a new TLS session.
  *
- * @param is_incoming Whether this is an incoming connection.
  * @return 0 on success, -1 on error.
  */
 int
@@ -343,7 +355,7 @@ tls_init(struct gnutella_socket *s)
 	};
 	static const int comp_list[] = {
 #if 0
-		/* XXX: This causes internal errors from gnutls_record_recv()
+		/* FIXME: This causes internal errors from gnutls_record_recv()
 		 * at least when browsing hosts which send deflated data.
 		 */
 		GNUTLS_COMP_DEFLATE,
@@ -357,6 +369,7 @@ tls_init(struct gnutella_socket *s)
 		0
 	};
 	struct tls_context *ctx;
+	gboolean server = SOCK_CONN_INCOMING == s->direction;
 
 	socket_check(s);
 
@@ -364,13 +377,22 @@ tls_init(struct gnutella_socket *s)
 	ctx->s = s;
 	s->tls.ctx = ctx;
 
-	if (SOCK_CONN_INCOMING == s->direction) {
+	if ((e = gnutls_init(&ctx->session,
+				server ? GNUTLS_SERVER : GNUTLS_CLIENT))
+	) {
+		fn = "gnutls_init";
+		ctx->session = NULL;
+		goto failure;
+	}
 
-		if ((e = gnutls_init(&ctx->session, GNUTLS_SERVER))) {
-			fn = "gnutls_init";
-			ctx->session = NULL;
-			goto failure;
-		}
+#ifdef USE_TLS_CUSTOM_IO
+	gnutls_transport_set_ptr(ctx->session, s);
+	gnutls_transport_set_push_function(ctx->session, tls_push);
+	gnutls_transport_set_pull_function(ctx->session, tls_pull);
+	gnutls_transport_set_lowat(ctx->session, 0);
+#endif	/* USE_TLS_CUSTOM_IO */
+
+	if (server) {
 		if ((e = gnutls_anon_allocate_server_credentials(&ctx->server_cred))) {
 			fn = "gnutls_anon_allocate_server_credentials";
 			goto failure;
@@ -391,11 +413,6 @@ tls_init(struct gnutella_socket *s)
 			}
 		}
 	} else {
-		if ((e = gnutls_init(&ctx->session, GNUTLS_CLIENT))) {
-			fn = "gnutls_init";
-			ctx->session = NULL;
-			goto failure;
-		}
 		if ((e = gnutls_anon_allocate_client_credentials(&ctx->client_cred))) {
 			fn = "gnutls_anon_allocate_client_credentials";
 			goto failure;
@@ -430,10 +447,6 @@ tls_init(struct gnutella_socket *s)
 		fn = "gnutls_compression_set_priority";
 		goto failure;
 	}
-	gnutls_transport_set_ptr(ctx->session, NULL);
-	gnutls_transport_set_lowat(ctx->session, 0);
-	gnutls_transport_set_push_function(ctx->session, tls_push);
-	gnutls_transport_set_pull_function(ctx->session, tls_pull);
 
 	return 0;
 
@@ -467,6 +480,12 @@ tls_free(struct gnutella_socket *s)
 	}
 }
 
+static inline void
+tls_log_function(int level, const char *text)
+{
+	g_debug("TLS(%d): %s", level, text);
+}
+
 void
 tls_global_init(void)
 {
@@ -486,6 +505,12 @@ tls_global_init(void)
 	if (gnutls_global_init()) {
 		g_error("gnutls_global_init() failed");
 	}
+
+#ifdef USE_TLS_CUSTOM_IO
+	gnutls_global_set_log_level(9);
+	gnutls_global_set_log_function(tls_log_function);
+#endif	/* USE_TLS_CUSTOM_IO */
+
 	get_dh_params();
 
 	key_file = make_pathname(settings_config_dir(), "key.pem");
