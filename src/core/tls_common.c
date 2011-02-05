@@ -670,9 +670,16 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 			break;
 		case GNUTLS_E_UNEXPECTED_PACKET_LENGTH:
 			if (SOCK_F_EOF & s->flags) {
-			   	/* Remote peer has hung up */
+			   	/*
+				 * Remote peer has hung up.
+				 *
+				 * This is not exceptional, so we make it appear to upper
+				 * layers (who do not necessarily know they're dealing with
+				 * a TLS socket) as a regular EOF condition: the read()
+				 * operation return 0.
+				 */
 				ret = 0;
-				break;
+				goto no_error;
 			}
 			/* FALLTHROUGH */
 		default:
@@ -687,6 +694,7 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		ret = -1;
 	}
 
+no_error:
 	if (s->gdk_tag && 0 == s->tls.snarf) {
 		tls_socket_evt_change(s, INPUT_EVENT_RX);
 	}
