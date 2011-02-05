@@ -57,8 +57,6 @@ RCSID("$Id$")
 #define USE_DEV_POLL
 #elif defined(HAS_POLL) || defined(HAS_SELECT)
 #define USE_POLL
-#else
-#define USE_GLIB_IO_CHANNELS	/* Use GLib IO Channels with default function */
 #endif
 
 /**
@@ -84,7 +82,6 @@ RCSID("$Id$")
 #undef USE_EPOLL
 #undef USE_KQUEUE
 #undef USE_DEV_POLL
-#undef USE_GLIB_IO_CHANNELS
 
 /* Override by manual #define below */
 #define USE_POLL
@@ -206,7 +203,6 @@ typedef struct relay_list {
 
 static const inputevt_handler_t zero_handler;
 
-#if !defined(USE_GLIB_IO_CHANNELS)
 struct poll_ctx {
 	inputevt_relay_t **relay;	/**< The relay contexts */
 	bit_array_t *used_event_id;	/**< A bit array, which ID slots are used */
@@ -334,8 +330,6 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned *idx_ptr)
 	(void) idx_ptr;
 }
 #endif	/* USE_POLL */
-
-#endif /* !USE_GLIB_IO_CHANNELS */
 
 #ifndef USE_KQUEUE
 size_t
@@ -949,8 +943,6 @@ inputevt_add_source_with_glib(inputevt_relay_t *relay)
 	return id;
 }
 
-#if !defined(USE_GLIB_IO_CHANNELS)
-
 void
 inputevt_poll_idx_compact(struct poll_ctx *ctx)
 #ifdef USE_POLL
@@ -1289,7 +1281,10 @@ inputevt_add_source(inputevt_relay_t *relay)
 	ctx = get_global_poll_ctx();
 	g_assert(ctx->initialized);
 	g_assert(is_valid_fd(relay->fd));
-	
+
+	/* FIXME: We should fallback to compat_poll() here, otherwise
+	 * inputevt_set_readable() will have no effect.
+	 */
 	/*
 	 * Linux systems with 2.4 kernels usually have all epoll stuff
 	 * in their headers but the system calls just return ENOSYS.
@@ -1432,10 +1427,10 @@ inputevt_init(void)
 	g_assert(!ctx->initialized);
 	
 	ctx->initialized = TRUE;
+	ctx->ht = g_hash_table_new(NULL, NULL);
+	ctx->readable = hash_list_new(NULL, NULL);
 
 	if (create_poll_fd(&ctx->fd)) {
-		ctx->ht = g_hash_table_new(NULL, NULL);
-		ctx->readable = hash_list_new(NULL, NULL);
 
 #if defined(USE_DEV_POLL) || defined(USE_POLL)
 		default_poll_func = g_main_context_get_poll_func(NULL);
@@ -1461,29 +1456,6 @@ inputevt_init(void)
 		/* This is no hard error, we fall back to the GLib source watcher */
 	}
 }
-#endif /* !USE_GLIB_IO_CHANNELS */
-
-#ifdef USE_GLIB_IO_CHANNELS
-static unsigned
-inputevt_add_source(inputevt_relay_t *relay)
-{
-	return inputevt_add_source_with_glib(relay);
-}
-
-void
-inputevt_remove(unsigned id)
-{
-	g_source_remove(id);
-}
-
-void
-inputevt_init(void)
-{
-#ifdef INPUTEVT_DEBUGGING
-	g_info("INPUTEVT using glib's I/O channels");
-#endif	/* INPUTEVT_DEBUGGING */
-}
-#endif /* USE_GLIB_IO_CHANNELS */
 
 /**
  * Adds an event source to the main GLIB monitor queue.
@@ -1533,7 +1505,6 @@ inputevt_add(int fd, inputevt_cond_t cond,
 void
 inputevt_close(void)
 {
-#if !defined(USE_GLIB_IO_CHANNELS)
 	struct poll_ctx *ctx;
 	
 	ctx = get_global_poll_ctx();
@@ -1546,7 +1517,6 @@ inputevt_close(void)
 	G_FREE_NULL(ctx->ev_arr);
 	fd_close(&ctx->fd);
 	ctx->initialized = FALSE;
-#endif
 }
 
 /* vi: set ts=4 sw=4 cindent: */
