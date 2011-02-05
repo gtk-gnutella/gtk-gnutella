@@ -1950,6 +1950,83 @@ mingw_init(void)
     }
 }
 
+static int
+mingw_stack_fill(void **buffer, int size, CONTEXT *c, int skip)
+{
+	STACKFRAME s;
+	DWORD image;
+	HANDLE proc, thread;
+	int i;
+
+	proc = GetCurrentProcess();
+	thread = GetCurrentThread();
+
+	memset(&s, 0, sizeof s);
+
+	/*
+	 * We're MINGW32, so even on a 64-bit processor we're going to run
+	 * in 32-bit mode, using WOW64 support (if running on a 64-bit Windows).
+	 *
+	 * FIXME: How is this going to behave on AMD64?  There's no definition
+	 * of a context for this machine, and I can't test it.
+	 *		--RAM, 2011-01-12
+	 */
+
+	image = IMAGE_FILE_MACHINE_I386;
+	s.AddrPC.Offset = c->Eip;
+	s.AddrPC.Mode = AddrModeFlat;
+	s.AddrStack.Offset = c->Esp;
+	s.AddrStack.Mode = AddrModeFlat;
+	s.AddrFrame.Offset = c->Ebp;
+	s.AddrFrame.Mode = AddrModeFlat;
+
+	i = 0;
+
+	while (
+		i < size &&
+		StackWalk(image, proc, thread, &s, &c, NULL, NULL, NULL, NULL)
+	) {
+		if (0 == s.AddrPC.Offset)
+			break;
+
+		if (skip-- > 0)
+			continue;
+
+		buffer[i++] = ulong_to_pointer(s.AddrPC.Offset);
+	}
+
+	return i;
+}
+
+int
+mingw_backtrace(void **buffer, int size)
+{
+	CONTEXT c;
+	HANDLE thread;
+
+	thread = GetCurrentThread();
+
+	memset(&c, 0, sizeof c);
+	c.ContextFlags = CONTEXT_FULL;
+
+	/*
+	 * We'd need RtlCaptureContext() but it's not avaialable through MinGW.
+	 *
+	 * Although MSDN says the context will be corrupted, we're not doing
+	 * context-switching here.  What's important is that the stack addresses
+	 * be filled, and experience shows they are properly filled in.
+	 */
+
+	GetThreadContext(thread, &c);
+
+	/*
+	 * Experience shows we have to skip the first 2 frames to get a
+	 * correct stack frame.
+	 */
+
+	return mingw_stack_fill(buffer, size, &c, 2);
+}
+
 /**
  * Convert exception code to string.
  */
@@ -2043,6 +2120,15 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 	flush_err_str();
 }
 
+static volatile sig_atomic_t in_exception_handler;
+static void *mingw_stack[STACKTRACE_DEPTH_MAX];
+
+int
+mingw_in_exception(void)
+{
+	return in_exception_handler;
+}
+
 /**
  * Our default exception handler.
  */
@@ -2050,12 +2136,17 @@ static LONG
 mingw_exception(EXCEPTION_POINTERS *ei)
 {
 	EXCEPTION_RECORD *er;
+	int signo = 0;
 
+	in_exception_handler = 1;	/* Will never be reset, we're crashing */
 	er = ei->ExceptionRecord;
 
 	/*
 	 * Don't use too much stack if we're facing a stack overflow.
 	 * We'll emit a short message below in that case.
+	 *
+	 * However, apparently the exceptions are delivered on a distinct stack.
+	 * It may be very samll, for all we know, so still be cautious.
 	 */
 
 	if (EXCEPTION_STACK_OVERFLOW != er->ExceptionCode)
@@ -2064,7 +2155,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	switch (er->ExceptionCode) {
 	case EXCEPTION_BREAKPOINT:
 	case EXCEPTION_SINGLE_STEP:
-		mingw_sigraise(SIGTRAP);
+		signo = SIGTRAP;
 		break;
 	case EXCEPTION_STACK_OVERFLOW:
 		/*
@@ -2077,17 +2168,17 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			print_str("Got stack overflow -- crashing.\n");
 			flush_err_str();
 		}
-		mingw_sigraise(SIGSEGV);
+		signo = SIGSEGV;
 		break;
 	case EXCEPTION_ACCESS_VIOLATION:
 	case EXCEPTION_IN_PAGE_ERROR:
 		mingw_memory_fault_log(er);
 		/* FALL THROUGH */
 	case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
-		mingw_sigraise(SIGSEGV);
+		signo = SIGSEGV;
 		break;
 	case EXCEPTION_DATATYPE_MISALIGNMENT:
-		mingw_sigraise(SIGBUS);
+		signo = SIGBUS;
 		break;
 	case EXCEPTION_FLT_DENORMAL_OPERAND:
 	case EXCEPTION_FLT_DIVIDE_BY_ZERO:
@@ -2098,11 +2189,11 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	case EXCEPTION_FLT_UNDERFLOW:
 	case EXCEPTION_INT_DIVIDE_BY_ZERO:
 	case EXCEPTION_INT_OVERFLOW:
-		mingw_sigraise(SIGFPE);
+		signo = SIGFPE;
 		break;
 	case EXCEPTION_ILLEGAL_INSTRUCTION:
 	case EXCEPTION_PRIV_INSTRUCTION:
-		mingw_sigraise(SIGILL);
+		signo = SIGILL;
 		break;
 	case EXCEPTION_NONCONTINUABLE_EXCEPTION:
 	case EXCEPTION_INVALID_DISPOSITION:
@@ -2127,6 +2218,35 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		}
 		break;
 	}
+
+	/*
+	 * Core dumps are not a standard Windows feature, so when we terminate
+	 * it will be too late to collect information.  Attempt to trace the
+	 * stack the process was in at the time of the exception.
+	 *
+	 * The mingw_stack[] array is in the BSS, not on the stack to minimize
+	 * the runtime requirement in the exception routine.
+	 *
+	 * Because the current stack is apparently a dedicated exception stack,
+	 * we have to get a stacktrace from the saved stack context at the
+	 * time the exception occurred.  When calling mingw_sigraise(), the
+	 * default crash handler will print the exception stack (the current one)
+	 * which will prove rather useless.
+	 */
+
+	{
+		int count = mingw_stack_fill(mingw_stack, G_N_ELEMENTS(mingw_stack),
+						ei->ContextRecord, 0);
+
+		stacktrace_stack_safe_print(STDERR_FILENO, mingw_stack, count);
+	}
+
+	/*
+	 * Synthesize signal, as the UNIX kernel would for these exceptions.
+	 */
+
+	if (signo != 0)
+		mingw_sigraise(signo);
 
 	return EXCEPTION_CONTINUE_SEARCH;
 }

@@ -1142,6 +1142,26 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
 }
 
 /**
+ * Safely print supplied trace to specified file as a symbolic stack,
+ * if possible.
+ *
+ * Safety comes from the fact that this routine may be safely called from
+ * a signal handler. However, symbolic names will not be loaded from the
+ * executable if they haven't already and we're in a signal handler.
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ */
+void
+stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
+{
+	if (!signal_in_handler())
+		stacktrace_load_symbols();
+
+	stack_safe_print(fd, stack, count);
+}
+
+/**
  * Context for cautious stack printing, used in desperate situations
  * when we're about to crash anyway.
  */

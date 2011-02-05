@@ -171,7 +171,7 @@ static volatile sig_atomic_t in_signal_handler;
 gboolean
 signal_in_handler(void)
 {
-	return in_signal_handler != 0;
+	return in_signal_handler != 0 && !mingw_in_exception();
 }
 
 /**

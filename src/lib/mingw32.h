@@ -435,11 +435,15 @@ gboolean mingw_same_file_id(const char *pathname_a, const char *pathname_b);
 const char *dir_entry_filename(const void *dirent);
 int mingw_getgateway(guint32 *ip);
 
+gboolean mingw_in_exception(void);
+
 #else	/* !MINGW32 */
 
 #define mingw_early_init();
 #define mingw_init()
 #define mingw_close()
+
+#define mingw_in_exception()		0
 
 #endif	/* MINGW32 */
 #endif /* _mingw32_h_ */
