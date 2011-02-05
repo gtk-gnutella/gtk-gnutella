@@ -1964,9 +1964,20 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	case EXCEPTION_SINGLE_STEP:
 		mingw_sigraise(SIGTRAP);
 		break;
+	case EXCEPTION_STACK_OVERFLOW:
+		/*
+		 * With a stack overflow, we may not be able to continue very
+		 * far, so log the fact as soon as possible.
+		 */
+		{
+			DECLARE_STR(1);
+
+			print_str("Got stack overflow -- crashing.\n");
+			flush_err_str();
+		}
+		/* FALL THROUGH */
 	case EXCEPTION_ACCESS_VIOLATION:
 	case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
-	case EXCEPTION_STACK_OVERFLOW:
 	case EXCEPTION_IN_PAGE_ERROR:
 		mingw_sigraise(SIGSEGV);
 		break;
