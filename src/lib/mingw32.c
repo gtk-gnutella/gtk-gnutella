@@ -1950,6 +1950,56 @@ mingw_init(void)
 }
 
 /**
+ * Convert exception code to string.
+ */
+static const char *
+mingw_exception_to_string(int code)
+{
+	switch (code) {
+	case EXCEPTION_BREAKPOINT:				return "Breakpoint";
+	case EXCEPTION_SINGLE_STEP:				return "Single step";
+	case EXCEPTION_STACK_OVERFLOW:			return "Stack overflow";
+	case EXCEPTION_ACCESS_VIOLATION:		return "Access violation";
+	case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:	return "Array bounds exceeded";
+	case EXCEPTION_IN_PAGE_ERROR:			return "Paging error";
+	case EXCEPTION_DATATYPE_MISALIGNMENT:	return "Bus error";
+	case EXCEPTION_FLT_DENORMAL_OPERAND:	return "Float denormal operand";
+	case EXCEPTION_FLT_DIVIDE_BY_ZERO:		return "Float divide by zero";
+	case EXCEPTION_FLT_INEXACT_RESULT:		return "Float inexact result";
+	case EXCEPTION_FLT_INVALID_OPERATION:	return "Float invalid operation";
+	case EXCEPTION_FLT_OVERFLOW:			return "Float overflow";
+	case EXCEPTION_FLT_STACK_CHECK:			return "Float stack check";
+	case EXCEPTION_FLT_UNDERFLOW:			return "Float underflow";
+	case EXCEPTION_INT_DIVIDE_BY_ZERO:		return "Integer divide by zero";
+	case EXCEPTION_INT_OVERFLOW:			return "Integer overflow";
+	case EXCEPTION_ILLEGAL_INSTRUCTION:		return "Illegal instruction";
+	case EXCEPTION_PRIV_INSTRUCTION:		return "Privileged instruction";
+	case EXCEPTION_NONCONTINUABLE_EXCEPTION:return "Continued after exception";
+	case EXCEPTION_INVALID_DISPOSITION:		return "Invalid disposition";
+	default:								return "Unknown exception";
+	}
+}
+
+/**
+ * Log reported exception.
+ */
+static void
+mingw_exception_log(int code)
+{
+	DECLARE_STR(4);
+	char time_buf[18];
+
+	crash_time(time_buf, sizeof time_buf);
+
+	print_str(time_buf);							/* 0 */
+	print_str(" (CRITICAL): Received exception: ");	/* 1 */
+	print_str(mingw_exception_to_string(code));		/* 2 */
+	print_str("\n");								/* 3 */
+
+	flush_err_str();
+}
+
+/**
  * Our default exception handler.
  */
 static LONG
@@ -1958,6 +2008,14 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	EXCEPTION_RECORD *er;
 
 	er = ei->ExceptionRecord;
+
+	/*
+	 * Don't use too much stack if we're facing a stack overflow.
+	 * We'll emit a short message below in that case.
+	 */
+
+	if (EXCEPTION_STACK_OVERFLOW != er->ExceptionCode)
+		mingw_exception_log(er->ExceptionCode);
 
 	switch (er->ExceptionCode) {
 	case EXCEPTION_BREAKPOINT:
