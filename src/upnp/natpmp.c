@@ -94,6 +94,7 @@ natpmp_check(const struct natpmp * const np)
 enum natpmp_rpc_magic	{ NATPMP_RPC_MAGIC = 0x5232e29d };
 
 enum natpmp_op {
+	NATPMP_OP_INVALID = -1,		/**< Invalid; for initialization */
 	NATPMP_OP_DISCOVERY = 0,	/**< Discovery operation */
 	NATPMP_OP_MAP_TCP = 1,		/**< TCP port mapping request */
 	NATPMP_OP_MAP_UDP = 2		/**< UDP port mapping request */
@@ -304,6 +305,7 @@ natpmp_op_to_string(enum natpmp_op op)
 	case NATPMP_OP_DISCOVERY:	return "Discovery";
 	case NATPMP_OP_MAP_TCP:		return "TCP Mapping";
 	case NATPMP_OP_MAP_UDP:		return "UDP Mapping";
+	case NATPMP_OP_INVALID:		break;
 	}
 
 	return "Unknown NAT-PMP opcode";
@@ -326,6 +328,8 @@ natpmp_rpc_error(struct natpmp_rpc *rd)
 		if (rd->cb.map != NULL)
 			(*rd->cb.map)(NATPMP_E_TX, 0, 0, rd->arg);
 		break;
+	case NATPMP_OP_INVALID:
+		g_assert_not_reached();
 	}
 
 	natpmp_rpc_free(rd);
@@ -622,6 +626,8 @@ natpmp_rpc_reply(enum urpc_ret type, host_addr_t addr, guint16 port,
 		if (!natpmp_handle_mapping_reply(payload, len, rd))
 			goto iterate;
 		break;
+	case NATPMP_OP_INVALID:
+		g_assert_not_reached();
 	}
 
 	/*
@@ -841,7 +847,7 @@ natpmp_rpc_map(natpmp_t *np, enum upnp_map_proto proto, guint16 port,
 	time_delta_t lease, natpmp_map_cb_t cb, void *arg)
 {
 	pmsg_t *mb;
-	enum natpmp_op op;
+	enum natpmp_op op = NATPMP_OP_INVALID;
 	struct natpmp_rpc *rd;
 
 	natpmp_check(np);
@@ -851,6 +857,7 @@ natpmp_rpc_map(natpmp_t *np, enum upnp_map_proto proto, guint16 port,
 	case UPNP_MAP_UDP: op = NATPMP_OP_MAP_UDP; break;
 	case UPNP_MAP_MAX: g_assert_not_reached();
 	}
+	g_assert(NATPMP_OP_INVALID != op);
 
 	/*
 	 * Creating the mapping message.
