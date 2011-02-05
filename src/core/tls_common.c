@@ -155,7 +155,9 @@ tls_signal_pending(struct gnutella_socket *s)
 	size_t n = gnutls_record_check_pending(tls_socket_get_session(s));
 
 	if (n > 0) {
-		g_debug("%s: pending=%lu", G_STRFUNC, (unsigned long) n);
+		if (GNET_PROPERTY(tls_debug) > 1) {
+			g_debug("%s: pending=%lu", G_STRFUNC, (unsigned long) n);
+		}
 		inputevt_set_readable(s->file_desc);
 	}
 }
