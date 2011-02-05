@@ -134,7 +134,6 @@ typedef struct epoll_event *inputevt_array;
 typedef struct pollfd *inputevt_array;
 #endif	/* USE_POLL */
 
-
 /**
  * The following functions must be implemented by any I/O event handler:
  *
@@ -151,6 +150,7 @@ typedef struct pollfd *inputevt_array;
 #include "bit_array.h"
 #include "compat_poll.h"
 #include "fd.h"
+#include "hashlist.h"
 #include "inputevt.h"
 #include "glib-missing.h"
 #include "misc.h"
@@ -213,6 +213,7 @@ struct poll_ctx {
 	bit_array_t *used_poll_idx;	/**< -"-, which Poll IDX slots are used */
 	GSList *removed;			/**< List of removed IDs */
 	GHashTable *ht;				/**< Records file descriptors */
+	hash_list_t *readable;		/**< Records readable file descriptors */
 	unsigned num_ev;			/**< Length of the "ev" and "relay" arrays */
 	unsigned num_poll_idx;		/**< Length of used_poll_idx array */
 	unsigned max_poll_idx;
@@ -353,6 +354,7 @@ static inline int
 event_get_fd(const struct poll_ctx *ctx, unsigned idx)
 {
 	const struct kevent *ev = &ctx->ev_arr[idx];
+	data_available = EVFILT_READ == ev->filter ? MIN(INT_MAX, ev->data) : 0;
 	return pointer_to_uint(KEVENT_UDATA_TO_PTR(ev->udata));
 }
 
@@ -384,13 +386,6 @@ size_t
 inputevt_data_available(void)
 {
 	return data_available;
-}
-
-static inline void
-event_set_data_avail(const struct poll_ctx *ctx, unsigned idx)
-{
-	const struct kevent *ev = &ctx->ev_arr[idx];
-	data_available = EVFILT_READ == ev->filter ? MIN(INT_MAX, ev->data) : 0;
 }
 
 static gboolean
@@ -608,18 +603,6 @@ create_poll_fd(int *fd_ptr)
 	return TRUE;	
 }
 #endif	/* USE_POLL */
-
-
-#if !defined(USE_KQUEUE) && !defined(USE_GLIB_IO_CHANNELS)
-static inline void
-event_set_data_avail(const struct poll_ctx *unused_ctx,
-	unsigned unused_idx)
-{
-	/* Not directly supported and probably not worth a ioctl() */
-	(void) unused_ctx;
-	(void) unused_idx;
-}
-#endif	/* !USE_KQUEUE */
 
 #if defined(USE_POLL)
 
@@ -1079,57 +1062,97 @@ inputevt_timer(struct poll_ctx *ctx)
 		g_warning("event_check_all(%d) failed: %s", ctx->fd, g_strerror(errno));
 	}
 
-	if (n < 1) {
-		/* Nothing to dispatch */
-		return;
-	}
-	g_assert(n > 0);
-	g_assert(UNSIGNED(n) <= ctx->num_ev);
-	
 	ctx->dispatching = TRUE;
 
-	for (i = 0; n > 0 && UNSIGNED(i) < ctx->num_ev; i++) {
-		inputevt_cond_t cond;
-		relay_list_t *rl;
-		GSList *sl;
-		int fd;
+	if (n > 0) {
+		g_assert(n > 0);
+		g_assert(UNSIGNED(n) <= ctx->num_ev);
+	
+		for (i = 0; n > 0 && UNSIGNED(i) < ctx->num_ev; i++) {
+			inputevt_cond_t cond;
+			relay_list_t *rl;
+			GSList *sl;
+			int fd;
 
-		fd = event_get_fd(ctx, i);
-		g_assert(fd >= -1);
-		if (!is_valid_fd(fd))
-			continue;
-
-		cond = event_get_condition(ctx, i);
-		if (0 == cond)
-			continue;
-
-		n--;
-		rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
-		g_assert(NULL != rl);
-		g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
-
-		for (sl = rl->sl; NULL != sl; /* NOTHING */) {
-			inputevt_relay_t *relay;
-			unsigned id;
-
-			id = GPOINTER_TO_UINT(sl->data);
-			sl = g_slist_next(sl);
-
-			g_assert(id > 0);
-			g_assert(id < ctx->num_ev);
-
-			relay = ctx->relay[id];
-			g_assert(relay);
-			g_assert(relay->fd == fd);
-
-			if (zero_handler == relay->handler)
+			fd = event_get_fd(ctx, i);
+			g_assert(fd >= -1);
+			if (!is_valid_fd(fd))
 				continue;
 
-			if (relay->condition & cond) {
-				event_set_data_avail(ctx, i);
-				relay->handler(relay->data, fd, cond);
+			cond = event_get_condition(ctx, i);
+			if (0 == cond)
+				continue;
+
+			n--;
+			rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
+			g_assert(NULL != rl);
+			g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
+
+			for (sl = rl->sl; NULL != sl; /* NOTHING */) {
+				inputevt_relay_t *relay;
+				unsigned id;
+
+				id = GPOINTER_TO_UINT(sl->data);
+				sl = g_slist_next(sl);
+
+				g_assert(id > 0);
+				g_assert(id < ctx->num_ev);
+
+				relay = ctx->relay[id];
+				g_assert(relay);
+				g_assert(relay->fd == fd);
+
+				if (zero_handler == relay->handler)
+					continue;
+
+				if (relay->condition & cond) {
+					relay->handler(relay->data, fd, cond);
+				}
 			}
 		}
+	}
+
+	if (hash_list_length(ctx->readable) > 0) {
+		GList *iter, *list = hash_list_list(ctx->readable);
+
+		hash_list_clear(ctx->readable);
+		g_debug("%s: %lu fake events", G_STRFUNC,
+			(unsigned long) g_list_length(list));
+
+		for (iter = list; NULL != iter; iter = g_list_next(iter)) {
+			int fd = GPOINTER_TO_INT(iter->data);
+			relay_list_t *rl;
+			GSList *sl;
+
+			g_assert(is_valid_fd(fd));
+
+			rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
+			g_assert(NULL != rl);
+			g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
+
+			for (sl = rl->sl; NULL != sl; /* NOTHING */) {
+				inputevt_relay_t *relay;
+				unsigned id;
+
+				id = GPOINTER_TO_UINT(sl->data);
+				sl = g_slist_next(sl);
+
+				g_assert(id > 0);
+				g_assert(id < ctx->num_ev);
+
+				relay = ctx->relay[id];
+				g_assert(relay);
+				g_assert(relay->fd == fd);
+
+				if (zero_handler == relay->handler)
+					continue;
+
+				if (INPUT_EVENT_R & relay->condition) {
+					relay->handler(relay->data, relay->fd, INPUT_EVENT_R);
+				}
+			}
+		}
+		gm_list_free_null(&list);
 	}
 	
 	ctx->dispatching = FALSE;
@@ -1378,6 +1401,18 @@ inputevt_add_source(inputevt_relay_t *relay)
 	return id;
 }
 
+void
+inputevt_set_readable(int fd)
+{
+	struct poll_ctx *ctx;
+
+	g_debug("%s: fd=%d", G_STRFUNC, fd);
+	g_assert(is_valid_fd(fd));
+	ctx = get_global_poll_ctx();
+	if (!hash_list_contains(ctx->readable, GINT_TO_POINTER(fd))) 
+		hash_list_append(ctx->readable, GINT_TO_POINTER(fd));
+}
+
 /**
  * Performs module initialization.
  */
@@ -1398,6 +1433,7 @@ inputevt_init(void)
 
 	if (create_poll_fd(&ctx->fd)) {
 		ctx->ht = g_hash_table_new(NULL, NULL);
+		ctx->readable = hash_list_new(NULL, NULL);
 
 #if defined(USE_DEV_POLL) || defined(USE_POLL)
 		default_poll_func = g_main_context_get_poll_func(NULL);
@@ -1501,6 +1537,7 @@ inputevt_close(void)
 	ctx = get_global_poll_ctx();
 	inputevt_purge_removed(ctx);
 	gm_hash_table_destroy_null(&ctx->ht);
+	hash_list_free(&ctx->readable);
 	G_FREE_NULL(ctx->used_poll_idx);
 	G_FREE_NULL(ctx->used_event_id);
 	G_FREE_NULL(ctx->relay);

@@ -81,6 +81,7 @@ guint inputevt_add(int source, inputevt_cond_t condition,
 const char *inputevt_cond_to_string(inputevt_cond_t cond);
 size_t inputevt_data_available(void);
 void inputevt_remove(guint id);
+void inputevt_set_readable(int fd);
 
 #endif  /* _inputevt_h_ */
 

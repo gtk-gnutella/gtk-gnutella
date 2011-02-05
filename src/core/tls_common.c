@@ -69,7 +69,7 @@ RCSID("$Id$")
  * So we would either have to do the same or synthesize events using
  * gnutls_record_check_pending().
  */
-#undef USE_TLS_CUSTOM_IO
+#define USE_TLS_CUSTOM_IO
 
 struct tls_context {
 	gnutls_session session;
@@ -149,6 +149,16 @@ tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 	}
 }
 
+static inline void
+tls_signal_pending(struct gnutella_socket *s)
+{
+	size_t n = gnutls_record_check_pending(tls_socket_get_session(s));
+
+	if (n > 0) {
+		g_debug("%s: pending=%lu", G_STRFUNC, (unsigned long) n);
+		inputevt_set_readable(s->file_desc);
+	}
+}
 
 static inline ssize_t
 tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size) 
@@ -160,6 +170,8 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 	g_assert(is_valid_fd(s->file_desc));
 
 	ret = s_write(s->file_desc, buf, size);
+	tls_signal_pending(s);
+
 	if ((ssize_t) -1 == ret) {
 		gnutls_transport_set_global_errno(errno);
 	}
@@ -177,6 +189,8 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	g_assert(is_valid_fd(s->file_desc));
 
 	ret = s_read(s->file_desc, buf, size);
+	tls_signal_pending(s);
+
 	if ((ssize_t) -1 == ret) {
 		gnutls_transport_set_global_errno(errno);
 	} else if (0 == ret) {
@@ -284,6 +298,7 @@ tls_handshake(struct gnutella_socket *s)
 #endif
 
 	ret = gnutls_handshake(session);
+	tls_signal_pending(s);
 	switch (ret) {
 	case 0:
 		if (GNET_PROPERTY(tls_debug) > 3) {
@@ -665,6 +680,7 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 		}
 	}
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
+	tls_signal_pending(s);
 	return ret;
 }
 
@@ -735,6 +751,7 @@ no_error:
 		tls_socket_evt_change(s, INPUT_EVENT_RX);
 	}
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
+	tls_signal_pending(s);
 	return ret;
 }
 
