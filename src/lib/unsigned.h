@@ -134,6 +134,33 @@ uint_is_positive(unsigned v)
  * Calculate the sum of a and b but saturate towards the maximum value.
  * @return maximum if a + b > maximum, otherwise a + b.
  */
+static inline unsigned
+uint_saturate_add(unsigned a, unsigned b)
+{
+	unsigned ret = a + b;
+	if (G_UNLIKELY(ret < a))
+		return MAX_INT_VAL(unsigned);
+	return ret;
+}
+
+/*
+ * Calculate the product of a and b but saturate towards UINT_MAX.
+ * @return UINT_MAX if a * b > UINT_MAX, otherwise a * b.
+ */
+static inline unsigned
+uint_saturate_mult(unsigned a, unsigned b)
+{
+	if (0 == a)
+		return 0;
+	if (G_UNLIKELY(MAX_INT_VAL(unsigned) / a < b))
+		return MAX_INT_VAL(unsigned);
+	return a * b;
+}
+
+/**
+ * Calculate the sum of a and b but saturate towards the maximum value.
+ * @return maximum if a + b > maximum, otherwise a + b.
+ */
 static inline guint64
 guint64_saturate_add(guint64 a, guint64 b)
 {

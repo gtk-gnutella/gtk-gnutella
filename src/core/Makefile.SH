@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-57]
-: $X-Id: Jmake.tmpl 48 2010-11-28 23:05:09Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-91]
+: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -69,7 +69,7 @@ GNUTLS_CFLAGS =  $gnutlscflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 48 2010-11-28 23:05:09Z rmanfredi $
+# $X-Id: Jmake.rules 64 2011-01-01 21:57:17Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 18080 2010-12-30 23:24:52Z rmanfredi $
+# $X-Id: Jmakefile 18606 2011-02-03 23:59:57Z cbiere $
 
 SRC = \
 	alive.c \

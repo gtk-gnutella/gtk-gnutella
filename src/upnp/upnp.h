@@ -120,6 +120,7 @@ void upnp_init(void);
 void upnp_post_init(void);
 void upnp_close(void);
 void upnp_disabled(void);
+void upnp_natpmp_disabled(void);
 
 void upnp_map_tcp(guint16 port);
 void upnp_map_udp(guint16 port);

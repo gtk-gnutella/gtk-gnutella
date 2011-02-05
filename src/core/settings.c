@@ -671,16 +671,6 @@ settings_init(void)
 		g_info("core dumps are %s",
 			crash_coredumps_disabled() ? "disabled" : "enabled");
 
-		/* XXX temporary */
-		{
-			host_addr_t addr;
-
-			if (0 == getgateway(&addr))
-				g_info("default gateway is %s", host_addr_to_string(addr));
-			else
-				g_warning("cannot find default gateway");
-		}
-
 		if (GNET_PROPERTY(cpu_freq_max)) {
 			g_info("CPU frequency scaling detected");
 			g_info("minimum CPU frequency: %s",
@@ -1442,6 +1432,21 @@ enable_upnp_changed(property_t prop)
 		upnp_post_init();
 	} else {
 		upnp_disabled();
+	}
+
+	return FALSE;
+}
+
+static gboolean
+enable_natpmp_changed(property_t prop)
+{
+	gboolean enabled;
+	
+    gnet_prop_get_boolean_val(prop, &enabled);
+	if (enabled) {
+		upnp_post_init();
+	} else {
+		upnp_natpmp_disabled();
 	}
 
 	return FALSE;
@@ -2644,6 +2649,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_ENABLE_UPNP,
 		enable_upnp_changed,
+		FALSE,
+	},
+	{
+		PROP_ENABLE_NATPMP,
+		enable_natpmp_changed,
 		FALSE,
 	},
 	{

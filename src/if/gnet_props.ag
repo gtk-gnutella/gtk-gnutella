@@ -4570,4 +4570,42 @@ prop = {
     };
 };
 
+prop = {
+	name = "natpmp_debug";
+	desc = "Debug level for the NAT-PMP layer.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "enable_natpmp";
+	desc = "Whether NAT-PMP (NAT Port Mapping Protocol) should be enabled. "
+		"Support for NAT-PMP means gtk-gnutella will be able to look whether "
+		"your default gateway (router) supports the Port Mapping Protocol to "
+		"allow transparent redirection of the external ports on the router "
+		"to the local machine, thereby making sure you are not firewalled. "
+		"By default you should leave it enabled unless you know how to "
+		"configure your network equipment manually to prevent the firewalled "
+		"condition for both TCP and UDP.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
+    name = "natpmp_possible";
+    desc = "Whether gtk-gnutella was able to locate a NAT-PMP gateway "
+		"to install port mappings, if required.";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

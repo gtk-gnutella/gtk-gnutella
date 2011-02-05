@@ -930,6 +930,8 @@ src/upnp/discovery.c
 src/upnp/discovery.h
 src/upnp/error.c
 src/upnp/error.h
+src/upnp/natpmp.c
+src/upnp/natpmp.h
 src/upnp/service.c
 src/upnp/service.h
 src/upnp/upnp.c

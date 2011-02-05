@@ -167,7 +167,7 @@ urpc_timed_out(cqueue_t *unused_cq, gpointer obj)
  * @param data		message data to send
  * @param len		length of data to send
  * @param timeout	timeout in milliseconds to get a reply
- * @param cb		callback to invoked on reply or timeout
+ * @param cb		callback to invoke on reply or timeout
  * @param arg		additionnal callback argument
  *
  * @return 0 if OK, -1 if we could not initiate the RPC, with errno set.

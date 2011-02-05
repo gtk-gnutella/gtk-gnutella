@@ -27,7 +27,18 @@
  * @ingroup upnp
  * @file
  *
- * UPnP data structures and high-level routines.
+ * Universal Plug and Play, for handling port mappings.
+ *
+ * We handle both UPnP and NAT-PMP here, and give preference to NAT-PMP if
+ * supported because it is much more efficient in terms of resources.
+ *
+ * Conceptually, there are two different layers in this single file:
+ *
+ * - The port mapping layer (upnp_map_xxx() routines)
+ * - The driver layer (UPnP and NAT-PMP)
+ *
+ * The port mapping layer sits on top of the other two and uses one of the
+ * drivers to publish the mappings.
  *
  * @author Raphael Manfredi
  * @date 2010
@@ -41,6 +52,7 @@ RCSID("$Id$")
 #include "control.h"
 #include "discovery.h"
 #include "error.h"
+#include "natpmp.h"
 #include "service.h"
 
 #include "core/settings.h"		/* For listen_addr() */
@@ -70,20 +82,40 @@ RCSID("$Id$")
 #define UPNP_PUBLISH_RETRY_MS	(UPNP_PUBLISH_RETRY * 1000)
 #define UPNP_CHECK_DELAY_MS		(UPNP_CHECK_DELAY * 1000)
 
-#define UPNP_MAPPING_LIFE_MS \
-	((UPNP_MAPPING_LIFE - UPNP_MAPPING_CAUTION) * 1000)
+#define UPNP_UNDEFINED_LEASE ((time_delta_t) -1)
 
 /**
- * The local Internet Gateway Device.
+ * The local Internet Gateway Device, for UPnP.
  */
 static struct {
 	upnp_device_t *dev;			/**< Our Internet Gateway Device */
 	upnp_ctrl_t *monitor;		/**< Regular monitoring event */
 	guint32 rcvd_pkts;			/**< Amount of received packets */
 	unsigned delete_pending;	/**< Amount of pending mapping deletes */
+	time_delta_t lease_time;	/**< Lease time to request */
 	unsigned discover:1;		/**< Force discovery again */
 	unsigned discovery_done:1;	/**< Was discovery completed? */
 } igd;
+
+/**
+ * The local gateway, for NAT-PMP.
+ */
+static struct {
+	natpmp_t *gateway;			/**< The NAT-PMP gateway */
+	unsigned discover:1;		/**< Force discovery again */
+	unsigned discovery_done:1;	/**< Was discovery completed? */
+} gw;
+
+/**
+ * Method used to publish a port mapping.
+ */
+enum upnp_method {
+	UPNP_M_ANY = 0,				/**< Not attempted or no success yet */
+	UPNP_M_UPNP,				/**< UPnP */
+	UPNP_M_NATPMP,				/**< NAT-PMP */
+	
+	UPNP_M_MAX
+};
 
 enum upnp_mapping_magic { UPNP_MAPPING_MAGIC = 0x463a8514 };
 
@@ -93,9 +125,11 @@ enum upnp_mapping_magic { UPNP_MAPPING_MAGIC = 0x463a8514 };
 struct upnp_mapping {
 	enum upnp_mapping_magic magic;
 	enum upnp_map_proto proto;	/**< Network protocol used */
+	enum upnp_method method;	/**< Method used to publish mapping */
 	guint16 port;				/**< Port to map */
 	cevent_t *install_ev;		/**< Periodic install event */
 	upnp_ctrl_t *rpc;			/**< Pending control RPC */
+	time_delta_t lease_time;	/**< Requested lease time */
 	unsigned published:1;		/**< Was mapping successfully published? */
 };
 
@@ -111,7 +145,7 @@ static host_addr_t upnp_local_addr;	/**< Computed local IP address */
 
 static const char UPNP_CONN_IP_ROUTED[]	= "IP_Routed";
 
-static void upnp_igd_discovered(void);
+static void upnp_map_publish_all(void);
 
 /**
  * The state an Internet Gateway Device must be in to allow NAT.
@@ -148,7 +182,7 @@ upnp_mapping_description(void)
 }
 
 /**
- * Hash an UPnP mapping.
+ * Hash a UPnP mapping.
  */
 static unsigned
 upnp_mapping_hash(const void *p)
@@ -180,6 +214,7 @@ upnp_mapping_alloc(enum upnp_map_proto proto, guint16 port)
 
 	um = walloc0(sizeof *um);
 	um->magic = UPNP_MAPPING_MAGIC;
+	um->method = UPNP_M_ANY;
 	um->proto = proto;
 	um->port = port;
 
@@ -187,7 +222,7 @@ upnp_mapping_alloc(enum upnp_map_proto proto, guint16 port)
 }
 
 /**
- * Free an UPnP mapping record.
+ * Free a UPnP mapping record.
  */
 static void
 upnp_mapping_free(struct upnp_mapping *um, gboolean in_shutdown)
@@ -209,6 +244,22 @@ upnp_map_proto_to_string(const enum upnp_map_proto proto)
 	case UPNP_MAP_TCP:	return "TCP";
 	case UPNP_MAP_UDP:	return "UDP";
 	case UPNP_MAP_MAX:	g_assert_not_reached();
+	}
+
+	return NULL;
+}
+
+/**
+ * Convert method type to string.
+ */
+static const char *
+upnp_method_to_string(const enum upnp_method method)
+{
+	switch (method) {
+	case UPNP_M_ANY:	return "firewall";
+	case UPNP_M_UPNP:	return "UPnP";
+	case UPNP_M_NATPMP:	return "NAT-PMP";
+	case UPNP_M_MAX:	g_assert_not_reached();
 	}
 
 	return NULL;
@@ -280,6 +331,7 @@ upnp_record_igd(upnp_device_t *ud)
 	upnp_dev_free_null(&igd.dev);
 	igd.rcvd_pkts = 0;
 	igd.dev = ud;
+	igd.lease_time = UPNP_MAPPING_LIFE;
 
 	if (GNET_PROPERTY(upnp_debug)) {
 		g_info("UPNP using Internet Gateway Device at \"%s\" (WAN IP: %s)",
@@ -289,7 +341,7 @@ upnp_record_igd(upnp_device_t *ud)
 	gnet_prop_set_boolean_val(PROP_UPNP_POSSIBLE, TRUE);
 	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_POSSIBLE, TRUE);
 
-	upnp_igd_discovered();		/* Unconditionally publish all mappings */
+	upnp_map_publish_all();		/* Unconditionally publish all mappings */
 }
 
 /**
@@ -454,19 +506,57 @@ done:
 }
 
 /**
- * Launch an UPnP discovery.
+ * NAT-PMP device discovery callback, invoked when discovery is done.
+ *
+ * @param ok		TRUE if succeeded, FALSE if unsuccessful
+ * @param gateway	the gateway supporting NAT-PMP
+ * @param arg		user-defined argument
+ */
+static void
+upnp_natpmp_discovered(gboolean ok, natpmp_t *gateway, void *arg)
+{
+	(void) arg;
+
+	gw.discovery_done = TRUE;
+
+	/*
+	 * If there's no NAT-PMP available, see whether we can do UPnP.
+	 */
+
+	if (!ok) {
+		upnp_discover(UPNP_DISCOVERY_TIMEOUT, upnp_discovered, NULL);
+		return;
+	}
+
+	gw.gateway = gateway;
+	upnp_check_new_wan_addr(natpmp_wan_ip(gateway));
+
+	gnet_prop_set_boolean_val(PROP_NATPMP_POSSIBLE, TRUE);
+	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_POSSIBLE, TRUE);
+
+	upnp_map_publish_all();		/* Unconditionally publish all mappings */
+}
+
+/**
+ * Launch a NAT-PMP and UPnP discovery.
  */
 static void
 upnp_launch_discovery(void)
 {
 	igd.discovery_done = FALSE;
-	upnp_discover(UPNP_DISCOVERY_TIMEOUT, upnp_discovered, NULL);
+	gw.discovery_done = FALSE;
+
+	/*
+	 * Give priority to NAT-PMP.
+	 */
+
+	natpmp_discover(upnp_natpmp_discovered, NULL);
 }
 
 /**
  * Completion callback for IGD packet received requests.
  *
- * @param code		UPNP error code, 0 for OK
+ * @param code		UPnP error code, 0 for OK
  * @param value		returned value structure
  * @param size		size of structure, for assertions
  * @param arg		user-supplied callback argument
@@ -508,16 +598,96 @@ upnp_packets_igd_callback(int code, void *value, size_t size, void *unused_arg)
 				g_warning("UPNP device \"%s\" may have been rebooted",
 					igd.dev->desc_url);
 			}
-			upnp_igd_discovered();		/* Unconditionally publish mappings */
+			upnp_map_publish_all();		/* Unconditionally publish mappings */
 		}
 		igd.rcvd_pkts = ret->value;
 	}
 }
 
 /**
+ * Completion callback for NAT-PMP monitoring.
+ *
+ * @param ok		TRUE if succeeded, FALSE if unsuccessful
+ * @param gateway	the gateway supporting NAT-PMP
+ * @param arg		user-defined argument
+ */
+static void
+upnp_monitor_natpmp_callback(gboolean ok, natpmp_t *gateway, void *unused_arg)
+{
+	(void) unused_arg;
+
+	gw.discovery_done = TRUE;
+
+	if (!ok) {
+		/*
+		 * On error, force re-discovery of the device.
+		 */
+
+		if (GNET_PROPERTY(upnp_debug) && gw.gateway != NULL) {
+			g_warning("UPNP gateway %s failed its NAT-PMP health check",
+				host_addr_to_string(natpmp_gateway_addr(gw.gateway)));
+		}
+
+		goto rediscover;
+	} else {
+		host_addr_t wan_ip;
+
+		g_assert(gateway != NULL);
+		g_assert(gw.gateway == gateway);
+
+		wan_ip = natpmp_wan_ip(gateway);
+
+		/*
+		 * Check for external address change.
+		 */
+
+		if (host_addr_is_routable(wan_ip)) {
+			upnp_check_new_wan_addr(wan_ip);
+
+			if (GNET_PROPERTY(upnp_debug) > 5) {
+				g_debug("UPNP gateway %s still alive, WAN IP %s",
+					host_addr_to_string(natpmp_gateway_addr(gateway)),
+					host_addr_to_string(wan_ip));
+			}
+		} else {
+			if (GNET_PROPERTY(upnp_debug)) {
+				g_warning("UPNP gateway %s reports unroutable WAN IP %s",
+					host_addr_to_string(natpmp_gateway_addr(gateway)),
+					host_addr_to_string(wan_ip));
+			}
+			goto rediscover;
+		}
+	}
+
+	/*
+	 * Check for gateway reboots.
+	 */
+
+	g_assert(gateway != NULL);
+
+	if (natpmp_has_rebooted(gateway)) {
+		natpmp_clear_rebooted(gateway);
+		upnp_map_publish_all();		/* Unconditionally publish all mappings */
+	}
+
+	return;
+
+rediscover:
+	/*
+	 * Initiate a re-discovery of NAT-PMP devices on the network.
+	 */
+
+	gnet_prop_set_boolean_val(PROP_NATPMP_POSSIBLE, FALSE);
+	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_POSSIBLE, igd.dev != NULL);
+
+	natpmp_free_null(&gw.gateway);
+	gw.discover = TRUE;
+}
+
+/**
  * Completion callback for IGD monitoring.
  *
- * @param code		UPNP error code, 0 for OK
+ * @param code		UPnP error code, 0 for OK
  * @param value		returned value structure
  * @param size		size of structure, for assertions
  * @param arg		user-supplied callback argument
@@ -598,7 +768,7 @@ rediscover:
 	 */
 
 	gnet_prop_set_boolean_val(PROP_UPNP_POSSIBLE, FALSE);
-	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_POSSIBLE, FALSE);
+	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_POSSIBLE, gw.gateway != NULL);
 
 	upnp_dev_free_null(&igd.dev);
 	igd.discover = TRUE;
@@ -623,13 +793,87 @@ upnp_port_mapping_required(void)
 }
 
 /**
+ * Re-issue a discovery if neeeded.
+ */
+static void
+upnp_launch_discovery_if_needed(void)
+{
+	static unsigned counter;
+
+	/*
+	 * We don't have any known Internet Gateway Device, look whether
+	 * they plugged one in, but not at every wakeup...
+	 *
+	 * If we're not firewalled, there's no reason to actively look for an
+	 * IGD yet.
+	 */
+
+	if (!upnp_port_mapping_required()) {
+		if (GNET_PROPERTY(upnp_debug) > 5)
+			g_debug("UPNP no need for port mapping");
+		return;
+	}
+
+	/*
+	 * When ``igd.discover'' is TRUE, we force the discovery.
+	 * This is used to rediscover devices after monitoring of the known
+	 * IGD failed at the last period, in case they replaced the IGD with
+	 * a new box.
+	 *
+	 * Same logic for ``gw.discover''.
+	 */
+
+	if (igd.discover) {
+		counter = 0;
+		igd.discover = FALSE;
+	} else if (gw.discover) {
+		counter = 0;
+		gw.discover = FALSE;
+	} else {
+		counter++;
+	}
+
+	if (0 == counter % 12) {
+		if (GNET_PROPERTY(upnp_debug) > 1) {
+			g_debug("UPNP initiating discovery");
+		}
+		upnp_launch_discovery();
+	}
+}
+
+/**
  * Callout queue periodic event to monitor presence of the Internet Gateway
- * Device we are using and detect configuration changes.
+ * Device or the NAT-PMP gateway we are using and detect configuration changes.
  */
 static gboolean
-upnp_monitor_igd(gpointer unused_obj)
+upnp_monitor_drivers(gpointer unused_obj)
 {
 	(void) unused_obj;
+
+	/*
+	 * We always give priority to NAT-PMP because the protocol is more
+	 * efficient.
+	 */
+
+	if (!GNET_PROPERTY(enable_natpmp))
+		goto no_natpmp;
+
+	if (NULL == gw.gateway) {
+		if (igd.dev != NULL)
+			goto no_natpmp;
+		upnp_launch_discovery_if_needed();
+	} else {
+		/*
+		 * Check our external IP address, since we're not listening to
+		 * NAT-PMP broadcasts, and see whether the gateway has been rebooted.
+		 */
+
+		natpmp_monitor(gw.gateway, upnp_monitor_natpmp_callback, NULL);
+	}
+
+	goto done;
+
+no_natpmp:
 
 	/*
 	 * When UPnP support is disabled, there is nothing to do.
@@ -642,43 +886,7 @@ upnp_monitor_igd(gpointer unused_obj)
 		return TRUE;		/* Keep calling, nonetheless */
 
 	if (NULL == igd.dev) {
-		static unsigned counter;
-
-		/*
-		 * We don't have any known Internet Gateway Device, look whether
-		 * they plugged one in, but not at every wakeup...
-		 *
-		 * If we're not firewalled, there's no reason to actively look for an
-		 * IGD yet.
-		 */
-
-		if (!upnp_port_mapping_required()) {
-			if (GNET_PROPERTY(upnp_debug) > 5)
-				g_debug("UPNP no need for port mapping");
-
-			return TRUE;	/* Keep calling in case we become firewalled */
-		}
-
-		/*
-		 * When ``igd.discover'' is TRUE, we force the discovery.
-		 * This is used to rediscover devices after monitoring of the known
-		 * IGD failed at the last period, in case they replaced the IGD with
-		 * a new box.
-		 */
-
-		if (igd.discover) {
-			counter = 0;
-			igd.discover = FALSE;
-		} else {
-			counter++;
-		}
-
-		if (0 == counter % 12) {
-			if (GNET_PROPERTY(upnp_debug) > 1) {
-				g_debug("UPNP initiating discovery");
-			}
-			upnp_launch_discovery();
-		}
+		upnp_launch_discovery_if_needed();
 	} else {
 		upnp_service_t *usd;
 
@@ -699,6 +907,7 @@ upnp_monitor_igd(gpointer unused_obj)
 			upnp_monitor_igd_callback, NULL);
 	}
 	
+done:
 	return TRUE;		/* Keep calling */
 }
 
@@ -717,29 +926,78 @@ upnp_map_publish_reply(int code, void *value, size_t size, void *arg)
 
 	if (UPNP_ERR_OK == code) {
 		if (GNET_PROPERTY(upnp_debug) > 2) {
-			g_message("UPNP successfully published mapping for %s port %u",
+			g_message("UPNP successfully published UPnP mapping for %s port %u",
 				upnp_map_proto_to_string(um->proto), um->port);
 		}
 		um->published = TRUE;
+		um->method = UPNP_M_UPNP;
 	} else {
 		if (GNET_PROPERTY(upnp_debug)) {
-			g_warning("UPNP could not publish mapping for %s port %u: "
+			g_warning("UPNP could not publish UPnP mapping for %s port %u: "
 				"%d => \"%s\"",
 				upnp_map_proto_to_string(um->proto), um->port,
 				code, upnp_strerror(code));
 		}
 		um->published = FALSE;
+		um->method = UPNP_M_ANY;
+		um->lease_time = UPNP_UNDEFINED_LEASE;
+
+		/*
+		 * Handle devices supporting only permanent leases.
+		 *
+		 * Otherwise, on publishing error, retry periodically every
+		 * UPNP_CHECK_DELAY seconds.
+		 */
+
+		if (UPNP_ERR_ONLY_PERMANENT_LEASE == code && 0 != um->lease_time) {
+			igd.lease_time = 0;
+			um->lease_time = 0;
+			cq_resched(um->install_ev, 1);	/* Re-publish immediately */
+		} else {
+			cq_resched(um->install_ev, UPNP_CHECK_DELAY_MS);
+		}
 	}
 }
 
 /**
- * Callout queue callback to publish an UPNP mapping to the IGD.
+ * Callback on natpmp_map() completion.
+ */
+static void
+upnp_map_natpmp_publish_reply(int code,
+	guint16 port, unsigned lifetime, void *arg)
+{
+	struct upnp_mapping *um = arg;
+
+	if (NATPMP_E_OK == code && port == um->port) {
+		if (GNET_PROPERTY(upnp_debug) > 2) {
+			g_message("UPNP successfully published NAT-PMP mapping "
+				"for %s port %u, lease = %u s",
+				upnp_map_proto_to_string(um->proto), um->port, lifetime);
+		}
+		um->published = TRUE;
+		um->method = UPNP_M_NATPMP;
+		cq_resched(um->install_ev, lifetime / 2 * 1000);
+	} else {
+		if (GNET_PROPERTY(upnp_debug)) {
+			g_warning("UPNP could not publish NAT-PMP mapping for %s port %u: "
+				"%d => \"%s\"",
+				upnp_map_proto_to_string(um->proto), um->port,
+				code, natpmp_strerror(code));
+		}
+		um->published = FALSE;
+		um->method = UPNP_M_ANY;
+		um->lease_time = UPNP_UNDEFINED_LEASE;
+		cq_resched(um->install_ev, UPNP_CHECK_DELAY_MS);
+	}
+}
+
+/**
+ * Callout queue callback to publish a UPnP mapping to the IGD.
  */
 static void
 upnp_map_publish(cqueue_t *unused_cq, void *obj)
 {
 	struct upnp_mapping *um = obj;
-	const upnp_service_t *usd;
 	int delay;
 
 	(void) unused_cq;
@@ -752,17 +1010,23 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 	 * regularily the first few times before waiting for a looong time.
 	 */
 
-	if (NULL == igd.dev) {
-		if (!GNET_PROPERTY(enable_upnp))
+	if (NULL == igd.dev && NULL == gw.gateway) {
+		if (!GNET_PROPERTY(enable_upnp) && !GNET_PROPERTY(enable_natpmp))
 			delay = 0;
-		else if (!igd.discovery_done)
+		else if (!igd.discovery_done || !gw.discovery_done)
 			delay = UPNP_PUBLISH_RETRY_MS;
 		else if (upnp_port_mapping_required())
 			delay = UPNP_MONITOR_DELAY_MS;
 		else
 			delay = UPNP_CHECK_DELAY_MS;
 	} else {
-		delay = UPNP_MAPPING_LIFE_MS;
+		if (0 == um->lease_time) {
+			delay = MAX_INT_VAL(int);
+		} else {
+			delay = (um->lease_time - UPNP_MAPPING_CAUTION) * 1000;
+			delay = MAX(delay, UPNP_MAPPING_CAUTION * 1000);
+			delay /= 2;		/* Republish at the half of the lease period */
+		}
 	}
 
 	if (GNET_PROPERTY(upnp_debug) > 15) {
@@ -777,7 +1041,7 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 	 * but do not publish them to the IGD.
 	 */
 
-	if (!GNET_PROPERTY(enable_upnp)) {
+	if (!GNET_PROPERTY(enable_upnp) && !GNET_PROPERTY(enable_natpmp)) {
 		if (GNET_PROPERTY(upnp_debug) > 10) {
 			g_debug("UPNP support is disabled, "
 				"not publishing mapping for %s port %u",
@@ -788,36 +1052,55 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 
 	/*
 	 * Mappings can be recorded at startup before we had a chance to
-	 * discover the IGD device, which is why we retry more often at the
+	 * discover the NAT device, which is why we retry more often at the
 	 * beginning (every UPNP_PUBLISH_RETRY_MS for a while).
 	 */
 
-	if (NULL == igd.dev) {
+	if (NULL == igd.dev && NULL == gw.gateway) {
 		if (GNET_PROPERTY(upnp_debug) > 5) {
-			g_message("UPNP no IGD yet to publish mapping for %s port %u",
+			g_message("UPNP no device yet to publish mapping for %s port %u",
 				upnp_map_proto_to_string(um->proto), um->port);
 		}
 		return;
 	}
 
 	if (GNET_PROPERTY(upnp_debug) > 2) {
-		g_message("UPNP publishing mapping for %s port %u",
+		g_message("UPNP publishing %s mapping for %s port %u",
+			upnp_method_to_string(um->method),
 			upnp_map_proto_to_string(um->proto), um->port);
 	}
 
-	usd = upnp_service_get_wan_connection(igd.dev->services);
-	upnp_ctrl_cancel_null(&um->rpc, TRUE);
+	/*
+	 * Prefer NAT-PMP if available since the protocol is more efficient.
+	 */
 
-	um->rpc = upnp_ctrl_AddPortMapping(usd, um->proto, um->port,
-		upnp_get_local_addr(), um->port,
-		upnp_mapping_description(), UPNP_MAPPING_LIFE,
-		upnp_map_publish_reply, um);
+	if (gw.gateway != NULL) {
+		if (UPNP_UNDEFINED_LEASE == um->lease_time)
+			um->lease_time = UPNP_MAPPING_LIFE;
 
-	if (NULL == um->rpc) {
-		um->published = FALSE;
-		if (GNET_PROPERTY(upnp_debug)) {
-			g_warning("UPNP could not launch publishing for %s port %u",
-				upnp_map_proto_to_string(um->proto), um->port);
+		natpmp_map(gw.gateway, um->proto, um->port, um->lease_time,
+			upnp_map_natpmp_publish_reply, um);
+	} else {
+		const upnp_service_t *usd;
+
+		usd = upnp_service_get_wan_connection(igd.dev->services);
+		upnp_ctrl_cancel_null(&um->rpc, TRUE);
+
+		if (UPNP_UNDEFINED_LEASE == um->lease_time)
+			um->lease_time = igd.lease_time;
+
+		um->rpc = upnp_ctrl_AddPortMapping(usd, um->proto, um->port,
+			upnp_get_local_addr(), um->port,
+			upnp_mapping_description(), um->lease_time,
+			upnp_map_publish_reply, um);
+
+		if (NULL == um->rpc) {
+			um->published = FALSE;
+			if (GNET_PROPERTY(upnp_debug)) {
+				g_warning(
+					"UPNP could not launch UPnP publishing for %s port %u",
+					upnp_map_proto_to_string(um->proto), um->port);
+			}
 		}
 	}
 }
@@ -848,6 +1131,7 @@ upnp_map_add(enum upnp_map_proto proto, guint16 port)
 
 	um = upnp_mapping_alloc(proto, port);
 	um->install_ev = cq_main_insert(1, upnp_map_publish, um);
+	um->lease_time = UPNP_UNDEFINED_LEASE;
 
 	g_hash_table_insert(upnp_mappings, um, um);
 }
@@ -869,11 +1153,11 @@ upnp_map_delete_reply(int code, void *value, size_t size, void *arg)
 
 	if (UPNP_ERR_OK == code) {
 		if (GNET_PROPERTY(upnp_debug) > 2)
-			g_message("UPNP successfully deleted mapping for %s port %u",
+			g_message("UPNP successfully deleted UPnP mapping for %s port %u",
 				upnp_map_proto_to_string(um->proto), um->port);
 	} else {
 		if (GNET_PROPERTY(upnp_debug)) {
-			g_warning("UPNP could not remove mapping for %s port %u: "
+			g_warning("UPNP could not remove UPnP mapping for %s port %u: "
 				"%d => \"%s\"",
 				upnp_map_proto_to_string(um->proto), um->port,
 				code, upnp_strerror(code));
@@ -881,6 +1165,62 @@ upnp_map_delete_reply(int code, void *value, size_t size, void *arg)
 	}
 
 	upnp_mapping_free(um, FALSE);
+}
+
+/**
+ * Unpublish port mapping.
+ *
+ * @return TRUE if we can dispose of the mapping record.
+ */
+static gboolean
+upnp_map_unpublish(struct upnp_mapping *um)
+{
+	upnp_mapping_check(um);
+	g_assert(um->published);
+
+	if (GNET_PROPERTY(upnp_debug) > 1) {
+		g_debug("UPNP removing %spublished %s mapping for %s port %u",
+			um->published ? "" : "un",
+			upnp_method_to_string(um->method),
+			upnp_map_proto_to_string(um->proto), um->port);
+	}
+
+	if (UPNP_M_NATPMP == um->method) {
+		if (NULL == gw.gateway) {
+			g_warning("UPNP cannot remove published mapping "
+				"for %s port %u "
+				"since NAT-PMP gateway is not available",
+				upnp_map_proto_to_string(um->proto), um->port);
+		} else {
+			/* Advisory unmapping, no callback on completion or error */
+			natpmp_unmap(gw.gateway, um->proto, um->port);
+		}
+		return TRUE;
+	} else {
+		const upnp_service_t *usd;
+
+		if (NULL == igd.dev) {
+			g_warning("UPNP cannot remove published mapping "
+				"for %s port %u "
+				"since Internet Gateway Device is not available",
+				upnp_map_proto_to_string(um->proto), um->port);
+			return TRUE;
+		}
+
+		usd = upnp_service_get_wan_connection(igd.dev->services);
+		upnp_ctrl_cancel_null(&um->rpc, TRUE);
+
+		/* Freeing of ``um'' will happen in upnp_map_delete_reply() */
+		um->rpc = upnp_ctrl_DeletePortMapping(usd, um->proto, um->port,
+			upnp_map_delete_reply, um);
+
+		if (um->rpc != NULL)
+			igd.delete_pending++;
+
+		return FALSE;		/* ``um'' still needed for UPnP callback */
+	}
+
+	g_assert_not_reached();
 }
 
 /**
@@ -899,43 +1239,15 @@ upnp_map_remove(enum upnp_map_proto proto, guint16 port)
 
 	if (NULL == um) {
 		if (GNET_PROPERTY(upnp_debug)) {
-			g_warning("UPNP removing unknown mapping for %s port %u",
+			g_carp("UPNP removing unknown mapping for %s port %u",
 				upnp_map_proto_to_string(proto), port);
-			stacktrace_where_sym_print(stderr);
 		}
 	} else {
 		g_hash_table_remove(upnp_mappings, um);
 
-		if (GNET_PROPERTY(upnp_debug) > 1) {
-			g_debug("UPNP removing %spublished mapping for %s port %u",
-				um->published ? "" : "un",
-				upnp_map_proto_to_string(um->proto), um->port);
+		if (upnp_map_unpublish(um)) {
+			upnp_mapping_free(um, FALSE);
 		}
-
-		if (um->published) {
-			const upnp_service_t *usd;
-
-			if (NULL == igd.dev) {
-				g_warning("UPNP cannot remove published mapping for %s port %u "
-					"since Internet Gateway Device is not available",
-					upnp_map_proto_to_string(um->proto), um->port);
-				goto delete;
-			}
-
-			usd = upnp_service_get_wan_connection(igd.dev->services);
-			upnp_ctrl_cancel_null(&um->rpc, TRUE);
-
-			/* Freeing of ``um'' will happen in upnp_map_delete_reply() */
-			um->rpc = upnp_ctrl_DeletePortMapping(usd, um->proto, um->port,
-				upnp_map_delete_reply, um);
-
-			if (um->rpc != NULL)
-				igd.delete_pending++;
-			return;
-		}
-
-	delete:
-		upnp_mapping_free(um, FALSE);
 	}
 }
 
@@ -954,11 +1266,11 @@ upnp_map_mapping_deleted(int code, void *value, size_t size, void *arg)
 
 	if (UPNP_ERR_OK == code) {
 		if (GNET_PROPERTY(upnp_debug) > 2)
-			g_message("UPNP successfully deleted mapping for %s port %u",
+			g_message("UPNP successfully deleted UPnP mapping for %s port %u",
 				upnp_map_proto_to_string(um->proto), um->port);
 	} else {
 		if (GNET_PROPERTY(upnp_debug)) {
-			g_warning("UPNP could not remove mapping for %s port %u: "
+			g_warning("UPNP could not remove UPnP mapping for %s port %u: "
 				"%d => \"%s\"",
 				upnp_map_proto_to_string(um->proto), um->port,
 				code, upnp_strerror(code));
@@ -970,28 +1282,29 @@ upnp_map_mapping_deleted(int code, void *value, size_t size, void *arg)
 	 */
 
 	um->published = FALSE;
+	um->lease_time = UPNP_UNDEFINED_LEASE;
 }
 
 /**
- * Remove published mapping.
+ * Remove published mapping of the specified kind.
  */
 static void
-upnp_remove_mapping_kv(void *key, void *u_value, void *u_data)
+upnp_remove_mapping_kv(void *key, void *u_value, void *data)
 {
 	struct upnp_mapping *um = key;
 	const upnp_service_t *usd;
+	enum upnp_method method = pointer_to_int(data);
 
 	(void) u_value;
-	(void) u_data;
 
-	if (!um->published)
+	if (!um->published || um->method != method)
 		return;
 
 	if (GNET_PROPERTY(upnp_debug) > 1) {
-		g_message("UPNP removing mapping for %s port %u",
+		g_message("UPNP removing %s mapping for %s port %u",
+			upnp_method_to_string(um->method),
 			upnp_map_proto_to_string(um->proto), um->port);
 	}
-
 
 	usd = upnp_service_get_wan_connection(igd.dev->services);
 	upnp_ctrl_cancel_null(&um->rpc, TRUE);
@@ -1001,7 +1314,7 @@ upnp_remove_mapping_kv(void *key, void *u_value, void *u_data)
 
 	if (NULL == um->rpc) {
 		if (GNET_PROPERTY(upnp_debug)) {
-			g_warning("UPNP cannot remove mapping for %s port %u",
+			g_warning("UPNP cannot remove UPnP mapping for %s port %u",
 				upnp_map_proto_to_string(um->proto), um->port);
 		}
 	}
@@ -1016,7 +1329,22 @@ void
 upnp_disabled(void)
 {
 	if (igd.dev != NULL) {
-		g_hash_table_foreach(upnp_mappings, upnp_remove_mapping_kv, NULL);
+		g_hash_table_foreach(upnp_mappings, upnp_remove_mapping_kv,
+			int_to_pointer(UPNP_M_UPNP));
+	}
+}
+
+/**
+ * UPnP support was disabled, so remove all the mappings we may have
+ * installed so far, but keep them locally (i.e. we unmap the ports at
+ * the IDG, but still remember which ports are mapped).
+ */
+void
+upnp_natpmp_disabled(void)
+{
+	if (gw.gateway != NULL) {
+		g_hash_table_foreach(upnp_mappings, upnp_remove_mapping_kv,
+			int_to_pointer(UPNP_M_NATPMP));
 	}
 }
 
@@ -1041,20 +1369,20 @@ upnp_publish_mapping_kv(void *key, void *u_value, void *u_data)
 	um->install_ev = cq_main_insert(1, upnp_map_publish, um);
 
 	if (GNET_PROPERTY(upnp_debug) > 2) {
-		g_message("UPNP requested immediate publishing for %s port %u",
+		g_message("UPNP requested immediate %s publishing for %s port %u",
+			upnp_method_to_string(um->method),
 			upnp_map_proto_to_string(um->proto), um->port);
 	}
 }
 
 /**
- * UPnP IDG was discovered.
- *
+ * UPnP or NAT-PMP was discovered.
  * If we have mappings to install, do so immediately.
  */
 static void
-upnp_igd_discovered(void)
+upnp_map_publish_all(void)
 {
-	g_assert(igd.dev != NULL);
+	g_assert(igd.dev != NULL || gw.gateway != NULL);
 
 	if (!GNET_PROPERTY(port_mapping_required))
 		return;
@@ -1131,7 +1459,7 @@ upnp_init(void)
 	upnp_discovery_init();
 
 	cq_periodic_add(callout_queue, UPNP_MONITOR_DELAY_MS,
-		upnp_monitor_igd, NULL);
+		upnp_monitor_drivers, NULL);
 
 	upnp_mappings = g_hash_table_new(upnp_mapping_hash, upnp_mapping_eq);
 }
@@ -1142,14 +1470,7 @@ upnp_init(void)
 void
 upnp_post_init(void)
 {
-	/*
-	 * In case UPnP support was disabled, upnp_discover() will do nothing.
-	 *
-	 * We call it nonethless since at high debugging levels it will log
-	 * that support is disabled.
-	 */
-
-	upnp_launch_discovery();
+	upnp_launch_discovery();		/* NAT-PMP and UPnP discovery */
 }
 
 /**
@@ -1164,8 +1485,9 @@ upnp_free_mapping_kv(void *key, void *u_value, void *u_data)
 	(void) u_value;
 	(void) u_data;
 
-	g_warning("UPNP %spublished mapping for %s port %u still present",
+	g_warning("UPNP %spublished %s mapping for %s port %u still present",
 		um->published ? "" : "un",
+		upnp_method_to_string(um->method),
 		upnp_map_proto_to_string(um->proto), um->port);
 
 	upnp_mapping_free(um, TRUE);
@@ -1181,6 +1503,7 @@ upnp_close(void)
 {
 	upnp_discovery_close();
 	upnp_dev_free_null(&igd.dev);
+	natpmp_free_null(&gw.gateway);
 	upnp_ctrl_cancel_null(&igd.monitor, FALSE);
 	g_hash_table_foreach_remove(upnp_mappings, upnp_free_mapping_kv, NULL);
 	gm_hash_table_destroy_null(&upnp_mappings);

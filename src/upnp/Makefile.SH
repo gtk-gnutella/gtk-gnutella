@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-75]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-91]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -84,6 +84,7 @@ SRC = \
 	control.c \
 	discovery.c \
 	error.c \
+	natpmp.c \
 	service.c \
 	upnp.c
 
@@ -91,6 +92,7 @@ OBJ = \
 	control.o \
 	discovery.o \
 	error.o \
+	natpmp.o \
 	service.o \
 	upnp.o 
 

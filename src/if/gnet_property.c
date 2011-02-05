@@ -921,6 +921,12 @@ gboolean gnet_property_variable_port_mapping_required     = TRUE;
 static const gboolean gnet_property_variable_port_mapping_required_default = TRUE;
 gboolean gnet_property_variable_port_mapping_possible     = FALSE;
 static const gboolean gnet_property_variable_port_mapping_possible_default = FALSE;
+guint32  gnet_property_variable_natpmp_debug     = 0;
+static const guint32  gnet_property_variable_natpmp_debug_default = 0;
+gboolean gnet_property_variable_enable_natpmp     = TRUE;
+static const gboolean gnet_property_variable_enable_natpmp_default = TRUE;
+gboolean gnet_property_variable_natpmp_possible     = FALSE;
+static const gboolean gnet_property_variable_natpmp_possible_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -8378,6 +8384,60 @@ gnet_prop_init(void) {
     gnet_property->props[389].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[389].data.boolean.def   = (void *) &gnet_property_variable_port_mapping_possible_default;
     gnet_property->props[389].data.boolean.value = (void *) &gnet_property_variable_port_mapping_possible;
+
+
+    /*
+     * PROP_NATPMP_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[390].name = "natpmp_debug";
+    gnet_property->props[390].desc = _("Debug level for the NAT-PMP layer.");
+    gnet_property->props[390].ev_changed = event_new("natpmp_debug_changed");
+    gnet_property->props[390].save = TRUE;
+    gnet_property->props[390].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[390].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[390].data.guint32.def   = (void *) &gnet_property_variable_natpmp_debug_default;
+    gnet_property->props[390].data.guint32.value = (void *) &gnet_property_variable_natpmp_debug;
+    gnet_property->props[390].data.guint32.choices = NULL;
+    gnet_property->props[390].data.guint32.max   = 20;
+    gnet_property->props[390].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_ENABLE_NATPMP:
+     *
+     * General data:
+     */
+    gnet_property->props[391].name = "enable_natpmp";
+    gnet_property->props[391].desc = _("Whether NAT-PMP (NAT Port Mapping Protocol) should be enabled. Support for NAT-PMP means gtk-gnutella will be able to look whether your default gateway (router) supports the Port Mapping Protocol to allow transparent redirection of the external ports on the router to the local machine, thereby making sure you are not firewalled. By default you should leave it enabled unless you know how to configure your network equipment manually to prevent the firewalled condition for both TCP and UDP.");
+    gnet_property->props[391].ev_changed = event_new("enable_natpmp_changed");
+    gnet_property->props[391].save = TRUE;
+    gnet_property->props[391].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[391].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[391].data.boolean.def   = (void *) &gnet_property_variable_enable_natpmp_default;
+    gnet_property->props[391].data.boolean.value = (void *) &gnet_property_variable_enable_natpmp;
+
+
+    /*
+     * PROP_NATPMP_POSSIBLE:
+     *
+     * General data:
+     */
+    gnet_property->props[392].name = "natpmp_possible";
+    gnet_property->props[392].desc = _("Whether gtk-gnutella was able to locate a NAT-PMP gateway to install port mappings, if required.");
+    gnet_property->props[392].ev_changed = event_new("natpmp_possible_changed");
+    gnet_property->props[392].save = FALSE;
+    gnet_property->props[392].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[392].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[392].data.boolean.def   = (void *) &gnet_property_variable_natpmp_possible_default;
+    gnet_property->props[392].data.boolean.value = (void *) &gnet_property_variable_natpmp_possible;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -439,6 +439,9 @@ extern const gboolean gnet_property_variable_enable_upnp;
 extern const gboolean gnet_property_variable_upnp_possible;
 extern const gboolean gnet_property_variable_port_mapping_required;
 extern const gboolean gnet_property_variable_port_mapping_possible;
+extern const guint32  gnet_property_variable_natpmp_debug;
+extern const gboolean gnet_property_variable_enable_natpmp;
+extern const gboolean gnet_property_variable_natpmp_possible;
 
 
 prop_set_t *gnet_prop_init(void);
