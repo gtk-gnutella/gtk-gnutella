@@ -230,7 +230,7 @@ tls_print_session_info(const host_addr_t addr, guint16 port,
 		"Key Exchange: %s\n"
 		"Cipher:       %s\n"
 		"MAC:          %s\n"
-		"Compression:  %s\n",
+		"Compression:  %s",
 		host_addr_port_to_string(addr, port),
 		NULL_STRING(proto),
 		NULL_STRING(cert),
