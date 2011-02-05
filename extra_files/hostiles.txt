@@ -1818,3 +1818,6 @@
 # Repetritive queries, fishing for leaked documents
 222.149.72.78
 118.236.138.45
+
+# Suspect (Hosting Central from Dino Solutions, Inc.)
+208.93.7.0/24
