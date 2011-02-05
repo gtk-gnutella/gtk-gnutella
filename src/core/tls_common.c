@@ -224,13 +224,13 @@ tls_print_session_info(const host_addr_t addr, guint16 port,
 
 	g_debug(
 		"TLS session info (%s):\n"
-		"Host:         %s\n"
-		"Protocol:     %s\n"
-		"Certificate:  %s\n"
-		"Key Exchange: %s\n"
-		"Cipher:       %s\n"
-		"MAC:          %s\n"
-		"Compression:  %s",
+		"    Host:         %s\n"
+		"    Protocol:     %s\n"
+		"    Certificate:  %s\n"
+		"    Key Exchange: %s\n"
+		"    Cipher:       %s\n"
+		"    MAC:          %s\n"
+		"    Compression:  %s",
 		incoming ? "incoming" : "outgoing",
 		host_addr_port_to_string(addr, port),
 		NULL_STRING(proto),
