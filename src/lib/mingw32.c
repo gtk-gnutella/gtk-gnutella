@@ -1984,17 +1984,51 @@ mingw_exception_to_string(int code)
  * Log reported exception.
  */
 static void
-mingw_exception_log(int code)
+mingw_exception_log(int code, const void *pc)
 {
-	DECLARE_STR(4);
+	DECLARE_STR(6);
 	char time_buf[18];
 
 	crash_time(time_buf, sizeof time_buf);
 
+	print_str(time_buf);										/* 0 */
+	print_str(" (CRITICAL): received exception at PC=0x");		/* 1 */
+	print_str(pointer_to_string(pc));							/* 2 */
+	print_str(": ");											/* 3 */
+	print_str(mingw_exception_to_string(code));					/* 4 */
+	print_str("\n");											/* 5 */
+
+	flush_err_str();
+}
+
+/**
+ * Log extra information on memory faults.
+ */
+static void
+mingw_memory_fault_log(const EXCEPTION_RECORD *er)
+{
+	DECLARE_STR(6);
+	char time_buf[18];
+	const char *prot = "unknown";
+	const void *va = NULL;
+
+	if (er->NumberParameters >= 2) {
+		switch (er->ExceptionInformation[0]) {
+		case 0:		prot = "read";
+		case 1:		prot = "write";
+		case 8:		prot = "execute";
+		}
+		va = ulong_to_pointer(er->ExceptionInformation[1]);
+	}
+
+	crash_time(time_buf, sizeof time_buf);
+
 	print_str(time_buf);							/* 0 */
-	print_str(" (CRITICAL): Received exception: ");	/* 1 */
-	print_str(mingw_exception_to_string(code));		/* 2 */
-	print_str("\n");								/* 3 */
+	print_str(" (CRITICAL): memory fault (");		/* 1 */
+	print_str(prot);								/* 2 */
+	print_str(") at VA=0x");						/* 3 */
+	print_str(pointer_to_string(va));				/* 4 */
+	print_str("\n");								/* 5 */
 
 	flush_err_str();
 }
@@ -2015,7 +2049,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	 */
 
 	if (EXCEPTION_STACK_OVERFLOW != er->ExceptionCode)
-		mingw_exception_log(er->ExceptionCode);
+		mingw_exception_log(er->ExceptionCode, er->ExceptionAddress);
 
 	switch (er->ExceptionCode) {
 	case EXCEPTION_BREAKPOINT:
@@ -2033,10 +2067,13 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			print_str("Got stack overflow -- crashing.\n");
 			flush_err_str();
 		}
-		/* FALL THROUGH */
+		mingw_sigraise(SIGSEGV);
+		break;
 	case EXCEPTION_ACCESS_VIOLATION:
-	case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
 	case EXCEPTION_IN_PAGE_ERROR:
+		mingw_memory_fault_log(er);
+		/* FALL THROUGH */
+	case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
 		mingw_sigraise(SIGSEGV);
 		break;
 	case EXCEPTION_DATATYPE_MISALIGNMENT:
