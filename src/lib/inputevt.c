@@ -998,6 +998,33 @@ inputevt_poll_idx_compact(struct poll_ctx *ctx)
 }
 #endif	/* USE_POLL*/
 
+static void
+relay_list_remove(struct poll_ctx *ctx, unsigned id)
+{
+	relay_list_t *rl;
+	inputevt_relay_t *relay;
+
+	g_assert(id > 0);
+	g_assert(id < ctx->num_ev);
+
+	relay = ctx->relay[id];
+	g_assert(relay);
+	g_assert(zero_handler == relay->handler);
+	g_assert(is_valid_fd(relay->fd));
+
+	rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(relay->fd));
+	g_assert(NULL != rl);
+	g_assert(NULL != rl->sl);
+	
+	rl->sl = g_slist_remove(rl->sl, GUINT_TO_POINTER(id));
+	if (NULL == rl->sl) {
+		g_assert(0 == rl->readers && 0 == rl->writers);
+		inputevt_poll_idx_free(ctx, &rl->poll_idx);
+		g_hash_table_remove(ctx->ht, GINT_TO_POINTER(relay->fd));
+		wfree(rl, sizeof *rl);
+	}
+}
+
 /**
  * Purge removed sources.
  */
@@ -1008,9 +1035,7 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 
 	for (sl = ctx->removed; NULL != sl; sl = g_slist_next(sl)) {
 		inputevt_relay_t *relay;
-		relay_list_t *rl;
 		unsigned id;
-		int fd;
 
 		id = GPOINTER_TO_UINT(sl->data);
 		g_assert(id > 0);
@@ -1020,25 +1045,9 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 		bit_array_clear(ctx->used_event_id, id);
 
 		relay = ctx->relay[id];
-		g_assert(relay);
-		g_assert(zero_handler == relay->handler);
-
-		fd = relay->fd;
-		g_assert(is_valid_fd(fd));
+		relay_list_remove(ctx, id);		
 		wfree(relay, sizeof *relay);
 		ctx->relay[id] = NULL;
-		
-		rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
-		g_assert(NULL != rl);
-		g_assert(NULL != rl->sl);
-	
-		rl->sl = g_slist_remove(rl->sl, GUINT_TO_POINTER(id));
-		if (NULL == rl->sl) {
-			g_assert(0 == rl->readers && 0 == rl->writers);
-			inputevt_poll_idx_free(ctx, &rl->poll_idx);
-			g_hash_table_remove(ctx->ht, GINT_TO_POINTER(fd));
-			wfree(rl, sizeof *rl);
-		}
 	}
 
 	gm_slist_free_null(&ctx->removed);
@@ -1253,16 +1262,9 @@ inputevt_remove(unsigned id)
 			 */
 			ctx->removed = g_slist_prepend(ctx->removed, GUINT_TO_POINTER(id));
 		} else {
+			relay_list_remove(ctx, id);		
 			wfree(relay, sizeof *relay);
-			
-			rl->sl = g_slist_remove(rl->sl, GUINT_TO_POINTER(id));
-			if (NULL == rl->sl) {
-				g_assert(0 == rl->readers && 0 == rl->writers);
-				inputevt_poll_idx_free(ctx, &rl->poll_idx);
-				g_hash_table_remove(ctx->ht, GINT_TO_POINTER(fd));
-				wfree(rl, sizeof *rl);
-			}
-
+			ctx->relay[id] = NULL;
 			bit_array_clear(ctx->used_event_id, id);
 		}
 	}
