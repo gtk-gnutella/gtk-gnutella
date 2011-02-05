@@ -501,7 +501,10 @@ tls_free(struct gnutella_socket *s)
 static inline void
 tls_log_function(int level, const char *text)
 {
-	g_debug("TLS(%d): %s", level, text);
+	char *str = h_strdup(text);
+	strchomp(str, 0);
+	g_debug("TLS(%d): %s", level, str);
+	hfree(str);
 }
 
 void
