@@ -312,7 +312,7 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned *idx_ptr)
 			pfd = &ctx->pfd_arr[last_idx];
 			safety_assert(is_valid_fd(pfd->fd));
 
-			rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(pfd->fd));
+			rl = g_hash_table_lookup(ctx->ht, int_to_pointer(pfd->fd));
 			safety_assert(NULL != rl);
 			safety_assert(last_idx == rl->poll_idx);
 
@@ -370,7 +370,7 @@ event_set_mask_with_kqueue(struct poll_ctx *ctx, int fd,
 		return 0;
 
 	i = 0;
-	udata = GINT_TO_POINTER(fd);
+	udata = int_to_pointer(fd);
 
 	if ((INPUT_EVENT_R & old) != (INPUT_EVENT_R & cur)) {
 		EV_SET(&kev[i], fd, EVFILT_READ,
@@ -435,7 +435,7 @@ event_set_mask_with_epoll(struct poll_ctx *ctx, int fd,
 		return 0;
 
 	ev = zero_ev;
-	ev.data.ptr = GINT_TO_POINTER(fd);
+	ev.data.ptr = int_to_pointer(fd);
 
 	if (INPUT_EVENT_R & cur)
 		ev.events |= EPOLLIN | EPOLLPRI;
@@ -530,7 +530,7 @@ event_set_mask_with_poll(struct poll_ctx *ctx, int fd,
 	old &= INPUT_EVENT_RW;
 	cur &= INPUT_EVENT_RW;
 
-	rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
+	rl = g_hash_table_lookup(ctx->ht, int_to_pointer(fd));
 	g_assert(NULL != rl);
 	g_assert(NULL != rl->sl);
 
@@ -560,7 +560,7 @@ get_poll_idx(const struct poll_ctx *ctx, int fd)
 	safety_assert(is_valid_fd(fd));
 	safety_assert(is_open_fd(fd));
 
-	rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
+	rl = g_hash_table_lookup(ctx->ht, int_to_pointer(fd));
 	g_assert(NULL != rl);
 	return rl->poll_idx;
 }
@@ -679,10 +679,6 @@ event_get_with_poll(const struct poll_ctx *ctx, unsigned idx)
 	return event;
 }
 
-static gboolean
-dispatch_poll(GIOChannel *unused_source,
-	GIOCondition unused_cond, void *udata);
-
 static void
 check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 {
@@ -720,36 +716,6 @@ check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 	if (*timeout_ms_ptr >= 0 || ret > 0) {
 		*timeout_ms_ptr = timeout_ms;
 	} 
-}
-
-static int
-poll_func(GPollFD *gfds, unsigned n, int timeout_ms)
-{
-	struct poll_ctx *ctx;
-	int r;
-
-	ctx = get_global_poll_ctx();
-	g_assert(ctx);
-	g_assert(ctx->initialized);
-
-	if (0 == ctx->num_ready) {
-		check_for_events(ctx, &timeout_ms);
-	}
-
-	if (ctx->num_ready > 0) {
-		dispatch_poll(NULL, 0, ctx);
-	}
-
-	r = default_poll_func(gfds, n, timeout_ms);
-
-#ifdef INPUTEVT_DEBUGGING
-	if (-1 == r) {
-		g_warning("INPUTEVT default poll function failed: %s",
-			g_strerror(errno));
-	}
-#endif
-
-	return r;
 }
 
 void
@@ -803,15 +769,15 @@ relay_list_remove(struct poll_ctx *ctx, unsigned id)
 	g_assert(zero_handler == relay->handler);
 	g_assert(is_valid_fd(relay->fd));
 
-	rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(relay->fd));
+	rl = g_hash_table_lookup(ctx->ht, int_to_pointer(relay->fd));
 	g_assert(NULL != rl);
 	g_assert(NULL != rl->sl);
 	
-	rl->sl = g_slist_remove(rl->sl, GUINT_TO_POINTER(id));
+	rl->sl = g_slist_remove(rl->sl, uint_to_pointer(id));
 	if (NULL == rl->sl) {
 		g_assert(0 == rl->readers && 0 == rl->writers);
 		inputevt_poll_idx_free(ctx, &rl->poll_idx);
-		g_hash_table_remove(ctx->ht, GINT_TO_POINTER(relay->fd));
+		g_hash_table_remove(ctx->ht, int_to_pointer(relay->fd));
 		wfree(rl, sizeof *rl);
 	}
 }
@@ -847,7 +813,7 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 static void
 inputevt_timer(struct poll_ctx *ctx)
 {
-	int n, i;
+	int num_events;
 
 	g_assert(ctx);
 	g_assert(ctx->initialized);
@@ -856,33 +822,32 @@ inputevt_timer(struct poll_ctx *ctx)
 	/* Maybe this must safely fail for general use, thus no assertion */
 	g_return_if_fail(!ctx->dispatching);
 
-	n = (*ctx->event_check_all)(ctx);
-	if (-1 == n && !is_temporary_error(errno)) {
+	num_events = (*ctx->event_check_all)(ctx);
+	if (-1 == num_events && !is_temporary_error(errno)) {
 		g_warning("event_check_all(%d) failed: %s",
 			ctx->master_fd, g_strerror(errno));
 	}
 
 	ctx->dispatching = TRUE;
 
-	if (n > 0) {
-		g_assert(n > 0);
-		g_assert(UNSIGNED(n) <= ctx->num_ev);
+	if (num_events > 0) {
+		unsigned idx;
+
+		g_assert(UNSIGNED(num_events) <= ctx->num_ev);
 	
-		for (i = 0; n > 0 && UNSIGNED(i) < ctx->num_ev; i++) {
+		for (idx = 0; num_events > 0 && idx < ctx->num_ev; idx++) {
 			relay_list_t *rl;
 			GSList *sl;
 			struct event event;
 
-			event = (*ctx->event_get)(ctx, i);
+			event = (*ctx->event_get)(ctx, idx);
 			g_assert(event.fd >= -1);
-			if (!is_valid_fd(event.fd))
+
+			if (!is_valid_fd(event.fd) || 0 == event.condition)
 				continue;
 
-			if (0 == event.condition)
-				continue;
-
-			n--;
-			rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(event.fd));
+			num_events--;
+			rl = g_hash_table_lookup(ctx->ht, int_to_pointer(event.fd));
 			g_assert(NULL != rl);
 			g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
 
@@ -929,7 +894,7 @@ inputevt_timer(struct poll_ctx *ctx)
 
 			g_assert(is_valid_fd(fd));
 
-			rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
+			rl = g_hash_table_lookup(ctx->ht, int_to_pointer(fd));
 			g_assert(NULL != rl);
 			g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
 
@@ -974,9 +939,39 @@ dispatch_poll(GIOChannel *unused_source,
 	(void) unused_source;
 
 	inputevt_timer(udata);
-
 	return TRUE;
 }
+
+static int
+poll_func(GPollFD *gfds, unsigned n, int timeout_ms)
+{
+	struct poll_ctx *ctx;
+	int r;
+
+	ctx = get_global_poll_ctx();
+	g_assert(ctx);
+	g_assert(ctx->initialized);
+
+	if (0 == ctx->num_ready) {
+		check_for_events(ctx, &timeout_ms);
+	}
+
+	if (ctx->num_ready > 0) {
+		dispatch_poll(NULL, 0, ctx);
+	}
+
+	r = default_poll_func(gfds, n, timeout_ms);
+
+#ifdef INPUTEVT_DEBUGGING
+	if (-1 == r) {
+		g_warning("INPUTEVT default poll function failed: %s",
+			g_strerror(errno));
+	}
+#endif
+
+	return r;
+}
+
 
 /**
  * @todo TODO:
@@ -1017,7 +1012,7 @@ inputevt_remove(unsigned id)
 	g_assert(is_valid_fd(relay->fd));
 
 	fd = relay->fd;
-	rl = g_hash_table_lookup(ctx->ht, GINT_TO_POINTER(fd));
+	rl = g_hash_table_lookup(ctx->ht, int_to_pointer(fd));
 	g_assert(NULL != rl);
 	g_assert(NULL != rl->sl);
 
@@ -1147,7 +1142,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 	ctx->relay[id] = relay;
 
 	{
-		void *key = GINT_TO_POINTER(relay->fd);
+		void *key = int_to_pointer(relay->fd);
 		relay_list_t *rl;
 
 		rl = g_hash_table_lookup(ctx->ht, key);
@@ -1210,8 +1205,8 @@ inputevt_set_readable(int fd)
 
 	g_assert(is_valid_fd(fd));
 	ctx = get_global_poll_ctx();
-	if (!hash_list_contains(ctx->readable, GINT_TO_POINTER(fd))) 
-		hash_list_append(ctx->readable, GINT_TO_POINTER(fd));
+	if (!hash_list_contains(ctx->readable, int_to_pointer(fd))) 
+		hash_list_append(ctx->readable, int_to_pointer(fd));
 }
 
 static int
@@ -1379,7 +1374,6 @@ inputevt_add(int fd, inputevt_cond_t cond,
 	inputevt_handler_t handler, void *data)
 {
 	inputevt_relay_t *relay = walloc(sizeof *relay);
-	gboolean ok = FALSE;
 
 	g_assert(is_valid_fd(fd));
 	g_assert(zero_handler != handler);
@@ -1394,13 +1388,13 @@ inputevt_add(int fd, inputevt_cond_t cond,
 	case INPUT_EVENT_W:
 	case INPUT_EVENT_RWX:
 	case INPUT_EVENT_RW:
-		ok = TRUE;
-		break;
+		goto cond_is_okay;
 	case INPUT_EVENT_EXCEPTION:
 		g_error("must not specify INPUT_EVENT_EXCEPTION only!");
 	}
-	g_assert(ok);
+	g_assert_not_reached();
 
+cond_is_okay:
 	relay->condition = cond;
 	relay->handler = handler;
 	relay->data = data;
@@ -1412,7 +1406,7 @@ inputevt_add(int fd, inputevt_cond_t cond,
 /**
  * Force I/O processing for all the ready sources.
  *
- * This is meant to be used when the main glib event loop is not given
+ * This is meant to be used when the main GLib event loop is not given
  * a chance to execute but we still want to process pending I/O events.
  */
 void

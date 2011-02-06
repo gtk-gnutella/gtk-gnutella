@@ -105,14 +105,13 @@ tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
 		unsigned level = is_temporary_error(saved_errno) ? 2 : 0;
 
 		if (GNET_PROPERTY(tls_debug) > level) {
-			g_debug("%s(): fd=%d size=%lu ret=%ld errno=\"%s\"",
-				op, fd, (gulong) size, (glong) ret,
-				g_strerror(saved_errno));
+			g_debug("%s(): fd=%d size=%lu ret=-1 errno=\"%s\"",
+				op, fd, (unsigned long) size, g_strerror(saved_errno));
 		}
 	} else {
 		if (GNET_PROPERTY(tls_debug) > 2) {
-			g_debug("%s(): fd=%d size=%lu ret=%ld",
-				op, fd, (gulong) size, (glong) ret);
+			g_debug("%s(): fd=%d size=%lu ret=%lu",
+				op, fd, (unsigned long) size, (unsigned long) ret);
 		}
 	}
 	errno = saved_errno;
@@ -124,7 +123,7 @@ tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
 static void
 tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 {
-	g_assert(s);
+	socket_check(s);
 	g_assert(socket_with_tls(s));	/* No USES yet, may not have handshaked */
 	g_assert(INPUT_EVENT_EXCEPTION != cond);
 
@@ -174,7 +173,7 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 	struct gnutella_socket *s = ptr;
 	ssize_t ret;
 
-	g_assert(s);
+	socket_check(s);
 	g_assert(is_valid_fd(s->file_desc));
 
 	ret = s_write(s->file_desc, buf, size);
@@ -193,7 +192,7 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	struct gnutella_socket *s = ptr;
 	ssize_t ret;
 
-	g_assert(s);
+	socket_check(s);
 	g_assert(is_valid_fd(s->file_desc));
 
 	ret = s_read(s->file_desc, buf, size);
@@ -279,7 +278,7 @@ tls_handshake(struct gnutella_socket *s)
 	gboolean do_warn;
 	int ret;
 
-	g_assert(s);
+	socket_check(s);
 
 	/*
 	 * For connect-back probes, the handshake will probably fail. We use
@@ -417,7 +416,7 @@ tls_init(struct gnutella_socket *s)
 	gnutls_transport_set_lowat(ctx->session, 0);
 #else
 	g_assert(is_valid_fd(s->file_desc));
-	gnutls_transport_set_ptr(session, GINT_TO_POINTER(s->file_desc));
+	gnutls_transport_set_ptr(session, int_to_pointer(s->file_desc));
 #endif	/* USE_TLS_CUSTOM_IO */
 
 	if (server) {
@@ -567,7 +566,7 @@ tls_global_close(void)
 }
 
 static ssize_t
-tls_write_intern(struct wrap_io *wio, gconstpointer buf, size_t size)
+tls_write_intern(struct wrap_io *wio, const void *buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 	ssize_t ret;
@@ -643,7 +642,7 @@ tls_flush(struct wrap_io *wio)
 	if (s->tls.snarf) {
 		if (GNET_PROPERTY(tls_debug > 1)) {
 			g_debug("tls_flush: snarf=%lu host=%s",
-					(gulong) s->tls.snarf,
+					(unsigned long) s->tls.snarf,
 					host_addr_port_to_string(s->addr, s->port));
 		}
 		(void ) tls_write_intern(wio, NULL, 0);
@@ -655,17 +654,15 @@ tls_flush(struct wrap_io *wio)
 
 
 static ssize_t
-tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
+tls_write(struct wrap_io *wio, const void *buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 	ssize_t ret;
 
-	g_assert(size > 0);
-	g_assert(size <= INT_MAX);
-	g_assert(s != NULL);
-	g_assert(buf != NULL);
-
+	socket_check(s);
 	g_assert(socket_uses_tls(s));
+	g_assert(NULL != buf);
+	g_assert(size_is_positive(size));
 
 	ret = tls_flush(wio);
 	if (0 == ret) {
@@ -680,16 +677,15 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 }
 
 static ssize_t
-tls_read(struct wrap_io *wio, gpointer buf, size_t size)
+tls_read(struct wrap_io *wio, void *buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 	ssize_t ret;
 
-	g_assert(size <= INT_MAX);
-	g_assert(s != NULL);
-	g_assert(buf != NULL);
-
+	socket_check(s);
 	g_assert(socket_uses_tls(s));
+	g_assert(NULL != buf);
+	g_assert(size_is_positive(size));
 
 	if (tls_flush(wio) && !is_temporary_error(errno)) {
 		if (GNET_PROPERTY(tls_debug)) {
@@ -803,7 +799,7 @@ tls_readv(struct wrap_io *wio, iovec_t *iov, int iovcnt)
 
 static ssize_t
 tls_no_sendto(struct wrap_io *unused_wio, const gnet_host_t *unused_to,
-	gconstpointer unused_buf, size_t unused_size)
+	const void *unused_buf, size_t unused_size)
 {
 	(void) unused_wio;
 	(void) unused_to;
