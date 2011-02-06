@@ -342,18 +342,6 @@ crash_message(const char *signame, gboolean trace, gboolean recursive)
 	print_str(") ");					/* 3 */
 	iov_prolog = getpos_str();
 
-	print_str("by ");					/* 4 */
-	if (recursive)
-		print_str("recursive ");		/* 5 */
-	print_str(signame);					/* 6 */
-	print_str(" after ");				/* 7 */
-	print_str(runtime_buf);				/* 8 */
-	if (trace)
-		print_str(" -- stack was:");	/* 9 */
-	print_str("\n");					/* 10, at most */
-	flush_err_str();
-
-	rewind_str(iov_prolog);
 	print_str("for ");					/* 4 */
 	if (vars->version != NULL) {
 		print_str(vars->version);		/* 5 */
@@ -365,6 +353,18 @@ crash_message(const char *signame, gboolean trace, gboolean recursive)
 		}
 	}
 	print_str("\n");					/* 8, at most */
+	flush_err_str();
+
+	rewind_str(iov_prolog);
+	print_str("by ");					/* 4 */
+	if (recursive)
+		print_str("recursive ");		/* 5 */
+	print_str(signame);					/* 6 */
+	print_str(" after ");				/* 7 */
+	print_str(runtime_buf);				/* 8 */
+	if (trace)
+		print_str(" -- stack was:");	/* 9 */
+	print_str("\n");					/* 10, at most */
 	flush_err_str();
 }
 
