@@ -132,6 +132,9 @@ extern gboolean vmm_is_debugging(guint32 level);
 typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
 WSAPoll_func_t WSAPoll = NULL;
 
+/**
+ * Path Name Conversion Structure.
+ */
 typedef struct pncs {
 	wchar_t *utf16;
 } pncs_t;
