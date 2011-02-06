@@ -1300,7 +1300,7 @@ init_with_poll(struct poll_ctx *ctx)
 #ifdef MINGW32
 	if (!mingw_has_wsapoll()) {
 		ctx->polling_method = "Windows select()";
-		ctx->collect_events = collect_events_with_select(ctx, timeout_ms);
+		ctx->collect_events = collect_events_with_select;
 	}
 #endif	/* MINGW32 */
 
