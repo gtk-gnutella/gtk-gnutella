@@ -180,6 +180,8 @@ ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 #define remove mingw_remove
 #define pipe mingw_pipe
 
+#define abort() mingw_abort()
+
 typedef SOCKET socket_fd_t;
 typedef WSABUF iovec_t;
 typedef unsigned short sa_family_t;
@@ -436,6 +438,7 @@ const char *dir_entry_filename(const void *dirent);
 int mingw_getgateway(guint32 *ip);
 
 gboolean mingw_in_exception(void);
+void G_GNUC_NORETURN mingw_abort(void);
 
 #else	/* !MINGW32 */
 

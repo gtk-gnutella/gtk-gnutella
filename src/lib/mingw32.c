@@ -111,6 +111,8 @@ RCSID("$Id$")
 #undef setsockopt
 #undef sendto
 
+#undef abort
+
 #define VMM_MINSIZE (1024*1024*100)	/* At least 100 MB */
 
 #define WS2_LIBRARY "ws2_32.dll"
@@ -387,6 +389,20 @@ mingw_sigraise(int signo)
 	} else {
 		(*mingw_sighandler[signo])(signo);
 	}
+}
+
+/**
+ * Our own abort(), to avoid the message:
+ *
+ * "This application has requested the Runtime to terminate it in an
+ * unusual way. Please contact the application's support team for more
+ * information."
+ */
+void
+mingw_abort(void)
+{
+	mingw_sigraise(SIGABRT);
+	ExitProcess(EXIT_FAILURE);
 }
 
 int
