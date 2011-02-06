@@ -129,8 +129,6 @@ static unsigned inputevt_debug;
 void 
 inputevt_set_debug(unsigned level)
 {
-	g_debug("INPUTEVT debug level = %u", level);
-
 	inputevt_debug = level;
 }
 
