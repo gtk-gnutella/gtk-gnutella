@@ -325,26 +325,46 @@ crash_run_time(char *buf, size_t size)
 static void
 crash_message(const char *signame, gboolean trace, gboolean recursive)
 {
-	DECLARE_STR(10);
+	DECLARE_STR(11);
 	char pid_buf[22];
 	char time_buf[18];
 	char runtime_buf[22];
+	char build_buf[22];
+	unsigned iov_prolog;
 
 	crash_time(time_buf, sizeof time_buf);
 	crash_run_time(runtime_buf, sizeof runtime_buf);
 
+	/* The following precedes each line */
 	print_str(time_buf);				/* 0 */
 	print_str(" CRASH (pid=");			/* 1 */
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
-	print_str(") by ");					/* 3 */
+	print_str(") ");					/* 3 */
+	iov_prolog = getpos_str();
+
+	print_str("by ");					/* 4 */
 	if (recursive)
-		print_str("recursive ");		/* 4 */
-	print_str(signame);					/* 5 */
-	print_str(" after ");				/* 6 */
-	print_str(runtime_buf);				/* 7 */
+		print_str("recursive ");		/* 5 */
+	print_str(signame);					/* 6 */
+	print_str(" after ");				/* 7 */
+	print_str(runtime_buf);				/* 8 */
 	if (trace)
-		print_str(" -- stack was:");	/* 8 */
-	print_str("\n");					/* 9, at most */
+		print_str(" -- stack was:");	/* 9 */
+	print_str("\n");					/* 10, at most */
+	flush_err_str();
+
+	rewind_str(iov_prolog);
+	print_str("for ");					/* 4 */
+	if (vars->version != NULL) {
+		print_str(vars->version);		/* 5 */
+	} else {
+		print_str(vars->progname);		/* 5 */
+		if (0 != vars->build) {
+			print_str(" build #");		/* 6 */
+			print_str(print_number(build_buf, sizeof build_buf, vars->build));
+		}
+	}
+	print_str("\n");					/* 8, at most */
 	flush_err_str();
 }
 
