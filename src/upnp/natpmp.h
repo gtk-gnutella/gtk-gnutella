@@ -85,6 +85,7 @@ typedef void (*natpmp_map_cb_t)(int code,
  * Public interface.
  */
 
+gboolean natpmp_pending(void);
 const char *natpmp_strerror(int code);
 host_addr_t natpmp_wan_ip(const natpmp_t *np);
 host_addr_t natpmp_gateway_addr(const natpmp_t *np);

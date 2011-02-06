@@ -72,6 +72,8 @@ int urpc_send(const char *what,
 	host_addr_t addr, guint16 port, const void *data, size_t len,
 	unsigned long timeout, urpc_cb_t cb, void *arg);
 
+gboolean urpc_pending(void);
+
 void urpc_init(void);
 void urpc_close(void);
 

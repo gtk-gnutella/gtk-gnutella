@@ -162,7 +162,7 @@ upnp_igd_ip_routed(void)
 gboolean
 upnp_delete_pending(void)
 {
-	return igd.delete_pending != 0;
+	return igd.delete_pending != 0 || natpmp_pending();
 }
 
 /**

@@ -1396,6 +1396,18 @@ inputevt_add(int fd, inputevt_cond_t cond,
 }
 
 /**
+ * Force I/O processing for all the ready sources.
+ *
+ * This is meant to be used when the main glib event loop is not given
+ * a chance to execute but we still want to process pending I/O events.
+ */
+void
+inputevt_dispatch(void)
+{
+	inputevt_timer(get_global_poll_ctx());
+}
+
+/**
  * Performs module cleanup.
  */
 void

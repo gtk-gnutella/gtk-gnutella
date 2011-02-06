@@ -71,6 +71,7 @@ typedef void (*inputevt_handler_t) (
  */
 void inputevt_init(int use_poll);
 void inputevt_close(void);
+void inputevt_dispatch(void);
 
 /**
  * This emulates the GDK input interface.

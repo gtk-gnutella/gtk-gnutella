@@ -119,6 +119,7 @@
 #include "lib/fd.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/inputevt.h"
 #include "lib/iso3166.h"
 #include "lib/log.h"
 #include "lib/map.h"
@@ -402,6 +403,16 @@ gtk_gnutella_request_shutdown(void)
 }
 
 /**
+ * Manually dispatch events that are normally done from glib's main loop.
+ */
+static void
+main_dispatch(void)
+{
+	cq_dispatch();
+	inputevt_dispatch();
+}
+
+/**
  * Exit program, return status `exit_code' to parent process.
  *
  * Shutdown systems, so we can track memory leaks, and wait for EXIT_GRACE
@@ -547,6 +558,13 @@ gtk_gnutella_exit(int exit_code)
 			short_time(exit_grace));
 	}
 
+	/*
+	 * We may no longer be going back to glib's main loop, so we need
+	 * to dispatch the critical events (I/Os, callout queue) manually.
+	 */
+
+	main_dispatch();
+
 	while (node_bye_pending() || upnp_delete_pending()) {
 		time_t now = time(NULL);
 		time_delta_t d;
@@ -561,6 +579,7 @@ gtk_gnutella_exit(int exit_code)
 			main_gui_shutdown_tick(exit_grace - d);
 		}
 		compat_sleep_ms(50);
+		main_dispatch();
 	}
 
 	if (debugging(0) || signal_received || shutdown_requested)

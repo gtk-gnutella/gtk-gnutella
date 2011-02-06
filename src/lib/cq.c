@@ -607,7 +607,7 @@ done:
 /**
  * Called every period to heartbeat the callout queue.
  */
-void
+static void
 cq_heartbeat(cqueue_t *cq)
 {
 	tm_t tv;
@@ -1051,6 +1051,18 @@ cq_init(cq_invoke_t idle, const guint32 *debug)
 
 	if (idle != NULL)
 		cq_idle_add(callout_queue, idle, callout_queue);
+}
+
+/**
+ * Manual callout queue ticking.
+ *
+ * This is meant to be used during final shutdown when the main glib loop
+ * (responsible to dispatch the heart beats) may not be invoked.
+ */
+void
+cq_dispatch(void)
+{
+	heartbeat_trampoline(callout_queue);
 }
 
 /**

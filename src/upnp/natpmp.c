@@ -127,6 +127,8 @@ natpmp_rpc_check(const struct natpmp_rpc * const rd)
 	g_assert(NATPMP_RPC_MAGIC == rd->magic);
 }
 
+static unsigned natpmp_rpc_pending;
+
 static void natpmp_rpc_iterate(cqueue_t *unused_cq, void *obj);
 
 /**
@@ -261,6 +263,8 @@ natpmp_rpc_alloc(natpmp_t *np, host_addr_t addr, enum natpmp_op op, pmsg_t *mb)
 	rd->timeout = NATPMP_TIMEOUT;
 	rd->count = 0;
 
+	natpmp_rpc_pending++;
+
 	return rd;
 }
 
@@ -272,9 +276,22 @@ natpmp_rpc_free(struct natpmp_rpc *rd)
 {
 	natpmp_rpc_check(rd);
 
+	g_assert(uint_is_positive(natpmp_rpc_pending));
+
+	natpmp_rpc_pending--;
+
 	pmsg_free_null(&rd->mb);
 	rd->magic = 0;
 	wfree(rd, sizeof *rd);
+}
+
+/**
+ * Do we have pending NAT-PMP requests?
+ */
+gboolean
+natpmp_pending(void)
+{
+	return 0 != natpmp_rpc_pending;
 }
 
 /**

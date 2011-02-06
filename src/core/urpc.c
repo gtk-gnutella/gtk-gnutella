@@ -272,6 +272,15 @@ urpc_send(const char *what,
 }
 
 /**
+ * Do we have pending UDP RPCs?
+ */
+gboolean
+urpc_pending(void)
+{
+	return 0 != g_hash_table_size(pending);
+}
+
+/**
  * Initialize the UDP RPC layer.
  */
 void
