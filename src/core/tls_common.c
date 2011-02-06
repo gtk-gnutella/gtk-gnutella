@@ -175,7 +175,7 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 	tls_signal_pending(s);
 
 	if ((ssize_t) -1 == ret) {
-		gnutls_transport_set_global_errno(errno);
+		gnutls_transport_set_errno(errno);
 	}
 	tls_transport_debug("tls_push", s->file_desc, size, ret);
 	return ret;
@@ -194,7 +194,7 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	tls_signal_pending(s);
 
 	if ((ssize_t) -1 == ret) {
-		gnutls_transport_set_global_errno(errno);
+		gnutls_transport_set_errno(errno);
 	} else if (0 == ret) {
 		socket_eof(s);
 	}
