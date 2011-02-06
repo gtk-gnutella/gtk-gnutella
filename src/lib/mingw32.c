@@ -113,7 +113,7 @@ RCSID("$Id$")
 
 #undef abort
 
-#define VMM_MINSIZE (1024*1024*100)	/* At least 100 MB */
+#define VMM_MINSIZE (1024*1024*100)	/* At least 100 MiB */
 
 #define WS2_LIBRARY "ws2_32.dll"
 static HINSTANCE libws2_32;
