@@ -566,35 +566,43 @@ crash_invoke_inspector(int signo, const char *cwd)
 			print_str(vars->dumps_core ? "enabled" : "disabled");
 			print_str("\n");					/* 5 */
 			if (NULL != vars->cwd) {
-				print_str("X-Working-Directory: ");		/* 9 */
-				print_str(vars->cwd);					/* 10 */
-				print_str("\n");						/* 11 */
+				print_str("X-Working-Directory: ");		/* 6 */
+				print_str(vars->cwd);					/* 7 */
+				print_str("\n");						/* 8 */
 			}
 			if (NULL != vars->exec_path) {
-				print_str("X-Exec-Path: ");		/* 6 */
-				print_str(vars->exec_path);		/* 7 */
-				print_str("\n");				/* 8 */
+				print_str("X-Exec-Path: ");		/* 9 */
+				print_str(vars->exec_path);		/* 10 */
+				print_str("\n");				/* 11 */
+			}
+			if (NULL != vars->crashdir) {
+				print_str("X-Crash-Directory: ");	/* 12 */
+				print_str(vars->crashdir);			/* 13 */
+				print_str("\n");					/* 14 */
 			}
 			flush_str(STDOUT_FILENO);
 			rewind_str(0);
+			print_str("X-Crash-File: ");		/* 0 */
+			print_str(filename);				/* 1 */
+			print_str("\n");					/* 2 */
 			if (vars->failure != NULL) {
 				const assertion_data *failure = vars->failure;
 				if (failure->expr != NULL) {
-					print_str("X-Assertion-At: ");		/* 0 */
+					print_str("X-Assertion-At: ");		/* 3 */
 				} else {
-					print_str("X-Reached-Code-At: ");	/* 0 */
+					print_str("X-Reached-Code-At: ");	/* 3 */
 				}
-				print_str(failure->file);				/* 1 */
-				print_str(":");							/* 2 */
+				print_str(failure->file);				/* 4 */
+				print_str(":");							/* 5 */
 				print_str(print_number(lbuf, sizeof lbuf, failure->line));
-				print_str("\n");						/* 4 */
+				print_str("\n");						/* 6 */
 				if (failure->expr != NULL) {
-					print_str("X-Assertion-Expr: ");	/* 5 */
-					print_str(failure->expr);			/* 6 */
-					print_str("\n");					/* 7 */
+					print_str("X-Assertion-Expr: ");	/* 7 */
+					print_str(failure->expr);			/* 8 */
+					print_str("\n");					/* 9 */
 				}
 			}
-			print_str("\n");					/* 8 -- End of Header */
+			print_str("\n");					/* 10 -- End of Header */
 			flush_str(STDOUT_FILENO);
 
 			if (-1 == setsid())
