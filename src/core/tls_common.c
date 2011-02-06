@@ -172,17 +172,19 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 {
 	struct gnutella_socket *s = ptr;
 	ssize_t ret;
+	int saved_errno;
 
 	socket_check(s);
 	g_assert(is_valid_fd(s->file_desc));
 
 	ret = s_write(s->file_desc, buf, size);
+	saved_errno = errno;
 	tls_signal_pending(s);
-
 	if ((ssize_t) -1 == ret) {
 		tls_set_errno(s, errno);
 	}
 	tls_transport_debug("tls_push", s->file_desc, size, ret);
+	errno = saved_errno;
 	return ret;
 }
 
@@ -191,19 +193,21 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 {
 	struct gnutella_socket *s = ptr;
 	ssize_t ret;
+	int saved_errno;
 
 	socket_check(s);
 	g_assert(is_valid_fd(s->file_desc));
 
 	ret = s_read(s->file_desc, buf, size);
+	saved_errno = errno;
 	tls_signal_pending(s);
-
 	if ((ssize_t) -1 == ret) {
 		tls_set_errno(s, errno);
 	} else if (0 == ret) {
 		socket_eof(s);
 	}
 	tls_transport_debug("tls_pull", s->file_desc, size, ret);
+	errno = saved_errno;
 	return ret;
 }
 
