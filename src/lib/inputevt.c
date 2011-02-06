@@ -775,6 +775,7 @@ relay_list_remove(struct poll_ctx *ctx, unsigned id)
 	if (NULL == rl->sl) {
 		g_assert(0 == rl->readers && 0 == rl->writers);
 		inputevt_poll_idx_free(ctx, &rl->poll_idx);
+		hash_list_remove(ctx->readable, int_to_pointer(relay->fd));
 		g_hash_table_remove(ctx->ht, int_to_pointer(relay->fd));
 		wfree(rl, sizeof *rl);
 	}
@@ -1026,8 +1027,6 @@ inputevt_remove(unsigned id)
 		g_assert(rl->writers > 0);
 		--rl->writers;
 	}
-
-	hash_list_remove(ctx->readable, int_to_pointer(fd));
 
 	cur = (rl->readers ? INPUT_EVENT_R : 0) |
 		(rl->writers ? INPUT_EVENT_W : 0);
