@@ -222,7 +222,7 @@ socket_evt_fd(struct gnutella_socket *s)
 	socket_check(s);
 	switch (s->direction) {
 	case SOCK_CONN_LISTENING:
-		g_assert(s->file_desc != INVALID_SOCKET);
+		g_assert(is_valid_fd(s->file_desc));
 		fd = s->file_desc;
 		break;
 
@@ -233,7 +233,7 @@ socket_evt_fd(struct gnutella_socket *s)
 		fd = s->wio.fd(&s->wio);
 		break;
 	}
-	g_assert(fd != INVALID_SOCKET);
+	g_assert(is_valid_fd(fd));
 
 	return fd;
 }
@@ -1375,7 +1375,7 @@ socket_free(struct gnutella_socket *s)
 	}
 
 	if (socket_with_tls(s)) {
-		if (s->file_desc != INVALID_SOCKET && socket_uses_tls(s)) {
+		if (is_valid_fd(s->file_desc) && socket_uses_tls(s)) {
 			if (SOCK_CONN_INCOMING != s->direction) {
 				tls_cache_insert(s->addr, s->port);
 			}
@@ -1384,7 +1384,7 @@ socket_free(struct gnutella_socket *s)
 		tls_free(s);
 	}
 
-	if (s->file_desc != INVALID_SOCKET) {
+	if (is_valid_fd(s->file_desc)) {
 		socket_cork(s, FALSE);
 		socket_tx_shutdown(s);
 		if (compat_socket_close(s->file_desc)) {
@@ -2587,7 +2587,7 @@ static void
 socket_set_accept_filters(struct gnutella_socket *s)
 {
 	socket_check(s);
-	g_assert(s->file_desc != INVALID_SOCKET);
+	g_assert(is_valid_fd(s->file_desc));
 
 	if (GNET_PROPERTY(tcp_defer_accept_timeout) <= 0)
 		return;
@@ -2636,7 +2636,7 @@ socket_set_fastack(struct gnutella_socket *s)
 	static const int on = 1;
 
 	socket_check(s);
-	g_return_if_fail(s->file_desc != INVALID_SOCKET);
+	g_return_if_fail(is_valid_fd(s->file_desc));
 
 	if (!(SOCK_F_TCP & s->flags))
 		return;
@@ -2659,7 +2659,7 @@ void
 socket_set_quickack(struct gnutella_socket *s, int on)
 {
 	socket_check(s);
-	g_return_if_fail(s->file_desc != INVALID_SOCKET);
+	g_return_if_fail(is_valid_fd(s->file_desc));
 
 	if (!(SOCK_F_TCP & s->flags))
 		return;
@@ -3003,7 +3003,7 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 	) {
 		s->net = host_addr_net(addr);
 
-		if (INVALID_SOCKET != s->file_desc) {
+		if (is_valid_fd(s->file_desc)) {
 			s_close(s->file_desc);
 			s->file_desc = INVALID_SOCKET;
 		}
@@ -3116,7 +3116,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 	protocol = (SOCK_DGRAM == type) ? IPPROTO_UDP : IPPROTO_TCP;
 	fd = socket(family, type, protocol);
 
-	if (fd == INVALID_SOCKET) {
+	if (!is_valid_fd(fd)) {
 		socket_failed = TRUE;
 		saved_errno = errno;
 	} else {
@@ -3150,18 +3150,18 @@ socket_create_and_bind(const host_addr_t bind_addr,
 	}
 
 #if defined(HAS_SOCKER_GET)
-	if (fd < 0 && (EACCES == saved_errno || EPERM == saved_errno)) {
+	if (!is_valid_fd(fd) && (EACCES == saved_errno || EPERM == saved_errno)) {
 		char addr_str[128];
 
 		host_addr_to_string_buf(bind_addr, addr_str, sizeof addr_str);
 		fd = socker_get(family, type, 0, addr_str, port);
-		if (fd < 0) {
+		if (!is_valid_fd(fd)) {
 			g_warning("socker_get() failed (%s)", g_strerror(errno));
 		}
 	}
 #endif /* HAS_SOCKER_GET */
 
-	if (fd == INVALID_SOCKET) {
+	if (!is_valid_fd(fd)) {
 		const char *type_str = SOCK_DGRAM == type ? "datagram" : "stream";
 		const char *net_str = net_type_to_string(host_addr_net(bind_addr));
 
@@ -3682,7 +3682,7 @@ void
 socket_tx_shutdown(struct gnutella_socket *s)
 {
 	socket_check(s);
-	g_assert(s->file_desc != INVALID_SOCKET);
+	g_assert(is_valid_fd(s->file_desc));
 
 	if (s->flags & SOCK_F_SHUTDOWN)
 		return;
