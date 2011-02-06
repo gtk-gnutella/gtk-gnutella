@@ -284,7 +284,7 @@ char *is_strcaseprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
 gboolean is_strsuffix(const char *str, size_t len, const char *suffix);
 size_t html_escape(const char *src, char *dst, size_t dst_size);
 guint32 html_decode_entity(const char *src, const char **endptr);
-
+const char *symbolic_errno(int errnum);
 void normalize_dir_separators(char *);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 
