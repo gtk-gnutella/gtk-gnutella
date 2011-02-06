@@ -537,7 +537,8 @@ host_addr_is_ipv4_mapped(const host_addr_t addr)
 		host_addr_matches(addr, ipv6_ipv4_mapped, 96);
 }
 
-const char *host_addr_to_string(const host_addr_t addr);
+const char *host_addr_to_string(const host_addr_t ha);
+const char *host_addr_to_string2(const host_addr_t ha);
 size_t host_addr_to_string_buf(const host_addr_t addr, char *, size_t);
 gboolean string_to_host_addr(const char *s, const char **endptr,
 	host_addr_t *addr_ptr);

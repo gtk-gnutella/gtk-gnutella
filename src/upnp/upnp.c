@@ -647,13 +647,13 @@ upnp_monitor_natpmp_callback(gboolean ok, natpmp_t *gateway, void *unused_arg)
 			if (GNET_PROPERTY(upnp_debug) > 5) {
 				g_debug("UPNP gateway %s still alive, WAN IP %s",
 					host_addr_to_string(natpmp_gateway_addr(gateway)),
-					host_addr_to_string(wan_ip));
+					host_addr_to_string2(wan_ip));
 			}
 		} else {
 			if (GNET_PROPERTY(upnp_debug)) {
 				g_warning("UPNP gateway %s reports unroutable WAN IP %s",
 					host_addr_to_string(natpmp_gateway_addr(gateway)),
-					host_addr_to_string(wan_ip));
+					host_addr_to_string2(wan_ip));
 			}
 			goto rediscover;
 		}

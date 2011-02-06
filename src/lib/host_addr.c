@@ -468,6 +468,20 @@ host_addr_to_string(const host_addr_t ha)
 }
 
 /**
+ * Same as host_addr_to_string(), but in another static buffer.
+ */
+const char *
+host_addr_to_string2(const host_addr_t ha)
+{
+	static char buf[HOST_ADDR_BUFLEN];
+	size_t n;
+
+	n = host_addr_to_string_buf(ha, buf, sizeof buf);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+/**
  * Prints the host address ``ha'' followed by ``port'' to ``dst''. The string
  * written to ``dst'' is always NUL-terminated unless ``size'' is zero. If
  * ``size'' is too small, the string will be truncated.
