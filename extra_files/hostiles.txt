@@ -1821,3 +1821,8 @@
 
 # Suspect (Hosting Central from Dino Solutions, Inc.)
 208.93.7.0/24
+
+# whentoaskforhelp dot com; gtk-gnutella on port 1707
+# emits fake results for illegal files from fake gtk-gnutella peers
+#66.249.5.139
+

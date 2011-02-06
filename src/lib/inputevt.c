@@ -855,10 +855,10 @@ inputevt_timer(struct poll_ctx *ctx)
 				unsigned id;
 
 				id = GPOINTER_TO_UINT(sl->data);
-				sl = g_slist_next(sl);
-
 				g_assert(id > 0);
 				g_assert(id < ctx->num_ev);
+
+				sl = g_slist_next(sl);
 
 				relay = ctx->relay[id];
 				g_assert(relay);
@@ -1197,15 +1197,20 @@ inputevt_add_source(inputevt_relay_t *relay)
 void
 inputevt_set_readable(int fd)
 {
-	struct poll_ctx *ctx;
+	struct poll_ctx *ctx = get_global_poll_ctx();
+	void *key = int_to_pointer(fd);
 
-	if (inputevt_debug > 3)
+	if (inputevt_debug > 3) {
 		g_debug("%s: fd=%d", G_STRFUNC, fd);
-
+	}
 	g_assert(is_valid_fd(fd));
-	ctx = get_global_poll_ctx();
-	if (!hash_list_contains(ctx->readable, int_to_pointer(fd))) 
-		hash_list_append(ctx->readable, int_to_pointer(fd));
+
+	if (
+		gm_hash_table_contains(ctx->ht, key) &&
+		!hash_list_contains(ctx->readable, key)
+	) {
+		hash_list_append(ctx->readable, key);
+	}
 }
 
 static int
