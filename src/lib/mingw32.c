@@ -189,10 +189,32 @@ mingw_fd_is_opened(int fd)
 }
 
 /**
- * Remap Windows-specific errors into POSIX ones.
+ * Get last Winsock operation error code, remapping Winsocks-specific
+ * errors into POSIX ones, which upper level code expects.
  */
 static int
-mingw_win2errno(int error)
+mingw_wsa_last_error(void)
+{
+	int error = WSAGetLastError();
+
+	switch (error) {
+	case WSAEWOULDBLOCK:
+		return EAGAIN;
+	case WSAEINTR:
+		return EINTR;
+	default:
+		return error;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
+ * Remap Windows-specific errors into POSIX ones, also clearing the POSIX
+ * range so that strerror() works.
+ */
+static int
+mingw_win2posix(int error)
 {
 	static GHashTable *warned;
 
@@ -205,6 +227,9 @@ mingw_win2errno(int error)
 	 * _wmkdir() instead of mkdir(), so that regular errno procesing
 	 * can occur in the code.
 	 *
+	 * MinGW also defines POSIX error codes up to 42, but they are
+	 * conflicting with Windows error ones, so these must also be remapped.
+	 *
 	 * FIXME: Many errors are missing, only the first ones are handled.
 	 * A warning will be emitted when we hit an un-remapped error, but this
 	 * is going to be a painful iterative convergence.
@@ -212,6 +237,7 @@ mingw_win2errno(int error)
 
 	switch (error) {
 	case ERROR_ALREADY_EXISTS:
+	case ERROR_FILE_EXISTS:
 		return EEXIST;
 	case ERROR_INVALID_FUNCTION:
 		return ENOSYS;
@@ -239,6 +265,50 @@ mingw_win2errno(int error)
 		return ENFILE;
 	case ERROR_WRITE_PROTECT:
 		return EPERM;
+	case ERROR_NOT_SUPPORTED:
+		return ENOSYS;
+	case ERROR_DISK_FULL:
+		return ENOSPC;
+	case ERROR_BROKEN_PIPE:
+		return EPIPE;
+	/* The following remapped because their number is in the POSIX range */
+	case ERROR_ARENA_TRASHED:
+		return EFAULT;
+	case ERROR_INVALID_BLOCK:
+		return EIO;
+	case ERROR_BAD_ENVIRONMENT:
+		return EFAULT;
+	case ERROR_BAD_FORMAT:
+		return EINVAL;
+	case ERROR_INVALID_DATA:
+		return EIO;
+	case ERROR_CURRENT_DIRECTORY:
+		return ENOFILE;
+	case ERROR_BAD_UNIT:
+		return ENODEV;
+	case ERROR_NOT_READY:
+	case ERROR_BAD_COMMAND:
+	case ERROR_CRC:
+	case ERROR_BAD_LENGTH:
+	case ERROR_SEEK:
+	case ERROR_NOT_DOS_DISK:
+	case ERROR_SECTOR_NOT_FOUND:
+		return EIO;
+	case ERROR_OUT_OF_PAPER:
+		return ENOSPC;
+	case ERROR_WRITE_FAULT:
+	case ERROR_READ_FAULT:
+		return EFAULT;
+	case ERROR_GEN_FAILURE:
+	case ERROR_SHARING_VIOLATION:
+	case ERROR_LOCK_VIOLATION:
+	case ERROR_WRONG_DISK:
+	case ERROR_SHARING_BUFFER_EXCEEDED:
+		return EIO;
+	case ERROR_HANDLE_EOF:
+		return 0;			/* EOF must be treated as a read of 0 bytes */
+	case ERROR_HANDLE_DISK_FULL:
+		return ENOSPC;
 	default:
 		if (!gm_hash_table_contains(warned, int_to_pointer(error))) {
 			g_warning("Windows error code %d (%s) not remapped to a POSIX one",
@@ -248,6 +318,17 @@ mingw_win2errno(int error)
 	}
 
 	return error;
+}
+
+/**
+ * Get last Windows error, remapping Windows-specific errors into POSIX ones
+ * and clearing the POSIX range so that strerror() works.
+ */
+static int
+mingw_last_error(void)
+{
+	int error = GetLastError();
+	return mingw_win2posix(error);
 }
 
 static signal_handler_t mingw_sighandler[SIGNAL_COUNT];
@@ -356,12 +437,12 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 
 			if (arg->l_type == F_WRLCK) {
 				if (!LockFile(file, start_low, start_high, len_low, len_high))
-					errno = GetLastError();
+					errno = mingw_last_error();
 				else
 					res = 0;
 			} else if (arg->l_type == F_UNLCK) {
 				if (!UnlockFile(file, start_low, start_high, len_low, len_high))
-					errno = GetLastError();
+					errno = mingw_last_error();
 				else
 					res = 0;
 			}
@@ -434,7 +515,7 @@ mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 	}
 	res = WSAPoll(fds, nfds, timeout);
 	if (SOCKET_ERROR == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -465,7 +546,7 @@ mingw_getphysmemsize(void)
 	memStatus.dwLength = sizeof memStatus;
 
 	if (!GlobalMemoryStatusEx(&memStatus)) {
-		errno = GetLastError();
+		errno = mingw_last_error();
 		return -1;
 	}
 	return memStatus.ullTotalPhys;
@@ -487,9 +568,8 @@ mingw_mkdir(const char *pathname, mode_t mode)
 
 	pncs = pncs_convert(pathname);
 	res = _wmkdir(pncs.utf16);
-	if (-1 == res) {
-		errno = mingw_win2errno(GetLastError());
-	}
+	if (-1 == res)
+		errno = mingw_last_error();
 
 	pncs_release(&pncs);
 	return res;
@@ -504,7 +584,7 @@ mingw_access(const char *pathname, int mode)
 	pncs = pncs_convert(pathname);
 	res = _waccess(pncs.utf16, mode);
 	if (-1 == res)
-		errno = mingw_win2errno(GetLastError());
+		errno = mingw_last_error();
 
 	pncs_release(&pncs);
 	return res;
@@ -519,7 +599,7 @@ mingw_chdir(const char *pathname)
 	pncs = pncs_convert(pathname);
 	res = _wchdir(pncs.utf16);
 	if (-1 == res)
-		errno = mingw_win2errno(GetLastError());
+		errno = mingw_last_error();
 
 	pncs_release(&pncs);
 	return res;
@@ -534,7 +614,7 @@ mingw_remove(const char *pathname)
 	pncs = pncs_convert(pathname);
 	res = _wremove(pncs.utf16);
 	if (-1 == res)
-		errno = mingw_win2errno(GetLastError());
+		errno = mingw_last_error();
 
 	pncs_release(&pncs);
 	return res;
@@ -556,7 +636,7 @@ mingw_stat(const char *pathname, filestat_t *buf)
 	pncs = pncs_convert(pathname);
 	res = _wstati64(pncs.utf16, buf);
 	if (-1 == res)
-		errno = mingw_win2errno(GetLastError());
+		errno = mingw_last_error();
 
 	pncs_release(&pncs);
 	return res;
@@ -569,7 +649,7 @@ mingw_fstat(int fd, filestat_t *buf)
    
 	res = _fstati64(fd, buf);
 	if (-1 == res)
-		errno = GetLastError();
+		errno = mingw_last_error();
 
 	return res;
 }
@@ -583,7 +663,7 @@ mingw_unlink(const char *pathname)
 	pncs = pncs_convert(pathname);
 	res = _wunlink(pncs.utf16);
 	if (-1 == res)
-		errno = mingw_win2errno(GetLastError());
+		errno = mingw_last_error();
 
 	pncs_release(&pncs);
 	return res;
@@ -603,7 +683,7 @@ mingw_dup2(int oldfd, int newfd)
 	} else {
 		res = dup2(oldfd, newfd);
 		if (-1 == res)
-			errno = GetLastError();
+			errno = mingw_last_error();
 		else
 			res = newfd;	/* Windows's dup2() returns 0 on success */
 	}
@@ -629,7 +709,7 @@ mingw_open(const char *pathname, int flags, ...)
 	pncs = pncs_convert(pathname);
 	res = _wopen(pncs.utf16, flags, mode);
 	if (-1 == res)
-		errno = mingw_win2errno(GetLastError());
+		errno = mingw_last_error();
 
 	pncs_release(&pncs);
 	return res;
@@ -644,7 +724,7 @@ mingw_opendir(const char *pathname)
 	pncs = pncs_convert(pathname);
 	res = _wopendir(pncs.utf16);
 	if (NULL == res)
-		errno = mingw_win2errno(GetLastError());
+		errno = mingw_last_error();
 
 	pncs_release(&pncs);
 	return res;
@@ -657,7 +737,7 @@ mingw_readdir(void *dir)
 
 	res = _wreaddir(dir);
 	if (NULL == res) {
-		errno = mingw_win2errno(GetLastError());
+		errno = mingw_last_error();
 		return NULL;
 	}
 	return res;
@@ -668,7 +748,7 @@ mingw_closedir(void *dir)
 {
 	int res = _wclosedir(dir);
 	if (-1 == res)
-		errno = mingw_win2errno(GetLastError());
+		errno = mingw_last_error();
 	return 0;
 }
 
@@ -696,7 +776,7 @@ mingw_lseek(int fd, fileoffset_t offset, int whence)
 {
 	fileoffset_t res = _lseeki64(fd, offset, whence);
 	if ((fileoffset_t) -1 == res)
-		errno = GetLastError();
+		errno = mingw_last_error();
 	return res;
 }
 
@@ -709,7 +789,7 @@ mingw_read(int fd, void *buf, size_t count)
 	g_assert(-1 == res || (res >= 0 && UNSIGNED(res) <= count));
 	
 	if (-1 == res)
-		errno = GetLastError();
+		errno = mingw_last_error();
 	return res;
 }
 
@@ -747,7 +827,7 @@ mingw_write(int fd, const void *buf, size_t count)
 {
 	ssize_t res = write(fd, buf, MIN(count, UINT_MAX));
 	if (-1 == res)
-		errno = GetLastError();
+		errno = mingw_last_error();
 	return res;
 }
 
@@ -796,7 +876,7 @@ mingw_truncate(const char *pathname, fileoffset_t len)
 		return -1;
 	}
 	if (!SetEndOfFile((HANDLE) _get_osfhandle(fd))) {
-		int saved_errno = mingw_win2errno(GetLastError());
+		int saved_errno = mingw_last_error();
 		fd_close(&fd);
 		errno = saved_errno;
 		return -1;
@@ -816,7 +896,7 @@ mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 	int res = select(nfds, readfds, writefds, exceptfds, timeout);
 	
 	if (res < 0)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 		
 	return res;
 }
@@ -827,7 +907,7 @@ mingw_getaddrinfo(const char *node, const char *service,
 {
 	int result = getaddrinfo(node, service, hints, res);
 	if (result != 0)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return result;
 }
 
@@ -855,7 +935,7 @@ mingw_socket(int domain, int type, int protocol)
 
 	res = WSASocket(domain, type, protocol, NULL, 0, 0);
 	if (INVALID_SOCKET == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -864,7 +944,7 @@ mingw_bind(socket_fd_t sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {
 	int res = bind(sockfd, addr, addrlen);
 	if (-1 == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -874,7 +954,7 @@ mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 {
 	socket_fd_t res = connect(sockfd, addr, addrlen);
 	if (INVALID_SOCKET == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -883,7 +963,7 @@ mingw_listen(socket_fd_t sockfd, int backlog)
 {
 	int res = listen(sockfd, backlog);
 	if (-1 == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -892,7 +972,7 @@ mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	socket_fd_t res = accept(sockfd, addr, addrlen);
 	if (INVALID_SOCKET == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -902,7 +982,7 @@ mingw_shutdown(socket_fd_t sockfd, int how)
 
 	int res = shutdown(sockfd, how);
 	if (-1 == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -912,7 +992,7 @@ mingw_getsockopt(socket_fd_t sockfd, int level, int optname,
 {
 	int res = getsockopt(sockfd, level, optname, optval, optlen);
 	if (-1 == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -922,7 +1002,7 @@ mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 {
 	int res = setsockopt(sockfd, level, optname, optval, optlen);
 	if (-1 == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -935,7 +1015,7 @@ s_write(socket_fd_t fd, const void *buf, size_t count)
  	count = MIN(count, UNSIGNED(INT_MAX));	
 	res = send(fd, buf, count, 0);
 	if (-1 == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -947,7 +1027,7 @@ s_read(socket_fd_t fd, void *buf, size_t count)
  	count = MIN(count, UNSIGNED(INT_MAX));	
 	res = recv(fd, buf, count, 0);
 	if (-1 == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -956,7 +1036,7 @@ s_close(socket_fd_t fd)
 {
 	int res = closesocket(fd);
 	if (-1 == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -967,7 +1047,7 @@ mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 	int res = WSARecv(fd, (LPWSABUF) iov, iovcnt, &r, &flags, NULL, NULL);
 
 	if (res != 0) {
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 		return (ssize_t) -1;
 	}
 	return (ssize_t) r;
@@ -980,7 +1060,7 @@ mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 	int res = WSASend(fd, (LPWSABUF) iov, iovcnt, &w, 0, NULL, NULL);
 
 	if (res != 0) {
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 		return (ssize_t) -1;
 	}
 	return (ssize_t) w;
@@ -1005,7 +1085,7 @@ mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
 
 	res = WSARecvMsg(s, &msg, &received, NULL, NULL);
 	if (res != 0) {
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 		return -1;
 	}
 	return received;
@@ -1027,7 +1107,7 @@ mingw_recvfrom(socket_fd_t s, void *data, size_t len, int flags,
 	res = WSARecvFrom(s, &buf, 1, &received, &dflags,
 			src_addr, &ifromLen, NULL, NULL);
 	if (0 != res) {
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 		return -1;
 	}
 	*addrlen = ifromLen;
@@ -1045,7 +1125,7 @@ mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
  	len = MIN(len, UNSIGNED(INT_MAX));	
 	res = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
 	if (-1 == res)
-		errno = WSAGetLastError();
+		errno = mingw_wsa_last_error();
 	return res;
 }
 
@@ -1119,7 +1199,7 @@ mingw_valloc(void *hint, size_t size)
 			p = ptr_add_offset(mingw_vmm_res_mem, n);
 		}
 		if (NULL == p) {
-			errno = GetLastError();
+			errno = mingw_last_error();
 			if (vmm_is_debugging(0))
 				g_debug("could not allocate %s of memory: %s",
 					compact_size(size, FALSE), g_strerror(errno));
@@ -1133,7 +1213,7 @@ mingw_valloc(void *hint, size_t size)
 		p = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
 		if (p == NULL) {
-			errno = GetLastError();
+			errno = mingw_last_error();
 			p = MAP_FAILED;
 		}
 		return p;
@@ -1147,7 +1227,7 @@ mingw_valloc(void *hint, size_t size)
 
 	if (p == NULL) {
 		p = MAP_FAILED;
-		errno = GetLastError();
+		errno = mingw_last_error();
 	}
 
 	return p;
@@ -1175,12 +1255,12 @@ mingw_vfree_fragment(void *addr, size_t size)
 	{
 		/* Allocated in reserved space */
 		if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
-			errno = GetLastError();
+			errno = mingw_last_error();
 			return -1;
 		}
 	} else if (!VirtualFree(addr, 0, MEM_RELEASE)) {
 		/* Allocated in non-reserved space */
-		errno = GetLastError();
+		errno = mingw_last_error();
 		return -1;
 	}
 
@@ -1210,7 +1290,7 @@ mingw_mprotect(void *addr, size_t len, int prot)
 
 	res = VirtualProtect((LPVOID) addr, len, newProtect, &oldProtect);
 	if (!res) {
-		errno = GetLastError();
+		errno = mingw_last_error();
 		if (vmm_is_debugging(0)) {
 			g_debug("VMM mprotect(0x%lx, %lu) failed: errno=%d",
 				(unsigned long) addr, (unsigned long) len, errno);
@@ -1240,13 +1320,13 @@ mingw_random_bytes(void *buf, size_t len)
 		!CryptAcquireContext(&crypth, NULL, NULL, PROV_RSA_FULL,
 			CRYPT_VERIFYCONTEXT | CRYPT_SILENT)
 	) {
-		errno = GetLastError();
+		errno = mingw_last_error();
 		return 0;
 	}
 
 	memset(buf, 0, len);
 	if (!CryptGenRandom(crypth, len, buf)) {
-		errno = GetLastError();
+		errno = mingw_last_error();
 		len = 0;
 	}
 	CryptReleaseContext(crypth, 0);
@@ -1258,11 +1338,75 @@ mingw_random_bytes(void *buf, size_t len)
  *** Miscellaneous.
  ***/
 
-static char strerrbuf[1024];
+static const char *
+mingw_posix_strerror(int errnum)
+{
+	switch (errnum) {
+	case EPERM:		return "Operation not permitted";
+	case ENOFILE:	return "No such file or directory";
+	/* ENOENT is a duplicate for ENOFILE */
+	case ESRCH:		return "No such process";
+	case EINTR:		return "Interrupted function call";
+	case EIO:		return "Input/output error";
+	case ENXIO:		return "No such device or address";
+	case E2BIG:		return "Arg list too long";
+	case ENOEXEC:	return "Exec format error";
+	case EBADF:		return "Bad file descriptor";
+	case ECHILD:	return "No child process";
+	case EAGAIN:	return "Resource temporarily unavailable";
+	case ENOMEM:	return "Not enough memory space";
+	case EACCES:	return "Permission denied";
+	case EFAULT:	return "Bad address";
+	case EBUSY:		return "Device busy";
+	case EEXIST:	return "File already exists";
+	case EXDEV:		return "Improper link";
+	case ENODEV:	return "No such device";
+	case ENOTDIR:	return "Not a directory";
+	case EISDIR:	return "Is a directory";
+	case EINVAL:	return "Invalid argument";
+	case ENFILE:	return "Too many open files in system";
+	case EMFILE:	return "Too many open files in the process";
+	case ENOTTY:	return "Not a tty";
+	case EFBIG:		return "File too large";
+	case ENOSPC:	return "No space left on device";
+	case ESPIPE:	return "Invalid seek on pipe";
+	case EROFS:		return "Read-only file system";
+	case EMLINK:	return "Too many links";
+	case EPIPE:		return "Broken pipe";
+	case EDOM:		return "Domain error";		/* Math */
+	case ERANGE:	return "Result out of range";
+	case EDEADLK:	return "Resource deadlock avoided";
+	case ENAMETOOLONG:	return "Filename too long";
+	case ENOLCK:	return "No locks available";
+	case ENOSYS:	return "Function not implemented";
+	case ENOTEMPTY:	return "Directory not empty";
+	case EILSEQ:	return "Illegal byte sequence";
+	default:		return NULL;
+	}
+
+	g_assert_not_reached();
+}
 
 const char *
 mingw_strerror(int errnum)
 {
+	const char *msg;
+	static char strerrbuf[1024];
+
+	/*
+	 * We have one global "errno" but conflicting ranges for errors: the
+	 * POSIX ones defined in MinGW overlap with some of the Windows error
+	 * codes.
+	 *
+	 * Because our code is POSIX, we strive to remap these conflicting codes
+	 * to POSIX values and naturally provide our own strerror() for the
+	 * POSIX errors.
+	 */
+
+	msg = mingw_posix_strerror(errnum);
+	if (msg != NULL)
+		return msg;
+
 	FormatMessage(
         FORMAT_MESSAGE_FROM_SYSTEM,
         NULL, errnum,
@@ -1291,7 +1435,7 @@ mingw_rename(const char *oldpathname, const char *newpathname)
 	if (MoveFileExW(old.utf16, new.utf16, MOVEFILE_REPLACE_EXISTING)) {
 		res = 0;
 	} else {
-		errno = GetLastError();
+		errno = mingw_last_error();
 		res = -1;
 	}
 
@@ -1310,9 +1454,9 @@ mingw_fopen(const char *pathname, const char *mode)
 	wmode = pncs_convert(mode);
 
 	res = _wfopen(wpathname.utf16, wmode.utf16);
-	if (NULL == res) {
-		errno = GetLastError();
-	}
+	if (NULL == res)
+		errno = mingw_last_error();
+
 	pncs_release(&wpathname);
 	pncs_release(&wmode);
 	return res;
@@ -1328,9 +1472,8 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 	wmode = pncs_convert(mode);
 
 	res = _wfreopen(wpathname.utf16, wmode.utf16, file);
-	if (NULL == res) {
-		errno = GetLastError();
-	}
+	if (NULL == res)
+		errno = mingw_last_error();
 	pncs_release(&wpathname);
 	pncs_release(&wmode);
 	return res;
@@ -1353,7 +1496,7 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 		&TotalNumberOfClusters);
 
 	if (!ret) {
-		errno = GetLastError();
+		errno = mingw_last_error();
 		return -1;
 	}
 
@@ -1419,7 +1562,7 @@ mingw_getrusage(int who, struct rusage *usage)
 		0 == GetProcessTimes(GetCurrentProcess(),
 			&creation_time, &exit_time, &kernel_time, &user_time)
 	) {
-		errno = GetLastError();
+		errno = mingw_last_error();
 		return -1;
 	}
 
@@ -1561,7 +1704,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 	dueTime.QuadPart = -MIN(value, MAX_INT_VAL(gint64));
 
 	if (0 == SetWaitableTimer(t, &dueTime, 0, NULL, NULL, FALSE)) {
-		errno = GetLastError();
+		errno = mingw_last_error();
 		g_warning("could not set timer, unable to nanosleep(): %s",
 			g_strerror(errno));
 		return -1;
@@ -1821,7 +1964,7 @@ mingw_filename_nearby(const char *filename)
 			static gboolean done;
 			if (!done) {
 				done = TRUE;
-				errno = GetLastError();
+				errno = mingw_last_error();
 				g_warning("cannot locate my executable: %s", g_strerror(errno));
 			}
 		}
@@ -1845,8 +1988,8 @@ mingw_fifo_pending(int fd)
 		return FALSE;
 
 	if (0 == PeekNamedPipe(h, NULL, 0, NULL, &pending, NULL)) {
-		errno = GetLastError();
-		if (ERROR_BROKEN_PIPE == errno)
+		errno = mingw_last_error();
+		if (EPIPE == errno)
 			return TRUE;		/* Let them read EOF */
 		g_warning("peek failed for fd #%d: %s", fd, g_strerror(errno));
 		return FALSE;
@@ -1928,7 +2071,7 @@ mingw_getgateway(guint32 *ip)
 
 	memset(&ipf, 0, sizeof ipf);
 	if (GetBestRoute(0, 0, &ipf) != NO_ERROR) {
-		errno = GetLastError();
+		errno = mingw_last_error();
 		return -1;
 	}
 
