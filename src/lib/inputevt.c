@@ -121,6 +121,19 @@ typedef struct {
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
+static unsigned inputevt_debug;
+
+/**
+ * Set debugging level.
+ */
+void 
+inputevt_set_debug(unsigned level)
+{
+	g_debug("INPUTEVT debug level = %u", level);
+
+	inputevt_debug = level;
+}
+
 /*
  * The following defines map the GDK-compatible input condition flags
  * to those used by GLIB.
@@ -742,8 +755,7 @@ poll_func(GPollFD *gfds, unsigned n, int timeout_ms)
 void
 inputevt_poll_idx_compact(struct poll_ctx *ctx)
 {
-#ifdef INPUTEVT_DEBUGGING
-	{
+	if (inputevt_debug > 9) {
 		str_t *str = str_new_from("pollfd[] = {");
 		unsigned num_unused = 0;
 		unsigned i;
@@ -775,10 +787,6 @@ inputevt_poll_idx_compact(struct poll_ctx *ctx)
 			g_assert(!bit_array_get(ctx->used_poll_idx, i));
 		}
 	}
-
-#else
-	(void) ctx;
-#endif /* INPUTEVT_DEBUGGING */
 }
 
 static void
@@ -907,8 +915,12 @@ inputevt_timer(struct poll_ctx *ctx)
 		GList *iter, *list = hash_list_list(ctx->readable);
 
 		hash_list_clear(ctx->readable);
-		g_debug("%s: %lu fake events", G_STRFUNC,
-			(unsigned long) g_list_length(list));
+
+		if (inputevt_debug > 2) {
+			unsigned long count = g_list_length(list);
+			g_debug("%s: %lu fake event%s", G_STRFUNC,
+				count, 1 == count ? "" : "s");
+		}
 
 		for (iter = list; NULL != iter; iter = g_list_next(iter)) {
 			int fd = GPOINTER_TO_INT(iter->data);
@@ -1193,7 +1205,9 @@ inputevt_set_readable(int fd)
 {
 	struct poll_ctx *ctx;
 
-	g_debug("%s: fd=%d", G_STRFUNC, fd);
+	if (inputevt_debug > 3)
+		g_debug("%s: fd=%d", G_STRFUNC, fd);
+
 	g_assert(is_valid_fd(fd));
 	ctx = get_global_poll_ctx();
 	if (!hash_list_contains(ctx->readable, GINT_TO_POINTER(fd))) 

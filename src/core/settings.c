@@ -2033,6 +2033,17 @@ zalloc_debug_changed(property_t prop)
 }
 
 static gboolean
+inputevt_debug_changed(property_t prop)
+{
+	guint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	inputevt_set_debug(val);
+
+    return FALSE;
+}
+
+static gboolean
 omalloc_debug_changed(property_t prop)
 {
 	guint32 val;
@@ -2534,6 +2545,11 @@ static prop_map_t property_map[] = {
     {
         PROP_ZALLOC_DEBUG,
         zalloc_debug_changed,
+        TRUE
+    },
+    {
+        PROP_INPUTEVT_DEBUG,
+        inputevt_debug_changed,
         TRUE
     },
     {

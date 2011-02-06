@@ -444,6 +444,7 @@ extern const gboolean gnet_property_variable_enable_natpmp;
 extern const gboolean gnet_property_variable_natpmp_possible;
 extern const guint32  gnet_property_variable_tx_debug;
 extern const guint32  gnet_property_variable_rx_debug;
+extern const guint32  gnet_property_variable_inputevt_debug;
 
 
 prop_set_t *gnet_prop_init(void);

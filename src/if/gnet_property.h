@@ -431,6 +431,7 @@ typedef enum {
     PROP_NATPMP_POSSIBLE,
     PROP_TX_DEBUG,
     PROP_RX_DEBUG,
+    PROP_INPUTEVT_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

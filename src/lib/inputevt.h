@@ -73,6 +73,8 @@ void inputevt_init(int use_poll);
 void inputevt_close(void);
 void inputevt_dispatch(void);
 
+void inputevt_set_debug(unsigned level);
+
 /**
  * This emulates the GDK input interface.
  */
