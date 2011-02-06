@@ -161,6 +161,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 
 	case EPIPE:
 	case ECONNRESET:
+	case ECONNABORTED:
 		tx->flags |= TX_ERROR;
 		attr->cb->eof_remove(tx->owner,
 			_("Write failed: %s"), g_strerror(errno));
