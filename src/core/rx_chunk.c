@@ -283,8 +283,8 @@ parse_chunk(rxdrv_t *rx, const char *src, size_t size,
 		 */
 
 		if (CHUNK_STATE_DATA == attr->state) {
-			if (GNET_PROPERTY(dbg) > 9)
-				printf("parse_chunk: chunk size %lu bytes\n",
+			if (GNET_PROPERTY(rx_debug) > 9)
+				g_debug("parse_chunk: chunk size %lu bytes",
 					(gulong) attr->data_remain);
 			break;
 		}
@@ -350,8 +350,8 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 				attr->data_remain = 0;
 				attr->state = CHUNK_STATE_DATA_CRLF;
 			}
-			if (GNET_PROPERTY(dbg) > 9)
-				printf("dechunk_data: returning chunk of %u bytes\n",
+			if (GNET_PROPERTY(rx_debug) > 9)
+				g_debug("dechunk_data: returning chunk of %u bytes",
 					pmsg_size(nmb));
 			return nmb;
 		}

@@ -927,6 +927,10 @@ gboolean gnet_property_variable_enable_natpmp     = TRUE;
 static const gboolean gnet_property_variable_enable_natpmp_default = TRUE;
 gboolean gnet_property_variable_natpmp_possible     = FALSE;
 static const gboolean gnet_property_variable_natpmp_possible_default = FALSE;
+guint32  gnet_property_variable_tx_debug     = 0;
+static const guint32  gnet_property_variable_tx_debug_default = 0;
+guint32  gnet_property_variable_rx_debug     = 0;
+static const guint32  gnet_property_variable_rx_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -8438,6 +8442,46 @@ gnet_prop_init(void) {
     gnet_property->props[392].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[392].data.boolean.def   = (void *) &gnet_property_variable_natpmp_possible_default;
     gnet_property->props[392].data.boolean.value = (void *) &gnet_property_variable_natpmp_possible;
+
+
+    /*
+     * PROP_TX_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[393].name = "tx_debug";
+    gnet_property->props[393].desc = _("Debug level for the TX (transmit) network layer.");
+    gnet_property->props[393].ev_changed = event_new("tx_debug_changed");
+    gnet_property->props[393].save = TRUE;
+    gnet_property->props[393].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[393].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[393].data.guint32.def   = (void *) &gnet_property_variable_tx_debug_default;
+    gnet_property->props[393].data.guint32.value = (void *) &gnet_property_variable_tx_debug;
+    gnet_property->props[393].data.guint32.choices = NULL;
+    gnet_property->props[393].data.guint32.max   = 20;
+    gnet_property->props[393].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_RX_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[394].name = "rx_debug";
+    gnet_property->props[394].desc = _("Debug level for the RX (receive) network layer.");
+    gnet_property->props[394].ev_changed = event_new("rx_debug_changed");
+    gnet_property->props[394].save = TRUE;
+    gnet_property->props[394].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[394].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[394].data.guint32.def   = (void *) &gnet_property_variable_rx_debug_default;
+    gnet_property->props[394].data.guint32.value = (void *) &gnet_property_variable_rx_debug;
+    gnet_property->props[394].data.guint32.choices = NULL;
+    gnet_property->props[394].data.guint32.max   = 20;
+    gnet_property->props[394].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

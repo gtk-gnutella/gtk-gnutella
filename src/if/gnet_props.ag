@@ -4608,4 +4608,26 @@ prop = {
     };
 };
 
+prop = {
+	name = "tx_debug";
+	desc = "Debug level for the TX (transmit) network layer.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "rx_debug";
+	desc = "Debug level for the RX (receive) network layer.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */

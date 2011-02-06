@@ -142,7 +142,7 @@ deflate_send(txdrv_t *tx)
 
 	r = tx_write(tx->lower, b->rptr, len);
 
-	if (GNET_PROPERTY(dbg) > 9) {
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("deflate_send: (%s) wrote %lu bytes (buffer #%d) [%c%c]",
 			gnet_host_to_string(&tx->host), (unsigned long) r, attr->send_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
@@ -158,7 +158,7 @@ deflate_send(txdrv_t *tx)
 	 */
 
 	if ((size_t) r == len) {
-		if (GNET_PROPERTY(dbg) > 9) {
+		if (GNET_PROPERTY(tx_debug) > 9) {
 			g_debug("deflate_send: (%s) buffer #%d is empty",
 				gnet_host_to_string(&tx->host), attr->send_idx);
 		}
@@ -239,7 +239,7 @@ deflate_rotate_and_send(txdrv_t *tx)
 	if (attr->fill_idx >= BUFFER_COUNT)
 		attr->fill_idx = 0;
 
-	if (GNET_PROPERTY(dbg) > 9) {
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("deflate_rotate_and_send: (%s) fill buffer now #%d [%c%c]",
 			gnet_host_to_string(&tx->host), attr->fill_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
@@ -275,7 +275,7 @@ deflate_flush(txdrv_t *tx)
 retry:
 	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
 
-	if (GNET_PROPERTY(dbg) > 9) {
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("deflate_flush: (%s) flushing (buffer #%d) [%c%c]",
 			gnet_host_to_string(&tx->host), attr->fill_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
@@ -334,8 +334,8 @@ retry:
 		if (attr->send_idx >= 0) {				/* Send buffer not sent yet */
 			attr->flags |= DF_FLOWC|DF_FLUSH;	/* Enter flow control */
 
-			if (GNET_PROPERTY(dbg) > 4) {
-				g_debug("Compressing TX stack for peer %s enters FLOWC/FLUSH",
+			if (GNET_PROPERTY(tx_debug) > 4) {
+				g_debug("compressing TX stack for peer %s enters FLOWC/FLUSH",
 					gnet_host_to_string(&tx->host));
 			}
 			return TRUE;
@@ -396,7 +396,7 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
 	(void) unused_cq;
 	if (-1 != attr->send_idx) {		/* Send buffer still incompletely sent */
 
-		if (GNET_PROPERTY(dbg) > 9) {
+		if (GNET_PROPERTY(tx_debug) > 9) {
 			g_debug("deflate_nagle_timeout: (%s) buffer #%d unsent,"
 				" exiting [%c%c]",
 				gnet_host_to_string(&tx->host), attr->send_idx,
@@ -412,7 +412,7 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
 	attr->flags &= ~DF_NAGLE;
 	attr->tm_ev = NULL;
 
-	if (GNET_PROPERTY(dbg) > 9) {
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("deflate_nagle_timeout: (%s) flushing (buffer #%d) [%c%c]",
 			gnet_host_to_string(&tx->host), attr->fill_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
@@ -435,7 +435,7 @@ deflate_add(txdrv_t *tx, gconstpointer data, int len)
 	z_streamp outz = attr->outz;
 	int added = 0;
 
-	if (GNET_PROPERTY(dbg) > 9) {
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("deflate_add: (%s) given %lu bytes (buffer #%d, nagle %s, "
 			"unflushed %lu) [%c%c]",
 			gnet_host_to_string(&tx->host), (gulong) len, attr->fill_idx,
@@ -516,8 +516,8 @@ deflate_add(txdrv_t *tx, gconstpointer data, int len)
 			if (attr->send_idx >= 0) {
 				attr->flags |= DF_FLOWC;	/* Enter flow control */
 
-				if (GNET_PROPERTY(dbg) > 4) {
-					g_debug("Compressing TX stack for peer %s enters FLOWC",
+				if (GNET_PROPERTY(tx_debug) > 4) {
+					g_debug("compressing TX stack for peer %s enters FLOWC",
 						gnet_host_to_string(&tx->host));
 				}
 				return added;
@@ -580,7 +580,7 @@ deflate_service(gpointer data)
 
 	g_assert(attr->send_idx < BUFFER_COUNT);
 
-	if (GNET_PROPERTY(dbg) > 9) {
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("deflate_service: (%s) %s(buffer #%d, %lu bytes held) [%c%c]",
 			gnet_host_to_string(&tx->host),
 			(tx->flags & TX_ERROR) ? "ERROR " : "",
@@ -613,7 +613,7 @@ deflate_service(gpointer data)
 	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
 
 	if (b->wptr >= b->end) {
-		if (GNET_PROPERTY(dbg) > 9) {
+		if (GNET_PROPERTY(tx_debug) > 9) {
 			g_debug("deflate_service: (%s) sending fill buffer #%d, %lu bytes",
 				gnet_host_to_string(&tx->host), attr->fill_idx,
 				(unsigned long) (b->wptr - b->rptr));
@@ -639,8 +639,8 @@ deflate_service(gpointer data)
 	if (attr->flags & DF_FLOWC) {
 		attr->flags &= ~DF_FLOWC;	/* Leave flow control state */
 
-		if (GNET_PROPERTY(dbg) > 4) {
-			g_debug("Compressing TX stack for peer %s leaves FLOWC",
+		if (GNET_PROPERTY(tx_debug) > 4) {
+			g_debug("compressing TX stack for peer %s leaves FLOWC",
 				gnet_host_to_string(&tx->host));
 		}
 	}
@@ -664,7 +664,7 @@ deflate_service(gpointer data)
 	}
 
 
-	if (GNET_PROPERTY(dbg) > 9) {
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("deflate_service: (%s) %sdone locally [%c%c]",
 			gnet_host_to_string(&tx->host),
 			(tx->flags & TX_ERROR) ? "ERROR " : "",
@@ -855,7 +855,7 @@ tx_deflate_write(txdrv_t *tx, gconstpointer data, size_t len)
 {
 	struct attr *attr = tx->opaque;
 
-	if (GNET_PROPERTY(dbg) > 9) {
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("tx_deflate_write: (%s) (buffer #%d, nagle %s, "
 			"unflushed %lu) [%c%c]",
 			gnet_host_to_string(&tx->host), attr->fill_idx,
@@ -884,7 +884,7 @@ tx_deflate_writev(txdrv_t *tx, iovec_t *iov, int iovcnt)
 	struct attr *attr = tx->opaque;
 	int sent = 0;
 
-	if (GNET_PROPERTY(dbg) > 9) {
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("tx_deflate_writev: (%s) (buffer #%d, nagle %s, "
 			"unflushed %lu) [%c%c]",
 			gnet_host_to_string(&tx->host), attr->fill_idx,
@@ -916,7 +916,7 @@ tx_deflate_writev(txdrv_t *tx, iovec_t *iov, int iovcnt)
 		iov++;
 	}
 
-	if (GNET_PROPERTY(dbg) > 9) {
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("tx_deflate_writev: (%s) sent %lu bytes (buffer #%d, nagle %s, "
 			"unflushed %lu) [%c%c]",
 			gnet_host_to_string(&tx->host), (gulong) sent, attr->fill_idx,
@@ -1011,7 +1011,7 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 
 	g_assert(tx->flags & TX_CLOSING);
 
-	if (GNET_PROPERTY(dbg) > 9) {
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("tx_deflate_close: (%s) send=%d buffer #%d, nagle %s, "
 			"unflushed %lu) [%c%c]",
 			gnet_host_to_string(&tx->host), attr->send_idx, attr->fill_idx,
@@ -1046,7 +1046,7 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 	}
 
 	if (0 == tx_deflate_pending(tx)) {
-		if (GNET_PROPERTY(dbg) > 9) {
+		if (GNET_PROPERTY(tx_debug) > 9) {
 			g_debug("tx_deflate_close: flushed everything immediately");
 		}
 		(*cb)(tx, arg);
@@ -1060,7 +1060,7 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 	attr->closed = cb;
 	attr->closed_arg = arg;
 
-	if (GNET_PROPERTY(dbg) > 9) {
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("tx_deflate_close: (%s) delayed! send=%d buffer #%d, nagle %s, "
 			"unflushed %lu) [%c%c]",
 			gnet_host_to_string(&tx->host),

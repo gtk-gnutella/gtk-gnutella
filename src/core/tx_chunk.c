@@ -147,8 +147,8 @@ chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 	g_assert(0 == attr->head_remain);
 	g_assert(final || ((size_t) -1 != len && len > 0));
 
-	if (GNET_PROPERTY(dbg) > 9)
-		printf("chunk_begin: %s chunk %lu byte%s\n",
+	if (GNET_PROPERTY(tx_debug) > 9)
+		g_debug("chunk_begin: %s chunk %lu byte%s",
 			final ? "final" :
 			attr->first ? "first" :
 			"next", (gulong) len, len == 1 ? "" : "s");
