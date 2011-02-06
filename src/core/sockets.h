@@ -228,6 +228,7 @@ socket_listen_port(void)
 void socket_init(void);
 void socket_register_fd_reclaimer(reclaim_fd_t callback);
 void socket_eof(struct gnutella_socket *s);
+void socket_connection_reset(struct gnutella_socket *s);
 void socket_free_null(struct gnutella_socket **s_ptr);
 struct gnutella_socket *socket_connect(const host_addr_t, guint16,
 		enum socket_type, guint32 flags);

@@ -182,6 +182,9 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 	tls_signal_pending(s);
 	if ((ssize_t) -1 == ret) {
 		tls_set_errno(s, saved_errno);
+		if (ECONNRESET == saved_errno || ECONNABORTED == saved_errno) {
+			socket_connection_reset(s);
+		}
 	}
 	tls_transport_debug("tls_push", s->file_desc, size, ret);
 	errno = saved_errno;
@@ -203,6 +206,9 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	tls_signal_pending(s);
 	if ((ssize_t) -1 == ret) {
 		tls_set_errno(s, saved_errno);
+		if (ECONNRESET == saved_errno || ECONNABORTED == saved_errno) {
+			socket_connection_reset(s);
+		}
 	} else if (0 == ret) {
 		socket_eof(s);
 	}
@@ -336,7 +342,7 @@ tls_handshake(struct gnutella_socket *s)
 		}
 		break;
 	case GNUTLS_E_UNEXPECTED_PACKET_LENGTH:
-		if (SOCK_F_EOF & s->flags) {
+		if ((SOCK_F_EOF | SOCK_F_CONNRESET) & s->flags) {
 		   	/* Remote peer has hung up */
 			break;
 		}
@@ -727,6 +733,9 @@ tls_read(struct wrap_io *wio, void *buf, size_t size)
 				 */
 				ret = 0;
 				goto no_error;
+			} else if (SOCK_F_CONNRESET & s->flags) {
+				errno = ECONNRESET;
+				break;
 			}
 			/* FALLTHROUGH */
 		default:

@@ -532,6 +532,17 @@ socket_eof(struct gnutella_socket *s)
 	s->flags |= SOCK_F_EOF;
 }
 
+/**
+ * Got a "connection reset" condition on the socket.
+ */
+void
+socket_connection_reset(struct gnutella_socket *s)
+{
+	socket_check(s);
+
+	s->flags |= SOCK_F_CONNRESET;
+}
+
 static void
 proxy_connect_helper(const host_addr_t *addr, size_t n, gpointer udata)
 {
