@@ -1027,6 +1027,8 @@ inputevt_remove(unsigned id)
 		--rl->writers;
 	}
 
+	hash_list_remove(ctx->readable, int_to_pointer(fd));
+
 	cur = (rl->readers ? INPUT_EVENT_R : 0) |
 		(rl->writers ? INPUT_EVENT_W : 0);
 
