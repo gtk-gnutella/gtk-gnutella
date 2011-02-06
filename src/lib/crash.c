@@ -1125,19 +1125,28 @@ crash_setdir(const char *pathname)
 void
 crash_setver(const char *version)
 {
-	ckhunk_t *mem3;
+	const char *value;
 
 	g_assert(NULL != vars->mem);
 	g_assert(NULL != version);
 
-	mem3 = ck_init_not_leaking(1 + strlen(version), 0);
-	crash_set_var(mem3, mem3);
+	value = ck_strdup_readonly(vars->mem, version);
+	if (NULL == value && vars->mem2 != NULL)
+		value = ck_strdup_readonly(vars->mem2, version);
 
-	version = ck_strdup(vars->mem3, version);
-	crash_set_var(version, version);
+	if (NULL == value) {
+		ckhunk_t *mem3;
+
+		mem3 = ck_init_not_leaking(1 + strlen(version), 0);
+		crash_set_var(mem3, mem3);
+		value = ck_strdup(vars->mem3, version);
+	}
+
+	crash_set_var(version, value);
 	g_assert(NULL != vars->version);
 
-	ck_readonly(vars->mem3);
+	if (vars->mem3 != NULL)
+		ck_readonly(vars->mem3);
 }
 
 void
