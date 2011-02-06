@@ -288,17 +288,6 @@ tls_handshake(struct gnutella_socket *s)
 	g_return_val_if_fail(SOCK_TLS_INITIALIZED == s->tls.stage,
 		TLS_HANDSHAKE_ERROR);
 
-#ifdef USE_TLS_CUSTOM_IO
-	if (NULL == gnutls_transport_get_ptr(session)) {
-		gnutls_transport_set_ptr(session, s);
-	}
-#else
-	if (GPOINTER_TO_INT(gnutls_transport_get_ptr(session)) < 0) {
-		g_assert(is_valid_fd(s->file_desc));
-		gnutls_transport_set_ptr(session, GINT_TO_POINTER(s->file_desc));
-	}
-#endif
-
 	ret = gnutls_handshake(session);
 	switch (ret) {
 	case 0:
@@ -420,6 +409,9 @@ tls_init(struct gnutella_socket *s)
 	gnutls_transport_set_push_function(ctx->session, tls_push);
 	gnutls_transport_set_pull_function(ctx->session, tls_pull);
 	gnutls_transport_set_lowat(ctx->session, 0);
+#else
+	g_assert(is_valid_fd(s->file_desc));
+	gnutls_transport_set_ptr(session, GINT_TO_POINTER(s->file_desc));
 #endif	/* USE_TLS_CUSTOM_IO */
 
 	if (server) {
