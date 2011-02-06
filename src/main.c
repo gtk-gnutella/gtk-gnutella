@@ -408,8 +408,15 @@ gtk_gnutella_request_shutdown(void)
 static void
 main_dispatch(void)
 {
-	cq_dispatch();
+	/*
+	 * Order is important: we dispatch I/Os first because callout queue
+	 * events are mostly for monitoring timeouts at this stage.
+	 * We don't want to think there was a timeout where in fact the I/O
+	 * reply was pending.
+	 */
+
 	inputevt_dispatch();
+	cq_dispatch();
 }
 
 /**
