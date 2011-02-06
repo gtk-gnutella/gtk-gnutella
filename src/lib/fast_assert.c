@@ -93,7 +93,7 @@ assertion_warning(const assertion_data * const data)
 void G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_failure(const assertion_data * const data)
 {
-	static gboolean seen_fatal;
+	static volatile sig_atomic_t seen_fatal;
 
 	assertion_message(data, TRUE);
 	if (!seen_fatal) {
