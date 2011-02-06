@@ -342,7 +342,7 @@ event_get_with_kqueue(const struct poll_ctx *ctx, unsigned idx)
 	switch (ev->filter) {
 	case EVFILT_READ:
 		event.condition |= INPUT_EVENT_R;
-		event.data_available = MIN(INT_MAX, kev->data);
+		event.data_available = MIN(INT_MAX, ev->data);
 		break;
 	case EVFILT_WRITE:
 		event.condition |= INPUT_EVENT_W;
