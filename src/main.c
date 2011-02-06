@@ -680,6 +680,7 @@ enum main_arg {
 	main_arg_ping,
 	main_arg_shell,
 	main_arg_topless,
+	main_arg_use_poll,
 	main_arg_version,
 
 	/* Passed through for Gtk+/GDK/GLib */
@@ -739,6 +740,7 @@ static struct {
 #else
 	OPTION(topless,			NONE, "Disable the graphical user-interface."),
 #endif	/* USE_TOPLESS */
+	OPTION(use_poll,		NONE, "Use poll() instead of epoll(), kqueue() etc."),
 	OPTION(version,			NONE, "Show version information."),
 
 	/* These are handled by Gtk+/GDK/GLib */
@@ -1565,7 +1567,7 @@ main(int argc, char **argv)
 	STATIC_ASSERT(UNSIGNED(-1) > 0);
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
-	inputevt_init();
+	inputevt_init(options[main_arg_use_poll].used);
 	tiger_check();
 	tt_check();
 	random_init();

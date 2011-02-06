@@ -1309,9 +1309,10 @@ init_with_poll(struct poll_ctx *ctx)
 
 /**
  * Performs module initialization.
+ * @param use_poll If TRUE, kqueue(), epoll(), /dev/poll etc. won't be used.
  */
 void
-inputevt_init(void)
+inputevt_init(int use_poll)
 {
 	struct poll_ctx *ctx;
 
@@ -1324,12 +1325,11 @@ inputevt_init(void)
 
 	init_with_poll(ctx); /* Must be called first and provides the default */
 
-	/**
-	 * TODO: A command-line option to force use of poll() could be useful.
-	 */
-	if (init_with_kqueue(ctx)) {
-		if (init_with_epoll(ctx)) {
-			init_with_devpoll(ctx);
+	if (!use_poll) {
+		if (init_with_kqueue(ctx)) {
+			if (init_with_epoll(ctx)) {
+				init_with_devpoll(ctx);
+			}
 		}
 	}
 
