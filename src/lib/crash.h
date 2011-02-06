@@ -142,6 +142,8 @@ print_number(char *dst, size_t size, unsigned long value)
 #define CRASH_F_PAUSE	(1 << 0)
 #define CRASH_F_GDB		(1 << 1)
 
+struct assertion_data;
+
 void crash_init(const char *argv0, const char *progname,
 	int flags, const char *exec_path);
 void crash_time(char *buf, size_t buflen);
@@ -151,6 +153,7 @@ void crash_handler(int signo);
 void crash_setdir(const char *dir);
 void crash_setver(const char *version);
 void crash_setbuild(unsigned build);
+void crash_assert_failure(const struct assertion_data *a);
 void crash_post_init(void);
 int crash_coredumps_disabled(void);
 

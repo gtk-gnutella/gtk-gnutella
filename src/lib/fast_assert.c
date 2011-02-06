@@ -96,6 +96,7 @@ assertion_failure(const assertion_data * const data)
 	static volatile sig_atomic_t seen_fatal;
 
 	assertion_message(data, TRUE);
+	crash_assert_failure(data);
 	if (!seen_fatal) {
 		seen_fatal = TRUE;
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);

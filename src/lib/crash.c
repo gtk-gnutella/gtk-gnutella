@@ -49,6 +49,7 @@ RCSID("$Id$")
 #include "crash.h"
 #include "ckalloc.h"
 #include "compat_sleep_ms.h"
+#include "fast_assert.h"
 #include "fd.h"
 #include "log.h"
 #include "offtime.h"
@@ -73,6 +74,7 @@ struct crash_vars {
 	const char *cwd;		/**< Current working directory (NULL if unknown) */
 	const char *crashdir;	/**< Directory where crash logs are written */
 	const char *version;	/**< Program version string (NULL if unknown) */
+	const assertion_data *failure;	/**< Failed assertion, NULL if none */
 	time_delta_t gmtoff;	/**< Offset to GMT, supposed to be fixed */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	unsigned build;			/**< Build number, unique version number */
@@ -469,6 +471,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 			char rbuf[22];
 			char sbuf[ULONG_DEC_BUFLEN];
 			char tbuf[22];
+			char lbuf[22];
 			time_delta_t t;
 			DECLARE_STR(15);
 
@@ -572,7 +575,26 @@ crash_invoke_inspector(int signo, const char *cwd)
 				print_str(vars->exec_path);		/* 7 */
 				print_str("\n");				/* 8 */
 			}
-			print_str("\n");					/* 12 -- End of Header */
+			flush_str(STDOUT_FILENO);
+			rewind_str(0);
+			if (vars->failure != NULL) {
+				const assertion_data *failure = vars->failure;
+				if (failure->expr != NULL) {
+					print_str("X-Assertion-At: ");		/* 0 */
+				} else {
+					print_str("X-Reached-Code-At: ");	/* 0 */
+				}
+				print_str(failure->file);				/* 1 */
+				print_str(":");							/* 2 */
+				print_str(print_number(lbuf, sizeof lbuf, failure->line));
+				print_str("\n");						/* 4 */
+				if (failure->expr != NULL) {
+					print_str("X-Assertion-Expr: ");	/* 5 */
+					print_str(failure->expr);			/* 6 */
+					print_str("\n");					/* 7 */
+				}
+			}
+			print_str("\n");					/* 8 -- End of Header */
 			flush_str(STDOUT_FILENO);
 
 			if (-1 == setsid())
@@ -1169,10 +1191,23 @@ crash_setver(const char *version)
 		ck_readonly(vars->mem3);
 }
 
+/**
+ * Set program's build number.
+ */
 void
 crash_setbuild(unsigned build)
 {
 	crash_set_var(build, build);
+}
+
+/**
+ * Record failed assertion data.
+ */
+void
+crash_assert_failure(const struct assertion_data *a)
+{
+	if (vars != NULL)
+		crash_set_var(failure, a);
 }
 
 /**
