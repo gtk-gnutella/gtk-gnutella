@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-#define TLS_DH_BITS 768
-
 #include "if/core/wrap.h"			/* For wrap_io_t */
 
 enum tls_handshake_result {

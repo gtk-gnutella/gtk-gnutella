@@ -60,16 +60,8 @@ RCSID("$Id$")
 
 #ifdef HAS_GNUTLS
 
-/**
- * Disabled because incoming connections get stuck after gnutls_handshake.
- * This cannot work trivially because we are losing physical events on
- * the socket to GnuTLS. If there is still data buffered to be read,
- * there won't be any further events on the socket. GnuTLS uses some
- * hacks including recv() with MSG_PEEK to keep the socket select()able.
- * So we would either have to do the same or synthesize events using
- * gnutls_record_check_pending().
- */
 #define USE_TLS_CUSTOM_IO
+#define TLS_DH_BITS 768
 
 struct tls_context {
 	gnutls_session session;
@@ -78,7 +70,7 @@ struct tls_context {
 	const struct gnutella_socket *s;
 };
 
-static gnutls_certificate_credentials server_cert_cred;
+static gnutls_certificate_credentials cert_cred;
 
 static inline gnutls_session
 tls_socket_get_session(struct gnutella_socket *s)
@@ -370,41 +362,8 @@ tls_handshake(struct gnutella_socket *s)
 int
 tls_init(struct gnutella_socket *s)
 {
-	static const int cipher_list[] = {
-		GNUTLS_CIPHER_AES_256_CBC,
-		GNUTLS_CIPHER_AES_128_CBC,
-		0
-	};
-	static const int kx_list[] = {
-		GNUTLS_KX_ANON_DH,
-		GNUTLS_KX_RSA,
-		GNUTLS_KX_DHE_DSS,
-		GNUTLS_KX_DHE_RSA,
-		0
-	};
-	static const int mac_list[] = {
-		GNUTLS_MAC_MD5,
-		GNUTLS_MAC_SHA,
-		GNUTLS_MAC_RMD160,
-		0
-	};
-	static const int comp_list[] = {
-#if 0
-		/* FIXME: This causes internal errors from gnutls_record_recv()
-		 * at least when browsing hosts which send deflated data.
-		 */
-		GNUTLS_COMP_DEFLATE,
-#endif
-		GNUTLS_COMP_NULL,
-		0
-	};
-	static const int cert_list[] = {
-		GNUTLS_CRT_X509,
-		GNUTLS_CRT_OPENPGP,
-		0
-	};
+	const gboolean server = SOCK_CONN_INCOMING == s->direction;
 	struct tls_context *ctx;
-	gboolean server = SOCK_CONN_INCOMING == s->direction;
 	const char *fn;
 	int e;
 
@@ -423,6 +382,15 @@ tls_init(struct gnutella_socket *s)
 		goto failure;
 	}
 
+	if (TRY(gnutls_priority_set_direct)(ctx->session, "NORMAL:+ANON-DH", NULL))
+		goto failure;
+
+	if (TRY(gnutls_credentials_set)(ctx->session,
+			GNUTLS_CRD_CERTIFICATE, cert_cred))
+		goto failure;
+
+	gnutls_dh_set_prime_bits(ctx->session, TLS_DH_BITS);
+
 #ifdef USE_TLS_CUSTOM_IO
 	gnutls_transport_set_ptr(ctx->session, s);
 	gnutls_transport_set_push_function(ctx->session, tls_push);
@@ -430,7 +398,7 @@ tls_init(struct gnutella_socket *s)
 	gnutls_transport_set_lowat(ctx->session, 0);
 #else
 	g_assert(is_valid_fd(s->file_desc));
-	gnutls_transport_set_ptr(session, int_to_pointer(s->file_desc));
+	gnutls_transport_set_ptr(ctx->session, int_to_pointer(s->file_desc));
 #endif	/* USE_TLS_CUSTOM_IO */
 
 	if (server) {
@@ -438,17 +406,11 @@ tls_init(struct gnutella_socket *s)
 			goto failure;
 
 		gnutls_anon_set_server_dh_params(ctx->server_cred, get_dh_params());
-		gnutls_dh_set_prime_bits(ctx->session, TLS_DH_BITS);
 
 		if (TRY(gnutls_credentials_set)(ctx->session,
 				GNUTLS_CRD_ANON, ctx->server_cred))
 			goto failure;
 
-		if (server_cert_cred) {
-			if (TRY(gnutls_credentials_set)(ctx->session,
-					GNUTLS_CRD_CERTIFICATE, server_cert_cred))
-				goto failure;
-		}
 	} else {
 		if (TRY(gnutls_anon_allocate_client_credentials)(&ctx->client_cred))
 			goto failure;
@@ -457,24 +419,6 @@ tls_init(struct gnutella_socket *s)
 				GNUTLS_CRD_ANON, ctx->client_cred))
 			goto failure;
 	}
-
-	gnutls_set_default_priority(ctx->session);
-	if (TRY(gnutls_cipher_set_priority)(ctx->session, cipher_list))
-		goto failure;
-
-	if (TRY(gnutls_kx_set_priority)(ctx->session, kx_list))
-		goto failure;
-
-	if (TRY(gnutls_mac_set_priority)(ctx->session, mac_list))
-		goto failure;
-
-	if (TRY(gnutls_certificate_type_set_priority)(ctx->session, cert_list)) {
-		if (GNUTLS_E_UNIMPLEMENTED_FEATURE != e)
-			goto failure;
-	}
-
-	if (TRY(gnutls_compression_set_priority)(ctx->session, comp_list))
-		goto failure;
 
 	return 0;
 
@@ -546,6 +490,7 @@ tls_global_init(void)
 #endif	/* USE_TLS_CUSTOM_IO */
 
 	get_dh_params();
+	gnutls_certificate_allocate_credentials(&cert_cred);
 
 	key_file = make_pathname(settings_config_dir(), "key.pem");
 	cert_file = make_pathname(settings_config_dir(), "cert.pem");
@@ -553,16 +498,13 @@ tls_global_init(void)
 	if (file_exists(key_file) && file_exists(cert_file)) {
 		int ret;
 
-		gnutls_certificate_allocate_credentials(&server_cert_cred);
-		ret = gnutls_certificate_set_x509_key_file(server_cert_cred,
+		ret = gnutls_certificate_set_x509_key_file(cert_cred,
 				cert_file, key_file, GNUTLS_X509_FMT_PEM);
 		if (ret < 0) {
 			g_warning("gnutls_certificate_set_x509_key_file() failed: %s",
 					gnutls_strerror(ret));
-			gnutls_certificate_free_credentials(server_cert_cred);
-			server_cert_cred = NULL;
 		} else {
-			gnutls_certificate_set_dh_params(server_cert_cred, get_dh_params());
+			gnutls_certificate_set_dh_params(cert_cred, get_dh_params());
 		}
 	}
 	HFREE_NULL(key_file);
@@ -576,6 +518,10 @@ tls_global_init(void)
 void
 tls_global_close(void)
 {
+	if (cert_cred) {
+		gnutls_certificate_free_credentials(cert_cred);
+		cert_cred = NULL;
+	}
 	gnutls_global_deinit();
 }
 
