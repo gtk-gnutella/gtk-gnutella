@@ -96,6 +96,7 @@ typedef void (*bgnotify_cb_t)(struct bgtask *h, gboolean on);
  * Public interface.
  */
 
+void bg_set_debug(unsigned level);
 void bg_close(void);
 void bg_sched_timer(gboolean overloaded);
 

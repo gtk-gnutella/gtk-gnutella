@@ -432,6 +432,7 @@ typedef enum {
     PROP_TX_DEBUG,
     PROP_RX_DEBUG,
     PROP_INPUTEVT_DEBUG,
+    PROP_BG_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

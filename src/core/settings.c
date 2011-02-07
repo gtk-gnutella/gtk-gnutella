@@ -69,6 +69,7 @@
 #include "xml/vxml.h"
 
 #include "lib/bit_array.h"
+#include "lib/bg.h"
 #include "lib/compat_misc.h"
 #include "lib/cpufreq.h"
 #include "lib/cq.h"
@@ -2033,6 +2034,17 @@ zalloc_debug_changed(property_t prop)
 }
 
 static gboolean
+bg_debug_changed(property_t prop)
+{
+	guint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	bg_set_debug(val);
+
+    return FALSE;
+}
+
+static gboolean
 inputevt_debug_changed(property_t prop)
 {
 	guint32 val;
@@ -2545,6 +2557,11 @@ static prop_map_t property_map[] = {
     {
         PROP_ZALLOC_DEBUG,
         zalloc_debug_changed,
+        TRUE
+    },
+    {
+        PROP_BG_DEBUG,
+        bg_debug_changed,
         TRUE
     },
     {

@@ -131,6 +131,17 @@ bg_task_check(const struct bgtask * const bt)
 	g_assert(BGTASK_MAGIC == bt->magic);
 }
 
+static unsigned bg_debug;
+
+/**
+ * Set debugging level.
+ */
+void
+bg_set_debug(unsigned level)
+{
+	bg_debug = level;
+}
+
 /*
  * Access routines to internal fields.
  */
@@ -149,7 +160,7 @@ bg_task_context(const struct bgtask *bt)
 	return bt->ucontext;
 }
 
-static int runcount;
+static int bg_runcount;
 static GSList *runq;
 static GSList *sleepq;
 static GSList *dead_tasks;
@@ -255,7 +266,7 @@ bg_task_suspend(struct bgtask *bt)
 		double new_cost =
 			(4 * bt->tick_cost + (elapsed / bt->ticks_used)) / 5.0;
 
-		if (common_dbg > 4)
+		if (bg_debug > 4)
 			g_debug("BGTASK \"%s\" total=%d msecs, elapsed=%lu usecs, "
 				"ticks=%d, used=%d, tick_cost=%f usecs (was %f)",
 				bt->name, bt->wtime, (gulong)elapsed, bt->ticks, bt->ticks_used,
@@ -289,10 +300,10 @@ bg_sched_sleep(struct bgtask *bt)
 	bg_task_check(bt);
 	g_assert(!(bt->flags & TASK_F_SLEEPING));
 	g_assert(!(bt->flags & TASK_F_RUNNING));
-	g_assert(runcount > 0);
+	g_assert(bg_runcount > 0);
 
 	bg_sched_remove(bt);			/* Can no longer be scheduled */
-	runcount--;
+	bg_runcount--;
 	bt->flags |= TASK_F_SLEEPING;
 	sleepq = g_slist_prepend(sleepq, bt);
 }
@@ -309,7 +320,7 @@ bg_sched_wakeup(struct bgtask *bt)
 
 	sleepq = g_slist_remove(sleepq, bt);
 	bt->flags &= ~TASK_F_SLEEPING;
-	runcount++;
+	bg_runcount++;
 	bg_sched_add(bt);
 }
 
@@ -396,7 +407,12 @@ bg_task_create(const char *name,	/**< Task name (for tracing) */
 	memcpy(bt->stepvec, steps, stepsize);
 
 	bg_sched_add(bt);					/* Let scheduler know about it */
-	runcount++;							/* One more task to schedule */
+	bg_runcount++;						/* One more task to schedule */
+
+	if (bg_debug > 1) {
+		g_debug("BGTASK created task \"%s\" (%d step%s)",
+			name, stepcnt, 1 == stepcnt ? "" : "s");
+	}
 
 	return bt;
 }
@@ -453,8 +469,13 @@ bg_daemon_create(
 	bt->stepvec = walloc(stepsize);
 	memcpy(bt->stepvec, steps, stepsize);
 
-	runcount++;							/* One more task to schedule */
+	bg_runcount++;						/* One more task to schedule */
 	bg_sched_sleep(bt);					/* Record sleeping task */
+
+	if (bg_debug > 1) {
+		g_debug("BGTASK created daemon task \"%s\" (%d step%s)",
+			name, stepcnt, 1 == stepcnt ? "" : "s");
+	}
 
 	return bt;
 }
@@ -472,7 +493,7 @@ bg_daemon_enqueue(struct bgtask *bt, gpointer item)
 	bt->wq = g_slist_append(bt->wq, item);
 
 	if (bt->flags & TASK_F_SLEEPING) {
-		if (common_dbg > 1)
+		if (bg_debug > 1)
 			g_debug("BGTASK waking up daemon \"%s\" task", bt->name);
 
 		bg_sched_wakeup(bt);
@@ -508,7 +529,7 @@ bg_task_free(struct bgtask *bt)
 	gm_slist_free_null(&bt->wq);
 
 	if (count)
-		g_warning("freed %d pending item%s for daemon \"%s\" task",
+		g_carp("freed %d pending item%s for daemon \"%s\" task",
 			count, count == 1 ? "" : "s", bt->name);
 
 	bt->magic = 0;
@@ -538,9 +559,10 @@ bg_task_terminate(struct bgtask *bt)
 	 * When we come here, the task is no longer running.
 	 */
 
-	if (common_dbg > 1)
+	if (bg_debug > 1) {
 		g_debug("BGTASK terminating \"%s\"%s, ran %d msecs",
 			bt->name, (bt->flags & TASK_F_DAEMON) ? " daemon" : "", bt->wtime);
+	}
 
 	g_assert(!(bt->flags & TASK_F_RUNNING));
 
@@ -549,9 +571,9 @@ bg_task_terminate(struct bgtask *bt)
 
 	bt->flags |= TASK_F_EXITED;		/* Task has now exited */
 	bg_sched_remove(bt);			/* Ensure it's no longer scheduled */
-	runcount--;						/* One task less to run */
+	bg_runcount--;					/* One task less to run */
 
-	g_assert(runcount >= 0);
+	g_assert(bg_runcount >= 0);
 
 	/*
 	 * Compute proper status.
@@ -583,8 +605,7 @@ bg_task_terminate(struct bgtask *bt)
 		(*bt->done_cb)(bt, bt->ucontext, status, bt->done_arg);
 
 		if (bt->flags & TASK_F_ZOMBIE)
-			g_warning("user code lost exit status of task \"%s\"",
-				bt->name);
+			g_carp("user code lost exit status of task \"%s\"", bt->name);
 
 		bt->flags &= ~TASK_F_ZOMBIE;		/* Is now totally DEAD */
 	}
@@ -859,9 +880,10 @@ bg_task_ended(struct bgtask *bt)
 
 	item = bt->wq->data;
 
-	if (common_dbg > 2)
+	if (bg_debug > 2) {
 		g_debug("BGTASK daemon \"%s\" done with item 0x%lx",
 			bt->name, (gulong) item);
+	}
 
 	(*bt->end_cb)(bt, bt->ucontext, item);
 	bt->wq = g_slist_remove(bt->wq, item);
@@ -881,7 +903,7 @@ bg_task_ended(struct bgtask *bt)
 	 */
 
 	if (bt->wq == NULL) {
-		if (common_dbg > 1)
+		if (bg_debug > 1)
 			g_debug("BGTASK daemon \"%s\" going back to sleep", bt->name);
 
 		bg_sched_sleep(bt);
@@ -905,7 +927,7 @@ bg_sched_timer(gboolean overloaded)
 	bgret_t ret;
 
 	g_assert(current_task == NULL);
-	g_assert(runcount >= 0);
+	g_assert(bg_runcount >= 0);
 
 	if (overloaded)
 		remain /= 2;	/* Use less CPU time when overloaded */
@@ -915,18 +937,18 @@ bg_sched_timer(gboolean overloaded)
 	 * time left to spend.
 	 */
 
-	while (runcount > 0 && remain > 0) {
+	while (bg_runcount > 0 && remain > 0) {
 		/*
 		 * Compute how much time we can spend for this task.
 		 * Slow things down if overloaded.
 		 */
 
-		target = MAX(MIN_LIFE, MAX_LIFE / runcount);
+		target = MAX(MIN_LIFE, MAX_LIFE / bg_runcount);
 		if (overloaded)
 			target /= 2;
 
 		bt = bg_sched_pick();
-		g_assert(bt);					/* runcount > 0 => there is a task */
+		g_assert(bt != NULL);		/* bg_runcount > 0 => there is a task */
 		g_assert(bt->flags & TASK_F_RUNNABLE);
 
 		bt->flags &= ~TASK_F_NOTICK;	/* We'll want tick cost update */
@@ -983,7 +1005,7 @@ bg_sched_timer(gboolean overloaded)
 			 * So they exited, or someone is killing the task.
 			 */
 
-			if (common_dbg > 1)
+			if (bg_debug > 1)
 				g_debug("BGTASK back from setjmp() for \"%s\"", bt->name);
 
 			bt->flags |= TASK_F_NOTICK;
@@ -996,7 +1018,7 @@ bg_sched_timer(gboolean overloaded)
 		 * Run the next step.
 		 */
 
-		if (common_dbg > 4)
+		if (bg_debug > 4)
 			g_debug("BGTASK \"%s\" running step #%d.%d with %d tick%s",
 				bt->name, bt->step, bt->seqno, ticks, ticks == 1 ? "" : "s");
 
@@ -1014,7 +1036,7 @@ bg_sched_timer(gboolean overloaded)
 
 			item = bt->wq->data;
 
-			if (common_dbg > 2)
+			if (bg_debug > 2)
 				g_debug("BGTASK daemon \"%s\" starting with item 0x%lx",
 					bt->name, (gulong) item);
 
@@ -1028,7 +1050,7 @@ bg_sched_timer(gboolean overloaded)
 		bg_task_switch(NULL);		/* Stop current task, update stats */
 		remain -= bt->elapsed;
 
-		if (common_dbg > 4)
+		if (bg_debug > 4)
 			g_debug("BGTASK \"%s\" step #%d.%d ran %d tick%s "
 				"in %d usecs [ret=%d]",
 				bt->name, bt->step, bt->seqno,
