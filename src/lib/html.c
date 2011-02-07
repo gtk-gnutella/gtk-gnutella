@@ -713,6 +713,7 @@ html_load_file(struct html_output *output, int fd)
 	filestat_t sb;
 	size_t size = 0;
 	void *p = MAP_FAILED;
+	char *buf = NULL;
 	int ret = -1;
 
 	if (fstat(fd, &sb)) {
@@ -728,21 +729,43 @@ html_load_file(struct html_output *output, int fd)
 		goto error;
 	}
 	size = sb.st_size;
+
+#ifdef HAS_MMAP
 	/* FIXME: Not available on MINGW! Replace with vmm_loadfile() */
 	p = vmm_mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (MAP_FAILED == p) {
 		perror("open");
 		goto error;
 	}
-	fd_close(&fd);
+	fd_forget_and_close(&fd);
+#else
+	{
+		size_t left = size;
+
+		buf = g_malloc(size);
+		p = buf;
+
+		while (left > 0) {
+			ssize_t n = read(fd, &buf[size - left], left);
+			if ((ssize_t) -1 == n || 0 == n)
+				goto error;
+			left -= n;
+		}
+	}
+#endif
 
 	ret = html_load_memory(output, array_init(p, size));
 
 error:
 	fd_forget_and_close(&fd);
+	G_FREE_NULL(buf);
+
+#ifdef HAS_MMAP
 	if (MAP_FAILED != p) {
 		vmm_munmap(p, size);
 	}
+#endif	/* HAS_MMAP*/
+
 	return ret;
 }
 
