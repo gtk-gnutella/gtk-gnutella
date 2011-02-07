@@ -641,7 +641,7 @@ shared_dirs_update_prop(void)
 gboolean
 shared_dirs_parse(const char *str)
 {
-	char **dirs = g_strsplit(str, ":", 0);
+	char **dirs = g_strsplit(str, G_SEARCHPATH_SEPARATOR_S, 0);
     gboolean ret = TRUE;
 	guint i;
 
