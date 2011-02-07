@@ -158,7 +158,7 @@
 #define fopen mingw_fopen
 #define freopen mingw_freopen
 #define opendir mingw_opendir
-#define readir mingw_opendir
+#define readdir mingw_readdir
 #define closedir mingw_closedir
 #define dup2 mingw_dup2
 #define lseek mingw_lseek
