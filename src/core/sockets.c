@@ -1364,7 +1364,6 @@ socket_free(struct gnutella_socket *s)
 		sl_incoming = g_slist_remove(sl_incoming, s);
 		s->last_update = 0;
 	}
-	socket_evt_clear(s);
 	if (s->adns & SOCK_ADNS_PENDING) {
 		s->type = SOCK_TYPE_DESTROYING;
 		return;
@@ -1379,10 +1378,13 @@ socket_free(struct gnutella_socket *s)
 			if (SOCK_CONN_INCOMING != s->direction) {
 				tls_cache_insert(s->addr, s->port);
 			}
-			tls_bye(s);
+			if (!(SOCK_F_CONNRESET & s->flags)) {
+				tls_bye(s);
+			}
 		}
 		tls_free(s);
 	}
+	socket_evt_clear(s);
 
 	if (is_valid_fd(s->file_desc)) {
 		socket_cork(s, FALSE);
