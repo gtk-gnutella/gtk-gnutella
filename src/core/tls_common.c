@@ -186,7 +186,10 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 	tls_signal_pending(s);
 	if ((ssize_t) -1 == ret) {
 		tls_set_errno(s, saved_errno);
-		if (ECONNRESET == saved_errno || ECONNABORTED == saved_errno) {
+		switch (saved_errno) {
+		case ECONNRESET:
+		case ECONNABORTED:
+		case EPIPE:
 			socket_connection_reset(s);
 		}
 	}
@@ -210,7 +213,10 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	tls_signal_pending(s);
 	if ((ssize_t) -1 == ret) {
 		tls_set_errno(s, saved_errno);
-		if (ECONNRESET == saved_errno || ECONNABORTED == saved_errno) {
+		switch (saved_errno) {
+		case ECONNRESET:
+		case ECONNABORTED:
+		case EPIPE:
 			socket_connection_reset(s);
 		}
 	} else if (0 == ret) {
