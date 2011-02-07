@@ -161,6 +161,7 @@ static int bws_in_ema = 0;
 #define BW_OUT_UP_MIN	8192 /**< Minimum out bandwidth for becoming ultra */
 #define BW_OUT_GNET_MIN	128	 /**< Minimum out bandwidth per Gnet connection */
 #define BW_OUT_LEAF_MIN	32	 /**< Minimum out bandwidth per leaf connection */
+#define BW_UL_STALL_TIM	21600	/**< Hysteresis for upload stalling condition */
 
 #define BW_TCP_MSG		40	 /**< Smallest size of a TCP message */
 #define BW_UDP_MSG		28	 /**< Minimal IP+UDP overhead for a UDP message */
@@ -2917,7 +2918,7 @@ bsched_timer(void)
 static gboolean
 true_expr(const char *expr)
 {
-	if (GNET_PROPERTY(bsched_debug) > 0) {
+	if (GNET_PROPERTY(bsched_debug)) {
 		g_debug("BSCHED %s", expr);
 	}
 	return TRUE;
@@ -2932,7 +2933,7 @@ true_expr(const char *expr)
  * Determine whether we have enough bandwidth to possibly become an
  * ultra node:
  *
- *  -# There must be more than BW_OUT_UP_MIN outgoing bandwidth available.
+ *  -# Uploads must not be frequently stalling.
  *  -# If bandwidth schedulers are enabled, leaf nodes must not be configured
  *     to steal all the HTTP outgoing bandwidth, unless they disabled uploads.
  *  -# If Gnet out scheduler is enabled, there must be at least BW_OUT_GNET_MIN
@@ -2943,19 +2944,28 @@ true_expr(const char *expr)
 gboolean
 bsched_enough_up_bandwidth(void)
 {
+	static time_t last_stall;
 	guint32 total = 0;
-	
-	/**
-	 * FIXME: If all upload slots are used by clients which download
-	 *		  very slowly, the below check would cause a demotion
-	 *		  to leaf mode. It is in general not possible to know
-	 *		  whether we are out of bandwidth or if the remote clients
-	 *		  have insufficient available bandwidth.
+
+	/*
+	 * Stalling uploads are an indication that the output bandwidth is
+	 * saturated.  This condition is not triggered lightly, and adjustments
+	 * to the bandwidth distribution are made before declaring that uploads
+	 * are really stalling (see upload_stall() and related routines).
 	 */
-#if 0
-	if (noisy_check(ul_running && bws_out_ema < BW_OUT_UP_MIN))
+
+	if (noisy_check(GNET_PROPERTY(uploads_stalling))) {
+		last_stall = tm_time();
 		return FALSE;		/* 1. */
-#endif
+	}
+
+	/*
+	 * To avoid frequent UP -> leaf demotions due to upload stalling, we
+	 * impose a minimum amount of time since the last stalling condition.
+	 */
+
+	if (noisy_check(delta_time(tm_time(), last_stall) < BW_UL_STALL_TIM))
+		return FALSE;		/* 1. */
 
 	if (
 		noisy_check(
