@@ -439,6 +439,8 @@ button_fs_add_dir_clicked(GtkButton *unused_button, gpointer user_data)
 
 		if (is_directory(name))
 			guc_shared_dir_add(name);
+		else
+			g_warning("%s: Ignoring non-directory \"%s\"", G_STRFUNC, name);
 
         G_FREE_NULL(name);
 	}
