@@ -47,6 +47,7 @@ RCSID("$Id$")
 #include "tm.h"
 #include "walloc.h"
 #include "glib-missing.h"
+#include "stacktrace.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -1018,9 +1019,16 @@ bg_sched_timer(gboolean overloaded)
 		 * Run the next step.
 		 */
 
-		if (bg_debug > 4)
+		if (bg_debug > 2 && 0 == bt->seqno) {
+			g_debug("BGTASK \"%s\" starting step #%d (%s)",
+				bt->name, bt->step,
+				stacktrace_routine_name(bt->stepvec[bt->step], FALSE));
+		}
+
+		if (bg_debug > 4) {
 			g_debug("BGTASK \"%s\" running step #%d.%d with %d tick%s",
 				bt->name, bt->step, bt->seqno, ticks, ticks == 1 ? "" : "s");
+		}
 
 		bg_task_deliver_signals(bt);	/* Send any queued signal */
 
