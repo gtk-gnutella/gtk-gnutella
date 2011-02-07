@@ -667,12 +667,19 @@ shared_dirs_parse(const char *str)
  * Add directory to the list of shared directories.
  */
 void
-shared_dir_add(const char *path)
+shared_dir_add(const char *pathname)
 {
-	if (is_directory(path))
+	if (is_directory(pathname)) {
+		if (GNET_PROPERTY(share_debug) > 0) {
+			g_debug("%s: adding pathname=\"%s\"", G_STRFUNC, pathname);
+		}
         shared_dirs = g_slist_append(shared_dirs,
-						deconstify_gchar(atom_str_get(path)));
-
+						deconstify_gchar(atom_str_get(pathname)));
+	} else {
+		if (GNET_PROPERTY(share_debug) > 0) {
+			g_debug("%s: NOT adding pathname=\"%s\"", G_STRFUNC, pathname);
+		}
+	}
     shared_dirs_update_prop();
 }
 

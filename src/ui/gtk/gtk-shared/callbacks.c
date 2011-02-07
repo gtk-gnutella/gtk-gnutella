@@ -54,8 +54,6 @@ RCSID("$Id$")
     }
 
 
-static GtkWidget *add_dir_filesel = NULL;
-
 
 
 /***
@@ -414,6 +412,8 @@ on_button_config_bad_path_clicked(GtkButton *unused_button,
 
 /* Local File DB Managment */
 
+static GtkWidget *add_dir_filesel;
+
 gboolean
 fs_add_dir_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	gpointer unused_udata)
@@ -426,6 +426,49 @@ fs_add_dir_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	return TRUE;
 }
 
+#if GTK_CHECK_VERSION(2,6,0)
+void
+on_filechooser_response(GtkDialog *dialog, int response_id, void *user_data)
+{
+	GtkWidget **widget_ptr = user_data;
+
+	if (GTK_RESPONSE_ACCEPT == response_id) {
+		char *pathname;
+
+		pathname = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		guc_shared_dir_add(pathname);
+		G_FREE_NULL(pathname);
+	}
+	gtk_widget_destroy(GTK_WIDGET(*widget_ptr));
+	*widget_ptr = NULL;
+}
+
+void
+on_button_config_add_dir_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	if (add_dir_filesel)
+		return;
+
+	add_dir_filesel = gtk_file_chooser_dialog_new("Open File",
+				GTK_WINDOW(gui_main_window()),
+				GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+				GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+				GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+				(void *) 0);
+	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(add_dir_filesel), TRUE);
+
+	gui_signal_connect(add_dir_filesel,
+		"response",	on_filechooser_response, &add_dir_filesel);
+	gui_signal_connect(add_dir_filesel,
+		"delete_event", fs_add_dir_delete_event, NULL);
+
+	gtk_widget_show(add_dir_filesel);
+}
+#else	/* Gtk+ < 2.6.0 */
 void
 button_fs_add_dir_clicked(GtkButton *unused_button, gpointer user_data)
 {
@@ -471,6 +514,7 @@ on_button_config_add_dir_clicked(GtkButton *unused_button,
 		gtk_widget_show(add_dir_filesel);
 	}
 }
+#endif	/* Gtk+ >= 2.6.0 */
 
 void
 on_button_config_rescan_dir_clicked(GtkButton *unused_button,
@@ -481,7 +525,6 @@ on_button_config_rescan_dir_clicked(GtkButton *unused_button,
 
 	guc_share_scan();
 }
-
 
 void
 on_entry_config_netmask_activate(GtkEditable *editable, gpointer unused_data)
