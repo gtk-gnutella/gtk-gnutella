@@ -1760,8 +1760,8 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
  * bandwidth constraints.
  */
 ssize_t
-bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, fileoffset_t *offset,
-	size_t len)
+bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
+	int in_fd, fileoffset_t *offset, size_t len)
 {
 #if !defined(HAS_MMAP) && !defined(HAS_SENDFILE)
 

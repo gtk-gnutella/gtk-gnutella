@@ -5131,7 +5131,8 @@ upload_writable(gpointer obj, int unused_source, inputevt_cond_t cond)
 		written = bio_sendfile(&u->sendfile_ctx, u->bio,
 					file_object_get_fd(u->file), &pos, available);
 
-		g_assert((ssize_t) -1 == written || (fileoffset_t) written == pos - before);
+		g_assert((ssize_t) -1 == written ||
+			(fileoffset_t) written == pos - before);
 		u->pos = pos;
 
 	} else {
