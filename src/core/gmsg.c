@@ -1226,7 +1226,7 @@ gmsg_log_bad(const struct gnutella_node *n, const char *reason, ...)
 		va_start(args, reason);
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		gm_vsnprintf(rbuf, sizeof rbuf - 2, reason, args);
+		gm_vsnprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';
