@@ -276,6 +276,8 @@ mingw_win2posix(int error)
 		return ENOSPC;
 	case ERROR_BROKEN_PIPE:
 		return EPIPE;
+	case ERROR_INVALID_NAME:		/* Invalid syntax in filename */
+		return EINVAL;
 	/* The following remapped because their number is in the POSIX range */
 	case ERROR_ARENA_TRASHED:
 		return EFAULT;
