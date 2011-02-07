@@ -105,8 +105,9 @@ tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
 		unsigned level = is_temporary_error(saved_errno) ? 2 : 0;
 
 		if (GNET_PROPERTY(tls_debug) > level) {
-			g_debug("%s(): fd=%d size=%lu ret=-1 errno=\"%s\"",
-				op, fd, (unsigned long) size, g_strerror(saved_errno));
+			g_debug("%s(): fd=%d size=%lu ret=-1 errno=%s(%d)",
+				op, fd, (unsigned long) size,
+				symbolic_errno(saved_errno), saved_errno);
 		}
 	} else {
 		if (GNET_PROPERTY(tls_debug) > 2) {
@@ -154,10 +155,13 @@ tls_signal_pending(struct gnutella_socket *s)
 	size_t n = gnutls_record_check_pending(tls_socket_get_session(s));
 
 	if (n > 0) {
+		int saved_errno = errno;
+
 		if (GNET_PROPERTY(tls_debug) > 1) {
 			g_debug("%s: pending=%lu", G_STRFUNC, (unsigned long) n);
 		}
 		inputevt_set_readable(s->file_desc);
+		errno = saved_errno;
 	}
 }
 
@@ -335,9 +339,9 @@ tls_handshake(struct gnutella_socket *s)
 				if (GNET_PROPERTY(tls_debug) < 2)
 					break;
 			default:
-				g_debug("gnutls_handshake() failed: host=%s errno=\"%s\"",
+				g_debug("gnutls_handshake() failed: host=%s errno=%s(%d)",
 					host_addr_port_to_string(s->addr, s->port),
-					g_strerror(errno));
+					symbolic_errno(errno), errno);
 			}
 		}
 		break;
@@ -602,9 +606,9 @@ tls_write_intern(struct wrap_io *wio, const void *buf, size_t size)
 		case GNUTLS_E_PUSH_ERROR:
 			if (GNET_PROPERTY(tls_debug)) {
 				g_debug("tls_write(): socket_tls_write() failed: "
-					"host=%s errno=\"%s\"",
+					"host=%s errno=%s(%d)",
 					host_addr_port_to_string(s->addr, s->port),
-					g_strerror(errno));
+					symbolic_errno(errno), errno);
 			}
 			errno = EIO;
 			ret = -1;
@@ -699,7 +703,8 @@ tls_read(struct wrap_io *wio, void *buf, size_t size)
 
 	if (tls_flush(wio) && !is_temporary_error(errno)) {
 		if (GNET_PROPERTY(tls_debug)) {
-			g_warning("tls_read: flush error: %s", g_strerror(errno));
+			g_warning("tls_read: flush error: %s(%d)",
+				symbolic_errno(errno), errno);
 		}
 		return -1;
 	}
@@ -715,9 +720,9 @@ tls_read(struct wrap_io *wio, void *buf, size_t size)
 		case GNUTLS_E_PUSH_ERROR:
 			if (GNET_PROPERTY(tls_debug)) {
 				g_debug("tls_read(): socket_tls_read() failed: "
-					"host=%s errno=\"%s\"",
+					"host=%s errno=%s(%d)",
 					host_addr_port_to_string(s->addr, s->port),
-					g_strerror(errno));
+					symbolic_errno(errno), errno);
 			}
 			errno = EIO;
 			break;
@@ -870,18 +875,18 @@ tls_bye(struct gnutella_socket *s)
 						break;
 				default:
 					if (GNET_PROPERTY(tls_debug)) {
-						g_debug("gnutls_bye() failed: host=%s errno=\"%s\"",
+						g_debug("gnutls_bye() failed: host=%s errno=%s(%d)",
 							host_addr_port_to_string(s->addr, s->port),
-							g_strerror(errno));
+							symbolic_errno(errno), errno);
 					}
 				}
 			}
 			break;
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
-				g_carp("gnutls_bye() failed: host=%s error=\"%s\"",
+				g_carp("gnutls_bye() failed: host=%s error=%s(%d)",
 					host_addr_port_to_string(s->addr, s->port),
-					gnutls_strerror(ret));
+					symbolic_errno(errno), errno);
 			}
 		}
 	}
