@@ -1306,15 +1306,18 @@ mingw_mprotect(void *addr, size_t len, int prot)
 		newProtect = PAGE_READWRITE;
 		break;
 	default:
-		g_error("mingw_mprotect(): unsupported protection flags 0x%x", prot);
+		g_carp("mingw_mprotect(): unsupported protection flags 0x%x", prot);
+		res = EINVAL;
+		return -1;
 	}
 
 	res = VirtualProtect((LPVOID) addr, len, newProtect, &oldProtect);
 	if (!res) {
 		errno = mingw_last_error();
 		if (vmm_is_debugging(0)) {
-			g_debug("VMM mprotect(0x%lx, %lu) failed: errno=%d",
-				(unsigned long) addr, (unsigned long) len, errno);
+			g_debug("VMM mprotect(0x%lx, %lu) failed: errno=%d (%s)",
+				(unsigned long) addr, (unsigned long) len, errno,
+				symbolic_errno(errno));
 		}
 		return -1;
 	}
@@ -1699,7 +1702,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 		t = CreateWaitableTimer(NULL, TRUE, NULL);
 
 		if (NULL == t)
-			g_warning("unable to create waitable timer, ignoring nanosleep()");
+			g_carp("unable to create waitable timer, ignoring nanosleep()");
 
 		errno = ENOMEM;		/* System problem anyway */
 		return -1;
@@ -1726,8 +1729,8 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 
 	if (0 == SetWaitableTimer(t, &dueTime, 0, NULL, NULL, FALSE)) {
 		errno = mingw_last_error();
-		g_warning("could not set timer, unable to nanosleep(): %s",
-			g_strerror(errno));
+		g_carp("could not set timer, unable to nanosleep(): %s (%s)",
+			g_strerror(errno), symbolic_errno(errno));
 		return -1;
 	}
 
