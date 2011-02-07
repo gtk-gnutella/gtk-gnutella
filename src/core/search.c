@@ -4697,7 +4697,7 @@ do {												\
 	p += word_length;								\
 } while (0)
 
-	if (GNET_PROPERTY(share_debug) > 4)
+	if (GNET_PROPERTY(query_debug) > 14)
 		g_debug("original: [%s]", search);
 
 	word = is_ascii_blank(*search) ? NULL : search;
@@ -4733,7 +4733,7 @@ do {												\
 	if ('\0' != *p)
 		*p = '\0'; /* terminate mangled query */
 
-	if (GNET_PROPERTY(share_debug) > 4)
+	if (GNET_PROPERTY(query_debug) > 14)
 		g_debug("mangled:  [%s]", search);
 
 	/* search does no longer contain unnecessary whitespace */
@@ -4902,13 +4902,13 @@ search_request_preprocess(struct gnutella_node *n)
 	search_len = clamp_strlen(search, n->size - 2);
 	if (search_len >= n->size - 2U) {
 		g_assert(n->data[n->size - 1] != '\0');
-		if (GNET_PROPERTY(share_debug))
+		if (GNET_PROPERTY(query_debug) > 10)
 			g_warning("query (hops=%u, ttl=%u) had no NUL (%d byte%s)",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
 				n->size - 2,
 				n->size == 3 ? "" : "s");
-		if (GNET_PROPERTY(share_debug) > 4)
+		if (GNET_PROPERTY(query_debug) > 14)
 			dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
 
 		gnet_stats_count_dropped(n, MSG_DROP_QUERY_NO_NUL);
@@ -5022,16 +5022,16 @@ search_request_preprocess(struct gnutella_node *n)
 		if (exvcnt == MAX_EXTVEC) {
 			g_warning("%s has at least %d extensions!",
 				gmsg_node_infostr(n), exvcnt);
-			if (GNET_PROPERTY(share_debug))
+			if (GNET_PROPERTY(query_debug) > 10)
 				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
-			if (GNET_PROPERTY(share_debug) > 1)
+			if (GNET_PROPERTY(query_debug) > 11)
 				dump_hex(stderr, "Query", search, n->size - 2);
 		}
 
-		if (exvcnt && GNET_PROPERTY(share_debug) > 3) {
+		if (exvcnt && GNET_PROPERTY(query_debug) > 13) {
 			g_debug("query with extensions: %s\n", search);
 			ext_dump(stderr, exv, exvcnt, "> ", "\n",
-				GNET_PROPERTY(share_debug) > 4);
+				GNET_PROPERTY(query_debug) > 14);
 		}
 
 		/*
@@ -5045,7 +5045,7 @@ search_request_preprocess(struct gnutella_node *n)
 
 			switch (e->ext_token) {
 			case EXT_T_OVERHEAD:
-				if (GNET_PROPERTY(share_debug) > 6)
+				if (GNET_PROPERTY(query_debug) > 16)
 					dump_hex(stderr, "Query Packet (BAD: has overhead)",
 						search, MIN(n->size - 2, 256));
 				gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
@@ -5053,7 +5053,7 @@ search_request_preprocess(struct gnutella_node *n)
 				break;
 
 			case EXT_T_URN_BAD:
-				if (GNET_PROPERTY(share_debug)) {
+				if (GNET_PROPERTY(query_debug) > 10) {
 					dump_hex(stderr, "Query Packet has bad URN",
 						search, MIN(n->size - 2, 256));
 				}
@@ -5095,7 +5095,7 @@ search_request_preprocess(struct gnutella_node *n)
 
 				}
 
-				if (GNET_PROPERTY(share_debug) > 4) {
+				if (GNET_PROPERTY(query_debug) > 14) {
 					g_debug("valid SHA1 #%d in query: %s",
 						exv_sha1cnt, sha1_base32(sha1));
 				}
@@ -5110,12 +5110,12 @@ search_request_preprocess(struct gnutella_node *n)
 				search_log_ggep(n, e, NULL, "unknown");
 				break;
 			case EXT_T_UNKNOWN:
-				if (GNET_PROPERTY(share_debug) > 4) {
+				if (GNET_PROPERTY(query_debug) > 14) {
 					g_debug("%s has unknown extension", gmsg_node_infostr(n));
 				}
 				break;
 			default:
-				if (GNET_PROPERTY(share_debug) > 4) {
+				if (GNET_PROPERTY(query_debug) > 14) {
 					g_debug("%s has unhandled extension",
 						gmsg_node_infostr(n));
 				}
@@ -5214,7 +5214,7 @@ search_request_preprocess(struct gnutella_node *n)
 		}
 
 		if (delta_time(now, (time_t) 0) - seen < threshold) {
-			if (GNET_PROPERTY(share_debug)) g_warning(
+			if (GNET_PROPERTY(query_debug) > 10) g_warning(
 				"node %s (%s) re-queried \"%s\" after %u secs",
 				node_addr(n), node_vendor(n), query,
 				(unsigned) delta_time(now, seen));
@@ -5263,7 +5263,7 @@ search_request_preprocess(struct gnutella_node *n)
 			found = g_hash_table_lookup(n->qrelayed, stmp_1);
 
 		if (found != NULL) {
-			if (GNET_PROPERTY(share_debug)) g_warning(
+			if (GNET_PROPERTY(query_debug) > 10) g_warning(
 				"dropping query \"%s%s\" (hops=%u, TTL=%u) "
 				"already seen recently from %s",
 				last_sha1_digest == NULL ? "" : "urn:sha1:",
