@@ -92,7 +92,7 @@ host_addr_t natpmp_gateway_addr(const natpmp_t *np);
 gboolean natpmp_has_rebooted(const natpmp_t *np);
 void natpmp_clear_rebooted(natpmp_t *np);
 void natpmp_free_null(natpmp_t **np_ptr);
-void natpmp_discover(natpmp_discover_cb_t cb, void *arg);
+void natpmp_discover(unsigned retries, natpmp_discover_cb_t cb, void *arg);
 void natpmp_monitor(natpmp_t *np, natpmp_discover_cb_t cb, void *arg);
 void natpmp_map(natpmp_t *np, enum upnp_map_proto proto, guint16 port,
 	time_delta_t lease, natpmp_map_cb_t cb, void *arg);

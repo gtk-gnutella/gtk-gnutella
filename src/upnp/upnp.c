@@ -543,14 +543,21 @@ upnp_natpmp_discovered(gboolean ok, natpmp_t *gateway, void *arg)
 static void
 upnp_launch_discovery(void)
 {
+	static gboolean retrying;
+
 	igd.discovery_done = FALSE;
 	gw.discovery_done = FALSE;
 
 	/*
 	 * Give priority to NAT-PMP.
+	 *
+	 * The first time we're trying to discover NAT-PMP, limit the number
+	 * of retries before timeouting to 3, so that we can quickly fallback
+	 * to UPnP if we get no answers.
 	 */
 
-	natpmp_discover(upnp_natpmp_discovered, NULL);
+	natpmp_discover(retrying ? 0 : 3, upnp_natpmp_discovered, NULL);
+	retrying = TRUE;
 }
 
 /**

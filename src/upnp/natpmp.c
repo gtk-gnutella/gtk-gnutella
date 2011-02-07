@@ -116,7 +116,8 @@ struct natpmp_rpc {
 	natpmp_t *np;				/**< Known NAT-PMP gateway */
 	unsigned timeout;			/**< Next timeout, in milliseconds */
 	unsigned sssoe;				/**< Seconds since start of epoch */
-	int count;					/**< Iteration count */
+	unsigned retries;			/**< Max amount of retries */
+	unsigned count;				/**< Iteration count */
 	guint16 iport;				/**< Internal port (in mapping RPCs) */
 };
 
@@ -261,6 +262,7 @@ natpmp_rpc_alloc(natpmp_t *np, host_addr_t addr, enum natpmp_op op, pmsg_t *mb)
 	rd->np = np;
 	rd->mb = mb;
 	rd->timeout = NATPMP_TIMEOUT;
+	rd->retries = NATPMP_ITER_MAX;
 	rd->count = 0;
 
 	natpmp_rpc_pending++;
@@ -670,7 +672,7 @@ natpmp_rpc_iterate(cqueue_t *unused_cq, void *obj)
 	natpmp_rpc_check(rd);
 	(void) unused_cq;
 
-	if (rd->count++ > NATPMP_ITER_MAX)
+	if (rd->count++ > rd->retries)
 		goto finished;
 
 	ret = urpc_send("NAT-PMP", rd->gateway, NATPMP_SRV_PORT,
@@ -705,11 +707,13 @@ finished:
  * Start a "discovery rpc" sequence.
  *
  * @param np		existing NAT-PMP gateway (NULL if unknown yet)
+ * @param retries	amount of retries before timeouting
  * @param cb		callback to invoke on completion / timeout
  * @param arg		user-defined callback argument
  */
 static void
-natpmp_rpc_discover(natpmp_t *np, natpmp_discover_cb_t cb, void *arg)
+natpmp_rpc_discover(natpmp_t *np, unsigned retries,
+	natpmp_discover_cb_t cb, void *arg)
 {
 	struct natpmp_rpc *rd;
 	host_addr_t addr;
@@ -757,6 +761,8 @@ natpmp_rpc_discover(natpmp_t *np, natpmp_discover_cb_t cb, void *arg)
 	rd = natpmp_rpc_alloc(np, addr, NATPMP_OP_DISCOVERY, mb);
 	rd->cb.discovery = cb;
 	rd->arg = arg;
+	if (retries != 0)
+		rd->retries = MIN(retries, rd->retries);
 
 	cq_main_insert(1, natpmp_rpc_iterate, rd);
 }
@@ -765,11 +771,12 @@ natpmp_rpc_discover(natpmp_t *np, natpmp_discover_cb_t cb, void *arg)
  * Initiate discovery of a NAT-PMP gateway.
  * Upon completion, the callback is invoked with the status.
  *
+ * @param retries	number of retries before timeout (0 means default)
  * @param cb		callback to invoke on completion / timeout
  * @param arg		user-defined callback argument
  */
 void
-natpmp_discover(natpmp_discover_cb_t cb, void *arg)
+natpmp_discover(unsigned retries, natpmp_discover_cb_t cb, void *arg)
 {
 	/*
 	 * If NATPMP is disabled, ignore request but log.
@@ -786,7 +793,7 @@ natpmp_discover(natpmp_discover_cb_t cb, void *arg)
 	if (GNET_PROPERTY(natpmp_debug) > 3)
 		g_message("NATPMP initiating discovery");
 
-	natpmp_rpc_discover(NULL, cb, arg);
+	natpmp_rpc_discover(NULL, retries, cb, arg);
 }
 
 /**
@@ -800,7 +807,7 @@ natpmp_discover(natpmp_discover_cb_t cb, void *arg)
 void
 natpmp_monitor(natpmp_t *np, natpmp_discover_cb_t cb, void *arg)
 {
-	natpmp_rpc_discover(np, cb, arg);
+	natpmp_rpc_discover(np, 0, cb, arg);
 }
 
 /**
