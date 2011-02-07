@@ -56,8 +56,8 @@ case "$version" in
 '') ;;
 *)
 	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 010016; then
-		echo "Sorry, you have GnuTLS $version, I need at least 1.0.16." >&4
+	if test 0$vint -lt 020205; then
+		echo "Sorry, you have GnuTLS $version, I need at least 2.2.5." >&4
 	else
 		echo "Good, you have GnuTLS $version." >&4
 		
