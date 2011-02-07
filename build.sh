@@ -10,6 +10,7 @@ set -e
 # This is not interactive
 exec </dev/null
 
+# Standard variables like CC, CFLAGS etc. default to the current environment
 build_bindir=
 build_configure_only=
 build_datadir=
@@ -26,11 +27,31 @@ build_socker=
 build_ui=
 build_verbose='-s'
 
+# There is something broken about Configure, so it needs to know the
+# suffix for shared objects (dynamically loaded libraries) for some odd
+# reasons.
+# FIXME: There should be an override switch for cross-compiling.
+case "`uname -s`" in
+darwin|Darwin)
+build_so_suffix='dylib'
+;;
+MINGW*)
+mingwlib=/mingw/lib	# FIXME, hardcoded for now, could be detected maybe
+PATH="$PATH${PATH:+:}${mingwlib}/gtk/bin:${mingwlib}/xml2/bin"
+export PATH
+CPPFLAGS="$CPPFLAGS -I${mingwlib}/regex/include -I${mingwlib}/gtk/include"
+LDFLAGS="$LDFLAGS -L${mingwlib}/regex/lib -L${mingwlib}/gtk/lib"
+LIBS="$LIBS -lwsock32 -lws2_32 -lregex -lz -liconv -limagehlp -liphlpapi"
+LIBS="$LIBS -lws2_32 -lpowrprof -lpsapi -lkernel32"
+;;
+esac
+
 while [ $# -gt 0 ]; do
 	case "$1" in
 	--bindir=*)			build_bindir="${1#--*=}";;
 	--cc=*)				CC="${1#--*=}";;
 	--cflags=*)			CFLAGS="${1#--*=}";;
+	--cppflags=*)		CPPFLAGS="${1#--*=}";;
 	--configure-only)	build_configure_only='yes';;
 	--datadir=*)		build_datadir="${1#--*=}";;
 	--disable-dbus)		build_dbus='d_dbus';;
@@ -42,6 +63,7 @@ while [ $# -gt 0 ]; do
 	--gtk1)				build_ui='gtkversion=1';;
 	--gtk2)				build_ui='gtkversion=2';;
 	--ldflags=*)		LDFLAGS="${1#--*=}";;
+	--libs=*)			LIBS="${1#--*=}";;
 	--libdir=*)			build_libdir="${1#--*=}";;
 	--localedir=*)		build_localedir="${1#--*=}";;
 	--mandir=*)			build_mandir="${1#--*=}";;
@@ -71,7 +93,9 @@ echo '  --localedir=PATH Directory for installing locale data. [$PREFIX/share/lo
 echo '  --mandir=PATH    Directory for installing manual pages. [$PREFIX/man]'
 echo '  --cc=TOOL        C compiler to use. [$CC]'
 echo '  --cflags=FLAGS   Flags to pass to the C compiler. [$CFLAGS]'
+echo '  --cppflags=FLAGS Flags to pass to the C pre-compiler. [$CPPFLAGS]'
 echo '  --ldflags=FLAGS  Flags to pass to the linker. [$LDFLAGS]'
+echo '  --libs=FLAGS     Flags to pass to the linker. [$LIBS]'
 echo '  --make=TOOL      make tool to be used. [$MAKE]'
 echo '  --yacc=TOOL      yacc, bison or some compatible tool. [$YACC]'
 echo '  --configure-only Do not run make after Configure.'
@@ -101,6 +125,7 @@ if [ "X$YACC" = X ]; then
 fi
 
 CFLAGS="$CFLAGS${build_halloc:+ -DUSE_HALLOC}"
+CFLAGS="$CFLAGS${CPPFLAGS:+ }$CPPFLAGS"
 PREFIX=${PREFIX:-/usr/local}
 
 build_bindir=${build_bindir:-$PREFIX/bin}
@@ -121,13 +146,6 @@ build_localedir=${build_localedir:+"$build_localedir"}
 build_official=${build_official:-true}
 build_ui=${build_ui:-gtkversion=2}
 
-# There is something broken about Configure, so it needs to know the
-# suffix for shared objects (dynamically loaded libraries) for some odd
-# reasons.
-case "`uname -s`" in
-darwin|Darwin) build_so_suffix='dylib';;
-esac
-
 # Make sure previous Configure settings have no influence.
 ${MAKE} clobber >/dev/null 2>&1 || : ignore failure
 rm -f config.sh
@@ -140,6 +158,7 @@ rm -f config.sh
 	${CC:+-D "cc=$CC"} \
 	${CFLAGS:+-D "ccflags=$CFLAGS"} \
 	${LDFLAGS:+-D "ldflags=$LDFLAGS"} \
+	${LIBS:+-D "libs=$LIBS"} \
 	${PREFIX:+-D "prefix=$PREFIX"} \
 	${MAKE:+-D "make=$MAKE"} \
 	${YACC:+-D "yacc=$YACC"} \
@@ -167,3 +186,4 @@ ${MAKE} || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
 echo "Run \"${MAKE} install\" to install gtk-gnutella."
 exit
 
+# vi: set ts=4 sw=4 et:
