@@ -874,9 +874,7 @@ share_scan_add_file(const char *relative_path,
 	 * downloading directory...
 	 */
 
-	name = strrchr(pathname, G_DIR_SEPARATOR);
-	g_assert(name && G_DIR_SEPARATOR == name[0]);
-	name++;						/* Start of file name */
+	name = filepath_basename(pathname);
 
 	if (GNET_PROPERTY(share_debug) > 5) {
 		g_debug("share_scan_add_file: pathname=\"%s\"", pathname);
