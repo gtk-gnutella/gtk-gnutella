@@ -1869,8 +1869,10 @@ const char *
 symbolic_errno(int errnum)
 {
 #define CASE(x) case x: return #x
+
 	switch (errnum) {
 	case 0: return "SUCCESS";
+	/* The following codes are defined by POSIX */
 	CASE(E2BIG);
 	CASE(EACCES);
 	CASE(EADDRINUSE);
@@ -1994,6 +1996,14 @@ symbolic_errno(int errnum)
 	CASE(EWOULDBLOCK);
 #endif
 	CASE(EXDEV);
+
+	/* The following additional codes are defined by Linux */
+#ifdef EHOSTDOWN
+	CASE(EHOSTDOWN);
+#endif
+#ifdef ENOTBLK
+	CASE(ENOTBLK);
+#endif
 	}
 #undef CASE
 	return ""; /* Unknown errno code */
