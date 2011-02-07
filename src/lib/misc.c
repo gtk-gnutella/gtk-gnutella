@@ -1877,36 +1877,28 @@ symbolic_errno(int errnum)
 	CASE(EACCES);
 	CASE(EADDRINUSE);
 	CASE(EADDRNOTAVAIL);
-#ifdef EAFNOSUPPORT
 	CASE(EAFNOSUPPORT);
-#endif
 	CASE(EAGAIN);
-#ifdef EALREADY
 	CASE(EALREADY);
-#endif
 	CASE(EBADF);
-#ifdef EBADMSG
+#ifdef EBADMSG	/* MingW */
 	CASE(EBADMSG);
 #endif
 	CASE(EBUSY);
-#ifdef ECANCELED
 	CASE(ECANCELED);
-#endif
 	CASE(ECHILD);
 	CASE(ECONNABORTED);
 	CASE(ECONNREFUSED);
 	CASE(ECONNRESET);
 	CASE(EDEADLK);
-#ifdef EDESTADDRREQ
 	CASE(EDESTADDRREQ);
-#endif
 	CASE(EDOM);
 	CASE(EDQUOT);
 	CASE(EEXIST);
 	CASE(EFAULT);
 	CASE(EFBIG);
 	CASE(EHOSTUNREACH);
-#ifdef EIDRM
+#ifdef EIDRM	/* MingW */
 	CASE(EIDRM);
 #endif
 	CASE(EILSEQ);
@@ -1916,15 +1908,11 @@ symbolic_errno(int errnum)
 	CASE(EIO);
 	CASE(EISCONN);
 	CASE(EISDIR);
-#ifdef ELOOP
 	CASE(ELOOP);
-#endif
 	CASE(EMFILE);
 	CASE(EMLINK);
-#ifdef EMSGSIZE
 	CASE(EMSGSIZE);
-#endif
-#ifdef EMULTIHOP
+#ifdef EMULTIHOP	/* MingW */
 	CASE(EMULTIHOP);
 #endif
 	CASE(ENAMETOOLONG);
@@ -1933,26 +1921,26 @@ symbolic_errno(int errnum)
 	CASE(ENETUNREACH);
 	CASE(ENFILE);
 	CASE(ENOBUFS);
-#ifdef ENODATA
+#ifdef ENODATA	/* MingW */
 	CASE(ENODATA);
 #endif
 	CASE(ENODEV);
 	CASE(ENOENT);
 	CASE(ENOEXEC);
 	CASE(ENOLCK);
-#ifdef ENOLINK
+#ifdef ENOLINK	/* MingW */
 	CASE(ENOLINK);
 #endif
 	CASE(ENOMEM);
-#ifdef ENOMSG
+#ifdef ENOMSG	/* MingW */
 	CASE(ENOMSG);
 #endif
 	CASE(ENOPROTOOPT);
 	CASE(ENOSPC);
-#ifdef ENOSR
+#ifdef ENOSR	/* MingW */
 	CASE(ENOSR);
 #endif
-#ifdef ENOSTR
+#ifdef ENOSTR	/* MingW */
 	CASE(ENOSTR);
 #endif
 	CASE(ENOSYS);
@@ -1960,36 +1948,32 @@ symbolic_errno(int errnum)
 	CASE(ENOTDIR);
 	CASE(ENOTEMPTY);
 	CASE(ENOTSOCK);
-#if defined(ENOTSUP) && ENOTSUP != ENOSYS		/* MinGW */
 	CASE(ENOTSUP);
-#endif
 	CASE(ENOTTY);
 	CASE(ENXIO);
-#if defined(EOPNOTSUPP) && EOPNOTSUPP != ENOTSUP /* GLIBC */
+#if defined(EOPNOTSUPP) && EOPNOTSUPP != ENOTSUP /* GLIBC and MingW */
 	CASE(EOPNOTSUPP);
 #endif
-#ifdef EOVERFLOW
+#ifdef EOVERFLOW	/* MingW */
 	CASE(EOVERFLOW);
 #endif
 	CASE(EPERM);
 	CASE(EPIPE);
+#if defined(EPROTO)	/* MinGW */
 	CASE(EPROTO);
-#if defined(EPROTONOSUPPORT) && EPROTONOSUPPORT != EPROTO	/* MinGW */
-	CASE(EPROTONOSUPPORT);
 #endif
+	CASE(EPROTONOSUPPORT);
 	CASE(EPROTOTYPE);
 	CASE(ERANGE);
 	CASE(EROFS);
 	CASE(ESPIPE);
 	CASE(ESRCH);
-#ifdef ESTALE
 	CASE(ESTALE);
-#endif
-#ifdef ETIME
+#ifdef ETIME	/* MingW */
 	CASE(ETIME);
 #endif
 	CASE(ETIMEDOUT);
-#ifdef ETXTBSY
+#ifdef ETXTBSY	/* MingW */
 	CASE(ETXTBSY);
 #endif
 #if defined(EWOULDBLOCK) && EWOULDBLOCK != EAGAIN
@@ -1997,7 +1981,7 @@ symbolic_errno(int errnum)
 #endif
 	CASE(EXDEV);
 
-	/* The following additional codes are defined by Linux */
+	/* The following codes are non-standard extensions */
 #ifdef EHOSTDOWN
 	CASE(EHOSTDOWN);
 #endif

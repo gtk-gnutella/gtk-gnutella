@@ -579,7 +579,7 @@ regular:
 
 bad_protocol:
 	s_close(fd);
-	errno = EPROTO;
+	errno = ENOPROTOOPT;
 	return -1;
 }
 
