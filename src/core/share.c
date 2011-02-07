@@ -842,17 +842,17 @@ share_scan_add_file(const char *relative_path,
 
 	if (0 == sb->st_size) {
 		if (GNET_PROPERTY(share_debug) > 5)
-			g_warning("Not sharing empty file: \"%s\"", pathname);
+			g_warning("not sharing empty file: \"%s\"", pathname);
 		return NULL;
 	}
 
 	if (too_big_for_gnutella(sb->st_size)) {
-		g_warning("File is too big to be shared: \"%s\"", pathname);
+		g_warning("file is too big to be shared: \"%s\"", pathname);
 		return NULL;
 	}
 
 	if (contains_control_chars(pathname)) {
-		g_warning("Not sharing filename with control characters: "
+		g_warning("not sharing filename with control characters: "
 				"\"%s\"", pathname);
 		return NULL;
 	}
@@ -1226,7 +1226,7 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 			break;
 		default:
 			if (GNET_PROPERTY(share_debug)) {
-				g_warning("Skipping file of unknown type \"%s\" in \"%s\"",
+				g_warning("skipping file of unknown type \"%s\" in \"%s\"",
 					ctx->current_dir, filename);
 			}
 			goto finish;
