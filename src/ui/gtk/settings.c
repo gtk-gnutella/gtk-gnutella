@@ -449,7 +449,7 @@ update_shared_dirs(property_t prop)
 	for (p = str; '\0' != *p; p = '\0' == *end ? end : ++end) {
 		size_t len;
 
-		end = strchr(p, ':');
+		end = strchr(p, G_SEARCHPATH_SEPARATOR);
 		if (!end)
 			end = strchr(p, '\0');
 

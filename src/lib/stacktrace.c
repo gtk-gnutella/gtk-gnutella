@@ -264,7 +264,8 @@ locate_from_path(const char *argv0)
 
 	path = strdup(path);
 
-	for (tok = strtok(path, ":"); tok; tok = strtok(NULL, ":")) {
+	tok = strtok(path, G_SEARCHPATH_SEPARATOR_S);
+	while (NULL != tok) {
 		const char *dir = tok;
 		filestat_t buf;
 
@@ -279,6 +280,7 @@ locate_from_path(const char *argv0)
 				break;
 			}
 		}
+		tok = strtok(NULL, G_SEARCHPATH_SEPARATOR_S);
 	}
 
 	free(path);

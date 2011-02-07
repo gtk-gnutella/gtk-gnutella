@@ -625,7 +625,7 @@ shared_dirs_update_prop(void)
     for (sl = shared_dirs; sl != NULL; sl = g_slist_next(sl)) {
         str_cat(s, sl->data);
         if (g_slist_next(sl) != NULL)
-            str_putc(s, ':');
+            str_putc(s, G_SEARCHPATH_SEPARATOR);
     }
 
     gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, str_2c(s));
