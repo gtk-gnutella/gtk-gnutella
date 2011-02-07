@@ -63,6 +63,8 @@ RCSID("$Id$")
 
 #include "override.h"			/* Must be the last header included */
 
+#define PARENT_STDERR_FILENO	3
+
 struct crash_vars {
 	ckhunk_t *mem;			/**< Reserved memory, read-only */
 	ckhunk_t *mem2;			/**< Reserved memory, read-only */
@@ -452,6 +454,12 @@ crash_invoke_inspector(int signo, const char *cwd)
 		goto parent_failure;
 	}
 
+	/* Make sure child will get access to the stderr of its parent */
+	if (PARENT_STDERR_FILENO != dup(STDERR_FILENO)) {
+		stage = "parent's stderr duplication";
+		goto parent_failure;
+	}
+
 #ifdef SIGCHLD
 	signal_set(SIGCHLD, SIG_DFL);
 #endif
@@ -535,6 +543,8 @@ crash_invoke_inspector(int signo, const char *cwd)
 				STDERR_FILENO != dup(STDOUT_FILENO)
 			)
 				goto child_failure;
+
+			set_close_on_exec(PARENT_STDERR_FILENO);
 
 			/*
 			 * Emit crash header.
@@ -640,6 +650,18 @@ crash_invoke_inspector(int signo, const char *cwd)
 				execve(argv[0], (const void *) argv, NULL);
 			}
 
+			/* Log exec failure */
+			crash_time(tbuf, sizeof tbuf);
+			rewind_str(0);
+			print_str(tbuf);					/* 0 */
+			print_str(" CRASH (pid=");			/* 1 */
+			print_str(pid_str);					/* 2 (parent's PID) */
+			print_str(") ");					/* 3 */
+			print_str("exec() error: ");		/* 4 */
+			print_str(symbolic_errno(errno));	/* 5 */
+			print_str("\n");					/* 6 */
+			flush_str(PARENT_STDERR_FILENO);
+
 		child_failure:
 			_exit(EXIT_FAILURE);
 		}	
@@ -652,6 +674,8 @@ crash_invoke_inspector(int signo, const char *cwd)
 			char time_buf[18];
 			int status;
 			gboolean child_ok = FALSE;
+
+			close(PARENT_STDERR_FILENO);
 
 			/*
 			 * Now that the child has started, we can write commands to
