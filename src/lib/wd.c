@@ -207,7 +207,7 @@ wd_expire(watchdog_t *wd)
 	(*wd->trigger)(wd, wd->arg);
 
 	if (wd->ev != NULL) {
-		g_warning("wd_expire(): "
+		g_carp("wd_expire(): "
 			"watchdog \"%s\" re-armed within callback, turning it off",
 			wd_name(wd));
 	}
