@@ -36,14 +36,16 @@ darwin|Darwin)
 build_so_suffix='dylib'
 ;;
 MINGW*)
-mingwlib=/mingw/lib	# FIXME, hardcoded for now, could be detected maybe
-PATH="$PATH${PATH:+:}${mingwlib}/gtk/bin:${mingwlib}/xml2/bin"
-export PATH
-CPPFLAGS="$CPPFLAGS -I${mingwlib}/regex/include -I${mingwlib}/gtk/include"
-LDFLAGS="$LDFLAGS -L${mingwlib}/regex/lib -L${mingwlib}/gtk/lib"
-LIBS="$LIBS -lwsock32 -lws2_32 -lregex -lz -liconv -limagehlp -liphlpapi"
-LIBS="$LIBS -lws2_32 -lpowrprof -lpsapi -lkernel32"
-;;
+	mingwlib=/mingw/lib	# FIXME, hardcoded for now, could be detected maybe
+	PATH="$PATH${PATH:+:}${mingwlib}/gtk/bin:${mingwlib}/xml2/bin"
+	export PATH
+	CPPFLAGS="$CPPFLAGS -I${mingwlib}/regex/include -I${mingwlib}/gtk/include"
+	LDFLAGS="$LDFLAGS -L${mingwlib}/regex/lib -L${mingwlib}/gtk/lib"
+	LIBS="$LIBS -lwsock32 -lws2_32 -lregex -lz -liconv -limagehlp -liphlpapi"
+	LIBS="$LIBS -lws2_32 -lpowrprof -lpsapi -lkernel32"
+	CC=gcc
+	CFLAGS="-DMINGW32 $CPPFLAGS"
+	;;
 esac
 
 while [ $# -gt 0 ]; do
