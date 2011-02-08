@@ -867,18 +867,11 @@ share_scan_add_file(const char *relative_path,
 	if (!shared_file_valid_extension(pathname))
 		return NULL;
 
-	/*
-	 * In the "tmp" directory, don't share files that have a trailer.
-	 * It's probably a file being downloaded, and which is not complete yet.
-	 * This check is necessary in case they choose to share their
-	 * downloading directory...
-	 */
-
 	name = filepath_basename(pathname);
 
-	if (GNET_PROPERTY(share_debug) > 5) {
-		g_debug("share_scan_add_file: pathname=\"%s\"", pathname);
-	}
+	if (GNET_PROPERTY(share_debug) > 5)
+		g_debug("%s: pathname=\"%s\"", G_STRFUNC, pathname);
+
 	sf = shared_file_alloc();
 	sf->file_path = atom_str_get(pathname);
 	sf->relative_path = relative_path ? atom_str_get(relative_path) : NULL;
@@ -900,6 +893,13 @@ share_scan_add_file(const char *relative_path,
 
 	if (!sha1_is_cached(sf)) {
 		int ret;
+
+		/*
+		 * In the "tmp" directory, don't share files that have a trailer.
+		 * It's probably a file being downloaded, and which is not complete
+		 * yet.  This check is necessary in case they chose to share their
+		 * downloading directory...
+		 */
 
 		ret = file_info_has_trailer(pathname);
 		switch (ret) {
@@ -940,17 +940,17 @@ directory_is_unshareable(const char *dir)
 	 * probably caused by non-existing files or missing permission.
 	 */
 	if (TRUE == is_same_file(dir, "/")) {
-		g_warning("Refusing to share root directory: %s", dir);
+		g_warning("refusing to share root directory: %s", dir);
 		return TRUE;
 	}
 
 	if (TRUE == is_same_file(dir, settings_home_dir())) {
-		g_warning("Refusing to share home directory: %s", dir);
+		g_warning("refusing to share home directory: %s", dir);
 		return TRUE;
 	}
 
 	if (TRUE == is_same_file(dir, settings_config_dir())) {
-		g_warning("Refusing to share directory for configuration data: %s",
+		g_warning("refusing to share directory for configuration data: %s",
 			dir);
 		return TRUE;
 	}
@@ -959,12 +959,12 @@ directory_is_unshareable(const char *dir)
 		!is_null_or_empty(GNET_PROPERTY(save_file_path)) &&
 		TRUE == is_same_file(dir, GNET_PROPERTY(save_file_path))
 	) {
-		g_warning("Refusing to share directory for incomplete files: %s", dir);
+		g_warning("refusing to share directory for incomplete files: %s", dir);
 		return TRUE;
 	}
 
 	if (TRUE == is_same_file(dir, GNET_PROPERTY(bad_file_path))) {
-		g_warning("Refusing to share directory for corrupted files: %s", dir);
+		g_warning("refusing to share directory for corrupted files: %s", dir);
 		return TRUE;
 	}
 
@@ -1021,6 +1021,9 @@ static void
 recursive_scan_closedir(struct recursive_scan *ctx)
 {
 	recursive_scan_check(ctx);
+
+	if (GNET_PROPERTY(share_debug) > 6 && ctx->current_dir != NULL)
+		g_debug("SHARE leaving directory \"%s\"", ctx->current_dir);
 
 	atom_str_free_null(&ctx->relative_path);
 	atom_str_free_null(&ctx->current_dir);
@@ -1201,6 +1204,9 @@ recursive_scan_opendir(struct recursive_scan *ctx, const char * const dir)
 		ctx->relative_path = NULL;
 	}
 	ctx->current_dir = atom_str_get(dir);
+
+	if (GNET_PROPERTY(share_debug) > 5)
+		g_debug("SHARE scanning directory \"%s\"", ctx->current_dir);
 }
 
 static void
@@ -1216,6 +1222,9 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 	if (dir_entry) {
 		const char *filename = dir_entry_filename(dir_entry);
 		filestat_t sb;
+
+		if (GNET_PROPERTY(share_debug) > 19)
+			g_debug("SHARE considering entry \"%s\"", filename);
 
 		if ('.' == filename[0]) {
 			/* Hidden file, or "." or ".." */
@@ -1242,6 +1251,10 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 			GNET_PROPERTY(scan_ignore_symlink_dirs) &&
 			GNET_PROPERTY(scan_ignore_symlink_regfiles)
 		) {
+			if (GNET_PROPERTY(share_debug) > 15) {
+				g_debug("SHARE to-be-ignored symlink, discarding \"%s\"",
+					filename);
+			}
 			goto finish;
 		}
 
@@ -1249,6 +1262,10 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 			S_ISREG(sb.st_mode) &&
 			!shared_file_valid_extension(filename)
 		) {
+			if (GNET_PROPERTY(share_debug) > 15) {
+				g_debug("SHARE unshared extension, discarding \"%s\"",
+					filename);
+			}
 			goto finish;
 		}
 
@@ -1271,8 +1288,14 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 				GNET_PROPERTY(scan_ignore_symlink_dirs) &&
 				GNET_PROPERTY(scan_ignore_symlink_regfiles)
 			) {
-				/* We check this again because dir_entry_mode() does not
-				 * work everywhere. */
+				/*
+				 * We check this again because dir_entry_mode() does not
+				 * work everywhere.
+				 */
+				if (GNET_PROPERTY(share_debug) > 15) {
+					g_debug("SHARE to-be-ignored symlink, discarding \"%s\"",
+						filename);
+				}
 				goto finish;
 			}
 		}
@@ -1280,8 +1303,7 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 		/* Get info on the symlinked file */
 		if (S_ISLNK(sb.st_mode)) {
 			if (stat(fullpath, &sb)) {
-				g_warning("Broken symlink %s: %s",
-					fullpath, g_strerror(errno));
+				g_warning("broken symlink %s: %s", fullpath, g_strerror(errno));
 				goto finish;
 			}
 			
@@ -1294,13 +1316,19 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 			if (
 				S_ISDIR(sb.st_mode) &&
 				GNET_PROPERTY(scan_ignore_symlink_dirs)
-			)
+			) {
+				if (GNET_PROPERTY(share_debug) > 15)
+					g_debug("SHARE discarding symlink dir \"%s\"", filename);
 				goto finish;
+			}
 			if (
 				S_ISREG(sb.st_mode) &&
 				GNET_PROPERTY(scan_ignore_symlink_regfiles)
-			)
+			) {
+				if (GNET_PROPERTY(share_debug) > 15)
+					g_debug("SHARE discarding symlink file \"%s\"", filename);
 				goto finish;
+			}
 		}
 		
 		if (S_ISDIR(sb.st_mode)) {
@@ -1309,6 +1337,9 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 			fullpath = NULL;
 		} else if (S_ISREG(sb.st_mode)) {
 			shared_file_t *sf;
+
+			if (GNET_PROPERTY(share_debug) > 10)
+				g_debug("SHARE adding file \"%s\"", filename);
 
 			sf = share_scan_add_file(ctx->relative_path, fullpath, &sb);
 			if (sf) {
