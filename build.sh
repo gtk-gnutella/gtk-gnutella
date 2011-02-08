@@ -101,7 +101,7 @@ while [ $# -gt 0 ]; do
 	--yacc=*)			YACC="${1#--*=}";;
 	--) 				break;;
 	*)
-		cat <<EOM
+		cat << 'EOM'
 The following switches are available, defaults are shown in brackets:
 
   --gtk2           Use Gtk+ 2.x for the user interface [default].
