@@ -11796,9 +11796,9 @@ picked:
 
 		/*
 		 * If we request the file by a custom URI it's most likely
-		 * not a Gnutella peer, unless it's a THEX request.
+		 * not a Gnutella peer, unless it's a THEX or browse request.
 		 */
-		if (!d->uri || (d->flags & DL_F_THEX)) {
+		if (!d->uri || (d->flags & (DL_F_THEX | DL_F_BROWSE))) {
 			rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 					"X-Token: %s\r\n", tok_version());
 		}
