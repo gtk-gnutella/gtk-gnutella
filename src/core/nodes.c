@@ -8322,13 +8322,6 @@ node_bye_all(void)
 			pending_byes++;
 			node_bye(n, 200, "Servent shutdown");
 		}
-
-		/*
-		 * We're no longer interested by receiving and parsing traffic.
-		 */
-
-		if (NODE_IS_READABLE(n))
-			node_disable_read(n);
 	}
 }
 
