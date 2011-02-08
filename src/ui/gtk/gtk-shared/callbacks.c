@@ -226,22 +226,182 @@ on_button_search_stats_reset_clicked(GtkButton *unused_button,
  *** Config pane
  ***/
 
+/**
+ * We use a single dialog for all directory selections.
+ * This is simpler and avoids having several opened popup dialogs.
+ * If the dialog is already in use, it is destroyed and re-created, so
+ * the window is also automagically (re-)raised.
+ */
+static GtkWidget *directory_chooser;
 
-/* While downloading, store files to */
-
-GtkWidget *save_path_filesel = NULL;
-
-gboolean
-fs_save_path_delete_event(GtkWidget *unused_widget,
-	GdkEvent *unused_event, gpointer unused_udata)
+static gboolean
+on_directory_chooser_destroy_event(GtkWidget *unused_widget,
+	GdkEvent *unused_event, void *unused_udata)
 {
 	(void) unused_widget;
 	(void) unused_event;
 	(void) unused_udata;
-	gtk_widget_destroy(save_path_filesel);
-	save_path_filesel = NULL;
+
+	directory_chooser = NULL;
 	return TRUE;
 }
+
+static gboolean
+on_directory_chooser_delete_event(GtkWidget *widget,
+	GdkEvent *unused_event, void *unused_udata)
+{
+	(void) unused_event;
+	(void) unused_udata;
+
+	gtk_widget_destroy(widget);
+	directory_chooser = NULL;
+	return TRUE;
+}
+
+#if GTK_CHECK_VERSION(2,6,0)
+
+enum dir_choice {
+	DIR_CHOICE_SHARED,
+	DIR_CHOICE_COMPLETE,
+	DIR_CHOICE_INCOMPLETE,
+	DIR_CHOICE_CORRUPT
+};
+
+static void
+directory_chooser_handle_result(enum dir_choice dir_choice,
+	const char *pathname)
+{
+	g_return_if_fail(NULL != pathname);
+	g_return_if_fail(is_absolute_path(pathname));
+	g_return_if_fail(is_directory(pathname));
+
+	switch (dir_choice) {
+	case DIR_CHOICE_SHARED:
+		guc_shared_dir_add(pathname);
+		return;
+	case DIR_CHOICE_COMPLETE:
+		gnet_prop_set_string(PROP_MOVE_FILE_PATH, pathname);
+		return;
+	case DIR_CHOICE_INCOMPLETE:
+		gnet_prop_set_string(PROP_SAVE_FILE_PATH, pathname);
+		return;
+	case DIR_CHOICE_CORRUPT:
+		gnet_prop_set_string(PROP_BAD_FILE_PATH, pathname);
+		return;
+	}
+	g_assert_not_reached();
+}
+
+void
+on_directory_chooser_response(GtkDialog *dialog, int response_id,
+	void *user_data)
+{
+	if (GTK_RESPONSE_ACCEPT == response_id) {
+		enum dir_choice dir_choice = pointer_to_uint(user_data);
+		char *pathname;
+
+		pathname = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		directory_chooser_handle_result(dir_choice, pathname);
+		G_FREE_NULL(pathname);
+	}
+	gtk_widget_destroy(GTK_WIDGET(dialog));
+	directory_chooser = NULL;
+}
+
+static void
+directory_chooser_show(enum dir_choice dir_choice, const char *title,
+	const char *current_directory)
+{
+	GtkWidget *widget;
+
+	if (directory_chooser) {
+		gtk_widget_destroy(directory_chooser);
+		directory_chooser = NULL;
+	}
+
+	widget = gtk_file_chooser_dialog_new(title,
+				GTK_WINDOW(gui_main_window()),
+				GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+				GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+				GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+				(void *) 0);
+	g_return_if_fail(NULL != widget);
+	directory_chooser = widget;
+
+	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(widget), TRUE);
+	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(widget),
+		gtk_file_filter_new());	/* Display only directories */
+
+	if (NULL != current_directory) {
+		gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(widget),
+			current_directory);
+	}
+
+	gui_signal_connect(widget, "destroy-event",
+		on_directory_chooser_destroy_event, NULL);
+	gui_signal_connect(widget, "delete-event",
+		on_directory_chooser_delete_event, NULL);
+	gui_signal_connect(widget, "response",
+		on_directory_chooser_response, uint_to_pointer(dir_choice));
+
+	gtk_widget_show(widget);
+}
+
+void
+on_button_config_add_dir_clicked(GtkButton *unused_button, void *unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	directory_chooser_show(DIR_CHOICE_SHARED,
+		_("Please choose a directory to share"),
+		NULL);
+}
+
+void
+on_button_config_move_path_clicked(GtkButton *unused_button, void *unused_udata)
+{
+	char *directory = gnet_prop_get_string(PROP_MOVE_FILE_PATH, NULL, 0);
+
+	(void) unused_button;
+	(void) unused_udata;
+
+	directory_chooser_show(DIR_CHOICE_COMPLETE,
+		_("Please choose where to move files after successful download"),
+		directory);
+	G_FREE_NULL(directory);
+}
+
+void
+on_button_config_save_path_clicked(GtkButton *unused_button, void *unused_udata)
+{
+	char *directory = gnet_prop_get_string(PROP_SAVE_FILE_PATH, NULL, 0);
+
+	(void) unused_button;
+	(void) unused_udata;
+
+	directory_chooser_show(DIR_CHOICE_INCOMPLETE,
+		_("Please choose where to store files while downloading"),
+		directory);
+	G_FREE_NULL(directory);
+}
+
+void
+on_button_config_bad_path_clicked(GtkButton *unused_button, void *unused_udata)
+{
+	char *directory = gnet_prop_get_string(PROP_BAD_FILE_PATH, NULL, 0);
+
+	(void) unused_button;
+	(void) unused_udata;
+
+	directory_chooser_show(DIR_CHOICE_CORRUPT,
+		_("Please choose where to move corrupted files"),
+		directory);
+	G_FREE_NULL(directory);
+}
+#else	/* Gtk+ < 2.6.0 */
+
+/* While downloading, store files to */
 
 void
 button_fs_save_path_clicked(GtkButton *unused_button, gpointer user_data)
@@ -249,19 +409,15 @@ button_fs_save_path_clicked(GtkButton *unused_button, gpointer user_data)
 	(void) unused_button;
 
 	if (user_data) {
-		gchar *name;
-
-        name = g_strdup(gtk_file_selection_get_filename
-            (GTK_FILE_SELECTION(save_path_filesel)));
+        const char *name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(directory_chooser));
 
 		if (is_directory(name)) {
             gnet_prop_set_string(PROP_SAVE_FILE_PATH, name);
 		}
-        G_FREE_NULL(name);
 	}
 
-	gtk_widget_destroy(save_path_filesel);
-	save_path_filesel = NULL;
+	gtk_widget_destroy(directory_chooser);
+	directory_chooser = NULL;
 }
 
 void
@@ -271,39 +427,27 @@ on_button_config_save_path_clicked(GtkButton *unused_button,
 	(void) unused_button;
 	(void) unused_udata;
 
-	if (!save_path_filesel) {
-		save_path_filesel =
-			gtk_file_selection_new(
+	if (directory_chooser) {
+		gtk_widget_destroy(directory_chooser);
+		directory_chooser = NULL;
+	}
+
+	directory_chooser = gtk_file_selection_new(
 				_("Please choose where to store files while downloading"));
 
-		gui_signal_connect(
-			GTK_FILE_SELECTION(save_path_filesel)->ok_button,
-			"clicked", button_fs_save_path_clicked, GINT_TO_POINTER(1));
-		gui_signal_connect(
-			GTK_FILE_SELECTION(save_path_filesel)->cancel_button,
-			"clicked", button_fs_save_path_clicked, NULL);
-		gui_signal_connect(save_path_filesel,
-			"delete_event", fs_save_path_delete_event, NULL);
+	gui_signal_connect(
+		GTK_FILE_SELECTION(directory_chooser)->ok_button,
+		"clicked", button_fs_save_path_clicked, GINT_TO_POINTER(1));
+	gui_signal_connect(
+		GTK_FILE_SELECTION(directory_chooser)->cancel_button,
+		"clicked", button_fs_save_path_clicked, NULL);
+	gui_signal_connect(directory_chooser,
+		"delete_event", on_directory_chooser_delete_event, NULL);
 
-		gtk_widget_show(save_path_filesel);
-	}
+	gtk_widget_show(directory_chooser);
 }
 
 /* Move downloaded files to */
-
-GtkWidget *move_path_filesel = (GtkWidget *) NULL;
-
-gboolean
-fs_save_move_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
-	gpointer unused_udata)
-{
-	(void) unused_widget;
-	(void) unused_event;
-	(void) unused_udata;
-	gtk_widget_destroy(move_path_filesel);
-	move_path_filesel = (GtkWidget *) NULL;
-	return TRUE;
-}
 
 void
 button_fs_move_path_clicked(GtkButton *unused_button, gpointer user_data)
@@ -311,19 +455,15 @@ button_fs_move_path_clicked(GtkButton *unused_button, gpointer user_data)
 	(void) unused_button;
 
 	if (user_data) {
-		gchar *name;
-
-        name = g_strdup(gtk_file_selection_get_filename
-            (GTK_FILE_SELECTION(move_path_filesel)));
+		const char *name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(directory_chooser));
 
 		if (is_directory(name)) {
             gnet_prop_set_string(PROP_MOVE_FILE_PATH, name);
         }
-        G_FREE_NULL(name);
 	}
 
-	gtk_widget_destroy(move_path_filesel);
-	move_path_filesel = NULL;
+	gtk_widget_destroy(directory_chooser);
+	directory_chooser = NULL;
 }
 
 void
@@ -333,38 +473,29 @@ on_button_config_move_path_clicked(GtkButton *unused_button,
 	(void) unused_button;
 	(void) unused_udata;
 
-	if (!move_path_filesel) {
-		move_path_filesel = gtk_file_selection_new(
+	if (directory_chooser) {
+		gtk_widget_destroy(directory_chooser);
+		directory_chooser = NULL;
+	}
+
+	directory_chooser = gtk_file_selection_new(
 			_("Please choose where to move files after successful download"));
 
-		gui_signal_connect(
-			GTK_FILE_SELECTION(move_path_filesel)->ok_button,
-			"clicked", button_fs_move_path_clicked, GINT_TO_POINTER(1));
-		gui_signal_connect(
-			GTK_FILE_SELECTION(move_path_filesel)->cancel_button,
-			"clicked", button_fs_move_path_clicked, NULL);
-		gui_signal_connect(move_path_filesel,
-			"delete_event", fs_save_move_delete_event, NULL);
+	gui_signal_connect(
+		GTK_FILE_SELECTION(directory_chooser)->ok_button,
+		"clicked", button_fs_move_path_clicked, GINT_TO_POINTER(1));
+	gui_signal_connect(
+		GTK_FILE_SELECTION(directory_chooser)->cancel_button,
+		"clicked", button_fs_move_path_clicked, NULL);
+	gui_signal_connect(directory_chooser,
+		"delete_event", on_directory_chooser_delete_event, NULL);
 
-		gtk_widget_show(move_path_filesel);
-	}
+	gtk_widget_show(directory_chooser);
 }
 
 /* Move bad files to */
 
-GtkWidget *bad_path_filesel = (GtkWidget *) NULL;
-
-gboolean
-fs_save_bad_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
-	gpointer unused_udata)
-{
-	(void) unused_widget;
-	(void) unused_event;
-	(void) unused_udata;
-	gtk_widget_destroy(bad_path_filesel);
-	bad_path_filesel = (GtkWidget *) NULL;
-	return TRUE;
-}
+static GtkWidget *directory_chooser;
 
 void
 button_fs_bad_path_clicked(GtkButton *unused_button, gpointer user_data)
@@ -372,19 +503,15 @@ button_fs_bad_path_clicked(GtkButton *unused_button, gpointer user_data)
 	(void) unused_button;
 
 	if (user_data) {
-		gchar *name;
-
-        name = g_strdup(gtk_file_selection_get_filename
-            (GTK_FILE_SELECTION(bad_path_filesel)));
+		const char *name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(directory_chooser));
 
 		if (is_directory(name)) {
             gnet_prop_set_string(PROP_BAD_FILE_PATH, name);
         }
-        G_FREE_NULL(name);
 	}
 
-	gtk_widget_destroy(bad_path_filesel);
-	bad_path_filesel = NULL;
+	gtk_widget_destroy(directory_chooser);
+	directory_chooser = NULL;
 }
 
 void
@@ -394,102 +521,43 @@ on_button_config_bad_path_clicked(GtkButton *unused_button,
 	(void) unused_button;
 	(void) unused_udata;
 
-	if (!bad_path_filesel) {
-		bad_path_filesel =
-			gtk_file_selection_new(
+	if (directory_chooser) {
+		gtk_widget_destroy(directory_chooser);
+		directory_chooser = NULL;
+	}
+
+	directory_chooser = gtk_file_selection_new(
 				_("Please choose where to move corrupted files"));
 
-		gui_signal_connect(GTK_FILE_SELECTION(bad_path_filesel)->ok_button,
-			"clicked", button_fs_bad_path_clicked, GINT_TO_POINTER(1));
-		gui_signal_connect(GTK_FILE_SELECTION(bad_path_filesel)->cancel_button,
-			"clicked", button_fs_bad_path_clicked, NULL);
-		gui_signal_connect(bad_path_filesel,
-			"delete_event", fs_save_bad_delete_event, NULL);
+	gui_signal_connect(GTK_FILE_SELECTION(directory_chooser)->ok_button,
+		"clicked", button_fs_bad_path_clicked, GINT_TO_POINTER(1));
+	gui_signal_connect(GTK_FILE_SELECTION(directory_chooser)->cancel_button,
+		"clicked", button_fs_bad_path_clicked, NULL);
+	gui_signal_connect(directory_chooser,
+		"delete_event", on_directory_chooser_delete_event, NULL);
 
-		gtk_widget_show(bad_path_filesel);
-	}
+	gtk_widget_show(directory_chooser);
 }
 
 /* Local File DB Managment */
 
-static GtkWidget *add_dir_filesel;
-
-gboolean
-fs_add_dir_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
-	gpointer unused_udata)
-{
-	(void) unused_widget;
-	(void) unused_event;
-	(void) unused_udata;
-	gtk_widget_destroy(add_dir_filesel);
-	add_dir_filesel = NULL;
-	return TRUE;
-}
-
-#if GTK_CHECK_VERSION(2,6,0)
-void
-on_filechooser_response(GtkDialog *dialog, int response_id, void *user_data)
-{
-	GtkWidget **widget_ptr = user_data;
-
-	if (GTK_RESPONSE_ACCEPT == response_id) {
-		char *pathname;
-
-		pathname = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-		guc_shared_dir_add(pathname);
-		G_FREE_NULL(pathname);
-	}
-	gtk_widget_destroy(GTK_WIDGET(*widget_ptr));
-	*widget_ptr = NULL;
-}
-
-void
-on_button_config_add_dir_clicked(GtkButton *unused_button,
-	gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-	if (add_dir_filesel)
-		return;
-
-	add_dir_filesel = gtk_file_chooser_dialog_new("Open File",
-				GTK_WINDOW(gui_main_window()),
-				GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-				GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-				GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
-				(void *) 0);
-	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(add_dir_filesel), TRUE);
-
-	gui_signal_connect(add_dir_filesel,
-		"response",	on_filechooser_response, &add_dir_filesel);
-	gui_signal_connect(add_dir_filesel,
-		"delete_event", fs_add_dir_delete_event, NULL);
-
-	gtk_widget_show(add_dir_filesel);
-}
-#else	/* Gtk+ < 2.6.0 */
 void
 button_fs_add_dir_clicked(GtkButton *unused_button, gpointer user_data)
 {
 	(void) unused_button;
 
 	if (user_data) {
-		gchar *name;
+        const char *name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(directory_chooser));
 
-        name = g_strdup(gtk_file_selection_get_filename
-            (GTK_FILE_SELECTION(add_dir_filesel)));
-
-		if (is_directory(name))
+		if (is_directory(name)) {
 			guc_shared_dir_add(name);
-		else
+		} else {
 			g_warning("%s: Ignoring non-directory \"%s\"", G_STRFUNC, name);
-
-        G_FREE_NULL(name);
+		}
 	}
 
-	gtk_widget_destroy(add_dir_filesel);
-	add_dir_filesel = NULL;
+	gtk_widget_destroy(directory_chooser);
+	directory_chooser = NULL;
 }
 
 void
@@ -499,20 +567,23 @@ on_button_config_add_dir_clicked(GtkButton *unused_button,
 	(void) unused_button;
 	(void) unused_udata;
 
-	if (!add_dir_filesel) {
-		add_dir_filesel =
-			gtk_file_selection_new(_("Please choose a directory to share"));
-
-		gui_signal_connect(
-			GTK_FILE_SELECTION(add_dir_filesel)->ok_button,
-			"clicked", button_fs_add_dir_clicked, GINT_TO_POINTER(1));
-		gui_signal_connect(GTK_FILE_SELECTION(add_dir_filesel)->cancel_button,
-			"clicked", button_fs_add_dir_clicked, NULL);
-		gui_signal_connect(add_dir_filesel,
-			"delete_event", fs_add_dir_delete_event, NULL);
-
-		gtk_widget_show(add_dir_filesel);
+	if (directory_chooser) {
+		gtk_widget_destroy(directory_chooser);
+		directory_chooser = NULL;
 	}
+
+	directory_chooser = gtk_file_selection_new(
+			_("Please choose a directory to share"));
+
+	gui_signal_connect(
+		GTK_FILE_SELECTION(directory_chooser)->ok_button,
+		"clicked", button_fs_add_dir_clicked, GINT_TO_POINTER(1));
+	gui_signal_connect(GTK_FILE_SELECTION(directory_chooser)->cancel_button,
+		"clicked", button_fs_add_dir_clicked, NULL);
+	gui_signal_connect(directory_chooser,
+		"delete_event", on_directory_chooser_delete_event, NULL);
+
+	gtk_widget_show(directory_chooser);
 }
 #endif	/* Gtk+ >= 2.6.0 */
 
