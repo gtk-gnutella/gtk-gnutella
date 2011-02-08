@@ -661,6 +661,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 			print_str(symbolic_errno(errno));	/* 5 */
 			print_str("\n");					/* 6 */
 			flush_str(PARENT_STDERR_FILENO);
+			flush_str(STDOUT_FILENO);			/* into crash file as well */
 
 		child_failure:
 			_exit(EXIT_FAILURE);
