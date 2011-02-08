@@ -101,37 +101,39 @@ while [ $# -gt 0 ]; do
 	--yacc=*)			YACC="${1#--*=}";;
 	--) 				break;;
 	*)
-echo 'The following switches are available, defaults are shown in brackets:'
-echo
-echo '  --gtk2           Use Gtk+ 2.x for the user interface [default].'
-echo '  --gtk1           Use the deprecated Gtk+ 1.2 for the user interface.'
-echo '  --topless        Compile for topless use (no graphical user interface).'
-echo '  --disable-dbus   Do not use D-Bus even if available.'
-echo '  --disable-gnutls Do not use GnuTLS even if available.'
-echo '  --disable-ipv6   Do not use IPv6 even if supported.'
-echo '  --disable-nls    Disable NLS (native language support).'
-echo '  --disable-socker Disable support for Socker.'
-echo '  --prefix=PATH    Path prefix used for installing files. [$PREFIX]'
-echo '  --bindir=PATH    Directory for installing executables. [$PREFIX/bin]'
-echo '  --datadir=PATH   Directory for installing application data. [$PREFIX/share]'
-echo '  --libdir=PATH    Directory for installing library data. [$PREFIX/lib]'
-echo '  --localedir=PATH Directory for installing locale data. [$PREFIX/share/locale]'
-echo '  --mandir=PATH    Directory for installing manual pages. [$PREFIX/man]'
-echo '  --cc=TOOL        C compiler to use. [$CC]'
-echo '  --cflags=FLAGS   Flags to pass to the C compiler. [$CFLAGS]'
-echo '  --cppflags=FLAGS Flags to pass to the C pre-compiler. [$CPPFLAGS]'
-echo '  --ldflags=FLAGS  Flags to pass to the linker. [$LDFLAGS]'
-echo '  --libs=FLAGS     Flags to pass to the linker. [$LIBS]'
-echo '  --make=TOOL      make tool to be used. [$MAKE]'
-echo '  --yacc=TOOL      yacc, bison or some compatible tool. [$YACC]'
-echo '  --target=NAME    Cross-compile to the specified system. [`uname -s`]'
-echo '  --configure-only Do not run make after Configure.'
-echo '  --unofficial     Use for test builds only. Requires no installation.'
-echo '  --verbose        Increase verbosity of Configure output.'
-echo '  --enable-halloc  Enable mmap()-based malloc() replacement.'
-echo
-echo 'Typically no switches need to be used. Just run '"$0"' to start the'
-echo 'build process.'
+		cat <<EOM
+The following switches are available, defaults are shown in brackets:
+
+  --gtk2           Use Gtk+ 2.x for the user interface [default].
+  --gtk1           Use the deprecated Gtk+ 1.2 for the user interface.
+  --topless        Compile for topless use (no graphical user interface).
+  --disable-dbus   Do not use D-Bus even if available.
+  --disable-gnutls Do not use GnuTLS even if available.
+  --disable-ipv6   Do not use IPv6 even if supported.
+  --disable-nls    Disable NLS (native language support).
+  --disable-socker Disable support for Socker.
+  --prefix=PATH    Path prefix used for installing files. [$PREFIX]
+  --bindir=PATH    Directory for installing executables. [$PREFIX/bin]
+  --datadir=PATH   Directory for installing application data. [$PREFIX/share]
+  --libdir=PATH    Directory for installing library data. [$PREFIX/lib]
+  --localedir=PATH Directory for installing locale data. [$PREFIX/share/locale]
+  --mandir=PATH    Directory for installing manual pages. [$PREFIX/man]
+  --cc=TOOL        C compiler to use. [$CC]
+  --cflags=FLAGS   Flags to pass to the C compiler. [$CFLAGS]
+  --cppflags=FLAGS Flags to pass to the C pre-compiler. [$CPPFLAGS]
+  --ldflags=FLAGS  Flags to pass to the linker. [$LDFLAGS]
+  --libs=FLAGS     Flags to pass to the linker. [$LIBS]
+  --make=TOOL      make tool to be used. [$MAKE]
+  --yacc=TOOL      yacc, bison or some compatible tool. [$YACC]
+  --target=NAME    Cross-compile to the specified system. [`uname -s`]
+  --configure-only Do not run make after Configure.
+  --unofficial     Use for test builds only. Requires no installation.
+  --verbose        Increase verbosity of Configure output.
+  --enable-halloc  Enable mmap()-based malloc() replacement.
+
+Typically no switches need to be used. Just run "$0" to start the
+build process.
+EOM
 			case "$1" in
 			--help);;
 			*) 	echo
