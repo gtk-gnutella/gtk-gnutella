@@ -89,7 +89,8 @@ tls_adjust_send_size(struct gnutella_socket *s, size_t size)
 }
 
 static inline void
-tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
+tls_transport_debug(const char *op, const struct gnutella_socket *s,
+	size_t size, ssize_t ret)
 {
 	int saved_errno = errno;
 
@@ -97,14 +98,17 @@ tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
 		unsigned level = is_temporary_error(saved_errno) ? 2 : 0;
 
 		if (GNET_PROPERTY(tls_debug) > level) {
-			g_debug("%s(): fd=%d size=%lu ret=-1 errno=%s(%d)",
-				op, fd, (unsigned long) size,
+			g_debug("%s(): fd=%d size=%lu host=%s ret=-1 errno=%s(%d)",
+				op, s->file_desc, (unsigned long) size,
+				host_addr_port_to_string(s->addr, s->port),
 				symbolic_errno(saved_errno), saved_errno);
 		}
 	} else {
 		if (GNET_PROPERTY(tls_debug) > 2) {
-			g_debug("%s(): fd=%d size=%lu ret=%lu",
-				op, fd, (unsigned long) size, (unsigned long) ret);
+			g_debug("%s(): fd=%d size=%lu host=%s ret=%lu",
+				op, s->file_desc, (unsigned long) size,
+				host_addr_port_to_string(s->addr, s->port),
+				(unsigned long) ret);
 		}
 	}
 	errno = saved_errno;
@@ -178,11 +182,11 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 	tls_signal_pending(s);
 	if ((ssize_t) -1 == ret) {
 		tls_set_errno(s, saved_errno);
-		if (!is_temporary_error(saved_errno)) {
+		if (ECONNRESET == saved_errno || EPIPE == saved_errno) {
 			socket_connection_reset(s);
 		}
 	}
-	tls_transport_debug("tls_push", s->file_desc, size, ret);
+	tls_transport_debug("tls_push", s, size, ret);
 	errno = saved_errno;
 	return ret;
 }
@@ -208,7 +212,7 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	} else if (0 == ret) {
 		socket_eof(s);
 	}
-	tls_transport_debug("tls_pull", s->file_desc, size, ret);
+	tls_transport_debug("tls_pull", s, size, ret);
 	errno = saved_errno;
 	return ret;
 }
@@ -324,18 +328,7 @@ tls_handshake(struct gnutella_socket *s)
 		return TLS_HANDSHAKE_RETRY;
 	case GNUTLS_E_PULL_ERROR:
 	case GNUTLS_E_PUSH_ERROR:
-		if (GNET_PROPERTY(tls_debug)) {
-			switch (errno) {
-			case EPIPE:
-			case ECONNRESET:
-				if (GNET_PROPERTY(tls_debug) < 2)
-					break;
-			default:
-				g_debug("gnutls_handshake() failed: host=%s errno=%s(%d)",
-					host_addr_port_to_string(s->addr, s->port),
-					symbolic_errno(errno), errno);
-			}
-		}
+		/* Logging already done by tls_transport_debug() */
 		break;
 	case GNUTLS_E_UNEXPECTED_PACKET_LENGTH:
 		if ((SOCK_F_EOF | SOCK_F_CONNRESET) & s->flags) {
@@ -550,13 +543,8 @@ tls_write_intern(struct wrap_io *wio, const void *buf, size_t size)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			if (GNET_PROPERTY(tls_debug)) {
-				g_debug("tls_write(): gnutls_record_send(fd=%d) failed: "
-					"host=%s errno=%s(%d)",
-					s->file_desc, host_addr_port_to_string(s->addr, s->port),
-					symbolic_errno(errno), errno);
-			}
-			errno = EIO;
+			/* Logging already done by tls_transport_debug() */
+			errno = (SOCK_F_CONNRESET & s->flags) ? ECONNRESET : EIO;
 			ret = -1;
 			goto finish;
 
@@ -664,13 +652,8 @@ tls_read(struct wrap_io *wio, void *buf, size_t size)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			if (GNET_PROPERTY(tls_debug)) {
-				g_debug("tls_read(): gnutls_record_recv(fd=%d) failed: "
-					"host=%s errno=%s(%d)",
-					s->file_desc, host_addr_port_to_string(s->addr, s->port),
-					symbolic_errno(errno), errno);
-			}
-			errno = EIO;
+			/* Logging already done by tls_transport_debug() */
+			errno = (SOCK_F_CONNRESET & s->flags) ? ECONNRESET : EIO;
 			break;
 		case GNUTLS_E_UNEXPECTED_PACKET_LENGTH:
 			if (SOCK_F_EOF & s->flags) {
@@ -813,20 +796,7 @@ tls_bye(struct gnutella_socket *s)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			if (GNET_PROPERTY(tls_debug)) {
-				switch (errno) {
-				case EPIPE:
-				case ECONNRESET:
-					if (GNET_PROPERTY(tls_debug) < 2)
-						break;
-				default:
-					if (GNET_PROPERTY(tls_debug)) {
-						g_debug("gnutls_bye() failed: host=%s errno=%s(%d)",
-							host_addr_port_to_string(s->addr, s->port),
-							symbolic_errno(errno), errno);
-					}
-				}
-			}
+			/* Logging already done by tls_transport_debug() */
 			break;
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
