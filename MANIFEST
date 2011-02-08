@@ -25,7 +25,6 @@ U/packages/xmlconfig.U
 U/specific/d_headless.U
 U/specific/gtkgversion.U
 build.sh
-config.sh.xmingw
 config_h.SH                  Produces config.h
 cygwin/dirs
 cygwin/rules
@@ -152,6 +151,7 @@ extra_files/spam_sha1.txt
 gtk-gnutella.nsi             Windows packaging
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 install.SH                   BSD-compatible install program
+mingw/config.sh.xmingw
 pixmaps/Jmakefile
 pixmaps/Makefile.SH
 pixmaps/arrow_down.xpm

@@ -44,6 +44,7 @@ build_so_suffix=
 build_socker=
 build_ui=
 build_verbose='-s'
+build_xmingw='false'
 
 # There is something broken about Configure, so it needs to know the
 # suffix for shared objects (dynamically loaded libraries) for some odd
@@ -96,6 +97,7 @@ while [ $# -gt 0 ]; do
 	--prefix=*)			PREFIX="${1#--*=}";;
 	--target=*)			build_ui="${1#--*=}";;
 	--topless)			build_ui='d_headless';;
+    --xmingw)           build_xmingw='true';;   # undocumented
 	--unofficial)		build_official='false';;
 	--verbose)			build_verbose='';;
 	--yacc=*)			YACC="${1#--*=}";;
@@ -183,7 +185,12 @@ rm -f config.sh
 
 # Use /bin/sh explicitely so that it works on noexec mounted file systems.
 # Note: Configure won't work as of yet on such a file system.
-/bin/sh ./Configure -Oder \
+if [ "X$build_xmingw" = Xtrue ]
+then
+    /bin/sh ./Configure -S -f mingw/config.sh.xmingw \
+	|| { echo; echo 'ERROR: Configure failed.'; exit 1; }
+else
+    /bin/sh ./Configure -Oder \
 	$build_verbose \
 	-U usenm \
 	${CC:+-D "cc=$CC"} \
@@ -207,11 +214,13 @@ rm -f config.sh
 	${build_ipv6:+-U "$build_ipv6"} \
 	${build_socker:+-U "$build_socker"} \
 	|| { echo; echo 'ERROR: Configure failed.'; exit 1; }
+fi
 
 if [ "X$build_configure_only" != X ]; then
 	exit
 fi
 
+${MAKE} depend || { echo; echo 'ERROR: make depend failed.'; exit 1; }
 ${MAKE} || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
 
 echo "Run \"${MAKE} install\" to install gtk-gnutella."
