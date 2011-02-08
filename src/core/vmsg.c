@@ -2322,7 +2322,7 @@ head_ping_target_by_guid(const struct guid *guid)
 	n = node_by_guid(guid);
 	if (n) {
 	   	if (!(NODE_A_CAN_HEAD & n->attrs)) {
-			if (GNET_PROPERTY(vmsg_debug)) {
+			if (GNET_PROPERTY(vmsg_debug) > 1) {
 				g_debug(
 					"VMSG HEAD Ping target %s does not support HEAD pings",
 					node_infostr(n));
@@ -2378,12 +2378,12 @@ handle_head_ping(struct gnutella_node *n,
 		is_strcaseprefix(&payload[1], urn_prefix) &&
 		urn_get_sha1(&payload[1], &sha1)
 	) {
-		if (GNET_PROPERTY(vmsg_debug)) {
+		if (GNET_PROPERTY(vmsg_debug) > 2) {
 			g_debug("VMSG HEAD Ping for %s%s",
 				urn_prefix, sha1_to_string(&sha1));
 		}
 	} else {
-		if (GNET_PROPERTY(vmsg_debug)) {
+		if (GNET_PROPERTY(vmsg_debug) > 2) {
 			g_warning("VMSG HEAD Ping: no SHA-1");
 		}
 		return;
@@ -2419,13 +2419,13 @@ handle_head_ping(struct gnutella_node *n,
 		struct gnutella_node *target;
 
 		if (NODE_P_LEAF == GNET_PROPERTY(current_peermode)) {
-		   	if (GNET_PROPERTY(vmsg_debug)) {
+		   	if (GNET_PROPERTY(vmsg_debug) > 1) {
 				g_debug("VMSG HEAD Ping: not forwarding as leaf");
 			}
 			return;
 		}
 		if (gnutella_header_get_hops(&n->header) > 0) {
-		   	if (GNET_PROPERTY(vmsg_debug)) {
+		   	if (GNET_PROPERTY(vmsg_debug) > 1) {
 				g_debug("VMSG HEAD Ping: not forwarding further (hops=%u)",
 					gnutella_header_get_hops(&n->header));
 			}
@@ -2451,7 +2451,7 @@ handle_head_ping(struct gnutella_node *n,
 					GTA_HEADER_SIZE + n->size);
 			}
 		} else {
-			if (GNET_PROPERTY(vmsg_debug)) {
+			if (GNET_PROPERTY(vmsg_debug) > 1) {
 				g_debug("VMSG HEAD Ping: no route found");
 			}
 		}
@@ -2467,7 +2467,7 @@ handle_head_ping(struct gnutella_node *n,
 			 * HTTP we would also claim "Busy" (503) instead of "Not found"
 			 * (404).
 			 */
-			if (GNET_PROPERTY(vmsg_debug)) {
+			if (GNET_PROPERTY(vmsg_debug) > 1) {
 				g_debug("VMSG HEAD Ping: got it whilst rebuilding library");
 			}
 		} else {
@@ -2477,7 +2477,7 @@ handle_head_ping(struct gnutella_node *n,
 				shared_file_check(sf);
 				fi = shared_file_fileinfo(sf);
 				if (fi) {
-					if (GNET_PROPERTY(vmsg_debug)) {
+					if (GNET_PROPERTY(vmsg_debug) > 2) {
 						g_debug("VMSG HEAD Ping: matches a partial file");
 					}
 					if (GNET_PROPERTY(pfsp_server)) {
@@ -2489,13 +2489,13 @@ handle_head_ping(struct gnutella_node *n,
 						code = VMSG_HEAD_CODE_NOT_FOUND;
 					}
 				}  else {
-					if (GNET_PROPERTY(vmsg_debug)) {
+					if (GNET_PROPERTY(vmsg_debug) > 2) {
 						g_debug("VMSG HEAD Ping: matches a shared file");
 					}
 					code = VMSG_HEAD_CODE_COMPLETE;
 				}
 			} else {
-				if (GNET_PROPERTY(vmsg_debug)) {
+				if (GNET_PROPERTY(vmsg_debug) > 2) {
 					g_debug("VMSG HEAD Ping: unknown file");
 				}
 				code = VMSG_HEAD_CODE_NOT_FOUND;
@@ -2585,7 +2585,7 @@ forward_head_pong(struct gnutella_node *n,
 			gnutella_header_t header;
 			pmsg_t *mb;
 
-			if (GNET_PROPERTY(vmsg_debug)) {
+			if (GNET_PROPERTY(vmsg_debug) > 1) {
 				g_debug("VMSG HEAD Pong: forwarding to %s",
 					node_infostr(target));
 			}
@@ -2691,7 +2691,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 			}
 			return;
 		} else {
-			if (GNET_PROPERTY(vmsg_debug)) {
+			if (GNET_PROPERTY(vmsg_debug) > 2) {
 				g_debug("VMSG HEAD Pong carries ranges (%u bytes)", len);
 			}
 			p += 2;
@@ -2711,7 +2711,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 			}
 			return;
 		} else {
-			if (GNET_PROPERTY(vmsg_debug)) {
+			if (GNET_PROPERTY(vmsg_debug) > 2) {
 				g_debug(
 					"VMSG HEAD Pong carries firewalled alt-locs (%u bytes)",
 					len);
@@ -2735,7 +2735,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 			}
 			return;
 		} else {
-			if (GNET_PROPERTY(vmsg_debug))
+			if (GNET_PROPERTY(vmsg_debug) > 2)
 				g_debug("VMSG HEAD Pong carries %u alt-locs", len / 6);
 
 			p += 2;				/* Skip length indication */
