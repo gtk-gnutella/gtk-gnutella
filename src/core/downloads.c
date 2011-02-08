@@ -11871,7 +11871,7 @@ picked:
 	 *		--RAM, 2009-02-27
 	 */
 
-	if (!(d->server->attrs & DLS_A_FAKE_G2)) {
+	if (!download_is_special(d) && !(d->server->attrs & DLS_A_FAKE_G2)) {
 		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 			"X-Downloaded: %s\r\n", uint64_to_string(download_filedone(d)));
 	}
