@@ -10,6 +10,24 @@ set -e
 # This is not interactive
 exec </dev/null
 
+# The option --target must be handled first because it modifies some
+# defaults which the user, however, should be able to override.
+build_target="`(
+    while [ $# -gt 0 ]
+    do
+        case "$1" in
+        --target=*) echo "${1#--*=}"
+                    exit
+                    ;;
+        --)         break
+                    ;;
+        esac
+        shift
+    done
+    uname -s 2>/dev/null || :
+    exit
+)`"
+
 # Standard variables like CC, CFLAGS etc. default to the current environment
 build_bindir=
 build_configure_only=
@@ -30,21 +48,26 @@ build_verbose='-s'
 # There is something broken about Configure, so it needs to know the
 # suffix for shared objects (dynamically loaded libraries) for some odd
 # reasons.
-# FIXME: There should be an override switch for cross-compiling.
-case "`uname -s`" in
+case "$build_target" in
 darwin|Darwin)
-build_so_suffix='dylib'
-;;
+    build_so_suffix='dylib'
+    ;;
 MINGW*)
-	mingwlib=/mingw/lib	# FIXME, hardcoded for now, could be detected maybe
+    # FIXME: The MingW installation prefix is hardcoded (as default) for now,
+    # This could be detected maybe. On Ubuntu and Debian it is
+    # /usr/i586-mingw32msvc, so --ldflags must be used manually.
+	mingwlib=/mingw/lib
 	PATH="$PATH${PATH:+:}${mingwlib}/gtk/bin:${mingwlib}/xml2/bin"
 	export PATH
+    CC="${CC:-gcc}"
+	CPPFLAGS="$CPPFLAGS -DMINGW32"
 	CPPFLAGS="$CPPFLAGS -I${mingwlib}/regex/include -I${mingwlib}/gtk/include"
-	LDFLAGS="$LDFLAGS -L${mingwlib}/regex/lib -L${mingwlib}/gtk/lib -mwindows"
+    CPPFLAG="${CPPFLAGS# *}"    # strip leading spaces
+	LDFLAGS="$LDFLAGS -mwindows -L${mingwlib}/regex/lib -L${mingwlib}/gtk/lib"
+    LDFLAGS="${LDFLAGS# *}"     # strip leading spaces
 	LIBS="$LIBS -lwsock32 -lws2_32 -lregex -lz -liconv -limagehlp -liphlpapi"
 	LIBS="$LIBS -lws2_32 -lpowrprof -lpsapi -lkernel32"
-	CC=gcc
-	CFLAGS="-DMINGW32 $CPPFLAGS"
+    LIBS="${LIBS# *}"           # strip leading spaces
 	;;
 esac
 
@@ -71,6 +94,7 @@ while [ $# -gt 0 ]; do
 	--mandir=*)			build_mandir="${1#--*=}";;
 	--make=*)			MAKE="${1#--*=}";;
 	--prefix=*)			PREFIX="${1#--*=}";;
+	--target=*)			build_ui="${1#--*=}";;
 	--topless)			build_ui='d_headless';;
 	--unofficial)		build_official='false';;
 	--verbose)			build_verbose='';;
@@ -100,6 +124,7 @@ echo '  --ldflags=FLAGS  Flags to pass to the linker. [$LDFLAGS]'
 echo '  --libs=FLAGS     Flags to pass to the linker. [$LIBS]'
 echo '  --make=TOOL      make tool to be used. [$MAKE]'
 echo '  --yacc=TOOL      yacc, bison or some compatible tool. [$YACC]'
+echo '  --target=NAME    Cross-compile to the specified system. [`uname -s`]'
 echo '  --configure-only Do not run make after Configure.'
 echo '  --unofficial     Use for test builds only. Requires no installation.'
 echo '  --verbose        Increase verbosity of Configure output.'
@@ -126,23 +151,23 @@ if [ "X$YACC" = X ]; then
 	command -v yacc >/dev/null 2>&1 && YACC=yacc || YACC=bison
 fi
 
-CFLAGS="$CFLAGS${build_halloc:+ -DUSE_HALLOC}"
+CPPFLAGS="$CPPFLAGS${build_halloc:+ -DUSE_HALLOC}"
 CFLAGS="$CFLAGS${CPPFLAGS:+ }$CPPFLAGS"
-PREFIX=${PREFIX:-/usr/local}
+PREFIX="${PREFIX:-/usr/local}"
 
-build_bindir=${build_bindir:-$PREFIX/bin}
+build_bindir=${build_bindir:-"$PREFIX/bin"}
 build_bindir=${build_bindir:+"$build_bindir"}
 
-build_mandir=${build_mandir:-$PREFIX/man}
+build_mandir=${build_mandir:-"$PREFIX/man"}
 build_mandir=${build_mandir:+"$build_mandir"}
 
-build_datadir=${build_datadir:-$PREFIX/share/gtk-gnutella}
+build_datadir=${build_datadir:-"$PREFIX/share/gtk-gnutella"}
 build_datadir=${build_datadir:+"$build_datadir"}
 
-build_libdir=${build_libdir:-$PREFIX/lib/gtk-gnutella}
+build_libdir=${build_libdir:-"$PREFIX/lib/gtk-gnutella"}
 build_libdir=${build_libdir:+"$build_libdir"}
 
-build_localedir=${build_localedir:-$PREFIX/share/locale}
+build_localedir=${build_localedir:-"$PREFIX/share/locale"}
 build_localedir=${build_localedir:+"$build_localedir"}
 
 build_official=${build_official:-true}
