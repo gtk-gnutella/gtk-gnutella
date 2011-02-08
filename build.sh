@@ -131,6 +131,8 @@ The following switches are available, defaults are shown in brackets:
   --verbose        Increase verbosity of Configure output.
   --enable-halloc  Enable mmap()-based malloc() replacement.
 
+EOM
+		cat << EOM
 Typically no switches need to be used. Just run "$0" to start the
 build process.
 EOM
