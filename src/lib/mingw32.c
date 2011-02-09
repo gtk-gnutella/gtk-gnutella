@@ -1834,10 +1834,10 @@ GAsyncQueue *mingw_gtkg_main_async_queue;
 GAsyncQueue *mingw_gtkg_adns_async_queue;
 
 struct async_data {
-	void *request;
-	void *response;
+	void *user_data;
 	
-	void *data;
+	void *thread_return_data;
+	void *thread_arg_data;
 	
 	void (*thread_func)(struct async_data*);
 	void (*callback_func)(struct async_data*);
@@ -1898,8 +1898,8 @@ mingw_adns_send_request(const struct adns_request *req)
 	
 	} else {
 		char *hostname = strdup(req->query.by_addr.hostname);
-		ad->data = hostname;
-		ad->request = req;
+		ad->thread_arg_data = hostname;
+		ad->user_data = (void*) req;
 		
 		g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
 	}
@@ -1913,17 +1913,16 @@ mingw_adns_send_request_cb(struct async_data *ad)
 	struct addrinfo *results;
 	struct adns_request *req;
 	
-	req = (struct adns_request *) ad->request;
-	results = (struct addrinfo *) ad->response;
+	req = (struct adns_request *) ad->user_data;
+	results = (struct addrinfo *) ad->thread_return_data;
 	
 	if (req->common.reverse) {
 	
 	} else {
-		struct addrinfo *response = ad->response;
+		struct addrinfo *response = ad->thread_return_data;
 		int n = 0;
 		host_addr_t addrs[10];
 				
-		response = ad->response;
 		while (response != NULL) {
 			addrs[n] = addrinfo_to_addr(response);						
 			char *hostname = response->ai_canonname;
@@ -1954,14 +1953,14 @@ mingw_adns_thread_resolve_hostname(struct async_data *ad)
 	
 	char *hostname;
 	struct addrinfo *results;
-	hostname = (char *) ad->data;
+	hostname = (char *) ad->thread_arg_data;
 	
 	printf("mingw_adns_resolving %s\r\n", hostname);
 	
 	getaddrinfo(hostname, NULL, NULL, &results);
 
 	printf("mingw_adns got result for %s %p\r\n", hostname,results);
-	ad->response = results;	
+	ad->thread_return_data = results;	
 }
 
 gpointer
@@ -1979,6 +1978,9 @@ mingw_adns_thread(gpointer data)
 		struct async_data *ad;
 		
 		ad = g_async_queue_pop(read_queue);	
+		
+		if (NULL == ad)
+			goto exit;
 		
 		ad->thread_func(ad);
 		g_async_queue_push(mingw_gtkg_main_async_queue, ad);			
@@ -2008,6 +2010,7 @@ void
 mingw_adns_close(void)
 {
 	/* Quit our ADNS thread */
+	g_async_queue_push(mingw_gtkg_main_async_queue, NULL);
 #if FIXME
 	struct async_data *ad = walloc(sizeof(struct async_data));
 	ad->thread_func = mingw_adns_thread_exit;
