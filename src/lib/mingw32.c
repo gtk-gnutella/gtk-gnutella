@@ -2003,12 +2003,10 @@ mingw_adns_getnameinfo(const struct adns_request *req)
 	ss = walloc(sizeof(struct sockaddr_storage));
 
 	if (query->addr.net == NET_TYPE_IPV6) {		
-/*
-		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *) ss;
+		struct sockaddr_in6 *inet6 = (struct sockaddr_in6 *) ss;
 
-		sin6->sin6_family = AF_INET6;
-		sin6->sin6_addr.s_addr = query->addr.ipv6;
-*/	
+		inet6->sin6_family = AF_INET6;
+		memcpy(inet6->sin6_addr.s6_addr, query->addr.addr.ipv6, 16);
 	} else {
 		
 		struct sockaddr_in *inet4 = (struct sockaddr_in *) ss;
@@ -2100,7 +2098,7 @@ mingw_adns_thread(gpointer data)
 	}
 
 exit:
-	t_messge(altc, "adns thread exit");
+	t_message(altc, "adns thread exit");
 
 	g_thread_exit(NULL);
 	return 0;
@@ -2137,7 +2135,7 @@ mingw_adns_close(void)
 	struct async_data *ad = walloc(sizeof(struct async_data));
 	ad->thread_func = mingw_adns_thread_stop;
 
-	g_async_queue_push(mingw_gtkg_main_async_queue, ad);
+	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
 }
 
 void
@@ -2660,6 +2658,10 @@ mingw_early_init(void)
 void 
 mingw_close(void)
 {
+#ifdef MINGW32_ADNS
+	mingw_adns_close();
+#endif
+	
 	if (libws2_32 != NULL) {
 		FreeLibrary(libws2_32);
 		
