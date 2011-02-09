@@ -2361,7 +2361,7 @@ mingw_in_exception(void)
 /**
  * Our default exception handler.
  */
-static LONG
+static LONG WINAPI
 mingw_exception(EXCEPTION_POINTERS *ei)
 {
 	EXCEPTION_RECORD *er;
