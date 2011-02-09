@@ -62,6 +62,7 @@ RCSID("$Id$")
 #include <wchar.h>
 
 #include "host_addr.h"			/* ADNS */
+#include "adns.h"
 
 #include "crash.h"
 #include "fd.h"					/* For is_open_fd() */
@@ -1836,6 +1837,8 @@ struct async_data {
 	void *request;
 	void *response;
 	
+	void *data;
+	
 	void (*thread_func)(struct async_data*);
 	void (*callback_func)(struct async_data*);
 };
@@ -1895,8 +1898,9 @@ mingw_adns_send_request(const struct adns_request *req)
 	
 	} else {
 		char *hostname = strdup(req->query.by_addr.hostname);
-		ad->request = hostname;
-	
+		ad->data = hostname;
+		ad->request = req;
+		
 		g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
 	}
 	
@@ -1916,18 +1920,25 @@ mingw_adns_send_request_cb(struct async_data *ad)
 	
 	} else {
 		struct addrinfo *response = ad->response;
-	
+		int n = 0;
+		host_addr_t addrs[10];
+				
+		response = ad->response;
 		while (response != NULL) {
-		
-			host_addr_t addr = addrinfo_to_addr(response);						
+			addrs[n] = addrinfo_to_addr(response);						
 			char *hostname = response->ai_canonname;
-			g_debug("got %s for hostname %s", host_addr_to_string(addr), hostname);
+			g_debug("got %s for hostname %s", host_addr_to_string(addrs[n]), hostname);
+			
 			response = response->ai_next;
+			n++;
 		}
-		/*
-		func = (adns_callback_t) ans->common.user_callback;
-		func(reply->addrs, n, ans->common.user_data);
-		*/
+		
+		{
+			adns_callback_t func = (adns_callback_t) req->common.user_callback;
+			g_debug("Performing user call back to %p with n=%d results", 
+				req->common.user_data, n);
+			func(addrs, n, req->common.user_data);		
+		}
 	}
 	
 	freeaddrinfo(results);
@@ -1943,8 +1954,7 @@ mingw_adns_thread_resolve_hostname(struct async_data *ad)
 	
 	char *hostname;
 	struct addrinfo *results;
-						
-	hostname = (char *) ad->request;
+	hostname = (char *) ad->data;
 	
 	printf("mingw_adns_resolving %s\r\n", hostname);
 	
@@ -1965,14 +1975,10 @@ mingw_adns_thread(gpointer data)
 	read_queue = g_async_queue_ref(mingw_gtkg_adns_async_queue);
 	result_queue = g_async_queue_ref(mingw_gtkg_main_async_queue);
 	
-	printf("mingw_adns_thread ready\r\n");
-	
 	while (1) {
 		struct async_data *ad;
 		
 		ad = g_async_queue_pop(read_queue);	
-		
-		printf("Performing thread func @%p\r\n", ad->thread_func);
 		
 		ad->thread_func(ad);
 		g_async_queue_push(mingw_gtkg_main_async_queue, ad);			
