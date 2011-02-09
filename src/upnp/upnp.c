@@ -1183,7 +1183,9 @@ static gboolean
 upnp_map_unpublish(struct upnp_mapping *um)
 {
 	upnp_mapping_check(um);
-	g_assert(um->published);
+
+	if (!um->published)
+		return TRUE;			/* Nothing to do, was never published */
 
 	if (GNET_PROPERTY(upnp_debug) > 1) {
 		g_debug("UPNP removing %spublished %s mapping for %s port %u",
