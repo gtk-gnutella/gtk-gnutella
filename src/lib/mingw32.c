@@ -1920,8 +1920,7 @@ mingw_adns_getaddrinfo(const struct adns_request *req)
 	
 	ad->thread_func = mingw_adns_getaddrinfo_thread;
 	ad->callback_func = mingw_adns_getaddrinfo_cb;	
-	ad->user_data = halloc(sizeof *req);
-	memcpy(ad->user_data, req, sizeof *req);
+	ad->user_data = hcopy(req, sizeof *req);
 	
 	char *hostname = h_strdup(req->query.by_addr.hostname);
 	ad->thread_arg_data = hostname;	
