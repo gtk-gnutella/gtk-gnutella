@@ -1828,14 +1828,17 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 /***
  *** ADNS
  ***/
-#define mingw_thread_msg_quit 0x9
-#define mingw_thread_msg_adns 0x100
-#define mingw_thread_msg_adns_resolve 0x1000
-#define mingw_thread_msg_adns_resolve_cb 0x1001
+ 
+GAsyncQueue *mingw_gtkg_main_async_queue;
+GAsyncQueue *mingw_gtkg_adns_async_queue;
 
-unsigned int mingw_gtkg_adns_thread_id;
-DWORD mingw_gtkg_main_thread_id;
-
+struct async_data {
+	void *request;
+	void *response;
+	
+	void (*thread_func)(struct async_data*);
+	void (*callback_func)(struct async_data*);
+};
 
 struct adns_common {
 	void (*user_callback)(void);
@@ -1878,48 +1881,105 @@ struct adns_response {
 	} reply;
 };
 
+void mingw_adns_send_request_cb(struct async_data *ad);
+void mingw_adns_thread_resolve_hostname(struct async_data *ad);
 
 gboolean
 mingw_adns_send_request(const struct adns_request *req)
 {
-	char *hostname = strdup(req->query.by_addr.hostname);
-
-	/* FIXME: hostname is leaked */
-	PostThreadMessage(mingw_gtkg_adns_thread_id,
-		mingw_thread_msg_adns_resolve, (LPARAM) hostname, 0);
-
+	struct async_data *ad = walloc(sizeof(struct async_data));
+	ad->thread_func = mingw_adns_thread_resolve_hostname;
+	ad->callback_func = mingw_adns_send_request_cb;	
+	
+	if (req->common.reverse) {
+	
+	} else {
+		char *hostname = strdup(req->query.by_addr.hostname);
+		ad->request = hostname;
+	
+		g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
+	}
+	
 	return TRUE;
 }
 
-unsigned __stdcall
-mingw_adns_thread_resolve(void *dummy)
+void
+mingw_adns_send_request_cb(struct async_data *ad)
 {
-	(void) dummy;
-
-	MSG msg;
-
-	while (1) {
-		GetMessage(&msg, (HANDLE)-1, 0, 0);
-
-		printf("mingw_adns: message %d\r\n", msg.message);
-
-		if (msg.message == mingw_thread_msg_quit)
-			goto exit;
-
-		{
-			char *hostname = (char *) msg.wParam;
-			struct addrinfo *results;
-
-			getaddrinfo(hostname, NULL, NULL, &results);
-			/* FIXME: insert free(hostname) here? */
-
-			PostThreadMessage(mingw_gtkg_main_thread_id,
-				mingw_thread_msg_adns_resolve_cb, (LPARAM) results, 0);
+	struct addrinfo *results;
+	struct adns_request *req;
+	
+	req = (struct adns_request *) ad->request;
+	results = (struct addrinfo *) ad->response;
+	
+	if (req->common.reverse) {
+	
+	} else {
+		struct addrinfo *response = ad->response;
+	
+		while (response != NULL) {
+		
+			host_addr_t addr = addrinfo_to_addr(response);						
+			char *hostname = response->ai_canonname;
+			g_debug("got %s for hostname %s", host_addr_to_string(addr), hostname);
+			response = response->ai_next;
 		}
+		/*
+		func = (adns_callback_t) ans->common.user_callback;
+		func(reply->addrs, n, ans->common.user_data);
+		*/
+	}
+	
+	freeaddrinfo(results);
+
+	wfree(ad, sizeof(struct async_data));
+}
+
+
+void
+mingw_adns_thread_resolve_hostname(struct async_data *ad)
+{
+	/* On ADNS Thread */
+	
+	char *hostname;
+	struct addrinfo *results;
+						
+	hostname = (char *) ad->request;
+	
+	printf("mingw_adns_resolving %s\r\n", hostname);
+	
+	getaddrinfo(hostname, NULL, NULL, &results);
+
+	printf("mingw_adns got result for %s %p\r\n", hostname,results);
+	ad->response = results;	
+}
+
+gpointer
+mingw_adns_thread(gpointer data)
+{
+	/* On ADNS thread */
+	(void) data;
+
+	GAsyncQueue *read_queue, *result_queue;
+	
+	read_queue = g_async_queue_ref(mingw_gtkg_adns_async_queue);
+	result_queue = g_async_queue_ref(mingw_gtkg_main_async_queue);
+	
+	printf("mingw_adns_thread ready\r\n");
+	
+	while (1) {
+		struct async_data *ad;
+		
+		ad = g_async_queue_pop(read_queue);	
+		
+		printf("Performing thread func @%p\r\n", ad->thread_func);
+		
+		ad->thread_func(ad);
+		g_async_queue_push(mingw_gtkg_main_async_queue, ad);			
 	}
 
 exit:
-	_endthreadex(0);
+	g_thread_exit(NULL);
 	return 0;
 }
 
@@ -1931,40 +1991,33 @@ mingw_adns_init(void)
 	 * so it is _not_ thread safe, don't access any public functions or
 	 * variables!
 	 */
+	g_thread_init(NULL);
+	mingw_gtkg_main_async_queue = g_async_queue_new();
+	mingw_gtkg_adns_async_queue = g_async_queue_new();
 
-	mingw_gtkg_main_thread_id = GetCurrentThreadId();
-
-	(HANDLE)_beginthreadex( NULL, 0, mingw_adns_thread_resolve, NULL, 0,
-		&mingw_gtkg_adns_thread_id );
+	g_thread_create(mingw_adns_thread, NULL, FALSE, NULL);
 }
 
 void
 mingw_adns_close(void)
 {
 	/* Quit our ADNS thread */
-	PostThreadMessage(mingw_gtkg_adns_thread_id, mingw_thread_msg_quit, 0, 0);
+#if FIXME
+	struct async_data *ad = walloc(sizeof(struct async_data));
+	ad->thread_func = mingw_adns_thread_exit;
+	g_async_queue_push(mingw_gtkg_main_async_queue, ad);
+#endif
 }
 
 void
 mingw_timer(void)
 {
-	MSG msg;
-
-	if (PeekMessage(&msg, (HANDLE)-1, 0, 0, PM_NOREMOVE)) {
-		g_debug("message waiting: %d", msg.message);
-
-		switch (msg.message)
-		{
-			case mingw_thread_msg_adns_resolve_cb:
-			{
-				/* Need to verify the msg.wParam with IsBadReadPtr */
-				struct addrinfo *results;
-				results = (struct addrinfo *) msg.wParam;
-				freeaddrinfo(results);
-				break;
-			}
-		}
-	}
+	struct async_data *ad = g_async_queue_try_pop(mingw_gtkg_main_async_queue);
+	
+	if (NULL != ad) {
+		printf("Performing callback to func @%p\r\n", ad->callback_func);
+		ad->callback_func(ad);
+	} 
 
 }
 #endif /* ADNS Disabled */
