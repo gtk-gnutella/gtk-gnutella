@@ -45,32 +45,48 @@
  * Macros to determine the maximum buffer size required to hold a
  * NUL-terminated string.
  */
-#define UINT8_HEX_BUFLEN	(sizeof "FF")
-#define UINT8_DEC_BUFLEN	(sizeof "255")
-#define UINT16_HEX_BUFLEN	(sizeof "01234")
-#define UINT16_DEC_BUFLEN	(sizeof "65535")
-#define UINT32_HEX_BUFLEN	(sizeof "012345678")
-#define UINT32_DEC_BUFLEN	(sizeof "4294967295")
-#define UINT64_HEX_BUFLEN	(sizeof "0123456789ABCDEF")
-#define UINT64_DEC_BUFLEN	(sizeof "18446744073709551615")
 #define IPV4_ADDR_BUFLEN	(sizeof "255.255.255.255")
 #define IPV6_ADDR_BUFLEN \
 	  (sizeof "0001:0203:0405:0607:0809:1011:255.255.255.255")
 #define TIMESTAMP_BUF_LEN	(sizeof "9999-12-31 23:59:61")
 
-/**
- * The following are over-estimated, so they include space for NUL, too.
- * FIXME: Figure out a closer approximation to reduce waste.
+/*
+ * How many bytes do we need to stringify an unsigned quantity in decimal
+ * form, including the trailing NUL?
+ *
+ * To represent a decimal number x, one needs 1 + E(log(x)) digits, E(x)
+ * being the integer part of x, and log(x) = ln(x) / ln(10)
+ *
+ * For a power of 2, this becomes:
+ *
+ * log(2^n) = log(2) * n.
+ * log(2) = 0.301029995, which can be approximated by 146/485 (larger value).
  */
-#define OFF_T_DEC_BUFLEN	(sizeof(fileoffset_t) * CHAR_BIT) /* very roughly */
-#define TIME_T_DEC_BUFLEN	(sizeof(time_t) * CHAR_BIT) /* very roughly */
-#define SIZE_T_DEC_BUFLEN	(sizeof(size_t) * CHAR_BIT) /* very roughly */
-#define USHRT_DEC_BUFLEN	(sizeof(unsigned short) * CHAR_BIT) /* roughly */
-#define UINT_DEC_BUFLEN		(sizeof(unsigned int) * CHAR_BIT) /* roughly */
-#define ULONG_DEC_BUFLEN	(sizeof(unsigned long) * CHAR_BIT) /* roughly */
-#define POINTER_BUFLEN		(sizeof(unsigned long) * CHAR_BIT) /* very roughly */
+#define BIT_DEC_BUFLEN(n)	(2 + ((n) * 146) / 485)		/* 2 = 1 + NUL */
+#define TYPE_DEC_BUFLEN(t)	BIT_DEC_BUFLEN(sizeof(t) * CHAR_BIT)
+#define TYPE_HEX_BUFLEN(t)	(1 + sizeof(t) * (CHAR_BIT / 4))
 
-#define HOST_ADDR_BUFLEN	(MAX(IPV4_ADDR_BUFLEN, IPV6_ADDR_BUFLEN))
+/*
+ * The following include space for NUL, too.
+ */
+#define UINT8_DEC_BUFLEN	TYPE_DEC_BUFLEN(guint8)
+#define UINT16_DEC_BUFLEN	TYPE_DEC_BUFLEN(guint16)
+#define UINT32_DEC_BUFLEN	TYPE_DEC_BUFLEN(guint32)
+#define UINT64_DEC_BUFLEN	TYPE_DEC_BUFLEN(guint64)
+#define OFF_T_DEC_BUFLEN	TYPE_DEC_BUFLEN(fileoffset_t)
+#define TIME_T_DEC_BUFLEN	TYPE_DEC_BUFLEN(time_t)
+#define SIZE_T_DEC_BUFLEN	TYPE_DEC_BUFLEN(size_t)
+#define USHRT_DEC_BUFLEN	TYPE_DEC_BUFLEN(unsigned short)
+#define UINT_DEC_BUFLEN		TYPE_DEC_BUFLEN(unsigned int)
+#define ULONG_DEC_BUFLEN	TYPE_DEC_BUFLEN(unsigned long)
+
+#define UINT8_HEX_BUFLEN	TYPE_HEX_BUFLEN(guint8)
+#define UINT16_HEX_BUFLEN	TYPE_HEX_BUFLEN(guint16)
+#define UINT32_HEX_BUFLEN	TYPE_HEX_BUFLEN(guint32)
+#define UINT64_HEX_BUFLEN	TYPE_HEX_BUFLEN(guint64)
+#define POINTER_BUFLEN		TYPE_HEX_BUFLEN(unsigned long)
+
+#define HOST_ADDR_BUFLEN		(MAX(IPV4_ADDR_BUFLEN, IPV6_ADDR_BUFLEN))
 #define HOST_ADDR_PORT_BUFLEN	(HOST_ADDR_BUFLEN + sizeof ":[65535]")
 
 size_t int32_to_string_buf(gint32 v, char *dst, size_t size);
@@ -106,7 +122,6 @@ const char *short_uptime(time_delta_t s);
 size_t time_locale_to_string_buf(time_t date, char *dst, size_t size);
 size_t time_t_to_string_buf(time_t v, char *dst, size_t size);
 const char *time_t_to_string(time_t);
-
 
 #endif /* _stringify_h_ */
 
