@@ -91,6 +91,7 @@ const char *cq_name(const cqueue_t *cq);
 
 cperiodic_t *cq_periodic_add(cqueue_t *cq,
 	int period, cq_invoke_t event, gpointer arg);
+void cq_periodic_resched(cperiodic_t *cp, int period);
 void cq_periodic_remove(cperiodic_t **cp_ptr);
 cidle_t *cq_idle_add(cqueue_t *cq, cq_invoke_t event, gpointer arg);
 void cq_idle_remove(cidle_t **ci_ptr);

@@ -1240,8 +1240,6 @@ main_timer(void *unused_data)
 		slow_main_timer(now);
 	}
 
-	bg_sched_timer(GNET_PROPERTY(overloaded_cpu));	/* Background tasks */
-
 	return TRUE;
 }
 
@@ -1615,6 +1613,7 @@ main(int argc, char **argv)
 	}
 
 	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
+	bg_init();
 	upnp_init();
 	udp_init();
 	urpc_init();

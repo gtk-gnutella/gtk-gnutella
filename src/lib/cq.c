@@ -800,6 +800,25 @@ cq_periodic_add(cqueue_t *cq, int period, cq_invoke_t event, gpointer arg)
 }
 
 /**
+ * Change the period of a registered periodic event.
+ */
+void
+cq_periodic_resched(cperiodic_t *cp, int period)
+{
+	cperiodic_check(cp);
+
+	cp->period = period;
+
+	/*
+	 * If the event is NULL, we're in the middle of periodic_trampoline(),
+	 * so the event will be rescheduled once the callback event returns.
+	 */
+
+	if (cp->ev != NULL)
+		cq_resched(cp->ev, period);
+}
+
+/**
  * Remove periodic event, if non-NULL, and nullify the variable holding it.
  */
 void

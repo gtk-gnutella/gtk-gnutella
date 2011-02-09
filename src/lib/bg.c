@@ -42,7 +42,7 @@
 RCSID("$Id$")
 
 #include "bg.h"
-#include "debug.h"
+#include "cq.h"
 #include "misc.h"
 #include "tm.h"
 #include "walloc.h"
@@ -56,9 +56,16 @@ enum bgtask_magic {
 	BGTASK_DEAD_MAGIC = 0x6f5c8a03U
 };
 
-#define MAX_LIFE		350000			/**< In useconds, MUST be << 1 sec */
-#define MIN_LIFE		40000			/**< Min lifetime per task, in usecs */
+#define MAX_LIFE		120000			/**< In usecs, MUST be << 350 ms */
 #define DELTA_FACTOR	4				/**< Max variations are 400% */
+
+#define BG_TICK_IDLE	1000			/**< Tick every second when idle */
+#define BG_TICK_BUSY	360				/**< Tick every 360 ms when busy */
+
+static struct {
+	cperiodic_t *pev;		/**< Ticker periodic event */
+	int period;				/**< Current period */
+} bg_ticker;
 
 /**
  * Internal representation of a user-defined task.
@@ -257,15 +264,28 @@ bg_task_suspend(struct bgtask *bt)
 
 	/*
 	 * Now update the tick cost, if elapsed is not null.
-	 * We use a slow EMA to keep track of it, to smooth variations.
 	 *
 	 * If task is flagged TASK_F_NOTICK, it was scheduled only to deliver
 	 * a signal and we cannot really update the tick cost.
 	 */
 
 	if (!(bt->flags & TASK_F_NOTICK)) {
-		double new_cost =
-			(4 * bt->tick_cost + (elapsed / bt->ticks_used)) / 5.0;
+		double new_cost;
+
+		/*
+		 * If the task spent more than its MAX_LIFE, then the tick cost
+		 * was severely under-estimated and we compute a new one.
+		 * Otherwise, we use a slow EMA to update the tick cost, in order
+		 * to smooth variations.
+		 */
+
+		if (elapsed > MAX_LIFE) {
+			if (bg_debug > 4)
+				g_message("BGTASK \"%s\" resetting tick_cost", bt->name);
+			new_cost = elapsed / bt->ticks_used;
+		} else {
+			new_cost = (4 * bt->tick_cost + (elapsed / bt->ticks_used)) / 5.0;
+		}
 
 		if (bg_debug > 4)
 			g_debug("BGTASK \"%s\" total=%d msecs, elapsed=%lu usecs, "
@@ -914,12 +934,36 @@ bg_task_ended(struct bgtask *bt)
 }
 
 /**
- * Main task scheduling timer, called once per second.
- *
- * @param overloaded	when TRUE, CPU is already deemed to be busy enough
+ * Adjust the period of the tick delivery event.
  */
-void
-bg_sched_timer(gboolean overloaded)
+static void
+bg_ticker_adjust_period(void)
+{
+	int target;
+
+	/*
+	 * Schedule once every BG_TICK_IDLE ms if we have nothing runable.
+	 * Otherwise, increase the frequency to once every BG_TICK_BUSY ms.
+	 */
+
+	target = 0 == bg_runcount ? BG_TICK_IDLE : BG_TICK_BUSY;
+
+	if (bg_ticker.period != target) {
+		bg_ticker.period = target;
+		cq_periodic_resched(bg_ticker.pev, target);
+
+		if (bg_debug > 5) {
+			g_debug("BGTASK will be ticking every %d msecs (runable = %d)",
+				bg_ticker.period, bg_runcount);
+		}
+	}
+}
+
+/**
+ * Main task scheduling timer.
+ */
+static gboolean
+bg_sched_timer(void *unused_arg)
 {
 	struct bgtask * volatile bt;
 	volatile int remain = MAX_LIFE;
@@ -930,8 +974,9 @@ bg_sched_timer(gboolean overloaded)
 	g_assert(current_task == NULL);
 	g_assert(bg_runcount >= 0);
 
-	if (overloaded)
-		remain /= 2;	/* Use less CPU time when overloaded */
+	(void) unused_arg;
+
+	bg_ticker_adjust_period();
 
 	/*
 	 * Loop as long as there are tasks to be scheduled and we have some
@@ -941,12 +986,9 @@ bg_sched_timer(gboolean overloaded)
 	while (bg_runcount > 0 && remain > 0) {
 		/*
 		 * Compute how much time we can spend for this task.
-		 * Slow things down if overloaded.
 		 */
 
-		target = MAX(MIN_LIFE, MAX_LIFE / bg_runcount);
-		if (overloaded)
-			target /= 2;
+		target = MAX_LIFE / bg_runcount;
 
 		bt = bg_sched_pick();
 		g_assert(bt != NULL);		/* bg_runcount > 0 => there is a task */
@@ -1011,6 +1053,7 @@ bg_sched_timer(gboolean overloaded)
 
 			bt->flags |= TASK_F_NOTICK;
 			bg_task_switch(NULL);
+			remain -= bt->elapsed;
 			bg_task_terminate(bt);
 			continue;
 		}
@@ -1094,6 +1137,13 @@ bg_sched_timer(gboolean overloaded)
 
 	if (dead_tasks != NULL)
 		bg_reclaim_dead();			/* Free dead tasks */
+
+	if (bg_debug > 3 && MAX_LIFE != remain) {
+		g_debug("BGTASK runable=%d, ran for %d usecs",
+			bg_runcount, MAX_LIFE - remain);
+	}
+
+	return TRUE;		/* Keep calling */
 }
 
 static guint
@@ -1114,6 +1164,23 @@ bg_task_terminate_all(GSList **ptr)
 		gm_slist_free_null(ptr);
 	}
 	return count;
+}
+
+/**
+ * Initialize background task scheduling.
+ */
+void
+bg_init(void)
+{
+	/*
+	 * Initially, the periodic event providing "scheduling ticks" triggers
+	 * every second.  This time is adjusted when there is work to do so
+	 * that background tasks can nicely blend in the middle of other activities.
+	 */
+
+	bg_ticker.period = BG_TICK_IDLE;
+	bg_ticker.pev = cq_periodic_add(callout_queue, BG_TICK_IDLE,
+		bg_sched_timer, NULL);
 }
 
 /**
