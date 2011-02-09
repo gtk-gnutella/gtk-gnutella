@@ -1888,87 +1888,191 @@ struct adns_response {
 	} reply;
 };
 
-void mingw_adns_send_request_cb(struct async_data *ad);
-void mingw_adns_thread_resolve_hostname(struct async_data *ad);
+void mingw_adns_getaddrinfo(const struct adns_request *req);
+void mingw_adns_getaddrinfo_thread(struct async_data *ad);
+void mingw_adns_getaddrinfo_cb(struct async_data *ad);
+
+void mingw_adns_getnameinfo(const struct adns_request *req);
+void mingw_adns_getnameinfo_thread(struct async_data *ad);
+void mingw_adns_getnameinfo_cb(struct async_data *ad);
 
 gboolean
 mingw_adns_send_request(const struct adns_request *req)
 {
-	struct async_data *ad = walloc(sizeof(struct async_data));
-	ad->thread_func = mingw_adns_thread_resolve_hostname;
-	ad->callback_func = mingw_adns_send_request_cb;	
-	
 	if (req->common.reverse) {
-	
+		mingw_adns_getnameinfo(req);
 	} else {
-		char *hostname = strdup(req->query.by_addr.hostname);
-		ad->thread_arg_data = hostname;
-		ad->user_data = (void*) req;
-		
-		g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
+		mingw_adns_getaddrinfo(req);
 	}
 	
 	return TRUE;
 }
 
+/* ADNS getaddrinfo */
+void 
+mingw_adns_getaddrinfo(const struct adns_request *req)
+{
+	struct async_data *ad = walloc(sizeof(struct async_data));
+	
+	t_debug(altc, "mingw_adns_getaddrinfo");
+	
+	g_assert(req);
+	
+	ad->thread_func = mingw_adns_getaddrinfo_thread;
+	ad->callback_func = mingw_adns_getaddrinfo_cb;	
+	ad->user_data = malloc(sizeof *req);
+	memcpy(ad->user_data, req, sizeof *req);
+	
+	char *hostname = strdup(req->query.by_addr.hostname);
+	ad->thread_arg_data = hostname;	
+	
+	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
+}
+
 void
-mingw_adns_send_request_cb(struct async_data *ad)
+mingw_adns_getaddrinfo_thread(struct async_data *ad)
+{
+	char *hostname;
+	struct addrinfo *results;
+	hostname = (char *) ad->thread_arg_data;
+	
+	t_debug(altc, "ADNS resolving '%s'", hostname);
+	
+	getaddrinfo(hostname, NULL, NULL, &results);
+
+	t_debug(altc, "ADNS got result for '%s' @%p", hostname, results);
+	ad->thread_return_data = results;	
+}
+
+void
+mingw_adns_getaddrinfo_cb(struct async_data *ad)
 {
 	struct addrinfo *results;
 	struct adns_request *req;
+	struct addrinfo *response;
+	int n = 0;
+	host_addr_t addrs[10];
+
+	g_assert(ad);
+	g_assert(ad->thread_return_data);
+	g_assert(ad->user_data);
+	g_assert(ad->thread_arg_data);
 	
-	req = (struct adns_request *) ad->user_data;
 	results = (struct addrinfo *) ad->thread_return_data;
+	req = (struct adns_request *) ad->user_data;
+	response = ad->thread_return_data;
 	
-	if (req->common.reverse) {
-	
-	} else {
-		struct addrinfo *response = ad->thread_return_data;
-		int n = 0;
-		host_addr_t addrs[10];
-				
-		while (response != NULL) {
-			addrs[n] = addrinfo_to_addr(response);						
-			char *hostname = response->ai_canonname;
-			t_debug(altc, "ADNS got %s for hostname %s",
-				host_addr_to_string(addrs[n]), hostname);
-			
-			response = response->ai_next;
-			n++;
-		}
+	while (response != NULL) {
+		addrs[n] = addrinfo_to_addr(response);						
 		
-		{
-			adns_callback_t func = (adns_callback_t) req->common.user_callback;
-			t_debug(altc,
-				"ADNS performing user call back to %p with n=%d results", 
-				req->common.user_data, n);
-			func(addrs, n, req->common.user_data);		
-		}
+		g_debug("ADNS got %s for hostname %s",
+			host_addr_to_string(addrs[n]), (char*)ad->thread_arg_data);
+		
+		response = response->ai_next;
+		n++;
+	}
+	
+	{
+		adns_callback_t func = (adns_callback_t) req->common.user_callback;
+		g_assert(NULL != func);
+		g_debug(
+			"ADNS performing user call back to %p with n=%d results", 
+			req->common.user_data, n);
+		func(addrs, n, req->common.user_data);		
 	}
 	
 	freeaddrinfo(results);
 
 	wfree(ad, sizeof(struct async_data));
+	free(req);
 }
 
+/* ADNS Get name info */
 
 void
-mingw_adns_thread_resolve_hostname(struct async_data *ad)
+mingw_adns_getnameinfo(const struct adns_request *req)
 {
-	/* On ADNS Thread */
+	const struct adns_reverse_query *query = &req->query.reverse;
+	struct sockaddr_storage *ss;
+	struct async_data *ad = walloc(sizeof(struct async_data));
 	
-	char *hostname;
-	struct addrinfo *results;
-	hostname = (char *) ad->thread_arg_data;
+	ad->thread_func = mingw_adns_getnameinfo_thread;
+	ad->callback_func = mingw_adns_getnameinfo_cb;	
+	ad->user_data = malloc(sizeof *req);
+	memcpy(ad->user_data, req, sizeof *req);
 	
-	t_message(altc, "ADNS resolving %s", hostname);
-	
-	getaddrinfo(hostname, NULL, NULL, &results);
+	ss = walloc(sizeof(struct sockaddr_storage));
 
-	t_message(altc, "ADNS got result for %s %p", hostname, results);
-	ad->thread_return_data = results;	
+	if (query->addr.net == NET_TYPE_IPV6) {		
+/*
+		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *) ss;
+
+		sin6->sin6_family = AF_INET6;
+		sin6->sin6_addr.s_addr = query->addr.ipv6;
+*/	
+	} else {
+		
+		struct sockaddr_in *inet4 = (struct sockaddr_in *) ss;
+		
+		inet4->sin_family = AF_INET;	
+		inet4->sin_addr.s_addr = htonl(query->addr.addr.ipv4);
+	}	
+	
+    char *hostname = walloc(NI_MAXHOST);
+    char *servInfo = walloc(NI_MAXSERV);
+	
+	
+	gpointer *arg_data =  walloc(sizeof(gpointer *) * 4);
+	arg_data[0] = ss;
+	arg_data[2] = hostname;
+	arg_data[3] = servInfo;	
+	ad->thread_arg_data = arg_data;
+	
+	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
 }
 
+void
+mingw_adns_getnameinfo_thread(struct async_data *ad)
+{
+	gpointer *arg_data = ad->thread_arg_data;
+	struct sockaddr_storage *ss = arg_data[0];
+	char *hostname = arg_data[2];
+	char *servInfo = arg_data[3];
+	
+	
+	getnameinfo((struct sockaddr *) ss, sizeof(struct sockaddr_storage),
+		hostname, NI_MAXHOST, servInfo, NI_MAXSERV, 
+		NI_NUMERICSERV);
+
+	t_debug(altc, "ADNS resolved to %s", hostname);
+}
+
+void
+mingw_adns_getnameinfo_cb(struct async_data *ad)
+{
+	struct adns_request *req = (struct adns_request *) ad->user_data;
+	gpointer *arg_data = ad->thread_arg_data;
+	struct sockaddr_storage *ss = arg_data[0];
+	char *hostname = arg_data[2];
+	char *servInfo = arg_data[3];
+	
+	g_debug("ADNS resolved to %s", hostname);
+	
+	{
+		adns_reverse_callback_t func = (adns_reverse_callback_t) req->common.user_callback;
+		g_debug(
+			"ADNS getnameinfo performing user call back to %p with %s", 
+			req->common.user_data, hostname);
+		func(hostname, req->common.user_data);
+	}
+	
+	free(req);
+	wfree(hostname, NI_MAXHOST);
+    wfree(servInfo, NI_MAXSERV);
+	wfree(ss, sizeof(struct sockaddr_storage));
+}
+
+/* ADNS Main thread */
 gboolean mingw_adns_thread_run;
 
 gpointer
@@ -1987,16 +2091,16 @@ mingw_adns_thread(gpointer data)
 		struct async_data *ad;
 		
 		ad = g_async_queue_pop(read_queue);	
-		
+
 		if (NULL == ad)
 			goto exit;
-		
+
 		ad->thread_func(ad);
 		g_async_queue_push(result_queue, ad);			
 	}
 
 exit:
-	t_message(altc, "adns thread exit");
+	t_messge(altc, "adns thread exit");
 
 	g_thread_exit(NULL);
 	return 0;
@@ -2042,7 +2146,7 @@ mingw_timer(void)
 	struct async_data *ad = g_async_queue_try_pop(mingw_gtkg_main_async_queue);
 	
 	if (NULL != ad) {
-		t_message(altc, "performing callback to func @%p", ad->callback_func);
+		g_debug("performing callback to func @%p", ad->callback_func);
 		ad->callback_func(ad);
 	} 
 }
