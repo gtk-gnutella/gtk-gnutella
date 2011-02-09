@@ -1969,6 +1969,8 @@ mingw_adns_thread_resolve_hostname(struct async_data *ad)
 	ad->thread_return_data = results;	
 }
 
+gboolean mingw_adns_thread_run;
+
 gpointer
 mingw_adns_thread(gpointer data)
 {
@@ -1979,8 +1981,9 @@ mingw_adns_thread(gpointer data)
 	
 	read_queue = g_async_queue_ref(mingw_gtkg_adns_async_queue);
 	result_queue = g_async_queue_ref(mingw_gtkg_main_async_queue);
+	mingw_adns_thread_run = TRUE;
 	
-	while (1) {
+	while (mingw_adns_thread_run) {
 		struct async_data *ad;
 		
 		ad = g_async_queue_pop(read_queue);	
@@ -1989,12 +1992,21 @@ mingw_adns_thread(gpointer data)
 			goto exit;
 		
 		ad->thread_func(ad);
-		g_async_queue_push(mingw_gtkg_main_async_queue, ad);			
+		g_async_queue_push(result_queue, ad);			
 	}
 
 exit:
+	t_message(altc, "adns thread exit");
+
 	g_thread_exit(NULL);
 	return 0;
+}
+
+void
+mingw_adns_thread_stop(struct async_data* data)
+{
+	(void) data;
+	mingw_adns_thread_run = FALSE;
 }
 
 void
@@ -2018,12 +2030,10 @@ void
 mingw_adns_close(void)
 {
 	/* Quit our ADNS thread */
-	g_async_queue_push(mingw_gtkg_main_async_queue, NULL);
-#if FIXME
 	struct async_data *ad = walloc(sizeof(struct async_data));
-	ad->thread_func = mingw_adns_thread_exit;
+	ad->thread_func = mingw_adns_thread_stop;
+
 	g_async_queue_push(mingw_gtkg_main_async_queue, ad);
-#endif
 }
 
 void
