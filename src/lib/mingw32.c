@@ -69,6 +69,7 @@ RCSID("$Id$")
 #include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
 #include "halloc.h"
+#include "log.h"
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
 #include "stacktrace.h"
@@ -1830,6 +1831,8 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 /***
  *** ADNS
  ***/
+
+static logthread_t *altc;		/* ADNS logging thread context */
  
 GAsyncQueue *mingw_gtkg_main_async_queue;
 GAsyncQueue *mingw_gtkg_adns_async_queue;
@@ -1927,7 +1930,8 @@ mingw_adns_send_request_cb(struct async_data *ad)
 		while (response != NULL) {
 			addrs[n] = addrinfo_to_addr(response);						
 			char *hostname = response->ai_canonname;
-			g_debug("got %s for hostname %s", host_addr_to_string(addrs[n]), hostname);
+			t_debug(altc, "ADNS got %s for hostname %s",
+				host_addr_to_string(addrs[n]), hostname);
 			
 			response = response->ai_next;
 			n++;
@@ -1935,7 +1939,8 @@ mingw_adns_send_request_cb(struct async_data *ad)
 		
 		{
 			adns_callback_t func = (adns_callback_t) req->common.user_callback;
-			g_debug("Performing user call back to %p with n=%d results", 
+			t_debug(altc,
+				"ADNS performing user call back to %p with n=%d results", 
 				req->common.user_data, n);
 			func(addrs, n, req->common.user_data);		
 		}
@@ -1956,11 +1961,11 @@ mingw_adns_thread_resolve_hostname(struct async_data *ad)
 	struct addrinfo *results;
 	hostname = (char *) ad->thread_arg_data;
 	
-	printf("mingw_adns_resolving %s\r\n", hostname);
+	t_message(altc, "ADNS resolving %s", hostname);
 	
 	getaddrinfo(hostname, NULL, NULL, &results);
 
-	printf("mingw_adns got result for %s %p\r\n", hostname,results);
+	t_message(altc, "ADNS got result for %s %p", hostname, results);
 	ad->thread_return_data = results;	
 }
 
@@ -1995,6 +2000,8 @@ exit:
 void
 mingw_adns_init(void)
 {
+	altc = log_thread_alloc();		/* Thread-private logging context */
+
 	/*
 	 * Create ADNS thread, take care, gtkg is completely mono-threaded
 	 * so it is _not_ thread safe, don't access any public functions or
@@ -2025,10 +2032,9 @@ mingw_timer(void)
 	struct async_data *ad = g_async_queue_try_pop(mingw_gtkg_main_async_queue);
 	
 	if (NULL != ad) {
-		printf("Performing callback to func @%p\r\n", ad->callback_func);
+		t_message(altc, "performing callback to func @%p", ad->callback_func);
 		ad->callback_func(ad);
 	} 
-
 }
 #endif /* ADNS Disabled */
 

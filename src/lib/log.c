@@ -42,12 +42,13 @@ RCSID("$Id$")
 #include "ckalloc.h"
 #include "crash.h"
 #include "halloc.h"
-#include "stacktrace.h"
 #include "offtime.h"
 #include "signal.h"
+#include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
 #include "tm.h"
+
 #include "override.h"		/* Must be the last header included */
 
 #define LOG_MSG_MAXLEN		512		/**< Maximum length within signal handler */
@@ -71,6 +72,25 @@ struct logfile {
 	unsigned path_is_atom:1;	/**< Path is an atom */
 };
 
+enum logthread_magic { LOGTHREAD_MAGIC = 0x72a32c36 };
+
+/**
+ * Thread private logging data.
+ */
+struct logthread {
+	enum logthread_magic magic;
+	volatile sig_atomic_t in_log_handler;	/**< Recursion detection */
+	ckhunk_t *ck;			/**< Chunk from which we can allocate memory */
+};
+
+static inline void
+logthread_check(const struct logthread * const lt)
+{
+	g_assert(lt != NULL);
+	g_assert(LOGTHREAD_MAGIC == lt->magic);
+	g_assert(lt->ck != NULL);
+}
+
 /**
  * Set of log files.
  */
@@ -93,14 +113,40 @@ static volatile sig_atomic_t in_safe_handler;
 static const char DEV_NULL[] = "/dev/null";
 
 /**
+ * Allocate a thread-private logging data descriptor.
+ *
+ * This must be done in the main thread before starting subsequent threads
+ * since the memory allocation code is not thread-safe.
+ */
+logthread_t *
+log_thread_alloc(void)
+{
+	logthread_t *lt;
+	ckhunk_t *ck;
+
+	ck = ck_init_not_leaking(2 * LOG_MSG_MAXLEN, 0);
+	lt = ck_alloc(ck, sizeof *lt);
+	lt->magic = LOGTHREAD_MAGIC;
+	lt->ck = ck;
+	lt->in_log_handler = FALSE;
+
+	return lt;
+}
+
+/**
  * Safe logging to avoid recursion from the log handler, and safe to use
- * from a signal handler if needed.
+ * from a signal handler if needed, or from a concurrent thread with a
+ * thread-private allocation chunk.
+ *
+ * @param lt		thread-private context (NULL if not in a concurrent thread)
+ * @param level		glib-compatible log level flags
+ * @param format	formatting string
+ * @param args		variable argument list to format
  */
 static void
-s_logv(GLogLevelFlags level, const char *format, va_list args)
+s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
-	gboolean in_signal_handler = signal_in_handler();
-	GLogLevelFlags loglvl;
+	gboolean in_signal_handler = lt != NULL || signal_in_handler();
 
 	/*
 	 * Until the atom layer is up, consider it unsafe to call g_logv()
@@ -125,6 +171,8 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 		str_t *msg;
 		ckhunk_t *ck = NULL;
 		void *saved = NULL;
+		gboolean recursing;
+		GLogLevelFlags loglvl;
 
 		/*
 		 * An error is fatal, and indicates something is terribly wrong.
@@ -139,7 +187,13 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 		 * Detect recursion, but don't make it fatal.
 		 */
 
-		if (in_safe_handler) {
+		if (G_UNLIKELY(lt != NULL)) {
+			recursing = lt->in_log_handler;
+		} else {
+			recursing = in_safe_handler;
+		}
+
+		if (recursing) {
 			DECLARE_STR(6);
 			char time_buf[18];
 
@@ -209,7 +263,11 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 		 * OK, no recursion so far.  Emit log.
 		 */
 
-		in_safe_handler = TRUE;
+		if (G_LIKELY(NULL == lt)) {
+			in_safe_handler = TRUE;
+		} else {
+			lt->in_log_handler = TRUE;
+		}
 
 		/*
 		 * Within a signal handler, we can safely allocate memory to be
@@ -221,7 +279,7 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 		 */
 
 		if (in_signal_handler) {
-			ck = signal_chunk();
+			ck = (NULL == lt) ? signal_chunk() : lt->ck;
 			saved = ck_save(ck);
 			msg = str_new_in_chunk(ck, LOG_MSG_MAXLEN);
 
@@ -327,7 +385,11 @@ s_logv(GLogLevelFlags level, const char *format, va_list args)
 		if (is_running_on_mingw() && !in_signal_handler)
 			fflush(stderr);		/* Unbuffering does not work on Windows */
 
-		in_safe_handler = FALSE;
+		if (G_LIKELY(NULL == lt)) {
+			in_safe_handler = FALSE;
+		} else {
+			lt->in_log_handler = FALSE;
+		}
 	}
 }
 
@@ -340,7 +402,7 @@ s_fatal_exit(int status, const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL, format, args);
+	s_logv(NULL, G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL, format, args);
 	va_end(args);
 	exit(status);
 }
@@ -354,7 +416,7 @@ s_critical(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(G_LOG_LEVEL_CRITICAL, format, args);
+	s_logv(NULL, G_LOG_LEVEL_CRITICAL, format, args);
 	va_end(args);
 }
 
@@ -367,7 +429,7 @@ s_error(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(G_LOG_LEVEL_ERROR, format, args);
+	s_logv(NULL, G_LOG_LEVEL_ERROR, format, args);
 	va_end(args);
 
 	raise(SIGABRT);		/* In case we did not enter g_logv() */
@@ -383,7 +445,7 @@ s_carp(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(G_LOG_LEVEL_WARNING, format, args);
+	s_logv(NULL, G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 
 	if (in_signal_handler)
@@ -401,7 +463,7 @@ s_warning(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(G_LOG_LEVEL_WARNING, format, args);
+	s_logv(NULL, G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 }
 
@@ -414,7 +476,7 @@ s_message(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(G_LOG_LEVEL_MESSAGE, format, args);
+	s_logv(NULL, G_LOG_LEVEL_MESSAGE, format, args);
 	va_end(args);
 }
 
@@ -427,7 +489,7 @@ s_info(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(G_LOG_LEVEL_INFO, format, args);
+	s_logv(NULL, G_LOG_LEVEL_INFO, format, args);
 	va_end(args);
 }
 
@@ -440,7 +502,116 @@ s_debug(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(G_LOG_LEVEL_DEBUG, format, args);
+	s_logv(NULL, G_LOG_LEVEL_DEBUG, format, args);
+	va_end(args);
+}
+
+/**
+ * Thread-safe critical message.
+ */
+void
+t_critical(logthread_t *lt, const char *format, ...)
+{
+	va_list args;
+
+	logthread_check(lt);
+
+	va_start(args, format);
+	s_logv(lt, G_LOG_LEVEL_CRITICAL, format, args);
+	va_end(args);
+}
+
+/**
+ * Thread-safe error.
+ */
+void
+t_error(logthread_t *lt, const char *format, ...)
+{
+	va_list args;
+
+	logthread_check(lt);
+
+	va_start(args, format);
+	s_logv(lt, G_LOG_LEVEL_ERROR, format, args);
+	va_end(args);
+
+	raise(SIGABRT);		/* In case we did not enter g_logv() */
+}
+
+/**
+ * Thread-safe verbose warning message.
+ */
+void
+t_carp(logthread_t *lt, const char *format, ...)
+{
+	va_list args;
+
+	logthread_check(lt);
+
+	va_start(args, format);
+	s_logv(lt, G_LOG_LEVEL_WARNING, format, args);
+	va_end(args);
+
+	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
+}
+
+/**
+ * Thread-safe warning message.
+ */
+void
+t_warning(logthread_t *lt, const char *format, ...)
+{
+	va_list args;
+
+	logthread_check(lt);
+
+	va_start(args, format);
+	s_logv(lt, G_LOG_LEVEL_WARNING, format, args);
+	va_end(args);
+}
+
+/**
+ * Thread-safe regular message.
+ */
+void
+t_message(logthread_t *lt, const char *format, ...)
+{
+	va_list args;
+
+	logthread_check(lt);
+
+	va_start(args, format);
+	s_logv(lt, G_LOG_LEVEL_MESSAGE, format, args);
+	va_end(args);
+}
+
+/**
+ * Thread-safe info message.
+ */
+void
+t_info(logthread_t *lt, const char *format, ...)
+{
+	va_list args;
+
+	logthread_check(lt);
+
+	va_start(args, format);
+	s_logv(lt, G_LOG_LEVEL_INFO, format, args);
+	va_end(args);
+}
+
+/**
+ * Thread-safe debug message.
+ */
+void
+t_debug(logthread_t *lt, const char *format, ...)
+{
+	va_list args;
+
+	logthread_check(lt);
+
+	va_start(args, format);
+	s_logv(lt, G_LOG_LEVEL_DEBUG, format, args);
 	va_end(args);
 }
 
