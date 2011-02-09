@@ -1920,10 +1920,10 @@ mingw_adns_getaddrinfo(const struct adns_request *req)
 	
 	ad->thread_func = mingw_adns_getaddrinfo_thread;
 	ad->callback_func = mingw_adns_getaddrinfo_cb;	
-	ad->user_data = malloc(sizeof *req);
+	ad->user_data = halloc(sizeof *req);
 	memcpy(ad->user_data, req, sizeof *req);
 	
-	char *hostname = strdup(req->query.by_addr.hostname);
+	char *hostname = h_strdup(req->query.by_addr.hostname);
 	ad->thread_arg_data = hostname;	
 	
 	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
@@ -1966,7 +1966,7 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 		addrs[n] = addrinfo_to_addr(response);						
 		
 		g_debug("ADNS got %s for hostname %s",
-			host_addr_to_string(addrs[n]), (char*)ad->thread_arg_data);
+			host_addr_to_string(addrs[n]), (char *) ad->thread_arg_data);
 		
 		response = response->ai_next;
 		n++;
@@ -1984,7 +1984,8 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 	freeaddrinfo(results);
 
 	wfree(ad, sizeof(struct async_data));
-	free(req);
+	hfree(ad->thread_arg_data);
+	hfree(req);
 }
 
 /* ADNS Get name info */
@@ -1998,8 +1999,7 @@ mingw_adns_getnameinfo(const struct adns_request *req)
 	
 	ad->thread_func = mingw_adns_getnameinfo_thread;
 	ad->callback_func = mingw_adns_getnameinfo_cb;	
-	ad->user_data = malloc(sizeof *req);
-	memcpy(ad->user_data, req, sizeof *req);
+	ad->user_data = hcopy(req, sizeof *req);
 	
 	ss = walloc(sizeof(struct sockaddr_storage));
 
@@ -2059,17 +2059,18 @@ mingw_adns_getnameinfo_cb(struct async_data *ad)
 	g_debug("ADNS resolved to %s", hostname);
 	
 	{
-		adns_reverse_callback_t func = (adns_reverse_callback_t) req->common.user_callback;
-		g_debug(
-			"ADNS getnameinfo performing user call back to %p with %s", 
+		adns_reverse_callback_t func =
+			(adns_reverse_callback_t) req->common.user_callback;
+		g_debug("ADNS getnameinfo performing user call back to %p with %s", 
 			req->common.user_data, hostname);
 		func(hostname, req->common.user_data);
 	}
 	
-	free(req);
+	hfree(req);
 	wfree(hostname, NI_MAXHOST);
     wfree(servInfo, NI_MAXSERV);
 	wfree(ss, sizeof(struct sockaddr_storage));
+	wfree(arg_data, sizeof(gpointer *) * 4);
 }
 
 /* ADNS Main thread */
