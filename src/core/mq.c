@@ -1042,10 +1042,6 @@ qlink_remove(mqueue_t *q, GList *l)
 		/* Should have been found -- FALL THROUGH */
 	}
 
-	/*
-	 * Used to be an assertion, but it is non-fatal.  Warn copiously though.
-	 */
-
 	g_error("BUG: linkable 0x%lx for %s not found "
 		"(qlink has %d slots, queue has %d counted items, really %d) at %s:%d",
 		(gulong) l, mq_info(q),
