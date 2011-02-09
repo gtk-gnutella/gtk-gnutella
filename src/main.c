@@ -1203,9 +1203,6 @@ main_timer(void *unused_data)
 		log_reopen_all(options[main_arg_daemonize].used);
 	}
 
-#ifdef MINGW32_ADNS
-	mingw_timer();
-#endif
 	bsched_timer();					/* Scheduling update */
 	host_timer();					/* Host connection */
     hcache_timer(now);
@@ -1595,6 +1592,7 @@ main(int argc, char **argv)
 	STATIC_ASSERT(UNSIGNED(-1) > 0);
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
+	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
 	inputevt_init(options[main_arg_use_poll].used);
 	tiger_check();
 	tt_check();
@@ -1616,7 +1614,6 @@ main(int argc, char **argv)
 		main_gui_early_init(argc, argv, options[main_arg_no_xshm].used);
 	}
 
-	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
 	bg_init();
 	upnp_init();
 	udp_init();

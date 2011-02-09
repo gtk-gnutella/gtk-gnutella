@@ -2111,6 +2111,21 @@ mingw_adns_thread_stop(struct async_data* data)
 	mingw_adns_thread_run = FALSE;
 }
 
+static gboolean
+mingw_adns_timer(void *unused_arg)
+{
+	struct async_data *ad = g_async_queue_try_pop(mingw_gtkg_main_async_queue);
+
+	(void) unused_arg;
+	
+	if (NULL != ad) {
+		g_debug("performing callback to func @%p", ad->callback_func);
+		ad->callback_func(ad);
+	} 
+
+	return TRUE;		/* Keep calling */
+}
+
 void
 mingw_adns_init(void)
 {
@@ -2126,6 +2141,7 @@ mingw_adns_init(void)
 	mingw_gtkg_adns_async_queue = g_async_queue_new();
 
 	g_thread_create(mingw_adns_thread, NULL, FALSE, NULL);
+	cq_periodic_add(callout_queue, 1000, mingw_adns_timer, NULL);
 }
 
 void
@@ -2136,17 +2152,6 @@ mingw_adns_close(void)
 	ad->thread_func = mingw_adns_thread_stop;
 
 	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
-}
-
-void
-mingw_timer(void)
-{
-	struct async_data *ad = g_async_queue_try_pop(mingw_gtkg_main_async_queue);
-	
-	if (NULL != ad) {
-		g_debug("performing callback to func @%p", ad->callback_func);
-		ad->callback_func(ad);
-	} 
 }
 #endif /* ADNS Disabled */
 
