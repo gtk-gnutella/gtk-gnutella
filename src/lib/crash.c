@@ -36,6 +36,31 @@
  *
  * A ridiculously over-complicated crash handler.
  *
+ * But incredibly useful...  The aim is to be able to capture as much
+ * information as possible regarding the crash conditions, especially
+ * in the field where core dumps are usually not allowed and where people
+ * do not necessarily know how to launch a debugger anyway.
+ *
+ * There are two aspects to crash handling:
+ *
+ * - Logging of the crash condition (cause, call stack if possible).
+ * - Capturing a debugging stack with local variable in case there is
+ *   no persistent logging.
+ *
+ * Note that when crashing with an assertion failure, we usually already
+ * have the stack trace, but crash handling is triggered anyway to collect
+ * the debugging stack when no core dump is generated.
+ *
+ * To use the crash handler, the application must at least call crash_init(),
+ * followed by some of the crash_setxxx() routines, closing the initialization
+ * with crash_post_init().  All this initial configuration is saved in a
+ * read-only memory region to prevent accidental corruption.
+ *
+ * Upon reception of a fatal signal, the crash_handler() routine is invoked.
+ *
+ * When using "fast assertions", there is also a hook to record the
+ * fatal failing assertion through crash_assert_failure().
+ *
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
@@ -281,7 +306,7 @@ crash_time_iso(char *buf, size_t size)
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
  */
-void
+static void
 crash_run_time(char *buf, size_t size)
 {
 	const size_t num_reserved = 1;
@@ -326,6 +351,9 @@ crash_run_time(char *buf, size_t size)
 	crash_append_fmt_c(&cursor, '\0');
 }
 
+/**
+ * Emit leading crash information: who crashed and why.
+ */
 static void
 crash_message(const char *signame, gboolean trace, gboolean recursive)
 {
@@ -372,6 +400,9 @@ crash_message(const char *signame, gboolean trace, gboolean recursive)
 	flush_err_str();
 }
 
+/**
+ * Marks end of crash logging and potential pausing or debugger hook calling.
+ */
 static void
 crash_end_of_line(void)
 {
@@ -428,6 +459,10 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 	clamp_strcat(buf, len, ".log");
 }
 
+/**
+ * Invoke the inspector process (gdb, or any other program specified at
+ * initialization time).
+ */
 static void
 crash_invoke_inspector(int signo, const char *cwd)
 #ifdef HAS_FORK
