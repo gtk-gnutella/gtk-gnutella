@@ -980,6 +980,7 @@ bg_sched_timer(void *unused_arg)
 	struct bgtask * volatile bt;
 	volatile int remain = MAX_LIFE;
 	int target;
+	unsigned schedules = 0;
 	volatile int ticks;
 	bgret_t ret;
 
@@ -1046,6 +1047,7 @@ bg_sched_timer(void *unused_arg)
 		 */
 
 		bg_task_switch(bt, 0);
+		schedules++;
 
 		g_assert(current_task == bt);
 		g_assert(bt->flags & TASK_F_RUNNING);
@@ -1151,8 +1153,9 @@ bg_sched_timer(void *unused_arg)
 		bg_reclaim_dead();			/* Free dead tasks */
 
 	if (bg_debug > 3 && MAX_LIFE != remain) {
-		g_debug("BGTASK runable=%d, ran for %d usecs",
-			bg_runcount, MAX_LIFE - remain);
+		g_debug("BGTASK runable=%d, ran for %d usecs, scheduling %u task%s",
+			bg_runcount, MAX_LIFE - remain,
+			schedules, 1 == schedules ? "" : "s");
 	}
 
 	return TRUE;		/* Keep calling */
