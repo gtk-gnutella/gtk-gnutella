@@ -44,6 +44,7 @@
 
 RCSID("$Id$")
 
+#include <stdlib.h>
 #include <windows.h>
 #include <mswsock.h>
 #include <shlobj.h>
@@ -2480,10 +2481,26 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
+void mingw_invalid_parameter(const wchar_t * expression,
+	const wchar_t * function, const wchar_t * file, unsigned int line,
+   uintptr_t pReserved) 
+{
+	(void) expression;
+	(void) function;
+	(void) pReserved;
+	
+	wprintf(L"mingw: Invalid parameter in %s %s:%d\r\n", function, file, line);
+}
+
+
 void
 mingw_early_init(void)
 {
 	int console_err;
+
+#if __MSVCRT_VERSION__ >= 0x800
+	_set_invalid_parameter_handler(mingw_invalid_parameter);
+#endif
 
 	/* Disable any Windows pop-up on crash or file access error */
 	SetErrorMode(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS |
