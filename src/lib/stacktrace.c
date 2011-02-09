@@ -104,8 +104,9 @@ static struct {
 /**
  * Deferred loading support.
  */
-static char *program_path;
-static time_t program_mtime;
+static char *local_path;		/**< Path before a chdir() */
+static char *program_path;		/**< Absolute program path */
+static time_t program_mtime;	/**< Last modification time of executable */
 static gboolean symbols_loaded;
 
 /**
@@ -240,6 +241,7 @@ stack_unwind(void *stack[], size_t count, size_t offset)
  * Search executable within the user's PATH.
  *
  * @return full path if found, NULL otherwise.
+ * The returned string is allocated with halloc().
  */
 static char *
 locate_from_path(const char *argv0)
@@ -262,7 +264,7 @@ locate_from_path(const char *argv0)
 		return NULL;
 	}
 
-	path = strdup(path);
+	path = h_strdup(path);
 
 	tok = strtok(path, G_SEARCHPATH_SEPARATOR_S);
 	while (NULL != tok) {
@@ -276,14 +278,14 @@ locate_from_path(const char *argv0)
 
 		if (-1 != stat(filepath, &buf)) {
 			if (S_ISREG(buf.st_mode) && -1 != access(filepath, X_OK)) {
-				result = strdup(filepath);
+				result = h_strdup(filepath);
 				break;
 			}
 		}
 		tok = strtok(NULL, G_SEARCHPATH_SEPARATOR_S);
 	}
 
-	free(path);
+	hfree(path);
 	return result;
 }
 
@@ -589,7 +591,7 @@ stacktrace_open_symbols(const char *exe, const char *nm)
  * Load symbols from the executable we're running.
  */
 static void
-load_symbols(const char *path)
+load_symbols(const char *path, const  char *lpath)
 {
 	char tmp[MAX_PATH_LEN + 80];
 	FILE *f;
@@ -667,7 +669,7 @@ retry:
 	hash_table_destroy_real(nm_ctx.atoms);
 
 done:
-	s_info("loaded %u symbols for \"%s\"", (unsigned) trace_array.count, path);
+	s_info("loaded %u symbols for \"%s\"", (unsigned) trace_array.count, lpath);
 
 	trace_sort();
 }
@@ -675,7 +677,7 @@ done:
 /**
  * Get the full program path.
  *
- * @return a newly allocated string (through malloc()) that points to the
+ * @return a newly allocated string (through halloc()) that points to the
  * path of the program being run, NULL if we can't compute a suitable path.
  */
 static char *
@@ -716,11 +718,11 @@ program_path_allocate(const char *argv0)
 	if (file != NULL && file != argv0)
 		return deconstify_gpointer(file);
 
-	return strdup(argv0);
+	return h_strdup(argv0);
 
 error:
 	if (file != NULL && file != argv0)
-		free(deconstify_gpointer(file));
+		hfree(deconstify_gpointer(file));
 
 	return NULL;
 }
@@ -771,36 +773,36 @@ stacktrace_auto_tune(void)
 void
 stacktrace_init(const char *argv0, gboolean deferred)
 {
+	char *path;
+
 	g_assert(argv0 != NULL);
 
-	program_path = program_path_allocate(argv0);
+	path = program_path_allocate(argv0);
 
-	if (NULL == program_path)
+	if (NULL == path)
 		goto done;
 
 	if (deferred) {
 		filestat_t buf;
 
-		if (-1 == stat(program_path, &buf)) {
-			s_warning("cannot stat \"%s\": %s",
-				program_path, g_strerror(errno));
+		if (-1 == stat(path, &buf)) {
+			s_warning("cannot stat \"%s\": %s", path, g_strerror(errno));
 			s_warning("will not be loading symbols for %s", argv0);
 			goto done;
 		}
 
 		program_mtime = buf.st_mtime;
+		local_path = path;
+		program_path = absolute_pathname(path);
 		goto tune;
 	}
 
-	load_symbols(program_path);
+	load_symbols(path, path);
 
 	/* FALL THROUGH */
 
 done:
-	if (program_path != NULL) {
-		free(program_path);
-		program_path = NULL;
-	}
+	HFREE_NULL(path);
 	symbols_loaded = TRUE;		/* Don't attempt again */
 
 	/* FALL THROUGH */
@@ -815,10 +817,8 @@ tune:
 void
 stacktrace_close(void)
 {
-	if (program_path != NULL) {
-		free(program_path);
-		program_path = NULL;
-	}
+	HFREE_NULL(local_path);
+	HFREE_NULL(program_path);
 	if (trace_array.base != NULL) {
 		vmm_free(trace_array.base,
 			trace_array.size * sizeof trace_array.base[0]);
@@ -861,7 +861,7 @@ stacktrace_load_symbols(void)
 			goto error;
 		}
 
-		load_symbols(program_path);
+		load_symbols(program_path, local_path);
 	}
 
 	goto done;
@@ -874,9 +874,8 @@ error:
 	/* FALL THROUGH */
 
 done:
-	if (program_path != NULL)
-		free(program_path);
-	program_path = NULL;
+	HFREE_NULL(program_path);
+	HFREE_NULL(local_path);
 }
 
 /**

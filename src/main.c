@@ -1482,16 +1482,22 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	/* First inits -- initialize custom memory allocator, if needed */
+	/* First inits -- no memory allocated */
 
 	misc_init();
-
 	prehandle_arguments(argv);
+
+	/* Initialize memory allocators -- order is important */
+
 	vmm_init(&sp);
 	signal_init();
 	halloc_init(!options[main_arg_no_halloc].used);
 	malloc_init_vtable();
 	vmm_malloc_inited();
+	zinit();
+	walloc_init();
+
+	/* At this point, vmm_alloc(), halloc() and zalloc() are up */
 
 	signal_set(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 #ifdef SIGHUP
@@ -1540,8 +1546,6 @@ main(int argc, char **argv)
 	handle_arguments_asap();
 
 	mingw_init();
-	zinit();
-	walloc_init();
 	atoms_init();
 	log_atoms_inited();		/* Atom layer is up */
 	eval_init();
