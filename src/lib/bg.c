@@ -226,9 +226,15 @@ bg_sched_pick(void)
 
 /**
  * Suspend task.
+ *
+ * As a side effect, update the tick cost statistics and elapsed time
+ * information for the last scheduling period.
+ *
+ * @param bt		the task to suspend
+ * @param target	the runtime target of the task (0 if unknown)
  */
 static void
-bg_task_suspend(struct bgtask *bt)
+bg_task_suspend(struct bgtask *bt, int target)
 {
 	tm_t end;
 	time_delta_t elapsed;
@@ -273,13 +279,13 @@ bg_task_suspend(struct bgtask *bt)
 		double new_cost;
 
 		/*
-		 * If the task spent more than its MAX_LIFE, then the tick cost
+		 * If the task spent more than its target, then the tick cost
 		 * was severely under-estimated and we compute a new one.
 		 * Otherwise, we use a slow EMA to update the tick cost, in order
 		 * to smooth variations.
 		 */
 
-		if (elapsed > MAX_LIFE) {
+		if (target != 0 && elapsed > target) {
 			if (bg_debug > 4)
 				g_message("BGTASK \"%s\" resetting tick_cost", bt->name);
 			new_cost = elapsed / bt->ticks_used;
@@ -287,11 +293,14 @@ bg_task_suspend(struct bgtask *bt)
 			new_cost = (4 * bt->tick_cost + (elapsed / bt->ticks_used)) / 5.0;
 		}
 
-		if (bg_debug > 4)
-			g_debug("BGTASK \"%s\" total=%d msecs, elapsed=%lu usecs, "
+		if (bg_debug > 4) {
+			g_debug("BGTASK \"%s\" total=%d msecs, "
+				"elapsed=%lu usecs (targeted %d), "
 				"ticks=%d, used=%d, tick_cost=%f usecs (was %f)",
-				bt->name, bt->wtime, (gulong)elapsed, bt->ticks, bt->ticks_used,
+				bt->name, bt->wtime, (gulong) elapsed, target,
+				bt->ticks, bt->ticks_used,
 				new_cost, bt->tick_cost);
+		}
 
 		bt->tick_cost = new_cost;
 	}
@@ -352,17 +361,20 @@ static struct bgtask *current_task;
  * Switch to new task `bt'.
  * If argument is NULL, suspends current task.
  *
+ * @param bt		the new task being scheduled
+ * @param target	the running time target of current task (0 if unknown)
+ *
  * @returns previously scheduled task, if any.
  */
 static struct bgtask *
-bg_task_switch(struct bgtask *bt)
+bg_task_switch(struct bgtask *bt, int target)
 {
 	struct bgtask *old = current_task;
 
 	g_assert(bt == NULL || !(bt->flags & TASK_F_RUNNING));
 
 	if (old) {
-		bg_task_suspend(old);
+		bg_task_suspend(old, target);
 		current_task = NULL;
 	}
 	if (bt) {
@@ -820,7 +832,7 @@ bg_task_cancel(struct bgtask *bt)
 		 */
 
 		if (!(bt->flags & TASK_F_RUNNING)) {
-			old = bg_task_switch(bt);		/* Switch to `bt' */
+			old = bg_task_switch(bt, 0);	/* Switch to `bt' */
 			switched = TRUE;
 		}
 
@@ -834,7 +846,7 @@ bg_task_cancel(struct bgtask *bt)
 
 		if (switched) {
 			bt->flags |= TASK_F_NOTICK;		/* Disable tick recomputation */
-			(void) bg_task_switch(old);		/* Restore old thread */
+			(void) bg_task_switch(old, 0);	/* Restore old thread */
 		}
 	}
 
@@ -1033,7 +1045,7 @@ bg_sched_timer(void *unused_arg)
 		 * Switch to the selected task.
 		 */
 
-		bg_task_switch(bt);
+		bg_task_switch(bt, 0);
 
 		g_assert(current_task == bt);
 		g_assert(bt->flags & TASK_F_RUNNING);
@@ -1052,7 +1064,7 @@ bg_sched_timer(void *unused_arg)
 				g_debug("BGTASK back from setjmp() for \"%s\"", bt->name);
 
 			bt->flags |= TASK_F_NOTICK;
-			bg_task_switch(NULL);
+			bg_task_switch(NULL, target);
 			remain -= bt->elapsed;
 			bg_task_terminate(bt);
 			continue;
@@ -1098,7 +1110,7 @@ bg_sched_timer(void *unused_arg)
 
 		ret = (*bt->stepvec[bt->step])(bt, bt->ucontext, ticks);
 
-		bg_task_switch(NULL);		/* Stop current task, update stats */
+		bg_task_switch(NULL, target);	/* Stop current task, update stats */
 		remain -= bt->elapsed;
 
 		if (bg_debug > 4)
