@@ -3294,6 +3294,28 @@ malloc_show_settings(void)
 }
 
 /**
+ * @return amount of memory used by internal tracking structures.
+ */
+size_t
+malloc_memory_used(void)
+{
+	size_t res = 0;
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+
+	if (reals != NULL)
+		res += hash_table_memory_size(reals);
+	if (unknowns != NULL)
+		res += hash_table_memory_size(unknowns);
+#endif
+#if defined(TRACK_MALLOC) || defined(MALLOC_SAFE_HEAD)
+	if (blocks != NULL)
+		res += hash_table_memory_size(blocks);
+	if (not_leaking != NULL)
+		res += hash_table_memory_size(not_leaking);
+#endif
+}
+
+/**
  * Dump all the blocks that are still used.
  */
 void

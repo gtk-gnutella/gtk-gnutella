@@ -301,6 +301,15 @@ hash_table_size(const hash_table_t *ht)
 }
 
 /**
+ * @return amount of memory used by the hash table arena.
+ */
+size_t
+hash_table_memory_size(const hash_table_t *ht)
+{
+  return hash_bins_items_arena_size(ht, NULL);
+}
+
+/**
  * NOTE: A naive direct use of the pointer has a much worse distribution e.g.,
  *       only a quarter of the bins are used.
  */

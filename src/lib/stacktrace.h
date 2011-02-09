@@ -87,6 +87,7 @@ void stacktrace_init(const char *argv0, gboolean deferred);
 void stacktrace_load_symbols(void);
 void stacktrace_post_init(void);
 void stacktrace_close(void);
+size_t stacktrace_memory_used(void);
 
 #endif /* _stacktrace_h_ */
 

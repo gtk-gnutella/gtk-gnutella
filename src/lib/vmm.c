@@ -3498,14 +3498,36 @@ vmm_close(void)
 
 	{
 		size_t opages = omalloc_page_count();
+		size_t smem = stacktrace_memory_used();
+		size_t spages = pagecount_fast(smem);
+		size_t mmem = malloc_memory_used();
+		size_t mpages = pagecount_fast(mmem);
 
 		if (opages > pages) {
-			s_warning("VMM omalloc() claims using %lu page%s, we have %lu left",
+			s_warning("VMM omalloc() claims using %lu page%s, have %lu left",
 				(unsigned long) opages, 1 == opages ? "" : "s",
 				(unsigned long) pages);
 		} else {
 			pages -= opages;
 			memory -= opages * (compat_pagesize() / 1024);
+		}
+
+		if (mpages > pages) {
+			s_warning("VMM malloc() claims using %lu page%s, have %lu left",
+				(unsigned long) mpages, 1 == mpages ? "" : "s",
+				(unsigned long) pages);
+		} else {
+			pages -= mpages;
+			memory -= mpages * (compat_pagesize() / 1024);
+		}
+
+		if (spages > pages) {
+			s_warning("VMM stacktrace claims using %lu page%s, have %lu left",
+				(unsigned long) spages, 1 == spages ? "" : "s",
+				(unsigned long) pages);
+		} else {
+			pages -= spages;
+			memory -= spages * (compat_pagesize() / 1024);
 		}
 	}
 

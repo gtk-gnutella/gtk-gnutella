@@ -367,6 +367,7 @@ struct frame *get_frame_atom(hash_table_t **hptr, const struct stacktrace *st);
 void malloc_show_settings(void);
 void malloc_init_vtable(void);
 void malloc_close(void);
+size_t malloc_memory_used(void);
 
 void *real_malloc(size_t size);
 

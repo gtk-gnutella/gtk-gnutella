@@ -812,6 +812,22 @@ tune:
 }
 
 /**
+ * @return amount of large VMM memory used.
+ */
+size_t
+stacktrace_memory_used(void)
+{
+	size_t res;
+
+	res = trace_array.size * sizeof trace_array.base[0];
+	if (stack_atoms != NULL) {
+		res += hash_table_memory_size(stack_atoms);
+	}
+
+	return res;
+}
+
+/**
  * Close stack tracing.
  */
 void
