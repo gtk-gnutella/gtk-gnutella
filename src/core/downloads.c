@@ -502,7 +502,7 @@ download_chunk_rx_done(gpointer o)
 
 static const struct rx_chunk_cb download_rx_chunk_cb = {
 	download_rx_error,		/* chunk_error */
-	download_chunk_rx_done,			/* chunk_end */
+	download_chunk_rx_done,	/* chunk_end */
 };
 
 static const struct rx_inflate_cb download_rx_inflate_cb = {
@@ -4227,6 +4227,10 @@ download_queue_v(struct download *d, const char *fmt, va_list ap)
 	g_assert(d->file_info->refcount > 0);
 	g_assert(d->file_info->lifecount <= d->file_info->refcount);
 	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
+
+	/* Non-fatal bugs if they occur -- simply ignore queuing request */
+	g_return_if_fail(!DOWNLOAD_IS_VERIFYING(d));
+	g_return_if_fail(!DOWNLOAD_IS_MOVING(d));
 
 	/*
 	 * We must use the arguments before possibly calling download_retry(),
