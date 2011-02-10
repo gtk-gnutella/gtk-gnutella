@@ -1830,6 +1830,12 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 
 /***
  *** ADNS
+ ***
+ *** Functions ending with _thread are executed in the context of the ADNS
+ *** thread, others are executed in the context of the main thread.
+ ***
+ *** All logging within the thread must use the t_xxx() logging routines
+ *** with the ``altc'' parameter in order to be thread-safe.
  ***/
 
 static logthread_t *altc;		/* ADNS logging thread context */
@@ -1907,6 +1913,7 @@ mingw_adns_getaddrinfo_thread(struct async_data *ad)
 
 	if (common_dbg > 1)
 		t_debug(altc, "ADNS got result for '%s' @%p", hostname, results);
+
 	ad->thread_return_data = results;	
 }
 
@@ -1923,7 +1930,7 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 	host_addr_t addrs[10];
 
 	if (common_dbg > 2)
-		t_debug(altc, "mingw_adns_getaddrinfo_cb");
+		g_debug("ADNS mingw_adns_getaddrinfo_cb");
 		
 	g_assert(ad);
 	g_assert(ad->user_data);
@@ -1936,8 +1943,10 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 	while (response != NULL) {
 		addrs[n] = addrinfo_to_addr(response);						
 		
-		g_debug("ADNS got %s for hostname %s",
-			host_addr_to_string(addrs[n]), (char *) ad->thread_arg_data);
+		if (common_dbg) {
+			g_debug("ADNS got %s for hostname %s",
+				host_addr_to_string(addrs[n]), (char *) ad->thread_arg_data);
+		}
 		
 		response = response->ai_next;
 		n++;
@@ -1946,9 +1955,10 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 	{
 		adns_callback_t func = (adns_callback_t) req->common.user_callback;
 		g_assert(NULL != func);
-		g_debug(
-			"ADNS performing user call back to %p with n=%d results", 
-			req->common.user_data, n);
+		if (common_dbg) {
+			g_debug("ADNS performing user call back to %p with n=%d results", 
+				req->common.user_data, n);
+		}
 		func(addrs, n, req->common.user_data);		
 	}
 	
@@ -1980,7 +1990,7 @@ mingw_adns_getaddrinfo(const struct adns_request *req)
 	struct async_data *ad = walloc(sizeof(struct async_data));
 	
 	if (common_dbg > 2)
-		t_debug(altc, "mingw_adns_getaddrinfo");
+		g_debug("ADNS mingw_adns_getaddrinfo");
 	
 	g_assert(req);
 	g_assert(req->common.user_callback);
@@ -1996,6 +2006,7 @@ mingw_adns_getaddrinfo(const struct adns_request *req)
 }
 
 /* ADNS Get name info */
+
 /**
  * ADNS getnameinfo on ADNS thread.
  */
@@ -2006,13 +2017,13 @@ mingw_adns_getnameinfo_thread(struct async_data *ad)
 	struct sockaddr_storage *ss = arg_data[0];
 	char *hostname = arg_data[2];
 	char *servInfo = arg_data[3];
-	
-	
+
 	getnameinfo((struct sockaddr *) ss, sizeof(struct sockaddr_storage),
 		hostname, NI_MAXHOST, servInfo, NI_MAXSERV, 
 		NI_NUMERICSERV);
 
-	t_debug(altc, "ADNS resolved to %s", hostname);
+	if (common_dbg)
+		t_debug(altc, "ADNS nameinfo resolution is %s", hostname);
 }
 
 /**
@@ -2027,13 +2038,17 @@ mingw_adns_getnameinfo_cb(struct async_data *ad)
 	char *hostname = arg_data[2];
 	char *servInfo = arg_data[3];
 	
-	g_debug("ADNS resolved to %s", hostname);
+	if (common_dbg)
+		g_debug("ADNS nameinfo resolved to %s", hostname);
 	
 	{
 		adns_reverse_callback_t func =
 			(adns_reverse_callback_t) req->common.user_callback;
-		g_debug("ADNS getnameinfo performing user call back to %p with %s", 
-			req->common.user_data, hostname);
+
+		if (common_dbg > 1) {
+			g_debug("ADNS getnameinfo performing user call back to %p with %s", 
+				req->common.user_data, hostname);
+		}
 		func(hostname, req->common.user_data);
 	}
 	
@@ -2101,7 +2116,8 @@ mingw_adns_getnameinfo(const struct adns_request *req)
 }
 
 /* ADNS Main thread */
-gboolean mingw_adns_thread_run;
+
+static gboolean mingw_adns_run_thread;
 
 /**
  * ADNS thread main loop.
@@ -2116,9 +2132,12 @@ mingw_adns_thread(gpointer data)
 	
 	read_queue = g_async_queue_ref(mingw_gtkg_adns_async_queue);
 	result_queue = g_async_queue_ref(mingw_gtkg_main_async_queue);
-	mingw_adns_thread_run = TRUE;
+	mingw_adns_run_thread = TRUE;
+
+	if (common_dbg)
+		t_message(altc, "ADNS thread started");
 	
-	while (mingw_adns_thread_run) {
+	while (mingw_adns_run_thread) {
 		struct async_data *ad;
 		
 		ad = g_async_queue_pop(read_queue);	
@@ -2131,17 +2150,21 @@ mingw_adns_thread(gpointer data)
 	}
 
 exit:
-	t_message(altc, "adns thread exit");
+	if (common_dbg)
+		t_message(altc, "ADNS thread exiting");
+
+	g_async_queue_unref(mingw_gtkg_adns_async_queue);
+	g_async_queue_unref(mingw_gtkg_main_async_queue);
 
 	g_thread_exit(NULL);
 	return 0;
 }
 
-void
-mingw_adns_thread_stop(struct async_data* data)
+static void
+mingw_adns_stop_thread(struct async_data* data)
 {
 	(void) data;
-	mingw_adns_thread_run = FALSE;
+	mingw_adns_run_thread = FALSE;
 }
 
 static gboolean
@@ -2152,7 +2175,8 @@ mingw_adns_timer(void *unused_arg)
 	(void) unused_arg;
 	
 	if (NULL != ad) {
-		g_debug("performing callback to func @%p", ad->callback_func);
+		if (common_dbg > 1)
+			g_debug("performing callback to func @%p", ad->callback_func);
 		ad->callback_func(ad);
 	} 
 
@@ -2168,10 +2192,12 @@ mingw_adns_init(void)
 	altc = log_thread_alloc();		/* Thread-private logging context */
 
 	/*
-	 * Create ADNS thread, take care, gtkg is completely mono-threaded
-	 * so it is _not_ thread safe, don't access any public functions or
-	 * variables!
+	 * Create ADNS thread, take care, gtk-gnutella is completely mono-threaded
+	 * so its regular routines are _not_ thread safe.
+	 * Don't access any public functions or write to global variables from
+	 * the thread!
 	 */
+
 	g_thread_init(NULL);
 	mingw_gtkg_main_async_queue = g_async_queue_new();
 	mingw_gtkg_adns_async_queue = g_async_queue_new();
@@ -2191,6 +2217,9 @@ mingw_adns_close(void)
 	ad->thread_func = mingw_adns_thread_stop;
 
 	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
+
+	g_async_queue_unref(mingw_gtkg_adns_async_queue);
+	g_async_queue_unref(mingw_gtkg_main_async_queue);
 }
 
 /**
