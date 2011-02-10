@@ -853,7 +853,7 @@ prefork_failure:
 	}
 
 #else
-#if MINGW32_ADNS
+#if MINGW32
 	mingw_adns_init();
 #endif
 #endif
@@ -866,7 +866,7 @@ prefork_failure:
 static gboolean
 adns_send_request(const struct adns_request *req)
 {
-#ifdef MINGW32_ADNS
+#ifdef MINGW32
 	return mingw_adns_send_request(req);
 #else
 	char buf[sizeof *req];
@@ -1054,7 +1054,7 @@ adns_reverse_lookup(const host_addr_t addr,
 void
 adns_close(void)
 {
-#ifdef MINGW32_ADNS
+#ifdef MINGW32
 	mingw_adns_close();
 #endif
 	if (adns_reply_event_id) {

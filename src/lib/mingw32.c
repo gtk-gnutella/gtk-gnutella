@@ -67,6 +67,7 @@ RCSID("$Id$")
 
 #include "crash.h"
 #include "cq.h"
+#include "debug.h"
 #include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
 #include "halloc.h"
@@ -1827,8 +1828,6 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 	return result;
 }
 
-#ifdef MINGW32_ADNS
-/* Not a clean implementation yet */
 /***
  *** ADNS
  ***/
@@ -1910,14 +1909,30 @@ mingw_adns_send_request(const struct adns_request *req)
 }
 
 /* ADNS getaddrinfo */
+/**
+ * ADNS getaddrinfo. Retrieves DNS info by hostname. Returns multiple 
+ * @see host_addr_t in the callbackfunction.
+ *
+ * Performs a hostname lookup on the ADNS thread. Thread function is set to 
+ * @see mingw_adns_getaddrinfo_thread, which will call the 
+ * @see mingw_adns_getaddrinfo_cb function on completion. The 
+ * mingw_adns_getaddrinfo_cb is responsible for performing the user callback.
+ * 
+ * @param req The adns request, where:
+ *		- req->query.by_addr.hostname the hostname to lookup.
+ *		- req->common.user_callback, a @see adns_callback_t callback function 
+ *		  pointer. Raised on completion.
+ */
 void 
 mingw_adns_getaddrinfo(const struct adns_request *req)
 {
 	struct async_data *ad = walloc(sizeof(struct async_data));
 	
-	t_debug(altc, "mingw_adns_getaddrinfo");
+	if (common_dbg > 2)
+		t_debug(altc, "mingw_adns_getaddrinfo");
 	
 	g_assert(req);
+	g_assert(req->common.user_callback);
 	
 	ad->thread_func = mingw_adns_getaddrinfo_thread;
 	ad->callback_func = mingw_adns_getaddrinfo_cb;	
@@ -1929,6 +1944,9 @@ mingw_adns_getaddrinfo(const struct adns_request *req)
 	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
 }
 
+/**
+ * ADNS getaddrinfo on ADNS thread.
+ */
 void
 mingw_adns_getaddrinfo_thread(struct async_data *ad)
 {
@@ -1936,14 +1954,19 @@ mingw_adns_getaddrinfo_thread(struct async_data *ad)
 	struct addrinfo *results;
 	hostname = (char *) ad->thread_arg_data;
 	
-	t_debug(altc, "ADNS resolving '%s'", hostname);
+	if (common_dbg > 1)
+		t_debug(altc, "ADNS resolving '%s'", hostname);
 	
 	getaddrinfo(hostname, NULL, NULL, &results);
 
-	t_debug(altc, "ADNS got result for '%s' @%p", hostname, results);
+	if (common_dbg > 1)
+		t_debug(altc, "ADNS got result for '%s' @%p", hostname, results);
 	ad->thread_return_data = results;	
 }
 
+/**
+ * ADNS getaddrinfo callback function.
+ */
 void
 mingw_adns_getaddrinfo_cb(struct async_data *ad)
 {
@@ -1953,8 +1976,10 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 	int n = 0;
 	host_addr_t addrs[10];
 
+	if (common_dbg > 2)
+		t_debug(altc, "mingw_adns_getaddrinfo_cb");
+		
 	g_assert(ad);
-	g_assert(ad->thread_return_data);
 	g_assert(ad->user_data);
 	g_assert(ad->thread_arg_data);
 	
@@ -1981,7 +2006,8 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 		func(addrs, n, req->common.user_data);		
 	}
 	
-	freeaddrinfo(results);
+	if (ad->thread_return_data != NULL)
+		freeaddrinfo(ad->thread_return_data);
 
 	wfree(ad, sizeof(struct async_data));
 	hfree(ad->thread_arg_data);
@@ -1989,7 +2015,23 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 }
 
 /* ADNS Get name info */
-
+/**
+ * ADNS getnameinfo. Retrieves DNS info by ip address. Returns the hostname in 
+ * the callbackfunction.
+ *
+ * Performs a reverse hostname lookup on the ADNS thread. Thread function is 
+ * set to @see mingw_adns_getnameinfo_thread, which will call the 
+ * @see mingw_adns_getnameinfo_cb function on completion. The 
+ * mingw_adns_getnameinfo_cb is responsible for performing the user callback.
+ * 
+ * @param req The adns request, where:
+ *		- req->query.reverse.addr.net == @see NET_TYPE_IPV6 or
+ *		  @see NET_TYPE_IPV4
+ *		- req->query.addr.addr.ipv6 the ipv6 address if NET_TYPE_IPV6
+ *		- req->query.addr.addr.ipv4 the ipv4 address if NET_TYPE_IPV4
+ *		- req->common.user_callback, a @see adns_callback_t callback function 
+ *		  pointer. Raised on completion.
+ */
 void
 mingw_adns_getnameinfo(const struct adns_request *req)
 {
@@ -2029,6 +2071,9 @@ mingw_adns_getnameinfo(const struct adns_request *req)
 	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
 }
 
+/**
+ * ADNS getnameinfo on ADNS thread.
+ */
 void
 mingw_adns_getnameinfo_thread(struct async_data *ad)
 {
@@ -2045,6 +2090,9 @@ mingw_adns_getnameinfo_thread(struct async_data *ad)
 	t_debug(altc, "ADNS resolved to %s", hostname);
 }
 
+/**
+ * ADNS getnameinfo callback function.
+ */
 void
 mingw_adns_getnameinfo_cb(struct async_data *ad)
 {
@@ -2154,7 +2202,7 @@ mingw_adns_close(void)
 
 	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
 }
-#endif /* ADNS Disabled */
+
 
 /**
  * Build pathname of file located nearby our executable.
@@ -2664,9 +2712,7 @@ mingw_early_init(void)
 void 
 mingw_close(void)
 {
-#ifdef MINGW32_ADNS
 	mingw_adns_close();
-#endif
 	
 	if (libws2_32 != NULL) {
 		FreeLibrary(libws2_32);
