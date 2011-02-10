@@ -66,6 +66,7 @@ RCSID("$Id$")
 #include "adns.h"
 
 #include "crash.h"
+#include "cq.h"
 #include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
 #include "halloc.h"
