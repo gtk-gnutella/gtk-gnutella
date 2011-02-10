@@ -10198,7 +10198,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 		d->flags &= ~DL_F_FAKE_G2;
 		d->server->attrs |= DLS_A_G2_ONLY;
-		g2_cache_insert(download_addr(d), download_port(d));
+		if (download_port(d) != 0) {
+			g2_cache_insert(download_addr(d), download_port(d));
+		}
 	}
 
 	/*
