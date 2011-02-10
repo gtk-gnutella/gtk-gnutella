@@ -10626,8 +10626,11 @@ http_version_nofix:
 	}
 
 	if (ack_code >= 200 && ack_code <= 299) {
-		if (d->server->attrs & DLS_A_G2_ONLY)
-			g2_cache_insert(download_addr(d), download_port(d));
+		if (d->server->attrs & DLS_A_G2_ONLY) {
+			if (download_port(d) != 0 && is_host_addr(download_addr(d))) {
+				g2_cache_insert(download_addr(d), download_port(d));
+			}
+		}
 
 		download_add_mesh(d);	/* OK -- mark as good source */
 		download_passively_queued(d, FALSE);
@@ -10718,8 +10721,11 @@ http_version_nofix:
 			}
 			/* FALL THROUGH */
 		case 408:				/* Request timeout */
-			if (d->server->attrs & DLS_A_G2_ONLY)
-				g2_cache_insert(download_addr(d), download_port(d));
+			if (d->server->attrs & DLS_A_G2_ONLY) {
+				if (download_port(d) != 0 && is_host_addr(download_addr(d))) {
+					g2_cache_insert(download_addr(d), download_port(d));
+				}
+			}
 
 			download_add_mesh(d);		/* Update mesh: source is good */
 
@@ -10816,7 +10822,12 @@ http_version_nofix:
 					}
 					d->server->attrs |= DLS_A_G2_ONLY;
 					hold = MAX(delay, 320);				/* To be safe */
-					g2_cache_insert(download_addr(d), download_port(d));
+					if (
+						download_port(d) != 0 &&
+						is_host_addr(download_addr(d))
+					) {
+						g2_cache_insert(download_addr(d), download_port(d));
+					}
 				}
 				if (!(d->flags & DL_F_BROWSE)) {
 					d->server->attrs |= DLS_A_BANNING;		/* Probably */
@@ -10834,7 +10845,9 @@ http_version_nofix:
 				if (GNET_PROPERTY(enable_hackarounds))
 					d->server->attrs |= DLS_A_FAKE_G2;
 				d->server->attrs |= DLS_A_G2_ONLY;
-				g2_cache_insert(download_addr(d), download_port(d));
+				if (download_port(d) != 0 && is_host_addr(download_addr(d))) {
+					g2_cache_insert(download_addr(d), download_port(d));
+				}
 				d->server->attrs |= DLS_A_BANNING;	/* Surely if we came here */
 				break;
 			}
