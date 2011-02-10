@@ -3313,6 +3313,8 @@ malloc_memory_used(void)
 	if (not_leaking != NULL)
 		res += hash_table_memory_size(not_leaking);
 #endif
+
+	return res;
 }
 
 /**
