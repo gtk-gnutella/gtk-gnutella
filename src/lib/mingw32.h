@@ -459,6 +459,12 @@ int mingw_getgateway(guint32 *ip);
 gboolean mingw_in_exception(void);
 void G_GNUC_NORETURN mingw_abort(void);
 
+struct adns_request;
+
+void mingw_adns_init(void);
+void mingw_adns_close(void);
+gboolean mingw_adns_send_request(const struct adns_request *req);
+
 #else	/* !MINGW32 */
 
 #define mingw_early_init();
