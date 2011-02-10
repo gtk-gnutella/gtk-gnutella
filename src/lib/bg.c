@@ -1002,6 +1002,7 @@ bg_sched_timer(void *unused_arg)
 		 */
 
 		target = MAX_LIFE / bg_runcount;
+		target = MIN(target, remain);
 
 		bt = bg_sched_pick();
 		g_assert(bt != NULL);		/* bg_runcount > 0 => there is a task */
