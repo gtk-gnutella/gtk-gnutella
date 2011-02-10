@@ -45,6 +45,7 @@ build_socker=
 build_ui=
 build_verbose='-s'
 build_xmingw='false'
+build_xtarget=
 
 # There is something broken about Configure, so it needs to know the
 # suffix for shared objects (dynamically loaded libraries) for some odd
@@ -98,7 +99,7 @@ while [ $# -gt 0 ]; do
 	--target=*)			build_ui="${1#--*=}";;
 	--topless)			build_ui='d_headless';;
     --xmingw)           build_xmingw='true';;   # undocumented
-    --xtarget=*)        XTARGET="${1#--*=}";;   # undocumented
+    --xtarget=*)        build_xtarget="${1#--*=}";;   # undocumented
 	--unofficial)		build_official='false';;
 	--verbose)			build_verbose='';;
 	--yacc=*)			YACC="${1#--*=}";;
@@ -188,34 +189,41 @@ rm -f config.sh
 # Note: Configure won't work as of yet on such a file system.
 if [ "X$build_xmingw" = Xtrue ]
 then
-    echo ${XTARGET}
-    export MINGW_ENV="${PWD}/sys32"
-    export PKG_CONFIG_PATH="${MINGW_ENV}/lib/pkgconfig"
+    echo "xtarget='$xtarget'"
+    MINGW_ENV="${PWD}/sys32"
+    export MING_ENV
+    PKG_CONFIG_PATH="${MINGW_ENV}/lib/pkgconfig"
+    export PKG_CONFIG_PATH
 
-    cp mingw/config.sh.xmingw config.sh
+    pkgconfig_cflags='pkg-config --define-variable=prefix=$MINGW_ENV --cflags'
+    pkgconfig_ldflags='pkg-config --define-variable=prefix=$MINGW_ENV --libs'
+    glibcflags="`pkg_config_cflags glib-2.0`"
+    gtkcflags="`pkg_config_cflags gtk+-2.0`"
+    gnutlscflags="`pkg_config_cflags gnutls`"
+    xmlcflags="`pkg_config_cflags libxml-2.0`"
+    glibldflags="`pkg_config_ldflags glib-2.0`"
+    gtkldflags="`pkg_config_ldflags gtk+-2.0`"
+    gnutlsldflags="`pkg_config_ldflags gnutls`"
+    xmlldflags="`pkg_config_ldflags libxml-2.0`"
 
-    sed -i s%"cc='.*'"%"cc='${XTARGET}-gcc'"% config.sh
-    sed -i s%"ranlib='.*'"%"ranlib='${XTARGET}-ranlib'"% config.sh
-    sed -i s%"nm='.*'"%"nm='${XTARGET}-nm'"% config.sh
-    sed -i s%"mkdep='.*'"%"mkdep='$PWD'/mkdep"% config.sh
-
-    # Mingw64 has timespec
-    sed -i s%"-DMINGW32"%"-DMINGW32 -D_POSIX"% config.sh
-
-    sed -i s%"ldflags='.*'"%"ldflags='-mwindows -L$MINGW_ENV/sys32/lib'"% config.sh
-
-    sed -i s%"glibcflags='.*'"%"glibcflags='`pkg-config glib-2.0 --cflags --define-variable=prefix=$MINGW_ENV` -I$MINGW_ENV/include'"% config.sh
-    sed -i s%"glibldflags='.*'"%"glibldflags='`pkg-config glib-2.0 --libs --define-variable=prefix=$MINGW_ENV` '"% config.sh
-    sed -i s%"gtkcflags='.*'"%"gtkcflags='`pkg-config gtk+-2.0 --cflags --define-variable=prefix=$MINGW_ENV`'"% config.sh
-    sed -i s%"gtkldflags='.*'"%"gtkldflags='`pkg-config gtk+-2.0 --libs --define-variable=prefix=$MINGW_ENV`'"% config.sh
-    sed -i s%"gnutlscflags='.*'"%"gnutlscflags='`pkg-config gnutls --cflags --define-variable=prefix=$MINGW_ENV`'"% config.sh
-    sed -i s%"gnutlsldflags='.*'"%"gnutlsldflags='`pkg-config gnutls --libs --define-variable=prefix=$MINGW_ENV`'"% config.sh
-
-    sed -i s%"xmlcflags='.*'"%"xmlcflags='`pkg-config libxml-2.0 --cflags --define-variable=prefix=$MINGW_ENV`'"% config.sh
-    sed -i s%"xmlldflags='.*'"%"xmlldflags='`pkg-config libxml-2.0 --libs --define-variable=prefix=$MINGW_ENV`'"% config.sh
+    cat mingw/config.sh.xmingw | \
+    sed s%'^cc=.*$'%"cc='${xtarget}${xtarget:+-}gcc'"% | \
+    sed s%'^ranlib=.*$'%"ranlib='${xtarget}${xtarget:+-}ranlib'"% | \
+    sed s%'^nm=.*$'%"nm='${xtarget}${xtarget:+-}nm'"% | \
+    sed s%'^mkdep=.*$'%"mkdep='${PWD}/mkdep'"% | \
+    sed s%'^ldflags=.*$'%"ldflags='-mwindows -L$MINGW_ENV/sys32/lib'"% | \
+    sed s%'^gnutlscflags=.*$'%"gnutlscflags='$gnutlscflags'"% | \
+    sed s%'^glibcflags=.*$'%"glibcflags='$glibcflags'"% | \
+    sed s%'^gtkcflags=.*$'%"gtkcflags='$gtkcflags'"% | \
+    sed s%'^xmlcflags=.*$'%"xmlcflags='$xmlcflags'"% | \
+    sed s%'^gnutlscflags=.*$'%"gnutlscflags='$gnutlscflags'"% | \
+    sed s%'^glibldflags=.*$'%"glibldflags='$glibldflags'"% | \
+    sed s%'^gtkldflags=.*$'%"gtkldflags='$gtkldflags'"% | \
+    sed s%'^xmlldflags=.*$'%"xmlldflags='$xmlldflags'"% | \
+    cat > config.sh
 
 
-    /bin/sh ./Configure -S -f config.sh \
+    /bin/sh ./Configure -S \
 	|| { echo; echo 'ERROR: Configure failed.'; exit 1; }
 else
     /bin/sh ./Configure -Oder \
