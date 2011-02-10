@@ -98,10 +98,10 @@ tls_transport_debug(const char *op, const struct gnutella_socket *s,
 		unsigned level = is_temporary_error(saved_errno) ? 2 : 0;
 
 		if (GNET_PROPERTY(tls_debug) > level) {
-			g_debug("%s(): fd=%d size=%lu host=%s ret=-1 errno=%s(%d)",
+			g_debug("%s(): fd=%d size=%lu host=%s ret=-1 errno=%s",
 				op, s->file_desc, (unsigned long) size,
 				host_addr_port_to_string(s->addr, s->port),
-				symbolic_errno(saved_errno), saved_errno);
+				symbolic_errno(saved_errno));
 		}
 	} else {
 		if (GNET_PROPERTY(tls_debug) > 2) {
@@ -637,8 +637,8 @@ tls_read(struct wrap_io *wio, void *buf, size_t size)
 
 	if (tls_flush(wio) && !is_temporary_error(errno)) {
 		if (GNET_PROPERTY(tls_debug)) {
-			g_warning("tls_read: tls_flush(fd=%d) error: %s(%d)",
-				s->file_desc, symbolic_errno(errno), errno);
+			g_warning("tls_read: tls_flush(fd=%d) error: %s",
+				s->file_desc, symbolic_errno(errno));
 		}
 		return -1;
 	}
@@ -800,9 +800,9 @@ tls_bye(struct gnutella_socket *s)
 			break;
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
-				g_carp("gnutls_bye() failed: host=%s error=%s(%d)",
+				g_carp("gnutls_bye() failed: host=%s error=%s",
 					host_addr_port_to_string(s->addr, s->port),
-					symbolic_errno(errno), errno);
+					symbolic_errno(errno));
 			}
 		}
 	}

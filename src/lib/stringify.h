@@ -92,12 +92,14 @@
 size_t int32_to_string_buf(gint32 v, char *dst, size_t size);
 size_t uint32_to_string_buf(guint32 v, char *dst, size_t size);
 size_t uint64_to_string_buf(guint64 v, char *dst, size_t size);
+size_t uint_to_string_buf(unsigned v, char *dst, size_t size);
 size_t fileoffset_t_to_string_buf(fileoffset_t v, char *dst, size_t size);
 size_t size_t_to_string_buf(size_t v, char *dst, size_t size);
 size_t pointer_to_string_buf(const void *ptr, char *dst, size_t size);
 const char *uint32_to_string(guint32);
 const char *uint64_to_string(guint64);
 const char *uint64_to_string2(guint64);
+const char *uint_to_string(unsigned v);
 const char *fileoffset_t_to_string(fileoffset_t);
 const char *size_t_to_string(size_t);
 const char *pointer_to_string(const void *);

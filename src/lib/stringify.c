@@ -335,6 +335,24 @@ uint64_to_string_buf(guint64 v, char *dst, size_t size)
 }
 
 size_t
+uint_to_string_buf(unsigned v, char *dst, size_t size)
+{
+	char buf[UINT_DEC_BUFLEN];
+	char *p;
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	for (p = buf; /* NOTHING */; v /= 10) {
+		*p++ = dec_digit(v % 10);
+		if (v < 10)
+			break;
+	}
+
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+size_t
 size_t_to_string_buf(size_t v, char *dst, size_t size)
 {
 	char buf[SIZE_T_DEC_BUFLEN];
@@ -427,6 +445,18 @@ uint64_to_string2(guint64 v)
 	size_t n;
 
 	n = uint64_to_string_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+const char *
+uint_to_string(unsigned v)
+{
+	static char buf[UINT_DEC_BUFLEN];
+	size_t n;
+
+	n = uint_to_string_buf(v, buf, sizeof buf);
 	g_assert(n > 0);
 	g_assert(n < sizeof buf);
 	return buf;

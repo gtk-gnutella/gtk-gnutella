@@ -1862,8 +1862,8 @@ normalize_dir_separators(char *pathname)
 /**
  * Maps errno values to their symbolic names (e.g., EPERM to "EPERM").
  *
- * @return A const static string. If errno is unhandled an empty string
- *		   is returned.
+ * @return A const static string. If errno is unhandled its stringified
+ * integer value is returned.
  */
 const char *
 symbolic_errno(int errnum)
@@ -1990,7 +1990,20 @@ symbolic_errno(int errnum)
 #endif
 	}
 #undef CASE
-	return ""; /* Unknown errno code */
+
+	/*
+	 * Use rotating static buffers to format the actual error value.
+	 */
+
+	{
+		static char buf[8][UINT_DEC_BUFLEN];
+		static unsigned n;
+		char *p = &buf[n++ % 8][0];
+
+		uint_to_string_buf(errno, p, sizeof buf[0]);
+		return p; 	/* Unknown errno code */
+	}
+
 }
 
 /**
