@@ -1995,15 +1995,16 @@ symbolic_errno(int errnum)
 	 * Use rotating static buffers to format the actual error value.
 	 */
 
+#define BUFCNT	8
 	{
-		static char buf[8][UINT_DEC_BUFLEN];
+		static char buf[BUFCNT][UINT_DEC_BUFLEN];
 		static unsigned n;
-		char *p = &buf[n++ % 8][0];
+		char *p = &buf[n++ % BUFCNT][0];
 
 		uint_to_string_buf(errno, p, sizeof buf[0]);
 		return p; 	/* Unknown errno code */
 	}
-
+#undef BUFCNT
 }
 
 /**
