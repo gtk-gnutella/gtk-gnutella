@@ -290,7 +290,7 @@ gtk-gnutella:  $(OBJ) $(EXTRA)
 	$(RM) $@$(_EXE)
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
-	$(CC) -o $@  $(OBJ) $(EXTRA) $(JLDFLAGS) $(LIBS)
+	$(CC) -o $@$(_EXE)  $(OBJ) $(EXTRA) $(JLDFLAGS) $(LIBS)
 
 local_install:: gtk-gnutella
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\

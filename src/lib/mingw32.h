@@ -41,7 +41,10 @@
 
 #define FD_SETSIZE      4096
 
+#ifndef WINVER
 #define WINVER 0x0501
+#endif
+
 #include <ws2tcpip.h>
 
 #ifdef I_WINSOCK2
@@ -129,8 +132,14 @@
 #define S_IFLNK 0120000 /* Symbolic link */
 
 #define signal(n, h) mingw_signal((n), (h))
+
+#ifndef SIGBUS
 #define SIGBUS	10		/* Simulated, unassigned signal number in MinGW32 */
+#endif
+
+#ifndef SIGTRAP
 #define SIGTRAP	12		/* Simulated, unassigned signal number in MinGW32 */
+#endif
 
 #define getppid()		1
 #define fcntl mingw_fcntl
@@ -290,10 +299,14 @@ int mingw_uname(struct utsname *buf);
 #define EMULATE_NANOSLEEP
 #define nanosleep mingw_nanosleep
 
+/* Mingw-w64 defines a timespec */
+#ifndef _TIMESPEC_DEFINED
+#define _TIMESPEC_DEFINED
 struct timespec {
 	time_t tv_sec;				/* seconds */
 	long tv_nsec;				/* nanoseconds */
 };
+#endif
 
 int mingw_nanosleep(const struct timespec *req, struct timespec *rem);
 #endif	/* !HAS_NANOSLEEP */
