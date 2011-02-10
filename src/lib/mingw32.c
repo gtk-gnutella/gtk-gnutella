@@ -2214,7 +2214,7 @@ mingw_adns_close(void)
 {
 	/* Quit our ADNS thread */
 	struct async_data *ad = walloc(sizeof(struct async_data));
-	ad->thread_func = mingw_adns_thread_stop;
+	ad->thread_func = mingw_adns_stop_thread;
 
 	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
 
