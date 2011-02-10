@@ -56,11 +56,11 @@ enum bgtask_magic {
 	BGTASK_DEAD_MAGIC = 0x6f5c8a03U
 };
 
-#define MAX_LIFE		120000			/**< In usecs, MUST be << 350 ms */
-#define DELTA_FACTOR	4				/**< Max variations are 400% */
+#define MAX_LIFE		100000			/**< In usecs, MUST be << 400 ms */
+#define DELTA_FACTOR	2				/**< Max variations are 200% */
 
 #define BG_TICK_IDLE	1000			/**< Tick every second when idle */
-#define BG_TICK_BUSY	360				/**< Tick every 360 ms when busy */
+#define BG_TICK_BUSY	400				/**< Tick every 400 ms when busy */
 
 static struct {
 	cperiodic_t *pev;		/**< Ticker periodic event */

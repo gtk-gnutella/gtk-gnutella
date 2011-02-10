@@ -1103,11 +1103,11 @@ check_cpu_usage(void)
 	 */
 
 	if (coverage <= 0.1)
-		cpu_percent *= 4;
+		cpu_percent *= 2;
 	else if (coverage <= 0.2)
-		cpu_percent *= 3;
-	else if (coverage <= 0.5)
 		cpu_percent *= 1.5;
+	else if (coverage <= 0.5)
+		cpu_percent *= 1.1;
 
 	/*
 	 * If CPU scaling is enabled, correct the percentage used accordingly.
