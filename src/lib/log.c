@@ -146,7 +146,10 @@ log_thread_alloc(void)
 static void
 s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
-	gboolean in_signal_handler = lt != NULL || signal_in_handler();
+	gboolean in_signal_handler;
+
+	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
+		return;
 
 	/*
 	 * Until the atom layer is up, consider it unsafe to call g_logv()
@@ -160,8 +163,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * the process.
 	 */
 
-	if (G_UNLIKELY(!atoms_are_inited))
-		in_signal_handler = TRUE;
+	in_signal_handler = lt != NULL || signal_in_handler() || !atoms_are_inited;
 
 	if (!in_log_handler && !in_signal_handler) {
 		g_logv(G_LOG_DOMAIN, level, format, args);
@@ -632,7 +634,7 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 	(void) unused_domain;
 	(void) unused_data;
 
-	if (logfile[LOG_STDERR].disabled)
+	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
 
 	in_log_handler = TRUE;
@@ -702,6 +704,12 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 	errno = saved_errno;
 }
 
+static void
+log_file_check(enum log_file which)
+{
+	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+}
+
 /**
  * Reopen log file.
  *
@@ -714,7 +722,7 @@ log_reopen(enum log_file which)
 	FILE *f;
 	struct logfile *lf;
 
-	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+	log_file_check(which);
 	g_assert(logfile[which].path != NULL);	/* log_set() called */
 
 	lf = &logfile[which];
@@ -738,6 +746,48 @@ log_reopen(enum log_file which)
 }
 
 /**
+ * Is logfile managed?
+ *
+ * @return TRUE if we explicitly (re)opened the file
+ */
+gboolean
+log_is_managed(enum log_file which)
+{
+	log_file_check(which);
+
+	return logfile[which].path != NULL && !logfile[which].changed;
+}
+
+/**
+ * Is logfile disabled?
+ */
+gboolean
+log_is_disabled(enum log_file which)
+{
+	log_file_check(which);
+
+	return logfile[which].disabled;
+}
+
+/**
+ * Is stdout managed and different from stderr?
+ *
+ * Critical messages like assertion failures (soft or hard) can be emitted
+ * to stdout as well so that they are not lost in the stderr logging volume.
+ *
+ * Hard assertion failures will be at the tail of stderr so they won't be
+ * missed, but stderr could be disabled, so printing a copy on stdout will
+ * at least give minimal feedback to the user.
+ */
+gboolean
+log_stdout_is_distinct(void)
+{
+	return !log_is_disabled(LOG_STDOUT) && log_is_managed(LOG_STDOUT) &&
+		(!log_is_managed(LOG_STDERR) ||
+			0 != strcmp(logfile[LOG_STDOUT].path, logfile[LOG_STDERR].path));
+}
+
+/**
  * Reopen log file, if managed.
  *
  * @return TRUE on success
@@ -745,7 +795,7 @@ log_reopen(enum log_file which)
 gboolean
 log_reopen_if_managed(enum log_file which)
 {
-	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+	log_file_check(which);
 
 	if (NULL == logfile[which].path)
 		return TRUE;		/* Unmanaged logfile */
@@ -786,7 +836,7 @@ log_reopen_all(gboolean daemonized)
 void
 log_set_disabled(enum log_file which, gboolean disabled)
 {
-	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+	log_file_check(which);
 
 	logfile[which].disabled = disabled;
 }
@@ -799,7 +849,7 @@ log_set(enum log_file which, const char *path)
 {
 	struct logfile *lf;
 
-	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+	log_file_check(which);
 	g_assert(path != NULL);
 
 	lf = &logfile[which];
@@ -831,7 +881,7 @@ log_rename(enum log_file which, const char *newname)
 	int saved_errno = 0;
 	gboolean ok = TRUE;
 
-	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+	log_file_check(which);
 	g_assert(newname != NULL);
 
 	lf = &logfile[which];
@@ -916,7 +966,7 @@ log_stat(enum log_file which, struct logstat *buf)
 {
 	struct logfile *lf;
 
-	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+	log_file_check(which);
 	g_assert(buf != NULL);
 
 	lf = &logfile[which];

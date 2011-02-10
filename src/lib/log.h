@@ -73,6 +73,9 @@ gboolean log_rename(enum log_file which, const char *newname);
 gboolean log_reopen_if_managed(enum log_file which);
 gboolean log_reopen_all(gboolean daemonized);
 void log_stat(enum log_file which, struct logstat *buf);
+gboolean log_is_managed(enum log_file which);
+gboolean log_is_disabled(enum log_file which);
+gboolean log_stdout_is_distinct(void);
 
 /*
  * Safe logging interface (to avoid recursive logging, or from signal handlers).

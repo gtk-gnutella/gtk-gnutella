@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "crash.h"				/* For print_str() and crash_time() */
 #include "fast_assert.h"
+#include "log.h"
 #include "stacktrace.h"
 #include "override.h"			/* Must be the last header included */
 
@@ -73,6 +74,8 @@ assertion_message(const assertion_data * const data, int fatal)
 	}
 	print_str("\n");
 	flush_err_str();
+	if (log_stdout_is_distinct())
+		flush_str(STDOUT_FILENO);
 }
 
 /*
@@ -88,6 +91,8 @@ assertion_warning(const assertion_data * const data)
 {
 	assertion_message(data, FALSE);
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
+	if (log_stdout_is_distinct())
+		stacktrace_where_safe_print_offset(STDOUT_FILENO, 1);
 }
 
 void G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
@@ -100,6 +105,8 @@ assertion_failure(const assertion_data * const data)
 	if (!seen_fatal) {
 		seen_fatal = TRUE;
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
+		if (log_stdout_is_distinct())
+			stacktrace_where_cautious_print_offset(STDOUT_FILENO, 1);
 	}
 	abort();
 }

@@ -386,6 +386,8 @@ crash_message(const char *signame, gboolean trace, gboolean recursive)
 	}
 	print_str("\n");					/* 8, at most */
 	flush_err_str();
+	if (log_stdout_is_distinct())
+		flush_str(STDOUT_FILENO);
 
 	rewind_str(iov_prolog);
 	print_str("by ");					/* 4 */
@@ -398,6 +400,8 @@ crash_message(const char *signame, gboolean trace, gboolean recursive)
 		print_str(" -- stack was:");	/* 9 */
 	print_str("\n");					/* 10, at most */
 	flush_err_str();
+	if (log_stdout_is_distinct())
+		flush_str(STDOUT_FILENO);
 }
 
 /**
@@ -430,6 +434,8 @@ crash_end_of_line(void)
 	}
 	print_str("\n");				/* 6, at most */
 	flush_err_str();
+	if (log_stdout_is_distinct())
+		flush_str(STDOUT_FILENO);
 }
 
 /**
@@ -810,6 +816,8 @@ crash_invoke_inspector(int signo, const char *cwd)
 				}
 				print_str("\n");					/* 9, at most */
 				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(STDOUT_FILENO);
 			}
 
 			/*
@@ -824,6 +832,8 @@ crash_invoke_inspector(int signo, const char *cwd)
 				print_str(cwd);					/* 5 */
 				print_str("\n");				/* 6 */
 				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(STDOUT_FILENO);
 			}
 
 			/*
@@ -855,6 +865,8 @@ crash_invoke_inspector(int signo, const char *cwd)
 			rewind_str(iov_prolog);
 			print_str("end of line.\n");	/* 4 */
 			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
 		}
 	}
 	return;
@@ -986,6 +998,8 @@ crash_handler(int signo)
 	crash_message(name, trace, recursive);
 	if (trace) {
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
+		if (log_stdout_is_distinct())
+			stacktrace_where_cautious_print_offset(STDOUT_FILENO, 1);
 	}
 	crash_end_of_line();
 	if (vars->invoke_inspector) {
