@@ -362,7 +362,8 @@ d_step_copy(struct bgtask *h, gpointer u, int ticks)
 	ssize_t r;
 	size_t amount;
 	filesize_t remain;
-	int used;
+	int used = 0;
+	int t;
 
 	g_assert(md->magic == MOVED_MAGIC);
 
@@ -371,6 +372,8 @@ d_step_copy(struct bgtask *h, gpointer u, int ticks)
 
 	if (md->size == 0)			/* Empty file */
 		return BGR_DONE;
+
+again:		/* Avoids indenting all this code */
 
 	g_assert(md->size > md->copied);
 	remain = md->size - md->copied;
@@ -408,10 +411,10 @@ d_step_copy(struct bgtask *h, gpointer u, int ticks)
 	 * Any partially read block counts as one block, hence the second term.
 	 */
 
-	used = (r / COPY_BLOCK_FRAGMENT) + (r % COPY_BLOCK_FRAGMENT ? 1 : 0);
+	t = (r / COPY_BLOCK_FRAGMENT) + (r % COPY_BLOCK_FRAGMENT ? 1 : 0);
+	used += t;
 
-	if (used != ticks)
-		bg_task_ticks_used(h, used);
+	bg_task_ticks_used(h, used);
 
 	r = write(md->wd, md->buffer, amount);
 	if ((ssize_t) -1 == r) {
@@ -430,7 +433,18 @@ d_step_copy(struct bgtask *h, gpointer u, int ticks)
 	md->copied += r;
 	download_move_progress(md->d, md->copied);
 
-	return md->copied == md->size ? BGR_DONE : BGR_MORE;
+	if (md->copied == md->size)
+		return BGR_DONE;
+
+	/*
+	 * If we still have unused ticks, repeat.
+	 */
+
+	ticks -= t;
+	if (ticks > 0)
+		goto again;
+
+	return BGR_MORE;
 }
 
 /**
