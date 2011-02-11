@@ -904,7 +904,7 @@ log_rename(enum log_file which, const char *newname)
 	 * properly.  We don't reopen the file to /dev/null in case there is
 	 * something wrong and we're renaming stderr: we would then be totally
 	 * blind in case we cannot reopen again the file to its final destination.
-	 * Reopening to /dev/null also seems to have nasty side effectson that
+	 * Reopening to /dev/null also seems to have nasty side effects on that
 	 * platform: it closes the file and we cannot reopen it.
 	 */
 
