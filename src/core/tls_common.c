@@ -372,7 +372,13 @@ tls_init(struct gnutella_socket *s)
 		goto failure;
 	}
 
-	if (TRY(gnutls_priority_set_direct)(ctx->session, "NORMAL:+ANON-DH", NULL))
+	/**
+	 * ANON-DH is enabled because we don't use PKI.
+	 * DEFLATE is disabled because it seems to cause crashes.
+	 * ARCFOUR-40 is disabled because it is deprecated.
+	 */
+	if (TRY(gnutls_priority_set_direct)(ctx->session,
+			"NORMAL:+ANON-DH:-ARCFOUR-40:-COMP-DEFLATE", NULL))
 		goto failure;
 
 	if (TRY(gnutls_credentials_set)(ctx->session,
