@@ -39,7 +39,7 @@
 /*
  * This whole file is only compiled under Windows.
  */
-#define MINGW32 //XXX
+
 #ifdef MINGW32
 
 RCSID("$Id$")
