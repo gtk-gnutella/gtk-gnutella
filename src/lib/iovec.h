@@ -175,7 +175,7 @@ iov_clear(iovec_t *iov, size_t byte_offset)
  * @return The sum of all buffer sizes.
  */
 static inline size_t
-iov_calculate_size(iovec_t *iov, size_t iov_cnt)
+iov_calculate_size(const iovec_t *iov, size_t iov_cnt)
 {
 	size_t size = 0;
 	size_t i;

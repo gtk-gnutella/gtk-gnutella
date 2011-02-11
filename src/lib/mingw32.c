@@ -72,6 +72,7 @@ RCSID("$Id$")
 #include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
 #include "halloc.h"
+#include "iovec.h"
 #include "log.h"
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
@@ -919,17 +920,40 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
 
 	int i;
 	ssize_t total_written = 0, w = -1;
+	static char gather[1024];
+	size_t nw;
 
-	for (i = 0; i < iov_cnt; i++) {
-		w = mingw_write(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
+	/*
+	 * Because logging routines expect the writev() call to be atomic,
+	 * and since logging message are usually small, we gather the
+	 * string in memory first if it fits our small buffer.
+	 */
 
-		if (-1 == w)
-			break;
+	nw = iov_calculate_size(iov, iov_cnt);
+	if (nw <= sizeof gather) {
+		char *p = gather;
 
-		total_written += w;
+		for (i = 0; i < iov_cnt; i++) {
+			size_t n = iovec_len(&iov[i]);
 
-		if (UNSIGNED(w) != iovec_len(&iov[i]))
-			break;
+			memcpy(p, iovec_base(&iov[i]), n);
+			p += n;
+		}
+		g_assert(ptr_diff(p, gather) <= sizeof gather);
+
+		w = mingw_write(fd, gather, nw);
+	} else {
+		for (i = 0; i < iov_cnt; i++) {
+			w = mingw_write(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
+
+			if (-1 == w)
+				break;
+
+			total_written += w;
+
+			if (UNSIGNED(w) != iovec_len(&iov[i]))
+				break;
+		}
 	}
 
 	return total_written > 0 ? total_written : w;
