@@ -39,7 +39,7 @@
 /*
  * This whole file is only compiled under Windows.
  */
-
+#define MINGW32 //XXX
 #ifdef MINGW32
 
 RCSID("$Id$")
@@ -1856,7 +1856,6 @@ struct async_data {
 
 struct arg_data {
 	const struct sockaddr *sa;
-	socklen_t sa_len;
 	union {
 		struct sockaddr_in sa_inet4;
 		struct sockaddr_in6 sa_inet6;
@@ -2024,7 +2023,7 @@ mingw_adns_getnameinfo_thread(struct async_data *ad)
 {
 	struct arg_data *arg_data = ad->thread_arg_data;
 	
-	getnameinfo(arg_data->sa, sizeof arg_data->sa_len,
+	getnameinfo(arg_data->sa, sizeof arg_data->u,
 		arg_data->hostname, sizeof arg_data->hostname,
 		arg_data->servinfo, sizeof arg_data->servinfo, 
 		NI_NUMERICSERV);
@@ -2090,18 +2089,16 @@ mingw_adns_getnameinfo(const struct adns_request *req)
 		struct sockaddr_in *inet4;
 		struct sockaddr_in6 *inet6;
 	case NET_TYPE_IPV6:
-		arg_data->sa = (const struct sockaddr *) inet6;
-		arg_data->sa_len = sizeof inet6;
 		inet6 = &arg_data->u.sa_inet6;
 		inet6->sin6_family = AF_INET6;
 		memcpy(inet6->sin6_addr.s6_addr, query->addr.addr.ipv6, 16);
+		arg_data->sa = (const struct sockaddr *) inet6;
 		break;
 	case NET_TYPE_IPV4:
-		arg_data->sa = (const struct sockaddr *) inet4;
-		arg_data->sa_len = sizeof inet4;
 		inet4 = &arg_data->u.sa_inet4;
 		inet4->sin_family = AF_INET;	
 		inet4->sin_addr.s_addr = htonl(query->addr.addr.ipv4);
+		arg_data->sa = (const struct sockaddr *) inet4;
 		break;
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
