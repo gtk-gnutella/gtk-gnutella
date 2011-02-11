@@ -1,3 +1,72 @@
+[Stopped @ r18471]
+
+New Features:
+- Ported code to Windows.
+- Added UPnP and NAT-PMP support.
+- Added a "log" command to the shell to manage logfiles.
+- Added --gdb-on-crash switch, auto-activated when no core dumps are possible.
+- Configures a crash directory as ~/.gtk-gnutella/crashes
+
+Improvements:
+- Better handling of uploading servers that also publish in the DHT.
+- Added Global Host Cache as a last-resort bootstrapping mechanism when UDP is
+  not working.
+- Search results from firewalled hosts are now displayed in "dark slate gray"
+- Message statistics now include a line per DHT message type instead of
+  aggregating all DHT messages in the same basket.
+- Always use ARC4 random number generator.
+- Continuous entropy collection to make the random number sequence more random.
+- Raised default ultrapeer connections in leaf mode to 4, maximum now being 5.
+- ASCII parentheses are no longer considered evil characters and are not
+  stripped from filenames anymore.
+- Trailing spaces and periods are stripped from filenames because Windows
+  does not like them.
+
+Bug Fixes:
+- Prevented random crash at shutdown time (improper cleanup ordering).
+- Prevent crash when running on linux kernels patched with grsecurity.
+- Fixed improper hop count display (always showing 2147483647) in horizon stats.
+- Fixed bad GUI status for files: do not say "SHA1 failed" unless it's true.
+- Fixed message statistics which were reading payload size from the header
+  instead of relying on what was actually read.
+- OOB proxying code was not considering MUID collisions, causing memory leaks.
+- Was not always reconnecting to other Gnutella nodes when missing slots.
+- Fixed old bug triggered by setting "listen_port" to 1 multiple times.
+- [GTK2] Was not saving tree view column positions in the statistics pane.
+- [GTK2] Fixed broken DND so that files can be drag 'n' dropped from
+  local searches and the download view to other desktop apps now.
+- [GTK] New users were never able to see the preset filters in the menu.
+
+Under the Hood:
+- Fresh bogus IP lists and geo IP database.
+- Updated SPAM detection rules.
+- Updated Gnutella bootstraping logic due to changing environments.
+- Cached DHT security tokens are now regularily expired.
+- Tuned DHT maintenance traffic down, using statistical methods to further
+  avoid needless RPCs.
+- Clear empty databases at startup, attempt to shrink them otherwise.
+- Fixed uninitialized memory read detected by valgrind.
+- Made SDBM more robust when facing errors.
+- Errors encountered during SDBM operation are now reported at exit time.
+- If I/O errors were detected during operations of a persisted DB, request key
+  checking at next startup.
+- Added CPU frequency scaling detection (Linux and Windows only) to be
+  able to properly determine whether we are overloading the CPU.
+- Removed ShareMonkey URL support: they went out of business.
+- Use the DHT routing table as a source for new node addresses when the host
+  caches are depleted, before attempting to contact the UHCs.
+- Throttle UDP pings so that we do not bombard a single host with many requests.
+- Limit Gnutella connection attempts to a given host to one per 2 minutes.
+- DHT routing table size now adjusts dynamically, lowering maintenance traffic.
+- Throttle received DHT lookups as a precaution against abuse from rogue nodes.
+- At startup time, sort cached host entries to put the most recent ones first.
+- Optimized QRP table merging loop.
+- Improved behaviour when facing stalling uploads.
+- Only send "DHT" in Gnutella pongs if the DHT runs in active mode.
+- Implemented DHT attack-prevention rules to guard against Sybil attacks.
+- Added arc4random() default implementation for systems without it.
+- Robustified query hit parsing so that we can filter out invalid hits.
+
 # v 0.96.8   2010-03-21  [stable]
 
 This is essentially a bug-fixing release for 0.96.7, in which some code paths
