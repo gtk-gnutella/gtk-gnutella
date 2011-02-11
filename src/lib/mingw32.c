@@ -1855,7 +1855,12 @@ struct async_data {
 };
 
 struct arg_data {
-	struct sockaddr_storage ss;
+	const struct sockaddr *sa;
+	socklen_t sa_len;
+	union {
+		struct sockaddr_in sa_inet4;
+		struct sockaddr_in6 sa_inet6;
+	} u;
 	char hostname[NI_MAXHOST];
 	char servinfo[NI_MAXSERV];
 };
@@ -2019,12 +2024,12 @@ mingw_adns_getnameinfo_thread(struct async_data *ad)
 {
 	struct arg_data *arg_data = ad->thread_arg_data;
 	
-	getnameinfo((const struct sockaddr *) arg_data->ss, sizeof *arg_data->ss,
+	getnameinfo(arg_data->sa, sizeof arg_data->sa_len,
 		arg_data->hostname, sizeof arg_data->hostname,
 		arg_data->servinfo, sizeof arg_data->servinfo, 
 		NI_NUMERICSERV);
 
-	t_debug(altc, "ADNS resolved to %s", hostname);
+	t_debug(altc, "ADNS resolved to %s", arg_data->hostname);
 }
 
 /**
@@ -2074,7 +2079,7 @@ mingw_adns_getnameinfo(const struct adns_request *req)
 {
 	const struct adns_reverse_query *query = &req->query.reverse;
 	struct async_data *ad = walloc0(sizeof *ad);
-	void *arg_data = walloc(sizeof *arg_data);
+	struct arg_data *arg_data = walloc(sizeof *arg_data);
 
 	ad->thread_func = mingw_adns_getnameinfo_thread;
 	ad->callback_func = mingw_adns_getnameinfo_cb;	
@@ -2082,15 +2087,19 @@ mingw_adns_getnameinfo(const struct adns_request *req)
 	ad->thread_arg_data = arg_data;
 	
 	switch (query->addr.net) {
-		struct sockaddr_in4 *inet4;
+		struct sockaddr_in *inet4;
 		struct sockaddr_in6 *inet6;
 	case NET_TYPE_IPV6:
-		inet6 = (struct sockaddr_in6 *) arg_data->ss;
+		arg_data->sa = (const struct sockaddr *) inet6;
+		arg_data->sa_len = sizeof inet6;
+		inet6 = &arg_data->u.sa_inet6;
 		inet6->sin6_family = AF_INET6;
 		memcpy(inet6->sin6_addr.s6_addr, query->addr.addr.ipv6, 16);
 		break;
 	case NET_TYPE_IPV4:
-		inet4 = (struct sockaddr_in4 *) arg_data->ss;
+		arg_data->sa = (const struct sockaddr *) inet4;
+		arg_data->sa_len = sizeof inet4;
+		inet4 = &arg_data->u.sa_inet4;
 		inet4->sin_family = AF_INET;	
 		inet4->sin_addr.s_addr = htonl(query->addr.addr.ipv4);
 		break;
