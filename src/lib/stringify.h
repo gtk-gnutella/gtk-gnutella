@@ -62,9 +62,10 @@
  * log(2^n) = log(2) * n.
  * log(2) = 0.301029995, which can be approximated by 146/485 (larger value).
  */
-#define BIT_DEC_BUFLEN(n)	(2 + ((n) * 146) / 485)		/* 2 = 1 + NUL */
-#define TYPE_DEC_BUFLEN(t)	BIT_DEC_BUFLEN(sizeof(t) * CHAR_BIT)
-#define TYPE_HEX_BUFLEN(t)	(1 + sizeof(t) * (CHAR_BIT / 4))
+#define SIGNED_TYPE(t)	   ((t) -1 < 1)
+#define BIT_DEC_BUFLEN(n)  (2 + ((n) * 146) / 485)		/* 2 = 1 + NUL */
+#define TYPE_DEC_BUFLEN(t) BIT_DEC_BUFLEN(sizeof(t) * CHAR_BIT + SIGNED_TYPE(t))
+#define TYPE_HEX_BUFLEN(t) (1 + sizeof(t) * (CHAR_BIT / 4))
 
 /*
  * The following include space for NUL, too.
