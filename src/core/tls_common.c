@@ -377,9 +377,23 @@ tls_init(struct gnutella_socket *s)
 	 * DEFLATE is disabled because it seems to cause crashes.
 	 * ARCFOUR-40 is disabled because it is deprecated.
 	 */
-	if (TRY(gnutls_priority_set_direct)(ctx->session,
-			"NORMAL:+ANON-DH:-ARCFOUR-40:-COMP-DEFLATE", NULL))
-		goto failure;
+
+	{
+		const char *error;
+		const char *options;
+
+		/* "-COMP-DEFLATE" is causing an error on MinGW with TLS 2.10.2 */
+
+		options = is_running_on_mingw() ?
+			"NORMAL:+ANON-DH:-ARCFOUR-40" :
+			"NORMAL:+ANON-DH:-ARCFOUR-40:-COMP-DEFLATE";
+
+		if (TRY(gnutls_priority_set_direct)(ctx->session, options, &error)) {
+			g_warning("%s: gnutls_priority_set_direct: bad string \"%s\"",
+				G_STRFUNC, error);
+			goto failure;
+		}
+	}
 
 	if (TRY(gnutls_credentials_set)(ctx->session,
 			GNUTLS_CRD_CERTIFICATE, cert_cred))
