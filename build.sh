@@ -195,16 +195,16 @@ then
     PKG_CONFIG_PATH="${MINGW_ENV}/lib/pkgconfig"
     export PKG_CONFIG_PATH
 
-    pkgconfig_cflags='pkg-config --define-variable=prefix=$MINGW_ENV --cflags'
-    pkgconfig_ldflags='pkg-config --define-variable=prefix=$MINGW_ENV --libs'
-    glibcflags="`pkg_config_cflags glib-2.0`"
-    gtkcflags="`pkg_config_cflags gtk+-2.0`"
-    gnutlscflags="`pkg_config_cflags gnutls`"
-    xmlcflags="`pkg_config_cflags libxml-2.0`"
-    glibldflags="`pkg_config_ldflags glib-2.0`"
-    gtkldflags="`pkg_config_ldflags gtk+-2.0`"
-    gnutlsldflags="`pkg_config_ldflags gnutls`"
-    xmlldflags="`pkg_config_ldflags libxml-2.0`"
+    pkg_config_cflags='pkg-config --define-variable=prefix=$MINGW_ENV --cflags'
+    pkg_config_ldflags='pkg-config --define-variable=prefix=$MINGW_ENV --libs'
+    glibcflags="`$pkg_config_cflags glib-2.0`"
+    gtkcflags="`$pkg_config_cflags gtk+-2.0`"
+    gnutlscflags="`$pkg_config_cflags gnutls`"
+    xmlcflags="`$pkg_config_cflags libxml-2.0`"
+    glibldflags="`$pkg_config_ldflags glib-2.0`"
+    gtkldflags="`$pkg_config_ldflags gtk+-2.0`"
+    gnutlsldflags="`$pkg_config_ldflags gnutls`"
+    xmlldflags="`$pkg_config_ldflags libxml-2.0`"
 
     cat mingw/config.sh.xmingw | \
     sed s%'^cc=.*$'%"cc='${xtarget}${xtarget:+-}gcc'"% | \
