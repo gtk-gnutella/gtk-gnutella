@@ -189,11 +189,16 @@ rm -f config.sh
 # Note: Configure won't work as of yet on such a file system.
 if [ "X$build_xmingw" = Xtrue ]
 then
-    echo "xtarget='$xtarget'"
+    echo "xtarget='${build_xtarget}'"
+
     MINGW_ENV="${PWD}/sys32"
     export MING_ENV
     PKG_CONFIG_PATH="${MINGW_ENV}/lib/pkgconfig"
     export PKG_CONFIG_PATH
+
+    CC="${build_xtarget}${build_xtarget:+-}gcc"
+    build_ranlib="${build_xtarget}${build_xtarget:+-}ranlib"
+    build_nm="${build_xtarget}${build_xtarget:+-}nm"
 
     pkg_config_cflags='pkg-config --define-variable=prefix=$MINGW_ENV --cflags'
     pkg_config_ldflags='pkg-config --define-variable=prefix=$MINGW_ENV --libs'
@@ -207,9 +212,9 @@ then
     xmlldflags="`$pkg_config_ldflags libxml-2.0`"
 
     cat mingw/config.sh.xmingw | \
-    sed s%'^cc=.*$'%"cc='${xtarget}${xtarget:+-}gcc'"% | \
-    sed s%'^ranlib=.*$'%"ranlib='${xtarget}${xtarget:+-}ranlib'"% | \
-    sed s%'^nm=.*$'%"nm='${xtarget}${xtarget:+-}nm'"% | \
+    sed s%'^cc=.*$'%"cc='$CC'"% | \
+    sed s%'^ranlib=.*$'%"ranlib='${build_ranlib}'"% | \
+    sed s%'^nm=.*$'%"nm='${build_nm}'"% | \
     sed s%'^mkdep=.*$'%"mkdep='${PWD}/mkdep'"% | \
     sed s%'^ldflags=.*$'%"ldflags='-mwindows -L$MINGW_ENV/sys32/lib'"% | \
     sed s%'^gnutlscflags=.*$'%"gnutlscflags='$gnutlscflags'"% | \
