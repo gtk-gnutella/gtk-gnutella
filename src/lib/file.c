@@ -138,7 +138,11 @@ open_read(
 		}
 		goto out;
     } else {
-		if (errno != ENOENT) {
+		if (ENOENT == errno) {
+			if (common_dbg > 0) {
+				g_debug("[%s] cannot load non-existent \"%s\"", what, path);
+			}
+		} else {
 			instead = instead_str;			/* Regular file was present */
 			g_warning("[%s] failed to retrieve from \"%s\": %s", what, path,
 				g_strerror(errno));
@@ -182,6 +186,10 @@ open_read(
 			idx++;
 			if (NULL != path && NULL != (in = fopen(path, "r")))
 				break;
+			if (path != NULL && common_dbg > 0) {
+				g_debug("[%s] cannot load non-existent \"%s\" either",
+					what, path);
+			}
 		}
 	}
 

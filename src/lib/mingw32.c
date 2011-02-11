@@ -65,6 +65,7 @@ RCSID("$Id$")
 #include "host_addr.h"			/* ADNS */
 #include "adns.h"
 
+#include "ascii.h"				/* For is_ascii_alpha() */
 #include "crash.h"
 #include "cq.h"
 #include "debug.h"
@@ -159,10 +160,58 @@ locale_to_wchar_string(const char *pathname)
 	return ws;
 }
 
+/*
+ * Convert pathname to an UTF-16 representation.
+ *
+ * When launched from a Cygwin or MinGW environment, we can face
+ * paths like "/x/file" which really mean "x:/file" in Windows parlance.
+ * Moreover, in Cygwin, unless configured otherwise, Windows paths are
+ * prefixed with "/cygdrive/", so "x:/file" would be "/cygdrive/x/file";
+ *
+ * Since we're going to issue a Windows call, we need to translate
+ * these paths so that Windows can locate the file properly.
+ *
+ * @attention
+ * If they create a C:/x directory, when /x/path could be "c:/x/path" and
+ * we will wrongly interpret is as X:/path.  The chance they create
+ * single-letter top-level directories is small in practice.
+ *
+ * @return structure containing the converted pathname that can be used
+ * in Unicode-aware Windows calls.
+ */
 struct pncs
 pncs_convert(const char *pathname)
 {
+	char *mangled = NULL;
+	char *p;
 	pncs_t pncs;
+
+	/*
+	 * Skip other leading "/cygdrive/" string, up to the second "/".
+	 */
+
+	p = is_strcaseprefix(pathname, "/cygdrive/");
+	if (p != NULL)
+		pathname = p - 1;			/* Go back to ending "/" */
+
+	/*
+	 * Replace /x/file with x:/file
+	 */
+
+	if (
+		('/' == pathname[0] || '\\' == pathname[0]) &&
+		is_ascii_alpha(pathname[1]) &&
+		('/' == pathname[2] || '\\' == pathname[2])
+	) {
+		size_t plen = strlen(&pathname[2]);
+		size_t mlen = plen + sizeof("x:");
+
+		mangled = halloc(mlen);
+		mangled[0] = pathname[1];
+		mangled[1] = ':';
+		clamp_strncpy(&mangled[2], mlen - 2, &pathname[2], plen);
+		pathname = mangled;
+	}
 
 	if (utf8_is_valid_string(pathname)) {
 		pncs.utf16 = utf8_to_utf16_string(pathname);
@@ -180,6 +229,8 @@ pncs_convert(const char *pathname)
 		 *		   on Windows as it already uses UTF-16 internally.
 		 */
 	}
+
+	HFREE_NULL(mangled);
 	return pncs;
 }
 
