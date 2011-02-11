@@ -56,7 +56,7 @@ enum bgtask_magic {
 	BGTASK_DEAD_MAGIC = 0x6f5c8a03U
 };
 
-#define MAX_LIFE		100000			/**< In usecs, MUST be << 400 ms */
+#define MAX_LIFE		100000UL		/**< In usecs, MUST be << 400 ms */
 #define DELTA_FACTOR	2				/**< Max variations are 200% */
 
 #define BG_TICK_IDLE	1000			/**< Tick every second when idle */
@@ -1068,6 +1068,7 @@ bg_sched_timer(void *unused_arg)
 
 			bt->flags |= TASK_F_NOTICK;
 			bg_task_switch(NULL, target);
+			g_assert(remain >= bt->elapsed);
 			remain -= bt->elapsed;
 			bg_task_terminate(bt);
 			continue;
@@ -1114,6 +1115,7 @@ bg_sched_timer(void *unused_arg)
 		ret = (*bt->stepvec[bt->step])(bt, bt->ucontext, ticks);
 
 		bg_task_switch(NULL, target);	/* Stop current task, update stats */
+		g_assert(remain >= bt->elapsed);
 		remain -= bt->elapsed;
 
 		if (bg_debug > 4)
@@ -1154,7 +1156,7 @@ bg_sched_timer(void *unused_arg)
 		bg_reclaim_dead();			/* Free dead tasks */
 
 	if (bg_debug > 3 && MAX_LIFE != remain) {
-		g_debug("BGTASK runable=%d, ran for %d usecs, scheduling %u task%s",
+		g_debug("BGTASK runable=%d, ran for %lu usecs, scheduling %u task%s",
 			bg_runcount, MAX_LIFE - remain,
 			schedules, 1 == schedules ? "" : "s");
 	}
