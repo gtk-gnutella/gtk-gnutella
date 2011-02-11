@@ -2042,7 +2042,7 @@ mingw_adns_getnameinfo_cb(struct async_data *ad)
 	struct arg_data *arg_data = ad->thread_arg_data;
 
 	if (common_dbg) {	
-		g_debug("ADNS resolved to %s", hostname);
+		g_debug("ADNS resolved to %s", arg_data->hostname);
 	}
 	
 	{
