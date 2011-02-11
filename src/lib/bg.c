@@ -1068,8 +1068,11 @@ bg_sched_timer(void *unused_arg)
 
 			bt->flags |= TASK_F_NOTICK;
 			bg_task_switch(NULL, target);
-			g_assert(remain >= bt->elapsed);
-			remain -= bt->elapsed;
+			if (bg_debug > 0 && remain < bt->elapsed) {
+				g_debug("%s: remain=%d, bt->elapsed=%d",
+					G_STRFUNC, remain, bt->elapsed);
+			}
+			remain -= MIN(remain, bt->elapsed);
 			bg_task_terminate(bt);
 			continue;
 		}
@@ -1115,8 +1118,11 @@ bg_sched_timer(void *unused_arg)
 		ret = (*bt->stepvec[bt->step])(bt, bt->ucontext, ticks);
 
 		bg_task_switch(NULL, target);	/* Stop current task, update stats */
-		g_assert(remain >= bt->elapsed);
-		remain -= bt->elapsed;
+		if (bg_debug > 0 && remain < bt->elapsed) {
+			g_debug("%s: remain=%d, bt->elapsed=%d",
+				G_STRFUNC, remain, bt->elapsed);
+		}
+		remain -= MIN(remain, bt->elapsed);
 
 		if (bg_debug > 4)
 			g_debug("BGTASK \"%s\" step #%d.%d ran %d tick%s "
