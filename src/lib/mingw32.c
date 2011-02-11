@@ -2136,8 +2136,21 @@ mingw_adns_thread(void *unused_data)
 	if (common_dbg) {
 		t_message(altc, "adns thread exit");
 	}
+
+	/*
+	 * FIXME: The calls below cause a:
+	 *
+	 *    assertion `g_atomic_int_get (&queue->ref_count) > 0' failed
+	 *
+	 * I'm wondering whether they are needed since the main thread does
+	 * it and the queue could be disposed of by g_async_queue_pop() directly,
+	 * given it can detect the queue became orphan....
+	 */
+
+#if 0
 	g_async_queue_unref(mingw_gtkg_adns_async_queue);
 	g_async_queue_unref(mingw_gtkg_main_async_queue);
+#endif
 
 	g_thread_exit(NULL);
 	return NULL;
