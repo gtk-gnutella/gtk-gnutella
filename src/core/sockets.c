@@ -302,8 +302,7 @@ socket_evt_clear(struct gnutella_socket *s)
 		s->tls.cb_handler = NULL;
 		s->tls.cb_data = NULL;
 
-		inputevt_remove(s->gdk_tag);
-		s->gdk_tag = 0;
+		inputevt_remove(&s->gdk_tag);
 	}
 }
 

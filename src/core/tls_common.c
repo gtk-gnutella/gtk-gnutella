@@ -136,10 +136,7 @@ tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 				fd, inputevt_cond_to_string(s->tls.cb_cond),
 				inputevt_cond_to_string(cond));
 		}
-		if (s->gdk_tag) {
-			inputevt_remove(s->gdk_tag);
-			s->gdk_tag = 0;
-		}
+		inputevt_remove(&s->gdk_tag);
 		socket_evt_set(s, cond, s->tls.cb_handler, s->tls.cb_data);
 		errno = saved_errno;
 	}

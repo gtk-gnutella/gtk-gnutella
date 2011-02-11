@@ -153,9 +153,9 @@ static adns_cache_t *adns_cache = NULL;
 /* private variables */
 
 static int adns_query_fd = -1;
-static unsigned adns_query_event_id = 0;
-static unsigned adns_reply_event_id = 0;
-static gboolean is_helper = FALSE;		/**< Are we the DNS helper process? */
+static unsigned adns_query_event_id;
+static unsigned adns_reply_event_id;
+static gboolean is_helper;		/**< Are we the DNS helper process? */
 
 /**
  * Private functions.
@@ -664,8 +664,7 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 	return;
 	
 error:
-	inputevt_remove(adns_reply_event_id);
-	adns_reply_event_id = 0;
+	inputevt_remove(&adns_reply_event_id);
 	g_warning("adns_reply_callback: removed myself");
 	fd_close(&source);
 }
@@ -752,8 +751,7 @@ adns_query_callback(void *data, int dest, inputevt_cond_t condition)
 	}
 	g_assert(remain->pos == remain->size);
 
-	inputevt_remove(adns_query_event_id);
-	adns_query_event_id = 0;
+	inputevt_remove(&adns_query_event_id);
 
 	goto done;	
 
@@ -762,8 +760,7 @@ error:
 	g_warning("adns_query_callback: write() failed: %s", g_strerror(errno));
 abort:
 	g_warning("adns_query_callback: removed myself");
-	inputevt_remove(adns_query_event_id);
-	adns_query_event_id = 0;
+	inputevt_remove(&adns_query_event_id);
 	fd_close(&adns_query_fd);
 	g_warning("adns_query_callback: using fallback");
 	adns_fallback(&remain->req);
@@ -917,8 +914,7 @@ adns_send_request(const struct adns_request *req)
 		if (!is_temporary_error(errno)) {
 			g_warning("adns_resolve: write() failed: %s",
 				g_strerror(errno));
-			inputevt_remove(adns_reply_event_id);
-			adns_reply_event_id = 0;
+			inputevt_remove(&adns_reply_event_id);
 			fd_close(&adns_query_fd);
 			return FALSE;
 		}
@@ -1068,14 +1064,8 @@ adns_close(void)
 #ifdef MINGW32
 	mingw_adns_close();
 #else
-	if (adns_reply_event_id) {
-		inputevt_remove(adns_reply_event_id);
-		adns_reply_event_id = 0;
-	}
-	if (adns_query_event_id) {
-		inputevt_remove(adns_query_event_id);
-		adns_query_event_id = 0;
-	}
+	inputevt_remove(&adns_reply_event_id);
+	inputevt_remove(&adns_query_event_id);
 #endif	/* MINGW32 */
 
 	adns_cache_free(&adns_cache);

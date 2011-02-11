@@ -794,8 +794,7 @@ bio_disable(bio_source_t *bio)
 	g_assert(bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 
-	inputevt_remove(bio->io_tag);
-	bio->io_tag = 0;
+	inputevt_remove(&bio->io_tag);
 }
 
 /**
@@ -1156,11 +1155,7 @@ bsched_source_remove(bio_source_t *bio)
 		bsched_bio_remove(bio->bws, bio);
 		bio->bws = BSCHED_BWS_INVALID;
 	}
-	if (bio->io_tag) {
-		inputevt_remove(bio->io_tag);
-		bio->io_tag = 0;
-	}
-
+	inputevt_remove(&bio->io_tag);
 	bio->magic = 0;
 	wfree(bio, sizeof *bio);
 }

@@ -990,13 +990,18 @@ poll_func(GPollFD *gfds, unsigned n, int timeout_ms)
  * must be kept in mind, that file descriptor numbers are recycled.
  */
 void
-inputevt_remove(unsigned id)
+inputevt_remove(unsigned *id_ptr)
 {
 	struct poll_ctx *ctx;
 	inputevt_relay_t *relay;
 	relay_list_t *rl;
 	inputevt_cond_t old, cur;
+	unsigned id;
 	int fd;
+
+	id = *id_ptr;
+	if (0 == id)
+		return;
 
 	ctx = get_global_poll_ctx();
 	g_assert(ctx->initialized);
@@ -1051,6 +1056,7 @@ inputevt_remove(unsigned id)
 		ctx->relay[id] = NULL;
 		bit_array_clear(ctx->used_event_id, id);
 	}
+	*id_ptr = 0;
 }
 
 static inline unsigned

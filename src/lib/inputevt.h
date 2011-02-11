@@ -49,18 +49,18 @@ typedef enum {
 	INPUT_EVENT_W			= 1 << 1,	/* poll for Write events */
 	INPUT_EVENT_EXCEPTION	= 1 << 2,	/* poll for exceptions */
 
-	INPUT_EVENT_RX = ((guint) INPUT_EVENT_R | (guint) INPUT_EVENT_EXCEPTION),
-	INPUT_EVENT_WX = ((guint) INPUT_EVENT_W | (guint) INPUT_EVENT_EXCEPTION),
+	INPUT_EVENT_RX = ((unsigned) INPUT_EVENT_R | (guint) INPUT_EVENT_EXCEPTION),
+	INPUT_EVENT_WX = ((unsigned) INPUT_EVENT_W | (guint) INPUT_EVENT_EXCEPTION),
 	
-	INPUT_EVENT_RW = ((guint) INPUT_EVENT_R | (guint) INPUT_EVENT_W),
-	INPUT_EVENT_RWX = ((guint) INPUT_EVENT_RW | (guint) INPUT_EVENT_EXCEPTION)
+	INPUT_EVENT_RW = ((unsigned) INPUT_EVENT_R | (guint) INPUT_EVENT_W),
+	INPUT_EVENT_RWX = ((unsigned) INPUT_EVENT_RW | (guint) INPUT_EVENT_EXCEPTION)
 } inputevt_cond_t;
 
 /**
  * And the handler function type.
  */
 typedef void (*inputevt_handler_t) (
-	gpointer data,
+	void *data,
 	int source,
 	inputevt_cond_t condition
 );
@@ -78,12 +78,12 @@ void inputevt_set_debug(unsigned level);
 /**
  * This emulates the GDK input interface.
  */
-guint inputevt_add(int source, inputevt_cond_t condition,
-	inputevt_handler_t handler, gpointer data);
+unsigned inputevt_add(int source, inputevt_cond_t condition,
+	inputevt_handler_t handler, void *data);
 
 const char *inputevt_cond_to_string(inputevt_cond_t cond);
 size_t inputevt_data_available(void);
-void inputevt_remove(guint id);
+void inputevt_remove(unsigned *id_ptr);
 void inputevt_set_readable(int fd);
 
 #endif  /* _inputevt_h_ */
