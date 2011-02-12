@@ -1972,7 +1972,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 
 	if ((iconv_t) -1 == cd) {
 		if (common_dbg > 1)
-			g_warning("complete_iconv: bad cd");
+			g_carp("complete_iconv: bad cd");
 		errno = EBADF;
 		goto error;
 	}
