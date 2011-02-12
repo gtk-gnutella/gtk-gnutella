@@ -93,6 +93,12 @@
 #include <netinet/in.h>
 #endif
 
+#ifdef __CYGWIN__
+#define is_running_on_cygwin() 1
+#else
+#define is_running_on_cygwin() 0
+#endif
+
 #ifdef MINGW32
 
 /* Provided for convenience to reduce ifdef hell */

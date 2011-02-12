@@ -184,16 +184,17 @@ struct pncs
 pncs_convert(const char *pathname)
 {
 	char *mangled = NULL;
-	char *p;
 	pncs_t pncs;
 
 	/*
 	 * Skip leading "/cygdrive/" string, up to the second "/".
 	 */
-
-	p = is_strcaseprefix(pathname, "/cygdrive/");
-	if (p != NULL)
-		pathname = p - 1;			/* Go back to ending "/" */
+	
+	if (is_running_on_cygwin()) {
+		char *p = is_strcaseprefix(pathname, "/cygdrive/");
+		if (NULL != p)
+			pathname = p - 1;			/* Go back to ending "/" */
+	}
 
 	/*
 	 * Replace /x/file with x:/file.
@@ -208,17 +209,13 @@ pncs_convert(const char *pathname)
 	 */
 
 	if (
-		('/' == pathname[0] || '\\' == pathname[0]) &&
+		is_dir_separator(pathname[0]) &&
 		is_ascii_alpha(pathname[1]) &&
-		('/' == pathname[2] || '\\' == pathname[2] || '\0' == pathname[2])
+		(is_dir_separator(pathname[2]) || '\0' == pathname[2])
 	) {
-		size_t plen = strlen(&pathname[2]);
-		size_t mlen = plen + sizeof("x:");
-
-		mangled = halloc(mlen);
-		mangled[0] = pathname[1];
+		mangled = h_strdup(pathname);
+		mangled[0] = pathname[1]; /* Replace with correct drive letter */
 		mangled[1] = ':';
-		clamp_strncpy(&mangled[2], mlen - 2, &pathname[2], plen);
 		pathname = mangled;
 	}
 
@@ -928,7 +925,7 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
 
 	int i;
 	ssize_t total_written = 0, w = -1;
-	static char gather[1024];
+	char gather[1024];
 	size_t nw;
 
 	/*
