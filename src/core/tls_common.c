@@ -352,6 +352,14 @@ tls_handshake(struct gnutella_socket *s)
 int
 tls_init(struct gnutella_socket *s)
 {
+	/**
+	 * ANON-DH is enabled because we don't use PKI.
+	 * DEFLATE is disabled because it seems to cause crashes.
+	 * ARCFOUR-40 is disabled because it is deprecated.
+	 */
+	static const char prio_want[] = "NORMAL:+ANON-DH:-ARCFOUR-40:-COMP-DEFLATE";
+	/* "-COMP-DEFLATE" is causing an error on MinGW with GnuTLS 2.10.2 */
+	static const char prio_must[] = "NORMAL:+ANON-DH:-ARCFOUR-40";
 	const gboolean server = SOCK_CONN_INCOMING == s->direction;
 	struct tls_context *ctx;
 	const char *fn;
@@ -372,25 +380,10 @@ tls_init(struct gnutella_socket *s)
 		goto failure;
 	}
 
-	/**
-	 * ANON-DH is enabled because we don't use PKI.
-	 * DEFLATE is disabled because it seems to cause crashes.
-	 * ARCFOUR-40 is disabled because it is deprecated.
-	 */
-
-	{
+	if (TRY(gnutls_priority_set_direct)(ctx->session, prio_want, NULL)) {
 		const char *error;
-		const char *options;
-
-		/* "-COMP-DEFLATE" is causing an error on MinGW with TLS 2.10.2 */
-
-		options = is_running_on_mingw() ?
-			"NORMAL:+ANON-DH:-ARCFOUR-40" :
-			"NORMAL:+ANON-DH:-ARCFOUR-40:-COMP-DEFLATE";
-
-		if (TRY(gnutls_priority_set_direct)(ctx->session, options, &error)) {
-			g_warning("%s: gnutls_priority_set_direct: bad string \"%s\"",
-				G_STRFUNC, error);
+		if (TRY(gnutls_priority_set_direct)(ctx->session, prio_must, &error)) {
+			g_warning("%s() failed at \"%s\"", fn, error);
 			goto failure;
 		}
 	}
