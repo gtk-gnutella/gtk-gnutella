@@ -84,6 +84,10 @@ RCSID("$Id$")
 
 #include "override.h"			/* Must be the last header included */
 
+#if 1
+#define MINGW_SYSCALL_DEBUG		/**< Trace all Windows API call errors */
+#endif
+
 #undef signal
 
 #undef stat
@@ -123,6 +127,13 @@ RCSID("$Id$")
 #define VMM_MINSIZE (1024*1024*100)	/* At least 100 MiB */
 
 #define WS2_LIBRARY "ws2_32.dll"
+
+#ifdef MINGW_SYSCALL_DEBUG
+#define mingw_syscall_debug()	1
+#else
+#define mingw_syscall_debug()	0
+#endif
+
 static HINSTANCE libws2_32;
 
 typedef struct processor_power_information {
@@ -138,21 +149,6 @@ extern gboolean vmm_is_debugging(guint32 level);
 
 typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
 WSAPoll_func_t WSAPoll = NULL;
-
-/**
- * This is a run-time check because MingW binaries can be used on Cygwin.
- */
-static gboolean
-is_running_on_cygwin(void)
-{
-	static int on_cygwin = -1;
-
-	if (-1 == value) {
-		struct utsname un;
-		on_cygwin = 0 == uname(&un) && is_strcaseprefix(un.sysname, "CYGWIN");
-	}	
-	return on_cygwin;
-}
 
 /**
  * Path Name Conversion Structure.
@@ -199,17 +195,23 @@ struct pncs
 pncs_convert(const char *pathname)
 {
 	char *mangled = NULL;
+	char *p;
 	pncs_t pncs;
 
 	/*
 	 * Skip leading "/cygdrive/" string, up to the second "/".
+	 *
+	 * We can't really check whether we're running on Cygwin at run-time.
+	 * Moreover, users can say "mount -c /cyg" to change the prefix from
+	 * the default, so "/cygdrive/" is only a wild guess that will work
+	 * with default Cygwin settings or when users say "mount -c /" to
+	 * suppress the prefixing, in which case paths will look as they do on
+	 * the MinGW environment.
 	 */
 
-	if (is_running_on_cygwin()) {	
-		char *p = is_strcaseprefix(pathname, "/cygdrive/");
-		if (NULL != p)
-			pathname = p - 1;			/* Go back to ending "/" */
-	}
+	p = is_strcaseprefix(pathname, "/cygdrive/");
+	if (NULL != p)
+		pathname = p - 1;			/* Go back to ending "/" */
 
 	/*
 	 * Replace /x/file with x:/file.
@@ -412,7 +414,14 @@ static int
 mingw_last_error(void)
 {
 	int error = GetLastError();
-	return mingw_win2posix(error);
+	int result = mingw_win2posix(error);
+
+	if (mingw_syscall_debug()) {
+		g_debug("%s() failed: %s (%d)", stacktrace_caller_name(1),
+			symbolic_errno(result), error);
+	}
+
+	return result;
 }
 
 static signal_handler_t mingw_sighandler[SIGNAL_COUNT];
