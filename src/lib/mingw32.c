@@ -162,7 +162,7 @@ locale_to_wchar_string(const char *pathname)
 }
 
 /*
- * Convert pathname to an UTF-16 representation.
+ * Convert pathname to a UTF-16 representation.
  *
  * When launched from a Cygwin or MinGW environment, we can face
  * paths like "/x/file" which really mean "x:/file" in Windows parlance.
@@ -188,7 +188,7 @@ pncs_convert(const char *pathname)
 	pncs_t pncs;
 
 	/*
-	 * Skip other leading "/cygdrive/" string, up to the second "/".
+	 * Skip leading "/cygdrive/" string, up to the second "/".
 	 */
 
 	p = is_strcaseprefix(pathname, "/cygdrive/");
@@ -196,13 +196,21 @@ pncs_convert(const char *pathname)
 		pathname = p - 1;			/* Go back to ending "/" */
 
 	/*
-	 * Replace /x/file with x:/file
+	 * Replace /x/file with x:/file.
+	 *
+	 * We could check that "/x" does not exist before doing this conversion,
+	 * but what if we're on drive X: and there is a "X:/x" file there?
+	 * Would /x/x/file be referring to X:/x/file?  What if /x/x exists?
+	 *
+	 * Since there is no easy way to avoid mistakes, let's keep the mangling
+	 * algorithm straightforward so that error cases are also known and
+	 * predictable enough.
 	 */
 
 	if (
 		('/' == pathname[0] || '\\' == pathname[0]) &&
 		is_ascii_alpha(pathname[1]) &&
-		('/' == pathname[2] || '\\' == pathname[2])
+		('/' == pathname[2] || '\\' == pathname[2] || '\0' == pathname[2])
 	) {
 		size_t plen = strlen(&pathname[2]);
 		size_t mlen = plen + sizeof("x:");
