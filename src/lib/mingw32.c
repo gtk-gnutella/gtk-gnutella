@@ -140,6 +140,21 @@ typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
 WSAPoll_func_t WSAPoll = NULL;
 
 /**
+ * This is a run-time check because MingW binaries can be used on Cygwin.
+ */
+static gboolean
+is_running_on_cygwin(void)
+{
+	static int on_cygwin = -1;
+
+	if (-1 == value) {
+		struct utsname un;
+		on_cygwin = 0 == uname(&un) && is_strcaseprefix(un.sysname, "CYGWIN");
+	}	
+	return on_cygwin;
+}
+
+/**
  * Path Name Conversion Structure.
  */
 typedef struct pncs {
@@ -185,15 +200,16 @@ pncs_convert(const char *pathname)
 {
 	char *mangled = NULL;
 	pncs_t pncs;
-	char *p;
 
 	/*
 	 * Skip leading "/cygdrive/" string, up to the second "/".
 	 */
-	
-	p = is_strcaseprefix(pathname, "/cygdrive/");
-	if (NULL != p)
-		pathname = p - 1;			/* Go back to ending "/" */
+
+	if (is_running_on_cygwin()) {	
+		char *p = is_strcaseprefix(pathname, "/cygdrive/");
+		if (NULL != p)
+			pathname = p - 1;			/* Go back to ending "/" */
+	}
 
 	/*
 	 * Replace /x/file with x:/file.
