@@ -301,12 +301,16 @@ seek_to_filepos(int fd, filesize_t pos)
 		int saved_errno = errno;
 		fileoffset_t ret;
 
-		/* Clear errno to be sure we get no bogus errno code, if
+		/* Set errno to be sure we get no bogus errno code, if
 		 * the system does not agree with us that the lseek()
 		 * failed. */
-		errno = 0;
+		errno = EOVERFLOW;
 		ret = lseek(fd, offset, SEEK_SET);
-		if ((fileoffset_t) -1 == ret || ret != offset) {
+		if ((fileoffset_t) -1 == ret)
+			return -1;
+
+		if (ret != offset) {
+			errno = EOVERFLOW;
 			return -1;
 		}
 		errno = saved_errno;
