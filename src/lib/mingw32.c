@@ -371,6 +371,7 @@ mingw_win2posix(int error)
 	case ERROR_CURRENT_DIRECTORY:
 		return ENOFILE;
 	case ERROR_BAD_UNIT:
+	case ERROR_BAD_DEVICE:
 		return ENODEV;
 	case ERROR_NOT_READY:
 	case ERROR_BAD_COMMAND:
@@ -1514,6 +1515,7 @@ mingw_posix_strerror(int errnum)
 	case ENOSYS:	return "Function not implemented";
 	case ENOTEMPTY:	return "Directory not empty";
 	case EILSEQ:	return "Illegal byte sequence";
+	case EOVERFLOW:	return "Value too large to be stored in data type";
 	default:		return NULL;
 	}
 
