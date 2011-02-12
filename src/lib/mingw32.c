@@ -185,16 +185,15 @@ pncs_convert(const char *pathname)
 {
 	char *mangled = NULL;
 	pncs_t pncs;
+	char *p;
 
 	/*
 	 * Skip leading "/cygdrive/" string, up to the second "/".
 	 */
 	
-	if (is_running_on_cygwin()) {
-		char *p = is_strcaseprefix(pathname, "/cygdrive/");
-		if (NULL != p)
-			pathname = p - 1;			/* Go back to ending "/" */
-	}
+	p = is_strcaseprefix(pathname, "/cygdrive/");
+	if (NULL != p)
+		pathname = p - 1;			/* Go back to ending "/" */
 
 	/*
 	 * Replace /x/file with x:/file.
