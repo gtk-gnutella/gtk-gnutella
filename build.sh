@@ -65,6 +65,14 @@ MINGW*)
 	CPPFLAGS="$CPPFLAGS -DMINGW32"
 	CPPFLAGS="$CPPFLAGS -I${mingwlib}/regex/include -I${mingwlib}/gtk/include"
     CPPFLAG="${CPPFLAGS# *}"    # strip leading spaces
+	# It's necessary to statically link gtk-gnutella to libz.a or it crashes
+	# randomly in pre-compiled zlib1.dll from GTK.
+	# Compile zlib-1.2.5 with -O3 -g using "make -f win32/makefile.gcc"
+	# and install after editing the makefile accordingly.
+	# We use the file libz.a path to make sure it fails if that file is missing
+	# since zlib1.dll must stay in place and we don't want -lz to fallback
+	# to libz.dll.a.
+	LDFLAGS="$LDFLAGS ${mingwlib}/zlib/lib/libz.a"
 	LDFLAGS="$LDFLAGS -mwindows -L${mingwlib}/regex/lib -L${mingwlib}/gtk/lib"
     LDFLAGS="${LDFLAGS# *}"     # strip leading spaces
 	LIBS="$LIBS -lwsock32 -lws2_32 -lregex -lz -liconv -limagehlp -liphlpapi"
