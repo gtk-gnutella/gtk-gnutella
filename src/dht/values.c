@@ -1823,6 +1823,8 @@ values_close(void)
 	cq_periodic_remove(&values_expire_ev);
 	values_managed = 0;
 
+	gnet_stats_set_general(GNR_DHT_VALUES_HELD, 0);
+
 	g_hash_table_foreach(expired, expired_free_kv, NULL);
 	gm_hash_table_destroy_null(&expired);
 }

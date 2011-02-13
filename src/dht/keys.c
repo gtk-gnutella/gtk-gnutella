@@ -1463,6 +1463,9 @@ keys_close(void)
 	kuid_atom_free_null(&kball.furthest);
 	kuid_atom_free_null(&kball.closest);
 
+	gnet_stats_set_general(GNR_DHT_KEYS_HELD, 0);
+	gnet_stats_set_general(GNR_DHT_CACHED_KEYS_HELD, 0);
+
 	cq_cancel(&kball_ev);
 	cq_periodic_remove(&keys_periodic_ev);
 }
