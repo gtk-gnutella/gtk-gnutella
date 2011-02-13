@@ -106,6 +106,8 @@ op_to_string(enum dht_rpc_op op)
 void
 dht_rpc_init(void)
 {
+	g_return_if_fail(NULL == pending);
+
 	pending = g_hash_table_new(guid_hash, guid_eq);
 }
 

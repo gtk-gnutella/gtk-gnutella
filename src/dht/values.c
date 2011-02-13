@@ -1766,6 +1766,14 @@ values_get(guint64 dbkey, dht_value_type_t type)
 void
 values_init(void)
 {
+	g_return_if_fail(NULL == db_valuedata);
+	g_return_if_fail(NULL == db_rawdata);
+	g_return_if_fail(NULL == db_expired);
+	g_return_if_fail(NULL == values_per_ip);
+	g_return_if_fail(NULL == values_per_class_c);
+	g_return_if_fail(NULL == expired);
+	g_return_if_fail(NULL == values_expire_ev);
+
 	db_valuedata = storage_create(db_valwhat, db_valbase,
 		sizeof(guint64), sizeof(struct valuedata), 0,
 		serialize_valuedata, deserialize_valuedata, NULL,

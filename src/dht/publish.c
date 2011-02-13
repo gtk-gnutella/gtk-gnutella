@@ -2541,6 +2541,8 @@ publish_id_equal(const void *p, const void *q)
 void
 publish_init(void)
 {
+	g_return_if_fail(NULL == publishes);
+
 	publishes = g_hash_table_new(publish_id_hash, publish_id_equal);
 }
 

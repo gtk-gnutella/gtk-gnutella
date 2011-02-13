@@ -1048,6 +1048,8 @@ deserialize_keydata(bstr_t *bs, gpointer valptr, size_t len)
 static void
 install_periodic_kball(int period)
 {
+	g_return_if_fail(NULL == kball_ev);
+
 	kball_ev = cq_main_insert(period * 1000, keys_periodic_kball, NULL);
 }
 
@@ -1274,6 +1276,10 @@ void
 keys_init(void)
 {
 	size_t i;
+
+	g_return_if_fail(NULL == keys_periodic_ev);
+	g_return_if_fail(NULL == keys);
+	g_return_if_fail(NULL == db_keydata);
 
 	keys_periodic_ev = cq_periodic_add(callout_queue, LOAD_PERIOD * 1000,
 		keys_periodic_load, NULL);
