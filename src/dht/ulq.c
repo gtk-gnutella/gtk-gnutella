@@ -840,12 +840,12 @@ ulq_init(void)
 {
 	STATIC_ASSERT(ULQ_QUEUE_COUNT == G_N_ELEMENTS(ulq));
 
-	g_return_if_fail(NULL == ulq[ULQ_PROX]);
-	g_return_if_fail(NULL == ulq[ULQ_ALOC]);
-	g_return_if_fail(NULL == ulq[ULQ_STORE]);
-	g_return_if_fail(NULL == ulq[ULQ_OTHER]);
-	g_return_if_fail(NULL == ulq[ULQ_PRIO]);
-	g_return_if_fail(NULL == sched.runq);
+	g_assert(NULL == ulq[ULQ_PROX]);
+	g_assert(NULL == ulq[ULQ_ALOC]);
+	g_assert(NULL == ulq[ULQ_STORE]);
+	g_assert(NULL == ulq[ULQ_OTHER]);
+	g_assert(NULL == ulq[ULQ_PRIO]);
+	g_assert(NULL == sched.runq);
 
 	/*
 	 * The weights are arbitrary values, not necessarily summing to 100.

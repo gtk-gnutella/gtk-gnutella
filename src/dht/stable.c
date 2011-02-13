@@ -484,9 +484,9 @@ deserialize_lifedata(bstr_t *bs, gpointer valptr, size_t len)
 void
 stable_init(void)
 {
-	g_return_if_fail(NULL == db_lifedata);
-	g_return_if_fail(NULL == stable_sync_ev);
-	g_return_if_fail(NULL == stable_prune_ev);
+	g_assert(NULL == db_lifedata);
+	g_assert(NULL == stable_sync_ev);
+	g_assert(NULL == stable_prune_ev);
 
 	db_lifedata = storage_open(db_stable_what, db_stable_base,
 		KUID_RAW_SIZE, sizeof(struct lifedata), 0,

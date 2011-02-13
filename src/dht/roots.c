@@ -1031,10 +1031,10 @@ roots_init_rootinfo(void)
 void
 roots_init(void)
 {
-	g_return_if_fail(NULL == roots_cq);
-	g_return_if_fail(NULL == roots);
-	g_return_if_fail(NULL == db_rootdata);
-	g_return_if_fail(NULL == db_contact);
+	g_assert(NULL == roots_cq);
+	g_assert(NULL == roots);
+	g_assert(NULL == db_rootdata);
+	g_assert(NULL == db_contact);
 
 	roots_cq = cq_submake("roots", callout_queue, ROOTS_CALLOUT);
 	roots = patricia_create(KUID_RAW_BITSIZE);

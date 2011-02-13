@@ -218,7 +218,7 @@ token_init(void)
 {
 	size_t i;
 
-	g_return_if_fail(NULL == rotate_ev);
+	g_assert(NULL == rotate_ev);
 
 	STATIC_ASSERT(G_N_ELEMENTS(keys) > 1);
 

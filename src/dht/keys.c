@@ -1275,9 +1275,9 @@ keys_init(void)
 {
 	size_t i;
 
-	g_return_if_fail(NULL == keys_periodic_ev);
-	g_return_if_fail(NULL == keys);
-	g_return_if_fail(NULL == db_keydata);
+	g_assert(NULL == keys_periodic_ev);
+	g_assert(NULL == keys);
+	g_assert(NULL == db_keydata);
 
 	keys_periodic_ev = cq_periodic_add(callout_queue, LOAD_PERIOD * 1000,
 		keys_periodic_load, NULL);

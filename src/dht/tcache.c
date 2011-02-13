@@ -367,8 +367,8 @@ tcache_periodic_prune(gpointer unused_obj)
 void
 tcache_init(void)
 {
-	g_return_if_fail(NULL == db_tokdata);
-	g_return_if_fail(NULL == tcache_prune_ev);
+	g_assert(NULL == db_tokdata);
+	g_assert(NULL == tcache_prune_ev);
 
 	db_tokdata = storage_create(db_tcache_what, db_tcache_base,
 		KUID_RAW_SIZE, sizeof(struct tokdata),

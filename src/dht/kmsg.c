@@ -2477,8 +2477,8 @@ kmsg_init(void)
 {
 	size_t i;
 
-	g_return_if_fail(NULL == kmsg_aging_pings);
-	g_return_if_fail(NULL == kmsg_aging_finds);
+	g_assert(NULL == kmsg_aging_pings);
+	g_assert(NULL == kmsg_aging_finds);
 
 	for (i = 0; i < G_N_ELEMENTS(kmsg_map); i++) {
 		const struct kmsg *entry = &kmsg_map[i];
