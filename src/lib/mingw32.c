@@ -152,24 +152,42 @@ WSAPoll_func_t WSAPoll = NULL;
 
 /**
  * Path Name Conversion Structure.
+ *
+ * @note MAX_PATH_LEN might actually apply to MBCS only and the limit for
+ * Unicode is 32768. So we could (or should?) support pathnames longer than
+ * 256 characters.
  */
 typedef struct pncs {
 	wchar_t *utf16;
+	wchar_t buf[MAX_PATH_LEN];
 } pncs_t;
 
+/**
+ * Converts a NUL-terminated MBCS string to an UTF-16 string.
+ * @note mbtowcs() is not async-signal safe.
+ *
+ * @param src The string to convert.
+ * @param dest The destination buffer.
+ * @param dest_size The size of the destination buffer in number of elements.
+ *
+ * @return NULL on failure with errno set, dest on success.
+ */
 static wchar_t *
-locale_to_wchar_string(const char *pathname)
+locale_to_wchar(const char *src, wchar_t *dest, size_t dest_size)
 {
-	wchar_t *ws;
 	size_t n;
 
-	n = mbstowcs(NULL, pathname, 0);
-	if ((size_t)-1 == n)
+	n = mbstowcs(NULL, src, 0);
+	if ((size_t) -1 == n)
 		return NULL;
 
-	ws = halloc(size_saturate_mult(n + 1, sizeof *ws));
-	(void) mbstowcs(ws, pathname, n + 1);
-	return ws;
+	if (n < dest_size) {
+		(void) mbstowcs(dest, src, dest_size);
+	} else {
+		dest = NULL;
+		errno = ENAMETOOLONG;
+	}
+	return dest;
 }
 
 /*
@@ -188,15 +206,19 @@ locale_to_wchar_string(const char *pathname)
  * we will wrongly interpret is as X:/path.  The chance they create
  * single-letter top-level directories is small in practice.
  *
- * @return structure containing the converted pathname that can be used
- * in Unicode-aware Windows calls.
+ * On success, the member utf16 points to the converted pathname that can be
+ * used in Unicode-aware Windows calls.
+ *
+ * @return 0 on success, -1 on error with errno set.
  */
-struct pncs
-pncs_convert(const char *pathname)
+static int
+pncs_convert(pncs_t *pncs, const char *pathname)
 {
-	char *mangled = NULL;
+	char pathname_buf[MAX_PATH_LEN];
 	char *p;
-	pncs_t pncs;
+
+	/* On Windows wchar_t should always be 16-bit and use UTF-16 encoding. */
+	STATIC_ASSERT(sizeof(guint16) == sizeof(wchar_t));
 
 	/*
 	 * Skip leading "/cygdrive/" string, up to the second "/".
@@ -230,37 +252,31 @@ pncs_convert(const char *pathname)
 		is_ascii_alpha(pathname[1]) &&
 		(is_dir_separator(pathname[2]) || '\0' == pathname[2])
 	) {
-		mangled = h_strdup(pathname);
-		mangled[0] = pathname[1]; /* Replace with correct drive letter */
-		mangled[1] = ':';
-		pathname = mangled;
+		if (sizeof pathname_buf <= strlen(pathname)) {
+			errno = ENAMETOOLONG;
+			return -1;
+		}
+		pathname_buf[0] = pathname[1]; /* Replace with correct drive letter */
+		pathname_buf[1] = ':';
+		pathname = pathname_buf;
 	}
 
 	if (utf8_is_valid_string(pathname)) {
-		pncs.utf16 = utf8_to_utf16_string(pathname);
+		size_t ret;
+
+		ret = utf8_to_utf16(pathname, pncs->buf, G_N_ELEMENTS(pncs->buf));
+		if (ret < G_N_ELEMENTS(pncs->buf)) {
+			pncs->utf16 = pncs->buf;
+		} else {
+			errno = ENAMETOOLONG;
+			pncs->utf16 = NULL;
+		}
 	} else {
-		pncs.utf16 = locale_to_wchar_string(pathname);
-		g_assert(NULL != pncs.utf16);
-		/** FIXME: The assertion could trigger with a bad pathname.
-		 *		   We could accept NULL assuming the system call
-		 *		   it is being passed to will fail with EINVAL
-		 *		   or EFAULT which would be okay for pathnames
-		 *		   we cannot handle reasonably.
-		 *		   However, this codepath is only a fall-back and we
-		 *		   should rather ensure that all pathnames
-		 *		   are converted to UTF-8 - which should be doable
-		 *		   on Windows as it already uses UTF-16 internally.
-		 */
+		pncs->utf16 = locale_to_wchar(pathname,
+							&pncs->buf, G_N_ELEMENTS(pncs->buf));
 	}
 
-	HFREE_NULL(mangled);
-	return pncs;
-}
-
-void
-pncs_release(pncs_t *pncs)
-{
-	HFREE_NULL(pncs->utf16);
+	return NULL != pncs->utf16 ? 0 : -1;
 }
 
 static inline gboolean
@@ -674,12 +690,13 @@ mingw_mkdir(const char *pathname, mode_t mode)
 
 	(void) mode; 	/* FIXME: handle mode */
 
-	pncs = pncs_convert(pathname);
+	if (pncs_convert(&pncs, pathname))
+		return -1;
+
 	res = _wmkdir(pncs.utf16);
 	if (-1 == res)
 		errno = mingw_last_error();
 
-	pncs_release(&pncs);
 	return res;
 }
 
@@ -689,12 +706,13 @@ mingw_access(const char *pathname, int mode)
 	int res;
 	pncs_t pncs;
 
-	pncs = pncs_convert(pathname);
+	if (pncs_convert(&pncs, pathname))
+		return -1;
+
 	res = _waccess(pncs.utf16, mode);
 	if (-1 == res)
 		errno = mingw_last_error();
 
-	pncs_release(&pncs);
 	return res;
 }
 
@@ -704,12 +722,13 @@ mingw_chdir(const char *pathname)
 	int res;
 	pncs_t pncs;
 
-	pncs = pncs_convert(pathname);
+	if (pncs_convert(&pncs, pathname))
+		return -1;
+
 	res = _wchdir(pncs.utf16);
 	if (-1 == res)
 		errno = mingw_last_error();
 
-	pncs_release(&pncs);
 	return res;
 }
 
@@ -719,12 +738,13 @@ mingw_remove(const char *pathname)
 	int res;
 	pncs_t pncs;
 
-	pncs = pncs_convert(pathname);
+	if (pncs_convert(&pncs, pathname))
+		return -1;
+
 	res = _wremove(pncs.utf16);
 	if (-1 == res)
 		errno = mingw_last_error();
 
-	pncs_release(&pncs);
 	return res;
 }
 
@@ -741,12 +761,13 @@ mingw_stat(const char *pathname, filestat_t *buf)
 	pncs_t pncs;
 	int res;
    
-	pncs = pncs_convert(pathname);
+	if (pncs_convert(&pncs, pathname))
+		return -1;
+
 	res = _wstati64(pncs.utf16, buf);
 	if (-1 == res)
 		errno = mingw_last_error();
 
-	pncs_release(&pncs);
 	return res;
 }
 
@@ -768,12 +789,13 @@ mingw_unlink(const char *pathname)
 	pncs_t pncs;
 	int res;
    
-	pncs = pncs_convert(pathname);
+	if (pncs_convert(&pncs, pathname))
+		return -1;
+
 	res = _wunlink(pncs.utf16);
 	if (-1 == res)
 		errno = mingw_last_error();
 
-	pncs_release(&pncs);
 	return res;
 }
 
@@ -814,12 +836,13 @@ mingw_open(const char *pathname, int flags, ...)
         va_end(args);
     }
 
-	pncs = pncs_convert(pathname);
+	if (pncs_convert(&pncs, pathname))
+		return -1;
+
 	res = _wopen(pncs.utf16, flags, mode);
 	if (-1 == res)
 		errno = mingw_last_error();
 
-	pncs_release(&pncs);
 	return res;
 }
 
@@ -829,12 +852,13 @@ mingw_opendir(const char *pathname)
 	_WDIR *res;
 	pncs_t pncs;
 
-	pncs = pncs_convert(pathname);
+	if (pncs_convert(&pncs, pathname))
+		return NULL;
+
 	res = _wopendir(pncs.utf16);
 	if (NULL == res)
 		errno = mingw_last_error();
 
-	pncs_release(&pncs);
 	return res;
 }
 
@@ -1559,11 +1583,14 @@ mingw_rename(const char *oldpathname, const char *newpathname)
 	pncs_t old, new;
 	int res;
 
-	old = pncs_convert(oldpathname);
-	new = pncs_convert(newpathname);
+	if (pncs_convert(&old, oldpathname))
+		return -1;
+
+	if (pncs_convert(&new, newpathname))
+		return -1;
 
 	/*
-	 * XXX: Try to rename a file with SetFileInformationByHandle
+	 * FIXME: Try to rename a file with SetFileInformationByHandle
 	 * and FILE_INFO_BY_HANDLE_CLASS
 	 */
 
@@ -1574,43 +1601,55 @@ mingw_rename(const char *oldpathname, const char *newpathname)
 		res = -1;
 	}
 
-	pncs_release(&new);
-	pncs_release(&old);
 	return res;
 }
 
 FILE *
 mingw_fopen(const char *pathname, const char *mode)
 {
-	pncs_t wpathname, wmode;
+	pncs_t wpathname;
+	wchar_t wmode[32];
 	FILE *res;
 
-	wpathname = pncs_convert(pathname);
-	wmode = pncs_convert(mode);
+	if (pncs_convert(&wpathname, pathname))
+		return NULL;
 
-	res = _wfopen(wpathname.utf16, wmode.utf16);
+	if (
+		!is_ascii_string(mode) ||
+		utf8_to_utf16(mode, &wmode, G_N_ELEMENTS(wmode)) >= G_N_ELEMENTS(wmode)
+	) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	res = _wfopen(wpathname.utf16, wmode);
 	if (NULL == res)
 		errno = mingw_last_error();
 
-	pncs_release(&wpathname);
-	pncs_release(&wmode);
 	return res;
 }
 
 FILE *
 mingw_freopen(const char *pathname, const char *mode, FILE *file)
 {
-	pncs_t wpathname, wmode;
+	pncs_t wpathname;
+	wchar_t wmode[32];
 	FILE *res;
 
-	wpathname = pncs_convert(pathname);
-	wmode = pncs_convert(mode);
+	if (pncs_convert(&wpathname, pathname))
+		return NULL;
 
-	res = _wfreopen(wpathname.utf16, wmode.utf16, file);
+	if (
+		!is_ascii_string(mode) ||
+		utf8_to_utf16(mode, &wmode, G_N_ELEMENTS(wmode)) >= G_N_ELEMENTS(wmode)
+	) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	res = _wfreopen(wpathname.utf16, wmode, file);
 	if (NULL == res)
 		errno = mingw_last_error();
-	pncs_release(&wpathname);
-	pncs_release(&wmode);
 	return res;
 }
 
@@ -1624,7 +1663,9 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 	DWORD TotalNumberOfClusters;
 	pncs_t pncs;
 
-	pncs = pncs_convert(pathname);
+	if (pncs_convert(&pncs, pathname))
+		return -1;
+
 	ret = GetDiskFreeSpaceW(pncs.utf16,
 		&SectorsPerCluster, &BytesPerSector,
 		&NumberOfFreeClusters,
@@ -1639,7 +1680,6 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 	buf->f_clusters = TotalNumberOfClusters;
 	buf->f_cavail = NumberOfFreeClusters;
 
-	pncs_release(&pncs);
 	return 0;
 }
 
@@ -2410,11 +2450,12 @@ mingw_get_file_id(const char *pathname, guint64 *id)
 	gboolean ok;
 	pncs_t pncs;
 
-	pncs = pncs_convert(pathname);
+	if (pncs_convert(&pncs, pathname))
+		return FALSE;
+
 	h = CreateFileW(pncs.utf16, 0,
 			FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
 			NULL, OPEN_EXISTING, 0, NULL);
-	pncs_release(&pncs);
 
 	if (INVALID_HANDLE_VALUE == h)
 		return FALSE;
