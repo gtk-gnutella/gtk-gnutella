@@ -97,6 +97,7 @@ guint32 utf16_le_decode_char_buffer(const char *s, size_t len, guint *retlen)
 	NON_NULL_PARAM((1,3));
 guint32 utf16_be_decode_char_buffer(const char *s, size_t len, guint *retlen)
 	NON_NULL_PARAM((1,3));
+size_t utf8_to_utf16(const char *in, guint16 *out, size_t size);
 guint16 *utf8_to_utf16_string(const char *in);
 char *utf16_to_utf8_string(const guint16 *in);
 

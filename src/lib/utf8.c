@@ -3117,7 +3117,7 @@ LAZY_CONVERT(locale_to_ui_string2, (const char *src), (src))
  * @returns		the length in characters of completely converted
  *				string.
  */
-static size_t
+size_t
 utf8_to_utf16(const char *in, guint16 *out, size_t size)
 {
 	const char *s = in;
