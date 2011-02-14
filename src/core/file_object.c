@@ -216,7 +216,6 @@ file_object_check(const struct file_object * const fo)
 	g_assert(FILE_OBJECT_MAGIC == fo->magic);
 	g_assert(fo->ref_count > 0);
 	g_assert(fo->ref_count < INT_MAX);
-	g_assert(fo->fd >= 0);
 	g_assert(fo->pathname);
 }
 
@@ -272,6 +271,7 @@ file_object_find(const char * const pathname, int accmode)
 
 	if (fo) {
 		file_object_check(fo);
+		g_assert(is_valid_fd(fo->fd));
 		g_assert(0 == strcmp(pathname, fo->pathname));
 		g_assert(accmode_is_valid(fo->fd, accmode));
 		g_assert(!fo->removed);
@@ -304,6 +304,7 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 	fo->pathname = atom_str_get(pathname);
 
 	file_object_check(fo);
+	g_assert(is_valid_fd(fo->fd));
 	gm_hash_table_insert_const(file_object_mode_get_table(fo->accmode),
 		fo->pathname, fo);
 
@@ -331,7 +332,6 @@ file_object_free(struct file_object * const fo)
 	g_return_if_fail(fo);
 	file_object_check(fo);
 	g_return_if_fail(1 == fo->ref_count);
-	g_return_if_fail(fo->fd >= 0);
 
 	if (fo->removed) {
 		const struct file_object *xfo;
@@ -368,6 +368,7 @@ file_object_open(const char * const pathname, int accmode)
 	fo = file_object_find(pathname, accmode);
 	if (fo) {
 		fo->ref_count++;
+		g_assert(is_valid_fd(fo->fd));
 	}
 	return fo;
 }
@@ -421,17 +422,42 @@ file_object_release(struct file_object **fo_ptr)
 }
 
 /**
- * Renames a file and transparently re-opens all the file objets pointing to
- * the old name, re-inserting the file objects with the new names, assuming
- * renaming was successful.
+ * Special operations that we can perform on file objects.
+ *
+ * These require special treatment because Windows frowns upon renaming
+ * and unlinking of opened files and will not, unlike UNIX, keep an already
+ * opened file accessible after it has been removed from the filesystem.
+ *
+ * Special operations provide uniform semantics on every platform:
+ *
+ * - FO_OP_UNLINK unlinks the file, denying further access to the file
+ *   even if it was already opened.
+ *
+ * - FO_OP_RENAME renames the file, making it transparent for users whith
+ *   current accesses on the file being renamed.
+ *
+ * - FO_OP_MOVED notifies that the file was moved around (accross file
+ *   systems possibly) and that current users of the old path should be
+ *   transparently remapped to the new file with the same access levels,
+ *   the old location being unlinked afterwards.
+ */
+enum file_object_spop {
+	FO_OP_UNLINK = 0,			/**< Unlink file, further access denied */
+	FO_OP_RENAME,				/**< Rename file (on same filesystem) */
+	FO_OP_MOVED,				/**< Moving notification */
+};
+
+/**
+ * Execute special operation.
  *
  * @param old_name	An absolute pathname, the old file name.
  * @param new_name	An absolute pathname, the new file name.
  *
  * @return TRUE if renaming was successful, FALSE otherwise, with errno set.
  */
-gboolean
-file_object_rename(const char * const old_name, const char * const new_name)
+static gboolean
+file_object_special_op(enum file_object_spop op,
+	const char * const old_name, const char * const new_name)
 {
 	const int accmodes[] = { O_RDONLY, O_WRONLY, O_RDWR };
 	unsigned i;
@@ -442,9 +468,11 @@ file_object_rename(const char * const old_name, const char * const new_name)
 	errno = EINVAL;		/* In case one of the soft assertions fails */
 
 	g_return_val_if_fail(old_name, FALSE);
-	g_return_val_if_fail(new_name, FALSE);
 	g_return_val_if_fail(is_absolute_path(old_name), FALSE);
-	g_return_val_if_fail(is_absolute_path(new_name), FALSE);
+	if (op != FO_OP_UNLINK) {
+		g_return_val_if_fail(new_name, FALSE);
+		g_return_val_if_fail(is_absolute_path(new_name), FALSE);
+	}
 
 	for (i = 0; i < G_N_ELEMENTS(accmodes); i++) {
 		struct file_object *fo;
@@ -458,10 +486,13 @@ file_object_rename(const char * const old_name, const char * const new_name)
 	}
 
 	/*
-	 * On Windows, close all the files prior renaming.
+	 * On Windows, close all the files prior renaming / unlinking.
+	 *
+	 * On UNIX, only close all the files on unlink and moving.  There is
+	 * no need to do anything for a rename() operation.
 	 */
 
-	if (is_running_on_mingw()) {
+	if (op != FO_OP_RENAME || is_running_on_mingw()) {
 		GSList *sl;
 
 		GM_SLIST_FOREACH(objects, sl) {
@@ -472,21 +503,30 @@ file_object_rename(const char * const old_name, const char * const new_name)
 	}
 
 	/*
-	 * Rename the file.
+	 * Perform the operation.
 	 */
 
-	ok = rename(old_name, new_name) != -1;
+	switch (op) {
+	case FO_OP_UNLINK:
+	case FO_OP_MOVED:
+		ok = unlink(old_name) != -1;
+		break;
+	case FO_OP_RENAME:
+		ok = rename(old_name, new_name) != -1;
+		break;
+	}
 
-	if (!ok)
+	if (!ok) {
 		saved_errno = errno;
+		goto reopen;
+	}
 
-	/*
-	 * If we successfully renamed the file, re-index the file objects with
-	 * their new name.
-	 */
-
-	if (ok) {
+	if (op != FO_OP_UNLINK) {
 		GSList *sl;
+
+		/*
+		 * Re-index the file objects with their new name.
+		 */
 
 		GM_SLIST_FOREACH(objects, sl) {
 			struct file_object *fo = sl->data;
@@ -497,13 +537,38 @@ file_object_rename(const char * const old_name, const char * const new_name)
 			gm_hash_table_insert_const(file_object_mode_get_table(fo->accmode),
 				fo->pathname, fo);
 		}
+	} else {
+		GSList *sl;
+
+		/*
+		 * Revoke the file objects on successful unlinking.
+		 *
+		 * This will prevent further file_object_open() pointing to the (now
+		 * removed) path from returning an existing file object.
+		 */
+
+		GM_SLIST_FOREACH(objects, sl) {
+			struct file_object *fo = sl->data;
+
+			file_object_remove(fo);
+		}
+
+		goto done;		/* No re-opening required with unlink */
 	}
+
+	/* FALL THROUGH */
+
+reopen:
 
 	/*
 	 * On Windows, reopen all the files.
+	 *
+	 * On UNIX, reopen the files after a move operation.  There is nothing
+	 * to be done on a rename() since we did not close the files before the
+	 * operation and the kernel will do the right thing.
 	 */
 
-	if (is_running_on_mingw()) {
+	if (FO_OP_MOVED == op || is_running_on_mingw()) {
 		GSList *sl;
 
 		GM_SLIST_FOREACH(objects, sl) {
@@ -513,12 +578,47 @@ file_object_rename(const char * const old_name, const char * const new_name)
 		}
 	}
 
+	/* FALL THROUGH */
+
+done:
+
 	gm_slist_free_null(&objects);
 
 	if (!ok)
 		errno = saved_errno;
 
 	return ok;
+}
+
+/**
+ * Renames a file and transparently re-opens all the file objets pointing to
+ * the old name, re-inserting the file objects with the new names, assuming
+ * renaming was successful.
+ *
+ * @param old_name	An absolute pathname, the old file name.
+ * @param new_name	An absolute pathname, the new file name.
+ *
+ * @return TRUE if renaming was successful, FALSE otherwise, with errno set.
+ */
+gboolean
+file_object_rename(const char * const old_name, const char * const new_name)
+{
+	return file_object_special_op(FO_OP_RENAME, old_name, new_name);
+}
+
+/**
+ * Notification that a file was successfully copied.  Access by file objects
+ * to the old path are transferred to the new one and the old file is unlinked.
+ *
+ * @param old_name	An absolute pathname, the old file name.
+ * @param new_name	An absolute pathname, the new file name.
+ *
+ * @return TRUE if renaming was successful, FALSE otherwise, with errno set.
+ */
+gboolean
+file_object_moved(const char * const old_name, const char * const new_name)
+{
+	return file_object_special_op(FO_OP_MOVED, old_name, new_name);
 }
 
 /**
@@ -531,74 +631,14 @@ file_object_rename(const char * const old_name, const char * const new_name)
 gboolean
 file_object_unlink(const char * const path)
 {
-	const int accmodes[] = { O_RDONLY, O_WRONLY, O_RDWR };
-	unsigned i;
-	GSList *objects = NULL;
-	gboolean ok = TRUE;
-	int saved_errno = 0;
+	return file_object_special_op(FO_OP_UNLINK, path, NULL);
+}
 
-	errno = EINVAL;		/* In case one of the soft assertions fails */
-
-	g_return_val_if_fail(path, FALSE);
-	g_return_val_if_fail(is_absolute_path(path), FALSE);
-
-	for (i = 0; i < G_N_ELEMENTS(accmodes); i++) {
-		struct file_object *fo;
-
-		fo = file_object_find(path, accmodes[i]);
-		if (fo != NULL) {
-			if (NULL == g_slist_find(objects, fo)) {
-				objects = g_slist_prepend(objects, fo);
-			}
-		}
-	}
-
-	/*
-	 * On Windows, close all the files prior unlinking.
-	 */
-
-	if (is_running_on_mingw()) {
-		GSList *sl;
-
-		GM_SLIST_FOREACH(objects, sl) {
-			struct file_object *fo = sl->data;
-
-			fd_forget_and_close(&fo->fd);
-		}
-	}
-
-	/*
-	 * Unlink the file.
-	 */
-
-	ok = unlink(path) != -1;
-
-	if (!ok)
-		saved_errno = errno;
-
-	/*
-	 * If we successfully unliked the file, revoke the file objects.
-	 *
-	 * This will prevent further file_object_open() pointing to the (now
-	 * removed) path from returning an existing file object.
-	 */
-
-	if (ok) {
-		GSList *sl;
-
-		GM_SLIST_FOREACH(objects, sl) {
-			struct file_object *fo = sl->data;
-
-			file_object_remove(fo);
-		}
-	}
-
-	g_slist_free(objects);
-
-	if (!ok)
-		errno = saved_errno;
-
-	return ok;
+static ssize_t
+file_object_ebadf(void)
+{
+	errno = EBADF;
+	return (ssize_t) -1;
 }
 
 /**
@@ -617,6 +657,10 @@ file_object_pwrite(const struct file_object * const fo,
 	const void * const data, const size_t size, const filesize_t offset)
 {
 	file_object_check(fo);
+
+	if (!is_valid_fd(fo->fd))
+		return file_object_ebadf();
+
 	return compat_pwrite(fo->fd, data, size, offset);
 }
 
@@ -638,6 +682,9 @@ file_object_pwritev(const struct file_object * const fo,
 	file_object_check(fo);
 	g_assert(iov);
 	g_assert(iov_cnt > 0);
+	
+	if (!is_valid_fd(fo->fd))
+		return file_object_ebadf();
 
 	return compat_pwritev(fo->fd, iov, iov_cnt, offset);
 }
@@ -658,6 +705,10 @@ file_object_pread(const struct file_object * const fo,
 	void * const data, const size_t size, const filesize_t offset)
 {
 	file_object_check(fo);
+
+	if (!is_valid_fd(fo->fd))
+		return file_object_ebadf();
+
 	return compat_pread(fo->fd, data, size, offset);
 }
 
@@ -680,6 +731,9 @@ file_object_preadv(const struct file_object * const fo,
 	g_assert(iov);
 	g_assert(iov_cnt > 0);
 
+	if (!is_valid_fd(fo->fd))
+		return file_object_ebadf();
+
 	return compat_preadv(fo->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT), offset);
 }
 
@@ -692,6 +746,8 @@ int
 file_object_fstat(const struct file_object * const fo, filestat_t *buf)
 {
 	file_object_check(fo);
+	g_assert(is_valid_fd(fo->fd));
+
 	return fstat(fo->fd, buf);
 }
 

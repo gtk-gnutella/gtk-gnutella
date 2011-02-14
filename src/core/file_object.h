@@ -49,6 +49,7 @@ const char *file_object_get_pathname(const struct file_object *fo);
 void file_object_release(struct file_object **fo_ptr);
 gboolean file_object_rename(const char * const o, const char * const n);
 gboolean file_object_unlink(const char * const path);
+gboolean file_object_moved(const char * const o, const char * const n);
 int file_object_fstat(const struct file_object * const fo, filestat_t *b);
 
 #endif /* _core_file_object_h_ */

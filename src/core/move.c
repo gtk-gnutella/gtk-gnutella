@@ -321,9 +321,10 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 			goto error;
 		}
 
-		if (!file_object_unlink(download_pathname(md->d)))
+		if (!file_object_moved(download_pathname(md->d), md->target)) {
 			g_warning("cannot unlink \"%s\": %s",
 				download_basename(md->d), g_strerror(errno));
+		}
 	} else {
 		if (md->target != NULL && -1 == unlink(md->target))
 			g_warning("cannot unlink \"%s\": %s",
