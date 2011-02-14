@@ -259,12 +259,9 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 			return -1;
 		}
 
-		g_assert(plen >= 2);
-
+		clamp_strncpy(pathname_buf, sizeof pathname_buf, pathname, plen);
 		pathname_buf[0] = pathname[1]; /* Replace with correct drive letter */
 		pathname_buf[1] = ':';
-		clamp_strncpy(&pathname_buf[2], sizeof pathname_buf - 2,
-			&pathname[2], plen - 2);
 		pathname = pathname_buf;
 	}
 
