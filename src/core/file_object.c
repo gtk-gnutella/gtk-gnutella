@@ -441,11 +441,27 @@ file_object_release(struct file_object **fo_ptr)
  *   transparently remapped to the new file with the same access levels,
  *   the old location being unlinked afterwards.
  */
-enum file_object_spop {
+enum file_object_op {
 	FO_OP_UNLINK = 0,			/**< Unlink file, further access denied */
 	FO_OP_RENAME,				/**< Rename file (on same filesystem) */
 	FO_OP_MOVED,				/**< Moving notification */
 };
+
+/**
+ * Convert special operation to string.
+ */
+static const char *
+file_object_op_to_string(enum file_object_op op)
+{
+	switch (op) {
+	case FO_OP_UNLINK:	return "unlink()";
+	case FO_OP_RENAME:	return "rename()";
+	case FO_OP_MOVED:	return "unlink()";	/* "unlink()" is NOT a typo */
+	}
+
+	g_assert_not_reached();
+	return NULL;
+}
 
 /**
  * Execute special operation.
@@ -453,10 +469,10 @@ enum file_object_spop {
  * @param old_name	An absolute pathname, the old file name.
  * @param new_name	An absolute pathname, the new file name.
  *
- * @return TRUE if renaming was successful, FALSE otherwise, with errno set.
+ * @return TRUE if operation was successful, FALSE otherwise, with errno set.
  */
 static gboolean
-file_object_special_op(enum file_object_spop op,
+file_object_special_op(enum file_object_op op,
 	const char * const old_name, const char * const new_name)
 {
 	const int accmodes[] = { O_RDONLY, O_WRONLY, O_RDWR };
@@ -473,6 +489,10 @@ file_object_special_op(enum file_object_spop op,
 		g_return_val_if_fail(new_name, FALSE);
 		g_return_val_if_fail(is_absolute_path(new_name), FALSE);
 	}
+
+	/*
+	 * Identify all the file objects currently active for the old name.
+	 */
 
 	for (i = 0; i < G_N_ELEMENTS(accmodes); i++) {
 		struct file_object *fo;
@@ -545,6 +565,8 @@ file_object_special_op(enum file_object_spop op,
 		 *
 		 * This will prevent further file_object_open() pointing to the (now
 		 * removed) path from returning an existing file object.
+		 * It will also invalidate all current file objects: further read/write
+		 * attempts on these will return EBADF.
 		 */
 
 		GM_SLIST_FOREACH(objects, sl) {
@@ -575,6 +597,14 @@ reopen:
 			struct file_object *fo = sl->data;
 
 			fo->fd = file_absolute_open(fo->pathname, fo->accmode, 0);
+
+			if (!is_valid_fd(fo->fd)) {
+				g_warning("cannot reopen \"%s\" mode 0%o "
+					"after %s %s of \"%s\": %s",
+					fo->pathname, fo->accmode,
+					ok ? "successful" : "failed", file_object_op_to_string(op),
+					old_name, g_strerror(errno));
+			}
 		}
 	}
 
