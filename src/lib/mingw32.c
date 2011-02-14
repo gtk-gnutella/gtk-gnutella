@@ -252,12 +252,19 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 		is_ascii_alpha(pathname[1]) &&
 		(is_dir_separator(pathname[2]) || '\0' == pathname[2])
 	) {
-		if (sizeof pathname_buf <= strlen(pathname)) {
+		size_t plen = strlen(pathname);
+
+		if (sizeof pathname_buf <= plen) {
 			errno = ENAMETOOLONG;
 			return -1;
 		}
+
+		g_assert(plen >= 2);
+
 		pathname_buf[0] = pathname[1]; /* Replace with correct drive letter */
 		pathname_buf[1] = ':';
+		clamp_strncpy(&pathname_buf[2], sizeof pathname_buf - 2,
+			&pathname[2], plen - 2);
 		pathname = pathname_buf;
 	}
 
@@ -273,7 +280,7 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 		}
 	} else {
 		pncs->utf16 = locale_to_wchar(pathname,
-							&pncs->buf, G_N_ELEMENTS(pncs->buf));
+						pncs->buf, G_N_ELEMENTS(pncs->buf));
 	}
 
 	return NULL != pncs->utf16 ? 0 : -1;
@@ -1616,7 +1623,7 @@ mingw_fopen(const char *pathname, const char *mode)
 
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(mode, &wmode, G_N_ELEMENTS(wmode)) >= G_N_ELEMENTS(wmode)
+		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >= G_N_ELEMENTS(wmode)
 	) {
 		errno = EINVAL;
 		return NULL;
@@ -1641,7 +1648,7 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(mode, &wmode, G_N_ELEMENTS(wmode)) >= G_N_ELEMENTS(wmode)
+		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >= G_N_ELEMENTS(wmode)
 	) {
 		errno = EINVAL;
 		return NULL;
