@@ -84,7 +84,7 @@ RCSID("$Id$")
 
 #include "override.h"			/* Must be the last header included */
 
-#if 1
+#if 0
 #define MINGW_SYSCALL_DEBUG		/**< Trace all Windows API call errors */
 #endif
 
@@ -300,17 +300,19 @@ static int
 mingw_wsa_last_error(void)
 {
 	int error = WSAGetLastError();
+	int result = error;
 
 	switch (error) {
-	case WSAEWOULDBLOCK:
-		return EAGAIN;
-	case WSAEINTR:
-		return EINTR;
-	default:
-		return error;
+	case WSAEWOULDBLOCK:	result = EAGAIN; break;
+	case WSAEINTR:			result = EINTR; break;
 	}
 
-	g_assert_not_reached();
+	if (mingw_syscall_debug()) {
+		g_debug("%s() failed: %s (%d)", stacktrace_caller_name(1),
+			symbolic_errno(result), error);
+	}
+
+	return result;
 }
 
 /**
