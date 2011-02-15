@@ -58,7 +58,7 @@ assertion_message(const assertion_data * const data, int fatal)
 	crash_time(time_buf, sizeof time_buf);
 
 	print_str(time_buf);
-	print_str(fatal ? " FATAL: " : " WARNING: ");
+	print_str(fatal ? " (FATAL): " : " (WARNING): ");
 	if (data->expr) {
 		print_str("Assertion failure in ");
 	} else {
