@@ -28,7 +28,7 @@
  * @ingroup lib
  * @file
  *
- * Virtual memory management.
+ * Virtual Memory Management (VMM).
  *
  * This is the lowest-level memory allocator, dealing with memory regions
  * at the granularity of a memory page.
@@ -37,6 +37,46 @@
  * other memory allocators such as walloc(), a wrapping layer over zalloc(),
  * or halloc() when tracking the size of the allocated area is impractical
  * or just impossible.
+ *
+ * The VMM layer maintains a map of the virtual address space in order to
+ * reduce memory fragmentation: we're making every attempt to avoid creating
+ * fragments, which would be harmful in a 32-bit virtual address space as it
+ * would end-up preventing the creation of large chunks of virtual memory.
+ *
+ * At the same time, in order to avoid exercising the kernel virtual memory
+ * management code too often, we're maintaining a cache of small pages,
+ * possibly coalescing them into bigger areas before releasing them or recycling
+ * them because the process needs to allocate more memory.  Coalesced areas
+ * can be split to fulfill smaller allocations, if necessary.
+ *
+ * Because we're not the kernel, we cannot get an accurate vision on the
+ * usage of the virtual memory space.  Sometimes allocation at a given place
+ * will fail, because for instance the kernel mapped a shared library there.
+ * Such spots are marked as "foreign" memory zones, i.e. areas of the memory
+ * that we did not allocate.
+ *
+ * The usage of UNIX mmap() and munmap() system calls should be avoided in
+ * the application, preferring the wrappers vmm_mmap() and vmm_munmap() because
+ * this lets us "see" the memory-mapped zoned as "foreign" zones, without
+ * having to discover them: since these zones are transient, most of the time,
+ * it would cause a permanent waste of the memory virtual space: a region is
+ * marked "foreign" once and is never forgotten, unless it was created via
+ * vmm_mmap() and is now released through vmm_munmap().
+ *
+ * Virtual memory is allocated through vmm_alloc() or vmm_alloc0() and is
+ * released through vmm_free().  The application should always strive to
+ * give back memory through vmm_free() as soon as it no longer needs it.
+ * It must carefully give back as much as was allocated though, so it must
+ * keep track of the size of the allocated zone.  Because we're tracking
+ * the allocated areas in memory, assertions can detect blatant misuses, but
+ * cannot trap all the errors.
+ *
+ * When compiled with TRACK_VMM, a record of allocated virtual memory is kept
+ * to allow leak detection (block of page allocated and never freed) or bad
+ * freeing attempts (trying to free an address that was never allocated).
+ * The tracking code also supports general MALLOC_FRAMES and MALLOC_TIME
+ * compile options, to record allocation frames for an address and the time
+ * at which the allocation took place.
  *
  * @author Christian Biere
  * @date 2006
@@ -3541,7 +3581,7 @@ vmm_close(void)
 /***
  *** mmap() and munmap() wrappers: the application should not call these
  *** system calls directly but go through the wrappers so that the VMM layer
- *** can keep an accurate view of the process's virtul memory map.
+ *** can keep an accurate view of the process's virtual memory map.
  ***/
 
 /**
@@ -3781,9 +3821,8 @@ vmm_free_record_desc(const void *p, const struct page_track *pt)
 
 	if (NULL == xpt) {
 		if (vmm_debugging(0)) {
-			s_warning("VMM (%s:%d) attempt to free page at 0x%lx twice?",
+			s_carp("VMM (%s:%d) attempt to free page at 0x%lx twice?",
 				pt->file, pt->line, (unsigned long) p);
-			stacktrace_where_print(stderr);
 			if (0 == vmm_buffer.missed) {
 				s_error("VMM vmm_free() of unknown address 0x%lx",
 					(unsigned long) p);
@@ -3794,13 +3833,12 @@ vmm_free_record_desc(const void *p, const struct page_track *pt)
 
 	if (xpt->size != pt->size) {
 		if (vmm_debugging(0)) {
-			s_warning("VMM (%s:%d) freeing page at 0x%lx (%lu bytes) "
+			s_carp("VMM (%s:%d) freeing page at 0x%lx (%lu bytes) "
 				"from \"%s:%d\" with wrong size %lu [%lu missed event%s]",
 				pt->file, pt->line, (unsigned long) p,
 				(unsigned long) xpt->size, xpt->file, xpt->line,
 				(unsigned long) pt->size, (unsigned long) vmm_buffer.missed,
 				1 == vmm_buffer.missed ? "" : "s");
-			stacktrace_where_print(stderr);
 		}
 	}
 
