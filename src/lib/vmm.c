@@ -31,12 +31,12 @@
  * Virtual Memory Management (VMM).
  *
  * This is the lowest-level memory allocator, dealing with memory regions
- * at the granularity of a memory page.
+ * at the granularity of a memory page (usually 4 KiB).
  *
  * Although the application can use this layer directly, it should rely on
  * other memory allocators such as walloc(), a wrapping layer over zalloc(),
  * or halloc() when tracking the size of the allocated area is impractical
- * or just impossible.
+ * or just impossible.  These allocators are in turn built on top of VMM.
  *
  * The VMM layer maintains a map of the virtual address space in order to
  * reduce memory fragmentation: we're making every attempt to avoid creating
@@ -57,7 +57,7 @@
  *
  * The usage of UNIX mmap() and munmap() system calls should be avoided in
  * the application, preferring the wrappers vmm_mmap() and vmm_munmap() because
- * this lets us "see" the memory-mapped zoned as "foreign" zones, without
+ * this lets us "see" the memory-mapped zones as "foreign" zones, without
  * having to discover them: since these zones are transient, most of the time,
  * it would cause a permanent waste of the memory virtual space: a region is
  * marked "foreign" once and is never forgotten, unless it was created via
@@ -77,6 +77,12 @@
  * The tracking code also supports general MALLOC_FRAMES and MALLOC_TIME
  * compile options, to record allocation frames for an address and the time
  * at which the allocation took place.
+ *
+ * @attention
+ * The initialization of the various memory allocators in the application
+ * is tricky.  Although vmm_init() will necessarily be the first call made,
+ * other allocators may need to be initialized, and the initialization order
+ * is important.
  *
  * @author Christian Biere
  * @date 2006
