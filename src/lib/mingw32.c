@@ -500,6 +500,8 @@ mingw_sigraise(int signo)
 		print_str(signal_name(signo));		/* 1 */
 		print_str(" -- crashing.\n");		/* 2 */
 		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
 	} else {
 		(*mingw_sighandler[signo])(signo);
 	}
@@ -2666,6 +2668,8 @@ mingw_exception_log(int code, const void *pc)
 	print_str("\n");											/* 8 */
 
 	flush_err_str();
+	if (log_stdout_is_distinct())
+		flush_str(STDOUT_FILENO);
 }
 
 /**
@@ -2698,6 +2702,8 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 	print_str("\n");								/* 5 */
 
 	flush_err_str();
+	if (log_stdout_is_distinct())
+		flush_str(STDOUT_FILENO);
 }
 
 static volatile sig_atomic_t in_exception_handler;
@@ -2747,6 +2753,8 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 
 			print_str("Got stack overflow -- crashing.\n");
 			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
 		}
 		signo = SIGSEGV;
 		break;
@@ -2782,6 +2790,8 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 
 			print_str("Got fatal exception -- crashing.\n");
 			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
 		}
 		break;
 	default:
@@ -2795,6 +2805,8 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			print_str(s);								/* 1 */
 			print_str(" -- crashing.\n");				/* 2 */
 			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
 		}
 		break;
 	}
@@ -2819,6 +2831,8 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 						ei->ContextRecord, 0);
 
 		stacktrace_stack_safe_print(STDERR_FILENO, mingw_stack, count);
+		if (log_stdout_is_distinct())
+			stacktrace_stack_safe_print(STDOUT_FILENO, mingw_stack, count);
 	}
 
 	/*
