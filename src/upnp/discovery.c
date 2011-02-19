@@ -537,13 +537,17 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 	 *
 	 * We want to make sure that the UPnP architecture supported by the
 	 * device is compatible with ours.
+	 *
+	 * Some devices (e.g. the D-Link DI-520 wireless router) do not report
+	 * any Server header, so we assume they support UPnP/1.0 when it's missing.
 	 */
 
 	buf = header_get(header, "Server");
 	if (NULL == buf) {
-		g_warning("UPNP probe of \"%s\" failed: no Server: header",
-			ud->desc_url);
-		goto remove_device;
+		g_warning("UPNP probe reply for \"%s\" lacks Server header, "
+			"assuming UPnP 1.0", ud->desc_url);
+		ud->major = 1;
+		ud->minor = 0;
 	} else {
 		const char *p = strstr(buf, "UPnP/");
 		gboolean ok = FALSE;
@@ -570,8 +574,9 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 
 		if (!ok) {
 			g_warning("UPNP \"%s\" has unparseable UPnP architecture, "
-				"assuming %u.%u is supported", ud->desc_url,
-				UPNP_MAJOR, UPNP_MINOR);
+				"assuming 1.0 is supported", ud->desc_url);
+			ud->major = 1;
+			ud->minor = 0;
 		}
 	}
 
