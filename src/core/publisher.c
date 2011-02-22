@@ -79,6 +79,7 @@ RCSID("$Id$")
 #define PUBLISHER_CALLOUT	10000	/**< Heartbeat every 10 seconds */
 #define PUBLISH_SAFETY		(5*60)	/**< Safety before expiration: 5 min */
 #define PUBLISH_POPULAR		10800	/**< 3 hours of delay for popular files */
+#define PUBLISH_POPULAR_MAX	604800	/**< 1 week max delay for popular files */
 #define PUBLISH_BUSY		600		/**< Retry after 10 minutes */
 #define PUBLISH_DMESH_MAX	5		/**< File popularity by dmesh entry count */
 #define PUBLISH_PARTIAL_MAX	1		/**< Partial file popularity (dmesh) */
@@ -409,7 +410,25 @@ publisher_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 		accepted = publisher_is_acceptable(info);
 		break;
 	case PDHT_E_POPULAR:
-		delay = PUBLISH_POPULAR;
+		/*
+		 * Compute the suitable delay: the first time, we use PUBLISH_POPULAR,
+		 * and then we double each time until we reach PUBLISH_POPULAR_MAX.
+		 *
+		 * If we already tried to publish the entry, pe->last_delayed will
+		 * be non-zero.
+		 */
+		if (0 != pe->last_delayed) {
+			time_delta_t elapsed = delta_time(tm_time(), pe->last_delayed);
+			if (elapsed < PUBLISH_POPULAR) {
+				delay = PUBLISH_POPULAR;
+			} else if (elapsed >= PUBLISH_POPULAR_MAX / 2) {
+				delay = PUBLISH_POPULAR_MAX;
+			} else {
+				delay = elapsed * 2;
+			}
+		} else {
+			delay = PUBLISH_POPULAR;
+		}
 		break;
 	case PDHT_E_NOT_SHARED:
 	case PDHT_E_LOOKUP_EXPIRED:
