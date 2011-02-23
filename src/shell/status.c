@@ -161,6 +161,8 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			case DHT_BOOT_MAX_VALUE:
 				g_assert_not_reached();
 			}
+		} else {
+			dht = empty;
 		}
 
 		if (GNET_PROPERTY(is_firewalled) && GNET_PROPERTY(is_udp_firewalled)) {
