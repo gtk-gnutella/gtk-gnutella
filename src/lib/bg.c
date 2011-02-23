@@ -979,7 +979,7 @@ bg_sched_timer(void *unused_arg)
 {
 	struct bgtask * volatile bt;
 	volatile int remain = MAX_LIFE;
-	int target;
+	volatile int target;
 	volatile unsigned schedules = 0;
 	volatile int ticks;
 	bgret_t ret;
