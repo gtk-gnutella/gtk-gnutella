@@ -473,6 +473,7 @@ upload_no_more_early_stalling(watchdog_t *unused_wd, gpointer unused_obj)
 	 */
 
 	if (bws_ignore_stolen(BSCHED_BWS_OUT, FALSE)) {
+		gnet_prop_set_boolean_val(PROP_UPLOADS_BW_IGNORE_STOLEN, FALSE);
 		if (GNET_PROPERTY(upload_debug) && GNET_PROPERTY(bw_allow_stealing)) {
 			g_warning("UL re-enabled use of stolen bandwidth for HTTP out");
 		}
@@ -484,6 +485,7 @@ upload_no_more_early_stalling(watchdog_t *unused_wd, gpointer unused_obj)
 	 */
 
 	if (bws_uniform_allocation(BSCHED_BWS_OUT, FALSE)) {
+		gnet_prop_set_boolean_val(PROP_UPLOADS_BW_UNIFORM, FALSE);
 		if (GNET_PROPERTY(upload_debug)) {
 			g_warning("UL switched back to non-uniform HTTP ougoing bandwidth");
 		}
@@ -514,6 +516,7 @@ upload_no_more_stalling(watchdog_t *unused_wd, gpointer unused_obj)
 	 */
 
 	bws_allow_stealing(BSCHED_BWS_OUT, TRUE);
+	gnet_prop_set_boolean_val(PROP_UPLOADS_BW_NO_STEALING, FALSE);
 
 	if (GNET_PROPERTY(upload_debug) && GNET_PROPERTY(bw_allow_stealing)) {
 		g_warning("UL re-enabled stealing of unused HTTP outgoing bandwidth");
@@ -541,6 +544,7 @@ upload_early_stall(void)
 	 */
 
 	if (!bws_ignore_stolen(BSCHED_BWS_OUT, TRUE)) {
+		gnet_prop_set_boolean_val(PROP_UPLOADS_BW_IGNORE_STOLEN, TRUE);
 		if (GNET_PROPERTY(upload_debug) && GNET_PROPERTY(bw_allow_stealing)) {
 			g_warning("UL limiting HTTP outgoing bandwidth to %s/sec strictly",
 				short_size(bsched_bw_per_second(BSCHED_BWS_OUT), FALSE));
@@ -561,6 +565,7 @@ upload_early_stall(void)
 
 	if (!wd_wakeup(early_stall_wd)) {
 		if (!bws_uniform_allocation(BSCHED_BWS_OUT, TRUE)) {
+			gnet_prop_set_boolean_val(PROP_UPLOADS_BW_UNIFORM, TRUE);
 			if (GNET_PROPERTY(upload_debug)) {
 				g_warning("UL switching to uniform HTTP ougoing bandwidth");
 			}
@@ -600,6 +605,7 @@ upload_stall(void)
 	 */
 
 	if (bws_allow_stealing(BSCHED_BWS_OUT, FALSE)) {
+		gnet_prop_set_boolean_val(PROP_UPLOADS_BW_NO_STEALING, TRUE);
 		if (GNET_PROPERTY(upload_debug) && GNET_PROPERTY(bw_allow_stealing)) {
 			g_warning("UL disabled stealing of unused HTTP outgoing bandwidth");
 		}

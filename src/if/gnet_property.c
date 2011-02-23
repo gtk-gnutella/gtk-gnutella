@@ -935,6 +935,14 @@ guint32  gnet_property_variable_inputevt_debug     = 0;
 static const guint32  gnet_property_variable_inputevt_debug_default = 0;
 guint32  gnet_property_variable_bg_debug     = 0;
 static const guint32  gnet_property_variable_bg_debug_default = 0;
+gboolean gnet_property_variable_port_mapping_successful     = FALSE;
+static const gboolean gnet_property_variable_port_mapping_successful_default = FALSE;
+gboolean gnet_property_variable_uploads_bw_no_stealing     = FALSE;
+static const gboolean gnet_property_variable_uploads_bw_no_stealing_default = FALSE;
+gboolean gnet_property_variable_uploads_bw_ignore_stolen     = FALSE;
+static const gboolean gnet_property_variable_uploads_bw_ignore_stolen_default = FALSE;
+gboolean gnet_property_variable_uploads_bw_uniform     = FALSE;
+static const gboolean gnet_property_variable_uploads_bw_uniform_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -8526,6 +8534,74 @@ gnet_prop_init(void) {
     gnet_property->props[396].data.guint32.choices = NULL;
     gnet_property->props[396].data.guint32.max   = 20;
     gnet_property->props[396].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_PORT_MAPPING_SUCCESSFUL:
+     *
+     * General data:
+     */
+    gnet_property->props[397].name = "port_mapping_successful";
+    gnet_property->props[397].desc = _("Whether gtk-gnutella was able to configure port mappings.");
+    gnet_property->props[397].ev_changed = event_new("port_mapping_successful_changed");
+    gnet_property->props[397].save = FALSE;
+    gnet_property->props[397].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[397].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[397].data.boolean.def   = (void *) &gnet_property_variable_port_mapping_successful_default;
+    gnet_property->props[397].data.boolean.value = (void *) &gnet_property_variable_port_mapping_successful;
+
+
+    /*
+     * PROP_UPLOADS_BW_NO_STEALING:
+     *
+     * General data:
+     */
+    gnet_property->props[398].name = "uploads_bw_no_stealing";
+    gnet_property->props[398].desc = _("Whether gtk-gnutella disabled HTTP bandwidth stealing.");
+    gnet_property->props[398].ev_changed = event_new("uploads_bw_no_stealing_changed");
+    gnet_property->props[398].save = FALSE;
+    gnet_property->props[398].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[398].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[398].data.boolean.def   = (void *) &gnet_property_variable_uploads_bw_no_stealing_default;
+    gnet_property->props[398].data.boolean.value = (void *) &gnet_property_variable_uploads_bw_no_stealing;
+
+
+    /*
+     * PROP_UPLOADS_BW_IGNORE_STOLEN:
+     *
+     * General data:
+     */
+    gnet_property->props[399].name = "uploads_bw_ignore_stolen";
+    gnet_property->props[399].desc = _("Whether gtk-gnutella ignores HTTP stolen bandwidth.");
+    gnet_property->props[399].ev_changed = event_new("uploads_bw_ignore_stolen_changed");
+    gnet_property->props[399].save = FALSE;
+    gnet_property->props[399].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[399].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[399].data.boolean.def   = (void *) &gnet_property_variable_uploads_bw_ignore_stolen_default;
+    gnet_property->props[399].data.boolean.value = (void *) &gnet_property_variable_uploads_bw_ignore_stolen;
+
+
+    /*
+     * PROP_UPLOADS_BW_UNIFORM:
+     *
+     * General data:
+     */
+    gnet_property->props[400].name = "uploads_bw_uniform";
+    gnet_property->props[400].desc = _("Whether gtk-gnutella enforces uniform HTTP outgoing bandwidth.");
+    gnet_property->props[400].ev_changed = event_new("uploads_bw_uniform_changed");
+    gnet_property->props[400].save = FALSE;
+    gnet_property->props[400].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[400].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[400].data.boolean.def   = (void *) &gnet_property_variable_uploads_bw_uniform_default;
+    gnet_property->props[400].data.boolean.value = (void *) &gnet_property_variable_uploads_bw_uniform;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

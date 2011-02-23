@@ -235,18 +235,6 @@ on_button_search_stats_reset_clicked(GtkButton *unused_button,
 static GtkWidget *directory_chooser;
 
 static gboolean
-on_directory_chooser_destroy_event(GtkWidget *unused_widget,
-	GdkEvent *unused_event, void *unused_udata)
-{
-	(void) unused_widget;
-	(void) unused_event;
-	(void) unused_udata;
-
-	directory_chooser = NULL;
-	return TRUE;
-}
-
-static gboolean
 on_directory_chooser_delete_event(GtkWidget *widget,
 	GdkEvent *unused_event, void *unused_udata)
 {
@@ -266,6 +254,18 @@ enum dir_choice {
 	DIR_CHOICE_INCOMPLETE,
 	DIR_CHOICE_CORRUPT
 };
+
+static gboolean
+on_directory_chooser_destroy_event(GtkWidget *unused_widget,
+	GdkEvent *unused_event, void *unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+
+	directory_chooser = NULL;
+	return TRUE;
+}
 
 static void
 directory_chooser_handle_result(enum dir_choice dir_choice,
@@ -409,7 +409,8 @@ button_fs_save_path_clicked(GtkButton *unused_button, gpointer user_data)
 	(void) unused_button;
 
 	if (user_data) {
-        const char *name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(directory_chooser));
+        const char *name = gtk_file_selection_get_filename(
+			GTK_FILE_SELECTION(directory_chooser));
 
 		if (is_directory(name)) {
             gnet_prop_set_string(PROP_SAVE_FILE_PATH, name);
@@ -455,7 +456,8 @@ button_fs_move_path_clicked(GtkButton *unused_button, gpointer user_data)
 	(void) unused_button;
 
 	if (user_data) {
-		const char *name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(directory_chooser));
+		const char *name = gtk_file_selection_get_filename(
+			GTK_FILE_SELECTION(directory_chooser));
 
 		if (is_directory(name)) {
             gnet_prop_set_string(PROP_MOVE_FILE_PATH, name);
@@ -503,7 +505,8 @@ button_fs_bad_path_clicked(GtkButton *unused_button, gpointer user_data)
 	(void) unused_button;
 
 	if (user_data) {
-		const char *name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(directory_chooser));
+		const char *name = gtk_file_selection_get_filename(
+			GTK_FILE_SELECTION(directory_chooser));
 
 		if (is_directory(name)) {
             gnet_prop_set_string(PROP_BAD_FILE_PATH, name);
@@ -547,7 +550,8 @@ button_fs_add_dir_clicked(GtkButton *unused_button, gpointer user_data)
 	(void) unused_button;
 
 	if (user_data) {
-        const char *name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(directory_chooser));
+        const char *name = gtk_file_selection_get_filename(
+			GTK_FILE_SELECTION(directory_chooser));
 
 		if (is_directory(name)) {
 			guc_shared_dir_add(name);

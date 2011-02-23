@@ -799,6 +799,33 @@ upnp_port_mapping_required(void)
 	return GNET_PROPERTY(port_mapping_required);
 }
 
+static void
+upnp_count_mapping_kv(void *key, void *u_value, void *data)
+{
+	struct upnp_mapping *um = key;
+	unsigned *count = data;
+
+	(void) u_value;
+
+	if (um->published)
+		(*count)++;
+}
+
+/**
+ * Returns amount of published mappings.
+ */
+static unsigned
+upnp_published_mappings(void)
+{
+	unsigned count;
+
+	g_assert(upnp_mappings != NULL);
+
+	count = 0;
+	g_hash_table_foreach(upnp_mappings, upnp_count_mapping_kv, &count);
+	return count;
+}
+
 /**
  * Re-issue a discovery if neeeded.
  */
@@ -913,8 +940,22 @@ no_natpmp:
 		igd.monitor = upnp_ctrl_GetExternalIPAddress(usd,
 			upnp_monitor_igd_callback, NULL);
 	}
-	
+
 done:
+	/*
+	 * Make sure all mappings are still correctly published.
+	 */
+
+	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL,
+		g_hash_table_size(upnp_mappings) == upnp_published_mappings());
+
+	/*
+	 * Publish mappings if needed.
+	 */
+
+	if (!GNET_PROPERTY(port_mapping_successful) && upnp_port_mapping_required())
+		upnp_map_publish_all();
+
 	return TRUE;		/* Keep calling */
 }
 
@@ -964,6 +1005,9 @@ upnp_map_publish_reply(int code, void *value, size_t size, void *arg)
 			cq_resched(um->install_ev, UPNP_CHECK_DELAY_MS);
 		}
 	}
+
+	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL,
+		g_hash_table_size(upnp_mappings) == upnp_published_mappings());
 }
 
 /**
@@ -996,6 +1040,9 @@ upnp_map_natpmp_publish_reply(int code,
 		um->lease_time = UPNP_UNDEFINED_LEASE;
 		cq_resched(um->install_ev, UPNP_CHECK_DELAY_MS);
 	}
+
+	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL,
+		g_hash_table_size(upnp_mappings) == upnp_published_mappings());
 }
 
 /**
@@ -1042,6 +1089,7 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 	}
 
 	um->install_ev = delay ? cq_main_insert(delay, upnp_map_publish, um) : NULL;
+	um->published = FALSE;
 
 	/*
 	 * When UPnP support is disabled, we record port mappings internally
@@ -1081,7 +1129,7 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 	 * Prefer NAT-PMP if available since the protocol is more efficient.
 	 */
 
-	if (gw.gateway != NULL) {
+	if (gw.gateway != NULL && GNET_PROPERTY(enable_natpmp)) {
 		if (UPNP_UNDEFINED_LEASE == um->lease_time)
 			um->lease_time = UPNP_MAPPING_LIFE;
 
@@ -1102,7 +1150,6 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 			upnp_map_publish_reply, um);
 
 		if (NULL == um->rpc) {
-			um->published = FALSE;
 			if (GNET_PROPERTY(upnp_debug)) {
 				g_warning(
 					"UPNP could not launch UPnP publishing for %s port %u",
@@ -1301,7 +1348,6 @@ static void
 upnp_remove_mapping_kv(void *key, void *u_value, void *data)
 {
 	struct upnp_mapping *um = key;
-	const upnp_service_t *usd;
 	enum upnp_method method = pointer_to_int(data);
 
 	(void) u_value;
@@ -1315,17 +1361,24 @@ upnp_remove_mapping_kv(void *key, void *u_value, void *data)
 			upnp_map_proto_to_string(um->proto), um->port);
 	}
 
-	usd = upnp_service_get_wan_connection(igd.dev->services);
-	upnp_ctrl_cancel_null(&um->rpc, TRUE);
+	if (UPNP_M_UPNP == um->method) {
+		const upnp_service_t *usd;
 
-	um->rpc = upnp_ctrl_DeletePortMapping(usd, um->proto, um->port,
-		upnp_map_mapping_deleted, um);
+		usd = upnp_service_get_wan_connection(igd.dev->services);
+		upnp_ctrl_cancel_null(&um->rpc, TRUE);
 
-	if (NULL == um->rpc) {
-		if (GNET_PROPERTY(upnp_debug)) {
-			g_warning("UPNP cannot remove UPnP mapping for %s port %u",
-				upnp_map_proto_to_string(um->proto), um->port);
+		um->rpc = upnp_ctrl_DeletePortMapping(usd, um->proto, um->port,
+			upnp_map_mapping_deleted, um);
+
+		if (NULL == um->rpc) {
+			if (GNET_PROPERTY(upnp_debug)) {
+				g_warning("UPNP cannot remove UPnP mapping for %s port %u",
+					upnp_map_proto_to_string(um->proto), um->port);
+			}
 		}
+	} else {
+		/* Advisory unmapping, no callback on completion or error */
+		natpmp_unmap(gw.gateway, um->proto, um->port);
 	}
 }
 
@@ -1340,6 +1393,14 @@ upnp_disabled(void)
 	if (igd.dev != NULL) {
 		g_hash_table_foreach(upnp_mappings, upnp_remove_mapping_kv,
 			int_to_pointer(UPNP_M_UPNP));
+		gnet_prop_set_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL, FALSE);
+	}
+
+	if (GNET_PROPERTY(enable_natpmp)) {
+		gnet_prop_set_boolean_val(PROP_PORT_MAPPING_REQUIRED, TRUE);
+		upnp_launch_discovery();
+	} else {
+		gnet_prop_set_boolean_val(PROP_PORT_MAPPING_POSSIBLE, FALSE);
 	}
 }
 
@@ -1354,6 +1415,14 @@ upnp_natpmp_disabled(void)
 	if (gw.gateway != NULL) {
 		g_hash_table_foreach(upnp_mappings, upnp_remove_mapping_kv,
 			int_to_pointer(UPNP_M_NATPMP));
+		gnet_prop_set_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL, FALSE);
+	}
+
+	if (GNET_PROPERTY(enable_upnp)) {
+		gnet_prop_set_boolean_val(PROP_PORT_MAPPING_REQUIRED, TRUE);
+		upnp_launch_discovery();
+	} else {
+		gnet_prop_set_boolean_val(PROP_PORT_MAPPING_POSSIBLE, FALSE);
 	}
 }
 
@@ -1392,9 +1461,6 @@ static void
 upnp_map_publish_all(void)
 {
 	g_assert(igd.dev != NULL || gw.gateway != NULL);
-
-	if (!GNET_PROPERTY(port_mapping_required))
-		return;
 
 	g_hash_table_foreach(upnp_mappings, upnp_publish_mapping_kv, NULL);
 }

@@ -446,6 +446,10 @@ extern const guint32  gnet_property_variable_tx_debug;
 extern const guint32  gnet_property_variable_rx_debug;
 extern const guint32  gnet_property_variable_inputevt_debug;
 extern const guint32  gnet_property_variable_bg_debug;
+extern const gboolean gnet_property_variable_port_mapping_successful;
+extern const gboolean gnet_property_variable_uploads_bw_no_stealing;
+extern const gboolean gnet_property_variable_uploads_bw_ignore_stolen;
+extern const gboolean gnet_property_variable_uploads_bw_uniform;
 
 
 prop_set_t *gnet_prop_init(void);

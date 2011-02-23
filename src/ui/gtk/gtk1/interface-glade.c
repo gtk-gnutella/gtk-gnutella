@@ -170,6 +170,8 @@ create_main_window (void)
   GtkWidget *entry_nodes_guid;
   GtkWidget *label151;
   GtkWidget *entry_nodes_ip;
+  GtkWidget *label8024;
+  GtkWidget *entry_nodes_kuid;
   GtkWidget *label7986;
   GtkWidget *vbox76;
   GtkWidget *hbox146;
@@ -559,6 +561,11 @@ create_main_window (void)
   GtkWidget *image_online;
   GtkWidget *eventbox5;
   GtkWidget *image_offline;
+  GtkWidget *hbox_port_mapping;
+  GtkWidget *eventbox_port_mapping_possible;
+  GtkWidget *image_port_mapping_possible;
+  GtkWidget *eventbox_port_mapping_successful;
+  GtkWidget *image_port_mapping_successful;
   GtkWidget *alignment25;
   GtkWidget *statusbar;
   GtkWidget *frame_status_images;
@@ -567,6 +574,13 @@ create_main_window (void)
   GtkWidget *image_chip;
   GtkWidget *eventbox_image_warning;
   GtkWidget *image_warning;
+  GtkWidget *hbox2110;
+  GtkWidget *eventbox_early_stall_1;
+  GtkWidget *image_early_stall_1;
+  GtkWidget *eventbox_early_stall_2;
+  GtkWidget *image_early_stall_2;
+  GtkWidget *eventbox_early_stall_3;
+  GtkWidget *image_early_stall_3;
   GtkWidget *eventbox_image_fd_shortage;
   GtkWidget *image_fd_shortage;
   GtkWidget *eventbox_image_fd_runout;
@@ -603,6 +617,18 @@ create_main_window (void)
   GtkWidget *image_legacy;
   GtkWidget *eventbox_image_ultra;
   GtkWidget *image_ultra;
+  GtkWidget *eventbox_image_dht_none;
+  GtkWidget *image_dht_none;
+  GtkWidget *eventbox_image_dht_seeded;
+  GtkWidget *image_dht_seeded;
+  GtkWidget *eventbox_image_dht_own_kuid;
+  GtkWidget *image_dht_own_kuid;
+  GtkWidget *eventbox_image_dht_completing;
+  GtkWidget *image_dht_completing;
+  GtkWidget *eventbox_image_dht_active;
+  GtkWidget *image_dht_active;
+  GtkWidget *eventbox_image_dht_passive;
+  GtkWidget *image_dht_passive;
   GtkWidget *frame_statusbar_uptime;
   GtkWidget *label_statusbar_uptime;
   GtkAccelGroup *accel_group;
@@ -1925,7 +1951,7 @@ create_main_window (void)
   gtk_widget_show (vbox34);
   gtk_container_add (GTK_CONTAINER (frame_expert_node_info), vbox34);
 
-  table6 = gtk_table_new (1, 4, FALSE);
+  table6 = gtk_table_new (1, 6, FALSE);
   gtk_widget_set_name (table6, "table6");
   gtk_widget_ref (table6);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table6", table6,
@@ -1965,7 +1991,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label151", label151,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label151);
-  gtk_table_attach (GTK_TABLE (table6), label151, 2, 3, 0, 1,
+  gtk_table_attach (GTK_TABLE (table6), label151, 4, 5, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label151), 0, 0.5);
@@ -1976,12 +2002,35 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_nodes_ip", entry_nodes_ip,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_nodes_ip);
-  gtk_table_attach (GTK_TABLE (table6), entry_nodes_ip, 3, 4, 0, 1,
+  gtk_table_attach (GTK_TABLE (table6), entry_nodes_ip, 5, 6, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (entry_nodes_ip, 72, -2);
   gtk_tooltips_set_tip (tooltips, entry_nodes_ip, _("The current IP address and listening port for this node. To change these go to File->Preferences->Network."), NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_nodes_ip), FALSE);
+
+  label8024 = gtk_label_new (_("KUID:"));
+  gtk_widget_set_name (label8024, "label8024");
+  gtk_widget_ref (label8024);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8024", label8024,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8024);
+  gtk_table_attach (GTK_TABLE (table6), label8024, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8024), 0, 0.5);
+
+  entry_nodes_kuid = gtk_entry_new ();
+  gtk_widget_set_name (entry_nodes_kuid, "entry_nodes_kuid");
+  gtk_widget_ref (entry_nodes_kuid);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_nodes_kuid", entry_nodes_kuid,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_nodes_kuid);
+  gtk_table_attach (GTK_TABLE (table6), entry_nodes_kuid, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (entry_nodes_kuid, 72, -2);
+  gtk_entry_set_editable (GTK_ENTRY (entry_nodes_kuid), FALSE);
 
   label7986 = gtk_label_new (_("Network"));
   gtk_widget_set_name (label7986, "label7986");
@@ -5276,6 +5325,50 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox5), image_offline);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_offline), FALSE);
 
+  hbox_port_mapping = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox_port_mapping, "hbox_port_mapping");
+  gtk_widget_ref (hbox_port_mapping);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_port_mapping", hbox_port_mapping,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox_port_mapping);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox_port_mapping, FALSE, TRUE, 0);
+
+  eventbox_port_mapping_possible = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_port_mapping_possible, "eventbox_port_mapping_possible");
+  gtk_widget_ref (eventbox_port_mapping_possible);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_port_mapping_possible", eventbox_port_mapping_possible,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_port_mapping_possible);
+  gtk_box_pack_start (GTK_BOX (hbox_port_mapping), eventbox_port_mapping_possible, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_port_mapping_possible, _("Port mapping possible through UPnP or NAT-PMP."), NULL);
+
+  image_port_mapping_possible = create_pixmap (main_window, "upnp-unusable.xpm");
+  gtk_widget_set_name (image_port_mapping_possible, "image_port_mapping_possible");
+  gtk_widget_ref (image_port_mapping_possible);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_port_mapping_possible", image_port_mapping_possible,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_port_mapping_possible);
+  gtk_container_add (GTK_CONTAINER (eventbox_port_mapping_possible), image_port_mapping_possible);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_port_mapping_possible), FALSE);
+
+  eventbox_port_mapping_successful = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_port_mapping_successful, "eventbox_port_mapping_successful");
+  gtk_widget_ref (eventbox_port_mapping_successful);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_port_mapping_successful", eventbox_port_mapping_successful,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_port_mapping_successful);
+  gtk_box_pack_start (GTK_BOX (hbox_port_mapping), eventbox_port_mapping_successful, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_port_mapping_successful, _("Port mapping configured through UPnP or NAT-PMP."), NULL);
+
+  image_port_mapping_successful = create_pixmap (main_window, "upnp.xpm");
+  gtk_widget_set_name (image_port_mapping_successful, "image_port_mapping_successful");
+  gtk_widget_ref (image_port_mapping_successful);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_port_mapping_successful", image_port_mapping_successful,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_port_mapping_successful);
+  gtk_container_add (GTK_CONTAINER (eventbox_port_mapping_successful), image_port_mapping_successful);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_port_mapping_successful), FALSE);
+
   alignment25 = gtk_alignment_new (0.5, 0.5, 1, 1);
   gtk_widget_set_name (alignment25, "alignment25");
   gtk_widget_ref (alignment25);
@@ -5343,6 +5436,68 @@ create_main_window (void)
   gtk_widget_show (image_warning);
   gtk_container_add (GTK_CONTAINER (eventbox_image_warning), image_warning);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_warning), FALSE);
+
+  hbox2110 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox2110, "hbox2110");
+  gtk_widget_ref (hbox2110);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox2110", hbox2110,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox2110);
+  gtk_box_pack_start (GTK_BOX (hbox199), hbox2110, TRUE, TRUE, 0);
+
+  eventbox_early_stall_1 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_early_stall_1, "eventbox_early_stall_1");
+  gtk_widget_ref (eventbox_early_stall_1);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_early_stall_1", eventbox_early_stall_1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_early_stall_1);
+  gtk_box_pack_start (GTK_BOX (hbox2110), eventbox_early_stall_1, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_1, _("Capping HTTP outgoing bandwidth."), NULL);
+
+  image_early_stall_1 = create_pixmap (main_window, "upload.xpm");
+  gtk_widget_set_name (image_early_stall_1, "image_early_stall_1");
+  gtk_widget_ref (image_early_stall_1);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_early_stall_1", image_early_stall_1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_early_stall_1);
+  gtk_container_add (GTK_CONTAINER (eventbox_early_stall_1), image_early_stall_1);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_early_stall_1), FALSE);
+
+  eventbox_early_stall_2 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_early_stall_2, "eventbox_early_stall_2");
+  gtk_widget_ref (eventbox_early_stall_2);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_early_stall_2", eventbox_early_stall_2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_early_stall_2);
+  gtk_box_pack_start (GTK_BOX (hbox2110), eventbox_early_stall_2, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_2, _("Splitting ougoing HTTP bandwidth evenly."), NULL);
+
+  image_early_stall_2 = create_pixmap (main_window, "upload-yellow.xpm");
+  gtk_widget_set_name (image_early_stall_2, "image_early_stall_2");
+  gtk_widget_ref (image_early_stall_2);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_early_stall_2", image_early_stall_2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_early_stall_2);
+  gtk_container_add (GTK_CONTAINER (eventbox_early_stall_2), image_early_stall_2);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_early_stall_2), FALSE);
+
+  eventbox_early_stall_3 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_early_stall_3, "eventbox_early_stall_3");
+  gtk_widget_ref (eventbox_early_stall_3);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_early_stall_3", eventbox_early_stall_3,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_early_stall_3);
+  gtk_box_pack_start (GTK_BOX (hbox2110), eventbox_early_stall_3, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_3, _("Disabled stealing of outgoing HTTP bandwidth."), NULL);
+
+  image_early_stall_3 = create_pixmap (main_window, "upload-red.xpm");
+  gtk_widget_set_name (image_early_stall_3, "image_early_stall_3");
+  gtk_widget_ref (image_early_stall_3);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_early_stall_3", image_early_stall_3,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_early_stall_3);
+  gtk_container_add (GTK_CONTAINER (eventbox_early_stall_3), image_early_stall_3);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_early_stall_3), FALSE);
 
   eventbox_image_fd_shortage = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
@@ -5658,6 +5813,114 @@ create_main_window (void)
   gtk_widget_show (image_ultra);
   gtk_container_add (GTK_CONTAINER (eventbox_image_ultra), image_ultra);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_ultra), FALSE);
+
+  eventbox_image_dht_none = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_none, "eventbox_image_dht_none");
+  gtk_widget_ref (eventbox_image_dht_none);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_dht_none", eventbox_image_dht_none,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_dht_none);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_dht_none, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_none, _("DHT inactive."), NULL);
+
+  image_dht_none = create_pixmap (main_window, "star-black.xpm");
+  gtk_widget_set_name (image_dht_none, "image_dht_none");
+  gtk_widget_ref (image_dht_none);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_dht_none", image_dht_none,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_dht_none);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_none), image_dht_none);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_dht_none), FALSE);
+
+  eventbox_image_dht_seeded = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_seeded, "eventbox_image_dht_seeded");
+  gtk_widget_ref (eventbox_image_dht_seeded);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_dht_seeded", eventbox_image_dht_seeded,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_dht_seeded);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_dht_seeded, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_seeded, _("DHT seeded."), NULL);
+
+  image_dht_seeded = create_pixmap (main_window, "star-violet.xpm");
+  gtk_widget_set_name (image_dht_seeded, "image_dht_seeded");
+  gtk_widget_ref (image_dht_seeded);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_dht_seeded", image_dht_seeded,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_dht_seeded);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_seeded), image_dht_seeded);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_dht_seeded), FALSE);
+
+  eventbox_image_dht_own_kuid = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_own_kuid, "eventbox_image_dht_own_kuid");
+  gtk_widget_ref (eventbox_image_dht_own_kuid);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_dht_own_kuid", eventbox_image_dht_own_kuid,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_dht_own_kuid);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_dht_own_kuid, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_own_kuid, _("DHT looking up own KUID."), NULL);
+
+  image_dht_own_kuid = create_pixmap (main_window, "star-blue.xpm");
+  gtk_widget_set_name (image_dht_own_kuid, "image_dht_own_kuid");
+  gtk_widget_ref (image_dht_own_kuid);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_dht_own_kuid", image_dht_own_kuid,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_dht_own_kuid);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_own_kuid), image_dht_own_kuid);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_dht_own_kuid), FALSE);
+
+  eventbox_image_dht_completing = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_completing, "eventbox_image_dht_completing");
+  gtk_widget_ref (eventbox_image_dht_completing);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_dht_completing", eventbox_image_dht_completing,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_dht_completing);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_dht_completing, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_completing, _("DHT bootstrapping."), NULL);
+
+  image_dht_completing = create_pixmap (main_window, "star-green.xpm");
+  gtk_widget_set_name (image_dht_completing, "image_dht_completing");
+  gtk_widget_ref (image_dht_completing);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_dht_completing", image_dht_completing,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_dht_completing);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_completing), image_dht_completing);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_dht_completing), FALSE);
+
+  eventbox_image_dht_active = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_active, "eventbox_image_dht_active");
+  gtk_widget_ref (eventbox_image_dht_active);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_dht_active", eventbox_image_dht_active,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_dht_active);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_dht_active, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_active, _("DHT up, active mode."), NULL);
+
+  image_dht_active = create_pixmap (main_window, "star-yellow.xpm");
+  gtk_widget_set_name (image_dht_active, "image_dht_active");
+  gtk_widget_ref (image_dht_active);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_dht_active", image_dht_active,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_dht_active);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_active), image_dht_active);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_dht_active), FALSE);
+
+  eventbox_image_dht_passive = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_passive, "eventbox_image_dht_passive");
+  gtk_widget_ref (eventbox_image_dht_passive);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_dht_passive", eventbox_image_dht_passive,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_dht_passive);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_dht_passive, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_passive, _("DHT up, passive mode."), NULL);
+
+  image_dht_passive = create_pixmap (main_window, "star-red.xpm");
+  gtk_widget_set_name (image_dht_passive, "image_dht_passive");
+  gtk_widget_ref (image_dht_passive);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_dht_passive", image_dht_passive,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_dht_passive);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_passive), image_dht_passive);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_dht_passive), FALSE);
 
   frame_statusbar_uptime = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_statusbar_uptime, "frame_statusbar_uptime");
@@ -9782,6 +10045,10 @@ create_dlg_prefs (void)
   GtkWidget *checkbutton_config_bind_ipv6;
   GtkWidget *entry_config_ipv6_trt_prefix;
   GtkWidget *checkbutton_config_ipv6_trt_enable;
+  GtkWidget *frame_expert_nw_port_mapping;
+  GtkWidget *table102;
+  GtkWidget *checkbutton_enable_natpmp;
+  GtkWidget *checkbutton_enable_upnp;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox100;
   GtkWidget *table53;
@@ -10090,14 +10357,22 @@ create_dlg_prefs (void)
   GtkWidget *table58;
   GtkObject *spinbutton_config_bws_glin_adj;
   GtkWidget *spinbutton_config_bws_glin;
-  GtkObject *spinbutton_config_bws_glout_adj;
-  GtkWidget *spinbutton_config_bws_glout;
   GtkWidget *label556;
-  GtkWidget *label557;
-  guint checkbutton_config_bws_glout_key;
-  GtkWidget *checkbutton_config_bws_glout;
   guint checkbutton_config_bws_glin_key;
   GtkWidget *checkbutton_config_bws_glin;
+  GtkWidget *label8018;
+  GtkWidget *viewport54;
+  GtkWidget *label_http_out_avail;
+  GtkWidget *label8019;
+  guint checkbutton_config_bws_glout_key;
+  GtkWidget *checkbutton_config_bws_glout;
+  GtkObject *spinbutton_config_bws_glout_adj;
+  GtkWidget *spinbutton_config_bws_glout;
+  GtkWidget *label557;
+  GtkWidget *label8021;
+  GtkWidget *label8022;
+  GtkWidget *viewport55;
+  GtkWidget *label_http_in_avail;
   GtkWidget *frame153;
   GtkWidget *vbox146;
   GtkWidget *table100;
@@ -10464,10 +10739,12 @@ create_dlg_prefs (void)
   GtkWidget *table57;
   GtkWidget *label466;
   GtkWidget *label468;
-  GtkWidget *label480;
   GtkWidget *entry_average_ip_uptime;
   GtkWidget *entry_average_servent_uptime;
+  GtkWidget *label480;
   GtkWidget *entry_sys_physmem;
+  GtkWidget *label8025;
+  GtkWidget *entry_average_servent_downtime;
   GtkWidget *label688;
   GtkWidget *dialog_action_area2;
   GtkWidget *hbox205;
@@ -10820,6 +11097,42 @@ create_dlg_prefs (void)
   gtk_widget_show (checkbutton_config_ipv6_trt_enable);
   gtk_table_attach (GTK_TABLE (table97), checkbutton_config_ipv6_trt_enable, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  frame_expert_nw_port_mapping = gtk_frame_new (_("Port Mapping"));
+  gtk_widget_set_name (frame_expert_nw_port_mapping, "frame_expert_nw_port_mapping");
+  gtk_widget_ref (frame_expert_nw_port_mapping);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame_expert_nw_port_mapping", frame_expert_nw_port_mapping,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame_expert_nw_port_mapping);
+  gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_nw_port_mapping, TRUE, TRUE, 0);
+
+  table102 = gtk_table_new (1, 2, FALSE);
+  gtk_widget_set_name (table102, "table102");
+  gtk_widget_ref (table102);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table102", table102,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table102);
+  gtk_container_add (GTK_CONTAINER (frame_expert_nw_port_mapping), table102);
+
+  checkbutton_enable_natpmp = gtk_check_button_new_with_label (_("Enable NAT-PMP"));
+  gtk_widget_set_name (checkbutton_enable_natpmp, "checkbutton_enable_natpmp");
+  gtk_widget_ref (checkbutton_enable_natpmp);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_enable_natpmp", checkbutton_enable_natpmp,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_enable_natpmp);
+  gtk_table_attach (GTK_TABLE (table102), checkbutton_enable_natpmp, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_enable_upnp = gtk_check_button_new_with_label (_("Enable UPnP"));
+  gtk_widget_set_name (checkbutton_enable_upnp, "checkbutton_enable_upnp");
+  gtk_widget_ref (checkbutton_enable_upnp);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_enable_upnp", checkbutton_enable_upnp,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_enable_upnp);
+  gtk_table_attach (GTK_TABLE (table102), checkbutton_enable_upnp, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   frame_proxy_settings = gtk_frame_new (_("Proxy settings"));
@@ -13344,7 +13657,7 @@ create_dlg_prefs (void)
   gtk_box_pack_start (GTK_BOX (hbox208), frame74, TRUE, TRUE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame74), GTK_SHADOW_OUT);
 
-  table58 = gtk_table_new (2, 3, FALSE);
+  table58 = gtk_table_new (4, 3, FALSE);
   gtk_widget_set_name (table58, "table58");
   gtk_widget_ref (table58);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table58", table58,
@@ -13368,19 +13681,6 @@ create_dlg_prefs (void)
   gtk_widget_set_usize (spinbutton_config_bws_glin, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glin), TRUE);
 
-  spinbutton_config_bws_glout_adj = gtk_adjustment_new (1, 0, 100, 1, 5, 10);
-  spinbutton_config_bws_glout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_glout_adj), 1, 2);
-  gtk_widget_set_name (spinbutton_config_bws_glout, "spinbutton_config_bws_glout");
-  gtk_widget_ref (spinbutton_config_bws_glout);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_bws_glout", spinbutton_config_bws_glout,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_config_bws_glout);
-  gtk_table_attach (GTK_TABLE (table58), spinbutton_config_bws_glout, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_usize (spinbutton_config_bws_glout, 64, -2);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glout), TRUE);
-
   label556 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label556, "label556");
   gtk_widget_ref (label556);
@@ -13391,31 +13691,6 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label556), 0, 0.5);
-
-  label557 = gtk_label_new (_("KiB/s"));
-  gtk_widget_set_name (label557, "label557");
-  gtk_widget_ref (label557);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label557", label557,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label557);
-  gtk_table_attach (GTK_TABLE (table58), label557, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label557), 0, 0.5);
-
-  checkbutton_config_bws_glout = gtk_check_button_new_with_label ("");
-  checkbutton_config_bws_glout_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_bws_glout)->child),
-                                   _("Outgoing traffic to lea_ves"));
-  gtk_widget_add_accelerator (checkbutton_config_bws_glout, "clicked", accel_group,
-                              checkbutton_config_bws_glout_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (checkbutton_config_bws_glout, "checkbutton_config_bws_glout");
-  gtk_widget_ref (checkbutton_config_bws_glout);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_bws_glout", checkbutton_config_bws_glout,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_bws_glout);
-  gtk_table_attach (GTK_TABLE (table58), checkbutton_config_bws_glout, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
 
   checkbutton_config_bws_glin = gtk_check_button_new_with_label ("");
   checkbutton_config_bws_glin_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_bws_glin)->child),
@@ -13430,6 +13705,128 @@ create_dlg_prefs (void)
   gtk_table_attach (GTK_TABLE (table58), checkbutton_config_bws_glin, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  label8018 = gtk_label_new (_("Available HTTP output bandwidth"));
+  gtk_widget_set_name (label8018, "label8018");
+  gtk_widget_ref (label8018);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8018", label8018,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8018);
+  gtk_table_attach (GTK_TABLE (table58), label8018, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8018), 0, 0.5);
+
+  viewport54 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport54, "viewport54");
+  gtk_widget_ref (viewport54);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "viewport54", viewport54,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (viewport54);
+  gtk_table_attach (GTK_TABLE (table58), viewport54, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label_http_out_avail = gtk_label_new (_("[place holder]"));
+  gtk_widget_set_name (label_http_out_avail, "label_http_out_avail");
+  gtk_widget_ref (label_http_out_avail);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label_http_out_avail", label_http_out_avail,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_http_out_avail);
+  gtk_container_add (GTK_CONTAINER (viewport54), label_http_out_avail);
+  gtk_misc_set_alignment (GTK_MISC (label_http_out_avail), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_http_out_avail), 5, 0);
+
+  label8019 = gtk_label_new (_("KiB/s"));
+  gtk_widget_set_name (label8019, "label8019");
+  gtk_widget_ref (label8019);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8019", label8019,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8019);
+  gtk_table_attach (GTK_TABLE (table58), label8019, 2, 3, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8019), 0, 0.5);
+
+  checkbutton_config_bws_glout = gtk_check_button_new_with_label ("");
+  checkbutton_config_bws_glout_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_bws_glout)->child),
+                                   _("Outgoing traffic to lea_ves"));
+  gtk_widget_add_accelerator (checkbutton_config_bws_glout, "clicked", accel_group,
+                              checkbutton_config_bws_glout_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (checkbutton_config_bws_glout, "checkbutton_config_bws_glout");
+  gtk_widget_ref (checkbutton_config_bws_glout);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_bws_glout", checkbutton_config_bws_glout,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_bws_glout);
+  gtk_table_attach (GTK_TABLE (table58), checkbutton_config_bws_glout, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_bws_glout_adj = gtk_adjustment_new (1, 0, 100, 1, 5, 10);
+  spinbutton_config_bws_glout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_glout_adj), 1, 2);
+  gtk_widget_set_name (spinbutton_config_bws_glout, "spinbutton_config_bws_glout");
+  gtk_widget_ref (spinbutton_config_bws_glout);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_bws_glout", spinbutton_config_bws_glout,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_bws_glout);
+  gtk_table_attach (GTK_TABLE (table58), spinbutton_config_bws_glout, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_config_bws_glout, 64, -2);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glout), TRUE);
+
+  label557 = gtk_label_new (_("KiB/s"));
+  gtk_widget_set_name (label557, "label557");
+  gtk_widget_ref (label557);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label557", label557,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label557);
+  gtk_table_attach (GTK_TABLE (table58), label557, 2, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label557), 0, 0.5);
+
+  label8021 = gtk_label_new (_("Available HTTP input bandwidth"));
+  gtk_widget_set_name (label8021, "label8021");
+  gtk_widget_ref (label8021);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8021", label8021,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8021);
+  gtk_table_attach (GTK_TABLE (table58), label8021, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8021), 0, 0.5);
+
+  label8022 = gtk_label_new (_("KiB/s"));
+  gtk_widget_set_name (label8022, "label8022");
+  gtk_widget_ref (label8022);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8022", label8022,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8022);
+  gtk_table_attach (GTK_TABLE (table58), label8022, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8022), 0, 0.5);
+
+  viewport55 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport55, "viewport55");
+  gtk_widget_ref (viewport55);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "viewport55", viewport55,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (viewport55);
+  gtk_table_attach (GTK_TABLE (table58), viewport55, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label_http_in_avail = gtk_label_new (_("[place holder]"));
+  gtk_widget_set_name (label_http_in_avail, "label_http_in_avail");
+  gtk_widget_ref (label_http_in_avail);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label_http_in_avail", label_http_in_avail,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_http_in_avail);
+  gtk_container_add (GTK_CONTAINER (viewport55), label_http_in_avail);
+  gtk_misc_set_alignment (GTK_MISC (label_http_in_avail), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_http_in_avail), 5, 0);
 
   frame153 = gtk_frame_new (_("Bandwidth limits for the Distributed Hash Table"));
   gtk_widget_set_name (frame153, "frame153");
@@ -16508,7 +16905,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame_expert_unmapped);
   gtk_box_pack_start (GTK_BOX (vbox75), frame_expert_unmapped, FALSE, TRUE, 0);
 
-  table57 = gtk_table_new (3, 2, FALSE);
+  table57 = gtk_table_new (4, 2, FALSE);
   gtk_widget_set_name (table57, "table57");
   gtk_widget_ref (table57);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table57", table57,
@@ -16541,17 +16938,6 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label468), 0, 0.5);
 
-  label480 = gtk_label_new (_("Available physical memory:"));
-  gtk_widget_set_name (label480, "label480");
-  gtk_widget_ref (label480);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label480", label480,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label480);
-  gtk_table_attach (GTK_TABLE (table57), label480, 0, 1, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label480), 0, 0.5);
-
   entry_average_ip_uptime = gtk_entry_new ();
   gtk_widget_set_name (entry_average_ip_uptime, "entry_average_ip_uptime");
   gtk_widget_ref (entry_average_ip_uptime);
@@ -16574,16 +16960,49 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_entry_set_editable (GTK_ENTRY (entry_average_servent_uptime), FALSE);
 
+  label480 = gtk_label_new (_("Available physical memory:"));
+  gtk_widget_set_name (label480, "label480");
+  gtk_widget_ref (label480);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label480", label480,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label480);
+  gtk_table_attach (GTK_TABLE (table57), label480, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label480), 0, 0.5);
+
   entry_sys_physmem = gtk_entry_new ();
   gtk_widget_set_name (entry_sys_physmem, "entry_sys_physmem");
   gtk_widget_ref (entry_sys_physmem);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_sys_physmem", entry_sys_physmem,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_sys_physmem);
-  gtk_table_attach (GTK_TABLE (table57), entry_sys_physmem, 1, 2, 2, 3,
+  gtk_table_attach (GTK_TABLE (table57), entry_sys_physmem, 1, 2, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_entry_set_editable (GTK_ENTRY (entry_sys_physmem), FALSE);
+
+  label8025 = gtk_label_new (_("Avg. downtime of this servent:"));
+  gtk_widget_set_name (label8025, "label8025");
+  gtk_widget_ref (label8025);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8025", label8025,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8025);
+  gtk_table_attach (GTK_TABLE (table57), label8025, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8025), 0, 0.5);
+
+  entry_average_servent_downtime = gtk_entry_new ();
+  gtk_widget_set_name (entry_average_servent_downtime, "entry_average_servent_downtime");
+  gtk_widget_ref (entry_average_servent_downtime);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_average_servent_downtime", entry_average_servent_downtime,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_average_servent_downtime);
+  gtk_table_attach (GTK_TABLE (table57), entry_average_servent_downtime, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_entry_set_editable (GTK_ENTRY (entry_average_servent_downtime), FALSE);
 
   label688 = gtk_label_new (_("Debugging"));
   gtk_widget_set_name (label688, "label688");

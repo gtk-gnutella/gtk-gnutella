@@ -1466,14 +1466,23 @@ create_main_window (void)
   GtkWidget *image_offline;
   GtkWidget *image_online;
   GtkWidget *statusbar;
-  GtkWidget *frame_statusbar_uptime;
-  GtkWidget *alignment102;
-  GtkWidget *label_statusbar_uptime;
+  GtkWidget *hbox_port_mapping;
+  GtkWidget *eventbox_port_mapping_possible;
+  GtkWidget *image_port_mapping_possible;
+  GtkWidget *eventbox_port_mapping_successful;
+  GtkWidget *image_port_mapping_successful;
   GtkWidget *hbox211;
   GtkWidget *eventbox_image_chip;
   GtkWidget *image_chip;
   GtkWidget *eventbox_image_warning;
   GtkWidget *image_warning;
+  GtkWidget *hbox9345;
+  GtkWidget *eventbox_early_stall_1;
+  GtkWidget *image_early_stall_1;
+  GtkWidget *eventbox_early_stall_2;
+  GtkWidget *image_early_stall_2;
+  GtkWidget *eventbox_early_stall_3;
+  GtkWidget *image_early_stall_3;
   GtkWidget *eventbox_image_fd_shortage;
   GtkWidget *image_fd_shortage;
   GtkWidget *eventbox_image_fd_runout;
@@ -1512,6 +1521,22 @@ create_main_window (void)
   GtkWidget *image_leaf;
   GtkWidget *eventbox_image_legacy;
   GtkWidget *image_legacy;
+  GtkWidget *hbox9344;
+  GtkWidget *eventbox_image_dht_none;
+  GtkWidget *image_dht_none;
+  GtkWidget *eventbox_image_dht_seeded;
+  GtkWidget *image_dht_seeded;
+  GtkWidget *eventbox_dht_own_kuid;
+  GtkWidget *image_dht_own_kuid;
+  GtkWidget *eventbox_image_dht_completing;
+  GtkWidget *image_dht_completing;
+  GtkWidget *eventbox_image_dht_active;
+  GtkWidget *image_dht_active;
+  GtkWidget *eventbox_image_dht_own_kuid;
+  GtkWidget *image_dht_passive;
+  GtkWidget *frame_statusbar_uptime;
+  GtkWidget *alignment102;
+  GtkWidget *label_statusbar_uptime;
   GtkWidget *statusbar1;
   GtkAccelGroup *accel_group;
   GtkTooltips *tooltips;
@@ -2183,20 +2208,32 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), statusbar, TRUE, TRUE, 0);
   gtk_statusbar_set_has_resize_grip (GTK_STATUSBAR (statusbar), FALSE);
 
-  frame_statusbar_uptime = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame_statusbar_uptime, "frame_statusbar_uptime");
-  gtk_widget_show (frame_statusbar_uptime);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame_statusbar_uptime, FALSE, TRUE, 0);
+  hbox_port_mapping = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox_port_mapping, "hbox_port_mapping");
+  gtk_widget_show (hbox_port_mapping);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox_port_mapping, FALSE, TRUE, 0);
 
-  alignment102 = gtk_alignment_new (0.5, 0.5, 1, 1);
-  gtk_widget_set_name (alignment102, "alignment102");
-  gtk_widget_show (alignment102);
-  gtk_container_add (GTK_CONTAINER (frame_statusbar_uptime), alignment102);
+  eventbox_port_mapping_possible = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_port_mapping_possible, "eventbox_port_mapping_possible");
+  gtk_widget_show (eventbox_port_mapping_possible);
+  gtk_box_pack_start (GTK_BOX (hbox_port_mapping), eventbox_port_mapping_possible, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_port_mapping_possible, _("Port mapping possible through UPnP or NAT-PMP."), NULL);
 
-  label_statusbar_uptime = gtk_label_new ("[uptime]");
-  gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
-  gtk_widget_show (label_statusbar_uptime);
-  gtk_container_add (GTK_CONTAINER (alignment102), label_statusbar_uptime);
+  image_port_mapping_possible = create_pixmap (main_window, "upnp-unusable.xpm");
+  gtk_widget_set_name (image_port_mapping_possible, "image_port_mapping_possible");
+  gtk_widget_show (image_port_mapping_possible);
+  gtk_container_add (GTK_CONTAINER (eventbox_port_mapping_possible), image_port_mapping_possible);
+
+  eventbox_port_mapping_successful = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_port_mapping_successful, "eventbox_port_mapping_successful");
+  gtk_widget_show (eventbox_port_mapping_successful);
+  gtk_box_pack_start (GTK_BOX (hbox_port_mapping), eventbox_port_mapping_successful, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_port_mapping_successful, _("Port mapping configured through UPnP or NAT-PMP."), NULL);
+
+  image_port_mapping_successful = create_pixmap (main_window, "upnp.xpm");
+  gtk_widget_set_name (image_port_mapping_successful, "image_port_mapping_successful");
+  gtk_widget_show (image_port_mapping_successful);
+  gtk_container_add (GTK_CONTAINER (eventbox_port_mapping_successful), image_port_mapping_successful);
 
   hbox211 = gtk_hbox_new (FALSE, 2);
   gtk_widget_set_name (hbox211, "hbox211");
@@ -2221,10 +2258,51 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_warning, TRUE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, eventbox_image_warning, _("Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths."), NULL);
 
-  image_warning = create_pixmap (main_window, "upload.xpm");
+  image_warning = create_pixmap (main_window, "warning.xpm");
   gtk_widget_set_name (image_warning, "image_warning");
   gtk_widget_show (image_warning);
   gtk_container_add (GTK_CONTAINER (eventbox_image_warning), image_warning);
+
+  hbox9345 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox9345, "hbox9345");
+  gtk_widget_show (hbox9345);
+  gtk_box_pack_start (GTK_BOX (hbox211), hbox9345, TRUE, TRUE, 0);
+
+  eventbox_early_stall_1 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_early_stall_1, "eventbox_early_stall_1");
+  gtk_widget_show (eventbox_early_stall_1);
+  gtk_box_pack_start (GTK_BOX (hbox9345), eventbox_early_stall_1, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_1, _("Capping HTTP outgoing bandwidth."), NULL);
+
+  image_early_stall_1 = create_pixmap (main_window, "upload.xpm");
+  gtk_widget_set_name (image_early_stall_1, "image_early_stall_1");
+  gtk_widget_show (image_early_stall_1);
+  gtk_container_add (GTK_CONTAINER (eventbox_early_stall_1), image_early_stall_1);
+  gtk_misc_set_padding (GTK_MISC (image_early_stall_1), 1, 0);
+
+  eventbox_early_stall_2 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_early_stall_2, "eventbox_early_stall_2");
+  gtk_widget_show (eventbox_early_stall_2);
+  gtk_box_pack_start (GTK_BOX (hbox9345), eventbox_early_stall_2, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_2, _("Splitting outgoing HTTP bandwidth evenly."), NULL);
+
+  image_early_stall_2 = create_pixmap (main_window, "upload-yellow.xpm");
+  gtk_widget_set_name (image_early_stall_2, "image_early_stall_2");
+  gtk_widget_show (image_early_stall_2);
+  gtk_container_add (GTK_CONTAINER (eventbox_early_stall_2), image_early_stall_2);
+  gtk_misc_set_padding (GTK_MISC (image_early_stall_2), 1, 0);
+
+  eventbox_early_stall_3 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_early_stall_3, "eventbox_early_stall_3");
+  gtk_widget_show (eventbox_early_stall_3);
+  gtk_box_pack_start (GTK_BOX (hbox9345), eventbox_early_stall_3, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_3, _("Disabled stealing of outgoing HTTP bandwidth."), NULL);
+
+  image_early_stall_3 = create_pixmap (main_window, "upload-red.xpm");
+  gtk_widget_set_name (image_early_stall_3, "image_early_stall_3");
+  gtk_widget_show (image_early_stall_3);
+  gtk_container_add (GTK_CONTAINER (eventbox_early_stall_3), image_early_stall_3);
+  gtk_misc_set_padding (GTK_MISC (image_early_stall_3), 1, 0);
 
   eventbox_image_fd_shortage = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
@@ -2439,6 +2517,98 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_legacy), image_legacy);
   gtk_misc_set_padding (GTK_MISC (image_legacy), 1, 0);
 
+  hbox9344 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox9344, "hbox9344");
+  gtk_widget_show (hbox9344);
+  gtk_box_pack_start (GTK_BOX (hbox211), hbox9344, TRUE, TRUE, 0);
+
+  eventbox_image_dht_none = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_none, "eventbox_image_dht_none");
+  gtk_widget_show (eventbox_image_dht_none);
+  gtk_box_pack_start (GTK_BOX (hbox9344), eventbox_image_dht_none, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_none, _("DHT inactive."), NULL);
+
+  image_dht_none = create_pixmap (main_window, "star-black.xpm");
+  gtk_widget_set_name (image_dht_none, "image_dht_none");
+  gtk_widget_show (image_dht_none);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_none), image_dht_none);
+  gtk_misc_set_padding (GTK_MISC (image_dht_none), 1, 0);
+
+  eventbox_image_dht_seeded = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_seeded, "eventbox_image_dht_seeded");
+  gtk_widget_show (eventbox_image_dht_seeded);
+  gtk_box_pack_start (GTK_BOX (hbox9344), eventbox_image_dht_seeded, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_seeded, _("DHT seeded."), NULL);
+
+  image_dht_seeded = create_pixmap (main_window, "star-violet.xpm");
+  gtk_widget_set_name (image_dht_seeded, "image_dht_seeded");
+  gtk_widget_show (image_dht_seeded);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_seeded), image_dht_seeded);
+  gtk_misc_set_padding (GTK_MISC (image_dht_seeded), 1, 0);
+
+  eventbox_dht_own_kuid = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_dht_own_kuid, "eventbox_dht_own_kuid");
+  gtk_widget_show (eventbox_dht_own_kuid);
+  gtk_box_pack_start (GTK_BOX (hbox9344), eventbox_dht_own_kuid, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_dht_own_kuid, _("DHT looking up own KUID."), NULL);
+
+  image_dht_own_kuid = create_pixmap (main_window, "star-blue.xpm");
+  gtk_widget_set_name (image_dht_own_kuid, "image_dht_own_kuid");
+  gtk_widget_show (image_dht_own_kuid);
+  gtk_container_add (GTK_CONTAINER (eventbox_dht_own_kuid), image_dht_own_kuid);
+  gtk_misc_set_padding (GTK_MISC (image_dht_own_kuid), 1, 0);
+
+  eventbox_image_dht_completing = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_completing, "eventbox_image_dht_completing");
+  gtk_widget_show (eventbox_image_dht_completing);
+  gtk_box_pack_start (GTK_BOX (hbox9344), eventbox_image_dht_completing, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_completing, _("DHT bootstrapping."), NULL);
+
+  image_dht_completing = create_pixmap (main_window, "star-green.xpm");
+  gtk_widget_set_name (image_dht_completing, "image_dht_completing");
+  gtk_widget_show (image_dht_completing);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_completing), image_dht_completing);
+  gtk_misc_set_padding (GTK_MISC (image_dht_completing), 1, 0);
+
+  eventbox_image_dht_active = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_active, "eventbox_image_dht_active");
+  gtk_widget_show (eventbox_image_dht_active);
+  gtk_box_pack_start (GTK_BOX (hbox9344), eventbox_image_dht_active, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_active, _("DHT up, active mode."), NULL);
+
+  image_dht_active = create_pixmap (main_window, "star-yellow.xpm");
+  gtk_widget_set_name (image_dht_active, "image_dht_active");
+  gtk_widget_show (image_dht_active);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_active), image_dht_active);
+  gtk_misc_set_padding (GTK_MISC (image_dht_active), 1, 0);
+
+  eventbox_image_dht_own_kuid = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_own_kuid, "eventbox_image_dht_own_kuid");
+  gtk_widget_show (eventbox_image_dht_own_kuid);
+  gtk_box_pack_start (GTK_BOX (hbox9344), eventbox_image_dht_own_kuid, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_own_kuid, _("DHT up, passive mode."), NULL);
+
+  image_dht_passive = create_pixmap (main_window, "star-red.xpm");
+  gtk_widget_set_name (image_dht_passive, "image_dht_passive");
+  gtk_widget_show (image_dht_passive);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_own_kuid), image_dht_passive);
+  gtk_misc_set_padding (GTK_MISC (image_dht_passive), 1, 0);
+
+  frame_statusbar_uptime = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_statusbar_uptime, "frame_statusbar_uptime");
+  gtk_widget_show (frame_statusbar_uptime);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame_statusbar_uptime, FALSE, TRUE, 0);
+
+  alignment102 = gtk_alignment_new (0.5, 0.5, 1, 1);
+  gtk_widget_set_name (alignment102, "alignment102");
+  gtk_widget_show (alignment102);
+  gtk_container_add (GTK_CONTAINER (frame_statusbar_uptime), alignment102);
+
+  label_statusbar_uptime = gtk_label_new ("[uptime]");
+  gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
+  gtk_widget_show (label_statusbar_uptime);
+  gtk_container_add (GTK_CONTAINER (alignment102), label_statusbar_uptime);
+
   statusbar1 = gtk_statusbar_new ();
   gtk_widget_set_name (statusbar1, "statusbar1");
   gtk_widget_show (statusbar1);
@@ -2652,14 +2822,23 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image_offline, "image_offline");
   GLADE_HOOKUP_OBJECT (main_window, image_online, "image_online");
   GLADE_HOOKUP_OBJECT (main_window, statusbar, "statusbar");
-  GLADE_HOOKUP_OBJECT (main_window, frame_statusbar_uptime, "frame_statusbar_uptime");
-  GLADE_HOOKUP_OBJECT (main_window, alignment102, "alignment102");
-  GLADE_HOOKUP_OBJECT (main_window, label_statusbar_uptime, "label_statusbar_uptime");
+  GLADE_HOOKUP_OBJECT (main_window, hbox_port_mapping, "hbox_port_mapping");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_port_mapping_possible, "eventbox_port_mapping_possible");
+  GLADE_HOOKUP_OBJECT (main_window, image_port_mapping_possible, "image_port_mapping_possible");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_port_mapping_successful, "eventbox_port_mapping_successful");
+  GLADE_HOOKUP_OBJECT (main_window, image_port_mapping_successful, "image_port_mapping_successful");
   GLADE_HOOKUP_OBJECT (main_window, hbox211, "hbox211");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_chip, "eventbox_image_chip");
   GLADE_HOOKUP_OBJECT (main_window, image_chip, "image_chip");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_warning, "eventbox_image_warning");
   GLADE_HOOKUP_OBJECT (main_window, image_warning, "image_warning");
+  GLADE_HOOKUP_OBJECT (main_window, hbox9345, "hbox9345");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_early_stall_1, "eventbox_early_stall_1");
+  GLADE_HOOKUP_OBJECT (main_window, image_early_stall_1, "image_early_stall_1");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_early_stall_2, "eventbox_early_stall_2");
+  GLADE_HOOKUP_OBJECT (main_window, image_early_stall_2, "image_early_stall_2");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_early_stall_3, "eventbox_early_stall_3");
+  GLADE_HOOKUP_OBJECT (main_window, image_early_stall_3, "image_early_stall_3");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
   GLADE_HOOKUP_OBJECT (main_window, image_fd_shortage, "image_fd_shortage");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_fd_runout, "eventbox_image_fd_runout");
@@ -2698,6 +2877,22 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image_leaf, "image_leaf");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_legacy, "eventbox_image_legacy");
   GLADE_HOOKUP_OBJECT (main_window, image_legacy, "image_legacy");
+  GLADE_HOOKUP_OBJECT (main_window, hbox9344, "hbox9344");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_dht_none, "eventbox_image_dht_none");
+  GLADE_HOOKUP_OBJECT (main_window, image_dht_none, "image_dht_none");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_dht_seeded, "eventbox_image_dht_seeded");
+  GLADE_HOOKUP_OBJECT (main_window, image_dht_seeded, "image_dht_seeded");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_dht_own_kuid, "eventbox_dht_own_kuid");
+  GLADE_HOOKUP_OBJECT (main_window, image_dht_own_kuid, "image_dht_own_kuid");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_dht_completing, "eventbox_image_dht_completing");
+  GLADE_HOOKUP_OBJECT (main_window, image_dht_completing, "image_dht_completing");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_dht_active, "eventbox_image_dht_active");
+  GLADE_HOOKUP_OBJECT (main_window, image_dht_active, "image_dht_active");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_dht_own_kuid, "eventbox_image_dht_own_kuid");
+  GLADE_HOOKUP_OBJECT (main_window, image_dht_passive, "image_dht_passive");
+  GLADE_HOOKUP_OBJECT (main_window, frame_statusbar_uptime, "frame_statusbar_uptime");
+  GLADE_HOOKUP_OBJECT (main_window, alignment102, "alignment102");
+  GLADE_HOOKUP_OBJECT (main_window, label_statusbar_uptime, "label_statusbar_uptime");
   GLADE_HOOKUP_OBJECT (main_window, statusbar1, "statusbar1");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window, tooltips, "tooltips");
 
@@ -2838,6 +3033,9 @@ create_main_window_gnet_tab (void)
   GtkWidget *label150;
   GtkWidget *eventbox11;
   GtkWidget *label_nodes_guid;
+  GtkWidget *label1046;
+  GtkWidget *eventbox15;
+  GtkWidget *label_nodes_kuid;
   GtkWidget *label151;
   GtkWidget *eventbox12;
   GtkWidget *label_nodes_ip;
@@ -3066,13 +3264,32 @@ create_main_window_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox151), eventbox11, TRUE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, eventbox11, _("The Global Unique IDentifier associated with this node. It's used for routing packets in the Gnutella network."), NULL);
 
-  label_nodes_guid = gtk_label_new ("");
+  label_nodes_guid = gtk_label_new (_("[GUID placeholder]"));
   gtk_widget_set_name (label_nodes_guid, "label_nodes_guid");
   gtk_widget_show (label_nodes_guid);
   gtk_container_add (GTK_CONTAINER (eventbox11), label_nodes_guid);
   GTK_WIDGET_SET_FLAGS (label_nodes_guid, GTK_CAN_FOCUS);
   gtk_label_set_selectable (GTK_LABEL (label_nodes_guid), TRUE);
   gtk_misc_set_alignment (GTK_MISC (label_nodes_guid), 0, 0.5);
+
+  label1046 = gtk_label_new (_("KUID:"));
+  gtk_widget_set_name (label1046, "label1046");
+  gtk_widget_show (label1046);
+  gtk_box_pack_start (GTK_BOX (hbox151), label1046, FALSE, FALSE, 0);
+
+  eventbox15 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox15, "eventbox15");
+  gtk_widget_show (eventbox15);
+  gtk_box_pack_start (GTK_BOX (hbox151), eventbox15, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox15, _("The Global Unique IDentifier associated with this node. It's used for routing packets in the Gnutella network."), NULL);
+
+  label_nodes_kuid = gtk_label_new (_("[KUID placeholder]"));
+  gtk_widget_set_name (label_nodes_kuid, "label_nodes_kuid");
+  gtk_widget_show (label_nodes_kuid);
+  gtk_container_add (GTK_CONTAINER (eventbox15), label_nodes_kuid);
+  GTK_WIDGET_SET_FLAGS (label_nodes_kuid, GTK_CAN_FOCUS);
+  gtk_label_set_selectable (GTK_LABEL (label_nodes_kuid), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label_nodes_kuid), 0, 0.5);
 
   label151 = gtk_label_new (_("Address/Port:"));
   gtk_widget_set_name (label151, "label151");
@@ -3087,7 +3304,7 @@ create_main_window_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox151), eventbox12, TRUE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, eventbox12, _("The current IP address and listening port for this node. To change these go to File->Preferences->Network."), NULL);
 
-  label_nodes_ip = gtk_label_new ("");
+  label_nodes_ip = gtk_label_new (_("[IP:port placeholder]"));
   gtk_widget_set_name (label_nodes_ip, "label_nodes_ip");
   gtk_widget_show (label_nodes_ip);
   gtk_container_add (GTK_CONTAINER (eventbox12), label_nodes_ip);
@@ -3152,6 +3369,9 @@ create_main_window_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label150, "label150");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, eventbox11, "eventbox11");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label_nodes_guid, "label_nodes_guid");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label1046, "label1046");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, eventbox15, "eventbox15");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label_nodes_kuid, "label_nodes_kuid");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label151, "label151");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, eventbox12, "eventbox12");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label_nodes_ip, "label_nodes_ip");
@@ -3859,7 +4079,7 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_browse_host_max_results_adj = gtk_adjustment_new (1000, 1, 50000, 1, 10, 0);
+  spinbutton_browse_host_max_results_adj = gtk_adjustment_new (1000, 1, 50000, 1, 10, 10);
   spinbutton_browse_host_max_results = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_browse_host_max_results_adj), 1, 0);
   gtk_widget_set_name (spinbutton_browse_host_max_results, "spinbutton_browse_host_max_results");
   gtk_widget_show (spinbutton_browse_host_max_results);
@@ -8647,6 +8867,12 @@ create_dlg_prefs_net_tab (void)
   GtkWidget *checkbutton_config_ipv6_trt_enable;
   GtkWidget *entry_config_ipv6_trt_prefix;
   GtkWidget *label1008;
+  GtkWidget *frame_expert_nw_port_mapping;
+  AtkObject *atko;
+  GtkWidget *table118;
+  GtkWidget *checkbutton_enable_natpmp;
+  GtkWidget *checkbutton_enable_upnp;
+  GtkWidget *label1054;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox28;
   GtkWidget *table47;
@@ -8966,6 +9192,39 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_set_name (label1008, "label1008");
   gtk_widget_show (label1008);
   gtk_frame_set_label_widget (GTK_FRAME (frame145), label1008);
+
+  frame_expert_nw_port_mapping = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_expert_nw_port_mapping, "frame_expert_nw_port_mapping");
+  gtk_widget_show (frame_expert_nw_port_mapping);
+  gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_nw_port_mapping, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_nw_port_mapping), 4);
+
+  table118 = gtk_table_new (1, 2, FALSE);
+  gtk_widget_set_name (table118, "table118");
+  gtk_widget_show (table118);
+  gtk_container_add (GTK_CONTAINER (frame_expert_nw_port_mapping), table118);
+  gtk_container_set_border_width (GTK_CONTAINER (table118), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table118), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table118), 4);
+
+  checkbutton_enable_natpmp = gtk_check_button_new_with_mnemonic (_("Enable NAT-PMP"));
+  gtk_widget_set_name (checkbutton_enable_natpmp, "checkbutton_enable_natpmp");
+  gtk_widget_show (checkbutton_enable_natpmp);
+  gtk_table_attach (GTK_TABLE (table118), checkbutton_enable_natpmp, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_enable_upnp = gtk_check_button_new_with_mnemonic (_("Enable UPnP"));
+  gtk_widget_set_name (checkbutton_enable_upnp, "checkbutton_enable_upnp");
+  gtk_widget_show (checkbutton_enable_upnp);
+  gtk_table_attach (GTK_TABLE (table118), checkbutton_enable_upnp, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label1054 = gtk_label_new (_("Port Mapping"));
+  gtk_widget_set_name (label1054, "label1054");
+  gtk_widget_show (label1054);
+  gtk_frame_set_label_widget (GTK_FRAME (frame_expert_nw_port_mapping), label1054);
 
   frame_proxy_settings = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_proxy_settings, "frame_proxy_settings");
@@ -9450,6 +9709,13 @@ create_dlg_prefs_net_tab (void)
   gtk_label_set_mnemonic_widget (GTK_LABEL (label_download_rx_buffer), spinbutton_download_rx_size);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label_node_rx_buffer), spinbutton_node_rx_size);
 
+  atko = gtk_widget_get_accessible (frame_expert_nw_port_mapping);
+  atk_object_set_name (atko, _("Port Mapping"));
+
+  atko = gtk_widget_get_accessible (label1054);
+  atk_object_set_name (atko, _("Port Mapping"));
+
+
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_prefs_net_tab, dlg_prefs_net_tab, "dlg_prefs_net_tab");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, scrolledwindow38, "scrolledwindow38");
@@ -9488,6 +9754,11 @@ create_dlg_prefs_net_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_config_ipv6_trt_enable, "checkbutton_config_ipv6_trt_enable");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_config_ipv6_trt_prefix, "entry_config_ipv6_trt_prefix");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label1008, "label1008");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame_expert_nw_port_mapping, "frame_expert_nw_port_mapping");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table118, "table118");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_natpmp, "checkbutton_enable_natpmp");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_upnp, "checkbutton_enable_upnp");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label1054, "label1054");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame_proxy_settings, "frame_proxy_settings");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vbox28, "vbox28");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table47, "table47");
@@ -11229,14 +11500,22 @@ create_dlg_prefs_bw_tab (void)
   GtkWidget *viewport115;
   GtkWidget *frame79;
   GtkWidget *table62;
-  GtkObject *spinbutton_config_bws_glout_adj;
-  GtkWidget *spinbutton_config_bws_glout;
   GtkWidget *label581;
   GtkObject *spinbutton_config_bws_glin_adj;
   GtkWidget *spinbutton_config_bws_glin;
-  GtkWidget *label582;
   GtkWidget *checkbutton_config_bws_glin;
+  GtkWidget *label1040;
   GtkWidget *checkbutton_config_bws_glout;
+  GtkObject *spinbutton_config_bws_glout_adj;
+  GtkWidget *spinbutton_config_bws_glout;
+  GtkWidget *label582;
+  GtkWidget *label1041;
+  GtkWidget *label1042;
+  GtkWidget *label1043;
+  GtkWidget *viewport480;
+  GtkWidget *label_http_in_avail;
+  GtkWidget *viewport481;
+  GtkWidget *label_http_out_avail;
   GtkWidget *label578;
   GtkWidget *label290;
   GtkWidget *frame148;
@@ -11472,7 +11751,7 @@ create_dlg_prefs_bw_tab (void)
   frame20 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame20, "frame20");
   gtk_widget_show (frame20);
-  gtk_box_pack_start (GTK_BOX (vbox29), frame20, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox29), frame20, TRUE, TRUE, 0);
 
   hbox281 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox281, "hbox281");
@@ -11483,7 +11762,7 @@ create_dlg_prefs_bw_tab (void)
   viewport114 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport114, "viewport114");
   gtk_widget_show (viewport114);
-  gtk_box_pack_start (GTK_BOX (hbox281), viewport114, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox281), viewport114, FALSE, TRUE, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport114), GTK_SHADOW_OUT);
 
   frame127 = gtk_frame_new (NULL);
@@ -11568,22 +11847,13 @@ create_dlg_prefs_bw_tab (void)
   gtk_container_add (GTK_CONTAINER (viewport115), frame79);
   gtk_container_set_border_width (GTK_CONTAINER (frame79), 2);
 
-  table62 = gtk_table_new (2, 3, FALSE);
+  table62 = gtk_table_new (4, 3, FALSE);
   gtk_widget_set_name (table62, "table62");
   gtk_widget_show (table62);
   gtk_container_add (GTK_CONTAINER (frame79), table62);
   gtk_container_set_border_width (GTK_CONTAINER (table62), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table62), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table62), 4);
-
-  spinbutton_config_bws_glout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
-  spinbutton_config_bws_glout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_glout_adj), 1, 2);
-  gtk_widget_set_name (spinbutton_config_bws_glout, "spinbutton_config_bws_glout");
-  gtk_widget_show (spinbutton_config_bws_glout);
-  gtk_table_attach (GTK_TABLE (table62), spinbutton_config_bws_glout, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glout), TRUE);
 
   label581 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label581, "label581");
@@ -11602,14 +11872,6 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glin), TRUE);
 
-  label582 = gtk_label_new (_("KiB/s"));
-  gtk_widget_set_name (label582, "label582");
-  gtk_widget_show (label582);
-  gtk_table_attach (GTK_TABLE (table62), label582, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label582), 0, 0.5);
-
   checkbutton_config_bws_glin = gtk_check_button_new_with_mnemonic (_("Incoming traffic from _leaves"));
   gtk_widget_set_name (checkbutton_config_bws_glin, "checkbutton_config_bws_glin");
   gtk_widget_show (checkbutton_config_bws_glin);
@@ -11617,12 +11879,91 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
+  label1040 = gtk_label_new (_("Available HTTP input bandwidth"));
+  gtk_widget_set_name (label1040, "label1040");
+  gtk_widget_show (label1040);
+  gtk_table_attach (GTK_TABLE (table62), label1040, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label1040), 0, 0.5);
+
   checkbutton_config_bws_glout = gtk_check_button_new_with_mnemonic (_("Outgoing traffic to lea_ves"));
   gtk_widget_set_name (checkbutton_config_bws_glout, "checkbutton_config_bws_glout");
   gtk_widget_show (checkbutton_config_bws_glout);
-  gtk_table_attach (GTK_TABLE (table62), checkbutton_config_bws_glout, 0, 1, 1, 2,
+  gtk_table_attach (GTK_TABLE (table62), checkbutton_config_bws_glout, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_bws_glout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
+  spinbutton_config_bws_glout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_glout_adj), 1, 2);
+  gtk_widget_set_name (spinbutton_config_bws_glout, "spinbutton_config_bws_glout");
+  gtk_widget_show (spinbutton_config_bws_glout);
+  gtk_table_attach (GTK_TABLE (table62), spinbutton_config_bws_glout, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glout), TRUE);
+
+  label582 = gtk_label_new (_("KiB/s"));
+  gtk_widget_set_name (label582, "label582");
+  gtk_widget_show (label582);
+  gtk_table_attach (GTK_TABLE (table62), label582, 2, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label582), 0, 0.5);
+
+  label1041 = gtk_label_new (_("KiB/s"));
+  gtk_widget_set_name (label1041, "label1041");
+  gtk_widget_show (label1041);
+  gtk_table_attach (GTK_TABLE (table62), label1041, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label1041), 0, 0.5);
+
+  label1042 = gtk_label_new (_("KiB/s"));
+  gtk_widget_set_name (label1042, "label1042");
+  gtk_widget_show (label1042);
+  gtk_table_attach (GTK_TABLE (table62), label1042, 2, 3, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label1042), 0, 0.5);
+
+  label1043 = gtk_label_new (_("Available HTTP output bandwidth"));
+  gtk_widget_set_name (label1043, "label1043");
+  gtk_widget_show (label1043);
+  gtk_table_attach (GTK_TABLE (table62), label1043, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label1043), 0, 0.5);
+
+  viewport480 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport480, "viewport480");
+  gtk_widget_show (viewport480);
+  gtk_table_attach (GTK_TABLE (table62), viewport480, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport480), GTK_SHADOW_NONE);
+
+  label_http_in_avail = gtk_label_new ("[label_http_in_avail]");
+  gtk_widget_set_name (label_http_in_avail, "label_http_in_avail");
+  gtk_widget_show (label_http_in_avail);
+  gtk_container_add (GTK_CONTAINER (viewport480), label_http_in_avail);
+  gtk_misc_set_alignment (GTK_MISC (label_http_in_avail), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_http_in_avail), 5, 0);
+
+  viewport481 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport481, "viewport481");
+  gtk_widget_show (viewport481);
+  gtk_table_attach (GTK_TABLE (table62), viewport481, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport481), GTK_SHADOW_NONE);
+
+  label_http_out_avail = gtk_label_new ("[label_http_out_avail]");
+  gtk_widget_set_name (label_http_out_avail, "label_http_out_avail");
+  gtk_widget_show (label_http_out_avail);
+  gtk_container_add (GTK_CONTAINER (viewport481), label_http_out_avail);
+  gtk_misc_set_alignment (GTK_MISC (label_http_out_avail), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_http_out_avail), 5, 0);
 
   label578 = gtk_label_new (_("Ultrapeer mode"));
   gtk_widget_set_name (label578, "label578");
@@ -11956,12 +12297,20 @@ create_dlg_prefs_bw_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, viewport115, "viewport115");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, frame79, "frame79");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, table62, "table62");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, spinbutton_config_bws_glout, "spinbutton_config_bws_glout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label581, "label581");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, spinbutton_config_bws_glin, "spinbutton_config_bws_glin");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label582, "label582");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bws_glin, "checkbutton_config_bws_glin");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1040, "label1040");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bws_glout, "checkbutton_config_bws_glout");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, spinbutton_config_bws_glout, "spinbutton_config_bws_glout");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label582, "label582");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1041, "label1041");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1042, "label1042");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1043, "label1043");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, viewport480, "viewport480");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label_http_in_avail, "label_http_in_avail");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, viewport481, "viewport481");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label_http_out_avail, "label_http_out_avail");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label578, "label578");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label290, "label290");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, frame148, "frame148");
@@ -14648,12 +14997,14 @@ create_dlg_prefs_dbg_tab (void)
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table60;
   GtkWidget *label870;
-  GtkWidget *label566;
-  GtkWidget *label564;
   GtkWidget *label571;
-  GtkWidget *entry_average_servent_uptime;
-  GtkWidget *entry_average_ip_uptime;
   GtkWidget *entry_sys_physmem;
+  GtkWidget *label1048;
+  GtkWidget *entry_average_servent_downtime;
+  GtkWidget *label564;
+  GtkWidget *label566;
+  GtkWidget *entry_average_ip_uptime;
+  GtkWidget *entry_average_servent_uptime;
   GtkWidget *label558;
 
   dlg_prefs_dbg_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -14772,7 +15123,7 @@ create_dlg_prefs_dbg_tab (void)
   gtk_widget_show (frame_expert_unmapped);
   gtk_box_pack_start (GTK_BOX (vbox81), frame_expert_unmapped, FALSE, TRUE, 0);
 
-  table60 = gtk_table_new (3, 3, FALSE);
+  table60 = gtk_table_new (4, 3, FALSE);
   gtk_widget_set_name (table60, "table60");
   gtk_widget_show (table60);
   gtk_container_add (GTK_CONTAINER (frame_expert_unmapped), table60);
@@ -14788,56 +15139,73 @@ create_dlg_prefs_dbg_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label870), 0, 0.5);
 
-  label566 = gtk_label_new (_("Avg. uptime of this servent:"));
-  gtk_widget_set_name (label566, "label566");
-  gtk_widget_show (label566);
-  gtk_table_attach (GTK_TABLE (table60), label566, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label566), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label566), 4, 0);
-
-  label564 = gtk_label_new (_("Avg. time between IP address changes:"));
-  gtk_widget_set_name (label564, "label564");
-  gtk_widget_show (label564);
-  gtk_table_attach (GTK_TABLE (table60), label564, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label564), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label564), 4, 0);
-
   label571 = gtk_label_new (_("Available physical memory:"));
   gtk_widget_set_name (label571, "label571");
   gtk_widget_show (label571);
-  gtk_table_attach (GTK_TABLE (table60), label571, 0, 1, 2, 3,
+  gtk_table_attach (GTK_TABLE (table60), label571, 0, 1, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label571), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label571), 4, 0);
 
-  entry_average_servent_uptime = gtk_entry_new ();
-  gtk_widget_set_name (entry_average_servent_uptime, "entry_average_servent_uptime");
-  gtk_widget_show (entry_average_servent_uptime);
-  gtk_table_attach (GTK_TABLE (table60), entry_average_servent_uptime, 1, 2, 0, 1,
+  entry_sys_physmem = gtk_entry_new ();
+  gtk_widget_set_name (entry_sys_physmem, "entry_sys_physmem");
+  gtk_widget_show (entry_sys_physmem);
+  gtk_table_attach (GTK_TABLE (table60), entry_sys_physmem, 1, 2, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_average_servent_uptime), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_sys_physmem), FALSE);
+
+  label1048 = gtk_label_new (_("Avg. downtime of this servent"));
+  gtk_widget_set_name (label1048, "label1048");
+  gtk_widget_show (label1048);
+  gtk_table_attach (GTK_TABLE (table60), label1048, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label1048), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label1048), 4, 0);
+
+  entry_average_servent_downtime = gtk_entry_new ();
+  gtk_widget_set_name (entry_average_servent_downtime, "entry_average_servent_downtime");
+  gtk_widget_show (entry_average_servent_downtime);
+  gtk_table_attach (GTK_TABLE (table60), entry_average_servent_downtime, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_average_servent_downtime), FALSE);
+
+  label564 = gtk_label_new (_("Avg. time between IP address changes:"));
+  gtk_widget_set_name (label564, "label564");
+  gtk_widget_show (label564);
+  gtk_table_attach (GTK_TABLE (table60), label564, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label564), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label564), 4, 0);
+
+  label566 = gtk_label_new (_("Avg. uptime of this servent:"));
+  gtk_widget_set_name (label566, "label566");
+  gtk_widget_show (label566);
+  gtk_table_attach (GTK_TABLE (table60), label566, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label566), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label566), 4, 0);
 
   entry_average_ip_uptime = gtk_entry_new ();
   gtk_widget_set_name (entry_average_ip_uptime, "entry_average_ip_uptime");
   gtk_widget_show (entry_average_ip_uptime);
-  gtk_table_attach (GTK_TABLE (table60), entry_average_ip_uptime, 1, 2, 1, 2,
+  gtk_table_attach (GTK_TABLE (table60), entry_average_ip_uptime, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_editable_set_editable (GTK_EDITABLE (entry_average_ip_uptime), FALSE);
 
-  entry_sys_physmem = gtk_entry_new ();
-  gtk_widget_set_name (entry_sys_physmem, "entry_sys_physmem");
-  gtk_widget_show (entry_sys_physmem);
-  gtk_table_attach (GTK_TABLE (table60), entry_sys_physmem, 1, 2, 2, 3,
+  entry_average_servent_uptime = gtk_entry_new ();
+  gtk_widget_set_name (entry_average_servent_uptime, "entry_average_servent_uptime");
+  gtk_widget_show (entry_average_servent_uptime);
+  gtk_table_attach (GTK_TABLE (table60), entry_average_servent_uptime, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_sys_physmem), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_average_servent_uptime), FALSE);
 
   label558 = gtk_label_new (_("Diverse properties"));
   gtk_widget_set_name (label558, "label558");
@@ -14874,12 +15242,14 @@ create_dlg_prefs_dbg_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, frame_expert_unmapped, "frame_expert_unmapped");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, table60, "table60");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label870, "label870");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label566, "label566");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label564, "label564");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label571, "label571");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_average_servent_uptime, "entry_average_servent_uptime");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_average_ip_uptime, "entry_average_ip_uptime");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_sys_physmem, "entry_sys_physmem");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label1048, "label1048");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_average_servent_downtime, "entry_average_servent_downtime");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label564, "label564");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label566, "label566");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_average_ip_uptime, "entry_average_ip_uptime");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_average_servent_uptime, "entry_average_servent_uptime");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label558, "label558");
 
   return dlg_prefs_dbg_tab;

@@ -4652,4 +4652,44 @@ prop = {
     };
 };
 
+prop = {
+    name = "port_mapping_successful";
+    desc = "Whether gtk-gnutella was able to configure port mappings.";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "uploads_bw_no_stealing";
+    desc = "Whether gtk-gnutella disabled HTTP bandwidth stealing.";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "uploads_bw_ignore_stolen";
+    desc = "Whether gtk-gnutella ignores HTTP stolen bandwidth.";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "uploads_bw_uniform";
+    desc = "Whether gtk-gnutella enforces uniform HTTP outgoing bandwidth.";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

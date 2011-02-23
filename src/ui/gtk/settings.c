@@ -55,6 +55,8 @@ RCSID("$Id$")
 #include "if/gnet_property.h"
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
+#include "if/dht/kuid.h"
+#include "if/dht/routing.h"
 
 #include "lib/concat.h"
 #include "lib/prop.h"
@@ -838,6 +840,91 @@ is_firewalled_changed(property_t unused_prop)
 }
 
 static gboolean
+dht_boot_status_changed(property_t prop)
+{
+    GtkWidget *icon_none = gui_main_window_lookup("eventbox_image_dht_none");
+    GtkWidget *icon_seeded =
+		gui_main_window_lookup("eventbox_image_dht_seeded");
+    GtkWidget *icon_own_kuid =
+		gui_main_window_lookup("eventbox_image_dht_own_kuid");
+    GtkWidget *icon_completing =
+		gui_main_window_lookup("eventbox_image_dht_completing");
+    GtkWidget *icon_active =
+		gui_main_window_lookup("eventbox_image_dht_active");
+    GtkWidget *icon_passive =
+		gui_main_window_lookup("eventbox_image_dht_passive");
+	guint32 status;
+
+	gtk_widget_hide(icon_none);
+	gtk_widget_hide(icon_seeded);
+	gtk_widget_hide(icon_own_kuid);
+	gtk_widget_hide(icon_completing);
+	gtk_widget_hide(icon_active);
+	gtk_widget_hide(icon_passive);
+
+	if (!guc_dht_enabled())
+		goto done;
+
+    gnet_prop_get_guint32_val(prop, &status);
+
+	switch ((enum dht_bootsteps) status) {
+	case DHT_BOOT_NONE:
+	case DHT_BOOT_SHUTDOWN:
+		gtk_widget_show(icon_none);
+		break;
+	case DHT_BOOT_SEEDED:
+		gtk_widget_show(icon_seeded);
+		break;
+	case DHT_BOOT_OWN:
+		gtk_widget_show(icon_own_kuid);
+		break;
+	case DHT_BOOT_COMPLETING:
+		gtk_widget_show(icon_completing);
+		break;
+	case DHT_BOOT_COMPLETED:
+		{
+			guint32 mode;
+			gnet_prop_get_guint32_val(PROP_DHT_CURRENT_MODE, &mode);
+
+			if (DHT_MODE_ACTIVE == mode) {
+				gtk_widget_show(icon_active);
+			} else {
+				gtk_widget_show(icon_passive);
+			}
+		}
+		break;
+	case DHT_BOOT_MAX_VALUE:
+		g_assert_not_reached();
+	}
+
+done:
+	shrink_frame_status();
+	return FALSE;
+}
+
+static gboolean
+dht_current_mode_changed(property_t unused_prop)
+{
+	(void) unused_prop;
+
+	return dht_boot_status_changed(PROP_DHT_BOOT_STATUS);
+}
+
+static gboolean
+enable_dht_changed(property_t prop)
+{
+	gboolean changed;
+	gboolean enabled;
+
+	gnet_prop_get_boolean_val(prop, &enabled);
+
+	changed = update_togglebutton(prop);
+	(void) dht_boot_status_changed(PROP_DHT_BOOT_STATUS);
+
+	return changed;
+}
+
+static gboolean
 enable_udp_changed(property_t prop)
 {
 	gboolean changed;
@@ -847,6 +934,7 @@ enable_udp_changed(property_t prop)
 
 	changed = update_togglebutton(prop);
 	(void) is_firewalled_changed(prop);
+	(void) dht_boot_status_changed(PROP_DHT_BOOT_STATUS);
 
 	return changed;
 }
@@ -1086,7 +1174,6 @@ current_peermode_changed(property_t prop)
 	GtkWidget *icon_leaf = gui_main_window_lookup("eventbox_image_leaf");
 	GtkWidget *icon_legacy = gui_main_window_lookup("eventbox_image_legacy");
 	guint32 mode;
-
 
     gnet_prop_get_guint32_val(prop, &mode);
 	gtk_widget_hide(icon_ultra);
@@ -1407,6 +1494,59 @@ uploads_stalling_changed(property_t prop)
     }
 
     return FALSE;
+}
+
+static gboolean
+uploads_early_stalling_changed(property_t prop)
+{
+    gboolean b;
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    w = lookup_widget(top, map_entry->wid);
+    stub->boolean.get(prop, &b, 0, 1);
+
+    if (b) {
+        gtk_widget_show(w);
+    } else {
+        gtk_widget_hide(w);
+		shrink_frame_status();
+    }
+
+    return FALSE;
+}
+
+static gboolean
+port_mapping_update(property_t unused_prop)
+{
+	GtkWidget *icon_possible;
+	GtkWidget *icon_successful;
+	gboolean pm_possible;
+	gboolean pm_successful;
+
+	(void) unused_prop;
+
+    icon_possible = gui_main_window_lookup("eventbox_port_mapping_possible");
+    icon_successful =
+		gui_main_window_lookup("eventbox_port_mapping_successful");
+
+    gnet_prop_get_boolean_val(PROP_PORT_MAPPING_POSSIBLE, &pm_possible);
+    gnet_prop_get_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL, &pm_successful);
+
+	gtk_widget_hide(icon_possible);
+	gtk_widget_hide(icon_successful);
+
+	if (pm_successful) {
+		gtk_widget_show(icon_successful);
+	} else if (pm_possible) {
+		gtk_widget_show(icon_possible);
+	}
+
+	gui_shrink_widget_named("hbox_port_mapping");
+
+	return FALSE;
 }
 
 static gboolean
@@ -1966,23 +2106,28 @@ update_input_bw_display(void)
 	gboolean enabled;
 	guint32 val = 0;
 	guint32 bw;
+	guint32 http = MAX_INT_VAL(guint32);
 
 	gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
 	if (enabled) {
 		gnet_prop_get_guint32_val(PROP_BW_GNET_LIN, &bw);
 		val += bw;
 	}
-	gnet_prop_get_boolean_val
-		(PROP_BW_HTTP_IN_ENABLED, &enabled);
+	gnet_prop_get_boolean_val(PROP_BW_HTTP_IN_ENABLED, &enabled);
 	if (enabled) {
-		gnet_prop_get_guint32_val(PROP_BW_HTTP_IN, &bw);
-		val += bw;
+		gnet_prop_get_guint32_val(PROP_BW_HTTP_IN, &http);
+		val += http;
 		/* Leaf bandwidth is taken from HTTP traffic, when enabled */
 		gnet_prop_get_boolean_val
 			(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
 		if (enabled) {
 			gnet_prop_get_guint32_val(PROP_BW_GNET_LIN, &bw);
 			val -= bw;
+			if (bw > http) {
+				http = 0;
+			} else {
+				http -= bw;
+			}
 		}
 	}
 	gnet_prop_get_boolean_val(PROP_BW_GNET_IN_ENABLED, &enabled);
@@ -1994,6 +2139,9 @@ update_input_bw_display(void)
 	gtk_label_printf(
 		GTK_LABEL(gui_dlg_prefs_lookup("label_input_bw_limit")),
 		"%.2f", val / 1024.0);
+	gtk_label_printf(
+		GTK_LABEL(gui_dlg_prefs_lookup("label_http_in_avail")),
+		"%.2f", http / 1024.0);
 }
 
 static gboolean
@@ -2012,6 +2160,7 @@ update_output_bw_display(void)
 	gboolean enabled;
 	guint32 val = 0;
 	guint32 bw;
+	guint32 http = MAX_INT_VAL(guint32);
 
 	gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_OUT_ENABLED, &enabled);
 	if (enabled) {
@@ -2020,13 +2169,18 @@ update_output_bw_display(void)
 	}
 	gnet_prop_get_boolean_val(PROP_BW_HTTP_OUT_ENABLED, &enabled);
 	if (enabled) {
-		gnet_prop_get_guint32_val(PROP_BW_HTTP_OUT, &bw);
-		val += bw;
+		gnet_prop_get_guint32_val(PROP_BW_HTTP_OUT, &http);
+		val += http;
 		/* Leaf bandwidth is taken from HTTP traffic, when enabled */
 		gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_OUT_ENABLED, &enabled);
 		if (enabled) {
 			gnet_prop_get_guint32_val(PROP_BW_GNET_LOUT, &bw);
 			val -= bw;
+			if (bw > http) {
+				http = 0;
+			} else {
+				http -= bw;
+			}
 		}
 	}
 	gnet_prop_get_boolean_val(PROP_BW_GNET_OUT_ENABLED, &enabled);
@@ -2044,6 +2198,9 @@ update_output_bw_display(void)
 	gtk_label_printf(
 		GTK_LABEL(gui_dlg_prefs_lookup("label_output_bw_limit")),
 		"%.2f", val / 1024.0);
+	gtk_label_printf(
+		GTK_LABEL(gui_dlg_prefs_lookup("label_http_out_avail")),
+		"%.2f", http / 1024.0);
 }
 
 static gboolean
@@ -2077,6 +2234,7 @@ listen_port_changed(property_t prop)
 {
     update_spinbutton(prop);
     update_address_information();
+	(void) dht_boot_status_changed(PROP_DHT_BOOT_STATUS);
     return FALSE;
 }
 
@@ -2129,6 +2287,33 @@ guid_changed(property_t prop)
 }
 
 static gboolean
+kuid_changed(property_t prop)
+{
+    kuid_t kuid_buf;
+
+    gnet_prop_get_storage(prop, kuid_buf.v, sizeof kuid_buf.v);
+
+#ifdef USE_GTK2
+	{
+		GtkLabel *label;
+		gchar buf[64];
+
+	   	label = GTK_LABEL(gui_main_window_lookup("label_nodes_kuid"));
+		concat_strings(buf, sizeof buf,
+			"<tt>", kuid_to_hex_string(&kuid_buf), "</tt>", (void *) 0);
+		gtk_label_set_use_markup(label, TRUE);
+		gtk_label_set_markup(label, buf);
+	}
+#else
+    gtk_entry_set_text(
+        GTK_ENTRY(gui_main_window_lookup("entry_nodes_kuid")),
+        kuid_to_hex_string(&kuid_buf));
+#endif /* USE_GTK2 */
+
+    return FALSE;
+}
+
+static gboolean
 update_monitor_unstable_ip(property_t prop)
 {
 	gboolean b;
@@ -2173,6 +2358,7 @@ expert_mode_changed(property_t prop)
 	static const gchar *expert_widgets_prefs[] = {
         "frame_expert_nw_local",
         "frame_expert_nw_misc",
+        "frame_expert_nw_port_mapping",
         "frame_expert_gnet_timeout",
         "frame_expert_gnet_ttl",
         "frame_expert_gnet_quality",
@@ -4272,6 +4458,14 @@ static prop_map_t property_map[] = {
         "label_nodes_guid",
         FREQ_UPDATES, 0
     ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_KUID,
+        kuid_changed,
+        TRUE,
+        "label_nodes_kuid",
+        FREQ_UPDATES, 0
+    ),
 #endif /* USE_GTK2 */
 #ifdef USE_GTK1
     PROP_ENTRY(
@@ -4280,6 +4474,14 @@ static prop_map_t property_map[] = {
         guid_changed,
         TRUE,
         "entry_nodes_guid",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_KUID,
+        kuid_changed,
+        TRUE,
+        "entry_nodes_kuid",
         FREQ_UPDATES, 0
     ),
 #endif /* USE_GTK1 */
@@ -4547,6 +4749,22 @@ static prop_map_t property_map[] = {
         update_multichoice,
         TRUE,
         "option_menu_search_handle_ignored_files",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_DHT_BOOT_STATUS,
+        dht_boot_status_changed,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_DHT_CURRENT_MODE,
+        dht_current_mode_changed,
+        TRUE,
+        NULL,
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -4871,6 +5089,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_AVERAGE_SERVENT_DOWNTIME,
+        update_entry_duration,
+        TRUE,
+        "entry_average_servent_downtime",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_SYS_PHYSMEM,
         update_size_entry,
         TRUE,
@@ -5129,6 +5355,49 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
+        PROP_UPLOADS_BW_IGNORE_STOLEN,
+        uploads_early_stalling_changed,
+        TRUE,
+        "eventbox_early_stall_1",
+        /* need eventbox because image has no tooltip */
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_UPLOADS_BW_UNIFORM,
+        uploads_early_stalling_changed,
+        TRUE,
+        "eventbox_early_stall_2",
+        /* need eventbox because image has no tooltip */
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_UPLOADS_BW_NO_STEALING,
+        uploads_early_stalling_changed,
+        TRUE,
+        "eventbox_early_stall_3",
+        /* need eventbox because image has no tooltip */
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_PORT_MAPPING_POSSIBLE,
+        port_mapping_update,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_PORT_MAPPING_SUCCESSFUL,
+        port_mapping_update,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
         PROP_FILE_DESCRIPTOR_SHORTAGE,
         file_descriptor_warn_changed,
         TRUE,
@@ -5171,6 +5440,22 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_ENABLE_NATPMP,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_enable_natpmp",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_ENABLE_UPNP,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_enable_upnp",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_ENABLE_UDP,
         enable_udp_changed,
         TRUE,
@@ -5180,7 +5465,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         gui_dlg_prefs,
         PROP_ENABLE_DHT,
-        update_togglebutton,
+        enable_dht_changed,
         TRUE,
         "checkbutton_enable_dht",
         FREQ_UPDATES, 0

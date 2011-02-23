@@ -51,6 +51,7 @@ RCSID("$Id$")
 
 #include "if/core/net_stats.h"
 #include "if/core/share.h"
+#include "if/dht/dht.h"
 
 #include "lib/concat.h"
 #include "lib/host_addr.h"
@@ -100,13 +101,18 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		char flags[47];
 		const char *fw;
 		const char *fd;
+		const char *pmp;
+		const char *dht;
 
 		/*
 		 * The flags are displayed as followed:
 		 *
+		 * PMP          port mapping configured via UPnP or NAT-PMP
+		 * pmp          port mapping available (UPnP or NAT-PMP), un-configured
 		 * CLK			clock, GTKG expired
 		 * !FD or FD	red or yellow bombs for fd shortage
 		 * STL			upload stalls
+		 * gUL/yUL/rUL  green, yellow or red upload early stalling levels
 		 * CPU			cpu overloaded
 		 * MOV			file moving
 		 * SHA			SHA-1 rebuilding or verifying
@@ -116,8 +122,46 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		 * udp or UDP	indicates UDP firewalling (lowercased for hole punching)
 		 * TCP			indicates TCP-firewalled
 		 * -			the happy face: no firewall
+		 * sDH/lDH/bDH  seeded, own KUID looking or bootstrapping DHT
+		 * A or P       active or passive DHT mode
 		 * UP or LF		ultrapeer or leaf mode
 		 */
+
+		if (GNET_PROPERTY(enable_upnp) || GNET_PROPERTY(enable_natpmp)) {
+			if (GNET_PROPERTY(port_mapping_successful)) {
+				pmp = "PMP ";
+			} else if (GNET_PROPERTY(port_mapping_possible)) {
+				pmp = "pmp ";
+			} else {
+				pmp = empty;
+			}
+		} else {
+			pmp = empty;
+		}
+
+		if (dht_enabled()) {
+			switch ((enum dht_bootsteps) GNET_PROPERTY(dht_boot_status)) {
+			case DHT_BOOT_NONE:
+			case DHT_BOOT_SHUTDOWN:
+				dht = empty;
+				break;
+			case DHT_BOOT_SEEDED:
+				dht = "sDH ";
+				break;
+			case DHT_BOOT_OWN:
+				dht = "lDH ";
+				break;
+			case DHT_BOOT_COMPLETING:
+				dht = "bDH ";
+				break;
+			case DHT_BOOT_COMPLETED:
+				dht = DHT_MODE_ACTIVE == GNET_PROPERTY(dht_current_mode) ?
+						"A " : "P ";
+				break;
+			case DHT_BOOT_MAX_VALUE:
+				g_assert_not_reached();
+			}
+		}
 
 		if (GNET_PROPERTY(is_firewalled) && GNET_PROPERTY(is_udp_firewalled)) {
 			fw = GNET_PROPERTY(recv_solicited_udp) ? ":FW " : "FW ";
@@ -138,10 +182,14 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		}
 
 		gm_snprintf(flags, sizeof flags,
-			"<%s%s%s%s%s%s%s%s%s%s>",
+			"<%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>",
+			pmp,
 			GNET_PROPERTY(ancient_version) ? "CLK " : empty,
 			fd,
 			GNET_PROPERTY(uploads_stalling) ? "STL " : empty,
+			GNET_PROPERTY(uploads_bw_ignore_stolen) ? "gUL " : empty,
+			GNET_PROPERTY(uploads_bw_uniform) ? "yUL " : empty,
+			GNET_PROPERTY(uploads_bw_no_stealing) ? "rUL " : empty,
 			GNET_PROPERTY(overloaded_cpu) ? "CPU " : empty,
 			GNET_PROPERTY(file_moving) ? "MOV " : empty,
 			(GNET_PROPERTY(sha1_rebuilding) || GNET_PROPERTY(sha1_verifying)) ?
@@ -149,7 +197,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			(GNET_PROPERTY(tth_rebuilding) || GNET_PROPERTY(tth_verifying)) ?
 				"TTH " : empty,
 			GNET_PROPERTY(library_rebuilding) ? "LIB " : empty,
-			fw,
+			fw, dht,
 			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ? "UP" : "LF");
 
 		gm_snprintf(buf, sizeof buf,
@@ -352,19 +400,24 @@ shell_help_status(int argc, const char *argv[])
 		"-i : display instantaneous bandwidth instead of average\n"
 		"Upper-right corner flags mimic status icons in the GUI:\n"
 		"(from left to right in lightening order)\n"
-		"  CLK          clock, GTKG expired\n"
-		"  !FD or FD    red or yellow bombs for fd shortage\n"
-		"  STL          upload stalls\n"
-		"  CPU          cpu overloaded\n"
-		"  MOV          file moving\n"
-		"  SHA          SHA-1 rebuilding or verifying\n"
-		"  TTH          TTH rebuilding or verifying\n"
-		"  LIB          library rescan\n"
-		"  FW or :FW    indicates firewalled status or hole punching ability\n"
-		"  UDP or udp   is UDP-firewalled only (lowercased = hole punching)\n"
-		"  TCP          is TCP-firewalled only\n"
-		"  -            the happy face: no firewall\n"
-		"  UP or LF     ultrapeer or leaf mode\n";
+		"  PMP           port mapping configured via UPnP or NAT-PMP\n"
+		"  pmp           port mapping available (UPnP or NAT-PMP)\n"
+		"  CLK           clock, GTKG expired\n"
+		"  !FD or FD     red or yellow bombs for fd shortage\n"
+		"  STL           upload stalls\n"
+		"  gUL, yUL, rUL green, yellow or red upload early stalling levels\n"
+		"  CPU           cpu overloaded\n"
+		"  MOV           file moving\n"
+		"  SHA           SHA-1 rebuilding or verifying\n"
+		"  TTH           TTH rebuilding or verifying\n"
+		"  LIB           library rescan\n"
+		"  FW or :FW     indicates firewalled status or hole punching ability\n"
+		"  UDP or udp    is UDP-firewalled only (lowercased = hole punching)\n"
+		"  TCP           is TCP-firewalled only\n"
+		"  -             the happy face: no firewall\n"
+		"  sDH, lDH, bDH seeded, own KUID looking or bootstrapping DHT\n"
+		"  A or P        active or passive DHT mode\n"
+		"  UP or LF      ultrapeer or leaf mode\n";
 }
 
 /* vi: set ts=4 sw=4 cindent: */

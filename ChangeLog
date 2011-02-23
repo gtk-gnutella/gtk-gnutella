@@ -1,4 +1,4 @@
-[Stopped @ r18471]
+[Stopped @ r18831]
 
 New Features:
 - Ported code to Windows.
@@ -6,6 +6,7 @@ New Features:
 - Added a "log" command to the shell to manage logfiles.
 - Added --gdb-on-crash switch, auto-activated when no core dumps are possible.
 - Configures a crash directory as ~/.gtk-gnutella/crashes
+- [GTK] Added visual feedback for UPnP and NAT-PMP configuration status.
 
 Improvements:
 - Better handling of uploading servers that also publish in the DHT.
@@ -21,6 +22,9 @@ Improvements:
   stripped from filenames anymore.
 - Trailing spaces and periods are stripped from filenames because Windows
   does not like them.
+- [GTK] Added visual feedback icon for the DHT status.
+- [GTK] Show green/yellow/red uploading status icons indicating increasing
+  warning levels after which we declare that uploads are stalling.
 
 Bug Fixes:
 - Prevented random crash at shutdown time (improper cleanup ordering).
@@ -66,6 +70,7 @@ Under the Hood:
 - Implemented DHT attack-prevention rules to guard against Sybil attacks.
 - Added arc4random() default implementation for systems without it.
 - Robustified query hit parsing so that we can filter out invalid hits.
+- [GTK2] Completely migrated GtkFileSelection to GtkFileChooser.
 
 # v 0.96.8   2010-03-21  [stable]
 
