@@ -54,6 +54,7 @@ RCSID("$Id$")
 #include "dmesh.h"
 #include "gnet_stats.h"
 #include "fileinfo.h"
+#include "settings.h"	/* For get_average_servent_uptime() */
 
 #include "dht/storage.h"
 
@@ -552,6 +553,7 @@ publisher_handle(struct publisher_entry *pe)
 	gboolean is_partial = FALSE;
 	int alt_locs;
 	time_delta_t min_uptime;
+	guint32 avg_uptime;
 
 	publisher_check(pe);
 	g_assert(NULL == pe->publish_ev);
@@ -625,11 +627,13 @@ publisher_handle(struct publisher_entry *pe)
 	if (is_partial)
 		min_uptime *= 2;
 
-	if (GNET_PROPERTY(average_servent_uptime) < UNSIGNED(min_uptime)) {
-		time_delta_t w = min_uptime - GNET_PROPERTY(average_servent_uptime);
+	avg_uptime = get_average_servent_uptime(tm_time());
 
-		w = MAX(w, PUBLISH_BUSY);
-		publisher_retry(pe, w, "minimum average uptime not reached yet");
+	if (avg_uptime < UNSIGNED(min_uptime)) {
+		time_delta_t delay = min_uptime - avg_uptime;
+
+		delay = MAX(delay, PUBLISH_BUSY);
+		publisher_retry(pe, delay, "minimum average uptime not reached yet");
 		return;
 	}
 
