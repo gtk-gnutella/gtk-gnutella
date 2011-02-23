@@ -99,6 +99,11 @@ static struct {
 	struct trace *base;			/**< Array base */
 	size_t size;				/**< Amount of entries allocated */
 	size_t count;				/**< Amount of entries held */
+	unsigned fresh:1;			/**< Symbols loaded via nm parsing */
+	unsigned indirect:1;		/**< Symbols loaded via nm pre-computed file */
+	unsigned stale:1;			/**< Pre-computed nm file was stale */
+	unsigned mismatch:1;		/**< Symbol mismatches were identified */
+	unsigned garbage:1;			/**< Symbols are probably pure garbage */
 } trace_array;
 
 /**
@@ -455,6 +460,13 @@ trace_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
  * Attempt to transform a PC (Program Counter) address into a symbolic name,
  * showing the function name and the offset within that routine.
  *
+ * When the symbols are probable garbage, the name has a leading '?', and
+ * the hexadecimal address follows the name between parenthesis.
+ *
+ * When the symbols may be inaccurate, the name has a leading '!'.
+ *
+ * When the symbols were loaded from a stale source, the name has a leading '~'.
+ *
  * The way formatting is done allows this routine to be used from a
  * signal handler.
  *
@@ -479,8 +491,36 @@ trace_name(const void *pc, gboolean offset)
 		if (NULL == t || &trace_array.base[trace_array.count - 1] == t) {
 			trace_fmt_pointer(buf, sizeof buf, pc);
 		} else {
-			trace_fmt_name(buf, sizeof buf, t->name,
+			size_t off = 0;
+
+			if (trace_array.garbage) {
+				buf[0] = '?';
+				off = 1;
+			} else if (trace_array.mismatch) {
+				buf[0] = '!';
+				off = 1;
+			} else if (trace_array.stale) {
+				buf[0] = '~';
+				off = 1;
+			}
+
+			trace_fmt_name(&buf[off], sizeof buf - off, t->name,
 				offset ? ptr_diff(pc, t->start) : 0);
+
+			/*
+			 * If symbols are garbage, add the hexadecimal pointer to the
+			 * name so that we have a little chance of figuring out what
+			 * was the routine.
+			 */
+
+			if (trace_array.garbage) {
+				char ptr[POINTER_BUFLEN + CONST_STRLEN(" (0x)")];
+
+				g_strlcpy(ptr, " (0x", sizeof ptr);
+				pointer_to_string_buf(pc, &ptr[4], sizeof ptr - 4);
+				clamp_strcat(ptr, sizeof ptr, ")");
+				clamp_strcat(buf, sizeof buf, ptr);
+			}
 		}
 	}
 
@@ -511,6 +551,86 @@ trace_atom(struct nm_parser *ctx, const char *name)
 	}
 
 	return result;
+}
+
+#define FN(x)	{ (void *) x, STRINGIFY(x) }
+
+static void stack_print(FILE *f, void * const *stack, size_t count);
+extern int main(int argc, char **argv);
+
+/**
+ * Known symbols that we want to check.
+ */
+static struct {
+	const void *fn;				/**< Function address */
+	const char *name;			/**< Function name */
+} trace_known_symbols[] = {
+	FN(concat_strings),
+	FN(halloc_init),
+	FN(hash_table_new_full_real),
+	FN(is_strprefix),
+	FN(main),
+	FN(make_pathname),
+	FN(omalloc0),
+	FN(pointer_to_string_buf),
+	FN(s_warning),
+	FN(s_info),
+	FN(signal_set),
+	FN(stack_print),
+	FN(trace_atom),
+	FN(trace_remove),
+	FN(vmm_init),
+};
+
+#undef FN
+
+/**
+ * Check whether symbols that need to be defined in the program (either because
+ * they are well-known like main() or used within this file) are consistent
+ * with the symbols we loaded.
+ *
+ * Sets trace_array.mismatch if we find at least 1 mismatch.
+ * Sets trace_array.garbage if we find more than half mismatches.
+ */
+static void
+trace_check(void)
+{
+	size_t matching = 0;
+	size_t mismatches;
+	size_t i;
+
+	if (0 == trace_array.count)
+		return;
+
+	for (i = 0; i < G_N_ELEMENTS(trace_known_symbols); i++) {
+		struct trace *t;
+		const void *pc = trace_known_symbols[i].fn;
+
+		t = trace_lookup(pc);
+
+		if (t != NULL) {
+			const char *name = trace_known_symbols[i].name;
+			if (0 == strcmp(name, t->name))
+				matching++;
+		}
+	}
+
+	g_assert(size_is_non_negative(matching));
+	g_assert(matching <= G_N_ELEMENTS(trace_known_symbols));
+
+	mismatches = G_N_ELEMENTS(trace_known_symbols) - matching;
+
+	if (mismatches != 0) {
+		if (mismatches >= G_N_ELEMENTS(trace_known_symbols) / 2) {
+			trace_array.garbage = TRUE;
+			s_warning("loaded symbols are %s",
+				G_N_ELEMENTS(trace_known_symbols) == mismatches ?
+					"pure garbage" : "highly unreliable");
+		} else {
+			trace_array.mismatch = TRUE;
+			s_warning("loaded symbols are partially inaccurate");
+		}
+	}
 }
 
 /**
@@ -563,6 +683,8 @@ stacktrace_open_symbols(const char *exe, const char *nm)
 	filestat_t ebuf, nbuf;
 	FILE *f;
 
+	trace_array.stale = FALSE;
+
 	if (-1 == stat(nm, &nbuf)) {
 		s_warning("can't stat \"%s\": %s", nm, g_strerror(errno));
 		return NULL;
@@ -570,15 +692,18 @@ stacktrace_open_symbols(const char *exe, const char *nm)
 
 	if (-1 == stat(exe, &ebuf)) {
 		s_warning("can't stat \"%s\": %s", exe, g_strerror(errno));
-		return NULL;
+		trace_array.stale = TRUE;
+		goto open_file;
 	}
 
 	if (delta_time(ebuf.st_mtime, nbuf.st_mtime) > 0) {
 		s_warning("executable \"%s\" more recent than symbol file \"%s\"",
 			exe, nm);
-		return NULL;
+		trace_array.stale = TRUE;
+		/* FALL THROUGH */
 	}
 
+open_file:
 	f = fopen(nm, is_running_on_mingw() ? "rb" : "r");
 
 	if (NULL == f)
@@ -589,6 +714,17 @@ stacktrace_open_symbols(const char *exe, const char *nm)
 
 /**
  * Load symbols from the executable we're running.
+ *
+ * Symbols are loaded even if the executable is not "fresh" or if the
+ * "gtk-gnutella.nm" file is older than the executable.  The rationale is
+ * that it is better to have some symbols than none, in the hope that the
+ * ones we list will be roughly correct.
+ *
+ * In any case, stale or un-fresh symbols will be clearly marked in the
+ * stack traces we emit, so that there cannot be any doubt later one when
+ * we analyze stacks and they seem inconsistent or impossible.  The only
+ * limitation is that we cannot know which symbols are correct, so all symbols
+ * will be flagged as doubtful when we detect the slightest inconsistency.
  */
 static void
 load_symbols(const char *path, const  char *lpath)
@@ -611,6 +747,8 @@ load_symbols(const char *path, const  char *lpath)
 
 		if (NULL == f)
 			goto done;
+
+		trace_array.indirect = TRUE;
 	}
 #else	/* !MINGW32 */
 	/*
@@ -632,6 +770,8 @@ load_symbols(const char *path, const  char *lpath)
 			s_warning("can't run \"%s\": %s", tmp, g_strerror(errno));
 			goto done;
 		}
+
+		trace_array.fresh = !trace_array.stale;
 	}
 #endif	/* MINGW32 */
 
@@ -656,12 +796,15 @@ retry:
 		char *nm = make_pathname(ARCHLIB_EXP, NM_FILE);
 
 		s_warning("no symbols loaded, trying with pre-computed \"%s\"", nm);
+		trace_array.fresh = FALSE;
 		f = stacktrace_open_symbols(path, nm);
 		retried = TRUE;
 		HFREE_NULL(nm);
 
-		if (f != NULL)
+		if (f != NULL) {
+			trace_array.indirect = TRUE;
 			goto retry;
+		}
 
 		/* FALL THROUGH */
 	}
@@ -672,6 +815,7 @@ done:
 	s_info("loaded %u symbols for \"%s\"", (unsigned) trace_array.count, lpath);
 
 	trace_sort();
+	trace_check();
 }
 
 /**
@@ -871,10 +1015,18 @@ stacktrace_load_symbols(void)
 			goto error;
 		}
 
+		/*
+		 * Symbols are loaded if the program has been tampered with, but
+		 * the symbols are marked as stale.
+		 */
+
 		if (buf.st_mtime != program_mtime) {
 			s_warning("executable file \"%s\" has been tampered with",
 				program_path);
-			goto error;
+
+			trace_array.stale = TRUE;
+
+			/* FALL THROUGH */
 		}
 
 		load_symbols(program_path, local_path);
