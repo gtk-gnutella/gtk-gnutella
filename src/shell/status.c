@@ -140,10 +140,10 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		}
 
 		if (dht_enabled()) {
+			dht = empty;
 			switch ((enum dht_bootsteps) GNET_PROPERTY(dht_boot_status)) {
 			case DHT_BOOT_NONE:
 			case DHT_BOOT_SHUTDOWN:
-				dht = empty;
 				break;
 			case DHT_BOOT_SEEDED:
 				dht = "sDH ";
