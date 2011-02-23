@@ -81,6 +81,7 @@ RCSID("$Id$")
 #define PUBLISH_POPULAR		10800	/**< 3 hours of delay for popular files */
 #define PUBLISH_POPULAR_MAX	604800	/**< 1 week max delay for popular files */
 #define PUBLISH_BUSY		600		/**< Retry after 10 minutes */
+#define PUBLISH_TRANSIENT	7200	/**< less than 2 hours => transient node */
 #define PUBLISH_DMESH_MAX	5		/**< File popularity by dmesh entry count */
 #define PUBLISH_PARTIAL_MAX	1		/**< Partial file popularity (dmesh) */
 
@@ -550,6 +551,7 @@ publisher_handle(struct publisher_entry *pe)
 	shared_file_t *sf;
 	gboolean is_partial = FALSE;
 	int alt_locs;
+	time_delta_t min_uptime;
 
 	publisher_check(pe);
 	g_assert(NULL == pe->publish_ev);
@@ -604,6 +606,30 @@ publisher_handle(struct publisher_entry *pe)
 		(!sha1_hash_available(sf) || !sha1_hash_is_uptodate(sf))
 	) {
 		publisher_retry(pe, PUBLISH_BUSY, "SHA-1 of file unknown yet");
+		return;
+	}
+
+	/*
+	 * Look whether this node has a sufficient average uptime.
+	 *
+	 * We're stricter to publish partial files because we want to favor
+	 * publishing of full files in the DHT, and the benefits of publishing
+	 * partial entries come only if we're up for a long enough time.
+	 *
+	 * Since publishing imposes lookup traffic in the DHT, it is not efficient
+	 * to have transient nodes publish file sharing information because this
+	 * will likely never be useful.
+	 */
+
+	min_uptime = PUBLISH_TRANSIENT;
+	if (is_partial)
+		min_uptime *= 2;
+
+	if (GNET_PROPERTY(average_servent_uptime) < UNSIGNED(min_uptime)) {
+		time_delta_t w = min_uptime - GNET_PROPERTY(average_servent_uptime);
+
+		w = MAX(w, PUBLISH_BUSY);
+		publisher_retry(pe, w, "minimum average uptime not reached yet");
 		return;
 	}
 
