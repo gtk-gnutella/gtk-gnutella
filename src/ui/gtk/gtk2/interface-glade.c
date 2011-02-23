@@ -1465,12 +1465,12 @@ create_main_window (void)
   GtkWidget *eventbox9;
   GtkWidget *image_offline;
   GtkWidget *image_online;
-  GtkWidget *statusbar;
   GtkWidget *hbox_port_mapping;
   GtkWidget *eventbox_port_mapping_possible;
   GtkWidget *image_port_mapping_possible;
   GtkWidget *eventbox_port_mapping_successful;
   GtkWidget *image_port_mapping_successful;
+  GtkWidget *statusbar;
   GtkWidget *hbox211;
   GtkWidget *eventbox_image_chip;
   GtkWidget *image_chip;
@@ -1526,13 +1526,13 @@ create_main_window (void)
   GtkWidget *image_dht_none;
   GtkWidget *eventbox_image_dht_seeded;
   GtkWidget *image_dht_seeded;
-  GtkWidget *eventbox_dht_own_kuid;
+  GtkWidget *eventbox_image_dht_own_kuid;
   GtkWidget *image_dht_own_kuid;
   GtkWidget *eventbox_image_dht_completing;
   GtkWidget *image_dht_completing;
   GtkWidget *eventbox_image_dht_active;
   GtkWidget *image_dht_active;
-  GtkWidget *eventbox_image_dht_own_kuid;
+  GtkWidget *eventbox_image_dht_passive;
   GtkWidget *image_dht_passive;
   GtkWidget *frame_statusbar_uptime;
   GtkWidget *alignment102;
@@ -2202,12 +2202,6 @@ create_main_window (void)
   gtk_widget_show (image_online);
   gtk_box_pack_start (GTK_BOX (hbox170), image_online, FALSE, TRUE, 0);
 
-  statusbar = gtk_statusbar_new ();
-  gtk_widget_set_name (statusbar, "statusbar");
-  gtk_widget_show (statusbar);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), statusbar, TRUE, TRUE, 0);
-  gtk_statusbar_set_has_resize_grip (GTK_STATUSBAR (statusbar), FALSE);
-
   hbox_port_mapping = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox_port_mapping, "hbox_port_mapping");
   gtk_widget_show (hbox_port_mapping);
@@ -2235,7 +2229,13 @@ create_main_window (void)
   gtk_widget_show (image_port_mapping_successful);
   gtk_container_add (GTK_CONTAINER (eventbox_port_mapping_successful), image_port_mapping_successful);
 
-  hbox211 = gtk_hbox_new (FALSE, 2);
+  statusbar = gtk_statusbar_new ();
+  gtk_widget_set_name (statusbar, "statusbar");
+  gtk_widget_show (statusbar);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), statusbar, TRUE, TRUE, 0);
+  gtk_statusbar_set_has_resize_grip (GTK_STATUSBAR (statusbar), FALSE);
+
+  hbox211 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox211, "hbox211");
   gtk_widget_show (hbox211);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox211, FALSE, TRUE, 0);
@@ -2546,16 +2546,16 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_dht_seeded), image_dht_seeded);
   gtk_misc_set_padding (GTK_MISC (image_dht_seeded), 1, 0);
 
-  eventbox_dht_own_kuid = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_dht_own_kuid, "eventbox_dht_own_kuid");
-  gtk_widget_show (eventbox_dht_own_kuid);
-  gtk_box_pack_start (GTK_BOX (hbox9344), eventbox_dht_own_kuid, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_dht_own_kuid, _("DHT looking up own KUID."), NULL);
+  eventbox_image_dht_own_kuid = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_own_kuid, "eventbox_image_dht_own_kuid");
+  gtk_widget_show (eventbox_image_dht_own_kuid);
+  gtk_box_pack_start (GTK_BOX (hbox9344), eventbox_image_dht_own_kuid, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_own_kuid, _("DHT looking up own KUID."), NULL);
 
   image_dht_own_kuid = create_pixmap (main_window, "star-blue.xpm");
   gtk_widget_set_name (image_dht_own_kuid, "image_dht_own_kuid");
   gtk_widget_show (image_dht_own_kuid);
-  gtk_container_add (GTK_CONTAINER (eventbox_dht_own_kuid), image_dht_own_kuid);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_own_kuid), image_dht_own_kuid);
   gtk_misc_set_padding (GTK_MISC (image_dht_own_kuid), 1, 0);
 
   eventbox_image_dht_completing = gtk_event_box_new ();
@@ -2582,16 +2582,16 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_dht_active), image_dht_active);
   gtk_misc_set_padding (GTK_MISC (image_dht_active), 1, 0);
 
-  eventbox_image_dht_own_kuid = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_image_dht_own_kuid, "eventbox_image_dht_own_kuid");
-  gtk_widget_show (eventbox_image_dht_own_kuid);
-  gtk_box_pack_start (GTK_BOX (hbox9344), eventbox_image_dht_own_kuid, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_own_kuid, _("DHT up, passive mode."), NULL);
+  eventbox_image_dht_passive = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_dht_passive, "eventbox_image_dht_passive");
+  gtk_widget_show (eventbox_image_dht_passive);
+  gtk_box_pack_start (GTK_BOX (hbox9344), eventbox_image_dht_passive, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_dht_passive, _("DHT up, passive mode."), NULL);
 
   image_dht_passive = create_pixmap (main_window, "star-red.xpm");
   gtk_widget_set_name (image_dht_passive, "image_dht_passive");
   gtk_widget_show (image_dht_passive);
-  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_own_kuid), image_dht_passive);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_dht_passive), image_dht_passive);
   gtk_misc_set_padding (GTK_MISC (image_dht_passive), 1, 0);
 
   frame_statusbar_uptime = gtk_frame_new (NULL);
@@ -2821,12 +2821,12 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, eventbox9, "eventbox9");
   GLADE_HOOKUP_OBJECT (main_window, image_offline, "image_offline");
   GLADE_HOOKUP_OBJECT (main_window, image_online, "image_online");
-  GLADE_HOOKUP_OBJECT (main_window, statusbar, "statusbar");
   GLADE_HOOKUP_OBJECT (main_window, hbox_port_mapping, "hbox_port_mapping");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_port_mapping_possible, "eventbox_port_mapping_possible");
   GLADE_HOOKUP_OBJECT (main_window, image_port_mapping_possible, "image_port_mapping_possible");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_port_mapping_successful, "eventbox_port_mapping_successful");
   GLADE_HOOKUP_OBJECT (main_window, image_port_mapping_successful, "image_port_mapping_successful");
+  GLADE_HOOKUP_OBJECT (main_window, statusbar, "statusbar");
   GLADE_HOOKUP_OBJECT (main_window, hbox211, "hbox211");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_chip, "eventbox_image_chip");
   GLADE_HOOKUP_OBJECT (main_window, image_chip, "image_chip");
@@ -2882,13 +2882,13 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image_dht_none, "image_dht_none");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_dht_seeded, "eventbox_image_dht_seeded");
   GLADE_HOOKUP_OBJECT (main_window, image_dht_seeded, "image_dht_seeded");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox_dht_own_kuid, "eventbox_dht_own_kuid");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_dht_own_kuid, "eventbox_image_dht_own_kuid");
   GLADE_HOOKUP_OBJECT (main_window, image_dht_own_kuid, "image_dht_own_kuid");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_dht_completing, "eventbox_image_dht_completing");
   GLADE_HOOKUP_OBJECT (main_window, image_dht_completing, "image_dht_completing");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_dht_active, "eventbox_image_dht_active");
   GLADE_HOOKUP_OBJECT (main_window, image_dht_active, "image_dht_active");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_dht_own_kuid, "eventbox_image_dht_own_kuid");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_dht_passive, "eventbox_image_dht_passive");
   GLADE_HOOKUP_OBJECT (main_window, image_dht_passive, "image_dht_passive");
   GLADE_HOOKUP_OBJECT (main_window, frame_statusbar_uptime, "frame_statusbar_uptime");
   GLADE_HOOKUP_OBJECT (main_window, alignment102, "alignment102");

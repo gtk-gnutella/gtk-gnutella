@@ -3372,18 +3372,6 @@ http://maxmind.com/</property>
 	  </child>
 
 	  <child>
-	    <widget class="GtkStatusbar" id="statusbar">
-	      <property name="visible">True</property>
-	      <property name="has_resize_grip">False</property>
-	    </widget>
-	    <packing>
-	      <property name="padding">0</property>
-	      <property name="expand">True</property>
-	      <property name="fill">True</property>
-	    </packing>
-	  </child>
-
-	  <child>
 	    <widget class="GtkHBox" id="hbox_port_mapping">
 	      <property name="visible">True</property>
 	      <property name="homogeneous">False</property>
@@ -3447,6 +3435,18 @@ http://maxmind.com/</property>
 	  </child>
 
 	  <child>
+	    <widget class="GtkStatusbar" id="statusbar">
+	      <property name="visible">True</property>
+	      <property name="has_resize_grip">False</property>
+	    </widget>
+	    <packing>
+	      <property name="padding">0</property>
+	      <property name="expand">True</property>
+	      <property name="fill">True</property>
+	    </packing>
+	  </child>
+
+	  <child>
 	    <placeholder/>
 	  </child>
 
@@ -3463,7 +3463,7 @@ http://maxmind.com/</property>
 	      <property name="border_width">2</property>
 	      <property name="visible">True</property>
 	      <property name="homogeneous">False</property>
-	      <property name="spacing">2</property>
+	      <property name="spacing">0</property>
 
 	      <child>
 		<widget class="GtkEventBox" id="eventbox_image_chip">
@@ -4143,7 +4143,7 @@ http://maxmind.com/</property>
 		  </child>
 
 		  <child>
-		    <widget class="GtkEventBox" id="eventbox_dht_own_kuid">
+		    <widget class="GtkEventBox" id="eventbox_image_dht_own_kuid">
 		      <property name="visible">True</property>
 		      <property name="tooltip" translatable="yes">DHT looking up own KUID.</property>
 		      <property name="visible_window">True</property>
@@ -4218,7 +4218,7 @@ http://maxmind.com/</property>
 		  </child>
 
 		  <child>
-		    <widget class="GtkEventBox" id="eventbox_image_dht_own_kuid">
+		    <widget class="GtkEventBox" id="eventbox_image_dht_passive">
 		      <property name="visible">True</property>
 		      <property name="tooltip" translatable="yes">DHT up, passive mode.</property>
 		      <property name="visible_window">True</property>
