@@ -436,8 +436,14 @@ shell_help_download(int argc, const char *argv[])
 		"download add URL\n"
 		"download list\n"
 		"download [abort|pause|resume] ID\n"
-		"download show ID [filename|size|downloaded|id|paused|sha1|tth]\n"
+		"download show ID [filename|pathname|size|sha1|tth|bitprint]\n"
+		"download show ID [created|modified|downloaded|uploaded]\n"
+		"download show ID [paused|seeding|verifying|finished|complete]\n"
+		"download show ID [magnet|id]\n"
 		"download rename ID filename\n"
+		"\n"
+		"multiple attributes can be requested with a \"download show ID\"\n"
+		"such as \"download show ID filename size magnet\"\n"
 		;
 	}
 }
