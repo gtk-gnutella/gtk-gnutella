@@ -38,6 +38,7 @@
 
 #include "common.h"
 
+#include "lib/gnet_host.h"
 #include "lib/host_addr.h"
 #include "lib/misc.h"
 #include "lib/sequence.h"
@@ -87,7 +88,7 @@ void magnet_add_search(struct magnet_resource *res, const char *search);
 void magnet_add_source_by_url(struct magnet_resource *res, const char *url);
 void magnet_add_sha1_source(struct magnet_resource *res,
 		const struct sha1 *sha1, const host_addr_t addr, const guint16 port,
-		const struct guid *);
+		const struct guid *guid, const gnet_host_vec_t *proxies);
 
 /* Extensions */
 void magnet_set_parq_id(struct magnet_resource *res, const char *parq_id);

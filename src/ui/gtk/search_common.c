@@ -3953,15 +3953,11 @@ search_gui_magnet_add_source(struct magnet_resource *magnet, record_t *record)
 	rs = record->results_set;
 
 	if (!(ST_FIREWALL & rs->status)) {
-		magnet_add_sha1_source(magnet, record->sha1, rs->addr, rs->port, NULL);
-	}
-	if (rs->proxies) {
-		gnet_host_t host;
-
-		host = gnet_host_vec_get(rs->proxies, 0);
+		magnet_add_sha1_source(magnet, record->sha1, rs->addr, rs->port,
+			NULL, NULL);
+	} else {
 		magnet_add_sha1_source(magnet, record->sha1,
-			gnet_host_get_addr(&host), gnet_host_get_port(&host),
-			rs->guid);
+			ipv4_unspecified, 0, rs->guid, rs->proxies);
 	}
 	if (record->alt_locs) {
 		gint i, n;
@@ -3974,7 +3970,8 @@ search_gui_magnet_add_source(struct magnet_resource *magnet, record_t *record)
 
 			host = gnet_host_vec_get(record->alt_locs, i);
 			magnet_add_sha1_source(magnet, record->sha1,
-				gnet_host_get_addr(&host), gnet_host_get_port(&host), NULL);
+				gnet_host_get_addr(&host), gnet_host_get_port(&host),
+				NULL, NULL);
 		}
 	}
 }

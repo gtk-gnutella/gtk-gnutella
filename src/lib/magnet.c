@@ -39,13 +39,13 @@
 
 RCSID("$Id$")
 
+#include "magnet.h"
 #include "ascii.h"
 #include "atoms.h"
 #include "concat.h"
 #include "glib-missing.h"
 #include "gnet_host.h"
 #include "halloc.h"
-#include "magnet.h"
 #include "parse.h"
 #include "sequence.h"
 #include "str.h"
@@ -707,14 +707,15 @@ magnet_add_source_by_url(struct magnet_resource *res, const char *url)
 
 void
 magnet_add_sha1_source(struct magnet_resource *res, const struct sha1 *sha1,
-	const host_addr_t addr, const guint16 port, const struct guid *guid)
+	const host_addr_t addr, const guint16 port, const struct guid *guid,
+	const gnet_host_vec_t *proxies)
 {
 	struct magnet_source *s;
 
 	g_return_if_fail(res);
 	g_return_if_fail(sha1);
 	g_return_if_fail(!res->sha1 || sha1_eq(res->sha1, sha1));
-	g_return_if_fail(port > 0);
+	g_return_if_fail(guid != NULL || port_is_valid(port));
 
 	if (!res->sha1) {
 		magnet_set_sha1(res, sha1);
@@ -725,6 +726,22 @@ magnet_add_sha1_source(struct magnet_resource *res, const struct sha1 *sha1,
 	s->port = port;
 	s->sha1 = atom_sha1_get(sha1);
 	s->guid = guid ? atom_guid_get(guid) : NULL;
+
+	if (proxies != NULL) {
+		int i, n;
+		GSList *sl = NULL;
+
+		n = gnet_host_vec_count(proxies);
+		for (i = 0; i < n; i++) {
+			gnet_host_t host;
+
+			host = gnet_host_vec_get(proxies, i);
+			sl = g_slist_prepend(sl, gnet_host_dup(&host));
+		}
+
+		s->proxies = sl;
+	}
+
 	magnet_add_source(res, s);
 }
 

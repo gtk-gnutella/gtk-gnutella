@@ -1,5 +1,3 @@
-[Stopped @ r18831]
-
 New Features:
 - Ported code to Windows.
 - Added UPnP and NAT-PMP support.
@@ -36,6 +34,7 @@ Bug Fixes:
 - OOB proxying code was not considering MUID collisions, causing memory leaks.
 - Was not always reconnecting to other Gnutella nodes when missing slots.
 - Fixed old bug triggered by setting "listen_port" to 1 multiple times.
+- Magnets created from search results did not include push proxies.
 - [GTK2] Was not saving tree view column positions in the statistics pane.
 - [GTK2] Fixed broken DND so that files can be drag 'n' dropped from
   local searches and the download view to other desktop apps now.
