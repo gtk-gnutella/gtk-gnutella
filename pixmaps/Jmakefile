@@ -47,9 +47,9 @@ PIXMAPS = \
 	firewall_udp.xpm \
 	firewall_udp_punchable.xpm \
 	freeze.xpm \
-	icon.xpm \
 	icon.16x16.xpm \
 	icon.32x32.xpm \
+	icon.xpm \
 	leaf.xpm \
 	legacy.xpm \
 	magnet.16x16.png \
@@ -60,10 +60,20 @@ PIXMAPS = \
 	online.xpm \
 	save.xpm \
 	smallserver.xpm \
+	star-black.xpm \
+	star-blue.xpm \
+	star-green.xpm \
+	star-red.xpm \
+	star-violet.xpm \
+	star-yellow.xpm \
 	stock_form-time-field-16.xpm \
 	thaw.xpm \
 	ultra.xpm \
+	upload-red.xpm \
+	upload-yellow.xpm \
 	upload.xpm \
+	upnp-unusable.xpm \
+	upnp.xpm \
 	warning.xpm
 
 
