@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-30]
-: $X-Id: Jmake.tmpl 30 2009-10-28 07:45:28Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-94]
+: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -50,12 +50,12 @@ RM = $rm -f
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
+# $X-Id: Jmake.rules 94 2011-02-10 14:06:58Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 17125 2009-10-28 07:51:14Z rmanfredi $
+# $X-Id: Jmakefile 18839 2011-02-25 12:32:03Z rmanfredi $
 
 PIXMAPS = \
 	arrow_down.xpm \
@@ -77,9 +77,9 @@ PIXMAPS = \
 	firewall_udp.xpm \
 	firewall_udp_punchable.xpm \
 	freeze.xpm \
-	icon.xpm \
 	icon.16x16.xpm \
 	icon.32x32.xpm \
+	icon.xpm \
 	leaf.xpm \
 	legacy.xpm \
 	magnet.16x16.png \
@@ -90,10 +90,20 @@ PIXMAPS = \
 	online.xpm \
 	save.xpm \
 	smallserver.xpm \
+	star-black.xpm \
+	star-blue.xpm \
+	star-green.xpm \
+	star-red.xpm \
+	star-violet.xpm \
+	star-yellow.xpm \
 	stock_form-time-field-16.xpm \
 	thaw.xpm \
 	ultra.xpm \
+	upload-red.xpm \
+	upload-yellow.xpm \
 	upload.xpm \
+	upnp-unusable.xpm \
+	upnp.xpm \
 	warning.xpm
 
 all::
@@ -163,6 +173,8 @@ tags::
 
 local_clobber::
 	$(RM) tags
+
+depend::
 
 ########################################################################
 # Empty rules for directories with no sub-directories -- do not edit
