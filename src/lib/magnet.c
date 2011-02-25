@@ -278,54 +278,6 @@ magnet_parse_location(const char *uri, const char **error_str)
 }
 
 static gboolean
-magnet_parse_legacy_addr_list(const char *proxies,
-	const char **endptr, GSList **list, const char **error_str)
-{
-	GSList *sl = NULL;
-	const char *p;
-
-	clear_error_str(&error_str);
-	g_return_val_if_fail(proxies, FALSE);
-
-	p = proxies;
-
-	if (*p != '{') {
-		*endptr = p;
-		*error_str = "Expected push-proxies list";
-		return FALSE;
-	}
-
-	p++;
-
-	while (*p != '}') {
-		host_addr_t addr;
-		guint16 port;
-		gnet_host_t *host;
-
-		p = magnet_parse_host_port(p, &addr, &port, NULL, NULL, error_str);
-		if (NULL == p)
-			goto cleanup;
-
-		host = gnet_host_new(addr, port);
-		sl = g_slist_prepend(sl, host);		/* Will reverse list below */
-
-		if (*p == ',')
-			p++;
-	}
-
-	sl = g_slist_reverse(sl);		/* Keep order of listed push-proxies */
-	p++;
-	*endptr = p;
-
-	*list = sl;
-	return TRUE;
-
-cleanup:
-	free_proxies_list(sl);
-	return FALSE;
-}
-
-static gboolean
 magnet_parse_addr_list(const char *proxies,
 	const char **endptr, GSList **list, const char **error_str)
 {
@@ -379,20 +331,6 @@ magnet_parse_proxy_location(const char *uri, const char **error_str)
 
 	if (*p == '/') {
 		endptr = p;
-		goto path;
-	}
-
-	/*
-	 * Legacy push:// support: push-proxy address given in a set.
-	 * We have a list of push-proxies: {addr1:port,addr2:port}.
-	 * The list may be empty if we have no known push proxies.
-	 *
-	 * FIXME: remove this in 0.96.7.	--RAM, 2009-03-22
-	 */
-
-	if (p[0] == ':' && p[1] == '{') {
-		if (!magnet_parse_legacy_addr_list(uri+1, &endptr, &sl, error_str))
-			return NULL;
 		goto path;
 	}
 
