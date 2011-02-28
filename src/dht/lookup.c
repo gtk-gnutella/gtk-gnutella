@@ -1841,6 +1841,22 @@ lookup_path_add(nlookup_t *nl, const knode_t *kn)
 }
 
 /**
+ * Reset closest node values when ``kn'' is being removed.
+ */
+static void
+lookup_reset_closest(nlookup_t *nl, const knode_t *kn)
+{
+	lookup_check(nl);
+	knode_check(kn);
+
+	if (nl->closest == kn)
+		nl->closest = patricia_closest(nl->ball, nl->kuid);
+
+	if (nl->prev_closest == kn)
+		nl->prev_closest = patricia_closest(nl->path, nl->kuid);
+}
+
+/**
  * Remove a node from the path.
  */
 static void
@@ -1867,11 +1883,7 @@ lookup_path_remove(nlookup_t *nl, knode_t *kn)
 	if (patricia_remove(nl->ball, kn->id))
 		knode_refcnt_dec(kn);
 
-	if (nl->closest == kn)
-		nl->closest = patricia_closest(nl->ball, nl->kuid);
-
-	if (nl->prev_closest == kn)
-		nl->prev_closest = patricia_closest(nl->path, nl->kuid);
+	lookup_reset_closest(nl, kn);
 }
 
 struct kl_item {
@@ -3735,7 +3747,7 @@ lookup_iterate(nlookup_t *nl)
 	 * the proper message (either FIND_NODE or FIND_VALUE).
 	 */
 
-	reason_len = GNET_PROPERTY(dht_lookup_debug) ? sizeof reason_len : 0;
+	reason_len = GNET_PROPERTY(dht_lookup_debug) ? sizeof reason : 0;
 	iter = patricia_metric_iterator_lazy(nl->shortlist, nl->kuid, TRUE);
 
 	nl->flags |= NL_F_SENDING;		/* Protect against synchronous UDP drops */
@@ -3792,6 +3804,7 @@ lookup_iterate(nlookup_t *nl)
 
 	GM_SLIST_FOREACH(ignored, sl) {
 		knode_t *kn = sl->data;
+		lookup_reset_closest(nl, kn);	/* In case kn was the closest node */
 		knode_free(kn);
 	}
 	g_slist_free(ignored);
