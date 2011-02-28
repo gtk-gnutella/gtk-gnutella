@@ -134,6 +134,22 @@ log_thread_alloc(void)
 }
 
 /**
+ * Emit log message.
+ */
+static void
+log_fprint(FILE *f, const struct tm *ct, GLogLevelFlags level,
+	const char *prefix, const char *msg)
+{
+	fprintf(f, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n",
+		(TM_YEAR_ORIGIN + ct->tm_year) % 100,
+		ct->tm_mon + 1, ct->tm_mday,
+		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
+		(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
+		(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
+		msg);
+}
+
+/**
  * Safe logging to avoid recursion from the log handler, and safe to use
  * from a signal handler if needed, or from a concurrent thread with a
  * thread-private allocation chunk.
@@ -238,6 +254,8 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 					print_str(" (CRITICAL): back from raise(SIGBART)"); /* 1 */
 					print_str(" -- invoking crash_handler()\n");		/* 2 */
 					flush_err_str();
+					if (log_stdout_is_distinct())
+						flush_str(STDOUT_FILENO);
 
 					crash_handler(SIGABRT);
 
@@ -253,6 +271,8 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 					print_str(" (CRITICAL): back from crash_handler()"); /* 1 */
 					print_str(" -- exiting\n");		/* 2 */
 					flush_err_str();
+					if (log_stdout_is_distinct())
+						flush_str(STDOUT_FILENO);
 
 					exit(1);
 				}
@@ -349,17 +369,17 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			print_str(str_2c(msg));	/* 7 */
 			print_str("\n");		/* 8 */
 			flush_err_str();
+			if ((level & G_LOG_FLAG_FATAL) && log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
 		} else {
 			time_t now = tm_time_exact();
 			struct tm *ct = localtime(&now);
 
-			fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n",
-				(TM_YEAR_ORIGIN + ct->tm_year) % 100,
-				ct->tm_mon + 1, ct->tm_mday,
-				ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
-				(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
-				(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
-				str_2c(msg));
+			log_fprint(stderr, ct, level, prefix, str_2c(msg));
+
+			if ((level & G_LOG_FLAG_FATAL) && log_stdout_is_distinct()) {
+				log_fprint(stdout, ct, level, prefix, str_2c(msg));
+			}
 		}
 
 		if (
@@ -662,12 +682,11 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 		safer = control_escape(message);
 	}
 
-	fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n",
-		(TM_YEAR_ORIGIN + ct->tm_year) % 100, ct->tm_mon + 1, ct->tm_mday,
-		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
-		(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
-		(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
-		safer);
+	log_fprint(stderr, ct, level, prefix, safer);
+
+	if ((level & G_LOG_FLAG_FATAL) && log_stdout_is_distinct()) {
+		log_fprint(stdout, ct, level, prefix, safer);
+	}
 
 	if (
 		G_LOG_LEVEL_CRITICAL == loglvl ||
@@ -675,6 +694,11 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 		(level & (G_LOG_FLAG_RECURSION|G_LOG_FLAG_FATAL))
 	) {
 		stacktrace_where_sym_print_offset(stderr, 3);
+		if (log_stdout_is_distinct()) {
+			stacktrace_where_sym_print_offset(stdout, 3);
+			if (is_running_on_mingw())
+				fflush(stdout);		/* Unbuffering does not work on Windows */
+		}
 	}
 
 	in_log_handler = FALSE;
