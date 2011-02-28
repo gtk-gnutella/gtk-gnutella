@@ -44,6 +44,13 @@ oldrev=`grep Revision src/revision.h 2>/dev/null | head -n1 | cut -d' ' -f4`
 if test -d .svn; then
 	revnum=`svn info . 2>/dev/null | grep '^Revision' | \
 		head -n1 | cut -d' ' -f2`
+	if [ "x$revnum" = x ]; then
+		# No svn installed, grab the first digit below the "dir" key then
+		revnum=`awk '
+			BEGIN { s = 0; n = 1; }
+			/^dir/ { s = 1; }
+			/^[0-9]+/ { if (s && n) { print $1; n = 0;} }' .svn/entries`
+	fi
 else
 	revnum="$oldrev" # keep as is
 fi
