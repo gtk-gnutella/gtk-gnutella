@@ -5061,7 +5061,7 @@ node_is_authentic(const char *vendor, const header_t *head)
 		if (is_strcaseprefix(vendor, "limewire/")) {
 			return !header_get(head, "Bye-Packet") &&
 				header_get(head, "Vendor-Message") &&
-				header_get(head, "Content-Encoding");
+				header_get(head, "Accept-Encoding");
 		}
 	}
 
