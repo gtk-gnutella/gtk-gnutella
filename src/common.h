@@ -694,6 +694,7 @@ get_rcsid_string(void)	\
 	((guint32) (unsigned char) ((d) & 0xffU)))
 
 #include "casts.h"
+#include "lib/fast_assert.h"
 
 #endif /* _common_h_ */
 

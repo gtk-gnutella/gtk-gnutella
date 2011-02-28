@@ -39,8 +39,6 @@
 #ifndef _override_h_
 #define _override_h_
 
-#include "fast_assert.h"
-
 #include "malloc.h"		/* Must be the last header included */
 
 #endif /* _override_h_ */
