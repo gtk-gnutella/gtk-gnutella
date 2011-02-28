@@ -256,7 +256,6 @@ struct other_size {
 };
 
 static gboolean initialized;		/**< Whether dht_init() was called */
-static gboolean bootstrapping;		/**< Whether we are bootstrapping */
 static enum dht_bootsteps old_boot_status = DHT_BOOT_NONE;
 
 static struct kbucket *root = NULL;	/**< The root of the routing table tree. */
@@ -1421,8 +1420,6 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 			kuid_to_hex_string(kuid),
 			lookup_strerror(error));
 
-	bootstrapping = FALSE;
-
 	/*
 	 * Handle disabling of DHT whilst we were busy looking.
 	 */
@@ -1455,6 +1452,7 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 		dht_complete_bootstrap(LOOKUP_E_OK == error);
 	else {
 		kuid_t id;
+		gboolean started;
 
 		random_bytes(id.v, sizeof id.v);
 
@@ -1462,12 +1460,23 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 			g_debug("DHT improving bootstrap with random KUID is %s",
 			kuid_to_hex_string(&id));
 
-		bootstrapping =
-			NULL != lookup_find_node(&id, NULL, bootstrap_status, NULL);
+		started = NULL != lookup_find_node(&id, NULL, bootstrap_status, NULL);
 
 		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS,
-			bootstrapping ? DHT_BOOT_SEEDED : DHT_BOOT_NONE);
+			started ? DHT_BOOT_SEEDED : DHT_BOOT_NONE);
 	}
+}
+
+/**
+ * Is the DHT bootstrapping?
+ */
+static gboolean
+dht_is_bootstrapping(void)
+{
+	return
+		DHT_BOOT_COMPLETED == GNET_PROPERTY(dht_boot_status) ||
+		DHT_BOOT_COMPLETING == GNET_PROPERTY(dht_boot_status) ||
+		DHT_BOOT_OWN == GNET_PROPERTY(dht_boot_status);
 }
 
 /**
@@ -1476,13 +1485,11 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 static void
 dht_initiate_bootstrap(void)
 {
-	if (bootstrapping) {
+	if (dht_is_bootstrapping()) {
 		if (GNET_PROPERTY(dht_debug))
 			g_debug("DHT already bootstrapping, ignoring request to bootstrap");
 		return;
 	}
-
-	bootstrapping = TRUE;
 
 	if (GNET_PROPERTY(dht_debug))
 		g_debug("DHT attempting bootstrap -- looking for our own KUID");
@@ -1497,7 +1504,6 @@ dht_initiate_bootstrap(void)
 		if (GNET_PROPERTY(dht_debug))
 			g_debug("DHT bootstrapping impossible: routing table empty");
 
-		bootstrapping = FALSE;
 		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
 	} else {
 		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_OWN);
@@ -1531,11 +1537,9 @@ dht_attempt_bootstrap(void)
 				g_debug("DHT finalizing bootstrap -- looking for our own KUID");
 			lookup_find_node(our_kuid, NULL, NULL, NULL);
 		}
-		bootstrapping = FALSE;
-		return;
+	} else {
+		dht_initiate_bootstrap();
 	}
-
-	dht_initiate_bootstrap();
 }
 
 /**
@@ -3213,7 +3217,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	 * If we're no longer bootstrapped, restart the bootstrapping process.
 	 */
 
-	if (!dht_bootstrapped() && !bootstrapping)
+	if (!dht_bootstrapped())
 		dht_initiate_bootstrap();
 
 	/*
@@ -5070,7 +5074,7 @@ dht_bootstrap(host_addr_t addr, guint16 port)
 	 * are already in the process of looking up our own node ID.
 	 */
 
-	if (bootstrapping)
+	if (dht_is_bootstrapping())
 		return;				/* Hopefully we'll be bootstrapped soon */
 
 	if (GNET_PROPERTY(dht_debug))

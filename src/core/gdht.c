@@ -198,15 +198,55 @@ value_infostr(const lookup_val_rc_t *rc)
 }
 
 /**
+ * Callback when SHA1 lookup is initiated.
+ *
+ * @return TRUE if OK, FALSE if lookup must be aborted.
+ */
+static gboolean
+gdht_sha1_looking(const kuid_t *kuid, gpointer arg)
+{
+	struct sha1_lookup *slk = arg;
+	fileinfo_t *fi;
+
+	sha1_lookup_check(slk);
+	g_assert(slk->id == kuid);		/* They are atoms */
+
+	fi = file_info_by_guid(slk->fi_guid);	/* NULL if fileinfo was removed */
+	if (fi != NULL) {
+		return file_info_dht_query_starting(fi);
+	} else {
+		return FALSE;		/* No need to query */
+	}
+}
+
+/**
  * Callback when SHA1 lookup is unsuccessful.
  */
 static void
 gdht_sha1_not_found(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 {
 	struct sha1_lookup *slk = arg;
+	fileinfo_t *fi;
 
 	sha1_lookup_check(slk);
 	g_assert(slk->id == kuid);		/* They are atoms */
+
+	fi = file_info_by_guid(slk->fi_guid);	/* NULL if fileinfo was removed */
+	if (fi != NULL) {
+		gboolean launched;
+
+		switch (error) {
+		case LOOKUP_E_CANCELLED:
+		case LOOKUP_E_EMPTY_ROUTE:
+			launched = FALSE;
+			break;
+		default:
+			launched = TRUE;
+			break;
+		}
+
+		file_info_dht_query_completed(fi, launched, FALSE);
+	}
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_debug("DHT ALOC lookup for %s failed: %s",
@@ -469,6 +509,8 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 		gnet_stats_count_general(GNR_DHT_SUCCESSFUL_ALT_LOC_LOOKUPS, 1);
 	}
 
+	file_info_dht_query_completed(fi, TRUE, seen_foreign);
+
 cleanup:
 	gdht_free_sha1_lookup(slk, TRUE);
 }
@@ -477,7 +519,7 @@ cleanup:
  * Launch a SHA1 lookup in the DHT to collect alternate locations.
  */
 void
-gdht_find_sha1(const fileinfo_t *fi)
+gdht_find_sha1(fileinfo_t *fi)
 {
 	struct sha1_lookup *slk;
 
@@ -510,8 +552,10 @@ gdht_find_sha1(const fileinfo_t *fi)
 			kuid_to_hex_string(slk->id), kuid_to_string(slk->id), fi->pathname);
 
 	gm_hash_table_insert_const(sha1_lookups, slk->id, slk);
+	file_info_dht_query_queued(fi);
+
 	ulq_find_value(slk->id, DHT_VT_ALOC, 
-		gdht_sha1_found, gdht_sha1_not_found, slk);
+		gdht_sha1_found, gdht_sha1_looking, gdht_sha1_not_found, slk);
 }
 
 /**

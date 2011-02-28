@@ -106,6 +106,9 @@ void file_info_resume(fileinfo_t *);
 void file_info_changed(fileinfo_t *);
 fileinfo_t *file_info_by_guid(const struct guid *guid);
 void file_info_dht_query(const sha1_t *sha1);
+void file_info_dht_query_queued(fileinfo_t *fi);
+gboolean file_info_dht_query_starting(fileinfo_t *fi);
+void file_info_dht_query_completed(fileinfo_t *fi, gboolean l, gboolean f);
 
 shared_file_t *file_info_shared_sha1(const struct sha1 *sha1);
 size_t file_info_available(const fileinfo_t *fi, char *buf, size_t size);

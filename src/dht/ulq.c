@@ -119,6 +119,7 @@ struct ulq_item {
 			dht_value_type_t vtype;	/**< Type of value they want */
 		} fv;
 	} u;
+	lookup_cb_start_t start;		/**< Optional starting callback */
 	lookup_cb_err_t err;			/**< Error callback */
 	gpointer arg;					/**< Common callback opaque argument */
 };
@@ -177,8 +178,8 @@ ulq_item_check(const struct ulq_item *ui)
  * Allocate new ulq item.
  */
 static struct ulq_item *
-allocate_ulq_item(
-	lookup_type_t type, const kuid_t *kuid, lookup_cb_err_t err, gpointer arg)
+allocate_ulq_item(lookup_type_t type, const kuid_t *kuid,
+	lookup_cb_start_t start, lookup_cb_err_t err, gpointer arg)
 {
 	struct ulq_item *ui;
 
@@ -186,6 +187,7 @@ allocate_ulq_item(
 	ui->magic = ULQ_ITEM_MAGIC;
 	ui->type = type;
 	ui->kuid = kuid_get_atom(kuid);
+	ui->start = start;
 	ui->err = err;
 	ui->arg = arg;
 
@@ -411,6 +413,17 @@ ulq_launch(struct ulq *uq)
 	sched.pending--;
 
 	ulq_item_check(ui);
+
+	/*
+	 * If there is a "starting" callback, make sure it returns TRUE
+	 * before launching the request.
+	 */
+
+	if (ui->start != NULL && !(*ui->start)(ui->kuid, ui->arg)) {
+		(*ui->err)(ui->kuid, LOOKUP_E_CANCELLED, ui->arg);
+		free_ulq_item(ui);
+		return FALSE;
+	}
 
 	/*
 	 * We trap the ok and error callbacks so as to be notified when the
@@ -753,7 +766,7 @@ ulq_find_store_roots(const kuid_t *kuid, gboolean prioritary,
 
 	uq = ulq_get(LOOKUP_STORE, DHT_VT_BINARY, prioritary);
 
-	ui = allocate_ulq_item(LOOKUP_STORE,  kuid, error, arg);
+	ui = allocate_ulq_item(LOOKUP_STORE,  kuid, NULL, error, arg);
 	ui->u.fn.ok = ok;
 
 	ulq_putq(uq, ui);
@@ -764,7 +777,8 @@ ulq_find_store_roots(const kuid_t *kuid, gboolean prioritary,
  */
 void
 ulq_find_value(const kuid_t *kuid, dht_value_type_t type,
-	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg)
+	lookup_cbv_ok_t ok, lookup_cb_start_t start, lookup_cb_err_t error,
+	gpointer arg)
 {
 	struct ulq_item *ui;
 	struct ulq *uq;
@@ -774,7 +788,7 @@ ulq_find_value(const kuid_t *kuid, dht_value_type_t type,
 
 	uq = ulq_get(LOOKUP_VALUE, type, FALSE);
 
-	ui = allocate_ulq_item(LOOKUP_VALUE,  kuid, error, arg);
+	ui = allocate_ulq_item(LOOKUP_VALUE,  kuid, start, error, arg);
 	ui->u.fv.ok = ok;
 	ui->u.fv.vtype = type;
 
@@ -799,7 +813,7 @@ ulq_find_any_value(const kuid_t *kuid, dht_value_type_t queue_type,
 
 	uq = ulq_get(LOOKUP_VALUE, queue_type, FALSE);
 
-	ui = allocate_ulq_item(LOOKUP_VALUE,  kuid, error, arg);
+	ui = allocate_ulq_item(LOOKUP_VALUE,  kuid, NULL, error, arg);
 	ui->u.fv.ok = ok;
 	ui->u.fv.vtype = DHT_VT_ANY;	/* Generic type */
 

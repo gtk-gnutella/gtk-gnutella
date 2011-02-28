@@ -88,6 +88,10 @@ struct fileinfo_data {
 	unsigned finished:1;
 	unsigned seeding:1;
 
+	unsigned dht_lookup_running:1;
+	unsigned dht_lookup_pending:1;
+	unsigned dht_lookup_successful:1;
+
 	unsigned matched:1;
 
 	guint16 progress; /* 0..10000 (per ten thousands) */
@@ -1223,10 +1227,13 @@ fi_gui_file_fill_status(struct fileinfo_data *file)
 	file->modified = status.modified;
 	file->progress = file->size ? filesize_per_10000(file->size, file->done) : 0;
 
-	file->paused = 0 != status.paused;
-	file->complete = 0 != status.complete;
-	file->finished = 0 != status.finished;
-	file->seeding = 0 != status.seeding;
+	file->paused = status.paused;
+	file->complete = status.complete;
+	file->finished = status.finished;
+	file->seeding = status.seeding;
+	file->dht_lookup_running = status.dht_lookup_running;
+	file->dht_lookup_pending = status.dht_lookup_pending;
+	file->dht_lookup_successful = 0 != status.dht_values;
 
 	HFREE_NULL(file->status);	
 	file->status = h_strdup(guc_file_info_status_to_string(&status));
@@ -1665,13 +1672,16 @@ fileinfo_numeric_status(const struct fileinfo_data *file)
 	unsigned v;
 
 	v = file->progress; /* NOTE: 0...10000, keep the following above! */
-	v |= (unsigned) (file->life_count > 0)								<< 16;
-	v |= (unsigned) file->paused										<< 17;
-	v |= (unsigned) (file->actively_queued || file->passively_queued)	<< 18;
-	v |= (unsigned) (file->recv_count > 0) 								<< 19;
-	v |= (unsigned) file->complete										<< 20;
-	v |= (unsigned) file->finished										<< 21;
-	v |= (unsigned) file->seeding										<< 22;
+	v |= (unsigned) file->dht_lookup_pending							<< 16;
+	v |= (unsigned) file->dht_lookup_running							<< 17;
+	v |= (unsigned) file->dht_lookup_successful							<< 18;
+	v |= (unsigned) (file->life_count > 0)								<< 19;
+	v |= (unsigned) file->paused										<< 20;
+	v |= (unsigned) (file->actively_queued || file->passively_queued)	<< 21;
+	v |= (unsigned) (file->recv_count > 0) 								<< 22;
+	v |= (unsigned) file->complete										<< 23;
+	v |= (unsigned) file->finished										<< 24;
+	v |= (unsigned) file->seeding										<< 25;
 	return v;
 }
 

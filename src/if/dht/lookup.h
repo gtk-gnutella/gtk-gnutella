@@ -99,6 +99,16 @@ typedef void (*lookup_cbv_ok_t)(
 typedef void (*lookup_cb_err_t)(
 	const kuid_t *kuid, lookup_error_t error, gpointer arg);
 
+/**
+ * Lookup callback invoked on dequeuing (notifies item is being processed).
+ *
+ * @param kuid		the KUID that is being looked for
+ * @param arg		additional callback opaque argument
+ *
+ * @return TRUE if OK, FALSE if lookup must be aborted.
+ */
+typedef gboolean (*lookup_cb_start_t)( const kuid_t *kuid, gpointer arg);
+
 typedef struct lookup_result lookup_rs_t;
 
 /**
@@ -130,7 +140,8 @@ void ulq_find_store_roots(const kuid_t *kuid, gboolean prioritary,
  */
 
 void ulq_find_value(const kuid_t *kuid, dht_value_type_t type,
-	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg);
+	lookup_cbv_ok_t ok, lookup_cb_start_t start, lookup_cb_err_t error,
+	gpointer arg);
 
 void ulq_find_any_value(const kuid_t *kuid,
 	dht_value_type_t queue_type,

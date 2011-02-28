@@ -47,7 +47,7 @@
 void gdht_init(void);
 void gdht_close(void);
 
-void gdht_find_sha1(const fileinfo_t *fi);
+void gdht_find_sha1(fileinfo_t *fi);
 void gdht_find_guid(const guid_t *guid, const host_addr_t addr, guint16 port);
 
 const kuid_t *gdht_kuid_from_guid(const guid_t *guid);

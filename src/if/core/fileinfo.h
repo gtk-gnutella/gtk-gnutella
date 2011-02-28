@@ -38,6 +38,8 @@ struct download;
  */
 
 enum {
+	FI_F_DHT_LOOKING	= 1 << 13,	/**< Running DHT lookup for more sources */
+	FI_F_DHT_LOOKUP		= 1 << 12,	/**< Pending DHT lookup for more sources */
 	FI_F_MOVING			= 1 << 11,	/**< Moving file (or about to) */
 	FI_F_VERIFYING		= 1 << 10,	/**< Verifying SHA1 or TTH */
 	FI_F_BAD_BITPRINT	= 1 << 9,	/**< SHA1 + TTH combination is bad */
@@ -69,50 +71,54 @@ typedef struct gnet_fi_info {
 	const char *filename;		/**< Name of the file on disk */
 	const struct sha1 *sha1;	/**< SHA1 (binary) of the file or NULL */
 	const struct tth *tth;		/**< TTH (binary) of the file or NULL */
-	filesize_t  size;
-	filesize_t	tth_slice_size;
+	filesize_t size;
+	filesize_t tth_slice_size;
 	unsigned int tth_depth;
-	size_t 		tth_num_leaves;
-	time_t		created;
+	size_t tth_num_leaves;
+	time_t created;
 } gnet_fi_info_t;
 
 typedef struct gnet_fi_status {
-	filesize_t  size;
-	filesize_t  done;
+	filesize_t size;
+	filesize_t done;
 	
-	filesize_t  uploaded;
-	filesize_t  vrfy_hashed;
-	filesize_t	copied;
+	filesize_t uploaded;
+	filesize_t vrfy_hashed;
+	filesize_t copied;
 
-	time_t		modified;
+	time_t modified;
 
-	guint32  	recvcount;
-	guint32  	refcount;
-	guint32  	lifecount;
-	guint32  	recv_last_rate;
-	guint32  	active_queued;
-	guint32  	passive_queued;
+	guint32 recvcount;
+	guint32 refcount;
+	guint32 lifecount;
+	guint32 recv_last_rate;
+	guint32 active_queued;
+	guint32 passive_queued;
+	unsigned dht_lookups;	/**< Amount of completed DHT lookups */
+	unsigned dht_values;	/**< Amount of successful DHT lookups */
 
-	unsigned	paused:1;
-	unsigned	has_sha1:1;
+	unsigned paused:1;
+	unsigned has_sha1:1;
+	unsigned dht_lookup_pending:1;
+	unsigned dht_lookup_running:1;
 
 	/*
 	 * The following are set only when file has been completely downloaded.
 	 */
 
-	unsigned	complete:1;
-	unsigned	verifying:1;
-	unsigned	moving:1;
-	unsigned 	sha1_matched:1;
-	unsigned 	sha1_failed:1;
-	unsigned	finished:1;
-	unsigned	seeding:1;
-	unsigned	tth_check:1;
+	unsigned complete:1;
+	unsigned verifying:1;
+	unsigned moving:1;
+	unsigned sha1_matched:1;
+	unsigned sha1_failed:1;
+	unsigned finished:1;
+	unsigned seeding:1;
+	unsigned tth_check:1;
 } gnet_fi_status_t;
 
 typedef struct gnet_fi_chunks {
-    filesize_t  from;
-    filesize_t  to;
+    filesize_t from;
+    filesize_t to;
     enum dl_chunk_status status;
     gboolean old;
 } gnet_fi_chunks_t;
@@ -123,6 +129,14 @@ enum fi_magic {
 
 struct guid;
 
+/**
+ * File downloading information.
+ *
+ * This keeps essential information for all the individual files that are to be
+ * downloaded.
+ *
+ * Each download source points to one dl_file_info structure.
+ */
 typedef struct dl_file_info {
 	enum fi_magic magic;	
     gnet_fi_t fi_handle;    /**< Handle */
@@ -156,8 +170,10 @@ typedef struct dl_file_info {
 	GSList *seen_on_network;  /**< List of ranges available on network */
 	guint32 generation;		/**< Generation number, incremented on disk update */
 	struct shared_file *sf;	/**< When PFSP-server is enabled, share this file */
-	guint32  active_queued; /**< Actively queued sources */
-	guint32  passive_queued;/**< Passively queued sources */
+	guint32 active_queued;	/**< Actively queued sources */
+	guint32 passive_queued;	/**< Passively queued sources */
+	unsigned dht_lookups;	/**< Amount of completed DHT lookups */
+	unsigned dht_values;	/**< Amount of successful DHT lookups */
 
 	/*
 	 * The following group is used to compute the aggregated reception rate.

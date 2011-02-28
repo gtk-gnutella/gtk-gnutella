@@ -5643,6 +5643,8 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
     s->active_queued  = fi->active_queued;
     s->passive_queued = fi->passive_queued;
 	s->modified		  =	fi->modified;
+	s->dht_lookups    = fi->dht_lookups;
+	s->dht_values     = fi->dht_values;
 
 	s->paused		  = 0 != (FI_F_PAUSED & fi->flags);
 	s->seeding		  = 0 != (FI_F_SEEDING & fi->flags);
@@ -5658,6 +5660,9 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 	s->copied 		  = s->complete ? fi->copied : FALSE;
 	s->vrfy_hashed    = s->complete ? fi->vrfy_hashed : FALSE;
 	s->tth_check      = s->complete ? fi->tth_check : FALSE;
+
+	s->dht_lookup_pending = booleanize(FI_F_DHT_LOOKUP & fi->flags);
+	s->dht_lookup_running = booleanize(FI_F_DHT_LOOKING & fi->flags);
 }
 
 /**
@@ -5932,7 +5937,12 @@ fi_dht_query(fileinfo_t *fi)
 	if (NULL == fi->sha1 || FILE_INFO_FINISHED(fi))
 		return;
 
-	if (FI_F_PAUSED & fi->flags)
+	/*
+	 * A paused download will not start even if we find new sources.
+	 * Also there's no need to requeue a lookup if one is already pending.
+	 */
+
+	if ((FI_F_PAUSED | FI_F_DHT_LOOKUP) & fi->flags)
 		return;
 
 	/*
@@ -5963,8 +5973,65 @@ fi_dht_query(fileinfo_t *fi)
 	)
 		return;
 
-	fi->last_dht_query = tm_time();
 	gdht_find_sha1(fi);
+}
+
+/**
+ * Signals that a DHT query was requested (queued).
+ */
+void
+file_info_dht_query_queued(fileinfo_t *fi)
+{
+	file_info_check(fi);
+	g_return_if_fail(!(fi->flags & FI_F_DHT_LOOKUP));
+
+	fi->last_dht_query = tm_time();
+	fi->flags |= FI_F_DHT_LOOKUP;
+	file_info_changed(fi);
+}
+
+/**
+ * Signals that a DHT query is starting.
+ *
+ * @return TRUE if query can proceed, FALSE otherwise.
+ */
+gboolean
+file_info_dht_query_starting(fileinfo_t *fi)
+{
+	file_info_check(fi);
+	g_return_val_if_fail(fi->flags & FI_F_DHT_LOOKUP, FALSE);
+
+	if (
+		fi->flags & (
+			FI_F_MOVING | FI_F_TRANSIENT | FI_F_SEEDING |
+			FI_F_STRIPPED | FI_F_UNLINKED
+		)
+	)
+		return FALSE;
+
+	fi->flags |= FI_F_DHT_LOOKING;
+	file_info_changed(fi);
+	return TRUE;
+}
+
+/**
+ * Signals that a DHT query was completed.
+ */
+void
+file_info_dht_query_completed(fileinfo_t *fi, gboolean launched, gboolean found)
+{
+	file_info_check(fi);
+	g_return_if_fail(fi->flags & FI_F_DHT_LOOKUP);
+
+	fi->flags &= ~(FI_F_DHT_LOOKUP | FI_F_DHT_LOOKING);
+
+	if (launched) {
+		fi->dht_lookups++;
+		if (found) {
+			fi->dht_values++;
+		}
+	}
+	file_info_changed(fi);
 }
 
 /**
@@ -6601,7 +6668,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		}
         gm_snprintf(buf, sizeof buf, _("Downloading (TR: %s)"),
 			secs ? short_time(secs) : "-");
-		return buf;
+		goto dht_status;
     } else if (status->seeding) {
 		return _("Seeding");
     } else if (status->verifying) {
@@ -6650,17 +6717,52 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 
 		return buf;
     } else if (0 == status->lifecount) {
-		return _("No sources");
+		g_strlcpy(buf, _("No sources"), sizeof buf);
+		goto dht_status;
     } else if (status->active_queued || status->passive_queued) {
         gm_snprintf(buf, sizeof buf,
             _("Queued (%u active, %u passive)"),
             status->active_queued, status->passive_queued);
-		return buf;
+		goto dht_status;
     } else if (status->paused) {
         return _("Paused");
     } else {
-        return _("Waiting");
+		g_strlcpy(buf, _("Waiting"), sizeof buf);
+		/* FALL THROUGH */
     }
+
+dht_status:
+	{
+		size_t w = strlen(buf);
+
+		if (status->dht_lookup_running) {
+			w += gm_snprintf(&buf[w], sizeof buf - w, "; ");
+			w += gm_snprintf(&buf[w], sizeof buf - w,
+				_("Querying DHT"));
+		} else if (status->dht_lookup_pending) {
+			w += gm_snprintf(&buf[w], sizeof buf - w, "; ");
+			w += gm_snprintf(&buf[w], sizeof buf - w,
+				_("Pending DHT query"));
+		}
+
+		if (status->dht_lookups != 0) {
+			w += gm_snprintf(&buf[w], sizeof buf - w, "; ");
+			if (status->dht_values != 0) {
+				w += gm_snprintf(&buf[w], sizeof buf - w,
+					NG_(
+						"%u/%u successful DHT lookup",
+						"%u/%u successful DHT lookups",
+						status->dht_lookups),
+					status->dht_values, status->dht_lookups);
+			} else {
+				w += gm_snprintf(&buf[w], sizeof buf - w,
+					NG_("%u DHT lookup", "%u DHT lookups", status->dht_lookups),
+					status->dht_lookups);
+			}
+		}
+	}
+
+	return buf;
 }
 
 /**
