@@ -13,7 +13,12 @@
 !insertmacro Script 'scripts/gtkg-version .'
 
 !insertmacro Script 'echo -n \"!define DLLDIR_GNUTLS \"'
-!insertmacro Script 'pkg-config gnutls --libs-only-L | cut -c3- | sed "s/lib/bin/"' 
+!insertmacro Script 'pkg-config gnutls --libs-only-L | cut -c3- | \ 
+	sed -e s,gtk/lib,gtk/bin,' 
+!insertmacro Script 'echo -n \"!define DLLDIR_XML2 \"'
+!insertmacro Script 'pkg-config gnutls --libs-only-L | cut -c3- | \
+	sed -e s/gtk/xml2/ -e s,xml2/lib,xml2/bin,' 
+!insertmacro Script 'echo \"!define MINGW $MINGW\"'
 
 ; gtk installer name for embedding
 !define GTK_INSTALLER_EXE "gtk2-runtime-2.22.0-2010-10-21-ash.exe"
@@ -23,10 +28,12 @@
 !define PRODUCT_PUBLISHER "gtk-gnutella developers"
 !define PRODUCT_WEB_SITE "http://gtk-gnutella.sourceforge.net"
 
-!define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
+!define PRODUCT_UNINST_KEY \
+	"Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 
-!define REGISTRY_APP_PATHS "Software\Microsoft\Windows\CurrentVersion\App Paths"
+!define REGISTRY_APP_PATHS \
+	"Software\Microsoft\Windows\CurrentVersion\App Paths"
 
 
 !include "FileFunc.nsh"  ; GetOptions
@@ -85,7 +92,8 @@ ShowUnInstDetails show
 ;!define MUI_UNICON "nsi_uninstall.ico"
 
 
-; Things that need to be extracted on first (keep these lines before any File command!).
+; Things that need to be extracted on first
+; (keep these lines before any File command!).
 ; Only useful for BZIP2 compression.
 ;!insertmacro MUI_RESERVEFILE_LANGDLL
 ;!insertmacro MUI_RESERVEFILE_INSTALLOPTIONS
@@ -137,7 +145,8 @@ ShowUnInstDetails show
 LangString TEXT_IO_TITLE ${LANG_ENGLISH} "gtk-gnutella"
 
 
-var install_option_removeold  ; uninstall the old version first (if present): yes (default), no.
+var install_option_removeold  ; uninstall the old version first (if present): \
+	yes (default), no.
 
 
 
@@ -161,13 +170,10 @@ SectionIn 1 RO
 	File src\gtk-gnutella.exe
 	File pixmaps\icon.ico
 
-	File \mingw\bin\libiconv-2.dll
+	File ${MINGW}\bin\libiconv-2.dll
+
 	; Include XML2
-	; Currently we just assume libxml can be found in the same directory
-	; as gnutls
-	File ${DLLDIR_GNUTLS}\libxml2-2.dll
-	File ${DLLDIR_GNUTLS}\libxml2.dll
-	File ${DLLDIR_GNUTLS}\iconv.dll
+	File ${DLLDIR_XML2}\libxml2-2.dll
 
 	; Include gnutls
 	File ${DLLDIR_GNUTLS}\libgnutls-26.dll
@@ -190,7 +196,8 @@ SectionIn 1 RO
 	SetOutPath $INSTDIR\extra_files\ja
 	File extra_files\ja\FAQ
 
-	; Include the "doc" directory completely, excluding the file we're not using (e.g. the -nogtk file in gtk installer).
+	; Include the "doc" directory completely, excluding the file
+	; we're not using (e.g. the -nogtk file in gtk installer).
 ;!ifdef NO_GTK
 ;	File /r /x distribution.txt doc
 ;!else
@@ -198,8 +205,10 @@ SectionIn 1 RO
 ;!endif
 
 	; Add Shortcuts (this inherits the exe's run permissions)
-	CreateShortCut "$SMPROGRAMS\gtk-gnutella.lnk" "$INSTDIR\gtk-gnutella.exe" "" \
-		"$INSTDIR\icon.ico" "" SW_SHOWNORMAL "" "gtk-gnutella - Hard disk drive health inspection tool"
+	CreateShortCut "$SMPROGRAMS\gtk-gnutella.lnk" \
+		"$INSTDIR\gtk-gnutella.exe" "" \
+		"$INSTDIR\icon.ico" "" SW_SHOWNORMAL "" \
+		"gtk-gnutella - Gnutella servent"
 
 SectionEnd
 

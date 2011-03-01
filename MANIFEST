@@ -151,6 +151,7 @@ extra_files/spam_sha1.txt
 gtk-gnutella.nsi             Windows packaging
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 install.SH                   BSD-compatible install program
+makensis.sh                  Wrapper for the makensis Windows command
 mingw/config.sh.xmingw
 pixmaps/Jmakefile
 pixmaps/Makefile.SH
