@@ -6009,6 +6009,15 @@ file_info_dht_query_starting(fileinfo_t *fi)
 	)
 		return FALSE;
 
+	/*
+	 * We already checked that at "queuing" time but since the queue can be
+	 * large and things have time to change we recheck before actually
+	 * issuing the query.
+	 */
+
+	if (fi->recvcount >= FI_DHT_RECV_THRESH)
+		return FALSE;
+
 	fi->flags |= FI_F_DHT_LOOKING;
 	file_info_changed(fi);
 	return TRUE;
