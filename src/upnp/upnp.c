@@ -876,6 +876,19 @@ upnp_launch_discovery_if_needed(void)
 }
 
 /**
+ * Attempt to publish mappings.
+ */
+static void
+upnp_map_try_publish_all(void)
+{
+	if (gw.gateway != NULL && GNET_PROPERTY(natpmp_possible)) {
+		upnp_map_publish_all();
+	} else if (igd.dev != NULL && GNET_PROPERTY(upnp_possible)) {
+		upnp_map_publish_all();
+	}
+}
+
+/**
  * Callout queue periodic event to monitor presence of the Internet Gateway
  * Device or the NAT-PMP gateway we are using and detect configuration changes.
  */
@@ -954,7 +967,7 @@ done:
 	 */
 
 	if (!GNET_PROPERTY(port_mapping_successful) && upnp_port_mapping_required())
-		upnp_map_publish_all();
+		upnp_map_try_publish_all();
 
 	return TRUE;		/* Keep calling */
 }
