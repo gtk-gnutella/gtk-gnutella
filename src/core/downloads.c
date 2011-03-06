@@ -11116,7 +11116,9 @@ http_version_nofix:
 				 */
 
 				if (d->skip >= end + 1) {
-					download_queue(d, _("Weird server-side chunk shrinking"));
+					download_queue_delay_switch(d, header,
+						MAX(delay, GNET_PROPERTY(download_retry_refused_delay)),
+						_("Weird server-side chunk shrinking"));
 					return;
 				}
 
