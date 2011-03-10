@@ -76,20 +76,12 @@ RCSID("$Id$")
 #include <execinfo.h>	/* For backtrace() */
 #endif
 
-/*
- * Ensure we use the raw allocation routines even when compiled
- * with -DTRACK_MALLOC.
- */
-#undef malloc
-#undef free
-#undef strdup
-
 /**
  * A routine entry in the symbol table.
  */
 struct trace {
 	const void *start;			/**< Start PC address */
-	char *name;					/**< Routine name */
+	const char *name;			/**< Routine name (omalloc() atom) */
 };
 
 /**
@@ -99,6 +91,7 @@ static struct {
 	struct trace *base;			/**< Array base */
 	size_t size;				/**< Amount of entries allocated */
 	size_t count;				/**< Amount of entries held */
+	size_t offset;				/**< Symbol offset to apply */
 	unsigned fresh:1;			/**< Symbols loaded via nm parsing */
 	unsigned indirect:1;		/**< Symbols loaded via nm pre-computed file */
 	unsigned stale:1;			/**< Pre-computed nm file was stale */
@@ -319,7 +312,6 @@ trace_remove(size_t i)
 	g_assert(i < trace_array.count);
 
 	t = &trace_array.base[i];
-	free(t->name);
 	if (i < trace_array.count - 1)
 		memmove(t, t + 1, (trace_array.count - i - 1) * sizeof *t);
 	trace_array.count--;
@@ -382,7 +374,7 @@ trace_insert(const void *start, const char *name)
 
 	t = &trace_array.base[trace_array.count++];
 	t->start = start;
-	t->name = strdup(name);
+	t->name = name;
 }
 
 /**
@@ -396,12 +388,15 @@ trace_lookup(const void *pc)
 	struct trace *low = trace_array.base,
 				 *high = &trace_array.base[trace_array.count -1],
 				 *mid;
+	const void *lpc;
+
+	lpc = const_ptr_add_offset(pc, trace_array.offset);
 
 	while (low <= high) {
 		mid = low + (high - low) / 2;
-		if (pc >= mid->start && (mid == high || pc < (mid+1)->start))
+		if (lpc >= mid->start && (mid == high || lpc < (mid+1)->start))
 			return mid;			/* Found it! */
-		else if (pc < mid->start)
+		else if (lpc < mid->start)
 			high = mid - 1;
 		else
 			low = mid + 1;
@@ -598,9 +593,34 @@ trace_check(void)
 	size_t matching = 0;
 	size_t mismatches;
 	size_t i;
+	size_t offset = 0;
 
 	if (0 == trace_array.count)
 		return;
+
+	/*
+	 * On some systems, symbols are not mapped at absolute addresses but
+	 * are relocated.
+	 *
+	 * To detect this: we locate the address of main() and compare it with
+	 * what we loaded from the symbols.  Of course, this will only be working
+	 * when the offset is the same for all the symbols.
+	 */
+
+	for (i = 0; i < trace_array.count; i++) {
+		struct trace *t = &trace_array.base[i];
+
+		if (0 == strcmp("main", t->name)) {
+			offset = ptr_diff(t->start, main);
+			break;
+		}
+	}
+
+	if (offset != 0) {
+		s_warning("will be offsetting symbol addresses by 0x%lx",
+			(unsigned long) offset);
+		trace_array.offset = offset;
+	}
 
 	for (i = 0; i < G_N_ELEMENTS(trace_known_symbols); i++) {
 		struct trace *t;
