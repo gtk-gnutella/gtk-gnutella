@@ -145,8 +145,8 @@ ShowUnInstDetails show
 LangString TEXT_IO_TITLE ${LANG_ENGLISH} "gtk-gnutella"
 
 
-var install_option_removeold  ; uninstall the old version first (if present): \
-	yes (default), no.
+; uninstall the old version first (if present)
+var install_option_removeold ; yes (default), no.
 
 
 
@@ -171,6 +171,7 @@ SectionIn 1 RO
 	File pixmaps\icon.ico
 
 	File ${MINGW}\bin\libiconv-2.dll
+	File ${MINGW}\bin\libpthread-2.dll
 
 	; Include XML2
 	File ${DLLDIR_XML2}\libxml2-2.dll
@@ -340,7 +341,7 @@ FunctionEnd
 ; Section descriptions
 !ifndef NO_GTK  ; this page is shown only when using gtk
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-	!insertmacro MUI_DESCRIPTION_TEXT ${SecMain} "gtk-gnutella - hard disk drive health inspection tool"
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecMain} "gtk-gnutella - Gnutella servent"
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecGtkPrivate} "GTK+ libraries, needed by gtk-gnutella. \
 		This will install a private version of GTK+, usable only by gtk-gnutella."
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecGtkPublic} "GTK+ libraries, needed by gtk-gnutella. \
