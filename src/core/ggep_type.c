@@ -138,7 +138,17 @@ ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 
 	tlen = ext_paylen(exv);
 
-	if (tlen != 12)
+	/*
+	 * The original payload length was 12 bytes.
+	 *
+	 * In order to allow backward-compatible extension of the payload, don't
+	 * check for a size equal to 12 bytes but for a size of at least 12.
+	 *
+	 * Further extensions, if any, will simply append new fields to the payload
+	 * which will be ignored (not deserialized) by older versions.
+	 */
+
+	if (tlen < 12)
 		return GGEP_INVALID;
 
 	payload = p = ext_payload(exv);
