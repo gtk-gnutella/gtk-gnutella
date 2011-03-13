@@ -1,12 +1,20 @@
 This documents describes briefly the things we want to have in gtk-gnutella 
-and which are not already implemented in SVN.
+and which are not already implemented in SVN, by loose order of decreasing
+priority.
 
-0.96.9
-	* Full DHT GUI configuration / feedback.
+0.97:
+	* Finish port to Windows, allowing launch by double-clicking on the .exe
+
+0.97.1
+	* DOVE extension for the DHT, adding IPv6 support and smarter publishing
+	* Write specifications for the DHT "NOPE" value.
+	* HTTP request pipelining.
+	* Firewalled to firewalled transfers (reverse engineer LimeWire specs)
+	* DHT GUI configuration (auto / active / passive modes)
+	* Remove dependency on libxml, switching to GTKG's own XML routines.
 	* Area-specific logging?
-	* Disk space monitoring
-	* Firewalled to firewalled transfers (when LimeWire publishes specs)
-	* Keep track of long uptime ultrapeers
+	* Disk space monitoring?
+	* Keep track of long-running ultrapeers for faster startup after inactivity
 	* PARQ: PFS aware
 	* PARQ: Tigertree aware
 	* PARQ: 'Rotating' queue by filename?

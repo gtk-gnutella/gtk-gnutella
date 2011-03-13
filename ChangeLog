@@ -1,5 +1,6 @@
+# v 0.96.9   2011-03-13  [stable]
+
 New Features:
-- Ported code to Windows.
 - Added UPnP and NAT-PMP support.
 - Added a "log" command to the shell to manage logfiles.
 - Added --gdb-on-crash switch, auto-activated when no core dumps are possible.
@@ -20,9 +21,12 @@ Improvements:
   stripped from filenames anymore.
 - Trailing spaces and periods are stripped from filenames because Windows
   does not like them.
+- When stdout and stderr are different files, critical messages (assertion
+  failures, crashes) are duplicated to stdout.
 - [GTK] Added visual feedback icon for the DHT status.
 - [GTK] Show green/yellow/red uploading status icons indicating increasing
   warning levels after which we declare that uploads are stalling.
+- [GTK] Show DHT alt-loc queries on a per-file basis.
 
 Bug Fixes:
 - Prevented random crash at shutdown time (improper cleanup ordering).
