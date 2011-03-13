@@ -830,6 +830,9 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		} else if (!record->file_index && T_GTKG == rs->vcode.u32) {
 			search_results_mark_fake_spam(rs);
 			record->flags |= SR_SPAM;
+		} else if (T_GTKG == rs->vcode.u32 && NULL == rs->version) {
+			search_results_mark_fake_spam(rs);
+			record->flags |= SR_SPAM;
 		} else if (n_alt > 16 || (T_LIME == rs->vcode.u32 && n_alt > 10)) {
 			search_results_mark_fake_spam(rs);
 			record->flags |= SR_SPAM;
