@@ -594,6 +594,8 @@ trace_check(void)
 	size_t mismatches;
 	size_t i;
 	size_t offset = 0;
+	GHashTable *sym_pc;
+	const void *main_pc;
 
 	if (0 == trace_array.count)
 		return;
@@ -602,25 +604,68 @@ trace_check(void)
 	 * On some systems, symbols are not mapped at absolute addresses but
 	 * are relocated.
 	 *
-	 * To detect this: we locate the address of main() and compare it with
-	 * what we loaded from the symbols.  Of course, this will only be working
-	 * when the offset is the same for all the symbols.
+	 * To detect this: we locate the address of our probing routines and
+	 * compare them with what we loaded from the symbols.  Of course,
+	 * offsetting will only be working when the offset is the same for all
+	 * the symbols.
 	 */
+
+	sym_pc = g_hash_table_new(g_str_hash, g_str_equal);
 
 	for (i = 0; i < trace_array.count; i++) {
 		struct trace *t = &trace_array.base[i];
 
-		if (0 == strcmp("main", t->name)) {
-			offset = ptr_diff(t->start, main);
+		gm_hash_table_insert_const(sym_pc, t->name, t->start);
+	}
+
+	/*
+	 * Compute the initial offset for main().
+	 */
+
+	main_pc = g_hash_table_lookup(sym_pc, "main");
+
+	if (NULL == main_pc) {
+		s_warning("cannot find main() in the loaded symbols");
+		trace_array.garbage = TRUE;
+		goto done;
+	}
+
+	offset = ptr_diff(main_pc, main);
+
+	/*
+	 * Make sure the offset is constant among all our probed symbols.
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(trace_known_symbols); i++) {
+		const char *name = trace_known_symbols[i].name;
+		const void *pc = trace_known_symbols[i].fn;
+		const void *loaded_pc = g_hash_table_lookup(sym_pc, name);
+		size_t loaded_offset;
+
+		if (NULL == loaded_pc) {
+			s_warning("cannot find %s() in the loaded symbols", name);
+			trace_array.garbage = TRUE;
+			goto done;
+		}
+
+		loaded_offset = ptr_diff(loaded_pc, pc);
+
+		if (loaded_offset != offset) {
+			s_warning("will not offset symbol addresses (loaded garbage?)");
+			offset = 0;
 			break;
 		}
 	}
 
 	if (offset != 0) {
-		s_warning("will be offsetting symbol addresses by 0x%lx",
-			(unsigned long) offset);
+		s_warning("will be offsetting symbol addresses by 0x%lx (%ld)",
+			(unsigned long) offset, (unsigned long) offset);
 		trace_array.offset = offset;
 	}
+
+	/*
+	 * Now verify whether we can match symbols.
+	 */
 
 	for (i = 0; i < G_N_ELEMENTS(trace_known_symbols); i++) {
 		struct trace *t;
@@ -651,6 +696,20 @@ trace_check(void)
 			s_warning("loaded symbols are partially inaccurate");
 		}
 	}
+
+	/*
+	 * Note that our algorithm cannot find any mismatch if we successfully
+	 * computed a valid offset above since by construction this means we were
+	 * able to find a common offset between the loaded symbol addresses and
+	 * the actual ones, meaning the lookup algorithm of trace_lookup() will
+	 * find the proper symbols.
+	 */
+
+	if (offset != 0 && mismatches != 0)
+		s_warning("BUG in trace_check()");
+
+done:
+	gm_hash_table_destroy_null(&sym_pc);
 }
 
 /**
