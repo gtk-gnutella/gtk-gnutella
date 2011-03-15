@@ -25,7 +25,7 @@ Release steps
 	cd "top directory"
 	svn update
 	cd extra_files
-	make update			# updates bogons.txt and geo-ip.txt
+	make update			# updates geo-ip.txt
 
 1. Write user summary of changes since last release in ChangeLog.
 
@@ -105,66 +105,41 @@ Release steps
 
 	This will generate file gtk-gnutella-0.91.0-0.i386.rpm
 
-14. Upload the files to sourceforge using rsync or scp.
+14. Go to https://sourceforge.net/projects/gtk-gnutella/files/ and
+    create a new directory gtk-gnutella/0.96.9 (say) to host the
+	released files.
 
-	rsync -avP -e ssh gtk-gnutella-0.96.6.tar.bz2 \
-		USER@frs.sourceforge.net uploads/
-OR
-	scp gtk-gnutella-0.96.6.tar.bz2 USER@frs.sourceforge.net:uploads/
+15. Upload the files to sourceforge using scp.
 
-15. Login to www.sf.net and go to the Admin section of the gtk-gnutella
-    project.
+	scp gtk-gnutella-0.96.9.tar.bz2 gtk-gnutella-0.96.9.tar.bz2.asc \
+		USER@frs.sourceforge.net:\
+		/home/frs/project/g/gt/gtk-gnutella/gtk-gnutella/0.96.9/
 
-16. Go to "File Releases"
+16. Click on the file information for the .bz2 file, and make it the new
+    default download.
 
-17. Go to "Add Release" in package gtk-gnutella and create a release "0.91".
-
-18. Paste the ChangeLog high-level summary, and tick "preserve my
-    pre-formatted text", then click "Submit/Refresh".
-
-19. Select the 3 files we uploaded earlier and press "Add files".
-
-20. For each file, set the proper processor release type and file type,
-    being sure to "Update/Refresh" each change separately.
-
-	(source is "Platform-Independent"/"Source.bz2" and the others are
-	"i386"/".deb" and "i386"/".rpm".
-
-21. Once all is set, click on "I'm sure" and "Send notice".
-
-22. Go back to the Admin section, "Edit/Add Releases" section.
-
-23. Choose "Edit Release" of "gtk-gnutella".
-
-24. Choose the previous release number and click on "Edit release".
-
-25. Change status to "Hidden" and "Submit/Refresh".
-
-26. Go back to the Summary page of the project and click on "View ALL
-    project files".  Make sure only the latest release is available.
-
-26a. Go back to the Summary page and check if the project details are
+17. Go back to the Summary page and check if the project details are
      still up-to-date. In particular check the set of languages
      available in the distribution against the listing with:
 
 	 cat po/*.po|grep 'Language-Team:'|sort
 
-27. Update sourceforge's website: Create a news entry in htdocs/files/en using 
+18. Update sourceforge's website: Create a news entry in htdocs/files/en using 
     news_template as a guide and submit it.
 
-28. Change the VERSION file in htdocs/files to update the version number.
+19. Change the VERSION file in htdocs/files to update the version number.
 
-	VERSION=0.91
+	VERSION=0.96.9
 
-29. Manually update the web site by logging in to projects.sourceforge.net via
+20. Manually update the web site by logging in to projects.sourceforge.net via
     SSH:
 
 	ssh -t USER,gtk-gnutella@shell.sourceforge.net create
-	$ cd /home/groups/g/gt/gtk-gnutella
-	$ ./update_homepage_v2.sh
+	$ cd /home/project-web/gtk-gnutella
+	$ ./update_homepage.sh
 
-30. Send a message to gtk-gnutella-announce telling about the release
+21. Send a message to gtk-gnutella-announce telling about the release
     using Announce-template.txt
 
-31. That's all folks!
+22. That's all folks!
 
