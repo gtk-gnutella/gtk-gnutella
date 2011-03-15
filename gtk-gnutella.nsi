@@ -168,6 +168,7 @@ SectionIn 1 RO
 
 	SetOverwrite On
 	File src\gtk-gnutella.exe
+	File src\gtk-gnutella.nm
 	File pixmaps\icon.ico
 
 	File ${MINGW}\bin\libiconv-2.dll
@@ -441,10 +442,12 @@ Section Uninstall
 	Delete "$INSTDIR\libtasn1-3.dll"
 	
 	Delete "$INSTDIR\gtk-gnutella.exe"
+	Delete "$INSTDIR\gtk-gnutella.nm"
 	Delete "$INSTDIR\icon.ico"
 	Delete "$INSTDIR\libxml2-2.dll"
 	Delete "$INSTDIR\libxml2.dll"
 	Delete "$INSTDIR\libiconv-2.dll"
+	Delete "$INSTDIR\libpthread-2.dll"
 	Delete "$INSTDIR\libiconv.dll"
 	Delete "$INSTDIR\iconv.dll"
 	Delete "$INSTDIR\pixmaps\*.xpm"
@@ -453,7 +456,7 @@ Section Uninstall
 	
 	RMDir /r "$INSTDIR\extra_files"
 	RMDir /r "$INSTDIR\pixmaps"
-	
+	RMDir /r "$INSTDIR\share"		; left-over as "share/local"
 
 	; clean up generated stuff
 	Delete "$INSTDIR\*stdout.txt"
