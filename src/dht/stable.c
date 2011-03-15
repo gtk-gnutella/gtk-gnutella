@@ -323,6 +323,19 @@ stable_store_presence(time_delta_t d,
 	size_t count = lookup_result_path_length(rs);
 
 	/*
+	 * We may be called by publish callbacks invoked to clean up because
+	 * the operation was cancelled.  Maybe the DHT was disabled during the
+	 * operation, meaning our data structures have been cleaned up?  In that
+	 * case, abort immediately.
+	 *
+	 * NOTE: this is not an assertion, it can happen in practice and needs to
+	 * be explicitly checked for.
+	 */
+
+	if (NULL == db_lifedata)		/* DHT disabled dynamically */
+		return 0.0;
+
+	/*
 	 * The probability of presence is (1 - q) where q is the probability
 	 * that the value be lost by all the nodes, i.e. that all the nodes
 	 * to which the value was published to be gone in "d" seconds.
