@@ -76,6 +76,8 @@ RCSID("$Id$")
 #include "compat_sleep_ms.h"
 #include "fast_assert.h"
 #include "fd.h"
+#include "file.h"
+#include "halloc.h"
 #include "log.h"
 #include "offtime.h"
 #include "path.h"
@@ -1046,6 +1048,7 @@ crash_init(const char *argv0, const char *progname,
 	unsigned i;
 	char dir[MAX_PATH_LEN];
 	size_t size;
+	char *executable = NULL;
 
 	memset(&iv, 0, sizeof iv);
 
@@ -1094,12 +1097,25 @@ crash_init(const char *argv0, const char *progname,
 	}
 
 	/*
+	 * We hand out the executable path in case we have to invoke gdb, since
+	 * this is required on some platform.  Make sure this is a full path, or
+	 * a valid relative path from our initial working directory (which will
+	 * be restored on crash if the executable path ends up being relative).
+	 */
+
+	if (argv0 != NULL && !file_exists(argv0))
+		executable = file_locate_from_path(argv0);
+
+	if (NULL == executable)
+		executable = deconstify_char(argv0);
+
+	/*
 	 * Pre-size the chunk with enough space to hold the given strings.
 	 */
 
 	size = 5 * MEM_ALIGNBYTES;	/* Provision for alignment constraints */
 	size = size_saturate_add(size, sizeof iv);
-	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(argv0)));
+	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(executable)));
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(progname)));
 	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(exec_path)));
 	size = size_saturate_add(size, 1 + strlen(dir));
@@ -1111,8 +1127,8 @@ crash_init(const char *argv0, const char *progname,
 		g_assert(NULL != iv.cwd);
 	}
 
-	iv.argv0 = ck_strdup(iv.mem, argv0);
-	g_assert(NULL == argv0 || NULL != iv.argv0);
+	iv.argv0 = ck_strdup(iv.mem, executable);
+	g_assert(NULL == executable || NULL != iv.argv0);
 
 	iv.progname = ck_strdup(iv.mem, progname);
 	g_assert(NULL == progname || NULL != iv.progname);
@@ -1131,6 +1147,9 @@ crash_init(const char *argv0, const char *progname,
 
 	vars = ck_copy(iv.mem, &iv, sizeof iv);
 	ck_readonly(vars->mem);
+
+	if (executable != argv0)
+		HFREE_NULL(executable);
 }
 
 #ifdef HAS_FORK

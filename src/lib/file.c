@@ -37,10 +37,12 @@
 
 RCSID("$Id$")
 
+#include "concat.h"			/* For concat_strings() */
 #include "file.h"
 #include "debug.h"
 #include "fd.h"
 #include "halloc.h"
+#include "log.h"			/* For s_warning() */
 #include "path.h"
 #include "timestamp.h"
 #include "tm.h"
@@ -68,7 +70,8 @@ file_exists(const char *pathname)
 {
   	filestat_t st;
 
-    g_assert(pathname);
+    g_assert(pathname != NULL);
+
     return 0 == stat(pathname, &st) && S_ISREG(st.st_mode);
 }
 
@@ -80,6 +83,67 @@ void
 file_register_fd_reclaimer(reclaim_fd_t callback)
 {
 	reclaim_fd = callback;
+}
+
+/**
+ * Search executable within the user's PATH.
+ *
+ * @return full path if found, NULL otherwise.
+ * The returned string is allocated with halloc().
+ */
+char *
+file_locate_from_path(const char *argv0)
+{
+	static gboolean already_done;
+	char *path;
+	char *tok;
+	char filepath[MAX_PATH_LEN + 1];
+	char *result = NULL;
+
+	if (filepath_basename(argv0) != argv0) {
+		if (!already_done) {
+			s_warning("can't locate \"%s\" in PATH: name contains '%c' already",
+				argv0,
+				strchr(argv0, G_DIR_SEPARATOR) != NULL ? G_DIR_SEPARATOR : '/');
+		}
+		goto done;
+	}
+
+	path = getenv("PATH");
+	if (NULL == path) {
+		if (!already_done) {
+			s_warning("can't locate \"%s\" in PATH: "
+				"no such environment variable", argv0);
+		}
+		goto done;
+	}
+
+	path = h_strdup(path);
+
+	tok = strtok(path, G_SEARCHPATH_SEPARATOR_S);
+	while (NULL != tok) {
+		const char *dir = tok;
+		filestat_t buf;
+
+		if ('\0' == *dir)
+			dir = ".";
+		concat_strings(filepath, sizeof filepath,
+			dir, G_DIR_SEPARATOR_S, argv0, NULL);
+
+		if (-1 != stat(filepath, &buf)) {
+			if (S_ISREG(buf.st_mode) && -1 != access(filepath, X_OK)) {
+				result = h_strdup(filepath);
+				break;
+			}
+		}
+		tok = strtok(NULL, G_SEARCHPATH_SEPARATOR_S);
+	}
+
+	hfree(path);
+
+done:
+	already_done = TRUE;	/* No warning on subsequent invocation */
+	return result;
 }
 
 /**

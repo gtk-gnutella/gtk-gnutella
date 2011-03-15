@@ -49,12 +49,11 @@ RCSID("$Id$")
 #include "atoms.h"		/* For binary_hash() */
 #include "ascii.h"
 #include "base16.h"
-#include "concat.h"
 #include "crash.h"		/* For print_str() and crash_signame() */
+#include "file.h"
 #include "glib-missing.h"
 #include "halloc.h"
 #include "log.h"
-#include "misc.h"
 #include "offtime.h"
 #include "omalloc.h"
 #include "parse.h"
@@ -234,58 +233,6 @@ stack_unwind(void *stack[], size_t count, size_t offset)
 	return i - offset;
 }
 #endif	/* HAS_BACKTRACE */
-
-/**
- * Search executable within the user's PATH.
- *
- * @return full path if found, NULL otherwise.
- * The returned string is allocated with halloc().
- */
-static char *
-locate_from_path(const char *argv0)
-{
-	char *path;
-	char *tok;
-	char filepath[MAX_PATH_LEN + 1];
-	char *result = NULL;
-
-	if (filepath_basename(argv0) != argv0) {
-		s_warning("can't locate \"%s\" in PATH: name contains '%c' already",
-			argv0, G_DIR_SEPARATOR);
-		return NULL;
-	}
-
-	path = getenv("PATH");
-	if (NULL == path) {
-		s_warning("can't locate \"%s\" in PATH: no such environment variable",
-			argv0);
-		return NULL;
-	}
-
-	path = h_strdup(path);
-
-	tok = strtok(path, G_SEARCHPATH_SEPARATOR_S);
-	while (NULL != tok) {
-		const char *dir = tok;
-		filestat_t buf;
-
-		if ('\0' == *dir)
-			dir = ".";
-		concat_strings(filepath, sizeof filepath,
-			dir, G_DIR_SEPARATOR_S, argv0, NULL);
-
-		if (-1 != stat(filepath, &buf)) {
-			if (S_ISREG(buf.st_mode) && -1 != access(filepath, X_OK)) {
-				result = h_strdup(filepath);
-				break;
-			}
-		}
-		tok = strtok(NULL, G_SEARCHPATH_SEPARATOR_S);
-	}
-
-	hfree(path);
-	return result;
-}
 
 /**
  * Compare two trace entries -- qsort() callback.
@@ -560,7 +507,7 @@ static struct {
 	const void *fn;				/**< Function address */
 	const char *name;			/**< Function name */
 } trace_known_symbols[] = {
-	FN(concat_strings),
+	FN(file_locate_from_path),
 	FN(halloc_init),
 	FN(hash_table_new_full_real),
 	FN(is_strprefix),
@@ -911,7 +858,7 @@ program_path_allocate(const char *argv0)
 
 	if (-1 == stat(argv0, &buf)) {
 		int saved_errno = errno;
-		file = locate_from_path(argv0);
+		file = file_locate_from_path(argv0);
 		if (NULL == file) {
 			s_warning("could not stat() \"%s\": %s",
 				argv0, g_strerror(saved_errno));
