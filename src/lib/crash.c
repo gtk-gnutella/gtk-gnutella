@@ -92,6 +92,13 @@ RCSID("$Id$")
 
 #define PARENT_STDERR_FILENO	3
 
+#ifdef HAS_FORK
+#define has_fork() 1
+#else
+#define fork()     0
+#define has_fork() 0
+#endif
+
 struct crash_vars {
 	ckhunk_t *mem;			/**< Reserved memory, read-only */
 	ckhunk_t *mem2;			/**< Reserved memory, read-only */
@@ -473,7 +480,6 @@ crash_logname(char *buf, size_t len, const char *pidstr)
  */
 static void
 crash_invoke_inspector(int signo, const char *cwd)
-#ifdef HAS_FORK
 {
    	const char *pid_str;
 	char pid_buf[22];
@@ -486,21 +492,34 @@ crash_invoke_inspector(int signo, const char *cwd)
 	/* Make sure we don't exceed the system-wide file descriptor limit */
 	close_file_descriptors(3);
 
-	if (
-		close(STDIN_FILENO) ||
-		close(STDOUT_FILENO) ||
-		pipe(fd) ||
-		STDIN_FILENO != fd[0] ||
-		STDOUT_FILENO != fd[1]
-	) {
-		stage = "pipe setup";
-		goto parent_failure;
-	}
+	if (has_fork()) {
+		if (
+			close(STDIN_FILENO) ||
+			close(STDOUT_FILENO) ||
+			pipe(fd) ||
+			STDIN_FILENO != fd[0] ||
+			STDOUT_FILENO != fd[1]
+		) {
+			stage = "pipe setup";
+			goto parent_failure;
+		}
 
-	/* Make sure child will get access to the stderr of its parent */
-	if (PARENT_STDERR_FILENO != dup(STDERR_FILENO)) {
-		stage = "parent's stderr duplication";
-		goto parent_failure;
+		/* Make sure child will get access to the stderr of its parent */
+		if (PARENT_STDERR_FILENO != dup(STDERR_FILENO)) {
+			stage = "parent's stderr duplication";
+			goto parent_failure;
+		}
+	} else {
+		DECLARE_STR(2);
+		char time_buf[18];
+
+		(void) signo;
+		(void) cwd;
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);
+		print_str(" (WARNING): cannot fork() on this platform\n");
+		flush_err_str();
 	}
 
 #ifdef SIGCHLD
@@ -524,6 +543,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 			char tbuf[22];
 			char lbuf[22];
 			time_delta_t t;
+			int clf = STDOUT_FILENO;	/* crash log file fd */
 			DECLARE_STR(15);
 
 			if (vars->exec_path) {
@@ -570,24 +590,30 @@ crash_invoke_inspector(int signo, const char *cwd)
 			crash_run_time(rbuf, sizeof rbuf);
 			t = delta_time(time(NULL), vars->start_time);
 
-			/* STDIN must be kept open when piping to gdb */
-			if (vars->exec_path) {
-				if (
-					close(STDIN_FILENO) ||
-					STDIN_FILENO != open("/dev/null", O_RDONLY, 0)
-				)
-					goto child_failure;
+			if (has_fork()) {
+				/* STDIN must be kept open when piping to gdb */
+				if (vars->exec_path != NULL) {
+					if (
+						close(STDIN_FILENO) ||
+						STDIN_FILENO != open("/dev/null", O_RDONLY, 0)
+					)
+						goto child_failure;
+				}
+
+				set_close_on_exec(PARENT_STDERR_FILENO);
 			}
 
-			if (
-				close(STDOUT_FILENO) ||
-				close(STDERR_FILENO) ||
-				STDOUT_FILENO != open(filename, flags, mode) ||
-				STDERR_FILENO != dup(STDOUT_FILENO)
-			)
-				goto child_failure;
-
-			set_close_on_exec(PARENT_STDERR_FILENO);
+			if (has_fork()) {
+				if (
+					close(STDOUT_FILENO) ||
+					close(STDERR_FILENO) ||
+					STDOUT_FILENO != open(filename, flags, mode) ||
+					STDERR_FILENO != dup(STDOUT_FILENO)
+				)
+					goto child_failure;
+			} else {
+				clf = open(filename, flags, mode);
+			}
 
 			/*
 			 * Emit crash header.
@@ -610,7 +636,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 			print_str("X-Crash-Signal: ");		/* 12 */
 			print_str(signal_name(signo));		/* 13 */
 			print_str("\n");					/* 14 */
-			flush_str(STDOUT_FILENO);
+			flush_str(clf);
 			rewind_str(0);
 			print_str("X-Crash-Time: ");		/* 0 */
 			print_str(tbuf);					/* 1 */
@@ -633,7 +659,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 				print_str(vars->crashdir);			/* 13 */
 				print_str("\n");					/* 14 */
 			}
-			flush_str(STDOUT_FILENO);
+			flush_str(clf);
 			rewind_str(0);
 			print_str("X-Crash-File: ");		/* 0 */
 			print_str(filename);				/* 1 */
@@ -655,11 +681,35 @@ crash_invoke_inspector(int signo, const char *cwd)
 					print_str("\n");					/* 9 */
 				}
 			}
-			print_str("\n");					/* 10 -- End of Header */
-			flush_str(STDOUT_FILENO);
+			flush_str(clf);
 
+			rewind_str(0);
+			print_str("X-Stacktrace:\n");			/* 0 */
+			flush_str(clf);
+			stacktrace_where_cautious_print_offset(clf, 2);
+
+			rewind_str(0);
+			print_str("\n");					/* 0 -- End of Header */
+			flush_str(clf);
+
+			/*
+			 * If we don't have fork() on this platform, we've logged the
+			 * essential stuff, we can now execute what is normally
+			 * done by the parent process.
+			 */
+
+			if (!has_fork()) {
+				rewind_str(0);
+				print_str("No fork() on this platform.\n");
+				flush_str(clf);
+				close(clf);
+				goto parent_process;
+			}
+
+#ifdef HAS_SETSID
 			if (-1 == setsid())
 				goto child_failure;
+#endif
 
 			/*
 			 * They may have specified a relative path for the program (argv0)
@@ -712,137 +762,158 @@ crash_invoke_inspector(int signo, const char *cwd)
 		break;
 
 	default:	/* executed by parent */
-		{
-			DECLARE_STR(10);
-			unsigned iov_prolog;
-			char time_buf[18];
-			int status;
-			gboolean child_ok = FALSE;
+		break;
+	}
 
+	/*
+	 * The following is only executed by the parent process.
+	 */
+
+parent_process:
+	{
+		DECLARE_STR(10);
+		unsigned iov_prolog;
+		char time_buf[18];
+		int status;
+		gboolean child_ok = FALSE;
+
+		if (has_fork()) {
 			close(PARENT_STDERR_FILENO);
+		}
 
-			/*
-			 * Now that the child has started, we can write commands to
-			 * the pipe without fearing any blocking: we'll either
-			 * succeed or get EPIPE if the child dies and closes its end.
-			 */
+		/*
+		 * Now that the child has started, we can write commands to
+		 * the pipe without fearing any blocking: we'll either
+		 * succeed or get EPIPE if the child dies and closes its end.
+		 */
 
-			{
-				static const char commands[] = "bt\nbt full\nquit\n";
-				const size_t n = CONST_STRLEN(commands);
-				ssize_t ret;
+		if (has_fork()) {
+			static const char commands[] = "bt\nbt full\nquit\n";
+			const size_t n = CONST_STRLEN(commands);
+			ssize_t ret;
 
-				ret = write(STDOUT_FILENO, commands, n);
-				if (n != UNSIGNED(ret)) {
-					/*
-					 * EPIPE is acceptable if the child's immediate action
-					 * is to close stdin... The child could get scheduled
-					 * before the parent, so this must be handled.
-					 */
+			ret = write(STDOUT_FILENO, commands, n);
+			if (n != UNSIGNED(ret)) {
+				/*
+				 * EPIPE is acceptable if the child's immediate action
+				 * is to close stdin... The child could get scheduled
+				 * before the parent, so this must be handled.
+				 */
 
-					if ((ssize_t) -1 != ret || EPIPE != errno) {
-						stage = "sending commands to pipe";
-						goto parent_failure;
-					}
-					/* FALL THROUGH */
+				if ((ssize_t) -1 != ret || EPIPE != errno) {
+					stage = "sending commands to pipe";
+					goto parent_failure;
 				}
+				/* FALL THROUGH */
 			}
+		}
 
-			/*
-			 * We need to maintain the pipe opened even though we
-			 * sent commands because otherwise gdb complains about
-			 * "Hangup detected on fd 0".
-			 */
+		/*
+		 * We need to maintain the pipe opened even though we
+		 * sent commands because otherwise gdb complains about
+		 * "Hangup detected on fd 0".
+		 */
 
-			crash_time(time_buf, sizeof time_buf);
+		crash_time(time_buf, sizeof time_buf);
 
-			/* The following precedes each line */
-			print_str(time_buf);				/* 0 */
-			print_str(" CRASH (pid=");			/* 1 */
-			print_str(pid_str);					/* 2 */
-			print_str(") ");					/* 3 */
-			iov_prolog = getpos_str();
+		/* The following precedes each line */
+		print_str(time_buf);				/* 0 */
+		print_str(" CRASH (pid=");			/* 1 */
+		print_str(pid_str);					/* 2 */
+		print_str(") ");					/* 3 */
+		iov_prolog = getpos_str();
 
-			if ((pid_t) -1 == waitpid(pid, &status, 0)) {
-				char buf[ULONG_DEC_BUFLEN];
-				print_str("could not wait for child (errno = ");	/* 4 */
-				print_str(print_number(buf, sizeof buf, errno));	/* 5 */
-				print_str(")\n");									/* 6 */
-				flush_err_str();
-			} else if (WIFEXITED(status)) {
-				if (vars->invoke_inspector && 0 == WEXITSTATUS(status)) {
-					child_ok = TRUE;
-				} else {
-					char buf[ULONG_DEC_BUFLEN];
+		if (!has_fork()) {
+			child_ok = TRUE;
+			goto no_fork;
+		}
 
-					print_str("child exited with status ");	/* 4 */
-					print_str(print_number(buf, sizeof buf,
-						WEXITSTATUS(status)));				/* 5 */
-					print_str("\n");						/* 6 */
-					flush_err_str();
-				}
+#ifdef HAS_WAITPID
+		if ((pid_t) -1 == waitpid(pid, &status, 0)) {
+			char buf[ULONG_DEC_BUFLEN];
+			print_str("could not wait for child (errno = ");	/* 4 */
+			print_str(print_number(buf, sizeof buf, errno));	/* 5 */
+			print_str(")\n");									/* 6 */
+			flush_err_str();
+		} else if (WIFEXITED(status)) {
+			if (vars->invoke_inspector && 0 == WEXITSTATUS(status)) {
+				child_ok = TRUE;
 			} else {
-				if (WIFSIGNALED(status)) {
-					int sig = WTERMSIG(status);
-					print_str("child got a ");			/* 4 */
-					print_str(signal_name(sig));		/* 5 */
-				} else {
-					print_str("child exited abnormally");	/* 4 */
-				}
-				print_str("\n");						/* 6, at most */
+				char buf[ULONG_DEC_BUFLEN];
+
+				print_str("child exited with status ");	/* 4 */
+				print_str(print_number(buf, sizeof buf,
+					WEXITSTATUS(status)));				/* 5 */
+				print_str("\n");						/* 6 */
 				flush_err_str();
 			}
-
-			/*
-			 * Let them know where the trace is.
-			 *
-			 * Even if the child exited abnormally, there may be some
-			 * partial information there so we mention the filename to
-			 * have them look at it.
-			 */
-
-			{
-				char buf[64];
-
-				rewind_str(iov_prolog);
-				if (!child_ok)
-					print_str("possibly incomplete ");		/* 4 */
-				print_str("trace left in ");				/* 5 */
-				crash_logname(buf, sizeof buf, pid_str);
-				if (*cwd != '\0') {
-					print_str(cwd);					/* 6 */
-					print_str(G_DIR_SEPARATOR_S);	/* 7 */
-					print_str(buf);					/* 8 */
-				} else {
-					print_str(buf);					/* 6 */
-				}
-				print_str("\n");					/* 9, at most */
-				flush_err_str();
-				if (log_stdout_is_distinct())
-					flush_str(STDOUT_FILENO);
+		} else {
+			if (WIFSIGNALED(status)) {
+				int sig = WTERMSIG(status);
+				print_str("child got a ");			/* 4 */
+				print_str(signal_name(sig));		/* 5 */
+			} else {
+				print_str("child exited abnormally");	/* 4 */
 			}
+			print_str("\n");						/* 6, at most */
+			flush_err_str();
+		}
+#else
+		(void) status;
+#endif	/* HAS_WAITPID */
 
-			/*
-			 * Items 0, 1, 2, 3 of the vector were already built above,
-			 * and contain the crash time, and the "CRASH (pid=xxx)" string.
-			 * No need to regenerate them, so start at index 4.
-			 */
+		/*
+		 * Let them know where the trace is.
+		 *
+		 * Even if the child exited abnormally, there may be some
+		 * partial information there so we mention the filename to
+		 * have them look at it.
+		 */
 
-			if (vars->dumps_core) {
-				rewind_str(iov_prolog);
-				print_str("core dumped in ");	/* 4 */
-				print_str(cwd);					/* 5 */
-				print_str("\n");				/* 6 */
-				flush_err_str();
-				if (log_stdout_is_distinct())
-					flush_str(STDOUT_FILENO);
+no_fork:
+		{
+			char buf[64];
+
+			rewind_str(iov_prolog);
+			if (!child_ok)
+				print_str("possibly incomplete ");		/* 4 */
+			print_str("trace left in ");				/* 5 */
+			crash_logname(buf, sizeof buf, pid_str);
+			if (*cwd != '\0') {
+				print_str(cwd);					/* 6 */
+				print_str(G_DIR_SEPARATOR_S);	/* 7 */
+				print_str(buf);					/* 8 */
+			} else {
+				print_str(buf);					/* 6 */
 			}
+			print_str("\n");					/* 9, at most */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+		}
 
-			/*
-			 * Closing needs to happen after we gave feedback about the
-			 * fate of our child.
-			 */
+		/*
+		 * Items 0, 1, 2, 3 of the vector were already built above,
+		 * and contain the crash time, and the "CRASH (pid=xxx)" string.
+		 * No need to regenerate them, so start at index 4.
+		 */
 
+		if (vars->dumps_core) {
+			rewind_str(iov_prolog);
+			print_str("core dumped in ");	/* 4 */
+			print_str(cwd);					/* 5 */
+			print_str("\n");				/* 6 */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+		}
+
+		/*
+		 * Closing needs to happen after we gave feedback about the
+		 * fate of our child.
+		 */
+
+		if (has_fork()) {
 			if (
 				close(STDOUT_FILENO) ||
 				STDOUT_FILENO != open("/dev/null", O_WRONLY, 0)
@@ -858,19 +929,20 @@ crash_invoke_inspector(int signo, const char *cwd)
 				stage = "stdin closing";
 				goto parent_failure;
 			}
-
-			/*
-			 * This is our "OK" marker.  If it's not present in the logs,
-			 * it means something went wrong.
-			 */
-
-			rewind_str(iov_prolog);
-			print_str("end of line.\n");	/* 4 */
-			flush_err_str();
-			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
 		}
+
+		/*
+		 * This is our "OK" marker.  If it's not present in the logs,
+		 * it means something went wrong.
+		 */
+
+		rewind_str(iov_prolog);
+		print_str("end of line.\n");	/* 4 */
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
 	}
+
 	return;
 
 parent_failure:
@@ -888,20 +960,6 @@ parent_failure:
 		flush_err_str();
 	}
 }
-#else	/* !HAS_FORK */
-{
-	DECLARE_STR(2);
-	char time_buf[18];
-
-	(void) signo;
-	(void) cwd;
-
-	crash_time(time_buf, sizeof time_buf);
-	print_str(time_buf);
-	print_str(" (WARNING): cannot fork() on this platform\n");
-	flush_err_str();
-}
-#endif
 
 /**
  * The signal handler used to trap harmful signals.
@@ -1151,12 +1209,6 @@ crash_init(const char *argv0, const char *progname,
 	if (executable != argv0)
 		HFREE_NULL(executable);
 }
-
-#ifdef HAS_FORK
-#define has_fork() 1
-#else
-#define has_fork() 0
-#endif
 
 #define crash_set_var(name, src) \
 G_STMT_START { \
