@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Mar  1 22:04:18 CET 2011 [metaconfig 3.5-95]
+# Generated on Wed Mar 16 17:53:07 CET 2011 [metaconfig 3.5-95]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -371,6 +371,7 @@ d_rusage=''
 d_select=''
 d_sendfile=''
 d_setproctitle=''
+d_setsid=''
 d_sigaction=''
 d_sigprocmask=''
 d_sigsetjmp=''
@@ -400,6 +401,7 @@ d_voidsig=''
 signal_t=''
 d_volatile=''
 d_vsnprintf=''
+d_waitpid=''
 d_dbus=''
 dbuscflags=''
 dbusconfig=''
@@ -489,6 +491,7 @@ i_systypes=''
 i_sysun=''
 i_sysutsname=''
 i_sysvfs=''
+i_syswait=''
 i_systime=''
 i_systimek=''
 i_time=''
@@ -6691,6 +6694,24 @@ cyn=setproctitle
 set d_setproctitle
 eval $trylink
 
+: see if setsid exists
+$cat >try.c <<EOC
+#include <sys/types.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static pid_t ret;
+	ret |= setsid();
+	return ret ? 0 : 1;
+}
+EOC
+cyn=setsid
+set d_setsid
+eval $trylink
+
 : see if we have sigaction
 $cat >try.c <<EOC
 #include <stdio.h>
@@ -7413,6 +7434,31 @@ int main(void)
 EOC
 cyn=vsnprintf
 set d_vsnprintf
+eval $trylink
+
+: see if this is a syswait system
+set sys/wait.h i_syswait
+eval $inhdr
+
+: see if waitpid exists
+$cat >try.c <<EOC
+#include <sys/types.h>
+#$i_syswait I_SYS_WAIT
+#ifdef I_SYS_WAIT
+#include <sys/wait.h>
+#endif
+int main(void)
+{
+	static pid_t ret, pid;
+	static int status, options;
+	options |= WNOHANG;
+	options |= WUNTRACED;
+	ret |= waitpid(pid, &status, options);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=waitpid
+set d_waitpid
 eval $trylink
 
 : preserve RCS keywords in files with variable substitution, grrr
@@ -10024,6 +10070,7 @@ d_rusage='$d_rusage'
 d_select='$d_select'
 d_sendfile='$d_sendfile'
 d_setproctitle='$d_setproctitle'
+d_setsid='$d_setsid'
 d_sigaction='$d_sigaction'
 d_sigprocmask='$d_sigprocmask'
 d_sigsetjmp='$d_sigsetjmp'
@@ -10050,6 +10097,7 @@ d_usleep='$d_usleep'
 d_voidsig='$d_voidsig'
 d_volatile='$d_volatile'
 d_vsnprintf='$d_vsnprintf'
+d_waitpid='$d_waitpid'
 d_windows='$d_windows'
 d_xenix='$d_xenix'
 date='$date'
@@ -10149,6 +10197,7 @@ i_systypes='$i_systypes'
 i_sysun='$i_sysun'
 i_sysutsname='$i_sysutsname'
 i_sysvfs='$i_sysvfs'
+i_syswait='$i_syswait'
 i_time='$i_time'
 i_unistd='$i_unistd'
 i_varargs='$i_varargs'

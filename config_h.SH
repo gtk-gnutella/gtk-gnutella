@@ -436,6 +436,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_setproctitle HAS_SETPROCTITLE
 
+/* HAS_SETSID:
+ *	This symbol, if defined, indicates that the setsid routine is
+ *	available to set the process group ID.
+ */
+#$d_setsid HAS_SETSID	/**/
+
 /* HAS_SIGACTION:
  *	This symbol, if defined, indicates that Vr4's sigaction() routine
  *	is available.
@@ -566,6 +572,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available.
  */
 #$d_vsnprintf HAS_VSNPRINTF		/**/
+
+/* HAS_WAITPID:
+ *	This symbol, if defined, indicates that the waitpid routine is
+ *	available to wait for child process.
+ */
+#$d_waitpid HAS_WAITPID	/**/
 
 /* EBCDIC:
  *     This symbol, if defined, indicates that this system uses
