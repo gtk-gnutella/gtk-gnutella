@@ -154,6 +154,8 @@ void crash_setdir(const char *dir);
 void crash_setver(const char *version);
 void crash_setbuild(unsigned build);
 void crash_assert_failure(const struct assertion_data *a);
+void crash_save_current_stackframe(void);
+void crash_save_stackframe(void *stack[], size_t count);
 void crash_post_init(void);
 int crash_coredumps_disabled(void);
 

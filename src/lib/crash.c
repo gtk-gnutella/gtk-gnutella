@@ -100,6 +100,7 @@ RCSID("$Id$")
 #endif
 
 struct crash_vars {
+	void *stack[STACKTRACE_DEPTH_MAX];	/**< Stack frame on assert failure */
 	ckhunk_t *mem;			/**< Reserved memory, read-only */
 	ckhunk_t *mem2;			/**< Reserved memory, read-only */
 	ckhunk_t *mem3;			/**< Reserved memory, read-only */
@@ -113,6 +114,7 @@ struct crash_vars {
 	const assertion_data *failure;	/**< Failed assertion, NULL if none */
 	time_delta_t gmtoff;	/**< Offset to GMT, supposed to be fixed */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
+	size_t stackcnt;		/**< Valid stack items in stack[] */
 	unsigned build;			/**< Build number, unique version number */
 	unsigned pause_process:1;
 	unsigned invoke_inspector:1;
@@ -475,6 +477,21 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 }
 
 /**
+ * Emit the current stack frame to specified file, or the assertion stack
+ * if we have one.
+ */
+static NO_INLINE void
+crash_stack_print(int fd, size_t offset)
+{
+	if (vars != NULL && vars->stackcnt != 0) {
+		/* Saved assertion stack preferred over current stack trace */
+		stacktrace_stack_safe_print(fd, vars->stack, vars->stackcnt);
+	} else {
+		stacktrace_where_cautious_print_offset(fd, offset + 1);
+	}
+}
+
+/**
  * Invoke the inspector process (gdb, or any other program specified at
  * initialization time).
  */
@@ -686,7 +703,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 			rewind_str(0);
 			print_str("X-Stacktrace:\n");			/* 0 */
 			flush_str(clf);
-			stacktrace_where_cautious_print_offset(clf, 2);
+			crash_stack_print(clf, 2);
 
 			rewind_str(0);
 			print_str("\n");					/* 0 -- End of Header */
@@ -1057,9 +1074,9 @@ crash_handler(int signo)
 
 	crash_message(name, trace, recursive);
 	if (trace) {
-		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
+		crash_stack_print(STDERR_FILENO, 1);
 		if (log_stdout_is_distinct())
-			stacktrace_where_cautious_print_offset(STDOUT_FILENO, 1);
+			crash_stack_print(STDOUT_FILENO, 1);
 	}
 	crash_end_of_line();
 	if (vars->invoke_inspector) {
@@ -1361,6 +1378,42 @@ crash_assert_failure(const struct assertion_data *a)
 {
 	if (vars != NULL)
 		crash_set_var(failure, a);
+}
+
+/**
+ * Save given stack trace, which will be displayed during crashes instead
+ * of the current stack frame.
+ */
+void
+crash_save_stackframe(void *stack[], size_t count)
+{
+	if (count > G_N_ELEMENTS(vars->stack))
+		count = G_N_ELEMENTS(vars->stack);
+
+	if (vars != NULL) {
+		ck_memcpy(vars->mem,
+			&vars->stack, (void *) stack, count * sizeof(void *));
+		crash_set_var(stackcnt, count);
+	}
+}
+
+/**
+ * Capture current stack frame during assertion failures.
+ *
+ * The reason we capture a stack frame at the moment of the assertion failure
+ * is to protect against SIGABRT signal delivery happening on a dedicated
+ * signal stack.
+ */
+void
+crash_save_current_stackframe(void)
+{
+	if (vars != NULL) {
+		void *stack[STACKTRACE_DEPTH_MAX];
+		size_t count;
+
+		count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 2);
+		crash_save_stackframe(stack, count);
+	}
 }
 
 /**

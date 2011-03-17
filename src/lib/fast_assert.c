@@ -107,6 +107,15 @@ assertion_failure(const assertion_data * const data)
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
 		if (log_stdout_is_distinct())
 			stacktrace_where_cautious_print_offset(STDOUT_FILENO, 1);
+
+		/*
+		 * Before calling abort(), which will generate a SIGABRT and invoke
+		 * the crash handler we need to save the current stack frame in case
+		 * signal delivery happens on a dedicated stackframe where it will
+		 * no longer be possible to get the frame of the assertion failure.
+		 */
+
+		crash_save_current_stackframe();
 	}
 	abort();
 }

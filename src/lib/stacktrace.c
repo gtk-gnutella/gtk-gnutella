@@ -133,8 +133,8 @@ static void *getframeaddr(size_t level);
 /**
  * Unwind current stack into supplied stacktrace array.
  *
- * If possible, do not inline stack_unwind() as this would perturb offsetting
- * of stack elements to ignore.
+ * If possible, do not inline stacktrace_unwind() as this would perturb
+ * offsetting of stack elements to ignore.
  *
  * @param stack		array where stack should be written
  * @param count		amount of items in stack[]
@@ -142,8 +142,8 @@ static void *getframeaddr(size_t level);
  *
  * @return the amount of entries filled in stack[].
  */
-static NO_INLINE size_t
-stack_unwind(void *stack[], size_t count, size_t offset)
+NO_INLINE size_t
+stacktrace_unwind(void *stack[], size_t count, size_t offset)
 #ifdef HAS_BACKTRACE
 {
 	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
@@ -907,7 +907,7 @@ stacktrace_auto_tune(void)
 	size_t count;
 	size_t i;
 
-	count = stack_unwind(stack, G_N_ELEMENTS(stack), 0);
+	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 0);
 
 	/*
 	 * Look at the first item in the stack that is after ourselves.
@@ -1098,7 +1098,7 @@ stacktrace_post_init(void)
 void
 stacktrace_get(struct stacktrace *st)
 {
-	st->len = stack_unwind(st->stack, G_N_ELEMENTS(st->stack), 1);
+	st->len = stacktrace_unwind(st->stack, G_N_ELEMENTS(st->stack), 1);
 }
 
 /**
@@ -1108,7 +1108,7 @@ stacktrace_get(struct stacktrace *st)
 void
 stacktrace_get_offset(struct stacktrace *st, size_t offset)
 {
-	st->len = stack_unwind(st->stack, G_N_ELEMENTS(st->stack), offset + 1);
+	st->len = stacktrace_unwind(st->stack, G_N_ELEMENTS(st->stack), offset + 1);
 }
 
 /**
@@ -1216,7 +1216,7 @@ stacktrace_caller_name(size_t n)
 	g_assert(size_is_non_negative(n));
 	g_assert(n <= STACKTRACE_DEPTH_MAX);
 
-	count = stack_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 1);
 	if (n >= count)
 		return "";
 
@@ -1251,7 +1251,7 @@ stacktrace_where_print(FILE *f)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stack_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 1);
 	stack_print(f, stack, count);
 }
 
@@ -1277,7 +1277,7 @@ stacktrace_where_sym_print(FILE *f)
 	if (!stacktrace_got_symbols())
 		return;		/* No symbols loaded */
 
-	count = stack_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 1);
 	stack_print(f, stack, count);
 }
 
@@ -1293,7 +1293,7 @@ stacktrace_where_print_offset(FILE *f, size_t offset)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 	stack_print(f, stack, count);
 }
 
@@ -1313,7 +1313,7 @@ stacktrace_where_sym_print_offset(FILE *f, size_t offset)
 	if (!stacktrace_got_symbols())
 		return;		/* No symbols loaded */
 
-	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 	stack_print(f, stack, count);
 }
 
@@ -1333,7 +1333,7 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 	if (!signal_in_handler())
 		stacktrace_load_symbols();
 	stack_safe_print(fd, stack, count);
@@ -1454,7 +1454,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 		goto restore;
 	}
 
-	count = stack_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 
 	if (0 == count) {
 		DECLARE_STR(1);
@@ -1604,7 +1604,7 @@ stacktrace_get_atom(const struct stacktrace *st)
  * it now returns __builtin_return_address(0).  Similar changes were made
  * to getframeaddr().  Moreover, the maximum level handled in the switch
  * is now 132, to cope with necessary offsetting required by user code
- * which uses an extra layer of functions to access stack_unwind().
+ * which uses an extra layer of functions to access stacktrace_unwind().
  *
  * In order to work correctly, the proper stack offsetting must be computed
  * at run-time.  See stacktrace_auto_tune().

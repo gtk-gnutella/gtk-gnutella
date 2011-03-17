@@ -2833,6 +2833,8 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		stacktrace_stack_safe_print(STDERR_FILENO, mingw_stack, count);
 		if (log_stdout_is_distinct())
 			stacktrace_stack_safe_print(STDOUT_FILENO, mingw_stack, count);
+
+		crash_save_stackframe(mingw_stack, count);
 	}
 
 	/*
