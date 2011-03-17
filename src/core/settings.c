@@ -1768,6 +1768,8 @@ static int
 request_directory(const char *pathname)
 {
 	if (!is_absolute_path(pathname)) {
+		g_carp("ignoring attempt to create relative directory \"%s\"",
+			pathname);
 		errno = EINVAL;
 		return -1;
 	}
@@ -1786,11 +1788,40 @@ request_directory(const char *pathname)
 	return -1;
 }
 
+/**
+ * Perform in-place ~/ expansion within a string property value.
+ */
+static void
+tilda_expand(property_t prop)
+{
+    char *pathname;
+
+	pathname = gnet_prop_get_string(prop, NULL, 0);
+
+	if (0 == strcmp(pathname, "~")) {
+		gnet_prop_set_string(prop, eval_subst("~"));
+	} else if (
+		is_strprefix(pathname, "~/") ||
+		is_strprefix(pathname, "~" G_DIR_SEPARATOR_S)
+	) {
+		const char *home = eval_subst("~");
+		char *expanded;
+
+		expanded = h_strconcat(home,
+			'/' == pathname[1] ? "/" : G_DIR_SEPARATOR_S,
+			&pathname[2], (void *) 0);
+
+		gnet_prop_set_string(prop, expanded);
+		HFREE_NULL(expanded);
+	}
+}
+
 static gboolean
 file_path_changed(property_t prop)
 {
     char *pathname;
 
+	tilda_expand(prop);
 	pathname = gnet_prop_get_string(prop, NULL, 0);
 	request_directory(pathname);
     G_FREE_NULL(pathname);
@@ -1803,6 +1834,7 @@ save_file_path_changed(property_t prop)
 	static char *old_path;
 	char *path;
 
+	tilda_expand(prop);
 	path = gnet_prop_get_string(prop, NULL, 0);
 
 	if (GNET_PROPERTY(lockfile_debug)) {
