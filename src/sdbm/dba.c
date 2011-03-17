@@ -48,6 +48,8 @@ main(int argc, char **argv)
 
 		if ((datf = open(name, O_RDONLY)) >= 0)
 			bdump(datf);
+
+		free(name);
 	}
 	else
 		oops("usage: %s dbname", progname);
