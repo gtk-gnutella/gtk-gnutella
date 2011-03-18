@@ -90,6 +90,11 @@ void NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_warning(const assertion_data * const data)
 {
 	assertion_message(data, FALSE);
+
+	/*
+	 * Trace the code path leading to this assertion warning.
+	 */
+
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
 	if (log_stdout_is_distinct())
 		stacktrace_where_safe_print_offset(STDOUT_FILENO, 1);
@@ -101,7 +106,23 @@ assertion_failure(const assertion_data * const data)
 	static volatile sig_atomic_t seen_fatal;
 
 	assertion_message(data, TRUE);
+
+	/*
+	 * Record the root cause of the assertion failure to be able to log it
+	 * in the crash log in case they don't have gdb available.
+	 */
+
 	crash_assert_failure(data);
+
+	/*
+	 * We're going to stop the execution.
+	 *
+	 * If this is the first fatal assertion we're dealing with (and not a
+	 * second one happening in the crash-handling code), log the current
+	 * stack trace to give a first clue about the code path leading to
+	 * the failure.
+	 */
+
 	if (!seen_fatal) {
 		seen_fatal = TRUE;
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
@@ -111,12 +132,13 @@ assertion_failure(const assertion_data * const data)
 		/*
 		 * Before calling abort(), which will generate a SIGABRT and invoke
 		 * the crash handler we need to save the current stack frame in case
-		 * signal delivery happens on a dedicated stackframe where it will
-		 * no longer be possible to get the frame of the assertion failure.
+		 * signal delivery happens on a dedicated stack where it will no
+		 * longer be possible to get the frame of the assertion failure.
 		 */
 
 		crash_save_current_stackframe();
 	}
+
 	abort();
 }
 
