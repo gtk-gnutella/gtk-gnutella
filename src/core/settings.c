@@ -1814,6 +1814,32 @@ tilda_expand(property_t prop)
 		gnet_prop_set_string(prop, expanded);
 		HFREE_NULL(expanded);
 	}
+
+	/*
+	 * On Windows "~" is a problem because the home directory is set to
+	 * a normally hidden path:
+	 *
+	 *   C:\Documents and Settings\user\Local Settings\Application Data
+	 *
+	 * which is suitable for ~/.gtk-gnutella but is not for ~/gtk-downloads...
+	 * And unfortunately, defaults for the properties governing saved file
+	 * paths are set to something like ~/gtk-gnutella-downloads/incomplete.
+	 *
+	 * So we're using this routine, always called to perform ~ expansion on
+	 * file saving paths and other user-visible paths, as a hook to patch in
+	 * place the hidden path with a path more suitable on Windows.
+	 */
+
+	if (is_running_on_mingw()) {
+		char *patched;
+
+		pathname = gnet_prop_get_string(prop, NULL, 0);
+		patched = mingw_patch_personal_path(pathname);
+		if (patched != pathname) {
+			gnet_prop_set_string(prop, patched);
+			HFREE_NULL(patched);
+		}
+	}
 }
 
 static gboolean

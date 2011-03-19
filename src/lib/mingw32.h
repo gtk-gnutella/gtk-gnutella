@@ -468,11 +468,14 @@ void mingw_adns_init(void);
 void mingw_adns_close(void);
 gboolean mingw_adns_send_request(const struct adns_request *req);
 
+char *mingw_patch_personal_path(const char *pathname);
+
 #else	/* !MINGW32 */
 
 #define mingw_early_init();
 #define mingw_init()
 #define mingw_close()
+#define mingw_patch_personal_path(p)	(p)
 
 #define mingw_in_exception()		0
 

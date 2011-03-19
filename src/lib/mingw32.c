@@ -656,16 +656,17 @@ const char *
 mingw_gethome(void)
 {
 	static char pathname[MAX_PATH];
-	int ret;
 
-	/**
-	 * FIXME: Unicode
-	 */
-	ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, pathname);
+	if ('\0' == pathname[0]) {
+		int ret;
 
-	if (E_INVALIDARG == ret) {
-		g_warning("could not determine home directory");
-		g_strlcpy(pathname, "/", sizeof pathname);
+		/* FIXME: Unicode */
+		ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, pathname);
+
+		if (E_INVALIDARG == ret) {
+			g_warning("could not determine home directory");
+			g_strlcpy(pathname, "/", sizeof pathname);
+		}
 	}
 
 	return pathname;
@@ -675,16 +676,17 @@ const char *
 mingw_getpersonal(void)
 {
 	static char pathname[MAX_PATH];
-	int ret;
 
-	/**
-	 * FIXME: Unicode
-	 */
-	ret = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, pathname);
+	if ('\0' == pathname[0]) {
+		int ret;
 
-	if (E_INVALIDARG == ret) {
-		g_warning("could not determine personal document directory");
-		g_strlcpy(pathname, "/", sizeof pathname);
+		/* FIXME: Unicode */
+		ret = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, pathname);
+
+		if (E_INVALIDARG == ret) {
+			g_warning("could not determine personal document directory");
+			g_strlcpy(pathname, "/", sizeof pathname);
+		}
 	}
 
 	return pathname;
@@ -762,6 +764,40 @@ mingw_getstderr_path(void)
 	static char pathname[MAX_PATH];
 
 	return mingw_build_personal_path("gtkg.stderr", pathname, sizeof pathname);
+}
+
+/**
+ * Patch directory by replacing the leading "home" with the "personal"
+ * directory if the supplied pathname does not exist.  If it exists, we have
+ * to assume the original path was used, or created explicitely by the user
+ * to be used, and we're not going to supersede it.
+ *
+ * @return the argument if nothing needs to be patched, a patched string
+ * otherwise which needs to be freed via hfree().
+ */
+char *
+mingw_patch_personal_path(const char *pathname)
+{
+	const char *home = mingw_gethome();
+	const char *p;
+
+	p = is_strprefix(pathname, home);
+	if (p != NULL && !is_directory(pathname)) {
+		char *patched;
+
+		/*
+		 * Put everything under "My Documents/gtk-gnutella", were we should
+		 * already find stdout and stderr files created when running from
+		 * the GUI.
+		 */
+
+		patched = h_strconcat(mingw_getpersonal(),
+			G_DIR_SEPARATOR_S, GTA_PRODUCT_NAME, p, (void *) 0);
+		s_debug("patched \"%s\" into \"%s\"", pathname, patched);
+		return patched;
+	} else {
+		return deconstify_char(pathname);	/* No need to patch anything */
+	}
 }
 
 guint64
