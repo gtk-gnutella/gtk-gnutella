@@ -58,6 +58,7 @@ static const char * const log_domains[] = {
 };
 
 static gboolean atoms_are_inited;
+static gboolean log_inited;
 
 /**
  * A Log file we manage.
@@ -879,7 +880,7 @@ log_set(enum log_file which, const char *path)
 	lf = &logfile[which];
 
 	if (NULL == lf->path || strcmp(path, lf->path) != 0)
-		lf->changed = TRUE;		/* Pending a reopen */
+		lf->changed = log_inited;	/* Pending a reopen when inited */
 
 	if (atoms_are_inited) {
 		if (lf->path_is_atom)
@@ -1038,6 +1039,8 @@ log_init(void)
 	logfile[LOG_STDERR].f = stderr;
 	logfile[LOG_STDERR].name = "err";
 	logfile[LOG_STDERR].otime = tm_time();
+
+	log_inited = TRUE;
 }
 
 /**
@@ -1063,6 +1066,8 @@ log_close(void)
 		if (lf->path_is_atom)
 			atom_str_free_null(&lf->path);
 	}
+
+	log_inited = FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

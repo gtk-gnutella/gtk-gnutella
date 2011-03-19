@@ -342,6 +342,7 @@ signal_handler_t mingw_signal(int signo, signal_handler_t handler);
 int mingw_fcntl(int fd, int cmd, ... /* arg */ );
 
 const char *mingw_gethome(void);
+const char *mingw_getpersonal(void);
 guint64 mingw_getphysmemsize(void);
 int mingw_getdtablesize(void);
 const char *mingw_strerror(int errnum);

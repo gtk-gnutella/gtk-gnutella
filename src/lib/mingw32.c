@@ -70,6 +70,7 @@ RCSID("$Id$")
 #include "cq.h"
 #include "debug.h"
 #include "fd.h"					/* For is_open_fd() */
+#include "gtk-gnutella.h"		/* For GTA_PRODUCT_NAME */
 #include "glib-missing.h"
 #include "halloc.h"
 #include "iovec.h"
@@ -660,7 +661,7 @@ mingw_gethome(void)
 	/**
 	 * FIXME: Unicode
 	 */
-	ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA , NULL, 0, pathname);
+	ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, pathname);
 
 	if (E_INVALIDARG == ret) {
 		g_warning("could not determine home directory");
@@ -668,6 +669,99 @@ mingw_gethome(void)
 	}
 
 	return pathname;
+}
+
+const char *
+mingw_getpersonal(void)
+{
+	static char pathname[MAX_PATH];
+	int ret;
+
+	/**
+	 * FIXME: Unicode
+	 */
+	ret = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, pathname);
+
+	if (E_INVALIDARG == ret) {
+		g_warning("could not determine personal document directory");
+		g_strlcpy(pathname, "/", sizeof pathname);
+	}
+
+	return pathname;
+}
+
+/**
+ * Build path to file as "<personal_dir>\gtk-gnutella\file" without allocating
+ * any memory.  If the resulting path is too long, use "/file" instead.
+ * If the directory "<personal_dir>\gtk-gnutella" doest not exist yet, it
+ * is created.  If the directory "<personal_dir>" does not exist, use "/file".
+ *
+ * @param file		name of file
+ * @param dest		destination for result path
+ * @param size		size of dest
+ *
+ * @return the address of the dest parameter.
+ */
+static const char *
+mingw_build_personal_path(const char *file, char *dest, size_t size)
+{
+	const char *personal = mingw_getpersonal();
+
+	g_strlcpy(dest, personal, size);
+
+	if (path_does_not_exist(personal))
+		goto fallback;
+
+	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
+	clamp_strcat(dest, size, GTA_PRODUCT_NAME);
+
+	/*
+	 * Can't use mingw_mkdir() as we can't allocate memory here.
+	 * Use raw mkdir() but this won't work if there are non-ASCII chars
+	 * in the path.
+	 */
+
+	if (path_does_not_exist(dest))
+		mkdir(dest);
+
+	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
+	clamp_strcat(dest, size, file);
+
+	if (0 != strcmp(filepath_basename(dest), file))
+		goto fallback;
+
+	return dest;
+
+fallback:
+	g_strlcpy(dest, G_DIR_SEPARATOR_S, size);
+	clamp_strcat(dest, size, file);
+	return dest;
+}
+
+/**
+ * Return default stdout logfile when launched from the GUI.
+ * Directories leading to the dirname of the result are created as needed.
+ * This routine does not allocate any memory.
+ */
+static const char *
+mingw_getstdout_path(void)
+{
+	static char pathname[MAX_PATH];
+
+	return mingw_build_personal_path("gtkg.stdout", pathname, sizeof pathname);
+}
+
+/**
+ * Return default stderr logfile when launched from the GUI.
+ * Directories leading to the dirname of the result are created as needed.
+ * This routine does not allocate any memory.
+ */
+static const char *
+mingw_getstderr_path(void)
+{
+	static char pathname[MAX_PATH];
+
+	return mingw_build_personal_path("gtkg.stderr", pathname, sizeof pathname);
 }
 
 guint64
@@ -2858,6 +2952,16 @@ void mingw_invalid_parameter(const wchar_t * expression,
 	wprintf(L"mingw: Invalid parameter in %s %s:%d\r\n", function, file, line);
 }
 
+static void
+mingw_stdio_reset(void)
+{
+	fclose(stdin);
+	fclose(stdout);
+	fclose(stderr);
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
+}
 
 void
 mingw_early_init(void)
@@ -2876,14 +2980,9 @@ mingw_early_init(void)
 	SetUnhandledExceptionFilter(mingw_exception);
 
 	_fcloseall();
+
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-		fclose(stdin);
-		fclose(stdout);
-		fclose(stderr);
-		close(STDIN_FILENO);
-		close(STDOUT_FILENO);
-		close(STDERR_FILENO);
-		
+		mingw_stdio_reset();
 		freopen("CONIN$", "rb", stdin);
 		freopen("CONOUT$", "wb", stdout);
 		freopen("CONOUT$", "wb", stderr);
@@ -2894,7 +2993,19 @@ mingw_early_init(void)
 		case ERROR_INVALID_HANDLE:
 		case ERROR_GEN_FAILURE:
 			/* We had no console, and we got no console. */
-			/* FIXME: Redirect */
+			mingw_stdio_reset();
+			freopen("NUL", "rb", stdin);
+			{
+				const char *pathname;
+
+				pathname = mingw_getstdout_path();
+				freopen(pathname, "wb", stdout);
+				log_set(LOG_STDOUT, pathname);
+
+				pathname = mingw_getstderr_path();
+				freopen(pathname, "wb", stderr);
+				log_set(LOG_STDERR, pathname);
+			}
 			break;
 		case ERROR_ACCESS_DENIED:
 			/* Ignore, we already have a console */

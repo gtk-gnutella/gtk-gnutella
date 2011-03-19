@@ -1476,6 +1476,7 @@ main(int argc, char **argv)
 	close_file_descriptors(3); /* Just in case */
 		
 	if (reserve_standard_file_descriptors()) {
+		fprintf(stderr, "unable to reserve standard fds\n");
 		exit(EXIT_FAILURE);
 	}
 
