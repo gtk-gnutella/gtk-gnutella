@@ -1635,7 +1635,7 @@ main(int argc, char **argv)
 
 	vmm_post_init();		/* after settings_init() */
 
-	if (debugging(0))
+	if (debugging(0) || is_running_on_mingw())
 		stacktrace_load_symbols();
 
 	map_test();
