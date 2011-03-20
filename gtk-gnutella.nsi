@@ -185,6 +185,7 @@ SectionIn 1 RO
 	
 	SetOutPath $INSTDIR\pixmaps
 	File pixmaps\*.xpm
+	File pixmaps\*.png
 	
 	SetOutPath $INSTDIR\extra_files
 	File extra_files\*.txt	
@@ -451,6 +452,7 @@ Section Uninstall
 	Delete "$INSTDIR\libiconv.dll"
 	Delete "$INSTDIR\iconv.dll"
 	Delete "$INSTDIR\pixmaps\*.xpm"
+	Delete "$INSTDIR\pixmaps\*.png"
 	Delete "$INSTDIR\extra_files\*.txt"
 	
 	

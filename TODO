@@ -3,7 +3,7 @@ and which are not already implemented in SVN, by loose order of decreasing
 priority.
 
 0.97:
-	* Finish port to Windows, allowing launch by double-clicking on the .exe
+	* Finish port to Windows.
 
 0.97.1
 	* DOVE extension for the DHT, adding IPv6 support and smarter publishing
