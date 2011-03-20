@@ -1,3 +1,11 @@
+# v 0.96.9   2011-03-20  [beta for Windows]
+
+This release only concerns the Windows platform.
+
+Gtk-Gnutella is now fully functional on Windows but needs extensive beta
+testing before it can be officially released as 0.97.  A pre-compiled binary
+was released on Sourceforge (SVN revision 18885).
+
 # v 0.96.9   2011-03-14  [stable]
 
 New Features:
