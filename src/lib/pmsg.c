@@ -807,7 +807,7 @@ pmsg_write_ule64(pmsg_t *mb, guint64 v)
 	do {
 		guint8 byt = (guint8) (value & 0x7f);	/* Lowest 7 bits */
 		value >>= 7;
-		if (value != 0) {
+		if (0 == value) {
 			byt |= 0x80;						/* Last byte emitted */
 		}
 		pmsg_write_u8(mb, byt);

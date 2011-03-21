@@ -384,7 +384,7 @@ Here is pseudo C-style code encoding a VLE-8 value:
     encode(value) {
         do {
             byte = value & 0x7f;    /* Lowest 7 bits */
-            if (value != 0)
+            if (value == 0)
                 byte |= 0x80;       /* Set bit #7 if last byte emitted */
             emit byte;
         } while (value != 0);
@@ -442,7 +442,7 @@ Currently, DOVE specifies only 5 standard keys:
 - "v": This key (byte 0x76) specifies the DOVE version (value = 1 byte) encoded
   as the 4 upper bits being the major version (between 0 and 15) and the 4
   lowest bits being the minor version (again between 0 and 15).  As long
-  a DOVE version 0.0 is supported (this specification version), the "v" key is
+  as DOVE version 0.0 is supported (this specification version), the "v" key is
   not necessary because the DOVE flag in the Contact's Flag of the Kademlia
   header also implies that at least version 0.0 is supported.  Once seen, the
   "v" key may change the semantics of the remaining DOVE block in a way that
