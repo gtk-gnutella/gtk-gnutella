@@ -47,6 +47,7 @@ RCSID("$Id$")
 #include "tm.h"
 #include "unsigned.h"
 #include "sha1.h"
+#include "log.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -128,11 +129,18 @@ random_collect(void (*cb)(void))
 	static unsigned sum;
 	tm_t now;
 	time_delta_t d;
-	unsigned r, m;
+	unsigned r, m, a;
 
 	tm_now_exact(&now);
 	d = tm_elapsed_ms(&now, &last);
 	m = tm2us(&now);
+
+	/*
+	 * Make sure we have significant bits to compare against.
+	 */
+
+	a = (d & 0x3) ? UNSIGNED(d) : UNSIGNED((d >> 2) + d);
+	a = (d & 0x17) ? a : UNSIGNED((d >> 4) + d);
 
 	/*
 	 * We're generating one random byte at a time (8 bits).
@@ -140,23 +148,26 @@ random_collect(void (*cb)(void))
 
 	r = 0;
 
-	if (prev != d)
+	if ((running & 0x3c) >= ((running - a) & 0x3c))
 		r |= (1 << 0);
 
-	if ((running & 0xf) >= (d & 0xf))
+	if ((running & 0xf) >= (a & 0xf))
 		r |= (1 << 1);
 
-	if ((running & 0xf0) >= (d & 0xf0))
+	if ((running & 0xf0) >= (a & 0xf0))
 		r |= (1 << 2);
 
-	if (((running + d) & 0xff) >= 0x80)
+	if (((running + a) & 0xff) >= 0x80)
 		r |= (1 << 3);
 
-	r |= ((m / 127) & 0x78) << 1;		/* Sets 4 upper bits */
+	r |= ((m / 127) & 0x78) << 1;		/* Sets 4 upper bits, 127 is prime */
+
+	if (prev == d)
+		r = (r * 101) & 0xff;			/* 101 is prime */
 
 	last = now;
 	prev = d;
-	running += d;
+	running += a;
 
 	/*
 	 * Save random byte.
@@ -165,7 +176,7 @@ random_collect(void (*cb)(void))
 	g_assert(size_is_non_negative(idx));
 	g_assert(idx < G_N_ELEMENTS(data));
 
-	sum += r + (r >> 4) + (r << 4);
+	sum += r;
 	data[idx++] = sum & 0xff;
 
 	/*
