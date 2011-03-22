@@ -257,9 +257,10 @@ entropy_collect(struct sha1 *digest)
 	sha1_feed_stat(&ctx, "..");
 	sha1_feed_stat(&ctx, "/");
 	if (is_running_on_mingw()) {
-	/* FIXME: These paths are valid for English installations only! */
 		sha1_feed_stat(&ctx, "C:/");
 		sha1_feed_stat(&ctx, "C:/Windows");
+		sha1_feed_stat(&ctx, mingw_getpersonal());
+		/* FIXME: These paths are valid for English installations only! */
 		sha1_feed_stat(&ctx, "C:/Windows/Temp");
 		sha1_feed_stat(&ctx, "C:/Program Files");
 		sha1_feed_stat(&ctx, "C:/Program Files (x86)");

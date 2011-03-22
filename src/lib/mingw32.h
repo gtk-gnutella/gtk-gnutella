@@ -476,6 +476,7 @@ char *mingw_patch_personal_path(const char *pathname);
 #define mingw_init()
 #define mingw_close()
 #define mingw_patch_personal_path(p)	(p)
+#define mingw_getpersonal()				"/"
 
 #define mingw_in_exception()		0
 
