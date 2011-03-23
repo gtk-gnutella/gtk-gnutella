@@ -253,14 +253,14 @@ enum {
 	DL_F_FAKE_G2		= 1 << 23,	/**< Trying to fake G2, intuition only */
 	DL_F_TRIED_TLS		= 1 << 22,	/**< TLS connection was tried already */
 	DL_F_TRY_TLS		= 1 << 21,	/**< Try to initiate a TLS connection */
-	DL_F_GOT_TTH		= 1 << 20,	/**< Tigertree fetching finished */
+	DL_F_UNUSED_3		= 1 << 20,	/**< UNUSED */
 	DL_F_FETCH_TTH		= 1 << 19,	/**< Tigertree data is being fetched */
 	DL_F_UDP_PUSH		= 1 << 18,	/**< UDP push already attempted */
 	DL_F_THEX			= 1 << 17,	/**< THEX download */
 	DL_F_PAUSED			= 1 << 16,	/**< Paused by user */
-	DL_F_INITIAL		= 1 << 15,	/**< First request on this connection */
+	DL_F_UNUSED_2		= 1 << 15,	/**< UNUSED */
 	DL_F_PREFIX_HEAD	= 1 << 14,	/**< Sent HEAD request before GET */
-	DL_F_MARK			= 1 << 13,	/**< Marked in traversal */
+	DL_F_UNUSED_1		= 1 << 13,	/**< UNUSED */
 	DL_F_SUSPENDED		= 1 << 12,	/**< Suspended, do not schedule */
 	DL_F_TRANSIENT		= 1 << 11,	/**< Transient, don't persist */
 	DL_F_BROWSE			= 1 << 10,	/**< Browse host type (requests "/") */

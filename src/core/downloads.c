@@ -8931,8 +8931,8 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 
 	if (
 		d->file_info->tth &&
-		0 == ((DL_F_FETCH_TTH | DL_F_GOT_TTH) & d->flags) &&
-		0 == (FI_F_FETCH_TTH & d->file_info->flags) &&
+		!(DL_F_FETCH_TTH & d->flags) &&
+		!(FI_F_FETCH_TTH & d->file_info->flags) &&
 		tt_good_depth(download_filesize(d)) >
 			tt_depth(d->file_info->tigertree.num_leaves)
 	) {
@@ -12091,7 +12091,6 @@ download_connected(struct download *d)
 	dl_server_valid(d->server);
 	socket_check(d->socket);
 
-	d->flags |= DL_F_INITIAL;
 	d->server->last_connect = tm_time();
 	s = d->socket;
 	socket_nodelay(s, TRUE);
