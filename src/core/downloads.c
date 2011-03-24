@@ -4249,7 +4249,7 @@ download_queue_v(struct download *d, const char *fmt, va_list ap)
 	}
 
 	if (DOWNLOAD_IS_RUNNING(d)) {
-		download_retry(d);
+		download_retry(d);					/* Will call download_stop() */
 	} else {
 		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
 	}
@@ -4262,7 +4262,7 @@ download_queue_v(struct download *d, const char *fmt, va_list ap)
 			fmt ? d->error_str : "<no reason>");
 
 	/*
-	 * Since download stop can change "d->remove_msg", update it now.
+	 * Since download_stop() can change "d->remove_msg", update it now.
 	 */
 
 	d->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED |
@@ -5129,9 +5129,12 @@ download_pick_available(struct download *d)
 	 * Maybe we can do some overlapping check if the remote server has
 	 * some data before that chunk and we also have the corresponding
 	 * range.
+	 *
+	 * Don't use overlaps if we got the TTH already. --RAM, 2011-03-23
 	 */
 
 	if (
+		NULL == download_get_tth(d) &&
 		from > GNET_PROPERTY(download_overlap_range) &&
 		file_info_chunk_status(d->file_info,
 			from - GNET_PROPERTY(download_overlap_range),
