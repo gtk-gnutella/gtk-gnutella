@@ -210,6 +210,7 @@ filename_is_reserved(const char *filename)
 char *
 filename_sanitize(const char *filename, gboolean no_spaces, gboolean no_evil)
 {
+	const char *p;
 	const char *s;
 	char *q;
 
@@ -219,15 +220,15 @@ filename_sanitize(const char *filename, gboolean no_spaces, gboolean no_evil)
 	no_evil |= is_running_on_mingw();
 
 	/* Leading spaces are just confusing */
-	filename = skip_ascii_spaces(filename);
+	p = skip_ascii_spaces(filename);
 
 	/* Make sure the filename isn't too long */
-	if (strlen(filename) >= FILENAME_MAXBYTES) {
+	if (strlen(p) >= FILENAME_MAXBYTES) {
 		q = halloc(FILENAME_MAXBYTES);
-		filename_shrink(filename, q, FILENAME_MAXBYTES);
+		filename_shrink(p, q, FILENAME_MAXBYTES);
 		s = q;
 	} else {
-		s = filename;
+		s = p;
 		q = NULL;
 	}
 
@@ -266,6 +267,9 @@ filename_sanitize(const char *filename, gboolean no_spaces, gboolean no_evil)
 		HFREE_NULL(q);
 		q = h_strdup("noname");
 	}
+
+	if (NULL == q && s != filename)
+		q = h_strdup(s);		/* Trimmed leading white space, must copy */
 
 	return q ? q : deconstify_gchar(s);
 }
