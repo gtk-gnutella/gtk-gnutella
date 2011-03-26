@@ -753,6 +753,9 @@ publisher_add(const sha1_t *sha1)
 
 	g_assert(sha1 != NULL);
 
+	if (NULL == db_pubdata)
+		return;					/* Shutdowning */
+
 	/*
 	 * If already known, ignore silently.
 	 */
