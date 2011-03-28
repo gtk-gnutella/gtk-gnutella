@@ -479,6 +479,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(pdht_close);
 	DO_ARG(dht_close, TRUE);
 	DO(ipp_cache_save_all);
+	DO(bg_close);
 
 	/*
 	 * When coming from atexit(), there is a sense of urgency.
@@ -634,7 +635,6 @@ gtk_gnutella_exit(int exit_code)
 	DO(pmsg_close);
 	DO(version_close);
 	DO(ignore_close);
-	DO(bg_close);
 	DO(eval_close);
 	DO(iso3166_close);
 	atom_str_free_null(&start_rfc822_date);
