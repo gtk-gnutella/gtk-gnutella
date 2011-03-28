@@ -140,6 +140,7 @@ RCSID("$Id$")
 #define DOWNLOAD_MAX_PROXIES	8		/**< Keep that many recent proxies */
 #define DOWNLOAD_MAX_UDP_PUSH	4		/**< Contact at most 4 hosts */
 #define DOWNLOAD_CONNECT_DELAY	12		/**< Seconds between connections */
+#define DOWNLOAD_PIPELINE_MSECS	5000	/**< Less than 5 secs away */
 
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
@@ -425,6 +426,194 @@ download_repair(struct download *d, const char *reason)
 
 #define MAGIC_TIME	1		/**< For recreation upon startup */
 
+/* ----------------------------------------- */
+
+/***
+ *** HTTP pipelining support.
+ ***/
+
+/**
+ * Allocate a new pipelined request descriptor.
+ *
+ * @return allocated pipeline structure.
+ */
+static struct dl_pipeline *
+download_pipeline_alloc(void)
+{
+	struct dl_pipeline *dp;
+
+	dp = walloc0(sizeof *dp);
+	dp->magic = DL_PIPELINE_MAGIC;
+	dp->status = GTA_DL_PIPE_SELECTED;
+
+	return dp;
+}
+
+/**
+ * Free pipelined request descriptor and nullify holding pointer.
+ */
+static void
+download_pipeline_free_null(struct dl_pipeline **dp_ptr)
+{
+	struct dl_pipeline *dp = *dp_ptr;
+
+	if (dp != NULL) {
+		dl_pipeline_check(dp);
+
+		if (dp->req != NULL) {
+			http_buffer_free(dp->req);
+			dp->req = NULL;
+		}
+		pmsg_free_null(&dp->extra);
+		dp->magic = 0;
+		wfree(dp, sizeof *dp);
+		*dp_ptr = NULL;
+	}
+}
+
+/**
+ * Can we issue a pipelined request for a given download?
+ */
+static gboolean
+download_pipeline_can_initiate(const struct download *d)
+{
+	fileinfo_t *fi;
+	unsigned avg_bps, s;
+	filesize_t downloaded, remain;
+
+	download_check(d);
+	g_assert(DOWNLOAD_IS_ACTIVE(d));
+	g_assert(d->bio != NULL);
+
+	fi = d->file_info;
+	file_info_check(fi);
+
+	if (download_pipelining(d))
+		return FALSE;				/* Only one pipelined request at a time */
+
+	if (!fi->file_size_known)
+		return FALSE;				/* Must know upper boundary */
+
+	if (!d->keep_alive)
+		return FALSE;				/* Connection must be kept alive */
+
+	if (download_is_stalled(d))
+		return FALSE;				/* Stalling download */
+
+	if (d->flags & (DL_F_MUST_IGNORE | DL_F_NO_PIPELINE | DL_F_PREFIX_HEAD))
+		return FALSE;				/* No need to pipeline then */
+
+	if ((DL_F_THEX | DL_F_BROWSE) & d->flags)
+		return FALSE;				/* THEX and browsing use no chunking */
+
+	if (FILE_INFO_COMPLETE(fi))
+		return FALSE;
+
+	/*
+	 * We must be close to the end of the current request to not commit the
+	 * next chunk too early.
+	 */
+
+	if (d->pos + download_buffered(d) > d->chunk.start) {
+		downloaded = d->pos - d->chunk.start + download_buffered(d);
+		remain = d->chunk.size - downloaded;
+	} else {
+		remain = d->chunk.size + d->chunk.overlap;
+	}
+
+	avg_bps = download_speed_avg(d);
+	s = remain / (avg_bps ? avg_bps : 1);
+
+	return uint_saturate_mult(s, 1000) <=
+		MAX(DOWNLOAD_PIPELINE_MSECS, GNET_PROPERTY(dl_http_latency));
+}
+
+/**
+ * Take ownership of pipelined chunk after cloning.
+ */
+static void
+download_pipeline_update_chunk(const struct download *d)
+{
+	struct dl_pipeline *dp;
+	enum dl_chunk_status status;
+
+	download_check(d);
+	dp = d->pipeline;
+	dl_pipeline_check(dp);
+	g_assert(dp->status != GTA_DL_PIPE_SELECTED);
+
+	/*
+	 * With aggressive swarming, the pipelined chunk could be completed.
+	 */
+
+	status = file_info_chunk_status(d->file_info,
+		dp->chunk.start, dp->chunk.end);
+
+	file_info_update(d, dp->chunk.start, dp->chunk.end, status);
+}
+
+/**
+ * Copy message block data to the empty socket buffer.
+ */
+static void
+download_pipeline_socket_feed(struct download *d, pmsg_t *mb)
+{
+	struct gnutella_socket *s;
+	int r;
+
+	download_check(d);
+	g_assert(mb != NULL);
+
+	s = d->socket;
+	g_assert(s != NULL);
+	g_assert(0 == s->pos);
+
+	/* Assert we're dealing with a download having a simple RX stack */
+	g_assert(d->rx != NULL);
+	g_assert(rx_bottom(d->rx) == d->rx);	/* Only the RX link layer */
+
+	r = pmsg_read(mb, s->buf, s->buf_size);
+	g_assert(0 == pmsg_size(mb));	/* Did not truncate */
+	pmsg_free(mb);
+	s->pos = r;
+
+	if (GNET_PROPERTY(download_debug) > 5) {
+		g_debug("propagated %d pipelined bytes from %s for \"%s\"",
+			r, download_host_info(d), download_pathname(d));
+		if (GNET_PROPERTY(download_debug) > 8)
+			dump_hex(stderr, "Propagated bytes", s->buf, r);
+	}
+}
+
+/**
+ * Move data pertaining to the server response for the pipelined request
+ * back into the socket buffer where it belongs.
+ *
+ * Data will then be consumed by io_header_parse() to get the HTTP header,
+ * and extra data (the reply payload) will be fed to the RX stack as usual.
+ */
+static void
+download_pipeline_read(struct download *d)
+{
+	struct dl_pipeline *dp;
+	struct gnutella_socket *s;
+
+	download_check(d);
+	dp = d->pipeline;
+	s = d->socket;
+	dl_pipeline_check(dp);
+	g_assert(s != NULL);
+	g_assert(0 == s->pos);
+
+	if (dp->extra != NULL) {
+		g_assert(GTA_DL_PIPE_SENT == dp->status);
+		download_pipeline_socket_feed(d, dp->extra);
+		dp->extra = NULL;
+	}
+}
+
+/* ----------------------------------------- */
+
 /***
  *** RX link callbacks
  ***/
@@ -464,9 +653,23 @@ download_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct download *d = rx_owner(rx);
 
-	g_assert(DOWNLOAD_IS_ACTIVE(d));		/* No I/O via RX stack otherwise */
+	/*
+	 * For HTTP pipelining, we must be ready to process incoming network data
+	 * from the RX layer even though we're not active yet, to be able to
+	 * grab the HTTP reply that may already have been sent on the connection.
+	 */
 
-	return download_read(d, mb);
+	if (GTA_DL_REQ_SENT == d->status) {
+		g_assert(d->io_opaque != NULL);
+
+		download_pipeline_socket_feed(d, mb);
+		io_add_header(d->io_opaque);
+		return TRUE;
+	} else {
+		g_assert(DOWNLOAD_IS_ACTIVE(d));	/* No I/O via RX stack otherwise */
+
+		return download_read(d, mb);
+	}
 }
 
 /**
@@ -480,9 +683,23 @@ download_ignore_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct download *d = rx_owner(rx);
 
-	g_assert(DOWNLOAD_IS_ACTIVE(d));		/* No I/O via RX stack otherwise */
+	/*
+	 * For HTTP pipelining, we must be ready to process incoming network data
+	 * from the RX layer even though we're not active yet, to be able to
+	 * grab the HTTP reply that may already have been sent on the connection.
+	 */
 
-	return download_ignore_data(d, mb);
+	if (GTA_DL_REQ_SENT == d->status) {
+		g_assert(d->io_opaque != NULL);
+
+		download_pipeline_socket_feed(d, mb);
+		io_add_header(d->io_opaque);
+		return TRUE;
+	} else {
+		g_assert(DOWNLOAD_IS_ACTIVE(d));	/* No I/O via RX stack otherwise */
+
+		return download_ignore_data(d, mb);
+	}
 }
 
 static const struct rx_link_cb download_rx_link_cb = {
@@ -514,7 +731,8 @@ static const struct rx_inflate_cb download_rx_inflate_cb = {
  * Received data from outside the RX stack.
  */
 static void
-download_write(struct download *d, gpointer data, size_t len)
+download_write(struct download *d, gpointer data, size_t len,
+	gboolean pipelined_response)
 {
 	pdata_t *db;
 	pmsg_t *mb;
@@ -531,9 +749,25 @@ download_write(struct download *d, gpointer data, size_t len)
 	/*
 	 * The message is given to the RX stack, and it will be freed by
 	 * the last function consuming it.
+	 *
+	 * When dealing with pipelined responses, the RX stack is kept from one
+	 * request to another and therefore there could be pending data blocks
+	 * in the RX stack.  However, we want to deliver this one ahead of all
+	 * the others.
+	 *
+	 * Because we know the RX stack for pipelined requests is made of the
+	 * single rx_link layer, we can call the data-ind callback ourselves
+	 * directly in that case since it won't need processing.  That is the
+	 * only way to put this message block ahead of the others.
 	 */
 
-	rx_recv(rx_bottom(d->rx), mb);
+	if (pipelined_response) {
+		rx_data_t data_ind = rx_get_data_ind(d->rx);
+		g_assert(d->rx == rx_bottom(d->rx));	/* Only the RX link layer */
+		(*data_ind)(d->rx, mb);
+	} else {
+		rx_recv(rx_bottom(d->rx), mb);
+	}
 }
 
 
@@ -784,8 +1018,8 @@ double
 download_source_progress(const struct download *d)
 {
 	if (DOWNLOAD_IS_ACTIVE(d)) {
-		filesize_t done = d->pos - d->skip + download_buffered(d);
-		return filesize_per_10000(d->size, done) / 10000.0;
+		filesize_t done = d->pos - d->chunk.start + download_buffered(d);
+		return filesize_per_10000(d->chunk.size, done) / 10000.0;
 	} else {
 		return 0.0;
 	}
@@ -992,27 +1226,6 @@ buffers_full(const struct download *d)
 }
 
 /**
- * Check whether we should request flushing of the buffered data.
- */
-static inline gboolean
-buffers_should_flush(const struct download *d)
-{
-	const struct dl_buffers *b;
-
-	download_check(d);
-	g_assert(d->buffers);
-
-	b = d->buffers;
-
-	/*
-	 * Check against MAX_IOV_COUNT because if there are more buffers,
-	 * this requires looping with [p]writev() - at least with the
-	 * current download logic - which is inefficient.
-	 */
-	return b->held >= b->amount || slist_length(b->list) >= MAX_IOV_COUNT;
-}
-
-/**
  * Update the buffer structure after having read "amount" more bytes:
  * prepare `iovcnt' for the next read and increase the amount of data held.
  */
@@ -1071,6 +1284,27 @@ buffers_add_read(struct download *d, pmsg_t *mb)
 	 */
 
 	fi->buffered += size;
+}
+
+/**
+ * Check whether we should request flushing of the buffered data.
+ */
+static inline gboolean
+buffers_should_flush(const struct download *d)
+{
+	const struct dl_buffers *b;
+
+	download_check(d);
+	g_assert(d->buffers);
+
+	b = d->buffers;
+
+	/*
+	 * Check against MAX_IOV_COUNT because if there are more buffers,
+	 * this requires looping with [p]writev() - at least with the
+	 * current download logic - which is inefficient.
+	 */
+	return b->held >= b->amount || slist_length(b->list) >= MAX_IOV_COUNT;
 }
 
 /**
@@ -1146,6 +1380,9 @@ buffers_strip_leading(struct download *d, size_t amount)
 		fi->buffered = 0;		/* Not critical, be fault-tolerant */
 }
 
+/**
+ * Assertion checking: b->held correctly represents the amount of buffered data.
+ */
 static void
 buffers_check_held(const struct download *d)
 {
@@ -1698,7 +1935,7 @@ download_server_info_changed(const struct dl_server *server)
  * @returns server, allocated if needed when allocate is TRUE.
  *
  * WARNING: may return a server instance whose address and port do not
- * match the initial arguments (when for instance the addr:port was a private
+ * match the initial arguments: when for instance the addr:port was a private
  * address but the non-blank GUID yields a proper server with a non-private
  * one.  If addr:port matter, the caller must use server->key->addr and
  * server->key->port after calling get_server().
@@ -2164,7 +2401,7 @@ download_can_ignore(struct download *d)
 
 	download_check(d);
 
-	g_assert(d->range_end >= d->pos);
+	g_assert(d->chunk.end >= d->pos);
 	g_assert(d->socket);
 	g_assert(d->rx);
 	g_assert(d->buffers);
@@ -2172,7 +2409,7 @@ download_can_ignore(struct download *d)
 	if (d->status == GTA_DL_IGNORING)
 		return TRUE;
 
-	remain = d->range_end - d->pos;
+	remain = d->chunk.end - d->pos;
 
 	/*
 	 * If this is an incoming connection, keep it up provided we have
@@ -2615,8 +2852,7 @@ server_sha1_count_dec(struct dl_server *server, struct download *d)
 		value = g_hash_table_lookup(server->sha1_counts, sha1);
 		n = GPOINTER_TO_UINT(value);
 
-		/* g_assert(n > 0); */
-		/* XXX -- counter is sometimes off -- RAM, 2006-08-29 */
+		/* Counter is sometimes off, make it non-fatal -- RAM, 2006-08-29 */
 		if (n == 0) {
 			g_warning("BUG: no SHA1 %s for server %s, ignoring decrement",
 				sha1_base32(sha1),
@@ -3374,20 +3610,32 @@ download_clone(struct download *d)
 	cd->src_handle_valid = FALSE;
 	file_info_add_source(fi, cd);	/* add cloned source */
 
-	cd->rx = NULL;
-	cd->bio = NULL;						/* Recreated on each transfer */
-	cd->out_file = NULL;				/* File re-opened each time */
 	cd->socket->resource.download = cd;	/* Takes ownership of socket */
 	cd->list_idx = DL_LIST_INVALID;
 	cd->sha1 = d->sha1 ? atom_sha1_get(d->sha1) : NULL;
 	cd->file_name = atom_str_get(d->file_name);
 	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
 	cd->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED |
-		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_CLONED);
+		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_CLONED | DL_F_NO_PIPELINE);
 	download_set_status(cd, GTA_DL_CONNECTING);
 	cd->server->refcnt++;
 
 	download_add_to_list(cd, DL_LIST_WAITING);	/* Will add SHA1 to server */
+
+	if (download_pipelining(cd)) {
+		download_pipeline_update_chunk(cd);
+		if (d->flags & DL_F_MUST_IGNORE) {
+			cd->flags |= DL_F_MUST_IGNORE;	/* Propagates to pipelined result */
+		}
+		d->rx = NULL;		/* Keep RX stack to handle pipeline result */
+		d->bio = NULL;		/* I/O source kept as well */
+		d->out_file = NULL;	/* Keep file opened when pipelining */
+		rx_change_owner(cd->rx, cd);
+	} else {
+		cd->rx = NULL;
+		cd->bio = NULL;			/* Recreated on each transfer */
+		cd->out_file = NULL;	/* File re-opened each time */
+	}
 
 	download_set_sha1(d, NULL);
 
@@ -3411,7 +3659,6 @@ download_clone(struct download *d)
 	 */
 
 	cd->buffers = NULL;		/* Allocated at each new request */
-
 	cd->thex = NULL;
 	cd->browse = NULL;
 
@@ -3423,6 +3670,7 @@ download_clone(struct download *d)
 
 	d->socket = NULL;
 	d->ranges = NULL;
+	d->pipeline = NULL;
 	d->flags |= DL_F_CLONED;		/* Don't persist parent download */
 
 	return cd;
@@ -3927,7 +4175,8 @@ download_stop_v(struct download *d, download_status_t new_status,
 			g_assert(server != NULL);
 
 			if (t > 0) {
-				filesize_t amount = d->range_end - d->skip + d->overlap_size;
+				filesize_t amount =
+					d->chunk.end - d->chunk.start + d->chunk.overlap;
 				guint avg = amount / t;
 
 				if (server->speed_avg == 0)
@@ -4037,10 +4286,12 @@ download_stop_v(struct download *d, download_status_t new_status,
 	if (store_queue) {
 		download_dirty = TRUE;		/* Refresh list, in case we crash */
 	}
+
 	file_info_clear_download(d, FALSE);
+	download_pipeline_free_null(&d->pipeline);
 	file_info_changed(d->file_info);
 	d->flags &= ~(DL_F_CHUNK_CHOSEN | DL_F_SWITCHED |
-		DL_F_FROM_PLAIN | DL_F_FROM_ERROR);
+		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_NO_PIPELINE);
 	download_actively_queued(d, FALSE);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
@@ -4554,6 +4805,7 @@ download_info_reget(struct download *d)
 		return;
 
 	file_info_clear_download(d, TRUE);			/* `d' might be running */
+	download_pipeline_free_null(&d->pipeline);
 	file_size_known = fi->file_size_known;		/* This should not change */
 
 	file_info_remove_source(fi, d, FALSE);		/* Keep it around for others */
@@ -4913,7 +5165,7 @@ download_start_prepare_running(struct download *d)
 	 *		--RAM, 12/01/2002
 	 */
 
-	d->skip = 0;			/* We're setting it here only if not swarming */
+	d->chunk.start = 0;		/* We're setting it here only if not swarming */
 	d->keep_alive = FALSE;	/* Until proven otherwise by server's reply */
 	d->got_giv = FALSE;		/* Don't know yet, assume no GIV */
 
@@ -4936,15 +5188,15 @@ download_start_prepare_running(struct download *d)
 
 	if (!fi->use_swarming) {
 		if (fi->done > GNET_PROPERTY(download_overlap_range)) {
-			d->skip = fi->done;		/* Not swarming => file has no holes */
+			d->chunk.start = fi->done;	/* Not swarming => file has no holes */
 		}
-		d->pos = d->skip;
-		d->overlap_size =
-			(d->skip == 0 || d->size <= d->pos || download_get_tth(d))
+		d->chunk.overlap =
+			(d->chunk.start == 0 ||
+				d->chunk.size <= d->chunk.start || download_get_tth(d))
 			? 0
 			: GNET_PROPERTY(download_overlap_range);
 
-		g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
+		g_assert(d->chunk.overlap == 0 || d->chunk.start > d->chunk.overlap);
 	}
 
 	d->last_update = tm_time();
@@ -5012,13 +5264,18 @@ download_start_prepare(struct download *d)
 /**
  * Pick a one random byte chunk within the file.
  *
+ * @param d			the download source
+ * @param chunk		where the selected chunk information is written to
+ *
  * @returns TRUE (meaning we can continue with the download)
  */
 static gboolean
-download_pick_random_byte(struct download *d)
+download_pick_random_byte(struct download *d, struct dl_chunk *chunk)
 {
-	d->skip = get_random_file_offset(download_filesize(d));
-	d->size = 1;
+	chunk->start = get_random_file_offset(download_filesize(d));
+	chunk->size = 1;
+	chunk->end = chunk->start + 1;
+	chunk->overlap = 0;
 
 	return TRUE;
 }
@@ -5027,11 +5284,16 @@ download_pick_random_byte(struct download *d)
  * Called for swarming downloads when we are connected to the remote server,
  * but before making the request, to pick up a chunk for downloading.
  *
- * @returns TRUE if we can continue with the download, FALSE if it has
- * been stopped.
+ * @param d			the download source
+ * @param chunk		where the selected chunk information is written to
+ * @param may_stop	TRUE if we may stop the download when no chunk available
+ *
+ * @returns TRUE if we can continue with the download, FALSE if no chunk
+ * was selected and download was stopped (if allowed).
  */
 static gboolean
-download_pick_chunk(struct download *d)
+download_pick_chunk(struct download *d,
+	struct dl_chunk *chunk, gboolean may_stop)
 {
 	enum dl_chunk_status status;
 	filesize_t from, to;
@@ -5039,7 +5301,7 @@ download_pick_chunk(struct download *d)
 	download_check(d);
 	g_assert(d->file_info->use_swarming);
 
-	d->overlap_size = 0;
+	chunk->overlap = 0;
 	d->last_update = tm_time();
 
 	/*
@@ -5047,14 +5309,15 @@ download_pick_chunk(struct download *d)
 	 */
 
 	if (d->flags & DL_F_MUST_IGNORE)
-		return download_pick_random_byte(d);
+		return download_pick_random_byte(d, chunk);
 
 	status = file_info_find_hole(d, &from, &to);
 
 	switch (status) {
 	case DL_CHUNK_EMPTY:
-		d->skip = d->pos = from;
-		d->size = to - from;
+		chunk->start = from;
+		chunk->end = to;
+		chunk->size = to - from;
 
 		/*
 		 * Don't use overlaps if we got the TTH already.
@@ -5068,18 +5331,22 @@ download_pick_chunk(struct download *d)
 				from - GNET_PROPERTY(download_overlap_range),
 				from) == DL_CHUNK_DONE
 		)
-			d->overlap_size = GNET_PROPERTY(download_overlap_range);
+			chunk->overlap = GNET_PROPERTY(download_overlap_range);
 		break;
 	case DL_CHUNK_BUSY:
-		download_queue_delay(d, 10, _("Waiting for a free chunk"));
+		if (may_stop) {
+			download_queue_delay(d, 10, _("Waiting for a free chunk"));
+		}
 		return FALSE;
 	case DL_CHUNK_DONE:
-		download_stop(d, GTA_DL_ERROR, _("No more gaps to fill"));
-		queue_remove_downloads_with_file(d->file_info, d);
+		if (may_stop) {
+			download_stop(d, GTA_DL_ERROR, _("No more gaps to fill"));
+			queue_remove_downloads_with_file(d->file_info, d);
+		}
 		return FALSE;
 	}
 
-	g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
+	g_assert(chunk->overlap == 0 || chunk->start > chunk->overlap);
 
 	return TRUE;
 }
@@ -5087,18 +5354,21 @@ download_pick_chunk(struct download *d)
 /**
  * Pickup a range we don't have yet from the available ranges.
  *
+ * @param d			the download source
+ * @param chunk		where the selected chunk information is written to
+ *
  * @returns TRUE if we selected a chunk, FALSE if we can't select a chunk
  * (e.g. we have everything the remote server makes available).
  */
 static gboolean
-download_pick_available(struct download *d)
+download_pick_available(struct download *d, struct dl_chunk *chunk)
 {
 	filesize_t from, to;
 
 	download_check(d);
 	g_assert(d->ranges != NULL);
 
-	d->overlap_size = 0;
+	chunk->overlap = 0;
 	d->last_update = tm_time();
 
 	/*
@@ -5106,7 +5376,7 @@ download_pick_available(struct download *d)
 	 */
 
 	if (d->flags & DL_F_MUST_IGNORE)
-		return download_pick_random_byte(d);
+		return download_pick_random_byte(d, chunk);
 
 	if (!file_info_find_available_hole(d, d->ranges, &from, &to)) {
 		if (GNET_PROPERTY(download_debug) > 3)
@@ -5122,8 +5392,9 @@ download_pick_available(struct download *d)
 	 * We found a chunk that the remote end has and which we miss.
 	 */
 
-	d->skip = d->pos = from;
-	d->size = to - from;
+	chunk->start = from;
+	chunk->end = to;
+	chunk->size = to - from;
 
 	/*
 	 * Maybe we can do some overlapping check if the remote server has
@@ -5143,12 +5414,12 @@ download_pick_available(struct download *d)
 			from - GNET_PROPERTY(download_overlap_range),
 			from - 1)
 	)
-		d->overlap_size = GNET_PROPERTY(download_overlap_range);
+		chunk->overlap = GNET_PROPERTY(download_overlap_range);
 
 	if (GNET_PROPERTY(download_debug) > 3)
 		g_debug("PFSP selected %s-%s (overlap=%u) "
 			"from %s for \"%s\", available was: %s",
-			uint64_to_string(from), uint64_to_string2(to - 1), d->overlap_size,
+			uint64_to_string(from), uint64_to_string2(to - 1), chunk->overlap,
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_basename(d), http_range_to_string(d->ranges));
 
@@ -5452,6 +5723,13 @@ download_pick_process(
 
 	if (!DOWNLOAD_IS_SWITCHABLE(cur))
 		return FALSE;		/* Can't switch to that download */
+
+	/*
+	 * Can't switch to a download that has already issued a pipelined request.
+	 */
+
+	if (download_pipelining(cur))
+		return FALSE;
 
 	/*
 	 * Give priority to the file whose THEX we downloaded.
@@ -6472,7 +6750,8 @@ create_download(
 	 * Note: size and skip will be filled by download_pick_chunk() later
 	 * if we use swarming.
 	 */
-	d->size = size;					/* Will be changed if range requested */
+
+	d->chunk.size = size;			/* Will be changed if range requested */
 	d->record_stamp = stamp;
 	download_set_sha1(d, sha1);
 	download_add_to_list(d, DL_LIST_WAITING);
@@ -7803,13 +8082,20 @@ download_start_reading(gpointer o)
 	/*
 	 * Compute the time it took since we sent the headers, and update
 	 * the fast EMA (n=7 terms) storing the HTTP latency, in msecs.
+	 *
+	 * If the request was pipelined, we can't really compute the latency
+	 * since it was sent before the previous request was completed.
 	 */
 
-	tm_now(&now);
+	if (!(d->flags & DL_F_PIPELINED)) {
+		tm_now(&now);
 
-	gnet_prop_get_guint32_val(PROP_DL_HTTP_LATENCY, &latency);
-	latency += (tm_elapsed_ms(&now, &d->header_sent) >> 2) - (latency >> 2);
-	gnet_prop_set_guint32_val(PROP_DL_HTTP_LATENCY, latency);
+		gnet_prop_get_guint32_val(PROP_DL_HTTP_LATENCY, &latency);
+		latency += (tm_elapsed_ms(&now, &d->header_sent) >> 2) - (latency >> 2);
+		gnet_prop_set_guint32_val(PROP_DL_HTTP_LATENCY, latency);
+	} else {
+		d->flags &= ~DL_F_PIPELINED;
+	}
 
 	/*
 	 * Update status and GUI, timestamp start of header reading.
@@ -7855,7 +8141,7 @@ download_backout(struct download *d)
 	 * will fill in a more permanent way.
 	 */
 
-	end = d->skip + 1;
+	end = d->chunk.start + 1;
 	gnet_prop_get_guint32_val(PROP_DL_MISMATCH_BACKOUT, &backout);
 	if (end >= backout)
 		begin = end - backout;
@@ -7887,7 +8173,7 @@ download_overlap_check(struct download *d)
 	fi = d->file_info;
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
-	g_assert(d->buffers->held >= d->overlap_size);
+	g_assert(d->buffers->held >= d->chunk.overlap);
 
 	fo = file_object_open(fi->pathname, O_RDONLY);
 	if (!fo) {
@@ -7924,10 +8210,10 @@ download_overlap_check(struct download *d)
 		 * immediately.
 		 */
 
-		if (!fi->use_swarming && d->skip != fi->done) {
+		if (!fi->use_swarming && d->chunk.start != fi->done) {
 			g_message("file '%s' changed size (now %s, but was %s)",
 					fi->pathname, uint64_to_string(sb.st_size),
-					uint64_to_string2(d->skip));
+					uint64_to_string2(d->chunk.start));
 			download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
 					_("Stopped (Output file size changed)"));
 			goto out;
@@ -7937,10 +8223,10 @@ download_overlap_check(struct download *d)
 	{
 		ssize_t r;
 
-		data = walloc(d->overlap_size);
-		g_assert(d->skip >= d->overlap_size);
-		r = file_object_pread(fo, data, d->overlap_size,
-				d->skip - d->overlap_size);
+		data = walloc(d->chunk.overlap);
+		g_assert(d->chunk.start >= d->chunk.overlap);
+		r = file_object_pread(fo, data, d->chunk.overlap,
+				d->chunk.start - d->chunk.overlap);
 
 		if ((ssize_t) -1 == r) {
 			const char *error = g_strerror(errno);
@@ -7949,38 +8235,39 @@ download_overlap_check(struct download *d)
 			download_stop(d, GTA_DL_ERROR, _("Can't read resume data: %s"),
 				error);
 			goto out;
-		} else if ((size_t) r != d->overlap_size) {
+		} else if ((size_t) r != d->chunk.overlap) {
 			g_warning(
 				"short read (got %u instead of %u bytes at offset %lu) "
 				"on resuming data for \"%s\"",
-				(guint) r, (guint) d->overlap_size,
-				(unsigned long) d->skip - d->overlap_size, fi->pathname);
+				(guint) r, (guint) d->chunk.overlap,
+				(unsigned long) d->chunk.start - d->chunk.overlap,
+				fi->pathname);
 			download_stop(d, GTA_DL_ERROR, _("Short read on resume data"));
 			goto out;
 		}
 	}
 
-	if (!buffers_match(d, data, d->overlap_size)) {
+	if (!buffers_match(d, data, d->chunk.overlap)) {
 		/*
 		 * Resuming data mismatch.
 		 */
 
 		if (GNET_PROPERTY(download_debug) > 1) {
 			g_debug("%u overlapping bytes UNMATCHED at offset %s for \"%s\"",
-				(guint) d->overlap_size,
-				uint64_to_string(d->skip - d->overlap_size),
+				(guint) d->chunk.overlap,
+				uint64_to_string(d->chunk.start - d->chunk.overlap),
 				download_basename(d));
         }
 
 		d->pos += d->buffers->held;	/* Keep track of what we read so far */
-		d->pos -= d->overlap_size;	/* Overlap did not count as chunk data */
+		d->pos -= d->chunk.overlap;	/* Overlap did not count as chunk data */
 		d->mismatches++;
 		buffers_discard(d);			/* Discard everything we read so far */
 
 		if (GNET_PROPERTY(dl_remove_file_on_mismatch)) {
 			download_bad_source(d);	/* Until proven otherwise if we resume it */
 			download_queue(d, _("Resuming data mismatch @ %s"),
-				uint64_to_string(d->skip - d->overlap_size));
+				uint64_to_string(d->chunk.start - d->chunk.overlap));
 			download_remove_file(d, TRUE);
 			goto out;
 		}
@@ -8015,11 +8302,11 @@ download_overlap_check(struct download *d)
 		if (random_value(99) >= 50)
 			download_stop(d, GTA_DL_ERROR,
 				_("Resuming data mismatch @ %s"),
-				uint64_to_string(d->skip - d->overlap_size));
+				uint64_to_string(d->chunk.start - d->chunk.overlap));
 		else
 			download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay),
 				_("Resuming data mismatch @ %s"),
-				uint64_to_string(d->skip - d->overlap_size));
+				uint64_to_string(d->chunk.start - d->chunk.overlap));
 		goto out;
 	}
 
@@ -8029,19 +8316,20 @@ download_overlap_check(struct download *d)
 	 */
 
 	buffers_check_held(d);
-	buffers_strip_leading(d, d->overlap_size);
+	buffers_strip_leading(d, d->chunk.overlap);
 	buffers_check_held(d);
 
 	if (GNET_PROPERTY(download_debug) > 3)
 		g_debug("%u overlapping bytes MATCHED "
 			"at offset %s for \"%s\"",
-			(guint) d->overlap_size,
-			uint64_to_string(d->skip - d->overlap_size), download_basename(d));
+			(guint) d->chunk.overlap,
+			uint64_to_string(d->chunk.start - d->chunk.overlap),
+			download_basename(d));
 
 	success = TRUE;
 
 out:
-	WFREE_NULL(data, d->overlap_size);
+	WFREE_NULL(data, d->chunk.overlap);
 	file_object_release(&fo);
 
 	return success;
@@ -8061,6 +8349,8 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 {
 	struct dl_buffers *b;
 	ssize_t written;
+	filesize_t old_pos;		/* For assertion: original d->pos */
+	filesize_t old_held;	/* For assertion: original buffered amount */
 
 	download_check(d);
 	b = d->buffers;
@@ -8078,8 +8368,8 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	 * being capable of handling keep-alive connections correctly!
 	 */
 
-	if (b->held > d->range_end - d->pos) {
-		filesize_t extra = b->held - (d->range_end - d->pos);
+	if (b->held > d->chunk.end - d->pos) {
+		filesize_t extra = b->held - (d->chunk.end - d->pos);
 
 		if (GNET_PROPERTY(download_debug)) g_debug(
 			"server %s gave us %s more byte%s than requested for \"%s\"",
@@ -8093,7 +8383,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		if (trimmed)
 			*trimmed = TRUE;
 
-		g_assert(b->held > 0);	/* We had not reached range_end previously */
+		g_assert(b->held > 0);	/* We had not reached end previously */
 	} else if (trimmed) {
 		*trimmed = FALSE;
 	}
@@ -8111,6 +8401,9 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	 */
 
 	written = 0;
+	old_held = download_buffered(d);
+	old_pos = d->pos;
+
 	do {
 		iovec_t *iov;
 		ssize_t ret;
@@ -8159,7 +8452,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		case EIO:		/* I/O error */
 			if (!download_queue_is_frozen()) {
 				download_freeze_queue();
-				g_warning("Freezing download queue due to write error!");
+				g_warning("freezing download queue due to write error!");
 			}
 			break;
 		}
@@ -8184,7 +8477,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	}
 
 	if (b->held > 0) {
-		g_warning("Partial write (written=%lu, b->held=%lu) to file \"%s\"",
+		g_warning("partial write (written=%lu, still held=%lu) to file \"%s\"",
 			(gulong) written, (gulong) b->held, download_basename(d));
 
 		if (may_stop)
@@ -8195,6 +8488,8 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	}
 
 	g_assert(0 == b->held);
+	g_assert((size_t) written == old_held);
+	g_assert(d->pos - old_pos == old_held);
 
 	buffers_discard(d);			/* Since we wrote everything... */
 
@@ -8316,7 +8611,17 @@ download_continue(struct download *d, gboolean trimmed)
 	}
 	s->pos = 0;
 
-	next = download_pick_followup(cd, sha1);
+	/*
+	 * If we pipelined a request, we have to grab its output before
+	 * thinking about switching to another resource.
+	 */
+
+	if (download_pipelining(cd)) {
+		next = cd;
+	} else {
+		next = download_pick_followup(cd, sha1);
+	}
+
 	if (cd != next) {
 		if (GNET_PROPERTY(download_debug))
 			g_debug("switching from \"%s\" (%.2f%%) to \"%s\" (%.2f%%) at %s",
@@ -8388,9 +8693,9 @@ download_write_data(struct download *d)
 	 *		--RAM, 12/01/2002, revised 23/11/2002
 	 */
 
-	if (d->overlap_size && !(d->flags & DL_F_OVERLAPPED)) {
-		g_assert(d->pos == d->skip);
-		if (b->held < d->overlap_size)		/* Not enough bytes yet */
+	if (d->chunk.overlap && !(d->flags & DL_F_OVERLAPPED)) {
+		g_assert(d->pos == d->chunk.start);
+		if (b->held < d->chunk.overlap)		/* Not enough bytes yet */
 			return TRUE;					/* Don't even write anything */
 		if (!download_overlap_check(d))		/* Mismatch on overlapped bytes? */
 			return FALSE;					/* Download was stopped */
@@ -8411,7 +8716,7 @@ download_write_data(struct download *d)
 
 	should_flush = buffers_should_flush(d);		/* Enough buffered data? */
 
-	if (!should_flush && b->held >= d->range_end - d->pos)
+	if (!should_flush && b->held >= d->chunk.end - d->pos)
 		should_flush = TRUE;		/* Moving past our range */
 
 	/*
@@ -8434,11 +8739,12 @@ download_write_data(struct download *d)
 
 	if (GNET_PROPERTY(download_debug) > 5) {
 		g_debug(
-			"%sflushing pending %lu bytes for \"%s\", pos=%s, range_end=%s",
+			"%s: %sflushing pending %lu bytes for \"%s\", pos=%s, end=%s",
+			download_host_info(d),
 			should_flush ? "" : "NOT ",
 			(gulong) b->held, download_basename(d),
 			uint64_to_string(d->pos),
-			uint64_to_string2(d->range_end));
+			uint64_to_string2(d->chunk.end));
 	}
 
 	if (!should_flush)
@@ -8473,7 +8779,7 @@ download_write_data(struct download *d)
 			 * is little enough data to grab still and we can ignore them.
 			 */
 			if (fi->done >= fi->size) {
-				if (d->pos >= d->range_end)
+				if (d->pos >= d->chunk.end)
 					goto done;
 				if (
 					!download_has_pending_on_server(d, FALSE) ||
@@ -8483,7 +8789,7 @@ download_write_data(struct download *d)
 				/* Will ignore data until we can switch to another file */
 				gnet_stats_count_general(
 					GNR_IGNORING_TO_PRESERVE_CONNECTION, 1);
-			} else if (d->pos == d->range_end) {
+			} else if (d->pos == d->chunk.end) {
 				goto partial_done;
 			} else if (download_can_ignore(d)) {
 				gnet_stats_count_general(
@@ -8492,7 +8798,7 @@ download_write_data(struct download *d)
 				download_queue(d, _("Requeued by competing download"));
 			break;
 		case DL_CHUNK_BUSY:
-			if (d->pos < d->range_end) {	/* Still within requested chunk */
+			if (d->pos < d->chunk.end) {	/* Still within requested chunk */
 				g_assert(!trimmed);
 				break;
 			}
@@ -8514,10 +8820,11 @@ download_write_data(struct download *d)
 			 * XXX soon with us. -- FIXME (original note from Vidar)
 			 */
 
-			if (d->pos == d->range_end)
+			if (d->pos == d->chunk.end)
 				goto partial_done;
 
-			d->range_end = download_filesize(d);	/* New upper boundary */
+			if (d->pos > d->chunk.end)
+				d->chunk.end = download_filesize(d);	/* New upper boundary */
 
 			break;					/* Go on... */
 		}
@@ -8534,22 +8841,45 @@ download_write_data(struct download *d)
 	 */
 
 done:
-	download_continue(d, trimmed);
-	download_verify_sha1(d);
+	/*
+	 * If we were pipelining, we have to return TRUE to make it possible
+	 * to switch to another download after processing the pipeline response
+	 * since we could not know before issuing that request that the file would
+	 * be completed.  The data sent back will simply be ignored until we can
+	 * switch to another download on the host.
+	 */
 
-	gnet_prop_incr_guint32(PROP_TOTAL_DOWNLOADS);
-	return FALSE;
+	{
+		gboolean pipelining = download_pipelining(d);
+
+		g_assert(FILE_INFO_COMPLETE(fi));
+
+		download_continue(d, trimmed);
+		download_verify_sha1(d);
+
+		gnet_prop_incr_guint32(PROP_TOTAL_DOWNLOADS);
+		return pipelining;
+	}
 
 	/*
 	 * Requested chunk is done.
 	 */
 
 partial_done:
-	g_assert(d->pos == d->range_end);
+	g_assert(d->pos == d->chunk.end);
 	g_assert(fi->use_swarming);
 
-	download_continue(d, trimmed);
-	return FALSE;	/* No error really, but this download has been stopped */
+	/*
+	 * If we're pipelining, we have to return TRUE since the data flow to
+	 * the RX stack will be propagated to the cloned download.
+	 */
+
+	{
+		gboolean pipelining = download_pipelining(d);
+
+		download_continue(d, trimmed);
+		return pipelining;
+	}
 }
 
 #if 0 /* UNUSED */
@@ -9257,7 +9587,7 @@ handle_content_urn(struct download *d, header_t *header)
 				if (GNET_PROPERTY(download_optimistic_start) && d->pos == 0)
 					return TRUE;
 
-				if (d->overlap_size == 0) {
+				if (d->chunk.overlap == 0) {
 					download_queue_delay(d,
 						GNET_PROPERTY(download_retry_busy_delay),
 						_("No URN on server, waiting for overlap"));
@@ -10123,6 +10453,30 @@ download_open(const char * const pathname)
 }
 
 /**
+ * We discovered the total size of the resource.
+ *
+ * @param d		the download source telling us the total size
+ * @param size	the advertized total size
+ *
+ * @return the length of the requested chunk (overlap included), bound by the
+ * size of the resource.
+ */
+static filesize_t
+download_discovered_size(struct download *d, filesize_t size)
+{
+	download_check(d);
+	file_info_check(d->file_info);
+	g_assert(!d->file_info->file_size_known);	/* Was unknown before */
+
+	d->chunk.size = size;
+	file_info_size_known(d, size);
+	d->chunk.end = download_filesize(d);
+	fi_src_info_changed(d);
+
+	return d->chunk.end - d->chunk.start + d->chunk.overlap;
+}
+
+/**
  * Called to initiate the download once all the HTTP headers have been read.
  * If `ok' is false, we timed out reading the header, and have therefore
  * something incomplete.
@@ -10151,6 +10505,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	guint delay;
 	guint hold = 0;
 	guint fixed_ack_code;
+	gboolean pipelined_response = FALSE;
 
 	download_check(d);
 	
@@ -10420,7 +10775,8 @@ http_version_nofix:
 		 */
 		if (
 			ack_code == 503 && d->ranges != NULL &&
-			!http_range_contains(d->ranges, d->skip, d->range_end - 1) &&
+			!http_range_contains(d->ranges,
+				d->chunk.start, d->chunk.end - 1) &&
 			NULL == header_get(header, "X-Queue") &&
 			NULL == header_get(header, "X-Queued")
 		) {
@@ -10498,12 +10854,15 @@ http_version_nofix:
 			 * available ranges, then there is no need to go further.
 			 */
 
-			if (http_range_contains(d->ranges, d->skip, d->range_end - 1)) {
+			if (
+				http_range_contains(
+					d->ranges, d->chunk.start, d->chunk.end - 1)
+			) {
 				if (GNET_PROPERTY(download_debug) > 3)
 					g_debug("PFSP currently requested chunk %s-%s from %s "
 						"for \"%s\" already in the available ranges: %s",
-						uint64_to_string(d->skip),
-						uint64_to_string2(d->range_end - 1),
+						uint64_to_string(d->chunk.start),
+						uint64_to_string2(d->chunk.end - 1),
 						host_addr_port_to_string(download_addr(d),
 								download_port(d)),
 						download_basename(d), http_range_to_string(d->ranges));
@@ -10534,7 +10893,7 @@ http_version_nofix:
 			 * `delay' won't be 0 and we will not try to make the request.
 			 */
 
-			if (delay == 0 && download_pick_available(d)) {
+			if (delay == 0 && download_pick_available(d, &d->chunk)) {
 				guint64 v;
 				int error;
 
@@ -10940,15 +11299,14 @@ http_version_nofix:
 	 * Normally, a Content-Length: header is mandatory.	However, if we
 	 * get a valid Content-Range, relax that constraint a bit.
 	 *		--RAM, 08/01/2002
-	 */
-	/*
+	 *
 	 * Ignore Content-Length completely if Content-Range is present to
 	 * avoid issues with HTTP servers with hacked on resuming which send
 	 * inconsistent headers.
 	 *		--cbiere, 2007-11-29
 	 */
 
-	requested_size = d->range_end - d->skip + d->overlap_size;
+	requested_size = d->chunk.end - d->chunk.start + d->chunk.overlap;
 
 	buf = header_get(header, "Content-Length"); /* Mandatory */
 	if (buf && NULL == header_get(header, "Content-Range")) {
@@ -10963,12 +11321,7 @@ http_version_nofix:
 			!fi->file_size_known &&
 			HTTP_CONTENT_ENCODING_IDENTITY == content_encoding
 		) {
-			/* XXX factor this code with the similar one below */
-			d->size = content_size;
-			file_info_size_known(d, content_size);
-			d->range_end = download_filesize(d);
-			requested_size = d->range_end - d->skip + d->overlap_size;
-			fi_src_info_changed(d);
+			requested_size = download_discovered_size(d, content_size);
 		}
 
 		if (error) {
@@ -10983,8 +11336,8 @@ http_version_nofix:
 				g_message("file \"%s\": server seems to have "
 					"ignored our range request of %s-%s.",
 					download_basename(d),
-					uint64_to_string(d->skip - d->overlap_size),
-					uint64_to_string2(d->range_end - 1));
+					uint64_to_string(d->chunk.start - d->chunk.overlap),
+					uint64_to_string2(d->chunk.end - 1));
 				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR,
 					"Server can't handle resume request");
@@ -11003,12 +11356,7 @@ http_version_nofix:
 
 		if (0 == http_content_range_parse(buf, &start, &end, &total)) {
 			if (!fi->file_size_known) {
-				/* XXX factor this code with the similar one above */
-				d->size = total;
-				file_info_size_known(d, total);
-				d->range_end = download_filesize(d);
-				requested_size = d->range_end - d->skip + d->overlap_size;
-				fi_src_info_changed(d);
+				requested_size = download_discovered_size(d, total);
 			}
 
 			if (check_content_range > total) {
@@ -11027,13 +11375,13 @@ http_version_nofix:
 				return;
 			}
 
-			if (start != d->skip - d->overlap_size) {
+			if (start != d->chunk.start - d->chunk.overlap) {
                 if (GNET_PROPERTY(download_debug))
                     g_debug("file \"%s\" on %s: start byte mismatch: "
 						"wanted %s, got %s",
                         download_basename(d),
                         download_host_info(d),
-                        uint64_to_string(d->skip - d->overlap_size),
+                        uint64_to_string(d->chunk.start - d->chunk.overlap),
 						uint64_to_string2(start));
 
 				download_bad_source(d);
@@ -11051,12 +11399,12 @@ http_version_nofix:
 				download_stop(d, GTA_DL_ERROR, _("Filesize mismatch"));
 				return;
 			}
-			if (end > d->range_end - 1) {
+			if (end > d->chunk.end - 1) {
                 if (GNET_PROPERTY(download_debug)) {
                     g_debug("file \"%s\" on %s: end byte too large: "
 						"expected %s, got %s",
                         download_basename(d), download_host_info(d),
-                        uint64_to_string(d->range_end - 1),
+                        uint64_to_string(d->chunk.end - 1),
 						uint64_to_string2(end));
                 }
 				download_bad_source(d);
@@ -11064,9 +11412,10 @@ http_version_nofix:
 				return;
 			}
 			if (
-				end < (d->skip -
-					(d->skip < d->overlap_size ? 0 : d->overlap_size)) ||
-				start >= d->range_end
+				end < (d->chunk.start -
+					(d->chunk.start < d->chunk.overlap ? 0 : d->chunk.overlap))
+					||
+				start >= d->chunk.end
 			) {
 				char got[64];
 
@@ -11084,20 +11433,20 @@ http_version_nofix:
 					"Range mismatch: wanted %s - %s, %s",
 					download_basename(d),
 					download_host_info(d),
-					uint64_to_string(d->skip),
-					uint64_to_string2(d->range_end - 1),
+					uint64_to_string(d->chunk.start),
+					uint64_to_string2(d->chunk.end - 1),
 					got);
 				download_stop(d, GTA_DL_ERROR, _("Range mismatch"));
 				return;
 			}
-			if (end < d->range_end - 1) {
+			if (end < d->chunk.end - 1) {
                 if (GNET_PROPERTY(download_debug))
                     g_debug(
 						"file \"%s\" on %s: end byte short: wanted %s, "
 						"got %s (continuing anyway)",
                         download_basename(d),
                         download_host_info(d),
-                        uint64_to_string(d->range_end - 1),
+                        uint64_to_string(d->chunk.end - 1),
 						uint64_to_string2(end));
 
 				/*
@@ -11107,10 +11456,10 @@ http_version_nofix:
 				 *
 				 * Note that this can happen and does not indicate a remote
 				 * server-side bug: it's just that the real start of the
-				 * request is d->skip - d->overlap_size, and the server wants
-				 * us to grab something that is only in the overlap section,
-				 * because it is serving a partial file and has only that much
-				 * to offer.
+				 * request is d->chunk.start - d->chunk.overlap, and the server
+				 * wants us to grab something that is only in the overlap
+				 * section, because it is serving a partial file and has only
+				 * that much to offer.
 				 *			--RAM, 2010-10-18
 				 *
 				 * FIXME: shouldn't we sink that, and update our vision of
@@ -11118,7 +11467,7 @@ http_version_nofix:
 				 * file is indeed partial?
 				 */
 
-				if (d->skip >= end + 1) {
+				if (d->chunk.start >= end + 1) {
 					download_queue_delay_switch(d, header,
 						MAX(delay, GNET_PROPERTY(download_retry_refused_delay)),
 						_("Weird server-side chunk shrinking"));
@@ -11132,12 +11481,14 @@ http_version_nofix:
 				 *		-- RAM, 15/05/2003
 				 */
 
-				file_info_clear_download(d, TRUE);
-				if (d->skip != end + 1)
-					file_info_update(d, d->skip, end + 1, DL_CHUNK_BUSY);
+				file_info_update(d,
+					d->chunk.start, d->chunk.end, DL_CHUNK_EMPTY);
+				if (d->chunk.start != end + 1)
+					file_info_update(d, d->chunk.start, end + 1, DL_CHUNK_BUSY);
 
-				d->range_end = end + 1;				/* The new end */
-				d->size = d->range_end - d->skip;	/* Don't count overlap */
+				d->chunk.end = end + 1;		/* The new end */
+				/* Don't count overlap */
+				d->chunk.size = d->chunk.end - d->chunk.start;
 				d->flags |= DL_F_SHRUNK_REPLY;		/* Remember shrinking */
 
 				fi_src_info_changed(d);
@@ -11253,7 +11604,7 @@ http_version_nofix:
 		}
 
 		d->bio = thex_download_io_source(d->thex);
-	} else if (d->size == 0 && fi->file_size_known) {
+	} else if (d->chunk.size == 0 && fi->file_size_known) {
 		g_assert(d->flags & DL_F_SHRUNK_REPLY);
 		download_queue_delay(d,
 			MAX(delay, GNET_PROPERTY(download_retry_busy_delay)),
@@ -11305,16 +11656,31 @@ http_version_nofix:
 	}
 
 	/*
-	 * Freeing of the RX stack must be asynchronous: each time we establish
-	 * a new connection, dismantle the previous stack.  Otherwise the RX
-	 * stack will be freed when the corresponding download structure is
-	 * reclaimed.
+	 * The RX stack from a previous request (if any) is normally recreated
+	 * from scratch when dealing with a non-pipelined request / response
+	 * stream.
+	 *
+	 * When pipelining requests, there is no stop in the flow of incoming
+	 * data from the remote servent to mark the end of the previous request.
+	 * Therefore, the RX stack is kept so that we may propagate received
+	 * buffers which are meant to be data for the new request.
+	 *
+	 * Because we cannot use pipelining when there is chunking or deflation,
+	 * we must make sure the server is not suddenly switching to that mode
+	 * of operations.
 	 */
 
 	if (d->rx != NULL) {
-		rx_free(d->rx);
-		d->rx = NULL;
+		/* Handling a reply from a pipelined request */
+
+		if (is_chunked || HTTP_CONTENT_ENCODING_DEFLATE == content_encoding) {
+			download_queue_delay(d, 10, _("Pipeline flow stopped"));
+			return;
+		}
+		pipelined_response = TRUE;
+		goto rx_stack_setup;	/* Avoid indenting following code */
 	}
+
 	{
 		struct rx_link_args args;
 		gnet_host_t host;
@@ -11326,19 +11692,32 @@ http_version_nofix:
 		gnet_host_set(&host, download_addr(d), download_port(d));
 		d->rx = rx_make(d, &host, rx_link_get_ops(), &args);
 	}
+
+	/*
+	 * If data is chunked or compressed then we cannot use HTTP pipelining
+	 * because the RX stack will not be able to process correctly the HTTP
+	 * status for the pipelined request response if it comes together following
+	 * data from the previous request: an inflating reception layer would
+	 * choke on the plain non-deflated HTTP header!
+	 */
+
 	if (is_chunked) {
 		struct rx_chunk_args args;
 
 		args.cb = &download_rx_chunk_cb;
 		d->rx = rx_make_above(d->rx, rx_chunk_get_ops(), &args);
+		d->flags |= DL_F_NO_PIPELINE;	/* Pipelining disabled during request */
 	}
 	if (HTTP_CONTENT_ENCODING_DEFLATE == content_encoding) {
 		struct rx_inflate_args args;
 
 		args.cb = &download_rx_inflate_cb;
 		d->rx = rx_make_above(d->rx, rx_inflate_get_ops(), &args);
+		d->flags |= DL_F_NO_PIPELINE;	/* Disabled for this request */
 	}
+	rx_enable(d->rx);
 
+rx_stack_setup:
 	if (d->flags & DL_F_MUST_IGNORE) {
 		d->flags &= ~DL_F_MUST_IGNORE;
 		must_ignore = TRUE;
@@ -11348,11 +11727,18 @@ http_version_nofix:
 		must_ignore = FALSE;
 		rx_set_data_ind(d->rx, download_data_ind);
 	}
-	rx_enable(d->rx);
 
 	/*
 	 * Open output file.
+	 *
+	 * When pieplining, we know that we'll stay on the same file so we keep
+	 * the file opened between requests.
 	 */
+
+	if (pipelined_response) {
+		g_assert(d->out_file != NULL);
+		goto file_opened;
+	}
 
 	g_assert(NULL == d->out_file);
 
@@ -11379,15 +11765,15 @@ http_version_nofix:
 	d->out_file = download_open(fi->pathname);
 	if (d->out_file) {
 		/* File exists, we'll append the data to it */
-		if (!fi->use_swarming && (fi->done != d->skip)) {
+		if (!fi->use_swarming && (fi->done != d->chunk.start)) {
 			g_message("file '%s' changed size (now %s, but was %s)",
 				fi->pathname, uint64_to_string(fi->done),
-				uint64_to_string2(d->skip));
+				uint64_to_string2(d->chunk.start));
 			download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
 				_("Stopped (Output file size changed)"));
 			return;
 		}
-	} else if (!fi->use_swarming && d->skip) {
+	} else if (!fi->use_swarming && d->chunk.start) {
 		download_stop(d, GTA_DL_ERROR, _("Cannot resume: file gone"));
 		return;
 	} else {
@@ -11413,9 +11799,10 @@ file_opened:
 	download_mark_active(d, must_ignore);
 
 	g_assert(s->gdk_tag == 0);
-	g_assert(d->bio == NULL);
+	g_assert(d->bio == NULL || pipelined_response);
 
-	d->bio = rx_bio_source(d->rx);
+	d->pos = d->chunk.start;			/* Where we'll start writing to file */
+	d->bio = rx_bio_source(d->rx);		/* Bandwidth-limited RX I/O source */
 
 	g_assert(DOWNLOAD_IS_ACTIVE(d));	/* Ready to receive via RX stack */
 
@@ -11427,7 +11814,7 @@ file_opened:
 		size_t n = s->pos;
 		
 		s->pos = 0;
-		download_write(d, s->buf, n);
+		download_write(d, s->buf, n, pipelined_response);
 		fi->recv_amount += n;
 	}
 }
@@ -11475,10 +11862,47 @@ download_read(struct download *d, pmsg_t *mb)
 		}
 	}
 
-	d->last_update = tm_time();
-	fi->recv_amount += pmsg_size(mb);
+	/*
+	 * When pipelining requests, the server may have already read and processed
+	 * the next request and begun sending its data along with data from
+	 * the previous request (especially if there was TCP buffering due to
+	 * the Nagle algorithm for the last few bytes of the previous request).
+	 *
+	 * Hence we need to process only what pertains to the current request and
+	 * keep the extra data around to be able to feed them when we're processing
+	 * the result from the next request (which will be a leading HTTP reply
+	 * header pertaining to the pipelined HTTP request we sent followed by
+	 * the requested data).
+	 */
 
-	buffers_add_read(d, mb);	/* mb will be kept and freed there as needed */
+	if (d->pipeline != NULL && GTA_DL_PIPE_SENT == d->pipeline->status) {
+		size_t buffered = download_buffered(d);
+		filesize_t start = d->pos;
+
+		/*
+		 * If we have an overlapping window and DL_F_OVERLAPPED is not
+		 * set yet, then we're still receiving overlapping data, which need
+		 * to be accounted to determine whether the received data are going
+		 * past the end of the current chunk.
+		 */
+
+		if (d->chunk.overlap && !(d->flags & DL_F_OVERLAPPED))
+			start -= d->chunk.overlap;
+
+		if (start + buffered + pmsg_size(mb) > d->chunk.end) {
+			filesize_t offset = d->chunk.end - (start + buffered);
+
+			g_assert(offset <= MAX_INT_VAL(int));
+			g_assert(NULL == d->pipeline->extra);	/* Done once per request */
+
+			d->pipeline->extra = pmsg_split(mb, offset);
+		}
+	}
+
+	fi->recv_amount += pmsg_size(mb);
+	buffers_add_read(d, mb);	/* mb will be kept and freed as needed */
+
+	d->last_update = tm_time();
 
 	/*
 	 * Possibly write data if we reached the end of the chunk we requested,
@@ -11504,6 +11928,21 @@ download_ignore_data(struct download *d, pmsg_t *mb)
 	file_info_check(d->file_info);
 	g_assert(d->file_info->recvcount > 0);
 
+	/*
+	 * Same logic as download_read() when dealing with pipelined requests.
+	 */
+
+	if (d->pipeline != NULL && GTA_DL_PIPE_SENT == d->pipeline->status) {
+		if (d->pos + pmsg_size(mb) > d->chunk.end) {
+			filesize_t offset = d->chunk.end - d->pos;
+
+			g_assert(offset <= MAX_INT_VAL(int));
+			g_assert(NULL == d->pipeline->extra);	/* Done once per request */
+
+			d->pipeline->extra = pmsg_split(mb, offset);
+		}
+	}
+
 	d->last_update = tm_time();
 	d->pos += pmsg_size(mb);
 
@@ -11519,14 +11958,14 @@ download_ignore_data(struct download *d, pmsg_t *mb)
 
 	fi_src_status_changed(d);
 
-	if (d->pos >= d->range_end) {
+	if (d->pos >= d->chunk.end) {
 		/*
 		 * We finished our request, go on with a new one, hoping it will
 		 * match this time or give us good data if we request elsewhere
 		 * with no resuming checking possibilities.
 		 */
 
-		download_continue(d, d->pos > d->range_end);
+		download_continue(d, d->pos > d->chunk.end);
 		return FALSE;
 	}
 
@@ -11546,8 +11985,16 @@ download_request_sent(struct download *d)
 	download_check(d);
 
 	d->last_update = tm_time();
-	download_set_status(d, GTA_DL_REQ_SENT);
 	tm_now(&d->header_sent);
+
+	if (download_pipelining(d)) {
+		g_assert(DOWNLOAD_IS_ACTIVE(d));
+		dl_pipeline_check(d->pipeline);
+		d->pipeline->status = GTA_DL_PIPE_SENT;
+		return;		/* We're still processing reception of previous request */
+	} else {
+		download_set_status(d, GTA_DL_REQ_SENT);
+	}
 
 	/*
 	 * Now prepare to read the status line and the headers.
@@ -11579,10 +12026,12 @@ download_write_request(gpointer data, int unused_source, inputevt_cond_t cond)
 	download_check(d);
 
 	s = d->socket;
-	r = d->req;
+	r = download_pipelining(d) ? d->pipeline->req : d->req;
+
 	g_assert(s->gdk_tag);		/* I/O callback still registered */
-	g_assert(r != NULL);
-	g_assert(d->status == GTA_DL_REQ_SENDING);
+	http_buffer_check(r);
+	g_assert(d->pipeline != NULL || GTA_DL_REQ_SENDING == d->status);
+	g_assert(NULL == d->pipeline || GTA_DL_PIPE_SENDING == d->pipeline->status);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		const char *msg = _("Could not send whole HTTP request");
@@ -11627,7 +12076,8 @@ download_write_request(gpointer data, int unused_source, inputevt_cond_t cond)
 		http_buffer_add_read(r, sent);
 		return;
 	} else if (GNET_PROPERTY(download_trace) & SOCK_TRACE_OUT) {
-		g_debug("----Sent Request (%s) completely to %s (%u bytes):",
+		g_debug("----Sent Request (%s%s) completely to %s (%u bytes):",
+			download_pipelining(d) ? "pipelined " : "",
 			d->keep_alive ? "follow-up" : "initial",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			http_buffer_length(r));
@@ -11639,7 +12089,8 @@ download_write_request(gpointer data, int unused_source, inputevt_cond_t cond)
 	 */
 
 	if (GNET_PROPERTY(download_debug)) {
-		g_debug("flushed partially written HTTP request to %s (%u bytes)",
+		g_debug("flushed partially written %sHTTP request to %s (%u bytes)",
+			download_pipelining(d) ? "pipelined " : "",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			http_buffer_length(r));
     }
@@ -11647,7 +12098,11 @@ download_write_request(gpointer data, int unused_source, inputevt_cond_t cond)
 	socket_evt_clear(s);
 
 	http_buffer_free(r);
-	d->req = NULL;
+	if (download_pipelining(d)) {
+		d->pipeline->req = NULL;
+	} else {
+		d->req = NULL;
+	}
 
 	download_request_sent(d);
 }
@@ -11670,18 +12125,91 @@ download_send_request(struct download *d)
 	size_t rw;
 	ssize_t sent;
 	size_t maxsize = sizeof request_buf - 3;
+	struct dl_chunk *req;
 
 	download_check(d);
 	s = d->socket;
-	if (NULL == s) {
-		g_error("download_send_request(): no socket for \"%s\"",
-			download_basename(d));
-	}
-	
+	g_assert(s != NULL);
+
 	fi = d->file_info;
 	file_info_check(fi);
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
+
+	/*
+	 * If we have a pipelined request, we're sending (or have already sent
+	 * earlier) an HTTP request ahead of time.
+	 *
+	 * The first time we see a pipelined request, it must be in the
+	 * GTA_DL_PIPE_SELECTED state and we're called to send it ahead of time,
+	 * whilst another HTTP request is currently being processed (data received).
+	 *
+	 * The second time we're called, it would be to send a new request but
+	 * the pipelined request may have been incompletely sent (in the
+	 * GTA_DL_PIPE_SENDING state).  In that case, we act as if we had just
+	 * selected a new request to send and move the download to the
+	 * GTA_DL_REQ_SENDING state so that it continues to wait for the full 
+	 * request flush to the server.
+	 *
+	 * Or the second time the request can be in the GTA_DL_PIPE_SENT state,
+	 * meaning we already sent the pipelined request the first time and so the
+	 * server should have got it right now: we can prepare for reception and
+	 * we have nothing else to send right now.
+	 *
+	 * The second time we're called with a pipelined request we have to
+	 * populate the download structure with the HTTP request information.
+	 */
+
+	if (download_pipelining(d)) {
+		struct dl_pipeline *dp = d->pipeline;
+		dl_pipeline_status_t status;
+
+		dl_pipeline_check(dp);
+
+		status = dp->status;
+
+		switch (status) {
+		case GTA_DL_PIPE_SELECTED:	/* Sending new pipelined request */
+			req = &dp->chunk;
+			d->flags |= DL_F_PIPELINED;	/* Suppress HTTP latency computation */
+			goto picked;
+		case GTA_DL_PIPE_SENDING:	/* Partially sent already */
+			g_assert(dp->req != NULL);	/* Buffered request to flush */
+			g_assert(NULL == d->req);	/* Was processing previous request */
+			g_assert(s->gdk_tag != 0);	/* Event: download_write_request() */
+			/* FALL THROUGH */
+		case GTA_DL_PIPE_SENT:		/* Fully sent already */
+			d->chunk = dp->chunk;	/* Struct copy */
+			d->flags &= ~DL_F_REPLIED;	/* Will be set if we get a reply */
+			fi_src_info_changed(d);
+			if (GTA_DL_PIPE_SENDING == status) {
+				download_set_status(d, GTA_DL_REQ_SENDING);
+				d->req = dp->req;		/* Currently pending request */
+				dp->req = NULL;			/* Transferred to the download now */
+			}
+			/*
+			 * Before discarding the pipeline structure (because we're now
+			 * going to process the reply to the pipelined request soon),
+			 * propagate back to the socket buffer any data that was sent by
+			 * the remote server after it completed the sending of the previous
+			 * chunk.
+			 *
+			 * A NULL pipeline structure will signal download_request_sent()
+			 * that it can parse the HTTP reply.
+			 */
+			download_pipeline_read(d);
+			download_pipeline_free_null(&d->pipeline);
+			if (GTA_DL_PIPE_SENDING == status)
+				return;
+			else
+				goto fully_sent;
+		}
+
+		g_error("impossible state %d for HTTP pipelined request of \"%s\"",
+			dp->status, download_basename(d));
+	} else {
+		req = &d->chunk;
+	}
 
 	fi_src_info_changed(d);
 
@@ -11701,7 +12229,7 @@ download_send_request(struct download *d)
 
 	/*
 	 * If we're swarming, pick a free chunk.
-	 * (will set d->skip and d->overlap_size).
+	 * (will set d->chunk.start and d->chunk.overlap).
 	 */
 
 	if (fi->use_swarming) {
@@ -11717,25 +12245,26 @@ download_send_request(struct download *d)
 		if (d->flags & DL_F_CHUNK_CHOSEN)
 			d->flags &= ~DL_F_CHUNK_CHOSEN;
 		else {
-			if (d->ranges != NULL && download_pick_available(d))
-				goto picked;
+			if (NULL == d->ranges || !download_pick_available(d, &d->chunk)) {
+				http_range_free(d->ranges);	/* May have changed on server */
+				d->ranges = NULL;			/* Request normally */
 
-			http_range_free(d->ranges);		/* May have changed on server */
-			d->ranges = NULL;				/* Request normally */
-
-			if (!download_pick_chunk(d))
-				return;
+				if (!download_pick_chunk(d, &d->chunk, TRUE))
+					return;
+			}
 		}
 	} else if (!fi->file_size_known) {
 		/* XXX -- revisit this encapsulation violation after 0.96 -- RAM */
 		/* XXX (when filesize is not known, fileinfo should handle this) */
-		d->skip = d->pos = fi->done;	/* XXX no overlapping here */
-		d->size = 0;
+		d->chunk.start = fi->done;		/* XXX no overlapping here */
+		d->chunk.size = 0;
 	}
+
+	d->flags &= ~DL_F_REPLIED;			/* Will be set if we get a reply */
 
 picked:
 
-	g_assert(d->overlap_size <= s->buf_size);
+	g_assert(req->overlap <= s->buf_size);
 
 	/*
 	 * We can have a SHA1 for this download (information gathered from
@@ -11750,20 +12279,26 @@ picked:
 	else
 		d->flags &= ~DL_F_URIRES;
 
-	d->flags &= ~DL_F_REPLIED;			/* Will be set if we get a reply */
-
 	/*
 	 * Tell GUI about the selected range, and that we're sending.
 	 */
 
 	d->last_update = tm_time();
-	download_set_status(d, GTA_DL_REQ_SENDING);
+
+	if (download_pipelining(d)) {
+		g_assert(DOWNLOAD_IS_ACTIVE(d));
+		d->pipeline->status = GTA_DL_PIPE_SENDING;
+		fi_src_status_changed(d);
+	} else {
+		download_set_status(d, GTA_DL_REQ_SENDING);
+	}
 
 	/*
 	 * Build the HTTP request.
 	 */
 
 	if ((DLS_A_FOOBAR & d->server->attrs) && 0 == d->served_reqs) {
+		g_assert(!download_pipelining(d));
 		d->flags |= DL_F_PREFIX_HEAD;
 		method = "HEAD";
 	} else {
@@ -11800,6 +12335,7 @@ picked:
 	 */
 
 	if (rw >= MAX_LINE_SIZE) {
+		g_assert(!download_pipelining(d));	/* Can't happen if we pipeline */
 		download_stop(d, GTA_DL_ERROR, "URL too large");
 		return;
 	}
@@ -11848,7 +12384,7 @@ picked:
 
 	/*
 	 * If server is known to NOT support keepalives, then request only
-	 * a range starting from d->skip.  Likewise if we know that the
+	 * a range starting from d->chunk.start.  Likewise if we know that the
 	 * server does not support HTTP/1.1.
 	 *
 	 * Otherwise, we request a range and expect the server to keep the
@@ -11856,34 +12392,34 @@ picked:
 	 * we may request the next chunk, if needed.
 	 */
 
-	g_assert(d->skip >= d->overlap_size);
-
-	d->range_end = fi->file_size_known ? download_filesize(d) : (filesize_t) -1;
+	g_assert(req->start >= req->overlap);
 
 	if (fi->file_size_known && !(d->server->attrs & DLS_A_NO_HTTP_1_1)) {
 		/*
 		 * Request exact range, unless we're asking for the full file
 		 */
 
-		if (d->size != download_filesize(d)) {
-			filesize_t start = d->skip - d->overlap_size;
-
-			d->range_end = d->skip + d->size;
+		if (req->size != download_filesize(d)) {
+			filesize_t start = req->start - req->overlap;
 
 			rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 				"Range: bytes=%s-%s\r\n",
-				uint64_to_string(start), uint64_to_string2(d->range_end - 1));
+				uint64_to_string(start), uint64_to_string2(req->end - 1));
 		}
 	} else {
 		/* Request only a lower-bounded range, if needed */
 
-		if (d->skip > d->overlap_size)
+		req->end = fi->file_size_known ? download_filesize(d) : (filesize_t) -1;
+
+		if (req->start > req->overlap)
 			rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 				"Range: bytes=%s-\r\n",
-				uint64_to_string(d->skip - d->overlap_size));
+				uint64_to_string(req->start - req->overlap));
 	}
 
-	fi_src_info_changed(d);		/* Now that we know d->range_end */
+	if (!download_pipelining(d)) {
+		fi_src_info_changed(d);		/* Now that we know d->chunk.end */
+	}
 
 	/*
 	 * LimeWire hosts have started to emit an X-Downloaded: header stating
@@ -12051,13 +12587,18 @@ picked:
 		 * path is clogged.
 		 */
 
-		g_message("partial HTTP request write to %s: wrote %u out of %u bytes",
+		g_message("partial HTTP %s write to %s: wrote %u out of %u bytes",
+			download_pipelining(d) ? "pipelined request" : "request",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			(guint) sent, (guint) rw);
 
-		g_assert(d->req == NULL);
-
-		d->req = http_buffer_alloc(request_buf, rw, sent);
+		if (download_pipelining(d)) {
+			g_assert(NULL == d->pipeline->req);
+			d->pipeline->req = http_buffer_alloc(request_buf, rw, sent);
+		} else {
+			g_assert(NULL == d->req);
+			d->req = http_buffer_alloc(request_buf, rw, sent);
+		}
 
 		/*
 		 * Install the writing callback.
@@ -12068,7 +12609,8 @@ picked:
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
 	} else if (GNET_PROPERTY(download_trace) & SOCK_TRACE_OUT) {
-		g_debug("----Sent Request (%s%s%s%s%s) to %s (%u bytes):",
+		g_debug("----Sent Request (%s%s%s%s%s%s) to %s (%u bytes):",
+			download_pipelining(d) ? "pipelined " : "",
 			d->keep_alive ? "follow-up" : "initial",
 			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", HTTP/1.1",
 			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",
@@ -12079,6 +12621,7 @@ picked:
 		dump_string(stderr, request_buf, rw, "----");
 	}
 
+fully_sent:
 	download_request_sent(d);
 }
 
@@ -12093,6 +12636,7 @@ download_connected(struct download *d)
 	download_check(d);
 	dl_server_valid(d->server);
 	socket_check(d->socket);
+	g_assert(!download_pipelining(d));		/* Just got connected */
 
 	d->server->last_connect = tm_time();
 	s = d->socket;
@@ -14719,14 +15263,15 @@ download_rx_done(struct download *d)
 
    	if (!fi->file_size_known) {
 		file_info_size_known(d, fi->done);
-		d->size = fi->size;
-		d->range_end = download_filesize(d);	/* New upper boundary */
+		d->chunk.size = fi->size;
+		d->chunk.end = download_filesize(d);	/* New upper boundary */
 		fi_src_info_changed(d);
 	}
 	g_assert(FILE_INFO_COMPLETE(fi));
 
 	if (d->thex) {
 		download_thex_done(d);
+		was_receiving = FALSE;		/* No need for SHA1 check */
 	}
 	download_continue(d, FALSE);
 
@@ -15014,7 +15559,7 @@ download_handle_http(const char *url)
  * yet, for this particular source if it is active.
  */
 guint
-download_speed_avg(struct download *d)
+download_speed_avg(const struct download *d)
 {
 	guint speed_avg;
 	guint source_avg = 0;
@@ -15042,7 +15587,7 @@ download_speed_avg(struct download *d)
  * time now.
  */
 gboolean
-download_is_stalled(struct download *d)
+download_is_stalled(const struct download *d)
 {
 	return delta_time(tm_time(), d->last_update) > DOWNLOAD_STALLED;
 }
@@ -15164,6 +15709,60 @@ download_timer(time_t now)
 					file_info_changed(fi);
 				}
 			}
+
+			/*
+			 * See whether it's not time to issue the next request ahead
+			 * of time (HTTP pipelining) to reduce latency between chunk
+			 * reception: no need to pay the penalty of the round-trip time.
+			 */
+
+			if (
+				GNET_PROPERTY(enable_http_pipelining) &&
+				download_pipeline_can_initiate(d)
+			) {
+				g_assert(!download_pipelining(d));
+				g_assert(DOWNLOAD_IS_ACTIVE(d));
+
+				d->pipeline = download_pipeline_alloc();
+
+				if (
+					NULL == d->ranges ||
+					!download_pick_available(d, &d->pipeline->chunk)
+				) {
+					/*
+					 * File info code may determine that a download file is
+					 * suddenly gone and reset swarming, causing the
+					 * download to be re-queued.  Hence we need to recheck
+					 * that the download is still active.
+					 */
+
+					if (!DOWNLOAD_IS_ACTIVE(d)) {
+						g_assert(!download_pipelining(d));
+						continue;		/* Was requeued */
+					}
+
+					http_range_free(d->ranges);	/* May have changed on server */
+					d->ranges = NULL;			/* Request normally next time */
+
+					if (!download_pick_chunk(d, &d->pipeline->chunk, FALSE)) {
+						d->flags |= DL_F_NO_PIPELINE;
+						download_pipeline_free_null(&d->pipeline);
+					}
+				}
+
+				if (DOWNLOAD_IS_ACTIVE(d)) {
+					if (download_pipelining(d)) {
+						download_send_request(d);
+					}
+				} else {
+					g_assert(!download_pipelining(d));
+					continue;		/* Was requeued */
+				}
+
+				g_assert(!download_pipelining(d) ||
+					d->pipeline->status != GTA_DL_PIPE_SELECTED);
+			}
+
 			/* FALL THROUGH */
 
 		case GTA_DL_ACTIVE_QUEUED:

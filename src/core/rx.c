@@ -82,6 +82,22 @@ rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	return rx_recv(rx->upper, mb);
 }
 
+/**
+ * This data indication callback is installed when the RX stack is freed
+ * so that further indication to the user-level code is blocked.
+ * @return FALSE
+ */
+static gboolean
+rx_data_ind_freed(rxdrv_t *rx, pmsg_t *mb)
+{
+	rx_check(rx);
+	g_assert(rx->upper == NULL);
+	g_assert(rx->flags & RX_F_FREED);
+
+	pmsg_free(mb);
+	return FALSE;		/* Stop sending more data */
+}
+
 /*
  * Create a new RX network driver, equipped with the `ops' operations and
  * initialize its specific parameters by calling the init routine with `args'.
@@ -245,6 +261,19 @@ rx_deep_free(rxdrv_t *rx)
 }
 
 /**
+ * Change RX stack owner.
+ */
+void
+rx_change_owner(rxdrv_t *rx, gpointer owner)
+{
+	rx_check(rx);
+
+	rx->owner = owner;
+	if (rx->lower)
+		rx_change_owner(rx->lower, owner);
+}
+
+/**
  * Dispose of the driver resources, recursively and asynchronously.
  * It must be called on the top layer only.
  */
@@ -255,6 +284,7 @@ rx_free(rxdrv_t *rx)
 	g_assert(rx->upper == NULL);
 	g_assert(!(rx->flags & RX_F_FREED));
 
+	rx_set_data_ind(rx, rx_data_ind_freed);
 	rx_disable(rx);
 	rx->flags |= RX_F_FREED;
 	rx_freed = g_slist_prepend(rx_freed, rx);

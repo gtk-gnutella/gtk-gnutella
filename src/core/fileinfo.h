@@ -81,7 +81,7 @@ void file_info_got_tth(fileinfo_t *fi, const struct tth *tth);
 void file_info_got_tigertree(fileinfo_t *fi,
 		const struct tth *leaves, size_t num_leaves, gboolean mark_dirty);
 void file_info_size_known(struct download *d, filesize_t size);
-void file_info_update(struct download *d, filesize_t from, filesize_t to,
+void file_info_update(const struct download *d, filesize_t from, filesize_t to,
 	enum dl_chunk_status status);
 enum dl_chunk_status file_info_pos_status(fileinfo_t *fi,
 	filesize_t pos /*, filesize_t *start, filesize_t *end */);

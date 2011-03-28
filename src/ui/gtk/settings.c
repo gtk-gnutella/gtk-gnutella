@@ -3987,6 +3987,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_DL_PIPELINE_MAXCHUNKSIZE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_dl_pipeline_maxchunksize",
+        FREQ_UPDATES, 0
+	),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_DOWNLOAD_BUFFER_SIZE,
         update_spinbutton,
         TRUE,
@@ -4023,6 +4031,14 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_config_aggressive_swarming",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_ENABLE_HTTP_PIPELINING,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_enable_http_pipelining",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

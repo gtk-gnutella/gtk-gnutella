@@ -114,7 +114,7 @@ struct dl_file_chunk {
 	enum dl_file_chunk_magic magic;
 	filesize_t from;				/**< Range offset start (byte included) */
 	filesize_t to;					/**< Range offset end (byte EXCLUDED) */
-	struct download *download;		/**< Download that "reserved" the range */
+	struct download *download;		/**< Download which "reserved" range */
 	enum dl_chunk_status status;	/**< Status of range */
 };
 
@@ -1157,9 +1157,9 @@ file_info_get_trailer(int fd, struct trailer *tb, filestat_t *sb,
 		return FALSE;
 
 	/*
-	 * Don't use SEEK_END with "-sizeof(tr)" to avoid problems when fileoffset_t is
-	 * defined as an 8-byte wide quantity.  Since we have the file size
-	 * already, better use SEEK_SET.
+	 * Don't use SEEK_END with "-sizeof(tr)" to avoid problems when
+	 * fileoffset_t is defined as an 8-byte wide quantity.  Since we have
+	 * the file size already, better use SEEK_SET.
 	 *		--RAM, 02/02/2003 after a bug report from Christian Biere
 	 */
 
@@ -3924,20 +3924,24 @@ file_info_merge_adjacent(fileinfo_t *fi)
 
 	do {
 		struct dl_file_chunk *fc1, *fc2;
+		GSList *next = NULL;
 
 		restart = FALSE;
 		done = 0;
 		fc2 = NULL;
-		for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
+		for (fclist = fi->chunklist; fclist; fclist = next) {
 			fc1 = fc2;
 			fc2 = fclist->data;
+			next = g_slist_next(fclist);
 
 			if (fc2->download) {
 				download_check(fc2->download);
 			}
 
-			if (DL_CHUNK_DONE == fc2->status)
+			if (DL_CHUNK_DONE == fc2->status) {
+				fc2->download = NULL;			/* Done, no longer reserved */
 				done += fc2->to - fc2->from;
+			}
 
 			if (!fc1 || !fc2)
 				continue;
@@ -3948,8 +3952,8 @@ file_info_merge_adjacent(fileinfo_t *fi)
 				fc1->to = fc2->to;
 				fi->chunklist = g_slist_remove(fi->chunklist, fc2);
 				dl_file_chunk_free(&fc2);
+				fc2 = fc1;
 				restart = TRUE;
-				break;
 			}
 		}
 	} while (restart);
@@ -4012,7 +4016,6 @@ file_info_size_known(struct download *d, filesize_t size)
 		fc->to = size;				/* Byte at that offset is excluded */
 		fc->status = DL_CHUNK_BUSY;
 		fc->download = d;
-
 		fi->chunklist = g_slist_append(fi->chunklist, fc);
 	}
 
@@ -4038,7 +4041,7 @@ file_info_size_known(struct download *d, filesize_t size)
  * the supplied download `d' so we know who "owns" it currently.
  */
 void
-file_info_update(struct download *d, filesize_t from, filesize_t to,
+file_info_update(const struct download *d, filesize_t from, filesize_t to,
 		enum dl_chunk_status status)
 {
 	struct dl_file_chunk *fc, *nfc, *prevfc;
@@ -4058,11 +4061,11 @@ file_info_update(struct download *d, filesize_t from, filesize_t to,
 	switch (status) {
 	case DL_CHUNK_DONE:
 		need_merging = FALSE;
-		newval = d;
+		newval = deconstify_gpointer(d);
 		goto status_ok;
 	case DL_CHUNK_BUSY:
 		need_merging = TRUE;
-		newval = d;
+		newval = deconstify_gpointer(d);
 		g_assert(fi->lifecount > 0);
 		goto status_ok;
 	case DL_CHUNK_EMPTY:
@@ -4185,6 +4188,16 @@ again:
 				nfc->status = fc->status;
 				nfc->download = fc->download;
 
+				if (
+					DL_CHUNK_BUSY == status &&
+					DL_CHUNK_BUSY == nfc->status &&
+					nfc->download != newval
+				) {
+					/* Reserved chunk being aggressively stolen */
+					nfc->status = DL_CHUNK_EMPTY;
+					nfc->download = NULL;
+				}
+
 				fc->to = to;
 				fc->status = status;
 				fc->download = newval;
@@ -4214,6 +4227,16 @@ again:
 				nfc->status = fc->status;
 				nfc->download = fc->download;
 				gm_slist_insert_after(fi->chunklist, fclist, nfc);
+
+				if (
+					DL_CHUNK_BUSY == status &&
+					DL_CHUNK_BUSY == nfc->status &&
+					nfc->download != newval
+				) {
+					/* Reserved chunk being aggressively stolen */
+					nfc->status = DL_CHUNK_EMPTY;
+					nfc->download = NULL;
+				}
 			}
 
 			nfc = dl_file_chunk_alloc();
@@ -4301,20 +4324,26 @@ file_info_clear_download(struct download *d, gboolean lifecount)
 {
 	GSList *fclist;
 	fileinfo_t *fi;
-	int busy;			/**< For assertions only */
+	int busy = 0;		/**< For assertions only */
+	int pipelined = 0;	/**< For assertions only */
 
 	download_check(d);
 	fi = d->file_info;
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
-	for (fclist = fi->chunklist, busy = 0; fclist; fclist = fclist->next) {
+	for (fclist = fi->chunklist; fclist; fclist = fclist->next) {
 		struct dl_file_chunk *fc = fclist->data;
 
 		dl_file_chunk_check(fc);
 
-		if (DL_CHUNK_BUSY == fc->status)
+		if (DL_CHUNK_BUSY == fc->status) {
 			busy++;
+			g_assert(fc->download != NULL);
+			download_check(fc->download);
+			if (download_pipelining(fc->download))
+				pipelined++;
+		}
 		if (fc->download == d) {
 		    fc->download = NULL;
 		    if (DL_CHUNK_BUSY == fc->status)
@@ -4323,6 +4352,7 @@ file_info_clear_download(struct download *d, gboolean lifecount)
 	}
 	file_info_merge_adjacent(fi);
 
+	busy -= pipelined;
 	g_assert(fi->lifecount >= (lifecount ? busy : (busy - 1)));
 
 	/*
@@ -4364,6 +4394,7 @@ restart:
 
 			if (DOWNLOAD_IS_RUNNING(d)) {
 				download_queue(d, "Requeued due to file removal");
+				g_assert(NULL == fc->download);
 				goto restart;	/* Because file_info_clear_download() called */
 			}
 		}
@@ -4372,6 +4403,7 @@ restart:
 	for (list = fi->chunklist; list; list = g_slist_next(list)) {
 		struct dl_file_chunk *fc = list->data;
 		dl_file_chunk_check(fc);
+		g_assert(NULL == fc->download);
 		fc->status = DL_CHUNK_EMPTY;
 	}
 
@@ -4415,8 +4447,7 @@ file_info_chunk_status(fileinfo_t *fi, filesize_t from, filesize_t to)
  * Used to detect if a download is crashing with another.
  */
 enum dl_chunk_status
-file_info_pos_status(fileinfo_t *fi, filesize_t pos /* XXX,
-	filesize_t *start, filesize_t *end */)
+file_info_pos_status(fileinfo_t *fi, filesize_t pos)
 {
 	const GSList *fclist;
 
@@ -4427,28 +4458,15 @@ file_info_pos_status(fileinfo_t *fi, filesize_t pos /* XXX,
 		const struct dl_file_chunk *fc = fclist->data;
 
 		dl_file_chunk_check(fc);
-		if (pos >= fc->from && pos < fc->to) {
-#if 0
-			if (start)
-				*start = fc->from;
-			if (end)
-				*end = fc->to;
-#endif
+		if (pos >= fc->from && pos < fc->to)
 			return fc->status;
-		}
 	}
 
-	if (pos > fi->size)
+	if (pos > fi->size) {
 		g_warning("file_info_pos_status(): unreachable position %s "
 			"in %s-byte file \"%s\"", uint64_to_string(pos),
 			uint64_to_string2(fi->size), fi->pathname);
-
-#if 0
-	if (start)
-		*start = 0;
-	if (end)
-		*end = 0;
-#endif
+	}
 
 	return DL_CHUNK_DONE;
 }
@@ -4471,9 +4489,15 @@ fi_check_file(fileinfo_t *fi)
 
 	/*
 	 * File should exist since fi->done > 0, and it was not completed.
+	 *
+	 * Of course, transient entries do not get a valid path so they must
+	 * be excluded from this check.
 	 */
 
-	if (stat(fi->pathname, &buf) && ENOENT == errno) {
+	if (
+		!(fi->flags & FI_F_TRANSIENT) &&
+		stat(fi->pathname, &buf) && ENOENT == errno
+	) {
 		g_warning("file %s removed, resetting swarming", fi->pathname);
 		file_info_reset(fi);
 	}
@@ -4483,7 +4507,7 @@ fi_check_file(fileinfo_t *fi)
  * Count the amount of BUSY chunks attached to a given download.
  */
 static int
-fi_busy_count(fileinfo_t *fi, struct download *d)
+fi_busy_count(fileinfo_t *fi, const struct download *d)
 {
 	const GSList *sl;
 	int count = 0;
@@ -4705,6 +4729,7 @@ fi_chunksize(fileinfo_t *fi)
 {
 	filesize_t chunksize;
 	int src_count;
+	guint32 max;
 
 	file_info_check(fi);
 
@@ -4729,12 +4754,22 @@ fi_chunksize(fileinfo_t *fi)
 	/*
 	 * Finally trim the computed value so it falls between the boundaries
 	 * they want to enforce.
+	 *
+	 * Note than when pipelining is allowed, we always use the pipelining
+	 * maximum, even if the requested chunk will not actually be pipelined.
+	 * Because latency is almost reduced to zero, it pays to have smaller
+	 * pipelined chunks so that more download mesh exchanges can occur and
+	 * we can learn about new sources more quickly.
 	 */
 
 	if (chunksize < GNET_PROPERTY(dl_minchunksize))
 		chunksize = GNET_PROPERTY(dl_minchunksize);
-	if (chunksize > GNET_PROPERTY(dl_maxchunksize))
-		chunksize = GNET_PROPERTY(dl_maxchunksize);
+
+	max = GNET_PROPERTY(enable_http_pipelining)
+		? GNET_PROPERTY(dl_pipeline_maxchunksize)
+		: GNET_PROPERTY(dl_maxchunksize);
+
+	chunksize = MIN(chunksize, max);
 
 	return chunksize;
 }
@@ -4823,13 +4858,13 @@ fi_missing_coverage(struct download *d)
 }
 
 /**
- * Find the largest busy chunk.
+ * Find the largest busy chunk not already reserved by download.
  *
  * @return largest chunk found in the fileinfo, or NULL if there are no
  * busy chunks.
  */
 static const struct dl_file_chunk *
-fi_find_largest(const fileinfo_t *fi)
+fi_find_largest(const fileinfo_t *fi, const struct download *d)
 {
 	GSList *fclist;
 	const struct dl_file_chunk *largest = NULL;
@@ -4841,6 +4876,16 @@ fi_find_largest(const fileinfo_t *fi)
 
 		if (DL_CHUNK_BUSY != fc->status)
 			continue;
+
+		/*
+		 * When doing HTTP pipelining, we need to exclude chunks owned by
+		 * the download we're searching chunks for to avoid self-competing!
+		 * When not doing HTTP pipeling, there's no way a chunk can be
+		 * reserved by the download so the check always works anyway.
+		 */
+
+		if (fc->download == d)
+			continue;				/* Don't compete with yourself */
 
 		if (
 			largest == NULL ||
@@ -4859,7 +4904,7 @@ fi_find_largest(const fileinfo_t *fi)
  * @return chunk found in the fileinfo, or NULL if there are no busy chunks.
  */
 static const struct dl_file_chunk *
-fi_find_slowest(const fileinfo_t *fi)
+fi_find_slowest(const fileinfo_t *fi, const struct download *d)
 {
 	GSList *fclist;
 	const struct dl_file_chunk *slowest = NULL;
@@ -4873,6 +4918,15 @@ fi_find_slowest(const fileinfo_t *fi)
 
 		if (DL_CHUNK_BUSY != fc->status)
 			continue;
+
+		/*
+		 * Avoid self-competing with our own chunks when doing HTTP pipelining.
+		 * Otherwise, there cannot be any chunk belongin to this download
+		 * anyway.
+		 */
+
+		if (fc->download == d)
+			continue;				/* Don't compete with yourself */
 
 		speed_avg = download_speed_avg(fc->download);
 
@@ -4930,7 +4984,7 @@ fi_find_aggressive_candidate(
 	minchunk = MIN(minchunk, GNET_PROPERTY(dl_minchunksize));
 	minchunk = MAX(minchunk, FI_MIN_CHUNK_SPLIT);
 
-	fc = fi_find_largest(fi);
+	fc = fi_find_largest(fi, d);
 
 	if (fc && fc->to - fc->from < minchunk)
 		fc = NULL;
@@ -4977,7 +5031,7 @@ fi_find_aggressive_candidate(
 				longest_missing_coverage * 100.0, missing_coverage * 100.0);
 	}
 
-	if (!can_be_aggressive && (fc = fi_find_slowest(fi))) {
+	if (!can_be_aggressive && (fc = fi_find_slowest(fi, d))) {
 		/*
 		 * We couldn't be aggressive with the largest chunk.
 		 * Try to see if we're faster than the slowest serving host and have
@@ -5035,15 +5089,28 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 	GSList *fclist;
 	fileinfo_t *fi = d->file_info;
 	filesize_t chunksize;
-	guint busy = 0;
+	unsigned busy = 0;
+	unsigned pipelined = 0;
+	int reserved;
 	GSList *cklist;
 	gboolean cloned = FALSE;
 
 	file_info_check(fi);
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
-	g_assert(0 == fi_busy_count(fi, d));	/* No reservation for `d' yet */
 	g_assert(file_info_check_chunklist(fi, TRUE));
+
+	/*
+	 * No reservation for `d' yet unless we're pipelining, in which
+	 * case we must have exactly 1 already (the current running request),
+	 * excepted in the case of aggressive swarming where parts of our chunk
+	 * could have been stolen and completed already (in which case we'll
+	 * have none)..
+	 */
+
+	reserved = fi_busy_count(fi, d);
+	g_assert(reserved >= 0);
+	g_assert(reserved <= (download_pipelining(d) ? 1 : 0));
 
 	/*
 	 * Ensure the file has not disappeared.
@@ -5121,8 +5188,12 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 		dl_file_chunk_check(fc);
 
 		if (DL_CHUNK_EMPTY != fc->status) {
-			if (DL_CHUNK_BUSY == fc->status)
-				busy++;		/* Will be used by assert below */
+			if (DL_CHUNK_BUSY == fc->status) {
+				g_assert(fc->download != NULL);
+				download_check(fc->download);
+				if (fc->download != d && download_pipelining(fc->download))
+					pipelined++;
+			}
 			continue;
 		}
 
@@ -5135,6 +5206,7 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 		goto selected;
 	}
 
+	busy -= pipelined;
 	g_assert(fi->lifecount > (gint32) busy); /* Or we'd found a chunk before */
 
 	if (GNET_PROPERTY(use_aggressive_swarming)) {
@@ -5185,6 +5257,7 @@ file_info_find_available_hole(
 	GSList *cklist;
 	gboolean cloned = FALSE;
 	guint busy = 0;
+	guint pipelined = 0;
 
 	download_check(d);
 	g_assert(ranges);
@@ -5225,8 +5298,13 @@ file_info_find_available_hole(
 		const GSList *sl;
 
 		if (DL_CHUNK_EMPTY != fc->status) {
-			if (DL_CHUNK_BUSY == fc->status)
+			if (DL_CHUNK_BUSY == fc->status) {
 				busy++;		/* Will be used by aggresive code below */
+				g_assert(fc->download != NULL);
+				download_check(fc->download);
+				if (download_pipelining(fc->download))
+					pipelined++;
+			}
 			continue;
 		}
 
@@ -5257,6 +5335,8 @@ file_info_find_available_hole(
 			}
 		}
 	}
+
+	busy -= pipelined;
 
 	if (GNET_PROPERTY(use_aggressive_swarming)) {
 		filesize_t start, end;
@@ -5298,6 +5378,8 @@ found:
 
 	if ((*to - *from) > chunksize)
 		*to = *from + chunksize;
+
+	/* FALL THROUGH */
 
 selected:
 	file_info_update(d, *from, *to, DL_CHUNK_BUSY);

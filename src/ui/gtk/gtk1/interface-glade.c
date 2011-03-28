@@ -10512,9 +10512,14 @@ create_dlg_prefs (void)
   GtkObject *spinbutton_dl_maxchunksize_adj;
   GtkWidget *spinbutton_dl_maxchunksize;
   GtkWidget *label761;
+  GtkWidget *label763;
+  GtkWidget *checkbutton_config_enable_http_pipelining;
+  GtkWidget *label8026;
+  GtkWidget *label8027;
   GtkObject *spinbutton_download_buffer_size_adj;
   GtkWidget *spinbutton_download_buffer_size;
-  GtkWidget *label763;
+  GtkObject *spinbutton_dl_pipeline_maxchunksize_adj;
+  GtkWidget *spinbutton_dl_pipeline_maxchunksize;
   GtkWidget *hseparator12;
   GtkWidget *table52;
   guint checkbutton_config_strict_sha1_matching_key;
@@ -14929,6 +14934,49 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label761), 0, 0.5);
 
+  label763 = gtk_label_new (_("bytes"));
+  gtk_widget_set_name (label763, "label763");
+  gtk_widget_ref (label763);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label763", label763,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label763);
+  gtk_table_attach (GTK_TABLE (table51), label763, 8, 9, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label763), 0, 0.5);
+
+  checkbutton_config_enable_http_pipelining = gtk_check_button_new_with_label (_("Enable HTTP request pipelining"));
+  gtk_widget_set_name (checkbutton_config_enable_http_pipelining, "checkbutton_config_enable_http_pipelining");
+  gtk_widget_ref (checkbutton_config_enable_http_pipelining);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_enable_http_pipelining", checkbutton_config_enable_http_pipelining,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_enable_http_pipelining);
+  gtk_table_attach (GTK_TABLE (table51), checkbutton_config_enable_http_pipelining, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label8026 = gtk_label_new (_("Pipelining max chunk size"));
+  gtk_widget_set_name (label8026, "label8026");
+  gtk_widget_ref (label8026);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8026", label8026,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8026);
+  gtk_table_attach (GTK_TABLE (table51), label8026, 6, 7, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8026), 0, 0.5);
+
+  label8027 = gtk_label_new (_("bytes"));
+  gtk_widget_set_name (label8027, "label8027");
+  gtk_widget_ref (label8027);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8027", label8027,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8027);
+  gtk_table_attach (GTK_TABLE (table51), label8027, 8, 9, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8027), 0, 0.5);
+
   spinbutton_download_buffer_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_download_buffer_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_download_buffer_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_download_buffer_size, "spinbutton_download_buffer_size");
@@ -14940,17 +14988,19 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (spinbutton_download_buffer_size, 90, -2);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_download_buffer_size), TRUE);
 
-  label763 = gtk_label_new (_("bytes"));
-  gtk_widget_set_name (label763, "label763");
-  gtk_widget_ref (label763);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label763", label763,
+  spinbutton_dl_pipeline_maxchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_dl_pipeline_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_pipeline_maxchunksize_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_dl_pipeline_maxchunksize, "spinbutton_dl_pipeline_maxchunksize");
+  gtk_widget_ref (spinbutton_dl_pipeline_maxchunksize);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_dl_pipeline_maxchunksize", spinbutton_dl_pipeline_maxchunksize,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label763);
-  gtk_table_attach (GTK_TABLE (table51), label763, 8, 9, 0, 1,
+  gtk_widget_show (spinbutton_dl_pipeline_maxchunksize);
+  gtk_table_attach (GTK_TABLE (table51), spinbutton_dl_pipeline_maxchunksize, 7, 8, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label763), 0, 0.5);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_pipeline_maxchunksize), TRUE);
 
   hseparator12 = gtk_hseparator_new ();
   gtk_widget_set_name (hseparator12, "hseparator12");

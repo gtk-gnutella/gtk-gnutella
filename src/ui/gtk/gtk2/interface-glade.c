@@ -12456,16 +12456,21 @@ create_dlg_prefs_dl_tab (void)
   GtkWidget *spinbutton_dl_minchunksize;
   GtkObject *spinbutton_dl_maxchunksize_adj;
   GtkWidget *spinbutton_dl_maxchunksize;
-  GtkWidget *checkbutton_config_aggressive_swarming;
   GtkWidget *checkbutton_config_use_swarming;
   GtkWidget *label368;
   GtkWidget *label369;
   GtkWidget *label918;
   GtkWidget *label919;
+  GtkWidget *label936;
   GtkWidget *label934;
   GtkObject *spinbutton_download_buffer_size_adj;
   GtkWidget *spinbutton_download_buffer_size;
-  GtkWidget *label936;
+  GtkWidget *label1055;
+  GtkObject *spinbutton_dl_pipeline_maxchunksize_adj;
+  GtkWidget *spinbutton_dl_pipeline_maxchunksize;
+  GtkWidget *label1056;
+  GtkWidget *checkbutton_config_aggressive_swarming;
+  GtkWidget *checkbutton_config_enable_http_pipelining;
   GtkWidget *label366;
   GtkTooltips *tooltips;
 
@@ -13051,13 +13056,6 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_maxchunksize), TRUE);
 
-  checkbutton_config_aggressive_swarming = gtk_check_button_new_with_mnemonic (_("A_ggressive mode"));
-  gtk_widget_set_name (checkbutton_config_aggressive_swarming, "checkbutton_config_aggressive_swarming");
-  gtk_widget_show (checkbutton_config_aggressive_swarming);
-  gtk_table_attach (GTK_TABLE (table94), checkbutton_config_aggressive_swarming, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-
   checkbutton_config_use_swarming = gtk_check_button_new_with_mnemonic (_("Enable s_warming"));
   gtk_widget_set_name (checkbutton_config_use_swarming, "checkbutton_config_use_swarming");
   gtk_widget_show (checkbutton_config_use_swarming);
@@ -13099,10 +13097,18 @@ create_dlg_prefs_dl_tab (void)
   gtk_label_set_justify (GTK_LABEL (label919), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label919), 0, 0.5);
 
+  label936 = gtk_label_new (_("bytes"));
+  gtk_widget_set_name (label936, "label936");
+  gtk_widget_show (label936);
+  gtk_table_attach (GTK_TABLE (table94), label936, 2, 3, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label936), 0, 0.5);
+
   label934 = gtk_label_new (_("Write buffer size"));
   gtk_widget_set_name (label934, "label934");
   gtk_widget_show (label934);
-  gtk_table_attach (GTK_TABLE (table94), label934, 0, 1, 3, 4,
+  gtk_table_attach (GTK_TABLE (table94), label934, 0, 1, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label934), 0, 0.5);
@@ -13112,17 +13118,48 @@ create_dlg_prefs_dl_tab (void)
   spinbutton_download_buffer_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_download_buffer_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_download_buffer_size, "spinbutton_download_buffer_size");
   gtk_widget_show (spinbutton_download_buffer_size);
-  gtk_table_attach (GTK_TABLE (table94), spinbutton_download_buffer_size, 1, 2, 3, 4,
+  gtk_table_attach (GTK_TABLE (table94), spinbutton_download_buffer_size, 1, 2, 4, 5,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label936 = gtk_label_new (_("bytes"));
-  gtk_widget_set_name (label936, "label936");
-  gtk_widget_show (label936);
-  gtk_table_attach (GTK_TABLE (table94), label936, 2, 3, 3, 4,
+  label1055 = gtk_label_new (_("Pipelining maximum chunk size"));
+  gtk_widget_set_name (label1055, "label1055");
+  gtk_widget_show (label1055);
+  gtk_table_attach (GTK_TABLE (table94), label1055, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label1055), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label1055), 4, 0);
+
+  spinbutton_dl_pipeline_maxchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_dl_pipeline_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_pipeline_maxchunksize_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_dl_pipeline_maxchunksize, "spinbutton_dl_pipeline_maxchunksize");
+  gtk_widget_show (spinbutton_dl_pipeline_maxchunksize);
+  gtk_table_attach (GTK_TABLE (table94), spinbutton_dl_pipeline_maxchunksize, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label1056 = gtk_label_new (_("bytes"));
+  gtk_widget_set_name (label1056, "label1056");
+  gtk_widget_show (label1056);
+  gtk_table_attach (GTK_TABLE (table94), label1056, 2, 3, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label936), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label1056), 0, 0.5);
+
+  checkbutton_config_aggressive_swarming = gtk_check_button_new_with_mnemonic (_("A_ggressive mode"));
+  gtk_widget_set_name (checkbutton_config_aggressive_swarming, "checkbutton_config_aggressive_swarming");
+  gtk_widget_show (checkbutton_config_aggressive_swarming);
+  gtk_table_attach (GTK_TABLE (table94), checkbutton_config_aggressive_swarming, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  checkbutton_config_enable_http_pipelining = gtk_check_button_new_with_mnemonic (_("Enable HTTP request pipelining"));
+  gtk_widget_set_name (checkbutton_config_enable_http_pipelining, "checkbutton_config_enable_http_pipelining");
+  gtk_widget_show (checkbutton_config_enable_http_pipelining);
+  gtk_table_attach (GTK_TABLE (table94), checkbutton_config_enable_http_pipelining, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label366 = gtk_label_new (_("Downloading from multiple sources (swarming)"));
   gtk_widget_set_name (label366, "label366");
@@ -13234,15 +13271,19 @@ create_dlg_prefs_dl_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table94, "table94");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_aggressive_swarming, "checkbutton_config_aggressive_swarming");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_use_swarming, "checkbutton_config_use_swarming");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label368, "label368");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label369, "label369");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label918, "label918");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label919, "label919");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label936, "label936");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label934, "label934");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_download_buffer_size, "spinbutton_download_buffer_size");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label936, "label936");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label1055, "label1055");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_dl_pipeline_maxchunksize, "spinbutton_dl_pipeline_maxchunksize");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label1056, "label1056");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_aggressive_swarming, "checkbutton_config_aggressive_swarming");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_enable_http_pipelining, "checkbutton_config_enable_http_pipelining");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label366, "label366");
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_prefs_dl_tab, tooltips, "tooltips");
 

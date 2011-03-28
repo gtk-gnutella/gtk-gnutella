@@ -450,6 +450,8 @@ extern const gboolean gnet_property_variable_port_mapping_successful;
 extern const gboolean gnet_property_variable_uploads_bw_no_stealing;
 extern const gboolean gnet_property_variable_uploads_bw_ignore_stolen;
 extern const gboolean gnet_property_variable_uploads_bw_uniform;
+extern const gboolean gnet_property_variable_enable_http_pipelining;
+extern const guint32  gnet_property_variable_dl_pipeline_maxchunksize;
 
 
 prop_set_t *gnet_prop_init(void);

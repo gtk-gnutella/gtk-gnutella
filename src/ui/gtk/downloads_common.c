@@ -240,6 +240,38 @@ fi_gui_set_details(const struct fileinfo_data *file)
  	guc_fi_free_info(info);
 }
 
+static const char *
+downloads_gui_pipeline_range_string(const struct download *d)
+{
+	static char buf[256];
+	char range_start[64];
+	filesize_t length;
+	struct dl_pipeline *dp;
+	gboolean metric;
+
+	download_check(d);
+	dl_pipeline_check(d->pipeline);
+
+	dp = d->pipeline;
+	length = dp->chunk.size;
+	length += dp->chunk.overlap;
+
+	metric = show_metric_units();
+	if (dp->chunk.start) {
+		g_strlcpy(range_start, compact_size(dp->chunk.start, metric),
+			sizeof range_start);
+	} else {
+		range_start[0] = '\0';
+	}
+
+	concat_strings(buf, sizeof buf,
+		compact_size(length, metric),
+		range_start[0] ? " @ " : "", range_start,
+		(void *)0);
+
+	return buf;
+}
+
 const char *
 downloads_gui_status_string(const struct download *d)
 {
@@ -410,7 +442,8 @@ downloads_gui_status_string(const struct download *d)
 				
 				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
 					FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
-					short_rate((d->range_end - d->skip + d->overlap_size) / t,
+					short_rate(
+						(d->chunk.end - d->chunk.start + d->chunk.overlap) / t,
 						show_metric_units()),
 					short_time(t));
 			} else {
@@ -500,12 +533,12 @@ downloads_gui_status_string(const struct download *d)
 
 	case GTA_DL_RECEIVING:
 	case GTA_DL_IGNORING:
-		if (d->pos + download_buffered(d) > d->skip) {
+		if (d->pos + download_buffered(d) > d->chunk.start) {
 			guint32 avg_bps, bps;
 			filesize_t downloaded;
 			gboolean stalled;
 
-			downloaded = d->pos - d->skip + download_buffered(d);
+			downloaded = d->pos - d->chunk.start + download_buffered(d);
 			if (d->bio) {
 				bps = bio_bps(d->bio);
 				avg_bps = bio_avg_bps(d->bio);
@@ -529,8 +562,8 @@ downloads_gui_status_string(const struct download *d)
 				filesize_t remain;
 				guint32 s;
 
-                if (d->size > downloaded) {
-                    remain = d->size - downloaded;
+                if (d->chunk.size > downloaded) {
+                    remain = d->chunk.size - downloaded;
 				} else {
 					remain = 0;
 				}
@@ -566,6 +599,26 @@ downloads_gui_status_string(const struct download *d)
 					" (%s)", _("ignoring"));
 
 			status = tmpstr;
+
+			/*
+			 * Show status of pipelined HTTP request, if any.
+			 */
+
+			if (d->pipeline != NULL) {
+				struct dl_pipeline *dp = d->pipeline;
+				const char *state;
+
+				dl_pipeline_check(dp);
+
+				switch (dp->status) {
+				case GTA_DL_PIPE_SELECTED:	state = _("selected next");
+				case GTA_DL_PIPE_SENDING:	state = _("requesting next");
+				case GTA_DL_PIPE_SENT:		state = _("requested next");
+				}
+
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					" {%s: %s}", state, downloads_gui_pipeline_range_string(d));
+			}
 		} else {
 			status = _("Connected");
 		}
@@ -623,19 +676,19 @@ downloads_gui_range_string(const struct download *d)
 	download_check(d);
 
 	if (d->file_info->use_swarming) {
-		length = d->size;
-		if (d->range_end > d->skip + d->size)
+		length = d->chunk.size;
+		if (d->chunk.end > d->chunk.start + d->chunk.size)
 			and_more = "+";
 		if (d->flags & DL_F_SHRUNK_REPLY)		/* Chunk shrunk by server! */
 			and_more = "-";
 	} else {
-		length = d->range_end - d->skip;
+		length = d->chunk.end - d->chunk.start;
 	}
-	length += d->overlap_size;
+	length += d->chunk.overlap;
 
 	metric = show_metric_units();
-	if (d->skip) {
-		g_strlcpy(range_start, compact_size(d->skip, metric),
+	if (d->chunk.start) {
+		g_strlcpy(range_start, compact_size(d->chunk.start, metric),
 			sizeof range_start);
 	} else {
 		range_start[0] = '\0';

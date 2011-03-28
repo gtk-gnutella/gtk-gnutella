@@ -50,7 +50,7 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/*
+/**
  * Private attributes for the link.
  */
 struct attr {
@@ -58,6 +58,7 @@ struct attr {
 	bio_source_t *bio;			/**< Bandwidth-limited I/O source */
 	bsched_bws_t bws;			/**< Scheduler to attach I/O source to */
 	const struct rx_link_cb *cb;/**< Layer-specific callbacks */
+	unsigned delivering:1;		/**< Currently delivery payloads */
 };
 
 /**
@@ -86,10 +87,11 @@ is_readable(gpointer data, int unused_source, inputevt_cond_t cond)
 
 	avail = inputevt_data_available();
 	if (0 == avail) {
-		/* buf_size should be equivalent to BUF_SIZE as defined in rxbuf.c.
+		/*
 		 * If we don't know how much can be read immediately, we make a
 		 * guess. This prevents multiple readv() syscalls when reading from
-		 * a fast source which would occur otherwise. */
+		 * a fast source which would occur otherwise.
+		 */
 		avail = 64 * 1024;
 	}
 
@@ -127,6 +129,10 @@ is_readable(gpointer data, int unused_source, inputevt_cond_t cond)
 		 * NB: `mb' is expected to be freed by the last layer using it.
 		 */
 
+		g_assert(!attr->delivering);	/* No recursion: would mess up order */
+
+		attr->delivering = TRUE;
+
 		if (attr->cb->add_rx_given != NULL)
 			attr->cb->add_rx_given(rx->owner, r);
 
@@ -144,7 +150,13 @@ is_readable(gpointer data, int unused_source, inputevt_cond_t cond)
 			if (!(*rx->data_ind)(rx, mb))
 				break;
 		}
+
+		attr->delivering = FALSE;
 	}
+
+	/*
+	 * Discard unused RX buffers.
+	 */
 
 	for (/* CONTINUE*/; i < iov_cnt; i++) {
 		rxbuf_free(db[i]);
@@ -170,7 +182,7 @@ rx_link_init(rxdrv_t *rx, gconstpointer args)
 	g_assert(rargs);
 	g_assert(rargs->cb);
 
-	attr = walloc(sizeof(*attr));
+	attr = walloc0(sizeof(*attr));
 
 	attr->cb = rargs->cb;
 	attr->wio = rargs->wio;

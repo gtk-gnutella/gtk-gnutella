@@ -485,11 +485,14 @@ pmsg_discard(pmsg_t *mb, int len)
 	available = mb->m_wptr - mb->m_rptr;
 	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
 
+	/*
+	 * The read pointer moves forward to point after the discarded bytes.
+	 */
+
 	n = len >= available ? available : len;
 	mb->m_rptr += n;
 	return n;
 }
-
 
 /**
  * Discard trailing data from the message, returning the amount of
@@ -505,9 +508,120 @@ pmsg_discard_trailing(pmsg_t *mb, int len)
 	available = mb->m_wptr - mb->m_rptr;
 	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
 
+	/*
+ 	 * The write pointer moves backward to point before the discarded bytes.
+	 */
+
 	n = len >= available ? available : len;
 	mb->m_wptr -= n;
 	return n;
+}
+
+/**
+ * Copy ``len'' bytes from the source message block to the destination by
+ * reading the source bytes and writing them to the recipient.
+ *
+ * @returns amount of bytes written, which may be lower than the requested
+ * amount if the source buffer was shorter or there is not enough room in
+ * the destination.
+ */
+int
+pmsg_copy(pmsg_t *dest, pmsg_t *src, int len)
+{
+	int copied, available;
+
+	pmsg_check_consistency(dest);
+	pmsg_check_consistency(src);
+	g_assert(pmsg_is_writable(dest));	/* Not shared, or would corrupt data */
+
+	copied = src->m_wptr - src->m_rptr;	/* Available data in source */
+	copied = MIN(copied, len);
+	available = pmsg_available(dest);	/* Room in destination buffer */
+	copied = MIN(copied, available);
+
+	if (copied > 0) {
+		memcpy(dest->m_wptr, src->m_rptr, copied);
+		dest->m_wptr += copied;
+		src->m_rptr += copied;
+	}
+
+	return copied;
+}
+
+/**
+ * Shift back unread data to the beginning of the buffer.
+ */
+void
+pmsg_compact(pmsg_t *mb)
+{
+	int shifting;
+
+	pmsg_check_consistency(mb);
+	g_assert(pmsg_is_writable(mb));		/* Not shared, or would corrupt data */
+	g_assert(mb->m_rptr <= mb->m_wptr);
+
+	shifting = mb->m_rptr - mb->m_data->d_arena;
+	g_assert(shifting >= 0);
+
+	if (shifting != 0) {
+		memmove(mb->m_data->d_arena, mb->m_rptr, pmsg_size(mb));
+		mb->m_rptr -= shifting;
+		mb->m_wptr -= shifting;
+	}
+}
+
+/**
+ * Shift back unread data to the beginning of the buffer if that can make
+ * at least 1/nth of the total arena size available for writing.
+ */
+void
+pmsg_fractional_compact(pmsg_t *mb, int n)
+{
+	int shifting;
+
+	g_assert(n > 0);
+	pmsg_check_consistency(mb);
+	g_assert(pmsg_is_writable(mb));		/* Not shared, or would corrupt data */
+	g_assert(mb->m_rptr <= mb->m_wptr);
+
+	shifting = mb->m_rptr - mb->m_data->d_arena;
+	g_assert(shifting >= 0);
+
+	if (shifting != 0) {
+		unsigned available = pmsg_available(mb) + shifting;
+		if (available >= pmsg_phys_len(mb) / n) {
+			memmove(mb->m_data->d_arena, mb->m_rptr, pmsg_size(mb));
+			mb->m_rptr -= shifting;
+			mb->m_wptr -= shifting;
+		}
+	}
+}
+
+/**
+ * Split a buffer at given offset: the data before that offset are left in
+ * the original buffer whilst the data starting at the offset (included)
+ * are moved to a new buffer.  The original buffer no longer holds the data
+ * starting at the offset.
+ *
+ * @return new message block containing the data starting at the offset.
+ */
+pmsg_t *
+pmsg_split(pmsg_t *mb, int offset)
+{
+	int slen;			/* Split length */
+	const char *start;
+
+	g_assert(offset >= 0);
+	g_assert(offset < pmsg_size(mb));
+	pmsg_check_consistency(mb);
+
+	start = mb->m_rptr + offset;
+	slen = mb->m_wptr - start;
+
+	g_assert(slen > 0);
+	mb->m_wptr -= slen;							/* Logically removed */
+
+	return pmsg_new(mb->m_prio, start, slen);	/* Copies data */
 }
 
 /**

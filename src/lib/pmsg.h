@@ -173,6 +173,10 @@ int pmsg_writable_length(const pmsg_t *mb);
 int pmsg_read(pmsg_t *mb, gpointer data, int len);
 int pmsg_discard(pmsg_t *mb, int len);
 int pmsg_discard_trailing(pmsg_t *mb, int len);
+int pmsg_copy(pmsg_t *dest, pmsg_t *src, int len);
+pmsg_t *pmsg_split(pmsg_t *mb, int offset);
+void pmsg_compact(pmsg_t *mb);
+void pmsg_fractional_compact(pmsg_t *mb, int n);
 void pmsg_reset(pmsg_t *mb);
 
 pdata_t *pdata_new(int len);

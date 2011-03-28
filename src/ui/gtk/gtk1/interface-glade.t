@@ -625,3 +625,5 @@ N_("Port mapping possible through UPnP or NAT-PMP.");
 N_("Port mapping configured through UPnP or NAT-PMP.");
 N_("Enable UPnP");
 N_("Enable NAT-PMP");
+N_("Enable HTTP request pipelining");
+N_("Pipelining max chunk size");

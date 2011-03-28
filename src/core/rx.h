@@ -113,6 +113,7 @@ void rx_collect(void);
 gboolean rx_recv(rxdrv_t *rx, pmsg_t *mb);
 void rx_enable(rxdrv_t *rx);
 void rx_disable(rxdrv_t *rx);
+void rx_change_owner(rxdrv_t *rx, gpointer owner);
 rxdrv_t *rx_bottom(rxdrv_t *rx);
 struct bio_source *rx_bio_source(rxdrv_t *rx);
 struct bio_source *rx_no_source(rxdrv_t *rx);

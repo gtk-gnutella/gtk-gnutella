@@ -1909,7 +1909,6 @@ prop = {
     };
 };
 
-
 prop = {
     name = "auto_download_identical";
     desc = "Whether or not to automatically queue search results that "
@@ -4689,6 +4688,27 @@ prop = {
     type = boolean;
     data = {
         default = FALSE;
+    };
+};
+
+prop = {
+	name = "enable_http_pipelining";
+	desc = "Whether gtk-gnutella should use HTTP request pipelining when "
+		"possible, in order to decrease downloading latency.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
+    name = "dl_pipeline_maxchunksize";
+    desc = "Maximum chunk size when swarming with HTTP pipelining.";
+    type = guint32;
+    data = {
+	    min = "64*1024";
+	    max = "10*1024*1024";
+        default = "1*1024*1024";
     };
 };
 

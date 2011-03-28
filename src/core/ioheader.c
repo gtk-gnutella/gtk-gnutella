@@ -425,6 +425,37 @@ io_read_data(gpointer data, int unused_source, inputevt_cond_t cond)
 }
 
 /**
+ * This routine is only used when doing HTTP pipelining, to be able to
+ * process already received network traffic from a connection, which is
+ * expected to be found in the socket's buffer.
+ *
+ * Read data is then handed out to io_header_parse() for analysis.
+ */
+void
+io_add_header(gpointer opaque)
+{
+	struct io_header *ih = opaque;
+	struct gnutella_socket *s;
+
+	io_check(opaque);
+
+	s = ih->socket;
+	g_assert(s != NULL);
+
+	/*
+	 * First time we read data, notify them once if needed.
+	 */
+
+	if (ih->header_read_start) {
+		(*ih->header_read_start)(ih->resource);
+		ih->header_read_start = NULL;
+	}
+
+	ih->read_bytes += s->pos;
+	io_header_parse(ih);
+}
+
+/**
  * Setup input callback and context for reading/parsing the header.
  * The I/O parsing context is directly written into the structure.
  *

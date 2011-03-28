@@ -943,6 +943,10 @@ gboolean gnet_property_variable_uploads_bw_ignore_stolen     = FALSE;
 static const gboolean gnet_property_variable_uploads_bw_ignore_stolen_default = FALSE;
 gboolean gnet_property_variable_uploads_bw_uniform     = FALSE;
 static const gboolean gnet_property_variable_uploads_bw_uniform_default = FALSE;
+gboolean gnet_property_variable_enable_http_pipelining     = TRUE;
+static const gboolean gnet_property_variable_enable_http_pipelining_default = TRUE;
+guint32  gnet_property_variable_dl_pipeline_maxchunksize     = 1*1024*1024;
+static const guint32  gnet_property_variable_dl_pipeline_maxchunksize_default = 1*1024*1024;
 
 static prop_set_t *gnet_property;
 
@@ -8602,6 +8606,43 @@ gnet_prop_init(void) {
     gnet_property->props[400].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[400].data.boolean.def   = (void *) &gnet_property_variable_uploads_bw_uniform_default;
     gnet_property->props[400].data.boolean.value = (void *) &gnet_property_variable_uploads_bw_uniform;
+
+
+    /*
+     * PROP_ENABLE_HTTP_PIPELINING:
+     *
+     * General data:
+     */
+    gnet_property->props[401].name = "enable_http_pipelining";
+    gnet_property->props[401].desc = _("Whether gtk-gnutella should use HTTP request pipelining when possible, in order to decrease downloading latency.");
+    gnet_property->props[401].ev_changed = event_new("enable_http_pipelining_changed");
+    gnet_property->props[401].save = TRUE;
+    gnet_property->props[401].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[401].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[401].data.boolean.def   = (void *) &gnet_property_variable_enable_http_pipelining_default;
+    gnet_property->props[401].data.boolean.value = (void *) &gnet_property_variable_enable_http_pipelining;
+
+
+    /*
+     * PROP_DL_PIPELINE_MAXCHUNKSIZE:
+     *
+     * General data:
+     */
+    gnet_property->props[402].name = "dl_pipeline_maxchunksize";
+    gnet_property->props[402].desc = _("Maximum chunk size when swarming with HTTP pipelining.");
+    gnet_property->props[402].ev_changed = event_new("dl_pipeline_maxchunksize_changed");
+    gnet_property->props[402].save = TRUE;
+    gnet_property->props[402].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[402].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[402].data.guint32.def   = (void *) &gnet_property_variable_dl_pipeline_maxchunksize_default;
+    gnet_property->props[402].data.guint32.value = (void *) &gnet_property_variable_dl_pipeline_maxchunksize;
+    gnet_property->props[402].data.guint32.choices = NULL;
+    gnet_property->props[402].data.guint32.max   = 10*1024*1024;
+    gnet_property->props[402].data.guint32.min   = 64*1024;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

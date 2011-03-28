@@ -164,6 +164,46 @@ struct dl_buffers {
 	size_t held;			/**< Amount of data held in read buffers */
 };
 
+/**
+ * A download request chunk.
+ */
+struct dl_chunk {
+	filesize_t size;			/**< Length of chunk in the request */
+	filesize_t start;			/**< Starting request offset within file */
+	filesize_t end;				/**< 1st byte offset AFTER requested range */
+	guint32 overlap;			/**< Overlap with previous chunk */
+};
+
+/**
+ * Pipelined HTTP request statuses.
+ */
+typedef enum {
+    GTA_DL_PIPE_SELECTED,	/**< Chunk selected, not sent yet */
+    GTA_DL_PIPE_SENDING,	/**< Pipelined request being sent */
+    GTA_DL_PIPE_SENT,  		/**< Pipelined request sent */
+} dl_pipeline_status_t;
+
+enum dl_pipeline_magic { DL_PIPELINE_MAGIC = 0x58ba60ce };	/**< Magic number */
+
+/**
+ * Pipelined HTTP request (sent ahead whilst data for the previous HTTP request
+ * is being received).
+ */
+struct dl_pipeline {
+	enum dl_pipeline_magic magic;	/**< Magic number */
+	dl_pipeline_status_t status;	/**< Current status of this HTTP request */
+	struct dl_chunk chunk;			/**< Requested chunk */
+	struct http_buffer *req;		/**< Partially sent HTTP request */
+	pmsg_t *extra;					/**< Extra data received */
+};
+
+static inline void
+dl_pipeline_check(const struct dl_pipeline * const dp)
+{
+	g_assert(dp != NULL);
+	g_assert(DL_PIPELINE_MAGIC == dp->magic);
+}
+
 struct file_object;
 
 enum download_magic { DOWNLOAD_MAGIC = 0x2dd6efe9 };	/**< Magic number */
@@ -187,10 +227,10 @@ struct download {
 	const char *file_name;		/**< Name of the file on the Gnutella server */
 	filesize_t file_size;		/**< Total size of the file, in bytes */
 
-	filesize_t size;			/**< Total size of the next request, in bytes */
-	filesize_t skip;			/**< # of bytes for file we had before start */
-	filesize_t pos;				/**< # of bytes of the file we currently have */
-	filesize_t range_end;		/**< 1st byte offset AFTER requested range */
+	struct dl_chunk chunk;		/**< Requested chunk */
+	filesize_t pos;				/**< Current file data writing position */
+
+	struct dl_pipeline *pipeline;	/**< If non-NULL: pipelined HTTP request */
 
 	struct gnutella_socket *socket;
 	struct file_object *out_file;	/**< downloaded file */
@@ -253,14 +293,14 @@ enum {
 	DL_F_FAKE_G2		= 1 << 23,	/**< Trying to fake G2, intuition only */
 	DL_F_TRIED_TLS		= 1 << 22,	/**< TLS connection was tried already */
 	DL_F_TRY_TLS		= 1 << 21,	/**< Try to initiate a TLS connection */
-	DL_F_UNUSED_3		= 1 << 20,	/**< UNUSED */
+	DL_F_UNUSED_1		= 1 << 20,	/**< UNUSED */
 	DL_F_FETCH_TTH		= 1 << 19,	/**< Tigertree data is being fetched */
 	DL_F_UDP_PUSH		= 1 << 18,	/**< UDP push already attempted */
 	DL_F_THEX			= 1 << 17,	/**< THEX download */
 	DL_F_PAUSED			= 1 << 16,	/**< Paused by user */
-	DL_F_UNUSED_2		= 1 << 15,	/**< UNUSED */
+	DL_F_NO_PIPELINE	= 1 << 15,	/**< Pipelining temporarily disabled */
 	DL_F_PREFIX_HEAD	= 1 << 14,	/**< Sent HEAD request before GET */
-	DL_F_UNUSED_1		= 1 << 13,	/**< UNUSED */
+	DL_F_PIPELINED		= 1 << 13,	/**< Last request sent was pipelined */
 	DL_F_SUSPENDED		= 1 << 12,	/**< Suspended, do not schedule */
 	DL_F_TRANSIENT		= 1 << 11,	/**< Transient, don't persist */
 	DL_F_BROWSE			= 1 << 10,	/**< Browse host type (requests "/") */
@@ -315,6 +355,7 @@ enum {
 #define download_filedone(d)	((d)->file_info->done + (d)->file_info->buffered)
 #define download_fileremain(d)	(download_filesize(d) - download_filedone(d))
 #define download_buffered(d)	((d)->buffers == NULL ? 0 : (d)->buffers->held)
+#define download_pipelining(d)	((d)->pipeline != NULL)
 
 /*
  * Sorted list of http_range_t objects, telling us about the available ranges
@@ -482,7 +523,7 @@ const char *download_get_hostname(const struct download *);
 double download_source_progress(const struct download *);
 double download_total_progress(const struct download *);
 gboolean download_something_to_clear(void);
-guint download_speed_avg(struct download *);
+guint download_speed_avg(const struct download *);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_downloads_h_ */

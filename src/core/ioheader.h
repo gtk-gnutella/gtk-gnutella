@@ -81,6 +81,7 @@ struct header *io_header(const gpointer opaque);
 struct getline *io_getline(const gpointer opaque);
 char *io_gettext(const gpointer opaque);
 guint io_get_read_bytes(const gpointer opaque);
+void io_add_header(gpointer opaque);
 
 void io_get_header(
 	gpointer resource,			/**< Resource for which we're reading headers */
