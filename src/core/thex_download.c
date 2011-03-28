@@ -538,6 +538,11 @@ thex_download_finished(struct thex_download *ctx)
 	g_assert(ctx->pos <= ctx->data_size);
 	ctx->data_size = ctx->pos;	/* Amount which is actually valid */
 
+	if (NULL == ctx->data) {
+		records = NULL;
+		goto finish;			/* Did not receive anything */
+	}
+
 	records = dime_parse_records(ctx->data, ctx->data_size);
 	if (records) {
 		const struct dime_record *record;
