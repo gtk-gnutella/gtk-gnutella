@@ -767,6 +767,29 @@ The GDF                          GUESS                       August 2002
    saving network resources.  This does not apply, of course, in the
    case where an Ultrapeer proxies a query on a leaf's behalf.
 
+10. Further Additions
+
+   The following was not documented originally but was gathered on the
+   web after publication:
+
+   GUESS needs "query keys" to query a server.
+
+   - To obtain a QueryKey, a client sends a UDP PingRequest with GGEP
+     extension 'QK' to the server. 
+
+   - The server responds to QueryKey PingRequests by returning a pong with
+     the QueryKey for that host in a GGEP 'QK' extension.  This QueryKey
+     is easily recalculated on a per-host basis, and a valid QueryKey
+     should accompany a UDP query. LimeWire simply constructs a QueryKey
+     for the host and returns it in a pong, gleaning the address info
+     of the sender from the incoming Datagram.
+
+   Now the node that received the QueryKey can send a UDP query to
+   this host, including the query key in a 'QK' extension. When the
+   host receives the query, it simply validates the QueryKey and then
+   proceeds with query execution as usual.
+
+
 References
 
    [1]   Lv, Q., Cao, P., Cohen, E., Li, K. and S. Shenker, "Search and
