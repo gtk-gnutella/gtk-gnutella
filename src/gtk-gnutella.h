@@ -45,7 +45,7 @@
 #define GTA_PATCHLEVEL 0			/**< patch level or teeny version */
 #define GTA_REVISION "unstable"		/**< unstable, beta, stable */
 #define GTA_REVCHAR "u"				/**< (u)nstable, (b)eta, none -> stable */
-#define GTA_RELEASE "2011-03-28"	/**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE "2011-03-30"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)

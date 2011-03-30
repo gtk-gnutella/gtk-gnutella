@@ -44,6 +44,8 @@
 
 RCSID("$Id$")
 
+#include <math.h>		/* For fabs() */
+
 #include "fileinfo.h"
 #include "file_object.h"
 #include "sockets.h"
@@ -4976,7 +4978,7 @@ fi_find_aggressive_candidate(
 
 	fc = fi_find_largest(fi, d);
 
-	if (fc && fc->to - fc->from < minchunk)
+	if (fc != NULL && fc->to - fc->from < minchunk)
 		fc = NULL;
 
 	/*
@@ -4988,24 +4990,21 @@ fi_find_aggressive_candidate(
 	 * need, whereas the faster server does not have 100% of them, it would
 	 * be a shame to lose the connection to this slower server.  So we
 	 * take into account the missing chunk coverage rate as well.
-	 *
-	 * We always interrupt a chunk covered by a non-active download, i.e.
-	 * when that chunk is only being requested and is not yet served, as we
-	 * don't know whether that request will succeed.
 	 */
 
 	missing_coverage = fi_missing_coverage(d);
 
 	if (fc) {
-		double longest_missing_coverage = fi_missing_coverage(fc->download);
+		double longest_missing_coverage;
 
 		download_check(fc->download);
+		longest_missing_coverage = fi_missing_coverage(fc->download);
 
 		can_be_aggressive =
-			!DOWNLOAD_IS_ACTIVE(fc->download) ||
-			missing_coverage > longest_missing_coverage ||
-			(
-				longest_missing_coverage - missing_coverage < 1e-56 &&
+			0 == download_speed_avg(fc->download)
+			|| missing_coverage > longest_missing_coverage
+			|| (
+				fabs(longest_missing_coverage - missing_coverage) < 1e-56 &&
 				download_speed_avg(d) > download_speed_avg(fc->download)
 			);
 
@@ -5024,6 +5023,11 @@ fi_find_aggressive_candidate(
 	}
 
 	if (!can_be_aggressive && (fc = fi_find_slowest(fi, d))) {
+		double slowest_missing_coverage;
+
+		download_check(fc->download);
+		slowest_missing_coverage = fi_missing_coverage(fc->download);
+
 		/*
 		 * We couldn't be aggressive with the largest chunk.
 		 * Try to see if we're faster than the slowest serving host and have
@@ -5031,8 +5035,7 @@ fi_find_aggressive_candidate(
 		 */
 
 		can_be_aggressive =
-			(!DOWNLOAD_IS_ACTIVE(fc->download) ||
-				missing_coverage >= fi_missing_coverage(fc->download))
+			missing_coverage >= slowest_missing_coverage
 			&& download_speed_avg(d) > download_speed_avg(fc->download);
 
 		if (can_be_aggressive && GNET_PROPERTY(download_debug) > 1)
@@ -5045,7 +5048,7 @@ fi_find_aggressive_candidate(
 				download_speed_avg(fc->download),
 				download_host_info(fc->download),
 				download_speed_avg(d),
-				fi_missing_coverage(fc->download) * 100.0,
+				slowest_missing_coverage * 100.0,
 				missing_coverage * 100.0);
 	}
 
