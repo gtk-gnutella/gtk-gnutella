@@ -356,10 +356,10 @@ typedef enum {
 /*
  * Nodes callback definitions
  */
-typedef void (*node_added_listener_t) (struct nid *);
-typedef void (*node_removed_listener_t) (struct nid *);
-typedef void (*node_info_changed_listener_t) (struct nid *);
-typedef void (*node_flags_changed_listener_t) (struct nid *);
+typedef void (*node_added_listener_t) (const struct nid *);
+typedef void (*node_removed_listener_t) (const struct nid *);
+typedef void (*node_info_changed_listener_t) (const struct nid *);
+typedef void (*node_flags_changed_listener_t) (const struct nid *);
 
 #define node_add_listener(signal, callback) \
     CAT3(node_add_,signal,_listener)(callback);
