@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2010, Raphael Manfredi
+ * Copyright (c) 2001-2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Handle downloads.
  *
  * @author Raphael Manfredi
- * @date 2001-2009
+ * @date 2001-2011
  */
 
 #include "common.h"
@@ -309,13 +309,6 @@ server_host_info(const struct dl_server *server)
 	return info;
 }
 
-static inline const char *
-download_host_info(const struct download *d)
-{
-	download_check(d);
-	return server_host_info(d->server);
-}
-
 /*
  * Download structures.
  *
@@ -479,6 +472,7 @@ download_pipeline_can_initiate(const struct download *d)
 {
 	fileinfo_t *fi;
 	unsigned avg_bps, s;
+	unsigned threshold;
 	filesize_t downloaded, remain;
 
 	download_check(d);
@@ -509,6 +503,9 @@ download_pipeline_can_initiate(const struct download *d)
 	if (FILE_INFO_COMPLETE(fi))
 		return FALSE;
 
+	if ((DLS_A_FOOBAR & d->server->attrs) && 0 == d->served_reqs)
+		return FALSE;
+
 	/*
 	 * We must be close to the end of the current request to not commit the
 	 * next chunk too early.
@@ -524,8 +521,12 @@ download_pipeline_can_initiate(const struct download *d)
 	avg_bps = download_speed_avg(d);
 	s = remain / (avg_bps ? avg_bps : 1);
 
-	return uint_saturate_mult(s, 1000) <=
-		MAX(DOWNLOAD_PIPELINE_MSECS, GNET_PROPERTY(dl_http_latency));
+	dl_server_valid(d->server);
+
+	threshold = MAX(DOWNLOAD_PIPELINE_MSECS, GNET_PROPERTY(dl_http_latency));
+	threshold = MAX(threshold, d->server->latency);
+
+	return uint_saturate_mult(s, 1000) <= threshold;
 }
 
 /**
@@ -3617,7 +3618,6 @@ download_clone(struct download *d)
 	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
 	cd->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED |
 		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_CLONED | DL_F_NO_PIPELINE);
-	download_set_status(cd, GTA_DL_CONNECTING);
 	cd->server->refcnt++;
 
 	download_add_to_list(cd, DL_LIST_WAITING);	/* Will add SHA1 to server */
@@ -3631,10 +3631,21 @@ download_clone(struct download *d)
 		d->bio = NULL;		/* I/O source kept as well */
 		d->out_file = NULL;	/* Keep file opened when pipelining */
 		rx_change_owner(cd->rx, cd);
+		switch (cd->pipeline->status) {
+		case GTA_DL_PIPE_SENDING:
+			download_set_status(cd, GTA_DL_REQ_SENDING);
+			break;
+		case GTA_DL_PIPE_SENT:
+			download_set_status(cd, GTA_DL_REQ_SENT);
+			break;
+		case GTA_DL_PIPE_SELECTED:
+			g_assert_not_reached();
+		}
 	} else {
 		cd->rx = NULL;
 		cd->bio = NULL;			/* Recreated on each transfer */
 		cd->out_file = NULL;	/* File re-opened each time */
+		download_set_status(cd, GTA_DL_CONNECTING);
 	}
 
 	download_set_sha1(d, NULL);
@@ -5132,7 +5143,9 @@ download_start_prepare_running(struct download *d)
 	g_assert(fi->lifecount > 0);
 
 	/* Most common state if we succeed */
-	download_set_status(d, GTA_DL_CONNECTING);
+	if (!download_pipelining(d)) {
+		download_set_status(d, GTA_DL_CONNECTING);
+	}
 
 	/*
 	 * If we were asked to ignore this download, abort now.
@@ -8089,10 +8102,15 @@ download_start_reading(gpointer o)
 
 	if (!(d->flags & DL_F_PIPELINED)) {
 		tm_now(&now);
+		time_delta_t elapsed = tm_elapsed_ms(&now, &d->header_sent);
+		struct dl_server *server = d->server;
+
+		g_assert(dl_server_valid(server));
 
 		gnet_prop_get_guint32_val(PROP_DL_HTTP_LATENCY, &latency);
-		latency += (tm_elapsed_ms(&now, &d->header_sent) >> 2) - (latency >> 2);
+		latency += (elapsed >> 2) - (latency >> 2);
 		gnet_prop_set_guint32_val(PROP_DL_HTTP_LATENCY, latency);
+		server->latency += (elapsed >> 2) - (server->latency >> 2);
 	} else {
 		d->flags &= ~DL_F_PIPELINED;
 	}
@@ -12125,7 +12143,7 @@ download_send_request(struct download *d)
 	size_t rw;
 	ssize_t sent;
 	size_t maxsize = sizeof request_buf - 3;
-	struct dl_chunk *req;
+	struct dl_chunk *req = NULL;
 
 	download_check(d);
 	s = d->socket;
@@ -12264,6 +12282,7 @@ download_send_request(struct download *d)
 
 picked:
 
+	g_assert(req != NULL);
 	g_assert(req->overlap <= s->buf_size);
 
 	/*
@@ -15796,8 +15815,16 @@ download_timer(time_t now)
 						MAX_INT_VAL(time_delta_t) :
 						GNET_PROPERTY(download_push_sent_timeout);
 				break;
-			case GTA_DL_CONNECTING:
 			case GTA_DL_REQ_SENT:
+				/*
+				 * For each second we spend in the "request sent" stage,
+				 * add 0.5 secs to the latency so that we can better adjust
+				 * the time at which we request the next pipelined chunk
+				 * for this server.
+				 */
+				d->server->latency += 500;	/* Half a second */
+				/* FALL THROUGH */
+			case GTA_DL_CONNECTING:
 			case GTA_DL_HEADERS:
 				timeout = GNET_PROPERTY(download_connecting_timeout);
 				break;

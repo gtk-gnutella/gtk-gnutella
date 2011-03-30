@@ -143,6 +143,13 @@ void download_got_fw_node_info(const struct guid *guid,
 
 const char *server_host_info(const struct dl_server *server);
 
+static inline const char *
+download_host_info(const struct download *d)
+{
+	download_check(d);
+	return server_host_info(d->server);
+}
+
 #endif /* _core_downloads_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

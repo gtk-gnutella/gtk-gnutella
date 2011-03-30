@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
+ * Copyright (c) 2004-2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -100,6 +101,7 @@ struct dl_server {
 	time_t last_connect;	/**< When we last connected to that server */
 	struct vernum parq_version; /**< Supported queueing version */
 	guint speed_avg;			/**< Average (EMA) upload speed, in bytes/sec */
+	unsigned latency;			/**< HTTP latency, in ms (EMA) */
 	guint32 attrs;
 	guint16 country;			/**< Country of origin -- encoded ISO3166 */
 };
