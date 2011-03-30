@@ -660,7 +660,7 @@ download_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	 * grab the HTTP reply that may already have been sent on the connection.
 	 */
 
-	if (GTA_DL_REQ_SENT == d->status) {
+	if (GTA_DL_REQ_SENT == d->status || GTA_DL_HEADERS == d->status) {
 		g_assert(d->io_opaque != NULL);
 
 		download_pipeline_socket_feed(d, mb);
@@ -668,6 +668,7 @@ download_data_ind(rxdrv_t *rx, pmsg_t *mb)
 		return TRUE;
 	} else {
 		g_assert(DOWNLOAD_IS_ACTIVE(d));	/* No I/O via RX stack otherwise */
+		g_assert(NULL == d->io_opaque);		/* Done with header parsing */
 
 		return download_read(d, mb);
 	}
@@ -690,7 +691,7 @@ download_ignore_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	 * grab the HTTP reply that may already have been sent on the connection.
 	 */
 
-	if (GTA_DL_REQ_SENT == d->status) {
+	if (GTA_DL_REQ_SENT == d->status || GTA_DL_HEADERS == d->status) {
 		g_assert(d->io_opaque != NULL);
 
 		download_pipeline_socket_feed(d, mb);
@@ -698,6 +699,7 @@ download_ignore_data_ind(rxdrv_t *rx, pmsg_t *mb)
 		return TRUE;
 	} else {
 		g_assert(DOWNLOAD_IS_ACTIVE(d));	/* No I/O via RX stack otherwise */
+		g_assert(NULL == d->io_opaque);		/* Done with header parsing */
 
 		return download_ignore_data(d, mb);
 	}
