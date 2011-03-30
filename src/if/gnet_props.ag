@@ -1139,7 +1139,7 @@ prop = {
     desc = "Auto clear completed downloads.";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
         value   = clear_complete_downloads;
     };
 };
@@ -1151,7 +1151,7 @@ prop = {
 		"failure to resume, write error, etc...).";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
         value   = clear_failed_downloads;
     };
 };
