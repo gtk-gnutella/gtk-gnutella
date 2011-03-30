@@ -610,7 +610,7 @@ file_info_by_guid(const struct guid *guid)
  * Checks the chunklist of fi.
  *
  * @param fi		the fileinfo struct to check.
- * @param assertion	no document
+ * @param assertion	TRUE if used in an assertion
  *
  * @return TRUE if chunklist is consistent, FALSE otherwise.
  */
@@ -3916,47 +3916,42 @@ void
 file_info_merge_adjacent(fileinfo_t *fi)
 {
 	GSList *fclist;
-	gboolean restart;
+	struct dl_file_chunk *fc1, *fc2;
+	GSList *next = NULL;
 	filesize_t done;
 
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
-	do {
-		struct dl_file_chunk *fc1, *fc2;
-		GSList *next = NULL;
+	done = 0;
+	fc2 = NULL;
 
-		restart = FALSE;
-		done = 0;
-		fc2 = NULL;
-		for (fclist = fi->chunklist; fclist; fclist = next) {
-			fc1 = fc2;
-			fc2 = fclist->data;
-			next = g_slist_next(fclist);
+	for (fclist = fi->chunklist; fclist; fclist = next) {
+		fc1 = fc2;					/* fc1 = previous chunk in list */
+		fc2 = fclist->data;			/* fc2 = current chunk */
+		next = g_slist_next(fclist);
 
-			if (fc2->download) {
-				download_check(fc2->download);
-			}
-
-			if (DL_CHUNK_DONE == fc2->status) {
-				fc2->download = NULL;			/* Done, no longer reserved */
-				done += fc2->to - fc2->from;
-			}
-
-			if (!fc1 || !fc2)
-				continue;
-
-			g_assert(fc1->to == fc2->from);
-
-			if (fc1->status == fc2->status && fc1->download == fc2->download) {
-				fc1->to = fc2->to;
-				fi->chunklist = g_slist_remove(fi->chunklist, fc2);
-				dl_file_chunk_free(&fc2);
-				fc2 = fc1;
-				restart = TRUE;
-			}
+		if (fc2->download) {
+			download_check(fc2->download);
 		}
-	} while (restart);
+
+		if (DL_CHUNK_DONE == fc2->status) {
+			fc2->download = NULL;			/* Done, no longer reserved */
+			done += fc2->to - fc2->from;
+		}
+
+		if (NULL == fc1)
+			continue;
+
+		g_assert(fc1->to == fc2->from);
+
+		if (fc1->status == fc2->status && fc1->download == fc2->download) {
+			fc1->to = fc2->to;
+			fi->chunklist = g_slist_remove(fi->chunklist, fc2);
+			dl_file_chunk_free(&fc2);
+			fc2 = fc1;
+		}
+	}
 
 	/*
 	 * When file size is unknown, there may be no chunklist.
@@ -4188,21 +4183,12 @@ again:
 				nfc->status = fc->status;
 				nfc->download = fc->download;
 
-				if (
-					DL_CHUNK_BUSY == status &&
-					DL_CHUNK_BUSY == nfc->status &&
-					nfc->download != newval
-				) {
-					/* Reserved chunk being aggressively stolen */
-					nfc->status = DL_CHUNK_EMPTY;
-					nfc->download = NULL;
-				}
-
 				fc->to = to;
 				fc->status = status;
 				fc->download = newval;
 				gm_slist_insert_after(fi->chunklist, fclist, nfc);
 				g_assert(file_info_check_chunklist(fi, TRUE));
+				g_assert(DL_CHUNK_DONE == status || nfc->download != newval);
 			}
 
 			found = TRUE;
@@ -4230,10 +4216,14 @@ again:
 
 				if (
 					DL_CHUNK_BUSY == status &&
-					DL_CHUNK_BUSY == nfc->status &&
-					nfc->download != newval
+					DL_CHUNK_BUSY == nfc->status
 				) {
-					/* Reserved chunk being aggressively stolen */
+					/*
+					 * Reserved chunk being aggressively stolen, hence its
+					 * upper-part ]to, fc->to] cannot be linearily downloaded.
+					 * Make it free so that the source owning the original
+					 * chunk is not suddenly seen as reserving two chunks!
+					 */
 					nfc->status = DL_CHUNK_EMPTY;
 					nfc->download = NULL;
 				}
@@ -5021,13 +5011,15 @@ fi_find_aggressive_candidate(
 
 		if (GNET_PROPERTY(download_debug) > 1)
 			g_debug("will %s be aggressive for \"%s\" given d/l speed "
-				"of %s%u B/s for largest chunk owner and %u B/s for stealer, "
-				"and a coverage of missing chunks of %.2f%% and "
+				"of %s%u B/s for largest chunk owner (%s) and %u B/s for "
+				"stealer, and a coverage of missing chunks of %.2f%% and "
 				"%.2f%% respectively",
 				can_be_aggressive ? "really" : "not",
 				fi->pathname,
 				download_is_stalled(fc->download) ? "stalling " : "",
-				download_speed_avg(fc->download), download_speed_avg(d),
+				download_speed_avg(fc->download),
+				download_host_info(fc->download),
+				download_speed_avg(d),
 				longest_missing_coverage * 100.0, missing_coverage * 100.0);
 	}
 
@@ -5039,17 +5031,20 @@ fi_find_aggressive_candidate(
 		 */
 
 		can_be_aggressive =
-			!DOWNLOAD_IS_ACTIVE(fc->download) ||
-			missing_coverage >= fi_missing_coverage(fc->download);
+			(!DOWNLOAD_IS_ACTIVE(fc->download) ||
+				missing_coverage >= fi_missing_coverage(fc->download))
+			&& download_speed_avg(d) > download_speed_avg(fc->download);
 
 		if (can_be_aggressive && GNET_PROPERTY(download_debug) > 1)
 			g_debug("will instead be aggressive for \"%s\" given d/l speed "
-				"of %s%u B/s for slowest chunk owner and %u B/s for stealer, "
-				"and a coverage of missing chunks of %.2f%% and "
+				"of %s%u B/s for slowest chunk owner (%s) and %u B/s for "
+				"stealer, and a coverage of missing chunks of %.2f%% and "
 				"%.2f%% respectively",
 				fi->pathname,
 				download_is_stalled(fc->download) ? "stalling " : "",
-				download_speed_avg(fc->download), download_speed_avg(d),
+				download_speed_avg(fc->download),
+				download_host_info(fc->download),
+				download_speed_avg(d),
 				fi_missing_coverage(fc->download) * 100.0,
 				missing_coverage * 100.0);
 	}
@@ -5068,20 +5063,27 @@ fi_find_aggressive_candidate(
 	}
 
 	if (GNET_PROPERTY(download_debug) > 1)
-		g_debug("aggressively requesting %s@%s for \"%s\" using %s source",
+		g_debug("aggressively requesting %s@%s [%ld, %ld] "
+			"for \"%s\" using %s source from %s",
 			filesize_to_string(*to - *from), short_size(*from, FALSE),
+			(unsigned long) *from, (unsigned long) *to - 1,
 			fi->pathname,
-			d->ranges != NULL ? "partial" : "complete");
+			d->ranges != NULL ? "partial" : "complete",
+			download_host_info(d));
 
 	return TRUE;
 }
 	
 /**
  * Finds a range to download, and stores it in *from and *to.
- * If "aggressive" is off, it will return only ranges that are
- * EMPTY. If on, and no EMPTY ranges are available, it will
- * grab a chunk out of the longest BUSY chunk instead, and
- * "compete" with the download that reserved it.
+ *
+ * If "aggressive" is off, it will return only ranges that are EMPTY.
+ * If on, and no EMPTY ranges are available, it will grab a chunk out of the
+ * longest BUSY chunk instead, and "compete" with the download that reserved it.
+ *
+ * @return DL_CHUNK_EMPTY if we reserved a chunk, DL_CHUNK_BUSY if we cannot
+ * grab a chunk because they are all unavailable, or DL_CHUNK_DONE if we did
+ * not select a chunk but the file is complete.
  */
 enum dl_chunk_status
 file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
@@ -5201,8 +5203,6 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 		*to = fc->to;
 		if ((fc->to - fc->from) > chunksize)
 			*to = fc->from + chunksize;
-
-		file_info_update(d, *from, *to, DL_CHUNK_BUSY);
 		goto selected;
 	}
 
@@ -5213,7 +5213,6 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 		filesize_t start, end;
 
 		if (fi_find_aggressive_candidate(d, busy, &start, &end)) {
-			file_info_update(d, start, end, DL_CHUNK_BUSY);
 			*from = start;
 			*to = end;
 			goto selected;
@@ -5228,6 +5227,8 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 	return (fi->done == fi->size) ? DL_CHUNK_DONE : DL_CHUNK_BUSY;
 
 selected:	/* Selected a hole to download */
+
+	file_info_update(d, *from, *to, DL_CHUNK_BUSY);
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
