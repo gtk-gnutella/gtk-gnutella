@@ -5093,7 +5093,7 @@ dht_bootstrap(host_addr_t addr, guint16 port)
 void
 dht_bootstrap_if_needed(host_addr_t addr, guint16 port)
 {
-	if (!dht_enabled())
+	if (!dht_enabled() || NULL == root)
 		return;
 
 	if (dht_seeded())
