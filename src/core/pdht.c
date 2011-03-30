@@ -64,6 +64,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/misc.h"
+#include "lib/nid.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -139,7 +140,7 @@ typedef struct pdht_publish {
 		} aloc;
 		struct pdht_nope {			/**< Context for NOPE publishing */
 			const guid_t *guid;		/**< GUID of servent */
-			node_id_t nid;			/**< ID of node for which we're a proxy */
+			struct nid *nid;		/**< ID of node for which we're a proxy */
 		} nope;
 	} u;
 	guint32 flags;				/**< Operating flags */
@@ -283,7 +284,7 @@ pdht_free_publish(pdht_publish_t *pp, gboolean do_remove)
 		if (do_remove)
 			g_hash_table_remove(nope_publishes, pp->u.nope.guid);
 		if (pp->u.nope.nid != NULL) {
-			node_id_unref(pp->u.nope.nid);
+			nid_unref(pp->u.nope.nid);
 			pp->u.nope.nid = NULL;
 		}
 		atom_guid_free_null(&pp->u.nope.guid);
@@ -1674,7 +1675,7 @@ pdht_nope_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 {
 	int delay = PDHT_PROX_RETRY;
 	gboolean accepted = TRUE;
-	node_id_t node_id = arg;
+	struct nid *node_id = arg;
 	gnutella_node_t *n;
 
 	n = node_by_id(node_id);
@@ -1724,7 +1725,7 @@ pdht_publish_proxy(const gnutella_node_t *n)
 	pdht_publish_t *pp;
 	struct pdht_nope *pnope;
 	pdht_error_t code;
-	node_id_t nid = node_get_id(n);
+	struct nid *nid = node_get_id(n);
 
 	g_return_if_fail(node_guid(n) != NULL);
 
@@ -1733,7 +1734,7 @@ pdht_publish_proxy(const gnutella_node_t *n)
 
 	pnope = &pp->u.nope;
 	pnope->guid = atom_guid_get(node_guid(n));
-	pnope->nid = node_id_ref(nid);
+	pnope->nid = nid_ref(nid);
 	pp->id = gdht_kuid_from_guid(pnope->guid);
 
 	if (g_hash_table_lookup(nope_publishes, pnope->guid)) {

@@ -42,6 +42,7 @@ RCSID("$Id$")
 
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/nid.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -57,11 +58,11 @@ static GHashTable *ht_node_info_changed;
 static GHashTable *ht_node_flags_changed;
 
 static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row);
-static void nodes_gui_update_node_flags(const node_id_t node_id,
+static void nodes_gui_update_node_flags(const struct nid *node_id,
 				gnet_node_flags_t *flags, gint row);
 
 static gboolean 
-remove_item(GHashTable *ht, const node_id_t node_id)
+remove_item(GHashTable *ht, const struct nid *node_id)
 {
 	gpointer orig_key;
 
@@ -71,7 +72,7 @@ remove_item(GHashTable *ht, const node_id_t node_id)
 	orig_key = g_hash_table_lookup(ht, node_id);
 	if (orig_key) {
     	g_hash_table_remove(ht, orig_key);
-		node_id_unref(orig_key);
+		nid_unref(orig_key);
 		return TRUE;
 	} else {
 		return FALSE;
@@ -88,10 +89,10 @@ remove_item(GHashTable *ht, const node_id_t node_id)
  * Removes all references to the node from the frontend.
  */
 static void
-nodes_gui_node_removed(const node_id_t node_id)
+nodes_gui_node_removed(const struct nid *node_id)
 {
     if (GUI_PROPERTY(gui_debug) >= 5)
-        g_debug("nodes_gui_node_removed(%s)", node_id_to_string(node_id));
+        g_debug("nodes_gui_node_removed(%s)", nid_to_string(node_id));
 
     nodes_gui_remove_node(node_id);
 }
@@ -102,12 +103,12 @@ nodes_gui_node_removed(const node_id_t node_id)
  * Adds the node to the gui.
  */
 static void
-nodes_gui_node_added(const node_id_t node_id)
+nodes_gui_node_added(const struct nid *node_id)
 {
     gnet_node_info_t info;
 
     if (GUI_PROPERTY(gui_debug) >= 5)
-        g_debug("nodes_gui_node_added(%s)", node_id_to_string(node_id));
+        g_debug("nodes_gui_node_added(%s)", nid_to_string(node_id));
 
     guc_node_fill_info(node_id, &info);
     nodes_gui_add_node(&info);
@@ -121,10 +122,10 @@ nodes_gui_node_added(const node_id_t node_id)
  * next tick.
  */
 static void
-nodes_gui_node_info_changed(const node_id_t node_id)
+nodes_gui_node_info_changed(const struct nid *node_id)
 {
     if (!g_hash_table_lookup(ht_node_info_changed, node_id)) {
-		const node_id_t key = node_id_ref(node_id);
+		const struct nid *key = nid_ref(node_id);
     	gm_hash_table_insert_const(ht_node_info_changed, key, key);
 	}
 }
@@ -136,10 +137,10 @@ nodes_gui_node_info_changed(const node_id_t node_id)
  * next tick.
  */
 static void
-nodes_gui_node_flags_changed(const node_id_t node_id)
+nodes_gui_node_flags_changed(const struct nid *node_id)
 {
     if (!g_hash_table_lookup(ht_node_flags_changed, node_id)) {
-		const node_id_t key = node_id_ref(node_id);
+		const struct nid *key = nid_ref(node_id);
     	gm_hash_table_insert_const(ht_node_flags_changed, key, key);
 	}
 }
@@ -202,7 +203,7 @@ nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
  * Updates the flags for given node and row.
  */
 static void
-nodes_gui_update_node_flags(const node_id_t node_id, gnet_node_flags_t *flags,
+nodes_gui_update_node_flags(const struct nid *node_id, gnet_node_flags_t *flags,
 	gint row)
 {
     GtkCList *clist = GTK_CLIST(gui_main_window_lookup("clist_nodes"));
@@ -287,8 +288,8 @@ nodes_gui_init(void)
 
 	widget_add_popup_menu(GTK_WIDGET(clist), nodes_gui_get_popup_menu);
 
-    ht_node_info_changed = g_hash_table_new(node_id_hash, node_id_eq_func);
-    ht_node_flags_changed = g_hash_table_new(node_id_hash, node_id_eq_func);
+    ht_node_info_changed = g_hash_table_new(nid_hash, nid_equal);
+    ht_node_flags_changed = g_hash_table_new(nid_hash, nid_equal);
 
     guc_node_add_node_added_listener(nodes_gui_node_added);
     guc_node_add_node_removed_listener(nodes_gui_node_removed);
@@ -303,7 +304,7 @@ free_node_id(gpointer key, gpointer value, gpointer unused_udata)
 {
 	g_assert(key == value);
 	(void) unused_udata;
-	node_id_unref(key);
+	nid_unref(key);
 	return TRUE;
 }
 
@@ -318,8 +319,8 @@ nodes_gui_remove_all_nodes(void)
 
     gtk_clist_freeze(clist);
 	for (iter = clist->row_list; NULL != iter; iter = g_list_next(iter)) {
-		const node_id_t node_id = ((GtkCListRow *) iter->data)->data;
-		node_id_unref(node_id);
+		const struct nid *node_id = ((GtkCListRow *) iter->data)->data;
+		nid_unref(node_id);
 	}
     gtk_clist_thaw(clist);
 
@@ -355,7 +356,7 @@ nodes_gui_shutdown(void)
  * Removes all references to the given node handle in the gui.
  */
 void
-nodes_gui_remove_node(const node_id_t node_id)
+nodes_gui_remove_node(const struct nid *node_id)
 {
     GtkWidget *clist_nodes;
     gint row;
@@ -376,7 +377,7 @@ nodes_gui_remove_node(const node_id_t node_id)
 				deconstify_gpointer(node_id));
     if (row != -1) {
         gtk_clist_remove(GTK_CLIST(clist_nodes), row);
-		node_id_unref(node_id);
+		nid_unref(node_id);
 	} else {
         g_warning("nodes_gui_remove_node: no matching row found");
 	}
@@ -413,7 +414,7 @@ nodes_gui_add_node(gnet_node_info_t *n)
 
     row = gtk_clist_append(clist_nodes, (gchar **) titles); /* override const */
     gtk_clist_set_row_data(clist_nodes, row,
-		deconstify_gpointer(node_id_ref(n->node_id)));
+		deconstify_gpointer(nid_ref(n->node_id)));
 }
 
 /**
@@ -438,7 +439,7 @@ nodes_gui_update_display(time_t now)
     gtk_clist_freeze(clist);
 
 	for (l = clist->row_list, row = 0; l; l = l->next, row++) {
-		const node_id_t node_id = ((GtkCListRow *) l->data)->data;
+		const struct nid *node_id = ((GtkCListRow *) l->data)->data;
 
         guc_node_get_status(node_id, &status);
 

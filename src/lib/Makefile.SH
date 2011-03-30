@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-75]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-95]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -69,7 +69,7 @@ DBUS_CFLAGS =  $dbuscflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 64 2011-01-01 21:57:17Z rmanfredi $
+# $X-Id: Jmake.rules 94 2011-02-10 14:06:58Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -160,6 +160,7 @@ LSRC = \
 	mime_type.c \
 	mingw32.c \
 	misc.c \
+	nid.c \
 	nv.c \
 	offtime.c \
 	ohash_table.c \
@@ -268,6 +269,7 @@ LOBJ = \
 	mime_type.o \
 	mingw32.o \
 	misc.o \
+	nid.o \
 	nv.o \
 	offtime.o \
 	ohash_table.o \

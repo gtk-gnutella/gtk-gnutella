@@ -58,6 +58,7 @@
 #include "if/gnet_property.h"
 
 struct guid;
+struct nid;
 
 /* adns interface functions */
 gboolean guc_adns_resolve(const char *hostname,
@@ -183,14 +184,14 @@ void guc_node_remove_node_info_changed_listener(node_info_changed_listener_t);
 void guc_node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
 
 void guc_node_add(const host_addr_t addr, guint16 port, guint32 flags);
-void guc_node_remove_by_id(const node_id_t);
+void guc_node_remove_by_id(const struct nid *);
 void guc_node_remove_nodes_by_id(const GSList *node_list);
-gboolean guc_node_get_status(const node_id_t, gnet_node_status_t *);
-gnet_node_info_t *guc_node_get_info(const node_id_t);
+gboolean guc_node_get_status(const struct nid *, gnet_node_status_t *);
+gnet_node_info_t *guc_node_get_info(const struct nid *);
 void guc_node_clear_info(gnet_node_info_t *);
 void guc_node_free_info(gnet_node_info_t *);
-gboolean guc_node_fill_flags(const node_id_t, gnet_node_flags_t *);
-gboolean guc_node_fill_info(const node_id_t, gnet_node_info_t *);
+gboolean guc_node_fill_flags(const struct nid *, gnet_node_flags_t *);
+gboolean guc_node_fill_info(const struct nid *, gnet_node_info_t *);
 const char *guc_node_flags_to_string(const gnet_node_flags_t *);
 const char *guc_node_peermode_to_string(node_peer_t);
 

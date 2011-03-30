@@ -606,7 +606,7 @@ downloads_gui_status_string(const struct download *d)
 
 			if (d->pipeline != NULL) {
 				struct dl_pipeline *dp = d->pipeline;
-				const char *state;
+				const char *state = "";
 
 				dl_pipeline_check(dp);
 

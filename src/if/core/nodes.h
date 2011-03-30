@@ -34,17 +34,7 @@
 #include "lib/gnet_host.h"
 #include "lib/vendors.h"
 
-struct node_id;
-typedef const struct node_id *node_id_t;
-
-node_id_t node_id_ref(const node_id_t node_id);
-void node_id_unref(const node_id_t node_id);
-
-const char *node_id_to_string(const node_id_t node_id);
-
-#define node_id_eq_func ((GCompareFunc) node_id_eq)
-gboolean node_id_eq(const node_id_t a, const node_id_t b);
-guint node_id_hash(gconstpointer node_id);
+struct nid;
 
 /**
  * Remote node mode, as specified for GTKG/23v1.
@@ -279,7 +269,7 @@ typedef struct gnet_node_status {
 } gnet_node_status_t;
 
 typedef struct gnet_node_info {
-    node_id_t node_id;    	/**< Internal node ID */
+    struct nid *node_id;   	/**< Internal node ID */
 
 	struct guid gnet_guid;	/**< Seen on network (can be blank) */
 
@@ -366,10 +356,10 @@ typedef enum {
 /*
  * Nodes callback definitions
  */
-typedef void (*node_added_listener_t) (node_id_t);
-typedef void (*node_removed_listener_t) (node_id_t);
-typedef void (*node_info_changed_listener_t) (node_id_t);
-typedef void (*node_flags_changed_listener_t) (node_id_t);
+typedef void (*node_added_listener_t) (struct nid *);
+typedef void (*node_removed_listener_t) (struct nid *);
+typedef void (*node_info_changed_listener_t) (struct nid *);
+typedef void (*node_flags_changed_listener_t) (struct nid *);
 
 #define node_add_listener(signal, callback) \
     CAT3(node_add_,signal,_listener)(callback);
@@ -397,14 +387,14 @@ void node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
  */
 void node_add(const host_addr_t addr, guint16, guint32 flags);
 void node_add_by_name(const char *host, guint16, guint32 flags);
-void node_remove_by_id(const node_id_t node_id);
+void node_remove_by_id(const struct nid *node_id);
 void node_remove_nodes_by_id(const GSList *node_list);
-gboolean node_get_status(const node_id_t node_id, gnet_node_status_t *s);
-gnet_node_info_t *node_get_info(const node_id_t node_id);
+gboolean node_get_status(const struct nid *node_id, gnet_node_status_t *s);
+gnet_node_info_t *node_get_info(const struct nid *node_id);
 void node_clear_info(gnet_node_info_t *info);
 void node_free_info(gnet_node_info_t *info);
-gboolean node_fill_flags(const node_id_t node_id, gnet_node_flags_t *flags);
-gboolean node_fill_info(const node_id_t node_id, gnet_node_info_t *info);
+gboolean node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags);
+gboolean node_fill_info(const struct nid *node_id, gnet_node_info_t *info);
 const char *node_flags_to_string(const gnet_node_flags_t *flags);
 const char *node_peermode_to_string(node_peer_t m);
 

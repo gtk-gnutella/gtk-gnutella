@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -24,38 +24,45 @@
  */
 
 /**
- * @ingroup core
+ * @ingroup lib
  * @file
  *
- * Time synchronization support.
+ * Numeric IDs.
  *
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2011
  */
 
-#ifndef _core_tsync_h_
-#define _core_tsync_h_
+#ifndef _nid_h_
+#define _nid_h_
 
-#include "common.h"
-
-#include "lib/tm.h"
+/*
+ * A unique numerical ID that will never overflow, hopefully.
+ */
+struct nid {
+	guint64 value;
+};
 
 /*
  * Public interface.
  */
 
-struct gnutella_node;
-struct nid;
+unsigned nid_hash(const void *key);
+gboolean nid_equal(const void *p, const void *q);
+const char *nid_to_string(const struct nid *nid);
+struct nid *nid_ref(const struct nid *nid);
+void nid_unref(const struct nid *nid);
+struct nid *nid_new(void);
+struct nid *nid_new_counter(struct nid *counter);
+struct nid nid_new_value(void);
+struct nid nid_new_counter_value(struct nid *counter);
 
-void tsync_init(void);
-void tsync_close(void);
+static inline guint64
+nid_value(const struct nid *nid)
+{
+	return nid->value;
+}
 
-void tsync_send(struct gnutella_node *n, const struct nid *node_id);
-void tsync_send_timestamp(tm_t *orig, tm_t *final);
-void tsync_got_request(struct gnutella_node *n, tm_t *got);
-void tsync_got_reply(struct gnutella_node *n,
-	tm_t *sent, tm_t *received, tm_t *replied, tm_t *got, gboolean ntp);
+#endif /* _nid_h_ */
 
-#endif /* _core_tsync_h_ */
-
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

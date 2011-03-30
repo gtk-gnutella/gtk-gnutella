@@ -60,6 +60,7 @@
 
 struct download;
 struct guid;
+struct nid;
 
 /*
  * Global Functions
@@ -71,7 +72,7 @@ void search_shutdown(void);
 gboolean search_results(gnutella_node_t *n, int *results);
 gboolean search_query_allowed(gnet_search_t sh);
 guint32 search_get_id(gnet_search_t sh, gpointer *search);
-void search_notify_sent(gpointer search, guint32 id, const node_id_t node_id);
+void search_notify_sent(gpointer search, guint32 id, const struct nid *node_id);
 gboolean search_get_kept_results(const struct guid *muid, guint32 *kept);
 guint32 search_get_kept_results_by_handle(gnet_search_t sh);
 void search_oob_pending_results(gnutella_node_t *n, const struct guid *muid,

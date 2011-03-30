@@ -74,6 +74,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/nid.h"
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
@@ -2019,9 +2020,9 @@ failure:
 
 struct head_ping_data {
 	const struct sha1 *sha1;/**< The SHA-1 of the HEAD Ping request	(atom) */
-	node_id_t node_id;	/**< The sender of the HEAD Ping */
-	host_addr_t addr;	/**< In case of UDP, the address of the sender */
-	guint16 port;		/**< In case of UDP, the port of the sender */
+	struct nid *node_id;	/**< The sender of the HEAD Ping */
+	host_addr_t addr;		/**< In case of UDP, the address of the sender */
+	guint16 port;			/**< In case of UDP, the port of the sender */
 };
 
 struct head_ping_source {
@@ -2041,7 +2042,7 @@ static inline void
 head_ping_source_free(struct head_ping_source *source)
 {
 	atom_sha1_free_null(&source->ping.sha1);
-	node_id_unref(source->ping.node_id);
+	nid_unref(source->ping.node_id);
 	wfree(source, sizeof *source);
 }
 
@@ -2088,7 +2089,7 @@ head_ping_timer(cqueue_t *cq, gpointer unused_udata)
 
 static struct head_ping_source * 
 head_ping_register_intern(const struct guid *muid,
-	const struct sha1 *sha1, const node_id_t node_id)
+	const struct sha1 *sha1, const struct nid *node_id)
 {
 	struct head_ping_source *source;
 	guint length;
@@ -2130,7 +2131,7 @@ head_ping_register_intern(const struct guid *muid,
 	} else {
 		source->ping.sha1 = NULL;
 	}
-	source->ping.node_id = node_id_ref(node_id);
+	source->ping.node_id = nid_ref(node_id);
 	return source;
 }
 

@@ -109,6 +109,7 @@ RCSID("$Id$")
 #include "lib/header.h"
 #include "lib/iovec.h"
 #include "lib/listener.h"
+#include "lib/nid.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
@@ -1377,74 +1378,27 @@ node_timer(time_t now)
 	sq_process(sq_global_queue(), now);
 }
 
-struct node_id {
-	guint64 value;
-};
-
-static inline guint64
-node_id_value(const node_id_t node_id)
-{
-	return node_id->value;
-}
-	
 gboolean
-node_id_self(const node_id_t node_id)
+node_id_self(const struct nid *node_id)
 {
-	return 0 == node_id_value(node_id);
+	return 0 == nid_value(node_id);
 }
 
-node_id_t
+const struct nid *
 node_id_get_self(void)
 {
-	static const struct node_id NODE_SELF_ID;
+	static const struct nid NODE_SELF_ID;
 	return &NODE_SELF_ID;
 }
 
-guint
-node_id_hash(gconstpointer key)
-{
-	node_id_t p = key;
-	return uint64_hash(p);
-}
-
-gboolean
-node_id_eq(const node_id_t p, const node_id_t q)
-{
-	guint64 a = node_id_value(p), b = node_id_value(q);
-	return uint64_eq(&a, &b);
-}
-
-const char *
-node_id_to_string(const node_id_t node_id)
-{
-	static char buf[UINT64_DEC_BUFLEN];
-	uint64_to_string_buf(node_id_value(node_id), buf, sizeof buf);
-	return buf; 
-}
-
-node_id_t
-node_id_ref(const node_id_t node_id)
-{
-	return (node_id_t) atom_uint64_get(&node_id->value);
-}
-
-void
-node_id_unref(const node_id_t node_id)
-{
-	g_assert(node_id);
-	g_assert(node_id != node_id_get_self());
-	atom_uint64_free(&node_id->value);
-}
-
-static node_id_t
+static struct nid *
 node_id_new(const struct gnutella_node *n)
 {
-	static struct node_id counter;
-	node_id_t node_id;
+	static struct nid counter;
+	struct nid *node_id;
 
 	node_check(n);
-	counter.value++;
-	node_id = node_id_ref(&counter);
+	node_id = nid_new_counter(&counter);
 	gm_hash_table_insert_const(nodes_by_id, node_id, n);
 	return node_id;
 }
@@ -1476,7 +1430,7 @@ node_init(void)
 
 	unstable_servent   = g_hash_table_new(NULL, NULL);
     ht_connected_nodes = g_hash_table_new(gnet_host_hash, gnet_host_eq);
-	nodes_by_id        = g_hash_table_new(node_id_hash, node_id_eq_func);
+	nodes_by_id        = g_hash_table_new(nid_hash, nid_equal);
 	nodes_by_guid      = g_hash_table_new(guid_hash, guid_eq);
 
 	start_rfc822_date = atom_str_get(timestamp_rfc822_to_string(now));
@@ -1805,7 +1759,7 @@ node_real_remove(gnutella_node_t *n)
 	if (n->alive_pings)			/* Must be freed after the TX stack */
 		alive_free(n->alive_pings);
 
-	node_id_unref(NODE_ID(n));
+	nid_unref(NODE_ID(n));
 	n->id = NULL;
 
 	n->magic = 0;
@@ -2018,7 +1972,7 @@ node_recursive_shutdown_v(
  * Removes or shuts down the given node.
  */
 void
-node_remove_by_id(const node_id_t node_id)
+node_remove_by_id(const struct nid *node_id)
 {
     gnutella_node_t *node;
 
@@ -9129,7 +9083,7 @@ fire:
  * the node_free_info call.
  */
 gnet_node_info_t *
-node_get_info(const node_id_t node_id)
+node_get_info(const struct nid *node_id)
 {
     gnet_node_info_t *info;
 
@@ -9148,7 +9102,7 @@ void
 node_clear_info(gnet_node_info_t *info)
 {
 	atom_str_free_null(&info->vendor);
-	node_id_unref(info->node_id);
+	nid_unref(info->node_id);
 }
 
 /**
@@ -9165,14 +9119,14 @@ node_free_info(gnet_node_info_t *info)
  * Fill in supplied info structure.
  */
 gboolean
-node_fill_info(const node_id_t node_id, gnet_node_info_t *info)
+node_fill_info(const struct nid *node_id, gnet_node_info_t *info)
 {
     gnutella_node_t *node = node_by_id(node_id);
 
 	if (NULL == node)
 		return FALSE;
 
-    info->node_id = node_id_ref(node_id);
+    info->node_id = nid_ref(node_id);
 
     info->proto_major = node->proto_major;
     info->proto_minor = node->proto_minor;
@@ -9210,7 +9164,7 @@ node_fill_info(const node_id_t node_id, gnet_node_info_t *info)
  * Fill in supplied flags structure.
  */
 gboolean
-node_fill_flags(const node_id_t node_id, gnet_node_flags_t *flags)
+node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags)
 {
 	gnutella_node_t *node = node_by_id(node_id);
 
@@ -9283,7 +9237,7 @@ node_fill_flags(const node_id_t node_id, gnet_node_flags_t *flags)
  * Fetch node status for the GUI display.
  */
 gboolean
-node_get_status(const node_id_t node_id, gnet_node_status_t *status)
+node_get_status(const struct nid *node_id, gnet_node_status_t *status)
 {
     const gnutella_node_t  *node = node_by_id(node_id);
 
@@ -9409,7 +9363,7 @@ node_remove_nodes_by_id(const GSList *node_list)
     const GSList *sl;
 
     for (sl = node_list; sl != NULL; sl = g_slist_next(sl)) {
-		const node_id_t node_id = sl->data;
+		const struct nid *node_id = sl->data;
         node_remove_by_id(node_id);
 	}
 }
@@ -9992,7 +9946,7 @@ node_all_nodes(void)
  * @return writable node given its ID, or NULL if we can't reach that node.
  */
 gnutella_node_t *
-node_by_id(const node_id_t node_id)
+node_by_id(const struct nid *node_id)
 {
 	gnutella_node_t *n;
 	
@@ -10008,7 +9962,7 @@ node_by_id(const node_id_t node_id)
  * @return writable node given its ID, or NULL if we can't reach that node.
  */
 gnutella_node_t *
-node_active_by_id(const node_id_t node_id)
+node_active_by_id(const struct nid *node_id)
 {
 	gnutella_node_t *n;
 
@@ -10020,7 +9974,7 @@ node_active_by_id(const node_id_t node_id)
  * Set leaf-guidance support indication from give node ID.
  */
 void
-node_set_leaf_guidance(const node_id_t id, gboolean supported)
+node_set_leaf_guidance(const struct nid *id, gboolean supported)
 {
 	gnutella_node_t *n;
 

@@ -53,6 +53,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
+#include "lib/nid.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -75,7 +76,7 @@ struct oob_proxy_rec {
 	oob_proxy_rec_magic_t magic;
 	const struct guid *leaf_muid;/**< Original MUID, set by leaf (atom) */
 	const struct guid *proxied_muid;/**< Proxied MUID (atom) */
-	node_id_t node_id;			/**< The ID of the node leaf */
+	struct nid *node_id;		/**< The ID of the node leaf */
 	cevent_t *expire_ev;		/**< Expire event, to clear this record */
 };
 
@@ -116,7 +117,7 @@ static GHashTable *proxied_queries;	/* New MUID => oob_proxy_rec */
  */
 static struct oob_proxy_rec *
 oob_proxy_rec_make(const struct guid *leaf_muid,
-	const struct guid *proxied_muid, const node_id_t node_id)
+	const struct guid *proxied_muid, const struct nid *node_id)
 {
 	struct oob_proxy_rec *opr;
 
@@ -124,7 +125,7 @@ oob_proxy_rec_make(const struct guid *leaf_muid,
 	opr->magic = OOB_PROXY_REC_MAGIC;
 	opr->leaf_muid = atom_guid_get(leaf_muid);
 	opr->proxied_muid = atom_guid_get(proxied_muid);
-	opr->node_id = node_id_ref(node_id);
+	opr->node_id = nid_ref(node_id);
 
 	return opr;
 }
@@ -139,7 +140,7 @@ oob_proxy_rec_free(struct oob_proxy_rec *opr)
 	cq_cancel(&opr->expire_ev);
 	atom_guid_free_null(&opr->leaf_muid);
 	atom_guid_free_null(&opr->proxied_muid);
-	node_id_unref(opr->node_id);
+	nid_unref(opr->node_id);
 	opr->magic = 0;
 	wfree(opr, sizeof(*opr));
 }
@@ -377,7 +378,7 @@ oob_proxy_pending_results(
 			" for leaf #%s %s, wants %u",
 			guid_hex_str(muid), hits,
 			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n),
-			node_id_to_string(opr->node_id),
+			nid_to_string(opr->node_id),
 			leaf == NULL ? "???" : node_gnet_addr(leaf), wanted);
 
 	vmsg_send_oob_reply_ack(n, muid, MIN(hits, 254), token);
@@ -390,7 +391,7 @@ ignore:
 			"notified of %d hits at %s %s for leaf #%s %s, ignored (%s)",
 			guid_hex_str(muid), hits,
 			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n),
-			node_id_to_string(opr->node_id),
+			nid_to_string(opr->node_id),
 			leaf == NULL ? "???" : node_gnet_addr(leaf), msg);
 
 	return TRUE;
@@ -443,7 +444,7 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 				"QUERY OOB-proxied %s dropping %d hit%s from %s: no leaf #%s",
 				guid_hex_str(opr->proxied_muid),
 				results, results == 1 ? "" : "s",
-				node_addr(n), node_id_to_string(opr->node_id));
+				node_addr(n), nid_to_string(opr->node_id));
 
 		return TRUE;		/* Leaf gone, drop the message */
 	}

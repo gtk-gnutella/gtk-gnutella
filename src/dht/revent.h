@@ -39,16 +39,7 @@
 #include "knode.h"
 #include "rpc.h"
 #include "if/dht/kademlia.h"
-
-/**
- * An RPC transaction ID, unique for each issuer.
- *
- * This is used to avoid saving the caller's address, since by the time we
- * handle RPC events for messages it sent, the caller could be long gone.
- */
-struct revent_id {
-	guint64 value;
-};
+#include "lib/nid.h"
 
 /**
  * Callbacks to be invoked from the message free routine or the RPC callback.
@@ -57,7 +48,7 @@ struct revent_ops {
 	const char *name;			/**< Caller name, for logging purposes */
 	const char *udata_name;		/**< What is udata, for logging purposes */
 	const guint32 *debug;		/**< Debug level */
-	gpointer (*is_alive)(struct revent_id id);
+	gpointer (*is_alive)(struct nid id);
 	/* message free routine callbacks */
 	void (*freeing_msg)(gpointer obj);
 	void (*msg_sent)(gpointer obj, pmsg_t *mb);
@@ -78,18 +69,13 @@ struct rpc_info;
  * Public interface.
  */
 
-struct revent_id revent_id_create(void);
-const char *revent_id_to_string(const struct revent_id id);
-unsigned revent_id_hash(const void *key);
-int revent_id_equal(const void *p, const void *q);
-
 void revent_find_node(knode_t *kn, const kuid_t *kuid,
-	struct revent_id id, struct revent_ops *ops, guint32 udata);
+	struct nid id, struct revent_ops *ops, guint32 udata);
 void revent_find_value(knode_t *kn, const kuid_t *kuid, dht_value_type_t type,
 	kuid_t **skeys, int scnt,
-	struct revent_id id, struct revent_ops *ops, guint32 udata);
+	struct nid id, struct revent_ops *ops, guint32 udata);
 void revent_store(knode_t *kn, pmsg_t *mb,
-	struct revent_id id, struct revent_ops *ops, guint32 udata);
+	struct nid id, struct revent_ops *ops, guint32 udata);
 
 #endif	/* _dht_revent_h_ */
 

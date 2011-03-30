@@ -108,6 +108,7 @@ LSRC = \
 	mime_type.c \
 	mingw32.c \
 	misc.c \
+	nid.c \
 	nv.c \
 	offtime.c \
 	ohash_table.c \

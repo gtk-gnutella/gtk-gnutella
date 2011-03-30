@@ -48,6 +48,7 @@
 #include "lib/sequence.h"
 
 struct guid;
+struct nid;
 
 typedef enum {
 	NODE_MAGIC = 0x67f8e02f
@@ -214,7 +215,7 @@ typedef struct gnutella_node {
 	 *		--RAM, 02/02/2002
 	 */
 
-	node_id_t id;				/**< Unique internal ID */
+	struct nid *id;				/**< Unique internal ID */
 	guint ping_throttle;		/**< Period for accepting new pings (secs) */
 	time_t ping_accept;			/**< Time after which we accept new pings */
 	time_t next_ping;			/**< When to send a ping, for "OLD" clients */
@@ -599,9 +600,9 @@ sequence_t *node_push_proxies(void);
 const gnet_host_t *node_oldest_push_proxy(void);
 const GSList *node_all_nodes(void);
 
-gnutella_node_t *node_by_id(const node_id_t node_id);
-gnutella_node_t *node_active_by_id(const node_id_t node_id);
-void node_set_leaf_guidance(const node_id_t node_id, gboolean supported);
+gnutella_node_t *node_by_id(const struct nid *node_id);
+gnutella_node_t *node_active_by_id(const struct nid *node_id);
+void node_set_leaf_guidance(const struct nid *node_id, gboolean supported);
 
 void node_became_firewalled(void);
 void node_became_udp_firewalled(void);
@@ -635,8 +636,8 @@ void node_supports_tls(struct gnutella_node *);
 void node_supports_dht(struct gnutella_node *, dht_mode_t);
 void node_is_firewalled(gnutella_node_t *n);
 
-node_id_t node_id_get_self(void);
-gboolean node_id_self(const node_id_t node_id);
+const struct nid *node_id_get_self(void);
+gboolean node_id_self(const struct nid *node_id);
 
 static inline void
 node_check(const struct gnutella_node * const n)
@@ -651,7 +652,7 @@ node_guid(const struct gnutella_node * const n)
 	return n->guid;
 }
 
-static inline node_id_t
+static inline struct nid *
 node_get_id(const struct gnutella_node * const n)
 {
 	return n->id;

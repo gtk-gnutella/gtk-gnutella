@@ -42,6 +42,8 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
+struct nid;
+
 static void
 update_sensitivity(gboolean sensitive)
 {
@@ -218,7 +220,7 @@ on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
     node_list = clist_collect_data(clist, TRUE, NULL);
 
 	for (sl = node_list; sl != NULL; sl = g_slist_next(sl)) {
-		const node_id_t handle = sl->data;
+		const struct nid *handle = sl->data;
 		gnet_node_info_t *info = guc_node_get_info(handle);
 
 		if (!info)

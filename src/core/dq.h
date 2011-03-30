@@ -43,6 +43,8 @@
 #include "qrp.h"
 #include "search.h"
 
+struct nid;
+
 /*
  * Public interface.
  */
@@ -55,11 +57,11 @@ void dq_init(void);
 void dq_close(void);
 
 void dq_launch_net(struct gnutella_node *n, struct query_hashvec *qhv);
-void dq_node_removed(const node_id_t node_id);
+void dq_node_removed(const struct nid *node_id);
 gboolean dq_got_results(const struct guid *muid, guint count, guint32 status);
 gboolean dq_oob_results_ind(const struct guid *muid, int count);
 void dq_oob_results_got(const struct guid *muid, guint count);
-void dq_got_query_status(const struct guid *muid, const node_id_t node_id,
+void dq_got_query_status(const struct guid *muid, const struct nid *node_id,
 		guint16 kept);
 void dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv);
 void dq_search_closed(gnet_search_t handle);

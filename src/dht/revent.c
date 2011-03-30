@@ -69,6 +69,7 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/nid.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -87,7 +88,7 @@ enum pmi_magic { REVENT_PMI_MAGIC = 0x6bd45a15 };
  */
 struct rpc_info {
 	enum rpi_magic magic;
-	struct revent_id rid;	/**< ID of RPC event, to spot outdated replies */
+	struct nid rid;			/**< ID of RPC event, to spot outdated replies */
 	struct revent_ops *ops;	/**< Callbacks */
 	struct pmsg_info *pmi;	/**< In case the RPC times out */
 	guint32 udata;			/**< User-supplied information (opaque to us) */
@@ -109,7 +110,7 @@ rpi_check(const struct rpc_info *rpi)
  * @param ops		user callbacks to invoke during RPC callback
  */
 static struct rpc_info *
-revent_rpi_alloc(struct revent_id id, guint32 udata, struct revent_ops *ops)
+revent_rpi_alloc(struct nid id, guint32 udata, struct revent_ops *ops)
 {
 	struct rpc_info *rpi;
 
@@ -140,7 +141,7 @@ revent_rpi_free(struct rpc_info *rpi)
  */
 struct pmsg_info {
 	enum pmi_magic magic;
-	struct revent_id rid;	/**< ID of caller */
+	struct nid rid;			/**< ID of caller */
 	struct revent_ops *ops;	/**< Callbacks */
 	knode_t *kn;			/**< The node to which we sent it to (refcounted) */
 	struct rpc_info *rpi;	/**< Attached RPC info (for cancelling) */
@@ -164,7 +165,7 @@ pmi_check(const struct pmsg_info *pmi)
  * @param ops		user callbacks to invoke during message free
  */
 static struct pmsg_info *
-revent_pmi_alloc(struct revent_id id, knode_t *kn, struct rpc_info *rpi,
+revent_pmi_alloc(struct nid id, knode_t *kn, struct rpc_info *rpi,
 	struct revent_ops *ops)
 {
 	struct pmsg_info *pmi;
@@ -204,7 +205,7 @@ revent_pmi_free(struct pmsg_info *pmi)
  */
 static void
 revent_get_pair(
-	struct revent_id id, knode_t *kn, guint32 udata, struct revent_ops *ops,
+	struct nid id, knode_t *kn, guint32 udata, struct revent_ops *ops,
 	struct pmsg_info **pmi, struct rpc_info **rpi)
 {
 	struct rpc_info *r = revent_rpi_alloc(id, udata, ops);
@@ -213,52 +214,6 @@ revent_get_pair(
 	r->pmi = p;
 	*pmi = p;
 	*rpi = r;
-}
-
-/**
- * Allocate a new RPC event ID, the way for users to identify the object
- * which is using this layer in a unique way.  Since that object could be
- * gone by the time we look it up, we don't directly store a pointer to it.
- */
-struct revent_id
-revent_id_create(void)
-{
-	static struct revent_id id;
-
-	id.value++;					/* Avoid using zero as valid ID */
-	g_assert(0 != id.value);	/* Game Over */
-	return id;
-}
-
-/**
- * Convert an RPC event ID to string.
- */
-const char *
-revent_id_to_string(const struct revent_id id)
-{
-	static char buf[UINT64_DEC_BUFLEN];
-	uint64_to_string_buf(id.value, buf, sizeof buf);
-	return buf;
-}
-
-/**
- * Hashing function for RPC event IDs.
- */
-unsigned
-revent_id_hash(const void *key)
-{
-	const struct revent_id *id = key;
-	return (unsigned) (id->value >> 32) ^ (unsigned) id->value;
-}
-
-/**
- * Compare two RCP event IDs for equality.
- */
-int
-revent_id_equal(const void *p, const void *q)
-{
-	const struct revent_id *a = p, *b = q;
-	return a->value == b->value;
 }
 
 /**
@@ -286,7 +241,7 @@ revent_pmsg_free(pmsg_t *mb, gpointer arg)
 	if (NULL == obj) {
 		if (*ops->debug > 2)
 			g_debug("DHT %s[%s] late UDP message %s",
-				ops->name, revent_id_to_string(pmi->rid),
+				ops->name, nid_to_string(&pmi->rid),
 				pmsg_was_sent(mb) ? "sending" : "dropping");
 		goto cleanup;
 	}
@@ -324,7 +279,7 @@ revent_pmsg_free(pmsg_t *mb, gpointer arg)
 
 		if (*ops->debug > 4)
 			g_debug("DHT %s[%s] sent %s (%d bytes) to %s, RTT=%u",
-				ops->name, revent_id_to_string(pmi->rid),
+				ops->name, nid_to_string(&pmi->rid),
 				kmsg_infostr(pmsg_start(mb)), 
 				pmsg_written_size(mb), knode_to_string(kn), kn->rtt);
 	} else {
@@ -333,7 +288,7 @@ revent_pmsg_free(pmsg_t *mb, gpointer arg)
 
 		if (*ops->debug > 2)
 			g_debug("DHT %s[%s] message %s%u to %s dropped by UDP queue",
-				ops->name, revent_id_to_string(pmi->rid),
+				ops->name, nid_to_string(&pmi->rid),
 				ops->udata_name, pmi->rpi->udata,
 				knode_to_string(kn));
 
@@ -402,7 +357,7 @@ revent_rpc_cb(
 	if (NULL == obj) {
 		if (*ops->debug > 2)
 			g_debug("DHT %s[%s] late RPC %s from %s",
-				ops->name, revent_id_to_string(rpi->rid),
+				ops->name, nid_to_string(&rpi->rid),
 				type == DHT_RPC_TIMEOUT ? "timeout" : "reply",
 				knode_to_string(kn));
 		goto cleanup;
@@ -414,7 +369,7 @@ revent_rpc_cb(
 
 	if (*ops->debug > 2)
 		g_debug("DHT %s[%s] handling %s for RPC issued %s%u to %s",
-			ops->name, revent_id_to_string(rpi->rid),
+			ops->name, nid_to_string(&rpi->rid),
 			type == DHT_RPC_TIMEOUT ? "timeout" : "reply",
 			ops->udata_name, rpi->udata, knode_to_string(kn));
 
@@ -461,7 +416,7 @@ cleanup:
  */
 void
 revent_find_node(knode_t *kn, const kuid_t *kuid,
-	struct revent_id id, struct revent_ops *ops, guint32 udata)
+	struct nid id, struct revent_ops *ops, guint32 udata)
 {
 	struct pmsg_info *pmi;
 	struct rpc_info *rpi;
@@ -496,7 +451,7 @@ revent_find_node(knode_t *kn, const kuid_t *kuid,
 void
 revent_find_value(knode_t *kn, const kuid_t *kuid, dht_value_type_t type,
 	kuid_t **skeys, int scnt,
-	struct revent_id id, struct revent_ops *ops, guint32 udata)
+	struct nid id, struct revent_ops *ops, guint32 udata)
 {
 	struct pmsg_info *pmi;
 	struct rpc_info *rpi;
@@ -528,7 +483,7 @@ revent_find_value(knode_t *kn, const kuid_t *kuid, dht_value_type_t type,
  */
 void
 revent_store(knode_t *kn, pmsg_t *mb,
-	struct revent_id id, struct revent_ops *ops, guint32 udata)
+	struct nid id, struct revent_ops *ops, guint32 udata)
 {
 	struct pmsg_info *pmi;
 	struct rpc_info *rpi;

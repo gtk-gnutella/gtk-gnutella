@@ -67,6 +67,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
+#include "lib/nid.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/tm.h"
@@ -791,8 +792,8 @@ static struct aging *udp_pings;
 
 struct cached_pong {		/**< A cached pong */
 	int refcount;			/**< How many lists reference us? */
-	node_id_t node_id;		/**< The node ID from which we got that pong */
-	node_id_t last_sent_id; /**< Node ID we last sent this pong to */
+	struct nid *node_id;	/**< The node ID from which we got that pong */
+	struct nid *last_sent_id; /**< Node ID we last sent this pong to */
 	struct pong_info info;	/**< Values from the pong message */
 	pong_meta_t *meta;		/**< Optional meta data */
 };
@@ -967,8 +968,8 @@ free_cached_pong(struct cached_pong *cp)
 	if (cp->meta)
 		wfree(cp->meta, sizeof(*cp->meta));
 
-	node_id_unref(cp->node_id);
-	node_id_unref(cp->last_sent_id);
+	nid_unref(cp->node_id);
+	nid_unref(cp->last_sent_id);
 	wfree(cp, sizeof(*cp));
 }
 
@@ -1435,13 +1436,13 @@ iterate_on_cached_line(
 		 * only if they strictly match the needed TTL.
 		 */
 
-		if (node_id_eq(NODE_ID(n), cp->node_id))
+		if (nid_equal(NODE_ID(n), cp->node_id))
 			continue;
-		if (node_id_eq(NODE_ID(n), cp->last_sent_id))
+		if (nid_equal(NODE_ID(n), cp->last_sent_id))
 			continue;
 
-		node_id_unref(cp->last_sent_id);
-		cp->last_sent_id = node_id_ref(NODE_ID(n));
+		nid_unref(cp->last_sent_id);
+		cp->last_sent_id = nid_ref(NODE_ID(n));
 
 		/*
 		 * When sending a cached pong, don't forget that its cached hop count
@@ -1889,8 +1890,8 @@ record_fresh_pong(
 	cp = walloc(sizeof *cp);
 
 	cp->refcount = 1;
-	cp->node_id = node_id_ref(NODE_ID(n));
-	cp->last_sent_id = node_id_ref(NODE_ID(n));
+	cp->node_id = nid_ref(NODE_ID(n));
+	cp->last_sent_id = nid_ref(NODE_ID(n));
 	cp->info.addr = addr;
 	cp->info.port = port;
 	cp->info.files_count = files_count;

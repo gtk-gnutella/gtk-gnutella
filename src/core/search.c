@@ -88,6 +88,7 @@ RCSID("$Id$")
 #include "lib/iso3166.h"
 #include "lib/listener.h"
 #include "lib/magnet.h"
+#include "lib/nid.h"
 #include "lib/random.h"
 #include "lib/sbool.h"
 #include "lib/str.h"
@@ -435,11 +436,11 @@ mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
 static gboolean
 free_node_id(gpointer key, gpointer value, gpointer unused_udata)
 {
-	const node_id_t node_id = key;
+	const struct nid *node_id = key;
 
 	g_assert(key == value);
 	(void) unused_udata;
-	node_id_unref(node_id);
+	nid_unref(node_id);
 	return TRUE;
 }
 
@@ -454,14 +455,14 @@ static void
 search_reset_sent_node_ids(search_ctrl_t *sch)
 {
 	search_free_sent_node_ids(sch);
-	sch->sent_node_ids = g_hash_table_new(node_id_hash, node_id_eq_func);
+	sch->sent_node_ids = g_hash_table_new(nid_hash, nid_equal);
 }
 
 static void
-mark_search_sent_to_node_id(search_ctrl_t *sch, const node_id_t node_id)
+mark_search_sent_to_node_id(search_ctrl_t *sch, const struct nid *node_id)
 {
 	if (NULL == g_hash_table_lookup(sch->sent_node_ids, node_id)) {
-		const node_id_t key = node_id_ref(node_id);
+		const struct nid *key = nid_ref(node_id);
 		gm_hash_table_insert_const(sch->sent_node_ids, key, key);
 	}
 }
@@ -2919,7 +2920,7 @@ search_alive(search_ctrl_t *sch, guint32 id)
  */
 static void
 search_send_query_status(search_ctrl_t *sch,
-	const node_id_t node_id, guint16 kept)
+	const struct nid *node_id, guint16 kept)
 {
 	struct gnutella_node *n;
 
@@ -2947,7 +2948,7 @@ search_send_query_status(search_ctrl_t *sch,
 static void
 search_send_status(gpointer key, gpointer unused_value, gpointer udata)
 {
-	const node_id_t node_id = key;
+	const struct nid *node_id = key;
 	search_ctrl_t *sch = udata;
 	guint16 kept;
 
@@ -2980,7 +2981,7 @@ search_update_results(search_ctrl_t *sch)
 static void
 search_send_closed(gpointer key, gpointer unused_value, gpointer udata)
 {
-	const node_id_t node_id = key;
+	const struct nid *node_id = key;
 	search_ctrl_t *sch = udata;
 
 	(void) unused_value;
@@ -3556,7 +3557,7 @@ search_get_id(gnet_search_t sh, gpointer *search)
  * specified node ID.
  */
 void
-search_notify_sent(gpointer search, guint32 id, const node_id_t node_id)
+search_notify_sent(gpointer search, guint32 id, const struct nid *node_id)
 {
 	search_ctrl_t *sch = search;
 
@@ -3924,7 +3925,7 @@ search_new(gnet_search_t *ptr, const char *query,
 
 		sch->sent_nodes =
 			g_hash_table_new(sent_node_hash_func, sent_node_compare);
-		sch->sent_node_ids = g_hash_table_new(node_id_hash, node_id_eq_func);
+		sch->sent_node_ids = g_hash_table_new(nid_hash, nid_equal);
 	}
 
 	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, sch);
