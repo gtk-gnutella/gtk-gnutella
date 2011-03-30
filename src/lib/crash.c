@@ -636,72 +636,72 @@ crash_invoke_inspector(int signo, const char *cwd)
 			 * Emit crash header.
 			 */
 
-			print_str("X-Executable-Path: ");	/* 0 */
+			print_str("Executable-Path: ");		/* 0 */
 			print_str(vars->argv0);				/* 1 */
 			print_str("\n");					/* 2 */
 			if (NULL != vars->version) {
-				print_str("X-Version: ");		/* 3 */
+				print_str("Version: ");			/* 3 */
 				print_str(vars->version);		/* 4 */
 				print_str("\n");				/* 5 */
 			}
-			print_str("X-Run-Elapsed: ");		/* 6 */
+			print_str("Run-Elapsed: ");			/* 6 */
 			print_str(rbuf);					/* 7 */
 			print_str("\n");					/* 8 */
-			print_str("X-Run-Seconds: ");		/* 9 */
+			print_str("Run-Seconds: ");			/* 9 */
 			print_str(print_number(sbuf, sizeof sbuf, MAX(t, 0)));	/* 10 */
 			print_str("\n");					/* 11 */
-			print_str("X-Crash-Signal: ");		/* 12 */
+			print_str("Crash-Signal: ");		/* 12 */
 			print_str(signal_name(signo));		/* 13 */
 			print_str("\n");					/* 14 */
 			flush_str(clf);
 			rewind_str(0);
-			print_str("X-Crash-Time: ");		/* 0 */
+			print_str("Crash-Time: ");			/* 0 */
 			print_str(tbuf);					/* 1 */
 			print_str("\n");					/* 2 */
-			print_str("X-Core-Dump: ");			/* 3 */
+			print_str("Core-Dump: ");			/* 3 */
 			print_str(vars->dumps_core ? "enabled" : "disabled");
 			print_str("\n");					/* 5 */
 			if (NULL != vars->cwd) {
-				print_str("X-Working-Directory: ");		/* 6 */
-				print_str(vars->cwd);					/* 7 */
-				print_str("\n");						/* 8 */
+				print_str("Working-Directory: ");	/* 6 */
+				print_str(vars->cwd);				/* 7 */
+				print_str("\n");					/* 8 */
 			}
 			if (NULL != vars->exec_path) {
-				print_str("X-Exec-Path: ");		/* 9 */
+				print_str("Exec-Path: ");		/* 9 */
 				print_str(vars->exec_path);		/* 10 */
 				print_str("\n");				/* 11 */
 			}
 			if (NULL != vars->crashdir) {
-				print_str("X-Crash-Directory: ");	/* 12 */
-				print_str(vars->crashdir);			/* 13 */
-				print_str("\n");					/* 14 */
+				print_str("Crash-Directory: ");	/* 12 */
+				print_str(vars->crashdir);		/* 13 */
+				print_str("\n");				/* 14 */
 			}
 			flush_str(clf);
 			rewind_str(0);
-			print_str("X-Crash-File: ");		/* 0 */
+			print_str("Crash-File: ");			/* 0 */
 			print_str(filename);				/* 1 */
 			print_str("\n");					/* 2 */
 			if (vars->failure != NULL) {
 				const assertion_data *failure = vars->failure;
 				if (failure->expr != NULL) {
-					print_str("X-Assertion-At: ");		/* 3 */
+					print_str("Assertion-At: ");	/* 3 */
 				} else {
-					print_str("X-Reached-Code-At: ");	/* 3 */
+					print_str("Reached-Code-At: ");	/* 3 */
 				}
-				print_str(failure->file);				/* 4 */
-				print_str(":");							/* 5 */
+				print_str(failure->file);			/* 4 */
+				print_str(":");						/* 5 */
 				print_str(print_number(lbuf, sizeof lbuf, failure->line));
-				print_str("\n");						/* 6 */
+				print_str("\n");					/* 6 */
 				if (failure->expr != NULL) {
-					print_str("X-Assertion-Expr: ");	/* 7 */
-					print_str(failure->expr);			/* 8 */
-					print_str("\n");					/* 9 */
+					print_str("Assertion-Expr: ");	/* 7 */
+					print_str(failure->expr);		/* 8 */
+					print_str("\n");				/* 9 */
 				}
 			}
 			flush_str(clf);
 
 			rewind_str(0);
-			print_str("X-Stacktrace:\n");			/* 0 */
+			print_str("Stacktrace:\n");			/* 0 */
 			flush_str(clf);
 			crash_stack_print(clf, 2);
 
