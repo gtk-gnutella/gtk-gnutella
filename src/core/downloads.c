@@ -536,7 +536,6 @@ static void
 download_pipeline_update_chunk(const struct download *d)
 {
 	struct dl_pipeline *dp;
-	enum dl_chunk_status status;
 
 	download_check(d);
 	dp = d->pipeline;
@@ -544,13 +543,12 @@ download_pipeline_update_chunk(const struct download *d)
 	g_assert(dp->status != GTA_DL_PIPE_SELECTED);
 
 	/*
-	 * With aggressive swarming, the pipelined chunk could be completed.
+	 * With aggressive swarming, the pipelined chunk could be completed,
+	 * in which case we shall ignore data later on when detecting we're
+	 * bumping into a DONE chunk.
 	 */
 
-	status = file_info_chunk_status(d->file_info,
-		dp->chunk.start, dp->chunk.end);
-
-	file_info_update(d, dp->chunk.start, dp->chunk.end, status);
+	file_info_new_chunk_owner(d, dp->chunk.start, dp->chunk.end);
 }
 
 /**
@@ -13276,6 +13274,8 @@ download_push_ack(struct gnutella_socket *s)
 	/*
 	 * Since we got a GIV, we now know the remote IP of the host and its GUID.
 	 */
+
+	g_assert(!host_addr_is_unspecified(s->addr));
 
 	if (!host_addr_equal(download_addr(d), s->addr))
 		change_server_addr(d->server, s->addr, download_port(d));

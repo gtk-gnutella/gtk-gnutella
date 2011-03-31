@@ -62,8 +62,8 @@ void file_info_store_binary(fileinfo_t *fi, gboolean force);
 void file_info_store_if_dirty(void);
 void file_info_set_discard(fileinfo_t *fi, gboolean state);
 enum dl_chunk_status file_info_find_hole(
-	struct download *d, filesize_t *from, filesize_t *to);
-gboolean file_info_find_available_hole(struct download *d,
+	const struct download *d, filesize_t *from, filesize_t *to);
+gboolean file_info_find_available_hole(const struct download *d,
 	GSList *ranges, filesize_t *from, filesize_t *to);
 void file_info_merge_adjacent(fileinfo_t *fi);
 void file_info_clear_download(struct download *d, gboolean lifecount);
@@ -83,6 +83,8 @@ void file_info_got_tigertree(fileinfo_t *fi,
 void file_info_size_known(struct download *d, filesize_t size);
 void file_info_update(const struct download *d, filesize_t from, filesize_t to,
 	enum dl_chunk_status status);
+void file_info_new_chunk_owner(const struct download *d,
+	filesize_t from, filesize_t to);
 enum dl_chunk_status file_info_pos_status(fileinfo_t *fi,
 	filesize_t pos /*, filesize_t *start, filesize_t *end */);
 void file_info_close(void);
