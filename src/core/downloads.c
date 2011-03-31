@@ -12945,8 +12945,10 @@ static GSList *
 merge_push_servers(GSList *servers, const struct guid *guid)
 {
 	struct dl_server *serv[2];
-	struct dl_server *duplicate;	/* blank GUID but valid addr:port */
-	struct dl_server *server;		/* non-blank GUID but maybe bad address */
+	struct dl_server *duplicate;	/* blank GUID */
+	struct dl_server *server;		/* non-blank GUID */
+	host_addr_t addr;
+	guint16 port;
 
 	g_assert(2 == g_slist_length(servers));
 
@@ -12977,17 +12979,25 @@ merge_push_servers(GSList *servers, const struct guid *guid)
 	 * We can merge...
 	 */
 
+	addr = host_address_is_usable(duplicate->key->addr) ? 
+		duplicate->key->addr : server->key->addr;
+
+	port = port_is_valid(duplicate->key->port) ?
+		duplicate->key->port : server->key->port;
+
 	if (GNET_PROPERTY(download_debug)) {
-		g_debug("merging servers: GUID %s at %s into GUID %s at %s",
+		g_debug("merging servers: GUID %s at %s into GUID %s at %s"
+			" (using %s:%u)",
 			guid_hex_str(duplicate->key->guid),
 			host_addr_port_to_string(
 				duplicate->key->addr, duplicate->key->port),
 			guid_to_string(server->key->guid),
-			host_addr_port_to_string2(server->key->addr, server->key->port));
+			host_addr_port_to_string2(server->key->addr, server->key->port),
+			host_addr_to_string(addr), port);
 	}
 
 	download_reparent_all(duplicate, server);
-	change_server_addr(server, duplicate->key->addr, duplicate->key->port);
+	change_server_addr(server, addr, port);
 	g_slist_free(servers);
 
 	return g_slist_prepend(NULL, server);
