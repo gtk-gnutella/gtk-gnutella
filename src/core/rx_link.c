@@ -91,8 +91,14 @@ is_readable(gpointer data, int unused_source, inputevt_cond_t cond)
 		 * If we don't know how much can be read immediately, we make a
 		 * guess. This prevents multiple readv() syscalls when reading from
 		 * a fast source which would occur otherwise.
+		 *
+		 * The socket's RX buffer size represents the maximum amount of data
+		 * that the kernel can hold for the connection.
 		 */
-		avail = 64 * 1024;
+
+		avail = bio_get_bufsize(attr->bio, SOCK_BUF_RX);
+		if (0 == avail)
+			avail = 32 * 1024;	/* Guess if nothing was configured */
 	}
 
 	/*

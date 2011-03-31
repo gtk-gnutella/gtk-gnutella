@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "bsched.h"
 #include "inet.h"
+#include "sockets.h"
 #include "uploads.h"
 
 #include "if/core/wrap.h"		/* For wrapped_io_t */
@@ -778,6 +779,18 @@ bio_enable(bio_source_t *bio)
 			bio->io_callback, bio->io_arg);
 
 	g_assert(bio->io_tag);
+}
+
+/**
+ * Get I/O source configured buffer size.
+ *
+ * @return the underlying socket buffer size, 0 if unknown.
+ */
+unsigned
+bio_get_bufsize(const bio_source_t *bio, enum socket_buftype type)
+{
+	bio_check(bio);
+	return bio->wio->bufsize(bio->wio, type);
 }
 
 /**

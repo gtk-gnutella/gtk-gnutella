@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-#include "sockets.h"		/* For enum socket_type */
-
 #include "lib/gnet_host.h"
 #include "lib/inputevt.h"
 #include "lib/tm.h"
@@ -50,6 +48,9 @@ typedef struct sendfile_ctx {
 	void *map;
 	fileoffset_t map_start, map_end;
 } sendfile_ctx_t;
+
+enum socket_type;
+enum socket_buftype;
 
 /*
  * Public interface.
@@ -70,6 +71,7 @@ void bsched_set_bandwidth(bsched_bws_t bs, int bandwidth);
 void bio_add_callback(bio_source_t *bio,
 	inputevt_handler_t callback, gpointer arg);
 void bio_remove_callback(bio_source_t *bio);
+unsigned bio_get_bufsize(const bio_source_t *bio, enum socket_buftype type);
 ssize_t bio_write(bio_source_t *bio, gconstpointer data, size_t len);
 ssize_t bio_writev(bio_source_t *bio, iovec_t *iov, int iovcnt);
 ssize_t bio_sendto(bio_source_t *bio, const gnet_host_t *to,

@@ -3571,8 +3571,10 @@ socket_cork(struct gnutella_socket *s, gboolean on)
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  * If `size' is zero, the request is ignored. This is useful to stick to the
  * system's default buffer sizes.
+ *
+ * @return the new size of the socket buffer.
  */
-static void
+static unsigned
 socket_set_intern(int fd, int option, unsigned size,
 	const char *type, gboolean shrink)
 {
@@ -3581,7 +3583,7 @@ socket_set_intern(int fd, int option, unsigned size,
 	socklen_t len;
 
 	if (0 == size)
-		return;
+		return 0;
 
 	size = (size + 1) & ~0x1U;	/* Must be even, round to upper boundary */
 
@@ -3600,7 +3602,7 @@ socket_set_intern(int fd, int option, unsigned size,
 			g_debug(
 				"socket %s buffer on fd #%d NOT shrank to %u bytes (is %u)",
 				type, fd, size, old_len);
-		return;
+		return old_len;
 	}
 
 	if (-1 == setsockopt(fd, SOL_SOCKET, option, &size, sizeof(size)))
@@ -3620,6 +3622,8 @@ socket_set_intern(int fd, int option, unsigned size,
 		g_debug("socket %s buffer on fd #%d: %u -> %u bytes (now %u) %s",
 			type, fd, old_len, size, new_len,
 			(new_len == size) ? "OK" : "FAILED");
+
+	return (new_len == size) ? new_len : old_len;
 }
 
 /**
@@ -3631,7 +3635,8 @@ socket_send_buf(struct gnutella_socket *s, int size, gboolean shrink)
 {
 	socket_check(s);
 	g_return_if_fail(!(s->flags & SOCK_F_SHUTDOWN));
-	socket_set_intern(s->file_desc, SO_SNDBUF, size, "send", shrink);
+	s->so_sndbuf =
+		socket_set_intern(s->file_desc, SO_SNDBUF, size, "send", shrink);
 }
 
 /**
@@ -3643,7 +3648,8 @@ socket_recv_buf(struct gnutella_socket *s, int size, gboolean shrink)
 {
 	socket_check(s);
 	g_return_if_fail(!(s->flags & SOCK_F_SHUTDOWN));
-	socket_set_intern(s->file_desc, SO_RCVBUF, size, "receive", shrink);
+	s->so_rcvbuf =
+		socket_set_intern(s->file_desc, SO_RCVBUF, size, "receive", shrink);
 }
 
 /**
@@ -3711,6 +3717,20 @@ socket_get_fd(struct wrap_io *wio)
 	struct gnutella_socket *s = wio->ctx;
 	socket_check(s);
 	return s->file_desc;
+}
+
+static unsigned
+socket_get_bufsize(struct wrap_io *wio, enum socket_buftype type)
+{
+	struct gnutella_socket *s = wio->ctx;
+	socket_check(s);
+
+	switch (type) {
+	case SOCK_BUF_RX:	return s->so_rcvbuf;
+	case SOCK_BUF_TX:	return s->so_sndbuf;
+	}
+
+	g_assert_not_reached();
 }
 
 static ssize_t
@@ -3860,6 +3880,7 @@ socket_wio_link(struct gnutella_socket *s)
 	s->wio.ctx = s;
 	s->wio.fd = socket_get_fd;
 	s->wio.flush = socket_no_flush;
+	s->wio.bufsize = socket_get_bufsize;
 
 	if (s->flags & SOCK_F_UDP) {
 		s->wio.write = socket_no_write;

@@ -38,6 +38,8 @@
 
 #include "lib/gnet_host.h"
 
+enum socket_buftype;
+
 typedef struct wrap_io {
 	gpointer ctx;
 	ssize_t (*write)(struct wrap_io *, gconstpointer, size_t);
@@ -48,6 +50,7 @@ typedef struct wrap_io {
 						gconstpointer, size_t);
 	int (*flush)(struct wrap_io *);
 	int (*fd)(struct wrap_io *);
+	unsigned (*bufsize)(struct wrap_io *, enum socket_buftype);
 } wrap_io_t;
 
 typedef struct wrap_buf {

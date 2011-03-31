@@ -96,6 +96,11 @@ enum socket_type {
 	SOCK_TYPE_UDP
 };
 
+enum socket_buftype {
+	SOCK_BUF_RX,
+	SOCK_BUF_TX
+};
+
 typedef enum {
 	SOCKET_MAGIC = 0x1fb7ddeb
 } socket_magic_t;
@@ -140,6 +145,9 @@ struct gnutella_socket {
 	size_t pos;			/**< write position in the buffer */
 	size_t buf_size;	/**< allocated buffer size */
 	char *buf;			/**< buffer to put in the data read */
+
+	unsigned so_rcvbuf;	/**< Configured RX buffer size, 0 if unknown */
+	unsigned so_sndbuf;	/**< Configured TX buffer size, 0 if unknown */
 };
 
 /**

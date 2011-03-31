@@ -51,6 +51,7 @@ RCSID("$Id$")
 #include "share.h"
 #include "ipp_cache.h"
 #include "uploads.h"	/* For count_uploads */
+#include "sockets.h"	/* For socket_listen_port() */
 
 #include "if/gnet_property_priv.h"
 #include "if/core/main.h"			/* For main_get_build() */

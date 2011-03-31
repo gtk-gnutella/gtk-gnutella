@@ -53,6 +53,7 @@ RCSID("$Id$")
 #include "hosts.h"
 #include "ipp_cache.h"
 #include "ctl.h"
+#include "tls_common.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
