@@ -7552,7 +7552,7 @@ proceed:
 
 	if (GNET_PROPERTY(oob_proxy_debug) > 1) {
 		if (GTA_MSG_SEARCH_RESULTS == gnutella_header_get_function(&n->header))
-			printf("QUERY OOB results for %s from %s\n",
+			g_debug("QUERY OOB results for %s from %s",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				node_addr(n));
 	}
