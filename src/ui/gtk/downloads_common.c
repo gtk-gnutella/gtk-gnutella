@@ -373,7 +373,7 @@ downloads_gui_status_string(const struct download *d)
 				if (!cp->done) {
 					switch (cp->state) {
 					case HTTP_AS_CONNECTING:
-						status = _("Connecting");
+						status = _("Connecting...");
 						break;
 					case HTTP_AS_REQ_SENDING:
 						status = _("Sending request");
@@ -574,7 +574,7 @@ downloads_gui_status_string(const struct download *d)
 						short_time(s));
 			} else {
 				rw += gm_snprintf(tmpstr, sizeof tmpstr - rw, "%s",
-						stalled	? _("(stalled)") : _("Connected"));
+						stalled	? _("(stalled)") : _("Receiving data"));
 			}
 
 			/*
@@ -620,7 +620,7 @@ downloads_gui_status_string(const struct download *d)
 					" {%s: %s}", state, downloads_gui_pipeline_range_string(d));
 			}
 		} else {
-			status = _("Connected");
+			status = _("Awaiting data");
 		}
 		break;
 
