@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 18430 2011-01-22 14:32:47Z rmanfredi $
+# $X-Id: Jmakefile 18914 2011-04-01 10:40:49Z rmanfredi $
 
 GENERIC = bit_array.h bit_field.h
 
@@ -177,6 +177,7 @@ LSRC = \
 	pow2.c \
 	prop.c \
 	random.c \
+	sectoken.c \
 	sequence.c \
 	sha1.c \
 	signal.c \
@@ -286,6 +287,7 @@ LOBJ = \
 	pow2.o \
 	prop.o \
 	random.o \
+	sectoken.o \
 	sequence.o \
 	sha1.o \
 	signal.o \

@@ -27,7 +27,7 @@
  * @ingroup dht
  * @file
  *
- * Security tokens.
+ * DHT security tokens.
  *
  * @author Raphael Manfredi
  * @date 2008
@@ -37,24 +37,8 @@
 #define _dht_token_h_
 
 #include "knode.h"
+#include "lib/sectoken.h"
 #include "lib/tm.h"				/* For time_delta_t */
-
-#define TOKEN_RAW_SIZE		4
-
-/**
- * The security tokens we generate.
- */
-typedef struct {
-	guchar v[TOKEN_RAW_SIZE];
-} token_t;
-
-/**
- * Security tokens received from other nodes.
- */
-typedef struct sec_token {
-	void *v;					/**< Token value (NULL if none) */
-	guint8 length;				/**< Token length (0 if none) */
-} sec_token_t;
 
 /*
  * Public interface.
@@ -65,11 +49,8 @@ void token_close(void);
 
 time_delta_t token_lifetime(void);
 
-void token_generate(token_t *tok, const knode_t *kn);
-gboolean token_is_valid(const token_t *tok, const knode_t *kn);
-
-sec_token_t *token_alloc(guint8 length);
-void token_free(sec_token_t *token, gboolean freedata);
+void token_generate(sectoken_t *tok, const knode_t *kn);
+gboolean token_is_valid(const sectoken_t *tok, const knode_t *kn);
 
 #endif /* _dht_token_h_ */
 

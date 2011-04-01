@@ -68,6 +68,7 @@ RCSID("$Id$")
 #include "lib/host_addr.h"
 #include "lib/glib-missing.h"
 #include "lib/pmsg.h"
+#include "lib/sectoken.h"
 #include "lib/random.h"
 #include "lib/stringify.h"
 #include "lib/unsigned.h"
@@ -524,11 +525,11 @@ k_send_find_node_response(
 	 */
 
 	{
-		token_t tok;
+		sectoken_t tok;
 
 		token_generate(&tok, kn);
-		pmsg_write_u8(mb, TOKEN_RAW_SIZE);
-		pmsg_write(mb, tok.v, TOKEN_RAW_SIZE);
+		pmsg_write_u8(mb, SECTOKEN_RAW_SIZE);
+		pmsg_write(mb, tok.v, SECTOKEN_RAW_SIZE);
 	}
 
 	/*
@@ -1288,7 +1289,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 	 */
 
 	{
-		token_t security;
+		sectoken_t security;
 		guint8 token_len;
 
 		if (!bstr_read_u8(bs, &token_len)) {

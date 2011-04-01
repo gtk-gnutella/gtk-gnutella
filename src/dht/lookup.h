@@ -42,14 +42,14 @@
 
 #include "knode.h"
 #include "values.h"
-#include "token.h"
+#include "lib/sectoken.h"
 
 /**
  * A security token, as gathered during node lookups.
  */
 typedef struct lookup_token {
 	time_t retrieved;			/**< Retrieval time */
-	sec_token_t *token;			/**< The security token */
+	sectoken_remote_t *token;	/**< Their security token */
 } lookup_token_t;
 
 struct nlookup;

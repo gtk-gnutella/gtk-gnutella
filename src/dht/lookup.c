@@ -67,6 +67,7 @@ RCSID("$Id$")
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
+#include "lib/sectoken.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
@@ -365,7 +366,7 @@ lookup_parallelism_mode_to_string(enum parallelism mode)
 static void
 lookup_token_free(lookup_token_t *ltok, gboolean freedata)
 {
-	token_free(ltok->token, freedata);
+	sectoken_remote_free(ltok->token, freedata);
 	wfree(ltok, sizeof *ltok);
 }
 
@@ -2754,7 +2755,7 @@ lookup_load_path(nlookup_t *nl)
 
 			if (lookup_node_is_safe(nl, kn, reason, reason_len)) {
 				lookup_token_t *ltok = walloc(sizeof *ltok);
-				sec_token_t *tok = token_alloc(toklen);
+				sectoken_remote_t *tok = sectoken_remote_alloc(toklen);
 
 				ltok->retrieved = last_update;
 				ltok->token = tok;
@@ -2816,7 +2817,7 @@ lookup_handle_reply(
 	const char *payload, size_t len, guint32 hop)
 {
 	bstr_t *bs;
-	sec_token_t *token = NULL;
+	sectoken_remote_t *token = NULL;
 	const char *reason;
 	char msg[256];
 	char unsafe[48];
@@ -2868,7 +2869,7 @@ lookup_handle_reply(
 		if (!bstr_read_u8(bs, &tlen))
 			goto bad_token;
 
-		token = token_alloc(tlen);
+		token = sectoken_remote_alloc(tlen);
 		
 		if (tlen > 0 && !bstr_read(bs, token->v, tlen))
 			goto bad_token;
@@ -3177,8 +3178,8 @@ lookup_handle_reply(
 	}
 
 done:
-	if (token)
-		token_free(token, TRUE);
+	if (token != NULL)
+		sectoken_remote_free(token, TRUE);
 	bstr_free(&bs);
 	return TRUE;
 
@@ -3197,8 +3198,8 @@ bad:
 			 (unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
 			 reason, bstr_error(bs));
 
-	if (token)
-		token_free(token, TRUE);
+	if (token != NULL)
+		sectoken_remote_free(token, TRUE);
 	bstr_free(&bs);
 	return FALSE;
 }
