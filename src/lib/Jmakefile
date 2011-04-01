@@ -125,6 +125,7 @@ LSRC = \
 	pow2.c \
 	prop.c \
 	random.c \
+	sectoken.c \
 	sequence.c \
 	sha1.c \
 	signal.c \

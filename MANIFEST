@@ -693,6 +693,8 @@ src/lib/prop.h
 src/lib/random.c
 src/lib/random.h
 src/lib/sbool.h
+src/lib/sectoken.c
+src/lib/sectoken.h
 src/lib/sequence.c
 src/lib/sequence.h
 src/lib/sha1.c
