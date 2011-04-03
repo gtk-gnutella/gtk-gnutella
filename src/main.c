@@ -1012,11 +1012,10 @@ slow_main_timer(time_t now)
 	switch (i) {
 	case 0:
 		dmesh_store();
-		dmesh_ban_store();
 		version_ancient_warn();
 		break;
 	case 1:
-		hcache_store_if_dirty(HOST_ANY);
+		dmesh_ban_store();
 		break;
 	case 2:
 		upload_stats_flush_if_dirty();
@@ -1024,10 +1023,9 @@ slow_main_timer(time_t now)
 		break;
 	case 3:
 		file_info_store_if_dirty();
-		file_info_slow_timer();
 		break;
 	case 4:
-		hcache_store_if_dirty(HOST_ULTRA);
+		file_info_slow_timer();
 		break;
 	case 5:
 		dht_route_store_if_dirty();
@@ -1205,7 +1203,6 @@ main_timer(void *unused_data)
 
 	bsched_timer();					/* Scheduling update */
 	host_timer();					/* Host connection */
-    hcache_timer(now);
 	node_timer(now);				/* Node timeouts */
 	http_timer(now);				/* HTTP request timeouts */
 	socket_timer(now);				/* Expire inactive sockets */

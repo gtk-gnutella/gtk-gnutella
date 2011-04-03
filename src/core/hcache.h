@@ -51,8 +51,6 @@ void hcache_shutdown(void);
 void hcache_close(void);
 void hcache_retrieve_all(void);
 
-void hcache_timer(time_t now);
-
 const char *host_type_to_string(host_type_t type);
 const char *hcache_type_to_string(hcache_type_t type);
 
@@ -82,8 +80,6 @@ int hcache_fill_caught_array(
 gboolean hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port);
 gboolean hcache_find_nearby(host_type_t type,
 	host_addr_t *addr, guint16 *port);
-
-void hcache_store_if_dirty(host_type_t type);
 
 #endif /* _core_hcache_h_ */
 

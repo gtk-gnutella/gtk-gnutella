@@ -62,6 +62,7 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/hashlist.h"
@@ -79,6 +80,7 @@ RCSID("$Id$")
 
 #define HOSTCACHE_EXPIRY (60 * 30) /* 30 minutes */
 
+#define HCACHE_SAVE_PERIOD	63		/**< in seconds, every minute or so */			
 #define MIN_RESERVE_SIZE	1024	/**< we'd like that many pongs in reserve */
 
 /**
@@ -116,7 +118,8 @@ typedef struct hostcache {
 } hostcache_t;
 
 static hostcache_t *caches[HCACHE_MAX];
-
+static cperiodic_t *hcache_save_ev;
+static cperiodic_t *hcache_timer_ev;
 static gboolean hcache_close_running = FALSE;
 
 /**
@@ -1506,9 +1509,13 @@ hcache_get_stats(hcache_stats_t *s)
 /**
  * Host cache timer.
  */
-void
-hcache_timer(time_t now)
+static gboolean
+hcache_timer(gpointer unused_obj)
 {
+	time_t now = tm_time();
+
+	(void) unused_obj;
+
     hcache_expire_all(now);
 
     if (GNET_PROPERTY(hcache_debug) >= 15) {
@@ -1526,6 +1533,65 @@ hcache_timer(time_t now)
             stats[HCACHE_LOCAL_INSTANCE], stats[HCACHE_ALREADY_CONNECTED],
             stats[HCACHE_INVALID_HOST]);
     }
+
+	return TRUE;	/* Keep calling */
+}
+
+/**
+ * Save hostcache data to disk, for the relevant host type.
+ */
+static void
+hcache_store_if_dirty(host_type_t type)
+{
+	gnet_property_t prop;
+	hcache_type_t first, second;
+	const char *file;
+
+	switch (type) {
+    case HOST_ANY:
+		prop = PROP_READING_HOSTFILE;
+		first = HCACHE_VALID_ANY;
+		second = HCACHE_FRESH_ANY;
+		file = "hosts";
+        break;
+    case HOST_ULTRA:
+		prop = PROP_READING_ULTRAFILE;
+		first = HCACHE_VALID_ULTRA;
+		second = HCACHE_FRESH_ULTRA;
+		file = "ultras";
+		break;
+	default:
+		g_error("can't store cache for host type %d", type);
+		return;
+	}
+
+	if (!caches[first]->dirty && !caches[second]->dirty)
+		return;
+
+	hcache_store(first, file, second);
+
+	caches[first]->dirty = caches[second]->dirty = FALSE;
+}
+
+/**
+ * Host cache periodic saving.
+ */
+static gboolean
+hcache_periodic_save(gpointer unused_obj)
+{
+	static unsigned i;
+
+	(void) unused_obj;
+
+	switch (i) {
+	case 0: hcache_store_if_dirty(HOST_ANY); break;
+	case 1: hcache_store_if_dirty(HOST_ULTRA); break;
+	default:
+		g_assert_not_reached();
+	}
+	i = (i + 1) % 2;
+
+	return TRUE;		/* Keep calling */
 }
 
 /**
@@ -1579,6 +1645,10 @@ hcache_init(void)
         HCACHE_ALIEN,
         PROP_HOSTS_IN_BAD_CATCHER,
         "hosts.alien");
+
+	hcache_save_ev = cq_periodic_add(callout_queue,
+		HCACHE_SAVE_PERIOD * 1000, hcache_periodic_save, NULL);
+	hcache_timer_ev = cq_periodic_add(callout_queue, 1000, hcache_timer, NULL);
 }
 
 /**
@@ -1592,47 +1662,12 @@ hcache_retrieve_all(void)
 }
 
 /**
- * Save hostcache data to disk, for the relevant host type.
- */
-void
-hcache_store_if_dirty(host_type_t type)
-{
-	gnet_property_t prop;
-	hcache_type_t first, second;
-	const char *file;
-
-	switch (type) {
-    case HOST_ANY:
-		prop = PROP_READING_HOSTFILE;
-		first = HCACHE_VALID_ANY;
-		second = HCACHE_FRESH_ANY;
-		file = "hosts";
-        break;
-    case HOST_ULTRA:
-		prop = PROP_READING_ULTRAFILE;
-		first = HCACHE_VALID_ULTRA;
-		second = HCACHE_FRESH_ULTRA;
-		file = "ultras";
-		break;
-	default:
-		g_error("can't store cache for host type %d", type);
-		return;
-	}
-
-	if (!caches[first]->dirty && !caches[second]->dirty)
-		return;
-
-	hcache_store(first, file, second);
-
-	caches[first]->dirty = caches[second]->dirty = FALSE;
-}
-
-/**
  * Shutdown host caches.
  */
 void
 hcache_shutdown(void)
 {
+	cq_periodic_remove(&hcache_save_ev);
 	hcache_store(HCACHE_VALID_ANY, "hosts", HCACHE_FRESH_ANY);
 	hcache_store(HCACHE_VALID_ULTRA, "ultras", HCACHE_FRESH_ULTRA);
 }
@@ -1687,8 +1722,9 @@ hcache_close(void)
 	}
 
     g_assert(g_hash_table_size(ht_known_hosts) == 0);
-
 	gm_hash_table_destroy_null(&ht_known_hosts);
+
+	cq_periodic_remove(&hcache_timer_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
