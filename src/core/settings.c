@@ -1798,6 +1798,9 @@ tilda_expand(property_t prop)
 
 	pathname = gnet_prop_get_string(prop, NULL, 0);
 
+	if (NULL == pathname)
+		return;
+
 	if (0 == strcmp(pathname, "~")) {
 		gnet_prop_set_string(prop, eval_subst("~"));
 	} else if (
