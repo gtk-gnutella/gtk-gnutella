@@ -1353,7 +1353,6 @@ struct query_routing {
 #define DEFAULT_BUF_SIZE	512
 #define MIN_BUF_GROW		256
 
-static GHashTable *ht_seen_words;
 static struct {
 	char *arena;	/* halloc()ed */
 	int len;
@@ -1369,9 +1368,6 @@ void
 qrp_prepare_computation(void)
 {
 	qrp_cancel_computation();			/* Cancel any running computation */
-	g_assert(ht_seen_words == NULL);	/* Not already in computation */
-
-	ht_seen_words = g_hash_table_new(g_str_hash, g_str_equal);
 
 	if (buffer.arena == NULL) {
 		buffer.arena = halloc(DEFAULT_BUF_SIZE);
@@ -1383,14 +1379,14 @@ qrp_prepare_computation(void)
  * Add shared file to our QRP.
  */
 void
-qrp_add_file(struct shared_file *sf)
+qrp_add_file(struct shared_file *sf, GHashTable *words)
 {
 	word_vec_t *wovec;
 	guint wocnt;
 	guint i;
 
-	g_assert(ht_seen_words != NULL);	/* Already in computation */
-	g_assert(sf);
+	g_assert(sf != NULL);
+	g_assert(words != NULL);
 
 	/*
 	 * Copy filename to buffer, since we're going to map it inplace.
@@ -1412,7 +1408,7 @@ qrp_add_file(struct shared_file *sf)
 		return;
 
 	/*
-	 * Identify unique words we have not already seen in `ht_seen_words'.
+	 * Identify unique words we have not already seen in `words'.
 	 */
 
 	for (i = 0; i < wocnt; i++) {
@@ -1426,14 +1422,14 @@ qrp_add_file(struct shared_file *sf)
 		 * Record word if we haven't seen it yet.
 		 */
 
-		if (g_hash_table_lookup(ht_seen_words, word)) {
+		if (g_hash_table_lookup(words, word)) {
 			continue;
 		} else {
 			gpointer p;
 			size_t n = 1 + word_len;
 
 			p = wcopy(word, n);
-			g_hash_table_insert(ht_seen_words, p, (gpointer) n);
+			g_hash_table_insert(words, p, (gpointer) n);
 		}
 
 		if (GNET_PROPERTY(qrp_debug) > 8)
@@ -1552,29 +1548,34 @@ struct qrp_context {
 	struct routing_table **rtp;	/**< Points to routing table variable to fill */
 	struct routing_patch **rpp;	/**< Points to routing patch variable to fill */
 	GSList *sl_substrings;		/**< List of all substrings */
-	int substrings;			/**< Amount of substrings */
+	GHashTable *words;			/**< Words making up the files */
+	int substrings;				/**< Amount of substrings */
 	char *table;				/**< Computed routing table */
 	int slots;					/**< Amount of slots in table */
 	struct routing_table *st;	/**< Smaller table */
 	struct routing_table *lt;	/**< Larger table for merging (destination) */
 	int sidx;					/**< Source index in `st' */
 	int lidx;					/**< Merging index in `lt' */
-	int expand;				/**< Expansion ratio from `st' to `lt' */
+	int expand;					/**< Expansion ratio from `st' to `lt' */
 };
 
 static struct bgtask *qrp_comp;	/**< Background computation handle */
 static struct bgtask *qrp_merge;/**< Background merging handle */
 
 /**
- * Free the `ht_seen_words' table.
+ * Free the "seen words" hash table we're filling up in qrp_add_file()
+ * and perusing in qrp_finalize_computation(), then nullify pointer.
  */
-static void
-dispose_ht_seen_words(void)
+void
+qrp_dispose_words(GHashTable **h_ptr)
 {
-	g_assert(ht_seen_words);
+	GHashTable *h = *h_ptr;
 
-	g_hash_table_foreach(ht_seen_words, free_word, NULL);
-	gm_hash_table_destroy_null(&ht_seen_words);
+	if (h != NULL) {
+		g_hash_table_foreach(h, free_word, NULL);
+		g_hash_table_destroy(h);
+		*h_ptr = NULL;
+	}
 }
 
 /**
@@ -1588,14 +1589,7 @@ qrp_context_free(gpointer p)
 
 	g_assert(ctx->magic == QRP_MAGIC);
 
-	/*
-	 * The `ht_seen_words' table is not really part of our task context,
-	 * but was filled only so that the task could perform its work.
-	 * XXX put it in context, and clear global once inserted.
-	 */
-
-	if (ht_seen_words)
-		dispose_ht_seen_words();
+	qrp_dispose_words(&ctx->words);
 
 	for (sl = ctx->sl_substrings; sl; sl = g_slist_next(sl)) {
 		char *word = sl->data;
@@ -1668,11 +1662,10 @@ qrp_step_substring(struct bgtask *unused_h, gpointer u, int unused_ticks)
 	(void) unused_h;
 	(void) unused_ticks;
 	g_assert(ctx->magic == QRP_MAGIC);
-	g_assert(ht_seen_words != NULL);	/* XXX Already in computation */
+	g_assert(ctx->words != NULL);
 
-	ctx->sl_substrings = unique_substrings(ht_seen_words, &ctx->substrings);
-
-	dispose_ht_seen_words();
+	ctx->sl_substrings = unique_substrings(ctx->words, &ctx->substrings);
+	qrp_dispose_words(&ctx->words);
 
 	if (GNET_PROPERTY(qrp_debug) > 1)
 		g_debug("QRP unique subwords: %d", ctx->substrings);
@@ -2113,11 +2106,15 @@ static bgstep_cb_t qrp_merge_steps[] = {
  *
  * If the routing table has changed, the node_qrt_changed() routine will
  * be called once we have finished its computation.
+ *
+ * @param words		the words making up the filenames (takes ownership of it)
  */
 void
-qrp_finalize_computation(void)
+qrp_finalize_computation(GHashTable *words)
 {
 	struct qrp_context *ctx;
+
+	g_assert(words != NULL);
 
 	/*
 	 * Because QRP computation is possibly a CPU-intensive operation, it
@@ -2129,6 +2126,7 @@ qrp_finalize_computation(void)
 	ctx->magic = QRP_MAGIC;
 	ctx->rtp = &local_table;	/* NOT routing_table, this is for local files */
 	ctx->rpp = &routing_patch;
+	ctx->words = words;			/* Will free it, caller must forget about it */
 
 	gnet_prop_set_timestamp_val(PROP_QRP_TIMESTAMP, tm_time());
 

@@ -78,8 +78,9 @@ void qrp_leaf_changed(void);
 void qrp_peermode_changed(void);
 
 void qrp_prepare_computation(void);
-void qrp_add_file(struct shared_file *sf);
-void qrp_finalize_computation(void);
+void qrp_add_file(struct shared_file *sf, GHashTable *words);
+void qrp_finalize_computation(GHashTable *words);
+void qrp_dispose_words(GHashTable **h_ptr);
 
 struct qrt_update *qrt_update_create(struct gnutella_node *n,
 						struct routing_table *);

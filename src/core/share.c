@@ -983,6 +983,7 @@ struct recursive_scan {
 	slist_t *base_dirs;			/* list of string atoms */
 	slist_t *sub_dirs;			/* list of g_malloc()ed strings */
 	slist_t *shared_files;		/* list of struct shared_file */
+	GHashTable *words;			/* records words making up filenames, for QRP */
 	int idx;					/* iterating index */
 	int ticks;					/* ticks used */
 };
@@ -992,9 +993,9 @@ recursive_scan_check(const struct recursive_scan * const ctx)
 {
 	g_assert(ctx);
 	g_assert(RECURSIVE_SCAN_MAGIC == ctx->magic);
-	g_assert(ctx->base_dirs);
-	g_assert(ctx->sub_dirs);
-	g_assert(ctx->shared_files);
+	g_assert(ctx->base_dirs != NULL);
+	g_assert(ctx->sub_dirs != NULL);
+	g_assert(ctx->shared_files != NULL);
 }
 
 static struct recursive_scan *
@@ -1010,6 +1011,7 @@ recursive_scan_new(const GSList *base_dirs)
 	ctx->base_dirs = slist_new();
 	ctx->sub_dirs = slist_new();
 	ctx->shared_files = slist_new();
+	ctx->words = g_hash_table_new(g_str_hash, g_str_equal);
 	for (iter = base_dirs; NULL != iter; iter = g_slist_next(iter)) {
 		const char *dir = atom_str_get(iter->data);
 		slist_append(ctx->base_dirs, deconstify_gchar(dir));
@@ -1073,6 +1075,7 @@ recursive_scan_free(struct recursive_scan **ctx_ptr)
 		slist_free_all(&ctx->shared_files, recursive_sf_unref);
 
 		atom_str_free_null(&ctx->base_dir);
+		qrp_dispose_words(&ctx->words);
 
 		ctx->magic = 0;
 		wfree(ctx, sizeof *ctx);
@@ -1646,7 +1649,7 @@ recursive_scan_step_update_qrp(struct bgtask *bt, void *data, int ticks)
 			return BGR_MORE;
 
 		shared_file_check(sf);
-		qrp_add_file(sf);
+		qrp_add_file(sf, ctx->words);
 	}
 
 	bg_task_ticks_used(bt, ctx->ticks);
@@ -1663,7 +1666,8 @@ recursive_scan_step_finalize(struct bgtask *bt, void *data, int ticks)
 	(void) bt;
 	(void) ticks;
 
-	qrp_finalize_computation();
+	qrp_finalize_computation(ctx->words);
+	ctx->words = NULL;		/* Gave pointer, QRP computation will free it */
 
 	elapsed = delta_time(tm_time(), GNET_PROPERTY(qrp_indexing_started));
 	elapsed = MAX(0, elapsed);
