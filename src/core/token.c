@@ -41,11 +41,15 @@ RCSID("$Id$")
 #include "clock.h"
 #include "version.h"
 
+#include "if/gnet_property_priv.h"
+
 #include "lib/misc.h"
 #include "lib/sha1.h"
 #include "lib/base64.h"
+#include "lib/glib-missing.h"
 #include "lib/crc.h"
 #include "lib/random.h"
+#include "lib/stacktrace.h"
 #include "lib/tm.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -365,7 +369,7 @@ static const char *tok_errstr[] = {
 	"Bad length",					/**< TOK_BAD_LENGTH */
 	"Bad timestamp",				/**< TOK_BAD_STAMP */
 	"Bad key index",				/**< TOK_BAD_INDEX */
-	"Failed checking",				/**< TOK_INVALID */
+	"Failed SHA-1 checking",		/**< TOK_INVALID */
 	"Not base64-encoded",			/**< TOK_BAD_ENCODING */
 	"Keys not found",				/**< TOK_BAD_KEYS */
 	"Bad version string",			/**< TOK_BAD_VERSION */
@@ -405,10 +409,23 @@ find_tokkey_upto(time_t now, size_t count)
 	time_t adjusted = now - VERSION_ANCIENT_BAN;
 	guint i;
 
+	if (GNET_PROPERTY(version_debug) > 4) {
+		g_debug("%s: count=%lu, from %s()",
+			G_STRFUNC, (unsigned long) count, stacktrace_caller_name(1));
+	}
+
 	g_assert(count <= G_N_ELEMENTS(token_keys));
 
 	for (i = 0; i < count; i++) {
 		const struct tokkey *tk = &token_keys[i];
+
+		if (GNET_PROPERTY(version_debug) > 4) {
+			g_debug("%s: index=%u, ver.timestamp=%u, adjusted=%u (%s)",
+				G_STRFUNC, i, (unsigned) tk->ver.timestamp, (unsigned) adjusted,
+				tk->ver.timestamp > adjusted ? "OK" :
+					i + 1 == count ? "FAILED" : "no");
+		}
+
 		if (tk->ver.timestamp > adjusted)
 			return tk;
 	}
@@ -430,9 +447,19 @@ find_tokkey_upto_fallback(time_t now, size_t count)
 
 	tk = find_tokkey_upto(now, count);
 
+
 	if (NULL == tk) {
 		g_assert(count <= G_N_ELEMENTS(token_keys));
 		tk = &token_keys[count - 1];
+
+		if (GNET_PROPERTY(version_debug) > 4) {
+			g_debug("%s: got NULL, will use index %u", G_STRFUNC, count - 1);
+		}
+	}
+
+	if (GNET_PROPERTY(version_debug) > 4) {
+		g_debug("%s: returning %p (%u.%u.%u)",
+			G_STRFUNC, tk, tk->ver.major, tk->ver.minor, tk->ver.patchlevel);
 	}
 
 	g_assert(tk != NULL);
@@ -471,6 +498,11 @@ find_tokkey_version(const version_t *ver, time_t now)
 	if (ver->build < 16370)
 		return find_tokkey(now);
 
+	if (GNET_PROPERTY(version_debug) > 4) {
+		g_debug("%s: looking for proper keyset (theirs is %u.%u.%u)",
+			G_STRFUNC, ver->major, ver->minor, ver->patchlevel);
+	}
+
 	/*
 	 * Expired servents will always use their last key set.  Even if we're
 	 * more recent, we can try to validate by mimicing the behaviour of
@@ -482,9 +514,22 @@ find_tokkey_version(const version_t *ver, time_t now)
 
 	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
 		const struct tokkey *tk = &token_keys[i];
-		if (version_cmp(ver, &tk->ver) <= 0)
+		if (version_cmp(ver, &tk->ver) <= 0) {
+			if (GNET_PROPERTY(version_debug) > 4) {
+				g_debug("%s: matched at %u.%u.%u, index=%u", G_STRFUNC,
+					tk->ver.major, tk->ver.minor, tk->ver.patchlevel, i);
+			}
 			break;
+		}
 	}
+
+	if (GNET_PROPERTY(version_debug) > 4) {
+		g_debug("%s: fallback max=%u (/%u)",
+			G_STRFUNC, i, G_N_ELEMENTS(token_keys));
+	}
+
+	i++;									/* We need a count, not an index */
+	i = MIN(i, G_N_ELEMENTS(token_keys));	/* In case loop did not match */
 
 	return find_tokkey_upto_fallback(now, i);
 }
