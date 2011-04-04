@@ -452,6 +452,13 @@ extern const gboolean gnet_property_variable_uploads_bw_ignore_stolen;
 extern const gboolean gnet_property_variable_uploads_bw_uniform;
 extern const gboolean gnet_property_variable_enable_http_pipelining;
 extern const guint32  gnet_property_variable_dl_pipeline_maxchunksize;
+extern const gboolean gnet_property_variable_enable_guess;
+extern const guint32  gnet_property_variable_guess_server_debug;
+extern const guint32  gnet_property_variable_guess_client_debug;
+extern const guint32  gnet_property_variable_max_guess_hosts_cached;
+extern const guint32  gnet_property_variable_hosts_in_guess_catcher;
+extern const guint32  gnet_property_variable_max_guess_intro_hosts_cached;
+extern const guint32  gnet_property_variable_hosts_in_guess_intro_catcher;
 
 
 prop_set_t *gnet_prop_init(void);

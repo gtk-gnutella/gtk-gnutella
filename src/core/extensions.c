@@ -200,6 +200,7 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(PUSH),		/**< Push proxy info, in qhits */
 	GGEP_ID(PUSH_TLS),	/**< TLS-capability bitmap for GGEP PUSH */
 	GGEP_ID(Q),			/**< Queue status in HEAD Pongs */
+	GGEP_ID(QK),		/**< GUESS Query Key */
 	GGEP_ID(SCP),		/**< Supports cached pongs, in pings (UHC) */
 	GGEP_ID(SO),		/**< Secure OOB */
 	GGEP_ID(T),			/**< Same as ALT_TLS but for HEAD Pongs */
@@ -1147,11 +1148,338 @@ ext_parse_nul(const char *buf, int len, char **end, extvec_t *exv, int exvcnt)
 }
 
 /**
+ * Locate the start of the next GGEP extension block.
+ *
+ * @param buf		buffer to parse
+ * @param len		size of buffer in bytes
+ *
+ * @return the start of the next GGEP extension block AFTER the leading mark,
+ * or NULL if none could be found.
+ */
+static char *
+ext_ggep_nextblock(const char *buf, int len)
+{
+	const char *p = buf, *end = &buf[len];
+	extvec_t exv[1];
+
+	g_assert(buf != NULL);
+	g_assert(len >= 0);
+
+	if (len <= 2)
+		return NULL;	/* Cannot hold a valid GGEP block in so few bytes */
+
+	ext_prepare(exv, G_N_ELEMENTS(exv));
+
+	while (p < end) {
+		const char *old_p = p;
+		int found = 0;
+
+		g_assert(len > 0);
+
+		switch ((guchar) *p) {
+		case GGEP_MAGIC:
+			p++;
+			if (p == end)
+				return NULL;	/* Cannot possibly be a GGEP block */
+			return deconstify_gpointer(p);	/* Start of GGEP data */
+		case 'u':
+		case 'U':
+			found = ext_huge_parse(&p, len, exv, G_N_ELEMENTS(exv));
+			break;
+		case '<':
+			found = ext_xml_parse(&p, len, exv, G_N_ELEMENTS(exv));
+			break;
+		case HUGE_FS:
+		case '\0':
+			p++;
+			if (p == end)
+				return NULL;
+			found = ext_none_parse(&p, len-1, exv, G_N_ELEMENTS(exv));
+			if (!found) {
+				len--;
+				continue;			/* Single separator, no bloat then */
+			}
+			break;
+		default:
+			found = ext_unknown_parse(&p, len, exv, G_N_ELEMENTS(exv), FALSE);
+			break;
+		}
+
+		/*
+		 * If parsing did not advance one bit, grab as much as we can as
+		 * an "unknown" extension.
+		 */
+
+		g_assert(found == 0 || p != old_p);
+
+		if (found == 0) {
+			g_assert(p == old_p);
+			found = ext_unknown_parse(&p, len, exv, G_N_ELEMENTS(exv), TRUE);
+		}
+
+		g_assert(found > 0);
+		g_assert(UNSIGNED(found) <= G_N_ELEMENTS(exv));
+		g_assert(p != old_p);
+
+		len -= p - old_p;
+
+		ext_reset(exv, G_N_ELEMENTS(exv));
+	}
+
+	return NULL;	/* Did not find any GGEP start */
+}
+
+/**
+ * Strip instances of a particular GGEP key from the current GGEP block, moving
+ * data around to fill the gaps.
+ *
+ * @param buf		buffer to parse (byte following leading GGEP block mark)
+ * @param len		size of buffer in bytes
+ * @param key		the key to strip
+ * @param endptr	where we return the first unparsed byte after the block
+ * @param emptied	set to TRUE if stripping removes all keys from the block
+ *
+ * @return the new length of the extension arena.
+ */
+static int
+ext_ggep_stripkey(char *buf, int len, const char *key,
+	const char **endptr, gboolean *emptied)
+{
+	char *p = buf;
+	const char *end = &buf[len];
+	int newlen = len;
+	char *prev_flags = NULL;
+
+	g_assert(buf != NULL);
+	g_assert(len > 0);
+	g_assert(key != NULL);
+	g_assert(clamp_strlen(key, GGEP_F_IDLEN + 1) <= GGEP_F_IDLEN);
+	g_assert(emptied != NULL);
+
+	*emptied = FALSE;
+
+	while (p < end) {
+		guchar flags;
+		char id[GGEP_F_IDLEN + 1];
+		guint id_len, data_length, i;
+		gboolean length_ended = FALSE;
+		char *cur_flags = p;	/* This is the start of the key/value pair */
+
+		/*
+		 * First byte is GGEP flags.
+		 */
+
+		flags = (guchar) *p++;
+
+		if (flags & GGEP_F_MBZ)		/* A byte that Must Be Zero is set */
+			goto abort;
+
+		id_len = flags & GGEP_F_IDLEN;
+		g_assert(id_len < sizeof id);
+
+		if (id_len == 0)
+			goto abort;
+
+		if ((size_t) (end - p) < id_len) /* Not enough bytes to store the ID! */
+			goto abort;
+
+		/*
+		 * Read ID, and NUL-terminate it.
+		 *
+		 * As a safety precaution, only allow ASCII IDs, and nothing in
+		 * the control space.  It's not really in the GGEP specs, but it's
+		 * safer that way, and should protect us if we parse garbage starting
+		 * with 0xC3....
+		 *		--RAM, 2004-11-12
+		 */
+
+		for (i = 0; i < id_len; i++) {
+			int c = *p++;
+			if (c == '\0' || !isascii(c) || is_ascii_cntrl(c))
+				goto abort;
+			id[i] = c; 
+		}
+		id[i] = '\0';
+
+		/*
+		 * Read the payload length (maximum of 3 bytes).
+		 */
+
+		data_length = 0;
+		for (i = 0; i < 3 && p < end; i++) {
+			guchar b = *p++;
+
+			/*
+			 * Either GGEP_L_CONT or GGEP_L_LAST must be set, thereby
+			 * ensuring that the byte cannot be NUL.
+			 */
+
+			if (((b & GGEP_L_XFLAGS) == GGEP_L_XFLAGS) || !(b & GGEP_L_XFLAGS))
+				goto abort;
+
+			data_length = (data_length << GGEP_L_VSHIFT) | (b & GGEP_L_VALUE);
+
+			if (b & GGEP_L_LAST) {
+				length_ended = TRUE;
+				break;
+			}
+		}
+
+		if (!length_ended)
+			goto abort;
+
+		/*
+		 * Ensure we have enough bytes left for the payload.  If not, it
+		 * means the length is garbage.
+		 */
+
+		if ((size_t) (end - p) < data_length)
+			goto abort;
+
+		/*
+		 * OK, at this point we have validated the GGEP header.
+		 */
+
+		p += data_length;		/* Move past the value data */
+
+		/*
+		 * Strip key/value pair if the ID matches.
+		 */
+
+		if (0 == strcmp(id, key)) {
+			size_t elen = p - cur_flags;	/* Amount of bytes to remove */
+
+			/*
+			 * If removing the last key of the GGEP block, propagate
+			 * the "last key" bit to the previous one, if there was any,
+			 *
+			 * If we remove the last key of the block and we have no previous
+			 * key, then we emptied the block: we signal that to the caller
+			 * so that the now useless GGEP block marker must be stripped.
+			 */
+
+			if (GNET_PROPERTY(ggep_debug) > 5) {
+				g_debug("GGEP stripping \"%s\" %skey (%lu bytes)",
+					key, (flags & GGEP_F_LAST) ? "last " : "",
+					(unsigned long) elen);
+			}
+
+			if (flags & GGEP_F_LAST) {
+				if (prev_flags != NULL) {
+					g_assert(!(*prev_flags & GGEP_F_LAST));
+					*prev_flags |= GGEP_F_LAST;
+				} else {
+					if (GNET_PROPERTY(ggep_debug) > 4) {
+						g_debug("GGEP stripped \"%s\" was sole GGEP key", key);
+					}
+					*emptied = TRUE;
+				}
+			}
+
+			g_assert(UNSIGNED(newlen) >= elen);
+
+			memmove(cur_flags, p, end - p);
+			newlen -= elen;
+			end -= elen;
+			p = cur_flags;
+
+			g_assert(newlen >= 0);
+			g_assert(p <= end);
+		} else {
+			prev_flags = cur_flags;
+		}
+
+		if (flags & GGEP_F_LAST)
+			break;					/* Reached the last key/value */
+	}
+
+	*endptr = p;
+	return newlen;
+
+abort:
+	if (GNET_PROPERTY(ggep_debug)) {
+		g_carp("GGEP block is not valid");
+	}
+
+	*endptr = end;		/* Could not parse block, assume no more GGEP blocks */
+	return newlen;		/* Some keys could have been stripped already */
+}
+
+/**
+ * Strip instances of a particular GGEP key all the GGEP blocks, moving
+ * data around to fill the gaps.
+ *
+ * @param buf		buffer to parse
+ * @param len		size of buffer in bytes
+ * @param key		the key to strip
+ *
+ * @return the new length of the extension arena.
+ */
+int
+ext_ggep_strip(char *buf, int len, const char *key)
+{
+	char *start = buf;
+	const char *end = &buf[len];
+	char *p;
+	unsigned blocks = 0;
+	unsigned removed = 0;
+
+	g_assert(buf != NULL);
+	g_assert(len > 0);
+	g_assert(key != NULL);
+	g_assert(clamp_strlen(key, GGEP_F_IDLEN + 1) <= GGEP_F_IDLEN);
+
+	while (NULL != (p = ext_ggep_nextblock(start, end - start))) {
+		const char *endp;
+		gboolean emptied;
+		int newlen;
+		int stripped;
+
+		g_assert(p > start);	/* Skipped at least the leading GGEP marker */
+
+		blocks++;
+		newlen = ext_ggep_stripkey(p, end - p, key, &endp, &emptied);
+		stripped = (end - p) - newlen;
+
+		g_assert(stripped >= 0);
+		g_assert(endp - p <= newlen);
+
+		end -= stripped;
+		g_assert(endp <= end);
+
+		start = deconstify_gpointer(endp);
+
+		/*
+		 * If GGEP block was completely emptied, remove the GGEP marker.
+		 */
+
+		if (emptied) {
+			memmove(p - 1, p, end - p);
+			end--;
+			start--;
+			removed++;
+		}
+	}
+
+	g_assert(end >= buf);
+
+	if (GNET_PROPERTY(ggep_debug) > 4) {
+		int newlen = end - buf;
+		g_debug("GGEP stripping of \"%s\" in %u block%s removed %d bytes "
+			"(emptied %u block%s)",
+			key, blocks, 1 == blocks ? "" : "s", len - newlen,
+			removed, 1 == removed ? "" : "s");
+	}
+
+	return end - buf;
+}
+
+/**
  * Inflate `len' bytes starting at `buf', up to GGEP_MAXLEN bytes.
  * The payload `name' is given only in case there is an error to report.
  *
- * @returns the allocated inflated buffer, and its inflated length in `retlen'.
- * @returns NULL on error.
+ * @return the allocated inflated buffer, and its inflated length in `retlen'
+ * or NULL on error.
  */
 static char *
 ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)

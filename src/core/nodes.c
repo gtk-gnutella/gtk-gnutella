@@ -185,6 +185,7 @@ static gnutella_node_t *udp_node;
 static gnutella_node_t *udp6_node;
 static gnutella_node_t *dht_node;
 static gnutella_node_t *dht6_node;
+static gnutella_node_t *udp_route;
 static gnutella_node_t *browse_node;
 static char *payload_inflate_buffer;
 static int payload_inflate_buffer_len;
@@ -1441,6 +1442,7 @@ node_init(void)
 	dht_node = node_dht_create(NET_TYPE_IPV4);
 	dht6_node = node_dht_create(NET_TYPE_IPV6);
 	browse_node = node_browse_create();
+	udp_route = node_udp_create(NET_TYPE_IPV4);	/* Net type does not matter */
 
 	payload_inflate_buffer_len = settings_max_msg_size();
 	payload_inflate_buffer = halloc(payload_inflate_buffer_len);
@@ -3678,6 +3680,19 @@ node_is_now_connected(struct gnutella_node *n)
 		n->searchq = sq_make(n);
 
 	/*
+	 * If remote node is a GUESS ultrapeer, record its address.
+	 */
+
+	if (
+		NODE_IS_ULTRA(n) &&
+		(n->attrs & NODE_A_GUESS) &&
+		!(n->flags & NODE_F_FAKE_NAME)
+	) {
+		hcache_add_valid(HOST_GUESS, n->gnet_addr, n->gnet_port,
+			"ultra connection");
+	}
+
+	/*
 	 * Terminate connection if the peermode changed during handshaking.
 	 */
 
@@ -5515,7 +5530,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			n->attrs |= NODE_A_DYN_QUERY;	/* Only used by ultra nodes */
 	}
 
-	/* X-Max-TTL -- max initial TTL for dynamic querying */
+	/*
+	 * X-Max-TTL -- max initial TTL for dynamic querying
+	 */
 
 	field = header_get(head, "X-Max-Ttl");		/* Needs normalized case */
 	if (field) {
@@ -5534,7 +5551,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	} else if (n->attrs & NODE_A_ULTRA)
 		n->max_ttl = NODE_LEGACY_TTL;
 
-	/* X-Degree -- their enforced outdegree (# of connections) */
+	/*
+	 * X-Degree -- their enforced outdegree (# of connections)
+	 */
 
 	field = header_get(head, "X-Degree");
 	if (field) {
@@ -5554,7 +5573,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	} else if (n->attrs & NODE_A_ULTRA)
 		n->degree = NODE_LEGACY_DEGREE;
 
-	/* X-Ext-Probes -- can node accept higher TTL messages with same MUID? */
+	/*
+	 * X-Ext-Probes -- can node accept higher TTL messages with same MUID?
+	 */
 
 	field = header_get(head, "X-Ext-Probes");
 	if (field) {
@@ -5571,7 +5592,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		/*
 		 * GTKG did not know about the X-Ext-Probes header until 2011-01-27.
 		 *
-		 * However, all GTKGs in the field today have the node_ttl_higher()
+		 * However, all GTKGs in the field today have a route_node_ttl_higher()
 		 * function that allows them to not consider a broadcasted message
 		 * as a duplicate if the current TTL of the message is higher than
 		 * the one already seen for that MUID.
@@ -5587,6 +5608,23 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		if (node_is_gtkg(n))
 			n->attrs |= NODE_A_DQ_PROBE;
+	}
+
+	/*
+	 * X-Guess -- node supports Gnutella UDP Extension for Scalable Searches.
+	 */
+
+	field = header_get(head, "X-Guess");
+	if (field) {
+		guint major, minor;
+
+		parse_major_minor(field, NULL, &major, &minor);
+		if (major > SEARCH_GUESS_MAJOR || minor > SEARCH_GUESS_MINOR) {
+			if (GNET_PROPERTY(node_debug))
+				g_warning("%s claims GUESS version %u.%u",
+					node_infostr(n), major, minor);
+		}
+		n->attrs |= NODE_A_GUESS;	/* Server-side support for GUESS */
 	}
 
 	/*
@@ -5783,7 +5821,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		else {
 			const char *token;
 			char degree[100];
-			
+			char guess[60];
+
 			token = socket_omit_token(n->socket) ? NULL : tok_version();
 
 			/*
@@ -5797,7 +5836,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			 *		--RAM, 2004-08-05
 			 */
 
-			if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
+			if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
 				gm_snprintf(degree, sizeof(degree),
 					"X-Degree: %d\r\n"
 					"X-Max-TTL: %d\r\n",
@@ -5805,15 +5844,24 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 					 + GNET_PROPERTY(max_connections)
 					 - GNET_PROPERTY(normal_connections)) / 2,
 					GNET_PROPERTY(max_ttl));
-			else if (!is_strprefix(node_vendor(n), gtkg_vendor))
+			} else if (!is_strprefix(node_vendor(n), gtkg_vendor)) {
 				gm_snprintf(degree, sizeof(degree),
 					"X-Dynamic-Querying: 0.1\r\n"
 					"X-Ultrapeer-Query-Routing: 0.1\r\n"
 					"X-Degree: 32\r\n"
 					"X-Max-TTL: %d\r\n",
 					GNET_PROPERTY(max_ttl));
-			else
+			} else {
 				degree[0] = '\0';
+			}
+
+			if (GNET_PROPERTY(enable_guess)) {
+				gm_snprintf(guess, sizeof(guess),
+					"X-Guess: %d.%d\r\n",
+					SEARCH_GUESS_MAJOR, SEARCH_GUESS_MINOR);
+			} else {
+				guess[0] = '\0';
+			}
 
 			rw = gm_snprintf(gnet_response, gnet_response_max,
 				"GNUTELLA/0.6 200 OK\r\n"
@@ -5833,6 +5881,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"%s"		/* X-Dynamic-Querying */
 				"%s"		/* X-Ext-Probes */
 				"%s"		/* X-Requeries */
+				"%s"		/* X-Guess */
 				"%s%s%s"	/* X-Token (optional) */
 				"X-Live-Since: %s\r\n",
 				version_string,
@@ -5862,6 +5911,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 					"X-Ext-Probes: 0.1\r\n" : "",
 				GNET_PROPERTY(current_peermode) != NODE_P_NORMAL ?
 	 				"X-Requeries: False\r\n" : "",
+				guess,
 	 			token ? "X-Token: " : "",
 				token ? token : "",
 				token ? "\r\n" : "",
@@ -6484,9 +6534,10 @@ static inline gnutella_node_t *
 node_pseudo_set_addr_port(gnutella_node_t *n,
 	const host_addr_t addr, guint16 port)
 {
-	if (n && n->outq) {
+	if (n != NULL && n->outq) {
 		n->addr = addr;
 		n->port = port;
+		g_assert(NULL == n->routing_data);	/* Never belongs to routing table */
 		return n;
 	}
 	return NULL;
@@ -6542,6 +6593,42 @@ node_dht_get_addr_port(const host_addr_t addr, guint16 port)
 			break;
 		}
 		return node_pseudo_set_addr_port(n, addr, port);
+	}
+	return NULL;
+}
+
+/**
+ * Get "fake" node for UDP routing.
+ */
+gnutella_node_t *
+node_udp_route_get_addr_port(const host_addr_t addr, guint16 port)
+{
+	gnutella_node_t *n;
+
+	if (port != 0 && udp_active()) {
+		n = NULL;
+		switch (host_addr_net(addr)) {
+		case NET_TYPE_IPV4:
+			n = dht_node;
+			break;
+		case NET_TYPE_IPV6:
+			n = dht6_node;
+			break;
+		case NET_TYPE_LOCAL:
+		case NET_TYPE_NONE:
+			g_assert_not_reached();
+			break;
+		}
+
+		/*
+		 * We don't want to use the pseudo UDP node object in case we're
+		 * trying to route a message coming from UDP to another UDP node.
+		 * So we use a dedicated "udp_route" pseudo UDP node on which we
+		 * set the proper message queue.
+		 */
+
+		udp_route->outq = n->outq;
+		return node_pseudo_set_addr_port(udp_route, addr, port);
 	}
 	return NULL;
 }
@@ -7147,6 +7234,19 @@ node_parse(struct gnutella_node *node)
 	}
 
 	/*
+	 * During final shutdown the only messages we accept to parse are BYE.
+	 * Everything else is dropped, unprocessed.
+	 */
+
+	if (G_UNLIKELY(in_shutdown)) {
+		if (GTA_MSG_BYE == gnutella_header_get_function(&n->header)) {
+			node_got_bye(n);
+			return;
+		}
+		goto reset_header;
+	}
+
+	/*
 	 * If the message has header flags, and since those are not defined yet,
 	 * we cannot interpret the message correctly.  We may route some of them
 	 * however, if we don't need to interpret the payload to do that.
@@ -7609,6 +7709,7 @@ node_init_outgoing(struct gnutella_node *n)
 	if (!n->hello.ptr) {
 		char my_addr[HOST_ADDR_PORT_BUFLEN];
 		char my_addr_v6[HOST_ADDR_PORT_BUFLEN];
+		char guess[60];
 
 		g_assert(0 == s->gdk_tag);
 
@@ -7651,7 +7752,15 @@ node_init_outgoing(struct gnutella_node *n)
 				my_addr_v6[0] = '\0';
 			}
 		}
-		
+
+		if (GNET_PROPERTY(enable_guess)) {
+			gm_snprintf(guess, sizeof(guess),
+				"X-Guess: %d.%d\r\n",
+				SEARCH_GUESS_MAJOR, SEARCH_GUESS_MINOR);
+		} else {
+			guess[0] = '\0';
+		}
+
 		n->hello.len = gm_snprintf(n->hello.ptr, n->hello.size,
 			"%s%d.%d\r\n"
 			"Node: %s%s%s\r\n"
@@ -7670,6 +7779,7 @@ node_init_outgoing(struct gnutella_node *n)
 			"%s"		/* X-Degree + X-Max-TTL */
 			"%s"		/* X-Dynamic-Querying */
 			"%s"		/* X-Ext-Probes */
+			"%s"		/* X-Guess */
 			"%s",		/* X-Requeries */
 			GNUTELLA_HELLO,
 			n->proto_major, n->proto_minor,
@@ -7692,6 +7802,7 @@ node_init_outgoing(struct gnutella_node *n)
 				"X-Dynamic-Querying: 0.1\r\n" : "",
 			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
 				"X-Ext-Probes: 0.1\r\n" : "",
+			guess,
 			GNET_PROPERTY(current_peermode) != NODE_P_NORMAL ?
 				"X-Requeries: False\r\n" : ""
 		);
@@ -8851,7 +8962,7 @@ node_close(void)
 
 	{
 		gnutella_node_t *special_nodes[] = {
-			udp_node, udp6_node, dht_node, dht6_node, browse_node };
+			udp_node, udp6_node, dht_node, dht6_node, browse_node, udp_route };
 		guint i;
 
 		for (i = 0; i < G_N_ELEMENTS(special_nodes); i++) {
@@ -8879,6 +8990,7 @@ node_close(void)
 		dht_node = NULL;
 		dht6_node = NULL;
 		browse_node = NULL;
+		udp_route = NULL;
 	}
 
 	HFREE_NULL(payload_inflate_buffer);

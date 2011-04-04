@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2002-2003, Raphael Manfredi, Richard Eckart
+ * Copyright (c) 20011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -32,6 +33,9 @@
  * @author Raphael Manfredi
  * @author Richard Eckart
  * @date 2002-2003
+ *
+ * @author Raphael Manfredi
+ * @date 2011
  *
  * @todo
  * TODO:
@@ -105,6 +109,7 @@ static const void *no_metadata;
 typedef struct hostcache {
 	const char		*name;		        /**< Name of the cache */
 	hcache_type_t   type;				/**< Cache type */
+	hcache_class_t  class;				/**< Cache class */
 
     gboolean        addr_only;          /**< Use IP only, port always 0 */
     gboolean        dirty;            	/**< If updated since last disk flush */
@@ -122,6 +127,10 @@ static cperiodic_t *hcache_save_ev;
 static cperiodic_t *hcache_timer_ev;
 static gboolean hcache_close_running = FALSE;
 
+static const char HOSTS_FILE[]	= "hosts";
+static const char ULTRAS_FILE[]	= "ultras";
+static const char GUESS_FILE[]	= "guess";
+
 /**
  * Names of the host caches.
  *
@@ -137,14 +146,17 @@ static const char * const names[HCACHE_MAX] = {
     "timeout",
     "busy",
     "unstable",
+    "alien",
+	"GUESS (running)",
+	"GUESS (introductions)",
     "none",
 };
 
 static const char * const host_type_names[HOST_MAX] = {
     "any",
     "ultra",
+	"guess"
 };
-
 
 enum {
     HCACHE_ALREADY_CONNECTED,
@@ -154,6 +166,33 @@ enum {
 };
 
 static guint stats[HCACHE_STATS_MAX];
+
+/**
+ * Maps a host cache type to its corresponding class.
+ */
+static hcache_class_t
+hcache_class(hcache_type_t type)
+{
+	switch (type) {
+	case HCACHE_FRESH_ANY:
+	case HCACHE_VALID_ANY:
+	case HCACHE_FRESH_ULTRA:
+	case HCACHE_VALID_ULTRA:
+	case HCACHE_TIMEOUT:
+	case HCACHE_BUSY:
+	case HCACHE_UNSTABLE:
+	case HCACHE_ALIEN:
+		return HCACHE_CLASS_HOST;
+	case HCACHE_GUESS:
+	case HCACHE_GUESS_INTRO:
+		return HCACHE_CLASS_GUESS;
+	case HCACHE_NONE:
+	case HCACHE_MAX:
+		break;
+	}
+	g_assert_not_reached();
+	return 0;
+}
 
 /**
  * Initiate mass update of host cache. While mass updates are in
@@ -198,6 +237,11 @@ stop_mass_update(hostcache_t *hc)
                 hash_list_length(caches[HCACHE_BUSY]->hostlist) +
                 hash_list_length(caches[HCACHE_ALIEN]->hostlist));
             break;
+        case HCACHE_GUESS:
+        case HCACHE_GUESS_INTRO:
+            gnet_prop_set_guint32_val(hc->hosts_in_catcher,
+                hash_list_length(caches[hc->type]->hostlist));
+			break;
 		case HCACHE_NONE:
 		case HCACHE_MAX:
             g_error("stop_mass_update: unknown cache type: %d", hc->type);
@@ -206,9 +250,25 @@ stop_mass_update(hostcache_t *hc)
 }
 
 /**
- * Hashtable: IP/Port -> Metadata
+ * Hashtable: IP/Port -> Metadata for HCACHE_CLASS_HOST.
  */
 static GHashTable *ht_known_hosts;
+
+/**
+ * Hashtable: IP/Port -> Metadata for HCACHE_CLASS_GUESS.
+ */
+static GHashTable *ht_guess_hosts;
+
+static GHashTable *
+hcache_ht_by_class(hcache_class_t class)
+{
+	switch (class) {
+	case HCACHE_CLASS_HOST:		return ht_known_hosts;
+	case HCACHE_CLASS_GUESS:	return ht_guess_hosts;
+	}
+	g_assert_not_reached();
+	return NULL;
+}
 
 static void
 hcache_update_low_on_pongs(void)
@@ -258,6 +318,7 @@ hcache_dump_info(const struct hostcache *hc, const char *what)
 /**
  * Get information about the host entry, both the host and the metadata.
  *
+ * @param class	the class of host cache the host should be looked up in
  * @param addr	the address of the host
  * @param port	the port used by the host
  * @param h		filled with the host entry in the table
@@ -266,16 +327,18 @@ hcache_dump_info(const struct hostcache *hc, const char *what)
  * @return FALSE if entry was not found in the cache.
  */
 static gboolean
-hcache_ht_get(const host_addr_t addr, guint16 port,
+hcache_ht_get(hcache_class_t class, const host_addr_t addr, guint16 port,
 	gnet_host_t **h, hostcache_entry_t **e)
 {
 	gnet_host_t host;
 	gpointer k, v;
 	gboolean found;
+	GHashTable *ht;
 
 	gnet_host_set(&host, addr, port);
+	ht = hcache_ht_by_class(class);
 
-	found = g_hash_table_lookup_extended(ht_known_hosts, &host, &k, &v);
+	found = g_hash_table_lookup_extended(ht, &host, &k, &v);
 	if (found) {
 		*h = k;
 		*e = v;
@@ -301,12 +364,14 @@ static hostcache_entry_t *
 hcache_ht_add(hcache_type_t type, const gnet_host_t *host)
 {
     hostcache_entry_t *hce;
+	GHashTable *ht;
 
     hce = hce_alloc();
     hce->type = type;
     hce->time_added = tm_time();
 
-	gm_hash_table_insert_const(ht_known_hosts, host, hce);
+	ht = hcache_ht_by_class(hcache_class(type));
+	gm_hash_table_insert_const(ht, host, hce);
 
     return hce;
 }
@@ -315,18 +380,21 @@ hcache_ht_add(hcache_type_t type, const gnet_host_t *host)
  * Remove host from the hash table host cache.
  */
 static void
-hcache_ht_remove(gnet_host_t *host)
+hcache_ht_remove(hcache_class_t class, gnet_host_t *host)
 {
 	hostcache_entry_t *hce;
 	gpointer key, value;
+	GHashTable *ht;
 
-	if (!g_hash_table_lookup_extended(ht_known_hosts, host, &key, &value)) {
-		g_warning("hcache_ht_remove: attempt to remove unknown host: %s",
+	ht = hcache_ht_by_class(class);
+
+	if (!g_hash_table_lookup_extended(ht, host, &key, &value)) {
+		g_carp("hcache_ht_remove: attempt to remove unknown host: %s",
 			  gnet_host_to_string(host));
 		return;
 	}
 	hce = value;
-	g_hash_table_remove(ht_known_hosts, host);
+	g_hash_table_remove(ht, host);
 
 	if (hce != NO_METADATA)
 		hce_free(hce);
@@ -336,12 +404,14 @@ hcache_ht_remove(gnet_host_t *host)
  * Get metadata for host.
  *
  * @return NULL if host was not found, NO_METADATA if no metadata was stored
- *         or a pointer to a hostcache_entry struct which hold the metadata.
+ *         or a pointer to a hostcache_entry struct which holds the metadata.
  */
 static hostcache_entry_t *
-hcache_get_metadata(const gnet_host_t *host)
+hcache_get_metadata(hcache_class_t class, const gnet_host_t *host)
 {
-    return g_hash_table_lookup(ht_known_hosts, host);
+	GHashTable *ht = hcache_ht_by_class(class);
+
+    return g_hash_table_lookup(ht, host);
 }
 
 /**
@@ -362,7 +432,7 @@ hcache_node_is_bad(const host_addr_t addr)
 		return FALSE;
 
 	gnet_host_set(&h, addr, 0);
-    hce = hcache_get_metadata(&h);
+    hce = hcache_get_metadata(HCACHE_CLASS_HOST, &h);
 
     if (hce == NULL || hce == NO_METADATA)
         return FALSE;
@@ -390,7 +460,10 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
 	hash_list_iter_t *iter;
 	gpointer item;
 
+	g_assert(to != NULL);
+	g_assert(from != NULL);
     g_assert(hash_list_length(to->hostlist) == 0);
+	g_assert(to->class == from->class);
 
 	hash_list_free(&to->hostlist);
     to->hostlist = from->hostlist;
@@ -406,7 +479,7 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
 	while (NULL != (item = hash_list_iter_next(iter))) {
         hostcache_entry_t *hce;
 
-        hce = hcache_get_metadata(item);
+        hce = hcache_get_metadata(from->class, item);
         if (hce == NULL || hce == NO_METADATA)
             continue;
         hce->type = to->type;
@@ -469,7 +542,7 @@ hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
     }
 
 	hc->dirty = TRUE;
-	hcache_ht_remove(host);
+	hcache_ht_remove(hc->class, host);
 	atom_host_free(host);
 
 	if (!hcache_close_running) {
@@ -518,6 +591,10 @@ hcache_slots_max(hcache_type_t type)
 	case HCACHE_UNSTABLE:
 	case HCACHE_ALIEN:
 		return GNET_PROPERTY(max_bad_hosts_cached);
+	case HCACHE_GUESS:
+		return GNET_PROPERTY(max_guess_hosts_cached);
+	case HCACHE_GUESS_INTRO:
+		return GNET_PROPERTY(max_guess_intro_hosts_cached);
 	case HCACHE_NONE:
 	case HCACHE_MAX:
 		break;
@@ -554,6 +631,8 @@ hcache_slots_left(hcache_type_t type)
 	case HCACHE_TIMEOUT:
 	case HCACHE_UNSTABLE:
 	case HCACHE_ALIEN:
+	case HCACHE_GUESS:
+	case HCACHE_GUESS_INTRO:
 		current = hash_list_length(caches[type]->hostlist);
 		break;
 	case HCACHE_NONE:
@@ -678,7 +757,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 	 * entry from one cache to another.
 	 */
 
-	if (hcache_ht_get(addr, port, &host, &hce)) {
+	if (hcache_ht_get(hcache_class(type), addr, port, &host, &hce)) {
 		gconstpointer orig_key;
 
         g_assert(hce != NULL);
@@ -720,6 +799,25 @@ hcache_add_internal(hcache_type_t type, time_t added,
 				return TRUE;
 			}
 			break;
+
+		case HCACHE_GUESS:
+		case HCACHE_GUESS_INTRO:
+			/*
+			 * ID Smearing Alogrithm to limit pong cache poisonning:
+			 * When attempting to add a host already present, we actually
+			 * remove the host from the cache!
+			 *
+			 * See research article "Pong-Cache Poisoning in GUESS".
+			 */
+
+			if (GNET_PROPERTY(guess_server_debug) > 2) {
+				g_debug("HCACHE smearing %s out of %s",
+					gnet_host_to_string(host),
+					hcache_type_to_string(hce->type));
+			}
+
+			hcache_unlink_host(caches[hce->type], host);
+			return TRUE;
 
 		default:
 			return TRUE;
@@ -772,6 +870,11 @@ hcache_add_internal(hcache_type_t type, time_t added,
          * we switch it as HCACHE_FRESH_XXX, we'll start reading from there,
          * in effect using the most recent hosts we know about.
          */
+        hash_list_prepend(hc->hostlist, host_atom);
+        break;
+
+	case HCACHE_GUESS:
+	case HCACHE_GUESS_INTRO:
         hash_list_prepend(hc->hostlist, host_atom);
         break;
 
@@ -831,6 +934,8 @@ hcache_add_caught(host_type_t type, const host_addr_t addr, guint16 port,
     	return hcache_add(HCACHE_FRESH_ANY, addr, port, what);
     case HOST_ULTRA:
     	return hcache_add(HCACHE_FRESH_ULTRA, addr, port, what);
+    case HOST_GUESS:
+    	return hcache_add(HCACHE_GUESS, addr, port, what);
     case HOST_MAX:
 		g_assert_not_reached();
     }
@@ -854,6 +959,8 @@ hcache_add_valid(host_type_t type, const host_addr_t addr, guint16 port,
     	return hcache_add(HCACHE_VALID_ANY, addr, port, what);
     case HOST_ULTRA:
     	return hcache_add(HCACHE_VALID_ULTRA, addr, port, what);
+    case HOST_GUESS:
+    	return hcache_add(HCACHE_GUESS_INTRO, addr, port, what);
     case HOST_MAX:
 		g_assert_not_reached();
     }
@@ -868,12 +975,12 @@ hcache_add_valid(host_type_t type, const host_addr_t addr, guint16 port,
  * After removing hcache_require_caught is called.
  */
 static void
-hcache_remove(gnet_host_t *h)
+hcache_remove(hcache_class_t class, gnet_host_t *h)
 {
     hostcache_entry_t *hce;
     hostcache_t *hc;
 
-    hce = hcache_get_metadata(h);
+    hce = hcache_get_metadata(class, h);
     if (hce == NULL) {
 		g_warning("hcache_remove: attempt to remove unknown host: %s",
 			gnet_host_to_string(h));
@@ -894,13 +1001,13 @@ hcache_purge(const host_addr_t addr, guint16 port)
 	hostcache_entry_t *hce;
 	gnet_host_t *host;
 
-	if (hcache_ht_get(addr, port, &host, &hce)) {
+	if (hcache_ht_get(HCACHE_CLASS_HOST, addr, port, &host, &hce)) {
 		switch (hce->type) {
 		case HCACHE_FRESH_ANY:
 		case HCACHE_VALID_ANY:
 		case HCACHE_FRESH_ULTRA:
 		case HCACHE_VALID_ULTRA:
-			hcache_remove(host);
+			hcache_remove(HCACHE_CLASS_HOST, host);
 			return;
 		default:
 			break;
@@ -933,7 +1040,7 @@ hcache_remove_all(hostcache_t *hc)
     start_mass_update(hc);
 
     while (NULL != (h = hash_list_head(hc->hostlist)))
-        hcache_remove(h);
+        hcache_remove(hc->class, h);
 
     g_assert(hash_list_length(hc->hostlist) == 0);
 
@@ -961,6 +1068,11 @@ hcache_clear_host_type(host_type_t type)
         hcache_remove_all(caches[HCACHE_VALID_ULTRA]);
 		valid = TRUE;
         break;
+    case HOST_GUESS:
+        hcache_remove_all(caches[HCACHE_GUESS]);
+        hcache_remove_all(caches[HCACHE_GUESS_INTRO]);
+		valid = TRUE;
+		break;
     case HOST_MAX:
 		g_assert_not_reached();
     }
@@ -996,6 +1108,9 @@ hcache_size(host_type_t type)
     case HOST_ULTRA:
         return hash_list_length(caches[HCACHE_FRESH_ULTRA]->hostlist) +
             hash_list_length(caches[HCACHE_VALID_ULTRA]->hostlist);
+    case HOST_GUESS:
+        return hash_list_length(caches[HCACHE_GUESS]->hostlist) +
+        	hash_list_length(caches[HCACHE_GUESS_INTRO]->hostlist);
     case HOST_MAX:
 		g_assert_not_reached();
     }
@@ -1023,12 +1138,12 @@ hcache_expire_cache(hostcache_t *hc, time_t now)
 	 */
 
     while (NULL != (h = hash_list_tail(hc->hostlist))) {
-        hostcache_entry_t *hce = hcache_get_metadata(h);
+        hostcache_entry_t *hce = hcache_get_metadata(hc->class, h);
 
         g_assert(hce != NULL);
 
         if (delta_time(now, hce->time_added) > HOSTCACHE_EXPIRY) {
-            hcache_remove(h);
+            hcache_remove(hc->class, h);
             expire_count++;
         } else {
             /* Found one which has not expired. Stopping */
@@ -1110,13 +1225,26 @@ hcache_prune(hcache_type_t type)
 
     hcache_require_caught(hc);
 	while (extra++ < 0) {
-		gnet_host_t *h = hash_list_tail(hc->hostlist);	/* Oldest entry */
+		gnet_host_t *h;
+
+		/*
+		 * The GUESS running cache is managed in an MRU fashion to limit the
+		 * impact of possible poisoning of the cache by malicious hosts.
+		 * See the "Pong-Cache Poisoning in GUESS" article.
+		 */
+
+		if (HCACHE_GUESS == hc->type) {
+			h = hash_list_head(hc->hostlist);	/* Newest entry */
+		} else {
+			h = hash_list_tail(hc->hostlist);	/* Oldest entry */
+		}
+
 		if (NULL == h) {
-			g_warning("BUG: asked to remove hosts, "
+			g_carp("BUG: asked to remove hosts, "
                 "but hostcache list is empty: %s", hc->name);
 			break;
 		}
-		hcache_remove(h);
+		hcache_remove(hc->class, h);
 	}
 
     stop_mass_update(hc);
@@ -1144,6 +1272,11 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, int hcount)
     case HOST_ULTRA:
         hc = caches[HCACHE_FRESH_ULTRA];
         break;
+    case HOST_GUESS:
+        hc = caches[HCACHE_GUESS];
+		if (0 == hash_list_length(hc->hostlist))
+			hc = caches[HCACHE_GUESS_INTRO];
+        break;
     case HOST_MAX:
 		g_assert_not_reached();
     }
@@ -1155,11 +1288,11 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, int hcount)
 	 * Not enough fresh pongs, get some from our reserve.
 	 */
 
-	iter = hash_list_iterator_tail(hc->hostlist);
+	iter = hash_list_iterator(hc->hostlist);
 	for (i = 0; i < hcount; i++) {
 		gnet_host_t *h;
 
-		h = hash_list_iter_previous(iter);
+		h = hash_list_iter_next(iter);
 		if (NULL == h)
 			break;
 
@@ -1196,6 +1329,9 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
     case HOST_ULTRA:
         hc = caches[HCACHE_FRESH_ULTRA];
 		break;
+    case HOST_GUESS:
+        hc = caches[HCACHE_GUESS];
+		break;
     case HOST_MAX:
 		g_assert_not_reached();
     }
@@ -1226,15 +1362,16 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
  * Sorting callback, by decreading added time.
  */
 static int
-hcache_cmp_added_time(const void *a, const void *b)
+hcache_cmp_added_time(const void *a, const void *b, void *data)
 {
 	const gnet_host_t *ha = a;
 	const gnet_host_t *hb = b;
 	const hostcache_entry_t *hce_a;
 	const hostcache_entry_t *hce_b;
+	hcache_class_t class = pointer_to_int(data);
 
-	hce_a = hcache_get_metadata(ha);
-	hce_b = hcache_get_metadata(hb);
+	hce_a = hcache_get_metadata(class, ha);
+	hce_b = hcache_get_metadata(class, hb);
 
 	if (hce_a == NULL) {
 		return hce_b == NULL ? 0 : +1;	/* Put b first */
@@ -1257,7 +1394,8 @@ hcache_sort_by_added_time(hcache_type_t type)
 	if (GNET_PROPERTY(hcache_debug))
 		g_debug("HCACHE sorting %s cache", hcache_type_to_string(type));
 
-	hash_list_sort(hc->hostlist, hcache_cmp_added_time);
+	hash_list_sort_with_data(hc->hostlist, hcache_cmp_added_time,
+		int_to_pointer(hc->class));
 
 	if (GNET_PROPERTY(hcache_debug)) {
 		unsigned count = hash_list_length(hc->hostlist);
@@ -1292,6 +1430,9 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
         break;
     case HOST_ULTRA:
         hc = caches[HCACHE_FRESH_ULTRA];
+        break;
+    case HOST_GUESS:
+        hc = caches[HCACHE_GUESS];
         break;
     case HOST_MAX:
 		g_assert_not_reached();
@@ -1354,6 +1495,7 @@ hcache_alloc(hcache_type_t type, gnet_property_t catcher, const char *name)
 	hc->hostlist = hash_list_new(NULL, NULL);
 	hc->name = name;
 	hc->type = type;
+	hc->class = hcache_class(type);
     hc->hosts_in_catcher = catcher;
     hc->addr_only = FALSE;
 
@@ -1427,7 +1569,7 @@ hcache_retrieve(hostcache_t *hc, const char *filename)
 	FILE *f;
 
 	file_path_set(fp, settings_config_dir(), filename);
-	f = file_config_open_read("hosts", fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read(hc->name, fp, G_N_ELEMENTS(fp));
 	if (f) {
 		hcache_load_file(hc, f);
 		fclose(f);
@@ -1447,7 +1589,7 @@ hcache_write(FILE *f, hostcache_t *hc)
 	while (NULL != (h = hash_list_iter_next(iter))) {
 		const hostcache_entry_t *hce;
 
-		hce = hcache_get_metadata(h);
+		hce = hcache_get_metadata(hc->class, h);
     	if (hce == NULL || hce == NO_METADATA)
 			continue;
 		
@@ -1543,22 +1685,24 @@ hcache_timer(gpointer unused_obj)
 static void
 hcache_store_if_dirty(host_type_t type)
 {
-	gnet_property_t prop;
 	hcache_type_t first, second;
 	const char *file;
 
 	switch (type) {
     case HOST_ANY:
-		prop = PROP_READING_HOSTFILE;
 		first = HCACHE_VALID_ANY;
 		second = HCACHE_FRESH_ANY;
-		file = "hosts";
+		file = HOSTS_FILE;
         break;
     case HOST_ULTRA:
-		prop = PROP_READING_ULTRAFILE;
 		first = HCACHE_VALID_ULTRA;
 		second = HCACHE_FRESH_ULTRA;
-		file = "ultras";
+		file = ULTRAS_FILE;
+		break;
+    case HOST_GUESS:
+		first = HCACHE_GUESS_INTRO;
+		second = HCACHE_GUESS;
+		file = GUESS_FILE;
 		break;
 	default:
 		g_error("can't store cache for host type %d", type);
@@ -1586,10 +1730,11 @@ hcache_periodic_save(gpointer unused_obj)
 	switch (i) {
 	case 0: hcache_store_if_dirty(HOST_ANY); break;
 	case 1: hcache_store_if_dirty(HOST_ULTRA); break;
+	case 2: hcache_store_if_dirty(HOST_GUESS); break;
 	default:
 		g_assert_not_reached();
 	}
-	i = (i + 1) % 2;
+	i = (i + 1) % 3;
 
 	return TRUE;		/* Keep calling */
 }
@@ -1601,6 +1746,7 @@ void
 hcache_init(void)
 {
 	ht_known_hosts = g_hash_table_new(gnet_host_hash, gnet_host_eq);
+	ht_guess_hosts = g_hash_table_new(gnet_host_hash, gnet_host_eq);
 	no_metadata = vmm_trap_page();
 
     caches[HCACHE_FRESH_ANY] = hcache_alloc(
@@ -1646,6 +1792,16 @@ hcache_init(void)
         PROP_HOSTS_IN_BAD_CATCHER,
         "hosts.alien");
 
+    caches[HCACHE_GUESS] = hcache_alloc(
+        HCACHE_GUESS,
+        PROP_HOSTS_IN_GUESS_CATCHER,
+        "hosts.guess.running");
+
+    caches[HCACHE_GUESS_INTRO] = hcache_alloc(
+        HCACHE_GUESS_INTRO,
+        PROP_HOSTS_IN_GUESS_INTRO_CATCHER,
+        "hosts.guess.intro");
+
 	hcache_save_ev = cq_periodic_add(callout_queue,
 		HCACHE_SAVE_PERIOD * 1000, hcache_periodic_save, NULL);
 	hcache_timer_ev = cq_periodic_add(callout_queue, 1000, hcache_timer, NULL);
@@ -1657,8 +1813,9 @@ hcache_init(void)
 void
 hcache_retrieve_all(void)
 {
-	hcache_retrieve(caches[HCACHE_FRESH_ANY], "hosts");
-	hcache_retrieve(caches[HCACHE_FRESH_ULTRA], "ultras");
+	hcache_retrieve(caches[HCACHE_FRESH_ANY], HOSTS_FILE);
+	hcache_retrieve(caches[HCACHE_FRESH_ULTRA], ULTRAS_FILE);
+	hcache_retrieve(caches[HCACHE_GUESS], GUESS_FILE);
 }
 
 /**
@@ -1668,8 +1825,9 @@ void
 hcache_shutdown(void)
 {
 	cq_periodic_remove(&hcache_save_ev);
-	hcache_store(HCACHE_VALID_ANY, "hosts", HCACHE_FRESH_ANY);
-	hcache_store(HCACHE_VALID_ULTRA, "ultras", HCACHE_FRESH_ULTRA);
+	hcache_store(HCACHE_VALID_ANY, HOSTS_FILE, HCACHE_FRESH_ANY);
+	hcache_store(HCACHE_VALID_ULTRA, ULTRAS_FILE, HCACHE_FRESH_ULTRA);
+	hcache_store(HCACHE_GUESS, GUESS_FILE, HCACHE_GUESS_INTRO);
 }
 
 /**
@@ -1686,7 +1844,9 @@ hcache_close(void)
         HCACHE_TIMEOUT,
         HCACHE_BUSY,
         HCACHE_UNSTABLE,
-        HCACHE_ALIEN
+        HCACHE_ALIEN,
+        HCACHE_GUESS,
+        HCACHE_GUESS_INTRO,
     };
 	guint i;
 
@@ -1722,8 +1882,10 @@ hcache_close(void)
 	}
 
     g_assert(g_hash_table_size(ht_known_hosts) == 0);
-	gm_hash_table_destroy_null(&ht_known_hosts);
+    g_assert(g_hash_table_size(ht_guess_hosts) == 0);
 
+	gm_hash_table_destroy_null(&ht_known_hosts);
+	gm_hash_table_destroy_null(&ht_guess_hosts);
 	cq_periodic_remove(&hcache_timer_ev);
 }
 

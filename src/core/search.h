@@ -39,6 +39,7 @@
 #include "common.h"
 
 #include "nodes.h"
+#include "lib/sectoken.h"
 
 /*
  * Query flags used in queries (big-endian); formerly used as "speed" indicator.
@@ -57,6 +58,20 @@
  */
 
 #define QUERY_FW2FW_FILE_INDEX	0x7FFFFFFD	/**< Magic index for fw-fw reqs */
+
+/*
+ * The version of GUESS we support.
+ *
+ * LimeWire defined 0.1 but we support 0.2 because OOB queries are both sent
+ * (when running as a client) and accepted (as a server).  Also we implement
+ * anti cache-poisoning features to limit malicious nodes in the cache.
+ * Finally, gtk-gnutella understands the combination of PK & SCP in pings as
+ * a requesst for query keys plus a set of GUESS ultrapeers to be sent back
+ * packed in "IPP".
+ */
+
+#define SEARCH_GUESS_MAJOR 0
+#define SEARCH_GUESS_MINOR 2
 
 struct download;
 struct guid;
@@ -89,6 +104,8 @@ void query_set_oob_flag(const struct gnutella_node *n, char *data);
 
 void record_query_string(const struct guid *muid, const char *query);
 const char *map_muid_to_query_string(const struct guid *muid);
+
+void search_query_key_generate(sectoken_t *tok, host_addr_t addr, guint16 port);
 
 #endif /* _core_search_h_ */
 

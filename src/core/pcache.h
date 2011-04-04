@@ -89,8 +89,11 @@ enum {
 
 struct guid;
 
-gnutella_msg_init_t *build_ping_msg(const struct guid *,
-						guint8 ttl, gboolean uhc, guint32 *size);
+gnutella_msg_init_t *build_ping_msg(
+	const struct guid *, guint8 ttl, gboolean uhc, guint32 *size);
+
+gnutella_msg_init_t *build_guess_ping_msg(
+	const struct guid *, gboolean qk, gboolean intro, gboolean scp, guint32 *s);
 
 /*
  * Public interface.
@@ -108,6 +111,9 @@ void pcache_pong_fake(struct gnutella_node *n,
 	const host_addr_t addr, guint16 port);
 gboolean pcache_get_recent(host_type_t type, host_addr_t *addr, guint16 *port);
 void pcache_clear_recent(host_type_t type);
+void pcache_guess_acknowledge(struct gnutella_node *n,
+	gboolean good_qk, gboolean wants_ipp);
+
 void ping_all_neighbours(void);
 
 #endif /* _core_pcache_h_ */

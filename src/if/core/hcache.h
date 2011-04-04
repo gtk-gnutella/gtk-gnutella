@@ -47,6 +47,8 @@ typedef enum {
                                gave us a 503 (busy) during connection. */
     HCACHE_UNSTABLE,      /**< Unstable IPs */
     HCACHE_ALIEN,         /**< Alien networks (protected by auth challenges) */
+    HCACHE_GUESS,         /**< Running GUESS cache (MRU-managed) */
+    HCACHE_GUESS_INTRO,   /**< GUESS introduction cache (LRU-managed) */
 	HCACHE_NONE,
     HCACHE_MAX
 } hcache_type_t;
@@ -54,8 +56,14 @@ typedef enum {
 typedef enum {
     HOST_ANY,
     HOST_ULTRA,
+    HOST_GUESS,
     HOST_MAX
 } host_type_t;
+
+typedef enum {
+	HCACHE_CLASS_HOST,		/**< Classic Gnutella host cache */
+	HCACHE_CLASS_GUESS		/**< GUESS-specific host cache */
+} hcache_class_t;
 
 typedef struct hcache_stats {
     gint32      host_count; /**< Number of hosts in cache */

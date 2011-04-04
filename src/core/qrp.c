@@ -4647,10 +4647,10 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 				gnutella_header_get_ttl(&n->header),
 				n);
 
-	if (nodes == NULL)
-		return;
-
-	if (GNET_PROPERTY(qrp_debug) > 4) {
+	if (
+		GNET_PROPERTY(qrp_debug) > 4 ||
+		(NODE_IS_UDP(n) && GNET_PROPERTY(guess_server_debug) > 4)
+	) {
 		GSList *sl;
 		int leaves = 0;
 		int ultras = 0;
@@ -4665,13 +4665,18 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 		}
 
 		g_debug(
-			"QRP %s (%d word%s%s) forwarded to %d/%d leaves, %d ultra%s",
+			"QRP %s%s [%s] (%d word%s%s) forwarded to %d/%d leaves, %d ultra%s",
+			NODE_IS_UDP(n) ? "(GUESS) " : "",
 			gmsg_node_infostr(n),
+			guid_hex_str(gnutella_header_get_muid(&n->header)),
 			qhvec->count, qhvec->count == 1 ? "" : "s",
 			qhvec->has_urn ? " + URN" : "", leaves,
 			GNET_PROPERTY(node_leaf_count),
 			ultras, ultras == 1 ? "" : "s");
 	}
+
+	if (nodes == NULL)
+		return;
 
 	/*
 	 * Now that the original TTL was used to build the node list, don't

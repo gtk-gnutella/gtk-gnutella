@@ -51,7 +51,8 @@ struct guid;
 struct nid;
 
 typedef enum {
-	NODE_MAGIC = 0x67f8e02f
+	NODE_MAGIC = 0x67f8e02f,		/* Gnutella node (TCP or "fake" UDP) */
+	NODE_UDP_MAGIC = 0x498e00de		/* UDP routing node */
 } node_magic_t;
 
 /**
@@ -314,6 +315,7 @@ enum {
  */
 
 enum {
+	NODE_A_GUESS		= 1 << 25,	/**< Node advertized GUESS support */
 	NODE_A_CAN_DHT		= 1 << 24,	/**< Indicated support for DHT */
 	NODE_A_FIREWALLED	= 1 << 23,	/**< Node determined to be firewalled */
 	NODE_A_CAN_SVN_NOTIFY =	1 << 22,	/**< Supports SVN release notifies */
@@ -616,6 +618,8 @@ void node_udp_disable(void);
 void node_udp_process(gnutella_node_t *n, struct gnutella_socket *s);
 gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, guint16 port);
 gnutella_node_t *node_dht_get_addr_port(const host_addr_t addr, guint16 port);
+gnutella_node_t * node_udp_route_get_addr_port(
+	const host_addr_t addr, guint16 port);
 
 void node_can_tsync(gnutella_node_t *n);
 void node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features);
@@ -649,12 +653,14 @@ node_check(const struct gnutella_node * const n)
 static inline const struct guid *
 node_guid(const struct gnutella_node * const n)
 {
+	node_check(n);
 	return n->guid;
 }
 
 static inline struct nid *
 node_get_id(const struct gnutella_node * const n)
 {
+	node_check(n);
 	return n->id;
 }
 

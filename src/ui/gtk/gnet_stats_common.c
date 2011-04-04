@@ -127,6 +127,7 @@ general_type_str(gint value)
 		N_("Bytes saved by compacting"),
 		N_("UTF8 queries"),
 		N_("SHA1 queries"),
+		N_("GUESS queries"),
 		N_("Broadcasted push messages"),
 		N_("Push-proxy UDP relayed messages"),
 		N_("Push-proxy TCP relayed messages"),

@@ -166,8 +166,14 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean dht, gboolean truncated)
 	case GTA_MSG_DHT:
 		return n;
 	case GTA_MSG_SEARCH:
-		msg = "Queries not yet processed from UDP";
-		goto drop;			/* XXX don't handle GUESS queries for now */
+		if (
+			NODE_P_LEAF != GNET_PROPERTY(current_peermode) &&
+			GNET_PROPERTY(enable_guess)
+		) {
+			return n;	/* GUESS query accepted */
+		}
+		msg = "Query from UDP refused";
+		goto drop;
 	}
 	msg = "Gnutella message not processed from UDP";
 

@@ -59,6 +59,7 @@ RCSID("$Id$")
 #include "nodes.h"
 #include "oob.h"
 #include "oob_proxy.h"
+#include "pcache.h"			/* For pcache_guess_acknowledge() */
 #include "qhit.h"
 #include "qrp.h"
 #include "routing.h"
@@ -91,6 +92,7 @@ RCSID("$Id$")
 #include "lib/nid.h"
 #include "lib/random.h"
 #include "lib/sbool.h"
+#include "lib/sectoken.h"
 #include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/urn.h"
@@ -118,8 +120,15 @@ RCSID("$Id$")
 
 #define SEARCH_GC_PERIOD	120	 /**< Every 2 minutes */
 
+/*
+ * GUESS security tokens.
+ */
+#define GUESS_KEYS				2		/**< Two keys in the set */
+#define GUESS_REFRESH_PERIOD	3600	/**< 1 hour */
+
 static guint32 search_id;				/**< Unique search counter */
 static GHashTable *searches;			/**< All alive searches */
+static sectoken_gen_t *guess_stg;		/**< GUESS token generator */
 
 /**
  * Structure for search results.
@@ -247,6 +256,47 @@ query_muid_map_garbage_collect(void)
 		if (++removed > 100)
 			break;
 	}
+}
+
+/**
+ * Is supplied GUESS query key (within GGEP "QK" extension) valid?
+ *
+ * @param n		the node which sent the query
+ * @param exv	the extension value
+ *
+ * @return TRUE if query key is valid.
+ */
+static gboolean
+search_query_key_validate(const struct gnutella_node *n, const extvec_t *exv)
+{
+	size_t len = ext_paylen(exv);
+	const char *payload;
+	sectoken_t tok;
+
+	g_assert(EXT_GGEP == exv->ext_type);
+	g_assert(EXT_T_GGEP_QK == exv->ext_token);
+
+	if (len != sizeof tok.v)
+		return FALSE;
+
+	payload = ext_payload(exv);
+	memcpy(tok.v, payload, sizeof tok.v);
+
+	return sectoken_is_valid(guess_stg, &tok, n->addr, n->port);
+}
+
+/**
+ * Fills valid query key into supplied security token for the given addr:port.
+ */
+void
+search_query_key_generate(sectoken_t *tok, host_addr_t addr, guint16 port)
+{
+	if (GNET_PROPERTY(guess_server_debug) > 10) {
+		g_debug("GUESS generating token for %s",
+			host_addr_port_to_string(addr, port));
+	}
+
+	sectoken_generate(guess_stg, tok, addr, port);
 }
 
 void
@@ -2507,7 +2557,7 @@ build_search_msg(search_ctrl_t *sch)
 	gnutella_msg_search_set_flags(&msg.data, flags);
 	
 	/*
-	 * Are we dealing with an URN search?
+	 * Are we dealing with a URN search?
 	 */
 
 	is_sha1_search = urn_get_sha1(sch->query, &sha1);
@@ -3052,6 +3102,9 @@ search_gc(void *unused_cq)
 void
 search_init(void)
 {
+	g_assert(NULL == rs_zone);
+	g_assert(NULL == rc_zone);
+
 	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
 
@@ -3062,6 +3115,7 @@ search_init(void)
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 	oob_reply_acks_init();
 	query_muid_map_init();	
+	guess_stg = sectoken_gen_new(GUESS_KEYS, GUESS_REFRESH_PERIOD);
 
 	cq_periodic_add(callout_queue, SEARCH_GC_PERIOD * 1000, search_gc, NULL);
 }
@@ -3090,6 +3144,7 @@ search_shutdown(void)
 
 	oob_reply_acks_close();
 	query_muid_map_close();
+	sectoken_gen_free_null(&guess_stg);
 }
 
 /**
@@ -3874,7 +3929,7 @@ search_new(gnet_search_t *ptr, const char *query,
 
 		if (byte_count < MIN_SEARCH_TERM_BYTES) {
 			if (GNET_PROPERTY(search_debug) > 1) {
-				g_warning("Rejected too short query string: \"%s\"", qdup);
+				g_warning("rejected too short query string: \"%s\"", qdup);
 			}
 			result = SEARCH_NEW_TOO_SHORT;
 			goto failure;
@@ -3883,7 +3938,7 @@ search_new(gnet_search_t *ptr, const char *query,
 			utf8_char_count(qdup) > MAX_SEARCH_TERM_CHARS
 		) {
 			if (GNET_PROPERTY(search_debug) > 1) {
-				g_warning("Rejected too long query string: \"%s\"", qdup);
+				g_warning("rejected too long query string: \"%s\"", qdup);
 			}
 			result = SEARCH_NEW_TOO_LONG;
 			goto failure;
@@ -4871,7 +4926,11 @@ search_request_get_flags(const struct gnutella_node *n)
 }
 
 /**
- * Preprocesses searches requests (from others nodes)
+ * Preprocesses searches requests (from others nodes).
+ *
+ * This is called before route_message(), so TTL and hops hold the values
+ * that were set by the sender, i.e. they have not been adjusted to mark
+ * the passage at our node yet.
  *
  * @return TRUE if the query should be discarded, FALSE if everything was OK.
  */
@@ -4892,6 +4951,14 @@ search_request_preprocess(struct gnutella_node *n)
 	guint offset = 0;			/**< Query string start offset */
 	gboolean oob;		/**< Wants out-of-band query hit delivery? */
 
+	if (GNET_PROPERTY(guess_server_debug) > 18) {
+		if (NODE_IS_UDP(n)) {
+			g_debug("GUESS got %s, GUID=%s",
+			gmsg_node_infostr(n),
+			guid_hex_str(gnutella_header_get_muid(&n->header)));
+		}
+	}
+
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
 	 *
@@ -4907,9 +4974,10 @@ search_request_preprocess(struct gnutella_node *n)
 	if (search_len >= n->size - 2U) {
 		g_assert(n->data[n->size - 1] != '\0');
 		if (GNET_PROPERTY(query_debug) > 10)
-			g_warning("query (hops=%u, ttl=%u) had no NUL (%d byte%s)",
+			g_warning("query (hops=%u, ttl=%u) from %s had no NUL (%d byte%s)",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
+				node_infostr(n),
 				n->size - 2,
 				n->size == 3 ? "" : "s");
 		if (GNET_PROPERTY(query_debug) > 14)
@@ -5018,6 +5086,9 @@ search_request_preprocess(struct gnutella_node *n)
 		int i, exvcnt;
 		size_t extra;
 		gboolean drop_it = FALSE;
+		gboolean valid_query_key = FALSE;
+		gboolean seen_query_key = FALSE;
+		gboolean wants_ipp = FALSE;
 
 	   	extra = n->size - 3 - search_len;		/* Amount of extra data */
 		ext_prepare(exv, MAX_EXTVEC);
@@ -5063,6 +5134,17 @@ search_request_preprocess(struct gnutella_node *n)
 				}
 				gnet_stats_count_dropped(n, MSG_DROP_BAD_URN);
 				drop_it = TRUE;
+				break;
+
+			case EXT_T_GGEP_QK:			/* GUESS Query Key */
+				seen_query_key = TRUE;
+				if (NODE_IS_UDP(n)) {
+					valid_query_key = search_query_key_validate(n, e);
+				}
+				break;
+
+			case EXT_T_GGEP_SCP:		/* Wants GUESS pongs in "IPP" */
+				wants_ipp = TRUE;
 				break;
 
 			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
@@ -5127,6 +5209,74 @@ search_request_preprocess(struct gnutella_node *n)
 			
 			if (drop_it)
 				break;
+		}
+
+		/*
+		 * If query comes from UDP, then it's a GUESS query.
+		 */
+
+		if (NODE_IS_UDP(n)) {
+			if (!seen_query_key) {
+				gnet_stats_count_dropped(n, MSG_DROP_GUESS_MISSING_TOKEN);
+				goto drop;
+			} else if (!valid_query_key) {
+				gnet_stats_count_dropped(n, MSG_DROP_GUESS_INVALID_TOKEN);
+				/* Send new query key */
+				pcache_guess_acknowledge(n, FALSE, wants_ipp);
+				goto drop;
+			} else {
+				gnet_stats_count_general(GNR_QUERY_GUESS, 1);
+				/* Send back a pong */
+				pcache_guess_acknowledge(n, TRUE, wants_ipp);
+			}
+
+			/*
+			 * GUESS queries should be sent with TTL=1 since they must
+			 * not be propagated to other ultrapeeers, only local leaves.
+			 */
+
+			if (1 != gnutella_header_get_ttl(&n->header)) {
+				if (GNET_PROPERTY(guess_server_debug)) {
+					g_warning("GUESS node %s sent query with TTL=%d, "
+						"adjusting to 1 before handling routing",
+						node_infostr(n), gnutella_header_get_ttl(&n->header));
+				}
+				gnutella_header_set_ttl(&n->header, 1);
+			}
+
+			/*
+			 * Strip "QK" and "SCP" extensions before forwarding to leaves.
+			 */
+
+			{
+				size_t newlen;
+				char *start = search + search_len + 1;
+
+				newlen = ext_ggep_strip(start, extra, GGEP_NAME(QK));
+				newlen = ext_ggep_strip(start, newlen, GGEP_NAME(SCP));
+
+				if (GNET_PROPERTY(guess_server_debug) > 5) {
+					g_warning("GUESS search extension part %lu -> %lu bytes",
+						(unsigned long) extra, (unsigned long) newlen);
+				}
+
+				g_assert(newlen <= extra);
+				g_assert(size_is_non_negative(newlen));
+
+				/*
+				 * Adjust message length if we managed to strip keys.
+				 */
+
+				if (newlen != extra) {
+					size_t diff = extra - newlen;
+					guint16 size = n->size;
+
+					g_assert(diff < size);
+					
+					n->size -= diff;
+					gnutella_header_set_size(&n->header, n->size);
+				}
+			}
 		}
 
 		if (exv_sha1cnt)

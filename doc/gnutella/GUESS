@@ -689,6 +689,35 @@ The GDF                          GUESS                       August 2002
    could easily allow a DDoS attack by spoofing the host to reply to,
    depending on the implementation.
 
+   [Notes from RAM]
+
+   When this was written, OOB Query Hit delivery had probably not been
+   specified yet.  Nowadays, in 2011, OOB Query Hit is widely supported.
+   It therefore makes sense for GUESS-querying hosts to create a Query
+   requesting OOB delivery, which does not deliver back hits but an
+   indication that there are hits to claim.
+
+   Before forwarding the query to leaves, the Ultrapeer needs to make
+   sure the UDP origin of the request matches that of the OOB hit
+   destination.  If it does, the potential for DDoS is not increased.
+   True, it does not prevent the possibility of DDoS altogether, but
+   the situation is not worse than in the original design.
+
+   Firewalled leaves are also not a problem nowadays because of the
+   widespread Push-Proxy mechanism, so the original careful Design
+   Considerations that prevailed originally are no longer relevant.
+
+   Therefore, I'm amending the specifications to allow the querying
+   host to request OOB Query Hit delivery if it wants it.  To avoid
+   traffic clogging, the Ultrapeer is also at liberty to not deliver
+   back the query hits directly, making that an incentive for the
+   querying client to use OOB if possible.
+
+   To advertize this behaviour change, gtk-gnutella publishes itself
+   as supporting GUESS version 0.2, which is backward compatible with
+   version 0.1 and upward compatible as well (i.e. a 0.2 request to
+   a 0.1 server will be processed transparently).
+
 7. Backwards Compatibility
 
    During the initial rollout, GUESS can peacefully co-exist with the
@@ -769,26 +798,62 @@ The GDF                          GUESS                       August 2002
 
 10. Further Additions
 
-   The following was not documented originally but was gathered on the
-   web after publication:
+   [Additions from RAM, for implementation in gtk-gnutella]
 
    GUESS needs "query keys" to query a server.
 
    - To obtain a QueryKey, a client sends a UDP PingRequest with GGEP
-     extension 'QK' to the server. 
+     extension "QK" to the server. 
 
    - The server responds to QueryKey PingRequests by returning a pong with
-     the QueryKey for that host in a GGEP 'QK' extension.  This QueryKey
+     the QueryKey for that host in a GGEP "QK" extension.  This QueryKey
      is easily recalculated on a per-host basis, and a valid QueryKey
      should accompany a UDP query. LimeWire simply constructs a QueryKey
      for the host and returns it in a pong, gleaning the address info
      of the sender from the incoming Datagram.
 
    Now the node that received the QueryKey can send a UDP query to
-   this host, including the query key in a 'QK' extension. When the
+   this host, including the query key in a "QK" extension. When the
    host receives the query, it simply validates the QueryKey and then
    proceeds with query execution as usual.
 
+   To avoid GUESS pong-cache poisoning, each GUESS server should implement
+   some of the findings documented in [15].  In particular, gtk-gnutella
+   implements two pong caches: one for regular operations which is fed
+   during the course of querying and uses the MRU (Most-Recently Used)
+   replacement policy and one fed during server introductions which is
+   larger and uses LRU (Least-Recently Used) replacement.  Pongs returned
+   are chosen from the MRU-managed cache if not empty.
+
+   Furthermore, the operation cache uses the ID Smearing Alogrithm which
+   removes a host from the cache when it is given by a pong from another
+   server, in an attempt to evenly spread out the presence of a given
+   host among all the caches on the network.
+
+   The Intoduction Protocol also described in [15] cannot just use ping
+   reception, since query key distribution uses pings and any GUESS
+   node could ping a server, not just a GUESS server.  We don't want
+   to enter leaves in our cache.
+
+   Therefore, gtk-gnutella adds the GGEP "GUE" extension with its version
+   in the ping payload for query keys (only  when running as an ultra
+   node) to signal an introduction ping.  This "GUE" extension contains
+   3 bytes: the first one is the GUESS version number, encoded as usual,
+   the trailing two are the UDP listening port, in little-endian format.
+   This allows the recording of the proper host address in case the UDP
+   port in the message is a transient one allocated by a NAT router.
+   Only ultra nodes should include "GUE" in pings.
+
+   If the "SCP" GGEP extension was given in the Ping Request along with
+   "QK", then GUESS hosts are returned packed within the "IPP" extension
+   of the Pong.
+
+   GUESS 0.2 also extends the Query with the "SCP" GGEP key (no payload).
+   This indicates the server that the client will read additional GUESS
+   IP addresses in the "IPP" GGEP extension from the acknowledgement Pong.
+
+   A GUESS 0.2 server SHOULD strip "QK" and "SCP" GGEP extensions from
+   the Query before forwarding the message to the leaves.
 
 References
 
@@ -852,7 +917,8 @@ The GDF                          GUESS                       August 2002
          Gnutella Network", December 2001, <http://groups.yahoo.com/
          group/the_gdf/files/Proposals/Handshake_06/Gnutella06.txt>.
 
-
+   [15]  Neil Daswani and Hector Garcia-Molina, "Pong-Cache Poisoning
+		 in GUESS", October 2004, CCS'04
 
 
 

@@ -57,6 +57,7 @@ RCSID("$Id$")
 #include "udp.h"
 #include "uhc.h"
 #include "version.h"
+#include "search.h"	/* For search_query_key_generate() */
 
 #include "if/gnet_property_priv.h"
 #include "if/dht/kademlia.h"
@@ -70,6 +71,7 @@ RCSID("$Id$")
 #include "lib/nid.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
+#include "lib/sectoken.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
@@ -96,6 +98,7 @@ enum ping_flag {
 	PING_F_UHC_ANY		= (PING_F_UHC_LEAF | PING_F_UHC_ULTRA),
 	PING_F_IP			= (1 << 3),	/**< GGEP IP */
 	PING_F_DHTIPP		= (1 << 4),	/**< GGEP DHTIPP, wants DHT hosts */
+	PING_F_QK			= (1 << 5),	/**< GGEP QK, wants GUESS Query Key */
 
 	PING_LAST_ENUM_FLAG
 };
@@ -229,6 +232,82 @@ build_ping_msg(const struct guid *muid, guint8 ttl, gboolean uhc, guint32 *size)
 
 		sz += ggep_stream_close(&gs);
 	}
+
+	gnutella_header_set_size(m, sz);
+
+	if (size)
+		*size = sz + GTA_HEADER_SIZE;
+
+	return m;
+}
+
+/**
+ * Build GUESS ping message, bearing given MUID.
+ *
+ * By construction, hops=0 and TTL=1 for all GUESS pings.
+ *
+ * @param muid	the MUID to use.  If NULL, a random one will be assigned.
+ * @param qk	whether to request query keys
+ * @param intro	whether this is an introduction ping
+ * @param scp	whether we want more GUESS hosts packed in a Ping "IPP"
+ * @param size	where the size of the generated message is written.
+ *
+ * @return pointer to static data, and the size of the message in `size'.
+ */
+gnutella_msg_init_t *
+build_guess_ping_msg(const struct guid *muid,
+	gboolean qk, gboolean intro, gboolean scp,
+	guint32 *size)
+{
+	static union {
+		gnutella_msg_init_t s;
+		char buf[256];
+		guint64 align8;
+	} msg_init;
+	gnutella_msg_init_t *m = &msg_init.s;
+	guint32 sz;
+	guchar *ggep;
+	ggep_stream_t gs;
+	gboolean ok;
+
+	g_assert(qk || intro);
+
+	STATIC_ASSERT(sizeof *m <= sizeof msg_init.buf);
+	STATIC_ASSERT(23 == sizeof *m);
+
+	if (muid)
+		gnutella_header_set_muid(m, muid);
+	else
+		message_set_muid(m, GTA_MSG_INIT);
+
+	gnutella_header_set_function(m, GTA_MSG_INIT);
+	gnutella_header_set_ttl(m, 1);
+	gnutella_header_set_hops(m, 0);
+
+	sz = 0;			/* Payload size if no extensions */
+	ggep = cast_to_gpointer(&m[1]);
+	ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
+
+	if (scp) {
+		char spp;
+
+		spp = GNET_PROPERTY(current_peermode) == NODE_P_LEAF ? 0x0 : 0x1;
+		spp |= tls_enabled() ? 0x02 : 0;
+
+		ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
+		g_assert(ok);
+	}
+
+	if (qk) {
+		ggep_stream_pack(&gs, GGEP_NAME(QK), NULL, 0, 0);
+	}
+
+	if (intro) {
+		guint8 guess = (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR;
+		ggep_stream_pack(&gs, GGEP_NAME(GUE), &guess, 1, 0);
+	}
+
+	sz += ggep_stream_close(&gs);
 
 	gnutella_header_set_size(m, sz);
 
@@ -376,7 +455,21 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		gnet_host_t host[PCACHE_UHC_MAX_IP];
 		int hcount;
 
-		hcount = hcache_fill_caught_array(HOST_ULTRA, host, PCACHE_UHC_MAX_IP);
+		/*
+		 * For GUESS 0.2, if there is a "QK" extension in the ping as well,
+		 * then we send back GUESS hosts.  Likewise, if there are "GUE"
+		 * metadata to send.
+		 */
+
+		hcount = hcache_fill_caught_array(
+			(
+				GNET_PROPERTY(enable_guess) &&
+				(
+					(flags & PING_F_QK) ||
+					(meta != NULL && (meta->flags & PONG_META_HAS_GUE))
+				)
+			) ?  HOST_GUESS : HOST_ULTRA,
+			host, PCACHE_UHC_MAX_IP);
 
 		if (hcount > 0) {
 			guchar tls_bytes[(G_N_ELEMENTS(host) + 7) / 8];
@@ -408,6 +501,18 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 				
 				addr = gnet_host_get_addr(&host[i]);
 				port = gnet_host_get_port(&host[i]);
+
+				/*
+				 * Skip hosts that have already been included in the pong
+				 * info part or which correspond to the recipient of the pong.
+				 */
+
+				if (port == info->port && host_addr_equal(addr, info->addr))
+					continue;
+
+				if (port == sender_port && host_addr_equal(addr, sender_addr))
+					continue;
+
 				poke_be32(&addr_buf[0], host_addr_ipv4(addr));
 				poke_le16(&addr_buf[4], port);
 
@@ -469,6 +574,11 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		}
 	}
 
+	/*
+	 * The "IP" GGEP extension in the ping requests that the IPv4 IP:port
+	 * of the sending host be echoed back.
+	 */
+
 	if ((flags & PING_F_IP) && NET_TYPE_IPV4 == host_addr_net(sender_addr)) {
 		char ip_port[6];
 
@@ -480,6 +590,17 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		poke_be32(&ip_port[0], host_addr_ipv4(sender_addr));
 		poke_le16(&ip_port[4], sender_port);
 		ggep_stream_pack(&gs, GGEP_NAME(IP), ip_port, sizeof ip_port, 0);
+	}
+
+	/*
+	 * The "QK" GGEP extension in the ping requests a GUESS Query Key.
+	 */
+
+	if ((flags & PING_F_QK) && GNET_PROPERTY(enable_guess)) {
+		sectoken_t tok;
+
+		search_query_key_generate(&tok, sender_addr, sender_port);
+		ggep_stream_pack(&gs, GGEP_NAME(QK), tok.v, sizeof tok.v, 0);
 	}
 
 	sz += ggep_stream_close(&gs);
@@ -588,6 +709,11 @@ ping_type(const gnutella_node_t *n)
 				flags |= PING_F_DHTIPP;
 			break;
 
+		case EXT_T_GGEP_QK:
+			if (0 == ext_paylen(e))
+				flags |= PING_F_QK;
+			break;
+
 		default: ;
 		}
 
@@ -675,6 +801,15 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 		local_meta.flags |= PONG_META_HAS_UP;
 		local_meta.leaf_slots = MIN(node_leaves_missing(), 255);
 		local_meta.up_slots = MIN(node_missing(), 255);
+
+		/*
+		 * Ultrapeers supporting GUESS must advertize it in their pongs.
+		 */
+
+		if (GNET_PROPERTY(enable_guess)) {
+			local_meta.flags |= PONG_META_HAS_GUE;
+			local_meta.guess = (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR;
+		}
 	}
 
 	if ((flags & PING_F_IP)) {
@@ -710,7 +845,8 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 		gnutella_header_get_muid(&n->header), &info, &local_meta);
 
 	/* Reset flags that must be recomputed each time */
-	local_meta.flags &= ~PONG_META_HAS_UP;
+	local_meta.flags &=
+		~(PONG_META_HAS_UP | PONG_META_HAS_GUE | PONG_META_HAS_DHT);
 }
 
 /**
@@ -769,6 +905,81 @@ send_neighbouring_info(struct gnutella_node *n)
 
 		if (!NODE_IS_CONNECTED(n))
 			return;
+	}
+}
+
+/**
+ * Acknowledge reception of query through GUESS by sending back a pong
+ * listing one other GUESS ultrapeer, or ourselves if we don't have any
+ * other to propagate.
+ *
+ * When the query key was not good, send back a new query key in the pong.
+ */
+void
+pcache_guess_acknowledge(struct gnutella_node *n,
+	gboolean good_query_key, gboolean wants_ipp)
+{
+	struct pong_info info;
+	pong_meta_t meta;
+	gnet_host_t host[2 + PCACHE_UHC_MAX_IP];
+	int hcount;
+	int flags = PING_F_NONE;
+
+	node_check(n);
+	g_assert(NODE_IS_UDP(n));
+
+	hcount = hcache_fill_caught_array(HOST_GUESS, host,
+		wants_ipp ? G_N_ELEMENTS(host) : 2);
+
+	meta.guess = (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR;
+	meta.flags = PONG_META_HAS_GUE;
+
+	if (!good_query_key)
+		flags |= PING_F_QK;		/* Will generate a new query key */
+
+	if (wants_ipp)
+		flags |= PING_F_UHC;	/* Will include more hosts in IPP */
+
+	if (0 == hcount) {
+		goto use_self_pong;
+	} else {
+		int i;
+
+		for (i = 0; i < hcount; i++) {
+			gnet_host_t *h = &host[i];
+
+			info.addr = gnet_host_get_addr(h);
+			info.port = gnet_host_get_port(h);
+
+			if (info.port == n->port && host_addr_equal(info.addr, n->addr))
+				continue;	/* Don't send pong for the host contacting us */
+	
+			goto send_pong;
+		}
+	}
+
+	/* FALL THROUGH */
+
+use_self_pong:
+	info.addr = listen_addr();
+	info.port = socket_listen_port();
+	info.files_count = 0;
+	info.kbytes_count = 0;
+
+	/* FALL THROUGH */
+
+send_pong:
+	send_pong(n, FALSE, flags,
+		1, 1, gnutella_header_get_muid(&n->header),
+		&info, &meta);	/* hops = 1, TTL = 1 */
+
+	if (GNET_PROPERTY(guess_server_debug) > 10) {
+		g_debug("GUESS %s query %s from %s with %spong listing %s:%u%s",
+			good_query_key ? "acknowledged" : "refused",
+			guid_hex_str(gnutella_header_get_muid(&n->header)), node_infostr(n),
+			good_query_key ? "" : "new query key and ",
+			host_addr_to_string(info.addr), info.port,
+			wants_ipp ? " plus others in \"IPP\"" : "");
 	}
 }
 
@@ -1754,7 +1965,9 @@ pong_extract_metadata(struct gnutella_node *n)
 		case EXT_T_GGEP_GUE:
 			/*
 			 * GUESS support.
-			 * Payload is optional and holds the GUESS version number.
+			 * Payload is optional and holds the GUESS version number encoded
+			 * in one byte: the upper 4 bits are the major version, the lower
+			 * 4 bits the minor.
 			 */
 
 			ALLOCATE(GUE);
@@ -1762,7 +1975,7 @@ pong_extract_metadata(struct gnutella_node *n)
 				payload = ext_payload(e);
 				meta->guess = payload[0];
 			} else {
-				meta->guess = 0x1;
+				meta->guess = 0x1;		/* No payload, assume version 0.1 */
 			}
 			break;
 		case EXT_T_GGEP_LOC:
@@ -1772,7 +1985,7 @@ pong_extract_metadata(struct gnutella_node *n)
 			 * 'll_[CC[_variant]]', where 'll' is a lowercase ISO639 language
 			 * code, 'CC' is a uppercase ISO3166 country/region code, and
 			 * 'variant' is a variant code (each subcode is 2 chars min,
-			 * case is normaly not significant but should be as indincated
+			 * case is normaly not significant but should be as indicated
 			 * before; the locale identifier subcodes may be longer if needed,
 			 * notably for language codes; see RFC 3066). The language code
 			 * part is mandatory, other parts are optional but must each be
@@ -2433,6 +2646,18 @@ pcache_pong_received(struct gnutella_node *n)
 
 	if (ptype == HOST_ULTRA)
 		add_recent_pong(HOST_ULTRA, cp);
+
+	if (cp->meta != NULL && (cp->meta->flags & PONG_META_HAS_GUE)) {
+		/*
+		 * If we're connected, we learnt about this GUESS host through
+		 * Gnutella handshaking.  The host is valid, we don't want to
+		 * smear it out from the GUESS cache.
+		 */
+
+		if (!node_is_connected(addr, port, FALSE)) {
+			hcache_add_caught(HOST_GUESS, addr, port, "pong");
+		}
+	}
 
 	if (GNET_PROPERTY(pcache_debug) > 6)
 		g_debug("CACHED %s pong %s (hops=%d, TTL=%d) from %s %s",

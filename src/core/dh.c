@@ -41,6 +41,7 @@ RCSID("$Id$")
 #include "nodes.h"
 #include "gmsg.h"
 #include "mq_tcp.h"
+#include "mq_udp.h"
 #include "gnet_stats.h"
 
 #include "lib/atoms.h"
@@ -148,6 +149,9 @@ dh_locate(const struct guid *muid)
 	gpointer key;
 	gpointer value;
 
+	if (NULL == by_muid_old)
+		return NULL;		/* DH layer shutdown occurred already */
+
 	/*
 	 * Look in the old table first.  If we find something there, move it
 	 * to the new table to keep te record "alive" since we still get hits
@@ -226,7 +230,7 @@ dh_timer(time_t now)
 	last_rotation = now;
 
 	if (GNET_PROPERTY(dh_debug) > 19)
-		printf("DH rotated tables, current has %d, old has %d\n",
+		g_debug("DH rotated tables, current has %d, old has %d",
 			g_hash_table_size(by_muid), g_hash_table_size(by_muid_old));
 }
 
@@ -282,10 +286,9 @@ cleanup:
 static enum dh_drop
 dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 {
-	g_assert(mq != NULL);
+	const char *teststr = test ? "[test] " : "";
 
-	if (GNET_PROPERTY(dh_debug) > 19) printf("DH ");
-	if (GNET_PROPERTY(dh_debug) > 19 && test) printf("[test] ");
+	g_assert(mq != NULL);
 
 	/*
 	 * The heart of the "dynamic hit routing" algorithm is here.
@@ -303,7 +306,7 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 		(dh->hits_sent >= DH_THRESH_HITS || dh->hits_queued >= DH_MIN_HITS)
 	) {
 		if (GNET_PROPERTY(dh_debug) > 19)
-			printf("queue size > hiwat, dropping\n");
+			g_debug("DH %squeue size > hiwat, dropping", teststr);
 		return DH_DROP_FC;
 	}
 
@@ -319,7 +322,7 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 		(dh->hits_sent >= DH_MIN_HITS || dh->hits_queued >= DH_MIN_HITS)
 	) {
 		if (GNET_PROPERTY(dh_debug) > 19)
-			printf("queue in SWIFT mode, dropping\n");
+			g_debug("DH %squeue in SWIFT mode, dropping", teststr);
 		return DH_DROP_FC;
 	}
 
@@ -338,7 +341,7 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 		)
 	) {
 		if (GNET_PROPERTY(dh_debug) > 19)
-			printf("queue in FLOWC mode, dropping\n");
+			g_debug("DH %squeue in FLOWC mode, dropping", teststr);
 		return DH_DROP_FC;
 	}
 
@@ -354,7 +357,7 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 		dh->hits_queued >= (DH_MIN_HITS / 2)
 	) {
 		if (GNET_PROPERTY(dh_debug) > 19)
-			printf("queue size > lowat, dropping\n");
+			g_debug("DH %squeue size > lowat, dropping", teststr);
 		return DH_DROP_FC;
 	}
 
@@ -368,7 +371,7 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 		dh->hits_queued >= DH_MIN_HITS
 	) {
 		if (GNET_PROPERTY(dh_debug) > 19)
-			printf("enough hits queued, throttling\n");
+			g_debug("DH %senough hits queued, throttling", teststr);
 		return DH_DROP_THROTTLE;
 	}
 
@@ -383,7 +386,7 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 		dh->hits_queued > (DH_MIN_HITS / 2) &&
 		(dh->hits_queued + dh->hits_sent) >= DH_MAX_HITS) {
 		if (GNET_PROPERTY(dh_debug) > 19)
-			printf("enough queued, nearing max, throttling\n");
+			g_debug("DH %senough queued, nearing max, throttling", teststr);
 		return DH_DROP_THROTTLE;
 	}
 
@@ -394,11 +397,12 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 
 	if (dh->hits_sent >= DH_MAX_HITS && dh->hits_queued) {
 		if (GNET_PROPERTY(dh_debug) > 19)
-			printf("max sendable hits reached, throttling\n");
+			g_debug("DH %smax sendable hits reached, throttling", teststr);
 		return DH_DROP_THROTTLE;
 	}
 
-	if (GNET_PROPERTY(dh_debug) > 19) printf("forwarding\n");
+	if (GNET_PROPERTY(dh_debug) > 19)
+		g_debug("DH %sforwarding", teststr);
 
 	return DH_FORWARD;
 }
@@ -428,8 +432,8 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 	g_assert(dh != NULL);		/* Must have called dh_got_results() first! */
 
 	if (GNET_PROPERTY(dh_debug) > 19) {
-		printf("DH %s got %d hit%s: "
-			"msg=%u, hits_recv=%u, hits_sent=%u, hits_queued=%u\n",
+		g_debug("DH %s got %d hit%s: "
+			"msg=%u, hits_recv=%u, hits_sent=%u, hits_queued=%u",
 			guid_hex_str(muid), count, count == 1 ? "" : "s",
 			dh->msg_recv, dh->hits_recv, dh->hits_sent,
 			dh->hits_queued);
@@ -474,11 +478,30 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 	mb = gmsg_split_to_pmsg_extend(&src->header, src->data,
 			src->size + GTA_HEADER_SIZE, dh_pmsg_free, pmi);
 
-	mq_tcp_putq(mq, mb, src);
+	/*
+	 * With GUESS we may route back a query hit to an UDP node.
+	 */
 
-	if (GNET_PROPERTY(dh_debug) > 19)
-		printf("DH enqueued %d hit%s for %s\n",
-			count, count == 1 ? "" : "s", guid_hex_str(muid));
+	if (NODE_IS_UDP(dest)) {
+		gnet_host_t to;
+		gnet_host_set(&to, dest->addr, dest->port);
+
+		if (GNET_PROPERTY(guess_server_debug) > 19) {
+			g_debug("GUESS sending %d hit%s for %s to %s",
+				count, 1 == count ? "" : "s", guid_hex_str(muid),
+				node_infostr(dest));
+		}
+
+		mq_udp_putq(mq, mb, &to);
+	} else {
+		mq_tcp_putq(mq, mb, src);
+
+		if (GNET_PROPERTY(dh_debug) > 19) {
+			g_debug("DH enqueued %d hit%s for %s to %s",
+				count, count == 1 ? "" : "s", guid_hex_str(muid),
+				node_infostr(dest));
+		}
+	}
 
 	return;
 

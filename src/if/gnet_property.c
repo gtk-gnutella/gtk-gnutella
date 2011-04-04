@@ -947,6 +947,20 @@ gboolean gnet_property_variable_enable_http_pipelining     = TRUE;
 static const gboolean gnet_property_variable_enable_http_pipelining_default = TRUE;
 guint32  gnet_property_variable_dl_pipeline_maxchunksize     = 1*1024*1024;
 static const guint32  gnet_property_variable_dl_pipeline_maxchunksize_default = 1*1024*1024;
+gboolean gnet_property_variable_enable_guess     = TRUE;
+static const gboolean gnet_property_variable_enable_guess_default = TRUE;
+guint32  gnet_property_variable_guess_server_debug     = 0;
+static const guint32  gnet_property_variable_guess_server_debug_default = 0;
+guint32  gnet_property_variable_guess_client_debug     = 0;
+static const guint32  gnet_property_variable_guess_client_debug_default = 0;
+guint32  gnet_property_variable_max_guess_hosts_cached     = 1000;
+static const guint32  gnet_property_variable_max_guess_hosts_cached_default = 1000;
+guint32  gnet_property_variable_hosts_in_guess_catcher     = 0;
+static const guint32  gnet_property_variable_hosts_in_guess_catcher_default = 0;
+guint32  gnet_property_variable_max_guess_intro_hosts_cached     = 5000;
+static const guint32  gnet_property_variable_max_guess_intro_hosts_cached_default = 5000;
+guint32  gnet_property_variable_hosts_in_guess_intro_catcher     = 0;
+static const guint32  gnet_property_variable_hosts_in_guess_intro_catcher_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -8643,6 +8657,143 @@ gnet_prop_init(void) {
     gnet_property->props[402].data.guint32.choices = NULL;
     gnet_property->props[402].data.guint32.max   = 10*1024*1024;
     gnet_property->props[402].data.guint32.min   = 64*1024;
+
+
+    /*
+     * PROP_ENABLE_GUESS:
+     *
+     * General data:
+     */
+    gnet_property->props[403].name = "enable_guess";
+    gnet_property->props[403].desc = _("Whether the Gnutella UDP Extension for Scalable Searches (GUESS) should be enabled.  With GUESS enabled, gtk-gnutell can perform iterative Ultrapeer queries instead of just broadcasting, allowing searches to more places within the Gnutella network.");
+    gnet_property->props[403].ev_changed = event_new("enable_guess_changed");
+    gnet_property->props[403].save = TRUE;
+    gnet_property->props[403].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[403].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[403].data.boolean.def   = (void *) &gnet_property_variable_enable_guess_default;
+    gnet_property->props[403].data.boolean.value = (void *) &gnet_property_variable_enable_guess;
+
+
+    /*
+     * PROP_GUESS_SERVER_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[404].name = "guess_server_debug";
+    gnet_property->props[404].desc = _("Debug level for server-side GUESS (Gnutella UDP Extension for Scalable Searches).");
+    gnet_property->props[404].ev_changed = event_new("guess_server_debug_changed");
+    gnet_property->props[404].save = TRUE;
+    gnet_property->props[404].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[404].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[404].data.guint32.def   = (void *) &gnet_property_variable_guess_server_debug_default;
+    gnet_property->props[404].data.guint32.value = (void *) &gnet_property_variable_guess_server_debug;
+    gnet_property->props[404].data.guint32.choices = NULL;
+    gnet_property->props[404].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[404].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_GUESS_CLIENT_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[405].name = "guess_client_debug";
+    gnet_property->props[405].desc = _("Debug level for client-side GUESS (Gnutella UDP Extension for Scalable Searches).");
+    gnet_property->props[405].ev_changed = event_new("guess_client_debug_changed");
+    gnet_property->props[405].save = TRUE;
+    gnet_property->props[405].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[405].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[405].data.guint32.def   = (void *) &gnet_property_variable_guess_client_debug_default;
+    gnet_property->props[405].data.guint32.value = (void *) &gnet_property_variable_guess_client_debug;
+    gnet_property->props[405].data.guint32.choices = NULL;
+    gnet_property->props[405].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[405].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_MAX_GUESS_HOSTS_CACHED:
+     *
+     * General data:
+     */
+    gnet_property->props[406].name = "max_guess_hosts_cached";
+    gnet_property->props[406].desc = _("Maximum number of hosts in the regular GUESS cache.");
+    gnet_property->props[406].ev_changed = event_new("max_guess_hosts_cached_changed");
+    gnet_property->props[406].save = TRUE;
+    gnet_property->props[406].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[406].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[406].data.guint32.def   = (void *) &gnet_property_variable_max_guess_hosts_cached_default;
+    gnet_property->props[406].data.guint32.value = (void *) &gnet_property_variable_max_guess_hosts_cached;
+    gnet_property->props[406].data.guint32.choices = NULL;
+    gnet_property->props[406].data.guint32.max   = 10000;
+    gnet_property->props[406].data.guint32.min   = 100;
+
+
+    /*
+     * PROP_HOSTS_IN_GUESS_CATCHER:
+     *
+     * General data:
+     */
+    gnet_property->props[407].name = "hosts_in_guess_catcher";
+    gnet_property->props[407].desc = _("Current number of hosts in the regular GUESS cache.");
+    gnet_property->props[407].ev_changed = event_new("hosts_in_guess_catcher_changed");
+    gnet_property->props[407].save = FALSE;
+    gnet_property->props[407].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[407].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[407].data.guint32.def   = (void *) &gnet_property_variable_hosts_in_guess_catcher_default;
+    gnet_property->props[407].data.guint32.value = (void *) &gnet_property_variable_hosts_in_guess_catcher;
+    gnet_property->props[407].data.guint32.choices = NULL;
+    gnet_property->props[407].data.guint32.max   = INT_MAX;
+    gnet_property->props[407].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_MAX_GUESS_INTRO_HOSTS_CACHED:
+     *
+     * General data:
+     */
+    gnet_property->props[408].name = "max_guess_intro_hosts_cached";
+    gnet_property->props[408].desc = _("Maximum number of hosts in the introduction GUESS cache.");
+    gnet_property->props[408].ev_changed = event_new("max_guess_intro_hosts_cached_changed");
+    gnet_property->props[408].save = TRUE;
+    gnet_property->props[408].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[408].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[408].data.guint32.def   = (void *) &gnet_property_variable_max_guess_intro_hosts_cached_default;
+    gnet_property->props[408].data.guint32.value = (void *) &gnet_property_variable_max_guess_intro_hosts_cached;
+    gnet_property->props[408].data.guint32.choices = NULL;
+    gnet_property->props[408].data.guint32.max   = 50000;
+    gnet_property->props[408].data.guint32.min   = 1000;
+
+
+    /*
+     * PROP_HOSTS_IN_GUESS_INTRO_CATCHER:
+     *
+     * General data:
+     */
+    gnet_property->props[409].name = "hosts_in_guess_intro_catcher";
+    gnet_property->props[409].desc = _("Current number of hosts in the introduction GUESS cache.");
+    gnet_property->props[409].ev_changed = event_new("hosts_in_guess_intro_catcher_changed");
+    gnet_property->props[409].save = FALSE;
+    gnet_property->props[409].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[409].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[409].data.guint32.def   = (void *) &gnet_property_variable_hosts_in_guess_intro_catcher_default;
+    gnet_property->props[409].data.guint32.value = (void *) &gnet_property_variable_hosts_in_guess_intro_catcher;
+    gnet_property->props[409].data.guint32.choices = NULL;
+    gnet_property->props[409].data.guint32.max   = INT_MAX;
+    gnet_property->props[409].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

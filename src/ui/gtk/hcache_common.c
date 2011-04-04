@@ -47,6 +47,8 @@ get_hcache_name(hcache_type_t type)
 	case HCACHE_BUSY:        return _("Busy");
 	case HCACHE_UNSTABLE:    return _("Unstable");
 	case HCACHE_ALIEN:       return _("Alien");
+	case HCACHE_GUESS:       return _("GUESS (running)");
+	case HCACHE_GUESS_INTRO: return _("GUESS (introductions)");
 	case HCACHE_NONE:
 	case HCACHE_MAX:
 		break;

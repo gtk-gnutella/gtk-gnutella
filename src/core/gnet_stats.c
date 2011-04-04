@@ -98,6 +98,8 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Own queries"),			 		 /**< MSG_DROP_OWN_QUERY */
 		N_("Ancient query format"),			 /**< MSG_DROP_ANCIENT_QUERY */
 		N_("Blank Servent ID"),				 /**< MSG_DROP_BLANK_SERVENT_ID */
+		N_("GUESS Query missing token"), /**< MSG_DROP_GUESS_MISSING_TOKEN */
+		N_("GUESS Invalid query token"), /**< MSG_DROP_GUESS_INVALID_TOKEN */
 		N_("DHT Invalid security token"),	 /**< MSG_DROP_DHT_INVALID_TOKEN */
 		N_("DHT Too many STORE requests"),	 /**< MSG_DROP_DHT_TOO_MANY_STORE */
 		N_("DHT Malformed message"),		 /**< MSG_DROP_DHT_UNPARSEABLE */
@@ -139,6 +141,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"query_compact_size",
 	"query_utf8",
 	"query_sha1",
+	"query_guess",
 	"broadcasted_pushes",
 	"push_proxy_udp_relayed",
 	"push_proxy_tcp_relayed",

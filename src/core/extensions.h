@@ -111,6 +111,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_PUSH,		/**< Push proxy info, in query hits */
 	EXT_T_GGEP_PUSH_TLS,	/**< TLS-capability bitmap for GGEP PUSH */
 	EXT_T_GGEP_Q,			/**< Queue status in HEAD Pongs */
+	EXT_T_GGEP_QK,			/**< GUESS Query Key */
 	EXT_T_GGEP_SCP,			/**< Support Cached Pongs, in pings (UHC) */
 	EXT_T_GGEP_SO,			/**< Secure OOB */
 	EXT_T_GGEP_T,			/**< Same as ALT_TLS but for HEAD Pongs */
@@ -199,6 +200,8 @@ guint16 ext_headlen(const extvec_t *e);
 guint16 ext_len(const extvec_t *e);
 const char *ext_ggep_id_str(const extvec_t *e);
 const char *ext_ggep_name(ext_token_t id);
+
+int ext_ggep_strip(char *buf, int len, const char *key);
 
 #endif	/* _core_extensions_h_ */
 

@@ -50,6 +50,25 @@ enum gta_msg {
 };
 
 /*
+ * Starting 2006-08-20, gtk-gnutella enforces a maximal payload size of 64K.
+ * This frees up 16 bits in the size field for future flags, for yet
+ * unforeseen extensions.
+ *
+ * To mark the size field as containing flags, the highest bit will have to
+ * be set.
+ */
+
+#define GTA_SIZE_MASK		0xffff
+#define GTA_SIZE_MARKED		0x80000000
+#define GTA_SIZE_FLAG_SHIFT	16
+
+/*
+ * Gnutella header message flags viewed as a 16-bit quantity.
+ */
+
+#define GTA_FLAGS_MARK		0x8000		/**< Mark signalling flags presence */
+
+/*
  * Structures
  */
 
@@ -148,6 +167,7 @@ static inline void
 gnutella_header_set_size(gnutella_header_t *header, guint32 size)
 {
 	guint8 *u8 = (void *) header;
+	g_assert(0 == (size & ~GTA_SIZE_MASK));	/* Don't set any "header flags" */
 	poke_le32(&u8[19], size);
 }
 
@@ -157,25 +177,6 @@ gnutella_header_check(void)
 	STATIC_ASSERT(23 == sizeof(gnutella_header_t));
 	STATIC_ASSERT(23 == GTA_HEADER_SIZE);
 }
-
-/*
- * Starting 2006-08-20, gtk-gnutella enforces a maximal payload size of 64K.
- * This frees up 16 bits in the size field for future flags, for yet
- * unforeseen extensions.
- *
- * To mark the size field as containing flags, the highest bit will have to
- * be set.
- */
-
-#define GTA_SIZE_MASK		0xffff
-#define GTA_SIZE_MARKED		0x80000000
-#define GTA_SIZE_FLAG_SHIFT	16
-
-/*
- * Gnutella header message flags viewed as a 16-bit quantity.
- */
-
-#define GTA_FLAGS_MARK		0x8000		/**< Mark signalling flags presence */
 
 /**
  * UDP traffic compression (TTL marking flags)
