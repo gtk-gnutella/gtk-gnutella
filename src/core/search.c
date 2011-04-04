@@ -5510,42 +5510,66 @@ search_request_preprocess(struct gnutella_node *n)
 			is_host_addr(n->gnet_addr) &&
 			!host_addr_equal(addr, n->gnet_addr)
 		) {
-			gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
+			if (NODE_IS_UDP(n)) {
+				query_strip_oob_flag(n, n->data);
+				oob = FALSE;
+				if (GNET_PROPERTY(guess_server_debug)) {
+					g_debug("QUERY (GUESS) %s from %s: removed OOB flag "
+						"(mismatching return address %s versus UDP %s)",
+						guid_hex_str(gnutella_header_get_muid(&n->header)),
+						node_infostr(n), host_addr_to_string(addr),
+						host_addr_to_string2(n->addr));
+				}
+			} else {
+				gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
 
-			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
-				g_debug("QUERY dropped from %s: invalid OOB flag "
-					"(return address mismatch: %s, node: %s)",
-					node_infostr(n),
-					host_addr_port_to_string(addr, port), node_gnet_addr(n));
-
-			goto drop;
+				if (
+					GNET_PROPERTY(query_debug) ||
+					GNET_PROPERTY(oob_proxy_debug)
+				) {
+					g_debug("QUERY dropped from %s: invalid OOB flag "
+						"(return address mismatch: %s, node: %s)",
+						node_infostr(n),
+						host_addr_port_to_string(addr, port), node_gnet_addr(n));
+				}
+				goto drop;
+			}
 		}
 
 		/*
 		 * If the query contains an invalid IP:port, clear the OOB flag
 		 * if it comes from a leaf node (and we may then OOB-proxy it)
-		 * or drop it if it comes from an ultra node (results cannot be
-		 * sent back, no need to propagate further).
+		 * or UDP.  Drop it if it comes from an ultra node (results cannot
+		 * be sent back, no need to propagate further).
 		 */
 
 		if (!host_is_valid(addr, port)) {
-			if (NODE_IS_LEAF(n)) {
+			if (NODE_IS_LEAF(n) || NODE_IS_UDP(n)) {
 				query_strip_oob_flag(n, n->data);
 				oob = FALSE;
 
-				if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
-					g_debug("QUERY %s from %s: removed OOB flag "
+				if (
+					GNET_PROPERTY(query_debug) ||
+					GNET_PROPERTY(oob_proxy_debug) ||
+					(NODE_IS_UDP(n) && GNET_PROPERTY(guess_server_debug))
+				) {
+					g_debug("QUERY %s%s from %s: removed OOB flag "
 						"(invalid return address: %s)",
+						NODE_IS_UDP(n) ? "(GUESS) " : "",
 						guid_hex_str(gnutella_header_get_muid(&n->header)),
 						node_infostr(n), host_addr_port_to_string(addr, port));
+				}
 			} else {
 				gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
 
-				if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
+				if (
+					GNET_PROPERTY(query_debug) ||
+					GNET_PROPERTY(oob_proxy_debug)
+				) {
 					g_debug("QUERY dropped, relayed via %s: "
 						"invalid return address: %s",
-						node_infostr(n),
-						host_addr_port_to_string(addr, port));
+						node_infostr(n), host_addr_port_to_string(addr, port));
+				}
 
 				goto drop;
 			}
