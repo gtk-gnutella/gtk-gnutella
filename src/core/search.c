@@ -5506,7 +5506,7 @@ search_request_preprocess(struct gnutella_node *n)
 		 */
 
 		if (
-			NODE_IS_LEAF(n) &&
+			(NODE_IS_LEAF(n) || NODE_IS_UDP(n)) &&
 			is_host_addr(n->gnet_addr) &&
 			!host_addr_equal(addr, n->gnet_addr)
 		) {

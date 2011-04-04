@@ -7589,6 +7589,15 @@ node_udp_process(gnutella_node_t *n, struct gnutella_socket *s)
 		goto hostile_check;
 
 	/*
+	 * We can't know for sure what the Gnutella node address is, so we use
+	 * that of the incoming packet.  Hopefully, the port used to send the
+	 * message will not be a transient one (unbound socket, or NAT-ed).
+	 */
+
+	n->gnet_addr = n->addr;
+	n->gnet_port = n->port;
+
+	/*
 	 * A little code duplication from node_read(), which we don't call
 	 * when receiving UDP traffic since the whole datagram has alrady
 	 * been read atomically.
