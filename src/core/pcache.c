@@ -710,8 +710,12 @@ ping_type(const gnutella_node_t *n)
 			break;
 
 		case EXT_T_GGEP_QK:
-			if (0 == ext_paylen(e))
+			if (
+				0 == ext_paylen(e) &&
+				NODE_P_ULTRA == GNET_PROPERTY(current_peermode)
+			) {
 				flags |= PING_F_QK;
+			}
 			break;
 
 		default: ;
