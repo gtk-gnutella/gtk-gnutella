@@ -626,7 +626,7 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 			} else {
 				if (0 == dm->count) {
 					if (dm->validated) {
-						g_warning("DBMAP on sdbm \"%s\": BUG: "
+						g_carp("DBMAP on sdbm \"%s\": BUG: "
 							"sdbm_delete() worked but we had no key tracked",
 							sdbm_name(dm->u.s.sdbm));
 					} else {

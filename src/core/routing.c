@@ -2141,7 +2141,7 @@ route_query_hit(struct route_log *route_log,
 	 */
 
 	if (is_oob_proxied) {
-		g_warning("BUG: forgot we sent OOB-proxied query %s in routing table!",
+		g_carp("BUG: forgot we sent OOB-proxied query %s in routing table!",
 			guid_hex_str(gnutella_header_get_muid(&sender->header)));
 		node_is_target = TRUE;		/* We are the target of the reply */
 		goto handle;
