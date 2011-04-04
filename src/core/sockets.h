@@ -176,6 +176,16 @@ socket_check(const struct gnutella_socket * const s)
 	g_assert(SOCKET_MAGIC == s->magic);
 }
 
+static inline void
+socket_buffer_check(const struct gnutella_socket * const s)
+{
+	g_assert(s != NULL);
+	g_assert(SOCKET_MAGIC == s->magic);
+	g_assert((0 == s->buf_size) ^ (NULL != s->buf));
+	g_assert(0 == s->pos || s->buf != NULL);
+}
+
+
 /*
  * Global Data
  */

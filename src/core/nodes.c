@@ -4941,6 +4941,8 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	 * buffer, but we need to inject it at the bottom of the RX stack.
 	 */
 
+	socket_buffer_check(s);
+
 	if (s->pos > 0) {
 		pdata_t *db;
 		pmsg_t *mb;
