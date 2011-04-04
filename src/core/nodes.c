@@ -4470,8 +4470,17 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			 * running out of slots.
 			 */
 
-			if (GNET_PROPERTY(node_leaf_count) >= GNET_PROPERTY(max_leaves))
+			if (GNET_PROPERTY(node_leaf_count) >= GNET_PROPERTY(max_leaves)) {
 				(void) node_remove_useless_leaf(NULL);
+
+				/*
+				 * It may happen than when we try to make up some room to
+				 * remove a useless node, we do remove this node!
+				 */
+
+				if (GTA_NODE_REMOVING == n->status)
+					return FALSE;
+			}
 
 			if (
 				handshaking &&
@@ -4526,6 +4535,14 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			) {
 				(void) node_remove_uncompressed_ultra(NULL);
 			}
+
+			/*
+			 * It may happen than when we try to make up some room to
+			 * remove a useless node, we do remove this node!
+			 */
+
+			if (GTA_NODE_REMOVING == n->status)
+				return FALSE;
 
 			if (
 				handshaking &&
@@ -4742,6 +4759,8 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			return FALSE;
 		}
 	}
+
+	g_assert(n->status != GTA_NODE_REMOVING);
 
 	return TRUE;
 }
