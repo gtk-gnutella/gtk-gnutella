@@ -89,6 +89,18 @@ RCSID("$Id$")
 #define NL_MAX_IN_NET		3		/* At most 3 hosts from same class-C net */
 
 /**
+ * Avoidance of cached DHT values that are too far from the k-closest nodes.
+ *
+ * The base probability is the chance that a value found at the k-ball
+ * external frontier be actually part of the k-closest set of nodes.  For each
+ * bit further away from this frontier, the probability decreases exponentially.
+ */
+#define NL_KBALL_PROBA		0.90
+#define NL_KBALL_FACTOR		100000
+ 
+static unsigned kball_dist_proba[KUID_RAW_BITSIZE];
+
+/**
  * For active countermeasures, Kullback-Leibler divergence thresholds.
  *
  * The article from Thibault Cholez et al. uses the natural logarithm,
@@ -113,6 +125,7 @@ static void lookup_value_free(nlookup_t *nl, gboolean free_vvec);
 static void lookup_value_iterate(nlookup_t *nl);
 static void lookup_value_expired(cqueue_t *unused_cq, gpointer obj);
 static void lookup_value_delay(nlookup_t *nl);
+static void lookup_requery(nlookup_t *nl, const knode_t *kn);
 
 typedef enum {
 	NLOOKUP_MAGIC = 0x2bb8100cU
@@ -244,6 +257,7 @@ struct nlookup {
 #define NL_F_DONT_REMOVE	(1U << 4)	/**< No removal from table on free */
 #define NL_F_PASV_PROTECT	(1U << 5)	/**< Passive protection triggered */
 #define NL_F_ACTV_PROTECT	(1U << 6)	/**< Active protection triggered */
+#define NL_F_KBALL_CHECK	(1U << 7)	/**< Checked kball probability */
 
 static inline void
 lookup_check(const nlookup_t *nl)
@@ -3204,6 +3218,83 @@ bad:
 	return FALSE;
 }
 
+/**
+ * Determines whether we can stop the value lookup at this node.
+ */
+static gboolean
+lookup_value_acceptable(nlookup_t *nl, const knode_t *kn)
+{
+	size_t common;
+	size_t kball;
+	unsigned proba = NL_KBALL_FACTOR;
+
+	lookup_check(nl);
+	knode_check(kn);
+	g_assert(LOOKUP_VALUE == nl->type);
+
+	/*
+	 * If we have already committed on fetching the values, go on.
+	 */
+
+	if (lookup_is_fetching(nl))
+		return TRUE;
+
+	common = kuid_common_prefix(nl->kuid, kn->id);
+	kball = dht_get_kball_furthest();
+
+	if (common > kball)
+		goto accepting;
+
+	/*
+	 * At the k-ball frontier, say we have 85% chances of having found
+	 * a value belonging to the k-closest nodes.  Each extra bit adds a 85%
+	 * probability as well, so for a distance of "n" bits, the probability
+	 * that we found something suitable (most probably cached) is 0.85^(n+1).
+	 *
+	 * The actualy probability we use is NL_KBALL_PROBA and the value
+	 * kball_dist_proba[i] already holds the pre-computed probability of
+	 * accepting the value at a distance of i bits, scaled by NL_KBALL_FACTOR.
+	 *
+	 * When we refuse a value that falls too far from the k-ball external
+	 * frontier, we're not going to accept any value until we get a reply
+	 * from a node that falls well within the k-ball of the key we're
+	 * looking for.
+	 */
+
+	if (nl->flags & NL_F_KBALL_CHECK)
+		goto refusing;
+
+	nl->flags |= NL_F_KBALL_CHECK;		/* Probability check done once */
+	proba = kball_dist_proba[kball - common];
+
+	if (random_u32() % NL_KBALL_FACTOR < proba)
+		goto accepting;
+
+refusing:
+	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+		g_debug("DHT LOOKUP[%s] %s lookup for %s refusing (proba = %.3f%%) "
+			"value at node with only %lu common bits (k-ball at %lu bits): %s",
+			nid_to_string(&nl->lid), lookup_type_to_string(nl),
+			kuid_to_hex_string(nl->kuid),
+			(double) proba / (NL_KBALL_FACTOR / 100), (unsigned long) common,
+			(unsigned long) kball, knode_to_string(kn));
+	}
+
+	return FALSE;
+
+accepting:
+	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+		g_debug("DHT LOOKUP[%s] %s lookup for %s accepting value "
+			"(%lu common bits, k-ball at %lu bits, proba = %.3f%%) from %s",
+			nid_to_string(&nl->lid), lookup_type_to_string(nl),
+			kuid_to_hex_string(nl->kuid), (unsigned long) common,
+			(unsigned long) kball, (double) proba / (NL_KBALL_FACTOR / 100),
+			knode_to_string(kn));
+	}
+
+	return TRUE;
+}
+
 /***
  *** RPC event callbacks for FIND_NODE and FIND_VALUE operations.
  *** See revent_pmsg_free() and revent_rpc_cb() to understand calling contexts.
@@ -3373,6 +3464,17 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 	switch (nl->type) {
 	case LOOKUP_VALUE:
 		if (function == KDA_MSG_FIND_VALUE_RESPONSE) {
+			/*
+			 * Before processing the found value, we need to make sure we
+			 * can accept a value from this node (given the distance to
+			 * the key) to avoid us hitting a cached value over and over and
+			 * never getting at the new updated data.
+			 */
+
+			if (!lookup_value_acceptable(nl, kn)) {
+				lookup_requery(nl, kn);
+				return TRUE;	/* Iterate */
+			}
 			if (lookup_value_found(nl, kn, payload, len, hop))
 				return FALSE;	/* Do not iterate */
 			nl->rpc_bad++;
@@ -3632,6 +3734,33 @@ lookup_send(nlookup_t *nl, knode_t *kn)
 	}
 
 	g_assert_not_reached();
+}
+
+/**
+ * Requery node with a FIND_NODE instead of a FIND_VALUE.
+ */
+static void
+lookup_requery(nlookup_t *nl, const knode_t *kn)
+{
+	lookup_check(nl);
+	knode_check(kn);
+	g_assert(LOOKUP_VALUE == nl->type);
+	g_assert(!lookup_is_fetching(nl));
+	g_assert(map_contains(nl->queried, kn->id));
+	g_assert(!map_contains(nl->pending, kn->id));
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+		g_debug("DHT LOOKUP[%s] hop %u, re-querying %s",
+			nid_to_string(&nl->lid), nl->hops, knode_to_string(kn));
+	}
+
+	nl->msg_pending++;
+	nl->rpc_pending++;
+	nl->rpc_latest_pending++;
+
+	map_insert(nl->pending, kn->id, knode_refcnt_inc(kn));
+	revent_find_node(deconstify_gpointer(kn),
+		nl->kuid, nl->lid, &lookup_ops, nl->hops);
 }
 
 /**
@@ -4759,6 +4888,16 @@ lookup_init(void)
 		for (j = count; j < KDA_K; j++) {
 			log2_frequency[i][j] = 0.0;		/* In case used by mistake */
 		}
+	}
+
+	/*
+	 * Build probability of DHT value acceptance with 'n' bits of distance
+	 * from the k-ball frontier.
+	 */
+
+	for (i = 1; i <= G_N_ELEMENTS(kball_dist_proba); i++) {
+		kball_dist_proba[i - 1] =
+			(unsigned) (pow(NL_KBALL_PROBA, (double) i) * NL_KBALL_FACTOR);
 	}
 }
 
