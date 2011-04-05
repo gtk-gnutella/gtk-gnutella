@@ -120,6 +120,8 @@ RCSID("$Id$")
 
 #define SEARCH_GC_PERIOD	120	 /**< Every 2 minutes */
 
+#define HUGE_FS		0x1c	/**< HUGE Field Separator */
+
 /*
  * GUESS security tokens.
  */
@@ -2602,6 +2604,7 @@ build_search_msg(search_ctrl_t *sch)
 
 	if (QUERY_F_OOB_REPLY & flags) {
 		ggep_stream_t gs;
+		size_t glen;
 
 		if (is_sha1_search) {
 			/* As long as we have to use plain text hash queries instead
@@ -2612,7 +2615,7 @@ build_search_msg(search_ctrl_t *sch)
 				g_warning("dropping too large query \"%s\"", sch->query);
 				goto error;
 			}
-			msg.bytes[size] = 0x1C; /* extension separator */
+			msg.bytes[size] = HUGE_FS; /* extension separator */
 			size++;
 		}
 
@@ -2659,7 +2662,19 @@ build_search_msg(search_ctrl_t *sch)
 			}
 		}
 
-		size += ggep_stream_close(&gs);
+		size += (glen = ggep_stream_close(&gs));
+
+		/*
+		 * If the GGEP block is empty and we're dealing with a SHA-1 search,
+		 * remove the HUGE separator (otherwise the query will be flagged
+		 * as carrying unnecessary bloat and will be dropped by GTKG.
+		 */
+
+		if (0 == glen && is_sha1_search) {
+			g_assert(size >= 1);
+			g_assert(HUGE_FS == msg.bytes[size - 1]);
+			size--;
+		}
 	}
 
 	if (size - GTA_HEADER_SIZE > GNET_PROPERTY(search_queries_forward_size)) {
@@ -5708,6 +5723,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 					} else if (GGEP_NOT_FOUND == ret) {
 						continue;		/* Unsupported hash type */
 					} else {
+						/* Was validated by search_request_preprocess() */
 						g_assert_not_reached();
 					}
 				} else if (EXT_T_URN_SHA1 == e->ext_token) {
@@ -5719,6 +5735,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 					if (
 						!huge_sha1_extract32(ext_payload(e), paylen, sha1, n)
 					) {
+						/* Was validated by search_request_preprocess() */
 						g_assert_not_reached();
 					}
 				}
