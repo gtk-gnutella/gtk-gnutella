@@ -120,6 +120,7 @@ static struct kball {
 	kuid_t *furthest;			/**< KUID of furthest node (atom) */
 	guint8 furthest_bits;		/**< Common bits with furthest node */
 	guint8 closest_bits;		/**< Common bits with closest node */
+	guint8 theoretical_bits;	/**< Theoretical furthest k-ball frontier */
 	guint8 width;				/**< k-ball width, in bits */
 	guint8 seeded;				/**< Is the DHT seeded? */
 } kball;
@@ -1176,7 +1177,6 @@ keys_update_kball(void)
 		knode_t *closest = patricia_closest(pt, our_kuid);
 		size_t fbits;
 		size_t cbits;
-		size_t tbits;
 
 		kuid_atom_change(&kball.furthest, furthest->id);
 		kuid_atom_change(&kball.closest, closest->id);
@@ -1205,21 +1205,10 @@ keys_update_kball(void)
 
 		STATIC_ASSERT(KUID_RAW_BITSIZE < 256);
 
-		/*
-		 * The furthest frontier is important because it determines whether
-		 * we need to apply timing decimation on published keys.
-		 * Relying solely on the exploration of our subtree is not enough
-		 * since there can be some aberration in the vincinity of our KUID.
-		 * Correct with the theoretical furthest bit value, determined
-		 * from the estimated DHT size.
-		 */
-
-		tbits = dht_get_kball_furthest();	/* Theoretical */
-		fbits = MIN(fbits, tbits);		/* Put frontier as far as possible */
-
 		kball.furthest_bits = fbits & 0xff;
 		kball.closest_bits = cbits & 0xff;
 		kball.width = (cbits - fbits) & 0xff;
+		kball.theoretical_bits = dht_get_kball_furthest() & 0xff;
 
 		gnet_stats_set_general(GNR_DHT_KBALL_FURTHEST, kball.furthest_bits);
 		gnet_stats_set_general(GNR_DHT_KBALL_CLOSEST, kball.closest_bits);
@@ -1237,14 +1226,28 @@ keys_decimation_factor(const kuid_t *key)
 {
 	size_t common;
 	int delta;
+	guint8 frontier;
 
 	common = kuid_common_prefix(get_our_kuid(), key);
+
+	/*
+	 * The furthest frontier is important because it determines whether
+	 * we need to apply timing decimation on published keys.
+	 * Relying solely on the exploration of our subtree is not enough
+	 * since there can be some aberration in the vincinity of our KUID.
+	 *
+	 * Correct it with the theoretical furthest bit value, determined
+	 * from the estimated DHT size, putting the frontier as further away
+	 * as possible.
+	 */
+
+	frontier = MIN(kball.furthest_bits, kball.theoretical_bits);
 
 	/*
 	 * If key falls within our k-ball, no decimation.
 	 */
 
-	if (common >= kball.furthest_bits || !kball.seeded)
+	if (common >= frontier || !kball.seeded)
 		return 1.0;
 
 	delta = kball.furthest_bits - common;

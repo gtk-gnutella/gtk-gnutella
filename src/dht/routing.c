@@ -3961,6 +3961,8 @@ update_cached_size_estimate(void)
 	stats.kball_furthest = highest_bit_set64((estimate + avg_stderr) / KDA_K);
 	stats.kball_furthest = MAX(0, stats.kball_furthest);
 
+	gnet_stats_set_general(GNR_DHT_KBALL_THEORETICAL, stats.kball_furthest);
+
 	if (GNET_PROPERTY(dht_debug)) {
 		int count = statx_n(st);
 		g_debug("DHT cached average local size estimate is %s, +/- %s "
