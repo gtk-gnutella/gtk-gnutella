@@ -86,7 +86,7 @@ assertion_message(const assertion_data * const data, int fatal)
  *		--RAM, 2009-10-31
  */
 
-void NON_NULL_PARAM((1)) /* REGPARM(1) */
+NO_INLINE void NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_warning(const assertion_data * const data)
 {
 	assertion_message(data, FALSE);
@@ -100,7 +100,7 @@ assertion_warning(const assertion_data * const data)
 		stacktrace_where_safe_print_offset(STDOUT_FILENO, 1);
 }
 
-void G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
+NO_INLINE void G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_failure(const assertion_data * const data)
 {
 	static volatile sig_atomic_t seen_fatal;
