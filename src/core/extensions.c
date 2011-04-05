@@ -1454,10 +1454,44 @@ ext_ggep_strip(char *buf, int len, const char *key)
 		 */
 
 		if (emptied) {
-			memmove(p - 1, p, end - p);
+			char *q = p - 1;			/* GGEP Magic */
+
+			g_assert(q >= buf);
+			g_assert(GGEP_MAGIC == *(guchar *) q);
+
+			memmove(q, p, end - p);
 			end--;
 			start--;
 			removed++;
+
+			if (GNET_PROPERTY(ggep_debug) > 5) {
+				g_debug("GGEP stripped leading magic byte");
+			}
+
+			/*
+			 * If the GGEP block was the last extension block, we need to
+			 * remove any previous HUGE_FS character which is now pure
+			 * overhead as well.
+			 */
+
+			if (
+				q != buf &&
+				(start == end || HUGE_FS == *start || '\0' == *start)
+			) {
+				char *r = q - 1;		/* Char before GGEP magic */
+				
+				g_assert(r >= buf);
+
+				if (HUGE_FS == *r) {
+					memmove(r, q, end - q);
+					end--;
+					start--;
+
+					if (GNET_PROPERTY(ggep_debug) > 5) {
+						g_debug("GGEP stripped now useless HUGE separator");
+					}
+				}
+			}
 		}
 	}
 
