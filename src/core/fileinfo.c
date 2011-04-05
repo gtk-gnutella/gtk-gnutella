@@ -5460,19 +5460,26 @@ file_info_find_available_hole(
 
 		for (sl = ranges; sl; sl = g_slist_next(sl)) {
 			const http_range_t *r = sl->data;
+			filesize_t start, end;
 
 			if (r->start > fc->to)
 				break;					/* No further range will intersect */
 
-			if (r->start >= fc->from && r->start < fc->to) {
-				*from = r->start;
-				*to = MIN(r->end + 1, fc->to);
-				goto found;
-			}
+			/*
+			 * Intersect range and chunk, [start, end[ is the result.
+			 */
 
-			if (r->end >= fc->from && r->end < fc->to) {
-				*from = MAX(r->start, fc->from);
-				*to = r->end + 1;
+			start = MAX(r->start, fc->from);
+			end = r->end + 1;
+			end = MIN(end, fc->to);
+
+			/*
+			 * If intersection is non-null, we got our chunk.
+			 */
+
+			if (start < end) {
+				*from = start;
+				*to = end;
 				goto found;
 			}
 		}
