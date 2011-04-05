@@ -5271,7 +5271,7 @@ search_request_preprocess(struct gnutella_node *n)
 				newlen = ext_ggep_strip(start, newlen, GGEP_NAME(SCP));
 
 				if (GNET_PROPERTY(guess_server_debug) > 5) {
-					g_warning("GUESS search extension part %lu -> %lu bytes",
+					g_debug("GUESS search extension part %lu -> %lu bytes",
 						(unsigned long) extra, (unsigned long) newlen);
 				}
 
