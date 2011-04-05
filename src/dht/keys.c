@@ -107,7 +107,7 @@ RCSID("$Id$")
 #define LOAD_SMOOTH		0.25f	/**< EMA smoothing factor for load */
 #define LOAD_GET_THRESH	5.0		/**< Above that and we're "loaded" */
 #define LOAD_STO_THRESH	8.0		/**< Above that and we're "loaded" */
-#define KBALL_PERIOD	(10*60)	/**< Update k-ball info every 10 minutes */
+#define KBALL_PERIOD	(2*60)	/**< Update k-ball info every 2 minutes */
 #define KBALL_FIRST		60		/**< First k-ball update after 1 minute */
 
 #define KEYS_DB_CACHE_SIZE	512	/**< Amount of keys to keep cached in RAM */
