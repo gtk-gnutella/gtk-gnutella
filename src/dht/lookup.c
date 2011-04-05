@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2008-2010, Raphael Manfredi
+ * Copyright (c) 2008-2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Kademlia node/value lookups.
  *
  * @author Raphael Manfredi
- * @date 2008-2010
+ * @date 2008-2011
  */
 
 #include "common.h"
@@ -917,10 +917,12 @@ lookup_value_terminate(nlookup_t *nl,
 			GNET_PROPERTY(dht_lookup_debug) > 2 ||
 			GNET_PROPERTY(dht_publish_debug) > 2
 		) {
-			g_debug("DHT LOOKUP[%s] going to cache %d \"%s\" value%s at %s",
+			g_debug("DHT LOOKUP[%s] "
+				"going to cache %d \"%s\" value%s for %s at %s",
 				nid_to_string(&nl->lid),
 				vcnt, dht_value_type_to_string(nl->u.fv.vtype),
-				1 == vcnt ? "" : "s", knode_to_string(closest));
+				1 == vcnt ? "" : "s",
+				kuid_to_hex_string(nl->kuid), knode_to_string(closest));
 		}
 
 		rc.kn = closest;
@@ -1179,8 +1181,9 @@ lookup_value_append(nlookup_t *nl, float load,
 			map_insert(fv->seen, dht_value_creator(v)->id, v);
 		} else {
 			if (GNET_PROPERTY(dht_lookup_debug) > 2) {
-				g_debug("DHT LOOKUP[%s] ignoring duplicate %s",
-					nid_to_string(&nl->lid), dht_value_to_string(v));
+				g_debug("DHT LOOKUP[%s] ignoring duplicate %s from %s",
+					nid_to_string(&nl->lid), dht_value_to_string(v),
+					knode_to_string(kn));
 			}
 			gnet_stats_count_general(GNR_DHT_DUP_VALUES, 1);
 			dht_value_free(v, TRUE);
