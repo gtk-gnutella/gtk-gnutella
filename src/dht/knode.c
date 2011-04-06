@@ -66,7 +66,7 @@ knode_hash(gconstpointer key)
 
 	knode_check(kn);
 
-	return sha1_hash(kn->id);
+	return kuid_hash(kn->id);
 }
 
 /**

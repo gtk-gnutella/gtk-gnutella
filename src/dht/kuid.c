@@ -177,10 +177,19 @@ kuid_xor_distance(kuid_t *res, const kuid_t *k1, const kuid_t *k2)
 }
 
 /**
+ * Hash a KUID.
+ */
+unsigned
+kuid_hash(const void *key)
+{
+	return binary_hash(key, KUID_RAW_SIZE);
+}
+
+/**
  * Are two KUID identical?
  */
 gboolean
-kuid_eq(const kuid_t *k1, const kuid_t *k2)
+kuid_eq(const void *k1, const void *k2)
 {
 	return k1 == k2 || 0 == memcmp(k1, k2, KUID_RAW_SIZE);
 }

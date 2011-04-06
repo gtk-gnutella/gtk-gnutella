@@ -504,7 +504,7 @@ stable_init(void)
 	db_lifedata = storage_open(db_stable_what, db_stable_base,
 		KUID_RAW_SIZE, sizeof(struct lifedata), 0,
 		serialize_lifedata, deserialize_lifedata, NULL,
-		STABLE_DB_CACHE_SIZE, sha1_hash, sha1_eq);
+		STABLE_DB_CACHE_SIZE, kuid_hash, kuid_eq);
 
 	dbmw_set_map_cache(db_lifedata, STABLE_MAP_CACHE_SIZE);
 	stable_prune_old();

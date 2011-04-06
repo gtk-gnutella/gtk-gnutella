@@ -1042,7 +1042,7 @@ roots_init(void)
 	db_rootdata = storage_open(db_rootdata_what, db_rootdata_base,
 		KUID_RAW_SIZE, sizeof(struct rootdata), 0,
 		serialize_rootdata, deserialize_rootdata, NULL,
-		ROOTKEYS_DB_CACHE_SIZE, sha1_hash, sha1_eq);
+		ROOTKEYS_DB_CACHE_SIZE, kuid_hash, kuid_eq);
 
 	db_contact = storage_open(db_contact_what, db_contact_base,
 		sizeof(guint64), sizeof(struct contact),

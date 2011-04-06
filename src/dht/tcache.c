@@ -374,7 +374,7 @@ tcache_init(void)
 		KUID_RAW_SIZE, sizeof(struct tokdata),
 			sizeof(struct tokdata) + MAX_INT_VAL(guint8),
 		serialize_tokdata, deserialize_tokdata, free_tokdata,
-		TOK_DB_CACHE_SIZE, sha1_hash, sha1_eq);
+		TOK_DB_CACHE_SIZE, kuid_hash, kuid_eq);
 
 	dbmw_set_map_cache(db_tokdata, TOK_MAP_CACHE_SIZE);
 

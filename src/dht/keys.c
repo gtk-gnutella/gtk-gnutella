@@ -1285,13 +1285,13 @@ keys_init(void)
 	keys_periodic_ev = cq_periodic_add(callout_queue, LOAD_PERIOD * 1000,
 		keys_periodic_load, NULL);
 
-	keys = g_hash_table_new(sha1_hash, sha1_eq);
+	keys = g_hash_table_new(kuid_hash, kuid_eq);
 	install_periodic_kball(KBALL_FIRST);
 
 	db_keydata = storage_create(db_keywhat, db_keybase,
 		KUID_RAW_SIZE, sizeof(struct keydata), 0,
 		serialize_keydata, deserialize_keydata, NULL,
-		KEYS_DB_CACHE_SIZE, sha1_hash, sha1_eq);
+		KEYS_DB_CACHE_SIZE, kuid_hash, kuid_eq);
 
 	for (i = 0; i < G_N_ELEMENTS(decimation_factor); i++)
 		decimation_factor[i] = pow(KEYS_DECIMATION_BASE, i);

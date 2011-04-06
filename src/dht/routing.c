@@ -772,7 +772,7 @@ other_size_hash(gconstpointer key)
 {
 	const struct other_size *os = key;
 
-	return sha1_hash(os->id);
+	return kuid_hash(os->id);
 }
 
 static int
@@ -829,7 +829,7 @@ allocate_node_lists(struct kbucket *kb)
 
 	kb->nodes = walloc(sizeof *kb->nodes);
 
-	kb->nodes->all = g_hash_table_new(sha1_hash, sha1_eq);
+	kb->nodes->all = g_hash_table_new(kuid_hash, kuid_eq);
 	kb->nodes->good = hash_list_new(knode_hash, knode_eq);
 	kb->nodes->stale = hash_list_new(knode_hash, knode_eq);
 	kb->nodes->pending = hash_list_new(knode_hash, knode_eq);

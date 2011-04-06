@@ -1002,8 +1002,8 @@ gdht_find_guid(const guid_t *guid, const host_addr_t addr, guint16 port)
 void
 gdht_init(void)
 {
-	sha1_lookups = g_hash_table_new(sha1_hash, sha1_eq);
-	guid_lookups = g_hash_table_new(sha1_hash, sha1_eq);
+	sha1_lookups = g_hash_table_new(kuid_hash, kuid_eq);
+	guid_lookups = g_hash_table_new(kuid_hash, kuid_eq);
 }
 
 /**
