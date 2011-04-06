@@ -11977,6 +11977,8 @@ download_ignore_data(struct download *d, pmsg_t *mb)
 	fi_src_status_changed(d);
 
 	if (d->pos >= d->chunk.end) {
+		fileinfo_t *fi = d->file_info;
+
 		/*
 		 * We finished our request, go on with a new one, hoping it will
 		 * match this time or give us good data if we request elsewhere
@@ -11984,6 +11986,25 @@ download_ignore_data(struct download *d, pmsg_t *mb)
 		 */
 
 		download_continue(d, d->pos > d->chunk.end);
+
+		/*
+		 * Two sources could have competed one against another, forcing
+		 * ignoring on each other. Yet the file is done and nobody spotted
+		 * it because both went to "ignore mode" to preserve the connections
+		 * and therefore the downloads were never stopped.
+		 *
+		 * Do the check now, but be extra careful since we can spend a long
+		 * time in "ignore mode" and the file could alread have been checked
+		 * and stripped of its fileinfo trailer by another source completing.
+		 */
+
+		if (
+			FILE_INFO_COMPLETE(fi) && !FILE_INFO_FINISHED(fi) &&
+			!(FI_F_VERIFYING & fi->flags)
+		) {
+			download_verify_sha1(d);
+		}
+
 		return FALSE;
 	}
 
