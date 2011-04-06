@@ -1003,7 +1003,7 @@ send_pong:
  */
 
 static time_t pcache_expire_time = 0;
-static struct aging *udp_pings;
+static aging_table_t *udp_pings;
 
 struct cached_pong {		/**< A cached pong */
 	int refcount;			/**< How many lists reference us? */

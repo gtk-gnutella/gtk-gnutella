@@ -118,6 +118,7 @@ RCSID("$Id$")
 #define IO_LONG_TIMEOUT	160			/**< Longer timeouting condition */
 #define STALL_CLEAR		600			/**< Decrease stall counter every 10 min */
 #define MAX_ERRORS		10			/**< Max # of errors before we close */
+#define PUSH_REPLY_FREQ	15			/**< Answer to 1 push per IP per 15 secs */
 
 static GSList *list_uploads;
 static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
@@ -176,9 +177,10 @@ struct mesh_info_val {
 #define MESH_INFO_TIMEOUT	((PARQ_MAX_UL_RETRY_DELAY + PARQ_GRACE_TIME)*1000)
 
 static GHashTable *mesh_info;
+static aging_table_t *push_requests;	/**< Throttle push requests */
 
 /* Remember IP address of stalling uploads for a while */
-static struct aging *stalling_uploads;
+static aging_table_t *stalling_uploads;
 
 static const char stall_first[] = "stall first";
 static const char stall_again[] = "stall again";
@@ -902,7 +904,7 @@ upload_create(struct gnutella_socket *s, gboolean push)
  */
 void
 upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
-	guint32 file_index, const char *file_name, gboolean banning, guint32 flags)
+	guint32 file_index, const char *file_name, guint32 flags)
 {
 	struct upload *u;
 	struct gnutella_socket *s;
@@ -919,16 +921,6 @@ upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
 	u = upload_create(s, TRUE);
 	u->file_index = file_index;
 	u->name = atom_str_get(file_name);
-
-	if (banning) {
-		const char *msg = ban_message(addr);
-		if (msg != NULL)
-			upload_remove(u, _("Banned: %s"), msg);
-		else
-			upload_remove(u, _("Banned for %s"),
-				short_time_ascii(ban_delay(addr)));
-		return;
-	}
 
 	upload_fire_upload_info_changed(u);
 
@@ -948,7 +940,6 @@ handle_push_request(struct gnutella_node *n)
 	guint32 file_index, flags = 0;
 	guint16 port;
 	const char *info;
-	gboolean show_banning = FALSE;
 	const char *file_name = "<invalid file index>";
 
 	/* Servent ID matches our GUID? */
@@ -1099,26 +1090,17 @@ handle_push_request(struct gnutella_node *n)
 	 * of service attack.	-- RAM, 03/11/2002
 	 */
 
-	switch (ban_allow(ha)) {
-	case BAN_OK:				/* Connection authorized */
-		break;
-	case BAN_MSG:				/* Refused: host forcefully banned */
-	case BAN_FIRST:				/* Refused, negative ack (can't do for PUSH) */
-		show_banning = TRUE;
-		/* FALL THROUGH */
-	case BAN_FORCE:				/* Refused, no ack */
-		if (GNET_PROPERTY(upload_debug))
-			g_warning("PUSH flood (hops=%d, ttl=%d) to %s [ban %s]: %s",
+	if (aging_lookup(push_requests, &ha)) {
+		if (GNET_PROPERTY(upload_debug)) {
+			g_warning("PUSH (hops=%d, ttl=%d) throttling callback to %s: %s",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
-				host_addr_port_to_string(ha, port),
-				short_time(ban_delay(ha)), file_name);
-		if (!show_banning)
-			return;
-		break;
-	default:
-		g_assert_not_reached();
+				host_addr_port_to_string(ha, port), file_name);
+		}
+		return;
 	}
+
+	aging_insert(push_requests, wcopy(&ha, sizeof ha), int_to_pointer(1));
 
 	/*
 	 * OK, start the upload by opening a connection to the remote host.
@@ -1134,7 +1116,7 @@ handle_push_request(struct gnutella_node *n)
 	upload_send_giv(ha, port,
 		gnutella_header_get_hops(&n->header),
 		gnutella_header_get_ttl(&n->header),
-		file_index, file_name, show_banning, flags);
+		file_index, file_name, flags);
 }
 
 #if 0 /* UNUSED */
@@ -5420,6 +5402,8 @@ upload_init(void)
 						host_addr_hash_func, host_addr_eq_func,
 						wfree_host_addr);
 	upload_handle_map = idtable_new();
+	push_requests = aging_make(PUSH_REPLY_FREQ,
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 
 	header_features_add_guarded(FEATURES_UPLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
@@ -5455,6 +5439,7 @@ upload_close(void)
 	gm_hash_table_destroy_null(&mesh_info);
 
 	aging_destroy(&stalling_uploads);
+	aging_destroy(&push_requests);
 	wd_free_null(&early_stall_wd);
 	wd_free_null(&stall_wd);
 }

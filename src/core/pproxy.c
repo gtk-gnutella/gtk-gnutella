@@ -867,7 +867,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 
 	if (guid_eq(pp->guid, GNET_PROPERTY(servent_guid))) {
 		upload_send_giv(pp->addr_v4, pp->port, 0, 1, 0,
-			"<from push-proxy>", FALSE, pp->flags);
+			"<from push-proxy>", pp->flags);
 
 		http_send_status(HTTP_PUSH_PROXY, pp->socket, 202, FALSE, NULL, 0,
 			"Push-proxy: you found the target GUID %s",

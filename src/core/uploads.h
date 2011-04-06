@@ -186,8 +186,7 @@ void upload_init(void);
 void upload_close(void);
 void upload_stop_all(struct dl_file_info *, const char *reason);
 void upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops,
-	guint8 ttl, guint32 file_index, const char *file_name,
-	gboolean banning, guint32 flags);
+	guint8 ttl, guint32 file_index, const char *file_name, guint32 flags);
 struct upload *upload_create(struct gnutella_socket *, gboolean push);
 void upload_fire_upload_info_changed(struct upload *);
 void expect_http_header(struct upload *, upload_stage_t new_status);
