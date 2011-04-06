@@ -1383,7 +1383,7 @@ dump_hex(FILE *out, const char *title, gconstpointer data, int length)
 	int i;
 
 	if (length < 0 || data == NULL) {
-		g_warning("dump_hex: value out of range [data=0x%lx, length=%d] for %s",
+		g_carp("dump_hex: value out of range [data=0x%lx, length=%d] for %s",
 			(gulong) data, length, title);
 		fflush(out);
 		return;
