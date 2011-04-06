@@ -877,6 +877,7 @@ lookup_value_terminate(nlookup_t *nl,
 	float load, dht_value_t **vvec, int vcnt, int vsize, gboolean local)
 {
 	lookup_val_rs_t *rs;
+	size_t count;
 
 	lookup_check(nl);
 	g_assert(LOOKUP_VALUE == nl->type);
@@ -913,9 +914,15 @@ lookup_value_terminate(nlookup_t *nl,
 	 * If the path is empty, it means we were lucky and the first node we
 	 * queried returned the value.  It can happen if we're searching a key
 	 * within our closest subtree.
+	 *
+	 * If the path contains more than KDA_K entries, it means we found the
+	 * value at the edge of the k-ball but the value should not be present
+	 * any more and we found a cached replica: do not cache further!
 	 */
 
-	if (!local && patricia_count(nl->path) > 0) {
+	count = patricia_count(nl->path);
+
+	if (!local && count > 0 && count < KDA_K) {
 		knode_t *closest = patricia_closest(nl->path, nl->kuid);
 		lookup_token_t *ltok = map_lookup(nl->tokens, closest->id);
 		lookup_rc_t rc;
@@ -937,6 +944,19 @@ lookup_value_terminate(nlookup_t *nl,
 		rc.token_len = ltok ? ltok->token->length : 0;
 
 		publish_cache(nl->kuid, &rc, vvec, vcnt);
+	} else {
+		if (
+			GNET_PROPERTY(dht_lookup_debug) > 2 ||
+			GNET_PROPERTY(dht_publish_debug) > 2
+		) {
+			g_debug("DHT LOOKUP[%s] "
+				"not caching %d \"%s\" value%s for %s: local=%s, path size=%lu",
+				nid_to_string(&nl->lid),
+				vcnt, dht_value_type_to_string(nl->u.fv.vtype),
+				1 == vcnt ? "" : "s",
+				kuid_to_hex_string(nl->kuid), local ? "y" : "n",
+				(unsigned long)  count);
+		}
 	}
 
 	/*
