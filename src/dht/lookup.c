@@ -3179,10 +3179,11 @@ lookup_handle_reply(
 		 */
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 2)
-			g_debug("DHT LOOKUP[%s] adding %scontact #%d to shortlist: %s",
+			g_debug("DHT LOOKUP[%s] adding %scontact #%d to shortlist: %s%s",
 				nid_to_string(&nl->lid),
 				map_contains(nl->fixed, cn->id) ? "(fixed) " : "",
-				n, knode_to_string(cn));
+				n, knode_to_string(cn),
+				kuid_cmp3(nl->kuid, kn->id, cn->id) > 0 ? " (CLOSER)" : "");
 
 		lookup_shortlist_add(nl, cn);
 		knode_refcnt_dec(cn);
@@ -3866,6 +3867,10 @@ lookup_delay_expired(cqueue_t *unused_cq, gpointer obj)
 	nlookup_t *nl = obj;
 
 	(void) unused_cq;
+
+	if (G_UNLIKELY(NULL == nlookups))
+		return;			/* Shutdown occurred */
+
 	lookup_check(nl);
 
 	nl->delay_ev = NULL;
@@ -4346,6 +4351,9 @@ lookup_value_check_here(cqueue_t *unused_cq, gpointer obj)
 	nlookup_t *nl = obj;
 
 	(void) unused_cq;
+
+	if (G_UNLIKELY(NULL == nlookups))
+		return;		/* Shutdown occurred */
 
 	lookup_check(nl);
 	g_assert(LOOKUP_VALUE == nl->type);
@@ -5039,7 +5047,6 @@ lookup_close(gboolean exiting)
 {
 	g_hash_table_foreach(nlookups, free_lookup, &exiting);
 	gm_hash_table_destroy_null(&nlookups);
-	nlookups = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

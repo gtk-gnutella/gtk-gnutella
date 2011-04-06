@@ -829,6 +829,10 @@ publish_delay_expired(cqueue_t *unused_cq, gpointer obj)
 	publish_t *pb = obj;
 
 	(void) unused_cq;
+
+	if (G_UNLIKELY(NULL == publishes))
+		return;		/* Shutdown occurred */
+
 	publish_check(pb);
 
 	pb->delay_ev = NULL;
