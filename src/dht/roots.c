@@ -590,6 +590,7 @@ roots_fill_closest(const kuid_t *id,
 {
 	struct rootinfo *ri;
 	int filled = 0;
+	gboolean approximate = TRUE;
 
 	g_assert(id != NULL);
 	g_assert(kcnt > 0);
@@ -629,9 +630,20 @@ roots_fill_closest(const kuid_t *id,
 				compact_time(delta_time(tm_time(), ri->last_update)),
 				filled, 1 == filled ? "" : "s");
 		}
-	} else {
+
+		/*
+		 * If we had less than KDA_K nodes, then we probably never conducted
+		 * a node search for this ID.  Rather this is the result of a value
+		 * lookup.
+		 */
+
+		approximate = rd->count < KDA_K;
+	}
+
+	if (approximate) {
 		knode_t *furthest = patricia_furthest(known, id);
-		struct rootinfo *cri = patricia_closest(roots, id);
+		struct rootinfo *cri;
+		patricia_t *aknown = known;
 
 		/*
 		 * We don't have an exact target match but maybe we known about
@@ -639,6 +651,81 @@ roots_fill_closest(const kuid_t *id,
 		 * ID which is closer to the target than the furthest known node so
 		 * far, it may be worth it.
 		 */
+
+		if (NULL == ri) {
+			cri = patricia_closest(roots, id);
+		} else {
+			patricia_iter_t *iter;
+
+			/*
+			 * Since "ri" is not NULL, we got an exact match with a lookup
+			 * on "id", so necessarily the closest node will again be the
+			 * same set of nodes.
+			 *
+			 * If we come here, it's because we had less than KDA_K nodes
+			 * to fill in from the closest ID so look for IDs further away
+			 * but which are nonetheless closer that the furthest ID they
+			 * know about...
+			 */
+
+			iter = patricia_metric_iterator(roots, id, TRUE);
+			(void) patricia_iter_next_value(iter);	/* Skip exact match */
+
+			while (patricia_iter_has_next(iter)) {
+				struct rootdata *rd;
+
+				cri = patricia_iter_next_value(iter);
+				if (
+					furthest != NULL &&
+					kuid_cmp3(id, cri->kuid, furthest->id) >= 0
+				) {
+					cri = NULL;
+					break;
+				}
+
+				rd = get_rootdata(cri->kuid);
+				if (NULL == rd) {
+					cri = NULL;		/* I/O error or corrupted database */
+					break;
+				}
+				if (rd->count >= KDA_K)
+					break;
+			}
+
+			patricia_iterator_release(&iter);
+
+			if (NULL == cri) {
+				if (GNET_PROPERTY(dht_roots_debug) > 1) {
+					g_debug("DHT ROOTS no better approximate match for %s",
+						kuid_to_hex_string(id));
+				}
+			} else {
+				int i;
+
+				if (GNET_PROPERTY(dht_roots_debug) > 1) {
+					g_debug("DHT ROOTS trying to add from approximate match");
+				}
+
+				/*
+				 * Since we partially added some nodes in the vector,
+				 * we need to recompute the set of known KUID so that
+				 * we do not attempt to insert duplicates again in the
+				 * approximate matching step.
+				 */
+
+				aknown = patricia_create(KUID_RAW_BITSIZE);
+				iter = patricia_tree_iterator(known, TRUE);
+				while (patricia_iter_has_next(iter)) {
+					knode_t *kn = patricia_iter_next_value(iter);
+					patricia_insert(aknown, kn->id, kn);
+				}
+				patricia_iterator_release(&iter);
+				for (i = 0; i < filled; i++) {
+					knode_t *kn = kvec[i];
+					patricia_insert(aknown, kn->id, kn);
+				}
+			}
+		}
 
 		if (
 			cri != NULL &&
@@ -648,16 +735,19 @@ roots_fill_closest(const kuid_t *id,
 			)
 		) {
 			struct rootdata *rd = get_rootdata(cri->kuid);
+			int added;
 
 			if (NULL == rd)
 				return 0;		/* I/O error or corrupted database */
 
-			filled = roots_fill_vector(rd, kvec, kcnt, known, furthest, id);
+			added = roots_fill_vector(rd, &kvec[filled], kcnt - filled, aknown,
+				furthest, id);
+			filled += added;
 
-			if (filled > 0) {
+			if (added > 0) {
 				gnet_stats_count_general(
 					GNR_DHT_CACHED_ROOTS_APPROXIMATE_HITS, 1);
-			} else {
+			} else if (NULL == ri) {
 				gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_MISSES, 1);
 			}
 
@@ -667,9 +757,9 @@ roots_fill_closest(const kuid_t *id,
 					kuid_to_hex_string(id),
 					kuid_to_hex_string2(cri->kuid),
 					compact_time(delta_time(tm_time(), cri->last_update)),
-					filled, 1 == filled ? "" : "s");
+					added, 1 == added ? "" : "s");
 			}
-		} else {
+		} else if (NULL == ri) {
 			gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_MISSES, 1);
 
 			if (GNET_PROPERTY(dht_roots_debug) > 1) {
@@ -679,6 +769,10 @@ roots_fill_closest(const kuid_t *id,
 					cri != NULL ?
 						kuid_to_hex_string2(cri->kuid) : "<none>");
 			}
+		}
+
+		if (aknown != known) {
+			patricia_destroy(aknown);
 		}
 	}
 
