@@ -330,6 +330,9 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 					hostname = host;
 			}
 			break;
+		case EXT_T_GGEP_avail:		/* Length available (for partial file) */
+			/* FIXME - handle it */
+			break;
 		default:
 			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
