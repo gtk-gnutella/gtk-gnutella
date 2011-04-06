@@ -5561,7 +5561,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		int error;
 
 		value = parse_uint32(field, NULL, 10, &error);
-		if (value < 1 || value > 200) {
+		if (value < 1 || value > 1000) {
 			if (GNET_PROPERTY(node_debug)) {
 				g_warning("%s advertises weird degree %s",
 					node_infostr(n), field);
