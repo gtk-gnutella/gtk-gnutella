@@ -155,12 +155,19 @@ struct seckeys {
 /**
  * Additional context for find_value lookups, when we have to iterate
  * to grab secondary keys in results.
+ *
+ * The "seen" map associates the secondary keys we fetched (KUID of publishers)
+ * with the closest node to the key that returned a value so far.
+ *
+ * The "values" map contains all the values we keep in vvec[], to avoid
+ * exact duplicates.
  */
 struct fvalue {
 	dht_value_t **vvec;			/**< Read expanded DHT values */
 	cevent_t *delay_ev;			/**< Delay event for retries */
 	GSList *seckeys;			/**< List of "struct seckeys *" */
-	map_t *seen;				/**< Secondary keys for which we have values */
+	map_t *seen;				/**< Publisher KUID => closest KUID holding */
+	map_t *values;				/**< All DHT values, to avoid duplicates */
 	float load;					/**< Reported request load on key (summed) */
 	tm_t start;					/**< Start time */
 	int vcnt;					/**< Amount of DHT values in vector */
@@ -1074,16 +1081,48 @@ lookup_value_create(nlookup_t *nl, float load,
 	fv->vsize = MAX(expected, vsize);
 	fv->delay_ev = NULL;
 	fv->seen = map_create_patricia(KUID_RAW_BITSIZE);
+	fv->values = map_create_hash(dht_value_hash, dht_value_eq);
 	fv->nodes = 1;
 	tm_now_exact(&fv->start);
 
 	/*
-	 * All values' secondary keys are remembered to avoid duplicates.
+	 * All values' secondary keys are remembered to avoid fetching them
+	 * again through a specific secondary exchange if it's not from a
+	 * closer node to the key.
+	 *
+	 * Values themselves are also hashed so that we can ignore duplicates.
 	 */
 
 	for (i = 0; i < fv->vcnt; i++) {
 		dht_value_t *v = fv->vvec[i];
-		map_insert(fv->seen, dht_value_creator(v)->id, v);
+		const knode_t *cn = dht_value_creator(v);
+
+		if (!map_contains(fv->seen, cn->id)) {
+			map_insert(fv->seen, cn->id, kuid_get_atom(kn->id));
+		} else {
+			if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug)) {
+				g_warning("DHT LOOKUP[%s] dup value from %s returned by %s: %s",
+					nid_to_string(&nl->lid), knode_to_string(cn),
+					knode_to_string2(kn), dht_value_to_string(v));
+			}
+		}
+		if (!map_contains(fv->values, v)) {
+			if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+				g_debug("DHT LOOKUP[%s] inserting %s from %s",
+					nid_to_string(&nl->lid), dht_value_to_string(v),
+					knode_to_string(kn));
+				if (GNET_PROPERTY(dht_lookup_debug) > 5) {
+					dht_value_dump(stderr, v);
+				}
+			}
+			map_insert(fv->values, v, v);
+		} else {
+			if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug)) {
+				g_warning("DHT LOOKUP[%s] exact duplicate %s returned by %s",
+					nid_to_string(&nl->lid),
+					dht_value_to_string(v), knode_to_string(kn));
+			}
+		}
 	}
 
 	g_assert(lookup_is_fetching(nl));
@@ -1170,23 +1209,64 @@ lookup_value_append(nlookup_t *nl, float load,
 
 	for (i = 0; i < vcnt; i++) {
 		dht_value_t *v = vvec[i];
+		const knode_t *cn = dht_value_creator(v);
 
-		if (!map_contains(fv->seen, dht_value_creator(v)->id)) {
+		if (!map_contains(fv->seen, cn->id)) {
 			if (GNET_PROPERTY(dht_lookup_debug) > 2) {
-				g_debug("DHT LOOKUP[%s] inserting new %s",
-					nid_to_string(&nl->lid), dht_value_to_string(v));
+				g_debug("DHT LOOKUP[%s] inserting new %s from %s",
+					nid_to_string(&nl->lid), dht_value_to_string(v),
+					knode_to_string(kn));
+				if (GNET_PROPERTY(dht_lookup_debug) > 5) {
+					dht_value_dump(stderr, v);
+				}
 			}
 			g_assert(fv->vcnt < fv->vsize);
 			fv->vvec[fv->vcnt++] = v;
-			map_insert(fv->seen, dht_value_creator(v)->id, v);
+			map_insert(fv->seen, cn->id, kuid_get_atom(kn->id));
+			g_assert(!map_contains(fv->values, v));	/* New secondary key */
+			map_insert(fv->values, v, v);
 		} else {
-			if (GNET_PROPERTY(dht_lookup_debug) > 2) {
-				g_debug("DHT LOOKUP[%s] ignoring duplicate %s from %s",
-					nid_to_string(&nl->lid), dht_value_to_string(v),
-					knode_to_string(kn));
+			void *id;
+			void *orig_key;
+
+			/*
+			 * Update ID of the closest node to the key returning a value.
+			 */
+
+			map_lookup_extended(fv->seen, cn->id, &orig_key, &id);
+			g_assert(id != NULL);		/* We know it's present in the map */
+
+			if (kuid_cmp3(nl->kuid, id, kn->id) > 0) {
+				/* kn->id closer to nl->kuid than id */
+				map_insert(fv->seen, orig_key, kuid_get_atom(kn->id));
+				kuid_atom_free(id);
 			}
-			gnet_stats_count_general(GNR_DHT_DUP_VALUES, 1);
-			dht_value_free(v, TRUE);
+
+			/*
+			 * Discard value only if it is an exact duplicate.
+			 */
+
+			if (map_contains(fv->values, v)) {
+				if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+					g_debug("DHT LOOKUP[%s] ignoring duplicate %s from %s",
+						nid_to_string(&nl->lid), dht_value_to_string(v),
+						knode_to_string(kn));
+				}
+				gnet_stats_count_general(GNR_DHT_DUP_VALUES, 1);
+				dht_value_free(v, TRUE);
+			} else {
+				if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+					g_debug("DHT LOOKUP[%s] inserting different %s from %s",
+						nid_to_string(&nl->lid), dht_value_to_string(v),
+						knode_to_string(kn));
+					if (GNET_PROPERTY(dht_lookup_debug) > 5) {
+						dht_value_dump(stderr, v);
+					}
+				}
+				g_assert(fv->vcnt < fv->vsize);
+				fv->vvec[fv->vcnt++] = v;
+				map_insert(fv->values, v, v);
+			}
 		}
 	}
 
@@ -1205,6 +1285,15 @@ lookup_value_append(nlookup_t *nl, float load,
 
 	fv->load += load;
 	fv->nodes++;
+}
+
+static void
+lookup_value_seen_free_kv(void *unused_key, void *value, void *unused_data)
+{
+	(void) unused_data;
+	(void) unused_key;
+
+	kuid_atom_free(value);
 }
 
 /**
@@ -1245,7 +1334,9 @@ lookup_value_free(nlookup_t *nl, gboolean free_vvec)
 	}
 
 	gm_slist_free_null(&fv->seckeys);
+	map_foreach(fv->seen, lookup_value_seen_free_kv, NULL);
 	map_destroy(fv->seen);
+	map_destroy(fv->values);
 	cq_cancel(&fv->delay_ev);
 	wfree(fv, sizeof *fv);
 
@@ -3463,6 +3554,7 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 	 */
 
 	nl->bw_incoming += len + KDA_HEADER_SIZE;	/* The hell with header ext */
+	nl->rpc_replies++;
 
 	switch (nl->type) {
 	case LOOKUP_VALUE:
@@ -3507,7 +3599,6 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 
 	g_assert(KDA_MSG_FIND_NODE_RESPONSE == function);
 
-	nl->rpc_replies++;
 	if (!lookup_handle_reply(nl, kn, payload, len, hop))
 		return TRUE;	/* Iterate */
 
@@ -4819,7 +4910,7 @@ lookup_value_iterate(nlookup_t *nl)
 	 * that node.
 	 *
 	 * Otherwise, select a secondary key for which we haven't got an
-	 * expanded value already.
+	 * expanded value already from a node closer to the key.
 	 */
 
 	if (sk == NULL)
@@ -4827,9 +4918,15 @@ lookup_value_iterate(nlookup_t *nl)
 
 	while (sk->next_skey < sk->scnt) {
 		kuid_t *sid = sk->skeys[sk->next_skey];
+		kuid_t *id;
 
-		if (!map_contains(fv->seen, sid))
+		id = map_lookup(fv->seen, sid);
+
+		if (NULL == id)
 			break;
+
+		if (kuid_cmp3(nl->kuid, id, sk->kn->id) > 0)
+			break;	 	/* sk->kn->id closer to nl->kuid than id was */
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 2)
 			g_debug("DHT LOOKUP[%s] "
@@ -4847,8 +4944,10 @@ lookup_value_iterate(nlookup_t *nl)
 		tm_t now;
 
 		tm_now_exact(&now);
-		g_debug("DHT LOOKUP[%s] %f secs, asking secondary key %d/%d from %s",
+		g_debug("DHT LOOKUP[%s] %f secs, asking %ssecondary key %d/%d from %s",
 			nid_to_string(&nl->lid), tm_elapsed_f(&now, &fv->start),
+			map_contains(fv->seen, sk->skeys[sk->next_skey]) ?
+				"duplicate " : "",
 			sk->next_skey + 1, sk->scnt, knode_to_string(sk->kn));
 	}
 

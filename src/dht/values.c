@@ -360,6 +360,15 @@ dht_value_length(const dht_value_t *v)
 	return v->length;
 }
 
+void
+dht_value_dump(FILE *out, const dht_value_t *v)
+{
+	fprintf(out, "%s\n", dht_value_to_string(v));
+	if (v->data != NULL) {
+		dump_hex(out, "Value Data", v->data, v->length);
+	}
+}
+
 /**
  * Create a DHT value.
  *
@@ -643,6 +652,46 @@ dht_value_cmp(const void *a, const void *b)
 
 	return va->length == vb->length ? 0 :
 		va->length < vb->length ? -1 : +1;
+}
+
+/**
+ * DHT value hashing.
+ */
+unsigned
+dht_value_hash(const void *key)
+{
+	const dht_value_t * const v = key;
+
+	return kuid_hash(v->creator->id) ^ kuid_hash(v->id) ^
+		((v->major << 24 ) | (v->major << 16) | v->length) ^
+		v->type ^ (NULL == v->data ? 0 : binary_hash(v->data, v->length));
+}
+
+/**
+ * DHT value equality test.
+ */
+gboolean
+dht_value_eq(const void *p1, const void *p2)
+{
+	const dht_value_t * const v1 = p1;
+	const dht_value_t * const v2 = p2;
+
+	if (
+		v1->length != v2->length || v1->type != v2->type ||
+		v1->major != v2->major || v1->minor != v2->minor ||
+		!kuid_eq(v1->creator->id, v2->creator->id) ||
+		!kuid_eq(v1->id, v2->id)
+	)
+		return FALSE;
+
+	if (NULL == v1->data) {
+		return NULL == v2->data;
+	} else {
+		return NULL == v2->data ?
+			FALSE : 0 == memcmp(v1->data, v2->data, v1->length);
+	}
+	g_assert_not_reached();
+	return FALSE;
 }
 
 /**
