@@ -94,6 +94,7 @@ RCSID("$Id$")
 #include "lib/sbool.h"
 #include "lib/sectoken.h"
 #include "lib/str.h"
+#include "lib/stringify.h"		/* For hex_escape() */
 #include "lib/tm.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
@@ -5226,6 +5227,15 @@ search_request_preprocess(struct gnutella_node *n)
 				break;
 		}
 
+		if (exvcnt)
+			ext_reset(exv, MAX_EXTVEC);
+
+		if (drop_it)
+			goto drop;
+
+		if (exv_sha1cnt)
+			gnet_stats_count_general(GNR_QUERY_SHA1, 1);
+
 		/*
 		 * If query comes from UDP, then it's a GUESS query.
 		 */
@@ -5270,7 +5280,7 @@ search_request_preprocess(struct gnutella_node *n)
 				newlen = ext_ggep_strip(start, extra, GGEP_NAME(QK));
 				newlen = ext_ggep_strip(start, newlen, GGEP_NAME(SCP));
 
-				if (GNET_PROPERTY(guess_server_debug) > 5) {
+				if (GNET_PROPERTY(guess_server_debug) > 5 && newlen < extra) {
 					g_debug("GUESS search extension part %lu -> %lu bytes",
 						(unsigned long) extra, (unsigned long) newlen);
 				}
@@ -5293,15 +5303,6 @@ search_request_preprocess(struct gnutella_node *n)
 				}
 			}
 		}
-
-		if (exv_sha1cnt)
-			gnet_stats_count_general(GNR_QUERY_SHA1, 1);
-
-		if (exvcnt)
-			ext_reset(exv, MAX_EXTVEC);
-
-		if (drop_it)
-			goto drop;
 	}
 
     /*
@@ -5781,13 +5782,28 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			ext_reset(exv, MAX_EXTVEC);
 	}
 
-	if (extended_query) {
-		if (GNET_PROPERTY(search_debug) > 1) {
-			g_warning("extended query:\n\toriginal=\"%s\"\n\textended=\"%s\"",
-				search, extended_query);
+	if (extended_query != NULL) {
+		if (GNET_PROPERTY(query_debug) > 14) {
+			char *safe_search = hex_escape(search, FALSE);
+			char *safe_ext_query = hex_escape(extended_query, FALSE);
+			g_debug("QUERY %sextended: original=\"%s\", extended=\"%s\"",
+				NODE_IS_UDP(n) ? "(GUESS) " : "",
+				safe_search, safe_ext_query);
+			if (safe_search != search)
+				HFREE_NULL(safe_search);
+			if (safe_ext_query != extended_query)
+				HFREE_NULL(safe_ext_query);
 		}
 		search = extended_query;
 		search_len = strlen(search);
+	} else {
+		if (GNET_PROPERTY(query_debug) > 14) {
+			char *safe_search = hex_escape(search, FALSE);
+			g_debug("QUERY %s\"%s\"",
+				NODE_IS_UDP(n) ? "(GUESS) " : "", safe_search);
+			if (safe_search != search)
+				HFREE_NULL(safe_search);
+		}
 	}
 
     /*
