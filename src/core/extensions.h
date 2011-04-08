@@ -201,6 +201,9 @@ guint16 ext_len(const extvec_t *e);
 const char *ext_ggep_id_str(const extvec_t *e);
 const char *ext_ggep_name(ext_token_t id);
 
+size_t ext_to_string_buf(const extvec_t *e, char *buf, size_t len);
+const char *ext_to_string(const extvec_t *e);
+
 int ext_ggep_strip(char *buf, int len, const char *key);
 
 #endif	/* _core_extensions_h_ */

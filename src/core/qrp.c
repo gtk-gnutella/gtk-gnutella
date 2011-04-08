@@ -4654,6 +4654,9 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 		GSList *sl;
 		int leaves = 0;
 		int ultras = 0;
+		int words = 0;
+		int urns = 0;
+		size_t i;
 
 		for (sl = nodes; sl; sl = g_slist_next(sl)) {
 			struct gnutella_node *dn = sl->data;
@@ -4664,14 +4667,21 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 				ultras++;
 		}
 
+		for (i = 0; i < qhvec->count; i++) {
+			if (QUERY_H_WORD == qhvec->vec[i].source)
+				words++;
+			else
+				urns++;
+		}
+
 		g_debug(
-			"QRP %s%s [%s] (%d word%s%s) forwarded to %d/%d leaves, %d ultra%s",
+			"QRP %s%s [%s] (%d word%s + %d URN%s) "
+			"forwarded to %d/%d leaves, %d ultra%s",
 			NODE_IS_UDP(n) ? "(GUESS) " : "",
 			gmsg_node_infostr(n),
 			guid_hex_str(gnutella_header_get_muid(&n->header)),
-			qhvec->count, qhvec->count == 1 ? "" : "s",
-			qhvec->has_urn ? " + URN" : "", leaves,
-			GNET_PROPERTY(node_leaf_count),
+			words, 1 == words ? "" : "s", urns, 1 == urns ? "" : "s",
+			leaves, GNET_PROPERTY(node_leaf_count),
 			ultras, ultras == 1 ? "" : "s");
 	}
 

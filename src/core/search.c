@@ -4758,6 +4758,7 @@ compact_query_utf8(char *search)
 	char *s;
 	char *word = NULL, *p;
 	size_t word_length = 0;	/* length in bytes, not characters */
+	char *orig_search = NULL;
 
 #define APPEND_WORD()								\
 do {												\
@@ -4772,8 +4773,11 @@ do {												\
 	p += word_length;								\
 } while (0)
 
-	if (GNET_PROPERTY(query_debug) > 14)
-		g_debug("original: [%s]", search);
+	if (GNET_PROPERTY(query_debug) > 14) {
+		orig_search = hex_escape(search, FALSE);
+		if (orig_search == search)
+			orig_search = h_strdup(search);
+	}
 
 	word = is_ascii_blank(*search) ? NULL : search;
 	p = s = search;
@@ -4808,8 +4812,17 @@ do {												\
 	if ('\0' != *p)
 		*p = '\0'; /* terminate mangled query */
 
-	if (GNET_PROPERTY(query_debug) > 14)
-		g_debug("mangled:  [%s]", search);
+	if (GNET_PROPERTY(query_debug) > 14) {
+		char *safe_search = hex_escape(search, FALSE);
+		if (0 != strcmp(orig_search, safe_search)) {
+			g_debug("original: [%s]", orig_search);
+			g_debug("mangled:  [%s]", safe_search);
+		}
+		if (safe_search != search)
+			HFREE_NULL(safe_search);
+		HFREE_NULL(orig_search);
+	}
+
 
 	/* search does no longer contain unnecessary whitespace */
 	return p - search;
@@ -5120,9 +5133,12 @@ search_request_preprocess(struct gnutella_node *n)
 		}
 
 		if (exvcnt && GNET_PROPERTY(query_debug) > 13) {
-			g_debug("query with extensions: %s\n", search);
+			char *safe = hex_escape(search, FALSE);
+			g_debug("query with extensions: \"%s\"", safe);
 			ext_dump(stderr, exv, exvcnt, "> ", "\n",
 				GNET_PROPERTY(query_debug) > 14);
+			if (safe != search)
+				HFREE_NULL(safe);
 		}
 
 		/*
@@ -5162,6 +5178,13 @@ search_request_preprocess(struct gnutella_node *n)
 			case EXT_T_GGEP_SCP:		/* Wants GUESS pongs in "IPP" */
 				wants_ipp = TRUE;
 				break;
+
+			case EXT_T_GGEP_SO:			/* Secure OOB */
+			case EXT_T_GGEP_NP:			/* No OOB-proxying */
+			case EXT_T_GGEP_PR:			/* Partial: match on downloads */
+			case EXT_T_GGEP_M:			/* MIME-type information */
+			case EXT_T_GGEP_XQ:			/* Extended Query */
+				break;					/* Ignore these at pre-process time */
 
 			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
 			case EXT_T_URN_SHA1:
@@ -5214,12 +5237,13 @@ search_request_preprocess(struct gnutella_node *n)
 			case EXT_T_UNKNOWN:
 				if (GNET_PROPERTY(query_debug) > 14) {
 					g_debug("%s has unknown extension", gmsg_node_infostr(n));
+					ext_dump(stderr, e, 1, "....", "\n", TRUE);
 				}
 				break;
 			default:
 				if (GNET_PROPERTY(query_debug) > 14) {
-					g_debug("%s has unhandled extension",
-						gmsg_node_infostr(n));
+					g_debug("%s has unhandled extension %s",
+						gmsg_node_infostr(n), ext_to_string(e));
 				}
 			}
 			
@@ -5433,15 +5457,19 @@ search_request_preprocess(struct gnutella_node *n)
 			found = g_hash_table_lookup(n->qrelayed, stmp_1);
 
 		if (found != NULL) {
-			if (GNET_PROPERTY(query_debug) > 10) g_warning(
-				"dropping query \"%s%s\" (hops=%u, TTL=%u) "
-				"already seen recently from %s",
-				last_sha1_digest == NULL ? "" : "urn:sha1:",
-				last_sha1_digest == NULL ?
-					search : sha1_base32(last_sha1_digest),
-				gnutella_header_get_hops(&n->header),
-				gnutella_header_get_ttl(&n->header),
-				node_infostr(n));
+			if (GNET_PROPERTY(query_debug) > 10) {
+				char *safe_search = hex_escape(search, FALSE);
+				g_warning("QUERY dropping \"%s%s\" (hops=%u, TTL=%u) "
+					"already seen recently from %s",
+					last_sha1_digest == NULL ? "" : "urn:sha1:",
+					last_sha1_digest == NULL ?
+						safe_search : sha1_base32(last_sha1_digest),
+					gnutella_header_get_hops(&n->header),
+					gnutella_header_get_ttl(&n->header),
+					node_infostr(n));
+				if (safe_search != search)
+					HFREE_NULL(safe_search);
+			}
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 			goto drop;		/* Drop the message! */
 		}
@@ -5474,10 +5502,22 @@ search_request_preprocess(struct gnutella_node *n)
 			if (requery)
 				gnet_stats_count_general(GNR_GTKG_REQUERIES, 1);
 
-			if (GNET_PROPERTY(query_debug) > 3)
-				g_debug("GTKG %s%squery from %d.%d%s",
+			if (GNET_PROPERTY(query_debug) > 3) {
+				char origin[60];
+				if (oob) {
+					host_addr_t addr;
+					guint16 port;
+					guid_oob_get_addr_port(
+						gnutella_header_get_muid(&n->header), &addr, &port);
+					gm_snprintf(origin, sizeof origin, " from %s",
+						host_addr_port_to_string(addr, port));
+				}
+				g_debug("GTKG %s%squery from %d.%d%s [MUID=%s]%s",
 					oob ? "OOB " : "", requery ? "re-" : "",
-					major, minor, release ? "" : "u");
+					major, minor, release ? "" : "u",
+					guid_hex_str(gnutella_header_get_muid(&n->header)),
+					oob ? origin : "");
+			}
 		}
 	}
 
@@ -5667,6 +5707,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	struct guid muid;
 	const char *extended_query = NULL;
 	gboolean qhv_filled = FALSE;
+	char *safe_search = NULL;
 
 	/* NOTE: search_request_preprocess() has already handled this query. */
 
@@ -5710,6 +5751,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			case EXT_T_GGEP_SO:
 				secure_oob = TRUE;
 				break;
+
+			/* TODO: handle EXT_T_GGEP_PR and EXT_T_GGEP_M */
 
 			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
 			case EXT_T_URN_SHA1:
@@ -5783,26 +5826,27 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
 	if (extended_query != NULL) {
+		char *safe_ext = hex_escape(extended_query, FALSE);
+
 		if (GNET_PROPERTY(query_debug) > 14) {
-			char *safe_search = hex_escape(search, FALSE);
-			char *safe_ext_query = hex_escape(extended_query, FALSE);
-			g_debug("QUERY %sextended: original=\"%s\", extended=\"%s\"",
+			char *safe = hex_escape(search, FALSE);
+			g_debug("QUERY %s%s extended: original=\"%s\", extended=\"%s\"",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
-				safe_search, safe_ext_query);
-			if (safe_search != search)
-				HFREE_NULL(safe_search);
-			if (safe_ext_query != extended_query)
-				HFREE_NULL(safe_ext_query);
+				guid_hex_str(gnutella_header_get_muid(&n->header)),
+				safe, safe_ext);
+			if (safe != search)
+				HFREE_NULL(safe);
 		}
 		search = extended_query;
 		search_len = strlen(search);
+		safe_search = safe_ext;
 	} else {
+		safe_search = hex_escape(search, FALSE);
 		if (GNET_PROPERTY(query_debug) > 14) {
-			char *safe_search = hex_escape(search, FALSE);
-			g_debug("QUERY %s\"%s\"",
-				NODE_IS_UDP(n) ? "(GUESS) " : "", safe_search);
-			if (safe_search != search)
-				HFREE_NULL(safe_search);
+			g_debug("QUERY %s%s \"%s\"",
+				NODE_IS_UDP(n) ? "(GUESS) " : "",
+				guid_hex_str(gnutella_header_get_muid(&n->header)),
+				safe_search);
 		}
 	}
 
@@ -5977,9 +6021,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			)
 				node_inc_qrp_match(n);
 
-			if (GNET_PROPERTY(share_debug) > 3) {
+			if (GNET_PROPERTY(share_debug) > 3
+			) {
 				g_debug("share HIT %u files '%s'%s ", qctx->found,
-						search,
+						safe_search,
 						skip_file_search ? " (skipped)" : "");
 				if (exv_sha1cnt) {
 					int i;
@@ -5995,11 +6040,20 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			}
 		}
 
-		if (GNET_PROPERTY(share_debug) > 3)
-			g_debug("QUERY %s \"%s\" has %u hit%s",
+		if (GNET_PROPERTY(query_debug) > 14) {
+			char *canonic = UNICODE_CANONIZE(search);
+			char *safe_canonic = hex_escape(canonic, FALSE);
+			g_debug("QUERY %s \"%s\" has %u hit%s%s%s",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
-					search, qctx->found,
-					qctx->found == 1 ? "" : "s");
+					safe_canonic, qctx->found,
+					qctx->found == 1 ? "" : "s",
+					skip_file_search ? " (skipped local)" : "",
+					exv_sha1cnt > 0 ? " (SHA1)" : "");
+			if (safe_canonic != canonic)
+				HFREE_NULL(safe_canonic);
+			if (canonic != search)
+				HFREE_NULL(canonic);
+		}
 
 		/*
 		 * If we got a query marked for OOB results delivery, send them
@@ -6040,6 +6094,9 @@ finish:
 
 	if (!qhv_filled && qhv != NULL)
 		st_fill_qhv(search, qhv);
+
+	if (safe_search != search)
+		HFREE_NULL(safe_search);
 
 	atom_str_free_null(&extended_query);
 }

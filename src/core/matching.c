@@ -38,6 +38,7 @@ RCSID("$Id$")
 #include "lib/halloc.h"
 #include "lib/pattern.h"
 #include "lib/random.h"
+#include "lib/stringify.h"	/* For hex_escape() */
 #include "lib/utf8.h"
 #include "lib/wordvec.h"
 #include "lib/walloc.h"
@@ -503,9 +504,16 @@ st_search(
 	guint random_offset;  /* Randomizer for search returns */
 
 	search = UNICODE_CANONIZE(search_term);
+
 	if (GNET_PROPERTY(query_debug) > 4 && 0 != strcmp(search, search_term)) {
-		g_debug("original search term: \"%s\"", search_term);
-		g_debug("canonical search term: \"%s\"", search);
+		char *safe_search = hex_escape(search, FALSE);
+		char *safe_search_term = hex_escape(search_term, FALSE);
+		g_debug("original search term: \"%s\"", safe_search_term);
+		g_debug("canonical search term: \"%s\"", safe_search);
+		if (safe_search != search)
+			HFREE_NULL(safe_search);
+		if (safe_search_term != search_term)
+			HFREE_NULL(safe_search_term);
 	}
 	len = strlen(search);
 

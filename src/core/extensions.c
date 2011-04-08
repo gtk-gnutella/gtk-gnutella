@@ -1919,6 +1919,72 @@ ext_has_ascii_word(const extvec_t *e)
 }
 
 /**
+ * Summarize extension (type, name) into supplied string buffer.
+ */
+size_t
+ext_to_string_buf(const extvec_t *e, char *buf, size_t len)
+{
+	size_t rw = 0;
+
+	g_assert(e->ext_type < EXT_TYPE_COUNT);
+	g_assert(e->opaque != NULL);
+	g_assert(buf != NULL);
+	g_assert(size_is_non_negative(len));
+
+	rw = gm_snprintf(buf, len, "%s ", extype[e->ext_type]);
+
+	switch (e->ext_type) {
+	case EXT_UNKNOWN:
+	case EXT_XML:
+	case EXT_NONE:
+		break;
+	case EXT_HUGE:
+		{
+			char *what;
+			switch (e->ext_token) {
+			case EXT_T_URN_BITPRINT:	what = "urn:bitprint"; break;
+			case EXT_T_URN_SHA1:		what = "urn:sha1"; break;
+			case EXT_T_URN_TTH:			what = "urn:ttroot"; break;
+			case EXT_T_URN_EMPTY:		what = "urn:"; break;
+			case EXT_T_URN_BAD:			what = "bad URN"; break;
+			default:					what = "<unknown>"; break;
+			}
+			rw += gm_snprintf(&buf[rw], len - rw, "%s ", what);
+		}
+		break;
+	case EXT_GGEP:
+		{
+			extdesc_t *d = e->opaque;
+			rw += gm_snprintf(&buf[rw], len - rw, "\"%s\" ", d->ext_ggep_id);
+			if (d->ext_ggep_cobs)
+				rw += gm_snprintf(&buf[rw], len - rw, "COBS ");
+			if (d->ext_ggep_deflate)
+				rw += gm_snprintf(&buf[rw], len - rw, "deflated ");
+		}
+		break;
+	case EXT_TYPE_COUNT:
+		g_assert_not_reached();
+	}
+
+	rw += gm_snprintf(&buf[rw], len - rw, "(%u byte%s)",
+		ext_paylen(e), 1 == ext_paylen(e) ? "" : "s");
+
+	return rw;
+}
+
+/**
+ * Return small extension description in static buffer.
+ */
+const char *
+ext_to_string(const extvec_t *e)
+{
+	static char buf[80];
+
+	ext_to_string_buf(e, buf, sizeof buf);
+	return buf;
+}
+
+/**
  * Dump an extension to specified stdio stream.
  */
 static void
@@ -1941,7 +2007,7 @@ ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
 
 	paylen = ext_paylen(e);
 
-	fprintf(f, "%d byte%s", paylen, paylen == 1 ? "" : "s");
+	fprintf(f, "%u byte%s", paylen, paylen == 1 ? "" : "s");
 
 	if (e->ext_type == EXT_GGEP) {
 		extdesc_t *d = e->opaque;
