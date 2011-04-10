@@ -44,10 +44,11 @@ RCSID("$Id$")
 #include <zlib.h>
 
 #include "qrp.h"
-#include "routing.h"				/* For message_set_muid() */
 #include "gmsg.h"
-#include "nodes.h"					/* For NODE_IS_WRITABLE() */
 #include "gnet_stats.h"
+#include "nodes.h"					/* For NODE_IS_WRITABLE() */
+#include "routing.h"				/* For message_set_muid() */
+#include "search.h"					/* For search_compact() */
 #include "share.h"
 
 #include "lib/atoms.h"
@@ -4649,6 +4650,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 
 	if (
 		GNET_PROPERTY(qrp_debug) > 4 ||
+		GNET_PROPERTY(query_debug) > 10 ||
 		(NODE_IS_UDP(n) && GNET_PROPERTY(guess_server_debug) > 4)
 	) {
 		GSList *sl;
@@ -4687,6 +4689,14 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 
 	if (nodes == NULL)
 		return;
+
+	/*
+	 * Since this query is going to be sent on the network, compact it
+	 * if requested.
+	 */
+
+	if (n->msg_flags & NODE_M_EXT_CLEANUP)
+		search_compact(n);
 
 	/*
 	 * Now that the original TTL was used to build the node list, don't

@@ -6156,6 +6156,7 @@ node_browse_prepare(
 	n->country = gip_country(n->addr);
 
 	n->size = size;
+	n->msg_flags = 0;
 	memcpy(n->header, header, sizeof n->header);
 	n->data = data;
 
@@ -6447,6 +6448,7 @@ node_pseudo_setup(gnutella_node_t *n, struct gnutella_socket *s)
 
 	head = cast_to_gpointer(s->buf);
 	n->size = gmsg_size(head);
+	n->msg_flags = 0;
 
 	memcpy(n->header, head, sizeof n->header);
 	n->data = &s->buf[GTA_HEADER_SIZE];
@@ -7004,9 +7006,8 @@ node_check_ggep(struct gnutella_node *n, int maxsize, int regsize)
  * since we may invalidate that node during the processing.
  */
 static void
-node_parse(struct gnutella_node *node)
+node_parse(struct gnutella_node *n)
 {
-	struct gnutella_node *n;
 	gboolean drop = FALSE;
 	gboolean has_ggep = FALSE;
 	size_t regular_size = (size_t) -1;		/* -1 signals: regular size */
@@ -7014,13 +7015,12 @@ node_parse(struct gnutella_node *node)
 	query_hashvec_t *qhv = NULL;
 	int results = 0;						/* # of results in query hits */
 
-	g_return_if_fail(node);
-	g_assert(NODE_IS_CONNECTED(node));
+	g_return_if_fail(n != NULL);
+	g_assert(NODE_IS_CONNECTED(n));
 
 	dest.type = ROUTE_NONE;
-	n = node;
 
-	dump_rx_packet(node);
+	dump_rx_packet(n);
 
 	/*
 	 * If we're expecting a handshaking ping, check whether we got one.
@@ -7232,6 +7232,8 @@ node_parse(struct gnutella_node *node)
 			node_sent_ttl0(n);
 		goto reset_header;
 	}
+
+	n->msg_flags = 0;		/* Reset before processing message */
 
 	/*
 	 * During final shutdown the only messages we accept to parse are BYE.

@@ -132,6 +132,7 @@ typedef struct gnutella_node {
 
 	guint16 size; /**< How many bytes we need to read for the current message */
 	guint16 header_flags;		/**< Header flags (new message architecture) */
+	guint32 msg_flags;			/**< Message flags we set during analysis */
 
 	char *data;					/**< data of the current message */
 	guint32 pos;				/**< write position in data */
@@ -275,10 +276,9 @@ typedef struct gnutella_node {
 
 } gnutella_node_t;
 
-/*
+/**
  * Node flags.
  */
-
 enum {
 	NODE_F_NOT_GENUINE	= 1 << 27,	/**< Vendor cannot be genuine */
 	NODE_F_VMSG_SUPPORT	= 1 << 26,	/**< Indicated which VMSGs are supported */
@@ -310,10 +310,9 @@ enum {
 	NODE_F_HDSK_PING	= 1 << 0	/**< Expecting handshake ping */
 };
 
-/*
+/**
  * Node attributes.
  */
-
 enum {
 	NODE_A_GUESS		= 1 << 25,	/**< Node advertized GUESS support */
 	NODE_A_CAN_DHT		= 1 << 24,	/**< Indicated support for DHT */
@@ -341,6 +340,15 @@ enum {
 	NODE_A_PONG_ALIEN	= 1 << 2,	/**< Alien Pong-Caching scheme */
 	NODE_A_PONG_CACHING	= 1 << 1,	/**< Supports Pong-Caching */
 	NODE_A_BYE_PACKET	= 1 << 0	/**< Supports Bye-Packet */
+};
+
+/**
+ * Message flags, set during parsing / processing.
+ */
+enum {
+	NODE_M_STRIP_GUESS	= 1 << 2,	/**< Must strip all GUESS extensions */
+	NODE_M_EXT_CLEANUP	= 1 << 1,	/**< Must cleanup extensions */
+	NODE_M_COMPACTED	= 1 << 0	/**< Compaction occurred */
 };
  
 /*
