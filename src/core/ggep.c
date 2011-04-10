@@ -389,6 +389,7 @@ ggep_stream_write(ggep_stream_t *gs, gconstpointer data, size_t len)
 	const iovec_t *p_iov = &iov;
 
 	g_assert(len <= INT_MAX);
+
 	iovec_set_base(&iov, deconstify_gpointer(data));
 	iovec_set_len(&iov, len);
 
@@ -648,6 +649,7 @@ ggep_stream_close(ggep_stream_t *gs)
 	gs->outbuf = NULL;				/* Mark stream as closed */
 
 	g_assert(len <= gs->size);
+
 	return len;
 }
 
