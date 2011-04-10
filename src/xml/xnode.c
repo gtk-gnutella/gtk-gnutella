@@ -985,7 +985,6 @@ xnode_prop_ns_unset(xnode_t *element, const char *uri, const char *name)
  * Unset property in element.
  *
  * @param element		the element node
- * @param uri			the namespace URI for the property (can be NULL)
  * @param name			the property name
  *
  * @return TRUE if the property existed, FALSE otherwise.
