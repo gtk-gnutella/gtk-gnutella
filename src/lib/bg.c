@@ -1228,6 +1228,8 @@ bg_close(void)
 	}
 
 	bg_reclaim_dead();				/* Free dead tasks */
+	bg_runcount = 0;
+	cq_periodic_remove(&bg_ticker.pev);
 }
 
 /* bg_task_goto */
