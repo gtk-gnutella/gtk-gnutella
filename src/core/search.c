@@ -6124,6 +6124,39 @@ finish:
 }
 
 /**
+ * XML tree traversal callback.
+ */
+static void
+search_xml_node_is_empty(xnode_t *xn, void *data)
+{
+	gboolean *empty = data;
+
+	if (!*empty)
+		return;
+
+	if (xnode_is_comment(xn))
+		return;
+
+	if (xnode_is_text(xn) && strlen(xnode_text(xn)) > 0) {
+		*empty = FALSE;
+	} else if (xnode_prop_count(xn) > 0) {
+		*empty = FALSE;
+	}
+}
+
+/**
+ * Is the XML tree "empty": no content in tags, no attributes.
+ */
+static gboolean
+search_xml_tree_empty(xnode_t *root)
+{
+	gboolean empty = TRUE;
+
+	xnode_tree_foreach(root, search_xml_node_is_empty, &empty);
+	return empty;
+}
+
+/**
  * Compact search request by removing unneeded extensions, cutting on
  * needless bloat.
  *
@@ -6203,24 +6236,26 @@ search_compact(struct gnutella_node *n)
 					xnode_prop_unset(root, "xsi:noNamespaceSchemaLocation");
 					xnode_prop_unset(root, "xsi:nonamespaceschemalocation");
 
-					/*
-					 * Emit the XML without indentation and prologue.
-					 * All XML parsers can parse without a prologue, so why
-					 * send one in each and every query?
-					 */
+					if (!search_xml_tree_empty(root)) {
+						/*
+						 * Emit the XML without indentation and prologue.
+						 * All XML parsers can parse without a prologue, so why
+						 * send one in each and every query?
+						 */
 
-					w = xfmt_tree_to_buffer(root, p, end - p,
-							XFMT_O_SKIP_BLANKS | XFMT_O_SINGLE_LINE);
+						w = xfmt_tree_to_buffer(root, p, end - p,
+								XFMT_O_SKIP_BLANKS | XFMT_O_SINGLE_LINE);
 
-					if ((size_t) -1 == w) {
-						if (GNET_PROPERTY(query_debug)) {
-							g_warning("QUERY %s could not write XML payload",
-								guid_hex_str(
-									gnutella_header_get_muid(&n->header)));
+						if ((size_t) -1 == w) {
+							if (GNET_PROPERTY(query_debug)) {
+								g_warning("QUERY %s could not rewrite XML tree",
+									guid_hex_str(
+										gnutella_header_get_muid(&n->header)));
+							}
+						} else {
+							p += w;
+							*p++ = HUGE_FS;
 						}
-					} else {
-						p += w;
-						*p++ = HUGE_FS;
 					}
 
 					xnode_tree_free_null(&root);
