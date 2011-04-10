@@ -199,6 +199,8 @@ const char *ext_base(const extvec_t *e);
 guint16 ext_headlen(const extvec_t *e);
 guint16 ext_len(const extvec_t *e);
 const char *ext_ggep_id_str(const extvec_t *e);
+gboolean ext_ggep_is_deflated(const extvec_t *e);
+const char *ext_huge_urn_name(const extvec_t *e);
 const char *ext_ggep_name(ext_token_t id);
 
 size_t ext_to_string_buf(const extvec_t *e, char *buf, size_t len);

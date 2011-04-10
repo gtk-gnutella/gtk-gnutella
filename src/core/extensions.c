@@ -699,11 +699,22 @@ ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 	{
 		const char *name_start, *name_end;
 		size_t name_len;
-		char name_buf[16];
+		char name_buf[9];	/* Longest name we parse is "bitprint" */
 
 		name_start = p;
 		name_end = memchr(p, ':', end - name_start);
-		name_len = name_end ? name_end - name_start : 0;
+		name_len = (name_end != NULL) ? name_end - name_start : 0;
+
+		/*
+		 * Some broken servents don't include the trailing ':', which is a
+		 * mistake.  Try to accomodate them by lookup up to the next HUGE
+		 * field separator.
+		 */
+
+		if (NULL == name_end || name_len >= sizeof name_buf) {
+			name_end = memchr(p, HUGE_FS, end - name_start);
+			name_len = (name_end != NULL) ? name_end - name_start : 0;
+		}
 
 		/* Not found, empty name or too long */
 		if (0 == name_len || name_len >= sizeof name_buf)
@@ -754,6 +765,9 @@ found:
 	g_assert(ext_phys_headlen(d) >= 0);
 	g_assert(p - lastp == d->ext_phys_len);
 
+	if (p < end && ('\0' == *p || HUGE_FS == *p))
+		p++;	/* Swallow separator */
+
 	*retp = p;	/* Points to first byte after what we parsed */
 
 	return 1;
@@ -798,6 +812,9 @@ ext_xml_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 
 	g_assert(p - lastp == d->ext_phys_len);
 
+	if (p != end)
+		p++;			/* Swallow separator as well */
+
 	*retp = p;			/* Points to first byte after what we parsed */
 
 	return 1;
@@ -816,6 +833,7 @@ ext_unknown_parse(const char **retp, int len, extvec_t *exv,
 	const char *p = *retp;
 	const char *lastp = p;				/* Last parsed point */
 	extdesc_t *d;
+	gboolean separator = FALSE;
 
 	g_assert(exvcnt > 0);
 	g_assert(exv->opaque == NULL);
@@ -831,6 +849,8 @@ ext_unknown_parse(const char **retp, int len, extvec_t *exv,
 		switch ((guchar) *p) {
 		case '\0':
 		case HUGE_FS:
+			separator = TRUE;
+			/* FALL THROUGH */
 		case GGEP_MAGIC:
 			found = TRUE;
 			break;
@@ -871,6 +891,9 @@ ext_unknown_parse(const char **retp, int len, extvec_t *exv,
 	exv->ext_token = EXT_T_UNKNOWN;
 
 	g_assert(p - lastp == d->ext_phys_len);
+
+	if (separator)
+		p++;			/* Swallow HUGE separator as well */
 
 	*retp = p;			/* Points to first byte after what we parsed */
 
@@ -1853,7 +1876,23 @@ ext_len(const extvec_t *e)
 }
 
 /**
- * @returns extension's GGEP ID, or "" if not a GGEP one.
+ * @return string representation for the URN token, the empty string
+ * if unknown.  Note that there is no trailing ':' in the string.
+ */
+const char *
+ext_huge_urn_name(const extvec_t *e)
+{
+	switch (e->ext_token) {
+	case EXT_T_URN_BITPRINT:	return "urn:bitprint";
+	case EXT_T_URN_SHA1:		return "urn:sha1";
+	case EXT_T_URN_TTH:			return "urn:ttroot";
+	case EXT_T_URN_EMPTY:		return "urn";
+	default:					return "";
+	}
+}
+
+/**
+ * @return extension's GGEP ID, or "" if not a GGEP one.
  */
 const char *
 ext_ggep_id_str(const extvec_t *e)
@@ -1866,6 +1905,22 @@ ext_ggep_id_str(const extvec_t *e)
 		return "";
 
 	return d->ext_ggep_id;
+}
+
+/**
+ * @return whether GGEP extension is deflated.
+ */
+gboolean
+ext_ggep_is_deflated(const extvec_t *e)
+{
+	extdesc_t *d = e->opaque;
+
+	g_assert(e->opaque != NULL);
+
+	if (e->ext_type != EXT_GGEP)
+		return FALSE;
+
+	return booleanize(d->ext_ggep_deflate);
 }
 
 /**
@@ -1940,12 +1995,12 @@ ext_to_string_buf(const extvec_t *e, char *buf, size_t len)
 		break;
 	case EXT_HUGE:
 		{
-			char *what;
+			const char *what;
 			switch (e->ext_token) {
-			case EXT_T_URN_BITPRINT:	what = "urn:bitprint"; break;
-			case EXT_T_URN_SHA1:		what = "urn:sha1"; break;
-			case EXT_T_URN_TTH:			what = "urn:ttroot"; break;
-			case EXT_T_URN_EMPTY:		what = "urn:"; break;
+			case EXT_T_URN_BITPRINT:
+			case EXT_T_URN_SHA1:
+			case EXT_T_URN_TTH:
+			case EXT_T_URN_EMPTY:		what = ext_huge_urn_name(e); break;
 			case EXT_T_URN_BAD:			what = "bad URN"; break;
 			default:					what = "<unknown>"; break;
 			}
