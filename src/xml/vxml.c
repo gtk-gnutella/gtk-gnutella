@@ -899,13 +899,15 @@ vxml_parser_make(const char *name, guint32 options)
 	vp->endianness = VXML_ENDIANSRC_DEFAULT;
 	vp->versource = VXML_VERSRC_DEFAULT;
 	vp->options = options;
-	vp->namespaces = symtab_make();
+	vp->namespaces = (options & VXML_O_NO_NAMESPACES) ? NULL : symtab_make();
 	vp->major = 1;
 	vp->minor = 0;
 	vxml_output_init(&vp->out);
 	vxml_output_init(&vp->entity);
 	vxml_location_init(&vp->glob);
-	vxml_parser_namespace_global(vp, VXS_XML, VXS_XML_URI);
+	if (vp->namespaces != NULL) {
+		vxml_parser_namespace_global(vp, VXS_XML, VXS_XML_URI);
+	}
 
 	return vp;
 }
@@ -2649,7 +2651,7 @@ vxml_parser_namespace_lookup(const vxml_parser_t *vp, const char *ns)
 
 	g_assert(ns != NULL);
 
-	uri = symtab_lookup(vp->namespaces, ns);
+	uri = (NULL == vp->namespaces)? NULL : symtab_lookup(vp->namespaces, ns);
 	return NULL == uri ? VXS_EMPTY : uri;
 }
 
@@ -4898,7 +4900,8 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	 * We always use the global depth to manage the symbol table.
 	 */
 
-	symtab_leave(vp->namespaces, vp->glob.depth);
+	if (vp->namespaces != NULL)
+		symtab_leave(vp->namespaces, vp->glob.depth);
 
 	/*
 	 * Now remove the element from the path, and update the current element
