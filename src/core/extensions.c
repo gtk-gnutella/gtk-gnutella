@@ -1125,7 +1125,7 @@ ext_parse_buffer(const char *buf, size_t len, int flags,
 			(exv->ext_type == EXT_UNKNOWN || exv->ext_type == EXT_NONE)
 		) {
 			extvec_t *prev = exv - 1;
-			if (prev->ext_type == EXT_UNKNOWN)
+			if (prev->ext_type == EXT_UNKNOWN) {
 				ext_merge_adjacent(prev, exv);
 				continue;					/* Don't move `exv' */
 			}
