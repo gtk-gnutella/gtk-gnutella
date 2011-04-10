@@ -94,7 +94,7 @@ struct xfmt_pass2 {
 
 static const char XFMT_DECL[]		= "<?xml version='1.1' standalone='yes'?>";
 static const char XFMT_DECL_10[]	= "<?xml version=\"1.0\"?>";
-static const char XFMT_EMPTY[]		= "/>\n";
+static const char XFMT_EMPTY[]		= "/>";
 static const char XFMT_GT[]			= ">";
 
 /**
@@ -758,7 +758,8 @@ xfmt_handle_pass2_enter(xnode_t *xn, void *data)
 		const char *nsuri = xnode_element_ns(xn);
 
 		if (!xp2->had_text && !xp2->last_was_nl) {
-			ostream_putc(xp2->os, '\n');
+			if (!(xp2->options & XFMT_O_SINGLE_LINE))
+				ostream_putc(xp2->os, '\n');
 			xp2->last_was_nl = TRUE;
 		}
 
@@ -819,6 +820,8 @@ xfmt_handle_pass2_enter(xnode_t *xn, void *data)
 
 		if (xnode_is_empty(xn)) {
 			ostream_write(xp2->os, XFMT_EMPTY, CONST_STRLEN(XFMT_EMPTY));
+			if (!(xp2->options & XFMT_O_SINGLE_LINE))
+				ostream_putc(xp2->os, '\n');
 			xp2->last_was_nl = TRUE;
 			xfmt_pass2_leaving(xp2);	/* No children, no "leave" callback */
 			return FALSE;
@@ -898,9 +901,12 @@ xfmt_handle_pass2_leave(xnode_t *xn, void *data)
 
 		if (uri != NULL) {
 			const char *pre = xfmt_uri_to_prefix(xp2, uri);
-			ostream_printf(xp2->os, "</%s:%s>\n", pre, xnode_element_name(xn));
+			ostream_printf(xp2->os, "</%s:%s>", pre, xnode_element_name(xn));
 		} else {
-			ostream_printf(xp2->os, "</%s>\n", xnode_element_name(xn));
+			ostream_printf(xp2->os, "</%s>", xnode_element_name(xn));
+		}
+		if (!(xp2->options & XFMT_O_SINGLE_LINE)) {
+			ostream_putc(xp2->os, '\n');
 		}
 		/* Reset for next element */
 		xp2->had_text = FALSE;
@@ -967,6 +973,7 @@ xfmt_invert_uri_kv(void *key, void *value, void *data)
  * - XFMT_O_NO_INDENT requests that no indentation of the tree be made.
  * - XFMT_O_PROLOGUE emits a leading <?xml?> prologue.
  * - XFMT_O_FORCE_10 force generation of XML 1.0
+ * - XFMT_O_SINGLE_LINE emits XML as one big line (implies XFMT_O_NO_INDENT).
  *
  * @return TRUE on success.
  */
@@ -987,6 +994,9 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 		g_warning("XFMT_O_COLLAPSE_BLANKS not supported yet");
 		stacktrace_where_print(stderr);
 	}
+
+	if (options & XFMT_O_SINGLE_LINE)
+		options |= XFMT_O_NO_INDENT;
 
 	/*
 	 * First pass: look at namespaces and construct a table recording the
@@ -1060,7 +1070,9 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 		} else {
 			ostream_write(os, XFMT_DECL, CONST_STRLEN(XFMT_DECL));
 		}
-		ostream_putc(os, '\n');
+		if (!(options & XFMT_O_SINGLE_LINE)) {
+			ostream_putc(os, '\n');
+		}
 	}
 
 	xfmt_prefix_declare(&xp2, VXS_XML_URI, VXS_XML);
@@ -1119,6 +1131,7 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
  * - XFMT_O_NO_INDENT requests that no indentation of the tree be made.
  * - XFMT_O_PROLOGUE emits a leading <?xml?> prologue.
  * - XFMT_O_FORCE_10 force generation of XML 1.0
+ * - XFMT_O_SINGLE_LINE emits XML as one big line (implies XFMT_O_NO_INDENT).
  *
  * @return TRUE on success.
  */
@@ -1130,6 +1143,9 @@ xfmt_tree(const xnode_t *root, ostream_t *os, guint32 options)
 
 /**
  * Convenience routine: dump tree without prologue to specified file.
+ *
+ * @param root		tree to dump
+ * @param f			file where we should dump the tree
  *
  * @return TRUE on success.
  */
@@ -1143,5 +1159,44 @@ xfmt_tree_dump(const xnode_t *root, FILE *f)
 	return 0 == ostream_close(os);
 }
 
+/**
+ * Convenience routine: format tree to memory buffer.
+ *
+ * @param root		tree to dump
+ * @param buf		buffer where formatting is done
+ * @param len		buffer length
+ * @param options	formatting options
+ *
+ * @return length of generated string, -1 on failure.
+ */
+size_t
+xfmt_tree_to_buffer(const xnode_t *root, void *buf, size_t len, guint32 options)
+{
+	ostream_t *os;
+	pdata_t *pd;
+	pmsg_t *mb;
+	gboolean ok;
+	size_t written = (size_t) -1;
+
+	g_assert(root != NULL);
+	g_assert(buf != NULL);
+	g_assert(size_is_non_negative(len));
+
+	pd = pdata_allocb_ext(buf, len, pdata_free_nop, NULL);
+	mb = pmsg_alloc(PMSG_P_DATA, pd, 0, 0);
+	os = ostream_open_pmsg(mb);
+
+	ok = xfmt_tree(root, os, options);
+	ok = ostream_close(os) && ok;
+
+	if (ok)
+		written = pmsg_size(mb);
+
+	pmsg_free(mb);
+
+	g_assert((size_t) -1 == written || written <= len);
+
+	return written;
+}
 
 /* vi: set ts=4 sw=4 cindent: */

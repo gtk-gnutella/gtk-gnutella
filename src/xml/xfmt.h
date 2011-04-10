@@ -49,6 +49,7 @@
 #define XFMT_O_NO_INDENT		(1 << 2)	/**< Do not indent */
 #define XFMT_O_PROLOGUE			(1 << 3)	/**< Include XML prologue */
 #define XFMT_O_FORCE_10			(1 << 4)	/**< Force XML 1.0 */
+#define XFMT_O_SINGLE_LINE		(1 << 5)	/**< No newlines (thus no indent) */
 
 /**
  * User-defined namespace prefix mappings.
@@ -69,6 +70,8 @@ gboolean xfmt_tree_extended(const xnode_t *root, ostream_t *os,
 	const char *default_ns);
 
 gboolean xfmt_tree_dump(const xnode_t *root, FILE *f);
+size_t xfmt_tree_to_buffer(const xnode_t *root,
+	void *buf, size_t len, guint32 options);
 
 #endif /* _xml_xfmt_h_ */
 
