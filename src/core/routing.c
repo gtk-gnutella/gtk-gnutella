@@ -1979,13 +1979,13 @@ route_query(struct route_log *route_log,
 	if (
 		!(sender->flags & NODE_A_DYN_QUERY) &&
 		(guint) gnutella_header_get_ttl(&sender->header) +
-			gnutella_header_get_hops(&sender->header) >= GNET_PROPERTY(my_ttl)
+			gnutella_header_get_hops(&sender->header) > GNET_PROPERTY(my_ttl)
 	) {
 		int ttl_max;
 	
-		ttl_max = GNET_PROPERTY(my_ttl)
-					- gnutella_header_get_hops(&sender->header) - 1;
 		/* Trim down */
+		ttl_max = GNET_PROPERTY(my_ttl);
+		ttl_max -= gnutella_header_get_hops(&sender->header);
 		ttl_max = MAX(1, ttl_max);
 		gnutella_header_set_ttl(&sender->header, ttl_max);
 
