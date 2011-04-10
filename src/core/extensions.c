@@ -979,13 +979,13 @@ ext_merge_adjacent(extvec_t *exv, extvec_t *next)
 
 	g_assert(nbase + nd->ext_phys_len == nend);
 	g_assert(nend > end);
+	g_assert(nbase >= end);
 
 	/*
-	 * Extensions are adjacent, but can be separated by a single NUL or other
-	 * one byte separator.
+	 * Merged extensions must be adjacent, but can be separated by a set
+	 * of separators (or what we thought were separators but which are
+	 * going to become part of the payload for the new merged extension).
 	 */
-
-	g_assert(nbase == end || nbase == (end + 1));
 
 	added = nend - end;			/* Includes any separator between the two */
 
@@ -1125,7 +1125,7 @@ ext_parse_buffer(const char *buf, size_t len, int flags,
 			(exv->ext_type == EXT_UNKNOWN || exv->ext_type == EXT_NONE)
 		) {
 			extvec_t *prev = exv - 1;
-			if (prev->ext_type == EXT_UNKNOWN) {
+			if (prev->ext_type == EXT_UNKNOWN)
 				ext_merge_adjacent(prev, exv);
 				continue;					/* Don't move `exv' */
 			}
