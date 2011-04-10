@@ -1107,6 +1107,17 @@ ext_parse_buffer(const char *buf, size_t len, int flags,
 			}
 
 			found = ext_unknown_parse(&p, len, exv, exvcnt, TRUE);
+		} else {
+			/*
+			 * The possible trailing NUL at the end of the extension we
+			 * just parsed was swallowed by the parser.  If we have to
+			 * end parsing at the first NUL encountered, we need to exit.
+			 */
+
+			if ((flags & EXT_F_NUL_END) && '\0' == *(p - 1)) {
+				cnt += found;
+				goto out;
+			}
 		}
 
 		g_assert(found > 0);
