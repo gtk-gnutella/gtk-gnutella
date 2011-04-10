@@ -982,6 +982,23 @@ xnode_prop_ns_unset(xnode_t *element, const char *uri, const char *name)
 }
 
 /**
+ * @return the amount of properties attached to the node.
+ */
+size_t
+xnode_prop_count(const xnode_t *element)
+{
+	xnode_check(element);
+
+	if (XNODE_T_ELEMENT != element->type)
+		return 0;
+
+	if (NULL == element->u.e.attrs)
+		return 0;
+
+	return xattr_table_count(element->u.e.attrs);
+}
+
+/**
  * Unset property in element.
  *
  * @param element		the element node

@@ -65,6 +65,7 @@ gboolean xattr_table_remove(xattr_table_t *xat,
 	const char *uri, const char *local);
 const char *xattr_table_lookup(const xattr_table_t *xat,
 	const char *uri, const char *local);
+size_t xattr_table_count(const xattr_table_t *xat);
 
 void xattr_table_foreach(const xattr_table_t *xat,
 	xattr_table_cb_t func, void *data);

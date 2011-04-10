@@ -359,6 +359,17 @@ xattr_table_lookup(const xattr_table_t *xat, const char *uri, const char *local)
 	return (xa != NULL) ? xa->value : NULL;
 }
 
+/**
+ * @return the number of attributes held.
+ */
+size_t
+xattr_table_count(const xattr_table_t *xat)
+{
+	xattr_table_check(xat);
+
+	return hash_list_length(xat->hl);
+}
+
 struct xattr_table_foreach_ctx {
 	xattr_table_cb_t func;
 	void *data;
