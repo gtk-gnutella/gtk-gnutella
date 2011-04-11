@@ -29,6 +29,28 @@
  *
  * Zone allocator.
  *
+ * A zone is, in its simplest expression, a memory chunk where fix-sized
+ * blocks are sliced, all free blocks being chained together via a link
+ * written in the first bytes of the block. To allocate a block, the first
+ * free block is removed from the list. Freeing is just as easy, since we
+ * insert the block at the head of the free list.
+ *
+ * Zone chunks are linked together to make a bigger pool.  Each chunk is
+ * called a "subzone".
+ *
+ * The advantages for allocating from a zone are:
+ *   - very fast allocation time.
+ *   - absence of block header overhead.
+ *   - no risk of memory fragmentation.
+ *
+ * The disadvantages are:
+ *   - need to allocate the zone before allocating items.
+ *   - need to pass-in the zone descriptor each time.
+ *   - programmer must be careful to return each block to its native zone.
+ *
+ * Moreover, periodic calls to the zone gc are needed to collect unused chunks
+ * when peak allocations are infrequent or occur at random.
+ *
  * @author Raphael Manfredi
  * @date 2002-2003
  * @date 2009-2010
@@ -100,10 +122,8 @@ struct zone_gc {
  *
  * Zone structure.
  *
- * Zone structures can be linked together to form one big happy chain.
- * During allocation/free, only the first zone structure of the list is
- * updated. The other subzone structures are updated only during the garbage
- * collecting phase, if any.
+ * Subzone structures are used to linked together several allocation arenas
+ * that are used to allocate objects for the zone.
  */
 
 struct zone {				/* Zone descriptor */
@@ -283,31 +303,8 @@ zprepare(zone_t *zone, char **blk)
 /**
  * Allcate memory with fixed size blocks (zone allocation).
  *
- * Returns a pointer to a block containing at least 'size' bytes of
+ * @return a pointer to a block containing at least 'size' bytes of
  * memory.  It is a fatal error if memory cannot be allocated.
- *
- * A zone is, in its simplest expression, a memory chunk where fix-sized
- * blocks are sliced, all free blocks being chained together via a link
- * written in the first bytes of the block. To allocate a block, the first
- * free block is removed from the list. Freeing is just as easy, since we
- * insert the block at the head of the free list.
- *
- * Zone chunks are linked together to make a bigger pool, where only the
- * first zone descriptor is accurate (i.e. only it has meaningful zn_cnt and
- * zn_free fields).
- *
- * The advantages for allocating from a zone are:
- *   - very fast allocation time.
- *   - absence of block header overhead.
- *   - no risk of memory fragmentation.
- *
- * The disadvantages are:
- *   - need to allocate the zone before allocating items.
- *   - need to pass-in the zone descriptor each time.
- *   - programmer must be careful to return each block to its native zone.
- *
- * Moreover, periodic calls to the zone gc are needed to collect unused chunks
- * when peak allocations are infrequent or occur at random.
  */
 void *
 zalloc(zone_t *zone)
