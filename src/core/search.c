@@ -6307,7 +6307,7 @@ search_compact(struct gnutella_node *n)
 			{
 				size_t w;
 
-				w = g_strlcpy(p, ext_payload(e), ext_paylen(e));
+				w = clamp_memcpy(p, end - p, ext_payload(e), ext_paylen(e));
 				p += w;
 				*p++ = HUGE_FS;
 			}
@@ -6370,8 +6370,11 @@ search_compact(struct gnutella_node *n)
 		g_assert(p <= end);
 	}
 
-	ext_reset(exv, MAX_EXTVEC);
 	newlen = p - dest;
+	g_assert(size_is_non_negative(newlen));
+	g_assert(newlen <= extra);
+
+	ext_reset(exv, MAX_EXTVEC);
 
 	if (newlen != extra) {
 		size_t diff = extra - newlen;
@@ -6389,9 +6392,6 @@ search_compact(struct gnutella_node *n)
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				(unsigned long) extra, (unsigned long) newlen);
 		}
-
-		g_assert(newlen < extra);
-		g_assert(size_is_non_negative(newlen));
 
 		/*
 		 * Adjust message length since we managed to strip keys.
