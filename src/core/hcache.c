@@ -2,7 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2002-2003, Raphael Manfredi, Richard Eckart
- * Copyright (c) 20011, Raphael Manfredi
+ * Copyright (c) 2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
