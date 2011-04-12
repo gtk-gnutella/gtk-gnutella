@@ -87,7 +87,7 @@ struct node_rxfc_mon {
  * range, based on the hop count.
  */
 
-#define MAX_CACHE_HOPS	6		/* We won't handle anything larger */
+#define MAX_CACHE_HOPS	4		/* We won't handle anything larger */
 
 #define CACHE_HOP_IDX(h)	(((h) > MAX_CACHE_HOPS) ? MAX_CACHE_HOPS : (h))
 
@@ -346,6 +346,7 @@ enum {
  * Message flags, set during parsing / processing.
  */
 enum {
+	NODE_M_STRIP_GGEP_u	= 1 << 3,	/**< Must strip GGEP "u" */
 	NODE_M_STRIP_GUESS	= 1 << 2,	/**< Must strip all GUESS extensions */
 	NODE_M_EXT_CLEANUP	= 1 << 1,	/**< Must cleanup extensions */
 	NODE_M_COMPACTED	= 1 << 0	/**< Compaction occurred */

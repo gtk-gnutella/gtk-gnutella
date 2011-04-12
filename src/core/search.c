@@ -126,7 +126,7 @@ RCSID("$Id$")
 #define SEARCH_GC_PERIOD	120	 /**< Every 2 minutes */
 
 #define HUGE_FS				0x1c /**< HUGE Field Separator */
-#define DEFLATE_THRESHOLD	8	 /**< Minimum size to attempt GGEP deflate */
+#define DEFLATE_THRESHOLD	48	 /**< Minimum size to attempt GGEP deflate */
 
 /*
  * GUESS security tokens.
@@ -5202,6 +5202,12 @@ search_request_preprocess(struct gnutella_node *n)
 			case EXT_T_GGEP_XQ:			/* Extended Query */
 				break;					/* Ignore these at pre-process time */
 
+			case EXT_T_URN_EMPTY:
+				break;					/* Ignored, we send SHA-1 anyway */
+
+			case EXT_T_GGEP_u:			/* We handle sha1 / bitprint only */
+				break;					/* Not pre-processed, validated later */
+
 			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
 			case EXT_T_URN_SHA1:
 				sha1 = &exv_sha1[exv_sha1cnt].sha1;
@@ -5751,6 +5757,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			/* TODO: handle EXT_T_GGEP_PR and EXT_T_GGEP_M */
 
 			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
+			case EXT_T_GGEP_u:			/* Handle SHA1 value only */
 			case EXT_T_URN_SHA1:
 				sha1 = &exv_sha1[exv_sha1cnt].sha1;
 
@@ -5765,6 +5772,28 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 					} else {
 						/* Was validated by search_request_preprocess() */
 						g_assert_not_reached();
+					}
+				} else if (EXT_T_GGEP_u == e->ext_token) {
+					size_t plen = ext_paylen(e);
+					const char *pload = ext_payload(e);
+					const char *p;
+					gboolean keep = FALSE;
+
+					if (
+						(p = is_bufcaseprefix(pload, plen, "sha1:")) ||
+						(p = is_bufcaseprefix(pload, plen, "bitprint:"))
+					) {
+						size_t len;
+
+						plen -= (p - pload);
+						len = MIN(plen, SHA1_BASE32_SIZE);
+						keep = huge_sha1_extract32(p, len, sha1, n);
+					}
+					if (!keep) {
+						/* Don't propagate if it's not containing valid info */
+						n->msg_flags |=
+							NODE_M_EXT_CLEANUP | NODE_M_STRIP_GGEP_u;
+						continue;
 					}
 				} else if (EXT_T_URN_SHA1 == e->ext_token) {
 					size_t paylen = ext_paylen(e);
@@ -6343,25 +6372,29 @@ search_compact(struct gnutella_node *n)
 				continue;
 
 			switch (e->ext_token) {
+			case EXT_T_GGEP_u:
+				if (n->msg_flags & NODE_M_STRIP_GGEP_u)
+					continue;
+				break;
 			case EXT_T_GGEP_QK:
 			case EXT_T_GGEP_SCP:
-				if (n->msg_flags & NODE_M_STRIP_GUESS) {
-					break;
-				}
-				/* FALL THROUGH */
-			default:
-				ok = ggep_stream_begin(&gs, ext_ggep_id_str(e),
-						ext_paylen(e) > DEFLATE_THRESHOLD ? GGEP_W_DEFLATE : 0)
-					&& ggep_stream_write(&gs, ext_payload(e), ext_paylen(e))
-					&& ggep_stream_end(&gs);
-				if (!ok) {
-					if (GNET_PROPERTY(query_debug)) {
-						g_warning("QUERY %s could not write GGEP \"%s\"",
-							guid_hex_str(gnutella_header_get_muid(&n->header)),
-							ext_ggep_id_str(e));
-					}
-				}
+				if (n->msg_flags & NODE_M_STRIP_GUESS)
+					continue;
 				break;
+			default:
+				break;
+			}
+
+			ok = ggep_stream_begin(&gs, ext_ggep_id_str(e),
+					ext_paylen(e) > DEFLATE_THRESHOLD ? GGEP_W_DEFLATE : 0)
+				&& ggep_stream_write(&gs, ext_payload(e), ext_paylen(e))
+				&& ggep_stream_end(&gs);
+			if (!ok) {
+				if (GNET_PROPERTY(query_debug)) {
+					g_warning("QUERY %s could not write GGEP \"%s\"",
+						guid_hex_str(gnutella_header_get_muid(&n->header)),
+						ext_ggep_id_str(e));
+				}
 			}
 		}
 
