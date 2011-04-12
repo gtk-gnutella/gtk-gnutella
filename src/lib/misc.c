@@ -156,6 +156,86 @@ is_strsuffix(const char *str, size_t len, const char *suffix)
 }
 
 /**
+ * Checks whether ``prefix'' is a prefix of ``buf'' which may not be
+ * NUL-terminated but whose size is known.
+ *
+ * @param buf		a buffer of size len (may not have a trailing NUL)
+ * @param len 		length of buffer
+ * @param prefix	a NUL-terminated string
+ *
+ * @return	NULL, if ``prefix'' is not a prefix of ``buf''. Otherwise, a
+ *			pointer to the first character in ``buf'' after the prefix.
+ */
+char *
+is_bufprefix(const char *buf, size_t len, const char *prefix)
+{
+	const char *s, *p, *end;
+	int c;
+
+	g_assert(NULL != buf);
+	g_assert(NULL != prefix);
+	g_assert(size_is_non_negative(len));
+
+	for (
+		s = buf, p = prefix, end = &buf[len];
+		'\0' != (c = *p) && s < end;
+		p++
+	) {
+		if (c != *s++)
+			return NULL;
+	}
+
+	if ('\0' != *p)
+		return NULL;			/* String was shorter than prefix */
+
+	return deconstify_gchar(s);
+}
+
+/**
+ * Checks whether ``prefix'' is a prefix of ``buf'' performing an
+ * case-insensitive (ASCII only) check.  The buffer may not end with
+ * a NUL but its size is known.
+ *
+ * @param buf		a buffer of size len (may not have a trailing NUL)
+ * @param len 		length of buffer
+ * @param prefix	a NUL-terminated string
+ *
+ * @return	NULL, if ``prefix'' is not a prefix of ``buf''. Otherwise, a
+ *			pointer to the first character in ``buf'' after the prefix.
+ */
+char *
+is_bufcaseprefix(const char *buf, size_t len, const char *prefix)
+{
+	const char *s, *p, *end;
+	int a;
+
+	g_assert(NULL != buf);
+	g_assert(NULL != prefix);
+	g_assert(size_is_non_negative(len));
+
+	for (
+		s = buf, p = prefix, end = &buf[len];
+		'\0' != (a = *p) && s < end;
+		p++
+	) {
+		int b = *s++;
+
+		/*
+		 * Optimize a bit: if case matches, or we're dealing with a non-letter
+		 * character, there's no need to invoke acscii_tolower().
+		 */
+
+		if (a != b && ascii_tolower(a) != ascii_tolower(b))
+			return NULL;
+	}
+
+	if ('\0' != *p)
+		return NULL;			/* String was shorter than prefix */
+
+	return deconstify_gchar(s);
+}
+
+/**
  * @returns local host name, as pointer to static data.
  */
 const char *
