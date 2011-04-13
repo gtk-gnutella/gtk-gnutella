@@ -2570,10 +2570,20 @@ free_publish(gpointer key, gpointer value, gpointer data)
 
 	pb->flags |= PB_F_DONT_REMOVE;		/* No removal whilst we iterate! */
 
-	if (*exiting)
+	if (*exiting) {
 		publish_free(pb);
-	else
-		publish_cancel(pb, TRUE);
+	} else {
+		/*
+		 * Shutting down the DHT, but we're not exiting.
+		 *
+		 * Skip subordinate requests, they'll be cancelled when we iterate
+		 * on their parent.
+		 */
+
+		if (!(pb->flags & PB_F_SUBORDINATE)) {
+			publish_cancel(pb, TRUE);
+		}
+	}
 }
 
 /**
