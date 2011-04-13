@@ -350,7 +350,6 @@ extern const gboolean gnet_property_variable_tth_rebuilding;
 extern const gboolean gnet_property_variable_tth_verifying;
 extern const guint32  gnet_property_variable_search_max_results;
 extern const guint32  gnet_property_variable_browse_host_max_results;
-extern const char    gnet_property_variable_session_id[GUID_RAW_SIZE];
 extern const time_t  gnet_property_variable_latest_svn_release_date;
 extern const guint32  gnet_property_variable_latest_svn_release_revision;
 extern const char   *gnet_property_variable_latest_svn_release_signature;

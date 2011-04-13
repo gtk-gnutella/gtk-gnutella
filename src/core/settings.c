@@ -539,23 +539,6 @@ settings_ensure_unique_save_file_path(void)
 }
 
 static void
-settings_init_session_id(void)
-{
-	SHA1Context ctx;
-	struct sha1 digest;
-	guint32 noise[64];
-	size_t size;
-
-	random_bytes(noise, sizeof noise);
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, &noise, sizeof noise);
-	SHA1Result(&ctx, &digest);
-
-	size = MIN(GUID_RAW_SIZE, sizeof digest.data);
-	gnet_prop_set_storage(PROP_SESSION_ID, digest.data, size);
-}
-
-static void
 settings_update_firewalled(void)
 {
 	/*
@@ -625,7 +608,6 @@ settings_init(void)
 	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MIN, cpufreq_min());
 	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MAX, cpufreq_max());
 
-	settings_init_session_id();
 	memset(deconstify_gpointer(GNET_PROPERTY(servent_guid)), 0, GUID_RAW_SIZE);
 
 	if (NULL == config_dir || '\0' == *config_dir || !is_directory(config_dir))
