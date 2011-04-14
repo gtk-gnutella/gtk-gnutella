@@ -78,7 +78,6 @@ RCSID("$Id$")
 #include "knode.h"
 #include "publish.h"
 #include "routing.h"
-#include "storage.h"
 
 #include "if/dht/kademlia.h"
 #include "if/dht/routing.h"
@@ -92,8 +91,8 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/bstr.h"
 #include "lib/cq.h"
-#include "lib/dbmap.h"
 #include "lib/dbmw.h"
+#include "lib/dbstore.h"
 #include "lib/glib-missing.h"
 #include "lib/pmsg.h"
 #include "lib/patricia.h"
@@ -1277,6 +1276,9 @@ void
 keys_init(void)
 {
 	size_t i;
+	dbstore_kv_t kv = { KUID_RAW_SIZE, sizeof(struct keydata), 0 };
+	dbstore_packing_t packing =
+		{ serialize_keydata, deserialize_keydata, NULL };
 
 	g_assert(NULL == keys_periodic_ev);
 	g_assert(NULL == keys);
@@ -1288,10 +1290,9 @@ keys_init(void)
 	keys = g_hash_table_new(kuid_hash, kuid_eq);
 	install_periodic_kball(KBALL_FIRST);
 
-	db_keydata = storage_create(db_keywhat, db_keybase,
-		KUID_RAW_SIZE, sizeof(struct keydata), 0,
-		serialize_keydata, deserialize_keydata, NULL,
-		KEYS_DB_CACHE_SIZE, kuid_hash, kuid_eq);
+	db_keydata = dbstore_create(db_keywhat, settings_config_dir(), db_keybase,
+		kv, packing, KEYS_DB_CACHE_SIZE, kuid_hash, kuid_eq,
+		GNET_PROPERTY(dht_storage_in_memory));
 
 	for (i = 0; i < G_N_ELEMENTS(decimation_factor); i++)
 		decimation_factor[i] = pow(KEYS_DECIMATION_BASE, i);
@@ -1453,7 +1454,7 @@ keys_free_kv(gpointer u_key, gpointer val, gpointer u_x)
 void
 keys_close(void)
 {
-	storage_delete(db_keydata);
+	dbstore_delete(db_keydata);
 	db_keydata = NULL;
 
 	if (keys) {

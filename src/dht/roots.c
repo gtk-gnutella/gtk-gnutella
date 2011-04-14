@@ -66,9 +66,9 @@ RCSID("$Id$")
 #include "keys.h"
 #include "kuid.h"
 #include "knode.h"
-#include "storage.h"
 
 #include "core/gnet_stats.h"
+#include "core/settings.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/dht/kademlia.h"
@@ -76,8 +76,8 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
-#include "lib/dbmap.h"
 #include "lib/dbmw.h"
+#include "lib/dbstore.h"
 #include "lib/glib-missing.h"
 #include "lib/map.h"
 #include "lib/patricia.h"
@@ -1037,8 +1037,8 @@ roots_sync(gpointer unused_obj)
 {
 	(void) unused_obj;
 
-	storage_sync(db_rootdata);
-	storage_sync(db_contact);
+	dbstore_sync(db_rootdata);
+	dbstore_sync(db_contact);
 
 	return TRUE;
 }
@@ -1125,6 +1125,14 @@ roots_init_rootinfo(void)
 void
 roots_init(void)
 {
+	dbstore_kv_t root_kv = { KUID_RAW_SIZE, sizeof(struct rootdata), 0 };
+	dbstore_kv_t contact_kv = { sizeof(guint64), sizeof(struct contact),
+		sizeof(struct contact) + KUID_RAW_SIZE };
+	dbstore_packing_t root_packing =
+		{ serialize_rootdata, deserialize_rootdata, NULL };
+	dbstore_packing_t contact_packing =
+		{ serialize_contact, deserialize_contact, free_contact };
+
 	g_assert(NULL == roots_cq);
 	g_assert(NULL == roots);
 	g_assert(NULL == db_rootdata);
@@ -1133,16 +1141,15 @@ roots_init(void)
 	roots_cq = cq_submake("roots", callout_queue, ROOTS_CALLOUT);
 	roots = patricia_create(KUID_RAW_BITSIZE);
 
-	db_rootdata = storage_open(db_rootdata_what, db_rootdata_base,
-		KUID_RAW_SIZE, sizeof(struct rootdata), 0,
-		serialize_rootdata, deserialize_rootdata, NULL,
-		ROOTKEYS_DB_CACHE_SIZE, kuid_hash, kuid_eq);
+	db_rootdata = dbstore_open(db_rootdata_what, settings_config_dir(),
+		db_rootdata_base, root_kv, root_packing,
+		ROOTKEYS_DB_CACHE_SIZE, kuid_hash, kuid_eq,
+		GNET_PROPERTY(dht_storage_in_memory));
 
-	db_contact = storage_open(db_contact_what, db_contact_base,
-		sizeof(guint64), sizeof(struct contact),
-			sizeof(struct contact) + KUID_RAW_SIZE,
-		serialize_contact, deserialize_contact, free_contact,
-		CONTACT_DB_CACHE_SIZE, uint64_mem_hash, uint64_mem_eq);
+	db_contact = dbstore_open(db_contact_what, settings_config_dir(),
+		db_contact_base, contact_kv, contact_packing,
+		CONTACT_DB_CACHE_SIZE, uint64_mem_hash, uint64_mem_eq,
+		GNET_PROPERTY(dht_storage_in_memory));
 
 	dbmw_set_map_cache(db_contact, CONTACT_MAP_CACHE_SIZE);
 
@@ -1183,10 +1190,10 @@ roots_close(void)
 			targets_managed, contacts_managed);
 	}
 
-	storage_close(db_rootdata, db_rootdata_base);
+	dbstore_close(db_rootdata, settings_config_dir(), db_rootdata_base);
 	db_rootdata = NULL;
 
-	storage_close(db_contact, db_contact_base);
+	dbstore_close(db_contact, settings_config_dir(), db_contact_base);
 	db_contact = NULL;
 
 	cq_free_null(&roots_cq);

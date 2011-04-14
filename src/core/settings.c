@@ -74,6 +74,7 @@
 #include "lib/cpufreq.h"
 #include "lib/cq.h"
 #include "lib/crash.h"
+#include "lib/dbstore.h"
 #include "lib/debug.h"
 #include "lib/eval.h"
 #include "lib/fd.h"
@@ -2088,6 +2089,17 @@ bg_debug_changed(property_t prop)
 }
 
 static gboolean
+dbstore_debug_changed(property_t prop)
+{
+	guint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	dbstore_set_debug(val);
+
+    return FALSE;
+}
+
+static gboolean
 inputevt_debug_changed(property_t prop)
 {
 	guint32 val;
@@ -2605,6 +2617,11 @@ static prop_map_t property_map[] = {
     {
         PROP_BG_DEBUG,
         bg_debug_changed,
+        TRUE
+    },
+    {
+        PROP_DBSTORE_DEBUG,
+        dbstore_debug_changed,
         TRUE
     },
     {

@@ -72,18 +72,19 @@ RCSID("$Id$")
 
 #include "tcache.h"
 #include "lookup.h"
-#include "storage.h"
 #include "token.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/dht/kuid.h"
 
 #include "core/gnet_stats.h"
+#include "core/settings.h"		/* For settings_config_dir() */
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/map.h"
 #include "lib/dbmw.h"
+#include "lib/dbstore.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/stringify.h"
@@ -367,14 +368,17 @@ tcache_periodic_prune(gpointer unused_obj)
 void
 tcache_init(void)
 {
+	dbstore_kv_t kv = { KUID_RAW_SIZE, sizeof(struct tokdata),
+		sizeof(struct tokdata) + MAX_INT_VAL(guint8) };
+	dbstore_packing_t packing =
+		{ serialize_tokdata, deserialize_tokdata, free_tokdata };
+
 	g_assert(NULL == db_tokdata);
 	g_assert(NULL == tcache_prune_ev);
 
-	db_tokdata = storage_create(db_tcache_what, db_tcache_base,
-		KUID_RAW_SIZE, sizeof(struct tokdata),
-			sizeof(struct tokdata) + MAX_INT_VAL(guint8),
-		serialize_tokdata, deserialize_tokdata, free_tokdata,
-		TOK_DB_CACHE_SIZE, kuid_hash, kuid_eq);
+	db_tokdata = dbstore_create(db_tcache_what, settings_config_dir(),
+		db_tcache_base, kv, packing, TOK_DB_CACHE_SIZE, kuid_hash, kuid_eq,
+		GNET_PROPERTY(dht_storage_in_memory));
 
 	dbmw_set_map_cache(db_tokdata, TOK_MAP_CACHE_SIZE);
 
@@ -394,7 +398,7 @@ tcache_init(void)
 void
 tcache_close(void)
 {
-	storage_delete(db_tokdata);
+	dbstore_delete(db_tokdata);
 	db_tokdata = NULL;
 	cq_periodic_remove(&tcache_prune_ev);
 }

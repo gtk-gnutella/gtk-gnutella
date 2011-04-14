@@ -56,8 +56,6 @@ RCSID("$Id$")
 #include "fileinfo.h"
 #include "settings.h"	/* For get_average_servent_uptime() */
 
-#include "dht/storage.h"
-
 #include "if/dht/dht.h"
 #include "if/dht/kademlia.h"
 #include "if/dht/value.h"
@@ -68,6 +66,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/dbmw.h"
+#include "lib/dbstore.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
@@ -865,7 +864,7 @@ publisher_sync(gpointer unused_obj)
 {
 	(void) unused_obj;
 
-	storage_sync(db_pubdata);
+	dbstore_sync(db_pubdata);
 	return TRUE;
 }
 
@@ -950,14 +949,16 @@ void
 publisher_init(void)
 {
 	size_t i;
+	dbstore_kv_t kv = { SHA1_RAW_SIZE, sizeof(struct pubdata), 0 };
+	dbstore_packing_t packing =
+		{ serialize_pubdata, deserialize_pubdata, NULL };
 
 	publish_cq = cq_submake("publisher", callout_queue, PUBLISHER_CALLOUT);
 	publisher_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
 
-	db_pubdata = storage_open(db_pubdata_what, db_pubdata_base,
-		SHA1_RAW_SIZE, sizeof(struct pubdata), 0,
-		serialize_pubdata, deserialize_pubdata, NULL,
-		PUBLISH_DB_CACHE_SIZE, sha1_hash, sha1_eq);
+	db_pubdata = dbstore_open(db_pubdata_what, settings_config_dir(),
+		db_pubdata_base, kv, packing, PUBLISH_DB_CACHE_SIZE,
+		sha1_hash, sha1_eq, GNET_PROPERTY(dht_storage_in_memory));
 
 	cq_periodic_add(publish_cq, PUBLISH_SYNC_PERIOD, publisher_sync, NULL);
 
@@ -1040,7 +1041,7 @@ publisher_close(void)
 	g_hash_table_foreach(publisher_sha1, free_entry, NULL);
 	gm_hash_table_destroy_null(&publisher_sha1);
 
-	storage_close(db_pubdata, db_pubdata_base);
+	dbstore_close(db_pubdata, settings_config_dir(), db_pubdata_base);
 	db_pubdata = NULL;
 
 	cq_free_null(&publish_cq);

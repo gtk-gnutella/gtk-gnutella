@@ -37,20 +37,30 @@
 
 RCSID("$Id$")
 
-#include "storage.h"
+#include "dbstore.h"
 
 #include "if/core/settings.h"
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
-#include "lib/atoms.h"
-#include "lib/dbmap.h"
-#include "lib/dbmw.h"
-#include "lib/halloc.h"
-#include "lib/path.h"
-#include "lib/override.h"		/* Must be the last header included */
+#include "atoms.h"
+#include "dbmap.h"
+#include "dbmw.h"
+#include "halloc.h"
+#include "path.h"
+#include "override.h"		/* Must be the last header included */
 
 static const mode_t STORAGE_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
+static unsigned dbstore_debug;
+
+/**
+ * Set debugging level.
+ */
+void
+dbstore_set_debug(unsigned level)
+{
+	dbstore_debug = level;
+}
 
 /**
  * Creates a disk database with an SDBM or memory map back-end.
@@ -59,14 +69,11 @@ static const mode_t STORAGE_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
  * an in-core version.
  *
  * @param name				the name of the storage created, for logs
+ * @param dir				the directory where SDBM files will be put
  * @param base				the base name of SDBM files
  * @param flags				the sdbm_open() flags
- * @param key_size			Constant key size, in bytes
- * @param value_size		Maximum value size, in bytes (structure)
- * @param value_data_size	Maximum value size, in bytes (serialized form)
- * @param pack				Serialization routine for values
- * @param unpack			Deserialization routine for values
- * @param valfree			Free dynamically allocated deserialization data
+ * @param kv				key/value description
+ * @param packing			key/value serialization description
  * @param cache_size		Amount of items to cache (0 = no cache, 1 = default)
  * @param hash_func			Key hash function
  * @param eq_func			Key equality test function
@@ -75,9 +82,8 @@ static const mode_t STORAGE_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
  * @return the DBMW wrapping object.
  */
 static dbmw_t *
-storage_create_internal(const char *name, const char *base, int flags,
-	size_t key_size, size_t value_size, size_t value_data_size,
-	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
+dbstore_create_internal(const char *name, const char *dir, const char *base,
+	int flags, dbstore_kv_t kv, dbstore_packing_t packing,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
 	gboolean incore)
 {
@@ -90,8 +96,9 @@ storage_create_internal(const char *name, const char *base, int flags,
 
 		g_assert(base != NULL);
 
-		path = make_pathname(settings_config_dir(), base);
-		dm = dbmap_create_sdbm(key_size, name, path, flags, STORAGE_FILE_MODE);
+		path = make_pathname(dir, base);
+		dm = dbmap_create_sdbm(kv.key_size,
+				name, path, flags, STORAGE_FILE_MODE);
 
 		/*
 		 * For performance reasons, always use deferred writes.  Maps which
@@ -102,7 +109,7 @@ storage_create_internal(const char *name, const char *base, int flags,
 		if (dm != NULL) {
 			dbmap_set_deferred_writes(dm, TRUE);
 		} else {
-			g_warning("DHT cannot open SDBM at %s for %s: %s",
+			g_warning("DBSTORE cannot open SDBM at %s for %s: %s",
 					path, name, g_strerror(errno));
 		}
 		HFREE_NULL(path);
@@ -111,7 +118,7 @@ storage_create_internal(const char *name, const char *base, int flags,
 	}
 
 	if (!dm) {
-		dm = dbmap_create_hash(key_size, hash_func, eq_func);
+		dm = dbmap_create_hash(kv.key_size, hash_func, eq_func);
 		adjusted_cache_size = 0;
 	}
 
@@ -120,8 +127,9 @@ storage_create_internal(const char *name, const char *base, int flags,
 	 * support and caching of (deserialized) values.
 	 */
 
-	dw = dbmw_create(dm, name, key_size, value_size, value_data_size,
-		pack, unpack, valfree, adjusted_cache_size, hash_func, eq_func);
+	dw = dbmw_create(dm, name, kv.key_size, kv.value_size, kv.value_data_size,
+			packing.pack, packing.unpack, packing.valfree,
+			adjusted_cache_size, hash_func, eq_func);
 
 	return dw;
 }
@@ -133,33 +141,28 @@ storage_create_internal(const char *name, const char *base, int flags,
  * an in-core version.
  *
  * @param name				the name of the storage created, for logs
+ * @param dir				the directory where SDBM files will be put
  * @param base				the base name of SDBM files
  * @param flags				the sdbm_open() flags
- * @param key_size			Constant key size, in bytes
- * @param value_size		Maximum value size, in bytes (structure)
- * @param value_data_size	Maximum value size, in bytes (serialized form)
- * @param pack				Serialization routine for values
- * @param unpack			Deserialization routine for values
- * @param valfree			Free dynamically allocated deserialization data
+ * @param kv				key/value description
+ * @param packing			key/value serialization description
  * @param cache_size		Amount of items to cache (0 = no cache, 1 = default)
  * @param hash_func			Key hash function
  * @param eq_func			Key equality test function
+ * @param incore			If TRUE, use a RAM-only database
  *
  * @return the DBMW wrapping object.
  */
 dbmw_t *
-storage_create(const char *name, const char *base,
-	size_t key_size, size_t value_size, size_t value_data_size,
-	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
-	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
+dbstore_create(const char *name, const char *dir, const char *base,
+	dbstore_kv_t kv, dbstore_packing_t packing,
+	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
+	gboolean incore)
 {
 	dbmw_t *dw;
 
-	dw = storage_create_internal(name, base, O_CREAT | O_TRUNC | O_RDWR,
-		key_size, value_size, value_data_size,
-		pack, unpack, valfree,
-		cache_size, hash_func, eq_func,
-		GNET_PROPERTY(dht_storage_in_memory));
+	dw = dbstore_create_internal(name, dir, base, O_CREAT | O_TRUNC | O_RDWR,
+			kv, packing, cache_size, hash_func, eq_func, incore);
 
 	dbmw_set_volatile(dw, TRUE);
 
@@ -173,36 +176,32 @@ storage_create(const char *name, const char *base,
  * an in-core version.
  *
  * @param name				the name of the storage created, for logs
+ * @param dir				the directory where SDBM files will be put
  * @param base				the base name of SDBM files
  * @param flags				the sdbm_open() flags
- * @param key_size			Constant key size, in bytes
- * @param value_size		Maximum value size, in bytes (structure)
- * @param value_data_size	Maximum value size, in bytes (serialized form)
- * @param pack				Serialization routine for values
- * @param unpack			Deserialization routine for values
- * @param valfree			Free dynamically allocated deserialization data
+ * @param kv				key/value description
+ * @param packing			key/value serialization description
  * @param cache_size		Amount of items to cache (0 = no cache, 1 = default)
  * @param hash_func			Key hash function
  * @param eq_func			Key equality test function
+ * @param incore			If TRUE, allow fallback to a RAM-only database
  *
  * @return the DBMW wrapping object.
  */
 dbmw_t *
-storage_open(const char *name, const char *base,
-	size_t key_size, size_t value_size, size_t value_data_size,
-	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
-	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
+dbstore_open(const char *name, const char *dir, const char *base,
+	dbstore_kv_t kv, dbstore_packing_t packing,
+	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
+	gboolean incore)
 {
 	dbmw_t *dw;
 
-	dw = storage_create_internal(name, base, O_CREAT | O_RDWR,
-		key_size, value_size, value_data_size,
-		pack, unpack, valfree,
-		cache_size, hash_func, eq_func, FALSE);
+	dw = dbstore_create_internal(name, dir, base, O_CREAT | O_RDWR,
+			kv, packing, cache_size, hash_func, eq_func, FALSE);
 
-	if (dw != NULL && GNET_PROPERTY(dht_debug)) {
+	if (dw != NULL && dbstore_debug > 0) {
 		size_t count = dbmw_count(dw);
-		g_debug("DHT opened DBMW \"%s\" (%u key%s) from %s",
+		g_debug("DBSTORE opened DBMW \"%s\" (%u key%s) from %s",
 			dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
 	}
 
@@ -211,22 +210,20 @@ storage_open(const char *name, const char *base,
 	 * the persisted one there.
 	 */
 
-	if (dw != NULL && GNET_PROPERTY(dht_storage_in_memory)) {
+	if (dw != NULL && incore) {
 		dbmw_t *dram;
 		size_t count = dbmw_count(dw);
 
-		if (GNET_PROPERTY(dht_debug)) {
-			g_debug("DHT loading DBMW \"%s\" (%u key%s) from %s",
+		if (dbstore_debug > 0) {
+			g_debug("DBSTORE loading DBMW \"%s\" (%u key%s) from %s",
 				dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
 		}
 
-		dram = storage_create_internal(name, NULL, 0,
-			key_size, value_size, value_data_size,
-			pack, unpack, valfree,
-			cache_size, hash_func, eq_func, TRUE);
+		dram = dbstore_create_internal(name, NULL, NULL, 0,
+				kv, packing, cache_size, hash_func, eq_func, TRUE);
 
 		if (!dbmw_copy(dw, dram)) {
-			g_warning("DHT could not load DBMW \"%s\" (%u key%s) from %s",
+			g_warning("DBSTORE could not load DBMW \"%s\" (%u key%s) from %s",
 				dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
 		}
 
@@ -241,16 +238,16 @@ storage_open(const char *name, const char *base,
  * Synchronize a DBMW database, flushing its SDBM cache.
  */
 void
-storage_sync(dbmw_t *dw)
+dbstore_sync(dbmw_t *dw)
 {
 	ssize_t n;
 
 	n = dbmw_sync(dw, DBMW_SYNC_MAP);
 	if (-1 == n) {
-		g_warning("DHT could not synchronize DBMW \"%s\": %s",
+		g_warning("DBSTORE could not synchronize DBMW \"%s\": %s",
 			dbmw_name(dw), g_strerror(errno));
-	} else if (n && GNET_PROPERTY(dht_debug) > 1) {
-		g_debug("DHT flushed %u SDBM page%s in DBMW \"%s\"",
+	} else if (n && dbstore_debug > 1) {
+		g_debug("DBSTORE flushed %u SDBM page%s in DBMW \"%s\"",
 			(unsigned) n, 1 == n ? "" : "s", dbmw_name(dw));
 	}
 }
@@ -261,7 +258,7 @@ storage_sync(dbmw_t *dw)
  * If the map was held in memory, it is serialized to disk.
  */
 void
-storage_close(dbmw_t *dw, const char *base)
+dbstore_close(dbmw_t *dw, const char *dir, const char *base)
 {
 	gboolean ok;
 	char *path;
@@ -269,17 +266,17 @@ storage_close(dbmw_t *dw, const char *base)
 	if (NULL == dw)
 		return;
 
-	path = make_pathname(settings_config_dir(), base);
+	path = make_pathname(dir, base);
 
-	if (GNET_PROPERTY(dht_debug))
-		g_debug("DHT persisting DBMW \"%s\" as %s", dbmw_name(dw), path);
+	if (dbstore_debug > 1)
+		g_debug("DBSTORE persisting DBMW \"%s\" as %s", dbmw_name(dw), path);
 
 	ok = dbmw_store(dw, path, TRUE);
 	HFREE_NULL(path);
 
-	if (GNET_PROPERTY(dht_debug)) {
+	if (dbstore_debug > 0) {
 		size_t count = dbmw_count(dw);
-		g_debug("DHT %ssucessfully persisted DBMW \"%s\" (%u key%s)",
+		g_debug("DBSTORE %ssucessfully persisted DBMW \"%s\" (%u key%s)",
 			ok ? "" : "un", dbmw_name(dw),
 			(unsigned) count, 1 == count ? "" : "s");
 	}
@@ -291,7 +288,7 @@ storage_close(dbmw_t *dw, const char *base)
  * Shutdown DB map and delete associated SDBM files if needed.
  */
 void
-storage_delete(dbmw_t *dw)
+dbstore_delete(dbmw_t *dw)
 {
 	if (dw)
 		dbmw_destroy(dw, TRUE);

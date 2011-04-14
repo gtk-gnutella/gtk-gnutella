@@ -453,8 +453,6 @@ src/dht/rpc.c
 src/dht/rpc.h
 src/dht/stable.c
 src/dht/stable.h
-src/dht/storage.c
-src/dht/storage.h
 src/dht/tcache.c
 src/dht/tcache.h
 src/dht/token.c
@@ -577,6 +575,8 @@ src/lib/dbmap.c
 src/lib/dbmap.h
 src/lib/dbmw.c
 src/lib/dbmw.h
+src/lib/dbstore.c
+src/lib/dbstore.h
 src/lib/dbus_util.c
 src/lib/dbus_util.h
 src/lib/debug.c

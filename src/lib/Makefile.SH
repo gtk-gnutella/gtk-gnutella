@@ -123,6 +123,7 @@ LSRC = \
 	crc.c \
 	dbmap.c \
 	dbmw.c \
+	dbstore.c \
 	dbus_util.c \
 	debug.c \
 	entropy.c \
@@ -233,6 +234,7 @@ LOBJ = \
 	crc.o \
 	dbmap.o \
 	dbmw.o \
+	dbstore.o \
 	dbus_util.o \
 	debug.o \
 	entropy.o \

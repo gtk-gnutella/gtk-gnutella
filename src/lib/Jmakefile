@@ -71,6 +71,7 @@ LSRC = \
 	crc.c \
 	dbmap.c \
 	dbmw.c \
+	dbstore.c \
 	dbus_util.c \
 	debug.c \
 	entropy.c \

@@ -135,19 +135,20 @@
 RCSID("$Id$")
 
 #include "stable.h"
-#include "storage.h"
 
 #include "if/dht/kuid.h"
 #include "if/dht/knode.h"
 #include "if/dht/value.h"
 
 #include "core/gnet_stats.h"
+#include "core/settings.h"
 
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/dbmw.h"
+#include "lib/dbstore.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -459,7 +460,7 @@ stable_sync(gpointer unused_obj)
 {
 	(void) unused_obj;
 
-	storage_sync(db_lifedata);
+	dbstore_sync(db_lifedata);
 	return TRUE;		/* Keep calling */
 }
 
@@ -497,14 +498,17 @@ deserialize_lifedata(bstr_t *bs, gpointer valptr, size_t len)
 void
 stable_init(void)
 {
+	dbstore_kv_t kv = { KUID_RAW_SIZE, sizeof(struct lifedata), 0 };
+	dbstore_packing_t packing =
+		{ serialize_lifedata, deserialize_lifedata, NULL };
+
 	g_assert(NULL == db_lifedata);
 	g_assert(NULL == stable_sync_ev);
 	g_assert(NULL == stable_prune_ev);
 
-	db_lifedata = storage_open(db_stable_what, db_stable_base,
-		KUID_RAW_SIZE, sizeof(struct lifedata), 0,
-		serialize_lifedata, deserialize_lifedata, NULL,
-		STABLE_DB_CACHE_SIZE, kuid_hash, kuid_eq);
+	db_lifedata = dbstore_open(db_stable_what, settings_config_dir(),
+		db_stable_base, kv, packing, STABLE_DB_CACHE_SIZE, kuid_hash, kuid_eq,
+		GNET_PROPERTY(dht_storage_in_memory));
 
 	dbmw_set_map_cache(db_lifedata, STABLE_MAP_CACHE_SIZE);
 	stable_prune_old();
@@ -522,7 +526,7 @@ stable_init(void)
 void
 stable_close(void)
 {
-	storage_close(db_lifedata, db_stable_base);
+	dbstore_close(db_lifedata, settings_config_dir(), db_stable_base);
 	db_lifedata = NULL;
 	cq_periodic_remove(&stable_sync_ev);
 	cq_periodic_remove(&stable_prune_ev);

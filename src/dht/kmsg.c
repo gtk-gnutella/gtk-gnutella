@@ -44,7 +44,6 @@ RCSID("$Id$")
 #include "token.h"
 #include "keys.h"
 #include "values.h"
-#include "storage.h"
 
 #include "core/bsched.h"
 #include "core/gnet_stats.h"

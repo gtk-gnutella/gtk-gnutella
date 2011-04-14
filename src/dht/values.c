@@ -69,7 +69,6 @@ RCSID("$Id$")
 #include "values.h"
 #include "kuid.h"
 #include "knode.h"
-#include "storage.h"
 #include "acct.h"
 #include "keys.h"
 #include "kmsg.h"
@@ -79,13 +78,14 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "core/gnet_stats.h"
+#include "core/settings.h"		/* For settings_config_dir() */
 
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/bstr.h"
-#include "lib/dbmap.h"
 #include "lib/dbmw.h"
+#include "lib/dbstore.h"
 #include "lib/glib-missing.h"
 #include "lib/host_addr.h"
 #include "lib/parse.h"
@@ -1815,6 +1815,13 @@ values_get(guint64 dbkey, dht_value_type_t type)
 void
 values_init(void)
 {
+	dbstore_kv_t value_kv	= { sizeof(guint64), sizeof(struct valuedata), 0 };
+	dbstore_kv_t raw_kv		= { sizeof(guint64), DHT_VALUE_MAX_LEN, 0 };
+	dbstore_kv_t expired_kv	= { 2 * KUID_RAW_SIZE, 0, 0 };
+	dbstore_packing_t value_packing =
+		{ serialize_valuedata, deserialize_valuedata, NULL };
+	dbstore_packing_t no_packing = { NULL, NULL, NULL };
+
 	g_assert(NULL == db_valuedata);
 	g_assert(NULL == db_rawdata);
 	g_assert(NULL == db_expired);
@@ -1823,20 +1830,18 @@ values_init(void)
 	g_assert(NULL == expired);
 	g_assert(NULL == values_expire_ev);
 
-	db_valuedata = storage_create(db_valwhat, db_valbase,
-		sizeof(guint64), sizeof(struct valuedata), 0,
-		serialize_valuedata, deserialize_valuedata, NULL,
-		VALUES_DB_CACHE_SIZE, uint64_mem_hash, uint64_mem_eq);
+	db_valuedata = dbstore_create(db_valwhat, settings_config_dir(),
+		db_valbase, value_kv, value_packing, VALUES_DB_CACHE_SIZE,
+		uint64_mem_hash, uint64_mem_eq,
+		GNET_PROPERTY(dht_storage_in_memory));
 
-	db_rawdata = storage_create(db_rawwhat, db_rawbase,
-		sizeof(guint64), DHT_VALUE_MAX_LEN, 0,
-		NULL, NULL, NULL,
-		RAW_DB_CACHE_SIZE, uint64_mem_hash, uint64_mem_eq);
+	db_rawdata = dbstore_create(db_rawwhat, settings_config_dir(), db_rawbase,
+		raw_kv, no_packing, RAW_DB_CACHE_SIZE, uint64_mem_hash, uint64_mem_eq,
+		GNET_PROPERTY(dht_storage_in_memory));
 
-	db_expired = storage_create(db_expwhat, db_expbase,
-		2 * KUID_RAW_SIZE, 0, 0,
-		NULL, NULL, NULL,
-		0, kuid_pair_hash, kuid_pair_eq);
+	db_expired = dbstore_create(db_expwhat, settings_config_dir(), db_expbase,
+		expired_kv, no_packing, 0, kuid_pair_hash, kuid_pair_eq,
+		GNET_PROPERTY(dht_storage_in_memory));
 
 	values_per_ip = acct_net_create();
 	values_per_class_c = acct_net_create();
@@ -1863,9 +1868,9 @@ expired_free_kv(gpointer key, gpointer u_val, gpointer u_data)
 void
 values_close(void)
 {
-	storage_delete(db_valuedata);
-	storage_delete(db_rawdata);
-	storage_delete(db_expired);
+	dbstore_delete(db_valuedata);
+	dbstore_delete(db_rawdata);
+	dbstore_delete(db_expired);
 	db_valuedata = db_rawdata = db_expired = NULL;
 	acct_net_free(&values_per_ip);
 	acct_net_free(&values_per_class_c);
