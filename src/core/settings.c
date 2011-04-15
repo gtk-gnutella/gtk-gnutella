@@ -517,6 +517,29 @@ settings_is_unique_instance(void)
 }
 
 /**
+ * Generates a unique session ID, identifying this gtk-gnutella run.
+ *
+ * The "session_id" property can be monitored from the shell, and any
+ * variation since the last check indicates that gtk-gnutella has been
+ * restarted.
+ */
+static void
+settings_init_session_id(void)
+{
+	guid_t id;
+
+	/*
+	 * This is called after the previous configuration file has been loaded,
+	 * so we not only generated new entropy, we also propagated randomness
+	 * from the previous run.  Therefore, the random number sequence is
+	 * sufficiently random to be used as-is.
+	 */
+
+	random_bytes(id.v, sizeof id.v);
+	gnet_prop_set_storage(PROP_SESSION_ID, id.v, sizeof id.v);
+}
+
+/**
  * Tries to ensure that the current process is the only writer in
  * the directory where files are saved.
  *
@@ -700,6 +723,7 @@ settings_init(void)
 		random_add(&buf, sizeof buf);
 	}
 
+	settings_init_session_id();
 	settings_update_downtime();
 	settings_update_firewalled();
 	settings_callbacks_init();

@@ -4793,4 +4793,15 @@ prop = {
     };
 };
 
+prop = {
+    name = "session_id";
+    desc = "The current Session ID.  This is a unique ID generated each "
+		"time gtk-gnutella starts and it can be monitored from the shell "
+		"interface to check whether gtk-gnutella has been restarted since "
+		"the last check.";
+    type = storage;
+    save = FALSE;
+    vector_size = GUID_RAW_SIZE;
+};
+
 /* vi: set ts=4: */

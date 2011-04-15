@@ -960,6 +960,9 @@ guint32  gnet_property_variable_hosts_in_guess_intro_catcher     = 0;
 static const guint32  gnet_property_variable_hosts_in_guess_intro_catcher_default = 0;
 guint32  gnet_property_variable_dbstore_debug     = 0;
 static const guint32  gnet_property_variable_dbstore_debug_default = 0;
+char   gnet_property_variable_session_id[GUID_RAW_SIZE];
+static const char   gnet_property_variable_session_id_default[GUID_RAW_SIZE];
+
 
 static prop_set_t *gnet_property;
 
@@ -8797,6 +8800,22 @@ gnet_prop_init(void) {
     gnet_property->props[409].data.guint32.choices = NULL;
     gnet_property->props[409].data.guint32.max   = 20;
     gnet_property->props[409].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_SESSION_ID:
+     *
+     * General data:
+     */
+    gnet_property->props[410].name = "session_id";
+    gnet_property->props[410].desc = _("The current Session ID.  This is a unique ID generated each time gtk-gnutella starts and it can be monitored from the shell interface to check whether gtk-gnutella has been restarted since the last check.");
+    gnet_property->props[410].ev_changed = event_new("session_id_changed");
+    gnet_property->props[410].save = FALSE;
+    gnet_property->props[410].vector_size = GUID_RAW_SIZE;
+
+    /* Type specific data: */
+    gnet_property->props[410].type               = PROP_TYPE_STORAGE;
+    gnet_property->props[410].data.storage.value = gnet_property_variable_session_id;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

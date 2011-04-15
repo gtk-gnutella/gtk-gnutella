@@ -459,6 +459,7 @@ extern const guint32  gnet_property_variable_hosts_in_guess_catcher;
 extern const guint32  gnet_property_variable_max_guess_intro_hosts_cached;
 extern const guint32  gnet_property_variable_hosts_in_guess_intro_catcher;
 extern const guint32  gnet_property_variable_dbstore_debug;
+extern const char    gnet_property_variable_session_id[GUID_RAW_SIZE];
 
 
 prop_set_t *gnet_prop_init(void);
