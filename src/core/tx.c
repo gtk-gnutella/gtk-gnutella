@@ -318,7 +318,7 @@ tx_srv_disable(txdrv_t *tx)
 {
 	g_assert(tx);
 	g_assert(tx->srv_routine != NULL);
-	g_assert(tx->flags & TX_SERVICE);
+	g_return_if_fail(tx->flags & TX_SERVICE);
 
 	/*
 	 * In "eager mode", servicing is forced and cannot be disabled that way.
