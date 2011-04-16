@@ -101,7 +101,7 @@ static time_delta_t token_life;		/**< Lifetime of our cached tokens */
 static cperiodic_t *tcache_prune_ev;
 
 /**
- * DBM wrapper to associate a target KUID with the set of KDA_K dbkeys.
+ * DBM wrapper to associate a target KUID its STORE security token.
  */
 static dbmw_t *db_tokdata;
 static char db_tcache_base[] = "dht_tokens";
@@ -152,7 +152,7 @@ delete_tokdata(const kuid_t *id)
 }
 
 /**
- * Serialization routine for tdata.
+ * Serialization routine for tokdata.
  */
 static void
 serialize_tokdata(pmsg_t *mb, gconstpointer data)
@@ -165,7 +165,7 @@ serialize_tokdata(pmsg_t *mb, gconstpointer data)
 }
 
 /**
- * Deserialization routine for rootdata.
+ * Deserialization routine for tokdata.
  */
 static void
 deserialize_tokdata(bstr_t *bs, gpointer valptr, size_t len)
