@@ -498,7 +498,7 @@ deserialize_lifedata(bstr_t *bs, gpointer valptr, size_t len)
 void
 stable_init(void)
 {
-	dbstore_kv_t kv = { KUID_RAW_SIZE, sizeof(struct lifedata), 0 };
+	dbstore_kv_t kv = { KUID_RAW_SIZE, NULL, sizeof(struct lifedata), 0 };
 	dbstore_packing_t packing =
 		{ serialize_lifedata, deserialize_lifedata, NULL };
 

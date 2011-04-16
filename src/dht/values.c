@@ -1815,9 +1815,10 @@ values_get(guint64 dbkey, dht_value_type_t type)
 void
 values_init(void)
 {
-	dbstore_kv_t value_kv	= { sizeof(guint64), sizeof(struct valuedata), 0 };
-	dbstore_kv_t raw_kv		= { sizeof(guint64), DHT_VALUE_MAX_LEN, 0 };
-	dbstore_kv_t expired_kv	= { 2 * KUID_RAW_SIZE, 0, 0 };
+	dbstore_kv_t value_kv =
+		{ sizeof(guint64), NULL, sizeof(struct valuedata), 0 };
+	dbstore_kv_t raw_kv		= { sizeof(guint64), NULL, DHT_VALUE_MAX_LEN, 0 };
+	dbstore_kv_t expired_kv	= { 2 * KUID_RAW_SIZE, NULL, 0, 0 };
 	dbstore_packing_t value_packing =
 		{ serialize_valuedata, deserialize_valuedata, NULL };
 	dbstore_packing_t no_packing = { NULL, NULL, NULL };

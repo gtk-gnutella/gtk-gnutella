@@ -60,6 +60,14 @@ typedef struct dbmap_datum {
 } dbmap_datum_t;
 
 /**
+ * Routine returning the length of the serialized key given its serialized form.
+ * This allows variable-length keys to be stored in a dbmap.
+ *
+ * @param key		the serialized key
+ */
+typedef size_t (*dbmap_keylen_t)(const void *key);
+
+/**
  * DB map "foreach" iterator callbacks.
  */
 typedef void (*dbmap_cb_t)(gpointer key, dbmap_datum_t *value, gpointer u);
@@ -69,11 +77,13 @@ typedef gboolean (*dbmap_cbr_t)(gpointer key, dbmap_datum_t *value, gpointer u);
  * Creation interface.
  */
 
-dbmap_t *dbmap_create_hash(size_t ks, GHashFunc hashf, GEqualFunc key_eqf);
-dbmap_t * dbmap_create_sdbm(size_t ks, const char *name, const char *path,
-	int flags, int mode);
-dbmap_t *dbmap_create_from_map(size_t ks, map_t *map);
-dbmap_t *dbmap_create_from_sdbm(const char *name, size_t ks, DBM *sdbm);
+dbmap_t *dbmap_create_hash(size_t ks, dbmap_keylen_t kl,
+	GHashFunc hashf, GEqualFunc key_eqf);
+dbmap_t * dbmap_create_sdbm(size_t ks, dbmap_keylen_t kl, const char *name,
+	const char *path, int flags, int mode);
+dbmap_t *dbmap_create_from_map(size_t ks, dbmap_keylen_t kl, map_t *map);
+dbmap_t *dbmap_create_from_sdbm(const char *name,
+	size_t ks, dbmap_keylen_t kl, DBM *sdbm);
 void dbmap_sdbm_set_name(const dbmap_t *dm, const char *name);
 
 /**
@@ -89,6 +99,7 @@ gpointer dbmap_release(dbmap_t *dm);
 void dbmap_destroy(dbmap_t *dm);
 
 size_t dbmap_key_size(const dbmap_t *dm);
+dbmap_keylen_t dbmap_key_length(const dbmap_t *dm);
 gboolean dbmap_has_ioerr(const dbmap_t *dm);
 const char *dbmap_strerror(const dbmap_t *dm);
 enum dbmap_type dbmap_type(const dbmap_t *dm);

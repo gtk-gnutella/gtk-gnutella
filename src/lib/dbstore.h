@@ -44,6 +44,7 @@
  */
 typedef struct dbstore_kv {
 	size_t key_size;			/**< Constant key size, in bytes */
+	dbmap_keylen_t key_len;		/**< Optional, computes serialized key length */
 	size_t value_size;			/**< Maximum value size, (bytes, structure) */
 	size_t value_data_size;		/**< Maximum value size, (bytes, serialized) */
 } dbstore_kv_t;

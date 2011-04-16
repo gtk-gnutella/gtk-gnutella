@@ -97,7 +97,7 @@ dbstore_create_internal(const char *name, const char *dir, const char *base,
 		g_assert(base != NULL);
 
 		path = make_pathname(dir, base);
-		dm = dbmap_create_sdbm(kv.key_size,
+		dm = dbmap_create_sdbm(kv.key_size, kv.key_len,
 				name, path, flags, STORAGE_FILE_MODE);
 
 		/*
@@ -118,7 +118,7 @@ dbstore_create_internal(const char *name, const char *dir, const char *base,
 	}
 
 	if (!dm) {
-		dm = dbmap_create_hash(kv.key_size, hash_func, eq_func);
+		dm = dbmap_create_hash(kv.key_size, kv.key_len, hash_func, eq_func);
 		adjusted_cache_size = 0;
 	}
 
@@ -127,7 +127,7 @@ dbstore_create_internal(const char *name, const char *dir, const char *base,
 	 * support and caching of (deserialized) values.
 	 */
 
-	dw = dbmw_create(dm, name, kv.key_size, kv.value_size, kv.value_data_size,
+	dw = dbmw_create(dm, name, kv.value_size, kv.value_data_size,
 			packing.pack, packing.unpack, packing.valfree,
 			adjusted_cache_size, hash_func, eq_func);
 

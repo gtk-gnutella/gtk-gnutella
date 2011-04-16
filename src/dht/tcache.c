@@ -368,7 +368,7 @@ tcache_periodic_prune(gpointer unused_obj)
 void
 tcache_init(void)
 {
-	dbstore_kv_t kv = { KUID_RAW_SIZE, sizeof(struct tokdata),
+	dbstore_kv_t kv = { KUID_RAW_SIZE, NULL, sizeof(struct tokdata),
 		sizeof(struct tokdata) + MAX_INT_VAL(guint8) };
 	dbstore_packing_t packing =
 		{ serialize_tokdata, deserialize_tokdata, free_tokdata };

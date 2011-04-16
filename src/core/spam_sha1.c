@@ -106,7 +106,7 @@ spam_lut_create(void)
 		char *path;
 
 		path = make_pathname(settings_config_dir(), db_spambase);
-		dm = dbmap_create_sdbm(SHA1_RAW_SIZE, spam_sha1_what, path,
+		dm = dbmap_create_sdbm(SHA1_RAW_SIZE, NULL, spam_sha1_what, path,
 			O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
 		HFREE_NULL(path);
 
@@ -171,7 +171,7 @@ spam_sha1_sync(void)
 
 		dbmap_set_cachesize(dm, SPAM_DB_RUN_CACHESIZE);
 		sha1_lut.d.dw = dbmw_create(dm, spam_sha1_what,
-			SHA1_RAW_SIZE, 0, 0,
+			0, 0,
 			NULL, NULL, NULL,
 			SPAM_DBMW_CACHESIZE, sha1_hash, sha1_eq);
 	}

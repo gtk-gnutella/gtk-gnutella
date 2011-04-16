@@ -95,7 +95,7 @@ typedef gboolean (*dbmw_cbr_t)(
 #define DBMW_DELETED_ONLY	(1 << 2)	/**< Only sync deleted keys */
 
 dbmw_t *dbmw_create(dbmap_t *dm, const char *name,
-	size_t key_size, size_t value_size, size_t value_data_size,
+	size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
 void dbmw_destroy(dbmw_t *dw, gboolean close_sdbm);

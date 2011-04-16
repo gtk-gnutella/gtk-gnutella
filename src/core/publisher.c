@@ -949,7 +949,7 @@ void
 publisher_init(void)
 {
 	size_t i;
-	dbstore_kv_t kv = { SHA1_RAW_SIZE, sizeof(struct pubdata), 0 };
+	dbstore_kv_t kv = { SHA1_RAW_SIZE, NULL, sizeof(struct pubdata), 0 };
 	dbstore_packing_t packing =
 		{ serialize_pubdata, deserialize_pubdata, NULL };
 

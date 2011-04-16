@@ -1125,8 +1125,8 @@ roots_init_rootinfo(void)
 void
 roots_init(void)
 {
-	dbstore_kv_t root_kv = { KUID_RAW_SIZE, sizeof(struct rootdata), 0 };
-	dbstore_kv_t contact_kv = { sizeof(guint64), sizeof(struct contact),
+	dbstore_kv_t root_kv = { KUID_RAW_SIZE, NULL, sizeof(struct rootdata), 0 };
+	dbstore_kv_t contact_kv = { sizeof(guint64), NULL, sizeof(struct contact),
 		sizeof(struct contact) + KUID_RAW_SIZE };
 	dbstore_packing_t root_packing =
 		{ serialize_rootdata, deserialize_rootdata, NULL };

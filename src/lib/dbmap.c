@@ -80,6 +80,7 @@ struct dbmap {
 		} s;
 	} u;
 	size_t key_size;		/**< Constant width keys are a requirement */
+	dbmap_keylen_t key_len;	/**< Optional, computes serialized key length */
 	size_t count;			/**< Amount of items */
 	int error;				/**< Last errno value consecutive to an error */
 	unsigned ioerr:1;		/**< Last operation raised an I/O error */
@@ -115,6 +116,21 @@ struct dbmap_superblock {
  * Superblock status flags.
  */
 #define DBMAP_SF_KEYCHECK (1 << 0)	/**< Need keycheck at next startup */
+
+/**
+ * Computes key length.
+ */
+static inline size_t
+dbmap_keylen(const dbmap_t *dm, const void *key)
+{
+	if (NULL == dm->key_len) {
+		return dm->key_size;
+	} else {
+		size_t len = (*dm->key_len)(key);
+		g_assert(len <= dm->key_size);
+		return len;
+	}
+}
 
 /**
  * Store a superblock in an SDBM DB map.
@@ -319,12 +335,28 @@ dbmap_sdbm_count_keys(dbmap_t *dm, gboolean expect_superblock)
 }
 
 /**
- * @return constant-width key size for the DB map.
+ * @return constant-width key size for the DB map, or the maximum size of
+ * the key when length is variable (in which case there must be a non-NULL
+ * key length computation callback).
  */
 size_t
 dbmap_key_size(const dbmap_t *dm)
 {
+	dbmap_check(dm);
+
 	return dm->key_size;
+}
+
+/**
+ * @return routine computing the key length based on the serialized form.
+ * May be NULL, in which case dbmap_key_size() yields the constant key size.
+ */
+dbmap_keylen_t
+dbmap_key_length(const dbmap_t *dm)
+{
+	dbmap_check(dm);
+
+	return dm->key_len;
 }
 
 /**
@@ -333,6 +365,8 @@ dbmap_key_size(const dbmap_t *dm)
 gboolean
 dbmap_has_ioerr(const dbmap_t *dm)
 {
+	dbmap_check(dm);
+
 	return dm->ioerr;
 }
 
@@ -342,6 +376,8 @@ dbmap_has_ioerr(const dbmap_t *dm)
 const char *
 dbmap_strerror(const dbmap_t *dm)
 {
+	dbmap_check(dm);
+
 	return g_strerror(dm->error);
 }
 
@@ -351,6 +387,8 @@ dbmap_strerror(const dbmap_t *dm)
 enum dbmap_type
 dbmap_type(const dbmap_t *dm)
 {
+	dbmap_check(dm);
+
 	return dm->type;
 }
 
@@ -360,6 +398,8 @@ dbmap_type(const dbmap_t *dm)
 size_t
 dbmap_count(const dbmap_t *dm)
 {
+	dbmap_check(dm);
+
 	if (DBMAP_MAP == dm->type) {
 		size_t count = map_count(dm->u.m.map);
 		g_assert(dm->count == count);
@@ -371,23 +411,31 @@ dbmap_count(const dbmap_t *dm)
 /**
  * Create a DB back-end implemented in memory as a hash table.
  *
+ * When key_len is NULL, key_size is the expected constant key length.
+ * When key_len is not NULL, key_size is the expected maximum key length
+ * and the key_len routine is used to compute the actual size of the key
+ * based on its serialized form.
+ *
  * @param key_size		expected constant key length
+ * @param key_len		optional, computes serialized key length
  * @param hash_func		the hash function for keys
  * @param key_eq_func	the key comparison function
  *
  * @return the new DB map
  */
 dbmap_t *
-dbmap_create_hash(size_t key_size, GHashFunc hash_func, GEqualFunc key_eq_func)
+dbmap_create_hash(size_t key_size, dbmap_keylen_t key_len,
+	GHashFunc hash_func, GEqualFunc key_eq_func)
 {
 	dbmap_t *dm;
 
-	g_assert(key_size != 0);
+	g_assert(size_is_non_negative(key_size));
 
 	dm = walloc0(sizeof *dm);
 	dm->magic = DBMAP_MAGIC;
 	dm->type = DBMAP_MAP;
 	dm->key_size = key_size;
+	dm->key_len = key_len;
 	dm->u.m.map = map_create_hash(hash_func, key_eq_func);
 
 	return dm;
@@ -396,7 +444,13 @@ dbmap_create_hash(size_t key_size, GHashFunc hash_func, GEqualFunc key_eq_func)
 /**
  * Create a DB map implemented as a SDBM database.
  *
+ * When klen is NULL, ksize is the expected constant key length.
+ * When klen is not NULL, ksize is the expected maximum key length
+ * and the klen routine is used to compute the actual size of the key
+ * based on its serialized form.
+ *
  * @param ksize		expected constant key length
+ * @param klen		optional, computes serialized key length
  * @param name		name of the SDBM database, for logging (may be NULL)
  * @param path		path of the SDBM database
  * @param flags		opening flags
@@ -405,7 +459,7 @@ dbmap_create_hash(size_t key_size, GHashFunc hash_func, GEqualFunc key_eq_func)
  * @return the opened database, or NULL if an error occurred during opening.
  */
 dbmap_t *
-dbmap_create_sdbm(size_t ksize,
+dbmap_create_sdbm(size_t ksize, dbmap_keylen_t klen,
 	const char *name, const char *path, int flags, int mode)
 {
 	dbmap_t *dm;
@@ -416,6 +470,7 @@ dbmap_create_sdbm(size_t ksize,
 	dm = walloc0(sizeof *dm);
 	dm->type = DBMAP_SDBM;
 	dm->key_size = ksize;
+	dm->key_len = klen;
 	dm->u.s.sdbm = sdbm_open(path, flags, mode);
 
 	if (!dm->u.s.sdbm) {
@@ -438,21 +493,28 @@ dbmap_create_sdbm(size_t ksize,
  * Create a map out of an existing map.
  * Use dbmap_release() to discard the dbmap encapsulation.
  *
+ * When key_len is NULL, key_size is the expected constant key length.
+ * When key_len is not NULL, key_size is the expected maximum key length
+ * and the key_len routine is used to compute the actual size of the key
+ * based on its serialized form.
+ *
  * @param key_size	expected constant key length of map
+ * @param key_len	optional, computes serialized key length
  * @param map		the already created map (may contain data)
  */
 dbmap_t *
-dbmap_create_from_map(size_t key_size, map_t *map)
+dbmap_create_from_map(size_t key_size, dbmap_keylen_t key_len, map_t *map)
 {
 	dbmap_t *dm;
 
-	g_assert(key_size != 0);
+	g_assert(size_is_non_negative(key_size));
 	g_assert(map);
 
 	dm = walloc0(sizeof *dm);
 	dm->magic = DBMAP_MAGIC;
 	dm->type = DBMAP_MAP;
 	dm->key_size = key_size;
+	dm->key_len = key_len;
 	dm->count = map_count(map);
 	dm->u.m.map = map;
 
@@ -463,16 +525,23 @@ dbmap_create_from_map(size_t key_size, map_t *map)
  * Create a DB map out of an existing SDBM handle.
  * Use dbmap_release() to discard the dbmap encapsulation.
  *
+ * When key_len is NULL, key_size is the expected constant key length.
+ * When key_len is not NULL, key_size is the expected maximum key length
+ * and the key_len routine is used to compute the actual size of the key
+ * based on its serialized form.
+ *
  * @param name		name to give to the SDBM database (may be NULL)
  * @param key_size	expected constant key length of map
+ * @param key_len	optional, computes serialized key length
  * @param sdbm		the already created SDBM handle (DB may contain data)
  */
 dbmap_t *
-dbmap_create_from_sdbm(const char *name, size_t key_size, DBM *sdbm)
+dbmap_create_from_sdbm(const char *name,
+	size_t key_size, dbmap_keylen_t key_len, DBM *sdbm)
 {
 	dbmap_t *dm;
 
-	g_assert(key_size != 0);
+	g_assert(size_is_non_negative(key_size));
 	g_assert(sdbm);
 
 	if (name)
@@ -482,6 +551,7 @@ dbmap_create_from_sdbm(const char *name, size_t key_size, DBM *sdbm)
 	dm->magic = DBMAP_MAGIC;
 	dm->type = DBMAP_SDBM;
 	dm->key_size = key_size;
+	dm->key_len = key_len;
 	dm->u.s.sdbm = sdbm;
 	dm->count = dbmap_sdbm_count_keys(dm, FALSE);
 
@@ -537,7 +607,7 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 					wfree(od->data, od->len);
 				wfree(od, sizeof *od);
 			} else {
-				gpointer dkey = wcopy(key, dm->key_size);
+				gpointer dkey = wcopy(key, dbmap_keylen(dm, key));
 
 				map_insert(dm->u.m.map, dkey, d);
 				dm->count++;
@@ -552,7 +622,7 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 			int ret;
 
 			dkey.dptr = deconstify_gpointer(key);
-			dkey.dsize = dm->key_size;
+			dkey.dsize = dbmap_keylen(dm, key);
 			dval.dptr = deconstify_gpointer(value.data);
 			dval.dsize = value.len;
 
@@ -596,7 +666,7 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 				dbmap_datum_t *d;
 
 				map_remove(dm->u.m.map, dkey);
-				wfree(dkey, dm->key_size);
+				wfree(dkey, dbmap_keylen(dm, dkey));
 				d = dvalue;
 				if (d->data != NULL)
 					wfree(d->data, d->len);
@@ -612,7 +682,7 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 			int ret;
 
 			dkey.dptr = deconstify_gpointer(key);
-			dkey.dsize = dm->key_size;
+			dkey.dsize = dbmap_keylen(dm, key);
 
 			errno = dm->error = 0;
 			ret = sdbm_delete(dm->u.s.sdbm, dkey);
@@ -668,7 +738,7 @@ dbmap_contains(dbmap_t *dm, gconstpointer key)
 			int ret;
 
 			dkey.dptr = deconstify_gpointer(key);
-			dkey.dsize = dm->key_size;
+			dkey.dsize = dbmap_keylen(dm, key);
 
 			dm->error = errno = 0;
 			ret = sdbm_exists(dm->u.s.sdbm, dkey);
@@ -715,7 +785,7 @@ dbmap_lookup(dbmap_t *dm, gconstpointer key)
 			datum value;
 
 			dkey.dptr = deconstify_gpointer(key);
-			dkey.dsize = dm->key_size;
+			dkey.dsize = dbmap_keylen(dm, key);
 
 			errno = dm->error = 0;
 			value = sdbm_fetch(dm->u.s.sdbm, dkey);
@@ -786,7 +856,7 @@ free_kv(gpointer key, gpointer value, gpointer u)
 	dbmap_t *dm = u;
 	dbmap_datum_t *d = value;
 
-	wfree(key, dm->key_size);
+	wfree(key, dbmap_keylen(dm, key));
 	if (d->data != NULL)
 		wfree(d->data, d->len);
 	wfree(d, sizeof *d);
@@ -825,7 +895,7 @@ dbmap_destroy(dbmap_t *dm)
 
 struct insert_ctx {
 	GSList *sl;
-	size_t key_size;
+	const dbmap_t *dm;
 };
 
 /**
@@ -839,7 +909,7 @@ insert_key(gpointer key, gpointer unused_value, gpointer u)
 
 	(void) unused_value;
 
-	kdup = wcopy(key, ctx->key_size);
+	kdup = wcopy(key, dbmap_keylen(ctx->dm, key));
 	ctx->sl = g_slist_prepend(ctx->sl, kdup);
 }
 
@@ -860,7 +930,7 @@ dbmap_all_keys(const dbmap_t *dm)
 			struct insert_ctx ctx;
 
 			ctx.sl = NULL;
-			ctx.key_size = dm->key_size;
+			ctx.dm = dm;
 			map_foreach(dm->u.m.map, insert_key, &ctx);
 			sl = ctx.sl;
 		}
@@ -878,7 +948,7 @@ dbmap_all_keys(const dbmap_t *dm)
 			) {
 				gpointer kdup;
 
-				if (dm->key_size != key.dsize)
+				if (dbmap_keylen(dm, key.dptr) != key.dsize)
 					continue;		/* Invalid key, corrupted file? */
 
 				kdup = wcopy(key.dptr, key.dsize);
@@ -903,7 +973,7 @@ dbmap_free_all_keys(const dbmap_t *dm, GSList *keys)
 	GSList *sl;
 
 	GM_SLIST_FOREACH(keys, sl) {
-		wfree(sl->data, dm->key_size);
+		wfree(sl->data, dbmap_keylen(dm, sl->data));
 	}
 	g_slist_free(keys);
 }
@@ -989,7 +1059,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg)
 
 				count++;
 
-				if (dm->key_size != key.dsize) {
+				if (dbmap_keylen(dm, key.dptr) != key.dsize) {
 					invalid++;
 					continue;		/* Invalid key, corrupted file? */
 				}
@@ -1059,7 +1129,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
 
 				count++;
 
-				if (dm->key_size != key.dsize) {
+				if (dbmap_keylen(dm, key.dptr) != key.dsize) {
 					invalid++;
 					continue;		/* Invalid key, corrupted file? */
 				}
@@ -1162,7 +1232,7 @@ dbmap_store(dbmap_t *dm, const char *base, gboolean inplace)
 	if (NULL == base)
 		return FALSE;
 
-	ndm = dbmap_create_sdbm(dm->key_size, NULL, base,
+	ndm = dbmap_create_sdbm(dm->key_size, dm->key_len, NULL, base,
 		O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
 
 	if (!ndm) {
@@ -1222,7 +1292,7 @@ dbmap_copy(dbmap_t *from, dbmap_t *to)
 	dbmap_check(from);
 	dbmap_check(to);
 
-	if (from->key_size != to->key_size)
+	if (from->key_size != to->key_size || from->key_len != to->key_len)
 		return FALSE;
 
 	ctx.to = to;

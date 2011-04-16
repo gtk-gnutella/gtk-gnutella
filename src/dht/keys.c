@@ -1276,7 +1276,7 @@ void
 keys_init(void)
 {
 	size_t i;
-	dbstore_kv_t kv = { KUID_RAW_SIZE, sizeof(struct keydata), 0 };
+	dbstore_kv_t kv = { KUID_RAW_SIZE, NULL, sizeof(struct keydata), 0 };
 	dbstore_packing_t packing =
 		{ serialize_keydata, deserialize_keydata, NULL };
 

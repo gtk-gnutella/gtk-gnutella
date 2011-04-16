@@ -69,7 +69,8 @@ struct dbmw {
 	guint64 w_access;			/**< Number of write accesses */
 	guint64 r_hits;				/**< Number of read cache hits */
 	guint64 w_hits;				/**< Number of write cache hits */
-	size_t key_size;			/**< Size of keys (constant) */
+	size_t key_size;			/**< Size of keys (constant or maximum) */
+	dbmap_keylen_t key_len;		/**< Optional, computes actual key length */
 	size_t value_size;			/**< Maximum size of values (structure) */
 	size_t value_data_size;		/**< Maximum size of values (serialized form) */
 	size_t max_cached;			/**< Max amount of items to cache */
@@ -105,6 +106,21 @@ struct cached {
 	unsigned traversed:1;		/**< Whether entry was traversed by iteration */
 	unsigned removable:1;		/**< Entry must be removed after iteration? */
 };
+
+/**
+ * Computes key length.
+ */
+static inline size_t
+dbmw_keylen(const dbmw_t *dw, const void *key)
+{
+	if (NULL == dw->key_len) {
+		return dw->key_size;
+	} else {
+		size_t len = (*dw->key_len)(key);
+		g_assert(len <= dw->key_size);
+		return len;
+	}
+}
 
 /**
  * Check whether I/O error has occurred during last operation.
@@ -166,7 +182,6 @@ dbmw_count(dbmw_t *dw)
  *
  * @param dm				The database (already opened)
  * @param name				Database name, for logs
- * @param key_size			Constant key size, in bytes
  * @param value_size		Maximum value size, in bytes (structure)
  * @param value_data_size	Maximum value size, in bytes (serialized form)
  * @param pack				Serialization routine for values
@@ -181,19 +196,17 @@ dbmw_count(dbmw_t *dw)
  * NULL.
  */
 dbmw_t *
-dbmw_create(dbmap_t *dm, const char *name, size_t key_size,
+dbmw_create(dbmap_t *dm, const char *name,
 	size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
 {
 	dbmw_t *dw;
 
-	g_assert(key_size);
 	g_assert(pack == NULL || value_size);
 	g_assert((pack != NULL) == (unpack != NULL));
 	g_assert(valfree == NULL || unpack != NULL);
 	g_assert(dm);
-	g_assert(dbmap_key_size(dm) == key_size);
 
 	dw = walloc0(sizeof *dw);
 
@@ -201,12 +214,13 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size,
 	dw->dm = dm;
 	dw->name = name;
 
-	dw->key_size = key_size;
+	dw->key_size = dbmap_key_size(dm);
+	dw->key_len = dbmap_key_length(dm);
 	dw->value_size = value_size;
 	dw->value_data_size = 0 == value_data_size ? value_size : value_data_size;
 
 	/* Make sure we do not violate the SDBM constraint */
-	g_assert(sdbm_is_storable(key_size, dw->value_data_size));
+	g_assert(sdbm_is_storable(dw->key_size, dw->value_data_size));
 
 	/*
 	 * There must be a serialization routine if the serialized length is not
@@ -219,10 +233,15 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size,
 	 * than a hash table although it uses more memory.
 	 */
 
-	if (key_size * 8 <= PATRICIA_MAXBITS && cache_size <= DBMW_CACHE)
-		dw->values = map_create_patricia(key_size * 8);
-	else
+	if (
+		NULL == dw->key_len &&
+		dw->key_size * 8 <= PATRICIA_MAXBITS &&
+		cache_size <= DBMW_CACHE
+	) {
+		dw->values = map_create_patricia(dw->key_size * 8);
+	} else {
 		dw->values = map_create_hash(hash_func, eq_func);
+	}
 
 	dw->keys = hash_list_new(hash_func, eq_func);
 	dw->pack = pack;
@@ -386,7 +405,7 @@ remove_entry(dbmw_t *dw, gconstpointer key, gboolean dispose, gboolean flush)
 
 	hash_list_remove(dw->keys, key);
 	map_remove(dw->values, key);
-	wfree(old_key, dw->key_size);
+	wfree(old_key, dbmw_keylen(dw, old_key));
 
 	if (!dispose)
 		return old;
@@ -426,7 +445,7 @@ allocate_entry(dbmw_t *dw, gconstpointer key, struct cached *filled)
 	g_assert(!map_contains(dw->values, key));
 	g_assert(!filled || (!filled->len == !filled->data));
 
-	saved_key = wcopy(key, dw->key_size);
+	saved_key = wcopy(key, dbmw_keylen(dw, key));
 
 	/*
 	 * If we have less keys cached than our maximum, add it.
@@ -574,7 +593,7 @@ cache_free_removable(gpointer key, gpointer value, gpointer data)
 
 	free_value(dw, entry, TRUE);
 	hash_list_remove(dw->keys, key);
-	wfree(key, dw->key_size);
+	wfree(key, dbmw_keylen(dw, key));
 	wfree(entry, sizeof *entry);
 
 	return TRUE;
@@ -1008,7 +1027,7 @@ free_cached(gpointer key, gpointer value, gpointer data)
 	g_assert(!entry->len == !entry->data);
 
 	free_value(dw, entry, TRUE);
-	wfree(key, dw->key_size);
+	wfree(key, dbmw_keylen(dw, key));
 	wfree(entry, sizeof *entry);
 	return TRUE;
 }
