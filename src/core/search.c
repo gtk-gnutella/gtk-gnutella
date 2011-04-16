@@ -6070,8 +6070,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			)
 				node_inc_qrp_match(n);
 
-			if (GNET_PROPERTY(share_debug) > 3
-			) {
+			if (GNET_PROPERTY(share_debug) > 3) {
 				g_debug("share HIT %u files '%s'%s ", qctx->found,
 						safe_search,
 						skip_file_search ? " (skipped)" : "");
@@ -6204,6 +6203,7 @@ search_compact(struct gnutella_node *n)
 	char *dest = buffer;
 	char *p;
 	const char *end = dest + sizeof buffer;
+	size_t target;
 	gboolean has_ggep = FALSE;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
@@ -6218,9 +6218,11 @@ search_compact(struct gnutella_node *n)
 	ext_prepare(exv, MAX_EXTVEC);
 	exvcnt = ext_parse(search + search_len + 1, extra, exv, MAX_EXTVEC);
 
-	if (extra > sizeof buffer) {
-		dest = halloc(extra);
-		end = dest + extra;
+	target = extra + (extra >> 2);		/* Add 25% margin for bad compression */
+
+	if (target > sizeof buffer) {
+		dest = halloc(target);
+		end = dest + target;
 	}
 
 	/*
@@ -6386,7 +6388,10 @@ search_compact(struct gnutella_node *n)
 			}
 
 			ok = ggep_stream_begin(&gs, ext_ggep_id_str(e),
-					ext_paylen(e) > DEFLATE_THRESHOLD ? GGEP_W_DEFLATE : 0)
+					(
+						ext_paylen(e) > DEFLATE_THRESHOLD ||
+						ext_ggep_is_deflated(e)
+					) ?  GGEP_W_DEFLATE : 0)
 				&& ggep_stream_write(&gs, ext_payload(e), ext_paylen(e))
 				&& ggep_stream_end(&gs);
 			if (!ok) {
@@ -6405,11 +6410,10 @@ search_compact(struct gnutella_node *n)
 
 	newlen = p - dest;
 	g_assert(size_is_non_negative(newlen));
-	g_assert(newlen <= extra);
 
 	ext_reset(exv, MAX_EXTVEC);
 
-	if (newlen != extra) {
+	if (newlen < extra) {
 		size_t diff = extra - newlen;
 		char *start = deconstify_char(search) + search_len + 1;
 
@@ -6462,6 +6466,21 @@ search_compact(struct gnutella_node *n)
 					NODE_IS_UDP(n) ? "(GUESS) " : "",
 					guid_hex_str(gnutella_header_get_muid(&n->header)));
 			}
+		}
+	} else if (newlen > extra) {
+		if (GNET_PROPERTY(query_debug)) {
+			g_warning("QUERY %s%s not rewritten: new size %lu byte%s > old %lu",
+				NODE_IS_UDP(n) ? "(GUESS) " : "",
+				guid_hex_str(gnutella_header_get_muid(&n->header)),
+				(unsigned long) newlen, 1 == newlen ? "" : "s",
+				(unsigned long) extra);
+		}
+	} else {
+		if (GNET_PROPERTY(query_debug) > 13) {
+			g_info("QUERY %s%s not rewritten: no change in size (%lu byte%s)",
+				NODE_IS_UDP(n) ? "(GUESS) " : "",
+				guid_hex_str(gnutella_header_get_muid(&n->header)),
+				(unsigned long) newlen, 1 == newlen ? "" : "s");
 		}
 	}
 
