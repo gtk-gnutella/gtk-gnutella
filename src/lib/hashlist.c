@@ -71,8 +71,15 @@ struct hash_list_item {
 
 enum hash_list_iter_magic { HASH_LIST_ITER_MAGIC = 0x438954efU };
 
+enum hash_list_iter_direction {
+	HASH_LIST_ITER_UNDEFINED,
+	HASH_LIST_ITER_FORWARDS,
+	HASH_LIST_ITER_BACKWARDS,
+};
+
 struct hash_list_iter {
 	enum hash_list_iter_magic magic;
+	enum hash_list_iter_direction dir;
 	unsigned stamp;
 	hash_list_t *hl;
 	GList *prev, *next;
@@ -366,6 +373,11 @@ hash_list_sort_with_data(hash_list_t *hl, GCompareDataFunc func, void *data)
 	hl->tail = g_list_last(hl->head);
 }
 
+/**
+ * Remove specified item.
+ *
+ * @return the original key.
+ */
 static void * 
 hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 {
@@ -725,7 +737,7 @@ hash_list_list(hash_list_t *hl)
 }
 
 static hash_list_iter_t *
-hash_list_iterator_new(hash_list_t *hl)
+hash_list_iterator_new(hash_list_t *hl, enum hash_list_iter_direction dir)
 {
 	static const hash_list_iter_t zero_iter;
 	hash_list_iter_t *iter;
@@ -735,6 +747,7 @@ hash_list_iterator_new(hash_list_t *hl)
 	iter = walloc(sizeof *iter);
 	*iter = zero_iter;
 	iter->magic = HASH_LIST_ITER_MAGIC;
+	iter->dir = dir;
 	iter->hl = hl;
 	iter->stamp = hl->stamp;
 	hl->refcount++;
@@ -752,7 +765,7 @@ hash_list_iterator(hash_list_t *hl)
 		hash_list_iter_t *iter;
 
 		hash_list_check(hl);
-		iter = hash_list_iterator_new(hl);
+		iter = hash_list_iterator_new(hl, HASH_LIST_ITER_FORWARDS);
 		iter->next = hl->head;
 		return iter;
 	} else {
@@ -771,7 +784,7 @@ hash_list_iterator_tail(hash_list_t *hl)
 		hash_list_iter_t *iter;
 
 		hash_list_check(hl);
-		iter = hash_list_iterator_new(hl);
+		iter = hash_list_iterator_new(hl, HASH_LIST_ITER_BACKWARDS);
 		iter->prev = hl->tail;
 		return iter;
 	} else {
@@ -797,7 +810,7 @@ hash_list_iterator_at(hash_list_t *hl, const void *key)
 		if (item) {
 			hash_list_iter_t *iter;
 
-			iter = hash_list_iterator_new(hl);
+			iter = hash_list_iterator_new(hl, HASH_LIST_ITER_UNDEFINED);
 			iter->prev = g_list_previous(item->list);
 			iter->next = g_list_next(item->list);
 			iter->item = item;
@@ -872,6 +885,82 @@ hash_list_iter_has_previous(const hash_list_iter_t *iter)
 	hash_list_iter_check(iter);
 
 	return NULL != iter->prev;
+}
+
+/**
+ * Checks whether there is a successor in the iterator's direction.
+ */
+gboolean
+hash_list_iter_has_more(const hash_list_iter_t *iter)
+{
+	hash_list_iter_check(iter);
+	g_assert(iter->dir != HASH_LIST_ITER_UNDEFINED);
+
+	switch (iter->dir) {
+	case HASH_LIST_ITER_FORWARDS:
+		return hash_list_iter_has_next(iter);
+	case HASH_LIST_ITER_BACKWARDS:
+		return hash_list_iter_has_previous(iter);
+	case HASH_LIST_ITER_UNDEFINED:
+		break;
+	}
+	g_assert_not_reached();
+	return FALSE;
+}
+
+/**
+ * Get the next item in the iterator's direction, NULL if none.
+ */
+void *
+hash_list_iter_move(hash_list_iter_t *iter)
+{
+	hash_list_iter_check(iter);
+	g_assert(iter->dir != HASH_LIST_ITER_UNDEFINED);
+
+	switch (iter->dir) {
+	case HASH_LIST_ITER_FORWARDS:
+		return hash_list_iter_next(iter);
+	case HASH_LIST_ITER_BACKWARDS:
+		return hash_list_iter_previous(iter);
+	case HASH_LIST_ITER_UNDEFINED:
+		break;
+	}
+	g_assert_not_reached();
+	return FALSE;
+}
+
+/**
+ * Removes current item in the iterator.
+ *
+ * @return item key, NULL if there is no item to remove.
+ */
+void *
+hash_list_iter_remove(hash_list_iter_t *iter)
+{
+	struct hash_list_item *item;
+
+	hash_list_iter_check(iter);
+
+	item = iter->item;
+
+	if (item != NULL) {
+		void *orig_key = deconstify_gpointer(item->orig_key);
+		hash_list_t *hl = iter->hl;
+
+		iter->item = NULL;
+		g_hash_table_remove(hl->ht, orig_key);
+		if (hl->tail == item->list) {
+			hl->tail = g_list_previous(hl->tail);
+		}
+		hl->head = g_list_delete_link(hl->head, item->list);
+
+		g_assert(hl->len > 0);
+		hl->len--;
+
+		return orig_key;
+	} else {
+		return NULL;
+	}
 }
 
 /**

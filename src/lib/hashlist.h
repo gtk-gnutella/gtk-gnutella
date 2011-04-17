@@ -61,8 +61,11 @@ hash_list_iter_t *hash_list_iterator_at(hash_list_t *, const void *key);
 void hash_list_iter_release(hash_list_iter_t **);
 gboolean hash_list_iter_has_next(const hash_list_iter_t *);
 gboolean hash_list_iter_has_previous(const hash_list_iter_t *);
+gboolean hash_list_iter_has_more(const hash_list_iter_t *iter);
 void *hash_list_iter_next(hash_list_iter_t *);
 void *hash_list_iter_previous(hash_list_iter_t *);
+void *hash_list_iter_move(hash_list_iter_t *iter);
+void *hash_list_iter_remove(hash_list_iter_t *iter);
 
 gboolean hash_list_find(hash_list_t *, const void *key, const void **orig_key);
 gboolean hash_list_contains(hash_list_t *, const void *key);
