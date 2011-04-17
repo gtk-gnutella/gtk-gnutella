@@ -154,6 +154,7 @@ LSRC = \
 	watcher.c \
 	wd.c \
 	wordvec.c \
+	wq.c \
 	zalloc.c \
 	zlib_util.c
 

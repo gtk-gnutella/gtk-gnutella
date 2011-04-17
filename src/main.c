@@ -147,6 +147,7 @@
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
+#include "lib/wq.h"
 #include "lib/zalloc.h"
 #include "shell/shell.h"
 #include "upnp/upnp.h"
@@ -650,6 +651,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(inputevt_close);
 	DO(locale_close);
 	DO(cq_close);
+	DO(wq_close);
 	DO(log_close);		/* Does not disable logging */
 
 	/*
@@ -1590,11 +1592,12 @@ main(int argc, char **argv)
 	STATIC_ASSERT(UNSIGNED(-1) > 0);
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
+	random_init();
 	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
+	wq_init();
 	inputevt_init(options[main_arg_use_poll].used);
 	tiger_check();
 	tt_check();
-	random_init();
 	tea_test();
 	patricia_test();
 	strtok_test();
