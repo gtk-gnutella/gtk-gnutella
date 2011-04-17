@@ -522,9 +522,6 @@ enum {
 
 extern const char *start_rfc822_date;
 
-extern GHookList node_added_hook_list;
-extern struct gnutella_node *node_added;
-
 /*
  * Global Functions
  */

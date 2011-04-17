@@ -123,6 +123,7 @@ RCSID("$Id$")
 #include "lib/utf8.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"
+#include "lib/wq.h"
 #include "lib/zlib_util.h"
 
 #include "if/gnet_property.h"
@@ -217,13 +218,6 @@ static time_t node_error_cleanup_timer = 6 * 3600;	/**< 6 hours */
 static pproxy_set_t *proxies;	/* Our push proxies */
 static guint32 shutdown_nodes;
 static gboolean allow_gnet_connections = FALSE;
-GHookList node_added_hook_list;
-
-/**
- * For use by node_added_hook_list hooks, since we can't add a parameter
- * at list invoke time.
- */
-struct gnutella_node *node_added;
 
 /**
  * Structure used for asynchronous reaction to peer mode changes.
@@ -1421,10 +1415,6 @@ node_init(void)
 	header_features_add_guarded(FEATURES_CONNECTIONS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
 		GNET_PROPERTY_PTR(browse_host_enabled));
-
-	g_hook_list_init(&node_added_hook_list, sizeof(GHook));
-	node_added_hook_list.seq_id = 1;
-	node_added = NULL;
 
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
@@ -3783,9 +3773,12 @@ node_is_now_connected(struct gnutella_node *n)
     node_fire_node_info_changed(n);
     node_fire_node_flags_changed(n);
 
-	node_added = n;
-	g_hook_list_invoke(&node_added_hook_list, TRUE);
-	node_added = NULL;
+	/*
+	 * Tell parties interested by the addition of a new node (sleeping on
+	 * the "node_add" key).
+	 */
+
+	wq_wakeup(node_add, n);
 }
 
 /**

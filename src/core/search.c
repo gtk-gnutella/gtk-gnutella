@@ -106,6 +106,7 @@ RCSID("$Id$")
 #include "lib/vendors.h"
 #include "lib/walloc.h"
 #include "lib/wordvec.h"
+#include "lib/wq.h"
 #include "lib/zalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -166,7 +167,7 @@ typedef struct search_ctrl {
 	GHashTable *sent_nodes;		/**< Sent node by ip:port */
 	GHashTable *sent_node_ids;	/**< IDs of nodes to which we sent query */
 
-	GHook *new_node_hook;
+	wq_event_t *new_node_wait;
 	guint reissue_timeout_id;
 	guint reissue_timeout;		/**< timeout per search, 0 = search stopped */
 	time_t create_time;			/**< Time at which this search was created */
@@ -2814,38 +2815,33 @@ cleanup:
 
 /**
  * Called when we connect to a new node and thus can send it our searches.
- *
- * @bug
- * FIXME: uses node_added which is a global variable in nodes.c. This
- * should instead be contained with the argument to this call.
  */
-static void
-node_added_callback(gpointer data)
+static wq_status_t
+search_node_added(void *search, void *node)
 {
-	search_ctrl_t *sch = data;
-	g_assert(node_added != NULL);
-	g_assert(data != NULL);
+	search_ctrl_t *sch = search;
+	gnutella_node_t *n = node;
+
 	g_assert(sch != NULL);
 	g_assert(sbool_get(sch->active));
+	g_assert(n != NULL);
 
 	/*
 	 * If we're in UP mode, we're using dynamic querying for our own queries.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
-		return;
+	if (NODE_P_ULTRA != GNET_PROPERTY(current_peermode)) {
+		/*
+		 * Send search to new node if not already done and if the search
+		 * is still active.
+		 */
 
-	/*
-	 * Send search to new node if not already done and if the search
-	 * is still active.
-	 */
-
-	if (
-		!search_already_sent_to_node(sch, node_added) &&
-		!sbool_get(sch->frozen)
-	) {
-		search_send_packet(sch, node_added);
+		if (!search_already_sent_to_node(sch, n) && !sbool_get(sch->frozen)) {
+			search_send_packet(sch, n);
+		}
 	}
+
+	return WQ_SLEEP;		/* Keep being notified */
 }
 
 /**
@@ -3686,8 +3682,7 @@ search_close(gnet_search_t sh)
 	g_hash_table_remove(searches, sch);
 
 	if (sbool_get(sch->active)) {
-		g_hook_destroy_link(&node_added_hook_list, sch->new_node_hook);
-		sch->new_node_hook = NULL;
+		wq_cancel(&sch->new_node_wait);
 
 		/* we could have stopped the search already, must test the ID */
 		if (sch->reissue_timeout_id) {
@@ -3990,10 +3985,7 @@ search_new(gnet_search_t *ptr, const char *query,
 			0 == (flags & (SEARCH_F_BROWSE|SEARCH_F_LOCAL|SEARCH_F_PASSIVE)));
 
 	if (sbool_get(sch->active)) {
-		sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
-		sch->new_node_hook->data = sch;
-		sch->new_node_hook->func = cast_func_to_pointer(node_added_callback);
-		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
+		sch->new_node_wait = wq_sleep(node_add, search_node_added, sch);
 
 		if (reissue_timeout != 0 && reissue_timeout < SEARCH_MIN_RETRY)
 			reissue_timeout = SEARCH_MIN_RETRY;
