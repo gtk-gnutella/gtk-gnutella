@@ -89,8 +89,7 @@ idtable_destroy(idtable_t *tbl)
 gboolean
 idtable_is_id_used(const idtable_t *tbl, guint32 id)
 {
-	gpointer key = GUINT_TO_POINTER(id);
-	return gm_hash_table_contains(tbl->ht, key);
+	return gm_hash_table_contains(tbl->ht, uint_to_pointer(id));
 }
 
 /**
@@ -98,12 +97,12 @@ idtable_is_id_used(const idtable_t *tbl, guint32 id)
  * value later.
  */
 guint32
-idtable_new_id(idtable_t *tbl, gpointer value)
+idtable_new_id(idtable_t *tbl, void *value)
 {
 	while (idtable_is_id_used(tbl, tbl->last_id)) {
 		tbl->last_id = ((tbl->last_id + 1) & IDTABLE_MASK) + IDTABLE_BASE;
 	}
-	g_hash_table_insert(tbl->ht, GUINT_TO_POINTER(tbl->last_id), value);
+	g_hash_table_insert(tbl->ht, uint_to_pointer(tbl->last_id), value);
 	return tbl->last_id;
 }
 
@@ -111,10 +110,10 @@ idtable_new_id(idtable_t *tbl, gpointer value)
  * Replace the value of a give id. The id must already be in use.
  */
 void
-idtable_set_value(idtable_t *tbl, guint32 id, gpointer value)
+idtable_set_value(idtable_t *tbl, guint32 id, void * value)
 {
 	g_assert(idtable_is_id_used(tbl, id));
-	g_hash_table_replace(tbl->ht, GUINT_TO_POINTER(id), value);
+	g_hash_table_replace(tbl->ht, uint_to_pointer(id), value);
 }
 
 /**
@@ -122,16 +121,30 @@ idtable_set_value(idtable_t *tbl, guint32 id, gpointer value)
  * requested with idtable_request_id before and must not be accessed
  * after it has been dropped by idtable_drop_id.
  */
-gpointer
+void *
 idtable_get_value(const idtable_t *tbl, guint32 id)
 {
-	gpointer key, value;
+	void *key, *value;
 	gboolean found;
 
-	key = GUINT_TO_POINTER(id);
+	key = uint_to_pointer(id);
 	found = g_hash_table_lookup_extended(tbl->ht, key, NULL, &value);
 	g_assert(found);
 	return value;
+}
+
+/**
+ * Fetch the value associated with the given ID, if it exists.
+ *
+ * This should be used instead of idtable_get_value() when there is doubt
+ * about the validity of the ID.
+ *
+ * @return the value if the ID exists, NULL otherwise.
+ */
+void *
+idtable_probe_value(const idtable_t *tbl, guint32 id)
+{
+	return g_hash_table_lookup(tbl->ht, uint_to_pointer(id));
 }
 
 /**
@@ -141,7 +154,7 @@ void
 idtable_free_id(idtable_t *tbl, guint32 id)
 {
 	g_assert(idtable_is_id_used(tbl, id));
-	g_hash_table_remove(tbl->ht, GUINT_TO_POINTER(id));
+	g_hash_table_remove(tbl->ht, uint_to_pointer(id));
 }
 
 guint
