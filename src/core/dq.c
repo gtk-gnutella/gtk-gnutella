@@ -218,7 +218,7 @@ static GHashTable *by_leaf_muid;
  * queries we send, we associate each message with a structure containing
  * meta-information about it.
  */
-struct pmsg_info {
+struct dq_pmsg_info {
 	struct dquery_id qid;/**< Query ID of the dynamic query */
 	struct nid *node_id;/**< The ID of the node we sent it to */
 	guint16 degree;		/**< The advertised degree of the destination node */
@@ -377,7 +377,7 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, int connections)
 }
 
 /**
- * Create a pmsg_info structure, giving meta-information about the message
+ * Create a dq_pmsg_info structure, giving meta-information about the message
  * we're about to send.
  *
  * @param dq      the dynamic query
@@ -386,11 +386,11 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, int connections)
  * @param node_id the ID of the node to which we send the message
  * @param probe	  whether the query is just a probe, with a lower TTL
  */
-static struct pmsg_info *
+static struct dq_pmsg_info *
 dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl,
 	const struct nid *node_id, gboolean probe)
 {
-	struct pmsg_info *pmi;
+	struct dq_pmsg_info *pmi;
 	const struct nid *key = nid_ref(node_id);	
 
 	dquery_check(dq);
@@ -408,10 +408,10 @@ dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl,
 }
 
 /**
- * Get rid of the pmsg_info structure.
+ * Get rid of the dq_pmsg_info structure.
  */
 static void
-dq_pmi_free(struct pmsg_info *pmi)
+dq_pmi_free(struct dq_pmsg_info *pmi)
 {
 	nid_unref(pmi->node_id);	
 	wfree(pmi, sizeof(*pmi));
@@ -450,7 +450,7 @@ dquery_id_to_string(struct dquery_id id)
 static void
 dq_pmsg_free(pmsg_t *mb, gpointer arg)
 {
-	struct pmsg_info *pmi = arg;
+	struct dq_pmsg_info *pmi = arg;
 	dquery_t *dq;
 
 	/* NOTE: No dquery_check() because the memory might have been freed
@@ -1296,7 +1296,7 @@ node_mq_qrp_cmp(const void *np1, const void *np2)
 static void
 dq_send_query(dquery_t *dq, gnutella_node_t *n, int ttl, gboolean probe)
 {
-	struct pmsg_info *pmi;
+	struct dq_pmsg_info *pmi;
 	pmsg_t *mb;
 
 	dquery_check(dq);
@@ -1310,8 +1310,8 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, int ttl, gboolean probe)
 	 *
 	 * We're going to clone the messsage template into an extended one,
 	 * which will be associated with a free routine.  That way, we'll know
-	 * when the message is freed, and we'll get back the meta data (pmsg_info)
-	 * as an argument to the free routine.
+	 * when the message is freed, and we'll get back the meta data
+	 * (dq_pmsg_info) as an argument to the free routine.
 	 *
 	 * Then, in the cloned message, adjust the TTL before sending.
 	 */

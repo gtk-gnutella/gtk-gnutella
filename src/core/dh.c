@@ -74,7 +74,7 @@ typedef struct dqhit {
 /*
  * Meta-information about the query hit message.
  */
-struct pmsg_info {
+struct dh_pmsg_info {
 	guint32 hits;			/**< Amount of query hits held in message */
 };
 
@@ -240,7 +240,7 @@ dh_timer(time_t now)
 static void
 dh_pmsg_free(pmsg_t *mb, gpointer arg)
 {
-	struct pmsg_info *pmi = arg;
+	struct dh_pmsg_info *pmi = arg;
 	const struct guid *muid;
 	dqhit_t *dh;
 
@@ -414,7 +414,7 @@ void
 dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 {
 	pmsg_t *mb;
-	struct pmsg_info *pmi;
+	struct dh_pmsg_info *pmi;
 	const struct guid *muid;
 	dqhit_t *dh;
 	mqueue_t *mq;

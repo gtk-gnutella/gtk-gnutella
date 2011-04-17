@@ -86,33 +86,33 @@ enum pmi_magic { REVENT_PMI_MAGIC = 0x6bd45a15 };
  * We don't need to store the knode as this is already done by the generic
  * RPC layer.
  */
-struct rpc_info {
+struct revent_rpc_info {
 	enum rpi_magic magic;
 	struct nid rid;			/**< ID of RPC event, to spot outdated replies */
 	struct revent_ops *ops;	/**< Callbacks */
-	struct pmsg_info *pmi;	/**< In case the RPC times out */
+	struct revent_pmsg_info *pmi;	/**< In case the RPC times out */
 	guint32 udata;			/**< User-supplied information (opaque to us) */
 };
 
 static inline void
-rpi_check(const struct rpc_info *rpi)
+rpi_check(const struct revent_rpc_info *rpi)
 {
 	g_assert(rpi != NULL);
 	g_assert(REVENT_RPI_MAGIC == rpi->magic);
 }
 
 /**
- * Create a rpc_info structure storing meta information about the RPC
+ * Create a revent_rpc_info structure storing meta information about the RPC
  * we're about to send.
  *
  * @param id		the ID of the issuer of the message
  * @param udata		opaque user-supplied data
  * @param ops		user callbacks to invoke during RPC callback
  */
-static struct rpc_info *
+static struct revent_rpc_info *
 revent_rpi_alloc(struct nid id, guint32 udata, struct revent_ops *ops)
 {
-	struct rpc_info *rpi;
+	struct revent_rpc_info *rpi;
 
 	rpi = walloc(sizeof *rpi);
 	rpi->magic = REVENT_RPI_MAGIC;
@@ -125,10 +125,10 @@ revent_rpi_alloc(struct nid id, guint32 udata, struct revent_ops *ops)
 }
 
 /**
- * Release the rpc_info structure.
+ * Release the revent_rpc_info structure.
  */
 static void
-revent_rpi_free(struct rpc_info *rpi)
+revent_rpi_free(struct revent_rpc_info *rpi)
 {
 	wfree(rpi, sizeof *rpi);
 }
@@ -139,36 +139,36 @@ revent_rpi_free(struct rpc_info *rpi)
  * This information is perused by the message free routine which we install
  * for every message we're sending out.
  */
-struct pmsg_info {
+struct revent_pmsg_info {
 	enum pmi_magic magic;
 	struct nid rid;			/**< ID of caller */
 	struct revent_ops *ops;	/**< Callbacks */
 	knode_t *kn;			/**< The node to which we sent it to (refcounted) */
-	struct rpc_info *rpi;	/**< Attached RPC info (for cancelling) */
+	struct revent_rpc_info *rpi;	/**< Attached RPC info (for cancelling) */
 	gboolean rpc_done;		/**< TRUE if RPC times out before message sent */
 };
 
 static inline void
-pmi_check(const struct pmsg_info *pmi)
+pmi_check(const struct revent_pmsg_info *pmi)
 {
 	g_assert(pmi != NULL);
 	g_assert(REVENT_PMI_MAGIC == pmi->magic);
 }
 
 /**
- * Create a pmsg_info structure storing meta information about the message
- * we're about to send.
+ * Create a revent_pmsg_info structure storing meta information on the
+ * message we're about to send.
  *
  * @param id		the RPC event ID of the caller
  * @param kn		intended recipient of the message
  * @param rpi		additional RPC info, in case we need to cancel
  * @param ops		user callbacks to invoke during message free
  */
-static struct pmsg_info *
-revent_pmi_alloc(struct nid id, knode_t *kn, struct rpc_info *rpi,
+static struct revent_pmsg_info *
+revent_pmi_alloc(struct nid id, knode_t *kn, struct revent_rpc_info *rpi,
 	struct revent_ops *ops)
 {
-	struct pmsg_info *pmi;
+	struct revent_pmsg_info *pmi;
 
 	pmi = walloc(sizeof *pmi);
 	pmi->magic = REVENT_PMI_MAGIC;
@@ -182,10 +182,10 @@ revent_pmi_alloc(struct nid id, knode_t *kn, struct rpc_info *rpi,
 }
 
 /**
- * Release the pmsg_info structure.
+ * Release the revent_pmsg_info structure.
  */
 static void
-revent_pmi_free(struct pmsg_info *pmi)
+revent_pmi_free(struct revent_pmsg_info *pmi)
 {
 	knode_free(pmi->kn);
 	wfree(pmi, sizeof *pmi);
@@ -206,10 +206,10 @@ revent_pmi_free(struct pmsg_info *pmi)
 static void
 revent_get_pair(
 	struct nid id, knode_t *kn, guint32 udata, struct revent_ops *ops,
-	struct pmsg_info **pmi, struct rpc_info **rpi)
+	struct revent_pmsg_info **pmi, struct revent_rpc_info **rpi)
 {
-	struct rpc_info *r = revent_rpi_alloc(id, udata, ops);
-	struct pmsg_info *p = revent_pmi_alloc(id, kn, r, ops);
+	struct revent_rpc_info *r = revent_rpi_alloc(id, udata, ops);
+	struct revent_pmsg_info *p = revent_pmi_alloc(id, kn, r, ops);
 
 	r->pmi = p;
 	*pmi = p;
@@ -222,7 +222,7 @@ revent_get_pair(
 static void
 revent_pmsg_free(pmsg_t *mb, gpointer arg)
 {
-	struct pmsg_info *pmi = arg;
+	struct revent_pmsg_info *pmi = arg;
 	struct revent_ops *ops;
 	gpointer obj;
 
@@ -337,7 +337,7 @@ revent_rpc_cb(
 	kda_msg_t function,
 	const char *payload, size_t len, gpointer arg)
 {
-	struct rpc_info *rpi = arg;
+	struct revent_rpc_info *rpi = arg;
 	struct revent_ops *ops;
 	gpointer obj;
 
@@ -418,8 +418,8 @@ void
 revent_find_node(knode_t *kn, const kuid_t *kuid,
 	struct nid id, struct revent_ops *ops, guint32 udata)
 {
-	struct pmsg_info *pmi;
-	struct rpc_info *rpi;
+	struct revent_pmsg_info *pmi;
+	struct revent_rpc_info *rpi;
 
 	knode_check(kn);
 	g_assert(kuid != NULL);
@@ -453,8 +453,8 @@ revent_find_value(knode_t *kn, const kuid_t *kuid, dht_value_type_t type,
 	kuid_t **skeys, int scnt,
 	struct nid id, struct revent_ops *ops, guint32 udata)
 {
-	struct pmsg_info *pmi;
-	struct rpc_info *rpi;
+	struct revent_pmsg_info *pmi;
+	struct revent_rpc_info *rpi;
 
 	knode_check(kn);
 	g_assert(kuid != NULL);
@@ -485,8 +485,8 @@ void
 revent_store(knode_t *kn, pmsg_t *mb,
 	struct nid id, struct revent_ops *ops, guint32 udata)
 {
-	struct pmsg_info *pmi;
-	struct rpc_info *rpi;
+	struct revent_pmsg_info *pmi;
+	struct revent_rpc_info *rpi;
 
 	knode_check(kn);
 	g_assert(mb != NULL);

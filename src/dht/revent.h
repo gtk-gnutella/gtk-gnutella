@@ -62,9 +62,6 @@ struct revent_ops {
 	void (*iterate)(gpointer obj, enum dht_rpc_ret type, guint32 udata);
 };
 
-struct pmsg_info;
-struct rpc_info;
-
 /*
  * Public interface.
  */
