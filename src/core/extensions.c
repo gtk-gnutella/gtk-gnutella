@@ -1628,21 +1628,27 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 		 */
 
 		ret = inflate(inz, Z_SYNC_FLUSH);
-		inflated += rsize - inflated - inz->avail_out;
+		inflated = rsize - inz->avail_out;
 
 		g_assert(inflated <= rsize);
 
-		if (ret == Z_STREAM_END)			/* All done! */
+		if (ret == Z_STREAM_END) {			/* All done! */
+			if (GNET_PROPERTY(ggep_debug) > 3) {
+				g_info("GGEP payload \"%s\" inflated %d byte%s into %d",
+					name, len, 1 == len ? "" : "s", inflated);
+			}
 			break;
+		}
 
 		if (ret == Z_BUF_ERROR) {			/* Needs more output space */
 			if (rsize == inflated)
 				continue;
 
 			if (GNET_PROPERTY(ggep_debug)) {
-				g_warning("GGEP payload \"%s\" does not "
-					"decompress properly (consumed %d/%d byte%s)",
-					name, len - inz->avail_in, len, 1 == len ? "" : "s");
+				g_warning("GGEP payload \"%s\" does not decompress properly "
+					"(consumed %d/%d byte%s inflated into %d)",
+					name, len - inz->avail_in, len, 1 == len ? "" : "s",
+					inflated);
 			}
 			failed = TRUE;
 			break;
