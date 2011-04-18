@@ -653,7 +653,7 @@ cq_main_insert(int delay, cq_service_t fn, gpointer arg)
  * Trampoline to invoke heartbeat.
  */
 static gboolean
-heartbeat_trampoline(gpointer p)
+cq_heartbeat_trampoline(gpointer p)
 {
 	cqueue_t *cq = p;
 
@@ -666,7 +666,7 @@ heartbeat_trampoline(gpointer p)
  * if not existing already).
  */
 static void
-register_object(GHashTable **hptr, gpointer o)
+cq_register_object(GHashTable **hptr, gpointer o)
 {
 	GHashTable *h = *hptr;
 
@@ -684,7 +684,7 @@ register_object(GHashTable **hptr, gpointer o)
  * Unregister object from the hash table.
  */
 static void
-unregister_object(GHashTable *h, gpointer o)
+cq_unregister_object(GHashTable *h, gpointer o)
 {
 	g_assert(h != NULL);
 	g_assert(o != NULL);
@@ -736,7 +736,7 @@ cq_periodic_free(cperiodic_t *cp)
 	cqueue_check(cq);
 
 	cq_cancel(&cp->ev);
-	unregister_object(cq->cq_periodic, cp);
+	cq_unregister_object(cq->cq_periodic, cp);
 	cp->magic = 0;
 	wfree(cp, sizeof *cp);
 }
@@ -745,7 +745,7 @@ cq_periodic_free(cperiodic_t *cp)
  * Trampoline for dispatching periodic events.
  */
 static void
-periodic_trampoline(cqueue_t *cq, gpointer data)
+cq_periodic_trampoline(cqueue_t *cq, gpointer data)
 {
 	cperiodic_t *cp = data;
 
@@ -759,7 +759,7 @@ periodic_trampoline(cqueue_t *cq, gpointer data)
 	 */
 
 	if ((*cp->event)(cp->arg))
-		cp->ev = cq_insert(cq, cp->period, periodic_trampoline, cp);
+		cp->ev = cq_insert(cq, cp->period, cq_periodic_trampoline, cp);
 	else {
 		cq_periodic_free(cp);
 	}
@@ -792,11 +792,26 @@ cq_periodic_add(cqueue_t *cq, int period, cq_invoke_t event, gpointer arg)
 	cp->event = event;
 	cp->arg = arg;
 	cp->period = period;
-	cp->ev = cq_insert(cq, period, periodic_trampoline, cp);
+	cp->ev = cq_insert(cq, period, cq_periodic_trampoline, cp);
 
-	register_object(&cq->cq_periodic, cp);
+	cq_register_object(&cq->cq_periodic, cp);
 
 	return cp;
+}
+
+/**
+ * Convenience routine: insert periodic event in the main callout queue.
+ *
+ * Same as calling:
+ *
+ *     cq_periodic_add(callout_queue, period, event, arg);
+ *
+ * only it is shorter.
+ */
+cperiodic_t *
+cq_periodic_main_add(int period, cq_invoke_t event, gpointer arg)
+{
+	return cq_periodic_add(callout_queue, period, event, arg);
 }
 
 /**
@@ -810,7 +825,7 @@ cq_periodic_resched(cperiodic_t *cp, int period)
 	cp->period = period;
 
 	/*
-	 * If the event is NULL, we're in the middle of periodic_trampoline(),
+	 * If the event is NULL, we're in the middle of cq_periodic_trampoline(),
 	 * so the event will be rescheduled once the callback event returns.
 	 */
 
@@ -880,7 +895,7 @@ cq_submake(const char *name, cqueue_t *parent, int period)
 	csq->sub_cq.cq_magic = CSUBQUEUE_MAGIC;
 
 	csq->heartbeat = cq_periodic_add(parent, period,
-		heartbeat_trampoline, &csq->sub_cq);
+		cq_heartbeat_trampoline, &csq->sub_cq);
 
 	csubqueue_check(csq);
 	cqueue_check(&csq->sub_cq);
@@ -893,7 +908,7 @@ cq_submake(const char *name, cqueue_t *parent, int period)
  * freeing the sub-queue object.
  */
 static void
-subqueue_free(struct csubqueue *csq)
+cq_subqueue_free(struct csubqueue *csq)
 {
 	csubqueue_check(csq);
 	
@@ -939,7 +954,7 @@ cq_idle_free(cidle_t *ci)
 	cidle_check(ci);
 	cqueue_check(ci->cq);
 
-	unregister_object(ci->cq->cq_idle, ci);
+	cq_unregister_object(ci->cq->cq_idle, ci);
 	ci->magic = 0;
 	wfree(ci, sizeof *ci);
 }
@@ -971,7 +986,7 @@ cq_idle_add(cqueue_t *cq, cq_invoke_t event, gpointer arg)
 	ci->arg = arg;
 	ci->cq = cq;
 
-	register_object(&cq->cq_idle, ci);
+	cq_register_object(&cq->cq_idle, ci);
 
 	return ci;
 }
@@ -994,7 +1009,7 @@ cq_idle_remove(cidle_t **ci_ptr)
  * Trampoline for dispatching idle events.
  */
 static gboolean
-idle_trampoline(gpointer key, gpointer val, gpointer data)
+cq_idle_trampoline(gpointer key, gpointer val, gpointer data)
 {
 	cidle_t *ci = key;
 	gboolean remove_it = FALSE;
@@ -1025,7 +1040,7 @@ cq_run_idle(cqueue_t *cq)
 	cqueue_check(cq);
 
 	if (cq->cq_idle)
-		g_hash_table_foreach_remove(cq->cq_idle, idle_trampoline, NULL);
+		g_hash_table_foreach_remove(cq->cq_idle, cq_idle_trampoline, NULL);
 }
 
 /**
@@ -1066,7 +1081,7 @@ cq_init(cq_invoke_t idle, const guint32 *debug)
 
 	callout_queue = cq_make("main", 0, CALLOUT_PERIOD);
 	callout_timer_id = g_timeout_add(CALLOUT_PERIOD,
-		heartbeat_trampoline, callout_queue);
+		cq_heartbeat_trampoline, callout_queue);
 
 	if (idle != NULL)
 		cq_idle_add(callout_queue, idle, callout_queue);
@@ -1081,7 +1096,7 @@ cq_init(cq_invoke_t idle, const guint32 *debug)
 void
 cq_dispatch(void)
 {
-	heartbeat_trampoline(callout_queue);
+	cq_heartbeat_trampoline(callout_queue);
 }
 
 /**
@@ -1097,7 +1112,7 @@ cq_halt(void)
 }
 
 static gboolean
-free_periodic(gpointer key, gpointer value, gpointer data)
+cq_free_periodic(gpointer key, gpointer value, gpointer data)
 {
 	cperiodic_t *cp = key;
 
@@ -1111,7 +1126,7 @@ free_periodic(gpointer key, gpointer value, gpointer data)
 }
 
 static gboolean
-free_idle(gpointer key, gpointer value, gpointer data)
+cq_free_idle(gpointer key, gpointer value, gpointer data)
 {
 	cidle_t *ci = key;
 
@@ -1146,12 +1161,12 @@ cq_free(cqueue_t *cq)
 	}
 
 	if (cq->cq_periodic) {
-		g_hash_table_foreach_remove(cq->cq_periodic, free_periodic, NULL);
+		g_hash_table_foreach_remove(cq->cq_periodic, cq_free_periodic, NULL);
 		gm_hash_table_destroy_null(&cq->cq_periodic);
 	}
 
 	if (cq->cq_idle) {
-		g_hash_table_foreach_remove(cq->cq_idle, free_idle, cq);
+		g_hash_table_foreach_remove(cq->cq_idle, cq_free_idle, cq);
 		gm_hash_table_destroy_null(&cq->cq_idle);
 	}
 
@@ -1164,7 +1179,7 @@ cq_free(cqueue_t *cq)
 	 */
 
 	if (CSUBQUEUE_MAGIC == cq->cq_magic) {
-		subqueue_free((struct csubqueue *) cq);
+		cq_subqueue_free((struct csubqueue *) cq);
 	} else {
 		cq->cq_magic = 0;
 		wfree(cq, sizeof *cq);
