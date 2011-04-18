@@ -662,7 +662,7 @@ whitelist_init(void)
 	 * Make sure we're re-resolving DNS names periodically.
 	 */
 
-	cq_periodic_add(callout_queue, WHITELIST_DNS_RESOLVE_CHECK * 1000,
+	cq_periodic_main_add(WHITELIST_DNS_RESOLVE_CHECK * 1000,
 		whitelist_periodic_dns, NULL);
 
     whitelist_retrieve();

@@ -199,7 +199,7 @@ void
 watcher_init(void)
 {
 	monitored = g_hash_table_new(g_str_hash, g_str_equal);
-	cq_periodic_add(callout_queue, MONITOR_PERIOD_MS, watcher_timer, NULL);
+	cq_periodic_main_add(MONITOR_PERIOD_MS, watcher_timer, NULL);
 }
 
 /**

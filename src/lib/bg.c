@@ -1203,8 +1203,7 @@ bg_init(void)
 	 */
 
 	bg_ticker.period = BG_TICK_IDLE;
-	bg_ticker.pev = cq_periodic_add(callout_queue, BG_TICK_IDLE,
-		bg_sched_timer, NULL);
+	bg_ticker.pev = cq_periodic_main_add(BG_TICK_IDLE, bg_sched_timer, NULL);
 }
 
 /**

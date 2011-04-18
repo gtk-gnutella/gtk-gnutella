@@ -388,8 +388,8 @@ tcache_init(void)
 		g_debug("DHT cached token lifetime set to %u secs",
 			(unsigned) token_life);
 
-	tcache_prune_ev = cq_periodic_add(callout_queue,
-		TCACHE_PRUNE_PERIOD, tcache_periodic_prune, NULL);
+	tcache_prune_ev = cq_periodic_main_add(TCACHE_PRUNE_PERIOD,
+		tcache_periodic_prune, NULL);
 }
 
 /**

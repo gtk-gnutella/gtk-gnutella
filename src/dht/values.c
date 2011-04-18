@@ -1848,8 +1848,8 @@ values_init(void)
 	values_per_class_c = acct_net_create();
 	expired = g_hash_table_new(uint64_hash, uint64_eq);
 
-	values_expire_ev = cq_periodic_add(callout_queue,
-		EXPIRE_PERIOD * 1000, values_periodic_expire, NULL);
+	values_expire_ev = cq_periodic_main_add(EXPIRE_PERIOD * 1000,
+		values_periodic_expire, NULL);
 }
 
 static void

@@ -773,7 +773,7 @@ static void
 install_malloc_periodic(void)
 {
 	need_periodic = FALSE;
-	cq_periodic_add(callout_queue, MALLOC_PERIOD, malloc_periodic, NULL);
+	cq_periodic_main_add(MALLOC_PERIOD, malloc_periodic, NULL);
 }
 #endif	/* TRACK_MALLOC || MALLOC_VTABLE */
 #endif	/* MALLOC_PERIODIC */

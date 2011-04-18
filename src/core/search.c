@@ -3134,7 +3134,7 @@ search_init(void)
 	query_muid_map_init();	
 	guess_stg = sectoken_gen_new(GUESS_KEYS, GUESS_REFRESH_PERIOD);
 
-	cq_periodic_add(callout_queue, SEARCH_GC_PERIOD * 1000, search_gc, NULL);
+	cq_periodic_main_add(SEARCH_GC_PERIOD * 1000, search_gc, NULL);
 }
 
 void

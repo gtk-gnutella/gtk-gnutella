@@ -2494,7 +2494,7 @@ mingw_adns_init(void)
 	mingw_gtkg_adns_async_queue = g_async_queue_new();
 
 	g_thread_create(mingw_adns_thread, NULL, FALSE, NULL);
-	cq_periodic_add(callout_queue, 1000, mingw_adns_timer, NULL);
+	cq_periodic_main_add(1000, mingw_adns_timer, NULL);
 }
 
 void

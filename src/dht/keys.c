@@ -1284,7 +1284,7 @@ keys_init(void)
 	g_assert(NULL == keys);
 	g_assert(NULL == db_keydata);
 
-	keys_periodic_ev = cq_periodic_add(callout_queue, LOAD_PERIOD * 1000,
+	keys_periodic_ev = cq_periodic_main_add(LOAD_PERIOD * 1000,
 		keys_periodic_load, NULL);
 
 	keys = g_hash_table_new(kuid_hash, kuid_eq);

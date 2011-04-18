@@ -1453,7 +1453,7 @@ node_init(void)
 
 	header_features_add(FEATURES_CONNECTIONS, "sflag", 0, 1);
 
-	cq_periodic_add(callout_queue,
+	cq_periodic_main_add(
 		node_error_cleanup_timer * 1000, node_error_cleanup, NULL);
 }
 

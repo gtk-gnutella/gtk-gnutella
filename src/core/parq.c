@@ -5138,10 +5138,8 @@ parq_init(void)
 	parq_upload_load_queue();
 	parq_start = tm_time();
 
-	cq_periodic_add(callout_queue,
-		QUEUE_DEAD_SCAN * 1000, parq_dead_timer, NULL);
-	cq_periodic_add(callout_queue,
-		QUEUE_SAVE_PERIOD * 1000, parq_save_timer, NULL);
+	cq_periodic_main_add(QUEUE_DEAD_SCAN * 1000, parq_dead_timer, NULL);
+	cq_periodic_main_add(QUEUE_SAVE_PERIOD * 1000, parq_save_timer, NULL);
 }
 
 /**

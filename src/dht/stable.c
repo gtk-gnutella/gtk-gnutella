@@ -513,11 +513,11 @@ stable_init(void)
 	dbmw_set_map_cache(db_lifedata, STABLE_MAP_CACHE_SIZE);
 	stable_prune_old();
 
-	stable_sync_ev = cq_periodic_add(callout_queue,
-		STABLE_SYNC_PERIOD, stable_sync, NULL);
+	stable_sync_ev = cq_periodic_main_add(STABLE_SYNC_PERIOD,
+		stable_sync, NULL);
 
-	stable_prune_ev = cq_periodic_add(callout_queue,
-		STABLE_PRUNE_PERIOD, stable_periodic_prune, NULL);
+	stable_prune_ev = cq_periodic_main_add(STABLE_PRUNE_PERIOD,
+		stable_periodic_prune, NULL);
 }
 
 /**

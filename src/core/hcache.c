@@ -1802,9 +1802,9 @@ hcache_init(void)
         PROP_HOSTS_IN_GUESS_INTRO_CATCHER,
         "hosts.guess.intro");
 
-	hcache_save_ev = cq_periodic_add(callout_queue,
+	hcache_save_ev = cq_periodic_main_add(
 		HCACHE_SAVE_PERIOD * 1000, hcache_periodic_save, NULL);
-	hcache_timer_ev = cq_periodic_add(callout_queue, 1000, hcache_timer, NULL);
+	hcache_timer_ev = cq_periodic_main_add(1000, hcache_timer, NULL);
 }
 
 /**

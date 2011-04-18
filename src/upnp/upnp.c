@@ -1546,7 +1546,7 @@ upnp_init(void)
 {
 	upnp_discovery_init();
 
-	cq_periodic_add(callout_queue, UPNP_MONITOR_DELAY_MS,
+	cq_periodic_main_add(UPNP_MONITOR_DELAY_MS,
 		upnp_monitor_drivers, NULL);
 
 	upnp_mappings = g_hash_table_new(upnp_mapping_hash, upnp_mapping_eq);

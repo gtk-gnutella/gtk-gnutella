@@ -488,7 +488,7 @@ void
 hostiles_init(void)
 {
 	hl_dynamic_ipv4 = hash_list_new(uint32_hash, uint32_eq);
-	cq_periodic_add(callout_queue,
+	cq_periodic_main_add(
 		HOSTILES_DYNAMIC_PERIOD_MS, hostiles_dynamic_timer, NULL);
 	hostiles_retrieve(HOSTILE_PRIVATE);
     gnet_prop_add_prop_changed_listener(PROP_USE_GLOBAL_HOSTILES_TXT,

@@ -4163,7 +4163,7 @@ qrp_init(void)
 	 * Install the periodic monitoring callback.
 	 */
 
-	cq_periodic_add(callout_queue, LEAF_MONITOR_PERIOD, qrp_monitor, NULL);
+	cq_periodic_main_add(LEAF_MONITOR_PERIOD, qrp_monitor, NULL);
 
 	/*
 	 * Install an empty local table untill we compute our shared library.

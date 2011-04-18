@@ -3325,7 +3325,7 @@ vmm_post_init(void)
 	}
 
 	pmap_load(&kernel_pmap);
-	cq_periodic_add(callout_queue, 1000, page_cache_timer, NULL);
+	cq_periodic_main_add(1000, page_cache_timer, NULL);
 
 	/*
 	 * Check whether we have enough room for the stack to grow.
