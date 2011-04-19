@@ -341,6 +341,8 @@ udp_connect_back(const host_addr_t addr, guint16 port, const struct guid *muid)
 struct udp_ping_cb {
 	udp_ping_cb_t cb;
 	void *data;
+	unsigned multiple:1;
+	unsigned got_reply:1;
 };
 
 struct udp_ping {
@@ -389,10 +391,11 @@ udp_ping_expire(gboolean forced)
 			if (d > 0 && d <= UDP_PING_TIMEOUT) {
 				break;
 			}
-		}
-		if (!forced) {
 			if (ping->callback) {
-				(*ping->callback->cb)(UDP_PING_TIMEOUT, ping->callback->data);
+				(*ping->callback->cb)(
+					ping->callback->got_reply ?
+						UDP_PING_EXPIRED : UDP_PING_TIMEDOUT,
+					ping->callback->data);
 			}
 		}
 		hash_list_remove(udp_pings, ping);
@@ -418,7 +421,8 @@ udp_ping_timer(cqueue_t *cq, gpointer unused_udata)
 }
 
 static gboolean
-udp_ping_register(const struct guid *muid, udp_ping_cb_t cb, void *data)
+udp_ping_register(const struct guid *muid,
+	udp_ping_cb_t cb, void *data, gboolean multiple)
 {
 	struct udp_ping *ping;
 	guint length;
@@ -444,9 +448,10 @@ udp_ping_register(const struct guid *muid, udp_ping_cb_t cb, void *data)
 	ping->muid = *muid;
 	ping->added = tm_time();
 	if (cb != NULL) {
-		ping->callback = walloc(sizeof *ping->callback);
+		ping->callback = walloc0(sizeof *ping->callback);
 		ping->callback->cb = cb;
 		ping->callback->data = data;
+		ping->callback->multiple = booleanize(multiple);
 	} else {
 		ping->callback = NULL;
 	}
@@ -475,8 +480,16 @@ udp_ping_is_registered(const struct guid *muid)
 		if (ping) {
 			if (ping->callback) {
 				(*ping->callback->cb)(UDP_PING_REPLY, ping->callback->data);
+				if (ping->callback->multiple) {
+					ping->callback->got_reply = TRUE;
+					ping->added = tm_time();	/* Delay expiration */
+					hash_list_append(udp_pings, ping);
+				} else {
+					udp_ping_free(ping);
+				}
+			} else {
+				udp_ping_free(ping);
 			}
-			udp_ping_free(ping);
 			return TRUE;
 		}
 	}
@@ -484,42 +497,28 @@ udp_ping_is_registered(const struct guid *muid)
 }
 
 /**
- * Send a Gnutella ping to the specified host.
+ * Send a Gnutella ping message to the specified host.
  *
- * @param muid		the MUID to use (allocated randomly if NULL)
+ * @param m			the Ping message to send
+ * @param size		size of the Ping message, in bytes
  * @param addr		address to which ping should be sent
  * @param port		port number
- * @param uhc_ping	if TRUE, include the "SCP" GGEP extension
  * @param cb		if non-NULL, callback to invoke on reply or timeout
  * @param arg		additional callback argument
+ * @param multiple	whether multiple replies (Pongs) are expected
  *
  * @return TRUE if we sent the ping, FALSE it we throttled it.
  */
 static gboolean
 udp_send_ping_with_callback(
-	const struct guid *muid, const host_addr_t addr, guint16 port,
-	gboolean uhc_ping, udp_ping_cb_t cb, void *arg)
+	gnutella_msg_init_t *m, guint32 size,
+	const host_addr_t addr, guint16 port,
+	udp_ping_cb_t cb, void *arg, gboolean multiple)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
 
-	if (n) {
-		gnutella_msg_init_t *m;
-		guint32 size;
-
-		/*
-		 * Don't send too frequent pings: they may throttle us anyway.
-		 */
-
-		if (aging_lookup(udp_aging_pings, &addr)) {
-			if (GNET_PROPERTY(udp_debug) > 1) {
-				g_warning("UDP throttling %sping to %s",
-					uhc_ping ? "UHC " : "", host_addr_to_string(addr));
-			}
-			return FALSE;
-		}
-
-		m = build_ping_msg(muid, 1, uhc_ping, &size);
-		if (udp_ping_register(gnutella_header_get_muid(m), cb, arg)) {
+	if (n != NULL) {
+		if (udp_ping_register(gnutella_header_get_muid(m), cb, arg, multiple)) {
 			aging_insert(udp_aging_pings,
 				wcopy(&addr, sizeof addr), GUINT_TO_POINTER(1));
 			udp_send_msg(n, m, size);
@@ -530,7 +529,7 @@ udp_send_ping_with_callback(
 }
 
 /**
- * Send a Gnutella ping to the specified host.
+ * Send a new Gnutella ping message to the specified host.
  *
  * @param muid		the MUID to use (allocated randomly if NULL)
  * @param addr		address to which ping should be sent
@@ -543,28 +542,48 @@ gboolean
 udp_send_ping(const struct guid *muid, const host_addr_t addr, guint16 port,
 	gboolean uhc_ping)
 {
-	return udp_send_ping_with_callback(muid, addr, port, uhc_ping, NULL, NULL);
+	gnutella_msg_init_t *m;
+	guint32 size;
+
+	/*
+	 * Don't send too frequent pings: they may throttle us anyway.
+	 */
+
+	if (aging_lookup(udp_aging_pings, &addr)) {
+		if (GNET_PROPERTY(udp_debug) > 1) {
+			g_warning("UDP throttling %sping to %s",
+				uhc_ping ? "UHC " : "", host_addr_to_string(addr));
+		}
+		return FALSE;
+	}
+
+	m = build_ping_msg(muid, 1, uhc_ping, &size);
+	return udp_send_ping_with_callback(m, size, addr, port, NULL, NULL, FALSE);
 }
 
 /**
- * Send a Gnutella ping to the specified host, monitoring replies and timeouts
- * through specified callback.
+ * Send given Gnutella ping message to the host, monitoring replies and
+ * timeouts through specified callback.
  *
+ * @param m			the Ping message to send
+ * @param size		size of the Ping message, in bytes
  * @param addr		address to which ping should be sent
  * @param port		port number
- * @param uhc_ping	if TRUE, include the "SCP" GGEP extension
  * @param cb		callback to invoke on reply or timeout
  * @param arg		additional callback argument
+ * @param multiple	whether multiple replies (Pongs) are expected
  *
  * @return TRUE if we sent the ping, FALSE it we throttled it.
  */
 gboolean
-udp_send_ping_callback(const host_addr_t addr, guint16 port, gboolean uhc_ping,
-	udp_ping_cb_t cb, void *arg)
+udp_send_ping_callback(
+	gnutella_msg_init_t *m, guint32 size,
+	const host_addr_t addr, guint16 port,
+	udp_ping_cb_t cb, void *arg, gboolean multiple)
 {
 	g_assert(cb != NULL);
 
-	return udp_send_ping_with_callback(NULL, addr, port, uhc_ping, cb, arg);
+	return udp_send_ping_with_callback(m, size, addr, port, cb, arg, multiple);
 }
 
 /***

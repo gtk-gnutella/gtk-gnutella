@@ -45,6 +45,7 @@
  */
 enum udp_ping_ret {
 	UDP_PING_TIMEDOUT = 0,		/**< timed out */
+	UDP_PING_EXPIRED,			/**< expired, but got replies previously */
 	UDP_PING_REPLY				/**< got a reply from host */
 };
 
@@ -68,8 +69,9 @@ void udp_connect_back(const host_addr_t addr, guint16 port,
 void udp_send_msg(const struct gnutella_node *n, gconstpointer buf, int len);
 gboolean udp_send_ping(const struct guid *muid,
 	const host_addr_t addr, guint16 port, gboolean uhc_ping);
-gboolean udp_send_ping_callback(const host_addr_t addr, guint16 port,
-	gboolean uhc_ping, udp_ping_cb_t cb, void *arg);
+gboolean udp_send_ping_callback(gnutella_msg_init_t *m, guint32 size,
+	const host_addr_t addr, guint16 port,
+	udp_ping_cb_t cb, void *arg, gboolean multiple);
 void udp_send_mb(const struct gnutella_node *n, struct pmsg *mb);
 void udp_dht_send_mb(const struct gnutella_node *n, struct pmsg *mb);
 gboolean udp_ping_is_registered(const struct guid *muid);
