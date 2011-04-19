@@ -60,6 +60,7 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
+#include "lib/cq.h"
 #include "lib/getdate.h"	/* date2time() */
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
@@ -100,7 +101,7 @@ static GSList *bitzi_rq;
 
 static bitzi_request_t	*current_bitzi_request;
 static gpointer	 current_bitzi_request_handle;
-static guint bitzi_heartbeat_id;
+static cperiodic_t *bitzi_heartbeat_ev;
 
 
 /*
@@ -1081,7 +1082,7 @@ bitzi_init(void)
 	 * we set them up.
 	 */
 
-	bitzi_heartbeat_id = g_timeout_add(10000, bitzi_heartbeat, NULL);
+	bitzi_heartbeat_ev = cq_periodic_main_add(10000, bitzi_heartbeat, NULL);
 }
 
 void
@@ -1109,9 +1110,7 @@ bitzi_close(void)
 		gm_slist_free_null(&bitzi_rq);
 	}
 	
-	g_return_if_fail(bitzi_heartbeat_id);
-	g_source_remove(bitzi_heartbeat_id);
-	bitzi_heartbeat_id = 0;
+	cq_periodic_remove(&bitzi_heartbeat_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
