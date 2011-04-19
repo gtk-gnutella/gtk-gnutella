@@ -275,6 +275,21 @@ wq_wakeup(const void *key, void *data)
 }
 
 /**
+ * Check whether someone is waiting on the key.
+ *
+ * This can be used before calling wq_wakeup() when there is a significant
+ * cost to build the argument to be passed to wq_wakeup(), to avoid performing
+ * unecessary work when nobody is waiting.
+ *
+ * @return TRUE if someone is waiting on the key.
+ */
+gboolean
+wq_waiting(const void *key)
+{
+	return gm_hash_table_contains(waitqueue, key);
+}
+
+/**
  * Initialize the wait queue layer.
  */
 void

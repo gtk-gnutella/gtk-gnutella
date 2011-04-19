@@ -76,6 +76,7 @@ RCSID("$Id$")
 #include "lib/tm.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"
+#include "lib/wq.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -672,6 +673,10 @@ hcache_request_slot(hcache_type_t type)
  * when a host is added to any of the other lists it must have been in
  * HL_CAUGHT or in the pong-cache before.
  *
+ * When the host passes validation checks and should be added to the cache,
+ * anyone waiting via wq_sleep() on the "hcache_add" key is notified about
+ * the new host, the wakeup information supplying a hcache_new_host structure.
+ * 
  * @return TRUE when IP/port passed sanity checks, regardless of whether it
  *         was added to the cache. (See above)
  */
@@ -840,6 +845,19 @@ hcache_add_internal(hcache_type_t type, time_t added,
     }
 
 	host = NULL;		/* Safety */
+
+	/*
+	 * If someone is waiting on a new host via wq_sleep(), notify them.
+	 */
+
+	{
+		struct hcache_new_host nhost;
+
+		nhost.type = type;
+		nhost.addr = addr;
+		nhost.port = port;
+		wq_wakeup(hcache_add, &nhost);
+	}
 
 	if (!hcache_request_slot(hc->type))
 		return FALSE;

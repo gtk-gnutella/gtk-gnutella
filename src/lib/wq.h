@@ -72,6 +72,7 @@ void wq_close(void);
 wq_event_t *wq_sleep(const void *key, wq_callback_t cb, void *arg);
 void wq_wakeup(const void *key, void *data);
 void wq_cancel(wq_event_t **we_ptr);
+gboolean wq_waiting(const void *key);
 
 #endif /* _wq_h_ */
 

@@ -42,6 +42,19 @@
 #include "if/core/hcache.h"
 #include "lib/gnet_host.h"
 
+/**
+ * Host cache addition notification structure.
+ *
+ * Anyone waiting on "hcache_add" will be notified when a new host is
+ * going to be added to the cache.  This structure defines the data given
+ * to the waiting callback.
+ */
+struct hcache_new_host {
+	hcache_type_t type;			/**< Type of cache to which host is added */
+	host_addr_t addr;			/**< Host address */
+	guint16 port;				/**< Host port */
+};
+
 /*
  * Global Functions
  */
