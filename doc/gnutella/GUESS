@@ -497,6 +497,16 @@ The GDF                          GUESS                       August 2002
    returning these pongs, however, MUST NOT include a pong for
    themselves, as the host sending the ping presumably already has this
 
+   [Note from RAM]
+
+   Legacy gtk-gnutella implementations have always treated UDP pings as
+   "alive" pings, where the receiving host was merely sending back a pong
+   for itself to signal it was alive (provided no "SCP" GGEP extension
+   was present, of course).
+
+   Therefore, as of GUESS 0.2, a servent willing to discover new hosts
+   must include an empty "GUE" extension in its ping.  Hosts will be
+   delivered packed in an "IPP" extension, not as multiple Pong messages.
 
 
 Daswani & Fisk                                                  [Page 9]

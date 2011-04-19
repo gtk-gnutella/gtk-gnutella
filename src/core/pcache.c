@@ -99,6 +99,7 @@ enum ping_flag {
 	PING_F_IP			= (1 << 3),	/**< GGEP IP */
 	PING_F_DHTIPP		= (1 << 4),	/**< GGEP DHTIPP, wants DHT hosts */
 	PING_F_QK			= (1 << 5),	/**< GGEP QK, wants GUESS Query Key */
+	PING_F_GUE			= (1 << 6),	/**< GGEP GUE, wants GUESS hosts in IPP */
 
 	PING_LAST_ENUM_FLAG
 };
@@ -302,9 +303,18 @@ build_guess_ping_msg(const struct guid *muid,
 		ggep_stream_pack(&gs, GGEP_NAME(QK), NULL, 0, 0);
 	}
 
+	/*
+	 * This is the GUESS 0.2 "GUE" extension sent with introduction pings:
+	 *
+	 * - the first byte is the GUESS version, as usual
+	 * - the next two bytes are the listening port, in little-endian.
+	 */
+
 	if (intro) {
-		guint8 guess = (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR;
-		ggep_stream_pack(&gs, GGEP_NAME(GUE), &guess, 1, 0);
+		char buf[3];
+		poke_u8(&buf[0], (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR);
+		poke_le16(&buf[1], socket_listen_port());
+		ggep_stream_pack(&gs, GGEP_NAME(GUE), buf, sizeof buf, 0);
 	}
 
 	sz += ggep_stream_close(&gs);
@@ -444,9 +454,15 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 	 * If we're replying to an UDP node, and they sent an "SCP" in their
 	 * ping, then we're acting as an UDP host cache.  Give them some
 	 * fresh pongs of hosts with free slots.
+	 *
+	 * If there was a "GUE" extension in the ping, we behave as if there was
+	 * an "SCP", only we send back GUESS hosts in the "IPP" pong extension.
 	 */
 
-	if (0 != (flags & PING_F_UHC)) {
+	if (
+		(flags & PING_F_UHC) ||
+		(GNET_PROPERTY(enable_guess) && (flags & PING_F_GUE))
+	) {
 		/*
 		 * XXX For this first implementation, ignore their desire.  Just
 		 * XXX fill a bunch of hosts as we would for an X-Try-Ultrapeer header.
@@ -457,15 +473,17 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 
 		/*
 		 * For GUESS 0.2, if there is a "QK" extension in the ping as well,
-		 * then we send back GUESS hosts.  Likewise, if there are "GUE"
-		 * metadata to send.
+		 * or a "GUE" extension, then we send back GUESS hosts.
+		 *
+		 * Likewise, if there are "GUE" metadata to send in the pong to
+		 * indicate GUESS support.
 		 */
 
 		hcount = hcache_fill_caught_array(
 			(
 				GNET_PROPERTY(enable_guess) &&
 				(
-					(flags & PING_F_QK) ||
+					(flags & (PING_F_QK | PING_F_GUE)) ||
 					(meta != NULL && (meta->flags & PONG_META_HAS_GUE))
 				)
 			) ?  HOST_GUESS : HOST_ULTRA,
@@ -707,6 +725,11 @@ ping_type(const gnutella_node_t *n)
 		case EXT_T_GGEP_DHTIPP:
 			if (0 == ext_paylen(e))
 				flags |= PING_F_DHTIPP;
+			break;
+
+		case EXT_T_GGEP_GUE:
+			if (0 == ext_paylen(e))
+				flags |= PING_F_GUE;
 			break;
 
 		case EXT_T_GGEP_QK:
