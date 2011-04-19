@@ -835,11 +835,11 @@ The GDF                          GUESS                       August 2002
    node could ping a server, not just a GUESS server.  We don't want
    to enter leaves in our cache.
 
-   Therefore, gtk-gnutella adds the GGEP "GUE" extension with its version
-   in the ping payload for query keys (only  when running as an ultra
-   node) to signal an introduction ping.  This "GUE" extension contains
-   3 bytes: the first one is the GUESS version number, encoded as usual,
-   the trailing two are the UDP listening port, in little-endian format.
+   Therefore, gtk-gnutella adds the GGEP "GUE" extension in the ping
+   payload for query keys (only when running in ultra mode) to signal
+   an introduction ping.  This "GUE" extension contains 3 bytes:
+   the first one is the GUESS version number, encoded as usual, the
+   trailing two are the UDP listening port, in little-endian format.
    This allows the recording of the proper host address in case the UDP
    port in the message is a transient one allocated by a NAT router.
    Only ultra nodes should include "GUE" in pings.
