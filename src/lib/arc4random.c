@@ -179,6 +179,13 @@ arc4_check_stir(void)
 	}
 }
 
+/**
+ * Collect random entropy and add it to the random pool.
+ *
+ * This routine can be optionally called to refresh the random pool.
+ * It is otherwise automatically called if not done before, at the first
+ * attempt to get random numbers.
+ */
 void
 arc4random_stir(void)
 {
@@ -188,9 +195,18 @@ arc4random_stir(void)
 	/* THREAD_UNLOCK(); */
 }
 
+/**
+ * Supply additional randomness to the pool.
+ *
+ * @param dat		pointer to a buffer containing random data
+ * @param datlen	length of the buffer
+ */
 void
 arc4random_addrandom(const unsigned char *dat, int datlen)
 {
+	g_assert(dat != NULL);
+	g_assert(datlen > 0);
+
 	/* THREAD_LOCK(); */
 	arc4_check_init();
 	arc4_check_stir();
@@ -198,6 +214,9 @@ arc4random_addrandom(const unsigned char *dat, int datlen)
 	/* THREAD_UNLOCK(); */
 }
 
+/**
+ * @return a new 32-bit random number.
+ */
 guint32
 arc4random(void)
 {
@@ -211,5 +230,6 @@ arc4random(void)
 
 	return rnd;
 }
+
 #endif	/* !HAS_ARC4RANDOM */
 
