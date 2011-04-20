@@ -1091,27 +1091,14 @@ roots_init_rootinfo(void)
 		if (GNET_PROPERTY(dht_roots_debug)) {
 			g_debug("DHT ROOTS clearing database");
 		}
-		if (!dbmw_clear(db_rootdata)) {
-			if (GNET_PROPERTY(dht_roots_debug))
-				g_warning("DHT ROOTS unable to clear %s", db_rootdata_what);
-		}
-		if (!dbmw_clear(db_contact)) {
-			if (GNET_PROPERTY(dht_roots_debug))
-				g_warning("DHT ROOTS unable to clear %s", db_contact_what);
-		}
 	} else {
 		if (GNET_PROPERTY(dht_roots_debug)) {
 			g_debug("DHT ROOTS shrinking database files");
 		}
-		if (!dbmw_shrink(db_rootdata)) {
-			if (GNET_PROPERTY(dht_roots_debug))
-				g_warning("DHT ROOTS unable to shrink %s", db_rootdata_what);
-		}
-		if (!dbmw_shrink(db_contact)) {
-			if (GNET_PROPERTY(dht_roots_debug))
-				g_warning("DHT ROOTS unable to shrink %s", db_contact_what);
-		}
 	}
+
+	dbstore_shrink(db_rootdata);
+	dbstore_shrink(db_contact);
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		g_debug("DHT ROOTS first allocated contact DB-key will be %s",

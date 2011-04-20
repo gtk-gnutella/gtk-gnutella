@@ -419,25 +419,7 @@ stable_prune_old(void)
 			(unsigned long) dbmw_count(db_lifedata));
 	}
 
-	if (0 == dbmw_count(db_lifedata)) {
-		if (GNET_PROPERTY(dht_stable_debug)) {
-			g_debug("DHT STABLE clearing database");
-		}
-		if (!dbmw_clear(db_lifedata)) {
-			if (GNET_PROPERTY(dht_stable_debug)) {
-				g_warning("DHT STABLE unable to clear %s", db_stable_what);
-			}
-		}
-	} else {
-		if (GNET_PROPERTY(dht_stable_debug)) {
-			g_debug("DHT STABLE shrinking database");
-		}
-		if (!dbmw_shrink(db_lifedata)) {
-			if (GNET_PROPERTY(dht_stable_debug)) {
-				g_warning("DHT STABLE unable to shrink %s", db_stable_what);
-			}
-		}
-	}
+	dbstore_shrink(db_lifedata);
 }
 
 /**

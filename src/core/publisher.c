@@ -913,33 +913,7 @@ publisher_trim_pubdata(void)
 			(unsigned) count, 1 == count ? "" : "s");
 	}
 
-	/*
-	 * If we retained no entries, issue a dbmw_clear() to restore underlying
-	 * SDBM files to their smallest possible value.  This is necessary because
-	 * the database is persistent and it can grow very large on disk, but still
-	 * holding only a few values per page.  Being able to get a fresh start
-	 * occasionally is a plus.
-	 */
-
-	if (0 == count) {
-		if (GNET_PROPERTY(publisher_debug)) {
-			g_debug("PUBLISHER clearing database");
-		}
-		if (!dbmw_clear(db_pubdata)) {
-			if (GNET_PROPERTY(publisher_debug)) {
-				g_warning("PUBLISHER unable to clear %s", db_pubdata_what);
-			}
-		}
-	} else {
-		if (GNET_PROPERTY(publisher_debug)) {
-			g_debug("PUBLISHER shrinking database files");
-		}
-		if (!dbmw_shrink(db_pubdata)) {
-			if (GNET_PROPERTY(publisher_debug)) {
-				g_warning("PUBLISHER unable to shrink %s", db_pubdata_what);
-			}
-		}
-	}
+	dbstore_shrink(db_pubdata);
 }
 
 /**

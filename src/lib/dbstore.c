@@ -294,4 +294,40 @@ dbstore_delete(dbmw_t *dw)
 		dbmw_destroy(dw, TRUE);
 }
 
+/**
+ * Attempt to clear / shrink the DBMW database.
+ */
+void
+dbstore_shrink(dbmw_t *dw)
+{
+	/*
+	 * If we retained no entries, issue a dbmw_clear() to restore underlying
+	 * SDBM files to their smallest possible value.  This is necessary because
+	 * the database is persistent and it can grow very large on disk, but still
+	 * holding only a few values per page.  Being able to get a fresh start
+	 * occasionally is a plus.
+	 */
+
+	if (0 == dbmw_count(dw)) {
+		if (dbstore_debug > 1) {
+			g_debug("DBSTORE clearing database DBMW \"%s\"", dbmw_name(dw));
+		}
+		if (!dbmw_clear(dw)) {
+			if (dbstore_debug) {
+				g_warning("DBSTORE unable to clear DBMW \"%s\"", dbmw_name(dw));
+			}
+		}
+	} else {
+		if (dbstore_debug > 1) {
+			g_debug("DBSTORE shrinking database DBMW \"%s\"", dbmw_name(dw));
+		}
+		if (!dbmw_shrink(dw)) {
+			if (dbstore_debug) {
+				g_warning("DBSTORE unable to shrink DBMW \"%s\"",
+					dbmw_name(dw));
+			}
+		}
+	}
+}
+
 /* vi: set ts=4 sw=4 cindent: */
