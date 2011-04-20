@@ -59,7 +59,7 @@ RCSID("$Id$")
  * the SHA1 in 'sha1'.
  */
 ggept_status_t
-ggept_h_sha1_extract(extvec_t *exv, struct sha1 *sha1)
+ggept_h_sha1_extract(const extvec_t *exv, struct sha1 *sha1)
 {
 	const char *payload;
 	size_t tlen;
@@ -100,7 +100,7 @@ ggept_h_sha1_extract(extvec_t *exv, struct sha1 *sha1)
  * the TTH in 'tth'.
  */
 ggept_status_t
-ggept_h_tth_extract(extvec_t *exv, struct tth *tth)
+ggept_h_tth_extract(const extvec_t *exv, struct tth *tth)
 {
 	const char *payload;
 	size_t tlen;
@@ -127,7 +127,7 @@ ggept_h_tth_extract(extvec_t *exv, struct tth *tth)
  * Extract payload information from "GTKGV1" into `info'.
  */
 ggept_status_t
-ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
+ggept_gtkgv1_extract(const extvec_t *exv, struct ggep_gtkgv1 *info)
 {
 	const char *payload;
 	const char *p;
@@ -164,7 +164,7 @@ ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 }
 
 static ggept_status_t
-ggept_ip_vec_extract(extvec_t *exv, gnet_host_vec_t **hvec)
+ggept_ip_vec_extract(const extvec_t *exv, gnet_host_vec_t **hvec)
 {
 	int len;
 
@@ -212,7 +212,7 @@ ggept_ip_vec_extract(extvec_t *exv, gnet_host_vec_t **hvec)
  * Unless GGEP_OK is returned, no memory allocation takes place.
  */
 ggept_status_t
-ggept_alt_extract(extvec_t *exv, gnet_host_vec_t **hvec) 
+ggept_alt_extract(const extvec_t *exv, gnet_host_vec_t **hvec) 
 {
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_ALT);
@@ -228,7 +228,7 @@ ggept_alt_extract(extvec_t *exv, gnet_host_vec_t **hvec)
  * Unless GGEP_OK is returned, no memory allocation takes place.
  */
 ggept_status_t
-ggept_push_extract(extvec_t *exv, gnet_host_vec_t **hvec)
+ggept_push_extract(const extvec_t *exv, gnet_host_vec_t **hvec)
 {
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_PUSH);
@@ -243,7 +243,7 @@ ggept_push_extract(extvec_t *exv, gnet_host_vec_t **hvec)
  * extracted something in the supplied buffer.
  */
 ggept_status_t
-ggept_utf8_string_extract(extvec_t *exv, char *buf, size_t len)
+ggept_utf8_string_extract(const extvec_t *exv, char *buf, size_t len)
 {
 	int tlen;
 
@@ -275,7 +275,7 @@ ggept_utf8_string_extract(extvec_t *exv, char *buf, size_t len)
  * extracted something in the supplied buffer.
  */
 ggept_status_t
-ggept_hname_extract(extvec_t *exv, char *buf, int len)
+ggept_hname_extract(const extvec_t *exv, char *buf, int len)
 {
 	g_assert(len >= 0);
 	g_assert(exv->ext_type == EXT_GGEP);
@@ -357,7 +357,7 @@ ggep_vlint_decode(const char *data, size_t len)
  * This is the format used by the payload of GGEP "LF" for instance.
  */
 ggept_status_t
-ggept_filesize_extract(extvec_t *exv, guint64 *filesize)
+ggept_filesize_extract(const extvec_t *exv, guint64 *filesize)
 {
 	guint64 fs;
 	size_t len;
@@ -384,7 +384,7 @@ ggept_filesize_extract(extvec_t *exv, guint64 *filesize)
  * indicates that the first 16 bytes are a IPv6 address.
  */
 ggept_status_t
-ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr)
+ggept_gtkg_ipv6_extract(const extvec_t *exv, host_addr_t *addr)
 {
 	size_t len;
 
@@ -429,7 +429,7 @@ ggept_filesize_encode(guint64 filesize, char *data)
  * Extract daily uptime into `uptime', from the GGEP "DU" extensions.
  */
 ggept_status_t
-ggept_du_extract(extvec_t *exv, guint32 *uptime)
+ggept_du_extract(const extvec_t *exv, guint32 *uptime)
 {
 	guint32 up;
 	size_t len;
@@ -462,7 +462,7 @@ ggept_du_encode(guint32 uptime, char *data)
 }
 
 ggept_status_t
-ggept_ct_extract(extvec_t *exv, time_t *stamp_ptr)
+ggept_ct_extract(const extvec_t *exv, time_t *stamp_ptr)
 {
 	guint64 v;
 	size_t len;
