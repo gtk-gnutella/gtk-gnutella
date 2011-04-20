@@ -29,6 +29,8 @@
 #include "common.h"
 #include "glib-missing.h"
 
+typedef void (*list_destroy_cb)(void *data);
+
 typedef struct list_iter list_iter_t;
 typedef struct list list_t;
 
@@ -47,6 +49,7 @@ guint list_length(const list_t *list);
 gboolean list_contains(list_t *list, const void *key,
 		GEqualFunc func, void **orig_key);
 void list_foreach(const list_t *list, GFunc func, void *user_data);
+void list_free_all(list_t **list_ptr, list_destroy_cb freecb);
 
 list_iter_t *list_iter_before_head(list_t *list);
 list_iter_t *list_iter_after_tail(list_t *list);
@@ -56,5 +59,11 @@ gboolean list_iter_has_previous(const list_iter_t *iter);
 void *list_iter_next(list_iter_t *iter);
 void *list_iter_previous(list_iter_t *iter);
 void *list_iter_current(list_iter_t *iter);
+
+static inline list_destroy_cb
+cast_to_list_destroy(const void *fn)
+{
+	return cast_pointer_to_func(fn);
+}
 
 #endif	/* _list_h_ */

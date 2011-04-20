@@ -1098,10 +1098,9 @@ buffers_alloc(struct download *d)
 }
 
 static void
-buffers_free_item(gpointer data, gpointer unused_udata)
+buffers_free_item(pmsg_t *mb)
 {
-	(void) unused_udata;
-	pmsg_free(data);
+	pmsg_free(mb);
 }
 
 /**
@@ -1117,8 +1116,7 @@ buffers_free(struct download *d)
 	g_assert(d->buffers->held == 0);	/* No pending data */
 
 	b = d->buffers;
-	slist_foreach(b->list, buffers_free_item, NULL);
-	slist_free(&b->list);
+	slist_free_all(&b->list, cast_to_slist_destroy(buffers_free_item));
 	wfree(b, sizeof *b);
 
 	d->buffers = NULL;

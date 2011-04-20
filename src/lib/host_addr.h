@@ -522,6 +522,7 @@ int socket_addr_getsockname(socket_addr_t *p_addr, int fd);
 
 guint host_addr_hash_func(gconstpointer key);
 gboolean host_addr_eq_func(gconstpointer p, gconstpointer q);
+void wfree_host_addr1(void *key);
 void wfree_host_addr(gpointer key, gpointer unused_data);
 
 int host_addr_family(const host_addr_t ha);

@@ -221,20 +221,12 @@ dmesh_entry_free(struct dmesh_entry *dme)
 
 	if (dme->fw_entry) {
 		atom_guid_free_null(&dme->e.fwh.guid);
-		if (dme->e.fwh.proxies != NULL) {
-			hash_list_foreach(dme->e.fwh.proxies, gnet_host_free_item, NULL);
-			hash_list_free(&dme->e.fwh.proxies);
-		}
+		hash_list_free_all(&dme->e.fwh.proxies, gnet_host_free);
 	} else {
 		if (dme->e.url.name)
 			atom_str_free(dme->e.url.name);
 	}
-
-	if (dme->bad) {
-		hash_list_foreach(dme->bad, wfree_host_addr, NULL);
-		hash_list_free(&dme->bad);
-	}
-
+	hash_list_free_all(&dme->bad, wfree_host_addr1);
 	wfree(dme, sizeof *dme);
 }
 
@@ -608,16 +600,7 @@ dm_alloc(const struct sha1 *sha1)
 static void
 dm_free(struct dmesh *dm)
 {
-	list_iter_t *iter;
-	struct dmesh_entry *dme;
-
-	iter = list_iter_before_head(dm->entries);
-
-	while ((dme = list_iter_next(iter)))
-		dmesh_entry_free(dme);
-
-	list_iter_free(&iter);
-	list_free(&dm->entries);
+	list_free_all(&dm->entries, cast_to_list_destroy(dmesh_entry_free));
 
 	/*
 	 * Values in the dme->by_host table were the dmesh_entry structures
@@ -1155,11 +1138,7 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 		 */
 
 		if (info->proxies != NULL) {
-			if (dme->e.fwh.proxies != NULL) {
-				hash_list_foreach(dme->e.fwh.proxies,
-					gnet_host_free_item, NULL);
-				hash_list_free(&dme->e.fwh.proxies);
-			}
+			hash_list_free_all(&dme->e.fwh.proxies, gnet_host_free);
 			dme->e.fwh.proxies = info->proxies;
 			dme->inserted = now;	/* List of push-proxies changed */
 		}
@@ -1406,9 +1385,8 @@ retry:
 	 * Get rid of the "bad" reporting if we're flagging it as good!
 	 */
 
-	if (good && dme->bad) {
-		hash_list_foreach(dme->bad, wfree_host_addr, NULL);
-		hash_list_free(&dme->bad);
+	if (good) {
+		hash_list_free_all(&dme->bad, wfree_host_addr1);
 	}
 
 	/*
@@ -1458,9 +1436,8 @@ dmesh_good_fw_mark(const struct sha1 *sha1,
 	 * Get rid of the "bad" reporting if we're flagging it as good!
 	 */
 
-	if (good && dme->bad) {
-		hash_list_foreach(dme->bad, wfree_host_addr, NULL);
-		hash_list_free(&dme->bad);
+	if (good) {
+		hash_list_free_all(&dme->bad, wfree_host_addr1);
 	}
 #endif
 
@@ -2949,11 +2926,7 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 			g_warning("could not parse 'X-Falt: %s'", value);
 	} else {
 		if (!dmesh_raw_fw_add(sha1, &info, stamp, TRUE)) {
-			/* Not added, hence nobody owns this list now */
-			if (info.proxies != NULL) {
-				hash_list_foreach(info.proxies, gnet_host_free_item, NULL);
-				hash_list_free(&info.proxies);
-			}
+			hash_list_free_all(&info.proxies, gnet_host_free);
 		}
 		atom_guid_free_null(&info.guid);
 	}

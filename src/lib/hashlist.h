@@ -33,9 +33,11 @@ typedef struct hash_list_iter hash_list_iter_t;
 typedef struct hash_list hash_list_t;
 
 typedef gboolean (*hashlist_cbr_t)(void *key, void *u);
+typedef void (*hashlist_destroy_cb)(void *data);
 
 hash_list_t *hash_list_new(GHashFunc, GEqualFunc);
 void hash_list_free(hash_list_t **);
+void hash_list_free_all(hash_list_t **hl_ptr, hashlist_destroy_cb freecb);
 void *hash_list_remove(hash_list_t *, const void *key);
 void *hash_list_remove_head(hash_list_t *);
 void *hash_list_remove_tail(hash_list_t *);
@@ -75,5 +77,11 @@ size_t hash_list_foreach_remove(hash_list_t *hl, hashlist_cbr_t func, void *u);
 void *hash_list_remove_position(hash_list_t *hl, const void *key);
 void hash_list_insert_position(hash_list_t *hl, const void *key, void *pos);
 void hash_list_forget_position(void *position);
+
+static inline hashlist_destroy_cb
+cast_to_hashlist_destroy(const void *fn)
+{
+	return cast_pointer_to_func(fn);
+}
 
 #endif	/* _hashlist_h_ */

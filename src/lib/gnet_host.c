@@ -135,9 +135,11 @@ gnet_host_dup(const gnet_host_t *h)
 
 /**
  * Free host.
+ *
+ * Signature is generic for easier usage as list free callback.
  */
 void
-gnet_host_free(gnet_host_t *h)
+gnet_host_free(void *h)
 {
 	wfree(h, sizeof *h);
 }

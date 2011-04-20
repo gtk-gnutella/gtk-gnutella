@@ -1296,13 +1296,22 @@ host_addr_eq_func(gconstpointer p, gconstpointer q)
 }
 
 /**
+ * List free callback.
+ */
+void
+wfree_host_addr1(void *key)
+{
+	wfree(key, sizeof(host_addr_t));
+}
+
+/**
  * Aging table callback.
  */
 void
 wfree_host_addr(gpointer key, gpointer unused_data)
 {
 	(void) unused_data;
-	wfree(key, sizeof (host_addr_t));
+	wfree(key, sizeof(host_addr_t));
 }
 
 /**

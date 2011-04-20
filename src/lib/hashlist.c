@@ -190,12 +190,10 @@ hash_list_free(hash_list_t **hl_ptr)
 		hash_list_t *hl = *hl_ptr;
 		GList *iter;
 
-		g_assert(HASH_LIST_MAGIC == hl->magic);
-		g_assert(equiv(hl->len == 0, hl->tail == NULL));
-		hash_list_regression(hl);
+		hash_list_check(hl);
 
 		if (--hl->refcount != 0) {
-			g_warning("hash_list_free: hash list is still referenced! "
+			g_carp("hash_list_free: hash list is still referenced! "
 					"(hl=%p, hl->refcount=%d)",
 					cast_to_gconstpointer(hl), hl->refcount);
 		}
@@ -211,6 +209,37 @@ hash_list_free(hash_list_t **hl_ptr)
 		hl->magic = 0;
 		wfree(hl, sizeof *hl);
 		*hl_ptr = NULL;
+	}
+}
+
+static void
+hash_list_freecb_wrapper(void *data, void *user_data)
+{
+	hashlist_destroy_cb freecb = cast_pointer_to_func(user_data);
+	struct hash_list_item *item = data;
+
+	(*freecb)(deconstify_gpointer(item->orig_key));
+	item->orig_key = NULL;
+}
+
+/**
+ * Dispose of all the items remaining in the list, applying the supplied
+ * free callback on all the items, then freeing the hash_list_t container
+ * and nullifying its pointer.
+ */
+void
+hash_list_free_all(hash_list_t **hl_ptr, hashlist_destroy_cb freecb)
+{
+	g_assert(hl_ptr != NULL);
+	g_assert(freecb != NULL);
+
+	if (*hl_ptr != NULL) {
+		hash_list_t *hl = *hl_ptr;
+
+		hash_list_check(hl);
+		G_LIST_FOREACH_WITH_DATA(hl->head, hash_list_freecb_wrapper,
+			cast_func_to_pointer(freecb));
+		hash_list_free(hl_ptr);
 	}
 }
 

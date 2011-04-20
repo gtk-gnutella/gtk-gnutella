@@ -250,12 +250,20 @@ ghc_new(const char *url)
  * Destroy a GHC.
  */
 static void
-ghc_free(struct ghc **ptr)
+ghc_free(struct ghc *ghc)
+{
+	atom_str_free_null(&ghc->url);
+	wfree(ghc, sizeof *ghc);
+}
+
+/**
+ * Destroy a GHC.
+ */
+static void
+ghc_free_null(struct ghc **ptr)
 {
 	if (*ptr) {
-		struct ghc *ghc = *ptr;
-		atom_str_free_null(&ghc->url);
-		wfree(ghc, sizeof *ghc);
+		ghc_free(*ptr);
 		*ptr = NULL;
 	}
 }
@@ -292,7 +300,7 @@ ghc_get_next(void)
 		list_moveto_tail(ghc_list, ghc);
 	} else {
 		list_remove(ghc_list, ghc);
-		ghc_free(&ghc);
+		ghc_free_null(&ghc);
 	}
 
 	return url;
@@ -517,15 +525,7 @@ ghc_close(void)
 	}
 
 	ghc_connecting = FALSE;
-
-	if (ghc_list != NULL) {
-		struct ghc *ghc;
-
-		while (NULL != (ghc = list_shift(ghc_list))) {
-			ghc_free(&ghc);
-		}
-		list_free(&ghc_list);
-	}
+	list_free_all(&ghc_list, cast_to_list_destroy(ghc_free));
 }
 
 /* vi: set ts=4 sw=4 cindent: */

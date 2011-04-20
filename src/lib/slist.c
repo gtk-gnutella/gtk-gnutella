@@ -173,7 +173,7 @@ slist_free(slist_t **slist_ptr)
 		slist_check(slist);
 
 		if (--slist->refcount != 0) {
-			g_warning("slist_free: slist is still referenced! "
+			g_carp("slist_free: slist is still referenced! "
 					"(slist=%p, slist->refcount=%d)",
 					cast_to_gconstpointer(slist), slist->refcount);
 		}
@@ -576,8 +576,8 @@ slist_foreach(const slist_t *slist, GFunc func, gpointer user_data)
 	slist_regression(slist);
 }
 
-static inline void
-freecb_wrapper(gpointer data, gpointer user_data)
+static void
+slist_freecb_wrapper(gpointer data, gpointer user_data)
 {
 	slist_destroy_cb freecb = cast_pointer_to_func(user_data);
 	(*freecb)(data);
@@ -597,7 +597,7 @@ slist_free_all(slist_t **slist_ptr, slist_destroy_cb freecb)
 		slist_t *slist = *slist_ptr;
 
 		slist_check(slist);
-		G_SLIST_FOREACH_WITH_DATA(slist->head, freecb_wrapper,
+		G_SLIST_FOREACH_WITH_DATA(slist->head, slist_freecb_wrapper,
 			cast_func_to_pointer(freecb));
 		slist_free(slist_ptr);
 	}

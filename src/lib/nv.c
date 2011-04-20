@@ -418,9 +418,8 @@ nv_table_ht_free_value(void *u_key, void *value, void *u_data)
  * Hash list iterator to free up values in the nv_table_t.
  */
 static void
-nv_table_hl_free_value(void *key, void *u_data)
+nv_table_hl_free_value(void *key)
 {
-	(void) u_data;
 	nv_pair_free(key);
 }
 
@@ -433,8 +432,7 @@ nv_table_free(nv_table_t *nvt)
 	nv_table_check(nvt);
 
 	if (nvt->ordered) {
-		hash_list_foreach(nvt->u.hl, nv_table_hl_free_value, NULL);
-		hash_list_free(&nvt->u.hl);
+		hash_list_free_all(&nvt->u.hl, nv_table_hl_free_value);
 	} else {
 		g_hash_table_foreach(nvt->u.ht, nv_table_ht_free_value, NULL);
 		gm_hash_table_destroy_null(&nvt->u.ht);

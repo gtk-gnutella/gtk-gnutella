@@ -180,9 +180,8 @@ hfield_make(const char *name)
 }
 
 static void
-hfield_free_item(gpointer p, gpointer unused_data)
+hfield_free_item(void *p)
 {
-	(void) unused_data;
 	HFREE_NULL(p);
 }
 
@@ -194,10 +193,7 @@ hfield_free(header_field_t *h)
 {
 	header_field_check(h);
 
-	if (h->lines) {
-		slist_foreach(h->lines, hfield_free_item, NULL);
-		slist_free(&h->lines);
-	}
+	slist_free_all(&h->lines, hfield_free_item);
 	HFREE_NULL(h->name);
 	h->magic = 0;
 	wfree(h, sizeof *h);
@@ -351,13 +347,6 @@ header_free_null(header_t **o_ptr)
 	}
 }
 
-static void
-header_reset_item(gpointer p, gpointer unused_data)
-{
-	(void) unused_data;
-	hfield_free(p);
-}
-
 /**
  * Reset header object, for new header parsing.
  */
@@ -370,10 +359,7 @@ header_reset(header_t *o)
 		g_hash_table_foreach_remove(o->headers, free_header_data, NULL);
 		gm_hash_table_destroy_null(&o->headers);
 	}
-	if (o->fields) {
-		slist_foreach(o->fields, header_reset_item, NULL);
-		slist_free(&o->fields);
-	}
+	slist_free_all(&o->fields, cast_to_slist_destroy(hfield_free));
 	o->flags = o->size = o->num_lines = 0;
 }
 

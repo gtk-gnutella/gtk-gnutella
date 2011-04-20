@@ -168,17 +168,6 @@ xattr_table_make(void)
 }
 
 /**
- * Hashlist iterator to free attributes.
- */
-static void
-xattr_table_free_k(void *key, void *udata)
-{
-	(void) udata;
-
-	xattr_free(key);
-}
-
-/**
  * Free an attribute table.
  */
 static void
@@ -186,8 +175,7 @@ xattr_table_free(xattr_table_t *xat)
 {
 	xattr_table_check(xat);
 
-	hash_list_foreach(xat->hl, xattr_table_free_k, NULL);
-	hash_list_free(&xat->hl);
+	hash_list_free_all(&xat->hl, cast_to_hashlist_destroy(xattr_free));
 	xat->magic = 0;
 	wfree(xat, sizeof *xat);
 }

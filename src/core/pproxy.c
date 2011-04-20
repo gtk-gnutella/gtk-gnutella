@@ -1519,8 +1519,7 @@ pproxy_set_free_null(pproxy_set_t **ps_ptr)
 
 	if (ps != NULL) {
 		pproxy_set_check(ps);
-		hash_list_foreach(ps->proxies, gnet_host_free_item, NULL);
-		hash_list_free(&ps->proxies);
+		hash_list_free_all(&ps->proxies, gnet_host_free);
 		ps->magic = 0;
 		wfree(ps, sizeof *ps);
 

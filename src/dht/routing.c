@@ -890,11 +890,9 @@ forget_merged_node(knode_t *kn)
  * Hash list iterator callback.
  */
 static void
-forget_hashlist_node(gpointer knode, gpointer unused_data)
+forget_hashlist_node(void *knode)
 {
 	knode_t *kn = knode;
-
-	(void) unused_data;
 
 	/*
 	 * We do not use forget_node() here because freeing of a bucket's hash
@@ -923,12 +921,9 @@ forget_hashlist_node(gpointer knode, gpointer unused_data)
  * Free bucket's hashlist.
  */
 static void
-free_node_hashlist(hash_list_t *hl)
+free_node_hashlist(hash_list_t **hl_ptr)
 {
-	g_assert(hl != NULL);
-
-	hash_list_foreach(hl, forget_hashlist_node, NULL);
-	hash_list_free(&hl);
+	hash_list_free_all(hl_ptr, forget_hashlist_node);
 }
 
 /**
@@ -947,10 +942,9 @@ free_node_lists(struct kbucket *kb)
 		check_leaf_list_consistency(kb, knodes->pending, KNODE_PENDING);
 
 		/* These cannot be NULL when kb->nodes is allocated */
-		free_node_hashlist(knodes->good);
-		free_node_hashlist(knodes->stale);
-		free_node_hashlist(knodes->pending);
-		knodes->good = knodes->stale = knodes->pending = NULL;
+		free_node_hashlist(&knodes->good);
+		free_node_hashlist(&knodes->stale);
+		free_node_hashlist(&knodes->pending);
 
 		g_assert(knodes->all != NULL);
 
@@ -4740,19 +4734,6 @@ dht_free_bucket(struct kbucket *kb, gpointer unused_u)
 }
 
 /**
- * Hash list iterator callback.
- */
-static void
-other_size_free_cb(gpointer other_size, gpointer unused_data)
-{
-	struct other_size *os = other_size;
-
-	(void) unused_data;
-
-	other_size_free(os);
-}
-
-/**
  * Shutdown the DHT.
  *
  * @param exiting	whether gtk-gnutella is exiting altogether
@@ -4796,10 +4777,8 @@ dht_close(gboolean exiting)
 	kuid_atom_free_null(&our_kuid);
 
 	for (i = 0; i < K_REGIONS; i++) {
-		hash_list_t *hl = stats.network[i].others;
-		if (hl)
-			hash_list_foreach(hl, other_size_free_cb, NULL);
-		hash_list_free(&stats.network[i].others);
+		hash_list_free_all(&stats.network[i].others,
+			cast_to_hashlist_destroy(other_size_free));
 	}
 	statx_free(stats.lookdata);
 	statx_free(stats.netdata);

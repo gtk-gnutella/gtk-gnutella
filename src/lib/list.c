@@ -176,7 +176,7 @@ list_free(list_t **list_ptr)
 		list_regression(list);
 
 		if (--list->refcount != 0) {
-			g_warning("list_free: list is still referenced! "
+			g_carp("list_free: list is still referenced! "
 					"(list=%p, list->refcount=%d)",
 					cast_to_gconstpointer(list), list->refcount);
 		}
@@ -572,6 +572,34 @@ list_foreach(const list_t *list, GFunc func, gpointer user_data)
 	g_list_foreach(list->head, func, user_data);
 
 	list_regression(list);
+}
+
+static void
+list_freecb_wrapper(void *data, void *user_data)
+{
+	list_destroy_cb freecb = cast_pointer_to_func(user_data);
+	(*freecb)(data);
+}
+
+/**
+ * Dispose of all the items remaining in the list, applying the supplied
+ * free callback on all the items, then freeing the list_t container
+ * and nullifying its pointer.
+ */
+void
+list_free_all(list_t **list_ptr, list_destroy_cb freecb)
+{
+	g_assert(list_ptr != NULL);
+	g_assert(freecb != NULL);
+
+	if (*list_ptr != NULL) {
+		list_t *list = *list_ptr;
+
+		list_check(list);
+		G_LIST_FOREACH_WITH_DATA(list->head, list_freecb_wrapper,
+			cast_func_to_pointer(freecb));
+		list_free(list_ptr);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
