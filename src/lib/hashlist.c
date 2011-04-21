@@ -985,6 +985,7 @@ hash_list_iter_remove(hash_list_iter_t *iter)
 
 		g_assert(hl->len > 0);
 		hl->len--;
+		wfree(item, sizeof *item);
 
 		return orig_key;
 	} else {
