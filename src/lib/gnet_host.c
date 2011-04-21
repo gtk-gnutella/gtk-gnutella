@@ -141,7 +141,7 @@ gnet_host_dup(const gnet_host_t *h)
 void
 gnet_host_free(void *h)
 {
-	wfree(h, sizeof *h);
+	wfree(h, sizeof(gnet_host_t));
 }
 
 /**
