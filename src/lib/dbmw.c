@@ -530,7 +530,11 @@ cache_reset_before_traversal(gpointer u_key, gpointer value, gpointer u_data)
 	(void) u_key;
 	(void) u_data;
 
-	entry->traversed = FALSE;
+	/*
+	 * Make sure "absent" entries will not be traversed at all.
+	 */
+
+	entry->traversed = entry->absent;
 	entry->removable = FALSE;
 }
 
@@ -1252,6 +1256,10 @@ void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, gpointer arg)
 	 * Some values may be present only in the cache.  Hence we clear all
 	 * marks in the cache and each traversed value that happens to be
 	 * present in the cache will be marked as "traversed".
+	 *
+	 * We flushed deleted keys above, but that does not remove them from
+	 * the cache structure.  We don't need to traverse these after iterating
+	 * on the map, so we make sure they are artifically set to "traversed".
 	 */
 
 	ctx.u.cb = cb;
@@ -1296,6 +1304,10 @@ void dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg)
 	 * Some values may be present only in the cache.  Hence we clear all
 	 * marks in the cache and each traversed value that happens to be
 	 * present in the cache will be marked as "traversed".
+	 *
+	 * We flushed deleted keys above, but that does not remove them from
+	 * the cache structure.  We don't need to traverse these after iterating
+	 * on the map, so we make sure they are artifically set to "traversed".
 	 */
 
 	ctx.u.cbr = cbr;
