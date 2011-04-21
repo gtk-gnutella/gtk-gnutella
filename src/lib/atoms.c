@@ -755,14 +755,14 @@ filesize_str(gconstpointer v)
 }
 
 /**
- * @return printable form of a gnet_host_t, as pointer to static data.
+ * @return printable form of a gnet_host_t *, as pointer to static data.
  */
 static const char *
 gnet_host_str(gconstpointer v)
 {
 	static char buf[HOST_ADDR_PORT_BUFLEN];
 
-	gnet_host_to_string_buf(*(const gnet_host_t **) v, buf, sizeof buf);
+	gnet_host_to_string_buf(v, buf, sizeof buf);
 	return buf;
 }
 
