@@ -1,0 +1,134 @@
+                   Node Push-Proxy Endpoint
+                          Version 0.0
+
+                        Raphael Manfredi
+                  <Raphael_Manfredi@pobox.com>
+
+                       April 22nd, 2011
+
+
+1. INTRODUCTION
+
+With the advent of the Distributed Hash Table in Gnutella, it has become
+trivial to easily and quickly locate push-proxies of firewalled servents
+who happen to also support the DHT.  Indeed, DHT-enabled servents publish
+a so-called PROX value listing the known push-proxies of the host.  A non-
+firewalled host also publishes PROX entries, listing itself as a push-proxy.
+Each time a firewalled host changes its push-proxy set, a new PROX value is
+generated and published in the DHT.
+
+Unfortunately, there are still lots of old Gnutella servents (acting as
+leaves on the network) that will never support the DHT and which therefore
+cannot be easily located by modern DHT-enabled hosts.
+
+However, the majority of ultrapeers in Gnutella is made of modern servents
+(LimeWire derivatives, gtk-gnutella) supporting the DHT.  These hosts can
+therefore spot whether their leaves are firewalled and support the DHT and
+publish that they act as push-proxies endpoints for these legacy leaves.
+This publishing is made through NOPE values.
+
+
+2. NOPE VALUE SPECIFICATION
+
+A NOPE value is a DHT value of type "NOPE" whose payload contains the
+following GGEP keys:
+
+    guid        the servent's GUID as raw 16 bytes
+    port        our listening port for push-proxy messages
+    tls         if present, indicates that we support TLS
+
+The "guid" key is the GUID of the leaf for which we act as a push-proxy.
+
+
+3. PERIODIC PUBLISHING
+
+After handshaking with a Gnutella leaf and exchanging the features via
+a specific vendor message, the ultrapeer will know whether the leaf supports
+the DHT.  When it receives a push-proxy request, it will know the leaf is
+firewalled and learn about its GUID.
+
+Optionally, ultrapeers can also publish NOPE values for non-firewalled leaves
+not supporting the DHT.  Their GUID can be gathered by monitoring the query
+hits these leaves will generate and send back through the ultrapeer.
+
+Publishing should occur regularly, every 50 minutes (the expiration time
+of a NOPE entry is 1 hour).
+
+
+4. GUID LOOKUPS
+
+A DHT node looking to contact a node for which only the GUID is known
+used to request the lookup of a PROX value, hashing the binary GUID to
+construct the SHA1 key.
+
+Since we can't know a priori whether the host to whom this GUID belongs will
+publish it in the DHT or not, we can now look for NOPE values as well.
+Unfortunately, looking for a PROX first, then a NOPE as a fall-back is
+inefficient.
+
+Therefore, DHT nodes should instead look for "ANY" value, and prepare for
+handling any PROX or NOPE values they could get back out of that lookup.
+
+If they get back a PROX, they have the full set of current push-proxies
+for the node.
+
+If they get back a NOPE, the creator of that value is one push-proxy of
+the host (and several different NOPE values can then be received, one for
+each ultrapeer which is a neighbour of that host).  The set of push-proxies
+can therefore be re-constructed.
+
+
+5. HTTP HEADER EXTENSION
+
+Knowing the GUID of a remote host is valuable now, because if that host
+is connected somewhere, firewalled or not and DHT-capable or not, you
+can find it through a DHT lookup of its GUID.  You'll send a PUSH and
+will get connected.
+
+During subsequent HTTP exchanges, you may notice the server is not firewalled
+(if it sends an X-Node header in the HTTP reply) and will be able to contact
+the servent directly next time.
+
+The following HTTP header should therefore be sent back by all Gnutella
+servers which are not firewalled:
+
+    X-GUID: 7d9af85c55f9543be4da8ae9d7b1944f
+
+It will tell downloaders about the servent's GUID so that this host can be
+located again at a later time, should it change its IP address.
+
+Firewalled servents don't need to generate X-GUID because they already
+emit another header (X-FW-Node-Info) which gives out their GUID along
+with their current push-proxy set.
+
+That header has the following form in LimeWire:
+
+    X-FW-Node-Info: 9DBC52EEEBCA2C8A79036D626B959900;fwt/1;
+        26252:85.182.49.3;
+        pptls=E;69.12.88.95:1085;64.53.20.48:804;66.17.23.159:343
+
+However, gtk-gnutella continues to use the legacy X-Push-Proxies header
+to send back its push-proxies, and uses a simpler X-FW-Node-Info to
+hand out its GUID (when it is firewalled):
+
+    X-FW-Node-Info: 7d9af85c55f9543be4da8ae9d7b1944f; 26252:85.182.49.3
+
+There is no "fwt/1" indication because gtk-gnutella does not support
+transfers between firewalled hosts yet.  The port:IP value following
+is purely informative and give the local server known listening port and
+its external IP.  This allows direct connection attempts, in case the
+servent mistakenly thinks it is firewalled.  Giving the listening port
+first is NOT a mistake -- it shows that is is not a push-proxy indication.
+
+
+6. CONCLUSION
+
+Support for NOPE is very simple, both on the server-side (simple
+identification of non DHT-capable hosts + periodic NOPE publishing)
+and on the client-side (just query for "ANY" value instead of explicit
+PROX and be prepared to handle PROX or NOPE replies).
+
+With NOPE support, a servent GUID becomes valuable information worth
+exchanging, hence the addition of the X-GUID header to be emitted
+by non-firewalled uploaders, firewalled ones emitting X-FW-Node-Info
+as usual.
