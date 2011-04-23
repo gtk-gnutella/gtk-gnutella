@@ -117,6 +117,18 @@ G_STMT_START { \
 	} \
 } G_STMT_END
 
+#define warn_unless(expr, expr_string) \
+G_STMT_START { \
+	if (G_UNLIKELY(!(expr))) { \
+		static const struct assertion_data assertion_data_ = { \
+			_WHERE_, expr_string, __LINE__ \
+		}; \
+		assertion_warning(&assertion_data_); \
+	} \
+} G_STMT_END
+
+#define g_soft_assert(expr) warn_unless((expr), #expr)
+
 #ifdef FAST_ASSERTIONS
 
 #undef g_assert
