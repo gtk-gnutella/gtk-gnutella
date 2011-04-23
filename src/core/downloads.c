@@ -244,6 +244,41 @@ download_is_running(const struct download *d)
 	return DL_LIST_RUNNING == d->list_idx;
 }
 
+/**
+ * Return download status string.
+ */
+static const char *
+download_status_to_code_str(download_status_t status)
+{
+	switch (status) {
+	case GTA_DL_INVALID:			return "INVALID";
+	case GTA_DL_ACTIVE_QUEUED:		return "ACTIVE_QUEUED";
+	case GTA_DL_CONNECTING:			return "CONNECTING";
+	case GTA_DL_HEADERS:			return "HEADERS";
+	case GTA_DL_IGNORING:			return "IGNORING";
+	case GTA_DL_PASSIVE_QUEUED:		return "PASSIVE_QUEUED";
+	case GTA_DL_PUSH_SENT:			return "PUSH_SENT";
+	case GTA_DL_FALLBACK:			return "FALLBACK";
+	case GTA_DL_QUEUED:				return "QUEUED";
+	case GTA_DL_RECEIVING:			return "RECEIVING";
+	case GTA_DL_REQ_SENDING:		return "REQ_SENDING";
+	case GTA_DL_REQ_SENT:			return "REQ_SENT";
+	case GTA_DL_SINKING:			return "SINKING";
+	case GTA_DL_TIMEOUT_WAIT:		return "TIMEOUT_WAIT";
+	case GTA_DL_ABORTED:			return "ABORTED";
+	case GTA_DL_COMPLETED:			return "COMPLETED";
+	case GTA_DL_DONE:				return "DONE";
+	case GTA_DL_ERROR:				return "ERROR";
+	case GTA_DL_MOVE_WAIT:			return "MOVE_WAIT";
+	case GTA_DL_MOVING:				return "MOVING";
+	case GTA_DL_VERIFIED:			return "VERIFIED";
+	case GTA_DL_VERIFYING:			return "VERIFYING";
+	case GTA_DL_VERIFY_WAIT:		return "VERIFY_WAIT";
+	case GTA_DL_REMOVED:			return "REMOVED";
+	}
+	return "UNKNOWN";
+}
+
 static void
 download_set_status(struct download *d, download_status_t status)
 {
@@ -4510,16 +4545,23 @@ download_queue_v(struct download *d, const char *fmt, va_list ap)
 
 	if (DOWNLOAD_IS_RUNNING(d)) {
 		download_retry(d);					/* Will call download_stop() */
+
+		/*
+		 * When coming back from download_retry(), we are either in the
+		 * GTA_DL_TIMEOUT_WAIT status or in the GTA_DL_VERIFY_WAIT status,
+		 * the latter being caused by download_stop() noticing that the
+		 * file is now complete.
+		 */
+
+		if (d->status != GTA_DL_TIMEOUT_WAIT) {
+			g_soft_assert(GTA_DL_VERIFY_WAIT == d->status);
+			goto not_running;
+		}
 	} else {
 		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
 	}
 
 	download_queue_update_status(d);
-
-	if (GNET_PROPERTY(download_debug))
-		g_debug("re-queuing download \"%s\" at %s: %s",
-			download_basename(d), download_host_info(d),
-			fmt ? d->error_str : "<no reason>");
 
 	/*
 	 * Since download_stop() can change "d->remove_msg", update it now.
@@ -4536,11 +4578,23 @@ download_queue_v(struct download *d, const char *fmt, va_list ap)
 	if (d->list_idx != DL_LIST_WAITING)		/* Timeout wait is in "waiting" */
 		download_move_to_list(d, DL_LIST_WAITING);
 
-	hash_list_remove(sl_unqueued, d);
-
 	gnet_prop_incr_guint32(PROP_DL_QUEUE_COUNT);
 	if (d->flags & DL_F_REPLIED) {
 		gnet_prop_incr_guint32(PROP_DL_QALIVE_COUNT);
+	}
+
+	/*
+	 * Removing the download from the sl_unqueued list since it is no
+	 * longer in a "running" state.
+	 */
+
+not_running:
+	hash_list_remove(sl_unqueued, d);
+
+	if (GNET_PROPERTY(download_debug)) {
+		g_debug("re-queued download \"%s\" (%s) at %s: %s",
+			download_basename(d), download_status_to_code_str(d->status),
+			download_host_info(d), fmt ? d->error_str : "<no reason>");
 	}
 }
 
@@ -8873,7 +8927,6 @@ done:
 		download_continue(d, trimmed);
 		download_verify_sha1(d);
 
-		gnet_prop_incr_guint32(PROP_TOTAL_DOWNLOADS);
 		return pipelining;
 	}
 
@@ -11976,6 +12029,7 @@ download_ignore_data(struct download *d, pmsg_t *mb)
 
 	if (d->pos >= d->chunk.end) {
 		fileinfo_t *fi = d->file_info;
+		gboolean pipelining = download_pipelining(d);
 
 		/*
 		 * We finished our request, go on with a new one, hoping it will
@@ -12003,7 +12057,14 @@ download_ignore_data(struct download *d, pmsg_t *mb)
 			download_verify_sha1(d);
 		}
 
-		return FALSE;
+		/*
+		 * If we were pipelining, we have to return TRUE to make it possible
+		 * to switch to another download after processing the pipeline response
+		 * since we could not know before issuing that next request that the
+		 * file would end up being completed sooner.
+		 */
+
+		return pipelining;
 	}
 
 	return TRUE;
@@ -14345,6 +14406,15 @@ download_verify_sha1(struct download *d)
 	g_assert(!(d->flags & DL_F_SUSPENDED));
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
+	if (FI_F_VERIFYING & fi->flags)	/* Already verifying */
+		return;
+
+	/*
+	 * We completed the file, accound as one more completed download.
+	 */
+
+	gnet_prop_incr_guint32(PROP_TOTAL_DOWNLOADS);
+
 	if (DL_F_TRANSIENT & d->flags)	/* Nothing to verify */
 		return;
 
@@ -14356,9 +14426,6 @@ download_verify_sha1(struct download *d)
 				"already planned" : "will be",
 			download_pathname(d));
 	}
-
-	if (FI_F_VERIFYING & fi->flags)	/* Already verifying */
-		return;
 
 	/*
 	 * Even if download was aborted or in error, we have a complete file
