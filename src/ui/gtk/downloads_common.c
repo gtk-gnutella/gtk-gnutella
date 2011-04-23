@@ -289,6 +289,7 @@ downloads_gui_status_string(const struct download *d)
 	case GTA_DL_ACTIVE_QUEUED:	/* JA, 31 jan 2003 Active queueing */
 		{
 			time_delta_t elapsed = delta_time(now, d->last_update);
+			int delay;
 
 			elapsed = delta_time(now, d->last_update);
 			elapsed = MAX(0, elapsed);
@@ -317,9 +318,11 @@ downloads_gui_status_string(const struct download *d)
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, /* ( */ ")");
 			}
 
+			delay = guc_get_parq_dl_retry_delay(d) - elapsed;
+			delay = MAX(0, delay);
+
 			rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					_(" retry in %us"),
-					(unsigned) (guc_get_parq_dl_retry_delay(d) - elapsed));
+					_(" retry in %us"), (unsigned) delay);
 		}
 
 		/*
