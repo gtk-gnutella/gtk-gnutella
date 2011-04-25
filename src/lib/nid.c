@@ -77,6 +77,17 @@ nid_to_string(const struct nid *nid)
 }
 
 /**
+ * Stringify numeric ID to static buffer.
+ */
+const char *
+nid_to_string2(const struct nid *nid)
+{
+	static char buf[UINT64_DEC_BUFLEN];
+	uint64_to_string_buf(nid_value(nid), buf, sizeof buf);
+	return buf;
+}
+
+/**
  * Increase reference count on a numeric ID.
  */
 struct nid *

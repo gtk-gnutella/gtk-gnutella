@@ -50,6 +50,7 @@ struct nid {
 unsigned nid_hash(const void *key);
 gboolean nid_equal(const void *p, const void *q);
 const char *nid_to_string(const struct nid *nid);
+const char *nid_to_string2(const struct nid *nid);
 struct nid *nid_ref(const struct nid *nid);
 void nid_unref(const struct nid *nid);
 struct nid *nid_new(void);
