@@ -760,7 +760,7 @@ download_sha1_is_rare(const struct sha1 *sha1)
 
 	hl = g_hash_table_lookup(dhl_by_sha1, sha1);
 	if (NULL == hl)
-		return FALSE;
+		return TRUE;	/* No source */
 
 	iter = hash_list_iterator(hl);
 
