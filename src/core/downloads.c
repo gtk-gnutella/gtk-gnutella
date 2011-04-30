@@ -765,7 +765,8 @@ download_sha1_is_rare(const struct sha1 *sha1)
 	iter = hash_list_iterator(hl);
 
 	/*
-	 * A download is rare if, and only if, all the active sources are partial.
+	 * A download is rare when all the active sources are partial or when we
+	 * have no active source.
 	 */
 
 	while (hash_list_iter_has_next(iter)) {
