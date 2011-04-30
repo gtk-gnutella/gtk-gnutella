@@ -3795,6 +3795,9 @@ download_clone(struct download *d)
 		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_CLONED | DL_F_NO_PIPELINE);
 	cd->server->refcnt++;
 
+	if (cd->file_info->sha1 != NULL)
+		download_by_sha1_add(cd);
+
 	download_add_to_list(cd, DL_LIST_WAITING);	/* Will add SHA1 to server */
 
 	if (download_pipelining(cd)) {
@@ -5129,8 +5132,9 @@ download_remove(struct download *d)
 		case GTA_DL_MOVE_WAIT:
 		case GTA_DL_MOVING:
 			if (GNET_PROPERTY(download_debug)) {
-				g_warning("download_remove(): skipping \"%s\", status=%d",
-					download_basename(d), d->status);
+				g_carp("download_remove(): skipping \"%s\", status=%s",
+					download_basename(d),
+					download_status_to_code_str(d->status));
 			}
 			return FALSE;
 		default:
