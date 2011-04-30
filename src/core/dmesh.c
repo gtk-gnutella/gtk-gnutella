@@ -115,8 +115,6 @@ struct dmesh_entry {
 #define MAX_LIBLIFETIME	3600		/**< 1 hour for shared/seeded files */
 #define MAX_ENTRIES		256			/**< Max amount of entries kept per SHA1 */
 
-#define MIN_PFSP_SIZE	524288		/**< 512K, min size for PFSP advertising */
-#define MIN_PFSP_PCT	10			/**< 10%, min available data for PFSP */
 #define MIN_BAD_REPORT	2			/**< Don't ban before that many X-Nalt */
 #define DMESH_CALLOUT	5000		/**< Callout heartbeat every 5 seconds */
 #define EXPIRE_DELAY	600			/**< 10 minutes after last update */
@@ -2066,22 +2064,11 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	/*
 	 * PFSP-server: If we have to list ourselves in the mesh, do so
 	 * at the first position.
-	 *
-	 * We only introduce ourselves if we have at least MIN_PFSP_SIZE bytes
-	 * of the file available, or MIN_PFSP_PCT percents of it.
 	 */
 
 	can_share_partials =
-		fi != NULL &&
-		fi->size != 0 &&
-		fi->file_size_known &&
-		fi->done != 0 &&
-		GNET_PROPERTY(pfsp_server) &&
-		!GNET_PROPERTY(is_firewalled) &&
-		is_host_addr(listen_addr()) &&
-		(fi->done >= MIN_PFSP_SIZE ||
-			fi->done * 100 / fi->size > MIN_PFSP_PCT) &&
-		upload_is_enabled();
+		fi != NULL && file_info_partial_shareable(fi) &&
+		is_host_addr(listen_addr()) && upload_is_enabled();
 
 	/*
 	 * For unfirewalled servers, the PFSP-server alt-loc is listed in X-Alt.

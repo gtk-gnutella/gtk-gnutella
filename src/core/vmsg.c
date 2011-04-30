@@ -2481,7 +2481,7 @@ handle_head_ping(struct gnutella_node *n,
 					if (GNET_PROPERTY(vmsg_debug) > 2) {
 						g_debug("VMSG HEAD Ping: matches a partial file");
 					}
-					if (GNET_PROPERTY(pfsp_server)) {
+					if (file_info_partial_shareable(fi)) {
 						code = VMSG_HEAD_CODE_PARTIAL;
 						if (fi->recvcount > 0) {
 							code |= VMSG_HEAD_STATUS_DOWNLOADING;

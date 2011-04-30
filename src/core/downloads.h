@@ -135,6 +135,8 @@ gboolean download_is_stalled(const struct download *);
 gboolean download_is_alive(const struct download *);
 gboolean download_is_completed_filename(const char *name);
 
+gboolean download_sha1_is_rare(const struct sha1 *sha1);
+
 gboolean download_remove(struct download *d);
 void download_abort(struct download *d);
 

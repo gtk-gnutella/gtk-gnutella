@@ -13333,16 +13333,17 @@ create_dlg_prefs_ul_tab (void)
   GtkWidget *hbox284;
   GtkWidget *frame86;
   GtkWidget *table73;
-  GtkWidget *label726;
-  GtkObject *spinbutton_pfsp_first_chunk_adj;
-  GtkWidget *spinbutton_pfsp_first_chunk;
   GtkWidget *checkbutton_pfsp_server;
   GtkWidget *label954;
   GtkObject *spinbutton_pfsp_minimum_filesize_adj;
   GtkWidget *spinbutton_pfsp_minimum_filesize;
+  GtkWidget *label1030;
   GtkObject *spinbutton_pfsp_last_chunk_adj;
   GtkWidget *spinbutton_pfsp_last_chunk;
-  GtkWidget *label1030;
+  GtkWidget *label726;
+  GtkObject *spinbutton_pfsp_first_chunk_adj;
+  GtkWidget *spinbutton_pfsp_first_chunk;
+  GtkWidget *checkbutton_pfsp_rare_server;
   GtkWidget *label725;
   GtkWidget *frame_expert_ul_timeout;
   GtkWidget *table12;
@@ -13655,29 +13656,13 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_show (frame86);
   gtk_box_pack_start (GTK_BOX (hbox284), frame86, FALSE, TRUE, 0);
 
-  table73 = gtk_table_new (4, 2, FALSE);
+  table73 = gtk_table_new (5, 2, FALSE);
   gtk_widget_set_name (table73, "table73");
   gtk_widget_show (table73);
   gtk_container_add (GTK_CONTAINER (frame86), table73);
   gtk_container_set_border_width (GTK_CONTAINER (table73), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table73), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table73), 4);
-
-  label726 = gtk_label_new_with_mnemonic (_("First chunk _size"));
-  gtk_widget_set_name (label726, "label726");
-  gtk_widget_show (label726);
-  gtk_table_attach (GTK_TABLE (table73), label726, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 4, 0);
-  gtk_misc_set_alignment (GTK_MISC (label726), 0, 0.5);
-
-  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 1000000, 1, 1024, 0);
-  spinbutton_pfsp_first_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_first_chunk_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
-  gtk_widget_show (spinbutton_pfsp_first_chunk);
-  gtk_table_attach (GTK_TABLE (table73), spinbutton_pfsp_first_chunk, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
 
   checkbutton_pfsp_server = gtk_check_button_new_with_mnemonic (_("Enable upload of _partially downloaded files"));
   gtk_widget_set_name (checkbutton_pfsp_server, "checkbutton_pfsp_server");
@@ -13689,7 +13674,7 @@ create_dlg_prefs_ul_tab (void)
   label954 = gtk_label_new (_("Minimum file size"));
   gtk_widget_set_name (label954, "label954");
   gtk_widget_show (label954);
-  gtk_table_attach (GTK_TABLE (table73), label954, 0, 1, 3, 4,
+  gtk_table_attach (GTK_TABLE (table73), label954, 0, 1, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label954), 0, 0.5);
@@ -13698,25 +13683,48 @@ create_dlg_prefs_ul_tab (void)
   spinbutton_pfsp_minimum_filesize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_minimum_filesize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_pfsp_minimum_filesize, "spinbutton_pfsp_minimum_filesize");
   gtk_widget_show (spinbutton_pfsp_minimum_filesize);
-  gtk_table_attach (GTK_TABLE (table73), spinbutton_pfsp_minimum_filesize, 1, 2, 3, 4,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  spinbutton_pfsp_last_chunk_adj = gtk_adjustment_new (1, 0, 1000000, 1, 1024, 0);
-  spinbutton_pfsp_last_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_last_chunk_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_pfsp_last_chunk, "spinbutton_pfsp_last_chunk");
-  gtk_widget_show (spinbutton_pfsp_last_chunk);
-  gtk_table_attach (GTK_TABLE (table73), spinbutton_pfsp_last_chunk, 1, 2, 2, 3,
+  gtk_table_attach (GTK_TABLE (table73), spinbutton_pfsp_minimum_filesize, 1, 2, 4, 5,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   label1030 = gtk_label_new (_("Last chunk size"));
   gtk_widget_set_name (label1030, "label1030");
   gtk_widget_show (label1030);
-  gtk_table_attach (GTK_TABLE (table73), label1030, 0, 1, 2, 3,
+  gtk_table_attach (GTK_TABLE (table73), label1030, 0, 1, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label1030), 0, 0.5);
+
+  spinbutton_pfsp_last_chunk_adj = gtk_adjustment_new (1, 0, 1000000, 1, 1024, 0);
+  spinbutton_pfsp_last_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_last_chunk_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_pfsp_last_chunk, "spinbutton_pfsp_last_chunk");
+  gtk_widget_show (spinbutton_pfsp_last_chunk);
+  gtk_table_attach (GTK_TABLE (table73), spinbutton_pfsp_last_chunk, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label726 = gtk_label_new_with_mnemonic (_("First chunk _size"));
+  gtk_widget_set_name (label726, "label726");
+  gtk_widget_show (label726);
+  gtk_table_attach (GTK_TABLE (table73), label726, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 4, 0);
+  gtk_misc_set_alignment (GTK_MISC (label726), 0, 0.5);
+
+  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 1000000, 1, 1024, 0);
+  spinbutton_pfsp_first_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_first_chunk_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
+  gtk_widget_show (spinbutton_pfsp_first_chunk);
+  gtk_table_attach (GTK_TABLE (table73), spinbutton_pfsp_first_chunk, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  checkbutton_pfsp_rare_server = gtk_check_button_new_with_mnemonic (_("Enable upload of partial files deemed rare"));
+  gtk_widget_set_name (checkbutton_pfsp_rare_server, "checkbutton_pfsp_rare_server");
+  gtk_widget_show (checkbutton_pfsp_rare_server);
+  gtk_table_attach (GTK_TABLE (table73), checkbutton_pfsp_rare_server, 0, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
 
   label725 = gtk_label_new (_("Partial File Sharing"));
   gtk_widget_set_name (label725, "label725");
@@ -14476,13 +14484,14 @@ create_dlg_prefs_ul_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, hbox284, "hbox284");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame86, "frame86");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table73, "table73");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label726, "label726");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_pfsp_server, "checkbutton_pfsp_server");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label954, "label954");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, spinbutton_pfsp_minimum_filesize, "spinbutton_pfsp_minimum_filesize");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, spinbutton_pfsp_last_chunk, "spinbutton_pfsp_last_chunk");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label1030, "label1030");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, spinbutton_pfsp_last_chunk, "spinbutton_pfsp_last_chunk");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label726, "label726");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_pfsp_rare_server, "checkbutton_pfsp_rare_server");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label725, "label725");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame_expert_ul_timeout, "frame_expert_ul_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table12, "table12");

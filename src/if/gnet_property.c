@@ -963,6 +963,8 @@ static const guint32  gnet_property_variable_dbstore_debug_default = 0;
 char   gnet_property_variable_session_id[GUID_RAW_SIZE];
 static const char   gnet_property_variable_session_id_default[GUID_RAW_SIZE];
 
+gboolean gnet_property_variable_pfsp_rare_server     = TRUE;
+static const gboolean gnet_property_variable_pfsp_rare_server_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -8816,6 +8818,23 @@ gnet_prop_init(void) {
     /* Type specific data: */
     gnet_property->props[410].type               = PROP_TYPE_STORAGE;
     gnet_property->props[410].data.storage.value = gnet_property_variable_session_id;
+
+
+    /*
+     * PROP_PFSP_RARE_SERVER:
+     *
+     * General data:
+     */
+    gnet_property->props[411].name = "pfsp_rare_server";
+    gnet_property->props[411].desc = _("Whether gtk-gnutella should serve partial files which are rare on the network to increase their spreading rate.  It is good for the health of the network to always leave this enabled. This setting supersedes the disabling of global partial file sharing for rare files only.");
+    gnet_property->props[411].ev_changed = event_new("pfsp_rare_server_changed");
+    gnet_property->props[411].save = TRUE;
+    gnet_property->props[411].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[411].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[411].data.boolean.def   = (void *) &gnet_property_variable_pfsp_rare_server_default;
+    gnet_property->props[411].data.boolean.value = (void *) &gnet_property_variable_pfsp_rare_server;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

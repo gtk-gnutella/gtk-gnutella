@@ -10581,6 +10581,7 @@ create_dlg_prefs (void)
   GtkWidget *label8011;
   GtkObject *spinbutton_pfsp_last_chunk_adj;
   GtkWidget *spinbutton_pfsp_last_chunk;
+  GtkWidget *checkbutton_pfsp_rare_server;
   GtkWidget *frame140;
   GtkWidget *table96;
   GtkWidget *label753;
@@ -15443,6 +15444,16 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_pfsp_last_chunk);
   gtk_table_attach (GTK_TABLE (table65), spinbutton_pfsp_last_chunk, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_pfsp_rare_server = gtk_check_button_new_with_label (_("Enable upload of patial files deemed rare"));
+  gtk_widget_set_name (checkbutton_pfsp_rare_server, "checkbutton_pfsp_rare_server");
+  gtk_widget_ref (checkbutton_pfsp_rare_server);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_pfsp_rare_server", checkbutton_pfsp_rare_server,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_pfsp_rare_server);
+  gtk_table_attach (GTK_TABLE (table65), checkbutton_pfsp_rare_server, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 

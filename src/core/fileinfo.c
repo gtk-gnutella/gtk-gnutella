@@ -6102,6 +6102,45 @@ file_info_remove_source(fileinfo_t *fi, struct download *d, gboolean discard)
 }
 
 /**
+ * Is file rare on the network?
+ *
+ * A file is deemed rare when all the known sources are partial ones.
+ */
+gboolean
+file_info_is_rare(const fileinfo_t *fi)
+{
+	file_info_check(fi);
+
+	if (NULL == fi->sha1)
+		return FALSE;
+
+	return download_sha1_is_rare(fi->sha1);
+}
+
+/**
+ * Can a partial file be shared?
+ */
+gboolean
+file_info_partial_shareable(const fileinfo_t *fi)
+{
+	file_info_check(fi);
+
+	if (0 == fi->size || !fi->file_size_known)
+		return FALSE;
+
+	if (!GNET_PROPERTY(pfsp_server)) {
+		if (GNET_PROPERTY(pfsp_rare_server)) {
+			if (!file_info_is_rare(fi))
+				return FALSE;
+		} else {
+			return FALSE;
+		}
+	}
+
+	return fi->done != 0;
+}
+
+/**
  * Get a copy of the sources list for a fileinfo. The items have the
  * "struct download *".
  *

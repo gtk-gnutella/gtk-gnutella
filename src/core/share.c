@@ -42,6 +42,7 @@ RCSID("$Id$")
 
 #include "share.h"
 #include "extensions.h"
+#include "downloads.h"
 #include "fileinfo.h"
 #include "ggep_type.h"
 #include "gmsg.h"
@@ -2178,10 +2179,17 @@ shared_file_by_sha1(const struct sha1 *sha1)
 	 */
 
 	if (f == NULL || f == SHARE_REBUILDING) {
-		if (GNET_PROPERTY(pfsp_server)) {
+		if (GNET_PROPERTY(pfsp_server) || GNET_PROPERTY(pfsp_rare_server)) {
 			struct shared_file *sf = file_info_shared_sha1(sha1);
-			if (sf)
-				f = sf;
+			if (sf != NULL) {
+				if (GNET_PROPERTY(pfsp_rare_server)) {
+					if (download_sha1_is_rare(sha1)) {
+						f = sf;
+					}
+				} else {
+					f = sf;
+				}
+			}
 		}
 	}
 	if (f && SHARE_REBUILDING != f) {

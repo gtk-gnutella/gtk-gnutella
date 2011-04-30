@@ -4804,4 +4804,17 @@ prop = {
     vector_size = GUID_RAW_SIZE;
 };
 
+prop = {
+    name = "pfsp_rare_server";
+    desc = "Whether gtk-gnutella should serve partial files which are rare "
+			"on the network to increase their spreading rate.  It is good "
+			"for the health of the network to always leave this enabled. "
+			"This setting supersedes the disabling of global partial file "
+			"sharing for rare files only.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
 /* vi: set ts=4: */

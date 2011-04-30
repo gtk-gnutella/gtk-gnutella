@@ -233,6 +233,46 @@ download_is_alive(const struct download *d)
 }
 
 /**
+ * Did we successfully connect to the server recently?
+ */
+static gboolean
+download_is_active(const struct download *d)
+{
+	download_check(d);
+
+	switch (d->status) {
+	case GTA_DL_ACTIVE_QUEUED:
+	case GTA_DL_HEADERS:
+	case GTA_DL_IGNORING:
+	case GTA_DL_PASSIVE_QUEUED:
+	case GTA_DL_QUEUED:
+	case GTA_DL_RECEIVING:
+	case GTA_DL_REQ_SENDING:
+	case GTA_DL_REQ_SENT:
+	case GTA_DL_SINKING:
+		return TRUE;
+	case GTA_DL_CONNECTING:
+	case GTA_DL_PUSH_SENT:
+	case GTA_DL_FALLBACK:
+	case GTA_DL_TIMEOUT_WAIT:
+	case GTA_DL_ABORTED:
+	case GTA_DL_COMPLETED:
+	case GTA_DL_DONE:
+	case GTA_DL_ERROR:
+	case GTA_DL_MOVE_WAIT:
+	case GTA_DL_MOVING:
+	case GTA_DL_VERIFIED:
+	case GTA_DL_VERIFYING:
+	case GTA_DL_VERIFY_WAIT:
+	case GTA_DL_REMOVED:
+	case GTA_DL_INVALID:	/* This is the initial status... */
+		return FALSE;
+	}
+	g_assert_not_reached();
+	return FALSE;
+}
+
+/**
  * Is download in a "running" list?
  */
 static gboolean
@@ -394,6 +434,17 @@ struct dl_addr {
 
 static guint dl_establishing = 0;		/**< Establishing downloads */
 static guint dl_active = 0;				/**< Active downloads */
+
+/**
+ * Keep track of downloads per SHA1.
+ *
+ * For each SHA1 we point to a hash_list_t containing all the known sources.
+ * for that file.
+ *
+ * This is used to determine whether a SHA1 is rare on the network (has only
+ * partial sources).
+ */
+static GHashTable *dhl_by_sha1;
 
 static inline guint
 count_running_downloads(void)
@@ -644,6 +695,96 @@ download_pipeline_read(struct download *d)
 		download_pipeline_socket_feed(d, dp->extra);
 		dp->extra = NULL;
 	}
+}
+
+/* ----------------------------------------- */
+
+/**
+ * Add download by SHA1.
+ */
+static void
+download_by_sha1_add(const struct download *d)
+{
+	hash_list_t *hl;
+
+	download_check(d);
+	g_assert(d->file_info != NULL);
+	g_assert(d->file_info->sha1 != NULL);
+
+	hl = g_hash_table_lookup(dhl_by_sha1, d->file_info->sha1);
+	if (NULL == hl) {
+		hl = hash_list_new(pointer_hash_func, NULL);
+		gm_hash_table_insert_const(dhl_by_sha1, d->file_info->sha1, hl);
+	}
+
+	g_soft_assert(!hash_list_contains(hl, d));
+
+	hash_list_append(hl, d);
+}
+
+/**
+ * Remove download by SHA1.
+ */
+static void
+download_by_sha1_remove(const struct download *d)
+{
+	hash_list_t *hl;
+
+	download_check(d);
+	g_assert(d->file_info != NULL);
+	g_assert(d->file_info->sha1 != NULL);
+
+	hl = g_hash_table_lookup(dhl_by_sha1, d->file_info->sha1);
+	g_assert(hl != NULL);
+
+	g_soft_assert(hash_list_contains(hl, d));
+
+	hash_list_remove(hl, d);
+	if (0 == hash_list_length(hl)) {
+		g_hash_table_remove(dhl_by_sha1, d->file_info->sha1);
+		hash_list_free(&hl);
+	}
+}
+
+/**
+ * Check whether all the active sources for a SHA1 are partial.
+ */
+gboolean
+download_sha1_is_rare(const struct sha1 *sha1)
+{
+	hash_list_t *hl;
+	hash_list_iter_t *iter;
+	gboolean rare = TRUE;
+
+	g_assert(sha1 != NULL);
+
+	hl = g_hash_table_lookup(dhl_by_sha1, sha1);
+	if (NULL == hl)
+		return FALSE;
+
+	iter = hash_list_iterator(hl);
+
+	/*
+	 * A download is rare if, and only if, all the active sources are partial.
+	 */
+
+	while (hash_list_iter_has_next(iter)) {
+		const struct download *d = hash_list_iter_next(iter);
+
+		download_check(d);
+
+		if (d->flags & DL_F_CLONED)
+			continue;		/* Cloned entries have d->ranges reset to NULL */
+
+		if (download_is_active(d) && NULL == d->ranges) {
+			rare = FALSE;
+			break;
+		}
+	}
+
+	hash_list_iter_release(&iter);
+
+	return rare;
 }
 
 /* ----------------------------------------- */
@@ -1070,6 +1211,7 @@ download_init(void)
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
 	dl_by_addr = g_hash_table_new(dl_addr_hash, dl_addr_eq);
 	dl_by_guid = g_hash_table_new(guid_hash, guid_eq);
+	dhl_by_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
 
 	header_features_add_guarded(FEATURES_DOWNLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
@@ -4871,6 +5013,8 @@ download_info_reget(struct download *d)
 	download_pipeline_free_null(&d->pipeline);
 	file_size_known = fi->file_size_known;		/* This should not change */
 
+	if (d->file_info->sha1 != NULL)
+		download_by_sha1_remove(d);
 	file_info_remove_source(fi, d, FALSE);		/* Keep it around for others */
 
 	fi = file_info_get(d->file_name, GNET_PROPERTY(save_file_path),
@@ -4879,6 +5023,8 @@ download_info_reget(struct download *d)
 	g_return_if_fail(fi);
 
 	file_info_add_source(fi, d);
+	if (d->file_info->sha1 != NULL)
+		download_by_sha1_add(d);
 
 	d->flags &= ~(DL_F_SUSPENDED | DL_F_PAUSED);
 	if (fi->flags & FI_F_SUSPEND)
@@ -5017,6 +5163,8 @@ download_remove(struct download *d)
 	}
 
 	download_set_sha1(d, NULL);
+	if (d->file_info->sha1 != NULL)
+		download_by_sha1_remove(d);
 
 	if (d->ranges) {
 		http_range_free(d->ranges);
@@ -6841,6 +6989,11 @@ create_download(
 	else
 		file_info_add_new_source(fi, d);
 
+	g_assert(d->file_info != NULL);
+
+	if (d->file_info->sha1 != NULL)
+		download_by_sha1_add(d);
+
 	/*
 	 * NOTE: These are explicitely prepended to avoid inconsistencies if
 	 *		 we just happen to iterate forwards over these lists.
@@ -6887,6 +7040,7 @@ create_download(
 				sha1_base32(d->sha1), uint64_to_string(fi->done),
 				fi->done == 1 ? "" : "s",
 				download_basename(d));
+			download_by_sha1_add(d);
 			if (DOWNLOAD_IS_QUEUED(d)) {	/* file_info_got_sha1() can queue */
 				return d;
 			}
@@ -14905,6 +15059,7 @@ download_close(void)
 	gm_hash_table_destroy_null(&dl_by_guid);
 	gm_hash_table_destroy_null(&dl_by_host);
 	gm_hash_table_destroy_null(&dl_by_addr);
+	gm_hash_table_destroy_null(&dhl_by_sha1);
 }
 
 static char *

@@ -1599,7 +1599,10 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 	 */
 
 	if (
-		GNET_PROPERTY(pfsp_server) &&
+		(
+			GNET_PROPERTY(pfsp_server) ||
+			(GNET_PROPERTY(pfsp_rare_server) && download_sha1_is_rare(sha1))
+		) &&
 		!shared_file_is_finished(u->sf) &&
 		(flags & (HTTP_CBF_SHOW_RANGES|HTTP_CBF_BUSY_SIGNAL))
 	) {
@@ -3917,7 +3920,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		!file_info_restrict_range(shared_file_fileinfo(u->sf),
 				range_skip, &range_end)
 	) {
-		g_assert(GNET_PROPERTY(pfsp_server));
+		g_assert(GNET_PROPERTY(pfsp_server) || GNET_PROPERTY(pfsp_rare_server));
 		range_unavailable = TRUE;
 	}
 
@@ -3956,7 +3959,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		static const char msg[] = "Requested range not available yet";
 
 		g_assert(sha1_hash_available(u->sf));
-		g_assert(GNET_PROPERTY(pfsp_server));
+		g_assert(GNET_PROPERTY(pfsp_server) || GNET_PROPERTY(pfsp_rare_server));
 
 		u->cb_sha1_arg.u = u;
 		upload_http_extra_callback_add(u,

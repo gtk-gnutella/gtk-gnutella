@@ -3526,6 +3526,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_PFSP_RARE_SERVER,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_pfsp_rare_server",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_PFSP_FIRST_CHUNK,
         update_spinbutton,
         TRUE,

@@ -119,6 +119,8 @@ gboolean file_info_restrict_range(
 	fileinfo_t *fi, filesize_t start, filesize_t *end);
 
 fileinfo_t *file_info_has_identical(const struct sha1 *sha1, filesize_t size);
+gboolean file_info_is_rare(const fileinfo_t *fi);
+gboolean file_info_partial_shareable(const fileinfo_t *fi);
 
 fileinfo_t *file_info_get_transient(const char *name);
 fileinfo_t *file_info_by_sha1(const struct sha1 *sha1);
