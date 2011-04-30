@@ -642,7 +642,7 @@ roots_fill_closest(const kuid_t *id,
 
 	if (approximate) {
 		knode_t *furthest = patricia_furthest(known, id);
-		struct rootinfo *cri;
+		struct rootinfo *cri = NULL;
 		patricia_t *aknown = known;
 
 		/*
