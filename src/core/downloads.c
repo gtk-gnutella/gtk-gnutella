@@ -204,6 +204,7 @@ download_is_alive(const struct download *d)
 		return TRUE;
 	case GTA_DL_ACTIVE_QUEUED:
 	case GTA_DL_CONNECTING:
+	case GTA_DL_CONNECTED:
 	case GTA_DL_HEADERS:
 	case GTA_DL_IGNORING:
 	case GTA_DL_PASSIVE_QUEUED:
@@ -241,6 +242,7 @@ download_is_active(const struct download *d)
 	download_check(d);
 
 	switch (d->status) {
+	case GTA_DL_CONNECTED:
 	case GTA_DL_ACTIVE_QUEUED:
 	case GTA_DL_HEADERS:
 	case GTA_DL_IGNORING:
@@ -294,6 +296,7 @@ download_status_to_code_str(download_status_t status)
 	case GTA_DL_INVALID:			return "INVALID";
 	case GTA_DL_ACTIVE_QUEUED:		return "ACTIVE_QUEUED";
 	case GTA_DL_CONNECTING:			return "CONNECTING";
+	case GTA_DL_CONNECTED:			return "CONNECTED";
 	case GTA_DL_HEADERS:			return "HEADERS";
 	case GTA_DL_IGNORING:			return "IGNORING";
 	case GTA_DL_PASSIVE_QUEUED:		return "PASSIVE_QUEUED";
@@ -777,7 +780,7 @@ download_sha1_is_rare(const struct sha1 *sha1)
 		if (d->flags & DL_F_CLONED)
 			continue;		/* Cloned entries have d->ranges reset to NULL */
 
-		if (download_is_active(d) && NULL == d->ranges) {
+		if (download_is_active(d) && !(d->flags & DL_F_PARTIAL)) {
 			rare = FALSE;
 			break;
 		}
@@ -3390,6 +3393,7 @@ download_requeue_all_active(const fileinfo_t *fi)
 		case GTA_DL_FALLBACK:
 		case GTA_DL_SINKING:	/* Will only make one request afterwards */
 		case GTA_DL_CONNECTING:
+		case GTA_DL_CONNECTED:
 			continue;
 		default:
 			break;		/* go on */
@@ -3468,6 +3472,7 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 		case GTA_DL_FALLBACK:
 		case GTA_DL_SINKING:
 		case GTA_DL_CONNECTING:
+		case GTA_DL_CONNECTED:
 			is_running = FALSE;
 			break;
 		default:
@@ -3824,7 +3829,7 @@ download_clone(struct download *d)
 		cd->rx = NULL;
 		cd->bio = NULL;			/* Recreated on each transfer */
 		cd->out_file = NULL;	/* File re-opened each time */
-		download_set_status(cd, GTA_DL_CONNECTING);
+		download_set_status(cd, GTA_DL_CONNECTED);
 	}
 
 	download_set_sha1(d, NULL);
@@ -5349,7 +5354,7 @@ download_start_prepare_running(struct download *d)
 
 	/* Most common state if we succeed */
 	if (!download_pipelining(d)) {
-		download_set_status(d, GTA_DL_CONNECTING);
+		download_set_status(d, GTA_DL_CONNECTED);
 	}
 
 	/*
@@ -10388,7 +10393,7 @@ download_sink(struct download *d)
 	if (d->sinkleft == 0) {
 		bsched_source_remove(d->bio);
 		d->bio = NULL;
-		download_set_status(d, GTA_DL_CONNECTING);
+		download_set_status(d, GTA_DL_CONNECTED);
 		download_send_request(d);
 	}
 }
@@ -11851,7 +11856,7 @@ http_version_nofix:
 	if (d->flags & DL_F_PREFIX_HEAD) {
 		d->flags &= ~DL_F_PREFIX_HEAD;
 		d->served_reqs++;
-		download_set_status(d, GTA_DL_CONNECTING);
+		download_set_status(d, GTA_DL_CONNECTED);
 		file_info_clear_download(d, TRUE);
 		s->pos = 0;
 		download_send_request(d);
@@ -13072,7 +13077,7 @@ select_push_download(GSList *servers)
 			g_assert(d->socket == NULL);
 
 			if (download_start_prepare(d)) {
-				download_set_status(d, GTA_DL_CONNECTING);
+				download_set_status(d, GTA_DL_CONNECTED);
 
 				gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 				gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
@@ -16046,6 +16051,7 @@ download_timer(time_t now)
 		case GTA_DL_HEADERS:
 		case GTA_DL_PUSH_SENT:
 		case GTA_DL_CONNECTING:
+		case GTA_DL_CONNECTED:
 		case GTA_DL_REQ_SENDING:
 		case GTA_DL_REQ_SENT:
 		case GTA_DL_FALLBACK:
@@ -16073,6 +16079,9 @@ download_timer(time_t now)
 						MAX_INT_VAL(time_delta_t) :
 						GNET_PROPERTY(download_push_sent_timeout);
 				break;
+			case GTA_DL_CONNECTING:
+				timeout = GNET_PROPERTY(download_connecting_timeout);
+				break;
 			case GTA_DL_REQ_SENT:
 				/*
 				 * For each second we spend in the "request sent" stage,
@@ -16082,10 +16091,6 @@ download_timer(time_t now)
 				 */
 				d->server->latency += 500;	/* Half a second */
 				/* FALL THROUGH */
-			case GTA_DL_CONNECTING:
-			case GTA_DL_HEADERS:
-				timeout = GNET_PROPERTY(download_connecting_timeout);
-				break;
 			default:
 				timeout = GNET_PROPERTY(download_connected_timeout);
 				break;

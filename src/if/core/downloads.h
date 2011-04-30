@@ -121,6 +121,7 @@ typedef enum {
     GTA_DL_INVALID,			/**< Never used */
     GTA_DL_QUEUED,			/**< Download queued, will start later */
     GTA_DL_CONNECTING,  	/**< We are connecting to the server */
+    GTA_DL_CONNECTED,  		/**< We are connected to the server */
     GTA_DL_PUSH_SENT,		/**< Sent a push, waiting connection */
     GTA_DL_FALLBACK,		/**< Direct request failed, using push */
     GTA_DL_REQ_SENT,		/**< Request sent, waiting for HTTP headers */
@@ -404,6 +405,7 @@ enum {
 
 #define DOWNLOAD_IS_ESTABLISHING(d)		\
 	(  (d)->status == GTA_DL_CONNECTING \
+	|| (d)->status == GTA_DL_CONNECTED	\
 	|| (d)->status == GTA_DL_PUSH_SENT	\
 	|| (d)->status == GTA_DL_FALLBACK	\
 	|| (d)->status == GTA_DL_REQ_SENT	\
@@ -425,6 +427,7 @@ enum {
 	(  (d)->status == GTA_DL_TIMEOUT_WAIT \
 	|| (d)->status == GTA_DL_QUEUED	\
 	|| (d)->status == GTA_DL_CONNECTING	\
+	|| (d)->status == GTA_DL_CONNECTED	\
 	|| (d)->status == GTA_DL_FALLBACK	\
 	|| (d)->status == GTA_DL_PUSH_SENT	)
 

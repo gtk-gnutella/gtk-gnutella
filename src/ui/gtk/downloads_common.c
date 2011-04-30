@@ -336,6 +336,7 @@ downloads_gui_status_string(const struct download *d)
 
 		status = tmpstr;
 		break;
+
 	case GTA_DL_PASSIVE_QUEUED:	/* RAM, 2007-08-19 Passive queueing */
 	case GTA_DL_QUEUED:
 		if (FILE_INFO_COMPLETE(d->file_info)) {
@@ -348,6 +349,10 @@ downloads_gui_status_string(const struct download *d)
 
 	case GTA_DL_CONNECTING:
 		status = _("Connecting...");
+		break;
+
+	case GTA_DL_CONNECTED:
+		status = _("Connected");
 		break;
 
 	case GTA_DL_PUSH_SENT:
