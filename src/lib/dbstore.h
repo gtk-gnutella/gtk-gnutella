@@ -75,6 +75,8 @@ dbmw_t *dbstore_open(const char *name, const char *dir, const char *base,
 	gboolean incore);
 
 void dbstore_sync(dbmw_t *dw);
+void dbstore_flush(dbmw_t *dw);
+void dbstore_sync_flush(dbmw_t *dw);
 void dbstore_close(dbmw_t *dw, const char *dir, const char *base);
 void dbstore_delete(dbmw_t *dw);
 void dbstore_shrink(dbmw_t *dw);

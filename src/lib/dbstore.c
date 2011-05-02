@@ -253,6 +253,34 @@ dbstore_sync(dbmw_t *dw)
 }
 
 /**
+ * Synchronize a DBMW database, flushing its local cache.
+ */
+void
+dbstore_flush(dbmw_t *dw)
+{
+	ssize_t n;
+
+	n = dbmw_sync(dw, DBMW_SYNC_CACHE);
+	if (-1 == n) {
+		g_warning("DBSTORE could not flush cache for DBMW \"%s\": %s",
+			dbmw_name(dw), g_strerror(errno));
+	} else if (n && dbstore_debug > 1) {
+		g_debug("DBSTORE flushed %u dirty value%s in DBMW \"%s\"",
+			(unsigned) n, 1 == n ? "" : "s", dbmw_name(dw));
+	}
+}
+
+/**
+ * Fully synchronize DBMW database: flush local cache, then the SDBM layer.
+ */
+void
+dbstore_sync_flush(dbmw_t *dw)
+{
+	dbstore_flush(dw);		/* Flush cached dirty values... */
+	dbstore_sync(dw);		/* ...then sync database layer */
+}
+
+/**
  * Close DM map, keeping the SDBM file around.
  *
  * If the map was held in memory, it is serialized to disk.
