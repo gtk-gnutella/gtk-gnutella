@@ -690,9 +690,10 @@ log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what, guint level)
  * Log final statistics.
  */
 static void
-lookup_final_stats(nlookup_t *nl)
+lookup_final_stats(const nlookup_t *nl)
 {
 	tm_t end;					/* End time */
+
 	lookup_check(nl);
 
 	tm_now_exact(&end);
