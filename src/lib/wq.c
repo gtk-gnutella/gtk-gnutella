@@ -51,6 +51,12 @@
  * chance they will be able to grab it (WQ_EXCLUSIVE: do not wakeup anyone
  * else).
  *
+ * It is possible to sleep() with a configured timeout, in which case the
+ * wakeup callback is invoked with a special wakeup value (WQ_TIMED_OUT)
+ * which the callback must handle explicitly.  If it returns WQ_SLEEP, the
+ * timeout is re-armed and waiting continues.  If it returns WQ_REMOVE the
+ * wait operation is cancelled.
+ *
  * The data structures used to manage the wait queue are straightforward:
  *
  * - The waitqueue hash table maps a "key" to the list of parties that are
@@ -67,6 +73,7 @@
 RCSID("$Id$")
 
 #include "wq.h"
+#include "cq.h"
 #include "glib-missing.h"
 #include "hashlist.h"
 #include "misc.h"
@@ -78,6 +85,20 @@ RCSID("$Id$")
 enum wq_event_magic { WQ_EVENT_MAGIC = 0x485783d1 };
 
 /**
+ * Timeout event information.
+ *
+ * This structure stores enough information to be able to re-instantiate
+ * the timeouting event when the callback does not return WQ_REMOVE.
+ *
+ * The presence of this structure in the wq_event also signals to the
+ * notification logic that this is a timeouting event.
+ */
+struct wq_event_timeout {
+	cevent_t *timeout_ev;			/**< For time-limited waiting */
+	int delay;						/**< Scheduling delay */
+};
+
+/**
  * Wait queue event.
  */
 struct wq_event {
@@ -85,6 +106,7 @@ struct wq_event {
 	const void *key;				/**< Waiting key (opaque) */
 	wq_callback_t cb;				/**< Callback to trigger */
 	void *arg;						/**< Additionnal callback argument */
+	struct wq_event_timeout *tm;	/**< For timeouting events */
 };
 
 static inline void
@@ -130,6 +152,10 @@ wq_event_free(wq_event_t *we)
 {
 	wq_event_check(we);
 
+	if (we->tm != NULL) {
+		cq_cancel(&we->tm->timeout_ev);
+		WFREE_NULL(we->tm, sizeof *we->tm);
+	}
 	we->magic = 0;
 	wfree(we, sizeof *we);
 }
@@ -157,6 +183,96 @@ wq_sleep(const void *key, wq_callback_t cb, void *arg)
 		gm_hash_table_insert_const(waitqueue, key, hl);
 	}
 	hash_list_append(hl, we);		/* FIFO layout */
+
+	return we;
+}
+
+/**
+ * Callout queue callback fired when waiting event times out.
+ */
+static void
+wq_timed_out(cqueue_t *unused_cq, void *arg)
+{
+	wq_event_t *we = arg;
+	hash_list_t *hl;
+	wq_status_t status;
+
+	wq_event_check(we);
+	g_assert(we->tm != NULL);
+
+	(void) unused_cq;
+
+	we->tm->timeout_ev = NULL;
+	hl = g_hash_table_lookup(waitqueue, we->key);
+
+	g_assert(hl != NULL);
+
+	/*
+	 * Invoke the callback with the sentinel data signalling a timeout.
+	 */
+
+	status = (*we->cb)(we->arg, WQ_TIMED_OUT);
+
+	/*
+	 * When the callback returns WQ_SLEEP, we re-instantiate the initial
+	 * timeout.
+	 *
+	 * Otherwise the event is discarded (removed from the wait queue) and
+	 * the callback will never be invoked again for this event.
+	 */
+
+	switch (status) {
+	case WQ_SLEEP:
+		we->tm->timeout_ev = cq_main_insert(we->tm->delay, wq_timed_out, we);
+		return;
+	case WQ_EXCLUSIVE:
+		g_carp("weird status WQ_EXCLUSIVE on timeout invocation of %s()",
+			stacktrace_routine_name(we->cb, FALSE));
+		/* FALL THROUGH */
+	case WQ_REMOVE:
+		hash_list_remove(hl, we);
+
+		/*
+		 * Cleanup the table if it ends-up being empty.
+		 */
+
+		if (0 == hash_list_length(hl)) {
+			hash_list_free(&hl);
+			g_hash_table_remove(waitqueue, we->key);
+		}
+
+		wq_event_free(we);
+		return;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
+ * Record a waiting event, limited in time by a timeout.
+ *
+ * If no wq_wakeup() occurs before the timeout limit, a wq_wakeup() is forced
+ * with the WQ_TIMED_OUT value.  The callback must be prepared to handle
+ * this value explicitly.
+ *
+ * @param key		waiting key
+ * @param delay		delay in ms before timeout occurs
+ * @param cb		callback to invoke on wakeup
+ * @param arg		additional callback argument
+ *
+ * @return the registered event, whose reference must be kept if it is meant
+ * to be cancelled.
+ */
+wq_event_t *
+wq_sleep_timeout(const void *key, int delay, wq_callback_t cb, void *arg)
+{
+	wq_event_t *we;
+
+	we = wq_sleep(key, cb, arg);
+
+	we->tm = walloc(sizeof *we->tm);
+	we->tm->delay = delay;
+	we->tm->timeout_ev = cq_main_insert(delay, wq_timed_out, we);
 
 	return we;
 }
@@ -227,9 +343,13 @@ wq_notify(hash_list_t *hl, void *data)
 			continue;		/* Still sleeping, leave in the list */
 		case WQ_EXCLUSIVE:
 		case WQ_REMOVE:
-			break;
+			goto remove;
 		}
 
+		g_error("invalid status %d returned by %s()",
+			status, stacktrace_routine_name(we->cb, FALSE));
+
+	remove:
 		hash_list_iter_remove(iter);
 		wq_event_free(we);
 
