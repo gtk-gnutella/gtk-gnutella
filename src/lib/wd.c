@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "wd.h"
 #include "atoms.h"
 #include "cq.h"
+#include "stacktrace.h"
 #include "tm.h"
 #include "walloc.h"
 
@@ -208,8 +209,8 @@ wd_expire(watchdog_t *wd)
 
 	if (wd->ev != NULL) {
 		g_carp("wd_expire(): "
-			"watchdog \"%s\" re-armed within callback, turning it off",
-			wd_name(wd));
+			"watchdog \"%s\" re-armed within %s() callback, turning it off",
+			wd_name(wd), stacktrace_routine_name(wd->trigger, FALSE));
 	}
 
 	return TRUE;
