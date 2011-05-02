@@ -56,6 +56,8 @@ typedef struct gnutella_host {
 gnet_host_t *gnet_host_new(const host_addr_t addr, guint16 port);
 gnet_host_t *gnet_host_dup(const gnet_host_t *h);
 void gnet_host_free(void *h);
+void gnet_host_free_atom(void *h);
+void gnet_host_free_atom2(void *h, void *unused);
 void gnet_host_free_item(gpointer key, gpointer unused_data);
 
 static inline void
@@ -98,6 +100,7 @@ size_t gnet_host_to_string_buf(
 guint gnet_host_hash(gconstpointer key);
 int gnet_host_eq(gconstpointer v1, gconstpointer v2);
 int gnet_host_cmp(gconstpointer v1, gconstpointer v2);
+size_t gnet_host_length(const void *p);
 
 /*
  * Serialized IPv4 and IPv6 Gnutella hosts.

@@ -9904,6 +9904,7 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *label37;
   GtkWidget *label364;
   GtkWidget *label365;
+  GtkWidget *checkbutton_enable_guess;
   GtkWidget *label293;
   GtkWidget *frame_expert_oob_queries;
   GtkWidget *table101;
@@ -10495,7 +10496,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_container_add (GTK_CONTAINER (frame_searches), hbox254);
   gtk_container_set_border_width (GTK_CONTAINER (hbox254), 2);
 
-  table17 = gtk_table_new (2, 3, FALSE);
+  table17 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table17, "table17");
   gtk_widget_show (table17);
   gtk_box_pack_start (GTK_BOX (hbox254), table17, FALSE, TRUE, 0);
@@ -10556,6 +10557,13 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label365), 0, 0.5);
+
+  checkbutton_enable_guess = gtk_check_button_new_with_mnemonic (_("Enable GUESS (additional querying)"));
+  gtk_widget_set_name (checkbutton_enable_guess, "checkbutton_enable_guess");
+  gtk_widget_show (checkbutton_enable_guess);
+  gtk_table_attach (GTK_TABLE (table17), checkbutton_enable_guess, 0, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label293 = gtk_label_new_with_mnemonic (_("Searches"));
   gtk_widget_set_name (label293, "label293");
@@ -11355,6 +11363,7 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label37, "label37");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label364, "label364");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label365, "label365");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_enable_guess, "checkbutton_enable_guess");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label293, "label293");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_oob_queries, "frame_expert_oob_queries");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table101, "table101");

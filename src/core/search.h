@@ -39,6 +39,7 @@
 #include "common.h"
 
 #include "nodes.h"
+#include "gnutella.h"
 #include "lib/sectoken.h"
 
 /*
@@ -73,6 +74,11 @@
 #define SEARCH_GUESS_MAJOR 0
 #define SEARCH_GUESS_MINOR 2
 
+/**
+ * Amount of (kept) search results we're aiming for when querying.
+ */
+#define SEARCH_MAX_RESULTS	150
+
 struct download;
 struct guid;
 struct nid;
@@ -86,9 +92,10 @@ void search_shutdown(void);
 
 gboolean search_results(gnutella_node_t *n, int *results);
 gboolean search_query_allowed(gnet_search_t sh);
-guint32 search_get_id(gnet_search_t sh, gpointer *search);
-void search_notify_sent(gpointer search, guint32 id, const struct nid *node_id);
+void search_notify_sent(gnet_search_t sh, const struct nid *node_id);
+void search_query_sent(gnet_search_t sh);
 gboolean search_get_kept_results(const struct guid *muid, guint32 *kept);
+gboolean search_running_guess(const struct guid *muid);
 guint32 search_get_kept_results_by_handle(gnet_search_t sh);
 void search_oob_pending_results(gnutella_node_t *n, const struct guid *muid,
 	int hits, gboolean udp_firewalled, gboolean secure);
@@ -107,6 +114,9 @@ void record_query_string(const struct guid *muid, const char *query);
 const char *map_muid_to_query_string(const struct guid *muid);
 
 void search_query_key_generate(sectoken_t *tok, host_addr_t addr, guint16 port);
+
+gnutella_msg_search_t *build_guess_search_msg(const struct guid *muid,
+	const char *query, guint32 *size, const void *query_key, guint8 length);
 
 #endif /* _core_search_h_ */
 

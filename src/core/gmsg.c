@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "nodes.h"
 #include "sq.h"
 #include "mq_tcp.h"
+#include "mq_udp.h"
 #include "routing.h"
 #include "vmsg.h"
 #include "search.h"
@@ -477,7 +478,13 @@ gmsg_mb_routeto_one(const struct gnutella_node *from,
 	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_start(mb)) == 0)
 		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
 
-	mq_tcp_putq(to->outq, mb, from);
+	if (NODE_IS_UDP(to)) {
+		gnet_host_t host;
+		gnet_host_set(&host, to->addr, to->port);
+		mq_udp_putq(to->outq, mb, &host);
+	} else {
+		mq_tcp_putq(to->outq, mb, from);
+	}
 }
 
 /**
@@ -498,8 +505,6 @@ gmsg_mb_sendto_one(const struct gnutella_node *n, pmsg_t *mb)
 void
 gmsg_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
 {
-	g_return_if_fail(!NODE_IS_UDP(n));
-
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
@@ -508,7 +513,24 @@ gmsg_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
 	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
-	mq_tcp_putq(n->outq, gmsg_to_pmsg(msg, size), NULL);
+	/*
+	 * A GUESS query generating a local hit will come here if the query is
+	 * not requesting OOB hit delivery.
+	 */
+
+	if (NODE_IS_UDP(n)) {
+		gnet_host_t to;
+		gnet_host_set(&to, n->addr, n->port);
+
+		if (GNET_PROPERTY(guess_server_debug) > 19) {
+			g_debug("GUESS sending local hit for %s to %s",
+				guid_hex_str(gnutella_header_get_muid(msg)), node_infostr(n));
+		}
+
+		mq_udp_putq(n->outq, gmsg_to_pmsg(msg, size), &to);
+	} else {
+		mq_tcp_putq(n->outq, gmsg_to_pmsg(msg, size), NULL);
+	}
 }
 
 /**

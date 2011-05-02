@@ -10198,6 +10198,7 @@ create_dlg_prefs (void)
   GtkObject *spinbutton_config_search_reissue_timeout_adj;
   GtkWidget *spinbutton_config_search_reissue_timeout;
   GtkWidget *label568;
+  GtkWidget *checkbutton_enable_guess;
   GtkWidget *frame_expert_oob_queries;
   GtkWidget *vbox131;
   GtkWidget *checkbutton_send_oob_queries;
@@ -12337,7 +12338,7 @@ create_dlg_prefs (void)
   gtk_widget_show (alignment31);
   gtk_box_pack_start (GTK_BOX (hbox188), alignment31, FALSE, TRUE, 0);
 
-  table83 = gtk_table_new (2, 3, FALSE);
+  table83 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table83, "table83");
   gtk_widget_ref (table83);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table83", table83,
@@ -12420,6 +12421,16 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label568), 0, 0.5);
+
+  checkbutton_enable_guess = gtk_check_button_new_with_label (_("Enable GUESS (additional querying)"));
+  gtk_widget_set_name (checkbutton_enable_guess, "checkbutton_enable_guess");
+  gtk_widget_ref (checkbutton_enable_guess);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_enable_guess", checkbutton_enable_guess,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_enable_guess);
+  gtk_table_attach (GTK_TABLE (table83), checkbutton_enable_guess, 0, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   frame_expert_oob_queries = gtk_frame_new (_("Out of Band Querying"));
   gtk_widget_set_name (frame_expert_oob_queries, "frame_expert_oob_queries");

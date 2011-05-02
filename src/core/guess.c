@@ -1,0 +1,2943 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2011, Raphael Manfredi
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Gnutella UDP Extension for Scalable Searches (GUESS) client-side.
+ *
+ * Overview of GUESS
+ *
+ * A GUESS query is an iterative ultrapeer crawling, whereby TTL=1 messages
+ * are sent to each ultrapeer so that they are only broadcasted to its leaves,
+ * using QRT filtering.  Results are either routed back through the ultrapeer
+ * or delivered directly by the leaves via UDP.
+ *
+ * The challenge is maintaining a set of ultrapeers to be queried so that we
+ * do not query each more than once, but query as much as possible to get
+ * "enough" results.  Like dynamic querying, constant feedback on the actual
+ * number of kept results is necessary to stop the crawling as early as
+ * possible.  Yet, rare resources need as exhaustive a crawl as possible.
+ *
+ * GUESS was originally designed by LimeWire, but later abandonned in favor
+ * of dynamic querying.  However, all LimeWire nodes are GUESS servers, running
+ * at version 0.1.
+ *
+ * Unfortunately, and possibly because of the deprecation of GUESS in favor
+ * of dynamic querying, the 0.1 protocol does not enable a wide discovery of
+ * other ultrapeers to query.  Past the initial seeding from the GUESS caches,
+ * the protocol does not bring back enough fuel to sustain the crawl: each
+ * queried ultrapeer only returns one single other ultrapeer address in the
+ * acknowledgment pong.
+ *
+ * We're implementing version 0.2 here, which has been slightly enhanced for
+ * the purpose of enabling GUESS in gtk-gnutella:
+ *
+ * - Queries can include the "SCP" GGEP extension to indicate to the remote
+ *   GUESS server that it should return more GUESS-enabled ultrapeers within
+ *   an "IPP" GGEP extension attached to the acknowledgment pong.
+ *
+ * - Moreover, the initial ping for getting the Query Key (necessary to be
+ *   able to issue queries on the ultrapeer) can also include "SCP", of course,
+ *   but also advertise themselves as a GUESS ultrapeer (if they are running
+ *   in that mode) through the GUE extension.  This allows the recipient
+ *   to view the ping as an "introduction ping".
+ *
+ * Of course, only gtk-gnutella peers will at first understand the 0.2 version
+ * of GUESS, but as it spreads out in the network, it should give a significant
+ * boost to the GUESS ultrapeer discovery in the long run.
+ *
+ * @author Raphael Manfredi
+ * @date 2011
+ */
+
+#include "common.h"
+
+RCSID("$Id$")
+
+#include "guess.h"
+#include "extensions.h"
+#include "ggep_type.h"
+#include "gmsg.h"
+#include "gnet_stats.h"
+#include "gnutella.h"
+#include "hcache.h"
+#include "hostiles.h"
+#include "hosts.h"
+#include "nodes.h"
+#include "pcache.h"
+#include "search.h"
+#include "settings.h"
+#include "udp.h"
+
+#include "dht/stable.h"
+
+#include "if/gnet_property_priv.h"
+
+#include "lib/aging.h"
+#include "lib/atoms.h"
+#include "lib/cq.h"
+#include "lib/dbmw.h"
+#include "lib/dbstore.h"
+#include "lib/halloc.h"
+#include "lib/hashlist.h"
+#include "lib/host_addr.h"
+#include "lib/map.h"
+#include "lib/nid.h"
+#include "lib/random.h"
+#include "lib/stringify.h"
+#include "lib/tm.h"
+#include "lib/walloc.h"
+#include "lib/wq.h"
+#include "lib/override.h"		/* Must be the last header included */
+
+#define GUESS_QK_DB_CACHE_SIZE	1024	/**< Cached amount of query keys */
+#define GUESS_QK_MAP_CACHE_SIZE	64		/**< # of SDBM pages to cache */
+#define GUESS_QK_LIFE			7200	/**< Cached token lifetime (secs) */
+#define GUESS_QK_PRUNE_PERIOD	(GUESS_QK_LIFE / 3 * 1000)	/**< in ms */
+#define GUESS_QK_FREQ			60		/**< At most 1 key request / min */
+#define GUESS_ALIEN_FREQ		300		/**< Time we cache non-GUESS hosts */
+#define GUESS_STABLE_PROBA		 0.3333	/**< 33.33% */
+#define GUESS_ALIVE_PROBA		 0.5	/**< 50% */
+#define GUESS_LINK_CACHE_SIZE	75		/**< Amount of hosts to maintain */
+#define GUESS_CHECK_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
+#define GUESS_ALIVE_PERIOD		(10 * 60)		/**< 10 minutes, in s */
+#define GUESS_SYNC_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
+#define GUESS_MAX_LIFETIME		(20 * 60)		/**< 20 minutes, in s */
+#define GUESS_MAX_ULTRAPEERS	50000	/**< Query stops after that probes */
+#define GUESS_RPC_LIFETIME		15000	/**< 15 seconds, in ms */
+#define GUESS_FIND_DELAY		5000	/**< in ms, UDP queue flush grace */
+#define GUESS_ALPHA				5		/**< Level of query concurrency */
+#define GUESS_WAIT_DELAY		30000	/**< in ms, time waiting for hosts */
+#define GUESS_WARMING_COUNT		100		/**< Loose concurrency after that */
+
+/**
+ * Query stops after that many hits
+ */
+#define GUESS_MAX_RESULTS		SEARCH_MAX_RESULTS
+
+/**
+ * Parallelism modes.
+ */
+enum guess_mode {
+	GUESS_QUERY_BOUNDED,		/**< Bounded parallelism */
+	GUESS_QUERY_LOOSE			/**< Loose parallelism */
+};
+
+enum guess_magic { GUESS_MAGIC = 0x65bfef66 };
+
+/**
+ * A running GUESS query.
+ */
+struct guess {
+	enum guess_magic magic;
+	const char *query;			/**< The query string (atom) */
+	const guid_t *muid;			/**< GUESS query MUID (atom) */
+	gnet_search_t sh;			/**< Local search handle */
+	map_t *queried;				/**< Ultrapeers already queried */
+	hash_list_t *pool;			/**< Pool of ultrapeers to query */
+	wq_event_t *hostwait;		/**< Waiting on more hosts event */
+	cevent_t *delay_ev;			/**< Asynchronous startup delay */
+	guess_query_cb_t cb;		/**< Callback when query ends */
+	void *arg;					/**< User-supplied callback argument */
+	struct nid gid;				/**< Guess lookup ID (unique, internal) */
+	tm_t start;					/**< Start time */
+	size_t queried_nodes;		/**< Amount of nodes queried */
+	size_t query_acks;			/**< Amount of query acknowledgments */
+	enum guess_mode mode;		/**< Concurrency mode */
+	guint32 flags;				/**< Operating flags */
+	guint32 kept_results;		/**< Amount of results kept */
+	guint32 recv_results;		/**< Amount of results received */
+	unsigned hops;				/**< Amount of iteration hops */
+	int rpc_pending;			/**< Amount of RPC pending */
+	unsigned bw_out_query;		/**< Spent outgoing querying bandwidth */
+	unsigned bw_out_qk;			/**< Estimated outgoing query key bandwidth */
+};
+
+static inline void
+guess_check(const guess_t * const gq)
+{
+	g_assert(gq != NULL);
+	g_assert(GUESS_MAGIC == gq->magic);
+}
+
+/**
+ * Operating flags.
+ */
+#define GQ_F_DONT_REMOVE	(1U << 0)	/**< No removal from table on free */
+#define GQ_F_DELAYED		(1U << 1)	/**< Iteration has been delayed */
+#define GQ_F_UDP_DROP		(1U << 2)	/**< UDP message was dropped */
+#define GQ_F_SENDING		(1U << 3)	/**< Sending a message */
+
+/**
+ * RPC replies.
+ */
+enum guess_rpc_ret {
+	GUESS_RPC_TIMEOUT = 0,
+	GUESS_RPC_REPLY
+};
+
+struct guess_rpc;
+
+/**
+ * A GUESS RPC callback function.
+ *
+ * @param type		GUESS_RPC_TIMEOUT or GUESS_RPC_REPLY
+ * @param grp		the RPC descriptor
+ * @param n			the node sending back the acknowledgement pong
+ * @param gq		the GUESS query object that issued the RPC
+ */
+typedef void (*guess_rpc_cb_t)(enum guess_rpc_ret type, struct guess_rpc *grp,
+	const gnutella_node_t *n, guess_t *gq);
+
+enum guess_rpc_magic { GUESS_RPC_MAGIC = 0x0d49f32f };
+
+/**
+ * GUESS RPC callback descriptor.
+ */
+struct guess_rpc {
+	enum guess_rpc_magic magic;		/**< Magic number */
+	struct nid gid;					/**< Guess lookup ID (unique, internal) */
+	const guid_t *muid;				/**< MUIG of the message sent (atom) */
+	const gnet_host_t *host;		/**< Host we sent message to (atom) */
+	guess_rpc_cb_t cb;				/**< Callback routine to invoke */
+	cevent_t *timeout;				/**< Callout queue timeout event */
+	struct guess_pmsg_info *pmi;	/**< Meta information about message sent */
+	unsigned hops;					/**< Hop count at RPC issue time */
+};
+
+static inline void
+guess_rpc_check(const struct guess_rpc * const grp)
+{
+	g_assert(grp != NULL);
+	g_assert(GUESS_RPC_MAGIC == grp->magic);
+	g_assert(NULL != grp->muid);
+	g_assert(NULL != grp->host);
+}
+
+enum guess_pmi_magic { GUESS_PMI_MAGIC = 0x345d0133 };
+
+/**
+ * Information about query messages sent.
+ *
+ * This is meta information attached to each pmsg_t block we send, which
+ * allows us to monitor the fate of the UDP messages.
+ */
+struct guess_pmsg_info {
+	enum guess_pmi_magic magic;
+	struct nid gid;				/**< GUESS query ID */
+	const gnet_host_t *host;	/**< Host queried (atom) */
+	struct guess_rpc *grp;		/**< Attached RPC info */
+	unsigned rpc_done:1;		/**< Set if RPC times out before message sent */
+};
+
+static inline void
+guess_pmsg_info_check(const struct guess_pmsg_info * const pmi)
+{
+	g_assert(pmi != NULL);
+	g_assert(GUESS_PMI_MAGIC == pmi->magic);
+}
+
+/**
+ * Key used to register RPCs sent to ultrapeers: we send a query, we expect
+ * a Pong acknowledging the query.
+ *
+ * Because we want to use the same MUID for all the query messages sent by
+ * a GUESS query (to let other servents spot duplicates, e.g. leaves attached
+ * to several ultrapeers and receiving the GUESS query through multiple routes
+ * thanks to our iteration), we cannot just use the MUID as the RPC key.
+ *
+ * We can't use MUID + IP:port (of the destination) either because there is no
+ * guarantee the reply will come back on the port to which we sent the message,
+ * due to possible port forwarding on their side or remapping on the way out.
+ *
+ * Therefore, we use the MUID + IP of the destination, which imposes us an
+ * internal limit: we cannot query multiple servents on the same IP address
+ * in a short period of time (the RPC timeout period).  In practice, this is
+ * not going to be a problem, although of course we need to make sure we handle
+ * the situation on our side and avoid querying multiple servents on the same
+ * IP whilst there are pending RPCs to this IP.
+ */
+struct guess_rpc_key {
+	const struct guid *muid;
+	host_addr_t addr;
+};
+
+/**
+ * DBM wrapper to associate a host with its Query Key and other information.
+ */
+static dbmw_t *db_qkdata;
+static char db_qkdata_base[] = "guess_hosts";
+static char db_qkdata_what[] = "GUESS hosts & query keys";
+
+/**
+ * Information about a host that is stored to disk.
+ * The structure is serialized first, not written as-is.
+ */
+struct qkdata {
+	time_t first_seen;		/**< When we first learnt about the host */
+	time_t last_seen;		/**< When we last saw the host */
+	time_t last_update;		/**< When we last updated the query key */
+	guint32 flags;			/**< Host flags */
+	guint8 length;			/**< Query key length */
+	void *query_key;		/**< Binary data -- walloc()-ed */
+};
+
+/**
+ * Host flags.
+ */
+#define GUESS_F_PINGED		(1U << 0)	/**< Host was pinged for more hosts */
+#define GUESS_F_OTHER_HOST	(1U << 1)	/**< Returns pongs for other hosts */
+#define GUESS_F_PONG_IPP	(1U << 2)	/**< Returns hosts in GGEP "IPP" */
+
+#define GUESS_QK_VERSION	0	/**< Serialization version number */
+
+static GHashTable *gqueries;			/**< Running GUESS queries */
+static GHashTable *gmuid;				/**< MUIDs of active queries */
+static GHashTable *pending;				/**< Pending pong acknowledges */
+static hash_list_t *link_cache;			/**< GUESS "link cache" */
+static cperiodic_t *guess_qk_prune_ev;	/**< Query keys pruning event */
+static cperiodic_t *guess_check_ev;		/**< Link cache monitoring */
+static cperiodic_t *guess_sync_ev;		/**< Periodic DBMW syncs */
+static wq_event_t *guess_new_host_ev;	/**< Waiting for a new host */
+static aging_table_t *guess_qk_reqs;	/**< Recent query key requests */
+static aging_table_t *guess_alien;		/**< Recently seen non-GUESS hosts */
+
+static void guess_discovery_enable(void);
+static void guess_iterate(guess_t *gq);
+static gboolean guess_send(guess_t *gq, const gnet_host_t *host);
+
+/**
+ * Allocate a GUESS query ID, the way for users to identify the querying object.
+ * Since that object could be gone by the time we look it up, we don't
+ * directly store a pointer to it.
+ */
+static struct nid
+guess_id_create(void)
+{
+	static struct nid counter;
+
+	return nid_new_counter_value(&counter);
+}
+
+/**
+ * Get qkdata from database, returning NULL if not found.
+ */
+static struct qkdata *
+get_qkdata(const gnet_host_t *host)
+{
+	struct qkdata *qk;
+
+	qk = dbmw_read(db_qkdata, host, NULL);
+
+	if (NULL == qk) {
+		if (dbmw_has_ioerr(db_qkdata)) {
+			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+				 dbmw_name(db_qkdata));
+		}
+	}
+
+	return qk;
+}
+
+/**
+ * Delete known-to-be existing query keys for specified host from database.
+ */
+static void
+delete_qkdata(const gnet_host_t *host)
+{
+	dbmw_delete(db_qkdata, host);
+	gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, -1);
+
+	if (GNET_PROPERTY(guess_client_debug) > 5) {
+		g_debug("GUESS QKCACHE query key for %s reclaimed",
+			gnet_host_to_string(host));
+	}
+}
+
+/**
+ * Serialization routine for qkdata.
+ */
+static void
+serialize_qkdata(pmsg_t *mb, const void *data)
+{
+	const struct qkdata *qk = data;
+
+	pmsg_write_u8(mb, GUESS_QK_VERSION);
+	pmsg_write_time(mb, qk->first_seen);
+	pmsg_write_time(mb, qk->last_seen);
+	pmsg_write_time(mb, qk->last_update);
+	pmsg_write_be32(mb, qk->flags);
+	pmsg_write_u8(mb, qk->length);
+	pmsg_write(mb, qk->query_key, qk->length);
+}
+
+/**
+ * Deserialization routine for qkdata.
+ */
+static void
+deserialize_qkdata(bstr_t *bs, void *valptr, size_t len)
+{
+	struct qkdata *qk = valptr;
+	guint8 version;
+
+	g_assert(sizeof *qk == len);
+
+	bstr_read_u8(bs, &version);
+	bstr_read_time(bs, &qk->first_seen);
+	bstr_read_time(bs, &qk->last_seen);
+	bstr_read_time(bs, &qk->last_update);
+	bstr_read_be32(bs, &qk->flags);
+	bstr_read_u8(bs, &qk->length);
+
+	if (qk->length != 0) {
+		qk->query_key = walloc(qk->length);
+		bstr_read(bs, qk->query_key, qk->length);
+	} else {
+		qk->query_key = NULL;
+	}
+}
+
+/**
+ * Free routine for qkdata, to release internally allocated memory at
+ * deserialization time (not the structure itself)
+ */
+static void
+free_qkdata(void *valptr, size_t len)
+{
+	struct qkdata *qk = valptr;
+
+	g_assert(sizeof *qk == len);
+
+	WFREE_NULL(qk->query_key, qk->length);
+}
+
+/**
+ * Hash function for a GUESS RPC key.
+ */
+static unsigned
+guess_rpc_key_hash(const void *key)
+{
+	const struct guess_rpc_key *k = key;
+
+	return guid_hash(k->muid) ^ host_addr_hash(k->addr);
+}
+
+/**
+ * Equality function for a GUESS RPC key.
+ */
+static int
+guess_rpc_key_eq(const void *a, const void *b)
+{
+	const struct guess_rpc_key *ka = a, *kb = b;
+
+	return guid_eq(ka->muid, kb->muid) && host_addr_equal(ka->addr, kb->addr);
+}
+
+/**
+ * Allocate a GUESS RPC key.
+ */
+static struct guess_rpc_key *
+guess_rpc_key_alloc(
+	const struct guid *muid, const gnet_host_t *host)
+{
+	struct guess_rpc_key *k;
+
+	k = walloc(sizeof *k);
+	k->muid = atom_guid_get(muid);
+	k->addr = gnet_host_get_addr(host);
+
+	return k;
+}
+
+/**
+ * Free a GUESS RPC key.
+ */
+static void
+guess_rpc_key_free(struct guess_rpc_key *k)
+{
+	atom_guid_free_null(&k->muid);
+	wfree(k, sizeof *k);
+}
+
+/**
+ * @return human-readable parallelism mode
+ */
+static const char *
+guess_mode_to_string(enum guess_mode mode)
+{
+	const char *what = "unknown";
+
+	switch (mode) {
+	case GUESS_QUERY_BOUNDED:	what = "bounded"; break;
+	case GUESS_QUERY_LOOSE:		what = "loose"; break;
+	}
+
+	return what;
+}
+
+/**
+ * Check whether the GUESS query bearing the specified ID is still alive.
+ *
+ * @return NULL if the ID is unknown, otherwise the GUESS query object.
+ */
+static guess_t *
+guess_is_alive(struct nid gid)
+{
+	guess_t *gq;
+
+	if (G_UNLIKELY(NULL == gqueries))
+		return NULL;
+
+	gq = g_hash_table_lookup(gqueries, &gid);
+
+	if (gq != NULL)
+		guess_check(gq);
+
+	return gq;
+}
+
+/**
+ * Destroy RPC descriptor and its key.
+ */
+static void
+guess_rpc_destroy(struct guess_rpc *grp, struct guess_rpc_key *key)
+{
+	guess_rpc_check(grp);
+
+	guess_rpc_key_free(key);
+	atom_guid_free_null(&grp->muid);
+	atom_host_free_null(&grp->host);
+	cq_cancel(&grp->timeout);
+	grp->magic = 0;
+	wfree(grp, sizeof *grp);
+}
+
+/**
+ * Free RPC descriptor.
+ */
+static void
+guess_rpc_free(struct guess_rpc *grp)
+{
+	void *orig_key, *value;
+	struct guess_rpc_key key;
+	gboolean found;
+
+	guess_rpc_check(grp);
+	
+	key.muid = grp->muid;
+	key.addr = gnet_host_get_addr(grp->host);
+
+	found = g_hash_table_lookup_extended(pending, &key, &orig_key, &value);
+
+	g_assert(found);
+	g_assert(value == grp);
+
+	g_hash_table_remove(pending, &key);
+	guess_rpc_destroy(grp, orig_key);
+}
+
+/**
+ * Cancel RPC, without invoking callback.
+ */
+static void
+guess_rpc_cancel(guess_t *gq, const gnet_host_t *host)
+{
+	struct guess_rpc_key key;
+	struct guess_rpc *grp;
+
+	guess_check(gq);
+	g_assert(host != NULL);
+
+	key.muid = gq->muid;
+	key.addr = gnet_host_get_addr(host);
+
+	grp = g_hash_table_lookup(pending, &key);
+	guess_rpc_free(grp);
+
+	g_assert(gq->rpc_pending > 0);
+
+	gq->rpc_pending--;
+
+	/*
+	 * If there are no more pending RPCs, iterate (unless we're already
+	 * in the sending process and the cancelling is synchronous).
+	 */
+
+	if (0 == gq->rpc_pending && !(gq->flags & GQ_F_SENDING))
+		guess_iterate(gq);
+}
+
+/**
+ * RPC timeout function.
+ */
+static void
+guess_rpc_timeout(cqueue_t *unused_cq, void *obj)
+{
+	struct guess_rpc *grp = obj;
+	guess_t *gq;
+
+	guess_rpc_check(grp);
+	(void) unused_cq;
+
+	grp->timeout = NULL;
+	gq = guess_is_alive(grp->gid);
+	if (gq != NULL)
+		(*grp->cb)(GUESS_RPC_TIMEOUT, grp, NULL, gq);
+	guess_rpc_free(grp);
+}
+
+/**
+ * Register RPC to given host with specified MUID.
+ *
+ * @param host		host to which RPC is sent
+ * @param muid		the query MUID used
+ * @param gid		the guess query ID
+ * @param cb		callback to invoke on reply or timeout
+ *
+ * @return RPC descriptor if OK, NULL if we cannot issue an RPC to this host
+ * because we already have a pending one to the same IP.
+ */
+static struct guess_rpc *
+guess_rpc_register(const gnet_host_t *host, const guid_t *muid,
+	struct nid gid, guess_rpc_cb_t cb)
+{
+	struct guess_rpc *grp;
+	struct guess_rpc_key key;
+	struct guess_rpc_key *k;
+
+	key.muid = muid;
+	key.addr = gnet_host_get_addr(host);
+
+	if (gm_hash_table_contains(pending, &key)) {
+		if (GNET_PROPERTY(guess_client_debug) > 1) {
+			g_message("GUESS cannot issue RPC to %s with MUID=%s yet",
+				gnet_host_to_string(host), guid_hex_str(muid));
+		}
+		return NULL;	/* Cannot issue RPC yet */
+	}
+
+	/*
+	 * The GUESS query ID is used to determine whether a query is still
+	 * alive at the time we receive a reply from an RPC or it times out.
+	 *
+	 * This means we don't need to cancel RPCs explicitly when the the
+	 * GUESS query is destroyed as callbacks will only be triggered when
+	 * the query is still alive.
+	 */
+
+	grp = walloc(sizeof *grp);
+	grp->magic = GUESS_RPC_MAGIC;
+	grp->host = atom_host_get(host);
+	grp->muid = atom_guid_get(muid);
+	grp->gid = gid;
+	grp->cb = cb;
+	grp->timeout = cq_main_insert(GUESS_RPC_LIFETIME, guess_rpc_timeout, grp);
+
+	k = guess_rpc_key_alloc(muid, host);
+	g_hash_table_insert(pending, k, grp);
+
+	return grp;		/* OK, RPC can be issued */
+}
+
+/**
+ * Handle possible RPC reply.
+ *
+ * @return TRUE if the message was a reply to a registered MUID and was
+ * handled as such.
+ */
+gboolean
+guess_rpc_handle(struct gnutella_node *n)
+{
+	struct guess_rpc_key key;
+	struct guess_rpc *grp;
+	guess_t *gq;
+
+	key.muid = gnutella_header_get_muid(&n->header);
+	key.addr = n->addr;
+
+	grp = g_hash_table_lookup(pending, &key);
+	if (NULL == grp)
+		return FALSE;
+
+	guess_rpc_check(grp);
+
+	gq = guess_is_alive(grp->gid);
+	if (gq != NULL)
+		(*grp->cb)(GUESS_RPC_REPLY, grp, n, gq);
+
+	guess_rpc_free(grp);
+	return TRUE;
+}
+
+/**
+ * Set host flags in the database.
+ */
+static void
+guess_host_set_flags(const gnet_host_t *h, guint32 flags)
+{
+	struct qkdata *qk;
+
+	qk = get_qkdata(h);
+	if (qk != NULL) {
+		qk->flags |= flags;
+		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+	}
+}
+
+/**
+ * Cleast host flags in the database.
+ */
+static void
+guess_host_clear_flags(const gnet_host_t *h, guint32 flags)
+{
+	struct qkdata *qk;
+
+	qk = get_qkdata(h);
+	if (qk != NULL) {
+		qk->flags &= ~flags;
+		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+	}
+}
+
+/**
+ * Add host to the link cache with a p% probability.
+ */
+static void
+guess_add_link_cache(const gnet_host_t *h, int p)
+{
+	g_assert(h != NULL);
+	g_assert(p >= 0 && p <= 100);
+
+	if (hash_list_contains(link_cache, h))
+		return;
+
+	if (random_u32() % 100 < UNSIGNED(p)) {
+		hash_list_prepend(link_cache, atom_host_get(h));
+
+		if (GNET_PROPERTY(guess_client_debug) > 2) {
+			g_info("GUESS adding %s to link cache (p=%d%%, n=%lu)",
+				gnet_host_to_string(h), p,
+				(unsigned long) hash_list_length(link_cache));
+		}
+	}
+
+	while (hash_list_length(link_cache) > GUESS_LINK_CACHE_SIZE) {
+		gnet_host_t *removed = hash_list_remove_tail(link_cache);
+
+		if (GNET_PROPERTY(guess_client_debug) > 2) {
+			g_info("GUESS kicking %s out of link cache",
+				gnet_host_to_string(removed));
+		}
+
+		atom_host_free(removed);
+	}
+}
+
+/**
+ * We discovered a new host through a pong.
+ */
+static void
+guess_discovered_host(host_addr_t addr, guint16 port)
+{
+	if (hostiles_check(addr) || !host_address_is_usable(addr))
+		return;
+
+	hcache_add_caught(HOST_GUESS, addr, port, "GUESS pong");
+
+	if (hash_list_length(link_cache) < GUESS_LINK_CACHE_SIZE) {
+		gnet_host_t host;
+
+		gnet_host_set(&host, addr, port);
+		guess_add_link_cache(&host, 100);	/* Add with 100% chance */
+	}
+}
+
+/**
+ * Add host to the GUESS query pool if not alreay present or queried.
+ */
+static void
+guess_add_pool(guess_t *gq, host_addr_t addr, guint16 port)
+{
+	gnet_host_t host;
+
+	guess_check(gq);
+
+	if (hostiles_check(addr) || !host_address_is_usable(addr))
+		return;
+
+	gnet_host_set(&host, addr, port);
+	if (
+		!map_contains(gq->queried, &host) &&
+		!hash_list_contains(gq->pool, &host)
+	) {
+		if (GNET_PROPERTY(guess_client_debug) > 3) {
+			g_debug("GUESS QUERY[%s] added new host %s to pool",
+				nid_to_string(&gq->gid), gnet_host_to_string(&host));
+		}
+
+		hash_list_append(gq->pool, atom_host_get(&host));
+	}
+}
+
+/**
+ * Remove host from link cache and from the cached query key database
+ * if the probability model says the host is likely dead.
+ */
+static void
+guess_remove_link_cache(const gnet_host_t *h)
+{
+	gnet_host_t *atom;
+	struct qkdata *qk;
+
+	if (G_UNLIKELY(NULL == db_qkdata))
+		return;		/* GUESS layer shut down */
+
+	/*
+	 * First handle possible removal from the persistent cache.
+	 */
+
+	qk = get_qkdata(h);
+	if (qk != NULL) {
+		double p;
+
+		p = stable_still_alive_probability(qk->first_seen, qk->last_seen);
+		if (p < GUESS_ALIVE_PROBA) {
+			delete_qkdata(h);
+		}
+	}
+
+	/*
+	 * Next handle removal from the link cache, if present.
+	 */
+
+	atom = hash_list_remove(link_cache, h);
+
+	if (atom != NULL) {
+		if (GNET_PROPERTY(guess_client_debug) > 2) {
+			g_info("GUESS removed %s from link cache", gnet_host_to_string(h));
+		}
+		atom_host_free(atom);
+		guess_discovery_enable();
+	}
+}
+
+/**
+ * Update "last_seen" event for hosts from whom we get traffic and move
+ * them to the head of the link cache if present.
+ */
+static void
+guess_traffic_from(const gnet_host_t *h)
+{
+	struct qkdata *qk;
+	struct qkdata new_qk;
+
+	if (hash_list_contains(link_cache, h)) {
+		hash_list_moveto_head(link_cache, h);
+	}
+
+	qk = get_qkdata(h);
+
+	if (NULL == qk) {
+		new_qk.first_seen = new_qk.last_update = tm_time();
+		new_qk.flags = 0;
+		new_qk.length = 0;
+		new_qk.query_key = NULL;	/* Query key unknown */
+		qk = &new_qk;
+		gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, +1);
+	}
+
+	qk->last_seen = tm_time();
+	dbmw_write(db_qkdata, h, qk, sizeof *qk);
+}
+
+/**
+ * Record query key for host.
+ *
+ * @param h		the host to which this query key applies
+ * @param buf	buffer holding the query key
+ * @param len	buffer length
+ */
+static void
+guess_record_qk(const gnet_host_t *h, const void *buf, size_t len)
+{
+	struct qkdata *qk;
+	struct qkdata new_qk;
+
+	qk = get_qkdata(h);
+
+	if (qk != NULL) {
+		new_qk.first_seen = qk->first_seen;
+		new_qk.flags = qk->flags;
+	} else {
+		new_qk.first_seen = tm_time();
+		new_qk.flags = 0;
+	}
+
+	new_qk.last_seen = new_qk.last_update = tm_time();
+	new_qk.length = MIN(len, MAX_INT_VAL(guint8));
+	new_qk.query_key = new_qk.length ? wcopy(buf, new_qk.length) : NULL;
+
+	if (!dbmw_exists(db_qkdata, h))
+		gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, +1);
+
+	/*
+	 * Writing a new value for the key will free up any dynamically allocated
+	 * data in the DBMW cache through free_qkdata().
+	 */
+
+	dbmw_write(db_qkdata, h, &new_qk, sizeof new_qk);
+
+	if (GNET_PROPERTY(guess_client_debug) > 4) {
+		g_debug("GUESS got %u-byte query key from %s",
+			new_qk.length, gnet_host_to_string(h));
+	}
+
+	/*
+	 * Remove pending "query key" indication for the host: we can now use the
+	 * cached query key, no need to contact the host.
+	 */
+
+	aging_remove(guess_qk_reqs, h);
+}
+
+/**
+ * Extract query key from received Pong and cache it.
+ *
+ * @param n		the node replying and holind the Pong
+ * @param h		the host to which the Ping was sent
+ *
+ * @return TRUE if we successfully extracted the query key
+ */
+static gboolean
+guess_extract_qk(const struct gnutella_node *n, const gnet_host_t *h)
+{
+	int i;
+
+	node_check(n);
+	g_assert(GTA_MSG_INIT_RESPONSE == gnutella_header_get_function(&n->header));
+	g_assert(h != NULL);
+
+	for (i = 0; i < n->extcount; i++) {
+		const extvec_t *e = &n->extvec[i];
+
+		switch (e->ext_token) {
+		case EXT_T_GGEP_QK:
+			guess_record_qk(h, ext_payload(e), ext_paylen(e));
+			return TRUE;
+		default:
+			break;
+		}
+	}
+
+	return FALSE;
+}
+
+/**
+ * Extract address from received Pong.
+ */
+static host_addr_t
+guess_extract_host_addr(const struct gnutella_node *n)
+{
+	int i;
+	host_addr_t ipv4_addr;
+	host_addr_t ipv6_addr;
+
+	node_check(n);
+	g_assert(GTA_MSG_INIT_RESPONSE == gnutella_header_get_function(&n->header));
+
+	ipv6_addr = zero_host_addr;
+
+	for (i = 0; i < n->extcount; i++) {
+		const extvec_t *e = &n->extvec[i];
+
+		switch (e->ext_token) {
+		case EXT_T_GGEP_GTKG_IPV6:
+			ggept_gtkg_ipv6_extract(e, &ipv6_addr);
+			break;
+		default:
+			break;
+		}
+	}
+
+	ipv4_addr = host_addr_peek_ipv4(&n->data[2]);
+
+	/*
+	 * We give preference to the IPv4 address unless it's unusable and there
+	 * is an IPv6 one listed.
+	 */
+
+	if (
+		!host_address_is_usable(ipv4_addr) &&
+		host_address_is_usable(ipv6_addr)
+	) {
+		return ipv6_addr;
+	}
+
+	return ipv4_addr;
+}
+
+/**
+ * Extract GUESS hosts from the "IPP" pong extension.
+ *
+ * @param gq	if non-NULL, the GUESS query we're running
+ * @param n		the node sending us the pong
+ * @param h		the host to whom we sent the message that got us a pong back
+ */
+static void
+guess_extract_ipp(guess_t *gq,
+	const struct gnutella_node *n, const gnet_host_t *h)
+{
+	int j;
+
+	node_check(n);
+	g_assert(GTA_MSG_INIT_RESPONSE == gnutella_header_get_function(&n->header));
+
+	for (j = 0; j < n->extcount; j++) {
+		const extvec_t *e = &n->extvec[j];
+
+		switch (e->ext_token) {
+		case EXT_T_GGEP_IPP:
+			{
+				int cnt = ext_paylen(e) / 6;
+				const char *payload = ext_payload(e);
+				int i;
+
+				if (cnt * 6 != ext_paylen(e)) {
+					if (GNET_PROPERTY(guess_client_debug)) {
+						g_warning("GUESS invalid IPP payload length %d from %s",
+							ext_paylen(e), node_infostr(n));
+						continue;
+					}
+				}
+
+				guess_host_set_flags(h, GUESS_F_PONG_IPP);
+
+				for (i = 0; i < cnt; i++) {
+					host_addr_t addr;
+					guint16 port;
+
+					addr = host_addr_peek_ipv4(&payload[i * 6]);
+					port = peek_le16(&payload[i * 6 + 4]);
+
+					if (GNET_PROPERTY(guess_client_debug) > 4) {
+						g_debug("GUESS got host %s via IPP extension from %s",
+							host_addr_port_to_string(addr, port),
+							node_infostr(n));
+					}
+
+					guess_discovered_host(addr, port);
+					if (gq != NULL) {
+						guess_add_pool(gq, addr, port);
+					}
+				}
+			}
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+/**
+ * Process query key reply from host.
+ *
+ * @param type		type of reply, if any
+ * @param n			gnutella node replying (NULL if no reply)
+ * @param data		user-supplied callback data
+ */
+static void
+guess_qk_reply(enum udp_ping_ret type,
+	const struct gnutella_node *n, void *data)
+{
+	gnet_host_t *h = data;
+
+	/*
+	 * This routine must be prepared to get invoked well after the GUESS
+	 * layer was shutdown (due to previous UDP pings expiring).
+	 */
+
+	switch (type) {
+	case UDP_PING_TIMEDOUT:
+		/*
+		 * Host did not reply, delete cached entry, if any.
+		 */
+		if (GNET_PROPERTY(guess_client_debug) > 3) {
+			g_info("GUESS ping timeout for %s", gnet_host_to_string(h));
+		}
+
+		guess_remove_link_cache(h);
+
+		/* FALL THROUGH */
+
+	case UDP_PING_EXPIRED:
+		/*
+		 * Got several replies, haven't seen any for a while.
+		 * Everything is fine, and this is the last notification we'll get.
+		 */
+		if (GNET_PROPERTY(guess_client_debug) > 4) {
+			g_debug("GUESS done waiting for replies from %s",
+				gnet_host_to_string(h));
+		}
+		atom_host_free(h);
+		break;
+
+	case UDP_PING_REPLY:
+		if (G_UNLIKELY(NULL == link_cache))
+			break;
+
+		guess_traffic_from(h);
+		if (guess_extract_qk(n, h)) {
+			/*
+			 * Only the Pong for the host we queried should contain the
+			 * "QK" GGEP extension.  So we don't need to parse the Pong
+			 * message to get the host information.
+			 */
+
+			guess_add_link_cache(h, 100);	/* Add with 100% chance */
+		} else {
+			guint16 port = peek_le16(&n->data[0]);
+			host_addr_t addr = guess_extract_host_addr(n);
+
+
+			/*
+			 * This is probably a batch of Pong messages we're getting in
+			 * reply from our Ping.
+			 */
+
+			if (GNET_PROPERTY(guess_client_debug) > 4) {
+				g_debug("GUESS extra pong %s from %s",
+					host_addr_port_to_string(addr, port),
+					gnet_host_to_string(h));
+			}
+
+			guess_discovered_host(addr, port);
+		}
+		guess_extract_ipp(NULL, n, h);
+		break;
+	}
+}
+
+/**
+ * Request query key from host, with callback.
+ *
+ * @param gq		the GUESS query (optional, for b/w accounting only)
+ * @param host		host to query
+ * @param intro		if TRUE, send "introduction" ping information as well
+ * @param cb		callback to invoke on Pong reception or timeout
+ * @param arg		additional callback argument
+ *
+ * @return TRUE on success.
+ */
+static gboolean
+guess_request_qk_full(guess_t *gq, const gnet_host_t *host, gboolean intro,
+	udp_ping_cb_t cb, void *arg)
+{
+	guint32 size;
+	gnutella_msg_init_t *m;
+	gboolean sent;
+
+	/*
+	 * Refuse to send too frequent pings to a given host.
+	 */
+
+	if (aging_lookup(guess_qk_reqs, host)) {
+		if (GNET_PROPERTY(guess_client_debug) > 4) {
+			g_debug("GUESS throttling query key request to %s",
+				gnet_host_to_string(host));
+		}
+		return FALSE;
+	}
+
+	/*
+	 * Build and attempt to send message.
+	 */
+
+	m = build_guess_ping_msg(NULL, TRUE, intro, FALSE, &size);
+
+	sent = udp_send_ping_callback(m, size,
+		gnet_host_get_addr(host), gnet_host_get_port(host), cb, arg, TRUE);
+
+	if (GNET_PROPERTY(guess_client_debug) > 4) {
+		g_debug("GUESS requesting query key from %s%s",
+			gnet_host_to_string(host), sent ? "" : " (FAILED)");
+	}
+
+	if (sent) {
+		aging_insert(guess_qk_reqs, atom_host_get(host), int_to_pointer(1));
+		if (gq != NULL) {
+			guess_check(gq);
+			gq->bw_out_qk += size;	/* Estimated, UDP queue could drop it! */
+		}
+	}
+
+	return sent;
+}
+
+/**
+ * Request query key from host.
+ *
+ * @param host		host to query
+ * @param intro		if TRUE, send "introduction" ping information as well
+ *
+ * @return TRUE on success.
+ */
+static gboolean
+guess_request_qk(const gnet_host_t *host, gboolean intro)
+{
+	const gnet_host_t *h;
+	gboolean sent;
+
+	h = atom_host_get(host);
+
+	sent = guess_request_qk_full(NULL, host, intro,
+		guess_qk_reply, deconstify_gpointer(h));
+
+	if (!sent)
+		atom_host_free(h);
+
+	return sent;
+}
+
+/**
+ * Callback invoked when a new host is available in the cache.
+ */
+static wq_status_t
+guess_host_added(void *u_data, void *hostinfo)
+{
+	struct hcache_new_host *nhost = hostinfo;
+
+	(void) u_data;
+
+	switch (nhost->type) {
+	case HCACHE_GUESS:
+	case HCACHE_GUESS_INTRO:
+		break;
+	default:
+		return WQ_SLEEP;		/* Still waiting for a GUESS host */
+	}
+
+	/*
+	 * If our link cache is already full, we can stop monitoring.
+	 */
+
+	if (hash_list_length(link_cache) >= GUESS_LINK_CACHE_SIZE) {
+		guess_new_host_ev = NULL;
+		return WQ_REMOVE;
+	}
+
+	/*
+	 * If we already have the host in our link cache, ignore it.
+	 */
+
+	{
+		gnet_host_t host;
+		gnet_host_set(&host, nhost->addr, nhost->port);
+		if (hash_list_contains(link_cache, &host))
+			return WQ_SLEEP;
+	}
+
+	/*
+	 * We got a new GUESS host.
+	 *
+	 * If the link cache is already full, ignore it.
+	 * Otherwise, probe it to make sure it is alive and get a query key.
+	 */
+
+	if (hash_list_length(link_cache) < GUESS_LINK_CACHE_SIZE) {
+		gnet_host_t host;
+
+		gnet_host_set(&host, nhost->addr, nhost->port);
+		if (!guess_request_qk(&host, TRUE))
+			return WQ_SLEEP;
+	}
+
+	if (GNET_PROPERTY(guess_client_debug) > 1) {
+		g_debug("GUESS discovered host %s",
+			host_addr_port_to_string(nhost->addr, nhost->port));
+	}
+
+	/*
+	 * Host may not reply, continue to monitor for new hosts.
+	 */
+
+	return WQ_SLEEP;
+}
+
+/**
+ * Activate discovery of new hosts.
+ */
+static void
+guess_discovery_enable(void)
+{
+	if (GNET_PROPERTY(guess_client_debug) > 1) {
+		g_debug("GUESS %swaiting for discovery of hosts",
+			NULL == guess_new_host_ev ? "" : "still ");
+	}
+	if (NULL == guess_new_host_ev) {
+		guess_new_host_ev = wq_sleep(hcache_add, guess_host_added, NULL);
+	}
+}
+
+/**
+ * Process "more hosts" reply from host.
+ *
+ * @param type		type of reply, if any
+ * @param n			gnutella node replying (NULL if no reply)
+ * @param data		user-supplied callback data
+ */
+static void
+guess_hosts_reply(enum udp_ping_ret type,
+	const struct gnutella_node *n, void *data)
+{
+	gnet_host_t *h = data;
+
+	/*
+	 * This routine must be prepared to get invoked well after the GUESS
+	 * layer was shutdown (due to previous UDP pings expiring).
+	 */
+
+	switch (type) {
+	case UDP_PING_TIMEDOUT:
+		/*
+		 * Host did not reply, delete cached entry, if any.
+		 */
+		guess_remove_link_cache(h);
+
+		if (GNET_PROPERTY(guess_client_debug) > 3) {
+			g_info("GUESS ping timeout for %s", gnet_host_to_string(h));
+		}
+
+		/* FALL THROUGH */
+
+	case UDP_PING_EXPIRED:
+		/*
+		 * Got several replies, haven't seen any for a while.
+		 * Everything is fine, and this is the last notification we'll get.
+		 */
+
+		atom_host_free(h);
+
+		/*
+		 * If we still have less than the maximum amount of hosts in the
+		 * link cache, wait for more.
+		 */
+
+		if (
+			G_LIKELY(link_cache != NULL) &&
+			hash_list_length(link_cache) < GUESS_LINK_CACHE_SIZE
+		) {
+			guess_discovery_enable();
+		}
+
+		break;
+
+	case UDP_PING_REPLY:
+		if (G_UNLIKELY(NULL == link_cache))
+			break;
+
+		guess_traffic_from(h);
+		{
+			guint16 port = peek_le16(&n->data[0]);
+			host_addr_t addr = guess_extract_host_addr(n);
+
+			/*
+			 * This is a batch of Pong messages we're getting in reply from
+			 * our Ping.
+			 */
+
+			if (GNET_PROPERTY(guess_client_debug) > 4) {
+				g_debug("GUESS got pong from %s for %s",
+					gnet_host_to_string(h),
+					host_addr_port_to_string(addr, port));
+			}
+
+			guess_discovered_host(addr, port);
+			if (!host_addr_equal(addr, gnet_host_get_addr(h))) {
+				guess_host_set_flags(h, GUESS_F_OTHER_HOST);
+			}
+		}
+		guess_extract_ipp(NULL, n, h);
+		break;
+	}
+}
+
+/**
+ * Request more GUESS hosts.
+ *
+ * @return TRUE on success.
+ */
+static gboolean
+guess_request_hosts(host_addr_t addr, guint16 port)
+{
+	guint32 size;
+	gnutella_msg_init_t *m;
+	gnet_host_t host;
+	const gnet_host_t *h;
+	gboolean sent;
+
+	m = build_guess_ping_msg(NULL, FALSE, TRUE, TRUE, &size);
+	gnet_host_set(&host, addr, port);
+	h = atom_host_get(&host);
+
+	sent = udp_send_ping_callback(m, size, addr, port,
+		guess_hosts_reply, deconstify_gpointer(h), TRUE);
+
+	if (GNET_PROPERTY(guess_client_debug) > 4) {
+		g_debug("GUESS requesting more hosts from %s%s",
+			host_addr_port_to_string(addr, port), sent ? "" : " (FAILED)");
+	}
+
+	if (!sent)
+		atom_host_free(h);
+	else {
+		guess_host_set_flags(h, GUESS_F_PINGED);
+		guess_host_clear_flags(h, GUESS_F_OTHER_HOST | GUESS_F_PONG_IPP);
+	}
+
+	return sent;
+}
+
+/**
+ * DBMW foreach iterator to remove old entries.
+ * @return TRUE if entry must be deleted.
+ */
+static gboolean
+qk_prune_old(void *key, void *value, size_t u_len, void *u_data)
+{
+	const gnet_host_t *h = key;
+	const struct qkdata *qk = value;
+	time_delta_t d;
+	gboolean expired, hostile;
+	double p;
+
+	(void) u_len;
+	(void) u_data;
+
+	/*
+	 * The query cache is both a way to identify "stable" GUESS nodes as well
+	 * as a way to cache the necessary query key.
+	 *
+	 * Therefore, we're not expiring entries based on their query key
+	 * obsolescence but more on the probability that the node be still alive.
+	 */
+
+	d = delta_time(tm_time(), qk->last_seen);
+	hostile = FALSE;
+
+	if (hostiles_check(gnet_host_get_addr(h))) {
+		hostile = TRUE;
+		p = 0.0;
+	} else if (d <= GUESS_QK_LIFE) {
+		expired = FALSE;
+		p = 1.0;
+	} else {
+	 	/* We reuse the statistical probability model of DHT nodes. */
+		p = stable_still_alive_probability(qk->first_seen, qk->last_seen);
+		expired = p < GUESS_STABLE_PROBA;
+	}
+
+	if (GNET_PROPERTY(guess_client_debug) > 5) {
+		g_debug("GUESS QKCACHE node %s life=%s last_seen=%s, p=%.2f%%%s",
+			gnet_host_to_string(h),
+			compact_time(delta_time(qk->last_seen, qk->first_seen)),
+			compact_time2(d), p * 100.0,
+			hostile ? " [HOSTILE]" : expired ? " [EXPIRED]" : "");
+	}
+
+	return expired;
+}
+
+/**
+ * Prune the database, removing expired query keys.
+ */
+static void
+guess_qk_prune_old(void)
+{
+	if (GNET_PROPERTY(guess_client_debug)) {
+		g_debug("GUESS QKCACHE pruning expired query keys (%lu)",
+			(unsigned long) dbmw_count(db_qkdata));
+	}
+
+	dbmw_foreach_remove(db_qkdata, qk_prune_old, NULL);
+	gnet_stats_set_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD,
+		dbmw_count(db_qkdata));
+
+	if (GNET_PROPERTY(guess_client_debug)) {
+		g_debug("GUESS QKCACHE pruned expired query keys (%lu remaining)",
+			(unsigned long) dbmw_count(db_qkdata));
+	}
+
+	dbstore_shrink(db_qkdata);
+}
+
+/**
+ * Callout queue periodic event to expire old entries.
+ */
+static gboolean
+guess_qk_periodic_prune(void *unused_obj)
+{
+	(void) unused_obj;
+
+	guess_qk_prune_old();
+	return TRUE;		/* Keep calling */
+}
+
+/**
+ * Hash list iterator to possibly send an UDP ping to the host.
+ */
+static void
+guess_ping_host(void *host, void *u_data)
+{
+	gnet_host_t *h = host;
+	const struct qkdata *qk;
+	time_delta_t d;
+
+	(void) u_data;
+
+	qk = get_qkdata(h);
+	if (NULL == qk)
+		return;
+
+	d = delta_time(tm_time(), qk->last_seen);
+
+	if (d > GUESS_ALIVE_PERIOD) {
+		if (GNET_PROPERTY(guess_client_debug) > 4) {
+			g_debug("GUESS not heard from %s since %ld seconds, pinging",
+				gnet_host_to_string(h), (long) d);
+		}
+
+		/*
+		 * Send an introduction request only 25% of the time.
+		 */
+
+		guess_request_qk(h, random_u32() % 100 < 25);
+	} else if (delta_time(tm_time(), qk->last_update) > GUESS_QK_LIFE) {
+		if (GNET_PROPERTY(guess_client_debug) > 4) {
+			g_debug("GUESS query key for %s expired, pinging",
+				gnet_host_to_string(h));
+		}
+		guess_request_qk(h, FALSE);
+	}
+}
+
+/**
+ * Ping all entries in the link cache from which we haven't heard about
+ * recently.
+ *
+ * The aim is to get a single pong back, so we request new query keys and
+ * at the same time introduce ourselves.
+ */
+static void
+guess_ping_link_cache(void)
+{
+	hash_list_foreach(link_cache, guess_ping_host, NULL);
+}
+
+/**
+ * DBMW foreach iterator to load the initial link cache.
+ */
+static void
+qk_link_cache(void *key, void *value, size_t len, void *u_data)
+{
+	const gnet_host_t *h = key;
+	struct qkdata *qk = value;
+	unsigned p;
+
+	g_assert(len == sizeof *qk);
+
+	(void) u_data;
+
+	/*
+	 * Favor insertion on hosts in the link cache that are either "connected"
+	 * to other GUESS hosts (they return pongs for other hosts) or which
+	 * are returning packed hosts in IPP when asked for hosts.
+	 */
+
+	p = 50;				/* Has a 50% chance by default */
+
+	if (qk->flags & (GUESS_F_PONG_IPP | GUESS_F_OTHER_HOST))
+		p = 90;			/* Good host to be linked to */
+	else if (0 == qk->length)
+		p = 10;			/* No valid query key: host never contacted */
+
+	guess_add_link_cache(h, p);
+}
+
+/**
+ * Load initial GUESS link cache.
+ */
+static void
+guess_load_link_cache(void)
+{
+	dbmw_foreach(db_qkdata, qk_link_cache, NULL);
+}
+
+/**
+ * Ensure that the link cache remains full.
+ *
+ * If we're missing hosts, initiate discovery of new GUESS entries.
+ */
+static void
+guess_check_link_cache(void)
+{
+	if (hash_list_length(link_cache) >= GUESS_LINK_CACHE_SIZE) {
+		guess_ping_link_cache();
+		return;		/* Link cache already full */
+	}
+
+	/*
+	 * If the link cache is empty, wait for a new GUESS host to be
+	 * discovered by the general cache.
+	 */
+
+	if (hash_list_length(link_cache) < GUESS_LINK_CACHE_SIZE) {
+		guess_discovery_enable();
+		if (0 == hash_list_length(link_cache))
+			return;
+		/* FALL THROUGH */
+	}
+
+	/*
+	 * Request more GUESS hosts from the most recently seen host in our
+	 * link cache by default, or from a host known to report pongs with IPP
+	 * or for other hosts than itself.
+	 */
+
+	{
+		gnet_host_t *h = hash_list_head(link_cache);
+		hash_list_iter_t *iter;
+
+		g_assert(h != NULL);		/* Since list is not empty */
+
+		iter = hash_list_iterator(link_cache);
+
+		while (hash_list_iter_has_next(iter)) {
+			gnet_host_t *host = hash_list_iter_next(iter);
+			struct qkdata *qk = get_qkdata(host);
+
+			if (
+				qk != NULL &&
+				(qk->flags & (GUESS_F_PONG_IPP | GUESS_F_OTHER_HOST))
+			) {
+				h = host;
+				break;
+			}
+		}
+
+		hash_list_iter_release(&iter);
+		guess_request_hosts(gnet_host_get_addr(h), gnet_host_get_port(h));
+	}
+}
+
+/**
+ * Callout queue periodic event to monitor the link cache.
+ */
+static gboolean
+guess_periodic_check(void *unused_obj)
+{
+	(void) unused_obj;
+
+	guess_check_link_cache();
+	return TRUE;				/* Keep calling */
+}
+
+/**
+ * Callout queue periodic event to synchronize the persistent DB (full flush).
+ */
+static gboolean
+guess_periodic_sync(void *unused_obj)
+{
+	(void) unused_obj;
+
+	dbstore_sync_flush(db_qkdata);
+	return TRUE;				/* Keep calling */
+}
+
+/**
+ * Is a search MUID that of a running GUESS query?
+ */
+gboolean
+guess_is_search_muid(const guid_t *muid)
+{
+	if (G_UNLIKELY(NULL == gmuid))
+		return FALSE;
+
+	return gm_hash_table_contains(gmuid, muid);
+}
+
+/**
+ * Count received hits for GUESS query.
+ */
+void
+guess_got_results(const guid_t *muid, guint32 hits)
+{
+	guess_t *gq;
+
+	gq = g_hash_table_lookup(gmuid, muid);
+	guess_check(gq);
+	gq->recv_results += hits;
+	gnet_stats_count_general(GNR_GUESS_LOCAL_QUERY_HITS, +1);
+}
+
+/**
+ * Amount of results "kept" for the query.
+ */
+static guint32
+guess_kept_results(guess_t *gq)
+{
+	guess_check(gq);
+
+	return gq->kept_results = search_get_kept_results_by_handle(gq->sh);
+}
+
+/**
+ * Log final statistics.
+ */
+static void
+guess_final_stats(const guess_t *gq)
+{
+	tm_t end;
+
+	guess_check(gq);
+
+	tm_now_exact(&end);
+
+	if (GNET_PROPERTY(guess_client_debug) > 1) {
+		g_debug("GUESS QUERY[%s] took %f secs, queried_set=%lu, pool_set=%lu, "
+			"queried=%lu, acks=%lu, kept_results=%u/%u, "
+			"out_qk=%u bytes, out_query=%u bytes",
+			nid_to_string(&gq->gid), tm_elapsed_f(&end, &gq->start),
+			(unsigned long) map_count(gq->queried),
+			(unsigned long) hash_list_length(gq->pool),
+			(unsigned long) gq->queried_nodes,
+			(unsigned long) gq->query_acks, gq->kept_results, gq->recv_results,
+			gq->bw_out_qk, gq->bw_out_query);
+	}
+}
+
+/**
+ * Should we terminate the query?
+ */
+static gboolean
+guess_should_terminate(guess_t *gq)
+{
+	const char *reason = NULL;
+	tm_t now;
+
+	guess_check(gq);
+
+	if (!guess_query_enabled()) {
+		reason = "GUESS disabled";
+		goto terminate;
+	}
+
+	tm_now(&now);
+
+	if (tm_elapsed_ms(&now, &gq->start) >= 1000 * GUESS_MAX_LIFETIME) {
+		reason = "max lifetime reached";
+		goto terminate;
+	}
+
+	if (gq->query_acks >= GUESS_MAX_ULTRAPEERS) {
+		reason = "max amount of successfully queried ultrapeers reached";
+		goto terminate;
+	}
+
+	if (guess_kept_results(gq) >= GUESS_MAX_RESULTS) {
+		reason = "max amount of kept results reached";
+		goto terminate;
+	}
+
+	return FALSE;
+
+terminate:
+	if (GNET_PROPERTY(guess_client_debug) > 1) {
+		g_debug("GUESS QUERY[%s] should terminate: %s",
+			nid_to_string(&gq->gid), reason);
+	}
+
+	return TRUE;
+}
+
+/**
+ * Select host to query next.
+ *
+ * @return host to query, NULL if none available.
+ */
+static const gnet_host_t *
+guess_pick_next(guess_t *gq)
+{
+	guess_check(gq);
+
+	for (;;) {
+		const gnet_host_t *host = hash_list_shift(gq->pool);
+
+		if (NULL == host)
+			return NULL;
+
+		/*
+		 * Known recently discovered alien hosts are invisibly removed.
+		 *
+		 * Addresses can become dynamically hostile (reloading of the hostile
+		 * file, dynamically found hostile hosts).
+		 */
+
+		if (
+			aging_lookup(guess_alien, host) ||
+			hostiles_check(gnet_host_get_addr(host))
+		) {
+			atom_host_free(host);
+			continue;
+		}
+
+		/*
+		 * If we hit a host for which we're waiting for a query key, put
+		 * it back in the pool and wait.
+		 */
+
+		if (aging_lookup(guess_qk_reqs, host)) {
+			hash_list_prepend(gq->pool, host);
+			return NULL;
+		}
+
+		return host;
+	}
+}
+
+/**
+ * Delay expiration -- callout queue callabck.
+ */
+static void
+guess_delay_expired(cqueue_t *unused_cq, void *obj)
+{
+	guess_t *gq = obj;
+
+	(void) unused_cq;
+
+	guess_check(gq);
+
+	gq->delay_ev = NULL;
+	gq->flags &= ~GQ_F_DELAYED;
+	guess_iterate(gq);
+}
+
+/**
+ * Delay iterating to let the UDP queue flush.
+ */
+static void
+guess_delay(guess_t *gq)
+{
+	guess_check(gq);
+
+	g_assert(NULL == gq->delay_ev);
+	g_assert(!(gq->flags & GQ_F_DELAYED));
+
+	if (GNET_PROPERTY(guess_client_debug) > 2) {
+		g_debug("GUESS QUERY[%s] delaying next iteration by %d seconds",
+			nid_to_string(&gq->gid), GUESS_FIND_DELAY / 1000);
+	}
+
+	gq->flags |= GQ_F_DELAYED;
+	gq->delay_ev = cq_main_insert(GUESS_FIND_DELAY, guess_delay_expired, gq);
+}
+
+/**
+ * Asynchronously request a new iteration.
+ */
+static void
+guess_async_iterate(guess_t *gq)
+{
+	guess_check(gq);
+
+	g_assert(NULL == gq->delay_ev);
+	g_assert(!(gq->flags & GQ_F_DELAYED));
+
+	gq->flags |= GQ_F_DELAYED;
+	gq->delay_ev = cq_main_insert(1, guess_delay_expired, gq);
+}
+
+/*
+ * Schedule an asynchronous iteration if not already done
+ */
+static void
+guess_async_iterate_if_needed(guess_t *gq)
+{
+	if (!(gq->flags & GQ_F_DELAYED)) {
+		if (GNET_PROPERTY(guess_client_debug) > 2) {
+			g_debug("GUESS QUERY[%s] will iterate asynchronously",
+				nid_to_string(&gq->gid));
+		}
+		guess_async_iterate(gq);
+	}
+}
+
+/**
+ * Pool loading iterator context.
+ */
+struct guess_load_context {
+	guess_t *gq;
+	size_t loaded;
+};
+
+/**
+ * Hash list iterator to load host into query's pool if not already queried.
+ */
+static void
+guess_pool_from_link_cache(void *host, void *data)
+{
+	struct guess_load_context *ctx = data;
+	guess_t *gq = ctx->gq;
+
+	if (
+		!map_contains(gq->queried, host) &&
+		!hash_list_contains(gq->pool, host)
+	) {
+		hash_list_append(gq->pool, atom_host_get(host));
+		ctx->loaded++;
+		if (GNET_PROPERTY(guess_client_debug) > 5) {
+			g_debug("GUESS QUERY[%s] loaded link %s to pool",
+				nid_to_string(&gq->gid), gnet_host_to_string(host));
+		}
+	}
+}
+
+/**
+ * DBMW foreach iterator to load  host into query's pool if not already queried.
+ */
+static void
+guess_pool_from_qkdata(void *host, void *value, size_t len, void *data)
+{
+	struct guess_load_context *ctx = data;
+	struct qkdata *qk = value;
+	guess_t *gq = ctx->gq;
+
+	g_assert(len == sizeof *qk);
+
+	if (
+		!map_contains(gq->queried, host) &&
+		!hash_list_contains(gq->pool, host)
+	) {
+		double p =
+			stable_still_alive_probability(qk->first_seen, qk->last_seen);
+		if (p >= GUESS_ALIVE_PROBA) {
+			hash_list_append(gq->pool, atom_host_get(host));
+			ctx->loaded++;
+		}
+	}
+}
+
+/**
+ * Load more hosts into the query pool.
+ *
+ * @param gq		the GUESS query
+ * @param initial	TRUE if initial loading (only from link cache)
+ *
+ * @return amount of new hosts loaded into the pool.
+ */
+static size_t
+guess_load_pool(guess_t *gq, gboolean initial)
+{
+	struct guess_load_context ctx;
+
+	ctx.gq = gq;
+	ctx.loaded = 0;
+
+	hash_list_foreach(link_cache, guess_pool_from_link_cache, &ctx);
+	if (!initial || 0 == ctx.loaded) {
+		dbmw_foreach(db_qkdata, guess_pool_from_qkdata, &ctx);
+	}
+
+	return ctx.loaded;
+}
+
+/**
+ * Load more hosts into the pool.
+ */
+static void
+guess_load_more_hosts(guess_t *gq)
+{
+	size_t added;
+
+	guess_check(gq);
+
+	added = guess_load_pool(gq, FALSE);
+
+	if (GNET_PROPERTY(guess_client_debug) > 4) {
+		g_debug("GUESS QUERY[%s] loaded %lu more host%s in the pool",
+			nid_to_string(&gq->gid), (unsigned long) added,
+			1 == added ? "" : "s");
+	}
+}
+
+/**
+ * Callback invoked when a new host is available in the cache and could
+ * be added to the query pool.
+ */
+static wq_status_t
+guess_load_host_added(void *data, void *hostinfo)
+{
+	struct hcache_new_host *nhost = hostinfo;
+	guess_t *gq = data;
+	gnet_host_t host;
+
+	guess_check(gq);
+
+	/*
+	 * If we timed out, there's nothing to process.
+	 */
+
+	if (WQ_TIMED_OUT == hostinfo) {
+		if (GNET_PROPERTY(guess_client_debug) > 3) {
+			g_debug("GUESS QUERY[%s] hop %u, timed out waiting for new hosts",
+				nid_to_string(&gq->gid), gq->hops);
+		}
+		guess_load_more_hosts(gq);
+		goto done;
+	}
+
+	/*
+	 * Waiting for a GUESS host.
+	 */
+
+	switch (nhost->type) {
+	case HCACHE_GUESS:
+	case HCACHE_GUESS_INTRO:
+		break;
+	default:
+		return WQ_SLEEP;		/* Still waiting for a GUESS host */
+	}
+
+	/*
+	 * If we already know about this host, go back to sleep.
+	 */
+
+	gnet_host_set(&host, nhost->addr, nhost->port);
+
+	if (
+		map_contains(gq->queried, &host) ||
+		hash_list_contains(gq->pool, &host)
+	)
+		return WQ_SLEEP;
+
+	/*
+	 * Got a new host, query it asynchronously so that we can safely
+	 * remove this callback from the wait list in this calling chain.
+	 */
+
+	if (GNET_PROPERTY(guess_client_debug) > 3) {
+		g_debug("GUESS QUERY[%s] added discovered %s to pool",
+			nid_to_string(&gq->gid), gnet_host_to_string(&host));
+	}
+
+	hash_list_append(gq->pool, atom_host_get(&host));
+
+	/* FALL THROUGH */
+
+done:
+	gq->hostwait = NULL;
+	guess_async_iterate(gq);
+	return WQ_REMOVE;
+}
+
+/**
+ * Free routine for our extended message blocks.
+ */
+static void
+guess_pmsg_free(pmsg_t *mb, void *arg)
+{
+	struct guess_pmsg_info *pmi = arg;
+	guess_t *gq;
+
+	guess_pmsg_info_check(pmi);
+	g_assert(pmsg_is_extended(mb));
+
+	/*
+	 * Check whether the query was cancelled since we enqueued the message.
+	 */
+
+	gq = guess_is_alive(pmi->gid);
+	if (NULL == gq) {
+		if (GNET_PROPERTY(guess_client_debug) > 2) {
+		g_debug("GUESS QUERY[%s] late UDP message %s",
+			nid_to_string(&pmi->gid),
+			pmsg_was_sent(mb) ? "sending" : "dropping");
+		}
+		goto cleanup;
+	}
+
+	/*
+	 * If the RPC callback triggered before processing by the UDP queue,
+	 * then we don't need to further process: it was already handled by
+	 * the RPC time out.
+	 */
+
+	if (pmi->rpc_done)
+		goto cleanup;
+
+	guess_rpc_check(pmi->grp);
+
+	pmi->grp->pmi = NULL;		/* Break X-ref as message was processed */
+
+	if (pmsg_was_sent(mb)) {
+		/* Mesage was sent out */
+		if (GNET_PROPERTY(guess_client_debug) > 4) {
+			g_debug("GUESS QUERY[%s] sent %s to %s",
+				nid_to_string(&gq->gid), gmsg_infostr(pmsg_start(mb)),
+				gnet_host_to_string(pmi->host));
+		}
+		gq->queried_nodes++;
+		gq->bw_out_query += pmsg_written_size(mb);
+		gnet_stats_count_general(GNR_GUESS_HOSTS_QUERIED, +1);
+	} else {
+		/* Message was dropped */
+		if (GNET_PROPERTY(guess_client_debug) > 4) {
+			g_debug("GUESS QUERY[%s] dropped message to %s %synchronously",
+				nid_to_string(&gq->gid), gnet_host_to_string(pmi->host),
+				(gq->flags & GQ_F_SENDING) ? "s" : "as");
+		}
+
+		if (gq->flags & GQ_F_SENDING)
+			gq->flags |= GQ_F_UDP_DROP;
+
+		/*
+		 * Cancel the RPC since the message was never sent out and put
+		 * the host back to the pool.
+		 */
+
+		guess_rpc_cancel(gq, pmi->host);
+		map_remove(gq->queried, pmi->host);		/* Atom moved to the pool */
+		hash_list_append(gq->pool, pmi->host);
+
+		/*
+		 * Because the queue dropped the message, we're going to delay the
+		 * sending of further messages to avoid the avalanche effect.
+		 */
+
+		guess_delay(gq);
+	}
+
+	/* FALL THROUGH */
+
+cleanup:
+	atom_host_free_null(&pmi->host);
+	pmi->magic = 0;
+	wfree(pmi, sizeof *pmi);
+}
+
+/**
+ * Send query to host, logging when we can't query it.
+ *
+ * @return FALSE if query cannot be sent.
+ */
+static gboolean
+guess_send_query(guess_t *gq, const gnet_host_t *host)
+{
+	if (!guess_send(gq, host)) {
+		if (GNET_PROPERTY(guess_client_debug)) {
+			g_warning("GUESS QUERY[%s] could not query %s",
+				nid_to_string(&gq->gid), gnet_host_to_string(host));
+		}
+		guess_async_iterate_if_needed(gq);
+		return FALSE;
+	} else {
+		return TRUE;
+	}
+}
+
+/**
+ * Context for requesting query keys in the middle of the iteration.
+ */
+struct guess_qk_context {
+	struct nid gid;					/**< Running query ID */
+	const gnet_host_t *host;		/**< Host we're requesting the key from */
+};
+
+/**
+ * Process query key reply from host.
+ *
+ * @param type		type of reply, if any
+ * @param n			gnutella node replying (NULL if no reply)
+ * @param data		user-supplied callback data
+ */
+static void
+guess_got_query_key(enum udp_ping_ret type,
+	const struct gnutella_node *n, void *data)
+{
+	struct guess_qk_context *ctx = data;
+	guess_t *gq;
+	const gnet_host_t *host = ctx->host;
+
+	gq = guess_is_alive(ctx->gid);
+	if (NULL == gq) {
+		if (UDP_PING_EXPIRED == type)
+			wfree(ctx, sizeof *ctx);
+		return;
+	}
+
+	g_assert(atom_is_host(ctx->host));
+
+	switch (type) {
+	case UDP_PING_TIMEDOUT:
+		/*
+		 * Maybe we got the query key through a ping sent separately (by
+		 * the background GUESS discovery logic)?
+		 */
+
+		{
+			struct qkdata *qk = get_qkdata(host);
+
+			if (
+				qk != NULL && qk->length != 0 &&
+				delta_time(tm_time(), qk->last_update) <= GUESS_QK_LIFE
+			) {
+				if (GNET_PROPERTY(guess_client_debug) > 2) {
+					g_info("GUESS QUERY[%s] concurrently got query key for %s",
+						nid_to_string(&gq->gid), gnet_host_to_string(host));
+				}
+				guess_send_query(gq, host);
+				wfree(ctx, sizeof *ctx);
+				break;
+			}
+		}
+
+		if (GNET_PROPERTY(guess_client_debug) > 2) {
+			g_debug("GUESS QUERY[%s] timed out waiting query key from %s",
+				nid_to_string(&gq->gid), gnet_host_to_string(host));
+		}
+
+		/*
+		 * Mark host as non-GUESS for a while so that other queries do not
+		 * attempt to contact this host.
+		 */
+
+		aging_insert(guess_alien, atom_host_get(host), int_to_pointer(1));
+
+		/* FALL THROUGH */
+	case UDP_PING_EXPIRED:
+		wfree(ctx, sizeof *ctx);
+		goto no_query_key;
+	case UDP_PING_REPLY:
+		if (G_UNLIKELY(NULL == link_cache))
+			break;
+		guess_traffic_from(host);
+		if (guess_extract_qk(n, host)) {
+			if (GNET_PROPERTY(guess_client_debug) > 2) {
+				g_debug("GUESS QUERY[%s] got query key from %s, sending query",
+					nid_to_string(&gq->gid), gnet_host_to_string(host));
+			}
+			guess_send_query(gq, host);
+		} else {
+			guint16 port = peek_le16(&n->data[0]);
+			host_addr_t addr = guess_extract_host_addr(n);
+
+
+			/*
+			 * This is probably a batch of Pong messages we're getting in
+			 * reply from our Ping.
+			 */
+
+			if (GNET_PROPERTY(guess_client_debug) > 4) {
+				g_debug("GUESS QUERY[%s] extra pong %s from %s",
+					nid_to_string(&gq->gid),
+					host_addr_port_to_string(addr, port),
+					gnet_host_to_string(host));
+			}
+
+			/*
+			 * If it is a pong for itself, and we don't know the query
+			 * key for the host yet, then we got a plain pong because
+			 * the host did not understand the "QK" GGEP key in the ping.
+			 *
+			 * This is not a GUESS host so remove it from the cache.
+			 */
+
+			if (
+				gnet_host_get_port(host) == port &&
+				host_addr_equal(gnet_host_get_addr(host), addr)
+			) {
+				struct qkdata *qk = get_qkdata(host);
+
+				if (NULL == qk || 0 == qk->length) {
+					if (GNET_PROPERTY(guess_client_debug) > 1) {
+						g_info("GUESS QUERY[%s] host %s doesn't support GUESS",
+							nid_to_string(&gq->gid), gnet_host_to_string(host));
+					}
+					aging_insert(guess_alien, atom_host_get(host),
+						int_to_pointer(1));
+				}
+				if (qk != NULL)
+					delete_qkdata(host);
+				guess_remove_link_cache(host);
+				goto no_query_key;
+			}
+		}
+		guess_extract_ipp(gq, n, host);
+		break;
+	}
+
+	return;
+
+no_query_key:
+	guess_iterate(gq);
+}
+
+/**
+ * Process acknowledgement pong received from host.
+ *
+ * @param gq		the GUESS query
+ * @param n			the node sending back the acknowledgement pong
+ * @param host		the host we queried (atom)
+ * @param hops		hop count at the time we sent the RPC
+ *
+ * @return TRUE if we should iterate
+ */
+static gboolean
+guess_handle_ack(guess_t *gq,
+	const gnutella_node_t *n, const gnet_host_t *host, unsigned hops)
+{
+	guess_check(gq);
+	g_assert(atom_is_host(host));
+	g_assert(n != NULL);
+	g_assert(GTA_MSG_INIT_RESPONSE == gnutella_header_get_function(&n->header));
+	g_assert(map_contains(gq->queried, host));
+
+	/*
+	 * Once we have queried enough ultrapeers, we know that the query is for
+	 * a rare item or we would have stopped earlier due to the whelm of hits.
+	 * Accelerate things by switching to loose parallelism.
+	 */
+
+	if (GUESS_WARMING_COUNT == gq->query_acks++) {
+		if (GNET_PROPERTY(guess_client_debug) > 1) {
+			g_debug("GUESS QUERY[%s] switching to loose parallelism",
+				nid_to_string(&gq->gid));
+		}
+		gq->mode = GUESS_QUERY_LOOSE;
+		guess_load_more_hosts(gq);		/* Fuel for acceleration */
+	}
+
+	guess_traffic_from(host);
+	{
+		guint16 port = peek_le16(&n->data[0]);
+		host_addr_t addr = guess_extract_host_addr(n);
+
+		/*
+		 * This is an acknowledgement Pong we're getting after our query.
+		 */
+
+		if (GNET_PROPERTY(guess_client_debug) > 4) {
+			tm_t now;
+			tm_now_exact(&now);
+			g_debug("GUESS QUERY[%s] %f secs, hop %u, "
+				"got acknowledgement pong from %s for %s at hop %u",
+				nid_to_string(&gq->gid), tm_elapsed_f(&now, &gq->start),
+				gq->hops, gnet_host_to_string(host),
+				host_addr_port_to_string(addr, port), hops);
+		}
+
+		guess_discovered_host(addr, port);
+		if (!host_addr_equal(addr, gnet_host_get_addr(host))) {
+			guess_host_set_flags(host, GUESS_F_OTHER_HOST);
+			guess_add_pool(gq, addr, port);
+		}
+	}
+	guess_extract_ipp(gq, n, host);
+
+	/*
+	 * If the pong contains a new query key, it means our old query key
+	 * expired.  We need to resend the query to this host.
+	 *
+	 * Because we're in the middle of an RPC processing, we cannot issue
+	 * a new RPC to this host yet: put it back as the first item in the pool
+	 * so that we pick it up again at the next iteration.
+	 */
+
+	if (guess_extract_qk(n, host)) {
+		if (GNET_PROPERTY(guess_client_debug) > 2) {
+			g_debug("GUESS QUERY[%s] got new query key for %s, back to pool",
+				nid_to_string(&gq->gid), gnet_host_to_string(host));
+		}
+		map_remove(gq->queried, host);
+		hash_list_prepend(gq->pool, host);
+	}
+
+	return hops >= gq->hops;		/* Iterate only if reply from current hop */
+}
+
+/**
+ * GUESS RPC callback function.
+ *
+ * @param type		GUESS_RPC_TIMEOUT or GUESS_RPC_REPLY
+ * @param grp		RPC descriptor
+ * @param n			the node sending back the acknowledgement pong
+ * @param gq		the GUESS query object that issued the RPC
+ */
+static void
+guess_rpc_callback(enum guess_rpc_ret type, struct guess_rpc *grp,
+	const gnutella_node_t *n, guess_t *gq)
+{
+	guess_rpc_check(grp);
+	guess_check(gq);
+	g_assert(gq->rpc_pending > 0);
+
+	gq->rpc_pending--;
+
+	if (GUESS_RPC_TIMEOUT == type) {
+		if (grp->pmi != NULL)			/* Message not processed by UDP queue */
+			grp->pmi->rpc_done = TRUE;
+
+		if (0 == gq->rpc_pending)
+			guess_iterate(gq);
+	} else {
+		g_assert(NULL == grp->pmi);		/* Message sent if we get a reply */
+
+		if (guess_handle_ack(gq, n, grp->host, grp->hops))
+			guess_iterate(gq);
+	}
+}
+
+/**
+ * Send query message to host.
+ *
+ * @return TRUE if message was sent, FALSE if we cannot query the host.
+ */
+static gboolean
+guess_send(guess_t *gq, const gnet_host_t *host)
+{
+	struct guess_pmsg_info *pmi;
+	struct guess_rpc *grp;
+	pmsg_t *mb;
+	guint32 size;
+	gnutella_msg_search_t *msg;
+	struct qkdata *qk;
+	const gnutella_node_t *n;
+
+	guess_check(gq);
+	g_assert(atom_is_host(host));
+
+	/*
+	 * We can come here twice for a single host: once when requesting the
+	 * query key, and then a second time when we got the key and want to
+	 * actually send the query.
+	 *
+	 * However, we don't want guess_iterate() to request twice the same host.
+	 * We will never be able to have two alive RPCs to the same IP anyway.
+	 *
+	 * Therefore, record the host in the "queried" table if not already present.
+	 * Since it is an atom (removal from the pool), there's no need to refcount
+	 * it again.
+	 */
+
+	if (!map_contains(gq->queried, host)) {
+		map_insert(gq->queried, host, int_to_pointer(1));
+	}
+
+	/*
+	 * Look for the existence of a query key in the cache.
+	 */
+
+	qk = get_qkdata(host);
+
+	if (
+		NULL == qk || 0 == qk->length ||
+		delta_time(tm_time(), qk->last_update) > GUESS_QK_LIFE
+	) {
+		struct guess_qk_context *ctx;
+
+		ctx = walloc(sizeof *ctx);
+		ctx->gid = gq->gid;
+		ctx->host = host;
+
+		if (!guess_request_qk_full(gq, host, FALSE, guess_got_query_key, ctx)) {
+			wfree(ctx, sizeof *ctx);
+			goto unqueried;
+		}
+
+		if (GNET_PROPERTY(guess_client_debug) > 2) {
+			g_debug("GUESS QUERY[%s] waiting for query key from %s",
+				nid_to_string(&gq->gid), gnet_host_to_string(host));
+		}
+		return TRUE;
+	}
+
+	if (GNET_PROPERTY(guess_client_debug) > 2) {
+		g_debug("GUESS QUERY[%s] querying %s",
+			nid_to_string(&gq->gid), gnet_host_to_string(host));
+	}
+
+	/*
+	 * Allocate the RPC descriptor, checking that we can indeed query the host.
+	 */
+
+	grp = guess_rpc_register(host, gq->muid, gq->gid, guess_rpc_callback);
+
+	if (NULL == grp)
+		goto unqueried;
+
+	gq->rpc_pending++;
+
+	/*
+	 * Allocate additional message information for an extended message block.
+	 */
+
+	pmi = walloc(sizeof *pmi);
+	pmi->magic = GUESS_PMI_MAGIC;
+	pmi->host = atom_host_get(host);
+	pmi->gid = gq->gid;
+	pmi->rpc_done = FALSE;
+
+	grp->hops = gq->hops;
+
+	/* Symetric cross-referencing */
+	grp->pmi = pmi;
+	pmi->grp = grp;
+
+	/*
+	 * Allocate a new extended message, attaching the meta-information.
+	 *
+	 * We don't pre-allocate the query message once and then use
+	 * pmsg_clone_extend() to attach the meta-information on purpose:
+	 *
+	 * 1. We want to keep the routing table information alive (i.e. keep
+	 *    track of the MUID we used for the query) during the whole course
+	 *    of the query, which may be long.
+	 *
+	 * 2. Regenerating the search message each time guarantees that our
+	 *    IP:port remains correct should it change during the course of
+	 *    the query.  Also OOB requests can be turned on/off anytime.
+	 *
+	 * 3. We need a "QK" GGEP extension holding the recipient-specific key.
+	 */
+
+	msg = build_guess_search_msg(gq->muid, gq->query, &size,
+			qk->query_key, qk->length);
+	mb = pmsg_new_extend(PMSG_P_DATA, NULL, size, guess_pmsg_free, pmi);
+	pmsg_write(mb, msg, size);
+	wfree(msg, size);
+
+	/*
+	 * Send the message.
+	 */
+
+	n = node_udp_get_addr_port(
+			gnet_host_get_addr(host), gnet_host_get_port(host));
+
+	if (n != NULL) {
+		gmsg_mb_sendto_one(n, mb);
+		if (GNET_PROPERTY(guess_client_debug) > 5) {
+			g_debug("GUESS QUERY[%s] enqueued query to %s",
+				nid_to_string(&gq->gid), gnet_host_to_string(host));
+		}
+	} else {
+		if (GNET_PROPERTY(guess_client_debug)) {
+			g_warning("GUESS QUERY[%s] cannot send message to %s",
+				nid_to_string(&gq->gid), gnet_host_to_string(host));
+		}
+		pmsg_free(mb);
+		guess_rpc_cancel(gq, host);
+	}
+
+	return TRUE;		/* Attempted to query the host */
+
+unqueried:
+	if (GNET_PROPERTY(guess_client_debug) > 2) {
+		g_debug("GUESS QUERY[%s] putting unqueried %s back to pool",
+			nid_to_string(&gq->gid), gnet_host_to_string(host));
+	}
+
+	map_remove(gq->queried, host);
+	hash_list_append(gq->pool, host);
+
+	return FALSE;		/* Did not query the host */
+}
+
+/**
+ * Iterate the querying.
+ */
+static void
+guess_iterate(guess_t *gq)
+{
+	int alpha = GUESS_ALPHA;
+	int i = 0;
+	size_t attempts = 0;
+
+	guess_check(gq);
+
+	/*
+	 * Check for termination criteria.
+	 */
+
+	if (guess_should_terminate(gq)) {
+		guess_cancel(&gq, TRUE);
+		return;
+	}
+
+	/*
+	 * If we were delayed in another "thread" of replies, this call is about
+	 * to be rescheduled once the delay is expired.
+	 */
+
+	if (gq->flags & GQ_F_DELAYED) {
+		if (GNET_PROPERTY(guess_client_debug) > 2) {
+			g_debug("GUESS QUERY[%s] not iterating yet (delayed)",
+				nid_to_string(&gq->gid));
+		}
+		return;
+	}
+
+	/*
+	 * Enforce bounded parallelism.
+	 */
+
+	if (GUESS_QUERY_BOUNDED == gq->mode) {
+		alpha -= gq->rpc_pending;
+
+		if (alpha <= 0) {
+			if (GNET_PROPERTY(guess_client_debug) > 2) {
+				g_debug("GUESS QUERY[%s] not iterating yet (%d RPC%s pending)",
+					nid_to_string(&gq->gid), gq->rpc_pending,
+					1 == gq->rpc_pending ? "" : "s");
+			}
+			return;
+		}
+	}
+
+	gq->hops++;
+
+	if (GNET_PROPERTY(guess_client_debug) > 2) {
+		tm_t now;
+		tm_now_exact(&now);
+		g_debug("GUESS QUERY[%s] iterating, %f secs, hop %u "
+		"(%s parallelism: sending %d RPC%s at most, %d outstanding)",
+			nid_to_string(&gq->gid), tm_elapsed_f(&now, &gq->start),
+			gq->hops, guess_mode_to_string(gq->mode),
+			alpha, 1 == alpha ? "" : "s", gq->rpc_pending);
+	}
+
+	gq->flags |= GQ_F_SENDING;		/* Proctect against syncrhonous UDP drops */
+	gq->flags &= ~GQ_F_UDP_DROP;	/* Clear condition */
+
+	while (i < alpha) {
+		const gnet_host_t *host;
+
+		/*
+		 * Because guess_send() can fail to query the host, putting back the
+		 * entry at the end of the pool, we must make sure we do not loop more
+		 * than the amount of entries in the pool or we'd be stuck here!
+		 */
+
+		if (attempts++ > hash_list_length(gq->pool))
+			break;
+
+		host = guess_pick_next(gq);
+		if (NULL == host)
+			break;
+
+		if (!map_contains(gq->queried, host)) {
+			if (!guess_send_query(gq, host))
+				continue;
+			if (gq->flags & GQ_F_UDP_DROP)
+				break;			/* Synchronous UDP drop detected */
+			i++;
+		} else {
+			atom_host_free_null(&host);
+		}
+	}
+
+	gq->flags &= ~GQ_F_SENDING;
+
+	/*
+	 * If we could not send the UDP message due to synchronous dropping,
+	 * wait a little before iterating again so that the UDP queue can flush
+	 * before we enqueue more messages.
+	 */
+
+	if (0 == i) {
+		if (gq->flags & GQ_F_UDP_DROP) {
+			if (GNET_PROPERTY(guess_client_debug) > 1) {
+				g_debug("GUESS QUERY[%s] giving UDP a chance to flush",
+					nid_to_string(&gq->gid));
+			}
+			guess_delay(gq);
+		} else {
+			if (GNET_PROPERTY(guess_client_debug) > 1) {
+				g_debug("GUESS QUERY[%s] starving, %swaiting for new hosts",
+					nid_to_string(&gq->gid),
+					NULL == gq->hostwait ? "" : "already ");
+			}
+
+			if (NULL == gq->hostwait) {
+				gq->hostwait = wq_sleep_timeout(hcache_add,
+					GUESS_WAIT_DELAY, guess_load_host_added, gq);
+			}
+		}
+	}
+}
+
+/**
+ * Create a new GUESS query.
+ *
+ * @param sh		search handle
+ * @param muid		MUID to use for the search
+ * @param query		the query string
+ * @param cb		callback to invoke when query ends
+ * @param arg		user-supplied callback argument
+ *
+ * @return querying object, NULL on errors.
+ */
+guess_t *
+guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
+	guess_query_cb_t cb, void *arg)
+{
+	guess_t *gq;
+
+	if (!guess_query_enabled())
+		return NULL;
+
+	gq = walloc0(sizeof *gq);
+	gq->magic = GUESS_MAGIC;
+	gq->sh = sh;
+	gq->gid = guess_id_create();
+	gq->query = atom_str_get(query);
+	gq->muid = atom_guid_get(muid);
+	gq->mode = GUESS_QUERY_BOUNDED;
+	gq->queried = map_create_hash(gnet_host_hash, gnet_host_eq);
+	gq->pool = hash_list_new(gnet_host_hash, gnet_host_eq);
+	gq->cb = cb;
+	gq->arg = arg;
+	tm_now_exact(&gq->start);
+
+	g_hash_table_insert(gqueries, &gq->gid, gq);
+	gm_hash_table_insert_const(gmuid, gq->muid, gq);
+
+	if (GNET_PROPERTY(guess_client_debug) > 1) {
+		char *safe_query =  hex_escape(query, FALSE);
+		g_debug("GUESS QUERY[%s] starting query for \"%s\" MUID=%s",
+			nid_to_string(&gq->gid), safe_query, guid_hex_str(muid));
+		if (safe_query != query)
+			HFREE_NULL(safe_query);
+	}
+
+	if (0 == guess_load_pool(gq, TRUE)) {
+		gq->hostwait = wq_sleep_timeout(hcache_add,
+			GUESS_WAIT_DELAY, guess_load_host_added, gq);
+	} else {
+		guess_async_iterate(gq);
+	}
+
+	gnet_stats_count_general(GNR_GUESS_LOCAL_QUERIES, +1);
+
+	return gq;
+}
+
+/**
+ * Map iterator to free hosts.
+ */
+static void
+guess_host_map_free(void *key, void *unused_value, void *unused_u)
+{
+	gnet_host_t *h = key;
+
+	(void) unused_value;
+	(void) unused_u;
+
+	atom_host_free(h);
+}
+
+/**
+ * Hash list iterator to free hosts.
+ */
+static void
+guess_host_map_free1(void *key, void *unused_u)
+{
+	gnet_host_t *h = key;
+
+	(void) unused_u;
+
+	atom_host_free(h);
+}
+
+/**
+ * Destory a GUESS query.
+ */
+static void
+guess_free(guess_t *gq)
+{
+	guess_check(gq);
+
+	map_foreach(gq->queried, guess_host_map_free, NULL);
+	hash_list_foreach(gq->pool, guess_host_map_free1, NULL);
+
+	g_hash_table_remove(gmuid, gq->muid);
+
+	map_destroy_null(&gq->queried);
+	hash_list_free(&gq->pool);
+	atom_str_free_null(&gq->query);
+	atom_guid_free_null(&gq->muid);
+	wq_cancel(&gq->hostwait);
+
+	if (!(gq->flags & GQ_F_DONT_REMOVE))
+		g_hash_table_remove(gqueries, &gq->gid);
+
+	gq->magic = 0;
+	wfree(gq, sizeof *gq);
+}
+
+/**
+ * Cancel GUESS query, nullifying its pointer.
+ *
+ * @param gq_ptr		the GUESS query to cancel
+ * @param callback		whether to invoke the completion callback
+ */
+void
+guess_cancel(guess_t **gq_ptr, gboolean callback)
+{
+	guess_t *gq;
+
+	g_assert(gq_ptr != NULL);
+
+	gq = *gq_ptr;
+	if (gq != NULL) {
+		guess_check(gq);
+
+		if (GNET_PROPERTY(guess_client_debug) > 1) {
+			g_debug("GUESS QUERY[%s] cancelling with%s callback",
+				nid_to_string(&gq->gid), callback ? "" : "out");
+		}
+
+		if (callback)
+			(*gq->cb)(gq->arg);		/* Let them know query has ended */
+
+		guess_final_stats(gq);
+		guess_free(gq);
+		*gq_ptr = NULL;
+	}
+}
+
+/**
+ * Initialize the GUESS client layer.
+ */
+void
+guess_init(void)
+{
+	dbstore_kv_t kv = { sizeof(gnet_host_t), gnet_host_length,
+		sizeof(struct qkdata),
+		sizeof(struct qkdata) + sizeof(guint8) + MAX_INT_VAL(guint8) };
+	dbstore_packing_t packing =
+		{ serialize_qkdata, deserialize_qkdata, free_qkdata };
+
+	if (!GNET_PROPERTY(enable_guess))
+		return;
+
+	if (db_qkdata != NULL)
+		return;		/* GUESS layer already initialized */
+
+	g_assert(NULL == guess_qk_prune_ev);
+
+	db_qkdata = dbstore_open(db_qkdata_what, settings_config_dir(),
+		db_qkdata_base, kv, packing, GUESS_QK_DB_CACHE_SIZE,
+		gnet_host_hash, gnet_host_eq, FALSE);
+
+	dbmw_set_map_cache(db_qkdata, GUESS_QK_MAP_CACHE_SIZE);
+
+	guess_qk_prune_old();
+
+	guess_qk_prune_ev = cq_periodic_main_add(
+		GUESS_QK_PRUNE_PERIOD, guess_qk_periodic_prune, NULL);
+	guess_check_ev = cq_periodic_main_add(
+		GUESS_CHECK_PERIOD, guess_periodic_check, NULL);
+	guess_sync_ev = cq_periodic_main_add(
+		GUESS_SYNC_PERIOD, guess_periodic_sync, NULL);
+
+	gqueries = g_hash_table_new(nid_hash, nid_equal);
+	gmuid = g_hash_table_new(guid_hash, guid_eq);
+	link_cache = hash_list_new(gnet_host_hash, gnet_host_eq);
+	pending = g_hash_table_new(guess_rpc_key_hash, guess_rpc_key_eq);
+	guess_qk_reqs = aging_make(GUESS_QK_FREQ,
+		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+	guess_alien = aging_make(GUESS_ALIEN_FREQ,
+		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+
+	guess_load_link_cache();
+	guess_check_link_cache();
+}
+
+/**
+ * Hashtable iteration callback to free the guess_t object held as the value.
+ */
+static void
+guess_free_query(void *key, void *value, void *unused_data)
+{
+	guess_t *gq = value;
+
+	guess_check(gq);
+	g_assert(key == &gq->gid);
+
+	(void) unused_data;
+
+	gq->flags |= GQ_F_DONT_REMOVE;	/* No removal whilst we iterate! */
+	guess_cancel(&gq, TRUE);
+}
+
+/**
+ * Free RPC callback descriptor.
+ */
+static void
+guess_rpc_free_kv(void *key, void *val, void *unused_x)
+{
+	(void) unused_x;
+
+	guess_rpc_destroy(val, key);
+}
+
+/*
+ * Shutdown the GUESS client layer.
+ */
+void
+guess_close(void)
+{
+	if (NULL == db_qkdata)
+		return;		/* GUESS layer never initialized */
+
+	dbstore_close(db_qkdata, settings_config_dir(), db_qkdata_base);
+	db_qkdata = NULL;
+	cq_periodic_remove(&guess_qk_prune_ev);
+	cq_periodic_remove(&guess_check_ev);
+	cq_periodic_remove(&guess_sync_ev);
+	wq_cancel(&guess_new_host_ev);
+
+	g_hash_table_foreach(gqueries, guess_free_query, NULL);
+	g_hash_table_foreach(pending, guess_rpc_free_kv, NULL);
+	gm_hash_table_destroy_null(&gqueries);
+	gm_hash_table_destroy_null(&gmuid);
+	gm_hash_table_destroy_null(&pending);
+	aging_destroy(&guess_qk_reqs);
+	aging_destroy(&guess_alien);
+	hash_list_free_all(&link_cache, gnet_host_free_atom);
+}
+
+/* vi: set ts=4 sw=4 cindent: */

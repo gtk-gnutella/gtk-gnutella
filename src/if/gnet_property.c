@@ -8653,7 +8653,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[402].name = "enable_guess";
-    gnet_property->props[402].desc = _("Whether the Gnutella UDP Extension for Scalable Searches (GUESS) should be enabled.  With GUESS enabled, gtk-gnutell can perform iterative Ultrapeer queries instead of just broadcasting, allowing searches to more places within the Gnutella network.");
+    gnet_property->props[402].desc = _("Whether the Gnutella UDP Extension for Scalable Searches (GUESS) should be enabled.  With GUESS enabled, gtk-gnutella can perform iterative Ultrapeer queries instead of just broadcasting, allowing searches to more places within the Gnutella network.");
     gnet_property->props[402].ev_changed = event_new("enable_guess_changed");
     gnet_property->props[402].save = TRUE;
     gnet_property->props[402].vector_size = 1;

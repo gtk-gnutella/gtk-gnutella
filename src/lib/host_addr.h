@@ -179,6 +179,22 @@ static const host_addr_t local_host_addr = {
 
 static const host_addr_t zero_host_addr;
 
+static inline size_t
+packed_host_length(const struct packed_host *ph)
+{
+	switch (ph->ha.net) {
+	case NET_TYPE_IPV4:
+		return ptr_diff(&ph->ha.addr[4], ph);
+	case NET_TYPE_IPV6:
+	case NET_TYPE_LOCAL:
+		return ptr_diff(&ph->ha.addr[16], ph);
+	case NET_TYPE_NONE:
+		return 0;
+	}
+	g_assert_not_reached();
+	return 0;
+}
+
 gboolean host_addr_convert(const host_addr_t from, host_addr_t *to,
 	enum net_type to_net);
 gboolean host_addr_can_convert(const host_addr_t from, enum net_type to_net);

@@ -51,6 +51,7 @@ RCSID("$Id$")
 #include "ggep_type.h"
 #include "gmsg.h"
 #include "gnet_stats.h"
+#include "guess.h"
 #include "guid.h"
 #include "hostiles.h"
 #include "hosts.h"
@@ -106,6 +107,7 @@ RCSID("$Id$")
 #include "lib/vendors.h"
 #include "lib/walloc.h"
 #include "lib/wordvec.h"
+#include "lib/wd.h"
 #include "lib/wq.h"
 #include "lib/zalloc.h"
 
@@ -135,14 +137,17 @@ RCSID("$Id$")
 #define GUESS_KEYS				2		/**< Two keys in the set */
 #define GUESS_REFRESH_PERIOD	3600	/**< 1 hour */
 
-static guint32 search_id;				/**< Unique search counter */
-static GHashTable *searches;			/**< All alive searches */
+#define SEARCH_ACTIVITY_TIMEOUT	120		/**< Delay before declaring idle */
+
 static sectoken_gen_t *guess_stg;		/**< GUESS token generator */
+
+enum search_ctrl_magic { SEARCH_CTRL_MAGIC = 0x0add8c06 };
 
 /**
  * Structure for search results.
  */
 typedef struct search_ctrl {
+	enum search_ctrl_magic magic;	/**< Magic number */
     gnet_search_t search_handle;	/**< Search handle */
 	guint32 id;						/**< Unique ID */
 
@@ -152,6 +157,7 @@ typedef struct search_ctrl {
 	const char *name;	/**< The original search term (atom) */
 	time_t  time;		/**< Time when this search was started */
 	GSList *muids;		/**< Message UIDs of this search */
+	guess_t *guess;		/**< GUESS query running, NULL if none */
 
 	sbool passive;	/**< Is this a passive search? */
 	sbool frozen;	/**< NOTE: If TRUE, the query is not issued to nodes
@@ -167,8 +173,9 @@ typedef struct search_ctrl {
 	GHashTable *sent_nodes;		/**< Sent node by ip:port */
 	GHashTable *sent_node_ids;	/**< IDs of nodes to which we sent query */
 
-	wq_event_t *new_node_wait;
-	guint reissue_timeout_id;
+	wq_event_t *new_node_wait;	/**< Waiting for new node connections */
+	watchdog_t *activity;		/**< Monitoring queries/hits activity */
+	cperiodic_t *reissue_ev;	/**< re-issue timeout periodic event */
 	guint reissue_timeout;		/**< timeout per search, 0 = search stopped */
 	time_t create_time;			/**< Time at which this search was created */
 	guint lifetime;				/**< Initial lifetime (in hours) */
@@ -182,6 +189,13 @@ typedef struct search_ctrl {
 
 	struct download *download;	/**< Associated download for browse-host */
 } search_ctrl_t;
+
+static inline void
+search_ctrl_check(const search_ctrl_t * const sch)
+{
+	g_assert(sch != NULL);
+	g_assert(SEARCH_CTRL_MAGIC == sch->magic);
+}
 
 /*
  * List of all searches, and of passive searches only.
@@ -268,6 +282,58 @@ query_muid_map_garbage_collect(void)
 }
 
 /**
+ * Associate a query message ID with the query string.
+ */
+void
+record_query_string(const struct guid *muid, const char *query)
+{
+	const struct guid *key;
+	
+	g_assert(muid);
+	g_assert(query);
+
+	if (GNET_PROPERTY(search_muid_track_amount) > 0) {
+		gconstpointer orig_key;
+
+		orig_key = hash_list_remove(query_muids, muid);
+	   	if (orig_key) {
+			const char *old_query;
+
+			/* We'll append the new value to the list */
+			key = orig_key;
+			old_query = g_hash_table_lookup(muid_to_query_map, key);
+			atom_str_free_null(&old_query);
+			g_hash_table_remove(muid_to_query_map, old_query);
+		} else {
+			key = atom_guid_get(muid);
+		}
+
+		gm_hash_table_insert_const(muid_to_query_map, key, atom_str_get(query));
+		hash_list_append(query_muids, key);
+	}
+	query_muid_map_garbage_collect();
+}
+
+/**
+ * @return the query string associated with the given message ID, or NULL
+ * if we can't find any.
+ */
+const char *
+map_muid_to_query_string(const struct guid *muid)
+{
+	gconstpointer orig_key;
+	
+	if (hash_list_find(query_muids, muid, &orig_key)) {
+		return g_hash_table_lookup(muid_to_query_map, orig_key);
+	} else {
+		search_ctrl_t *sch = g_hash_table_lookup(search_by_muid, muid);
+		if (sch && sch->query)
+			return sch->query;
+	}
+	return NULL;
+}
+
+/**
  * Is supplied GUESS query key (within GGEP "QK" extension) valid?
  *
  * @param n		the node which sent the query
@@ -308,55 +374,16 @@ search_query_key_generate(sectoken_t *tok, host_addr_t addr, guint16 port)
 	sectoken_generate(guess_stg, tok, addr, port);
 }
 
-void
-record_query_string(const struct guid *muid, const char *query)
-{
-	const struct guid *key;
-	
-	g_assert(muid);
-	g_assert(query);
-
-	if (GNET_PROPERTY(search_muid_track_amount) > 0) {
-		gconstpointer orig_key;
-
-		orig_key = hash_list_remove(query_muids, muid);
-	   	if (orig_key) {
-			const char *old_query;
-
-			/* We'll append the new value to the list */
-			key = orig_key;
-			old_query = g_hash_table_lookup(muid_to_query_map, key);
-			atom_str_free_null(&old_query);
-			g_hash_table_remove(muid_to_query_map, old_query);
-		} else {
-			key = atom_guid_get(muid);
-		}
-
-		gm_hash_table_insert_const(muid_to_query_map, key, atom_str_get(query));
-		hash_list_append(query_muids, key);
-	}
-	query_muid_map_garbage_collect();
-}
-
-const char *
-map_muid_to_query_string(const struct guid *muid)
-{
-	gconstpointer orig_key;
-	
-	if (hash_list_find(query_muids, muid, &orig_key)) {
-		return g_hash_table_lookup(muid_to_query_map, orig_key);
-	} else {
-		search_ctrl_t *sch = g_hash_table_lookup(search_by_muid, muid);
-		if (sch && sch->query)
-			return sch->query;
-	}
-	return NULL;
-}
-
 static inline search_ctrl_t *
 search_find_by_handle(gnet_search_t n)
 {
 	return idtable_get_value(search_handle_map, n);
+}
+
+static inline search_ctrl_t *
+search_probe_by_handle(gnet_search_t n)
+{
+	return idtable_probe_value(search_handle_map, n);
 }
 
 static inline gnet_search_t
@@ -468,15 +495,15 @@ search_reset_sent_nodes(search_ctrl_t *sch)
 }
 
 static void
-mark_search_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
+search_mark_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
 {
 	gnet_host_t *sd = walloc(sizeof *sd);
 	gnet_host_set(sd, n->addr, n->port);
-	g_hash_table_insert(sch->sent_nodes, sd, GUINT_TO_POINTER(1));
+	g_hash_table_insert(sch->sent_nodes, sd, uint_to_pointer(1));
 }
 
 static void
-mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
+search_mark_sent_to_connected_nodes(search_ctrl_t *sch)
 {
 	const GSList *sl;
 	struct gnutella_node *n;
@@ -484,8 +511,14 @@ mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
 		n = sl->data;
 		if (NODE_IS_WRITABLE(n))
-			mark_search_sent_to_node(sch, n);
+			search_mark_sent_to_node(sch, n);
 	}
+}
+
+static void
+search_mark_query_sent(search_ctrl_t *sch)
+{
+	wd_kick(sch->activity);
 }
 
 /***
@@ -518,7 +551,7 @@ search_reset_sent_node_ids(search_ctrl_t *sch)
 }
 
 static void
-mark_search_sent_to_node_id(search_ctrl_t *sch, const struct nid *node_id)
+search_mark_sent_to_node_id(search_ctrl_t *sch, const struct nid *node_id)
 {
 	if (NULL == g_hash_table_lookup(sch->sent_node_ids, node_id)) {
 		const struct nid *key = nid_ref(node_id);
@@ -2465,33 +2498,39 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
  * Create a search request message for specified search.
  *
  * On success a walloc()ated message is returned. Use wfree() to release
- * the memory. The is can be derived from the header, add GTA_HEADER_SIZE.
+ * the memory. The size is returned in the "size" variable, if not NULL.
  *
- * @returns NULL if we cannot build a suitable message (bad query string
+ * @param muid		the MUID to use for the search message
+ * @param query		the query string
+ * @param size		if not-NULL, written with the size of the generated message 
+ * @param query_key	the GUESS query key to use (if non-NULL)
+ * @param length	length of query key
+ *
+ * @return NULL if we cannot build a suitable message (bad query string
  * containing only whitespaces, for instance).
  */
 static gnutella_msg_search_t *
-build_search_msg(search_ctrl_t *sch)
+build_search_message(const guid_t *muid, const char *query, guint32 *size,
+	const void *query_key, guint8 length)
 {
 	static union {
 		gnutella_msg_search_t data;
 		char bytes[1024];
 		guint64 align8;
 	} msg;
-	size_t size;
+	size_t msize;
 	guint16 flags;
 	gboolean is_sha1_search;
 	struct sha1 sha1;
+	ggep_stream_t gs;
+	size_t glen;
+
+	g_assert(NULL == query_key || 0 != length);
+	g_assert(NULL != query_key || 0 == length);
 
 	STATIC_ASSERT(25 == sizeof msg.data);
-	size = sizeof msg.data;
+	msize = sizeof msg.data;
 	
-	g_assert(sch != NULL);
-	g_assert(sbool_get(sch->active));
-	g_assert(!sbool_get(sch->frozen));
-	g_assert(sch->muids);
-
-	/* Use the first MUID on the list (the last one allocated) */
 	{
 		gnutella_header_t *header = gnutella_msg_search_header(&msg.data);
 		guint8 hops;
@@ -2501,10 +2540,11 @@ build_search_msg(search_ctrl_t *sch)
 			? random_value(GNET_PROPERTY(hops_random_factor))
 			: 0;
 
-		gnutella_header_set_muid(header, sch->muids->data);
+		gnutella_header_set_muid(header, muid);
 		gnutella_header_set_function(header, GTA_MSG_SEARCH);
-		gnutella_header_set_ttl(header, GNET_PROPERTY(my_ttl));
 		gnutella_header_set_hops(header, hops);
+		gnutella_header_set_ttl(header,
+			query_key != NULL ? 1 : GNET_PROPERTY(my_ttl));
 
 		if (
 			(guint32) gnutella_header_get_ttl(header) +
@@ -2569,33 +2609,33 @@ build_search_msg(search_ctrl_t *sch)
 	 * Are we dealing with a URN search?
 	 */
 
-	is_sha1_search = urn_get_sha1(sch->query, &sha1);
+	is_sha1_search = urn_get_sha1(query, &sha1);
 
 	{	
 		size_t len;
 
-		len = strlen(sch->query);
-		if (len + 1 >= sizeof msg.bytes - size) {
-			g_warning("dropping too large query \"%s\"", sch->query);
+		len = strlen(query);
+		if (len + 1 >= sizeof msg.bytes - msize) {
+			g_warning("dropping too large query \"%s\"", query);
 			goto error;
 		}
 	
 		if (is_sha1_search) {
-			msg.bytes[size++] = '\\';
-			msg.bytes[size++] = '\0';
-			memcpy(&msg.bytes[size], sch->query, len);
-			size += len;
+			msg.bytes[msize++] = '\\';
+			msg.bytes[msize++] = '\0';
+			memcpy(&msg.bytes[msize], query, len);
+			msize += len;
 		} else {
 			size_t new_len;
 
-			memcpy(&msg.bytes[size], sch->query, len);
-			msg.bytes[size + len] = '\0';
+			memcpy(&msg.bytes[msize], query, len);
+			msg.bytes[msize + len] = '\0';
 
-			new_len = compact_query(&msg.bytes[size]);
+			new_len = compact_query(&msg.bytes[msize]);
 			g_assert(new_len <= len);
 
 			if (new_len == 0) {
-				g_warning("dropping empty query \"%s\"", sch->query);
+				g_warning("dropping empty query \"%s\"", query);
 				goto error;
 			}
 
@@ -2603,50 +2643,31 @@ build_search_msg(search_ctrl_t *sch)
 				len = new_len;
 				if (GNET_PROPERTY(search_debug) > 1)
 					g_debug("compacted query \"%s\" into \"%s\"",
-						sch->query, &msg.bytes[size]);
+						query, &msg.bytes[msize]);
 			}
-			size += len + 1;
+			msize += len + 1;
 		}
 	}
 
-	if (QUERY_F_OOB_REPLY & flags) {
-		ggep_stream_t gs;
-		size_t glen;
+	ggep_stream_init(&gs, &msg.bytes[msize], sizeof msg.bytes - msize);
 
+	/*
+	 * If OOB hit delivery is requested, add GGEP "SO" for secure OOBv3.
+	 */
+
+	if (QUERY_F_OOB_REPLY & flags) {
 		if (is_sha1_search) {
 			/* As long as we have to use plain text hash queries instead
 			 * of GGEP H, we need to add a separator between the hash
 			 * and the following GGEP block.
 			 */
-			if (sizeof msg.bytes == size) {
-				g_warning("dropping too large query \"%s\"", sch->query);
+			if (sizeof msg.bytes == msize) {
+				g_warning("dropping too large query \"%s\"", query);
 				goto error;
 			}
-			msg.bytes[size] = HUGE_FS; /* extension separator */
-			size++;
+			msg.bytes[msize] = HUGE_FS; /* extension separator */
+			msize++;
 		}
-
-		ggep_stream_init(&gs, &msg.bytes[size], sizeof msg.bytes - size);
-
-		/* TODO: We cannot emit empty queries with GGEP H attached because
-		 *		 GTKG before 0.96.4 does not parse GGEP H in queries.
-		 */
-#if 0
-		if (is_sha1_search) {
-			const guint8 type = GGEP_H_SHA1;
-			gboolean ok;
-
-			ok = ggep_stream_begin(&gs, GGEP_NAME(H), 0) &&
-				ggep_stream_write(&gs, &type, 1) &&
-				ggep_stream_write(&gs, &sha1, sizeof sha1.data) &&
-				ggep_stream_end(&gs);
-
-			if (!ok) {
-				g_warning("could not add GGEP \"H\" to query");
-				goto error;
-			}
-		}
-#endif
 
 		/** 
 		 * Indicate support for OOB v3.
@@ -2664,48 +2685,164 @@ build_search_msg(search_ctrl_t *sch)
 			 * Otherwise, we won't receive OOB results.
 			 */
 			if (!ggep_stream_pack(&gs, GGEP_NAME(SO), NULL, 0, 0)) {
-				g_warning("could not add GGEP \"SO\" extension to query");
+				g_carp("could not add GGEP \"SO\" extension to query");
 				goto error;
 			}
 		}
+	}
 
-		size += (glen = ggep_stream_close(&gs));
+	/*
+	 * FIXME
+	 *
+	 * 1- SHA1 searches cannot work since SHA1s are no longer in QRTs for
+	 *    all LimeWire and gtk-gnutella servents.
+	 * 2- We currently use HUGE instead of GGEP "H" because support for the
+	 *    latter is not widespread enough.  So no need to add GGEP "H" here,
+	 *    the HUGE part was included above.
+	 * 3- SHA1 searches do not work anyway and have been superseded by DHT
+	 *    lookups.  Remove all SHA1-search support from GTKG.
+	 *
+	 * 		--RAM, 2011-05-01
+	 */
+#if 0
+	if (is_sha1_search) {
+		const guint8 type = GGEP_H_SHA1;
+		gboolean ok;
 
-		/*
-		 * If the GGEP block is empty and we're dealing with a SHA-1 search,
-		 * remove the HUGE separator (otherwise the query will be flagged
-		 * as carrying unnecessary bloat and will be dropped by GTKG.
-		 */
+		ok = ggep_stream_begin(&gs, GGEP_NAME(H), 0) &&
+			ggep_stream_write(&gs, &type, 1) &&
+			ggep_stream_write(&gs, &sha1, sizeof sha1.data) &&
+			ggep_stream_end(&gs);
 
-		if (0 == glen && is_sha1_search) {
-			g_assert(size >= 1);
-			g_assert(HUGE_FS == msg.bytes[size - 1]);
-			size--;
+		if (!ok) {
+			g_carp("could not add GGEP \"H\" to query");
+			goto error;
+		}
+	}
+#endif
+
+	/*
+	 * If a query key buffer was supplied, then it's a GUESS query.
+	 *
+	 * For proper GUESS 0.2 support, we include both the "QK" extension as
+	 * well as the "SCP" one to make sure we get back more GUESS hosts in
+	 * a packed "IPP" extension.
+	 */
+
+	if (query_key != NULL) {
+		gboolean ok;
+
+		ok = ggep_stream_pack(&gs, GGEP_NAME(QK), query_key, length, 0);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(SCP), NULL, 0, 0);
+
+		if (!ok) {
+			g_carp("could not add GGEP \"QK\" to GUESS query");
+			goto error;
 		}
 	}
 
-	if (size - GTA_HEADER_SIZE > GNET_PROPERTY(search_queries_forward_size)) {
+	msize += (glen = ggep_stream_close(&gs));
+
+	/*
+	 * If the GGEP block is empty and we're dealing with a SHA-1 search,
+	 * remove the HUGE separator (otherwise the query will be flagged
+	 * as carrying unnecessary bloat and will be dropped by GTKG.
+	 */
+
+	if (0 == glen && is_sha1_search) {
+		g_assert(msize >= 1);
+		g_assert(HUGE_FS == msg.bytes[msize - 1]);
+		msize--;
+	}
+
+	if (msize - GTA_HEADER_SIZE > GNET_PROPERTY(search_queries_forward_size)) {
 		g_warning("not sending query \"%s\": larger than max query size (%d)",
-			sch->query, GNET_PROPERTY(search_queries_forward_size));
+			query, GNET_PROPERTY(search_queries_forward_size));
 		goto error;
 	}
 
 	gnutella_header_set_size(gnutella_msg_search_header(&msg.data),
-		size - GTA_HEADER_SIZE);
+		msize - GTA_HEADER_SIZE);
 
 	if (GNET_PROPERTY(search_debug) > 3)
 		g_debug("%squery \"%s\" message built with MUID %s",
-			is_sha1_search ? "URN " : "", sch->query,
+			is_sha1_search ? "URN " : "", query,
 			guid_hex_str(gnutella_header_get_muid(
 							gnutella_msg_search_header(&msg.data))));
 
 	message_add(gnutella_header_get_muid(gnutella_msg_search_header(&msg.data)),
 		GTA_MSG_SEARCH, NULL);
 
-	return wcopy(&msg.bytes, size);
+	if (size != NULL)
+		*size = msize;
+
+	return wcopy(&msg.bytes, msize);
 
 error:
 	return NULL;
+}
+
+/**
+ * Create a GUESS search request message for specified query string.
+ *
+ * On success a walloc()ated message is returned. Use wfree() to release
+ * the memory. The size is returned in the "size" variable, if not NULL.
+ *
+ * @param muid		the MUID to use for the search message
+ * @param query		the query string
+ * @param size		if not-NULL, written with the size of the generated message 
+ * @param query_key	the GUESS query key to use
+ * @param length	length of query key
+ *
+ * @return NULL if we cannot build a suitable message (bad query string
+ * containing only whitespaces, for instance).
+ */
+gnutella_msg_search_t *
+build_guess_search_msg(const guid_t *muid, const char *query, guint32 *size,
+	const void *query_key, guint8 length)
+{
+	return build_search_message(muid, query, size, query_key, length);
+}
+
+/**
+ * Create a search request message for specified query string.
+ *
+ * On success a walloc()ated message is returned. Use wfree() to release
+ * the memory. The size is returned in the "size" variable, if not NULL.
+ *
+ * @param muid		the MUID to use for the search message
+ * @param query		the query string
+ * @param size		if not-NULL, written with the size of the generated message 
+ *
+ * @return NULL if we cannot build a suitable message (bad query string
+ * containing only whitespaces, for instance).
+ */
+static gnutella_msg_search_t *
+build_search_msg(const guid_t *muid, const char *query, guint32 *size)
+{
+	return build_search_message(muid, query, size, NULL, 0);
+}
+
+/**
+ * Create a search request message for specified search.
+ *
+ * On success a walloc()ated message is returned. Use wfree() to release
+ * the memory. The size can be derived from the header, add GTA_HEADER_SIZE.
+ *
+ * @returns NULL if we cannot build a suitable message (bad query string
+ * containing only whitespaces, for instance).
+ */
+static gnutella_msg_search_t *
+search_build_msg(search_ctrl_t *sch)
+{
+	search_ctrl_check(sch);
+	g_assert(sbool_get(sch->active));
+	g_assert(!sbool_get(sch->frozen));
+	g_assert(sch->muids);
+
+	/* Use the first MUID on the list (the last one allocated) */
+
+	return build_search_msg(sch->muids->data, sch->query, NULL);
 }
 
 /**
@@ -2758,7 +2895,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	g_assert(sbool_get(sch->active));
 	g_assert(!sbool_get(sch->frozen));
 
-	if (NULL == (msg = build_search_msg(sch)))
+	if (NULL == (msg = search_build_msg(sch)))
 		return;
 
 	size = gnutella_header_get_size(gnutella_msg_search_header(msg));
@@ -2780,7 +2917,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	 */
 
 	if (n) {
-		mark_search_sent_to_node(sch, n);
+		search_mark_sent_to_node(sch, n);
 		gmsg_search_sendto_one(n, sch->search_handle, (char *) msg, size);
 		goto cleanup;
 	}
@@ -2793,7 +2930,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	 */
 
 	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
-		mark_search_sent_to_connected_nodes(sch);
+		search_mark_sent_to_connected_nodes(sch);
 		gmsg_search_sendto_all(
 			node_all_nodes(), sch->search_handle, (char *) msg, size);
 		goto cleanup;
@@ -2822,7 +2959,7 @@ search_node_added(void *search, void *node)
 	search_ctrl_t *sch = search;
 	gnutella_node_t *n = node;
 
-	g_assert(sch != NULL);
+	search_ctrl_check(sch);
 	g_assert(sbool_get(sch->active));
 	g_assert(n != NULL);
 
@@ -2833,10 +2970,14 @@ search_node_added(void *search, void *node)
 	if (NODE_P_ULTRA != GNET_PROPERTY(current_peermode)) {
 		/*
 		 * Send search to new node if not already done and if the search
-		 * is still active.
+		 * is still active and if we're not in GUESS querying mode.
 		 */
 
-		if (!search_already_sent_to_node(sch, n) && !sbool_get(sch->frozen)) {
+		if (
+			!search_already_sent_to_node(sch, n) &&
+			!sbool_get(sch->frozen) &&
+			NULL == sch->guess
+		) {
 			search_send_packet(sch, n);
 		}
 	}
@@ -2902,6 +3043,8 @@ search_reissue_timeout_callback(gpointer data)
 {
 	search_ctrl_t *sch = data;
 
+	search_ctrl_check(sch);
+
 	search_reissue(sch->search_handle);
 	return TRUE;
 }
@@ -2923,21 +3066,18 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	float factor;
 	guint32 tm;
 
-	g_assert(sch != NULL);
+	search_ctrl_check(sch);
 	g_assert(sbool_get(sch->active));
-
-	if (sch->reissue_timeout_id > 0) {
-		g_source_remove(sch->reissue_timeout_id);
-		sch->reissue_timeout_id = 0;
-	}
 
 	/*
 	 * When a search is frozen or the reissue_timout is zero, all we need
 	 * to do is to remove the timer.
 	 */
 
-	if (sbool_get(sch->frozen) || sch->reissue_timeout == 0)
+	if (sbool_get(sch->frozen) || sch->reissue_timeout == 0) {
+		cq_periodic_remove(&sch->reissue_ev);
 		return;
+	}
 
 	/*
 	 * Look at the amount of items we got for this search already.
@@ -2962,20 +3102,12 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	if (GNET_PROPERTY(search_debug) > 2)
 		g_debug("updating search \"%s\" with timeout %u.", sch->query, tm);
 
-	sch->reissue_timeout_id = g_timeout_add(
-		tm * 1000, search_reissue_timeout_callback, sch);
-}
-
-/**
- * Check whether search bearing the specified ID is still alive.
- */
-static gboolean
-search_alive(search_ctrl_t *sch, guint32 id)
-{
-	if (!g_hash_table_lookup(searches, sch))
-		return FALSE;
-
-	return sch->id == id;		/* In case it reused the same address */
+	if (NULL == sch->reissue_ev) {
+		sch->reissue_ev = cq_periodic_main_add(
+			tm * 1000, search_reissue_timeout_callback, sch);
+	} else {
+		cq_periodic_resched(sch->reissue_ev, tm * 1000);
+	}
 }
 
 #define CLOSED_SEARCH	0xffff
@@ -3125,7 +3257,6 @@ search_init(void)
 	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
 
-	searches = g_hash_table_new(pointer_hash_func, NULL);
 	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
 	search_handle_map = idtable_new();
 	/* Max: 128 unique words / URNs! */
@@ -3142,14 +3273,14 @@ search_shutdown(void)
 {
 	while (sl_search_ctrl != NULL) {
 		search_ctrl_t *sch = sl_search_ctrl->data;
-		
+
+		search_ctrl_check(sch);
 		g_warning("force-closing search left over by GUI: %s", sch->query);
 		search_close(sch->search_handle);
 	}
 
 	g_assert(idtable_ids(search_handle_map) == 0);
 
-	gm_hash_table_destroy_null(&searches);
 	gm_hash_table_destroy_null(&search_by_muid);
 	idtable_destroy(search_handle_map);
 	search_handle_map = NULL;
@@ -3363,10 +3494,11 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	{
 		search_ctrl_t *sch = search_find_by_handle(sh);
 		
-		g_assert(sch != NULL);
+		search_ctrl_check(sch);
+		
 		if (!sbool_get(sch->frozen))
 			search = g_slist_prepend(search,
-						GUINT_TO_POINTER(sch->search_handle));
+						uint_to_pointer(sch->search_handle));
 	}
 
 	/*
@@ -3380,9 +3512,11 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 		for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
 			search_ctrl_t *sch = sl->data;
 
+			search_ctrl_check(sch);
+
 			if (!sbool_get(sch->frozen) && sch->items < max_items)
 				search = g_slist_prepend(search,
-					GUINT_TO_POINTER(sch->search_handle));
+					uint_to_pointer(sch->search_handle));
 		}
 	}
 
@@ -3426,9 +3560,11 @@ search_results(gnutella_node_t *n, int *results)
 	for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
 		search_ctrl_t *sch = sl->data;
 
+		search_ctrl_check(sch);
+
 		if (!sbool_get(sch->frozen) && sch->items < max_items)
 			selected_searches = g_slist_prepend(selected_searches,
-						GUINT_TO_POINTER(sch->search_handle));
+						uint_to_pointer(sch->search_handle));
 	}
 
 	{
@@ -3439,7 +3575,7 @@ search_results(gnutella_node_t *n, int *results)
 
 		if (sch && !sbool_get(sch->frozen) && sch->items < max_items)
 			selected_searches = g_slist_prepend(selected_searches,
-				GUINT_TO_POINTER(sch->search_handle));
+				uint_to_pointer(sch->search_handle));
 	}
 
 	/*
@@ -3569,8 +3705,25 @@ search_results(gnutella_node_t *n, int *results)
 	 */
 
 	if (dispatch_it && selected_searches != NULL) {
+		const guid_t *muid = gnutella_header_get_muid(&n->header);
+		if (guess_is_search_muid(muid)) {
+			rs->status |= ST_GUESS;
+			guess_got_results(muid, rs->num_recs);
+		}
+
 		search_results_set_flag_records(rs);
 		search_fire_got_results(selected_searches, rs);
+
+		/*
+		 * Record activity on each search to which we're dispatching results.
+		 */
+
+		GM_SLIST_FOREACH(selected_searches, sl) {
+			gnet_search_t sh = pointer_to_uint(sl->data);
+			search_ctrl_t *sch = search_find_by_handle(sh);
+
+			wd_kick(sch->activity);
+		}
 	}
 
     search_free_r_set(rs);
@@ -3592,7 +3745,7 @@ search_query_allowed(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-	g_assert(sch);
+	search_ctrl_check(sch);
 
 	/*
 	 * We allow the query to be sent once more than our outdegree.
@@ -3610,33 +3763,19 @@ search_query_allowed(gnet_search_t sh)
 }
 
 /**
- * @returns unique ID associated with search with given handle, and return
- * the address of the search object as well.
- */
-guint32
-search_get_id(gnet_search_t sh, gpointer *search)
-{
-    search_ctrl_t *sch = search_find_by_handle(sh);
-
-	g_assert(sch);
-
-	*search = sch;
-	return sch->id;
-}
-
-/**
  * Notification from sq that a query for this search was sent to the
  * specified node ID.
  */
 void
-search_notify_sent(gpointer search, guint32 id, const struct nid *node_id)
+search_notify_sent(gnet_search_t sh, const struct nid *node_id)
 {
-	search_ctrl_t *sch = search;
+	search_ctrl_t *sch = search_probe_by_handle(sh);
 
-	if (!search_alive(sch, id))
+	if (NULL == sch)
 		return;
 
-	mark_search_sent_to_node_id(sch, node_id);
+	search_mark_sent_to_node_id(sch, node_id);
+	search_mark_query_sent(sch);
 }
 
 /***
@@ -3650,7 +3789,7 @@ search_notify_sent(gpointer search, guint32 id, const struct nid *node_id)
 void
 search_close(gnet_search_t sh)
 {
-    search_ctrl_t *sch = search_find_by_handle(sh);
+    search_ctrl_t *sch = search_probe_by_handle(sh);
 
 	g_return_if_fail(sch);
 
@@ -3679,16 +3818,10 @@ search_close(gnet_search_t sh)
 		download_abort_browse_host(sch->download, sh);
 
     search_drop_handle(sch->search_handle);
-	g_hash_table_remove(searches, sch);
 
 	if (sbool_get(sch->active)) {
 		wq_cancel(&sch->new_node_wait);
-
-		/* we could have stopped the search already, must test the ID */
-		if (sch->reissue_timeout_id) {
-			g_source_remove(sch->reissue_timeout_id);
-			sch->reissue_timeout_id = 0;
-		}
+		cq_periodic_remove(&sch->reissue_ev);
 
 		if (sch->muids) {
 			GSList *sl;
@@ -3706,6 +3839,10 @@ search_close(gnet_search_t sh)
 
 	atom_str_free_null(&sch->query);
 	atom_str_free_null(&sch->name);
+	wd_free_null(&sch->activity);
+	guess_cancel(&sch->guess, FALSE);
+
+	sch->magic = 0;
 	wfree(sch, sizeof *sch);
 }
 
@@ -3766,8 +3903,8 @@ search_expired(const search_ctrl_t *sch)
 	time_t ct;
 	guint lt;
 
-	g_assert(sch);
-	
+	search_ctrl_check(sch);
+
 	ct = sch->create_time;			/* In local (kernel) time */
 	lt = 3600U * sch->lifetime;
 
@@ -3790,6 +3927,7 @@ search_reissue(gnet_search_t sh)
     search_ctrl_t *sch = search_find_by_handle(sh);
 	struct guid *muid;
 
+	search_ctrl_check(sch);
 	g_return_if_fail(!sbool_get(sch->frozen));
 
 	if (sbool_get(sch->local)) {
@@ -3808,12 +3946,21 @@ search_reissue(gnet_search_t sh)
 			g_debug("expired search \"%s\" (queries broadcasted: %d)",
 				sch->query, sch->query_emitted);
 		sch->frozen = sbool_set(TRUE);
+		wd_sleep(sch->activity);
 		goto done;
 	}
 
 	if (GNET_PROPERTY(search_debug))
 		g_debug("reissuing search \"%s\" (queries broadcasted: %d)",
 			sch->query, sch->query_emitted);
+
+	/*
+	 * When a "broadcasting" search is issued, cancel any running
+	 * backgound "iterating" search.
+	 */
+
+	guess_cancel(&sch->guess, FALSE);
+	wd_wakeup(sch->activity);
 
 	muid = search_new_muid(FALSE);
 
@@ -3834,7 +3981,7 @@ search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
     g_return_if_fail(sbool_get(sch->active));
 
 	timeout = timeout > 0 ? MAX(SEARCH_MIN_RETRY, timeout) : 0;
@@ -3852,7 +3999,7 @@ search_get_reissue_timeout(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
 
     return sch->reissue_timeout;
 }
@@ -3865,7 +4012,7 @@ search_get_lifetime(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
 
     return sch->lifetime;
 }
@@ -3878,7 +4025,7 @@ search_get_create_time(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
 
     return sch->create_time;
 }
@@ -3891,9 +4038,73 @@ search_set_create_time(gnet_search_t sh, time_t t)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
 
 	sch->create_time = t;
+}
+
+/**
+ * Callback invoked when GUESS query ends.
+ */
+static void
+search_guess_done(void *data)
+{
+	search_ctrl_t *sch = data;
+
+	search_ctrl_check(sch);
+	g_return_if_fail(sch->guess != NULL);
+
+	sch->guess = NULL;
+}
+
+/**
+ * Watchdog callback when search is becoming idle.
+ *
+ * @return TRUE if watchdog should remain active, FALSE to put it to sleep.
+ */
+static gboolean
+search_is_idle(watchdog_t *unused_wd, void *data)
+{
+	search_ctrl_t *sch = data;
+	guid_t *muid;
+
+	search_ctrl_check(sch);
+	g_assert(!sbool_get(sch->passive));
+
+	(void) unused_wd;
+
+	if (GNET_PROPERTY(search_debug)) {
+		g_debug("search \"%s\" now idle (kept results: %u, GUESS %s)",
+			sch->query, sch->kept_results,
+			!guess_query_enabled() ? "disabled" :
+			sch->guess != NULL ? "running" : "idle");
+	}
+
+	if (sch->guess != NULL)
+		return FALSE;			/* GUESS already active */
+
+	if (!guess_query_enabled())
+		return TRUE;
+
+	/*
+	 * If the previous query (dynamic querying most probably) already
+	 * returned enough results, do not launch a GUESS query.
+	 */
+
+	if (sch->kept_results >= SEARCH_MAX_RESULTS)
+		return FALSE;
+
+	/*
+	 * Launch a new GUESS query for this search.
+	 */
+
+	muid = search_new_muid(FALSE);
+	search_add_new_muid(sch, muid);
+	sch->kept_results = 0;
+	sch->guess = guess_create(sch->search_handle, muid, sch->query,
+		search_guess_done, sch);
+
+	return FALSE;
 }
 
 /**
@@ -3964,17 +4175,23 @@ search_new(gnet_search_t *ptr, const char *query,
 	}
 
 	sch = walloc0(sizeof *sch);
-
+	sch->magic = SEARCH_CTRL_MAGIC;
 	sch->search_handle = search_request_handle(sch);
-	sch->id = search_id++;
-
-	g_hash_table_insert(searches, sch, GINT_TO_POINTER(1));
 
 	sch->name = atom_str_get(query);
 	sch->query = atom_str_get(qdup);
 	sch->frozen = sbool_set(TRUE);
 	sch->create_time = create_time;
 	sch->lifetime = lifetime;
+
+	/*
+	 * The watchdog monitor sending of queries and reception of hits.
+	 * When no activity occurs for SEARCH_ACTIVITY_TIMEOUT seconds, the
+	 * callback is fired.
+	 */
+
+	sch->activity = wd_make("Gnutella search",
+		SEARCH_ACTIVITY_TIMEOUT, search_is_idle, sch, FALSE);
 
 	HFREE_NULL(qdup);
 
@@ -4018,6 +4235,8 @@ search_update_items(gnet_search_t sh, guint32 items)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
+	search_ctrl_check(sch);
+
 	sch->items = items;
 }
 
@@ -4030,6 +4249,8 @@ void
 search_add_kept(gnet_search_t sh, guint32 kept)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
+
+	search_ctrl_check(sch);
 
 	sch->kept_results += kept;
 
@@ -4059,9 +4280,12 @@ search_start(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
+	search_ctrl_check(sch);
     g_assert(sbool_get(sch->frozen));/* Coming from search_new(), or resuming */
 
     sch->frozen = sbool_set(FALSE);
+	if (!sbool_get(sch->passive))
+		wd_wakeup(sch->activity);
 
     if (sbool_get(sch->active)) {
 		/*
@@ -4089,10 +4313,11 @@ search_stop(gnet_search_t search_handle)
 {
     search_ctrl_t *sch = search_find_by_handle(search_handle);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
     g_assert(!sbool_get(sch->frozen));
 
     sch->frozen = sbool_set(TRUE);
+	wd_sleep(sch->activity);
 
     if (sbool_get(sch->active)) {
 		update_one_reissue_timeout(sch);
@@ -4136,16 +4361,49 @@ search_get_kept_results(const struct guid *muid, guint32 *kept)
 }
 
 /**
+ * Is search running a GUESS query?
+ */
+gboolean
+search_running_guess(const struct guid *muid)
+{
+	search_ctrl_t *sch;
+
+	sch = g_hash_table_lookup(search_by_muid, muid);
+
+	g_assert(sch == NULL || sbool_get(sch->active)); /* No MUID if not active */
+
+	return sch != NULL && sch->guess != NULL;
+}
+
+/**
  * @returns amount of hits kept by the search, identified by its handle
  */
 guint32
 search_get_kept_results_by_handle(gnet_search_t sh)
 {
-    search_ctrl_t *sch = search_find_by_handle(sh);
+    search_ctrl_t *sch;
 
-	g_assert(sch);
+	/*
+	 * Don't use search_find_by_handle() in case the search was closed
+	 * after the node mode changed (ultrapeer -> leaf) and the client code
+	 * (e.g. the dynamic query) was not notified..
+	 */
 
-	return sch->kept_results;
+	sch = search_probe_by_handle(sh);
+
+	return NULL == sch ? 0 : sch->kept_results;
+}
+
+/**
+ * Signals that a query was sent for this search.
+ */
+void
+search_query_sent(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_probe_by_handle(sh);
+
+	if (sch != NULL)
+		search_mark_query_sent(sch);
 }
 
 /**
@@ -4265,7 +4523,7 @@ search_query(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
     g_assert(sch->name != NULL);
 
     return sch->name;
@@ -4276,7 +4534,7 @@ search_is_frozen(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
 
     return sbool_get(sch->frozen);
 }
@@ -4286,7 +4544,7 @@ search_is_passive(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
 
     return sbool_get(sch->passive);
 }
@@ -4296,7 +4554,7 @@ search_is_active(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
 
     return sbool_get(sch->active);
 }
@@ -4306,7 +4564,7 @@ search_is_browse(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
 
     return sbool_get(sch->browse);
 }
@@ -4316,7 +4574,7 @@ search_is_expired(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
 
     return search_expired(sch);
 }
@@ -4326,7 +4584,7 @@ search_is_local(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
 
     return sbool_get(sch->local);
 }
@@ -4355,7 +4613,7 @@ search_browse(gnet_search_t sh,
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
 	g_assert(sbool_get(sch->browse));
 	g_assert(!sbool_get(sch->frozen));
 	g_assert(sch->download == NULL);
@@ -4383,7 +4641,7 @@ search_dissociate_browse(gnet_search_t search_handle, struct download *d)
 {
     search_ctrl_t *sch = search_find_by_handle(search_handle);
 
-    g_assert(sch != NULL);
+	search_ctrl_check(sch);
 	g_assert(sbool_get(sch->browse));
 	g_assert(sch->download == d);
 
@@ -4568,7 +4826,7 @@ search_locally(gnet_search_t sh, const char *query)
 		GSList *search;
 		
 		rs->status |= ST_PARSED_TRAILER;	/* Avoid <unparsed> in the GUI */
-		search = g_slist_prepend(NULL, GUINT_TO_POINTER(sch->search_handle));
+		search = g_slist_prepend(NULL, uint_to_pointer(sch->search_handle));
 		search_fire_got_results(search, rs);	/* Dispatch browse results */
 		gm_slist_free_null(&search);
 	}
@@ -5412,7 +5670,7 @@ search_request_preprocess(struct gnutella_node *n)
 			atom = atom_str_get(query);
 
 		gm_hash_table_insert_const(n->qseen, atom,
-			GUINT_TO_POINTER((unsigned) delta_time(now, (time_t) 0)));
+			uint_to_pointer((unsigned) delta_time(now, (time_t) 0)));
 	}
 	record_query_string(gnutella_header_get_muid(&n->header), search);
 
@@ -5467,7 +5725,7 @@ search_request_preprocess(struct gnutella_node *n)
 		}
 
 		gm_hash_table_insert_const(n->qrelayed,
-			atom_str_get(stmp_1), GINT_TO_POINTER(1));
+			atom_str_get(stmp_1), int_to_pointer(1));
 	}
 
 	oob = 0 != (flags & QUERY_F_OOB_REPLY);

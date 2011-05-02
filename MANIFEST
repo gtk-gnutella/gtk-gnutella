@@ -292,6 +292,8 @@ src/core/gmsg.h
 src/core/gnet_stats.c
 src/core/gnet_stats.h
 src/core/gnutella.h
+src/core/guess.c
+src/core/guess.h
 src/core/guid.c
 src/core/guid.h
 src/core/hcache.c

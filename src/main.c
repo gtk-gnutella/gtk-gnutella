@@ -64,6 +64,7 @@
 #include "core/gmsg.h"
 #include "core/gnet_stats.h"
 #include "core/gnutella.h"
+#include "core/guess.h"
 #include "core/guid.h"
 #include "core/hcache.h"
 #include "core/hostiles.h"
@@ -478,6 +479,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(move_close);
 	DO(publisher_close);
 	DO(pdht_close);
+	DO(guess_close);
 	DO_ARG(dht_close, TRUE);
 	DO(ipp_cache_save_all);
 	DO(bg_close);
@@ -1685,6 +1687,7 @@ main(int argc, char **argv)
 	gdht_init();
 	pdht_init();
 	publisher_init();
+	guess_init();
 
 	dht_init();
 	upnp_post_init();

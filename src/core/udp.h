@@ -49,10 +49,23 @@ enum udp_ping_ret {
 	UDP_PING_REPLY				/**< got a reply from host */
 };
 
+enum udp_pong_status {
+	UDP_PONG_UNSOLICITED,		/**< no registered ping */
+	UDP_PONG_SOLICITED,			/**< solicited pong, no callback attached */
+	UDP_PONG_HANDLED			/**< solicited pong, handled through callback */
+};
+
+struct gnutella_node;
+
 /**
- * UDP Ping sending callback.
+ * UDP Pong reception callback (installed for registered ping).
+ *
+ * @param type		type of reply, if any
+ * @param n			gnutella node replying (NULL if no reply)
+ * @param data		user-supplied callback data
  */
-typedef void (*udp_ping_cb_t)(enum udp_ping_ret type, void *data);
+typedef void (*udp_ping_cb_t)(enum udp_ping_ret type,
+	const struct gnutella_node *n, void *data);
 
 /*
  * Public interface.
@@ -74,7 +87,7 @@ gboolean udp_send_ping_callback(gnutella_msg_init_t *m, guint32 size,
 	udp_ping_cb_t cb, void *arg, gboolean multiple);
 void udp_send_mb(const struct gnutella_node *n, struct pmsg *mb);
 void udp_dht_send_mb(const struct gnutella_node *n, struct pmsg *mb);
-gboolean udp_ping_is_registered(const struct guid *muid);
+enum udp_pong_status udp_ping_is_registered(const struct gnutella_node *n);
 
 void udp_init(void);
 void udp_close(void);

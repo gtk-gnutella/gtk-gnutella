@@ -391,12 +391,12 @@ udp_ping_expire(gboolean forced)
 			if (d > 0 && d <= UDP_PING_TIMEOUT) {
 				break;
 			}
-			if (ping->callback) {
-				(*ping->callback->cb)(
-					ping->callback->got_reply ?
-						UDP_PING_EXPIRED : UDP_PING_TIMEDOUT,
-					ping->callback->data);
-			}
+		}
+		if (ping->callback) {
+			(*ping->callback->cb)(
+				ping->callback->got_reply ?
+					UDP_PING_EXPIRED : UDP_PING_TIMEDOUT,
+				NULL, ping->callback->data);
 		}
 		hash_list_remove(udp_pings, ping);
 		udp_ping_free(ping);
@@ -468,10 +468,10 @@ udp_ping_register(const struct guid *muid,
  *
  * @return TRUE if indeed this was a reply for a ping we sent.
  */
-gboolean
-udp_ping_is_registered(const struct guid *muid)
+enum udp_pong_status
+udp_ping_is_registered(const struct gnutella_node *n)
 {
-	g_assert(muid);
+	const struct guid *muid = gnutella_header_get_muid(&n->header);
 
 	if (udp_pings) {
 		struct udp_ping *ping;
@@ -479,7 +479,7 @@ udp_ping_is_registered(const struct guid *muid)
 		ping = hash_list_remove(udp_pings, muid);
 		if (ping) {
 			if (ping->callback) {
-				(*ping->callback->cb)(UDP_PING_REPLY, ping->callback->data);
+				(*ping->callback->cb)(UDP_PING_REPLY, n, ping->callback->data);
 				if (ping->callback->multiple) {
 					ping->callback->got_reply = TRUE;
 					ping->added = tm_time();	/* Delay expiration */
@@ -487,13 +487,13 @@ udp_ping_is_registered(const struct guid *muid)
 				} else {
 					udp_ping_free(ping);
 				}
-			} else {
-				udp_ping_free(ping);
+				return UDP_PONG_HANDLED;
 			}
-			return TRUE;
+			udp_ping_free(ping);
+			return UDP_PONG_SOLICITED;
 		}
 	}
-	return FALSE;
+	return UDP_PONG_UNSOLICITED;
 }
 
 /**
@@ -582,6 +582,7 @@ udp_send_ping_callback(
 	udp_ping_cb_t cb, void *arg, gboolean multiple)
 {
 	g_assert(cb != NULL);
+	g_assert(GTA_MSG_INIT == gnutella_header_get_function(m));
 
 	return udp_send_ping_with_callback(m, size, addr, port, cb, arg, multiple);
 }

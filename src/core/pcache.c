@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "ggep_type.h"
 #include "gmsg.h"
 #include "gnet_stats.h"
+#include "guess.h"
 #include "hcache.h"
 #include "hostiles.h"
 #include "hosts.h"
@@ -290,13 +291,30 @@ build_guess_ping_msg(const struct guid *muid,
 	ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
 
 	if (scp) {
-		char spp;
+		if (qk) {
+			char spp;
 
-		spp = GNET_PROPERTY(current_peermode) == NODE_P_LEAF ? 0x0 : 0x1;
-		spp |= tls_enabled() ? 0x02 : 0;
+			/*
+			 * A "QK" query with "SCP" requests more GUESS hosts packed in
+			 * and "IPP" extension, not sent as separate pongs.
+			 *
+			 * If "SCP" is not present along "QK", then no extra hosts will
+			 * be sent back, only the proper query key in a single pong.
+			 */
 
-		ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
-		g_assert(ok);
+			spp = GNET_PROPERTY(current_peermode) == NODE_P_LEAF ? 0x0 : 0x1;
+			spp |= tls_enabled() ? 0x02 : 0;
+
+			ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
+			g_assert(ok);
+		} else if (!intro || NODE_P_ULTRA != GNET_PROPERTY(current_peermode)) {
+			/*
+			 * An "SCP" request for more GUESS hosts, in the absence of "QK",
+			 * is indicated by an empty "GUE" extension.
+			 */
+
+			ggep_stream_pack(&gs, GGEP_NAME(GUE), NULL, 0, 0);
+		}
 	}
 
 	if (qk) {
@@ -308,9 +326,11 @@ build_guess_ping_msg(const struct guid *muid,
 	 *
 	 * - the first byte is the GUESS version, as usual
 	 * - the next two bytes are the listening port, in little-endian.
+	 *
+	 * This is only sent when running in ultrapeer mode.
 	 */
 
-	if (intro) {
+	if (intro && NODE_P_ULTRA == GNET_PROPERTY(current_peermode)) {
 		char buf[3];
 		poke_u8(&buf[0], (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR);
 		poke_le16(&buf[1], socket_listen_port());
@@ -455,8 +475,9 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 	 * ping, then we're acting as an UDP host cache.  Give them some
 	 * fresh pongs of hosts with free slots.
 	 *
-	 * If there was a "GUE" extension in the ping, we behave as if there was
-	 * an "SCP", only we send back GUESS hosts in the "IPP" pong extension.
+	 * If there was an empty "GUE" extension in the ping, we behave as if
+	 * there was an "SCP", only we send back GUESS hosts in the "IPP" pong
+	 * extension.
 	 */
 
 	if (
@@ -2345,11 +2366,18 @@ pcache_udp_pong_received(struct gnutella_node *n)
 
 	g_assert(NODE_IS_UDP(n));
 
-	if (!udp_ping_is_registered(gnutella_header_get_muid(&n->header))) {
+	switch (udp_ping_is_registered(n)) {
+	case UDP_PONG_UNSOLICITED:
+		if (guess_rpc_handle(n))
+			return;
 		if (GNET_PROPERTY(bootstrap_debug) || GNET_PROPERTY(udp_debug)) {
-			g_message("UDP ignoring unsollicited %s", gmsg_infostr(n->header));
+			g_message("UDP ignoring unsolicited %s", gmsg_infostr(n->header));
 		}
+		/* FALL THROUGH */
+	case UDP_PONG_HANDLED:
 		return;
+	case UDP_PONG_SOLICITED:
+		break;
 	}
 
 	port = peek_le16(&n->data[0]);

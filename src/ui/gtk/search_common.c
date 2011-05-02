@@ -1615,8 +1615,18 @@ search_gui_get_route(const struct results_set *rs)
 		return NULL;
 
 	n = host_addr_to_string_buf(rs->last_hop, addr_buf, sizeof addr_buf);
+
+	/*
+	 * For successful OOBv3 results, append a "+" to the route address.
+	 * For GUESS query results, append a "~" to the route address.
+	 */
+
 	if ((ST_GOOD_TOKEN & rs->status) && n < sizeof addr_buf) {
 		g_strlcpy(&addr_buf[n], "+", sizeof addr_buf - n);
+		n++;
+	}
+	if ((ST_GUESS & rs->status) && n < sizeof addr_buf) {
+		g_strlcpy(&addr_buf[n], "~", sizeof addr_buf - n);
 	}
 	return addr_buf;
 }

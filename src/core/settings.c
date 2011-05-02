@@ -44,6 +44,7 @@
 #include "bsched.h"
 #include "ctl.h"
 #include "downloads.h"
+#include "guess.h"
 #include "hcache.h"
 #include "hosts.h"
 #include "inet.h"
@@ -1431,6 +1432,21 @@ enable_dht_changed(property_t prop)
 }
 
 static gboolean
+enable_guess_changed(property_t prop)
+{
+	gboolean enabled;
+	
+    gnet_prop_get_boolean_val(prop, &enabled);
+	if (enabled) {
+		guess_init();
+	} else {
+		guess_close();
+	}
+
+	return FALSE;
+}
+
+static gboolean
 enable_upnp_changed(property_t prop)
 {
 	gboolean enabled;
@@ -2761,6 +2777,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_ENABLE_DHT,
 		enable_dht_changed,
+		FALSE,
+	},
+	{
+		PROP_ENABLE_GUESS,
+		enable_guess_changed,
 		FALSE,
 	},
 	{

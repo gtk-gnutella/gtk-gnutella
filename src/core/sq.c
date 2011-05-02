@@ -85,8 +85,7 @@ typedef struct smsg {
  */
 struct smsg_info {
 	struct nid *node_id; 	/**< The unique node ID to which we're sending */
-	gpointer search;		/**< The search object which sends the query */
-	guint32 id;				/**< The unique search ID */
+	gnet_search_t shandle;	/**< Handle to search that originated query */
 };
 
 static squeue_t *global_sq = NULL;
@@ -109,7 +108,7 @@ sq_pmsg_free(pmsg_t *mb, gpointer arg)
 	 */
 
 	if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF)
-		search_notify_sent(smi->search, smi->id, smi->node_id);
+		search_notify_sent(smi->shandle, smi->node_id);
 
 	nid_unref(smi->node_id);
 	wfree(smi, sizeof(*smi));
@@ -170,7 +169,7 @@ smsg_mutate(smsg_t *sb, struct gnutella_node *n)
 	pmsg_t *omb;
 
 	smi = walloc(sizeof(*smi));
-	smi->id = search_get_id(sb->shandle, &smi->search);
+	smi->shandle = sb->shandle;
 	smi->node_id = nid_ref(NODE_ID(n));
 
 	omb = sb->mb;

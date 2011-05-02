@@ -62,6 +62,7 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/nid.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -82,9 +83,8 @@ RCSID("$Id$")
 #define DQ_STAT_THRESHOLD	3	   /**< Request status every 3 UP probed */
 #define DQ_MIN_FOR_GUIDANCE	20	   /**< Request guidance if 20+ new results */
 
-#define DQ_LEAF_RESULTS		50	   /**< # of results targetted for leaves */
-#define DQ_LOCAL_RESULTS	150	   /**< # of results for local queries */
 #define DQ_SHA1_DECIMATOR	25	   /**< Divide expected by that much for SHA1 */
+#define DQ_ENOUGH_DECIMATOR	3	   /**< Divisor if enough results already */
 #define DQ_PROBE_UP			3	   /**< Amount of UPs for initial probe */
 #define DQ_MAX_HORIZON		500000 /**< Stop after that many UP queried */
 #define DQ_MIN_HORIZON		3000   /**< Min horizon before timeout adjustment */
@@ -96,6 +96,16 @@ RCSID("$Id$")
 
 #define DQ_MQ_EPSILON		2048   /**< Queues identical at +/- 2K */
 #define DQ_FUZZY_FACTOR		0.80   /**< Corrector for theoretical horizon */
+
+/**
+ * # of results before stopping search.
+ *
+ * We assume there are 3 ultrapeers per leaf on average, hence the # of
+ * results targetted for our leaves is smaller than the amout required
+ * for our own queries.
+ */
+#define DQ_LEAF_RESULTS		(SEARCH_MAX_RESULTS / 3)
+#define DQ_LOCAL_RESULTS	SEARCH_MAX_RESULTS
 
 /**
  * Structure produced by dq_fill_next_up, representing the nodes to which
@@ -304,7 +314,7 @@ dq_kept_results(dquery_t *dq)
 	dquery_check(dq);
 
 	/*
-	 * For local queries, see how many results we kept so far.
+	 * For local queries, see how many results we kept since launching.
 	 *
 	 * Since there's no notification for local queries about the
 	 * amount of results kept (no "Query Status Results" messages)
@@ -499,6 +509,9 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 
 		dq->horizon += dq_get_horizon(pmi->degree, pmi->ttl);
 		dq->up_sent++;
+
+		if (dq->flags & DQ_F_LOCAL)
+			search_query_sent(dq->sh);
 
 		if (GNET_PROPERTY(dq_debug) > 19) {
 			g_debug("DQ[%s] %snode #%s degree=%d sent message TTL=%d%s",
@@ -840,7 +853,7 @@ dq_free(dquery_t *dq)
 	g_assert((dq->flags & DQ_F_EXITING) ||
 		g_hash_table_lookup(dqueries, &dq->qid) == dq);
 
-	if (GNET_PROPERTY(dq_debug) > 19)
+	if (GNET_PROPERTY(dq_debug) > 2)
 		g_debug("DQ[%s] %s(%d secs; +%d secs) node #%s ending: "
 			"ttl=%d, queried=%d, horizon=%d, results=%d+%d",
 			nid_to_string(&dq->qid),
@@ -991,7 +1004,7 @@ dq_expired(cqueue_t *unused_cq, gpointer obj)
 
 	(void) unused_cq;
 
-	if (GNET_PROPERTY(dq_debug) > 19)
+	if (GNET_PROPERTY(dq_debug) > 3)
 		g_debug("DQ[%s] expired", nid_to_string(&dq->qid));
 
 	dq->expire_ev = NULL;	/* Indicates callback fired */
@@ -1862,14 +1875,20 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	if (leaf_muid != NULL)
 		dq->lmuid = atom_guid_get(leaf_muid);
 
-	if (GNET_PROPERTY(dq_debug) > 19)
-		g_debug("DQ %s #%s (%s leaf-guidance) %s%squeries \"%s\"",
+	if (GNET_PROPERTY(dq_debug) > 1) {
+		const char *qstr = gnutella_msg_search_get_text(pmsg_start(dq->mb));
+		char *safe_qstr = hex_escape(qstr, FALSE);
+		g_debug("DQ %s #%s (%s leaf-guidance) %s%squeries \"%s\" "
+			"for %u hits",
 			node_infostr(n), nid_to_string(NODE_ID(n)),
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "with" : "no",
 			flags_valid && (flags & QUERY_F_OOB_REPLY) ? "OOB-" : "",
 			oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header))
 				? "proxied " : "",
-			gnutella_msg_search_get_text(pmsg_start(dq->mb)));
+			safe_qstr, dq->max_results);
+		if (safe_qstr != qstr)
+			HFREE_NULL(safe_qstr);
+	}
 
 	gnet_stats_count_general(GNR_LEAF_DYN_QUERIES, 1);
 
@@ -1915,14 +1934,32 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	dq->mb = mb;
 	dq->qhv = qhv;
 	dq->sh = handle;
+
+	/*
+	 * SHA1 matches are unlikely but when they happen we need only
+	 * a few of them.
+	 */
+
 	if (qhvec_has_urn(qhv))
 		dq->max_results = DQ_LOCAL_RESULTS / DQ_SHA1_DECIMATOR;
 	else
 		dq->max_results = DQ_LOCAL_RESULTS;
+
 	dq->fin_results = dq->max_results * 100 / DQ_PERCENT_KEPT;
 	dq->ttl = MIN(GNET_PROPERTY(my_ttl), DQ_MAX_TTL);
 	dq->alive = NULL;
 	dq->flags = DQ_F_ROUTING_HITS | DQ_F_LOCAL;		/* We get our own hits! */
+
+	if (GNET_PROPERTY(dq_debug) > 1) {
+		const char *qstr = gnutella_msg_search_get_text(pmsg_start(dq->mb));
+		char *safe_qstr = hex_escape(qstr, FALSE);
+		guint16 qflags = gnutella_msg_search_get_flags(pmsg_start(dq->mb));
+		g_debug("DQ local %squeries \"%s\" for %u hits",
+			(qflags & QUERY_F_OOB_REPLY) ?  "OOB-" : "",
+			safe_qstr, dq->max_results);
+		if (safe_qstr != qstr)
+			HFREE_NULL(safe_qstr);
+	}
 
 	gnet_stats_count_general(GNR_LOCAL_DYN_QUERIES, 1);
 

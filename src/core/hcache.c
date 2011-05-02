@@ -754,7 +754,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		!host_low_on_pongs &&
 		(random_u32() & 0xff) > 31
 	) {
-		return FALSE;
+		return FALSE;		/* Did not pass port sanity checks */
 	}
 
 	/*
@@ -860,7 +860,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 	}
 
 	if (!hcache_request_slot(hc->type))
-		return FALSE;
+		return TRUE;
 
 	/* Okay, we got a new host */
 
@@ -1249,10 +1249,25 @@ hcache_prune(hcache_type_t type)
 		 * The GUESS running cache is managed in an MRU fashion to limit the
 		 * impact of possible poisoning of the cache by malicious hosts.
 		 * See the "Pong-Cache Poisoning in GUESS" article.
+		 *
+		 * However, in practice this does not work as desired because only
+		 * the last slot ends up being updated and all the other hosts quickly
+		 * become stale.  Hence use probability replacement: there is a 70%
+		 * chance that the most recent entry will be replaced, otherewise we'll
+		 * use normal LRU replacement.
 		 */
 
-		if (HCACHE_GUESS == hc->type) {
+		if (HCACHE_GUESS == hc->type && random_u32() % 100 < 70) {
+			/*
+			 * The newest entry is the one we just added to the cache.
+			 * Remove the next one, unless there is none and pruning means
+			 * that we have to remove the only entry we have!
+			 */
+
 			h = hash_list_head(hc->hostlist);	/* Newest entry */
+			h = hash_list_next(hc->hostlist, h);
+			if (NULL == h)
+				h = hash_list_head(hc->hostlist);
 		} else {
 			h = hash_list_tail(hc->hostlist);	/* Oldest entry */
 		}
@@ -1423,8 +1438,7 @@ hcache_sort_by_added_time(hcache_type_t type)
 }
 
 /**
- * Get host IP/port information from our caught host list, or from the
- * recent pong cache, in alternance.
+ * Get host IP/port information from our caught host list.
  *
  * @return TRUE on sucess, FALSE on failure.
  */
@@ -1451,6 +1465,8 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
         break;
     case HOST_GUESS:
         hc = caches[HCACHE_GUESS];
+		if (0 == hash_list_length(hc->hostlist))
+			hc = caches[HCACHE_GUESS_INTRO];
         break;
     case HOST_MAX:
 		g_assert_not_reached();
@@ -1467,12 +1483,13 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 		return FALSE;
 
 	/*
-	 * First, try to find a local host
+	 * First, try to find a local host (for non-GUESS hosts only).
 	 */
 
 	if (
 		GNET_PROPERTY(use_netmasks) &&
 		number_local_networks &&
+		HOST_GUESS != type &&
 		hcache_find_nearby(type, addr, port)
 	)
 		return TRUE;

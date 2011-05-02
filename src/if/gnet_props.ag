@@ -4707,7 +4707,7 @@ prop = {
 prop = {
 	name = "enable_guess";
 	desc = "Whether the Gnutella UDP Extension for Scalable Searches (GUESS) "
-		"should be enabled.  With GUESS enabled, gtk-gnutell can perform "
+		"should be enabled.  With GUESS enabled, gtk-gnutella can perform "
 		"iterative Ultrapeer queries instead of just broadcasting, allowing "
 		"searches to more places within the Gnutella network.";
 	type = boolean;

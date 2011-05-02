@@ -768,26 +768,37 @@ handle_qstat_req(struct gnutella_node *n, const struct vmsg *unused_vmsg,
 	const char *unused_payload, size_t unused_size)
 {
 	guint32 kept;
+	const struct guid *muid = gnutella_header_get_muid(&n->header);
 
 	(void) unused_vmsg;
 	(void) unused_payload;
 	(void) unused_size;
 
-	if (!search_get_kept_results(gnutella_header_get_muid(&n->header), &kept)) {
+	if (!search_get_kept_results(muid, &kept)) {
 		/*
 		 * We did not find any search for this MUID.  Either the remote
 		 * side goofed, or they closed the search.
 		 */
 
 		if (GNET_PROPERTY(vmsg_debug)) {
-			g_warning("VMSG could not find matching search");
+			g_warning("VMSG could not find matching search for MUID %s",
+				guid_hex_str(muid));
 		}
 		kept = 0xffffU;		/* Magic value telling them to stop the search */
 	} else {
-		kept = MIN(kept, 0xfffeU);
+		/*
+		 * If we've started running a GUESS query for this search, there's
+		 * no need for our ultrapeer to continue running the dynamic query
+		 * for us.
+		 */
+
+		if (search_running_guess(muid))
+			kept = 0xffffU;	/* Magic value telling them to stop the search */
+		else
+			kept = MIN(kept, 0xfffeU);
 	}
 
-	vmsg_send_qstat_answer(n, gnutella_header_get_muid(&n->header), kept);
+	vmsg_send_qstat_answer(n, muid, kept);
 }
 
 /**

@@ -53,6 +53,7 @@ enum {
  * Result sets `status' flags.
  */
 enum {
+	 ST_GUESS				= (1 << 25), /**< Results from a GUESS query */
 	 ST_MORPHEUS_BOGUS		= (1 << 24), /**< Bogus result from Morpheus */
 	 ST_GOOD_TOKEN			= (1 << 23), /**< OOB v3 matched */
 	 ST_BROWSE				= (1 << 22), /**< Browse Host "search" result */

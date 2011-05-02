@@ -628,3 +628,4 @@ N_("Enable NAT-PMP");
 N_("Enable HTTP request pipelining");
 N_("Pipelining max chunk size");
 N_("Enable upload of patial files deemed rare");
+N_("Enable GUESS (additional querying)");

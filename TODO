@@ -4,11 +4,12 @@ priority.
 
 0.97:
 	* Finish port to Windows.
+	* HTTP request pipelining.
+	* GUESS (Gnutella UDP Extension for Scalable Searches)
 
 0.97.1
 	* DOVE extension for the DHT, adding IPv6 support and smarter publishing
 	* Write specifications for the DHT "NOPE" value.
-	* HTTP request pipelining.
 	* Firewalled to firewalled transfers (reverse engineer LimeWire specs)
 	* DHT GUI configuration (auto / active / passive modes)
 	* Remove dependency on libxml, switching to GTKG's own XML routines.

@@ -55,6 +55,7 @@
 RCSID("$Id$")
 
 #include "gnet_host.h"
+#include "atoms.h"
 #include "stringify.h"
 #include "sequence.h"
 #include "str.h"
@@ -106,6 +107,17 @@ gnet_host_cmp(gconstpointer v1, gconstpointer v2)
 	return gnet_host_eq(v1, v2) ? 0 : 1;
 }
 
+/**
+ * Length of "serialized" gnet host, depending on the address type it holds.
+ */
+size_t
+gnet_host_length(const void *p)
+{
+	const gnet_host_t *h = p;
+
+	return packed_host_length(&h->data);
+}
+
 /***
  *** Single Gnutella hosts.
  ***/
@@ -118,7 +130,7 @@ gnet_host_new(const host_addr_t addr, guint16 port)
 {
 	gnet_host_t *h;
 
-	h = walloc(sizeof *h);
+	h = walloc0(sizeof *h);
 	gnet_host_set(h, addr, port);
 
 	return h;
@@ -142,6 +154,27 @@ void
 gnet_host_free(void *h)
 {
 	wfree(h, sizeof(gnet_host_t));
+}
+
+/**
+ * Free host atom.
+ *
+ * Signature is generic for easier usage as list free callback.
+ */
+void
+gnet_host_free_atom(void *h)
+{
+	atom_host_free(h);
+}
+
+/**
+ * Free host atom -- aging table callback version.
+ */
+void
+gnet_host_free_atom2(void *h, void *unused)
+{
+	(void) unused;
+	atom_host_free(h);
 }
 
 /**

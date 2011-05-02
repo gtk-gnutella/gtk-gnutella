@@ -864,7 +864,7 @@ publisher_sync(gpointer unused_obj)
 {
 	(void) unused_obj;
 
-	dbstore_sync(db_pubdata);
+	dbstore_sync_flush(db_pubdata);
 	return TRUE;
 }
 

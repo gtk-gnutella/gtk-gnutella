@@ -54,6 +54,7 @@ SRC = \
 	ghc.c \
 	gmsg.c \
 	gnet_stats.c \
+	guess.c \
 	guid.c \
 	hcache.c \
 	hostiles.c \
