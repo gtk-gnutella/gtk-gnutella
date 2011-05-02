@@ -713,6 +713,7 @@ struct cperiodic {
 	gpointer arg;					/**< Callback argument */
 	int period;						/**< Period between invocations, in ms */
 	cevent_t *ev;					/**< Scheduled event */
+	unsigned to_free:1;				/**< Marked for freeing */
 };
 
 static inline void
@@ -726,19 +727,28 @@ cperiodic_check(const struct cperiodic * const cp)
  * Free allocated periodic event.
  */
 static void
-cq_periodic_free(cperiodic_t *cp)
+cq_periodic_free(cperiodic_t *cp, gboolean force)
 {
 	cqueue_t *cq;
 
 	cperiodic_check(cp);
-	cevent_check(cp->ev);
 	cq = cp->ev->ce_cq;
 	cqueue_check(cq);
 
-	cq_cancel(&cp->ev);
-	cq_unregister_object(cq->cq_periodic, cp);
-	cp->magic = 0;
-	wfree(cp, sizeof *cp);
+	if (NULL == cp->ev && !force) {
+		/*
+		 * Trying to free the periodic event whilst in the middle of the
+		 * cq_periodic_trampoline() call.  Record that the object must
+		 * be freed and defer until we return from the user call.
+		 */
+
+		cp->to_free = TRUE;
+	} else {
+		cq_cancel(&cp->ev);
+		cq_unregister_object(cq->cq_periodic, cp);
+		cp->magic = 0;
+		wfree(cp, sizeof *cp);
+	}
 }
 
 /**
@@ -748,6 +758,7 @@ static void
 cq_periodic_trampoline(cqueue_t *cq, gpointer data)
 {
 	cperiodic_t *cp = data;
+	gboolean reschedule;
 
 	cqueue_check(cq);
 	cperiodic_check(cp);
@@ -756,12 +767,17 @@ cq_periodic_trampoline(cqueue_t *cq, gpointer data)
 
 	/*
 	 * As long as the periodic event returns TRUE, keep scheduling it.
+	 *
+	 * To handle synchronous calls to cq_periodic_remove(), freeing of the
+	 * periodic event is deferred until we come back from the user call.
 	 */
 
-	if ((*cp->event)(cp->arg))
+	reschedule = (*cp->event)(cp->arg);
+
+	if (cp->to_free || !reschedule) {
+		cq_periodic_free(cp, TRUE);
+	} else {
 		cp->ev = cq_insert(cq, cp->period, cq_periodic_trampoline, cp);
-	else {
-		cq_periodic_free(cp);
 	}
 }
 
@@ -787,7 +803,7 @@ cq_periodic_add(cqueue_t *cq, int period, cq_invoke_t event, gpointer arg)
 
 	cqueue_check(cq);
 
-	cp = walloc(sizeof *cp);
+	cp = walloc0(sizeof *cp);
 	cp->magic = CPERIODIC_MAGIC;
 	cp->event = event;
 	cp->arg = arg;
@@ -841,7 +857,7 @@ cq_periodic_remove(cperiodic_t **cp_ptr)
 {
 	if (*cp_ptr) {
 		cperiodic_t *cp = *cp_ptr;
-		cq_periodic_free(cp);
+		cq_periodic_free(cp, FALSE);
 		*cp_ptr = NULL;
 	}
 }
