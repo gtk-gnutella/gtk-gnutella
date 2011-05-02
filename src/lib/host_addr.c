@@ -1474,7 +1474,21 @@ packed_host_unpack(const struct packed_host phost,
 	switch (phost.ha.net) {
 	case NET_TYPE_IPV4:
 		if (addr_ptr) {
-			*addr_ptr = host_addr_peek_ipv4(phost.ha.addr);
+			/*
+			 * Compiler hack alert!
+			 * 
+			 * Ensure generated code will NEVER try to access the whole array
+			 * since only the necessary bytes may have been allocated to hold
+			 * the packed representation! When "phost.ha.addr" causes a
+			 * memory fault if the structure is tighly allocated, taking the
+			 * address of the first byte alleviates all problems since we
+			 * know host_addr_peek_ipv4() will behave sanely with the pointer
+			 * it is passed and will not try to access beyond the size of
+			 * the expected IPv4 address.
+			 *
+			 *		--RAM, 2011-05-03
+			 */
+			*addr_ptr = host_addr_peek_ipv4(&phost.ha.addr[0]);
 		}
 		return TRUE;
 	case NET_TYPE_IPV6:
