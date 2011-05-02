@@ -44,7 +44,7 @@
 
 typedef struct aging aging_table_t;
 
-typedef void (*aging_free_t)(gpointer value, gpointer udata);
+typedef void (*aging_free_t)(void *key, void *value);
 
 /*
  * Public interface.
@@ -56,10 +56,10 @@ aging_table_t *aging_make(int delay,
 void aging_destroy(aging_table_t **);
 
 time_delta_t aging_age(const aging_table_t *ag, gconstpointer key);
-gpointer aging_lookup(const aging_table_t *ag, gconstpointer key);
-gpointer aging_lookup_revitalise(const aging_table_t *ag, gconstpointer key);
-void aging_insert(aging_table_t *ag, gpointer key, gpointer value);
-gboolean aging_remove(aging_table_t *ag, gpointer key);
+void *aging_lookup(const aging_table_t *ag, gconstpointer key);
+void *aging_lookup_revitalise(const aging_table_t *ag, const void *key);
+void aging_insert(aging_table_t *ag, const void *key, void *value);
+gboolean aging_remove(aging_table_t *ag, const void *key);
 
 #endif	/* _aging_h_ */
 

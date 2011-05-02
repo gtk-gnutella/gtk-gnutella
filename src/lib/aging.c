@@ -83,8 +83,8 @@ aging_check(const aging_table_t * const ag)
  * track of its insertion time, and cleanup event.
  */
 struct aging_value {
-	gpointer value;			/**< The value they inserted in the table */
-	gpointer key;			/**< The associated key object */
+	void *value;			/**< The value they inserted in the table */
+	void *key;				/**< The associated key object */
 	cevent_t *cq_ev;		/**< Scheduled cleanup event */
 	aging_table_t *ag;		/**< Holding container */
 	time_t last_insert;		/**< Last insertion time */
@@ -152,7 +152,7 @@ aging_make(int delay, GHashFunc hash, GEqualFunc eq, aging_free_t kvfree)
  * Free keys and values from the aging table.
  */
 static void
-aging_free_kv(gpointer key, gpointer value, gpointer udata)
+aging_free_kv(void *key, void *value, void *udata)
 {
 	aging_table_t *ag = udata;
 	struct aging_value *aval = value;
@@ -193,7 +193,7 @@ aging_destroy(aging_table_t **ag_ptr)
  * Expire value entry.
  */
 static void
-aging_expire(cqueue_t *unused_cq, gpointer obj)
+aging_expire(cqueue_t *unused_cq, void *obj)
 {
 	struct aging_value *aval = obj;
 	aging_table_t *ag = aval->ag;
@@ -210,7 +210,7 @@ aging_expire(cqueue_t *unused_cq, gpointer obj)
 /**
  * Lookup value in table.
  */
-gpointer
+void *
 aging_lookup(const aging_table_t *ag, gconstpointer key)
 {
 	struct aging_value *aval;
@@ -240,7 +240,7 @@ aging_age(const aging_table_t *ag, gconstpointer key)
  * Lookup value in table, and if found, revitalize entry, restoring the
  * initial lifetime the key/value pair had at insertion time.
  */
-gpointer
+void *
 aging_lookup_revitalise(const aging_table_t *ag, gconstpointer key)
 {
 	struct aging_value *aval;
@@ -264,10 +264,10 @@ aging_lookup_revitalise(const aging_table_t *ag, gconstpointer key)
  * @return wehether key was found and subsequently removed.
  */
 gboolean
-aging_remove(aging_table_t *ag, gpointer key)
+aging_remove(aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
-	gpointer okey, ovalue;
+	void *okey, *ovalue;
 
 	g_assert(ag->magic == AGING_MAGIC);
 
@@ -297,10 +297,10 @@ aging_remove(aging_table_t *ag, gpointer key)
  * an insertion conflict and the value pointers are different.
  */
 void
-aging_insert(aging_table_t *ag, gpointer key, gpointer value)
+aging_insert(aging_table_t *ag, const void *key, void *value)
 {
 	gboolean found;
-	gpointer okey, ovalue;
+	void *okey, *ovalue;
 	time_t now = tm_time();
 	struct aging_value *aval;
 
@@ -318,7 +318,7 @@ aging_insert(aging_table_t *ag, gpointer key, gpointer value)
 			 * That way, we don't have to update the hash table.
 			 */
 
-			(*ag->kvfree)(key, aval->value);
+			(*ag->kvfree)(deconstify_gpointer(key), aval->value);
 		}
 
 		g_assert(aval->cq_ev != NULL);
@@ -339,7 +339,7 @@ aging_insert(aging_table_t *ag, gpointer key, gpointer value)
 		aval = walloc(sizeof(*aval));
 
 		aval->value = value;
-		aval->key = key;
+		aval->key = deconstify_gpointer(key);
 		aval->ttl = ag->delay;
 		aval->ttl = MAX(aval->ttl, 1);
 		aval->ttl = MIN(aval->ttl, INT_MAX / 1000);
@@ -347,7 +347,7 @@ aging_insert(aging_table_t *ag, gpointer key, gpointer value)
 		aval->ag = ag;
 
 		aval->cq_ev = cq_insert(aging_cq, 1000 * aval->ttl, aging_expire, aval);
-		g_hash_table_insert(ag->table, key, aval);
+		gm_hash_table_insert_const(ag->table, key, aval);
 	}
 }
 
