@@ -2435,6 +2435,7 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 	gnutella_msg_search_t *msg;
 	struct qkdata *qk;
 	const gnutella_node_t *n;
+	gboolean marked_as_queried = TRUE;
 
 	guess_check(gq);
 	g_assert(atom_is_host(host));
@@ -2445,14 +2446,17 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 	 * actually send the query.
 	 *
 	 * However, we don't want guess_iterate() to request twice the same host.
-	 * We will never be able to have two alive RPCs to the same IP anyway.
+	 * We will never be able to have two alive RPCs to the same IP anyway
+	 * with the same MUID.
 	 *
 	 * Therefore, record the host in the "queried" table if not already present.
 	 * Since it is an atom (removal from the pool), there's no need to refcount
 	 * it again.
 	 */
 
-	if (!map_contains(gq->queried, host)) {
+	if (map_contains(gq->queried, host)) {
+		marked_as_queried = FALSE;
+	} else {
 		map_insert(gq->queried, host, int_to_pointer(1));
 	}
 
@@ -2564,13 +2568,29 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 	return TRUE;		/* Attempted to query the host */
 
 unqueried:
-	if (GNET_PROPERTY(guess_client_debug) > 2) {
-		g_debug("GUESS QUERY[%s] putting unqueried %s back to pool",
-			nid_to_string(&gq->gid), gnet_host_to_string(host));
-	}
+	if (marked_as_queried) {
+		if (GNET_PROPERTY(guess_client_debug) > 2) {
+			g_debug("GUESS QUERY[%s] putting unqueried %s back to pool",
+				nid_to_string(&gq->gid), gnet_host_to_string(host));
+		}
 
-	map_remove(gq->queried, host);
-	hash_list_append(gq->pool, host);
+		map_remove(gq->queried, host);
+		hash_list_append(gq->pool, host);
+	} else {
+		/*
+		 * If a buggy host responds to a query key request with two pongs,
+		 * for some reason, we'll come back trying to resend the query,
+		 * following reception of the query key.  But we won't be able to
+		 * issue the RPC to the same host if one is already pending, which is
+		 * how we can come here: unable to query a host that we probably
+		 * already queried earlier anyway.
+		 */
+
+		if (GNET_PROPERTY(guess_client_debug)) {
+			g_warning("GUESS QUERY[%s] not querying %s (duplicate query key?)",
+				nid_to_string(&gq->gid), gnet_host_to_string(host));
+		}
+	}
 
 	return FALSE;		/* Did not query the host */
 }
