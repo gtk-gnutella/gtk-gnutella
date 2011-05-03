@@ -2059,7 +2059,7 @@ guess_load_host_added(void *data, void *hostinfo)
 
 done:
 	gq->hostwait = NULL;
-	guess_async_iterate(gq);
+	guess_async_iterate_if_needed(gq);
 	return WQ_REMOVE;
 }
 
