@@ -1465,13 +1465,13 @@ host_pack(const host_addr_t addr, guint16 port)
 }
 
 gboolean
-packed_host_unpack(const struct packed_host phost,
+packed_host_unpack(const struct packed_host *phost,	/* MUST be a pointer */
 	host_addr_t *addr_ptr, guint16 *port_ptr)
 {
 	if (port_ptr) {
-		*port_ptr = peek_be16(&phost.port);
+		*port_ptr = peek_be16(&phost->port);
 	}
-	switch (phost.ha.net) {
+	switch (phost->ha.net) {
 	case NET_TYPE_IPV4:
 		if (addr_ptr) {
 			/*
@@ -1479,7 +1479,7 @@ packed_host_unpack(const struct packed_host phost,
 			 * 
 			 * Ensure generated code will NEVER try to access the whole array
 			 * since only the necessary bytes may have been allocated to hold
-			 * the packed representation! When "phost.ha.addr" causes a
+			 * the packed representation! When "phost->ha.addr" causes a
 			 * memory fault if the structure is tighly allocated, taking the
 			 * address of the first byte alleviates all problems since we
 			 * know host_addr_peek_ipv4() will behave sanely with the pointer
@@ -1488,12 +1488,12 @@ packed_host_unpack(const struct packed_host phost,
 			 *
 			 *		--RAM, 2011-05-03
 			 */
-			*addr_ptr = host_addr_peek_ipv4(&phost.ha.addr[0]);
+			*addr_ptr = host_addr_peek_ipv4(&phost->ha.addr[0]);
 		}
 		return TRUE;
 	case NET_TYPE_IPV6:
 		if (addr_ptr) {
-			*addr_ptr = host_addr_peek_ipv6(phost.ha.addr);
+			*addr_ptr = host_addr_peek_ipv6(phost->ha.addr);
 		}
 		return TRUE;
 	case NET_TYPE_LOCAL:

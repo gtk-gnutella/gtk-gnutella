@@ -205,7 +205,7 @@ gnet_host_to_string_buf(const gnet_host_t *h, void *buf, size_t len)
 	host_addr_t addr;
 	guint16 port;
 
-	packed_host_unpack(h->data, &addr, &port);
+	packed_host_unpack(&h->data, &addr, &port);
 	return host_addr_port_to_string_buf(addr, port, buf, len);
 }
 
