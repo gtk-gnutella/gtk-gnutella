@@ -76,9 +76,9 @@ RCSID("$Id$")
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
+#include "if/core/settings.h"		/* For settings_dht_db_dir() */
 
 #include "core/gnet_stats.h"
-#include "core/settings.h"		/* For settings_config_dir() */
 
 #include "lib/ascii.h"
 #include "lib/atoms.h"
@@ -1831,16 +1831,21 @@ values_init(void)
 	g_assert(NULL == expired);
 	g_assert(NULL == values_expire_ev);
 
-	db_valuedata = dbstore_create(db_valwhat, settings_config_dir(),
+	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
+	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_valbase);
+	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_rawbase);
+	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_expbase);
+
+	db_valuedata = dbstore_create(db_valwhat, settings_dht_db_dir(),
 		db_valbase, value_kv, value_packing, VALUES_DB_CACHE_SIZE,
 		uint64_mem_hash, uint64_mem_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 
-	db_rawdata = dbstore_create(db_rawwhat, settings_config_dir(), db_rawbase,
+	db_rawdata = dbstore_create(db_rawwhat, settings_dht_db_dir(), db_rawbase,
 		raw_kv, no_packing, RAW_DB_CACHE_SIZE, uint64_mem_hash, uint64_mem_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 
-	db_expired = dbstore_create(db_expwhat, settings_config_dir(), db_expbase,
+	db_expired = dbstore_create(db_expwhat, settings_dht_db_dir(), db_expbase,
 		expired_kv, no_packing, 0, kuid_pair_hash, kuid_pair_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 

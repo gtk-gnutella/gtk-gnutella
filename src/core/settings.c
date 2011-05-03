@@ -106,9 +106,11 @@ static const mode_t PID_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
 static const mode_t CONFIG_DIR_MODE =
 	S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP; /* 0750 */
 
-static char *home_dir = NULL;
-static char *config_dir = NULL;
-static char *crash_dir = NULL;
+static char *home_dir;
+static char *config_dir;
+static char *crash_dir;
+static char *dht_db_dir;
+static char *gnet_db_dir;
 
 static prop_set_t *properties = NULL;
 
@@ -419,7 +421,29 @@ save_pid(int fd, const char *path)
 /* ----------------------------------------- */
 
 /**
- * Initializes "config_dir", "home_dir" and "crash_dir".
+ * Create configuration directory, shouting on error, optionally aborting.
+ *
+ * @return TRUE on success.
+ */
+static gboolean
+settings_mkdir(const char *path, gboolean fatal)
+{
+	if (-1 == mkdir(path, CONFIG_DIR_MODE)) {
+		if (fatal) {
+			s_fatal_exit(EXIT_FAILURE, _("mkdir(\"%s\") failed: \"%s\""),
+				path, g_strerror(errno));
+		} else {
+			s_warning(_("mkdir(\"%s\") failed: \"%s\""),
+				path, g_strerror(errno));
+		}
+		return FALSE;
+	} else {
+		return TRUE;
+	}
+}
+
+/**
+ * Initializes "config_dir", "home_dir", "crash_dir", etc...
  */
 void
 settings_early_init(void)
@@ -446,20 +470,26 @@ settings_early_init(void)
 	}
 	if (!is_directory(config_dir)) {
 		s_info(_("creating configuration directory \"%s\""), config_dir);
-		if (-1 == mkdir(config_dir, CONFIG_DIR_MODE)) {
-			s_fatal_exit(EXIT_FAILURE, _("mkdir(\"%s\") failed: \"%s\""),
-				config_dir, g_strerror(errno));
-		}
+		settings_mkdir(config_dir, TRUE);
 	}
 
-	crash_dir = make_pathname(config_dir, "crashes");
-	if (!is_directory(crash_dir)) {
-		s_info(_("creating directory \"%s\" to hold crash logs"), crash_dir);
-		if (-1 == mkdir(crash_dir, CONFIG_DIR_MODE)) {
-			s_warning(_("mkdir(\"%s\") failed: \"%s\""),
-				crash_dir, g_strerror(errno));
-		}
-	}
+#define CREATE_DIRECTORY(var, entry, purpose) \
+G_STMT_START { \
+	var = make_pathname(config_dir, entry);					\
+	if (!is_directory(var)) {								\
+		s_info(_("creating directory \"%s\" for %s"), var, purpose); \
+		if (!settings_mkdir(var, FALSE)) {					\
+			hfree(var);										\
+			var = h_strdup(config_dir);						\
+		}													\
+	}														\
+} G_STMT_END
+
+	CREATE_DIRECTORY(crash_dir, "crashes", "crash log files");
+	CREATE_DIRECTORY(gnet_db_dir, "gnet-db", "Gnutella database files");
+	CREATE_DIRECTORY(dht_db_dir, "dht-db", "DHT database files");
+
+#undef CREATE_DIRECTORY
 }
 
 /**
@@ -780,6 +810,26 @@ settings_crash_dir(void)
 }
 
 /**
+ * Get the Gnutella database directory
+ */
+const char *
+settings_gnet_db_dir(void)
+{
+	g_assert(NULL != gnet_db_dir);
+	return gnet_db_dir;
+}
+
+/**
+ * Get the DHT database directory
+ */
+const char *
+settings_dht_db_dir(void)
+{
+	g_assert(NULL != dht_db_dir);
+	return dht_db_dir;
+}
+
+/**
  * Gets the IPC directory.
  */
 static const char *
@@ -1073,6 +1123,8 @@ settings_close(void)
 	HFREE_NULL(home_dir);
 	HFREE_NULL(config_dir);
 	HFREE_NULL(crash_dir);
+	HFREE_NULL(dht_db_dir);
+	HFREE_NULL(gnet_db_dir);
 }
 
 static void

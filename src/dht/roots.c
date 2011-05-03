@@ -1128,12 +1128,16 @@ roots_init(void)
 	roots_cq = cq_submake("roots", callout_queue, ROOTS_CALLOUT);
 	roots = patricia_create(KUID_RAW_BITSIZE);
 
-	db_rootdata = dbstore_open(db_rootdata_what, settings_config_dir(),
+	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
+	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_rootdata_base);
+	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_contact_base);
+
+	db_rootdata = dbstore_open(db_rootdata_what, settings_dht_db_dir(),
 		db_rootdata_base, root_kv, root_packing,
 		ROOTKEYS_DB_CACHE_SIZE, kuid_hash, kuid_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 
-	db_contact = dbstore_open(db_contact_what, settings_config_dir(),
+	db_contact = dbstore_open(db_contact_what, settings_dht_db_dir(),
 		db_contact_base, contact_kv, contact_packing,
 		CONTACT_DB_CACHE_SIZE, uint64_mem_hash, uint64_mem_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
@@ -1177,10 +1181,10 @@ roots_close(void)
 			targets_managed, contacts_managed);
 	}
 
-	dbstore_close(db_rootdata, settings_config_dir(), db_rootdata_base);
+	dbstore_close(db_rootdata, settings_dht_db_dir(), db_rootdata_base);
 	db_rootdata = NULL;
 
-	dbstore_close(db_contact, settings_config_dir(), db_contact_base);
+	dbstore_close(db_contact, settings_dht_db_dir(), db_contact_base);
 	db_contact = NULL;
 
 	cq_free_null(&roots_cq);

@@ -44,7 +44,6 @@
 RCSID("$Id$")
 
 #include "spam.h"
-#include "settings.h"
 
 #include "lib/atoms.h"
 #include "lib/ascii.h"
@@ -59,6 +58,7 @@ RCSID("$Id$")
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
+#include "if/core/settings.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -105,7 +105,7 @@ spam_lut_create(void)
 		dbmap_t *dm;
 		char *path;
 
-		path = make_pathname(settings_config_dir(), db_spambase);
+		path = make_pathname(settings_gnet_db_dir(), db_spambase);
 		dm = dbmap_create_sdbm(SHA1_RAW_SIZE, NULL, spam_sha1_what, path,
 			O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
 		HFREE_NULL(path);

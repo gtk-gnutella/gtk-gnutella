@@ -930,7 +930,10 @@ publisher_init(void)
 	publish_cq = cq_submake("publisher", callout_queue, PUBLISHER_CALLOUT);
 	publisher_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
 
-	db_pubdata = dbstore_open(db_pubdata_what, settings_config_dir(),
+	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
+	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_pubdata_base);
+
+	db_pubdata = dbstore_open(db_pubdata_what, settings_dht_db_dir(),
 		db_pubdata_base, kv, packing, PUBLISH_DB_CACHE_SIZE,
 		sha1_hash, sha1_eq, GNET_PROPERTY(dht_storage_in_memory));
 
@@ -1015,7 +1018,7 @@ publisher_close(void)
 	g_hash_table_foreach(publisher_sha1, free_entry, NULL);
 	gm_hash_table_destroy_null(&publisher_sha1);
 
-	dbstore_close(db_pubdata, settings_config_dir(), db_pubdata_base);
+	dbstore_close(db_pubdata, settings_dht_db_dir(), db_pubdata_base);
 	db_pubdata = NULL;
 
 	cq_free_null(&publish_cq);

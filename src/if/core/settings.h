@@ -41,6 +41,8 @@ const char *settings_config_dir(void);
 const char *settings_home_dir(void);
 const char *settings_crash_dir(void);
 const char *settings_local_socket_path(void);
+const char *settings_gnet_db_dir(void);
+const char *settings_dht_db_dir(void);
 enum net_type settings_dns_net(void);
 
 #endif /* CORE_SOURCES */

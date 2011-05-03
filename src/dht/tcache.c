@@ -76,9 +76,9 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 #include "if/dht/kuid.h"
+#include "if/core/settings.h"	/* For settings_dht_db_dir() */
 
 #include "core/gnet_stats.h"
-#include "core/settings.h"		/* For settings_config_dir() */
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
@@ -376,7 +376,10 @@ tcache_init(void)
 	g_assert(NULL == db_tokdata);
 	g_assert(NULL == tcache_prune_ev);
 
-	db_tokdata = dbstore_create(db_tcache_what, settings_config_dir(),
+	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
+	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_tcache_base);
+
+	db_tokdata = dbstore_create(db_tcache_what, settings_dht_db_dir(),
 		db_tcache_base, kv, packing, TOK_DB_CACHE_SIZE, kuid_hash, kuid_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 

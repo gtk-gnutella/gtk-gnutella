@@ -1290,7 +1290,10 @@ keys_init(void)
 	keys = g_hash_table_new(kuid_hash, kuid_eq);
 	install_periodic_kball(KBALL_FIRST);
 
-	db_keydata = dbstore_create(db_keywhat, settings_config_dir(), db_keybase,
+	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
+	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_keybase);
+
+	db_keydata = dbstore_create(db_keywhat, settings_dht_db_dir(), db_keybase,
 		kv, packing, KEYS_DB_CACHE_SIZE, kuid_hash, kuid_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 

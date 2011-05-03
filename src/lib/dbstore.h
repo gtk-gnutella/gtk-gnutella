@@ -80,6 +80,7 @@ void dbstore_sync_flush(dbmw_t *dw);
 void dbstore_close(dbmw_t *dw, const char *dir, const char *base);
 void dbstore_delete(dbmw_t *dw);
 void dbstore_shrink(dbmw_t *dw);
+void dbstore_move(const char *src, const char *dst, const char *base);
 
 #endif /* _dbstore_h_ */
 

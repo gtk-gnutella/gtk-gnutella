@@ -2897,7 +2897,10 @@ guess_init(void)
 
 	g_assert(NULL == guess_qk_prune_ev);
 
-	db_qkdata = dbstore_open(db_qkdata_what, settings_config_dir(),
+	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
+	dbstore_move(settings_config_dir(), settings_gnet_db_dir(), db_qkdata_base);
+
+	db_qkdata = dbstore_open(db_qkdata_what, settings_gnet_db_dir(),
 		db_qkdata_base, kv, packing, GUESS_QK_DB_CACHE_SIZE,
 		gnet_host_hash, gnet_host_eq, FALSE);
 
@@ -2962,7 +2965,7 @@ guess_close(void)
 	if (NULL == db_qkdata)
 		return;		/* GUESS layer never initialized */
 
-	dbstore_close(db_qkdata, settings_config_dir(), db_qkdata_base);
+	dbstore_close(db_qkdata, settings_gnet_db_dir(), db_qkdata_base);
 	db_qkdata = NULL;
 	cq_periodic_remove(&guess_qk_prune_ev);
 	cq_periodic_remove(&guess_check_ev);

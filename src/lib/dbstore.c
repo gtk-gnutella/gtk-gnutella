@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "atoms.h"
 #include "dbmap.h"
 #include "dbmw.h"
+#include "file.h"
 #include "halloc.h"
 #include "path.h"
 #include "override.h"		/* Must be the last header included */
@@ -356,6 +357,46 @@ dbstore_shrink(dbmw_t *dw)
 			}
 		}
 	}
+}
+
+static void
+dbstore_move_file(const char *old_path, const char *new_path, const char *ext)
+{
+	char *old_file = h_strconcat(old_path, ext, (void *) 0);
+	char *new_file = h_strconcat(new_path, ext, (void *) 0);
+
+	if (file_exists(old_file)) {
+		if (-1 == rename(old_file, new_file)) {
+			g_warning("could not rename \"%s\" as \"%s\": %s",
+				old_file, new_file, g_strerror(errno));
+		}
+	}
+
+	HFREE_NULL(old_file);
+	HFREE_NULL(new_file);
+}
+
+/**
+ * Move SDBM files from "src" to "dst".
+ *
+ * @param src				the old directory where SDBM files where
+ * @param dst				the new directory where SDBM files should be put
+ * @param base				the base name of SDBM files
+ */
+void
+dbstore_move(const char *src, const char *dst, const char *base)
+{
+	char *old_path;
+	char *new_path;
+
+	old_path = make_pathname(src, base);
+	new_path = make_pathname(dst, base);
+
+	dbstore_move_file(old_path, new_path, ".dir");
+	dbstore_move_file(old_path, new_path, ".pag");
+
+	HFREE_NULL(old_path);
+	HFREE_NULL(new_path);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
