@@ -5848,7 +5848,13 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				degree[0] = '\0';
 			}
 
-			if (GNET_PROPERTY(enable_guess)) {
+			if (
+				GNET_PROPERTY(enable_guess) &&
+				(
+					NODE_P_ULTRA == GNET_PROPERTY(current_peermode) ||
+					GNET_PROPERTY(enable_guess_client)
+				)
+			) {
 				gm_snprintf(guess, sizeof(guess),
 					"X-Guess: %d.%d\r\n",
 					SEARCH_GUESS_MAJOR, SEARCH_GUESS_MINOR);
@@ -7757,7 +7763,13 @@ node_init_outgoing(struct gnutella_node *n)
 			}
 		}
 
-		if (GNET_PROPERTY(enable_guess)) {
+		if (
+			GNET_PROPERTY(enable_guess) &&
+			(
+				NODE_P_ULTRA == GNET_PROPERTY(current_peermode) ||
+				GNET_PROPERTY(enable_guess_client)
+			)
+		) {
 			gm_snprintf(guess, sizeof(guess),
 				"X-Guess: %d.%d\r\n",
 				SEARCH_GUESS_MAJOR, SEARCH_GUESS_MINOR);
