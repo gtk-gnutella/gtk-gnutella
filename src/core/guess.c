@@ -729,10 +729,20 @@ guess_host_clear_flags(const gnet_host_t *h, guint32 flags)
 static void
 guess_add_link_cache(const gnet_host_t *h, int p)
 {
+	host_addr_t addr;
+
 	g_assert(h != NULL);
 	g_assert(p >= 0 && p <= 100);
 
 	if (hash_list_contains(link_cache, h))
+		return;
+
+	addr = gnet_host_get_addr(h);
+
+	if (hostiles_check(addr) || !host_address_is_usable(addr))
+		return;
+
+	if (is_my_address_and_port(addr, gnet_host_get_port(h)))
 		return;
 
 	if (random_u32() % 100 < UNSIGNED(p)) {
@@ -766,6 +776,9 @@ guess_discovered_host(host_addr_t addr, guint16 port)
 	if (hostiles_check(addr) || !host_address_is_usable(addr))
 		return;
 
+	if (is_my_address_and_port(addr, port))
+		return;
+
 	hcache_add_caught(HOST_GUESS, addr, port, "GUESS pong");
 
 	if (hash_list_length(link_cache) < GUESS_LINK_CACHE_SIZE) {
@@ -787,6 +800,9 @@ guess_add_pool(guess_t *gq, host_addr_t addr, guint16 port)
 	guess_check(gq);
 
 	if (hostiles_check(addr) || !host_address_is_usable(addr))
+		return;
+
+	if (is_my_address_and_port(addr, port))
 		return;
 
 	gnet_host_set(&host, addr, port);
@@ -1853,16 +1869,19 @@ guess_delay(guess_t *gq)
 {
 	guess_check(gq);
 
-	g_assert(NULL == gq->delay_ev);
-	g_assert(!(gq->flags & GQ_F_DELAYED));
-
 	if (GNET_PROPERTY(guess_client_debug) > 2) {
 		g_debug("GUESS QUERY[%s] delaying next iteration by %d seconds",
 			nid_to_string(&gq->gid), GUESS_FIND_DELAY / 1000);
 	}
 
-	gq->flags |= GQ_F_DELAYED;
-	gq->delay_ev = cq_main_insert(GUESS_FIND_DELAY, guess_delay_expired, gq);
+	if (gq->delay_ev != NULL) {
+		g_assert(gq->flags & GQ_F_DELAYED);
+		cq_resched(gq->delay_ev, GUESS_FIND_DELAY);
+	} else {
+		gq->flags |= GQ_F_DELAYED;
+		gq->delay_ev =
+			cq_main_insert(GUESS_FIND_DELAY, guess_delay_expired, gq);
+	}
 }
 
 /**
