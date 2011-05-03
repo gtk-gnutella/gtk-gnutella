@@ -448,6 +448,7 @@ typedef enum {
     PROP_DBSTORE_DEBUG,
     PROP_SESSION_ID,
     PROP_PFSP_RARE_SERVER,
+    PROP_ENABLE_GUESS_CLIENT,
     GNET_PROPERTY_END
 } gnet_property_t;
 

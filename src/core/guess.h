@@ -73,6 +73,7 @@ static inline gboolean
 guess_query_enabled(void)
 {
 	return GNET_PROPERTY(enable_udp) && GNET_PROPERTY(enable_guess) &&
+		GNET_PROPERTY(enable_guess_client) &&
 		GNET_PROPERTY(listen_port) != 0 && GNET_PROPERTY(recv_solicited_udp);
 }
 

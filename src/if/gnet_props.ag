@@ -4707,9 +4707,13 @@ prop = {
 prop = {
 	name = "enable_guess";
 	desc = "Whether the Gnutella UDP Extension for Scalable Searches (GUESS) "
-		"should be enabled.  With GUESS enabled, gtk-gnutella can perform "
-		"iterative Ultrapeer queries instead of just broadcasting, allowing "
-		"searches to more places within the Gnutella network.";
+		"should be enabled.  With GUESS enabled, gtk-gnutella offers the "
+		"network the ability to perform iterative Ultrapeer queries instead "
+		"of just broadcasting, allowing searches to more places within the "
+		"Gnutella network.  If you want gtk-gnutella to issue GUESS queries, "
+		"you need to make sure the client-side is enabled as well as this "
+		"setting only governs mostly the server-side of GUESS (required to "
+		"allow the client-side).";
 	type = boolean;
 	data = {
 		default = TRUE;
@@ -4815,6 +4819,19 @@ prop = {
     data = {
         default = TRUE;
     };
+};
+
+prop = {
+	name = "enable_guess_client";
+	desc = "Whether the Gnutella UDP Extension for Scalable Searches (GUESS) "
+		"client side should be enabled, so that gtk-gnutella can indeed issue "
+		"iterative Ultrapeer queries instead of just broadcasting them. "
+		"If enabled, it requires general GUESS support enabled as well or "
+		"it will simply be ignored.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
 };
 
 /* vi: set ts=4: */

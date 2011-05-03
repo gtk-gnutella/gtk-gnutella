@@ -5480,6 +5480,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_ENABLE_GUESS_CLIENT,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_enable_guess_client",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_ENABLE_NATPMP,
         update_togglebutton,
         TRUE,

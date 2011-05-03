@@ -965,6 +965,8 @@ static const char   gnet_property_variable_session_id_default[GUID_RAW_SIZE];
 
 gboolean gnet_property_variable_pfsp_rare_server     = TRUE;
 static const gboolean gnet_property_variable_pfsp_rare_server_default = TRUE;
+gboolean gnet_property_variable_enable_guess_client     = TRUE;
+static const gboolean gnet_property_variable_enable_guess_client_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -8653,7 +8655,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[402].name = "enable_guess";
-    gnet_property->props[402].desc = _("Whether the Gnutella UDP Extension for Scalable Searches (GUESS) should be enabled.  With GUESS enabled, gtk-gnutella can perform iterative Ultrapeer queries instead of just broadcasting, allowing searches to more places within the Gnutella network.");
+    gnet_property->props[402].desc = _("Whether the Gnutella UDP Extension for Scalable Searches (GUESS) should be enabled.  With GUESS enabled, gtk-gnutella offers the network the ability to perform iterative Ultrapeer queries instead of just broadcasting, allowing searches to more places within the Gnutella network.  If you want gtk-gnutella to issue GUESS queries, you need to make sure the client-side is enabled as well as this setting only governs mostly the server-side of GUESS (required to allow the client-side).");
     gnet_property->props[402].ev_changed = event_new("enable_guess_changed");
     gnet_property->props[402].save = TRUE;
     gnet_property->props[402].vector_size = 1;
@@ -8835,6 +8837,23 @@ gnet_prop_init(void) {
     gnet_property->props[411].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[411].data.boolean.def   = (void *) &gnet_property_variable_pfsp_rare_server_default;
     gnet_property->props[411].data.boolean.value = (void *) &gnet_property_variable_pfsp_rare_server;
+
+
+    /*
+     * PROP_ENABLE_GUESS_CLIENT:
+     *
+     * General data:
+     */
+    gnet_property->props[412].name = "enable_guess_client";
+    gnet_property->props[412].desc = _("Whether the Gnutella UDP Extension for Scalable Searches (GUESS) client side should be enabled, so that gtk-gnutella can indeed issue iterative Ultrapeer queries instead of just broadcasting them. If enabled, it requires general GUESS support enabled as well or it will simply be ignored.");
+    gnet_property->props[412].ev_changed = event_new("enable_guess_client_changed");
+    gnet_property->props[412].save = TRUE;
+    gnet_property->props[412].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[412].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[412].data.boolean.def   = (void *) &gnet_property_variable_enable_guess_client_default;
+    gnet_property->props[412].data.boolean.value = (void *) &gnet_property_variable_enable_guess_client;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

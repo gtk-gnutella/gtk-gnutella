@@ -127,7 +127,7 @@ RCSID("$Id$")
 #define GUESS_ALIVE_PERIOD		(10 * 60)		/**< 10 minutes, in s */
 #define GUESS_SYNC_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
 #define GUESS_MAX_LIFETIME		(20 * 60)		/**< 20 minutes, in s */
-#define GUESS_MAX_ULTRAPEERS	50000	/**< Query stops after that probes */
+#define GUESS_MAX_ULTRAPEERS	50000	/**< Query stops after that many acks */
 #define GUESS_RPC_LIFETIME		15000	/**< 15 seconds, in ms */
 #define GUESS_FIND_DELAY		5000	/**< in ms, UDP queue flush grace */
 #define GUESS_ALPHA				5		/**< Level of query concurrency */
