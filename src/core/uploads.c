@@ -118,7 +118,8 @@ RCSID("$Id$")
 #define IO_LONG_TIMEOUT	160			/**< Longer timeouting condition */
 #define STALL_CLEAR		600			/**< Decrease stall counter every 10 min */
 #define MAX_ERRORS		10			/**< Max # of errors before we close */
-#define PUSH_REPLY_FREQ	15			/**< Answer to 1 push per IP per 15 secs */
+#define PUSH_REPLY_MAX	5			/**< Answer to up to 5 pushes per IP... */
+#define PUSH_REPLY_FREQ	30			/**< ...in an interval of 30 secs */
 
 static GSList *list_uploads;
 static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
@@ -941,6 +942,7 @@ handle_push_request(struct gnutella_node *n)
 	guint16 port;
 	const char *info;
 	const char *file_name = "<invalid file index>";
+	int push_count;
 
 	/* Servent ID matches our GUID? */
 	if (!guid_eq(n->data, GNET_PROPERTY(servent_guid)))
@@ -1090,7 +1092,9 @@ handle_push_request(struct gnutella_node *n)
 	 * of service attack.	-- RAM, 03/11/2002
 	 */
 
-	if (aging_lookup(push_requests, &ha)) {
+	push_count = pointer_to_int(aging_lookup(push_requests, &ha));
+
+	if (push_count >= PUSH_REPLY_MAX) {
 		if (GNET_PROPERTY(upload_debug)) {
 			g_warning("PUSH (hops=%d, ttl=%d) throttling callback to %s: %s",
 				gnutella_header_get_hops(&n->header),
@@ -1100,7 +1104,8 @@ handle_push_request(struct gnutella_node *n)
 		return;
 	}
 
-	aging_insert(push_requests, wcopy(&ha, sizeof ha), int_to_pointer(1));
+	aging_insert(push_requests, wcopy(&ha, sizeof ha),
+		int_to_pointer(push_count + 1));
 
 	/*
 	 * OK, start the upload by opening a connection to the remote host.
