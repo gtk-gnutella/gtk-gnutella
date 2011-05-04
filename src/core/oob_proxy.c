@@ -38,14 +38,15 @@
 RCSID("$Id$")
 
 #include "oob_proxy.h"
-#include "share.h"
+#include "dh.h"
+#include "dq.h"
+#include "gnet_stats.h"
+#include "hostiles.h"
 #include "nodes.h"
 #include "routing.h"
 #include "settings.h"
+#include "share.h"
 #include "sockets.h"		/* For socket_listen_addr() */
-#include "dq.h"
-#include "dh.h"
-#include "gnet_stats.h"
 #include "vmsg.h"
 
 #include "if/gnet_property_priv.h"
@@ -317,6 +318,16 @@ oob_proxy_pending_results(
 
 	if (NODE_IN_TX_FLOW_CONTROL(leaf)) {
 		msg = "leaf in TX flow-control";
+		goto ignore;
+	}
+
+	/*
+	 * If remote host promising hits is a known spammer or evil host, ignore.
+	 */
+
+	if (hostiles_spam_check(n->addr, n->port)) {
+		msg = "caught spammer";
+		gnet_stats_count_general(GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT, +1);
 		goto ignore;
 	}
 

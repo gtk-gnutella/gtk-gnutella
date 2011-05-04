@@ -1643,6 +1643,7 @@ main(int argc, char **argv)
 	map_test();
 	ipp_cache_load_all();
 	tls_global_init();
+	pmsg_init();
 	hostiles_init();
 	spam_init();
 	bogons_init();
@@ -1659,7 +1660,6 @@ main(int argc, char **argv)
 
 	file_info_init();
 	host_init();
-	pmsg_init();
 	gmsg_init();
 	bsched_init();
 	dump_init();

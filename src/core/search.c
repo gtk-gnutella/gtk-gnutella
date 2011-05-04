@@ -1526,13 +1526,15 @@ search_results_handle_trailer(const gnutella_node_t *n,
 
 	/**
 	 * Check whether the results were actually requested.
+	 *
+	 * GUESS ultrapeers can forward hits from their leaves that they would
+	 * get from TCP, so we have to check for hops=0 as well.
 	 */
 
-	if (ST_UDP & rs->status) {
-		if (
-			search_results_are_requested(
-				gnutella_header_get_muid(&n->header), n->addr, n->port, token)
-		) {
+	if (0 == rs->hops && (ST_UDP & rs->status)) {
+		const struct guid *muid = gnutella_header_get_muid(&n->header);
+
+		if (search_results_are_requested(muid, n->addr, n->port, token)) {
 			if (has_token) {
 				rs->status |= ST_GOOD_TOKEN;
 			}
@@ -1547,7 +1549,8 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
 
 			if (GNET_PROPERTY(search_debug) > 1) {
-				g_debug("received unrequested query hit from %s",
+				g_debug("received unrequested %squery hit from %s",
+					guess_is_search_muid(muid) ? "GUESS " : "",
                 	host_addr_port_to_string(n->addr, n->port));
 			}
 		}
@@ -1649,6 +1652,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		rs->status |= ST_UDP;
 
 		if (
+			0 == rs->hops &&	/* GUESS ultrapeers can relay hits over UDP */
 			!host_addr_equal(n->addr, rs->addr) &&
 			!host_addr_is_routable(rs->addr)
 		)
@@ -2277,9 +2281,13 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 		/*
 		 * Prefer an UDP source IP for the country computation.
+		 *
+		 * Have to check for hops=0 since GUESS ultrapeeers can route back
+		 * query hits returned via TCP from their leaves.
 		 */
 
-		c_addr = (rs->status & ST_UDP) ? rs->last_hop : rs->addr;
+		c_addr = (0 == rs->hops && (rs->status & ST_UDP)) ?
+			rs->last_hop : rs->addr;
 		rs->country = gip_country(c_addr);
 		
 		/*
@@ -3621,9 +3629,12 @@ search_results(gnutella_node_t *n, int *results)
 	 * the hits to the various selected searches.
 	 */
 
-	if (selected_searches != NULL && ctl_limit(rs->addr, CTL_D_QHITS))
-		dispatch_it = FALSE;
-
+	if (selected_searches != NULL) {
+		host_addr_t c_addr = (0 == rs->hops && (rs->status & ST_UDP)) ?
+			rs->last_hop : rs->addr;
+		if (ctl_limit(c_addr, CTL_D_QHITS))
+			dispatch_it = FALSE;
+	}
 
 	if (
 		(rs->status & (ST_SPAM | ST_EVIL)) &&
@@ -3634,6 +3645,15 @@ search_results(gnutella_node_t *n, int *results)
 	) {
 		hostiles_dynamic_add(rs->last_hop);
 		rs->status |= ST_HOSTILE;
+
+		/*
+		 * Record spamming hosts to avoid requesting OOB hits from them
+		 * in the future.
+		 */
+
+		if (0 == rs->hops && (ST_UDP & rs->status)) {
+			hostiles_spam_add(rs->last_hop, rs->port);
+		}
 	}
 
 	/*
@@ -4482,9 +4502,28 @@ search_oob_pending_results(
 		return;
 	}
 
-	if (GNET_PROPERTY(search_debug) > 1 || GNET_PROPERTY(udp_debug) > 1)
-		g_debug("has %d pending OOB hit%s for search %s at %s",
-			hits, hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
+	/*
+	 * If remote host promising hits is a known spammer or evil host, ignore.
+	 */
+
+	if (hostiles_spam_check(n->addr, n->port)) {
+		if (GNET_PROPERTY(search_debug)) {
+			g_debug("ignoring %d %sOOB hit%s for search %s "
+				"(%s is a caught spammer)",
+				hits,
+				guess_is_search_muid(muid) ? "GUESS " : "",
+				hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
+		}
+		gnet_stats_count_general(GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT, +1);
+		return;
+	}
+
+	if (GNET_PROPERTY(search_debug) > 1 || GNET_PROPERTY(udp_debug) > 1) {
+		g_debug("has %d pending %sOOB hit%s for search %s at %s",
+			hits,
+			guess_is_search_muid(muid) ? "GUESS " : "",
+			hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
+	}
 
 	/*
 	 * If we got more than 15% of our maximum amount of shown results,
@@ -4493,9 +4532,12 @@ search_oob_pending_results(
 	 */
 
 	if (kept > search_max_results_for_ui() * 0.15) {
-		if (GNET_PROPERTY(search_debug))
-			g_debug("ignoring %d OOB hit%s for search %s (already got %u)",
-				hits, hits == 1 ? "" : "s", guid_hex_str(muid), kept);
+		if (GNET_PROPERTY(search_debug)) {
+			g_debug("ignoring %d %sOOB hit%s for search %s (already got %u)",
+				hits,
+				guess_is_search_muid(muid) ? "GUESS " : "",
+				hits == 1 ? "" : "s", guid_hex_str(muid), kept);
+		}
 		return;
 	}
 

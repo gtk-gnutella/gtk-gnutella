@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2004-2011, Raphael Manfredi
  * Copyright (c) 2003, Markus Goetz
  *
  *----------------------------------------------------------------------
@@ -35,7 +35,7 @@
  * @author Markus Goetz
  * @date 2003
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2004-2011
  */
 
 #include "common.h"
@@ -47,15 +47,22 @@ RCSID("$Id$")
 #include "nodes.h"
 #include "gnet_stats.h"
 
+#include "dht/stable.h"
+
 #include "lib/ascii.h"
 #include "lib/atoms.h"
+#include "lib/cq.h"
+#include "lib/dbmw.h"
+#include "lib/dbstore.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/iprange.h"
 #include "lib/halloc.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/random.h"
 #include "lib/stringify.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 
@@ -96,6 +103,103 @@ struct hostiles_dynamic_entry {
 	unsigned long relative_time;
 };
 
+/**
+ * DBM wrapper to associate an IP address with dynamically collected hostile
+ * hosts that are returning known spam.
+ */
+static dbmw_t *db_spam;
+static char db_spam_base[] = "spam_hosts";
+static char db_spam_what[] = "Spamming hosts";
+
+#define SPAM_MAX_PORTS			5		/**< Max amount of ports tracked */
+#define SPAM_DB_CACHE_SIZE		512		/**< Amount of keys to keep in cache */
+#define SPAM_DATA_VERSION		0		/**< Serialization version number */
+#define SPAM_PRUNE_PERIOD		(3000 * 1000)	/**< in ms */
+#define SPAM_SYNC_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
+#define SPAM_STABLE_PROBA		0.3333	/**< 33.33% */
+
+/**
+ * Information about a spamming servent.
+ */
+struct spamhost {
+	time_t first_seen;		/**< Time first seen returning spam */
+	time_t last_seen;		/**< Time last seen returning spam */
+	guint16 port;			/**< Port number */
+};
+
+/**
+ * Information about a spamming host that is stored to disk.
+ * The structure is serialized first, not written as-is.
+ *
+ * The structure is keyed by its IP address.  It contains an array of at most
+ * SPAM_MAX_PORTS entries, listing ports we have seen used by that host
+ * for spamming purposes.  Ports are managed in an LRU fashion.
+ */
+struct spamdata {
+	struct spamhost hosts[SPAM_MAX_PORTS];
+	time_t create_time;		/**< When we first encountered that IP address */
+	time_t last_time;		/**< Last time we saw spam from this host */
+	guint8 ports;			/**< # of ports known to run spamming servents */
+};
+
+/**
+ * Probabilities of allowing access to a host known to be spamming but for
+ * which the port is a new one, given known "i" ports running spamming servents.
+ * Probabilities are given as percentages in [0, 100].
+ */
+static unsigned spam_allow[SPAM_MAX_PORTS + 1] = { 100, 50, 20, 10, 5, 2 };
+
+static cperiodic_t *hostiles_spam_prune_ev;		/**< Spamming host pruning */
+static cperiodic_t *hostiles_spam_sync_ev;		/**< Spamming host DB sync */
+
+/**
+ * Serialization routine for spamdata.
+ */
+static void
+serialize_spamdata(pmsg_t *mb, const void *data)
+{
+	const struct spamdata *sd = data;
+	int i;
+
+	g_assert(sd->ports <= SPAM_MAX_PORTS);
+
+	pmsg_write_u8(mb, SPAM_DATA_VERSION);
+	pmsg_write_time(mb, sd->create_time);
+	pmsg_write_time(mb, sd->last_time);
+	pmsg_write_u8(mb, sd->ports);
+
+	for (i = 0; i < sd->ports; i++) {
+		pmsg_write_be16(mb, sd->hosts[i].port);
+		pmsg_write_time(mb, sd->hosts[i].first_seen);
+		pmsg_write_time(mb, sd->hosts[i].last_seen);
+	}
+}
+
+/**
+ * Deserialization routine for spamdata.
+ */
+static void
+deserialize_spamdata(bstr_t *bs, void *valptr, size_t len)
+{
+	struct spamdata *sd = valptr;
+	guint8 version;
+	int i;
+
+	g_assert(sizeof *sd == len);
+
+	bstr_read_u8(bs, &version);
+	bstr_read_time(bs, &sd->create_time);
+	bstr_read_time(bs, &sd->last_time);
+	bstr_read_u8(bs, &sd->ports);
+
+	sd->ports = MIN(sd->ports, SPAM_MAX_PORTS);
+
+	for (i = 0; i < sd->ports; i++) {
+		bstr_read_be16(bs, &sd->hosts[i].port);
+		bstr_read_time(bs, &sd->hosts[i].first_seen);
+		bstr_read_time(bs, &sd->hosts[i].last_seen);
+	}
+}
 
 /**
  * Frees all entries in the given hostiles.
@@ -482,11 +586,324 @@ hostiles_check(const host_addr_t ha)
 }
 
 /**
+ * Get spamdata from database, returning NULL if not found.
+ */
+static struct spamdata *
+get_spamdata(const gnet_host_t *host)
+{
+	struct spamdata *sd;
+
+	sd = dbmw_read(db_spam, host, NULL);
+
+	if (NULL == sd) {
+		if (dbmw_has_ioerr(db_spam)) {
+			g_warning("DBMW \"%s\" I/O error", dbmw_name(db_spam));
+		}
+	}
+
+	return sd;
+}
+
+/**
+ * Record indication that we got spam from given address and port.
+ */
+void
+hostiles_spam_add(const host_addr_t addr, guint16 port)
+{
+	struct spamdata *sd;
+	struct spamdata new_sd;
+	gnet_host_t host;
+
+	/*
+	 * For convenience reasons, our keys are gnet_host_t objects but we
+	 * don't use the port number in the key, so we set it to 0 here.
+	 */
+
+	gnet_host_set(&host, addr, 0);
+	sd = get_spamdata(&host);
+
+	if (NULL == sd) {
+		sd = &new_sd;
+		sd->ports = 1;
+		sd->hosts[0].first_seen = sd->hosts[0].last_seen =
+			sd->create_time = sd->last_time = tm_time();
+		sd->hosts[0].port = port;
+		gnet_stats_count_general(GNR_SPAM_IP_HELD, +1);
+	} else {
+		int i;
+		gboolean found = FALSE;
+
+		for (i = 0; i < sd->ports; i++) {
+			struct spamhost *sh = &sd->hosts[i];
+
+			if (sh->port == port) {
+				sd->last_time = sh->last_seen = tm_time();
+				found = TRUE;
+				break;
+			}
+		}
+
+		if (!found) {
+			int slot;
+			struct spamhost *sh;
+
+			if (SPAM_MAX_PORTS == sd->ports) {
+				time_t oldest = MAX_INT_VAL(time_t);
+
+				/*
+				 * Array is full, find the least recently seen port.
+				 */
+
+				for (i = 0, slot = -1; i < sd->ports; i++) {
+					sh = &sd->hosts[i];
+
+					if (sh->last_seen < oldest) {
+						oldest = sh->last_seen;
+						slot = i;
+					}
+				}
+
+				g_assert(slot >= 0 && slot < SPAM_MAX_PORTS);
+
+				if (GNET_PROPERTY(spam_debug) > 5) {
+					g_debug("SPAM discarding port %u for host %s",
+						sd->hosts[slot].port, host_addr_to_string(addr));
+				}
+			} else {
+				g_assert(sd->ports < SPAM_MAX_PORTS);
+				slot = sd->ports++;
+			}
+
+			/*
+			 * Fill selected slot.
+			 */
+
+			sh = &sd->hosts[i];
+			sh->port = port;
+			sh->first_seen = sh->last_seen = tm_time();
+		}
+
+		sd->last_time = tm_time();
+	}
+
+	dbmw_write(db_spam, &host, sd, sizeof *sd);
+}
+
+/**
+ * Remove the given port entry from the spamdata structure and commit
+ * change to database.
+ */
+static void
+spam_remove_port(struct spamdata *sd, const host_addr_t addr, guint16 port)
+{
+	int i;
+
+	g_assert(sd != NULL);
+
+	for (i = 0; i < sd->ports; i++) {
+		struct spamhost *sh = &sd->hosts[i];
+
+		if (port == sh->port) {
+			gnet_host_t host;
+
+			sd->ports--;
+			if (i < sd->ports) {
+				memmove(&sd->hosts[i], &sd->hosts[i+1],
+					sizeof(sd->hosts[0]) * (sd->ports - i));
+			}
+			if (GNET_PROPERTY(spam_debug) > 5) {
+				g_debug("SPAM removing port %u for host %s (%u port%s remain)",
+					port, host_addr_to_string(addr), sd->ports,
+					1 == sd->ports ? "" : "s");
+			}
+			gnet_host_set(&host, addr, 0);
+			dbmw_write(db_spam, &host, sd, sizeof *sd);
+			break;
+		}
+	}
+}
+
+/**
+ * Is IP:port that of a known host returning spam?
+ */
+gboolean
+hostiles_spam_check(const host_addr_t addr, guint16 port)
+{
+	struct spamdata *sd;
+	gnet_host_t host;
+	int i;
+	unsigned c;
+
+	/*
+	 * For convenience reasons, our keys are gnet_host_t objects but we
+	 * don't use the port number in the key, so we set it to 0 here.
+	 */
+
+	gnet_host_set(&host, addr, 0);
+	sd = get_spamdata(&host);
+
+	if (NULL == sd)
+		return FALSE;
+
+	/*
+	 * Look whether we get an exact match for the port.
+	 */
+
+	g_assert(sd->ports <= SPAM_MAX_PORTS);
+
+	for (i = 0; i < sd->ports; i++) {
+		struct spamhost *sh = &sd->hosts[i];
+		double p;
+
+		if (sh->port != port)
+			continue;
+
+		/*
+		 * Make sure this IP:port has not expired, using our probability model.
+		 *
+		 * The reason we keep track of ports on a per-IP level (as opposed to
+		 * just tracking IP addresses) is because the IP could be assigned
+		 * to a given endpoint on a temporary basis.  When the IP is reassigned
+		 * to someone else, the chances that the same port be used are slim,
+		 * provided people don't use the standard ports.
+		 *
+		 * We do not keep entries on an IP:port basis to be able to see whether
+		 * spam comes from several ports on the same IP address, which would
+		 * tend to indicate a spamming farm, with hosts running multiple
+		 * spamming servents on each IP address.
+		 */
+
+		p = stable_still_alive_probability(sh->first_seen, sh->last_seen);
+		if (p < SPAM_STABLE_PROBA) {
+			spam_remove_port(sd, addr, port);
+			break;
+		} else {
+			return TRUE;		/* We have a match on IP and port */
+		}
+	}
+
+	/*
+	 * If we can contact the host, then it's not a spamming host.
+	 *
+	 * We had no real port matching, so the probability depends on the
+	 * amount of ports that are already known to issue spam on the host.
+	 */
+
+	c = spam_allow[sd->ports];
+
+	if (100 == c) {
+		return FALSE;			/* Not a spamming host */
+	} else {
+		return random_u32() % 100 >= c;
+	}
+}
+
+/**
+ * DBMW foreach iterator to remove old entries.
+ * @return TRUE if entry must be deleted.
+ */
+static gboolean
+spam_prune_old(void *key, void *value, size_t u_len, void *u_data)
+{
+	const gnet_host_t *h = key;
+	const struct spamdata *sd = value;
+	time_delta_t d;
+	double p;
+	gboolean expired;
+
+	(void) u_len;
+	(void) u_data;
+
+	/*
+	 * First look whether the overall host entry has expired.
+	 *
+	 * We reuse the statistical probability model of DHT nodes to project
+	 * whether it makes sense to keep an entry.
+	 */
+
+	d = delta_time(tm_time(), sd->last_time);
+	p = stable_still_alive_probability(sd->create_time, sd->last_time);
+	expired = p < SPAM_STABLE_PROBA;
+
+	if (GNET_PROPERTY(spam_debug) > 5) {
+		g_debug("SPAM cached %s life=%s last_seen=%s, p=%.2f%%%s",
+			host_addr_to_string(gnet_host_get_addr(h)),
+			compact_time(delta_time(sd->create_time, sd->last_time)),
+			compact_time2(d), p * 100.0,
+			expired ? " [EXPIRED]" : "");
+	}
+
+	return expired;
+}
+
+/**
+ * Prune the database, removing expired hosts.
+ */
+static void
+hostiles_spam_prune_old(void)
+{
+	if (GNET_PROPERTY(spam_debug)) {
+		g_debug("SPAM pruning expired hosts (%lu)",
+			(unsigned long) dbmw_count(db_spam));
+	}
+
+	dbmw_foreach_remove(db_spam, spam_prune_old, NULL);
+	gnet_stats_set_general(GNR_SPAM_IP_HELD, dbmw_count(db_spam));
+
+	if (GNET_PROPERTY(spam_debug)) {
+		g_debug("SPAM pruned expired hosts (%lu remaining)",
+			(unsigned long) dbmw_count(db_spam));
+	}
+}
+
+/**
+ * Callout queue periodic event to expire old entries.
+ */
+static gboolean
+hostiles_spam_periodic_prune(void *unused_obj)
+{
+	(void) unused_obj;
+
+	hostiles_spam_prune_old();
+	return TRUE;		/* Keep calling */
+}
+
+/**
+ * Callout queue periodic event to synchronize the SDBM layer.
+ */
+static gboolean
+hostiles_spam_periodic_sync(void *unused_obj)
+{
+	(void) unused_obj;
+
+	dbstore_sync(db_spam);
+	return TRUE;		/* Keep calling */
+}
+
+/**
  * Called on startup. Loads the hostiles.txt into memory.
  */
 void
 hostiles_init(void)
 {
+	dbstore_kv_t kv =
+		{ sizeof(gnet_host_t), gnet_host_length, sizeof(struct spamdata), 0 };
+	dbstore_packing_t packing =
+		{ serialize_spamdata, deserialize_spamdata, NULL };
+
+	g_assert(NULL == db_spam);
+
+	db_spam = dbstore_open(db_spam_what, settings_gnet_db_dir(),
+		db_spam_base, kv, packing, SPAM_DB_CACHE_SIZE,
+		gnet_host_hash, gnet_host_eq, TRUE);
+
+	hostiles_spam_prune_old();
+
+	hostiles_spam_prune_ev = cq_periodic_main_add(
+		SPAM_PRUNE_PERIOD, hostiles_spam_periodic_prune, NULL);
+	hostiles_spam_sync_ev = cq_periodic_main_add(
+		SPAM_SYNC_PERIOD, hostiles_spam_periodic_sync, NULL);
+
 	hl_dynamic_ipv4 = hash_list_new(uint32_hash, uint32_eq);
 	cq_periodic_main_add(
 		HOSTILES_DYNAMIC_PERIOD_MS, hostiles_dynamic_timer, NULL);
@@ -511,6 +928,11 @@ hostiles_close(void)
 		use_global_hostiles_txt_changed);
 	hostiles_dynamic_expire(TRUE);
 	hash_list_free(&hl_dynamic_ipv4);
+
+	dbstore_close(db_spam, settings_gnet_db_dir(), db_spam_base);
+	db_spam = NULL;
+	cq_periodic_remove(&hostiles_spam_prune_ev);
+	cq_periodic_remove(&hostiles_spam_sync_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

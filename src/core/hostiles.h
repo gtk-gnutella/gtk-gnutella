@@ -40,11 +40,15 @@
 #include "common.h"
 #include "lib/host_addr.h"
 
-gboolean hostiles_check(const host_addr_t addr);
 void hostiles_init(void);
 void hostiles_close(void);
 
+gboolean hostiles_check(const host_addr_t addr);
+gboolean hostiles_spam_check(const host_addr_t addr, guint16 port);
+
 void hostiles_dynamic_add(const host_addr_t addr);
+void hostiles_spam_add(const host_addr_t addr, guint16 port);
+
 #endif /* _core_hostiles_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
