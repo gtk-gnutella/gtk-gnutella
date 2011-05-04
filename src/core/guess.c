@@ -2872,6 +2872,7 @@ guess_free(guess_t *gq)
 	atom_str_free_null(&gq->query);
 	atom_guid_free_null(&gq->muid);
 	wq_cancel(&gq->hostwait);
+	cq_cancel(&gq->delay_ev);
 
 	if (!(gq->flags & GQ_F_DONT_REMOVE))
 		g_hash_table_remove(gqueries, &gq->gid);
