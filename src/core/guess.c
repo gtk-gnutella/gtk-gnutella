@@ -108,6 +108,7 @@ RCSID("$Id$")
 #include "lib/map.h"
 #include "lib/nid.h"
 #include "lib/random.h"
+#include "lib/stacktrace.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -2914,8 +2915,9 @@ guess_cancel(guess_t **gq_ptr, gboolean callback)
 		guess_check(gq);
 
 		if (GNET_PROPERTY(guess_client_debug) > 1) {
-			g_debug("GUESS QUERY[%s] cancelling with%s callback",
-				nid_to_string(&gq->gid), callback ? "" : "out");
+			g_debug("GUESS QUERY[%s] cancelling with%s callback from %s()",
+				nid_to_string(&gq->gid), callback ? "" : "out",
+				stacktrace_caller_name(1));
 		}
 
 		if (callback)
