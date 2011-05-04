@@ -126,7 +126,7 @@ RCSID("$Id$")
 #define GUESS_CHECK_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
 #define GUESS_ALIVE_PERIOD		(10 * 60)		/**< 10 minutes, in s */
 #define GUESS_SYNC_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
-#define GUESS_MAX_LIFETIME		(20 * 60)		/**< 20 minutes, in s */
+#define GUESS_MAX_LIFETIME		(2 * 60 * 60)	/**< 2 hours, in s */
 #define GUESS_MAX_ULTRAPEERS	50000	/**< Query stops after that many acks */
 #define GUESS_RPC_LIFETIME		15000	/**< 15 seconds, in ms */
 #define GUESS_FIND_DELAY		5000	/**< in ms, UDP queue flush grace */
@@ -191,6 +191,7 @@ guess_check(const guess_t * const gq)
 #define GQ_F_DELAYED		(1U << 1)	/**< Iteration has been delayed */
 #define GQ_F_UDP_DROP		(1U << 2)	/**< UDP message was dropped */
 #define GQ_F_SENDING		(1U << 3)	/**< Sending a message */
+#define GQ_F_END_STARVING	(1U << 4)	/**< End when starving */
 
 /**
  * RPC replies.
@@ -2212,7 +2213,7 @@ guess_got_query_key(enum udp_ping_ret type,
 
 	gq = guess_is_alive(ctx->gid);
 	if (NULL == gq) {
-		if (UDP_PING_EXPIRED == type)
+		if (UDP_PING_EXPIRED == type || UDP_PING_TIMEDOUT == type)
 			wfree(ctx, sizeof *ctx);
 		return;
 	}
@@ -2723,18 +2724,51 @@ guess_iterate(guess_t *gq)
 			}
 			guess_delay(gq);
 		} else {
-			if (GNET_PROPERTY(guess_client_debug) > 1) {
-				g_debug("GUESS QUERY[%s] starving, %swaiting for new hosts",
-					nid_to_string(&gq->gid),
-					NULL == gq->hostwait ? "" : "already ");
-			}
+			gboolean starving;
 
-			if (NULL == gq->hostwait) {
-				gq->hostwait = wq_sleep_timeout(hcache_add,
-					GUESS_WAIT_DELAY, guess_load_host_added, gq);
+			/*
+			 * Query is starving when its pool is empty.
+			 */
+
+			starving = 0 == hash_list_length(gq->pool);
+
+			if (starving && (gq->flags & GQ_F_END_STARVING)) {
+				if (GNET_PROPERTY(guess_client_debug) > 1) {
+					g_debug("GUESS QUERY[%s] starving, ending as requested",
+						nid_to_string(&gq->gid));
+				}
+				guess_cancel(&gq, TRUE);
+			} else {
+				if (GNET_PROPERTY(guess_client_debug) > 1) {
+					g_debug("GUESS QUERY[%s] %s, %swaiting for new hosts",
+						nid_to_string(&gq->gid),
+						starving ? "starving" : "need delay",
+						NULL == gq->hostwait ? "" : "already ");
+				}
+
+				if (NULL == gq->hostwait) {
+					gq->hostwait = wq_sleep_timeout(hcache_add,
+						GUESS_WAIT_DELAY, guess_load_host_added, gq);
+				}
 			}
 		}
 	}
+}
+
+/**
+ * Request that GUESS query be ended when it will be starving.
+ */
+void
+guess_end_when_starving(guess_t *gq)
+{
+	guess_check(gq);
+
+	if (GNET_PROPERTY(guess_client_debug) && !(gq->flags & GQ_F_END_STARVING)) {
+		g_debug("GUESS QUERY[%s] will end as soon as we're starving",
+			nid_to_string(&gq->gid));
+	}
+
+	gq->flags |= GQ_F_END_STARVING;
 }
 
 /**

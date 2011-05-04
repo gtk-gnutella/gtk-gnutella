@@ -3017,6 +3017,15 @@ search_add_new_muid(search_ctrl_t *sch, struct guid *muid)
 	while (count-- > MUID_MAX) {
 		GSList *last = g_slist_last(sch->muids);
 		g_hash_table_remove(search_by_muid, last->data);
+		if (sch->guess != NULL && guess_is_search_muid(last->data)) {
+			/*
+			 * Must cancel GUESS when we're losing the GUESS MUID since we
+			 * won't be showing the results any more, the MUID no longer
+			 * being known.
+			 */
+			guess_cancel(&sch->guess, FALSE);
+			sch->guess = NULL;
+		}
 		wfree(last->data, GUID_RAW_SIZE);
 		sch->muids = g_slist_remove_link(sch->muids, last);
 		g_slist_free_1(last);
@@ -3956,10 +3965,14 @@ search_reissue(gnet_search_t sh)
 
 	/*
 	 * When a "broadcasting" search is issued, cancel any running
-	 * backgound "iterating" search.
+	 * backgound "iterating" search as soon as it will be starving...
+	 *
+	 * Otherwise, let it continue its crawl in the background, as we
+	 * may explore ultrapeers that our broadcast may never be reaching.
 	 */
 
-	guess_cancel(&sch->guess, FALSE);
+	if (sch->guess != NULL)
+		guess_end_when_starving(sch->guess);
 	wd_wakeup(sch->activity);
 
 	muid = search_new_muid(FALSE);
