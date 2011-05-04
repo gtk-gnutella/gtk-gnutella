@@ -2622,7 +2622,7 @@ static void
 guess_iterate(guess_t *gq)
 {
 	int alpha = GUESS_ALPHA;
-	int i = 0;
+	int i = 0, unsent = 0;
 	size_t attempts = 0;
 
 	guess_check(gq);
@@ -2698,8 +2698,11 @@ guess_iterate(guess_t *gq)
 			break;
 
 		if (!map_contains(gq->queried, host)) {
-			if (!guess_send_query(gq, host))
+			if (!guess_send_query(gq, host)) {
+				if (unsent++ > alpha)
+					break;
 				continue;
+			}
 			if (gq->flags & GQ_F_UDP_DROP)
 				break;			/* Synchronous UDP drop detected */
 			i++;
@@ -2710,13 +2713,25 @@ guess_iterate(guess_t *gq)
 
 	gq->flags &= ~GQ_F_SENDING;
 
-	/*
-	 * If we could not send the UDP message due to synchronous dropping,
-	 * wait a little before iterating again so that the UDP queue can flush
-	 * before we enqueue more messages.
-	 */
+	if (unsent > alpha) {
+		/*
+		 * For some reason we cannot issue queries.  Probably because we need
+		 * query keys for the hosts and there are already too many registered
+		 * UDP pings pending.  Delay futher iterations.
+		 */
 
-	if (0 == i) {
+		if (GNET_PROPERTY(guess_client_debug) > 1) {
+			g_debug("GUESS QUERY[%s] too many unsent messages, delaying",
+				nid_to_string(&gq->gid));
+		}
+		guess_delay(gq);
+	} else if (0 == i) {
+		/*
+		 * If we could not send the UDP message due to synchronous dropping,
+		 * wait a little before iterating again so that the UDP queue can flush
+		 * before we enqueue more messages.
+		 */
+
 		if (gq->flags & GQ_F_UDP_DROP) {
 			if (GNET_PROPERTY(guess_client_debug) > 1) {
 				g_debug("GUESS QUERY[%s] giving UDP a chance to flush",
