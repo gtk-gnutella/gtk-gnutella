@@ -134,6 +134,8 @@ RCSID("$Id$")
 #define GUESS_ALPHA				5		/**< Level of query concurrency */
 #define GUESS_WAIT_DELAY		30000	/**< in ms, time waiting for hosts */
 #define GUESS_WARMING_COUNT		100		/**< Loose concurrency after that */
+#define GUESS_MAX_TIMEOUTS		5		/**< Max # of consecutive timeouts */
+#define GUESS_TIMEOUT_DELAY		3600	/**< Time before resetting timeouts */
 
 /**
  * Query stops after that many hits
@@ -303,7 +305,9 @@ struct qkdata {
 	time_t first_seen;		/**< When we first learnt about the host */
 	time_t last_seen;		/**< When we last saw the host */
 	time_t last_update;		/**< When we last updated the query key */
+	time_t last_timeout;	/**< When last RPC timeout occurred */
 	guint32 flags;			/**< Host flags */
+	guint8 timeouts;		/**< Amount of consecutive RPC timeouts */
 	guint8 length;			/**< Query key length */
 	void *query_key;		/**< Binary data -- walloc()-ed */
 };
@@ -315,7 +319,7 @@ struct qkdata {
 #define GUESS_F_OTHER_HOST	(1U << 1)	/**< Returns pongs for other hosts */
 #define GUESS_F_PONG_IPP	(1U << 2)	/**< Returns hosts in GGEP "IPP" */
 
-#define GUESS_QK_VERSION	0	/**< Serialization version number */
+#define GUESS_QK_VERSION	1	/**< Serialization version number */
 
 static GHashTable *gqueries;			/**< Running GUESS queries */
 static GHashTable *gmuid;				/**< MUIDs of active queries */
@@ -352,6 +356,9 @@ static struct qkdata *
 get_qkdata(const gnet_host_t *host)
 {
 	struct qkdata *qk;
+
+	if (G_UNLIKELY(NULL == db_qkdata))
+		return NULL;
 
 	qk = dbmw_read(db_qkdata, host, NULL);
 
@@ -395,6 +402,9 @@ serialize_qkdata(pmsg_t *mb, const void *data)
 	pmsg_write_be32(mb, qk->flags);
 	pmsg_write_u8(mb, qk->length);
 	pmsg_write(mb, qk->query_key, qk->length);
+	/* Introduced at version 1 */
+	pmsg_write_time(mb, qk->last_timeout);
+	pmsg_write_u8(mb, qk->timeouts);
 }
 
 /**
@@ -420,6 +430,15 @@ deserialize_qkdata(bstr_t *bs, void *valptr, size_t len)
 		bstr_read(bs, qk->query_key, qk->length);
 	} else {
 		qk->query_key = NULL;
+	}
+
+	if (version >= 1) {
+		/* Fields introduced at version 1 */
+		bstr_read_time(bs, &qk->last_timeout);
+		bstr_read_u8(bs, &qk->timeouts);
+	} else {
+		qk->last_timeout = 0;
+		qk->timeouts = 0;
 	}
 }
 
@@ -726,6 +745,128 @@ guess_host_clear_flags(const gnet_host_t *h, guint32 flags)
 }
 
 /**
+ * Update "last_seen" event for hosts from whom we get traffic and move
+ * them to the head of the link cache if present.
+ */
+static void
+guess_traffic_from(const gnet_host_t *h)
+{
+	struct qkdata *qk;
+	struct qkdata new_qk;
+
+	if (hash_list_contains(link_cache, h)) {
+		hash_list_moveto_head(link_cache, h);
+	}
+
+	qk = get_qkdata(h);
+
+	if (NULL == qk) {
+		new_qk.first_seen = new_qk.last_update = tm_time();
+		new_qk.last_timeout = 0;
+		new_qk.flags = 0;
+		new_qk.timeouts = 0;
+		new_qk.length = 0;
+		new_qk.query_key = NULL;	/* Query key unknown */
+		qk = &new_qk;
+		gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, +1);
+	}
+
+	qk->last_seen = tm_time();
+	qk->timeouts = 0;
+	dbmw_write(db_qkdata, h, qk, sizeof *qk);
+}
+
+/**
+ * Record timeout for host.
+ */
+static void
+guess_timeout_from(const gnet_host_t *h)
+{
+	struct qkdata *qk;
+
+	qk = get_qkdata(h);
+
+	if (qk != NULL) {
+		qk->last_timeout = tm_time();
+		qk->timeouts++;
+		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+	}
+}
+
+/**
+ * Reset old timeout indication.
+ */
+static void
+guess_timeout_reset(const gnet_host_t *h, struct qkdata *qk)
+{
+	g_assert(h != NULL);
+	g_assert(qk != NULL);
+
+	if (0 == qk->timeouts)
+		return;
+
+	/*
+	 * Once sufficient time has elapsed since the last timeout occurred,
+	 * clear timeout indication to allow contacting the host again.
+	 *
+	 * When we don't hear back from the host at all, it will eventually
+	 * be considered as dead by the pruning logic.
+	 */
+
+	if (delta_time(tm_time(), qk->last_timeout) >= GUESS_TIMEOUT_DELAY) {
+		if (GNET_PROPERTY(guess_client_debug) > 5) {
+			g_debug("GUESS resetting timeouts for %s", gnet_host_to_string(h));
+		}
+		qk->timeouts = 0;
+		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+	}
+}
+
+/**
+ * Can node which timed-out in the past be considered again as the target
+ * of an RPC?
+ */
+static gboolean
+guess_can_recontact(const gnet_host_t *h)
+{
+	struct qkdata *qk;
+
+	qk = get_qkdata(h);
+
+	if (qk != NULL) {
+		time_t grace;
+
+		guess_timeout_reset(h, qk);
+
+		if (0 == qk->timeouts)
+			return TRUE;
+
+		grace = 5 << qk->timeouts;
+		return delta_time(tm_time(), qk->last_timeout) > grace;
+	}
+
+	return TRUE;
+}
+
+/**
+ * Should a node be skipped due to too many timeouts recently?
+ */
+static gboolean
+guess_should_skip(const gnet_host_t *h)
+{
+	struct qkdata *qk;
+
+	qk = get_qkdata(h);
+
+	if (qk != NULL) {
+		guess_timeout_reset(h, qk);
+		return qk->timeouts >= GUESS_MAX_TIMEOUTS;
+	} else {
+		return FALSE;
+	}
+}
+
+/**
  * Add host to the link cache with a p% probability.
  */
 static void
@@ -787,7 +928,9 @@ guess_discovered_host(host_addr_t addr, guint16 port)
 		gnet_host_t host;
 
 		gnet_host_set(&host, addr, port);
-		guess_add_link_cache(&host, 100);	/* Add with 100% chance */
+		if (guess_can_recontact(&host)) {
+			guess_add_link_cache(&host, 100);	/* Add with 100% chance */
+		}
 	}
 }
 
@@ -810,7 +953,8 @@ guess_add_pool(guess_t *gq, host_addr_t addr, guint16 port)
 	gnet_host_set(&host, addr, port);
 	if (
 		!map_contains(gq->queried, &host) &&
-		!hash_list_contains(gq->pool, &host)
+		!hash_list_contains(gq->pool, &host) &&
+		!guess_should_skip(&host)
 	) {
 		if (GNET_PROPERTY(guess_client_debug) > 3) {
 			g_debug("GUESS QUERY[%s] added new host %s to pool",
@@ -861,35 +1005,6 @@ guess_remove_link_cache(const gnet_host_t *h)
 		atom_host_free(atom);
 		guess_discovery_enable();
 	}
-}
-
-/**
- * Update "last_seen" event for hosts from whom we get traffic and move
- * them to the head of the link cache if present.
- */
-static void
-guess_traffic_from(const gnet_host_t *h)
-{
-	struct qkdata *qk;
-	struct qkdata new_qk;
-
-	if (hash_list_contains(link_cache, h)) {
-		hash_list_moveto_head(link_cache, h);
-	}
-
-	qk = get_qkdata(h);
-
-	if (NULL == qk) {
-		new_qk.first_seen = new_qk.last_update = tm_time();
-		new_qk.flags = 0;
-		new_qk.length = 0;
-		new_qk.query_key = NULL;	/* Query key unknown */
-		qk = &new_qk;
-		gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, +1);
-	}
-
-	qk->last_seen = tm_time();
-	dbmw_write(db_qkdata, h, qk, sizeof *qk);
 }
 
 /**
@@ -1108,6 +1223,7 @@ guess_qk_reply(enum udp_ping_ret type,
 		}
 
 		guess_remove_link_cache(h);
+		guess_timeout_from(h);
 
 		/* FALL THROUGH */
 
@@ -1268,13 +1384,14 @@ guess_host_added(void *u_data, void *hostinfo)
 	}
 
 	/*
-	 * If we already have the host in our link cache, ignore it.
+	 * If we already have the host in our link cache, or the host is
+	 * known to timeout, ignore it.
 	 */
 
 	{
 		gnet_host_t host;
 		gnet_host_set(&host, nhost->addr, nhost->port);
-		if (hash_list_contains(link_cache, &host))
+		if (hash_list_contains(link_cache, &host) || guess_should_skip(&host))
 			return WQ_SLEEP;
 	}
 
@@ -1344,6 +1461,7 @@ guess_hosts_reply(enum udp_ping_ret type,
 		 * Host did not reply, delete cached entry, if any.
 		 */
 		guess_remove_link_cache(h);
+		guess_timeout_from(h);
 
 		if (GNET_PROPERTY(guess_client_debug) > 3) {
 			g_info("GUESS ping timeout for %s", gnet_host_to_string(h));
@@ -1590,6 +1708,16 @@ qk_link_cache(void *key, void *value, size_t len, void *u_data)
 	(void) u_data;
 
 	/*
+	 * Do not insert in the link cache hosts which timed out recently.
+	 */
+
+	if (
+		qk->timeouts != 0 &&
+		delta_time(tm_time(), qk->last_timeout) < GUESS_TIMEOUT_DELAY
+	)
+		return;
+
+	/*
 	 * Favor insertion on hosts in the link cache that are either "connected"
 	 * to other GUESS hosts (they return pongs for other hosts) or which
 	 * are returning packed hosts in IPP when asked for hosts.
@@ -1809,13 +1937,20 @@ terminate:
 static const gnet_host_t *
 guess_pick_next(guess_t *gq)
 {
+	hash_list_iter_t *iter;
+	const gnet_host_t *host;
+	gboolean found = FALSE;
+
 	guess_check(gq);
 
-	for (;;) {
-		const gnet_host_t *host = hash_list_shift(gq->pool);
+	iter = hash_list_iterator(gq->pool);
 
-		if (NULL == host)
-			return NULL;
+	while (hash_list_iter_has_next(iter)) {
+		const char *reason = NULL;
+
+		host = hash_list_iter_next(iter);
+
+		g_assert(host != NULL);
 
 		/*
 		 * Known recently discovered alien hosts are invisibly removed.
@@ -1824,26 +1959,61 @@ guess_pick_next(guess_t *gq)
 		 * file, dynamically found hostile hosts).
 		 */
 
-		if (
-			aging_lookup(guess_alien, host) ||
-			hostiles_check(gnet_host_get_addr(host))
-		) {
-			atom_host_free(host);
+		if (aging_lookup(guess_alien, host)) {
+			reason = "alien host";
+			goto drop;
+		}
+
+		if (hostiles_check(gnet_host_get_addr(host))) {
+			reason = "hostile host";
+			goto drop;
+		}
+
+		if (guess_should_skip(host)) {
+			reason = "timeouting host";
+			goto drop;
+		}
+
+		/*
+		 * Skip hosts which we cannot recontact yet.
+		 */
+
+		if (!guess_can_recontact(host)) {
+			if (GNET_PROPERTY(guess_client_debug) > 5) {
+				g_debug("GUESS QUERY[%s] cannot recontact %s yet",
+					nid_to_string(&gq->gid), gnet_host_to_string(host));
+			}
 			continue;
 		}
 
 		/*
-		 * If we hit a host for which we're waiting for a query key, put
-		 * it back in the pool and wait.
+		 * Skip host from which we're waiting for a query key.
 		 */
 
 		if (aging_lookup(guess_qk_reqs, host)) {
-			hash_list_prepend(gq->pool, host);
-			return NULL;
+			if (GNET_PROPERTY(guess_client_debug) > 5) {
+				g_debug("GUESS QUERY[%s] still waiting for query key from %s",
+					nid_to_string(&gq->gid), gnet_host_to_string(host));
+			}
+			continue;
 		}
 
-		return host;
+		found = TRUE;
+		hash_list_iter_remove(iter);
+		break;
+
+	drop:
+		if (GNET_PROPERTY(guess_client_debug) > 5) {
+			g_debug("GUESS QUERY[%s] dropping %s from pool: %s",
+				nid_to_string(&gq->gid), gnet_host_to_string(host), reason);
+		}
+		hash_list_iter_remove(iter);
+		atom_host_free_null(&host);
 	}
+
+	hash_list_iter_release(&iter);
+
+	return found ? host : NULL;
 }
 
 /**
@@ -1959,11 +2129,16 @@ guess_pool_from_qkdata(void *host, void *value, size_t len, void *data)
 	g_assert(len == sizeof *qk);
 
 	if (
+		(
+			0 == qk->timeouts ||
+			delta_time(tm_time(), qk->last_timeout) >= GUESS_TIMEOUT_DELAY
+		) &&
 		!map_contains(gq->queried, host) &&
 		!hash_list_contains(gq->pool, host)
 	) {
-		double p =
-			stable_still_alive_probability(qk->first_seen, qk->last_seen);
+		double p;
+
+		p = stable_still_alive_probability(qk->first_seen, qk->last_seen);
 		if (p >= GUESS_ALIVE_PROBA) {
 			hash_list_append(gq->pool, atom_host_get(host));
 			ctx->loaded++;
@@ -2251,11 +2426,11 @@ guess_got_query_key(enum udp_ping_ret type,
 		}
 
 		/*
-		 * Mark host as non-GUESS for a while so that other queries do not
-		 * attempt to contact this host.
+		 * Mark timeout from host.  This will delay further usage of the
+		 * host by other queries.
 		 */
 
-		aging_insert(guess_alien, atom_host_get(host), int_to_pointer(1));
+		guess_timeout_from(host);
 
 		/* FALL THROUGH */
 	case UDP_PING_EXPIRED:
@@ -2430,6 +2605,8 @@ guess_rpc_callback(enum guess_rpc_ret type, struct guess_rpc *grp,
 	if (GUESS_RPC_TIMEOUT == type) {
 		if (grp->pmi != NULL)			/* Message not processed by UDP queue */
 			grp->pmi->rpc_done = TRUE;
+
+		guess_timeout_from(grp->host);
 
 		if (0 == gq->rpc_pending)
 			guess_iterate(gq);
