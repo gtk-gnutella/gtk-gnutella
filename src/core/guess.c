@@ -1224,6 +1224,7 @@ guess_qk_reply(enum udp_ping_ret type,
 
 		guess_remove_link_cache(h);
 		guess_timeout_from(h);
+		aging_remove(guess_qk_reqs, h);
 
 		/* FALL THROUGH */
 
@@ -2431,6 +2432,7 @@ guess_got_query_key(enum udp_ping_ret type,
 		 */
 
 		guess_timeout_from(host);
+		aging_remove(guess_qk_reqs, host);
 
 		/* FALL THROUGH */
 	case UDP_PING_EXPIRED:
