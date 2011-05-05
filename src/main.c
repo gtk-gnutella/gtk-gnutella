@@ -1248,6 +1248,8 @@ static gboolean
 callout_queue_idle(void *unused_data)
 {
 	gboolean overloaded = GNET_PROPERTY(overloaded_cpu);
+	guint32 crc;
+
 	(void) unused_data;
 
 	if (GNET_PROPERTY(cq_debug) > 1)
@@ -1256,6 +1258,8 @@ callout_queue_idle(void *unused_data)
 
 	/* Idle tasks always scheduled */
 	zgc(overloaded);
+	crc = gnet_stats_crc_reset();
+	random_pool_append(&crc, sizeof crc, settings_add_randomness);
 	random_collect(settings_add_randomness);
 
 	if (!overloaded) {

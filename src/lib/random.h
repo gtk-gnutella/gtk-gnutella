@@ -48,6 +48,7 @@ guint32 random_u32(void) WARN_UNUSED_RESULT;
 void random_bytes(void *dst, size_t size);
 guint32 random_cpu_noise(void);
 void random_collect(void (*cb)(void));
+void random_pool_append(void *buf, size_t len, void (*cb)(void));
 void random_add(const void *data, size_t datalen);
 
 #endif /* _random_h_ */

@@ -43,7 +43,11 @@ RCSID("$Id$")
 #include "if/dht/kademlia.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/crc.h"
 #include "lib/event.h"
+#include "lib/gnet_host.h"
+#include "lib/random.h"
+#include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 static guint8 stats_lut[256];
@@ -51,6 +55,8 @@ static guint8 stats_lut[256];
 static gnet_stats_t gnet_stats;
 static gnet_stats_t gnet_tcp_stats;
 static gnet_stats_t gnet_udp_stats;
+
+static guint32 gnet_stats_crc32;
 
 /***
  *** Public functions
@@ -374,6 +380,38 @@ gnet_stats_init(void)
 		
     memset(&gnet_stats, 0, sizeof(gnet_stats));
     memset(&gnet_udp_stats, 0, sizeof(gnet_udp_stats));
+
+	gnet_stats_crc32 = random_u32();
+}
+
+/**
+ * @return current CRC32 and re-initialize a new random one.
+ */
+guint32
+gnet_stats_crc_reset(void)
+{
+	guint32 crc = gnet_stats_crc32;
+
+	gnet_stats_crc32 = random_u32();
+	return crc;
+}
+
+/**
+ * Use unpredictable events to collect random data.
+ */
+static void
+gnet_stats_randomness(const gnutella_node_t *n, guint8 type, guint32 val)
+{
+	tm_t now;
+	gnet_host_t host;
+
+	tm_now(&now);
+	gnet_stats_crc32 = crc32_update_crc(gnet_stats_crc32, &now, sizeof now);
+	gnet_host_set(&host, n->addr, n->port);
+	gnet_stats_crc32 = crc32_update_crc(
+		gnet_stats_crc32, &host, gnet_host_length(&host));
+	gnet_stats_crc32 = crc32_update_crc(gnet_stats_crc32, &type, sizeof type);
+	gnet_stats_crc32 = crc32_update_crc(gnet_stats_crc32, &val, sizeof val);
 }
 
 /**
@@ -479,6 +517,7 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 	 */
 
 	size = n->size;
+	gnet_stats_randomness(n, f, size);
 
 	/*
 	 * If we're dealing with a Kademlia message, we need to do two things:
@@ -545,6 +584,8 @@ gnet_stats_count_queued(const gnutella_node_t *n,
 		hops = gnutella_header_get_hops(base);
 	}
 
+	gnet_stats_randomness(n, t & 0xff, size);
+
 	stats_pkg = hops ? gnet_stats.pkg.queued : gnet_stats.pkg.gen_queued;
 	stats_byte = hops ? gnet_stats.byte.queued : gnet_stats.byte.gen_queued;
 
@@ -590,6 +631,8 @@ gnet_stats_count_sent(const gnutella_node_t *n,
 	} else {
 		hops = gnutella_header_get_hops(base);
 	}
+
+	gnet_stats_randomness(n, t & 0xff, size);
 
 	stats_pkg = hops ? gnet_stats.pkg.relayed : gnet_stats.pkg.generated;
 	stats_byte = hops ? gnet_stats.byte.relayed : gnet_stats.byte.generated;
@@ -661,6 +704,8 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 	type = stats_lut[gnutella_header_get_function(&n->header)];
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
+	gnet_stats_randomness(n, type & 0xff, size);
+
 	DROP_STATS(stats, type, size);
 	node_inc_rxdrop(n);
 
@@ -695,6 +740,8 @@ gnet_dht_stats_count_dropped(gnutella_node_t *n, kda_msg_t opcode,
     size = n->size + sizeof(n->header);
 	type = stats_lut[opcode + MSG_DHT_BASE];
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+
+	gnet_stats_randomness(n, type & 0xff, size);
 
 	DROP_STATS(stats, type, size);
 	node_inc_rxdrop(n);

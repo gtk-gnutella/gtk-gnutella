@@ -112,6 +112,44 @@ random_cpu_noise(void)
 }
 
 /**
+ * Add collected random byte(s) to the random pool, flushing to the random
+ * number generator when enough has been collected.
+ *
+ * @param buf		buffer holding random data
+ * @param len		length of random data
+ *
+ * @return TRUE if pool was flushed.
+ */
+static gboolean
+random_add_pool(void *buf, size_t len)
+{
+	static guchar data[256];
+	static size_t idx;
+	guchar *p;
+	size_t n;
+	gboolean flushed = FALSE;
+
+	g_assert(size_is_non_negative(idx));
+	g_assert(idx < G_N_ELEMENTS(data));
+
+	for (p = buf, n = len; n != 0; p++, n--) {
+		data[idx++] = *p;
+
+		/*
+		 * Feed extra bytes when we have enough.
+		 */
+
+		if (idx >= G_N_ELEMENTS(data)) {
+			arc4random_addrandom(data, sizeof data);
+			idx = 0;
+			flushed = TRUE;
+		}
+	}
+
+	return flushed;
+}
+
+/**
  * This routine is meant to be called periodically and generates a little
  * bit of random information. Once in a while, when enough randomness has
  * been collected, it feeds it to the random number generator.
@@ -121,8 +159,6 @@ random_cpu_noise(void)
 void
 random_collect(void (*cb)(void))
 {
-	static guchar data[128];
-	static size_t idx;
 	static tm_t last;
 	static time_delta_t prev;
 	static time_delta_t running;
@@ -130,6 +166,7 @@ random_collect(void (*cb)(void))
 	tm_t now;
 	time_delta_t d;
 	unsigned r, m, a;
+	guchar rbyte;
 
 	tm_now_exact(&now);
 	d = tm_elapsed_ms(&now, &last);
@@ -173,19 +210,28 @@ random_collect(void (*cb)(void))
 	 * Save random byte.
 	 */
 
-	g_assert(size_is_non_negative(idx));
-	g_assert(idx < G_N_ELEMENTS(data));
-
 	sum += r;
-	data[idx++] = sum & 0xff;
+	rbyte = sum & 0xff;
 
-	/*
-	 * Feed extra bytes when we have enough.
-	 */
+	random_pool_append(&rbyte, sizeof rbyte, cb);
+}
 
-	if (idx >= G_N_ELEMENTS(data)) {
-		arc4random_addrandom(data, sizeof data);
-		idx = 0;
+/**
+ * This routine is meant to be called periodically and generates a little
+ * bit of random information. Once in a while, when enough randomness has
+ * been collected, it feeds it to the random number generator.
+ *
+ * @param buf		buffer holding random data
+ * @param len		length of random data
+ * @param cb		routine to invoke if non-NULL when randomness is fed
+ */
+void
+random_pool_append(void *buf, size_t len, void (*cb)(void))
+{
+	g_assert(buf != NULL);
+	g_assert(size_is_positive(len));
+
+	if (random_add_pool(buf, len)) {
 		if (cb != NULL)
 			(*cb)();		/* Let them know new randomness is available */
 	}
@@ -194,7 +240,8 @@ random_collect(void (*cb)(void))
 /**
  * Add new randomness to the random number generator.
  */
-void random_add(const void *data, size_t datalen)
+void
+random_add(const void *data, size_t datalen)
 {
 	g_assert(data != NULL);
 	g_assert(datalen < MAX_INT_VAL(int));
