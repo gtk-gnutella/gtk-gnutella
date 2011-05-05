@@ -678,7 +678,7 @@ hostiles_spam_add(const host_addr_t addr, guint16 port)
 			 * Fill selected slot.
 			 */
 
-			sh = &sd->hosts[i];
+			sh = &sd->hosts[slot];
 			sh->port = port;
 			sh->first_seen = sh->last_seen = tm_time();
 		}
@@ -869,14 +869,14 @@ hostiles_spam_periodic_prune(void *unused_obj)
 }
 
 /**
- * Callout queue periodic event to synchronize the SDBM layer.
+ * Callout queue periodic event to synchronize the disk image.
  */
 static gboolean
 hostiles_spam_periodic_sync(void *unused_obj)
 {
 	(void) unused_obj;
 
-	dbstore_sync(db_spam);
+	dbstore_sync_flush(db_spam);
 	return TRUE;		/* Keep calling */
 }
 
