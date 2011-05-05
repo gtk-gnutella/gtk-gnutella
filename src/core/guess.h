@@ -38,6 +38,8 @@
 
 #include "common.h"
 
+#include "lib/gnet_host.h"
+
 #include "if/gnet_property_priv.h"
 #include "if/core/search.h"
 
@@ -66,6 +68,8 @@ void guess_end_when_starving(guess_t *gq);
 gboolean guess_is_search_muid(const guid_t *muid);
 void guess_got_results(const guid_t *muid, guint32 hits);
 gboolean guess_rpc_handle(struct gnutella_node *n);
+
+int guess_fill_caught_array(gnet_host_t *hosts, int hcount);
 
 /**
  * Is GUESS querying enabled?

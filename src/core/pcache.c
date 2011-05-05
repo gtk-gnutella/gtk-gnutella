@@ -500,15 +500,18 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		 * indicate GUESS support.
 		 */
 
-		hcount = hcache_fill_caught_array(
+		if (
+			GNET_PROPERTY(enable_guess) &&
 			(
-				GNET_PROPERTY(enable_guess) &&
-				(
-					(flags & (PING_F_QK | PING_F_GUE)) ||
-					(meta != NULL && (meta->flags & PONG_META_HAS_GUE))
-				)
-			) ?  HOST_GUESS : HOST_ULTRA,
-			host, PCACHE_UHC_MAX_IP);
+				(flags & (PING_F_QK | PING_F_GUE)) ||
+				(meta != NULL && (meta->flags & PONG_META_HAS_GUE))
+			)
+		) {
+			hcount = guess_fill_caught_array(host, PCACHE_UHC_MAX_IP);
+		} else {
+			hcount = hcache_fill_caught_array(HOST_ULTRA,
+				host, PCACHE_UHC_MAX_IP);
+		}
 
 		if (hcount > 0) {
 			guchar tls_bytes[(G_N_ELEMENTS(host) + 7) / 8];
@@ -976,8 +979,7 @@ pcache_guess_acknowledge(struct gnutella_node *n,
 	node_check(n);
 	g_assert(NODE_IS_UDP(n));
 
-	hcount = hcache_fill_caught_array(HOST_GUESS, host,
-		wants_ipp ? G_N_ELEMENTS(host) : 2);
+	hcount = guess_fill_caught_array(host, wants_ipp ? G_N_ELEMENTS(host) : 2);
 
 	meta.guess = (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR;
 	meta.flags = PONG_META_HAS_GUE;

@@ -3107,6 +3107,56 @@ guess_cancel(guess_t **gq_ptr, gboolean callback)
 }
 
 /**
+ * Fill `hosts', an array of `hcount' hosts already allocated with at most
+ *  `hcount' hosts from out caught list.
+ *
+ * @return amount of hosts filled
+ */
+int
+guess_fill_caught_array(gnet_host_t *hosts, int hcount)
+{
+	int i, filled, added = 0;
+	hash_list_iter_t *iter;
+	GHashTable *seen_host = g_hash_table_new(gnet_host_hash, gnet_host_eq);
+
+	filled = hcache_fill_caught_array(HOST_GUESS, hosts, hcount);
+	iter = hash_list_iterator(link_cache);
+
+	for (i = 0; i < hcount; i++) {
+		gnet_host_t *h;
+
+	next:
+		h = hash_list_iter_next(iter);
+		if (NULL == h)
+			break;
+
+		if (gm_hash_table_contains(seen_host, h))
+			goto next;
+
+		/*
+		 * Hosts from the link cache have a 65% chance of superseding hosts
+		 * from the global GUESS cache.
+		 */
+
+		if (i >= filled) {
+			/* Had not enough hosts in the global cache */
+			hosts[i] = *h;		/* struct copy */
+			added++;
+		} else if (random_u32() % 100 < 65) {
+			hosts[i] = *h;		/* struct copy */
+		}
+		g_hash_table_insert(seen_host, &hosts[i], int_to_pointer(1));
+	}
+
+	hash_list_iter_release(&iter);
+	gm_hash_table_destroy_null(&seen_host);	/* Keys point into vector */
+
+	g_assert(filled + added <= hcount);
+
+	return filled + added;		/* Amount of hosts we filled in */
+}
+
+/**
  * Initialize the GUESS client layer.
  */
 void
