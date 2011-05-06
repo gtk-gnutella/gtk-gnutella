@@ -154,6 +154,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"guess_local_queries",
 		"guess_local_query_hits",
 		"guess_hosts_queried",
+		"guess_hosts_acknowledged",
 		"broadcasted_pushes",
 		"push_proxy_udp_relayed",
 		"push_proxy_tcp_relayed",

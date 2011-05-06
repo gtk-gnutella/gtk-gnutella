@@ -134,6 +134,7 @@ general_type_str(gint value)
 		N_("GUESS locally generated queries"),
 		N_("GUESS hits received for locally generated queries"),
 		N_("GUESS hosts queried"),
+		N_("GUESS hosts sending back an acknowledgment"),
 		N_("Broadcasted push messages"),
 		N_("Push-proxy UDP relayed messages"),
 		N_("Push-proxy TCP relayed messages"),

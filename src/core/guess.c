@@ -2568,6 +2568,7 @@ guess_handle_ack(guess_t *gq,
 		guess_load_more_hosts(gq);		/* Fuel for acceleration */
 	}
 
+	gnet_stats_count_general(GNR_GUESS_HOSTS_ACKNOWLEDGED, +1);
 	guess_traffic_from(host);
 	{
 		guint16 port = peek_le16(&n->data[0]);
