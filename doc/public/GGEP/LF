@@ -3,7 +3,7 @@ The 'LF' GGEP Extension
 
 Name: LF (Large File)
 Where: Query Hit
-Status: Draft 
+Status: Production 
 Date: 2004-11-04
 Format: Variable-Length Integer 
 COBS-Encoding: If neccessary 

@@ -808,7 +808,7 @@ The GDF                          GUESS                       August 2002
 
 10. Further Additions
 
-   [Additions from RAM, for implementation in gtk-gnutella]
+   [Additions from RAM, for implementation in gtk-gnutella -- April 2011]
 
    GUESS needs "query keys" to query a server.
 
@@ -864,6 +864,27 @@ The GDF                          GUESS                       August 2002
 
    A GUESS 0.2 server SHOULD strip "QK" and "SCP" GGEP extensions from
    the Query before forwarding the message to the leaves.
+
+11. Deflated UDP Considerations
+
+   [Addition from RAM -- May 2011]
+
+   The deflated UDP protocol [16] normally indicates to the recipient
+   that it can safely compress its replies by setting the bit 3 in the
+   TTL field.  Obviously this is not going to work with GUESS, as a
+   servent not understanding deflated UDP would see a query comming as
+   TTL=9 instead of the expected TTL=1...
+
+   Therefore, to signal to the GUESS ultrapeer that it can deflate any
+   relayed query hits, the querying node includes the "Z" GGEP extension
+   (no payload) to signal UDP compression.  This "Z" extension will be
+   safely ignored by legacy ultrapeers.
+
+   Compressed query hits are transmitted normally, with the bit 7 from
+   the TTL set to flag compression, as explained in [16].
+
+   A GUESS 0.2 server SHOULD strip the "Z" GGEP extensions from the
+   Query before forwarding the message to the leaves.
 
 References
 
@@ -930,7 +951,8 @@ The GDF                          GUESS                       August 2002
    [15]  Neil Daswani and Hector Garcia-Molina, "Pong-Cache Poisoning
 		 in GUESS", October 2004, CCS'04
 
-
+   [16]  Raphael Manfredi, "Gnutella UDP Traffic Compression", August
+		 2006, <http://groups.yahoo.com/group/the_gdf/message/22739>
 
 
 

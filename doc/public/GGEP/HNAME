@@ -3,7 +3,7 @@ The 'HNAME' GGEP Extension
 
 Name: HNAME
 Where: Query Hit trailer
-Status: Experimental
+Status: Production
 Date: Sun Oct 26 20:08:29 MET 2003
 Format: <string>
 COBS-Encoding: Never

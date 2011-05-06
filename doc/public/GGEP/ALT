@@ -3,7 +3,7 @@ The 'ALT' GGEP Extension
 
 Name: ALT
 Where: Query Hit (per File Entry)
-Status: Experimental
+Status: Production
 Date: Mon Jul 14 20:05:36 MEST 2003
 Format: Array of <ip> <port>
 COBS-Encoding: Maybe

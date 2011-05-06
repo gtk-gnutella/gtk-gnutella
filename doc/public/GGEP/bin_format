@@ -1,6 +1,9 @@
 gtk-gnutella Binary Format in GGEP Extensions
 =============================================
 
+Date: 2002-06-09
+Status: Draft, UNUSED (2011-05-06)
+
 GGEP does not define the format of each extension.
 
 This memo describes the binary format used by gtk-gnutella to encode its

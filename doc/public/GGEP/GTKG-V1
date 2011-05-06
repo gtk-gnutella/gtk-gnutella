@@ -3,7 +3,7 @@ The 'GTKGV1' GGEP Extension
 
 Name: GTKGV1
 Where: Query Hit trailer
-Status: Experimental
+Status: Production
 Date: Fri Jan 10 21:05:59 MET 2003
 Date: Sat Aug 26 16:02:12 MEST 2006 (revised)
 Format: <major> <minor> <patchlevel> <lettercode> <release time> <build>
