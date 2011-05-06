@@ -11579,6 +11579,14 @@ create_dlg_prefs_bw_tab (void)
   GtkWidget *checkbutton_config_bws_out;
   GtkWidget *checkbutton_config_bws_in;
   GtkWidget *label291;
+  GtkWidget *frame150;
+  GtkWidget *vbox157;
+  GtkWidget *table119;
+  GtkWidget *label1057;
+  GtkObject *spinbutton_config_bw_guess_out_adj;
+  GtkWidget *spinbutton_config_bw_guess_out;
+  GtkWidget *label1063;
+  GtkWidget *label1062;
   GtkTooltips *tooltips;
 
   tooltips = gtk_tooltips_new ();
@@ -12270,6 +12278,56 @@ create_dlg_prefs_bw_tab (void)
   gtk_widget_show (label291);
   gtk_frame_set_label_widget (GTK_FRAME (frame12), label291);
 
+  frame150 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame150, "frame150");
+  gtk_widget_show (frame150);
+  gtk_box_pack_start (GTK_BOX (vbox29), frame150, TRUE, TRUE, 0);
+
+  vbox157 = gtk_vbox_new (FALSE, 2);
+  gtk_widget_set_name (vbox157, "vbox157");
+  gtk_widget_show (vbox157);
+  gtk_container_add (GTK_CONTAINER (frame150), vbox157);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox157), 2);
+
+  table119 = gtk_table_new (1, 3, FALSE);
+  gtk_widget_set_name (table119, "table119");
+  gtk_widget_show (table119);
+  gtk_box_pack_start (GTK_BOX (vbox157), table119, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (table119), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table119), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table119), 4);
+
+  label1057 = gtk_label_new (_("KiB/s"));
+  gtk_widget_set_name (label1057, "label1057");
+  gtk_widget_show (label1057);
+  gtk_table_attach (GTK_TABLE (table119), label1057, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label1057), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label1057), 0, 0.5);
+
+  spinbutton_config_bw_guess_out_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 0);
+  spinbutton_config_bw_guess_out = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bw_guess_out_adj), 1, 2);
+  gtk_widget_set_name (spinbutton_config_bw_guess_out, "spinbutton_config_bw_guess_out");
+  gtk_widget_show (spinbutton_config_bw_guess_out);
+  gtk_table_attach (GTK_TABLE (table119), spinbutton_config_bw_guess_out, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bw_guess_out), TRUE);
+
+  label1063 = gtk_label_new (_("Output bandwidth hint"));
+  gtk_widget_set_name (label1063, "label1063");
+  gtk_widget_show (label1063);
+  gtk_table_attach (GTK_TABLE (table119), label1063, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label1063), 0, 0.5);
+
+  label1062 = gtk_label_new_with_mnemonic (_("Bandwidth limits for GUESS queries"));
+  gtk_widget_set_name (label1062, "label1062");
+  gtk_widget_show (label1062);
+  gtk_frame_set_label_widget (GTK_FRAME (frame150), label1062);
+
   gtk_label_set_mnemonic_widget (GTK_LABEL (label156), spinbutton_config_speed);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
@@ -12367,6 +12425,13 @@ create_dlg_prefs_bw_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bws_out, "checkbutton_config_bws_out");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bws_in, "checkbutton_config_bws_in");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label291, "label291");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, frame150, "frame150");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, vbox157, "vbox157");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, table119, "table119");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1057, "label1057");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, spinbutton_config_bw_guess_out, "spinbutton_config_bw_guess_out");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1063, "label1063");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1062, "label1062");
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_prefs_bw_tab, tooltips, "tooltips");
 
   return dlg_prefs_bw_tab;

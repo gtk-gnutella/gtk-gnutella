@@ -310,7 +310,8 @@ build_guess_ping_msg(const struct guid *muid,
 		} else if (!intro || NODE_P_ULTRA != GNET_PROPERTY(current_peermode)) {
 			/*
 			 * An "SCP" request for more GUESS hosts, in the absence of "QK",
-			 * is indicated by an empty "GUE" extension.
+			 * is indicated by a "GUE" extension.  Here it's sent empty
+			 * because it's not an introduction ping.
 			 */
 
 			ggep_stream_pack(&gs, GGEP_NAME(GUE), NULL, 0, 0);
@@ -475,7 +476,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 	 * ping, then we're acting as an UDP host cache.  Give them some
 	 * fresh pongs of hosts with free slots.
 	 *
-	 * If there was an empty "GUE" extension in the ping, we behave as if
+	 * If there was a "GUE" extension in the ping, we behave as if
 	 * there was an "SCP", only we send back GUESS hosts in the "IPP" pong
 	 * extension.
 	 */
@@ -495,18 +496,9 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		/*
 		 * For GUESS 0.2, if there is a "QK" extension in the ping as well,
 		 * or a "GUE" extension, then we send back GUESS hosts.
-		 *
-		 * Likewise, if there are "GUE" metadata to send in the pong to
-		 * indicate GUESS support.
 		 */
 
-		if (
-			GNET_PROPERTY(enable_guess) &&
-			(
-				(flags & (PING_F_QK | PING_F_GUE)) ||
-				(meta != NULL && (meta->flags & PONG_META_HAS_GUE))
-			)
-		) {
+		if (GNET_PROPERTY(enable_guess) && (flags & (PING_F_QK | PING_F_GUE))) {
 			hcount = guess_fill_caught_array(host, PCACHE_UHC_MAX_IP);
 		} else {
 			hcount = hcache_fill_caught_array(HOST_ULTRA,
@@ -708,6 +700,8 @@ ping_type(const gnutella_node_t *n)
 {
 	int i;
 	enum ping_flag flags = PING_F_NONE;
+	gboolean has_gue = FALSE;
+	gboolean has_scp = FALSE;
 
 	for (i = 0; i < n->extcount; i++) {
 		const extvec_t *e = &n->extvec[i];
@@ -752,8 +746,10 @@ ping_type(const gnutella_node_t *n)
 			break;
 
 		case EXT_T_GGEP_GUE:
-			if (0 == ext_paylen(e))
-				flags |= PING_F_GUE;
+			has_gue = TRUE;
+			if (ext_paylen(e) != 0) {
+				guess_introduction_ping(n, ext_payload(e), ext_paylen(e));
+			}
 			break;
 
 		case EXT_T_GGEP_QK:
@@ -770,9 +766,21 @@ ping_type(const gnutella_node_t *n)
 
 	}
 
+	/*
+	 * If they sent a "GUE" extension and no "QK" as well, then they are
+	 * requesting more GUESS hosts packed in "IPP".
+	 *
+	 * Likewise if they sent a "QK" with "SCP".
+	 */
+
+	if ((has_gue && !(flags & PING_F_QK)) || (has_scp && (flags & PING_F_QK))) {
+		flags |= PING_F_GUE;
+	}
+
 	if ((flags & PING_F_UHC) && GNET_PROPERTY(ggep_debug) > 1)
-		g_debug("%s: UHC ping requesting %s slots from %s",
+		g_debug("%s: UHC ping requesting %s hosts from %s",
 			gmsg_node_infostr(n),
+			(flags & PING_F_GUE) ?	"GUESS" :
 			(flags & PING_F_UHC_ANY) ?	"any" :
 			(flags & PING_F_UHC_ULTRA) ?	"ultra" : "leaf",
 			host_addr_port_to_string(n->addr, n->port));

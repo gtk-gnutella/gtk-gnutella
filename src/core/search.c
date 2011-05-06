@@ -135,7 +135,7 @@ RCSID("$Id$")
  * GUESS security tokens.
  */
 #define GUESS_KEYS				2		/**< Two keys in the set */
-#define GUESS_REFRESH_PERIOD	3600	/**< 1 hour */
+#define GUESS_REFRESH_PERIOD	86400	/**< 1 day */
 
 #define SEARCH_ACTIVITY_TIMEOUT	120		/**< Delay before declaring idle */
 
@@ -2513,13 +2513,14 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
  * @param size		if not-NULL, written with the size of the generated message 
  * @param query_key	the GUESS query key to use (if non-NULL)
  * @param length	length of query key
+ * @param udp		whether message will be sent via UDP
  *
  * @return NULL if we cannot build a suitable message (bad query string
  * containing only whitespaces, for instance).
  */
 static gnutella_msg_search_t *
 build_search_message(const guid_t *muid, const char *query, guint32 *size,
-	const void *query_key, guint8 length)
+	const void *query_key, guint8 length, gboolean udp)
 {
 	static union {
 		gnutella_msg_search_t data;
@@ -2543,7 +2544,7 @@ build_search_message(const guid_t *muid, const char *query, guint32 *size,
 		gnutella_header_t *header = gnutella_msg_search_header(&msg.data);
 		guint8 hops;
 		
-		hops = GNET_PROPERTY(hops_random_factor) &&
+		hops = !udp && GNET_PROPERTY(hops_random_factor) &&
 			GNET_PROPERTY(current_peermode) != NODE_P_LEAF
 			? random_value(GNET_PROPERTY(hops_random_factor))
 			: 0;
@@ -2809,7 +2810,7 @@ gnutella_msg_search_t *
 build_guess_search_msg(const guid_t *muid, const char *query, guint32 *size,
 	const void *query_key, guint8 length)
 {
-	return build_search_message(muid, query, size, query_key, length);
+	return build_search_message(muid, query, size, query_key, length, TRUE);
 }
 
 /**
@@ -2828,7 +2829,7 @@ build_guess_search_msg(const guid_t *muid, const char *query, guint32 *size,
 static gnutella_msg_search_t *
 build_search_msg(const guid_t *muid, const char *query, guint32 *size)
 {
-	return build_search_message(muid, query, size, NULL, 0);
+	return build_search_message(muid, query, size, NULL, 0, FALSE);
 }
 
 /**
@@ -3024,16 +3025,21 @@ search_add_new_muid(search_ctrl_t *sch, struct guid *muid)
 
 	while (count-- > MUID_MAX) {
 		GSList *last = g_slist_last(sch->muids);
-		g_hash_table_remove(search_by_muid, last->data);
 		if (sch->guess != NULL && guess_is_search_muid(last->data)) {
 			/*
-			 * Must cancel GUESS when we're losing the GUESS MUID since we
-			 * won't be showing the results any more, the MUID no longer
-			 * being known.
+			 * Do not remove an active GUESS MUID or we would not be
+			 * be showing the results any more.
+			 *
+			 * Since GUESS queries for a given search are launched one at
+			 * a time, the item right before the last entry cannot be
+			 * the MUID of a GUESS query, and therefore we remove that entry
+			 * instead.
 			 */
-			guess_cancel(&sch->guess, FALSE);
-			sch->guess = NULL;
+			g_assert(count >= 1);
+			last = g_slist_nth(sch->muids, count - 1);
+			g_assert(!guess_is_search_muid(last->data));
 		}
+		g_hash_table_remove(search_by_muid, last->data);
 		wfree(last->data, GUID_RAW_SIZE);
 		sch->muids = g_slist_remove_link(sch->muids, last);
 		g_slist_free_1(last);
@@ -5619,11 +5625,28 @@ search_request_preprocess(struct gnutella_node *n)
 
 			if (1 != gnutella_header_get_ttl(&n->header)) {
 				if (GNET_PROPERTY(guess_server_debug)) {
-					g_warning("GUESS node %s sent query with TTL=%d, "
+					g_warning("GUESS node %s sent query MUID=%s with TTL=%u, "
 						"adjusting to 1 before handling routing",
-						node_infostr(n), gnutella_header_get_ttl(&n->header));
+						node_infostr(n),
+						guid_hex_str(gnutella_header_get_muid(&n->header)),
+						gnutella_header_get_ttl(&n->header));
 				}
 				gnutella_header_set_ttl(&n->header, 1);
+			}
+
+			/*
+			 * Enforce hops=0 since a GUESS query is not relayed.
+			 */
+
+			if (0 != gnutella_header_get_hops(&n->header)) {
+				if (GNET_PROPERTY(guess_server_debug)) {
+					g_warning("GUESS node %s sent query MUID=%s with hops=%u, "
+						"adjusting to 0 before handling routing",
+						node_infostr(n),
+						guid_hex_str(gnutella_header_get_muid(&n->header)),
+						gnutella_header_get_hops(&n->header));
+				}
+				gnutella_header_set_hops(&n->header, 0);
 			}
 
 			/*
@@ -5672,8 +5695,8 @@ search_request_preprocess(struct gnutella_node *n)
 	 * 1. We keep track of all the queries sent by the node (hops = 1)
 	 *    and the time by which we saw them.  If they are sent too often,
 	 *    just drop the duplicates.  Since an Ultranode will send queries
-	 *    from its leaves with an adjusted hop, we only do that for leaf
-	 *    nodes.
+	 *    from its leaves with an adjusted hop, we only do that check
+	 *    for leaf nodes.
 	 *
 	 * 2. We keep track of all queries relayed by the node (hops >= 1)
 	 *    by hops and by search text for a limited period of time.

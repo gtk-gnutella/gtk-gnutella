@@ -967,6 +967,8 @@ gboolean gnet_property_variable_pfsp_rare_server     = TRUE;
 static const gboolean gnet_property_variable_pfsp_rare_server_default = TRUE;
 gboolean gnet_property_variable_enable_guess_client     = TRUE;
 static const gboolean gnet_property_variable_enable_guess_client_default = TRUE;
+guint32  gnet_property_variable_bw_guess_out     = 1536;
+static const guint32  gnet_property_variable_bw_guess_out_default = 1536;
 
 static prop_set_t *gnet_property;
 
@@ -8854,6 +8856,26 @@ gnet_prop_init(void) {
     gnet_property->props[412].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[412].data.boolean.def   = (void *) &gnet_property_variable_enable_guess_client_default;
     gnet_property->props[412].data.boolean.value = (void *) &gnet_property_variable_enable_guess_client;
+
+
+    /*
+     * PROP_BW_GUESS_OUT:
+     *
+     * General data:
+     */
+    gnet_property->props[413].name = "guess_output_bandwidth";
+    gnet_property->props[413].desc = _("Bandwidth hint for GUESS querying, in bytes/sec, limiting the amount of concurrency that can be used for GUESS.  Lower numbers mean slower querying overall");
+    gnet_property->props[413].ev_changed = event_new("bw_guess_out_changed");
+    gnet_property->props[413].save = TRUE;
+    gnet_property->props[413].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[413].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[413].data.guint32.def   = (void *) &gnet_property_variable_bw_guess_out_default;
+    gnet_property->props[413].data.guint32.value = (void *) &gnet_property_variable_bw_guess_out;
+    gnet_property->props[413].data.guint32.choices = NULL;
+    gnet_property->props[413].data.guint32.max   = BS_BW_MAX;
+    gnet_property->props[413].data.guint32.min   = 256;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

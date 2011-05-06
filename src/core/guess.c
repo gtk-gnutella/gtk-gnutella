@@ -117,7 +117,7 @@ RCSID("$Id$")
 
 #define GUESS_QK_DB_CACHE_SIZE	1024	/**< Cached amount of query keys */
 #define GUESS_QK_MAP_CACHE_SIZE	64		/**< # of SDBM pages to cache */
-#define GUESS_QK_LIFE			7200	/**< Cached token lifetime (secs) */
+#define GUESS_QK_LIFE			86400	/**< Cached token lifetime (secs) */
 #define GUESS_QK_PRUNE_PERIOD	(GUESS_QK_LIFE / 3 * 1000)	/**< in ms */
 #define GUESS_QK_FREQ			60		/**< At most 1 key request / min */
 #define GUESS_ALIEN_FREQ		300		/**< Time we cache non-GUESS hosts */
@@ -127,7 +127,6 @@ RCSID("$Id$")
 #define GUESS_CHECK_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
 #define GUESS_ALIVE_PERIOD		(10 * 60)		/**< 10 minutes, in s */
 #define GUESS_SYNC_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
-#define GUESS_MAX_LIFETIME		(2 * 60 * 60)	/**< 2 hours, in s */
 #define GUESS_MAX_ULTRAPEERS	50000	/**< Query stops after that many acks */
 #define GUESS_RPC_LIFETIME		15000	/**< 15 seconds, in ms */
 #define GUESS_FIND_DELAY		5000	/**< in ms, UDP queue flush grace */
@@ -163,6 +162,7 @@ struct guess {
 	map_t *queried;				/**< Ultrapeers already queried */
 	hash_list_t *pool;			/**< Pool of ultrapeers to query */
 	wq_event_t *hostwait;		/**< Waiting on more hosts event */
+	wq_event_t *bwait;			/**< Waiting on more bandwidth */
 	cevent_t *delay_ev;			/**< Asynchronous startup delay */
 	guess_query_cb_t cb;		/**< Callback when query ends */
 	void *arg;					/**< User-supplied callback argument */
@@ -328,9 +328,11 @@ static hash_list_t *link_cache;			/**< GUESS "link cache" */
 static cperiodic_t *guess_qk_prune_ev;	/**< Query keys pruning event */
 static cperiodic_t *guess_check_ev;		/**< Link cache monitoring */
 static cperiodic_t *guess_sync_ev;		/**< Periodic DBMW syncs */
+static cperiodic_t *guess_bw_ev;		/**< Periodic b/w checking */
 static wq_event_t *guess_new_host_ev;	/**< Waiting for a new host */
 static aging_table_t *guess_qk_reqs;	/**< Recent query key requests */
 static aging_table_t *guess_alien;		/**< Recently seen non-GUESS hosts */
+static guint32 guess_out_bw;			/**< Outgoing b/w used per period */
 
 static void guess_discovery_enable(void);
 static void guess_iterate(guess_t *gq);
@@ -357,7 +359,7 @@ get_qkdata(const gnet_host_t *host)
 {
 	struct qkdata *qk;
 
-	if (G_UNLIKELY(NULL == db_qkdata))
+	if G_UNLIKELY(NULL == db_qkdata)
 		return NULL;
 
 	qk = dbmw_read(db_qkdata, host, NULL);
@@ -530,7 +532,7 @@ guess_is_alive(struct nid gid)
 {
 	guess_t *gq;
 
-	if (G_UNLIKELY(NULL == gqueries))
+	if G_UNLIKELY(NULL == gqueries)
 		return NULL;
 
 	gq = g_hash_table_lookup(gqueries, &gid);
@@ -975,7 +977,7 @@ guess_remove_link_cache(const gnet_host_t *h)
 	gnet_host_t *atom;
 	struct qkdata *qk;
 
-	if (G_UNLIKELY(NULL == db_qkdata))
+	if G_UNLIKELY(NULL == db_qkdata)
 		return;		/* GUESS layer shut down */
 
 	/*
@@ -1222,9 +1224,11 @@ guess_qk_reply(enum udp_ping_ret type,
 			g_info("GUESS ping timeout for %s", gnet_host_to_string(h));
 		}
 
-		guess_remove_link_cache(h);
-		guess_timeout_from(h);
-		aging_remove(guess_qk_reqs, h);
+		if G_LIKELY(guess_qk_reqs != NULL) {
+			guess_remove_link_cache(h);
+			guess_timeout_from(h);
+			aging_remove(guess_qk_reqs, h);
+		}
 
 		/* FALL THROUGH */
 
@@ -1241,7 +1245,7 @@ guess_qk_reply(enum udp_ping_ret type,
 		break;
 
 	case UDP_PING_REPLY:
-		if (G_UNLIKELY(NULL == link_cache))
+		if G_UNLIKELY(NULL == link_cache)
 			break;
 
 		guess_traffic_from(h);
@@ -1326,6 +1330,7 @@ guess_request_qk_full(guess_t *gq, const gnet_host_t *host, gboolean intro,
 		if (gq != NULL) {
 			guess_check(gq);
 			gq->bw_out_qk += size;	/* Estimated, UDP queue could drop it! */
+			guess_out_bw += size;
 		}
 	}
 
@@ -1493,7 +1498,7 @@ guess_hosts_reply(enum udp_ping_ret type,
 		break;
 
 	case UDP_PING_REPLY:
-		if (G_UNLIKELY(NULL == link_cache))
+		if G_UNLIKELY(NULL == link_cache)
 			break;
 
 		guess_traffic_from(h);
@@ -1825,12 +1830,42 @@ guess_periodic_sync(void *unused_obj)
 }
 
 /**
+ * Callout queue periodic event to reset bandwidth usage.
+ */
+static gboolean
+guess_periodic_bw(void *unused_obj)
+{
+	(void) unused_obj;
+
+	if (guess_out_bw != 0) {
+		if (GNET_PROPERTY(guess_client_debug) > 2) {
+			g_debug("GUESS outgoing b/w used: %u bytes", guess_out_bw);
+		}
+		if (guess_out_bw <= GNET_PROPERTY(bw_guess_out)) {
+			guess_out_bw = 0;
+		} else {
+			guess_out_bw -= GNET_PROPERTY(bw_guess_out);
+		}
+
+		/*
+		 * Wakeup queries waiting for b/w in the order they went to sleep,
+		 * provided we have bandwidth to serve.
+		 */
+
+		if (guess_out_bw < GNET_PROPERTY(bw_guess_out))
+			wq_wakeup(&guess_out_bw, NULL);
+	}
+
+	return TRUE;				/* Keep calling */
+}
+
+/**
  * Is a search MUID that of a running GUESS query?
  */
 gboolean
 guess_is_search_muid(const guid_t *muid)
 {
-	if (G_UNLIKELY(NULL == gmuid))
+	if G_UNLIKELY(NULL == gmuid)
 		return FALSE;
 
 	return gm_hash_table_contains(gmuid, muid);
@@ -1903,11 +1938,6 @@ guess_should_terminate(guess_t *gq)
 	}
 
 	tm_now(&now);
-
-	if (tm_elapsed_ms(&now, &gq->start) >= 1000 * GUESS_MAX_LIFETIME) {
-		reason = "max lifetime reached";
-		goto terminate;
-	}
 
 	if (gq->query_acks >= GUESS_MAX_ULTRAPEERS) {
 		reason = "max amount of successfully queried ultrapeers reached";
@@ -2439,7 +2469,7 @@ guess_got_query_key(enum udp_ping_ret type,
 		wfree(ctx, sizeof *ctx);
 		goto no_query_key;
 	case UDP_PING_REPLY:
-		if (G_UNLIKELY(NULL == link_cache))
+		if G_UNLIKELY(NULL == link_cache)
 			break;
 		guess_traffic_from(host);
 		if (guess_extract_qk(n, host)) {
@@ -2751,6 +2781,15 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 			gnet_host_get_addr(host), gnet_host_get_port(host));
 
 	if (n != NULL) {
+		/*
+		 * Limiting bandwidth is accounted for at enqueue time, not at
+		 * sending time.  Indeed, we're trying the limit the flow generated
+		 * over time.  If we counted at emission time, we could have bursts
+		 * due to queueing and clogging, but we would resume at the next
+		 * period anyway, thereby not having any smoothing effect.
+		 */
+
+		guess_out_bw += pmsg_written_size(mb);
 		gmsg_mb_sendto_one(n, mb);
 		if (GNET_PROPERTY(guess_client_debug) > 5) {
 			g_debug("GUESS QUERY[%s] enqueued query to %s",
@@ -2796,6 +2835,31 @@ unqueried:
 }
 
 /**
+ * Wakeup callback when bandwidth is available to iterate a query.
+ */
+static wq_status_t
+guess_bandwidth_available(void *data, void *unused)
+{
+	guess_t *gq = data;
+
+	guess_check(gq);
+
+	(void) unused;
+
+	if (guess_out_bw >= GNET_PROPERTY(bw_guess_out)) {
+		if (GNET_PROPERTY(guess_client_debug) > 4) {
+			g_debug("GUESS QUERY[%s] not scheduling, waiting for bandwidth",
+				nid_to_string(&gq->gid));
+		}
+		return WQ_SLEEP;
+	}
+
+	gq->bwait = NULL;
+	guess_iterate(gq);
+	return WQ_REMOVE;
+}
+
+/**
  * Iterate the querying.
  */
 static void
@@ -2830,6 +2894,18 @@ guess_iterate(guess_t *gq)
 	}
 
 	/*
+	 * If waiting for bandwidth, we want an explicit wakeup.
+	 */
+
+	if (gq->bwait != NULL) {
+		if (GNET_PROPERTY(guess_client_debug) > 2) {
+			g_debug("GUESS QUERY[%s] not iterating yet (bandwidth)",
+				nid_to_string(&gq->gid));
+		}
+		return;
+	}
+
+	/*
 	 * Enforce bounded parallelism.
 	 */
 
@@ -2851,10 +2927,12 @@ guess_iterate(guess_t *gq)
 	if (GNET_PROPERTY(guess_client_debug) > 2) {
 		tm_t now;
 		tm_now_exact(&now);
-		g_debug("GUESS QUERY[%s] iterating, %f secs, hop %u "
+		g_debug("GUESS QUERY[%s] iterating, %f secs, hop %u, "
+		"[acks/pool: %lu/%u] "
 		"(%s parallelism: sending %d RPC%s at most, %d outstanding)",
 			nid_to_string(&gq->gid), tm_elapsed_f(&now, &gq->start),
-			gq->hops, guess_mode_to_string(gq->mode),
+			gq->hops, (unsigned long) gq->query_acks,
+			hash_list_length(gq->pool), guess_mode_to_string(gq->mode),
 			alpha, 1 == alpha ? "" : "s", gq->rpc_pending);
 	}
 
@@ -2872,6 +2950,17 @@ guess_iterate(guess_t *gq)
 
 		if (attempts++ > hash_list_length(gq->pool))
 			break;
+
+		/*
+		 * If we run out of bandwidth, abort.
+		 */
+
+		if (guess_out_bw >= GNET_PROPERTY(bw_guess_out))
+			break;
+
+		/*
+		 * Send query to next host in the pool.
+		 */
 
 		host = guess_pick_next(gq);
 		if (NULL == host)
@@ -2906,23 +2995,40 @@ guess_iterate(guess_t *gq)
 		}
 		guess_delay(gq);
 	} else if (0 == i) {
-		/*
-		 * If we could not send the UDP message due to synchronous dropping,
-		 * wait a little before iterating again so that the UDP queue can flush
-		 * before we enqueue more messages.
-		 */
+		if (guess_out_bw >= GNET_PROPERTY(bw_guess_out)) {
+			/*
+			 * If we did not have enough bandwidth, wait until next slot.
+			 * Waiting happens in FIFO order.
+			 */
 
-		if (gq->flags & GQ_F_UDP_DROP) {
+			if (GNET_PROPERTY(guess_client_debug) > 1) {
+				g_debug("GUESS QUERY[%s] waiting for bandwidth",
+					nid_to_string(&gq->gid));
+			}
+			g_assert(NULL == gq->bwait);
+			gq->bwait = wq_sleep(&guess_out_bw, guess_bandwidth_available, gq);
+
+		} else if (gq->flags & GQ_F_UDP_DROP) {
+			/*
+			 * If we could not send the UDP message due to synchronous dropping,
+			 * wait a little before iterating again so that the UDP queue can
+			 * flush before we enqueue more messages.
+			 */
+
 			if (GNET_PROPERTY(guess_client_debug) > 1) {
 				g_debug("GUESS QUERY[%s] giving UDP a chance to flush",
 					nid_to_string(&gq->gid));
 			}
 			guess_delay(gq);
+
 		} else {
 			gboolean starving;
 
 			/*
 			 * Query is starving when its pool is empty.
+			 *
+			 * When GQ_F_END_STARVING is set, they want us to end the query
+			 * as soon as we are starving.
 			 */
 
 			starving = 0 == hash_list_length(gq->pool);
@@ -2964,6 +3070,7 @@ guess_end_when_starving(guess_t *gq)
 	}
 
 	gq->flags |= GQ_F_END_STARVING;
+	guess_load_more_hosts(gq);		/* Fuel for not starving too early */
 }
 
 /**
@@ -3067,6 +3174,7 @@ guess_free(guess_t *gq)
 	atom_str_free_null(&gq->query);
 	atom_guid_free_null(&gq->muid);
 	wq_cancel(&gq->hostwait);
+	wq_cancel(&gq->bwait);
 	cq_cancel(&gq->delay_ev);
 
 	if (!(gq->flags & GQ_F_DONT_REMOVE))
@@ -3159,6 +3267,33 @@ guess_fill_caught_array(gnet_host_t *hosts, int hcount)
 }
 
 /**
+ * Got a GUESS intrduction ping from node.
+ *
+ * @param n		the node which sent the ping
+ * @parma buf	start of the "GUE" payload
+ * @param len	length of the "GUE" payload
+ */
+void
+guess_introduction_ping(const struct gnutella_node *n,
+	const char *buf, guint16 len)
+{
+	guint16 port;
+
+	/*
+	 * GUESS 0.2 defines the "GUE" payload for introduction as:
+	 *
+	 * - the first byte is the GUESS version, as usual
+	 * - the next two bytes are the listening port, in little-endian.
+	 */
+
+	if (len < 3)
+		return;
+
+	port = peek_le16(&buf[1]);
+	hcache_add_valid(HOST_GUESS, n->addr, port, "introduction ping");
+}
+
+/**
  * Initialize the GUESS client layer.
  */
 void
@@ -3195,6 +3330,7 @@ guess_init(void)
 		GUESS_CHECK_PERIOD, guess_periodic_check, NULL);
 	guess_sync_ev = cq_periodic_main_add(
 		GUESS_SYNC_PERIOD, guess_periodic_sync, NULL);
+	guess_bw_ev = cq_periodic_main_add(1000, guess_periodic_bw, NULL);
 
 	gqueries = g_hash_table_new(nid_hash, nid_equal);
 	gmuid = g_hash_table_new(guid_hash, guid_eq);
@@ -3251,6 +3387,7 @@ guess_close(void)
 	cq_periodic_remove(&guess_qk_prune_ev);
 	cq_periodic_remove(&guess_check_ev);
 	cq_periodic_remove(&guess_sync_ev);
+	cq_periodic_remove(&guess_bw_ev);
 	wq_cancel(&guess_new_host_ev);
 
 	g_hash_table_foreach(gqueries, guess_free_query, NULL);

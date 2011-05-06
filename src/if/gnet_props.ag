@@ -4834,4 +4834,18 @@ prop = {
 	};
 };
 
+prop = {
+    name = "bw_guess_out";
+    cfgvar = "guess_output_bandwidth";
+    desc = "Bandwidth hint for GUESS querying, in bytes/sec, limiting the "
+		"amount of concurrency that can be used for GUESS.  Lower numbers "
+		"mean slower querying overall";
+    type = guint32;
+    data = {
+        default = 1536;
+        min     = 256;
+        max     = BS_BW_MAX;
+    };
+};
+
 /* vi: set ts=4: */

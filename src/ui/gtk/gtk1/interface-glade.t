@@ -630,3 +630,5 @@ N_("Pipelining max chunk size");
 N_("Enable upload of patial files deemed rare");
 N_("Enable GUESS (additional querying)");
 N_("Issue GUESS queries as well");
+N_("Bandwidth limits for GUESS queries");
+N_("Output bandwidth hint");

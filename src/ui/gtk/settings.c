@@ -2752,7 +2752,8 @@ spinbutton_adjustment_value_changed(GtkAdjustment *adj, gpointer user_data)
             (map_entry->prop == PROP_BW_GNET_OUT) ||
 			(map_entry->prop == PROP_BW_DHT_OUT) ||
 			(map_entry->prop == PROP_BW_DHT_LOOKUP_IN) ||
-			(map_entry->prop == PROP_BW_DHT_LOOKUP_OUT)
+			(map_entry->prop == PROP_BW_DHT_LOOKUP_OUT) ||
+			(map_entry->prop == PROP_BW_GUESS_OUT)
         ) {
             val = adj->value * 1024.0;
         }
@@ -2877,7 +2878,8 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                         (map->prop == PROP_BW_GNET_OUT) ||
                         (map->prop == PROP_BW_DHT_OUT) ||
                         (map->prop == PROP_BW_DHT_LOOKUP_IN) ||
-                        (map->prop == PROP_BW_DHT_LOOKUP_OUT)
+                        (map->prop == PROP_BW_DHT_LOOKUP_OUT) ||
+                        (map->prop == PROP_BW_GUESS_OUT)
                     )
                 ) {
                     divider = 1024.0;
@@ -5630,6 +5632,14 @@ static prop_map_t property_map[] = {
         update_bandwidth_spinbutton,
         TRUE,
         "spinbutton_config_output_dht_lookup_bw",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_BW_GUESS_OUT,
+        update_bandwidth_spinbutton,
+        TRUE,
+        "spinbutton_config_bw_guess_out",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

@@ -10417,6 +10417,12 @@ create_dlg_prefs (void)
   GtkWidget *hseparator8;
   guint checkbutton_compute_connection_speed_key;
   GtkWidget *checkbutton_compute_connection_speed;
+  GtkWidget *frame155;
+  GtkWidget *table103;
+  GtkWidget *label8028;
+  GtkWidget *label8029;
+  GtkObject *spinbutton_config_bw_guess_out_adj;
+  GtkWidget *spinbutton_config_bw_guess_out;
   GtkWidget *label684;
   GtkWidget *scrolledwindow34;
   GtkWidget *viewport6;
@@ -13924,7 +13930,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame154);
   gtk_box_pack_start (GTK_BOX (vbox146), frame154, TRUE, TRUE, 0);
 
-  table101 = gtk_table_new (2, 4, FALSE);
+  table101 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table101, "table101");
   gtk_widget_ref (table101);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table101", table101,
@@ -13992,6 +13998,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label8016), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label8016), 4, 0);
 
   label8017 = gtk_label_new (_("Output bandwidth average"));
   gtk_widget_set_name (label8017, "label8017");
@@ -14003,6 +14010,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label8017), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label8017), 4, 0);
 
   frame12 = gtk_frame_new (_("Bandwidth limits for HTTP traffic"));
   gtk_widget_set_name (frame12, "frame12");
@@ -14198,6 +14206,60 @@ create_dlg_prefs (void)
   gtk_table_attach (GTK_TABLE (table4), checkbutton_compute_connection_speed, 0, 3, 5, 6,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  frame155 = gtk_frame_new (_("Bandwidth limits for GUESS queries"));
+  gtk_widget_set_name (frame155, "frame155");
+  gtk_widget_ref (frame155);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame155", frame155,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame155);
+  gtk_box_pack_start (GTK_BOX (vbox29), frame155, TRUE, TRUE, 0);
+
+  table103 = gtk_table_new (1, 3, FALSE);
+  gtk_widget_set_name (table103, "table103");
+  gtk_widget_ref (table103);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table103", table103,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table103);
+  gtk_container_add (GTK_CONTAINER (frame155), table103);
+  gtk_table_set_row_spacings (GTK_TABLE (table103), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table103), 4);
+
+  label8028 = gtk_label_new (_("Output bandwidth hint"));
+  gtk_widget_set_name (label8028, "label8028");
+  gtk_widget_ref (label8028);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8028", label8028,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8028);
+  gtk_table_attach (GTK_TABLE (table103), label8028, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8028), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label8028), 4, 0);
+
+  label8029 = gtk_label_new (_("KiB/s"));
+  gtk_widget_set_name (label8029, "label8029");
+  gtk_widget_ref (label8029);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8029", label8029,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8029);
+  gtk_table_attach (GTK_TABLE (table103), label8029, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8029), 0, 0.5);
+
+  spinbutton_config_bw_guess_out_adj = gtk_adjustment_new (1, 1, 2000, 1, 5, 16);
+  spinbutton_config_bw_guess_out = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bw_guess_out_adj), 1, 2);
+  gtk_widget_set_name (spinbutton_config_bw_guess_out, "spinbutton_config_bw_guess_out");
+  gtk_widget_ref (spinbutton_config_bw_guess_out);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_bw_guess_out", spinbutton_config_bw_guess_out,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_bw_guess_out);
+  gtk_table_attach (GTK_TABLE (table103), spinbutton_config_bw_guess_out, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_config_bw_guess_out, 64, -2);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bw_guess_out), TRUE);
 
   label684 = gtk_label_new (_("Bandwidth"));
   gtk_widget_set_name (label684, "label684");

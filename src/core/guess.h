@@ -68,6 +68,8 @@ void guess_end_when_starving(guess_t *gq);
 gboolean guess_is_search_muid(const guid_t *muid);
 void guess_got_results(const guid_t *muid, guint32 hits);
 gboolean guess_rpc_handle(struct gnutella_node *n);
+void guess_introduction_ping(const struct gnutella_node *n,
+	const char *buf, guint16 len);
 
 int guess_fill_caught_array(gnet_host_t *hosts, int hcount);
 

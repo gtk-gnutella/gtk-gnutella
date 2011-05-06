@@ -8981,6 +8981,8 @@ node_close(void)
 			udp_node, udp6_node, dht_node, dht6_node, browse_node, udp_route };
 		guint i;
 
+		udp_route->outq = NULL;		/* Using that of udp_node or udp6_node */
+
 		for (i = 0; i < G_N_ELEMENTS(special_nodes); i++) {
 			gnutella_node_t *n;
 
