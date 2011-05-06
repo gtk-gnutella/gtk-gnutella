@@ -475,25 +475,32 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 	 * This enables us to track how much results we already queued/sent.
 	 */
 
-	mb = gmsg_split_to_pmsg_extend(&src->header, src->data,
-			src->size + GTA_HEADER_SIZE, dh_pmsg_free, pmi);
-
-	/*
-	 * With GUESS we may route back a query hit to an UDP node.
-	 */
-
 	if (NODE_IS_UDP(dest)) {
 		gnet_host_t to;
+		pmsg_t *mbe;
+
 		gnet_host_set(&to, dest->addr, dest->port);
 
+		/*
+		 * With GUESS we may route back a query hit to an UDP node.
+		 */
+
 		if (GNET_PROPERTY(guess_server_debug) > 19) {
-			g_debug("GUESS sending %d hit%s for %s to %s",
-				count, 1 == count ? "" : "s", guid_hex_str(muid),
-				node_infostr(dest));
+			g_debug("GUESS sending %d hit%s (%s) for %s to %s",
+				count, 1 == count ? "" : "s",
+				NODE_CAN_INFLATE(dest) ? "possibly deflated" : "uncompressed",
+				guid_hex_str(muid), node_infostr(dest));
 		}
 
-		mq_udp_putq(mq, mb, &to);
+		mb = gmsg_split_to_deflated_pmsg(&src->header, src->data,
+				src->size + GTA_HEADER_SIZE);
+		mbe = pmsg_clone_extend(mb, dh_pmsg_free, pmi);
+		pmsg_free(mb);
+
+		mq_udp_putq(mq, mbe, &to);
 	} else {
+		mb = gmsg_split_to_pmsg_extend(&src->header, src->data,
+				src->size + GTA_HEADER_SIZE, dh_pmsg_free, pmi);
 		mq_tcp_putq(mq, mb, src);
 
 		if (GNET_PROPERTY(dh_debug) > 19) {

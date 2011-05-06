@@ -2736,6 +2736,9 @@ build_search_message(const guid_t *muid, const char *query, guint32 *size,
 	 * For proper GUESS 0.2 support, we include both the "QK" extension as
 	 * well as the "SCP" one to make sure we get back more GUESS hosts in
 	 * a packed "IPP" extension.
+	 *
+	 * The "Z" extension tells them we support deflated UDP replies in case
+	 * query hits have to be routed back to us.
 	 */
 
 	if (query_key != NULL) {
@@ -2743,6 +2746,7 @@ build_search_message(const guid_t *muid, const char *query, guint32 *size,
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(QK), query_key, length, 0);
 		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(SCP), NULL, 0, 0);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(Z), NULL, 0, 0);
 
 		if (!ok) {
 			g_carp("could not add GGEP \"QK\" to GUESS query");
@@ -5564,6 +5568,11 @@ search_request_preprocess(struct gnutella_node *n)
 				last_sha1_digest = sha1;
 				break;
 
+			case EXT_T_GGEP_Z:			/* Compressed UDP supported */
+				if (NODE_IS_UDP(n))
+					n->attrs |= NODE_A_CAN_INFLATE;
+				break;
+
 			case EXT_T_UNKNOWN_GGEP:
 				search_log_ggep(n, e, NULL, "unknown");
 				break;
@@ -6708,6 +6717,7 @@ search_compact(struct gnutella_node *n)
 				break;
 			case EXT_T_GGEP_QK:
 			case EXT_T_GGEP_SCP:
+			case EXT_T_GGEP_Z:
 				if (n->msg_flags & NODE_M_STRIP_GUESS)
 					continue;
 				break;

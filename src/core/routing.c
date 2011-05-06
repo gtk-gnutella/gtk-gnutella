@@ -79,6 +79,7 @@ struct routing_udp_node {
 	node_magic_t magic;			/**< Magic number, MUST be the first field */
 	host_addr_t addr;			/**< Remote node UDP address */
 	guint16 port;				/**< Remote node UDP port */
+	guint8 can_deflate;			/**< Whether servent supports UDP compression */
 	struct route_data *routing_data;
 };
 
@@ -283,7 +284,8 @@ route_node_get_gnutella(void *node)
 	case NODE_UDP_MAGIC:
 		{
 			struct routing_udp_node *un = node;
-			return node_udp_route_get_addr_port(un->addr, un->port);
+			return node_udp_route_get_addr_port(un->addr, un->port,
+				un->can_deflate);
 		}
 	}
 	g_assert_not_reached();
@@ -304,6 +306,7 @@ route_allocate_udp(const struct gnutella_node *n)
 	un->magic = NODE_UDP_MAGIC;
 	un->addr = n->addr;
 	un->port = n->port;
+	un->can_deflate = NODE_CAN_INFLATE(n);	/* It can inflate, we can deflate */
 
 	return un;
 }
@@ -389,13 +392,15 @@ route_get_udp(const struct gnutella_node *n)
 
 	if (un != NULL) {
 		if (GNET_PROPERTY(guess_server_debug) > 4) {
-			g_debug("GUESS reusing known UDP node route %s:%u",
-				host_addr_to_string(n->addr), n->port);
+			g_debug("GUESS reusing known UDP node route %s:%u (%s)",
+				host_addr_to_string(n->addr), n->port,
+				un->can_deflate ? "deflatable" : "regular");
 		}
 	} else {
 		if (GNET_PROPERTY(guess_server_debug) > 4) {
-			g_debug("GUESS creating new UDP node route %s:%u",
-				host_addr_to_string(n->addr), n->port);
+			g_debug("GUESS creating new UDP node route %s:%u (%s)",
+				host_addr_to_string(n->addr), n->port,
+				NODE_CAN_INFLATE(n) ? "deflatable" : "regular");
 		}
 		un = route_allocate_udp(n);
 		aging_insert(at_udp_routes, un, un);

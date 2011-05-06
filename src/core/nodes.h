@@ -625,7 +625,7 @@ void node_udp_process(gnutella_node_t *n, struct gnutella_socket *s);
 gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, guint16 port);
 gnutella_node_t *node_dht_get_addr_port(const host_addr_t addr, guint16 port);
 gnutella_node_t * node_udp_route_get_addr_port(
-	const host_addr_t addr, guint16 port);
+	const host_addr_t addr, guint16 port, gboolean can_deflate);
 
 void node_can_tsync(gnutella_node_t *n);
 void node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features);

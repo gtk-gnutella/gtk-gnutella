@@ -248,20 +248,27 @@ gmsg_to_pmsg(gconstpointer msg, guint32 size)
 }
 
 /**
- * Construct compressed control PDU descriptor from message, for UDP traffic.
+ * Construct compressed regular PDU descriptor from message, for UDP traffic.
  * The message payload is deflated only when the resulting size is smaller
  * than the raw uncompressed form.
  *
  * Message data is copied into the new data buffer, so caller may release
  * its memory.
+ *
+ * @param head		pointer to the Gnutella header
+ * @param data		pointer to the Gnutella payload
+ * @param size		the total size of the message, header + payload
+ *
+ * @return new message, with possibly deflated payload content.
+ * The caller can tell because deflated payloads are signaled with the
+ * TTL having the GTA_UDP_DEFLATED bit set.
  */
 pmsg_t *
-gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
+gmsg_split_to_deflated_pmsg(const void *head, const void *data, guint32 size)
 {
 	guint32 plen = size - GTA_HEADER_SIZE;		/* Raw payload length */
 	guint32 blen = plen + (plen >> 4) + 12;		/* 1.0625 times orginal */
 	gpointer buf;								/* Compression made there */
-	gconstpointer data;							/* Raw data start */
 	guint32 deflated_length;					/* Length of deflated data */
 	zlib_deflater_t *z;
 	pmsg_t *mb;
@@ -273,14 +280,13 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 	 */
 
 	if (plen <= 5)
-		return gmsg_to_pmsg(msg, size);
+		return gmsg_split_to_pmsg(head, data, size);
 
 	/*
 	 * Compress payload into newly allocated buffer.
 	 */
 
 	buf = walloc(blen);
-	data = (const char *) msg + GTA_HEADER_SIZE;
 	z = zlib_deflater_make_into(data, plen, buf, blen, Z_DEFAULT_COMPRESSION);
 
 	switch (zlib_deflate(z, plen)) {
@@ -308,7 +314,7 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 	if (deflated_length >= plen) {
 		if (GNET_PROPERTY(udp_debug))
 			g_debug("UDP not deflating %s into %d bytes",
-				gmsg_infostr_full(msg, size), deflated_length);
+				gmsg_infostr_full_split(head, data, size), deflated_length);
 
 		gnet_stats_count_general(GNR_UDP_LARGER_HENCE_NOT_COMPRESSED, 1);
 		goto send_raw;
@@ -318,14 +324,14 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 	 * OK, we gain something so we'll send this payload deflated.
 	 */
 
-	mb = gmsg_split_to_pmsg(msg, buf, deflated_length + GTA_HEADER_SIZE);
+	mb = gmsg_split_to_pmsg(head, buf, deflated_length + GTA_HEADER_SIZE);
 
 	wfree(buf, blen);
 	zlib_deflater_free(z, FALSE);
 
 	if (GNET_PROPERTY(udp_debug))
 		g_debug("UDP deflated %s into %d bytes",
-			gmsg_infostr_full(msg, size), deflated_length);
+			gmsg_infostr_full_split(head, data, size), deflated_length);
 
 	{
 		gpointer header;
@@ -346,7 +352,30 @@ send_raw:
 	wfree(buf, blen);
 	zlib_deflater_free(z, FALSE);
 
-	return gmsg_to_pmsg(msg, size);
+	return gmsg_split_to_pmsg(head, data, size);
+}
+
+/**
+ * Construct compressed regular PDU descriptor from message, for UDP traffic.
+ * The message payload is deflated only when the resulting size is smaller
+ * than the raw uncompressed form.
+ *
+ * Message data is copied into the new data buffer, so caller may release
+ * its memory.
+ *
+ * @param msg		pointer to the Gnutella message (payload follows header)
+ * @param size		the total size of the message, header + payload
+ *
+ * @return new message, with possibly deflated payload content.
+ * The caller can tell because deflated payloads are signaled with the
+ * TTL having the GTA_UDP_DEFLATED bit set.
+ */
+pmsg_t *
+gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
+{
+	const char *data = const_ptr_add_offset(msg, GTA_HEADER_SIZE);
+
+	return gmsg_split_to_deflated_pmsg(msg, data, size);
 }
 
 /**
@@ -519,15 +548,22 @@ gmsg_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
 	 */
 
 	if (NODE_IS_UDP(n)) {
+		pmsg_t *mb;
 		gnet_host_t to;
+
 		gnet_host_set(&to, n->addr, n->port);
 
 		if (GNET_PROPERTY(guess_server_debug) > 19) {
-			g_debug("GUESS sending local hit for %s to %s",
+			g_debug("GUESS sending local hit (%s) for %s to %s",
+				NODE_CAN_INFLATE(n) ? "possibly deflated" : "uncompressed",
 				guid_hex_str(gnutella_header_get_muid(msg)), node_infostr(n));
 		}
 
-		mq_udp_putq(n->outq, gmsg_to_pmsg(msg, size), &to);
+		mb = NODE_CAN_INFLATE(n) ?
+			gmsg_to_deflated_pmsg(msg, size) :
+			gmsg_to_pmsg(msg, size);
+
+		mq_udp_putq(n->outq, mb, &to);
 	} else {
 		mq_tcp_putq(n->outq, gmsg_to_pmsg(msg, size), NULL);
 	}

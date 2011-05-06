@@ -6602,7 +6602,8 @@ node_dht_get_addr_port(const host_addr_t addr, guint16 port)
  * Get "fake" node for UDP routing.
  */
 gnutella_node_t *
-node_udp_route_get_addr_port(const host_addr_t addr, guint16 port)
+node_udp_route_get_addr_port(const host_addr_t addr, guint16 port,
+	gboolean can_deflate)
 {
 	gnutella_node_t *n;
 
@@ -6629,6 +6630,9 @@ node_udp_route_get_addr_port(const host_addr_t addr, guint16 port)
 		 */
 
 		udp_route->outq = n->outq;
+		udp_route->attrs = NODE_A_UDP;
+		if (can_deflate)
+			udp_route->attrs |= NODE_A_CAN_INFLATE;
 		return node_pseudo_set_addr_port(udp_route, addr, port);
 	}
 	return NULL;
