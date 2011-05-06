@@ -6,8 +6,10 @@ Gnutella Developer Forum                                      S. Daswani
                                                             LimeWire LLC
                                                              August 2002
 
+                                                             R. Manfredi
+                                                                May 2011
 
-       Gnutella UDP Extension for Scalable Searches (GUESS) v0.1
+       Gnutella UDP Extension for Scalable Searches (GUESS) v0.2
 
 
 Abstract
@@ -55,7 +57,7 @@ Abstract
 
 Daswani & Fisk                                                  [Page 1]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
 Table of Contents
@@ -94,9 +96,9 @@ Table of Contents
    9.3   Stopping Queries Has Meaning . . . . . . . . . . . . . . . . 14
          References . . . . . . . . . . . . . . . . . . . . . . . . . 14
          Authors' Addresses . . . . . . . . . . . . . . . . . . . . . 16
+   10    Further Additions  . . . . . . . . . . . . . . . . . . . . . 16
+   11    Deflated UDP Considerations  . . . . . . . . . . . . . . . . 16
    A.    Acknowledgements . . . . . . . . . . . . . . . . . . . . . . 16
-
-
 
 
 
@@ -111,7 +113,7 @@ Table of Contents
 
 Daswani & Fisk                                                  [Page 2]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
 1. Introduction
@@ -165,7 +167,7 @@ The GDF                          GUESS                       August 2002
 
 Daswani & Fisk                                                  [Page 3]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
 1.3.1 Unconstrained Queries
@@ -221,7 +223,7 @@ The GDF                          GUESS                       August 2002
 
 Daswani & Fisk                                                  [Page 4]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
    outgoing queries and by sending queries to one Ultrapeer at a time
@@ -277,7 +279,7 @@ The GDF                          GUESS                       August 2002
 
 Daswani & Fisk                                                  [Page 5]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
    perhaps about 200 milliseconds.  This pause accounts for network
@@ -333,7 +335,7 @@ The GDF                          GUESS                       August 2002
 
 Daswani & Fisk                                                  [Page 6]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
        clients MUST pause for at least 200 milliseconds between queries.
@@ -389,7 +391,7 @@ The GDF                          GUESS                       August 2002
 
 Daswani & Fisk                                                  [Page 7]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
    the server MUST respond with a pong, as discussed in the following
@@ -445,7 +447,7 @@ The GDF                          GUESS                       August 2002
 
 Daswani & Fisk                                                  [Page 8]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
    implement the client side, they are REQUIRED to implement the server
@@ -511,7 +513,7 @@ The GDF                          GUESS                       August 2002
 
 Daswani & Fisk                                                  [Page 9]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
    information.
@@ -567,7 +569,7 @@ The GDF                          GUESS                       August 2002
 
 Daswani & Fisk                                                 [Page 10]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
 4.1 Open a UDP Port
@@ -623,7 +625,7 @@ The GDF                          GUESS                       August 2002
 
 Daswani & Fisk                                                 [Page 11]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
    cases, with a hard upper limit of 1,400 bytes.
@@ -679,7 +681,7 @@ The GDF                          GUESS                       August 2002
 
 Daswani & Fisk                                                 [Page 12]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
 6. Design Considerations
@@ -764,7 +766,7 @@ The GDF                          GUESS                       August 2002
 
 Daswani & Fisk                                                 [Page 13]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
 9. Additional Features
@@ -900,7 +902,7 @@ References
 
 Daswani & Fisk                                                 [Page 14]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
          Ultrapeers_proper_format.html>.
@@ -958,7 +960,7 @@ The GDF                          GUESS                       August 2002
 
 Daswani & Fisk                                                 [Page 15]
 
-The GDF                          GUESS                       August 2002
+The GDF                          GUESS                          May 2011
 
 
 Authors' Addresses
