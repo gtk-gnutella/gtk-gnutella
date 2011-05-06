@@ -78,6 +78,8 @@
 
 RCSID("$Id$")
 
+#include <math.h>		/* For pow() */
+
 #include "guess.h"
 #include "extensions.h"
 #include "ggep_type.h"
@@ -117,7 +119,7 @@ RCSID("$Id$")
 
 #define GUESS_QK_DB_CACHE_SIZE	1024	/**< Cached amount of query keys */
 #define GUESS_QK_MAP_CACHE_SIZE	64		/**< # of SDBM pages to cache */
-#define GUESS_QK_LIFE			86400	/**< Cached token lifetime (secs) */
+#define GUESS_QK_LIFE			3600	/**< Cached token lifetime (secs) */
 #define GUESS_QK_PRUNE_PERIOD	(GUESS_QK_LIFE / 3 * 1000)	/**< in ms */
 #define GUESS_QK_FREQ			60		/**< At most 1 key request / min */
 #define GUESS_ALIEN_FREQ		300		/**< Time we cache non-GUESS hosts */
@@ -125,7 +127,7 @@ RCSID("$Id$")
 #define GUESS_ALIVE_PROBA		 0.5	/**< 50% */
 #define GUESS_LINK_CACHE_SIZE	75		/**< Amount of hosts to maintain */
 #define GUESS_CHECK_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
-#define GUESS_ALIVE_PERIOD		(10 * 60)		/**< 10 minutes, in s */
+#define GUESS_ALIVE_PERIOD		(5 * 60)		/**< 5 minutes, in s */
 #define GUESS_SYNC_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
 #define GUESS_MAX_ULTRAPEERS	50000	/**< Query stops after that many acks */
 #define GUESS_RPC_LIFETIME		15000	/**< 15 seconds, in ms */
@@ -135,6 +137,8 @@ RCSID("$Id$")
 #define GUESS_WARMING_COUNT		100		/**< Loose concurrency after that */
 #define GUESS_MAX_TIMEOUTS		5		/**< Max # of consecutive timeouts */
 #define GUESS_TIMEOUT_DELAY		3600	/**< Time before resetting timeouts */
+#define GUESS_ALIVE_DECIMATION	0.85	/**< Per-timeout proba decimation */
+#define GUESS_DBLOAD_DELAY		60		/**< 1 minute, in s */
 
 /**
  * Query stops after that many hits
@@ -195,6 +199,7 @@ guess_check(const guess_t * const gq)
 #define GQ_F_UDP_DROP		(1U << 2)	/**< UDP message was dropped */
 #define GQ_F_SENDING		(1U << 3)	/**< Sending a message */
 #define GQ_F_END_STARVING	(1U << 4)	/**< End when starving */
+#define GQ_F_POOL_LOAD		(1U << 5)	/**< Pending pool loading */
 
 /**
  * RPC replies.
@@ -968,6 +973,51 @@ guess_add_pool(guess_t *gq, host_addr_t addr, guint16 port)
 }
 
 /**
+ * Convenience routine to compute theoretical probability of presence for
+ * a node, adjusted down when RPC timeouts occurred recently.
+ */
+static double
+guess_entry_still_alive(const struct qkdata *qk)
+{
+	double p;
+	static gboolean inited;
+	static double decimation[GUESS_MAX_TIMEOUTS];
+
+	if G_UNLIKELY(!inited) {
+		size_t i;
+
+		for (i = 0; i < G_N_ELEMENTS(decimation); i++) {
+			decimation[i] = pow(GUESS_ALIVE_DECIMATION, (double) (i + 1));
+		}
+
+		inited = TRUE;
+	}
+
+	/*
+	 * We reuse the statistical probability model of DHT nodes.
+	 */
+
+	p = stable_still_alive_probability(qk->first_seen, qk->last_seen);
+
+	/*
+	 * If RPC timeouts occurred, the theoretical probability is further
+	 * adjusted down.  The decimation is arbitrary of course, but the
+	 * rationale is that an RPC timeout somehow is an information that the
+	 * host may not be alive.
+	 */
+
+	if (
+		0 == qk->timeouts ||
+		delta_time(tm_time(), qk->last_timeout) >= GUESS_TIMEOUT_DELAY
+	) {
+		return p;
+	} else {
+		size_t i = MIN(qk->timeouts, G_N_ELEMENTS(decimation)) - 1;
+		return p * decimation[i];
+	}
+}
+
+/**
  * Remove host from link cache and from the cached query key database
  * if the probability model says the host is likely dead.
  */
@@ -986,9 +1036,8 @@ guess_remove_link_cache(const gnet_host_t *h)
 
 	qk = get_qkdata(h);
 	if (qk != NULL) {
-		double p;
+		double p = guess_entry_still_alive(qk);
 
-		p = stable_still_alive_probability(qk->first_seen, qk->last_seen);
 		if (p < GUESS_ALIVE_PROBA) {
 			delete_qkdata(h);
 		}
@@ -1597,8 +1646,7 @@ qk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 		expired = FALSE;
 		p = 1.0;
 	} else {
-	 	/* We reuse the statistical probability model of DHT nodes. */
-		p = stable_still_alive_probability(qk->first_seen, qk->last_seen);
+		p = guess_entry_still_alive(qk);
 		expired = p < GUESS_STABLE_PROBA;
 	}
 
@@ -2136,7 +2184,8 @@ guess_pool_from_link_cache(void *host, void *data)
 
 	if (
 		!map_contains(gq->queried, host) &&
-		!hash_list_contains(gq->pool, host)
+		!hash_list_contains(gq->pool, host) &&
+		!guess_should_skip(host)
 	) {
 		hash_list_append(gq->pool, atom_host_get(host));
 		ctx->loaded++;
@@ -2167,9 +2216,8 @@ guess_pool_from_qkdata(void *host, void *value, size_t len, void *data)
 		!map_contains(gq->queried, host) &&
 		!hash_list_contains(gq->pool, host)
 	) {
-		double p;
+		double p = guess_entry_still_alive(qk);
 
-		p = stable_still_alive_probability(qk->first_seen, qk->last_seen);
 		if (p >= GUESS_ALIVE_PROBA) {
 			hash_list_append(gq->pool, atom_host_get(host));
 			ctx->loaded++;
@@ -2194,8 +2242,35 @@ guess_load_pool(guess_t *gq, gboolean initial)
 	ctx.loaded = 0;
 
 	hash_list_foreach(link_cache, guess_pool_from_link_cache, &ctx);
+
 	if (!initial || 0 == ctx.loaded) {
-		dbmw_foreach(db_qkdata, guess_pool_from_qkdata, &ctx);
+		static time_t last_load;
+
+		/*
+		 * This can be slow, because we're iterating over a potentially large
+		 * database, and doing that too often will stuck the process completely.
+		 *
+		 * If we did load hosts recently, delay the operation, flagging the
+		 * query as needing a loading, which will happen at the next iteration.
+		 * Until it can complete successfully.
+		 */
+
+		if (
+			last_load != 0 &&
+			delta_time(tm_time(), last_load) < GUESS_DBLOAD_DELAY
+		) {
+			if (!(gq->flags & GQ_F_POOL_LOAD)) {
+				if (GNET_PROPERTY(guess_client_debug) > 1) {
+					g_debug("GUESS QUERY[%s] deferring pool host loading",
+						nid_to_string(&gq->gid));
+				}
+				gq->flags |= GQ_F_POOL_LOAD;
+			}
+		} else {
+			dbmw_foreach(db_qkdata, guess_pool_from_qkdata, &ctx);
+			gq->flags &= ~GQ_F_POOL_LOAD;
+			last_load = tm_time();
+		}
 	}
 
 	return ctx.loaded;
@@ -2883,6 +2958,13 @@ guess_iterate(guess_t *gq)
 	}
 
 	/*
+	 * If we have a pending pool loading, attempt to do it now.
+	 */
+
+	if (gq->flags & GQ_F_POOL_LOAD)
+		guess_load_more_hosts(gq);
+
+	/*
 	 * If we were delayed in another "thread" of replies, this call is about
 	 * to be rescheduled once the delay is expired.
 	 */
@@ -3036,11 +3118,20 @@ guess_iterate(guess_t *gq)
 			starving = 0 == hash_list_length(gq->pool);
 
 			if (starving && (gq->flags & GQ_F_END_STARVING)) {
-				if (GNET_PROPERTY(guess_client_debug) > 1) {
-					g_debug("GUESS QUERY[%s] starving, ending as requested",
-						nid_to_string(&gq->gid));
+				if (gq->flags & GQ_F_POOL_LOAD) {
+					if (GNET_PROPERTY(guess_client_debug) > 1) {
+						g_debug("GUESS QUERY[%s] starving, "
+							"but pending pool loading",
+							nid_to_string(&gq->gid));
+					}
+					guess_delay(gq);
+				} else {
+					if (GNET_PROPERTY(guess_client_debug) > 1) {
+						g_debug("GUESS QUERY[%s] starving, ending as requested",
+							nid_to_string(&gq->gid));
+					}
+					guess_cancel(&gq, TRUE);
 				}
-				guess_cancel(&gq, TRUE);
 			} else {
 				if (GNET_PROPERTY(guess_client_debug) > 1) {
 					g_debug("GUESS QUERY[%s] %s, %swaiting for new hosts",
