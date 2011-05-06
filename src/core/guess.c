@@ -2636,10 +2636,11 @@ guess_rpc_callback(enum guess_rpc_ret type, struct guess_rpc *grp,
 	gq->rpc_pending--;
 
 	if (GUESS_RPC_TIMEOUT == type) {
-		if (grp->pmi != NULL)			/* Message not processed by UDP queue */
+		if (grp->pmi != NULL) {			/* Message not processed by UDP queue */
 			grp->pmi->rpc_done = TRUE;
-
-		guess_timeout_from(grp->host);
+		} else {
+			guess_timeout_from(grp->host);
+		}
 
 		if (0 == gq->rpc_pending)
 			guess_iterate(gq);
