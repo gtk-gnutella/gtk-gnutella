@@ -997,6 +997,18 @@ parse_arguments(int argc, char **argv)
 		}
 	}
 }
+
+/**
+ * Collect more randomness, periodically.
+ */
+static void
+more_randomness(void)
+{
+	guint32 crc = gnet_stats_crc_reset();
+	random_pool_append(&crc, sizeof crc, settings_add_randomness);
+	random_collect(settings_add_randomness);
+}
+
 static void
 slow_main_timer(time_t now)
 {
@@ -1051,6 +1063,7 @@ slow_main_timer(time_t now)
 	download_slow_timer(now);
 	node_slow_timer(now);
 	ignore_timer(now);
+	more_randomness();
 }
 
 /**
@@ -1248,7 +1261,6 @@ static gboolean
 callout_queue_idle(void *unused_data)
 {
 	gboolean overloaded = GNET_PROPERTY(overloaded_cpu);
-	guint32 crc;
 
 	(void) unused_data;
 
@@ -1258,9 +1270,7 @@ callout_queue_idle(void *unused_data)
 
 	/* Idle tasks always scheduled */
 	zgc(overloaded);
-	crc = gnet_stats_crc_reset();
-	random_pool_append(&crc, sizeof crc, settings_add_randomness);
-	random_collect(settings_add_randomness);
+	more_randomness();
 
 	if (!overloaded) {
 		/* Idle tasks scheduled only when CPU is not overloaded */
