@@ -3219,6 +3219,7 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	}
 
 	gnet_stats_count_general(GNR_GUESS_LOCAL_QUERIES, +1);
+	gnet_stats_count_general(GNR_GUESS_LOCAL_RUNNING, +1);
 
 	return gq;
 }
@@ -3276,6 +3277,8 @@ guess_free(guess_t *gq)
 
 	gq->magic = 0;
 	wfree(gq, sizeof *gq);
+
+	gnet_stats_count_general(GNR_GUESS_LOCAL_RUNNING, -1);
 }
 
 /**

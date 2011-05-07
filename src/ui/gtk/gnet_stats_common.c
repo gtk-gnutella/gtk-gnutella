@@ -132,6 +132,7 @@ general_type_str(gint value)
 		N_("GUESS queries"),
 		N_("GUESS cached query keys held"),
 		N_("GUESS locally generated queries"),
+		N_("GUESS currently running queries"),
 		N_("GUESS hits received for locally generated queries"),
 		N_("GUESS hosts queried"),
 		N_("GUESS hosts sending back an acknowledgment"),

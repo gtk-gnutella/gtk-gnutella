@@ -152,6 +152,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"query_guess",
 		"guess_cached_query_keys_held",
 		"guess_local_queries",
+		"guess_local_running",
 		"guess_local_query_hits",
 		"guess_hosts_queried",
 		"guess_hosts_acknowledged",
