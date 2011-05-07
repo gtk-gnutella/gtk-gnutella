@@ -118,6 +118,8 @@ void search_query_key_generate(sectoken_t *tok, host_addr_t addr, guint16 port);
 gnutella_msg_search_t *build_guess_search_msg(const struct guid *muid,
 	const char *query, guint32 *size, const void *query_key, guint8 length);
 
+const char *lazy_safe_search(const char *search);
+
 #endif /* _core_search_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

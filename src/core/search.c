@@ -5458,18 +5458,16 @@ search_request_preprocess(struct gnutella_node *n)
 		}
 
 		if (exvcnt && GNET_PROPERTY(query_debug) > 13) {
-			char *safe = hex_escape(search, FALSE);
 			g_debug("QUERY %s%s [hops=%u, TTL=%u] with extensions: "
 				"\"%s\" (%lu byte%s)",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
-				safe, (unsigned long) extra, 1 == extra ? "" : "s");
+				lazy_safe_search(search),
+				(unsigned long) extra, 1 == extra ? "" : "s");
 			ext_dump(stderr, exv, exvcnt, "> ", "\n",
 				GNET_PROPERTY(query_debug) > 14);
-			if (safe != search)
-				HFREE_NULL(safe);
 		}
 
 		/*
@@ -5795,17 +5793,14 @@ search_request_preprocess(struct gnutella_node *n)
 
 		if (found != NULL) {
 			if (GNET_PROPERTY(query_debug) > 10) {
-				char *safe_search = hex_escape(search, FALSE);
 				g_warning("QUERY dropping \"%s%s\" (hops=%u, TTL=%u) "
 					"already seen recently from %s",
 					last_sha1_digest == NULL ? "" : "urn:sha1:",
-					last_sha1_digest == NULL ?
-						safe_search : sha1_base32(last_sha1_digest),
+					last_sha1_digest == NULL ? lazy_safe_search(search) :
+						sha1_base32(last_sha1_digest),
 					gnutella_header_get_hops(&n->header),
 					gnutella_header_get_ttl(&n->header),
 					node_infostr(n));
-				if (safe_search != search)
-					HFREE_NULL(safe_search);
 			}
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 			goto drop;		/* Drop the message! */
@@ -6215,13 +6210,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		char *safe_ext = hex_escape(extended_query, FALSE);
 
 		if (GNET_PROPERTY(query_debug) > 14) {
-			char *safe = hex_escape(search, FALSE);
 			g_debug("QUERY %s%s extended: original=\"%s\", extended=\"%s\"",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				safe, safe_ext);
-			if (safe != search)
-				HFREE_NULL(safe);
+				lazy_safe_search(search), safe_ext);
 		}
 		search = extended_query;
 		search_len = strlen(search);
@@ -6426,20 +6418,14 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		}
 
 		if (GNET_PROPERTY(query_debug) > 14) {
-			char *canonic = UNICODE_CANONIZE(search);
-			char *safe_canonic = hex_escape(canonic, FALSE);
 			g_debug("QUERY %s \"%s\" [hops=%u, TTL=%u] has %u hit%s%s%s",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
-					safe_canonic,
+					lazy_safe_search(search),
 					gnutella_header_get_hops(&n->header),
 					gnutella_header_get_ttl(&n->header),
 					qctx->found, qctx->found == 1 ? "" : "s",
 					skip_file_search ? " (skipped local)" : "",
 					exv_sha1cnt > 0 ? " (SHA1)" : "");
-			if (safe_canonic != canonic)
-				HFREE_NULL(safe_canonic);
-			if (canonic != search)
-				HFREE_NULL(canonic);
 		}
 
 		/*
@@ -6824,6 +6810,36 @@ search_compact(struct gnutella_node *n)
 
 	if (dest != buffer)
 		HFREE_NULL(dest);
+}
+
+/**
+ * Lazily produce a print-safe version of a search string.
+ * The returned string MUST NOT be freed and will remain valid until
+ * the next call to this routine..
+ */
+const char *
+lazy_safe_search(const char *search)
+{
+	static char *previous;
+	char *canonic;
+	char *safe;
+
+	g_assert(search != previous);
+
+	HFREE_NULL(previous);
+
+	canonic = UNICODE_CANONIZE(search);
+	safe = hex_escape(canonic, FALSE);
+
+	if (safe == search) {
+		g_assert(canonic == search);
+		return search;
+	} else {
+		if (canonic != search && safe != canonic) {
+			HFREE_NULL(canonic);
+		}
+		return previous = NOT_LEAKING(safe);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -1957,10 +1957,13 @@ guess_final_stats(const guess_t *gq)
 	tm_now_exact(&end);
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
-		g_debug("GUESS QUERY[%s] took %f secs, queried_set=%lu, pool_set=%lu, "
+		g_debug("GUESS QUERY[%s] \"%s\" took %f secs, "
+			"queried_set=%lu, pool_set=%lu, "
 			"queried=%lu, acks=%lu, kept_results=%u/%u, "
 			"out_qk=%u bytes, out_query=%u bytes",
-			nid_to_string(&gq->gid), tm_elapsed_f(&end, &gq->start),
+			nid_to_string(&gq->gid),
+			lazy_safe_search(gq->query),
+			tm_elapsed_f(&end, &gq->start),
 			(unsigned long) map_count(gq->queried),
 			(unsigned long) hash_list_length(gq->pool),
 			(unsigned long) gq->queried_nodes,
@@ -3203,11 +3206,9 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	gm_hash_table_insert_const(gmuid, gq->muid, gq);
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
-		char *safe_query =  hex_escape(query, FALSE);
 		g_debug("GUESS QUERY[%s] starting query for \"%s\" MUID=%s",
-			nid_to_string(&gq->gid), safe_query, guid_hex_str(muid));
-		if (safe_query != query)
-			HFREE_NULL(safe_query);
+			nid_to_string(&gq->gid), lazy_safe_search(query),
+			guid_hex_str(muid));
 	}
 
 	if (0 == guess_load_pool(gq, TRUE)) {
