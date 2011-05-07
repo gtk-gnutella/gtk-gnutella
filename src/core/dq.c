@@ -1964,6 +1964,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	gnet_stats_count_general(GNR_LOCAL_DYN_QUERIES, 1);
 
 	dq_common_init(dq);
+	search_starting(dq->sh);
 	dq_sendto_leaves(dq, NULL);
 	dq_send_probe(dq);
 	return;

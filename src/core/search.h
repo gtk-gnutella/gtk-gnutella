@@ -92,6 +92,7 @@ void search_shutdown(void);
 
 gboolean search_results(gnutella_node_t *n, int *results);
 gboolean search_query_allowed(gnet_search_t sh);
+void search_starting(gnet_search_t sh);
 void search_notify_sent(gnet_search_t sh, const struct nid *node_id);
 void search_query_sent(gnet_search_t sh);
 gboolean search_get_kept_results(const struct guid *muid, guint32 *kept);

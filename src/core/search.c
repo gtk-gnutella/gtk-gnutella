@@ -2943,6 +2943,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	 */
 
 	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
+		search_starting(sch->search_handle);
 		search_mark_sent_to_connected_nodes(sch);
 		gmsg_search_sendto_all(
 			node_all_nodes(), sch->search_handle, (char *) msg, size);
@@ -4003,7 +4004,6 @@ search_reissue(gnet_search_t sh)
 
 	if (sch->guess != NULL)
 		guess_end_when_starving(sch->guess);
-	wd_wakeup(sch->activity);
 
 	muid = search_new_muid(FALSE);
 
@@ -4014,6 +4014,21 @@ search_reissue(gnet_search_t sh)
 done:
 	update_one_reissue_timeout(sch);
 	search_status_changed(sch->search_handle);
+}
+
+/**
+ * Indicates that the search is starting: we're emitting the query.
+ */
+void
+search_starting(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+	search_ctrl_check(sch);
+    g_return_if_fail(sbool_get(sch->active));
+    g_return_if_fail(NULL == sch->activity);
+
+	wd_wakeup(sch->activity);
 }
 
 /**
@@ -4327,8 +4342,6 @@ search_start(gnet_search_t sh)
     g_assert(sbool_get(sch->frozen));/* Coming from search_new(), or resuming */
 
     sch->frozen = sbool_set(FALSE);
-	if (!sbool_get(sch->passive))
-		wd_wakeup(sch->activity);
 
     if (sbool_get(sch->active)) {
 		/*
