@@ -4026,7 +4026,7 @@ search_starting(gnet_search_t sh)
 
 	search_ctrl_check(sch);
     g_return_if_fail(sbool_get(sch->active));
-    g_return_if_fail(NULL == sch->activity);
+    g_return_if_fail(sch->activity != NULL);
 
 	wd_wakeup(sch->activity);
 }
