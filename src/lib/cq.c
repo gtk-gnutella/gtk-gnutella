@@ -729,11 +729,8 @@ cperiodic_check(const struct cperiodic * const cp)
 static void
 cq_periodic_free(cperiodic_t *cp, gboolean force)
 {
-	cqueue_t *cq;
 
 	cperiodic_check(cp);
-	cq = cp->ev->ce_cq;
-	cqueue_check(cq);
 
 	if (NULL == cp->ev && !force) {
 		/*
@@ -744,6 +741,11 @@ cq_periodic_free(cperiodic_t *cp, gboolean force)
 
 		cp->to_free = TRUE;
 	} else {
+		cqueue_t *cq;
+
+		cq = cp->ev->ce_cq;
+		cqueue_check(cq);
+
 		cq_cancel(&cp->ev);
 		cq_unregister_object(cq->cq_periodic, cp);
 		cp->magic = 0;
