@@ -2482,6 +2482,19 @@ struct guess_qk_context {
 };
 
 /**
+ * Free query key request context.
+ */
+static void
+guess_qk_context_free(struct guess_qk_context *ctx)
+{
+	g_assert(ctx != NULL);
+	g_assert(atom_is_host(ctx->host));
+
+	atom_host_free_null(&ctx->host);
+	wfree(ctx, sizeof *ctx);
+}
+
+/**
  * Process query key reply from host.
  *
  * @param type		type of reply, if any
@@ -2499,7 +2512,7 @@ guess_got_query_key(enum udp_ping_ret type,
 	gq = guess_is_alive(ctx->gid);
 	if (NULL == gq) {
 		if (UDP_PING_EXPIRED == type || UDP_PING_TIMEDOUT == type)
-			wfree(ctx, sizeof *ctx);
+			guess_qk_context_free(ctx);
 		return;
 	}
 
@@ -2524,7 +2537,7 @@ guess_got_query_key(enum udp_ping_ret type,
 						nid_to_string(&gq->gid), gnet_host_to_string(host));
 				}
 				guess_send_query(gq, host);
-				wfree(ctx, sizeof *ctx);
+				guess_qk_context_free(ctx);
 				break;
 			}
 		}
@@ -2544,7 +2557,7 @@ guess_got_query_key(enum udp_ping_ret type,
 
 		/* FALL THROUGH */
 	case UDP_PING_EXPIRED:
-		wfree(ctx, sizeof *ctx);
+		guess_qk_context_free(ctx);
 		goto no_query_key;
 	case UDP_PING_REPLY:
 		if G_UNLIKELY(NULL == link_cache)
@@ -2784,10 +2797,10 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 
 		ctx = walloc(sizeof *ctx);
 		ctx->gid = gq->gid;
-		ctx->host = host;
+		ctx->host = atom_host_get(host);
 
 		if (!guess_request_qk_full(gq, host, FALSE, guess_got_query_key, ctx)) {
-			wfree(ctx, sizeof *ctx);
+			guess_qk_context_free(ctx);
 			goto unqueried;
 		}
 
