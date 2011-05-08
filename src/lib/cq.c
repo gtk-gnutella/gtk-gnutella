@@ -712,6 +712,7 @@ struct cperiodic {
 	cq_invoke_t event;				/**< Periodic callback */
 	gpointer arg;					/**< Callback argument */
 	int period;						/**< Period between invocations, in ms */
+	cqueue_t *cq;					/**< Callout queue scheduling this */
 	cevent_t *ev;					/**< Scheduled event */
 	unsigned to_free:1;				/**< Marked for freeing */
 };
@@ -743,7 +744,7 @@ cq_periodic_free(cperiodic_t *cp, gboolean force)
 	} else {
 		cqueue_t *cq;
 
-		cq = cp->ev->ce_cq;
+		cq = cp->cq;
 		cqueue_check(cq);
 
 		cq_cancel(&cp->ev);
@@ -810,6 +811,7 @@ cq_periodic_add(cqueue_t *cq, int period, cq_invoke_t event, gpointer arg)
 	cp->event = event;
 	cp->arg = arg;
 	cp->period = period;
+	cp->cq = cq;
 	cp->ev = cq_insert(cq, period, cq_periodic_trampoline, cp);
 
 	cq_register_object(&cq->cq_periodic, cp);
