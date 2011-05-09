@@ -221,7 +221,27 @@ The various symbols are:
 		at exit time.
 
 
-4. Automatic crash dump collection
+4. Other debugging options
+==========================
+
+The following CPP symbols govern assertions that are not enabled by default.
+
+	MQ_DEBUG
+		If enabled, activates all mq_check() calls, which ensure that the
+		message queue entries are sanely allocated.
+		This option was on by default during the whole 0.96.x series and
+		is being turned off for 0.97.
+
+	INPUTEVT_SAFETY_ASSERT
+		If enabled, adds costly assertions (using system calls) to make
+		sure file descriptors are opened, or of a particular type (e.g.
+		sockets).
+		This option was on by default during the 0.96.9 release,
+		especially meant to check the Windows port.  It is being turned off
+		for 0.97.
+
+
+5. Automatic crash dump collection
 ==================================
 
 Gtk-gnutella usually sets the ~/.gtk-gnutella/crashes directory as the

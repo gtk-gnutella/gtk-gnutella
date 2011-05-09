@@ -64,6 +64,11 @@ struct mq_cops {
 
 #ifdef MQ_INTERNAL
 
+/*
+ * The declarations in this section are only visible to the various files
+ * implementing the message queue.
+ */
+
 enum mq_magic {
 	MQ_MAGIC = 0x33990ee
 };
@@ -123,6 +128,22 @@ enum {
 	MQ_FLOWC	= (1 << 0)	/**< In flow control */
 };
 
+/*
+ * Message queue assertions.
+ */
+
+#if 0
+#define MQ_DEBUG			/**< Activates mq_check() assertions */
+#endif
+
+#ifdef MQ_DEBUG
+void mq_check_track(mqueue_t *q, int offset, const char *where, int line);
+
+#define mq_check(x,y)	mq_check_track((x), (y), _WHERE_, __LINE__)
+#else
+#define mq_check(x,y)
+#endif
+
 #endif /* MQ_INTERNAL */
 
 gboolean mq_is_flow_controlled(const mqueue_t *q);
@@ -153,19 +174,6 @@ void mq_fill_ops(struct mq_ops *ops);
 
 const struct mq_cops *mq_get_cops(void);
 const char *mq_info(const mqueue_t *q);
-
-/*
- * Message queue assertions.
- */
-
-#define MQ_DEBUG
-#ifdef MQ_DEBUG
-void mq_check_track(mqueue_t *q, int offset, const char *where, int line);
-
-#define mq_check(x,y)	mq_check_track((x), (y), _WHERE_, __LINE__)
-#else
-#define mq_check(x,y)
-#endif
 
 #endif	/* _core_mq_h_ */
 

@@ -854,7 +854,7 @@ The GDF                          GUESS                          May 2011
    trailing two are the UDP listening port, in little-endian format.
    This allows the recording of the proper host address in case the UDP
    port in the message is a transient one allocated by a NAT router.
-   Only ultra nodes should include "GUE" in pings.
+   Only ultra nodes should include "GUE" in pings with query key requests.
 
    If the "SCP" GGEP extension was given in the Ping Request along with
    "QK", then GUESS hosts are returned packed within the "IPP" extension
