@@ -486,6 +486,7 @@ src/if/core/hcache.h
 src/if/core/hsep.h
 src/if/core/http.h
 src/if/core/main.h
+src/if/core/mq.h
 src/if/core/net_stats.h
 src/if/core/nodes.h
 src/if/core/parq.h

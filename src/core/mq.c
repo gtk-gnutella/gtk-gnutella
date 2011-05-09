@@ -63,6 +63,27 @@ static gboolean make_room_header(
 	mqueue_t *q, char *header, guint prio, int needed, int *offset);
 static void mq_swift_timer(cqueue_t *cq, gpointer obj);
 
+/**
+ * @return queue's fullness status.
+ */
+mq_status_t
+mq_status(const mqueue_t *q)
+{
+	g_assert(q != NULL);
+	g_assert(MQ_MAGIC == q->magic);
+
+	if (0 == q->count)
+		return MQ_S_EMPTY;
+
+	if (q->flags & MQ_SWIFT)
+		return MQ_S_SWIFT;
+
+	if (q->flags & MQ_FLOWC)
+		return MQ_S_FLOWC;
+
+	return (q->count > q->lowat) ? MQ_S_WARNZONE : MQ_S_DELAY;
+}
+
 guint32 mq_debug(const mqueue_t *q)
 {
 	return *q->debug;

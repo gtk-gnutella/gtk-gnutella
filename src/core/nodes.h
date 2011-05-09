@@ -406,6 +406,9 @@ enum {
 
 #define NODE_SQUEUE(n) ((n)->searchq)
 
+#define NODE_MQUEUE_STATUS(n) \
+	((n)->outq ? mq_status((n)->outq) : MQ_S_EMPTY)
+
 #define NODE_MQUEUE_COUNT(n) \
 	((n)->outq ? mq_count((n)->outq) : 0)
 

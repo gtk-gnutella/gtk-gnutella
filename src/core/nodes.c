@@ -9342,10 +9342,7 @@ node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags)
 	flags->writable = NODE_IS_WRITABLE(node);
 	flags->readable = NODE_IS_READABLE(node);
     flags->tx_compressed = NODE_TX_COMPRESSED(node);
-    flags->mqueue_empty  = 0 == NODE_MQUEUE_COUNT(node);
-    flags->mqueue_above_lowat  = NODE_MQUEUE_ABOVE_LOWAT(node);
-    flags->in_tx_flow_control = NODE_IN_TX_FLOW_CONTROL(node);
-    flags->in_tx_swift_control = NODE_IN_TX_SWIFT_CONTROL(node);
+	flags->mq_status = NODE_MQUEUE_STATUS(node);
     flags->rx_compressed = NODE_RX_COMPRESSED(node);
 	flags->hops_flow = node->hops_flow;
 
@@ -10640,11 +10637,13 @@ node_flags_to_string(const gnet_node_flags_t *flags)
 	else if (flags->is_proxying) status[7] = 'p';
 	else status[7] = '-';
 
-	if (flags->in_tx_swift_control) status[8]     = 'S';
-	else if (flags->in_tx_flow_control) status[8] = 'F';
-	else if (flags->mqueue_above_lowat) status[8] = 'D';
-	else if (!flags->mqueue_empty) status[8]      = 'd';
-	else status[8]                                = '-';
+	switch (flags->mq_status) {
+	case MQ_S_SWIFT:	status[8] = 'S'; break;
+	case MQ_S_FLOWC:	status[8] = 'F'; break;
+	case MQ_S_WARNZONE:	status[8] = 'D'; break;
+	case MQ_S_DELAY:	status[8] = 'd'; break;
+	case MQ_S_EMPTY:	status[8] = '-'; break;
+	}
 
 	if (flags->hops_flow == 0)
 		status[9] = 'f';

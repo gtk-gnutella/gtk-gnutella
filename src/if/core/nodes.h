@@ -29,6 +29,7 @@
 #include "common.h"
 
 #include "if/core/guid.h"
+#include "if/core/mq.h"
 
 #include "lib/host_addr.h"
 #include "lib/gnet_host.h"
@@ -322,19 +323,16 @@ typedef struct gnet_node_flags {
 	node_peer_t peermode;
 	qrt_state_t qrt_state;
 	qrt_state_t uqrt_state;
+	mq_status_t mq_status;
 	guint8 hops_flow;
-	gboolean incoming;
-	gboolean writable;
-	gboolean readable;
-	gboolean tx_compressed;
-	gboolean rx_compressed;
-	gboolean mqueue_empty;
-	gboolean mqueue_above_lowat;
-	gboolean in_tx_flow_control;
-	gboolean in_tx_swift_control;
-	gboolean is_push_proxied;
-	gboolean is_proxying;
-	gboolean tls;
+	unsigned incoming:1;
+	unsigned writable:1;
+	unsigned readable:1;
+	unsigned tx_compressed:1;
+	unsigned rx_compressed:1;
+	unsigned is_push_proxied:1;
+	unsigned is_proxying:1;
+	unsigned tls:1;
 } gnet_node_flags_t;
 
 /*

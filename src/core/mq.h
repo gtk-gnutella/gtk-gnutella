@@ -41,6 +41,8 @@
 #include "gnutella.h"
 #include "tx.h"
 
+#include "if/core/mq.h"
+
 #include "lib/cq.h"
 #include "lib/pmsg.h"
 #include "lib/slist.h"
@@ -146,6 +148,7 @@ void mq_check_track(mqueue_t *q, int offset, const char *where, int line);
 
 #endif /* MQ_INTERNAL */
 
+mq_status_t mq_status(const mqueue_t *q);
 gboolean mq_is_flow_controlled(const mqueue_t *q);
 gboolean mq_is_swift_controlled(const mqueue_t *q);
 gboolean mq_would_flow_control(const mqueue_t *q, size_t additional);
