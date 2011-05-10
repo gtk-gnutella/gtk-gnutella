@@ -306,7 +306,8 @@ route_allocate_udp(const struct gnutella_node *n)
 	un->magic = NODE_UDP_MAGIC;
 	un->addr = n->addr;
 	un->port = n->port;
-	un->can_deflate = NODE_CAN_INFLATE(n);	/* It can inflate, we can deflate */
+	/* If it can inflate, we can deflate traffic to it */
+	un->can_deflate = booleanize(NODE_CAN_INFLATE(n));
 
 	return un;
 }
