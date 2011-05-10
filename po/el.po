@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2010-01-10 22:16+0900\n"
+"POT-Creation-Date: 2011-05-10 19:00+0200\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -39,6 +39,10 @@ msgstr "Διακόπηκε (%s)"
 #, c-format
 msgid "Too many attempts (%u times)"
 msgstr "Πάρα πολλές προσπάθειες (%u φορές)"
+
+#, fuzzy
+msgid "Requeued due to no push-proxy"
+msgstr "Ξαναμπήκε στη λίστα αναμονής λόγω λήξης χρόνου"
 
 #, fuzzy
 msgid "Requeued due to file removal"
@@ -95,15 +99,19 @@ msgstr "Αποτυχία σύνδεσης (Τέλος περιγραφέων;)"
 msgid "Connection failed"
 msgstr "Η σύνδεση απέτυχε"
 
+msgid "Waiting for server PROX publishing"
+msgstr ""
+
+#, fuzzy
+msgid "Waiting for push route"
+msgstr "Αναμονή περαιτέρω αιτήματος..."
+
 #, fuzzy
 msgid "Push route lost"
 msgstr "Απώλεια δρομολόγησης"
 
 msgid "Ignoring Push flag"
 msgstr "Παράβλεψη σημαίας Ώθησης"
-
-msgid "Can't reach host (Push or Direct)"
-msgstr ""
 
 #, c-format
 msgid "No direct connection yet (%u retry)"
@@ -339,6 +347,9 @@ msgstr "Προστέθηκε αναζήτηση"
 msgid "THEX download aborted"
 msgstr "Λήφθηκαν:"
 
+msgid "Pipeline flow stopped"
+msgstr ""
+
 #, fuzzy, c-format
 msgid "Cannot open %s: %s"
 msgstr "Απέτυχε (Δεν είναι δυνατή η αποστολή %s: %s)"
@@ -427,17 +438,37 @@ msgstr "Λήψη (%s)  TR: %s"
 msgid "Seeding"
 msgstr "Αποστολή ώθησης"
 
+#, fuzzy
+msgid "Computing TTH"
+msgstr "Υπολογισμός SHA1"
+
 msgid "Computing SHA1"
 msgstr "Υπολογισμός SHA1"
 
+#, fuzzy
+msgid "Waiting for TTH check"
+msgstr "Αναμονή ελέγχου SHA1"
+
 msgid "Waiting for SHA1 check"
 msgstr "Αναμονή ελέγχου SHA1"
+
+#, fuzzy
+msgid "SHA1"
+msgstr "SHA1:"
 
 msgid "OK"
 msgstr "ΟΚ"
 
 msgid "failed"
 msgstr "απέτυχε"
+
+#, fuzzy
+msgid "not computed yet"
+msgstr "Χωρίς έξοδο ακόμα..."
+
+#, fuzzy
+msgid "Waiting for moving..."
+msgstr "; Αναμονή μετακίνησης..."
 
 msgid "Moving"
 msgstr "Μετακίνηση"
@@ -454,6 +485,26 @@ msgstr "Μπήκε στη λίστα αναμονής (%d ενεργές, %d π�
 
 msgid "Waiting"
 msgstr "Αναμονή"
+
+#, fuzzy
+msgid "Querying DHT"
+msgstr "Χτύπημα ερωτήματος"
+
+#, fuzzy
+msgid "Pending DHT query"
+msgstr "Τοπικά ερωτήματα που αναμένουν"
+
+#, c-format
+msgid "%u/%u successful DHT lookup"
+msgid_plural "%u/%u successful DHT lookups"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format
+msgid "%u DHT lookup"
+msgid_plural "%u DHT lookups"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Bad size"
 msgstr "Κακό μέγεθος"
@@ -484,6 +535,10 @@ msgstr "Υπέρβαση μέγιστου TTL"
 
 msgid "Message throttle"
 msgstr "Περιορισμός μηνυμάτων"
+
+#, fuzzy
+msgid "Message matched limits"
+msgstr "Όρια μεγέθους μηνυμάτων GnutellaNet"
 
 msgid "Unusable Pong"
 msgstr ""
@@ -539,6 +594,9 @@ msgstr "Κακή διεύθυνση επιστροφής"
 msgid "Hostile IP address"
 msgstr "Εχθρική διεύθυνση IP"
 
+msgid "Bogus result from Morpheus"
+msgstr ""
+
 msgid "Spam"
 msgstr ""
 
@@ -556,12 +614,22 @@ msgstr ""
 msgid "Own search results"
 msgstr "Αποτελέσματα αναζήτησης"
 
+#, fuzzy
+msgid "Own queries"
+msgstr "Ερωτήματα RX"
+
 msgid "Ancient query format"
 msgstr ""
 
 #, fuzzy
 msgid "Blank Servent ID"
 msgstr "ID πελάτη:"
+
+msgid "GUESS Query missing token"
+msgstr ""
+
+msgid "GUESS Invalid query token"
+msgstr ""
 
 msgid "DHT Invalid security token"
 msgstr ""
@@ -715,6 +783,10 @@ msgstr "Ήδη συνδεδεμένος"
 msgid "Limited connection"
 msgstr "Παραδοσιακές συνδέσεις"
 
+#, fuzzy
+msgid "Write error during HELLO"
+msgstr "Σφάλμα εγγραφής κατά το HELLO: %s"
+
 #, c-format
 msgid "Write error during HELLO: %s"
 msgstr "Σφάλμα εγγραφής κατά το HELLO: %s"
@@ -758,11 +830,22 @@ msgstr "Αποτυχία ανάγνωσης (Εξαίρεση εισόδου)"
 msgid "Read error: %s"
 msgstr "Σφάλμα ανάγνωσης: %s"
 
+#, fuzzy, c-format
+msgid "mkdir(\"%s\") failed: \"%s\""
+msgstr "Η εγγραφή απέτυχε: %s"
+
 msgid "Can't find your home directory!"
 msgstr "Δεν είναι δυνατή η εύρεση του αρχικού καταλόγου σας!"
 
+msgid "$GTK_GNUTELLA_DIR must point to an absolute path!"
+msgstr ""
+
 #, c-format
 msgid "creating configuration directory \"%s\""
+msgstr "δημιουργία καταλόγου ρυθμίσεων \"%s\""
+
+#, fuzzy, c-format
+msgid "creating directory \"%s\" for %s"
 msgstr "δημιουργία καταλόγου ρυθμίσεων \"%s\""
 
 #, fuzzy
@@ -825,14 +908,6 @@ msgstr ""
 
 msgid "Lifetime expired"
 msgstr "Υπέρβαση χρόνου ζωής"
-
-#, c-format
-msgid "Banned: %s"
-msgstr "Απαγόρευση: %s"
-
-#, c-format
-msgid "Banned for %s"
-msgstr "Απαγόρευση λόγω %s"
 
 msgid "Unable to send GIV"
 msgstr "Αδυναμία αποστολής GIV"
@@ -957,6 +1032,32 @@ msgstr ""
 msgid "input & output"
 msgstr ""
 
+msgid "seeded"
+msgstr ""
+
+msgid "own KUID lookup"
+msgstr ""
+
+#, fuzzy
+msgid "completing"
+msgstr "Ολοκληρώθηκε"
+
+#, fuzzy
+msgid "completed"
+msgstr "Ολοκληρώθηκε"
+
+#, fuzzy
+msgid "shutdown"
+msgstr "Κλείσιμο (%s)"
+
+#, fuzzy
+msgid "active (recommended)"
+msgstr "αυτόματο (προτείνεται)"
+
+#, fuzzy
+msgid "passive"
+msgstr " παθητικός)"
+
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Προσδιορίζει αν θα διαβάζεται η λανθάνουσα μνήμη υπολογιστών."
 
@@ -1006,11 +1107,12 @@ msgstr ""
 "αυτόν τον αριθμό συνδέσεων με κανονικούς πελάτες.  Ο αριθμός αυτός πρέπει να "
 "είναι μικρότερο από το μέγιστο επιτρεπόμενο αριθμό εισερχόμενων συνδέσεων."
 
+#, fuzzy
 msgid ""
 "Don't allow more than this number of connections to other servents.  As a "
 "rule of thumb you should reserve 256 b/s bandwidth per connection. Never use "
 "up all your bandwidth, leave a little space for TCP/IP overhead. It's not "
-"advisable that you set this to a value smaller than 30."
+"advisable that you set this to a value smaller than 40."
 msgstr ""
 "Δεν επιτρέπονται περισσότερες από αυτόν τον αριθμό συνδέσεις με άλλους "
 "πελάτες. Κατά κανόνα πρέπει να παραχωρείτε εύρος 256 b/s ανά σύνδεση. Μη "
@@ -2608,9 +2710,6 @@ msgid "Maximum number of results to show in a browse_host request."
 msgstr ""
 "Μέγιστος αριθμός αποτελεσμάτων που εμφανίζονται σε οποιαδήποτε αναζήτηση."
 
-msgid "The current Session ID."
-msgstr ""
-
 msgid "Date of the latest SVN release."
 msgstr ""
 
@@ -2925,6 +3024,219 @@ msgstr "Επίπεδο αποσφαλμάτωσης δρομολόγησης μ�
 msgid "Debug level for version management."
 msgstr "Επίπεδο αποσφαλμάτωσης διαχείρισης πλέγματος λήψεων."
 
+msgid "Minimum CPU frequency, in Hz."
+msgstr ""
+
+msgid "Maximum CPU frequency, in Hz."
+msgstr ""
+
+#, fuzzy
+msgid "DHT bootstrap status."
+msgstr "Στατιστικά κυκλοφορίας _HTTP"
+
+msgid ""
+"The DHT running mode. An active mode will be able to store values and is a "
+"fully participating member of the Distributed Hash Table. A passive node can "
+"perform lookups and publish but will not store values and cannot be a member "
+"of the DHT structure. A firewalled node is necessarily passive, but you can "
+"force the passive mode even if you are not firewalled, although that is not "
+"recommended because the DHT requires far more active nodes that passive ones "
+"to be efficient."
+msgstr ""
+
+msgid "Current DHT running mode."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the one-time memory allocator."
+msgstr "Επίπεδο αποσφαλμάτωσης γραφικού ενδιαμέσου."
+
+#, fuzzy
+msgid "Debug level for the host cache."
+msgstr "Επίπεδο αποσφαλμάτωσης γραφικού ενδιαμέσου."
+
+msgid "Random bits."
+msgstr ""
+
+#, fuzzy
+msgid "Average servent downtime."
+msgstr "Μέσος χρόνος λειτουργίας πελάτη."
+
+msgid "Time when last shutdown occurred."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for alive pings."
+msgstr "Επίπεδο αποσφαλμάτωσης πληροφοριών αρχείων."
+
+#, fuzzy
+msgid "Debug level for the versatile XML layer."
+msgstr "Επίπεδο αποσφαλμάτωσης κυκλοφορίας επιπέδου UDP."
+
+#, fuzzy
+msgid "Debug level for the UPnP layer."
+msgstr "Επίπεδο αποσφαλμάτωσης κυκλοφορίας επιπέδου UDP."
+
+#, fuzzy
+msgid "Debug level for the SOAP layer."
+msgstr "Επίπεδο αποσφαλμάτωσης κυκλοφορίας επιπέδου UDP."
+
+msgid "Defines SOAP exchanges tracing type."
+msgstr ""
+
+msgid ""
+"For testing purposes, allow to run as an ultranode even if the node cannot "
+"accept incoming TCP connections."
+msgstr ""
+
+msgid ""
+"Whether UPnP (Universal Plug and Play) should be enabled. Support for UPnP "
+"means gtk-gnutella will be able to discover your Internet Gateway Device "
+"(router) and request that the listening port be opened and redirected to "
+"your machine, thereby auto-configuring to make sure you are not firewalled.  "
+"By default you should leave it enabled unless you know how to configure your "
+"network equipment manually to prevent the firewalled condition for both TCP "
+"and UDP."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella was able to locate an Internet Gateway Device to "
+"install port mappings, if required."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella thinks it needs to install port mappings on your "
+"network router to avoid the firewalled condition."
+msgstr ""
+
+msgid "Whether gtk-gnutella can install port mappings, if needed."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the NAT-PMP layer."
+msgstr "Επίπεδο αποσφαλμάτωσης κυκλοφορίας επιπέδου UDP."
+
+msgid ""
+"Whether NAT-PMP (NAT Port Mapping Protocol) should be enabled. Support for "
+"NAT-PMP means gtk-gnutella will be able to look whether your default gateway "
+"(router) supports the Port Mapping Protocol to allow transparent redirection "
+"of the external ports on the router to the local machine, thereby making "
+"sure you are not firewalled. By default you should leave it enabled unless "
+"you know how to configure your network equipment manually to prevent the "
+"firewalled condition for both TCP and UDP."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella was able to locate a NAT-PMP gateway to install port "
+"mappings, if required."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the TX (transmit) network layer."
+msgstr "Επίπεδο αποσφαλμάτωσης κυκλοφορίας επιπέδου UDP."
+
+#, fuzzy
+msgid "Debug level for the RX (receive) network layer."
+msgstr "Επίπεδο αποσφαλμάτωσης κυκλοφορίας επιπέδου UDP."
+
+#, fuzzy
+msgid "Debug level for the I/O input event layer."
+msgstr "Επίπεδο αποσφαλμάτωσης κυκλοφορίας επιπέδου UDP."
+
+#, fuzzy
+msgid "Debug level for the background task scheduler."
+msgstr "Επίπεδο αποσφαλμάτωσης γραφικού ενδιαμέσου."
+
+#, fuzzy
+msgid "Whether gtk-gnutella was able to configure port mappings."
+msgstr "Αν το gtk-gnutella πιστεύει ότι είναι συνδεδεμένο στο διαδίκτυο."
+
+#, fuzzy
+msgid "Whether gtk-gnutella disabled HTTP bandwidth stealing."
+msgstr "Αν το gtk-gnutella πιστεύει ότι είναι συνδεδεμένο στο διαδίκτυο."
+
+#, fuzzy
+msgid "Whether gtk-gnutella ignores HTTP stolen bandwidth."
+msgstr "Αν το gtk-gnutella πιστεύει ότι είναι συνδεδεμένο στο διαδίκτυο."
+
+msgid "Whether gtk-gnutella enforces uniform HTTP outgoing bandwidth."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella should use HTTP request pipelining when possible, in "
+"order to decrease downloading latency."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum chunk size when swarming with HTTP pipelining."
+msgstr "Μέγιστο μέγεθος κομματιού κατά την εξάπλωση."
+
+msgid ""
+"Whether the Gnutella UDP Extension for Scalable Searches (GUESS) should be "
+"enabled.  With GUESS enabled, gtk-gnutella offers the network the ability to "
+"perform iterative Ultrapeer queries instead of just broadcasting, allowing "
+"searches to more places within the Gnutella network.  If you want gtk-"
+"gnutella to issue GUESS queries, you need to make sure the client-side is "
+"enabled as well as this setting only governs mostly the server-side of GUESS "
+"(required to allow the client-side)."
+msgstr ""
+
+msgid ""
+"Debug level for server-side GUESS (Gnutella UDP Extension for Scalable "
+"Searches)."
+msgstr ""
+
+msgid ""
+"Debug level for client-side GUESS (Gnutella UDP Extension for Scalable "
+"Searches)."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of hosts in the regular GUESS cache."
+msgstr "Μέγιστος αριθμός υπολογιστών στο συλλέκτη κανονικών κόμβων."
+
+#, fuzzy
+msgid "Current number of hosts in the regular GUESS cache."
+msgstr "Αριθμός υπολογιστών στις λανθάνουσες μνήμες συνήθων κόμβων."
+
+#, fuzzy
+msgid "Maximum number of hosts in the introduction GUESS cache."
+msgstr "Μέγιστος αριθμός υπολογιστών στο συλλέκτη υπερ-κόμβων."
+
+#, fuzzy
+msgid "Current number of hosts in the introduction GUESS cache."
+msgstr "Αριθμός υπολογιστών στις λανθάνουσες μνήμες υπερ-κόμβων."
+
+#, fuzzy
+msgid "Debug level for the DB disk/RAM storage layer."
+msgstr "Επίπεδο αποσφαλμάτωσης κυκλοφορίας επιπέδου UDP."
+
+msgid ""
+"The current Session ID.  This is a unique ID generated each time gtk-"
+"gnutella starts and it can be monitored from the shell interface to check "
+"whether gtk-gnutella has been restarted since the last check."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella should serve partial files which are rare on the "
+"network to increase their spreading rate.  It is good for the health of the "
+"network to always leave this enabled. This setting supersedes the disabling "
+"of global partial file sharing for rare files only."
+msgstr ""
+
+msgid ""
+"Whether the Gnutella UDP Extension for Scalable Searches (GUESS) client side "
+"should be enabled, so that gtk-gnutella can indeed issue iterative Ultrapeer "
+"queries instead of just broadcasting them. If enabled, it requires general "
+"GUESS support enabled as well or it will simply be ignored."
+msgstr ""
+
+msgid ""
+"Bandwidth hint for GUESS querying, in bytes/sec, limiting the amount of "
+"concurrency that can be used for GUESS.  Lower numbers mean slower querying "
+"overall"
+msgstr ""
+
 msgid "disable"
 msgstr "απενεργοποίηση"
 
@@ -2980,6 +3292,34 @@ msgstr "Ερώτημα"
 #, fuzzy
 msgid "Query Hit"
 msgstr "Χτύπημα ερωτήματος"
+
+#, fuzzy
+msgid "DHT Ping"
+msgstr "Ping"
+
+#, fuzzy
+msgid "DHT Pong"
+msgstr "Pong"
+
+#, fuzzy
+msgid "DHT Store"
+msgstr "Κυκλοφορία HTTP"
+
+msgid "DHT Store Ack"
+msgstr ""
+
+msgid "DHT Find Node"
+msgstr ""
+
+msgid "DHT Found Node"
+msgstr ""
+
+msgid "DHT Find Value"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Value"
+msgstr "Τιμή"
 
 msgid "Total"
 msgstr "Σύνολο"
@@ -3857,7 +4197,7 @@ msgid "Lebanon"
 msgstr "Αιτία"
 
 #, fuzzy
-msgid "Saint lucia"
+msgid "Saint Lucia"
 msgstr "Αγία Λουκία"
 
 #, fuzzy
@@ -3898,6 +4238,10 @@ msgstr ""
 #, fuzzy
 msgid "Montenegro"
 msgstr "Σερβία-Μαυροβούνιο"
+
+#, fuzzy
+msgid "Saint Martin"
+msgstr "Άγιος Μαρίνος, Δημοκρατία του"
 
 #, fuzzy
 msgid "Madagascar"
@@ -4498,9 +4842,6 @@ msgstr ""
 msgid "Bitzi URL"
 msgstr ""
 
-msgid "ShareMonkey URL"
-msgstr ""
-
 #, c-format
 msgid " (slot %u"
 msgstr " (υποδοχή %u"
@@ -4514,6 +4855,9 @@ msgstr "Ολοκληρώθηκε"
 
 msgid "Connecting..."
 msgstr "Γίνεται σύνδεση..."
+
+msgid "Connected"
+msgstr "Συνδέθηκε"
 
 msgid "Push sent directly"
 msgstr "Ώθηση εστάλη απευθείας"
@@ -4531,9 +4875,6 @@ msgstr "Αποστολή ώθησης"
 msgid " via %s"
 msgstr " μέσω %s"
 
-msgid "Connecting"
-msgstr "Γίνεται σύνδεση"
-
 msgid "Sending request"
 msgstr "Αποστολή αιτήματος"
 
@@ -4542,6 +4883,10 @@ msgstr "Αίτημα εστάλη"
 
 msgid "Reading headers"
 msgstr "Ανάγνωση κεφαλίδων"
+
+#, fuzzy
+msgid "UDP push sent"
+msgstr "Ώθηση εστάλη"
 
 msgid "Searching for new push-proxies"
 msgstr ""
@@ -4568,12 +4913,19 @@ msgstr "Ολοκληρώθηκε"
 msgid "Chunk done"
 msgstr "Επιτυχία κομματιού"
 
+#, fuzzy
+msgid "Waiting for TTH checking..."
+msgstr "Αναμονή ελέγχου SHA1..."
+
 msgid "Waiting for SHA1 checking..."
 msgstr "Αναμονή ελέγχου SHA1..."
 
-#, c-format
-msgid "Computing SHA1 (%.02f%%)"
+#, fuzzy, c-format
+msgid "Computing %s (%.02f%%)"
 msgstr "Υπολογισμός SHA1 (%.02f%%)"
+
+msgid "TTH OK"
+msgstr ""
 
 #, fuzzy
 msgid "SHA-1 OK"
@@ -4602,12 +4954,29 @@ msgstr "; Μετακινήθηκε (%s) %s"
 msgid "(stalled)"
 msgstr "(σταματημένο)"
 
-msgid "Connected"
-msgstr "Συνδέθηκε"
+#, fuzzy
+msgid "Receiving data"
+msgstr "Λήψη Κεφαλίδων"
 
 #, fuzzy
 msgid "ignoring"
 msgstr "εισερχόμενο"
+
+#, fuzzy
+msgid "selected next"
+msgstr "Επιλεγμένη ιδιότητα:"
+
+#, fuzzy
+msgid "requesting next"
+msgstr "Αίτημα εστάλη"
+
+#, fuzzy
+msgid "requested next"
+msgstr "Αίτημα εστάλη"
+
+#, fuzzy
+msgid "Awaiting data"
+msgstr "Αναμονή"
 
 msgid "Unknown error"
 msgstr "Άγνωστο σφάλμα"
@@ -4878,8 +5247,33 @@ msgstr "ΕΠΙΣΤΡΟΦΗ"
 msgid "Query hit"
 msgstr "Χτύπημα ερωτήματος"
 
+msgid "DHT (truncated)"
+msgstr ""
+
 msgid "Routing errors"
 msgstr "Σφάλματα δρομολόγησης"
+
+msgid "Duplicates with higher TTL"
+msgstr "Ανατυπώνει με υψηλότερο TTL"
+
+msgid "SPAM SHA1 database hits"
+msgstr ""
+
+#, fuzzy
+msgid "SPAM filename and size hits"
+msgstr "αν το όνομα αρχείου τελειώνει με \"%s\" %s"
+
+msgid "SPAM fake hits"
+msgstr ""
+
+msgid "SPAM duplicate hits"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP addresses"
+msgstr ""
+
+msgid "SPAM spotted spamming IP addresses held"
+msgstr ""
 
 msgid "Searches to local DB"
 msgstr "Αναζητήσεις στην τοπική ΒΔ"
@@ -4899,9 +5293,6 @@ msgstr "Ερωτήματα αναζήτησης χτυπημάτων παράδ�
 msgid "Stripped OOB flag on queries"
 msgstr "Περικομμένη σημαία OOB στα ερωτήματα"
 
-msgid "Duplicates with higher TTL"
-msgstr "Ανατυπώνει με υψηλότερο TTL"
-
 msgid "Duplicate OOB-proxied queries"
 msgstr "Ανατυπώνει ερωτήματα δρομολογημένα μέσω OOB"
 
@@ -4910,6 +5301,9 @@ msgstr "Ληφθέντα χτυπήματα OOB για ερωτήματα δρο
 
 msgid "OOB hits bearing alien IP address"
 msgstr "Χτυπήματα OOB που δημιουργούν ξένες διευθύνσεις IP"
+
+msgid "OOB hits ignored due to identified spamming address"
+msgstr ""
 
 msgid "Unclaimed locally-generated OOB hits"
 msgstr "Αδήλωτα τοπικά δημιουργημένα χτυπήματα OOB"
@@ -4935,6 +5329,30 @@ msgstr "ερωτήματα UTF8"
 
 msgid "SHA1 queries"
 msgstr "ερωτήματα SHA1"
+
+#, fuzzy
+msgid "GUESS queries"
+msgstr "ερωτήματα UTF8"
+
+msgid "GUESS cached query keys held"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS locally generated queries"
+msgstr "Τοπικά δημιουργημένα δυναμικά ερωτήματα"
+
+msgid "GUESS currently running queries"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS hits received for locally generated queries"
+msgstr "Ληφθέντα χτυπήματα ερωτημάτων για τοπικά ερωτήματα."
+
+msgid "GUESS hosts queried"
+msgstr ""
+
+msgid "GUESS hosts sending back an acknowledgment"
+msgstr ""
 
 msgid "Broadcasted push messages"
 msgstr "Μεταδιδόμενα μηνύματα ώθησης"
@@ -5052,6 +5470,12 @@ msgstr ""
 msgid "Firewalled node info for known hosts received in upload requests"
 msgstr ""
 
+msgid "Revitalized PUSH routes"
+msgstr ""
+
+msgid "Collected new PUSH proxies from other query hits"
+msgstr ""
+
 msgid "Attempted download resource switching on completion"
 msgstr ""
 
@@ -5140,6 +5564,9 @@ msgstr "Επίπεδο αποσφαλμάτωσης λήψεων."
 msgid "DHT estimated amount of nodes"
 msgstr ""
 
+msgid "DHT k-ball theoretical frontier (bits)"
+msgstr ""
+
 msgid "DHT k-ball furthest frontier (bits)"
 msgstr ""
 
@@ -5172,6 +5599,10 @@ msgstr ""
 msgid "DHT routing table evicted firewalled nodes"
 msgstr ""
 
+#, fuzzy
+msgid "DHT routing table evicted nodes due to quota"
+msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
+
 msgid "DHT routing table promoted pending nodes"
 msgstr ""
 
@@ -5179,11 +5610,21 @@ msgstr ""
 msgid "DHT routing table pinged promoted nodes"
 msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
 
+msgid "DHT routing table rejected node due to bucket network quota"
+msgstr ""
+
+msgid "DHT routing table rejected node due to global network quota"
+msgstr ""
+
 msgid "DHT completed bucket refreshes"
 msgstr ""
 
 msgid "DHT forced bucket refreshes"
 msgstr ""
+
+#, fuzzy
+msgid "DHT forced bucket merges"
+msgstr "Παραμορφωμένη εντολή"
 
 msgid "DHT denied non-splitable bucket refresh"
 msgstr ""
@@ -5197,10 +5638,31 @@ msgstr ""
 msgid "DHT alive pings sent to stale nodes"
 msgstr ""
 
+msgid "DHT alive pings sent to shutdowning nodes"
+msgstr ""
+
+msgid "DHT alive pings avoided"
+msgstr ""
+
+msgid "DHT alive pings skipped"
+msgstr ""
+
+msgid "DHT revitalized stale nodes on RPC reply"
+msgstr ""
+
 msgid "DHT value store rejected on IP/network quota grounds"
 msgstr ""
 
 msgid "DHT value store rejected on creator validation grounds"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on network quota"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on suspicious proximity"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on frequency divergence"
 msgstr ""
 
 msgid "DHT keys held"
@@ -5269,10 +5731,10 @@ msgstr ""
 msgid "DHT claimed cached values via secondary keys"
 msgstr "Χρονικά όρια (όλες οι τιμές σε δευτερόλεπτα)"
 
-msgid "DHT successful received value publications"
+msgid "DHT successfully received value publications"
 msgstr ""
 
-msgid "DHT successful received value removals"
+msgid "DHT successfully received value removals"
 msgstr ""
 
 msgid "DHT replication of stale value avoided"
@@ -5353,6 +5815,15 @@ msgstr ""
 msgid "DHT background publishing completion successful (all roots)"
 msgstr ""
 
+msgid "DHT SHA1 data type collisions"
+msgstr ""
+
+msgid "DHT lookup path passively protected against attack"
+msgstr ""
+
+msgid "DHT lookup path actively protected against attack"
+msgstr ""
+
 msgid "DHT alt-loc lookups issued"
 msgstr ""
 
@@ -5364,6 +5835,9 @@ msgid "DHT successful alt-loc lookups"
 msgstr ""
 
 msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+msgid "DHT successful node push-entry lookups"
 msgstr ""
 
 #, fuzzy
@@ -5380,18 +5854,18 @@ msgid_plural "files"
 msgstr[0] "αρχείο"
 msgstr[1] "αρχεία"
 
-msgid "Please choose where to store files while downloading"
-msgstr "Παρακαλούμε επιλέξτε που θα αποθηκεύονται τα αρχεία κατά τη λήψη"
+msgid "Please choose a directory to share"
+msgstr "Παρακαλούμε επιλέξτε έναν κατάλογο για ανταλλαγές"
 
 msgid "Please choose where to move files after successful download"
 msgstr ""
 "Παρακαλούμε επιλέξτε που θα μετακινούνται τα αρχεία μετά από επιτυχή λήψη"
 
+msgid "Please choose where to store files while downloading"
+msgstr "Παρακαλούμε επιλέξτε που θα αποθηκεύονται τα αρχεία κατά τη λήψη"
+
 msgid "Please choose where to move corrupted files"
 msgstr "Παρακαλούμε επιλέξτε που θα μετακινούνται τα κατεστραμμένα αρχεία"
-
-msgid "Please choose a directory to share"
-msgstr "Παρακαλούμε επιλέξτε έναν κατάλογο για ανταλλαγές"
 
 msgid " Clear completed "
 msgstr " Ο καθαρισμός ολοκληρώθηκε "
@@ -5561,6 +6035,10 @@ msgid "Avg. time between IP address changes:"
 msgstr "Μέσος χρόνος εναλλαγής διευθύνσεων IP:"
 
 msgid "Avg. uptime of this servent:"
+msgstr "Μέσος χρόνος λειτουργίας αυτού του πελάτη:"
+
+#, fuzzy
+msgid "Avg. downtime of this servent:"
 msgstr "Μέσος χρόνος λειτουργίας αυτού του πελάτη:"
 
 msgid "Bad hosts"
@@ -5994,6 +6472,10 @@ msgid "GUI development:"
 msgstr "Ανάπτυξη γραφικού ενδιαμέσου:"
 
 msgid "GUID:"
+msgstr "GUID:"
+
+#, fuzzy
+msgid "KUID:"
 msgstr "GUID:"
 
 msgid "Gen. queued"
@@ -7228,10 +7710,6 @@ msgstr "διάκριση μικρών/κεφαλαίων"
 msgid "case-sensitive"
 msgstr "διάκριση μικρών/κεφαλαίων"
 
-#, fuzzy
-msgid "completed"
-msgstr "Ολοκληρώθηκε"
-
 msgid "do"
 msgstr "κάνε"
 
@@ -7334,6 +7812,84 @@ msgid "uploads"
 msgstr "αποστολές"
 
 #, fuzzy
+msgid "Available HTTP input bandwidth"
+msgstr "Διαθέσιμο εύρος"
+
+#, fuzzy
+msgid "Available HTTP output bandwidth"
+msgstr "Διαθέσιμο εύρος"
+
+msgid "DHT up, passive mode."
+msgstr ""
+
+msgid "DHT up, active mode."
+msgstr ""
+
+msgid "DHT bootstrapping."
+msgstr ""
+
+msgid "DHT looking up own KUID."
+msgstr ""
+
+#, fuzzy
+msgid "DHT seeded."
+msgstr "Ταχύτητα TX"
+
+#, fuzzy
+msgid "DHT inactive."
+msgstr "%u εν ενεργεία"
+
+#, fuzzy
+msgid "Disabled stealing of outgoing HTTP bandwidth."
+msgstr "Εμφάνιση χρήσης εύρους εξερχόμενης κυκλοφορίας HTTP."
+
+#, fuzzy
+msgid "Splitting ougoing HTTP bandwidth evenly."
+msgstr "Εμφάνιση μέσου εύρους εξερχόμενης κυκλοφορίας HTTP."
+
+msgid "Capping HTTP outgoing bandwidth."
+msgstr ""
+
+msgid "Port mapping possible through UPnP or NAT-PMP."
+msgstr ""
+
+msgid "Port mapping configured through UPnP or NAT-PMP."
+msgstr ""
+
+#, fuzzy
+msgid "Enable UPnP"
+msgstr "Ενεργοποίηση _UDP"
+
+#, fuzzy
+msgid "Enable NAT-PMP"
+msgstr "Ενεργοποίηση _UDP"
+
+msgid "Enable HTTP request pipelining"
+msgstr ""
+
+#, fuzzy
+msgid "Pipelining max chunk size"
+msgstr "Ελάχιστο μέγεθος κομματιού"
+
+#, fuzzy
+msgid "Enable upload of patial files deemed rare"
+msgstr "Ενεργοποίηση αποστολής ανολοκλήρωτων αρχείων"
+
+msgid "Enable GUESS (additional querying)"
+msgstr ""
+
+msgid "Issue GUESS queries as well"
+msgstr ""
+
+#, fuzzy
+msgid "Bandwidth limits for GUESS queries"
+msgstr "Όρια εύρους κυκλοφορίας GnutellaNet"
+
+#, fuzzy
+msgid "Output bandwidth hint"
+msgstr "Όριο ολικού εύρους εξόδου:"
+
+#, fuzzy
 msgid "owned"
 msgstr "Έγινε"
 
@@ -7406,6 +7962,10 @@ msgstr "_αυτόματη απόκρυψη στατιστικών δικτυακ
 msgid "_Search"
 msgstr "_Αναζήτηση"
 
+#, fuzzy
+msgid "Splitting outgoing HTTP bandwidth evenly."
+msgstr "Εμφάνιση μέσου εύρους εξερχόμενης κυκλοφορίας HTTP."
+
 msgid "Connect to"
 msgstr "Σύνδεση σε"
 
@@ -7434,8 +7994,17 @@ msgid ""
 "routing packets in the Gnutella network."
 msgstr ""
 
+msgid "[GUID placeholder]"
+msgstr ""
+
+msgid "[KUID placeholder]"
+msgstr ""
+
 msgid "Address/Port:"
 msgstr "Διεύθυνση/Θύρα:"
+
+msgid "[IP:port placeholder]"
+msgstr ""
 
 msgid "Served "
 msgstr "Εξυπηρέτησε "
@@ -7507,6 +8076,9 @@ msgstr ""
 msgid "IPv_6 settings"
 msgstr "Ρυθμίσεις IP"
 
+msgid "Port Mapping"
+msgstr ""
+
 msgid ""
 "This option can give performance boosts to those on a large network with "
 "many peers by trying to locate files on the local networks first."
@@ -7537,8 +8109,16 @@ msgstr "Ε_ξερχόμενη κυκλοφορία"
 msgid "attempts"
 msgstr "Προσπάθειες"
 
+#, fuzzy
+msgid "Pipelining maximum chunk size"
+msgstr "Ελάχιστο μέγεθος κομματιού"
+
 msgid "_Remove directory"
 msgstr "_Αφαίρεση καταλόγου"
+
+#, fuzzy
+msgid "Enable upload of partial files deemed rare"
+msgstr "Ενεργοποίηση αποστολής ανολοκλήρωτων αρχείων"
 
 msgid "Minimum chunk _size"
 msgstr "Ελά_χιστο μέγεθος κομματιού"
@@ -7546,6 +8126,10 @@ msgstr "Ελά_χιστο μέγεθος κομματιού"
 #, fuzzy
 msgid "Show a status _icon"
 msgstr "Εμφάνιση αιτιών _για"
+
+#, fuzzy
+msgid "Avg. downtime of this servent"
+msgstr "Μέσος χρόνος λειτουργίας αυτού του πελάτη:"
 
 msgid "Remove completed downloads from list"
 msgstr "Αφαίρεση ολοκληρωμένων λήψεων από τη λίστα"
@@ -7614,6 +8198,12 @@ msgstr "Ασταθές"
 #, fuzzy
 msgid "Alien"
 msgstr "Εναλλακτικές ονομασίες"
+
+msgid "GUESS (running)"
+msgstr ""
+
+msgid "GUESS (introductions)"
+msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"
 msgstr ""
@@ -8103,3 +8693,12 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
+
+#~ msgid "Banned: %s"
+#~ msgstr "Απαγόρευση: %s"
+
+#~ msgid "Banned for %s"
+#~ msgstr "Απαγόρευση λόγω %s"
+
+#~ msgid "Connecting"
+#~ msgstr "Γίνεται σύνδεση"

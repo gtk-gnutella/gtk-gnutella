@@ -150,6 +150,9 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 all-yes: stamp-po
 all-no:
 
+# Must run whenever there are new strings to be translated in the source files.
+update: update-po
+
 # stamp-po is a timestamp denoting the last time at which the CATALOGS have
 # been loosely updated. Its purpose is that when a developer or translator
 # checks out the package via CVS, and the $(DOMAIN).pot file is not in CVS,

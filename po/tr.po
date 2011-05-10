@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2010-01-10 22:16+0900\n"
+"POT-Creation-Date: 2011-05-10 19:00+0200\n"
 "PO-Revision-Date: 2006-10-04 06:09+0300\n"
 "Last-Translator: Uğur Çetin <ugur.jnmbk@gmail.com>\n"
 "Language-Team: Turkish <gnu-tr-u12a@lists.sourceforge.net>\n"
@@ -38,6 +38,10 @@ msgstr "Durduruldu (%s)"
 #, c-format
 msgid "Too many attempts (%u times)"
 msgstr ""
+
+#, fuzzy
+msgid "Requeued due to no push-proxy"
+msgstr "Zaman aşımı yüzünden kuyruğa alındı"
 
 #, fuzzy
 msgid "Requeued due to file removal"
@@ -92,13 +96,16 @@ msgstr ""
 msgid "Connection failed"
 msgstr "Bağlantı başarısız"
 
+msgid "Waiting for server PROX publishing"
+msgstr ""
+
+msgid "Waiting for push route"
+msgstr ""
+
 msgid "Push route lost"
 msgstr ""
 
 msgid "Ignoring Push flag"
-msgstr ""
-
-msgid "Can't reach host (Push or Direct)"
 msgstr ""
 
 #, c-format
@@ -324,6 +331,9 @@ msgstr "Aramalar"
 msgid "THEX download aborted"
 msgstr "İndirilen:"
 
+msgid "Pipeline flow stopped"
+msgstr ""
+
 #, fuzzy, c-format
 msgid "Cannot open %s: %s"
 msgstr "Veri kaydedilemedi: %s"
@@ -407,17 +417,35 @@ msgstr "İndirme ayarları"
 msgid "Seeding"
 msgstr "Hız:"
 
+msgid "Computing TTH"
+msgstr ""
+
 msgid "Computing SHA1"
 msgstr ""
 
+#, fuzzy
+msgid "Waiting for TTH check"
+msgstr "SHA1 kontrolü için bekleniyor..."
+
 msgid "Waiting for SHA1 check"
 msgstr ""
+
+#, fuzzy
+msgid "SHA1"
+msgstr "SHA1:"
 
 msgid "OK"
 msgstr "Tamam"
 
 msgid "failed"
 msgstr "başarısız"
+
+msgid "not computed yet"
+msgstr ""
+
+#, fuzzy
+msgid "Waiting for moving..."
+msgstr "SHA1 kontrolü için bekleniyor..."
 
 msgid "Moving"
 msgstr "Taşınıyor"
@@ -434,6 +462,23 @@ msgstr ""
 
 msgid "Waiting"
 msgstr "Bekliyor"
+
+msgid "Querying DHT"
+msgstr ""
+
+#, fuzzy
+msgid "Pending DHT query"
+msgstr "İstek gönderiliyor"
+
+#, c-format
+msgid "%u/%u successful DHT lookup"
+msgid_plural "%u/%u successful DHT lookups"
+msgstr[0] ""
+
+#, c-format
+msgid "%u DHT lookup"
+msgid_plural "%u DHT lookups"
+msgstr[0] ""
 
 msgid "Bad size"
 msgstr "Yanlış boyut"
@@ -464,6 +509,10 @@ msgstr ""
 
 msgid "Message throttle"
 msgstr ""
+
+#, fuzzy
+msgid "Message matched limits"
+msgstr "Gnutella istatistikleri"
 
 msgid "Unusable Pong"
 msgstr ""
@@ -519,6 +568,9 @@ msgstr ""
 msgid "Hostile IP address"
 msgstr ""
 
+msgid "Bogus result from Morpheus"
+msgstr ""
+
 msgid "Spam"
 msgstr ""
 
@@ -536,12 +588,22 @@ msgstr ""
 msgid "Own search results"
 msgstr "Arama sonuçları"
 
+#, fuzzy
+msgid "Own queries"
+msgstr "UTF8 sorgular"
+
 msgid "Ancient query format"
 msgstr ""
 
 #, fuzzy
 msgid "Blank Servent ID"
 msgstr "Sunucu"
+
+msgid "GUESS Query missing token"
+msgstr ""
+
+msgid "GUESS Invalid query token"
+msgstr ""
 
 msgid "DHT Invalid security token"
 msgstr ""
@@ -691,6 +753,9 @@ msgstr "Zaten bağlı"
 msgid "Limited connection"
 msgstr "bağlantı sağlamaya çalış."
 
+msgid "Write error during HELLO"
+msgstr ""
+
 #, c-format
 msgid "Write error during HELLO: %s"
 msgstr ""
@@ -734,11 +799,22 @@ msgstr ""
 msgid "Read error: %s"
 msgstr ""
 
+#, c-format
+msgid "mkdir(\"%s\") failed: \"%s\""
+msgstr ""
+
 msgid "Can't find your home directory!"
 msgstr "Ev dizininiz bulunamadı!"
 
+msgid "$GTK_GNUTELLA_DIR must point to an absolute path!"
+msgstr ""
+
 #, c-format
 msgid "creating configuration directory \"%s\""
+msgstr ""
+
+#, c-format
+msgid "creating directory \"%s\" for %s"
 msgstr ""
 
 msgid "You seem to have left another gtk-gnutella running"
@@ -792,14 +868,6 @@ msgid "Timeout waiting for follow-up"
 msgstr ""
 
 msgid "Lifetime expired"
-msgstr ""
-
-#, c-format
-msgid "Banned: %s"
-msgstr "Yasaklandı: %s"
-
-#, c-format
-msgid "Banned for %s"
 msgstr ""
 
 msgid "Unable to send GIV"
@@ -925,6 +993,30 @@ msgstr ""
 msgid "input & output"
 msgstr ""
 
+msgid "seeded"
+msgstr ""
+
+msgid "own KUID lookup"
+msgstr ""
+
+#, fuzzy
+msgid "completing"
+msgstr "Tamamlandı"
+
+#, fuzzy
+msgid "completed"
+msgstr "Tamamlandı"
+
+#, fuzzy
+msgid "shutdown"
+msgstr "Kapanıyor (%s)"
+
+msgid "active (recommended)"
+msgstr ""
+
+msgid "passive"
+msgstr ""
+
 msgid "Indicates whether the hostcache file is being read."
 msgstr ""
 
@@ -962,7 +1054,7 @@ msgid ""
 "Don't allow more than this number of connections to other servents.  As a "
 "rule of thumb you should reserve 256 b/s bandwidth per connection. Never use "
 "up all your bandwidth, leave a little space for TCP/IP overhead. It's not "
-"advisable that you set this to a value smaller than 30."
+"advisable that you set this to a value smaller than 40."
 msgstr ""
 
 msgid "Number of leaf nodes currently connected."
@@ -2216,9 +2308,6 @@ msgstr ""
 msgid "Maximum number of results to show in a browse_host request."
 msgstr ""
 
-msgid "The current Session ID."
-msgstr ""
-
 msgid "Date of the latest SVN release."
 msgstr ""
 
@@ -2491,6 +2580,198 @@ msgstr ""
 msgid "Debug level for version management."
 msgstr ""
 
+msgid "Minimum CPU frequency, in Hz."
+msgstr ""
+
+msgid "Maximum CPU frequency, in Hz."
+msgstr ""
+
+#, fuzzy
+msgid "DHT bootstrap status."
+msgstr "Gnet _trafik istatistikleri"
+
+msgid ""
+"The DHT running mode. An active mode will be able to store values and is a "
+"fully participating member of the Distributed Hash Table. A passive node can "
+"perform lookups and publish but will not store values and cannot be a member "
+"of the DHT structure. A firewalled node is necessarily passive, but you can "
+"force the passive mode even if you are not firewalled, although that is not "
+"recommended because the DHT requires far more active nodes that passive ones "
+"to be efficient."
+msgstr ""
+
+msgid "Current DHT running mode."
+msgstr ""
+
+msgid "Debug level for the one-time memory allocator."
+msgstr ""
+
+msgid "Debug level for the host cache."
+msgstr ""
+
+msgid "Random bits."
+msgstr ""
+
+msgid "Average servent downtime."
+msgstr ""
+
+msgid "Time when last shutdown occurred."
+msgstr ""
+
+msgid "Debug level for alive pings."
+msgstr ""
+
+msgid "Debug level for the versatile XML layer."
+msgstr ""
+
+msgid "Debug level for the UPnP layer."
+msgstr ""
+
+msgid "Debug level for the SOAP layer."
+msgstr ""
+
+msgid "Defines SOAP exchanges tracing type."
+msgstr ""
+
+msgid ""
+"For testing purposes, allow to run as an ultranode even if the node cannot "
+"accept incoming TCP connections."
+msgstr ""
+
+msgid ""
+"Whether UPnP (Universal Plug and Play) should be enabled. Support for UPnP "
+"means gtk-gnutella will be able to discover your Internet Gateway Device "
+"(router) and request that the listening port be opened and redirected to "
+"your machine, thereby auto-configuring to make sure you are not firewalled.  "
+"By default you should leave it enabled unless you know how to configure your "
+"network equipment manually to prevent the firewalled condition for both TCP "
+"and UDP."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella was able to locate an Internet Gateway Device to "
+"install port mappings, if required."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella thinks it needs to install port mappings on your "
+"network router to avoid the firewalled condition."
+msgstr ""
+
+msgid "Whether gtk-gnutella can install port mappings, if needed."
+msgstr ""
+
+msgid "Debug level for the NAT-PMP layer."
+msgstr ""
+
+msgid ""
+"Whether NAT-PMP (NAT Port Mapping Protocol) should be enabled. Support for "
+"NAT-PMP means gtk-gnutella will be able to look whether your default gateway "
+"(router) supports the Port Mapping Protocol to allow transparent redirection "
+"of the external ports on the router to the local machine, thereby making "
+"sure you are not firewalled. By default you should leave it enabled unless "
+"you know how to configure your network equipment manually to prevent the "
+"firewalled condition for both TCP and UDP."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella was able to locate a NAT-PMP gateway to install port "
+"mappings, if required."
+msgstr ""
+
+msgid "Debug level for the TX (transmit) network layer."
+msgstr ""
+
+msgid "Debug level for the RX (receive) network layer."
+msgstr ""
+
+msgid "Debug level for the I/O input event layer."
+msgstr ""
+
+msgid "Debug level for the background task scheduler."
+msgstr ""
+
+msgid "Whether gtk-gnutella was able to configure port mappings."
+msgstr ""
+
+msgid "Whether gtk-gnutella disabled HTTP bandwidth stealing."
+msgstr ""
+
+msgid "Whether gtk-gnutella ignores HTTP stolen bandwidth."
+msgstr ""
+
+msgid "Whether gtk-gnutella enforces uniform HTTP outgoing bandwidth."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella should use HTTP request pipelining when possible, in "
+"order to decrease downloading latency."
+msgstr ""
+
+msgid "Maximum chunk size when swarming with HTTP pipelining."
+msgstr ""
+
+msgid ""
+"Whether the Gnutella UDP Extension for Scalable Searches (GUESS) should be "
+"enabled.  With GUESS enabled, gtk-gnutella offers the network the ability to "
+"perform iterative Ultrapeer queries instead of just broadcasting, allowing "
+"searches to more places within the Gnutella network.  If you want gtk-"
+"gnutella to issue GUESS queries, you need to make sure the client-side is "
+"enabled as well as this setting only governs mostly the server-side of GUESS "
+"(required to allow the client-side)."
+msgstr ""
+
+msgid ""
+"Debug level for server-side GUESS (Gnutella UDP Extension for Scalable "
+"Searches)."
+msgstr ""
+
+msgid ""
+"Debug level for client-side GUESS (Gnutella UDP Extension for Scalable "
+"Searches)."
+msgstr ""
+
+msgid "Maximum number of hosts in the regular GUESS cache."
+msgstr ""
+
+msgid "Current number of hosts in the regular GUESS cache."
+msgstr ""
+
+msgid "Maximum number of hosts in the introduction GUESS cache."
+msgstr ""
+
+msgid "Current number of hosts in the introduction GUESS cache."
+msgstr ""
+
+msgid "Debug level for the DB disk/RAM storage layer."
+msgstr ""
+
+msgid ""
+"The current Session ID.  This is a unique ID generated each time gtk-"
+"gnutella starts and it can be monitored from the shell interface to check "
+"whether gtk-gnutella has been restarted since the last check."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella should serve partial files which are rare on the "
+"network to increase their spreading rate.  It is good for the health of the "
+"network to always leave this enabled. This setting supersedes the disabling "
+"of global partial file sharing for rare files only."
+msgstr ""
+
+msgid ""
+"Whether the Gnutella UDP Extension for Scalable Searches (GUESS) client side "
+"should be enabled, so that gtk-gnutella can indeed issue iterative Ultrapeer "
+"queries instead of just broadcasting them. If enabled, it requires general "
+"GUESS support enabled as well or it will simply be ignored."
+msgstr ""
+
+msgid ""
+"Bandwidth hint for GUESS querying, in bytes/sec, limiting the amount of "
+"concurrency that can be used for GUESS.  Lower numbers mean slower querying "
+"overall"
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -2545,6 +2826,31 @@ msgstr ""
 
 msgid "Query Hit"
 msgstr ""
+
+msgid "DHT Ping"
+msgstr ""
+
+msgid "DHT Pong"
+msgstr ""
+
+msgid "DHT Store"
+msgstr ""
+
+msgid "DHT Store Ack"
+msgstr ""
+
+msgid "DHT Find Node"
+msgstr ""
+
+msgid "DHT Found Node"
+msgstr ""
+
+msgid "DHT Find Value"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Value"
+msgstr "Değer:"
 
 msgid "Total"
 msgstr "Toplam"
@@ -3342,7 +3648,7 @@ msgstr ""
 msgid "Lebanon"
 msgstr "Sebep"
 
-msgid "Saint lucia"
+msgid "Saint Lucia"
 msgstr ""
 
 msgid "Liechtenstein"
@@ -3380,6 +3686,9 @@ msgid "Moldova"
 msgstr ""
 
 msgid "Montenegro"
+msgstr ""
+
+msgid "Saint Martin"
 msgstr ""
 
 msgid "Madagascar"
@@ -3937,9 +4246,6 @@ msgstr ""
 msgid "Bitzi URL"
 msgstr ""
 
-msgid "ShareMonkey URL"
-msgstr ""
-
 #, c-format
 msgid " (slot %u"
 msgstr ""
@@ -3953,6 +4259,9 @@ msgstr "Tamamlandı"
 
 msgid "Connecting..."
 msgstr "Bağlanıyor..."
+
+msgid "Connected"
+msgstr "Bağlandı"
 
 msgid "Push sent directly"
 msgstr ""
@@ -3970,9 +4279,6 @@ msgstr ""
 msgid " via %s"
 msgstr "%s yoluyla"
 
-msgid "Connecting"
-msgstr "Bağlanıyor"
-
 msgid "Sending request"
 msgstr "İstek gönderiliyor"
 
@@ -3981,6 +4287,9 @@ msgstr "İstek gönderildi"
 
 msgid "Reading headers"
 msgstr "Başlıklar okunuyor"
+
+msgid "UDP push sent"
+msgstr ""
 
 msgid "Searching for new push-proxies"
 msgstr ""
@@ -4007,12 +4316,19 @@ msgstr "Tamamlandı"
 msgid "Chunk done"
 msgstr ""
 
+#, fuzzy
+msgid "Waiting for TTH checking..."
+msgstr "SHA1 kontrolü için bekleniyor..."
+
 msgid "Waiting for SHA1 checking..."
 msgstr "SHA1 kontrolü için bekleniyor..."
 
-#, c-format
-msgid "Computing SHA1 (%.02f%%)"
+#, fuzzy, c-format
+msgid "Computing %s (%.02f%%)"
 msgstr "SHA1 hesaplanıyor (%.02f%%)"
+
+msgid "TTH OK"
+msgstr ""
 
 #, fuzzy
 msgid "SHA-1 OK"
@@ -4041,12 +4357,28 @@ msgstr ""
 msgid "(stalled)"
 msgstr ""
 
-msgid "Connected"
-msgstr "Bağlandı"
+#, fuzzy
+msgid "Receiving data"
+msgstr "Başlıklar alınıyor"
 
 #, fuzzy
 msgid "ignoring"
 msgstr "gelen"
+
+msgid "selected next"
+msgstr ""
+
+#, fuzzy
+msgid "requesting next"
+msgstr "İstek gönderildi"
+
+#, fuzzy
+msgid "requested next"
+msgstr "İstek gönderildi"
+
+#, fuzzy
+msgid "Awaiting data"
+msgstr "Bekliyor"
 
 msgid "Unknown error"
 msgstr "Bilinmeyen hata"
@@ -4314,7 +4646,31 @@ msgstr ""
 msgid "Query hit"
 msgstr ""
 
+msgid "DHT (truncated)"
+msgstr ""
+
 msgid "Routing errors"
+msgstr ""
+
+msgid "Duplicates with higher TTL"
+msgstr ""
+
+msgid "SPAM SHA1 database hits"
+msgstr ""
+
+msgid "SPAM filename and size hits"
+msgstr ""
+
+msgid "SPAM fake hits"
+msgstr ""
+
+msgid "SPAM duplicate hits"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP addresses"
+msgstr ""
+
+msgid "SPAM spotted spamming IP addresses held"
 msgstr ""
 
 msgid "Searches to local DB"
@@ -4335,9 +4691,6 @@ msgstr ""
 msgid "Stripped OOB flag on queries"
 msgstr ""
 
-msgid "Duplicates with higher TTL"
-msgstr ""
-
 msgid "Duplicate OOB-proxied queries"
 msgstr ""
 
@@ -4345,6 +4698,9 @@ msgid "OOB hits received for OOB-proxied queries"
 msgstr ""
 
 msgid "OOB hits bearing alien IP address"
+msgstr ""
+
+msgid "OOB hits ignored due to identified spamming address"
 msgstr ""
 
 msgid "Unclaimed locally-generated OOB hits"
@@ -4370,6 +4726,28 @@ msgstr "UTF8 sorgular"
 
 msgid "SHA1 queries"
 msgstr "SHA1 sorgular"
+
+#, fuzzy
+msgid "GUESS queries"
+msgstr "UTF8 sorgular"
+
+msgid "GUESS cached query keys held"
+msgstr ""
+
+msgid "GUESS locally generated queries"
+msgstr ""
+
+msgid "GUESS currently running queries"
+msgstr ""
+
+msgid "GUESS hits received for locally generated queries"
+msgstr ""
+
+msgid "GUESS hosts queried"
+msgstr ""
+
+msgid "GUESS hosts sending back an acknowledgment"
+msgstr ""
 
 msgid "Broadcasted push messages"
 msgstr ""
@@ -4482,6 +4860,12 @@ msgstr ""
 msgid "Firewalled node info for known hosts received in upload requests"
 msgstr ""
 
+msgid "Revitalized PUSH routes"
+msgstr ""
+
+msgid "Collected new PUSH proxies from other query hits"
+msgstr ""
+
 msgid "Attempted download resource switching on completion"
 msgstr ""
 
@@ -4569,6 +4953,9 @@ msgstr ""
 msgid "DHT estimated amount of nodes"
 msgstr ""
 
+msgid "DHT k-ball theoretical frontier (bits)"
+msgstr ""
+
 msgid "DHT k-ball furthest frontier (bits)"
 msgstr ""
 
@@ -4599,16 +4986,28 @@ msgstr ""
 msgid "DHT routing table evicted firewalled nodes"
 msgstr ""
 
+msgid "DHT routing table evicted nodes due to quota"
+msgstr ""
+
 msgid "DHT routing table promoted pending nodes"
 msgstr ""
 
 msgid "DHT routing table pinged promoted nodes"
 msgstr ""
 
+msgid "DHT routing table rejected node due to bucket network quota"
+msgstr ""
+
+msgid "DHT routing table rejected node due to global network quota"
+msgstr ""
+
 msgid "DHT completed bucket refreshes"
 msgstr ""
 
 msgid "DHT forced bucket refreshes"
+msgstr ""
+
+msgid "DHT forced bucket merges"
 msgstr ""
 
 msgid "DHT denied non-splitable bucket refresh"
@@ -4623,10 +5022,31 @@ msgstr ""
 msgid "DHT alive pings sent to stale nodes"
 msgstr ""
 
+msgid "DHT alive pings sent to shutdowning nodes"
+msgstr ""
+
+msgid "DHT alive pings avoided"
+msgstr ""
+
+msgid "DHT alive pings skipped"
+msgstr ""
+
+msgid "DHT revitalized stale nodes on RPC reply"
+msgstr ""
+
 msgid "DHT value store rejected on IP/network quota grounds"
 msgstr ""
 
 msgid "DHT value store rejected on creator validation grounds"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on network quota"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on suspicious proximity"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on frequency divergence"
 msgstr ""
 
 msgid "DHT keys held"
@@ -4693,10 +5113,10 @@ msgstr ""
 msgid "DHT claimed cached values via secondary keys"
 msgstr ""
 
-msgid "DHT successful received value publications"
+msgid "DHT successfully received value publications"
 msgstr ""
 
-msgid "DHT successful received value removals"
+msgid "DHT successfully received value removals"
 msgstr ""
 
 msgid "DHT replication of stale value avoided"
@@ -4777,6 +5197,15 @@ msgstr ""
 msgid "DHT background publishing completion successful (all roots)"
 msgstr ""
 
+msgid "DHT SHA1 data type collisions"
+msgstr ""
+
+msgid "DHT lookup path passively protected against attack"
+msgstr ""
+
+msgid "DHT lookup path actively protected against attack"
+msgstr ""
+
 msgid "DHT alt-loc lookups issued"
 msgstr ""
 
@@ -4787,6 +5216,9 @@ msgid "DHT successful alt-loc lookups"
 msgstr ""
 
 msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+msgid "DHT successful node push-entry lookups"
 msgstr ""
 
 msgid "DHT re-seeding of orphan downloads"
@@ -4800,17 +5232,17 @@ msgid "file"
 msgid_plural "files"
 msgstr[0] "dosya"
 
-msgid "Please choose where to store files while downloading"
-msgstr ""
+msgid "Please choose a directory to share"
+msgstr "Lütfen paylaşılacak dizini seçin"
 
 msgid "Please choose where to move files after successful download"
 msgstr ""
 
-msgid "Please choose where to move corrupted files"
+msgid "Please choose where to store files while downloading"
 msgstr ""
 
-msgid "Please choose a directory to share"
-msgstr "Lütfen paylaşılacak dizini seçin"
+msgid "Please choose where to move corrupted files"
+msgstr ""
 
 msgid " Clear completed "
 msgstr ""
@@ -4968,6 +5400,9 @@ msgid "Avg. time between IP address changes:"
 msgstr ""
 
 msgid "Avg. uptime of this servent:"
+msgstr ""
+
+msgid "Avg. downtime of this servent:"
 msgstr ""
 
 msgid "Bad hosts"
@@ -5386,6 +5821,9 @@ msgid "GUI development:"
 msgstr ""
 
 msgid "GUID:"
+msgstr ""
+
+msgid "KUID:"
 msgstr ""
 
 msgid "Gen. queued"
@@ -6550,10 +6988,6 @@ msgstr ""
 msgid "case-sensitive"
 msgstr "büyük-küçük duyarlı"
 
-#, fuzzy
-msgid "completed"
-msgstr "Tamamlandı"
-
 msgid "do"
 msgstr ""
 
@@ -6648,6 +7082,72 @@ msgstr ""
 msgid "uploads"
 msgstr "göndermeler"
 
+msgid "Available HTTP input bandwidth"
+msgstr ""
+
+msgid "Available HTTP output bandwidth"
+msgstr ""
+
+msgid "DHT up, passive mode."
+msgstr ""
+
+msgid "DHT up, active mode."
+msgstr ""
+
+msgid "DHT bootstrapping."
+msgstr ""
+
+msgid "DHT looking up own KUID."
+msgstr ""
+
+msgid "DHT seeded."
+msgstr ""
+
+msgid "DHT inactive."
+msgstr ""
+
+msgid "Disabled stealing of outgoing HTTP bandwidth."
+msgstr ""
+
+msgid "Splitting ougoing HTTP bandwidth evenly."
+msgstr ""
+
+msgid "Capping HTTP outgoing bandwidth."
+msgstr ""
+
+msgid "Port mapping possible through UPnP or NAT-PMP."
+msgstr ""
+
+msgid "Port mapping configured through UPnP or NAT-PMP."
+msgstr ""
+
+msgid "Enable UPnP"
+msgstr ""
+
+msgid "Enable NAT-PMP"
+msgstr ""
+
+msgid "Enable HTTP request pipelining"
+msgstr ""
+
+msgid "Pipelining max chunk size"
+msgstr ""
+
+msgid "Enable upload of patial files deemed rare"
+msgstr ""
+
+msgid "Enable GUESS (additional querying)"
+msgstr ""
+
+msgid "Issue GUESS queries as well"
+msgstr ""
+
+msgid "Bandwidth limits for GUESS queries"
+msgstr ""
+
+msgid "Output bandwidth hint"
+msgstr ""
+
 #, fuzzy
 msgid "owned"
 msgstr "Bitti"
@@ -6716,6 +7216,9 @@ msgstr "Gnet _trafik istatistikleri"
 msgid "_Search"
 msgstr "A_rama"
 
+msgid "Splitting outgoing HTTP bandwidth evenly."
+msgstr ""
+
 msgid "Connect to"
 msgstr "Bağlan"
 
@@ -6742,8 +7245,17 @@ msgid ""
 "routing packets in the Gnutella network."
 msgstr ""
 
+msgid "[GUID placeholder]"
+msgstr ""
+
+msgid "[KUID placeholder]"
+msgstr ""
+
 msgid "Address/Port:"
 msgstr "Adres/Port:"
+
+msgid "[IP:port placeholder]"
+msgstr ""
 
 msgid "Served "
 msgstr ""
@@ -6813,6 +7325,9 @@ msgstr ""
 msgid "IPv_6 settings"
 msgstr "IP ayarları"
 
+msgid "Port Mapping"
+msgstr ""
+
 msgid ""
 "This option can give performance boosts to those on a large network with "
 "many peers by trying to locate files on the local networks first."
@@ -6839,7 +7354,13 @@ msgstr ""
 msgid "attempts"
 msgstr "deneme"
 
+msgid "Pipelining maximum chunk size"
+msgstr ""
+
 msgid "_Remove directory"
+msgstr ""
+
+msgid "Enable upload of partial files deemed rare"
 msgstr ""
 
 msgid "Minimum chunk _size"
@@ -6848,6 +7369,9 @@ msgstr ""
 #, fuzzy
 msgid "Show a status _icon"
 msgstr "Seçenekleri _göster"
+
+msgid "Avg. downtime of this servent"
+msgstr ""
 
 msgid "Remove completed downloads from list"
 msgstr ""
@@ -6913,6 +7437,12 @@ msgid "Unstable"
 msgstr ""
 
 msgid "Alien"
+msgstr ""
+
+msgid "GUESS (running)"
+msgstr ""
+
+msgid "GUESS (introductions)"
 msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"
@@ -7370,3 +7900,9 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#~ msgid "Banned: %s"
+#~ msgstr "Yasaklandı: %s"
+
+#~ msgid "Connecting"
+#~ msgstr "Bağlanıyor"

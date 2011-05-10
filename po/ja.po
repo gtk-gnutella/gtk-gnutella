@@ -76,7 +76,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2010-01-10 22:16+0900\n"
+"POT-Creation-Date: 2011-05-10 19:00+0200\n"
 "PO-Revision-Date: 2010-01-11 02:32+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -103,6 +103,10 @@ msgstr "中断されました (%s)"
 #, c-format
 msgid "Too many attempts (%u times)"
 msgstr "要求回数が多すぎます (%u 回)"
+
+#, fuzzy
+msgid "Requeued due to no push-proxy"
+msgstr "キューに戻されました (タイムアウト)"
 
 msgid "Requeued due to file removal"
 msgstr "キューに戻されました (ファイル削除)"
@@ -158,14 +162,18 @@ msgstr "接続失敗 (ファイル記述子は足りていますか？)"
 msgid "Connection failed"
 msgstr "接続に失敗しました"
 
+msgid "Waiting for server PROX publishing"
+msgstr ""
+
+#, fuzzy
+msgid "Waiting for push route"
+msgstr "リクエストの詳細を待受中..."
+
 msgid "Push route lost"
 msgstr "PUSH経路を喪失"
 
 msgid "Ignoring Push flag"
 msgstr "PUSHフラッグを無視します"
-
-msgid "Can't reach host (Push or Direct)"
-msgstr "ホストに到達できません (PUSHまたは直接)"
 
 #, c-format
 msgid "No direct connection yet (%u retry)"
@@ -381,6 +389,9 @@ msgstr "検索は既に閉じられています"
 msgid "THEX download aborted"
 msgstr "THEXダウンロードが異常終了しました"
 
+msgid "Pipeline flow stopped"
+msgstr ""
+
 #, c-format
 msgid "Cannot open %s: %s"
 msgstr "%s を開けません: %s"
@@ -468,11 +479,23 @@ msgstr "ダウンロード中 (残り時間: %s)"
 msgid "Seeding"
 msgstr "シード中"
 
+#, fuzzy
+msgid "Computing TTH"
+msgstr "SHA1を算出しています"
+
 msgid "Computing SHA1"
 msgstr "SHA1を算出しています"
 
+#, fuzzy
+msgid "Waiting for TTH check"
+msgstr "SHA1の確認を待っています"
+
 msgid "Waiting for SHA1 check"
 msgstr "SHA1の確認を待っています"
+
+#, fuzzy
+msgid "SHA1"
+msgstr "SHA-1"
 
 msgid "OK"
 msgstr "OK"
@@ -487,6 +510,14 @@ msgstr "OK"
 #
 msgid "failed"
 msgstr "失敗した時"
+
+#, fuzzy
+msgid "not computed yet"
+msgstr "まだ出力はありません..."
+
+#, fuzzy
+msgid "Waiting for moving..."
+msgstr "; 移動を待っています..."
 
 msgid "Moving"
 msgstr "移動しています"
@@ -503,6 +534,24 @@ msgstr "待機中 (%u 件がアクティブ、%u 件がパッシブ)"
 
 msgid "Waiting"
 msgstr "待受中"
+
+#, fuzzy
+msgid "Querying DHT"
+msgstr "検索クエリーヒット"
+
+#, fuzzy
+msgid "Pending DHT query"
+msgstr "保留ローカル検索クエリー数"
+
+#, c-format
+msgid "%u/%u successful DHT lookup"
+msgid_plural "%u/%u successful DHT lookups"
+msgstr[0] ""
+
+#, c-format
+msgid "%u DHT lookup"
+msgid_plural "%u DHT lookups"
+msgstr[0] ""
 
 msgid "Bad size"
 msgstr "不正な大きさ"
@@ -533,6 +582,11 @@ msgstr "最大TTLを超過"
 
 msgid "Message throttle"
 msgstr "メッセージスロットル"
+
+# NOTE: `Gnutella' may be redundant
+#, fuzzy
+msgid "Message matched limits"
+msgstr "メッセージサイズの制限"
 
 msgid "Unusable Pong"
 msgstr "無効なPong"
@@ -589,6 +643,9 @@ msgstr "不正な返却アドレス"
 msgid "Hostile IP address"
 msgstr "有害IPアドレス"
 
+msgid "Bogus result from Morpheus"
+msgstr ""
+
 msgid "Spam"
 msgstr "スパム"
 
@@ -606,11 +663,21 @@ msgstr "不明なヘッダーフラッグが存在"
 msgid "Own search results"
 msgstr "自分自身の検索結果数"
 
+#, fuzzy
+msgid "Own queries"
+msgstr "RX (受信) 検索クエリー数"
+
 msgid "Ancient query format"
 msgstr "古いクエリー形式"
 
 msgid "Blank Servent ID"
 msgstr "空のサーバントID"
+
+msgid "GUESS Query missing token"
+msgstr ""
+
+msgid "GUESS Invalid query token"
+msgstr ""
 
 msgid "DHT Invalid security token"
 msgstr ""
@@ -769,6 +836,10 @@ msgstr "既に接続しています"
 msgid "Limited connection"
 msgstr "制限接続"
 
+#, fuzzy
+msgid "Write error during HELLO"
+msgstr "HELLOの最中に書込エラー: %s"
+
 #, c-format
 msgid "Write error during HELLO: %s"
 msgstr "HELLOの最中に書込エラー: %s"
@@ -812,11 +883,22 @@ msgstr "読込み失敗 (入力例外が発生しました)"
 msgid "Read error: %s"
 msgstr "読込エラー: %s"
 
+#, fuzzy, c-format
+msgid "mkdir(\"%s\") failed: \"%s\""
+msgstr "書き込みに失敗しました: %s"
+
 msgid "Can't find your home directory!"
 msgstr "ホームフォルダが見つかりません！"
 
+msgid "$GTK_GNUTELLA_DIR must point to an absolute path!"
+msgstr ""
+
 #, c-format
 msgid "creating configuration directory \"%s\""
+msgstr "設定フォルダ \"%s\" を作成しています"
+
+#, fuzzy, c-format
+msgid "creating directory \"%s\" for %s"
 msgstr "設定フォルダ \"%s\" を作成しています"
 
 msgid "You seem to have left another gtk-gnutella running"
@@ -870,14 +952,6 @@ msgstr "後続リクエストの待合せがタイムアウトしました"
 
 msgid "Lifetime expired"
 msgstr "有効期限が切れました"
-
-#, c-format
-msgid "Banned: %s"
-msgstr "禁止されました: %s"
-
-#, c-format
-msgid "Banned for %s"
-msgstr "%s を禁止します"
 
 msgid "Unable to send GIV"
 msgstr "GIV を送信できません"
@@ -1006,6 +1080,47 @@ msgstr "出力のみ"
 msgid "input & output"
 msgstr "入力および出力"
 
+msgid "seeded"
+msgstr ""
+
+msgid "own KUID lookup"
+msgstr ""
+
+# FIXME: should be distinguished from the other, perhaps...
+#
+# NOTE:
+# Automatically clear sources when...
+# [] completed
+# [] failed
+# [] unavailable
+#
+#, fuzzy
+msgid "completing"
+msgstr "完了した時"
+
+# FIXME: should be distinguished from the other, perhaps...
+#
+# NOTE:
+# Automatically clear sources when...
+# [] completed
+# [] failed
+# [] unavailable
+#
+msgid "completed"
+msgstr "完了した時"
+
+#, fuzzy
+msgid "shutdown"
+msgstr "停止 (%s)"
+
+#, fuzzy
+msgid "active (recommended)"
+msgstr "自動設定 (推奨)"
+
+#, fuzzy
+msgid "passive"
+msgstr " 件が受動状態)"
+
 msgid "Indicates whether the hostcache file is being read."
 msgstr "ホストのキャッシュファイルは読み込める状態にあります。"
 
@@ -1053,11 +1168,12 @@ msgstr ""
 "持するようにします。ピア内へ許可する接続の最大件数よりも少なくしたほうが良い"
 "でしょう。"
 
+#, fuzzy
 msgid ""
 "Don't allow more than this number of connections to other servents.  As a "
 "rule of thumb you should reserve 256 b/s bandwidth per connection. Never use "
 "up all your bandwidth, leave a little space for TCP/IP overhead. It's not "
-"advisable that you set this to a value smaller than 30."
+"advisable that you set this to a value smaller than 40."
 msgstr ""
 "他のサーバントへの接続をこの数以上許可しません。経験的に言うと、接続毎に 256 "
 "ビット/秒の帯域幅が取られるものだと思って下さい。全ての帯域幅を使いきらずに、"
@@ -2672,9 +2788,6 @@ msgstr "検索で表示する検索結果の最大数です。"
 msgid "Maximum number of results to show in a browse_host request."
 msgstr "ホスト参照リクエストで表示する最大数です。"
 
-msgid "The current Session ID."
-msgstr "現在のセッションIDです。"
-
 msgid "Date of the latest SVN release."
 msgstr "最新のSVNリリースの日付です。"
 
@@ -2978,6 +3091,222 @@ msgstr "メッセージ経路制御のデバッグレベルです。"
 msgid "Debug level for version management."
 msgstr "バージョン管理機能のデバッグレベルです。"
 
+msgid "Minimum CPU frequency, in Hz."
+msgstr ""
+
+msgid "Maximum CPU frequency, in Hz."
+msgstr ""
+
+#, fuzzy
+msgid "DHT bootstrap status."
+msgstr "DHTトラフィック統計"
+
+msgid ""
+"The DHT running mode. An active mode will be able to store values and is a "
+"fully participating member of the Distributed Hash Table. A passive node can "
+"perform lookups and publish but will not store values and cannot be a member "
+"of the DHT structure. A firewalled node is necessarily passive, but you can "
+"force the passive mode even if you are not firewalled, although that is not "
+"recommended because the DHT requires far more active nodes that passive ones "
+"to be efficient."
+msgstr ""
+
+msgid "Current DHT running mode."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the one-time memory allocator."
+msgstr "シェルのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the host cache."
+msgstr "シェルのデバッグレベルです。"
+
+msgid "Random bits."
+msgstr ""
+
+#, fuzzy
+msgid "Average servent downtime."
+msgstr "サーバントの平均稼動時間です。"
+
+msgid "Time when last shutdown occurred."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for alive pings."
+msgstr "ファイル情報のデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the versatile XML layer."
+msgstr "UDP トラフィックレイヤのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the UPnP layer."
+msgstr "UDP トラフィックレイヤのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the SOAP layer."
+msgstr "UDP トラフィックレイヤのデバッグレベルです。"
+
+msgid "Defines SOAP exchanges tracing type."
+msgstr ""
+
+msgid ""
+"For testing purposes, allow to run as an ultranode even if the node cannot "
+"accept incoming TCP connections."
+msgstr ""
+
+msgid ""
+"Whether UPnP (Universal Plug and Play) should be enabled. Support for UPnP "
+"means gtk-gnutella will be able to discover your Internet Gateway Device "
+"(router) and request that the listening port be opened and redirected to "
+"your machine, thereby auto-configuring to make sure you are not firewalled.  "
+"By default you should leave it enabled unless you know how to configure your "
+"network equipment manually to prevent the firewalled condition for both TCP "
+"and UDP."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella was able to locate an Internet Gateway Device to "
+"install port mappings, if required."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella thinks it needs to install port mappings on your "
+"network router to avoid the firewalled condition."
+msgstr ""
+
+msgid "Whether gtk-gnutella can install port mappings, if needed."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the NAT-PMP layer."
+msgstr "UDP トラフィックレイヤのデバッグレベルです。"
+
+msgid ""
+"Whether NAT-PMP (NAT Port Mapping Protocol) should be enabled. Support for "
+"NAT-PMP means gtk-gnutella will be able to look whether your default gateway "
+"(router) supports the Port Mapping Protocol to allow transparent redirection "
+"of the external ports on the router to the local machine, thereby making "
+"sure you are not firewalled. By default you should leave it enabled unless "
+"you know how to configure your network equipment manually to prevent the "
+"firewalled condition for both TCP and UDP."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella was able to locate a NAT-PMP gateway to install port "
+"mappings, if required."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the TX (transmit) network layer."
+msgstr "UDP トラフィックレイヤのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the RX (receive) network layer."
+msgstr "UDP トラフィックレイヤのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the I/O input event layer."
+msgstr "UDP トラフィックレイヤのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the background task scheduler."
+msgstr "帯域幅スケジューラー機能のデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether gtk-gnutella was able to configure port mappings."
+msgstr "インターネットに接続しています。"
+
+#, fuzzy
+msgid "Whether gtk-gnutella disabled HTTP bandwidth stealing."
+msgstr "インターネットに接続しています。"
+
+#, fuzzy
+msgid "Whether gtk-gnutella ignores HTTP stolen bandwidth."
+msgstr "インターネットに接続しています。"
+
+msgid "Whether gtk-gnutella enforces uniform HTTP outgoing bandwidth."
+msgstr ""
+
+#, fuzzy
+msgid ""
+"Whether gtk-gnutella should use HTTP request pipelining when possible, in "
+"order to decrease downloading latency."
+msgstr ""
+"あなたのサーバーのホスト名を、ダウンローダーや検索クエリーヒットで知らせま"
+"す。"
+
+#, fuzzy
+msgid "Maximum chunk size when swarming with HTTP pipelining."
+msgstr "多元ダウンロードする時の最大チャンクサイズです。"
+
+msgid ""
+"Whether the Gnutella UDP Extension for Scalable Searches (GUESS) should be "
+"enabled.  With GUESS enabled, gtk-gnutella offers the network the ability to "
+"perform iterative Ultrapeer queries instead of just broadcasting, allowing "
+"searches to more places within the Gnutella network.  If you want gtk-"
+"gnutella to issue GUESS queries, you need to make sure the client-side is "
+"enabled as well as this setting only governs mostly the server-side of GUESS "
+"(required to allow the client-side)."
+msgstr ""
+
+msgid ""
+"Debug level for server-side GUESS (Gnutella UDP Extension for Scalable "
+"Searches)."
+msgstr ""
+
+msgid ""
+"Debug level for client-side GUESS (Gnutella UDP Extension for Scalable "
+"Searches)."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of hosts in the regular GUESS cache."
+msgstr "リーフピアのキャッシュの最大ホスト数です。"
+
+#, fuzzy
+msgid "Current number of hosts in the regular GUESS cache."
+msgstr "通常ピアキャッシュの現在のホスト数です。"
+
+#, fuzzy
+msgid "Maximum number of hosts in the introduction GUESS cache."
+msgstr "G2ノードのキャッシュの最大ホスト数です。"
+
+#, fuzzy
+msgid "Current number of hosts in the introduction GUESS cache."
+msgstr "ウルトラピアキャッシュの現在のホスト数です。"
+
+#, fuzzy
+msgid "Debug level for the DB disk/RAM storage layer."
+msgstr "UDP トラフィックレイヤのデバッグレベルです。"
+
+msgid ""
+"The current Session ID.  This is a unique ID generated each time gtk-"
+"gnutella starts and it can be monitored from the shell interface to check "
+"whether gtk-gnutella has been restarted since the last check."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella should serve partial files which are rare on the "
+"network to increase their spreading rate.  It is good for the health of the "
+"network to always leave this enabled. This setting supersedes the disabling "
+"of global partial file sharing for rare files only."
+msgstr ""
+
+msgid ""
+"Whether the Gnutella UDP Extension for Scalable Searches (GUESS) client side "
+"should be enabled, so that gtk-gnutella can indeed issue iterative Ultrapeer "
+"queries instead of just broadcasting them. If enabled, it requires general "
+"GUESS support enabled as well or it will simply be ignored."
+msgstr ""
+
+msgid ""
+"Bandwidth hint for GUESS querying, in bytes/sec, limiting the amount of "
+"concurrency that can be used for GUESS.  Lower numbers mean slower querying "
+"overall"
+msgstr ""
+
 msgid "disable"
 msgstr "表示しない"
 
@@ -3031,6 +3360,34 @@ msgstr "検索クエリー"
 
 msgid "Query Hit"
 msgstr "検索クエリーヒット"
+
+#, fuzzy
+msgid "DHT Ping"
+msgstr "Ping"
+
+#, fuzzy
+msgid "DHT Pong"
+msgstr "Pong"
+
+#, fuzzy
+msgid "DHT Store"
+msgstr "DHTトラフィック"
+
+msgid "DHT Store Ack"
+msgstr ""
+
+msgid "DHT Find Node"
+msgstr ""
+
+msgid "DHT Found Node"
+msgstr ""
+
+msgid "DHT Find Value"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Value"
+msgstr "値"
 
 # FIXME: separation (src/if/gui_property.c: Total -> All)
 msgid "Total"
@@ -3857,7 +4214,8 @@ msgstr "ラオス人民民主共和国"
 msgid "Lebanon"
 msgstr "レバノン共和国"
 
-msgid "Saint lucia"
+#, fuzzy
+msgid "Saint Lucia"
 msgstr "セントルシア"
 
 msgid "Liechtenstein"
@@ -3895,6 +4253,10 @@ msgstr "モルドバ共和国"
 
 msgid "Montenegro"
 msgstr "モンテネグロ共和国"
+
+#, fuzzy
+msgid "Saint Martin"
+msgstr "サンマリノ共和国"
 
 msgid "Madagascar"
 msgstr "マダガスカル共和国"
@@ -4498,9 +4860,6 @@ msgstr "外部メタデータ"
 msgid "Bitzi URL"
 msgstr "Bitzi URL"
 
-msgid "ShareMonkey URL"
-msgstr "ShareMonkey URL"
-
 #, c-format
 msgid " (slot %u"
 msgstr " (スロット %u"
@@ -4515,6 +4874,9 @@ msgstr "完了"
 
 msgid "Connecting..."
 msgstr "接続しています..."
+
+msgid "Connected"
+msgstr "接続しました"
 
 msgid "Push sent directly"
 msgstr "PUSH を直接送信しました"
@@ -4539,9 +4901,6 @@ msgstr "PUSH を送信しています"
 msgid " via %s"
 msgstr " (%s 経由)"
 
-msgid "Connecting"
-msgstr "接続しています"
-
 msgid "Sending request"
 msgstr "リクエストを送信しています"
 
@@ -4550,6 +4909,10 @@ msgstr "リクエストを送信しました"
 
 msgid "Reading headers"
 msgstr "へッダを読込んでいます"
+
+#, fuzzy
+msgid "UDP push sent"
+msgstr "PUSH を送信しました"
 
 msgid "Searching for new push-proxies"
 msgstr ""
@@ -4576,12 +4939,20 @@ msgstr "完了しました"
 msgid "Chunk done"
 msgstr "チャンクが完了しました"
 
+#, fuzzy
+msgid "Waiting for TTH checking..."
+msgstr "SHA1 確認を待っています..."
+
 msgid "Waiting for SHA1 checking..."
 msgstr "SHA1 確認を待っています..."
 
-#, c-format
-msgid "Computing SHA1 (%.02f%%)"
+#, fuzzy, c-format
+msgid "Computing %s (%.02f%%)"
 msgstr "SHA1 を算出しています (%.02f%%)"
+
+#, fuzzy
+msgid "TTH OK"
+msgstr "TTH"
 
 msgid "SHA-1 OK"
 msgstr "SHA-1 OK"
@@ -4609,11 +4980,28 @@ msgstr "; 移動し終えました (%s) %s"
 msgid "(stalled)"
 msgstr "(停滞中)"
 
-msgid "Connected"
-msgstr "接続しました"
+#, fuzzy
+msgid "Receiving data"
+msgstr "ヘッダーを受信しています"
 
 msgid "ignoring"
 msgstr "無視します"
+
+#, fuzzy
+msgid "selected next"
+msgstr "選択されたプロパティ:"
+
+#, fuzzy
+msgid "requesting next"
+msgstr "リクエストを送信しました"
+
+#, fuzzy
+msgid "requested next"
+msgstr "リクエストを送信しました"
+
+#, fuzzy
+msgid "Awaiting data"
+msgstr "待受中"
 
 msgid "Unknown error"
 msgstr "不明なエラー"
@@ -4888,8 +5276,34 @@ msgstr "リターン"
 msgid "Query hit"
 msgstr "検索クエリーヒット"
 
+msgid "DHT (truncated)"
+msgstr ""
+
 msgid "Routing errors"
 msgstr "経路制御エラー"
+
+# XXX: wtf
+msgid "Duplicates with higher TTL"
+msgstr "高TTLでの重複"
+
+msgid "SPAM SHA1 database hits"
+msgstr ""
+
+#, fuzzy
+msgid "SPAM filename and size hits"
+msgstr "ファイル名が「%s」%s で終わる"
+
+msgid "SPAM fake hits"
+msgstr ""
+
+msgid "SPAM duplicate hits"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP addresses"
+msgstr ""
+
+msgid "SPAM spotted spamming IP addresses held"
+msgstr ""
 
 # XXX: free translation
 msgid "Searches to local DB"
@@ -4916,10 +5330,6 @@ msgid "Stripped OOB flag on queries"
 msgstr "検索クエリーでの削除済OOBフラッグ"
 
 # XXX: wtf
-msgid "Duplicates with higher TTL"
-msgstr "高TTLでの重複"
-
-# XXX: wtf
 msgid "Duplicate OOB-proxied queries"
 msgstr "重複するOOBプロキシ検索クエリー"
 
@@ -4930,6 +5340,9 @@ msgstr "OOBプロキシ検索クエリーで受取ったOOBヒット"
 # XXX: wtf
 msgid "OOB hits bearing alien IP address"
 msgstr "無関係なIPアドレスに関するOOBヒット"
+
+msgid "OOB hits ignored due to identified spamming address"
+msgstr ""
 
 # XXX: wtf
 msgid "Unclaimed locally-generated OOB hits"
@@ -4959,6 +5372,31 @@ msgstr "UTF8検索クエリー"
 
 msgid "SHA1 queries"
 msgstr "SHA1検索クエリー"
+
+#, fuzzy
+msgid "GUESS queries"
+msgstr "UTF8検索クエリー"
+
+msgid "GUESS cached query keys held"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS locally generated queries"
+msgstr "ローカル生成の動的検索クエリー"
+
+msgid "GUESS currently running queries"
+msgstr ""
+
+# XXX: free translation
+#, fuzzy
+msgid "GUESS hits received for locally generated queries"
+msgstr "あなたの検索クエリーが受取った検索クエリーヒット"
+
+msgid "GUESS hosts queried"
+msgstr ""
+
+msgid "GUESS hosts sending back an acknowledgment"
+msgstr ""
 
 msgid "Broadcasted push messages"
 msgstr "広域送信PUSHメッセージ"
@@ -5078,6 +5516,12 @@ msgstr "競合しているGTKGのGUID"
 msgid "Firewalled node info for known hosts received in upload requests"
 msgstr ""
 
+msgid "Revitalized PUSH routes"
+msgstr ""
+
+msgid "Collected new PUSH proxies from other query hits"
+msgstr ""
+
 msgid "Attempted download resource switching on completion"
 msgstr ""
 
@@ -5163,6 +5607,9 @@ msgstr "ダウンロードのデバッグレベルです。"
 msgid "DHT estimated amount of nodes"
 msgstr ""
 
+msgid "DHT k-ball theoretical frontier (bits)"
+msgstr ""
+
 msgid "DHT k-ball furthest frontier (bits)"
 msgstr ""
 
@@ -5195,6 +5642,10 @@ msgstr ""
 msgid "DHT routing table evicted firewalled nodes"
 msgstr ""
 
+#, fuzzy
+msgid "DHT routing table evicted nodes due to quota"
+msgstr "検索クエリー経路制御テーブルの生成番号です。"
+
 msgid "DHT routing table promoted pending nodes"
 msgstr ""
 
@@ -5202,11 +5653,21 @@ msgstr ""
 msgid "DHT routing table pinged promoted nodes"
 msgstr "検索クエリー経路制御テーブルの生成番号です。"
 
+msgid "DHT routing table rejected node due to bucket network quota"
+msgstr ""
+
+msgid "DHT routing table rejected node due to global network quota"
+msgstr ""
+
 msgid "DHT completed bucket refreshes"
 msgstr ""
 
 msgid "DHT forced bucket refreshes"
 msgstr ""
+
+#, fuzzy
+msgid "DHT forced bucket merges"
+msgstr "変なコマンドです"
 
 msgid "DHT denied non-splitable bucket refresh"
 msgstr ""
@@ -5220,10 +5681,31 @@ msgstr ""
 msgid "DHT alive pings sent to stale nodes"
 msgstr ""
 
+msgid "DHT alive pings sent to shutdowning nodes"
+msgstr ""
+
+msgid "DHT alive pings avoided"
+msgstr ""
+
+msgid "DHT alive pings skipped"
+msgstr ""
+
+msgid "DHT revitalized stale nodes on RPC reply"
+msgstr ""
+
 msgid "DHT value store rejected on IP/network quota grounds"
 msgstr ""
 
 msgid "DHT value store rejected on creator validation grounds"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on network quota"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on suspicious proximity"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on frequency divergence"
 msgstr ""
 
 msgid "DHT keys held"
@@ -5292,10 +5774,10 @@ msgstr ""
 msgid "DHT claimed cached values via secondary keys"
 msgstr "タイムアウト (全て秒単位)"
 
-msgid "DHT successful received value publications"
+msgid "DHT successfully received value publications"
 msgstr ""
 
-msgid "DHT successful received value removals"
+msgid "DHT successfully received value removals"
 msgstr ""
 
 msgid "DHT replication of stale value avoided"
@@ -5376,6 +5858,15 @@ msgstr ""
 msgid "DHT background publishing completion successful (all roots)"
 msgstr ""
 
+msgid "DHT SHA1 data type collisions"
+msgstr ""
+
+msgid "DHT lookup path passively protected against attack"
+msgstr ""
+
+msgid "DHT lookup path actively protected against attack"
+msgstr ""
+
 msgid "DHT alt-loc lookups issued"
 msgstr ""
 
@@ -5387,6 +5878,9 @@ msgid "DHT successful alt-loc lookups"
 msgstr ""
 
 msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+msgid "DHT successful node push-entry lookups"
 msgstr ""
 
 #, fuzzy
@@ -5401,17 +5895,17 @@ msgid "file"
 msgid_plural "files"
 msgstr[0] "個のファイル"
 
-msgid "Please choose where to store files while downloading"
-msgstr "ダウンロード中にファイルを保管する場所を選んで下さい"
+msgid "Please choose a directory to share"
+msgstr "共有するフォルダを選んで下さい"
 
 msgid "Please choose where to move files after successful download"
 msgstr "ダウンロード成功後にファイルを移動する場所を選んで下さい"
 
+msgid "Please choose where to store files while downloading"
+msgstr "ダウンロード中にファイルを保管する場所を選んで下さい"
+
 msgid "Please choose where to move corrupted files"
 msgstr "破損したファイルを移動する場所を選んで下さい"
-
-msgid "Please choose a directory to share"
-msgstr "共有するフォルダを選んで下さい"
 
 msgid " Clear completed "
 msgstr " 完了したものを消去 "
@@ -5588,6 +6082,10 @@ msgid "Avg. time between IP address changes:"
 msgstr "IPアドレスが変わるまでの平均時間:"
 
 msgid "Avg. uptime of this servent:"
+msgstr "このサーバントの平均稼働時間:"
+
+#, fuzzy
+msgid "Avg. downtime of this servent:"
 msgstr "このサーバントの平均稼働時間:"
 
 msgid "Bad hosts"
@@ -6019,6 +6517,10 @@ msgid "GUI development:"
 msgstr "インターフェイスの開発:"
 
 msgid "GUID:"
+msgstr "GUID:"
+
+#, fuzzy
+msgid "KUID:"
 msgstr "GUID:"
 
 msgid "Gen. queued"
@@ -7241,17 +7743,6 @@ msgstr "大・小文字を区別"
 msgid "case-sensitive"
 msgstr "大・小文字を区別"
 
-# FIXME: should be distinguished from the other, perhaps...
-#
-# NOTE:
-# Automatically clear sources when...
-# [] completed
-# [] failed
-# [] unavailable
-#
-msgid "completed"
-msgstr "完了した時"
-
 msgid "do"
 msgstr "○"
 
@@ -7374,6 +7865,84 @@ msgstr "×"
 msgid "uploads"
 msgstr "アップロード"
 
+#, fuzzy
+msgid "Available HTTP input bandwidth"
+msgstr "使用可能な帯域幅"
+
+#, fuzzy
+msgid "Available HTTP output bandwidth"
+msgstr "使用可能な帯域幅"
+
+msgid "DHT up, passive mode."
+msgstr ""
+
+msgid "DHT up, active mode."
+msgstr ""
+
+msgid "DHT bootstrapping."
+msgstr ""
+
+msgid "DHT looking up own KUID."
+msgstr ""
+
+#, fuzzy
+msgid "DHT seeded."
+msgstr "TX (送信) 伝送速度"
+
+#, fuzzy
+msgid "DHT inactive."
+msgstr "%u 件が動作中"
+
+#, fuzzy
+msgid "Disabled stealing of outgoing HTTP bandwidth."
+msgstr "ピア外への HTTP トラフィックの帯域幅使用量を表示します。"
+
+#, fuzzy
+msgid "Splitting ougoing HTTP bandwidth evenly."
+msgstr "ピア外への HTTP トラフィックの帯域幅平均値を表示します。"
+
+msgid "Capping HTTP outgoing bandwidth."
+msgstr ""
+
+msgid "Port mapping possible through UPnP or NAT-PMP."
+msgstr ""
+
+msgid "Port mapping configured through UPnP or NAT-PMP."
+msgstr ""
+
+#, fuzzy
+msgid "Enable UPnP"
+msgstr "UDPを有効にする(_U)"
+
+#, fuzzy
+msgid "Enable NAT-PMP"
+msgstr "DHTを有効にする(_D)"
+
+msgid "Enable HTTP request pipelining"
+msgstr ""
+
+#, fuzzy
+msgid "Pipelining max chunk size"
+msgstr "最小チャンクサイズ"
+
+#, fuzzy
+msgid "Enable upload of patial files deemed rare"
+msgstr "部分ファイルのアップロードを有効にする(_P)"
+
+msgid "Enable GUESS (additional querying)"
+msgstr ""
+
+msgid "Issue GUESS queries as well"
+msgstr ""
+
+#, fuzzy
+msgid "Bandwidth limits for GUESS queries"
+msgstr "Gnutellaトラフィックの帯域幅制限"
+
+#, fuzzy
+msgid "Output bandwidth hint"
+msgstr "出力帯域幅の平均"
+
 msgid "owned"
 msgstr "取得済"
 
@@ -7447,6 +8016,10 @@ msgstr "自動的に隠す(_A)"
 msgid "_Search"
 msgstr "検索(_S)"
 
+#, fuzzy
+msgid "Splitting outgoing HTTP bandwidth evenly."
+msgstr "ピア外への HTTP トラフィックの帯域幅平均値を表示します。"
+
 # NOTE: this string is used as follows
 #
 # 'Connect to 0 ultrapeers'
@@ -7491,8 +8064,17 @@ msgstr ""
 "このピアに関係付けられた識別子 (GUID - Global Unique IDentifier) です。これ"
 "は Gnutella ネットワーク上のパケット経路制御に用いられます。"
 
+msgid "[GUID placeholder]"
+msgstr ""
+
+msgid "[KUID placeholder]"
+msgstr ""
+
 msgid "Address/Port:"
 msgstr "アドレス/ポート:"
+
+msgid "[IP:port placeholder]"
+msgstr ""
 
 # NOTE: this string is used as follows
 #
@@ -7572,6 +8154,9 @@ msgstr "強制的にこのIPv6アドレスを使う"
 msgid "IPv_6 settings"
 msgstr "IPv6設定(_6)"
 
+msgid "Port Mapping"
+msgstr ""
+
 msgid ""
 "This option can give performance boosts to those on a large network with "
 "many peers by trying to locate files on the local networks first."
@@ -7601,14 +8186,26 @@ msgstr "ピア外へのトラフィック(_O)"
 msgid "attempts"
 msgstr "回"
 
+#, fuzzy
+msgid "Pipelining maximum chunk size"
+msgstr "最小チャンクサイズ"
+
 msgid "_Remove directory"
 msgstr "フォルダを削除(_R)"
+
+#, fuzzy
+msgid "Enable upload of partial files deemed rare"
+msgstr "部分ファイルのアップロードを有効にする(_P)"
 
 msgid "Minimum chunk _size"
 msgstr "最小チャンクサイズ(_S)"
 
 msgid "Show a status _icon"
 msgstr "ステータスアイコンを表示する(_I)"
+
+#, fuzzy
+msgid "Avg. downtime of this servent"
+msgstr "このサーバントの平均稼働時間:"
 
 msgid "Remove completed downloads from list"
 msgstr "完了したダウンロードを一覧から削除する"
@@ -7682,6 +8279,12 @@ msgstr "不安定"
 #, fuzzy
 msgid "Alien"
 msgstr "別名"
+
+msgid "GUESS (running)"
+msgstr ""
+
+msgid "GUESS (introductions)"
+msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"
 msgstr "gtk-gnutella: クリックで最大化/元に戻します"
@@ -8145,3 +8748,21 @@ msgstr "QUEUE送信、折り返し接続中..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE送信完了、ヘッダーを待受中..."
+
+#~ msgid "Can't reach host (Push or Direct)"
+#~ msgstr "ホストに到達できません (PUSHまたは直接)"
+
+#~ msgid "Banned: %s"
+#~ msgstr "禁止されました: %s"
+
+#~ msgid "Banned for %s"
+#~ msgstr "%s を禁止します"
+
+#~ msgid "The current Session ID."
+#~ msgstr "現在のセッションIDです。"
+
+#~ msgid "ShareMonkey URL"
+#~ msgstr "ShareMonkey URL"
+
+#~ msgid "Connecting"
+#~ msgstr "接続しています"
