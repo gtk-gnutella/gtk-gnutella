@@ -96,11 +96,6 @@ enum socket_type {
 	SOCK_TYPE_UDP
 };
 
-enum socket_buftype {
-	SOCK_BUF_RX,
-	SOCK_BUF_TX
-};
-
 typedef enum {
 	SOCKET_MAGIC = 0x1fb7ddeb
 } socket_magic_t;

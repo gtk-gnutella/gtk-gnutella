@@ -81,6 +81,14 @@ enum {
 	SOCK_F_TCP			= (1UL << 30)  /**< Is a TCP socket */
 };
 
+/*
+ * Socket buffer type.
+ */
+enum socket_buftype {
+	SOCK_BUF_RX,
+	SOCK_BUF_TX
+};
+
 #endif /* _if_core_sockets_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

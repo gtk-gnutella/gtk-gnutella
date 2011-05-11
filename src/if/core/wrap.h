@@ -36,9 +36,9 @@
 #ifndef _if_core_wrap_h_
 #define _if_core_wrap_h_
 
-#include "lib/gnet_host.h"
+#include "sockets.h"		/* For enum socket_buftype */
 
-enum socket_buftype;
+#include "lib/gnet_host.h"
 
 typedef struct wrap_io {
 	gpointer ctx;
