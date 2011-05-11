@@ -570,6 +570,8 @@ create_main_window (void)
   GtkWidget *statusbar;
   GtkWidget *frame_status_images;
   GtkWidget *hbox199;
+  GtkWidget *eventbox_image_download_queue_frozen;
+  GtkWidget *image_download_queue_frozen;
   GtkWidget *eventbox_image_chip;
   GtkWidget *image_chip;
   GtkWidget *eventbox_image_warning;
@@ -5401,6 +5403,25 @@ create_main_window (void)
   gtk_widget_show (hbox199);
   gtk_container_add (GTK_CONTAINER (frame_status_images), hbox199);
 
+  eventbox_image_download_queue_frozen = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_download_queue_frozen, "eventbox_image_download_queue_frozen");
+  gtk_widget_ref (eventbox_image_download_queue_frozen);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_download_queue_frozen", eventbox_image_download_queue_frozen,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_download_queue_frozen);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_download_queue_frozen, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_download_queue_frozen, _("Download queue is frozen."), NULL);
+
+  image_download_queue_frozen = create_pixmap (main_window, "pause.xpm");
+  gtk_widget_set_name (image_download_queue_frozen, "image_download_queue_frozen");
+  gtk_widget_ref (image_download_queue_frozen);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_download_queue_frozen", image_download_queue_frozen,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_download_queue_frozen);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_download_queue_frozen), image_download_queue_frozen);
+  gtk_misc_set_padding (GTK_MISC (image_download_queue_frozen), 1, 0);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_download_queue_frozen), FALSE);
+
   eventbox_image_chip = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_chip, "eventbox_image_chip");
   gtk_widget_ref (eventbox_image_chip);
@@ -5408,7 +5429,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_chip);
   gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_chip, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_image_chip, _("Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths."), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_chip, _("CPU overloaded."), NULL);
 
   image_chip = create_pixmap (main_window, "chip.xpm");
   gtk_widget_set_name (image_chip, "image_chip");
@@ -5417,6 +5438,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_chip);
   gtk_container_add (GTK_CONTAINER (eventbox_image_chip), image_chip);
+  gtk_misc_set_padding (GTK_MISC (image_chip), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_chip), FALSE);
 
   eventbox_image_warning = gtk_event_box_new ();
@@ -5581,7 +5603,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_sha);
   gtk_container_add (GTK_CONTAINER (eventbox_image_sha), image_sha);
-  gtk_misc_set_padding (GTK_MISC (image_sha), 1, 0);
 
   eventbox_image_shav = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_shav, "eventbox_image_shav");
@@ -5598,6 +5619,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_shav);
   gtk_container_add (GTK_CONTAINER (eventbox_image_shav), image_shav);
+  gtk_misc_set_padding (GTK_MISC (image_shav), 1, 0);
 
   eventbox_image_tth = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_tth, "eventbox_image_tth");
@@ -5614,7 +5636,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_tth);
   gtk_container_add (GTK_CONTAINER (eventbox_image_tth), image_tth);
-  gtk_misc_set_padding (GTK_MISC (image_tth), 1, 0);
 
   eventbox_image_tthv = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_tthv, "eventbox_image_tthv");
@@ -5648,7 +5669,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_lib);
   gtk_container_add (GTK_CONTAINER (eventbox_image_lib), image_lib);
-  gtk_misc_set_padding (GTK_MISC (image_lib), 1, 0);
 
   eventbox_image_firewall = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_firewall, "eventbox_image_firewall");
@@ -5685,6 +5705,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_firewall_punchable);
   gtk_container_add (GTK_CONTAINER (eventbox_image_firewall_punchable), image_firewall_punchable);
+  gtk_misc_set_padding (GTK_MISC (image_firewall_punchable), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_firewall_punchable), FALSE);
 
   eventbox_image_tcp_firewall = gtk_event_box_new ();
@@ -5703,6 +5724,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_tcp_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox_image_tcp_firewall), image_tcp_firewall);
+  gtk_misc_set_padding (GTK_MISC (image_tcp_firewall), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_tcp_firewall), FALSE);
 
   eventbox_image_udp_firewall = gtk_event_box_new ();
@@ -5721,6 +5743,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_udp_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox_image_udp_firewall), image_udp_firewall);
+  gtk_misc_set_padding (GTK_MISC (image_udp_firewall), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_udp_firewall), FALSE);
 
   eventbox_image_firewall_udp_punchable = gtk_event_box_new ();
@@ -5739,6 +5762,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_firewall_udp_punchable);
   gtk_container_add (GTK_CONTAINER (eventbox_image_firewall_udp_punchable), image_firewall_udp_punchable);
+  gtk_misc_set_padding (GTK_MISC (image_firewall_udp_punchable), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_firewall_udp_punchable), FALSE);
 
   eventbox_image_no_firewall = gtk_event_box_new ();

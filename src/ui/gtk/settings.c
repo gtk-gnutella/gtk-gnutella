@@ -842,18 +842,23 @@ is_firewalled_changed(property_t unused_prop)
 static gboolean
 dht_boot_status_changed(property_t prop)
 {
-    GtkWidget *icon_none = gui_main_window_lookup("eventbox_image_dht_none");
-    GtkWidget *icon_seeded =
-		gui_main_window_lookup("eventbox_image_dht_seeded");
-    GtkWidget *icon_own_kuid =
-		gui_main_window_lookup("eventbox_image_dht_own_kuid");
-    GtkWidget *icon_completing =
-		gui_main_window_lookup("eventbox_image_dht_completing");
-    GtkWidget *icon_active =
-		gui_main_window_lookup("eventbox_image_dht_active");
-    GtkWidget *icon_passive =
-		gui_main_window_lookup("eventbox_image_dht_passive");
+    static GtkWidget *icon_none;
+    static GtkWidget *icon_seeded;
+    static GtkWidget *icon_own_kuid;
+    static GtkWidget *icon_completing;
+    static GtkWidget *icon_active;
+    static GtkWidget *icon_passive;
 	guint32 status;
+
+	if G_UNLIKELY(NULL == icon_none) {
+    	icon_none = gui_main_window_lookup("eventbox_image_dht_none");
+    	icon_seeded = gui_main_window_lookup("eventbox_image_dht_seeded");
+    	icon_own_kuid = gui_main_window_lookup("eventbox_image_dht_own_kuid");
+    	icon_completing =
+			gui_main_window_lookup("eventbox_image_dht_completing");
+    	icon_active = gui_main_window_lookup("eventbox_image_dht_active");
+    	icon_passive = gui_main_window_lookup("eventbox_image_dht_passive");
+	}
 
 	gtk_widget_hide(icon_none);
 	gtk_widget_hide(icon_seeded);
@@ -2688,6 +2693,11 @@ update_queue_frozen(property_t prop)
 {
 	static gboolean was_frozen;
 	gboolean is_frozen;
+    static GtkWidget *icon;
+
+	if G_UNLIKELY(NULL == icon) {
+		icon = gui_main_window_lookup("eventbox_image_download_queue_frozen");
+	}
 
 	(void) prop;
 
@@ -2700,10 +2710,12 @@ update_queue_frozen(property_t prop)
 			gtk_widget_hide(gui_main_window_lookup("vbox_queue_freeze"));
 			gtk_widget_show(gui_main_window_lookup("vbox_queue_thaw"));
 			id = statusbar_gui_message(0, _("Queue frozen"));
+			gtk_widget_show(icon);
 		} else {
 			gtk_widget_show(gui_main_window_lookup("vbox_queue_freeze"));
 			gtk_widget_hide(gui_main_window_lookup("vbox_queue_thaw"));
 			statusbar_gui_remove(id);
+			gtk_widget_hide(icon);
 		}
 
 		button = gui_main_window_lookup("togglebutton_queue_freeze");

@@ -1472,6 +1472,8 @@ create_main_window (void)
   GtkWidget *image_port_mapping_successful;
   GtkWidget *statusbar;
   GtkWidget *hbox211;
+  GtkWidget *eventbox_image_download_queue_frozen;
+  GtkWidget *image_download_queue_frozen;
   GtkWidget *eventbox_image_chip;
   GtkWidget *image_chip;
   GtkWidget *eventbox_image_warning;
@@ -2241,16 +2243,29 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox211, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbox211), 2);
 
+  eventbox_image_download_queue_frozen = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_download_queue_frozen, "eventbox_image_download_queue_frozen");
+  gtk_widget_show (eventbox_image_download_queue_frozen);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_download_queue_frozen, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_download_queue_frozen, _("Download queue is frozen."), NULL);
+
+  image_download_queue_frozen = create_pixmap (main_window, "pause.xpm");
+  gtk_widget_set_name (image_download_queue_frozen, "image_download_queue_frozen");
+  gtk_widget_show (image_download_queue_frozen);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_download_queue_frozen), image_download_queue_frozen);
+  gtk_misc_set_padding (GTK_MISC (image_download_queue_frozen), 1, 0);
+
   eventbox_image_chip = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_chip, "eventbox_image_chip");
   gtk_widget_show (eventbox_image_chip);
   gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_chip, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_image_chip, _("Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths."), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_chip, _("CPU overloaded"), NULL);
 
   image_chip = create_pixmap (main_window, "chip.xpm");
   gtk_widget_set_name (image_chip, "image_chip");
   gtk_widget_show (image_chip);
   gtk_container_add (GTK_CONTAINER (eventbox_image_chip), image_chip);
+  gtk_misc_set_padding (GTK_MISC (image_chip), 1, 0);
 
   eventbox_image_warning = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_warning, "eventbox_image_warning");
@@ -2278,7 +2293,6 @@ create_main_window (void)
   gtk_widget_set_name (image_early_stall_1, "image_early_stall_1");
   gtk_widget_show (image_early_stall_1);
   gtk_container_add (GTK_CONTAINER (eventbox_early_stall_1), image_early_stall_1);
-  gtk_misc_set_padding (GTK_MISC (image_early_stall_1), 1, 0);
 
   eventbox_early_stall_2 = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_early_stall_2, "eventbox_early_stall_2");
@@ -2290,7 +2304,6 @@ create_main_window (void)
   gtk_widget_set_name (image_early_stall_2, "image_early_stall_2");
   gtk_widget_show (image_early_stall_2);
   gtk_container_add (GTK_CONTAINER (eventbox_early_stall_2), image_early_stall_2);
-  gtk_misc_set_padding (GTK_MISC (image_early_stall_2), 1, 0);
 
   eventbox_early_stall_3 = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_early_stall_3, "eventbox_early_stall_3");
@@ -2302,7 +2315,6 @@ create_main_window (void)
   gtk_widget_set_name (image_early_stall_3, "image_early_stall_3");
   gtk_widget_show (image_early_stall_3);
   gtk_container_add (GTK_CONTAINER (eventbox_early_stall_3), image_early_stall_3);
-  gtk_misc_set_padding (GTK_MISC (image_early_stall_3), 1, 0);
 
   eventbox_image_fd_shortage = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
@@ -2385,6 +2397,7 @@ create_main_window (void)
   gtk_widget_set_name (image_tthv, "image_tthv");
   gtk_widget_show (image_tthv);
   gtk_container_add (GTK_CONTAINER (eventbox_image_tthv), image_tthv);
+  gtk_misc_set_padding (GTK_MISC (image_tthv), 1, 0);
 
   eventbox_image_lib = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_lib, "eventbox_image_lib");
@@ -2395,7 +2408,6 @@ create_main_window (void)
   gtk_widget_set_name (image_lib, "image_lib");
   gtk_widget_show (image_lib);
   gtk_container_add (GTK_CONTAINER (eventbox_image_lib), image_lib);
-  gtk_misc_set_padding (GTK_MISC (image_lib), 1, 0);
 
   hbox147 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox147, "hbox147");
@@ -2413,6 +2425,7 @@ create_main_window (void)
   gtk_widget_show (image_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox_image_firewall), image_firewall);
   gtk_widget_set_size_request (image_firewall, 16, 16);
+  gtk_misc_set_padding (GTK_MISC (image_firewall), 1, 0);
 
   eventbox_image_firewall_punchable = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_firewall_punchable, "eventbox_image_firewall_punchable");
@@ -2426,6 +2439,7 @@ create_main_window (void)
   gtk_widget_show (image_firewall_punchable);
   gtk_container_add (GTK_CONTAINER (eventbox_image_firewall_punchable), image_firewall_punchable);
   gtk_widget_set_size_request (image_firewall_punchable, 16, 16);
+  gtk_misc_set_padding (GTK_MISC (image_firewall_punchable), 1, 0);
 
   eventbox_image_tcp_firewall = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_tcp_firewall, "eventbox_image_tcp_firewall");
@@ -2438,6 +2452,7 @@ create_main_window (void)
   gtk_widget_show (image_tcp_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox_image_tcp_firewall), image_tcp_firewall);
   gtk_widget_set_size_request (image_tcp_firewall, 16, 16);
+  gtk_misc_set_padding (GTK_MISC (image_tcp_firewall), 1, 0);
 
   eventbox_image_udp_firewall = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_udp_firewall, "eventbox_image_udp_firewall");
@@ -2450,6 +2465,7 @@ create_main_window (void)
   gtk_widget_show (image_udp_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox_image_udp_firewall), image_udp_firewall);
   gtk_widget_set_size_request (image_udp_firewall, 16, 16);
+  gtk_misc_set_padding (GTK_MISC (image_udp_firewall), 1, 0);
 
   eventbox_image_firewall_udp_punchable = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_firewall_udp_punchable, "eventbox_image_firewall_udp_punchable");
@@ -2462,6 +2478,7 @@ create_main_window (void)
   gtk_widget_show (image_firewall_udp_punchable);
   gtk_container_add (GTK_CONTAINER (eventbox_image_firewall_udp_punchable), image_firewall_udp_punchable);
   gtk_widget_set_size_request (image_firewall_udp_punchable, 16, 16);
+  gtk_misc_set_padding (GTK_MISC (image_firewall_udp_punchable), 1, 0);
 
   eventbox_image_no_firewall = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_no_firewall, "eventbox_image_no_firewall");
@@ -2475,6 +2492,7 @@ create_main_window (void)
   gtk_widget_show (image_no_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox_image_no_firewall), image_no_firewall);
   gtk_widget_set_size_request (image_no_firewall, 16, 16);
+  gtk_misc_set_padding (GTK_MISC (image_no_firewall), 1, 0);
 
   hbox228 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox228, "hbox228");
@@ -2491,7 +2509,6 @@ create_main_window (void)
   gtk_widget_set_name (image_ultra, "image_ultra");
   gtk_widget_show (image_ultra);
   gtk_container_add (GTK_CONTAINER (eventbox_image_ultra), image_ultra);
-  gtk_misc_set_padding (GTK_MISC (image_ultra), 1, 0);
 
   eventbox_image_leaf = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_leaf, "eventbox_image_leaf");
@@ -2503,7 +2520,6 @@ create_main_window (void)
   gtk_widget_set_name (image_leaf, "image_leaf");
   gtk_widget_show (image_leaf);
   gtk_container_add (GTK_CONTAINER (eventbox_image_leaf), image_leaf);
-  gtk_misc_set_padding (GTK_MISC (image_leaf), 1, 0);
 
   eventbox_image_legacy = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_legacy, "eventbox_image_legacy");
@@ -2515,7 +2531,6 @@ create_main_window (void)
   gtk_widget_set_name (image_legacy, "image_legacy");
   gtk_widget_show (image_legacy);
   gtk_container_add (GTK_CONTAINER (eventbox_image_legacy), image_legacy);
-  gtk_misc_set_padding (GTK_MISC (image_legacy), 1, 0);
 
   hbox9344 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox9344, "hbox9344");
@@ -2532,7 +2547,6 @@ create_main_window (void)
   gtk_widget_set_name (image_dht_none, "image_dht_none");
   gtk_widget_show (image_dht_none);
   gtk_container_add (GTK_CONTAINER (eventbox_image_dht_none), image_dht_none);
-  gtk_misc_set_padding (GTK_MISC (image_dht_none), 1, 0);
 
   eventbox_image_dht_seeded = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_dht_seeded, "eventbox_image_dht_seeded");
@@ -2544,7 +2558,6 @@ create_main_window (void)
   gtk_widget_set_name (image_dht_seeded, "image_dht_seeded");
   gtk_widget_show (image_dht_seeded);
   gtk_container_add (GTK_CONTAINER (eventbox_image_dht_seeded), image_dht_seeded);
-  gtk_misc_set_padding (GTK_MISC (image_dht_seeded), 1, 0);
 
   eventbox_image_dht_own_kuid = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_dht_own_kuid, "eventbox_image_dht_own_kuid");
@@ -2556,7 +2569,6 @@ create_main_window (void)
   gtk_widget_set_name (image_dht_own_kuid, "image_dht_own_kuid");
   gtk_widget_show (image_dht_own_kuid);
   gtk_container_add (GTK_CONTAINER (eventbox_image_dht_own_kuid), image_dht_own_kuid);
-  gtk_misc_set_padding (GTK_MISC (image_dht_own_kuid), 1, 0);
 
   eventbox_image_dht_completing = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_dht_completing, "eventbox_image_dht_completing");
@@ -2568,7 +2580,6 @@ create_main_window (void)
   gtk_widget_set_name (image_dht_completing, "image_dht_completing");
   gtk_widget_show (image_dht_completing);
   gtk_container_add (GTK_CONTAINER (eventbox_image_dht_completing), image_dht_completing);
-  gtk_misc_set_padding (GTK_MISC (image_dht_completing), 1, 0);
 
   eventbox_image_dht_active = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_dht_active, "eventbox_image_dht_active");
@@ -2580,7 +2591,6 @@ create_main_window (void)
   gtk_widget_set_name (image_dht_active, "image_dht_active");
   gtk_widget_show (image_dht_active);
   gtk_container_add (GTK_CONTAINER (eventbox_image_dht_active), image_dht_active);
-  gtk_misc_set_padding (GTK_MISC (image_dht_active), 1, 0);
 
   eventbox_image_dht_passive = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_dht_passive, "eventbox_image_dht_passive");
@@ -2592,7 +2602,6 @@ create_main_window (void)
   gtk_widget_set_name (image_dht_passive, "image_dht_passive");
   gtk_widget_show (image_dht_passive);
   gtk_container_add (GTK_CONTAINER (eventbox_image_dht_passive), image_dht_passive);
-  gtk_misc_set_padding (GTK_MISC (image_dht_passive), 1, 0);
 
   frame_statusbar_uptime = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_statusbar_uptime, "frame_statusbar_uptime");
@@ -2828,6 +2837,8 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image_port_mapping_successful, "image_port_mapping_successful");
   GLADE_HOOKUP_OBJECT (main_window, statusbar, "statusbar");
   GLADE_HOOKUP_OBJECT (main_window, hbox211, "hbox211");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_download_queue_frozen, "eventbox_image_download_queue_frozen");
+  GLADE_HOOKUP_OBJECT (main_window, image_download_queue_frozen, "image_download_queue_frozen");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_chip, "eventbox_image_chip");
   GLADE_HOOKUP_OBJECT (main_window, image_chip, "image_chip");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_warning, "eventbox_image_warning");

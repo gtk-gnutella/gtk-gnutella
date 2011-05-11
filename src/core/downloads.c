@@ -141,6 +141,7 @@ RCSID("$Id$")
 #define DOWNLOAD_MAX_UDP_PUSH	4		/**< Contact at most 4 hosts */
 #define DOWNLOAD_CONNECT_DELAY	12		/**< Seconds between connections */
 #define DOWNLOAD_PIPELINE_MSECS	5000	/**< Less than 5 secs away */
+#define DOWNLOAD_FS_SPACE		16384	/**< Min filesystem free space */
 
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
@@ -187,8 +188,9 @@ static struct download *download_pick_another(
 	const struct download *d, const struct download *pd);
 static void download_got_push_route(const guid_t *guid);
 
-static gboolean download_dirty = FALSE;
-static gboolean download_shutdown = FALSE;
+static gboolean download_dirty;
+static gboolean download_shutdown;
+static gboolean queue_frozen_on_write_error;
 
 static void download_store(void);
 static void download_retrieve(void);
@@ -8681,12 +8683,15 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 
 		switch (errno) {
 		case ENOSPC:	/* No space left */
+			queue_frozen_on_write_error = TRUE;
+			/* FALL THROUGH */
 		case EDQUOT:	/* quota exceeded */
 		case EROFS:		/* read-only filesystem */
 		case EIO:		/* I/O error */
 			if (!download_queue_is_frozen()) {
 				download_freeze_queue();
-				g_warning("freezing download queue due to write error!");
+				g_warning("freezing download queue due to write error: %s",
+					g_strerror(errno));
 			}
 			break;
 		}
@@ -15050,7 +15055,7 @@ download_close(void)
 
 	download_store();			/* Save latest copy */
 	download_freeze_queue();
-	file_info_store();		/* Must BEFORE we remove downloads */
+	file_info_store();			/* Must do BEFORE we remove downloads */
 
 	/*
 	 * This flag is set because certain operations must be avoided from now on
@@ -16196,6 +16201,26 @@ download_timer(time_t now)
 		FALSE);
 
 	download_free_removed();
+
+	/*
+	 * If we froze the queue due to a previous recoverable write error (such
+	 * as a lack of free space on the filesystem), check whether we have
+	 * room now and unfreeze the queue if we have.
+	 */
+
+	if (queue_frozen_on_write_error) {
+		if (!download_queue_is_frozen())
+			queue_frozen_on_write_error = FALSE;	/* They unfroze it! */
+	}
+
+	if (queue_frozen_on_write_error) {
+		if (fs_free_space(GNET_PROPERTY(save_file_path)) >= DOWNLOAD_FS_SPACE) {
+			g_info("space available again on %s, unfreezing download queue",
+				GNET_PROPERTY(save_file_path));
+			download_thaw_queue();
+			queue_frozen_on_write_error = FALSE;
+		}
+	}
 
 	/* Dequeuing */
 	if (GNET_PROPERTY(is_inet_connected))

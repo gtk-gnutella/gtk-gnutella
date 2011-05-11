@@ -3466,9 +3466,34 @@ http://maxmind.com/</property>
 	      <property name="spacing">0</property>
 
 	      <child>
+		<widget class="GtkEventBox" id="eventbox_image_download_queue_frozen">
+		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Download queue is frozen.</property>
+		  <property name="visible_window">True</property>
+		  <property name="above_child">False</property>
+
+		  <child>
+		    <widget class="GtkImage" id="image_download_queue_frozen">
+		      <property name="visible">True</property>
+		      <property name="pixbuf">pause.xpm</property>
+		      <property name="xalign">0.5</property>
+		      <property name="yalign">0.5</property>
+		      <property name="xpad">1</property>
+		      <property name="ypad">0</property>
+		    </widget>
+		  </child>
+		</widget>
+		<packing>
+		  <property name="padding">0</property>
+		  <property name="expand">True</property>
+		  <property name="fill">True</property>
+		</packing>
+	      </child>
+
+	      <child>
 		<widget class="GtkEventBox" id="eventbox_image_chip">
 		  <property name="visible">True</property>
-		  <property name="tooltip" translatable="yes">Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths.</property>
+		  <property name="tooltip" translatable="yes">CPU overloaded</property>
 		  <property name="visible_window">True</property>
 		  <property name="above_child">False</property>
 
@@ -3478,7 +3503,7 @@ http://maxmind.com/</property>
 		      <property name="pixbuf">chip.xpm</property>
 		      <property name="xalign">0.5</property>
 		      <property name="yalign">0.5</property>
-		      <property name="xpad">0</property>
+		      <property name="xpad">1</property>
 		      <property name="ypad">0</property>
 		    </widget>
 		  </child>
@@ -3534,7 +3559,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">upload.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
+			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -3559,7 +3584,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">upload-yellow.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
+			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -3584,7 +3609,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">upload-red.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
+			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -3783,7 +3808,7 @@ http://maxmind.com/</property>
 		      <property name="pixbuf">booktthv.xpm</property>
 		      <property name="xalign">0.5</property>
 		      <property name="yalign">0.5</property>
-		      <property name="xpad">0</property>
+		      <property name="xpad">1</property>
 		      <property name="ypad">0</property>
 		    </widget>
 		  </child>
@@ -3807,7 +3832,7 @@ http://maxmind.com/</property>
 		      <property name="pixbuf">booklib.xpm</property>
 		      <property name="xalign">0.5</property>
 		      <property name="yalign">0.5</property>
-		      <property name="xpad">1</property>
+		      <property name="xpad">0</property>
 		      <property name="ypad">0</property>
 		    </widget>
 		  </child>
@@ -3840,7 +3865,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">firewall.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">1</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -3869,7 +3894,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">firewall_punchable.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">1</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -3896,7 +3921,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">firewall_tcp.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">1</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -3923,7 +3948,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">firewall_udp.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">1</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -3950,7 +3975,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">firewall_udp_punchable.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">1</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -3979,7 +4004,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">no_firewall.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">1</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -4017,7 +4042,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">ultra.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
+			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -4042,7 +4067,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">leaf.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
+			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -4067,7 +4092,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">legacy.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
+			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -4105,7 +4130,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">star-black.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
+			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -4130,7 +4155,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">star-violet.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
+			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -4155,7 +4180,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">star-blue.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
+			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -4180,7 +4205,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">star-green.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
+			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -4205,7 +4230,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">star-yellow.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
+			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -4230,7 +4255,7 @@ http://maxmind.com/</property>
 			  <property name="pixbuf">star-red.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
+			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>

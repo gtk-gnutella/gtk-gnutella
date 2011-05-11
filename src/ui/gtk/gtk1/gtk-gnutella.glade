@@ -7489,8 +7489,30 @@
 
 	  <widget>
 	    <class>GtkEventBox</class>
+	    <name>eventbox_image_download_queue_frozen</name>
+	    <tooltip>Download queue is frozen.</tooltip>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_download_queue_frozen</name>
+	      <filename>pause.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>1</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
 	    <name>eventbox_image_chip</name>
-	    <tooltip>Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths.</tooltip>
+	    <tooltip>CPU overloaded.</tooltip>
 	    <child>
 	      <padding>0</padding>
 	      <expand>True</expand>
@@ -7503,7 +7525,7 @@
 	      <filename>chip.xpm</filename>
 	      <xalign>0.5</xalign>
 	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
+	      <xpad>1</xpad>
 	      <ypad>0</ypad>
 	      <build_insensitive>False</build_insensitive>
 	    </widget>
@@ -7708,7 +7730,7 @@
 	      <filename>booksha.xpm</filename>
 	      <xalign>0.5</xalign>
 	      <yalign>0.5</yalign>
-	      <xpad>1</xpad>
+	      <xpad>0</xpad>
 	      <ypad>0</ypad>
 	      <build_insensitive>True</build_insensitive>
 	    </widget>
@@ -7729,7 +7751,7 @@
 	      <filename>bookshav.xpm</filename>
 	      <xalign>0.5</xalign>
 	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
+	      <xpad>1</xpad>
 	      <ypad>0</ypad>
 	      <build_insensitive>True</build_insensitive>
 	    </widget>
@@ -7750,7 +7772,7 @@
 	      <filename>booktth.xpm</filename>
 	      <xalign>0.5</xalign>
 	      <yalign>0.5</yalign>
-	      <xpad>1</xpad>
+	      <xpad>0</xpad>
 	      <ypad>0</ypad>
 	      <build_insensitive>True</build_insensitive>
 	    </widget>
@@ -7792,7 +7814,7 @@
 	      <filename>booklib.xpm</filename>
 	      <xalign>0.5</xalign>
 	      <yalign>0.5</yalign>
-	      <xpad>1</xpad>
+	      <xpad>0</xpad>
 	      <ypad>0</ypad>
 	      <build_insensitive>True</build_insensitive>
 	    </widget>
@@ -7836,7 +7858,7 @@
 	      <filename>firewall_punchable.xpm</filename>
 	      <xalign>0.5</xalign>
 	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
+	      <xpad>1</xpad>
 	      <ypad>0</ypad>
 	      <build_insensitive>False</build_insensitive>
 	    </widget>
@@ -7858,7 +7880,7 @@
 	      <filename>firewall_tcp.xpm</filename>
 	      <xalign>0.5</xalign>
 	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
+	      <xpad>1</xpad>
 	      <ypad>0</ypad>
 	      <build_insensitive>False</build_insensitive>
 	    </widget>
@@ -7880,7 +7902,7 @@
 	      <filename>firewall_udp.xpm</filename>
 	      <xalign>0.5</xalign>
 	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
+	      <xpad>1</xpad>
 	      <ypad>0</ypad>
 	      <build_insensitive>False</build_insensitive>
 	    </widget>
@@ -7902,7 +7924,7 @@
 	      <filename>firewall_udp_punchable.xpm</filename>
 	      <xalign>0.5</xalign>
 	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
+	      <xpad>1</xpad>
 	      <ypad>0</ypad>
 	      <build_insensitive>False</build_insensitive>
 	    </widget>
