@@ -79,23 +79,6 @@ enum socket_direction {
 	SOCK_CONN_PROXY_OUTGOING
 };
 
-/**
- * Connection types.
- */
-
-enum socket_type {
-	SOCK_TYPE_UNKNOWN = 0,
-	SOCK_TYPE_CONTROL,
-	SOCK_TYPE_DOWNLOAD,
-	SOCK_TYPE_UPLOAD,
-	SOCK_TYPE_HTTP,
-    SOCK_TYPE_SHELL,
-    SOCK_TYPE_CONNBACK,
-    SOCK_TYPE_PPROXY,
-    SOCK_TYPE_DESTROYING,
-	SOCK_TYPE_UDP
-};
-
 typedef enum {
 	SOCKET_MAGIC = 0x1fb7ddeb
 } socket_magic_t;

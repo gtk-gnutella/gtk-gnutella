@@ -59,10 +59,9 @@ enum {
 	SOCK_TRACE_BOTH = 0x1 | 0x2
 };
 
-/*
+/**
  * Operating flags
  */
-
 enum {
 	SOCK_F_ESTABLISHED	= (1UL << 0),  /**< Connection was established */
 	SOCK_F_EOF			= (1UL << 1),  /**< Got an EOF condition */
@@ -81,7 +80,23 @@ enum {
 	SOCK_F_TCP			= (1UL << 30)  /**< Is a TCP socket */
 };
 
-/*
+/**
+ * Connection types.
+ */
+enum socket_type {
+	SOCK_TYPE_UNKNOWN = 0,
+	SOCK_TYPE_CONTROL,
+	SOCK_TYPE_DOWNLOAD,
+	SOCK_TYPE_UPLOAD,
+	SOCK_TYPE_HTTP,
+    SOCK_TYPE_SHELL,
+    SOCK_TYPE_CONNBACK,
+    SOCK_TYPE_PPROXY,
+    SOCK_TYPE_DESTROYING,
+	SOCK_TYPE_UDP
+};
+
+/**
  * Socket buffer type.
  */
 enum socket_buftype {

@@ -43,14 +43,12 @@
 #include "lib/tm.h"
 #include "if/core/nodes.h"	/* For node_peer_t */
 #include "if/core/bsched.h"
+#include "if/core/sockets.h"
 
 typedef struct sendfile_ctx {
 	void *map;
 	fileoffset_t map_start, map_end;
 } sendfile_ctx_t;
-
-enum socket_type;
-enum socket_buftype;
 
 /*
  * Public interface.
