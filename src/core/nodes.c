@@ -9338,17 +9338,17 @@ node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags)
 			flags->peermode = NODE_P_NORMAL;
 	}
 
-	flags->incoming = node->flags & NODE_F_INCOMING;
-	flags->writable = NODE_IS_WRITABLE(node);
-	flags->readable = NODE_IS_READABLE(node);
-    flags->tx_compressed = NODE_TX_COMPRESSED(node);
+	flags->incoming = booleanize(node->flags & NODE_F_INCOMING);
+	flags->writable = booleanize(NODE_IS_WRITABLE(node));
+	flags->readable = booleanize(NODE_IS_READABLE(node));
+    flags->tx_compressed = booleanize(NODE_TX_COMPRESSED(node));
 	flags->mq_status = NODE_MQUEUE_STATUS(node);
-    flags->rx_compressed = NODE_RX_COMPRESSED(node);
+    flags->rx_compressed = booleanize(NODE_RX_COMPRESSED(node));
 	flags->hops_flow = node->hops_flow;
 
-	flags->is_push_proxied = (node->flags & NODE_F_PROXIED) ? TRUE : FALSE;
+	flags->is_push_proxied = booleanize(node->flags & NODE_F_PROXIED);
 	flags->is_proxying = is_host_addr(node->proxy_addr);
-	flags->tls = (node->flags & NODE_F_TLS) != 0;
+	flags->tls = booleanize(node->flags & NODE_F_TLS);
 
 	flags->qrt_state = QRT_S_NONE;
 	flags->uqrt_state = QRT_S_NONE;
