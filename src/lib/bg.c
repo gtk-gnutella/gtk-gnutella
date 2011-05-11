@@ -1084,7 +1084,8 @@ bg_sched_timer(void *unused_arg)
 		if (bg_debug > 2 && 0 == bt->seqno) {
 			g_debug("BGTASK \"%s\" starting step #%d (%s)",
 				bt->name, bt->step,
-				stacktrace_routine_name(bt->stepvec[bt->step], FALSE));
+				stacktrace_routine_name(
+					cast_func_to_pointer(bt->stepvec[bt->step]), FALSE));
 		}
 
 		if (bg_debug > 4) {
