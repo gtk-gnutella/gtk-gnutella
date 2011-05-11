@@ -61,9 +61,9 @@ void *list_iter_previous(list_iter_t *iter);
 void *list_iter_current(list_iter_t *iter);
 
 static inline list_destroy_cb
-cast_to_list_destroy(const void *fn)
+cast_to_list_destroy(const func_ptr_t fn)
 {
-	return cast_pointer_to_func(fn);
+	return (list_destroy_cb) fn;
 }
 
 #endif	/* _list_h_ */

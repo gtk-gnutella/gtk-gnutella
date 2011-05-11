@@ -459,7 +459,8 @@ find_tokkey_upto_fallback(time_t now, size_t count)
 
 	if (GNET_PROPERTY(version_debug) > 4) {
 		g_debug("%s: returning %p (%u.%u.%u)",
-			G_STRFUNC, tk, tk->ver.major, tk->ver.minor, tk->ver.patchlevel);
+			G_STRFUNC, cast_to_gconstpointer(tk),
+			tk->ver.major, tk->ver.minor, tk->ver.patchlevel);
 	}
 
 	g_assert(tk != NULL);

@@ -79,9 +79,9 @@ void hash_list_insert_position(hash_list_t *hl, const void *key, void *pos);
 void hash_list_forget_position(void *position);
 
 static inline hashlist_destroy_cb
-cast_to_hashlist_destroy(const void *fn)
+cast_to_hashlist_destroy(func_ptr_t fn)
 {
-	return cast_pointer_to_func(fn);
+	return (hashlist_destroy_cb) fn;
 }
 
 #endif	/* _hashlist_h_ */

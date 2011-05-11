@@ -495,7 +495,8 @@ trace_atom(struct nm_parser *ctx, const char *name)
 	return result;
 }
 
-#define FN(x)	{ (void *) x, STRINGIFY(x) }
+#define FN(x) \
+	{ (func_ptr_t) x, STRINGIFY(x) }
 
 static void stack_print(FILE *f, void * const *stack, size_t count);
 extern int main(int argc, char **argv);
@@ -504,7 +505,7 @@ extern int main(int argc, char **argv);
  * Known symbols that we want to check.
  */
 static struct {
-	const void *fn;				/**< Function address */
+	func_ptr_t fn;				/**< Function address */
 	const char *name;			/**< Function name */
 } trace_known_symbols[] = {
 	FN(file_locate_from_path),
@@ -577,7 +578,8 @@ trace_check(void)
 		goto done;
 	}
 
-	offset = ptr_diff(main_pc, main);
+	offset = ptr_diff(main_pc,
+		cast_func_to_pointer((func_ptr_t) main));
 
 	/*
 	 * Make sure the offset is constant among all our probed symbols.
@@ -585,7 +587,8 @@ trace_check(void)
 
 	for (i = 0; i < G_N_ELEMENTS(trace_known_symbols); i++) {
 		const char *name = trace_known_symbols[i].name;
-		const void *pc = trace_known_symbols[i].fn;
+		const void *pc =
+			cast_func_to_pointer(trace_known_symbols[i].fn);
 		const void *loaded_pc = g_hash_table_lookup(sym_pc, name);
 		size_t loaded_offset;
 
@@ -616,7 +619,8 @@ trace_check(void)
 
 	for (i = 0; i < G_N_ELEMENTS(trace_known_symbols); i++) {
 		struct trace *t;
-		const void *pc = trace_known_symbols[i].fn;
+		const void *pc =
+			cast_func_to_pointer(trace_known_symbols[i].fn);
 
 		t = trace_lookup(pc);
 
@@ -916,7 +920,8 @@ stacktrace_auto_tune(void)
 	 */
 
 	for (i = 0; i < count; i++) {
-		size_t d = ptr_diff(stack[i], stacktrace_auto_tune);
+		size_t d = ptr_diff(stack[i],
+			cast_func_to_pointer((func_ptr_t) stacktrace_auto_tune));
 
 		if (size_is_non_negative(d) && d < 72)	/* close enough */
 			break;

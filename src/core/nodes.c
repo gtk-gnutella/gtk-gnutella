@@ -3778,7 +3778,7 @@ node_is_now_connected(struct gnutella_node *n)
 	 * the "node_add" key).
 	 */
 
-	wq_wakeup(node_add, n);
+	wq_wakeup(cast_func_to_pointer((func_ptr_t) node_add), n);
 }
 
 /**

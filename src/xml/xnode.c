@@ -367,8 +367,9 @@ xnode_text(const xnode_t *xn)
 const char *
 xnode_first_text(const xnode_t *xn)
 {
-	xnode_check(xn);
 	const xnode_t *child;
+
+	xnode_check(xn);
 
 	child = xn->first_child;
 	if (NULL == child)

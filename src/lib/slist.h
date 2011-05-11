@@ -62,9 +62,9 @@ void slist_iter_remove(slist_iter_t *iter);
 void slist_free_all(slist_t **slist_ptr, slist_destroy_cb freecb);
 
 static inline slist_destroy_cb
-cast_to_slist_destroy(const void *fn)
+cast_to_slist_destroy(const func_ptr_t fn)
 {
-	return cast_pointer_to_func(fn);
+	return (slist_destroy_cb) fn;
 }
 
 #endif	/* _slist_h_ */

@@ -210,7 +210,8 @@ wd_expire(watchdog_t *wd)
 	if (wd->ev != NULL) {
 		g_carp("wd_expire(): "
 			"watchdog \"%s\" re-armed within %s() callback, turning it off",
-			wd_name(wd), stacktrace_routine_name(wd->trigger, FALSE));
+			wd_name(wd), stacktrace_routine_name(
+				cast_func_to_pointer((func_ptr_t) wd->trigger), FALSE));
 	}
 
 	return TRUE;

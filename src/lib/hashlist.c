@@ -74,7 +74,7 @@ enum hash_list_iter_magic { HASH_LIST_ITER_MAGIC = 0x438954efU };
 enum hash_list_iter_direction {
 	HASH_LIST_ITER_UNDEFINED,
 	HASH_LIST_ITER_FORWARDS,
-	HASH_LIST_ITER_BACKWARDS,
+	HASH_LIST_ITER_BACKWARDS
 };
 
 struct hash_list_iter {
@@ -337,7 +337,7 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, GCompareFunc func)
 static int
 sort_wrapper(const void *a, const void *b, void *data)
 {
-	GCompareFunc func = data;
+	GCompareFunc func = (GCompareFunc) cast_pointer_to_func(data);
 	const struct hash_list_item *ha = a;
 	const struct hash_list_item *hb = b;
 
@@ -359,7 +359,8 @@ hash_list_sort(hash_list_t *hl, GCompareFunc func)
 	 * to update the tail. -- FIXME
 	 */
 
-	hl->head = g_list_sort_with_data(hl->head, sort_wrapper, func);
+	hl->head = g_list_sort_with_data(hl->head, sort_wrapper,
+		cast_func_to_pointer((func_ptr_t) func));
 	hl->tail = g_list_last(hl->head);
 }
 

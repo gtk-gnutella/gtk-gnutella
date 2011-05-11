@@ -8319,9 +8319,11 @@ download_start_reading(gpointer o)
 	 */
 
 	if (!(d->flags & DL_F_PIPELINED)) {
-		tm_now(&now);
-		time_delta_t elapsed = tm_elapsed_ms(&now, &d->header_sent);
+		time_delta_t elapsed;
 		struct dl_server *server = d->server;
+
+		tm_now(&now);
+		elapsed = tm_elapsed_ms(&now, &d->header_sent);
 
 		g_assert(dl_server_valid(server));
 

@@ -442,9 +442,9 @@ file_object_release(struct file_object **fo_ptr)
  *   the old location being unlinked afterwards.
  */
 enum file_object_op {
-	FO_OP_UNLINK = 0,			/**< Unlink file, further access denied */
-	FO_OP_RENAME,				/**< Rename file (on same filesystem) */
-	FO_OP_MOVED,				/**< Moving notification */
+	FO_OP_UNLINK = 0,		/**< Unlink file, further access denied */
+	FO_OP_RENAME,			/**< Rename file (on same filesystem) */
+	FO_OP_MOVED				/**< Moving notification */
 };
 
 /**

@@ -73,7 +73,7 @@ RCSID("$Id$")
 
 static GHashTable *pending;		/**< Pending M-SEARCHes (socket -> upnp_mcb) */
 
-enum upnp_mcb_magic { UPNP_MCB_MAGIC = 0x8fa85631U };
+enum upnp_mcb_magic { UPNP_MCB_MAGIC = 0x0fa85631U };
 
 /**
  * An UPnP M-SEARCH callback descriptor.
@@ -100,7 +100,7 @@ upnp_mcb_check(const struct upnp_mcb * const mcb)
 	g_assert(mcb->s != NULL);
 }
 
-enum upnp_dscv_magic { UPNP_DSCV_MAGIC = 0x969f438bU };
+enum upnp_dscv_magic { UPNP_DSCV_MAGIC = 0x169f438bU };
 
 /**
  * A discovered device / service who replied to an initial M-SEARCH

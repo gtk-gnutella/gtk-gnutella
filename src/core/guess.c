@@ -1488,7 +1488,9 @@ guess_discovery_enable(void)
 			NULL == guess_new_host_ev ? "" : "still ");
 	}
 	if (NULL == guess_new_host_ev) {
-		guess_new_host_ev = wq_sleep(hcache_add, guess_host_added, NULL);
+		guess_new_host_ev = wq_sleep(
+			cast_func_to_pointer((func_ptr_t) hcache_add),
+			guess_host_added, NULL);
 	}
 }
 
@@ -1637,7 +1639,7 @@ qk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 	 */
 
 	d = delta_time(tm_time(), qk->last_seen);
-	hostile = FALSE;
+	expired = hostile = FALSE;
 
 	if (hostiles_check(gnet_host_get_addr(h))) {
 		hostile = TRUE;
@@ -3157,7 +3159,8 @@ guess_iterate(guess_t *gq)
 				}
 
 				if (NULL == gq->hostwait) {
-					gq->hostwait = wq_sleep_timeout(hcache_add,
+					gq->hostwait = wq_sleep_timeout(
+						cast_func_to_pointer((func_ptr_t) hcache_add),
 						GUESS_WAIT_DELAY, guess_load_host_added, gq);
 				}
 			}
@@ -3225,7 +3228,8 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	}
 
 	if (0 == guess_load_pool(gq, TRUE)) {
-		gq->hostwait = wq_sleep_timeout(hcache_add,
+		gq->hostwait = wq_sleep_timeout(
+			cast_func_to_pointer((func_ptr_t) hcache_add),
 			GUESS_WAIT_DELAY, guess_load_host_added, gq);
 	} else {
 		guess_async_iterate(gq);

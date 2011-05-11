@@ -47,7 +47,7 @@ typedef struct wq_event wq_event_t;
 typedef enum {
 	WQ_REMOVE,			/**< Remove from wait queue */
 	WQ_SLEEP,			/**< Leave in queue */
-	WQ_EXCLUSIVE,		/**< Got exclusive resource, don't wakeup others */
+	WQ_EXCLUSIVE		/**< Got exclusive resource, don't wakeup others */
 } wq_status_t;
 
 /**

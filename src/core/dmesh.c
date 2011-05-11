@@ -598,7 +598,8 @@ dm_alloc(const struct sha1 *sha1)
 static void
 dm_free(struct dmesh *dm)
 {
-	list_free_all(&dm->entries, cast_to_list_destroy(dmesh_entry_free));
+	list_free_all(&dm->entries,
+		cast_to_list_destroy((func_ptr_t) dmesh_entry_free));
 
 	/*
 	 * Values in the dme->by_host table were the dmesh_entry structures

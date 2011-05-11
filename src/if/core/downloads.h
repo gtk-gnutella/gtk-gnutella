@@ -183,7 +183,7 @@ struct dl_chunk {
 typedef enum {
     GTA_DL_PIPE_SELECTED,	/**< Chunk selected, not sent yet */
     GTA_DL_PIPE_SENDING,	/**< Pipelined request being sent */
-    GTA_DL_PIPE_SENT,  		/**< Pipelined request sent */
+    GTA_DL_PIPE_SENT  		/**< Pipelined request sent */
 } dl_pipeline_status_t;
 
 enum dl_pipeline_magic { DL_PIPELINE_MAGIC = 0x58ba60ce };	/**< Magic number */

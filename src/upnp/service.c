@@ -52,7 +52,7 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-enum upnp_service_msgic { UPNP_SVC_DESC_MAGIC = 0xec960b68U };
+enum upnp_service_msgic { UPNP_SVC_DESC_MAGIC = 0x6c960b68U };
 
 /**
  * A service description.

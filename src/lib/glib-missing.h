@@ -45,6 +45,11 @@
 #include "common.h"
 #include "stacktrace.h"		/* For stacktrace_where_sym_print() */
 
+/* Suppress warnings when GCC is in -pedantic mode and not -std=c99 */
+#if (__GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 96))
+#pragma GCC system_header
+#endif
+
 #ifdef USE_GLIB1
 typedef gboolean (*GEqualFunc)(gconstpointer a, gconstpointer b);
 

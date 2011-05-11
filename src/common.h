@@ -237,9 +237,9 @@ iovec_base(const struct iovec *iov)
 }
 
 static inline void
-iovec_set_base(struct iovec *iov, void *base)
+iovec_set_base(struct iovec *iov, const void *base)
 {
-	iov->iov_base = base;
+	iov->iov_base = (void *) base;
 }
 
 static inline size_t

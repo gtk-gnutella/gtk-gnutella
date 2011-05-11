@@ -4260,7 +4260,9 @@ search_new(gnet_search_t *ptr, const char *query,
 			0 == (flags & (SEARCH_F_BROWSE|SEARCH_F_LOCAL|SEARCH_F_PASSIVE)));
 
 	if (sbool_get(sch->active)) {
-		sch->new_node_wait = wq_sleep(node_add, search_node_added, sch);
+		sch->new_node_wait = wq_sleep(
+			cast_func_to_pointer((func_ptr_t) node_add),
+			search_node_added, sch);
 
 		if (reissue_timeout != 0 && reissue_timeout < SEARCH_MIN_RETRY)
 			reissue_timeout = SEARCH_MIN_RETRY;
