@@ -184,8 +184,9 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		}
 
 		gm_snprintf(flags, sizeof flags,
-			"<%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>",
+			"<%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>",
 			pmp,
+			GNET_PROPERTY(download_queue_frozen) ? "DFZ " : empty,
 			GNET_PROPERTY(ancient_version) ? "CLK " : empty,
 			fd,
 			GNET_PROPERTY(uploads_stalling) ? "STL " : empty,
@@ -404,6 +405,7 @@ shell_help_status(int argc, const char *argv[])
 		"(from left to right in lightening order)\n"
 		"  PMP           port mapping configured via UPnP or NAT-PMP\n"
 		"  pmp           port mapping available (UPnP or NAT-PMP)\n"
+		"  DFZ           download queue is frozen\n"
 		"  CLK           clock, GTKG expired\n"
 		"  !FD or FD     red or yellow bombs for fd shortage\n"
 		"  STL           upload stalls\n"
