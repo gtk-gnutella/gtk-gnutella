@@ -1014,19 +1014,24 @@ hcache_remove(hcache_class_t class, gnet_host_t *h)
  * Purge host from fresh/valid caches.
  */
 void
-hcache_purge(const host_addr_t addr, guint16 port)
+hcache_purge(hcache_class_t class, const host_addr_t addr, guint16 port)
 {
 	hostcache_entry_t *hce;
 	gnet_host_t *host;
 
-	if (hcache_ht_get(HCACHE_CLASS_HOST, addr, port, &host, &hce)) {
+	if (hcache_ht_get(class, addr, port, &host, &hce)) {
 		switch (hce->type) {
 		case HCACHE_FRESH_ANY:
 		case HCACHE_VALID_ANY:
 		case HCACHE_FRESH_ULTRA:
 		case HCACHE_VALID_ULTRA:
+			g_soft_assert(HCACHE_CLASS_HOST == class);
 			hcache_remove(HCACHE_CLASS_HOST, host);
-			return;
+			break;
+		case HCACHE_GUESS:
+		case HCACHE_GUESS_INTRO:
+			g_soft_assert(HCACHE_CLASS_GUESS == class);
+			hcache_remove(HCACHE_CLASS_GUESS, host);
 		default:
 			break;
 		}

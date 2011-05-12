@@ -4083,7 +4083,7 @@ purge_host_cache_from_hub_list(const char *s)
 				host_addr_to_string(addr), port);
 		}
 		
-		hcache_purge(addr, port);
+		hcache_purge(HCACHE_CLASS_HOST, addr, port);
     }
     
     return;
@@ -5210,7 +5210,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				node_infostr(n));
 		}
 		/* Remove from fresh/valid caches */
-		hcache_purge(n->gnet_addr, n->gnet_port);
+		hcache_purge(HCACHE_CLASS_HOST, n->gnet_addr, n->gnet_port);
 		hcache_add(HCACHE_ALIEN, n->gnet_addr, n->gnet_port, "alien network");
 		node_send_error(n, 403, "%s", msg);
 		node_remove(n, "%s", _(msg));
@@ -5405,7 +5405,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				}
             
 				/* Remove node and suggestions from fresh/valid caches */
-				hcache_purge(n->gnet_addr, n->gnet_port);
+				hcache_purge(HCACHE_CLASS_HOST, n->gnet_addr, n->gnet_port);
 				purge_host_cache_from_hub_list(field);
 				hcache_add(HCACHE_ALIEN,
 					n->gnet_addr, n->gnet_port, "alien hub");

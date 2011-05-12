@@ -2476,6 +2476,65 @@ guess_send_query(guess_t *gq, const gnet_host_t *host)
 }
 
 /**
+ * Hash table iterator to remove an alien host from the query pool and
+ * mark it as queried so that no further attempt be made to contact it.
+ */
+static void
+guess_ignore_alien_host(void *unused_key, void *val, void *data)
+{
+	guess_t *gq = val;
+	const gnet_host_t *host = data;
+
+	guess_check(gq);
+	(void) unused_key;
+
+	/*
+	 * Prevent querying of the host.
+	 */
+
+	if (!map_contains(gq->queried, host)) {
+		map_insert(gq->queried, atom_host_get(host), int_to_pointer(1));
+	}
+
+	if (hash_list_contains(gq->pool, host)) {
+		const gnet_host_t *hkey;
+
+		if (GNET_PROPERTY(guess_client_debug) > 3) {
+			g_debug("GUESS QUERY[%s] dropping non-GUESS host %s from pool",
+				nid_to_string(&gq->gid), gnet_host_to_string(host));
+		}
+		hkey = hash_list_remove(gq->pool, host);
+		atom_host_free_null(&hkey);
+	}
+}
+
+/**
+ * Found an "alien" host, which is probably not supporting GUESS, or
+ * whose IP:port is wrong and must not be queried again.
+ */
+static void
+guess_alien_host(const guess_t *gq, const gnet_host_t *host, gboolean reached)
+{
+	if (GNET_PROPERTY(guess_client_debug) > 1) {
+		g_info("GUESS QUERY[%s] host %s doesn't %s",
+			nid_to_string(&gq->gid), gnet_host_to_string(host),
+			reached ? "support GUESS" : "seem to be reachable");
+	}
+
+	/*
+	 * Remove the host from the GUESS caches, plus strip it from the
+	 * pool of all the currently running queries.  Also mark it in
+	 * the non-GUESS table to avoid it being re-added soon.
+	 */
+
+	aging_insert(guess_alien, atom_host_get(host), int_to_pointer(1));
+	hcache_purge(HCACHE_CLASS_GUESS,
+		gnet_host_get_addr(host), gnet_host_get_port(host));
+	g_hash_table_foreach(gqueries, guess_ignore_alien_host,
+		deconstify_gpointer(host));
+}
+
+/**
  * Context for requesting query keys in the middle of the iteration.
  */
 struct guess_qk_context {
@@ -2542,6 +2601,26 @@ guess_got_query_key(enum udp_ping_ret type,
 				guess_qk_context_free(ctx);
 				break;
 			}
+
+			/*
+			 * If we don't have the host in the query key cache, it may mean
+			 * its IP:port is plain wrong.  LimeWire nodes are known to
+			 * generate wrong pongs for incoming GUESS ultrapeer connections
+			 * because they use the port of the incoming TCP connection instead
+			 * of parsing the Node: header from the handshake to gather the
+			 * proper listening port.
+			 */
+
+			if (NULL == qk) {
+				if (GNET_PROPERTY(guess_client_debug) > 2) {
+					g_debug("GUESS QUERY[%s] timed out waiting query key "
+						"from new host %s",
+						nid_to_string(&gq->gid), gnet_host_to_string(host));
+				}
+				guess_alien_host(gq, host, FALSE);
+				guess_qk_context_free(ctx);
+				break;
+			}
 		}
 
 		if (GNET_PROPERTY(guess_client_debug) > 2) {
@@ -2603,12 +2682,7 @@ guess_got_query_key(enum udp_ping_ret type,
 				struct qkdata *qk = get_qkdata(host);
 
 				if (NULL == qk || 0 == qk->length) {
-					if (GNET_PROPERTY(guess_client_debug) > 1) {
-						g_info("GUESS QUERY[%s] host %s doesn't support GUESS",
-							nid_to_string(&gq->gid), gnet_host_to_string(host));
-					}
-					aging_insert(guess_alien, atom_host_get(host),
-						int_to_pointer(1));
+					guess_alien_host(gq, host, TRUE);
 				}
 				if (qk != NULL)
 					delete_qkdata(host);
@@ -3234,6 +3308,12 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	} else {
 		guess_async_iterate(gq);
 	}
+
+	/*
+	 * Note: we don't send the GUESS query to our leaves because we do query
+	 * all the leaves each time the regular broadcasted search is initiated.
+	 * Therefore, it is useless to send them the query again.
+	 */
 
 	gnet_stats_count_general(GNR_GUESS_LOCAL_QUERIES, +1);
 	gnet_stats_count_general(GNR_GUESS_LOCAL_RUNNING, +1);
