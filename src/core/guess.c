@@ -2619,7 +2619,7 @@ guess_got_query_key(enum udp_ping_ret type,
 				}
 				guess_alien_host(gq, host, FALSE);
 				guess_qk_context_free(ctx);
-				break;
+				goto no_query_key;
 			}
 		}
 
