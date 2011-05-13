@@ -1464,7 +1464,7 @@ host_pack(const host_addr_t addr, guint16 port)
 	return phost;
 }
 
-gboolean
+void
 packed_host_unpack(const struct packed_host *phost,	/* MUST be a pointer */
 	host_addr_t *addr_ptr, guint16 *port_ptr)
 {
@@ -1490,25 +1490,31 @@ packed_host_unpack(const struct packed_host *phost,	/* MUST be a pointer */
 			 */
 			*addr_ptr = host_addr_peek_ipv4(&phost->ha.addr[0]);
 		}
-		return TRUE;
+		return;
 	case NET_TYPE_IPV6:
 		if (addr_ptr) {
 			*addr_ptr = host_addr_peek_ipv6(phost->ha.addr);
 		}
-		return TRUE;
+		return;
 	case NET_TYPE_LOCAL:
 		if (addr_ptr) {
 			*addr_ptr = local_host_addr;
 		}
-		return TRUE;
+		return;
 	case NET_TYPE_NONE:
 		if (addr_ptr) {
 			*addr_ptr = zero_host_addr;
 		}
-		return TRUE;
+		return;
 	}
-	g_assert_not_reached();
-	return FALSE;
+	/*
+	 * Because this routine can be used through gnet_host_get_addr() to grab
+	 * the address from a packed structure coming from a DBMW file, we cannot
+	 * abort the execution when faced with an invalid structure (coming from
+	 * the disk).
+	 */
+	g_carp("corrupted packed host: unknown net address type %d", phost->ha.net);
+	*addr_ptr = zero_host_addr;
 }
 
 /**

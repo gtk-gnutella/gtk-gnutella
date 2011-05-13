@@ -39,8 +39,9 @@
 
 #include "common.h"
 
-#include "lib/endian.h"
-#include "lib/misc.h"
+#include "endian.h"
+#include "glib-missing.h"		/* For g_carp() */
+#include "misc.h"
 
 /**
  * @note AF_UNIX/AF_LOCAL (unix domain) sockets are not fully supported. These
@@ -191,7 +192,12 @@ packed_host_length(const struct packed_host *ph)
 	case NET_TYPE_NONE:
 		return 0;
 	}
-	g_assert_not_reached();
+	/*
+	 * Because this routine can be used through gnet_host_length() to compute
+	 * the length of keys from a DBMW file, we cannot abort the execution when
+	 * faced with an invalid structure (coming from the disk).
+	 */
+	g_carp("corrupted packed host: unknown net address type %d", ph->ha.net);
 	return 0;
 }
 
@@ -596,7 +602,7 @@ host_addr_t packed_host_addr_unpack(const struct packed_host_addr paddr);
 
 guint packed_host_size(const struct packed_host paddr);
 struct packed_host host_pack(const host_addr_t addr, guint16 port);
-gboolean packed_host_unpack(const struct packed_host *phost,
+void packed_host_unpack(const struct packed_host *phost,
 		host_addr_t *addr_ptr, guint16 *port_ptr);
 
 guint packed_host_hash_func(gconstpointer key);
