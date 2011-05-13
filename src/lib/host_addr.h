@@ -190,7 +190,7 @@ packed_host_length(const struct packed_host *ph)
 	case NET_TYPE_LOCAL:
 		return ptr_diff(&ph->ha.addr[16], ph);
 	case NET_TYPE_NONE:
-		return 0;
+		return ptr_diff(&ph->ha.addr[0], ph);
 	}
 	/*
 	 * Because this routine can be used through gnet_host_length() to compute
@@ -198,7 +198,7 @@ packed_host_length(const struct packed_host *ph)
 	 * faced with an invalid structure (coming from the disk).
 	 */
 	g_carp("corrupted packed host: unknown net address type %d", ph->ha.net);
-	return 0;
+	return ptr_diff(&ph->ha.addr[0], ph);
 }
 
 gboolean host_addr_convert(const host_addr_t from, host_addr_t *to,
