@@ -432,7 +432,6 @@ static size_t filesize_len(gconstpointer v);
 static const char *filesize_str(gconstpointer v);
 static size_t uint32_len(gconstpointer v);
 static const char *uint32_str(gconstpointer v);
-static size_t gnet_host_len(gconstpointer v);
 static const char *gnet_host_str(gconstpointer v);
 
 /**
@@ -448,7 +447,7 @@ static table_desc_t atoms[] = {
 		filesize_hash, filesize_eq, filesize_len, filesize_str},		/* 5 */
 	{ "uint32",	NULL, uint32_hash, uint32_eq,   uint32_len, uint32_str},/* 6 */
 	{ "host", NULL,
-		gnet_host_hash, gnet_host_eq, gnet_host_len, gnet_host_str},	/* 7 */
+		gnet_host_hash, gnet_host_eq, gnet_host_length, gnet_host_str},	/* 7 */
 };
 
 static GHashTable *ht_all_atoms;
@@ -671,16 +670,6 @@ uint32_len(gconstpointer unused_v)
 {
 	(void) unused_v;
 	return sizeof(guint32);
-}
-
-/**
- * @return length of gnet_host_t
- */
-static size_t
-gnet_host_len(gconstpointer unused_v)
-{
-	(void) unused_v;
-	return sizeof(gnet_host_t);
 }
 
 /**
