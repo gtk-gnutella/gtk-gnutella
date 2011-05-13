@@ -326,9 +326,9 @@ iovec_len(const iovec_t* iovec)
 }
 
 static inline void
-iovec_set_base(iovec_t* iovec, void *base)
+iovec_set_base(iovec_t* iovec, const void *base)
 {
-	iovec->buf = base;
+	iovec->buf = (void *) base;
 }
 
 static inline void
