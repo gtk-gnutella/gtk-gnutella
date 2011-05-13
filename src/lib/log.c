@@ -52,6 +52,7 @@ RCSID("$Id$")
 #include "override.h"		/* Must be the last header included */
 
 #define LOG_MSG_MAXLEN		512		/**< Maximum length within signal handler */
+#define LOG_IOERR_GRACE		5		/**< Seconds between I/O errors */
 
 static const char * const log_domains[] = {
 	G_LOG_DOMAIN, "Gtk", "GLib", "Pango"
@@ -68,9 +69,11 @@ struct logfile {
 	const char *path;		/**< File path (atom or static constant) */
 	FILE *f;				/**< File descriptor */
 	time_t otime;			/**< Opening time, for stats */
+	time_t etime;			/**< Time of last I/O error */
 	unsigned disabled:1;	/**< Disabled when opened to /dev/null */
 	unsigned changed:1;		/**< Logfile path was changed, pending reopen */
 	unsigned path_is_atom:1;	/**< Path is an atom */
+	unsigned ioerror:1;		/**< Recent I/O error occurred */
 };
 
 enum logthread_magic { LOGTHREAD_MAGIC = 0x72a32c36 };
@@ -134,20 +137,49 @@ log_thread_alloc(void)
 	return lt;
 }
 
+static void
+log_file_check(enum log_file which)
+{
+	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+}
+
 /**
  * Emit log message.
  */
 static void
-log_fprint(FILE *f, const struct tm *ct, GLogLevelFlags level,
+log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 	const char *prefix, const char *msg)
 {
-	fprintf(f, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n",
+	struct logfile *lf;
+	gboolean ioerr;
+
+	log_file_check(which);
+
+	lf = &logfile[which];
+
+	/*
+	 * If an I/O error occurred recently for this logfile, do not emit anything
+	 * for some short period after the I/O error.
+	 */
+
+	if G_UNLIKELY(lf->ioerror) {
+		if (delta_time(tm_time(), lf->etime) < LOG_IOERR_GRACE)
+			return;
+		lf->ioerror = FALSE;
+	}
+
+	ioerr = 0 > fprintf(lf->f, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n",
 		(TM_YEAR_ORIGIN + ct->tm_year) % 100,
 		ct->tm_mon + 1, ct->tm_mday,
 		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
 		(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
 		(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
 		msg);
+
+	if G_UNLIKELY(ioerr) {
+		lf->ioerror = TRUE;
+		lf->etime = tm_time();
+	}
 }
 
 /**
@@ -376,10 +408,10 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			time_t now = tm_time_exact();
 			struct tm *ct = localtime(&now);
 
-			log_fprint(stderr, ct, level, prefix, str_2c(msg));
+			log_fprint(LOG_STDERR, ct, level, prefix, str_2c(msg));
 
 			if ((level & G_LOG_FLAG_FATAL) && log_stdout_is_distinct()) {
-				log_fprint(stdout, ct, level, prefix, str_2c(msg));
+				log_fprint(LOG_STDOUT, ct, level, prefix, str_2c(msg));
 			}
 		}
 
@@ -683,10 +715,10 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 		safer = control_escape(message);
 	}
 
-	log_fprint(stderr, ct, level, prefix, safer);
+	log_fprint(LOG_STDERR, ct, level, prefix, safer);
 
 	if ((level & G_LOG_FLAG_FATAL) && log_stdout_is_distinct()) {
-		log_fprint(stdout, ct, level, prefix, safer);
+		log_fprint(LOG_STDOUT, ct, level, prefix, safer);
 	}
 
 	if (
@@ -727,12 +759,6 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 #endif
 
 	errno = saved_errno;
-}
-
-static void
-log_file_check(enum log_file which)
-{
-	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
 }
 
 /**
