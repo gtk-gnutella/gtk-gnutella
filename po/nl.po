@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2011-05-10 19:00+0200\n"
-"PO-Revision-Date: 2011-05-13 11:09+0100\n"
+"PO-Revision-Date: 2011-05-13 13:14+0100\n"
 "Last-Translator: Jeroen Asselman <j.asselman@rubicongroup.biz>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -22,10 +22,10 @@ msgstr ""
 
 #, c-format
 msgid "%s%s%s%s%s fps, %s kbps"
-msgstr ""
+msgstr "%s%s%s%s%s fps, %s kbps"
 
 msgid "times|x"
-msgstr "times|x"
+msgstr "x"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -52,11 +52,11 @@ msgid "Duplicate download"
 msgstr "Duplicate download"
 
 msgid "Nothing else to switch to"
-msgstr ""
+msgstr "Geen omschakelingen meer mogelijk"
 
 #, c-format
 msgid "Switching (after error) to \"%s\""
-msgstr ""
+msgstr "Omshakelen (na fout) naar \"%s\""
 
 #, c-format
 msgid " at %s - rescheduled for %s%s #%u"
@@ -73,7 +73,7 @@ msgid "Paused"
 msgstr "Gepauzeerd"
 
 msgid "Nothing more to get"
-msgstr ""
+msgstr "Niets meer te verkrijgen"
 
 msgid "Waiting for a free chunk"
 msgstr "Wacht op een vrije chunk"
@@ -176,11 +176,11 @@ msgid "Can't read resume data: %s"
 msgstr "Kan de te hervatten data niet lezen: %s"
 
 msgid "Short read on resume data"
-msgstr ""
+msgstr "Te weinig gegevens gelezen bij het hervatten"
 
 #, c-format
 msgid "Resuming data mismatch @ %s"
-msgstr ""
+msgstr "Opnieuw geprobeerde data komt niet overeen @ %s"
 
 #, c-format
 msgid "Can't save data: %s"
@@ -197,7 +197,7 @@ msgstr "Fragment klaar, connectie gesloten"
 
 #, c-format
 msgid "Switching to \"%s\""
-msgstr ""
+msgstr "Omschakelen naar \"%s\""
 
 msgid "Requeued by competing download"
 msgstr "Opnieuw in de wachtrij gezet door een soortgelijke download"
@@ -233,7 +233,7 @@ msgid "Discovered dup SHA1"
 msgstr "Dubbele SHA1 ontdekt"
 
 msgid "More data to sink than expected"
-msgstr ""
+msgstr "Meer gegevens om te laten zakken dan verwacht"
 
 msgid "Stopped data (EOF)"
 msgstr "Data gestopped (EOF)"
@@ -260,21 +260,21 @@ msgid "Spammer detected"
 msgstr "Spammer gedetecteerd"
 
 msgid "Partial file, bad HTTP keep-alive support"
-msgstr ""
+msgstr "Partial bestand, slechte HTTP keep-alive ondersteuning"
 
 #, c-format
 msgid "Partial file, too much data to sink (%s bytes)"
-msgstr ""
+msgstr "Partial bestand, teveel gegevens om te laten zakken (%s bytes)"
 
 msgid "Partial file, no suitable range found yet"
-msgstr ""
+msgstr "Partial bestand, nog geen geschikte bereik gevonden"
 
 msgid "Partial file on server, waiting"
 msgstr "Gedeeltelijk bestand op de server, aan het wachten"
 
 #, c-format
 msgid "%sRequested range unavailable yet"
-msgstr ""
+msgstr "%s Verzocht bereik nog niet beschikbaar"
 
 msgid "Queued"
 msgstr "In de wacht"
@@ -288,13 +288,13 @@ msgid ", ETA: %s"
 msgstr ", geschatte resterende tijd: %s"
 
 msgid "Server did not supply identification"
-msgstr ""
+msgstr "Server leverde geen identificatie"
 
 msgid "Unparseable Content-Length"
 msgstr "Content-Length niet verwerkbaar"
 
 msgid "Total/served sizes mismatch"
-msgstr ""
+msgstr "Totaal/aangeboden grootte kwam niet overeen"
 
 msgid "Range start mismatch"
 msgstr "Begin van het bereik komt niet overeen"
@@ -306,7 +306,7 @@ msgid "Range mismatch"
 msgstr "Bereik komt niet overeen"
 
 msgid "Weird server-side chunk shrinking"
-msgstr ""
+msgstr "Server-side chunk raar gekrompen"
 
 msgid "Content-Length mismatch"
 msgstr "Content-Length komt niet overeen"
@@ -321,7 +321,7 @@ msgid "THEX download aborted"
 msgstr "THEX download afgebroken"
 
 msgid "Pipeline flow stopped"
-msgstr ""
+msgstr "Pipeline flow gestopt"
 
 #, c-format
 msgid "Cannot open %s: %s"
@@ -374,7 +374,7 @@ msgstr "<Blader Host %s>"
 
 #, c-format
 msgid "<THEX data for %s>"
-msgstr ""
+msgstr "<THEX data voor %s>"
 
 msgid "Browse search closed"
 msgstr "Zoekopdracht bladeren gesloten"
@@ -453,14 +453,14 @@ msgstr "In afwachting van DHT query"
 #, c-format
 msgid "%u/%u successful DHT lookup"
 msgid_plural "%u/%u successful DHT lookups"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%u/%u succesvolle DHT lookup"
+msgstr[1] "%u/%u succesvolle DHT lookups"
 
 #, c-format
 msgid "%u DHT lookup"
 msgid_plural "%u DHT lookups"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%u DHT lookup"
+msgstr[1] "%u DHT lookups"
 
 msgid "Bad size"
 msgstr "Verkeerde grootte"
@@ -550,7 +550,7 @@ msgid "Hostile IP address"
 msgstr "Vijandig IP-adres"
 
 msgid "Bogus result from Morpheus"
-msgstr ""
+msgstr "Bogus resultaten van Morpheus"
 
 msgid "Spam"
 msgstr "Spam"
@@ -559,10 +559,10 @@ msgid "Evil filename"
 msgstr "Slechte bestandsnaam"
 
 msgid "Payload inflating error"
-msgstr ""
+msgstr "Payload inflating fout"
 
 msgid "Unknown header flags present"
-msgstr ""
+msgstr "Onbekende header flags aanwezig"
 
 msgid "Own search results"
 msgstr "Eigen zoekresultaten"
@@ -571,7 +571,7 @@ msgid "Own queries"
 msgstr "Eigen query's"
 
 msgid "Ancient query format"
-msgstr ""
+msgstr "Verouderd query formaat"
 
 msgid "Blank Servent ID"
 msgstr "Leeg Servent ID"
@@ -686,7 +686,7 @@ msgid "Reserved slot"
 msgstr "Gereserveerd slot"
 
 msgid "High Outdegree and Dynamic Querying Required"
-msgstr ""
+msgstr "High Outdegree en Dynamic Querying vereist"
 
 msgid "Cannot connect to a crawler"
 msgstr "Kan niet met crawler verbinden"
@@ -819,7 +819,7 @@ msgid "Read error"
 msgstr "Lees fout"
 
 msgid "Got EOF"
-msgstr ""
+msgstr "Ontving EOF"
 
 msgid "Write failed (Input Exception)"
 msgstr "Schrijf fout (Invoer fout)"
@@ -842,7 +842,7 @@ msgid "Connect back timeout"
 msgstr "Terug verbinden tijd verstreken"
 
 msgid "Timeout waiting for follow-up"
-msgstr ""
+msgstr "Time-out tijdens het wachten op de volgende"
 
 msgid "Lifetime expired"
 msgstr "Levenstijd verstreken"
@@ -961,19 +961,19 @@ msgid "none"
 msgstr "geen"
 
 msgid "input only"
-msgstr ""
+msgstr "alleen input"
 
 msgid "output only"
-msgstr ""
+msgstr "alleen output"
 
 msgid "input & output"
-msgstr ""
+msgstr "input & output"
 
 msgid "seeded"
-msgstr ""
+msgstr "seeded"
 
 msgid "own KUID lookup"
-msgstr ""
+msgstr "eigen KUID lookup"
 
 msgid "completing"
 msgstr "wordt afgerond"
@@ -1898,10 +1898,10 @@ msgid "Maximum number of results to show in a browse_host request."
 msgstr "Maximum aantal te tonen resultaten voor een browse_host verzoek."
 
 msgid "Date of the latest SVN release."
-msgstr ""
+msgstr "Laatste SVN versie datum"
 
 msgid "Revision of the latest SVN release."
-msgstr ""
+msgstr "Revisie van de laatste SVN versie"
 
 msgid "Signature of the latest SVN release notification."
 msgstr ""
@@ -2115,7 +2115,7 @@ msgid "The DHT running mode. An active mode will be able to store values and is 
 msgstr ""
 
 msgid "Current DHT running mode."
-msgstr ""
+msgstr "Huidige DHT mode."
 
 msgid "Debug level for the one-time memory allocator."
 msgstr "Debug level voor de one-time memory allocator."
@@ -2124,7 +2124,7 @@ msgid "Debug level for the host cache."
 msgstr "Debug level voor de host cache."
 
 msgid "Random bits."
-msgstr ""
+msgstr "Willkeurige bits."
 
 msgid "Average servent downtime."
 msgstr "Gemiddelde servent downtime."
@@ -2301,16 +2301,16 @@ msgid "DHT Store"
 msgstr "DHT Opslag"
 
 msgid "DHT Store Ack"
-msgstr ""
+msgstr "DHT Store Ack"
 
 msgid "DHT Find Node"
-msgstr ""
+msgstr "DHT Zoek Node"
 
 msgid "DHT Found Node"
-msgstr ""
+msgstr "DHT Gevonden Node"
 
 msgid "DHT Find Value"
-msgstr ""
+msgstr "DHT Zoek Waarde"
 
 msgid "DHT Value"
 msgstr "DHT Waarde"
@@ -2736,7 +2736,7 @@ msgid "Aruba"
 msgstr "Aruba"
 
 msgid "Åland Islands"
-msgstr ""
+msgstr "Åland-eilanden"
 
 msgid "Azerbaijan"
 msgstr "Azerbeidzjan"
@@ -2814,10 +2814,10 @@ msgid "Congo"
 msgstr "Congo"
 
 msgid "Switzerland"
-msgstr ""
+msgstr "Zwitserland"
 
 msgid "Cote d'Ivoire"
-msgstr ""
+msgstr "Ivoorkust"
 
 msgid "Cook Islands"
 msgstr "Cookeilanden"
@@ -2859,10 +2859,10 @@ msgid "Germany"
 msgstr "Duitsland"
 
 msgid "Djibouti"
-msgstr ""
+msgstr "Djibouti"
 
 msgid "Denmark"
-msgstr ""
+msgstr "Denemarken"
 
 msgid "Dominica"
 msgstr "Dominicaanse republiek"
@@ -2901,13 +2901,13 @@ msgid "Finland"
 msgstr "Finland"
 
 msgid "Fiji"
-msgstr ""
+msgstr "Fiji"
 
 msgid "Falkland Islands (Malvinas)"
 msgstr "Falklandeilanden"
 
 msgid "Micronesia"
-msgstr ""
+msgstr "Federale Staten van Micronesia"
 
 msgid "Faroe Islands"
 msgstr "Faeröer"
@@ -2934,7 +2934,7 @@ msgid "Guernsey"
 msgstr "Guernsey"
 
 msgid "Ghana"
-msgstr ""
+msgstr "Ghana"
 
 msgid "Gibraltar"
 msgstr "Gibraltar"
@@ -2955,7 +2955,7 @@ msgid "Equatorial Guinea"
 msgstr "Equatoriaal-Guinea¨"
 
 msgid "Greece"
-msgstr ""
+msgstr "Griekenland"
 
 msgid "South Georgia and The South Sandwich Islands"
 msgstr "Zuid-Georgië en de Zuidelijke Sandwicheilanden"
@@ -2973,13 +2973,13 @@ msgid "Guyana"
 msgstr "Guyana"
 
 msgid "Hong Kong"
-msgstr ""
+msgstr "Hongkong"
 
 msgid "Heard Island and McDonald Islands"
 msgstr "Heard en McDonald eilanden"
 
 msgid "Honduras"
-msgstr ""
+msgstr "Honduras"
 
 msgid "Croatia"
 msgstr "Kroatië"
@@ -2988,10 +2988,10 @@ msgid "Haiti"
 msgstr "Haïti"
 
 msgid "Hungary"
-msgstr ""
+msgstr "Hongarije"
 
 msgid "Indonesia"
-msgstr ""
+msgstr "Indonesië"
 
 msgid "Ireland"
 msgstr "Ierland"
@@ -3000,16 +3000,16 @@ msgid "Israel"
 msgstr "Israël"
 
 msgid "Isle of Man"
-msgstr ""
+msgstr "Eiland Man"
 
 msgid "India"
-msgstr ""
+msgstr "India"
 
 msgid "British Indian Ocean Territory"
-msgstr ""
+msgstr "Brits Territorium in de Indische Oceaan"
 
 msgid "Iraq"
-msgstr ""
+msgstr "Irak"
 
 msgid "Iran"
 msgstr "Iran"
@@ -3018,31 +3018,31 @@ msgid "Iceland"
 msgstr "IJsland"
 
 msgid "Italy"
-msgstr ""
+msgstr "Italië"
 
 msgid "Jersey"
-msgstr ""
+msgstr "Jersey"
 
 msgid "Jamaica"
 msgstr "Jamaica"
 
 msgid "Jordan"
-msgstr ""
+msgstr "Jordanië"
 
 msgid "Japan"
 msgstr "Japan"
 
 msgid "Kenya"
-msgstr ""
+msgstr "Kenia"
 
 msgid "Kyrgyzstan"
-msgstr ""
+msgstr "Kirgizië"
 
 msgid "Cambodia"
 msgstr "Cambodja"
 
 msgid "Kiribati"
-msgstr ""
+msgstr "Kiribati"
 
 msgid "Comoros"
 msgstr "Comoren"
@@ -3051,13 +3051,13 @@ msgid "Saint Kitts and Nevis"
 msgstr "Sint Kitss en Nevis"
 
 msgid "North Korea"
-msgstr ""
+msgstr "Noord-Korea"
 
 msgid "South Korea"
-msgstr ""
+msgstr "Zuid-Korea"
 
 msgid "Kuwait"
-msgstr ""
+msgstr "Koeweit"
 
 msgid "Cayman Islands"
 msgstr "Caymaneilanden"
@@ -3066,7 +3066,7 @@ msgid "Kazakhstan"
 msgstr "Kazachstan"
 
 msgid "Laos"
-msgstr ""
+msgstr "Laos"
 
 msgid "Lebanon"
 msgstr "Libanon"
@@ -3078,19 +3078,19 @@ msgid "Liechtenstein"
 msgstr "Liechtenstein"
 
 msgid "Sri Lanka"
-msgstr ""
+msgstr "Sri Lanka"
 
 msgid "Liberia"
-msgstr ""
+msgstr "Liberia"
 
 msgid "Lesotho"
-msgstr ""
+msgstr "Lesotho"
 
 msgid "Lithuania"
 msgstr "Litouwen (Lietuva)"
 
 msgid "Luxembourg"
-msgstr ""
+msgstr "Luxemburg"
 
 msgid "Latvia"
 msgstr "Letland"
@@ -3099,13 +3099,13 @@ msgid "Libyan Arab Jamahiriya"
 msgstr "Libië"
 
 msgid "Morocco"
-msgstr ""
+msgstr "Marokko"
 
 msgid "Monaco"
 msgstr "Monaco"
 
 msgid "Moldova"
-msgstr ""
+msgstr "Moldavië"
 
 msgid "Montenegro"
 msgstr "Montenegro"
@@ -3129,10 +3129,10 @@ msgid "Myanmar"
 msgstr "Myanmar"
 
 msgid "Mongolia"
-msgstr ""
+msgstr "Mongolië"
 
 msgid "Macao"
-msgstr ""
+msgstr "Macau"
 
 msgid "Northern Mariana Islands"
 msgstr "Noordelijke Marianen-eilanden"
@@ -3153,19 +3153,19 @@ msgid "Mauritius"
 msgstr "Mauritius"
 
 msgid "Maldives"
-msgstr ""
+msgstr "Maldiven"
 
 msgid "Malawi"
 msgstr "Malawi"
 
 msgid "Mexico"
-msgstr ""
+msgstr "Mexico"
 
 msgid "Malaysia"
 msgstr "Maleisië"
 
 msgid "Mozambique"
-msgstr ""
+msgstr "Mozambique"
 
 msgid "Namibia"
 msgstr "Namibië"
@@ -3174,37 +3174,37 @@ msgid "New Caledonia"
 msgstr "Nieuw-Caledonië"
 
 msgid "Niger"
-msgstr ""
+msgstr "Niger"
 
 msgid "Norfolk Island"
 msgstr "Norfolk (eiland)"
 
 msgid "Nigeria"
-msgstr ""
+msgstr "Nigeria"
 
 msgid "Nicaragua"
-msgstr ""
+msgstr "Nicaragua"
 
 msgid "Netherlands"
 msgstr "Nederland"
 
 msgid "Norway"
-msgstr ""
+msgstr "Noorwegen"
 
 msgid "Nepal"
-msgstr ""
+msgstr "Nepal"
 
 msgid "Nauru"
-msgstr ""
+msgstr "Nauru"
 
 msgid "Niue"
-msgstr ""
+msgstr "Niue"
 
 msgid "New Zealand"
 msgstr "Nieuw-Zeeland"
 
 msgid "Oman"
-msgstr ""
+msgstr "Oman"
 
 msgid "Panama"
 msgstr "Panama"
@@ -3219,7 +3219,7 @@ msgid "Papua New Guinea"
 msgstr "Papua Nieuw-Guinea"
 
 msgid "Philippines"
-msgstr ""
+msgstr "Filipijnen"
 
 msgid "Pakistan"
 msgstr "Pakistan"
@@ -3249,13 +3249,13 @@ msgid "Paraguay"
 msgstr "Paraguay"
 
 msgid "Qatar"
-msgstr ""
+msgstr "Qatar"
 
 msgid "Reunion"
 msgstr "Reunion"
 
 msgid "Romania"
-msgstr ""
+msgstr "Roemenië"
 
 msgid "Serbia"
 msgstr "Servië"
@@ -3276,10 +3276,10 @@ msgid "Seychelles"
 msgstr "Seychellen"
 
 msgid "Sudan"
-msgstr ""
+msgstr "Soedan"
 
 msgid "Sweden"
-msgstr ""
+msgstr "Zweden"
 
 msgid "Singapore"
 msgstr "Singapore"
@@ -3306,7 +3306,7 @@ msgid "Senegal"
 msgstr "Senegal"
 
 msgid "Somalia"
-msgstr ""
+msgstr "Somalië"
 
 msgid "Suriname"
 msgstr "Suriname"
@@ -3321,7 +3321,7 @@ msgid "Syrian Arab Republic"
 msgstr "Syrië"
 
 msgid "Swaziland"
-msgstr ""
+msgstr "Swaziland"
 
 msgid "Turks and Caicos Islands"
 msgstr "Turks- en Caicoseilanden"
@@ -3336,16 +3336,16 @@ msgid "Togo"
 msgstr "Togo"
 
 msgid "Thailand"
-msgstr ""
+msgstr "Thailand"
 
 msgid "Tajikistan"
 msgstr "Tadzjikistan"
 
 msgid "Tokelau"
-msgstr ""
+msgstr "Tokelau"
 
 msgid "Timor-leste"
-msgstr ""
+msgstr "Oost-Timor"
 
 msgid "Turkmenistan"
 msgstr "Turkmenistan"
@@ -3369,7 +3369,7 @@ msgid "Taiwan"
 msgstr "Taiwan"
 
 msgid "Tanzania"
-msgstr ""
+msgstr "Tanzania"
 
 msgid "Ukraine"
 msgstr "Oekraïne"
@@ -3414,7 +3414,7 @@ msgid "Wallis and Futuna"
 msgstr "Wallis en Futuna"
 
 msgid "Samoa"
-msgstr ""
+msgstr "Samoa"
 
 msgid "Yemen"
 msgstr "Jemen"
@@ -3536,7 +3536,7 @@ msgid "Value found and displayed"
 msgstr "Waarde gevonden en weergegeven"
 
 msgid "No matching property."
-msgstr ""
+msgstr "Geen overeenkomende eigenschappen."
 
 msgid "Good bye"
 msgstr "Tot ziens"
@@ -3563,7 +3563,7 @@ msgid "Value found and set"
 msgstr "Waarde gevonden en gezet"
 
 msgid "unterminated escape sequence"
-msgstr ""
+msgstr "Escape sequence niet afgesloten"
 
 msgid "unterminated double-quoted string"
 msgstr ""
@@ -3572,10 +3572,10 @@ msgid "unterminated single-quoted string"
 msgstr ""
 
 msgid "Invalid command syntax"
-msgstr ""
+msgstr "Ongeldige command syntax"
 
 msgid "too many arguments in command"
-msgstr ""
+msgstr "Teveel argumenten in command"
 
 msgid "Malformed command"
 msgstr "Commando ongeldig"
@@ -3591,13 +3591,13 @@ msgid "Bitzi|Unknown"
 msgstr "Onbekend"
 
 msgid "Bitzi|Unrated"
-msgstr "Bitzi|Zonder waardering"
+msgstr "Zonder waardering"
 
 msgid "Bitzi|Bitzi lookup failure"
-msgstr ""
+msgstr "Bitzi lookup failure"
 
 msgid "Bitzi|Filesize mismatch"
-msgstr ""
+msgstr "Bestandsgrootte komt niet overeen"
 
 msgid "Bitzi|Dangerous/Misleading"
 msgstr "Gevaarlijk/Misleidend"
@@ -3636,7 +3636,7 @@ msgid "Created"
 msgstr "Aangemaakt"
 
 msgid "Modified"
-msgstr ""
+msgstr "Gewijzigd"
 
 msgid "SHA-1"
 msgstr "SHA-1"
@@ -3645,20 +3645,20 @@ msgid "Not available"
 msgstr "Niet beschikbaar"
 
 msgid "Bitprint"
-msgstr ""
+msgstr "Bitprint"
 
 #, c-format
 msgid "leaf hashes: %lu, depth: %u, granularity: %s"
 msgstr ""
 
 msgid "Tigertree"
-msgstr ""
+msgstr "Tigertree"
 
 msgid "External metadata"
-msgstr ""
+msgstr "Externe metadata"
 
 msgid "Bitzi URL"
-msgstr ""
+msgstr "Bitzi URL"
 
 #, c-format
 msgid " (slot %u"
@@ -3741,19 +3741,19 @@ msgid "Computing %s (%.02f%%)"
 msgstr "Berekenen %s (%.02f%%)"
 
 msgid "TTH OK"
-msgstr ""
+msgstr "TTH OK"
 
 msgid "SHA-1 OK"
 msgstr "SHA-1 OK"
 
 msgid "SHA-1 MISMATCH"
-msgstr ""
+msgstr "SHA-1 KOMT NIET OVEREEN"
 
 msgid "SHA-1 calculated"
-msgstr ""
+msgstr "SHA-1 berekend"
 
 msgid "SHA-1 VERIFICATION FAILED"
-msgstr ""
+msgstr "SHA-1 VERIFICATIE MISLUKT"
 
 msgid "; Waiting for moving..."
 msgstr "; Wacht op verplaatsen..."
@@ -3811,7 +3811,7 @@ msgid "Progress"
 msgstr "Voortgang"
 
 msgid "RX"
-msgstr ""
+msgstr "RX"
 
 msgid "Downloaded"
 msgstr "Gedownload"
@@ -3832,10 +3832,10 @@ msgid "Incomplete"
 msgstr "Incompleet"
 
 msgid "Orphaned"
-msgstr ""
+msgstr "Verlate"
 
 msgid "All"
-msgstr ""
+msgstr "Alle"
 
 #, c-format
 msgid "regex error: %s"
@@ -4027,16 +4027,16 @@ msgid "<Archive>"
 msgstr "<Archief>"
 
 msgid "<Audio>"
-msgstr ""
+msgstr "<Audio>"
 
 msgid "<Image>"
-msgstr ""
+msgstr "<Afbeelding>"
 
 msgid "<Literature>"
-msgstr ""
+msgstr "<Literatuur>"
 
 msgid "<Video>"
-msgstr ""
+msgstr "<Video>"
 
 msgid "Global (pre)"
 msgstr "Algemeen (vooraf)"
@@ -4051,7 +4051,7 @@ msgid "Query hit"
 msgstr "Zoekresultaat"
 
 msgid "DHT (truncated)"
-msgstr ""
+msgstr "DHT (ingekort)"
 
 msgid "Routing errors"
 msgstr "Errors dmv routeren"
@@ -4060,16 +4060,16 @@ msgid "Duplicates with higher TTL"
 msgstr "Duplicaten met een hogere TTL"
 
 msgid "SPAM SHA1 database hits"
-msgstr ""
+msgstr "SPAM SHA1 database hits"
 
 msgid "SPAM filename and size hits"
-msgstr "SPAm bestandsnaam en grootte overeenkomsten"
+msgstr "SPAM bestandsnaam en grootte overeenkomsten"
 
 msgid "SPAM fake hits"
-msgstr ""
+msgstr "SPAM namaak hits"
 
 msgid "SPAM duplicate hits"
-msgstr ""
+msgstr "SPAM dubbele hits"
 
 msgid "SPAM dynamically caught hostile IP addresses"
 msgstr ""
@@ -4141,13 +4141,13 @@ msgid "GUESS locally generated queries"
 msgstr "GUESS lokaal gegenereerde query's"
 
 msgid "GUESS currently running queries"
-msgstr ""
+msgstr "GUESS momenteel draaiende query's"
 
 msgid "GUESS hits received for locally generated queries"
 msgstr "GUESS treffers ontvangen voor lokaal gegenereerde verzoeken"
 
 msgid "GUESS hosts queried"
-msgstr ""
+msgstr "GUESS hosts gequeried"
 
 msgid "GUESS hosts sending back an acknowledgment"
 msgstr ""
@@ -4249,13 +4249,13 @@ msgid "Duplicate downloads found during server consolidation"
 msgstr ""
 
 msgid "Discovered server GUIDs"
-msgstr ""
+msgstr "Server GUID's gevonden"
 
 msgid "Changed server GUIDs"
-msgstr ""
+msgstr "Server GUID's veranderd"
 
 msgid "Detected GUID collisions"
-msgstr ""
+msgstr "GUID collision gedetecteerd"
 
 msgid "Detected collisions with our own GUID"
 msgstr ""
@@ -4264,7 +4264,7 @@ msgid "Firewalled node info for known hosts received in upload requests"
 msgstr ""
 
 msgid "Revitalized PUSH routes"
-msgstr ""
+msgstr "PUSH routes gerevitaliseerd"
 
 msgid "Collected new PUSH proxies from other query hits"
 msgstr ""
@@ -4330,10 +4330,10 @@ msgid "PARQ quick upload slots granted"
 msgstr ""
 
 msgid "PARQ QUEUE sending attempts"
-msgstr ""
+msgstr "PARQ QUEUE pogingen verzenden"
 
 msgid "PARQ QUEUE messages sent"
-msgstr ""
+msgstr "PARQ QUEUE berichten verstuurd"
 
 msgid "PARQ QUEUE follow-up requests received"
 msgstr ""
@@ -4345,13 +4345,13 @@ msgid "Launched TTH file verifications"
 msgstr ""
 
 msgid "Re-seeding of orphan downloads through query hits"
-msgstr ""
+msgstr "Re-seeding of orphan-downloads dmv query hits"
 
 msgid "Re-seeding of orphan downloads through upload requests"
-msgstr "Wees-downloads worden opnieuw uitgezaaid door upload verzoek"
+msgstr "Orphan-downloads worden opnieuw geseed door upload verzoek"
 
 msgid "DHT estimated amount of nodes"
-msgstr ""
+msgstr "DHT geschat aantal nodes"
 
 msgid "DHT k-ball theoretical frontier (bits)"
 msgstr ""
@@ -4363,34 +4363,34 @@ msgid "DHT k-ball closeest frontier (bits)"
 msgstr ""
 
 msgid "DHT routing table buckets"
-msgstr ""
+msgstr "DHT routetabel buckets"
 
 msgid "DHT routing table leaves"
-msgstr ""
+msgstr "DHT routetabel leaves"
 
 msgid "DHT routing table maximum depth"
-msgstr ""
+msgstr "DHT routetabel maximum diepte"
 
 msgid "DHT routing table good nodes"
 msgstr "DHT route tabel goede nodes"
 
 msgid "DHT routing table stale nodes"
-msgstr ""
+msgstr "DHT routetabel verouderde nodes"
 
 msgid "DHT routing table pending nodes"
 msgstr "DHT route tabel wachtende nodes"
 
 msgid "DHT routing table evicted nodes"
-msgstr ""
+msgstr "DHT routetabel verdreven nodes"
 
 msgid "DHT routing table evicted firewalled nodes"
-msgstr ""
+msgstr "DHT routetabel verdreven firewalled-nodes"
 
 msgid "DHT routing table evicted nodes due to quota"
 msgstr "DHT route tabel nodes verstoten vanwege quota"
 
 msgid "DHT routing table promoted pending nodes"
-msgstr ""
+msgstr "DHT routetabel gepromoveerde wachtende nodes"
 
 msgid "DHT routing table pinged promoted nodes"
 msgstr "DHT route tabel gepromoveerde nodes gepinged"
@@ -4402,10 +4402,10 @@ msgid "DHT routing table rejected node due to global network quota"
 msgstr ""
 
 msgid "DHT completed bucket refreshes"
-msgstr ""
+msgstr "DHT afgeronde bucket verversingen"
 
 msgid "DHT forced bucket refreshes"
-msgstr ""
+msgstr "DHT geforceerde bucket verversingen"
 
 msgid "DHT forced bucket merges"
 msgstr "DHT geforceerde bucket samenvoegingen"
@@ -4426,10 +4426,10 @@ msgid "DHT alive pings sent to shutdowning nodes"
 msgstr ""
 
 msgid "DHT alive pings avoided"
-msgstr ""
+msgstr "DHT alive pings voorkomen"
 
 msgid "DHT alive pings skipped"
-msgstr ""
+msgstr "DHT alive pings overgeslagen"
 
 msgid "DHT revitalized stale nodes on RPC reply"
 msgstr ""
@@ -4450,13 +4450,13 @@ msgid "DHT nodes rejected during lookup based on frequency divergence"
 msgstr ""
 
 msgid "DHT keys held"
-msgstr ""
+msgstr "DHT keys vastgehouden"
 
 msgid "DHT cached keys held"
-msgstr ""
+msgstr "DHT cached keys vastgehouden"
 
 msgid "DHT values held"
-msgstr ""
+msgstr "DHT values vastgehouden"
 
 msgid "DHT cached KUID targets held"
 msgstr ""
@@ -4495,19 +4495,19 @@ msgid "DHT local hits returning values from cached keys"
 msgstr ""
 
 msgid "DHT returned expanded values"
-msgstr ""
+msgstr "DHT geretourneerde geëxpandeerde waardes"
 
 msgid "DHT returned values as secondary keys"
-msgstr ""
+msgstr "DHT geretourneerde waardes als secundaire keys"
 
 msgid "DHT claimed values via secondary keys"
 msgstr "DHT waardes via secundaire sleutels geclaimed"
 
 msgid "DHT returned cached expanded values"
-msgstr ""
+msgstr "DHT geretourneerde gecachte geëxpandeerde waardes"
 
 msgid "DHT returned cached values as secondary-keys"
-msgstr ""
+msgstr "DHT geretourneerde gecachte values als secundaire keys"
 
 msgid "DHT claimed cached values via secondary keys"
 msgstr "DHT gecachte waardes via secundaire sleutels geclaimd"
@@ -4522,10 +4522,10 @@ msgid "DHT replication of stale value avoided"
 msgstr ""
 
 msgid "DHT replication of held values"
-msgstr ""
+msgstr "DHT replicatie van vastgehouden waardes"
 
 msgid "DHT republishing of held values"
-msgstr ""
+msgstr "DHT opnieuw gepubliceerde vastgehouden waardes"
 
 msgid "DHT secondary-key value fetch issued"
 msgstr ""
@@ -4543,13 +4543,13 @@ msgid "DHT detected KUID mismatches on RPC reply"
 msgstr ""
 
 msgid "DHT caching attempts"
-msgstr ""
+msgstr "DHT cache pogingen"
 
 msgid "DHT caching ended successfully"
-msgstr ""
+msgstr "DHT cache poging succesvol afgerond"
 
 msgid "DHT caching partially completed"
-msgstr ""
+msgstr "DHT cache pogingen gedeeltelijk afgerond"
 
 msgid "DHT key-offloading checks after discovering new closest node"
 msgstr ""
@@ -4567,10 +4567,10 @@ msgid "DHT key-offloading partially completed"
 msgstr ""
 
 msgid "DHT values successfully offloaded"
-msgstr ""
+msgstr "DHT waardes succesvol gelost"
 
 msgid "DHT publishing attempts"
-msgstr ""
+msgstr "DHT publicatie pogingen"
 
 msgid "DHT publishing ended successfully (all roots)"
 msgstr ""
@@ -4606,7 +4606,7 @@ msgid "DHT lookup path actively protected against attack"
 msgstr ""
 
 msgid "DHT alt-loc lookups issued"
-msgstr ""
+msgstr "DHT alt-loc lookups geïnitieerd"
 
 msgid "DHT push-proxy lookups issued"
 msgstr "DHT push-proxy lookup verzocht"
@@ -4615,13 +4615,13 @@ msgid "DHT successful alt-loc lookups"
 msgstr ""
 
 msgid "DHT successful push-proxy lookups"
-msgstr ""
+msgstr "DHT succesvolle push-proxy lookups"
 
 msgid "DHT successful node push-entry lookups"
 msgstr ""
 
 msgid "DHT re-seeding of orphan downloads"
-msgstr "DHT opnieuw uitzaaien van wees-downloads"
+msgstr "DHT opnieuw seeden van orphan-downloads"
 
 msgid "node"
 msgid_plural "nodes"
@@ -4784,7 +4784,7 @@ msgid "Automatically clear finished files"
 msgstr "Afgeronde bestanden automatisch opschonen"
 
 msgid "Automatically clear sources when..."
-msgstr ""
+msgstr "Bronnen automatisch verwijderen zodra..."
 
 msgid "Available bandwidth"
 msgstr "Beschikbare bandbreedte"
@@ -4814,7 +4814,7 @@ msgid "Bandwidth limits for the Distributed Hash Table"
 msgstr "Bandbreedte limiet voor de gedistributeerde hash table (DHT)"
 
 msgid "Bandwidth targets for node lookups"
-msgstr ""
+msgstr "Bandbreedte doel voor node lookups"
 
 msgid "Bandwidth"
 msgstr "Bandbreedte"
@@ -4949,7 +4949,7 @@ msgid "Connectin_g timeout"
 msgstr "Verbinding timeout"
 
 msgid "Connection counters"
-msgstr ""
+msgstr "Connectie counters"
 
 msgid "Connection settings"
 msgstr "Connectie instellingen"
@@ -5045,13 +5045,13 @@ msgid "Detailed traffic information to display"
 msgstr "Gedetaileerde verkeersinformatie om weer te geven"
 
 msgid "Details"
-msgstr ""
+msgstr "Details"
 
 msgid "Discard results without SHA-1 hashes"
-msgstr ""
+msgstr "Resultaten zonder SHA-1 hash negeren"
 
 msgid "Discard spam"
-msgstr ""
+msgstr "Spam negeren"
 
 msgid "Disconnect from selected nodes"
 msgstr "Verbinding verbreken met geselecteerde nodes"
@@ -5087,7 +5087,7 @@ msgid "Dup / Bad / Weird"
 msgstr "Dup / Slecht / Vreemd"
 
 msgid "E_xpose relative paths"
-msgstr ""
+msgstr "Relatieve paden tentoonstellen"
 
 msgid "Edit value:"
 msgstr "Bewerk waarde:"
@@ -5114,7 +5114,7 @@ msgid "Enable upload of _partially downloaded files"
 msgstr "Sta het uploaden van gedeeltelijke bestanden toe"
 
 msgid "Enough UDP support"
-msgstr ""
+msgstr "Voldoende UDP ondersteuning"
 
 msgid "Enough available bandwidth"
 msgstr "Voldoende beschikbare bandbreedte"
@@ -5162,7 +5162,7 @@ msgid "Filled slots:"
 msgstr "Gevulde sloten:"
 
 msgid "Filter files by regex"
-msgstr ""
+msgstr "Bestanden filteren op basis van regex"
 
 msgid "First chunk _size"
 msgstr "Eerste stuk grootte"
@@ -5196,7 +5196,7 @@ msgid "Frequently Asked Questions"
 msgstr "Vaak gestelde vragen (FAQ)"
 
 msgid "Fully served "
-msgstr ""
+msgstr "Volledig geserveerd"
 
 msgid "GUI development:"
 msgstr "GUI ontwikkeling:"
@@ -5334,10 +5334,10 @@ msgid "Info"
 msgstr "Informatie"
 
 msgid "Input bandwidth average"
-msgstr ""
+msgstr "Gemiddelde inkomende bandbreedte"
 
 msgid "Jeroen Asselman"
-msgstr ""
+msgstr "Jeroen Asselman"
 
 msgid "Join the users or developers mailing lists."
 msgstr "Kom bij de gebruikers of de ontwikkelaars mailing lijsten."
@@ -5355,7 +5355,7 @@ msgid "KiB/s"
 msgstr "KiB/s"
 
 msgid "Large enough uptime"
-msgstr "Voldoende lange uptime"
+msgstr "Voldoende uptime"
 
 msgid "Last Request"
 msgstr "Laatste verzoek"
@@ -5367,7 +5367,7 @@ msgid "Last check"
 msgstr "Laatste controle"
 
 msgid "Last chunk size"
-msgstr ""
+msgstr "Laatste chunk grootte"
 
 msgid "Last scan initiated on:"
 msgstr "Laatste scan gestart op:"
@@ -5692,7 +5692,7 @@ msgid "Range"
 msgstr "Bereik"
 
 msgid "Raphael Manfredi"
-msgstr ""
+msgstr "Raphael Manfredi"
 
 msgid "Ratio of tolerable duplicate messages per _node"
 msgstr "Percentage acceptabele gedupliceerde berichten per node"
@@ -5970,7 +5970,7 @@ msgid "Statistics:"
 msgstr "Statistieken:"
 
 msgid "Stop"
-msgstr ""
+msgstr "Stop"
 
 msgid "Strict SHA_1 matching"
 msgstr "Strikte SHA1 controle"
@@ -6121,7 +6121,7 @@ msgid "Version"
 msgstr "Versie"
 
 msgid "Vidar Madsen"
-msgstr ""
+msgstr "Vidar Madsen"
 
 msgid "Visit http://gtk-gnutella.sourceforge.net/."
 msgstr "Bezoek http://gtk-gnutella.sourceforge.net/."
@@ -6145,7 +6145,7 @@ msgid "XML Metadata"
 msgstr "XML Metadata"
 
 msgid "Yann Grossel"
-msgstr ""
+msgstr "Yann Grossel"
 
 msgid "You appear to be TCP-firewalled, i.e. others cannot connect to you to download files. You will not see push results, which may prevent you from seeing a large amount of results."
 msgstr "gtk-gnutella vermoed dat je achter een firewall zit. Niemand heeft tot nu toe een connectie kunnen maken. Er zullen geen push resultaten worden weergegeven, wat er toe kan leiden dat er een stuk minder resultaten weergegeven worden."
@@ -6274,7 +6274,7 @@ msgid "_Restart"
 msgstr "Herstart"
 
 msgid "_Stop"
-msgstr ""
+msgstr "_Stop"
 
 msgid "_Try to connect to local networks first"
 msgstr "Probeer eerst te verbinden met een lokaal netwerk"
@@ -6420,13 +6420,13 @@ msgid "DHT up, active mode."
 msgstr ""
 
 msgid "DHT bootstrapping."
-msgstr ""
+msgstr "DHT bootstrapping."
 
 msgid "DHT looking up own KUID."
 msgstr ""
 
 msgid "DHT seeded."
-msgstr ""
+msgstr "DHT seeded."
 
 msgid "DHT inactive."
 msgstr "DHT inactief"
@@ -6438,7 +6438,7 @@ msgid "Splitting ougoing HTTP bandwidth evenly."
 msgstr "HTTP bandbreedte wordt evenredig verdeeld."
 
 msgid "Capping HTTP outgoing bandwidth."
-msgstr ""
+msgstr "Uitgaande HTTP bandbreedte afgetopt"
 
 msgid "Port mapping possible through UPnP or NAT-PMP."
 msgstr ""
@@ -6453,19 +6453,19 @@ msgid "Enable NAT-PMP"
 msgstr "Gebruik NAT-PMP"
 
 msgid "Enable HTTP request pipelining"
-msgstr ""
+msgstr "HTTP request pipelining gebruiken"
 
 msgid "Pipelining max chunk size"
-msgstr ""
+msgstr "Pipelining max chunk grootte"
 
 msgid "Enable upload of patial files deemed rare"
 msgstr "Upload zeldzame gedeeltelijke bestanden"
 
 msgid "Enable GUESS (additional querying)"
-msgstr ""
+msgstr "Gebruik GUESS (extra querying)"
 
 msgid "Issue GUESS queries as well"
-msgstr ""
+msgstr "Geef ook GUESS queries uit"
 
 msgid "Bandwidth limits for GUESS queries"
 msgstr "Bandbreedte limiet voor GUESS verzoek"
@@ -6566,7 +6566,7 @@ msgid "The Global Unique IDentifier associated with this node. It's used for rou
 msgstr "De Globale Unieke IDentiteit geassocieerd met deze node. Deze wordt gebruikt om pakketjes over het Gnutella network te routen."
 
 msgid "[GUID placeholder]"
-msgstr ""
+msgstr "[GUID placeholder]"
 
 msgid "[KUID placeholder]"
 msgstr ""
@@ -6575,16 +6575,16 @@ msgid "Address/Port:"
 msgstr "Adres/Poort:"
 
 msgid "[IP:port placeholder]"
-msgstr ""
+msgstr "[IP:port placeholder]"
 
 msgid "Served "
 msgstr "Geserveerd"
 
 msgid "[BH HTML served]"
-msgstr ""
+msgstr "[BH HTML geserveerd]"
 
 msgid " / "
-msgstr ""
+msgstr " / "
 
 msgid "[BH HTML]"
 msgstr "[BH HTML]"
@@ -6629,7 +6629,7 @@ msgid "Reverse DNS lookup"
 msgstr "DNS Omgekeerd opzoeken"
 
 msgid "Force external IPv4 address to"
-msgstr ""
+msgstr "Forceer extern IPv4 adres op"
 
 msgid "_Bind to this address"
 msgstr "GUESS treffers ontvangen voor lokaal gegenereerde verzoeken"
@@ -6638,13 +6638,13 @@ msgid "IPv_4 settings"
 msgstr "IPv_4 instellingen"
 
 msgid "Force external IPv6 address to"
-msgstr ""
+msgstr "Forceer extern IPv6 adres op"
 
 msgid "IPv_6 settings"
 msgstr "IPv_6 instellingen"
 
 msgid "Port Mapping"
-msgstr ""
+msgstr "Poort Mapping"
 
 msgid "This option can give performance boosts to those on a large network with many peers by trying to locate files on the local networks first."
 msgstr "Degene die op een groot netwerk zitten met een groot aantal peers kunnen hier een snelheidswinst behalen door eerst te zoeken naar bestanden op het lokale netwerk."
@@ -6671,7 +6671,7 @@ msgid "attempts"
 msgstr "pogingen"
 
 msgid "Pipelining maximum chunk size"
-msgstr ""
+msgstr "Pipelining maximum chunk grootte"
 
 msgid "_Remove directory"
 msgstr "Verwijder directory"
@@ -6756,18 +6756,18 @@ msgid "Alien"
 msgstr "Vreemd"
 
 msgid "GUESS (running)"
-msgstr ""
+msgstr "GUESS (draaid)"
 
 msgid "GUESS (introductions)"
-msgstr ""
+msgstr "GUESS (introducties)"
 
 msgid "gtk-gnutella: Click to minimize/restore"
-msgstr ""
+msgstr "gtk-gnutella: Klik om te minimaliseren / herstellen"
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
 msgid "translation_credit|"
-msgstr ""
+msgstr "Vertaling mogelijk gemaakt door Jeroen Asselman, Hans de Graaff "
 
 #, c-format
 msgid "%d second"
@@ -6776,7 +6776,7 @@ msgstr[0] "%d seconde"
 msgstr[1] "%d seconden"
 
 msgid "<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ document could not be loaded. Please read the <a href=\"http://gtk-gnutella.sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
-msgstr ""
+msgstr "<html><head><title>Frequently Asked Questions</title></head><body><p>Kon FAQ bestand niet laden. Lees in plaats hiervan de <a href=\"http://gtk-gnutella.sourceforge.net/?page=faq\">FAQ online</a>.</p></body></html>"
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -6894,8 +6894,8 @@ msgstr[1] "%u downloads"
 #, c-format
 msgid "%u search"
 msgid_plural "%u searches"
-msgstr[0] ""
-msgstr[1] "Geen zoekopdrachten"
+msgstr[0] "%u zoekopdracht"
+msgstr[1] "%u zoekopdrachten"
 
 #, c-format
 msgid "Handled magnet link (%s, %s)."
@@ -6908,7 +6908,7 @@ msgid "Created download from URL."
 msgstr "Download op basis van URL aangemaakt."
 
 msgid "Ignored unusable URL."
-msgstr ""
+msgstr "Onbruikbare URL genegeerd"
 
 msgid "The given urn type is not supported."
 msgstr "De opgegeven urn type wordt niet ondersteunt."
@@ -6920,7 +6920,7 @@ msgid "Still scanning for shared file, results may be inconclusive."
 msgstr ""
 
 msgid "Missing port number"
-msgstr ""
+msgstr "Poort nummer ontbreekt"
 
 msgid "Could not parse host address"
 msgstr "Kan host adres niet verwerken"
@@ -6929,7 +6929,7 @@ msgid "The query string is not UTF-8 encoded"
 msgstr "De opdracht tekst is niet in UTF-8 gecodeerd"
 
 msgid "Unhandled search prefix."
-msgstr ""
+msgstr "Onverwerkte zoek prefix."
 
 #, c-format
 msgid "Added search showing browsing results for %s"
@@ -6946,13 +6946,13 @@ msgid "Extension"
 msgstr "Extenties"
 
 msgid "MIME type"
-msgstr ""
+msgstr "MIME type"
 
 msgid "TTH"
-msgstr ""
+msgstr "TTH"
 
 msgid "Owned"
-msgstr ""
+msgstr "In bezit"
 
 msgid "No"
 msgstr "Nee"
@@ -6967,10 +6967,10 @@ msgid "Source"
 msgstr "Bron"
 
 msgid "Alt-Locs"
-msgstr ""
+msgstr "Alt-Locs"
 
 msgid "Latinized"
-msgstr ""
+msgstr "Latinized"
 
 msgid "Index"
 msgstr "Index"
@@ -6988,7 +6988,7 @@ msgid "Hostname"
 msgstr "Hostname"
 
 msgid "Servent ID"
-msgstr ""
+msgstr "Servent ID"
 
 msgid "Vendor"
 msgstr "Maker"
@@ -7000,7 +7000,7 @@ msgid "Hostile"
 msgstr "Vijandig"
 
 msgid "Push-proxies"
-msgstr ""
+msgstr "Push-proxies"
 
 msgid "Packet information"
 msgstr "Pakket informatie"
@@ -7012,7 +7012,7 @@ msgid "Protocol"
 msgstr "Protocol"
 
 msgid "TTL"
-msgstr ""
+msgstr "TTL"
 
 msgid "URLs"
 msgstr "URL's"
