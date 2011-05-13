@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2011-05-10 19:00+0200\n"
-"PO-Revision-Date: 2011-05-11 19:55+0100\n"
+"PO-Revision-Date: 2011-05-12 21:13+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -39,20 +39,17 @@ msgstr "Gestopt (%s)"
 msgid "Too many attempts (%u times)"
 msgstr "Teveel pogingen (%u keer)"
 
-#, fuzzy
 msgid "Requeued due to no push-proxy"
-msgstr "Opnieuw in de wacht omdat de tijd is verstreken"
+msgstr "Geen push-proxy, opnieuw in de wachtrij geplaatst"
 
-#, fuzzy
 msgid "Requeued due to file removal"
-msgstr "Opnieuw in de wacht omdat de tijd is verstreken"
+msgstr "Bestand verwijderd, opnieuw in de wachtrij geplaatst"
 
 msgid "Requeued by file info change"
 msgstr "Opnieuw in de wachtrij gezet doordat de bestandsinformatie is veranderd."
 
-#, fuzzy
 msgid "Duplicate download"
-msgstr "%u/%u downloads"
+msgstr "Duplicate download"
 
 msgid "Nothing else to switch to"
 msgstr ""
@@ -61,20 +58,19 @@ msgstr ""
 msgid "Switching (after error) to \"%s\""
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid " at %s - rescheduled for %s%s #%u"
-msgstr " op %s - opnieuw gepland voor %s"
+msgstr " op %s - opnieuw gepland voor %s%s #%u"
 
 msgid "Suspended (SHA1 checking)"
 msgstr "Opgeschort (SHA1 verifieren)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Ignoring requested (%s)"
-msgstr "Verzoek wordt verstuurd (%u%%)"
+msgstr "Verzocht (%s) genegeerd"
 
-#, fuzzy
 msgid "Paused"
-msgstr "Passief"
+msgstr "Gepauzeerd"
 
 msgid "Nothing more to get"
 msgstr ""
@@ -85,9 +81,8 @@ msgstr "Wacht op een vrije chunk"
 msgid "No more gaps to fill"
 msgstr "Geen gaten meer te vullen"
 
-#, fuzzy
 msgid "Download queue is frozen"
-msgstr "Wachtrij bevroren"
+msgstr "Download wachtrij bevroren"
 
 msgid "No download slot (start)"
 msgstr "Geen download slot (start)"
@@ -101,13 +96,11 @@ msgstr "Verbinding mislukt"
 msgid "Waiting for server PROX publishing"
 msgstr "Wacht op server voor PROX publicatie"
 
-#, fuzzy
 msgid "Waiting for push route"
-msgstr "Wacht op een aanvullend verzoek..."
+msgstr "Wacht op een push route"
 
-#, fuzzy
 msgid "Push route lost"
-msgstr "Route verloren"
+msgstr "Push route verloren"
 
 msgid "Ignoring Push flag"
 msgstr "Push vlag wordt gengeerd"
@@ -133,21 +126,17 @@ msgstr[1] "Verbinding geweigerd (%u pogingen)"
 msgid "Dup SHA1 during creation"
 msgstr "Dubbele SHA1 tijdens creatie"
 
-#, fuzzy
 msgid "Max. number of downloads reached"
-msgstr "Max. aantal resultaten"
+msgstr "Max. aantal downloads bereikt"
 
-#, fuzzy
 msgid "Max. number of downloads for this host reached"
-msgstr "Max. aantal resultaten"
+msgstr "Max. aantal downloads voor deze host bereikt"
 
-#, fuzzy
 msgid "Has already enough active sources"
-msgstr "Inactieve bronnen"
+msgstr "Heeft al genoeg actieve bronnen"
 
-#, fuzzy
 msgid "download_start() failed"
-msgstr "Download de geselecteerde bestanden"
+msgstr "download_start() mislukt"
 
 msgid "Stopped (Index changed)"
 msgstr "Gestopped (Index veranderd)"
@@ -155,7 +144,6 @@ msgstr "Gestopped (Index veranderd)"
 msgid "Explicitly requeued"
 msgstr "Uitdrukkelijk opnieuw in de wachtrij gezet"
 
-#, fuzzy
 msgid "Failed (Header line too large)"
 msgstr "Mislukt (Header regel te lang)"
 
@@ -172,20 +160,20 @@ msgstr "Connectie bleef niet leven (EOF)"
 msgid "Stopped (EOF) <err_header_read_eof>"
 msgstr "Gestopped (EOF) <err_header_read_eof>"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Can't check resume data: %s"
-msgstr "Kon data niet opslaan: %s"
+msgstr "Kan de te hervatten data niet controleren: %s"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Can't stat opened file: %s"
-msgstr "Kon data niet opslaan: %s"
+msgstr "Kan de status van het geopende bestand niet controleren: %s"
 
 msgid "Stopped (Output file size changed)"
 msgstr "Gestopt (Bestandsgrootte uitvoerbestand gewijzigd)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Can't read resume data: %s"
-msgstr "Kon data niet opslaan: %s"
+msgstr "Kan de te hervatten data niet lezen: %s"
 
 msgid "Short read on resume data"
 msgstr ""
@@ -214,21 +202,17 @@ msgstr ""
 msgid "Requeued by competing download"
 msgstr "Opnieuw in de wachtrij gezet door een soortgelijke download"
 
-#, fuzzy
 msgid "Weird HTTP status"
-msgstr "Afwijkende HTTP status (protocol asynchroon?)"
+msgstr "Afwijkende HTTP status"
 
-#, fuzzy
 msgid "Download was a duplicate"
-msgstr "Download de geselecteerde bestanden"
+msgstr "Download was een duplicaat"
 
-#, fuzzy
 msgid "Filesize mismatch"
-msgstr "URN bestands informatie komt niet overeen"
+msgstr "Bestandsgrootte komt niet overeen"
 
-#, fuzzy
 msgid "No URN on server (required)"
-msgstr "Geen verifieerbare URN op de server"
+msgstr "Geen URN op de server (verplicht)"
 
 msgid "No URN on server, waiting for overlap"
 msgstr "Geen URN op server, wacht op overlap"
@@ -236,13 +220,11 @@ msgstr "Geen URN op server, wacht op overlap"
 msgid "No URN on server to validate"
 msgstr "Geen verifieerbare URN op de server"
 
-#, fuzzy
 msgid "TTH mismatch detected"
-msgstr "SHA1 komt niet overeen"
+msgstr "TTH komt niet overeen"
 
-#, fuzzy
 msgid "SHA-1 mismatch detected"
-msgstr "SHA1 komt niet overeen"
+msgstr "SHA-1 komt niet overeen"
 
 msgid "URN fileinfo mismatch"
 msgstr "URN bestands informatie komt niet overeen"
@@ -253,25 +235,22 @@ msgstr "Dubbele SHA1 ontdekt"
 msgid "More data to sink than expected"
 msgstr ""
 
-#, fuzzy
 msgid "Stopped data (EOF)"
-msgstr "Gestopt (%s)"
+msgstr "Data gestopped (EOF)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Stopped data (%s)"
-msgstr "Gestopt (%s)"
+msgstr "Data gestopped (%s)"
 
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "Gefaalt (Leesfout: %s)"
 
-#, fuzzy
 msgid "Timeout reading HTTP status"
-msgstr "Kon niet de hele HTTP status versturen"
+msgstr "Time-out bij het lezen van de HTTP status"
 
-#, fuzzy
 msgid "Timeout reading headers"
-msgstr "Koppen worden gelezen"
+msgstr "Time-out bij het lezen van de headers"
 
 #, c-format
 msgid "No support for Content-Encoding (%s)"
@@ -317,17 +296,14 @@ msgstr "Content-Length niet verwerkbaar"
 msgid "Total/served sizes mismatch"
 msgstr ""
 
-#, fuzzy
 msgid "Range start mismatch"
-msgstr "Begin deze zoekopdracht opnieuw"
+msgstr "Begin van het bereik komt niet overeen"
 
-#, fuzzy
 msgid "Range end too large"
-msgstr "Veelste groot"
+msgstr "Einde van het bereik te groot"
 
-#, fuzzy
 msgid "Range mismatch"
-msgstr "URN bestands informatie komt niet overeen"
+msgstr "Bereik komt niet overeen"
 
 msgid "Weird server-side chunk shrinking"
 msgstr ""
@@ -338,46 +314,41 @@ msgstr "Content-Length komt niet overeen"
 msgid "No Content-Length header"
 msgstr "Geen Content-Length header"
 
-#, fuzzy
 msgid "Search already closed"
-msgstr "Zoek opdracht toegevoegd"
+msgstr "Zoek opdracht reeds gesloten"
 
-#, fuzzy
 msgid "THEX download aborted"
-msgstr "Gedownload:"
+msgstr "THEX download afgebroken"
 
 msgid "Pipeline flow stopped"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot open %s: %s"
-msgstr "Mislukt (Kon '%s' niet versturen: %s)"
+msgstr "Kan %s niet openen: %s"
 
 msgid "Cannot resume: file gone"
 msgstr "Kan niet doorgaan: bestand is verdwenen"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot write into file: %s"
-msgstr "Schrijven mislukt: %s"
+msgstr "Kan niet schrijven in bestand: %s"
 
 msgid "Stopped (Read buffer full)"
 msgstr "Gestopped (less buffer vol)"
 
-#, fuzzy
 msgid "Failed (Completed?)"
-msgstr "Afgerond"
+msgstr "Mislukt (Gereed?)"
 
-#, fuzzy
 msgid "Could not send whole HTTP request"
-msgstr "Kon niet de hele HTTP status versturen"
+msgstr "Kan niet het gehele HTTP verzoek versturen"
 
 #, c-format
 msgid "Write failed: %s"
 msgstr "Schrijven mislukt: %s"
 
-#, fuzzy
 msgid "Malformed push reply"
-msgstr "Zoek resultaat ongeldig"
+msgstr "Push reply misvormd"
 
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 komt niet overeen"
@@ -388,17 +359,14 @@ msgstr ", inkomend"
 msgid ", outbound"
 msgstr ", uitgaand"
 
-#, fuzzy
 msgid ", banning"
-msgstr "Bannen"
+msgstr ", wordt verbannen"
 
-#, fuzzy
 msgid ", g2"
-msgstr ",."
+msgstr ", g2,."
 
-#, fuzzy
 msgid ", vendor?"
-msgstr "Maker:"
+msgstr ", fabrikant?"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -408,20 +376,17 @@ msgstr "<Blader Host %s>"
 msgid "<THEX data for %s>"
 msgstr ""
 
-#, fuzzy
 msgid "Browse search closed"
-msgstr "Geef zoek lijst weer"
+msgstr "Zoekopdracht bladeren gesloten"
 
-#, fuzzy
 msgid "Stopped data (EOF) <download_got_eof>"
-msgstr "Data gestopt (EOF)"
+msgstr "Data gestopped (EOF) <download_got_eof>"
 
 msgid "No longer connected"
 msgstr "Niet langer verbonden"
 
-#, fuzzy
 msgid "Too many data timeouts"
-msgstr "Teveel pogingen (%u keer)"
+msgstr "Teveel data time-outs"
 
 msgid "Timeout"
 msgstr "Tijd verstreken"
@@ -429,31 +394,27 @@ msgstr "Tijd verstreken"
 msgid "Requeued due to timeout"
 msgstr "Opnieuw in de wacht omdat de tijd is verstreken"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Downloading (TR: %s)"
-msgstr "Bezig met downloaden (%s) Resterende tijd: %s"
+msgstr "Bezig met downloaden (Resterende tijd: %s)"
 
-#, fuzzy
 msgid "Seeding"
-msgstr "\"push\" wordt verstuurd"
+msgstr "Seeding"
 
-#, fuzzy
 msgid "Computing TTH"
-msgstr "SHA1 wordt gecontroleerd"
+msgstr "TTH wordt berekend"
 
 msgid "Computing SHA1"
 msgstr "SHA1 wordt gecontroleerd"
 
-#, fuzzy
 msgid "Waiting for TTH check"
-msgstr "Wacht op SHA1 controle"
+msgstr "Wacht op TTH controle"
 
 msgid "Waiting for SHA1 check"
 msgstr "Wacht op SHA1 controle"
 
-#, fuzzy
 msgid "SHA1"
-msgstr "SHA1:"
+msgstr "SHA1"
 
 msgid "OK"
 msgstr "OK"
@@ -461,13 +422,11 @@ msgstr "OK"
 msgid "failed"
 msgstr "Mislukt"
 
-#, fuzzy
 msgid "not computed yet"
-msgstr "Nog geen uitvoer.."
+msgstr "nog niet berekent"
 
-#, fuzzy
 msgid "Waiting for moving..."
-msgstr "; Wacht op verplaatsen..."
+msgstr "Wacht op verplaatsen..."
 
 msgid "Moving"
 msgstr "Bezig met verwijderenAan het verpla"
@@ -478,9 +437,9 @@ msgstr "Afgerond"
 msgid "No sources"
 msgstr "Geen bronnen"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Queued (%u active, %u passive)"
-msgstr "In de wacht(%d actief, %d passief)"
+msgstr "In de wacht(%d actief, %u passief)"
 
 msgid "Waiting"
 msgstr "Aan het wachten"
@@ -488,9 +447,8 @@ msgstr "Aan het wachten"
 msgid "Querying DHT"
 msgstr "DHT wordt bevraagd"
 
-#, fuzzy
 msgid "Pending DHT query"
-msgstr "Wachtende lokale zoekopdrachten"
+msgstr "In afwachting van DHT query"
 
 #, c-format
 msgid "%u/%u successful DHT lookup"
@@ -534,9 +492,8 @@ msgstr "Over de Max TTL "
 msgid "Message throttle"
 msgstr "Berichten smoren"
 
-#, fuzzy
 msgid "Message matched limits"
-msgstr "GnutellaNet limieten van de grootte van berichten"
+msgstr "Bericht kwam overeen met limieten"
 
 msgid "Unusable Pong"
 msgstr "\"Pong\" niet bruikbaar"
@@ -598,9 +555,8 @@ msgstr ""
 msgid "Spam"
 msgstr "Spam"
 
-#, fuzzy
 msgid "Evil filename"
-msgstr "Bestandsnaam"
+msgstr "Slechte bestandsnaam"
 
 msgid "Payload inflating error"
 msgstr ""
@@ -608,20 +564,17 @@ msgstr ""
 msgid "Unknown header flags present"
 msgstr ""
 
-#, fuzzy
 msgid "Own search results"
-msgstr "Zoekresultaten"
+msgstr "Eigen zoekresultaten"
 
-#, fuzzy
 msgid "Own queries"
-msgstr "RX zoekopdrachten"
+msgstr "Eigen query's"
 
 msgid "Ancient query format"
 msgstr ""
 
-#, fuzzy
 msgid "Blank Servent ID"
-msgstr "Verkoper ID:"
+msgstr "Leeg Servent ID"
 
 msgid "GUESS Query missing token"
 msgstr "GUESS verzoek mist token"
@@ -635,9 +588,8 @@ msgstr "DHT ongeldige security token"
 msgid "DHT Too many STORE requests"
 msgstr "DHT te veel STORE verzoeken"
 
-#, fuzzy
 msgid "DHT Malformed message"
-msgstr "Commando ongeldig"
+msgstr "DHT bericht misvormd"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -720,9 +672,8 @@ msgstr "Protocol wordt niet ondersteund"
 msgid "Servent Shutdown"
 msgstr "Servent afgesloten"
 
-#, fuzzy
 msgid "Not a network member"
-msgstr "Gnutella netwerk modus"
+msgstr "Geen lid van het netwerk"
 
 msgid "Too frequent crawling"
 msgstr "Te snel crawling"
@@ -770,20 +721,17 @@ msgstr "Mislukt (Extra HELLO data)"
 msgid "Pseudo UDP node"
 msgstr "Pseudo UDP node"
 
-#, fuzzy
 msgid "Pseudo DHT node"
-msgstr "Pseudo UDP node"
+msgstr "Pseudo DHT node"
 
 msgid "Already connected"
 msgstr "Reeds verbonden"
 
-#, fuzzy
 msgid "Limited connection"
-msgstr "Legacy verbindingen"
+msgstr "Beperkte connectie"
 
-#, fuzzy
 msgid "Write error during HELLO"
-msgstr "Schrijf fout tijdens HELLO: %s"
+msgstr "Schrijf fout tijdens HELLO"
 
 #, c-format
 msgid "Write error during HELLO: %s"
@@ -796,9 +744,9 @@ msgstr "Connectie werd verbroken tijdens HELLO"
 msgid "Kicked: %s message too big (%d bytes)"
 msgstr "Verwijderd: %s bericht te groot (%d bytes)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Kicked: %s message too big (>= 64KiB limit)"
-msgstr "Verwijderd: %s bericht te groot (%d bytes)"
+msgstr "Verwijderd: %s bericht te groot (>= 64KiB limit)"
 
 msgid "Leaf"
 msgstr "Leaf"
@@ -828,9 +776,9 @@ msgstr "Lezen mislukt (Invoer fout)"
 msgid "Read error: %s"
 msgstr "Lees fout: %s"
 
-#, fuzzy, c-format
+#, c-format
 msgid "mkdir(\"%s\") failed: \"%s\""
-msgstr "Schrijven mislukt: %s"
+msgstr "mkdir(\"%s\") mislukt: \"%s\""
 
 msgid "Can't find your home directory!"
 msgstr "Kan Thuis map niet vinden"
@@ -842,32 +790,27 @@ msgstr "$GTK_GNUTELLA_DIR moet naar een absoluut pad verwijzen!"
 msgid "creating configuration directory \"%s\""
 msgstr "configuraties directory \"%s\" wordt gecreëerd"
 
-#, fuzzy, c-format
+#, c-format
 msgid "creating directory \"%s\" for %s"
-msgstr "configuraties directory \"%s\" wordt gecreëerd"
+msgstr "Directory \"%s\" voor %s wordt aangemaakt"
 
-#, fuzzy
 msgid "You seem to have left another gtk-gnutella running"
-msgstr "Het ziet er naar uit dat je nog een andere gtk-gnutella hebt draaien\n"
+msgstr "Het ziet er naar uit dat je nog een andere gtk-gnutella hebt draaien"
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Kan niet doorgaan zonder geldige configuratie directorie"
 
-#, fuzzy
 msgid "Failed to create IPv4 UDP socket"
-msgstr "Aanmaken zoekopdracht mislukt"
+msgstr "Aanmaken van IPv4 UDP socket mislukt"
 
-#, fuzzy
 msgid "Failed to create IPv6 UDP socket"
-msgstr "Aanmaken zoekopdracht mislukt"
+msgstr "Aanmaken van IPv6 UDP socket mislukt"
 
-#, fuzzy
 msgid "Failed to create local socket"
-msgstr "Aanmaken zoekopdracht mislukt"
+msgstr "Aanmaken van lokale socket mislukt"
 
-#, fuzzy
 msgid "Failed to create listening sockets"
-msgstr "Aanmaken zoekopdracht mislukt"
+msgstr "Aanmaken van een luisterende sockets mislukt"
 
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "Als TCP-firewalled kan er alleen als leaf worden geopereerd"
@@ -889,11 +832,11 @@ msgstr "Zoeken naar UDP host cache %s"
 msgid "Sent ping to UDP host cache %s:%u"
 msgstr "Ping naar UDP host cache %s verzonden: %u"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Got %d host from UDP host cache %s"
 msgid_plural "Got %d hosts from UDP host cache %s"
-msgstr[0] "Ontving %d host van de UDP host cache %s:%u"
-msgstr[1] "Ontving %d hosts van de UDP host cache %s:%u"
+msgstr[0] "Ontving %d host van de UDP host cache %s"
+msgstr[1] "Ontving %d hosts van de UDP host cache %s"
 
 msgid "Connect back timeout"
 msgstr "Terug verbinden tijd verstreken"
@@ -1014,9 +957,8 @@ msgstr "ultra-node"
 msgid "leaf node"
 msgstr "leaf node"
 
-#, fuzzy
 msgid "none"
-msgstr "node"
+msgstr "geen"
 
 msgid "input only"
 msgstr ""
@@ -1033,25 +975,20 @@ msgstr ""
 msgid "own KUID lookup"
 msgstr ""
 
-#, fuzzy
 msgid "completing"
-msgstr "Afgerond"
+msgstr "wordt afgerond"
 
-#, fuzzy
 msgid "completed"
-msgstr "Afgerond"
+msgstr "afgerond"
 
-#, fuzzy
 msgid "shutdown"
-msgstr "Afsluiten (%s)"
+msgstr "afsluiten"
 
-#, fuzzy
 msgid "active (recommended)"
-msgstr "automatisch (aanbevolen)"
+msgstr "actief (aanbevolen)"
 
-#, fuzzy
 msgid "passive"
-msgstr " passief)"
+msgstr "passief"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Geeft aan of het hostcache bestand word gelezen."
@@ -1071,9 +1008,8 @@ msgstr "Probeer tenminste dit aantal connecties te handhaven naar andere servent
 msgid "When in ultrapeer mode, try to keep at least this number of connections to normal servents.  This should be smaller than the maximum amount of connections to allow incoming connections."
 msgstr "Probeer tenminste dit aantal connecties te behouden naar normale servents als ultrapeer modes wordt gebruikt. Dit aantal moet kleiner zijn dat het maximum aantal inkomende connecties."
 
-#, fuzzy
 msgid "Don't allow more than this number of connections to other servents.  As a rule of thumb you should reserve 256 b/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead. It's not advisable that you set this to a value smaller than 40."
-msgstr "Sta niet meer dan dit aantal connecties toe naar andere servents. Ter indicatie, er dient rekening te worden gehouden met 256 b/s aan bandbreedte per connectie. Gebruik nooit alle beschikbare bandbreedte, laat wat ruimte over voor de TCP/IP overhead. Het wordt afgeraden om deze waarde kleiner te zetten dan 30."
+msgstr "Sta niet meer dan dit aantal connecties toe naar andere servents. Ter indicatie, er dient rekening te worden gehouden met 256 b/s aan bandbreedte per connectie. Gebruik nooit alle beschikbare bandbreedte, laat wat ruimte over voor de TCP/IP overhead. Het wordt afgeraden om deze waarde kleiner te zetten dan 40."
 
 msgid "Number of leaf nodes currently connected."
 msgstr "Aantal momenteel verbonden leaf nodes"
@@ -1096,29 +1032,23 @@ msgstr "Upload niet meer dan dit aantal bestanden tegelijk. Deze waarde bepaalt 
 msgid "Don't upload more than this number of files in parallel to a single host."
 msgstr "Upload niet meer dan dit aantal bestanden tegelijk naar één host."
 
-#, fuzzy
 msgid "Local IPv4 address last determined."
-msgstr "Laatst bekende IP-adres."
+msgstr "Lokaal IPv4 adres laatst bepaald."
 
-#, fuzzy
 msgid "Local IPv6 address last determined."
-msgstr "Laatst bekende IP-adres."
+msgstr "Lokaal IPv6 adres laatst bepaald."
 
-#, fuzzy
 msgid "When the current IPv4 address was determined."
-msgstr "Wanneer het huidige IP-adres voor het laatst is vastgesteld."
+msgstr "Wanneer het huidige IPv4-adres voor het laatst is vastgesteld."
 
-#, fuzzy
 msgid "When the current IPv6 address was determined."
-msgstr "Wanneer het huidige IP-adres voor het laatst is vastgesteld."
+msgstr "Wanneer het huidige IPv6-adres voor het laatst is vastgesteld."
 
-#, fuzzy
 msgid "Average uptime with the same IPv4 address."
-msgstr "Gemiddelde uptime met hetzelfde IP-adres."
+msgstr "Gemiddelde uptime met hetzelfde IPv4-adres."
 
-#, fuzzy
 msgid "Average uptime with the same IPv6 address."
-msgstr "Gemiddelde uptime met hetzelfde IP-adres."
+msgstr "Gemiddelde uptime met hetzelfde IPv6-adres."
 
 msgid "Timestamp at which servent was started."
 msgstr "Tijdstip op het moment dat de servent werd gestart."
@@ -1126,16 +1056,14 @@ msgstr "Tijdstip op het moment dat de servent werd gestart."
 msgid "Average servent uptime."
 msgstr "Gemiddelde servent uptime."
 
-#, fuzzy
 msgid "Local TCP port gtk-gnutella is listening on. ISPs often block or throttle traffic on TCP port 6346 so it is a good idea to change it to something in the range of 1024-65535.  Don't forget to update your firewall port forwarding / opening, as necessary.  Note that by default, the TCP port 6346 is not used to guard against undue censorship."
 msgstr "De lokale poort waarop gtk-gnutella luistert. Uw ISP kan verkeer op poort 6346 blokkeren of vertragen zodat het een goed idee is om dit te veranderen naar iets in de reeks 1024-65535. Vergeet niet, indien nodig, je firewall hiervoor in te stellen. Standaard wordt poort 6346 niet gebruikt als voorzorgsmaatregel tegen onnodige censuur."
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
 msgstr "Gebruik dit IP-adres als bron adres als 'forceer lokaal ip' is geactiveerd."
 
-#, fuzzy
 msgid "Use this IPv6 address as source address if 'force local ip' is activated."
-msgstr "Gebruik dit IP-adres als bron adres als 'forceer lokaal ip' is geactiveerd."
+msgstr "Gebruik dit IPv6-adres als bron adres als 'forceer lokaal ip' is ingeschakeld."
 
 msgid "The connection bandwidth reported to other hosts. This is the speed at which you can upload things to others."
 msgstr "De connectie bandbreedte die wordt gerapporteerd naar andere hosts. Dit is de snelheid waarmee je naar anderen kunt uploaden."
@@ -1332,9 +1260,8 @@ msgstr ""
 msgid "For development use: track properties."
 msgstr "Voor ontwikkeling: volg eigenschappen."
 
-#, fuzzy
 msgid "For development use: don't add new hosts to the host cache."
-msgstr "Voor ontwikkeling: voeg geen nieuwe hosts toe aan de hostcatcher."
+msgstr "Voor ontwikkeling: voeg geen nieuwe hosts toe aan de host cache."
 
 msgid "Enable bandwidth limitation for incoming HTTP traffic."
 msgstr "Limiteer de bandbreedte voor inkomend HTTP verkeer."
@@ -1369,9 +1296,8 @@ msgstr "Mislukte downloads (HTTP fouten, niet verder kunnen gaan, schrijffouten,
 msgid "Auto clear unavailable downloads (connection timeout, push route lost, etc...)."
 msgstr "Niet beschikbare downloads (timeout van verbinding, push route verdwenen, etc...) automatisch opschonen."
 
-#, fuzzy
 msgid "Auto clear finished downloads"
-msgstr "Automatisch opschonen: afgeronde downloads"
+msgstr "Afgeronde downloads automatisch opschonen"
 
 msgid "Remove downloaded files from the search result."
 msgstr "Verberg gedownloade bestanden in de zoekresultaten."
@@ -1439,13 +1365,11 @@ msgstr "Het aantal hosts in de ultra node caches."
 msgid "Current number of hosts in bad node caches."
 msgstr "Het aantal hosts in de foute node caches."
 
-#, fuzzy
 msgid "Maximum number of hosts in the regular node cache."
-msgstr "Maximum aantal of hosts in de normale node catcher."
+msgstr "Maximum aantal of hosts in de normale node cache."
 
-#, fuzzy
 msgid "Maximum number of hosts in the ultra node cache."
-msgstr "Maximum aantal hosts in de ultra node catcher."
+msgstr "Maximum aantal hosts in de ultra node cache."
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
 msgstr "Maximum aantal hosts in de BEZET, INSTABIEL en TIJD VERSTREKEN lijsten."
@@ -1534,9 +1458,8 @@ msgstr "Totaal aantal afgeronde downloads tijdens deze sessie."
 msgid "Number of running uploads."
 msgstr "Aantal uploads die draaien."
 
-#, fuzzy
 msgid "Number of quick uploads currently running."
-msgstr "Aantal momenteel verbonden ultra nodes"
+msgstr "Aantal snelle uploads momenteel actief."
 
 msgid "Number of registered (pending) uploads."
 msgstr "Aantal geregistreerde uploads (welke nog verwerkt moeten worden)."
@@ -1547,9 +1470,8 @@ msgstr "Aantal afgeronde uploads tijdens deze sessie."
 msgid "Global Unique IDentifier of this node."
 msgstr "Globale Unieke IDentiteit van deze node."
 
-#, fuzzy
 msgid "Kademlia Unique IDentifier of this node in the DHT."
-msgstr "Globale Unieke IDentiteit van deze node."
+msgstr "Kademlia Unique IDentifier van deze node in de DHT."
 
 msgid "Whether or not to use swarming (recommended = YES)."
 msgstr "Of er wel of geen gebruik moet worden gebruikt van 'swarming' (aangeraden)."
@@ -1716,9 +1638,8 @@ msgstr "Percentage van het aantal verbindingen dat we zullen reserveren voor gtk
 msgid "Maximum percentage of slots a vendor can occupy."
 msgstr "Maximum percentage van slots dat een leverancier kan gebruiken."
 
-#, fuzzy
 msgid "Size of the RX socket buffer to be used for downloads, in kibibytes. If you wish to avoid Gnutella downloads using up all your bandwidth, set it to a low value (default is 64K, which is fine). If you don't mind sucking up all the available bandwidth, increasing your connection latency, set it to a greater value. Remember: the smaller the value, the more you will be able to precisely control the incoming rate."
-msgstr "De grootte van de RX \"socket\" buffer die gebruikt wordt voor downloads, in kbytes. Als je wilt voorkomen dat Gnutella downloads al je bandbreedte gebruiken dan kun je dit een lage waarde geven (standaard is 8K, dat is prima). Als je het niet erg vindt om alle bandbreedte aan Gnutella te geven, wat er ook voor zorgt dat je verbindingen trager reageren, dan kun je het een grotere waarde geven. Een verandering heeft alleen effect op nieuwe downloads, bestaande downloads blijven de waarde gebruiken die ingesteld was toen ze gestart werden. Let op: hoe kleiner de waarde, hoe nauwkeuriger je de snelheid van het binnenkomende verkeer kunt controleren."
+msgstr "De grootte van de RX socket buffer die gebruikt wordt voor downloads, in kibibytes. Als je wilt voorkomen dat Gnutella downloads al je bandbreedte gebruiken dan kun je dit een lage waarde geven (standaard aanbevolen is 64K). Als je het niet erg vindt om alle bandbreedte aan Gnutella te geven, wat er ook voor zorgt dat je verbindingen trager reageren, dan kun je het een grotere waarde geven. Let op: hoe kleiner de waarde, hoe nauwkeuriger je de snelheid van het binnenkomende verkeer kunt regelen."
 
 msgid "Size of the RX socket buffer to be used for nodes, in kbytes. The lower the value, the faster the remote end will flow-control at the TCP/IP level if you don't read quickly enough, which would be the case if you limit the incoming bandwidth."
 msgstr "Grootte van de RX \"socket\" buffer die gebruikt wordt voor nodes, in kbytes. Hoe lager de waarde, hoe sneller de andere server flow control op TCP/IP niveau zal gebruiken als je niet snel genoeg kunt lezen, wat het geval is als je de binnenkomende bandbreedte limiteert."
@@ -1759,9 +1680,8 @@ msgstr "Of we voldoende geheugen hebben om een Ultra node te worden."
 msgid "Whether we meet the bandwidth requirements to become an Ultra node."
 msgstr "Of we voldoen aan de voorwaarden aan bandbreedte om een Ultra node te worden."
 
-#, fuzzy
 msgid "Whether we meet the UDP requirements to become an Ultra node."
-msgstr "Of we voldoende geheugen hebben om een Ultra node te worden."
+msgstr "Of we aan de UDP vereisten voldoen om een Ultra node te worden."
 
 msgid "Size of the search queue holding the locally generated queries before they are sent on a given connection.  When full, the oldest query is dropped without being sent.  Set it so that it is slightly larger than the amount of opened searches."
 msgstr "De grootte van de zoekopdrachten wachtrij die de lokaal gegenereerde zoekopdrachten bevat voordat deze naar een specifieke verbinding gestuurd worden.  Als de wachtrij vol is wordt de oudste zoekopdracht verwijderd zonder verzonden te zijn. Zet de grootte zo dat het een beetje groter is dan het aantal geopende zoekopdrachten."
@@ -1802,9 +1722,8 @@ msgstr "De tijd waarop we gestart zijn met het indexeren van de gedeelde bestand
 msgid "Time spent indexing shared files."
 msgstr "Tijd besteed aan het indexeren van gedeelde bestanden."
 
-#, fuzzy
 msgid "Memory used by the QRP tables"
-msgstr "Hoeveelheid slots in gebruik in onze QRP tabel."
+msgstr "Geheugen gebruikt door de QRP tabellen"
 
 msgid "Time at which we started query routing table generation."
 msgstr "Tijd waarop we gestart zijn met het genereren van de zoekopdracht routeer tabel."
@@ -1899,20 +1818,17 @@ msgstr "Indien TRUE dan kunnen andere hosts een complete lijst opvragen met alle
 msgid "Number of HTML browsing requests received in this session."
 msgstr "Aantal ontvangen HTML bladeren verzoeken tijdens deze sessie."
 
-#, fuzzy
 msgid "Number of HTML browsing requests fully served in this session."
 msgstr "Aantal ontvangen HTML bladeren verzoeken tijdens deze sessie."
 
 msgid "Number of Gnutella browsing requests received in this session."
 msgstr "Aantal bezoeken van crawlers gedurende deze sessie."
 
-#, fuzzy
 msgid "Number of Gnutella browsing requests fully served in this session."
-msgstr "Aantal bezoeken van crawlers gedurende deze sessie."
+msgstr "Aantal ontvangen Gnutella bladeren verzoeken volledig geserveerd tijdens deze sessie."
 
-#, fuzzy
 msgid "The average CPU usage indicates overloading, so gtk-gnutella is reducing the amount of non-critical processing it is performing. Note that the overloading can result from gtk-gnutella not getting enough CPU time because another process is competing for the CPU. Whilst the overloading condition persists, GUI refreshing is reduced and background tasks (SHA1 computation, file moving) are slowed down."
-msgstr "Het gemiddelde CPU verbruik duidt op te zware belasting. gtk-gnutella vermindert het verbruikt van niet kritische taken. Een te zware belasting kan komen doordat een ander proces meer CPU nodig heeft en gtk-gnutella daardoor te weinigkrijgt. Zolang deze overbelasting actief is, dan wordt het bijwerken van de GUI vermindert en achtergrond taken (SHA1 berekenen, bestanden verplaatsen) worden gepauzeerd."
+msgstr "Het gemiddelde CPU verbruik duidt op te zware belasting, gtk-gnutella vermindert het verbruikt van niet kritische taken. Een te zware belasting kan komen doordat een ander proces meer CPU nodig heeft en gtk-gnutella daardoor te weinig krijgt. Zolang deze overbelasting actief is, dan wordt het bijwerken van de GUI vermindert en achtergrond taken (SHA1 berekenen, bestanden verplaatsen) worden gepauzeerd."
 
 msgid "Amount of data per downloading source that gtk-gnutella will buffer before writing to disk.  When swarming from many sources, a larger value will help avoid using too many system calls and should also reduce the fragmentation on the filesystem.  The downside is that it uses more memory per active source.  Use 0 to disable all buffering, i.e. have gtk-gnutella write to disk as soon as it receives some data. Increase to maximum value if you have RAM."
 msgstr "De hoeveelheid data per bron die aan het downloaden is dat gtk-gnutella zal bufferen voordat het naar de schijf wordt geschreven. Wanneer er gebruik wordt gemaakt van zwermen met veel bronnen dan zou dit ook fragmentatie van het bestandssysteem moeten tegengaan. De keerzijde is dat dit meer geheugen gebruikt per actieve bron. Om dit uit te zetten, kier hier 0, data wordt dan weggeschreven op het moment dat het wordt ontvangen. Zet dit op zijn maximale waarde als e genoeg RAM hebt."
@@ -1923,24 +1839,20 @@ msgstr ""
 msgid "Enable this if all units should be displayed using the metric system with SI prefixes. If disabled, certain units, for example, filesizes will be displayed using the historical base2 convention with binary prefixes."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for Reliable UDP (RUDP) code."
-msgstr "Debug level voor de bestanden delen code."
+msgstr "Debug level voor de Betrouwbare UDP (RUDP) code."
 
-#, fuzzy
 msgid "Debug level for the Distributed Hash Table (DHT) code."
-msgstr "Debug level voor de bestanden delen code."
+msgstr "Debug level voor de Gedistributeerde Hash Table (DHT) code."
 
-#, fuzzy
 msgid "Debug level for the OOB-proxying of queries."
-msgstr "Debug level voor de dynamische zoekopdrachten."
+msgstr "Debug level voor de OOB-proxying van query's."
 
 msgid "If set gtk-gnutella also listens on a local (unix domain) socket which is located in ~/.gtk-gnutella/socket."
 msgstr ""
 
-#, fuzzy
 msgid "Don't start more than this number of parallel downloads per file."
-msgstr "Upload niet meer dan dit aantal bestanden tegelijk naar één host."
+msgstr "Start per bestand niet meer dan dit aantal parallele downloads"
 
 # Stopped -> Gestopped
 # gaps -> gaten
@@ -1952,47 +1864,38 @@ msgstr ""
 msgid "If enabled, queries are also matched against the directory names which are relative to the shared ones. Further, search results will show these. This is especially useful if the shared filenames are ambiguous or meaningless without knowing the directory names as well. However, be sure the directory names do not expose confidential information. You have to initiate a rescan of the shared files before a change becomes fully effective."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the shell."
-msgstr "Debug level voor de gui."
+msgstr "Debug level voor de shell."
 
 msgid "If larger than zero, no downloads are started."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the search queue."
-msgstr "Debug level voor de gui."
+msgstr "Debug level voor de zoek queue."
 
-#, fuzzy
 msgid "Debug level for push-proxy code."
-msgstr "Debug level voor de HTTP-code."
+msgstr "Debug level voor de push-proxy code."
 
-#, fuzzy
 msgid "Number of THEX file requests received in this session."
-msgstr "Aantal ontvangen HTML bladeren verzoeken tijdens deze sessie."
+msgstr "Aantal ontvangen THEX bestand verzoeken tijdens deze sessie."
 
-#, fuzzy
 msgid "Number of THEX file requests fully served in this session."
-msgstr "Aantal ontvangen HTML bladeren verzoeken tijdens deze sessie."
+msgstr "Aantal ontvangen THEX bestand verzoeken volledige geserveerd tijdens deze sessie."
 
-#, fuzzy
 msgid "Debug level for Tigertree-related code."
-msgstr "Debug level voor Gnutella nodes."
+msgstr "Debug level voor Tigertree gerelateerde code."
 
-#, fuzzy
 msgid "Whether gtk-gnutella is currently computing TTH of shared files in the background."
-msgstr "Of gtk-gnutella momenteel in de achtergrond bezig is met het berekenen van de SHA1 waarden van de gedeelde bestanden."
+msgstr "Of gtk-gnutella momenteel de TTH van gedeelde bestanden in de achtergrond aan het berekenen is."
 
-#, fuzzy
 msgid "Whether gtk-gnutella is currently verifying the TTH of downloaded files in the background."
-msgstr "Of gtk-gnutella momenteel in de achtergrond bezig is met het verifiëren van de SHA1 waarde van een afgeronde download."
+msgstr "Of gtk-gnutella momenteel de TTH van gedownloade bestanden in de achtergrond aan het controleren is."
 
 msgid "Maximum number of results to show in any search."
 msgstr "Het maximum aantal resultaten dat weergegeven mag worden bij een zoekopdracht."
 
-#, fuzzy
 msgid "Maximum number of results to show in a browse_host request."
-msgstr "Het maximum aantal resultaten dat weergegeven mag worden bij een zoekopdracht."
+msgstr "Maximum aantal te tonen resultaten voor een browse_host verzoek."
 
 msgid "Date of the latest SVN release."
 msgstr ""
@@ -2003,13 +1906,11 @@ msgstr ""
 msgid "Signature of the latest SVN release notification."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of hosts in the TLS node cache."
-msgstr "Maximum aantal hosts in de ultra node catcher."
+msgstr "Maximum aantal hosts in de TLS node cache."
 
-#, fuzzy
 msgid "Maximum time before removing hosts from the TLS cache."
-msgstr "Maximum aantal hosts in de ultra node catcher."
+msgstr "Maximum tijd voordat een host wordt verwijderd uit de TLS cache."
 
 msgid "If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. Otherwise, the TTH is only accepted if provided by the user, for example, by a magnet link."
 msgstr ""
@@ -2017,17 +1918,14 @@ msgstr ""
 msgid "If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, have to exist at all.  The aim is to improve the overall downloading experience."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of hosts in the G2 node cache."
-msgstr "Maximum aantal hosts in de ultra node catcher."
+msgstr "Maximum aantal hosts in de G2 node cache."
 
-#, fuzzy
 msgid "Maximum time before removing hosts from the G2 cache."
-msgstr "Maximum aantal hosts in de ultra node catcher."
+msgstr "Maximum tijd voordat hosts worden verwijderd uit de G2 cache."
 
-#, fuzzy
 msgid "Debug level for management of G2-only hosts."
-msgstr "Debug level voor de download mesh beheer."
+msgstr "Debug level voor het beheer van uitsluitend G2-hosts."
 
 msgid "Whether GTKG can switch among the several files waiting to be downloaded from a given server, when making a follow-up HTTP request.  Turn it off only if you witness problems with a particular servent you're downloading from."
 msgstr ""
@@ -2045,21 +1943,17 @@ msgstr ""
 msgid "Whether the Distributed Hash Table (DHT) should be enabled. The DHT allows you to resolve magnet: URIs and to easily locate alternate locations for files and push-proxies for firewalled hosts. It requires UDP support."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the callout queue."
-msgstr "Debug level voor zoekopdrachten."
+msgstr "Debug level voor de callout queue."
 
-#, fuzzy
 msgid "Debug level for DHT node lookups."
-msgstr "Debug level voor de HTTP-code."
+msgstr "Debug level voor de DHT node lookups."
 
-#, fuzzy
 msgid "Debug level for DHT key/value storage."
-msgstr "Debug level voor de HTTP-code."
+msgstr "Debug level voor de DHT key/value opslag."
 
-#, fuzzy
 msgid "Debug level for DHT key/value publishing."
-msgstr "Debug level voor de HTTP-code."
+msgstr "Debug level voor de DHT key/value publishing."
 
 msgid "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for limiting concurrent publishing and searching.  Traffic is made on the Gnutella UDP socket. Output needs are lower than input (between 3 to 5 times less). The larger the numbers, the more values can be looked up concurrently, but the more bandwidth is used."
 msgstr ""
@@ -2073,9 +1967,8 @@ msgstr ""
 msgid "Whether the KUID should be kept accross sessions. A sticky KUID is helpful for the DHT because it promotes routing table stability and ensures that closest nodes will keep mutual knowledge about each other"
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the DHT user lookup queue."
-msgstr "Debug level voor de gui."
+msgstr "Debug level voor de DHT user lookup queue."
 
 msgid "If TRUE, DHT storage uses memory instead of diskspace."
 msgstr ""
@@ -2095,9 +1988,8 @@ msgstr ""
 msgid "Defines which HTTP header exchanges should be traced, other than downloads, uploads and push-proxy exchanges."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for (generic) file verification code."
-msgstr "Debug level voor de bestanden delen code."
+msgstr "Debug level voor (algemene) bestandsverificatiecode."
 
 msgid "Maximum number of hosts in the local address cache, which remembers the recent IP:port combinations we had."
 msgstr ""
@@ -2105,103 +1997,81 @@ msgstr ""
 msgid "Maximum time before removing hosts from the local address cache, which remembers the recent IP:port combinations we had."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for management of local address cache."
-msgstr "Debug level voor de download mesh beheer."
+msgstr "Debug level voor het beheer van de lokale adres cache"
 
 msgid "If enabled, all packets enqueued for transmission are dumped to $GTK_GNUTELLA_DIR/packets_tx.dump."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level the TCP message queues"
-msgstr "Debug level voor de gui."
+msgstr "Debug level voor de TCP berichten wachtrijen"
 
-#, fuzzy
 msgid "Debug level for the UDP message queue."
-msgstr "Debug level voor de gui."
+msgstr "Debug level voor de UDP bericht wachtrijen."
 
-#, fuzzy
 msgid "Maximum size of the UDP message queue (in bytes). Must be at least 150 percent of the maximum message size."
-msgstr "Maximum grootte van de verzend rij voor de nodes (in bytes). Dit moet tenminste 150 procent zijn van de maximum bericht grootte."
+msgstr "Maximum grootte van de UDP berichten wachtrij (in bytes). Dit moet tenminste 150 procent zijn van de maximum bericht grootte."
 
-#, fuzzy
 msgid "Debug level for the management of the clock accuracy."
-msgstr "Debug level voor de download mesh beheer."
+msgstr "Debug level voor het beheer van de nauwkeurigheid van de klok."
 
-#, fuzzy
 msgid "Debug level for the firewalled status management."
-msgstr "Debug level voor de download mesh beheer."
+msgstr "Debug level voor het beheer van de firewall status."
 
-#, fuzzy
 msgid "Debug level for host management."
-msgstr "Debug level voor de download mesh beheer."
+msgstr "Debug level voor het host beheer"
 
-#, fuzzy
 msgid "Debug level for DHT root node caching."
-msgstr "Debug level voor pong caching."
+msgstr "Debug level voor DHT root node caching."
 
-#, fuzzy
 msgid "Logged statistics level for code shared between GUI and core."
-msgstr "Debug level voor code die wordt gedeelt tussen de GUI en de core."
+msgstr "Statistieken gelogged over gedeelde code tussen de GUI en de core."
 
 #, c-format
 msgid "If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a fast disk database, which saves a large amount of core memory and reduces the overall footprint, at the cost of an increased I/O level. However, the DB cache has typically a 90% hit rate, so the actual overhead is barely noticeable when running as an ultra node and should remain completely unnoticed when running as a leaf."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for spam detection."
-msgstr "Debug level voor pong caching."
+msgstr "Debug level voor spam detectie."
 
-#, fuzzy
 msgid "Debug level for lockfile management."
-msgstr "Debug level voor de download mesh beheer."
+msgstr "Debug level voor het lockfile beheer."
 
-#, fuzzy
 msgid "Debug level for the zone-based memory allocator."
-msgstr "Debug level voor de gui."
+msgstr "Debug level voor de zone-based memory allocator."
 
-#, fuzzy
 msgid "Debug level for the pool-based memory allocator."
-msgstr "Debug level voor de gui."
+msgstr "Debug level voor de pool-based memory allocator."
 
-#, fuzzy
 msgid "Debug level for the RX buffer allocator."
-msgstr "Debug level voor de gui."
+msgstr "Debug level voor de RX buffer allocator."
 
 msgid "Whether the zone-based memory allocator should always keep the zones in garbage-collecting mode, thereby maximizing the chances of being able to quickly reclaim empty zones after an allocation burst. This causes a slight CPU overhead at block free time but the memory footprint will remain much lower. To further minimize the footprint, you can also set spam_lut_in_memory to FALSE."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the virtual memory manager."
-msgstr "Detail level voor vendor berichten."
+msgstr "Detail level voor de virtual memory manager."
 
-#, fuzzy
 msgid "Debug level for final shutdown."
-msgstr "Debug level voor de bestandsinformatie."
+msgstr "Debug level voor laatste afsluiting"
 
-#, fuzzy
 msgid "Country preferences"
-msgstr "Voorkeuren"
+msgstr "Land voorkeuren"
 
-#, fuzzy
 msgid "Debug level for country limits."
-msgstr "Debug level voor zoekopdrachten."
+msgstr "Debug level voor land limieten."
 
-#, fuzzy
 msgid "Whether to log dropped Gnutella messages"
-msgstr "Debug level voor Gnutella berichten."
+msgstr "Moeten vervallen gnutella berichten gelogd worden"
 
-#, fuzzy
 msgid "Debug level for whitelist management."
-msgstr "Debug level voor de download mesh beheer."
+msgstr "Debug level voor de whitelist management."
 
-#, fuzzy
 msgid "Debug level for DHT token caching."
-msgstr "Debug level voor pong caching."
+msgstr "Debug level voor DHT token caching."
 
-#, fuzzy
 msgid "Debug level for DHT publishing from Gnutella."
-msgstr "Debug level voor de HTTP-code."
+msgstr "Debug level voor DHT publishing van Gnutella."
 
 msgid "Defines which DHT messages should be traced."
 msgstr ""
@@ -2212,9 +2082,8 @@ msgstr "Limiteer bandbreedte voor uitgaand DHT verkeer."
 msgid "Bandwidth limit for outgoing DHT traffic in bytes/sec. It is always pooled with the Gnutella UDP queue, regardless of whether bandwidth stealing is enabled, so that UDP queues can flush more quickly."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum size of the DHT message queue (in bytes)."
-msgstr "Maximale grootte van de antwoorden op zoek opdrachten die we doorsturen naar anderen (in bytes)."
+msgstr "Maximum grootte van de DHT berichten wachtrij (in bytes)."
 
 #, fuzzy
 msgid "Debug level for bandwidth scheduler."
@@ -2260,16 +2129,14 @@ msgstr ""
 msgid "Debug level for the one-time memory allocator."
 msgstr "Debug level voor de gui."
 
-#, fuzzy
 msgid "Debug level for the host cache."
-msgstr "Debug level voor de gui."
+msgstr "Debug level voor de host cache."
 
 msgid "Random bits."
 msgstr ""
 
-#, fuzzy
 msgid "Average servent downtime."
-msgstr "Gemiddelde servent uptime."
+msgstr "Gemiddelde servent downtime."
 
 msgid "Time when last shutdown occurred."
 msgstr ""
@@ -2525,9 +2392,8 @@ msgstr "Breedte van de kolommen in de file info tabel."
 msgid "Visibility of the columns in the file info table."
 msgstr "Breedte van de kolommen in de file info tabel."
 
-#, fuzzy
 msgid "Widths of the columns in the sources table."
-msgstr "Breedte van de kolommen in de nodes tabel."
+msgstr "Breedte van de kolommen in de bronnen tabel."
 
 msgid "Widths of the columns in the search list on the sidebar."
 msgstr "Breedte van de kolommen in de zoekopdrachten lijst in het zijpaneel."
@@ -2607,9 +2473,8 @@ msgstr "Grootte van de filter boom in het filter dialoog."
 msgid "Show tabs or search list."
 msgstr "Gebruik tabs of een zoek lijst."
 
-#, fuzzy
 msgid "Display Searchbar."
-msgstr "Zijbalk tonen."
+msgstr "Zoekbalk tonen."
 
 msgid "Display Sidebar."
 msgstr "Zijbalk tonen."
@@ -2821,25 +2686,20 @@ msgstr "De levensduur van een zoekopdracht. Zodra deze tijd is verstreken wordt 
 msgid "Show a status icon in the system tray if possible (requires Gtk+ 2.10 or newer)."
 msgstr ""
 
-#, fuzzy
 msgid "Automatically hide DHT bandwidth display when DHT not enabled."
-msgstr "Verberg de weergave van de bandbreedte van de leafs automatisch als we niet in Ultrapeer modus zijn."
+msgstr "Verberg de DHT bandbreedte weergave automatisch als de DHT niet is ingeschakeld."
 
-#, fuzzy
 msgid "Display incoming DHT traffic bandwidth usage."
-msgstr "Bandbreedte gebruik voor het inkomend HTTP verkeer tonen."
+msgstr "Toon inkomend DHT bandbreedte gebruik."
 
-#, fuzzy
 msgid "Display outgoing DHT traffic bandwidth usage."
-msgstr "Bandbreedte gebruik voor het uitgaand HTTP verkeer tonen."
+msgstr "Toon uitgaand DHT bandbreedte gebruik."
 
-#, fuzzy
 msgid "Display incoming DHT traffic bandwidth as an average."
-msgstr "Toon het gemiddelde bandbreedte verkeer voor het inkomend HTTP verkeer."
+msgstr "Toon gemiddelde inkomend DHT bandbreedte gebruik."
 
-#, fuzzy
 msgid "Display outgoing DHT traffic bandwidth as an average."
-msgstr "Toon het gemiddelde bandbreedte verkeer voor het uitgaand HTTP verkeer."
+msgstr "Toon gemiddelde uitgaand DHT bandbreedte gebruik"
 
 msgid "Anonymizing proxies"
 msgstr "Anonieme proxies"
@@ -3144,7 +3004,6 @@ msgstr ""
 msgid "Croatia"
 msgstr "Kroatië"
 
-#, fuzzy
 msgid "Haiti"
 msgstr "Haïti"
 
@@ -3618,21 +3477,17 @@ msgstr "B/s"
 msgid "locale_get_language|en"
 msgstr "nl"
 
-#, fuzzy
 msgid "unofficial build, accessing files from"
-msgstr "Dit is een officieel gebouwde versie en haalt zijn bestanden uit deze directorie:"
+msgstr "onofficiele build, toegang tot bestanden verkrijgen van"
 
-#, fuzzy
 msgid "URL missing"
-msgstr "Waarde mist"
+msgstr "URL mist"
 
-#, fuzzy
 msgid "The download could not be created"
-msgstr "Geen download slot (aanmaken)"
+msgstr "De download kon niet worden aangemaakt"
 
-#, fuzzy
 msgid "Download added"
-msgstr "Gedownload:"
+msgstr "Download toegevoegd"
 
 msgid "Unknown operation"
 msgstr "Onbekende error"
@@ -3640,9 +3495,8 @@ msgstr "Onbekende error"
 msgid "Unknown command"
 msgstr "Commando onbekend"
 
-#, fuzzy
 msgid "No help available"
-msgstr "Niet beschikbaar"
+msgstr "Geen help beschikbaar"
 
 msgid "Hops"
 msgstr "Hops"
@@ -3664,13 +3518,11 @@ msgstr "Horizon grote (%u/%u node ondersteunen HSEP):"
 msgid "Horizon size via HSEP node %s (%s):"
 msgstr "Horizon grootte via HSEP node %s (%s):"
 
-#, fuzzy
 msgid "Interactive mode turned on."
-msgstr "Inactieve bronnen"
+msgstr "Interactieve mode ingeschakeld"
 
-#, fuzzy
 msgid "Interactive mode turned off."
-msgstr "Inactieve bronnen"
+msgstr "Interactieve mode uitgeschakeld"
 
 msgid "Invalid IP/Port"
 msgstr "Ongeldige IP/Poort"
@@ -3678,26 +3530,24 @@ msgstr "Ongeldige IP/Poort"
 msgid "Node added"
 msgstr "Node toegevoegd"
 
-#, fuzzy
 msgid "Invalid IP"
-msgstr "Ongeldige IP/Poort"
+msgstr "Ongeldig IP"
 
-#, fuzzy
 msgid "Invalid port"
-msgstr "Ongeldige IP/Poort"
+msgstr "Ongeldige poort"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Removed %u node"
 msgid_plural "Removed %u nodes"
-msgstr[0] "%u download verwijderd"
-msgstr[1] "%u downloads verwijderd"
+msgstr[0] "%u node verwijderd"
+msgstr[1] "%u nodes verwijderd"
 
 msgid "Property missing"
 msgstr "Property mist"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown property \"%s\""
-msgstr "Onbekende eigenschap"
+msgstr "Onbekende eigenschap \"%s\""
 
 msgid "Value: "
 msgstr "Waarde:"
@@ -3720,9 +3570,8 @@ msgstr "Zoek tekst is niet UTF-8 geëncodeerd"
 msgid "Search added"
 msgstr "Zoek opdracht toegevoegd"
 
-#, fuzzy
 msgid "The search could not be created"
-msgstr "Geen download slot (aanmaken)"
+msgstr "De zoekopdracht kan niet worden aangemaakt"
 
 msgid "Unknown property"
 msgstr "Onbekende eigenschap"
@@ -3751,9 +3600,9 @@ msgstr ""
 msgid "Malformed command"
 msgstr "Commando ongeldig"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown command: \"%s\""
-msgstr "Commando onbekend"
+msgstr "Commando onbekend: \"%s\""
 
 msgid "Help: "
 msgstr "Help:"
@@ -3761,9 +3610,8 @@ msgstr "Help:"
 msgid "Bitzi|Unknown"
 msgstr "Onbekend"
 
-#, fuzzy
 msgid "Bitzi|Unrated"
-msgstr "Ondergewaardeerd"
+msgstr "Bitzi|Zonder waardering"
 
 msgid "Bitzi|Bitzi lookup failure"
 msgstr ""
@@ -3804,18 +3652,15 @@ msgstr "Geen andere gegevens"
 msgid "Filename"
 msgstr "Bestandsnaam"
 
-#, fuzzy
 msgid "Created"
-msgstr "Afgerond"
+msgstr "Aangemaakt"
 
 msgid "Modified"
 msgstr ""
 
-#, fuzzy
 msgid "SHA-1"
-msgstr "SHA1:"
+msgstr "SHA-1"
 
-#, fuzzy
 msgid "Not available"
 msgstr "Niet beschikbaar"
 
@@ -3877,9 +3722,8 @@ msgstr "Verzoek verzonden"
 msgid "Reading headers"
 msgstr "Koppen worden gelezen"
 
-#, fuzzy
 msgid "UDP push sent"
-msgstr "\"Push\" verzonden"
+msgstr "UDP push verzonden"
 
 msgid "Searching for new push-proxies"
 msgstr ""
@@ -3906,23 +3750,21 @@ msgstr "Afgerond"
 msgid "Chunk done"
 msgstr "Fragment gereed"
 
-#, fuzzy
 msgid "Waiting for TTH checking..."
-msgstr "Wacht op SHA1 controle..."
+msgstr "Wacht op TTH controle..."
 
 msgid "Waiting for SHA1 checking..."
 msgstr "Wacht op SHA1 controle..."
 
-#, fuzzy, c-format
+#, c-format
 msgid "Computing %s (%.02f%%)"
-msgstr "SHA1 wordt gecontroleerd (%.02f%%)"
+msgstr "Berekenen %s (%.02f%%)"
 
 msgid "TTH OK"
 msgstr ""
 
-#, fuzzy
 msgid "SHA-1 OK"
-msgstr "SHA1:"
+msgstr "SHA-1 OK"
 
 msgid "SHA-1 MISMATCH"
 msgstr ""
@@ -3947,29 +3789,23 @@ msgstr "; Verplaatsts (%s) %s"
 msgid "(stalled)"
 msgstr " (hangt)"
 
-#, fuzzy
 msgid "Receiving data"
-msgstr "Koppen worden ontvangen"
+msgstr "Data wordt ontvangen"
 
-#, fuzzy
 msgid "ignoring"
-msgstr "inkomend"
+msgstr "wordt genegeerd"
 
-#, fuzzy
 msgid "selected next"
-msgstr "Geselecteerde eigenschap:"
+msgstr "volgende geselecteerd"
 
-#, fuzzy
 msgid "requesting next"
-msgstr "Verzoek verzonden"
+msgstr "volgende wordt verzocht"
 
-#, fuzzy
 msgid "requested next"
-msgstr "Verzoek verzonden"
+msgstr "volgende verzocht"
 
-#, fuzzy
 msgid "Awaiting data"
-msgstr "Aan het wachten"
+msgstr "Wacht op data"
 
 msgid "Unknown error"
 msgstr "Onbekende error"
@@ -3988,9 +3824,8 @@ msgid_plural "Forgot %u downloads"
 msgstr[0] "%u download vergeten"
 msgstr[1] "%u downloads vergeten"
 
-#, fuzzy
 msgid "Filename (filtered)"
-msgstr "Bestandsnaam filter:"
+msgstr "Bestandsnaam (gefilterd)"
 
 msgid "Progress"
 msgstr "Voortgang"
@@ -3998,13 +3833,11 @@ msgstr "Voortgang"
 msgid "RX"
 msgstr ""
 
-#, fuzzy
 msgid "Downloaded"
-msgstr "Gedownload:"
+msgstr "Gedownload"
 
-#, fuzzy
 msgid "Uploaded"
-msgstr "Geupload:"
+msgstr "Geupload"
 
 msgid "Sources"
 msgstr "Bronnen"
@@ -4015,9 +3848,8 @@ msgstr "Status"
 msgid "Active"
 msgstr "Actief"
 
-#, fuzzy
 msgid "Incomplete"
-msgstr "Compleet"
+msgstr "Incompleet"
 
 msgid "Orphaned"
 msgstr ""
@@ -4025,15 +3857,15 @@ msgstr ""
 msgid "All"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "regex error: %s"
-msgstr "Lees fout: %s"
+msgstr "regex fout: %s"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Selected %u of %u download matching \"%s\"."
 msgid_plural "Selected %u of %u downloads matching \"%s\"."
-msgstr[0] "%u van %u wachtende download overeenkomend met \"%s\" geselecteerd."
-msgstr[1] "%u van %u wachtende downloads overeenkomend met \"%s\" geselecteerd."
+msgstr[0] "%u van de %u download geselecteerd overeenkomend met \"%s\"."
+msgstr[1] "%u van de %u downloads geselecteerd overeenkomend met \"%s\"."
 
 msgid "starts with"
 msgstr "begint met"
@@ -4053,9 +3885,8 @@ msgstr "komt overeen met het regex patroon"
 msgid "is exactly"
 msgstr "is gelijk aan"
 
-#, fuzzy
 msgid "Built-in targets"
-msgstr "Ingebouwde doelen (niet bewerkbaar)"
+msgstr "Ingebouwde doelen"
 
 msgid "Global filters"
 msgstr "Algemene filters"
@@ -4212,9 +4043,8 @@ msgstr "(gedeactiveerd)"
 msgid "(invalid)"
 msgstr "(ongeldig)"
 
-#, fuzzy
 msgid "<Archive>"
-msgstr "Actief"
+msgstr "<Archief>"
 
 msgid "<Audio>"
 msgstr ""
@@ -4252,9 +4082,8 @@ msgstr "Duplicaten met een hogere TTL"
 msgid "SPAM SHA1 database hits"
 msgstr ""
 
-#, fuzzy
 msgid "SPAM filename and size hits"
-msgstr "Als de bestandsnaam eindigt met \"%s\" %s"
+msgstr "SPAm bestandsnaam en grootte overeenkomsten"
 
 msgid "SPAM fake hits"
 msgstr ""
@@ -4307,9 +4136,8 @@ msgstr "Gedeeltelijke toegeeiste lokaal gegenereerde OOB resultaten"
 msgid "Spurious OOB hit claiming received"
 msgstr ""
 
-#, fuzzy
 msgid "Unrequested OOB hits received"
-msgstr "Opdrachten die OOB bezorging verzoeken"
+msgstr "Ongevraagde OOB overeenkomsten ontvangen"
 
 msgid "Compacted queries"
 msgstr "Verkleinde zoekopdrachten"
@@ -4323,16 +4151,14 @@ msgstr "UTF8 zoekopdrachten"
 msgid "SHA1 queries"
 msgstr "SHA1 zoekopdrachten"
 
-#, fuzzy
 msgid "GUESS queries"
-msgstr "UTF8 zoekopdrachten"
+msgstr "GUESS query's"
 
 msgid "GUESS cached query keys held"
 msgstr ""
 
-#, fuzzy
 msgid "GUESS locally generated queries"
-msgstr "Lokaal dynamisch gegenereerde opdrachten"
+msgstr "GUESS lokaal gegenereerde query's"
 
 msgid "GUESS currently running queries"
 msgstr ""
@@ -5232,9 +5058,8 @@ msgstr "Vertragingen en timeouts (alle waarden in seconden)"
 msgid "Delete file on abort"
 msgstr "Verwijder bestand als deze word afgebroken"
 
-#, fuzzy
 msgid "Delete file on mismatch"
-msgstr "Verwijder bestand als deze niet overeen komt"
+msgstr "Bestand verwijderen als het niet overeenkomt"
 
 msgid "Detailed traffic information to display"
 msgstr "Gedetaileerde verkeersinformatie om weer te geven"
@@ -7291,7 +7116,7 @@ msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** MAXIMUM FILE DESCRIPTORS BIJNA BEREIKT! ***"
 
 msgid "*** Please update gtk-gnutella ***"
-msgstr ""
+msgstr "*** Update gtk-gnutella aub ***"
 
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
@@ -7358,11 +7183,11 @@ msgid "< 1s"
 msgstr "< 1s"
 
 msgid "(quick) "
-msgstr ""
+msgstr "(snel)"
 
 #, c-format
 msgid " E=%u"
-msgstr ""
+msgstr " E=%u"
 
 #, c-format
 msgid "%s(%s) TR: %s %s#%u"
@@ -7376,7 +7201,7 @@ msgstr "Wacht op koppen.."
 
 #, c-format
 msgid "%s %s#%u E=%u"
-msgstr ""
+msgstr "%s %s#%u E=%u"
 
 msgid "Waiting for further request..."
 msgstr "Wacht op een aanvullend verzoek..."
@@ -7395,7 +7220,7 @@ msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "%s [%d] (slot %d/%d)%s %s %s"
 
 msgid "Frozen"
-msgstr ""
+msgstr "Bevroren"
 
 msgid "lifetime:"
 msgstr "resterende leeftijd:"
