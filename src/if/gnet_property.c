@@ -969,6 +969,10 @@ gboolean gnet_property_variable_enable_guess_client     = TRUE;
 static const gboolean gnet_property_variable_enable_guess_client_default = TRUE;
 guint32  gnet_property_variable_bw_guess_out     = 1536;
 static const guint32  gnet_property_variable_bw_guess_out_default = 1536;
+guint32  gnet_property_variable_matching_debug     = 0;
+static const guint32  gnet_property_variable_matching_debug_default = 0;
+guint32  gnet_property_variable_tsync_debug     = 0;
+static const guint32  gnet_property_variable_tsync_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -8876,6 +8880,46 @@ gnet_prop_init(void) {
     gnet_property->props[413].data.guint32.choices = NULL;
     gnet_property->props[413].data.guint32.max   = BS_BW_MAX;
     gnet_property->props[413].data.guint32.min   = 256;
+
+
+    /*
+     * PROP_MATCHING_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[414].name = "matching_debug";
+    gnet_property->props[414].desc = _("Debug level for the matching code.");
+    gnet_property->props[414].ev_changed = event_new("matching_debug_changed");
+    gnet_property->props[414].save = TRUE;
+    gnet_property->props[414].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[414].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[414].data.guint32.def   = (void *) &gnet_property_variable_matching_debug_default;
+    gnet_property->props[414].data.guint32.value = (void *) &gnet_property_variable_matching_debug;
+    gnet_property->props[414].data.guint32.choices = NULL;
+    gnet_property->props[414].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[414].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_TSYNC_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[415].name = "tsync_debug";
+    gnet_property->props[415].desc = _("Debug level for the time synchronization code.");
+    gnet_property->props[415].ev_changed = event_new("tsync_debug_changed");
+    gnet_property->props[415].save = TRUE;
+    gnet_property->props[415].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[415].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[415].data.guint32.def   = (void *) &gnet_property_variable_tsync_debug_default;
+    gnet_property->props[415].data.guint32.value = (void *) &gnet_property_variable_tsync_debug;
+    gnet_property->props[415].data.guint32.choices = NULL;
+    gnet_property->props[415].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[415].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

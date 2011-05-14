@@ -110,7 +110,7 @@ ntp_no_reply(void)
 	if (ntp_localhost_replied)
 		return;
 
-	if (GNET_PROPERTY(dbg))
+	if (GNET_PROPERTY(tsync_debug))
 		g_debug("NTP no reply from localhost");
 
 	/*
@@ -159,7 +159,7 @@ ntp_got_reply(host_addr_t addr, const void *payload, size_t len)
 		return;
 	}
 
-	if (GNET_PROPERTY(dbg))
+	if (GNET_PROPERTY(tsync_debug))
 		g_debug("NTP got %s reply from NTP-%u server, stratum %u",
 			NTP_MINSIZE == len ? "regular" : "auth", version, m->stratum);
 
@@ -186,7 +186,7 @@ ntp_got_reply(host_addr_t addr, const void *payload, size_t len)
 
 	clock_offset = tm2f(&offset) / 2;		/* Should be close to 0 */
 
-	if (GNET_PROPERTY(dbg) > 1)
+	if (GNET_PROPERTY(tsync_debug) > 1)
 		g_debug("NTP local clock offset is %.6f secs",
 			(double) clock_offset);
 
@@ -263,8 +263,8 @@ ntp_send_probes(void)
 			/* Send probes to all addresses because a successful sendto()
 			 * does not guarantee anything. */
 			sent = TRUE;
-		} else if (GNET_PROPERTY(dbg)) {
-			g_debug("ntp_probe(): sendto() failed for \"%s\" (\"%s\"): %s",
+		} else if (GNET_PROPERTY(tsync_debug)) {
+			g_debug("NTP ntp_probe(): sendto() failed for \"%s\" (\"%s\"): %s",
 				hosts[i].addr,
 				host_addr_to_string(addr),
 				g_strerror(errno));
@@ -284,7 +284,7 @@ ntp_probe(void)
 	if (!ntp_send_probes())
 		return;
 
-	if (GNET_PROPERTY(dbg))
+	if (GNET_PROPERTY(tsync_debug))
 		g_debug("NTP sent probe to localhost");
 }
 

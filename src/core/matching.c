@@ -240,8 +240,8 @@ st_initialize(search_table_t *table)
 	table->bins = NULL;
 	table->all_entries.vals = 0;
 
-	if (GNET_PROPERTY(dbg) > 3)
-		printf("search table will use max of %d bins (%d indexing chars)\n",
+	if (GNET_PROPERTY(matching_debug))
+		g_debug("MATCH search table will use %d bins max (%d indexing chars)",
 			table->nbins, table->nchars);
 }
 
@@ -537,8 +537,8 @@ st_search(
 			}
 		}
 
-		if (GNET_PROPERTY(dbg) > 6)
-			printf("st_search(): str=\"%s\", len=%d, best_bin_size=%d\n",
+		if (GNET_PROPERTY(matching_debug) > 4)
+			g_debug("MATCH st_search(): str=\"%s\", len=%d, best_bin_size=%d",
 				search, len, best_bin_size);
 	}
 
@@ -652,8 +652,10 @@ st_search(
 		scanned++;
 
 		if (entry_match(e->string, canonic_len, pattern, wovec, wocnt)) {
-			if (GNET_PROPERTY(dbg) > 5)
-				printf("MATCH: %s\n", shared_file_name_nfc(sf));
+			if (GNET_PROPERTY(matching_debug) > 4) {
+				g_debug("MATCH \"%s\" matches %s",
+					search, shared_file_name_nfc(sf));
+			}
 
 			callback(ctx, sf);
 			nres++;
@@ -662,9 +664,11 @@ st_search(
 		}
 	}
 
-	if (GNET_PROPERTY(dbg) > 6)
-		printf("st_search(): scanned %d entry from the %d in bin, %d matches\n",
-			scanned, best_bin_size, nres);
+	if (GNET_PROPERTY(matching_debug) > 3)
+		g_debug("MATCH st_search(): scanned %d entr%s from the %d in bin, "
+			"got %d match%s",
+			scanned, 1 == scanned ? "y" : "ies",
+			best_bin_size, nres, 1 == nres ? "" : "es");
 
 	for (i = 0; i < wocnt; i++)
 		if (pattern[i])					/* Lazily compiled by entry_match() */

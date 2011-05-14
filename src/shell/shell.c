@@ -155,7 +155,7 @@ shell_destroy(struct gnutella_shell *sh)
 {
 	shell_check(sh);
 
-	if (GNET_PROPERTY(dbg) > 0) {
+	if (GNET_PROPERTY(shell_debug)) {
 		g_debug("shell_destroy");
 	}
 	sl_shells = g_slist_remove(sl_shells, sh);

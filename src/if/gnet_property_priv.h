@@ -463,6 +463,8 @@ extern const char    gnet_property_variable_session_id[GUID_RAW_SIZE];
 extern const gboolean gnet_property_variable_pfsp_rare_server;
 extern const gboolean gnet_property_variable_enable_guess_client;
 extern const guint32  gnet_property_variable_bw_guess_out;
+extern const guint32  gnet_property_variable_matching_debug;
+extern const guint32  gnet_property_variable_tsync_debug;
 
 
 prop_set_t *gnet_prop_init(void);

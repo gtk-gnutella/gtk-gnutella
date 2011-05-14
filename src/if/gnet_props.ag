@@ -4848,4 +4848,22 @@ prop = {
     };
 };
 
+prop = {
+    name = "matching_debug";
+    desc = "Debug level for the matching code.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "tsync_debug";
+    desc = "Debug level for the time synchronization code.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */
