@@ -617,8 +617,21 @@ download_pipeline_can_initiate(const struct download *d)
 	 * and then resume to the regular file downloading afterwards.
 	 */
 
-	if (dualhash_contains_key(dl_thex, d->id))
-		return FALSE;
+	if (dualhash_contains_key(dl_thex, d->id)) {
+		struct download *dt = dualhash_lookup_key(dl_thex, d->id);
+
+		download_check(dt);
+		g_assert(dt->flags & DL_F_THEX);
+
+		/*
+		 * If they configured more than one download per server, then it's
+		 * possible for the THEX download to be running already.  In which
+		 * case there's no need to preserve the ability to switch.
+		 */
+
+		if (!DOWNLOAD_IS_ACTIVE(dt))
+			return FALSE;			/* Not pipelining will allow switching */
+	}
 
 	/*
 	 * We must be close to the end of the current request to not commit the
