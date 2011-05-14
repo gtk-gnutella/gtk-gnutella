@@ -618,7 +618,8 @@ download_pipeline_can_initiate(const struct download *d)
 	 */
 
 	if (dualhash_contains_key(dl_thex, d->id)) {
-		struct download *dt = dualhash_lookup_key(dl_thex, d->id);
+		struct guid *id = dualhash_lookup_key(dl_thex, d->id);
+		struct download *dt = g_hash_table_lookup(dl_by_id, id);
 
 		download_check(dt);
 		g_assert(dt->flags & DL_F_THEX);
