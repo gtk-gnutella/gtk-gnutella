@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2010-2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,16 +29,8 @@
  *
  * Ordered hash table preserving the order of its keys.
  *
- * Because this is implemented as a compound structure, the "foreach_remove"
- * operations are rather expensive when removal is not systematic, and should
- * be avoided if possible.
- *
- * With removal callbacks which always return TRUE, it is better to iterate
- * with ohash_table_random_foreach_remove(), which will be more efficient
- * than ohash_table_foreach_remove().
- *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2010-2011
  */
 
 #include "common.h"
@@ -59,8 +51,21 @@ enum ohash_table_magic { OHASH_TABLE_MAGIC = 0x4a3e2b74U };
  */
 struct ohash_table {
 	enum ohash_table_magic magic;
-	GHashTable *ht;			/**< Maps keys -> values */
-	hash_list_t *hl;		/**< Remembers order of keys */
+	hash_list_t *hl;		/**< Remembers order of keys, contains values */
+	GHashFunc hash_func;
+	GEqualFunc key_eq_func;
+};
+
+/**
+ * A pair (key, value) stored in the ordered table.
+ *
+ * Each pair must reference the table that contains it so that we can access
+ * the proper key hashing and comparing functions.
+ */
+struct ohash_pair {
+	const struct ohash_table *oh;		/**< Table in which pair is held */
+	const void *key;					/**< The key */
+	const void *value;					/**< The value */
 };
 
 static inline void
@@ -68,8 +73,37 @@ ohash_table_check(const struct ohash_table * const oh)
 {
 	g_assert(oh != NULL);
 	g_assert(OHASH_TABLE_MAGIC == oh->magic);
-	g_assert(oh->ht != NULL);
 	g_assert(oh->hl != NULL);
+}
+
+/**
+ * Hash function for the key from the key/value pair.
+ */
+static unsigned
+ohash_key_hash(const void *key)
+{
+	const struct ohash_pair *op = key;
+
+	g_assert(key != NULL);
+	ohash_table_check(op->oh);
+
+	return (*op->oh->hash_func)(op->key);
+}
+
+/**
+ * Compare function for key/value pairs.
+ */
+static int
+ohash_key_eq(const void *k1, const void *k2)
+{
+	const struct ohash_pair *op1 = k1, *op2 = k2;
+
+	g_assert(k1 != NULL);
+	g_assert(k2 != NULL);
+	g_assert(op1->oh == op2->oh);		/* Keys from same table */
+	ohash_table_check(op1->oh);
+
+	return (*op1->oh->key_eq_func)(op1->key, op2->key);
 }
 
 /**
@@ -87,10 +121,21 @@ ohash_table_new(GHashFunc hash_func, GEqualFunc key_eq_func)
 
 	oh = walloc(sizeof *oh);
 	oh->magic = OHASH_TABLE_MAGIC;
-	oh->ht = g_hash_table_new(hash_func, key_eq_func);
-	oh->hl = hash_list_new(hash_func, key_eq_func);
+	oh->hl = hash_list_new(ohash_key_hash, ohash_key_eq);
+	oh->hash_func = hash_func;
+	oh->key_eq_func = key_eq_func;
 
 	return oh;
+}
+
+/**
+ * Free key/value pair.
+ */
+static void
+ohash_free_kv(void *kv)
+{
+	struct ohash_pair *op = kv;
+	wfree(op, sizeof *op);
 }
 
 /**
@@ -101,8 +146,7 @@ ohash_table_destroy(ohash_table_t *oh)
 {
 	ohash_table_check(oh);
 
-	gm_hash_table_destroy_null(&oh->ht);
-	hash_list_free(&oh->hl);
+	hash_list_free_all(&oh->hl, ohash_free_kv);
 	oh->magic = 0;
 	wfree(oh, sizeof *oh);
 }
@@ -132,31 +176,63 @@ ohash_table_destroy_null(ohash_table_t **oh_ptr)
 void
 ohash_table_insert(ohash_table_t *oh, const void *key, const void *value)
 {
+	struct ohash_pair pk;
+
 	ohash_table_check(oh);
 
-	if (!hash_list_contains(oh->hl, key))
-		hash_list_append(oh->hl, key);
+	pk.oh = oh;
+	pk.key = key;
 
-	gm_hash_table_insert_const(oh->ht, key, value);
+	if (!hash_list_contains(oh->hl, &pk)) {
+		struct ohash_pair *op;
+
+		op = walloc(sizeof *op);
+		op->key = key;
+		op->value = value;
+		op->oh = oh;
+		hash_list_append(oh->hl, op);
+	}
 }
 
 /**
  * Replace a key/value pair in the table.
  *
- * If the key already existed, the old key/values are replaced by the new ones.
+ * If the key already existed, the old key/values are replaced by the new ones,
+ * at the same position.  Otherwise, the key is appended.
  *
- * For ordering purposes, the key is appended to the list of keys.
+ * @return TRUE when replacement occurred (the key existed).
  */
-void
+gboolean
 ohash_table_replace(ohash_table_t *oh, const void *key, const void *value)
 {
+	struct ohash_pair pk;
+	struct ohash_pair *op;
+	const void *hkey;
+	void *pos = NULL;
+
 	ohash_table_check(oh);
 
-	if (hash_list_contains(oh->hl, key))
-		hash_list_remove(oh->hl, key);
+	pk.oh = oh;
+	pk.key = key;
 
-	gm_hash_table_replace_const(oh->ht, key, value);
-	hash_list_append(oh->hl, key);
+	if (hash_list_find(oh->hl, &pk, &hkey)) {
+		op = hkey;
+		g_assert(op->oh == oh);
+		pos = hash_list_remove_position(oh->hl, &pk);
+	} else {
+		op = walloc(sizeof *op);
+		op->oh = oh;
+		op->key = key;
+	}
+
+	op->value = value;
+	if (pos != NULL) {
+		hash_list_insert_position(oh->hl, op, pos);
+	} else {
+		hash_list_append(oh->hl, op);
+	}
+
+	return pos != NULL;
 }
 
 /**
@@ -167,13 +243,20 @@ ohash_table_replace(ohash_table_t *oh, const void *key, const void *value)
 gboolean
 ohash_table_remove(ohash_table_t *oh, const void *key)
 {
+	struct ohash_pair pk;
+	struct ohash_pair *op;
+
 	ohash_table_check(oh);
 
-	if (!hash_list_contains(oh->hl, key))
+	pk.oh = oh;
+	pk.key = key;
+
+	if (!hash_list_contains(oh->hl, &pk))
 		return FALSE;
 
-	g_hash_table_remove(oh->ht, key);
-	hash_list_remove(oh->hl, key);
+	op = hash_list_remove(oh->hl, &pk);
+	g_assert(op->oh == oh);
+	ohash_free_kv(op);
 
 	return TRUE;
 }
@@ -184,9 +267,14 @@ ohash_table_remove(ohash_table_t *oh, const void *key)
 gboolean
 ohash_table_contains(const ohash_table_t *oh, const void *key)
 {
+	struct ohash_pair pk;
+
 	ohash_table_check(oh);
 
-	return hash_list_contains(oh->hl, key);
+	pk.oh = oh;
+	pk.key = key;
+
+	return hash_list_contains(oh->hl, &pk);
 }
 
 /**
@@ -195,9 +283,21 @@ ohash_table_contains(const ohash_table_t *oh, const void *key)
 void *
 ohash_table_lookup(const ohash_table_t *oh, const void *key)
 {
+	struct ohash_pair pk;
+	const void *hkey;
+
 	ohash_table_check(oh);
 
-	return g_hash_table_lookup(oh->ht, key);
+	pk.oh = oh;
+	pk.key = key;
+
+	if (hash_list_find(oh->hl, &pk, &hkey)) {
+		const struct ohash_pair *op = hkey;
+		g_assert(op->oh == oh);
+		return deconstify_gpointer(op->value);
+	} else {
+		return NULL;
+	}
 }
 
 /**
@@ -207,7 +307,25 @@ gboolean
 ohash_table_lookup_extended(const ohash_table_t *oh, const void *key,
 	void *okey, void *oval)
 {
-	return g_hash_table_lookup_extended(oh->ht, key, okey, oval);
+	struct ohash_pair pk;
+	const void *hkey;
+
+	ohash_table_check(oh);
+
+	pk.oh = oh;
+	pk.key = key;
+
+	if (hash_list_find(oh->hl, &pk, &hkey)) {
+		const struct ohash_pair *op = hkey;
+		g_assert(op->oh == oh);
+		if (okey != NULL)
+			*(void **) okey = deconstify_gpointer(op->key);
+		if (oval != NULL)
+			*(void **) oval = deconstify_gpointer(op->value);
+		return TRUE;
+	} else {
+		return FALSE;
+	}
 }
 
 /**
@@ -221,82 +339,7 @@ ohash_table_count(const ohash_table_t *oh)
 	return hash_list_length(oh->hl);
 }
 
-/**
- * Iterator over the table: apply function on each entry.
- *
- * Order of traversal is random.
- */
-void
-ohash_table_random_foreach(const ohash_table_t *oh, GHFunc func, void *data)
-{
-	g_hash_table_foreach(oh->ht, func, data);
-}
-
-struct ohash_random_foreach_remove_ctx {
-	hash_list_t *hl;
-	GHRFunc func;
-	void *data;
-};
-
-static gboolean
-ohash_table_random_foreach_remove_helper(void *key, void *value, void *data)
-{
-	struct ohash_random_foreach_remove_ctx *ctx = data;
-	gboolean remove_entry;
-	void *pos;
-
-	/*
-	 * Updates ae not atomic: since we have two structures sharing the same
-	 * physical objects (the key here), and given the user callback can free
-	 * up the key, we cannot access the key if the callback returns TRUE.
-	 *
-	 * However, if the key is removed from the hash table, we must remove it
-	 * from the hash list.  But if it is not removed, it must remain in the
-	 * hash list.
-	 *
-	 * The solution to this dilemna is to remove the key from the hash list
-	 * whilst remembering its position, so that we can possibly re-insert it
-	 * if the key ends up being kept (since then it is safe to access it).
-	 */
-
-	pos = hash_list_remove_position(ctx->hl, key);
-	g_assert(pos != NULL);
-
-	remove_entry = (*ctx->func)(key, value, ctx->data);
-
-	if (remove_entry) {
-		hash_list_forget_position(pos);
-	} else {
-		hash_list_insert_position(ctx->hl, key, pos);
-	}
-
-	return remove_entry;
-}
-
-/**
- * Iterator over the table: apply function on each entry and remove from the
- * table if the function returns TRUE.
- *
- * Order of traversal is random.
- *
- * @return amount of items removed.
- */
-size_t
-ohash_table_random_foreach_remove(const ohash_table_t *oh,
-	GHRFunc func, void *data)
-{
-	struct ohash_random_foreach_remove_ctx ctx;
-
-	ctx.hl = oh->hl;
-	ctx.func = func;
-	ctx.data = data;
-
-	return g_hash_table_foreach_remove(oh->ht,
-		ohash_table_random_foreach_remove_helper, &ctx);
-}
-
 struct ohash_foreach_ctx {
-	GHashTable *ht;
 	GHFunc func;
 	void *data;
 };
@@ -304,11 +347,11 @@ struct ohash_foreach_ctx {
 static void
 ohash_table_foreach_helper(void *key, void *data)
 {
+	struct ohash_pair *op = key;
 	struct ohash_foreach_ctx *ctx = data;
-	void *value;
 
-	value = g_hash_table_lookup(ctx->ht, key);
-	(*ctx->func)(key, value, ctx->data);
+	(*ctx->func)(deconstify_gpointer(op->key), deconstify_gpointer(op->value),
+		ctx->data);
 }
 
 /**
@@ -321,7 +364,6 @@ ohash_table_foreach(const ohash_table_t *oh, GHFunc func, void *data)
 {
 	struct ohash_foreach_ctx ctx;
 
-	ctx.ht = oh->ht;
 	ctx.func = func;
 	ctx.data = data;
 
@@ -329,7 +371,6 @@ ohash_table_foreach(const ohash_table_t *oh, GHFunc func, void *data)
 }
 
 struct ohash_foreach_remove_ctx {
-	GHashTable *ht;
 	GHRFunc func;
 	void *data;
 };
@@ -337,23 +378,11 @@ struct ohash_foreach_remove_ctx {
 static gboolean
 ohash_table_foreach_remove_helper(void *key, void *data)
 {
+	struct ohash_pair *op = key;
 	struct ohash_foreach_remove_ctx *ctx = data;
-	void *value;
-	gboolean remove_entry;
 
-	/*
-	 * Since the callback can free-up the key/value type, we have to assume
-	 * it will and remove the entry from the hash table before invoking it.
-	 * If it ends up leaving the entry in place, we put it back.
-	 */
-
-	value = g_hash_table_lookup(ctx->ht, key);
-	g_hash_table_remove(ctx->ht, key);
-	remove_entry = (*ctx->func)(key, value, ctx->data);
-	if (!remove_entry)
-		g_hash_table_insert(ctx->ht, key, value);
-
-	return remove_entry;
+	return (*ctx->func)(deconstify_gpointer(op->key),
+		deconstify_gpointer(op->value), ctx->data);
 }
 
 /**
@@ -369,7 +398,6 @@ ohash_table_foreach_remove(const ohash_table_t *oh, GHRFunc func, void *data)
 {
 	struct ohash_foreach_remove_ctx ctx;
 
-	ctx.ht = oh->ht;
 	ctx.func = func;
 	ctx.data = data;
 
