@@ -32,6 +32,7 @@ RCSID("$Id$")
 #include "matching.h"
 #include "qrp.h"				/* For qhvec_add() */
 #include "share.h"
+#include "search.h"				/* For lazy_safe_search() */
 
 #include "lib/atoms.h"
 #include "lib/ascii.h"
@@ -539,7 +540,7 @@ st_search(
 
 		if (GNET_PROPERTY(matching_debug) > 4)
 			g_debug("MATCH st_search(): str=\"%s\", len=%d, best_bin_size=%d",
-				search, len, best_bin_size);
+				lazy_safe_search(search_term), len, best_bin_size);
 	}
 
 	/*
@@ -657,10 +658,11 @@ st_search(
 					search, shared_file_name_nfc(sf));
 			}
 
-			callback(ctx, sf);
-			nres++;
-			if (nres >= max_res)
-				break;
+			if ((*callback)(ctx, sf)) {
+				nres++;
+				if (nres >= max_res)
+					break;
+			}
 		}
 	}
 

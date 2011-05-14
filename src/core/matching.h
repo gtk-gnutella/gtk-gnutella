@@ -81,9 +81,14 @@ void st_compact(search_table_t *);
 struct shared_file;
 
 /**
- * Needs brief description here.
+ * Callback for st_search().
+ *
+ * @param ctx		the search context (opaque for st_search)
+ * @param data		the matched data (shared file, opaque for st_search)
+ *
+ * @return TRUE if the match must be accounted as a valid result.
  */
-typedef void (*st_search_callback)(gpointer ctx, gpointer data);
+typedef gboolean (*st_search_callback)(gpointer ctx, gpointer data);
 
 void st_search(
 	search_table_t *table,

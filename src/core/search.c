@@ -334,6 +334,56 @@ map_muid_to_query_string(const struct guid *muid)
 }
 
 /**
+ * Supply a string representation of media type mask.
+ *
+ * @return pointer to static string
+ */
+static const char *
+search_media_mask_to_string(unsigned mask)
+{
+	static char buf[80];
+	str_t *str = str_new(sizeof buf);
+
+	if (mask & SEARCH_AUDIO_TYPE)
+		str_cat(str, "audio");
+	if (mask & SEARCH_VIDEO_TYPE) {
+		if (str_len(str) != 0)
+			str_putc(str, '/');
+		str_cat(str, "video");
+	}
+	if (mask & SEARCH_DOC_TYPE) {
+		if (str_len(str) != 0)
+			str_putc(str, '/');
+		str_cat(str, "document");
+	}
+	if (mask & SEARCH_IMG_TYPE) {
+		if (str_len(str) != 0)
+			str_putc(str, '/');
+		str_cat(str, "image");
+	}
+	if (mask & SEARCH_WIN_TYPE) {
+		if (str_len(str) != 0)
+			str_putc(str, '/');
+		str_cat(str, "Windows");
+	}
+	if (mask & SEARCH_LINUX_TYPE) {
+		if (str_len(str) != 0)
+			str_putc(str, '/');
+		str_cat(str, "Linux");
+	}
+	if (mask & SEARCH_TORRENT_TYPE) {
+		if (str_len(str) != 0)
+			str_putc(str, '/');
+		str_cat(str, "torrent");
+	}
+
+	g_strlcpy(buf, str_2c(str), sizeof buf);
+	str_destroy(str);
+
+	return buf;
+}
+
+/**
  * Is supplied GUESS query key (within GGEP "QK" extension) valid?
  *
  * @param n		the node which sent the query
@@ -5000,21 +5050,20 @@ struct query_context {
 	GHashTable *shared_files;
 	GSList *files;				/**< List of shared_file_t that match */
 	int found;
+	unsigned media_mask;		/**< If non-zero, which media types they want */
 };
 
 /**
  * Create new query context.
  */
 static struct query_context *
-share_query_context_make(void)
+share_query_context_make(unsigned media_mask)
 {
 	struct query_context *ctx;
 
-	ctx = walloc(sizeof *ctx);
-	/* Uses direct hashing */
+	ctx = walloc0(sizeof *ctx);
 	ctx->shared_files = g_hash_table_new(pointer_hash_func, NULL);
-	ctx->files = NULL;
-	ctx->found = 0;
+	ctx->media_mask = media_mask;
 
 	return ctx;
 }
@@ -5055,12 +5104,14 @@ shared_file_mark_found(struct query_context *ctx, const shared_file_t *sf)
 
 /**
  * Invoked for each new match we get.
+ *
+ * @return TRUE if the match is kept.
  */
-static void
+static gboolean
 got_match(gpointer context, gpointer data)
 {
 	struct query_context *qctx = context;
-	shared_file_t *sf = data;
+	const shared_file_t *sf = data;
 
 	shared_file_check(sf);
 	/* Cannot match partially downloaded files */
@@ -5071,9 +5122,32 @@ got_match(gpointer context, gpointer data)
 	 */
 
 	if (!shared_file_already_found(qctx, sf)) {
+		/*
+		 * If there is a media type filtering, ignore files not matching
+		 * their request.
+		 */
+
+		if (
+			0 != qctx->media_mask &&
+			!shared_file_has_media_type(sf, qctx->media_mask)
+		) {
+			if (GNET_PROPERTY(query_debug) > 1 ||
+				GNET_PROPERTY(matching_debug) > 1
+			) {
+				g_debug("MATCH ignoring matched \"%s\", not of type %s",
+					shared_file_name_canonic(sf),
+					search_media_mask_to_string(qctx->media_mask));
+			}
+
+			return FALSE;
+		}
+
 		shared_file_mark_found(qctx, sf);
 		qctx->files = g_slist_prepend(qctx->files, shared_file_ref(sf));
 		qctx->found++;
+		return TRUE;
+	} else {
+		return FALSE;
 	}
 }
 
@@ -5526,7 +5600,7 @@ search_request_preprocess(struct gnutella_node *n)
 			case EXT_T_GGEP_SO:			/* Secure OOB */
 			case EXT_T_GGEP_NP:			/* No OOB-proxying */
 			case EXT_T_GGEP_PR:			/* Partial: match on downloads */
-			case EXT_T_GGEP_M:			/* MIME-type information */
+			case EXT_T_GGEP_M:			/* Media type they want */
 			case EXT_T_GGEP_XQ:			/* Extended Query */
 				break;					/* Ignore these at pre-process time */
 
@@ -6055,6 +6129,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	const char *extended_query = NULL;
 	gboolean qhv_filled = FALSE;
 	char *safe_search = NULL;
+	guint32 media_types = 0;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
 
@@ -6101,7 +6176,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				secure_oob = TRUE;
 				break;
 
-			/* TODO: handle EXT_T_GGEP_PR and EXT_T_GGEP_M */
+			/* TODO: handle EXT_T_GGEP_PR */
 
 			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
 			case EXT_T_GGEP_u:			/* Handle SHA1 value only */
@@ -6208,6 +6283,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			case EXT_T_XML:
 				/* Will attempt cleanup if we end-up relaying this query */
 				n->msg_flags |= NODE_M_EXT_CLEANUP;
+				break;
+
+			case EXT_T_GGEP_M:	/* Media types they want */
+				ggept_uint32_extract(e, &media_types);
 				break;
 
 			default:;
@@ -6373,7 +6452,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		) {
 			node_inc_qrp_query(n);
 		}
-		qctx = share_query_context_make();
+		qctx = share_query_context_make(media_types);
 		max_replies = GNET_PROPERTY(search_max_items) == (guint32) -1
 				? 255
 				: GNET_PROPERTY(search_max_items);
@@ -6433,14 +6512,15 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		}
 
 		if (GNET_PROPERTY(query_debug) > 14) {
-			g_debug("QUERY %s \"%s\" [hops=%u, TTL=%u] has %u hit%s%s%s",
+			g_debug("QUERY %s \"%s\" [hops=%u, TTL=%u] has %u hit%s%s%s (%s)",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
 					lazy_safe_search(search),
 					gnutella_header_get_hops(&n->header),
 					gnutella_header_get_ttl(&n->header),
 					qctx->found, qctx->found == 1 ? "" : "s",
 					skip_file_search ? " (skipped local)" : "",
-					exv_sha1cnt > 0 ? " (SHA1)" : "");
+					exv_sha1cnt > 0 ? " (SHA1)" : "",
+					search_media_mask_to_string(media_types));
 		}
 
 		/*

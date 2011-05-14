@@ -73,6 +73,7 @@ struct ggep_gtkgv1 {
 ggept_status_t ggept_gtkgv1_extract(const extvec_t *, struct ggep_gtkgv1 *info);
 ggept_status_t ggept_hname_extract(const extvec_t *, char *buf, int len);
 ggept_status_t ggept_filesize_extract(const extvec_t *, guint64 *fs);
+ggept_status_t ggept_uint32_extract(const extvec_t *exv, guint32 *val);
 ggept_status_t ggept_du_extract(const extvec_t *, guint32 *uptime);
 ggept_status_t ggept_ct_extract(const extvec_t *, time_t *stamp_ptr);
 ggept_status_t ggept_gtkg_ipv6_extract(const extvec_t *, host_addr_t *addr);

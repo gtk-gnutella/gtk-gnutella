@@ -92,7 +92,7 @@ void share_close(void);
 shared_file_t *shared_file(guint idx);
 shared_file_t *shared_file_sorted(guint idx);
 shared_file_t *shared_file_by_name(const char *filename);
-shared_file_t * shared_file_ref(shared_file_t *sf);
+shared_file_t *shared_file_ref(const shared_file_t *sf);
 shared_file_t *shared_file_by_sha1(const struct sha1 *sha1);
 shared_file_t *shared_special(const char *path);
 void shared_file_unref(shared_file_t **sf_ptr);
@@ -128,6 +128,7 @@ guint32 shared_file_flags(const shared_file_t *sf);
 fileinfo_t *shared_file_fileinfo(const shared_file_t *sf);
 const char *shared_file_mime_type(const shared_file_t *sf);
 void shared_file_from_fileinfo(fileinfo_t *fi);
+gboolean shared_file_has_media_type(const struct shared_file *sf, unsigned m);
 
 void shared_files_match(const char *search_term,
 		st_search_callback callback, gpointer user_data,

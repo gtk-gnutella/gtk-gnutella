@@ -1,0 +1,94 @@
+The 'M' GGEP Extension
+======================
+
+Name: M
+Where: Query
+Status: Production
+Date: Sat May 14 23:35:44 CEST 2011
+Format: little-endian, variable-length coding (trailing zeroes stripped)
+COBS-Encoding: Never
+Deflate: Never
+Revision: $Id: H 19046 2011-05-06 17:20:15Z rmanfredi $
+
+[This documentation comes from FrostWire code reverse-engineering]
+
+The 'M' extension encodes via a bit mask the type of results desired for
+the query.  When present, media type filtering occurs so results for files
+not matching the requested type(s) are skipped.  If absent, no filtering
+is done.
+
+The currently supported masks are:
+
+    Mask        Meaning
+    ------      --------------------------
+    0x0004      audio files
+    0x0008      video files
+    0x0010      document files
+    0x0020      image files
+    0x0040      windows programs/packages
+    0x0080      linux/osx programs/packages
+    0x0100      torrent responses [BROKEN]
+
+Masks can combine bitwise to specify for instance "audio or video" files.
+
+Payload encoding is simple: the little-endian representation of the value
+is written, with trailing zeroes stripped.  Hence values up to 255 decimal
+are coded with 1 byte only.
+
+FrostWire nodes will ignore any mask value not falling within 4 and 247 decimal
+which is interesting logic because it will refuse to handle any mask with the
+"torrent responses" bit set.  The conclusion is simple: don't use this flag
+or it will make the "M" extension useless!
+
+For reference, here are the file extensions considered for the various types
+by FrostWire:
+
+* Audio files:
+
+    "mp3", "mpa", "mp1", "mpga", "mp2", "ra", "rm", "ram", "rmj",
+    "wma", "wav", "m4a", "m4p", "mp4", "lqt", "ogg", "med", "aif",
+    "aiff", "aifc", "au", "snd", "s3m", "aud", "mid", "midi", "rmi",
+    "mod", "kar", "ac3", "shn", "fla", "flac", "cda", "mka"
+
+* Video files:
+
+    "mpg", "mpeg", "mpe", "mng", "mpv", "m1v", "vob", "mp2", "mpv2",
+    "mp2v", "m2p", "m2v", "mpgv", "vcd", "mp4", "dv", "dvd", "div",
+    "divx", "dvx", "smi", "smil", "rm", "ram", "rv", "rmm", "rmvb",
+    "avi", "asf", "asx", "wmv", "qt", "mov", "fli", "flc", "flx",
+    "flv", "wml", "vrml", "swf", "dcr", "jve", "nsv", "mkv", "ogm",
+    "cdg", "srt", "sub", "idx"
+
+* Documents:
+
+    "html", "htm", "xhtml", "mht", "mhtml", "xml", "txt", "ans",
+    "asc", "diz", "eml", "pdf", "ps", "eps", "epsf", "dvi", "rtf",
+    "wri", "doc", "mcw", "wps", "xls", "wk1", "dif", "csv", "ppt",
+    "tsv", "hlp", "chm", "lit", "tex", "texi", "latex", "info",
+    "man", "wp", "wpd", "wp5", "wk3", "wk4", "shw", "sdd", "sdw",
+    "sdp", "sdc", "sxd", "sxw", "sxp", "sxc", "abw", "kwd"
+
+* Image files:
+
+    "gif", "png", "jpg", "jpeg", "jpe", "jif", "jiff", "jfif", "tif",
+    "tiff", "iff", "lbm", "ilbm", "eps", "mac", "drw", "pct", "img",
+    "bmp", "dib", "rle", "ico", "ani", "icl", "cur", "emf", "wmf",
+    "pcx", "pcd", "tga", "pic", "fig", "psd", "wpg", "dcx", "cpt",
+    "mic", "pbm", "pnm", "ppm", "xbm", "xpm", "xwd", "sgi", "fax",
+    "rgb", "ras"
+
+* Windows programs:
+
+    "exe", "zip", "jar", "cab", "msi", "msp", "arj", "rar", "ace",
+    "lzh", "lha", "bin", "nrg", "cue", "iso", "jnlp"
+
+* Linux/OSX programs:
+
+    "bin", "mdb", "sh", "csh", "awk", "pl", "rpm", "deb", "gz",
+    "gzip", "z", "bz2", "zoo", "tar", "tgz", "taz", "shar", "hqx",
+    "sit", "dmg", "7z", "jar", "zip", "nrg", "cue", "iso", "jnlp",
+    "rar", "sh"
+
+* Torrents:
+
+    "torrent"

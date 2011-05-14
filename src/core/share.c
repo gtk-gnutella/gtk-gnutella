@@ -56,6 +56,7 @@ RCSID("$Id$")
 #include "publisher.h"
 #include "qhit.h"
 #include "qrp.h"
+#include "search.h"
 #include "settings.h"
 #include "spam.h"
 #include "upload_stats.h"
@@ -153,6 +154,138 @@ static struct recursive_scan *recursive_scan_context;
  * shared_file if we have one.
  */
 static GTree *sha1_to_share;
+
+#define A	SEARCH_AUDIO_TYPE
+#define V	SEARCH_VIDEO_TYPE
+#define D	SEARCH_DOC_TYPE
+#define I	SEARCH_IMG_TYPE
+#define W	SEARCH_WIN_TYPE
+#define L	SEARCH_LINUX_TYPE
+
+/**
+ * This table encodes for each known MIME type the searchable media type bits
+ * that are applicable for that type.
+ */
+static struct {
+	enum mime_type type;
+	unsigned flags;
+} media_type_map[] = {
+	/* NOTE: this is mapped to a hash, but keep sorted for easier updates */
+	{ MIME_TYPE_APPLICATION_7Z,						L },
+	{ MIME_TYPE_APPLICATION_ACE,					W },
+	{ MIME_TYPE_APPLICATION_ANDROID_PACKAGE,		L },
+	{ MIME_TYPE_APPLICATION_BITTORRENT,				D },
+	{ MIME_TYPE_APPLICATION_BROADBAND_EBOOK,		D },
+	{ MIME_TYPE_APPLICATION_BZIP2,					L },
+	{ MIME_TYPE_APPLICATION_COMPILED_HTML_HELP,		D },
+	{ MIME_TYPE_APPLICATION_COMPRESS,				L },
+	{ MIME_TYPE_APPLICATION_DEB,					L },
+	{ MIME_TYPE_APPLICATION_DMG,					L },
+	{ MIME_TYPE_APPLICATION_DOSEXEC,				W },
+	{ MIME_TYPE_APPLICATION_EPUB,					0 },
+	{ MIME_TYPE_APPLICATION_EXCEL,					0 },
+	{ MIME_TYPE_APPLICATION_GAMEBOY_ROM,			0 },
+	{ MIME_TYPE_APPLICATION_GENESIS_ROM,			0 },
+	{ MIME_TYPE_APPLICATION_GZIP,					L },
+	{ MIME_TYPE_APPLICATION_IPHONE_APP,				0 },
+	{ MIME_TYPE_APPLICATION_ISO9660,				W|L },
+	{ MIME_TYPE_APPLICATION_JAR,					W|L },
+	{ MIME_TYPE_APPLICATION_JAVASCRIPT,				W|L|D },
+	{ MIME_TYPE_APPLICATION_JAVA_SER,				0 },
+	{ MIME_TYPE_APPLICATION_JAVA_VM,				0 },
+	{ MIME_TYPE_APPLICATION_LYX,					D },
+	{ MIME_TYPE_APPLICATION_LZH,					W|L },
+	{ MIME_TYPE_APPLICATION_MOBIPOCKET_EBOOK,		D },
+	{ MIME_TYPE_APPLICATION_MSWORD,					D },
+	{ MIME_TYPE_APPLICATION_MS_READER,				D },
+	{ MIME_TYPE_APPLICATION_MS_SHORTCUT,			0 },
+	{ MIME_TYPE_APPLICATION_N64_ROM,				0 },
+	{ MIME_TYPE_APPLICATION_NES_ROM,				0 },
+	{ MIME_TYPE_APPLICATION_OBJECT,					0 },
+	{ MIME_TYPE_APPLICATION_OGG,					A },
+	{ MIME_TYPE_APPLICATION_OPEN_PACKAGING_FORMAT,	W|L },
+	{ MIME_TYPE_APPLICATION_PDF,					D },
+	{ MIME_TYPE_APPLICATION_POSTSCRIPT,				D|I },
+	{ MIME_TYPE_APPLICATION_POWERPOINT,				D },
+	{ MIME_TYPE_APPLICATION_RAR,					W|L },
+	{ MIME_TYPE_APPLICATION_RDF,					D },
+	{ MIME_TYPE_APPLICATION_RSS,					D },
+	{ MIME_TYPE_APPLICATION_SH,						L },
+	{ MIME_TYPE_APPLICATION_SHAR,					L },
+	{ MIME_TYPE_APPLICATION_SHOCKWAVE_FLASH,		V },
+	{ MIME_TYPE_APPLICATION_SIT,					L },
+	{ MIME_TYPE_APPLICATION_SNES_ROM,				0 },
+	{ MIME_TYPE_APPLICATION_TAR,					L },
+	{ MIME_TYPE_APPLICATION_TEX,					D },
+	{ MIME_TYPE_APPLICATION_TEXINFO,				D },
+	{ MIME_TYPE_APPLICATION_TROFF,					D },
+	{ MIME_TYPE_APPLICATION_TROFF_MAN,				D },
+	{ MIME_TYPE_APPLICATION_TROFF_ME,				D },
+	{ MIME_TYPE_APPLICATION_TROFF_MS,				D },
+	{ MIME_TYPE_APPLICATION_ZIP,					W|L },
+	{ MIME_TYPE_AUDIO_BASIC,						A },
+	{ MIME_TYPE_AUDIO_FLAC,							A },
+	{ MIME_TYPE_AUDIO_MATROSKA,						A },
+	{ MIME_TYPE_AUDIO_MIDI,							A },
+	{ MIME_TYPE_AUDIO_MP4,							A },
+	{ MIME_TYPE_AUDIO_MPEG,							A },
+	{ MIME_TYPE_AUDIO_MPEGURL,						0 },
+	{ MIME_TYPE_AUDIO_MS_ASF,						A },
+	{ MIME_TYPE_AUDIO_OGG,							A },
+	{ MIME_TYPE_AUDIO_PLAYLIST,						0 },
+	{ MIME_TYPE_AUDIO_REALAUDIO,					A },
+	{ MIME_TYPE_AUDIO_SPEEX,						A },
+	{ MIME_TYPE_AUDIO_WAVE,							A },
+	{ MIME_TYPE_IMAGE_BMP,							I },
+	{ MIME_TYPE_IMAGE_GIF,							I },
+	{ MIME_TYPE_IMAGE_JPEG,							I },
+	{ MIME_TYPE_IMAGE_PNG,							I },
+	{ MIME_TYPE_IMAGE_PSD,							I },
+	{ MIME_TYPE_IMAGE_TGA,							I },
+	{ MIME_TYPE_IMAGE_TIFF,							I },
+	{ MIME_TYPE_IMAGE_XPM,							I },
+	{ MIME_TYPE_MESSAGE_RFC822,						D },
+	{ MIME_TYPE_TEXT_C,								0 },
+	{ MIME_TYPE_TEXT_CALENDAR,						0 },
+	{ MIME_TYPE_TEXT_CHDR,							0 },
+	{ MIME_TYPE_TEXT_CPP,							0 },
+	{ MIME_TYPE_TEXT_CPPHDR,						0 },
+	{ MIME_TYPE_TEXT_CSS,							0 },
+	{ MIME_TYPE_TEXT_CSV,							D },
+	{ MIME_TYPE_TEXT_DIFF,							0 },
+	{ MIME_TYPE_TEXT_HTML,							D },
+	{ MIME_TYPE_TEXT_JAVA,							0 },
+	{ MIME_TYPE_TEXT_LATEX,							D },
+	{ MIME_TYPE_TEXT_LILYPOND,						D },
+	{ MIME_TYPE_TEXT_PERL,							0 },
+	{ MIME_TYPE_TEXT_PLAIN,							D },
+	{ MIME_TYPE_TEXT_PYTHON,						0 },
+	{ MIME_TYPE_TEXT_RTF,							D },
+	{ MIME_TYPE_TEXT_XHTML,							D },
+	{ MIME_TYPE_TEXT_XML,							D },
+	{ MIME_TYPE_VIDEO_FLV,							V },
+	{ MIME_TYPE_VIDEO_MATROSKA,						V },
+	{ MIME_TYPE_VIDEO_MP4,							V },
+	{ MIME_TYPE_VIDEO_MPEG,							V },
+	{ MIME_TYPE_VIDEO_MSVIDEO,						V },
+	{ MIME_TYPE_VIDEO_MS_ASF,						V },
+	{ MIME_TYPE_VIDEO_OGG,							V },
+	{ MIME_TYPE_VIDEO_OGM,							V },
+	{ MIME_TYPE_VIDEO_QUICKTIME,					V },
+};
+
+#undef A
+#undef V
+#undef D
+#undef I
+#undef W
+#undef L
+
+/**
+ * Hash table yielding the media type flags from a MIME type.
+ * Built dynamically from media_type_map[].
+ */
+static GHashTable *share_media_types;
 
 /**
  * Compare binary SHA1 hashes.
@@ -689,10 +822,12 @@ shared_dir_add(const char *pathname)
  * @return its argument, for convenience.
  */
 shared_file_t *
-shared_file_ref(shared_file_t *sf)
+shared_file_ref(const shared_file_t *sf)
 {
-	sf->refcnt++;
-	return sf;
+	shared_file_t *wsf = deconstify_gpointer(sf);
+
+	wsf->refcnt++;
+	return wsf;
 }
 
 /**
@@ -1760,6 +1895,7 @@ share_close(void)
 	oob_close();
 	qhit_close();
 	st_free(&search_table);
+	gm_hash_table_destroy_null(&share_media_types);
 }
 
 /*
@@ -2199,6 +2335,22 @@ shared_file_by_sha1(const struct sha1 *sha1)
 }
 
 /**
+ * Is shared file belonging to the media types indicated by mask?
+ */
+gboolean
+shared_file_has_media_type(const struct shared_file *sf, unsigned mask)
+{
+	unsigned type;
+
+	shared_file_check(sf);
+
+	type = pointer_to_uint(
+		g_hash_table_lookup(share_media_types, int_to_pointer(sf->mime_type)));
+
+	return 0 != (type & mask);
+}
+
+/**
  * Get accessor for ``kbytes_scanned''
  */
 guint64
@@ -2222,6 +2374,8 @@ shared_files_scanned(void)
 void
 share_init(void)
 {
+	size_t i;
+
 	huge_init();
 	search_table = st_alloc();
 	st_initialize(search_table);
@@ -2245,6 +2399,18 @@ share_init(void)
 	 */
 
 	st_create(search_table);
+
+	/*
+	 * Create the hash table yielding the media type flags from a MIME type.
+	 */
+
+	share_media_types = g_hash_table_new(NULL, NULL);
+
+	for (i = 0; i < G_N_ELEMENTS(media_type_map); i++) {
+		g_hash_table_insert(share_media_types,
+			int_to_pointer(media_type_map[i].type),
+			int_to_pointer(media_type_map[i].flags));
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

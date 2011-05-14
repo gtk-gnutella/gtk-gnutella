@@ -426,26 +426,37 @@ ggept_filesize_encode(guint64 filesize, char *data)
 }
 
 /**
- * Extract daily uptime into `uptime', from the GGEP "DU" extensions.
+ * Extract unsigned (32-bit) quantity encoded as variable-length little-endian.
  */
 ggept_status_t
-ggept_du_extract(const extvec_t *exv, guint32 *uptime)
+ggept_uint32_extract(const extvec_t *exv, guint32 *val)
 {
-	guint32 up;
+	guint32 v;
 	size_t len;
 
 	g_assert(exv->ext_type == EXT_GGEP);
-	g_assert(exv->ext_token == EXT_T_GGEP_DU);
 
 	len = ext_paylen(exv);
 	if (len > 4) {
 		return GGEP_INVALID;
 	}
-	up = ggep_vlint_decode(ext_payload(exv), len);
-	if (uptime) {
-		*uptime = up;
+	v = ggep_vlint_decode(ext_payload(exv), len);
+	if (val != NULL) {
+		*val = v;
 	}
 	return GGEP_OK;
+}
+
+/**
+ * Extract daily uptime into `uptime', from the GGEP "DU" extensions.
+ */
+ggept_status_t
+ggept_du_extract(const extvec_t *exv, guint32 *uptime)
+{
+	g_assert(exv->ext_type == EXT_GGEP);
+	g_assert(exv->ext_token == EXT_T_GGEP_DU);
+
+	return ggept_uint32_extract(exv, uptime);
 }
 
 /**

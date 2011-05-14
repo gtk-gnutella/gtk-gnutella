@@ -79,6 +79,17 @@
  */
 #define SEARCH_MAX_RESULTS	150
 
+/**
+ * Media type flags that can be specified in the GGEP "M" key of queries.
+ */
+#define SEARCH_AUDIO_TYPE	0x0004
+#define SEARCH_VIDEO_TYPE	0x0008
+#define SEARCH_DOC_TYPE		0x0010
+#define SEARCH_IMG_TYPE		0x0020
+#define SEARCH_WIN_TYPE		0x0040
+#define SEARCH_LINUX_TYPE	0x0080
+#define SEARCH_TORRENT_TYPE	0x0100	/* Broken as deployed on 2011-05-15 */
+
 struct download;
 struct guid;
 struct nid;
