@@ -12501,6 +12501,7 @@ create_dlg_prefs_dl_tab (void)
   GtkWidget *checkbutton_config_use_alternate_sources;
   GtkWidget *checkbutton_config_strict_sha1_matching;
   GtkWidget *checkbutton_auto_feed_dmesh;
+  GtkWidget *checkbutton_config_tth_auto_discovery;
   GtkWidget *label480;
   GtkWidget *frame16;
   GtkWidget *table38;
@@ -12845,6 +12846,11 @@ create_dlg_prefs_dl_tab (void)
   gtk_widget_set_name (checkbutton_auto_feed_dmesh, "checkbutton_auto_feed_dmesh");
   gtk_widget_show (checkbutton_auto_feed_dmesh);
   gtk_box_pack_start (GTK_BOX (vbox126), checkbutton_auto_feed_dmesh, FALSE, TRUE, 0);
+
+  checkbutton_config_tth_auto_discovery = gtk_check_button_new_with_mnemonic (_("Allow TTH discovery"));
+  gtk_widget_set_name (checkbutton_config_tth_auto_discovery, "checkbutton_config_tth_auto_discovery");
+  gtk_widget_show (checkbutton_config_tth_auto_discovery);
+  gtk_box_pack_start (GTK_BOX (vbox126), checkbutton_config_tth_auto_discovery, FALSE, FALSE, 0);
 
   label480 = gtk_label_new (_("Source quality"));
   gtk_widget_set_name (label480, "label480");
@@ -13329,6 +13335,7 @@ create_dlg_prefs_dl_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_use_alternate_sources, "checkbutton_config_use_alternate_sources");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_strict_sha1_matching, "checkbutton_config_strict_sha1_matching");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_auto_feed_dmesh, "checkbutton_auto_feed_dmesh");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_tth_auto_discovery, "checkbutton_config_tth_auto_discovery");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label480, "label480");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame16, "frame16");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table38, "table38");

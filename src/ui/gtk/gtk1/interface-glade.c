@@ -10560,6 +10560,7 @@ create_dlg_prefs (void)
   GtkWidget *checkbutton_config_use_alternate_sources;
   guint checkbutton_auto_feed_dmesh_key;
   GtkWidget *checkbutton_auto_feed_dmesh;
+  GtkWidget *checkbutton_config_tth_auto_discovery;
   GtkWidget *label685;
   GtkWidget *scrolledwindow35;
   GtkWidget *viewport7;
@@ -15168,6 +15169,16 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_auto_feed_dmesh);
   gtk_table_attach (GTK_TABLE (table52), checkbutton_auto_feed_dmesh, 2, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_tth_auto_discovery = gtk_check_button_new_with_label (_("Allow TTH discovery"));
+  gtk_widget_set_name (checkbutton_config_tth_auto_discovery, "checkbutton_config_tth_auto_discovery");
+  gtk_widget_ref (checkbutton_config_tth_auto_discovery);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_tth_auto_discovery", checkbutton_config_tth_auto_discovery,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_tth_auto_discovery);
+  gtk_table_attach (GTK_TABLE (table52), checkbutton_config_tth_auto_discovery, 2, 3, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 

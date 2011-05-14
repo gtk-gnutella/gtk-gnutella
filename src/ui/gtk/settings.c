@@ -4041,6 +4041,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_TTH_AUTO_DISCOVERY,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_tth_auto_discovery",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_USE_SWARMING,
         update_togglebutton,
         TRUE,

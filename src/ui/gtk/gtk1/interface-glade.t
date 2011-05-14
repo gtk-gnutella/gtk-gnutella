@@ -633,3 +633,4 @@ N_("Issue GUESS queries as well");
 N_("Bandwidth limits for GUESS queries");
 N_("Output bandwidth hint");
 N_("Download queue is frozen.");
+N_("Allow TTH discovery");
