@@ -126,6 +126,7 @@ LSRC = \
 	dbstore.c \
 	dbus_util.c \
 	debug.c \
+	dualhash.c \
 	entropy.c \
 	eval.c \
 	event.c \
@@ -238,6 +239,7 @@ LOBJ = \
 	dbstore.o \
 	dbus_util.o \
 	debug.o \
+	dualhash.o \
 	entropy.o \
 	eval.o \
 	event.o \

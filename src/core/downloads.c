@@ -89,6 +89,7 @@
 #include "lib/base32.h"
 #include "lib/concat.h"
 #include "lib/dbus_util.h"
+#include "lib/dualhash.h"
 #include "lib/endian.h"
 #include "lib/file.h"
 #include "lib/filename.h"
@@ -430,6 +431,19 @@ static GHashTable *dl_by_addr;
 static GHashTable *dl_by_guid;
 
 /**
+ * Each source is given a random unique GUID so that we can easily associate
+ * a download with its THEX download.  The dl_by_id hashtable maps a GUID
+ * to its corresponding download.
+ */
+static GHashTable *dl_by_id;
+
+/**
+ * Associates a plain download with its corresponding THEX download in a
+ * bijective way (key = plain download ID, value = THEX download ID).
+ */
+static dualhash_t *dl_thex;
+
+/**
  * Keys in the `dl_by_addr' table.
  */
 struct dl_addr {
@@ -595,6 +609,15 @@ download_pipeline_can_initiate(const struct download *d)
 		return FALSE;
 
 	if ((DLS_A_FOOBAR & d->server->attrs) && 0 == d->served_reqs)
+		return FALSE;
+
+	/*
+	 * If we have a pending THEX download, do not use pipelining so that
+	 * we can switch to the THEX download once the current chunk is done
+	 * and then resume to the regular file downloading afterwards.
+	 */
+
+	if (dualhash_contains_key(dl_thex, d->id))
 		return FALSE;
 
 	/*
@@ -985,6 +1008,8 @@ download_free(struct download **d_ptr)
 	d = *d_ptr;
 	download_check(d);
 
+	g_hash_table_remove(dl_by_id, d->id);
+	atom_guid_free_null(&d->id);
 	d->magic = 0;
 	wfree(d, sizeof *d);
 	*d_ptr = NULL;
@@ -1106,6 +1131,32 @@ has_good_sha1(const struct download *d)
 	return fi->sha1 == NULL || (fi->cha1 && sha1_eq(fi->sha1, fi->cha1));
 }
 
+/**
+ * Allocate random GUID to use as the download ID.
+ *
+ * @return a GUID atom, refcount incremented already.
+ */
+static const guid_t *
+dl_random_guid_atom(void)
+{
+	struct guid id;
+	size_t i;
+
+	/*
+	 * Paranoid, in case the random number generator is broken.
+	 */
+
+	for (i = 0; i < 100; i++) {
+		guid_random_fill(&id);
+
+		if (NULL == g_hash_table_lookup(dl_by_id, &id))
+			return atom_guid_get(&id);
+	}
+
+	g_error("no luck with random number generator");
+	return NULL;
+}
+
 /* ----------------------------------------- */
 
 /**
@@ -1217,7 +1268,9 @@ download_init(void)
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
 	dl_by_addr = g_hash_table_new(dl_addr_hash, dl_addr_eq);
 	dl_by_guid = g_hash_table_new(guid_hash, guid_eq);
+	dl_by_id = g_hash_table_new(guid_hash, guid_eq);
 	dhl_by_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
+	dl_thex = dualhash_new(guid_hash, guid_eq, guid_hash, guid_eq);
 
 	header_features_add_guarded(FEATURES_DOWNLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
@@ -3798,6 +3851,7 @@ download_clone(struct download *d)
 	cd->list_idx = DL_LIST_INVALID;
 	cd->sha1 = d->sha1 ? atom_sha1_get(d->sha1) : NULL;
 	cd->file_name = atom_str_get(d->file_name);
+	cd->id = atom_guid_get(d->id);
 	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
 	cd->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED |
 		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_CLONED | DL_F_NO_PIPELINE);
@@ -4426,6 +4480,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		}
 		thex_download_close(d->thex);
 		d->bio = NULL;		/* Was a copy via thex_download_io_source() */
+		dualhash_remove_value(dl_thex, d->id);
 	}
 
 	if (d->rx) {
@@ -6058,6 +6113,39 @@ download_pick_followup(struct download *d, const struct sha1 *sha1)
 	was_plain_incomplete = !FILE_INFO_COMPLETE(d->file_info) &&
 		!download_is_special(d);
 
+	/*
+	 * If this is a plain download and it has a pending THEX, switch to it.
+	 */
+
+	if (was_plain_incomplete) {
+		struct guid *id = dualhash_lookup_key(dl_thex, d->id);
+
+		/*
+		 * The ID we find in the dl_thex dual hash is that of the associated
+		 * THEX download for the plain file.
+		 */
+
+		if (id != NULL) {
+			struct download *dt = g_hash_table_lookup(dl_by_id, id);
+
+			download_check(dt);
+			g_assert(dt->flags & DL_F_THEX);
+			
+			if (DOWNLOAD_IS_SWITCHABLE(dt)) {
+				if (GNET_PROPERTY(download_debug)) {
+					g_debug("TTH requesting switching from plain %s to %s",
+						download_basename(d), download_basename(dt));
+				}
+				d = dt;
+				goto done;
+			}
+		}
+	}
+
+	/*
+	 * Elect a new download for the follow-up request.
+	 */
+
 	iter = list_iter_before_head(d->server->list[DL_LIST_RUNNING]);
 	while (list_iter_has_next(iter)) {
 		struct download *cur;
@@ -6954,6 +7042,8 @@ create_download(
 	d->last_update = tm_time();
 	d->server = server;
 	d->server->refcnt++;
+	d->id = dl_random_guid_atom();
+	gm_hash_table_insert_const(dl_by_id, d->id, d);
 
 	/*
 	 * If we know that this server can be directly connected to, ignore
@@ -9512,6 +9602,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		guint32 cflags = 0;
 		gnet_host_vec_t *proxies;
 		char *uri;
+		struct download *dt;
 
 		uri = h_strndup(uri_start, uri_length);
 
@@ -9527,14 +9618,23 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		}
 		proxies = pproxy_set_host_vec(d->server->proxies);
 
-		if (
-			download_thex_start(uri, d->sha1, d->file_info->tth,
-				download_filesize(d), NULL, download_addr(d), download_port(d),
-				download_guid(d), proxies, cflags)
-		) {
-			/* Mark the fileinfo to avoid downloading the tigertree
-			 * data from more than one source at a time. */
+		dt = download_thex_start(uri, d->sha1, d->file_info->tth,
+			download_filesize(d), NULL, download_addr(d), download_port(d),
+			download_guid(d), proxies, cflags);
+
+		if (dt != NULL) {
+			/*
+			 * Mark the fileinfo to avoid downloading the tigertree data from
+			 * more than one source at a time.
+			 */
 			d->file_info->flags |= FI_F_FETCH_TTH;
+			dualhash_insert_key(dl_thex, d->id, dt->id);	/* d has THEX */
+
+			if (GNET_PROPERTY(tigertree_debug)) {
+				g_debug("requesting TTH (%s) tree for %s from %s",
+					tth_base32(&tth), download_basename(d),
+					download_host_info(d));
+			}
 		}
 
 		gnet_host_vec_free(&proxies);
@@ -15076,7 +15176,9 @@ download_close(void)
 	gm_hash_table_destroy_null(&dl_by_guid);
 	gm_hash_table_destroy_null(&dl_by_host);
 	gm_hash_table_destroy_null(&dl_by_addr);
+	gm_hash_table_destroy_null(&dl_by_id);
 	gm_hash_table_destroy_null(&dhl_by_sha1);
+	dualhash_destroy_null(&dl_thex);
 }
 
 static char *

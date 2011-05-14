@@ -587,6 +587,8 @@ src/lib/dbus_util.c
 src/lib/dbus_util.h
 src/lib/debug.c
 src/lib/debug.h
+src/lib/dualhash.c
+src/lib/dualhash.h
 src/lib/endian.h
 src/lib/entropy.c
 src/lib/entropy.h

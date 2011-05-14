@@ -213,7 +213,8 @@ enum download_magic { DOWNLOAD_MAGIC = 0x2dd6efe9 };	/**< Magic number */
 
 struct download {
 	enum download_magic magic;	/**< Magic number */
-    gnet_src_t src_handle;      /**< Handle */
+    gnet_src_t src_handle;      /**< Handle (for the GUI to reference us) */
+	const struct guid *id;		/**< Unique random source ID */
 
 	char error_str[256];		/**< Used to snprintf() error strings */
 	download_status_t status;   /**< Current status of the download */
