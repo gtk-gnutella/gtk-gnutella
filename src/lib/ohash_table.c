@@ -216,7 +216,7 @@ ohash_table_replace(ohash_table_t *oh, const void *key, const void *value)
 	pk.key = key;
 
 	if (hash_list_find(oh->hl, &pk, &hkey)) {
-		op = hkey;
+		op = deconstify_gpointer(hkey);
 		g_assert(op->oh == oh);
 		pos = hash_list_remove_position(oh->hl, &pk);
 	} else {
