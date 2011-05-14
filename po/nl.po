@@ -580,7 +580,7 @@ msgid "GUESS Query missing token"
 msgstr "GUESS verzoek mist token"
 
 msgid "GUESS Invalid query token"
-msgstr "GUES ongeldige verzoek token"
+msgstr "GUESS ongeldige verzoek token"
 
 msgid "DHT Invalid security token"
 msgstr "DHT ongeldige security token"
