@@ -139,8 +139,9 @@ dualhash_insert_key(dualhash_t *dh, const void *key, const void *value)
 			g_hash_table_remove(dh->vht, held_value);
 			goto insert;
 		}
+		/* Key/value tuple already present in the table */
 	} else if (g_hash_table_lookup_extended(dh->vht, value, NULL, &held_key)) {
-		/* Keys cannot be equal, of we'd have the key/value tuple already */
+		/* Keys cannot be equal, or we'd have the key/value tuple already */
 		g_assert(!(*dh->key_eq_func)(held_key, key));
 		g_hash_table_remove(dh->kht, held_key);
 		goto insert;
