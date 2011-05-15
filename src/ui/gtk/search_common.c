@@ -137,7 +137,7 @@ static struct {
 	{ "#708090", GUI_COLOR_PUSH,		{ 0, 0, 0, 0 } }, /* slate gray */
 	{ "#2F4F4F", GUI_COLOR_PUSH_PROXY,	{ 0, 0, 0, 0 } }, /* dark slate gray */
 	{ "#E6E6FA", GUI_COLOR_PARTIAL_PUSH,{ 0, 0, 0, 0 } }, /* lavender */
-	{ "#FFFF00", GUI_COLOR_PARTIAL,		{ 0, 0, 0, 0 } }, /* yellow */
+	{ "#DCDC00", GUI_COLOR_PARTIAL,		{ 0, 0, 0, 0 } }, /* yellow */
 	{ "#FFFFFF", GUI_COLOR_BACKGROUND,	{ 0, 0, 0, 0 } }, /* white */
 };
 
