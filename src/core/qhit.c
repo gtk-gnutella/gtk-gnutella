@@ -698,7 +698,8 @@ add_file(const struct shared_file *sf)
 	ggep_stream_init(&gs, start, left);
 
 	/*
-	 * If we matched a partial file, let them know.
+	 * If we matched a partial file, let them know (unless the file is
+	 * being seeded, in which case it is really complete).
 	 *
 	 * For now we don't emit the available ranges (need to build the tree
 	 * of 1 KiB blocks and send numbers of the highest node in the tree
@@ -710,7 +711,7 @@ add_file(const struct shared_file *sf)
 	 *		--RAM, 2011-05-15
 	 */
 
-	if (is_partial) {
+	if (is_partial && !shared_file_is_finished(sf)) {
 		ok = ggep_stream_pack(&gs, GGEP_NAME(PRU), NULL, 0, GGEP_W_COBS);
 		if (!ok)
 			qhit_log_ggep_write_failure("PRU");
