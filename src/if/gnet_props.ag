@@ -4866,4 +4866,25 @@ prop = {
     };
 };
 
+prop = {
+	name = "query_request_partials";
+	desc = "Whether queries can request partial results hits, i.e. files "
+		"which are incompletely available on remote hosts.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
+	name = "query_answer_partials";
+	desc = "Whether queries for partial files should be answered to."
+		"When Partial File Sharing is disabled this setting is of course "
+		"ignored and no partial results are returned.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
 /* vi: set ts=4: */

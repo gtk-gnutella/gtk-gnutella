@@ -3548,6 +3548,22 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_QUERY_REQUEST_PARTIALS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_query_request_partials",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_QUERY_ANSWER_PARTIALS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_query_answer_partials",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_PFSP_FIRST_CHUNK,
         update_spinbutton,
         TRUE,

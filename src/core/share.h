@@ -47,6 +47,7 @@
 
 #include "if/core/share.h"
 #include "if/core/fileinfo.h"
+#include "if/gnet_property_priv.h"
 
 typedef struct shared_file shared_file_t;
 
@@ -130,9 +131,19 @@ const char *shared_file_mime_type(const shared_file_t *sf);
 void shared_file_from_fileinfo(fileinfo_t *fi);
 gboolean shared_file_has_media_type(const struct shared_file *sf, unsigned m);
 
-void shared_files_match(const char *search_term,
+void share_add_partial(const shared_file_t *sf);
+void share_remove_partial(const shared_file_t *sf);
+void share_update_matching_information(void);
+
+void shared_files_match(const char *query,
 		st_search_callback callback, gpointer user_data,
-		int max_res, struct query_hashvec *qhv);
+		int max_res, gboolean partials, struct query_hashvec *qhv);
+
+static inline gboolean
+share_can_answer_partials(void)
+{
+	return GNET_PROPERTY(pfsp_server) && GNET_PROPERTY(query_answer_partials);
+}
 
 #endif /* _core_share_h_ */
 

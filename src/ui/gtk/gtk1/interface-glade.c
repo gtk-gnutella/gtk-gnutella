@@ -10238,6 +10238,7 @@ create_dlg_prefs (void)
   GtkWidget *spinbutton_search_queue_spacing;
   GtkObject *spinbutton_search_queue_size_adj;
   GtkWidget *spinbutton_search_queue_size;
+  GtkWidget *checkbutton_config_query_request_partials;
   GtkWidget *frame_expert_gnet_timeout;
   GtkWidget *table10;
   guint label175_key;
@@ -10615,6 +10616,7 @@ create_dlg_prefs (void)
   GtkObject *spinbutton_pfsp_last_chunk_adj;
   GtkWidget *spinbutton_pfsp_last_chunk;
   GtkWidget *checkbutton_pfsp_rare_server;
+  GtkWidget *checkbutton_config_query_answer_partials;
   GtkWidget *frame140;
   GtkWidget *table96;
   GtkWidget *label753;
@@ -12588,6 +12590,14 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (spinbutton_search_queue_size, 59, -2);
+
+  checkbutton_config_query_request_partials = gtk_check_button_new_with_label (_("Query for partial files as well"));
+  gtk_widget_set_name (checkbutton_config_query_request_partials, "checkbutton_config_query_request_partials");
+  gtk_widget_ref (checkbutton_config_query_request_partials);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_query_request_partials", checkbutton_config_query_request_partials,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_query_request_partials);
+  gtk_box_pack_start (GTK_BOX (vbox122), checkbutton_config_query_request_partials, FALSE, FALSE, 0);
 
   frame_expert_gnet_timeout = gtk_frame_new (_("Gnutella timeouts (all values in seconds)"));
   gtk_widget_set_name (frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
@@ -15573,6 +15583,16 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_pfsp_rare_server);
   gtk_table_attach (GTK_TABLE (table65), checkbutton_pfsp_rare_server, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_query_answer_partials = gtk_check_button_new_with_label (_("Answer to queries for partial files"));
+  gtk_widget_set_name (checkbutton_config_query_answer_partials, "checkbutton_config_query_answer_partials");
+  gtk_widget_ref (checkbutton_config_query_answer_partials);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_query_answer_partials", checkbutton_config_query_answer_partials,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_query_answer_partials);
+  gtk_table_attach (GTK_TABLE (table65), checkbutton_config_query_answer_partials, 3, 5, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 

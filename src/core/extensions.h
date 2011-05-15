@@ -108,6 +108,12 @@ typedef enum ext_token {
 	EXT_T_GGEP_PATH,		/**< Shared file path, in query hits */
 	EXT_T_GGEP_PHC,			/**< Packed HostCaches, in pongs (UHC) */
 	EXT_T_GGEP_PR,			/**< Partial Result, in queries and hits */
+	EXT_T_GGEP_PR0,			/**< Empty partial set (query hits) */
+	EXT_T_GGEP_PR1,			/**< Partial intervals coded on 1 byte */
+	EXT_T_GGEP_PR2,			/**< Partial intervals coded on 2 bytes */
+	EXT_T_GGEP_PR3,			/**< Partial intervals coded on 3 bytes */
+	EXT_T_GGEP_PR4,			/**< Partial intervals coded on 4 bytes */
+	EXT_T_GGEP_PRU,			/**< Partial Result Unverified (query hits) */
 	EXT_T_GGEP_PUSH,		/**< Push proxy info, in query hits */
 	EXT_T_GGEP_PUSH_TLS,	/**< TLS-capability bitmap for GGEP PUSH */
 	EXT_T_GGEP_Q,			/**< Queue status in HEAD Pongs */

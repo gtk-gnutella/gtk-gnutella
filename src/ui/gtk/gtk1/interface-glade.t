@@ -634,3 +634,5 @@ N_("Bandwidth limits for GUESS queries");
 N_("Output bandwidth hint");
 N_("Download queue is frozen.");
 N_("Allow TTH discovery");
+N_("Query for partial files as well");
+N_("Answer to queries for partial files");

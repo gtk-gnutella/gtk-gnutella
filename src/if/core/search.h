@@ -133,9 +133,10 @@ typedef struct gnet_results_set {
  * Result record flags
  */
 enum {
+	SR_PARTIAL_HIT	= (1 << 9),	/* Got a hit for a partial file */
 	SR_PUSH			= (1 << 8),	/* Servent firewalled, will need a PUSH */
 	SR_ATOMIZED		= (1 << 7),	/* Set if filename is an atom */
-	SR_PARTIAL		= (1 << 6),
+	SR_PARTIAL		= (1 << 6),	/* File is being downloaded, incomplete */
 	SR_OWNED		= (1 << 5),
 	SR_SHARED		= (1 << 4),
 	SR_SPAM			= (1 << 3),

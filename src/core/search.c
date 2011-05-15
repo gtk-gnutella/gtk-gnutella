@@ -2073,6 +2073,15 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						}
 					}
 					break;
+				case EXT_T_GGEP_PR0:	/* Partial results */
+				case EXT_T_GGEP_PR1:
+				case EXT_T_GGEP_PR2:
+				case EXT_T_GGEP_PR3:
+				case EXT_T_GGEP_PR4:
+					/* TODO: handle intervals to compute available ranges */
+				case EXT_T_GGEP_PRU:
+					rc->flags |= SR_PARTIAL_HIT;
+					break;
 				case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
 					if (
 						GNET_PROPERTY(search_debug) > 3 ||
@@ -2754,7 +2763,7 @@ build_search_message(const guid_t *muid, const char *query, guint32 *size,
 	 * FIXME
 	 *
 	 * 1- SHA1 searches cannot work since SHA1s are no longer in QRTs for
-	 *    all LimeWire and gtk-gnutella servents.
+	 *    all LimeWire (including derivatives) and gtk-gnutella servents.
 	 * 2- We currently use HUGE instead of GGEP "H" because support for the
 	 *    latter is not widespread enough.  So no need to add GGEP "H" here,
 	 *    the HUGE part was included above.
@@ -2801,6 +2810,19 @@ build_search_message(const guid_t *muid, const char *query, guint32 *size,
 		if (!ok) {
 			g_carp("could not add GGEP \"QK\" to GUESS query");
 			goto error;
+		}
+	}
+
+	/*
+	 * If they want partial results returned, include the GGEP "PR" key.
+	 */
+
+	if (GNET_PROPERTY(query_request_partials)) {
+		gboolean ok = ggep_stream_pack(&gs, GGEP_NAME(PR), NULL, 0, 0);
+
+		if (!ok) {
+			g_carp("could not add GGEP \"PR\" to query");
+			/* It's OK, "PR" is not critical and can be missing */
 		}
 	}
 
@@ -5051,19 +5073,21 @@ struct query_context {
 	GSList *files;				/**< List of shared_file_t that match */
 	int found;
 	unsigned media_mask;		/**< If non-zero, which media types they want */
+	unsigned partials:1;		/**< Do they want partial results? */
 };
 
 /**
  * Create new query context.
  */
 static struct query_context *
-share_query_context_make(unsigned media_mask)
+share_query_context_make(unsigned media_mask, gboolean partials)
 {
 	struct query_context *ctx;
 
 	ctx = walloc0(sizeof *ctx);
 	ctx->shared_files = g_hash_table_new(pointer_hash_func, NULL);
 	ctx->media_mask = media_mask;
+	ctx->partials = booleanize(partials);
 
 	return ctx;
 }
@@ -5134,7 +5158,8 @@ got_match(gpointer context, gpointer data)
 			if (GNET_PROPERTY(query_debug) > 1 ||
 				GNET_PROPERTY(matching_debug) > 1
 			) {
-				g_debug("MATCH ignoring matched \"%s\", not of type %s",
+				g_debug("MATCH ignoring matched %s \"%s\", not of type %s",
+					shared_file_is_partial(sf) ? "partial" : "shared",
 					shared_file_name_canonic(sf),
 					search_media_mask_to_string(qctx->media_mask));
 			}
@@ -6130,6 +6155,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	gboolean qhv_filled = FALSE;
 	char *safe_search = NULL;
 	guint32 media_types = 0;
+	gboolean partials = FALSE;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
 
@@ -6176,7 +6202,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				secure_oob = TRUE;
 				break;
 
-			/* TODO: handle EXT_T_GGEP_PR */
+			case EXT_T_GGEP_PR:
+				partials = TRUE;
+				break;
 
 			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
 			case EXT_T_GGEP_u:			/* Handle SHA1 value only */
@@ -6452,7 +6480,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		) {
 			node_inc_qrp_query(n);
 		}
-		qctx = share_query_context_make(media_types);
+		qctx = share_query_context_make(media_types, partials);
 		max_replies = GNET_PROPERTY(search_max_items) == (guint32) -1
 				? 255
 				: GNET_PROPERTY(search_max_items);
@@ -6481,12 +6509,12 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		}
 
 		if (!skip_file_search) {
-			shared_files_match(search, got_match, qctx, max_replies, qhv);
+			shared_files_match(search,
+				got_match, qctx, max_replies, partials, qhv);
 			qhv_filled = TRUE;		/* A side effect of st_search() */
 		}
 
 		if (qctx->found > 0) {
-			gnet_stats_count_general(GNR_LOCAL_HITS, qctx->found);
 			if (
 				GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
 				node_ultra_received_qrp(n)

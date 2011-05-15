@@ -1380,7 +1380,7 @@ qrp_prepare_computation(void)
  * Add shared file to our QRP.
  */
 void
-qrp_add_file(struct shared_file *sf, GHashTable *words)
+qrp_add_file(const shared_file_t *sf, GHashTable *words)
 {
 	word_vec_t *wovec;
 	guint wocnt;
@@ -1397,6 +1397,10 @@ qrp_add_file(struct shared_file *sf, GHashTable *words)
 				shared_file_name_nfc_len(sf)));
 	g_assert(utf8_is_valid_data(shared_file_name_canonic(sf),
 				shared_file_name_canonic_len(sf)));
+
+	if (GNET_PROPERTY(qrp_debug) > 1) {
+		g_debug("QRP adding file \"%s\"", shared_file_name_canonic(sf));
+	}
 
 	/*
 	 * The words in the QRP must be lowercased, but the pre-computed canonic

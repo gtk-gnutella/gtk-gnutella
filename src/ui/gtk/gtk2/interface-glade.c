@@ -9924,6 +9924,7 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *checkbutton_process_oob_queries;
   GtkWidget *checkbutton_proxy_oob_queries;
   GtkWidget *label885;
+  GtkWidget *vbox158;
   GtkWidget *frame_expert_search_queue;
   GtkWidget *table100;
   GtkWidget *label771;
@@ -9935,6 +9936,7 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *label983;
   GtkWidget *label984;
   GtkWidget *label770;
+  GtkWidget *checkbutton_config_query_request_partials;
   GtkWidget *frame_expert_gnet_timeout;
   GtkWidget *table10;
   GtkWidget *label175;
@@ -10627,10 +10629,15 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_show (label885);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_oob_queries), label885);
 
+  vbox158 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox158, "vbox158");
+  gtk_widget_show (vbox158);
+  gtk_box_pack_start (GTK_BOX (hbox286), vbox158, TRUE, TRUE, 0);
+
   frame_expert_search_queue = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_search_queue, "frame_expert_search_queue");
   gtk_widget_show (frame_expert_search_queue);
-  gtk_box_pack_start (GTK_BOX (hbox286), frame_expert_search_queue, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox158), frame_expert_search_queue, TRUE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame_expert_search_queue), 4);
 
   table100 = gtk_table_new (2, 3, FALSE);
@@ -10695,6 +10702,11 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_set_name (label770, "label770");
   gtk_widget_show (label770);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_search_queue), label770);
+
+  checkbutton_config_query_request_partials = gtk_check_button_new_with_mnemonic (_("Query for partial files as well"));
+  gtk_widget_set_name (checkbutton_config_query_request_partials, "checkbutton_config_query_request_partials");
+  gtk_widget_show (checkbutton_config_query_request_partials);
+  gtk_box_pack_start (GTK_BOX (vbox158), checkbutton_config_query_request_partials, FALSE, FALSE, 0);
 
   frame_expert_gnet_timeout = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
@@ -11391,6 +11403,7 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_process_oob_queries, "checkbutton_process_oob_queries");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_proxy_oob_queries, "checkbutton_proxy_oob_queries");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label885, "label885");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, vbox158, "vbox158");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_search_queue, "frame_expert_search_queue");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table100, "table100");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label771, "label771");
@@ -11400,6 +11413,7 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label983, "label983");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label984, "label984");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label770, "label770");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_config_query_request_partials, "checkbutton_config_query_request_partials");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table10, "table10");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label175, "label175");
@@ -13455,6 +13469,8 @@ create_dlg_prefs_ul_tab (void)
   GtkObject *spinbutton_config_upload_connected_timeout_adj;
   GtkWidget *spinbutton_config_upload_connected_timeout;
   GtkWidget *label301;
+  GtkWidget *vbox159;
+  GtkWidget *checkbutton_config_query_answer_partials;
   GtkWidget *hbox9297;
   GtkWidget *frame141;
   GtkWidget *table109;
@@ -13887,6 +13903,16 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (label301, "label301");
   gtk_widget_show (label301);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_ul_timeout), label301);
+
+  vbox159 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox159, "vbox159");
+  gtk_widget_show (vbox159);
+  gtk_box_pack_start (GTK_BOX (hbox284), vbox159, TRUE, TRUE, 0);
+
+  checkbutton_config_query_answer_partials = gtk_check_button_new_with_mnemonic (_("Answer to queries for partial files"));
+  gtk_widget_set_name (checkbutton_config_query_answer_partials, "checkbutton_config_query_answer_partials");
+  gtk_widget_show (checkbutton_config_query_answer_partials);
+  gtk_box_pack_start (GTK_BOX (vbox159), checkbutton_config_query_answer_partials, FALSE, FALSE, 0);
 
   hbox9297 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox9297, "hbox9297");
@@ -14601,6 +14627,8 @@ create_dlg_prefs_ul_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, spinbutton_config_upload_connecting_timeout, "spinbutton_config_upload_connecting_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, spinbutton_config_upload_connected_timeout, "spinbutton_config_upload_connected_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label301, "label301");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, vbox159, "vbox159");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_config_query_answer_partials, "checkbutton_config_query_answer_partials");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, hbox9297, "hbox9297");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame141, "frame141");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table109, "table109");

@@ -101,7 +101,8 @@ struct _search_table {
 	int nentries, nchars, nbins;
 	struct st_bin **bins;
 	struct st_bin all_entries;
-	guchar index_map[(guchar) -1];
+	guchar index_map[MAX_INT_VAL(guchar)];
+	guchar fold_map[MAX_INT_VAL(guchar)];
 };
 
 static void
@@ -180,12 +181,16 @@ bin_compact(struct st_bin *bin)
 	bin->nslots = bin->nvals;
 }
 
-static guchar map[(guchar) -1];
+static guchar map[MAX_INT_VAL(guchar)];
 
 static void
 setup_map(void)
 {
+	static gboolean done;
 	guint i;
+
+	if (done)
+		return;
 
 	for (i = 0; i < G_N_ELEMENTS(map); i++)	{
 		guchar c;
@@ -205,6 +210,8 @@ setup_map(void)
 		}
 		map[i] = c;
 	}
+
+	done = TRUE;
 }
 
 /**
@@ -213,7 +220,6 @@ setup_map(void)
 void
 st_initialize(search_table_t *table)
 {
-	static guchar fold_map[(guchar) -1];
 	guchar cur_char = '\0';
 	guint i;
 
@@ -227,10 +233,10 @@ st_initialize(search_table_t *table)
 	for (i = 0; i < G_N_ELEMENTS(table->index_map); i++) {
 		guchar map_char = map[i];
 
-		if (fold_map[map_char]) {
-			table->index_map[i] = fold_map[map_char];
+		if (table->fold_map[map_char]) {
+			table->index_map[i] = table->fold_map[map_char];
 		} else {
-			fold_map[map_char] = cur_char;
+			table->fold_map[map_char] = cur_char;
 			table->index_map[i] = cur_char;
 			cur_char++;
 		}
@@ -252,7 +258,7 @@ st_initialize(search_table_t *table)
 search_table_t *
 st_alloc(void)
 {
-	search_table_t *table = walloc(sizeof *table);
+	search_table_t *table = walloc0(sizeof *table);
 	return table;
 }
 
@@ -353,7 +359,7 @@ st_key(search_table_t *table, const char k[2])
  * @return TRUE if the item was inserted; FALSE otherwise.
  */
 gboolean
-st_insert_item(search_table_t *table, const char *s, gpointer data)
+st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
 {
 	size_t i, len;
 	struct st_entry *entry;
@@ -367,7 +373,7 @@ st_insert_item(search_table_t *table, const char *s, gpointer data)
 
 	entry = walloc(sizeof *entry);
 	entry->string = atom_str_get(s);
-	entry->sf = shared_file_ref(data);
+	entry->sf = shared_file_ref(sf);
 	entry->mask = mask_hash(entry->string);
 
 	len = strlen(entry->string);
@@ -479,8 +485,17 @@ st_fill_qhv(const char *search_term, query_hashvec_t *qhv)
 
 /**
  * Do an actual search.
+ *
+ * @param table			table containing organized entries to search from
+ * @param search_term	the query string
+ * @param callback		routine to invoke for each match
+ * @param ctx			user-supplied data to pass on to callback
+ * @param max_res		maximum amount of results to return
+ * @param qhv			query hash vector built from query string, for routing
+ *
+ * @return number of hits we produced
  */
-void
+int
 st_search(
 	search_table_t *table,
 	const char *search_term,
@@ -490,7 +505,7 @@ st_search(
 	query_hashvec_t *qhv)
 {
 	char *search;
-	int key, nres;
+	int key, nres = 0;
 	guint i, len;
 	struct st_bin *best_bin = NULL;
 	int best_bin_size = INT_MAX;
@@ -683,6 +698,8 @@ finish:
 	if (search != search_term) {
 		HFREE_NULL(search);
 	}
+
+	return nres;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

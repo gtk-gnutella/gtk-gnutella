@@ -134,7 +134,10 @@ static struct {
 	{ "#FC000D", GUI_COLOR_MAYBE_SPAM, 	{ 0, 0, 0, 0 } }, /* flashy red */
 	{ "#7f0000", GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } }, /* dark red */
 	{ "#7E5029", GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } }, /* marroon */
-	{ "#2F4F4F", GUI_COLOR_PUSH,		{ 0, 0, 0, 0 } }, /* dark slate gray */
+	{ "#708090", GUI_COLOR_PUSH,		{ 0, 0, 0, 0 } }, /* slate gray */
+	{ "#2F4F4F", GUI_COLOR_PUSH_PROXY,	{ 0, 0, 0, 0 } }, /* dark slate gray */
+	{ "#E6E6FA", GUI_COLOR_PARTIAL_PUSH,{ 0, 0, 0, 0 } }, /* lavender */
+	{ "#FFFF00", GUI_COLOR_PARTIAL,		{ 0, 0, 0, 0 } }, /* yellow */
 	{ "#FFFFFF", GUI_COLOR_BACKGROUND,	{ 0, 0, 0, 0 } }, /* white */
 };
 
@@ -999,9 +1002,6 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 	 * The tag is usually shown in the "Info" column, but for local searches
 	 * it contains the complete file path, and this should only be shown in
 	 * the information summary, not in the Info column.
-	 *
-	 * FIXME the GTK1 GUI does not have the Tag displayed in the summary at
-	 * FIXME the bottom of the search pane.
 	 */
 
 	if (rc->tag && 0 == (ST_LOCAL & rs->status)) {
@@ -1025,6 +1025,12 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 		g_assert(rw < sizeof info);
 		rw += gm_snprintf(&info[rw], sizeof info - rw, "%s%s",
 				info[0] != '\0' ? "; " : "", vinfo);
+	}
+
+	if (rc->flags & SR_PARTIAL_HIT) {
+		g_assert(rw < sizeof info);
+		rw += gm_snprintf(&info[rw], sizeof info - rw, "%s%s",
+			info[0] != '\0' ? ", " : "", _("partial"));
 	}
 
 	if (rc->alt_locs != NULL) {
@@ -1649,7 +1655,11 @@ search_gui_color_for_record(const record_t * const rc)
 	} else if (rc->flags & (SR_DOWNLOADED | SR_PARTIAL)) {
 		return GUI_COLOR_DOWNLOADING;
 	} else if (rc->flags & SR_PUSH) {
-		return GUI_COLOR_PUSH;
+		return ST_PUSH_PROXY & rs->status ?
+			GUI_COLOR_PUSH_PROXY : GUI_COLOR_PUSH;
+	} else if (rc->flags & SR_PARTIAL_HIT) {
+		return rc->flags & SR_PUSH ?
+			GUI_COLOR_PARTIAL_PUSH : GUI_COLOR_PARTIAL;
 	} else {
 		return GUI_COLOR_DEFAULT;
 	}
@@ -3667,6 +3677,10 @@ search_gui_set_details(const record_t *rc)
 		_("No"));
 
 	if (!(ST_LOCAL & rs->status)) {
+		if (rc->tag != NULL) {
+			search_gui_append_detail(_("Tag"),
+				lazy_unknown_to_ui_string(rc->tag));
+		}
 		search_gui_append_detail(_("Spam"),
 			(SR_SPAM & rc->flags) ? _("Yes") :
 			(ST_SPAM & rs->status) ? _("Maybe") :
@@ -3684,6 +3698,9 @@ search_gui_set_details(const record_t *rc)
 		search_gui_append_detail(_("Alt-Locs"), hosts);
 		HFREE_NULL(hosts);
 	}
+
+	search_gui_append_detail(_("Partial"),
+		SR_PARTIAL_HIT & rc->flags ? _("Yes") : _("No"));
 
 	if (utf8_can_latinize(rc->utf8_name)) {
 		size_t size;

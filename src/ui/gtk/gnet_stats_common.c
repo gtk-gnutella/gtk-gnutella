@@ -113,6 +113,7 @@ general_type_str(gint value)
 		N_("SPAM spotted spamming IP addresses held"),
 		N_("Searches to local DB"),
 		N_("Hits on local DB"),
+		N_("Hits on local partial files"),
 		N_("Query hits received for local queries"),
 		N_("Query hits received for OOB-proxied queries"),
 		N_("Queries requesting OOB hit delivery"),

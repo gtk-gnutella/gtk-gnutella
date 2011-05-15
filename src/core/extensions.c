@@ -198,6 +198,12 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(PATH),		/**< Shared file path, in query hits */
 	GGEP_ID(PHC),		/**< Packed host caches (UHC) in pongs */
 	GGEP_ID(PR),		/**< Partial Result, in queries and hits */
+	GGEP_ID(PR0),		/**< Empty partial set (query hits) */
+	GGEP_ID(PR1),		/**< Partial intervals coded on 1 byte */
+	GGEP_ID(PR2),		/**< Partial intervals coded on 2 bytes */
+	GGEP_ID(PR3),		/**< Partial intervals coded on 3 bytes */
+	GGEP_ID(PR4),		/**< Partial intervals coded on 4 bytes */
+	GGEP_ID(PRU),		/**< Partial Result Unverified (query hits) */
 	GGEP_ID(PUSH),		/**< Push proxy info, in qhits */
 	GGEP_ID(PUSH_TLS),	/**< TLS-capability bitmap for GGEP PUSH */
 	GGEP_ID(Q),			/**< Queue status in HEAD Pongs */

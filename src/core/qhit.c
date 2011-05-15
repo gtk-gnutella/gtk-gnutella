@@ -609,12 +609,10 @@ add_file(const struct shared_file *sf)
 	ggep_stream_t gs;
 	size_t left, needed;
 	gpointer start;
+	gboolean is_partial;
 
-	/* Cannot match partially downloaded files */
-	g_assert(!shared_file_is_partial(sf));
-
+	is_partial = shared_file_is_partial(sf);
 	needed = 8 + 2 + shared_file_name_nfc_len(sf);	/* size of hit entry */
-
 	sha1_available = sha1_hash_available(sf);
 
 	/*
@@ -698,6 +696,25 @@ add_file(const struct shared_file *sf)
 	left = found_left();
 	start = found_open();
 	ggep_stream_init(&gs, start, left);
+
+	/*
+	 * If we matched a partial file, let them know.
+	 *
+	 * For now we don't emit the available ranges (need to build the tree
+	 * of 1 KiB blocks and send numbers of the highest node in the tree
+	 * encompassing an available chunk) in PR0, PR1, PR2, PR3 or PR4 keys.
+	 *
+	 * We just emit the "PRU" key, signaling that it's a partial result
+	 * and that its data is still unverified (since we don't verify available
+	 * chunks using the TTH for now).
+	 *		--RAM, 2011-05-15
+	 */
+
+	if (is_partial) {
+		ok = ggep_stream_pack(&gs, GGEP_NAME(PRU), NULL, 0, GGEP_W_COBS);
+		if (!ok)
+			qhit_log_ggep_write_failure("PRU");
+	}
 
 	/*
 	 * Emit the SHA1 as GGEP "H" if they said they understand it. The modern

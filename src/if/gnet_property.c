@@ -974,6 +974,10 @@ guint32  gnet_property_variable_matching_debug     = 0;
 static const guint32  gnet_property_variable_matching_debug_default = 0;
 guint32  gnet_property_variable_tsync_debug     = 0;
 static const guint32  gnet_property_variable_tsync_debug_default = 0;
+gboolean gnet_property_variable_query_request_partials     = TRUE;
+static const gboolean gnet_property_variable_query_request_partials_default = TRUE;
+gboolean gnet_property_variable_query_answer_partials     = TRUE;
+static const gboolean gnet_property_variable_query_answer_partials_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -8921,6 +8925,40 @@ gnet_prop_init(void) {
     gnet_property->props[415].data.guint32.choices = NULL;
     gnet_property->props[415].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[415].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QUERY_REQUEST_PARTIALS:
+     *
+     * General data:
+     */
+    gnet_property->props[416].name = "query_request_partials";
+    gnet_property->props[416].desc = _("Whether queries can request partial results hits, i.e. files which are incompletely available on remote hosts.");
+    gnet_property->props[416].ev_changed = event_new("query_request_partials_changed");
+    gnet_property->props[416].save = TRUE;
+    gnet_property->props[416].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[416].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[416].data.boolean.def   = (void *) &gnet_property_variable_query_request_partials_default;
+    gnet_property->props[416].data.boolean.value = (void *) &gnet_property_variable_query_request_partials;
+
+
+    /*
+     * PROP_QUERY_ANSWER_PARTIALS:
+     *
+     * General data:
+     */
+    gnet_property->props[417].name = "query_answer_partials";
+    gnet_property->props[417].desc = _("Whether queries for partial files should be answered to.When Partial File Sharing is disabled this setting is of course ignored and no partial results are returned.");
+    gnet_property->props[417].ev_changed = event_new("query_answer_partials_changed");
+    gnet_property->props[417].save = TRUE;
+    gnet_property->props[417].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[417].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[417].data.boolean.def   = (void *) &gnet_property_variable_query_answer_partials_default;
+    gnet_property->props[417].data.boolean.value = (void *) &gnet_property_variable_query_answer_partials;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

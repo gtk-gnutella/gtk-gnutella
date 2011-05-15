@@ -968,17 +968,6 @@ fi_free(fileinfo_t *fi)
 	g_assert(!fi->hashed);
 	g_assert(NULL == fi->sf);
 
-#if 0
-	/* This does not seem to be a bug; see file_info_remove_source(). */
-	if (fi->sha1) {
-		g_assert(fi != g_hash_table_lookup(fi_by_sha1, fi->sha1));
-	}
-#endif
-
-	/*
-	 * Stop all uploads occurring for this file.
-	 */
-
 	if (fi->chunklist) {
 		g_assert(file_info_check_chunklist(fi, TRUE));
 		file_info_chunklist_free(fi);
@@ -2326,6 +2315,7 @@ file_info_hash_insert(fileinfo_t *fi)
 	file_info_check(fi);
 	g_assert(!fi->hashed);
 	g_assert(fi->guid);
+	g_assert(NULL == fi->sf);
 
 	if (GNET_PROPERTY(fileinfo_debug) > 4)
 		g_debug("FILEINFO insert 0x%p \"%s\" "
@@ -2371,6 +2361,15 @@ file_info_hash_insert(fileinfo_t *fi)
 
 		if (NULL == xfi)
 			gm_hash_table_insert_const(fi_by_sha1, fi->sha1, fi);
+
+		/*
+		 * To be able to return hits on partial files for which we have SHA1,
+		 * create a shared file entry and record it as searchable.
+		 */
+
+		shared_file_from_fileinfo(fi);
+		if (fi->sf != NULL) 
+			share_add_partial(fi->sf);
 	}
 
 	if (fi->file_size_known) {
@@ -2504,6 +2503,7 @@ file_info_upload_stop(fileinfo_t *fi, const char *reason)
 
 	if (fi->sf) {
 		upload_stop_all(fi, reason);
+		share_remove_partial(fi->sf);
 		shared_file_unref(&fi->sf);
 		fi->flags &= ~FI_F_SEEDING;
 		file_info_changed(fi);

@@ -69,6 +69,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/bg.h"
+#include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
@@ -146,6 +147,9 @@ static struct shared_file **file_table;
 static struct shared_file **sorted_file_table;
 static search_table_t *search_table;
 static GHashTable *file_basenames;
+static search_table_t *partial_table;
+static hash_list_t *partial_files;
+static cevent_t *share_qrp_rebuild_ev;
 
 static struct recursive_scan *recursive_scan_context;
 
@@ -462,12 +466,7 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 	return FALSE;
 }
 
-
-/* ----------------------------------------- */
-
 static const guint FILENAME_CLASH = -1;		/**< Indicates basename clashes */
-
-/* ----------------------------------------- */
 
 /**
  * Initialize special file entry, returning shared_file_t structure if
@@ -522,11 +521,36 @@ share_special_load(const struct special_file *sp)
 }
 
 void
-shared_files_match(const char *search_term,
+shared_files_match(const char *query,
 	st_search_callback callback, gpointer user_data,
-	int max_res, query_hashvec_t *qhv)
+	int max_res, gboolean partials, query_hashvec_t *qhv)
 {
-	st_search(search_table, search_term, callback, user_data, max_res, qhv);
+	int n;
+	int remain;
+
+	/*
+	 * First search from the library.
+	 */
+
+	n = st_search(search_table, query, callback, user_data, max_res, qhv);
+	gnet_stats_count_general(GNR_LOCAL_HITS, n);
+
+	remain = max_res - n;
+
+	/*
+	 * Then if we still can supply some hits, look whether we have a partial
+	 * file matching.
+	 *
+	 * Matching on partials is done only when users request that explicitly
+	 * in their query (through the GGEP "PR" key) and when we serve partial
+	 * files (PFSP server) and they configured answering to partial requests.
+	 */
+
+	if (partials && remain > 0 && share_can_answer_partials()
+	) {
+		n = st_search(partial_table, query, callback, user_data, remain, NULL);
+		gnet_stats_count_general(GNR_LOCAL_PARTIAL_HITS, n);
+	}
 }
 
 /**
@@ -1119,6 +1143,8 @@ struct recursive_scan {
 	slist_t *base_dirs;			/* list of string atoms */
 	slist_t *sub_dirs;			/* list of g_malloc()ed strings */
 	slist_t *shared_files;		/* list of struct shared_file */
+	slist_t *partial_files;		/* list of struct shared_file */
+	slist_iter_t *iter;			/* list iterator */
 	GHashTable *words;			/* records words making up filenames, for QRP */
 	int idx;					/* iterating index */
 	int ticks;					/* ticks used */
@@ -1132,6 +1158,7 @@ recursive_scan_check(const struct recursive_scan * const ctx)
 	g_assert(ctx->base_dirs != NULL);
 	g_assert(ctx->sub_dirs != NULL);
 	g_assert(ctx->shared_files != NULL);
+	g_assert(ctx->partial_files != NULL);
 }
 
 static struct recursive_scan *
@@ -1147,6 +1174,7 @@ recursive_scan_new(const GSList *base_dirs)
 	ctx->base_dirs = slist_new();
 	ctx->sub_dirs = slist_new();
 	ctx->shared_files = slist_new();
+	ctx->partial_files = slist_new();
 	ctx->words = g_hash_table_new(g_str_hash, g_str_equal);
 	for (iter = base_dirs; NULL != iter; iter = g_slist_next(iter)) {
 		const char *dir = atom_str_get(iter->data);
@@ -1209,6 +1237,8 @@ recursive_scan_free(struct recursive_scan **ctx_ptr)
 		slist_free_all(&ctx->base_dirs, (slist_destroy_cb) atom_str_free);
 		slist_free_all(&ctx->sub_dirs, do_hfree);
 		slist_free_all(&ctx->shared_files, recursive_sf_unref);
+		slist_free_all(&ctx->partial_files, recursive_sf_unref);
+		slist_iter_free(&ctx->iter);
 
 		atom_str_free_null(&ctx->base_dir);
 		qrp_dispose_words(&ctx->words);
@@ -1578,7 +1608,7 @@ recursive_scan_step_build_search_table(struct bgtask *bt, void *data, int ticks)
 	ctx->ticks = 0;
 
 	while (slist_length(ctx->shared_files) > 0) {
-		struct shared_file *sf;
+		const struct shared_file *sf;
 
 		if (ctx->ticks++ >= ticks)
 			return BGR_MORE;
@@ -1587,7 +1617,7 @@ recursive_scan_step_build_search_table(struct bgtask *bt, void *data, int ticks)
 		shared_file_check(sf);
 		bytes_scanned += sf->file_size;
 		st_insert_item(search_table, sf->name_canonic, sf);
-		shared_files = g_slist_prepend(shared_files, sf);
+		shared_files = gm_slist_prepend_const(shared_files, sf);
 		upload_stats_enforce_local_filename(sf);
 	}
 
@@ -1726,10 +1756,13 @@ recursive_scan_step_build_sorted_table(struct bgtask *bt, void *data, int ticks)
 	int i;
 
 	recursive_scan_check(ctx);
+	g_assert(NULL == sorted_file_table);
+
 	(void) ticks;
 
 	sorted_file_table = hcopy(file_table,
 							(files_scanned + 1) * sizeof file_table[0]);
+
 	qsort(sorted_file_table, files_scanned, sizeof sorted_file_table[0],
 		shared_file_sort_by_name);
 
@@ -1745,8 +1778,48 @@ recursive_scan_step_build_sorted_table(struct bgtask *bt, void *data, int ticks)
 	}
 
 	gcu_gui_update_files_scanned();		/* Final view */
+	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
 
 	bg_task_ticks_used(bt, files_scanned / 10);
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_build_partial_table(struct bgtask *bt,
+	void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+
+	ctx->ticks = 0;
+
+	if (NULL == ctx->iter) {
+		ctx->iter = slist_iter_before_head(ctx->partial_files);
+		st_create(partial_table);	/* Reset table */
+	}
+
+	if (!share_can_answer_partials())
+		goto next;
+
+	while (slist_iter_has_next(ctx->iter)) {
+		const struct shared_file *sf = slist_iter_next(ctx->iter);
+
+		shared_file_check(sf);
+		st_insert_item(partial_table, sf->name_canonic, sf);
+
+		if (ctx->ticks++ >= ticks)
+			return BGR_MORE;
+	}
+
+	/* Compact the search table */
+	st_compact(partial_table);
+	ctx->ticks += 5;
+
+next:
+	slist_iter_free(&ctx->iter);
+
+	bg_task_ticks_used(bt, ctx->ticks);
 	return BGR_NEXT;
 }
 
@@ -1762,6 +1835,17 @@ recursive_scan_step_prepare_qrp(struct bgtask *bt, void *data, int ticks)
 	qrp_prepare_computation();
 	ctx->idx = 0;
 
+	if (share_can_answer_partials()) {
+		hash_list_iter_t *iter = hash_list_iterator(partial_files);
+
+		while (hash_list_iter_has_next(iter)) {
+			const shared_file_t *sf = hash_list_iter_next(iter);
+			slist_append(ctx->partial_files, shared_file_ref(sf));
+		}
+
+		hash_list_iter_release(&iter);
+	}
+
 	bg_task_ticks_used(bt, 0);
 	return BGR_NEXT;
 }
@@ -1770,13 +1854,14 @@ static bgret_t
 recursive_scan_step_update_qrp(struct bgtask *bt, void *data, int ticks)
 {
 	struct recursive_scan *ctx = data;
+	shared_file_t *sf;
 
 	recursive_scan_check(ctx);
 
 	ctx->ticks = 0;
 
 	for (/* empty */; UNSIGNED(ctx->idx) < files_scanned; ctx->idx++) {
-		struct shared_file *sf = sorted_file_table[ctx->idx];
+		sf = sorted_file_table[ctx->idx];
 
 		if (!sf)
 			continue;
@@ -1786,6 +1871,15 @@ recursive_scan_step_update_qrp(struct bgtask *bt, void *data, int ticks)
 
 		shared_file_check(sf);
 		qrp_add_file(sf, ctx->words);
+	}
+
+	while (NULL != (sf = slist_shift(ctx->partial_files))) {
+		shared_file_check(sf);
+		qrp_add_file(sf, ctx->words);
+		shared_file_unref(&sf);
+
+		if (ctx->ticks++ >= ticks)
+			return BGR_MORE;
 	}
 
 	bg_task_ticks_used(bt, ctx->ticks);
@@ -1809,7 +1903,6 @@ recursive_scan_step_finalize(struct bgtask *bt, void *data, int ticks)
 	elapsed = MAX(0, elapsed);
 	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_DURATION, elapsed);
 
-	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
 	return BGR_DONE;
 }
 
@@ -1828,11 +1921,32 @@ recursive_scan_create_task(struct recursive_scan *ctx)
 			recursive_scan_step_update_scan_timing,
 			recursive_scan_step_build_sorted_table,
 			recursive_scan_step_prepare_qrp,
+			recursive_scan_step_build_partial_table,
 			recursive_scan_step_update_qrp,
 			recursive_scan_step_finalize,
 		};
 
 		ctx->task = bg_task_create("recursive scan",
+							steps, G_N_ELEMENTS(steps),
+			  				ctx, recursive_scan_context_free,
+							NULL, NULL);
+	}
+}
+
+static void
+share_update_qrp_create_task(struct recursive_scan *ctx)
+{
+	recursive_scan_check(ctx);
+
+	if (NULL == ctx->task) {
+		static const bgstep_cb_t steps[] = {
+			recursive_scan_step_prepare_qrp,
+			recursive_scan_step_build_partial_table,
+			recursive_scan_step_update_qrp,
+			recursive_scan_step_finalize,
+		};
+
+		ctx->task = bg_task_create("QRP update",
 							steps, G_N_ELEMENTS(steps),
 			  				ctx, recursive_scan_context_free,
 							NULL, NULL);
@@ -1851,6 +1965,28 @@ share_scan(void)
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
 	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_STARTED, tm_time_exact());
 	recursive_scan_create_task(recursive_scan_context);
+}
+
+/**
+ * Update the QRP table, including both our shared library and our partials.
+ *
+ * @return whether QRP update task was launched.
+ */
+static gboolean
+share_update_qrp(void)
+{
+	/*
+	 * If we're already rebuilding, do nothing.
+	 */
+
+	if (recursive_scan_context != NULL && recursive_scan_context->task != NULL)
+		return FALSE;
+
+	recursive_scan_free(&recursive_scan_context);
+	recursive_scan_context = recursive_scan_new(NULL);
+	share_update_qrp_create_task(recursive_scan_context);
+
+	return TRUE;
 }
 
 /**
@@ -1896,6 +2032,9 @@ share_close(void)
 	qhit_close();
 	st_free(&search_table);
 	gm_hash_table_destroy_null(&share_media_types);
+	hash_list_free(&partial_files);
+	st_free(&partial_table);
+	cq_cancel(&share_qrp_rebuild_ev);
 }
 
 /*
@@ -2226,6 +2365,7 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 	shared_file_t *sf;
 
 	file_info_check(fi);
+	g_assert(NULL == fi->sf);
 
 	sf = shared_file_alloc();
 	sf->flags = SHARE_F_HAS_DIGEST;
@@ -2369,6 +2509,102 @@ shared_files_scanned(void)
 }
 
 /**
+ * Callout queue callback to initiate a QRP rebuild after a partial file
+ * insertion or removal.
+ */
+static void
+share_qrp_rebuild(cqueue_t *unused_cq, void *unused_data)
+{
+	(void) unused_cq;
+	(void) unused_data;
+
+	share_qrp_rebuild_ev = NULL;
+
+	if (share_update_qrp()) {
+		if (GNET_PROPERTY(share_debug) > 1) {
+			g_debug("SHARE launched background QRP recomputation (%s)",
+				share_can_answer_partials() ?
+					"with partial files" : "library only");
+		}
+	} else {
+		if (GNET_PROPERTY(share_debug) > 1) {
+			g_debug("SHARE deferring background QRP recomputation (%s)",
+				share_can_answer_partials() ?
+					"with partial files" : "library only");
+		}
+		share_qrp_rebuild_ev = cq_main_insert(1000, share_qrp_rebuild, NULL);
+	}
+}
+
+/**
+ * Request asynchronous partial file table (for pattern matching) and QRP
+ * table rebuild if necessary.
+ */
+static void
+share_qrp_rebuild_if_needed(void)
+{
+	if (NULL == share_qrp_rebuild_ev && share_can_answer_partials())
+		share_qrp_rebuild_ev = cq_main_insert(1000, share_qrp_rebuild, NULL);
+}
+
+/**
+ * Records partial file entry.
+ */
+void
+share_add_partial(const shared_file_t *sf)
+{
+	g_assert(shared_file_is_partial(sf));
+
+	if (hash_list_contains(partial_files, sf))
+		return;
+
+	hash_list_append(partial_files, sf);
+
+	/*
+	 * We added a new partial file, we need to rebuild the QRP table.
+	 * Do that asynchronously in case we're called frequently from a loop,
+	 * for instane at startup or when many new files are downloaded.
+	 */
+
+	share_qrp_rebuild_if_needed();
+
+	if (GNET_PROPERTY(share_debug) > 1)
+		g_debug("SHARE added partial file \"%s\"", shared_file_path(sf));
+}
+
+/**
+ * Removes partial file entry.
+ */
+void
+share_remove_partial(const shared_file_t *sf)
+{
+	g_assert(shared_file_is_partial(sf));
+
+	if (NULL == hash_list_remove(partial_files, sf))
+		return;
+
+	/*
+	 * We removed a partial file, we need to rebuild the QRP table.
+	 */
+
+	share_qrp_rebuild_if_needed();
+
+	if (GNET_PROPERTY(share_debug) > 1)
+		g_debug("SHARE removed partial file \"%s\"", shared_file_path(sf));
+}
+
+/**
+ * Whenever support for partial file sharing or partial result answering
+ * changes, rebuild the QRP and matching tables, asynchronously.
+ */
+void
+share_update_matching_information(void)
+{
+	if (NULL == share_qrp_rebuild_ev)
+		share_qrp_rebuild_ev = cq_main_insert(1, share_qrp_rebuild, NULL);
+}
+
+/**
  * Initialization of the sharing library.
  */
 void
@@ -2377,15 +2613,13 @@ share_init(void)
 	size_t i;
 
 	huge_init();
-	search_table = st_alloc();
-	st_initialize(search_table);
 	qrp_init();
 	qhit_init();
 	oob_init();
 	oob_proxy_init();
 	share_special_init();
 
-	/**
+	/*
 	 * We allocate an empty search_table, which will be de-allocated when we
 	 * call share_scan().  Why do we do this?  Because it ensures the table
 	 * is correctly setup empty, until we do call share_scan() for the first
@@ -2398,7 +2632,19 @@ share_init(void)
 	 *		--RAM, 15/08/2002.
 	 */
 
+	search_table = st_alloc();
+	st_initialize(search_table);
 	st_create(search_table);
+
+	/*
+	 * Intialize partial file querying structures (so that queries can
+	 * be applied to partial files).
+	 */
+
+	partial_files = hash_list_new(pointer_hash_func, NULL);
+	partial_table = st_alloc();
+	st_initialize(partial_table);
+	st_create(partial_table);
 
 	/*
 	 * Create the hash table yielding the media type flags from a MIME type.

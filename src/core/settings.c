@@ -1531,11 +1531,37 @@ enable_natpmp_changed(property_t prop)
 static gboolean
 is_udp_firewalled_changed(property_t prop)
 {
-	gboolean fw;
-	
-    gnet_prop_get_boolean_val(prop, &fw);
-	dht_configured_mode_changed(GNET_PROPERTY(dht_configured_mode));
+	(void) prop;
 
+	dht_configured_mode_changed(GNET_PROPERTY(dht_configured_mode));
+	return FALSE;
+}
+
+static gboolean
+pfsp_server_changed(property_t prop)
+{
+	(void) prop;
+
+	share_update_matching_information();
+	return FALSE;
+}
+
+static gboolean
+query_answer_partials_changed(property_t prop)
+{
+	(void) prop;
+
+	if (GNET_PROPERTY(pfsp_server)) {
+		share_update_matching_information();
+	} else {
+		/*
+		 * If we could not share partial files, then we can't return partial
+		 * results anyway so there is nothing to update: our condition did not
+		 * change and we still can't answer with partials.
+		 */
+
+		g_assert(!share_can_answer_partials());
+	}
 	return FALSE;
 }
 
@@ -2855,6 +2881,16 @@ static prop_map_t property_map[] = {
 		PROP_IS_UDP_FIREWALLED,
 		is_udp_firewalled_changed,
 		TRUE,
+	},
+	{
+		PROP_PFSP_SERVER,
+		pfsp_server_changed,
+		FALSE,
+	},
+	{
+		PROP_QUERY_ANSWER_PARTIALS,
+		query_answer_partials_changed,
+		FALSE,
 	},
 };
 

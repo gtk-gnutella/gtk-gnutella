@@ -133,6 +133,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"spam_ip_held",
 		"local_searches",
 		"local_hits",
+		"local_partial_hits",
 		"local_query_hits",
 		"oob_proxied_query_hits",
 		"oob_queries",
