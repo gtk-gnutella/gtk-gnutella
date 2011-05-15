@@ -268,6 +268,7 @@ st_free(search_table_t **ptr)
 	g_assert(ptr);
 	if (*ptr) {
 		search_table_t *table = *ptr;
+		st_destroy(table);
 		wfree(table, sizeof *table);
 		*ptr = NULL;
 	}

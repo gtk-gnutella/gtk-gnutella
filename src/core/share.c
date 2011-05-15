@@ -1615,6 +1615,7 @@ recursive_scan_step_build_search_table(struct bgtask *bt, void *data, int ticks)
 
 		sf = slist_shift(ctx->shared_files);
 		shared_file_check(sf);
+		g_assert(!shared_file_is_partial(sf));
 		bytes_scanned += sf->file_size;
 		st_insert_item(search_table, sf->name_canonic, sf);
 		shared_files = gm_slist_prepend_const(shared_files, sf);
@@ -1796,7 +1797,11 @@ recursive_scan_step_build_partial_table(struct bgtask *bt,
 
 	if (NULL == ctx->iter) {
 		ctx->iter = slist_iter_before_head(ctx->partial_files);
-		st_create(partial_table);	/* Reset table */
+		/*
+		 * Reset table, whether or not we can answer with partial files.
+		 */
+		st_destroy(partial_table);
+		st_create(partial_table);
 	}
 
 	if (!share_can_answer_partials())
@@ -1806,6 +1811,7 @@ recursive_scan_step_build_partial_table(struct bgtask *bt,
 		const struct shared_file *sf = slist_iter_next(ctx->iter);
 
 		shared_file_check(sf);
+		g_assert(shared_file_is_partial(sf));
 		st_insert_item(partial_table, sf->name_canonic, sf);
 
 		if (ctx->ticks++ >= ticks)
