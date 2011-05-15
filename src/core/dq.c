@@ -1002,6 +1002,9 @@ dq_expired(cqueue_t *unused_cq, gpointer obj)
 {
 	dquery_t *dq = obj;
 
+	dquery_check(dq);
+	g_assert(dq->expired_ev != NULL);
+
 	(void) unused_cq;
 
 	if (GNET_PROPERTY(dq_debug) > 3)
@@ -1043,6 +1046,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	(void) unused_cq;
 	dquery_check(dq);
 	g_assert(!(dq->flags & DQ_F_LINGER));
+	g_assert(dq->results_ev != NULL);
 
 	dq->results_ev = NULL;	/* Indicates callback fired */
 
