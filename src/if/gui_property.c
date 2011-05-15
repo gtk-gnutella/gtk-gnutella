@@ -31,6 +31,7 @@
 
 #include "lib/prop.h"
 #include "lib/eval.h"
+#include "lib/omalloc.h"
 #include "gui_property.h"
 
 /*
@@ -330,13 +331,13 @@ prop_set_t *
 gui_prop_init(void) {
     guint32 n;
 
-    gui_property = g_new(prop_set_t, 1);
+    gui_property = omalloc(sizeof(prop_set_t));
     gui_property->name   = "gui_property";
     gui_property->desc   = "";
     gui_property->size   = GUI_PROPERTY_NUM;
     gui_property->offset = 1000;
     gui_property->mtime  = 0;
-    gui_property->props  = g_new(prop_def_t, GUI_PROPERTY_NUM);
+    gui_property->props  = omalloc(sizeof(prop_def_t) * GUI_PROPERTY_NUM);
     gui_property->get_stub = gui_prop_get_stub;
     gui_property->dirty = FALSE;
     gui_property->byName = NULL;
@@ -2402,8 +2403,14 @@ gui_prop_shutdown(void) {
         }
     }
 
-    G_FREE_NULL(gui_property->props);
-    G_FREE_NULL(gui_property);
+	/*
+	 * We don't free gui_property->props and gui_property.
+	 * They are allocated via omalloc().
+	 *
+	 * Prevent further access to the now shutdown properties, that's all.
+	 */
+
+	gui_property = NULL;
 }
 
 prop_def_t *

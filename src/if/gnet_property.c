@@ -29,6 +29,7 @@
 
 #include "lib/prop.h"
 #include "lib/eval.h"
+#include "lib/omalloc.h"
 #include "gnet_property.h"
 
 /*
@@ -980,13 +981,13 @@ prop_set_t *
 gnet_prop_init(void) {
     guint32 n;
 
-    gnet_property = g_new(prop_set_t, 1);
+    gnet_property = omalloc(sizeof(prop_set_t));
     gnet_property->name   = "gnet_property";
     gnet_property->desc   = "";
     gnet_property->size   = GNET_PROPERTY_NUM;
     gnet_property->offset = (NO_PROP+1);
     gnet_property->mtime  = 0;
-    gnet_property->props  = g_new(prop_def_t, GNET_PROPERTY_NUM);
+    gnet_property->props  = omalloc(sizeof(prop_def_t) * GNET_PROPERTY_NUM);
     gnet_property->get_stub = gnet_prop_get_stub;
     gnet_property->dirty = FALSE;
     gnet_property->byName = NULL;
@@ -8952,8 +8953,14 @@ gnet_prop_shutdown(void) {
         }
     }
 
-    G_FREE_NULL(gnet_property->props);
-    G_FREE_NULL(gnet_property);
+	/*
+	 * We don't free gnet_property->props and gnet_property.
+	 * They are allocated via omalloc().
+	 *
+	 * Prevent further access to the now shutdown properties, that's all.
+	 */
+
+	gnet_property = NULL;
 }
 
 prop_def_t *

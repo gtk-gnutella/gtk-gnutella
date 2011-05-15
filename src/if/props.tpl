@@ -297,6 +297,7 @@ void [=(. func-prefix)=]_shutdown(void);
 
 #include "lib/prop.h"
 #include "lib/eval.h"
+#include "lib/omalloc.h"
 #include "[=(sprintf "%s.h" (. set-name-down))=]"
 
 /*
@@ -368,13 +369,13 @@ prop_set_t *
 [=(. func-prefix)=]_init(void) {
     guint32 n;
 
-    [=(. prop-set)=] = g_new(prop_set_t, 1);
+    [=(. prop-set)=] = omalloc(sizeof(prop_set_t));
     [=(. prop-set)=]->name   = "[=property_set=]";
     [=(. prop-set)=]->desc   = "";
     [=(. prop-set)=]->size   = [=(. prop-num)=];
     [=(. prop-set)=]->offset = [=offset=];
     [=(. prop-set)=]->mtime  = 0;
-    [=(. prop-set)=]->props  = g_new(prop_def_t, [=(. prop-num)=]);
+    [=(. prop-set)=]->props  = omalloc(sizeof(prop_def_t) * [=(. prop-num)=]);
     [=(. prop-set)=]->get_stub = [=(. func-prefix)=]_get_stub;
     [=(. prop-set)=]->dirty = FALSE;
     [=(. prop-set)=]->byName = NULL;[=
@@ -552,8 +553,14 @@ void
         }
     }
 
-    G_FREE_NULL([=(. prop-array)=]);
-    G_FREE_NULL([=(. prop-set)=]);
+	/*
+	 * We don't free [=(. prop-array)=] and [=(. prop-set)=].
+	 * They are allocated via omalloc().
+	 *
+	 * Prevent further access to the now shutdown properties, that's all.
+	 */
+
+	[=(. prop-set)=] = NULL;
 }
 
 prop_def_t *
