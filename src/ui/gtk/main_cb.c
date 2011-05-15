@@ -112,10 +112,21 @@ load_faq(void)
 static void
 quit(gboolean force)
 {
-    gboolean confirm;
+	static gboolean quitting;
+	gboolean confirm;
+
+	/*
+	 * Protect against multiple invocations, since we have many callbacks
+	 * that can invoke this routine.  Once we decided to quit for good,
+	 * any further invocation would fault on the GUI property access.
+	 */
+
+	if (quitting)
+		return;
 
     gui_prop_get_boolean_val(PROP_CONFIRM_QUIT, &confirm);
     if (force || !confirm) {
+		quitting = TRUE;
        	guc_gtk_gnutella_exit(0);
 	} else {
         gtk_widget_show(gui_dlg_quit());
