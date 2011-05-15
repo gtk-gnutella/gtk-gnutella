@@ -1003,7 +1003,7 @@ dq_expired(cqueue_t *unused_cq, gpointer obj)
 	dquery_t *dq = obj;
 
 	dquery_check(dq);
-	g_assert(dq->expired_ev != NULL);
+	g_assert(dq->expire_ev != NULL);
 
 	(void) unused_cq;
 
