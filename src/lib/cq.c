@@ -109,6 +109,7 @@ enum cqueue_magic  {
 };
 
 struct cqueue {
+	enum cqueue_magic cq_magic;
 	tm_t cq_last_heartbeat;		/**< Real time of last heartbeat */
 	cq_time_t cq_time;			/**< "current time" */
 	const char *cq_name;		/**< Queue name, for logging */
@@ -116,7 +117,6 @@ struct cqueue {
 	struct chash *cq_current;	/**< Current bucket scanned in cq_clock() */
 	GHashTable *cq_periodic;	/**< Periodic events registered */
 	GHashTable *cq_idle;		/**< Idle events registered */
-	enum cqueue_magic cq_magic;
 	int cq_ticks;				/**< Number of cq_clock() calls processed */
 	int cq_items;				/**< Amount of recorded events */
 	int cq_last_bucket;			/**< Last bucket slot we were at */
