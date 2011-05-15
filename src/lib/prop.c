@@ -1811,7 +1811,7 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 	gboolean saved_only)
 {
 	prop_def_t *p;
-	prop_set_stub_t *stub;
+	const prop_set_stub_t *stub;
 	static union {
 		gboolean	boolean[100];
 		guint32		uint32[100];
@@ -1907,9 +1907,8 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 	case NUM_PROP_TYPES:
 		g_assert_not_reached();
 	}
-
-	G_FREE_NULL(stub);
 }
+
 /**
  * Called by prop_load_from_file to actually set the properties.
  */

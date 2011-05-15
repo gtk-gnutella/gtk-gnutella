@@ -94,7 +94,7 @@ typedef enum {[=
 /*
  * Property set stub
  */
-prop_set_stub_t *[=(. func-prefix)=]_get_stub(void);
+const prop_set_stub_t *[=(. func-prefix)=]_get_stub(void);
 
 /*
  * Property definition
@@ -235,6 +235,7 @@ gpointer [=(. func-prefix)=]_get_storage(property_t, gpointer, size_t);
 
 #endif /* _[=(. set-name-down)=]_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */
 [=
 (out-switch (sprintf "%s_priv.h" (. set-name-down)))
 (. license)
@@ -286,6 +287,7 @@ void [=(. func-prefix)=]_shutdown(void);
 
 #endif /* _[=(. set-name-down)=]_priv_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */
 [=
 (out-switch (sprintf "%s.c" (. set-name-down)))
 (. license)
@@ -754,49 +756,55 @@ void
  * Returns a new stub struct for this property set. Just g_free it
  * when it is no longer needed. All fields are read only!
  */
-prop_set_stub_t *
+const prop_set_stub_t *
 [=(. func-prefix)=]_get_stub(void)
 {
-    prop_set_stub_t *stub;
+	static prop_set_stub_t stub;
+	static gboolean inited;
 
-    stub          = g_new0(prop_set_stub_t, 1);
-    stub->size    = [=(. prop-num)=];
-    stub->offset  = [=(. prop-min)=];
-    stub->get_def = [=(. func-prefix)=]_get_def;
-    stub->get_by_name = [=(. func-prefix)=]_get_by_name;
-    stub->to_string = [=(. func-prefix)=]_to_string;
+	if G_LIKELY(inited)
+		return &stub;
 
-    stub->prop_changed_listener.add =
-        [=(. func-prefix)=]_add_prop_changed_listener;
-    stub->prop_changed_listener.add_full =
-        [=(. func-prefix)=]_add_prop_changed_listener_full;
-    stub->prop_changed_listener.remove =
-        [=(. func-prefix)=]_remove_prop_changed_listener;
+	stub.size    = [=(. prop-num)=];
+	stub.offset  = [=(. prop-min)=];
+	stub.get_def = [=(. func-prefix)=]_get_def;
+	stub.get_by_name = [=(. func-prefix)=]_get_by_name;
+	stub.to_string = [=(. func-prefix)=]_to_string;
 
-    stub->boolean.get = [=(. func-prefix)=]_get_boolean;
-    stub->boolean.set = [=(. func-prefix)=]_set_boolean;
+	stub.prop_changed_listener.add =
+		[=(. func-prefix)=]_add_prop_changed_listener;
+	stub.prop_changed_listener.add_full =
+		[=(. func-prefix)=]_add_prop_changed_listener_full;
+	stub.prop_changed_listener.remove =
+		[=(. func-prefix)=]_remove_prop_changed_listener;
 
-    stub->guint32.get = [=(. func-prefix)=]_get_guint32;
-    stub->guint32.set = [=(. func-prefix)=]_set_guint32;
+	stub.boolean.get = [=(. func-prefix)=]_get_boolean;
+	stub.boolean.set = [=(. func-prefix)=]_set_boolean;
 
-    stub->guint64.get = [=(. func-prefix)=]_get_guint64;
-    stub->guint64.set = [=(. func-prefix)=]_set_guint64;
+	stub.guint32.get = [=(. func-prefix)=]_get_guint32;
+	stub.guint32.set = [=(. func-prefix)=]_set_guint32;
 
-    stub->string.get = [=(. func-prefix)=]_get_string;
-    stub->string.set = [=(. func-prefix)=]_set_string;
+	stub.guint64.get = [=(. func-prefix)=]_get_guint64;
+	stub.guint64.set = [=(. func-prefix)=]_set_guint64;
 
-    stub->storage.get = [=(. func-prefix)=]_get_storage;
-    stub->storage.set = [=(. func-prefix)=]_set_storage;
+	stub.string.get = [=(. func-prefix)=]_get_string;
+	stub.string.set = [=(. func-prefix)=]_set_string;
 
-    stub->timestamp.get = [=(. func-prefix)=]_get_timestamp;
-    stub->timestamp.set = [=(. func-prefix)=]_set_timestamp;
+	stub.storage.get = [=(. func-prefix)=]_get_storage;
+	stub.storage.set = [=(. func-prefix)=]_set_storage;
 
-    stub->ip.get = [=(. func-prefix)=]_get_ip;
-    stub->ip.set = [=(. func-prefix)=]_set_ip;
+	stub.timestamp.get = [=(. func-prefix)=]_get_timestamp;
+	stub.timestamp.set = [=(. func-prefix)=]_set_timestamp;
 
-    return stub;
+	stub.ip.get = [=(. func-prefix)=]_get_ip;
+	stub.ip.set = [=(. func-prefix)=]_set_ip;
+
+	inited = TRUE;
+	return &stub;
 }
 
 [=	IF (= (get "property_set") "gui_property")	=]
 [=	(sprintf "#endif /* !USE_TOPLESS */")	=]
 [=	ENDIF	=]
+
+/* vi: set ts=4 sw=4 cindent: */

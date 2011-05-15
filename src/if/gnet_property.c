@@ -9154,47 +9154,53 @@ gnet_prop_set_from_string(property_t prop, const char *val)
  * Returns a new stub struct for this property set. Just g_free it
  * when it is no longer needed. All fields are read only!
  */
-prop_set_stub_t *
+const prop_set_stub_t *
 gnet_prop_get_stub(void)
 {
-    prop_set_stub_t *stub;
+	static prop_set_stub_t stub;
+	static gboolean inited;
 
-    stub          = g_new0(prop_set_stub_t, 1);
-    stub->size    = GNET_PROPERTY_NUM;
-    stub->offset  = GNET_PROPERTY_MIN;
-    stub->get_def = gnet_prop_get_def;
-    stub->get_by_name = gnet_prop_get_by_name;
-    stub->to_string = gnet_prop_to_string;
+	if G_LIKELY(inited)
+		return &stub;
 
-    stub->prop_changed_listener.add =
-        gnet_prop_add_prop_changed_listener;
-    stub->prop_changed_listener.add_full =
-        gnet_prop_add_prop_changed_listener_full;
-    stub->prop_changed_listener.remove =
-        gnet_prop_remove_prop_changed_listener;
+	stub.size    = GNET_PROPERTY_NUM;
+	stub.offset  = GNET_PROPERTY_MIN;
+	stub.get_def = gnet_prop_get_def;
+	stub.get_by_name = gnet_prop_get_by_name;
+	stub.to_string = gnet_prop_to_string;
 
-    stub->boolean.get = gnet_prop_get_boolean;
-    stub->boolean.set = gnet_prop_set_boolean;
+	stub.prop_changed_listener.add =
+		gnet_prop_add_prop_changed_listener;
+	stub.prop_changed_listener.add_full =
+		gnet_prop_add_prop_changed_listener_full;
+	stub.prop_changed_listener.remove =
+		gnet_prop_remove_prop_changed_listener;
 
-    stub->guint32.get = gnet_prop_get_guint32;
-    stub->guint32.set = gnet_prop_set_guint32;
+	stub.boolean.get = gnet_prop_get_boolean;
+	stub.boolean.set = gnet_prop_set_boolean;
 
-    stub->guint64.get = gnet_prop_get_guint64;
-    stub->guint64.set = gnet_prop_set_guint64;
+	stub.guint32.get = gnet_prop_get_guint32;
+	stub.guint32.set = gnet_prop_set_guint32;
 
-    stub->string.get = gnet_prop_get_string;
-    stub->string.set = gnet_prop_set_string;
+	stub.guint64.get = gnet_prop_get_guint64;
+	stub.guint64.set = gnet_prop_set_guint64;
 
-    stub->storage.get = gnet_prop_get_storage;
-    stub->storage.set = gnet_prop_set_storage;
+	stub.string.get = gnet_prop_get_string;
+	stub.string.set = gnet_prop_set_string;
 
-    stub->timestamp.get = gnet_prop_get_timestamp;
-    stub->timestamp.set = gnet_prop_set_timestamp;
+	stub.storage.get = gnet_prop_get_storage;
+	stub.storage.set = gnet_prop_set_storage;
 
-    stub->ip.get = gnet_prop_get_ip;
-    stub->ip.set = gnet_prop_set_ip;
+	stub.timestamp.get = gnet_prop_get_timestamp;
+	stub.timestamp.set = gnet_prop_set_timestamp;
 
-    return stub;
+	stub.ip.get = gnet_prop_get_ip;
+	stub.ip.set = gnet_prop_set_ip;
+
+	inited = TRUE;
+	return &stub;
 }
 
 
+
+/* vi: set ts=4 sw=4 cindent: */

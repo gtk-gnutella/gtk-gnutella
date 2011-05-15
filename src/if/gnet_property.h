@@ -458,7 +458,7 @@ typedef enum {
 /*
  * Property set stub
  */
-prop_set_stub_t *gnet_prop_get_stub(void);
+const prop_set_stub_t *gnet_prop_get_stub(void);
 
 /*
  * Property definition
@@ -599,3 +599,4 @@ gpointer gnet_prop_get_storage(property_t, gpointer, size_t);
 
 #endif /* _gnet_property_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

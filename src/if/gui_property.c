@@ -2604,49 +2604,55 @@ gui_prop_set_from_string(property_t prop, const char *val)
  * Returns a new stub struct for this property set. Just g_free it
  * when it is no longer needed. All fields are read only!
  */
-prop_set_stub_t *
+const prop_set_stub_t *
 gui_prop_get_stub(void)
 {
-    prop_set_stub_t *stub;
+	static prop_set_stub_t stub;
+	static gboolean inited;
 
-    stub          = g_new0(prop_set_stub_t, 1);
-    stub->size    = GUI_PROPERTY_NUM;
-    stub->offset  = GUI_PROPERTY_MIN;
-    stub->get_def = gui_prop_get_def;
-    stub->get_by_name = gui_prop_get_by_name;
-    stub->to_string = gui_prop_to_string;
+	if G_LIKELY(inited)
+		return &stub;
 
-    stub->prop_changed_listener.add =
-        gui_prop_add_prop_changed_listener;
-    stub->prop_changed_listener.add_full =
-        gui_prop_add_prop_changed_listener_full;
-    stub->prop_changed_listener.remove =
-        gui_prop_remove_prop_changed_listener;
+	stub.size    = GUI_PROPERTY_NUM;
+	stub.offset  = GUI_PROPERTY_MIN;
+	stub.get_def = gui_prop_get_def;
+	stub.get_by_name = gui_prop_get_by_name;
+	stub.to_string = gui_prop_to_string;
 
-    stub->boolean.get = gui_prop_get_boolean;
-    stub->boolean.set = gui_prop_set_boolean;
+	stub.prop_changed_listener.add =
+		gui_prop_add_prop_changed_listener;
+	stub.prop_changed_listener.add_full =
+		gui_prop_add_prop_changed_listener_full;
+	stub.prop_changed_listener.remove =
+		gui_prop_remove_prop_changed_listener;
 
-    stub->guint32.get = gui_prop_get_guint32;
-    stub->guint32.set = gui_prop_set_guint32;
+	stub.boolean.get = gui_prop_get_boolean;
+	stub.boolean.set = gui_prop_set_boolean;
 
-    stub->guint64.get = gui_prop_get_guint64;
-    stub->guint64.set = gui_prop_set_guint64;
+	stub.guint32.get = gui_prop_get_guint32;
+	stub.guint32.set = gui_prop_set_guint32;
 
-    stub->string.get = gui_prop_get_string;
-    stub->string.set = gui_prop_set_string;
+	stub.guint64.get = gui_prop_get_guint64;
+	stub.guint64.set = gui_prop_set_guint64;
 
-    stub->storage.get = gui_prop_get_storage;
-    stub->storage.set = gui_prop_set_storage;
+	stub.string.get = gui_prop_get_string;
+	stub.string.set = gui_prop_set_string;
 
-    stub->timestamp.get = gui_prop_get_timestamp;
-    stub->timestamp.set = gui_prop_set_timestamp;
+	stub.storage.get = gui_prop_get_storage;
+	stub.storage.set = gui_prop_set_storage;
 
-    stub->ip.get = gui_prop_get_ip;
-    stub->ip.set = gui_prop_set_ip;
+	stub.timestamp.get = gui_prop_get_timestamp;
+	stub.timestamp.set = gui_prop_set_timestamp;
 
-    return stub;
+	stub.ip.get = gui_prop_get_ip;
+	stub.ip.set = gui_prop_set_ip;
+
+	inited = TRUE;
+	return &stub;
 }
 
 
 #endif /* !USE_TOPLESS */
 
+
+/* vi: set ts=4 sw=4 cindent: */

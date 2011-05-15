@@ -117,8 +117,8 @@ typedef struct prop_map {
 #define NOT_IN_MAP	(-1)
 #define IGNORE_CB		NULL
 
-static prop_set_stub_t *gui_prop_set_stub;
-static prop_set_stub_t *gnet_prop_set_stub;
+static const prop_set_stub_t *gui_prop_set_stub;
+static const prop_set_stub_t *gnet_prop_set_stub;
 
 static gint gui_init_list[GUI_PROPERTY_NUM];
 static gint gnet_init_list[GNET_PROPERTY_NUM];
@@ -5935,8 +5935,6 @@ settings_gui_shutdown(void)
     gui_prop_shutdown();
 
     G_FREE_NULL(home_dir);
-    G_FREE_NULL(gui_prop_set_stub);
-    G_FREE_NULL(gnet_prop_set_stub);
 }
 
 GtkTooltips *

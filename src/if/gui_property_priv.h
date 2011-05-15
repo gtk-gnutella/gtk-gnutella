@@ -167,3 +167,4 @@ void gui_prop_shutdown(void);
 
 #endif /* _gui_property_priv_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

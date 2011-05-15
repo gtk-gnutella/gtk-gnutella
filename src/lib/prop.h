@@ -222,7 +222,7 @@ typedef struct prop_set_stub {
 /**
  * Stub-fetcher signature.
  */
-typedef prop_set_stub_t *(*prop_set_get_stub_t)(void);
+typedef const prop_set_stub_t *(*prop_set_get_stub_t)(void);
 
 /**
  * Property set definition.
