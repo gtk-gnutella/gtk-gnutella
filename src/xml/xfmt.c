@@ -43,6 +43,7 @@ RCSID("$Id$")
 
 #include "lib/ascii.h"
 #include "lib/halloc.h"
+#include "lib/log.h"		/* For log_file_printable() */
 #include "lib/misc.h"		/* For CONST_STRLEN() */
 #include "lib/nv.h"
 #include "lib/ostream.h"
@@ -1153,6 +1154,9 @@ gboolean
 xfmt_tree_dump(const xnode_t *root, FILE *f)
 {
 	ostream_t *os;
+
+	if (!log_file_printable(f))
+		return FALSE;
 
 	os = ostream_open_file(f);
 	xfmt_tree(root, os, XFMT_O_SKIP_BLANKS);

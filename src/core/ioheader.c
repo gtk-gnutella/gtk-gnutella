@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "lib/getline.h"
 #include "lib/header.h"
 #include "lib/inputevt.h"
+#include "lib/log.h"		/* For log_printable() */
 #include "lib/misc.h"
 #include "lib/str.h"
 #include "lib/walloc.h"
@@ -192,9 +193,11 @@ nextline:
 	case READ_OVERFLOW:
 		g_warning("io_header_parse: line too long, disconnecting from %s",
 			host_addr_to_string(s->addr));
-		dump_hex(stderr, "Leading Data", s->buf, MIN(s->pos, 256));
-		fprintf(stderr, "------ Header Dump:\n");
-		header_dump(stderr, header, "-----");
+		if (log_printable(LOG_STDERR)) {
+			dump_hex(stderr, "Leading Data", s->buf, MIN(s->pos, 256));
+			fprintf(stderr, "------ Header Dump:\n");
+			header_dump(stderr, header, "-----");
+		}
 		(*ih->error->line_too_long)(ih->resource, header);
 		return;
 		/* NOTREACHED */
@@ -275,10 +278,12 @@ nextline:
 	case HEAD_EOH_REACHED:
 		g_warning("io_header_parse: %s, disconnecting from %s",
 			header_strerror(error),	host_addr_to_string(s->addr));
-		fprintf(stderr, "------ Header Dump:\n");
-		header_dump(stderr, header, "-----");
-		dump_hex(stderr, "Header Line", getline_str(ih->getline),
-			MIN(getline_length(ih->getline), 128));
+		if (log_printable(LOG_STDERR)) {
+			fprintf(stderr, "------ Header Dump:\n");
+			header_dump(stderr, header, "-----");
+			dump_hex(stderr, "Header Line", getline_str(ih->getline),
+				MIN(getline_length(ih->getline), 128));
+		}
 		(*ih->error->header_error)(ih->resource, error);
 		return;
 		/* NOTREACHED */
@@ -286,10 +291,12 @@ nextline:
 		if (GNET_PROPERTY(dbg)) {
 			g_warning("io_header_parse: %s, from %s",
 				header_strerror(error), host_addr_to_string(s->addr));
-			dump_hex(stderr, "Header Line",
-				getline_str(ih->getline), getline_length(ih->getline));
-			fprintf(stderr, "------ Header Dump (so far):\n");
-			header_dump(stderr, header, "-----");
+			if (log_printable(LOG_STDERR)) {
+				dump_hex(stderr, "Header Line",
+					getline_str(ih->getline), getline_length(ih->getline));
+				fprintf(stderr, "------ Header Dump (so far):\n");
+				header_dump(stderr, header, "-----");
+			}
 		}
 		getline_reset(ih->getline);
 		goto nextline;			/* Go process other lines we may have read */

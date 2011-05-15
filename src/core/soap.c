@@ -55,6 +55,7 @@ RCSID("$Id$")
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/host_addr.h"
+#include "lib/log.h"			/* For log_printable() */
 #include "lib/misc.h"			/* For EMPTY_STRING() */
 #include "lib/ostream.h"
 #include "lib/parse.h"
@@ -260,8 +261,10 @@ soap_process_reply(soap_rpc_t *sr)
 
 	if (sr->reply_len != 0 && (GNET_PROPERTY(soap_trace) & SOCK_TRACE_IN)) {
 		g_debug("----Got SOAP HTTP reply data from %s:", sr->url);
-		fwrite(sr->reply_data, sr->reply_len, 1, stderr);
-		fputs("----End SOAP HTTP reply\n", stderr);
+		if (log_printable(LOG_STDERR)) {
+			fwrite(sr->reply_data, sr->reply_len, 1, stderr);
+			fputs("----End SOAP HTTP reply\n", stderr);
+		}
 	}
 
 	if (GNET_PROPERTY(soap_debug) > 2) {
@@ -796,8 +799,10 @@ soap_got_reply(const http_async_t *ha,
 	if (GNET_PROPERTY(soap_trace) & SOCK_TRACE_IN) {
 		g_debug("----Got SOAP HTTP reply from %s:",
 			host_addr_to_string(s->addr));
-		fprintf(stderr, "%s\n", status);
-		header_dump(stderr, header, "----");
+		if (log_printable(LOG_STDERR)) {
+			fprintf(stderr, "%s\n", status);
+			header_dump(stderr, header, "----");
+		}
 	}
 }
 

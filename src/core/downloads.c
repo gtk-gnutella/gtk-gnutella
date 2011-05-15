@@ -6095,6 +6095,7 @@ download_pick_followup(struct download *d, const struct sha1 *sha1)
 
 	download_check(d);
 	g_assert(d->list_idx == DL_LIST_WAITING);
+	g_assert(!download_pipelining(d));
 
 	if (!GNET_PROPERTY(dl_resource_switching))
 		return d;
@@ -6147,8 +6148,10 @@ download_pick_followup(struct download *d, const struct sha1 *sha1)
 			
 			if (DOWNLOAD_IS_SWITCHABLE(dt)) {
 				if (GNET_PROPERTY(download_debug)) {
-					g_debug("TTH requesting switching from plain %s to %s",
-						download_basename(d), download_basename(dt));
+					g_debug("TTH requesting switching from "
+						"plain \"%s\" to \"%s\" on %s",
+						download_basename(d), download_basename(dt),
+						download_host_info(d));
 				}
 				d = dt;
 				goto done;

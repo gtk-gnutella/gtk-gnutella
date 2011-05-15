@@ -61,6 +61,7 @@ RCSID("$Id$")
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/log.h"				/* For log_printable() */
 #include "lib/parse.h"
 #include "lib/pmsg.h"
 #include "lib/stringify.h"
@@ -2334,10 +2335,12 @@ http_async_got_reply(const http_async_t *unused_ha,
 	(void) unused_ha;
 
 	if (GNET_PROPERTY(http_trace) & SOCK_TRACE_IN) {
-		g_debug("----Got HTTP reply from %s:",
-			host_addr_to_string(s->addr));
-		fprintf(stderr, "%s\n", status);
-		header_dump(stderr, header, "----");
+		if (log_printable(LOG_STDERR)) {
+			g_debug("----Got HTTP reply from %s:",
+				host_addr_to_string(s->addr));
+			fprintf(stderr, "%s\n", status);
+			header_dump(stderr, header, "----");
+		}
 	}
 }
 

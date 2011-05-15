@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "getline.h"		/* For MAX_LINE_SIZE */
 #include "glib-missing.h"
 #include "halloc.h"
+#include "log.h"			/* For log_file_printable() */
 #include "misc.h"
 #include "slist.h"
 #include "str.h"
@@ -658,6 +659,9 @@ void
 header_dump(FILE *out, const header_t *o, const char *trailer)
 {
 	header_check(o);
+
+	if (!log_file_printable(out))
+		return;
 
 	if (o->fields) {
 		slist_foreach(o->fields, header_dump_item, out);

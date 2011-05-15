@@ -71,6 +71,7 @@ RCSID("$Id$")
 #include "lib/header.h"
 #include "lib/glib-missing.h"
 #include "lib/endian.h"
+#include "lib/log.h"
 #include "lib/parse.h"
 #include "lib/sequence.h"
 #include "lib/tm.h"
@@ -1258,8 +1259,10 @@ cproxy_got_reply(const struct http_async *unused_ha,
 	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_IN) {
 		g_debug("----Got push-proxy reply from %s:",
 			host_addr_to_string(s->addr));
-		fprintf(stderr, "%s\n", status);
-		header_dump(stderr, header, "----");
+		if (log_printable(LOG_STDERR)) {
+			fprintf(stderr, "%s\n", status);
+			header_dump(stderr, header, "----");
+		}
 	}
 }
 

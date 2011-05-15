@@ -48,6 +48,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/stringify.h"
 #include "lib/halloc.h"
+#include "lib/log.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -2124,6 +2125,9 @@ ext_dump(FILE *fd, const extvec_t *exv, int exvcnt,
 	const char *prefix, const char *postfix, gboolean payload)
 {
 	int i;
+
+	if (!log_file_printable(fd))
+		return;
 
 	for (i = 0; i < exvcnt; i++)
 		ext_dump_one(fd, &exv[i], prefix, postfix, payload);

@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "entropy.h"
 #include "halloc.h"
 #include "html_entities.h"
+#include "log.h"				/* For log_file_printable() */
 #include "misc.h"
 #include "glib-missing.h"
 #include "sha1.h"
@@ -1465,9 +1466,11 @@ dump_hex(FILE *out, const char *title, gconstpointer data, int length)
 	if (length < 0 || data == NULL) {
 		g_carp("dump_hex: value out of range [data=0x%lx, length=%d] for %s",
 			(gulong) data, length, title);
-		fflush(out);
 		return;
 	}
+
+	if (!log_file_printable(out))
+		return;
 
 	fprintf(out, "----------------- %s:\n", title);
 
@@ -1496,6 +1499,9 @@ dump_string(FILE *out, const char *str, size_t len, const char *trailer)
 	g_return_if_fail(out);
 	g_return_if_fail(str);
 	g_return_if_fail(size_is_non_negative(len));
+
+	if (!log_file_printable(out))
+		return;
 
 	if (len)
 		fwrite(str, len, 1, out);

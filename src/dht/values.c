@@ -88,6 +88,7 @@ RCSID("$Id$")
 #include "lib/dbstore.h"
 #include "lib/glib-missing.h"
 #include "lib/host_addr.h"
+#include "lib/log.h"				/* For log_file_printable() */
 #include "lib/parse.h"
 #include "lib/pmsg.h"
 #include "lib/stringify.h"
@@ -363,6 +364,9 @@ dht_value_length(const dht_value_t *v)
 void
 dht_value_dump(FILE *out, const dht_value_t *v)
 {
+	if (!log_file_printable(out))
+		return;
+
 	fprintf(out, "%s\n", dht_value_to_string(v));
 	if (v->data != NULL) {
 		dump_hex(out, "Value Data", v->data, v->length);

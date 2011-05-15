@@ -108,6 +108,7 @@ RCSID("$Id$")
 #include "lib/hashlist.h"
 #include "lib/header.h"
 #include "lib/iovec.h"
+#include "lib/log.h"			/* For log_printable() */
 #include "lib/listener.h"
 #include "lib/nid.h"
 #include "lib/parse.h"
@@ -2482,16 +2483,18 @@ node_eof_v(struct gnutella_node *n, const char *reason, va_list args)
 	if (n->flags & NODE_F_BYE_SENT) {
 		g_assert(n->status == GTA_NODE_SHUTDOWN);
 		if (GNET_PROPERTY(node_debug)) {
-			va_list dbargs;
-
 			g_debug("EOF-style error during BYE to %s:\n (BYE) ",
 				node_addr(n));
 
-			VA_COPY(dbargs, args);
-			vfprintf(stderr, reason, dbargs);
-			va_end(dbargs);
+			if (log_printable(LOG_STDERR)) {
+				va_list dbargs;
 
-			fprintf(stderr, "\n");
+				VA_COPY(dbargs, args);
+				vfprintf(stderr, reason, dbargs);
+				va_end(dbargs);
+
+				fprintf(stderr, "\n");
+			}
 		}
 	}
 
@@ -4831,14 +4834,16 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		const char *status = getline_str(s->getline);
 		g_debug("----Got final acknowledgment headers from node %s:",
 			host_addr_to_string(n->addr));
-		if (is_printable_iso8859_string(status)) {
-			fprintf(stderr, "%s\n", status);
-		} else {
-			dump_hex(stderr, "Status Line", status,
-				MIN(getline_length(s->getline), 80));
+		if (log_printable(LOG_STDERR)) {
+			if (is_printable_iso8859_string(status)) {
+				fprintf(stderr, "%s\n", status);
+			} else {
+				dump_hex(stderr, "Status Line", status,
+					MIN(getline_length(s->getline), 80));
+			}
+			header_dump(stderr, head, "----");
+			fflush(stderr);
 		}
-		header_dump(stderr, head, "----");
-		fflush(stderr);
 	}
 
 	ack_ok = analyse_status(n, NULL);
@@ -5133,17 +5138,19 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		g_debug("----Got %s handshaking headers from node %s:",
 			incoming ? "incoming" : "outgoing",
 			host_addr_to_string(n->addr));
-		if (!incoming) {
-			const char *status = getline_str(n->socket->getline);
-			if (is_printable_iso8859_string(status)) {
-				fprintf(stderr, "%s\n", status);
-			} else {
-				dump_hex(stderr, "Status Line", status,
-					MIN(getline_length(n->socket->getline), 80));
+		if (log_printable(LOG_STDERR)) {
+			if (!incoming) {
+				const char *status = getline_str(n->socket->getline);
+				if (is_printable_iso8859_string(status)) {
+					fprintf(stderr, "%s\n", status);
+				} else {
+					dump_hex(stderr, "Status Line", status,
+						MIN(getline_length(n->socket->getline), 80));
+				}
 			}
+			header_dump(stderr, head, "----");
+			fflush(stderr);
 		}
-		header_dump(stderr, head, "----");
-		fflush(stderr);
 	}
 
 	if (in_shutdown) {

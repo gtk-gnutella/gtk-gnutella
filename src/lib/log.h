@@ -76,6 +76,8 @@ void log_stat(enum log_file which, struct logstat *buf);
 gboolean log_is_managed(enum log_file which);
 gboolean log_is_disabled(enum log_file which);
 gboolean log_stdout_is_distinct(void);
+gboolean log_printable(enum log_file which);
+gboolean log_file_printable(const FILE *out);
 
 /*
  * Safe logging interface (to avoid recursive logging, or from signal handlers).

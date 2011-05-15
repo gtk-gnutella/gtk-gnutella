@@ -144,6 +144,46 @@ log_file_check(enum log_file which)
 }
 
 /**
+ * Is stdio file printable?
+ */
+gboolean
+log_file_printable(const FILE *out)
+{
+	if (stderr == out)
+		return log_printable(LOG_STDERR);
+	else if (stdout == out)
+		return log_printable(LOG_STDOUT);
+	else
+		return TRUE;
+}
+
+/**
+ * Is log file printable?
+ */
+gboolean
+log_printable(enum log_file which)
+{
+	struct logfile *lf;
+
+	log_file_check(which);
+
+	lf = &logfile[which];
+
+	/*
+	 * If an I/O error occurred recently for this logfile, do not emit anything
+	 * for some short period.
+	 */
+
+	if G_UNLIKELY(lf->ioerror) {
+		if (delta_time(tm_time(), lf->etime) < LOG_IOERR_GRACE)
+			return FALSE;
+		lf->ioerror = FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Emit log message.
  */
 static void
@@ -155,18 +195,10 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 
 	log_file_check(which);
 
+	if (!log_printable(which))
+		return;
+
 	lf = &logfile[which];
-
-	/*
-	 * If an I/O error occurred recently for this logfile, do not emit anything
-	 * for some short period after the I/O error.
-	 */
-
-	if G_UNLIKELY(lf->ioerror) {
-		if (delta_time(tm_time(), lf->etime) < LOG_IOERR_GRACE)
-			return;
-		lf->ioerror = FALSE;
-	}
 
 	ioerr = 0 > fprintf(lf->f, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n",
 		(TM_YEAR_ORIGIN + ct->tm_year) % 100,
