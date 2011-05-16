@@ -110,7 +110,7 @@ typedef struct prop_map {
      * Automatic field filled in by settings_gui_init_prop_map
      */
     prop_type_t type;                 /**< property type */
-    prop_set_stub_t *stub;            /**< property set stub */
+    const prop_set_stub_t *stub;      /**< property set stub */
     gint *init_list;                  /**< init_list for reverse lookup */
 } prop_map_t;
 
@@ -159,7 +159,7 @@ update_entry(property_t prop)
 {
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     if (!top)
@@ -184,7 +184,7 @@ update_label(property_t prop)
 {
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     if (!top)
@@ -211,7 +211,7 @@ update_spinbutton(property_t prop)
     GtkWidget *w;
     guint32 val = 0;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
     GtkAdjustment *adj;
 
@@ -249,7 +249,7 @@ update_togglebutton(property_t prop)
     GtkWidget *w;
     gboolean val = 0;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     if (!top)
@@ -285,7 +285,7 @@ update_multichoice(property_t prop)
     GtkWidget *w;
     guint32 val = 0;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
     GList *l_iter;
 
@@ -336,7 +336,7 @@ update_entry_duration(property_t prop)
 {
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
     guint32 value = 0;
 
@@ -362,7 +362,7 @@ update_size_entry(property_t prop)
 {
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 	guint64 value = 0;
 
@@ -502,7 +502,7 @@ update_window_geometry(property_t prop)
 {
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     if (!top)
@@ -549,7 +549,7 @@ update_bandwidth_spinbutton(property_t prop)
     GtkWidget *w;
     guint32 val = 0;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     if (!top)
@@ -980,7 +980,7 @@ update_byte_size_entry(property_t prop)
 {
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 	guint64 value;
 
@@ -1075,7 +1075,7 @@ static gboolean
 update_label_duration(property_t prop)
 {
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
     GtkWidget *w;
 	guint32 val;
@@ -1101,7 +1101,7 @@ static gboolean
 update_label_yes_or_no(property_t prop)
 {
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
     GtkWidget *w;
 	gboolean val;
@@ -1433,7 +1433,7 @@ static gboolean
 ancient_version_changed(property_t prop)
 {
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
     GtkWidget *w;
     gboolean b;
@@ -1459,7 +1459,7 @@ overloaded_cpu_changed(property_t prop)
     gboolean b;
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     w = lookup_widget(top, map_entry->wid);
@@ -1483,7 +1483,7 @@ uploads_stalling_changed(property_t prop)
     gboolean b;
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     w = lookup_widget(top, map_entry->wid);
@@ -1507,7 +1507,7 @@ uploads_early_stalling_changed(property_t prop)
     gboolean b;
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     w = lookup_widget(top, map_entry->wid);
@@ -1626,7 +1626,7 @@ send_pushes_changed(property_t prop)
     gboolean val;
 	gboolean is_firewalled;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     stub->boolean.get(prop, &val, 0, 1);
@@ -1872,7 +1872,7 @@ autohide_bws_changed(property_t prop)
 {
     gboolean val;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     stub->boolean.get(prop, &val, 0, 1);
@@ -1934,7 +1934,7 @@ autoclear_completed_downloads_changed(property_t prop)
 {
     gboolean val;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     stub->boolean.get(prop, &val, 0, 1);
@@ -1952,7 +1952,7 @@ static gboolean
 autoclear_failed_downloads_changed(property_t prop)
 {
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
     gboolean val;
 
@@ -1972,7 +1972,7 @@ autoclear_unavailable_downloads_changed(property_t prop)
 {
     gboolean val;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     stub->boolean.get(prop, &val, 0, 1);
@@ -1991,7 +1991,7 @@ autoclear_finished_downloads_changed(property_t prop)
 {
     gboolean val;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     stub->boolean.get(prop, &val, 0, 1);
@@ -2033,7 +2033,7 @@ min_dup_ratio_changed(property_t prop)
     GtkWidget *w;
     guint32 val = 0;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     if (!top)
@@ -2745,7 +2745,7 @@ static void
 spinbutton_adjustment_value_changed(GtkAdjustment *adj, gpointer user_data)
 {
     prop_map_t *map_entry = (prop_map_t *) user_data;
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     guint32 val = adj->value;
 
     /*
@@ -2794,7 +2794,7 @@ static void
 togglebutton_state_changed(GtkToggleButton *tb, gpointer user_data)
 {
     prop_map_t *map_entry = (prop_map_t *) user_data;
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     gboolean val = gtk_toggle_button_get_active(tb);
 
     /*
@@ -2816,7 +2816,7 @@ static void
 multichoice_item_selected(GtkItem *i, gpointer data)
 {
     prop_map_t *map_entry = data;
-    prop_set_stub_t *stub = map_entry->stub;
+    const prop_set_stub_t *stub = map_entry->stub;
     guint32 val = GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(i)));
 
     stub->guint32.set(map_entry->prop, &val, 0, 1);
