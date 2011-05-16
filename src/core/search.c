@@ -1542,6 +1542,15 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				break;
 			case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
 				search_log_unknown_ggep(n, rs, e, vendor);
+
+				/*
+				 * Only LimeWire (including derivatives) is known to tag
+				 * its query hits with "return path" GGEP extensions.
+				 */
+
+				if (T_LIME != rs->vcode.u32 && is_lime_return_path(e)) {
+					search_results_mark_fake_spam(rs);
+				}
 				break;
 			default:
 				break;
@@ -2100,6 +2109,10 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					}
 					break;
 				default:
+					if (GNET_PROPERTY(search_debug) > 4) {
+						g_debug("%s has unhandled record extension %s",
+							gmsg_node_infostr(n), ext_to_string(e));
+					}
 					break;
 				}
 			}
