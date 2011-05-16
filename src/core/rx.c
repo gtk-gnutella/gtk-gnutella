@@ -128,7 +128,7 @@ rx_make(
 	rx->magic = RXDRV_MAGIC;
 	rx->owner = owner;
 	rx->ops = ops;
-	rx->host = *host;		/* Struct copy */
+	gnet_host_copy(&rx->host, host);
 	rx->upper = NULL;
 	rx->lower = NULL;
 
@@ -223,7 +223,7 @@ rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops, gconstpointer args)
 
 	rx->magic = RXDRV_MAGIC;
 	rx->owner = lrx->owner;
-	rx->host = lrx->host;				/* Struct copy */
+	gnet_host_copy(&rx->host, &lrx->host);
 	rx->ops = ops;
 	rx->upper = NULL;
 	rx->lower = lrx;

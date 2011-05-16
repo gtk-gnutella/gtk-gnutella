@@ -133,7 +133,7 @@ tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops, gpointer args)
 	tx = walloc0(sizeof(*tx));
 
 	tx->owner = ltx->owner;
-	tx->host = ltx->host;				/* Struct copy */
+	gnet_host_copy(&tx->host, &ltx->host);
 	tx->ops = ops;
 	tx->upper = NULL;
 	tx->lower = ltx;

@@ -42,6 +42,13 @@
  * Since they are only data structures (somehow specialized), they have been
  * regroupped in the lib for easier reuse.
  *
+ * It MUST NOT be assumed that a gnet_host_t pointer p will be sizeof(*p)
+ * byte long.  Instead, gnet_host_length(p) MUST be used to determine the
+ * actual length required to represent the host.
+ *
+ * It follows that no struct copy must occur between to gnet_host_t pointers.
+ * Always use gnet_host_copy().
+ *
  * @author Raphael Manfredi
  * @date 2009
  * @author Christian Biere
@@ -128,12 +135,10 @@ gnet_host_length(const void *p)
 gnet_host_t *
 gnet_host_new(const host_addr_t addr, guint16 port)
 {
-	gnet_host_t *h;
+	gnet_host_t h;
 
-	h = walloc0(sizeof *h);
-	gnet_host_set(h, addr, port);
-
-	return h;
+	gnet_host_set(&h, addr, port);
+	return gnet_host_dup(&h);		/* Tightly allocated to fit address */
 }
 
 /**
@@ -142,7 +147,7 @@ gnet_host_new(const host_addr_t addr, guint16 port)
 gnet_host_t *
 gnet_host_dup(const gnet_host_t *h)
 {
-	return wcopy(h, sizeof *h);
+	return wcopy(h, gnet_host_length(h));
 }
 
 /**
@@ -153,7 +158,7 @@ gnet_host_dup(const gnet_host_t *h)
 void
 gnet_host_free(void *h)
 {
-	wfree(h, sizeof(gnet_host_t));
+	wfree(h, gnet_host_length(h));
 }
 
 /**
@@ -185,7 +190,7 @@ gnet_host_free_item(gpointer key, gpointer unused_data)
 {
 	gnet_host_t *h = key;
 	(void) unused_data;
-	wfree(h, sizeof *h);
+	gnet_host_free(h);
 }
 
 /**

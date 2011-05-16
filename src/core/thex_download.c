@@ -126,7 +126,7 @@ thex_download_create(gpointer owner, gnet_host_t *host,
 	ctx = walloc(sizeof *ctx);
 	*ctx = zero_ctx;
 	ctx->owner = owner;
-	ctx->host = *host;			/* Struct copy */
+	gnet_host_copy(&ctx->host, host);
 	ctx->sha1 = atom_sha1_get(sha1);
 	ctx->tth = atom_tth_get(tth);
 	ctx->filesize = filesize;
@@ -677,7 +677,7 @@ thex_download_receive(struct thex_download *ctx,
 {
 	g_assert(ctx != NULL);
 
-	ctx->host = *host;				/* Struct copy */
+	gnet_host_copy(&ctx->host, host);
 
 	/*
 	 * Freeing of the RX stack must be asynchronous: each time we establish

@@ -1406,7 +1406,7 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 		while (i < vecsize && sequence_iter_has_previous(iter)) {
 			const gnet_host_t *host = sequence_iter_previous(iter);
 
-			*vp++ = *host;		/* Struct copy */
+			gnet_host_copy(vp++, host);
 			i++;
 		}
 

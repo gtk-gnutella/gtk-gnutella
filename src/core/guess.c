@@ -3444,10 +3444,10 @@ guess_fill_caught_array(gnet_host_t *hosts, int hcount)
 
 		if (i >= filled) {
 			/* Had not enough hosts in the global cache */
-			hosts[i] = *h;		/* struct copy */
+			gnet_host_copy(&hosts[i], h);
 			added++;
 		} else if (random_u32() % 100 < 65) {
-			hosts[i] = *h;		/* struct copy */
+			gnet_host_copy(&hosts[i], h);
 		}
 		g_hash_table_insert(seen_host, &hosts[i], int_to_pointer(1));
 	}

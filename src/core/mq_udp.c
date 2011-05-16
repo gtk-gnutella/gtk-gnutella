@@ -122,7 +122,7 @@ mq_udp_attach_metadata(pmsg_t *mb, const gnet_host_t *to)
 		struct mq_udp_info_extended *mi;
 
 		mi = walloc(sizeof(*mi));
-		mi->to = *to;				/* Struct copy */
+		gnet_host_copy(&mi->to, to);
 		result = mb;
 
 		/*
@@ -138,7 +138,7 @@ mq_udp_attach_metadata(pmsg_t *mb, const gnet_host_t *to)
 		struct mq_udp_info *mi;
 
 		mi = walloc(sizeof(*mi));
-		mi->to = *to;				/* Struct copy */
+		gnet_host_copy(&mi->to, to);
 		result = pmsg_clone_extend(mb, mq_udp_pmsg_free, mi);
 		pmsg_free(mb);
 	}

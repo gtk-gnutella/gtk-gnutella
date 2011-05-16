@@ -1337,7 +1337,12 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, int hcount)
 		if (g_hash_table_lookup(seen_host, h))
 			continue;
 
-		hosts[i] = *h;			/* struct copy */
+		/*
+		 * Cannot do a struct copy, the host atom may be shorter than
+		 * the structure when holding an IPv4 address.
+		 */
+
+		gnet_host_copy(&hosts[i], h);
 
 		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
 	}

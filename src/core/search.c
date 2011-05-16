@@ -517,23 +517,22 @@ sent_node_compare(gconstpointer a, gconstpointer b)
 		host_addr_equal(gnet_host_get_addr(sa), gnet_host_get_addr(sb));
 }
 
-static gboolean
+static void
 search_free_sent_node(gpointer key,
 	gpointer unused_value, gpointer unused_udata)
 {
-	gnet_host_t *node = key;
+	gnet_host_t *host = key;
 
 	(void) unused_value;
 	(void) unused_udata;
 
-	wfree(node, sizeof *node);
-	return TRUE;
+	atom_host_free(host);
 }
 
 static void
 search_free_sent_nodes(search_ctrl_t *sch)
 {
-	g_hash_table_foreach_remove(sch->sent_nodes, search_free_sent_node, NULL);
+	g_hash_table_foreach(sch->sent_nodes, search_free_sent_node, NULL);
 	gm_hash_table_destroy_null(&sch->sent_nodes);
 }
 
@@ -547,9 +546,11 @@ search_reset_sent_nodes(search_ctrl_t *sch)
 static void
 search_mark_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
 {
-	gnet_host_t *sd = walloc(sizeof *sd);
-	gnet_host_set(sd, n->addr, n->port);
-	g_hash_table_insert(sch->sent_nodes, sd, uint_to_pointer(1));
+	gnet_host_t sd;
+
+	gnet_host_set(&sd, n->addr, n->port);
+	gm_hash_table_insert_const(sch->sent_nodes,
+		atom_host_get(&sd), uint_to_pointer(1));
 }
 
 static void

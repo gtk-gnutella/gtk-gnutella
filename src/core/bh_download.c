@@ -80,7 +80,7 @@ browse_host_dl_create(gpointer owner, gnet_host_t *host, gnet_search_t sh)
 	bc = walloc0(sizeof *bc);
 
 	bc->owner = owner;
-	bc->host = *host;			/* Struct copy */
+	gnet_host_copy(&bc->host, host);
 	bc->sh = sh;
 
 	return bc;
@@ -308,7 +308,7 @@ browse_host_dl_receive(
 	if (bc->closed)
 		return FALSE;
 
-	bc->host = *host;			/* Struct copy */
+	gnet_host_copy(&bc->host, host);
 	bc->vendor = atom_str_get(vendor);
 
 	/*

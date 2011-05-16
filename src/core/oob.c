@@ -167,7 +167,7 @@ results_make(const struct guid *muid, GSList *files, int count,
 	r->muid = atom_guid_get(muid);
 	r->files = files;
 	r->count = count;
-	r->dest = *to;			/* Struct copy */
+	gnet_host_copy(&r->dest, to);
 	r->secure = secure;
 	r->ggep_h = ggep_h;
 
@@ -364,8 +364,7 @@ servent_make(gnet_host_t *host, gboolean can_deflate)
 	struct gservent *s;
 
 	s = walloc(sizeof *s);
-	s->host = walloc(sizeof *s->host);
-	*s->host = *host;		/* Struct copy */
+	s->host = gnet_host_dup(host);
 	s->fifo = fifo_make();
 	s->ev_service = NULL;
 	s->can_deflate = can_deflate;
