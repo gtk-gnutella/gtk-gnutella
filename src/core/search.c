@@ -5138,8 +5138,6 @@ got_match(gpointer context, gpointer data)
 	const shared_file_t *sf = data;
 
 	shared_file_check(sf);
-	/* Cannot match partially downloaded files */
-	g_assert(!shared_file_is_partial(sf));
 
 	/*
 	 * Don't insert duplicates (possible when matching both by SHA1 and name).
