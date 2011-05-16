@@ -697,7 +697,7 @@ qrt_step_compress(struct bgtask *h, gpointer u, int ticks)
 		 * Install compressed routing patch if it's smaller than the original.
 		 */
 
-		if (GNET_PROPERTY(qrp_debug) > 2) {
+		if (GNET_PROPERTY(qrp_debug) > 1) {
 			g_debug("QRP patch: len=%d, compressed=%d (ratio %.2f%%)",
 				ctx->rp->len, zlib_deflater_outlen(ctx->zd),
 				100.0 * (ctx->rp->len - zlib_deflater_outlen(ctx->zd)) /
@@ -1807,8 +1807,10 @@ qrp_step_compute(struct bgtask *h, gpointer u, int unused_ticks)
 		 */
 
 		if (routing_table && qrt_eq(routing_table, table, slots)) {
-			if (GNET_PROPERTY(qrp_debug) > 1)
-				g_debug("QRP no change in table");
+			if (GNET_PROPERTY(qrp_debug) > 1) {
+				g_debug("QRP no change in table, keeping generation #%d",
+					routing_table->generation);
+			}
 			HFREE_NULL(table);
 			bg_task_exit(h, 0);	/* Abort processing */
 		}
@@ -2249,7 +2251,7 @@ qrt_patch_computed(struct bgtask *unused_h, gpointer unused_u,
 	g_assert(ctx == qrt_patch_ctx);
 	g_assert(ctx->rpp != NULL);
 
-	if (GNET_PROPERTY(qrp_debug) > 2)
+	if (GNET_PROPERTY(qrp_debug) > 1)
 		g_debug("QRP global default patch computed (status = %d)", status);
 
 	qrt_patch_ctx = NULL;			/* Indicates that we're done */
@@ -2431,7 +2433,7 @@ qrp_send_reset(struct gnutella_node *n, int slots, int inf_val)
 
 	gmsg_sendto_one(n, &msg, sizeof msg);
 
-	if (GNET_PROPERTY(qrp_debug) > 1)
+	if (GNET_PROPERTY(qrp_debug) > 2)
 		g_debug("QRP sent RESET slots=%d, infinity=%d to %s",
 			slots, inf_val, node_infostr(n));
 }
@@ -2724,7 +2726,7 @@ qrt_patch_available(gpointer arg, struct routing_patch *rp)
 
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
-	if (GNET_PROPERTY(qrp_debug) > 2)
+	if (GNET_PROPERTY(qrp_debug) > 1)
 		g_debug("QRP global routing patch %s (%s)",
 			rp == NULL ? "computation was cancelled" : "is now available",
 			node_infostr(qup->node));
