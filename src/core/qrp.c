@@ -144,8 +144,9 @@ struct routing_table {
 	int pass_throw;			/**< Query must pass a d100 throw to be forwarded */
 	const struct sha1 *digest;	/**< SHA1 digest of the whole table (atom) */
 	char *name;				/**< Name for dumping purposes */
-	gboolean reset;			/**< This is a new table, after a RESET */
-	gboolean compacted;
+	unsigned reset:1;		/**< This is a new table, after a RESET */
+	unsigned compacted:1;	/**< Table was compacted */
+	unsigned cancelled:1;	/**< Must supersede with next version */
 	/**
 	 * Whether this routing table can route the given URN query.
 	 */
@@ -822,7 +823,7 @@ qrt_create(const char *name, char *arena, int slots, int max)
 	g_assert(max > 0);
 	g_assert(arena != NULL);
 
-	rt = walloc(sizeof *rt);
+	rt = walloc0(sizeof *rt);
 
 	rt->magic         = QRP_ROUTE_MAGIC;
 	rt->name          = g_strdup(name);
@@ -1806,13 +1807,29 @@ qrp_step_compute(struct bgtask *h, gpointer u, int unused_ticks)
 		 * table arena may be compressed and our table is not.
 		 */
 
-		if (routing_table && qrt_eq(routing_table, table, slots)) {
-			if (GNET_PROPERTY(qrp_debug) > 1) {
-				g_debug("QRP no change in table, keeping generation #%d",
-					routing_table->generation);
+		if (routing_table != NULL) {
+			if (routing_table->cancelled) {
+				/*
+				 * Routing table was canceleld because the computation of the
+				 * global routing patch was cancelled when we began a new
+				 * computation.  Therefore, even if the new table is the same
+				 * as the old one, we need to keep the new one and continue
+				 * the process to propagate the table to our Gnutella peers
+				 * and recompute the default patch.
+				 *		--RAM, 2011-05-16
+				 */
+				if (GNET_PROPERTY(qrp_debug) > 1) {
+					g_debug("QRP table at generation #%d was cancelled",
+						routing_table->generation);
+				}
+			} else if (qrt_eq(routing_table, table, slots)) {
+				if (GNET_PROPERTY(qrp_debug) > 1) {
+					g_debug("QRP no change in table, keeping generation #%d",
+						routing_table->generation);
+				}
+				HFREE_NULL(table);
+				bg_task_exit(h, 0);	/* Abort processing */
 			}
-			HFREE_NULL(table);
-			bg_task_exit(h, 0);	/* Abort processing */
 		}
 
 		/*
@@ -2730,6 +2747,17 @@ qrt_patch_available(gpointer arg, struct routing_patch *rp)
 		g_debug("QRP global routing patch %s (%s)",
 			rp == NULL ? "computation was cancelled" : "is now available",
 			node_infostr(qup->node));
+
+	/*
+	 * If the global routing patch computation was cancelled, we must mark
+	 * the routing table so that we do not keep it even if the next one
+	 * we compute is identical.
+	 */
+
+	if (NULL == rp) {
+		g_assert(routing_table != NULL);
+		routing_table->cancelled = TRUE;
+	}
 
 	qup->listener = NULL;
 	qup->patch = (rp == NULL) ? NULL : qrt_patch_ref(rp);
