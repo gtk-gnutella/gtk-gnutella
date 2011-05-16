@@ -392,7 +392,7 @@ static void
 servent_free(struct gservent *s)
 {
 	cq_cancel(&s->ev_service);
-	wfree(s->host, sizeof *s->host);
+	gnet_host_free(s->host);
 	fifo_free_all(s->fifo, free_pmsg, NULL);
 	wfree(s, sizeof *s);
 }
