@@ -1329,7 +1329,7 @@ search_log_unknown_ggep(const gnutella_node_t *n,
 	 *		--RAM, 2009-11-04
 	 */
 
-	if (T_LIME == rs->vcode.u32 && is_lime_return_path(e))
+	if ((T_LIME == rs->vcode.u32 || rs->hops > 0) && is_lime_return_path(e))
 		return;
 
 	search_log_ggep(n, e, vendor, "unknown");
@@ -1548,7 +1548,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				 * its query hits with "return path" GGEP extensions.
 				 */
 
-				if (T_LIME != rs->vcode.u32 && is_lime_return_path(e)) {
+				if (
+					T_LIME != rs->vcode.u32 && 0 == rs->hops &&
+					is_lime_return_path(e)
+				) {
 					search_results_mark_fake_spam(rs);
 				}
 				break;
