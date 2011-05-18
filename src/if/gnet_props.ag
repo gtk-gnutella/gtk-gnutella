@@ -4887,4 +4887,13 @@ prop = {
 	};
 };
 
+prop = {
+	name = "query_answer_whats_new";
+	desc = "Whether what's-new? queries should be answered to.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
 /* vi: set ts=4: */

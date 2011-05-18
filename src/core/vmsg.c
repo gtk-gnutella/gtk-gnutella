@@ -408,6 +408,10 @@ handle_features_supported(struct gnutella_node *n,
 			node_supports_tls(n);
 		}
 
+		if (0 != version && 0 == strcmp(feature, "WHAT")) {
+			node_supports_whats_new(n);
+		}
+
 		/* Any of ADHT, PDHT or LDHT means DHT is supported */
 		if (feature[0] && 0 == strcmp(&feature[1], "DHT")) {
 			dht_mode_t mode;
@@ -2468,7 +2472,7 @@ handle_head_ping(struct gnutella_node *n,
 			}
 		}
 	} else {
-		const struct shared_file *sf;
+		const shared_file_t *sf;
 		guint8 code;
 
 		sf = shared_file_by_sha1(&sha1);
@@ -3204,6 +3208,7 @@ vmsg_send_features_supported(struct gnutella_node *n)
 	vmsg_features_reset(&vmf, payload, VMSG_PAYLOAD_MAX);
 
 	vmsg_features_add(&vmf, "HSEP", 1);
+	vmsg_features_add(&vmf, "WHAT", 1);
 	/* No support for NAT-to-NAT -- signal version as -1, not 0 */
 	vmsg_features_add(&vmf, "F2FT", (guint16) -1);
 	/* TCP-incoming connections: are possible if not firewalled */

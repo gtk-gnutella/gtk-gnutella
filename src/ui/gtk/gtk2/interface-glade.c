@@ -13471,6 +13471,7 @@ create_dlg_prefs_ul_tab (void)
   GtkWidget *label301;
   GtkWidget *vbox159;
   GtkWidget *checkbutton_config_query_answer_partials;
+  GtkWidget *checkbutton_config_query_answer_whats_new;
   GtkWidget *hbox9297;
   GtkWidget *frame141;
   GtkWidget *table109;
@@ -13913,6 +13914,11 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (checkbutton_config_query_answer_partials, "checkbutton_config_query_answer_partials");
   gtk_widget_show (checkbutton_config_query_answer_partials);
   gtk_box_pack_start (GTK_BOX (vbox159), checkbutton_config_query_answer_partials, FALSE, FALSE, 0);
+
+  checkbutton_config_query_answer_whats_new = gtk_check_button_new_with_mnemonic (_("Answer to what's-new? queries"));
+  gtk_widget_set_name (checkbutton_config_query_answer_whats_new, "checkbutton_config_query_answer_whats_new");
+  gtk_widget_show (checkbutton_config_query_answer_whats_new);
+  gtk_box_pack_start (GTK_BOX (vbox159), checkbutton_config_query_answer_whats_new, FALSE, FALSE, 0);
 
   hbox9297 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox9297, "hbox9297");
@@ -14629,6 +14635,7 @@ create_dlg_prefs_ul_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label301, "label301");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, vbox159, "vbox159");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_config_query_answer_partials, "checkbutton_config_query_answer_partials");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_config_query_answer_whats_new, "checkbutton_config_query_answer_whats_new");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, hbox9297, "hbox9297");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame141, "frame141");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table109, "table109");

@@ -66,21 +66,17 @@
 
 #include "common.h"
 
-typedef struct _search_table search_table_t;
+typedef struct search_table search_table_t;
 
 struct query_hashvec;
 struct shared_file;
 
-search_table_t *st_alloc(void);
-void st_initialize(search_table_t *);
-void st_create(search_table_t *table);
-void st_destroy(search_table_t *);
+search_table_t *st_create(void);
 void st_free(search_table_t **);
 gboolean st_insert_item(search_table_t *, const char *key,
 	const struct shared_file *sf);
 void st_compact(search_table_t *);
-
-struct shared_file;
+int st_count(const search_table_t *st);
 
 /**
  * Callback for st_search().

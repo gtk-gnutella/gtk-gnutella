@@ -105,6 +105,8 @@ query_hashvec_t * qhvec_clone(const query_hashvec_t *qsrc);
 void qhvec_add(struct query_hashvec *qhvec, const char *word,
 	enum query_hsrc src);
 gboolean qhvec_has_urn(const struct query_hashvec *qhv);
+gboolean qhvec_whats_new(const struct query_hashvec *qhv);
+void qhvec_set_whats_new(struct query_hashvec *qhv, gboolean val);
 guint qhvec_count(const struct query_hashvec *qhv);
 
 GSList *qrt_build_query_target(

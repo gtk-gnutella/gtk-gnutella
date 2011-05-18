@@ -129,6 +129,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_V,			/**< Vendor Code in HEAD Pongs */
 	EXT_T_GGEP_VC,			/**< Vendor Code */
 	EXT_T_GGEP_VMSG,		/**< Array of vendor message codes supported */
+	EXT_T_GGEP_WH,			/**< Feature query */
 	EXT_T_GGEP_XQ,			/**< eXtended Query; for longer query strings */
 	EXT_T_GGEP_Z,			/**< Signals UDP compression support (for GUESS) */
 	EXT_T_GGEP_avail,		/**< "avail" in ALOC v0.1 (PFS: available bytes) */

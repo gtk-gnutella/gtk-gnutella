@@ -1061,6 +1061,14 @@ node_supports_tls(struct gnutella_node *n)
 }
 
 void
+node_supports_whats_new(struct gnutella_node *n)
+{
+	node_check(n);
+	
+	n->attrs |= NODE_A_CAN_WHAT;
+}
+
+void
 node_supports_dht(struct gnutella_node *n, dht_mode_t mode)
 {
 	node_check(n);
@@ -7024,6 +7032,7 @@ node_parse(struct gnutella_node *n)
 	struct route_dest dest;
 	query_hashvec_t *qhv = NULL;
 	int results = 0;						/* # of results in query hits */
+	search_request_info_t *sri = NULL;
 
 	g_return_if_fail(n != NULL);
 	g_assert(NODE_IS_CONNECTED(n));
@@ -7325,7 +7334,8 @@ node_parse(struct gnutella_node *n)
              * the message was dropped.
 			 */
 
-		 	if (search_request_preprocess(n))
+			sri = search_request_info_alloc();
+		 	if (search_request_preprocess(n, sri))
 				goto reset_header;
 
 			break;
@@ -7382,7 +7392,7 @@ route_only:
 				qhvec_reset(qhv);
 			}
 
-			search_request(n, qhv);
+			search_request(n, sri, qhv);
 			break;
 
 		case GTA_MSG_SEARCH_RESULTS:
@@ -7437,7 +7447,7 @@ route_only:
 		 * FIXME?
 		 * Changed search_request_preprocess() to only check the return address
 		 * of an OOB query if it comes from a leaf node directly.
-		 * Is it safe to decrement the hop count as well?  What are the other
+		 * Is it safe to not increase the hop count as well?  What are the other
 		 * servents doing here?  If their UPs are indeed making relayed leaf
 		 * queries appear with hops=1 when they are sent, we should do the same.
 		 * Otherwise, our hops+ttl count could become larger than the allowed
@@ -7531,6 +7541,7 @@ reset_header:
 	n->pos = 0;
 	ext_reset(n->extvec, n->extcount);
 	n->extcount = 0;
+	search_request_info_free_null(&sri);
 
 clean_dest:
 	if (dest.type == ROUTE_MULTI)

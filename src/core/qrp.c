@@ -92,12 +92,25 @@ struct query_hashvec {
 	guint8 count;			/**< Amount of slots actually taken */
 	guint8 size;			/**< Amount of slots in vector */
 	guint8 has_urn;			/**< Whether an URN is present in the query */
+	guint8 whats_new;		/**< Query is "What's New?", must be forwarded */
 };
 
 gboolean
 qhvec_has_urn(const struct query_hashvec *qhv)
 {
 	return 0 != qhv->has_urn;
+}
+
+gboolean
+qhvec_whats_new(const struct query_hashvec *qhv)
+{
+	return 0 != qhv->whats_new;
+}
+
+void
+qhvec_set_whats_new(struct query_hashvec *qhv, gboolean val)
+{
+	qhv->whats_new = booleanize(val);
 }
 
 guint
@@ -2347,10 +2360,13 @@ qrt_patch_computed_add_listener(qrt_patch_computed_cb_t cb, gpointer arg)
 static void
 qrt_patch_computed_remove_listener(gpointer handle)
 {
+	struct patch_listener_info *pi = handle;
+
 	g_assert(qrt_patch_computed_listeners != NULL);
 
 	qrt_patch_computed_listeners =
 		g_slist_remove(qrt_patch_computed_listeners, handle);
+	wfree(pi, sizeof *pi);
 }
 
 /**
@@ -4358,6 +4374,7 @@ qhvec_reset(query_hashvec_t *qhvec)
 {
 	qhvec->count = 0;
 	qhvec->has_urn = FALSE;
+	qhvec->whats_new = FALSE;
 }
 
 /**
@@ -4537,11 +4554,14 @@ qrt_build_query_target(
 	GSList *nodes = NULL;		/* Targets for the query */
 	const GSList *sl;
 	gboolean sha1_query;
+	gboolean whats_new;
 
 	g_assert(qhvec != NULL);
 	g_assert(hops >= 0);
 
-	if (qhvec->count == 0) {
+	whats_new = qhvec_whats_new(qhvec);
+
+	if (0 == qhvec->count && !whats_new) {
 		if (GNET_PROPERTY(qrp_debug) > 2) {
 			if (source != NULL)
 				g_warning("QRP %s had empty hash vector",
@@ -4591,6 +4611,13 @@ qrt_build_query_target(
 			/* Leaf node */
 			if (rt == NULL)				/* No QRT yet */
 				continue;				/* Don't send anything */
+			if (whats_new) {
+				if (NODE_CAN_WHAT(dn)) {
+					goto can_send;		/* What's New? queries broadcasted */
+				} else {
+					continue;
+				}
+			}
 		} else {
 			/* Ultra node */
 			if (0 == ttl)				/* Exclude routing to other UPs */
@@ -4599,8 +4626,13 @@ qrt_build_query_target(
 				goto can_send;			/* Send to other UP if ttl > 1 */
 			if (rt == NULL)				/* UP has not sent us its table */
 				goto can_send;			/* Forward everything then */
-			if (!NODE_UP_QRP(dn))		/* QRP-unaware host? */
-				goto can_send;			/* Broadcast to that node */
+			if (whats_new) {
+				if (NODE_CAN_WHAT(dn)) {
+					goto can_send;		/* Broadcast to that node */
+				} else {
+					continue;			/* Skip node, would not be efficient */
+				}
+			}
 		}
 
 		node_inc_qrp_query(dn);			/* We have a QRT, mark we try routing */
@@ -4658,7 +4690,7 @@ qrt_build_query_target(
 
 	can_send:
 		nodes = g_slist_prepend(nodes, dn);
-		if (rt != NULL)
+		if (rt != NULL && !whats_new)
 			node_inc_qrp_match(dn);
 	}
 
@@ -4711,11 +4743,12 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 		}
 
 		g_debug(
-			"QRP %s%s [%s] (%d word%s + %d URN%s) "
+			"QRP %s%s [%s] %s(%d word%s + %d URN%s) "
 			"forwarded to %d/%d leaves, %d ultra%s",
 			NODE_IS_UDP(n) ? "(GUESS) " : "",
 			gmsg_node_infostr(n),
 			guid_hex_str(gnutella_header_get_muid(&n->header)),
+			qhvec_whats_new(qhvec) ? "\"What's New?\" " : "",
 			words, 1 == words ? "" : "s", urns, 1 == urns ? "" : "s",
 			leaves, GNET_PROPERTY(node_leaf_count),
 			ultras, ultras == 1 ? "" : "s");
@@ -4729,8 +4762,12 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	 * if requested.
 	 */
 
-	if (n->msg_flags & NODE_M_EXT_CLEANUP)
+	if (
+		GNET_PROPERTY(gnet_compact_query) ||
+		(n->msg_flags & NODE_M_EXT_CLEANUP)
+	) {
 		search_compact(n);
+	}
 
 	/*
 	 * Now that the original TTL was used to build the node list, don't

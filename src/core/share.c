@@ -84,6 +84,8 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
+#define SHARE_RECENT_THRESH		(24 * 60 * 60)	/* 1 day */
+
 enum shared_file_magic {
 	SHARED_FILE_MAGIC = 0x3702b437U
 };
@@ -137,21 +139,30 @@ static const struct special_file specials[] = {
  */
 static GHashTable *special_names;
 
-static guint64 files_scanned;
-static guint64 bytes_scanned;
-
 static GHashTable *extensions;	/* Shared filename extensions */
 static GSList *shared_dirs;
-static GSList *shared_files;
-static struct shared_file **file_table;
-static struct shared_file **sorted_file_table;
-static search_table_t *search_table;
-static GHashTable *file_basenames;
-static search_table_t *partial_table;
 static hash_list_t *partial_files;
 static cevent_t *share_qrp_rebuild_ev;
 
+/*
+ * These variables are recreated by each library scanning.
+ *
+ * During a rebuild of the library, their old values remain present so that
+ * we can continue to serve files without interruption.  Only at the end of
+ * the rebuilding process do we atomically update all of them with the new
+ * values, freeing old content.
+ */
+static guint64 files_scanned;	/* Amount of files shared in the library */
+static guint64 bytes_scanned;
+static GSList *shared_files;
+static search_table_t *search_table;
+static GHashTable *file_basenames;
+static search_table_t *partial_table;
+static shared_file_t **file_table;			/* Sorted by mtime */
+static shared_file_t **sorted_file_table;	/* Sorted by name */
+
 static struct recursive_scan *recursive_scan_context;
+static gboolean share_rebuilding;
 
 /**
  * This tree maps a SHA1 hash (base-32 encoded) onto the corresponding
@@ -169,6 +180,12 @@ static GTree *sha1_to_share;
 /**
  * This table encodes for each known MIME type the searchable media type bits
  * that are applicable for that type.
+ *
+ * A 0 (zero) entry means the corresponding MIME type will never match any
+ * of the searchable bits.  This typically indicates a file containing
+ * either application-specific data (e.g. an MP3 playlist), a programming
+ * language (e.g. a C header file), or binary-specific data (e.g. a ROM
+ * image).
  */
 static struct {
 	enum mime_type type;
@@ -316,7 +333,7 @@ reinit_sha1_table(void)
 }
 
 void
-shared_file_check(const struct shared_file *sf)
+shared_file_check(const shared_file_t *sf)
 {
 	g_assert(sf);
 	g_assert(SHARE_REBUILDING != sf);
@@ -324,7 +341,6 @@ shared_file_check(const struct shared_file *sf)
 	g_assert(sf->refcnt >= 0);
 	g_assert((NULL != sf->name_nfc) ^ (0 == sf->name_nfc_len));
 	g_assert((NULL != sf->name_canonic) ^ (0 == sf->name_canonic_len));
-	g_assert(!(SHARE_F_INDEXED & sf->flags) ^ (0 != sf->file_index));
 }
 
 /**
@@ -348,7 +364,7 @@ shared_file_deindex(shared_file_t *sf)
 	shared_file_check(sf);
 
 	if (SHARE_F_BASENAME & sf->flags) {
-		if (file_basenames) {
+		if (file_basenames != NULL) {
 			g_hash_table_remove(file_basenames, sf->name_nfc);
 		}
 	}
@@ -394,7 +410,8 @@ shared_file_free(shared_file_t **sf_ptr)
 
 		g_assert(sf->refcnt == 0);
 
-		shared_file_deindex(sf);
+		if (sf->flags & SHARE_F_INDEXED)
+			shared_file_deindex(sf);
 
 		atom_sha1_free_null(&sf->sha1);
 		atom_tth_free_null(&sf->tth);
@@ -1146,6 +1163,14 @@ struct recursive_scan {
 	slist_t *partial_files;		/* list of struct shared_file */
 	slist_iter_t *iter;			/* list iterator */
 	GHashTable *words;			/* records words making up filenames, for QRP */
+	GHashTable *basenames;		/* known file basenames */
+	GSList *shared;				/* the new shared_files variable */
+	shared_file_t **files;		/* the new file_table, sorted by mtime */
+	shared_file_t **sorted;		/* the new sorted_file_table, sorted by name */
+	search_table_t *search_tb;	/* the new search table */
+	search_table_t *partial_tb;	/* the new partial table */
+	guint64 files_scanned;		/* amount of files shared in the library */
+	guint64 bytes_scanned;		/* size of the library */
 	int idx;					/* iterating index */
 	int ticks;					/* ticks used */
 };
@@ -1164,18 +1189,17 @@ recursive_scan_check(const struct recursive_scan * const ctx)
 static struct recursive_scan *
 recursive_scan_new(const GSList *base_dirs)
 {
-	static const struct recursive_scan zero_ctx;
 	struct recursive_scan *ctx;
 	const GSList *iter;
 
-	ctx = walloc(sizeof *ctx);
-	*ctx = zero_ctx;
+	ctx = walloc0(sizeof *ctx);
 	ctx->magic = RECURSIVE_SCAN_MAGIC;
 	ctx->base_dirs = slist_new();
 	ctx->sub_dirs = slist_new();
 	ctx->shared_files = slist_new();
 	ctx->partial_files = slist_new();
 	ctx->words = g_hash_table_new(g_str_hash, g_str_equal);
+	ctx->basenames = g_hash_table_new(g_str_hash, g_str_equal);
 	for (iter = base_dirs; NULL != iter; iter = g_slist_next(iter)) {
 		const char *dir = atom_str_get(iter->data);
 		slist_append(ctx->base_dirs, deconstify_gchar(dir));
@@ -1201,7 +1225,7 @@ recursive_scan_closedir(struct recursive_scan *ctx)
 
 static void recursive_sf_unref(gpointer o)
 {
-	struct shared_file *sf = o;
+	shared_file_t *sf = o;
 
 	shared_file_check(sf);
 	shared_file_unref(&sf);
@@ -1224,6 +1248,7 @@ recursive_scan_free(struct recursive_scan **ctx_ptr)
 
 	if (*ctx_ptr) {
 		struct recursive_scan *ctx = *ctx_ptr;
+		GSList *sl;
 
 		recursive_scan_check(ctx);
 
@@ -1240,8 +1265,22 @@ recursive_scan_free(struct recursive_scan **ctx_ptr)
 		slist_free_all(&ctx->partial_files, recursive_sf_unref);
 		slist_iter_free(&ctx->iter);
 
+		gm_hash_table_destroy_null(&ctx->basenames);
+		st_free(&ctx->search_tb);
+		st_free(&ctx->partial_tb);
 		atom_str_free_null(&ctx->base_dir);
 		qrp_dispose_words(&ctx->words);
+
+		HFREE_NULL(ctx->files);
+		HFREE_NULL(ctx->sorted);
+
+		for (sl = ctx->shared; sl; sl = g_slist_next(sl)) {
+			shared_file_t *sf = sl->data;
+
+			shared_file_check(sf);
+			shared_file_unref(&sf);
+		}
+		gm_slist_free_null(&ctx->shared);
 
 		ctx->magic = 0;
 		wfree(ctx, sizeof *ctx);
@@ -1275,14 +1314,13 @@ share_free(void)
 {
 	GSList *sl;
 
-	st_destroy(search_table);
+	st_free(&search_table);
 	gm_hash_table_destroy_null(&file_basenames);
 
 	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
-		struct shared_file *sf = sl->data;
+		shared_file_t *sf = sl->data;
 
 		shared_file_check(sf);
-		shared_file_deindex(sf);
 		shared_file_unref(&sf);
 	}
 	gm_slist_free_null(&shared_files);
@@ -1292,21 +1330,22 @@ share_free(void)
 }
 
 /**
- * Sort function - shared files by descending mtime. 
+ * Sort function - shared files by ascending mtime (oldest first). 
  */
 static int
 shared_file_sort_by_mtime(const void *f1, const void *f2)
 {
-	const shared_file_t * const *sf1 = f1, * const *sf2 = f2;
+	const shared_file_t * const *sfp1 = f1, * const *sfp2 = f2;
+	const shared_file_t *sf1 = *sfp1, *sf2 = *sfp2;
 	time_t t1, t2;
 
 	/* We don't use shared_file_check() here because it would be
 	 * the dominating factor for the sorting time. */
-	g_assert(SHARED_FILE_MAGIC == (*sf1)->magic);
-	g_assert(SHARED_FILE_MAGIC == (*sf2)->magic);
+	g_assert(SHARED_FILE_MAGIC == sf1->magic);
+	g_assert(SHARED_FILE_MAGIC == sf2->magic);
 
-	t1 = (*sf1)->mtime;
-	t2 = (*sf2)->mtime;
+	t1 = sf1->mtime;
+	t2 = sf2->mtime;
 	return CMP(t1, t2);
 }
 
@@ -1321,25 +1360,26 @@ cmp_strings(const char *a, const char *b)
 }
 
 /**
- * Sort function - shared files by descending mtime. 
+ * Sort function - shared files by name lexicographic order.
  */
 static int
 shared_file_sort_by_name(const void *f1, const void *f2)
 {
-	const shared_file_t * const *sf1 = f1, * const *sf2 = f2;
+	const shared_file_t * const *sfp1 = f1, * const *sfp2 = f2;
+	const shared_file_t *sf1 = *sfp1, *sf2 = *sfp2;
 	int ret;
 
 	/* We don't use shared_file_check() here because it would be
 	 * the dominating factor for the sorting time. */
-	g_assert(SHARED_FILE_MAGIC == (*sf1)->magic);
-	g_assert(SHARED_FILE_MAGIC == (*sf2)->magic);
+	g_assert(SHARED_FILE_MAGIC == sf1->magic);
+	g_assert(SHARED_FILE_MAGIC == sf2->magic);
 
 	if (GNET_PROPERTY(search_results_expose_relative_paths)) {
-		ret = cmp_strings((*sf1)->relative_path, (*sf2)->relative_path);
+		ret = cmp_strings(sf1->relative_path, sf2->relative_path);
 	} else {
-		ret = strcmp((*sf1)->file_path, (*sf2)->file_path);
+		ret = strcmp(sf1->file_path, sf2->file_path);
 	}
-	return 0 != ret ? ret : strcmp((*sf1)->name_nfc, (*sf2)->name_nfc);
+	return 0 != ret ? ret : strcmp(sf1->name_nfc, sf2->name_nfc);
 }
 
 static void
@@ -1580,19 +1620,12 @@ recursive_scan_step_compute_done(struct bgtask *bt, void *data, int ticks)
 	recursive_scan_check(ctx);
 	(void) ticks;
 
-	reinit_sha1_table();
-	share_free();
+	g_assert(NULL == ctx->shared);
+	g_assert(NULL == ctx->search_tb);
 
-	g_assert(file_basenames == NULL);
-	file_basenames = g_hash_table_new(g_str_hash, g_str_equal);
-
-	g_assert(search_table);
-	st_create(search_table);
-
-	files_scanned = slist_length(ctx->shared_files);
-	bytes_scanned = 0;
-
-	g_assert(shared_files == NULL);
+	ctx->files_scanned = slist_length(ctx->shared_files);
+	ctx->bytes_scanned = 0;
+	ctx->search_tb = st_create();
 
 	bg_task_ticks_used(bt, 0);
 	return BGR_NEXT;
@@ -1608,7 +1641,7 @@ recursive_scan_step_build_search_table(struct bgtask *bt, void *data, int ticks)
 	ctx->ticks = 0;
 
 	while (slist_length(ctx->shared_files) > 0) {
-		const struct shared_file *sf;
+		const shared_file_t *sf;
 
 		if (ctx->ticks++ >= ticks)
 			return BGR_MORE;
@@ -1616,14 +1649,14 @@ recursive_scan_step_build_search_table(struct bgtask *bt, void *data, int ticks)
 		sf = slist_shift(ctx->shared_files);
 		shared_file_check(sf);
 		g_assert(!shared_file_is_partial(sf));
-		bytes_scanned += sf->file_size;
-		st_insert_item(search_table, sf->name_canonic, sf);
-		shared_files = gm_slist_prepend_const(shared_files, sf);
+		ctx->bytes_scanned += sf->file_size;
+		st_insert_item(ctx->search_tb, sf->name_canonic, sf);
+		ctx->shared = gm_slist_prepend_const(ctx->shared, sf);
 		upload_stats_enforce_local_filename(sf);
 	}
 
 	/* Compact the search table */
-	st_compact(search_table);
+	st_compact(ctx->search_tb);
 	ctx->ticks += 5;
 
 	bg_task_ticks_used(bt, ctx->ticks);
@@ -1635,33 +1668,39 @@ recursive_scan_step_build_file_table(struct bgtask *bt, void *data, int ticks)
 {
 	struct recursive_scan *ctx = data;
 	GSList *sl;
-	int i;
+	int i = 0;
 
 	recursive_scan_check(ctx);
+	g_assert(NULL == ctx->files);
+
 	(void) ticks;
 
-	file_table = halloc0((files_scanned + 1) * sizeof file_table[0]);
+	if (0 == ctx->files_scanned)
+		goto next;
 
 	/*
-	 * We over-allocate the file_table by one entry so that even when they
-	 * don't share anything, the `file_table' pointer is not NULL.
-	 * This will prevent us giving back "rebuilding library" when we should
-	 * actually return "not found" for user download requests.
-	 *		--RAM, 23/10/2002
+	 * In order to quickly locate files based on indicies, build a table
+	 * of all shared files.  This table is only accessible via shared_file().
+	 * NB: file indicies start at 1, but indexing in table starts at 0.
+	 *		--RAM, 08/10/2001
 	 */
-	
-	for (i = 0, sl = shared_files; sl; sl = g_slist_next(sl)) {
-		struct shared_file *sf = sl->data;
+
+	ctx->files = halloc0(ctx->files_scanned * sizeof ctx->files[0]);
+
+	for (i = 0, sl = ctx->shared; sl; sl = g_slist_next(sl)) {
+		shared_file_t *sf = sl->data;
 
 		shared_file_check(sf);
 		g_assert(!(SHARE_F_INDEXED & sf->flags));
-		file_table[i++] = sf;
+		g_assert(UNSIGNED(i) < ctx->files_scanned);
+		ctx->files[i++] = sf;
 	}
 
 	/* Sort file list by modification time to get a relatively stable index */
-	qsort(file_table, files_scanned, sizeof file_table[0],
+	qsort(ctx->files, ctx->files_scanned, sizeof ctx->files[0],
 		shared_file_sort_by_mtime);
 
+next:
 	bg_task_ticks_used(bt, i / 10);
 	ctx->idx = 0;				/* Prepares next step */
 
@@ -1669,40 +1708,30 @@ recursive_scan_step_build_file_table(struct bgtask *bt, void *data, int ticks)
 }
 
 static bgret_t
-recursive_scan_step_request_sha1(struct bgtask *bt, void *data, int ticks)
+recursive_scan_step_build_basenames(struct bgtask *bt, void *data, int ticks)
 {
 	struct recursive_scan *ctx = data;
 
 	recursive_scan_check(ctx);
 
-	/*
-	 * In order to quickly locate files based on indicies, build a table
-	 * of all shared files.  This table is only accessible via shared_file().
-	 * NB: file indicies start at 1, but indexing in table start at 0.
-	 *		--RAM, 08/10/2001
-	 */
-
 	ctx->ticks = 0;
 
-	for (/* empty */; UNSIGNED(ctx->idx) < files_scanned; ctx->idx++) {
-		struct shared_file *sf;
+	while (UNSIGNED(ctx->idx) < ctx->files_scanned) {
+		shared_file_t *sf;
 		guint val;
-		int i = ctx->idx;
+		int i = ctx->idx++;
 
-	   	sf = file_table[i];
-		if (!sf)
-			continue;
-
-		if (ctx->ticks++ >= ticks)
-			return BGR_MORE;
-
-		/* Set file_index based on new sort order */
-		sf->file_index = i + 1;
-		sf->flags |= SHARE_F_INDEXED;
+	   	sf = ctx->files[i];
 		shared_file_check(sf);
 
-		/* We must not change the file index after request_sha1() */
-		request_sha1(sf);
+		/*
+		 * Set file_index based on new sort order.
+		 *
+		 * We don't set SHARE_F_INDEXED yet, this will be done only when
+		 * we're ready to install the new data structures we're still building.
+		 */
+
+		sf->file_index = i + 1;
 
 		/*
 		 * In order to transparently handle files requested with the wrong
@@ -1714,17 +1743,19 @@ recursive_scan_step_request_sha1(struct bgtask *bt, void *data, int ticks)
 		 *		--RAM, 06/06/2002
 		 */
 
-		val = GPOINTER_TO_UINT(
-			g_hash_table_lookup(file_basenames, sf->name_nfc));
+		val = pointer_to_uint(
+				g_hash_table_lookup(ctx->basenames, sf->name_nfc));
 
 		/*
 		 * The following works because 0 cannot be a valid file index.
 		 */
 
 		val = (val != 0) ? FILENAME_CLASH : sf->file_index;
-		g_hash_table_insert(file_basenames, deconstify_gchar(sf->name_nfc),
+		g_hash_table_insert(ctx->basenames, deconstify_gchar(sf->name_nfc),
 			GUINT_TO_POINTER(val));
-		sf->flags |= SHARE_F_BASENAME;
+
+		if (ctx->ticks++ >= ticks)
+			return BGR_MORE;
 	}
 
 	bg_task_ticks_used(bt, ctx->ticks);
@@ -1754,34 +1785,173 @@ static bgret_t
 recursive_scan_step_build_sorted_table(struct bgtask *bt, void *data, int ticks)
 {
 	struct recursive_scan *ctx = data;
-	int i;
+	int i = 0;
 
 	recursive_scan_check(ctx);
-	g_assert(NULL == sorted_file_table);
+	g_assert(NULL == ctx->sorted);
 
 	(void) ticks;
 
-	sorted_file_table = hcopy(file_table,
-							(files_scanned + 1) * sizeof file_table[0]);
+	if (0 == ctx->files_scanned)
+		goto next;
 
-	qsort(sorted_file_table, files_scanned, sizeof sorted_file_table[0],
+	ctx->sorted = hcopy(ctx->files, ctx->files_scanned * sizeof ctx->files[0]);
+
+	qsort(ctx->sorted, ctx->files_scanned, sizeof ctx->sorted[0],
 		shared_file_sort_by_name);
 
-	/* Set the sort index used for sorted file listings */
-	for (i = 0; UNSIGNED(i) < files_scanned; i++) {
-		struct shared_file *sf;
+	/*
+	 * Set the sort index used for sorted file listings
+	 *
+	 * Note that we're not setting SHARE_F_INDEXED yet because we don't know
+	 * whether we're going to install the data structures we're building.
+	 */
 
-	   	sf = sorted_file_table[i];
-		if (!sf)
-			continue;
+	for (i = 0; UNSIGNED(i) < ctx->files_scanned; i++) {
+		shared_file_t *sf;
+
+	   	sf = ctx->sorted[i];
 		shared_file_check(sf);
 		sf->sort_index = i + 1;
 	}
 
+next:
+	bg_task_ticks_used(bt, i / 10);
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+	size_t i;
+
+	recursive_scan_check(ctx);
+	g_assert(ctx->search_tb != NULL);
+
+	(void) ticks;
+
+	/*
+	 * This step is "atomic" in that it cannot be interrupted by the background
+	 * task scheduler.
+	 *
+	 * We're installing the shared library data structures we've been building
+	 * in the previous steps, discarding the old ones.
+	 */
+
+	if (GNET_PROPERTY(share_debug) > 1) {
+		int count = st_count(ctx->search_tb);
+		g_debug("SHARE installing new search table (%d item%s)",
+			count, 1 == count ? "" : "s");
+	}
+
+	share_free();
+
+	search_table = ctx->search_tb;
+	file_basenames = ctx->basenames;
+	shared_files = ctx->shared;
+	file_table = ctx->files;
+	sorted_file_table = ctx->sorted;
+	files_scanned = ctx->files_scanned;
+	bytes_scanned = ctx->bytes_scanned;
+
+	/*
+	 * Now that we installed the shared files, we can mark the entries as
+	 * being indexed and basenamed.
+	 */
+
+	for (i = 0; i < files_scanned; i++) {
+		shared_file_t *sf = file_table[i];
+
+		shared_file_check(sf);
+		sf->flags |= SHARE_F_INDEXED | SHARE_F_BASENAME;
+	}
+
+	/*
+	 * Reset these contextual variables, they are now held by the global ones.
+	 */
+
+	ctx->search_tb = NULL;
+	ctx->basenames = NULL;
+	ctx->shared = NULL;
+	ctx->files = NULL;
+	ctx->sorted = NULL;
+
 	gcu_gui_update_files_scanned();		/* Final view */
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
 
-	bg_task_ticks_used(bt, files_scanned / 10);
+	/*
+	 * The next step is going to request the SHA1 of all the library files,
+	 * which will fill again the known SHA1 cache.
+	 */
+
+	reinit_sha1_table();
+
+	bg_task_ticks_used(bt, ctx->files_scanned / 10);
+	ctx->idx = 0;		/* Prepare next step */
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_request_sha1(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+
+	/*
+	 * The new library has been installed, we must now access the global
+	 * variables.
+	 */
+
+	g_assert(NULL == ctx->files);		/* Indicates installation was done */
+
+	ctx->ticks = 0;
+
+	while (UNSIGNED(ctx->idx) < files_scanned) {
+		shared_file_t *sf;
+		int i = ctx->idx++;
+
+	   	sf = file_table[i];
+		shared_file_check(sf);
+
+		/*
+		 * We must not change the file index after request_sha1() since this
+		 * can synchronously call routines to set the SHA1 if it's known
+		 * already.
+		 */
+
+		request_sha1(sf);
+
+		if (ctx->ticks++ >= ticks)
+			return BGR_MORE;
+	}
+
+	share_rebuilding = FALSE;	/* Done rebuilding the SHA1 table */
+	bg_task_ticks_used(bt, ctx->ticks);
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_load_partials(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+	(void) ticks;
+
+	if (share_can_answer_partials()) {
+		hash_list_iter_t *iter = hash_list_iterator(partial_files);
+
+		while (hash_list_iter_has_next(iter)) {
+			const shared_file_t *sf = hash_list_iter_next(iter);
+			slist_append(ctx->partial_files, shared_file_ref(sf));
+		}
+
+		hash_list_iter_release(&iter);
+	}
+
+	bg_task_ticks_used(bt, 0);
 	return BGR_NEXT;
 }
 
@@ -1797,35 +1967,61 @@ recursive_scan_step_build_partial_table(struct bgtask *bt,
 
 	if (NULL == ctx->iter) {
 		ctx->iter = slist_iter_before_head(ctx->partial_files);
-		/*
-		 * Reset table, whether or not we can answer with partial files.
-		 */
-		st_destroy(partial_table);
-		st_create(partial_table);
+		g_assert(NULL == ctx->partial_tb);
+		ctx->partial_tb = st_create();
 	}
 
 	if (!share_can_answer_partials())
 		goto next;
 
 	while (slist_iter_has_next(ctx->iter)) {
-		const struct shared_file *sf = slist_iter_next(ctx->iter);
+		const shared_file_t *sf = slist_iter_next(ctx->iter);
 
 		shared_file_check(sf);
 		g_assert(shared_file_is_partial(sf));
-		st_insert_item(partial_table, sf->name_canonic, sf);
+		st_insert_item(ctx->partial_tb, sf->name_canonic, sf);
 
 		if (ctx->ticks++ >= ticks)
 			return BGR_MORE;
 	}
 
 	/* Compact the search table */
-	st_compact(partial_table);
+	st_compact(ctx->partial_tb);
 	ctx->ticks += 5;
 
 next:
 	slist_iter_free(&ctx->iter);
 
 	bg_task_ticks_used(bt, ctx->ticks);
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_install_partials(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+	g_assert(ctx->partial_tb != NULL);
+
+	(void) ticks;
+
+	/*
+	 * Install the new partial table, regardless of whether they allow queries
+	 * to return partials: if they don't, the table is empty anyway.
+	 */
+
+	if (GNET_PROPERTY(share_debug) > 1) {
+		int count = st_count(ctx->partial_tb);
+		g_debug("SHARE installing new partial table (%d item%s)",
+			count, 1 == count ? "" : "s");
+	}
+
+	st_free(&partial_table);
+	partial_table = ctx->partial_tb;
+	ctx->partial_tb = NULL;
+
+	bg_task_ticks_used(bt, 0);
 	return BGR_NEXT;
 }
 
@@ -1840,17 +2036,6 @@ recursive_scan_step_prepare_qrp(struct bgtask *bt, void *data, int ticks)
 	gnet_prop_set_timestamp_val(PROP_QRP_INDEXING_STARTED, tm_time_exact());
 	qrp_prepare_computation();
 	ctx->idx = 0;
-
-	if (share_can_answer_partials()) {
-		hash_list_iter_t *iter = hash_list_iterator(partial_files);
-
-		while (hash_list_iter_has_next(iter)) {
-			const shared_file_t *sf = hash_list_iter_next(iter);
-			slist_append(ctx->partial_files, shared_file_ref(sf));
-		}
-
-		hash_list_iter_release(&iter);
-	}
 
 	bg_task_ticks_used(bt, 0);
 	return BGR_NEXT;
@@ -1923,11 +2108,15 @@ recursive_scan_create_task(struct recursive_scan *ctx)
 			recursive_scan_step_compute_done,
 			recursive_scan_step_build_search_table,
 			recursive_scan_step_build_file_table,
-			recursive_scan_step_request_sha1,
+			recursive_scan_step_build_basenames,
 			recursive_scan_step_update_scan_timing,
 			recursive_scan_step_build_sorted_table,
-			recursive_scan_step_prepare_qrp,
+			recursive_scan_step_install_shared,
+			recursive_scan_step_request_sha1,
+			recursive_scan_step_load_partials,
 			recursive_scan_step_build_partial_table,
+			recursive_scan_step_install_partials,
+			recursive_scan_step_prepare_qrp,
 			recursive_scan_step_update_qrp,
 			recursive_scan_step_finalize,
 		};
@@ -1946,8 +2135,10 @@ share_update_qrp_create_task(struct recursive_scan *ctx)
 
 	if (NULL == ctx->task) {
 		static const bgstep_cb_t steps[] = {
-			recursive_scan_step_prepare_qrp,
+			recursive_scan_step_load_partials,
 			recursive_scan_step_build_partial_table,
+			recursive_scan_step_install_partials,
+			recursive_scan_step_prepare_qrp,
 			recursive_scan_step_update_qrp,
 			recursive_scan_step_finalize,
 		};
@@ -1968,6 +2159,7 @@ share_scan(void)
 {
 	recursive_scan_free(&recursive_scan_context);
 	recursive_scan_context = recursive_scan_new(shared_dirs);
+	share_rebuilding = TRUE;
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
 	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_STARTED, tm_time_exact());
 	recursive_scan_create_task(recursive_scan_context);
@@ -1982,7 +2174,8 @@ static gboolean
 share_update_qrp(void)
 {
 	/*
-	 * If we're already rebuilding, do nothing.
+	 * If we're already rebuilding something, do nothing for now
+	 * We'll be called regularily until we can proceed.
 	 */
 
 	if (recursive_scan_context != NULL && recursive_scan_context->task != NULL)
@@ -2036,7 +2229,7 @@ share_close(void)
 	oob_proxy_close();
 	oob_close();
 	qhit_close();
-	st_free(&search_table);
+	st_free(&partial_table);
 	gm_hash_table_destroy_null(&share_media_types);
 	hash_list_free(&partial_files);
 	st_free(&partial_table);
@@ -2053,7 +2246,7 @@ share_close(void)
  * huge.c when it knows what the hash associated to a file is.
  */
 void
-shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
+shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 {
 	shared_file_check(sf);
 	g_assert(!shared_file_is_partial(sf));	/* Cannot be a partial file */
@@ -2062,7 +2255,7 @@ shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
 	sf->flags |= sha1 ? SHARE_F_HAS_DIGEST : 0;
 
 	if (sf->sha1) {
-		struct shared_file *current;
+		shared_file_t *current;
 		gpointer key;
 
 		key = deconstify_gpointer(sf->sha1);
@@ -2086,7 +2279,7 @@ shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
 	 */
 
 	if ((SHARE_F_INDEXED & sf->flags) && sf->sha1) {
-		struct shared_file *current;
+		shared_file_t *current;
 		gpointer key;
 
 		key = deconstify_gpointer(sf->sha1);
@@ -2117,7 +2310,7 @@ shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
 }
 
 void
-shared_file_set_tth(struct shared_file *sf, const struct tth *tth)
+shared_file_set_tth(shared_file_t *sf, const struct tth *tth)
 {
 	shared_file_check(sf);
 
@@ -2127,7 +2320,7 @@ shared_file_set_tth(struct shared_file *sf, const struct tth *tth)
 }
 
 void
-shared_file_set_modification_time(struct shared_file *sf, time_t mtime)
+shared_file_set_modification_time(shared_file_t *sf, time_t mtime)
 {
 	shared_file_check(sf);
 	sf->mtime = mtime;
@@ -2140,7 +2333,7 @@ shared_file_set_modification_time(struct shared_file *sf, time_t mtime)
  * Use sha1_hash_is_uptodate() to check for availability and accurateness.
  */
 gboolean
-sha1_hash_available(const struct shared_file *sf)
+sha1_hash_available(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 	return SHARE_F_HAS_DIGEST ==
@@ -2155,7 +2348,7 @@ sha1_hash_available(const struct shared_file *sf)
  * the SHA1 is requested.
  */
 gboolean
-sha1_hash_is_uptodate(struct shared_file *sf)
+sha1_hash_is_uptodate(shared_file_t *sf)
 {
 	filestat_t buf;
 
@@ -2221,14 +2414,14 @@ sha1_hash_is_uptodate(struct shared_file *sf)
  * Whether file is finished (i.e. either shared from the library or seeded).
  */
 gboolean
-shared_file_is_finished(const struct shared_file *sf)
+shared_file_is_finished(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 	return NULL == sf->fi || 0 != (sf->fi->flags & FI_F_SEEDING);
 }
 
 gboolean
-shared_file_is_partial(const struct shared_file *sf)
+shared_file_is_partial(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 	return NULL != sf->fi;
@@ -2348,7 +2541,7 @@ shared_file_mime_type(const shared_file_t *sf)
 }
 
 void
-shared_file_remove(struct shared_file *sf)
+shared_file_remove(shared_file_t *sf)
 {
 	shared_file_check(sf);
 
@@ -2359,7 +2552,7 @@ shared_file_remove(struct shared_file *sf)
 }
 
 void
-shared_file_set_path(struct shared_file *sf, const char *pathname)
+shared_file_set_path(shared_file_t *sf, const char *pathname)
 {
 	shared_file_check(sf);
 	atom_str_change(&sf->file_path, pathname);
@@ -2407,10 +2600,10 @@ shared_file_from_fileinfo(fileinfo_t *fi)
  * @returns NULL if we don't share a complete file, or SHARE_REBUILDING if the
  * set of shared file is being rebuilt.
  */
-static struct shared_file *
+static shared_file_t *
 shared_file_complete_by_sha1(const struct sha1 *sha1)
 {
-	struct shared_file *f;
+	shared_file_t *f;
 
 	if (sha1_to_share == NULL)			/* Not even begun share_scan() yet */
 		return SHARE_REBUILDING;
@@ -2427,10 +2620,7 @@ shared_file_complete_by_sha1(const struct sha1 *sha1)
 		 * it yet.	--RAM, 12/10/2002.
 		 */
 
-		if (file_table == NULL)			/* Rebuilding the library! */
-			return SHARE_REBUILDING;
-
-		return NULL;
+		return share_rebuilding ? SHARE_REBUILDING : NULL;
 	}
 
 	return f;
@@ -2450,7 +2640,7 @@ shared_file_complete_by_sha1(const struct sha1 *sha1)
 shared_file_t *
 shared_file_by_sha1(const struct sha1 *sha1)
 {
-	struct shared_file *f;
+	shared_file_t *f;
 
 	f = shared_file_complete_by_sha1(sha1);
 
@@ -2462,7 +2652,7 @@ shared_file_by_sha1(const struct sha1 *sha1)
 
 	if (f == NULL || f == SHARE_REBUILDING) {
 		if (GNET_PROPERTY(pfsp_server) || GNET_PROPERTY(pfsp_rare_server)) {
-			struct shared_file *sf = file_info_shared_sha1(sha1);
+			shared_file_t *sf = file_info_shared_sha1(sha1);
 			if (sf != NULL) {
 				if (GNET_PROPERTY(pfsp_rare_server)) {
 					if (download_sha1_is_rare(sha1)) {
@@ -2481,10 +2671,57 @@ shared_file_by_sha1(const struct sha1 *sha1)
 }
 
 /**
+ * Fill the supplied shared_file vector, holding sfcount entries, with the
+ * most recent shared files we have in the library matching the supplied
+ * media_mask (if non-zero) and which are less than SHARE_RECENT_THRESH
+ * seconds old.
+ *
+ * @attention
+ * No reference counting is done on the returned pointers, which must therefore
+ * be used right away.
+ *
+ * @return the amount of entries filled in the vector.
+ */
+size_t
+share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned media_mask)
+{
+	int i;
+	size_t j;
+
+	g_assert(sfvec != NULL);
+	g_assert(size_is_positive(sfcount));
+
+	if (NULL == file_table)
+		return 0;
+
+	g_assert(files_scanned != 0);
+
+	for (i = files_scanned - 1, j = 0; i >= 0 && j < sfcount; i--) {
+		shared_file_t *sf = file_table[i];
+
+		if (sf != NULL) {
+			shared_file_check(sf);
+
+			/* file_table[] is sorted by increasing mtime */
+
+			if (delta_time(tm_time(), sf->mtime) > SHARE_RECENT_THRESH)
+				break;		/* Deeper files will be older */
+
+			if (media_mask != 0 && !shared_file_has_media_type(sf, media_mask))
+				continue;
+
+			sfvec[j++] = sf;
+		}
+	}
+
+	return j;
+}
+
+/**
  * Is shared file belonging to the media types indicated by mask?
  */
 gboolean
-shared_file_has_media_type(const struct shared_file *sf, unsigned mask)
+shared_file_has_media_type(const shared_file_t *sf, unsigned mask)
 {
 	unsigned type;
 
@@ -2638,9 +2875,7 @@ share_init(void)
 	 *		--RAM, 15/08/2002.
 	 */
 
-	search_table = st_alloc();
-	st_initialize(search_table);
-	st_create(search_table);
+	search_table = st_create();
 
 	/*
 	 * Intialize partial file querying structures (so that queries can
@@ -2648,9 +2883,7 @@ share_init(void)
 	 */
 
 	partial_files = hash_list_new(pointer_hash_func, NULL);
-	partial_table = st_alloc();
-	st_initialize(partial_table);
-	st_create(partial_table);
+	partial_table = st_create();
 
 	/*
 	 * Create the hash table yielding the media type flags from a MIME type.

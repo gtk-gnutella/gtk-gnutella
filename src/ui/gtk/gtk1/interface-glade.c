@@ -10617,6 +10617,7 @@ create_dlg_prefs (void)
   GtkWidget *spinbutton_pfsp_last_chunk;
   GtkWidget *checkbutton_pfsp_rare_server;
   GtkWidget *checkbutton_config_query_answer_partials;
+  GtkWidget *checkbutton_config_query_answer_whats_new;
   GtkWidget *frame140;
   GtkWidget *table96;
   GtkWidget *label753;
@@ -15482,7 +15483,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame_partial_file_sharing);
   gtk_box_pack_start (GTK_BOX (vbox40), frame_partial_file_sharing, FALSE, TRUE, 0);
 
-  table65 = gtk_table_new (2, 5, FALSE);
+  table65 = gtk_table_new (3, 5, FALSE);
   gtk_widget_set_name (table65, "table65");
   gtk_widget_ref (table65);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table65", table65,
@@ -15593,6 +15594,16 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_config_query_answer_partials);
   gtk_table_attach (GTK_TABLE (table65), checkbutton_config_query_answer_partials, 3, 5, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_query_answer_whats_new = gtk_check_button_new_with_label (_("Answer to what's-new? queries"));
+  gtk_widget_set_name (checkbutton_config_query_answer_whats_new, "checkbutton_config_query_answer_whats_new");
+  gtk_widget_ref (checkbutton_config_query_answer_whats_new);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_query_answer_whats_new", checkbutton_config_query_answer_whats_new,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_query_answer_whats_new);
+  gtk_table_attach (GTK_TABLE (table65), checkbutton_config_query_answer_whats_new, 3, 5, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 

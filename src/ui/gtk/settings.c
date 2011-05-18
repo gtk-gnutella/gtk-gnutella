@@ -3564,6 +3564,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_QUERY_ANSWER_WHATS_NEW,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_query_answer_whats_new",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_PFSP_FIRST_CHUNK,
         update_spinbutton,
         TRUE,

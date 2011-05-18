@@ -90,6 +90,9 @@
 #define SEARCH_LINUX_TYPE	0x0080
 #define SEARCH_TORRENT_TYPE	0x0100	/* Broken as deployed on 2011-05-15 */
 
+struct search_request_info;
+typedef struct search_request_info search_request_info_t;
+
 struct download;
 struct guid;
 struct nid;
@@ -100,6 +103,9 @@ struct nid;
 
 void search_init(void);
 void search_shutdown(void);
+
+search_request_info_t *search_request_info_alloc(void);
+void search_request_info_free_null(search_request_info_t **sri_ptr);
 
 gboolean search_results(gnutella_node_t *n, int *results);
 gboolean search_query_allowed(gnet_search_t sh);
@@ -115,8 +121,10 @@ void search_oob_pending_results(gnutella_node_t *n, const struct guid *muid,
 void search_dissociate_browse(gnet_search_t sh, struct download *d);
 void search_browse_results(gnutella_node_t *n, gnet_search_t sh);
 
-gboolean search_request_preprocess(struct gnutella_node *n);
-void search_request(struct gnutella_node *n, struct query_hashvec *qhv);
+gboolean search_request_preprocess(struct gnutella_node *n,
+	search_request_info_t *sri);
+void search_request(struct gnutella_node *n,
+	const search_request_info_t *sri, struct query_hashvec *qhv);
 size_t compact_query(char *search);
 void search_compact(struct gnutella_node *n);
 void query_strip_oob_flag(const struct gnutella_node *n, char *data);

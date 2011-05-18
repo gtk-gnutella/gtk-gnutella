@@ -314,6 +314,7 @@ enum {
  * Node attributes.
  */
 enum {
+	NODE_A_CAN_WHAT		= 1 << 26,	/**< Node supports "What's New?" queries? */
 	NODE_A_GUESS		= 1 << 25,	/**< Node advertized GUESS support */
 	NODE_A_CAN_DHT		= 1 << 24,	/**< Indicated support for DHT */
 	NODE_A_FIREWALLED	= 1 << 23,	/**< Node determined to be firewalled */
@@ -346,6 +347,7 @@ enum {
  * Message flags, set during parsing / processing.
  */
 enum {
+	NODE_M_WHATS_NEW	= 1 << 4,	/**< Facing a "What's New?" query */
 	NODE_M_STRIP_GGEP_u	= 1 << 3,	/**< Must strip GGEP "u" */
 	NODE_M_STRIP_GUESS	= 1 << 2,	/**< Must strip all GUESS extensions */
 	NODE_M_EXT_CLEANUP	= 1 << 1,	/**< Must cleanup extensions */
@@ -445,6 +447,7 @@ enum {
 #define NODE_LEAF_GUIDE(n)		((n)->attrs & NODE_A_GUIDANCE)
 #define NODE_CAN_INFLATE(n)		((n)->attrs & NODE_A_CAN_INFLATE)
 #define NODE_USES_UDP(n)		((n)->attrs & NODE_A_UDP)
+#define NODE_CAN_WHAT(n)		((n)->attrs & NODE_A_CAN_WHAT)
 
 /*
  * Peer inspection macros
@@ -646,6 +649,7 @@ gnutella_node_t *node_browse_prepare(
 void node_browse_cleanup(gnutella_node_t *n);
 void node_kill_hostiles(void);
 void node_supports_tls(struct gnutella_node *);
+void node_supports_whats_new(struct gnutella_node *);
 void node_supports_dht(struct gnutella_node *, dht_mode_t);
 void node_is_firewalled(gnutella_node_t *n);
 

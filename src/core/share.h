@@ -65,10 +65,10 @@ enum {
 
 #define SHARE_REBUILDING shared_file_dummy()
 
-static inline struct shared_file *
+static inline shared_file_t *
 shared_file_dummy(void)
 {
-	static struct shared_file *dummy;
+	static shared_file_t *dummy;
 	if (!dummy) {
 		dummy = deconstify_gpointer(vmm_trap_page());
 	}
@@ -104,19 +104,19 @@ char *get_file_path(int);
 void shared_dirs_update_prop(void);
 gboolean shared_dirs_parse(const char *);
 
-void shared_file_set_sha1(struct shared_file *, const struct sha1 *sha1);
-void shared_file_set_tth(struct shared_file *, const struct tth *tth);
-void shared_file_set_modification_time(struct shared_file *sf, time_t mtime);
-void shared_file_set_path(struct shared_file *sf, const char *pathname);
+void shared_file_set_sha1(shared_file_t *, const struct sha1 *sha1);
+void shared_file_set_tth(shared_file_t *, const struct tth *tth);
+void shared_file_set_modification_time(shared_file_t *sf, time_t mtime);
+void shared_file_set_path(shared_file_t *sf, const char *pathname);
 
-void shared_file_check(const struct shared_file *sf);
-gboolean sha1_hash_available(const struct shared_file *sf);
-gboolean sha1_hash_is_uptodate(struct shared_file *sf);
-gboolean shared_file_is_partial(const struct shared_file *sf);
-gboolean shared_file_is_finished(const struct shared_file *sf);
+void shared_file_check(const shared_file_t *sf);
+gboolean sha1_hash_available(const shared_file_t *sf);
+gboolean sha1_hash_is_uptodate(shared_file_t *sf);
+gboolean shared_file_is_partial(const shared_file_t *sf);
+gboolean shared_file_is_finished(const shared_file_t *sf);
 filesize_t shared_file_size(const shared_file_t *sf);
 guint32 shared_file_index(const shared_file_t *sf);
-time_t shared_file_modification_time(const struct shared_file *sf);
+time_t shared_file_modification_time(const shared_file_t *sf);
 const char *shared_file_path(const shared_file_t *sf);
 const struct sha1 *shared_file_sha1(const shared_file_t *sf);
 const struct tth *shared_file_tth(const shared_file_t *sf);
@@ -129,7 +129,7 @@ guint32 shared_file_flags(const shared_file_t *sf);
 fileinfo_t *shared_file_fileinfo(const shared_file_t *sf);
 const char *shared_file_mime_type(const shared_file_t *sf);
 void shared_file_from_fileinfo(fileinfo_t *fi);
-gboolean shared_file_has_media_type(const struct shared_file *sf, unsigned m);
+gboolean shared_file_has_media_type(const shared_file_t *sf, unsigned m);
 
 void share_add_partial(const shared_file_t *sf);
 void share_remove_partial(const shared_file_t *sf);
@@ -138,6 +138,8 @@ void share_update_matching_information(void);
 void shared_files_match(const char *query,
 		st_search_callback callback, gpointer user_data,
 		int max_res, gboolean partials, struct query_hashvec *qhv);
+
+size_t share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned mask);
 
 static inline gboolean
 share_can_answer_partials(void)

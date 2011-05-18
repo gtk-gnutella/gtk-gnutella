@@ -978,6 +978,8 @@ gboolean gnet_property_variable_query_request_partials     = TRUE;
 static const gboolean gnet_property_variable_query_request_partials_default = TRUE;
 gboolean gnet_property_variable_query_answer_partials     = TRUE;
 static const gboolean gnet_property_variable_query_answer_partials_default = TRUE;
+gboolean gnet_property_variable_query_answer_whats_new     = TRUE;
+static const gboolean gnet_property_variable_query_answer_whats_new_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -8959,6 +8961,23 @@ gnet_prop_init(void) {
     gnet_property->props[417].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[417].data.boolean.def   = (void *) &gnet_property_variable_query_answer_partials_default;
     gnet_property->props[417].data.boolean.value = (void *) &gnet_property_variable_query_answer_partials;
+
+
+    /*
+     * PROP_QUERY_ANSWER_WHATS_NEW:
+     *
+     * General data:
+     */
+    gnet_property->props[418].name = "query_answer_whats_new";
+    gnet_property->props[418].desc = _("Whether what's-new? queries should be answered to.");
+    gnet_property->props[418].ev_changed = event_new("query_answer_whats_new_changed");
+    gnet_property->props[418].save = TRUE;
+    gnet_property->props[418].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[418].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[418].data.boolean.def   = (void *) &gnet_property_variable_query_answer_whats_new_default;
+    gnet_property->props[418].data.boolean.value = (void *) &gnet_property_variable_query_answer_whats_new;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

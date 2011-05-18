@@ -84,11 +84,9 @@ RCSID("$Id$")
 
 #define ST_MIN_BIN_SIZE		4
 
-struct shared_file;
-
 struct st_entry {
 	const char *string;				/* atom */
-	struct shared_file *sf;
+	shared_file_t *sf;
 	guint32 mask;
 };
 
@@ -97,13 +95,23 @@ struct st_bin {
 	struct st_entry **vals;
 };
 
-struct _search_table {
+enum search_table_magic { SEARCH_TABLE_MAGIC = 0x0cf66242 };
+
+struct search_table {
+	enum search_table_magic magic;
 	int nentries, nchars, nbins;
 	struct st_bin **bins;
 	struct st_bin all_entries;
 	guchar index_map[MAX_INT_VAL(guchar)];
 	guchar fold_map[MAX_INT_VAL(guchar)];
 };
+
+static inline void
+search_table_check(const struct search_table * const st)
+{
+	g_assert(st != NULL);
+	g_assert(SEARCH_TABLE_MAGIC == st->magic);
+}
 
 static void
 destroy_entry(struct st_entry *entry)
@@ -217,11 +225,13 @@ setup_map(void)
 /**
  * Initialize permanent data in search table.
  */
-void
+static void
 st_initialize(search_table_t *table)
 {
 	guchar cur_char = '\0';
 	guint i;
+
+	search_table_check(table);
 
 	table->nentries = table->nchars = 0;
 	setup_map();
@@ -247,41 +257,27 @@ st_initialize(search_table_t *table)
 	table->bins = NULL;
 	table->all_entries.vals = 0;
 
-	if (GNET_PROPERTY(matching_debug))
-		g_debug("MATCH search table will use %d bins max (%d indexing chars)",
-			table->nbins, table->nchars);
-}
+	if (GNET_PROPERTY(matching_debug)) {
+		static gboolean done;
 
-/**
- * Allocates a new search_table_t. Use st_free() to free it.
- */
-search_table_t *
-st_alloc(void)
-{
-	search_table_t *table = walloc0(sizeof *table);
-	return table;
-}
-
-void
-st_free(search_table_t **ptr)
-{
-	g_assert(ptr);
-	if (*ptr) {
-		search_table_t *table = *ptr;
-		st_destroy(table);
-		wfree(table, sizeof *table);
-		*ptr = NULL;
+		if (!done) {
+			done = TRUE;
+			g_debug("MATCH search tables will use %d bins max "
+				"(%d indexing chars)", table->nbins, table->nchars);
+		}
 	}
 }
-
 
 /**
  * Recreate variable parts of the search table.
  */
-void
-st_create(search_table_t *table)
+static void
+st_recreate(search_table_t *table)
 {
 	int i;
+
+	search_table_check(table);
+	g_assert(NULL == table->bins);
 
 	table->bins = halloc(table->nbins * sizeof table->bins[0]);
 	for (i = 0; i < table->nbins; i++)
@@ -293,10 +289,12 @@ st_create(search_table_t *table)
 /**
  * Destroy a search table.
  */
-void
+static void
 st_destroy(search_table_t *table)
 {
 	int i;
+
+	search_table_check(table);
 
 	if (table->bins) {
 		for (i = 0; i < table->nbins; i++) {
@@ -317,6 +315,48 @@ st_destroy(search_table_t *table)
 		}
 		bin_destroy(&table->all_entries);
 	}
+}
+
+/**
+ * Allocates a new search_table_t.
+ * Use st_free() to free it.
+ */
+search_table_t *
+st_create(void)
+{
+	search_table_t *table = walloc0(sizeof *table);
+
+	table->magic = SEARCH_TABLE_MAGIC;
+	st_initialize(table);
+	st_recreate(table);
+	return table;
+}
+
+/**
+ * Free search table, nullifying its pointer.
+ */
+void
+st_free(search_table_t **ptr)
+{
+	g_assert(ptr);
+	if (*ptr) {
+		search_table_t *table = *ptr;
+		st_destroy(table);
+		table->magic = 0;
+		wfree(table, sizeof *table);
+		*ptr = NULL;
+	}
+}
+
+/**
+ * @return amount of entries in the table.
+ */
+int
+st_count(const search_table_t *table)
+{
+	search_table_check(table);
+
+	return table->all_entries.nvals;
 }
 
 /**
@@ -647,7 +687,7 @@ st_search(
 	nres = 0;
 	for (i = 0; i < vcnt; i++) {
 		const struct st_entry *e;
-		struct shared_file *sf;
+		shared_file_t *sf;
 		size_t canonic_len;
 
 		/*

@@ -141,6 +141,27 @@ RCSID("$Id$")
 
 static sectoken_gen_t *guess_stg;		/**< GUESS token generator */
 
+/**
+ * Gathered query information.
+ */
+struct search_request_info {
+	struct {
+		struct sha1 sha1;
+		gboolean matched;
+	} exv_sha1[MAX_EXTVEC];
+	const char *extended_query;		/**< String in GGEP "XQ" */
+	int exv_sha1cnt;				/**< Amount of SHA1 to search for */
+	size_t search_len;				/**< Length of query string */
+	guint32 media_types;			/**< Media types from GGEP "M" */
+	guint16 flags;					/**< Query flags */
+	unsigned oob:1;					/**< Wants out-of-band hit delivery */
+	unsigned secure_oob:1;			/**< OOB v3 used? */
+	unsigned whats_new:1;			/**< This ia a "What's New?" query */
+	unsigned skip_file_search:1;	/**< Should we skip library searching? */
+	unsigned may_oob_proxy:1;		/**< Can we OOB-proxy the query? */
+	unsigned partials:1;			/**< Do they want partial results? */
+};
+
 enum search_ctrl_magic { SEARCH_CTRL_MAGIC = 0x0add8c06 };
 
 /**
@@ -217,9 +238,14 @@ static zone_t *rc_zone;		/**< Allocation of record */
 static idtable_t *search_handle_map;
 static query_hashvec_t *query_hashvec;
 
-
 static GHashTable *muid_to_query_map;
 static hash_list_t *query_muids;
+
+/**
+ * The legacy "What's New?" query string.
+ */
+static const char WHATS_NEW_QUERY[] = "WhatIsNewXOXO";
+static const char WHATS_NEW[] = "What's New?";
 
 static void
 query_muid_map_init(void)
@@ -5404,6 +5430,34 @@ search_request_get_flags(const struct gnutella_node *n)
 }
 
 /**
+ * Allocates a new structure to hold search request (query) information,
+ * so that we can reuse in search_request() the preprocessing work done
+ * via search_request_preprocess().
+ */
+search_request_info_t *
+search_request_info_alloc(void)
+{
+	search_request_info_t *sri;
+
+	return walloc0(sizeof *sri);
+}
+
+/**
+ * Free data structure and nullify its pointer.
+ */
+void
+search_request_info_free_null(search_request_info_t **sri_ptr)
+{
+	search_request_info_t *sri = *sri_ptr;
+
+	if (sri != NULL) {
+		atom_str_free_null(&sri->extended_query);
+		wfree(sri, sizeof *sri);
+		*sri_ptr = NULL;
+	}
+}
+
+/**
  * Preprocesses searches requests (from others nodes).
  *
  * This is called before route_message(), so TTL and hops hold the values
@@ -5413,23 +5467,14 @@ search_request_get_flags(const struct gnutella_node *n)
  * @return TRUE if the query should be discarded, FALSE if everything was OK.
  */
 gboolean
-search_request_preprocess(struct gnutella_node *n)
+search_request_preprocess(struct gnutella_node *n, search_request_info_t *sri)
 {
 	static char stmp_1[4096];
-	guint16 flags;
 	char *search;
-	size_t search_len;
-	gboolean skip_file_search = FALSE;
-	struct {
-		struct sha1 sha1;
-		gboolean matched;
-	} exv_sha1[MAX_EXTVEC];
 	struct sha1 *last_sha1_digest = NULL;
-	int exv_sha1cnt = 0;
-	guint offset = 0;			/**< Query string start offset */
-	gboolean oob;		/**< Wants out-of-band query hit delivery? */
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
+	g_assert(sri != NULL);
 
 	if (GNET_PROPERTY(guess_server_debug) > 18) {
 		if (NODE_IS_UDP(n)) {
@@ -5450,8 +5495,8 @@ search_request_preprocess(struct gnutella_node *n)
 	 */
 
 	search = n->data + 2;	/* skip flags */
-	search_len = clamp_strlen(search, n->size - 2);
-	if (search_len >= n->size - 2U) {
+	sri->search_len = clamp_strlen(search, n->size - 2);
+	if (sri->search_len >= n->size - 2U) {
 		g_assert(n->data[n->size - 1] != '\0');
 		if (GNET_PROPERTY(query_debug) > 10)
 			g_warning("query (hops=%u, ttl=%u) from %s had no NUL (%d byte%s)",
@@ -5467,9 +5512,23 @@ search_request_preprocess(struct gnutella_node *n)
 		goto drop;		/* Drop the message! */
 	}
 
-	/* We can now use `search' safely as a C string: it embeds a NUL */
+	/*
+	 * Detect legacy "What's New?" queries early.
+	 */
 
-	search_request_listener_emit(QUERY_STRING, search, n->addr, n->port);
+	sri->whats_new =
+		CONST_STRLEN(WHATS_NEW_QUERY) == sri->search_len &&
+		0 == strcasecmp(search, WHATS_NEW_QUERY);
+
+	/*
+	 * We can now use `search' safely as a C string: it embeds a NUL
+	 * Don't emit empty search strings.  We include "\" in the empty set.
+	 */
+
+	if (sri->search_len > 0 && (sri->search_len != 1 || search[0] != '\\')) {
+		search_request_listener_emit(QUERY_STRING,
+			sri->whats_new ? WHATS_NEW : search, n->addr, n->port);
+	}
 
 	/*
 	 * Special processing for the "query flags" field of queries.
@@ -5494,8 +5553,8 @@ search_request_preprocess(struct gnutella_node *n)
 	 * interpretation. --RAM
 	 */
 
-	flags = search_request_get_flags(n);
-	if (0 == flags) {
+	sri->flags = search_request_get_flags(n);
+	if (0 == sri->flags) {
 		gnet_stats_count_dropped(n, MSG_DROP_ANCIENT_QUERY);
 		goto drop;		/* Drop the message! */
 	}
@@ -5504,7 +5563,7 @@ search_request_preprocess(struct gnutella_node *n)
 	 * Look whether we're facing an UTF-8 query.
 	 */
 
-	if (!query_utf8_decode(search, &offset)) {
+	if (!query_utf8_decode(search, NULL)) {
 		gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
 		goto drop;					/* Drop message! */
 	}
@@ -5513,57 +5572,10 @@ search_request_preprocess(struct gnutella_node *n)
 	}
 
 	/*
-	 * Compact query, if requested and we're going to relay that message.
-	 * Note that TTL=0 queries can be relayed to leaves, so we cannot
-	 * discriminate on that.
-	 */
-
-	if (
-		GNET_PROPERTY(gnet_compact_query) &&
-		GNET_PROPERTY(current_peermode) != NODE_P_LEAF
-	) {
-		size_t mangled_search_len;
-
-		/*
-		 * Compact the query, offsetting from the start as needed in case
-		 * there is a leading BOM (our UTF-8 decoder does not allow BOM
-		 * within the UTF-8 string, and rightly I think: that would be pure
-		 * gratuitous bloat).
-		 */
-
-		mangled_search_len = compact_query_utf8(&search[offset]);
-
-		g_assert(mangled_search_len <= search_len - offset);
-
-		if (mangled_search_len != search_len - offset) {
-			gnet_stats_count_general(GNR_QUERY_COMPACT_COUNT, 1);
-			gnet_stats_count_general(GNR_QUERY_COMPACT_SIZE,
-				search_len - offset - mangled_search_len);
-			n->msg_flags |= NODE_M_COMPACTED;
-		}
-
-		/*
-		 * Need to move the trailing data forward and adjust the
-		 * size of the packet.
-		 */
-
-		g_memmove(
-			&search[offset + mangled_search_len], /* new end of query string */
-			&search[search_len],                  /* old end of query string */
-			n->size - (search - n->data) - search_len); /* trailer len */
-
-		n->size -= search_len - offset - mangled_search_len;
-		gnutella_header_set_size(&n->header, n->size);
-		search_len = mangled_search_len + offset;
-
-		g_assert('\0' == search[search_len]);
-	}
-
-	/*
 	 * If there is extra data after the first NUL, fill the extension vector.
 	 */
 
-	if (search_len + 3 != n->size) {
+	if (sri->search_len + 3 != n->size) {
 		extvec_t exv[MAX_EXTVEC];
 		int i, exvcnt;
 		size_t extra;
@@ -5573,11 +5585,12 @@ search_request_preprocess(struct gnutella_node *n)
 		gboolean wants_ipp = FALSE;
 		gboolean has_unknown = FALSE;
 
-	   	extra = n->size - 3 - search_len;		/* Amount of extra data */
+	   	extra = n->size - 3 - sri->search_len;	/* Amount of extra data */
 		ext_prepare(exv, MAX_EXTVEC);
-		exvcnt = ext_parse(search + search_len + 1, extra, exv, MAX_EXTVEC);
+		exvcnt = ext_parse(search + sri->search_len + 1,
+			extra, exv, MAX_EXTVEC);
 
-		if (exvcnt == MAX_EXTVEC) {
+		if (G_N_ELEMENTS(exv) == UNSIGNED(exvcnt)) {
 			g_warning("%s has at least %d extensions!",
 				gmsg_node_infostr(n), exvcnt);
 			if (GNET_PROPERTY(query_debug) > 10)
@@ -5593,7 +5606,7 @@ search_request_preprocess(struct gnutella_node *n)
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
-				lazy_safe_search(search),
+				sri->whats_new ? WHATS_NEW : lazy_safe_search(search),
 				(unsigned long) extra, 1 == extra ? "" : "s");
 			ext_dump(stderr, exv, exvcnt, "> ", "\n",
 				GNET_PROPERTY(query_debug) > 14);
@@ -5637,22 +5650,66 @@ search_request_preprocess(struct gnutella_node *n)
 				wants_ipp = TRUE;
 				break;
 
+			case EXT_T_GGEP_WH:			/* Feature Query (What's New?) */
+				/*
+				 * Ignore payload, a variable-length little-endian integer.
+				 * We only understand feature #1, aka. "What's New?".
+				 */
+				sri->whats_new = TRUE;
+				break;
+
 			case EXT_T_GGEP_SO:			/* Secure OOB */
+				sri->secure_oob = TRUE;
+				break;
+
 			case EXT_T_GGEP_NP:			/* No OOB-proxying */
+				/* This may override LIME/13v1 */
+				sri->may_oob_proxy = FALSE;
+				break;
+
 			case EXT_T_GGEP_PR:			/* Partial: match on downloads */
+				sri->partials = TRUE;
+				break;
+
 			case EXT_T_GGEP_M:			/* Media type they want */
+				ggept_uint32_extract(e, &sri->media_types);
+				break;
+
 			case EXT_T_GGEP_XQ:			/* Extended Query */
-				break;					/* Ignore these at pre-process time */
+				if (NULL != sri->extended_query) {
+					search_log_multiple_ggep(n, e, NULL);
+				} else {
+					char buf[MAX_EXTENDED_QUERY_LEN + 1];
 
-			case EXT_T_URN_EMPTY:
-				break;					/* Ignored, we send SHA-1 anyway */
+					switch (ggept_utf8_string_extract(e, buf, sizeof buf)) {
+					case GGEP_OK:
+						sri->extended_query = atom_str_get(buf);
+						break;
+					default:
+						search_log_bad_ggep(n, e, NULL);
+						break;
+					}
+				}
+				if (
+					ext_paylen(e) > DEFLATE_THRESHOLD &&
+					!ext_ggep_is_deflated(e)
+				) {
+					/* Will attempt to compress if relaying this query */
+					n->msg_flags |= NODE_M_EXT_CLEANUP;
+				}
+				break;
 
-			case EXT_T_GGEP_u:			/* We handle sha1 / bitprint only */
-				break;					/* Not pre-processed, validated later */
+
+			case EXT_T_URN_EMPTY:		/* Ignored, we always send SHA1s */
+			case EXT_T_XML:
+				/* Will attempt cleanup if we end-up relaying this query */
+				n->msg_flags |= NODE_M_EXT_CLEANUP;
+				break;
 
 			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
 			case EXT_T_URN_SHA1:
-				sha1 = &exv_sha1[exv_sha1cnt].sha1;
+			case EXT_T_GGEP_u:			/* We handle sha1 / bitprint only */
+				sha1 = &sri->exv_sha1[sri->exv_sha1cnt].sha1;
 
 				if (EXT_T_GGEP_H == e->ext_token) {
 					int ret;
@@ -5668,11 +5725,44 @@ search_request_preprocess(struct gnutella_node *n)
 						drop_it = TRUE;
 						break;
 					}
+				} else if (EXT_T_GGEP_u == e->ext_token) {
+					size_t plen = ext_paylen(e);
+					const char *pload = ext_payload(e);
+					const char *p;
+					gboolean keep = FALSE;
+
+					if (
+						(p = is_bufcaseprefix(pload, plen, "sha1:")) ||
+						(p = is_bufcaseprefix(pload, plen, "bitprint:"))
+					) {
+						size_t len;
+
+						plen -= (p - pload);
+						len = MIN(plen, SHA1_BASE32_SIZE);
+						keep = huge_sha1_extract32(p, len, sha1, n);
+					}
+					if (!keep) {
+						/* Don't propagate if it's not containing valid info */
+						n->msg_flags |=
+							NODE_M_EXT_CLEANUP | NODE_M_STRIP_GGEP_u;
+						continue;
+					}
 				} else if (EXT_T_URN_SHA1 == e->ext_token) {
 					size_t paylen = ext_paylen(e);
 
-					if (paylen == 0)
+					/*
+					 * It is no longer required to send "urn:sha1:" in
+					 * queries because all Gnutella nodes in existence
+					 * will return the SHA-1 of file hits, regardless.
+					 * Therefore, request extension cleanup to remove this
+					 * from the query before relaying it further.
+					 *		--RAM, 2011-04-09
+					 */
+
+					if (paylen == 0) {
+						n->msg_flags |= NODE_M_EXT_CLEANUP;
 						continue;				/* A simple "urn:sha1:" */
+					}
 
 					if (
 						!huge_sha1_extract32(ext_payload(e), paylen, sha1, n)
@@ -5681,16 +5771,15 @@ search_request_preprocess(struct gnutella_node *n)
 						drop_it = TRUE;
 						break;
 					}
-
 				}
+
+				sri->exv_sha1[sri->exv_sha1cnt].matched = FALSE;
+				sri->exv_sha1cnt++;
 
 				if (GNET_PROPERTY(query_debug) > 14) {
 					g_debug("valid SHA1 #%d in query: %s",
-						exv_sha1cnt, sha1_base32(sha1));
+						sri->exv_sha1cnt, sha1_base32(sha1));
 				}
-
-				exv_sha1[exv_sha1cnt].matched = FALSE;
-				exv_sha1cnt++;
 
 				last_sha1_digest = sha1;
 				break;
@@ -5703,6 +5792,7 @@ search_request_preprocess(struct gnutella_node *n)
 			case EXT_T_UNKNOWN_GGEP:
 				search_log_ggep(n, e, NULL, "unknown");
 				break;
+
 			case EXT_T_UNKNOWN:
 				if (GNET_PROPERTY(query_debug) > 14) {
 					g_debug("%s has unknown extension", gmsg_node_infostr(n));
@@ -5710,6 +5800,7 @@ search_request_preprocess(struct gnutella_node *n)
 				}
 				has_unknown = TRUE;
 				break;
+
 			default:
 				if (GNET_PROPERTY(query_debug) > 14) {
 					g_debug("%s has unhandled extension %s",
@@ -5732,8 +5823,65 @@ search_request_preprocess(struct gnutella_node *n)
 		if (drop_it)
 			goto drop;
 
-		if (exv_sha1cnt)
+		/*
+		 * A "What's New?" query cannot bear any SHA1s, by nature.
+		 */
+
+		if (sri->whats_new && sri->exv_sha1cnt) {
+			if (GNET_PROPERTY(query_debug) > 1) {
+				g_debug("QUERY %s%s [hops=%u, TTL=%u] \"%s\" "
+					"has %d SHA1%s, dropping",
+					NODE_IS_UDP(n) ? "(GUESS) " : "",
+					guid_hex_str(gnutella_header_get_muid(&n->header)),
+					gnutella_header_get_hops(&n->header),
+					gnutella_header_get_ttl(&n->header),
+					WHATS_NEW,
+					sri->exv_sha1cnt, 1 == sri->exv_sha1cnt ? "" : "s");
+			}
+			gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
+			goto drop;
+		}
+
+		/*
+		 * Because "What's New?" queries are broadcasted broadly, we must
+		 * restrict their scope to the close vincinity of the issuer.
+		 * Enforce a maximum of 2 hops (plus all the leaves at destination).
+		 * Remember: we haven't decremented the TTL and increased the hop count
+		 * at this stage.
+		 */
+
+		if (
+			sri->whats_new &&
+			gnutella_header_get_hops(&n->header) >= 1 &&
+			gnutella_header_get_ttl(&n->header) > 1
+		) {
+			if (GNET_PROPERTY(query_debug) > 1) {
+				g_debug("QUERY %s%s [hops=%u, TTL=%u] \"%s\" "
+					"travelling too far, forcing TTL to 0",
+					NODE_IS_UDP(n) ? "(GUESS) " : "",
+					guid_hex_str(gnutella_header_get_muid(&n->header)),
+					gnutella_header_get_hops(&n->header),
+					gnutella_header_get_ttl(&n->header), WHATS_NEW);
+			}
+			gnutella_header_set_ttl(&n->header, 0);
+		}
+
+		if (sri->exv_sha1cnt)
 			gnet_stats_count_general(GNR_QUERY_SHA1, 1);
+
+		if (sri->whats_new) {
+			gnet_stats_count_general(GNR_QUERY_WHATS_NEW, 1);
+
+			/*
+			 * Since "What's New?" queries are broadcasted, we make sure
+			 * they carry as little bloat as possible.  The only GGEP
+			 * extensions that make sense are "WH", "M" and "SO", all others
+			 * can be safely dropped.
+			 *		--RAM, 2011-05-18
+			 */
+
+			n->msg_flags |= NODE_M_EXT_CLEANUP | NODE_M_WHATS_NEW;
+		}
 
 		/*
 		 * If query comes from UDP, then it's a GUESS query.
@@ -5798,13 +5946,13 @@ search_request_preprocess(struct gnutella_node *n)
      */
 
     if (
-		(search[0] == '\0' || (search[0] == '\\' && search[1] == '\0'))
-		&& exv_sha1cnt
+		(0 == sri->search_len || (1 == sri->search_len && '\\' == search[0]))
+		&& sri->exv_sha1cnt
     ) {
 		int i;
-		for (i = 0; i < exv_sha1cnt; i++) {
+		for (i = 0; i < sri->exv_sha1cnt; i++) {
 			search_request_listener_emit(QUERY_SHA1,
-				sha1_base32(&exv_sha1[i].sha1), n->addr, n->port);
+				sha1_base32(&sri->exv_sha1[i].sha1), n->addr, n->port);
 		}
 	}
 
@@ -5816,11 +5964,11 @@ search_request_preprocess(struct gnutella_node *n)
 	 * The idea here is to give some response, but not too many.
 	 */
 
-	skip_file_search = search_len <= 1 || (
-		search_len < 3 &&
+	sri->skip_file_search = sri->search_len <= 1 || (
+		sri->search_len <= MIN_SEARCH_TERM_BYTES &&
 		gnutella_header_get_hops(&n->header) > (GNET_PROPERTY(max_ttl) / 2));
 
-    if (0 == exv_sha1cnt && skip_file_search) {
+    if (0 == sri->exv_sha1cnt && sri->skip_file_search) {
         gnet_stats_count_dropped(n, MSG_DROP_QUERY_TOO_SHORT);
 		goto drop;					/* Drop this search message */
     }
@@ -5845,6 +5993,9 @@ search_request_preprocess(struct gnutella_node *n)
 	 *
 	 *		--RAM, 09/12/2003
 	 */
+
+	if (sri->whats_new)
+		goto skip_throttling;		/* What's New? queries are exempted */
 
 	if (gnutella_header_get_hops(&n->header) == 1 && n->qseen != NULL) {
 		time_t now = tm_time();
@@ -5939,7 +6090,9 @@ search_request_preprocess(struct gnutella_node *n)
 			atom_str_get(stmp_1), int_to_pointer(1));
 	}
 
-	oob = 0 != (flags & QUERY_F_OOB_REPLY);
+skip_throttling:
+
+	sri->oob = booleanize(sri->flags & QUERY_F_OOB_REPLY);
 
 	/*
 	 * If query comes from GTKG 0.91 or later, it understands GGEP "H".
@@ -5954,7 +6107,7 @@ search_request_preprocess(struct gnutella_node *n)
 
 		if (
 			guid_query_muid_is_gtkg(gnutella_header_get_muid(&n->header),
-				oob, &major, &minor, &release)
+				sri->oob, &major, &minor, &release)
 		) {
 			gboolean requery;
 		   
@@ -5965,7 +6118,7 @@ search_request_preprocess(struct gnutella_node *n)
 
 			if (GNET_PROPERTY(query_debug) > 3) {
 				char origin[60];
-				if (oob) {
+				if (sri->oob) {
 					host_addr_t addr;
 					guint16 port;
 					guid_oob_get_addr_port(
@@ -5974,15 +6127,15 @@ search_request_preprocess(struct gnutella_node *n)
 						host_addr_port_to_string(addr, port));
 				}
 				g_debug("GTKG %s%squery from %d.%d%s [MUID=%s]%s",
-					oob ? "OOB " : "", requery ? "re-" : "",
+					sri->oob ? "OOB " : "", requery ? "re-" : "",
 					major, minor, release ? "" : "u",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
-					oob ? origin : "");
+					sri->oob ? origin : "");
 			}
 		}
 	}
 
-	if (0 != (flags & QUERY_F_GGEP_H)) {
+	if (0 != (sri->flags & QUERY_F_GGEP_H)) {
 		gnet_stats_count_general(GNR_QUERIES_WITH_GGEP_H, 1);
 	}
 
@@ -5994,7 +6147,7 @@ search_request_preprocess(struct gnutella_node *n)
 	 * if we're allowed to perform OOB-proxying for leaf queries.
 	 */
 
-	if (oob) {
+	if (sri->oob) {
 		host_addr_t addr;
 		guint16 port;
 
@@ -6029,7 +6182,7 @@ search_request_preprocess(struct gnutella_node *n)
 		) {
 			if (NODE_IS_UDP(n)) {
 				query_strip_oob_flag(n, n->data);
-				oob = FALSE;
+				sri->oob = FALSE;
 				if (GNET_PROPERTY(guess_server_debug)) {
 					g_debug("QUERY (GUESS) %s from %s: removed OOB flag "
 						"(mismatching return address %s versus UDP %s)",
@@ -6063,7 +6216,7 @@ search_request_preprocess(struct gnutella_node *n)
 		if (!host_is_valid(addr, port)) {
 			if (NODE_IS_LEAF(n) || NODE_IS_UDP(n)) {
 				query_strip_oob_flag(n, n->data);
-				oob = FALSE;
+				sri->oob = FALSE;
 
 				if (
 					GNET_PROPERTY(query_debug) ||
@@ -6122,14 +6275,14 @@ search_request_preprocess(struct gnutella_node *n)
 	 *                              --RAM, 2004-11-27                        
 	 */
 
-	oob = oob &&
+	sri->oob = sri->oob &&
 			GNET_PROPERTY(process_oob_queries) && 
 			GNET_PROPERTY(recv_solicited_udp) && 
 			udp_active() &&
 			gnutella_header_get_hops(&n->header) > 1;
 
 	if (
-		!oob &&
+		!sri->oob &&
 		gnutella_header_get_hops(&n->header) > GNET_PROPERTY(max_ttl)
 	) {
 		gnet_stats_count_dropped(n, MSG_DROP_MAX_TTL_EXCEEDED);
@@ -6151,200 +6304,30 @@ drop:
  * so that we may later properly route the query among the leaf nodes.
  */
 void
-search_request(struct gnutella_node *n, query_hashvec_t *qhv)
+search_request(struct gnutella_node *n,
+	const search_request_info_t *sri, query_hashvec_t *qhv)
 {
-	guint16 flags;
 	const char *search;
 	size_t search_len;
-	gboolean skip_file_search = FALSE;
-	struct {
-		struct sha1 sha1;
-		gboolean matched;
-	} exv_sha1[MAX_EXTVEC];
-	int exv_sha1cnt = 0;
-	gboolean oob = FALSE;		/**< Wants out-of-band query hit delivery? */
-	gboolean secure_oob = FALSE;
-	gboolean may_oob_proxy = !(n->flags & NODE_F_NO_OOB_PROXY);
 	struct guid muid;
-	const char *extended_query = NULL;
 	gboolean qhv_filled = FALSE;
+	gboolean oob;
 	char *safe_search = NULL;
-	guint32 media_types = 0;
-	gboolean partials = FALSE;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
-
-	/* NOTE: search_request_preprocess() has already handled this query. */
-
-	flags = search_request_get_flags(n);
-	search = n->data + 2;	/* skip flags */
-	search_len = clamp_strlen(search, n->size - 2);
+	g_assert(sri != NULL);
 
 	/*
-	 * If there is extra data after the first NUL, fill the extension vector.
+	 * NOTE: search_request_preprocess() has already handled this query,
+	 * filling ``sri'' with the gathered information.
 	 */
 
-	if (search_len + 3 != n->size) {
-		extvec_t exv[MAX_EXTVEC];
-		int i, exvcnt;
-		size_t extra;
+	search = n->data + 2;	/* skip flags */
+	search_len = sri->search_len;
+	oob = sri->oob;
 
-	   	extra = n->size - 3 - search_len;		/* Amount of extra data */
-		ext_prepare(exv, MAX_EXTVEC);
-		exvcnt = ext_parse(search + search_len + 1, extra, exv, MAX_EXTVEC);
-
-		/*
-		 * If there is a SHA1 URN, validate it and extract the binary digest
-		 * into sha1_digest[], and set `sha1_query' to the base32 value.
-		 */
-
-		for (i = 0; i < exvcnt; i++) {
-			extvec_t *e = &exv[i];
-			struct sha1 *sha1;
-
-			switch (e->ext_token) {
-			case EXT_T_OVERHEAD:
-			case EXT_T_URN_BAD:
-				g_assert_not_reached();
-				break;
-
-			case EXT_T_GGEP_NP:
-				/* This may override LIME/13v1 */
-				may_oob_proxy = FALSE;
-				break;
-
-			case EXT_T_GGEP_SO:
-				secure_oob = TRUE;
-				break;
-
-			case EXT_T_GGEP_PR:
-				partials = TRUE;
-				break;
-
-			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
-			case EXT_T_GGEP_u:			/* Handle SHA1 value only */
-			case EXT_T_URN_SHA1:
-				sha1 = &exv_sha1[exv_sha1cnt].sha1;
-
-				if (EXT_T_GGEP_H == e->ext_token) {
-					int ret;
-				
-					ret = ggept_h_sha1_extract(e, sha1);
-					if (GGEP_OK == ret) {
-						/* Okay */
-					} else if (GGEP_NOT_FOUND == ret) {
-						continue;		/* Unsupported hash type */
-					} else {
-						/* Was validated by search_request_preprocess() */
-						g_assert_not_reached();
-					}
-				} else if (EXT_T_GGEP_u == e->ext_token) {
-					size_t plen = ext_paylen(e);
-					const char *pload = ext_payload(e);
-					const char *p;
-					gboolean keep = FALSE;
-
-					if (
-						(p = is_bufcaseprefix(pload, plen, "sha1:")) ||
-						(p = is_bufcaseprefix(pload, plen, "bitprint:"))
-					) {
-						size_t len;
-
-						plen -= (p - pload);
-						len = MIN(plen, SHA1_BASE32_SIZE);
-						keep = huge_sha1_extract32(p, len, sha1, n);
-					}
-					if (!keep) {
-						/* Don't propagate if it's not containing valid info */
-						n->msg_flags |=
-							NODE_M_EXT_CLEANUP | NODE_M_STRIP_GGEP_u;
-						continue;
-					}
-				} else if (EXT_T_URN_SHA1 == e->ext_token) {
-					size_t paylen = ext_paylen(e);
-
-					/*
-					 * It is no longer required to send "urn:sha1:" in
-					 * queries because all Gnutella nodes in existence
-					 * will return the SHA-1 of file hits, regardless.
-					 * Therefore, request extension cleanup to remove this
-					 * from the query before relaying it further.
-					 *		--RAM, 2011-04-09
-					 */
-
-					if (paylen == 0) {
-						n->msg_flags |= NODE_M_EXT_CLEANUP;
-						continue;				/* A simple "urn:sha1:" */
-					}
-
-					if (
-						!huge_sha1_extract32(ext_payload(e), paylen, sha1, n)
-					) {
-						/* Was validated by search_request_preprocess() */
-						g_assert_not_reached();
-					}
-				}
-
-				exv_sha1[exv_sha1cnt].matched = FALSE;
-				exv_sha1cnt++;
-
-				/*
-				 * Add valid URN query to the list of query hashes, if we
-				 * are to fill any for query routing.
-				 */
-
-				if (qhv) {
-					qhvec_add(qhv, sha1_to_urn_string(sha1), QUERY_H_URN);
-				}
-				break;
-
-			case EXT_T_GGEP_XQ:	/* eXtended Query */
-				if (NULL != extended_query) {
-					search_log_multiple_ggep(n, e, NULL);
-				} else {
-					char buf[MAX_EXTENDED_QUERY_LEN + 1];
-
-					switch (ggept_utf8_string_extract(e, buf, sizeof buf)) {
-					case GGEP_OK:
-						extended_query = atom_str_get(buf);
-						break;
-					default:
-						search_log_bad_ggep(n, e, NULL);
-						break;
-					}
-				}
-				if (
-					ext_paylen(e) > DEFLATE_THRESHOLD &&
-					!ext_ggep_is_deflated(e)
-				) {
-					/* Will attempt to compress if relaying this query */
-					n->msg_flags |= NODE_M_EXT_CLEANUP;
-				}
-				break;
-
-			case EXT_T_URN_EMPTY:
-			case EXT_T_XML:
-				/* Will attempt cleanup if we end-up relaying this query */
-				n->msg_flags |= NODE_M_EXT_CLEANUP;
-				break;
-
-			case EXT_T_GGEP_M:	/* Media types they want */
-				ggept_uint32_extract(e, &media_types);
-				break;
-
-			default:;
-			}
-		}
-
-		if (exv_sha1cnt)
-			gnet_stats_count_general(GNR_QUERY_SHA1, 1);
-
-		if (exvcnt)
-			ext_reset(exv, MAX_EXTVEC);
-	}
-
-	if (extended_query != NULL) {
-		char *safe_ext = hex_escape(extended_query, FALSE);
+	if (sri->extended_query != NULL) {
+		char *safe_ext = hex_escape(sri->extended_query, FALSE);
 
 		if (GNET_PROPERTY(query_debug) > 14) {
 			g_debug("QUERY %s%s extended: original=\"%s\", extended=\"%s\"",
@@ -6352,7 +6335,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				lazy_safe_search(search), safe_ext);
 		}
-		search = extended_query;
+		search = sri->extended_query;
 		search_len = strlen(search);
 		safe_search = safe_ext;
 	} else {
@@ -6361,34 +6344,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			g_debug("QUERY %s%s \"%s\"",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				safe_search);
+				sri->whats_new ? WHATS_NEW : safe_search);
 		}
 	}
-
-    /*
-     * Reorderd the checks: if we drop the packet, we won't notify any
-     * listeners. We first check whether we want to drop the packet and
-     * later decide whether we are eligible for answering the query:
-     * 1) try top drop
-     * 2) notify listeners
-     * 3) bail out if not eligible for a local search
-     * 4) local search
-     *      --Richard, 11/09/2002
-     */
-
-	/*
-	 * When an URN search is present, there can be an empty search string.
-	 *
-	 * If requester if farther than half our TTL hops. save bandwidth when
-	 * returning lots of hits from short queries, which are not specific enough.
-	 * The idea here is to give some response, but not too many.
-	 */
-
-	skip_file_search = search_len <= 1 || (
-	 	search_len < 5 &&
-		gnutella_header_get_hops(&n->header) > (GNET_PROPERTY(max_ttl) / 2));
-
-	oob = 0 != (flags & QUERY_F_OOB_REPLY);
 
 	/*
 	 * Check limits.
@@ -6433,11 +6391,11 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 *		--RAM, 2005-08-28
 	 */
 
-	muid = *gnutella_header_get_muid(&n->header);
+	muid = *gnutella_header_get_muid(&n->header);	/* Struct copy */
 
 	if (
 		!oob &&
-		may_oob_proxy &&
+		sri->may_oob_proxy &&
 		udp_active() &&
 		GNET_PROPERTY(proxy_oob_queries) &&
 		!GNET_PROPERTY(is_udp_firewalled) &&
@@ -6460,7 +6418,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 */
 
 	if (
-		0 != (flags & QUERY_F_FIREWALLED) &&
+		0 != (sri->flags & QUERY_F_FIREWALLED) &&
 		GNET_PROPERTY(is_firewalled)
 	) {
 		goto finish;			/* Both servents are firewalled */
@@ -6477,10 +6435,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 *		-- RAM, 2007-11-05
 	 */
 
-	if (!(flags & QUERY_F_FIREWALLED) && node_guid(n) && NODE_IS_LEAF(n))
+	if (!(sri->flags & QUERY_F_FIREWALLED) && node_guid(n) && NODE_IS_LEAF(n))
 		node_proxying_remove(n);	/* This leaf node is no longer firewalled */
 
-	if (!skip_file_search || exv_sha1cnt > 0) {
+	if (sri->whats_new || !sri->skip_file_search || sri->exv_sha1cnt > 0) {
 		struct query_context *qctx;
 		guint32 max_replies;
 
@@ -6488,14 +6446,22 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * Perform search...
 		 */
 
-		gnet_stats_count_general(GNR_LOCAL_SEARCHES, 1);
-		if (
-			GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
-			node_ultra_received_qrp(n)
-		) {
-			node_inc_qrp_query(n);
+		if (!sri->whats_new) {
+			/*
+			 * Since What's New? queries are always broadcasted, they cannot
+			 * be counted in QRP filterting statistics.
+			 */
+
+			if (
+				GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
+				node_ultra_received_qrp(n)
+			) {
+				node_inc_qrp_query(n);
+			}
+			gnet_stats_count_general(GNR_LOCAL_SEARCHES, 1);
 		}
-		qctx = share_query_context_make(media_types, partials);
+
+		qctx = share_query_context_make(sri->media_types, sri->partials);
 		max_replies = GNET_PROPERTY(search_max_items) == (guint32) -1
 				? 255
 				: GNET_PROPERTY(search_max_items);
@@ -6504,13 +6470,13 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * Search each SHA1.
 		 */
 
-		if (exv_sha1cnt) {
+		if (sri->exv_sha1cnt) {
 			int i;
 
-			for (i = 0; i < exv_sha1cnt && max_replies > 0; i++) {
+			for (i = 0; i < sri->exv_sha1cnt && max_replies > 0; i++) {
 				struct shared_file *sf;
 
-				sf = shared_file_by_sha1(&exv_sha1[i].sha1);
+				sf = shared_file_by_sha1(&sri->exv_sha1[i].sha1);
 				if (
 					sf &&
 					sf != SHARE_REBUILDING &&
@@ -6523,9 +6489,21 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			}
 		}
 
-		if (!skip_file_search) {
+		if (sri->whats_new) {
+			shared_file_t *sfv[3];	/* Limit results to 3 newest files */
+			size_t cnt, i;
+
+			cnt = GNET_PROPERTY(query_answer_whats_new)
+				? share_fill_newest(sfv, G_N_ELEMENTS(sfv), sri->media_types)
+				: 0;
+			for (i = 0; i < cnt; i++) {
+				got_match(qctx, sfv[i]);
+			}
+			gnet_stats_count_general(GNR_LOCAL_WHATS_NEW_HITS, cnt);
+
+		} else if (!sri->skip_file_search) {
 			shared_files_match(search,
-				got_match, qctx, max_replies, partials, qhv);
+				got_match, qctx, max_replies, sri->partials, qhv);
 			qhv_filled = TRUE;		/* A side effect of st_search() */
 		}
 
@@ -6538,17 +6516,17 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 			if (GNET_PROPERTY(share_debug) > 3) {
 				g_debug("share HIT %u files '%s'%s ", qctx->found,
-						safe_search,
-						skip_file_search ? " (skipped)" : "");
-				if (exv_sha1cnt) {
+						sri->whats_new ? WHATS_NEW : safe_search,
+						sri->skip_file_search ? " (skipped)" : "");
+				if (sri->exv_sha1cnt) {
 					int i;
-					for (i = 0; i < exv_sha1cnt; i++)
+					for (i = 0; i < sri->exv_sha1cnt; i++)
 						g_debug("\t%c(%32s)",
-								exv_sha1[i].matched ? '+' : '-',
-								sha1_base32(&exv_sha1[i].sha1));
+								sri->exv_sha1[i].matched ? '+' : '-',
+								sha1_base32(&sri->exv_sha1[i].sha1));
 				}
 				g_debug("\tflags=0x%04x ttl=%u hops=%u",
-						(guint) flags,
+						(guint) sri->flags,
 						gnutella_header_get_ttl(&n->header),
 						gnutella_header_get_hops(&n->header));
 			}
@@ -6557,13 +6535,13 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		if (GNET_PROPERTY(query_debug) > 14) {
 			g_debug("QUERY %s \"%s\" [hops=%u, TTL=%u] has %u hit%s%s%s (%s)",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
-					lazy_safe_search(search),
+					sri->whats_new ? WHATS_NEW : lazy_safe_search(search),
 					gnutella_header_get_hops(&n->header),
 					gnutella_header_get_ttl(&n->header),
 					qctx->found, qctx->found == 1 ? "" : "s",
-					skip_file_search ? " (skipped local)" : "",
-					exv_sha1cnt > 0 ? " (SHA1)" : "",
-					search_media_mask_to_string(media_types));
+					sri->skip_file_search ? " (skipped local)" : "",
+					sri->exv_sha1cnt > 0 ? " (SHA1)" : "",
+					search_media_mask_to_string(sri->media_types));
 		}
 
 		/*
@@ -6575,7 +6553,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		if (qctx->found) {
 			gboolean ggep_h, should_oob;
 
-			ggep_h = 0 != (flags & QUERY_F_GGEP_H);
+			ggep_h = 0 != (sri->flags & QUERY_F_GGEP_H);
 			should_oob = oob &&
 							GNET_PROPERTY(process_oob_queries) && 
 							GNET_PROPERTY(recv_solicited_udp) && 
@@ -6584,7 +6562,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 			if (should_oob) {
 				oob_got_results(n, qctx->files, qctx->found,
-					secure_oob, ggep_h);
+					sri->secure_oob, ggep_h);
 			} else {
 				qhit_send_results(n, qctx->files, qctx->found, &muid, ggep_h);
 			}
@@ -6603,13 +6581,16 @@ finish:
 	 *		--RAM, 2009-11-11
 	 */
 
-	if (!qhv_filled && qhv != NULL)
-		st_fill_qhv(search, qhv);
+	if (!qhv_filled && qhv != NULL) {
+		if (sri->whats_new) {
+			qhvec_set_whats_new(qhv, TRUE);
+		} else {
+			st_fill_qhv(search, qhv);
+		}
+	}
 
 	if (safe_search != search)
 		HFREE_NULL(safe_search);
-
-	atom_str_free_null(&extended_query);
 }
 
 /**
@@ -6647,7 +6628,7 @@ search_xml_tree_empty(xnode_t *root)
 
 /**
  * Compact search request by removing unneeded extensions, cutting on
- * needless bloat.
+ * needless bloat, and by removing unnecessary bloat from the query string.
  *
  * Compaction happens in-place: upon return we have a new valid message
  * in the node buffer, ready to be sent.
@@ -6668,12 +6649,65 @@ search_compact(struct gnutella_node *n)
 	gboolean has_ggep = FALSE;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
-	g_assert(n->msg_flags & NODE_M_EXT_CLEANUP);
 
 	search = n->data + 2;	/* skip flags */
 	search_len = clamp_strlen(search, n->size - 2);
 
-	g_assert(n->size > search_len + 3);	/* 3 = 2 (flags) + 1 (NUL) */
+	g_assert(n->size >= search_len + 3);	/* 3 = 2 (flags) + 1 (NUL) */
+
+	/*
+	 * Compact query string, if requested.
+	 */
+
+	if (GNET_PROPERTY(gnet_compact_query)) {
+		unsigned offset;
+
+		/*
+		 * Compact the query, offsetting from the start as needed in case
+		 * there is a leading BOM (our UTF-8 decoder does not allow BOM
+		 * within the UTF-8 string, and rightly I think: that would be pure
+		 * gratuitous bloat).
+		 */
+
+		if (query_utf8_decode(search, &offset)) {
+			size_t mangled_search_len;
+			char *str = deconstify_char(search);
+
+			mangled_search_len = compact_query_utf8(&str[offset]);
+
+			g_assert(mangled_search_len <= search_len - offset);
+
+			if (mangled_search_len != search_len - offset) {
+				gnet_stats_count_general(GNR_QUERY_COMPACT_COUNT, 1);
+				gnet_stats_count_general(GNR_QUERY_COMPACT_SIZE,
+					search_len - offset - mangled_search_len);
+				n->msg_flags |= NODE_M_COMPACTED;
+			}
+
+			/*
+			 * Need to move the trailing data forward and adjust the
+			 * size of the packet.
+			 */
+
+			g_memmove(
+				&str[offset + mangled_search_len], /* new end of query string */
+				&str[search_len],                  /* old end of query string */
+				n->size - (search - n->data) - search_len); /* trailer len */
+
+			n->size -= search_len - offset - mangled_search_len;
+			gnutella_header_set_size(&n->header, n->size);
+			search_len = mangled_search_len + offset;
+
+			g_assert('\0' == search[search_len]);
+		}
+	}
+
+	/*
+	 * Now deal with extensions, if needed.
+	 */
+
+	if (!(n->msg_flags & NODE_M_EXT_CLEANUP))
+		return;
 
 	extra = n->size - 3 - search_len;		/* Amount of extra data */
 	ext_prepare(exv, MAX_EXTVEC);
@@ -6836,16 +6870,23 @@ search_compact(struct gnutella_node *n)
 
 			switch (e->ext_token) {
 			case EXT_T_GGEP_u:
-				if (n->msg_flags & NODE_M_STRIP_GGEP_u)
+				if (n->msg_flags & (NODE_M_STRIP_GGEP_u | NODE_M_WHATS_NEW))
 					continue;
 				break;
 			case EXT_T_GGEP_QK:
 			case EXT_T_GGEP_SCP:
 			case EXT_T_GGEP_Z:
-				if (n->msg_flags & NODE_M_STRIP_GUESS)
+				if (n->msg_flags & (NODE_M_STRIP_GUESS | NODE_M_WHATS_NEW))
 					continue;
 				break;
+			case EXT_T_GGEP_WH:
+			case EXT_T_GGEP_SO:
+			case EXT_T_GGEP_M:
+				/* "WH", "SO" and "M" are kept with NODE_M_WHATS_NEW */
+				break;
 			default:
+				if (n->msg_flags & NODE_M_WHATS_NEW)
+					continue;
 				break;
 			}
 
