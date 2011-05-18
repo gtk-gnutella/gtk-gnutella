@@ -1997,7 +1997,7 @@ parq_upload_find_id(const header_t *header)
 static gboolean
 parq_still_sharing(struct parq_ul_queued *puq)
 {
-	struct shared_file *sf;
+	shared_file_t *sf;
 
 	if (puq->flags & PARQ_UL_SPECIAL)
 		return TRUE;

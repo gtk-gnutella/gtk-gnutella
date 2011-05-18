@@ -598,7 +598,7 @@ failure:
  * lack of space.
  */
 static gboolean
-add_file(const struct shared_file *sf)
+add_file(const shared_file_t *sf)
 {
 	gboolean sha1_available;
 	gnet_host_t hvec[QHIT_MAX_ALT];

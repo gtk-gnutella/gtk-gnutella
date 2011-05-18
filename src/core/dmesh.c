@@ -710,7 +710,7 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, guint16 port)
 static gboolean
 sha1_of_finished_file(const struct sha1 *sha1)
 {
-	const struct shared_file *sf = shared_file_by_sha1(sha1);
+	const shared_file_t *sf = shared_file_by_sha1(sha1);
 
 	return sf && sf != SHARE_REBUILDING && shared_file_is_finished(sf);
 }
@@ -2970,7 +2970,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 		has = NULL != g_hash_table_lookup(mesh, rc->sha1);
 
 		if (!has) {
-			const struct shared_file *sf = shared_file_by_sha1(rc->sha1);
+			const shared_file_t *sf = shared_file_by_sha1(rc->sha1);
 			has =	sf != NULL &&
 					sf != SHARE_REBUILDING &&
 					!shared_file_is_partial(sf);

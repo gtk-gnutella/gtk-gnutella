@@ -147,7 +147,7 @@ static gboolean
 request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	void *user_data)
 {
-	struct shared_file *sf = user_data;
+	shared_file_t *sf = user_data;
 
 	shared_file_check(sf);
 	switch (status) {
@@ -221,7 +221,7 @@ verify_tth_prepend(const char *pathname,
 }
 
 void
-request_tigertree(struct shared_file *sf, gboolean high_priority)
+request_tigertree(shared_file_t *sf, gboolean high_priority)
 {
 	int inserted;
 

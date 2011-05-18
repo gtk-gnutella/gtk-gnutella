@@ -1044,7 +1044,7 @@ handle_push_request(struct gnutella_node *n)
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header));
 	} else {
-		const struct shared_file *req_file;
+		const shared_file_t *req_file;
 
 		req_file = shared_file(file_index);
 		if (req_file == SHARE_REBUILDING) {
@@ -2779,7 +2779,7 @@ upload_http_version(struct upload *u, const char *request, size_t len)
  * @return TRUE if OK, FALSE otherwise with the upload removed.
  */
 static gboolean
-upload_file_present(struct upload *u, struct shared_file *sf)
+upload_file_present(struct upload *u, shared_file_t *sf)
 {
 	fileinfo_t *fi;
 	filestat_t sb;
@@ -2870,7 +2870,7 @@ static int
 get_file_to_upload_from_index(struct upload *u, const header_t *header,
 	const char *uri, guint idx)
 {
-	struct shared_file *sf;
+	shared_file_t *sf;
 	gboolean sent_sha1 = FALSE;
 	struct sha1 sha1;
 
@@ -2918,7 +2918,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 	 */
 
 	if (sent_sha1) {
-		struct shared_file *sfn;
+		shared_file_t *sfn;
 		
 		if (spam_sha1_check(&sha1)) {
 			goto not_found;
@@ -3055,7 +3055,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 		}
 
 	} else if (0 != strcmp(u->name, shared_file_name_nfc(sf))) {
-		struct shared_file *sfn = shared_file_by_name(u->name);
+		shared_file_t *sfn = shared_file_by_name(u->name);
 
 		g_assert(sfn != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
@@ -3099,7 +3099,7 @@ not_found:
 }
 
 static void
-upload_request_tth(struct shared_file *sf)
+upload_request_tth(shared_file_t *sf)
 {
 	if (!shared_file_is_partial(sf) && NULL == shared_file_tth(sf)) {
 		request_tigertree(sf, TRUE);
@@ -3107,7 +3107,7 @@ upload_request_tth(struct shared_file *sf)
 }
 
 static gboolean
-upload_request_tth_matches(struct shared_file *sf, const struct tth *tth)
+upload_request_tth_matches(shared_file_t *sf, const struct tth *tth)
 {
 	if (NULL == tth || NULL == shared_file_tth(sf)) {
 		return TRUE;
@@ -3126,7 +3126,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 {
 	struct tth tth_buf, *tth = NULL;
 	struct sha1 sha1;
-	struct shared_file *sf;
+	shared_file_t *sf;
 
 	upload_check(u);
 	g_assert(NULL == u->sf);
@@ -3219,7 +3219,7 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 {
 	struct tth tth_buf, *tth = NULL;
 	struct sha1 sha1;
-	struct shared_file *sf;
+	shared_file_t *sf;
 
 	upload_check(u);
 	g_assert(NULL == u->sf);

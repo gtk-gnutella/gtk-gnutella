@@ -334,7 +334,7 @@ done:
 static void
 upload_stats_dump_item(gpointer p, gpointer user_data)
 {
-	const struct shared_file *sf;
+	const shared_file_t *sf;
 	FILE *out = user_data;
 	struct ul_stats *s = p;
 	char rtime_buf[TIME_T_DEC_BUFLEN];
@@ -443,7 +443,7 @@ upload_stats_flush_if_dirty(void)
  * renamed and shared.
  */
 void
-upload_stats_enforce_local_filename(const struct shared_file *sf)
+upload_stats_enforce_local_filename(const shared_file_t *sf)
 {
 	struct ul_stats *s;
 	const struct sha1 *sha1;
@@ -482,7 +482,7 @@ upload_stats_enforce_local_filename(const struct shared_file *sf)
  * Called when an upload starts.
  */
 void
-upload_stats_file_begin(const struct shared_file *sf)
+upload_stats_file_begin(const shared_file_t *sf)
 {
 	struct ul_stats *s;
 	const char *pathname;
@@ -521,7 +521,7 @@ upload_stats_file_begin(const struct shared_file *sf)
  */
 static void
 upload_stats_file_add(
-	const struct shared_file *sf,
+	const shared_file_t *sf,
 	int comp, guint64 sent, gboolean update_dtime)
 {
 	const char *pathname = shared_file_path(sf);
@@ -559,7 +559,7 @@ upload_stats_file_add(
  * Called when an upload is aborted, to update the amount of bytes transferred.
  */
 void
-upload_stats_file_aborted(const struct shared_file *sf, filesize_t done)
+upload_stats_file_aborted(const shared_file_t *sf, filesize_t done)
 {
 	g_return_if_fail(sf);
 
@@ -571,7 +571,7 @@ upload_stats_file_aborted(const struct shared_file *sf, filesize_t done)
  * Called when an upload completes.
  */
 void
-upload_stats_file_complete(const struct shared_file *sf, filesize_t done)
+upload_stats_file_complete(const shared_file_t *sf, filesize_t done)
 {
 	g_return_if_fail(sf);
 
@@ -582,7 +582,7 @@ upload_stats_file_complete(const struct shared_file *sf, filesize_t done)
  * Called when an upload request is made.
  */
 void
-upload_stats_file_requested(const struct shared_file *sf)
+upload_stats_file_requested(const shared_file_t *sf)
 {
 	g_return_if_fail(sf);
 

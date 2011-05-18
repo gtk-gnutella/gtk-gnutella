@@ -341,7 +341,7 @@ ignore_is_requested(const char *filename, filesize_t size,
 	g_assert(filename != NULL);
 
 	if (sha1) {
-		const struct shared_file *sf;
+		const shared_file_t *sf;
 		if (g_hash_table_lookup(by_sha1, sha1))
 			return IGNORE_SHA1;
 		if (spam_sha1_check(sha1))

@@ -410,7 +410,7 @@ sha1_read_cache(void)
 }
 
 static gboolean
-huge_spam_check(struct shared_file *sf, const struct sha1 *sha1)
+huge_spam_check(shared_file_t *sf, const struct sha1 *sha1)
 {
 	if (NULL != sha1 && spam_sha1_check(sha1)) {
 		g_warning("file \"%s\" is listed as spam (SHA1)", shared_file_path(sf));
@@ -432,7 +432,7 @@ huge_spam_check(struct shared_file *sf, const struct sha1 *sha1)
  **/
 
 gboolean
-huge_update_hashes(struct shared_file *sf,
+huge_update_hashes(shared_file_t *sf,
 	const struct sha1 *sha1, const struct tth *tth)
 {
 	struct sha1_cache_entry *cached;
@@ -503,7 +503,7 @@ huge_update_hashes(struct shared_file *sf,
  * @return this file.
  */
 static gboolean
-huge_need_sha1(struct shared_file *sf)
+huge_need_sha1(shared_file_t *sf)
 {
 	struct sha1_cache_entry *cached;
 
@@ -570,7 +570,7 @@ static gboolean
 huge_verify_callback(const struct verify *ctx, enum verify_status status,
 	void *user_data)
 {
-	struct shared_file *sf = user_data;
+	shared_file_t *sf = user_data;
 
 	shared_file_check(sf);
 	switch (status) {
@@ -599,7 +599,7 @@ huge_verify_callback(const struct verify *ctx, enum verify_status status,
  * this wasn't done already.
  */
 static void
-queue_shared_file_for_sha1_computation(struct shared_file *sf)
+queue_shared_file_for_sha1_computation(shared_file_t *sf)
 {
 	int inserted;
 	
@@ -620,7 +620,7 @@ queue_shared_file_for_sha1_computation(struct shared_file *sf)
  */
 static gboolean
 cached_entry_up_to_date(const struct sha1_cache_entry *cache_entry,
-	const struct shared_file *sf)
+	const shared_file_t *sf)
 {
 	return cache_entry->size == shared_file_size(sf)
 		&& cache_entry->mtime == shared_file_modification_time(sf);
@@ -630,7 +630,7 @@ cached_entry_up_to_date(const struct sha1_cache_entry *cache_entry,
  * External interface to check whether the sha1 for shared_file is known.
  */
 gboolean
-sha1_is_cached(const struct shared_file *sf)
+sha1_is_cached(const shared_file_t *sf)
 {
 	const struct sha1_cache_entry *cached;
 
@@ -643,7 +643,7 @@ sha1_is_cached(const struct shared_file *sf)
  * External interface to call for getting the hash for a shared_file.
  */
 void
-request_sha1(struct shared_file *sf)
+request_sha1(shared_file_t *sf)
 {
 	struct sha1_cache_entry *cached;
 

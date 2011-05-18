@@ -196,7 +196,7 @@ thex_upload_free_data(struct thex_upload *ctx)
 }
 
 size_t
-thex_upload_get_content_length(const struct shared_file *sf)
+thex_upload_get_content_length(const shared_file_t *sf)
 {
 	const struct tth *tth;
 	size_t n_leaves, n_nodes;
@@ -401,7 +401,7 @@ struct special_upload *
 thex_upload_open(
 	gpointer owner,
 	const struct gnutella_host *host,
-	const struct shared_file *sf,
+	const shared_file_t *sf,
 	special_upload_writable_t writable,
 	const struct tx_link_cb *link_cb,
 	struct wrap_io *wio,
