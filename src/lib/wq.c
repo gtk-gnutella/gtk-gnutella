@@ -227,8 +227,7 @@ wq_timed_out(cqueue_t *unused_cq, void *arg)
 		return;
 	case WQ_EXCLUSIVE:
 		g_carp("weird status WQ_EXCLUSIVE on timeout invocation of %s()",
-			stacktrace_routine_name(
-				cast_func_to_pointer((func_ptr_t) we->cb), FALSE));
+			stacktrace_routine_name(func_to_pointer(we->cb), FALSE));
 		/* FALL THROUGH */
 	case WQ_REMOVE:
 		hash_list_remove(hl, we);
@@ -291,13 +290,11 @@ wq_remove(wq_event_t *we)
 	hl = g_hash_table_lookup(waitqueue, we->key);
 	if (NULL == hl) {
 		g_carp("attempt to remove event %s() on unknown key %p",
-			stacktrace_routine_name(
-				cast_func_to_pointer((func_ptr_t) we->cb), FALSE),
+			stacktrace_routine_name(func_to_pointer(we->cb), FALSE),
 			we->key);
 	} if (NULL == hash_list_remove(hl, we)) {
 		g_carp("attempt to remove unknown event %s() on %p",
-			stacktrace_routine_name(
-				cast_func_to_pointer((func_ptr_t) we->cb), FALSE),
+			stacktrace_routine_name(func_to_pointer(we->cb), FALSE),
 			we->key);
 	} else if (0 == hash_list_length(hl)) {
 		hash_list_free(&hl);
@@ -352,8 +349,7 @@ wq_notify(hash_list_t *hl, void *data)
 		}
 
 		g_error("invalid status %d returned by %s()",
-			status, stacktrace_routine_name(
-				cast_func_to_pointer((func_ptr_t) we->cb), FALSE));
+			status, stacktrace_routine_name(func_to_pointer(we->cb), FALSE));
 
 	remove:
 		hash_list_iter_remove(iter);
@@ -438,8 +434,7 @@ wq_free_waiting(void *key, void *unused_data)
 	(void) unused_data;
 
 	g_warning("leaked waiting event %s() on %p",
-		stacktrace_routine_name(
-			cast_func_to_pointer((func_ptr_t) we->cb), FALSE),
+		stacktrace_routine_name(func_to_pointer(we->cb), FALSE),
 		we->key);
 
 	wq_event_free(we);

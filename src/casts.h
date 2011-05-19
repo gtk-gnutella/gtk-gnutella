@@ -168,6 +168,13 @@ cast_func_to_pointer(func_ptr_t func)
 	return tmp.ptr;
 }
 
+/**
+ * Casting of a random function pointer to "void *" is cumbersome if
+ * you want to spell it out in a pedantic-safe way.  That's where the
+ * func_to_pointer() macro is handy.
+ */
+#define func_to_pointer(x)	cast_func_to_pointer((func_ptr_t) (x))
+
 static inline size_t G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
 ptr_diff(const void *a, const void *b)
 {

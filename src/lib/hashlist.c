@@ -360,7 +360,7 @@ hash_list_sort(hash_list_t *hl, GCompareFunc func)
 	 */
 
 	hl->head = g_list_sort_with_data(hl->head, sort_wrapper,
-		cast_func_to_pointer((func_ptr_t) func));
+		func_to_pointer(func));
 	hl->tail = g_list_last(hl->head);
 }
 

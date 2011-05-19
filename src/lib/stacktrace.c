@@ -578,8 +578,7 @@ trace_check(void)
 		goto done;
 	}
 
-	offset = ptr_diff(main_pc,
-		cast_func_to_pointer((func_ptr_t) main));
+	offset = ptr_diff(main_pc, func_to_pointer(main));
 
 	/*
 	 * Make sure the offset is constant among all our probed symbols.
@@ -587,8 +586,7 @@ trace_check(void)
 
 	for (i = 0; i < G_N_ELEMENTS(trace_known_symbols); i++) {
 		const char *name = trace_known_symbols[i].name;
-		const void *pc =
-			cast_func_to_pointer(trace_known_symbols[i].fn);
+		const void *pc = cast_func_to_pointer(trace_known_symbols[i].fn);
 		const void *loaded_pc = g_hash_table_lookup(sym_pc, name);
 		size_t loaded_offset;
 
@@ -619,8 +617,7 @@ trace_check(void)
 
 	for (i = 0; i < G_N_ELEMENTS(trace_known_symbols); i++) {
 		struct trace *t;
-		const void *pc =
-			cast_func_to_pointer(trace_known_symbols[i].fn);
+		const void *pc = cast_func_to_pointer(trace_known_symbols[i].fn);
 
 		t = trace_lookup(pc);
 
@@ -920,8 +917,7 @@ stacktrace_auto_tune(void)
 	 */
 
 	for (i = 0; i < count; i++) {
-		size_t d = ptr_diff(stack[i],
-			cast_func_to_pointer((func_ptr_t) stacktrace_auto_tune));
+		size_t d = ptr_diff(stack[i], func_to_pointer(stacktrace_auto_tune));
 
 		if (size_is_non_negative(d) && d < 72)	/* close enough */
 			break;

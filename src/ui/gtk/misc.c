@@ -995,7 +995,7 @@ on_button_press_event(GtkWidget *unused_widget,
 void
 widget_add_popup_menu(GtkWidget *widget, widget_popup_menu_cb handler)
 {
-	void *data = cast_func_to_pointer((func_ptr_t) handler);
+	void *data = func_to_pointer(handler);
 
 	g_return_if_fail(widget);
 	g_return_if_fail(handler);

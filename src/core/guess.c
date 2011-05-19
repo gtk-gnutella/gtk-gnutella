@@ -1489,8 +1489,7 @@ guess_discovery_enable(void)
 	}
 	if (NULL == guess_new_host_ev) {
 		guess_new_host_ev = wq_sleep(
-			cast_func_to_pointer((func_ptr_t) hcache_add),
-			guess_host_added, NULL);
+			func_to_pointer(hcache_add), guess_host_added, NULL);
 	}
 }
 
@@ -3234,7 +3233,7 @@ guess_iterate(guess_t *gq)
 
 				if (NULL == gq->hostwait) {
 					gq->hostwait = wq_sleep_timeout(
-						cast_func_to_pointer((func_ptr_t) hcache_add),
+						func_to_pointer(hcache_add),
 						GUESS_WAIT_DELAY, guess_load_host_added, gq);
 				}
 			}
@@ -3303,7 +3302,7 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 
 	if (0 == guess_load_pool(gq, TRUE)) {
 		gq->hostwait = wq_sleep_timeout(
-			cast_func_to_pointer((func_ptr_t) hcache_add),
+			func_to_pointer(hcache_add),
 			GUESS_WAIT_DELAY, guess_load_host_added, gq);
 	} else {
 		guess_async_iterate(gq);

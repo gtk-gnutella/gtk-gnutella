@@ -266,7 +266,7 @@ verify_item_hash(gconstpointer key)
 	return g_str_hash(ctx->pathname)
 		^ uint64_hash(&ctx->offset)
 		^ uint64_hash(&ctx->amount)
-		^ pointer_hash_func(cast_func_to_pointer((func_ptr_t) ctx->callback))
+		^ pointer_hash_func(func_to_pointer(ctx->callback))
 		^ pointer_hash_func(ctx->user_data);
 }
 

@@ -856,7 +856,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		nhost.type = type;
 		nhost.addr = addr;
 		nhost.port = port;
-		wq_wakeup(cast_func_to_pointer((func_ptr_t) hcache_add), &nhost);
+		wq_wakeup(func_to_pointer(hcache_add), &nhost);
 	}
 
 	if (!hcache_request_slot(hc->type))
