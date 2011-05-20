@@ -4131,6 +4131,7 @@ search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1)
 					lazy_safe_search(sch->query),
 					(unsigned) sch->search_handle, sha1_base32(sha1));
 			}
+			gcu_search_gui_store_searches();
 		}
 	}
 }
@@ -4176,6 +4177,8 @@ search_dissociate_sha1(const struct sha1 *sha1)
 					lazy_safe_search(sch->query));
 			}
 		}
+
+		gcu_search_gui_store_searches();
 	}
 }
 

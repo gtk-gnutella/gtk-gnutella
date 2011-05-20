@@ -51,6 +51,7 @@
 #define	gui_update_files_scanned()
 #define	gui_allow_rescan_dir(flag) ((void) flag)
 #define search_gui_new_search(query, flags, x) (((query) && (flags)) ? 0 : 0)
+#define search_gui_store_searches()
 
 #define upload_stats_gui_add(s) ((void) s)
 #define upload_stats_gui_update(s) ((void) s)
@@ -138,6 +139,11 @@ gcu_search_gui_new_search(const gchar *query, guint32 flags)
 	}
 }
 
+void
+gcu_search_gui_store_searches(void)
+{
+	search_gui_store_searches();
+}
 
 /*	upload interface functions (CORE -> UI)*/
 void
