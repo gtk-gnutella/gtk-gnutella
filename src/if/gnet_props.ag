@@ -4350,7 +4350,7 @@ prop = {
 
 prop = {
     name = "dht_configured_mode";
-    desc = "The DHT running mode. An active mode will be able to store values "
+    desc = "The DHT running mode. An active node will be able to store values "
 		"and is a fully participating member of the Distributed Hash Table. "
 		"A passive node can perform lookups and publish but will not store "
 		"values and cannot be a member of the DHT structure. A firewalled node "
