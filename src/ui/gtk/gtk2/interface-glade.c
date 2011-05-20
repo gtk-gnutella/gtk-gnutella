@@ -1952,7 +1952,7 @@ create_main_window (void)
   frame_search_media_type = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_search_media_type, "frame_search_media_type");
   gtk_widget_show (frame_search_media_type);
-  gtk_box_pack_start (GTK_BOX (hbox9351), frame_search_media_type, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox9351), frame_search_media_type, FALSE, TRUE, 0);
 
   alignment144 = gtk_alignment_new (0.5, 0.5, 1, 1);
   gtk_widget_set_name (alignment144, "alignment144");
@@ -2034,7 +2034,7 @@ create_main_window (void)
   frame152 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame152, "frame152");
   gtk_widget_show (frame152);
-  gtk_box_pack_start (GTK_BOX (hbox9351), frame152, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox9351), frame152, FALSE, TRUE, 4);
 
   alignment146 = gtk_alignment_new (0.5, 0.5, 1, 1);
   gtk_widget_set_name (alignment146, "alignment146");
@@ -2042,7 +2042,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame152), alignment146);
   gtk_alignment_set_padding (GTK_ALIGNMENT (alignment146), 0, 0, 12, 0);
 
-  hbox9348 = gtk_hbox_new (FALSE, 0);
+  hbox9348 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox9348, "hbox9348");
   gtk_widget_show (hbox9348);
   gtk_container_add (GTK_CONTAINER (alignment146), hbox9348);

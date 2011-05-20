@@ -2964,7 +2964,7 @@ http://maxmind.com/</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
-		      <property name="expand">True</property>
+		      <property name="expand">False</property>
 		      <property name="fill">True</property>
 		    </packing>
 		  </child>
@@ -2992,7 +2992,7 @@ http://maxmind.com/</property>
 			    <widget class="GtkHBox" id="hbox9348">
 			      <property name="visible">True</property>
 			      <property name="homogeneous">False</property>
-			      <property name="spacing">0</property>
+			      <property name="spacing">4</property>
 
 			      <child>
 				<widget class="GtkOptionMenu" id="option_menu_search_lifetime">
@@ -3057,8 +3057,8 @@ http://maxmind.com/</property>
 		      </child>
 		    </widget>
 		    <packing>
-		      <property name="padding">0</property>
-		      <property name="expand">True</property>
+		      <property name="padding">4</property>
+		      <property name="expand">False</property>
 		      <property name="fill">True</property>
 		    </packing>
 		  </child>
