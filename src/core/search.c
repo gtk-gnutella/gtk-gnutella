@@ -2659,17 +2659,16 @@ build_search_message(const guid_t *muid, const char *query,
 	{
 		gnutella_header_t *header = gnutella_msg_search_header(&msg.data);
 		guint8 hops;
-		
+		gboolean is_leaf = NODE_P_LEAF == GNET_PROPERTY(current_peermode);
+
 		hops = !udp && !whats_new && GNET_PROPERTY(hops_random_factor) &&
-			GNET_PROPERTY(current_peermode) != NODE_P_LEAF
-			? random_value(GNET_PROPERTY(hops_random_factor))
-			: 0;
+			!is_leaf ? random_value(GNET_PROPERTY(hops_random_factor)) : 0;
 
 		gnutella_header_set_muid(header, muid);
 		gnutella_header_set_function(header, GTA_MSG_SEARCH);
 		gnutella_header_set_hops(header, hops);
 		gnutella_header_set_ttl(header,
-			whats_new ? WHATS_NEW_TTL :
+			whats_new ? WHATS_NEW_TTL + (is_leaf ? 1 : 0) :
 			query_key != NULL ? 1 : GNET_PROPERTY(my_ttl));
 
 		if (
@@ -3126,6 +3125,9 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		search_starting(sch->search_handle);
 		search_mark_sent_to_connected_nodes(sch);
 		gmsg_search_sendto_all(node_all_nodes(), sch->search_handle, msg, size);
+		if (sbool_get(sch->whats_new)) {
+			search_last_whats_new = tm_time();
+		}
 		goto cleanup;
 	}
 
