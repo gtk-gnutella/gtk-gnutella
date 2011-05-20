@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-10 19:00+0200\n"
+"POT-Creation-Date: 2011-05-20 16:47+0200\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -3035,7 +3035,7 @@ msgid "DHT bootstrap status."
 msgstr "Στατιστικά κυκλοφορίας _HTTP"
 
 msgid ""
-"The DHT running mode. An active mode will be able to store values and is a "
+"The DHT running mode. An active node will be able to store values and is a "
 "fully participating member of the Distributed Hash Table. A passive node can "
 "perform lookups and publish but will not store values and cannot be a member "
 "of the DHT structure. A firewalled node is necessarily passive, but you can "
@@ -3236,6 +3236,45 @@ msgid ""
 "concurrency that can be used for GUESS.  Lower numbers mean slower querying "
 "overall"
 msgstr ""
+
+#, fuzzy
+msgid "Debug level for the matching code."
+msgstr "Επίπεδο αποσφαλμάτωσης κώδικα απαγορεύσεων."
+
+#, fuzzy
+msgid "Debug level for the time synchronization code."
+msgstr "Επίπεδο αποσφαλμάτωσης κώδικα ανταλλαγής αρχείων."
+
+msgid ""
+"Whether queries can request partial results hits, i.e. files which are "
+"incompletely available on remote hosts."
+msgstr ""
+
+msgid ""
+"Whether queries for partial files should be answered to.When Partial File "
+"Sharing is disabled this setting is of course ignored and no partial results "
+"are returned."
+msgstr ""
+
+#, fuzzy
+msgid "Whether what's-new? queries should be answered to."
+msgstr "Αν πρέπει να εμφανίζεται οι μέτρηση των μεταφερόμενων ερωτημάτων."
+
+msgid ""
+"When set, gtk-gnutella will automatically stop opened searches from which "
+"all the requested downloads have been completed, regardless of the initially "
+"configured expiration time."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of results to show in a What's New? request."
+msgstr ""
+"Μέγιστος αριθμός αποτελεσμάτων που εμφανίζονται σε οποιαδήποτε αναζήτηση."
+
+#, fuzzy
+msgid "Maximum number of results to show in a passive search request."
+msgstr ""
+"Μέγιστος αριθμός αποτελεσμάτων που εμφανίζονται σε οποιαδήποτε αναζήτηση."
 
 msgid "disable"
 msgstr "απενεργοποίηση"
@@ -3773,6 +3812,39 @@ msgstr "Εμφάνιση μέσου εύρους εισερχόμενης κυκ
 #, fuzzy
 msgid "Display outgoing DHT traffic bandwidth as an average."
 msgstr "Εμφάνιση μέσου εύρους εξερχόμενης κυκλοφορίας HTTP."
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their audio files."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their video files."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their document files. Document files are XML, HTML, Word, "
+"PDF, etc..."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their image files."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their Windows archive / program files such as ZIP or EXE "
+"files and other Windows-centric extensions."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their UNIX archive / program files such as tar, bz2, gz, "
+"deb, rpm and other UNIX / Linux / OSX extensions."
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr "Διαμεσολαβητές ανωνυμίας"
@@ -5281,6 +5353,13 @@ msgstr "Αναζητήσεις στην τοπική ΒΔ"
 msgid "Hits on local DB"
 msgstr "Χτυπήματα στην τοπική ΒΔ"
 
+#, fuzzy
+msgid "Hits on local partial files"
+msgstr "Χτυπήματα στην τοπική ΒΔ"
+
+msgid "Hits on \"what's new?\" queries"
+msgstr ""
+
 msgid "Query hits received for local queries"
 msgstr "Ληφθέντα χτυπήματα ερωτημάτων για τοπικά ερωτήματα."
 
@@ -5329,6 +5408,9 @@ msgstr "ερωτήματα UTF8"
 
 msgid "SHA1 queries"
 msgstr "ερωτήματα SHA1"
+
+msgid "\"What's new?\" queries"
+msgstr ""
 
 #, fuzzy
 msgid "GUESS queries"
@@ -6732,6 +6814,14 @@ msgid "Max. number of browse host results"
 msgstr "Μέγιστος _αριθμός αποτελεσμάτων"
 
 #, fuzzy
+msgid "Max. number of passive results"
+msgstr "Μέγιστος _αριθμός αποτελεσμάτων"
+
+#, fuzzy
+msgid "Max. number of What's New? results"
+msgstr "Μέγιστος _αριθμός αποτελεσμάτων"
+
+#, fuzzy
 msgid "Max. simultaneous downloads per file"
 msgstr "Μέγιστες ταυτόχρονες λήψεις"
 
@@ -7890,6 +7980,69 @@ msgid "Output bandwidth hint"
 msgstr "Όριο ολικού εύρους εξόδου:"
 
 #, fuzzy
+msgid "Download queue is frozen."
+msgstr "Η λίστα αναμονής πάγωσε"
+
+msgid "Allow TTH discovery"
+msgstr ""
+
+msgid "Query for partial files as well"
+msgstr ""
+
+msgid "Answer to queries for partial files"
+msgstr ""
+
+#, fuzzy
+msgid "Answer to what's-new? queries"
+msgstr "Δημιουργημένα ερωτήματα"
+
+#, fuzzy
+msgid "Search Media Type"
+msgstr "Κριτήριο αναζήτησης"
+
+msgid "Audio"
+msgstr ""
+
+#, fuzzy
+msgid "Video"
+msgstr "_Προβολή"
+
+#, fuzzy
+msgid "Document"
+msgstr "Μέτρηση"
+
+#, fuzzy
+msgid "Image"
+msgstr "Εύρος"
+
+msgid "Windows archives"
+msgstr ""
+
+#, fuzzy
+msgid "Linux archives"
+msgstr "%u εν ενεργεία"
+
+#, fuzzy
+msgid "Search Configuration"
+msgstr "Φίλτρα αναζήτησης"
+
+msgid "Stop search when last download completes"
+msgstr ""
+
+msgid "Look for newest files shared by nodes in the network vicinity"
+msgstr ""
+
+msgid "What's new?"
+msgstr ""
+
+#, fuzzy
+msgid "Unspecified"
+msgstr "δεν έχει οριστεί"
+
+msgid "Search filters to apply locally on newly created searches."
+msgstr ""
+
+#, fuzzy
 msgid "owned"
 msgstr "Έγινε"
 
@@ -7961,6 +8114,20 @@ msgstr "_αυτόματη απόκρυψη στατιστικών δικτυακ
 
 msgid "_Search"
 msgstr "_Αναζήτηση"
+
+msgid "Do not specify any media type (will match any kind of files remotely)"
+msgstr ""
+
+msgid "UNIX archives"
+msgstr ""
+
+#, fuzzy
+msgid "Seaerch Media Type"
+msgstr "Κριτήριο αναζήτησης"
+
+#, fuzzy
+msgid "CPU overloaded"
+msgstr "Στάλθηκαν:"
 
 #, fuzzy
 msgid "Splitting outgoing HTTP bandwidth evenly."
@@ -8318,6 +8485,9 @@ msgstr[1] ""
 msgid "Passive"
 msgstr "Παθητικός"
 
+msgid "What's New?"
+msgstr ""
+
 #, c-format
 msgid ""
 "Found old searches file. The search information has been\n"
@@ -8417,6 +8587,10 @@ msgstr ""
 msgid "No"
 msgstr "Όχι"
 
+#, fuzzy
+msgid "Tag"
+msgstr "Στόχος"
+
 msgid "Yes"
 msgstr "Ναι"
 
@@ -8429,6 +8603,10 @@ msgstr "Πηγές"
 
 msgid "Alt-Locs"
 msgstr ""
+
+#, fuzzy
+msgid "Partial"
+msgstr "Λετονία"
 
 msgid "Latinized"
 msgstr ""
@@ -8512,6 +8690,9 @@ msgstr "Το κείμενο κανονικοποιημένης αναζήτησ�
 
 msgid "The normalized search text is too short."
 msgstr "Το κείμενο κανονικοποιημένης αναζήτησης είναι πολύ μικρό."
+
+msgid "One cannot send \"What's New?\" queries too often."
+msgstr ""
 
 msgid "The URN in the search text is invalid."
 msgstr ""

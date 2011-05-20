@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-10 19:00+0200\n"
+"POT-Creation-Date: 2011-05-20 16:47+0200\n"
 "PO-Revision-Date: 2008-07-05 13:20+0200\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2976,7 +2976,7 @@ msgid "DHT bootstrap status."
 msgstr "HTTP-Verkehr"
 
 msgid ""
-"The DHT running mode. An active mode will be able to store values and is a "
+"The DHT running mode. An active node will be able to store values and is a "
 "fully participating member of the Distributed Hash Table. A passive node can "
 "perform lookups and publish but will not store values and cannot be a member "
 "of the DHT structure. A firewalled node is necessarily passive, but you can "
@@ -3186,6 +3186,45 @@ msgid ""
 "concurrency that can be used for GUESS.  Lower numbers mean slower querying "
 "overall"
 msgstr ""
+
+#, fuzzy
+msgid "Debug level for the matching code."
+msgstr "Debug-Level für Bann-Code"
+
+#, fuzzy
+msgid "Debug level for the time synchronization code."
+msgstr "Debug-Level für File-Sharing-Code"
+
+msgid ""
+"Whether queries can request partial results hits, i.e. files which are "
+"incompletely available on remote hosts."
+msgstr ""
+
+msgid ""
+"Whether queries for partial files should be answered to.When Partial File "
+"Sharing is disabled this setting is of course ignored and no partial results "
+"are returned."
+msgstr ""
+
+#, fuzzy
+msgid "Whether what's-new? queries should be answered to."
+msgstr "Gibt an, ob die übertragenen Suchanfragen angezeigt werden sollen."
+
+msgid ""
+"When set, gtk-gnutella will automatically stop opened searches from which "
+"all the requested downloads have been completed, regardless of the initially "
+"configured expiration time."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of results to show in a What's New? request."
+msgstr ""
+"Maximale Dauer in Sekunden bevor ein automatischer Downloadversuch "
+"abgebrochen wird."
+
+#, fuzzy
+msgid "Maximum number of results to show in a passive search request."
+msgstr "Maximale Anzahl angezeigter Anfragen im Suchmonitor."
 
 msgid "disable"
 msgstr "deaktiviert"
@@ -3723,6 +3762,39 @@ msgstr "Mittlere Bandbreite für eingehenden HTTP-Verkehr anzeigen"
 #, fuzzy
 msgid "Display outgoing DHT traffic bandwidth as an average."
 msgstr "Mittlere Bandbreite für ausgehenden HTTP-Verkehr anzeigen"
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their audio files."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their video files."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their document files. Document files are XML, HTML, Word, "
+"PDF, etc..."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their image files."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their Windows archive / program files such as ZIP or EXE "
+"files and other Windows-centric extensions."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their UNIX archive / program files such as tar, bz2, gz, "
+"deb, rpm and other UNIX / Linux / OSX extensions."
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr ""
@@ -5146,6 +5218,13 @@ msgstr "Anfragen an lokale DB"
 msgid "Hits on local DB"
 msgstr "Treffer in lokaler DB"
 
+#, fuzzy
+msgid "Hits on local partial files"
+msgstr "Treffer in lokaler DB"
+
+msgid "Hits on \"what's new?\" queries"
+msgstr ""
+
 msgid "Query hits received for local queries"
 msgstr ""
 
@@ -5193,6 +5272,9 @@ msgstr "UTF8-Anfragen"
 
 msgid "SHA1 queries"
 msgstr "SHA1-Anfragen"
+
+msgid "\"What's new?\" queries"
+msgstr ""
 
 #, fuzzy
 msgid "GUESS queries"
@@ -6569,6 +6651,14 @@ msgstr "Max. Anzahl reservierter Dateideskriptoren"
 msgid "Max. number of browse host results"
 msgstr "Max. Anzahl von Browse-Host-Ergebnissen"
 
+#, fuzzy
+msgid "Max. number of passive results"
+msgstr "Max. _Trefferzahl"
+
+#, fuzzy
+msgid "Max. number of What's New? results"
+msgstr "Max. _Trefferzahl"
+
 msgid "Max. simultaneous downloads per file"
 msgstr "Max. gleichzeitige Downloads pro Datei"
 
@@ -7704,6 +7794,69 @@ msgstr "Bandbreitenkontrolle für Gnet-Verkehr"
 msgid "Output bandwidth hint"
 msgstr "Gesamte ausgehende Bandbreitenbegrenzung:"
 
+#, fuzzy
+msgid "Download queue is frozen."
+msgstr "Download-Queue ist eingefroren"
+
+msgid "Allow TTH discovery"
+msgstr ""
+
+msgid "Query for partial files as well"
+msgstr ""
+
+msgid "Answer to queries for partial files"
+msgstr ""
+
+#, fuzzy
+msgid "Answer to what's-new? queries"
+msgstr "Generierte Anfragen"
+
+#, fuzzy
+msgid "Search Media Type"
+msgstr "Suchbegriff"
+
+msgid "Audio"
+msgstr ""
+
+#, fuzzy
+msgid "Video"
+msgstr "_Anzeigen"
+
+#, fuzzy
+msgid "Document"
+msgstr "Anzahl"
+
+#, fuzzy
+msgid "Image"
+msgstr "Bereich"
+
+msgid "Windows archives"
+msgstr ""
+
+#, fuzzy
+msgid "Linux archives"
+msgstr "%u aktiv"
+
+#, fuzzy
+msgid "Search Configuration"
+msgstr "Suchfilter"
+
+msgid "Stop search when last download completes"
+msgstr ""
+
+msgid "Look for newest files shared by nodes in the network vicinity"
+msgstr ""
+
+msgid "What's new?"
+msgstr ""
+
+#, fuzzy
+msgid "Unspecified"
+msgstr "undefiniert"
+
+msgid "Search filters to apply locally on newly created searches."
+msgstr ""
+
 msgid "owned"
 msgstr "Status"
 
@@ -7772,6 +7925,20 @@ msgstr "Leaf-Verkehr _automatisch ausblenden"
 
 msgid "_Search"
 msgstr "_Suchen"
+
+msgid "Do not specify any media type (will match any kind of files remotely)"
+msgstr ""
+
+msgid "UNIX archives"
+msgstr ""
+
+#, fuzzy
+msgid "Seaerch Media Type"
+msgstr "Suchbegriff"
+
+#, fuzzy
+msgid "CPU overloaded"
+msgstr "Hochgeladen"
 
 #, fuzzy
 msgid "Splitting outgoing HTTP bandwidth evenly."
@@ -8123,6 +8290,9 @@ msgstr[1] ""
 msgid "Passive"
 msgstr "Passiv"
 
+msgid "What's New?"
+msgstr ""
+
 #, c-format
 msgid ""
 "Found old searches file. The search information has been\n"
@@ -8221,6 +8391,10 @@ msgstr ""
 msgid "No"
 msgstr "Nein"
 
+#, fuzzy
+msgid "Tag"
+msgstr "Ziel"
+
 msgid "Yes"
 msgstr "Ja"
 
@@ -8232,6 +8406,10 @@ msgstr "Quelle"
 
 msgid "Alt-Locs"
 msgstr ""
+
+#, fuzzy
+msgid "Partial"
+msgstr "unvollständig"
 
 msgid "Latinized"
 msgstr ""
@@ -8303,6 +8481,9 @@ msgid "The normalized search text is too long."
 msgstr ""
 
 msgid "The normalized search text is too short."
+msgstr ""
+
+msgid "One cannot send \"What's New?\" queries too often."
 msgstr ""
 
 msgid "The URN in the search text is invalid."

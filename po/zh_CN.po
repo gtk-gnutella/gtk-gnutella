@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-10 19:00+0200\n"
+"POT-Creation-Date: 2011-05-20 16:47+0200\n"
 "PO-Revision-Date: 2009-12-05 16:18+0800\n"
 "Last-Translator: Aron Xu <happyaron.xu@gmail.com>\n"
 "Language-Team: Chinese (Simplified) <i18n-zh@googlegroups.com>\n"
@@ -2729,7 +2729,7 @@ msgid "DHT bootstrap status."
 msgstr "_HTTP 浏量统计"
 
 msgid ""
-"The DHT running mode. An active mode will be able to store values and is a "
+"The DHT running mode. An active node will be able to store values and is a "
 "fully participating member of the Distributed Hash Table. A passive node can "
 "perform lookups and publish but will not store values and cannot be a member "
 "of the DHT structure. A firewalled node is necessarily passive, but you can "
@@ -2926,6 +2926,42 @@ msgid ""
 "concurrency that can be used for GUESS.  Lower numbers mean slower querying "
 "overall"
 msgstr ""
+
+#, fuzzy
+msgid "Debug level for the matching code."
+msgstr "用于HTTP代码的debug级别。"
+
+#, fuzzy
+msgid "Debug level for the time synchronization code."
+msgstr "用于上传的debug级别。"
+
+msgid ""
+"Whether queries can request partial results hits, i.e. files which are "
+"incompletely available on remote hosts."
+msgstr ""
+
+msgid ""
+"Whether queries for partial files should be answered to.When Partial File "
+"Sharing is disabled this setting is of course ignored and no partial results "
+"are returned."
+msgstr ""
+
+msgid "Whether what's-new? queries should be answered to."
+msgstr ""
+
+msgid ""
+"When set, gtk-gnutella will automatically stop opened searches from which "
+"all the requested downloads have been completed, regardless of the initially "
+"configured expiration time."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of results to show in a What's New? request."
+msgstr "自动重试等待的最大秒数"
+
+#, fuzzy
+msgid "Maximum number of results to show in a passive search request."
+msgstr "自动重试等待的最大秒数"
 
 msgid "disable"
 msgstr "禁用"
@@ -3408,6 +3444,39 @@ msgid "Display incoming DHT traffic bandwidth as an average."
 msgstr ""
 
 msgid "Display outgoing DHT traffic bandwidth as an average."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their audio files."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their video files."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their document files. Document files are XML, HTML, Word, "
+"PDF, etc..."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their image files."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their Windows archive / program files such as ZIP or EXE "
+"files and other Windows-centric extensions."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their UNIX archive / program files such as tar, bz2, gz, "
+"deb, rpm and other UNIX / Linux / OSX extensions."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -4830,6 +4899,13 @@ msgstr "本地数据库查询"
 msgid "Hits on local DB"
 msgstr "本地数据库查询命中"
 
+#, fuzzy
+msgid "Hits on local partial files"
+msgstr "本地数据库查询命中"
+
+msgid "Hits on \"what's new?\" queries"
+msgstr ""
+
 msgid "Query hits received for local queries"
 msgstr ""
 
@@ -4877,6 +4953,9 @@ msgstr "UTF-8 查询"
 
 msgid "SHA1 queries"
 msgstr "SHA1 查询"
+
+msgid "\"What's new?\" queries"
+msgstr ""
 
 #, fuzzy
 msgid "GUESS queries"
@@ -6217,6 +6296,14 @@ msgstr "保留的最大文件描述符(_d)"
 msgid "Max. number of browse host results"
 msgstr ""
 
+#, fuzzy
+msgid "Max. number of passive results"
+msgstr "最大结果数(_N)"
+
+#, fuzzy
+msgid "Max. number of What's New? results"
+msgstr "最大结果数(_N)"
+
 msgid "Max. simultaneous downloads per file"
 msgstr ""
 
@@ -7301,6 +7388,70 @@ msgstr "Gnutella 流量带宽限制"
 msgid "Output bandwidth hint"
 msgstr "总出站带宽限制："
 
+#, fuzzy
+msgid "Download queue is frozen."
+msgstr "下载队列已冻结"
+
+msgid "Allow TTH discovery"
+msgstr ""
+
+msgid "Query for partial files as well"
+msgstr ""
+
+msgid "Answer to queries for partial files"
+msgstr ""
+
+#, fuzzy
+msgid "Answer to what's-new? queries"
+msgstr "已生成的查询"
+
+#, fuzzy
+msgid "Search Media Type"
+msgstr "搜索项目"
+
+#, fuzzy
+msgid "Audio"
+msgstr "<音频>"
+
+#, fuzzy
+msgid "Video"
+msgstr "<视频>"
+
+#, fuzzy
+msgid "Document"
+msgstr "计数"
+
+#, fuzzy
+msgid "Image"
+msgstr "<图像>"
+
+msgid "Windows archives"
+msgstr ""
+
+#, fuzzy
+msgid "Linux archives"
+msgstr "%u 个活动"
+
+#, fuzzy
+msgid "Search Configuration"
+msgstr "搜索监视器"
+
+msgid "Stop search when last download completes"
+msgstr ""
+
+msgid "Look for newest files shared by nodes in the network vicinity"
+msgstr ""
+
+msgid "What's new?"
+msgstr ""
+
+#, fuzzy
+msgid "Unspecified"
+msgstr "未定义"
+
+msgid "Search filters to apply locally on newly created searches."
+msgstr ""
+
 msgid "owned"
 msgstr ""
 
@@ -7363,6 +7514,20 @@ msgstr "自动隐藏叶节点流量统计(_A)："
 
 msgid "_Search"
 msgstr "搜索(_S)"
+
+msgid "Do not specify any media type (will match any kind of files remotely)"
+msgstr ""
+
+msgid "UNIX archives"
+msgstr ""
+
+#, fuzzy
+msgid "Seaerch Media Type"
+msgstr "搜索项目"
+
+#, fuzzy
+msgid "CPU overloaded"
+msgstr "已上传"
 
 msgid "Splitting outgoing HTTP bandwidth evenly."
 msgstr ""
@@ -7700,6 +7865,9 @@ msgstr[0] ""
 msgid "Passive"
 msgstr "被动"
 
+msgid "What's New?"
+msgstr ""
+
 #, c-format
 msgid ""
 "Found old searches file. The search information has been\n"
@@ -7789,6 +7957,10 @@ msgstr ""
 msgid "No"
 msgstr "否"
 
+#, fuzzy
+msgid "Tag"
+msgstr "目标"
+
 msgid "Yes"
 msgstr "是"
 
@@ -7801,6 +7973,10 @@ msgstr "%u 个源"
 
 msgid "Alt-Locs"
 msgstr ""
+
+#, fuzzy
+msgid "Partial"
+msgstr "部分"
 
 msgid "Latinized"
 msgstr ""
@@ -7870,6 +8046,9 @@ msgid "The normalized search text is too long."
 msgstr ""
 
 msgid "The normalized search text is too short."
+msgstr ""
+
+msgid "One cannot send \"What's New?\" queries too often."
 msgstr ""
 
 msgid "The URN in the search text is invalid."

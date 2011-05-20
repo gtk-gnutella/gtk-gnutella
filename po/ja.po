@@ -76,7 +76,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-10 19:00+0200\n"
+"POT-Creation-Date: 2011-05-20 16:47+0200\n"
 "PO-Revision-Date: 2010-01-11 02:32+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -3102,7 +3102,7 @@ msgid "DHT bootstrap status."
 msgstr "DHTトラフィック統計"
 
 msgid ""
-"The DHT running mode. An active mode will be able to store values and is a "
+"The DHT running mode. An active node will be able to store values and is a "
 "fully participating member of the Distributed Hash Table. A passive node can "
 "perform lookups and publish but will not store values and cannot be a member "
 "of the DHT structure. A firewalled node is necessarily passive, but you can "
@@ -3306,6 +3306,43 @@ msgid ""
 "concurrency that can be used for GUESS.  Lower numbers mean slower querying "
 "overall"
 msgstr ""
+
+#, fuzzy
+msgid "Debug level for the matching code."
+msgstr "禁止処理コードのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the time synchronization code."
+msgstr "ファイル共有コードのデバッグレベルです。"
+
+msgid ""
+"Whether queries can request partial results hits, i.e. files which are "
+"incompletely available on remote hosts."
+msgstr ""
+
+msgid ""
+"Whether queries for partial files should be answered to.When Partial File "
+"Sharing is disabled this setting is of course ignored and no partial results "
+"are returned."
+msgstr ""
+
+#, fuzzy
+msgid "Whether what's-new? queries should be answered to."
+msgstr "伝送した検索クエリーの数を表示するかどうかを選択します。"
+
+msgid ""
+"When set, gtk-gnutella will automatically stop opened searches from which "
+"all the requested downloads have been completed, regardless of the initially "
+"configured expiration time."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of results to show in a What's New? request."
+msgstr "ホスト参照リクエストで表示する最大数です。"
+
+#, fuzzy
+msgid "Maximum number of results to show in a passive search request."
+msgstr "ホスト参照リクエストで表示する最大数です。"
 
 msgid "disable"
 msgstr "表示しない"
@@ -3823,6 +3860,39 @@ msgstr "ピア内への DHT トラフィックの帯域幅平均値を表示し�
 
 msgid "Display outgoing DHT traffic bandwidth as an average."
 msgstr "ピア外への DHT トラフィックの帯域幅平均値を表示します。"
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their audio files."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their video files."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their document files. Document files are XML, HTML, Word, "
+"PDF, etc..."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their image files."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their Windows archive / program files such as ZIP or EXE "
+"files and other Windows-centric extensions."
+msgstr ""
+
+msgid ""
+"Remote nodes supporting media type filtering will apply your query "
+"specifically on their UNIX archive / program files such as tar, bz2, gz, "
+"deb, rpm and other UNIX / Linux / OSX extensions."
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr "匿名プロキシサーバー"
@@ -5314,6 +5384,14 @@ msgid "Hits on local DB"
 msgstr "あなたの共有ファイルにヒット"
 
 # XXX: free translation
+#, fuzzy
+msgid "Hits on local partial files"
+msgstr "あなたの共有ファイルにヒット"
+
+msgid "Hits on \"what's new?\" queries"
+msgstr ""
+
+# XXX: free translation
 msgid "Query hits received for local queries"
 msgstr "あなたの検索クエリーが受取った検索クエリーヒット"
 
@@ -5372,6 +5450,9 @@ msgstr "UTF8検索クエリー"
 
 msgid "SHA1 queries"
 msgstr "SHA1検索クエリー"
+
+msgid "\"What's new?\" queries"
+msgstr ""
 
 #, fuzzy
 msgid "GUESS queries"
@@ -6766,6 +6847,14 @@ msgstr "予約するファイル記述子の最高数(_D)"
 msgid "Max. number of browse host results"
 msgstr "ホスト参照結果の最大数"
 
+#, fuzzy
+msgid "Max. number of passive results"
+msgstr "結果表示の最大数(_N)"
+
+#, fuzzy
+msgid "Max. number of What's New? results"
+msgstr "結果表示の最大数(_N)"
+
 msgid "Max. simultaneous downloads per file"
 msgstr "一つのファイルに対する同時ダウンロードの最大数"
 
@@ -7943,6 +8032,71 @@ msgstr "Gnutellaトラフィックの帯域幅制限"
 msgid "Output bandwidth hint"
 msgstr "出力帯域幅の平均"
 
+#, fuzzy
+msgid "Download queue is frozen."
+msgstr "ダウンロードキューが凍結されました"
+
+msgid "Allow TTH discovery"
+msgstr ""
+
+msgid "Query for partial files as well"
+msgstr ""
+
+msgid "Answer to queries for partial files"
+msgstr ""
+
+#, fuzzy
+msgid "Answer to what's-new? queries"
+msgstr "生成検索クエリー数"
+
+# FIXME: `Search Term' -> `Searches' or `Search queries'
+#, fuzzy
+msgid "Search Media Type"
+msgstr "検索クエリー"
+
+#, fuzzy
+msgid "Audio"
+msgstr "<音楽>"
+
+#, fuzzy
+msgid "Video"
+msgstr "<動画>"
+
+#, fuzzy
+msgid "Document"
+msgstr "回数"
+
+#, fuzzy
+msgid "Image"
+msgstr "<画像>"
+
+msgid "Windows archives"
+msgstr ""
+
+#, fuzzy
+msgid "Linux archives"
+msgstr "%u 件が動作中"
+
+#, fuzzy
+msgid "Search Configuration"
+msgstr "検索モニター"
+
+msgid "Stop search when last download completes"
+msgstr ""
+
+msgid "Look for newest files shared by nodes in the network vicinity"
+msgstr ""
+
+msgid "What's new?"
+msgstr ""
+
+#, fuzzy
+msgid "Unspecified"
+msgstr "未定義"
+
+msgid "Search filters to apply locally on newly created searches."
+msgstr ""
+
 msgid "owned"
 msgstr "取得済"
 
@@ -8015,6 +8169,21 @@ msgstr "自動的に隠す(_A)"
 
 msgid "_Search"
 msgstr "検索(_S)"
+
+msgid "Do not specify any media type (will match any kind of files remotely)"
+msgstr ""
+
+msgid "UNIX archives"
+msgstr ""
+
+# FIXME: `Search Term' -> `Searches' or `Search queries'
+#, fuzzy
+msgid "Seaerch Media Type"
+msgstr "検索クエリー"
+
+#, fuzzy
+msgid "CPU overloaded"
+msgstr "アップロード"
 
 #, fuzzy
 msgid "Splitting outgoing HTTP bandwidth evenly."
@@ -8396,6 +8565,9 @@ msgstr[0] "重複"
 msgid "Passive"
 msgstr "受動検索"
 
+msgid "What's New?"
+msgstr ""
+
 #, c-format
 msgid ""
 "Found old searches file. The search information has been\n"
@@ -8491,6 +8663,10 @@ msgstr "取得状況"
 msgid "No"
 msgstr "いいえ"
 
+#, fuzzy
+msgid "Tag"
+msgstr "ターゲット"
+
 msgid "Yes"
 msgstr "はい"
 
@@ -8502,6 +8678,11 @@ msgstr "送信元"
 
 msgid "Alt-Locs"
 msgstr "別の送信元"
+
+# FIXME: should be revised.
+#, fuzzy
+msgid "Partial"
+msgstr "部分取得済"
 
 msgid "Latinized"
 msgstr "ローマ字表記"
@@ -8571,6 +8752,9 @@ msgstr "正規化された検索テキストが長すぎます。"
 
 msgid "The normalized search text is too short."
 msgstr "正規化された検索テキストが短すぎます。"
+
+msgid "One cannot send \"What's New?\" queries too often."
+msgstr ""
 
 msgid "The URN in the search text is invalid."
 msgstr "検索文字列中のURNが不正です。"
