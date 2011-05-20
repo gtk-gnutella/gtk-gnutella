@@ -651,7 +651,7 @@ search_gui_new_search(const gchar *query, guint32 flags, search_t **search)
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
-	if (!(SEARCH_F_PASSIVE & flags))
+	if (!((SEARCH_F_PASSIVE | SEARCH_F_WHATS_NEW) & flags))
 		query = lazy_ui_string_to_utf8(query);
 
     ret = search_gui_new_search_full(query,
@@ -1456,7 +1456,10 @@ search_gui_create_search_with_filter(const char *name, guint32 flags)
     default_filter = option_menu_get_selected_data(GTK_OPTION_MENU(
 					gui_main_window_lookup("optionmenu_search_filter")));
 
-	search_gui_new_search(name, flags, &search);
+	if (SEARCH_NEW_SUCCESS != search_gui_new_search(name, flags, &search)) {
+		gdk_beep();
+		return;
+	}
 
     /*
      * If we should set a default filter, we do that.
