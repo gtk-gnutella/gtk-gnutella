@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2011-05-10 19:00+0200\n"
-"PO-Revision-Date: 2011-05-13 13:14+0100\n"
+"PO-Revision-Date: 2011-05-20 16:20+0100\n"
 "Last-Translator: Jeroen Asselman <j.asselman@rubicongroup.biz>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -1255,7 +1255,7 @@ msgid "When an upload is expected to take less than this setting in seconds, PAR
 msgstr "Als er verwacht wordt dat een upload korter dan dit aantal seconden in beslag zal nemen, dan zal PARQ deze upload niet in de wachtrij zetten. Deze controle wordt gedaan NA de bestandsgrootte omzeiling. Om dit uit te schakelen kies hier 0."
 
 msgid "Ban the client if it violates the Retry-After interval too often. Set this to 0 to disable the banning. The upload will be removed from the queue in any case though. Default is 10, so the client is banned after retrying too soon 10 times, which is a good balance between abuse and legacy client support."
-msgstr ""
+msgstr "Verban the client als de Retry-After interval te vaak schendt. Stel dit op 0 in om verbannen uit te schakelen. De upload wordt hoe dan ook van de wachtrij verwijderd. De standaard waarde is 10, dat wil zeggen dat de client wordt verbannen als het 10 keer te vroeg opnieuw probeerd, dit is een goede balans tussen misbruik en legacy client ondersteuning."
 
 msgid "For development use: track properties."
 msgstr "Voor ontwikkeling: volg eigenschappen."
@@ -1309,10 +1309,10 @@ msgid "Enable to use [forced_local_ip6] as local ip."
 msgstr "Gebruik [forced_local_ip] als lokaal ip."
 
 msgid "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
-msgstr ""
+msgstr "Als 'forced_local_ip' wordt gebruikt koppel dan de socket aan het geforceerde IP adres."
 
 msgid "If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
-msgstr ""
+msgstr "Als 'forced_local_ip6' wordt gebruikt koppel dan de socket aan het geforceerd IP adres."
 
 msgid "Try to connect to local networks first."
 msgstr "Probeer eerst te verbinden met een lokaal netwerk."
@@ -1351,10 +1351,10 @@ msgid "Network protocols to use."
 msgstr "Protocol door de proxy te gebruikten."
 
 msgid "Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
-msgstr ""
+msgstr "Gebruik een IPv6-to-IPv4 Transport Relay Translator zoals gespecificeerd in RFC 3142."
 
 msgid "The IPv6 address prefix used by the IPv6-to-IPv4 Transport Relay Translator."
-msgstr ""
+msgstr "De IPv6 adres prefix zoals gebruikt door de IPv6-to-IPv4 Transport Relay Translator."
 
 msgid "Current number of hosts in regular node caches."
 msgstr "Het aantal hosts in de reguliere node caches."
@@ -1411,7 +1411,7 @@ msgid "Maximum size of search answers messages we allow, otherwise close the con
 msgstr "Maximale grootte van de antwoorden op zoek opdrachten die we accepteren, anders wordt de verbinding gesloten (in bytes)."
 
 msgid "Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query Hits to the original search term. In the worst case this causes about 300 bytes per Query of memory overhead."
-msgstr ""
+msgstr "Maximum aantal te volgen Query MUID's . Hiermee is is het mogelijk om MUID's van Query Hits in te delen bij de orginele zoek term. Dit kan maximaal 300 bytes per Query aan extra geheugen betekenen."
 
 msgid "Maximum size of unknown messages we allow, otherwise close the connection (in bytes)."
 msgstr "Maximale grootte van onbekende bericht die we accepteren, anders wordt de verbinding gesloten (in bytes)."
@@ -1645,7 +1645,7 @@ msgid "Size of the RX socket buffer to be used for nodes, in kbytes. The lower t
 msgstr "Grootte van de RX \"socket\" buffer die gebruikt wordt voor nodes, in kbytes. Hoe lager de waarde, hoe sneller de andere server flow control op TCP/IP niveau zal gebruiken als je niet snel genoeg kunt lezen, wat het geval is als je de binnenkomende bandbreedte limiteert."
 
 msgid "Size of the TX socket buffer to be used for uploads, in kibibytes."
-msgstr ""
+msgstr "Grootte van de te gebruiken TX socket buffer voor uploads, in kibibytes."
 
 msgid "Average recent latency between the sending of the HTTP request and the reception of the reply from the remote server, in msecs."
 msgstr "Gemiddelde vertraging tussen het zenden van het HTTP verzoek en de ontvangst van het antwoord van de server, in milliseconden."
@@ -1693,7 +1693,7 @@ msgid "Whether connection to gtk-gnutella via the 'shell' control interface shou
 msgstr "Of een verbinding met gtk-gnutella via de \"shell\" controle interface toegestaan is."
 
 msgid "Amount of seconds until an idle remote shell session gets disconnected. If set to zero, no timeout occurs."
-msgstr ""
+msgstr "Na hoeveel seconden een idle remote shell session connectie wordt verbroken. By een waarde van 0 wordt er geen time-out gebruikt."
 
 msgid "Amount of seconds to leave 'dead' entries around so that they can still be displayed by the GUI along with the termination status."
 msgstr "Aantal seconden dat 'dode' items blijven staan zodat ze in de GUI zichtbaar zijn met de status waarmee ze gestopt zijn."
@@ -1810,7 +1810,7 @@ msgid "If set to TRUE, SO_LINGER is used for sockets."
 msgstr "Indien TRUE dan wordt SO_LINGER gebruikt voor sockets."
 
 msgid "See the man page for tcp(7). This feature typically only available on Linux systems."
-msgstr ""
+msgstr "Bekijk de man page voor tcp(7). Deze voorziening is over het algemeen alleen beschikbaar voor Linux systemen."
 
 msgid "If TRUE, other hosts can request a complete list of all shared files."
 msgstr "Indien TRUE dan kunnen andere hosts een complete lijst opvragen met alle gedeelde bestanden."
@@ -1834,10 +1834,10 @@ msgid "Amount of data per downloading source that gtk-gnutella will buffer befor
 msgstr "De hoeveelheid data per bron die aan het downloaden is dat gtk-gnutella zal bufferen voordat het naar de schijf wordt geschreven. Wanneer er gebruik wordt gemaakt van zwermen met veel bronnen dan zou dit ook fragmentatie van het bestandssysteem moeten tegengaan. De keerzijde is dat dit meer geheugen gebruikt per actieve bron. Om dit uit te zetten, kier hier 0, data wordt dan weggeschreven op het moment dat het wordt ontvangen. Zet dit op zijn maximale waarde als e genoeg RAM hebt."
 
 msgid "When set, all search results from host browsing are dispatched to all opened passive searches.  This is useful if you have different selection filters on your passive searches because it lets you classify files easily, regardless of the origin of the files."
-msgstr ""
+msgstr "Als ingeschakeld dan worden alle zoekresultaten van host browsing worden doorgegeven aan alle geopende passieve zoekopdrachten. Dit kan handig zijn als je verschillende selectie filters op de passieve zoekopdrachten hebt ingesteld zodat je bestanden makkelijk kan onderscheiden, ongeacht waar de bestanden vandaan komen."
 
 msgid "Enable this if all units should be displayed using the metric system with SI prefixes. If disabled, certain units, for example, filesizes will be displayed using the historical base2 convention with binary prefixes."
-msgstr ""
+msgstr "Gebruik dit om alle eenheden weer te geven volgens het metrisch systeem met SI voorvoegsels. Als dit uit staat worden sommige eenheden weergegeven volgens de historische base2 notatie, zoals bijvoorbeeld bestandgroottes."
 
 msgid "Debug level for Reliable UDP (RUDP) code."
 msgstr "Debug level voor de Betrouwbare UDP (RUDP) code."
@@ -1849,7 +1849,7 @@ msgid "Debug level for the OOB-proxying of queries."
 msgstr "Debug level voor de OOB-proxying van query's."
 
 msgid "If set gtk-gnutella also listens on a local (unix domain) socket which is located in ~/.gtk-gnutella/socket."
-msgstr ""
+msgstr "Indien ingeschakelt dan luistert gtk-gnutella ook op een lokale (unix domain) socket op de locatie ~/.gtk-gnutella/socket."
 
 msgid "Don't start more than this number of parallel downloads per file."
 msgstr "Start per bestand niet meer dan dit aantal parallele downloads"
@@ -1859,16 +1859,16 @@ msgstr "Start per bestand niet meer dan dit aantal parallele downloads"
 # publish -> publiceren
 # Partial -> Gedeeltelijk
 msgid "If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx.dump."
-msgstr ""
+msgstr "Indien ingeschakeld worden alle ontvangen pakketten opgeslagen in $GTK_GNUTELLA_DIR/packets_rx.dump."
 
 msgid "If enabled, queries are also matched against the directory names which are relative to the shared ones. Further, search results will show these. This is especially useful if the shared filenames are ambiguous or meaningless without knowing the directory names as well. However, be sure the directory names do not expose confidential information. You have to initiate a rescan of the shared files before a change becomes fully effective."
-msgstr ""
+msgstr "Indien ingeschakeld worden zoekopdrachten ook vergeleken met de directory naam waarin de bestanden staan. Deze worden dan ook weergegeven bij de zoekresultaten. Dit kan handig zijn als de gedeelde bestandsnamen niet uniek zijn en betekenisloos zonder de bijbehorende directorynaam. Wees echter voorzichtig dat de directory namen geen confidentiële informatie bevatten. De gedeelde bestanden moeten opnieuw worden gescand om hier volledig gebruik van te maken."
 
 msgid "Debug level for the shell."
 msgstr "Debug level voor de shell."
 
 msgid "If larger than zero, no downloads are started."
-msgstr ""
+msgstr "Geen downloads worden gestart als deze waarde groter dan nul is."
 
 msgid "Debug level for the search queue."
 msgstr "Debug level voor de zoek queue."
@@ -1904,7 +1904,7 @@ msgid "Revision of the latest SVN release."
 msgstr "Revisie van de laatste SVN versie"
 
 msgid "Signature of the latest SVN release notification."
-msgstr ""
+msgstr "Handtekening van de laatste SVN uitgave notificatie."
 
 msgid "Maximum number of hosts in the TLS node cache."
 msgstr "Maximum aantal hosts in de TLS node cache."
@@ -1913,10 +1913,10 @@ msgid "Maximum time before removing hosts from the TLS cache."
 msgstr "Maximum tijd voordat een host wordt verwijderd uit de TLS cache."
 
 msgid "If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. Otherwise, the TTH is only accepted if provided by the user, for example, by a magnet link."
-msgstr ""
+msgstr "Indien TRUE dan kunnen tigertree root hash (TTH) on-the-fly worden opgezocht. Anders wordt alleen de TTH gebruikt zoals opgegeven door de gebruiker, bijvoorbeeld door een magnet link."
 
 msgid "If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, have to exist at all.  The aim is to improve the overall downloading experience."
-msgstr ""
+msgstr "Indien TRUE zal gtk-gnutella een aantal hacks inschakelen welke, helaas, nodig zijn. Het doel is om de download ervaring te verhogen."
 
 msgid "Maximum number of hosts in the G2 node cache."
 msgstr "Maximum aantal hosts in de G2 node cache."
@@ -1928,19 +1928,19 @@ msgid "Debug level for management of G2-only hosts."
 msgstr "Debug level voor het beheer van uitsluitend G2-hosts."
 
 msgid "Whether GTKG can switch among the several files waiting to be downloaded from a given server, when making a follow-up HTTP request.  Turn it off only if you witness problems with a particular servent you're downloading from."
-msgstr ""
+msgstr "Of gtk-gnutella mag schakelen tussen verschillende bestanden die gedownload moeten worden van dezelfde server tijdens een follow-up HTTP request. Schakel dit alleen uit als je problemen ervaart met een specifieke servent waar je van download."
 
 msgid "If set to TRUE, PARQ (Passive/Active Remote Queuing) is enabled. Do not disable unless you know what you are doing."
-msgstr ""
+msgstr "Indien TRUE dan wordt PARQ (Passive/Active Remote Queuing) ingeschakeld. Schakel dit niet uit tenzij je weet waar je mee bezig bent."
 
 msgid "When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to download chunks in a random order, to maximize the spreading of the file in the network.  However, this may make pre-viewing of the file impossible as some file formats make use of a trailer to hold meta-information or seeking indices. GTKG will attempt to download the specified amount of data at the tail of the file as soon as possible.  Set it to 0 to disable any tail-downloading preference."
 msgstr "Zodra 'gedeeltelijke bestanden delen' (PFSP) is ingeschakeld zal gtk-gnutella proberen om in willekeurige volgorde fragmenten te downloaden zodat een bestand zoveel mogelijk over het netwerk verspreid. Dit maakt het beoordelen van een bestand (bestandstype, pre-view, etc...) echter onmogelijk. Stel hier in hoeveel er van het einde van het bestand zo snel mogelijk gedownload moet worden. Zet dit op 0 om dit volledig uit te schakelen."
 
 msgid "Whether GTKG should post-process filenames to remove consecutive '_' in the name, or extra '_' surrounding punctuation for instance, to make the name prettier."
-msgstr ""
+msgstr "Of gtk-gnutella bestandsnamen moet nabewerken om aaneengesloten '_' in de naam of extra '_' na een interpunctie moet verwijderen. Hiermee wordt de bestandsnaam netter."
 
 msgid "Whether the Distributed Hash Table (DHT) should be enabled. The DHT allows you to resolve magnet: URIs and to easily locate alternate locations for files and push-proxies for firewalled hosts. It requires UDP support."
-msgstr ""
+msgstr "Of de Distributed Hash Table (DHT) moet worden gebruikt. Door middel van de DHT wordt het mogelijk om magnet:URI's, alternatieve bestandslocatie en push-proxies voor firewalled hosts te vinden. UDP ondersteuning is vereist."
 
 msgid "Debug level for the callout queue."
 msgstr "Debug level voor de callout queue."
@@ -1955,52 +1955,52 @@ msgid "Debug level for DHT key/value publishing."
 msgstr "Debug level voor de DHT key/value publishing."
 
 msgid "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for limiting concurrent publishing and searching.  Traffic is made on the Gnutella UDP socket. Output needs are lower than input (between 3 to 5 times less). The larger the numbers, the more values can be looked up concurrently, but the more bandwidth is used."
-msgstr ""
+msgstr "Bandbreedte hint voor DHT user lookups in bytes/sec. Wordt gebruikt om concurrent publishing en zoeken te limiteren. Het verkeer wordt gegenereerd over de Gnutella UDP socket. De uitgaande behoefte is lager dan de input (een factor 3 tot 5 minder). Hoe hoger de getallen, des te meer waardes er tegelijkertijd kunnen worden opgezocht, maar er wordt dan ook meer bandbreedte gebruikt."
 
 msgid "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for limiting concurrent publishing and searching.  Traffic is made on the Gnutella UDP socket and cannot therefore be truly controlled.  Input needs are much larger than output as far as lookups are concerned (between 3 to 5 times).  The larger the numbers the more values can be looked up concurrently, but the more bandwidth is used."
-msgstr ""
+msgstr "Bandbreedte hint voor DHT user lookups in bytes/sec. Wordt gebruikt om concurrent publishing en zoeken te limiteren. Het verkeer wordt gegenereerd over de Gnutella UDP socket en kan daardoor niet volledige onder controle worden gehouden. De inkomende bandbreedte behoefte is veel hoger dan die van de uitgaande (een factor 3 tot 5 minder) wat betreft lookups. Hoe hoger de getallen, des te meer waardes er tegelijkertijd kunnen worden opgezocht, maar er wordt dan ook meer bandbreedte gebruikt."
 
 msgid "Whether the GUID should be kept accross sessions. A sticky GUID can be helpful if you are firewalled and share files because the downloaders will be able to contact you again more easily when you come back online."
-msgstr ""
+msgstr "Of the GUID over verschillende sessie bewaard moet worden. Een vaste GUID is handig als je firewalled bent en zeldzame bestanden deelt zodat de downloads makkelijker contact met je kunnen maken zodra je weer online bent."
 
 msgid "Whether the KUID should be kept accross sessions. A sticky KUID is helpful for the DHT because it promotes routing table stability and ensures that closest nodes will keep mutual knowledge about each other"
-msgstr ""
+msgstr "Of the KUID over verschillende sessies bewaard moet worden. Een vaste KUID is behulpzaam voor de DHT omdat hiermee stabielere routing tabel worden gepromoot  en zorgt ervoor dat de dichtstbijzijnde nodes wederzijdse kennis van elkaar onthouden."
 
 msgid "Debug level for the DHT user lookup queue."
 msgstr "Debug level voor de DHT user lookup queue."
 
 msgid "If TRUE, DHT storage uses memory instead of diskspace."
-msgstr ""
+msgstr "Als TRUE dan wordt er werkgeheugen gebruikt voor de DHT in plaats van schrijfruimte."
 
 msgid "Defines which download HTTP header exchanges should be traced."
-msgstr ""
+msgstr "Bepaalt welke HTTP download-header uitwisseling moeten worden getraceerd."
 
 msgid "Defines which upload HTTP header exchanges should be traced."
-msgstr ""
+msgstr "Bepaalt welke HTTP upload-header uitwisselingen moeten worden getraceerd."
 
 msgid "Defines which Gnutella header exchanges should be traced."
-msgstr ""
+msgstr "Bepaalt welke Gnutella-header uitwisselingen moeten worden getraceerd."
 
 msgid "Defines which push-proxy HTTP header exchanges should be traced."
-msgstr ""
+msgstr "Bepaalt welke HTTP push-proxy-header uitwisselingen moeten worden getraceerd."
 
 msgid "Defines which HTTP header exchanges should be traced, other than downloads, uploads and push-proxy exchanges."
-msgstr ""
+msgstr "Bepaalt welke HTTP header uitwisselingen moeten worden getraceerd behalve downloads, uploads en push-proxy uitwisselingen."
 
 msgid "Debug level for (generic) file verification code."
 msgstr "Debug level voor (algemene) bestandsverificatiecode."
 
 msgid "Maximum number of hosts in the local address cache, which remembers the recent IP:port combinations we had."
-msgstr ""
+msgstr "Maximum aantal hosts in de lokale adres cache, deze bewaard de recente IP:poort combinaties die we hadden."
 
 msgid "Maximum time before removing hosts from the local address cache, which remembers the recent IP:port combinations we had."
-msgstr ""
+msgstr "Maximum tijd voordat hosts worden verwijderd uit de lokale adres cache, deze bewaard de recente IP:poort combinaties die we hadden."
 
 msgid "Debug level for management of local address cache."
 msgstr "Debug level voor het beheer van de lokale adres cache"
 
 msgid "If enabled, all packets enqueued for transmission are dumped to $GTK_GNUTELLA_DIR/packets_tx.dump."
-msgstr ""
+msgstr "Indien ingeschakeld, dump alle packetten die wachten op verzending in $GTK_GNUTELLA_DIR/packets_tx.dump."
 
 msgid "Debug level the TCP message queues"
 msgstr "Debug level voor de TCP berichten wachtrijen"
@@ -2028,7 +2028,7 @@ msgstr "Statistieken gelogged over gedeelde code tussen de GUI en de core."
 
 #, c-format
 msgid "If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a fast disk database, which saves a large amount of core memory and reduces the overall footprint, at the cost of an increased I/O level. However, the DB cache has typically a 90% hit rate, so the actual overhead is barely noticeable when running as an ultra node and should remain completely unnoticed when running as a leaf."
-msgstr ""
+msgstr "Als TRUE dan wordt de spam SHA1 database in het werkgeheugen bewaard. Als FALSE dan wordt deze bewaard in een snelle database op de schijf wat een grote hoeveel basic geheugen bespaard  en verminderd de algehele voetafdruk ten koste van een hoger I/O level. De DB cache heeft echter normaal een 90% hit rate waardoor de daadwerkelijke overhead nauwelijks merkbaar is als in ultra node mode en zou niet merkbaar moeten zijn als in leaf mode."
 
 msgid "Debug level for spam detection."
 msgstr "Debug level voor spam detectie."
@@ -2046,7 +2046,7 @@ msgid "Debug level for the RX buffer allocator."
 msgstr "Debug level voor de RX buffer allocator."
 
 msgid "Whether the zone-based memory allocator should always keep the zones in garbage-collecting mode, thereby maximizing the chances of being able to quickly reclaim empty zones after an allocation burst. This causes a slight CPU overhead at block free time but the memory footprint will remain much lower. To further minimize the footprint, you can also set spam_lut_in_memory to FALSE."
-msgstr ""
+msgstr "Of the zone-based memory allocator altijd alle zones in garbage-collecting mode moet behouden, hierdoor wordt kans het grootst dat empty zones na een allocation burst worden herwonnen. Dit veroorzaakt een klein beetje extra CPU kracht als er geheugen blokken worden vrij gegeven maar het geheugen verbruik wordt een stuk lager. Om de footprint nog verder te verlagen kan je ook de spam_lut_in_memory op FALSE instellen."
 
 msgid "Debug level for the virtual memory manager."
 msgstr "Detail level voor de virtual memory manager."
@@ -2073,13 +2073,13 @@ msgid "Debug level for DHT publishing from Gnutella."
 msgstr "Debug level voor DHT publishing van Gnutella."
 
 msgid "Defines which DHT messages should be traced."
-msgstr ""
+msgstr "Bepaalt welke DHT berichten moeten worden getraceerd."
 
 msgid "Enable bandwidth limitation for outgoing DHT traffic."
 msgstr "Limiteer bandbreedte voor uitgaand DHT verkeer."
 
 msgid "Bandwidth limit for outgoing DHT traffic in bytes/sec. It is always pooled with the Gnutella UDP queue, regardless of whether bandwidth stealing is enabled, so that UDP queues can flush more quickly."
-msgstr ""
+msgstr "Bandbreedte limiet voor uitgaand DHT verkeer in bytes/sec.  Wordt altijd gebundeld met de Gnutella UDP queue, ongeacht of bandbreedte gebruik is ingeschakeld, zodat de UDP queue sneller doorstroomt."
 
 msgid "Maximum size of the DHT message queue (in bytes)."
 msgstr "Maximum grootte van de DHT berichten wachtrij (in bytes)."
@@ -2103,16 +2103,16 @@ msgid "Debug level for version management."
 msgstr "Debug level voor versie beheer."
 
 msgid "Minimum CPU frequency, in Hz."
-msgstr ""
+msgstr "Minimum CPU frequentie, in Hz."
 
 msgid "Maximum CPU frequency, in Hz."
-msgstr ""
+msgstr "Maximum CPU frequentie, in Hz."
 
 msgid "DHT bootstrap status."
 msgstr "DHT bootstrap status."
 
 msgid "The DHT running mode. An active mode will be able to store values and is a fully participating member of the Distributed Hash Table. A passive node can perform lookups and publish but will not store values and cannot be a member of the DHT structure. A firewalled node is necessarily passive, but you can force the passive mode even if you are not firewalled, although that is not recommended because the DHT requires far more active nodes that passive ones to be efficient."
-msgstr ""
+msgstr "De modus waar de DHT in draait. Een actieve node is in staat waardes op te slaan en neemt volledig deel aan de Distributed Hash Table. Een passieve node kan bewaren en opzoeken maar kan zelf geen waardes bewaren en wordt daardoor geen lid van de DHT structuur. Een firewalled node is noodzakelijkerwijs passief, maar je kan ook passieve mode forceren als je niet ge-firewalled bent, dit wordt niet aangeraden om dat de DHT veel meer actieve nodes dan passieve nodes nodig heeft om efficiënt te kunnen werken."
 
 msgid "Current DHT running mode."
 msgstr "Huidige DHT mode."
@@ -2130,7 +2130,7 @@ msgid "Average servent downtime."
 msgstr "Gemiddelde servent downtime."
 
 msgid "Time when last shutdown occurred."
-msgstr ""
+msgstr "Tijdstip van de laatste shutdown."
 
 msgid "Debug level for alive pings."
 msgstr "Debug level voor de leven pings."
@@ -2145,31 +2145,31 @@ msgid "Debug level for the SOAP layer."
 msgstr "Debug level voor de SOAP laag,"
 
 msgid "Defines SOAP exchanges tracing type."
-msgstr ""
+msgstr "Definieert de SOAP uitwisseling traceer type"
 
 msgid "For testing purposes, allow to run as an ultranode even if the node cannot accept incoming TCP connections."
-msgstr ""
+msgstr "Alleen voor testdoeleinden, sta toe om in ultrapeer mode te draaien, zelfs als de node geen inkomende TCP verbindingen accepteert."
 
 msgid "Whether UPnP (Universal Plug and Play) should be enabled. Support for UPnP means gtk-gnutella will be able to discover your Internet Gateway Device (router) and request that the listening port be opened and redirected to your machine, thereby auto-configuring to make sure you are not firewalled.  By default you should leave it enabled unless you know how to configure your network equipment manually to prevent the firewalled condition for both TCP and UDP."
-msgstr ""
+msgstr "Of UPnP (Univeral Plug and Play) moet worden ingeschakeld. Ondersteuning voor UPnP betekent dat gtk-gnutella uw Internet Gateway Device (router) kan vinden en verzoeken om de luisterende poort te openen en door te sturen naar uw machine, oftewal automatische-configuraties om te zorgen dat u niet ge-firewalled wordt. Laat dit aanstaan tenzij u weet hoe u uw netwerk apparatuur handmatig kunt instellen zodat er niet ge-firewalled wordt voor zowel TCP als UDP."
 
 msgid "Whether gtk-gnutella was able to locate an Internet Gateway Device to install port mappings, if required."
-msgstr ""
+msgstr "Of gtk-gnutella, indien nodig, in staat was de Internet Gateway Device te lokaliseren en poort mapping aan te vragen."
 
 msgid "Whether gtk-gnutella thinks it needs to install port mappings on your network router to avoid the firewalled condition."
-msgstr ""
+msgstr "Of gtk-gnutella denkt dat het een poort mapping moet aanvragen op uw netwerk router om de firewalled status te vermijden."
 
 msgid "Whether gtk-gnutella can install port mappings, if needed."
-msgstr ""
+msgstr "Of gtk-gnutella, indien nodig, een poort mappingen verzoek kan versturen"
 
 msgid "Debug level for the NAT-PMP layer."
 msgstr "Debug level voor de NAT-PMP laag."
 
 msgid "Whether NAT-PMP (NAT Port Mapping Protocol) should be enabled. Support for NAT-PMP means gtk-gnutella will be able to look whether your default gateway (router) supports the Port Mapping Protocol to allow transparent redirection of the external ports on the router to the local machine, thereby making sure you are not firewalled. By default you should leave it enabled unless you know how to configure your network equipment manually to prevent the firewalled condition for both TCP and UDP."
-msgstr ""
+msgstr "Of NAT-PMP (NAT Port Mapping Protocol) moet worden ingeschakeld. Ondersteuning voor NAT-PMP betekent dat gtk-gnutella uw Internet Gateway Device (router) kan vinden en verzoeken om de luisterende poort te openen en door te sturen naar uw machine, oftewal automatische-configuraties om te zorgen dat u niet ge-firewalled wordt. Laat dit aanstaan tenzij u weet hoe u uw netwerk apparatuur handmatig kunt instellen zodat er niet ge-firewalled wordt voor zowel TCP als UDP."
 
 msgid "Whether gtk-gnutella was able to locate a NAT-PMP gateway to install port mappings, if required."
-msgstr ""
+msgstr "Of gtk-gnutella, indien nodig, in staat was de NAT-PMP gateway te lokaliseren en poort mapping aan te vragen."
 
 msgid "Debug level for the TX (transmit) network layer."
 msgstr "Debug level voor de TX (verzenden) netwerk laag."
@@ -2193,7 +2193,7 @@ msgid "Whether gtk-gnutella ignores HTTP stolen bandwidth."
 msgstr "Of gtk-gnutella gebruikte HTTP bandbreedte negeert."
 
 msgid "Whether gtk-gnutella enforces uniform HTTP outgoing bandwidth."
-msgstr ""
+msgstr "Of gtk-gnutella uniforme uitgaande HTTP bandbreedte afdwingt."
 
 msgid "Whether gtk-gnutella should use HTTP request pipelining when possible, in order to decrease downloading latency."
 msgstr "Of gtk-gnutella, indien mogelijk, gebruik moet maken van HTTP request pipelining zodat de latency wordt verlaagd."
@@ -2202,13 +2202,13 @@ msgid "Maximum chunk size when swarming with HTTP pipelining."
 msgstr "Maximale fragment grootte tijdens swarming met HTTP pipelining."
 
 msgid "Whether the Gnutella UDP Extension for Scalable Searches (GUESS) should be enabled.  With GUESS enabled, gtk-gnutella offers the network the ability to perform iterative Ultrapeer queries instead of just broadcasting, allowing searches to more places within the Gnutella network.  If you want gtk-gnutella to issue GUESS queries, you need to make sure the client-side is enabled as well as this setting only governs mostly the server-side of GUESS (required to allow the client-side)."
-msgstr ""
+msgstr "Of de Gnutella UDP Extension for Scalable Searches (GUESS) moet worden ingeschakeld. Met GUESS biedt gtk-gnutella het netwerk de mogelijkheid om iteratieve Ultrapeer query's uit te voeren in plaats van allen broadcasting, hiermee worden voor zoekopdracht meer plaatsen bereikt binnen het Gnutella netwerk. Als u wilt dat gtk-gnutella ook GUESS query's verstuurd zorg dat de client-side is ook is ingeschakeld, deze instelling is voornamelijk voor de server-side ondersteuning van GUESS (benodigd om client-side mogelijk te maken)"
 
 msgid "Debug level for server-side GUESS (Gnutella UDP Extension for Scalable Searches)."
-msgstr ""
+msgstr "Debug level voor de server-side GUESS (Gnutella UDP Extension for Scalable Searches)."
 
 msgid "Debug level for client-side GUESS (Gnutella UDP Extension for Scalable Searches)."
-msgstr ""
+msgstr "Debug level voor de client-side GUESS (Gnutella UDP Extension for Scalable Searches)."
 
 msgid "Maximum number of hosts in the regular GUESS cache."
 msgstr "Maximum aantal of hosts in de normale GUESS cache."
@@ -2226,16 +2226,16 @@ msgid "Debug level for the DB disk/RAM storage layer."
 msgstr "Debug level voor de DB disk/RAM storage layer."
 
 msgid "The current Session ID.  This is a unique ID generated each time gtk-gnutella starts and it can be monitored from the shell interface to check whether gtk-gnutella has been restarted since the last check."
-msgstr ""
+msgstr "Huidige sessie ID. Dit is een uniek ID, elke keer gegenereerd als gtk-gnutella start en kan worden gecontroleerd via de shell interface om te controleren of gtk-gnutella opnieuw is opgestart sinds de laatste check."
 
 msgid "Whether gtk-gnutella should serve partial files which are rare on the network to increase their spreading rate.  It is good for the health of the network to always leave this enabled. This setting supersedes the disabling of global partial file sharing for rare files only."
-msgstr ""
+msgstr "Of gtk-gnutella, voor het netwerk zelfdzame, gedeeltelijke bestanden moet serveren om de verspreidingskans te vergroten. Het is goed voor de welzijn van het netwerk om dit altijd ingeschakeld te laten. Deze instelling vervangt het het uitschakelen van de globale partial bestands deling voor zeldzame bestanden."
 
 msgid "Whether the Gnutella UDP Extension for Scalable Searches (GUESS) client side should be enabled, so that gtk-gnutella can indeed issue iterative Ultrapeer queries instead of just broadcasting them. If enabled, it requires general GUESS support enabled as well or it will simply be ignored."
-msgstr ""
+msgstr "Of de Gnutella UDP Extension for Scalable Searches (GUESS) client-side moet worden ingeschakeld zodat gtk-gnutella iteratieve Ultrapeer query's kan versturen in plaats van gewoon te broadcasten. Het vereist dat de algemene GUESS ondersteuning ook is ingeschakeld als dit wordt ingeschakeld, anders wordt dit genegeerd."
 
 msgid "Bandwidth hint for GUESS querying, in bytes/sec, limiting the amount of concurrency that can be used for GUESS.  Lower numbers mean slower querying overall"
-msgstr ""
+msgstr "Bandbreedte hint voor GUESS query-en , in bytes/sec, hierbij wordt de hoeveelheid concurrency gelimiteerd dan gebruikt kan worden voor GUESS. Lagere getallen betekent trager query-en in het algemeen"
 
 msgid "disable"
 msgstr "uitschakelen"
@@ -2523,13 +2523,13 @@ msgid "Default sort column for search results."
 msgstr "Breedte van de kolommen in de zoekopdrachten tabel."
 
 msgid "Discard search results which are considered spam."
-msgstr ""
+msgstr "Zoekresultaten uitsluiten welke als spam worden beschouwd."
 
 msgid "Discard search results which carry no hashsum."
-msgstr ""
+msgstr "Zoekresultaten negeren welke geen hash met zich meedragen."
 
 msgid "Jump to newly created searches"
-msgstr ""
+msgstr "Spring naar nieuwe gecreëerde zoekopdrachten"
 
 msgid "Collect statistics about searches that go through this node."
 msgstr "Verzamel statistieken over zoekopdrachten die door deze node komen."
@@ -2664,7 +2664,7 @@ msgid "The lifetime of a search. If this time is exceeded, the search is stopped
 msgstr "De levensduur van een zoekopdracht. Zodra deze tijd is verstreken wordt de zoekopdracht gestopt."
 
 msgid "Show a status icon in the system tray if possible (requires Gtk+ 2.10 or newer)."
-msgstr ""
+msgstr "Toon, indien mogelijk, een status icoon in het mededelingengebied (vereist Gtk+ 2.10 of nieuwer)."
 
 msgid "Automatically hide DHT bandwidth display when DHT not enabled."
 msgstr "Verberg de DHT bandbreedte weergave automatisch als de DHT niet is ingeschakeld."
@@ -3566,10 +3566,10 @@ msgid "unterminated escape sequence"
 msgstr "Escape sequence niet afgesloten"
 
 msgid "unterminated double-quoted string"
-msgstr ""
+msgstr "onafgesloten string tussen dubbele aanhalingstekens"
 
 msgid "unterminated single-quoted string"
-msgstr ""
+msgstr "onafgesloten single-tekenreeks tussen aanhalingstekens"
 
 msgid "Invalid command syntax"
 msgstr "Ongeldige command syntax"
@@ -3649,7 +3649,7 @@ msgstr "Bitprint"
 
 #, c-format
 msgid "leaf hashes: %lu, depth: %u, granularity: %s"
-msgstr ""
+msgstr "leaf hashes: %lu, diepte: %u, granulariteit: %s"
 
 msgid "Tigertree"
 msgstr "Tigertree"
@@ -3706,7 +3706,7 @@ msgid "UDP push sent"
 msgstr "UDP push verzonden"
 
 msgid "Searching for new push-proxies"
-msgstr ""
+msgstr "Opzoek naar nieuwe push-proxies"
 
 msgid "Falling back to push"
 msgstr "Valt terug naar \"push\""
@@ -4072,10 +4072,10 @@ msgid "SPAM duplicate hits"
 msgstr "SPAM dubbele hits"
 
 msgid "SPAM dynamically caught hostile IP addresses"
-msgstr ""
+msgstr "SPAM dynamisch opgevangen vijandige IP-adressen"
 
 msgid "SPAM spotted spamming IP addresses held"
-msgstr ""
+msgstr "SPAM opgemerkte spammende IP adressen in bezit"
 
 msgid "Searches to local DB"
 msgstr "Zoek opdracht tegen lokale DB"
@@ -4105,7 +4105,7 @@ msgid "OOB hits bearing alien IP address"
 msgstr "OOB resultaten welke een vreemd IP-adres dragen"
 
 msgid "OOB hits ignored due to identified spamming address"
-msgstr ""
+msgstr "OOB hits genegeerd vanwege een geconstateerde spam-adres"
 
 msgid "Unclaimed locally-generated OOB hits"
 msgstr "Ongevraagde lokaal gegenereerde OOB resultaat"
@@ -4114,7 +4114,7 @@ msgid "Partially claimed locally-generated OOB hits"
 msgstr "Gedeeltelijke toegeeiste lokaal gegenereerde OOB resultaten"
 
 msgid "Spurious OOB hit claiming received"
-msgstr ""
+msgstr "Vals OOB hit beweert te zijn ontvangen"
 
 msgid "Unrequested OOB hits received"
 msgstr "Ongevraagde OOB overeenkomsten ontvangen"
@@ -4135,7 +4135,7 @@ msgid "GUESS queries"
 msgstr "GUESS query's"
 
 msgid "GUESS cached query keys held"
-msgstr ""
+msgstr "GUESS gecachte query sleutels in bezit"
 
 msgid "GUESS locally generated queries"
 msgstr "GUESS lokaal gegenereerde query's"
@@ -4150,7 +4150,7 @@ msgid "GUESS hosts queried"
 msgstr "GUESS hosts gequeried"
 
 msgid "GUESS hosts sending back an acknowledgment"
-msgstr ""
+msgstr "GUESS hosts welke een erkenning terugsturen"
 
 msgid "Broadcasted push messages"
 msgstr "Broadcast \"push\" berichten"
@@ -4165,16 +4165,16 @@ msgid "Push-proxy broadcasted messages"
 msgstr "Push-proxy broadcast berichten"
 
 msgid "Push-proxy found un-proxied local route"
-msgstr ""
+msgstr "Push-proxy vond een niet geproxyd lokale route."
 
 msgid "Push-proxy lookup failures"
 msgstr "Push-proxy kon niet worden opgezocht"
 
 msgid "Push relayed via local route"
-msgstr ""
+msgstr "Push wordt via lokale route doorgegeven"
 
 msgid "Push relayed via routing table"
-msgstr ""
+msgstr "Door wordt via route tabel doorgegeven"
 
 msgid "Locally generated dynamic queries"
 msgstr "Lokaal dynamisch gegenereerde opdrachten"
@@ -4216,13 +4216,13 @@ msgid "GIV callbacks received"
 msgstr "GIV terug verbinden ontvangen"
 
 msgid "GIV discarded due to no suitable download"
-msgstr ""
+msgstr "GIV  afgedankt aangezien er geen geschikte download is"
 
 msgid "QUEUE callbacks received"
 msgstr "QUEUE terug verbinden ontvangen"
 
 msgid "QUEUE discarded due to no suitable download"
-msgstr ""
+msgstr "QUEUE afgedankt  aangezien er geen geschikte download is"
 
 msgid "UDP messages with bogus source IP"
 msgstr "UDP berichten met ongeldig bron IP"
@@ -4243,10 +4243,10 @@ msgid "Uncompressed UDP messages due to no gain"
 msgstr "UDP bericht gedecomprimeerd aangezien dit geen winst opleverde"
 
 msgid "Consolidated servers (after GUID and IP address linking)"
-msgstr ""
+msgstr "Servers geconsolideerd (na het linken van GUID en IP adres)"
 
 msgid "Duplicate downloads found during server consolidation"
-msgstr ""
+msgstr "Dubbele downloads gevonden tijdens het consolideren van server"
 
 msgid "Discovered server GUIDs"
 msgstr "Server GUID's gevonden"
@@ -4258,37 +4258,37 @@ msgid "Detected GUID collisions"
 msgstr "GUID collision gedetecteerd"
 
 msgid "Detected collisions with our own GUID"
-msgstr ""
+msgstr "GUID botsing met onze eigen GUID gedetecteerd"
 
 msgid "Firewalled node info for known hosts received in upload requests"
-msgstr ""
+msgstr "Firewalled node info voor bekende host ontvangen in een upload verzoek"
 
 msgid "Revitalized PUSH routes"
 msgstr "PUSH routes gerevitaliseerd"
 
 msgid "Collected new PUSH proxies from other query hits"
-msgstr ""
+msgstr "Nieuwe PUSH proxy's verzameld van andere query hits"
 
 msgid "Attempted download resource switching on completion"
-msgstr ""
+msgstr "Gepoogd om tijdens voltooiing de download resource over te schakelen"
 
 msgid "Attempted download resource switching after error"
-msgstr ""
+msgstr "Gepoogd om na een fout van download resource over te schakelen"
 
 msgid "Successful download resource switching (all kind)"
-msgstr ""
+msgstr "Succesvol van download resource overgeschakeld (alle types)"
 
 msgid "Successful download resource switching between plain files"
-msgstr ""
+msgstr "Succesvol van download resource overgeschakeld tussen gewone bestanden"
 
 msgid "Successful download resource switching after error"
-msgstr ""
+msgstr "Succesvol van download resource overgeschakeld na een fout"
 
 msgid "Actively queued after resource switching attempt"
-msgstr ""
+msgstr "Na poging toe overschakelen van download resource actief gequeued"
 
 msgid "Sunk HTTP reply data on error codes"
-msgstr ""
+msgstr "HTTP reply data verzonken bij error codes"
 
 msgid "Ignored downloaded data"
 msgstr "Gedownloade gegevens genegeerd"
@@ -4300,34 +4300,34 @@ msgid "Ignoring requested to preserve connection"
 msgstr "Verzoek tot bewaren van de connectie wordt genegeerd"
 
 msgid "Ignoring requested due to aggressive swarming"
-msgstr ""
+msgstr "Het verzochte wordt genegeerd door te agressieve swarming"
 
 msgid "Ignoring refused (data too large or server too slow)"
-msgstr ""
+msgstr "Negeren geweigerd (data te groot of server te langzaam)"
 
 msgid "Client resource switching (all detected)"
-msgstr ""
+msgstr "Overschakelen van client resource (alle gedetecteerd)"
 
 msgid "Client resource switching between plain files"
-msgstr ""
+msgstr "Overschakelen van client resource tussen gewone bestanden"
 
 msgid "Client follow-up request after HTTP error was returned"
-msgstr ""
+msgstr "Opvolgende verzoek van client nadat een HTTP error was teruggeven"
 
 msgid "PARQ client resource switching in slots (SHA-1 based)"
-msgstr ""
+msgstr "Overschakelen van PARQ client resource in sporen (SHA-1 gebasseerd)"
 
 msgid "PARQ client retry-after violation"
-msgstr ""
+msgstr "PARQ client retry-after schending"
 
 msgid "PARQ client kicked out after too many retry-after violations"
-msgstr ""
+msgstr "PARQ client eruit geschopt na teveel retry-after schendingen"
 
 msgid "PARQ upload slot limit overrides"
-msgstr ""
+msgstr "PARQ upload slot limiet overrides"
 
 msgid "PARQ quick upload slots granted"
-msgstr ""
+msgstr "PARQ quick upload sporen toegekend"
 
 msgid "PARQ QUEUE sending attempts"
 msgstr "PARQ QUEUE pogingen verzenden"
@@ -4336,13 +4336,13 @@ msgid "PARQ QUEUE messages sent"
 msgstr "PARQ QUEUE berichten verstuurd"
 
 msgid "PARQ QUEUE follow-up requests received"
-msgstr ""
+msgstr "PARQ QUEUE opvolgend verzoek ontvangen"
 
 msgid "Launched SHA-1 file verifications"
-msgstr ""
+msgstr "SHA-1 bestandsverificatie begonnen"
 
 msgid "Launched TTH file verifications"
-msgstr ""
+msgstr "TTH bestandsverificatie begonnen"
 
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr "Re-seeding of orphan-downloads dmv query hits"
@@ -4354,13 +4354,13 @@ msgid "DHT estimated amount of nodes"
 msgstr "DHT geschat aantal nodes"
 
 msgid "DHT k-ball theoretical frontier (bits)"
-msgstr ""
+msgstr "DHT k-ball theoretische grens (bits)"
 
 msgid "DHT k-ball furthest frontier (bits)"
-msgstr ""
+msgstr "DHT k-ball verste grens (bits)"
 
 msgid "DHT k-ball closeest frontier (bits)"
-msgstr ""
+msgstr "DHT k-ball dichtstbijzijnde grens (bits)"
 
 msgid "DHT routing table buckets"
 msgstr "DHT routetabel buckets"
@@ -4396,10 +4396,10 @@ msgid "DHT routing table pinged promoted nodes"
 msgstr "DHT route tabel gepromoveerde nodes gepinged"
 
 msgid "DHT routing table rejected node due to bucket network quota"
-msgstr ""
+msgstr "DHT routing tabel node afgewezen door bucket netwerk quota"
 
 msgid "DHT routing table rejected node due to global network quota"
-msgstr ""
+msgstr "DHT routing tabel node afgewezen door globale netwerk quota"
 
 msgid "DHT completed bucket refreshes"
 msgstr "DHT afgeronde bucket verversingen"
@@ -4411,19 +4411,19 @@ msgid "DHT forced bucket merges"
 msgstr "DHT geforceerde bucket samenvoegingen"
 
 msgid "DHT denied non-splitable bucket refresh"
-msgstr ""
+msgstr "DHT niet splitsbare bucket vernieuwing geweigerd"
 
 msgid "DHT initiated bucket alive checks"
-msgstr ""
+msgstr "DHT geïnitieerde bucket in leven controles"
 
 msgid "DHT alive pings sent to good nodes"
-msgstr ""
+msgstr "DHT in leven pings verzonden aan goede nodes"
 
 msgid "DHT alive pings sent to stale nodes"
-msgstr ""
+msgstr "DHT in leven pings verstuurd aan verouderde nodes"
 
 msgid "DHT alive pings sent to shutdowning nodes"
-msgstr ""
+msgstr "DHT in leven pings verstuurd aan afsluitende nodes"
 
 msgid "DHT alive pings avoided"
 msgstr "DHT alive pings voorkomen"
@@ -4432,22 +4432,22 @@ msgid "DHT alive pings skipped"
 msgstr "DHT alive pings overgeslagen"
 
 msgid "DHT revitalized stale nodes on RPC reply"
-msgstr ""
+msgstr "DHT verouderde nodes gerevitaliseerd n.a.v. RPC antwoord"
 
 msgid "DHT value store rejected on IP/network quota grounds"
-msgstr ""
+msgstr "DHT opslaan waarde geweigerd op basis van IP/netwerk quota"
 
 msgid "DHT value store rejected on creator validation grounds"
-msgstr ""
+msgstr "DHT opslaan waarde geweigerd op basis van schepper"
 
 msgid "DHT nodes rejected during lookup based on network quota"
-msgstr ""
+msgstr "DHT nodes geweigerd tijdens lookup op basis van netwerk quota"
 
 msgid "DHT nodes rejected during lookup based on suspicious proximity"
-msgstr ""
+msgstr "DHT nodes geweigerd tijdens lookup op basis van verdachte nabijheid"
 
 msgid "DHT nodes rejected during lookup based on frequency divergence"
-msgstr ""
+msgstr "DHT nodes geweigerd tijdens lookup op basis van frequentie divergentie"
 
 msgid "DHT keys held"
 msgstr "DHT keys vastgehouden"
@@ -4459,40 +4459,40 @@ msgid "DHT values held"
 msgstr "DHT values vastgehouden"
 
 msgid "DHT cached KUID targets held"
-msgstr ""
+msgstr "DHT gecachte KUID doelen in bezit"
 
 msgid "DHT cached closest root nodes"
-msgstr ""
+msgstr "DHT gecachte dichtstbijzijnde root nodes"
 
 msgid "DHT cached roots exact hits"
-msgstr ""
+msgstr "DHT gecachte roots exacte hits"
 
 msgid "DHT cached roots approximate hits"
-msgstr ""
+msgstr "DHT gecachte roots bijna gelijke hits"
 
 msgid "DHT cached roots misses"
-msgstr ""
+msgstr "DHT gecachte roots gemist"
 
 msgid "DHT cached roots lookups within k-ball"
-msgstr ""
+msgstr "DHT gecachte roots lookups binnen de k-ball"
 
 msgid "DHT cached roots contact address refreshed"
-msgstr ""
+msgstr "DHT gecachte roots contact adres ververst"
 
 msgid "DHT cached security tokens held"
-msgstr ""
+msgstr "DHT gecachte security tokens in bezit"
 
 msgid "DHT cached security tokens hits"
-msgstr ""
+msgstr "DHT gecachte security tokens hits"
 
 msgid "DHT stable node information held"
 msgstr "DHT stabiele node informatie vastgehouden"
 
 msgid "DHT local hits on value lookups"
-msgstr ""
+msgstr "DHT lokale hits op lookup van waarde"
 
 msgid "DHT local hits returning values from cached keys"
-msgstr ""
+msgstr "DHT lokale hits waardes geretourneerd van gecachte sleutels"
 
 msgid "DHT returned expanded values"
 msgstr "DHT geretourneerde geëxpandeerde waardes"
@@ -4513,13 +4513,13 @@ msgid "DHT claimed cached values via secondary keys"
 msgstr "DHT gecachte waardes via secundaire sleutels geclaimd"
 
 msgid "DHT successfully received value publications"
-msgstr ""
+msgstr "DHT succesvol ontvangen waarde publicaties"
 
 msgid "DHT successfully received value removals"
-msgstr ""
+msgstr "DHT succesvol ontvangen waarde verwijderingen"
 
 msgid "DHT replication of stale value avoided"
-msgstr ""
+msgstr "DHT replicatie van verouderde waardes voorkomen"
 
 msgid "DHT replication of held values"
 msgstr "DHT replicatie van vastgehouden waardes"
@@ -4528,19 +4528,19 @@ msgid "DHT republishing of held values"
 msgstr "DHT opnieuw gepubliceerde vastgehouden waardes"
 
 msgid "DHT secondary-key value fetch issued"
-msgstr ""
+msgstr "DHT secundaire sleutel waarde ophalen uitgevaardigd"
 
 msgid "DHT duplicate values returned in lookups"
-msgstr ""
+msgstr "DHT dubbele waardes teruggegeven in lookups"
 
 msgid "DHT detected KUID collisions"
-msgstr ""
+msgstr "DHT KUID botsingen gedetecteerd"
 
 msgid "DHT detected collisions with our own KUID"
-msgstr ""
+msgstr "DHT botsingen gedetecteerd met onze eigen KUID"
 
 msgid "DHT detected KUID mismatches on RPC reply"
-msgstr ""
+msgstr "DHT verkeerde KUID combinaties gedetecteerd n.a.v. RPC reply"
 
 msgid "DHT caching attempts"
 msgstr "DHT cache pogingen"
@@ -4552,19 +4552,19 @@ msgid "DHT caching partially completed"
 msgstr "DHT cache pogingen gedeeltelijk afgerond"
 
 msgid "DHT key-offloading checks after discovering new closest node"
-msgstr ""
+msgstr "DHT verlading van sleutel checks na het vinden van nieuwe dichtstbijzijnde node"
 
 msgid "DHT keys selected for offloading"
-msgstr ""
+msgstr "DHT sleutels geselecteert voor verlading van sleutels"
 
 msgid "DHT key-offloading attempts"
-msgstr ""
+msgstr "DHT sleutel verlading pogingen"
 
 msgid "DHT key-offloading ended successfully"
-msgstr ""
+msgstr "DHT sleutel verladingen succesvol afgerond"
 
 msgid "DHT key-offloading partially completed"
-msgstr ""
+msgstr "DHT sleutel verladingen gedeeltelijk afgerond"
 
 msgid "DHT values successfully offloaded"
 msgstr "DHT waardes succesvol gelost"
@@ -4573,37 +4573,37 @@ msgid "DHT publishing attempts"
 msgstr "DHT publicatie pogingen"
 
 msgid "DHT publishing ended successfully (all roots)"
-msgstr ""
+msgstr "DHT publicaties succesvol afgerond (alle roots)"
 
 msgid "DHT publishing partially completed (root subset only)"
-msgstr ""
+msgstr "DHT publicaties gedeeltelijk afgerond (alleen root subset)"
 
 msgid "DHT publishing ending with proper value presence"
-msgstr ""
+msgstr "DHT publicaties geëindigd met juiste waarde aanwezig"
 
 msgid "DHT value republishing occurring too late (after expiry)"
-msgstr ""
+msgstr "DHT waarde herpublicaties te laat opgetreden (na afloop)"
 
 msgid "DHT publishing to self"
-msgstr ""
+msgstr "DHT publicatie aan onszelf"
 
 msgid "DHT background publishing completion attempts"
-msgstr ""
+msgstr "DHT achtergrond publicatie afrond pogingen"
 
 msgid "DHT background publishing completion showing improvements"
-msgstr ""
+msgstr "DHT achtergrond publicatie afrond poging succesvol afgerond"
 
 msgid "DHT background publishing completion successful (all roots)"
-msgstr ""
+msgstr "DHT achtergrond publicaties succesvol afgerond (alle roots)"
 
 msgid "DHT SHA1 data type collisions"
-msgstr ""
+msgstr "DHT SHA1 data type botsingen"
 
 msgid "DHT lookup path passively protected against attack"
-msgstr ""
+msgstr "DHT lookup pad passief beveiligd tegen aanvallen"
 
 msgid "DHT lookup path actively protected against attack"
-msgstr ""
+msgstr "DHT lookup pad actief beveiligd tegen aanvallen"
 
 msgid "DHT alt-loc lookups issued"
 msgstr "DHT alt-loc lookups geïnitieerd"
@@ -4612,13 +4612,13 @@ msgid "DHT push-proxy lookups issued"
 msgstr "DHT push-proxy lookup verzocht"
 
 msgid "DHT successful alt-loc lookups"
-msgstr ""
+msgstr "DHT succesvolle alt-loc lookups"
 
 msgid "DHT successful push-proxy lookups"
 msgstr "DHT succesvolle push-proxy lookups"
 
 msgid "DHT successful node push-entry lookups"
-msgstr ""
+msgstr "DHT succesvolle node push-entry lookups"
 
 msgid "DHT re-seeding of orphan downloads"
 msgstr "DHT opnieuw seeden van orphan-downloads"
@@ -4673,7 +4673,7 @@ msgid " with sources"
 msgstr " met bronnen"
 
 msgid "$Id$"
-msgstr ""
+msgstr "$Id$"
 
 msgid "%v/%u (%P%%)"
 msgstr "%v/%u (%P%%)"
@@ -4823,7 +4823,7 @@ msgid "Banning"
 msgstr "Bannen"
 
 msgid "Beautify filenames by removing needless underscores"
-msgstr ""
+msgstr "Bestandsnamen mooi maken door onnodige underscores te verwijderen"
 
 msgid "Bind to this address"
 msgstr "Koppel aan dit adres"
@@ -4973,7 +4973,7 @@ msgid "Copy URL to clipboard"
 msgstr "Kopieer de url naar het klembord"
 
 msgid "Copy browse-host results to passive searches"
-msgstr ""
+msgstr "Kopieer browse-host resultaten naar passieve zoekopdrachten"
 
 msgid "Copy magnet to clipboard"
 msgstr "Kopieer magnet naar klembord"
@@ -5171,10 +5171,10 @@ msgid "Flags"
 msgstr "Vlag"
 
 msgid "Force external IPv_4 address to"
-msgstr ""
+msgstr "Forceer extern IPv_4 adres op"
 
 msgid "Force external IPv_6 address to"
-msgstr ""
+msgstr "Forceer extern IPv_6 adres op"
 
 msgid "Force push mode"
 msgstr "Forceer push modus"
@@ -6094,7 +6094,7 @@ msgid "Use IP _Type of Service (TOS)"
 msgstr "Gebruik 'IP _Type Of Service' (TOS)"
 
 msgid "Use IPv6-to-IPv4 TRT prefix:"
-msgstr ""
+msgstr "Gebruik IPv6-to-IPv4 TRT prefix:"
 
 msgid "Use _surplus bandwidth"
 msgstr "Gebruik '_surplus' bandbreedte"
@@ -6414,16 +6414,16 @@ msgid "Available HTTP output bandwidth"
 msgstr "Beschikbare uitgaande HTTP bandbreedte"
 
 msgid "DHT up, passive mode."
-msgstr ""
+msgstr "DHT up, passieve mode."
 
 msgid "DHT up, active mode."
-msgstr ""
+msgstr "DHT up, actieve mode."
 
 msgid "DHT bootstrapping."
 msgstr "DHT bootstrapping."
 
 msgid "DHT looking up own KUID."
-msgstr ""
+msgstr "DHT zoekt naar eigen KUID."
 
 msgid "DHT seeded."
 msgstr "DHT seeded."
@@ -6441,10 +6441,10 @@ msgid "Capping HTTP outgoing bandwidth."
 msgstr "Uitgaande HTTP bandbreedte afgetopt"
 
 msgid "Port mapping possible through UPnP or NAT-PMP."
-msgstr ""
+msgstr "Poort mapping mogelijk via UPnP of NAT-PMP."
 
 msgid "Port mapping configured through UPnP or NAT-PMP."
-msgstr ""
+msgstr "Poort mapping geconfigureerd via UPnP of NAT-PMP."
 
 msgid "Enable UPnP"
 msgstr "Gebruik UPnP"
@@ -6569,7 +6569,7 @@ msgid "[GUID placeholder]"
 msgstr "[GUID placeholder]"
 
 msgid "[KUID placeholder]"
-msgstr ""
+msgstr "[KUID placeholder]"
 
 msgid "Address/Port:"
 msgstr "Adres/Poort:"
@@ -6829,7 +6829,7 @@ msgstr "Geen zoekopdrachten"
 
 #, c-format
 msgid "Flushing queue (%u results pending)"
-msgstr ""
+msgstr "Flushing queue (nog %u resultaten)"
 
 msgid "The search has been stopped"
 msgstr "De zoekopdracht is gestopt"
@@ -6902,7 +6902,7 @@ msgid "Handled magnet link (%s, %s)."
 msgstr "Magnet link (%s, %s) afgehandeld."
 
 msgid "Ignored unusable magnet link."
-msgstr ""
+msgstr "Onbruikbare magnet-link gegeneerd."
 
 msgid "Created download from URL."
 msgstr "Download op basis van URL aangemaakt."
@@ -6917,7 +6917,7 @@ msgid "The given SHA-1 is not correctly encoded."
 msgstr "De opgegeven SHA-1 is niet correct geëncodeerd."
 
 msgid "Still scanning for shared file, results may be inconclusive."
-msgstr ""
+msgstr "Nog aan het scannen voor gedeelde bestanden, resultaten kunnen nog niet afdoende zijn."
 
 msgid "Missing port number"
 msgstr "Poort nummer ontbreekt"
