@@ -3158,8 +3158,9 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 			if (!search_whats_new_can_reissue())
 				goto cleanup;
 			search_last_whats_new = tm_time();
+		} else {
+			search_starting(sch->search_handle);
 		}
-		search_starting(sch->search_handle);
 		search_mark_sent_to_connected_nodes(sch);
 		gmsg_search_sendto_all(node_all_nodes(), sch->search_handle, msg, size);
 		goto cleanup;
