@@ -84,7 +84,7 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define SHARE_RECENT_THRESH		(24 * 60 * 60)	/* 1 day */
+#define SHARE_RECENT_THRESH		(2 * 7 * 24 * 60 * 60)	/* 2 weeks */
 
 enum shared_file_magic {
 	SHARED_FILE_MAGIC = 0x3702b437U
