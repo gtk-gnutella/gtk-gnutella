@@ -52,6 +52,7 @@
 #include "if/core/bitzi.h"
 #include "if/core/sockets.h"
 
+#include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
