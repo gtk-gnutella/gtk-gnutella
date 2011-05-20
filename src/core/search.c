@@ -3071,6 +3071,38 @@ search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
 }
 
 /**
+ * Can we re-issue a "What's New?" search?
+ */
+static gboolean
+search_whats_new_can_reissue(void)
+{
+	time_delta_t elapsed = delta_time(tm_time(), search_last_whats_new);
+
+	/*
+	 * A "What's New?" search is special: it gets broadcasted to all leaves
+	 * that support the feature (regardless of their QRP table) and to
+	 * all ultrapeers (if TTL > 1, only those supporting the feature
+	 * otherwise).
+	 *
+	 * As such, we don't want to broadcast these queries too often on
+	 * the network.
+	 */
+
+	if (search_last_whats_new != 0 && elapsed < WHATS_NEW_DELAY) {
+		char buf[80];
+		time_delta_t grace = WHATS_NEW_DELAY - elapsed + 1;
+
+		gm_snprintf(buf, sizeof buf,
+			_("Must wait %u more seconds before resending \"What's New\""),
+			(unsigned) grace);
+		gcu_statusbar_warning(buf);
+		return FALSE;
+	} else {
+		return TRUE;
+	}
+}
+
+/**
  * Create and send a search request packet
  *
  * @param sch DOCUMENT THIS!
@@ -3122,12 +3154,14 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	 */
 
 	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
+		if (sbool_get(sch->whats_new)) {
+			if (!search_whats_new_can_reissue())
+				goto cleanup;
+			search_last_whats_new = tm_time();
+		}
 		search_starting(sch->search_handle);
 		search_mark_sent_to_connected_nodes(sch);
 		gmsg_search_sendto_all(node_all_nodes(), sch->search_handle, msg, size);
-		if (sbool_get(sch->whats_new)) {
-			search_last_whats_new = tm_time();
-		}
 		goto cleanup;
 	}
 
@@ -3135,28 +3169,9 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 	if (sbool_get(sch->whats_new)) {
 		GSList *nodes;
-		time_delta_t elapsed = delta_time(tm_time(), search_last_whats_new);
 
-		/*
-		 * A "What's New?" search is special: it gets broadcasted to all leaves
-		 * that support the feature (regardless of their QRP table) and to
-		 * all ultrapeers (if TTL > 1, only those supporting the feature
-		 * otherwise).
-		 *
-		 * As such, we don't want to broadcast these queries too often on
-		 * the network.
-		 */
-
-		if (search_last_whats_new != 0 && elapsed < WHATS_NEW_DELAY) {
-			char buf[80];
-			time_delta_t grace = WHATS_NEW_DELAY - elapsed + 1;
-
-			gm_snprintf(buf, sizeof buf,
-				_("Must wait %u more seconds before resending \"What's New\""),
-				(unsigned) grace);
-			gcu_statusbar_warning(buf);
+		if (!search_whats_new_can_reissue())
 			goto cleanup;
-		}
 
 		nodes = qrt_build_query_target(query_hashvec, 0, WHATS_NEW_TTL, NULL);
 		if (nodes != NULL) {
