@@ -80,6 +80,7 @@ struct result_data {
 	record_t *record;
 	const gchar *meta;	/**< Atom */
 	guint children;		/**< count of children */
+	gnet_search_t sh;	/**< Search handle */
 	enum gui_color color;
 };
 
@@ -667,7 +668,9 @@ static inline int
 search_gui_cmp_strings(const char *a, const char *b)
 {
 	if (a && b) {
-		return a == b ? 0 : strcmp(a, b);
+		return a == b ? 0 :
+			GUI_PROPERTY(search_sort_casesense) ? strcmp(a, b) :
+			ascii_strcasecmp(a, b);
 	} else {
 		return a ? 1 : (b ? -1 : 0);
 	}
@@ -853,6 +856,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 	*data = zero_data;
 	data->color = color;
 	data->record = rc;
+	data->sh = sch->search_handle;
 	search_gui_ref_record(rc);
 
 	slist_append(sch->queue, data);
@@ -898,7 +902,7 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 	}
 
 	rd = get_result_data(model, iter);
-	search_gui_download(rd->record);
+	search_gui_download(rd->record, rd->sh);
 
 	if (SR_DOWNLOADED & rd->record->flags) {
 		rd->color = GUI_COLOR_DOWNLOADING;

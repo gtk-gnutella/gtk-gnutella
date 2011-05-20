@@ -4569,7 +4569,7 @@ qrt_build_query_target(
 			else
 				g_warning("QRP query [hops=%d] had empty hash vector", hops);
 		}
-		if (GNET_PROPERTY(qrp_debug) > 4) {
+		if (GNET_PROPERTY(qrp_debug) > 4 && source != NULL) {
 			/* Skip search flags (2 first bytes) */
 			dump_hex(stderr, "Query Payload",
 				source->data + 2, source->size - 2);
@@ -4609,8 +4609,6 @@ qrt_build_query_target(
 
 		if (is_leaf) {
 			/* Leaf node */
-			if (rt == NULL)				/* No QRT yet */
-				continue;				/* Don't send anything */
 			if (whats_new) {
 				if (NODE_CAN_WHAT(dn)) {
 					goto can_send;		/* What's New? queries broadcasted */
@@ -4618,14 +4616,14 @@ qrt_build_query_target(
 					continue;
 				}
 			}
+			if (rt == NULL)				/* No QRT yet */
+				continue;				/* Don't send anything */
 		} else {
 			/* Ultra node */
 			if (0 == ttl)				/* Exclude routing to other UPs */
 				continue;
 			if (ttl > 1)				/* Only deal with last-hop UP */
 				goto can_send;			/* Send to other UP if ttl > 1 */
-			if (rt == NULL)				/* UP has not sent us its table */
-				goto can_send;			/* Forward everything then */
 			if (whats_new) {
 				if (NODE_CAN_WHAT(dn)) {
 					goto can_send;		/* Broadcast to that node */
@@ -4633,6 +4631,8 @@ qrt_build_query_target(
 					continue;			/* Skip node, would not be efficient */
 				}
 			}
+			if (rt == NULL)				/* UP has not sent us its table */
+				goto can_send;			/* Forward everything then */
 		}
 
 		node_inc_qrp_query(dn);			/* We have a QRT, mark we try routing */

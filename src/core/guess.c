@@ -175,6 +175,7 @@ struct guess {
 	size_t queried_nodes;		/**< Amount of nodes queried */
 	size_t query_acks;			/**< Amount of query acknowledgments */
 	enum guess_mode mode;		/**< Concurrency mode */
+	unsigned mtype;				/**< Media type filtering (0 if none) */
 	guint32 flags;				/**< Operating flags */
 	guint32 kept_results;		/**< Amount of results kept */
 	guint32 recv_results;		/**< Amount of results received */
@@ -2935,7 +2936,7 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 	 * 3. We need a "QK" GGEP extension holding the recipient-specific key.
 	 */
 
-	msg = build_guess_search_msg(gq->muid, gq->query, &size,
+	msg = build_guess_search_msg(gq->muid, gq->query, gq->mtype, &size,
 			qk->query_key, qk->length);
 	mb = pmsg_new_extend(PMSG_P_DATA, NULL, size, guess_pmsg_free, pmi);
 	pmsg_write(mb, msg, size);
@@ -3264,6 +3265,7 @@ guess_end_when_starving(guess_t *gq)
  * @param sh		search handle
  * @param muid		MUID to use for the search
  * @param query		the query string
+ * @param mtype		the media type filtering requested (0 if none)
  * @param cb		callback to invoke when query ends
  * @param arg		user-supplied callback argument
  *
@@ -3271,7 +3273,7 @@ guess_end_when_starving(guess_t *gq)
  */
 guess_t *
 guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
-	guess_query_cb_t cb, void *arg)
+	unsigned mtype, guess_query_cb_t cb, void *arg)
 {
 	guess_t *gq;
 
@@ -3284,6 +3286,7 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	gq->gid = guess_id_create();
 	gq->query = atom_str_get(query);
 	gq->muid = atom_guid_get(muid);
+	gq->mtype = mtype;
 	gq->mode = GUESS_QUERY_BOUNDED;
 	gq->queried = map_create_hash(gnet_host_hash, gnet_host_eq);
 	gq->pool = hash_list_new(gnet_host_hash, gnet_host_eq);

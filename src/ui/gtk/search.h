@@ -45,7 +45,7 @@ void search_gui_shutdown(void);
 
 const GList *search_gui_get_searches(void);
 
-gboolean search_gui_new_search_full(const char *query,
+gboolean search_gui_new_search_full(const char *query, unsigned mtype,
 	time_t create_time, guint lifetime, guint32 reissue_timeout,
 	int sort_col, int sort_order, guint32 flags, struct search **);
 
@@ -62,6 +62,7 @@ struct filter *search_gui_get_filter(const struct search *);
 int search_gui_get_sort_column(const struct search *);
 int search_gui_get_sort_order(const struct search *);
 const char *search_gui_query(const struct search *);
+unsigned search_gui_media_type(const struct search *);
 
 void search_gui_record_check(const struct record *);
 	

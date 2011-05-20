@@ -72,6 +72,7 @@ RCSID("$Id$")
 #include "version.h"
 #include "vmsg.h"
 
+#include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
 
@@ -174,18 +175,21 @@ typedef struct search_ctrl {
 
 	/* no more "speed" field -- use marked field now --RAM, 06/07/2003 */
 
-	const char *query;	/**< The normalized search query (atom) */
-	const char *name;	/**< The original search term (atom) */
-	time_t  time;		/**< Time when this search was started */
-	GSList *muids;		/**< Message UIDs of this search */
-	guess_t *guess;		/**< GUESS query running, NULL if none */
+	const char *query;		/**< The normalized search query (atom) */
+	const char *name;		/**< The original search term (atom) */
+	time_t  time;			/**< Time when this search was started */
+	GSList *muids;			/**< Message UIDs of this search */
+	guess_t *guess;			/**< GUESS query running, NULL if none */
+	unsigned media_type;	/**< Media type filtering (0 means none) */
 
-	sbool passive;	/**< Is this a passive search? */
-	sbool frozen;	/**< NOTE: If TRUE, the query is not issued to nodes
-				  		anymore and "don't update window" */
-	sbool browse;	/**< Special "browse host" search */
-	sbool local;	/**< Special "local" search */
-	sbool active;	/**< Whether to actively issue queries. */
+	sbool passive;		/**< Is this a passive search? */
+	sbool frozen;		/**< NOTE: If TRUE, the query is not issued to nodes
+				  			anymore and "don't update window" */
+	sbool browse;		/**< Special "browse host" search */
+	sbool local;		/**< Special "local" search */
+	sbool whats_new;	/**< Is this a "What's New?" query */
+	sbool active;		/**< Whether to actively issue queries. */
+	sbool track_sha1;	/**< Track SHA1 of files downloaded from results */
 
 	/*
 	 * Keep a record of nodes we've sent this search w/ this muid to.
@@ -203,6 +207,7 @@ typedef struct search_ctrl {
 	guint query_emitted;		/**< # of queries emitted since last retry */
 	guint32 items;				/**< Items displayed in the GUI */
 	guint32 kept_results;		/**< Results we kept for last query */
+	unsigned sha1_downloaded;	/**< Amount of SHA1s being tracked */
 
 	/*
 	 * For browse-host requests.
@@ -240,12 +245,18 @@ static query_hashvec_t *query_hashvec;
 
 static GHashTable *muid_to_query_map;
 static hash_list_t *query_muids;
+static GHashTable *sha1_to_search;	/**< Downloaded SHA1 -> search handle */
 
 /**
  * The legacy "What's New?" query string.
  */
 static const char WHATS_NEW_QUERY[] = "WhatIsNewXOXO";
 static const char WHATS_NEW[] = "What's New?";
+
+#define WHATS_NEW_TTL	2		/**< Low TTL for issued "What's New?" */
+#define WHATS_NEW_DELAY	300		/**< One "What's New?" every 5 minutes */
+
+static time_t search_last_whats_new;	/**< When we last sent "What's New?" */
 
 static void
 query_muid_map_init(void)
@@ -2612,6 +2623,8 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
  *
  * @param muid		the MUID to use for the search message
  * @param query		the query string
+ * @param mtype		media type filtering (0 if none wanted)
+ * @param whats_new	whether search message is of the "What's New?" type.
  * @param size		if not-NULL, written with the size of the generated message 
  * @param query_key	the GUESS query key to use (if non-NULL)
  * @param length	length of query key
@@ -2621,7 +2634,8 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
  * containing only whitespaces, for instance).
  */
 static gnutella_msg_search_t *
-build_search_message(const guid_t *muid, const char *query, guint32 *size,
+build_search_message(const guid_t *muid, const char *query,
+	unsigned mtype, gboolean whats_new, guint32 *size,
 	const void *query_key, guint8 length, gboolean udp)
 {
 	static union {
@@ -2646,7 +2660,7 @@ build_search_message(const guid_t *muid, const char *query, guint32 *size,
 		gnutella_header_t *header = gnutella_msg_search_header(&msg.data);
 		guint8 hops;
 		
-		hops = !udp && GNET_PROPERTY(hops_random_factor) &&
+		hops = !udp && !whats_new && GNET_PROPERTY(hops_random_factor) &&
 			GNET_PROPERTY(current_peermode) != NODE_P_LEAF
 			? random_value(GNET_PROPERTY(hops_random_factor))
 			: 0;
@@ -2655,6 +2669,7 @@ build_search_message(const guid_t *muid, const char *query, guint32 *size,
 		gnutella_header_set_function(header, GTA_MSG_SEARCH);
 		gnutella_header_set_hops(header, hops);
 		gnutella_header_set_ttl(header,
+			whats_new ? WHATS_NEW_TTL :
 			query_key != NULL ? 1 : GNET_PROPERTY(my_ttl));
 
 		if (
@@ -2858,14 +2873,52 @@ build_search_message(const guid_t *muid, const char *query, guint32 *size,
 
 	/*
 	 * If they want partial results returned, include the GGEP "PR" key.
+	 *
+	 * "What's New?" queries do not include "PR" because by definition no
+	 * partial file can match this kind of query.
 	 */
 
-	if (GNET_PROPERTY(query_request_partials)) {
+	if (GNET_PROPERTY(query_request_partials) && !whats_new) {
 		gboolean ok = ggep_stream_pack(&gs, GGEP_NAME(PR), NULL, 0, 0);
 
 		if (!ok) {
 			g_carp("could not add GGEP \"PR\" to query");
 			/* It's OK, "PR" is not critical and can be missing */
+		}
+	}
+
+	/*
+	 * If media type filtering is requested for that search, add GGEP "M".
+	 */
+
+	if (mtype != 0) {
+		char media_type[sizeof(guint64)];
+		unsigned len;
+		gboolean ok;
+
+		len = ggept_m_encode(mtype, media_type);
+		ok = ggep_stream_pack(&gs, GGEP_NAME(M), media_type, len, 0);
+
+		if (!ok) {
+			g_carp("could not add GGEP \"M\" to query");
+			/* It's OK, "M" is not critical and can be missing */
+		}
+	}
+
+	/*
+	 * A "What's New?" query is indicated with the GGEP "WH" key holding
+	 * a 1-byte payload with the value 1.
+	 */
+
+	if (whats_new) {
+		guchar b = 1;		/* Feature #1 is "What's New?" */
+		gboolean ok;
+
+		ok = ggep_stream_pack(&gs, GGEP_NAME(WH), &b, sizeof(b), 0);
+
+		if (!ok) {
+			g_carp("could not add GGEP \"WH\" to query");
+			goto error;
 		}
 	}
 
@@ -2918,6 +2971,7 @@ error:
  *
  * @param muid		the MUID to use for the search message
  * @param query		the query string
+ * @param mtype		media type filtering (0 if none wanted)
  * @param size		if not-NULL, written with the size of the generated message 
  * @param query_key	the GUESS query key to use
  * @param length	length of query key
@@ -2926,10 +2980,11 @@ error:
  * containing only whitespaces, for instance).
  */
 gnutella_msg_search_t *
-build_guess_search_msg(const guid_t *muid, const char *query, guint32 *size,
-	const void *query_key, guint8 length)
+build_guess_search_msg(const guid_t *muid, const char *query,
+	unsigned mtype, guint32 *size, const void *query_key, guint8 length)
 {
-	return build_search_message(muid, query, size, query_key, length, TRUE);
+	return build_search_message(muid, query, mtype, FALSE, size,
+		query_key, length, TRUE);
 }
 
 /**
@@ -2940,15 +2995,19 @@ build_guess_search_msg(const guid_t *muid, const char *query, guint32 *size,
  *
  * @param muid		the MUID to use for the search message
  * @param query		the query string
+ * @param mtype		media type filtering (0 if none wanted)
+ * @param whats_new	whether search message is of the "What's New?" type.
  * @param size		if not-NULL, written with the size of the generated message 
  *
  * @return NULL if we cannot build a suitable message (bad query string
  * containing only whitespaces, for instance).
  */
 static gnutella_msg_search_t *
-build_search_msg(const guid_t *muid, const char *query, guint32 *size)
+build_search_msg(const guid_t *muid, const char *query,
+	unsigned mtype, gboolean whats_new, guint32 *size)
 {
-	return build_search_message(muid, query, size, NULL, 0, FALSE);
+	return build_search_message(muid, query, mtype, whats_new,
+		size, NULL, 0, FALSE);
 }
 
 /**
@@ -2970,7 +3029,8 @@ search_build_msg(search_ctrl_t *sch)
 
 	/* Use the first MUID on the list (the last one allocated) */
 
-	return build_search_msg(sch->muids->data, sch->query, NULL);
+	return build_search_msg(sch->muids->data, sch->query,
+		sch->media_type, sbool_get(sch->whats_new), NULL);
 }
 
 /**
@@ -2984,6 +3044,8 @@ search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
 	guint i;
 	guint wocnt;
 
+	search_ctrl_check(sch);
+
 	g_assert(sch != NULL);
 	g_assert(qhv != NULL);
 	g_assert(GNET_PROPERTY(current_peermode) == NODE_P_ULTRA);
@@ -2992,6 +3054,9 @@ search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
 
 	if (is_strprefix(sch->query, "urn:sha1:")) {		/* URN search */
 		qhvec_add(qhv, sch->query, QUERY_H_URN);
+		return;
+	} else if (sbool_get(sch->whats_new)) {
+		qhvec_set_whats_new(qhv, TRUE);
 		return;
 	}
 
@@ -3046,7 +3111,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 	if (n) {
 		search_mark_sent_to_node(sch, n);
-		gmsg_search_sendto_one(n, sch->search_handle, (char *) msg, size);
+		gmsg_search_sendto_one(n, sch->search_handle, msg, size);
 		goto cleanup;
 	}
 
@@ -3060,18 +3125,53 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
 		search_starting(sch->search_handle);
 		search_mark_sent_to_connected_nodes(sch);
-		gmsg_search_sendto_all(
-			node_all_nodes(), sch->search_handle, (char *) msg, size);
+		gmsg_search_sendto_all(node_all_nodes(), sch->search_handle, msg, size);
 		goto cleanup;
 	}
 
-	/*
-	 * Enqueue search in global SQ for later dynamic querying dispatching.
-	 */
-
 	search_qhv_fill(sch, query_hashvec);
-	sq_global_putq(sch->search_handle,
-		gmsg_to_pmsg(msg, size), qhvec_clone(query_hashvec));
+
+	if (sbool_get(sch->whats_new)) {
+		GSList *nodes;
+		time_delta_t elapsed = delta_time(tm_time(), search_last_whats_new);
+
+		/*
+		 * A "What's New?" search is special: it gets broadcasted to all leaves
+		 * that support the feature (regardless of their QRP table) and to
+		 * all ultrapeers (if TTL > 1, only those supporting the feature
+		 * otherwise).
+		 *
+		 * As such, we don't want to broadcast these queries too often on
+		 * the network.
+		 */
+
+		if (search_last_whats_new != 0 && elapsed < WHATS_NEW_DELAY) {
+			char buf[80];
+			time_delta_t grace = WHATS_NEW_DELAY - elapsed + 1;
+
+			gm_snprintf(buf, sizeof buf,
+				_("Must wait %u more seconds before resending \"What's New\""),
+				(unsigned) grace);
+			gcu_statusbar_warning(buf);
+			goto cleanup;
+		}
+
+		nodes = qrt_build_query_target(query_hashvec, 0, WHATS_NEW_TTL, NULL);
+		if (nodes != NULL) {
+			pmsg_t *mb = gmsg_to_pmsg(msg, size);
+			gmsg_mb_sendto_all(nodes, mb);
+			pmsg_free(mb);
+			search_last_whats_new = tm_time();
+		}
+		g_slist_free(nodes);
+	} else {
+		/*
+		 * Enqueue search in global SQ for later dynamic querying dispatching.
+		 */
+
+		sq_global_putq(sch->search_handle,
+			gmsg_to_pmsg(msg, size), qhvec_clone(query_hashvec));
+	}
 
 	/* FALL THROUGH */
 
@@ -3402,6 +3502,7 @@ search_init(void)
 
 	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
 	search_handle_map = idtable_new();
+	sha1_to_search = g_hash_table_new(sha1_hash, sha1_eq);
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 	oob_reply_acks_init();
@@ -3425,6 +3526,7 @@ search_shutdown(void)
 	g_assert(idtable_ids(search_handle_map) == 0);
 
 	gm_hash_table_destroy_null(&search_by_muid);
+	gm_hash_table_destroy_null(&sha1_to_search);
 	idtable_destroy(search_handle_map);
 	search_handle_map = NULL;
 	qhvec_free(query_hashvec);
@@ -3933,9 +4035,154 @@ search_notify_sent(gnet_search_t sh, const struct nid *node_id)
 	search_mark_query_sent(sch);
 }
 
+static gboolean
+search_remove_sha1_key(void *key, void *value, void *data)
+{
+	struct sha1 *sha1 = key;
+	gnet_search_t sh = pointer_to_uint(value);
+	search_ctrl_t *sch = data;
+
+	if (sh == sch->search_handle) {
+		g_assert(uint_is_positive(sch->sha1_downloaded));
+		sch->sha1_downloaded--;
+		atom_sha1_free(sha1);
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
+/**
+ * Forget about all the SHA1s which were downloaded by this search.
+ */
+static void
+search_dissociate_all_sha1(search_ctrl_t *sch)
+{
+	if (0 == sch->sha1_downloaded)
+		return;
+
+	g_hash_table_foreach_remove(sha1_to_search, search_remove_sha1_key, sch);
+
+	g_assert(0 == sch->sha1_downloaded);
+}
+
+struct search_sha1_context {
+	gnet_search_t sh;
+	GSList *sl;
+};
+
+/**
+ * Hash table iterator to append SHA1 to list of associated SHA1s
+ * for the search.
+ */
+static void
+search_add_associated_sha1(void *key, void *value, void *data)
+{
+	struct sha1 *sha1 = key;
+	gnet_search_t sh = pointer_to_uint(value);
+	struct search_sha1_context *ctx = data;
+
+	if (sh == ctx->sh) {
+		ctx->sl = g_slist_prepend(ctx->sl, sha1);
+	}
+}
+
 /***
  *** Public functions.
  ***/
+
+/**
+ * Associate a SHA1 with a search.
+ */
+void
+search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1)
+{
+    search_ctrl_t *sch = search_probe_by_handle(sh);
+
+	g_return_if_fail(sch);
+	search_ctrl_check(sch);
+	
+	if (sbool_get(sch->track_sha1)) {
+		if (!gm_hash_table_contains(sha1_to_search, sha1)) {
+			gm_hash_table_insert_const(sha1_to_search, atom_sha1_get(sha1),
+				uint_to_pointer(sh));
+			sch->sha1_downloaded++;
+
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_debug("SEARCH \"%s\" #%u associated with urn:sha1:%s",
+					lazy_safe_search(sch->query),
+					(unsigned) sch->search_handle, sha1_base32(sha1));
+			}
+		}
+	}
+}
+
+/**
+ * Dissociate a SHA1 from its search.
+ */
+void
+search_dissociate_sha1(const struct sha1 *sha1)
+{
+	if (gm_hash_table_contains(sha1_to_search, sha1)) {
+		gnet_search_t sh;
+		search_ctrl_t *sch;
+
+		sh = pointer_to_uint(g_hash_table_lookup(sha1_to_search, sha1));
+		sch = search_probe_by_handle(sh);
+
+		search_ctrl_check(sch);
+		g_assert(sbool_get(sch->track_sha1));
+		g_assert(uint_is_positive(sch->sha1_downloaded));
+
+		if (GNET_PROPERTY(search_debug) > 1) {
+			g_debug("SEARCH \"%s\" #%u dissociating from urn:sha1:%s, "
+				"with %u more pending",
+				lazy_safe_search(sch->query),
+				(unsigned) sch->search_handle, sha1_base32(sha1),
+				sch->sha1_downloaded - 1);
+		}
+
+		sch->sha1_downloaded--;
+		g_hash_table_remove(sha1_to_search, sha1);
+		atom_sha1_free(sha1);
+
+		/*
+		 * When a download has no more pending downloads, stop it.
+		 */
+
+		if (GNET_PROPERTY(search_smart_stop) && 0 == sch->sha1_downloaded) {
+			search_stop(sh);
+
+			if (GNET_PROPERTY(search_debug)) {
+				g_debug("SEARCH \"%s\" stopped due to no pending download",
+					lazy_safe_search(sch->query));
+			}
+		}
+	}
+}
+
+/**
+ * @return list of SHA1 associated with a given search, NULL if none.
+ */
+GSList *
+search_associated_sha1(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_probe_by_handle(sh);
+	struct search_sha1_context ctx;
+
+	g_return_val_if_fail(sch, NULL);
+	search_ctrl_check(sch);
+
+	if (0 == sch->sha1_downloaded)
+		return NULL;
+
+	ctx.sh = sh;
+	ctx.sl = NULL;
+
+	g_hash_table_foreach(sha1_to_search, search_add_associated_sha1, &ctx);
+
+	return ctx.sl;
+}
 
 /**
  * Remove the search from the list of searches and free all
@@ -3947,6 +4194,7 @@ search_close(gnet_search_t sh)
     search_ctrl_t *sch = search_probe_by_handle(sh);
 
 	g_return_if_fail(sch);
+	search_ctrl_check(sch);
 
 	/*
 	 * This needs to be done before the handle of the search is reclaimed.
@@ -3996,6 +4244,7 @@ search_close(gnet_search_t sh)
 	atom_str_free_null(&sch->name);
 	wd_free_null(&sch->activity);
 	guess_cancel(&sch->guess, FALSE);
+	search_dissociate_all_sha1(sch);
 
 	sch->magic = 0;
 	wfree(sch, sizeof *sch);
@@ -4178,6 +4427,19 @@ search_get_reissue_timeout(gnet_search_t sh)
 }
 
 /**
+ * Get the configured media type filtering for this search.
+ */
+unsigned
+search_get_media_type(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+	search_ctrl_check(sch);
+
+    return sch->media_type;
+}
+
+/**
  * Get the initial lifetime (in hours) of a search.
  */
 guint
@@ -4275,7 +4537,7 @@ search_is_idle(watchdog_t *unused_wd, void *data)
 	search_add_new_muid(sch, muid);
 	sch->kept_results = 0;
 	sch->guess = guess_create(sch->search_handle, muid, sch->query,
-		search_guess_done, sch);
+		sch->media_type, search_guess_done, sch);
 
 	return FALSE;
 }
@@ -4284,18 +4546,20 @@ search_is_idle(watchdog_t *unused_wd, void *data)
  * Create a new suspended search and return a handle which identifies it.
  *
  * @param query				an UTF-8 encoded query string.
- * @param create_time		no document.
- * @param lifetime			no document.
+ * @param query				media type filtering to request in queries
+ * @param create_time		search creation time
+ * @param lifetime			search lifetime
  * @param flags				option flags for the search.
  * @param reissue_timeout	delay in seconds before requerying.
  *
  * @return	SEARCH_NEW_SUCCESS on success
  *			SEARCH_NEW_TOO_LONG if too long,
  *			SEARCH_NEW_TOO_SHORT if too short,
+ *			SEARCH_NEW_TOO_EARLY if too early (for "What's New"),
  *			SEARCH_NEW_INVALID_URN if the URN was unparsable.
  */
 enum search_new_result
-search_new(gnet_search_t *ptr, const char *query,
+search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 	time_t create_time, guint lifetime, guint32 reissue_timeout, guint32 flags)
 {
 	const char *endptr;
@@ -4319,7 +4583,12 @@ search_new(gnet_search_t *ptr, const char *query,
 		}
 		qdup = h_strdup(query);
 	} else if (
-		!(flags & (SEARCH_F_LOCAL | SEARCH_F_BROWSE | SEARCH_F_PASSIVE))
+		!(flags &
+			(
+				SEARCH_F_LOCAL | SEARCH_F_BROWSE |
+				SEARCH_F_PASSIVE | SEARCH_F_WHATS_NEW
+			)
+		)
 	) {
 		size_t byte_count;
 
@@ -4343,6 +4612,18 @@ search_new(gnet_search_t *ptr, const char *query,
 			result = SEARCH_NEW_TOO_LONG;
 			goto failure;
 		}
+	} else if (flags & SEARCH_F_WHATS_NEW) {
+		qdup = h_strdup(WHATS_NEW_QUERY);
+		if (
+			search_last_whats_new != 0 &&
+			delta_time(tm_time(), search_last_whats_new) < WHATS_NEW_DELAY
+		) {
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_warning("rejected too frequent \"What's New?\" querying");
+			}
+			result = SEARCH_NEW_TOO_EARLY;
+			goto failure;
+		}
 	} else {
 		qdup = h_strdup(query);
 	}
@@ -4355,7 +4636,8 @@ search_new(gnet_search_t *ptr, const char *query,
 	sch->query = atom_str_get(qdup);
 	sch->frozen = sbool_set(TRUE);
 	sch->create_time = create_time;
-	sch->lifetime = lifetime;
+	sch->lifetime = (flags & SEARCH_F_WHATS_NEW) ? 0 : lifetime;
+	sch->media_type = mtype;
 
 	/*
 	 * The watchdog monitor sending of queries and reception of hits.
@@ -4371,16 +4653,37 @@ search_new(gnet_search_t *ptr, const char *query,
 	sch->browse = sbool_set(flags & SEARCH_F_BROWSE);
 	sch->local = sbool_set(flags & SEARCH_F_LOCAL);
 	sch->passive = sbool_set(flags & SEARCH_F_PASSIVE);
-	sch->active = sbool_set(
-			0 == (flags & (SEARCH_F_BROWSE|SEARCH_F_LOCAL|SEARCH_F_PASSIVE)));
+	sch->whats_new = sbool_set(flags & SEARCH_F_WHATS_NEW);
+	sch->active = sbool_set(0 == (flags &
+		(SEARCH_F_BROWSE | SEARCH_F_LOCAL | SEARCH_F_PASSIVE)));
+
+	/*
+	 * The table recording SHA1 of files downloaded is used to stop the
+	 * search as soon as all the files downloaded from it are completed.
+	 * This applies only to searches we'll persist to disk.
+	 */
+
+	sch->track_sha1 = sbool_set(0 == (flags &
+		(SEARCH_F_BROWSE | SEARCH_F_LOCAL |
+			SEARCH_F_PASSIVE | SEARCH_F_WHATS_NEW)));
 
 	if (sbool_get(sch->active)) {
-		sch->new_node_wait = wq_sleep(
-			func_to_pointer(node_add), search_node_added, sch);
+		if (flags & SEARCH_F_WHATS_NEW) {
+			/*
+			 * A "What's New?" search is never re-issued and does not need to
+			 * monitor new nodes -- it's broadcasted once to the current set of
+			 * nodes, period.
+			 */
 
-		if (reissue_timeout != 0 && reissue_timeout < SEARCH_MIN_RETRY)
-			reissue_timeout = SEARCH_MIN_RETRY;
-		sch->reissue_timeout = reissue_timeout;
+			sch->reissue_timeout = 0;
+		} else {
+			sch->new_node_wait = wq_sleep(
+				func_to_pointer(node_add), search_node_added, sch);
+
+			if (reissue_timeout != 0 && reissue_timeout < SEARCH_MIN_RETRY)
+				reissue_timeout = SEARCH_MIN_RETRY;
+			sch->reissue_timeout = reissue_timeout;
+		}
 
 		sch->sent_nodes =
 			g_hash_table_new(sent_node_hash_func, sent_node_compare);
@@ -4486,10 +4789,13 @@ search_stop(gnet_search_t search_handle)
     search_ctrl_t *sch = search_find_by_handle(search_handle);
 
 	search_ctrl_check(sch);
-    g_assert(!sbool_get(sch->frozen));
+
+	if (sbool_get(sch->frozen))
+		return;
 
     sch->frozen = sbool_set(TRUE);
 	wd_sleep(sch->activity);
+	guess_cancel(&sch->guess, FALSE);
 
     if (sbool_get(sch->active)) {
 		update_one_reissue_timeout(sch);
@@ -4781,6 +5087,16 @@ search_is_local(gnet_search_t sh)
 	search_ctrl_check(sch);
 
     return sbool_get(sch->local);
+}
+
+gboolean
+search_is_whats_new(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+	search_ctrl_check(sch);
+
+    return sbool_get(sch->whats_new);
 }
 
 /***

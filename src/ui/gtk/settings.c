@@ -3548,6 +3548,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_SEARCH_SMART_STOP,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_search_smart_stop",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_QUERY_REQUEST_PARTIALS,
         update_togglebutton,
         TRUE,
@@ -4636,6 +4644,54 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
+        gui_main_window,
+        PROP_SEARCH_MEDIA_TYPE_AUDIO,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_search_media_type_audio",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_SEARCH_MEDIA_TYPE_VIDEO,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_search_media_type_video",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_SEARCH_MEDIA_TYPE_DOCUMENT,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_search_media_type_document",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_SEARCH_MEDIA_TYPE_IMAGE,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_search_media_type_image",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_SEARCH_MEDIA_TYPE_WINDOWS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_search_media_type_windows",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_SEARCH_MEDIA_TYPE_UNIX,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_search_media_type_unix",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
         gui_dlg_prefs,
         PROP_CONFIRM_QUIT,
         update_togglebutton,
@@ -5059,6 +5115,22 @@ static prop_map_t property_map[] = {
         update_spinbutton,
         TRUE,
         "spinbutton_search_max_results",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_PASSIVE_SEARCH_MAX_RESULTS,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_passive_search_max_results",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_WHATS_NEW_SEARCH_MAX_RESULTS,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_whats_new_search_max_results",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -5596,7 +5668,6 @@ static prop_map_t property_map[] = {
         "checkbutton_config_beautify_filenames",
         FREQ_UPDATES, 0
     ),
-#ifdef USE_GTK1
     PROP_ENTRY(
         gui_main_window,
         PROP_SEARCH_SORT_CASESENSE,
@@ -5605,7 +5676,6 @@ static prop_map_t property_map[] = {
         "checkbutton_search_sort_casesense",
         FREQ_UPDATES, 0
     ),
-#endif /* USE_GTK1 */
     PROP_ENTRY(
         gui_main_window,
         PROP_SEARCH_DISCARD_SPAM,

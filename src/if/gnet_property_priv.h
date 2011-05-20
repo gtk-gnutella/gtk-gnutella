@@ -468,6 +468,9 @@ extern const guint32  gnet_property_variable_tsync_debug;
 extern const gboolean gnet_property_variable_query_request_partials;
 extern const gboolean gnet_property_variable_query_answer_partials;
 extern const gboolean gnet_property_variable_query_answer_whats_new;
+extern const gboolean gnet_property_variable_search_smart_stop;
+extern const guint32  gnet_property_variable_whats_new_search_max_results;
+extern const guint32  gnet_property_variable_passive_search_max_results;
 
 
 prop_set_t *gnet_prop_init(void);

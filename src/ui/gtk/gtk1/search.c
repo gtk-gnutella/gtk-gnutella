@@ -1587,7 +1587,7 @@ download_selection_of_ctree(struct search *search)
 		grc = gtk_ctree_node_get_row_data(ctree, node);
 		g_assert(grc);
 
-		search_gui_download(grc->shared_record);
+		search_gui_download(grc->shared_record, search->search_handle);
 		n++;
 
         if (!remove_downloaded) {

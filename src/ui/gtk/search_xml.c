@@ -95,6 +95,7 @@ static void filter_to_xml(xmlNodePtr, filter_t *);
 static void rule_to_xml(xmlNodePtr, rule_t *);
 static void xml_to_builtin(xmlNodePtr, gpointer);
 static void xml_to_search(xmlNodePtr, gpointer);
+static void xml_to_sha1s(xmlNodePtr, gpointer);
 static void xml_to_filter(xmlNodePtr, gpointer);
 static void xml_to_text_rule(xmlNodePtr, gpointer);
 static void xml_to_ip_rule(xmlNodePtr, gpointer);
@@ -120,6 +121,8 @@ static const gchar NODE_RULE_JUMP[]   = "JumpRule";
 static const gchar NODE_RULE_SHA1[]   = "SHA1Rule";
 static const gchar NODE_RULE_FLAG[]   = "FlagRule";
 static const gchar NODE_RULE_STATE[]  = "StateRule";
+static const gchar NODE_SHA1S[]       = "SHA1s";
+static const gchar NODE_SHA1[]        = "SHA1";
 
 static const gchar TAG_BUILTIN_SHOW_UID[]       = "ShowUID";
 static const gchar TAG_BUILTIN_DROP_UID[]       = "DropUID";
@@ -131,6 +134,7 @@ static const gchar TAG_FILTER_GLOBAL[]          = "Global";
 static const gchar TAG_FILTER_UID[]             = "UID";
 static const gchar TAG_FILTER_ACTIVE[]          = "Active";
 static const gchar TAG_SEARCH_QUERY[]           = "Query";
+static const gchar TAG_SEARCH_MEDIA_TYPE[]      = "MediaType";
 static const gchar TAG_SEARCH_ENABLED[]         = "Enabled";
 static const gchar TAG_SEARCH_SPEED[]           = "Speed";
 static const gchar TAG_SEARCH_PASSIVE[]         = "Passive";
@@ -168,6 +172,7 @@ static GHashTable *id_map = NULL;
 static node_parser_t parser_map[] = {
     { NODE_BUILTIN,     xml_to_builtin },
     { NODE_SEARCH,      xml_to_search },
+    { NODE_SHA1S,       xml_to_sha1s },
     { NODE_FILTER,      xml_to_filter },
     { NODE_RULE_TEXT,   xml_to_text_rule },
     { NODE_RULE_IP,     xml_to_ip_rule },
@@ -211,6 +216,12 @@ xml_new_empty_child(xmlNodePtr parent, const gchar *name)
 	return xmlNewChild(parent, NULL, string_to_xmlChar(name), NULL);
 }
 
+static inline xmlNodePtr
+xml_new_child(xmlNodePtr parent, const gchar *name, const char *content)
+{
+	return xmlNewChild(parent, NULL, string_to_xmlChar(name),
+		string_to_xmlChar(content));
+}
 
 /**
  * A wrapper around parse_uint64. It's a little stricter, so that trailing
@@ -719,11 +730,29 @@ builtin_to_xml(xmlNodePtr parent)
 }
 
 static void
+sha1s_to_xml(xmlNodePtr parent, GSList *sha1s)
+{
+    xmlNodePtr newxml;
+	GSList *sl;
+
+	if (NULL == sha1s)
+		return;
+
+    newxml = xml_new_empty_child(parent, NODE_SHA1S);
+
+	GM_SLIST_FOREACH(sha1s, sl) {
+		const struct sha1 *sha1 = sl->data;
+		xml_new_child(newxml, NODE_SHA1, sha1_to_string(sha1));
+	}
+}
+
+static void
 search_to_xml(xmlNodePtr parent, const struct search *search)
 {
 	gnet_search_t search_handle;
     xmlNodePtr newxml;
     GList *iter;
+	GSList *sha1s;
 
     g_assert(search != NULL);
 	search_handle = search_gui_get_handle(search);
@@ -734,6 +763,9 @@ search_to_xml(xmlNodePtr parent, const struct search *search)
 		return;	
 
 	if (guc_search_is_local(search_handle))
+		return;
+
+	if (guc_search_is_whats_new(search_handle))
 		return;
 
     if (GUI_PROPERTY(gui_debug) >= 6) {
@@ -754,6 +786,8 @@ search_to_xml(xmlNodePtr parent, const struct search *search)
 		!guc_search_is_frozen(search_handle));
     xml_prop_printf(newxml, TAG_SEARCH_PASSIVE, "%u",
 		guc_search_is_passive(search_handle));
+    xml_prop_printf(newxml, TAG_SEARCH_MEDIA_TYPE, "%u",
+		guc_search_get_media_type(search_handle));
     xml_prop_printf(newxml, TAG_SEARCH_REISSUE_TIMEOUT, "%u",
 		guc_search_get_reissue_timeout(search_handle));
     xml_prop_printf(newxml, TAG_SEARCH_CREATE_TIME, "%s",
@@ -764,6 +798,10 @@ search_to_xml(xmlNodePtr parent, const struct search *search)
 		search_gui_get_sort_column(search));
     xml_prop_printf(newxml, TAG_SEARCH_SORT_ORDER, "%d",
 		search_gui_get_sort_order(search));
+
+	sha1s = guc_search_associated_sha1(search_handle);
+	sha1s_to_xml(newxml, sha1s);
+	g_slist_free(sha1s);
 
     iter = search_gui_get_filter(search)->ruleset;
     for (/* NOTHING */; iter != NULL; iter = g_list_next(iter)) {
@@ -1027,6 +1065,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
     gchar *query;
     gint sort_col = SORT_NO_COL, sort_order = SORT_NONE;
     guint32 reissue_timeout;
+	unsigned media_type = 0;
     xmlNodePtr node;
     struct search *search;
     guint flags = 0;
@@ -1066,6 +1105,12 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
     buf = STRTRACK(xml_get_string(xmlnode, TAG_SEARCH_REISSUE_TIMEOUT));
     if (buf) {
         reissue_timeout = atol(buf);
+        xml_free_null(&buf);
+    }
+
+    buf = STRTRACK(xml_get_string(xmlnode, TAG_SEARCH_MEDIA_TYPE));
+    if (buf) {
+        media_type = atol(buf);
         xml_free_null(&buf);
     }
 
@@ -1126,7 +1171,8 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 	}
 
 	flags |= SEARCH_F_LITERAL;
-	search_gui_new_search_full(query, create_time, lifetime, reissue_timeout,
+	search_gui_new_search_full(query, media_type,
+		create_time, lifetime, reissue_timeout,
 		sort_col, sort_order, flags, &search);
 
 	xml_free_null(&query);
@@ -1142,7 +1188,45 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 }
 
 static void
-xml_to_filter(xmlNodePtr xmlnode, gpointer unused_udata)
+xml_to_sha1(xmlNodePtr xmlnode, const struct search *search)
+{
+	xmlNodePtr value = xmlnode->children;
+
+	if (value != NULL) {
+		const char *b32 = (const char *) value->content;
+		const struct sha1 *sha1;
+
+		b32 = skip_ascii_spaces(b32);
+		sha1 = base32_sha1(b32);
+
+		if (sha1 != NULL) {
+			guc_search_associate_sha1(search_gui_get_handle(search), sha1);
+		}
+	} else {
+		g_carp("node %s has no content", (const char *) xmlnode->name);
+	}
+}
+
+static void
+xml_to_sha1s(xmlNodePtr xmlnode, gpointer data)
+{
+	const filter_t *filter = data;
+	const struct search *search = filter->search;
+    xmlNodePtr node;
+
+	/*
+	 * Parse all <SHA1> children.
+	 */
+
+	for (node = xmlnode->children; node != NULL; node = node->next) {
+    	if (0 == ascii_strcasecmp((const char *) node->name, NODE_SHA1)) {
+			xml_to_sha1(node, search);
+		}
+	}
+}
+
+static void
+xml_to_filter(xmlNodePtr xmlnode, gpointer unused_data)
 {
     gchar *buf;
     gchar *name = NULL;
@@ -1153,11 +1237,12 @@ xml_to_filter(xmlNodePtr xmlnode, gpointer unused_udata)
 	gint error;
 	guint64 v;
 
-	(void) unused_udata;
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(0 == ascii_strcasecmp((const gchar *) xmlnode->name,
 					NODE_FILTER));
+
+	(void) unused_data;
 
 	buf = STRTRACK(xml_get_string(xmlnode, TAG_FILTER_NAME));
     if (!buf) {
@@ -1341,7 +1426,7 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_TARGET));
     target = parse_target(buf, &error);
     if (error) {
-        g_warning( "xml_to_ip_rule: %s", g_strerror(error));
+        g_warning("xml_to_ip_rule: %s", g_strerror(error));
 		goto failure;
 	}
 	xml_free_null(&buf);
@@ -1444,7 +1529,7 @@ xml_to_jump_rule(xmlNodePtr xmlnode, gpointer data)
     g_assert(buf != NULL);
     target = parse_target(buf, &error);
     if (error) {
-        g_warning( "xml_to_jump_rule: %s", g_strerror(error));
+        g_warning("xml_to_jump_rule: %s", g_strerror(error));
 		goto failure;
 	}
 	xml_free_null(&buf);
@@ -1581,7 +1666,7 @@ xml_to_flag_rule(xmlNodePtr xmlnode, gpointer data)
     g_assert(buf != NULL);
     target = parse_target(buf, &error);
     if (error) {
-        g_warning( "xml_to_flag_rule: %s", g_strerror(error));
+        g_warning("xml_to_flag_rule: %s", g_strerror(error));
 		goto failure;
 	}
 	xml_free_null(&buf);
@@ -1623,7 +1708,7 @@ xml_to_state_rule(xmlNodePtr xmlnode, gpointer data)
     if (buf != NULL) {
     	v = parse_number(buf, &error);
 		if (error) {
-        	g_warning( "xml_to_state_rule: %s", g_strerror(error));
+        	g_warning("xml_to_state_rule: %s", g_strerror(error));
 		}
         if (v <= MAX_FILTER_PROP_STATE || v == FILTER_PROP_STATE_IGNORE) {
             display = v;
@@ -1635,7 +1720,7 @@ xml_to_state_rule(xmlNodePtr xmlnode, gpointer data)
     if (buf != NULL) {
     	v = parse_number(buf, &error);
 		if (error) {
-        	g_warning( "xml_to_state_rule: %s", g_strerror(error));
+        	g_warning("xml_to_state_rule: %s", g_strerror(error));
 			return;
 		}
         if (v <= MAX_FILTER_PROP_STATE || v == FILTER_PROP_STATE_IGNORE) {
@@ -1648,7 +1733,7 @@ xml_to_state_rule(xmlNodePtr xmlnode, gpointer data)
     g_assert(buf != NULL);
     target = parse_target(buf, &error);
     if (error) {
-        g_warning( "xml_to_state_rule: %s", g_strerror(error));
+        g_warning("xml_to_state_rule: %s", g_strerror(error));
 		return;
 	}
 	xml_free_null(&buf);

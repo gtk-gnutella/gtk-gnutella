@@ -59,6 +59,13 @@ typedef struct search {
     int        sort_order;
 
 	/*
+	 * Cached attributes.
+	 */
+
+	unsigned	cached_attributes;	/**< Mask for things we cached */
+	unsigned	attributes;			/**< Actual attributes we know */
+
+	/*
 	 * Search stats.
 	 */
 
@@ -72,6 +79,13 @@ typedef struct search {
 	guint32		auto_downloaded;	/**< Auto-downloaded hits */
 	guint32		duplicates;			/**< Duplicate hits ignored */
 } search_t;
+
+enum {
+	SEARCH_GUI_F_WHATS_NEW	= 1 << 3,
+	SEARCH_GUI_F_BROWSE		= 1 << 2,
+	SEARCH_GUI_F_LOCAL		= 1 << 1,
+	SEARCH_GUI_F_PASSIVE	= 1 << 0
+};
 
 #ifdef USE_GTK1
 
@@ -190,7 +204,7 @@ void search_gui_option_menu_searches_freeze(void);
 
 gboolean search_gui_is_enabled(const struct search *);
 
-void search_gui_download(record_t *);
+void search_gui_download(record_t *, gnet_search_t sh);
 const char *search_gui_nice_size(const record_t *);
 const char *search_gui_get_vendor(const struct results_set *);
 
@@ -218,6 +232,8 @@ void search_gui_queue_bitzi_by_sha1(const record_t *);
 void search_gui_add_record(struct search *, record_t *, enum gui_color);
 void search_gui_hide_search(struct search *);
 void search_gui_show_search(struct search *);
+
+void search_gui_media_type_clear(void);
 
 /*
  * Search result record comparison functions.

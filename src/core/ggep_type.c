@@ -472,6 +472,21 @@ ggept_du_encode(guint32 uptime, char *data)
 	return ggep_vlint_encode(uptime, data);
 }
 
+/**
+ * Encode `media_type' for the GGEP "M" extension into `data'.
+ *
+ * @param mtype	The media type mask
+ * @param data	A buffer of at least 4 bytes.
+ *
+ * @return the amount of chars written.
+ */
+guint
+ggept_m_encode(guint32 mtype, char *data)
+{
+	return ggep_vlint_encode(mtype, data);
+}
+
+
 ggept_status_t
 ggept_ct_extract(const extvec_t *exv, time_t *stamp_ptr)
 {

@@ -980,6 +980,12 @@ gboolean gnet_property_variable_query_answer_partials     = TRUE;
 static const gboolean gnet_property_variable_query_answer_partials_default = TRUE;
 gboolean gnet_property_variable_query_answer_whats_new     = TRUE;
 static const gboolean gnet_property_variable_query_answer_whats_new_default = TRUE;
+gboolean gnet_property_variable_search_smart_stop     = TRUE;
+static const gboolean gnet_property_variable_search_smart_stop_default = TRUE;
+guint32  gnet_property_variable_whats_new_search_max_results     = 10000;
+static const guint32  gnet_property_variable_whats_new_search_max_results_default = 10000;
+guint32  gnet_property_variable_passive_search_max_results     = 5000;
+static const guint32  gnet_property_variable_passive_search_max_results_default = 5000;
 
 static prop_set_t *gnet_property;
 
@@ -8108,7 +8114,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[372].name = "dht_configured_mode";
-    gnet_property->props[372].desc = _("The DHT running mode. An active mode will be able to store values and is a fully participating member of the Distributed Hash Table. A passive node can perform lookups and publish but will not store values and cannot be a member of the DHT structure. A firewalled node is necessarily passive, but you can force the passive mode even if you are not firewalled, although that is not recommended because the DHT requires far more active nodes that passive ones to be efficient.");
+    gnet_property->props[372].desc = _("The DHT running mode. An active node will be able to store values and is a fully participating member of the Distributed Hash Table. A passive node can perform lookups and publish but will not store values and cannot be a member of the DHT structure. A firewalled node is necessarily passive, but you can force the passive mode even if you are not firewalled, although that is not recommended because the DHT requires far more active nodes that passive ones to be efficient.");
     gnet_property->props[372].ev_changed = event_new("dht_configured_mode_changed");
     gnet_property->props[372].save = TRUE;
     gnet_property->props[372].vector_size = 1;
@@ -8978,6 +8984,63 @@ gnet_prop_init(void) {
     gnet_property->props[418].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[418].data.boolean.def   = (void *) &gnet_property_variable_query_answer_whats_new_default;
     gnet_property->props[418].data.boolean.value = (void *) &gnet_property_variable_query_answer_whats_new;
+
+
+    /*
+     * PROP_SEARCH_SMART_STOP:
+     *
+     * General data:
+     */
+    gnet_property->props[419].name = "search_smart_stop";
+    gnet_property->props[419].desc = _("When set, gtk-gnutella will automatically stop opened searches from which all the requested downloads have been completed, regardless of the initially configured expiration time.");
+    gnet_property->props[419].ev_changed = event_new("search_smart_stop_changed");
+    gnet_property->props[419].save = TRUE;
+    gnet_property->props[419].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[419].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[419].data.boolean.def   = (void *) &gnet_property_variable_search_smart_stop_default;
+    gnet_property->props[419].data.boolean.value = (void *) &gnet_property_variable_search_smart_stop;
+
+
+    /*
+     * PROP_WHATS_NEW_SEARCH_MAX_RESULTS:
+     *
+     * General data:
+     */
+    gnet_property->props[420].name = "whats_new_search_max_results";
+    gnet_property->props[420].desc = _("Maximum number of results to show in a What's New? request.");
+    gnet_property->props[420].ev_changed = event_new("whats_new_search_max_results_changed");
+    gnet_property->props[420].save = TRUE;
+    gnet_property->props[420].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[420].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[420].data.guint32.def   = (void *) &gnet_property_variable_whats_new_search_max_results_default;
+    gnet_property->props[420].data.guint32.value = (void *) &gnet_property_variable_whats_new_search_max_results;
+    gnet_property->props[420].data.guint32.choices = NULL;
+    gnet_property->props[420].data.guint32.max   = 500000;
+    gnet_property->props[420].data.guint32.min   = 100;
+
+
+    /*
+     * PROP_PASSIVE_SEARCH_MAX_RESULTS:
+     *
+     * General data:
+     */
+    gnet_property->props[421].name = "passive_search_max_results";
+    gnet_property->props[421].desc = _("Maximum number of results to show in a passive search request.");
+    gnet_property->props[421].ev_changed = event_new("passive_search_max_results_changed");
+    gnet_property->props[421].save = TRUE;
+    gnet_property->props[421].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[421].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[421].data.guint32.def   = (void *) &gnet_property_variable_passive_search_max_results_default;
+    gnet_property->props[421].data.guint32.value = (void *) &gnet_property_variable_passive_search_max_results;
+    gnet_property->props[421].data.guint32.choices = NULL;
+    gnet_property->props[421].data.guint32.max   = 500000;
+    gnet_property->props[421].data.guint32.min   = 100;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -1301,5 +1301,74 @@ prop = {
     };
 };
 
+prop = {
+	name = "search_media_type_audio";
+	desc = "Remote nodes supporting media type filtering will apply your "
+		"query specifically on their audio files.";
+	save = FALSE;
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "search_media_type_video";
+	desc = "Remote nodes supporting media type filtering will apply your "
+		"query specifically on their video files.";
+	save = FALSE;
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "search_media_type_document";
+	desc = "Remote nodes supporting media type filtering will apply your "
+		"query specifically on their document files. "
+		"Document files are XML, HTML, Word, PDF, etc...";
+	save = FALSE;
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "search_media_type_image";
+	desc = "Remote nodes supporting media type filtering will apply your "
+		"query specifically on their image files.";
+	save = FALSE;
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "search_media_type_windows";
+	desc = "Remote nodes supporting media type filtering will apply your "
+		"query specifically on their Windows archive / program files such as "
+		"ZIP or EXE files and other Windows-centric extensions.";
+	save = FALSE;
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "search_media_type_unix";
+	desc = "Remote nodes supporting media type filtering will apply your "
+		"query specifically on their UNIX archive / program files such as "
+		"tar, bz2, gz, deb, rpm and other UNIX / Linux / OSX extensions.";
+	save = FALSE;
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
 #endif /* !USE_TOPLESS */
 /* vi: set ts=4: */

@@ -4896,4 +4896,37 @@ prop = {
 	};
 };
 
+prop = {
+	name = "search_smart_stop";
+	desc = "When set, gtk-gnutella will automatically stop opened searches "
+		"from which all the requested downloads have been completed, "
+		"regardless of the initially configured expiration time.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
+    name = "whats_new_search_max_results";
+    desc = "Maximum number of results to show in a What's New? request.";
+    type = guint32;
+    data = {
+        default = 10000;
+        min     = 100;
+        max     = 500000;
+    };
+};
+
+prop = {
+    name = "passive_search_max_results";
+    desc = "Maximum number of results to show in a passive search request.";
+    type = guint32;
+    data = {
+        default = 5000;
+        min     = 100;
+        max     = 500000;
+    };
+};
+
 /* vi: set ts=4: */

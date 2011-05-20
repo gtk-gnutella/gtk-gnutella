@@ -680,6 +680,12 @@ guc_search_get_reissue_timeout(gnet_search_t sh)
 	return search_get_reissue_timeout(sh);
 }
 
+unsigned
+guc_search_get_media_type(gnet_search_t sh)
+{
+	return search_get_media_type(sh);
+}
+
 void
 guc_search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
 {
@@ -746,11 +752,29 @@ guc_search_is_frozen(gnet_search_t sh)
 	return search_is_frozen(sh);
 }
 
+gboolean
+guc_search_is_whats_new(gnet_search_t sh)
+{
+	return search_is_whats_new(sh);
+}
+
+void
+guc_search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1)
+{
+	search_associate_sha1(sh, sha1);
+}
+
+GSList *
+guc_search_associated_sha1(gnet_search_t sh)
+{
+	return search_associated_sha1(sh);
+}
+
 enum search_new_result
-guc_search_new(gnet_search_t *ptr, const char *query,
+guc_search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 	time_t create_time, guint lifetime, guint32 reissue_timeout, guint32 flags)
 {
-	return search_new(ptr, query,
+	return search_new(ptr, query, mtype,
 				create_time, lifetime, reissue_timeout, flags);
 }
 

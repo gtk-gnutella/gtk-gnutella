@@ -42,11 +42,12 @@ typedef guint32 gnet_search_t;
  * Flags for search_new()
  */
 enum {
-	SEARCH_F_PASSIVE 	= 1 << 0,	/**< Start a passive ssearch */
-	SEARCH_F_ENABLED 	= 1 << 1,	/**< Start an enabled search */
-	SEARCH_F_BROWSE		= 1 << 2,	/**< Start a browse-host search */
+	SEARCH_F_WHATS_NEW 	= 1 << 5,	/**< Start a "What's new?" search */
+	SEARCH_F_LOCAL		= 1 << 4,	/**< Search in local files */
 	SEARCH_F_LITERAL	= 1 << 3,	/**< Don't parse the query string */
-	SEARCH_F_LOCAL		= 1 << 4	/**< Search in local files */
+	SEARCH_F_BROWSE		= 1 << 2,	/**< Start a browse-host search */
+	SEARCH_F_ENABLED 	= 1 << 1,	/**< Start an enabled search */
+	SEARCH_F_PASSIVE 	= 1 << 0	/**< Start a passive ssearch */
 };
 
 /*
@@ -187,8 +188,20 @@ enum search_new_result {
 	SEARCH_NEW_SUCCESS,
 	SEARCH_NEW_TOO_LONG,
 	SEARCH_NEW_TOO_SHORT,
+	SEARCH_NEW_TOO_EARLY,
 	SEARCH_NEW_INVALID_URN
 };
+
+/**
+ * Media type flags that can be specified in the GGEP "M" key of queries.
+ */
+#define SEARCH_AUDIO_TYPE	0x0004
+#define SEARCH_VIDEO_TYPE	0x0008
+#define SEARCH_DOC_TYPE		0x0010
+#define SEARCH_IMG_TYPE		0x0020
+#define SEARCH_WIN_TYPE		0x0040
+#define SEARCH_LINUX_TYPE	0x0080
+#define SEARCH_TORRENT_TYPE	0x0100	/* Broken as deployed on 2011-05-15 */
 
 /*
  * Search public interface, visible only from the bridge.
@@ -196,7 +209,7 @@ enum search_new_result {
 
 #ifdef CORE_SOURCES
 
-enum search_new_result search_new(gnet_search_t *ptr, const char *,
+enum search_new_result search_new(gnet_search_t *ptr, const char *, unsigned,
 			time_t create_time, guint lifetime, guint32 timeout, guint32 flags);
 void search_close(gnet_search_t);
 
@@ -218,12 +231,14 @@ gboolean search_is_expired(gnet_search_t);
 gboolean search_is_frozen(gnet_search_t);
 gboolean search_is_local(gnet_search_t);
 gboolean search_is_passive(gnet_search_t);
+gboolean search_is_whats_new(gnet_search_t sh);
 
 void search_set_reissue_timeout(gnet_search_t, guint32 timeout);
 guint32 search_get_reissue_timeout(gnet_search_t);
 guint search_get_lifetime(gnet_search_t);
 time_t search_get_create_time(gnet_search_t);
 void search_set_create_time(gnet_search_t, time_t);
+unsigned search_get_media_type(gnet_search_t);
 
 void search_free_alt_locs(gnet_record_t *);
 
@@ -243,6 +258,10 @@ void search_status_change_listener_remove(search_status_change_listener_t);
 
 void search_request_listener_add(search_request_listener_t);
 void search_request_listener_remove(search_request_listener_t);
+
+void search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1);
+void search_dissociate_sha1(const struct sha1 *sha1);
+GSList *search_associated_sha1(gnet_search_t sh);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_search_h_ */

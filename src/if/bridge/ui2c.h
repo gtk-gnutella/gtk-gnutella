@@ -209,6 +209,7 @@ time_t guc_search_get_create_time(gnet_search_t);
 void guc_search_set_create_time(gnet_search_t, time_t);
 guint32 guc_search_get_reissue_timeout(gnet_search_t);
 void guc_search_set_reissue_timeout(gnet_search_t, guint32 timeout);
+unsigned guc_search_get_media_type(gnet_search_t);
 
 const char *guc_search_query(gnet_search_t);
 
@@ -218,9 +219,13 @@ gboolean guc_search_is_expired(gnet_search_t);
 gboolean guc_search_is_frozen(gnet_search_t);
 gboolean guc_search_is_local(gnet_search_t);
 gboolean guc_search_is_passive(gnet_search_t);
+gboolean guc_search_is_whats_new(gnet_search_t sh);
+
+void guc_search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1);
+GSList *guc_search_associated_sha1(gnet_search_t sh);
 
 enum search_new_result guc_search_new(gnet_search_t *ptr, const char *query,
-	time_t create_time, guint lifetime,
+	unsigned mtype, time_t create_time, guint lifetime,
 	guint32 reissue_timeout, guint32 flags);
 gboolean guc_search_browse(gnet_search_t,
 	const char *hostname, host_addr_t addr, guint16 port,

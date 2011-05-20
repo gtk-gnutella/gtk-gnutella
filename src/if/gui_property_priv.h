@@ -158,6 +158,12 @@ extern const gboolean gui_property_variable_progressbar_bws_dht_in_visible;
 extern const gboolean gui_property_variable_progressbar_bws_dht_out_visible;
 extern const gboolean gui_property_variable_progressbar_bws_dht_in_avg;
 extern const gboolean gui_property_variable_progressbar_bws_dht_out_avg;
+extern const gboolean gui_property_variable_search_media_type_audio;
+extern const gboolean gui_property_variable_search_media_type_video;
+extern const gboolean gui_property_variable_search_media_type_document;
+extern const gboolean gui_property_variable_search_media_type_image;
+extern const gboolean gui_property_variable_search_media_type_windows;
+extern const gboolean gui_property_variable_search_media_type_unix;
 
 
 prop_set_t *gui_prop_init(void);

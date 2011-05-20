@@ -61,7 +61,7 @@ void guess_init(void);
 void guess_close(void);
 
 guess_t *guess_create(gnet_search_t sh,
-	const struct guid *muid, const char *query,
+	const struct guid *muid, const char *query, unsigned mtype,
 	guess_query_cb_t cb, void *arg);
 void guess_cancel(guess_t **gq_ptr, gboolean callback);
 void guess_end_when_starving(guess_t *gq);

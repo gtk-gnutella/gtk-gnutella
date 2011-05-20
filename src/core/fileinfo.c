@@ -47,26 +47,26 @@ RCSID("$Id$")
 #include <math.h>		/* For fabs() */
 
 #include "fileinfo.h"
-#include "file_object.h"
-#include "sockets.h"
-#include "downloads.h"
-#include "uploads.h"
-#include "hosts.h"
-#include "routing.h"
-#include "routing.h"
-#include "gmsg.h"
 #include "bsched.h"
-#include "huge.h"
 #include "dmesh.h"
-#include "search.h"
-#include "guid.h"
-#include "share.h"
-#include "settings.h"
-#include "nodes.h"
-#include "namesize.h"
-#include "http.h"					/* For http_range_t */
+#include "downloads.h"
+#include "file_object.h"
 #include "gdht.h"
+#include "gmsg.h"
+#include "guid.h"
+#include "hosts.h"
+#include "http.h"					/* For http_range_t */
+#include "huge.h"
+#include "namesize.h"
+#include "nodes.h"
 #include "publisher.h"
+#include "routing.h"
+#include "routing.h"
+#include "search.h"
+#include "settings.h"
+#include "share.h"
+#include "sockets.h"
+#include "uploads.h"
 
 #include "lib/atoms.h"
 #include "lib/ascii.h"
@@ -6420,6 +6420,9 @@ file_info_purge(fileinfo_t *fi)
 	 	*/
 
 		g_assert(0 == fi->refcount);
+
+		if (fi->sha1 != NULL)
+			search_dissociate_sha1(fi->sha1);
 
 		file_info_unlink(fi);
 		file_info_hash_remove(fi);

@@ -324,6 +324,18 @@ gboolean gui_property_variable_progressbar_bws_dht_in_avg     = TRUE;
 static const gboolean gui_property_variable_progressbar_bws_dht_in_avg_default = TRUE;
 gboolean gui_property_variable_progressbar_bws_dht_out_avg     = TRUE;
 static const gboolean gui_property_variable_progressbar_bws_dht_out_avg_default = TRUE;
+gboolean gui_property_variable_search_media_type_audio     = FALSE;
+static const gboolean gui_property_variable_search_media_type_audio_default = FALSE;
+gboolean gui_property_variable_search_media_type_video     = FALSE;
+static const gboolean gui_property_variable_search_media_type_video_default = FALSE;
+gboolean gui_property_variable_search_media_type_document     = FALSE;
+static const gboolean gui_property_variable_search_media_type_document_default = FALSE;
+gboolean gui_property_variable_search_media_type_image     = FALSE;
+static const gboolean gui_property_variable_search_media_type_image_default = FALSE;
+gboolean gui_property_variable_search_media_type_windows     = FALSE;
+static const gboolean gui_property_variable_search_media_type_windows_default = FALSE;
+gboolean gui_property_variable_search_media_type_unix     = FALSE;
+static const gboolean gui_property_variable_search_media_type_unix_default = FALSE;
 
 static prop_set_t *gui_property;
 
@@ -2371,6 +2383,108 @@ gui_prop_init(void) {
     gui_property->props[111].type               = PROP_TYPE_BOOLEAN;
     gui_property->props[111].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_dht_out_avg_default;
     gui_property->props[111].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_dht_out_avg;
+
+
+    /*
+     * PROP_SEARCH_MEDIA_TYPE_AUDIO:
+     *
+     * General data:
+     */
+    gui_property->props[112].name = "search_media_type_audio";
+    gui_property->props[112].desc = _("Remote nodes supporting media type filtering will apply your query specifically on their audio files.");
+    gui_property->props[112].ev_changed = event_new("search_media_type_audio_changed");
+    gui_property->props[112].save = FALSE;
+    gui_property->props[112].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[112].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[112].data.boolean.def   = (void *) &gui_property_variable_search_media_type_audio_default;
+    gui_property->props[112].data.boolean.value = (void *) &gui_property_variable_search_media_type_audio;
+
+
+    /*
+     * PROP_SEARCH_MEDIA_TYPE_VIDEO:
+     *
+     * General data:
+     */
+    gui_property->props[113].name = "search_media_type_video";
+    gui_property->props[113].desc = _("Remote nodes supporting media type filtering will apply your query specifically on their video files.");
+    gui_property->props[113].ev_changed = event_new("search_media_type_video_changed");
+    gui_property->props[113].save = FALSE;
+    gui_property->props[113].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[113].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[113].data.boolean.def   = (void *) &gui_property_variable_search_media_type_video_default;
+    gui_property->props[113].data.boolean.value = (void *) &gui_property_variable_search_media_type_video;
+
+
+    /*
+     * PROP_SEARCH_MEDIA_TYPE_DOCUMENT:
+     *
+     * General data:
+     */
+    gui_property->props[114].name = "search_media_type_document";
+    gui_property->props[114].desc = _("Remote nodes supporting media type filtering will apply your query specifically on their document files. Document files are XML, HTML, Word, PDF, etc...");
+    gui_property->props[114].ev_changed = event_new("search_media_type_document_changed");
+    gui_property->props[114].save = FALSE;
+    gui_property->props[114].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[114].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[114].data.boolean.def   = (void *) &gui_property_variable_search_media_type_document_default;
+    gui_property->props[114].data.boolean.value = (void *) &gui_property_variable_search_media_type_document;
+
+
+    /*
+     * PROP_SEARCH_MEDIA_TYPE_IMAGE:
+     *
+     * General data:
+     */
+    gui_property->props[115].name = "search_media_type_image";
+    gui_property->props[115].desc = _("Remote nodes supporting media type filtering will apply your query specifically on their image files.");
+    gui_property->props[115].ev_changed = event_new("search_media_type_image_changed");
+    gui_property->props[115].save = FALSE;
+    gui_property->props[115].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[115].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[115].data.boolean.def   = (void *) &gui_property_variable_search_media_type_image_default;
+    gui_property->props[115].data.boolean.value = (void *) &gui_property_variable_search_media_type_image;
+
+
+    /*
+     * PROP_SEARCH_MEDIA_TYPE_WINDOWS:
+     *
+     * General data:
+     */
+    gui_property->props[116].name = "search_media_type_windows";
+    gui_property->props[116].desc = _("Remote nodes supporting media type filtering will apply your query specifically on their Windows archive / program files such as ZIP or EXE files and other Windows-centric extensions.");
+    gui_property->props[116].ev_changed = event_new("search_media_type_windows_changed");
+    gui_property->props[116].save = FALSE;
+    gui_property->props[116].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[116].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[116].data.boolean.def   = (void *) &gui_property_variable_search_media_type_windows_default;
+    gui_property->props[116].data.boolean.value = (void *) &gui_property_variable_search_media_type_windows;
+
+
+    /*
+     * PROP_SEARCH_MEDIA_TYPE_UNIX:
+     *
+     * General data:
+     */
+    gui_property->props[117].name = "search_media_type_unix";
+    gui_property->props[117].desc = _("Remote nodes supporting media type filtering will apply your query specifically on their UNIX archive / program files such as tar, bz2, gz, deb, rpm and other UNIX / Linux / OSX extensions.");
+    gui_property->props[117].ev_changed = event_new("search_media_type_unix_changed");
+    gui_property->props[117].save = FALSE;
+    gui_property->props[117].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[117].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[117].data.boolean.def   = (void *) &gui_property_variable_search_media_type_unix_default;
+    gui_property->props[117].data.boolean.value = (void *) &gui_property_variable_search_media_type_unix;
 
     gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {

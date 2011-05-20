@@ -85,6 +85,7 @@ ggept_status_t ggept_utf8_string_extract(const extvec_t *, char *b, size_t l);
 guint ggept_filesize_encode(guint64 filesize, char *data);
 guint ggept_du_encode(guint32 uptime, char *data);
 guint ggept_ct_encode(time_t stamp, char *data);
+guint ggept_m_encode(guint32 mtype, char *data);
 
 #endif	/* _core_ggep_type_h_ */
 

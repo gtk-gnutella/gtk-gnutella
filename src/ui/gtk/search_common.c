@@ -205,24 +205,51 @@ search_gui_is_enabled(const search_t *search)
 }
 
 static gboolean
+search_gui_is_of_type(const search_t *search, unsigned flag,
+	gboolean (*is_of_type)(gnet_search_t))
+{
+	g_assert(search != NULL);
+	g_assert(flag != 0);
+	g_assert(is_of_type != NULL);
+
+	if (0 == (search->cached_attributes & flag)) {
+		gboolean value = (*is_of_type)(search->search_handle);
+		search_t *ws = deconstify_gpointer(search);
+
+		ws->cached_attributes |= flag;
+		if (value)
+			ws->attributes |= flag;
+	}
+
+	return booleanize(search->attributes & flag);
+}
+
+static gboolean
 search_gui_is_browse(const search_t *search)
 {
-	g_assert(search);
-	return guc_search_is_browse(search->search_handle);
+	return search_gui_is_of_type(search,
+		SEARCH_GUI_F_BROWSE, guc_search_is_browse);
 }
 
 static gboolean
 search_gui_is_local(const search_t *search)
 {
-	g_assert(search);
-	return guc_search_is_local(search->search_handle);
+	return search_gui_is_of_type(search,
+		SEARCH_GUI_F_LOCAL, guc_search_is_local);
 }
 
 static gboolean
 search_gui_is_passive(const search_t *search)
 {
-	g_assert(search);
-	return guc_search_is_passive(search->search_handle);
+	return search_gui_is_of_type(search,
+		SEARCH_GUI_F_PASSIVE, guc_search_is_passive);
+}
+
+static gboolean
+search_gui_is_whats_new(const search_t *search)
+{
+	return search_gui_is_of_type(search,
+		SEARCH_GUI_F_WHATS_NEW, guc_search_is_whats_new);
 }
 
 static void
@@ -570,7 +597,48 @@ search_gui_close_search(search_t *search)
 }
 
 /**
- * Create a new search and start it. Use default reissue timeout.
+ * Reset all media type flags, so that the next search bear no specific
+ * media type flag.
+ */
+void
+search_gui_media_type_clear(void)
+{
+	gui_prop_set_boolean_val(PROP_SEARCH_MEDIA_TYPE_AUDIO, FALSE);
+	gui_prop_set_boolean_val(PROP_SEARCH_MEDIA_TYPE_VIDEO, FALSE);
+	gui_prop_set_boolean_val(PROP_SEARCH_MEDIA_TYPE_DOCUMENT, FALSE);
+	gui_prop_set_boolean_val(PROP_SEARCH_MEDIA_TYPE_IMAGE, FALSE);
+	gui_prop_set_boolean_val(PROP_SEARCH_MEDIA_TYPE_WINDOWS, FALSE);
+	gui_prop_set_boolean_val(PROP_SEARCH_MEDIA_TYPE_UNIX, FALSE);
+}
+
+/**
+ * Compute media type flag to use for next search based on current media
+ * type configuration.
+ */
+static unsigned
+search_configured_media_type(void)
+{
+	unsigned mask = 0;
+
+	if (GUI_PROPERTY(search_media_type_audio))
+		mask |= SEARCH_AUDIO_TYPE;
+	if (GUI_PROPERTY(search_media_type_video))
+		mask |= SEARCH_VIDEO_TYPE;
+	if (GUI_PROPERTY(search_media_type_document))
+		mask |= SEARCH_DOC_TYPE;
+	if (GUI_PROPERTY(search_media_type_image))
+		mask |= SEARCH_IMG_TYPE;
+	if (GUI_PROPERTY(search_media_type_windows))
+		mask |= SEARCH_WIN_TYPE;
+	if (GUI_PROPERTY(search_media_type_unix))
+		mask |= SEARCH_LINUX_TYPE;
+
+	return mask;
+}
+
+/**
+ * Create a new search and start it. Use default reissue timeout and the
+ * current media type filtering.
  *
  * @note `*search' may be set to NULL even on success. You have to check this
  *		 explicitely.
@@ -586,7 +654,9 @@ search_gui_new_search(const gchar *query, guint32 flags, search_t **search)
 	if (!(SEARCH_F_PASSIVE & flags))
 		query = lazy_ui_string_to_utf8(query);
 
-    ret = search_gui_new_search_full(query, tm_time(),
+    ret = search_gui_new_search_full(query,
+			search_configured_media_type(),
+			tm_time(),
 			GUI_PROPERTY(search_lifetime), timeout,
 			GUI_PROPERTY(search_sort_default_column),
 			GUI_PROPERTY(search_sort_default_order),
@@ -1369,15 +1439,14 @@ on_spinbutton_adjustment_value_changed(GtkAdjustment *unused_adj, gpointer data)
 	}
 }
 
+/**
+ * Create a new search with currenly selected filter.
+ */
 static void
-on_button_search_passive_clicked(GtkButton *unused_button,
-	gpointer unused_udata)
+search_gui_create_search_with_filter(const char *name, guint32 flags)
 {
     filter_t *default_filter;
 	search_t *search;
-
-	(void) unused_button;
-	(void) unused_udata;
 
     /*
      * We have to capture the selection here already, because
@@ -1387,7 +1456,7 @@ on_button_search_passive_clicked(GtkButton *unused_button,
     default_filter = option_menu_get_selected_data(GTK_OPTION_MENU(
 					gui_main_window_lookup("optionmenu_search_filter")));
 
-	search_gui_new_search(_("Passive"), SEARCH_F_PASSIVE, &search);
+	search_gui_new_search(name, flags, &search);
 
     /*
      * If we should set a default filter, we do that.
@@ -1404,6 +1473,36 @@ on_button_search_passive_clicked(GtkButton *unused_button,
         search->filter->ruleset = g_list_append(search->filter->ruleset, rule);
         rule->target->refcount++;
     }
+}
+
+static void
+on_button_search_passive_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	search_gui_create_search_with_filter(_("Passive"), SEARCH_F_PASSIVE);
+}
+
+static void
+on_button_search_whats_new_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	search_gui_create_search_with_filter(_("What's New?"), SEARCH_F_WHATS_NEW);
+}
+
+static void
+on_button_search_media_type_any_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	search_gui_media_type_clear();
 }
 
 static gboolean
@@ -1507,7 +1606,7 @@ search_gui_check_alt_locs(record_t *rc)
 }
 
 void
-search_gui_download(record_t *rc)
+search_gui_download(record_t *rc, gnet_search_t sh)
 {
 	const results_set_t *rs;
 	guint32 flags = 0;
@@ -1522,6 +1621,7 @@ search_gui_download(record_t *rc)
 
 	if (rc->sha1) {
 		uri = NULL;
+		guc_search_associate_sha1(sh, rc->sha1);
 	} else {
 		uri = g_strdup_printf("/get/%lu/%s", (gulong) rc->file_index, rc->name);
 	}
@@ -1729,6 +1829,12 @@ search_matched(search_t *sch, results_set_t *rs)
 
 	if (search_gui_is_browse(sch)) {
 		gnet_prop_get_guint32_val(PROP_BROWSE_HOST_MAX_RESULTS, &max_results);
+	} else if (search_gui_is_whats_new(sch)) {
+		gnet_prop_get_guint32_val(PROP_WHATS_NEW_SEARCH_MAX_RESULTS,
+			&max_results);
+	} else if (search_gui_is_passive(sch)) {
+		gnet_prop_get_guint32_val(PROP_PASSIVE_SEARCH_MAX_RESULTS,
+			&max_results);
 	} else {
 		gnet_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_results);
 	}
@@ -1841,7 +1947,7 @@ search_matched(search_t *sch, results_set_t *rs)
 				0 == spam_score &&
 				FILTER_PROP_STATE_DO == filter_download
 		   ) {
-				search_gui_download(rc);
+				search_gui_download(rc, sch->search_handle);
 				if (SR_DOWNLOADED & rc->flags) {
 					sch->auto_downloaded++;
 				}
@@ -2482,7 +2588,7 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 			_("Still scanning for shared file, results may be inconclusive."));
 	}
 
-	success = search_gui_new_search_full(text, tm_time(), 0, 0,
+	success = search_gui_new_search_full(text, tm_time(), 0, 0, 0,
 			GUI_PROPERTY(search_sort_default_column),
 			GUI_PROPERTY(search_sort_default_order),
 			SEARCH_F_LOCAL | SEARCH_F_LITERAL | SEARCH_F_ENABLED,
@@ -2731,7 +2837,7 @@ search_gui_filter_new(search_t *sch, GList *rules)
 }
 
 gboolean
-search_gui_new_search_full(const gchar *query_str,
+search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	time_t create_time, guint lifetime, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, guint32 flags, search_t **search_ptr)
 {
@@ -2759,7 +2865,7 @@ search_gui_new_search_full(const gchar *query_str,
 	g_assert(query);
 	g_assert(query->text);
 	
-	result = guc_search_new(&sch_id, query->text, create_time, lifetime,
+	result = guc_search_new(&sch_id, query->text, mtype, create_time, lifetime,
 				reissue_timeout, flags);
 	if (SEARCH_NEW_SUCCESS != result) {
 		statusbar_gui_warning(5, "%s", search_new_error_to_string(result));
@@ -3140,7 +3246,7 @@ search_gui_new_browse_host(
 		host_and_port = g_strdup(host_port_to_string(hostname, addr, port));
 	}
 
-	(void) search_gui_new_search_full(host_and_port, tm_time(), 0, 0,
+	(void) search_gui_new_search_full(host_and_port, tm_time(), 0, 0, 0,
 			 	GUI_PROPERTY(search_sort_default_column),
 				GUI_PROPERTY(search_sort_default_order),
 			 	SEARCH_F_BROWSE | SEARCH_F_ENABLED, &search);
@@ -3192,7 +3298,8 @@ search_gui_duplicate_search(search_t *search)
     /* FIXME: should properly duplicate passive searches. */
 
 	search_gui_new_search_full(search_gui_query(search),
-		tm_time(), GUI_PROPERTY(search_lifetime),
+		tm_time(), search_gui_media_type(search),
+		GUI_PROPERTY(search_lifetime),
 		timeout, search->sort_col, search->sort_order,
 		search_gui_is_enabled(search) ? SEARCH_F_ENABLED : 0, NULL);
 }
@@ -3557,6 +3664,14 @@ search_gui_query(const search_t *search)
 	g_assert(search);
 	return guc_search_query(search->search_handle);
 }
+
+unsigned
+search_gui_media_type(const search_t *search)
+{
+	g_assert(search);
+	return guc_search_get_media_type(search->search_handle);
+}
+
 
 const gchar *
 search_gui_nice_size(const record_t *rc)
@@ -3959,6 +4074,9 @@ search_new_error_to_string(enum search_new_result result)
 	case SEARCH_NEW_TOO_SHORT:
 		msg = _("The normalized search text is too short.");
 		break;
+	case SEARCH_NEW_TOO_EARLY:
+		msg = _("One cannot send \"What's New?\" queries too often.");
+		break;
 	case SEARCH_NEW_INVALID_URN:
 		msg = _("The URN in the search text is invalid.");
 		break;
@@ -4130,6 +4248,8 @@ search_gui_signals_init(void)
 	WIDGET_SIGNAL_CONNECT(button_search_download, clicked);
 	WIDGET_SIGNAL_CONNECT(button_search_filter, clicked);
 	WIDGET_SIGNAL_CONNECT(button_search_passive, clicked);
+	WIDGET_SIGNAL_CONNECT(button_search_whats_new, clicked);
+	WIDGET_SIGNAL_CONNECT(button_search_media_type_any, clicked);
 	WIDGET_SIGNAL_CONNECT(entry_search, activate);
 	WIDGET_SIGNAL_CONNECT(entry_search, changed);
 	WIDGET_SIGNAL_CONNECT(notebook_search_results, switch_page);
