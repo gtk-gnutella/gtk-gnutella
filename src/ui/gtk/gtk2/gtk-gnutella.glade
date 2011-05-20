@@ -2740,7 +2740,7 @@ http://maxmind.com/</property>
 			  <property name="yscale">1</property>
 			  <property name="top_padding">0</property>
 			  <property name="bottom_padding">0</property>
-			  <property name="left_padding">12</property>
+			  <property name="left_padding">2</property>
 			  <property name="right_padding">0</property>
 
 			  <child>
@@ -2985,14 +2985,14 @@ http://maxmind.com/</property>
 			  <property name="yscale">1</property>
 			  <property name="top_padding">0</property>
 			  <property name="bottom_padding">0</property>
-			  <property name="left_padding">12</property>
+			  <property name="left_padding">2</property>
 			  <property name="right_padding">0</property>
 
 			  <child>
 			    <widget class="GtkHBox" id="hbox9348">
 			      <property name="visible">True</property>
 			      <property name="homogeneous">False</property>
-			      <property name="spacing">4</property>
+			      <property name="spacing">2</property>
 
 			      <child>
 				<widget class="GtkOptionMenu" id="option_menu_search_lifetime">
@@ -3057,7 +3057,7 @@ http://maxmind.com/</property>
 		      </child>
 		    </widget>
 		    <packing>
-		      <property name="padding">4</property>
+		      <property name="padding">2</property>
 		      <property name="expand">False</property>
 		      <property name="fill">True</property>
 		    </packing>
