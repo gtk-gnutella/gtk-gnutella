@@ -7357,7 +7357,7 @@ node_parse(struct gnutella_node *n)
 		rudp_handle_packet(n->addr, n->port,
 			n->socket->buf, n->size + GTA_HEADER_SIZE);
 #endif
-		return;
+		goto reset_header;
 	default:
 		break;
 	}
