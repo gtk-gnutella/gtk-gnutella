@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2011-05-10 19:00+0200\n"
-"PO-Revision-Date: 2011-05-20 16:20+0100\n"
+"PO-Revision-Date: 2011-05-20 16:41+0100\n"
 "Last-Translator: Jeroen Asselman <j.asselman@rubicongroup.biz>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -445,7 +445,7 @@ msgid "Waiting"
 msgstr "Aan het wachten"
 
 msgid "Querying DHT"
-msgstr "DHT wordt bevraagd"
+msgstr "DHT wordt gequeryd"
 
 msgid "Pending DHT query"
 msgstr "In afwachting van DHT query"
@@ -523,16 +523,16 @@ msgid "TX flow control"
 msgstr "TX flow control"
 
 msgid "Query text had no trailing NUL"
-msgstr "Zoek text bevatte geen afsluittende NULL"
+msgstr "Query tekst bevatte geen afsluitende NUL"
 
 msgid "Query text too short"
-msgstr "Zoek text te kort"
+msgstr "Query tekst te kort"
 
 msgid "Query had unnecessary overhead"
-msgstr "Zoek opdracht had onnodige bagage"
+msgstr "Query had onnodige bagage"
 
 msgid "Query had bad URN"
-msgstr "Verzoek had onjuiste URN"
+msgstr "Query had onjuiste URN"
 
 msgid "Message with malformed SHA1"
 msgstr "Bericht met ongeldige SHA1"
@@ -541,7 +541,7 @@ msgid "Message with malformed UTF-8"
 msgstr "Bericht met ongeldige UTF-8"
 
 msgid "Malformed Query Hit"
-msgstr "Zoek resultaat ongeldig"
+msgstr "Query Hit ongeldig"
 
 msgid "Bad return address"
 msgstr "Fout antwoord adres."
@@ -577,10 +577,10 @@ msgid "Blank Servent ID"
 msgstr "Leeg Servent ID"
 
 msgid "GUESS Query missing token"
-msgstr "GUESS verzoek mist token"
+msgstr "GUESS Query mist token"
 
 msgid "GUESS Invalid query token"
-msgstr "GUESS ongeldige verzoek token"
+msgstr "GUESS ongeldige query token"
 
 msgid "DHT Invalid security token"
 msgstr "DHT ongeldige security token"
@@ -868,7 +868,7 @@ msgid "<Browse Host Request> [%s%s%s]"
 msgstr "<Browse host verzoek> [%s%s%s]"
 
 msgid "query hits"
-msgstr "zoek resultaten"
+msgstr "query hits"
 
 msgid ", deflate"
 msgstr ", deflate"
@@ -1072,7 +1072,7 @@ msgid "Whether the connection bandwidth reported to other hosts should be comput
 msgstr "Of de bandbreedte die gerapporteerd wordt naar andere hosts berekend moet worden op basis van de huidige gemiddelde upload snelheid. De gerapporteerde snelheid is de beschikbare snelheid voor een nieuwe upload, niet het theoretische geconfigureerde maximum: het is de gemiddelde bandbreedte (of de maximum geconfigureerde bandbreedte als er nog geen verkeer is) gedeeld door het aantal upload slots. Als deze optie aan staat (aanbevolen instelling) dan wordt de geconfigureerde bandbreedte niet gebruikt."
 
 msgid "Return at most this number of results to a query, using as many query hit packets as necessary.  To avoid network flooding, keep this to a reasonable value."
-msgstr "Maximaal dit aantal resultaten terug sturen bij een zoek opdracht, door gebruik te maken van zoveel zoekresultaten pakketten als nodig is. Laat dit op een redelijke waarde om netwerk 'flooding' te voorkomen."
+msgstr "Maximaal dit aantal resultaten terug sturen bij een query, door gebruik te maken van zoveel zoekresultaten pakketten als nodig is. Laat dit op een redelijke waarde om netwerk 'flooding' te voorkomen."
 
 msgid "Unless this percentage or more of the upload bandwidth is used, allow additional upload slots."
 msgstr "Sta aanvullende uploads toe zolang dit percentage van de bandbreedte niet is gebruikt."
@@ -1150,13 +1150,13 @@ msgid "Maximum percentage of time over 5 minutes that our node can remain in flo
 msgstr "Maximale percentage over 5 minuten tijd dat deze node in flow control modus mag blijven bij een remote host voordat de connectie wordt verbroken. Dit zal echter alleen werken als de remote node waarmee we verbonden zijn hops-flow berichten stuurt op het moment dat we worden geflow-controlled."
 
 msgid "Maximum TTL we allow in messages we broadcast.  If a query comes in with a TTL greater than that, it will be trimmed down to that value.  On Gnutella, the standard is TTL=4, so you cannot set a value lower than that."
-msgstr "Maximale TTL waardie die wordt toegestaan in berichten die worden gebroadcast. Als een bericht binnen komt met een TTL groter dan deze waarde, dan zal die waarde worden aangepast naar deze waarde. Op Gnutella is de TTL waarde standaard 4 en kan daar niet lager dan 4 worden gezet."
+msgstr "Maximale TTL waardie die wordt toegestaan in berichten die worden gebroadcast. Als een query binnenkomt met een TTL groter dan deze waarde, dan zal die waarde worden aangepast naar deze waarde. Op Gnutella is de TTL waarde standaard 4 en kan daar niet lager dan 4 worden gezet."
 
 msgid "The TTL we use in messages we generate.  The default on Gnutella is TTL=4.  If you set it to too large a value, you run the risk of being trimmed down by fellow gtk-gnutella nodes, or kicked out by some other servent."
 msgstr "De TTL waarde die gebruikt zal worden in berichten die verstuurd worden. De standaard op Gnutella is een TTL van 4. Als je deze waarde te hoog zet loop je het risico dat deze waarden naar beneden wordt bijgesteld door een andere gtk-gnutella node, of dat je wordt verwijderd door een andere servent."
 
 msgid "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be greater than the standard TTL=4, because it is also applied to routed-back messages (query hits) that could be re-routed in case a connection is lost.  Standard broadcasted messages have their TTL limited by the maximum TTL you configure, and that limit should be much lower than the value of this parameter."
-msgstr "Maximale harde TTL limiet (hops + TTL) voor berichten die we doorsturen. Deze moet groter zijn dan de standaard TTL waarde van 4, omdat deze ook van toepassing is op berichten die terug worden gestuurd (zoekresultaten). Standaard gebroadcaste berichten hebben hun TTL gelimiteerd met de maximum TTL die je hebt ingesteld, en die limiet moet een stuk lager zijn dan deze waarde."
+msgstr "Maximale harde TTL limiet (hops + TTL) voor berichten die we doorsturen. Deze moet groter zijn dan de standaard TTL waarde van 4, omdat deze ook van toepassing is op berichten (query hits) die terug worden gestuurd. Standaard gebroadcastte berichten hebben hun TTL gelimiteerd met de maximum TTL die je hebt ingesteld, en die limiet moet een stuk lager zijn dan deze waarde."
 
 msgid "For development use: debug level."
 msgstr "Voor ontwikkeling: debug level."
@@ -1207,7 +1207,7 @@ msgid "Verbosity of URL handling related debug messages."
 msgstr "Detail level voor URL afhandeling gerelateerde debug berichten."
 
 msgid "Debug level for dynamic query hit routing."
-msgstr "Debug level voor de dynamische zoekresultaten routering."
+msgstr "Debug level voor de dynamische query hit routering."
 
 msgid "Debug level for dynamic queries."
 msgstr "Debug level voor de dynamische zoekopdrachten."
@@ -1225,7 +1225,7 @@ msgid "Debug level for the UDP traffic layer."
 msgstr "Debug level voor de UDP verkeerslaag."
 
 msgid "Debug level for the Query Routing Protocol."
-msgstr "Debug level voor de zoekopdrachten routering protocol (QRP)."
+msgstr "Debug level voor de Query Routing Protocol."
 
 msgid "Debug level for message routing."
 msgstr "Debug level voor de berichting routering."
@@ -1474,16 +1474,16 @@ msgid "Kademlia Unique IDentifier of this node in the DHT."
 msgstr "Kademlia Unique IDentifier van deze node in de DHT."
 
 msgid "Whether or not to use swarming (recommended = YES)."
-msgstr "Of er wel of geen gebruik moet worden gebruikt van 'swarming' (aangeraden)."
+msgstr "Of er wel of geen gebruik moet worden gebruikt van swarming (aanbevolen)."
 
 msgid "Whether or not to launch competing downloads when swarming and there are many sources available with a few chunks left."
 msgstr "Of er wel niet meerdere downloads tegelijk voor één segment moeten worden gestart als er nog maar een klein beetje gedaan moet worden."
 
 msgid "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will download less if you only have a few bytes to get for a file..."
-msgstr "Maximale fragment grootte tijdens zwermen. Dit is alleen een indicatie voor gtk-gnutella, aangezien er minder bytes gedownload zullen worden als er minder nodig zijn voor een bestand."
+msgstr "Maximale fragment grootte tijdens swarming. Dit is alleen een indicatie voor gtk-gnutella, aangezien er minder bytes gedownload zullen worden als er minder nodig zijn voor een bestand."
 
 msgid "Maximum chunk size when swarming."
-msgstr "Maximale fragment grootte tijdens zwemmen."
+msgstr "Maximale fragment grootte tijdens swarming."
 
 msgid "Whether or not to automatically queue search results that match a file in the download queue."
 msgstr "Of er wel niet automatisch zoekresultaten die overeenkomen met een download moeten worden toegevoegd aan de download wachtrij."
@@ -1630,7 +1630,7 @@ msgid "The hostname of the server that can be used by downloaders to find the IP
 msgstr "De naam van de server die gebruikt kan worden door downloaders om het IP adres via DNS te vinden.  Als je een dynamisch IP-adres hebt dat gekoppeld is aan de dynamische DNS services, dan is dit waardevol voor downloaders: zij kunnen dan jouw node vinden zelfs na een paar veranderingen van je IP adres."
 
 msgid "Whether gtk-gnutella should advertise the hostname of your server to downloaders and in query hits."
-msgstr "Of gtk-gnutella de hostname van je server bekend moet maken aan downloaders en in zoek resultaten."
+msgstr "Of gtk-gnutella de hostname van je server bekend moet maken aan downloaders en in query hits."
 
 msgid "Percentage of the number of connections we should reserve for gtk-gnutella nodes."
 msgstr "Percentage van het aantal verbindingen dat we zullen reserveren voor gtk-gnutella nodes."
@@ -1684,7 +1684,7 @@ msgid "Whether we meet the UDP requirements to become an Ultra node."
 msgstr "Of we aan de UDP vereisten voldoen om een Ultra node te worden."
 
 msgid "Size of the search queue holding the locally generated queries before they are sent on a given connection.  When full, the oldest query is dropped without being sent.  Set it so that it is slightly larger than the amount of opened searches."
-msgstr "De grootte van de zoekopdrachten wachtrij die de lokaal gegenereerde zoekopdrachten bevat voordat deze naar een specifieke verbinding gestuurd worden.  Als de wachtrij vol is wordt de oudste zoekopdracht verwijderd zonder verzonden te zijn. Zet de grootte zo dat het een beetje groter is dan het aantal geopende zoekopdrachten."
+msgstr "De grootte van de zoekopdrachten wachtrij die de lokaal gegenereerde zoekopdrachten bevat voordat deze naar een specifieke verbinding gestuurd worden.  Als de wachtrij vol is wordt de oudste query verwijderd zonder verzonden te zijn. Zet de grootte zo dat het een beetje groter is dan het aantal geopende zoekopdrachten."
 
 msgid "Minimum amount of seconds between two consecutive queries sent to a given connection (for locally generated queries only!). The larger the value, the less negative impact it has on the network."
 msgstr "Minimum aantal seconden tussen twee opeenvolgende zoekopdrachten die naar een bepaalde verbinding gestuurd worden (alleen voor lokaal gegenereerde zoekopdrachten!). Hoe groter de waarde, hoe kleiner de negatieve impact het heeft op het netwerk."
@@ -1699,13 +1699,13 @@ msgid "Amount of seconds to leave 'dead' entries around so that they can still b
 msgstr "Aantal seconden dat 'dode' items blijven staan zodat ze in de GUI zichtbaar zijn met de status waarmee ze gestopt zijn."
 
 msgid "Whether gtk-gnutella should actively monitor query strings by TTL and hop count and drop duplicates.  Only applies when not running as a leaf node, and only for queries with hop count > 0, i.e. not from our immediate neighbor.  Dropped queries will be accounted for in the 'Message throttle' counter."
-msgstr "Of gtk-gnutella actief moet letten op zoekopdrachten op basis van TTL en aantal hops en het laten vallen van duplicaten.  Alleen relevant als we geen leaf node zijn en alleen voor zoekopdrachten met een aantal hops > 0, oftewel niet van onze directe buren.  Zoekopdrachten die we laten vallen worden geteld in de 'Message throttle' teller."
+msgstr "Of gtk-gnutella actief moet letten op query strings op basis van TTL en aantal hops en het laten vallen van duplicaten.  Alleen relevant als we geen leaf node zijn en alleen voor zoekopdrachten met een aantal hops > 0, oftewel niet van onze directe buren.  Zoekopdrachten die we laten vallen worden geteld in de 'Message throttle' teller."
 
 msgid "Half the duration during which gtk-gnutella should remember the recently relayed queries by TTL and hop count.  The default value of 5 should be just fine, but you can experiment with different settings if you want.  The higher it is set, the more likely you are to drop legitimate queries, so be careful."
 msgstr "De halve tijd waarin gtk-gnutella de recentelijke doorgestuurde zoekopdrachten moet herinneren aan de TTL en de hop count.  De standaard waarde van 5 zou precies goed moeten zijn, maar je kunt met verschillende instellingen experimenteren als je wilt.  Hoe hoger de waarde is, hoe waarschijnlijker het is dat je legitieme zoekopdrachten laat vallen, pas dus goed op."
 
 msgid "The minimum amount of seconds to enforce between two identical queries from leaf nodes.  If the requery too early, it is dropped and accounted for in the 'Message throttle' counter.  Too frequent requeries are harmful for the network, yet we must allow some amount of requerying given the dynamic nature of Gnutella connections.  You can't disable this checking, but you can lower the constraint significantly. Deviations from the default of 1700 have exponential effects on the network traffic."
-msgstr "Het minimum aantal seconden dat nodig is tussen twee identieke zoekopdrachten van een leaf node.  Als de zoekopdracht te snel opnieuw komt komt deze te vervallen en wordt deze geteld in de 'Message throttle' teller.  Te frequente zoekopdrachten zijn schadelijk voor het netwerk, hoewel we wel opnieuw gestuurde zoekopdrachten moeten toestaan gegeven de dynamische natuur van Gnutella verbindingen.  Je kunt deze optie niet uitzetten, maar je kunt de beperking aanmerkelijk lager zetten. Afwijkingen van de standaard instelling van 1700 hebben een exponentieel effect op het netwerk verkeer."
+msgstr "Het minimum aantal seconden dat nodig is tussen twee identieke zoekopdrachten van een leaf node.  Als de re-query te snel opnieuw komt komt deze te vervallen en wordt deze geteld in de 'Message throttle' teller.  Te frequente zoekopdrachten zijn schadelijk voor het netwerk, hoewel we wel opnieuw gestuurde zoekopdrachten moeten toestaan gegeven de dynamische natuur van Gnutella verbindingen.  Je kunt deze optie niet uitzetten, maar je kunt de beperking aanmerkelijk lager zetten. Afwijkingen van de standaard instelling van 1700 hebben een exponentieel effect op het netwerk verkeer."
 
 msgid "Time at which we started the last scan of the library."
 msgstr "De tijd waarop we de laatste scan van de bibliotheek gestart hebben."
@@ -1726,7 +1726,7 @@ msgid "Memory used by the QRP tables"
 msgstr "Geheugen gebruikt door de QRP tabellen"
 
 msgid "Time at which we started query routing table generation."
-msgstr "Tijd waarop we gestart zijn met het genereren van de zoekopdracht routeer tabel."
+msgstr "Tijd waarop we gestart zijn met het genereren van de query routeer tabel."
 
 msgid "Time spent computing the QRP table, in seconds."
 msgstr "Tijd gebruikt voor het berekenen van de QRP tabel, in seconden."
@@ -1738,7 +1738,7 @@ msgid "Time spent computing the QRP table patch, in seconds."
 msgstr "De tijd die gebruikt is voor het berekenen van de QRP aanpassingen, in seconden."
 
 msgid "Query routing table generation number."
-msgstr "Generatienummer van de zoekopdrachtenrouteringstabel"
+msgstr "Generatienummer van de queryrouteringstabel"
 
 msgid "Amount of slots used by our QRP table."
 msgstr "Hoeveelheid slots in gebruik in onze QRP tabel."
@@ -1753,7 +1753,7 @@ msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
 msgstr "Percentage van 'hashing' conflicten tijdens het invoegen van data in onze QRP tabel."
 
 msgid "Amount of hashed keywords in our QRP table."
-msgstr "Aantal 'hashed' sleutelwoorden in onze QRP tabel."
+msgstr "Aantal gehashte sleutelwoorden in onze QRP tabel."
 
 msgid "Total raw size of the QRP table patch, in bytes."
 msgstr "Totale ruwe grootte van de QRP tabelaanpassingen, in bytes."
@@ -1792,13 +1792,13 @@ msgid "Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella w
 msgstr "Of naast TCP ook UDP gebruikt kan worden. Indien geactiveerd zal gtk-gnutella ook voor UDP verkeer luisteren op dezelfde poort zoals ingesteld bij TCP. Ontvangen verkeer zal net zoals bij TCP behandeld worden. Het is veilig om dit actief te laten, wat tevens de standaard waarde is."
 
 msgid "Whether gtk-gnutella should honor the request for out-of-band delivery of query hits via UDP, provided UDP support is enabled.  It should not be necessary to add a port forwarding to enable this as your node will be the origin of the UDP traffic and can therefore receive replies sent to the transient UDP port opened by a masquerading firewall.  It is enabled by default because it is deemed safe, as your node controls the bulk of the emitted traffic and honors the bandwidth limitations."
-msgstr "Of gtk-gnutella out-of-band verzoeken voor zoek resultaten via UDP moet toestaan indien UDP ondersteuning is ingeschakeld. De firewall hoeft hier niet speciaal voor te worden ingesteld aangezien jouw node de bron is van het UDP verkeer. Dit is standaard aan aangezien dit als veilig wordt geacht, dit doordat jouw node bepaalt hoeveel verkeer er wordt verstuurd, tevens wordt de bandbreedte limiet gehandhaaft."
+msgstr "Of gtk-gnutella out-of-band verzoeken voor query hits via UDP moet toestaan indien UDP ondersteuning is ingeschakeld. De firewall hoeft hier niet speciaal voor te worden ingesteld aangezien jouw node de bron is van het UDP verkeer. Dit is standaard aan aangezien dit als veilig wordt geacht, dit doordat jouw node bepaalt hoeveel verkeer er wordt verstuurd, tevens wordt de bandbreedte limiet gehandhaaft."
 
 msgid "Whether gtk-gnutella should send queries requesting out-of-band delivery of query hits via UDP.  The setting is ignored if you seem to be UDP-firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable UDP support first.  This can cause the reception of vast quantities of UDP replies, so you may choose to disable this feature.  If disabled, your hits will travel through the Gnutella network and can be dropped by any flow-controlled relaying node, limiting the results you can get."
-msgstr "Of gtk-gnutella zoek opdrachten moet versturen met daarin het verzoek voor een out-of-band bezorging van zoek resultaten via UDP. Deze instelling is genegeerd als het erop lijkt dat je bent afgeschermd voor ongesoliciteerd UDP verkeer. UDP ondersteuning dient eerst te worden geactiveerd. Dit kan als gevolg hebben dat je veel UDP antwoorden krijgt, om die reden zou je ervoor te kunnen kiezen het uit te schakelen. Indien uitgeschakeld, dan zullen resultaten via het Gnutella netwerk binnen komen, deze kunnen worden verwijderd door een node die in flow-control mode staat. Daardoor kan het aantal resultaten verminderen."
+msgstr "Of gtk-gnutella zoek opdrachten moet versturen met daarin het verzoek voor een out-of-band bezorging van query hits via UDP. Deze instelling is genegeerd als het erop lijkt dat je bent afgeschermd voor ongesoliciteerd UDP verkeer. UDP ondersteuning dient eerst te worden geactiveerd. Dit kan als gevolg hebben dat je veel UDP antwoorden krijgt, om die reden zou je ervoor te kunnen kiezen het uit te schakelen. Indien uitgeschakeld, dan zullen resultaten via het Gnutella netwerk binnen komen, deze kunnen worden verwijderd door een node die in flow-control mode staat. Daardoor kan het aantal resultaten verminderen."
 
 msgid "Whether gtk-gnutella should, when running as ultrapeer, act as proxy for leaf queries that are not requesting OOB delivery of query hits: gtk-gnutella will claim the hits from the remote nodes and forward the hits to the proper leaf.  This is very beneficial for the leaves, but can cause huge bursts of UDP traffic coming back to you.  If you disable it all ultrapeers connected to you will have to relay the hits, possibly dropping other query messages and lowering the efficiency of the search network."
-msgstr "Of gtk-gnutella, indien in ultrapeer mode, als proxy dient te fungeren voor leaf zoek opdrachten die geen OOB resultaten verzoeken. gtk-gnutella doet alsof deze de resultaten wilt ontvangen en stuurt ze vervolgens alsnog door naar de correcte leaf-node. Dit is positief voor de leaf-nodes, maar kan er voor zorgen dat jouw ultrapeer veel UDP verkeer te verwerken krijgt. Indien je dit uitzet, dan moeten dan andere ultrapeers de resultaten doorsturen, mogelijk worden hierdoor resultaten en opdrachten verwijderd waardoor het netwerk minder efficient opereert."
+msgstr "Of gtk-gnutella, indien in ultrapeer mode, als proxy dient te fungeren voor leaf query's die geen OOB query hits verzoeken. gtk-gnutella doet alsof deze de resultaten wilt ontvangen en stuurt ze vervolgens alsnog door naar de correcte leaf-node. Dit is positief voor de leaf-nodes, maar kan er voor zorgen dat jouw ultrapeer veel UDP verkeer te verwerken krijgt. Indien je dit uitzet, dan moeten dan andere ultrapeers de resultaten doorsturen, mogelijk worden hierdoor resultaten en opdrachten verwijderd waardoor het netwerk minder efficient opereert."
 
 msgid "Whether uploads are frequently stalling, indicating that the bandwidth is saturated.  Avoid running as an ultra-node under those conditions."
 msgstr "Of uploads vaak stil staan, dit kan er op duiden dat de bandbreedte verzadigd is. Draai in dit geval niet als ultra-node."
@@ -1831,7 +1831,7 @@ msgid "The average CPU usage indicates overloading, so gtk-gnutella is reducing 
 msgstr "Het gemiddelde CPU verbruik duidt op te zware belasting, gtk-gnutella vermindert het verbruikt van niet kritische taken. Een te zware belasting kan komen doordat een ander proces meer CPU nodig heeft en gtk-gnutella daardoor te weinig krijgt. Zolang deze overbelasting actief is, dan wordt het bijwerken van de GUI vermindert en achtergrond taken (SHA1 berekenen, bestanden verplaatsen) worden gepauzeerd."
 
 msgid "Amount of data per downloading source that gtk-gnutella will buffer before writing to disk.  When swarming from many sources, a larger value will help avoid using too many system calls and should also reduce the fragmentation on the filesystem.  The downside is that it uses more memory per active source.  Use 0 to disable all buffering, i.e. have gtk-gnutella write to disk as soon as it receives some data. Increase to maximum value if you have RAM."
-msgstr "De hoeveelheid data per bron die aan het downloaden is dat gtk-gnutella zal bufferen voordat het naar de schijf wordt geschreven. Wanneer er gebruik wordt gemaakt van zwermen met veel bronnen dan zou dit ook fragmentatie van het bestandssysteem moeten tegengaan. De keerzijde is dat dit meer geheugen gebruikt per actieve bron. Om dit uit te zetten, kier hier 0, data wordt dan weggeschreven op het moment dat het wordt ontvangen. Zet dit op zijn maximale waarde als e genoeg RAM hebt."
+msgstr "De hoeveelheid data per bron die aan het downloaden is dat gtk-gnutella zal bufferen voordat het naar de schijf wordt geschreven. Wanneer er gebruik wordt gemaakt van swarming met veel bronnen dan zou dit ook fragmentatie van het bestandssysteem moeten tegengaan. De keerzijde is dat dit meer geheugen gebruikt per actieve bron. Om dit uit te zetten, kier hier 0, data wordt dan weggeschreven op het moment dat het wordt ontvangen. Zet dit op zijn maximale waarde als e genoeg RAM hebt."
 
 msgid "When set, all search results from host browsing are dispatched to all opened passive searches.  This is useful if you have different selection filters on your passive searches because it lets you classify files easily, regardless of the origin of the files."
 msgstr "Als ingeschakeld dan worden alle zoekresultaten van host browsing worden doorgegeven aan alle geopende passieve zoekopdrachten. Dit kan handig zijn als je verschillende selectie filters op de passieve zoekopdrachten hebt ingesteld zodat je bestanden makkelijk kan onderscheiden, ongeacht waar de bestanden vandaan komen."
@@ -1949,10 +1949,10 @@ msgid "Debug level for DHT node lookups."
 msgstr "Debug level voor de DHT node lookups."
 
 msgid "Debug level for DHT key/value storage."
-msgstr "Debug level voor de DHT key/value opslag."
+msgstr "Debug level voor de DHT sleutel/waarde opslag."
 
 msgid "Debug level for DHT key/value publishing."
-msgstr "Debug level voor de DHT key/value publishing."
+msgstr "Debug level voor de DHT sleutel/waarde publiceren."
 
 msgid "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for limiting concurrent publishing and searching.  Traffic is made on the Gnutella UDP socket. Output needs are lower than input (between 3 to 5 times less). The larger the numbers, the more values can be looked up concurrently, but the more bandwidth is used."
 msgstr "Bandbreedte hint voor DHT user lookups in bytes/sec. Wordt gebruikt om concurrent publishing en zoeken te limiteren. Het verkeer wordt gegenereerd over de Gnutella UDP socket. De uitgaande behoefte is lager dan de input (een factor 3 tot 5 minder). Hoe hoger de getallen, des te meer waardes er tegelijkertijd kunnen worden opgezocht, maar er wordt dan ook meer bandbreedte gebruikt."
@@ -2229,7 +2229,7 @@ msgid "The current Session ID.  This is a unique ID generated each time gtk-gnut
 msgstr "Huidige sessie ID. Dit is een uniek ID, elke keer gegenereerd als gtk-gnutella start en kan worden gecontroleerd via de shell interface om te controleren of gtk-gnutella opnieuw is opgestart sinds de laatste check."
 
 msgid "Whether gtk-gnutella should serve partial files which are rare on the network to increase their spreading rate.  It is good for the health of the network to always leave this enabled. This setting supersedes the disabling of global partial file sharing for rare files only."
-msgstr "Of gtk-gnutella, voor het netwerk zelfdzame, gedeeltelijke bestanden moet serveren om de verspreidingskans te vergroten. Het is goed voor de welzijn van het netwerk om dit altijd ingeschakeld te laten. Deze instelling vervangt het het uitschakelen van de globale partial bestands deling voor zeldzame bestanden."
+msgstr "Of gtk-gnutella, voor het netwerk zeldzame, gedeeltelijke bestanden moet serveren om de verspreidingskans te vergroten. Het is goed voor de welzijn van het netwerk om dit altijd ingeschakeld te laten. Deze instelling vervangt het het uitschakelen van de globale partial bestands deling voor zeldzame bestanden."
 
 msgid "Whether the Gnutella UDP Extension for Scalable Searches (GUESS) client side should be enabled, so that gtk-gnutella can indeed issue iterative Ultrapeer queries instead of just broadcasting them. If enabled, it requires general GUESS support enabled as well or it will simply be ignored."
 msgstr "Of de Gnutella UDP Extension for Scalable Searches (GUESS) client-side moet worden ingeschakeld zodat gtk-gnutella iteratieve Ultrapeer query's kan versturen in plaats van gewoon te broadcasten. Het vereist dat de algemene GUESS ondersteuning ook is ingeschakeld als dit wordt ingeschakeld, anders wordt dit genegeerd."
@@ -2244,7 +2244,7 @@ msgid "by words"
 msgstr "op woorden"
 
 msgid "by whole query"
-msgstr "op hele zoekopdracht"
+msgstr "op hele query"
 
 msgid "by router"
 msgstr "per router"
@@ -2286,10 +2286,10 @@ msgid "Push"
 msgstr "Push"
 
 msgid "Query"
-msgstr "Zoekopdracht"
+msgstr "Query"
 
 msgid "Query Hit"
-msgstr "Zoek resultaat"
+msgstr "Query Hit"
 
 msgid "DHT Ping"
 msgstr "DHT Ping"
@@ -2613,10 +2613,10 @@ msgid "Whether count of received queries should be displayed."
 msgstr "Of het aantal ontvangen zoekopdrachten getoond moet worden."
 
 msgid "Whether count of transmitted query hits should be displayed."
-msgstr "Of het aantal verzonden zoekresultaten getoond moet worden."
+msgstr "Of het aantal verzonden query hits getoond moet worden."
 
 msgid "Whether count of received query hits should be displayed."
-msgstr "Of het aantal ontvangen zoekresultaten getoond moet worden."
+msgstr "Of het aantal ontvangen query hits getoond moet worden."
 
 msgid "Whether count of locally generated queries should be displayed."
 msgstr "Of het aantal lokaal gegenereerde zoekopdrachten getoond moet worden."
@@ -3542,10 +3542,10 @@ msgid "Good bye"
 msgstr "Tot ziens"
 
 msgid "Query string missing"
-msgstr "Zoek text mist"
+msgstr "Query string mist"
 
 msgid "Query string is not UTF-8 encoded"
-msgstr "Zoek tekst is niet UTF-8 geëncodeerd"
+msgstr "Query string is niet UTF-8 geëncodeerd"
 
 msgid "Search added"
 msgstr "Zoek opdracht toegevoegd"
@@ -4048,7 +4048,7 @@ msgid "RETURN"
 msgstr "TERUG"
 
 msgid "Query hit"
-msgstr "Zoekresultaat"
+msgstr "Query hit"
 
 msgid "DHT (truncated)"
 msgstr "DHT (ingekort)"
@@ -4084,22 +4084,22 @@ msgid "Hits on local DB"
 msgstr "Zoek resultaten tegen lokale DB"
 
 msgid "Query hits received for local queries"
-msgstr "Resultaten ontvangen voor lokale opdrachten"
+msgstr "Query hits ontvangen voor lokale opdrachten"
 
 msgid "Query hits received for OOB-proxied queries"
-msgstr "Resultaten ontvangen voor OOB geproxiede opdrachten"
+msgstr "Query hits ontvangen voor OOB geproxiede opdrachten"
 
 msgid "Queries requesting OOB hit delivery"
-msgstr "Opdrachten die OOB bezorging verzoeken"
+msgstr "Query hits die OOB bezorging verzoeken"
 
 msgid "Stripped OOB flag on queries"
-msgstr "De OOB vlag verwijderd van opdrachten"
+msgstr "De OOB vlag verwijderd van query's"
 
 msgid "Duplicate OOB-proxied queries"
-msgstr "Dubbele OOB geproxiede opdrachten"
+msgstr "Dubbele OOB geproxyde query's"
 
 msgid "OOB hits received for OOB-proxied queries"
-msgstr "OOB resultaat ontvangen voor OOB geproxiede opdrachten"
+msgstr "OOB resultaat ontvangen voor OOB geproxyde query's"
 
 msgid "OOB hits bearing alien IP address"
 msgstr "OOB resultaten welke een vreemd IP-adres dragen"
@@ -4450,13 +4450,13 @@ msgid "DHT nodes rejected during lookup based on frequency divergence"
 msgstr "DHT nodes geweigerd tijdens lookup op basis van frequentie divergentie"
 
 msgid "DHT keys held"
-msgstr "DHT keys vastgehouden"
+msgstr "DHT sleutels vastgehouden"
 
 msgid "DHT cached keys held"
-msgstr "DHT cached keys vastgehouden"
+msgstr "DHT gecachte sleutels vastgehouden"
 
 msgid "DHT values held"
-msgstr "DHT values vastgehouden"
+msgstr "DHT waardes in bezit"
 
 msgid "DHT cached KUID targets held"
 msgstr "DHT gecachte KUID doelen in bezit"
@@ -4498,7 +4498,7 @@ msgid "DHT returned expanded values"
 msgstr "DHT geretourneerde geëxpandeerde waardes"
 
 msgid "DHT returned values as secondary keys"
-msgstr "DHT geretourneerde waardes als secundaire keys"
+msgstr "DHT geretourneerde waardes als secundaire sleutels"
 
 msgid "DHT claimed values via secondary keys"
 msgstr "DHT waardes via secundaire sleutels geclaimed"
@@ -4507,7 +4507,7 @@ msgid "DHT returned cached expanded values"
 msgstr "DHT geretourneerde gecachte geëxpandeerde waardes"
 
 msgid "DHT returned cached values as secondary-keys"
-msgstr "DHT geretourneerde gecachte values als secundaire keys"
+msgstr "DHT geretourneerde gecachte waardes als secundaire sleutels"
 
 msgid "DHT claimed cached values via secondary keys"
 msgstr "DHT gecachte waardes via secundaire sleutels geclaimd"
@@ -5075,7 +5075,7 @@ msgid "Downloaded:"
 msgstr "Gedownload:"
 
 msgid "Downloading from multiple sources (swarming)"
-msgstr "Download van meerdere bronnen tegelijk (zwermen)"
+msgstr "Download van meerdere bronnen tegelijk (swarming)"
 
 msgid "Downloads"
 msgstr "Downloads"
@@ -5376,7 +5376,7 @@ msgid "Last switch"
 msgstr "Laatste omschakeling"
 
 msgid "Leaf requery threshold"
-msgstr "Drempel voor opnieuw zoeken van leafs"
+msgstr "Drempel voor opnieuw queryen van leafs"
 
 msgid "Leaf traffic"
 msgstr "Leaf verkeer"
@@ -5572,7 +5572,7 @@ msgid "Other"
 msgstr "Anders"
 
 msgid "Out of Band Querying"
-msgstr "Out of Band (OOB) zoeken"
+msgstr "Out of Band Querying"
 
 msgid "Outgoing traffic to lea_ves"
 msgstr "Uitgaand verkeer naar lea_ves"
@@ -5602,7 +5602,7 @@ msgid "Pending local queries"
 msgstr "Wachtende lokale zoekopdrachten"
 
 msgid "People can connect to you via TCP, but you are UDP-firewalled.  However, you can punch a hole into that firewall, allowing reception of replies to your UDP packets.  You will be able to send out-of-band query hits, but you won't be able to receive any."
-msgstr "Mensen kunnen met je verbinden via TCP, maar je bent afgeschermd voor UDP verkeer. Er kan echter een gat in de firewall worden gemaakt waardoor het ontvangen van antwoorden van jouw UDP pakketen wel mogelijk is. Je kan wel OOB resultaten verzenden, maar je kan ze niet ontvangen."
+msgstr "Mensen kunnen met je verbinden via TCP, maar je bent afgeschermd voor UDP verkeer. Er kan echter een gat in de firewall worden gemaakt waardoor het ontvangen van antwoorden van jouw UDP pakketen wel mogelijk is. Je kan wel OOB query hits, maar je kan ze niet ontvangen."
 
 msgid "People can connect to you, using both TCP and UDP. Push should work and you will be able to receive out-of-band results for your queries."
 msgstr "Mensen kunnen zowel over TCP als over UDP met je verbinden. Push zou moeten werken en je bent ook in staat om OOB resultaten te ontvangen."
@@ -5680,7 +5680,7 @@ msgid "RX queries"
 msgstr "RX zoekopdrachten"
 
 msgid "RX query hits"
-msgstr "RX zoekresultaten"
+msgstr "RX query hits"
 
 msgid "RX speed"
 msgstr "RX snelheid"
@@ -5933,7 +5933,7 @@ msgid "Shows visual information on the download progress. Green chunks have been
 msgstr "Visuele weergave van de voortgang van de download. Groene fragmenten zijn gedowload, de licht groene fragmenten zijn gedownload tijdens deze sessie. Gele fragmentsen worden momenteel gedownload. Rode fragmenten zijn nog niet gedownload. De fragmenten die tijdens deze sessie op het netwerk zijn gezien worden weergegeven door de blauwe lijn."
 
 msgid "Similar query half-life"
-msgstr "Halfwaarde tijd van een identieke zoekopdracht"
+msgstr "Soortgelijke query halfwaardetijd"
 
 msgid ""
 "Size threshold\n"
@@ -5994,7 +5994,7 @@ msgid "TX queries"
 msgstr "TX zoekopdrachten"
 
 msgid "TX query hits"
-msgstr "TX zoekresultaten"
+msgstr "TX query hits"
 
 msgid "TX speed"
 msgstr "TX snelheid"
@@ -6151,13 +6151,13 @@ msgid "You appear to be TCP-firewalled, i.e. others cannot connect to you to dow
 msgstr "gtk-gnutella vermoed dat je achter een firewall zit. Niemand heeft tot nu toe een connectie kunnen maken. Er zullen geen push resultaten worden weergegeven, wat er toe kan leiden dat er een stuk minder resultaten weergegeven worden."
 
 msgid "You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic via UDP. You will not be able to send queries requesting out-of-band delivery of query hits."
-msgstr "gtk-gnutella vermoed dat je afgeschermd bent voor UDP, oftewel, je kan geen ongevraagd UDP verkeer ontvangen. Je kan geen opdrachten versturen met OOB verzoeken."
+msgstr "gtk-gnutella vermoed dat je afgeschermd bent voor UDP, oftewel, je kan geen ongevraagd UDP verkeer ontvangen. Je kan geen opdrachten versturen met query hits."
 
 msgid "You appear to be firewalled, both TCP-wise and UDP-wise. You will not see any push results, which may prevent you from seeing a large amount of results. You will not be able to send queries requesting out-of-band delivery of query hits. However, it is possible to punch a hole into the UDP firewall, so you will be able to send out-of-band query hits."
-msgstr "Het ziet er naar uit dat je voor zowel TCP als UDP bent afgeschermt. Je zal geen push resultaten zien wat je kan belemmeren grootte hoeveelheden resultaten te zien. Je zal niet in staat zijn om opdrachten met OOB verzoeken te sturen voor het ontvangen van resultaten. Het is echter mogelijk een gat te maken in je afscherming (firewall) so dat je wel OOB resultaten kan versturen."
+msgstr "Het ziet er naar uit dat je voor zowel TCP als UDP bent afgeschermt. Je zal geen push resultaten zien wat je kan belemmeren grootte hoeveelheden resultaten te zien. Je zal niet in staat zijn om opdrachten met OOB verzoeken te sturen voor query hits. Het is echter mogelijk een gat te maken in je afscherming (firewall) so dat je wel OOB resultaten kan versturen."
 
 msgid "You appear to be firewalled, both TCP-wise and UDP-wise. You will not see any push results, which may prevent you from seeing a large amount of results. You will not be able to send queries requesting out-of-band delivery of query hits."
-msgstr "gtk-gnutella vermoed dat je achter een firewall zit. Niemand heeft tot nu toe een connectie kunnen maken. Er zullen geen push resultaten worden weergegeven, wat er toe kan leiden dat er een stuk minder resultaten weergegeven worden."
+msgstr "gtk-gnutella vermoed dat u achter een firewall zit. Niemand heeft tot nu toe een connectie kunnen maken. Er zullen geen push resultaten worden weergegeven, wat er toe kan leiden dat er een stuk minder resultaten weergegeven worden. Het is voor u niet mogelijk om query's te verzenden welke een OOB vragen voor het afleveren van query hits."
 
 msgid "You seem to be offline."
 msgstr "Het ziet er naar uit dat u offline bent."
@@ -6462,7 +6462,7 @@ msgid "Enable upload of patial files deemed rare"
 msgstr "Upload zeldzame gedeeltelijke bestanden"
 
 msgid "Enable GUESS (additional querying)"
-msgstr "Gebruik GUESS (extra querying)"
+msgstr "Gebruik GUESS (extra queryen)"
 
 msgid "Issue GUESS queries as well"
 msgstr "Geef ook GUESS queries uit"
@@ -6498,7 +6498,7 @@ msgid "Not in database"
 msgstr "Niet in de database"
 
 msgid "Query queued..."
-msgstr "Opdracht in de wacht gezet..."
+msgstr "Query in de wacht gezet..."
 
 #, c-format
 msgid "Couldn't find pixmap file: %s"
@@ -6926,7 +6926,7 @@ msgid "Could not parse host address"
 msgstr "Kan host adres niet verwerken"
 
 msgid "The query string is not UTF-8 encoded"
-msgstr "De opdracht tekst is niet in UTF-8 gecodeerd"
+msgstr "De query string is niet in UTF-8 geëncodeerd"
 
 msgid "Unhandled search prefix."
 msgstr "Onverwerkte zoek prefix."
