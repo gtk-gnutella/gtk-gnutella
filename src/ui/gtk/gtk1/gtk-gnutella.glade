@@ -595,7 +595,7 @@
 	  <class>GtkHBox</class>
 	  <name>hbox2112</name>
 	  <homogeneous>False</homogeneous>
-	  <spacing>0</spacing>
+	  <spacing>2</spacing>
 	  <child>
 	    <padding>0</padding>
 	    <expand>True</expand>
@@ -736,7 +736,7 @@
 	      <class>GtkHBox</class>
 	      <name>hbox2113</name>
 	      <homogeneous>False</homogeneous>
-	      <spacing>0</spacing>
+	      <spacing>2</spacing>
 
 	      <widget>
 		<class>GtkOptionMenu</class>

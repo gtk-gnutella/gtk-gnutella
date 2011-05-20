@@ -1236,7 +1236,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox179), button_search_passive, FALSE, FALSE, 0);
   gtk_tooltips_set_tip (tooltips, button_search_passive, _("A passive search matches any search results routed through this node"), NULL);
 
-  hbox2112 = gtk_hbox_new (FALSE, 0);
+  hbox2112 = gtk_hbox_new (FALSE, 2);
   gtk_widget_set_name (hbox2112, "hbox2112");
   gtk_widget_ref (hbox2112);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox2112", hbox2112,
@@ -1325,7 +1325,7 @@ create_main_window (void)
   gtk_widget_show (frame157);
   gtk_box_pack_start (GTK_BOX (hbox2112), frame157, FALSE, FALSE, 0);
 
-  hbox2113 = gtk_hbox_new (FALSE, 0);
+  hbox2113 = gtk_hbox_new (FALSE, 2);
   gtk_widget_set_name (hbox2113, "hbox2113");
   gtk_widget_ref (hbox2113);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox2113", hbox2113,
