@@ -1688,7 +1688,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
  * successfully.
  */
 static void
-search_results_sanity_checks(const gnutella_node_t *n, gnet_results_set_t *rs)
+search_results_postprocess(const gnutella_node_t *n, gnet_results_set_t *rs)
 {
 	/*
 	 * Hits relayed through UDP are necessarily a response to a GUESS query.
@@ -2396,10 +2396,10 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	}
 
 	/*
-	 * Perform some sanity checks on the results.
+	 * At this point we finished processing of the query hit, successfully.
 	 */
 
-	search_results_sanity_checks(n, rs);
+	search_results_postprocess(n, rs);
 
 	/*
 	 * Refresh push-proxies if we're downloading anything from this server.
