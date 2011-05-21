@@ -322,6 +322,46 @@ gnet_host_vec_copy(const gnet_host_vec_t *vec)
 }
 
 /**
+ * Check whether the Gnutella host vector already contains the address:port.
+ *
+ * @return TRUE if the host vector already contains it.
+ */
+gboolean
+gnet_host_vec_contains(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
+{
+	size_t i;
+
+	g_return_val_if_fail(vec, FALSE);
+
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+		for (i = 0; i < vec->n_ipv4; i++) {
+			char *dest = cast_to_gpointer(&vec->hvec_v4[i]);
+			guint32 ip = peek_be32(&dest[0]);
+			guint16 pt = peek_le16(&dest[4]);
+
+			if (pt == port && host_addr_ipv4(addr) == ip)
+				return TRUE;
+		}
+		break;
+	case NET_TYPE_IPV6:
+		for (i = 0; i < vec->n_ipv6; i++) {
+			char *dest = cast_to_gpointer(&vec->hvec_v6[i]);
+			guint16 pt = peek_le16(&dest[16]);
+
+			if (pt == port && 0 == memcmp(dest, host_addr_ipv6(&addr), 16))
+				return TRUE;
+		}
+		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		break;
+	}
+
+	return FALSE;
+}
+
+/**
  * Add new host (identified by address and port) to the Gnutella host vector.
  */
 void

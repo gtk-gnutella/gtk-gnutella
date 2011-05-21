@@ -1373,6 +1373,20 @@ search_log_unknown_ggep(const gnutella_node_t *n,
 }
 
 /**
+ * Add synthetized push-proxy to the results.
+ */
+static void
+search_add_push_proxy(gnet_results_set_t *rs, host_addr_t addr, guint16 port)
+{
+	if (NULL == rs->proxies) {
+		rs->proxies = gnet_host_vec_alloc();
+	}
+	if (!gnet_host_vec_contains(rs->proxies, addr, port)) {
+		gnet_host_vec_add(rs->proxies, addr, port);
+	}
+}
+
+/**
  * Compute status bits, decompile trailer info, if present.
  *
  * @return TRUE if there were errors and the packet should be dropped.
@@ -1624,7 +1638,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		}
 	}
 
-	/**
+	/*
 	 * Check whether the results were actually requested.
 	 *
 	 * GUESS ultrapeers can forward hits from their leaves that they would
@@ -1639,10 +1653,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				rs->status |= ST_GOOD_TOKEN;
 			}
 			/* We can send PUSH requests directly, so add it as push proxy. */
-			if (NULL == rs->proxies) {
-				rs->proxies = gnet_host_vec_alloc();
-			}
-			gnet_host_vec_add(rs->proxies, n->addr, n->port);
+			search_add_push_proxy(rs, n->addr, n->port);
 		} else {
 			rs->status |= ST_UNREQUESTED | ST_FAKE_SPAM;
 			/* Count only as unrequested, not as fake spam */
@@ -1651,28 +1662,90 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			if (GNET_PROPERTY(search_debug) > 1) {
 				g_debug("received unrequested %squery hit from %s",
 					guess_is_search_muid(muid) ? "GUESS " : "",
-                	host_addr_port_to_string(n->addr, n->port));
+                	node_infostr(n));
 			}
 		}
 	}
 
-	/**
+	/*
 	 * If the peer has an IPv6 address, we can use that as push proxy, too.
 	 */
+
 	if (
 		has_ipv6_addr &&
 		rs->port > 0 &&
 		is_host_addr(ipv6_addr) &&
 		!hostiles_check(ipv6_addr)
 	) {
-		if (NULL == rs->proxies) {
-			rs->proxies = gnet_host_vec_alloc();
-		}
-		gnet_host_vec_add(rs->proxies, ipv6_addr, rs->port);
+		search_add_push_proxy(rs, ipv6_addr, rs->port);
 	}
+
 	return FALSE;	/* no errors */
 }
 
+/**
+ * Perform sanity checks on the result set once we have fully parsed it
+ * successfully.
+ */
+static void
+search_results_sanity_checks(const gnutella_node_t *n, gnet_results_set_t *rs)
+{
+	/*
+	 * Hits relayed through UDP are necessarily a response to a GUESS query.
+	 */
+
+	if (1 == rs->hops && (ST_UDP & rs->status)) {
+		const struct guid *muid = gnutella_header_get_muid(&n->header);
+
+		if (guess_is_search_muid(muid)) {
+			/*
+			 * The relaying ultrapeer is necessarily a push-proxy for the node.
+			 */
+			search_add_push_proxy(rs, n->addr, n->port);
+		} else {
+			search_results_mark_fake_spam(rs);
+
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_debug("received non-GUESS UDP query hit with hops=1 from %s",
+                	node_infostr(n));
+			}
+		}
+	}
+
+	/*
+	 * Hits sent through TCP with hops=2 (i.e. relayed by another ultrapeer)
+	 * have necessarily that ultrapeer as a possible push-proxy for the
+	 * remote host.
+	 */
+
+	if (2 == rs->hops) {
+		if (ST_UDP & rs->status) {
+			search_results_mark_fake_spam(rs);
+
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_debug("received UDP query hit with hops=2 from %s",
+                	node_infostr(n));
+			}
+		} else {
+			/*
+			 * The relaying node is an ultrapeer by construction, hence it
+			 * cannot be firewalled and has a direct connection to the
+			 * answering node => can act as a push-proxy.
+			 *
+			 * NOTE: we use the known Gnutella address/port, if known, and
+			 * not the connected address/port which may be different for an
+			 * incoming connection.
+			 */
+
+			if (host_address_is_usable(n->gnet_addr)) {
+				search_add_push_proxy(rs, n->gnet_addr, n->gnet_port);
+			} else {
+				search_add_push_proxy(rs, n->addr, n->port);
+			}
+		}
+	}
+}
+	
 /**
  * Parse Query Hit and extract the embedded records, plus the optional
  * trailing Query Hit Descritor (QHD).
@@ -2321,6 +2394,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		badmsg = "bad trailer";
 		goto bad_packet;		
 	}
+
+	/*
+	 * Perform some sanity checks on the results.
+	 */
+
+	search_results_sanity_checks(n, rs);
 
 	/*
 	 * Refresh push-proxies if we're downloading anything from this server.
