@@ -1214,7 +1214,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_search);
 
-  button_search_whats_new = gtk_button_new_with_label (_("What's new?"));
+  button_search_whats_new = gtk_button_new_with_label (_("What's New?"));
   gtk_widget_set_name (button_search_whats_new, "button_search_whats_new");
   gtk_widget_ref (button_search_whats_new);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_whats_new", button_search_whats_new,

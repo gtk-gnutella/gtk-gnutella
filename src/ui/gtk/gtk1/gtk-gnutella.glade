@@ -567,7 +567,7 @@
 	    <name>button_search_whats_new</name>
 	    <tooltip>Look for newest files shared by nodes in the network vicinity</tooltip>
 	    <can_focus>True</can_focus>
-	    <label>What's new?</label>
+	    <label>What's New?</label>
 	    <relief>GTK_RELIEF_NORMAL</relief>
 	    <child>
 	      <padding>0</padding>

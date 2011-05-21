@@ -1909,7 +1909,7 @@ create_main_window (void)
   gtk_widget_show (image2245);
   gtk_box_pack_start (GTK_BOX (hbox9349), image2245, FALSE, FALSE, 0);
 
-  label1067 = gtk_label_new_with_mnemonic (_("What's new?"));
+  label1067 = gtk_label_new_with_mnemonic (_("What's New?"));
   gtk_widget_set_name (label1067, "label1067");
   gtk_widget_show (label1067);
   gtk_box_pack_start (GTK_BOX (hbox9349), label1067, FALSE, FALSE, 0);

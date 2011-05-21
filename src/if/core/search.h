@@ -42,7 +42,7 @@ typedef guint32 gnet_search_t;
  * Flags for search_new()
  */
 enum {
-	SEARCH_F_WHATS_NEW 	= 1 << 5,	/**< Start a "What's new?" search */
+	SEARCH_F_WHATS_NEW 	= 1 << 5,	/**< Start a "What's New?" search */
 	SEARCH_F_LOCAL		= 1 << 4,	/**< Search in local files */
 	SEARCH_F_LITERAL	= 1 << 3,	/**< Don't parse the query string */
 	SEARCH_F_BROWSE		= 1 << 2,	/**< Start a browse-host search */

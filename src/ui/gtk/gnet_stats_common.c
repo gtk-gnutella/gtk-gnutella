@@ -131,7 +131,7 @@ general_type_str(gint value)
 		N_("Bytes saved by compacting"),
 		N_("UTF8 queries"),
 		N_("SHA1 queries"),
-		N_("\"What's new?\" queries"),
+		N_("\"What's New?\" queries"),
 		N_("GUESS queries"),
 		N_("GUESS cached query keys held"),
 		N_("GUESS locally generated queries"),
