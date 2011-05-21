@@ -10,10 +10,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-20 16:47+0200\n"
+"POT-Creation-Date: 2011-05-21 18:39+0200\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
+"Language: el\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -5409,8 +5410,9 @@ msgstr "ερωτήματα UTF8"
 msgid "SHA1 queries"
 msgstr "ερωτήματα SHA1"
 
-msgid "\"What's new?\" queries"
-msgstr ""
+#, fuzzy
+msgid "\"What's New?\" queries"
+msgstr "Δημιουργημένα ερωτήματα"
 
 #, fuzzy
 msgid "GUESS queries"
@@ -8115,15 +8117,14 @@ msgstr "_αυτόματη απόκρυψη στατιστικών δικτυακ
 msgid "_Search"
 msgstr "_Αναζήτηση"
 
+msgid "What's New?"
+msgstr ""
+
 msgid "Do not specify any media type (will match any kind of files remotely)"
 msgstr ""
 
 msgid "UNIX archives"
 msgstr ""
-
-#, fuzzy
-msgid "Seaerch Media Type"
-msgstr "Κριτήριο αναζήτησης"
 
 #, fuzzy
 msgid "CPU overloaded"
@@ -8484,9 +8485,6 @@ msgstr[1] ""
 
 msgid "Passive"
 msgstr "Παθητικός"
-
-msgid "What's New?"
-msgstr ""
 
 #, c-format
 msgid ""
@@ -8874,6 +8872,10 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
+
+#, fuzzy
+#~ msgid "Seaerch Media Type"
+#~ msgstr "Κριτήριο αναζήτησης"
 
 #~ msgid "Banned: %s"
 #~ msgstr "Απαγόρευση: %s"

@@ -10,10 +10,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-20 16:47+0200\n"
+"POT-Creation-Date: 2011-05-21 18:39+0200\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
+"Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -5512,8 +5513,9 @@ msgstr ""
 msgid "SHA1 queries"
 msgstr ""
 
-msgid "\"What's new?\" queries"
-msgstr ""
+#, fuzzy
+msgid "\"What's New?\" queries"
+msgstr "Query generate"
 
 #, fuzzy
 msgid "GUESS queries"
@@ -8216,15 +8218,14 @@ msgstr "_auto-nascondi statistiche traffico foglia"
 msgid "_Search"
 msgstr "_Cerca"
 
+msgid "What's New?"
+msgstr ""
+
 msgid "Do not specify any media type (will match any kind of files remotely)"
 msgstr ""
 
 msgid "UNIX archives"
 msgstr ""
-
-#, fuzzy
-msgid "Seaerch Media Type"
-msgstr "Termina ricerca"
 
 #, fuzzy
 msgid "CPU overloaded"
@@ -8569,8 +8570,8 @@ msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
 "TCP, %u UDP)"
 msgstr ""
-"%u %s (%u saltati, %u ignorati, %u nascosti, %u auto-d/l, %u %s) Tentativi: %"
-"u (%u TCP, %u UDP)"
+"%u %s (%u saltati, %u ignorati, %u nascosti, %u auto-d/l, %u %s) Tentativi: "
+"%u (%u TCP, %u UDP)"
 
 msgid "item"
 msgid_plural "items"
@@ -8584,9 +8585,6 @@ msgstr[1] "duplicati"
 
 msgid "Passive"
 msgstr "Passivo"
-
-msgid "What's New?"
-msgstr ""
 
 #, c-format
 msgid ""
@@ -8975,6 +8973,10 @@ msgstr "Invio coda, riconnessione..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Coda inviata, in attesa dei titoli"
+
+#, fuzzy
+#~ msgid "Seaerch Media Type"
+#~ msgstr "Termina ricerca"
 
 #~ msgid "Banned: %s"
 #~ msgstr "Esclusi: %s"

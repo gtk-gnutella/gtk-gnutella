@@ -10,10 +10,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-20 16:47+0200\n"
+"POT-Creation-Date: 2011-05-21 18:39+0200\n"
 "PO-Revision-Date: 2009-12-05 16:18+0800\n"
 "Last-Translator: Aron Xu <happyaron.xu@gmail.com>\n"
 "Language-Team: Chinese (Simplified) <i18n-zh@googlegroups.com>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -4954,8 +4955,9 @@ msgstr "UTF-8 查询"
 msgid "SHA1 queries"
 msgstr "SHA1 查询"
 
-msgid "\"What's new?\" queries"
-msgstr ""
+#, fuzzy
+msgid "\"What's New?\" queries"
+msgstr "已生成的查询"
 
 #, fuzzy
 msgid "GUESS queries"
@@ -7515,15 +7517,14 @@ msgstr "自动隐藏叶节点流量统计(_A)："
 msgid "_Search"
 msgstr "搜索(_S)"
 
+msgid "What's New?"
+msgstr ""
+
 msgid "Do not specify any media type (will match any kind of files remotely)"
 msgstr ""
 
 msgid "UNIX archives"
 msgstr ""
-
-#, fuzzy
-msgid "Seaerch Media Type"
-msgstr "搜索项目"
 
 #, fuzzy
 msgid "CPU overloaded"
@@ -7864,9 +7865,6 @@ msgstr[0] ""
 
 msgid "Passive"
 msgstr "被动"
-
-msgid "What's New?"
-msgstr ""
 
 #, c-format
 msgid ""
@@ -8223,6 +8221,10 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
+
+#, fuzzy
+#~ msgid "Seaerch Media Type"
+#~ msgstr "搜索项目"
 
 #~ msgid "Banned: %s"
 #~ msgstr "禁止：%s"

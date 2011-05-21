@@ -10,10 +10,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-20 16:47+0200\n"
+"POT-Creation-Date: 2011-05-21 18:39+0200\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
+"Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -5540,8 +5541,9 @@ msgstr "UTF-8-keresések"
 msgid "SHA1 queries"
 msgstr "SHA1-keresések"
 
-msgid "\"What's new?\" queries"
-msgstr ""
+#, fuzzy
+msgid "\"What's New?\" queries"
+msgstr "Generált keresések"
 
 #, fuzzy
 msgid "GUESS queries"
@@ -8322,15 +8324,14 @@ msgstr "gnet végpontforgalmi adatok rejtése"
 msgid "_Search"
 msgstr "_Keresés:"
 
+msgid "What's New?"
+msgstr ""
+
 msgid "Do not specify any media type (will match any kind of files remotely)"
 msgstr ""
 
 msgid "UNIX archives"
 msgstr ""
-
-#, fuzzy
-msgid "Seaerch Media Type"
-msgstr "Keresés"
 
 #, fuzzy
 msgid "CPU overloaded"
@@ -8700,9 +8701,6 @@ msgstr[1] ""
 
 msgid "Passive"
 msgstr "Passzív"
-
-msgid "What's New?"
-msgstr ""
 
 #, c-format
 msgid ""
@@ -9079,6 +9077,10 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#, fuzzy
+#~ msgid "Seaerch Media Type"
+#~ msgstr "Keresés"
 
 #~ msgid "Connecting"
 #~ msgstr "Kapcsolódás"

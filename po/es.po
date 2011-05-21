@@ -12,10 +12,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-20 16:47+0200\n"
+"POT-Creation-Date: 2011-05-21 18:39+0200\n"
 "PO-Revision-Date: 2009-03-27 00:04+0100\n"
 "Last-Translator: Larry Nieves <lnieves@315-web.com>\n"
 "Language-Team: Spanish <lanieves@gmail.com>\n"
+"Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -5418,8 +5419,9 @@ msgstr "Peticiones UTF8"
 msgid "SHA1 queries"
 msgstr "Peticiones SHA1"
 
-msgid "\"What's new?\" queries"
-msgstr ""
+#, fuzzy
+msgid "\"What's New?\" queries"
+msgstr "Peticiones generadas"
 
 #, fuzzy
 msgid "GUESS queries"
@@ -8068,15 +8070,14 @@ msgstr "Ocultar _automáticamente tráfico de nodos hoja"
 msgid "_Search"
 msgstr "_Buscar"
 
+msgid "What's New?"
+msgstr ""
+
 msgid "Do not specify any media type (will match any kind of files remotely)"
 msgstr ""
 
 msgid "UNIX archives"
 msgstr ""
-
-#, fuzzy
-msgid "Seaerch Media Type"
-msgstr "Término de búsqueda"
 
 #, fuzzy
 msgid "CPU overloaded"
@@ -8429,9 +8430,6 @@ msgstr[1] "duplicados"
 
 msgid "Passive"
 msgstr "Pasivo"
-
-msgid "What's New?"
-msgstr ""
 
 #, c-format
 msgid ""
@@ -8805,6 +8803,10 @@ msgstr "Enviando QUEUE, reconectando..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
+
+#, fuzzy
+#~ msgid "Seaerch Media Type"
+#~ msgstr "Término de búsqueda"
 
 #~ msgid "Can't reach host (Push or Direct)"
 #~ msgstr "No puedo alcanzar servidor (vía Push o Directo)"

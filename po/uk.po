@@ -10,10 +10,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-20 16:47+0200\n"
+"POT-Creation-Date: 2011-05-21 18:39+0200\n"
 "PO-Revision-Date: 2006-07-13 22:09-0400\n"
 "Last-Translator: Vitalik\n"
 "Language-Team:  <uk@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -4800,7 +4801,7 @@ msgstr ""
 msgid "SHA1 queries"
 msgstr ""
 
-msgid "\"What's new?\" queries"
+msgid "\"What's New?\" queries"
 msgstr ""
 
 msgid "GUESS queries"
@@ -7369,15 +7370,14 @@ msgstr "статистика Gnet трафіка"
 msgid "_Search"
 msgstr "Пошук"
 
+msgid "What's New?"
+msgstr ""
+
 msgid "Do not specify any media type (will match any kind of files remotely)"
 msgstr ""
 
 msgid "UNIX archives"
 msgstr ""
-
-#, fuzzy
-msgid "Seaerch Media Type"
-msgstr "Пошук додано"
 
 #, fuzzy
 msgid "CPU overloaded"
@@ -7717,9 +7717,6 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Passive"
-msgstr ""
-
-msgid "What's New?"
 msgstr ""
 
 #, c-format
@@ -8093,6 +8090,10 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#, fuzzy
+#~ msgid "Seaerch Media Type"
+#~ msgstr "Пошук додано"
 
 #~ msgid "Banned: %s"
 #~ msgstr "Забанено: %s"
