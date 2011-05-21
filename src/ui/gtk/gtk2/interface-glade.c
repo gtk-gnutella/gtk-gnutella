@@ -2025,7 +2025,7 @@ create_main_window (void)
   gtk_widget_show (checkbutton_config_search_media_type_unix);
   gtk_box_pack_start (GTK_BOX (hbox9346), checkbutton_config_search_media_type_unix, FALSE, FALSE, 0);
 
-  label1064 = gtk_label_new (_("Seaerch Media Type"));
+  label1064 = gtk_label_new (_("Search Media Type"));
   gtk_widget_set_name (label1064, "label1064");
   gtk_widget_show (label1064);
   gtk_frame_set_label_widget (GTK_FRAME (frame_search_media_type), label1064);
