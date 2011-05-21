@@ -7541,9 +7541,9 @@ reset_header:
 	n->pos = 0;
 	ext_reset(n->extvec, n->extcount);
 	n->extcount = 0;
-	search_request_info_free_null(&sri);
 
 clean_dest:
+	search_request_info_free_null(&sri);
 	if (dest.type == ROUTE_MULTI)
 		g_slist_free(dest.ur.u_nodes);
 }
