@@ -84,13 +84,29 @@ RCSID("$Id$")
 
 #include "lib/override.h"	/* Must be the last header included */
 
+/**
+ * Accumulated results (coming from the core) are kept around and flushed
+ * on a regular basis.
+ *
+ * Because filtering of records happens in the GUI but we need to inform
+ * the core about the amount of "kept" results, we tie each result to the MUID
+ * of the query that generated it.
+ *
+ * This allows to give accurate feedback to the number of results "kept" for
+ * a GUESS query.
+ */
+struct accum_rs {
+	const struct guid *muid;		/**< The query MUID (atom) */
+	results_set_t *rs;				/**< The GUI result set */
+};
+
 static GList *list_searches;	/**< List of search structs */
 
 static search_t *current_search; /**< The search currently displayed */
 
 static const gchar search_file[] = "searches"; /**< "old" file to searches */
 
-static slist_t *accumulated_rs;
+static slist_t *accumulated_rs;		/**< List of accum_rs structs */
 static GList *list_search_history;
 
 static GtkNotebook *notebook_search_results;
@@ -1242,6 +1258,28 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 	}
 }
 
+/**
+ * Free item from the accumulated_rs list, but not the result set.
+ */
+static void
+accum_rs_free(struct accum_rs *ars)
+{
+	atom_guid_free_null(&ars->muid);
+	wfree(ars, sizeof *ars);
+}
+
+/**
+ * Free item from the accumulated_rs list, including the result set.
+ */
+static void
+accum_rs_free_full(void *data)
+{
+	struct accum_rs *ars = data;
+
+	search_gui_results_set_free(ars->rs);
+	accum_rs_free(ars);
+}
+
 static void
 search_gui_download_selected_files(void)
 {
@@ -1812,7 +1850,7 @@ search_gui_set_record_info(results_set_t *rs)
  * Called to dispatch results to the search window.
  */
 static void
-search_matched(search_t *sch, results_set_t *rs)
+search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 {
 	guint32 old_items = sch->items;
 	gboolean skip_records;		/* Shall we skip those records? */
@@ -2022,7 +2060,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	 */
 
 	guc_search_update_items(sch->search_handle, sch->items);
-	guc_search_add_kept(sch->search_handle, results_kept);
+	guc_search_add_kept(sch->search_handle, muid, results_kept);
 
 	/*
 	 * Disable search when the maximum amount of items is shown: they need
@@ -2153,9 +2191,14 @@ search_gui_set_current_search(struct search *search)
 /**
  * Called when the core has finished parsing the result set, and the results
  * need to be dispatched to the searches listed in `schl'.
+ *
+ * @param schl		list of gnet_search_t handles
+ * @param muid		the MUID of the query hit (NULL if non-GUESS)
+ * @param r_set		the core's result set, which will be duplicated
  */
 static void
-search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
+search_gui_got_results(GSList *schl, const struct guid *muid,
+	const gnet_results_set_t *r_set)
 {
     results_set_t *rs;
 
@@ -2164,10 +2207,15 @@ search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
      */
     rs = search_gui_create_results_set(schl, r_set);
 	if (rs) {
+		struct accum_rs *ars;
+
 		if (GUI_PROPERTY(gui_debug) >= 12)
 			printf("got incoming results...\n");
 
-		slist_append(accumulated_rs, rs);
+		ars = walloc(sizeof *ars);
+		ars->muid = muid != NULL ? atom_guid_get(muid) : NULL;
+		ars->rs = rs;
+		slist_append(accumulated_rs, ars);
 	}
 }
 
@@ -2188,13 +2236,13 @@ search_gui_flush_info(void)
     guint rs_count = slist_length(accumulated_rs);
 
     if (GUI_PROPERTY(gui_debug) >= 6 && rs_count > 0) {
-        const results_set_t *rs;
+		const struct accum_rs *ars;
 		slist_iter_t *iter;
         guint recs = 0;
 
 		iter = slist_iter_before_head(accumulated_rs);
-		while (NULL != (rs = slist_iter_next(iter))) {
-            recs += rs->num_recs;
+		while (NULL != (ars = slist_iter_next(iter))) {
+            recs += ars->rs->num_recs;
         }
 		slist_iter_free(&iter);
 
@@ -2212,7 +2260,7 @@ search_gui_flush(time_t now, gboolean force)
 {
     static time_t last;
     GSList *frozen = NULL, *sl;
-	results_set_t *rs;
+	struct accum_rs *ars;
 	tm_t t0, t1;
 
 	if (!force) {
@@ -2227,9 +2275,17 @@ search_gui_flush(time_t now, gboolean force)
 	search_gui_flush_info();
 	tm_now_exact(&t0);
 
-	while (NULL != (rs = slist_shift(accumulated_rs))) {
+	while (NULL != (ars = slist_shift(accumulated_rs))) {
+		results_set_t *rs;
         GSList *schl;
-		
+		const guid_t *muid;
+
+		muid = ars->muid != NULL ? atom_guid_get(ars->muid) : NULL;
+		rs = ars->rs;
+
+		g_assert(rs != NULL);
+
+		accum_rs_free(ars);
         schl = rs->schl;
         rs->schl = NULL;
 
@@ -2258,13 +2314,14 @@ search_gui_flush(time_t now, gboolean force)
                 	search_gui_start_massive_update(sch);
                 	frozen = g_slist_prepend(frozen, sch);
 				}
-                search_matched(sch, rs);
+                search_matched(sch, muid, rs);
             } else if (GUI_PROPERTY(gui_debug) >= 6) {
 				g_debug(
 					"no search for cached search result while dispatching");
 			}
         }
 		gm_slist_free_null(&schl);
+		atom_guid_free_null(&muid);
 
         /*
          * Some of the records might have not been used by searches, and need
@@ -4452,7 +4509,7 @@ search_gui_shutdown(void)
 
 	/* Discard pending accumulated search results */
     search_gui_flush(tm_time(), TRUE);
-	slist_free(&accumulated_rs);
+	slist_free_all(&accumulated_rs, accum_rs_free_full);
 
 	search_gui_set_details(NULL);
 

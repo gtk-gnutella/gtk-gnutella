@@ -235,7 +235,7 @@ void guc_search_reissue(gnet_search_t);
 void guc_search_close(gnet_search_t);
 void guc_search_start(gnet_search_t);
 void guc_search_stop(gnet_search_t);
-void guc_search_add_kept(gnet_search_t, guint32 kept);
+void guc_search_add_kept(gnet_search_t, const struct guid *, guint32 kept);
 
 void guc_search_got_results_listener_add(search_got_results_listener_t);
 void guc_search_got_results_listener_remove(search_got_results_listener_t);

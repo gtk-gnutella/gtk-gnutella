@@ -500,11 +500,12 @@ search_got_results_listener_remove(search_got_results_listener_t l)
 }
 
 static void
-search_fire_got_results(GSList *sch_matched, const gnet_results_set_t *rs)
+search_fire_got_results(GSList *sch_matched,
+	const struct guid *muid, const gnet_results_set_t *rs)
 {
     g_assert(rs != NULL);
 
-	LISTENER_EMIT(search_got_results, (sch_matched, rs));
+	LISTENER_EMIT(search_got_results, (sch_matched, muid, rs));
 }
 
 static listeners_t search_status_change_listeners;
@@ -3851,7 +3852,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	if (search) {
 		search_results_set_flag_records(rs);
 		search_results_set_auto_download(rs);
-		search_fire_got_results(search, rs);
+		search_fire_got_results(search, NULL, rs);
 		gm_slist_free_null(&search);
 	}
 
@@ -4046,13 +4047,16 @@ search_results(gnutella_node_t *n, int *results)
 
 	if (dispatch_it && selected_searches != NULL) {
 		const guid_t *muid = gnutella_header_get_muid(&n->header);
+		const guid_t *guess_muid = NULL;
+
 		if (guess_is_search_muid(muid)) {
 			rs->status |= ST_GUESS;
 			guess_got_results(muid, rs->num_recs);
+			guess_muid = muid;
 		}
 
 		search_results_set_flag_records(rs);
-		search_fire_got_results(selected_searches, rs);
+		search_fire_got_results(selected_searches, guess_muid, rs);
 
 		/*
 		 * Record activity on each search to which we're dispatching results.
@@ -4809,7 +4813,7 @@ search_update_items(gnet_search_t sh, guint32 items)
  * auto-download.
  */
 void
-search_add_kept(gnet_search_t sh, guint32 kept)
+search_add_kept(gnet_search_t sh, const guid_t *muid, guint32 kept)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -4817,9 +4821,23 @@ search_add_kept(gnet_search_t sh, guint32 kept)
 
 	sch->kept_results += kept;
 
+	/*
+	 * When dispatching hits to the GUI for GUESS queries, we supply the MUID
+	 * of the query hit.  If we get a non-NULL MUID here, then it was
+	 * previously determined that this was the MUID of a GUESS query.  However,
+	 * this may not be the search that issued that query (could be a passive
+	 * search for instance) so we only call guess_kept_results() when there
+	 * is a pending GUESS query.  By construction, the MUID of a GUESS query
+	 * can only be tied to one single search.
+	 */
+
+	if (sch->guess != NULL && muid != NULL)
+		guess_kept_results(muid, kept);
+
 	if (GNET_PROPERTY(search_debug) > 1)
-		g_debug("SCH GUI reported %u new kept results for \"%s\", has %u now",
-			kept, sch->query, sch->kept_results);
+		g_debug("SCH GUI reported %u new kept %sresults for \"%s\", has %u now",
+			kept, muid != NULL ? "GUESS " : "",
+			lazy_safe_search(sch->query), sch->kept_results);
 
 	/*
 	 * If we're a leaf node, notify our dynamic query managers (the ultranodes
@@ -5423,7 +5441,8 @@ search_locally(gnet_search_t sh, const char *query)
 		
 		rs->status |= ST_PARSED_TRAILER;	/* Avoid <unparsed> in the GUI */
 		search = g_slist_prepend(NULL, uint_to_pointer(sch->search_handle));
-		search_fire_got_results(search, rs);	/* Dispatch browse results */
+		/* Dispatch browse results using a NULL MUID since it's not GUESS */
+		search_fire_got_results(search, NULL, rs);
 		gm_slist_free_null(&search);
 	}
     search_free_r_set(rs);

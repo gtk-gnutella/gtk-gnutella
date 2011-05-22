@@ -180,7 +180,7 @@ typedef void (*search_request_listener_t) (
     query_type_t, const char *query, const host_addr_t addr, guint16);
 
 typedef void (*search_got_results_listener_t)
-    (GSList *, const gnet_results_set_t *);
+    (GSList *, const struct guid *, const gnet_results_set_t *);
 
 typedef void (*search_status_change_listener_t)(gnet_search_t);
 
@@ -221,7 +221,7 @@ gboolean search_is_stopped(gnet_search_t sh);
 */
 
 void search_reissue(gnet_search_t);
-void search_add_kept(gnet_search_t, guint32 kept);
+void search_add_kept(gnet_search_t, const struct guid *, guint32 kept);
 
 const char *search_query(gnet_search_t);
 

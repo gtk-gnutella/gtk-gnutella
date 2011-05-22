@@ -908,9 +908,9 @@ guc_search_request_listener_remove(search_request_listener_t l)
 }
 
 void
-guc_search_add_kept(gnet_search_t sh, guint32 kept)
+guc_search_add_kept(gnet_search_t sh, const struct guid *muid, guint32 kept)
 {
-	search_add_kept(sh, kept);
+	search_add_kept(sh, muid, kept);
 }
 
 /*	upload interface functions (UI -> Core)*/

@@ -1938,12 +1938,18 @@ guess_got_results(const guid_t *muid, guint32 hits)
 /**
  * Amount of results "kept" for the query.
  */
-static guint32
-guess_kept_results(guess_t *gq)
+void
+guess_kept_results(const guid_t *muid, guint32 kept)
 {
+	guess_t *gq;
+
+	gq = g_hash_table_lookup(gmuid, muid);
+	if (NULL == gq)
+		return;			/* GUESS requsst terminated */
+
 	guess_check(gq);
 
-	return gq->kept_results = search_get_kept_results_by_handle(gq->sh);
+	gq->kept_results += kept;
 }
 
 /**
@@ -1997,7 +2003,7 @@ guess_should_terminate(guess_t *gq)
 		goto terminate;
 	}
 
-	if (guess_kept_results(gq) >= GUESS_MAX_RESULTS) {
+	if (gq->kept_results >= GUESS_MAX_RESULTS) {
 		reason = "max amount of kept results reached";
 		goto terminate;
 	}
