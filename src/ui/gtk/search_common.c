@@ -631,7 +631,7 @@ search_configured_media_type(void)
 	if (GUI_PROPERTY(search_media_type_windows))
 		mask |= SEARCH_WIN_TYPE;
 	if (GUI_PROPERTY(search_media_type_unix))
-		mask |= SEARCH_LINUX_TYPE;
+		mask |= SEARCH_UNIX_TYPE;
 
 	return mask;
 }

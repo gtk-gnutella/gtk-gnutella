@@ -403,10 +403,10 @@ search_media_mask_to_string(unsigned mask)
 			str_putc(str, '/');
 		str_cat(str, "Windows");
 	}
-	if (mask & SEARCH_LINUX_TYPE) {
+	if (mask & SEARCH_UNIX_TYPE) {
 		if (str_len(str) != 0)
 			str_putc(str, '/');
-		str_cat(str, "Linux");
+		str_cat(str, "UNIX");
 	}
 	if (mask & SEARCH_TORRENT_TYPE) {
 		if (str_len(str) != 0)
@@ -4648,7 +4648,7 @@ search_is_idle(watchdog_t *unused_wd, void *data)
  * @param query				an UTF-8 encoded query string.
  * @param query				media type filtering to request in queries
  * @param create_time		search creation time
- * @param lifetime			search lifetime
+ * @param lifetime			search lifetime (in hours, 0 = "this session")
  * @param flags				option flags for the search.
  * @param reissue_timeout	delay in seconds before requerying.
  *

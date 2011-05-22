@@ -200,7 +200,7 @@ enum search_new_result {
 #define SEARCH_DOC_TYPE		0x0010
 #define SEARCH_IMG_TYPE		0x0020
 #define SEARCH_WIN_TYPE		0x0040
-#define SEARCH_LINUX_TYPE	0x0080
+#define SEARCH_UNIX_TYPE	0x0080
 #define SEARCH_TORRENT_TYPE	0x0100	/* Broken as deployed on 2011-05-15 */
 
 /*
