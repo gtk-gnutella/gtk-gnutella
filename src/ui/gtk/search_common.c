@@ -81,16 +81,12 @@ RCSID("$Id$")
 #include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
-#include "lib/zalloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
 
 static GList *list_searches;	/**< List of search structs */
 
 static search_t *current_search; /**< The search currently displayed */
-
-static zone_t *rs_zone;		/**< Allocation of results_set */
-static zone_t *rc_zone;		/**< Allocation of record */
 
 static const gchar search_file[] = "searches"; /**< "old" file to searches */
 
@@ -803,7 +799,7 @@ search_gui_free_record(record_t *rc)
 	search_gui_free_alt_locs(rc);
 	rc->refcount = -1;
 	rc->magic = 0;
-	zfree(rc_zone, rc);
+	wfree(rc, sizeof *rc);
 }
 
 /**
@@ -865,8 +861,7 @@ search_gui_results_set_free(results_set_t *rs)
 	atom_str_free_null(&rs->query);
 	search_gui_free_proxies(rs);
 	rs->magic = 0;
-
-	zfree(rs_zone, rs);
+	wfree(rs, sizeof *rs);
 }
 
 static void
@@ -1127,7 +1122,7 @@ search_gui_create_record(const gnet_results_set_t *rs, gnet_record_t *r)
     g_assert(r != NULL);
     g_assert(rs != NULL);
 
-    rc = zalloc(rc_zone);
+    rc = walloc(sizeof *rc);
 
 	*rc = zero_record;
 	rc->magic = RECORD_MAGIC;
@@ -1197,7 +1192,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 	guint ignored;
     GSList *sl;
 
-    rs = zalloc(rs_zone);
+    rs = walloc(sizeof *rs);
 
 	rs->magic = RESULTS_SET_MAGIC;
     rs->schl = g_slist_copy(schl);
@@ -1886,10 +1881,6 @@ search_matched(search_t *sch, results_set_t *rs)
 			sch->auto_downloaded++;
 
         /*
-	     * If the size is zero bytes,
-		 * or we don't send pushes and it's a private IP,
-		 * or if this is a duplicate search result,
-		 *
 		 * Note that we pass ALL records through search_gui_result_is_dup(),
 		 * to be able to update the index/GUID of our records correctly, when
 		 * we detect a change.
@@ -1897,6 +1888,20 @@ search_matched(search_t *sch, results_set_t *rs)
 
 
 		if (search_gui_result_is_dup(sch, rc)) {
+			/*
+			 * We already have that result displayed.
+			 *
+			 * We don't want to count as "kept" something that is spam.
+			 * It can be shown in the results if they don't want to
+			 * discard the spam, but it's certainly not a valuable entry!
+			 */
+
+			if (
+				0 == ((ST_HOSTILE | ST_SPAM) & rs->status) &&
+				0 == (SR_SPAM & rc->flags)
+			) {
+				results_kept++;		/* Counts for measuring popularity */
+			}
 			sch->duplicates++;
 			continue;
 		}
@@ -4370,8 +4375,6 @@ search_gui_column_justify_right(int column)
 void
 search_gui_common_init(void)
 {
-	rs_zone = zget(sizeof(results_set_t), 1024);
-	rc_zone = zget(sizeof(record_t), 1024);
 	accumulated_rs = slist_new();
 
 	label_items_found = GTK_LABEL(
@@ -4452,11 +4455,6 @@ search_gui_shutdown(void)
 	slist_free(&accumulated_rs);
 
 	search_gui_set_details(NULL);
-
-	zdestroy(rs_zone);
-	rs_zone = NULL;
-	zdestroy(rc_zone);
-	rc_zone = NULL;
 
     gm_list_free_null(&list_search_history);
 }
