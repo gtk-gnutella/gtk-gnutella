@@ -39,7 +39,6 @@ RCSID("$Id$")
 
 #include "pmsg.h"
 #include "halloc.h"
-#include "zalloc.h"
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
 
@@ -69,8 +68,6 @@ pmsg_ext_check_consistency(const pmsg_ext_t * const emb)
 	g_assert(PMSG_PF_EXT & emb->pmsg.m_prio);
 }
 
-static zone_t *mb_zone = NULL;
-
 static inline ALWAYS_INLINE pmsg_ext_t *
 cast_to_pmsg_ext(pmsg_t *mb)
 {
@@ -94,7 +91,7 @@ cast_to_pmsg(pmsg_ext_t *emb)
 void
 pmsg_init(void)
 {
-	mb_zone = zget(sizeof(pmsg_t), 1024);
+	/* Nothing to do */
 }
 
 /**
@@ -103,7 +100,7 @@ pmsg_init(void)
 void
 pmsg_close(void)
 {
-	zdestroy(mb_zone);
+	/* Nothing to do */
 }
 
 /**
@@ -165,7 +162,7 @@ pmsg_new(int prio, gconstpointer buf, int len)
 	g_assert(implies(buf, valid_ptr(buf)));
 	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
-	mb = zalloc(mb_zone);
+	mb = walloc(sizeof *mb);
 	db = pdata_new(len);
 
 	return pmsg_fill(mb, db, prio, buf, len);
@@ -214,7 +211,7 @@ pmsg_alloc(int prio, pdata_t *db, int roff, int woff)
 	g_assert(woff >= roff);
 	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
-	mb = zalloc(mb_zone);
+	mb = walloc(sizeof *mb);
 
 	pmsg_fill(mb, db, prio, NULL, 0);
 
@@ -347,7 +344,7 @@ pmsg_clone(pmsg_t *mb)
 		pmsg_t *nmb;
 
 		pmsg_check_consistency(mb);
-		nmb = zalloc(mb_zone);
+		nmb = walloc(sizeof *nmb);
 		*nmb = *mb;					/* Struct copy */
 		pdata_addref(nmb->m_data);
 
@@ -377,7 +374,7 @@ pmsg_free(pmsg_t *mb)
 		wfree(emb, sizeof(*emb));
 	} else {
 		memset(mb, 0, sizeof *mb);
-		zfree(mb_zone, mb);
+		wfree(mb, sizeof *mb);
 	}
 
 	/*

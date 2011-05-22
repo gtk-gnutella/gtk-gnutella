@@ -48,7 +48,7 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
-#include "lib/zalloc.h"
+#include "lib/walloc.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -74,7 +74,6 @@ RCSID("$Id$")
 #define ban_reason(p)	((p)->ban_msg ? (p)->ban_msg : "N/A")
 
 static GHashTable *info;		/**< Info by IP address */
-static zone_t *ipf_zone;		/**< Zone for addr_info allocation */
 static cqueue_t *ban_cq;		/**< Private callout queue */
 
 /**< Decay coefficient, per second */
@@ -108,7 +107,7 @@ ipf_make(const host_addr_t addr, time_t now)
 {
 	struct addr_info *ipf;
 
-	ipf = zalloc(ipf_zone);
+	ipf = walloc(sizeof *ipf);
 
 	ipf->counter = 1.0;
 	ipf->addr = addr;
@@ -146,7 +145,7 @@ ipf_free(struct addr_info *ipf)
 
 	cq_cancel(&ipf->cq_ev);
 	atom_str_free_null(&ipf->ban_msg);
-	zfree(ipf_zone, ipf);
+	wfree(ipf, sizeof *ipf);
 }
 
 /**
@@ -584,7 +583,6 @@ void
 ban_init(void)
 {
 	info = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
-	ipf_zone = zget(sizeof(struct addr_info), 0);
 	ban_cq = cq_submake("ban", callout_queue, BAN_CALLOUT);
 
 	ban_max_recompute();
@@ -635,7 +633,6 @@ ban_close(void)
 	}
 
 	gm_list_free_null(&banned_head);
-	zdestroy(ipf_zone);
 	cq_free_null(&ban_cq);
 }
 

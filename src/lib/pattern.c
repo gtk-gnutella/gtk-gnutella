@@ -40,10 +40,8 @@ RCSID("$Id$")
 #include "misc.h"
 #include "pattern.h"
 #include "halloc.h"
-#include "zalloc.h"
+#include "walloc.h"
 #include "override.h"		/* Must be the last header included */
-
-static zone_t *pat_zone = NULL;		/**< Compiled patterns */
 
 /**
  * Initialize pattern data structures.
@@ -51,12 +49,7 @@ static zone_t *pat_zone = NULL;		/**< Compiled patterns */
 void
 pattern_init(void)
 {
-	/*
-	 * Patterns are not only used for query matching but also for filters,
-	 * therefore we can expect quite a few to be created at the same time.
-	 */
-
-	pat_zone = zget(sizeof(cpattern_t), 64);
+	/* Nothing to do */
 }
 
 /**
@@ -65,7 +58,7 @@ pattern_init(void)
 void
 pattern_close(void)
 {
-	zdestroy(pat_zone);
+	/* Nothing to do */
 }
 
 /*
@@ -86,7 +79,7 @@ pattern_close(void)
 cpattern_t *
 pattern_compile(const char *pattern)
 {
-	cpattern_t *p = zalloc(pat_zone);
+	cpattern_t *p = walloc(sizeof *p);
 	size_t plen, i, *pd = p->delta;
 	const guchar *c;
 
@@ -118,7 +111,7 @@ pattern_compile(const char *pattern)
 cpattern_t *
 pattern_compile_fast(const char *pattern, size_t plen)
 {
-	cpattern_t *p = zalloc(pat_zone);
+	cpattern_t *p = walloc(sizeof *p);
 	size_t i, *pd = p->delta;
 	const guchar *c;
 
@@ -150,7 +143,7 @@ pattern_free(cpattern_t *cpat)
 		hfree(deconstify_gchar(cpat->pattern));
 		cpat->pattern = NULL; /* Don't use HFREE_NULL b/c of lvalue cast */
 	}
-	zfree(pat_zone, cpat);
+	wfree(cpat, sizeof *cpat);
 }
 
 /**

@@ -110,7 +110,6 @@ RCSID("$Id$")
 #include "lib/wordvec.h"
 #include "lib/wd.h"
 #include "lib/wq.h"
-#include "lib/zalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -236,9 +235,6 @@ static GSList *sl_passive_ctrl;		/**< Only passive searches */
  * in the search's set of MUIDs.
  */
 static GHashTable *search_by_muid;
-
-static zone_t *rs_zone;		/**< Allocation of results_set */
-static zone_t *rc_zone;		/**< Allocation of record */
 
 static idtable_t *search_handle_map;
 static query_hashvec_t *query_hashvec;
@@ -696,7 +692,7 @@ search_free_record(gnet_record_t *rc)
 	atom_sha1_free_null(&rc->sha1);
 	atom_tth_free_null(&rc->tth);
 	search_free_alt_locs(rc);
-	zfree(rc_zone, rc);
+	wfree(rc, sizeof *rc);
 }
 
 static gnet_results_set_t *
@@ -705,7 +701,7 @@ search_new_r_set(void)
 	static const gnet_results_set_t zero_rs;
 	gnet_results_set_t *rs;
    
-	rs = zalloc(rs_zone);
+	rs = walloc(sizeof *rs);
 	*rs = zero_rs;
 	return rs;
 }
@@ -728,7 +724,7 @@ search_free_r_set(gnet_results_set_t *rs)
 	search_free_proxies(rs);
 
 	gm_slist_free_null(&rs->records);
-	zfree(rs_zone, rs);
+	wfree(rs, sizeof *rs);
 }
 
 
@@ -738,7 +734,7 @@ search_record_new(void)
 	static const gnet_record_t zero_record;
 	gnet_record_t *rc;
 
-	rc = zalloc(rc_zone);
+	rc = walloc(sizeof *rc);
 	*rc = zero_record;
 	rc->create_time = (time_t) -1;
 	return rc;
@@ -3591,12 +3587,6 @@ search_gc(void *unused_cq)
 void
 search_init(void)
 {
-	g_assert(NULL == rs_zone);
-	g_assert(NULL == rc_zone);
-
-	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
-	rc_zone = zget(sizeof(gnet_record_t), 1024);
-
 	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
 	search_handle_map = idtable_new();
 	sha1_to_search = g_hash_table_new(sha1_hash, sha1_eq);
@@ -3627,10 +3617,6 @@ search_shutdown(void)
 	idtable_destroy(search_handle_map);
 	search_handle_map = NULL;
 	qhvec_free(query_hashvec);
-
-	zdestroy(rs_zone);
-	zdestroy(rc_zone);
-	rs_zone = rc_zone = NULL;
 
 	oob_reply_acks_close();
 	query_muid_map_close();
