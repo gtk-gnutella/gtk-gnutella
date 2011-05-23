@@ -116,7 +116,8 @@ static char db_spam_what[] = "Spamming hosts";
 #define SPAM_DATA_VERSION		0		/**< Serialization version number */
 #define SPAM_PRUNE_PERIOD		(3000 * 1000)	/**< in ms */
 #define SPAM_SYNC_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
-#define SPAM_STABLE_PROBA		0.3333	/**< 33.33% */
+#define SPAM_STABLE_PROBA		0.15	/**< 15% */
+#define SPAM_STABLE_LIFETIME	(12 * 3600) 	/**< 12 hours */
 
 /**
  * Information about a spamming servent.
@@ -753,7 +754,7 @@ hostiles_spam_check(const host_addr_t addr, guint16 port)
 
 	for (i = 0; i < sd->ports; i++) {
 		struct spamhost *sh = &sd->hosts[i];
-		double p;
+		gboolean expired;
 
 		if (sh->port != port)
 			continue;
@@ -773,8 +774,16 @@ hostiles_spam_check(const host_addr_t addr, guint16 port)
 		 * spamming servents on each IP address.
 		 */
 
-		p = stable_still_alive_probability(sh->first_seen, sh->last_seen);
-		if (p < SPAM_STABLE_PROBA) {
+		if (sh->first_seen == sh->last_seen) {
+			expired = delta_time(tm_time(), sh->last_seen) >
+				SPAM_STABLE_LIFETIME;
+		} else {
+			double p;
+			p = stable_still_alive_probability(sh->first_seen, sh->last_seen);
+			expired = p < SPAM_STABLE_PROBA;
+		}
+
+		if (expired) {
 			spam_remove_port(sd, addr, port);
 			break;
 		} else {
@@ -808,7 +817,7 @@ spam_prune_old(void *key, void *value, size_t u_len, void *u_data)
 	const gnet_host_t *h = key;
 	const struct spamdata *sd = value;
 	time_delta_t d;
-	double p;
+	double p = 0.0;
 	gboolean expired;
 
 	(void) u_len;
@@ -819,11 +828,21 @@ spam_prune_old(void *key, void *value, size_t u_len, void *u_data)
 	 *
 	 * We reuse the statistical probability model of DHT nodes to project
 	 * whether it makes sense to keep an entry.
+	 *
+	 * Since by construction we do not contact these hosts very often, the
+	 * stable probability is set low.  To compensate for that, we also add
+	 * a failsafe by limiting the amount of time we keep it in the cache
+	 * after last seeing it if the create time and the last seen time are
+	 * identical.
 	 */
 
 	d = delta_time(tm_time(), sd->last_time);
-	p = stable_still_alive_probability(sd->create_time, sd->last_time);
-	expired = p < SPAM_STABLE_PROBA;
+	if (sd->create_time == sd->last_time) {
+		expired = d > SPAM_STABLE_LIFETIME;
+	} else {
+		p = stable_still_alive_probability(sd->create_time, sd->last_time);
+		expired = p < SPAM_STABLE_PROBA;
+	}
 
 	if (GNET_PROPERTY(spam_debug) > 5) {
 		g_debug("SPAM cached %s life=%s last_seen=%s, p=%.2f%%%s",
