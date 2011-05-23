@@ -1710,35 +1710,31 @@ search_results_postprocess(const gnutella_node_t *n, gnet_results_set_t *rs)
 	}
 
 	/*
-	 * Hits sent through TCP with hops=2 (i.e. relayed by another ultrapeer)
+	 * Hits sent through TCP with hops=1 (i.e. relayed by another ultrapeer)
 	 * have necessarily that ultrapeer as a possible push-proxy for the
 	 * remote host.
+	 *
+	 * NOTE: when parsing results, we decrease the hop count by 1 when not
+	 * dealing with browse results to undo the effect of route_message().
+	 * Hence the hop count is an indication of the number of relaying peers,
+	 * not the number of hops the message went through.
 	 */
 
-	if (2 == rs->hops) {
-		if (ST_UDP & rs->status) {
-			search_results_mark_fake_spam(rs);
+	if (1 == rs->hops && !(ST_UDP & rs->status)) {
+		/*
+		 * The relaying node is an ultrapeer by construction, hence it
+		 * cannot be firewalled and has a direct connection to the
+		 * answering node => can act as a push-proxy.
+		 *
+		 * NOTE: we use the known Gnutella address/port, if known, and
+		 * not the connected address/port which may be different for an
+		 * incoming connection.
+		 */
 
-			if (GNET_PROPERTY(search_debug) > 1) {
-				g_debug("received UDP query hit with hops=2 from %s",
-                	node_infostr(n));
-			}
+		if (host_address_is_usable(n->gnet_addr)) {
+			search_add_push_proxy(rs, n->gnet_addr, n->gnet_port);
 		} else {
-			/*
-			 * The relaying node is an ultrapeer by construction, hence it
-			 * cannot be firewalled and has a direct connection to the
-			 * answering node => can act as a push-proxy.
-			 *
-			 * NOTE: we use the known Gnutella address/port, if known, and
-			 * not the connected address/port which may be different for an
-			 * incoming connection.
-			 */
-
-			if (host_address_is_usable(n->gnet_addr)) {
-				search_add_push_proxy(rs, n->gnet_addr, n->gnet_port);
-			} else {
-				search_add_push_proxy(rs, n->addr, n->port);
-			}
+			search_add_push_proxy(rs, n->addr, n->port);
 		}
 	}
 }
