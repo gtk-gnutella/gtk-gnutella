@@ -207,7 +207,7 @@ publisher_entry_alloc(const sha1_t *sha1)
 {
 	struct publisher_entry *pe;
 
-	pe = walloc0(sizeof *pe);
+	WALLOC0(pe);
 	pe->magic = PUBLISHER_MAGIC;
 	pe->sha1 = atom_sha1_get(sha1);
 
@@ -232,7 +232,7 @@ publisher_entry_free(struct publisher_entry *pe, gboolean do_remove)
 
 	atom_sha1_free_null(&pe->sha1);
 	cq_cancel(&pe->publish_ev);
-	wfree(pe, sizeof *pe);
+	WFREE(pe);
 }
 
 /**

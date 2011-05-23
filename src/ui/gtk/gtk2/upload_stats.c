@@ -426,7 +426,7 @@ upload_stats_gui_add(struct ul_stats *us)
 	g_return_if_fail(store);
 	g_return_if_fail(NULL == g_hash_table_lookup(ht_uploads, us));
 
-	data = walloc(sizeof *data);
+	WALLOC(data);
 	data->us = us;
 
 	data->filename = atom_str_get(us->filename);
@@ -499,7 +499,7 @@ free_upload_data(gpointer unused_key, gpointer value, gpointer unused_data)
 
 	data->us = NULL;
 	atom_str_free_null(&data->filename);
-	wfree(data, sizeof *data);
+	WFREE(data);
 	return TRUE;
 }
 

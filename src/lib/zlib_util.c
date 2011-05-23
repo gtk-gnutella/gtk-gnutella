@@ -114,7 +114,7 @@ zlib_deflater_alloc(
 	g_assert(destlen >= 0);
 	g_assert(level == Z_DEFAULT_COMPRESSION || (level >= 0 && level <= 9));
 
-	outz = walloc(sizeof(*outz));
+	WALLOC(outz);
 	outz->zalloc = zlib_alloc_func;
 	outz->zfree = zlib_free_func;
 	outz->opaque = NULL;
@@ -122,13 +122,12 @@ zlib_deflater_alloc(
 	ret = deflateInit(outz, level);
 
 	if (ret != Z_OK) {
-		wfree(outz, sizeof(*outz));
+		WFREE(outz);
 		g_warning("unable to initialize compressor: %s", zlib_strerror(ret));
 		return NULL;
 	}
 
-	zd = walloc(sizeof(*zd));
-
+	WALLOC(zd);
 	zd->opaque = outz;
 	zd->closed = FALSE;
 
@@ -278,7 +277,7 @@ zlib_deflate_step(zlib_deflater_t *zd, int amount, gboolean may_close)
 		if (ret != Z_OK)
 			g_warning("while freeing compressor: %s", zlib_strerror(ret));
 
-		wfree(outz, sizeof(*outz));
+		WFREE(outz);
 		zd->opaque = NULL;
 		zd->closed = TRUE;
 
@@ -295,7 +294,7 @@ error:
 	ret = deflateEnd(outz);
 	if (ret != Z_OK && ret != Z_DATA_ERROR)
 		g_warning("while freeing compressor: %s", zlib_strerror(ret));
-	wfree(outz, sizeof(*outz));
+	WFREE(outz);
 	zd->opaque = NULL;
 
 	return -1;				/* Error! */
@@ -378,13 +377,13 @@ zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
 		if (ret != Z_OK && ret != Z_DATA_ERROR)
 			g_warning("while freeing compressor: %s", zlib_strerror(ret));
 
-		wfree(outz, sizeof(*outz));
+		WFREE(outz);
 	}
 
 	if (output && zd->allocated) {
 		HFREE_NULL(zd->out);
 	}
-	wfree(zd, sizeof(*zd));
+	WFREE(zd);
 }
 
 /**
@@ -443,8 +442,7 @@ zlib_inflate_into(gconstpointer data, int len, gpointer out, int *outlen)
 	 * Allocate decompressor.
 	 */
 
-	inz = walloc(sizeof(*inz));
-
+	WALLOC(inz);
 	inz->zalloc = zlib_alloc_func;
 	inz->zfree = zlib_free_func;
 	inz->opaque = NULL;
@@ -487,7 +485,7 @@ zlib_inflate_into(gconstpointer data, int len, gpointer out, int *outlen)
 
 done:
 	(void) inflateEnd(inz);
-	wfree(inz, sizeof(*inz));
+	WFREE(inz);
 	return ret;
 }
 

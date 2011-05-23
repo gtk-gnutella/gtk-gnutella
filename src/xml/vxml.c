@@ -678,7 +678,7 @@ vxml_buffer_free(struct vxml_buffer *vb)
 
 	vxml_buffer_data_free(vb);
 	vb->magic = 0;
-	wfree(vb, sizeof *vb);
+	WFREE(vb);
 }
 
 /**
@@ -702,7 +702,7 @@ vxml_buffer_alloc(unsigned gen, const char *data, size_t length,
 	g_assert(data != NULL);
 	g_assert(size_is_non_negative(length));
 
-	vb = walloc0(sizeof *vb);
+	WALLOC0(vb);
 	vb->magic = VXML_BUFFER_MAGIC;
 	vb->vb_rptr = vb->data = deconstify_gpointer(data);
 	vb->length = length;
@@ -875,7 +875,7 @@ vxml_path_entry_free(struct vxml_path_entry *pe)
 	atom_str_free_null(&pe->element);
 	atom_str_free_null(&pe->namespace);
 	pe->magic = 0;
-	wfree(pe, sizeof *pe);
+	WFREE(pe);
 }
 
 /**
@@ -891,7 +891,7 @@ vxml_parser_make(const char *name, guint32 options)
 {
 	vxml_parser_t *vp;
 
-	vp = walloc0(sizeof *vp);
+	WALLOC0(vp);
 	vp->magic = VXML_PARSER_MAGIC;
 	vp->name = name;
 	vp->encoding = VXML_ENC_UTF8;
@@ -945,7 +945,7 @@ vxml_parser_free(vxml_parser_t *vp)
 	HFREE_NULL(vp->user_error);
 
 	vp->magic = 0;
-	wfree(vp, sizeof *vp);
+	WFREE(vp);
 }
 
 /**
@@ -4772,7 +4772,7 @@ vxml_parser_path_enter(vxml_parser_t *vp,
 	 * is the set of elements we have to traverse to reach the root.
 	 */
 
-	pe = walloc(sizeof *pe);
+	WALLOC(pe);
 	pe->magic = VXML_PATH_ENTRY_MAGIC;
 	pe->element = atom_str_get(name);
 	pe->namespace = NULL == ns ? NULL : atom_str_get(ns);
@@ -5606,7 +5606,7 @@ vxml_ptree_ctx_alloc(void)
 {
 	struct vxml_ptree_ctx *ptx;
 
-	ptx = walloc0(sizeof *ptx);
+	WALLOC0(ptx);
 	ptx->magic = VXML_PTREE_CTX_MAGIC;
 	ptx->stack = slist_new();
 
@@ -5634,7 +5634,7 @@ vxml_ptree_ctx_free(struct vxml_ptree_ctx *ptx)
 	slist_free_all(&ptx->stack, vxml_ptree_item_free);
 
 	ptx->magic = 0;
-	wfree(ptx, sizeof *ptx);
+	WFREE(ptx);
 }
 
 /**

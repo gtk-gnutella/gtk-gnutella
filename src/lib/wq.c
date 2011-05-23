@@ -135,7 +135,7 @@ wq_event_alloc(const void *key, wq_callback_t cb, void *arg)
 
 	g_assert(cb != NULL);
 
-	we = walloc0(sizeof *we);
+	WALLOC0(we);
 	we->magic = WQ_EVENT_MAGIC;
 	we->key = key;
 	we->cb = cb;
@@ -154,10 +154,11 @@ wq_event_free(wq_event_t *we)
 
 	if (we->tm != NULL) {
 		cq_cancel(&we->tm->timeout_ev);
-		WFREE_NULL(we->tm, sizeof *we->tm);
+		WFREE(we->tm);
+		we->tm = NULL;
 	}
 	we->magic = 0;
-	wfree(we, sizeof *we);
+	WFREE(we);
 }
 
 /**
@@ -270,7 +271,7 @@ wq_sleep_timeout(const void *key, int delay, wq_callback_t cb, void *arg)
 
 	we = wq_sleep(key, cb, arg);
 
-	we->tm = walloc(sizeof *we->tm);
+	WALLOC(we->tm);
 	we->tm->delay = delay;
 	we->tm->timeout_ev = cq_main_insert(delay, wq_timed_out, we);
 

@@ -441,7 +441,7 @@ xnode_new(xnode_type_t type)
 {
 	xnode_t *xn;
 
-	xn = walloc0(sizeof *xn);
+	WALLOC0(xn);
 	xn->magic = XNODE_MAGIC;
 	xn->type = type;
 
@@ -485,7 +485,7 @@ xnode_free(xnode_t *xn)
 	}
 
 	xn->magic = 0;
-	wfree(xn, sizeof *xn);
+	WFREE(xn);
 }
 
 /**

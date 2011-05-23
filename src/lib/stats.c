@@ -71,7 +71,7 @@ statx_make(void)
 {
 	statx_t *sx;
 
-	sx = walloc0(sizeof(*sx));
+	WALLOC0(sx);
 	return sx;
 }
 
@@ -83,7 +83,7 @@ statx_make_nodata(void)
 {
 	statx_t *sx;
 
-	sx = walloc0(sizeof(*sx));
+	WALLOC0(sx);
 	sx->no_data = TRUE;
 	return sx;
 }
@@ -95,7 +95,7 @@ void
 statx_free(statx_t *sx)
 {
 	statx_clear(sx);
-	wfree(sx, sizeof(*sx));
+	WFREE(sx);
 }
 
 /**
@@ -108,7 +108,7 @@ statx_clear(statx_t *sx)
 
 	for (l = sx->data; l; l = g_slist_next(l)) {
 		double *vp = (double *) l->data;
-		wfree(vp, sizeof(*vp));
+		WFREE(vp);
 	}
 	gm_slist_free_null(&sx->data);
 
@@ -144,7 +144,7 @@ statx_opx(statx_t *sx, double val, stats_op_t op)
 
 				if (ABS(delta) < 1e-56) {
 					sx->data = g_slist_remove(sx->data, vp);
-					wfree(vp, sizeof(*vp));
+					WFREE(vp);
 					break;
 				}
 			}
@@ -153,7 +153,7 @@ statx_opx(statx_t *sx, double val, stats_op_t op)
 		} else {
 			double *vp;
 
-			vp = walloc(sizeof(*vp));
+			WALLOC(vp);
 			*vp = val;
 			sx->data = g_slist_prepend(sx->data, vp);
 		}
@@ -209,14 +209,14 @@ statx_remove_oldest(statx_t *sx)
 			/* Only one item in list, `l' points to it */
 			double *vp = (double *) l->data;
 			val = *vp;
-			wfree(vp, sizeof(*vp));
+			WFREE(vp);
 			gm_slist_free_null(&sx->data);
 			break;
 		} else if (NULL == g_slist_next(next)) {
 			/* The item after `l' is the last item of the list */
 			double *vp = (double *) next->data;
 			val = *vp;
-			wfree(vp, sizeof(*vp));
+			WFREE(vp);
 			next = g_slist_delete_link(l, next);
 			break;
 		}

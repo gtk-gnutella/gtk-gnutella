@@ -234,7 +234,7 @@ wd_make(const char *name, int period,
 {
 	watchdog_t *wd;
 
-	wd = walloc0(sizeof *wd);
+	WALLOC0(wd);
 	wd->magic = WATCHDOG_MAGIC;
 	wd->name = atom_str_get(name);
 	wd->period = period;
@@ -276,7 +276,7 @@ wd_free(watchdog_t *wd)
 	
 	wd_sleep(wd);
 	atom_str_free_null(&wd->name);
-	wfree(wd, sizeof *wd);
+	WFREE(wd);
 }
 
 /**

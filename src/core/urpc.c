@@ -93,7 +93,7 @@ urpc_cb_free(struct urpc_cb *ucb, gboolean in_shutdown)
 	cq_cancel(&ucb->timeout_ev);
 	socket_free_null(&ucb->s);
 	ucb->magic = 0;
-	wfree(ucb, sizeof *ucb);
+	WFREE(ucb);
 }
 
 /**
@@ -256,7 +256,7 @@ urpc_send(const char *what,
 	 * Message was sent, wait for the answer.
 	 */
 
-	ucb = walloc(sizeof *ucb);
+	WALLOC(ucb);
 	ucb->magic = URPC_CB_MAGIC;
 	ucb->addr = addr;
 	ucb->port = port;

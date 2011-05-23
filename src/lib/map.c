@@ -94,7 +94,7 @@ map_create_hash(GHashFunc hash_func, GEqualFunc key_eq_func)
 {
 	map_t *m;
 
-	m = walloc(sizeof *m);
+	WALLOC(m);
 	m->magic = MAP_MAGIC;
 	m->type = MAP_HASH;
 	m->u.ht = g_hash_table_new(hash_func, key_eq_func);
@@ -115,7 +115,7 @@ map_create_ordered_hash(GHashFunc hash_func, GEqualFunc key_eq_func)
 {
 	map_t *m;
 
-	m = walloc(sizeof *m);
+	WALLOC(m);
 	m->magic = MAP_MAGIC;
 	m->type = MAP_ORDERED_HASH;
 	m->u.ot = ohash_table_new(hash_func, key_eq_func);
@@ -133,7 +133,7 @@ map_create_patricia(size_t keybits)
 {
 	map_t *m;
 
-	m = walloc(sizeof *m);
+	WALLOC(m);
 	m->magic = MAP_MAGIC;
 	m->type = MAP_PATRICIA;
 	m->u.pt = patricia_create(keybits);
@@ -152,7 +152,7 @@ map_create_from_hash(GHashTable *ht)
 
 	g_assert(ht);
 
-	m = walloc(sizeof *m);
+	WALLOC(m);
 	m->magic = MAP_MAGIC;
 	m->type = MAP_HASH;
 	m->u.ht = ht;
@@ -171,7 +171,7 @@ map_create_from_ordered_hash(ohash_table_t *ot)
 
 	g_assert(ot);
 
-	m = walloc(sizeof *m);
+	WALLOC(m);
 	m->magic = MAP_MAGIC;
 	m->type = MAP_ORDERED_HASH;
 	m->u.ot = ot;
@@ -190,7 +190,7 @@ map_create_from_patricia(patricia_t *pt)
 
 	g_assert(pt);
 
-	m = walloc(sizeof *m);
+	WALLOC(m);
 	m->magic = MAP_MAGIC;
 	m->type = MAP_PATRICIA;
 	m->u.pt = pt;
@@ -557,7 +557,7 @@ map_release(map_t *m)
 
 	m->type = MAP_MAXTYPE;
 	m->magic = 0;
-	wfree(m, sizeof *m);
+	WFREE(m);
 
 	return implementation;
 }
@@ -586,7 +586,7 @@ map_destroy(map_t *m)
 
 	m->type = MAP_MAXTYPE;
 	m->magic = 0;
-	wfree(m, sizeof *m);
+	WFREE(m);
 }
 
 /**

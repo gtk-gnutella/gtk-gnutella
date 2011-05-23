@@ -1108,10 +1108,12 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 
 	/* Add the search result to the ctree */
 
-	/* Record memory is freed automatically by function set later on using
+	/*
+	 * Record memory is freed automatically by function set later on using
 	 * gtk_ctree_node_set_row_data_full
 	 */
-	gui_rc = walloc(sizeof *gui_rc);
+
+	WALLOC(gui_rc);
 	gui_rc->shared_record = rc;
 
 	if (NULL != rc->sha1) {

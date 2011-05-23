@@ -217,7 +217,7 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
 	}
 
 	pproxy_free_resources(pp);
-	wfree(pp, sizeof *pp);
+	WFREE(pp);
 
 	pproxies = g_slist_remove(pproxies, pp);
 }
@@ -301,8 +301,7 @@ pproxy_create(struct gnutella_socket *s)
 {
 	struct pproxy *pp;
 
-	pp = walloc0(sizeof *pp);
-
+	WALLOC0(pp);
 	pp->socket = s;
 	pp->flags = 0; /* XXX: TLS? */
 	pp->last_update = tm_time();
@@ -1002,7 +1001,7 @@ pproxy_close(void)
 		struct pproxy *pp = l->data;
 
 		pproxy_free_resources(pp);
-		wfree(pp, sizeof *pp);
+		WFREE(pp);
 	}
 
 	gm_slist_free_null(&pproxies);
@@ -1042,7 +1041,7 @@ cproxy_free(struct cproxy *cp)
 	cq_cancel(&cp->udp_ev);
 
 	cp->magic = 0;
-	wfree(cp, sizeof *cp);
+	WFREE(cp);
 }
 
 /**
@@ -1317,8 +1316,7 @@ cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
 	struct cproxy *cp;
 	struct array packet;
 
-	cp = walloc0(sizeof *cp);
-
+	WALLOC0(cp);
 	cp->magic = CPROXY_MAGIC;
 	cp->d = d;
 	cp->addr = addr;
@@ -1504,7 +1502,7 @@ pproxy_set_allocate(size_t max_proxies)
 
 	g_assert(size_is_non_negative(max_proxies));
 
-	ps = walloc0(sizeof *ps);
+	WALLOC0(ps);
 	ps->magic = PPROXY_SET_MAGIC;
 	ps->proxies = hash_list_new(gnet_host_hash, gnet_host_eq);
 	ps->max_proxies = max_proxies;
@@ -1524,7 +1522,7 @@ pproxy_set_free_null(pproxy_set_t **ps_ptr)
 		pproxy_set_check(ps);
 		hash_list_free_all(&ps->proxies, gnet_host_free);
 		ps->magic = 0;
-		wfree(ps, sizeof *ps);
+		WFREE(ps);
 
 		*ps_ptr = NULL;
 	}

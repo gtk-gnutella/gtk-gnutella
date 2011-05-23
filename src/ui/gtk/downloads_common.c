@@ -1381,7 +1381,7 @@ fi_gui_fi_added(gnet_fi_t handle)
 	
 	g_return_if_fail(!g_hash_table_lookup(fi_handles, uint_to_pointer(handle)));
 
-	file = walloc(sizeof *file);
+	WALLOC(file);
 	*file = zero_data;
 	file->handle = handle;
 	fi_gui_file_invalidate(file);
@@ -1396,7 +1396,7 @@ fi_gui_file_free(struct fileinfo_data *file)
 {
 	atom_str_free_null(&file->filename);
 	HFREE_NULL(file->status);
-	wfree(file, sizeof *file);
+	WFREE(file);
 }
 
 static void

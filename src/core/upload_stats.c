@@ -180,7 +180,7 @@ upload_stats_add(const char *pathname, filesize_t size, const char *name,
 	g_assert(pathname != NULL);
 	g_assert(name != NULL);
 
-	s = walloc(sizeof *s);
+	WALLOC(s);
 	*s = zero_stats;
 	s->pathname = atom_str_get(pathname);
 	s->filename = atom_str_get(name);
@@ -613,7 +613,7 @@ upload_stats_free_all(void)
 			if (s->sha1)
 				g_hash_table_remove(upload_stats_by_sha1, s->sha1);
 			atom_sha1_free_null(&s->sha1);
-			wfree(s, sizeof *s);
+			WFREE(s);
 		}
 		hash_list_free(&upload_stats_list);
 		gm_hash_table_destroy_null(&upload_stats_by_sha1);

@@ -88,8 +88,7 @@ tx_make(gpointer owner, const gnet_host_t *host,
 	g_assert(owner);
 	g_assert(ops);
 
-	tx = walloc0(sizeof(*tx));
-
+	WALLOC0(tx);
 	tx->owner = owner;
 	tx->host = *host;					/* stuct copy */
 
@@ -130,8 +129,7 @@ tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops, gpointer args)
 	g_assert(ltx->upper == NULL);		/* Nothing above yet */
 	g_assert(ops);
 
-	tx = walloc0(sizeof(*tx));
-
+	WALLOC0(tx);
 	tx->owner = ltx->owner;
 	gnet_host_copy(&tx->host, &ltx->host);
 	tx->ops = ops;
@@ -186,7 +184,7 @@ tx_deep_free(txdrv_t *tx)
 		tx_deep_free(tx->lower);
 
 	TX_DESTROY(tx);
-	wfree(tx, sizeof(*tx));
+	WFREE(tx);
 }
 
 /**
@@ -480,7 +478,7 @@ tx_close_next(txdrv_t *tx, gpointer arg)
 		cb = carg->cb;
 		arg2 = carg->arg;
 
-		wfree(carg, sizeof(*carg));
+		WFREE(carg);
 
 		(*cb)(top, arg2);
 		return;
@@ -511,7 +509,7 @@ tx_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 	g_assert(tx);
 	g_assert(tx->upper == NULL);
 
-	carg = walloc(sizeof(*carg));
+	WALLOC(carg);
 	carg->top = tx;
 	carg->cb = cb;
 	carg->arg = arg;

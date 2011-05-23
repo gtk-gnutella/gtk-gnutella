@@ -585,7 +585,7 @@ browse_host_open(
 	g_assert(flags & (BH_F_HTML|BH_F_QHITS));
 	g_assert((flags & (BH_F_HTML|BH_F_QHITS)) != (BH_F_HTML|BH_F_QHITS));
 
-	bh = walloc(sizeof *bh);
+	WALLOC(bh);
 	bh->special.read = (flags & BH_F_HTML)
 						? browse_host_read_html
 						: browse_host_read_qhits;
@@ -630,7 +630,7 @@ browse_host_open(
 		if (tx == NULL) {
 			tx_free(bh->tx);
 			link_cb->eof_remove(owner, "Cannot setup compressing TX stack");
-			wfree(bh, sizeof *bh);
+			WFREE(bh);
 			return NULL;
 		}
 

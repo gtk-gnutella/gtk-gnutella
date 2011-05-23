@@ -51,11 +51,11 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/parse.h"
 #include "lib/stringify.h"
-#include "lib/walloc.h"
 #include "lib/utf8.h"
-#include "lib/glib-missing.h"
+#include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -262,8 +262,7 @@ shadow_new(filter_t *f)
     if (GUI_PROPERTY(gui_debug) >= 6)
         g_debug("creating shadow for: %s", f->name);
 
-    shadow = g_new0(shadow_t, 1);
-
+    WALLOC0(shadow);
     shadow->filter   = f;
     shadow->current  = g_list_copy(f->ruleset);
     shadow->added    = NULL;
@@ -311,7 +310,7 @@ shadow_cancel(shadow_t *shadow)
     gm_list_free_null(&shadow->current);
 
     shadow_filters = g_list_remove(shadow_filters, shadow);
-    G_FREE_NULL(shadow);
+    WFREE(shadow);
 }
 
 
@@ -383,7 +382,7 @@ shadow_commit(shadow_t *shadow)
     shadow->current = NULL;
     shadow->filter = NULL;
     shadow_filters = g_list_remove(shadow_filters, shadow);
-    G_FREE_NULL(shadow);
+    WFREE(shadow);
 
     if (GUI_PROPERTY(gui_debug) >= 6) {
         g_debug("after commit filter looks like this");
@@ -537,8 +536,7 @@ filter_new_text_rule(const gchar *match, gint type,
     g_assert(target != NULL);
     g_assert(utf8_is_valid_string(match));
 
-  	r = g_new0(rule_t, 1);
-
+  	WALLOC0(r);
    	r->type                  = RULE_TEXT;
     r->flags                 = flags;
     r->target                = target;
@@ -547,13 +545,13 @@ filter_new_text_rule(const gchar *match, gint type,
     r->flags |= RULE_FLAG_VALID;
 
     buf = r->u.text.case_sensitive
-		? g_strdup(match)
+		? h_strdup(match)
 		: utf8_strlower_copy(match);
 
 	r->u.text.match = buf;
 	r->u.text.match_len = strlen(buf);
 
-    buf = g_strdup(r->u.text.match);
+    buf = h_strdup(r->u.text.match);
 
   	if (r->u.text.type == RULE_TEXT_WORDS) {
 		gchar *s;
@@ -567,7 +565,7 @@ filter_new_text_rule(const gchar *match, gint type,
 		int err;
 		regex_t *re;
 
-		re = g_new0(regex_t, 1);
+		WALLOC0(re);
 		err = regcomp(re, buf,
 			REG_EXTENDED|REG_NOSUB|(r->u.text.case_sensitive ? 0 : REG_ICASE));
 
@@ -580,7 +578,7 @@ filter_new_text_rule(const gchar *match, gint type,
 
 			r->u.text.type = RULE_TEXT_SUBSTR;
 			regfree(re);
-            G_FREE_NULL(re);
+            WFREE(re);
 		} else {
 			r->u.text.u.re = re;
 		}
@@ -590,7 +588,7 @@ filter_new_text_rule(const gchar *match, gint type,
 	if (r->u.text.type == RULE_TEXT_SUBSTR) {
 		r->u.text.u.pattern = pattern_compile(buf);
 	}
-    G_FREE_NULL(buf);
+    hfree(buf);
 
     return r;
 }
@@ -605,8 +603,7 @@ filter_new_ip_rule(const host_addr_t addr, guint8 cidr,
 
     g_assert(target != NULL);
 
-	r = g_new0(rule_t, 1);
-
+	WALLOC0(r);
    	r->type = RULE_IP;
 
 	switch (host_addr_net(addr)) {
@@ -636,8 +633,7 @@ filter_new_size_rule(filesize_t lower, filesize_t upper,
 
     g_assert(target != NULL);
 
-    f = g_new0(rule_t, 1);
-
+    WALLOC0(f);
     f->type = RULE_SIZE;
 
     if (lower > upper) {
@@ -665,8 +661,7 @@ filter_new_jump_rule(filter_t *target, guint16 flags)
 
     g_assert(target != NULL);
 
-    f = g_new0(rule_t, 1);
-
+    WALLOC0(f);
     f->type = RULE_JUMP;
 
   	f->target = target;
@@ -688,13 +683,12 @@ filter_new_sha1_rule(const struct sha1 *sha1, const gchar *filename,
     g_assert(target != NULL);
     g_assert(NULL == filename || utf8_is_valid_string(filename));
 
-    f = g_new0(rule_t, 1);
-
+    WALLOC0(f);
     f->type = RULE_SHA1;
 
   	f->target = target;
-    f->u.sha1.hash = sha1 != NULL ? g_memdup(sha1, SHA1_RAW_SIZE) : NULL;
-    f->u.sha1.filename = g_strdup(filename ? filename : "");
+    f->u.sha1.hash = sha1 != NULL ? atom_sha1_get(sha1) : NULL;
+    f->u.sha1.filename = h_strdup(filename ? filename : "");
     f->flags = flags;
     f->flags |= RULE_FLAG_VALID;
 
@@ -711,8 +705,7 @@ filter_new_flag_rule(enum rule_flag_action stable, enum rule_flag_action busy,
 
     g_assert(target != NULL);
 
-    f = g_new0(rule_t, 1);
-
+    WALLOC0(f);
     f->type = RULE_FLAG;
 
     f->u.flag.stable = stable;
@@ -735,8 +728,7 @@ filter_new_state_rule(enum filter_prop_state display,
 
     g_assert(target != NULL);
 
-    f = g_new0(rule_t, 1);
-
+    WALLOC0(f);
     f->type = RULE_STATE;
 
     f->u.state.display = display;
@@ -1241,7 +1233,7 @@ filter_new(const gchar *name)
     g_assert(name);
     g_assert(utf8_is_valid_string(name));
 
-    f = g_malloc0(sizeof *f);
+    WALLOC0(f);
     f->name = atom_str_get(name);
     f->ruleset = NULL;
     f->search = NULL;
@@ -1301,7 +1293,7 @@ filter_new_for_search(struct search *s)
     g_assert(query);
     g_assert(utf8_is_valid_string(query));
 
-    f = g_new0(filter_t, 1);
+    WALLOC0(f);
     f->name = atom_str_get(query);
     f->ruleset = NULL;
     f->search = NULL;
@@ -1396,10 +1388,8 @@ filter_free(filter_t *f)
     g_list_free(copy);
 
     atom_str_free_null(&f->name);
-    G_FREE_NULL(f);
+    WFREE(f);
 }
-
-
 
 /**
  * Free memory reserved by rule respecting the type of the rule.
@@ -1414,7 +1404,7 @@ filter_free_rule(rule_t *r)
 
     switch (r->type) {
     case RULE_TEXT:
-        G_FREE_NULL(r->u.text.match);
+        HFREE_NULL(r->u.text.match);
 
         switch (r->u.text.type) {
         case RULE_TEXT_WORDS:
@@ -1427,7 +1417,8 @@ filter_free_rule(rule_t *r)
             break;
         case RULE_TEXT_REGEXP:
             regfree(r->u.text.u.re);
-            G_FREE_NULL(r->u.text.u.re);
+            WFREE(r->u.text.u.re);
+			r->u.text.u.re = NULL;
             break;
         case RULE_TEXT_PREFIX:
         case RULE_TEXT_SUFFIX:
@@ -1439,8 +1430,8 @@ filter_free_rule(rule_t *r)
         }
         break;
     case RULE_SHA1:
-        G_FREE_NULL(r->u.sha1.hash);
-        G_FREE_NULL(r->u.sha1.filename);
+        atom_sha1_free_null(&r->u.sha1.hash);
+        HFREE_NULL(r->u.sha1.filename);
         break;
     case RULE_SIZE:
     case RULE_JUMP:
@@ -1451,7 +1442,7 @@ filter_free_rule(rule_t *r)
     default:
         g_error("filter_free_rule: unknown rule type: %d", r->type);
     }
-	G_FREE_NULL(r);
+	WFREE(r);
 }
 
 
@@ -2143,7 +2134,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 					ctx->l_len = strlen(ctx->l_name);
 					l_name = ctx->l_name;
 
-					G_FREE_NULL(s);
+					hfree(s);
 				}
 
                 switch (r->u.text.type) {
@@ -2235,7 +2226,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
                 if (rec->sha1 == r->u.sha1.hash)
                     match = TRUE;
                 else if (rec->sha1 != NULL && r->u.sha1.hash != NULL)
-                    if (0 == memcmp(rec->sha1, r->u.sha1.hash, SHA1_RAW_SIZE))
+                    if (sha1_eq(rec->sha1, r->u.sha1.hash))
                         match = TRUE;
                 break;
             case RULE_FLAG:
@@ -2399,7 +2390,7 @@ filter_record(struct search *search, const struct record *rec)
      * the props_set count with 0;
      */
 
-    result = walloc0(sizeof *result);
+    WALLOC0(result);
     filter_apply(filter_global_pre, &ctx, result);
 
     /*
@@ -2710,7 +2701,7 @@ filter_free_result(filter_result_t *res)
         };
     }
 
-    wfree(res, sizeof *res);
+    WFREE(res);
 }
 
 /**

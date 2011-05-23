@@ -86,7 +86,7 @@ dime_record_alloc(void)
 	static const struct dime_record zero_record;
 	struct dime_record *record;
 
-	record = walloc(sizeof *record);
+	WALLOC(record);
 	*record = zero_record;
 	return record;
 }
@@ -97,7 +97,7 @@ dime_record_free(struct dime_record **record_ptr)
 	struct dime_record *record = *record_ptr;
 
 	if (record) {
-		wfree(record, sizeof *record);
+		WFREE(record);
 		*record_ptr = NULL;
 	}
 }

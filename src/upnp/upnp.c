@@ -212,7 +212,7 @@ upnp_mapping_alloc(enum upnp_map_proto proto, guint16 port)
 {
 	struct upnp_mapping * um;
 
-	um = walloc0(sizeof *um);
+	WALLOC0(um);
 	um->magic = UPNP_MAPPING_MAGIC;
 	um->method = UPNP_M_ANY;
 	um->proto = proto;
@@ -231,7 +231,7 @@ upnp_mapping_free(struct upnp_mapping *um, gboolean in_shutdown)
 
 	cq_cancel(&um->install_ev);
 	upnp_ctrl_cancel_null(&um->rpc, !in_shutdown);
-	wfree0(um, sizeof *um);
+	WFREE0(um);
 }
 
 /**
@@ -282,7 +282,7 @@ upnp_dev_alloc(enum upnp_device_type type, const char *desc_url,
 {
 	upnp_device_t *ud;
 
-	ud = walloc0(sizeof *ud);
+	WALLOC0(ud);
 	ud->magic = UPNP_DEVICE_MAGIC;
 	ud->type = type;
 	ud->desc_url = atom_str_get(desc_url);
@@ -303,7 +303,7 @@ upnp_dev_free(upnp_device_t *ud)
 
 	atom_str_free_null(&ud->desc_url);
 	upnp_service_gslist_free_null(&ud->services);
-	wfree0(ud, sizeof *ud);
+	WFREE0(ud);
 }
 
 /**

@@ -183,7 +183,7 @@ allocate_ulq_item(lookup_type_t type, const kuid_t *kuid,
 {
 	struct ulq_item *ui;
 
-	ui = walloc(sizeof *ui);
+	WALLOC(ui);
 	ui->magic = ULQ_ITEM_MAGIC;
 	ui->type = type;
 	ui->kuid = kuid_get_atom(kuid);
@@ -205,7 +205,7 @@ free_ulq_item(struct ulq_item *ui)
 	kuid_atom_free(ui->kuid);
 	ui->kuid = NULL;
 	ui->magic = 0;
-	wfree(ui, sizeof *ui);
+	WFREE(ui);
 }
 
 /**
@@ -835,7 +835,7 @@ ulq_init_queue(const char *name, int weight)
 
 	g_assert(weight > 0);
 
-	uq = walloc0(sizeof *uq);
+	WALLOC0(uq);
 	uq->magic = ULQ_MAGIC;
 	uq->name = name;
 	uq->q = fifo_make();
@@ -943,7 +943,7 @@ ulq_close(gboolean exiting)
 			slist_foreach(uq->launched, free_fifo_item, &one);
 			slist_free(&uq->launched);
 			fifo_free_all(uq->q, free_fifo_item, &exiting);
-			wfree(uq, sizeof *uq);
+			WFREE(uq);
 
 			ulq[i] = NULL;
 		}

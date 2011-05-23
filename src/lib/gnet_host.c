@@ -255,7 +255,7 @@ gnet_host_vec_free(gnet_host_vec_t **vec_ptr)
 	
 		WFREE_NULL(vec->hvec_v4, vec->n_ipv4 * sizeof vec->hvec_v4[0]);
 		WFREE_NULL(vec->hvec_v6, vec->n_ipv6 * sizeof vec->hvec_v6[0]);
-		wfree(vec, sizeof *vec);
+		WFREE(vec);
 		*vec_ptr = NULL;
 	}
 }

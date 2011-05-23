@@ -682,7 +682,7 @@ adns_async_write_alloc(const struct adns_request *req,
 	g_assert(buf);
 	g_assert(size > 0);
 	
-	remain = walloc(sizeof *remain);
+	WALLOC(remain);
 	remain->req = *req;
 	remain->size = size;
 	remain->buf = wcopy(buf, remain->size);
@@ -702,7 +702,7 @@ adns_async_write_free(adns_async_write_t *remain)
 	g_assert(remain->size > 0);
 	
 	wfree(remain->buf, remain->size);
-	wfree(remain, sizeof *remain);
+	WFREE(remain);
 }
 
 /**

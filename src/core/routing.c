@@ -302,7 +302,7 @@ route_allocate_udp(const struct gnutella_node *n)
 	node_check(n);
 	g_assert(NODE_IS_UDP(n));
 
-	un = walloc0(sizeof *un);
+	WALLOC0(un);
 	un->magic = NODE_UDP_MAGIC;
 	un->addr = n->addr;
 	un->port = n->port;
@@ -325,7 +325,7 @@ route_free_udp(struct routing_udp_node *un)
 		un->routing_data = NULL;
 	}
 	un->magic = 0;
-	wfree(un, sizeof *un);
+	WFREE(un);
 }
 
 /**
@@ -718,7 +718,7 @@ init_routing_data(struct gnutella_node *node)
 	 * Allocate and link some routing data to it
 	 */
 
-	route = walloc(sizeof *route);
+	WALLOC(route);
 	route->node = route_node;
 	route->saved_messages = 0;
 
@@ -756,7 +756,8 @@ prepare_entry(struct message **entryp)
 	struct message *entry = *entryp;
 
 	if (entry == NULL) {
-		*entryp = entry = walloc0(sizeof(*entry));
+		WALLOC0(entry);
+		*entryp = entry;
 		entry->slot = entryp;
 		routing.count++;
 		goto done;
@@ -917,7 +918,7 @@ revitalize_entry(struct message *entry, gboolean force)
 
 	if (prev != NULL) {
 		clean_entry(prev);
-		wfree(prev, sizeof(*prev));
+		WFREE(prev);
 		routing.count--;
 	}
 
@@ -1190,7 +1191,7 @@ remove_one_message_reference(struct route_data *rd)
 		 */
 
 		if (rd->node == NULL && rd->saved_messages == 0)
-			wfree(rd, sizeof *rd);
+			WFREE(rd);
 	} else
 		g_assert(rd == &fake_route);
 }
@@ -1248,7 +1249,7 @@ routing_node_remove(void *node)
 	 */
 
 	if (route->saved_messages == 0)
-		wfree(route, sizeof(*route));
+		WFREE(route);
 }
 
 /**
@@ -2525,7 +2526,7 @@ routing_close(void)
 				struct message *m = chunk[i];
 				if (m != NULL) {
 					free_route_list(m);
-					wfree(m, sizeof(*m));
+					WFREE(m);
 				}
 			}
 			HFREE_NULL(chunk);

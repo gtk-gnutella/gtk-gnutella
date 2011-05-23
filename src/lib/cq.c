@@ -188,7 +188,7 @@ cq_make(const char *name, cq_time_t now, int period)
 {
 	cqueue_t *cq;
 
-	cq = walloc0(sizeof *cq);
+	WALLOC0(cq);
 	return cq_initialize(cq, name, now, period);
 }
 
@@ -373,8 +373,7 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, gpointer arg)
 	g_assert(fn);
 	g_assert(delay >= 0);
 
-	ev = walloc(sizeof *ev);
-
+	WALLOC(ev);
 	ev->ce_magic = CEVENT_MAGIC;
 	ev->ce_time = cq->cq_time + delay;
 	ev->ce_fn = fn;
@@ -412,7 +411,7 @@ cq_cancel(cevent_t **handle_ptr)
 
 		ev_unlink(ev);
 		ev->ce_magic = 0;			/* Prevent further use as a valid event */
-		wfree(ev, sizeof *ev);
+		WFREE(ev);
 		*handle_ptr = NULL;
 	}
 }
@@ -750,7 +749,7 @@ cq_periodic_free(cperiodic_t *cp, gboolean force)
 		cq_cancel(&cp->ev);
 		cq_unregister_object(cq->cq_periodic, cp);
 		cp->magic = 0;
-		wfree(cp, sizeof *cp);
+		WFREE(cp);
 	}
 }
 
@@ -806,7 +805,7 @@ cq_periodic_add(cqueue_t *cq, int period, cq_invoke_t event, gpointer arg)
 
 	cqueue_check(cq);
 
-	cp = walloc0(sizeof *cp);
+	WALLOC0(cp);
 	cp->magic = CPERIODIC_MAGIC;
 	cp->event = event;
 	cp->arg = arg;
@@ -910,7 +909,7 @@ cq_submake(const char *name, cqueue_t *parent, int period)
 {
 	struct csubqueue *csq;
 
-	csq = walloc0(sizeof *csq);
+	WALLOC0(csq);
 	cq_initialize(&csq->sub_cq, name, parent->cq_time, period);
 	csq->sub_cq.cq_magic = CSUBQUEUE_MAGIC;
 
@@ -934,7 +933,7 @@ cq_subqueue_free(struct csubqueue *csq)
 	
 	cq_periodic_remove(&csq->heartbeat);
 	csq->sub_cq.cq_magic = 0;
-	wfree(csq, sizeof *csq);
+	WFREE(csq);
 }
 
 /***
@@ -976,7 +975,7 @@ cq_idle_free(cidle_t *ci)
 
 	cq_unregister_object(ci->cq->cq_idle, ci);
 	ci->magic = 0;
-	wfree(ci, sizeof *ci);
+	WFREE(ci);
 }
 
 /**
@@ -1000,7 +999,7 @@ cq_idle_add(cqueue_t *cq, cq_invoke_t event, gpointer arg)
 
 	cqueue_check(cq);
 
-	ci = walloc(sizeof *ci);
+	WALLOC0(ci);
 	ci->magic = CIDLE_MAGIC;
 	ci->event = event;
 	ci->arg = arg;
@@ -1141,7 +1140,7 @@ cq_free_periodic(gpointer key, gpointer value, gpointer data)
 
 	cperiodic_check(cp);
 	cp->magic = 0;
-	wfree(cp, sizeof *cp);
+	WFREE(cp);
 	return TRUE;
 }
 
@@ -1155,7 +1154,7 @@ cq_free_idle(gpointer key, gpointer value, gpointer data)
 
 	cidle_check(ci);
 	ci->magic = 0;
-	wfree(ci, sizeof *ci);
+	WFREE(ci);
 	return TRUE;
 }
 
@@ -1176,7 +1175,7 @@ cq_free(cqueue_t *cq)
 		for (ev = ch->ch_head; ev; ev = ev_next) {
 			ev_next = ev->ce_bnext;
 			ev->ce_magic = 0;
-			wfree(ev, sizeof *ev);
+			WFREE(ev);
 		}
 	}
 
@@ -1202,7 +1201,7 @@ cq_free(cqueue_t *cq)
 		cq_subqueue_free((struct csubqueue *) cq);
 	} else {
 		cq->cq_magic = 0;
-		wfree(cq, sizeof *cq);
+		WFREE(cq);
 	}
 }
 

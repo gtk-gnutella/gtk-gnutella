@@ -130,7 +130,7 @@ rpc_cb_free(struct rpc_cb *rcb, gboolean in_shutdown)
 	knode_free(rcb->kn);
 	cq_cancel(&rcb->timeout);
 	rcb->magic = 0;
-	wfree(rcb, sizeof *rcb);
+	WFREE(rcb);
 }
 
 /**
@@ -241,7 +241,7 @@ rpc_call_prepare(
 	 * Create and fill the RPC control block.
 	 */
 
-	rcb = walloc(sizeof *rcb);
+	WALLOC(rcb);
 	rcb->magic = RPC_CB_MAGIC;
 	rcb->op = op;
 	rcb->kn = knode_refcnt_inc(kn);

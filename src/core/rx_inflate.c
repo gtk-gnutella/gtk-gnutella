@@ -149,8 +149,7 @@ rx_inflate_init(rxdrv_t *rx, gconstpointer args)
 	rx_check(rx);
 	g_assert(rargs->cb != NULL);
 
-	inz = walloc(sizeof(*inz));
-
+	WALLOC(inz);
 	inz->zalloc = zlib_alloc_func;
 	inz->zfree = zlib_free_func;
 	inz->opaque = NULL;
@@ -158,14 +157,13 @@ rx_inflate_init(rxdrv_t *rx, gconstpointer args)
 	ret = inflateInit(inz);
 
 	if (ret != Z_OK) {
-		wfree(inz, sizeof(*inz));
+		WFREE(inz);
 		g_warning("unable to initialize decompressor for peer %s: %s",
 			gnet_host_to_string(&rx->host), zlib_strerror(ret));
 		return NULL;
 	}
 
-	attr = walloc(sizeof(*attr));
-
+	WALLOC(attr);
 	attr->cb = rargs->cb;
 	attr->inz = inz;
 	attr->flags = 0;
@@ -191,8 +189,8 @@ rx_inflate_destroy(rxdrv_t *rx)
 		g_warning("while freeing decompressor for peer %s: %s",
 			gnet_host_to_string(&rx->host), zlib_strerror(ret));
 
-	wfree(attr->inz, sizeof *attr->inz);
-	wfree(attr, sizeof *attr);
+	WFREE(attr->inz);
+	WFREE(attr);
 }
 
 /**

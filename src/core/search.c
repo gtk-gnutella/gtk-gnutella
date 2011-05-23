@@ -693,7 +693,7 @@ search_free_record(gnet_record_t *rc)
 	atom_sha1_free_null(&rc->sha1);
 	atom_tth_free_null(&rc->tth);
 	search_free_alt_locs(rc);
-	wfree(rc, sizeof *rc);
+	WFREE(rc);
 }
 
 static gnet_results_set_t *
@@ -702,7 +702,7 @@ search_new_r_set(void)
 	static const gnet_results_set_t zero_rs;
 	gnet_results_set_t *rs;
    
-	rs = walloc(sizeof *rs);
+	WALLOC(rs);
 	*rs = zero_rs;
 	return rs;
 }
@@ -725,7 +725,7 @@ search_free_r_set(gnet_results_set_t *rs)
 	search_free_proxies(rs);
 
 	gm_slist_free_null(&rs->records);
-	wfree(rs, sizeof *rs);
+	WFREE(rs);
 }
 
 
@@ -735,7 +735,7 @@ search_record_new(void)
 	static const gnet_record_t zero_record;
 	gnet_record_t *rc;
 
-	rc = walloc(sizeof *rc);
+	WALLOC(rc);
 	*rc = zero_record;
 	rc->create_time = (time_t) -1;
 	return rc;
@@ -1117,7 +1117,7 @@ ora_alloc(const struct guid *muid, const host_addr_t addr, guint16 port,
 {
 	struct ora *ora;
 
-	ora = walloc(sizeof *ora);
+	WALLOC(ora);
 	ora->muid = atom_guid_get(muid);
 	ora->addr = addr;
 	ora->port = port;
@@ -1133,7 +1133,7 @@ ora_free(struct ora **ora_ptr)
 	ora = *ora_ptr;
 	if (ora) {
 		atom_guid_free_null(&ora->muid);
-		wfree(ora, sizeof *ora);
+		WFREE(ora);
 		*ora_ptr = NULL;
 	}
 }
@@ -4337,7 +4337,7 @@ search_close(gnet_search_t sh)
 	search_dissociate_all_sha1(sch);
 
 	sch->magic = 0;
-	wfree(sch, sizeof *sch);
+	WFREE(sch);
 }
 
 /**
@@ -4354,7 +4354,7 @@ search_new_muid(gboolean initial)
 	host_addr_t addr;
 	int i;
 
-	muid = walloc(sizeof *muid);
+	WALLOC(muid);
 
 	/*
 	 * Determine whether this is going to be an OOB query, because we have
@@ -4718,7 +4718,7 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 		qdup = h_strdup(query);
 	}
 
-	sch = walloc0(sizeof *sch);
+	WALLOC0(sch);
 	sch->magic = SEARCH_CTRL_MAGIC;
 	sch->search_handle = search_request_handle(sch);
 
@@ -5367,7 +5367,7 @@ search_locally(gnet_search_t sh, const char *query)
 		}
 	} else {
 		sf = NULL;
-		re = walloc(sizeof *re);
+		WALLOC(re);
 		error = regcomp(re, query, REG_EXTENDED | REG_NOSUB | REG_ICASE);
 		if (error) {
 			goto done;
@@ -5450,7 +5450,7 @@ search_locally(gnet_search_t sh, const char *query)
 done:
 	if (re) {
 		regfree(re);
-		wfree(re, sizeof *re);
+		WFREE(re);
 	}
 	return !error;
 }
@@ -5547,7 +5547,7 @@ share_query_context_make(unsigned media_mask, gboolean partials)
 {
 	struct query_context *ctx;
 
-	ctx = walloc0(sizeof *ctx);
+	WALLOC0(ctx);
 	ctx->shared_files = g_hash_table_new(pointer_hash_func, NULL);
 	ctx->media_mask = media_mask;
 	ctx->partials = booleanize(partials);
@@ -5566,7 +5566,7 @@ share_query_context_free(struct query_context *ctx)
 	 */
 
 	gm_hash_table_destroy_null(&ctx->shared_files);
-	wfree(ctx, sizeof *ctx);
+	WFREE(ctx);
 }
 
 /**
@@ -5859,7 +5859,8 @@ search_request_info_alloc(void)
 {
 	search_request_info_t *sri;
 
-	return walloc0(sizeof *sri);
+	WALLOC0(sri);
+	return sri;
 }
 
 /**
@@ -5872,7 +5873,7 @@ search_request_info_free_null(search_request_info_t **sri_ptr)
 
 	if (sri != NULL) {
 		atom_str_free_null(&sri->extended_query);
-		wfree(sri, sizeof *sri);
+		WFREE(sri);
 		*sri_ptr = NULL;
 	}
 }

@@ -161,7 +161,7 @@ results_make(const struct guid *muid, GSList *files, int count,
 
 	g_return_val_if_fail(!g_hash_table_lookup(results_by_muid, muid), NULL);
 
-	r = walloc(sizeof *r);
+	WALLOC(r);
 	*r = zero_results;
 	r->magic = OOB_RESULTS_MAGIC;
 	r->muid = atom_guid_get(muid);
@@ -225,7 +225,7 @@ results_free_remove(struct oob_results *r)
 			g_debug("results_free: num_oob_records=%d", num_oob_records);
 
 		r->magic = 0;
-		wfree(r, sizeof *r);
+		WFREE(r);
 	}
 }
 
@@ -363,7 +363,7 @@ servent_make(gnet_host_t *host, gboolean can_deflate)
 {
 	struct gservent *s;
 
-	s = walloc(sizeof *s);
+	WALLOC(s);
 	s->host = gnet_host_dup(host);
 	s->fifo = fifo_make();
 	s->ev_service = NULL;
@@ -394,7 +394,7 @@ servent_free(struct gservent *s)
 	cq_cancel(&s->ev_service);
 	gnet_host_free(s->host);
 	fifo_free_all(s->fifo, free_pmsg, NULL);
-	wfree(s, sizeof *s);
+	WFREE(s);
 }
 
 /**

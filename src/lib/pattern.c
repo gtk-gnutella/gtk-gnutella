@@ -79,15 +79,17 @@ pattern_close(void)
 cpattern_t *
 pattern_compile(const char *pattern)
 {
-	cpattern_t *p = walloc(sizeof *p);
-	size_t plen, i, *pd = p->delta;
+	cpattern_t *p;
+	size_t plen, i, *pd;
 	const guchar *c;
 
+	WALLOC(p);
 	p->pattern = h_strdup(pattern);
 	p->len = plen = strlen(p->pattern);
 	p->duped = TRUE;
 
 	plen++;			/* Avoid increasing within the loop */
+	pd = p->delta;
 
 	for (i = 0; i < ALPHA_SIZE; i++)
 		*pd++ = plen;
@@ -111,15 +113,17 @@ pattern_compile(const char *pattern)
 cpattern_t *
 pattern_compile_fast(const char *pattern, size_t plen)
 {
-	cpattern_t *p = walloc(sizeof *p);
-	size_t i, *pd = p->delta;
+	cpattern_t *p;
+	size_t i, *pd;
 	const guchar *c;
 
+	WALLOC(p);
 	p->pattern = pattern;
 	p->len = plen;
 	p->duped = FALSE;
 
 	plen++;			/* Avoid increasing within the memset() inlined macro */
+	pd = p->delta;
 
 	for (i = 0; i < ALPHA_SIZE; i++)
 		*pd++ = plen;
@@ -143,7 +147,7 @@ pattern_free(cpattern_t *cpat)
 		hfree(deconstify_gchar(cpat->pattern));
 		cpat->pattern = NULL; /* Don't use HFREE_NULL b/c of lvalue cast */
 	}
-	wfree(cpat, sizeof *cpat);
+	WFREE(cpat);
 }
 
 /**

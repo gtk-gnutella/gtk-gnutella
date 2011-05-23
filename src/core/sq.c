@@ -111,7 +111,7 @@ sq_pmsg_free(pmsg_t *mb, gpointer arg)
 		search_notify_sent(smi->shandle, smi->node_id);
 
 	nid_unref(smi->node_id);
-	wfree(smi, sizeof(*smi));
+	WFREE(smi);
 }
 
 /***
@@ -124,8 +124,9 @@ sq_pmsg_free(pmsg_t *mb, gpointer arg)
 static smsg_t *
 smsg_alloc(gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv)
 {
-	smsg_t *sb = walloc(sizeof(*sb));
+	smsg_t *sb;
 
+	WALLOC(sb);
 	sb->shandle = sh;
 	sb->mb = mb;
 	sb->qhv = qhv;
@@ -141,7 +142,7 @@ smsg_free(smsg_t *sb)
 {
 	g_assert(sb);
 
-	wfree(sb, sizeof(*sb));
+	WFREE(sb);
 }
 
 /**
@@ -168,7 +169,7 @@ smsg_mutate(smsg_t *sb, struct gnutella_node *n)
 	struct smsg_info *smi;
 	pmsg_t *omb;
 
-	smi = walloc(sizeof(*smi));
+	WALLOC(smi);
 	smi->shandle = sb->shandle;
 	smi->node_id = nid_ref(NODE_ID(n));
 
@@ -237,8 +238,6 @@ sq_make(struct gnutella_node *node)
 {
     squeue_t *sq;
 
-    sq = walloc(sizeof(*sq));
-
 	/*
 	 * By initializing `last_sent' to the current time and not to `0', we
 	 * ensure that we won't send the query to the node during the first
@@ -249,6 +248,7 @@ sq_make(struct gnutella_node *node)
 	 *		--RAM, 01/05/2002
 	 */
 
+    WALLOC(sq);
 	sq->count		= 0;
 	sq->last_sent 	= tm_time();
 	sq->searches 	= NULL;
@@ -295,7 +295,7 @@ sq_free(squeue_t *sq)
 
 	sq_clear(sq);
 	gm_hash_table_destroy_null(&sq->handles);
-	wfree(sq, sizeof(*sq));
+	WFREE(sq);
 }
 
 /**

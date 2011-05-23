@@ -112,7 +112,7 @@ shell_new(struct gnutella_socket *s)
 
 	socket_check(s);
 
-	sh = walloc(sizeof *sh);
+	WALLOC(sh);
 	*sh = zero_shell;
 	sh->magic = SHELL_MAGIC;
 	sh->socket = s;
@@ -136,7 +136,7 @@ shell_free(struct gnutella_shell *sh)
 	HFREE_NULL(sh->msg);
 
 	sh->magic = 0;
-	wfree(sh, sizeof *sh);
+	WFREE(sh);
 }
 
 static void

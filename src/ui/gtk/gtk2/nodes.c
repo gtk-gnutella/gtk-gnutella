@@ -170,7 +170,7 @@ node_data_free(gpointer value)
 	WFREE_NULL(data->host, data->host_size);
 	WFREE_NULL(data->info, data->info_size);
 	nid_unref(data->node_id);
-	WFREE_NULL(data, sizeof *data);
+	WFREE(data);
 }
 
 static gboolean
@@ -646,7 +646,7 @@ nodes_gui_add_node(gnet_node_info_t *info)
     g_return_if_fail(info);
 	g_return_if_fail(!g_hash_table_lookup(nodes_handles, info->node_id));
 
-	data = walloc(sizeof *data);
+	WALLOC(data);
 	*data = zero_data;
 
 	data->node_id = nid_ref(info->node_id);

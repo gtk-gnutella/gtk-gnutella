@@ -208,8 +208,7 @@ dbmw_create(dbmap_t *dm, const char *name,
 	g_assert(valfree == NULL || unpack != NULL);
 	g_assert(dm);
 
-	dw = walloc0(sizeof *dw);
-
+	WALLOC0(dw);
 	dw->magic = DBMW_MAGIC;
 	dw->dm = dm;
 	dw->name = name;
@@ -415,7 +414,7 @@ remove_entry(dbmw_t *dw, gconstpointer key, gboolean dispose, gboolean flush)
 	 */
 
 	free_value(dw, old, TRUE);
-	wfree(old, sizeof *old);
+	WFREE(old);
 
 	return NULL;
 }
@@ -456,7 +455,7 @@ allocate_entry(dbmw_t *dw, gconstpointer key, struct cached *filled)
 		if (filled)
 			entry = filled;
 		else
-			entry = walloc0(sizeof *entry);
+			WALLOC0(entry);
 	} else {
 		gpointer head;
 
@@ -598,7 +597,7 @@ cache_free_removable(gpointer key, gpointer value, gpointer data)
 	free_value(dw, entry, TRUE);
 	hash_list_remove(dw->keys, key);
 	wfree(key, dbmw_keylen(dw, key));
-	wfree(entry, sizeof *entry);
+	WFREE(entry);
 
 	return TRUE;
 }
@@ -864,7 +863,7 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 	 * Value was found, allocate a cache entry object for it.
 	 */
 
-	entry = walloc0(sizeof *entry);
+	WALLOC0(entry);
 
 	/*
 	 * Deserialize data if needed.
@@ -885,7 +884,7 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 				dw->name, bstr_error(dw->bs));
 			/* Not calling value free routine on deserialization failures */
 			wfree(entry->data, dw->value_size);
-			wfree(entry, sizeof *entry);
+			WFREE(entry);
 			return NULL;
 		}
 
@@ -958,7 +957,7 @@ dbmw_exists(dbmw_t *dw, gconstpointer key)
 	 */
 
 	if (0 == dw->value_size) {
-		entry = walloc0(sizeof *entry);
+		WALLOC0(entry);
 		entry->absent = !ret;
 		(void) allocate_entry(dw, key, entry);
 	}
@@ -1011,7 +1010,7 @@ dbmw_delete(dbmw_t *dw, gconstpointer key)
 		 */
 
 		if (0 == dw->value_size) {
-			entry = walloc0(sizeof *entry);
+			WALLOC0(entry);
 			entry->absent = TRUE;
 			(void) allocate_entry(dw, key, entry);
 		}
@@ -1032,7 +1031,7 @@ free_cached(gpointer key, gpointer value, gpointer data)
 
 	free_value(dw, entry, TRUE);
 	wfree(key, dbmw_keylen(dw, key));
-	wfree(entry, sizeof *entry);
+	WFREE(entry);
 	return TRUE;
 }
 
@@ -1111,7 +1110,7 @@ dbmw_destroy(dbmw_t *dw, gboolean close_map)
 		dbmap_destroy(dw->dm);
 
 	dw->magic = 0;
-	wfree(dw, sizeof *dw);
+	WFREE(dw);
 }
 
 /**

@@ -104,7 +104,7 @@ tx_dgram_init(txdrv_t *tx, gpointer args)
 	g_assert(targs->cb != NULL);
 	g_assert(s_udp_listen != NULL || s_udp_listen6 != NULL);
 
-	attr = walloc(sizeof *attr);
+	WALLOC(attr);
 
 	/*
 	 * Because we handle servicing of the upper layers explicitely within
@@ -136,7 +136,7 @@ tx_dgram_destroy(txdrv_t *tx)
 
 	bsched_source_remove(attr->bio);
 
-	wfree(attr, sizeof *attr);
+	WFREE(attr);
 }
 
 static inline int

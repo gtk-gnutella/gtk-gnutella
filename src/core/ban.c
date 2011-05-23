@@ -107,7 +107,7 @@ ipf_make(const host_addr_t addr, time_t now)
 {
 	struct addr_info *ipf;
 
-	ipf = walloc(sizeof *ipf);
+	WALLOC(ipf);
 
 	ipf->counter = 1.0;
 	ipf->addr = addr;
@@ -145,7 +145,7 @@ ipf_free(struct addr_info *ipf)
 
 	cq_cancel(&ipf->cq_ev);
 	atom_str_free_null(&ipf->ban_msg);
-	wfree(ipf, sizeof *ipf);
+	WFREE(ipf);
 }
 
 /**

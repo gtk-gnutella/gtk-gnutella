@@ -225,7 +225,7 @@ dmesh_entry_free(struct dmesh_entry *dme)
 			atom_str_free(dme->e.url.name);
 	}
 	hash_list_free_all(&dme->bad, wfree_host_addr1);
-	wfree(dme, sizeof *dme);
+	WFREE(dme);
 }
 
 /**
@@ -263,7 +263,7 @@ dmesh_urlinfo_free(dmesh_urlinfo_t *info)
 	g_assert(info);
 
 	atom_str_free(info->name);
-	wfree(info, sizeof *info);
+	WFREE(info);
 }
 
 /**
@@ -304,7 +304,7 @@ dmesh_ban_remove_entry(struct dmesh_banned *dmb)
 
 	g_hash_table_remove(ban_mesh, dmb->info);
 	dmesh_urlinfo_free(dmb->info);
-	wfree(dmb, sizeof *dmb);
+	WFREE(dmb);
 }
 
 /**
@@ -352,13 +352,13 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	if (dmb == NULL) {
 		dmesh_urlinfo_t *ui;
 
-		ui = walloc(sizeof *ui);
+		WALLOC(ui);
 		ui->addr = info->addr;
 		ui->port = info->port;
 		ui->idx = info->idx;
 		ui->name = atom_str_get(info->name);
 
-		dmb = walloc(sizeof *dmb);
+		WALLOC(dmb);
 		dmb->info = ui;
 		dmb->created = stamp;
 		dmb->cq_ev = cq_insert(dmesh_cq, lifetime*1000, dmesh_ban_expire, dmb);
@@ -582,7 +582,7 @@ dm_alloc(const struct sha1 *sha1)
 {
 	struct dmesh *dm;
 
-	dm = walloc(sizeof *dm);
+	WALLOC(dm);
 	dm->last_update = 0;
 	dm->entries = list_new();
 	dm->sha1 = atom_sha1_get(sha1);
@@ -613,7 +613,7 @@ dm_free(struct dmesh *dm)
 	gm_hash_table_destroy_null(&dm->by_guid);
 
 	atom_sha1_free_null(&dm->sha1);
-	wfree(dm, sizeof *dm);
+	WFREE(dm);
 }
 
 /**
@@ -1018,7 +1018,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		 * Allocate new entry.
 		 */
 
-		dme = walloc(sizeof *dme);
+		WALLOC(dme);
 
 		dme->inserted = now;
 		dme->stamp = stamp;
@@ -1151,7 +1151,7 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 		 * Allocate new entry.
 		 */
 
-		dme = walloc(sizeof *dme);
+		WALLOC(dme);
 
 		dme->inserted = now;
 		dme->stamp = stamp;
@@ -1327,7 +1327,9 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 	 */
 
 	if (hash_list_length(dme->bad) + 1 < MIN_BAD_REPORT) {
-		host_addr_t *raddr = walloc(sizeof *raddr);
+		host_addr_t *raddr;
+
+		WALLOC(raddr);
 		*raddr = reporter;
 		hash_list_append(dme->bad, raddr);
 	} else

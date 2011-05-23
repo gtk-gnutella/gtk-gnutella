@@ -147,7 +147,7 @@ slist_new(void)
 {
 	slist_t *slist;
 		
-	slist = walloc(sizeof *slist);
+	WALLOC(slist);
 	slist->head = NULL;
 	slist->tail = NULL;
 	slist->refcount = 1;
@@ -181,7 +181,7 @@ slist_free(slist_t **slist_ptr)
 		gm_slist_free_null(&slist->head);
 		slist->tail = NULL;
 		slist->magic = 0;
-		wfree(slist, sizeof *slist);
+		WFREE(slist);
 		*slist_ptr = NULL;
 	}
 }
@@ -392,8 +392,7 @@ slist_iter_new(slist_t *slist, gboolean before)
 	if (slist) {
 		slist_check(slist);
 
-		iter = walloc(sizeof *iter);
-
+		WALLOC(iter);
 		iter->magic = LIST_ITER_MAGIC;
 		iter->slist = slist;
 
@@ -522,7 +521,7 @@ slist_iter_free(slist_iter_t **iter_ptr)
 		iter->slist->refcount--;
 		iter->magic = 0;
 
-		wfree(iter, sizeof *iter);
+		WFREE(iter);
 		*iter_ptr = NULL;
 	}
 }

@@ -963,7 +963,7 @@ http_buffer_alloc(char *buf, size_t len, size_t written)
 	g_assert(size_is_positive(len));
 	g_assert(written < len);
 
-	b = walloc(sizeof(*b));
+	WALLOC(b);
 	b->magic = HTTP_BUFFER_MAGIC;
 	b->hb_arena = walloc(len);		/* Should be small enough for walloc */
 	b->hb_len = len;
@@ -985,7 +985,7 @@ http_buffer_free(http_buffer_t *b)
 
 	wfree(b->hb_arena, b->hb_len);
 	b->magic = 0;
-	wfree(b, sizeof(*b));
+	WFREE(b);
 }
 
 /**
@@ -1077,7 +1077,7 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 
 	g_assert(start <= end);		/* 0-0 is a 1-byte range containing byte 0 */
 
-	item = walloc(sizeof(*item));
+	WALLOC(item);
 	item->start = start;
 	item->end = end;
 
@@ -1167,7 +1167,7 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 
 ignored:
 	*ignored = TRUE;
-	wfree(item, sizeof(*item));		/* Item was not inserted */
+	WFREE(item);					/* Item was not inserted */
 	return list;					/* No change in list */
 }
 
@@ -1550,7 +1550,7 @@ http_range_clone(http_range_t *range)
 {
 	http_range_t *r;
 
-	r = walloc(sizeof(*r));
+	WALLOC(r);
 	r->start = range->start;
 	r->end = range->end;
 
@@ -1662,7 +1662,7 @@ http_range_merge(GSList *old_list, GSList *new_list)
 			 */
 
 			if (new_range->start > old_range->start) {
-				r = walloc(sizeof(*r));
+				WALLOC(r);
 				r->start = old_range->start;
 				if (new_range->end > old_range->end)
 					r->end = new_range->end;
@@ -1675,7 +1675,7 @@ http_range_merge(GSList *old_list, GSList *new_list)
 				continue;
 			}
 			if (new_range->start <= old_range->start) {
-				r = walloc(sizeof(*r));
+				WALLOC(r);
 				r->start = new_range->start;
 				if (new_range->end > old_range->end)
 					r->end = new_range->end;
@@ -2053,7 +2053,7 @@ http_async_free_pending(void)
 		if (ha->rx != NULL)
 			rx_free(ha->rx);		/* RX must be dismantled asynchronously */
 
-		wfree(ha, sizeof(*ha));
+		WFREE(ha);
 	}
 
 	gm_slist_free_null(&sl_ha_freed);
@@ -2442,7 +2442,7 @@ http_async_create(
 	 * Connection started, build handle and return.
 	 */
 
-	ha = walloc0(sizeof(*ha));
+	WALLOC0(ha);
 
 	s->resource.handle = ha;
 
@@ -3611,7 +3611,7 @@ http_wget_free(void *data)
 
 	HFREE_NULL(wg->data);
 	header_free_null(&wg->header);
-	wfree(wg, sizeof *wg);
+	WFREE(wg);
 }
 
 /**
@@ -3775,7 +3775,9 @@ http_async_wget(const char *url, size_t maxlen, http_wget_cb_t cb, void *arg)
 	ha = http_async_get(url, wget_header_ind, wget_data_ind, wget_error_ind);
 
 	if (ha != NULL) {
-		http_wget_t *wg = walloc0(sizeof *wg);
+		http_wget_t *wg;
+
+		WALLOC0(wg);
 		wg->magic = HTTP_WGET_MAGIC;
 		wg->ha = ha;
 		wg->maxlen = maxlen;

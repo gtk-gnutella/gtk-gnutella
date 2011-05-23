@@ -381,7 +381,7 @@ thex_upload_close(struct special_upload *special_upload, gboolean fully_served)
 	tx_free(ctx->tx);
 	thex_upload_free_data(ctx);
 	atom_tth_free_null(&ctx->tth);
-	wfree(ctx, sizeof *ctx);
+	WFREE(ctx);
 }
 
 /**
@@ -409,7 +409,7 @@ thex_upload_open(
 {
 	struct thex_upload *ctx;
 
-	ctx = walloc(sizeof *ctx);
+	WALLOC(ctx);
 	ctx->special_upload.read =  thex_upload_read;
 	ctx->special_upload.write = thex_upload_write;
 	ctx->special_upload.flush = thex_upload_flush;

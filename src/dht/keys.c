@@ -588,7 +588,7 @@ keys_reclaim(struct keyinfo *ki)
 		gnet_stats_count_general(GNR_DHT_CACHED_KEYS_HELD, -1);
 
 	kuid_atom_free_null(&ki->kuid);
-	wfree(ki, sizeof *ki);
+	WFREE(ki);
 }
 
 /**
@@ -710,8 +710,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 				kuid_to_hex_string(id), (gulong) common, 1 == common ? "" : "s",
 				kuid_to_hex_string2(cid));
 
-		ki = walloc(sizeof *ki);
-
+		WALLOC(ki);
 		ki->magic = KEYINFO_MAGIC;
 		ki->kuid = kuid_get_atom(id);
 		ki->get_req_load = 0.0;
@@ -1448,7 +1447,7 @@ keys_free_kv(gpointer u_key, gpointer val, gpointer u_x)
 	keyinfo_check(ki);
 
 	kuid_atom_free_null(&ki->kuid);
-	wfree(ki, sizeof *ki);
+	WFREE(ki);
 }
 
 /**

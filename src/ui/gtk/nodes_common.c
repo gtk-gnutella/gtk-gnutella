@@ -367,7 +367,7 @@ add_node_helper(const host_addr_t *addrs, size_t n, gpointer data)
 		guc_node_add(addrs[random_u32() % n], ctx->port, ctx->flags);
 	}
 
-	wfree(ctx, sizeof *ctx);
+	WFREE(ctx);
 }
 
 /**
@@ -466,7 +466,7 @@ nodes_gui_common_connect_by_name(const gchar *line)
 				hostname = p;
 			}
 
-			ctx = walloc(sizeof *ctx);
+			WALLOC(ctx);
 			ctx->port = port;
 			ctx->flags = flags;
 			guc_adns_resolve(hostname, add_node_helper, ctx);

@@ -272,7 +272,7 @@ tx_chunk_init(txdrv_t *tx, gpointer unused_args)
 	(void) unused_args;
 	g_assert(tx);
 
-	attr = walloc(sizeof *attr);
+	WALLOC(attr);
 
 	attr->head_remain = 0;		/* No committed length yet */
 	attr->data_remain = 0;		/* No data yet */
@@ -297,7 +297,7 @@ tx_chunk_destroy(txdrv_t *tx)
 {
 	struct attr *attr = tx->opaque;
 
-	wfree(attr, sizeof *attr);
+	WFREE(attr);
 }
 
 /**

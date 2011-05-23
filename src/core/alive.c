@@ -82,7 +82,7 @@ ap_make(struct guid *muid)
 {
 	struct alive_ping *ap;
 
-	ap = walloc(sizeof *ap);
+	WALLOC(ap);
 
 	ap->muid = atom_guid_get(muid);
 	tm_now_exact(&ap->sent);
@@ -97,7 +97,7 @@ static void
 ap_free(struct alive_ping *ap)
 {
 	atom_guid_free(ap->muid);
-	wfree(ap, sizeof *ap);
+	WFREE(ap);
 }
 
 /**
@@ -109,7 +109,7 @@ alive_make(struct gnutella_node *n, int max)
 {
 	struct alive *a;
 
-	a = walloc0(sizeof *a);
+	WALLOC0(a);
 	a->node = n;
 	a->maxcount = max;
 	a->min_rt = INFINITY;
@@ -130,7 +130,7 @@ alive_free(gpointer obj)
 		ap_free(sl->data);
 
 	gm_slist_free_null(&a->pings);
-	wfree(a, sizeof *a);
+	WFREE(a);
 }
 
 /**

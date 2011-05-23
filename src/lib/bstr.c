@@ -155,7 +155,7 @@ bstr_open(const void *arena, size_t len, guint32 flags)
 	g_assert(arena);
 	g_assert(0 == (flags & BSTR_F_PRIVATE));
 
-	bs = walloc0(sizeof *bs);
+	WALLOC0(bs);
 	bs->magic = BSTR_MAGIC;
 	reset_stream(bs, arena, len, flags);
 
@@ -198,7 +198,7 @@ bstr_create(void)
 {
 	bstr_t *bs;
 
-	bs = walloc0(sizeof *bs);
+	WALLOC0(bs);
 	bs->magic = BSTR_MAGIC;
 	mark_unusable(bs);
 
@@ -233,7 +233,7 @@ bstr_free(bstr_t **bs_ptr)
 	if (bs != NULL) {
 		bstr_close(bs);
 		bs->magic = 0;
-		wfree(bs, sizeof *bs);
+		WFREE(bs);
 		*bs_ptr = NULL;
 	}
 }

@@ -62,8 +62,7 @@ fifo_make(void)
 {
 	fifo_t *f;
 
-	f = walloc0(sizeof(*f));
-
+	WALLOC0(f);
 	return f;
 }
 
@@ -74,7 +73,7 @@ void
 fifo_free(fifo_t *f)
 {
 	gm_list_free_null(&f->head);
-	wfree(f, sizeof *f);
+	WFREE(f);
 }
 
 /**

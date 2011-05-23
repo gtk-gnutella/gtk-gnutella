@@ -148,7 +148,7 @@ add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
 {
 	struct sha1_cache_entry *item;
    
-	item = walloc(sizeof *item);
+	WALLOC(item);
 	item->file_name = atom_str_get(filename);
 	item->size = size;
 	item->mtime = mtime;
@@ -914,7 +914,7 @@ cache_free_entry(gpointer unused_key, gpointer v, gpointer unused_udata)
 	atom_str_free_null(&e->file_name);
 	atom_sha1_free_null(&e->sha1);
 	atom_tth_free_null(&e->tth);
-	wfree(e, sizeof *e);
+	WFREE(e);
 
 	return TRUE;
 }

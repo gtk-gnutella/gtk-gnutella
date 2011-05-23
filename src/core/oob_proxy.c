@@ -122,7 +122,7 @@ oob_proxy_rec_make(const struct guid *leaf_muid,
 {
 	struct oob_proxy_rec *opr;
 
-	opr = walloc0(sizeof(*opr));
+	WALLOC0(opr);
 	opr->magic = OOB_PROXY_REC_MAGIC;
 	opr->leaf_muid = atom_guid_get(leaf_muid);
 	opr->proxied_muid = atom_guid_get(proxied_muid);
@@ -143,7 +143,7 @@ oob_proxy_rec_free(struct oob_proxy_rec *opr)
 	atom_guid_free_null(&opr->proxied_muid);
 	nid_unref(opr->node_id);
 	opr->magic = 0;
-	wfree(opr, sizeof(*opr));
+	WFREE(opr);
 }
 
 /**

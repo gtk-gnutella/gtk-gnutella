@@ -130,7 +130,7 @@ xattr_alloc(const char *uri, const char *local, const char *value)
 {
 	struct xattr *xa;
 
-	xa = walloc(sizeof *xa);
+	WALLOC(xa);
 	xa->uri = (NULL == uri) ? NULL : atom_str_get(uri);
 	xa->local = atom_str_get(local);
 	xa->value = h_strdup(value);
@@ -149,7 +149,7 @@ xattr_free(struct xattr *xa)
 	atom_str_free_null(&xa->uri);
 	atom_str_free_null(&xa->local);
 	HFREE_NULL(xa->value);
-	wfree(xa, sizeof *xa);
+	WFREE(xa);
 }
 
 /**
@@ -160,7 +160,7 @@ xattr_table_make(void)
 {
 	xattr_table_t *xat;
 
-	xat = walloc(sizeof *xat);
+	WALLOC(xat);
 	xat->magic = XATTR_TABLE_MAGIC;
 	xat->hl = hash_list_new(xattr_hash, xattr_eq);
 
@@ -177,7 +177,7 @@ xattr_table_free(xattr_table_t *xat)
 
 	hash_list_free_all(&xat->hl, cast_to_hashlist_destroy(xattr_free));
 	xat->magic = 0;
-	wfree(xat, sizeof *xat);
+	WFREE(xat);
 }
 
 /**

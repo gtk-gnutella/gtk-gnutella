@@ -703,8 +703,7 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	g_assert(tx);
 	g_assert(NULL != targs->cb);
 
-	outz = walloc(sizeof *outz);
-
+	WALLOC(outz);
 	outz->zalloc = zlib_alloc_func;
 	outz->zfree = zlib_free_func;
 	outz->opaque = NULL;
@@ -753,12 +752,11 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	if (Z_OK != ret) {
 		g_warning("unable to initialize compressor for peer %s: %s",
 			gnet_host_to_string(&tx->host), zlib_strerror(ret));
-		wfree(outz, sizeof *outz);
+		WFREE(outz);
 		return NULL;
 	}
 
-	attr = walloc(sizeof *attr);
-
+	WALLOC(attr);
 	attr->cq = targs->cq;
 	attr->cb = targs->cb;
 	attr->buffer_size = targs->buffer_size;
@@ -840,9 +838,9 @@ tx_deflate_destroy(txdrv_t *tx)
 		g_warning("while freeing compressor for peer %s: %s",
 			gnet_host_to_string(&tx->host), zlib_strerror(ret));
 
-	wfree(attr->outz, sizeof *attr->outz);
+	WFREE(attr->outz);
 	cq_cancel(&attr->tm_ev);
-	wfree(attr, sizeof *attr);
+	WFREE(attr);
 }
 
 /**

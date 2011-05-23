@@ -84,7 +84,7 @@ getline_make(size_t maxlen)
 
 	g_assert(size_is_positive(maxlen));
 
-	o = walloc0(sizeof *o);
+	WALLOC0(o);
 	o->magic = GETLINE_MAGIC;
 	o->maxlen = maxlen;
 	o->size = MIN(START_LENGTH, maxlen);
@@ -110,7 +110,7 @@ getline_free(getline_t *o)
 	getline_check(o);
 
 	HFREE_NULL(o->line);
-	wfree(o, sizeof *o);
+	WFREE(o);
 }
 
 /**

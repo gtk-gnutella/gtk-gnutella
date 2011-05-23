@@ -173,7 +173,7 @@ hfield_make(const char *name)
 {
 	header_field_t *h;
 
-	h = walloc0(sizeof *h);
+	WALLOC0(h);
 	h->magic = HEADER_FIELD_MAGIC;
 	h->name = h_strdup(name);
 
@@ -197,7 +197,7 @@ hfield_free(header_field_t *h)
 	slist_free_all(&h->lines, hfield_free_item);
 	HFREE_NULL(h->name);
 	h->magic = 0;
-	wfree(h, sizeof *h);
+	WFREE(h);
 }
 
 /**
@@ -284,7 +284,7 @@ header_make(void)
 {
 	header_t *o;
 
-	o = walloc0(sizeof *o);
+	WALLOC0(o);
 	o->magic = HEADER_MAGIC;
 	o->refcnt = 1;
 	return o;
@@ -331,7 +331,7 @@ header_free(header_t *o)
 
 	header_reset(o);
 	o->magic = 0;
-	wfree(o, sizeof *o);
+	WFREE(o);
 }
 
 /**
@@ -756,7 +756,7 @@ header_fmt_make(const char *field, const char *separator,
 
 	g_assert(size_is_non_negative(len_hint));
 
-	hf = walloc(sizeof(*hf));
+	WALLOC(hf);
 	hf->magic = HEADER_FMT_MAGIC;
 	hf->header = str_new(len_hint ? len_hint : HEADER_FMT_DFLT_LEN);
 	hf->maxlen = HEADER_FMT_LINE_LEN;
@@ -815,7 +815,7 @@ header_fmt_free(header_fmt_t **hf_ptr)
 		str_destroy_null(&hf->header);
 		atom_str_free_null(&hf->sep);
 		hf->magic = 0;
-		wfree(hf, sizeof *hf);
+		WFREE(hf);
 		*hf_ptr = NULL;
 	}
 }

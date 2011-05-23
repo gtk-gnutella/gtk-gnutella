@@ -134,7 +134,7 @@ upnp_ctrl_free(upnp_ctrl_t *ucd)
 
 	atom_str_free_null(&ucd->action);
 	ucd->magic = 0;
-	wfree(ucd, sizeof *ucd);
+	WFREE(ucd);
 }
 
 /**
@@ -571,7 +571,7 @@ upnp_ctrl_launch(const upnp_service_t *usd, const char *action,
 	g_assert(action != NULL);
 	g_assert(0 == argc || argv != NULL);
 
-	ucd = walloc0(sizeof *ucd);
+	WALLOC0(ucd);
 	ucd->magic = UPNP_CTRL_MAGIC;
 	ucd->lcb = launch_cb;
 	ucd->cb = cb;
@@ -836,7 +836,7 @@ upnp_ctrl_ret_GetExternalIPAddress(nv_table_t *ret, size_t *lenp)
 	if (!upnp_ctrl_get_addr(ret, "NewExternalIPAddress", &addr))
 		return NULL;
 
-	r = walloc(sizeof *r);
+	WALLOC(r);
 	r->external_ip = addr;
 	*lenp = sizeof *r;
 
@@ -887,7 +887,7 @@ upnp_ctrl_ret_GetConnectionTypeInfo(nv_table_t *ret, size_t *lenp)
 	 * that table will remain alive until we are done with user notification.
 	 */
 
-	r = walloc(sizeof *r);
+	WALLOC(r);
 	r->connection_type = type;
 	r->possible_types = possible;
 
@@ -952,7 +952,7 @@ upnp_ctrl_ret_GetSpecificPortMappingEntry(nv_table_t *ret, size_t *lenp)
 	 * that table will remain alive until we are done with user notification.
 	 */
 
-	r = walloc(sizeof *r);
+	WALLOC(r);
 	r->internal_port = port;
 	r->internal_client = addr;
 	r->enabled = enabled;
@@ -1115,7 +1115,7 @@ upnp_ctrl_ret_GetTotalPacketsReceived(nv_table_t *ret, size_t *lenp)
 	if (!upnp_ctrl_get_uint32(ret, "NewTotalPacketsReceived", &value))
 		return NULL;
 
-	r = walloc(sizeof *r);
+	WALLOC(r);
 	r->value = value;
 	*lenp = sizeof *r;
 

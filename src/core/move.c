@@ -98,7 +98,7 @@ we_alloc(struct download *d, const char *dest, const char *ext)
 {
 	struct work *we;
 
-	we = walloc(sizeof(*we));
+	WALLOC(we);
 	we->d = d;
 	we->dest = atom_str_get(dest);
 	we->ext = atom_str_get(ext);
@@ -116,7 +116,7 @@ we_free(gpointer data)
 
 	atom_str_free_null(&we->dest);
 	atom_str_free_null(&we->ext);
-	wfree(we, sizeof(*we));
+	WFREE(we);
 }
 
 /**
@@ -160,7 +160,7 @@ d_free(gpointer ctx)
 	fd_forget_and_close(&md->wd);
 	HFREE_NULL(md->buffer);
 	md->magic = 0;
-	wfree(md, sizeof(*md));
+	WFREE(md);
 }
 
 /**
@@ -469,7 +469,7 @@ move_init(void)
 	struct moved *md;
 	bgstep_cb_t step = d_step_copy;
 
-	md = walloc(sizeof(*md));
+	WALLOC(md);
 	md->magic = MOVED_MAGIC;
 	md->rd = NULL;
 	md->wd = -1;

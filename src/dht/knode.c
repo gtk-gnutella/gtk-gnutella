@@ -162,7 +162,7 @@ knode_new(
 {
 	knode_t *kn;
 
-	kn = walloc0(sizeof *kn);
+	WALLOC0(kn);
 	kn->magic = KNODE_MAGIC;
 	kn->id = kuid_get_atom(id);
 	kn->vcode = vcode;
@@ -393,7 +393,7 @@ knode_dispose(knode_t *kn)
 
 	kuid_atom_free_null(&kn->id);
 	kn->magic = 0;
-	wfree(kn, sizeof *kn);
+	WFREE(kn);
 }
 
 /**

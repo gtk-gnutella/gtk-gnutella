@@ -169,11 +169,11 @@ big_alloc(const char *datname, int flags, int mode)
 	DBMBIG *dbg;
 	struct datfile *file;
 
-	dbg = walloc0(sizeof *dbg);
+	WALLOC0(dbg);
 	dbg->fd = -1;
 	dbg->bitbno = -1;
 
-	file = walloc(sizeof *file);
+	WALLOC(file);
 	file->datname = h_strdup(datname);
 	file->flags = flags;
 	file->mode = mode;
@@ -202,7 +202,7 @@ big_datfile_free_null(struct datfile **file_ptr)
 
 	if (file != NULL) {
 		HFREE_NULL(file->datname);
-		wfree(file, sizeof *file);
+		WFREE(file);
 		*file_ptr = NULL;
 	}
 }
@@ -225,7 +225,7 @@ big_free(DBM *db)
 	WFREE_NULL(dbg->bitbuf, BIG_BLKSIZE);
 	HFREE_NULL(dbg->scratch);
 	fd_forget_and_close(&dbg->fd);
-	wfree(dbg, sizeof *dbg);
+	WFREE(dbg);
 }
 
 /**

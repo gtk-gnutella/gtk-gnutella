@@ -160,7 +160,9 @@ hash_list_check(const hash_list_t * const hl)
 hash_list_t *
 hash_list_new(GHashFunc hash_func, GEqualFunc eq_func)
 {
-	hash_list_t *hl = walloc(sizeof *hl);
+	hash_list_t *hl;
+
+	WALLOC(hl);
 	hl->ht = g_hash_table_new(hash_func, eq_func);
 	hl->head = NULL;
 	hl->tail = NULL;
@@ -202,12 +204,12 @@ hash_list_free(hash_list_t **hl_ptr)
 
 		for (iter = hl->head; NULL != iter; iter = g_list_next(iter)) {
 			struct hash_list_item *item = iter->data;
-			wfree(item, sizeof *item);
+			WFREE(item);
 		}
 		gm_list_free_null(&hl->head);
 
 		hl->magic = 0;
-		wfree(hl, sizeof *hl);
+		WFREE(hl);
 		*hl_ptr = NULL;
 	}
 }
@@ -267,7 +269,7 @@ hash_list_append(hash_list_t *hl, const void *key)
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
-	item = walloc(sizeof *item);
+	WALLOC(item);
 	hl->tail = g_list_last(g_list_append(hl->tail, item));
 	if (NULL == hl->head) {
 		hl->head = hl->tail;
@@ -288,7 +290,7 @@ hash_list_prepend(hash_list_t *hl, const void *key)
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
-	item = walloc(sizeof *item);
+	WALLOC(item);
 	hl->head = g_list_prepend(hl->head, item);
 	if (NULL == hl->tail) {
 		hl->tail = hl->head;
@@ -322,7 +324,7 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, GCompareFunc func)
 	} else {
 		struct hash_list_item *item;
 
-		item = walloc(sizeof *item);
+		WALLOC(item);
 		item->orig_key = key;
 
 		/* Inserting ``item'' before ``iter'' */
@@ -421,7 +423,7 @@ hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 		hl->tail = g_list_previous(hl->tail);
 	}
 	hl->head = g_list_delete_link(hl->head, item->list);
-	wfree(item, sizeof *item);
+	WFREE(item);
 
 	g_assert(hl->len > 0);
 	hl->len--;
@@ -458,7 +460,7 @@ hash_list_forget_position(void *position)
 
 	hash_list_position_check(pt);
 	pt->magic = 0;
-	wfree(pt, sizeof *pt);
+	WFREE(pt);
 }
 
 /**
@@ -479,7 +481,7 @@ hash_list_insert_position(hash_list_t *hl, const void *key, void *position)
 	g_assert(pt->hl == hl);
 	g_assert(pt->stamp == hl->stamp);
 
-	item = walloc(sizeof *item);
+	WALLOC(item);
 	hl->head = gm_list_insert_after(hl->head, pt->prev, item);
 	if (pt->prev == hl->tail) {
 		if (NULL == hl->tail) {
@@ -530,7 +532,7 @@ hash_list_remove_position(hash_list_t *hl, const void *key)
 	 * the re-insertion, and this is checked by the saved stamp.
 	 */
 
-	pt = walloc(sizeof *pt);
+	WALLOC(pt);
 	pt->magic = HASH_LIST_POSITION_MAGIC;
 	pt->hl = hl;
 	pt->prev = g_list_previous(item->list);
@@ -774,7 +776,7 @@ hash_list_iterator_new(hash_list_t *hl, enum hash_list_iter_direction dir)
 
 	hash_list_check(hl);
 
-	iter = walloc(sizeof *iter);
+	WALLOC(iter);
 	*iter = zero_iter;
 	iter->magic = HASH_LIST_ITER_MAGIC;
 	iter->dir = dir;
@@ -986,7 +988,7 @@ hash_list_iter_remove(hash_list_iter_t *iter)
 
 		g_assert(hl->len > 0);
 		hl->len--;
-		wfree(item, sizeof *item);
+		WFREE(item);
 
 		return orig_key;
 	} else {
@@ -1008,7 +1010,7 @@ hash_list_iter_release(hash_list_iter_t **iter_ptr)
 		iter->hl->refcount--;
 		iter->magic = 0;
 
-		wfree(iter, sizeof *iter);
+		WFREE(iter);
 		*iter_ptr = NULL;
 	}
 }

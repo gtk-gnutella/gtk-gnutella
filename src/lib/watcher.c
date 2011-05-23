@@ -126,7 +126,7 @@ watcher_register(const char *filename, watcher_cb_t cb, gpointer udata)
 {
 	struct monitored *m;
 
-	m = walloc0(sizeof(*m));
+	WALLOC0(m);
 	m->filename = atom_str_get(filename);
 	m->cb = cb;
 	m->udata = udata;
@@ -159,7 +159,7 @@ static void
 watcher_free(struct monitored *m)
 {
 	atom_str_free(m->filename);
-	wfree(m, sizeof(*m));
+	WFREE(m);
 }
 
 /**

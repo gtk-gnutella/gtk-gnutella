@@ -111,7 +111,7 @@ io_free(gpointer opaque)
 	str_destroy_null(&ih->text);
 
 	ih->magic = 0;
-	wfree(ih, sizeof(*ih));
+	WFREE(ih);
 }
 
 /**
@@ -499,7 +499,7 @@ io_get_header(
 	 * Create and initialize the callback argument used during header reading.
 	 */
 
-	ih = walloc(sizeof *ih);
+	WALLOC(ih);
 	ih->magic = IO_OPAQUE_MAGIC;
 	ih->resource = resource;
 	ih->io_opaque = io_opaque;

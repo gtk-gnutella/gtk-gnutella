@@ -103,7 +103,7 @@ tx_link_init(txdrv_t *tx, gpointer args)
 	g_assert(tx);
 	g_assert(targs->cb != NULL);
 
-	attr = walloc(sizeof *attr);
+	WALLOC(attr);
 
 	/*
 	 * Because we handle servicing of the upper layers explicitely within
@@ -136,7 +136,7 @@ tx_link_destroy(txdrv_t *tx)
 
 	bsched_source_remove(attr->bio);
 
-	wfree(attr, sizeof *attr);
+	WFREE(attr);
 }
 
 static inline int

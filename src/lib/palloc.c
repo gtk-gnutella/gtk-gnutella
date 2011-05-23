@@ -251,7 +251,7 @@ pool_create(const char *name,
 {
 	pool_t *p;
 
-	p = walloc0(sizeof *p);
+	WALLOC0(p);
 	p->magic = POOL_MAGIC;
 	p->name = g_strdup(name);
 	p->size = size;
@@ -300,7 +300,7 @@ pool_free(pool_t *p)
 	G_FREE_NULL(p->name);
 	cq_cancel(&p->heartbeat_ev);
 	p->magic = 0;
-	wfree(p, sizeof *p);
+	WFREE(p);
 }
 
 /**

@@ -196,7 +196,7 @@ spam_add_name_and_size(const char *name,
 	g_return_val_if_fail(name, TRUE);
 	g_return_val_if_fail(min_size <= max_size, TRUE);
 
-	item = walloc(sizeof *item);
+	WALLOC(item);
 	error = regcomp(&item->pattern, name, REG_EXTENDED | REG_NOSUB);
 	if (error) {
 		char buf[1024];
@@ -204,7 +204,7 @@ spam_add_name_and_size(const char *name,
 		regerror(error, &item->pattern, buf, sizeof buf);
 		g_warning("spam_add_name_and_size(): regcomp() failed: %s", buf);
 		regfree(&item->pattern);
-		wfree(item, sizeof *item);
+		WFREE(item);
 		return TRUE;
 	} else {
 		item->min_size = min_size;
@@ -527,7 +527,7 @@ spam_close(void)
 
 		g_assert(item);
 		regfree(&item->pattern);
-		wfree(item, sizeof *item);
+		WFREE(item);
 	}
 	gm_slist_free_null(&spam_lut.sl_names);
 	spam_sha1_close();

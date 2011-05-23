@@ -413,7 +413,7 @@ url_params_parse(char *query)
 	char *value = NULL;
 	gboolean in_value = FALSE;
 
-	up = walloc(sizeof *up);
+	WALLOC(up);
 	up->params = g_hash_table_new(g_str_hash, g_str_equal);
 	up->count = 0;
 
@@ -491,7 +491,7 @@ url_params_free(url_params_t *up)
 	g_hash_table_foreach(up->params, free_params_kv, NULL);
 	gm_hash_table_destroy_null(&up->params);
 
-	wfree(up, sizeof *up);
+	WFREE(up);
 }
 
 /**

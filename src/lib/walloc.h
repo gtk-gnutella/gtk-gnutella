@@ -159,6 +159,26 @@ gpointer wrealloc_track(gpointer old, size_t old_size, size_t new_size,
 void walloc_init(void);
 void wdestroy(void);
 
+#define WALLOC(p)			\
+G_STMT_START {				\
+	p = walloc(sizeof *p);	\
+} G_STMT_END
+
+#define WALLOC0(p)			\
+G_STMT_START {				\
+	p = walloc0(sizeof *p);	\
+} G_STMT_END
+
+#define WFREE(p)			\
+G_STMT_START {				\
+	wfree(p, sizeof *p);	\
+} G_STMT_END
+
+#define WFREE0(p)			\
+G_STMT_START {				\
+	wfree0(p, sizeof *p);	\
+} G_STMT_END
+
 #define WFREE_NULL(p,size)	\
 G_STMT_START {				\
 	if (p) {				\

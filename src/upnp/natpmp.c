@@ -140,7 +140,7 @@ natpmp_alloc(host_addr_t gateway, unsigned sssoe, host_addr_t wan_ip)
 {
 	natpmp_t *np;
 
-	np = walloc(sizeof *np);
+	WALLOC(np);
 	np->magic = NATPMP_MAGIC;
 	np->gateway = gateway;
 	np->wan_ip = wan_ip;
@@ -159,7 +159,7 @@ natpmp_free(natpmp_t *np)
 	natpmp_check(np);
 
 	np->magic = 0;
-	wfree(np, sizeof *np);
+	WFREE(np);
 }
 
 /**
@@ -255,7 +255,7 @@ natpmp_rpc_alloc(natpmp_t *np, host_addr_t addr, enum natpmp_op op, pmsg_t *mb)
 {
 	struct natpmp_rpc *rd;
 
-	rd = walloc0(sizeof *rd);
+	WALLOC0(rd);
 	rd->magic = NATPMP_RPC_MAGIC;
 	rd->gateway = addr;
 	rd->op = op;
@@ -284,7 +284,7 @@ natpmp_rpc_free(struct natpmp_rpc *rd)
 
 	pmsg_free_null(&rd->mb);
 	rd->magic = 0;
-	wfree(rd, sizeof *rd);
+	WFREE(rd);
 }
 
 /**

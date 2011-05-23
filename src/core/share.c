@@ -352,7 +352,7 @@ shared_file_alloc(void)
 	static const shared_file_t zero_sf;
 	shared_file_t *sf;
 
-	sf = walloc(sizeof *sf);
+	WALLOC(sf);
 	*sf = zero_sf;
 	sf->magic = SHARED_FILE_MAGIC;
 	return sf;
@@ -421,7 +421,7 @@ shared_file_free(shared_file_t **sf_ptr)
 		atom_str_free_null(&sf->name_canonic);
 		sf->magic = 0;
 
-		wfree(sf, sizeof *sf);
+		WFREE(sf);
 		*sf_ptr = NULL;
 	}
 }
@@ -1192,7 +1192,7 @@ recursive_scan_new(const GSList *base_dirs)
 	struct recursive_scan *ctx;
 	const GSList *iter;
 
-	ctx = walloc0(sizeof *ctx);
+	WALLOC0(ctx);
 	ctx->magic = RECURSIVE_SCAN_MAGIC;
 	ctx->base_dirs = slist_new();
 	ctx->sub_dirs = slist_new();
@@ -1283,7 +1283,7 @@ recursive_scan_free(struct recursive_scan **ctx_ptr)
 		gm_slist_free_null(&ctx->shared);
 
 		ctx->magic = 0;
-		wfree(ctx, sizeof *ctx);
+		WFREE(ctx);
 		*ctx_ptr = NULL;
 	}
 }

@@ -89,7 +89,7 @@ mq_udp_pmsg_free(pmsg_t *mb, gpointer arg)
 
 	g_assert(pmsg_is_extended(mb));
 
-	wfree(mi, sizeof(*mi));
+	WFREE(mi);
 }
 
 /**
@@ -106,7 +106,7 @@ mq_udp_pmsg_free_extended(pmsg_t *mb, gpointer arg)
 	if (mi->orig_free)
 		(*mi->orig_free)(mb, mi->orig_arg);
 
-	wfree(mi, sizeof(*mi));
+	WFREE(mi);
 }
 
 /**
@@ -121,7 +121,7 @@ mq_udp_attach_metadata(pmsg_t *mb, const gnet_host_t *to)
 	if (pmsg_is_extended(mb)) {
 		struct mq_udp_info_extended *mi;
 
-		mi = walloc(sizeof(*mi));
+		WALLOC(mi);
 		gnet_host_copy(&mi->to, to);
 		result = mb;
 
@@ -137,7 +137,7 @@ mq_udp_attach_metadata(pmsg_t *mb, const gnet_host_t *to)
 	} else {
 		struct mq_udp_info *mi;
 
-		mi = walloc(sizeof(*mi));
+		WALLOC(mi);
 		gnet_host_copy(&mi->to, to);
 		result = pmsg_clone_extend(mb, mq_udp_pmsg_free, mi);
 		pmsg_free(mb);
@@ -157,7 +157,7 @@ mq_udp_make(int maxsize, struct gnutella_node *n, struct txdriver *nd)
 {
 	mqueue_t *q;
 
-	q = walloc0(sizeof(*q));
+	WALLOC0(q);
 
 	q->magic = MQ_MAGIC;
 	q->node = n;

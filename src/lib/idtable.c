@@ -63,7 +63,7 @@ idtable_new(void)
 	static const idtable_t zero_idtable;
 	idtable_t *tbl;
 
-	tbl = walloc(sizeof *tbl);
+	WALLOC(tbl);
 	*tbl = zero_idtable;
 	tbl->last_id = (random_u32() & IDTABLE_MASK) + IDTABLE_BASE;
 	tbl->ht = g_hash_table_new(NULL, NULL);
@@ -78,7 +78,7 @@ void
 idtable_destroy(idtable_t *tbl)
 {
 	gm_hash_table_destroy_null(&tbl->ht);
-	wfree(tbl, sizeof *tbl);
+	WFREE(tbl);
 }
 
 /**

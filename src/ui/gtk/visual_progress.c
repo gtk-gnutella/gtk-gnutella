@@ -348,7 +348,7 @@ vp_get_chunks_initial(gnet_fi_t fih) {
 			} else {
 				result = g_slist_delete_link(result, sl);
 			}
-			wfree(chunk, sizeof *chunk);
+			WFREE(chunk);
 		} else {
 			prev = sl;
 		}
@@ -374,7 +374,7 @@ vp_gui_fi_added(gnet_fi_t fih)
     fi = guc_fi_get_info(fih);
     guc_fi_get_status(fih, &s);
 
-    new_vp_info = walloc0(sizeof *new_vp_info);
+    WALLOC0(new_vp_info);
     new_vp_info->fi_handle = fih;
     new_vp_info->filename = atom_str_get(fi->filename);
     new_vp_info->filesize = s.size;
@@ -407,7 +407,7 @@ vp_info_free(vp_info_t **v_ptr)
 		guc_fi_free_chunks(v->chunks_initial);
 		guc_fi_free_ranges(v->ranges_list);
 		atom_str_free_null(&v->filename);
-		wfree(v, sizeof *v);
+		WFREE(v);
 		*v_ptr = NULL;
 	}
 }
@@ -485,7 +485,7 @@ vp_create_chunk(filesize_t from, filesize_t to,
 {
 	gnet_fi_chunks_t *chunk;
 
-	chunk = walloc(sizeof *chunk);
+	WALLOC(chunk);
 	chunk->from = from;
 	chunk->to = to;
 	chunk->status = status;

@@ -313,7 +313,7 @@ rudp_alloc(const host_addr_t addr, guint16 port, guint8 conn_id)
 		static const struct rudp_con zero_con;
 		struct rudp_con *con;
 
-		con = walloc(sizeof *con);	
+		WALLOC(con);
 		*con = zero_con;
 		con->addr = addr;
 		con->port = port;

@@ -605,7 +605,7 @@ search_gui_close_search(search_t *search)
 	gm_hash_table_destroy_null(&search->parents);
 
     guc_search_close(search->search_handle);
-	wfree(search, sizeof *search);
+	WFREE(search);
 }
 
 /**
@@ -815,7 +815,7 @@ search_gui_free_record(record_t *rc)
 	search_gui_free_alt_locs(rc);
 	rc->refcount = -1;
 	rc->magic = 0;
-	wfree(rc, sizeof *rc);
+	WFREE(rc);
 }
 
 /**
@@ -877,7 +877,7 @@ search_gui_results_set_free(results_set_t *rs)
 	atom_str_free_null(&rs->query);
 	search_gui_free_proxies(rs);
 	rs->magic = 0;
-	wfree(rs, sizeof *rs);
+	WFREE(rs);
 }
 
 static void
@@ -1138,8 +1138,7 @@ search_gui_create_record(const gnet_results_set_t *rs, gnet_record_t *r)
     g_assert(r != NULL);
     g_assert(rs != NULL);
 
-    rc = walloc(sizeof *rc);
-
+    WALLOC(rc);
 	*rc = zero_record;
 	rc->magic = RECORD_MAGIC;
 	rc->refcount = 1;
@@ -1208,8 +1207,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 	guint ignored;
     GSList *sl;
 
-    rs = walloc(sizeof *rs);
-
+    WALLOC(rs);
 	rs->magic = RESULTS_SET_MAGIC;
     rs->schl = g_slist_copy(schl);
 
@@ -1265,7 +1263,7 @@ static void
 accum_rs_free(struct accum_rs *ars)
 {
 	atom_guid_free_null(&ars->muid);
-	wfree(ars, sizeof *ars);
+	WFREE(ars);
 }
 
 /**
@@ -2212,7 +2210,7 @@ search_gui_got_results(GSList *schl, const struct guid *muid,
 		if (GUI_PROPERTY(gui_debug) >= 12)
 			printf("got incoming results...\n");
 
-		ars = walloc(sizeof *ars);
+		WALLOC(ars);
 		ars->muid = muid != NULL ? atom_guid_get(muid) : NULL;
 		ars->rs = rs;
 		slist_append(accumulated_rs, ars);
@@ -2686,7 +2684,7 @@ browse_request_free(struct browse_request **req_ptr)
 		g_assert(req);
 
 		atom_str_free_null(&req->host);
-		wfree(req, sizeof *req);
+		WFREE(req);
 		*req_ptr = NULL;
 	}
 }
@@ -2717,8 +2715,7 @@ search_gui_browse(const gchar *host, guint16 port, guint32 flags)
 {
 	struct browse_request *req;
 
-	req = walloc(sizeof *req);
-
+	WALLOC(req);
 	req->host = atom_str_get(host);
 	req->port = port;
 	req->flags = flags;
@@ -2793,7 +2790,7 @@ search_gui_query_free(struct query **query_ptr)
 
 		G_FREE_NULL(query->text);	
 		gm_list_free_null(&query->rules);
-		wfree(query, sizeof *query);
+		WFREE(query);
 		*query_ptr = NULL;
 	}
 }
@@ -2863,7 +2860,7 @@ search_gui_handle_query(const gchar *query_str, guint32 flags,
 		static const struct query zero_query;
 		struct query *query;
 
-		query = walloc(sizeof *query);
+		WALLOC(query);
 		*query = zero_query;
 
 		if (parse) {
@@ -2938,7 +2935,7 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 		return FALSE;
 	}
 
-	search = walloc(sizeof *search);
+	WALLOC(search);
 	*search = zero_search;
 
 	if (search_ptr) {

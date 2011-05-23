@@ -209,7 +209,7 @@ sectoken_remote_alloc(guint8 length)
 {
 	sectoken_remote_t *token;
 
-	token = walloc(sizeof *token);
+	WALLOC(token);
 	token->length = length;
 	token->v = length ? walloc(length) : NULL;
 
@@ -225,7 +225,7 @@ sectoken_remote_free(sectoken_remote_t *token, gboolean freedata)
 	if (token->v && freedata)
 		wfree(token->v, token->length);
 
-	wfree(token, sizeof *token);
+	WFREE(token);
 }
 
 /**
@@ -239,7 +239,7 @@ sectoken_gen_new(size_t keys, time_delta_t refresh)
 
 	g_assert(size_is_positive(keys));
 
-	stg = walloc0(sizeof *stg);
+	WALLOC0(stg);
 	stg->magic = SECTOKEN_GEN_MAGIC;
 	stg->keys = walloc(keys * sizeof stg->keys[0]);
 	stg->keycnt = keys;
@@ -267,8 +267,7 @@ sectoken_gen_free_null(sectoken_gen_t **stg_ptr)
 		cq_cancel(&stg->rotate_ev);
 		WFREE_NULL(stg->keys, stg->keycnt * sizeof stg->keys[0]);
 		stg->magic = 0;
-		wfree(stg, sizeof *stg);
-
+		WFREE(stg);
 		*stg_ptr = NULL;
 	}
 }

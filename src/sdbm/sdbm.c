@@ -174,7 +174,7 @@ sdbm_alloc(void)
 {
 	DBM *db;
 
-	db = walloc0(sizeof *db);
+	WALLOC0(db);
 	if (db) {
 		db->pagf = -1;
 		db->dirf = -1;
@@ -497,7 +497,7 @@ sdbm_close(DBM *db)
 		}
 		log_sdbm_warnings(db);
 		HFREE_NULL(db->name);
-		wfree(db, sizeof *db);
+		WFREE(db);
 	}
 }
 

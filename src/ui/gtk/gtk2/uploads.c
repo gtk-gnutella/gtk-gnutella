@@ -343,12 +343,13 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 {
 	gint range_len, progress;
 	const gchar *titles[UPLOADS_GUI_VISIBLE_COLUMNS];
-    upload_row_data_t *rd = walloc(sizeof *rd);
+    upload_row_data_t *rd;
 	gnet_upload_status_t status;
 	static gchar size_tmp[256];
 
 	memset(titles, 0, sizeof titles);
 
+	WALLOC(rd);
     rd->handle      = u->upload_handle;
     rd->range_start = u->range_start;
     rd->range_end   = u->range_end;
@@ -505,7 +506,7 @@ free_row_data(upload_row_data_t *rd)
 {
 	atom_str_free_null(&rd->user_agent);
 	atom_str_free_null(&rd->name);
-	wfree(rd, sizeof *rd);
+	WFREE(rd);
 }
 
 static inline void

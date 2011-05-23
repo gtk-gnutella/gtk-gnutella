@@ -85,7 +85,7 @@ tsync_free(struct tsync *ts)
 	cq_cancel(&ts->expire_ev);
 	nid_unref(ts->node_id);
 	ts->magic = 0;
-	wfree(ts, sizeof(*ts));
+	WFREE(ts);
 }
 
 /**
@@ -138,7 +138,7 @@ tsync_send(struct gnutella_node *n, const struct nid *node_id)
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
-	ts = walloc(sizeof(*ts));
+	WALLOC(ts);
 	ts->magic = TSYNC_MAGIC;
 	tm_now_exact(&ts->sent);
 	ts->sent.tv_sec = clock_loc2gmt(ts->sent.tv_sec);

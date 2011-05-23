@@ -100,7 +100,7 @@ ctl_token_alloc(enum ctl_toktype type, const char *start)
 {
 	struct ctl_tok *tok;
 
-	tok = walloc(sizeof *tok);
+	WALLOC(tok);
 	tok->type = type;
 	tok->val.s = NULL;
 	tok->start = start;
@@ -119,7 +119,7 @@ ctl_token_free(struct ctl_tok *tok)
 	if (CTL_TOK_ID == tok->type) {
 		HFREE_NULL(tok->val.s);
 	}
-	wfree(tok, sizeof *tok);
+	WFREE(tok);
 }
 
 /**

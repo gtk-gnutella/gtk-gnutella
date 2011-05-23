@@ -401,7 +401,7 @@ dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl,
 
 	dquery_check(dq);
 
-	pmi = walloc(sizeof(*pmi));
+	WALLOC(pmi);
 	pmi->qid = dq->qid;
 	pmi->degree = degree;
 	pmi->ttl = ttl;
@@ -420,7 +420,7 @@ static void
 dq_pmi_free(struct dq_pmsg_info *pmi)
 {
 	nid_unref(pmi->node_id);	
-	wfree(pmi, sizeof(*pmi));
+	WFREE(pmi);
 }
 
 /**
@@ -991,7 +991,7 @@ dq_free(dquery_t *dq)
 
 	nid_unref(dq->node_id);
 	dq->magic = 0;
-	wfree(dq, sizeof(*dq));
+	WFREE(dq);
 }
 
 /**
@@ -1759,7 +1759,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	g_assert(NODE_IS_LEAF(n));
 	g_assert(gnutella_header_get_hops(&n->header) == 1);
 
-	dq = walloc0(sizeof(*dq));
+	WALLOC0(dq);
 	dq->magic = DQUERY_MAGIC;
 
 	flags = peek_be16(n->data);
@@ -1931,7 +1931,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	 * OK, create the local dynamic query.
 	 */
 
-	dq = walloc0(sizeof(*dq));
+	WALLOC0(dq);
 	dq->magic = DQUERY_MAGIC;
 
 	dq->node_id = nid_ref(NODE_ID_SELF);

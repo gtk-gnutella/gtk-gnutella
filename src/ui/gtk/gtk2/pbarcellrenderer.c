@@ -173,10 +173,7 @@ gtk_cell_renderer_progress_get_type(void)
 static void
 gtk_cell_renderer_progress_init(GtkCellRendererProgress *cellprogress)
 {
-    cellprogress->priv =
-		(GtkCellRendererProgressPriv*) g_new0(GtkCellRendererProgressPriv, 1);
-
-	cellprogress->priv->value = 0;
+    WALLOC0(cellprogress->priv);
 }
 
 /**
@@ -433,7 +430,8 @@ static void
 gtk_cell_renderer_progress_finalize(GObject *object)
 {
 	GtkCellRendererProgress *cellprogress = GTK_CELL_RENDERER_PROGRESS(object);
-	G_FREE_NULL(cellprogress->priv);
+	WFREE(cellprogress->priv);
+	cellprogress->priv = NULL;
 	(*G_OBJECT_CLASS(parent_class)->finalize)(object);
 }
 

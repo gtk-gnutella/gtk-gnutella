@@ -30,6 +30,15 @@
 
 #include <gtk/gtk.h>
 
+/*
+ * Declare all the windows created by glade (through create_xxx()) here
+ * so that we can refer to them via gui_xxx() in the code.
+ *
+ * The actual association (mapping between the output of create_xxx() from
+ * glade and the value returned by the gui_xxx() routine) is done at GUI
+ * initialization time in main_gui_early_init() through gui_xxx_set().
+ */
+
 #define WIDGET(name) \
 	GtkWidget *gui_ ## name (void); \
 	GtkWidget *gui_ ## name ## _lookup(const gchar *id);

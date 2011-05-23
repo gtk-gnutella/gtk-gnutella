@@ -94,7 +94,7 @@ header_features_cleanup(xfeature_t xf)
 		struct header_x_feature *header = cur->data;
 
 		G_FREE_NULL(header->name);
-		wfree(header, sizeof *header);
+		WFREE(header);
 	}
 	gm_list_free_null(&features->list);
 }
@@ -123,7 +123,7 @@ header_features_add_guarded(xfeature_t xf,
 	features = features_get(xf);
 	g_return_if_fail(features);
 
-	item = walloc(sizeof *item);
+	WALLOC(item);
 	item->name = g_strdup(name);
 	item->major = major;
 	item->minor = minor;
@@ -147,7 +147,7 @@ header_features_add_guarded_function(xfeature_t xf,
 	features = features_get(xf);
 	g_return_if_fail(features);
 
-	item = walloc(sizeof *item);
+	WALLOC(item);
 	item->name = g_strdup(name);
 	item->major = major;
 	item->minor = minor;

@@ -46,7 +46,8 @@ vector_iter_t *
 vector_iterator(vector_t *vec)
 {
 	vector_iter_t *iter;
-	iter = walloc(sizeof *iter);
+
+	WALLOC(iter);
 	iter->vec = vec;
 	iter->i = 0;
 	return iter;
@@ -56,7 +57,8 @@ vector_iter_t *
 vector_iterator_tail(vector_t *vec)
 {
 	vector_iter_t *iter;
-	iter = walloc(sizeof *iter);
+
+	WALLOC(iter);
 	iter->vec = vec;
 	iter->i = vec->n - 1;
 	return iter;
@@ -69,7 +71,7 @@ vector_iter_release(vector_iter_t **iter_ptr)
 
 	if (*iter_ptr) {
 		vector_iter_t *iter = *iter_ptr;
-		wfree(iter, sizeof *iter);
+		WFREE(iter);
 		*iter_ptr = NULL;
 	}
 }
@@ -77,7 +79,9 @@ vector_iter_release(vector_iter_t **iter_ptr)
 vector_t *
 vector_alloc(void *base, size_t element_size, size_t n)
 {
-	vector_t *vec = walloc(sizeof *vec);
+	vector_t *vec;
+
+	WALLOC(vec);
 	*vec = vector_create(base, element_size, n);
 	return vec;
 }
@@ -89,7 +93,7 @@ vector_free(vector_t **vec_ptr)
 
 	if (*vec_ptr) {
 		vector_t *vec = *vec_ptr;
-		wfree(vec, sizeof *vec);
+		WFREE(vec);
 		*vec_ptr = NULL;
 	}
 }

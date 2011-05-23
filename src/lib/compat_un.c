@@ -146,7 +146,7 @@ sock_un_alloc(void)
 {
 	struct sock_un *sun;
 
-	sun = walloc0(sizeof *sun);
+	WALLOC0(sun);
 	sun->magic = SOCK_UN_MAGIC;
 	sun->refcnt = 1;
 
@@ -194,7 +194,7 @@ sock_un_free(struct sock_un *sun)
 		sock_un_free_null(&sun->u.a.lsun);
 
 	sun->magic = 0;
-	wfree(sun, sizeof *sun);
+	WFREE(sun);
 }
 
 /**

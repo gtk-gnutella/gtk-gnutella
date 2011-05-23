@@ -684,7 +684,7 @@ parq_dl_free(struct download *d)
 
 	g_assert(parq_dl->id == NULL);
 
-	wfree(parq_dl, sizeof *parq_dl);
+	WFREE(parq_dl);
 	d->parq_dl = NULL;
 }
 
@@ -701,8 +701,7 @@ parq_dl_create(const struct download *d)
 	download_check(d);
 	g_assert(d->parq_dl == NULL);
 
-	parq_dl = walloc(sizeof *parq_dl);
-
+	WALLOC(parq_dl);
 	parq_dl->id = NULL;		/* Can't allocate yet, ID size isn't fixed */
 	parq_dl->position = 0;
 
@@ -1552,7 +1551,7 @@ parq_upload_free(struct parq_ul_queued *puq)
 
 		/* No more uploads from this ip, cleaning up */
 		g_hash_table_remove(ul_all_parq_by_addr, &puq->by_addr->addr);
-		wfree(puq->by_addr, sizeof *puq->by_addr);
+		WFREE(puq->by_addr);
 
 		g_assert(NULL == g_hash_table_lookup(ul_all_parq_by_addr,
 								&puq->remote_addr));
@@ -1607,9 +1606,7 @@ parq_upload_free(struct parq_ul_queued *puq)
 			"PARQ UL: Entry %s freed from memory", guid_hex_str(&puq->id));
 
 	puq->magic = 0;
-	wfree(puq, sizeof *puq);
-	puq = NULL;
-
+	WFREE(puq);
 }
 
 /**
@@ -1658,7 +1655,7 @@ parq_upload_new_queue(void)
 	static const struct parq_ul_queue zero_queue;
 	struct parq_ul_queue *queue;
 
-	queue = walloc(sizeof *queue);
+	WALLOC(queue);
 	*queue = zero_queue;
 
 	queue->active = TRUE;
@@ -1804,7 +1801,7 @@ parq_upload_create(struct upload *u)
 	}
 
 	/* Create new parq_upload item */
-	puq = walloc0(sizeof *puq);
+	WALLOC0(puq);
 	puq->magic = PARQ_UL_MAGIC;
 
 	/* Create identifier to find upload again later. IP + Filename */
@@ -1878,7 +1875,7 @@ parq_upload_create(struct upload *u)
 	if (puq->by_addr == NULL) {
 		/* The requesting client has no other PARQ entries yet, create an ip
 		 * reference structure */
-		puq->by_addr = walloc0(sizeof *puq->by_addr);
+		WALLOC0(puq->by_addr);
 		puq->by_addr->addr = puq->remote_addr;
 		g_hash_table_insert(ul_all_parq_by_addr,
 				&puq->by_addr->addr, puq->by_addr);
@@ -1953,8 +1950,7 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 	hash_list_free(&queue->by_rel_pos);
 	hash_list_free(&queue->by_date_dead);
 	statx_free(queue->slot_stats);
-	wfree(queue, sizeof(*queue));
-	queue = NULL;
+	WFREE(queue);
 }
 
 /**
@@ -2203,7 +2199,7 @@ parq_add_banned_source(const host_addr_t addr, time_t delay)
 	banned = g_hash_table_lookup(ht_banned_source, &addr);
 	if (banned == NULL) {
 		/* Host not yet banned yet, good */
-		banned = walloc0(sizeof *banned);
+		WALLOC0(banned);
 		banned->addr = addr;
 
 		g_hash_table_insert(ht_banned_source, &banned->addr, banned);
@@ -2239,8 +2235,7 @@ parq_del_banned_source(const host_addr_t addr)
 	g_hash_table_remove(ht_banned_source, &addr);
 	parq_banned_sources = g_list_remove(parq_banned_sources, banned);
 
-	wfree(banned, sizeof *banned);
-	banned = NULL;
+	WFREE(banned);
 }
 
 /**

@@ -777,7 +777,7 @@ relay_list_remove(struct poll_ctx *ctx, unsigned id)
 		inputevt_poll_idx_free(ctx, &rl->poll_idx);
 		hash_list_remove(ctx->readable, int_to_pointer(relay->fd));
 		g_hash_table_remove(ctx->ht, int_to_pointer(relay->fd));
-		wfree(rl, sizeof *rl);
+		WFREE(rl);
 	}
 }
 
@@ -802,7 +802,7 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 
 		relay = ctx->relay[id];
 		relay_list_remove(ctx, id);		
-		wfree(relay, sizeof *relay);
+		WFREE(relay);
 		ctx->relay[id] = NULL;
 	}
 
@@ -1052,7 +1052,7 @@ inputevt_remove(unsigned *id_ptr)
 		ctx->removed = g_slist_prepend(ctx->removed, GUINT_TO_POINTER(id));
 	} else {
 		relay_list_remove(ctx, id);		
-		wfree(relay, sizeof *relay);
+		WFREE(relay);
 		ctx->relay[id] = NULL;
 		bit_array_clear(ctx->used_event_id, id);
 	}
@@ -1171,7 +1171,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 			old = (rl->readers ? INPUT_EVENT_R : 0) |
 				(rl->writers ? INPUT_EVENT_W : 0);
 		} else {
-			rl = walloc(sizeof *rl);
+			WALLOC(rl);
 			rl->readers = 0;
 			rl->writers = 0;
 			rl->sl = NULL;
@@ -1383,7 +1383,7 @@ unsigned
 inputevt_add(int fd, inputevt_cond_t cond,
 	inputevt_handler_t handler, void *data)
 {
-	inputevt_relay_t *relay = walloc(sizeof *relay);
+	inputevt_relay_t *relay;
 
 	g_assert(is_valid_fd(fd));
 	g_assert(zero_handler != handler);
@@ -1405,6 +1405,7 @@ inputevt_add(int fd, inputevt_cond_t cond,
 	g_assert_not_reached();
 
 cond_is_okay:
+	WALLOC(relay);
 	relay->condition = cond;
 	relay->handler = handler;
 	relay->data = data;

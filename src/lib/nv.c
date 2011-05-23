@@ -139,7 +139,7 @@ nv_pair_make_full(const char *name, const void *value, size_t length,
 	g_assert(0 == length || value != NULL);
 	g_assert(NULL == value || size_is_positive(length));
 
-	nvp = walloc0(sizeof *nvp);
+	WALLOC0(nvp);
 	nvp->magic = NV_PAIR_MAGIC;
 	nvp->refcnt = 1;
 	nvp->name = atom ? atom_str_get(name) : name;
@@ -327,7 +327,7 @@ nv_pair_free(nv_pair_t *nvp)
 	if (nvp->atom)
 		atom_str_free_null(&nvp->name);
 	nvp->magic = 0;
-	wfree(nvp, sizeof *nvp);
+	WFREE(nvp);
 }
 
 /**
@@ -392,7 +392,7 @@ nv_table_make(gboolean ordered)
 {
 	nv_table_t *nvt;
 
-	nvt = walloc(sizeof *nvt);
+	WALLOC(nvt);
 	nvt->magic = NV_TABLE_MAGIC;
 	nvt->ordered = ordered;
 	if (ordered)
@@ -438,7 +438,7 @@ nv_table_free(nv_table_t *nvt)
 		gm_hash_table_destroy_null(&nvt->u.ht);
 	}
 	nvt->magic = 0;
-	wfree(nvt, sizeof *nvt);
+	WFREE(nvt);
 }
 
 /**

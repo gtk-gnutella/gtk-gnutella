@@ -391,7 +391,7 @@ bg_task_alloc(void)
 	static const struct bgtask zero_bt;
 	struct bgtask *bt;
 
-	bt = walloc(sizeof *bt);
+	WALLOC(bt);
 	*bt = zero_bt;
 	bt->magic = BGTASK_MAGIC;
 	return bt;
@@ -566,7 +566,7 @@ bg_task_free(struct bgtask *bt)
 			count, count == 1 ? "" : "s", bt->name);
 
 	bt->magic = 0;
-	wfree(bt, sizeof *bt);
+	WFREE(bt);
 }
 
 /**

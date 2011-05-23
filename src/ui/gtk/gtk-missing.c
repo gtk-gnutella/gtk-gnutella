@@ -425,7 +425,7 @@ w_tree_iter_new(void)
 {
 	GtkTreeIter *iter;
 
-	iter = walloc(sizeof *iter);
+	WALLOC(iter);
 	return iter;
 }
 
@@ -438,8 +438,8 @@ w_tree_iter_copy(GtkTreeIter *iter)
 {
 	GtkTreeIter *copy;
 
-	copy = walloc(sizeof *copy);
-	*copy = *iter;
+	WALLOC(copy);
+	*copy = *iter;		/* Struct copy */
 	return copy;
 }
 
@@ -449,7 +449,7 @@ w_tree_iter_copy(GtkTreeIter *iter)
 void
 w_tree_iter_free(GtkTreeIter *iter)
 {
-	wfree(iter, sizeof *iter);
+	WFREE(iter);
 }
 
 /**
@@ -459,7 +459,7 @@ void
 ht_w_tree_iter_free(gpointer p)
 {
 	GtkTreeIter *iter = p;
-	wfree(iter, sizeof *iter);
+	WFREE(iter);
 }
 
 
@@ -703,7 +703,7 @@ tree_view_motion_set_callback(GtkTreeView *tv,
 	g_return_val_if_fail(tv, NULL);
 	g_return_val_if_fail(cb, NULL);
 
-	tvm = walloc(sizeof *tvm);
+	WALLOC(tvm);
 	tvm->ready = FALSE;
 	tvm->tv = GTK_TREE_VIEW(g_object_ref(tv));
 	tvm->cb = cb;

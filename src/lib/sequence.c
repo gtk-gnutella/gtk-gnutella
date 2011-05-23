@@ -92,7 +92,7 @@ sequence_create_from_gslist(GSList *gsl)
 {
 	sequence_t *s;
 
-	s = walloc(sizeof *s);
+	WALLOC(s);
 	return sequence_fill_from_gslist(s, gsl);
 }
 
@@ -105,7 +105,7 @@ sequence_create_from_glist(GList *gl)
 {
 	sequence_t *s;
 
-	s = walloc(sizeof *s);
+	WALLOC(s);
 	return sequence_fill_from_glist(s, gl);
 }
 
@@ -120,7 +120,7 @@ sequence_create_from_list(list_t *l)
 
 	g_assert(l != NULL);
 
-	s = walloc(sizeof *s);
+	WALLOC(s);
 	return sequence_fill_from_list(s, l);
 }
 
@@ -135,7 +135,7 @@ sequence_create_from_slist(slist_t *sl)
 
 	g_assert(sl != NULL);
 
-	s = walloc(sizeof *s);
+	WALLOC(s);
 	return sequence_fill_from_slist(s, sl);
 }
 
@@ -150,7 +150,7 @@ sequence_create_from_hash_list(hash_list_t *hl)
 
 	g_assert(hl != NULL);
 
-	s = walloc(sizeof *s);
+	WALLOC(s);
 	return sequence_fill_from_hash_list(s, hl);
 }
 
@@ -165,7 +165,7 @@ sequence_create_from_vector(vector_t *vec)
 
 	g_assert(vec != NULL);
 
-	s = walloc(sizeof *s);
+	WALLOC(s);
 	return sequence_fill_from_vector(s, vec);
 }
 
@@ -379,7 +379,7 @@ sequence_release(sequence_t **s_ptr)
 
 		s->type = SEQUENCE_MAXTYPE;
 		s->magic = 0;
-		wfree(s, sizeof *s);
+		WFREE(s);
 
 		*s_ptr = NULL;
 		return implementation;
@@ -421,7 +421,7 @@ sequence_destroy(sequence_t *s)
 
 	s->type = SEQUENCE_MAXTYPE;
 	s->magic = 0;
-	wfree(s, sizeof *s);
+	WFREE(s);
 }
 
 /**
@@ -434,7 +434,7 @@ sequence_forward_iterator(const sequence_t *s)
 
 	g_assert(s != NULL);
 
-	si = walloc(sizeof *si);
+	WALLOC(si);
 	si->magic = SEQUENCE_ITER_MAGIC;
 	si->direction = SEQ_ITER_FORWARD;
 	si->type = s->type;
@@ -544,7 +544,7 @@ sequence_backward_iterator(const sequence_t *s, gboolean check)
 
 	g_assert(s != NULL);
 
-	si = walloc(sizeof *si);
+	WALLOC(si);
 	si->magic = SEQUENCE_ITER_MAGIC;
 	si->direction = SEQ_ITER_BACKWARD;
 	si->type = s->type;
@@ -687,7 +687,7 @@ sequence_iterator_release(sequence_iter_t **iter_ptr)
 		}
 
 		si->magic = 0;
-		wfree(si, sizeof *si);
+		WFREE(si);
 		*iter_ptr = NULL;
 	}
 }

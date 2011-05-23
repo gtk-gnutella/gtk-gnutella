@@ -157,7 +157,7 @@ soap_rpc_alloc(void)
 {
 	soap_rpc_t *sr;
 
-	sr = walloc0(sizeof *sr);
+	WALLOC0(sr);
 	sr->magic = SOAP_RPC_MAGIC;
 
 	return sr;
@@ -180,7 +180,7 @@ soap_rpc_free(soap_rpc_t *sr)
 	HFREE_NULL(sr->reply_data);
 
 	sr->magic = 0;
-	wfree(sr, sizeof *sr);
+	WFREE(sr);
 }
 
 /**

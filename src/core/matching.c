@@ -120,7 +120,7 @@ destroy_entry(struct st_entry *entry)
 
 	atom_str_free_null(&entry->string);
 	shared_file_unref(&entry->sf);
-	wfree(entry, sizeof *entry);
+	WFREE(entry);
 }
 
 /**
@@ -145,8 +145,9 @@ bin_initialize(struct st_bin *bin, int size)
 static struct st_bin *
 bin_allocate(void)
 {
-	struct st_bin *bin = walloc(sizeof *bin);
+	struct st_bin *bin;
 
+	WALLOC(bin);
 	bin_initialize(bin, ST_MIN_BIN_SIZE);
 	return bin;
 }
@@ -302,7 +303,7 @@ st_destroy(search_table_t *table)
 
 			if (bin) {
 				bin_destroy(bin);
-				wfree(bin, sizeof *bin);
+				WFREE(bin);
 			}
 		}
 		HFREE_NULL(table->bins);
@@ -324,8 +325,9 @@ st_destroy(search_table_t *table)
 search_table_t *
 st_create(void)
 {
-	search_table_t *table = walloc0(sizeof *table);
+	search_table_t *table;
 
+	WALLOC0(table);
 	table->magic = SEARCH_TABLE_MAGIC;
 	st_initialize(table);
 	st_recreate(table);
@@ -343,7 +345,7 @@ st_free(search_table_t **ptr)
 		search_table_t *table = *ptr;
 		st_destroy(table);
 		table->magic = 0;
-		wfree(table, sizeof *table);
+		WFREE(table);
 		*ptr = NULL;
 	}
 }
@@ -412,7 +414,7 @@ st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
 
 	seen_keys = g_hash_table_new(NULL, NULL);
 
-	entry = walloc(sizeof *entry);
+	WALLOC(entry);
 	entry->string = atom_str_get(s);
 	entry->sf = shared_file_ref(sf);
 	entry->mask = mask_hash(entry->string);

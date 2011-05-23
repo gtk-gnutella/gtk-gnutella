@@ -94,7 +94,7 @@ ostream_alloc(enum ostream_type type)
 {
 	ostream_t *os;
 
-	os = walloc0(sizeof *os);
+	WALLOC0(os);
 	os->magic = OSTREAM_MAGIC;
 	os->type = type;
 
@@ -122,7 +122,7 @@ ostream_free(ostream_t *os)
 	}
 
 	os->magic = 0;
-	wfree(os, sizeof *os);
+	WFREE(os);
 }
 
 /**

@@ -100,7 +100,7 @@ val_free(struct used_val *v)
 	g_assert(is_host_addr(v->addr));
 
 	cq_cancel(&v->cq_ev);
-	wfree(v, sizeof *v);
+	WFREE(v);
 }
 
 /**
@@ -126,10 +126,11 @@ val_destroy(cqueue_t *unused_cq, gpointer obj)
 static struct used_val *
 val_create(const host_addr_t addr, int precision)
 {
-	struct used_val *v = walloc(sizeof *v);
+	struct used_val *v;
 
 	g_assert(is_host_addr(addr));
 
+	WALLOC(v);
 	v->addr = addr;
 	v->precision = precision;
 	v->cq_ev = cq_insert(callout_queue, REUSE_DELAY * 1000, val_destroy, v);

@@ -123,7 +123,7 @@ iprange_new(void)
 	static const struct iprange_db zero_idb;
 	struct iprange_db *idb;
 
-	idb = walloc(sizeof *idb);
+	WALLOC(idb);
 	*idb = zero_idb;
 	idb->magic = IPRANGE_DB_MAGIC;
 	idb->tab = sorted_array_new(sizeof(struct iprange_net), iprange_net_cmp);
@@ -144,7 +144,7 @@ iprange_free(struct iprange_db **idb_ptr)
 	if (idb) {
 		iprange_db_check(idb);
 		sorted_array_free(&idb->tab);
-		wfree(idb, sizeof *idb);
+		WFREE(idb);
 		*idb_ptr = NULL;
 	}
 }

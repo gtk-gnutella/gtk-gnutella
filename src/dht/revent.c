@@ -114,7 +114,7 @@ revent_rpi_alloc(struct nid id, guint32 udata, struct revent_ops *ops)
 {
 	struct revent_rpc_info *rpi;
 
-	rpi = walloc(sizeof *rpi);
+	WALLOC(rpi);
 	rpi->magic = REVENT_RPI_MAGIC;
 	rpi->rid = id;
 	rpi->ops = ops;
@@ -130,7 +130,7 @@ revent_rpi_alloc(struct nid id, guint32 udata, struct revent_ops *ops)
 static void
 revent_rpi_free(struct revent_rpc_info *rpi)
 {
-	wfree(rpi, sizeof *rpi);
+	WFREE(rpi);
 }
 
 /**
@@ -170,7 +170,7 @@ revent_pmi_alloc(struct nid id, knode_t *kn, struct revent_rpc_info *rpi,
 {
 	struct revent_pmsg_info *pmi;
 
-	pmi = walloc(sizeof *pmi);
+	WALLOC(pmi);
 	pmi->magic = REVENT_PMI_MAGIC;
 	pmi->rid = id;
 	pmi->ops = ops;
@@ -188,7 +188,7 @@ static void
 revent_pmi_free(struct revent_pmsg_info *pmi)
 {
 	knode_free(pmi->kn);
-	wfree(pmi, sizeof *pmi);
+	WFREE(pmi);
 }
 
 /**

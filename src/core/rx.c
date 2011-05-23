@@ -123,8 +123,7 @@ rx_make(
 	g_assert(owner);
 	g_assert(ops);
 
-	rx = walloc0(sizeof *rx);
-
+	WALLOC0(rx);
 	rx->magic = RXDRV_MAGIC;
 	rx->owner = owner;
 	rx->ops = ops;
@@ -219,8 +218,7 @@ rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops, gconstpointer args)
 	g_assert(lrx->upper == NULL);		/* Nothing above yet */
 	g_assert(ops);
 
-	rx = walloc0(sizeof(*rx));
-
+	WALLOC0(rx);
 	rx->magic = RXDRV_MAGIC;
 	rx->owner = lrx->owner;
 	gnet_host_copy(&rx->host, &lrx->host);
@@ -257,7 +255,7 @@ rx_deep_free(rxdrv_t *rx)
 
 	RX_DESTROY(rx);
 	rx->magic = 0;
-	wfree(rx, sizeof(*rx));
+	WFREE(rx);
 }
 
 /**

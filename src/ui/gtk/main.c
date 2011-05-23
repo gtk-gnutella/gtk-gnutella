@@ -79,6 +79,22 @@ RCSID("$Id$")
  *** Windows
  ***/
 
+/*
+ * For each window xxx defined by glade through a create_xxx() call, we define
+ * 3 routines and a private variable.
+ *
+ * Variable xxx_protected_ contains the output of create_xxx(), and is
+ * initialized via a call to gui_xxx_set() done in main_gui_early_init().
+ * This variable is accessed only through gui_xxx() calls, never directly.
+ *
+ * The gui_xxx_lookup() routine is used to invoke lookup_widget() on a
+ * particular xxx window.
+ *
+ * gui_xxx()			public
+ * gui_xxx_set()		private
+ * gui_xxx_lookup()		public
+ */
+
 #define WIDGET(name) \
 static GtkWidget * name ## _protected_ ; \
  \

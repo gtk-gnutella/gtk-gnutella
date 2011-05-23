@@ -119,7 +119,7 @@ ohash_table_new(GHashFunc hash_func, GEqualFunc key_eq_func)
 {
 	ohash_table_t *oh;
 
-	oh = walloc(sizeof *oh);
+	WALLOC(oh);
 	oh->magic = OHASH_TABLE_MAGIC;
 	oh->hl = hash_list_new(ohash_key_hash, ohash_key_eq);
 	oh->hash_func = hash_func;
@@ -135,7 +135,7 @@ static void
 ohash_free_kv(void *kv)
 {
 	struct ohash_pair *op = kv;
-	wfree(op, sizeof *op);
+	WFREE(op);
 }
 
 /**
@@ -148,7 +148,7 @@ ohash_table_destroy(ohash_table_t *oh)
 
 	hash_list_free_all(&oh->hl, ohash_free_kv);
 	oh->magic = 0;
-	wfree(oh, sizeof *oh);
+	WFREE(oh);
 }
 
 /**
@@ -186,7 +186,7 @@ ohash_table_insert(ohash_table_t *oh, const void *key, const void *value)
 	if (!hash_list_contains(oh->hl, &pk)) {
 		struct ohash_pair *op;
 
-		op = walloc(sizeof *op);
+		WALLOC(op);
 		op->key = key;
 		op->value = value;
 		op->oh = oh;
@@ -220,7 +220,7 @@ ohash_table_replace(ohash_table_t *oh, const void *key, const void *value)
 		g_assert(op->oh == oh);
 		pos = hash_list_remove_position(oh->hl, &pk);
 	} else {
-		op = walloc(sizeof *op);
+		WALLOC(op);
 		op->oh = oh;
 		op->key = key;
 	}

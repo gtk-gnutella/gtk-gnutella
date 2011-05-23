@@ -295,7 +295,7 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 	ht = file_object_mode_get_table(accmode);
 	g_return_val_if_fail(ht, NULL);
 
-	fo = walloc(sizeof *fo);
+	WALLOC(fo);
 	*fo = zero_fo;
 	fo->magic = FILE_OBJECT_MAGIC;
 	fo->ref_count = 1;
@@ -346,7 +346,7 @@ file_object_free(struct file_object * const fo)
 	fd_close(&fo->fd);
 	atom_str_free_null(&fo->pathname);
 	fo->magic = 0;
-	wfree(fo, sizeof *fo);
+	WFREE(fo);
 }
 
 /**

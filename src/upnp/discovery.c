@@ -191,7 +191,7 @@ upnp_dscv_free(struct upnp_dscv *ud)
 	if (ud->ha != NULL)
 		http_async_cancel(ud->ha);
 
-	wfree(ud, sizeof *ud);
+	WFREE(ud);
 }
 
 /**
@@ -225,7 +225,7 @@ upnp_mcb_free(struct upnp_mcb *mcb, gboolean in_shutdown)
 	cq_cancel(&mcb->timeout_ev);
 	socket_free_null(&mcb->s);
 	mcb->magic = 0;
-	wfree(mcb, sizeof *mcb);
+	WFREE(mcb);
 }
 
 /**
@@ -433,7 +433,7 @@ upnp_dscv_got_ctrl_reply(int code, void *value, size_t size, void *arg)
 	 */
 
 	if (G_N_ELEMENTS(upnp_dscv_probes) == ucd_ctx->probe_idx) {
-		wfree(ucd_ctx, sizeof *ucd_ctx);
+		WFREE(ucd_ctx);
 	} else {
 		if (upnp_dscv_next_ctrl(ucd_ctx))
 			return;
@@ -480,7 +480,7 @@ upnp_dscv_next_ctrl(struct upnp_ctrl_context *ucd_ctx)
 		if (GNET_PROPERTY(upnp_debug))
 			g_warning("UPNP cannot control \"%s\", discarding",
 				ucd_ctx->ud->desc_url);
-		wfree(ucd_ctx, sizeof *ucd_ctx);
+		WFREE(ucd_ctx);
 		return FALSE;		/* Cannot interact with it */
 	}
 
@@ -641,7 +641,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 	{
 		struct upnp_ctrl_context *ucd_ctx;
 
-		ucd_ctx = walloc(sizeof *ucd_ctx);
+		WALLOC(ucd_ctx);
 		ucd_ctx->mcb = mcb;
 		ucd_ctx->ud = ud;
 		ucd_ctx->usd = usd;
@@ -777,11 +777,11 @@ upnp_msearch_reply(struct gnutella_socket *s, gboolean truncated)
 		struct upnp_dscv_context *dctx;
 		struct http_async *ha;
 
-		udev = walloc0(sizeof *udev);
+		WALLOC0(udev);
 		udev->magic = UPNP_DSCV_MAGIC;
 		udev->desc_url = atom_str_get(location);
 
-		dctx = walloc(sizeof *dctx);
+		WALLOC0(dctx);
 		dctx->mcb = mcb;
 		dctx->ud = udev;
 
@@ -790,7 +790,7 @@ upnp_msearch_reply(struct gnutella_socket *s, gboolean truncated)
 		if (NULL == ha) {
 			g_warning("UPNP cannot probe \"%s\": %s",
 				location, http_async_strerror(http_async_errno));
-			wfree(dctx, sizeof *dctx);
+			WFREE(dctx);
 			upnp_dscv_free(udev);
 			goto done;
 		}
@@ -1031,7 +1031,7 @@ LABEL(broadcasted)
 	 * Message was sent, wait for the answer(s).
 	 */
 
-	mcb = walloc0(sizeof *mcb);
+	WALLOC0(mcb);
 	mcb->magic = UPNP_MCB_MAGIC;
 	mcb->cb = cb;
 	mcb->arg = arg;

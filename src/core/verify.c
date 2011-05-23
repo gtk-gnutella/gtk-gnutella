@@ -138,7 +138,7 @@ verify_file_new(const char *pathname, filesize_t offset, filesize_t amount,
 	g_assert(pathname);
 	g_assert(callback);
 
-	item = walloc(sizeof *item);
+	WALLOC(item);
 	*item = zero_item;
 	item->magic = VERIFY_FILE_MAGIC;
 	item->pathname = atom_str_get(pathname);
@@ -158,7 +158,7 @@ verify_file_free(struct verify_file **ptr)
 		verify_file_check(item);
 		atom_str_free_null(&item->pathname);
 		item->magic = 0;
-		wfree(item, sizeof *item);
+		WFREE(item);
 	}
 }
 
@@ -293,7 +293,7 @@ verify_new(const struct verify_hash *hash)
 
 	g_assert(hash);
 
-	ctx = walloc(sizeof *ctx);
+	WALLOC(ctx);
 	*ctx = zero_ctx;
 	ctx->magic = VERIFY_MAGIC;
 	ctx->buffer_size = HASH_BUF_SIZE;
@@ -330,7 +330,7 @@ verify_free(struct verify **ptr)
 		file_object_release(&ctx->file);
 		HFREE_NULL(ctx->buffer);
 		ctx->magic = 0;
-		wfree(ctx, sizeof *ctx);
+		WFREE(ctx);
 		*ptr = NULL;
 	}
 }

@@ -198,7 +198,7 @@ str_new(size_t szhint)
 {
 	str_t *str;
 
-	str = walloc(sizeof *str);
+	WALLOC(str);
 	str_create(str, szhint);
 	str->s_flags |= STR_OBJECT;		/* Signals: we allocated the object */
 
@@ -310,7 +310,7 @@ str_make(char *ptr, size_t len)
 	if ((size_t) -1 == len)
 		len = strlen(ptr);					/* Can still be zero, but it's OK */
 
-	str = walloc(sizeof *str);
+	WALLOC(str);
 	(void) str_create(str, len + 1);		/* Allow for trailing NUL */
 	str->s_len = len;						/* Final NUL not accounted for */
 	memcpy(str->s_data, ptr, len);			/* Don't copy trailing NUL */
@@ -373,7 +373,7 @@ str_destroy(str_t *str)
 
 	str_free(str);
 	str->s_magic = 0;
-	wfree(str, sizeof *str);
+	WFREE(str);
 }
 
 /**
@@ -579,7 +579,7 @@ str_s2c(str_t *str)
 	cstr[len] = '\0';				/* Ensure trailing NUL for C */
 
 	str->s_magic = 0;
-	wfree(str, sizeof *str);
+	WFREE(str);
 
 	return cstr;
 }

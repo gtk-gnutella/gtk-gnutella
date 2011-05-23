@@ -77,8 +77,7 @@ browse_host_dl_create(gpointer owner, gnet_host_t *host, gnet_search_t sh)
 {
 	struct browse_ctx *bc;
 
-	bc = walloc0(sizeof *bc);
-
+	WALLOC0(bc);
 	bc->owner = owner;
 	gnet_host_copy(&bc->host, host);
 	bc->sh = sh;
@@ -424,7 +423,7 @@ browse_host_dl_free(struct browse_ctx **ptr)
 			search_dissociate_browse(bc->sh, bc->owner);
 		}
 		HFREE_NULL(bc->data);
-		wfree(bc, sizeof *bc);
+		WFREE(bc);
 		*ptr = NULL;
 	}
 }

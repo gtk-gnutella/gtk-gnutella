@@ -123,7 +123,7 @@ thex_download_create(gpointer owner, gnet_host_t *host,
 	g_return_val_if_fail(sha1, NULL);
 	g_return_val_if_fail(tth, NULL);
 
-	ctx = walloc(sizeof *ctx);
+	WALLOC(ctx);
 	*ctx = zero_ctx;
 	ctx->owner = owner;
 	gnet_host_copy(&ctx->host, host);
@@ -804,7 +804,7 @@ thex_download_free(struct thex_download **ptr)
 		G_FREE_NULL(ctx->leaves);
 		atom_sha1_free_null(&ctx->sha1);
 		atom_tth_free_null(&ctx->tth);
-		wfree(ctx, sizeof *ctx);
+		WFREE(ctx);
 		*ptr = NULL;
 	}
 }

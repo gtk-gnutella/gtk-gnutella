@@ -145,7 +145,7 @@ fi_gui_file_show(struct fileinfo_data *file)
 
 	iter = fileinfo_data_get_iter(file);
 	if (!iter) {
-		iter = walloc(sizeof *iter);
+		WALLOC(iter);
 		fileinfo_data_set_iter(file, iter);
 		list_store_append_pointer(store_files, iter, 0, file);
 	} else {
@@ -266,7 +266,7 @@ fi_sources_remove(void *unused_key, void *value, void *unused_udata)
 	(void) unused_udata;
 
 	iter = value;
-	wfree(iter, sizeof *iter);
+	WFREE(iter);
 	return TRUE; /* Remove the handle from the hashtable */
 }
 
@@ -309,7 +309,7 @@ fi_gui_source_show(struct download *d)
 	g_return_if_fail(store_sources);
 	g_return_if_fail(NULL == g_hash_table_lookup(fi_sources, d));
 
-	iter = walloc(sizeof *iter);
+	WALLOC(iter);
 	g_hash_table_insert(fi_sources, d, iter);
 
 	list_store_append_pointer(store_sources, iter, 0, d);
@@ -831,7 +831,7 @@ fi_gui_source_hide(struct download *d)
 			gtk_list_store_remove(store_sources, iter);
 		}
 		g_hash_table_remove(fi_sources, d);
-		wfree(iter, sizeof *iter);
+		WFREE(iter);
 	}
 }
 

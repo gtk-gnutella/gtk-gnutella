@@ -400,8 +400,7 @@ rx_chunk_init(rxdrv_t *rx, gconstpointer args)
 	rx_check(rx);
 	g_assert(rargs->cb != NULL);
 
-	attr = walloc(sizeof *attr);
-
+	WALLOC(attr);
 	attr->cb = rargs->cb;
 	attr->flags = 0;
 	attr->data_remain = 0;
@@ -421,7 +420,7 @@ rx_chunk_destroy(rxdrv_t *rx)
 {
 	struct attr *attr = rx->opaque;
 
-	wfree(attr, sizeof *attr);
+	WFREE(attr);
 }
 
 /**

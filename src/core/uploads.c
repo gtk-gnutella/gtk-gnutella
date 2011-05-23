@@ -277,7 +277,7 @@ mi_key_make(const host_addr_t addr, const struct sha1 *sha1)
 {
 	struct mesh_info_key *mik;
 
-	mik = walloc(sizeof *mik);
+	WALLOC(mik);
 	mik->addr = addr;
 	mik->sha1 = atom_sha1_get(sha1);
 
@@ -290,7 +290,7 @@ mi_key_free(struct mesh_info_key *mik)
 	g_assert(mik);
 
 	atom_sha1_free(mik->sha1);
-	wfree(mik, sizeof *mik);
+	WFREE(mik);
 }
 
 static guint
@@ -315,7 +315,7 @@ mi_val_make(guint32 stamp)
 {
 	struct mesh_info_val *miv;
 
-	miv = walloc(sizeof(*miv));
+	WALLOC(miv);
 	miv->stamp = stamp;
 	miv->cq_ev = NULL;
 
@@ -328,7 +328,7 @@ mi_val_free(struct mesh_info_val *miv)
 	g_assert(miv);
 
 	cq_cancel(&miv->cq_ev);
-	wfree(miv, sizeof(*miv));
+	WFREE(miv);
 }
 
 /**
@@ -837,7 +837,7 @@ upload_alloc(void)
 	static const struct upload zero_upload;
 	struct upload *u;
 
-	u = walloc(sizeof *u);
+	WALLOC(u);
 	*u = zero_upload;
 	u->magic = UPLOAD_MAGIC;
 	return u;
@@ -850,7 +850,7 @@ upload_free(struct upload **ptr)
 		struct upload *u = *ptr;
 		upload_check(u);
 		u->magic = 0;
-		wfree(u, sizeof *u);
+		WFREE(u);
 		*ptr = NULL;
 	}
 }
@@ -5462,7 +5462,7 @@ upload_get_info(gnet_upload_t uh)
     u = upload_find_by_handle(uh);
 	g_return_val_if_fail(u, NULL);
 
-    info = walloc(sizeof *info);
+    WALLOC(info);
 	*info = zero_info;
 
 	if (u->sf) {
@@ -5499,7 +5499,7 @@ upload_free_info(gnet_upload_info_t *info)
 	atom_str_free_null(&info->user_agent);
 	atom_str_free_null(&info->name);
 
-    wfree(info, sizeof *info);
+    WFREE(info);
 }
 
 void

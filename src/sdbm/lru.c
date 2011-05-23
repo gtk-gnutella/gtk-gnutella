@@ -91,9 +91,9 @@ init_cache(DBM *db, long pages, gboolean wdelay)
 
 	g_assert(NULL == db->cache);
 
-	cache = walloc0(sizeof *cache);
+	WALLOC0(cache);
 	if (-1 == setup_cache(cache, pages, wdelay)) {
-		wfree(cache, sizeof *cache);
+		WFREE(cache);
 		return -1;
 	}
 	db->cache = cache;
@@ -110,7 +110,7 @@ void lru_init(DBM *db)
 	g_assert(NULL == db->cache);
 	g_assert(-1 == db->pagbno);		/* We must be called before first access */
 
-	cache = walloc0(sizeof *cache);
+	WALLOC0(cache);
 	if (-1 == setup_cache(cache, LRU_PAGES, FALSE))
 		g_error("out of virtual memory");
 	db->cache = cache;
@@ -322,7 +322,7 @@ void lru_close(DBM *db)
 			log_lrustats(db);
 
 		free_cache(cache);
-		wfree(cache, sizeof *cache);
+		WFREE(cache);
 	}
 
 	db->cache = NULL;

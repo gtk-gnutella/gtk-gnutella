@@ -307,7 +307,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 	titles[c_ul_progress]   = "...";
 	titles[c_ul_status]   = "...";
 
-    data = walloc0(sizeof *data);
+    WALLOC0(data);
     data->handle      = u->upload_handle;
     data->range_start = u->range_start;
     data->range_end   = u->range_end;

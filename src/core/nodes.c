@@ -529,17 +529,14 @@ node_ht_connected_nodes_find(const host_addr_t addr, guint16 port)
 static void
 node_ht_connected_nodes_add(const host_addr_t addr, guint16 port)
 {
-    gnet_host_t *host;
-
 	/* This is done unconditionally, whether we add host to table or not */
 	total_nodes_connected++;
 
     if (node_ht_connected_nodes_has(addr, port))
         return;
 
- 	host = walloc(sizeof *host);
-	gnet_host_set(host, addr, port);
-	g_hash_table_insert(ht_connected_nodes, host, NO_METADATA);
+	g_hash_table_insert(ht_connected_nodes,
+		gnet_host_new(addr, port), NO_METADATA);
 }
 
 /**
@@ -554,7 +551,7 @@ node_ht_connected_nodes_remove(const host_addr_t addr, guint16 port)
 
     if (orig_host) {
 		g_hash_table_remove(ht_connected_nodes, orig_host);
-		wfree(orig_host, sizeof *orig_host);
+		gnet_host_free(orig_host);
 	}
 
 	/* This is done unconditionally, whether host was in table or not */
@@ -1024,7 +1021,7 @@ node_error_cleanup(gpointer unused_x)
 		unstable_servents = g_slist_remove(unstable_servents, bad_node);
 
 		atom_str_free_null(&bad_node->vendor);
-		wfree(bad_node, sizeof(*bad_node));
+		WFREE(bad_node);
 	}
 
 	g_slist_free(to_remove);
@@ -1348,7 +1345,7 @@ node_timer(time_t now)
 
 					/* Dispose of monitoring if we're not flow-controlled */
 					if (total == 0) {
-						wfree(n->rxfc, sizeof(*n->rxfc));
+						WFREE(n->rxfc);
 						n->rxfc = NULL;
 					}
 				}
@@ -1686,7 +1683,7 @@ node_alloc(void)
 	static const struct gnutella_node zero_node;
 	struct gnutella_node *n;
 
-	n = walloc(sizeof *n);
+	WALLOC(n);
 	*n = zero_node;
 	n->magic = NODE_MAGIC;
 	return n;
@@ -1764,7 +1761,7 @@ node_real_remove(gnutella_node_t *n)
 	n->id = NULL;
 
 	n->magic = 0;
-	wfree(n, sizeof(*n));
+	WFREE(n);
 }
 
 /**
@@ -2118,7 +2115,7 @@ node_mark_bad_vendor(struct gnutella_node *n)
 
 	bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
 	if (bad_client == NULL) {
-		bad_client = walloc0(sizeof(*bad_client));
+		WALLOC0(bad_client);
 		bad_client->errors = 0;
 		bad_client->vendor = atom_str_get(n->vendor);
 		gm_hash_table_insert_const(unstable_servent,
@@ -6694,7 +6691,7 @@ node_add_by_name_helper(const host_addr_t *addrs, size_t n, gpointer user_data)
 		size_t i = random_u32() % n;
 		node_add(addrs[i], data->port, data->flags);
 	}
-	wfree(data, sizeof *data);
+	WFREE(data);
 }
 
 /**
@@ -6710,7 +6707,7 @@ node_add_by_name(const char *host, guint16 port, guint32 flags)
 	if (!port)
 		return;
 
-	data = walloc(sizeof *data);
+	WALLOC(data);
 	data->port = port;
 	data->flags = flags;
 
@@ -8853,7 +8850,7 @@ node_qrt_discard(struct gnutella_node *n)
 		n->recv_query_table = NULL;
 	}
 	if (n->qrt_info != NULL) {
-		wfree(n->qrt_info, sizeof(*n->qrt_info));
+		WFREE(n->qrt_info);
 		n->qrt_info = NULL;
 	}
 
@@ -8871,7 +8868,7 @@ node_qrt_install(struct gnutella_node *n, struct routing_table *query_table)
 	g_assert(n->qrt_info == NULL);
 
 	n->recv_query_table = qrt_ref(query_table);
-	n->qrt_info = walloc(sizeof(*n->qrt_info));
+	WALLOC(n->qrt_info);
 	qrt_get_info(query_table, n->qrt_info);
 
     node_fire_node_flags_changed(n);
@@ -8982,7 +8979,7 @@ node_close(void)
 
 		g_hash_table_remove(unstable_servent, bad_node->vendor);
 		atom_str_free_null(&bad_node->vendor);
-		wfree(bad_node, sizeof(*bad_node));
+		WFREE(bad_node);
 	}
 	gm_slist_free_null(&unstable_servents);
 
@@ -9224,7 +9221,7 @@ node_set_hops_flow(gnutella_node_t *n, guint8 hops)
 	 */
 
 	if (hops < GTA_NORMAL_TTL && n->rxfc == NULL) {
-		n->rxfc = walloc0(sizeof(*n->rxfc));
+		WALLOC0(n->rxfc);
 		n->rxfc->start_half_period = tm_time();
 	}
 
@@ -9260,9 +9257,9 @@ node_get_info(const struct nid *node_id)
 {
     gnet_node_info_t *info;
 
-	info = walloc(sizeof *info);
+	WALLOC(info);
 	if (!node_fill_info(node_id, info)) {
-		wfree(info, sizeof *info);
+		WFREE(info);
 		info = NULL;
 	}
     return info;
@@ -9285,7 +9282,7 @@ void
 node_free_info(gnet_node_info_t *info)
 {
 	node_clear_info(info);
-    wfree(info, sizeof *info);
+    WFREE(info);
 }
 
 /**

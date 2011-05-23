@@ -392,7 +392,7 @@ result_data_free(search_t *search, struct result_data *rd)
 	 * rd->record may point to freed memory now if this was the last reference
 	 */
 
-	wfree(rd, sizeof *rd);
+	WFREE(rd);
 }
 
 static gboolean
@@ -853,7 +853,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 
 	record_check(rc);
 
-	data = walloc(sizeof *data);
+	WALLOC(data);
 	*data = zero_data;
 	data->color = color;
 	data->record = rc;

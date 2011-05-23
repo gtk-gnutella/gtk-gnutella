@@ -207,7 +207,7 @@ pdht_publish_allocate(pdht_type_t type, pdht_cb_t cb, gpointer arg)
 {
 	pdht_publish_t *pp;
 
-	pp = walloc0(sizeof *pp);
+	WALLOC0(pp);
 	pp->magic = PDHT_PUBLISH_MAGIC;
 	pp->type = type;
 	pp->cb = cb;
@@ -225,7 +225,7 @@ pdht_bg_alloc(const lookup_rs_t *rs, const guint16 *status,
 {
 	struct pdht_bg *pbg;
 
-	pbg = walloc0(sizeof *pbg);
+	WALLOC0(pbg);
 	pbg->rs = lookup_result_refcnt_inc(rs);
 	pbg->published = published;
 	pbg->candidates = candidates;
@@ -248,7 +248,7 @@ pdht_bg_free_null(struct pdht_bg **pbg_ptr)
 		WFREE_NULL(pbg->status,
 			lookup_result_path_length(pbg->rs) * sizeof *pbg->status);
 		lookup_result_free(pbg->rs);
-		wfree(pbg, sizeof *pbg);
+		WFREE(pbg);
 		*pbg_ptr = NULL;
 	}
 }
@@ -314,7 +314,7 @@ pdht_free_publish(pdht_publish_t *pp, gboolean do_remove)
 	if (!do_remove || (pp->flags & PDHT_F_LOOKUP_DONE)) {
 		kuid_atom_free(pp->id);
 		pp->magic = 0;
-		wfree(pp, sizeof *pp);
+		WFREE(pp);
 	} else {
 		pp->flags |= PDHT_F_DEAD;		/* For lookup callbacks */
 	}
@@ -1075,7 +1075,7 @@ pdht_report_async_error(struct cqueue *cq, gpointer udata)
 
 	(void) cq;
 	pdht_publish_error(pa->pp, pa->code);
-	wfree(pa, sizeof *pa);
+	WFREE(pa);
 }
 
 /**
@@ -1086,7 +1086,7 @@ pdht_publish_error_async(pdht_publish_t *pp, pdht_error_t code)
 {
 	struct pdht_async *pa;
 
-	pa = walloc(sizeof *pa);
+	WALLOC(pa);
 	pa->pp = pp;
 	pa->code = code;
 

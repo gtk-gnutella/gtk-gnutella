@@ -542,7 +542,7 @@ qrt_patch_free(struct routing_patch *rp)
 	g_assert(ROUTING_PATCH_MAGIC == rp->magic);
 	HFREE_NULL(rp->arena);
 	rp->magic = 0;
-	wfree(rp, sizeof *rp);
+	WFREE(rp);
 }
 
 /**
@@ -584,7 +584,7 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
 	g_assert(new->compacted);
 	g_assert(old == NULL || new->slots == old->slots);
 
-	rp = walloc(sizeof *rp);
+	WALLOC(rp);
 	rp->magic = ROUTING_PATCH_MAGIC;
 	rp->refcnt = 1;
 	rp->size = new->slots;
@@ -677,7 +677,7 @@ qrt_compress_free(gpointer u)
 		ctx->zd = NULL;
 	}
 	ctx->magic = 0;
-	wfree(ctx, sizeof *ctx);
+	WFREE(ctx);
 }
 
 /**
@@ -805,7 +805,7 @@ qrt_patch_compress(
 	 * intervals.
 	 */
 
-	ctx = walloc0(sizeof *ctx);
+	WALLOC0(ctx);
 	ctx->magic = QRT_COMPRESS_MAGIC;
 	ctx->rp = rp;
 	ctx->zd = zd;
@@ -836,7 +836,7 @@ qrt_create(const char *name, char *arena, int slots, int max)
 	g_assert(max > 0);
 	g_assert(arena != NULL);
 
-	rt = walloc0(sizeof *rt);
+	WALLOC0(rt);
 
 	rt->magic         = QRP_ROUTE_MAGIC;
 	rt->name          = g_strdup(name);
@@ -898,7 +898,7 @@ qrt_free(struct routing_table *rt)
 	  GNET_PROPERTY(qrp_memory) - (rt->compacted ? rt->slots / 8 : rt->slots));
 
 	rt->magic = 0;				/* Prevent accidental reuse */
-	wfree(rt, sizeof *rt);
+	WFREE(rt);
 }
 
 /**
@@ -1039,7 +1039,7 @@ merge_context_free(gpointer p)
 
 	HFREE_NULL(ctx->arena);
 	ctx->magic = 0;
-	wfree(ctx, sizeof *ctx);
+	WFREE(ctx);
 }
 
 /**
@@ -1319,7 +1319,7 @@ mrg_compute(bgdone_cb_t done_cb)
 
 	g_assert(merge_ctx == NULL);	/* No computation active */
 
-	ctx = walloc0(sizeof *ctx);
+	WALLOC0(ctx);
 	ctx->magic = MERGE_MAGIC;
 	merge_ctx = ctx;
 
@@ -1628,7 +1628,7 @@ qrp_context_free(gpointer p)
 		qrt_unref(ctx->lt);
 
 	ctx->magic = 0;
-	wfree(ctx, sizeof *ctx);
+	WFREE(ctx);
 }
 
 /**
@@ -2159,7 +2159,7 @@ qrp_finalize_computation(GHashTable *words)
 	 * intervals.
 	 */
 
-	ctx = walloc0(sizeof *ctx);
+	WALLOC0(ctx);
 	ctx->magic = QRP_MAGIC;
 	ctx->rtp = &local_table;	/* NOT routing_table, this is for local files */
 	ctx->rpp = &routing_patch;
@@ -2189,7 +2189,7 @@ qrp_update_routing_table(void)
 	g_assert(qrp_merge == NULL);
 	g_assert(local_table != NULL);
 
-	ctx = walloc0(sizeof *ctx);
+	WALLOC0(ctx);
 	ctx->magic = QRP_MAGIC;
 	ctx->rtp = &local_table;		/* In case we call qrp_step_install_leaf */
 	ctx->rpp = &routing_patch;
@@ -2317,11 +2317,11 @@ qrt_patch_computed(struct bgtask *unused_h, gpointer unused_u,
 	for (sl = qrt_patch_computed_listeners; sl; sl = g_slist_next(sl)) {
 		struct patch_listener_info *pi = sl->data;
 		(*pi->callback)(pi->arg, *ctx->rpp);	/* NULL indicates failure */
-		wfree(pi, sizeof *pi);
+		WFREE(pi);
 	}
 
 	ctx->magic = 0;
-	wfree(ctx, sizeof *ctx);
+	WFREE(ctx);
 
 	gm_slist_free_null(&qrt_patch_computed_listeners);
 }
@@ -2343,8 +2343,7 @@ qrt_patch_computed_add_listener(qrt_patch_computed_cb_t cb, gpointer arg)
 	 * That's alright, just register the listener.
 	 */
 
-	pi = walloc(sizeof *pi);
-
+	WALLOC(pi);
 	pi->callback = cb;
 	pi->arg = arg;
 
@@ -2366,7 +2365,7 @@ qrt_patch_computed_remove_listener(gpointer handle)
 
 	qrt_patch_computed_listeners =
 		g_slist_remove(qrt_patch_computed_listeners, handle);
-	wfree(pi, sizeof *pi);
+	WFREE(pi);
 }
 
 /**
@@ -2410,8 +2409,8 @@ qrt_patch_compute(struct routing_table *rt, struct routing_patch **rpp)
 
 	gnet_prop_set_timestamp_val(PROP_QRP_PATCH_TIMESTAMP, tm_time());
 
-	qrt_patch_ctx = ctx = walloc(sizeof *ctx);
-
+	WALLOC(ctx);
+	qrt_patch_ctx = ctx;
 	ctx->magic = QRT_PATCH_MAGIC;
 	ctx->rpp = rpp;
 	ctx->rt = rt;
@@ -2820,7 +2819,7 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 		}
 	}
 
-	qup = walloc0(sizeof *qup);
+	WALLOC0(qup);
 
 	qup->magic = QRT_UPDATE_MAGIC;
 	qup->node = n;
@@ -2898,7 +2897,7 @@ qrt_update_free(struct qrt_update *qup)
 		qrt_patch_unref(qup->patch);
 
 	qup->magic = 0;						/* Prevent accidental reuse */
-	wfree(qup, sizeof *qup);
+	WFREE(qup);
 }
 
 /**
@@ -3100,8 +3099,7 @@ qrt_receive_create(struct gnutella_node *n, struct routing_table *query_table)
 	g_assert(query_table == NULL || table->magic == QRP_ROUTE_MAGIC);
 	g_assert(query_table == NULL || table->client_slots > 0);
 
-	inz = walloc(sizeof *inz);
-
+	WALLOC(inz);
 	inz->zalloc = zlib_alloc_func;
 	inz->zfree = zlib_free_func;
 	inz->opaque = NULL;
@@ -3109,14 +3107,13 @@ qrt_receive_create(struct gnutella_node *n, struct routing_table *query_table)
 	ret = inflateInit(inz);
 
 	if (ret != Z_OK) {
-		wfree(inz, sizeof *inz);
+		WFREE(inz);
 		g_warning("unable to initialize QRP decompressor for %s: %s",
 			node_infostr(n), zlib_strerror(ret));
 		return NULL;
 	}
 
-	qrcv = walloc(sizeof *qrcv);
-
+	WALLOC(qrcv);
 	qrcv->magic = QRT_RECEIVE_MAGIC;
 	qrcv->node = n;
 	qrcv->table = table ? qrt_ref(table) : NULL;
@@ -3171,7 +3168,7 @@ qrt_receive_free(struct qrt_receive *qrcv)
 	g_assert(qrcv->magic == QRT_RECEIVE_MAGIC);
 
 	(void) inflateEnd(qrcv->inz);
-	wfree(qrcv->inz, sizeof *qrcv->inz);
+	WFREE(qrcv->inz);
 	if (qrcv->table)
 		qrt_unref(qrcv->table);
 	if (qrcv->expansion)
@@ -3179,7 +3176,7 @@ qrt_receive_free(struct qrt_receive *qrcv)
 	HFREE_NULL(qrcv->data);
 
 	qrcv->magic = 0;			/* Prevent accidental reuse */
-	wfree(qrcv, sizeof *qrcv);
+	WFREE(qrcv);
 }
 
 /**
@@ -3742,8 +3739,7 @@ qrt_handle_reset(
 	if (qrcv->expansion)
 		wfree(qrcv->expansion, qrcv->shrink_factor);
 
-	rt = qrcv->table = walloc(sizeof *rt);
-
+	WALLOC(rt);
 	rt->magic = QRP_ROUTE_MAGIC;
 	rt->name = g_strdup_printf("QRT %s", node_infostr(n));
 	rt->refcnt = 1;
@@ -3754,6 +3750,7 @@ qrt_handle_reset(
 	rt->digest = NULL;
 	rt->reset = TRUE;
 
+	qrcv->table = rt;
 	qrcv->shrink_factor = 1;		/* Assume none for now */
 	qrcv->seqsize = 0;				/* Unknown yet */
 	qrcv->seqno = 1;				/* Expecting message #1 */
@@ -4346,8 +4343,8 @@ qhvec_alloc(guint size)
 	query_hashvec_t *qhvec;
 
 	size = MIN(QRP_HVEC_MAX, size);
-	qhvec = walloc(sizeof *qhvec);
 
+	WALLOC(qhvec);
 	qhvec->count = 0;
 	qhvec->size = size;
 	qhvec->has_urn = FALSE;
@@ -4363,7 +4360,7 @@ void
 qhvec_free(query_hashvec_t *qhvec)
 {
 	wfree(qhvec->vec, qhvec->size * sizeof qhvec->vec[0]);
-	wfree(qhvec, sizeof *qhvec);
+	WFREE(qhvec);
 }
 
 /**
@@ -4388,8 +4385,7 @@ qhvec_clone(const query_hashvec_t *qsrc)
 
 	g_assert(qsrc != NULL);
 
-	qhvec = walloc(sizeof *qhvec);
-
+	WALLOC(qhvec);
 	qhvec->count = qsrc->count;
 	qhvec->size = qsrc->size;
 	qhvec->has_urn = qsrc->has_urn;

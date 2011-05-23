@@ -180,7 +180,7 @@ dh_create(const struct guid *muid)
 	dqhit_t *dh;
 	const struct guid *key;
 
-	dh = walloc0(sizeof(*dh));
+	WALLOC0(dh);
 	key = atom_guid_get(muid);
 
 	gm_hash_table_insert_const(by_muid, key, dh);
@@ -275,7 +275,7 @@ dh_pmsg_free(pmsg_t *mb, gpointer arg)
 
 	/* FALL THROUGH */
 cleanup:
-	wfree(pmi, sizeof(*pmi));
+	WFREE(pmi);
 }
 
 /**
@@ -459,7 +459,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 	 * Allow message through.
 	 */
 
-	pmi = walloc(sizeof(*pmi));
+	WALLOC(pmi);
 	pmi->hits = count;
 
 	dh->hits_queued += count;

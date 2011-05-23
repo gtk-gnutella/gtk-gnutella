@@ -561,9 +561,6 @@ guid_str(gconstpointer v)
 
 /**
  * Hash a SHA1 (20 bytes).
- *
- * @attention
- * NB: This routine is visible for the download mesh.
  */
 guint
 sha1_hash(gconstpointer key)
@@ -573,9 +570,6 @@ sha1_hash(gconstpointer key)
 
 /**
  * Test two SHA1s for equality.
- *
- * @attention
- * NB: This routine is visible for the download mesh.
  */
 int
 sha1_eq(gconstpointer a, gconstpointer b)
@@ -1076,7 +1070,7 @@ atom_get_track(enum atom_type type, gconstpointer key, char *file, int line)
 		sp = (struct spot *) v;
 		sp->count++;
 	} else {
-		sp = walloc(sizeof(*sp));
+		WALLOC(sp);
 		sp->count = 1;
 		g_hash_table_insert(a->get, g_strdup(buf), sp);
 	}
@@ -1137,7 +1131,7 @@ atom_free_track(enum atom_type type, gconstpointer key, char *file, int line)
 			sp = (struct spot *) v;
 			sp->count++;
 		} else {
-			sp = walloc(sizeof(*sp));
+			WALLOC(sp);
 			sp->count = 1;
 			g_hash_table_insert(a->free, g_strdup(buf), sp);
 		}

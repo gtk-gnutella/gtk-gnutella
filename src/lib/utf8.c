@@ -1532,7 +1532,7 @@ conv_to_utf8_new(const char *cs)
 {
 	struct conv_to_utf8 *t;
 
-	t = walloc(sizeof *t);
+	WALLOC(t);
 	t->cd = (iconv_t) -1;
 	t->name = atom_str_get(cs);
 	t->is_utf8 = 0 == strcmp(cs, "UTF-8");
@@ -1552,7 +1552,7 @@ conv_to_utf8_free(struct conv_to_utf8 *cu)
 		iconv_close(cu->cd);
 		cu->cd = (iconv_t) -1;
 	}
-	wfree(cu, sizeof *cu);
+	WFREE(cu);
 }
 
 /**
@@ -4517,7 +4517,7 @@ utf8_strupper(char *dst, const char *src, size_t size)
  * characters to lowercase.
  *
  * @param src an UTF-8 string
- * @return a newly allocated buffer containing the lowercased string.
+ * @return a newly halloc()'ed buffer containing the lowercased string.
  */
 char *
 utf8_strlower_copy(const char *src)
@@ -4529,7 +4529,7 @@ utf8_strlower_copy(const char *src)
 
 	len = utf8_strlower(NULL, src, 0);
 	size = len + 1;
-	dst = g_malloc(size);
+	dst = halloc(size);
 	len = utf8_strlower(dst, src, size);
 	g_assert(size == len + 1);
 	g_assert(len == strlen(dst));

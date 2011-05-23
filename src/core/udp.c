@@ -362,7 +362,7 @@ static inline void
 udp_ping_free(struct udp_ping *ping)
 {
 	WFREE_NULL(ping->callback, sizeof *ping->callback);
-	wfree(ping, sizeof *ping);
+	WFREE(ping);
 }
 
 /**
@@ -444,11 +444,11 @@ udp_ping_register(const struct guid *muid,
 			return FALSE;
 	}
 
-	ping = walloc(sizeof *ping);
+	WALLOC(ping);
 	ping->muid = *muid;
 	ping->added = tm_time();
 	if (cb != NULL) {
-		ping->callback = walloc0(sizeof *ping->callback);
+		WALLOC0(ping->callback);
 		ping->callback->cb = cb;
 		ping->callback->data = data;
 		ping->callback->multiple = booleanize(multiple);

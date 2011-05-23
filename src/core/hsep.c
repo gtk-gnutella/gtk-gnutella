@@ -435,7 +435,7 @@ hsep_connection_init(struct gnutella_node *n, guint8 major, guint8 minor)
 		printf("HSEP: Initializing node %s\n",
 			host_addr_port_to_string(n->addr, n->port));
 
-	n->hsep = walloc(sizeof *n->hsep);
+	WALLOC(n->hsep);
 	*n->hsep = zero_hsep; /* Initializes everything to 0 */
 	n->hsep->last_sent = now;
 	n->hsep->major = major;
@@ -551,7 +551,7 @@ hsep_connection_close(struct gnutella_node *n, gboolean in_shutdown)
 
 cleanup:
 	n->attrs &= ~NODE_A_CAN_HSEP;
-	wfree(n->hsep, sizeof *n->hsep);
+	WFREE(n->hsep);
 	n->hsep = NULL;
 }
 

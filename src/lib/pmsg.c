@@ -162,7 +162,7 @@ pmsg_new(int prio, gconstpointer buf, int len)
 	g_assert(implies(buf, valid_ptr(buf)));
 	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
-	mb = walloc(sizeof *mb);
+	WALLOC(mb);
 	db = pdata_new(len);
 
 	return pmsg_fill(mb, db, prio, buf, len);
@@ -182,7 +182,7 @@ pmsg_new_extend(int prio, gconstpointer buf, int len,
 	g_assert(implies(buf, valid_ptr(buf)));
 	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
-	emb = walloc(sizeof(*emb));
+	WALLOC(emb);
 	db = pdata_new(len);
 
 	emb->m_free = free_cb;
@@ -211,7 +211,7 @@ pmsg_alloc(int prio, pdata_t *db, int roff, int woff)
 	g_assert(woff >= roff);
 	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
-	mb = walloc(sizeof *mb);
+	WALLOC(mb);
 
 	pmsg_fill(mb, db, prio, NULL, 0);
 
@@ -231,7 +231,7 @@ pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, gpointer arg)
 
 	pmsg_check_consistency(mb);
 
-	nmb = walloc(sizeof(*nmb));
+	WALLOC(nmb);
 	nmb->pmsg.magic = PMSG_EXT_MAGIC;
 
 	nmb->pmsg.m_rptr = mb->m_rptr;
@@ -325,7 +325,7 @@ pmsg_clone_ext(pmsg_ext_t *mb)
 
 	pmsg_ext_check_consistency(mb);
 
-	nmb = walloc(sizeof(*nmb));
+	WALLOC(nmb);
 	*nmb = *mb;					/* Struct copy */
 	pdata_addref(nmb->pmsg.m_data);
 
@@ -344,7 +344,7 @@ pmsg_clone(pmsg_t *mb)
 		pmsg_t *nmb;
 
 		pmsg_check_consistency(mb);
-		nmb = walloc(sizeof *nmb);
+		WALLOC(nmb);
 		*nmb = *mb;					/* Struct copy */
 		pdata_addref(nmb->m_data);
 
@@ -371,10 +371,10 @@ pmsg_free(pmsg_t *mb)
 		if (emb->m_free)
 			(*emb->m_free)(mb, emb->m_arg);
 		memset(emb, 0, sizeof *emb);
-		wfree(emb, sizeof(*emb));
+		WFREE(emb);
 	} else {
 		memset(mb, 0, sizeof *mb);
-		wfree(mb, sizeof *mb);
+		WFREE(mb);
 	}
 
 	/*
@@ -688,8 +688,7 @@ pdata_allocb_ext(void *buf, int len, pdata_free_t freecb, gpointer freearg)
 	g_assert(valid_ptr(buf));
 	g_assert(implies(freecb, valid_ptr(freecb)));
 
-	db = walloc(sizeof(*db));
-
+	WALLOC(db);
 	db->d_arena = buf;
 	db->d_end = (char *) buf + len;
 	db->d_refcnt = 0;
@@ -731,11 +730,11 @@ pdata_free(pdata_t *db)
 		gpointer p = is_embedded ? (gpointer) db : (gpointer) db->d_arena;
 		(*db->d_free)(p, db->d_arg);
 		if (!is_embedded)
-			wfree(db, sizeof(*db));
+			WFREE(db);
 	} else {
 		if (!is_embedded) {
 			G_FREE_NULL(db->d_arena);
-			wfree(db, sizeof(*db));
+			WFREE(db);
 		} else {
 			wfree(db, pdata_len(db) + EMBEDDED_OFFSET);
 		}

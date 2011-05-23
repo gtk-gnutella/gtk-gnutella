@@ -133,7 +133,7 @@ ipp_cache_alloc(
 {
 	ipp_cache_t *ic;
 
-	ic = walloc(sizeof *ic);
+	WALLOC(ic);
 	ic->name = name;
 	ic->item_name = item_name;
 	ic->description = description;
@@ -275,7 +275,7 @@ ipp_cache_remove_oldest(ipp_cache_t *ic)
 	item = hash_list_head(ic->hosts);
 	if (item) {
 		hash_list_remove(ic->hosts, item);
-		wfree(item, sizeof *item);
+		WFREE(item);
 	}
 }
 
@@ -381,7 +381,7 @@ ipp_cache_lookup_intern(const ipp_cache_t *ic,
 				return item_ptr;
 
 			hash_list_remove(ic->hosts, item_ptr);
-			wfree(item_ptr, sizeof *item_ptr);
+			WFREE(item_ptr);
 		}
 	}
 	return NULL;
@@ -432,7 +432,7 @@ ipp_cache_remove_intern(const ipp_cache_t *ic,
 			struct ipp_cache_item *item_ptr = deconstify_gpointer(key);
 			
 			hash_list_remove(ic->hosts, item_ptr);
-			wfree(item_ptr, sizeof *item_ptr);
+			WFREE(item_ptr);
 			return TRUE;
 		}
 	}
@@ -635,7 +635,7 @@ ipp_cache_free(ipp_cache_t *ic)
 	hash_list_free(&ic->hosts);
 	g_free(deconstify_gpointer(ic->fp.dir));
 	ic->fp.dir = NULL;	/* Don't use G_FREE_NULL b/c of lvalue cast */
-	wfree(ic, sizeof *ic);
+	WFREE(ic);
 }
 
 /**

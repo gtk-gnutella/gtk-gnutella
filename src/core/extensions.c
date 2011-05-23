@@ -548,7 +548,7 @@ ext_ggep_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 		 * OK, at this point we have validated the GGEP header.
 		 */
 
-		d = walloc(sizeof *d);
+		WALLOC(d);
 
 		d->ext_phys_payload = p;
 		d->ext_phys_paylen = data_length;
@@ -637,7 +637,7 @@ ext_urn_bad_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 	 * Encapsulate as one big opaque chunk.
 	 */
 
-	d = walloc(sizeof(*d));
+	WALLOC(d);
 
 	d->ext_phys_payload = lastp;
 	d->ext_phys_len = d->ext_phys_paylen = p - lastp;
@@ -758,7 +758,7 @@ ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 found:
 	g_assert(payload_start);
 
-	d = walloc(sizeof(*d));
+	WALLOC(d);
 
 	d->ext_phys_payload = payload_start;
 	d->ext_phys_paylen = data_length;
@@ -807,7 +807,7 @@ ext_xml_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 	 * We don't analyze the XML, encapsulate as one big opaque chunk.
 	 */
 
-	d = walloc(sizeof(*d));
+	WALLOC(d);
 
 	d->ext_phys_payload = lastp;
 	d->ext_phys_len = d->ext_phys_paylen = p - lastp;
@@ -887,7 +887,7 @@ ext_unknown_parse(const char **retp, int len, extvec_t *exv,
 	 * Encapsulate as one big opaque chunk.
 	 */
 
-	d = walloc(sizeof(*d));
+	WALLOC(d);
 
 	d->ext_phys_payload = lastp;
 	d->ext_phys_len = d->ext_phys_paylen = p - lastp;
@@ -946,7 +946,7 @@ ext_none_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 	 * Encapsulate as one big opaque chunk.
 	 */
 
-	d = walloc(sizeof(*d));
+	WALLOC(d);
 
 	d->ext_phys_payload = lastp;
 	d->ext_phys_len = d->ext_phys_paylen = p - lastp;
@@ -1020,7 +1020,7 @@ ext_merge_adjacent(extvec_t *exv, extvec_t *next)
 	g_assert(
 		nd->ext_payload == NULL || nd->ext_payload == nd->ext_phys_payload);
 
-	wfree(nd, sizeof(*nd));
+	WFREE(nd);
 	next->opaque = NULL;
 }
 
@@ -1576,7 +1576,7 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 	 * Allocate decompressor.
 	 */
 
-	inz = walloc(sizeof(*inz));
+	WALLOC(inz);
 
 	inz->zalloc = zlib_alloc_func;
 	inz->zfree = zlib_free_func;
@@ -1585,7 +1585,7 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 	ret = inflateInit(inz);
 
 	if (ret != Z_OK) {
-		wfree(inz, sizeof(*inz));
+		WFREE(inz);
 		g_warning("unable to setup decompressor for GGEP payload \"%s\": %s",
 			name, zlib_strerror(ret));
 		return NULL;
@@ -1687,7 +1687,7 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 		}
 	}
 
-	wfree(inz, sizeof(*inz));
+	WFREE(inz);
 
 	/*
 	 * return NULL on error.
@@ -2182,7 +2182,7 @@ ext_reset(extvec_t *exv, int exvcnt)
 			d->ext_payload = NULL;
 		}
 
-		wfree(d, sizeof(*d));
+		WFREE(d);
 		e->opaque = NULL;
 	}
 }

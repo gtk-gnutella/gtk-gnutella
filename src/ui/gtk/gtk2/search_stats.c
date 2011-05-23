@@ -90,7 +90,7 @@ free_hash_entry(void *key, void *value, void *unused_data)
 	(void) unused_data;
 
 	wfree(key, 1 + strlen(key));
-	wfree(val, sizeof *val);
+	WFREE(val);
 	return TRUE;
 }
 
@@ -339,7 +339,7 @@ search_stats_tally(const word_vec_t *vec)
 	} else {
 		const char *key;
 
-		val = walloc0(sizeof *val);
+		WALLOC0(val);
 		val->period_cnt = vec->amount;
 		key = wcopy(vec->word, 1 + strlen(vec->word));
 		gm_hash_table_insert_const(stat_hash, key, val);

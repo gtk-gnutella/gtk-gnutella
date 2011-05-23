@@ -1234,12 +1234,12 @@ free_cached_pong(struct cached_pong *cp)
 	if (--(cp->refcount) != 0)
 		return;
 
-	if (cp->meta)
-		wfree(cp->meta, sizeof(*cp->meta));
+	if (cp->meta != NULL)
+		WFREE(cp->meta);
 
 	nid_unref(cp->node_id);
 	nid_unref(cp->last_sent_id);
-	wfree(cp, sizeof(*cp));
+	WFREE(cp);
 }
 
 
@@ -1994,7 +1994,7 @@ pong_extract_metadata(struct gnutella_node *n)
 
 #define ALLOCATE(f) do {					\
 	if (meta == NULL) {						\
-		meta = walloc(sizeof(*meta));		\
+		WALLOC(meta);						\
 		meta->flags = 0;					\
 	}										\
 	meta->flags |= CAT2(PONG_META_HAS_,f);	\
@@ -2158,8 +2158,7 @@ record_fresh_pong(
 
 	g_assert(UNSIGNED(type) < HOST_MAX);
 
-	cp = walloc(sizeof *cp);
-
+	WALLOC(cp);
 	cp->refcount = 1;
 	cp->node_id = nid_ref(NODE_ID(n));
 	cp->last_sent_id = nid_ref(NODE_ID(n));
@@ -2541,7 +2540,8 @@ pcache_pong_received(struct gnutella_node *n)
 		if (meta && meta->flags & PONG_META_HAS_IPV6) {
 			addr = meta->ipv6_addr;
 		}
-		WFREE_NULL(meta, sizeof *meta);
+		if (meta != NULL)
+			WFREE(meta);
 	}
 
 	/*

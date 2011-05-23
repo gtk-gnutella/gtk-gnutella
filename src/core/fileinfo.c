@@ -572,7 +572,7 @@ dl_file_chunk_alloc(void)
 	static const struct dl_file_chunk zero_fc;
 	struct dl_file_chunk *fc;
    
-	fc = walloc(sizeof *fc);
+	WALLOC(fc);
 	*fc = zero_fc;
 	fc->magic = DL_FILE_CHUNK_MAGIC;
 	return fc;
@@ -593,7 +593,7 @@ dl_file_chunk_free(struct dl_file_chunk **fc_ptr)
 		struct dl_file_chunk *fc = *fc_ptr;
 
 		fc->magic = 0;
-		wfree(fc, sizeof *fc);
+		WFREE(fc);
 		*fc_ptr = NULL;
 	}
 }
@@ -993,7 +993,7 @@ fi_free(fileinfo_t *fi)
 	atom_sha1_free_null(&fi->cha1);
 
 	fi->magic = 0;
-	wfree(fi, sizeof *fi);
+	WFREE(fi);
 }
 
 static void
@@ -1676,7 +1676,7 @@ G_STMT_START {				\
 		goto eof;
 	}
 
-	fi = walloc0(sizeof *fi);
+	WALLOC0(fi);
 
 	fi->magic = FI_MAGIC;
 	fi->pathname = atom_str_get(pathname);
@@ -3191,7 +3191,7 @@ file_info_retrieve(void)
 		}
 
 		if (!fi) {
-			fi = walloc0(sizeof *fi);
+			WALLOC0(fi);
 			fi->magic = FI_MAGIC;
 			fi->refcount = 0;
 			fi->seen_on_network = NULL;
@@ -3528,7 +3528,7 @@ file_info_create(const char *file, const char *path, filesize_t size,
 	pathname = file_info_new_outname(path, file);
 	g_return_val_if_fail(pathname, NULL);
 
-	fi = walloc0(sizeof *fi);
+	WALLOC0(fi);
 	fi->magic = FI_MAGIC;
 
 	/* Get unique file name */
@@ -3580,7 +3580,7 @@ file_info_get_transient(const char *name)
 	fileinfo_t *fi;
 	char *path;
 
-	fi = walloc0(sizeof *fi);
+	WALLOC0(fi);
 	fi->magic = FI_MAGIC;
 
 	path = make_pathname("/non-existent", name);
@@ -5808,7 +5808,7 @@ fi_get_info(gnet_fi_t fih)
     fi = file_info_find_by_handle(fih);
 	file_info_check(fi);
 
-    info = walloc(sizeof *info);
+    WALLOC(info);
 
     info->guid = atom_guid_get(fi->guid);
     info->filename = atom_str_get(filepath_basename(fi->pathname));
@@ -5839,7 +5839,7 @@ fi_free_info(gnet_fi_info_t *info)
 	atom_sha1_free_null(&info->sha1);
 	atom_tth_free_null(&info->tth);
 
-    wfree(info, sizeof *info);
+    WFREE(info);
 }
 
 void
@@ -5914,7 +5914,7 @@ fi_get_chunks(gnet_fi_t fih)
         const struct dl_file_chunk *fc = sl->data;
     	gnet_fi_chunks_t *chunk;
 
-        chunk = walloc(sizeof *chunk);
+        WALLOC(chunk);
         chunk->from   = fc->from;
         chunk->to     = fc->to;
         chunk->status = fc->status;
@@ -5936,7 +5936,7 @@ fi_free_chunks(GSList *chunks)
 
     for (sl = chunks; NULL != sl; sl = g_slist_next(sl)) {
     	gnet_fi_chunks_t *chunk = sl->data;
-        wfree(chunk, sizeof *chunk);
+        WFREE(chunk);
     }
 
     g_slist_free(chunks);
@@ -5960,7 +5960,7 @@ fi_get_ranges(gnet_fi_t fih)
 
     for (sl = fi->seen_on_network; NULL != sl; sl = g_slist_next(sl)) {
         const http_range_t *r = sl->data;
-        range = walloc(sizeof *range);
+        WALLOC(range);
         range->start = r->start;
         range->end   = r->end;
 
@@ -5977,7 +5977,7 @@ fi_free_ranges(GSList *ranges)
 
 	for (sl = ranges; NULL != sl; sl = g_slist_next(sl)) {
         http_range_t *r = sl->data;
-		wfree(r, sizeof *r);
+		WFREE(r);
 	}
 
 	g_slist_free(ranges);
@@ -6783,7 +6783,7 @@ fi_range_for_complete_file(filesize_t size)
 {
 	http_range_t *range;
 
-	range = walloc(sizeof *range);
+	WALLOC(range);
 	range->start = 0;
 	range->end = size - 1;
 

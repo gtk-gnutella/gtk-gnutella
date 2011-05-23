@@ -61,7 +61,7 @@ sorted_array_new(size_t item_size,
 	g_return_val_if_fail(item_size > 0, NULL);
 	g_return_val_if_fail(cmp_func, NULL);
 
-	tab = walloc(sizeof *tab);
+	WALLOC(tab);
 	*tab = zero_tab;
 	tab->item_size = item_size;
 	tab->cmp_func = cmp_func;
@@ -76,7 +76,7 @@ sorted_array_free(struct sorted_array **tab_ptr)
 	tab = *tab_ptr;
 	if (tab) {
 		HFREE_NULL(tab->items);
-		wfree(tab, sizeof *tab);
+		WFREE(tab);
 		*tab_ptr = NULL;
 	}
 }

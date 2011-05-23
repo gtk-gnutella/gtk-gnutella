@@ -77,7 +77,7 @@ namesize_make(const char *name, filesize_t size)
 {
 	namesize_t *ns;
 
-	ns = walloc(sizeof(*ns));
+	WALLOC(ns);
 	ns->name = atom_str_get(name);
 	ns->size = size;
 
@@ -91,7 +91,7 @@ void
 namesize_free(namesize_t *ns)
 {
 	atom_str_free_null(&ns->name);
-	wfree(ns, sizeof(*ns));
+	WFREE(ns);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -495,7 +495,7 @@ guess_rpc_key_alloc(
 {
 	struct guess_rpc_key *k;
 
-	k = walloc(sizeof *k);
+	WALLOC(k);
 	k->muid = atom_guid_get(muid);
 	k->addr = gnet_host_get_addr(host);
 
@@ -509,7 +509,7 @@ static void
 guess_rpc_key_free(struct guess_rpc_key *k)
 {
 	atom_guid_free_null(&k->muid);
-	wfree(k, sizeof *k);
+	WFREE(k);
 }
 
 /**
@@ -562,7 +562,7 @@ guess_rpc_destroy(struct guess_rpc *grp, struct guess_rpc_key *key)
 	atom_host_free_null(&grp->host);
 	cq_cancel(&grp->timeout);
 	grp->magic = 0;
-	wfree(grp, sizeof *grp);
+	WFREE(grp);
 }
 
 /**
@@ -678,7 +678,7 @@ guess_rpc_register(const gnet_host_t *host, const guid_t *muid,
 	 * the query is still alive.
 	 */
 
-	grp = walloc(sizeof *grp);
+	WALLOC(grp);
 	grp->magic = GUESS_RPC_MAGIC;
 	grp->host = atom_host_get(host);
 	grp->muid = atom_guid_get(muid);
@@ -2458,7 +2458,7 @@ guess_pmsg_free(pmsg_t *mb, void *arg)
 cleanup:
 	atom_host_free_null(&pmi->host);
 	pmi->magic = 0;
-	wfree(pmi, sizeof *pmi);
+	WFREE(pmi);
 }
 
 /**
@@ -2558,7 +2558,7 @@ guess_qk_context_free(struct guess_qk_context *ctx)
 	g_assert(atom_is_host(ctx->host));
 
 	atom_host_free_null(&ctx->host);
-	wfree(ctx, sizeof *ctx);
+	WFREE(ctx);
 }
 
 /**
@@ -2877,7 +2877,7 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 	) {
 		struct guess_qk_context *ctx;
 
-		ctx = walloc(sizeof *ctx);
+		WALLOC(ctx);
 		ctx->gid = gq->gid;
 		ctx->host = atom_host_get(host);
 
@@ -2913,7 +2913,7 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 	 * Allocate additional message information for an extended message block.
 	 */
 
-	pmi = walloc(sizeof *pmi);
+	WALLOC(pmi);
 	pmi->magic = GUESS_PMI_MAGIC;
 	pmi->host = atom_host_get(host);
 	pmi->gid = gq->gid;
@@ -3286,7 +3286,7 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	if (!guess_query_enabled())
 		return NULL;
 
-	gq = walloc0(sizeof *gq);
+	WALLOC0(gq);
 	gq->magic = GUESS_MAGIC;
 	gq->sh = sh;
 	gq->gid = guess_id_create();
@@ -3381,7 +3381,7 @@ guess_free(guess_t *gq)
 		g_hash_table_remove(gqueries, &gq->gid);
 
 	gq->magic = 0;
-	wfree(gq, sizeof *gq);
+	WFREE(gq);
 
 	gnet_stats_count_general(GNR_GUESS_LOCAL_RUNNING, -1);
 }

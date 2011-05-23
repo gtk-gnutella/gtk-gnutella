@@ -2261,7 +2261,7 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 		ad->thread_return_data = NULL;
 	}
 	HFREE_NULL(ad->thread_arg_data);
-	WFREE_NULL(ad, sizeof *ad);
+	WFREE(ad);
 	HFREE_NULL(req);
 }
 
@@ -2282,7 +2282,7 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 static void 
 mingw_adns_getaddrinfo(const struct adns_request *req)
 {
-	struct async_data *ad = walloc0(sizeof *ad);
+	struct async_data *ad;
 	
 	if (common_dbg > 2) {
 		t_debug(altc, "%s", G_STRFUNC);
@@ -2290,6 +2290,7 @@ mingw_adns_getaddrinfo(const struct adns_request *req)
 	g_assert(req);
 	g_assert(req->common.user_callback);
 	
+	WALLOC0(ad);
 	ad->thread_func = mingw_adns_getaddrinfo_thread;
 	ad->callback_func = mingw_adns_getaddrinfo_cb;	
 	ad->user_data = hcopy(req, sizeof *req);
@@ -2337,7 +2338,7 @@ mingw_adns_getnameinfo_cb(struct async_data *ad)
 	}
 	
 	HFREE_NULL(req);
-	WFREE_NULL(arg_data, sizeof *arg_data);
+	WFREE(arg_data);
 }
 
 /**
@@ -2361,9 +2362,11 @@ static void
 mingw_adns_getnameinfo(const struct adns_request *req)
 {
 	const struct adns_reverse_query *query = &req->query.reverse;
-	struct async_data *ad = walloc0(sizeof *ad);
-	struct arg_data *arg_data = walloc(sizeof *arg_data);
+	struct async_data *ad;
+	struct arg_data *arg_data;
 
+	WALLOC0(ad);
+	WALLOC(arg_data);
 	ad->thread_func = mingw_adns_getnameinfo_thread;
 	ad->callback_func = mingw_adns_getnameinfo_cb;	
 	ad->user_data = hcopy(req, sizeof *req);
@@ -2501,8 +2504,9 @@ void
 mingw_adns_close(void)
 {
 	/* Quit our ADNS thread */
-	struct async_data *ad = walloc0(sizeof *ad);
+	struct async_data *ad;
 
+	WALLOC0(ad);
 	ad->thread_func = mingw_adns_stop_thread;
 
 	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);

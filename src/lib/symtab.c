@@ -122,7 +122,7 @@ symbol_entry_alloc(nv_pair_t *symbol, unsigned depth)
 {
 	struct symbol_entry *se;
 
-	se = walloc0(sizeof *se);
+	WALLOC0(se);
 	se->magic = SYMBOL_ENTRY_MAGIC;
 	se->symbol = symbol;
 	se->depth = depth;
@@ -140,7 +140,7 @@ symbol_entry_free(struct symbol_entry *se)
 	if (se->symbol != NULL)
 		nv_pair_free(se->symbol);
 	se->magic = 0;
-	wfree(se, sizeof *se);
+	WFREE(se);
 }
 
 /**
@@ -151,7 +151,7 @@ symtab_value_alloc(void)
 {
 	struct symtab_value *sv;
 
-	sv = walloc0(sizeof *sv);
+	WALLOC0(sv);
 	sv->magic = SYMTAB_VALUE_MAGIC;
 
 	return sv;
@@ -172,7 +172,7 @@ symtab_value_free(struct symtab_value *sv)
 	}
 	gm_slist_free_null(&sv->symbols);
 	sv->magic = 0;
-	wfree(sv, sizeof *sv);
+	WFREE(sv);
 }
 
 /**
@@ -183,7 +183,7 @@ symtab_make(void)
 {
 	symtab_t *syt;
 
-	syt = walloc(sizeof *syt);
+	WALLOC(syt);
 	syt->magic = SYMTAB_MAGIC;
 	syt->table = nv_table_make(FALSE);
 
@@ -218,7 +218,7 @@ symtab_free(symtab_t *syt)
 	nv_table_foreach_remove(syt->table, symtab_free_nv, NULL);
 	nv_table_free_null(&syt->table);
 	syt->magic = 0;
-	wfree(syt, sizeof *syt);
+	WFREE(syt);
 }
 
 /**

@@ -65,7 +65,9 @@ static const struct html_node zero_html_node;
 static struct html_node *
 html_node_alloc(void)
 {
-	struct html_node *node = walloc(sizeof *node);
+	struct html_node *node;
+
+	WALLOC(node);
 	*node = zero_html_node;
 	return node;
 }
@@ -75,7 +77,7 @@ html_node_free(struct html_node **node_ptr)
 {
 	struct html_node *node = *node_ptr;
 	if (node) {
-		wfree(node, sizeof *node);
+		WFREE(node);
 		*node_ptr = NULL;
 	}
 }
@@ -115,7 +117,8 @@ html_output_alloc(void)
 {
 	static const struct html_output zero_output;
 	struct html_output *output;
-	output = walloc(sizeof *output);
+
+	WALLOC(output);
 	*output = zero_output;
 	return output;
 }
@@ -125,7 +128,7 @@ html_output_free(struct html_output **output_ptr)
 {
 	struct html_output *output = *output_ptr;
 	if (output) {
-		wfree(output, sizeof *output);
+		WFREE(output);
 		*output_ptr = NULL;
 	}
 }

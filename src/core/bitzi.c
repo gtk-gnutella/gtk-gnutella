@@ -173,11 +173,13 @@ static bitzi_data_t *
 bitzi_create(void)
 {
 	static const bitzi_data_t zero_data;
-	bitzi_data_t *data = walloc(sizeof *data);
+	bitzi_data_t *data;
 
 	/*
 	 * defaults
 	 */
+
+	WALLOC(data);
 	*data = zero_data;
 	data->judgement = BITZI_FJ_UNKNOWN;
 	data->expiry = (time_t) -1;
@@ -202,7 +204,7 @@ bitzi_destroy(bitzi_data_t *data)
 	if (GNET_PROPERTY(bitzi_debug)) {
 		g_debug("bitzi_destroy: freeing data");
 	}
-	wfree(data, sizeof *data);
+	WFREE(data);
 }
 
 
@@ -545,7 +547,7 @@ bitzi_request_free(bitzi_request_t **ptr)
 		bitzi_request_t *req = *ptr;
 
 		atom_sha1_free_null(&req->sha1);
-		wfree(req, sizeof *req);
+		WFREE(req);
 		*ptr = NULL;
 	}
 }
@@ -913,7 +915,7 @@ bitzi_query_by_sha1(const struct sha1 *sha1,
 		static const bitzi_request_t zero_request;
 		size_t len;
 
-		request = walloc(sizeof *request);
+		WALLOC(request);
 		*request = zero_request;
 
 		/*
@@ -1022,7 +1024,7 @@ bitzi_load_cache(void)
 				static const bitzi_request_t zero_request;
 
 				/* new pseudo request */
-				request = walloc(sizeof *request);
+				WALLOC(request);
 				*request = zero_request;
 
 				request->sha1 = NULL;

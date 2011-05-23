@@ -288,7 +288,7 @@ hce_alloc(void)
 	static const hostcache_entry_t zero_hce;
 	hostcache_entry_t *hce;
 
-	hce = walloc(sizeof *hce);
+	WALLOC(hce);
 	*hce = zero_hce;
 	return hce;
 }
@@ -299,7 +299,7 @@ hce_free(struct hostcache_entry *hce)
 	g_assert(hce);
 	g_assert(hce != NO_METADATA);
 
-	wfree(hce, sizeof *hce);
+	WFREE(hce);
 }
 
 /**

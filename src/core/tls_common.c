@@ -369,7 +369,7 @@ tls_init(struct gnutella_socket *s)
 
 	socket_check(s);
 
-	ctx = walloc0(sizeof *ctx);
+	WALLOC0(ctx);
 	ctx->s = s;
 	s->tls.ctx = ctx;
 
@@ -451,7 +451,7 @@ tls_free(struct gnutella_socket *s)
 			gnutls_anon_free_client_credentials(ctx->client_cred);
 			ctx->client_cred = NULL;
 		}
-		wfree(ctx, sizeof *ctx);
+		WFREE(ctx);
 		s->tls.ctx = NULL;
 	}
 }

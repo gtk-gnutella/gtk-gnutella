@@ -111,7 +111,7 @@ parse_context_free(gpointer obj)
 	struct parse_context *ctx = (struct parse_context *) obj;
 
 	getline_free(ctx->getline);
-	wfree(ctx, sizeof(*ctx));
+	WFREE(ctx);
 }
 
 /**
@@ -125,7 +125,7 @@ parse_context_set(gpointer handle, gint maxlines)
 {
 	struct parse_context *ctx;
 
-	ctx = walloc(sizeof(*ctx));
+	WALLOC(ctx);
 	ctx->getline = getline_make(GHC_MAX_LINE_LEN);
 	ctx->maxlines = maxlines;
 	ctx->handle = handle;
@@ -238,7 +238,7 @@ ghc_new(const char *url)
 
 	g_assert(url != NULL);
 
-	ghc = walloc0(sizeof *ghc);
+	WALLOC0(ghc);
 	ghc->url = atom_str_get(url);
 	ghc->stamp = 0;
 	ghc->used = 0;
@@ -253,7 +253,7 @@ static void
 ghc_free(struct ghc *ghc)
 {
 	atom_str_free_null(&ghc->url);
-	wfree(ghc, sizeof *ghc);
+	WFREE(ghc);
 }
 
 /**

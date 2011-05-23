@@ -541,7 +541,7 @@ download_pipeline_alloc(void)
 {
 	struct dl_pipeline *dp;
 
-	dp = walloc0(sizeof *dp);
+	WALLOC0(dp);
 	dp->magic = DL_PIPELINE_MAGIC;
 	dp->status = GTA_DL_PIPE_SELECTED;
 
@@ -565,7 +565,7 @@ download_pipeline_free_null(struct dl_pipeline **dp_ptr)
 		}
 		pmsg_free_null(&dp->extra);
 		dp->magic = 0;
-		wfree(dp, sizeof *dp);
+		WFREE(dp);
 		*dp_ptr = NULL;
 	}
 }
@@ -1001,7 +1001,7 @@ download_alloc(void)
 	static const struct download zero_download;
 	struct download *d;
 	
-	d = walloc(sizeof *d);
+	WALLOC(d);
 	*d = zero_download;
 	d->magic = DOWNLOAD_MAGIC;
 	return d;
@@ -1026,7 +1026,7 @@ download_free(struct download **d_ptr)
 	g_hash_table_remove(dl_by_id, d->id);
 	atom_guid_free_null(&d->id);
 	d->magic = 0;
-	wfree(d, sizeof *d);
+	WFREE(d);
 	*d_ptr = NULL;
 }
 
@@ -1340,7 +1340,7 @@ buffers_alloc(struct download *d)
 	g_assert(d->buffers == NULL);
 	g_assert(DOWNLOAD_IS_ACTIVE(d));
 
-	b = walloc(sizeof *b);
+	WALLOC(b);
 	*b = zero_buffers;
 	b->list = slist_new();
 	b->amount = GNET_PROPERTY(download_buffer_size);
@@ -1368,7 +1368,7 @@ buffers_free(struct download *d)
 
 	b = d->buffers;
 	slist_free_all(&b->list, cast_to_slist_destroy(buffers_free_item));
-	wfree(b, sizeof *b);
+	WFREE(b);
 
 	d->buffers = NULL;
 }
@@ -1810,12 +1810,12 @@ allocate_server(const struct guid *guid, const host_addr_t addr, guint16 port)
 
 	g_assert(host_addr_initialized(addr));
 
-	key = walloc(sizeof *key);
+	WALLOC(key);
 	key->addr = addr;
 	key->port = port;
 	key->guid = atom_guid_get(guid);
 
-	server = walloc0(sizeof *server);
+	WALLOC0(server);
 	server->magic = DL_SERVER_MAGIC;
 	server->key = key;
 	server->retry_after = tm_time();
@@ -1836,7 +1836,7 @@ allocate_server(const struct guid *guid, const host_addr_t addr, guint16 port)
 		gpointer x;					/* Don't care about freeing values */
 		gboolean existed;
 
-		ipk = walloc(sizeof *ipk);
+		WALLOC(ipk);
 		ipk->addr = addr;			/* Struct copy */
 		ipk->port = port;
 
@@ -1853,7 +1853,7 @@ allocate_server(const struct guid *guid, const host_addr_t addr, guint16 port)
 			struct dl_addr *da = ipkey;
 			g_assert(da != ipk);
 			g_assert(host_addr_initialized(da->addr));
-			wfree(ipk, sizeof *ipk);	/* Keep the old key */
+			WFREE(ipk);				/* Keep the old key */
 			g_hash_table_insert(dl_by_addr, da, server);
 		} else
 			g_hash_table_insert(dl_by_addr, ipk, server);
@@ -1940,7 +1940,7 @@ server_unregister(struct dl_server *server)
 			g_assert(host_addr_initialized(da->addr));
 			if (x == server) {		/* We own the key */
 				g_hash_table_remove(dl_by_addr, &ipk);
-				wfree(da, sizeof *da);
+				WFREE(da);
 			}
 		}
 	}
@@ -1991,9 +1991,9 @@ free_server(struct dl_server *server)
 	gm_hash_table_destroy_null(&server->sha1_counts);
 	atom_str_free_null(&server->vendor);
 	atom_guid_free_null(&server->key->guid);
-	wfree(server->key, sizeof(struct dl_key));
+	WFREE(server->key);
 	server->magic = 0;
-	wfree(server, sizeof *server);
+	WFREE(server);
 }
 
 /**
@@ -2446,7 +2446,7 @@ change_server_addr(struct dl_server *server,
 			g_assert(host_addr_initialized(da->addr));
 			if (x == server) {		/* We "own" the key -- see free_server() */
 				g_hash_table_remove(dl_by_addr, da);
-				wfree(da, sizeof *da);
+				WFREE(da);
 			}
 		}
 	}
@@ -2561,7 +2561,7 @@ change_server_addr(struct dl_server *server,
 		gpointer x;					/* Don't care about freeing values */
 		gboolean existed;
 
-		ipk = walloc(sizeof *ipk);
+		WALLOC(ipk);
 		ipk->addr = new_addr;
 		ipk->port = key->port;
 
@@ -2578,7 +2578,7 @@ change_server_addr(struct dl_server *server,
 			struct dl_addr *da = ipkey;
 			g_assert(host_addr_initialized(da->addr));
 			g_assert(da != ipk);
-			wfree(ipk, sizeof *ipk);	/* Keep the old key around */
+			WFREE(ipk);				/* Keep the old key around */
 			g_hash_table_insert(dl_by_addr, da, server);
 		} else
 			g_hash_table_insert(dl_by_addr, ipk, server);
@@ -7537,7 +7537,7 @@ download_request_new(
 
 	g_return_val_if_fail(filename, NULL);
 
-	req = walloc(sizeof *req);
+	WALLOC(req);
 	*req = zero_req;
 
 	req->filename = atom_str_get(filename);
@@ -7584,7 +7584,7 @@ download_request_free(struct download_request **req_ptr)
 		g_assert(req->fi->refcount > 0);
 		req->fi->refcount--;
 	}
-	wfree(req, sizeof *req);
+	WFREE(req);
 }
 
 /**

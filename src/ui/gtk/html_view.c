@@ -88,7 +88,7 @@ html_context_alloc(void)
 	static const struct html_context zero_html_context;
 	struct html_context *ctx;
 
-	ctx = walloc(sizeof *ctx);
+	WALLOC(ctx);
 	*ctx = zero_html_context;
 	return ctx;
 }
@@ -100,7 +100,7 @@ html_context_free(struct html_context **ctx_ptr)
 	if (ctx) {
 		str_destroy_null(&ctx->title);
 		html_output_free(&ctx->output);
-		wfree(ctx, sizeof *ctx);
+		WFREE(ctx);
 		*ctx_ptr = NULL;
 	}
 }
@@ -111,7 +111,7 @@ html_view_alloc(void)
 	static const struct html_view zero_html_view;
 	struct html_view *ctx;
 
-	ctx = walloc(sizeof *ctx);
+	WALLOC(ctx);
 	*ctx = zero_html_view;
 	return ctx;
 }
@@ -937,7 +937,7 @@ html_view_free(struct html_view **html_view_ptr)
 			}
 			gm_slist_free_null(&html_view->to_free);
 		}
-		wfree(html_view, sizeof *html_view);
+		WFREE(html_view);
 		*html_view_ptr = NULL;
 	}
 }

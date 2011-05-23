@@ -418,7 +418,7 @@ publish_free(publish_t *pb)
 		g_hash_table_remove(publishes, &pb->pid);
 
 	pb->magic = 0;
-	wfree(pb, sizeof *pb);
+	WFREE(pb);
 }
 
 /**
@@ -2050,7 +2050,7 @@ publish_create(const kuid_t *key, publish_type_t type, int cnt)
 {
 	publish_t *pb;
 
-	pb = walloc0(sizeof *pb);
+	WALLOC0(pb);
 	pb->magic = PUBLISH_MAGIC;
 	pb->pid = publish_id_create();
 	pb->key = kuid_get_atom(key);

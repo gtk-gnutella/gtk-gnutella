@@ -38,6 +38,7 @@ RCSID("$Id$")
 #include "event.h"
 #include "glib-missing.h"
 #include "misc.h"
+#include "omalloc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -48,7 +49,7 @@ subscriber_new(GCallback cb, enum frequency_type t, guint32 interval)
 
     g_assert(cb != NULL);
 
-    s = walloc0(sizeof(*s));
+    WALLOC0(s);
     s->cb = cb;
     s->f_type = t;
     s->f_interval = interval;
@@ -59,9 +60,14 @@ subscriber_new(GCallback cb, enum frequency_type t, guint32 interval)
 static inline void
 subscriber_destroy(struct subscriber *s)
 {
-	wfree(s, sizeof *s);
+	WFREE(s);
 }
 
+/**
+ * Allocate a new event identified by its name (static data not copied).
+ *
+ * @return allocated event structure, never meant to be freed.
+ */
 struct event *
 event_new(const char *name)
 {
@@ -69,10 +75,10 @@ event_new(const char *name)
 
     g_assert(name != NULL);
 
-    evt = g_new0(struct event, 1);
+    evt = omalloc0(sizeof *evt);
     evt->name = name;
 
-    return NOT_LEAKING(evt);	/* Allocated once, never freed */
+    return evt;		/* Allocated once, never freed */
 }
 
 /**
@@ -141,16 +147,15 @@ event_subscriber_active(struct event *evt)
   return NULL != evt->subscribers;
 }
 
-
 struct event_table *
 event_table_new(void)
 {
     struct event_table *t;
 
-    t = g_new0(struct event_table, 1);
-    t->events = g_hash_table_new(g_str_hash, g_str_equal);
+	WALLOC0(t);
+	t->events = g_hash_table_new(g_str_hash, g_str_equal);
 
-    return t;
+	return t;
 }
 
 void

@@ -2058,7 +2058,7 @@ head_ping_source_free(struct head_ping_source *source)
 {
 	atom_sha1_free_null(&source->ping.sha1);
 	nid_unref(source->ping.node_id);
-	wfree(source, sizeof *source);
+	WFREE(source);
 }
 
 static void
@@ -2132,7 +2132,7 @@ head_ping_register_intern(const struct guid *muid,
 			return NULL;
 	}
 
-	source = walloc(sizeof *source);
+	WALLOC(source);
 	source->muid = *muid;
 	source->added = tm_time();
 	hash_list_append(head_pings, source);

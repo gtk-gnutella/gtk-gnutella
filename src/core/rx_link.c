@@ -188,8 +188,7 @@ rx_link_init(rxdrv_t *rx, gconstpointer args)
 	g_assert(rargs);
 	g_assert(rargs->cb);
 
-	attr = walloc0(sizeof(*attr));
-
+	WALLOC0(attr);
 	attr->cb = rargs->cb;
 	attr->wio = rargs->wio;
 	attr->bws = rargs->bws;
@@ -213,7 +212,7 @@ rx_link_destroy(rxdrv_t *rx)
 		attr->bio = NULL;					/* Paranoid */
 	}
 
-	wfree(attr, sizeof *attr);
+	WFREE(attr);
 }
 
 /**

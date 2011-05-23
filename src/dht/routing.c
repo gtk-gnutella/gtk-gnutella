@@ -790,7 +790,7 @@ other_size_free(struct other_size *os)
 	g_assert(os);
 
 	kuid_atom_free_null(&os->id);
-	wfree(os, sizeof *os);
+	WFREE(os);
 }
 
 /**
@@ -827,8 +827,7 @@ allocate_node_lists(struct kbucket *kb)
 	g_assert(kb);
 	g_assert(kb->nodes == NULL);
 
-	kb->nodes = walloc(sizeof *kb->nodes);
-
+	WALLOC(kb->nodes);
 	kb->nodes->all = g_hash_table_new(kuid_hash, kuid_eq);
 	kb->nodes->good = hash_list_new(knode_hash, knode_eq);
 	kb->nodes->stale = hash_list_new(knode_hash, knode_eq);
@@ -959,7 +958,7 @@ free_node_lists(struct kbucket *kb)
 		cq_cancel(&knodes->aliveness);
 		cq_cancel(&knodes->staleness);
 		cq_cancel(&knodes->refresh);
-		wfree(knodes, sizeof *knodes);
+		WFREE(knodes);
 		kb->nodes = NULL;
 	}
 }
@@ -1295,7 +1294,7 @@ completion_iterate(struct bootstrap *b)
 		if (GNET_PROPERTY(dht_debug))
 			g_warning("DHT unable to complete bootstrapping");
 		
-		wfree(b, sizeof *b);
+		WFREE(b);
 		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
 		return;
 	}
@@ -1319,7 +1318,7 @@ bootstrap_completion_status(
 	 */
 
 	if (NULL == root || LOOKUP_E_CANCELLED == error) {
-		wfree(b, sizeof *b);
+		WFREE(b);
 		if (GNET_PROPERTY(dht_debug))
 			g_warning("DHT disabled during bootstrap");
 		return;
@@ -1335,7 +1334,7 @@ bootstrap_completion_status(
 	 */
 
 	if (1 == b->bits) {
-		wfree(b, sizeof *b);
+		WFREE(b);
 
 		if (GNET_PROPERTY(dht_debug))
 			g_debug("DHT now completely bootstrapped");
@@ -1386,7 +1385,7 @@ dht_complete_bootstrap(gboolean complete)
 
 	g_assert(ours->depth);
 
-	b = walloc(sizeof *b);
+	WALLOC(b);
 	b->current = ours->prefix;		/* Struct copy */
 	b->bits = ours->depth;
 	b->complete = complete;			/* Did we look up our KUID successfully?*/
@@ -1575,7 +1574,7 @@ dht_initialize(gboolean post_init)
 	 * Allocate root node for the routing table.
 	 */
 
-	root = walloc0(sizeof *root);
+	WALLOC0(root);
 	root->ours = TRUE;
 	allocate_node_lists(root);
 	install_bucket_periodic_checks(root, 0);
@@ -1875,7 +1874,7 @@ allocate_child(struct kbucket *parent)
 {
 	struct kbucket *child;
 
-	child = walloc0(sizeof *child);
+	WALLOC0(child);
 	child->parent = parent;
 	child->prefix = parent->prefix;
 	child->depth = parent->depth + 1;
@@ -1893,7 +1892,7 @@ static void
 free_bucket(struct kbucket *kb)
 {
 	free_node_lists(kb);
-	wfree(kb, sizeof *kb);
+	WFREE(kb);
 }
 
 /**
@@ -4217,7 +4216,7 @@ dht_record_size_estimate(knode_t *kn, kuid_t *size)
 	hl = stats.network[subspace].others;
 	estimate = kuid_to_guint64(size);
 
-	os = walloc(sizeof *os);
+	WALLOC(os);
 	os->id = kuid_get_atom(kn->id);
 
 	if (hash_list_find(hl, os, &key)) {
@@ -4879,7 +4878,7 @@ dht_addr_verify_cb(
 
 	knode_free(av->old);
 	knode_free(av->new);
-	wfree(av, sizeof *av);
+	WFREE(av);
 }
 
 /**
@@ -4901,7 +4900,7 @@ dht_verify_node(knode_t *kn, knode_t *new)
 	g_assert(new->status == KNODE_UNKNOWN);
 	g_assert(!(kn->flags & KNODE_F_VERIFYING));
 
-	av = walloc(sizeof *av);
+	WALLOC(av);
 
 	if (GNET_PROPERTY(dht_debug))
 		g_debug("DHT node %s was at %s, now %s -- verifying",

@@ -1239,7 +1239,7 @@ host_addr_free_list(GSList **sl_ptr)
 
 		for (sl = *sl_ptr; NULL != sl; sl = g_slist_next(sl)) {
 			host_addr_t *addr_ptr = sl->data;
-			wfree(addr_ptr, sizeof *addr_ptr);
+			WFREE(addr_ptr);
 		}
 		gm_slist_free_null(sl_ptr);
 	}
@@ -1391,7 +1391,7 @@ host_addr_free_interface_addrs(GSList **sl_ptr)
 		for (sl = *sl_ptr; NULL != sl; sl = g_slist_next(sl)) {
             host_addr_t *addr = sl->data;
 			g_assert(host_addr_initialized(*addr));
-			wfree(addr, sizeof *addr);
+			WFREE(addr);
 		}
 		gm_slist_free_null(sl_ptr);
 	}

@@ -208,8 +208,7 @@ bsched_make(const char *name, int type, guint32 mode,
 	g_assert(type == BS_T_STREAM);		/* XXX only mode supported for now */
 	g_assert(bandwidth <= BS_BW_MAX);	/* Signed, and multiplied by 1000 */
 
-	bs = walloc0(sizeof *bs);
-
+	WALLOC0(bs);
 	bs->magic = BSCHED_MAGIC;
 	bs->name = h_strdup(name);
 	bs->flags = mode;
@@ -260,7 +259,7 @@ bsched_free(bsched_t *bs)
 	gm_slist_free_null(&bs->stealers);
 	HFREE_NULL(bs->name);
 	bs->magic = 0;
-	wfree(bs, sizeof *bs);
+	WFREE(bs);
 }
 
 /**
@@ -1131,8 +1130,7 @@ bsched_source_add(
 	g_assert((flags & BIO_F_RW) != BIO_F_RW);	/* Either reading or writing */
 	g_assert(!(flags & ~BIO_F_RW));				/* Can only specify r/w flags */
 
-	bio = walloc0(sizeof *bio);
-
+	WALLOC0(bio);
 	bio->magic = BIO_SOURCE_MAGIC;
 	bio->bws = bws;
 	bio->wio = wio;
@@ -1170,7 +1168,7 @@ bsched_source_remove(bio_source_t *bio)
 	}
 	inputevt_remove(&bio->io_tag);
 	bio->magic = 0;
-	wfree(bio, sizeof *bio);
+	WFREE(bio);
 }
 
 /**

@@ -119,7 +119,7 @@ upnp_service_alloc(enum upnp_service_type type, unsigned version,
 {
 	upnp_service_t *usd;
 
-	usd = walloc(sizeof *usd);
+	WALLOC(usd);
 	usd->magic = UPNP_SVC_DESC_MAGIC;
 	usd->type = type;
 	usd->version = version;
@@ -138,7 +138,7 @@ upnp_service_free(upnp_service_t *usd)
 
 	atom_str_free_null(&usd->control_url);
 	usd->magic = 0;
-	wfree(usd, sizeof *usd);
+	WFREE(usd);
 }
 
 /**

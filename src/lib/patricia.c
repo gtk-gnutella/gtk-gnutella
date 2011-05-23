@@ -332,7 +332,7 @@ patricia_create(size_t maxbits)
 	g_assert(maxbits <= PATRICIA_MAXBITS);
 	g_assert(maxbits != 0);
 
-	pt = walloc(sizeof *pt);
+	WALLOC(pt);
 	pt->magic = PATRICIA_MAGIC;
 	pt->root = NULL;
 	pt->count = pt->nodes = pt->embedded = 0;
@@ -376,7 +376,7 @@ allocate_node(patricia_t *pt)
 	patricia_check(pt);
 
 	pt->nodes++;
-	pn = walloc(sizeof(struct patricia_node));
+	WALLOC(pn);
 	patricia_node_set_magic(pn);
 
 	return pn;
@@ -394,7 +394,7 @@ free_node(patricia_t *pt, struct patricia_node *pn)
 
 	pt->nodes--;
 	patricia_node_clear_magic(pn);
-	wfree(pn, sizeof *pn);
+	WFREE(pn);
 }
 
 /**
@@ -1076,7 +1076,7 @@ clear_embedded_data(struct patricia_node *pn)
 	patricia_parent_check(pn->p.ext);
 	patricia_parent_clear_magic(pn->p.ext);
 
-	wfree(pn->p.ext, sizeof *pn->p.ext);
+	WFREE(pn->p.ext);
 	pn->p.parent = parent;
 
 	g_assert(parent_node(pn) == parent);
@@ -1148,7 +1148,7 @@ unembed_data(patricia_t *pt, struct patricia_node *pn)
 	patricia_parent_check(pn->p.ext);
 	patricia_parent_clear_magic(pn->p.ext);
 
-	wfree(pn->p.ext, sizeof *pn->p.ext);
+	WFREE(pn->p.ext);
 
 	g_assert(old_keybits < pt->maxbits);
 
@@ -1203,7 +1203,7 @@ insert_at(
 			struct patricia_parent *ext;
 
 			/* New item */
-			ext = walloc(sizeof *ext);
+			WALLOC(ext);
 			patricia_parent_set_magic(ext);
 			ext->parent = pn->p.parent;
 			ext->key = key;
@@ -1222,8 +1222,9 @@ insert_at(
 
 		struct patricia_node *new = allocate_node(pt);
 		struct patricia_node *parent = parent_node(pn);
-		struct patricia_parent *ext = walloc(sizeof *ext);
+		struct patricia_parent *ext;
 
+		WALLOC(ext);
 		pt->count++;
 
 		g_assert(keybits < leaf_item_keybits(pn));	/* ALL keybits matched */
@@ -1317,10 +1318,11 @@ insert_below(
 		g_assert(old_keybits >= diffbit);
 
 		if (old_keybits == diffbit) {
-			struct patricia_parent *ext = walloc(sizeof *ext);
+			struct patricia_parent *ext;
 
 			g_assert(old_keybits < pt->maxbits);
 
+			WALLOC(ext);
 			patricia_parent_set_magic(ext);
 			ext->parent = pn->p.parent;
 			ext->key = old_key;
@@ -2111,7 +2113,7 @@ patricia_destroy(patricia_t *pt)
 	g_assert(pt->nodes == 0);
 
 	pt->magic = 0;
-	wfree(pt, sizeof *pt);
+	WFREE(pt);
 }
 
 /**
@@ -2292,8 +2294,7 @@ patricia_tree_iterator(patricia_t *pt, gboolean forward)
 
 	patricia_check(pt);
 
-	iter = walloc0(sizeof *iter);
-
+	WALLOC0(iter);
 	iter->type = PATRICIA_ITER_TREE;
 	iter->next = find_deepest(pt->root, forward);
 
@@ -2327,8 +2328,7 @@ patricia_metric_iterator(patricia_t *pt, gconstpointer key, gboolean forward)
 	patricia_check(pt);
 	g_assert(pt->embedded == 0);
 
-	iter = walloc(sizeof *iter);
-
+	WALLOC(iter);
 	iter->type = PATRICIA_ITER_XOR;
 	iter->next = find_closest(pt, pt->root, key, pt->maxbits, forward);
 	iter->key = walloc(keybytes);
@@ -2352,8 +2352,7 @@ patricia_metric_iterator_lazy(
 	patricia_check(pt);
 	g_assert(pt->embedded == 0);
 
-	iter = walloc(sizeof *iter);
-
+	WALLOC(iter);
 	iter->type = PATRICIA_ITER_XOR_LAZY;
 	iter->next = find_closest(pt, pt->root, key, pt->maxbits, forward);
 	iter->key = deconstify_gpointer(key);
@@ -2585,7 +2584,7 @@ patricia_iterator_release(patricia_iter_t **iter_ptr)
 			iter->key = NULL;
 		}
 		iter->magic = 0;
-		wfree(iter, sizeof *iter);
+		WFREE(iter);
 		*iter_ptr = NULL;
 	}
 }

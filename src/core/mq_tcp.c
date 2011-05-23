@@ -71,8 +71,7 @@ mq_tcp_make(int maxsize, struct gnutella_node *n, struct txdriver *nd)
 {
 	mqueue_t *q;
 
-	q = walloc0(sizeof *q);
-
+	WALLOC0(q);
 	q->magic = MQ_MAGIC;
 	q->node = n;
 	q->tx_drv = nd;

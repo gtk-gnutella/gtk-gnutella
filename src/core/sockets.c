@@ -126,7 +126,7 @@ socket_alloc(void)
 	static const struct gnutella_socket zero_socket;
 	struct gnutella_socket *s;
 
-	s = walloc(sizeof *s);
+	WALLOC(s);
 	*s = zero_socket;
 	s->magic = SOCKET_MAGIC;
 	return s;
@@ -166,7 +166,7 @@ socket_dealloc(struct gnutella_socket **s_ptr)
 	if (s) {
 		socket_check(s);
 		s->magic = 0;
-		wfree(s, sizeof *s);
+		WFREE(s);
 		*s_ptr = NULL;
 	}
 }
@@ -1355,7 +1355,7 @@ socket_free(struct gnutella_socket *s)
 	if (s->flags & SOCK_F_UDP) {
 		if (s->resource.udp != NULL) {
 			WFREE_NULL(s->resource.udp->socket_addr, sizeof(socket_addr_t));
-			WFREE_NULL(s->resource.udp, sizeof *s->resource.udp);
+			WFREE(s->resource.udp);
 		}
 	}
 	if (s->last_update) {
@@ -3460,7 +3460,7 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port,
 	 * Allocate the UDP context and register the datagram reception callback.
 	 */
 	
-	s->resource.udp = walloc(sizeof *s->resource.udp);
+	WALLOC(s->resource.udp);
 	s->resource.udp->data_ind = data_ind;
 
 	/*

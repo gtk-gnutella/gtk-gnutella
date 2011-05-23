@@ -431,7 +431,7 @@ dbmap_create_hash(size_t key_size, dbmap_keylen_t key_len,
 
 	g_assert(size_is_non_negative(key_size));
 
-	dm = walloc0(sizeof *dm);
+	WALLOC0(dm);
 	dm->magic = DBMAP_MAGIC;
 	dm->type = DBMAP_MAP;
 	dm->key_size = key_size;
@@ -467,14 +467,14 @@ dbmap_create_sdbm(size_t ksize, dbmap_keylen_t klen,
 	g_assert(ksize != 0);
 	g_assert(path);
 
-	dm = walloc0(sizeof *dm);
+	WALLOC0(dm);
 	dm->type = DBMAP_SDBM;
 	dm->key_size = ksize;
 	dm->key_len = klen;
 	dm->u.s.sdbm = sdbm_open(path, flags, mode);
 
 	if (!dm->u.s.sdbm) {
-		wfree(dm, sizeof *dm);
+		WFREE(dm);
 		return NULL;
 	}
 
@@ -510,7 +510,7 @@ dbmap_create_from_map(size_t key_size, dbmap_keylen_t key_len, map_t *map)
 	g_assert(size_is_non_negative(key_size));
 	g_assert(map);
 
-	dm = walloc0(sizeof *dm);
+	WALLOC0(dm);
 	dm->magic = DBMAP_MAGIC;
 	dm->type = DBMAP_MAP;
 	dm->key_size = key_size;
@@ -547,7 +547,7 @@ dbmap_create_from_sdbm(const char *name,
 	if (name)
 		sdbm_set_name(sdbm, name);
 
-	dm = walloc0(sizeof *dm);
+	WALLOC0(dm);
 	dm->magic = DBMAP_MAGIC;
 	dm->type = DBMAP_SDBM;
 	dm->key_size = key_size;
@@ -584,10 +584,12 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 	switch (dm->type) {
 	case DBMAP_MAP:
 		{
-			dbmap_datum_t *d = walloc(sizeof *d);
+			dbmap_datum_t *d;
 			gpointer okey;
 			gpointer ovalue;
 			gboolean found;
+
+			WALLOC(d);
 
 			if (value.data != NULL) {
 				d->data = wcopy(value.data, value.len);
@@ -605,7 +607,7 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 				map_replace(dm->u.m.map, okey, d);
 				if (od->data != NULL)
 					wfree(od->data, od->len);
-				wfree(od, sizeof *od);
+				WFREE(od);
 			} else {
 				gpointer dkey = wcopy(key, dbmap_keylen(dm, key));
 
@@ -670,7 +672,7 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 				d = dvalue;
 				if (d->data != NULL)
 					wfree(d->data, d->len);
-				wfree(d, sizeof *d);
+				WFREE(d);
 				g_assert(dm->count);
 				dm->count--;
 			}
@@ -842,7 +844,7 @@ dbmap_release(dbmap_t *dm)
 
 	dm->type = DBMAP_MAXTYPE;
 	dm->magic = 0;
-	wfree(dm, sizeof *dm);
+	WFREE(dm);
 
 	return implementation;
 }
@@ -859,7 +861,7 @@ free_kv(gpointer key, gpointer value, gpointer u)
 	wfree(key, dbmap_keylen(dm, key));
 	if (d->data != NULL)
 		wfree(d->data, d->len);
-	wfree(d, sizeof *d);
+	WFREE(d);
 }
 
 /**
@@ -890,7 +892,7 @@ dbmap_destroy(dbmap_t *dm)
 
 	dm->type = DBMAP_MAXTYPE;
 	dm->magic = 0;
-	wfree(dm, sizeof *dm);
+	WFREE(dm);
 }
 
 struct insert_ctx {
@@ -1016,7 +1018,7 @@ dbmap_foreach_remove_trampoline(gpointer key, gpointer value, gpointer arg)
 	if (to_remove) {
 		if (d->data != NULL)
 			wfree(d->data, d->len);
-		wfree(d, sizeof *d);
+		WFREE(d);
 	}
 
 	return to_remove;

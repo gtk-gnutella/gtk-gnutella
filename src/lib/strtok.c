@@ -86,7 +86,7 @@ strtok_make(const char *string, gboolean no_lead, gboolean no_end)
 {
 	strtok_t *s;
 	
-	s = walloc(sizeof *s);
+	WALLOC(s);
 	s->magic = STRTOK_MAGIC;
 	s->string = string;
 	s->p = string;
@@ -139,7 +139,7 @@ strtok_free(strtok_t *s)
 		wfree(s->token, s->len);
 
 	s->magic = 0;
-	wfree(s, sizeof *s);
+	WFREE(s);
 }
 
 /**

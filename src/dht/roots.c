@@ -187,7 +187,7 @@ allocate_rootinfo(const kuid_t *kuid)
 {
 	struct rootinfo *ri;
 
-	ri = walloc0(sizeof *ri);
+	WALLOC0(ri);
 	ri->magic = ROOTINFO_MAGIC;
 	ri->kuid = kuid_get_atom(kuid);
 
@@ -204,7 +204,7 @@ free_rootinfo(struct rootinfo *ri)
 
 	cq_cancel(&ri->expire_ev);
 	kuid_atom_free_null(&ri->kuid);
-	wfree(ri, sizeof *ri);
+	WFREE(ri);
 }
 
 /**

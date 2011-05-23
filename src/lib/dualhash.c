@@ -84,7 +84,7 @@ dualhash_new(GHashFunc key_hash_func, GEqualFunc key_eq_func,
 {
 	dualhash_t *dh;
 
-	dh = walloc(sizeof *dh);
+	WALLOC(dh);
 	dh->magic = DUALHASH_MAGIC;
 	dh->kht = g_hash_table_new(key_hash_func, key_eq_func);
 	dh->vht = g_hash_table_new(val_hash_func, val_eq_func);
@@ -105,7 +105,7 @@ dualhash_destroy(dualhash_t *dh)
 	gm_hash_table_destroy_null(&dh->kht);
 	gm_hash_table_destroy_null(&dh->vht);
 	dh->magic = 0;
-	wfree(dh, sizeof *dh);
+	WFREE(dh);
 }
 
 /**

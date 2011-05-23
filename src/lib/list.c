@@ -148,7 +148,7 @@ list_new(void)
 {
 	list_t *list;
 		
-	list = walloc(sizeof *list);
+	WALLOC(list);
 	list->head = NULL;
 	list->tail = NULL;
 	list->refcount = 1;
@@ -185,7 +185,7 @@ list_free(list_t **list_ptr)
 		list->tail = NULL;
 
 		list->magic = 0;
-		wfree(list, sizeof *list);
+		WFREE(list);
 		*list_ptr = NULL;
 	}
 }
@@ -387,8 +387,7 @@ list_iter_before_head(list_t *list)
 	if (list) {
 		list_check(list);
 
-		iter = walloc(sizeof *iter);
-
+		WALLOC(iter);
 		iter->magic = LIST_ITER_MAGIC;
 		iter->list = list;
 
@@ -417,8 +416,7 @@ list_iter_after_tail(list_t *list)
 	if (list) {
 		list_check(list);
 
-		iter = walloc(sizeof *iter);
-
+		WALLOC(iter);
 		iter->magic = LIST_ITER_MAGIC;
 		iter->list = list;
 
@@ -532,7 +530,7 @@ list_iter_free(list_iter_t **iter_ptr)
 		iter->list->refcount--;
 		iter->magic = 0;
 
-		wfree(iter, sizeof *iter);
+		WFREE(iter);
 		*iter_ptr = NULL;
 	}
 }

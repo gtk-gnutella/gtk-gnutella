@@ -394,7 +394,7 @@ dht_value_make(const knode_t *creator,
 	g_assert(length <= DHT_VALUE_MAX_LEN || NULL == data);
 	g_assert(length || NULL == data);
 
-	v = walloc(sizeof *v);
+	WALLOC(v);
 	v->creator = knode_refcnt_inc(creator);
 	v->id = kuid_get_atom(primary_key);
 	v->type = type;
@@ -417,7 +417,7 @@ dht_value_clone(const dht_value_t *v)
 	g_assert(v);
 	g_assert(equiv(v->length > 0, v->data != NULL));
 
-	vc = walloc(sizeof *vc);
+	WALLOC(vc);
 	vc->creator = knode_refcnt_inc(v->creator);
 	vc->id = kuid_get_atom(v->id);
 	vc->type = v->type;
@@ -449,7 +449,7 @@ dht_value_free(dht_value_t *v, gboolean free_data)
 		wfree(deconstify_gpointer(v->data), v->length);
 	}
 
-	wfree(v, sizeof *v);
+	WFREE(v);
 }
 
 /**

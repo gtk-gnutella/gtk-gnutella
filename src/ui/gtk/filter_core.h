@@ -133,7 +133,7 @@ typedef struct rule {
             filesize_t upper;           /**< upper limit or ~0 */
         } size;
         struct _f_sha1 {
-            struct sha1 *hash;          /**< sha1 hash */
+            const struct sha1 *hash;    /**< sha1 hash */
             gchar *filename;            /**< filename sha1 comes from */
         } sha1;
         struct _f_flag {

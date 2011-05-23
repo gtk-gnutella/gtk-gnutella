@@ -165,7 +165,7 @@ static GtkCTreeNode *
 #ifdef USE_GTK2
 static GtkTreeIter *
 #endif /* USE_GTK2 */
-getFilterRoot(filter_t *f)
+filter_gui_get_root(filter_t *f)
 {
     if (filter_is_global(f)) {
         return fl_nodes[FILTER_NODE_GLOBAL];
@@ -353,7 +353,7 @@ filter_gui_filter_add(filter_t *f, GList *ruleset)
         titles[2] = "...";
     }
 
-    parent = getFilterRoot(f);
+    parent = filter_gui_get_root(f);
 
     node = gtk_ctree_insert_node(
         GTK_CTREE(ctree_filter_filters), parent, NULL,
@@ -409,7 +409,7 @@ filter_gui_filter_add(filter_t *f, GList *ruleset)
 		g_strlcpy(buf, "...", sizeof buf);
     }
 
-    parent = getFilterRoot(f);
+    parent = filter_gui_get_root(f);
 
 	gtk_tree_store_append(GTK_TREE_STORE(model), &iter, parent);
 	gtk_tree_store_set(GTK_TREE_STORE(model), &iter,
@@ -440,7 +440,7 @@ filter_gui_update_rule_count(filter_t *f, GList *ruleset)
     ctree_filter_filters = GTK_CTREE
         (gui_filter_dialog_lookup("ctree_filter_filters"));
 
-    parent = getFilterRoot(f);
+    parent = filter_gui_get_root(f);
     node = gtk_ctree_find_by_row_data(ctree_filter_filters, parent, f);
 
     if (node != NULL) {
@@ -501,7 +501,7 @@ filter_gui_filter_remove(filter_t *f)
     ctree_filter_filters = GTK_CTREE
         (gui_filter_dialog_lookup("ctree_filter_filters"));
 
-    parent = getFilterRoot(f);
+    parent = filter_gui_get_root(f);
     node = gtk_ctree_find_by_row_data(ctree_filter_filters, parent, f);
     if (node != NULL)
         gtk_ctree_remove_node(ctree_filter_filters, node);
@@ -610,7 +610,7 @@ filter_gui_filter_set(filter_t *f, gboolean removable,
 			GtkCTreeNode *node;
 
 			node = gtk_ctree_find_by_row_data(GTK_CTREE(ctree),
-						getFilterRoot(f), f);
+						filter_gui_get_root(f), f);
 			if (node != NULL) {
 				gtk_ctree_select(ctree, node);
 			} else {
@@ -713,7 +713,7 @@ filter_gui_filter_set_enabled(filter_t *f, gboolean active)
 		GtkCTreeNode *node;
 		GtkCTreeNode *parent;
 
-		parent = getFilterRoot(f);
+		parent = filter_gui_get_root(f);
 		node = gtk_ctree_find_by_row_data(GTK_CTREE(widget), parent, f);
 
 		gtk_ctree_node_set_foreground(GTK_CTREE(widget), node, fg_color);

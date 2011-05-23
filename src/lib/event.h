@@ -52,7 +52,7 @@ struct event *event_new(const char *name);
 
 #define event_destroy(evt) G_STMT_START {                          \
     real_event_destroy(evt);                                       \
-    G_FREE_NULL(evt);                                              \
+	/* Event not freed, allocated via omalloc() */                 \
 } G_STMT_END
 
 void real_event_destroy(struct event *evt);
@@ -125,7 +125,7 @@ struct event_table *event_table_new(void);
 
 #define event_table_destroy(t) G_STMT_START {                      \
     real_event_table_destroy(t);                                   \
-    G_FREE_NULL(t);                                                \
+    WFREE_NULL(t, sizeof *t);                                      \
 } G_STMT_END
 void real_event_table_destroy(struct event_table *t, gboolean cleanup);
 

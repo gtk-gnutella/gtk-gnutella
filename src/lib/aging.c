@@ -138,7 +138,7 @@ aging_make(int delay, GHashFunc hash, GEqualFunc eq, aging_free_t kvfree)
 
 	ag_create_callout_queue();
 
-	ag = walloc(sizeof *ag);
+	WALLOC(ag);
 	ag->magic = AGING_MAGIC;
 	ag->table = g_hash_table_new(hash, eq);
 	ag->kvfree = kvfree;
@@ -165,7 +165,7 @@ aging_free_kv(void *key, void *value, void *udata)
 		(*ag->kvfree)(key, aval->value);
 
 	cq_cancel(&aval->cq_ev);
-	wfree(aval, sizeof *aval);
+	WFREE(aval);
 }
 
 /**
@@ -182,7 +182,7 @@ aging_destroy(aging_table_t **ag_ptr)
 		g_hash_table_foreach(ag->table, aging_free_kv, ag);
 		gm_hash_table_destroy_null(&ag->table);
 		ag->magic = 0;
-		wfree(ag, sizeof *ag);
+		WFREE(ag);
 
 		ag_unref_callout_queue();
 		*ag_ptr = NULL;
@@ -336,8 +336,7 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 
 		cq_resched(aval->cq_ev, 1000 * aval->ttl);
 	} else {
-		aval = walloc(sizeof(*aval));
-
+		WALLOC(aval);
 		aval->value = value;
 		aval->key = deconstify_gpointer(key);
 		aval->ttl = ag->delay;

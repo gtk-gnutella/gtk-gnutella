@@ -160,7 +160,7 @@ gdht_free_sha1_lookup(struct sha1_lookup *slk, gboolean do_remove)
 
 	kuid_atom_free(slk->id);
 	atom_guid_free(slk->fi_guid);
-	wfree(slk, sizeof *slk);
+	WFREE(slk);
 }
 
 /**
@@ -178,7 +178,7 @@ gdht_free_guid_lookup(struct guid_lookup *glk, gboolean do_remove)
 
 	kuid_atom_free(glk->id);
 	atom_guid_free(glk->guid);
-	wfree(glk, sizeof *glk);
+	WFREE(glk);
 }
 
 /*
@@ -529,7 +529,7 @@ gdht_find_sha1(fileinfo_t *fi)
 	file_info_check(fi);
 	g_assert(fi->sha1);
 
-	slk = walloc(sizeof *slk);
+	WALLOC(slk);
 	slk->magic = SHA1_LOOKUP_MAGIC;
 	slk->id = gdht_kuid_from_sha1(fi->sha1);
 	slk->fi_guid = atom_guid_get(fi->guid);
@@ -950,7 +950,7 @@ gdht_find_guid(const guid_t *guid, const host_addr_t addr, guint16 port)
 	g_assert(!guid_is_blank(guid));
 	g_assert(host_addr_initialized(addr));
 
-	glk = walloc(sizeof *glk);
+	WALLOC(glk);
 	glk->magic = GUID_LOOKUP_MAGIC;
 	glk->id = gdht_kuid_from_guid(guid);
 	glk->guid = atom_guid_get(guid);

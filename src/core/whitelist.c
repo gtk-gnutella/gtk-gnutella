@@ -141,7 +141,7 @@ whitelist_addr_create(
 {
 	struct whitelist *item;
 
-	item = walloc0(sizeof *item);
+	WALLOC0(item);
 	item->use_tls = use_tls;
 	item->addr = addr;
 	item->port = port;
@@ -161,8 +161,8 @@ whitelist_hostname_create(
 	struct whitelist *item;
 	struct whitelist_hostname *host;
 
-	item = walloc0(sizeof *item);
-	host = walloc0(sizeof *host);
+	WALLOC0(item);
+	WALLOC0(host);
 	host->name = hname;
 	item->use_tls = use_tls;
 	item->host = host;
@@ -181,9 +181,9 @@ whitelist_free(struct whitelist *item)
 
 	if (item->host != NULL) {
 		HFREE_NULL(item->host->name);
-		wfree(item->host, sizeof *item->host);
+		WFREE(item->host);
 	}
-	wfree(item, sizeof *item);
+	WFREE(item);
 }
 
 /**
@@ -280,7 +280,7 @@ whitelist_dns_cb(const host_addr_t *addrs, size_t n, void *udata)
 		}
 	}
 
-	wfree(ctx, sizeof *ctx);
+	WFREE(ctx);
 }
 
 /**
@@ -302,7 +302,7 @@ whitelist_dns_resolve(struct whitelist *item, gboolean revalidate)
 	 * keep track of the generation at which the resolution was requested.
 	 */
 
-	ctx = walloc(sizeof *ctx);
+	WALLOC(ctx);
 	ctx->item = item;
 	ctx->generation = whitelist_generation;
 	ctx->revalidate = revalidate;

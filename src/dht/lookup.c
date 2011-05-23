@@ -388,7 +388,7 @@ static void
 lookup_token_free(lookup_token_t *ltok, gboolean freedata)
 {
 	sectoken_remote_free(ltok->token, freedata);
-	wfree(ltok, sizeof *ltok);
+	WFREE(ltok);
 }
 
 /**
@@ -445,7 +445,7 @@ lookup_free(nlookup_t *nl)
 		g_hash_table_remove(nlookups, &nl->lid);
 
 	nl->magic = 0;
-	wfree(nl, sizeof *nl);
+	WFREE(nl);
 }
 
 /**
@@ -483,7 +483,7 @@ lookup_create_results(nlookup_t *nl)
 
 	lookup_check(nl);
 
-	rs = walloc(sizeof *rs);
+	WALLOC(rs);
 	rs->magic = LOOKUP_RESULT_MAGIC;
 	rs->refcnt = 1;
 	len = patricia_count(nl->path);
@@ -574,7 +574,7 @@ lookup_free_results(lookup_rs_t *rs)
 	}
 
 	wfree(rs->path, rs->path_len * sizeof(lookup_rc_t));
-	wfree(rs, sizeof *rs);
+	WFREE(rs);
 }
 
 /**
@@ -613,7 +613,7 @@ lookup_create_value_results(float load, dht_value_t **vvec, int vcnt)
 	g_assert(vcnt > 0);
 	g_assert(vvec);
 
-	rs = walloc(sizeof *rs);
+	WALLOC(rs);
 	rs->load = load;
 	rs->records = walloc(vcnt * sizeof(lookup_val_rc_t));
 	rs->count = (size_t) vcnt;
@@ -649,7 +649,7 @@ lookup_free_value_results(const lookup_val_rs_t *results)
 	}
 
 	wfree(rs->records, rs->count * sizeof(lookup_val_rc_t));
-	wfree(rs, sizeof *rs);
+	WFREE(rs);
 }
 
 /**
@@ -1012,7 +1012,7 @@ seckeys_create(kuid_t **svec, int scnt, const knode_t *kn)
 	g_assert(scnt);
 	knode_check(kn);
 
-	sk = walloc(sizeof *sk);
+	WALLOC(sk);
 	sk->skeys = svec;
 	sk->kn = knode_refcnt_inc(kn);
 	sk->scnt = scnt;
@@ -1038,7 +1038,7 @@ seckeys_free(struct seckeys *sk)
 
 	knode_free(sk->kn);
 	wfree(sk->skeys, sk->scnt * sizeof sk->skeys[0]);
-	wfree(sk, sizeof *sk);
+	WFREE(sk);
 }
 
 /**
@@ -1088,7 +1088,7 @@ lookup_value_create(nlookup_t *nl, float load,
 			walloc(expected * sizeof *vvec);
 	}
 
-	fv = walloc0(sizeof *fv);
+	WALLOC0(fv);
 	nl->u.fv.fv = fv;
 
 	if (skeys) {
@@ -1359,7 +1359,7 @@ lookup_value_free(nlookup_t *nl, gboolean free_vvec)
 	map_destroy(fv->seen);
 	map_destroy(fv->values);
 	cq_cancel(&fv->delay_ev);
-	wfree(fv, sizeof *fv);
+	WFREE(fv);
 
 	nl->u.fv.fv = NULL;
 }
@@ -2883,9 +2883,10 @@ lookup_load_path(nlookup_t *nl)
 			 */
 
 			if (lookup_node_is_safe(nl, kn, reason, reason_len)) {
-				lookup_token_t *ltok = walloc(sizeof *ltok);
+				lookup_token_t *ltok;
 				sectoken_remote_t *tok = sectoken_remote_alloc(toklen);
 
+				WALLOC(ltok);
 				ltok->retrieved = last_update;
 				ltok->token = tok;
 				if (toklen) {
@@ -3290,8 +3291,9 @@ lookup_handle_reply(
 	lookup_path_add(nl, kn);
 
 	if (token) {
-		lookup_token_t *ltok = walloc(sizeof *ltok);
+		lookup_token_t *ltok;
 
+		WALLOC(ltok);
 		ltok->retrieved = tm_time();
 		ltok->token = token;
 		lookup_add_token(nl, kn, ltok);
@@ -4187,7 +4189,7 @@ lookup_create(const kuid_t *kuid, lookup_type_t type,
 {
 	nlookup_t *nl;
 
-	nl = walloc0(sizeof *nl);
+	WALLOC0(nl);
 	nl->magic = NLOOKUP_MAGIC;
 	nl->kuid = kuid_get_atom(kuid);
 	nl->type = type;
