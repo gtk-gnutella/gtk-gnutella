@@ -130,6 +130,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"spam_fake_hits",
 		"spam_dup_hits",
 		"spam_caught_hostile_ip",
+		"spam_caught_hostile_held",
 		"spam_ip_held",
 		"local_searches",
 		"local_hits",

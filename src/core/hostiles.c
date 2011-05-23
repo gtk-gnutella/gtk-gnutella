@@ -466,6 +466,7 @@ hostiles_dynamic_expire(gboolean forced)
 		}
 		hash_list_remove_head(hl_dynamic_ipv4);
 		hostiles_dynamic_free(&entry);
+		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_HELD, -1);
 	}
 }
 
@@ -495,6 +496,7 @@ hostiles_dynamic_add_ipv4(guint32 ipv4)
 		hash_list_append(hl_dynamic_ipv4, entry);
 
 		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_IP, 1);
+		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_HELD, +1);
 		if (GNET_PROPERTY(ban_debug > 0)) {
 			char buf[HOST_ADDR_BUFLEN];
 
