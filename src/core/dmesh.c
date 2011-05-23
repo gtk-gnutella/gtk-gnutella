@@ -967,6 +967,11 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		goto rejected;
 	}
 
+	if (hostiles_spam_check(addr, port)) {
+		reason = "caught spammer";
+		goto rejected;
+	}
+
 	if (ctl_limit(addr, CTL_D_MESH)) {
 		reason = "country limit";
 		goto rejected;
