@@ -131,6 +131,7 @@ static struct {
 	{ ST_FIREWALL,		N_("push") },
 	{ ST_PUSH_PROXY,	N_("proxy") },
 	{ ST_BOGUS,			N_("bogus") },		/**< Bogus IP address */
+	{ ST_ALIEN,			N_("alien") },		/**< Alien IP address */
 };
 
 static struct {
@@ -145,6 +146,7 @@ static struct {
 	{ "#001F7F", GUI_COLOR_MARKED, 		{ 0, 0, 0, 0 } }, /* blue */
 	{ "#FC000D", GUI_COLOR_MAYBE_SPAM, 	{ 0, 0, 0, 0 } }, /* flashy red */
 	{ "#7f0000", GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } }, /* dark red */
+	{ "#CD1076", GUI_COLOR_ALIEN, 		{ 0, 0, 0, 0 } }, /* deep pink */
 	{ "#7E5029", GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } }, /* marroon */
 	{ "#708090", GUI_COLOR_PUSH,		{ 0, 0, 0, 0 } }, /* slate gray */
 	{ "#2F4F4F", GUI_COLOR_PUSH_PROXY,	{ 0, 0, 0, 0 } }, /* dark slate gray */
@@ -1788,12 +1790,14 @@ search_gui_color_for_record(const record_t * const rc)
 		return GUI_COLOR_IGNORED;
 	} else if (rc->flags & (SR_DOWNLOADED | SR_PARTIAL)) {
 		return GUI_COLOR_DOWNLOADING;
-	} else if (rc->flags & SR_PUSH) {
-		return ST_PUSH_PROXY & rs->status ?
-			GUI_COLOR_PUSH_PROXY : GUI_COLOR_PUSH;
+	} else if (ST_ALIEN & rs->status) {
+		return GUI_COLOR_ALIEN;
 	} else if (rc->flags & SR_PARTIAL_HIT) {
 		return rc->flags & SR_PUSH ?
 			GUI_COLOR_PARTIAL_PUSH : GUI_COLOR_PARTIAL;
+	} else if (rc->flags & SR_PUSH) {
+		return ST_PUSH_PROXY & rs->status ?
+			GUI_COLOR_PUSH_PROXY : GUI_COLOR_PUSH;
 	} else {
 		return GUI_COLOR_DEFAULT;
 	}
@@ -3864,6 +3868,9 @@ search_gui_set_details(const record_t *rc)
 			_("No"));
 		search_gui_append_detail(_("Source"),
 			host_addr_port_to_string(rs->addr, rs->port));
+		if (ST_ALIEN & rs->status) {
+			search_gui_append_detail(_("Alien IP"), _("Yes"));
+		}
 		search_gui_append_detail(_("Created"),
 			(time_t) -1 != rc->create_time
 			? timestamp_to_string(rc->create_time)

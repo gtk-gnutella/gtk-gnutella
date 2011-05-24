@@ -1811,7 +1811,8 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	/*
 	 * Hits coming from UDP should bear the node's address, unless the
 	 * hit has a private IP because the servent did not determine its
-	 * own IP address yet or is firewalled.
+	 * own IP address yet or is firewalled (in which case the address should
+	 * be a private one).
 	 */
 
 	if (NODE_IS_UDP(n)) {
@@ -1820,9 +1821,11 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		if (
 			0 == rs->hops &&	/* GUESS ultrapeers can relay hits over UDP */
 			!host_addr_equal(n->addr, rs->addr) &&
-			!host_addr_is_routable(rs->addr)
-		)
+			host_addr_is_routable(rs->addr)
+		) {
+			rs->status |= ST_ALIEN;
 			gnet_stats_count_general(GNR_OOB_HITS_WITH_ALIEN_IP, 1);
+		}
 	}
 
 	/* Check for hostile IP addresses */
@@ -2681,6 +2684,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			}
 		}
 		n->gnet_qhit_addr = rs->addr;
+		rs->status |= ST_ALIEN;				/* Alien IP address detected */
 	}
 
 	if (GNET_PROPERTY(search_debug) > 3 && old_weird != n->n_weird)
