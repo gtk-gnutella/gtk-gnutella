@@ -1969,7 +1969,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 					GUI_PROPERTY(search_discard_spam) &&
 				 	(spam_score > 1 || is_hostile)
 				) ||
-				GUI_PROPERTY(search_discard_alien_ip) && (ST_ALIEN & rs->status)
+				(GUI_PROPERTY(search_discard_alien_ip) && (ST_ALIEN & rs->status))
 			) {
 				sch->ignored++;
 				continue;
