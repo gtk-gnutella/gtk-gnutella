@@ -680,10 +680,13 @@ main_gui_init(void)
 }
 
 void
-main_gui_run(const gchar *geometry_spec)
+main_gui_run(const gchar *geometry_spec, const gboolean minimized)
 {
 	time_t now = tm_time_exact();
 
+	if (minimized) {
+		gtk_window_iconify(GTK_WINDOW(gui_main_window()));
+	}
     gtk_widget_show_now(gui_main_window());		/* Display the main window */
 	gtk_widget_map(gui_main_window());
 

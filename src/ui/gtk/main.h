@@ -62,7 +62,7 @@ WIDGET(shutdown_window)
 void main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm);
 void main_gui_init(void);
 void main_gui_exit(int n);
-void main_gui_run(const gchar *geometry_spec);
+void main_gui_run(const gchar *geometry_spec, const gboolean minimized);
 void main_gui_shutdown(void);
 void main_gui_timer(time_t now);
 void main_gui_shutdown_tick(guint);

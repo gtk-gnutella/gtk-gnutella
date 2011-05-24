@@ -704,6 +704,7 @@ enum main_arg {
 	main_arg_help,
 	main_arg_log_stderr,
 	main_arg_log_stdout,
+	main_arg_minimized,
 	main_arg_no_halloc,
 	main_arg_no_xshm,
 	main_arg_pause_on_crash,
@@ -756,6 +757,11 @@ static struct {
 	OPTION(help, 			NONE, "Print this message."),
 	OPTION(log_stderr,		PATH, "Log standard output to a file."),
 	OPTION(log_stdout,		PATH, "Log standard error output to a file."),
+#ifdef USE_TOPLESS
+	OPTION(minimized,		NONE, NULL),	/* accept but hide */
+#else
+	OPTION(minimized,		NONE, "Start with minimized main window."),
+#endif	/* USE_TOPLESS */
 #ifdef USE_HALLOC
 	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
 #else
@@ -1744,7 +1750,8 @@ main(int argc, char **argv)
 	if (running_topless) {
 		topless_main_run();
 	} else {
-		main_gui_run(options[main_arg_geometry].arg);
+		main_gui_run(options[main_arg_geometry].arg,
+			options[main_arg_minimized].used);
 	}
 
 	return 0;
