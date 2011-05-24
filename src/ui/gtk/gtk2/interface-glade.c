@@ -4035,6 +4035,7 @@ create_main_window_search_tab (void)
   GtkWidget *alignment149;
   GtkObject *spinbutton_whats_new_search_max_results_adj;
   GtkWidget *spinbutton_whats_new_search_max_results;
+  GtkWidget *checkbutton_search_discard_alien_ip;
   GtkWidget *label1011;
   GtkWidget *hbox215;
   GtkWidget *viewport56;
@@ -4412,6 +4413,13 @@ create_main_window_search_tab (void)
   gtk_container_add (GTK_CONTAINER (alignment149), spinbutton_whats_new_search_max_results);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_whats_new_search_max_results), TRUE);
 
+  checkbutton_search_discard_alien_ip = gtk_check_button_new_with_mnemonic (_("Discard results bearing an alien IP address"));
+  gtk_widget_set_name (checkbutton_search_discard_alien_ip, "checkbutton_search_discard_alien_ip");
+  gtk_widget_show (checkbutton_search_discard_alien_ip);
+  gtk_table_attach (GTK_TABLE (table78), checkbutton_search_discard_alien_ip, 2, 3, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   label1011 = gtk_label_new (_("General search settings (affect all searches)"));
   gtk_widget_set_name (label1011, "label1011");
   gtk_widget_show (label1011);
@@ -4608,6 +4616,7 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label1069, "label1069");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment149, "alignment149");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, spinbutton_whats_new_search_max_results, "spinbutton_whats_new_search_max_results");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_discard_alien_ip, "checkbutton_search_discard_alien_ip");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label1011, "label1011");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox215, "hbox215");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport56, "viewport56");

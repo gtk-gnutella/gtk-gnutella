@@ -336,6 +336,8 @@ gboolean gui_property_variable_search_media_type_windows     = FALSE;
 static const gboolean gui_property_variable_search_media_type_windows_default = FALSE;
 gboolean gui_property_variable_search_media_type_unix     = FALSE;
 static const gboolean gui_property_variable_search_media_type_unix_default = FALSE;
+gboolean gui_property_variable_search_discard_alien_ip     = TRUE;
+static const gboolean gui_property_variable_search_discard_alien_ip_default = TRUE;
 
 static prop_set_t *gui_property;
 
@@ -2485,6 +2487,23 @@ gui_prop_init(void) {
     gui_property->props[117].type               = PROP_TYPE_BOOLEAN;
     gui_property->props[117].data.boolean.def   = (void *) &gui_property_variable_search_media_type_unix_default;
     gui_property->props[117].data.boolean.value = (void *) &gui_property_variable_search_media_type_unix;
+
+
+    /*
+     * PROP_SEARCH_DISCARD_ALIEN_IP:
+     *
+     * General data:
+     */
+    gui_property->props[118].name = "search_discard_alien_ip";
+    gui_property->props[118].desc = _("Discard search results whith an alien IP address, not matching the one from which the results come from.");
+    gui_property->props[118].ev_changed = event_new("search_discard_alien_ip_changed");
+    gui_property->props[118].save = TRUE;
+    gui_property->props[118].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[118].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[118].data.boolean.def   = (void *) &gui_property_variable_search_discard_alien_ip_default;
+    gui_property->props[118].data.boolean.value = (void *) &gui_property_variable_search_discard_alien_ip;
 
     gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {

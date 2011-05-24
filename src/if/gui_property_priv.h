@@ -164,6 +164,7 @@ extern const gboolean gui_property_variable_search_media_type_document;
 extern const gboolean gui_property_variable_search_media_type_image;
 extern const gboolean gui_property_variable_search_media_type_windows;
 extern const gboolean gui_property_variable_search_media_type_unix;
+extern const gboolean gui_property_variable_search_discard_alien_ip;
 
 
 prop_set_t *gui_prop_init(void);

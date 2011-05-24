@@ -243,6 +243,7 @@ create_main_window (void)
   GtkWidget *alignment40;
   GtkObject *spinbutton_whats_new_search_max_results_adj;
   GtkWidget *spinbutton_whats_new_search_max_results;
+  GtkWidget *checkbutton_search_discard_alien_ip;
   GtkWidget *label789;
   GtkWidget *hbox147;
   GtkWidget *viewport_fix_flashing_1;
@@ -2632,6 +2633,16 @@ create_main_window (void)
   gtk_widget_show (spinbutton_whats_new_search_max_results);
   gtk_container_add (GTK_CONTAINER (alignment40), spinbutton_whats_new_search_max_results);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_whats_new_search_max_results), TRUE);
+
+  checkbutton_search_discard_alien_ip = gtk_check_button_new_with_label (_("Discard results bearing an alien IP address"));
+  gtk_widget_set_name (checkbutton_search_discard_alien_ip, "checkbutton_search_discard_alien_ip");
+  gtk_widget_ref (checkbutton_search_discard_alien_ip);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_discard_alien_ip", checkbutton_search_discard_alien_ip,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_search_discard_alien_ip);
+  gtk_table_attach (GTK_TABLE (table68), checkbutton_search_discard_alien_ip, 2, 3, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label789 = gtk_label_new (_("General search settings (affect all searches)"));
   gtk_widget_set_name (label789, "label789");

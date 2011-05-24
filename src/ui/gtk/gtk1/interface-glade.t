@@ -652,3 +652,4 @@ N_("Look for newest files shared by nodes in the network vicinity");
 N_("What's new?");
 N_("Unspecified");
 N_("Search filters to apply locally on newly created searches.");
+N_("Discard results bearing an alien IP address");

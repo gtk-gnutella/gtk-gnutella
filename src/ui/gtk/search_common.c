@@ -1937,7 +1937,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 			 */
 
 			if (
-				0 == ((ST_HOSTILE | ST_SPAM) & rs->status) &&
+				0 == ((ST_HOSTILE | ST_SPAM | ST_ALIEN) & rs->status) &&
 				0 == (SR_SPAM & rc->flags)
 			) {
 				results_kept++;		/* Counts for measuring popularity */
@@ -1966,9 +1966,10 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 				rc->size == 0 ||
 				(!rc->sha1 && GUI_PROPERTY(search_discard_hashless)) ||
 				(
-				 	(spam_score > 1 || is_hostile) &&
-					GUI_PROPERTY(search_discard_spam)
-				)
+					GUI_PROPERTY(search_discard_spam) &&
+				 	(spam_score > 1 || is_hostile)
+				) ||
+				GUI_PROPERTY(search_discard_alien_ip) && (ST_ALIEN & rs->status)
 			) {
 				sch->ignored++;
 				continue;
