@@ -770,6 +770,12 @@ guc_search_associated_sha1(gnet_search_t sh)
 	return search_associated_sha1(sh);
 }
 
+unsigned
+guc_search_associated_sha1_count(gnet_search_t sh)
+{
+	return search_associated_sha1_count(sh);
+}
+
 enum search_new_result
 guc_search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 	time_t create_time, guint lifetime, guint32 reissue_timeout, guint32 flags)

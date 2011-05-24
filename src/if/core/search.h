@@ -263,6 +263,7 @@ void search_request_listener_remove(search_request_listener_t);
 void search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1);
 void search_dissociate_sha1(const struct sha1 *sha1);
 GSList *search_associated_sha1(gnet_search_t sh);
+unsigned search_associated_sha1_count(gnet_search_t sh);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_search_h_ */

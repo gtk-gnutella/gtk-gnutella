@@ -57,6 +57,9 @@ gboolean search_gui_new_browse_host(
 struct search *search_gui_get_current_search(void);
 void search_gui_store_searches(void);
 
+void search_gui_start_search(struct search *);
+gboolean search_gui_has_pending_downloads(const struct search *);
+
 void search_gui_set_filter(struct search *, struct filter *);
 struct filter *search_gui_get_filter(const struct search *);
 int search_gui_get_sort_column(const struct search *);

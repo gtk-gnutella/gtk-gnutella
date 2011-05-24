@@ -10451,6 +10451,7 @@ create_dlg_prefs (void)
   GtkWidget *spinbutton_search_queue_size;
   GtkWidget *checkbutton_config_query_request_partials;
   GtkWidget *checkbutton_config_search_smart_stop;
+  GtkWidget *checkbutton_search_restart_when_pending;
   GtkWidget *frame_expert_gnet_timeout;
   GtkWidget *table10;
   guint label175_key;
@@ -12819,6 +12820,14 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_config_search_smart_stop);
   gtk_box_pack_start (GTK_BOX (vbox122), checkbutton_config_search_smart_stop, FALSE, FALSE, 0);
+
+  checkbutton_search_restart_when_pending = gtk_check_button_new_with_label (_("Restart session-only searches with pending downloads"));
+  gtk_widget_set_name (checkbutton_search_restart_when_pending, "checkbutton_search_restart_when_pending");
+  gtk_widget_ref (checkbutton_search_restart_when_pending);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_search_restart_when_pending", checkbutton_search_restart_when_pending,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_search_restart_when_pending);
+  gtk_box_pack_start (GTK_BOX (vbox122), checkbutton_search_restart_when_pending, FALSE, FALSE, 0);
 
   frame_expert_gnet_timeout = gtk_frame_new (_("Gnutella timeouts (all values in seconds)"));
   gtk_widget_set_name (frame_expert_gnet_timeout, "frame_expert_gnet_timeout");

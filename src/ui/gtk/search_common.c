@@ -527,7 +527,7 @@ search_gui_set_enabled(struct search *search, gboolean enable)
 	}
 }
 
-static void
+void
 search_gui_start_search(search_t *search)
 {
 	g_return_if_fail(search);
@@ -1969,7 +1969,10 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 					GUI_PROPERTY(search_discard_spam) &&
 				 	(spam_score > 1 || is_hostile)
 				) ||
-				(GUI_PROPERTY(search_discard_alien_ip) && (ST_ALIEN & rs->status))
+				(
+					GUI_PROPERTY(search_discard_alien_ip) &&
+					(ST_ALIEN & rs->status)
+				)
 			) {
 				sch->ignored++;
 				continue;
@@ -3406,6 +3409,14 @@ search_gui_resume_search(search_t *search)
 	if (!search_gui_is_expired(search)) {
 		search_gui_start_search(search);
 	}
+}
+
+gboolean
+search_gui_has_pending_downloads(const search_t *search)
+{
+	g_return_val_if_fail(search, FALSE);
+
+	return 0 != guc_search_associated_sha1_count(search->search_handle);
 }
 
 static void

@@ -1184,6 +1184,21 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 		for (node = xmlnode->children; node != NULL; node = node->next) {
 			parse_xml(node, search_gui_get_filter(search));
 		}
+
+		/*
+		 * If search has a zero lifetime and was not passive, re-enable it
+		 * if it has pending downloads and they want to restart these
+		 * searches.
+		 */
+
+		if (
+			0 == lifetime &&
+			0 == (flags & SEARCH_F_PASSIVE) &&
+			GUI_PROPERTY(search_restart_when_pending) &&
+			search_gui_has_pending_downloads(search)
+		) {
+			search_gui_start_search(search);
+		}
 	}
 }
 

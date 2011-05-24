@@ -338,6 +338,8 @@ gboolean gui_property_variable_search_media_type_unix     = FALSE;
 static const gboolean gui_property_variable_search_media_type_unix_default = FALSE;
 gboolean gui_property_variable_search_discard_alien_ip     = TRUE;
 static const gboolean gui_property_variable_search_discard_alien_ip_default = TRUE;
+gboolean gui_property_variable_search_restart_when_pending     = FALSE;
+static const gboolean gui_property_variable_search_restart_when_pending_default = FALSE;
 
 static prop_set_t *gui_property;
 
@@ -2504,6 +2506,23 @@ gui_prop_init(void) {
     gui_property->props[118].type               = PROP_TYPE_BOOLEAN;
     gui_property->props[118].data.boolean.def   = (void *) &gui_property_variable_search_discard_alien_ip_default;
     gui_property->props[118].data.boolean.value = (void *) &gui_property_variable_search_discard_alien_ip;
+
+
+    /*
+     * PROP_SEARCH_RESTART_WHEN_PENDING:
+     *
+     * General data:
+     */
+    gui_property->props[119].name = "search_restart_when_pending";
+    gui_property->props[119].desc = _("Whether session-only searches which happen to have pending downloads should be restarted when gtk-gnutella is launched.");
+    gui_property->props[119].ev_changed = event_new("search_restart_when_pending_changed");
+    gui_property->props[119].save = TRUE;
+    gui_property->props[119].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[119].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[119].data.boolean.def   = (void *) &gui_property_variable_search_restart_when_pending_default;
+    gui_property->props[119].data.boolean.value = (void *) &gui_property_variable_search_restart_when_pending;
 
     gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {

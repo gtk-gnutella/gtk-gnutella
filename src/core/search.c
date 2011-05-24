@@ -1008,9 +1008,14 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		} else if (!record->file_index && T_GTKG == rs->vcode.u32) {
 			search_results_mark_fake_spam(rs);
 			record->flags |= SR_SPAM;
-		} else if (T_GTKG == rs->vcode.u32 && NULL == rs->version) {
-			search_results_mark_fake_spam(rs);
-			record->flags |= SR_SPAM;
+		} else if (T_GTKG == rs->vcode.u32) {
+			if (
+				NULL == rs->version ||
+				!guid_is_gtkg(rs->guid, NULL, NULL, NULL)
+			) {
+				search_results_mark_fake_spam(rs);
+				record->flags |= SR_SPAM;
+			}
 		} else if (n_alt > 16 || (T_LIME == rs->vcode.u32 && n_alt > 10)) {
 			search_results_mark_fake_spam(rs);
 			record->flags |= SR_SPAM;
@@ -4275,6 +4280,20 @@ search_associated_sha1(gnet_search_t sh)
 }
 
 /**
+ * @return amount of SHA1s associated with a given search.
+ */
+unsigned
+search_associated_sha1_count(gnet_search_t sh)
+{
+	search_ctrl_t *sch = search_probe_by_handle(sh);
+
+	g_return_val_if_fail(sch, 0);
+	search_ctrl_check(sch);
+
+	return sch->sha1_downloaded;
+}
+
+/**
  * Remove the search from the list of searches and free all
  * associated ressources.
  */
@@ -4401,6 +4420,10 @@ search_expired(const search_ctrl_t *sch)
 
 	ct = sch->create_time;			/* In local (kernel) time */
 	lt = 3600U * sch->lifetime;
+
+	/*
+	 * A lifetime of zero indicates session-only searches.
+	 */
 
 	if (lt) {
 		time_delta_t d;

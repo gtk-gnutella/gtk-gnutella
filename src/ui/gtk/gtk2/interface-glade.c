@@ -10193,6 +10193,7 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *label770;
   GtkWidget *checkbutton_config_query_request_partials;
   GtkWidget *checkbutton_config_search_smart_stop;
+  GtkWidget *checkbutton_search_restart_when_pending;
   GtkWidget *frame_expert_gnet_timeout;
   GtkWidget *table10;
   GtkWidget *label175;
@@ -10969,6 +10970,11 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_show (checkbutton_config_search_smart_stop);
   gtk_box_pack_start (GTK_BOX (vbox158), checkbutton_config_search_smart_stop, FALSE, FALSE, 0);
 
+  checkbutton_search_restart_when_pending = gtk_check_button_new_with_mnemonic (_("Restart session-only searches with pending downloads"));
+  gtk_widget_set_name (checkbutton_search_restart_when_pending, "checkbutton_search_restart_when_pending");
+  gtk_widget_show (checkbutton_search_restart_when_pending);
+  gtk_box_pack_start (GTK_BOX (vbox158), checkbutton_search_restart_when_pending, FALSE, FALSE, 0);
+
   frame_expert_gnet_timeout = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
   gtk_widget_show (frame_expert_gnet_timeout);
@@ -11676,6 +11682,7 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label770, "label770");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_config_query_request_partials, "checkbutton_config_query_request_partials");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_config_search_smart_stop, "checkbutton_config_search_smart_stop");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_search_restart_when_pending, "checkbutton_search_restart_when_pending");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table10, "table10");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label175, "label175");

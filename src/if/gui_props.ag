@@ -1380,5 +1380,15 @@ prop = {
     };
 };
 
+prop = {
+    name = "search_restart_when_pending";
+    desc = "Whether session-only searches which happen to have pending "
+		"downloads should be restarted when gtk-gnutella is launched.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 #endif /* !USE_TOPLESS */
 /* vi: set ts=4: */

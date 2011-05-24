@@ -3556,6 +3556,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_SEARCH_RESTART_WHEN_PENDING,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_search_restart_when_pending",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_QUERY_REQUEST_PARTIALS,
         update_togglebutton,
         TRUE,
