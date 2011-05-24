@@ -200,6 +200,8 @@ void gtk_widget_fix_width(GtkWidget *, GtkWidget *, guint chars, guint extra);
 #define gtk_get_current_event_time() (GDK_CURRENT_TIME)
 #define gdk_drawable_get_size(window, width, height) \
 			gdk_window_get_size((window), (width), (height))
+
+void gtk_window_iconify(GtkWindow *window);
 #endif	/* Gtk+ 1.2 */
 
 gboolean check_gtk_version(unsigned major, unsigned minor, unsigned micro);

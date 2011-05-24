@@ -41,6 +41,12 @@ RCSID("$Id$")
 
 #include "columns.h"
 
+#ifdef USE_GTK1
+/* For gtk_window_iconify() */
+#include <gdk/gdkx.h>
+#include <X11/Xlib.h>
+#endif
+
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
 
@@ -1190,6 +1196,15 @@ gtk_progress_bar_set_text(GtkProgressBar *pb, const gchar *text)
 	*q = '\0';
 
 	gtk_progress_set_format_string(GTK_PROGRESS(pb), buf);
+}
+
+void
+gtk_window_iconify(GtkWindow *window)
+{
+	g_return_if_fail(GTK_IS_WINDOW(window));
+
+	XIconifyWindow(GDK_DISPLAY(), GDK_WINDOW_XWINDOW(window),
+		((_XPrivDisplay) GDK_DISPLAY())->default_screen);
 }
 #endif
 
