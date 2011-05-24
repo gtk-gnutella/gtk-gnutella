@@ -1215,10 +1215,12 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 
 	warn_no_header_extension(kn, header, extlen);
 
-	if (len != KUID_RAW_SIZE && GNET_PROPERTY(dht_debug)) {
-		g_warning("DHT bad FIND_NODE payload (%lu byte%s) from %s",
-			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
-		dump_hex(stderr, "Kademlia FIND_NODE payload", payload, len);
+	if (len != KUID_RAW_SIZE) {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_warning("DHT bad FIND_NODE payload (%lu byte%s) from %s",
+				(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
+			dump_hex(stderr, "Kademlia FIND_NODE payload", payload, len);
+		}
 		gnet_dht_stats_count_dropped(n,
 			KDA_MSG_FIND_NODE_REQUEST, MSG_DROP_DHT_UNPARSEABLE);
 		return;
