@@ -35,7 +35,7 @@
 
 #define main_gui_early_init(argc, argv, disable_xshm)
 #define main_gui_init()
-#define main_gui_run(x)
+#define main_gui_run(a, b)
 #define main_gui_exit(x)
 #define main_gui_timer(x)
 #define main_gui_shutdown()
