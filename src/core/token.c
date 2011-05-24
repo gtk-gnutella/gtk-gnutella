@@ -453,7 +453,7 @@ find_tokkey_upto_fallback(time_t now, size_t count)
 		tk = &token_keys[count - 1];
 
 		if (GNET_PROPERTY(version_debug) > 4) {
-			g_debug("%s: got NULL, will use index %u", G_STRFUNC, count - 1);
+			g_debug("%s: got NULL, will use index %lu", G_STRFUNC, count - 1UL);
 		}
 	}
 
@@ -525,8 +525,8 @@ find_tokkey_version(const version_t *ver, time_t now)
 	}
 
 	if (GNET_PROPERTY(version_debug) > 4) {
-		g_debug("%s: fallback max=%u (/%u)",
-			G_STRFUNC, i, G_N_ELEMENTS(token_keys));
+		g_debug("%s: fallback max=%u (/%lu)",
+			G_STRFUNC, i, (unsigned long) G_N_ELEMENTS(token_keys));
 	}
 
 	i++;									/* We need a count, not an index */
