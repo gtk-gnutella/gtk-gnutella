@@ -242,7 +242,6 @@ static query_hashvec_t *query_hashvec;
 static GHashTable *muid_to_query_map;
 static hash_list_t *query_muids;
 static GHashTable *sha1_to_search;	/**< Downloaded SHA1 -> search handle */
-static hash_list_t *whats_new_muids;
 
 /**
  * The legacy "What's New?" query string.
@@ -252,29 +251,8 @@ static const char WHATS_NEW[] = "What's New?";
 
 #define WHATS_NEW_TTL		2		/**< Low TTL for issued "What's New?" */
 #define WHATS_NEW_DELAY		300		/**< One "What's New?" every 5 minutes */
-#define WHATS_NEW_REMEMBER	4		/**< Last MUIDs to keep around */
 
 static time_t search_last_whats_new;	/**< When we last sent "What's New?" */
-
-static void
-search_whats_new_muid_add(const guid_t *muid)
-{
-	while (hash_list_length(whats_new_muids) > WHATS_NEW_REMEMBER) {
-		const guid_t *old;
-
-		old = hash_list_shift(whats_new_muids);
-		atom_guid_free(old);
-	}
-
-	if (!hash_list_contains(whats_new_muids, muid))
-		hash_list_append(whats_new_muids, atom_guid_get(muid));
-}
-
-static gboolean
-search_is_whats_new_muid(const guid_t *muid)
-{
-	return hash_list_contains(whats_new_muids, muid);
-}
 
 static void
 query_muid_map_init(void)
@@ -1017,8 +995,34 @@ search_results_from_spammer(const gnet_results_set_t *rs)
 		((ST_SPAM & ~(ST_URN_SPAM | ST_NAME_SPAM | ST_DUP_SPAM)) & rs->status);
 }
 
+static inline gboolean
+search_results_from_country(const gnet_results_set_t *rs, const char *cc)
+{
+	return 0 == strcmp(cc, iso3166_country_cc(rs->country));
+}
+
+static gboolean
+search_filename_similar(const char *filename, const char *query)
+{
+	char *filename_canonic;
+	char *query_canonic;
+	gboolean result;
+
+	filename_canonic = UNICODE_CANONIZE(filename);
+	query_canonic = UNICODE_CANONIZE(query);
+
+	result = NULL != is_strprefix(filename_canonic, query_canonic);
+
+	if (filename_canonic != filename)
+		hfree(filename_canonic);
+	if (query_canonic != query)
+		hfree(query_canonic);
+
+	return result;
+}
+
 static void
-search_results_identify_spam(gnet_results_set_t *rs, const guid_t *muid)
+search_results_identify_spam(gnet_results_set_t *rs)
 {
 	const GSList *sl;
 	guint8 has_ct = 0, has_tth = 0, has_xml = 0, expected_xml = 0;
@@ -1028,9 +1032,6 @@ search_results_identify_spam(gnet_results_set_t *rs, const guid_t *muid)
 		unsigned n_alt;
 
 		n_alt = rc->alt_locs ? gnet_host_vec_count(rc->alt_locs) : 0;
-
-		if (search_results_from_spammer(rs))
-			goto flag_all;
 
 		if (SR_SPAM & rc->flags) {
 			/*
@@ -1080,9 +1081,9 @@ search_results_identify_spam(gnet_results_set_t *rs, const guid_t *muid)
 			rs->status |= ST_EVIL;
 			rc->flags |= SR_IGNORED;
 		} else if (
-			T_LIME == rs->vcode.u32 &&
-			is_strcaseprefix(rc->filename, WHATS_NEW_QUERY) &&
-			search_is_whats_new_muid(muid)
+			T_LIME == rs->vcode.u32 && rs->query != NULL &&
+			0 == strcmp(rs->query, WHATS_NEW_QUERY) &&
+			is_strcaseprefix(rc->filename, WHATS_NEW_QUERY)
 		) {
 			/* All genuine LimeWire nodes understand "What's New?" queries */
 			search_results_mark_fake_spam(rs);
@@ -1092,28 +1093,80 @@ search_results_identify_spam(gnet_results_set_t *rs, const guid_t *muid)
 		has_tth |= NULL != rc->tth;
 		has_xml |= NULL != rc->xml;
 		has_ct  |= (time_t)-1 != rc->create_time;
-		expected_xml |= T_LIME == rs->vcode.u32 &&
-			(is_strsuffix(rc->filename, (size_t)-1, ".avi") ||
-				is_strsuffix(rc->filename, (size_t)-1, ".mpg"));
+
+		/*
+		 * LimeWire normally sends XML data when it's requested in the query
+		 * or when the hit is delivered via UDP (OOB or direct GUESS), for
+		 * AVI and MPG files, and for MP3 files.
+		 *
+		 * We request XML in our queries, but we can't know whether other
+		 * servents will so we can only determine whether XML is indeed
+		 * expected for OOB hits or for our own queries.
+		 */
+
+		if (
+			T_LIME == rs->vcode.u32 && !expected_xml &&
+			(
+				rs->query != NULL ||						/* We queried */
+				(0 == rs->hops && (ST_UDP & rs->status))	/* OOB hit */
+			)
+		) {
+			const char *ext = strrchr(rc->filename, '.');
+
+			if (
+				ext++ != NULL &&			/* Skip '.' */
+				(
+					0 == strcasecmp(ext, "avi") ||
+					0 == strcasecmp(ext, "mpg") ||
+					0 == strcasecmp(ext, "mp3")
+				)
+			) {
+				expected_xml = TRUE;
+			}
+		}
+
+		/*
+		 * Popular TCP-relayed spam, in reply to our queries.
+		 */
+
+		if (
+			T_LIME == rs->vcode.u32 && rs->query != NULL &&
+			0 == ((ST_UDP | ST_TLS) & rs->status)
+		) {
+			if (
+				2 == n_alt &&
+				search_filename_similar(rc->filename, rs->query)
+			) {
+				search_results_mark_fake_spam(rs);
+				rc->flags |= SR_SPAM;
+			}
+		}
+
+		/*
+		 * If we already determined that these results come from a spammer,
+		 * there's no need to inspect the other records.
+		 */
+
+		if (search_results_from_spammer(rs))
+			goto flag_all;
 	}
 
 	if (!is_vendor_acceptable(rs->vcode)) {
 		/* A proper vendor code is mandatory */
 		search_results_mark_fake_spam(rs);
-	} else if (
-		expected_xml && !has_xml &&
-		0 != strcmp("jp", iso3166_country_cc(rs->country))
-	) {
+	} else if (expected_xml && !has_xml) {
 		/**
 		 * LimeWire adds XML metadata for AVI and MPG files
 		 * which may be merged into the trailer for all records.
 		 * Make an exception for Cabos popular in Japan.
 		 */
-		search_results_mark_fake_spam(rs);
+		if (!search_results_from_country(rs, "jp")) {
+			search_results_mark_fake_spam(rs);
+		}
 	} else if (
 		T_LIME == rs->vcode.u32 &&
 		!has_ct &&
-		(!has_xml || 0 != strcmp("jp", iso3166_country_cc(rs->country)))
+		(!has_xml || !search_results_from_country(rs, "jp"))
 	) {
 		/**
 		 * If there are no timestamps, this is most-likely not from LimeWire.
@@ -2573,7 +2626,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		}
 	}
 
-	search_results_identify_spam(rs, gnutella_header_get_muid(&n->header));
+	search_results_identify_spam(rs);
 
 	return rs;
 
@@ -3044,9 +3097,7 @@ build_search_message(const guid_t *muid, const char *query,
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(WH), &b, sizeof(b), 0);
 
-		if (ok) {
-			search_whats_new_muid_add(muid);
-		} else {
+		if (!ok) {
 			g_carp("could not add GGEP \"WH\" to query");
 			goto error;
 		}
@@ -3646,7 +3697,6 @@ search_init(void)
 	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
 	search_handle_map = idtable_new();
 	sha1_to_search = g_hash_table_new(sha1_hash, sha1_eq);
-	whats_new_muids = hash_list_new(guid_hash, guid_eq);
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 	oob_reply_acks_init();
@@ -3674,8 +3724,6 @@ search_shutdown(void)
 	idtable_destroy(search_handle_map);
 	search_handle_map = NULL;
 	qhvec_free(query_hashvec);
-	hash_list_free_all(&whats_new_muids,
-		cast_to_hashlist_destroy(atom_guid_free));
 
 	oob_reply_acks_close();
 	query_muid_map_close();
