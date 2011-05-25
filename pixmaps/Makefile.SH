@@ -88,6 +88,7 @@ PIXMAPS = \
 	no_firewall.xpm \
 	offline.xpm \
 	online.xpm \
+	pause.xpm \
 	save.xpm \
 	smallserver.xpm \
 	star-black.xpm \
