@@ -4770,7 +4770,7 @@ utf32_filter_char(guint32 uc, gboolean *space, gboolean last)
 /**
  * Remove all the non letter and non digit by looking the unicode symbol type
  * all other characters will be reduce to normal space
- * try to merge continues spaces in the same time
+ * try to merge consecutive spaces at the same time
  * keep the important non spacing marks
  *
  * @param src an NUL-terminated UTF-32 string.
