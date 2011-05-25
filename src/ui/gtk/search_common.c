@@ -621,8 +621,7 @@ search_gui_media_type_clear(void)
 	gui_prop_set_boolean_val(PROP_SEARCH_MEDIA_TYPE_VIDEO, FALSE);
 	gui_prop_set_boolean_val(PROP_SEARCH_MEDIA_TYPE_DOCUMENT, FALSE);
 	gui_prop_set_boolean_val(PROP_SEARCH_MEDIA_TYPE_IMAGE, FALSE);
-	gui_prop_set_boolean_val(PROP_SEARCH_MEDIA_TYPE_WINDOWS, FALSE);
-	gui_prop_set_boolean_val(PROP_SEARCH_MEDIA_TYPE_UNIX, FALSE);
+	gui_prop_set_boolean_val(PROP_SEARCH_MEDIA_TYPE_ARCHIVE, FALSE);
 }
 
 /**
@@ -630,7 +629,7 @@ search_gui_media_type_clear(void)
  * type configuration.
  */
 static unsigned
-search_configured_media_type(void)
+search_gui_configured_media_type(void)
 {
 	unsigned mask = 0;
 
@@ -642,10 +641,8 @@ search_configured_media_type(void)
 		mask |= SEARCH_DOC_TYPE;
 	if (GUI_PROPERTY(search_media_type_image))
 		mask |= SEARCH_IMG_TYPE;
-	if (GUI_PROPERTY(search_media_type_windows))
-		mask |= SEARCH_WIN_TYPE;
-	if (GUI_PROPERTY(search_media_type_unix))
-		mask |= SEARCH_UNIX_TYPE;
+	if (GUI_PROPERTY(search_media_type_archive))
+		mask |= SEARCH_WIN_TYPE | SEARCH_UNIX_TYPE;
 
 	return mask;
 }
@@ -669,7 +666,7 @@ search_gui_new_search(const gchar *query, guint32 flags, search_t **search)
 		query = lazy_ui_string_to_utf8(query);
 
     ret = search_gui_new_search_full(query,
-			search_configured_media_type(),
+			search_gui_configured_media_type(),
 			tm_time(),
 			GUI_PROPERTY(search_lifetime), timeout,
 			GUI_PROPERTY(search_sort_default_column),
@@ -2659,7 +2656,8 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 			_("Still scanning for shared file, results may be inconclusive."));
 	}
 
-	success = search_gui_new_search_full(text, tm_time(), 0, 0, 0,
+	success = search_gui_new_search_full(text,
+			search_gui_configured_media_type(), tm_time(), 0, 0,
 			GUI_PROPERTY(search_sort_default_column),
 			GUI_PROPERTY(search_sort_default_order),
 			SEARCH_F_LOCAL | SEARCH_F_LITERAL | SEARCH_F_ENABLED,
@@ -3316,7 +3314,7 @@ search_gui_new_browse_host(
 		host_and_port = g_strdup(host_port_to_string(hostname, addr, port));
 	}
 
-	(void) search_gui_new_search_full(host_and_port, tm_time(), 0, 0, 0,
+	(void) search_gui_new_search_full(host_and_port, 0, tm_time(), 0, 0,
 			 	GUI_PROPERTY(search_sort_default_column),
 				GUI_PROPERTY(search_sort_default_order),
 			 	SEARCH_F_BROWSE | SEARCH_F_ENABLED, &search);
@@ -3368,7 +3366,8 @@ search_gui_duplicate_search(search_t *search)
     /* FIXME: should properly duplicate passive searches. */
 
 	search_gui_new_search_full(search_gui_query(search),
-		tm_time(), search_gui_media_type(search),
+		search_gui_media_type(search),
+		tm_time(),
 		GUI_PROPERTY(search_lifetime),
 		timeout, search->sort_col, search->sort_order,
 		search_gui_is_enabled(search) ? SEARCH_F_ENABLED : 0, NULL);

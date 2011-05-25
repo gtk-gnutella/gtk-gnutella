@@ -53,6 +53,7 @@ typedef struct search {
 	struct slist *queue;		/**< records to be inserted */
 
 	gboolean	list_refreshed;
+	gboolean	clicked;
 	gboolean	sort;
 
     int        sort_col;

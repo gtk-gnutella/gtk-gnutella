@@ -90,8 +90,7 @@ create_main_window (void)
   GtkWidget *checkbutton_config_search_media_type_video;
   GtkWidget *checkbutton_config_search_media_type_document;
   GtkWidget *checkbutton_config_search_media_type_image;
-  GtkWidget *checkbutton_config_search_media_type_windows;
-  GtkWidget *checkbutton_config_search_media_type_unix;
+  GtkWidget *checkbutton_config_search_media_type_archive;
   GtkWidget *frame157;
   GtkWidget *hbox2113;
   GtkWidget *option_menu_search_lifetime;
@@ -1302,21 +1301,13 @@ create_main_window (void)
   gtk_widget_show (checkbutton_config_search_media_type_image);
   gtk_box_pack_start (GTK_BOX (hbox2111), checkbutton_config_search_media_type_image, FALSE, FALSE, 0);
 
-  checkbutton_config_search_media_type_windows = gtk_check_button_new_with_label (_("Windows archives"));
-  gtk_widget_set_name (checkbutton_config_search_media_type_windows, "checkbutton_config_search_media_type_windows");
-  gtk_widget_ref (checkbutton_config_search_media_type_windows);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_search_media_type_windows", checkbutton_config_search_media_type_windows,
+  checkbutton_config_search_media_type_archive = gtk_check_button_new_with_label (_("Archive"));
+  gtk_widget_set_name (checkbutton_config_search_media_type_archive, "checkbutton_config_search_media_type_archive");
+  gtk_widget_ref (checkbutton_config_search_media_type_archive);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_search_media_type_archive", checkbutton_config_search_media_type_archive,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_search_media_type_windows);
-  gtk_box_pack_start (GTK_BOX (hbox2111), checkbutton_config_search_media_type_windows, FALSE, FALSE, 0);
-
-  checkbutton_config_search_media_type_unix = gtk_check_button_new_with_label (_("UNIX archives"));
-  gtk_widget_set_name (checkbutton_config_search_media_type_unix, "checkbutton_config_search_media_type_unix");
-  gtk_widget_ref (checkbutton_config_search_media_type_unix);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_search_media_type_unix", checkbutton_config_search_media_type_unix,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_search_media_type_unix);
-  gtk_box_pack_start (GTK_BOX (hbox2111), checkbutton_config_search_media_type_unix, FALSE, FALSE, 0);
+  gtk_widget_show (checkbutton_config_search_media_type_archive);
+  gtk_box_pack_start (GTK_BOX (hbox2111), checkbutton_config_search_media_type_archive, FALSE, FALSE, 0);
 
   frame157 = gtk_frame_new (_("Search Configuration"));
   gtk_widget_set_name (frame157, "frame157");

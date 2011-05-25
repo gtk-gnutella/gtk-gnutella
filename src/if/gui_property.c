@@ -332,10 +332,8 @@ gboolean gui_property_variable_search_media_type_document     = FALSE;
 static const gboolean gui_property_variable_search_media_type_document_default = FALSE;
 gboolean gui_property_variable_search_media_type_image     = FALSE;
 static const gboolean gui_property_variable_search_media_type_image_default = FALSE;
-gboolean gui_property_variable_search_media_type_windows     = FALSE;
-static const gboolean gui_property_variable_search_media_type_windows_default = FALSE;
-gboolean gui_property_variable_search_media_type_unix     = FALSE;
-static const gboolean gui_property_variable_search_media_type_unix_default = FALSE;
+gboolean gui_property_variable_search_media_type_archive     = FALSE;
+static const gboolean gui_property_variable_search_media_type_archive_default = FALSE;
 gboolean gui_property_variable_search_discard_alien_ip     = TRUE;
 static const gboolean gui_property_variable_search_discard_alien_ip_default = TRUE;
 gboolean gui_property_variable_search_restart_when_pending     = FALSE;
@@ -2458,37 +2456,20 @@ gui_prop_init(void) {
 
 
     /*
-     * PROP_SEARCH_MEDIA_TYPE_WINDOWS:
+     * PROP_SEARCH_MEDIA_TYPE_ARCHIVE:
      *
      * General data:
      */
-    gui_property->props[116].name = "search_media_type_windows";
-    gui_property->props[116].desc = _("Remote nodes supporting media type filtering will apply your query specifically on their Windows archive / program files such as ZIP or EXE files and other Windows-centric extensions.");
-    gui_property->props[116].ev_changed = event_new("search_media_type_windows_changed");
+    gui_property->props[116].name = "search_media_type_archive";
+    gui_property->props[116].desc = _("Remote nodes supporting media type filtering will apply your query specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, rpm and also exe files.");
+    gui_property->props[116].ev_changed = event_new("search_media_type_archive_changed");
     gui_property->props[116].save = FALSE;
     gui_property->props[116].vector_size = 1;
 
     /* Type specific data: */
     gui_property->props[116].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[116].data.boolean.def   = (void *) &gui_property_variable_search_media_type_windows_default;
-    gui_property->props[116].data.boolean.value = (void *) &gui_property_variable_search_media_type_windows;
-
-
-    /*
-     * PROP_SEARCH_MEDIA_TYPE_UNIX:
-     *
-     * General data:
-     */
-    gui_property->props[117].name = "search_media_type_unix";
-    gui_property->props[117].desc = _("Remote nodes supporting media type filtering will apply your query specifically on their UNIX archive / program files such as tar, bz2, gz, deb, rpm and other UNIX / Linux / OSX extensions.");
-    gui_property->props[117].ev_changed = event_new("search_media_type_unix_changed");
-    gui_property->props[117].save = FALSE;
-    gui_property->props[117].vector_size = 1;
-
-    /* Type specific data: */
-    gui_property->props[117].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[117].data.boolean.def   = (void *) &gui_property_variable_search_media_type_unix_default;
-    gui_property->props[117].data.boolean.value = (void *) &gui_property_variable_search_media_type_unix;
+    gui_property->props[116].data.boolean.def   = (void *) &gui_property_variable_search_media_type_archive_default;
+    gui_property->props[116].data.boolean.value = (void *) &gui_property_variable_search_media_type_archive;
 
 
     /*
@@ -2496,16 +2477,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[118].name = "search_discard_alien_ip";
-    gui_property->props[118].desc = _("Discard search results whith an alien IP address, not matching the one from which the results come from.");
-    gui_property->props[118].ev_changed = event_new("search_discard_alien_ip_changed");
-    gui_property->props[118].save = TRUE;
-    gui_property->props[118].vector_size = 1;
+    gui_property->props[117].name = "search_discard_alien_ip";
+    gui_property->props[117].desc = _("Discard search results whith an alien IP address, not matching the one from which the results come from.");
+    gui_property->props[117].ev_changed = event_new("search_discard_alien_ip_changed");
+    gui_property->props[117].save = TRUE;
+    gui_property->props[117].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[118].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[118].data.boolean.def   = (void *) &gui_property_variable_search_discard_alien_ip_default;
-    gui_property->props[118].data.boolean.value = (void *) &gui_property_variable_search_discard_alien_ip;
+    gui_property->props[117].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[117].data.boolean.def   = (void *) &gui_property_variable_search_discard_alien_ip_default;
+    gui_property->props[117].data.boolean.value = (void *) &gui_property_variable_search_discard_alien_ip;
 
 
     /*
@@ -2513,16 +2494,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[119].name = "search_restart_when_pending";
-    gui_property->props[119].desc = _("Whether session-only searches which happen to have pending downloads should be restarted when gtk-gnutella is launched.");
-    gui_property->props[119].ev_changed = event_new("search_restart_when_pending_changed");
-    gui_property->props[119].save = TRUE;
-    gui_property->props[119].vector_size = 1;
+    gui_property->props[118].name = "search_restart_when_pending";
+    gui_property->props[118].desc = _("Whether session-only searches which happen to have pending downloads should be restarted when gtk-gnutella is launched.");
+    gui_property->props[118].ev_changed = event_new("search_restart_when_pending_changed");
+    gui_property->props[118].save = TRUE;
+    gui_property->props[118].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[119].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[119].data.boolean.def   = (void *) &gui_property_variable_search_restart_when_pending_default;
-    gui_property->props[119].data.boolean.value = (void *) &gui_property_variable_search_restart_when_pending;
+    gui_property->props[118].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[118].data.boolean.def   = (void *) &gui_property_variable_search_restart_when_pending_default;
+    gui_property->props[118].data.boolean.value = (void *) &gui_property_variable_search_restart_when_pending;
 
     gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {

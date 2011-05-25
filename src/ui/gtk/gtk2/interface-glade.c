@@ -1430,8 +1430,7 @@ create_main_window (void)
   GtkWidget *checkbutton_config_search_media_type_video;
   GtkWidget *checkbutton_config_search_media_type_document;
   GtkWidget *checkbutton_config_search_media_type_image;
-  GtkWidget *checkbutton_config_search_media_type_windows;
-  GtkWidget *checkbutton_config_search_media_type_unix;
+  GtkWidget *checkbutton_config_search_media_type_archive;
   GtkWidget *label1064;
   GtkWidget *frame152;
   GtkWidget *alignment146;
@@ -2015,15 +2014,10 @@ create_main_window (void)
   gtk_widget_show (checkbutton_config_search_media_type_image);
   gtk_box_pack_start (GTK_BOX (hbox9346), checkbutton_config_search_media_type_image, FALSE, FALSE, 0);
 
-  checkbutton_config_search_media_type_windows = gtk_check_button_new_with_mnemonic (_("Windows archives"));
-  gtk_widget_set_name (checkbutton_config_search_media_type_windows, "checkbutton_config_search_media_type_windows");
-  gtk_widget_show (checkbutton_config_search_media_type_windows);
-  gtk_box_pack_start (GTK_BOX (hbox9346), checkbutton_config_search_media_type_windows, FALSE, FALSE, 0);
-
-  checkbutton_config_search_media_type_unix = gtk_check_button_new_with_mnemonic (_("UNIX archives"));
-  gtk_widget_set_name (checkbutton_config_search_media_type_unix, "checkbutton_config_search_media_type_unix");
-  gtk_widget_show (checkbutton_config_search_media_type_unix);
-  gtk_box_pack_start (GTK_BOX (hbox9346), checkbutton_config_search_media_type_unix, FALSE, FALSE, 0);
+  checkbutton_config_search_media_type_archive = gtk_check_button_new_with_mnemonic (_("Archive"));
+  gtk_widget_set_name (checkbutton_config_search_media_type_archive, "checkbutton_config_search_media_type_archive");
+  gtk_widget_show (checkbutton_config_search_media_type_archive);
+  gtk_box_pack_start (GTK_BOX (hbox9346), checkbutton_config_search_media_type_archive, FALSE, FALSE, 0);
 
   label1064 = gtk_label_new (_("Search Media Type"));
   gtk_widget_set_name (label1064, "label1064");
@@ -2949,8 +2943,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_search_media_type_video, "checkbutton_config_search_media_type_video");
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_search_media_type_document, "checkbutton_config_search_media_type_document");
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_search_media_type_image, "checkbutton_config_search_media_type_image");
-  GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_search_media_type_windows, "checkbutton_config_search_media_type_windows");
-  GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_search_media_type_unix, "checkbutton_config_search_media_type_unix");
+  GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_search_media_type_archive, "checkbutton_config_search_media_type_archive");
   GLADE_HOOKUP_OBJECT (main_window, label1064, "label1064");
   GLADE_HOOKUP_OBJECT (main_window, frame152, "frame152");
   GLADE_HOOKUP_OBJECT (main_window, alignment146, "alignment146");

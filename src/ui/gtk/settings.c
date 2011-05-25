@@ -4686,18 +4686,10 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
-        PROP_SEARCH_MEDIA_TYPE_WINDOWS,
+        PROP_SEARCH_MEDIA_TYPE_ARCHIVE,
         update_togglebutton,
         TRUE,
-        "checkbutton_config_search_media_type_windows",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        gui_main_window,
-        PROP_SEARCH_MEDIA_TYPE_UNIX,
-        update_togglebutton,
-        TRUE,
-        "checkbutton_config_search_media_type_unix",
+        "checkbutton_config_search_media_type_archive",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

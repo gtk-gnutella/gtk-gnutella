@@ -692,23 +692,9 @@
 
 	      <widget>
 		<class>GtkCheckButton</class>
-		<name>checkbutton_config_search_media_type_windows</name>
+		<name>checkbutton_config_search_media_type_archive</name>
 		<can_focus>True</can_focus>
-		<label>Windows archives</label>
-		<active>False</active>
-		<draw_indicator>True</draw_indicator>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>False</fill>
-		</child>
-	      </widget>
-
-	      <widget>
-		<class>GtkCheckButton</class>
-		<name>checkbutton_config_search_media_type_unix</name>
-		<can_focus>True</can_focus>
-		<label>UNIX archives</label>
+		<label>Archive</label>
 		<active>False</active>
 		<draw_indicator>True</draw_indicator>
 		<child>

@@ -397,12 +397,12 @@ search_media_mask_to_string(unsigned mask)
 	if (mask & SEARCH_WIN_TYPE) {
 		if (str_len(str) != 0)
 			str_putc(str, '/');
-		str_cat(str, "Windows");
+		str_cat(str, "archive (win)");
 	}
 	if (mask & SEARCH_UNIX_TYPE) {
 		if (str_len(str) != 0)
 			str_putc(str, '/');
-		str_cat(str, "UNIX");
+		str_cat(str, "archive (unix)");
 	}
 	if (mask & SEARCH_TORRENT_TYPE) {
 		if (str_len(str) != 0)
@@ -5455,6 +5455,14 @@ search_locally(gnet_search_t sh, const char *query)
 					continue;
 				}
 			}
+
+			if (
+				0 != sch->media_type &&
+				!shared_file_has_media_type(sf, sch->media_type)
+			) {
+				continue;
+			}
+
 			search_add_local_file(rs, sf);
 		}
 	}
