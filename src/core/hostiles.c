@@ -640,7 +640,7 @@ hostiles_spam_add(const host_addr_t addr, guint16 port)
 			struct spamhost *sh = &sd->hosts[i];
 
 			if (sh->port == port) {
-				sd->last_time = sh->last_seen = tm_time();
+				sh->last_seen = tm_time();
 				found = TRUE;
 				break;
 			}
