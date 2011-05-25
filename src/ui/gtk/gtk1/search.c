@@ -1700,6 +1700,7 @@ search_gui_init(void)
 			"button-release-event", on_search_list_button_release_event, NULL);
 		gui_signal_connect(clist,
 			"key-release-event", on_search_list_key_release_event, NULL);
+		clist_restore_widths(clist, PROP_SEARCH_LIST_COL_WIDTHS);
 	}
 
 	{
@@ -1714,6 +1715,15 @@ search_gui_init(void)
 	}
 
 	search_gui_common_init();
+}
+
+void
+search_gui_shutdown(void)
+{
+	GtkCList *clist = clist_search();
+		
+	clist_save_widths(clist, PROP_SEARCH_LIST_COL_WIDTHS);
+	search_gui_common_shutdown();
 }
 
 /**

@@ -135,6 +135,7 @@ GdkColor *gui_color_get(enum gui_color);
  */
 
 void search_gui_common_init(void);
+void search_gui_common_shutdown(void);
 
 void search_gui_init_tree(struct search *);
 void search_gui_set_current_search(struct search *);

@@ -4504,7 +4504,7 @@ search_gui_common_init(void)
  * Destroy common structures.
  */
 void
-search_gui_shutdown(void)
+search_gui_common_shutdown(void)
 {
 	search_gui_callbacks_shutdown();
  	guc_search_got_results_listener_remove(search_gui_got_results);

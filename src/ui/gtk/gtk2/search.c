@@ -1219,6 +1219,15 @@ search_gui_init(void)
 	search_gui_common_init();
 }
 
+void
+search_gui_shutdown(void)
+{
+	tree_view_save_widths(GTK_TREE_VIEW(tree_view_search),
+		PROP_SEARCH_LIST_COL_WIDTHS);
+
+	search_gui_common_shutdown();
+}
+
 /**
  * Remove the search from the gui and update all widget accordingly.
  */
