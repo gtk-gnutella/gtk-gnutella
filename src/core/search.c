@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Search handling (core side).
  *
  * @author Raphael Manfredi
- * @date 2001-2003
+ * @date 2001-2011
  */
 
 #include "common.h"
