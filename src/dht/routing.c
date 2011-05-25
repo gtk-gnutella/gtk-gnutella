@@ -1357,6 +1357,17 @@ bootstrap_completion_status(
 	}
 
 	/*
+	 * If we switched to passive mode during the bootstrapping process,
+	 * make sure we do not look at nodes further away than the depth of
+	 * the routing table in that mode.
+	 */
+
+	if (!dht_is_active()) {
+		if (b->bits > K_BUCKET_MAX_DEPTH_PASSIVE)
+			b->bits = K_BUCKET_MAX_DEPTH_PASSIVE;
+	}
+
+	/*
 	 * If something went wrong, stay at the same amount bits.
 	 */
 
