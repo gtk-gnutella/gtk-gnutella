@@ -1081,6 +1081,12 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			rs->status |= ST_EVIL;
 			rc->flags |= SR_IGNORED;
 		} else if (
+			T_LIME == rs->vcode.u32 &&
+			!utf8_is_valid_string(rc->filename)
+		) {
+			search_results_mark_fake_spam(rs);
+			rc->flags |= SR_SPAM;
+		} else if (
 			T_LIME == rs->vcode.u32 && rs->query != NULL &&
 			0 == strcmp(rs->query, WHATS_NEW_QUERY) &&
 			is_strcaseprefix(rc->filename, WHATS_NEW_QUERY)
@@ -1130,6 +1136,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		 */
 
 		if (
+			0 == (SR_SPAM & rc->flags) &&
 			T_LIME == rs->vcode.u32 && rs->query != NULL &&
 			0 == ((ST_UDP | ST_TLS) & rs->status)
 		) {
