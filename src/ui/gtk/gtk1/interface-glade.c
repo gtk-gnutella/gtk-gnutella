@@ -10493,6 +10493,12 @@ create_dlg_prefs (void)
   GtkObject *spinbutton_config_max_high_ttl_radius_adj;
   GtkWidget *spinbutton_config_max_high_ttl_radius;
   GtkWidget *label160;
+  GtkWidget *frame_expert_gnet_dht;
+  GtkWidget *table104;
+  GtkWidget *label8032;
+  GtkWidget *option_menu_config_dht_mode;
+  GtkWidget *option_menu_config_dht_mode_menu;
+  GtkWidget *checkbutton_config_dht_storage_in_memory;
   GtkWidget *frame_expert_gnet_quality;
   GtkWidget *table30;
   guint label279_key;
@@ -10533,6 +10539,7 @@ create_dlg_prefs (void)
   GtkWidget *checkbutton_gnet_compact_query;
   GtkObject *spinbutton_config_hops_random_factor_adj;
   GtkWidget *spinbutton_config_hops_random_factor;
+  GtkWidget *checkbutton_config_spam_lut_in_memory;
   GtkWidget *frame_expert_gnet_message_size;
   GtkWidget *table69;
   GtkWidget *label569;
@@ -13115,6 +13122,55 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
+  frame_expert_gnet_dht = gtk_frame_new (_("Gnutella Distributed Hash Table"));
+  gtk_widget_set_name (frame_expert_gnet_dht, "frame_expert_gnet_dht");
+  gtk_widget_ref (frame_expert_gnet_dht);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame_expert_gnet_dht", frame_expert_gnet_dht,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame_expert_gnet_dht);
+  gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_dht, TRUE, TRUE, 0);
+
+  table104 = gtk_table_new (2, 2, FALSE);
+  gtk_widget_set_name (table104, "table104");
+  gtk_widget_ref (table104);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table104", table104,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table104);
+  gtk_container_add (GTK_CONTAINER (frame_expert_gnet_dht), table104);
+
+  label8032 = gtk_label_new (_("Configured DHT mode"));
+  gtk_widget_set_name (label8032, "label8032");
+  gtk_widget_ref (label8032);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8032", label8032,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8032);
+  gtk_table_attach (GTK_TABLE (table104), label8032, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8032), 0, 0.5);
+
+  option_menu_config_dht_mode = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_config_dht_mode, "option_menu_config_dht_mode");
+  gtk_widget_ref (option_menu_config_dht_mode);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "option_menu_config_dht_mode", option_menu_config_dht_mode,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (option_menu_config_dht_mode);
+  gtk_table_attach (GTK_TABLE (table104), option_menu_config_dht_mode, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  option_menu_config_dht_mode_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_config_dht_mode), option_menu_config_dht_mode_menu);
+
+  checkbutton_config_dht_storage_in_memory = gtk_check_button_new_with_label (_("Store DHT keys/values in memory"));
+  gtk_widget_set_name (checkbutton_config_dht_storage_in_memory, "checkbutton_config_dht_storage_in_memory");
+  gtk_widget_ref (checkbutton_config_dht_storage_in_memory);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_dht_storage_in_memory", checkbutton_config_dht_storage_in_memory,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_dht_storage_in_memory);
+  gtk_table_attach (GTK_TABLE (table104), checkbutton_config_dht_storage_in_memory, 0, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   frame_expert_gnet_quality = gtk_frame_new (_("Quality management"));
   gtk_widget_set_name (frame_expert_gnet_quality, "frame_expert_gnet_quality");
   gtk_widget_ref (frame_expert_gnet_quality);
@@ -13400,7 +13456,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame_expert_gnet_other);
   gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_other, FALSE, TRUE, 0);
 
-  table33 = gtk_table_new (2, 2, FALSE);
+  table33 = gtk_table_new (3, 2, FALSE);
   gtk_widget_set_name (table33, "table33");
   gtk_widget_ref (table33);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table33", table33,
@@ -13443,6 +13499,16 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_hops_random_factor), TRUE);
+
+  checkbutton_config_spam_lut_in_memory = gtk_check_button_new_with_label (_("Store SPAM SHA1 table in memory"));
+  gtk_widget_set_name (checkbutton_config_spam_lut_in_memory, "checkbutton_config_spam_lut_in_memory");
+  gtk_widget_ref (checkbutton_config_spam_lut_in_memory);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_spam_lut_in_memory", checkbutton_config_spam_lut_in_memory,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_spam_lut_in_memory);
+  gtk_table_attach (GTK_TABLE (table33), checkbutton_config_spam_lut_in_memory, 0, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   frame_expert_gnet_message_size = gtk_frame_new (_("Gnutella message size limits"));
   gtk_widget_set_name (frame_expert_gnet_message_size, "frame_expert_gnet_message_size");

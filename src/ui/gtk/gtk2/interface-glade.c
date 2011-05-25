@@ -10194,6 +10194,7 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *checkbutton_config_query_request_partials;
   GtkWidget *checkbutton_config_search_smart_stop;
   GtkWidget *checkbutton_search_restart_when_pending;
+  GtkWidget *hbox9352;
   GtkWidget *frame_expert_gnet_timeout;
   GtkWidget *table10;
   GtkWidget *label175;
@@ -10209,6 +10210,12 @@ create_dlg_prefs_gnet_tab (void)
   GtkObject *spinbutton_config_incoming_connecting_timeout_adj;
   GtkWidget *spinbutton_config_incoming_connecting_timeout;
   GtkWidget *label294;
+  GtkWidget *frame_expert_gnet_dht;
+  GtkWidget *table120;
+  GtkWidget *label1075;
+  GtkWidget *option_menu_config_dht_mode;
+  GtkWidget *checkbutton_config_dht_storage_in_memory;
+  GtkWidget *label1074;
   GtkWidget *frame_expert_gnet_ttl;
   GtkWidget *vbox143;
   GtkWidget *table9;
@@ -10272,6 +10279,7 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *spinbutton_config_hops_random_factor;
   GtkWidget *label518;
   GtkWidget *checkbutton_gnet_compact_query;
+  GtkWidget *checkbutton_config_spam_lut_in_memory;
   GtkWidget *label362;
   GtkWidget *frame_expert_gnet_message_size;
   GtkWidget *table85;
@@ -10975,10 +10983,15 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_show (checkbutton_search_restart_when_pending);
   gtk_box_pack_start (GTK_BOX (vbox158), checkbutton_search_restart_when_pending, FALSE, FALSE, 0);
 
+  hbox9352 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox9352, "hbox9352");
+  gtk_widget_show (hbox9352);
+  gtk_box_pack_start (GTK_BOX (vbox25), hbox9352, FALSE, TRUE, 0);
+
   frame_expert_gnet_timeout = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
   gtk_widget_show (frame_expert_gnet_timeout);
-  gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_timeout, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox9352), frame_expert_gnet_timeout, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame_expert_gnet_timeout), 4);
 
   table10 = gtk_table_new (2, 4, FALSE);
@@ -11066,6 +11079,45 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_set_name (label294, "label294");
   gtk_widget_show (label294);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_gnet_timeout), label294);
+
+  frame_expert_gnet_dht = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_expert_gnet_dht, "frame_expert_gnet_dht");
+  gtk_widget_show (frame_expert_gnet_dht);
+  gtk_box_pack_start (GTK_BOX (hbox9352), frame_expert_gnet_dht, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_gnet_dht), 4);
+
+  table120 = gtk_table_new (2, 2, FALSE);
+  gtk_widget_set_name (table120, "table120");
+  gtk_widget_show (table120);
+  gtk_container_add (GTK_CONTAINER (frame_expert_gnet_dht), table120);
+  gtk_table_set_col_spacings (GTK_TABLE (table120), 4);
+
+  label1075 = gtk_label_new (_("Configured DHT mode"));
+  gtk_widget_set_name (label1075, "label1075");
+  gtk_widget_show (label1075);
+  gtk_table_attach (GTK_TABLE (table120), label1075, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label1075), 0, 0.5);
+
+  option_menu_config_dht_mode = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_config_dht_mode, "option_menu_config_dht_mode");
+  gtk_widget_show (option_menu_config_dht_mode);
+  gtk_table_attach (GTK_TABLE (table120), option_menu_config_dht_mode, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_dht_storage_in_memory = gtk_check_button_new_with_mnemonic (_("Store DHT keys/values in memory"));
+  gtk_widget_set_name (checkbutton_config_dht_storage_in_memory, "checkbutton_config_dht_storage_in_memory");
+  gtk_widget_show (checkbutton_config_dht_storage_in_memory);
+  gtk_table_attach (GTK_TABLE (table120), checkbutton_config_dht_storage_in_memory, 0, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label1074 = gtk_label_new (_("Gnutella Distributed Hash Table"));
+  gtk_widget_set_name (label1074, "label1074");
+  gtk_widget_show (label1074);
+  gtk_frame_set_label_widget (GTK_FRAME (frame_expert_gnet_dht), label1074);
 
   frame_expert_gnet_ttl = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_gnet_ttl, "frame_expert_gnet_ttl");
@@ -11420,7 +11472,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox287), frame_expert_gnet_other, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame_expert_gnet_other), 4);
 
-  table51 = gtk_table_new (2, 2, FALSE);
+  table51 = gtk_table_new (3, 2, FALSE);
   gtk_widget_set_name (table51, "table51");
   gtk_widget_show (table51);
   gtk_container_add (GTK_CONTAINER (frame_expert_gnet_other), table51);
@@ -11450,6 +11502,13 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_set_name (checkbutton_gnet_compact_query, "checkbutton_gnet_compact_query");
   gtk_widget_show (checkbutton_gnet_compact_query);
   gtk_table_attach (GTK_TABLE (table51), checkbutton_gnet_compact_query, 0, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+
+  checkbutton_config_spam_lut_in_memory = gtk_check_button_new_with_mnemonic (_("Store SPAM SHA1 table in memory"));
+  gtk_widget_set_name (checkbutton_config_spam_lut_in_memory, "checkbutton_config_spam_lut_in_memory");
+  gtk_widget_show (checkbutton_config_spam_lut_in_memory);
+  gtk_table_attach (GTK_TABLE (table51), checkbutton_config_spam_lut_in_memory, 0, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
 
@@ -11683,6 +11742,7 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_config_query_request_partials, "checkbutton_config_query_request_partials");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_config_search_smart_stop, "checkbutton_config_search_smart_stop");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_search_restart_when_pending, "checkbutton_search_restart_when_pending");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, hbox9352, "hbox9352");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table10, "table10");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label175, "label175");
@@ -11694,6 +11754,12 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_config_node_connected_timeout, "spinbutton_config_node_connected_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_config_incoming_connecting_timeout, "spinbutton_config_incoming_connecting_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label294, "label294");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_gnet_dht, "frame_expert_gnet_dht");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table120, "table120");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label1075, "label1075");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, option_menu_config_dht_mode, "option_menu_config_dht_mode");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_config_dht_storage_in_memory, "checkbutton_config_dht_storage_in_memory");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label1074, "label1074");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_gnet_ttl, "frame_expert_gnet_ttl");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, vbox143, "vbox143");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table9, "table9");
@@ -11744,6 +11810,7 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_config_hops_random_factor, "spinbutton_config_hops_random_factor");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label518, "label518");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_gnet_compact_query, "checkbutton_gnet_compact_query");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_config_spam_lut_in_memory, "checkbutton_config_spam_lut_in_memory");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label362, "label362");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_gnet_message_size, "frame_expert_gnet_message_size");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table85, "table85");

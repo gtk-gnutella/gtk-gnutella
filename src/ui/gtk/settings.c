@@ -2369,6 +2369,7 @@ expert_mode_changed(property_t prop)
         "frame_expert_gnet_quality",
         "frame_expert_gnet_connections",
         "frame_expert_gnet_other",
+        "frame_expert_gnet_dht",
         "frame_expert_dl_timeout",
         "frame_expert_ul_timeout",
         "frame_expert_dl_source_quality",
@@ -4883,6 +4884,30 @@ static prop_map_t property_map[] = {
         configured_peermode_changed,
         TRUE,
         "option_menu_config_peermode",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_DHT_CONFIGURED_MODE,
+        update_multichoice,
+        TRUE,
+        "option_menu_config_dht_mode",
+        FREQ_UPDATES, 0
+	),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_DHT_STORAGE_IN_MEMORY,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_dht_storage_in_memory",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_SPAM_LUT_IN_MEMORY,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_spam_lut_in_memory",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
