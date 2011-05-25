@@ -684,10 +684,16 @@ main_gui_run(const gchar *geometry_spec, const gboolean minimized)
 {
 	time_t now = tm_time_exact();
 
+	/*
+	 * With GTK2, we can iconify the window before its widget is initialized
+	 * For GTK1, this will be a no-op but no need to #ifdef the code.
+	 */
+
 	if (minimized) {
 		gtk_window_iconify(GTK_WINDOW(gui_main_window()));
 	}
-    gtk_widget_show_now(gui_main_window());		/* Display the main window */
+
+	gtk_widget_show_now(gui_main_window());		/* Display the main window */
 	gtk_widget_map(gui_main_window());
 
 	if (geometry_spec) {
@@ -700,6 +706,17 @@ main_gui_run(const gchar *geometry_spec, const gboolean minimized)
 		}
 	}
 	gui_restore_window(gui_main_window(), PROP_WINDOW_COORDS);
+
+#ifdef USE_GTK1
+	/*
+	 * With GTK1, we need to iconify after the window is properly displayed.
+	 * Users will see the window display briefly and then iconify itself, but
+	 * this is inevitable, halas.
+	 */
+	if (minimized) {
+		gtk_window_iconify(GTK_WINDOW(gui_main_window()));
+	}
+#endif
 
     icon_init();
     main_gui_timer(now);

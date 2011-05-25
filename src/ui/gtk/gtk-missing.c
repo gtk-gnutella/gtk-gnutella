@@ -1201,10 +1201,15 @@ gtk_progress_bar_set_text(GtkProgressBar *pb, const gchar *text)
 void
 gtk_window_iconify(GtkWindow *window)
 {
+	GtkWidget *widget;
+
 	g_return_if_fail(GTK_IS_WINDOW(window));
 
-	XIconifyWindow(GDK_DISPLAY(), GDK_WINDOW_XWINDOW(window),
-		((_XPrivDisplay) GDK_DISPLAY())->default_screen);
+	widget = GTK_WIDGET(window);
+	if (widget != NULL && widget->window != NULL) {
+		XIconifyWindow(GDK_DISPLAY(), GDK_WINDOW_XWINDOW(widget->window),
+			((_XPrivDisplay) GDK_DISPLAY())->default_screen);
+	}
 }
 #endif
 
