@@ -242,6 +242,7 @@ static query_hashvec_t *query_hashvec;
 static GHashTable *muid_to_query_map;
 static hash_list_t *query_muids;
 static GHashTable *sha1_to_search;	/**< Downloaded SHA1 -> search handle */
+static hash_list_t *whats_new_muids;
 
 /**
  * The legacy "What's New?" query string.
@@ -249,10 +250,31 @@ static GHashTable *sha1_to_search;	/**< Downloaded SHA1 -> search handle */
 static const char WHATS_NEW_QUERY[] = "WhatIsNewXOXO";
 static const char WHATS_NEW[] = "What's New?";
 
-#define WHATS_NEW_TTL	2		/**< Low TTL for issued "What's New?" */
-#define WHATS_NEW_DELAY	300		/**< One "What's New?" every 5 minutes */
+#define WHATS_NEW_TTL		2		/**< Low TTL for issued "What's New?" */
+#define WHATS_NEW_DELAY		300		/**< One "What's New?" every 5 minutes */
+#define WHATS_NEW_REMEMBER	4		/**< Last MUIDs to keep around */
 
 static time_t search_last_whats_new;	/**< When we last sent "What's New?" */
+
+static void
+search_whats_new_muid_add(const guid_t *muid)
+{
+	while (hash_list_length(whats_new_muids) > WHATS_NEW_REMEMBER) {
+		const guid_t *old;
+
+		old = hash_list_shift(whats_new_muids);
+		atom_guid_free(old);
+	}
+
+	if (!hash_list_contains(whats_new_muids, muid))
+		hash_list_append(whats_new_muids, atom_guid_get(muid));
+}
+
+static gboolean
+search_is_whats_new_muid(const guid_t *muid)
+{
+	return hash_list_contains(whats_new_muids, muid);
+}
 
 static void
 query_muid_map_init(void)
@@ -983,73 +1005,96 @@ is_evil_timestamp(time_t t)
 	return FALSE;
 }
 
+static inline gboolean
+search_results_from_spammer(const gnet_results_set_t *rs)
+{
+	/*
+	 * Spam other than listed URNs/names or accidental duplicates is never
+	 * sent by innocent peers,
+	 */
+
+	return 0 !=
+		((ST_SPAM & ~(ST_URN_SPAM | ST_NAME_SPAM | ST_DUP_SPAM)) & rs->status);
+}
+
 static void
-search_results_identify_spam(gnet_results_set_t *rs)
+search_results_identify_spam(gnet_results_set_t *rs, const guid_t *muid)
 {
 	const GSList *sl;
 	guint8 has_ct = 0, has_tth = 0, has_xml = 0, expected_xml = 0;
 
 	GM_SLIST_FOREACH(rs->records, sl) {
-		gnet_record_t *record = sl->data;
+		gnet_record_t *rc = sl->data;
 		unsigned n_alt;
 
-		n_alt = record->alt_locs ? gnet_host_vec_count(record->alt_locs) : 0;
+		n_alt = rc->alt_locs ? gnet_host_vec_count(rc->alt_locs) : 0;
 
-		if (SR_SPAM & record->flags) {
+		if (search_results_from_spammer(rs))
+			goto flag_all;
+
+		if (SR_SPAM & rc->flags) {
 			/*
 			 * Avoid costly check if already marked as spam.
 			 */
-		} else if ((guint32)-1 == record->file_index) {
+		} else if ((guint32)-1 == rc->file_index) {
 			/*
 			 * Some spammers get this wrong but some version of LimeWire
 			 * start counting at zero despite this being a special wildcard
 			 */
-			record->flags |= SR_SPAM;
-		} else if (!record->file_index && T_GTKG == rs->vcode.u32) {
+			rc->flags |= SR_SPAM;
+		} else if (!rc->file_index && T_GTKG == rs->vcode.u32) {
 			search_results_mark_fake_spam(rs);
-			record->flags |= SR_SPAM;
+			rc->flags |= SR_SPAM;
 		} else if (T_GTKG == rs->vcode.u32) {
 			if (
 				NULL == rs->version ||
 				!guid_is_gtkg(rs->guid, NULL, NULL, NULL)
 			) {
 				search_results_mark_fake_spam(rs);
-				record->flags |= SR_SPAM;
+				rc->flags |= SR_SPAM;
 			}
 		} else if (n_alt > 16 || (T_LIME == rs->vcode.u32 && n_alt > 10)) {
 			search_results_mark_fake_spam(rs);
-			record->flags |= SR_SPAM;
-		} else if (record->sha1 && spam_sha1_check(record->sha1)) {
+			rc->flags |= SR_SPAM;
+		} else if (rc->sha1 && spam_sha1_check(rc->sha1)) {
 			rs->status |= ST_URN_SPAM;
-			record->flags |= SR_SPAM;
+			rc->flags |= SR_SPAM;
 			gnet_stats_count_general(GNR_SPAM_SHA1_HITS, 1);
 		} else if (
 			T_LIME == rs->vcode.u32 &&
-			is_evil_timestamp(record->create_time)
+			is_evil_timestamp(rc->create_time)
 		) {
 			search_results_mark_fake_spam(rs);
-			record->flags |= SR_SPAM;
-		} else if (spam_check_filename_size(record->filename, record->size)) {
+			rc->flags |= SR_SPAM;
+		} else if (spam_check_filename_size(rc->filename, rc->size)) {
 			rs->status |= ST_NAME_SPAM;
-			record->flags |= SR_SPAM;
+			rc->flags |= SR_SPAM;
 			gnet_stats_count_general(GNR_SPAM_NAME_HITS, 1);
 		} else if (
-			record->xml &&
-			is_lime_xml_spam(record->xml, strlen(record->xml))
+			rc->xml &&
+			is_lime_xml_spam(rc->xml, strlen(rc->xml))
 		) {
 			rs->status |= ST_URL_SPAM;
-			record->flags |= SR_SPAM;
-		} else if (is_evil_filename(record->filename)) {
+			rc->flags |= SR_SPAM;
+		} else if (is_evil_filename(rc->filename)) {
 			rs->status |= ST_EVIL;
-			record->flags |= SR_IGNORED;
+			rc->flags |= SR_IGNORED;
+		} else if (
+			T_LIME == rs->vcode.u32 &&
+			is_strcaseprefix(rc->filename, WHATS_NEW_QUERY) &&
+			search_is_whats_new_muid(muid)
+		) {
+			/* All genuine LimeWire nodes understand "What's New?" queries */
+			search_results_mark_fake_spam(rs);
+			rc->flags |= SR_SPAM;
 		}
 
-		has_tth |= NULL != record->tth;
-		has_xml |= NULL != record->xml;
-		has_ct  |= (time_t)-1 != record->create_time;
+		has_tth |= NULL != rc->tth;
+		has_xml |= NULL != rc->xml;
+		has_ct  |= (time_t)-1 != rc->create_time;
 		expected_xml |= T_LIME == rs->vcode.u32 &&
-			(is_strsuffix(record->filename, (size_t)-1, ".avi") ||
-				is_strsuffix(record->filename, (size_t)-1, ".mpg"));
+			(is_strsuffix(rc->filename, (size_t)-1, ".avi") ||
+				is_strsuffix(rc->filename, (size_t)-1, ".mpg"));
 	}
 
 	if (!is_vendor_acceptable(rs->vcode)) {
@@ -1085,15 +1130,19 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		search_results_identify_dupes(rs);
 	}
 
-	if ((ST_SPAM & ~(ST_URN_SPAM | ST_NAME_SPAM | ST_DUP_SPAM)) & rs->status) {
-		/*
-		 * Spam other than listed URNs is never sent by innocent peers,
-		 * thus mark all records of the set as spam.
-		 */
-		GM_SLIST_FOREACH(rs->records, sl) {
-			gnet_record_t *record = sl->data;
-			record->flags |= SR_SPAM;
-		}
+	if (search_results_from_spammer(rs))
+		goto flag_all;
+
+	return;
+
+flag_all:
+	/*
+	 * Mark all records of the set as spam.
+	 */
+
+	GM_SLIST_FOREACH(rs->records, sl) {
+		gnet_record_t *rc = sl->data;
+		rc->flags |= SR_SPAM;
 	}
 }
 
@@ -2524,8 +2573,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		}
 	}
 
-
-	search_results_identify_spam(rs);
+	search_results_identify_spam(rs, gnutella_header_get_muid(&n->header));
 
 	return rs;
 
@@ -2996,7 +3044,9 @@ build_search_message(const guid_t *muid, const char *query,
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(WH), &b, sizeof(b), 0);
 
-		if (!ok) {
+		if (ok) {
+			search_whats_new_muid_add(muid);
+		} else {
 			g_carp("could not add GGEP \"WH\" to query");
 			goto error;
 		}
@@ -3596,6 +3646,7 @@ search_init(void)
 	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
 	search_handle_map = idtable_new();
 	sha1_to_search = g_hash_table_new(sha1_hash, sha1_eq);
+	whats_new_muids = hash_list_new(guid_hash, guid_eq);
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 	oob_reply_acks_init();
@@ -3623,6 +3674,8 @@ search_shutdown(void)
 	idtable_destroy(search_handle_map);
 	search_handle_map = NULL;
 	qhvec_free(query_hashvec);
+	hash_list_free_all(&whats_new_muids,
+		cast_to_hashlist_destroy(atom_guid_free));
 
 	oob_reply_acks_close();
 	query_muid_map_close();
