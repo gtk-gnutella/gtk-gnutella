@@ -150,7 +150,7 @@ static struct {
 	{ "#7E5029", GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } }, /* marroon */
 	{ "#708090", GUI_COLOR_PUSH,		{ 0, 0, 0, 0 } }, /* slate gray */
 	{ "#2F4F4F", GUI_COLOR_PUSH_PROXY,	{ 0, 0, 0, 0 } }, /* dark slate gray */
-	{ "#E6E6FA", GUI_COLOR_PARTIAL_PUSH,{ 0, 0, 0, 0 } }, /* lavender */
+	{ "#7B68EE", GUI_COLOR_PARTIAL_PUSH,{ 0, 0, 0, 0 } }, /* med. slate blue */
 	{ "#DCDC00", GUI_COLOR_PARTIAL,		{ 0, 0, 0, 0 } }, /* yellow */
 	{ "#FFFFFF", GUI_COLOR_BACKGROUND,	{ 0, 0, 0, 0 } }, /* white */
 };
