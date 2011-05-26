@@ -908,6 +908,58 @@ reached_eof:
 }
 
 /**
+ * Read ahead more characters in the current memory buffer, shifting yet
+ * unread data at the beginning and filling the remaining with fresh
+ * data from the file.
+ *
+ * All I/O errors are ignored at that point.  If any occur, they will be
+ * noticed the next time we attempt to read data from the file.
+ */
+static void
+vxml_buffer_read_ahead(struct vxml_buffer *vbm, struct vxml_buffer *vbf)
+{
+	struct vxml_buffer_file *f;
+	struct vxml_buffer_memory *m;
+	size_t held;
+	ssize_t r;
+
+	vxml_buffer_check(vbm);
+	vxml_buffer_check(vbf);
+	g_assert(VXML_BUFFER_MEMORY == vbm->type);
+	g_assert(VXML_BUFFER_FILE == vbf->type);
+
+	m = vbm->u.m;
+	f = vbf->u.f;
+
+	/*
+	 * The memory buffer data point directly into the file buffer.
+	 */
+
+	g_assert(size_is_positive(f->len));
+	g_assert(f->data != NULL);
+	g_assert(ptr_cmp(ptr_add_offset(f->data, f->len), m->vb_end) >= 0);
+	g_assert(ptr_cmp(f->data, m->vb_end) <= 0);
+	g_assert(ptr_cmp(f->data, m->vb_rptr) <= 0);
+	g_assert(ptr_cmp(m->vb_rptr, m->vb_end) <= 0);
+
+	if (f->eof || m->vb_rptr == f->data)
+		return;
+
+	/*
+	 * Move still unread data at the beginning of the file buffer and fill
+	 * it with more file data.
+	 */
+
+	held = m->vb_end - m->vb_rptr;
+
+	g_assert(held < f->len);	/* Cannot be == or we'd have returned above */
+
+	memmove(f->data, m->vb_rptr, held);
+	r = fread(ptr_add_offset(f->data, held), 1, f->len - held, f->fd);
+	m->vb_end = ptr_add_offset(f->data, held + r);
+}
+
+/**
  * Allocate initial parser output buffer.
  */
 static void
@@ -2034,6 +2086,51 @@ has_buffer:
 
 	*uc = vp->last_uc =
 		(*m->reader)(m->vb_rptr, vxml_buffer_remains(vb), &retlen);
+
+	if (0 == retlen) {
+		struct vxml_buffer *vnext;
+
+		/*
+		 * We were unable to grab the character, maybe because the input
+		 * buffer is too short to hold the whole character.
+		 *
+		 * This can only happen with file inputs, since we arbitrarily
+		 * read a fixed amount of bytes held in the synthetized memory
+		 * buffer.
+		 *
+		 * If there is a next input buffer and it is a file, this memory
+		 * buffer comes from the file, so read more data from the file
+		 * and retry.
+		 */
+
+		vnext = g_slist_next(vp->input)->data;
+		if (NULL == vnext)
+			return FALSE;
+
+		vxml_buffer_check(vnext);
+
+		if (VXML_BUFFER_FILE != vnext->type)
+			return FALSE;
+
+		if (vxml_debugging(1))
+			vxml_parser_debug(vp, "must read ahead more file data");
+
+		vxml_buffer_read_ahead(vb, vnext);
+
+		/*
+		 * Try again -- buffer was extended and must now be able to hold any
+		 * UTF-encoded character.  If we can't read any, then the input is
+		 * not a valid UTF encoding.
+		 */
+
+		*uc = vp->last_uc =
+			(*m->reader)(m->vb_rptr, vxml_buffer_remains(vb), &retlen);
+
+		if (0 == retlen)
+			return FALSE;
+
+		/* FALL THROUGH */
+	}
 
 	m->vb_rptr += retlen;
 	if (m->user) {
