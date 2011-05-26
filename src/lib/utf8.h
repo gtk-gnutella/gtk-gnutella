@@ -239,6 +239,12 @@ utf8_encoded_len(guint32 cp)
   }
 }
 
+static inline gboolean
+utf8_is_ascii(guint32 cp)
+{
+  return cp < 0x80U;
+}
+
 static inline unsigned
 utf8_first_byte_length_hint(unsigned char ch)
 {

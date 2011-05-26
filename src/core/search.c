@@ -7302,7 +7302,7 @@ search_compact(struct gnutella_node *n)
 				xnode_t *root;
 
 				vp = vxml_parser_make("Query XML", VXML_O_NO_NAMESPACES);
-				vxml_parser_add_input(vp, ext_payload(e), ext_paylen(e));
+				vxml_parser_add_data(vp, ext_payload(e), ext_paylen(e));
 				err = vxml_parse_tree(vp, &root);
 				if (VXML_E_OK != err) {
 					if (GNET_PROPERTY(query_debug)) {

@@ -316,7 +316,7 @@ soap_process_reply(soap_rpc_t *sr)
 	 */
 
 	vp = vxml_parser_make(sr->action, VXML_O_STRIP_BLANKS);
-	vxml_parser_add_input(vp, sr->reply_data, sr->reply_len);
+	vxml_parser_add_data(vp, sr->reply_data, sr->reply_len);
 
 	if (!vxml_parser_set_charset(vp, charset)) {
 		g_warning("SOAP \"%s\" at \"%s\": ignoring unknown charset \"%s\"",
@@ -521,7 +521,7 @@ soap_header_ind(http_async_t *ha, header_t *header,
 	}
 
 	/*
-	 * Allocate data buffer: either the advertised content length, or 1/16th
+	 * Allocate data buffer: either they advertised content length, or 1/16th
 	 * of the maximum data length we accept to grab from the server.
 	 */
 

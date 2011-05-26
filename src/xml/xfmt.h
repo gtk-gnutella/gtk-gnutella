@@ -70,6 +70,7 @@ gboolean xfmt_tree_extended(const xnode_t *root, ostream_t *os,
 	const char *default_ns);
 
 gboolean xfmt_tree_dump(const xnode_t *root, FILE *f);
+gboolean xfmt_tree_prologue_dump(const xnode_t *root, FILE *f);
 size_t xfmt_tree_to_buffer(const xnode_t *root,
 	void *buf, size_t len, guint32 options);
 

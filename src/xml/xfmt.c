@@ -1143,7 +1143,8 @@ xfmt_tree(const xnode_t *root, ostream_t *os, guint32 options)
 }
 
 /**
- * Convenience routine: dump tree without prologue to specified file.
+ * Convenience routine: dump tree without prologue to specified file, skipping
+ * pure white space nodes.
  *
  * @param root		tree to dump
  * @param f			file where we should dump the tree
@@ -1160,6 +1161,28 @@ xfmt_tree_dump(const xnode_t *root, FILE *f)
 
 	os = ostream_open_file(f);
 	xfmt_tree(root, os, XFMT_O_SKIP_BLANKS);
+	return 0 == ostream_close(os);
+}
+
+/**
+ * Convenience routine: dump tree with prologue to specified file, skipping
+ * pure white space nodes.
+ *
+ * @param root		tree to dump
+ * @param f			file where we should dump the tree
+ *
+ * @return TRUE on success.
+ */
+gboolean
+xfmt_tree_prologue_dump(const xnode_t *root, FILE *f)
+{
+	ostream_t *os;
+
+	if (!log_file_printable(f))
+		return FALSE;
+
+	os = ostream_open_file(f);
+	xfmt_tree(root, os, XFMT_O_SKIP_BLANKS | XFMT_O_PROLOGUE);
 	return 0 == ostream_close(os);
 }
 

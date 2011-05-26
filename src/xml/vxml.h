@@ -96,6 +96,7 @@ typedef enum {
 	VXML_E_NAMESPACE_REDEFINITION,		/**< Invalid namespace redefinition */
 	VXML_E_UNKNOWN_NAMESPACE,			/**< Unknown namespace prefix */
 	VXML_E_EMPTY_NAME,					/**< Empty name */
+	VXML_E_IO,							/**< I/O error */
 
 	VXML_E_MAX
 } vxml_error_t;
@@ -221,7 +222,8 @@ const char *vxml_strerror(vxml_error_t error);
 const char *vxml_parser_strerror(const vxml_parser_t *vp, vxml_error_t error);
 vxml_parser_t *vxml_parser_make(const char *name, guint32 options);
 void vxml_parser_free(vxml_parser_t *vp);
-void vxml_parser_add_input(vxml_parser_t *vp, const char *data, size_t length);
+void vxml_parser_add_data(vxml_parser_t *vp, const char *data, size_t length);
+void vxml_parser_add_file(vxml_parser_t *vp, FILE *fd);
 gboolean vxml_parser_set_charset(vxml_parser_t *vp, const char *charset);
 void vxml_parser_set_tokens(vxml_parser_t *vp,
 	struct vxml_token *tvec, size_t tlen);

@@ -55,6 +55,7 @@ RCSID("$Id$")
 #include "lib/symtab.h"
 #include "lib/unsigned.h"
 #include "lib/utf8.h"
+#include "lib/vmm.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -81,6 +82,31 @@ struct vxml_buffer;
  */
 typedef guint32 (*vxml_reader_t)(const char *str, size_t len, guint *retlen);
 
+enum vxml_buffer_type {
+	VXML_BUFFER_MEMORY,
+	VXML_BUFFER_FILE
+};
+
+struct vxml_buffer_memory {
+	char *data;					/**< Start of buffer data */
+	const char *vb_rptr;		/**< Reading pointer in buffer */
+	const char *vb_end;			/**< First character beyond buffer */
+	size_t length;				/**< Length of buffer data */
+	vxml_reader_t reader;		/**< How to get next Unicode character */
+	unsigned generation;		/**< Generation number */
+	unsigned allocated:1;		/**< Set when data was internally allocated */
+	unsigned user:1;			/**< Set when data come from user-land */
+	unsigned malloced:1;		/**< Set when allocated with g_malloc() */
+	unsigned utf8:1;			/**< Forcefully converted to UTF-8 */
+};
+
+struct vxml_buffer_file {
+	FILE *fd;					/**< File we're reading from */
+	char *data;					/**< Data page */
+	size_t len;					/**< Length of data page */
+	unsigned eof:1;				/**< Set when EOF was reached */
+};
+
 enum vxml_buffer_magic { VXML_BUFFER_MAGIC = 0x55203c2aU };
 
 /**
@@ -92,16 +118,11 @@ enum vxml_buffer_magic { VXML_BUFFER_MAGIC = 0x55203c2aU };
  */
 struct vxml_buffer {
 	enum vxml_buffer_magic magic;
-	char *data;					/**< Start of buffer data */
-	const char *vb_rptr;		/**< Reading pointer in buffer */
-	const char *vb_end;			/**< First character beyond buffer */
-	size_t length;				/**< Length of buffer data */
-	vxml_reader_t reader;		/**< How to get next Unicode character */
-	unsigned generation;		/**< Generation number */
-	unsigned allocated:1;		/**< Set when data was internally allocated */
-	unsigned user:1;			/**< Set when data come from user-land */
-	unsigned malloced:1;		/**< Set when allocated with g_malloc() */
-	unsigned utf8:1;			/**< Forcefully converted to UTF-8 */
+	enum vxml_buffer_type type;
+	union {
+		struct vxml_buffer_memory *m;
+		struct vxml_buffer_file *f;
+	} u;
 };
 
 static inline void
@@ -659,13 +680,34 @@ vxml_buffer_data_free(struct vxml_buffer *vb)
 {
 	vxml_buffer_check(vb);
 
-	if (vb->allocated) {
-		if (vb->malloced) {
-			g_free(vb->data);
-		} else {
-			hfree(vb->data);
+	switch (vb->type) {
+	case VXML_BUFFER_MEMORY:
+		{
+			struct vxml_buffer_memory *m = vb->u.m;
+
+			if (m->allocated) {
+				if (m->malloced) {
+					g_free(m->data);
+				} else {
+					hfree(m->data);
+				}
+				m->data = NULL;
+			}
+			m->allocated = FALSE;
 		}
+		return;
+	case VXML_BUFFER_FILE:
+		{
+			struct vxml_buffer_file *f = vb->u.f;
+
+			if (f->data != NULL)
+				vmm_free(f->data, f->len);
+			f->data = NULL;
+		}
+		return;
 	}
+
+	g_assert_not_reached();
 }
 
 /**
@@ -677,6 +719,17 @@ vxml_buffer_free(struct vxml_buffer *vb)
 	vxml_buffer_check(vb);
 
 	vxml_buffer_data_free(vb);
+	switch (vb->type) {
+	case VXML_BUFFER_MEMORY:
+		WFREE(vb->u.m);
+		vb->u.m = NULL;
+		break;
+	case VXML_BUFFER_FILE:
+		WFREE(vb->u.f);
+		vb->u.f = NULL;
+		break;
+	}
+
 	vb->magic = 0;
 	WFREE(vb);
 }
@@ -698,20 +751,52 @@ vxml_buffer_alloc(unsigned gen, const char *data, size_t length,
 	gboolean allocated, gboolean user, vxml_reader_t reader)
 {
 	struct vxml_buffer *vb;
+	struct vxml_buffer_memory *m;
 
 	g_assert(data != NULL);
 	g_assert(size_is_non_negative(length));
 
 	WALLOC0(vb);
 	vb->magic = VXML_BUFFER_MAGIC;
-	vb->vb_rptr = vb->data = deconstify_gpointer(data);
-	vb->length = length;
-	vb->vb_end = data + length;
-	vb->reader = reader;
-	vb->allocated = allocated;
-	vb->malloced = FALSE;
-	vb->user = user;
-	vb->generation = gen;
+	vb->type = VXML_BUFFER_MEMORY;
+
+	WALLOC0(vb->u.m);
+	m = vb->u.m;
+	m->vb_rptr = m->data = deconstify_gpointer(data);
+	m->length = length;
+	m->vb_end = data + length;
+	m->reader = reader;
+	m->allocated = allocated;
+	m->malloced = FALSE;
+	m->user = user;
+	m->generation = gen;
+
+	return vb;
+}
+
+/**
+ * Allocate a file input buffer.
+ *
+ * @param fd		opened file descriptor, for reading
+ *
+ * @return a new input buffer.
+ */
+static struct vxml_buffer *
+vxml_buffer_file(FILE *fd)
+{
+	struct vxml_buffer *vb;
+	struct vxml_buffer_file *f;
+
+	g_assert(fd != NULL);
+
+	WALLOC0(vb);
+	vb->magic = VXML_BUFFER_MAGIC;
+	vb->type = VXML_BUFFER_FILE;
+
+	WALLOC0(vb->u.f);
+	f = vb->u.f;
+	f->fd = fd;
+	f->len = compat_pagesize();
 
 	return vb;
 }
@@ -724,7 +809,16 @@ vxml_buffer_remains(const struct vxml_buffer *vb)
 {
 	vxml_buffer_check(vb);
 
-	return vb->vb_end - vb->vb_rptr;
+	switch (vb->type) {
+	case VXML_BUFFER_MEMORY:
+		return vb->u.m->vb_end - vb->u.m->vb_rptr;
+	case VXML_BUFFER_FILE:
+		g_assert_not_reached();
+		return 0;			/* Not expected to be used on file buffers */
+	}
+
+	g_assert_not_reached();
+	return 0;
 }
 
 /**
@@ -739,25 +833,78 @@ static gboolean
 vxml_buffer_convert_to_utf8(struct vxml_buffer *vb, const char *charset)
 {
 	char *converted;
+	struct vxml_buffer_memory *m;
 
 	vxml_buffer_check(vb);
 	g_assert(charset != NULL);
-	g_assert(!vb->utf8);
+	g_assert(VXML_BUFFER_MEMORY == vb->type);
+	g_assert(!vb->u.m->utf8);
 
-	converted = charset_to_utf8(charset, vb->vb_rptr, vxml_buffer_remains(vb));
+	m = vb->u.m;
+	converted = charset_to_utf8(charset, m->vb_rptr, vxml_buffer_remains(vb));
 	if (NULL == converted)
 		return FALSE;
 
 	vxml_buffer_data_free(vb);
-	vb->vb_rptr = vb->data = converted;
-	vb->length = strlen(converted);
-	vb->vb_end = vb->data + vb->length;
-	vb->reader = utf8_decode_char_buffer;
-	vb->allocated = TRUE;
-	vb->malloced = TRUE;
-	vb->utf8 = TRUE;
+	m->vb_rptr = m->data = converted;
+	m->length = strlen(converted);
+	m->vb_end = m->data + m->length;
+	m->reader = utf8_decode_char_buffer;
+	m->allocated = TRUE;
+	m->malloced = TRUE;
+	m->utf8 = TRUE;
 
 	return TRUE;
+}
+
+/**
+ * Read more data out of a file buffer, constructing a memory buffer to
+ * be able to consume the read data.
+ *
+ * @param vb		the FILE buffer from which we want to read data
+ * @param error		written with TRUE on I/O error, FALSE on EOF.
+ *
+ * @return a new memory buffer with the read data on success, NULL on EOF
+ * or on error.  The caller can discriminate by checking the value written
+ * in the error variable.
+ */
+static struct vxml_buffer *
+vxml_buffer_read(struct vxml_buffer *vb, int *error)
+{
+	struct vxml_buffer_file *f;
+	ssize_t r;
+
+	vxml_buffer_check(vb);
+	g_assert(error != NULL);
+	g_assert(VXML_BUFFER_FILE == vb->type);
+
+	f = vb->u.f;
+
+	if (f->eof)
+		goto reached_eof;
+
+	if (NULL == f->data) {
+		g_assert(size_is_positive(f->len));
+		f->data = vmm_alloc(f->len);
+	}
+
+	r = fread(f->data, 1, f->len, f->fd);
+
+	if (0 == r) {
+		if (feof(f->fd)) {
+			f->eof = TRUE;
+			goto reached_eof;
+		} else {
+			*error = TRUE;
+			return NULL;
+		}
+	}
+
+	return vxml_buffer_alloc(0, f->data, r, FALSE, TRUE, NULL);
+
+reached_eof:
+	*error = FALSE;
+	return NULL;
 }
 
 /**
@@ -949,14 +1096,14 @@ vxml_parser_free(vxml_parser_t *vp)
 }
 
 /**
- * Add (append) input to the XML parser.
+ * Add (append) memory input to the XML parser.
  *
  * @param vp		the XML parser
  * @param data		buffer with additional data to parse
  * @param length	length of the data held in buffer
  */
 void
-vxml_parser_add_input(vxml_parser_t *vp, const char *data, size_t length)
+vxml_parser_add_data(vxml_parser_t *vp, const char *data, size_t length)
 {
 	struct vxml_buffer *vb;
 
@@ -971,6 +1118,24 @@ vxml_parser_add_input(vxml_parser_t *vp, const char *data, size_t length)
 	 */
 
 	vb = vxml_buffer_alloc(vp->generation++, data, length, FALSE, TRUE, NULL);
+	vp->input = g_slist_append(vp->input, vb);
+}
+
+/**
+ * Add (append) FILE input to the XML parser.
+ *
+ * @param vp		the XML parser
+ * @param fd		an opened file descriptor, for reading
+ */
+void
+vxml_parser_add_file(vxml_parser_t *vp, FILE *fd)
+{
+	struct vxml_buffer *vb;
+
+	vxml_parser_check(vp);
+	g_assert(fd != NULL);
+
+	vb = vxml_buffer_file(fd);
 	vp->input = g_slist_append(vp->input, vb);
 }
 
@@ -1133,6 +1298,7 @@ vxml_strerror(vxml_error_t error)
 	case VXML_E_NAMESPACE_REDEFINITION:	return "Invalid namespace redefinition";
 	case VXML_E_UNKNOWN_NAMESPACE:		return "Unknown namespace prefix";
 	case VXML_E_EMPTY_NAME:				return "Empty name";
+	case VXML_E_IO:						return "I/O error";
 	case VXML_E_UNKNOWN_CHAR_ENCODING_NAME:
 		return "Unknown character encoding name";
 	case VXML_E_INVALID_CHAR_ENCODING_NAME:
@@ -1344,13 +1510,22 @@ vxml_parser_remove_buffer(vxml_parser_t *vp, struct vxml_buffer *vb)
 	vp->input = g_slist_remove(vp->input, vb);
 
 	if (vxml_debugging(19)) {
-		vxml_parser_debug(vp, "removed %sinput buffer (%lu byte%s)",
-			NULL == vp->input ? "last " : "", (unsigned long) vb->length,
-			1 == vb->length ? "" : "s");
+		switch (vb->type) {
+		case VXML_BUFFER_MEMORY:
+			vxml_parser_debug(vp, "removed %sinput buffer (%lu byte%s)",
+				NULL == vp->input ? "last " : "",
+				(unsigned long) vb->u.m->length,
+				1 == vb->u.m->length ? "" : "s");
+			break;
+		case VXML_BUFFER_FILE:
+			vxml_parser_debug(vp, "removed %sinput file (EOF %sreached)",
+				NULL == vp->input ? "last " : "",
+				vb->u.f->eof ? "" : "not ");
+			break;
+		}
 	}
 
 	vxml_buffer_free(vb);
-
 }
 
 /**
@@ -1358,12 +1533,84 @@ vxml_parser_remove_buffer(vxml_parser_t *vp, struct vxml_buffer *vb)
  * depending on the detected encoding.
  */
 static void
-vxml_parser_reset_buffer_reader(vxml_parser_t *vp)
+vxml_parser_buffer_reset_reader(vxml_parser_t *vp)
 {
 	if (vp->input != NULL) {
 		struct vxml_buffer *vb = vp->input->data;
-		vb->reader = NULL;
+		if (VXML_BUFFER_MEMORY == vb->type) {
+			vb->u.m->reader = NULL;
+		}
 	}
+}
+
+/**
+ * Look ahead how much input we can consume immediately, i.e. how much data
+ * is available in memory.
+ *
+ * When reading from a file, any read error translates into a fatal error,
+ * which the caller must check.
+ *
+ * @param vp		the XML parser
+ *
+ * @return amount of input remaining in the buffer, moving to the next as
+ * necessary.  A returned value of 0 means end of input, -1 means error.
+ */
+static size_t
+vxml_parser_buffer_remains(vxml_parser_t *vp)
+{
+	while (vp->input != NULL) {
+		struct vxml_buffer *vb = vp->input->data;
+		switch (vb->type) {
+		case VXML_BUFFER_MEMORY:
+			{
+				struct vxml_buffer_memory *m = vb->u.m;
+				size_t remains = m->vb_end - m->vb_rptr;
+
+				/*
+				 * Move to next buffer when current one is fully read.
+				 */
+
+				if (0 == remains) {
+					vxml_parser_remove_buffer(vp, vb);
+					continue;
+				}
+				return remains;
+			}
+		case VXML_BUFFER_FILE:
+			{
+				struct vxml_buffer *vnext;
+				int error;
+
+				/*
+				 * Reaching a file buffer means we have to read more data
+				 * into a new memory buffer and put the new buffer at the
+				 * head of the input list.
+				 *
+				 * Only when we reach the end of the file will we remove the
+				 * file buffer and move to the next.
+				 *
+				 * When an I/O error occurs, we abort with a fatal error.
+				 */
+
+				vnext = vxml_buffer_read(vb, &error);
+				if (NULL == vnext) {
+					if (error) {
+						vxml_fatal_error(vp, VXML_E_IO);
+						return (size_t) -1;
+					}
+					vxml_parser_remove_buffer(vp, vb);
+					continue;
+				}
+				g_assert(VXML_BUFFER_MEMORY == vnext->type);
+				vnext->u.m->generation = vp->generation;
+				vp->input = g_slist_prepend(vp->input, vnext);
+				continue;
+			}
+		}
+		g_assert_not_reached();
+	}
+
+	return 0;
 }
 
 /**
@@ -1375,36 +1622,46 @@ vxml_parser_reset_buffer_reader(vxml_parser_t *vp)
 static void
 vxml_parser_skip(vxml_parser_t *vp, size_t amount)
 {
-	GSList *sl;
 	size_t skipped = 0;
 
 	g_assert(0 == vp->unread_offset);	/* No pending unread characters */
 
-restart:
-	GM_SLIST_FOREACH(vp->input, sl) {
-		struct vxml_buffer *vb = sl->data;
-		size_t avail = vxml_buffer_remains(vb);
+	while (vp->input != NULL) {
 		size_t needed = amount - skipped;
+		size_t avail;
+		struct vxml_buffer *vb;
+		struct vxml_buffer_memory *m;
+
+		avail = vxml_parser_buffer_remains(vp);
+
+		if ((size_t) -1 == avail || 0 == avail)
+			return;
+
+		vb = vp->input->data;
+
+		vxml_buffer_check(vb);
+		g_assert(VXML_BUFFER_MEMORY == vb->type);
+
+		m = vb->u.m;
 
 		if (avail >= needed) {
-			if (vb->user) {
+			if (m->user) {
 				vp->loc.offset += needed;	/* Only count on external input */
 				vp->glob.offset += needed;
 			}
 			if (avail == needed) {
 				vxml_parser_remove_buffer(vp, vb);
 			} else {
-				vb->vb_rptr += needed;
+				m->vb_rptr += needed;
 			}
 			break;
 		} else {
 			skipped += avail;
-			if (vb->user) {
+			if (m->user) {
 				vp->loc.offset += avail;	/* Only count on external input */
 				vp->glob.offset += avail;	/* Only count on external input */
 			}
 			vxml_parser_remove_buffer(vp, vb);
-			goto restart;		/* List updated, restart from first buffer */
 		}
 	}
 }
@@ -1440,7 +1697,7 @@ vxml_parser_set_charset(vxml_parser_t *vp, const char *charset)
 	}
 
 	vp->encsource = VXML_ENCSRC_SUPPLIED;
-	vxml_parser_reset_buffer_reader(vp);
+	vxml_parser_buffer_reset_reader(vp);
 
 	return TRUE;
 }
@@ -1453,7 +1710,6 @@ vxml_parser_set_charset(vxml_parser_t *vp, const char *charset)
 static gboolean
 vxml_intuit_encoding(vxml_parser_t *vp)
 {
-	GSList *sl;
 	guchar head[4];
 	size_t filled = 0;
 	guint32 fourcc;
@@ -1469,20 +1725,40 @@ vxml_intuit_encoding(vxml_parser_t *vp)
 	 * "Autodetection of Character Encodings".
 	 */
 
-	GM_SLIST_FOREACH(vp->input, sl) {
-		struct vxml_buffer *vb = sl->data;
-		size_t avail = vxml_buffer_remains(vb);
-		size_t needed = sizeof head - filled;
-		size_t len = MIN(needed, avail);
+	if (vp->input != NULL) {
+		size_t avail = vxml_parser_buffer_remains(vp);
 
-		g_assert(filled < G_N_ELEMENTS(head));
-		g_assert(len + filled <= sizeof head);
+		if ((size_t) -1 == avail)
+			return FALSE;
 
-		memcpy(&head[filled], vb->vb_rptr, len);
-		filled += len;
+		/*
+		 * TODO: We don't handle a leading memory buffer that would hold
+		 * less than 4 bytes, and we only consider the first buffer here.
+		 * It's never going to be a problem in practice because if we can't
+		 * intuit the proper charset and haven't been told explicitly, chances
+		 * are it's UTF-8 anyway.
+		 */
 
-		if (sizeof head == filled)
-			break;
+		if (avail != 0) {
+			struct vxml_buffer *vb = vp->input->data;
+			struct vxml_buffer_memory *m;
+			size_t len = MIN(sizeof head, avail);
+
+			vxml_buffer_check(vb);
+			g_assert(VXML_BUFFER_MEMORY == vb->type);
+
+			m = vb->u.m;
+
+			g_assert(filled < G_N_ELEMENTS(head));
+			g_assert(len + filled <= sizeof head);
+
+			/*
+			 * We read-ahead, we don't consume.
+			 */
+
+			memcpy(&head[filled], m->vb_rptr, len);
+			filled += len;
+		}
 	}
 
 	vp->flags |= VXML_F_INTUITED;		/* No longer come here */
@@ -1603,11 +1879,12 @@ static gboolean
 vxml_read_char(vxml_parser_t *vp, guint32 *uc)
 {
 	struct vxml_buffer *vb;
+	struct vxml_buffer_memory *m = NULL;
 	guint retlen;
 
 	if (vp->flags & VXML_F_FATAL_ERROR) {
-		*uc = 0;
-		return 0;
+		*uc = VXC_NUL;
+		return FALSE;
 	}
 
 	/*
@@ -1654,32 +1931,57 @@ next_buffer:
 	vb = vp->input->data;
 	vxml_buffer_check(vb);
 
-	if (vb->vb_rptr == vb->vb_end) {
-		vxml_parser_remove_buffer(vp, vb);
-		goto next_buffer;
+	switch (vb->type) {
+	case VXML_BUFFER_MEMORY:
+		m = vb->u.m;
+		if (m->vb_rptr == m->vb_end) {
+			vxml_parser_remove_buffer(vp, vb);
+			goto next_buffer;
+		}
+		goto has_buffer;
+	case VXML_BUFFER_FILE:
+		{
+			size_t avail = vxml_parser_buffer_remains(vp);
+
+			if ((size_t) -1 == avail) {			/* Got an I/O error */
+				*uc = vp->last_uc = VXC_NUL;
+				return FALSE;
+			}
+
+			/*
+			 * As a side effect, vxml_parser_buffer_remains() will place
+			 * a memory buffer with the next data read from the file ahead
+			 * of the input list.  Go and consume it then.
+			 */
+
+			goto next_buffer;
+		}
 	}
+	g_assert_not_reached();
+
+has_buffer:
 
 	/*
 	 * If we don't know the reader yet, configure it based on the
 	 * document encoding and endianness.
 	 */
 
-	if (G_UNLIKELY(NULL == vb->reader)) {
+	if (G_UNLIKELY(NULL == m->reader)) {
 		switch (vp->encoding) {
 		case VXML_ENC_UTF8:
-			vb->reader = utf8_decode_char_buffer;
+			m->reader = utf8_decode_char_buffer;
 			break;
 		case VXML_ENC_UTF16_BE:
-			vb->reader = utf16_be_decode_char_buffer;
+			m->reader = utf16_be_decode_char_buffer;
 			break;
 		case VXML_ENC_UTF16_LE:
-			vb->reader = utf16_le_decode_char_buffer;
+			m->reader = utf16_le_decode_char_buffer;
 			break;
 		case VXML_ENC_UTF32_BE:
-			vb->reader = utf32_be_decode_char_buffer;
+			m->reader = utf32_be_decode_char_buffer;
 			break;
 		case VXML_ENC_UTF32_LE:
-			vb->reader = utf32_le_decode_char_buffer;
+			m->reader = utf32_le_decode_char_buffer;
 			break;
 		case VXML_ENC_CHARSET:
 			if (vxml_debugging(5)) {
@@ -1694,8 +1996,8 @@ next_buffer:
 				*uc = vp->last_uc = VXC_NUL;
 				return FALSE;
 			}
-			g_assert(vb->reader != NULL);
-			g_assert(vb->utf8);
+			g_assert(m->reader != NULL);
+			g_assert(m->utf8);
 
 			if (vxml_debugging(5)) {
 				size_t len = vxml_buffer_remains(vb);
@@ -1706,23 +2008,52 @@ next_buffer:
 		}
 	}
 
-	*uc = vp->last_uc =
-		(*vb->reader)(vb->vb_rptr, vxml_buffer_remains(vb), &retlen);
+	/*
+	 * Optimize ASCII UTF-8 reading.
+	 */
 
-	vb->vb_rptr += retlen;
-	if (vb->user) {
+	if G_LIKELY(utf8_decode_char_buffer == m->reader) {
+		vp->last_uc = *m->vb_rptr++;
+
+		if (utf8_is_ascii(vp->last_uc)) {
+			*uc = vp->last_uc;
+			if (m->user) {
+				vp->loc.offset++;		/* Only counts user-supplied data */
+				vp->glob.offset++;
+			}
+			goto uc_read;
+		} else {
+			m->vb_rptr--;
+		}
+		/* FALL THROUGH */
+	}
+
+	/*
+	 * Not UTF-8 or not an ASCII character, use general-purpose reader.
+	 */
+
+	*uc = vp->last_uc =
+		(*m->reader)(m->vb_rptr, vxml_buffer_remains(vb), &retlen);
+
+	m->vb_rptr += retlen;
+	if (m->user) {
 		vp->loc.offset += retlen;		/* Only counts user-supplied data */
 		vp->glob.offset += retlen;
 	}
-	vp->last_uc_generation = vb->generation;
+
+	/* FALL THROUGH */
+
+uc_read:
+
+	vp->last_uc_generation = m->generation;
 
 	if (vxml_debugging(19)) {
 		vxml_parser_debug(vp, "read U+%X '%c' %u byte%s%s", vp->last_uc,
 			is_ascii_print(vp->last_uc) ? vp->last_uc & 0xff : ' ',
-			retlen, 1 == retlen ? "" : "s", vb->user ? "" : " (entity)");
+			retlen, 1 == retlen ? "" : "s", m->user ? "" : " (entity)");
 	}
 
-	return vb->user;
+	return m->user;
 }
 
 /**
@@ -2336,11 +2667,12 @@ vxml_expand(vxml_parser_t *vp, const char *name, nv_table_t *entities)
 		vp->input = g_slist_prepend(vp->input, vb);
 
 		if (vxml_debugging(19)) {
+			struct vxml_buffer_memory *m = vb->u.m;
 			vxml_parser_debug(vp, "expanded %c%s; into \"%s\" (%lu byte%s)",
 				entities == vp->entities ? '&' :
 				entities == vp->pe_entities ? '%' : '?',
-				name, value, (unsigned long) vb->length,
-				1 == vb->length ? "" : "s");
+				name, value, (unsigned long) m->length,
+				1 == m->length ? "" : "s");
 		}
 	}
 
@@ -3657,7 +3989,7 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 			vp->charset = atom_str_get(charset);
 			vp->encoding = VXML_ENC_CHARSET;
 			vp->encsource = VXML_ENCSRC_EXPLICIT;
-			vxml_parser_reset_buffer_reader(vp);
+			vxml_parser_buffer_reset_reader(vp);
 		}
 	} else {
 		vp->encsource = VXML_ENCSRC_DEFAULT;
@@ -5886,7 +6218,7 @@ vxml_run_simple_test(int num, const char *name,
 		flags |= VXML_O_FATAL;
 
 	vp = vxml_parser_make(name, flags);
-	vxml_parser_add_input(vp, data, len);
+	vxml_parser_add_data(vp, data, len);
 	e = vxml_parse(vp);
 	if (vxml_debugging(0)) {
 		g_info("VXML %s test #%d (simple \"%s\"): %s",
@@ -5938,7 +6270,7 @@ vxml_run_callback_test(int num, const char *name,
 	info.data = udata;
 
 	vp = vxml_parser_make(name, flags);
-	vxml_parser_add_input(vp, data, len);
+	vxml_parser_add_data(vp, data, len);
 	if (tvec != NULL) {
 		e = vxml_parse_callbacks_tokens(vp, ops, tvec, tlen, &info);
 	} else {
@@ -5991,7 +6323,7 @@ vxml_run_tree_test(int num, const char *name,
 		flags |= VXML_O_FATAL;
 
 	vp = vxml_parser_make(name, flags);
-	vxml_parser_add_input(vp, data, len);
+	vxml_parser_add_data(vp, data, len);
 	e = vxml_parse_tree(vp, &root);
 	if (vxml_debugging(0)) {
 		g_info("VXML %s test #%d (tree \"%s\"): %s",
