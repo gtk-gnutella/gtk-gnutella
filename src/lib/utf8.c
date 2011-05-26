@@ -868,7 +868,7 @@ failure:
  * `retlen' will be set to the length, in bytes, of that character.
  *
  * If `s' does not point to a well-formed UTF-8 character or if the string
- * is to short to hold the character entirely, `retlen' is set to 0 and the
+ * is too short to hold the character entirely, `retlen' is set to 0 and the
  * function returns 0.
  */
 guint32
