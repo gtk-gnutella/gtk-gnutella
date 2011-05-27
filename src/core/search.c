@@ -1001,6 +1001,12 @@ search_results_from_country(const gnet_results_set_t *rs, const char *cc)
 	return 0 == strcmp(cc, iso3166_country_cc(rs->country));
 }
 
+/*
+ * Is filename similar to the query string?
+ *
+ * @attention
+ * Both strings must be valid UTF-8, a precondition for canonization.
+ */
 static gboolean
 search_filename_similar(const char *filename, const char *query)
 {
@@ -1084,6 +1090,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			T_LIME == rs->vcode.u32 &&
 			!utf8_is_valid_string(rc->filename)
 		) {
+			/* LimeWire is a program known to generate valid UTF-8 strings */
 			search_results_mark_fake_spam(rs);
 			rc->flags |= SR_SPAM;
 		} else if (
@@ -1140,6 +1147,17 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			T_LIME == rs->vcode.u32 && rs->query != NULL &&
 			0 == ((ST_UDP | ST_TLS) & rs->status)
 		) {
+			/*
+			 * We know rc->filename is a valid UTF-8 string because otherwise
+			 * the record would have been flagged as SR_SPAM above.
+			 *
+			 * Likewise, rs->query comes from our map recording queries, and
+			 * we don't insert invalid UTF-8 encoded strings.
+			 *
+			 * This makes it safe for search_filename_similar() to attempt
+			 * UTF-8 canonization.
+			 */
+
 			if (
 				2 == n_alt &&
 				search_filename_similar(rc->filename, rs->query)
@@ -6127,6 +6145,7 @@ search_request_preprocess(struct gnutella_node *n, search_request_info_t *sri)
 		gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
 		goto drop;					/* Drop message! */
 	}
+
 	if (!is_ascii_string(search)) {
 		gnet_stats_count_general(GNR_QUERY_UTF8, 1);
 	}
