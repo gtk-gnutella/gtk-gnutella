@@ -2110,11 +2110,7 @@ http_async_cancel_null(http_async_t **handle_ptr)
 	http_async_t *ha = *handle_ptr;
 
 	if (ha != NULL) {
-		http_async_check(ha);
-
-		http_async_remove(ha, HTTP_ASYNC_ERROR,
-			GINT_TO_POINTER(HTTP_ASYNC_CANCELLED));
-
+		http_async_cancel(ha);
 		*handle_ptr = NULL;
 	}
 }
