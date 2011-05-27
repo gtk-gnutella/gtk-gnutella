@@ -863,6 +863,20 @@ xnode_prop_set(xnode_t *element, const char *name, const char *value)
 }
 
 /**
+ * Replace all current element attributes with the supplied table, taking
+ * ownership.  The table will be freed when the element is.
+ */
+void
+xnode_prop_set_all(xnode_t *element, xattr_table_t *attrs)
+{
+	xnode_check(element);
+	g_assert(XNODE_T_ELEMENT == element->type);
+
+	xattr_table_free_null(&element->u.e.attrs);
+	element->u.e.attrs = attrs;		/* Can be NULL */
+}
+
+/**
  * Set property in element node by formatting the supplied arguments to
  * construct the string value.
  *

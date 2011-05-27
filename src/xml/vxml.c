@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2010, 2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Versatile XML processing.
  *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2010, 2011
  */
 
 #include "common.h"
@@ -67,8 +67,9 @@ RCSID("$Id$")
 #define VXML_TESTING
 #endif
 
-#define VXML_OUT_SIZE	1024	/**< Initial output buffer size */
-#define VXML_LOOKAHEAD	4		/**< Look-ahead buffer size */
+#define VXML_OUT_SIZE		1024	/**< Initial output buffer size */
+#define VXML_LOOKAHEAD		4		/**< Look-ahead buffer size */
+#define VXML_ENTITY_DEPTH	128		/**< Max entity expansion depth */
 
 struct vxml_buffer;
 
@@ -98,6 +99,7 @@ struct vxml_buffer_memory {
 	unsigned user:1;			/**< Set when data come from user-land */
 	unsigned malloced:1;		/**< Set when allocated with g_malloc() */
 	unsigned utf8:1;			/**< Forcefully converted to UTF-8 */
+	unsigned entity:1;			/**< Buffer comes from entity expansion */
 };
 
 struct vxml_buffer_file {
@@ -275,6 +277,7 @@ struct vxml_parser {
 	unsigned elem_token;			/**< Current element token */
 	unsigned tags;					/**< Counts all < elements (and <?, <!) */
 	unsigned ignores;				/**< Counts nested ignored DTD sections */
+	unsigned expansions;			/**< Counts stacked entity expansions */
 	unsigned last_uc_generation;	/**< Generation # of last character */
 	guint32 last_uc;				/**< Last read character */
 	guint32 flags;					/**< Parsing flags */
@@ -316,6 +319,7 @@ static guint32 vxml_debug;
 #define VXC_SP		0x20U	/* ' ' */
 #define VXC_BANG	0x21U	/* '!' */
 #define VXC_QUOT	0x22U	/* '"' */
+#define VXC_SHARP	0x23U	/* '#' */
 #define VXC_PCT		0x25U	/* '%' */
 #define VXC_AMP		0x26U	/* '&' */
 #define VXC_APOS	0x27U	/* "'" */
@@ -329,6 +333,8 @@ static guint32 vxml_debug;
 #define VXC_QM		0x3FU	/* '?' */
 #define VXC_LBRAK	0x5BU	/* '[' */
 #define VXC_RBRAK	0x5DU	/* ']' */
+#define VXC_x		0x78U	/* 'x' */
+#define VXC_INVALID	0xFFFFFFFFU
 
 /**
  * Important string constants.
@@ -822,6 +828,19 @@ vxml_buffer_remains(const struct vxml_buffer *vb)
 }
 
 /**
+ * Mark buffer as being the result of an entity expansion.
+ */
+static void
+vxml_buffer_entity_mark(const struct vxml_buffer *vb)
+{
+	vxml_buffer_check(vb);
+	g_assert(VXML_BUFFER_MEMORY == vb->type);
+	g_assert(!vb->u.m->user);
+
+	vb->u.m->entity = TRUE;
+}
+
+/**
  * Convert unread buffer data from given charset to UTF-8.
  *
  * @param vb		the buffer to convert
@@ -1019,8 +1038,6 @@ vxml_output_free(struct vxml_output *vo)
 static void
 vxml_output_grow(struct vxml_output *vo, size_t n)
 {
-	vxml_output_check(vo);
-
 	if (G_UNLIKELY(NULL == vo->data))
 		vxml_output_alloc(vo);
 
@@ -1086,9 +1103,18 @@ vxml_output_append(struct vxml_output *vo, guint32 uc)
 
 	vxml_output_check(vo);
 
-	len = utf8_encoded_len(uc);
-	vxml_output_grow(vo, len);
-	vo->vo_wptr += utf8_encode_char(uc, vo->vo_wptr, len);
+	/*
+	 * Optimize ASCII characters.
+	 */
+
+	if G_LIKELY(utf32_is_ascii(uc)) {
+		vxml_output_grow(vo, 1);
+		*vo->vo_wptr++ = uc;
+	} else {
+		len = utf8_encoded_len(uc);
+		vxml_output_grow(vo, len);
+		vo->vo_wptr += utf8_encode_char(uc, vo->vo_wptr, len);
+	}
 }
 
 /**
@@ -1173,6 +1199,20 @@ vxml_parser_free(vxml_parser_t *vp)
 
 	vp->magic = 0;
 	WFREE(vp);
+}
+
+/**
+ * Steal attributes from the XML parser.
+ */
+static xattr_table_t *
+vxml_parser_steal_attrs(vxml_parser_t *vp)
+{
+	xattr_table_t *attrs;
+
+	attrs = vp->attrs;
+	vp->attrs = NULL;
+
+	return attrs;
 }
 
 /**
@@ -1349,7 +1389,7 @@ vxml_strerror(vxml_error_t error)
 	case VXML_E_INVALID_CHAR_REF:		return "Invalid character reference";
 	case VXML_E_INVALID_CHARACTER:		return "Invalid Unicode character";
 	case VXML_E_INVALID_NAME_CHARACTER:	return "Invalid character in name";
-	case VXML_E_UNKNOWN_ENTITY_REF:		return "Uknown entity reference";
+	case VXML_E_UNKNOWN_ENTITY_REF:		return "Unknown entity reference";
 	case VXML_E_UNEXPECTED_CHARACTER:	return "Unexpected character";
 	case VXML_E_UNEXPECTED_WHITESPACE:	return "Unexpected white space";
 	case VXML_E_BAD_CHAR_IN_NAME:		return "Bad character in name";
@@ -1379,6 +1419,7 @@ vxml_strerror(vxml_error_t error)
 	case VXML_E_UNKNOWN_NAMESPACE:		return "Unknown namespace prefix";
 	case VXML_E_EMPTY_NAME:				return "Empty name";
 	case VXML_E_IO:						return "I/O error";
+	case VXML_E_ENTITY_RECURSION:		return "Possible entity recursion";
 	case VXML_E_UNKNOWN_CHAR_ENCODING_NAME:
 		return "Unknown character encoding name";
 	case VXML_E_INVALID_CHAR_ENCODING_NAME:
@@ -1592,6 +1633,12 @@ vxml_parser_remove_buffer(vxml_parser_t *vp, struct vxml_buffer *vb)
 	if (vxml_debugging(19)) {
 		switch (vb->type) {
 		case VXML_BUFFER_MEMORY:
+			if (vb->u.m->entity) {
+				/* Unstacking an entity expansion buffer */
+				g_assert(uint_is_positive(vp->expansions));
+				vp->expansions--;
+			}
+
 			vxml_parser_debug(vp, "removed %sinput buffer (%lu byte%s)",
 				NULL == vp->input ? "last " : "",
 				(unsigned long) vb->u.m->length,
@@ -1962,7 +2009,7 @@ vxml_read_char(vxml_parser_t *vp, guint32 *uc)
 	struct vxml_buffer_memory *m = NULL;
 	guint retlen;
 
-	if (vp->flags & VXML_F_FATAL_ERROR) {
+	if G_UNLIKELY(vp->flags & VXML_F_FATAL_ERROR) {
 		*uc = VXC_NUL;
 		return FALSE;
 	}
@@ -2003,13 +2050,12 @@ vxml_read_char(vxml_parser_t *vp, guint32 *uc)
 	 */
 
 next_buffer:
-	if (NULL == vp->input) {
+	if G_UNLIKELY(NULL == vp->input) {
 		*uc = vp->last_uc = VXC_NUL;
 		return FALSE;
 	}
 
 	vb = vp->input->data;
-	vxml_buffer_check(vb);
 
 	switch (vb->type) {
 	case VXML_BUFFER_MEMORY:
@@ -2046,7 +2092,7 @@ has_buffer:
 	 * document encoding and endianness.
 	 */
 
-	if (G_UNLIKELY(NULL == m->reader)) {
+	if G_UNLIKELY(NULL == m->reader) {
 		switch (vp->encoding) {
 		case VXML_ENC_UTF8:
 			m->reader = utf8_decode_char_buffer;
@@ -2095,12 +2141,13 @@ has_buffer:
 	if G_LIKELY(utf8_decode_char_buffer == m->reader) {
 		vp->last_uc = *m->vb_rptr++;
 
-		if (utf8_is_ascii(vp->last_uc)) {
+		if (utf32_is_ascii(vp->last_uc)) {
 			*uc = vp->last_uc;
 			if (m->user) {
 				vp->loc.offset++;		/* Only counts user-supplied data */
 				vp->glob.offset++;
 			}
+			retlen = 1;
 			goto uc_read;
 		} else {
 			m->vb_rptr--;
@@ -2115,7 +2162,7 @@ has_buffer:
 	*uc = vp->last_uc =
 		(*m->reader)(m->vb_rptr, vxml_buffer_remains(vb), &retlen);
 
-	if (0 == retlen) {
+	if G_UNLIKELY(0 == retlen) {
 		struct vxml_buffer *vnext;
 
 		/*
@@ -2172,7 +2219,7 @@ uc_read:
 
 	vp->last_uc_generation = m->generation;
 
-	if (vxml_debugging(19)) {
+	if G_UNLIKELY(vxml_debugging(19)) {
 		vxml_parser_debug(vp, "read U+%X '%c' %u byte%s%s", vp->last_uc,
 			is_ascii_print(vp->last_uc) ? vp->last_uc & 0xff : ' ',
 			retlen, 1 == retlen ? "" : "s", m->user ? "" : " (entity)");
@@ -2445,7 +2492,7 @@ vxml_expand_char_ref(vxml_parser_t *vp)
 	 */
 
 	uc = vxml_next_char(vp);
-	if (0x78U == uc) {
+	if (VXC_x == uc) {
 		base = 16;
 	} else {
 		vxml_unread_char(vp, uc);	/* Put digit back */
@@ -2762,6 +2809,17 @@ vxml_expand(vxml_parser_t *vp, const char *name, nv_table_t *entities)
 		goto not_found;
 
 	/*
+	 * Make sure we do not endlessly expand entities.  We don't know whether
+	 * there is a cycle, but we limit the depth of recursive expansions
+	 * to prevent any surprise.
+	 */
+
+	if (vp->expansions >= VXML_ENTITY_DEPTH) {
+		vxml_fatal_error_str(vp, VXML_E_ENTITY_RECURSION, name);
+		return FALSE;
+	}
+
+	/*
 	 * Once expanded, the entity needs to be processed by the XML parser
 	 * as if its value had been inlined with no entity reference.
 	 *
@@ -2790,6 +2848,16 @@ vxml_expand(vxml_parser_t *vp, const char *name, nv_table_t *entities)
 		vb = vxml_buffer_alloc(vp->generation++,
 				value, length - 1, FALSE, FALSE, utf8_decode_char_buffer);
 		vp->input = g_slist_prepend(vp->input, vb);
+
+		/*
+		 * We're prepended a non user-supplied input buffer to the list,
+		 * so account for it to prevent entity expansion recursion.
+		 * Mark it as an expanded entity so that we can decrease the counter
+		 * once we've fully parsed it.
+		 */
+
+		vp->expansions++;
+		vxml_buffer_entity_mark(vb);
 
 		if (vxml_debugging(19)) {
 			struct vxml_buffer_memory *m = vb->u.m;
@@ -2938,7 +3006,7 @@ vxml_expand_reference(vxml_parser_t *vp, gboolean charonly)
 	if (0 == uc) {
 		vxml_fatal_error(vp, VXML_E_TRUNCATED_INPUT);
 		return FALSE;
-	} else if (0x23U == uc) {		/* '#' introduces a CharRef */
+	} else if (VXC_SHARP == uc) {		/* '#' introduces a CharRef */
 		return vxml_expand_char_ref(vp);
 	}
 
@@ -4670,24 +4738,28 @@ vxml_parser_handle_doctype_decl(vxml_parser_t *vp, const char *name)
 
 	uc = vxml_next_char(vp);
 
+	/*
+	 * Grab optional external ID.
+	 */
+
 	if (uc != VXC_LBRAK) {
+		vxml_unread_char(vp, uc);
 		if (!vxml_handle_external_id(vp))
 			return FALSE;
 
 		uc = vxml_next_char(vp);
 	}
 
-	if (uc != VXC_LBRAK) {
-		vxml_fatal_error_uc(vp, VXML_E_EXPECTED_LBRAK, uc);
-		return FALSE;
-	}
-
 	/*
-	 * Parse the declarations between '[' and ']'.
+	 * Parse the optional declarations between '[' and ']'.
 	 */
 
-	if (!vxml_parser_handle_int_subset(vp))
-		return FALSE;
+	if (VXC_LBRAK == uc) {
+		if (!vxml_parser_handle_int_subset(vp))
+			return FALSE;
+	} else {
+		vxml_unread_char(vp, uc);
+	}
 
 	if (!vxml_parser_at_tag_end(vp))
 		return FALSE;
@@ -6125,41 +6197,19 @@ vxml_ptree_ctx_pop(struct vxml_ptree_ctx *ptx)
 }
 
 /**
- * xattr_table_foreach() callback to add property to element.
- */
-static void
-vxml_xnode_prop_add(const char *uri, const char *local,
-	const char *value, void *data)
-{
-	xnode_t *element = data;
-
-	xnode_prop_ns_set(element, uri, local, value);
-}
-
-/**
- * Merge properties from an XML attribute table into the element.
- */
-static void
-vxml_xnode_prop_merge(xnode_t *element, const xattr_table_t *attrs)
-{
-	if (NULL == attrs)
-		return;
-
-	xattr_table_foreach(attrs, vxml_xnode_prop_add, element);
-}
-
-/**
  * Parsing callback when beginning an element.
  */
 static void
 vxml_ptree_start(vxml_parser_t *vp,
-	const char *name, const xattr_table_t *attrs, void *data)
+	const char *name, const xattr_table_t *unused_attrs, void *data)
 {
 	struct vxml_ptree_ctx *ptx = data;
 	xnode_t *xn;
 	const char *ns_uri;
 
 	vxml_ptree_ctx_check(ptx);
+
+	(void) unused_attrs;
 
 	/*
 	 * The parser returns an empty URI string if there is no namespace,
@@ -6173,7 +6223,7 @@ vxml_ptree_start(vxml_parser_t *vp,
 		ns_uri = NULL;
 
 	xn = xnode_new_element(NULL, ns_uri, name);
-	vxml_xnode_prop_merge(xn, attrs);
+	xnode_prop_set_all(xn, vxml_parser_steal_attrs(vp));
 	vxml_ptree_ctx_push(ptx, xn);
 }
 
@@ -6304,6 +6354,18 @@ const char evaluation[] =
 	"(&amp;amp;).</p>\" >\n"
 	"]>\n"
 	"&example;";
+
+const char recursion[] =
+	"<!DOCTYPE recursion [\n"
+	"<!ENTITY recursive \"And it is &recursive;\">\n"
+	"]>\n"
+	"<p>&recursive;</p>";
+
+const char recursion_pe[] =
+	"<!DOCTYPE recursion [\n"
+	"<!ENTITY % recursive \"&#37;recursive;\">\n"
+	"%recursive;\n"
+	"]>\n";
 
 const char blanks[] =
 	"<test><![CDATA[   <x> <y>  &unknown; </x> [[/]] data      ]]></test>";
@@ -6841,6 +6903,12 @@ vxml_test(void)
 
 	root = vxml_run_tree_test(27,
 		"namespaces", namespaces, CONST_STRLEN(namespaces), 0, VXML_E_OK);
+
+	vxml_run_simple_test(28, "recursion", recursion, CONST_STRLEN(recursion),
+		0, VXML_E_ENTITY_RECURSION);
+
+	vxml_run_simple_test(29, "recursion_pe", recursion_pe,
+		CONST_STRLEN(recursion_pe), 0, VXML_E_ENTITY_RECURSION);
 
 	if (vxml_debugging(0)) {
 		g_debug("VXML extended tree dump with default namespace:");

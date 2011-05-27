@@ -240,7 +240,7 @@ utf8_encoded_len(guint32 cp)
 }
 
 static inline gboolean
-utf8_is_ascii(guint32 cp)
+utf32_is_ascii(guint32 cp)
 {
   return cp < 0x80U;
 }

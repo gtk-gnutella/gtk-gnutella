@@ -126,6 +126,7 @@ gboolean xnode_prop_ns_set(xnode_t *element,
 gboolean xnode_prop_set(xnode_t *element, const char *name, const char *value);
 gboolean xnode_prop_unset(xnode_t *element, const char *name);
 gboolean xnode_prop_ns_unset(xnode_t *element, const char *uri, const char *n);
+void xnode_prop_set_all(xnode_t *element, xattr_table_t *attrs);
 size_t xnode_prop_count(const xnode_t *element);
 
 gboolean xnode_prop_printf(xnode_t *element, const char *name,

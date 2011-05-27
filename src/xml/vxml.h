@@ -97,6 +97,7 @@ typedef enum {
 	VXML_E_UNKNOWN_NAMESPACE,			/**< Unknown namespace prefix */
 	VXML_E_EMPTY_NAME,					/**< Empty name */
 	VXML_E_IO,							/**< I/O error */
+	VXML_E_ENTITY_RECURSION,			/**< Possible entity recursion */
 
 	VXML_E_MAX
 } vxml_error_t;
