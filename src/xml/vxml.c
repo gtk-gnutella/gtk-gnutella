@@ -931,32 +931,60 @@ vxml_buffer_read_ahead(struct vxml_buffer *vbm, struct vxml_buffer *vbf)
 	m = vbm->u.m;
 	f = vbf->u.f;
 
-	/*
-	 * The memory buffer data point directly into the file buffer.
-	 */
+	if (!m->utf8) {
+		/*
+		 * The memory buffer data point directly into the file buffer since
+		 * read data was not converted to UTF-8.
+		 */
 
-	g_assert(size_is_positive(f->len));
-	g_assert(f->data != NULL);
-	g_assert(ptr_cmp(ptr_add_offset(f->data, f->len), m->vb_end) >= 0);
-	g_assert(ptr_cmp(f->data, m->vb_end) <= 0);
-	g_assert(ptr_cmp(f->data, m->vb_rptr) <= 0);
-	g_assert(ptr_cmp(m->vb_rptr, m->vb_end) <= 0);
+		g_assert(size_is_positive(f->len));
+		g_assert(f->data != NULL);
+		g_assert(ptr_cmp(ptr_add_offset(f->data, f->len), m->vb_end) >= 0);
+		g_assert(ptr_cmp(f->data, m->vb_end) <= 0);
+		g_assert(ptr_cmp(f->data, m->vb_rptr) <= 0);
+		g_assert(ptr_cmp(m->vb_rptr, m->vb_end) <= 0);
 
-	if (f->eof || m->vb_rptr == f->data)
-		return;
+		if (f->eof || m->vb_rptr == f->data)
+			return;
 
-	/*
-	 * Move still unread data at the beginning of the file buffer and fill
-	 * it with more file data.
-	 */
+		/*
+		 * Move still unread data at the beginning of the file buffer and fill
+		 * it with more file data.
+		 */
 
-	held = m->vb_end - m->vb_rptr;
+		held = m->vb_end - m->vb_rptr;
 
-	g_assert(held < f->len);	/* Cannot be == or we'd have returned above */
+		/* Cannot be == or we'd have returned above */
+		g_assert(held < f->len);
 
-	memmove(f->data, m->vb_rptr, held);
-	r = fread(ptr_add_offset(f->data, held), 1, f->len - held, f->fd);
-	m->vb_end = ptr_add_offset(f->data, held + r);
+		memmove(f->data, m->vb_rptr, held);
+		r = fread(ptr_add_offset(f->data, held), 1, f->len - held, f->fd);
+		m->vb_end = ptr_add_offset(f->data, held + r);
+	} else {
+		/*
+		 * Buffer was converted to UTF-8, we need to convert any more data
+		 * we're reading.
+		 *
+		 * FIXME: due to the current UTF-8 conversion API, we can't properly
+		 * handle input for characters longer than 1 byte in the original
+		 * charset encoding.  Indeed, we split the input in arbitrary chunks,
+		 * and if we were to place the boundary in the middle of a character
+		 * encoding sequence, conversion would fail because it assumes the
+		 * input given holds a complete sequence.
+		 *		--RAM, 2011-05-27
+		 *
+		 * Due to the above FIXME note, the original conversion to UTF-8 from
+		 * read file data was already at risk.  However, because the buffer
+		 * was flagged as being UTF-8 converted, it means we were able to
+		 * successfully convert the read file buffer into an UTF-8 encoded one.
+		 *
+		 * Coming here means we were unable to UTF-8 decode the input, and it
+		 * was from a buffer we initially successfully converted to UTF-8.
+		 * That's an imposible situation which we flag.
+		 */
+
+		g_carp("cannot read next character from UTF-8 converted buffer?");
+	}
 }
 
 /**
