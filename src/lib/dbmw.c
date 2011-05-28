@@ -178,7 +178,7 @@ dbmw_count(dbmw_t *dw)
 /**
  * Create a new DBM wrapper over already created DB map.
  *
- * If value_dsize is 0, the length for value_size is used.
+ * If value_data_size is 0, the length for value_size is used.
  *
  * @param dm				The database (already opened)
  * @param name				Database name, for logs
