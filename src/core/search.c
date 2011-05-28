@@ -1052,14 +1052,15 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		} else if (!rc->file_index && T_GTKG == rs->vcode.u32) {
 			search_results_mark_fake_spam(rs);
 			rc->flags |= SR_SPAM;
-		} else if (T_GTKG == rs->vcode.u32) {
-			if (
+		} else if (
+			T_GTKG == rs->vcode.u32 &&
+			(
 				NULL == rs->version ||
 				!guid_is_gtkg(rs->guid, NULL, NULL, NULL)
-			) {
-				search_results_mark_fake_spam(rs);
-				rc->flags |= SR_SPAM;
-			}
+			)
+		) {
+			search_results_mark_fake_spam(rs);
+			rc->flags |= SR_SPAM;
 		} else if (n_alt > 16 || (T_LIME == rs->vcode.u32 && n_alt > 10)) {
 			search_results_mark_fake_spam(rs);
 			rc->flags |= SR_SPAM;
@@ -1159,8 +1160,14 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			 */
 
 			if (
-				2 == n_alt &&
-				search_filename_similar(rc->filename, rs->query)
+				(
+					2 == n_alt &&
+					search_filename_similar(rc->filename, rs->query)
+				) || (
+					0 == ((ST_UPLOADED | ST_BH | ST_FIREWALL | ST_PUSH_PROXY)
+						& rs->status) &&
+					search_filename_similar(rc->filename, rs->query)
+				)
 			) {
 				search_results_mark_fake_spam(rs);
 				rc->flags |= SR_SPAM;
