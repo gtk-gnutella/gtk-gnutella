@@ -1,8 +1,8 @@
 /*
  * $Id$
  *
- * Copyright (c) 2005, Raphael Manfredi
  * Copyright (c) 2005, Martijn van Oosterhout <kleptog@svana.org>
+ * Copyright (c) 2005, 2011 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,17 +30,18 @@
  *
  * Handles downloads of THEX data.
  *
- * @author Raphael Manfredi
  * @author Martijn van Oosterhout
  * @date 2005
+ *
+ * Conversion to built-in XML support.
+ *
+ * @author Raphael Manfredi
+ * @date 2005, 2011
  */
 
 #include "common.h"
 
 RCSID("$Id$")
-
-#include <libxml/parser.h>                                                      
-#include <libxml/tree.h>                                                        
 
 #include "bsched.h"
 #include "dime.h"
@@ -48,6 +49,9 @@ RCSID("$Id$")
 #include "rx_inflate.h"
 #include "thex.h"
 #include "thex_download.h"
+
+#include "xml/vxml.h"
+#include "xml/xnode.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -82,32 +86,6 @@ struct thex_download {
 	unsigned depth;					/**< depth of the hashtree (capped) */
 	gboolean finished;
 };
-
-/** Get rid of the obnoxious (xmlChar *) */
-static inline char *
-xml_get_string(xmlNode *node, const char *id)
-{
-	return (char *) xmlGetProp(node, (const xmlChar *) id);
-}
-
-/**
- * Uses this to free strings returned by xml_get_string().
- */
-static inline void
-xml_string_free(char **p)
-{
-	g_assert(p);
-	if (*p) {
-		xmlFree(*p);
-		*p = NULL;
-	}
-}
-
-static inline const xmlChar *
-string_to_xmlChar(const char *p)
-{
-	return (const xmlChar *) p;
-}
 
 /**
  * Initialize the THEX download context.
@@ -199,58 +177,52 @@ thex_download_data_ind(rxdrv_t *rx, pmsg_t *mb)
 }
 
 /* XML helper functions */
-static xmlNode * 
-find_element_by_name(xmlNode *start, const char *name)
+static xnode_t * 
+find_element_by_name(xnode_t *p, const char *name)
 {
-   xmlNode *cur_node;
+   xnode_t *xn;
 
-    for (cur_node = start; cur_node; cur_node = cur_node->next) {
-        if (XML_ELEMENT_NODE == cur_node->type) {
-            if (0 == xmlStrcmp(cur_node->name, string_to_xmlChar(name))) {
-				return cur_node;
-			}
-        }
+    for (xn = xnode_first_child(p); xn != NULL; xn = xnode_next_sibling(xn)) {
+        if (xnode_is_element(xn) && 0 == strcmp(xnode_element_name(xn), name))
+			return xn;
     }
     return NULL;
 }
 
 static gboolean
-verify_element(xmlNode *node, const char *prop, const char *expect)
+verify_element(xnode_t *node, const char *prop, const char *expect)
 {
-	gboolean success = FALSE;
-	char *value;
+	const char *value;
 	
-	value = STRTRACK(xml_get_string(node, prop));
+	value = xnode_prop_get(node, prop);
   	if (NULL == value) {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_debug("TTH couldn't find property \"%s\" of node \"%s\"",
-				prop, node->name);
+				prop, xnode_element_name(node));
 		}
-		goto finish;
+		return FALSE;
 	}
 	if (0 != strcmp(value, expect)) {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_debug("TTH property %s/%s doesn't match expected value \"%s\", "
 				"got \"%s\"",
-				node->name, prop, expect, value);
+				xnode_element_name(node), prop, expect, value);
 		}
-		goto finish;
+		return FALSE;
 	}
-	success = TRUE;
 
-finish:
-	xml_string_free(&value);
-	return success;
+	return TRUE;
 }
 
 static char *
 thex_download_handle_xml(struct thex_download *ctx,
 	const char *data, size_t size)
 {
-	xmlNode *root, *hashtree, *node;
-	xmlDocPtr doc = NULL;
+	xnode_t *hashtree, *node;
 	char *hashtree_id = NULL;
 	gboolean success = FALSE;
+	vxml_parser_t *vp;
+	vxml_error_t e;
 
 	if (size <= 0) {
 		if (GNET_PROPERTY(tigertree_debug)) {
@@ -258,25 +230,32 @@ thex_download_handle_xml(struct thex_download *ctx,
 		}
 		goto finish;
 	}
-	
-	doc = xmlReadMemory(data, size, "noname.xml", NULL, 0);
-	if (NULL == doc) {
+
+	/*
+	 * Parse the XML record.
+	 */
+
+	vp = vxml_parser_make("THEX record", VXML_O_STRIP_BLANKS);
+	vxml_parser_add_data(vp, data, size);
+	e = vxml_parse_tree(vp, &hashtree);
+	vxml_parser_free(vp);
+
+	if (VXML_E_OK != e) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_debug("TTH cannot parse XML record");
+			g_warning("TTH cannot parse XML record: %s", vxml_strerror(e));
+			dump_hex(stderr, "XML record", data, size);
 		}
 		goto finish;
 	}
-	root = xmlDocGetRootElement(doc);
-	
-  	hashtree = find_element_by_name(root, "hashtree");
-	if (NULL == hashtree) {
+
+	if (0 != strcmp("hashtree", xnode_element_name(hashtree))) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_debug("TTH couldn't find hashtree element");
+			g_debug("TTH couldn't find root hashtree element");
 		}
 		goto finish;
 	}
 	
-	node = find_element_by_name(hashtree->children, "file");
+	node = find_element_by_name(hashtree, "file");
 	if (node) {
 		if (!verify_element(node, "size", filesize_to_string(ctx->filesize)))
 			goto finish;
@@ -289,7 +268,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 		goto finish;
 	}
 
-	node = find_element_by_name(hashtree->children, "digest");
+	node = find_element_by_name(hashtree, "digest");
 	if (node) {
 		if (!verify_element(node, "algorithm", THEX_HASH_ALGO))
 			goto finish;
@@ -302,30 +281,29 @@ thex_download_handle_xml(struct thex_download *ctx,
     	goto finish;
 	}
   
-	node = find_element_by_name(hashtree->children, "serializedtree");
+	node = find_element_by_name(hashtree, "serializedtree");
 	if (node) {
-		char *value;
+		const char *value;
 		int error;
 		
 		if (!verify_element(node, "type", THEX_TREE_TYPE))
     		goto finish;
 
-		value = STRTRACK(xml_get_string(node, "uri"));
+		value = xnode_prop_get(node, "uri");
 		if (NULL == value) {
 			if (GNET_PROPERTY(tigertree_debug)) {
 				g_debug("TTH couldn't find property \"uri\" of node \"%s\"",
-					node->name);
+					xnode_element_name(node));
 			}
 			goto finish;
 		}
 		hashtree_id = h_strdup(value);
-		xml_string_free(&value);
 
-		value = STRTRACK(xml_get_string(node, "depth"));
+		value = xnode_prop_get(node, "depth");
 		if (NULL == value) {
 			if (GNET_PROPERTY(tigertree_debug)) {
 				g_debug("TTH couldn't find property \"depth\" of node \"%s\"",
-					node->name);
+					xnode_element_name(node));
 			}
 			goto finish;
 		}
@@ -335,9 +313,8 @@ thex_download_handle_xml(struct thex_download *ctx,
 		if (error) {
 			ctx->depth = 0;
 			g_warning("TTH bad value for \"depth\" of node \"%s\": \"%s\"",
-				node->name, value);
+				xnode_element_name(node), value);
 		}
-		xml_string_free(&value);
 		if (error)
 			goto finish;
 	} else {
@@ -349,13 +326,9 @@ thex_download_handle_xml(struct thex_download *ctx,
 	success = TRUE;
 
 finish:
-	if (doc) {
-		xmlFreeDoc(doc);
-		doc = NULL;
-	}
-	if (!success) {
+	if (!success)
 		HFREE_NULL(hashtree_id);
-	}
+
 	return hashtree_id;
 }
 
