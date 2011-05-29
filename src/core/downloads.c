@@ -1388,7 +1388,7 @@ buffers_reset_reading(struct download *d)
 	g_assert(d->buffers->held == 0);
 
 	b = d->buffers;
-	iter = slist_iter_on_head(b->list);
+	iter = slist_iter_removable_on_head(b->list);
 	while (slist_iter_has_item(iter)) {
 		pmsg_t *mb;
 
@@ -1691,7 +1691,7 @@ buffers_strip_trailing(struct download *d, size_t amount)
 	}
 	n = b->held - amount;
 
-	iter = slist_iter_on_head(b->list);
+	iter = slist_iter_removable_on_head(b->list);
 	while (slist_iter_has_item(iter)) {
 		pmsg_t *mb;
 		size_t size;

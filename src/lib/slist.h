@@ -51,8 +51,10 @@ gboolean slist_contains(const slist_t *slist, gconstpointer key,
 gboolean slist_contains_identical(const slist_t *slist, gconstpointer key);
 void slist_foreach(const slist_t *slist, GFunc func, gpointer user_data);
 
-slist_iter_t *slist_iter_on_head(slist_t *slist);
-slist_iter_t *slist_iter_before_head(slist_t *slist);
+slist_iter_t *slist_iter_on_head(const slist_t *slist);
+slist_iter_t *slist_iter_before_head(const slist_t *slist);
+slist_iter_t * slist_iter_removable_on_head(slist_t *slist);
+slist_iter_t * slist_iter_removable_before_head(slist_t *slist);
 void slist_iter_free(slist_iter_t **iter_ptr);
 gboolean slist_iter_has_item(const slist_iter_t *iter);
 gboolean slist_iter_has_next(const slist_iter_t *iter);

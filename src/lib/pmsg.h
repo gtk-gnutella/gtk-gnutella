@@ -191,6 +191,7 @@ iovec_t *pmsg_slist_to_iovec(slist_t *slist,
 				int *iovcnt_ptr, size_t *size_ptr);
 void pmsg_slist_discard(slist_t *slist, size_t n_bytes);
 void pmsg_slist_append(slist_t *slist, const void *data, size_t n_bytes);
+size_t pmsg_slist_size(const slist_t *slist);
 
 static inline void
 pmsg_slist_free(slist_t **slist_ptr)

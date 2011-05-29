@@ -67,9 +67,10 @@ struct slist {
 
 struct slist_iter {
 	slist_iter_magic_t magic;
-	slist_t *slist;
+	const slist_t *slist;
 	GSList *prev, *cur, *next;
 	guint stamp;
+	unsigned removable:1;
 };
 
 #if 0
@@ -385,11 +386,13 @@ slist_length(const slist_t *slist)
  * Get an iterator on the slist.
  */
 static slist_iter_t *
-slist_iter_new(slist_t *slist, gboolean before)
+slist_iter_new(const slist_t *slist, gboolean before, gboolean removable)
 {
 	slist_iter_t *iter;
 
-	if (slist) {
+	if (slist != NULL) {
+		slist_t *wslist;
+
 		slist_check(slist);
 
 		WALLOC(iter);
@@ -405,7 +408,15 @@ slist_iter_new(slist_t *slist, gboolean before)
 		}
 
 		iter->stamp = slist->stamp;
-		slist->refcount++;
+		iter->removable = booleanize(removable);
+
+		/*
+		 * The reference count is an internal state, we're not violating
+		 * the "const" contract here (the abstract data type is not  changed).
+		 */
+
+		wslist = deconstify_gpointer(slist);
+		wslist->refcount++;
 	} else {
 		iter = NULL;
 	}
@@ -417,19 +428,42 @@ slist_iter_new(slist_t *slist, gboolean before)
  * Get an iterator on the slist, positioned on the first item.
  */
 slist_iter_t *
-slist_iter_on_head(slist_t *slist)
+slist_iter_on_head(const slist_t *slist)
 {
-	return slist_iter_new(slist, FALSE);
+	return slist_iter_new(slist, FALSE,  FALSE);
+}
+
+/**
+ * Get an iterator on the slist, positioned on the first item.
+ * Items from the list may be removed during iteration through calls to
+ * slist_iter_remove().
+ */
+slist_iter_t *
+slist_iter_removable_on_head(slist_t *slist)
+{
+	return slist_iter_new(slist, FALSE,  TRUE);
 }
 
 /**
  * Get an iterator on the slist, positioned before the first item.
  */
 slist_iter_t *
-slist_iter_before_head(slist_t *slist)
+slist_iter_before_head(const slist_t *slist)
 {
-	return slist_iter_new(slist, TRUE);
+	return slist_iter_new(slist, TRUE, FALSE);
 }
+
+/**
+ * Get an iterator on the slist, positioned before the first item.
+ * Items from the list may be removed during iteration through calls to
+ * slist_iter_remove().
+ */
+slist_iter_t *
+slist_iter_removable_before_head(slist_t *slist)
+{
+	return slist_iter_new(slist, TRUE, TRUE);
+}
+
 
 /**
  * Moves the iterator to the next element and returns its value.
@@ -492,6 +526,7 @@ slist_iter_remove(slist_iter_t *iter)
 	slist_iter_check(iter);
 	g_assert(2 == iter->slist->refcount);
 	g_assert(iter->cur);
+	g_assert(iter->removable);		/* Iterator allows item removal */
 
 	item = iter->cur;
 	prev = iter->prev;
@@ -499,7 +534,14 @@ slist_iter_remove(slist_iter_t *iter)
 		iter->cur = NULL;
 		iter->next = NULL;
 	}
-	slist_remove_item(iter->slist, prev, item);
+
+	/*
+	 * We can deconstify the list here because the iterator was explicitly
+	 * created to allow removal of items, hence the original pointer given
+	 * was not a "const".
+	 */
+
+	slist_remove_item(deconstify_gpointer(iter->slist), prev, item);
 	iter->prev = prev;
 	iter->stamp++;
 }
@@ -514,11 +556,18 @@ slist_iter_free(slist_iter_t **iter_ptr)
 
 	if (*iter_ptr) {
 		slist_iter_t *iter;
+		slist_t *wslist;
 
 		iter = *iter_ptr;
 		slist_iter_check(iter);
 
-		iter->slist->refcount--;
+		/*
+		 * The reference count is an internal state, we're not violating
+		 * the "const" contract here (the abstract data type is not  changed).
+		 */
+
+		wslist = deconstify_gpointer(iter->slist);
+		wslist->refcount--;
 		iter->magic = 0;
 
 		WFREE(iter);

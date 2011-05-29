@@ -787,7 +787,7 @@ pmsg_slist_to_iovec(slist_t *slist, int *iovcnt_ptr, size_t *size_ptr)
 			size_t size;
 
 			mb = slist_iter_next(iter);
-			g_assert(mb);
+			pmsg_check_consistency(mb);
 
 			size = pmsg_size(mb);
 			g_assert(size > 0);
@@ -820,14 +820,14 @@ pmsg_slist_discard(slist_t *slist, size_t n_bytes)
 
 	g_assert(slist);
 
-	iter = slist_iter_on_head(slist);
+	iter = slist_iter_removable_on_head(slist);
 	while (n_bytes > 0) {
 		pmsg_t *mb;
 		size_t size;
 
 		g_assert(slist_iter_has_item(iter));
 		mb = slist_iter_current(iter);
-		g_assert(mb);
+		pmsg_check_consistency(mb);
 
 		size = pmsg_size(mb);
 		if (size > n_bytes) {
@@ -874,6 +874,31 @@ pmsg_slist_append(slist_t *slist, const void *data, size_t n_bytes)
 		pmsg_write(mb, data, n_bytes);
 		slist_append(slist, mb);
 	}
+}
+
+/**
+ * Returns the size of the data held in the buffer list.
+ */
+size_t
+pmsg_slist_size(const slist_t *slist)
+{
+	slist_iter_t *iter;
+	size_t size = 0;
+
+	g_assert(slist != NULL);
+
+	iter = slist_iter_before_head(slist);
+	while (slist_iter_has_next(iter)) {
+		const pmsg_t *mb;
+
+		mb = slist_iter_next(iter);
+		pmsg_check_consistency(mb);
+
+		size += pmsg_size(mb);
+	}
+	slist_iter_free(&iter);
+
+	return size;
 }
 
 /**

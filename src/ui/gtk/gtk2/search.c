@@ -430,7 +430,7 @@ search_gui_clear_queue(search_t *search)
 	if (slist_length(search->queue) > 0) {
 		slist_iter_t *iter;
 
-		iter = slist_iter_on_head(search->queue);
+		iter = slist_iter_removable_on_head(search->queue);
 		while (slist_iter_has_item(iter)) {
 			struct result_data *rd;
 
@@ -1780,7 +1780,7 @@ search_gui_flush_queue(search_t *search)
 		model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 		max_items = search_gui_is_sorted(search) ? 100 : 500;
 
-		iter = slist_iter_on_head(search->queue);
+		iter = slist_iter_removable_on_head(search->queue);
 		while (slist_iter_has_item(iter) && max_items-- > 0) {
 			struct result_data *data;
 
