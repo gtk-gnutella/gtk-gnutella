@@ -632,10 +632,9 @@ xfmt_pass2_declare_ns(struct xfmt_pass2 *xp2, GSList *ns)
 
 		/*
 		 * Do not declare the "xml" namespace.
-		 * We can use '==' here because it's a constant string.
 		 */
 
-		if (prefix == VXS_XML)
+		if (0 == strcmp(prefix, VXS_XML))
 			continue;
 
 		/*
@@ -976,6 +975,13 @@ xfmt_invert_uri_kv(void *key, void *value, void *data)
  * - XFMT_O_FORCE_10 force generation of XML 1.0
  * - XFMT_O_SINGLE_LINE emits XML as one big line (implies XFMT_O_NO_INDENT).
  *
+ * @param root			the root of the tree to dump
+ * @param os			the output stream where tree is dumped
+ * @param options		formatting options, as documented above
+ * @param pvec			a vector of prefixes to be used for namespaces
+ * @param pvcnt			amount of entries in vector
+ * @param default_ns
+ *
  * @return TRUE on success.
  */
 gboolean
@@ -985,7 +991,7 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 	struct xfmt_pass1 xp1;
 	struct xfmt_pass2 xp2;
 	struct xfmt_invert_ctx ictx;
-	const char *dflt_ns = default_ns;
+	const char *dflt_ns;
 
 	g_assert(root != NULL);
 	g_assert(os != NULL);
@@ -1025,11 +1031,15 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 	 * Otherwise, discard it.
 	 */
 
-	if (dflt_ns != NULL) {
-		if (NULL == g_hash_table_lookup(xp1.uri2depth, dflt_ns)) {
-			g_warning("XFMT default namespace '%s' is not needed", dflt_ns);
+	if (default_ns != NULL) {
+		if (NULL == g_hash_table_lookup(xp1.uri2depth, default_ns)) {
+			g_warning("XFMT default namespace '%s' is not needed", default_ns);
 			dflt_ns = NULL;
+		} else {
+			dflt_ns = default_ns;
 		}
+	} else {
+		dflt_ns = NULL;
 	}
 
 	/*
@@ -1133,6 +1143,10 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
  * - XFMT_O_PROLOGUE emits a leading <?xml?> prologue.
  * - XFMT_O_FORCE_10 force generation of XML 1.0
  * - XFMT_O_SINGLE_LINE emits XML as one big line (implies XFMT_O_NO_INDENT).
+ *
+ * @param root		the root of the tree to dump
+ * @param os		the output stream where tree is dumped
+ * @param options	formatting options, as documented above
  *
  * @return TRUE on success.
  */
