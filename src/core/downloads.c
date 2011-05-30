@@ -142,7 +142,7 @@ RCSID("$Id$")
 #define DOWNLOAD_MAX_PROXIES	8		/**< Keep that many recent proxies */
 #define DOWNLOAD_MAX_UDP_PUSH	4		/**< Contact at most 4 hosts */
 #define DOWNLOAD_CONNECT_DELAY	12		/**< Seconds between connections */
-#define DOWNLOAD_PIPELINE_MSECS	5000	/**< Less than 5 secs away */
+#define DOWNLOAD_PIPELINE_MSECS	10000	/**< Less than 10 secs away */
 #define DOWNLOAD_FS_SPACE		16384	/**< Min filesystem free space */
 
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
