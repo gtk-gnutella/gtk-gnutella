@@ -1867,7 +1867,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 	} else if (search_gui_is_whats_new(sch)) {
 		gnet_prop_get_guint32_val(PROP_WHATS_NEW_SEARCH_MAX_RESULTS,
 			&max_results);
-	} else if (search_gui_is_passive(sch)) {
+	} else if (search_gui_is_passive(sch) || search_gui_is_local(sch)) {
 		gnet_prop_get_guint32_val(PROP_PASSIVE_SEARCH_MAX_RESULTS,
 			&max_results);
 	} else {

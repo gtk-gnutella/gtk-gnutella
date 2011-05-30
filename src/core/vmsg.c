@@ -778,7 +778,7 @@ handle_qstat_req(struct gnutella_node *n, const struct vmsg *unused_vmsg,
 	(void) unused_payload;
 	(void) unused_size;
 
-	if (!search_get_kept_results(muid, &kept)) {
+	if (!search_get_kept_results_by_muid(muid, &kept)) {
 		/*
 		 * We did not find any search for this MUID.  Either the remote
 		 * side goofed, or they closed the search.

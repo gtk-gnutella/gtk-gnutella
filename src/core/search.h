@@ -101,7 +101,7 @@ gboolean search_query_allowed(gnet_search_t sh);
 void search_starting(gnet_search_t sh);
 void search_notify_sent(gnet_search_t sh, const struct nid *node_id);
 void search_query_sent(gnet_search_t sh);
-gboolean search_get_kept_results(const struct guid *muid, guint32 *kept);
+gboolean search_get_kept_results_by_muid(const struct guid *m, guint32 *kept);
 gboolean search_running_guess(const struct guid *muid);
 guint32 search_get_kept_results_by_handle(gnet_search_t sh);
 void search_oob_pending_results(gnutella_node_t *n, const struct guid *muid,

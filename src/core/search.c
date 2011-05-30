@@ -3525,9 +3525,16 @@ search_reissue_timeout_callback(gpointer data)
 }
 
 static guint32
-search_max_results_for_ui(void)
+search_max_results_for_ui(const search_ctrl_t *sch)
 {
-	return GNET_PROPERTY(search_max_results);
+	if (sbool_get(sch->browse))
+		return GNET_PROPERTY(browse_host_max_results);
+	else if (sbool_get(sch->whats_new))
+		return GNET_PROPERTY(whats_new_search_max_results);
+	else if (sbool_get(sch->local) || sbool_get(sch->passive))
+		return GNET_PROPERTY(passive_search_max_results);
+	else
+		return GNET_PROPERTY(search_max_results);
 }
 
 /**
@@ -3558,7 +3565,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	 * Look at the amount of items we got for this search already.
 	 * The more we have, the less often we retry to save network resources.
 	 */
-	max_items = search_max_results_for_ui();
+	max_items = search_max_results_for_ui(sch);
 	max_items = MAX(1, max_items);
 
 	percent = sch->items * 100 / max_items;
@@ -3974,7 +3981,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	 */
 
 	if (GNET_PROPERTY(browse_copied_to_passive)) {
-		guint32 max_items = search_max_results_for_ui();
+		guint32 max_items = GNET_PROPERTY(passive_search_max_results);
 
 		for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
 			search_ctrl_t *sch = sl->data;
@@ -4017,12 +4024,12 @@ search_results(gnutella_node_t *n, int *results)
 
 	g_assert(results != NULL);
 
-	max_items = search_max_results_for_ui();
-
 	/*
 	 * We'll dispatch to non-frozen passive searches, and to the active search
 	 * matching the MUID, if any and not frozen as well.
 	 */
+
+	max_items = GNET_PROPERTY(passive_search_max_results);
 
 	for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
 		search_ctrl_t *sch = sl->data;
@@ -4039,6 +4046,7 @@ search_results(gnutella_node_t *n, int *results)
 
 		sch = g_hash_table_lookup(search_by_muid,
 					gnutella_header_get_muid(&n->header));
+		max_items = sch ? search_max_results_for_ui(sch) : 0;
 
 		if (sch && !sbool_get(sch->frozen) && sch->items < max_items)
 			selected_searches = g_slist_prepend(selected_searches,
@@ -5063,24 +5071,14 @@ search_stop(gnet_search_t search_handle)
 	search_status_changed(sch->search_handle);
 }
 
-/**
- * Get amount of results we displayed for the search identified by
- * its MUID.  We assume it is the last MUID we used for requerying if we
- * find a search that sent a query with the MUID.
- *
- * @returns TRUE if we found a search having sent this MUID, along with
- * the amount of results we kept sofar for the last requery, via "kept",
- * or FALSE if we did not find any search.
+/*
+ * @returns TRUE if the search is not NULL, along with the amount of results
+ * we kept sofar for the last requery, via "kept", or FALSE if the search
+ * is NULL or it has been frozen (meaning new results must be ignored).
  */
-gboolean
-search_get_kept_results(const struct guid *muid, guint32 *kept)
+static gboolean
+search_get_kept_results(const search_ctrl_t *sch, guint32 *kept)
 {
-	search_ctrl_t *sch;
-
-	sch = g_hash_table_lookup(search_by_muid, muid);
-
-	g_assert(sch == NULL || sbool_get(sch->active)); /* No MUID if not active */
-
 	if (sch == NULL)
 		return FALSE;
 
@@ -5096,6 +5094,27 @@ search_get_kept_results(const struct guid *muid, guint32 *kept)
 
 	*kept = sch->kept_results;
 	return TRUE;
+}
+
+/**
+ * Get amount of results we displayed for the search identified by
+ * its MUID.  We assume it is the last MUID we used for requerying if we
+ * find a search that sent a query with the MUID.
+ *
+ * @returns TRUE if we found a search having sent this MUID, along with
+ * the amount of results we kept sofar for the last requery, via "kept",
+ * or FALSE if we did not find any search.
+ */
+gboolean
+search_get_kept_results_by_muid(const struct guid *muid, guint32 *kept)
+{
+	search_ctrl_t *sch;
+
+	sch = g_hash_table_lookup(search_by_muid, muid);
+
+	g_assert(sch == NULL || sbool_get(sch->active)); /* No MUID if not active */
+
+	return search_get_kept_results(sch, kept);
 }
 
 /**
@@ -5160,6 +5179,7 @@ search_oob_pending_results(
 	gnutella_node_t *n, const struct guid *muid, int hits,
 	gboolean udp_firewalled, gboolean secure)
 {
+	search_ctrl_t *sch;
 	struct array token_opaque;
 	guint32 token;
 	guint32 kept;
@@ -5182,7 +5202,9 @@ search_oob_pending_results(
 	 * indication.
 	 */
 
-	if (!search_get_kept_results(muid, &kept)) {
+	sch = g_hash_table_lookup(search_by_muid, muid);
+
+	if (!search_get_kept_results(sch, &kept)) {
 
 		/*
 		 * Maybe it's an OOB-proxied search?
@@ -5236,7 +5258,7 @@ search_oob_pending_results(
 	 * to get more results, ignore.
 	 */
 
-	if (kept > search_max_results_for_ui() * 0.15) {
+	if (kept > search_max_results_for_ui(sch) * 0.15) {
 		if (GNET_PROPERTY(search_debug)) {
 			g_debug("ignoring %d %sOOB hit%s for search %s (already got %u)",
 				hits,
