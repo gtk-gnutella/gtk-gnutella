@@ -174,6 +174,7 @@ struct guess {
 	tm_t start;					/**< Start time */
 	size_t queried_nodes;		/**< Amount of nodes queried */
 	size_t query_acks;			/**< Amount of query acknowledgments */
+	size_t max_ultrapeers;		/**< Max amount of ultrapeers to query */
 	enum guess_mode mode;		/**< Concurrency mode */
 	unsigned mtype;				/**< Media type filtering (0 if none) */
 	guint32 flags;				/**< Operating flags */
@@ -1967,7 +1968,7 @@ guess_final_stats(const guess_t *gq)
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
 		g_debug("GUESS QUERY[%s] \"%s\" took %f secs, "
 			"queried_set=%lu, pool_set=%lu, "
-			"queried=%lu, acks=%lu, kept_results=%u/%u, "
+			"queried=%lu, acks=%lu, max_ultras=%lu, kept_results=%u/%u, "
 			"out_qk=%u bytes, out_query=%u bytes",
 			nid_to_string(&gq->gid),
 			lazy_safe_search(gq->query),
@@ -1975,7 +1976,9 @@ guess_final_stats(const guess_t *gq)
 			(unsigned long) map_count(gq->queried),
 			(unsigned long) hash_list_length(gq->pool),
 			(unsigned long) gq->queried_nodes,
-			(unsigned long) gq->query_acks, gq->kept_results, gq->recv_results,
+			(unsigned long) gq->query_acks,
+			(unsigned long) gq->max_ultrapeers,
+			gq->kept_results, gq->recv_results,
 			gq->bw_out_qk, gq->bw_out_query);
 	}
 }
@@ -1998,7 +2001,7 @@ guess_should_terminate(guess_t *gq)
 
 	tm_now(&now);
 
-	if (gq->query_acks >= GUESS_MAX_ULTRAPEERS) {
+	if (gq->query_acks >= gq->max_ultrapeers) {
 		reason = "max amount of successfully queried ultrapeers reached";
 		goto terminate;
 	}
@@ -3300,13 +3303,22 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	gq->arg = arg;
 	tm_now_exact(&gq->start);
 
+	/*
+	 * Estimate the amount of ultrapeers we can query to be 85% of the
+	 * ones we have in the cache.  In case we have a small cache, try
+	 * to aim for GUESS_MAX_ULTRAPEERS at least.
+	 */
+
+	gq->max_ultrapeers = 0.85 * dbmw_count(db_qkdata);
+	gq->max_ultrapeers = MAX(gq->max_ultrapeers, GUESS_MAX_ULTRAPEERS);
+
 	g_hash_table_insert(gqueries, &gq->gid, gq);
 	gm_hash_table_insert_const(gmuid, gq->muid, gq);
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
-		g_debug("GUESS QUERY[%s] starting query for \"%s\" MUID=%s",
+		g_debug("GUESS QUERY[%s] starting query for \"%s\" MUID=%s ultras=%lu",
 			nid_to_string(&gq->gid), lazy_safe_search(query),
-			guid_hex_str(muid));
+			guid_hex_str(muid), (unsigned long) gq->max_ultrapeers);
 	}
 
 	if (0 == guess_load_pool(gq, TRUE)) {
