@@ -218,7 +218,7 @@ static char *
 thex_download_handle_xml(struct thex_download *ctx,
 	const char *data, size_t size)
 {
-	xnode_t *hashtree, *node;
+	xnode_t *hashtree = NULL, *node;
 	char *hashtree_id = NULL;
 	gboolean success = FALSE;
 	vxml_parser_t *vp;
@@ -328,6 +328,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 finish:
 	if (!success)
 		HFREE_NULL(hashtree_id);
+	xnode_tree_free_null(&hashtree);
 
 	return hashtree_id;
 }
