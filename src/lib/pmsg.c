@@ -902,6 +902,66 @@ pmsg_slist_size(const slist_t *slist)
 }
 
 /**
+ * Read data from the pmsg list into supplied buffer.  Copied data is
+ * removed from the list.
+ *
+ * @param slist		the pmsg list
+ * @param buf		start of buffer where data must be copied
+ * @param len		length of buffer
+ *
+ * @return amount of copied bytes.
+ */
+size_t
+pmsg_slist_read(slist_t *slist, void *buf, size_t len)
+{
+	slist_iter_t *iter;
+	size_t remain = len;
+	void *p;
+
+	g_assert(slist != NULL);
+
+	iter = slist_iter_removable_before_head(slist);
+	p = buf;
+
+	while (remain != 0 && slist_iter_has_next(iter)) {
+		pmsg_t *mb = slist_iter_next(iter);
+		int n;
+
+		n = pmsg_read(mb, p, remain);
+		remain -= n;
+		p += n;
+		if (0 == pmsg_size(mb)) {
+			slist_iter_remove(iter);	/* Fully copied message */
+		}
+	}
+	slist_iter_free(&iter);
+
+	return len - remain;
+}
+
+/**
+ * Free all items from the pmsg list, keeping the list container.
+ */
+void
+pmsg_slist_discard_all(slist_t *slist)
+{
+	pmsg_t *mb;
+
+	while ((mb = slist_shift(slist)) != NULL) {
+		pmsg_free(mb);
+	}
+}
+
+/**
+ * Free the pmsg list, including the list container, nullifying its pointer.
+ */
+void
+pmsg_slist_free_all(slist_t **slist_ptr)
+{
+	slist_free_all(slist_ptr, cast_to_slist_destroy(pmsg_free));
+}
+
+/**
  * Write an IPv4 or IPv6 address.
  */
 void

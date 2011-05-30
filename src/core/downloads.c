@@ -690,7 +690,7 @@ download_pipeline_socket_feed(struct download *d, pmsg_t *mb)
 	int r;
 
 	download_check(d);
-	g_assert(mb != NULL);
+	pmsg_check_consistency(mb);
 
 	s = d->socket;
 	g_assert(s != NULL);
@@ -1348,12 +1348,6 @@ buffers_alloc(struct download *d)
 	d->buffers = b;
 }
 
-static void
-buffers_free_item(pmsg_t *mb)
-{
-	pmsg_free(mb);
-}
-
 /**
  * Dispose of the buffers used for reading.
  */
@@ -1367,7 +1361,7 @@ buffers_free(struct download *d)
 	g_assert(d->buffers->held == 0);	/* No pending data */
 
 	b = d->buffers;
-	slist_free_all(&b->list, cast_to_slist_destroy(buffers_free_item));
+	pmsg_slist_free_all(&b->list);
 	WFREE(b);
 
 	d->buffers = NULL;
@@ -1380,7 +1374,6 @@ static void
 buffers_reset_reading(struct download *d)
 {
 	struct dl_buffers *b;
-	slist_iter_t *iter;
 
 	download_check(d);
 	g_assert(d->buffers != NULL);
@@ -1388,17 +1381,7 @@ buffers_reset_reading(struct download *d)
 	g_assert(d->buffers->held == 0);
 
 	b = d->buffers;
-	iter = slist_iter_removable_on_head(b->list);
-	while (slist_iter_has_item(iter)) {
-		pmsg_t *mb;
-
-		mb = slist_iter_current(iter);
-		g_assert(mb);
-		pmsg_free(mb);
-		slist_iter_remove(iter);
-	}
-	slist_iter_free(&iter);
-
+	pmsg_slist_discard_all(b->list);
 	b->mode = DL_BUF_READING;
 }
 

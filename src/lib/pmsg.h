@@ -147,7 +147,7 @@ G_STMT_START { \
 static inline void
 pmsg_check_consistency(const pmsg_t * const mb)
 {
-	g_assert(mb);
+	g_assert(mb != NULL);
 	g_assert((PMSG_MAGIC == mb->magic) ^ (PMSG_EXT_MAGIC == mb->magic));
 	g_assert((PMSG_MAGIC == mb->magic) ^ (0 != (PMSG_PF_EXT & mb->m_prio)));
 }
@@ -192,6 +192,9 @@ iovec_t *pmsg_slist_to_iovec(slist_t *slist,
 void pmsg_slist_discard(slist_t *slist, size_t n_bytes);
 void pmsg_slist_append(slist_t *slist, const void *data, size_t n_bytes);
 size_t pmsg_slist_size(const slist_t *slist);
+size_t pmsg_slist_read(slist_t *slist, void *buf, size_t len);
+void pmsg_slist_discard_all(slist_t *slist);
+void pmsg_slist_free_all(slist_t **slist_ptr);
 
 static inline void
 pmsg_slist_free(slist_t **slist_ptr)
