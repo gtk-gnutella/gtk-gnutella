@@ -384,8 +384,8 @@ gnet_stats_init(void)
 
 #undef CASE
 		
-    memset(&gnet_stats, 0, sizeof(gnet_stats));
-    memset(&gnet_udp_stats, 0, sizeof(gnet_udp_stats));
+    ZERO(&gnet_stats);
+    ZERO(&gnet_udp_stats);
 
 	gnet_stats_crc32 = random_u32();
 }

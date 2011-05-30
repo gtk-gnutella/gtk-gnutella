@@ -974,7 +974,7 @@ upnp_discover(unsigned timeout, upnp_discover_cb_t cb, void *arg)
 		struct addrinfo hints, *serv, *p;
 		int r;
 
-		memset(&hints, 0, sizeof hints);
+		ZERO(&hints);
 		hints.ai_family = AF_UNSPEC;
 		hints.ai_socktype = SOCK_DGRAM;
 

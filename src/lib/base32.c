@@ -192,7 +192,7 @@ base32_decode(char *dst, size_t size, const void *data, size_t len)
 		}
 	}
 
-	memset(&s[0], 0, sizeof s);
+	ZERO(&s);
 	si = 0;
 	i = 0;
 

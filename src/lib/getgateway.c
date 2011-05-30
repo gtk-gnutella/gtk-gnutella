@@ -190,7 +190,7 @@ getgateway(host_addr_t *addrp)
 	if (-1 == fd)
 		return -1;
 
-	memset(&nlm, 0, sizeof nlm);
+	ZERO(&nlm);
 	nlm.hdr.nlmsg_len = NLMSG_LENGTH(sizeof nlm.rtm);
 	nlm.hdr.nlmsg_type = RTM_GETROUTE;
 	nlm.hdr.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
@@ -308,9 +308,9 @@ found:
 	if (-1 == fd)
 		return -1;
 
-	memset(rt, 0, sizeof *rt);
-	memset(&dest, 0, sizeof dest);
-	memset(&mask, 0, sizeof mask);
+	ZERO(rt);
+	ZERO(&dest);
+	ZERO(&mask);
 
 	rt->rtm_type = RTM_GET;
 	rt->rtm_flags = RTF_UP | RTF_GATEWAY;

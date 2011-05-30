@@ -1470,7 +1470,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			return acceptable;
 
 		vd = &new_vd;
-		memset(&new_vd, 0, sizeof new_vd);
+		ZERO(&new_vd);
 
 		/*
 		 * We don't have the value, but if this is not an original, we

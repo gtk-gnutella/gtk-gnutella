@@ -347,7 +347,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 	gnet_upload_status_t status;
 	static gchar size_tmp[256];
 
-	memset(titles, 0, sizeof titles);
+	ZERO(&titles);
 
 	WALLOC(rd);
     rd->handle      = u->upload_handle;

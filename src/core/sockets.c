@@ -2393,7 +2393,7 @@ socket_udp_accept(struct gnutella_socket *s)
 				char bytes[CMSG_SPACE(512)];
 			} cmsg_buf;
 
-			memset(&cmsg_buf.hdr, 0, sizeof cmsg_buf.hdr);
+			ZERO(&cmsg_buf.hdr);
 			msg.msg_control = cmsg_buf.bytes;
 			msg.msg_controllen = sizeof cmsg_buf.bytes;
 		}

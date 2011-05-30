@@ -2139,7 +2139,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	 * allocated.
 	 */
 
-	memset(selected, 0, sizeof(selected));
+	ZERO(&selected);
 
 	/*
 	 * First pass.

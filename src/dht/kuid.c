@@ -346,7 +346,7 @@ kuid_atom_free(const kuid_t *k)
 void
 kuid_zero(kuid_t *res)
 {
-	memset(res->v, 0, KUID_RAW_SIZE);
+	ZERO(&res->v);
 }
 
 /**

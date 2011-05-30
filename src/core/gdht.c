@@ -279,7 +279,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	g_assert(DHT_VT_ALOC == rc->type);
 
 	ext_prepare(exv, MAX_EXTVEC);
-	memset(guid.v, 0, GUID_RAW_SIZE);
+	ZERO(&guid.v);
 
 	exvcnt = ext_parse(rc->data, rc->length, exv, MAX_EXTVEC);
 
@@ -597,7 +597,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 	guid_lookup_check(glk);
 
 	ext_prepare(exv, MAX_EXTVEC);
-	memset(guid.v, 0, GUID_RAW_SIZE);
+	ZERO(&guid.v);
 
 	exvcnt = ext_parse(rc->data, rc->length, exv, MAX_EXTVEC);
 
@@ -780,7 +780,7 @@ gdht_handle_nope(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 	guid_lookup_check(glk);
 
 	ext_prepare(exv, MAX_EXTVEC);
-	memset(guid.v, 0, GUID_RAW_SIZE);
+	ZERO(&guid.v);
 
 	exvcnt = ext_parse(rc->data, rc->length, exv, MAX_EXTVEC);
 

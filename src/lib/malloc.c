@@ -721,7 +721,7 @@ malloc_periodic(gpointer unused_obj)
 			errors, 1 == errors ? "" : "s");
 	}
 
-	memset(&ctx, 0, sizeof ctx);
+	ZERO(&ctx);
 	tm_now_exact(&start);
 
 #ifdef TRACK_MALLOC
@@ -3184,7 +3184,7 @@ malloc_show_settings(void)
 		gboolean vtable_works;
 	} settings;
 
-	memset(&settings, 0, sizeof settings);
+	ZERO(&settings);
 
 #ifdef MALLOC_PERIODIC
 	/*

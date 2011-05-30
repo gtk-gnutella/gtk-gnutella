@@ -2382,7 +2382,7 @@ compute:
 	 */
 
 	iter = patricia_metric_iterator_lazy(nl->path, nl->kuid, TRUE);
-	memset(nodelist, 0, sizeof nodelist);
+	ZERO(&nodelist);
 	i = 0;
 
 	while (i++ < KDA_K && patricia_iter_has_next(iter)) {

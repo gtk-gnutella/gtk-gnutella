@@ -821,7 +821,7 @@ atoms_init(void)
 	} settings;
 	guint i;
 
-	memset(&settings, 0, sizeof settings);
+	ZERO(&settings);
 
 	STATIC_ASSERT(NUM_ATOM_TYPES <= (ATOM_TYPE_MASK + 1));
 	STATIC_ASSERT(NUM_ATOM_TYPES == G_N_ELEMENTS(atoms));

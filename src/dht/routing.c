@@ -3649,7 +3649,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 	 */
 
 	iter = patricia_metric_iterator_lazy(pt, kuid, TRUE);
-	memset(prefix, 0, sizeof prefix);
+	ZERO(&prefix);
 	retained = 0;
 	count = patricia_count(pt);
 
@@ -3682,7 +3682,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 	 * Compute cumulative distribution.
 	 */
 
-	memset(cumulative, 0, sizeof cumulative);
+	ZERO(&cumulative);
 
 	cumulative[0] = prefix[0];
 
@@ -4794,7 +4794,7 @@ dht_close(gboolean exiting)
 	statx_free(stats.netdata);
 	acct_net_free(&c_class);
 
-	memset(&stats, 0, sizeof stats);		/* Clear all stats */
+	ZERO(&stats);			/* Clear all stats */
 	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
 }
 

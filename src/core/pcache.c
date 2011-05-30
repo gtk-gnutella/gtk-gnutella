@@ -518,7 +518,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 			 * pain and the CPU overhead.
 			 */
 
-			memset(tls_bytes, 0, sizeof tls_bytes);
+			ZERO(&tls_bytes);
 			tls_index = 0;
 			tls_length = 0;
 
@@ -1132,8 +1132,8 @@ pcache_init(void)
 	int h;
 	char *lang = NULL;
 
-	memset(pong_cache, 0, sizeof pong_cache);
-	memset(recent_pongs, 0, sizeof recent_pongs);
+	ZERO(&pong_cache);
+	ZERO(&recent_pongs);
 
 	/*
 	 * We limit UDP pings to 1 every UDP_PING_FREQ seconds.
@@ -1631,7 +1631,7 @@ setup_pong_demultiplexing(struct gnutella_node *n, guint8 ttl)
 	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_INIT);
 
 	memcpy(&n->ping_guid, gnutella_header_get_muid(&n->header), 16);
-	memset(n->pong_needed, 0, sizeof(n->pong_needed));
+	ZERO(&n->pong_needed);
 	n->pong_missing = 0;
 
 	/*

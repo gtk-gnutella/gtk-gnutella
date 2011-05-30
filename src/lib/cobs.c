@@ -398,7 +398,7 @@ closed:
 void
 cobs_stream_invalidate(cobs_stream_t *cs)
 {
-	memset(cs, 0, sizeof *cs);
+	ZERO(cs);
 }
 
 /**

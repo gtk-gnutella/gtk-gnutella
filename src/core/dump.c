@@ -122,7 +122,7 @@ static struct dump dump_tx = {
 static void
 dump_header_set(struct dump_header *dh, const struct gnutella_node *node)
 {
-	memset(dh, 0, sizeof dh);
+	ZERO(dh);
 
 	dh->data[0] = NODE_IS_UDP(node) ? DH_F_UDP : DH_F_TCP;
 	switch (host_addr_net(node->addr)) {

@@ -693,6 +693,11 @@ get_rcsid_string(void)	\
 	((guint32) (unsigned char) ((c) & 0xffU) << 8)  | \
 	((guint32) (unsigned char) ((d) & 0xffU)))
 
+/**
+ * Zero memory used by structure pointed at.
+ */
+#define ZERO(x)		memset((x), 0, sizeof *(x))
+
 #include "casts.h"
 #include "lib/fast_assert.h"
 

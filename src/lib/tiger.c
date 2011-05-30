@@ -270,7 +270,7 @@ tiger_check(void)
 		char buf[40];
 		gboolean ok;
 
-		memset(buf, 0, sizeof buf);	
+		ZERO(&buf);
 		tiger(tests[i].s, tests[i].len, hash);
 		base32_encode(buf, sizeof buf, hash, sizeof hash);
 		buf[G_N_ELEMENTS(buf) - 1] = '\0';

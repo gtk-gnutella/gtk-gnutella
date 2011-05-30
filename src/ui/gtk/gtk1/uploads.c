@@ -273,7 +273,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 
     clist_uploads = gui_main_window_lookup("clist_uploads");
 
-	memset(titles, 0, sizeof(titles));
+	ZERO(&titles);
 
     if ((u->range_start == 0) && (u->range_end == 0)) {
         titles[c_ul_size] = titles[c_ul_range] =  "...";

@@ -1452,7 +1452,7 @@ pmap_load_data(struct pmap *pm)
 	 * extend the stack, which may modify mappings while reading from /proc.
 	 */
 
-	memset(buf, 0, sizeof buf);
+	ZERO(&buf);
 
 	pm->count = 0;
 	iobuffer_init(&iob, buf, sizeof buf);

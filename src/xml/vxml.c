@@ -6287,7 +6287,7 @@ vxml_parse_tree(vxml_parser_t *vp, xnode_t **root)
 
 	vxml_parser_check(vp);
 
-	memset(&ops, 0, sizeof ops);
+	ZERO(&ops);
 	ops.plain_start = vxml_ptree_start;
 	ops.plain_end = vxml_ptree_end;
 	ops.plain_text = vxml_ptree_text;
@@ -6709,7 +6709,7 @@ subparse_start(vxml_parser_t *vp,
 	g_assert(0 == strcmp("a", name));
 	g_assert(1 == vxml_parser_depth(vp));
 
-	memset(&ops, 0, sizeof ops);
+	ZERO(&ops);
 	ops.tokenized_start = subparse_token_start;
 	ops.tokenized_end = subparse_token_end;
 	ops.tokenized_text = subparse_token_text;
@@ -6762,7 +6762,7 @@ vxml_test(void)
 		"bad_comment", bad_comment, CONST_STRLEN(bad_comment),
 		VXML_O_STRICT_COMMENTS, VXML_E_EXPECTED_GT);
 
-	memset(&ops, 0, sizeof ops);
+	ZERO(&ops);
 	ops.plain_text = tricky_text;
 	seen_text = FALSE;
 
@@ -6770,13 +6770,13 @@ vxml_test(void)
 		VXML_O_FATAL, &ops, tvec, 2, &seen_text);
 	g_assert(TRUE == seen_text);
 
-	memset(&ops, 0, sizeof ops);
+	ZERO(&ops);
 	ops.tokenized_text = evaluation_text;
 
 	vxml_run_callback_test(6, "evaluation", evaluation,
 		CONST_STRLEN(evaluation), 0, &ops, tvec, 2, NULL);
 
-	memset(&ops, 0, sizeof ops);
+	ZERO(&ops);
 	ops.tokenized_text = blank_text;
 
 	vxml_run_callback_test(7, "blanks", blanks, CONST_STRLEN(blanks),
@@ -6784,7 +6784,7 @@ vxml_test(void)
 	vxml_run_callback_test(8, "blanks", blanks, CONST_STRLEN(blanks),
 		VXML_O_STRIP_BLANKS, &ops, tvec, 2, GUINT_TO_POINTER(TRUE));
 
-	memset(&ops, 0, sizeof ops);
+	ZERO(&ops);
 	ops.plain_start = subparse_start;
 	ops.plain_end = subparse_end;
 	ops.plain_text = subparse_text;
@@ -6806,7 +6806,7 @@ vxml_test(void)
 	 * namespaces thanks to the default namespace being set by <y:c>.
 	 */
 
-	memset(&ops, 0, sizeof ops);
+	ZERO(&ops);
 	ops.plain_text = namespace_text;
 
 	vxml_run_callback_test(13, "namespaces", namespaces,

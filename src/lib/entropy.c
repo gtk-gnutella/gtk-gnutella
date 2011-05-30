@@ -196,7 +196,7 @@ entropy_collect(struct sha1 *digest)
 	 * Add local CPU state noise.
 	 */
 
-	memset(env, 0, sizeof env);		/* Avoid uninitialized memory reads */
+	ZERO(&env);			/* Avoid uninitialized memory reads */
 
 	if (setjmp(env)) {
 		/* We will never longjmp() back here */

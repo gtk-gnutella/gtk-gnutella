@@ -467,7 +467,7 @@ tt_check_digest(const char * const expected, const void *data, size_t size)
 	tt_update(&ctx, data, size);
 	tt_digest(&ctx, &hash);
 
-	memset(digest, 0, sizeof digest);	
+	ZERO(&digest);
 	base32_encode(digest, sizeof digest, hash.data, sizeof hash.data);
 	digest[G_N_ELEMENTS(digest) - 1] = '\0';
 

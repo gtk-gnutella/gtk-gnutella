@@ -111,7 +111,7 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 	 * Compile valid options.
 	 */
 
-	memset(options, 0, sizeof options);
+	ZERO(&options);
 	error_string[0] = '\0';
 
 	for (i = 0; i < osize; i++) {

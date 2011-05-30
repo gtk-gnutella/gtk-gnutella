@@ -1943,7 +1943,7 @@ mingw_uname(struct utsname *buf)
 	DWORD len;
 	const char *cpu;
 
-	memset(buf, 0, sizeof *buf);
+	ZERO(buf);
 
 	g_strlcpy(buf->sysname, "Windows", sizeof buf->sysname);
 
@@ -2642,7 +2642,7 @@ mingw_getgateway(guint32 *ip)
 {
 	MIB_IPFORWARDROW ipf;
 
-	memset(&ipf, 0, sizeof ipf);
+	ZERO(&ipf);
 	if (GetBestRoute(0, 0, &ipf) != NO_ERROR) {
 		errno = mingw_last_error();
 		return -1;
@@ -2677,7 +2677,7 @@ mingw_stack_fill(void **buffer, int size, CONTEXT *c, int skip)
 	proc = GetCurrentProcess();
 	thread = GetCurrentThread();
 
-	memset(&s, 0, sizeof s);
+	ZERO(&s);
 
 	/*
 	 * We're MINGW32, so even on a 64-bit processor we're going to run
@@ -2722,7 +2722,7 @@ mingw_backtrace(void **buffer, int size)
 
 	thread = GetCurrentThread();
 
-	memset(&c, 0, sizeof c);
+	ZERO(&c);
 	c.ContextFlags = CONTEXT_FULL;
 
 	/*

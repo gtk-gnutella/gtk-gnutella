@@ -207,7 +207,7 @@ hsep_sanity_check(void)
 	hsep_triple sum[G_N_ELEMENTS(hsep_global_table)];
 	unsigned int i, j;
 
-	memset(sum, 0, sizeof sum);
+	ZERO(&sum);
 
 	g_assert(1 == hsep_own[HSEP_IDX_NODES]);
 
@@ -387,7 +387,7 @@ hsep_reset(void)
 	const GSList *sl;
 	guint i;
 
-	memset(hsep_global_table, 0, sizeof hsep_global_table);
+	ZERO(&hsep_global_table);
 
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
@@ -399,8 +399,8 @@ hsep_reset(void)
 
 		g_assert(n->hsep);
 
-		memset(n->hsep->table, 0, sizeof n->hsep->table);
-		memset(n->hsep->sent_table, 0, sizeof n->hsep->sent_table);
+		ZERO(&n->hsep->table);
+		ZERO(&n->hsep->sent_table);
 
 		/* this is what we know before receiving the first message */
 
@@ -734,7 +734,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	g_assert(n->hsep);
 
 	hsep = n->hsep;
-	memset(other, 0, sizeof other);
+	ZERO(&other);
 
 	/*
 	 * If we are a leaf, we just need to send one triple,

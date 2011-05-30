@@ -1010,7 +1010,7 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 	 * earliest tree depth at which a namespace is used.
 	 */
 
-	memset(&xp1, 0, sizeof xp1);
+	ZERO(&xp1);
 	xp1.uri2depth = g_hash_table_new(g_str_hash, g_str_equal);
 	xp1.multiple = g_hash_table_new(g_str_hash, g_str_equal);
 	xp1.uri2prefix = nv_table_make(FALSE);
@@ -1046,7 +1046,7 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 	 * Prepare context for second pass.
 	 */
 
-	memset(&xp2, 0, sizeof xp2);
+	ZERO(&xp2);
 	xp2.depth2uri = g_hash_table_new(NULL, NULL);
 	xp2.os = os;
 	xp2.options = options;

@@ -1125,7 +1125,7 @@ crash_init(const char *argv0, const char *progname,
 	size_t size;
 	char *executable = NULL;
 
-	memset(&iv, 0, sizeof iv);
+	ZERO(&iv);
 
 	/*
 	 * Must set this early in case we have to call crash_time(), since

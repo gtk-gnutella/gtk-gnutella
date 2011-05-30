@@ -1967,7 +1967,7 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 				guint i;
 
 				g_assert(hcnt <= G_N_ELEMENTS(hvec));
-				memset(tls_bytes, 0, sizeof tls_bytes);
+				ZERO(&tls_bytes);
 				tls_index = 0;
 				tls_length = 0;
 

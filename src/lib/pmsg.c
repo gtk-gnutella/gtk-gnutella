@@ -370,11 +370,9 @@ pmsg_free(pmsg_t *mb)
 		pmsg_ext_t *emb = cast_to_pmsg_ext(mb);
 		if (emb->m_free)
 			(*emb->m_free)(mb, emb->m_arg);
-		memset(emb, 0, sizeof *emb);
-		WFREE(emb);
+		WFREE0(emb);
 	} else {
-		memset(mb, 0, sizeof *mb);
-		WFREE(mb);
+		WFREE0(mb);
 	}
 
 	/*

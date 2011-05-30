@@ -885,7 +885,7 @@ ulq_init(void)
 	ulq[ULQ_OTHER]	= ulq_init_queue("OTHER", 5);
 	ulq[ULQ_PRIO]	= ulq_init_queue("PRIO", 100);
 
-	memset(&sched, 0, sizeof sched);
+	ZERO(&sched);
 	sched.runq = slist_new();
 }
 

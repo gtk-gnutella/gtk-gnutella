@@ -741,7 +741,7 @@ pdht_get_prox(const kuid_t *key)
 		size_t i = 0;
 
 		ok = ok && ggep_stream_begin(&gs, GGEP_NAME(proxies), 0);
-		memset(tls_bytes, 0, sizeof tls_bytes);
+		ZERO(&tls_bytes);
 		tls_length = 0;
 
 		while (ok && i < pdht_proxy.proxies_count) {
@@ -1793,7 +1793,7 @@ pdht_init(void)
 {
 	aloc_publishes = g_hash_table_new(sha1_hash, sha1_eq);
 	nope_publishes = g_hash_table_new(guid_hash, guid_eq);
-	memset(&pdht_proxy, 0, sizeof pdht_proxy);
+	ZERO(&pdht_proxy);
 	pdht_prox_install_republish(PDHT_PROX_DELAY);
 }
 

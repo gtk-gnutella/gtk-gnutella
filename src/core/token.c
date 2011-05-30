@@ -663,7 +663,7 @@ tok_generate(time_t now, const char *version)
 	base64_encode_into(digest, TOKEN_VERSION_SIZE, token, TOKEN_BASE64_SIZE);
 	token[TOKEN_BASE64_SIZE] = '\0';
 
-	memset(lvlbase64, 0, sizeof(lvlbase64));
+	ZERO(&lvlbase64);
 	base64_encode_into(lvldigest, 2 * lvlsize, lvlbase64, LEVEL_BASE64_SIZE);
 
 	return g_strconcat(token, "; ", lvlbase64, (void *) 0);

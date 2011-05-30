@@ -461,7 +461,7 @@ flush_match(void)
 			gboolean ok;
 
 			ok = ggep_stream_begin(&gs, GGEP_NAME(PUSH), 0);
-			memset(tls_bytes, 0, sizeof tls_bytes);
+			ZERO(&tls_bytes);
 			tls_index = 0;
 			tls_length = 0;
 
@@ -784,7 +784,7 @@ add_file(const shared_file_t *sf)
 		int i;
 
 		g_assert(hcnt <= QHIT_MAX_ALT);
-		memset(tls_bytes, 0, sizeof tls_bytes);
+		ZERO(&tls_bytes);
 		tls_index = 0;
 		tls_length = 0;
 

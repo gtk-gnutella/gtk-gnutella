@@ -524,7 +524,7 @@ upnp_service_extract(const char *data, size_t len, const char *desc_url)
 	vp = vxml_parser_make(desc_url, VXML_O_STRIP_BLANKS);
 	vxml_parser_add_data(vp, data, len);
 
-	memset(&ctx, 0, sizeof ctx);
+	ZERO(&ctx);
 	ctx.desc_url = desc_url;		/* For logging */
 
 	e = vxml_parse_callbacks_tokens(vp,

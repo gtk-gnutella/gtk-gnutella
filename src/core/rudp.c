@@ -331,7 +331,7 @@ rudp_set_gnet_header(gnutella_header_t *header, guint32 size)
 {
   g_assert(size < 0xffff);
 
-  memset(header->muid, 0, sizeof header->muid);
+  ZERO(&header->muid);
   header->function = GTA_MSG_RUDP;
   header->ttl = 1;
   header->hops = 0;
