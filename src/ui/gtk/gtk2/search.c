@@ -1572,6 +1572,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 			search_gui_data_changed(gtk_tree_view_get_model(tv), rd);
 			if (search_gui_item_is_inspected(rd->record)) {
 				search_gui_set_bitzi_metadata(rd->record);
+				search_gui_set_details(rd->record);
 			}
 		}
 	}

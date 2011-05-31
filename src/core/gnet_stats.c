@@ -224,6 +224,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"parq_queue_follow_ups",
 		"sha1_verifications",
 		"tth_verifications",
+		"bitzi_tickets_held",
 		"qhit_seeding_of_orphan",
 		"upload_seeding_of_orphan",
 		"dht_estimated_size",

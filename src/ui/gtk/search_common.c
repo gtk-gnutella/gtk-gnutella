@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "gtk/search_common.h"
 #include "gtk/search_xml.h"
 
+#include "gtk/bitzi.h"
 #include "gtk/clipboard.h"
 #include "gtk/drag.h"
 #include "gtk/drop.h"
@@ -3908,16 +3909,23 @@ search_gui_set_details(const record_t *rc)
 		WFREE_NULL(buf, size);
 	}
 
-#if 0
-	/* The index is already shown in the classic URL in expert mode,
-	 * so don't show it explicitely as it's just visual noise. */
-	search_gui_append_detail(_("Index"), uint32_to_string(rc->file_index));
-#endif
+	/*
+	 * The index is already shown in the classic URL in expert mode,
+	 * so don't show it explicitely as it's just visual noise.
+	 */
 
 	if (rc->sha1) {
+		bitzi_data_t data;
+
 		search_gui_append_detail(_("External metadata"), NULL);	/* Separator */
 		search_gui_append_detail(_("Bitzi URL"),
 			url_for_bitzi_lookup(rc->sha1));
+
+		if (guc_bitzi_data_by_sha1(&data, rc->sha1, rc->size)) {
+			char *meta = bitzi_gui_get_metadata(&data);
+			search_gui_append_detail(_("Bitzi metadata"), meta);
+			HFREE_NULL(meta);
+		}
 	}
 
 	if (ST_LOCAL & rs->status) {

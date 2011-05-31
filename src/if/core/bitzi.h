@@ -61,9 +61,9 @@ typedef struct bitzi_data {
 	const struct sha1 *sha1;	/**< pointer to SHA-1 atom */
 	const char	*mime_type;		/**< mime type (string atom) */
 	const char	*mime_desc;		/**< mime details (fps, bitrate etc) (atom) */
-	char *ticket;				/**< The ticket as text */
+	const char *ticket;			/**< The XML ticket as a single string */
 	filesize_t	size;			/**< size of file */
-	bitzi_fj_t	judgement;
+	bitzi_fj_t	judgment;
 	float		goodness;
 	time_t		expiry;			/**< expiry date of meta-data */
 } bitzi_data_t;
@@ -81,7 +81,8 @@ typedef struct bitzi_data {
  */
 
 gboolean bitzi_has_cached_ticket(const struct sha1 *);
-bitzi_data_t *bitzi_query_by_sha1(const struct sha1 *, filesize_t, gboolean);
+void bitzi_query_by_sha1(const struct sha1 *, filesize_t, gboolean);
+gboolean bitzi_data_by_sha1(bitzi_data_t *, const struct sha1 *, filesize_t);
 const char *bitzi_ticket_by_sha1(const struct sha1 *, filesize_t);
 
 #endif /* CORE_SOURCES */

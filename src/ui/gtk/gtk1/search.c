@@ -1950,6 +1950,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 			record = grc->shared_record;
 			if (search_gui_item_is_inspected(record)) {
 				search_gui_set_bitzi_metadata(record);
+				search_gui_set_details(record);
 			}
 		}
 	}

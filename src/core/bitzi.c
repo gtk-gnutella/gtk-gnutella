@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2004, Alex Bennee <alex@bennee.com>
+ * Copyright (c) 2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -33,44 +34,70 @@
  * service. It is independent from any GUI functions and part of the
  * core of GTKG.
  *
- * @note
- * The code requires libxml to parse the XML responses.
- *
- * @bug FIXME: Due to the way the XML file is loaded and stored,
- *      old tickets are not removed until they expire. If a
- *      ticket is refreshed it is appended to the XML file, but
- *      the old ticket is still at a lower offset, so that we
- *      load the old ticket on startup but discard it when we
- *      reach the newer ticket.
- *
  * @author Alex Bennee <alex@bennee.com>
  * @date 2004
+ *
+ * Removed dependency on libxml2 and switched to a DBMW-based cache.
+ *
+ * @author Raphael Manfredi
+ * @date 2011
  */
 
 #include "common.h"
 
-#include <libxml/parser.h>
-#include <libxml/tree.h>
-
-#include "http.h"			/* http async stuff */
 #include "bitzi.h"			/* bitzi metadata */
+#include "gnet_stats.h"
+#include "http.h"			/* http async stuff */
 #include "settings.h"		/* settings_config_dir() */
+
+#include "xml/vxml.h"
+#include "xml/xnode.h"
+#include "xml/xfmt.h"
 
 #include "if/bridge/c2ui.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/dbmw.h"
+#include "lib/dbstore.h"
 #include "lib/getdate.h"	/* date2time() */
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/header.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/slist.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/strtok.h"
+#include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/urn.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* This file MUST be the last one included */
+
+#define BITZI_XML_MAXLEN		16384
+#define BITZI_DB_CACHE_SIZE		32
+#define BITZI_SYNC_PERIOD		(60 * 1000)		/** ms: 1 minute */
+#define BITZI_PRUNE_PERIOD		(3600 * 1000)	/** ms: 1 hour */
+#define BITZI_HEARTBEAT_PERIOD	(10 * 1000)		/** ms: 10 secs */
+
+static const char bitzi_url_fmt[] =
+	"http://ticket.bitzi.com/rdf/urn:sha1:%s?ref=gtk-gnutella";
+
+static const char BITZI_RDF[]	= "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+static const char BITZI_BZ[]	= "http://bitzi.com/xmlns/2002/01/bz-core#";
+static const char BITZI_DC[]	= "http://purl.org/dc/elements/1.1/";
+
+/**
+ * For XML tree formating, indicate prefixes to use for namespaces we parse.
+ */
+const struct xfmt_prefix bitzi_prefixes[] = {
+	{ BITZI_RDF,	"rdf" },
+	{ BITZI_BZ,		"bz" },
+	{ BITZI_DC,		"dc" },
+};
 
 /**
  * @struct bitzi_request_t
@@ -79,109 +106,179 @@
  * which are stored in the request queue.
  *
  */
-
-static const char bitzi_url_fmt[] =
-	"http://ticket.bitzi.com/rdf/urn:sha1:%s?ref=gtk-gnutella";
-
 typedef struct {
 	const struct sha1 *sha1;			/**< binary SHA-1, atom */
 	filesize_t filesize;
 	char bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /**< request URL */
-
-	/*
-	 * xml related bits
-	 */
-	xmlParserCtxt *ctxt;   	/**< libxml parser context */
+	http_async_t *ha;
 } bitzi_request_t;
 
-/*
+/**
  * The request queue, the searches to the Bitzi data service are queued
  */
-static GSList *bitzi_rq;
+static slist_t *bitzi_rq;
 
 static bitzi_request_t	*current_bitzi_request;
-static gpointer	 current_bitzi_request_handle;
 static cperiodic_t *bitzi_heartbeat_ev;
+static cperiodic_t *bitzi_sync_ev;
+static cperiodic_t *bitzi_prune_ev;
 
-
-/*
- * Hash Table/Cache for all queries we've ever done
- *
- * This allows non-blocking threads to check if we have any results
- * for the given urn:sha1. The entries are both indexed in the hash
- * table (for quick lookups) and a GList so we can go through the data
- * for expiring entries
+/**
+ * DBM wrapper to associate a SHA1 with its Bitzi ticket.
  */
+static dbmw_t *db_bzdata;
+static char db_bzdata_base[] = "bitzi_tickets";
+static char db_bzdata_what[] = "Bitzi tickets";
 
-static GHashTable *bitzi_cache_ht;
-static GList *bitzi_cache;
+/**
+ * Ticket information stored in the database.
+ * The structure is serialized first, not written as-is
+ */
+struct bzdata {
+	const char *mime_type;			/**< MIME type (atom) */
+	const char *mime_desc;			/**< MIME details (atom) */
+	char *ticket;					/**< Raw XML ticket text */
+	filesize_t size;				/**< File size */
+	bitzi_fj_t judgment;
+	float goodness;
+	time_t ctime;					/**< Creation time (local insertion) */
+	time_t etime;					/**< Expiration date, from ticket */
+};
 
-static FILE *bitzi_cache_file;
+#define BITZI_BZ_VERSION	0		/**< Serialization version number */
+
+/**
+ * Serialization flags.
+ */
+#define BITZI_HAS_MIME_TYPE		(1 << 0)
+#define BITZI_HAS_MIME_DESC		(1 << 1)
+#define BITZI_HAS_TICKET		(1 << 2)
 
 /*
  * Function declarations
  */
 
-/* bitzi request handling */
-static gboolean do_metadata_query(bitzi_request_t * req);
-static void process_meta_data(bitzi_request_t * req);
-
 /* cache functions */
-static gboolean bitzi_cache_add(bitzi_data_t * data);
-static void bitzi_cache_remove(bitzi_data_t * data);
-static void bitzi_cache_remove_by_sha1(const struct sha1 *);
-static void bitzi_cache_clean(void);
+static gboolean bitzi_cache_add(bitzi_data_t * data, const xnode_t *root);
 
-/* Get rid of the obnoxious (xmlChar *) */
-static inline char *
-xml_get_string(xmlNode *node, const char *id)
+/********************************************************************
+ ** Bitzi serialization & deserialization routines for DBMW
+ ********************************************************************/
+
+/**
+ * Serialization routine for bzdata.
+ */
+static void
+serialize_bzdata(pmsg_t *mb, const void *data)
 {
-	return (char *) xmlGetProp(node, (const xmlChar *) id);
+	const struct bzdata *bz = data;
+	guint8 flags;
+
+	pmsg_write_u8(mb, BITZI_BZ_VERSION);
+
+	flags = 0;
+	if (bz->mime_type != NULL)
+		flags |= BITZI_HAS_MIME_TYPE;
+	if (bz->mime_desc != NULL)
+		flags |= BITZI_HAS_MIME_DESC;
+	if (bz->ticket != NULL)
+		flags |= BITZI_HAS_TICKET;
+	pmsg_write_u8(mb, flags);
+
+	if (bz->mime_type != NULL)
+		pmsg_write_string(mb, bz->mime_type, (size_t) -1);
+	if (bz->mime_desc != NULL)
+		pmsg_write_string(mb, bz->mime_desc, (size_t) -1);
+	if (bz->ticket != NULL)
+		pmsg_write_string(mb, bz->ticket, (size_t) -1);
+
+	pmsg_write_be64(mb, bz->size);
+	pmsg_write_be32(mb, bz->judgment);
+	pmsg_write_float_be(mb, bz->goodness);
+	pmsg_write_time(mb, bz->ctime);
+	pmsg_write_time(mb, bz->etime);
 }
 
 /**
- * Use this to free strings returned by xml_get_string().
+ * Deserialization routing for bzdata.
  */
-static inline void
-xml_free_null(char **ptr)
+static void
+deserialize_bzdata(bstr_t *bs, void *valptr, size_t len)
 {
-	g_assert(ptr);
-	if (*ptr) {
-		xmlFree(*ptr);
-		*ptr = NULL;
+	struct bzdata *bz = valptr;
+	guint8 version;
+	guint8 flags;
+	guint64 val;
+
+	g_assert(sizeof *bz == len);
+
+	bstr_read_u8(bs, &version);
+	bstr_read_u8(bs, &flags);
+
+	if (flags & BITZI_HAS_MIME_TYPE) {
+		char *string;
+		if (bstr_read_string(bs, NULL, &string)) {
+			bz->mime_type = atom_str_get(string);
+			hfree(string);
+		}
+	} else {
+		bz->mime_type = NULL;
 	}
+
+	if (flags & BITZI_HAS_MIME_DESC) {
+		char *string;
+		if (bstr_read_string(bs, NULL, &string)) {
+			bz->mime_desc = atom_str_get(string);
+			hfree(string);
+		}
+	} else {
+		bz->mime_desc = NULL;
+	}
+
+	if (flags & BITZI_HAS_TICKET) {
+		bstr_read_string(bs, NULL, &bz->ticket);
+	} else {
+		bz->ticket = NULL;
+	}
+
+	bz->size = bstr_read_be64(bs, &val) ? val : 0;
+	bstr_read_be32(bs, &bz->judgment);
+	bstr_read_float_be(bs, &bz->goodness);
+	bstr_read_time(bs, &bz->ctime);
+	bstr_read_time(bs, &bz->etime);
 }
 
-static inline const xmlChar *
-string_to_xmlChar(const char *s)
+/**
+ * Free routine for bzdata, to release internally allocated memory at
+ * deserialization time (not the structure itself).
+ */
+static void
+free_bzdata(void *valptr, size_t len)
 {
-	/* If we were pedantic, we'd verify that ``s'' is UTF-8 encoded */
-	return (const xmlChar *) s;
-}
+	struct bzdata *bz = valptr;
+	
+	g_assert(sizeof *bz == len);
 
-static inline const char *
-xmlChar_to_gchar(const xmlChar *s)
-{
-	return (const char *) s;
+	atom_str_free_null(&bz->mime_type);
+	atom_str_free_null(&bz->mime_desc);
+	HFREE_NULL(bz->ticket);
 }
 
 /********************************************************************
- ** Bitzi Create and Destroy data structure
+ ** Bitzi Create and Destroy data structures
  ********************************************************************/
 
 static bitzi_data_t *
 bitzi_create(void)
 {
-	static const bitzi_data_t zero_data;
 	bitzi_data_t *data;
 
 	/*
 	 * defaults
 	 */
 
-	WALLOC(data);
-	*data = zero_data;
-	data->judgement = BITZI_FJ_UNKNOWN;
+	WALLOC0(data);
+	data->judgment = BITZI_FJ_UNKNOWN;
 	data->expiry = (time_t) -1;
 
 	return data;
@@ -190,86 +287,70 @@ bitzi_create(void)
 static void
 bitzi_destroy(bitzi_data_t *data)
 {
-	g_assert(data);
+	g_assert(data != NULL);
 
 	if (GNET_PROPERTY(bitzi_debug)) {
-		g_debug("bitzi_clear: %p", cast_to_gconstpointer(data));
+		g_debug("BITZI %s: ticket for %s",
+			G_STRFUNC, sha1_to_string(data->sha1));
 	}
+
+	/*
+	 * NOTE: data->ticket is NOT freed because it is pointing to the cached
+	 * value we insert in the database, to avoid duplicating the string since
+	 * the call to notify the GUI is synchronous.
+	 */
 
 	atom_sha1_free_null(&data->sha1);
 	atom_str_free_null(&data->mime_type);
 	atom_str_free_null(&data->mime_desc);
-	xml_free_null(&data->ticket);
-
-	if (GNET_PROPERTY(bitzi_debug)) {
-		g_debug("bitzi_destroy: freeing data");
-	}
 	WFREE(data);
 }
 
-
-/*********************************************************************
- ** Bitzi Query and result Parsing
- ********************************************************************/
-
-/**
- * Populate callback: more data available. When called with 0 it stops
- * the parsing of the document tree and processes the ticket.
- */
-static void
-bitzi_host_data_ind(struct http_async *unused_handle, char *data, int len)
+static bitzi_request_t *
+bitzi_request_create(const sha1_t *sha1, filesize_t filesize)
 {
-	int result;
+	bitzi_request_t *breq;
 
-	(void) unused_handle;
+	WALLOC0(breq);
 
-	if (len > 0) {
-		result = xmlParseChunk(current_bitzi_request->ctxt, data, len, 0);
+	/*
+	 * build the bitzi URL
+	 */
 
-		if (result != 0)
-			g_warning("bitzi_host_data_ind, bad xml result %d", result);
-	} else {
+	breq->sha1 = atom_sha1_get(sha1);
+	breq->filesize = filesize;
+	gm_snprintf(breq->bitzi_url, sizeof breq->bitzi_url,
+			bitzi_url_fmt, sha1_base32(sha1));
 
-		result = xmlParseChunk(current_bitzi_request->ctxt, data, 0, 1);
+	return breq;
+}
 
-		if (result != 0)
-			g_warning("bitzi_host_data_ind - end, bad xml result %d", result);
+static void
+bitzi_request_free(bitzi_request_t *req)
+{
+	atom_sha1_free_null(&req->sha1);
+	http_async_cancel_null(&req->ha);
+	WFREE(req);
+}
 
-		/*
-		 * process what we had and clear up
-		 */
-		process_meta_data(current_bitzi_request);
-
-		current_bitzi_request = NULL;
-		current_bitzi_request_handle = NULL;
+static void
+bitzi_request_free_null(bitzi_request_t **ptr)
+{
+	if (*ptr) {
+		bitzi_request_t *req = *ptr;
+		bitzi_request_free(req);
+		*ptr = NULL;
 	}
 }
 
-/**
- * HTTP request is being stopped.
- */
-static void
-bitzi_host_error_ind(struct http_async *handle,
-	http_errtype_t type, gpointer v)
-{
-	g_assert(handle == current_bitzi_request_handle);
-
-	http_async_log_error_dbg(handle, type, v, "bitzi_host_error_ind", TRUE);
-
-	/*
-	 * process what we had and clear up
-	 */
-	process_meta_data(current_bitzi_request);
-
-	current_bitzi_request = NULL;
-	current_bitzi_request_handle = NULL;
-}
+/*********************************************************************
+ ** Bitzi Query and Result Parsing
+ ********************************************************************/
 
 /*
- * These XML parsing routines are hacked up versions of those from the
+ * These XML parsing routines are hacked up versions of these from the
  * libxml2 examples.
  */
-
 
 /**
  * Parse (and eventually fill in) the bitzi specific data.
@@ -288,7 +369,7 @@ bitzi_host_error_ind(struct http_async *handle,
 
 struct efj_t {
 	const char *string;
-	bitzi_fj_t judgement;
+	bitzi_fj_t judgment;
 };
 
 static const struct efj_t enum_fj_table[] = {
@@ -307,97 +388,122 @@ static const struct efj_t enum_fj_table[] = {
 	{ "Best Version",			BITZI_FJ_BEST_VERSION }
 };
 
+static const char *
+bitzi_judgment_to_string(bitzi_fj_t fj)
+{
+	if (UNSIGNED(fj) < G_N_ELEMENTS(enum_fj_table))
+		return enum_fj_table[fj].string;
+	else
+		return str_smsg("Invalid Judgment %d", fj);
+}
+
+/**
+ * xnode_prop_foreach() callback to log the attributes of the node.
+ */
+static void
+bitzi_description_attr_log(const char *uri,
+	const char *local, const char *value, void *unused_data)
+{
+	(void) unused_data;
+
+	if (uri != NULL) {
+		g_debug("BITZI    %s = \"%s\" [%s]", local, value, uri);
+	} else {
+		g_debug("BITZI    %s = \"%s\"", local, value);
+	}
+}
+
 /**
  * Read all the attributes we may want from the rdf ticket, some
  * attributes will not be there in which case xmlGetProp will return a null.
  */
 static void
-process_rdf_description(xmlNode *node, bitzi_data_t *data)
+bitzi_process_rdf_description(const xnode_t *xn, bitzi_data_t *data)
 {
-	char *value;
+	const char *value;
 
 	/*
 	 * We extract the urn:sha1 from the ticket as we may be processing
 	 * cached tickets not associated with any actual request. The
 	 * bitprint itself will be at offset 9 into the string.
 	 */
-	value = STRTRACK(xml_get_string(node, "about"));
+	value = xnode_prop_ns_get(xn, BITZI_RDF, "about");
 	if (value) {
-		struct sha1 sha1;
+		sha1_t sha1;
 
 		if (urn_get_sha1(value, &sha1)) {
 			data->sha1 = atom_sha1_get(&sha1);
 		} else {
-			g_warning("process_rdf_description: bad 'about' string: \"%s\"",
-				value);
+			g_warning("%s: bad 'rdf:about' string: \"%s\"", G_STRFUNC, value);
 		}
 	} else {
-		g_warning("process_rdf_description: No SHA-1!");
+		if (GNET_PROPERTY(bitzi_debug)) {
+			g_warning("%s: No SHA-1!", G_STRFUNC);
+		}
 	}
-	xml_free_null(&value);
-
 
 	/*
-	 * All tickets have a ticketExpires tag which we need for cache
+	 * All tickets have a bz:ticketExpires tag which we need for cache
 	 * managment.
-	 *
-	 * CHECK: date parse deals with timezone? can it fail?
 	 */
-	value = STRTRACK(xml_get_string(node, "ticketExpires"));
+	value = xnode_prop_ns_get(xn, BITZI_BZ, "ticketExpires");
 	if (value) {
 		data->expiry = date2time(value, tm_time());
-		if ((time_t) -1 == data->expiry)
-			g_warning("process_rdf_description: Bad expiration date \"%s\"",
-				value);
+		if ((time_t) -1 == data->expiry) {
+			if (GNET_PROPERTY(bitzi_debug)) {
+				g_warning("%s: Bad expiration date \"%s\"", G_STRFUNC, value);
+			}
+		}
 	} else {
-		g_warning("process_rdf_description: No ticketExpires!");
+		g_warning("%s: No ticketExpires!", G_STRFUNC);
 	}
-	xml_free_null(&value);
 
 	/*
-	 * fileGoodness amd fileJudgement are the two most imeadiatly
+	 * fileGoodness amd fileJudgement are the two most immediatly
 	 * useful values.
 	 */
-	value = STRTRACK(xml_get_string(node, "fileGoodness"));
+	value = xnode_prop_ns_get(xn, BITZI_BZ, "fileGoodness");
 	if (value) {
 		data->goodness = g_strtod(value, NULL);
-		if (GNET_PROPERTY(bitzi_debug))
-			g_debug("fileGoodness is %s/%f", value, data->goodness);
+		if (GNET_PROPERTY(bitzi_debug)) {
+			g_debug("BITZI %s: fileGoodness is %s/%f",
+				G_STRFUNC, value, data->goodness);
+		}
 	} else {
-		data->goodness = 0;
+		data->goodness = 0.0;
 	}
-	xml_free_null(&value);
 
-	value = STRTRACK(xml_get_string(node, "fileJudgement"));
+	value = xnode_prop_ns_get(xn, BITZI_BZ, "fileJudgement");
 	if (value) {
 		size_t i;
 
 		STATIC_ASSERT(NUM_BITZI_FJ == G_N_ELEMENTS(enum_fj_table));
 
 		for (i = 0; i < G_N_ELEMENTS(enum_fj_table); i++) {
-			if (
-				xmlStrEqual(string_to_xmlChar(value),
-					string_to_xmlChar(enum_fj_table[i].string))
-			) {
-				data->judgement = enum_fj_table[i].judgement;
+			if (0 == strcmp(value, enum_fj_table[i].string)) {
+				data->judgment = enum_fj_table[i].judgment;
 				break;
 			}
 		}
 	} else {
-		data->judgement = BITZI_FJ_UNRATED;
+		data->judgment = BITZI_FJ_UNRATED;
 	}
-	xml_free_null(&value);
 
 	/*
 	 * fileLength, useful for comparing to result
 	 */
 
-	value = STRTRACK(xml_get_string(node, "fileLength"));
+	value = xnode_prop_ns_get(xn, BITZI_BZ, "fileLength");
 	if (value) {
 		int error;
 		data->size = parse_uint64(value, NULL, 10, &error);
+		if (error) {
+			if (GNET_PROPERTY(bitzi_debug)) {
+				g_warning("%s: fileLength '%s' is invalid: %s",
+					G_STRFUNC, value, g_strerror(error));
+			}
+		}
 	}
-	xml_free_null(&value);
 
 	/*
 	 * The multimedia type, bitrate etc is all built into one
@@ -406,7 +512,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	 * Currently we handle video and audio
 	 */
 
-	value = STRTRACK(xml_get_string(node, "format"));
+	value = xnode_prop_ns_get(xn, BITZI_DC, "format");
 	if (value) {
 		/*
 		 * copy the mime type
@@ -414,13 +520,14 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 		atom_str_change(&data->mime_type, value);
 
 		if (is_strcaseprefix(value, "video")) {
-			char *bitrate = STRTRACK(xml_get_string(node, "videoBitrate"));
-			char *fps = STRTRACK(xml_get_string(node, "videoFPS"));
-			char *height = STRTRACK(xml_get_string(node, "videoHeight"));
-			char *width = STRTRACK(xml_get_string(node, "videoWidth"));
+			const char *bitrate =
+				xnode_prop_ns_get(xn, BITZI_BZ, "videoBitrate");
+			const char *fps = xnode_prop_ns_get(xn, BITZI_BZ, "videoFPS");
+			const char *height = xnode_prop_ns_get(xn, BITZI_BZ, "videoHeight");
+			const char *width = xnode_prop_ns_get(xn, BITZI_BZ, "videoWidth");
 			gboolean has_res = width && height;
 			char desc[256];
-				
+
 			/*
 			 * format the mime details
 			 */
@@ -441,15 +548,13 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 
 			atom_str_change(&data->mime_desc, desc);
 
-			xml_free_null(&bitrate);
-			xml_free_null(&fps);
-			xml_free_null(&height);
-			xml_free_null(&width);
 		} else if (is_strcaseprefix(value, "audio")) {
-			char *channels = STRTRACK(xml_get_string(node, "audioChannels"));
-			char *duration = STRTRACK(xml_get_string(node, "duration"));
-			char *kbps = STRTRACK(xml_get_string(node, "audioBitrate"));
-			char *srate = STRTRACK(xml_get_string(node, "audioSamplerate"));
+			const char *channels =
+				xnode_prop_ns_get(xn, BITZI_BZ, "audioChannels");
+			const char *duration = xnode_prop_ns_get(xn, BITZI_BZ, "duration");
+			const char *kbps = xnode_prop_ns_get(xn, BITZI_BZ, "audioBitrate");
+			const char *srate =
+				xnode_prop_ns_get(xn, BITZI_BZ, "audioSamplerate");
 			guint32 seconds;
 			char desc[256];
 
@@ -467,33 +572,16 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 				seconds ? short_time(seconds) : "");
 
 			atom_str_change(&data->mime_desc, desc);
-
-			xml_free_null(&channels);
-			xml_free_null(&duration);
-			xml_free_null(&kbps);
-			xml_free_null(&srate);
 		}
 	}
-	xml_free_null(&value);
 
 	/*
-	 ** For debugging/development - dump all the attributes
+	 * For debugging/development - dump all the attributes
 	 */
 
-	if (GNET_PROPERTY(bitzi_debug)) {
-		xmlAttr *cur_attr;
-
-		for (cur_attr = node->properties; cur_attr; cur_attr = cur_attr->next) {
-			const char *name;
-		   
-			name = xmlChar_to_gchar(cur_attr->name);
-			value = STRTRACK(xml_get_string(node, name));
-
-			g_debug("bitzi rdf attrib: %s, type %d = %s",
-				name, cur_attr->type, value);
-
-			xml_free_null(&value);
-		}
+	if (GNET_PROPERTY(bitzi_debug) > 3) {
+		g_debug("BITZI %s: attributes of %s:", G_STRFUNC, xnode_to_string(xn));
+		xnode_prop_foreach(xn, bitzi_description_attr_log, NULL);
 	}
 }
 
@@ -501,88 +589,98 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
  * Iterates through the XML/RDF ticket calling various process
  * functions to read the data into the bitzi_data_t.
  *
- * This function is recursive, if the element is not explicity know we
+ * This function is recursive, if the element is not explicity known we
  * just recurse down a level.
  */
 static void
-process_bitzi_ticket(xmlNode *a_node, bitzi_data_t *data)
+bitzi_process_xml(const xnode_t *xn, bitzi_data_t *data)
 {
-	xmlNode *cur_node = NULL;
+	const xnode_t *xl;
 
-	for (cur_node = a_node; cur_node; cur_node = cur_node->next) {
-		if (cur_node->type == XML_ELEMENT_NODE) {
-			if (GNET_PROPERTY(bitzi_debug))
-				g_debug("node type: Element, name: %s, children %p",
-					cur_node->name, cast_to_gconstpointer(cur_node->children));
+	for (xl = xn; xl != NULL; xl = xnode_next_sibling(xl)) {
+		if (!xnode_is_element(xl))
+			continue;
 
-			if (
-				0 == xmlStrcmp(cur_node->name,
-					string_to_xmlChar("Description"))
-			)
-				process_rdf_description(cur_node, data);
-			else
-				process_bitzi_ticket(cur_node->children, data);
+		if (GNET_PROPERTY(bitzi_debug) > 3)
+			g_debug("BITZI at element %s", xnode_to_string(xl));
+
+		if (xnode_is_element_named(xl, BITZI_RDF, "Description")) {
+			bitzi_process_rdf_description(xl, data);
+		} else {
+			bitzi_process_xml(xnode_first_child(xl), data);
 		}
 	}
 }
 
+/**
+ * Report failure to the GUI for a SHA1/filesize request.
+ */
 static void
 bitzi_failure(const struct sha1 *sha1, filesize_t filesize, bitzi_fj_t error)
 {
-	if (sha1) {
-		bitzi_data_t *dummy = bitzi_create();
+	if (sha1 != NULL) {
+		bitzi_data_t dummy;
 
-		dummy->sha1 = atom_sha1_get(sha1);
-		dummy->size = filesize;
-		dummy->judgement = error;
-		gcu_bitzi_result(dummy);
-		bitzi_destroy(dummy);
-	}
-}
-
-static void
-bitzi_request_free(bitzi_request_t **ptr)
-{
-	if (*ptr) {
-		bitzi_request_t *req = *ptr;
-
-		atom_sha1_free_null(&req->sha1);
-		WFREE(req);
-		*ptr = NULL;
+		ZERO(&dummy);
+		dummy.sha1 = sha1;
+		dummy.size = filesize;
+		dummy.judgment = error;
+		gcu_bitzi_result(&dummy);
 	}
 }
 
 /**
- * Walk the parsed document tree and free up the data.
+ * Fill data from database entry.
  */
 static void
-process_meta_data(bitzi_request_t *request)
+bitzi_fill_data(bitzi_data_t *data,
+	const struct sha1 *sha1, const struct bzdata *bz)
+{
+	ZERO(data);
+	data->sha1 = sha1;
+	data->mime_type = bz->mime_type;
+	data->mime_desc = bz->mime_desc;
+	data->ticket = bz->ticket;
+	data->size = bz->size;
+	data->judgment = bz->judgment;
+	data->goodness = bz->goodness;
+	data->expiry = bz->etime;
+}
+
+/**
+ * Process the XML ticket and notify GUI.
+ */
+static void
+bitzi_process_ticket(bitzi_request_t *breq, char *ticket, size_t length)
 {
 	bitzi_data_t *data;
-	xmlDoc	*doc; 	/* the resulting document tree */
-	xmlNode	*root;
-	gboolean wellformed;
+	xnode_t *root;
+	vxml_parser_t *vp;
+	vxml_error_t e;
 
-	if (GNET_PROPERTY(bitzi_debug))
-		g_debug("process_meta_data: %p", cast_to_gconstpointer(request));
+	g_assert(breq != NULL);
 
-	g_assert(request != NULL);
+	if (GNET_PROPERTY(bitzi_debug)) {
+		g_debug("BITZI %s: processing ticket data for %s",
+			G_STRFUNC, sha1_to_string(breq->sha1));
+	}
 
 	/*
-	 * Get the document and free context
+	 * Parse the XML ticket.
 	 */
 
-	doc = request->ctxt->myDoc;
-	wellformed = 0 != request->ctxt->wellFormed;
-	xmlFreeParserCtxt(request->ctxt);
+	vp = vxml_parser_make("BITZI ticket", VXML_O_STRIP_BLANKS);
+	vxml_parser_add_data(vp, ticket, length);
+	e = vxml_parse_tree(vp, &root);
+	vxml_parser_free(vp);
 
-	if (GNET_PROPERTY(bitzi_debug))
-		g_debug("process_meta_data: doc = %p, well-formed = %s",
-			cast_to_gconstpointer(doc), wellformed ? "yes" : "no");
-
-	if (!wellformed) {
-		bitzi_failure(request->sha1, request->filesize, BITZI_FJ_FAILURE);
-		goto finish;
+	if (VXML_E_OK != e) {
+		if (GNET_PROPERTY(bitzi_debug)) {
+			g_warning("BITZI cannot parse XML ticket: %s", vxml_strerror(e));
+			dump_hex(stderr, "BITZI ticket", ticket, length);
+		}
+		bitzi_failure(breq->sha1, breq->filesize, BITZI_FJ_FAILURE);
+		return;
 	}
 
 	/*
@@ -595,31 +693,26 @@ process_meta_data(bitzi_request_t *request)
 	 * This just dumps the data
 	 */
 
-	root = xmlDocGetRootElement(doc);
-	process_bitzi_ticket(root, data);
+	bitzi_process_xml(root, data);
 
 	if (NULL == data->sha1) {
 		if (GNET_PROPERTY(bitzi_debug))  {
 			g_warning("process_meta_data: missing SHA-1");
 		}
-		bitzi_failure(request->sha1, request->filesize, BITZI_FJ_FAILURE);
-		bitzi_destroy(data);
+		bitzi_failure(breq->sha1, breq->filesize, BITZI_FJ_FAILURE);
 		goto finish;
 	}
-	bitzi_cache_remove_by_sha1(data->sha1);
 
-	if (request->sha1 && !sha1_eq(data->sha1, request->sha1)) {
+	if (breq->sha1 && !sha1_eq(data->sha1, breq->sha1)) {
 		if (GNET_PROPERTY(bitzi_debug))  {
 			g_warning("process_meta_data: SHA-1 mismatch");
 		}
-		bitzi_failure(request->sha1, request->filesize, BITZI_FJ_FAILURE);
-		bitzi_destroy(data);
+		bitzi_failure(breq->sha1, breq->filesize, BITZI_FJ_FAILURE);
 		goto finish;
 	}
 
 	/*
-	 * If the data has a valid date then we can cache the result
-	 * and re-echo the XML ticket to the file based cache.
+	 * If the data has a valid date then we can cache the result.
 	 */
 
 	if (
@@ -627,41 +720,99 @@ process_meta_data(bitzi_request_t *request)
 		delta_time(data->expiry, tm_time()) <= 0
 	) {
 		if (GNET_PROPERTY(bitzi_debug))  {
-			g_debug("process_meta_data: stale bitzi data");
+			g_debug("BITZI %s: stale bitzi data", G_STRFUNC);
 		}
-		bitzi_failure(request->sha1, request->filesize, BITZI_FJ_FAILURE);
+		bitzi_failure(breq->sha1, breq->filesize, BITZI_FJ_FAILURE);
 		goto finish;
 	}
 
-	if (bitzi_cache_add(data)) {
-		xmlChar *text;
-
-		xmlDocDumpMemory(doc, &text, NULL);
-		data->ticket = STRTRACK(deconstify_gchar(xmlChar_to_gchar(text)));
-
-		if (bitzi_cache_file) {
-			xmlDocDump(bitzi_cache_file, doc);
-			fputs("\n", bitzi_cache_file);
+	if (!bitzi_cache_add(data, root)) {
+		if (GNET_PROPERTY(bitzi_debug))  {
+			g_debug("BITZI %s: uncached bitzi data", G_STRFUNC);
 		}
+		bitzi_failure(breq->sha1, breq->filesize, BITZI_FJ_FAILURE);
+		goto finish;
 	}
 
-	if (request->filesize && request->filesize != data->size) {
+	if (breq->filesize && breq->filesize != data->size) {
 		if (GNET_PROPERTY(bitzi_debug))  {
-			g_debug("process_meta_data: filesize mismatch");
+			g_debug("BITZI %s: filesize mismatch", G_STRFUNC);
 		}
 		/* We keep the ticket anyway because there's only one per SHA-1 */
-		bitzi_failure(request->sha1, request->filesize,
+		bitzi_failure(breq->sha1, breq->filesize,
 			data->size ? BITZI_FJ_WRONG_FILESIZE : BITZI_FJ_UNKNOWN);
 		goto finish;
 	}
 
 	gcu_bitzi_result(data);
 
-finish:
+	/* FALL THROUGH */
 
-	/* we are now finished with this XML doc */
-	xmlFreeDoc(doc);
-	bitzi_request_free(&request);
+finish:
+	xnode_tree_free_null(&root);
+	bitzi_destroy(data);
+}
+
+/**
+ * Answer to our ticket request.
+ *
+ * This is an http_async_wget() completion callback.
+ */
+static void
+bitzi_ticket_requested(char *data, size_t len, int code,
+	header_t *header, void *arg)
+{
+	bitzi_request_t *breq = arg;
+	const char *buf;
+
+	breq->ha = NULL;		/* Request ending with this callback */
+
+	if (NULL == data) {
+		if (GNET_PROPERTY(bitzi_debug)) {
+			g_warning("BITZI requested ticket for %s failed (HTTP %d)",
+				sha1_to_string(breq->sha1), code);
+		}
+		bitzi_failure(breq->sha1, breq->filesize, BITZI_FJ_FAILURE);
+		goto done;
+	}
+
+	if (GNET_PROPERTY(bitzi_debug) > 1) {
+		g_debug("BITZI request for %s returned %lu byte%s",
+			sha1_to_string(breq->sha1),
+			(unsigned long) len, 1 == len ? "" : "s");
+		if (GNET_PROPERTY(bitzi_debug) > 5) {
+			g_debug("BITZI got HTTP %u:", code);
+			header_dump(stderr, header, "----");
+		}
+		if (GNET_PROPERTY(bitzi_debug) > 9) {
+			dump_hex(stderr, "BITZI ticket", data, len);
+		}
+	}
+
+	/*
+	 * Make sure we got "text/xml" output.
+	 */
+
+	buf = header_get(header, "Content-Type");
+	if (NULL == buf || !strtok_case_has(buf, ";", "text/xml")) {
+		g_warning("BITZI ticket for %s does not contain any XML",
+			sha1_to_string(breq->sha1));
+		bitzi_failure(breq->sha1, breq->filesize, BITZI_FJ_FAILURE);
+		goto done;
+	}
+
+	/*
+	 * Parse the XML ticket.
+	 */
+
+	bitzi_process_ticket(breq, data, len);
+	hfree(data);
+
+	/* FALL THROUGH */
+
+done:
+	current_bitzi_request = NULL;
+	bitzi_request_free(breq);
 }
 
 /**
@@ -670,59 +821,60 @@ finish:
  * Called directly when a request launched or via the bitzi_heartbeat tick.
  */
 static gboolean
-do_metadata_query(bitzi_request_t *req)
+bitzi_launch_query(bitzi_request_t *breq)
 {
 	if (GNET_PROPERTY(bitzi_debug))
-		g_debug("do_metadata_query: %p", cast_to_gconstpointer(req));
+		g_debug("BITZI dequeuing query for %s", sha1_to_string(breq->sha1));
 
 	/*
 	 * always remove the request from the queue
 	 */
-	bitzi_rq = g_slist_remove(bitzi_rq, req);
+	slist_remove(bitzi_rq, breq);
 
 	/*
 	 * check we haven't already got a response from a previous query
 	 */
-	if (bitzi_has_cached_ticket(req->sha1))
-		return FALSE;
+	if (bitzi_has_cached_ticket(breq->sha1)) {
+		bitzi_data_t data;
 
-	current_bitzi_request = req;
 
-	/*
-	 * Create the XML Parser
-	 */
-
-	current_bitzi_request->ctxt = xmlCreatePushParserCtxt(
-		NULL, NULL, NULL, 0, current_bitzi_request->bitzi_url);
-
-	g_assert(current_bitzi_request->ctxt != NULL);
-
-	/*
-	 * Launch the asynchronous request and attach parsing
-	 * information.
-	 *
-	 * We don't care about headers
-	 */
-
-	current_bitzi_request_handle =
-		http_async_get(current_bitzi_request->bitzi_url, NULL,
-			bitzi_host_data_ind, bitzi_host_error_ind);
-
-		if (!current_bitzi_request_handle) {
-			g_warning("could not launch a \"GET %s\" request: %s",
-					current_bitzi_request->bitzi_url,
-					http_async_strerror(http_async_errno));
+		if (bitzi_data_by_sha1(&data, breq->sha1, breq->filesize)) {
+			if (GNET_PROPERTY(bitzi_debug)) {
+				g_debug("BITZI has cached ticket for %s",
+					sha1_to_string(breq->sha1));
+			}
+			gcu_bitzi_result(&data);
 		} else {
-			if (GNET_PROPERTY(bitzi_debug))
-				g_debug("do_metadata_query: request %s launched",
-					current_bitzi_request->bitzi_url);
-			return TRUE;
+			/*
+			 * We have a ticket for this SHA1, but no suitable data is filled
+			 * which indicates a filesize mismatch.
+			 */
+			bitzi_failure(breq->sha1, breq->filesize, BITZI_FJ_WRONG_FILESIZE);
 		}
+		goto failed;
+	}
 
 	/*
-	 * no query launched
+	 * Launch the HTTP asynchronous request.
 	 */
 
+	if (GNET_PROPERTY(bitzi_debug))
+		g_debug("BITZI launching query for %s", sha1_to_string(breq->sha1));
+
+	breq->ha = http_async_wget(breq->bitzi_url, BITZI_XML_MAXLEN,
+		bitzi_ticket_requested, breq);
+
+	if (NULL == breq->ha) {
+		g_warning("could not launch a \"GET %s\" request: %s",
+			breq->bitzi_url, http_async_strerror(http_async_errno));
+		goto failed;
+	}
+
+	current_bitzi_request = breq;
+	return TRUE;
+
+failed:
+	bitzi_request_free(breq);
 	return FALSE;
 }
 
@@ -731,86 +883,204 @@ do_metadata_query(bitzi_request_t *req)
  *************************************************************/
 
 /**
- * Add the data entry to the cache and in expiry sorted date order to
- * the linked list.
+ * Get bzdata from database, returning NULL if not found.
  */
-static int
-bitzi_date_compare(gconstpointer p, gconstpointer q)
+static struct bzdata *
+get_bzdata(const sha1_t *sha1)
 {
-	const bitzi_data_t *a = p, *b = q;
-	time_delta_t d;
+	struct bzdata *bz;
 
-	d = delta_time(a->expiry, b->expiry);
-	return SIGN(d);
+	bz = dbmw_read(db_bzdata, sha1, NULL);
+
+	return bz;
 }
 
+/**
+ * Add parsed ticket data to the cache.
+ *
+ * @return TRUE if we added the ticket, FALSE if it was already present (in
+ * which case the information is simply updated).
+ */
 static gboolean
-bitzi_cache_add(bitzi_data_t *data)
+bitzi_cache_add(bitzi_data_t *data, const xnode_t *root)
 {
-	g_assert(data);
-	g_assert(data->sha1);
+	struct bzdata bz;
+	struct bzdata *bzo;
 
-	if (g_hash_table_lookup(bitzi_cache_ht, data->sha1) != NULL) {
-		g_warning("bitzi_cache_add: duplicate entry!");
-		return FALSE;
+	g_assert(data != NULL);
+	g_assert(data->sha1 != NULL);
+	g_assert(NULL == data->ticket);
+
+	bzo = get_bzdata(data->sha1);
+
+	/*
+	 * For proper memory management of the pointers allocated at
+	 * deserialization time we have two options (when the value was
+	 * already present in the database):
+	 *
+	 * - Either we explicitly manage freeing of previous pointers in the
+	 *   supplied value (in effect updating the value that was allocated
+	 *   by the DBMW layer.  In that case, we may supply back the same
+	 *   value pointer.
+	 *
+	 * - Or we supply a totally different structure, and the DBMW layer
+	 *   will invoke the freeing callback on the previous value.  In that
+	 *   case, all the values dynamically allocated in the original must be
+	 *   cloned.
+	 *
+	 * In any case, memory allocation must be consistent with the one
+	 * performed at deserialization time since it is the freeing callback
+	 * which will ultimately release the memory when the value leaves
+	 * the cache.
+	 *
+	 * We choose option #1: we explicitly manage memory in the cached structure.
+	 */
+
+	if (NULL == bzo) {
+		bzo = &bz;
+		ZERO(&bz);
+		bzo->ctime = tm_time();
+		gnet_stats_count_general(GNR_BITZI_TICKETS_HELD, +1);
+	} else {
+		if (data->expiry < bzo->etime) {
+			g_message("%s: entry for %s already present and expires later",
+				G_STRFUNC, sha1_to_string(data->sha1));
+			return FALSE;
+		}
+
+		if (bzo->size != data->size) {
+			g_warning("%s: entry for %s already present with filesize %s but "
+				"new entry says %s, keeping old ticket",
+				G_STRFUNC, sha1_to_string(data->sha1),
+				filesize_to_string(bzo->size),
+				filesize_to_string2(data->size));
+			return FALSE;
+		}
 	}
 
-	gm_hash_table_insert_const(bitzi_cache_ht, data->sha1, data);
-	bitzi_cache = g_list_insert_sorted(bitzi_cache, data, bitzi_date_compare);
+	if (NULL == bzo->mime_type) {
+		atom_str_change(&bzo->mime_type, data->mime_type);
+	}
+	if (NULL == bzo->mime_desc) {
+		atom_str_change(&bzo->mime_desc, data->mime_desc);
+	} else if (
+		data->mime_desc != NULL &&
+		strlen(bzo->mime_desc) < strlen(data->mime_desc)
+	) {
+		/* Keep longest string, assuming it will be more complete */
+		atom_str_change(&bzo->mime_desc, data->mime_desc);
+	}
 
-	if (GNET_PROPERTY(bitzi_debug))
-		g_debug("bitzi_cache_add: data %p, now %u entries",
-			cast_to_gconstpointer(data), g_hash_table_size(bitzi_cache_ht));
+	/*
+	 * We keep the full XML ticket around, just in case we later wish to
+	 * parse more data from the ticket and want to upgrade the database.
+	 *
+	 * It's not worth compressing the XML data to save space, this will just
+	 * slow things down for little space benefits.
+	 */
+
+	HFREE_NULL(bzo->ticket);
+	if (data->size != 0) {
+		bzo->ticket = xfmt_tree_to_string_extended(root, XFMT_O_SINGLE_LINE,
+			bitzi_prefixes, G_N_ELEMENTS(bitzi_prefixes), BITZI_RDF);
+	}
+	bzo->size = data->size;
+	bzo->judgment = data->judgment;
+	bzo->goodness = data->goodness;
+	bzo->etime = data->expiry;
+
+	dbmw_write(db_bzdata, data->sha1, bzo, sizeof *bzo);
+
+	if (GNET_PROPERTY(bitzi_debug)) {
+		g_debug("BITZI %s: %s %s ticket, filesize=%s, type=%s, desc=\"%s\", "
+			"judgment=\"%s\", goodness=%f, expire=%s",
+			G_STRFUNC, bzo->ctime == tm_time() ? "added" : "updated",
+			sha1_to_string(data->sha1),
+			filesize_to_string(bzo->size), bzo->mime_type,
+			bzo->mime_desc, bitzi_judgment_to_string(bzo->judgment),
+			bzo->goodness, timestamp_to_string(bzo->etime));
+		if (GNET_PROPERTY(bitzi_debug) > 5 && bzo->ticket != NULL) {
+			g_debug("BITZI XML ticket:");
+			dump_string(stderr, bzo->ticket, strlen(bzo->ticket), "----");
+		}
+	}
 
 	return TRUE;
 }
 
-static void
-bitzi_cache_remove(bitzi_data_t *data)
+/**
+ * DBMW foreach iterator to remove old entries.
+ * @return TRUE if entry must be deleted.
+ */
+static gboolean
+bitzi_entry_prune(gpointer key, gpointer value, size_t u_len, gpointer u_data)
 {
-	if (GNET_PROPERTY(bitzi_debug))
-		g_debug("bitzi_cache_remove: %p", cast_to_gconstpointer(data));
+	const sha1_t *sha1 = key;
+	const struct bzdata *bz = value;
+	gboolean expired;
 
-	g_assert(data);
-	g_assert(data->sha1);
+	(void) u_len;
+	(void) u_data;
 
-	g_hash_table_remove(bitzi_cache_ht, data->sha1);
-	bitzi_cache = g_list_remove(bitzi_cache, data);
+	expired = tm_time() >= bz->etime;
 
-	/*
-	 * destroy when done
-	 */
-	bitzi_destroy(data);
-}
-
-static void
-bitzi_cache_clean(void)
-{
-	time_t now = tm_time();
-	GList *l = bitzi_cache;
-	GSList *to_remove = NULL, *sl;
-
-	/*
-	 * find all entries that have expired
-	 */
-
-	for (l = bitzi_cache; l != NULL; l = g_list_next(l)) {
-		bitzi_data_t *data = l->data;
-
-		if (delta_time(data->expiry, now) >= 0)
-			break;
-
-		to_remove = g_slist_prepend(to_remove, data);
+	if (GNET_PROPERTY(bitzi_debug) > 4) {
+		g_debug("BITZI ticket %s expire=%s%s",
+			sha1_to_string(sha1),
+			timestamp_to_string(bz->etime), expired ? " [EXPIRED]" : "");
+		if (GNET_PROPERTY(bitzi_debug) > 5 && bz->ticket != NULL) {
+			g_debug("BITZI XML ticket:");
+			dump_string(stderr, bz->ticket, strlen(bz->ticket), "----");
+		}
 	}
 
-	/*
-	 * now flush the expired entries
-	 */
+	return expired;
+}
 
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-		bitzi_cache_remove(sl->data);
+/**
+ * Prune the database, removing expired entries.
+ */
+static void
+bitzi_prune_old(void)
+{
+	if (GNET_PROPERTY(bitzi_debug)) {
+		g_debug("BITZI pruning expired tickets (%lu)",
+			(unsigned long) dbmw_count(db_bzdata));
+	}
 
-	g_slist_free(to_remove);
+	dbmw_foreach_remove(db_bzdata, bitzi_entry_prune, NULL);
+	gnet_stats_set_general(GNR_BITZI_TICKETS_HELD, dbmw_count(db_bzdata));
+
+	if (GNET_PROPERTY(bitzi_debug)) {
+		g_debug("BITZI pruned expired tickets (%lu remaining)",
+			(unsigned long) dbmw_count(db_bzdata));
+	}
+
+	dbstore_shrink(db_bzdata);
+}
+
+/**
+ * Callout queue periodic event to expire old entries.
+ */
+static gboolean
+bitzi_prune(gpointer unused_obj)
+{
+	(void) unused_obj;
+
+	bitzi_prune_old();
+	return TRUE;		/* Keep calling */
+}
+
+/**
+ * Callout queue periodic event to synchronize persistent DB.
+ */
+static gboolean
+bitzi_sync(gpointer unused_obj)
+{
+	(void) unused_obj;
+
+	dbstore_sync_flush(db_bzdata);
+	return TRUE;		/* Keep calling */
 }
 
 /*************************************************************
@@ -819,8 +1089,7 @@ bitzi_cache_clean(void)
 
 /**
  * The heartbeat function is a repeating glib timeout that is used to
- * pace queries to the bitzi metadata service. It also periodically
- * runs the bitzi_cache_clean routine to clean the cache.
+ * pace queries to the bitzi metadata service.
  */
 static gboolean
 bitzi_heartbeat(gpointer unused_data)
@@ -831,21 +1100,12 @@ bitzi_heartbeat(gpointer unused_data)
 	 * launch any pending queries
 	 */
 
-	while (current_bitzi_request == NULL && bitzi_rq != NULL) {
-		if (do_metadata_query(bitzi_rq->data))
+	while (current_bitzi_request == NULL && slist_length(bitzi_rq) != 0) {
+		if (bitzi_launch_query(slist_head(bitzi_rq)))
 			break;
 	}
 
-	bitzi_cache_clean();
-
 	return TRUE;		/* Always requeue */
-}
-
-static bitzi_data_t *
-bitzi_query_cache_by_sha1(const struct sha1 *sha1)
-{
-	g_return_val_if_fail(NULL != sha1, FALSE);
-	return g_hash_table_lookup(bitzi_cache_ht, sha1);
 }
 
 /**************************************************************
@@ -858,16 +1118,7 @@ bitzi_query_cache_by_sha1(const struct sha1 *sha1)
 gboolean
 bitzi_has_cached_ticket(const struct sha1 *sha1)
 {
-	return NULL != bitzi_query_cache_by_sha1(sha1);
-}
-
-static void
-bitzi_cache_remove_by_sha1(const struct sha1 *sha1)
-{
-	bitzi_data_t *data = bitzi_query_cache_by_sha1(sha1);
-	if (data) {
-		bitzi_cache_remove(data);
-	}
+	return NULL != get_bzdata(sha1);
 }
 
 /**
@@ -883,190 +1134,100 @@ bitzi_cache_remove_by_sha1(const struct sha1 *sha1)
  * If no query succeds then the call back is never made, however we
  * should always get some sort of data back from the service.
  */
-bitzi_data_t *
+void
 bitzi_query_by_sha1(const struct sha1 *sha1,
 	filesize_t filesize, gboolean refresh)
 {
-	bitzi_data_t *data;
-	bitzi_request_t	*request;
+	struct bzdata *bz;
 
-	g_return_val_if_fail(NULL != sha1, NULL);
+	g_return_if_fail(NULL != sha1);
 
-	data = bitzi_query_cache_by_sha1(sha1);
-	if (data) {
+	bz = get_bzdata(sha1);
+
+	if (bz != NULL) {
 		if (GNET_PROPERTY(bitzi_debug)) {
-			g_debug("bitzi_query_by_sha1: result already in cache");
+			g_debug("BITZI %s: result for %s already in cache",
+				G_STRFUNC, sha1_to_string(sha1));
 		}
 		if (refresh) {
-			bitzi_cache_remove(data);
-			data = NULL;
+			bz = NULL;
 		}
 	}
 
-	if (data) {
-		if (filesize && data->size != filesize) {
+	if (bz != NULL) {
+		if (filesize != 0 && bz->size != filesize) {
 			bitzi_failure(sha1, filesize,
-				data->size ? BITZI_FJ_WRONG_FILESIZE : BITZI_FJ_UNKNOWN);
-			data = NULL;
+				bz->size ? BITZI_FJ_WRONG_FILESIZE : BITZI_FJ_UNKNOWN);
+			bz = NULL;
 		} else {
-			gcu_bitzi_result(data);
+			bitzi_data_t data;
+
+			bitzi_fill_data(&data, sha1, bz);
+			gcu_bitzi_result(&data);
 		}
 	} else {
-		static const bitzi_request_t zero_request;
-		size_t len;
+		bitzi_request_t	*breq;
 
-		WALLOC(request);
-		*request = zero_request;
+		breq = bitzi_request_create(sha1, filesize);
+		slist_append(bitzi_rq, breq);
 
-		/*
-		 * build the bitzi url
-		 */
-		request->sha1 = atom_sha1_get(sha1);
-		request->filesize = filesize;
-		len = gm_snprintf(request->bitzi_url, sizeof request->bitzi_url,
-				bitzi_url_fmt, sha1_base32(sha1));
-
-		bitzi_rq = g_slist_append(bitzi_rq, request);
 		if (GNET_PROPERTY(bitzi_debug)) {
-			g_debug("bitzi_query_by_sha1: queued query, %d in queue",
-				g_slist_position(bitzi_rq, g_slist_last(bitzi_rq)) + 1);
+			g_debug("BITZI %s: queued query for %s at position #%u",
+				G_STRFUNC, sha1_base32(sha1), slist_length(bitzi_rq));
 		}
 
-		/*
-		 * the heartbeat will pick up the request
-		 */
+		/* The heartbeat will pick up the request */
 	}
-
-	return data;
 }
 
+/**
+ * Fill supplied data by SHA1.
+ *
+ * @return TRUE if found, FALSE if ticket does not exist.
+ */
+gboolean
+bitzi_data_by_sha1(bitzi_data_t *data,
+	const struct sha1 *sha1, filesize_t filesize)
+{
+	struct bzdata *bz;
+	
+	bz = get_bzdata(sha1);
+	if (NULL == bz || (filesize != 0 && bz->size != filesize))
+		return FALSE;
+
+	bitzi_fill_data(data, sha1, bz);
+	return TRUE;
+}
+
+/**
+ * Return XML ticket by SHA1.
+ */
 const char *
 bitzi_ticket_by_sha1(const struct sha1 *sha1, filesize_t filesize)
 {
-	bitzi_data_t *data;
+	struct bzdata *bz;
 	
-	data = bitzi_query_cache_by_sha1(sha1);
-	return data && (!filesize || data->size == filesize) ? data->ticket : NULL;
-}
+	bz = get_bzdata(sha1);
 
-static void
-bitzi_load_cache(void)
-{
-	FILE *old_data;
-	int ticket_count = 0;
-	char *path, *oldpath;
-
-	/*
-	 * Rename the old file , overwritting stuff if we have to
-	 */
-	oldpath = make_pathname(settings_config_dir(), "bitzi.xml.orig");
-  	path = make_pathname(settings_config_dir(), "bitzi.xml");
-
-	if (rename(path, oldpath)) {
-		g_warning("bitzi_init: failed to rename %s to %s (%s)",
-				path, oldpath, g_strerror(errno));
+	if (GNET_PROPERTY(bitzi_debug > 9)) {
+		if (bz != NULL) {
+			gboolean matches = 0 == filesize || bz->size == filesize;
+			g_debug("BITZI %s: %s bz->ticket = %p, filesize %s",
+				G_STRFUNC, sha1_to_string(sha1), bz->ticket,
+				matches ? "matches": "MISMATCH");
+			if (!matches) {
+				g_debug("BITZI %s: %s filesize %s, ticket says: %s",
+					G_STRFUNC, sha1_to_string(sha1),
+					filesize_to_string(filesize),
+					filesize_to_string2(bz->size));
+			}
+		} else {
+			g_debug("BITZI %s: %s NOT FOUND", G_STRFUNC, sha1_to_string(sha1));
+		}
 	}
 
-	/*
-	 * Set up the file cache descriptor, starting from scratch.
-	 */
-	bitzi_cache_file = fopen(path, "w");
-	if (!bitzi_cache_file) {
-		g_warning("bitzi_init: failed to open bitzi cache (%s) %s",
-				path, g_strerror(errno));
-	}
-
-	/*
-	 * "play" the .orig file back through the XML parser and
-	 * repopulate our internal cache
-	 */
-	old_data = fopen(oldpath, "r");
-	if (!old_data) {
-		if (errno != ENOENT)
-			g_warning("Failed to open %s for cached Bitzi data (%s)",
-				oldpath, g_strerror(errno));
-	} else {
-		bitzi_request_t *request = NULL;
-		gboolean truncated = FALSE;
-		char tmp[1024];
-
-		for (;;) {
-			static const char xml_prefix[] = "<?xml";
-			gboolean eofile, eot;
-
-			eofile = NULL == fgets(tmp, sizeof(tmp), old_data);
-			eot = !eofile && !truncated && is_strprefix(tmp, xml_prefix);
-
-			/*
-			 * Each XML ticket will start with an XML header at which
-			 * time we submit the last piece of data and set up a new
-			 * context for the next ticket.
-			 */
-
-			if ((eofile || eot) && request) {
-				int result;
-
-				/* finish parsing */
-				result = xmlParseChunk(request->ctxt, tmp, 0, 1);
-				if (0 == result)
-					ticket_count++;
-				else
-					g_warning("bitzi_init: "
-						"bad xml parsing cache result %d", result);
-
-				process_meta_data(request);
-			}
-
-			if (eofile)
-				break;
-
-			if (eot) {
-				static const bitzi_request_t zero_request;
-
-				/* new pseudo request */
-				WALLOC(request);
-				*request = zero_request;
-
-				request->sha1 = NULL;
-				request->filesize = 0;
-
-				request->ctxt = xmlCreatePushParserCtxt(
-					NULL, NULL, NULL, 0, NULL);
-			}
-
-			truncated = NULL == strchr(tmp, '\n');
-
-			/*
-			 * While we have a request stream the data into the XML
-			 * parser, much like bitzi_host_data_ind does
-			 */
-			if (request) {
-		   		size_t len;
-
-				len = strlen(tmp);
-				if (len > 0) {
-					int result;
-
-					result = xmlParseChunk(request->ctxt, tmp, len, 0);
-					if (result != 0)
-						g_warning("bitzi_init: "
-							"bad xml parsing cache result %d", result);
-
-				}
-			}
-
-		} /* for (;;) */
-
-		fclose(old_data);
-	} /* if (old_data) */
-
-	if (GNET_PROPERTY(bitzi_debug))
-		g_debug("Loaded %d bitzi ticket(s) from \"%s\"",
-			ticket_count, oldpath);
-
-	/* clean-up */
-	HFREE_NULL(path);
-	HFREE_NULL(oldpath);
+	return bz != NULL && (0 == filesize || bz->size == filesize) ?
+		bz->ticket : NULL;
 }
 
 /**
@@ -1075,43 +1236,46 @@ bitzi_load_cache(void)
 void
 bitzi_init(void)
 {
-	bitzi_cache_ht = g_hash_table_new(pointer_hash_func, NULL);
+	dbstore_kv_t kv = { SHA1_RAW_SIZE, NULL, sizeof(struct bzdata),
+		sizeof(struct bzdata) + BITZI_XML_MAXLEN + 1024 };
+	dbstore_packing_t packing =
+		{ serialize_bzdata, deserialize_bzdata, free_bzdata };
+	char *oldpath;
 
-	bitzi_load_cache();
+	/* Legacy cleanup */
+	oldpath = make_pathname(settings_config_dir(), "bitzi.xml");
+	(void) unlink(oldpath);
+	HFREE_NULL(oldpath);
+
+	db_bzdata = dbstore_open(db_bzdata_what, settings_gnet_db_dir(),
+		db_bzdata_base, kv, packing, BITZI_DB_CACHE_SIZE, sha1_hash, sha1_eq,
+		FALSE);
+
+	bitzi_rq = slist_new();
+	bitzi_prune_old();
+
+	bitzi_sync_ev = cq_periodic_main_add(BITZI_SYNC_PERIOD, bitzi_sync, NULL);
+	bitzi_prune_ev = cq_periodic_main_add(BITZI_PRUNE_PERIOD,
+		bitzi_prune, NULL);
 
 	/*
 	 * Finally start the bitzi heart beat that will send requests when
 	 * we set them up.
 	 */
 
-	bitzi_heartbeat_ev = cq_periodic_main_add(10000, bitzi_heartbeat, NULL);
+	bitzi_heartbeat_ev = cq_periodic_main_add(
+		BITZI_HEARTBEAT_PERIOD, bitzi_heartbeat, NULL);
 }
 
 void
 bitzi_close(void)
 {
-	g_return_if_fail(bitzi_cache_ht);
-	gm_hash_table_destroy_null(&bitzi_cache_ht);
+	g_return_if_fail(bitzi_rq);
 
-	{
-		GList *iter;
-
-		for (iter = bitzi_cache; iter != NULL; iter = g_list_next(iter)) {
-			bitzi_destroy(iter->data);
-		}
-		gm_list_free_null(&bitzi_cache);
-	}
-
-	{
-		GSList *iter;
-		
-		for (iter = bitzi_rq; NULL != iter; iter = g_slist_next(iter)) {
-			bitzi_request_t *req = iter->data;
-			bitzi_request_free(&req);
-		}
-		gm_slist_free_null(&bitzi_rq);
-	}
-	
+	dbstore_close(db_bzdata, settings_gnet_db_dir(), db_bzdata_base);
+	db_bzdata = NULL;
+	slist_free_all(&bitzi_rq, cast_to_slist_destroy(bitzi_request_free));
+	bitzi_request_free_null(&current_bitzi_request);
 	cq_periodic_remove(&bitzi_heartbeat_ev);
 }
 

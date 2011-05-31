@@ -88,11 +88,11 @@ bitzi_gui_update(const bitzi_data_t *bitzi_data)
     gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
 	if (bitzi_debug)
     	g_debug("bitzi_gui_update: data %p, size %s\n"
-			  "goodness %f, judgement %d, type %s, details %s",
+			  "goodness %f, judgment %d, type %s, details %s",
 			cast_to_gconstpointer(bitzi_data),
 			uint64_to_string(bitzi_data->size),
 			bitzi_data->goodness,
-			bitzi_data->judgement,
+			bitzi_data->judgment,
 			NULL_STRING(bitzi_data->mime_type),
 			NULL_STRING(bitzi_data->mime_desc));
 
@@ -111,26 +111,26 @@ bitzi_gui_get_metadata(const bitzi_data_t *data)
 	 */
 
 	if (
-		data->judgement == BITZI_FJ_FAILURE ||
-		data->judgement == BITZI_FJ_WRONG_FILESIZE
+		data->judgment == BITZI_FJ_FAILURE ||
+		data->judgment == BITZI_FJ_WRONG_FILESIZE
 	) {
-		return h_strdup(bitzi_fj_to_string(data->judgement));
+		return h_strdup(bitzi_fj_to_string(data->judgment));
 	} else if (data->mime_type) {
 		if (data->mime_desc) {
 			return h_strdup_printf("%s (%1.1f): %s (%s)",
-					bitzi_fj_to_string(data->judgement),
+					bitzi_fj_to_string(data->judgment),
 					data->goodness,
 					data->mime_type,
 					data->mime_desc);
 		} else {
 			return h_strdup_printf("%s (%1.1f): %s",
-					bitzi_fj_to_string(data->judgement),
+					bitzi_fj_to_string(data->judgment),
 					data->goodness,
 					data->mime_type);
 		}
-	} else if (data->judgement != BITZI_FJ_UNKNOWN) {
+	} else if (data->judgment != BITZI_FJ_UNKNOWN) {
 		return h_strdup_printf("%s (%1.1f): %s",
-				bitzi_fj_to_string(data->judgement),
+				bitzi_fj_to_string(data->judgment),
 				data->goodness,
 				_("No other data"));
 	}
