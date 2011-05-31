@@ -634,8 +634,10 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 
 		while (n > 0) {
 			guint32 next_bno = peek_be32(p);
+			size_t amount;
 
-			g_assert(next_bno > prev_bno);	/* Block numbers are sorted */
+			if (next_bno <= prev_bno)	/* Block numbers are sorted */
+				goto corrupted_page;
 
 			if (next_bno - prev_bno != 1)
 				break;						/*  Not consecutive */
@@ -644,9 +646,10 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 			if (!big_block_is_allocated(db, prev_bno))
 				goto corrupted_database;
 			p = const_ptr_add_offset(p, sizeof(guint32));
-			toread += MIN(remain, BIG_BLKSIZE);
+			amount = MIN(remain, BIG_BLKSIZE);
+			toread += amount;
 			n--;
-			remain = size_saturate_sub(remain, toread);
+			remain = size_saturate_sub(remain, amount);
 		}
 
 		if (-1 == compat_pread(dbg->fd, q, toread, OFF_DAT(bno))) {
@@ -669,7 +672,15 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 corrupted_database:
 	g_warning("sdbm: \"%s\": cannot read unallocated data block #%u",
 		sdbm_name(db), prev_bno);
+	goto fault;
 
+corrupted_page:
+	g_warning("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
+		sdbm_name(db), bcnt, 1 == bcnt ? "" : "s");
+
+	/* FALL THROUGH */
+
+fault:
 	ioerr(db, FALSE);
 	errno = EFAULT;		/* Data corrupted somehow (.pag or .dat file) */
 	return -1;
@@ -837,17 +848,20 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 
 		while (n > 0) {
 			guint32 next_bno = peek_be32(p);
+			size_t amount;
 
-			g_assert(next_bno > prev_bno);	/* Block numbers are sorted */
+			if (next_bno <= prev_bno)	/* Block numbers are sorted */
+				goto corrupted_page;
 
 			if (next_bno - prev_bno != 1)
 				break;						/*  Not consecutive */
 
 			prev_bno = next_bno;
 			p = const_ptr_add_offset(p, sizeof(guint32));
-			towrite += MIN(remain, BIG_BLKSIZE);
+			amount = MIN(remain, BIG_BLKSIZE);
+			towrite += amount;
 			n--;
-			remain = size_saturate_sub(remain, towrite);
+			remain = size_saturate_sub(remain, amount);
 		}
 
 		if (-1 == compat_pwrite(dbg->fd, q, towrite, OFF_DAT(bno))) {
@@ -866,6 +880,14 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 	g_assert(ptr_diff(q, data) == len);
 
 	return 0;
+
+corrupted_page:
+	g_warning("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
+		sdbm_name(db), bcnt, 1 == bcnt ? "" : "s");
+
+	ioerr(db, FALSE);
+	errno = EFAULT;		/* Data corrupted somehow (.pag file) */
+	return -1;
 }
 
 /**
