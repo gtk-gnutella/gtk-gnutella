@@ -68,10 +68,10 @@ static const char XFMT_CDATA_END[]		= "]]>";
  * depth they will be required so that we can declare them before.
  */
 struct xfmt_pass1 {
-	GHashTable *uri2depth;		/**< URI -> earliest depth seen */
-	GHashTable *multiple;		/**< Records URIs seen in multiple siblings */
+	GHashTable *uri2node;		/**< URI -> topmost node in scope */
 	GHashTable *attr_uris;		/**< URIs used by attributes */
 	nv_table_t *uri2prefix;		/**< URI -> prefixes (declared in tree) */
+	const xnode_t *node;		/**< Current element being traversed */
 	unsigned depth;				/**< Current tree depth */
 };
 
@@ -79,7 +79,7 @@ struct xfmt_pass1 {
  * Second pass traversal context.
  */
 struct xfmt_pass2 {
-	GHashTable *depth2uri;		/**< declaration depth -> URI list */
+	GHashTable *node2uri;		/**< node -> URI list to declare */
 	GHashTable *attr_uris;		/**< URIs used by attributes */
 	ostream_t *os;				/**< Output stream */
 	guint32 options;			/**< Formatter options */
@@ -99,12 +99,49 @@ static const char XFMT_EMPTY[]		= "/>";
 static const char XFMT_GT[]			= ">";
 
 /**
- * Record the need to declare URI at current depth.
+ * Find common parent between two arbitrary XML nodes in the same tree.
+ *
+ * @return common parent node, NULL if we did not find any (meaning the
+ * nodes are not part of the same tree).
+ */
+static const xnode_t *
+xfmt_find_common_parent(const xnode_t *x1, const xnode_t *x2)
+{
+	const xnode_t *xn;
+
+	if (NULL == x1)
+		return NULL;
+
+	/*
+	 * Recursive algorithm: walk up to the root of the tree from x2 to see if
+	 * we reach x1.  If we do, we found our common ancestor.
+	 *
+	 * Otherwise, recurse with the parent of x1.
+	 *
+	 * Because we have no depth information in nodes, we can't know which one
+	 * is deeper in the tree and cannot optimize the lookup algorithm much.
+	 *
+	 * The worst case complexity is O(d1 * d2) where d1 and d2 are the depths
+	 * of x1 and x2.  However, in practice x2 is going to be part of x1's
+	 * subtree or of that of its parent node so we do not always fall into the
+	 * worst case scenario where the common ancestor ends up being the root.
+	 */
+
+	for (xn = x2; xn != NULL; xn = xnode_parent(xn)) {
+		if (x1 == xn)
+			return x1;
+	}
+
+	return xfmt_find_common_parent(xnode_parent(x1), x2);
+}
+
+/**
+ * Record the need to declare URI at current node.
  */
 static void
-xfmt_uri_declare(const char *uri, struct xfmt_pass1 *xp1, gboolean element)
+xfmt_uri_declare(const char *uri, struct xfmt_pass1 *xp1)
 {
-	void *v = g_hash_table_lookup(xp1->uri2depth, uri);
+	const xnode_t *xn = g_hash_table_lookup(xp1->uri2node, uri);
 
 	/*
 	 * Since the hash table will not outlive the tree traversal,
@@ -112,18 +149,23 @@ xfmt_uri_declare(const char *uri, struct xfmt_pass1 *xp1, gboolean element)
 	 * taking a copy.
 	 */
 
-	if (v == NULL) {
-		gm_hash_table_insert_const(xp1->uri2depth, uri,
-			uint_to_pointer(xp1->depth));
+	if (NULL == xn) {
+		/*
+		 * First time we see this URI, record the node where it appears.
+		 */
+		gm_hash_table_insert_const(xp1->uri2node, uri, xp1->node);
 	} else {
-		unsigned d = pointer_to_uint(v);
-		if (xp1->depth < d) {
-			gm_hash_table_insert_const(xp1->uri2depth, uri,
-				uint_to_pointer(xp1->depth));
-			g_hash_table_remove(xp1->multiple, uri);
-		} else if (xp1->depth == d && element) {
-			gm_hash_table_insert_const(xp1->multiple, uri, NULL);
-		}
+		const xnode_t *common;
+
+		/*
+		 * We already saw this URI already.  Move the declaration to the
+		 * node which is the common ancestor between the previous node and
+		 * the current one.
+		 */
+
+		common = xfmt_find_common_parent(xn, xp1->node);
+		g_assert(common != NULL);
+		gm_hash_table_insert_const(xp1->uri2node, uri, common);
 	}
 }
 
@@ -151,7 +193,7 @@ xfmt_prefix_record(struct xfmt_pass1 *xp1, const char *prefix, const char *uri)
 		 */
 
 		if (strcmp(prefix, nv_pair_value_str(nv)) != 0) {
-			g_warning("XFMT ignoring prefix '%s' for '%s': "
+			g_carp("XFMT ignoring prefix '%s' for '%s': "
 				"already saw '%s' earlier in the tree", prefix, uri,
 				nv_pair_value_str(nv));
 		}
@@ -189,7 +231,7 @@ xfmt_handle_pass1_attr(const char *uri,
 	(void) value;
 
 	if (uri != NULL) {
-		xfmt_uri_declare(uri, xp1, FALSE);
+		xfmt_uri_declare(uri, xp1);
 
 		if (xp1->attr_uris != NULL) {
 			gm_hash_table_insert_const(xp1->attr_uris, uri, NULL);
@@ -210,8 +252,10 @@ xfmt_handle_pass1_enter(xnode_t *xn, void *data)
 	if (xnode_is_element(xn)) {
 		const char *uri = xnode_element_ns(xn);
 
+		xp1->node = xn;
+
 		if (uri != NULL)
-			xfmt_uri_declare(uri, xp1, TRUE);
+			xfmt_uri_declare(uri, xp1);
 
 		xnode_prop_foreach(xn, xfmt_handle_pass1_attr, xp1);
 		xnode_ns_foreach(xn, xfmt_handle_pass1_ns, xp1);
@@ -475,7 +519,7 @@ xfmt_prefix_declare(struct xfmt_pass2 *xp2, const char *uri, const char *prefix)
 		 */
 
 		if (strcmp(prefix, nv_pair_value_str(nv)) != 0) {
-			g_warning("XFMT ignoring supplied prefix '%s' for '%s': "
+			g_carp("XFMT ignoring supplied prefix '%s' for '%s': "
 				"already saw '%s' in the tree", prefix, uri,
 				nv_pair_value_str(nv));
 		}
@@ -551,7 +595,7 @@ xfmt_new_prefix(struct xfmt_pass2 *xp2, const char *uri)
 		const char *used_uri = symtab_lookup(xp2->prefixes, prefix);
 
 		if (used_uri != NULL) {
-			g_warning("XFMT cannot use prefix '%s' for '%s': "
+			g_carp("XFMT cannot use prefix '%s' for '%s': "
 				"already used by '%s'", prefix, uri, used_uri);
 			prefix = NULL;
 		}
@@ -576,15 +620,15 @@ xfmt_new_prefix(struct xfmt_pass2 *xp2, const char *uri)
 }
 
 /**
- * Construct a list of prefixes to declare at this level.
+ * Construct a list of prefixes to declare at this node.
  */
 static GSList *
-xfmt_ns_declarations(struct xfmt_pass2 *xp2)
+xfmt_ns_declarations(struct xfmt_pass2 *xp2, const xnode_t *xn)
 {
 	GSList *ns = NULL;
 	GSList *sl, *uris;
 
-	uris = g_hash_table_lookup(xp2->depth2uri, uint_to_pointer(xp2->depth));
+	uris = g_hash_table_lookup(xp2->node2uri, xn);
 
 	GM_SLIST_FOREACH(uris, sl) {
 		const char *uri = sl->data;
@@ -594,7 +638,7 @@ xfmt_ns_declarations(struct xfmt_pass2 *xp2)
 	}
 
 	if (uris != NULL) {
-		g_hash_table_remove(xp2->depth2uri, uint_to_pointer(xp2->depth));
+		g_hash_table_remove(xp2->node2uri, xn);
 		g_slist_free(uris);
 	}
 
@@ -754,7 +798,7 @@ xfmt_handle_pass2_enter(xnode_t *xn, void *data)
 	xp2->depth++;
 
 	if (xnode_is_element(xn)) {
-		GSList *ns = xfmt_ns_declarations(xp2);
+		GSList *ns = xfmt_ns_declarations(xp2, xn);
 		const char *nsuri = xnode_element_ns(xn);
 
 		if (!xp2->had_text && !xp2->last_was_nl) {
@@ -899,6 +943,17 @@ xfmt_handle_pass2_leave(xnode_t *xn, void *data)
 
 		xfmt_indent(xp2);
 
+		/*
+		 * We don't emit the URI if it is that of the default namespace.
+		 */
+
+		if (
+			uri != NULL && xp2->default_ns != NULL &&
+			0 == strcmp(uri, xp2->default_ns)
+		) {
+			uri = NULL;
+		}
+
 		if (uri != NULL) {
 			const char *pre = xfmt_uri_to_prefix(xp2, uri);
 			ostream_printf(xp2->os, "</%s:%s>", pre, xnode_element_name(xn));
@@ -917,39 +972,29 @@ xfmt_handle_pass2_leave(xnode_t *xn, void *data)
 }
 
 struct xfmt_invert_ctx {
-	GHashTable *depth2uri;
-	GHashTable *multiple;
+	GHashTable *uri2node;
+	GHashTable *node2uri;
 };
 
 /**
- * Hash table iterator to invert the "uri -> depth" mapping to "depth -> uri".
+ * Hash table iterator to invert the "uri -> node" mapping to "node -> uri".
  *
- * Since there are many URIs that can be associated to a given depth, the
+ * Since there are many URIs that can be associated to a given node, the
  * values are actually lists of URIs.
  */
 static void
 xfmt_invert_uri_kv(void *key, void *value, void *data)
 {
 	struct xfmt_invert_ctx *ictx = data;
-	unsigned depth = pointer_to_uint(value);
-	char *uri = key;
+	const char *uri = key;
+	const xnode_t *xn = value;
 	GSList *sl;
 
-	g_assert(uint_is_positive(depth));
+	g_assert(xn != NULL);
 
-	/*
-	 * If URI is used by more than one sibling at a given depth, the URI
-	 * needs to be declared in the parent.
-	 */
-
-	if (gm_hash_table_contains(ictx->multiple, uri)) {
-		g_assert(depth > 1);
-		depth--;
-	}
-
-	sl = g_hash_table_lookup(ictx->depth2uri, uint_to_pointer(depth));
-	sl = g_slist_prepend(sl, uri);
-	g_hash_table_insert(ictx->depth2uri, uint_to_pointer(depth), sl);
+	sl = g_hash_table_lookup(ictx->node2uri, xn);
+	sl = gm_slist_prepend_const(sl, uri);
+	gm_hash_table_insert_const(ictx->node2uri, xn, sl);
 }
 
 /**
@@ -980,7 +1025,7 @@ xfmt_invert_uri_kv(void *key, void *value, void *data)
  * @param options		formatting options, as documented above
  * @param pvec			a vector of prefixes to be used for namespaces
  * @param pvcnt			amount of entries in vector
- * @param default_ns
+ * @param default_ns	default namespace to install at root element
  *
  * @return TRUE on success.
  */
@@ -998,7 +1043,7 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 
 	if (options & XFMT_O_COLLAPSE_BLANKS) {
 		/* FIXME */
-		g_warning("XFMT_O_COLLAPSE_BLANKS not supported yet");
+		g_carp("XFMT_O_COLLAPSE_BLANKS not supported yet");
 		stacktrace_where_print(stderr);
 	}
 
@@ -1011,15 +1056,13 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 	 */
 
 	ZERO(&xp1);
-	xp1.uri2depth = g_hash_table_new(g_str_hash, g_str_equal);
-	xp1.multiple = g_hash_table_new(g_str_hash, g_str_equal);
+	xp1.uri2node = g_hash_table_new(g_str_hash, g_str_equal);
 	xp1.uri2prefix = nv_table_make(FALSE);
 
 	if (default_ns != NULL)
 		xp1.attr_uris = g_hash_table_new(g_str_hash, g_str_equal);
 
-	gm_hash_table_insert_const(xp1.uri2depth, VXS_XML_URI,
-			uint_to_pointer(1));
+	gm_hash_table_insert_const(xp1.uri2node, VXS_XML_URI, root);
 
 	xnode_tree_enter_leave(deconstify_gpointer(root),
 		xfmt_handle_pass1_enter, xfmt_handle_pass1_leave, &xp1);
@@ -1032,8 +1075,8 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 	 */
 
 	if (default_ns != NULL) {
-		if (NULL == g_hash_table_lookup(xp1.uri2depth, default_ns)) {
-			g_warning("XFMT default namespace '%s' is not needed", default_ns);
+		if (NULL == g_hash_table_lookup(xp1.uri2node, default_ns)) {
+			g_carp("XFMT default namespace '%s' is not needed", default_ns);
 			dflt_ns = NULL;
 		} else {
 			dflt_ns = default_ns;
@@ -1047,7 +1090,7 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 	 */
 
 	ZERO(&xp2);
-	xp2.depth2uri = g_hash_table_new(NULL, NULL);
+	xp2.node2uri = g_hash_table_new(pointer_hash_func, NULL);
 	xp2.os = os;
 	xp2.options = options;
 	xp2.default_ns = dflt_ns;
@@ -1061,15 +1104,14 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 
 	/*
 	 * Iterate over the hash table we've built to create a table indexed
-	 * by tree depth and listing the namespaces to declare.
+	 * by tree node and listing the namespaces to declare for that node.
 	 */
 
-	ictx.depth2uri = xp2.depth2uri;
-	ictx.multiple = xp1.multiple;
+	ictx.uri2node = xp1.uri2node;
+	ictx.node2uri = xp2.node2uri;
 
-	g_hash_table_foreach(xp1.uri2depth, xfmt_invert_uri_kv, &ictx);
-	gm_hash_table_destroy_null(&xp1.uri2depth);
-	gm_hash_table_destroy_null(&xp1.multiple);
+	g_hash_table_foreach(xp1.uri2node, xfmt_invert_uri_kv, &ictx);
+	gm_hash_table_destroy_null(&xp1.uri2node);
 
 	/*
 	 * Emit prologue if requested.
@@ -1118,7 +1160,7 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, guint32 options,
 	nv_table_free_null(&xp2.uri2prefix);
 	symtab_free_null(&xp2.prefixes);
 	symtab_free_null(&xp2.uris);
-	gm_hash_table_destroy_null(&xp2.depth2uri);
+	gm_hash_table_destroy_null(&xp2.node2uri);
 	gm_hash_table_destroy_null(&xp2.attr_uris);
 
 	return !ostream_has_ioerr(os);
@@ -1201,6 +1243,35 @@ xfmt_tree_prologue_dump(const xnode_t *root, FILE *f)
 }
 
 /**
+ * Convenience routine: dump tree specified file.
+ *
+ * See xfmt_tree_extended() for a description of the available options.
+ *
+ * @param root			tree to dump
+ * @param f				file where we should dump the tree
+ * @param options		formatting options, as documented above
+ * @param pvec			a vector of prefixes to be used for namespaces
+ * @param pvcnt			amount of entries in vector
+ * @param default_ns	default namespace to install at root element
+ *
+ * @return TRUE on success.
+ */
+gboolean
+xfmt_tree_dump_extended(const xnode_t *root, FILE *f,
+	guint32 options, const struct xfmt_prefix *pvec, size_t pvcnt,
+	const char *default_ns)
+{
+	ostream_t *os;
+
+	if (!log_file_printable(f))
+		return FALSE;
+
+	os = ostream_open_file(f);
+	xfmt_tree_extended(root, os, options, pvec, pvcnt, default_ns);
+	return 0 == ostream_close(os);
+}
+
+/**
  * Convenience routine: format tree to memory buffer.
  *
  * @param root		tree to dump
@@ -1238,6 +1309,70 @@ xfmt_tree_to_buffer(const xnode_t *root, void *buf, size_t len, guint32 options)
 	g_assert((size_t) -1 == written || written <= len);
 
 	return written;
+}
+
+/**
+ * Convenience routine: format tree to new halloc()'ed string.
+ *
+ * See xfmt_tree_extended() for a description of the available options.
+ *
+ * @param root			tree to dump
+ * @param f				file where we should dump the tree
+ * @param options		formatting options, as documented above
+ * @param pvec			a vector of prefixes to be used for namespaces
+ * @param pvcnt			amount of entries in vector
+ * @param default_ns	default namespace to install at root element
+ *
+ * @return newly allocated string, NULL on error.
+ */
+char *
+xfmt_tree_to_string_extended(const xnode_t *root,
+	guint32 options, const struct xfmt_prefix *pvec, size_t pvcnt,
+	const char *default_ns)
+{
+	ostream_t *os;
+	slist_t *ps;
+	gboolean ok;
+	char *str = NULL;
+
+	g_assert(root != NULL);
+
+	os = ostream_open_memory();
+	ok = xfmt_tree_extended(root, os, options, pvec, pvcnt, default_ns);
+	ps = ostream_close_memory(os);
+
+	if (ok) {
+		size_t len = pmsg_slist_size(ps);
+		size_t copied;
+
+		/*
+		 * Copy XML tree from the pmsg list to a newly allocated
+		 * NUL-terminated string.
+		 */
+
+		str = halloc(len + 1);		/* Trailing NUL */
+		copied = pmsg_slist_read(ps, str, len);
+		g_assert(copied == len);
+		str[len] = '\0';
+	}
+
+	pmsg_slist_free_all(&ps);
+
+	return str;
+}
+
+/**
+ * Convenience routine: format tree to new halloc()'ed string.
+ *
+ * @param root		tree to dump
+ * @param options	formatting options
+ *
+ * @return newly allocated string, NULL on error.
+ */
+char *
+xfmt_tree_to_string(const xnode_t *root, guint32 options)
+{
+	return xfmt_tree_to_string_extended(root, options, NULL, 0, NULL);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
