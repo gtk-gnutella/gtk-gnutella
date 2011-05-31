@@ -1,5 +1,4 @@
 /* Mini EMBED (pair.c) */
-#define chkpage sdbm__chkpage
 #define delpair sdbm__delpair
 #define duppair sdbm__duppair
 #define exipair sdbm__exipair
@@ -23,7 +22,6 @@ extern gboolean delpair(DBM *, char *, datum);
 extern gboolean delnpair(DBM *, char *, int);
 extern gboolean delipair(DBM *, char *, int);
 extern gboolean infopair(DBM *, char *, datum, size_t *, int *, gboolean *);
-extern gboolean chkpage(const char *);
 extern datum getnkey(DBM *, char *, int);
 extern datum getnval(DBM *, char *, int);
 extern void splpage(char *, char *, char *, long);

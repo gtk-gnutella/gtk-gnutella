@@ -74,6 +74,12 @@ int sdbm_set_volatile(DBM *db, gboolean yes);
 gboolean sdbm_shrink(DBM *db);
 int sdbm_clear(DBM *db);
 
+/*
+ * Internal routines with clean semantics that can be used by user code.
+ * These are not documented.
+ */
+gboolean sdbm_internal_chkpage(const char *);
+
 #endif /* _sdbm_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

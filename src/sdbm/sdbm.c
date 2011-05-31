@@ -398,7 +398,7 @@ fetch_pagbuf(DBM *db, long pagnum)
 					sdbm_name(db), (unsigned) got, pagnum);
 			memset(db->pagbuf + got, 0, DBM_PBLKSIZ - got);
 		}
-		if (!chkpage(db->pagbuf)) {
+		if (!sdbm_internal_chkpage(db->pagbuf)) {
 			g_warning("sdbm: \"%s\": corrupted page #%ld, clearing",
 				sdbm_name(db), pagnum);
 			memset(db->pagbuf, 0, DBM_PBLKSIZ);

@@ -57,8 +57,6 @@ main(int argc, char **argv)
 	return 0;
 }
 
-extern int okpage(char *pag);
-
 static inline unsigned short
 offset(unsigned short off)
 {
@@ -133,7 +131,7 @@ sdump(int pagf)
 		int lk, lv;
 		unsigned ks, vs;
 		printf("#%d: ", n);
-		if (!okpage(pag))
+		if (!sdbm_internal_chkpage(pag))
 			printf("bad\n");
 		else {
 			printf("ok. ");

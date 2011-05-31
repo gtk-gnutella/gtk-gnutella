@@ -289,7 +289,304 @@ big_scratch_grow(DBMBIG *dbg, size_t len)
 }
 
 /**
- * Fetch big value from the .dat file, reading from the supplied block numbers.
+ * Flush bitmap to disk.
+ * @return TRUE on sucess
+ */
+static gboolean
+flush_bitbuf(DBM *db)
+{
+	DBMBIG *dbg = db->big;
+	ssize_t w;
+
+	dbg->bitwrite++;
+	w = compat_pwrite(dbg->fd, dbg->bitbuf, BIG_BLKSIZE, OFF_DAT(dbg->bitbno));
+
+	if (BIG_BLKSIZE == w) {
+		dbg->bitbuf_dirty = FALSE;
+		return TRUE;
+	}
+
+	g_warning("sdbm: \"%s\": cannot flush bitmap #%ld: %s",
+		sdbm_name(db), dbg->bitbno / BIG_BITCOUNT,
+		-1 == w ? g_strerror(errno) : "partial write");
+
+	ioerr(db, TRUE);
+	return FALSE;
+}
+
+/**
+ * Read n-th bitmap page.
+ *
+ * @return TRUE on success.
+ */
+static gboolean
+fetch_bitbuf(DBM *db, long num)
+{
+	DBMBIG *dbg = db->big;
+	long bno = num * BIG_BITCOUNT;	/* address of n-th bitmap in file */
+
+	dbg->bitfetch++;
+
+	if (bno != dbg->bitbno) {
+		ssize_t got;
+
+		if (dbg->bitbuf_dirty && !flush_bitbuf(db))
+			return FALSE;
+
+		dbg->bitread++;
+		got = compat_pread(dbg->fd, dbg->bitbuf, BIG_BLKSIZE, OFF_DAT(bno));
+		if (got < 0) {
+			g_warning("sdbm: \"%s\": could not read bitmap block #%ld: %s",
+				sdbm_name(db), num, g_strerror(errno));
+			ioerr(db, FALSE);
+			return FALSE;
+		}
+
+		if (0 == got) {
+			memset(dbg->bitbuf, 0, BIG_BLKSIZE);
+		}
+		dbg->bitbno = bno;
+	} else {
+		dbg->bitbno_hit++;
+	}
+
+	return TRUE;
+}
+
+/**
+ * Allocate a single block in the file, without extending it.
+ *
+ * @param db		the sdbm database
+ * @param first		first block to consider
+ *
+ * @return the block number if found, 0 otherwise.
+ */
+static size_t
+big_falloc(DBM *db, size_t first)
+{
+	DBMBIG *dbg = db->big;
+	long max_bitmap = dbg->bitmaps;
+	long i;
+	long bmap;
+	size_t first_bit;
+
+	bmap = first / BIG_BITCOUNT;			/* Bitmap handling this block */
+	first_bit = first & (BIG_BITCOUNT - 1);	/* Index within bitmap */
+
+	/*
+	 * Loop through all the currently existing bitmaps.
+	 */
+
+	for (i = bmap; i < max_bitmap; i++) {
+		size_t bno;
+
+		if (!fetch_bitbuf(db, i))
+			return 0;
+		
+		bno = bit_field_first_clear(dbg->bitbuf, first_bit, BIG_BITCOUNT - 1);
+		if ((size_t) -1 == bno)
+			continue;
+
+		/*
+		 * Found a free block.
+		 */
+
+		bit_field_set(dbg->bitbuf, bno);
+		dbg->bitbuf_dirty = TRUE;
+
+		/*
+		 * Correct the block number corresponding to "bno", if we did
+		 * not find it in bitmap #0.
+		 */
+
+		bno = size_saturate_add(bno, size_saturate_mult(BIG_BITCOUNT, i));
+
+		/* Make sure we can represent the block number in 32 bits */
+		g_assert(bno <= MAX_INT_VAL(guint32));
+
+		return bno;		/* Allocated block number */
+	}
+
+	return 0;		/* No free block found */
+}
+
+/**
+ * Check whether block is allocated.
+ *
+ * @param db		the sdbm database
+ * @param bno		block number to consider
+ *
+ * @return TRUE if the block is allocated.
+ */
+static gboolean
+big_block_is_allocated(DBM *db, size_t bno)
+{
+	DBMBIG *dbg = db->big;
+	long bmap;
+	size_t bit;
+
+	bmap = bno / BIG_BITCOUNT;			/* Bitmap handling this block */
+	bit = bno & (BIG_BITCOUNT - 1);		/* Index within bitmap */
+
+	/*
+	 * Fetch the bitmap where block lies.
+	 */
+
+	if (!fetch_bitbuf(db, bmap))
+		return FALSE;
+
+	/*
+	 * Check bit in the loaded bitmap.
+	 */
+
+	return bit_field_get(dbg->bitbuf, bit);
+}
+
+/**
+ * Free a block from file.
+ */
+static void
+big_ffree(DBM *db, size_t bno)
+{
+	DBMBIG *dbg = db->big;
+	long bmap;
+	size_t i;
+
+	STATIC_ASSERT(IS_POWER_OF_2(BIG_BITCOUNT));
+
+	if (-1 == dbg->fd && -1 == big_open(dbg)) {
+		g_warning("sdbm: \"%s\": cannot free block #%ld",
+			sdbm_name(db), (long) bno);
+		return;
+	}
+
+	/*
+	 * Block number must be positive, and we cannot free a bitmap block.
+	 * If we end-up doing it, then it means data in the .pag was corrupted,
+	 * so we do not assert but fail gracefully.
+	 */
+
+	if (!size_is_positive(bno) || 0 == (bno & (BIG_BITCOUNT - 1))) {
+		g_warning("sdbm: \"%s\": attempt to free invalid block #%ld",
+			sdbm_name(db), (long) bno);
+		return;
+	}
+
+	g_assert(size_is_positive(bno));	/* Can never free block 0 (bitmap!) */
+	g_assert(bno & (BIG_BITCOUNT - 1));	/* Cannot be a bitmap block */
+
+	bmap = bno / BIG_BITCOUNT;			/* Bitmap handling this block */
+	i = bno & (BIG_BITCOUNT - 1);		/* Index within bitmap */
+
+	/*
+	 * Likewise, if the block falls in a bitmap we do not know about yet,
+	 * the .pag was corrupted.
+	 */
+
+	if (bmap >= dbg->bitmaps) {
+		g_warning("sdbm: \"%s\": "
+			"freed block #%ld falls in invalid bitmap #%ld (max %ld)",
+			sdbm_name(db), (long) bno, bmap, dbg->bitmaps);
+		return;
+	}
+
+	if (!fetch_bitbuf(db, bmap))
+		return;
+
+	/*
+	 * Again, freeing a block that is already marked as being freed is
+	 * a severe error but can happen if the bitmap cannot be flushed to disk
+	 * at some point, hence it cannot be an assertion.
+	 */
+
+	if (!bit_field_get(dbg->bitbuf, i)) {
+		g_warning("sdbm: \"%s\": freed block #%ld was already marked as free",
+			sdbm_name(db), (long) bno);
+		return;
+	}
+
+	bit_field_clear(dbg->bitbuf, i);
+	dbg->bitbuf_dirty = TRUE;
+}
+
+/**
+ * Allocate "n" consecutive (sequential) blocks in the file, without
+ * attempting to extend it.
+ *
+ * @param db		the sdbm database
+ * @param bmap		bitmap number from which we need to start looking
+ * @param n			amount of consecutive blocks we want
+ *
+ * @return the block number of the first "n" blocks if found, 0 if nothing
+ * was found.
+ */
+static size_t
+big_falloc_seq(DBM *db, int bmap, int n)
+{
+	DBMBIG *dbg = db->big;
+	long max_bitmap = dbg->bitmaps;
+	long i;
+
+	g_assert(bmap >= 0);
+	g_assert(n > 0);
+
+	/*
+	 * Loop through all the currently existing bitmaps, starting at the
+	 * specified bitmap number.
+	 */
+
+	for (i = bmap; i < max_bitmap; i++) {
+		size_t first;
+		size_t j;
+		int r;			/* Remaining blocks to allocate consecutively */
+
+		if (!fetch_bitbuf(db, i))
+			return 0;
+		
+		first = bit_field_first_clear(dbg->bitbuf, 0, BIG_BITCOUNT - 1);
+		if ((size_t) -1 == first)
+			continue;
+
+		for (j = first + 1, r = n - 1; r > 0 && j < BIG_BITCOUNT; r--, j++) {
+			if (bit_field_get(dbg->bitbuf, j))
+				break;
+		}
+
+		/*
+		 * If "r" is 0, we have no remaining page to allocate: we found our
+		 * "n" consecutive free blocks.
+		 */
+
+		if (0 == r) {
+			/*
+			 * Mark the "n" consecutive blocks as busy.
+			 */
+
+			for (j = first, r = n; r > 0; r--, j++) {
+				bit_field_set(dbg->bitbuf, j);
+			}
+			dbg->bitbuf_dirty = TRUE;
+
+			/*
+			 * Correct the block number corresponding to "first", if we did
+			 * not find it in bitmap #0.
+			 */
+
+			first = size_saturate_add(first,
+				size_saturate_mult(BIG_BITCOUNT, i));
+
+			/* Make sure we can represent all block numbers in 32 bits */
+			g_assert(size_saturate_add(first, n - 1) <= MAX_INT_VAL(guint32));
+
+			return first;	/* "n" consecutive free blocks found */
+		}
+	}
+
+	return 0;		/* No free block found */
+}
+
+/**
+ * Fetch data block from the .dat file, reading from the supplied block numbers.
  *
  * @param db		the sdbm database
  * @param bvec		start of block vector, containing block numbers
@@ -307,6 +604,7 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 	const void *p;
 	char *q;
 	size_t remain;
+	guint32 prev_bno;
 
 	if (-1 == dbg->fd && -1 == big_open(dbg))
 		return -1;
@@ -326,8 +624,10 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 	while (n > 0) {
 		size_t toread = MIN(remain, BIG_BLKSIZE);
 		guint32 bno = peek_be32(p);
-		guint32 prev_bno = bno;
-
+		
+		prev_bno = bno;
+		if (!big_block_is_allocated(db, prev_bno))
+			goto corrupted_database;
 		p = const_ptr_add_offset(p, sizeof(guint32));
 		n--;
 		remain = size_saturate_sub(remain, toread);
@@ -341,6 +641,8 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 				break;						/*  Not consecutive */
 
 			prev_bno = next_bno;
+			if (!big_block_is_allocated(db, prev_bno))
+				goto corrupted_database;
 			p = const_ptr_add_offset(p, sizeof(guint32));
 			toread += MIN(remain, BIG_BLKSIZE);
 			n--;
@@ -363,6 +665,14 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 	g_assert(UNSIGNED(q - dbg->scratch) == len);
 
 	return 0;
+
+corrupted_database:
+	g_warning("sdbm: \"%s\": cannot read unallocated data block #%u",
+		sdbm_name(db), prev_bno);
+
+	ioerr(db, FALSE);
+	errno = EFAULT;		/* Data corrupted somehow (.pag or .dat file) */
+	return -1;
 }
 
 /**
@@ -587,271 +897,6 @@ big_replace(DBM *db, char *bval, const char *data, size_t len)
 }
 
 /**
- * Flush bitmap to disk.
- * @return TRUE on sucess
- */
-static gboolean
-flush_bitbuf(DBM *db)
-{
-	DBMBIG *dbg = db->big;
-	ssize_t w;
-
-	dbg->bitwrite++;
-	w = compat_pwrite(dbg->fd, dbg->bitbuf, BIG_BLKSIZE, OFF_DAT(dbg->bitbno));
-
-	if (BIG_BLKSIZE == w) {
-		dbg->bitbuf_dirty = FALSE;
-		return TRUE;
-	}
-
-	g_warning("sdbm: \"%s\": cannot flush bitmap #%ld: %s",
-		sdbm_name(db), dbg->bitbno / BIG_BITCOUNT,
-		-1 == w ? g_strerror(errno) : "partial write");
-
-	ioerr(db, TRUE);
-	return FALSE;
-}
-
-/**
- * Read n-th bitmap page.
- *
- * @return TRUE on success.
- */
-static gboolean
-fetch_bitbuf(DBM *db, long num)
-{
-	DBMBIG *dbg = db->big;
-	long bno = num * BIG_BITCOUNT;	/* address of n-th bitmap in file */
-
-	dbg->bitfetch++;
-
-	if (bno != dbg->bitbno) {
-		ssize_t got;
-
-		if (dbg->bitbuf_dirty && !flush_bitbuf(db))
-			return FALSE;
-
-		dbg->bitread++;
-		got = compat_pread(dbg->fd, dbg->bitbuf, BIG_BLKSIZE, OFF_DAT(bno));
-		if (got < 0) {
-			g_warning("sdbm: \"%s\": could not read bitmap block #%ld: %s",
-				sdbm_name(db), num, g_strerror(errno));
-			ioerr(db, FALSE);
-			return FALSE;
-		}
-
-		if (0 == got) {
-			memset(dbg->bitbuf, 0, BIG_BLKSIZE);
-		}
-		dbg->bitbno = bno;
-	} else {
-		dbg->bitbno_hit++;
-	}
-
-	return TRUE;
-}
-
-/**
- * Allocate a single block in the file, without extending it.
- *
- * @param db		the sdbm database
- * @param first		first block to consider
- *
- * @return the block number if found, 0 otherwise.
- */
-static size_t
-falloc(DBM *db, size_t first)
-{
-	DBMBIG *dbg = db->big;
-	long max_bitmap = dbg->bitmaps;
-	long i;
-	long bmap;
-	size_t first_bit;
-
-	bmap = first / BIG_BITCOUNT;			/* Bitmap handling this block */
-	first_bit = first & (BIG_BITCOUNT - 1);	/* Index within bitmap */
-
-	/*
-	 * Loop through all the currently existing bitmaps.
-	 */
-
-	for (i = bmap; i < max_bitmap; i++) {
-		size_t bno;
-
-		if (!fetch_bitbuf(db, i))
-			return 0;
-		
-		bno = bit_field_first_clear(dbg->bitbuf, first_bit, BIG_BITCOUNT - 1);
-		if ((size_t) -1 == bno)
-			continue;
-
-		/*
-		 * Found a free block.
-		 */
-
-		bit_field_set(dbg->bitbuf, bno);
-		dbg->bitbuf_dirty = TRUE;
-
-		/*
-		 * Correct the block number corresponding to "bno", if we did
-		 * not find it in bitmap #0.
-		 */
-
-		bno = size_saturate_add(bno, size_saturate_mult(BIG_BITCOUNT, i));
-
-		/* Make sure we can represent the block number in 32 bits */
-		g_assert(bno <= MAX_INT_VAL(guint32));
-
-		return bno;		/* Allocated block number */
-	}
-
-	return 0;		/* No free block found */
-}
-
-/**
- * Free a block from file.
- */
-static void
-ffree(DBM *db, size_t bno)
-{
-	DBMBIG *dbg = db->big;
-	long bmap;
-	size_t i;
-
-	STATIC_ASSERT(IS_POWER_OF_2(BIG_BITCOUNT));
-
-	if (-1 == dbg->fd && -1 == big_open(dbg)) {
-		g_warning("sdbm: \"%s\": cannot free block #%ld",
-			sdbm_name(db), (long) bno);
-		return;
-	}
-
-	/*
-	 * Block number must be positive, and we cannot free a bitmap block.
-	 * If we end-up doing it, then it means data in the .pag was corrupted,
-	 * so we do not assert but fail gracefully.
-	 */
-
-	if (!size_is_positive(bno) || 0 == (bno & (BIG_BITCOUNT - 1))) {
-		g_warning("sdbm: \"%s\": attempt to free invalid block #%ld",
-			sdbm_name(db), (long) bno);
-		return;
-	}
-
-	g_assert(size_is_positive(bno));	/* Can never free block 0 (bitmap!) */
-	g_assert(bno & (BIG_BITCOUNT - 1));	/* Cannot be a bitmap block */
-
-	bmap = bno / BIG_BITCOUNT;			/* Bitmap handling this block */
-	i = bno & (BIG_BITCOUNT - 1);		/* Index within bitmap */
-
-	/*
-	 * Likewise, if the block falls in a bitmap we do not know about yet,
-	 * the .pag was corrupted.
-	 */
-
-	if (bmap >= dbg->bitmaps) {
-		g_warning("sdbm: \"%s\": "
-			"freed block #%ld falls in invalid bitmap #%ld (max %ld)",
-			sdbm_name(db), (long) bno, bmap, dbg->bitmaps);
-		return;
-	}
-
-	if (!fetch_bitbuf(db, bmap))
-		return;
-
-	/*
-	 * Again, freeing a block that is already marked as being freed is
-	 * a severe error but can happen if the bitmap cannot be flushed to disk
-	 * at some point, hence it cannot be an assertion.
-	 */
-
-	if (!bit_field_get(dbg->bitbuf, i)) {
-		g_warning("sdbm: \"%s\": freed block #%ld was already marked as free",
-			sdbm_name(db), (long) bno);
-		return;
-	}
-
-	bit_field_clear(dbg->bitbuf, i);
-	dbg->bitbuf_dirty = TRUE;
-}
-
-/**
- * Allocate "n" consecutive (sequential) blocks in the file, without
- * attempting to extend it.
- *
- * @param db		the sdbm database
- * @param bmap		bitmap number from which we need to start looking
- * @param n			amount of consecutive blocks we want
- *
- * @return the block number of the first "n" blocks if found, 0 if nothing
- * was found.
- */
-static size_t
-falloc_seq(DBM *db, int bmap, int n)
-{
-	DBMBIG *dbg = db->big;
-	long max_bitmap = dbg->bitmaps;
-	long i;
-
-	g_assert(bmap >= 0);
-	g_assert(n > 0);
-
-	/*
-	 * Loop through all the currently existing bitmaps, starting at the
-	 * specified bitmap number.
-	 */
-
-	for (i = bmap; i < max_bitmap; i++) {
-		size_t first;
-		size_t j;
-		int r;			/* Remaining blocks to allocate consecutively */
-
-		if (!fetch_bitbuf(db, i))
-			return 0;
-		
-		first = bit_field_first_clear(dbg->bitbuf, 0, BIG_BITCOUNT - 1);
-		if ((size_t) -1 == first)
-			continue;
-
-		for (j = first + 1, r = n - 1; r > 0 && j < BIG_BITCOUNT; r--, j++) {
-			if (bit_field_get(dbg->bitbuf, j))
-				break;
-		}
-
-		/*
-		 * If "r" is 0, we have no remaining page to allocate: we found our
-		 * "n" consecutive free blocks.
-		 */
-
-		if (0 == r) {
-			/*
-			 * Mark the "n" consecutive blocks as busy.
-			 */
-
-			for (j = first, r = n; r > 0; r--, j++) {
-				bit_field_set(dbg->bitbuf, j);
-			}
-			dbg->bitbuf_dirty = TRUE;
-
-			/*
-			 * Correct the block number corresponding to "first", if we did
-			 * not find it in bitmap #0.
-			 */
-
-			first = size_saturate_add(first,
-				size_saturate_mult(BIG_BITCOUNT, i));
-
-			/* Make sure we can represent all block numbers in 32 bits */
-			g_assert(size_saturate_add(first, n - 1) <= MAX_INT_VAL(guint32));
-
-			return first;	/* "n" consecutive free blocks found */
-		}
-	}
-
-	return 0;		/* No free block found */
-}
-
-/**
  * Free allocated blocks from the .dat file.
  *
  * @param db		the sdbm database
@@ -867,7 +912,7 @@ big_file_free(DBM *db, const void *bvec, int bcnt)
 
 	for (q = bvec, n = bcnt; n > 0; n--) {
 		bno = peek_be32(q);
-		ffree(db, bno);
+		big_ffree(db, bno);
 		q = const_ptr_add_offset(q, sizeof(guint32));
 	}
 
@@ -918,7 +963,7 @@ big_file_alloc(DBM *db, void *bvec, int bcnt)
 
 retry:
 
-	first = falloc_seq(db, bmap, bcnt);
+	first = big_falloc_seq(db, bmap, bcnt);
 	if (first != 0) {
 		while (bcnt-- > 0) {
 			bvec = poke_be32(bvec, first++);
@@ -934,7 +979,7 @@ retry:
 	 */
 
 	for (first = 0, q = bvec, n = bcnt; n > 0; n--) {
-		first = falloc(db, first + 1);
+		first = big_falloc(db, first + 1);
 		if (0 == first)
 			break;
 		q = poke_be32(q, first);
@@ -951,7 +996,7 @@ retry:
 
 	for (q = bvec, n = bcnt - n; n > 0; n--) {
 		first = peek_be32(q);
-		ffree(db, first);
+		big_ffree(db, first);
 		q = ptr_add_offset(q, sizeof(guint32));
 	}
 
@@ -991,7 +1036,7 @@ success:
 		/* Cannot flush -> cannot allocate the blocks: free them */
 		for (q = bvec, n = bcnt; n > 0; n--) {
 			first = peek_be32(q);
-			ffree(db, first);
+			big_ffree(db, first);
 			q = ptr_add_offset(q, sizeof(guint32));
 		}
 		return FALSE;

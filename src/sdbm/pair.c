@@ -650,14 +650,11 @@ splpage(char *pag, char *pagzero, char *pagone, long int sbit)
 	       ((unsigned short *) pagzero)[0] / 2));
 }
 
-/*
- * check page sanity: 
- * number of entries should be something
- * reasonable, and all offsets in the index should be in order.
- * this could be made more rigorous.
+/**
+ * Check page sanity.
  */
 gboolean
-chkpage(const char *pag)
+sdbm_internal_chkpage(const char *pag)
 {
 	unsigned n;
 	unsigned off;
@@ -671,6 +668,12 @@ chkpage(const char *pag)
 	 */
 
 	STATIC_ASSERT(DBM_PBLKSIZ < 0x8000);
+
+	/*
+	 * number of entries should be something
+	 * reasonable, and all offsets in the index should be in order.
+	 * this could be made more rigorous.
+	 */
 
 	if ((n = ino[0]) > DBM_PBLKSIZ / sizeof(unsigned short))
 		return FALSE;
