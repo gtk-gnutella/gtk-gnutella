@@ -87,6 +87,7 @@ gboolean bstr_read_packed_array_u8(bstr_t *,
 	size_t max, void *ptr, guint8 *pr);
 gboolean bstr_read_ule64(bstr_t *, guint64 *pv);
 gboolean bstr_read_fixed_string(bstr_t *, size_t *slen, char *buf, size_t len);
+gboolean bstr_read_string(bstr_t *, size_t *slen, char **sptr);
 
 #endif	/* _bstr_h_ */
 

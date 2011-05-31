@@ -918,18 +918,21 @@ pmsg_slist_read(slist_t *slist, void *buf, size_t len)
 
 	g_assert(slist != NULL);
 
-	iter = slist_iter_removable_before_head(slist);
+	iter = slist_iter_removable_on_head(slist);
 	p = buf;
 
-	while (remain != 0 && slist_iter_has_next(iter)) {
-		pmsg_t *mb = slist_iter_next(iter);
+	while (remain != 0 && slist_iter_has_item(iter)) {
+		pmsg_t *mb = slist_iter_current(iter);
 		int n;
 
 		n = pmsg_read(mb, p, remain);
 		remain -= n;
-		p += n;
-		if (0 == pmsg_size(mb)) {
-			slist_iter_remove(iter);	/* Fully copied message */
+		p = ptr_add_offset(p, n);
+		if (0 == pmsg_size(mb)) {			/* Fully copied message */
+			pmsg_free(mb);
+			slist_iter_remove(iter);		/* Warning: moves to next */
+		} else {
+			break;		/* No need to continue on partial copy */
 		}
 	}
 	slist_iter_free(&iter);
@@ -1008,7 +1011,8 @@ pmsg_write_ule64(pmsg_t *mb, guint64 v)
 }
 
 /**
- * Write NUL-terminated string, up to `n' characters.
+ * Write NUL-terminated string, up to `n' characters or the first seen NUL
+ * in the buffer, whichever comes first.
  *
  * The string is written as: <ule64(length)><bytes>, no trailing NUL.
  */
@@ -1024,6 +1028,32 @@ pmsg_write_fixed_string(pmsg_t *mb, const char *str, size_t n)
 	len = MIN(n, len);
 	pmsg_write_ule64(mb, (guint64) len);
 
+	if (len != 0) {
+		pmsg_write(mb, str, len);
+	}
+}
+
+/**
+ * Write NUL-terminated string.
+ *
+ * If (size_t) -1 is given as length, then it is computed via strlen(), in
+ * which case the string buffer must be NUL-terminated.  Otherwise, the value
+ * is taken to be the pre-computed string length.
+ *
+ * The string is written as: <ule64(length)><bytes>, no trailing NUL.
+ */
+void
+pmsg_write_string(pmsg_t *mb, const char *str, size_t length)
+{
+	size_t len;
+
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+
+	len = (size_t) -1 == length ? strlen(str) : length;
+
+	g_assert(UNSIGNED(pmsg_available(mb)) >= len + 10);	/* Need ule64 length */
+
+	pmsg_write_ule64(mb, (guint64) len);
 	if (len != 0) {
 		pmsg_write(mb, str, len);
 	}

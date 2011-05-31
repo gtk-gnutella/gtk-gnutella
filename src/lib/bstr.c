@@ -41,6 +41,7 @@ RCSID("$Id$")
 #include "casts.h"
 #include "endian.h"
 #include "glib-missing.h"
+#include "halloc.h"
 #include "host_addr.h"
 #include "str.h"
 #include "stringify.h"
@@ -890,6 +891,64 @@ bstr_read_fixed_string(bstr_t *bs, size_t *slen, char *buf, size_t len)
 	buf[n] = '\0';				/* NUL-terminate in advance */
 
 	return 0 == n ? TRUE : bstr_read(bs, buf, n);
+}
+
+/**
+ * Read string into buffer, allocating a new string buffer via halloc().
+ *
+ * The string is expected to be encoded as: <ule64(length)><bytes>, with
+ * no trailing NUL.
+ *
+ * A trailing NUL is appended to the allocated string buffer so that the
+ * returned buffer can be safely handled as a string.
+ *
+ * @param bs	the binary stream
+ * @param slen	where to write the length of the string read (if non NULL)
+ * @param sptr	where start of string is returned (must not be NULL)
+ *
+ * @return TRUE if OK, FALSE otherwise in which case nothing is allocated.
+ */
+gboolean
+bstr_read_string(bstr_t *bs, size_t *slen, char **sptr)
+{
+	static const char where[] = "bstr_read_string";
+	guint64 length;
+	size_t n;
+	char *buf;
+	gboolean ok;
+
+	bstr_check(bs);
+	g_assert(sptr);
+
+	if (!expect(bs, 1, where))	/* Need at least one byte */
+		return FALSE;
+
+	if (!bstr_read_ule64(bs, &length))
+		return FALSE;
+
+	if (length > MAX_INT_VAL(size_t))
+		return report_error(bs, "encoded length too large", where);
+
+	n = (size_t) length;
+
+	g_assert((guint64) n == length);	/* Nothing lost by casting */
+
+	if (slen != NULL) {
+		*slen = n;
+	}
+
+	buf = halloc(n + 1);				/* Provision for trailing NUL */
+	buf[n] = '\0';						/* NUL-terminate in advance */
+	*sptr = buf;
+
+	ok = 0 == n ? TRUE : bstr_read(bs, buf, n);
+
+	if (!ok) {
+		*sptr = NULL;
+		hfree(buf);
+	}
+
+	return ok;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

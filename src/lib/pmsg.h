@@ -404,6 +404,7 @@ pmsg_write_float_be(pmsg_t *mb, float val)
 void pmsg_write_ule64(pmsg_t *mb, guint64 val);
 void pmsg_write_fixed_string(pmsg_t *mb, const char *str, size_t n);
 void pmsg_write_ipv4_or_ipv6_addr(pmsg_t *mb, host_addr_t addr);
+void pmsg_write_string(pmsg_t *mb, const char *str, size_t length);
 
 #endif	/* _pmsg_h_ */
 
