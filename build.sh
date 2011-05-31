@@ -59,7 +59,7 @@ MINGW*)
     # This could be detected maybe. On Ubuntu and Debian it is
     # /usr/i586-mingw32msvc, so --ldflags must be used manually.
 	mingwlib=/mingw/lib
-	PATH="$PATH${PATH:+:}${mingwlib}/gtk/bin:${mingwlib}/xml2/bin"
+	PATH="$PATH${PATH:+:}${mingwlib}/gtk/bin"
 	export PATH
     CC="${CC:-gcc}"
 	CPPFLAGS="$CPPFLAGS -DMINGW32"
@@ -216,11 +216,9 @@ then
     glibcflags="`$pkg_config_cflags glib-2.0`"
     gtkcflags="`$pkg_config_cflags gtk+-2.0`"
     gnutlscflags="`$pkg_config_cflags gnutls`"
-    xmlcflags="`$pkg_config_cflags libxml-2.0`"
     glibldflags="`$pkg_config_ldflags glib-2.0`"
     gtkldflags="`$pkg_config_ldflags gtk+-2.0`"
     gnutlsldflags="`$pkg_config_ldflags gnutls`"
-    xmlldflags="`$pkg_config_ldflags libxml-2.0`"
 
     cat mingw/config.sh.xmingw | \
     sed s%'^cc=.*$'%"cc='$CC'"% | \
@@ -231,11 +229,9 @@ then
     sed s%'^gnutlscflags=.*$'%"gnutlscflags='$gnutlscflags'"% | \
     sed s%'^glibcflags=.*$'%"glibcflags='$glibcflags'"% | \
     sed s%'^gtkcflags=.*$'%"gtkcflags='$gtkcflags'"% | \
-    sed s%'^xmlcflags=.*$'%"xmlcflags='$xmlcflags'"% | \
     sed s%'^gnutlscflags=.*$'%"gnutlscflags='$gnutlscflags'"% | \
     sed s%'^glibldflags=.*$'%"glibldflags='$glibldflags'"% | \
     sed s%'^gtkldflags=.*$'%"gtkldflags='$gtkldflags'"% | \
-    sed s%'^xmlldflags=.*$'%"xmlldflags='$xmlldflags'"% | \
     cat > config.sh
 
 

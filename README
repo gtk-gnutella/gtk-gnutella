@@ -51,7 +51,7 @@ It is compatible with all other Gnutella servents from other vendors: it will
 join the same network and exchange with others seamlessly.
 
 It's supposed to work on any Unix-like system, and can be built with either a
-GTK+ (1.2 or above) or GTK+ 2.x GUI and libxml2. Gnome is not required.
+GTK+ (1.2 or above) or GTK+ 2.x GUI. Gnome is not required.
 gtk-gnutella is currently developed and tested under Linux (Debian 2.2) and is
 known to run at least on Linux, FreeBSD, NetBSD, OpenBSD, Darwin, Solaris,
 Tru64 UNIX (OSF/1), SGI IRIX, BeOS whereas CPU architectures include x86,

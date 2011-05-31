@@ -165,16 +165,6 @@ The final step is of course to build gtk-gnutella:
 $ export PATH=/opt/xmingw/bin:$PATH
 $ make
 
-Next thing to do is to compile libxml2 using xmingw. I picked the
-libxml2-2.6.19 package from
-
-  http://xmlsoft.org/downloads.html
-
-  or
-
-  ftp://xmlsoft.org/
-
-  
 I was unsuccessful with the win32 packages, that's why I choose to
 cross-compile the package myself. First we need to compile the package:
 
@@ -195,7 +185,6 @@ to setup the LDFLAGS and CPPFLAGS to point them in the right direction.
 --host and --target tell configure for which host we are going to build. Note
 that we are _not_ using the --build flag, as we are building on the machine
 which configure can detect itself.  Neither do we use python, nor readline.
-Also I want my xml package to install in /opt/xmingw/local.
 
 $ PATH=/opt/xmingw/bin:$PATH make
 $ PATH=/opt/xmingw/bin:$PATH make install
