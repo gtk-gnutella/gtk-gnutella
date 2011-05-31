@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-30]
-: $X-Id: Jmake.tmpl 30 2009-10-28 07:45:28Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-95]
+: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -57,8 +57,6 @@ GTK_LDFLAGS =  $gtkldflags
 SOURCES =   \$(LSRC)
 OBJECTS =   \$(LOBJ)
 GTK_CFLAGS =  $gtkcflags
-XML2_CFLAGS =  $xmlcflags
-XML2_LDFLAGS =  $xmlldflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -71,7 +69,7 @@ XML2_LDFLAGS =  $xmlldflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
+# $X-Id: Jmake.rules 94 2011-02-10 14:06:58Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -150,7 +148,7 @@ TOP_GUI = ..
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I$(TOP_SRC) -I$(TOP_GUI) \
-	$(GTK_CFLAGS) $(XML2_CFLAGS) -DGUI_SOURCES -DCURDIR=$(CURRENT)
+	$(GTK_CFLAGS) -DGUI_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 IF = ../../if
@@ -165,7 +163,9 @@ $(IF)/$(GNET_PROPS): .FORCE
 
 libgtk-common.a:  $(IF)/$(GNET_PROPS)
 
-depend::
+depend:: sub_depend
+
+sub_depend::
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS) ;\
 	do \
@@ -173,12 +173,13 @@ depend::
 			$(MAKE) $(MFLAGS)  depend) || exit 1; \
 	done
 
-depend:: ../../../mkdep
+local_depend:: ../../../mkdep
 
 ../../../mkdep:
 	@echo "You have to run Configure in $(TOP) first."; exit 1
 
-depend::
+depend:: local_depend
+local_depend::
 	($(SED) '/^# DO NOT DELETE/q' Makefile && \
 	$(MKDEP) $(SOURCES) | \
 	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
@@ -308,6 +309,8 @@ tags::
 
 local_clobber::
 	$(RM) tags
+
+depend::
 
 ########################################################################
 # Rules for building in sub-directories -- do not edit

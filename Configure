@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Mar 16 17:53:07 CET 2011 [metaconfig 3.5-95]
+# Generated on Tue May 31 22:44:57 CEST 2011 [metaconfig 3.5-95]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -584,10 +584,6 @@ usenm=''
 usrinc=''
 defvoidused=''
 voidflags=''
-d_libxml2=''
-xmlcflags=''
-xmlconfig=''
-xmlldflags=''
 yacc=''
 yaccflags=''
 CONFIG=''
@@ -6017,50 +6013,6 @@ EOC
 	eval $setvar
 esac
 
-: how can we find information about libxml2?
-echo " "
-echo "Checking how we can gather information about libxml2..." >&4
-if pkg-config libxml-2.0 --cflags >/dev/null 2>&1; then
-	xmlconfig="pkg-config libxml-2.0"
-	modver=--modversion
-elif xml2-config --cflags >/dev/null 2>&1; then
-	xmlconfig='xml2-config'
-	modver=--version
-else
-	echo "You don't seem to have libxml2 installed." >&4
-	xmlconfig='false'
-	modver=''
-fi
-case "$xmlconfig" in
-false) ;;
-*) echo "(I'll use '$xmlconfig' to gather that information.)";;
-esac
-
-xmlcflags=""
-xmlldflags=""
-d_libxml2="$undef"
-version=`$xmlconfig $modver`
-case "$version" in
-'') ;;
-*)
-	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 20600; then
-		echo "Sorry, you have libxml2 $version, I need at least 2.6.0." >&4
-	else
-		echo "Good, you have libxml2 $version.  Enabling XML persistence..." >&4
-		xmlcflags=`$xmlconfig --cflags`
-		xmlldflags=`$xmlconfig --libs`
-		d_libxml2="$define"
-		case " $xmlldflags " in
-		*" -lpthread "*)
-			echo "(Removing unneeded -lpthread from the list of libraries.)"
-			xmlldflags=`echo "$xmlldflags " | $sed -e 's/-lpthread //'`
-			;;
-		esac
-	fi
-	;;
-esac
-
 : see if this is a libcharset system
 set libcharset.h i_libcharset
 eval $inhdr
@@ -9812,15 +9764,6 @@ case "$d_glib" in
 	;;
 esac
 
-case "$d_libxml2" in
-"$undef")
-	bailout=yes
-	echo 'ERROR: Cannot compile against libxml2. Library or header files might be missing.' >&4
-	$aptget 'ADVICE: Run "apt-get install libxml2-dev".' >&4
-	$yum 'ADVICE: Run "yum install libxml2-devel".' >&4
-	;;
-esac
-
 if [ "$zlib" != yes ]; then
 	bailout=yes
 	echo 'ERROR: Cannot compile against zlib. Library or header files might be missing.' >&4
@@ -10030,7 +9973,6 @@ d_ipv6='$d_ipv6'
 d_isascii='$d_isascii'
 d_kevent_int_udata='$d_kevent_int_udata'
 d_kqueue='$d_kqueue'
-d_libxml2='$d_libxml2'
 d_linux='$d_linux'
 d_locale_charset='$d_locale_charset'
 d_lstat='$d_lstat'
@@ -10348,9 +10290,6 @@ vi='$vi'
 voidflags='$voidflags'
 xgettext='$xgettext'
 xlibpth='$xlibpth'
-xmlcflags='$xmlcflags'
-xmlconfig='$xmlconfig'
-xmlldflags='$xmlldflags'
 yacc='$yacc'
 yaccflags='$yaccflags'
 zcat='$zcat'

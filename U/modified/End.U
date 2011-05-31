@@ -11,7 +11,7 @@
 ?X: To force any unit to be included, copy this unit to your private U directory
 ?X: and add the name of the unit desired to the ?MAKE: dependency line.
 ?X: 
-?MAKE:End: $W cat gtkversion d_libxml2 d_remotectrl \
+?MAKE:End: $W cat gtkversion d_remotectrl \
 	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
 	Sendfile64 d_ipv6 d_dbus d_gnutls d_fast_assert d_headless \
 	d_iconv d_glib d_gtk Alpha_mieee GCC_pipe
@@ -105,15 +105,6 @@ case "$d_glib" in
 	   $yum 'ADVICE: Run "yum install glib2-devel".' >&4
 	;;
 	esac
-	;;
-esac
-
-case "$d_libxml2" in
-"$undef")
-	bailout=yes
-	echo 'ERROR: Cannot compile against libxml2. Library or header files might be missing.' >&4
-	$aptget 'ADVICE: Run "apt-get install libxml2-dev".' >&4
-	$yum 'ADVICE: Run "yum install libxml2-devel".' >&4
 	;;
 esac
 

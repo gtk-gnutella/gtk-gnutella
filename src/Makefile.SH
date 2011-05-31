@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-94]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-95]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -68,12 +68,10 @@ GTK_CFLAGS =  $gtkcflags
 GNUTLS_LDFLAGS =  $gnutlsldflags
 GNUTLS_CFLAGS =  $gnutlscflags
 DBUS_LDFLAGS =  $dbusldflags
-XML2_LDFLAGS =  $xmlldflags
 GTK_LDFLAGS =  $gtkldflags
 OBJECTS =   \$(OBJ) \$(EXTRA)
-SOCKER_LDFLAGS =  $sockerldflags
 DBUS_CFLAGS =  $dbuscflags
-XML2_CFLAGS =  $xmlcflags
+SOCKER_LDFLAGS =  $sockerldflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -122,7 +120,6 @@ EXTRA = \
 
 CFLAGS = -I.. -I. \
 	$(GTK_CFLAGS) \
-	$(XML2_CFLAGS) \
 	$(DBUS_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) \
@@ -146,8 +143,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 	-Lxml -lxml \
 	-Llib -lshared \
 	-Lsdbm -lsdbm -lshared \
-	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
-	$(SOCKER_LDFLAGS)
+	$(GTK_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) $(SOCKER_LDFLAGS)
 
 .FORCE:
 

@@ -38,10 +38,6 @@
 
 #include "config.h"
 
-#ifndef HAS_LIBXML2
-#error "You need libxml2 (http://www.xmlsoft.org/) to compile gtk-gnutella"
-#endif
-
 /*
  * Main includes
  */

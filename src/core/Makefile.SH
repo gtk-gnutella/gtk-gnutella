@@ -55,7 +55,6 @@ SOURCES =   \$(SRC)
 OBJECTS =   \$(OBJ)
 SOCKER_CFLAGS =  $sockercflags
 GLIB_CFLAGS =  $glibcflags
-XML2_CFLAGS =  $xmlcflags
 GNUTLS_CFLAGS =  $gnutlscflags
 
 ########################################################################
@@ -274,7 +273,7 @@ OBJ = \
 	whitelist.o 
 
 # Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) $(GNUTLS_CFLAGS) \
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 

@@ -66,16 +66,12 @@ LOBJ = \
 ++GTK_CFLAGS $gtkcflags
 ++GTK_LDFLAGS $gtkldflags
 
-/* Add the libxml2 flags */
-++XML2_CFLAGS $xmlcflags
-++XML2_LDFLAGS $xmlldflags
-
 TOP_SRC = ../..
 TOP_GUI = ..
 
 ;# Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I$(TOP_SRC) -I$(TOP_GUI) \
-	$(GTK_CFLAGS) $(XML2_CFLAGS) -DGUI_SOURCES -DCURDIR=$(CURRENT)
+	$(GTK_CFLAGS) -DGUI_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 IF = ../../if

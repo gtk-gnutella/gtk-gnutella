@@ -39,10 +39,6 @@ OBJ = main.o
 ++GTK_CFLAGS $gtkcflags
 ++GTK_LDFLAGS $gtkldflags
 
-/* Add the libxml2 flags */
-++XML2_CFLAGS $xmlcflags
-++XML2_LDFLAGS $xmlldflags
-
 /* Add the dbus flags */
 ++DBUS_CFLAGS $dbuscflags
 ++DBUS_LDFLAGS $dbusldflags
@@ -69,7 +65,6 @@ EXTRA = \
 
 CFLAGS = -I.. -I. \
 	$(GTK_CFLAGS) \
-	$(XML2_CFLAGS) \
 	$(DBUS_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) \
@@ -87,8 +82,7 @@ LDFLAGS = \
 	-Lxml -lxml \
 	-Llib -lshared \
 	-Lsdbm -lsdbm -lshared \
-	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
-	$(SOCKER_LDFLAGS)
+	$(GTK_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) $(SOCKER_LDFLAGS)
 
 RemoteTargetDependency(gtk-gnutella, lib, libshared.a)
 RemoteTargetDependency(gtk-gnutella, core, libcore.a)

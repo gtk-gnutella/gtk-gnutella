@@ -37,9 +37,6 @@
 #include "revision.h"
 #include "gtk-gnutella.h"
 
-#include <libxml/xmlversion.h>		/* For LIBXML_TEST_VERSION */
-#include <libxml/xmlmemory.h>		/* For xmlMemSetup() */
-
 #define CORE_SOURCES
 
 #include "core/ban.h"
@@ -1594,12 +1591,6 @@ main(int argc, char **argv)
 		_("unofficial build, accessing files from"),
 		PACKAGE_SOURCE_DIR);
 #endif
-
-#if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC) && !defined(TRACK_ZALLOC)
-	xmlMemSetup(hfree, halloc, hrealloc, h_strdup);
-#endif
-
-	LIBXML_TEST_VERSION
 
 	/*
 	 * If one of the two below fails, the GLib installation is broken.
