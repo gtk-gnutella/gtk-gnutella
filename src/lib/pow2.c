@@ -40,7 +40,7 @@ RCSID("$Id$")
 #include "pow2.h"
 #include "override.h"			/* Must be the last header included */
 
-static int log2_byte[256] = {
+static const int log2_byte[256] = {
 	-1,		/* 0 */
 	0,		/* 1 */
 	1,		/* 2 */
@@ -69,6 +69,47 @@ static int log2_byte[256] = {
 	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
 	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
 };
+
+static const int bits_set_byte[256] = {
+	0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 
+	1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
+	1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
+	2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+	1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
+	2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+	2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+	3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 
+	1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
+	2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+	2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+	3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 
+	2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+	3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 
+	3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 
+	4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8, 
+};
+
+/**
+ * @returns amount of bits set in a byte.
+ */
+int
+bits_set(guint8 b)
+{
+	return bits_set_byte[b & 0xff];
+}
+
+/**
+ * @returns amount of bits set in a 32-bit value.
+ */
+int
+bits_set32(guint32 v)
+{
+	return
+		bits_set_byte[v & 0xff] +
+		bits_set_byte[(v >> 8) & 0xff] +
+		bits_set_byte[(v >> 16) & 0xff] +
+		bits_set_byte[(v >> 24) & 0xff];
+}
 
 /**
  * @returns the closest power of two greater or equal to `n'.

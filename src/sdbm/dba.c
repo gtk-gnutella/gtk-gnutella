@@ -5,6 +5,8 @@
 #include "common.h"
 #include "casts.h"
 
+#include "lib/pow2.h"		/* For bits_set() */
+
 #include "sdbm.h"
 
 char *progname;
@@ -159,33 +161,15 @@ sdump(int pagf)
 		oops("read failed: block %d", n);
 }
 
-int
-bits_set(int v)
-{
-	int count = 0;
-
-	while (v != 0) {
-		if (v & 0x1)
-			count++;
-		v >>= 1;
-	}
-
-	return count;
-}
-
 void
 bdump(int datf)
 {
 	int i;
 	unsigned char dat[DBM_BBLKSIZ];
-	int set[256];
 	filestat_t buf;
 	unsigned long b;
 	unsigned long used = 0;
 	unsigned long total;
-
-	for (i = 0; i < 256; i++)
-		set[i] = bits_set(i);
 
 	if (-1 == fstat(datf, &buf))
 		return;
@@ -196,7 +180,7 @@ bdump(int datf)
 		if (-1 == read(datf, dat, sizeof dat))
 			oops("read failed: offset %lu", b);
 		for (i = 0; i < DBM_BBLKSIZ; i++)
-			used += set[dat[i]];
+			used += bits_set(dat[i]);
 	}
 
 	total = buf.st_size / DBM_BBLKSIZ;
@@ -204,6 +188,6 @@ bdump(int datf)
 		total++;
 
 	printf("%lu blocks used / %lu total (%.2f%% used)\n",
-		used, total, used * 100.0 / total);
+		used, total, used * 100.0 / (total ? total : 1));
 }
 
