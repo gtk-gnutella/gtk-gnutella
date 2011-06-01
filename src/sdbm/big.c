@@ -439,6 +439,8 @@ big_check_end(DBM *db)
 		}
 	}
 
+	HFREE_NULL(dbg->bitcheck);
+
 	return adjustments;
 }
 
