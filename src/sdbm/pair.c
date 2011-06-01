@@ -649,6 +649,12 @@ chkipair(DBM *db, char *pag, int i)
 	return TRUE;
 }
 
+static inline int
+pagcount(const char *pag)
+{
+	return ((unsigned short *) pag)[0];
+}
+
 void
 splpage(char *pag, char *pagzero, char *pagone, long int sbit)
 {
@@ -685,6 +691,8 @@ splpage(char *pag, char *pagzero, char *pagone, long int sbit)
 		off = voff;
 		n -= 2;
 	}
+
+	g_assert(pagcount(pag) == pagcount(pagzero) + pagcount(pagone));
 
 	debug(("%d split %d/%d\n", ((unsigned short *) pag)[0] / 2, 
 	       ((unsigned short *) pagone)[0] / 2,
