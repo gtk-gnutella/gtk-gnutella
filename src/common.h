@@ -527,6 +527,18 @@ typedef void (*GCallback) (void);
 #endif /* GCC >= 3.4 */
 #endif /* !G_LIKELY */
 
+/**
+ * A pure function has no effects except its return value and the return value
+ * depends only on the parameters and/or global variables.
+ */
+#ifndef G_GNUC_PURE
+#if defined(HASATTRIBUTE) && HAS_GCC(2, 96)
+#define G_GNUC_PURE __attribute__((__pure__))
+#else
+#define G_GNUC_PURE
+#endif	/* GCC >= 3.0 */
+#endif	/* G_GNUC_MALLOC */
+
 #ifndef G_GNUC_MALLOC
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
 #define G_GNUC_MALLOC __attribute__((__malloc__))
