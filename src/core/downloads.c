@@ -12324,7 +12324,8 @@ download_ignore_data(struct download *d, pmsg_t *mb)
 
 		if (
 			FILE_INFO_COMPLETE(fi) && !FILE_INFO_FINISHED(fi) &&
-			!(FI_F_VERIFYING & fi->flags)
+			!(FI_F_VERIFYING & fi->flags) &&
+			!(d->flags & DL_F_SUSPENDED)
 		) {
 			download_verify_sha1(d);
 		}
