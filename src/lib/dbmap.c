@@ -57,6 +57,7 @@ RCSID("$Id$")
 #include "debug.h"
 #include "map.h"
 #include "pmsg.h"
+#include "stringify.h"			/* For compact_time() */
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
 
@@ -76,7 +77,8 @@ struct dbmap {
 		struct {
 			DBM *sdbm;
 			const char *path;		/**< SDBM file path (atom), if known */
-			gboolean is_volatile;	/**< Whether DB can be discarded */
+			time_t last_check;		/**< When we last checked keys */
+			unsigned is_volatile:1;	/**< Whether DB can be discarded */
 		} s;
 	} u;
 	size_t key_size;		/**< Constant width keys are a requirement */
@@ -101,7 +103,8 @@ dbmap_check(const dbmap_t *dm)
  */
 static const char dbmap_superkey[] = "__dbmap_superkey__";
 
-#define DBMAP_SUPERKEY_VERSION	1U
+#define DBMAP_SUPERKEY_VERSION	2U
+#define DBMAP_SDBM_CHECK_PERIOD	(30 * 86400)	/* 30 days */
 
 /**
  * Superblock stored in the superkey.
@@ -110,6 +113,7 @@ struct dbmap_superblock {
 	guint32 key_size;		/**< Constant width keys are a requirement */
 	guint32 count;			/**< Amount of items */
 	guint32 flags;			/**< Status flags */
+	time_t last_check;		/**< When we last checked keys */
 };
 
 /**
@@ -161,11 +165,15 @@ dbmap_sdbm_store_superblock(const dbmap_t *dm)
 	 * Superblock stored in the superkey.
 	 */
 
-	mb = pmsg_new(PMSG_P_DATA, NULL, 3 * 4 + 1);
+	mb = pmsg_new(PMSG_P_DATA, NULL, 512);
 	pmsg_write_u8(mb, DBMAP_SUPERKEY_VERSION);
 	pmsg_write_be32(mb, dm->key_size);
 	pmsg_write_be32(mb, dm->count);
 	pmsg_write_be32(mb, flags);
+	pmsg_write_time(mb, dm->u.s.last_check);
+
+	/* Was large enough */
+	g_assert(pmsg_phys_len(mb) > UNSIGNED(pmsg_size(mb)));
 
 	value.dptr = pmsg_start(mb);
 	value.dsize = pmsg_size(mb);
@@ -212,11 +220,15 @@ dbmap_sdbm_retrieve_superblock(DBM *sdbm, struct dbmap_superblock *block)
 			sdbm_name(sdbm), version, DBMAP_SUPERKEY_VERSION);
 	}
 
+	ZERO(block);
 	bstr_read_be32(bs, &block->key_size);
 	bstr_read_be32(bs, &block->count);
 
 	if (version >= 1) {
 		bstr_read_be32(bs, &block->flags);
+	}
+	if (version >= 2) {
+		bstr_read_time(bs, &block->last_check);
 	}
 
 	ok = !bstr_has_error(bs);
@@ -303,16 +315,40 @@ dbmap_sdbm_count_keys(dbmap_t *dm, gboolean expect_superblock)
 
 	if (dbmap_sdbm_retrieve_superblock(sdbm, &sblock)) {
 		if (common_dbg) {
-			g_debug("SDBM \"%s\": superblock has %u key%s%s",
+			g_debug("SDBM \"%s\": superblock has %u key%s%s, "
+				"last check done %s ago",
 				sdbm_name(sdbm), (unsigned) sblock.count,
 				1 == sblock.count ? "" : "s",
 				(sblock.flags & DBMAP_SF_KEYCHECK) ?
-					" (keycheck required)" : "");
+					" (keycheck required)" : "",
+				compact_time(delta_time(tm_time(), sblock.last_check)));
 		}
 
 		dbmap_sdbm_strip_superblock(sdbm);
-		if (expect_superblock && !(sblock.flags & DBMAP_SF_KEYCHECK))
+		if (expect_superblock) {
+			time_delta_t d = delta_time(tm_time(), sblock.last_check);
+			if (d >= DBMAP_SDBM_CHECK_PERIOD) {
+				if (common_dbg) {
+					g_debug("SDBM \"%s\": %s since last check, verifying keys",
+						sdbm_name(sdbm), compact_time(d));
+				}
+				goto check_db;
+			}
+			if (sblock.flags & DBMAP_SF_KEYCHECK) {
+				if (common_dbg) {
+					g_debug("SDBM \"%s\": verifying keys as requested",
+						sdbm_name(sdbm));
+				}
+				goto check_db;
+			}
+			dm->u.s.last_check = sblock.last_check;
 			return sblock.count;
+		} else {
+			if (common_dbg) {
+				g_debug("SDBM \"%s\": unexpected superblock, checking keys",
+					sdbm_name(sdbm));
+			}
+		}
 	} else if (expect_superblock) {
 		if (common_dbg) {
 			g_debug("SDBM \"%s\": no superblock, counting and checking keys",
@@ -320,10 +356,12 @@ dbmap_sdbm_count_keys(dbmap_t *dm, gboolean expect_superblock)
 		}
 	}
 
+check_db:
 	for (key = sdbm_firstkey_safe(sdbm); key.dptr; key = sdbm_nextkey(sdbm))
 		count++;
 
 	dm->validated = TRUE;
+	dm->u.s.last_check = tm_time();
 
 	if (sdbm_error(sdbm)) {
 		g_warning("SDBM \"%s\": I/O error after key counting, clearing",
@@ -480,6 +518,8 @@ dbmap_create_sdbm(size_t ksize, dbmap_keylen_t klen,
 
 	dm->magic = DBMAP_MAGIC;
 	dm->u.s.path = atom_str_get(path);
+	if (flags & O_TRUNC)
+		dm->u.s.last_check = tm_time();
 
 	if (name)
 		sdbm_set_name(dm->u.s.sdbm, name);
@@ -1430,7 +1470,7 @@ dbmap_set_volatile(dbmap_t *dm, gboolean is_volatile)
 	case DBMAP_MAP:
 		return 0;
 	case DBMAP_SDBM:
-		dm->u.s.is_volatile = is_volatile;
+		dm->u.s.is_volatile = booleanize(is_volatile);
 		return sdbm_set_volatile(dm->u.s.sdbm, is_volatile);
 	case DBMAP_MAXTYPE:
 		g_assert_not_reached();
