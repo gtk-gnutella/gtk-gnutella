@@ -22,6 +22,8 @@
 #include "lib/debug.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/slist.h"
+#include "lib/stacktrace.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -34,6 +36,7 @@
 struct lru_cache {
 	GHashTable *pagnum;			/* Associates page number to cached index */
 	hash_list_t *used;			/* Ordered list of used cache indices */
+	slist_t *available;			/* Available indices */
 	char *arena;				/* Cache arena */
 	long *numpag;				/* Associates a cache index to a page number */
 	guint8 *dirty;				/* Flags dirty pages (write cache enabled) */
@@ -57,6 +60,7 @@ setup_cache(struct lru_cache *cache, long pages, gboolean wdelay)
 		return -1;
 	cache->pagnum = g_hash_table_new(NULL, NULL);
 	cache->used = hash_list_new(NULL, NULL);
+	cache->available = slist_new();
 	cache->pages = pages;
 	cache->next = 0;
 	cache->write_deferred = wdelay;
@@ -73,6 +77,7 @@ static void
 free_cache(struct lru_cache *cache)
 {
 	hash_list_free(&cache->used);
+	slist_free(&cache->available);
 	gm_hash_table_destroy_null(&cache->pagnum);
 	VMM_FREE_NULL(cache->arena, cache->pages * DBM_PBLKSIZ);
 	WFREE_NULL(cache->numpag, cache->pages * sizeof(long));
@@ -376,11 +381,19 @@ getidx(DBM *db, long num)
 	long n;		/* Cache index */
 
 	/*
+	 * If we invalidated pages, reuse their indices.
 	 * If we have not used all the pages yet, get the next one.
 	 * Otherwise, use the least-recently requested page.
 	 */
 
-	if (cache->next < cache->pages) {
+	if (slist_length(cache->available)) {
+		void *v = slist_shift(cache->available);
+		n = pointer_to_int(v);
+		g_assert(n >= 0 && n < cache->pages);
+		g_assert(!cache->dirty[n]);
+		g_assert(-1 == cache->numpag[n]);
+		hash_list_prepend(cache->used, int_to_pointer(n));
+	} else if (cache->next < cache->pages) {
 		n = cache->next++;
 		cache->dirty[n] = FALSE;
 		hash_list_prepend(cache->used, int_to_pointer(n));
@@ -525,6 +538,47 @@ lru_discard(DBM *db, long bno)
 }
 
 /**
+ * Invalidate possibly cached page.
+ *
+ * This is used when we know a new and fresh copy of the page is held on
+ * the disk.  Further access to the page will require reloading the
+ * page from disk.
+ */
+void
+lru_invalidate(DBM *db, long bno)
+{
+	struct lru_cache *cache = db->cache;
+	void *value;
+
+	if (
+		g_hash_table_lookup_extended(cache->pagnum,
+			ulong_to_pointer(bno), NULL, &value)
+	) {
+		long idx = pointer_to_int(value);
+
+		g_assert(idx >= 0 && idx < cache->pages);
+		g_assert(cache->numpag[idx] == bno);
+
+		/*
+		 * One should never be invalidating a dirty page, unless something
+		 * went wrong during a split and we're trying to undo things.
+		 * Since the operation will cause a data loss, warn.
+		 */
+
+		if (cache->dirty[idx]) {
+			g_warning("sdbm: \"%s\": %s() invalidating dirty page #%ld",
+				db->name, stacktrace_caller_name(1), bno);
+		}
+
+		hash_list_remove(cache->used, value);
+		g_hash_table_remove(cache->pagnum, ulong_to_pointer(bno));
+		cache->numpag[idx] = -1;
+		cache->dirty[idx] = FALSE;
+		slist_append(cache->available, value);	/* Make index available */
+	}
+}
+
+/**
  * Get a suitable buffer in the cache to read a page and set db->pagbuf
  * accordingly.
  *
@@ -590,7 +644,7 @@ cachepag(DBM *db, char *pag, long num)
 	 * Normally the page should not be cached, but it is possible we iterated
 	 * over the hash table and traversed the page on disk as a hole, and cached
 	 * it during the process.  If present, it must be clean and should hold
-	 * no data (otherwise the bitmap forest in the .dir file is corrupted).
+	 * no data (or the bitmap forest in the .dir file is corrupted).
 	 *
 	 * Otherwise, we cache the new page and hold it there if we we can defer
 	 * writes, or flush it to disk immediately (without caching it).

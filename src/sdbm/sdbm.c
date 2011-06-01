@@ -569,6 +569,7 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 	size_t need;
 	long hash;
 	gboolean need_split = FALSE;
+	int result = 0;
 
 	if (0 == val.dsize) {
 		val.dptr = "";
@@ -655,10 +656,11 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 	 * and update the page file.
 	 *
 	 * NOTE: the operation cannot fail unless big data is involved.
+	 * In any case, we continue to mark the page as dirty if we did a split.
 	 */
 
 	if (!putpair(db, db->pagbuf, key, val))
-		return -1;
+		result = -1;
 
 inserted:
 
@@ -676,7 +678,7 @@ inserted:
 		return -1;
 #endif
 
-	return 0;		/* Success */
+	return result;		/* 0 means success */
 }
 
 int
@@ -785,10 +787,22 @@ makroom(DBM *db, long int hash, size_t need)
 			/* Get new page address from LRU cache */
 			if (!readbuf(db, newp, NULL)) {
 				/*
-				 * Cannot happen: we have at least one clean page, the page
-				 * we just successfully flushed above.
+				 * Cannot happen if database is not volatile: we have at least
+				 * one clean page, the page we just successfully flushed above.
+				 * Otherwise, it's a case of split failure so we restore the
+				 * orignal page as it was before the split.
 				 */
-				g_assert_not_reached();
+				if (db->is_volatile) {
+					/* Restore page address of the page we tried to split */
+					if (!readbuf(db, curbno, NULL))
+						g_assert_not_reached();
+					memcpy(db->pagbuf, cur, DBM_PBLKSIZ);	/* Undo split */
+					db->pagbno = curbno;
+					db->spl_errors++;
+					goto aborted;
+				} else {
+					g_assert_not_reached();
+				}
 			}
 			pag = db->pagbuf;		/* Must refresh pointer to current page */
 #else
@@ -840,6 +854,13 @@ makroom(DBM *db, long int hash, size_t need)
 			db->spl_errors++;
 			goto aborted;
 		}
+#ifdef LRU
+		else {
+			/* We successfully committed a newer version to disk */
+			g_assert(db->pagbno != newp);
+			lru_invalidate(db, newp);
+		}
+#endif
 
 		/*
 		 * see if we have enough room now
@@ -855,6 +876,9 @@ makroom(DBM *db, long int hash, size_t need)
 		 * make sure the disk image remains consistent.  If there is an error
 		 * doing so, we're still able to restore the DB to the state it was
 		 * in before we attempted the split.
+		 *
+		 * If it fits, it is our caller storepair() which will handle the
+		 * page flush or mark the page dirty.
 		 */
 
 		if (!fits) {
@@ -965,6 +989,10 @@ restore:
 		 * flushing error.
 		 */
 
+#ifdef LRU
+		g_assert(db->pagbno != newp);
+		lru_invalidate(db, newp);	/* We're about to commit a newer version */
+#endif
 		memset(New, 0, DBM_PBLKSIZ);
 		if (compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0) {
 			g_warning("sdbm: \"%s\": cannot zero-back new split page #%ld: %s",
