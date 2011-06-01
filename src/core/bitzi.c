@@ -81,7 +81,7 @@
 #define BITZI_DB_CACHE_SIZE		32
 #define BITZI_SYNC_PERIOD		(60 * 1000)		/** ms: 1 minute */
 #define BITZI_PRUNE_PERIOD		(3600 * 1000)	/** ms: 1 hour */
-#define BITZI_HEARTBEAT_PERIOD	(10 * 1000)		/** ms: 10 secs */
+#define BITZI_HEARTBEAT_PERIOD	(5 * 1000)		/** ms: 5 secs */
 
 static const char bitzi_url_fmt[] =
 	"http://ticket.bitzi.com/rdf/urn:sha1:%s?ref=gtk-gnutella";
@@ -827,11 +827,6 @@ bitzi_launch_query(bitzi_request_t *breq)
 		g_debug("BITZI dequeuing query for %s", sha1_to_string(breq->sha1));
 
 	/*
-	 * always remove the request from the queue
-	 */
-	slist_remove(bitzi_rq, breq);
-
-	/*
 	 * check we haven't already got a response from a previous query
 	 */
 	if (bitzi_has_cached_ticket(breq->sha1)) {
@@ -1097,11 +1092,13 @@ bitzi_heartbeat(gpointer unused_data)
 	(void) unused_data;
 
 	/*
-	 * launch any pending queries
+	 * launch first pending queries if none is active.
 	 */
 
 	while (current_bitzi_request == NULL && slist_length(bitzi_rq) != 0) {
-		if (bitzi_launch_query(slist_head(bitzi_rq)))
+		bitzi_request_t *breq = slist_shift(bitzi_rq);
+
+		if (bitzi_launch_query(breq))
 			break;
 	}
 
@@ -1169,14 +1166,24 @@ bitzi_query_by_sha1(const struct sha1 *sha1,
 		bitzi_request_t	*breq;
 
 		breq = bitzi_request_create(sha1, filesize);
-		slist_append(bitzi_rq, breq);
 
-		if (GNET_PROPERTY(bitzi_debug)) {
-			g_debug("BITZI %s: queued query for %s at position #%u",
-				G_STRFUNC, sha1_base32(sha1), slist_length(bitzi_rq));
+		/*
+		 * When no request is running, immediately process the incoming
+		 * request if nothing else is pending.
+		 */
+
+		if (NULL == current_bitzi_request && 0 == slist_length(bitzi_rq)) {
+			bitzi_launch_query(breq);
+		} else {
+			slist_append(bitzi_rq, breq);
+
+			if (GNET_PROPERTY(bitzi_debug)) {
+				g_debug("BITZI %s: queued query for %s at position #%u",
+					G_STRFUNC, sha1_base32(sha1), slist_length(bitzi_rq));
+			}
+
+			/* The heartbeat will pick up the request */
 		}
-
-		/* The heartbeat will pick up the request */
 	}
 }
 
