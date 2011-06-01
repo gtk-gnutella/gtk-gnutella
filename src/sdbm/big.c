@@ -462,6 +462,8 @@ big_falloc(DBM *db, size_t first)
 	bmap = first / BIG_BITCOUNT;			/* Bitmap handling this block */
 	first_bit = first & (BIG_BITCOUNT - 1);	/* Index within bitmap */
 
+	g_assert(first_bit != 0);				/* Bit 0 is the bitmap itself */
+
 	/*
 	 * Loop through all the currently existing bitmaps.
 	 */
@@ -637,8 +639,15 @@ big_falloc_seq(DBM *db, int bmap, int n)
 
 		if (!fetch_bitbuf(db, i))
 			return 0;
+
+		/*
+		 * We start at bit #1 since bit #0 is the bitmap itself.
+		 *
+		 * Bit #0 should always be set but in case the file is corrupted,
+		 * we don't want to start allocating data in the bitmap itself!.
+		 */
 		
-		first = bit_field_first_clear(dbg->bitbuf, 0, BIG_BITCOUNT - 1);
+		first = bit_field_first_clear(dbg->bitbuf, 1, BIG_BITCOUNT - 1);
 		if ((size_t) -1 == first)
 			continue;
 

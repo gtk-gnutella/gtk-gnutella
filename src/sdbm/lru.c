@@ -341,6 +341,7 @@ dirtypag(DBM *db, gboolean force)
 	long n = (db->pagbuf - cache->arena) / DBM_PBLKSIZ;
 
 	g_assert(n >= 0 && n < cache->pages);
+	g_assert(db->pagbno == cache->numpag[n]);
 
 	if (cache->write_deferred && !force) {
 		if (cache->dirty[n])
@@ -361,6 +362,10 @@ dirtypag(DBM *db, gboolean force)
 
 /**
  * Get a new index in the cache, and update LRU data structures.
+ *
+ * @param db	the database
+ * @param num	page number in the DB for which we want a cache index
+ *
  *
  * @return -1 on error, or the allocated cache index.
  */
@@ -467,6 +472,10 @@ getidx(DBM *db, long num)
 
 /**
  * Get the address in the cache of a given page number.
+ *
+ * @param db		the database
+ * @param num		the page number in the DB
+ *
  * @return page address if found, NULL if not cached.
  */
 char *
@@ -531,7 +540,7 @@ readbuf(DBM *db, long num, gboolean *loaded)
 	struct lru_cache *cache = db->cache;
 	void *value;
 	long idx;
-	gboolean good_page = TRUE;
+	gboolean good_page;
 
 	g_assert(num >= 0);
 
@@ -541,8 +550,11 @@ readbuf(DBM *db, long num, gboolean *loaded)
 	) {
 		hash_list_moveto_head(cache->used, value);
 		idx = pointer_to_int(value);
+
 		g_assert(idx >= 0 && idx < cache->pages);
 		g_assert(cache->numpag[idx] == num);
+
+		good_page = TRUE;
 		cache->rhits++;
 	} else {
 		idx = getidx(db, num);
@@ -596,7 +608,7 @@ cachepag(DBM *db, char *pag, long num)
 		/*
 		 * Do not move the page to the head of the cache list.
 		 *
-		 * This page should not have been cached (it wass supposed to be a
+		 * This page should not have been cached (it was supposed to be a
 		 * hole up to now) and its being cached now does not constitute usage.
 		 */
 

@@ -17,6 +17,11 @@
 #define big_sync sdbm__big_sync
 #define bigkey_free sdbm__bigkey_free
 #define bigval_free sdbm__bigval_free
+#define bigkey_check sdbm__bigkey_check
+#define bigval_check sdbm__bigval_check
+#define bigkey_mark_used sdbm__bigkey_mark_used
+#define bigval_mark_used sdbm__bigval_mark_used
+#define big_check_end sdbm__big_check_end
 
 typedef struct DBMBIG DBMBIG;
 
