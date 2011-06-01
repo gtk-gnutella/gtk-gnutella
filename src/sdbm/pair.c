@@ -409,7 +409,7 @@ getnkey(DBM *db, char *pag, int num)
  * @return TRUE if OK.
  */
 gboolean
-delipair(DBM *db, char *pag, int i)
+delipair(DBM *db, char *pag, int i, gboolean free_bigdata)
 {
 	int n;
 	unsigned short *ino = (unsigned short *) pag;
@@ -428,7 +428,7 @@ delipair(DBM *db, char *pag, int i)
 	 */
 
 #ifdef BIGDATA
-	{
+	if (free_bigdata) {
 		unsigned end = (i > 1) ? offset(ino[i - 1]) : DBM_PBLKSIZ;
 		unsigned koff = offset(ino[i]);
 		unsigned voff = offset(ino[i+1]);
@@ -513,7 +513,7 @@ delnpair(DBM *db, char *pag, int num)
 	if (ino[0] == 0 || i > ino[0])
 		return FALSE;
 
-	return delipair(db, pag, i);
+	return delipair(db, pag, i, TRUE);
 }
 
 gboolean
@@ -529,7 +529,7 @@ delpair(DBM *db, char *pag, datum key)
 	if ((i = seepair(db, pag, n, key.dptr, key.dsize)) == 0)
 		return FALSE;
 
-	return delipair(db, pag, i);
+	return delipair(db, pag, i, TRUE);
 }
 
 /*

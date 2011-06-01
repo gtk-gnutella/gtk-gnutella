@@ -631,7 +631,7 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 					return -1;
 				goto inserted;
 			} else {
-				if (!delipair(db, db->pagbuf, idx))
+				if (!delipair(db, db->pagbuf, idx, TRUE))
 					return -1;
 			}
 		}
@@ -1140,7 +1140,7 @@ validpage(DBM *db, long pagb)
 		kpag = getpageb(db, hash, FALSE);
 
 		if (kpag != pagb) {
-			if (delipair(db, pag, i)) {
+			if (delipair(db, pag, i, TRUE)) {
 				removed++;
 			} else {
 				/* Can happen on I/O error with big keys */
@@ -1149,7 +1149,8 @@ validpage(DBM *db, long pagb)
 					sdbm_name(db), k, n / 2, pagb);
 			}
 		} else if (!chkipair(db, pag, i)) {
-			if (delipair(db, pag, i)) {
+			/* Don't delete big data here, bitmap will be fixed later */
+			if (delipair(db, pag, i, FALSE)) {
 				corrupted++;
 			} else {
 				g_warning("sdbm: \"%s\": cannot remove corrupted entry #%d/%d "

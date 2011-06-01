@@ -154,3 +154,12 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Added sdbm_firstkey_safe() to activate additional checks during traversal,
   making sure all the keys belong to their page (i.e. that the .dir and .pag
   files are consistent), deleting all non-belonging keys.
+
+Wed Jun  1 18:49:58 CEST 2011
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Extended sdbm_firstkey_safe() to also activate validation of big keys and
+  values: checking that the blocks are properly allocated in the .dat file
+  and that no allocated block is leaking (i.e. is indeed referred by a key or
+  value) nor is shared (i.e. referred by several big keys or values).

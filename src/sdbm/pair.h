@@ -21,7 +21,7 @@ extern datum getpair(DBM *, char *, datum);
 extern gboolean exipair(DBM *, const char *, datum);
 extern gboolean delpair(DBM *, char *, datum);
 extern gboolean delnpair(DBM *, char *, int);
-extern gboolean delipair(DBM *, char *, int);
+extern gboolean delipair(DBM *, char *, int, gboolean);
 extern gboolean chkipair(DBM *, char *, int);
 extern gboolean infopair(DBM *, char *, datum, size_t *, int *, gboolean *);
 extern datum getnkey(DBM *, char *, int);

@@ -1272,7 +1272,8 @@ bigval_free(DBM *db, const char *bval, size_t blen)
 }
 
 /**
- * Make sure vector of block numbers is ordered and points to allocated data.
+ * Make sure vector of block numbers is ordered and points to allocated data,
+ * but was not already flagged as being used by another key / value.
  *
  * @param what		string describing what is being tested (key or value)
  * @param db		the sdbm database
@@ -1288,8 +1289,15 @@ big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
 	const void *q;
 	int n;
 
+	if (!big_check_start(db))
+		return TRUE;			/* Cannot validate, assume it's OK */
+
 	for (q = bvec, n = bcnt; n > 0; n--) {
 		size_t bno = peek_be32(q);
+		bit_field_t *map;
+		long bmap;
+		size_t bit;
+
 		if (!big_block_is_allocated(db, bno)) {
 			g_warning("sdbm: \"%s\": "
 				"%s from .pag refers to unallocated block %lu in .dat",
@@ -1304,6 +1312,27 @@ big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
 		}
 		q = const_ptr_add_offset(q, sizeof(guint32));
 		prev_bno = bno;
+
+		/*
+		 * Make sure block is not used by someone else.
+		 *
+		 * Because we mark blocks as used in big keys and values only after
+		 * we validated both the key and the value for a given pair, we cannot
+		 * detect shared blocks between the key and value of a pair.
+		 */
+
+		bmap = bno / BIG_BITCOUNT;			/* Bitmap handling this block */
+		bit = bno & (BIG_BITCOUNT - 1);		/* Index within bitmap */
+
+		g_assert(bmap < db->big->bitmaps);
+
+		map = ptr_add_offset(db->big->bitcheck, bmap * BIG_BLKSIZE);
+		if (bit_field_get(map, bit)) {
+			g_warning("sdbm: \"%s\": "
+				"%s from .pag refers to already seen block %lu in .dat",
+				sdbm_name(db), what, (unsigned long) bno);
+			return FALSE;
+		}
 	}
 
 	return TRUE;
