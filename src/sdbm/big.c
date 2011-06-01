@@ -84,7 +84,8 @@ struct datfile {
  */
 struct DBMBIG {
 	struct datfile *file;	/* file information, kept until file is opened */
-	bit_field_t *bitbuf;	/* current bitmap page (size: BIG_SIZE) */
+	bit_field_t *bitbuf;	/* current bitmap page (size: BIG_BLKSIZE) */
+	bit_field_t *bitcheck;	/* array of ``bitmaps'' entries, for checks */
 	char *scratch;			/* scratch buffer where key/values are read */
 	long bitbno;			/* page number of the bitmap in bitbuf */
 	size_t scratch_len;		/* length of the scratch buffer */
@@ -223,6 +224,7 @@ big_free(DBM *db)
 
 	big_datfile_free_null(&dbg->file);
 	WFREE_NULL(dbg->bitbuf, BIG_BLKSIZE);
+	HFREE_NULL(dbg->bitcheck);
 	HFREE_NULL(dbg->scratch);
 	fd_forget_and_close(&dbg->fd);
 	WFREE(dbg);
@@ -276,6 +278,45 @@ big_open(DBMBIG *dbg)
 
 	errno = 0;
 	return 0;
+}
+
+/**
+ * If not already done, initiate bitmap checking by creating all the currently
+ * defined bitmaps in memory, zeroed, so that we can check that all the pages
+ * flagged as used are indeed referred to by either a big key or a big value.
+ *
+ * @return TRUE if OK.
+ */
+gboolean
+big_check_start(DBM *db)
+{
+	DBMBIG *dbg = db->big;
+	long i;
+
+	if (-1 == dbg->fd && -1 == big_open(dbg))
+		return FALSE;
+
+	if (dbg->bitcheck != NULL)
+		return TRUE;
+
+	/*
+	 * The array of bitmaps is zeroed, with all the bits corresponding to each
+	 * bitmap page (the bit 0) set.
+	 *
+	 * Looping over the big keys and values and marking their blocks set will
+	 * set additional bits in these checking maps, which at the end will be
+	 * compared to the ones on disk.
+	 */
+
+	dbg->bitcheck = halloc0(BIG_BLKSIZE * dbg->bitmaps);
+
+	for (i = 0; i < dbg->bitmaps; i++) {
+		bit_field_t *map = ptr_add_offset(dbg->bitcheck, i * BIG_BLKSIZE);
+		
+		bit_field_set(map, 0);		/* Bit 0 is for the bitmap itself */
+	}
+
+	return TRUE;
 }
 
 /**
@@ -354,6 +395,54 @@ fetch_bitbuf(DBM *db, long num)
 }
 
 /**
+ * End bitmap allocation checks that have been started by the usage of one
+ * of the bigkey_mark_used() and bigval_mark_used() routines.
+ *
+ * @return the amount of corrections brought to the bitmap, 0 meaning
+ * everything was consistent.
+ */
+size_t
+big_check_end(DBM *db)
+{
+	DBMBIG *dbg = db->big;
+	long i;
+	size_t adjustments = 0;
+
+	if (NULL == dbg->bitcheck)
+		return 0;
+
+	for (i = 0; i < dbg->bitmaps; i++) {
+		if (!fetch_bitbuf(db, i)) {
+			adjustments += BIG_BITCOUNT;	/* Say, everything was wrong */
+		} else {
+			guint8 *p = ptr_add_offset(dbg->bitcheck, i * BIG_BLKSIZE);
+			guint8 *q = dbg->bitbuf;
+			size_t j;
+			size_t old_adjustments = adjustments;
+
+			for (j = 0; j < BIG_BLKSIZE; j++, p++, q++) {
+				guint8 mismatch = *p ^ *q;
+				if (mismatch) {
+					adjustments += bits_set(mismatch);
+					*q = *p;
+				}
+			}
+
+			if (old_adjustments != adjustments) {
+				size_t adj = adjustments - old_adjustments;
+
+				flush_bitbuf(db);
+
+				g_warning("sdbm: \"%s\": adjusted %lu bit%s in bitmap #%ld",
+					sdbm_name(db), (unsigned long) adj, 1 == adj ? "" : "s", i);
+			}
+		}
+	}
+
+	return adjustments;
+}
+
+/**
  * Allocate a single block in the file, without extending it.
  *
  * @param db		the sdbm database
@@ -411,7 +500,7 @@ big_falloc(DBM *db, size_t first)
 }
 
 /**
- * Check whether block is allocated.
+ * Check whether data block is allocated.
  *
  * @param db		the sdbm database
  * @param bno		block number to consider
@@ -427,6 +516,12 @@ big_block_is_allocated(DBM *db, size_t bno)
 
 	bmap = bno / BIG_BITCOUNT;			/* Bitmap handling this block */
 	bit = bno & (BIG_BITCOUNT - 1);		/* Index within bitmap */
+
+	if (bmap >= dbg->bitmaps)
+		return FALSE;					/* Bitmap not allocated yet */
+
+	if (0 == bit)
+		return FALSE;					/* Refers to the bitmap itself */
 
 	/*
 	 * Fetch the bitmap where block lies.
@@ -485,8 +580,8 @@ big_ffree(DBM *db, size_t bno)
 
 	if (bmap >= dbg->bitmaps) {
 		g_warning("sdbm: \"%s\": "
-			"freed block #%ld falls in invalid bitmap #%ld (max %ld)",
-			sdbm_name(db), (long) bno, bmap, dbg->bitmaps);
+			"freed block #%ld falls within invalid bitmap #%ld (max %ld)",
+			sdbm_name(db), (long) bno, bmap, dbg->bitmaps - 1);
 		return;
 	}
 
@@ -824,6 +919,8 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 	const char *q;
 	size_t remain;
 
+	g_return_val_if_fail(NULL == dbg->bitcheck, -1);
+
 	if (-1 == dbg->fd && -1 == big_open(dbg))
 		return -1;
 
@@ -975,6 +1072,7 @@ big_file_alloc(DBM *db, void *bvec, int bcnt)
 	int bmap = 0;		/* Initial bitmap from which we allocate */
 
 	g_assert(bcnt > 0);
+	g_return_val_if_fail(NULL == dbg->bitcheck, FALSE);
 
 	if (-1 == dbg->fd && -1 == big_open(dbg))
 		return FALSE;
@@ -1171,6 +1269,180 @@ bigval_free(DBM *db, const char *bval, size_t blen)
 
 	big_file_free(db, bigval_blocks(bval), bigblocks(len));
 	return TRUE;
+}
+
+/**
+ * Make sure vector of block numbers is ordered and points to allocated data.
+ *
+ * @param what		string describing what is being tested (key or value)
+ * @param db		the sdbm database
+ * @param bvec		vector where allocated block numbers are stored
+ * @param bcnt		amount of blocks in vector
+ *
+ * @return TRUE on success.
+ */
+static gboolean
+big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
+{
+	size_t prev_bno = 0;		/* 0 is invalid: it's the first bitmap */
+	const void *q;
+	int n;
+
+	for (q = bvec, n = bcnt; n > 0; n--) {
+		size_t bno = peek_be32(q);
+		if (!big_block_is_allocated(db, bno)) {
+			g_warning("sdbm: \"%s\": "
+				"%s from .pag refers to unallocated block %lu in .dat",
+				sdbm_name(db), what, (unsigned long) bno);
+			return FALSE;
+		}
+		if (prev_bno != 0 && bno <= prev_bno) {
+			g_warning("sdbm: \"%s\": "
+				"%s from .pag lists unordered block list (corrupted file?)",
+				sdbm_name(db), what);
+			return FALSE;
+		}
+		q = const_ptr_add_offset(q, sizeof(guint32));
+		prev_bno = bno;
+	}
+
+	return TRUE;
+}
+
+/**
+ * Validate .dat blocks used to hold the key described in the .pag space.
+ *
+ * @param db		the sdbm database
+ * @param bkey		start of big key in the page
+ * @param blen		length of big key in the page
+ *
+ * @return TRUE on success.
+ */
+gboolean
+bigkey_check(DBM *db, const char *bkey, size_t blen)
+{
+	size_t len = big_length(bkey);
+
+	if (bigkey_length(len) != blen) {
+		g_warning("sdbm: \"%s\": found inconsistent key length %lu, "
+			"would span %lu bytes in .pag instead of the %lu present",
+			sdbm_name(db), (unsigned long) len,
+			(unsigned long) bigkey_length(len), (unsigned long) blen);
+		return FALSE;
+	}
+
+	return big_file_check("key", db, bigkey_blocks(bkey), bigblocks(len));
+}
+
+/**
+ * Validate .dat blocks used to hold the value described in the .pag space.
+ *
+ * @param db		the sdbm database
+ * @param bval		start of big value in the page
+ * @param blen		length of big value in the page
+ *
+ * @return TRUE on success.
+ */
+gboolean
+bigval_check(DBM *db, const char *bval, size_t blen)
+{
+	size_t len = big_length(bval);
+
+	if (bigval_length(len) != blen) {
+		g_warning("sdbm: \"%s\": found inconsistent value length %lu, "
+			"would span %lu bytes in .pag instead of the %lu present",
+			sdbm_name(db), (unsigned long) len,
+			(unsigned long) bigkey_length(len), (unsigned long) blen);
+		return FALSE;
+	}
+
+	return big_file_check("value", db, bigval_blocks(bval), bigblocks(len));
+}
+
+/**
+ * Mark blocks in the supplied vector as allocated in the checking bitmap.
+ *
+ * @param db		the sdbm database
+ * @param bvec		vector where allocated block numbers are stored
+ * @param bcnt		amount of blocks in vector
+ */
+static void
+big_file_mark_used(DBM *db, const void *bvec, int bcnt)
+{
+	DBMBIG *dbg = db->big;
+	const void *q;
+	int n;
+
+	if (!big_check_start(db))
+		return;
+
+	for (q = bvec, n = bcnt; n > 0; n--) {
+		size_t bno = peek_be32(q);
+		bit_field_t *map;
+		long bmap;
+		size_t bit;
+
+		bmap = bno / BIG_BITCOUNT;			/* Bitmap handling this block */
+		bit = bno & (BIG_BITCOUNT - 1);		/* Index within bitmap */
+		q = const_ptr_add_offset(q, sizeof(guint32));
+
+		/*
+		 * It's because of this sanity check that we don't want to consider
+		 * the bitcheck field as a huge continuous map.  Also doing that would
+		 * violate the encapsulation: we're not supposed to know how bits are
+		 * allocated in the field.
+		 */
+
+		if (bmap >= dbg->bitmaps)
+			continue;
+
+		map = ptr_add_offset(dbg->bitcheck, bmap * BIG_BLKSIZE);
+		bit_field_set(map, bit);
+	}
+}
+
+/**
+ * Mark .dat blocks used to hold the key described in the .pag space as
+ * being allocated in the bitmap checking array.
+ *
+ * @param db		the sdbm database
+ * @param bkey		start of big key in the page
+ * @param blen		length of big key in the page
+ */
+void
+bigkey_mark_used(DBM *db, const char *bkey, size_t blen)
+{
+	size_t len = big_length(bkey);
+
+	if (bigkey_length(len) != blen) {
+		g_carp("sdbm: \"%s\": %s: inconsistent key length %lu in .pag",
+			sdbm_name(db), G_STRFUNC, (unsigned long) len);
+		return;
+	}
+
+	big_file_mark_used(db, bigkey_blocks(bkey), bigblocks(len));
+}
+
+/**
+ * Mark .dat blocks used to hold the value described in the .pag space as
+ * being allocated in the bitmap checking array.
+ *
+ * @param db		the sdbm database
+ * @param bval		start of big value in the page
+ * @param blen		length of big value in the page
+ */
+void
+bigval_mark_used(DBM *db, const char *bval, size_t blen)
+{
+	size_t len = big_length(bval);
+
+	if (bigval_length(len) != blen) {
+		g_carp("sdbm: \"%s\": %s: inconsistent key length %lu in .pag",
+			sdbm_name(db), G_STRFUNC, (unsigned long) len);
+		return;
+	}
+
+	big_file_mark_used(db, bigval_blocks(bval), bigblocks(len));
 }
 
 /**

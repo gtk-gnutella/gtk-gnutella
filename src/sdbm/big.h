@@ -32,10 +32,15 @@ int big_datfno(DBM *);
 gboolean big_sync(DBM *);
 gboolean big_shrink(DBM *);
 gboolean big_clear(DBM *);
+size_t big_check_end(DBM *);
 gboolean bigkey_put(DBM *, char *, size_t, const char *, size_t);
 gboolean bigval_put(DBM *, char *, size_t, const char *, size_t);
 gboolean bigkey_free(DBM *, const char *, size_t);
 gboolean bigval_free(DBM *, const char *, size_t);
+gboolean bigkey_check(DBM *, const char *, size_t);
+gboolean bigval_check(DBM *, const char *, size_t);
+void bigkey_mark_used(DBM *, const char *, size_t);
+void bigval_mark_used(DBM *, const char *, size_t);
 
 /**
  * Amount of bytes saved for the head and tail of a key.

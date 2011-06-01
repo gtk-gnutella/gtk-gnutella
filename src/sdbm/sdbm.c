@@ -988,6 +988,18 @@ static datum
 iteration_done(DBM *db)
 {
 	g_assert(db != NULL);
+
+#ifdef BIGDATA
+	if (db->flags & DBM_KEYCHECK) {
+		size_t adj = big_check_end(db);
+
+		if (adj != 0) {
+			g_warning("sdbm: \"%s\": database may have lost entries",
+				sdbm_name(db));
+		}
+	}
+#endif
+
 	db->flags &= ~DBM_KEYCHECK;		/* Iteration done */
 	return nullitem;
 }
@@ -1113,6 +1125,7 @@ validpage(DBM *db, long pagb)
 	char *pag = db->pagbuf;
 	unsigned short *ino = (unsigned short *) pag;
 	int removed = 0;
+	int corrupted = 0;
 
 	n = ino[0];
 
@@ -1135,14 +1148,30 @@ validpage(DBM *db, long pagb)
 					"not belonging to page #%ld",
 					sdbm_name(db), k, n / 2, pagb);
 			}
+		} else if (!chkipair(db, pag, i)) {
+			if (delipair(db, pag, i)) {
+				corrupted++;
+			} else {
+				g_warning("sdbm: \"%s\": cannot remove corrupted entry #%d/%d "
+					"in page #%ld",
+					sdbm_name(db), k, n / 2, pagb);
+			}
 		}
 	}
 
-	if (removed > 0) {
-		db->removed_keys += removed;
-		g_warning("sdbm: \"%s\": removed %d/%d key%s "
-			"not belonging to page #%ld",
-			sdbm_name(db), removed, n / 2, 1 == removed ? "" : "s", pagb);
+	if (removed > 0 || corrupted > 0) {
+		if (removed > 0) {
+			db->removed_keys += removed;
+			g_warning("sdbm: \"%s\": removed %d/%d key%s "
+				"not belonging to page #%ld", sdbm_name(db),
+				removed, n / 2, 1 == removed ? "" : "s", pagb);
+		}
+		if (corrupted > 0) {
+			db->removed_keys += corrupted;
+			g_warning("sdbm: \"%s\": removed %d/%d corrupted entr%s "
+				"on page #%ld", sdbm_name(db),
+				corrupted, n / 2, 1 == corrupted ? "y" : "ies", pagb);
+		}
 #ifdef LRU
 		(void) force_flush_pagbuf(db, !db->is_volatile);
 #else

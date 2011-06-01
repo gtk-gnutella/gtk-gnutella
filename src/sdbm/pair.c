@@ -608,6 +608,47 @@ seepair(DBM *db, const char *pag, unsigned n, const char *key, size_t siz)
 #endif
 }
 
+/**
+ * Check pair from the page whose key starts at position i.
+ *
+ * @return TRUE if we can't spot anything wrong, FALSE on definitive corruption.
+ */
+gboolean
+chkipair(DBM *db, char *pag, int i)
+{
+	int n;
+	unsigned short *ino = (unsigned short *) pag;
+
+	n = ino[0];
+
+	/* Position in range, and odd number */
+	g_return_val_if_fail(0 != n && i < n && (i & 0x1), TRUE);
+
+#ifdef BIGDATA
+	{
+		unsigned end = (i > 1) ? offset(ino[i - 1]) : DBM_PBLKSIZ;
+		unsigned k = ino[i];
+		unsigned v = ino[i+1];
+		unsigned koff = offset(k);
+		unsigned voff = offset(v);
+
+		/* Check blocks used by large keys and values */
+
+		if (is_big(k) && !bigkey_check(db, pag + koff, end - koff))
+			return FALSE;
+		if (is_big(v) && !bigval_check(db, pag + voff, koff - voff))
+			return FALSE;
+		/* Mark blocks as used only when both key and value are validated */
+		if (is_big(k))
+			bigkey_mark_used(db, pag + koff, end - koff);
+		if (is_big(v))
+			bigval_mark_used(db, pag + voff, koff - voff);
+	}
+#endif
+
+	return TRUE;
+}
+
 void
 splpage(char *pag, char *pagzero, char *pagone, long int sbit)
 {

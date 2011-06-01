@@ -10,6 +10,7 @@
 #define splpage sdbm__splpage
 #define delnpair sdbm__delnpair
 #define delipair sdbm__delipair
+#define chkipair sdbm__chkipair
 #define infopair sdbm__infopair
 #define replpair sdbm__replpair
 #define replaceable sdbm__replaceable
@@ -21,6 +22,7 @@ extern gboolean exipair(DBM *, const char *, datum);
 extern gboolean delpair(DBM *, char *, datum);
 extern gboolean delnpair(DBM *, char *, int);
 extern gboolean delipair(DBM *, char *, int);
+extern gboolean chkipair(DBM *, char *, int);
 extern gboolean infopair(DBM *, char *, datum, size_t *, int *, gboolean *);
 extern datum getnkey(DBM *, char *, int);
 extern datum getnval(DBM *, char *, int);
