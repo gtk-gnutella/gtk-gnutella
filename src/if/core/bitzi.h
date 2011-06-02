@@ -63,6 +63,7 @@ typedef struct bitzi_data {
 	const char	*mime_desc;		/**< mime details (fps, bitrate etc) (atom) */
 	const char *ticket;			/**< The XML ticket as a single string */
 	filesize_t	size;			/**< size of file */
+	time_t		duration;		/**< duration in seconds of audio & video */
 	bitzi_fj_t	judgment;
 	float		goodness;
 	time_t		expiry;			/**< expiry date of meta-data */

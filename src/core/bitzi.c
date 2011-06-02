@@ -57,6 +57,7 @@
 #include "if/bridge/c2ui.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/dbmw.h"
@@ -89,6 +90,7 @@ static const char bitzi_url_fmt[] =
 static const char BITZI_RDF[]	= "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 static const char BITZI_BZ[]	= "http://bitzi.com/xmlns/2002/01/bz-core#";
 static const char BITZI_DC[]	= "http://purl.org/dc/elements/1.1/";
+static const char BITZI_MM[]	= "http://musicbrainz.org/mm/mm-2.0#";
 
 /**
  * For XML tree formating, indicate prefixes to use for namespaces we parse.
@@ -97,6 +99,7 @@ const struct xfmt_prefix bitzi_prefixes[] = {
 	{ BITZI_RDF,	"rdf" },
 	{ BITZI_BZ,		"bz" },
 	{ BITZI_DC,		"dc" },
+	{ BITZI_MM,		"mm" },
 };
 
 /**
@@ -141,11 +144,12 @@ struct bzdata {
 	filesize_t size;				/**< File size */
 	bitzi_fj_t judgment;
 	float goodness;
+	time_t duration;				/**< Duration (audio/video), in seconds */
 	time_t ctime;					/**< Creation time (local insertion) */
 	time_t etime;					/**< Expiration date, from ticket */
 };
 
-#define BITZI_BZ_VERSION	0		/**< Serialization version number */
+#define BITZI_BZ_VERSION	1		/**< Serialization version number */
 
 /**
  * Serialization flags.
@@ -153,6 +157,7 @@ struct bzdata {
 #define BITZI_HAS_MIME_TYPE		(1 << 0)
 #define BITZI_HAS_MIME_DESC		(1 << 1)
 #define BITZI_HAS_TICKET		(1 << 2)
+#define BITZI_HAS_DURATION		(1 << 3)
 
 /*
  * Function declarations
@@ -183,6 +188,8 @@ serialize_bzdata(pmsg_t *mb, const void *data)
 		flags |= BITZI_HAS_MIME_DESC;
 	if (bz->ticket != NULL)
 		flags |= BITZI_HAS_TICKET;
+	if (bz->duration != 0)
+		flags |= BITZI_HAS_DURATION;
 	pmsg_write_u8(mb, flags);
 
 	if (bz->mime_type != NULL)
@@ -197,6 +204,11 @@ serialize_bzdata(pmsg_t *mb, const void *data)
 	pmsg_write_float_be(mb, bz->goodness);
 	pmsg_write_time(mb, bz->ctime);
 	pmsg_write_time(mb, bz->etime);
+
+	/* Introduced at version 1 */
+	if (bz->duration != 0) {
+		pmsg_write_time(mb, bz->duration);
+	}
 }
 
 /**
@@ -246,6 +258,34 @@ deserialize_bzdata(bstr_t *bs, void *valptr, size_t len)
 	bstr_read_float_be(bs, &bz->goodness);
 	bstr_read_time(bs, &bz->ctime);
 	bstr_read_time(bs, &bz->etime);
+
+	/*
+	 * Duration was introduced at version 1.
+	 */
+
+	if (version < 1) {
+		/*
+		 * Although we can parse the XML ticket to extract the missing duration,
+		 * there's no way currently (2011-06-02) to flag the deserialized
+		 * value as dirty, so that we would not lose the result.
+		 * That means we would have to reparse the XML ticket each time we
+		 * access the value from the database without being able to "upgrade"
+		 * the sotred value.
+		 *
+		 * TODO: This ability to "upgrade" stored data could be useful to add,
+		 * but it's tricky as it means changing the contract of all the
+		 * deserialization routines to flag the value as dirty for the DBMW
+		 * layer.		--RAM, 2011-06-02
+		 */
+
+		bz->duration = 0;		/* Sorry */
+	} else {
+		if (flags & BITZI_HAS_DURATION) {
+			bstr_read_time(bs, &bz->duration);
+		} else {
+			bz->duration = 0;
+		}
+	}
 }
 
 /**
@@ -519,14 +559,35 @@ bitzi_process_rdf_description(const xnode_t *xn, bitzi_data_t *data)
 		 */
 		atom_str_change(&data->mime_type, value);
 
-		if (is_strcaseprefix(value, "video")) {
+		if (is_strcaseprefix(value, "video/")) {
 			const char *bitrate =
 				xnode_prop_ns_get(xn, BITZI_BZ, "videoBitrate");
 			const char *fps = xnode_prop_ns_get(xn, BITZI_BZ, "videoFPS");
 			const char *height = xnode_prop_ns_get(xn, BITZI_BZ, "videoHeight");
 			const char *width = xnode_prop_ns_get(xn, BITZI_BZ, "videoWidth");
+			const char *duration = xnode_prop_ns_get(xn, BITZI_MM, "duration");
 			gboolean has_res = width && height;
+			guint32 seconds;
 			char desc[256];
+			size_t len;
+
+			if (duration != NULL) {
+				int error;
+				/* Bitzi stores it in ms */
+				seconds = parse_uint32(duration, NULL, 10, &error) / 1000;
+			} else {
+				seconds = 0;
+			}
+
+			/*
+			 * We don't include the duration in the string because the
+			 * output of short_time() is localized and we don't want to
+			 * freeze that description in the database.
+			 * Keep it separate so that the GUI can format it properly
+			 * when the description is displayed, using the right locale.
+			 */
+
+			data->duration = seconds;
 
 			/*
 			 * format the mime details
@@ -538,7 +599,7 @@ bitzi_process_rdf_description(const xnode_t *xn, bitzi_data_t *data)
 			 * fps stands for "frames per second".
 			 * kbps stands for "kilobit per second" (metric kilo).
 			 */
-			gm_snprintf(desc, sizeof desc, _("%s%s%s%s%s fps, %s kbps"),
+			len = gm_snprintf(desc, sizeof desc, _("%s%s%s%s%s fps, %s kbps"),
 					has_res ? width : "",
 					has_res ? Q_("times|x") : "",
 					has_res ? height : "",
@@ -546,31 +607,43 @@ bitzi_process_rdf_description(const xnode_t *xn, bitzi_data_t *data)
 					(fps != NULL) ? fps : "?",
 					(bitrate != NULL) ? bitrate : "?");
 
+			ascii_chomp_trailing_spaces(desc, len);
 			atom_str_change(&data->mime_desc, desc);
 
-		} else if (is_strcaseprefix(value, "audio")) {
+		} else if (is_strcaseprefix(value, "audio/")) {
 			const char *channels =
 				xnode_prop_ns_get(xn, BITZI_BZ, "audioChannels");
-			const char *duration = xnode_prop_ns_get(xn, BITZI_BZ, "duration");
 			const char *kbps = xnode_prop_ns_get(xn, BITZI_BZ, "audioBitrate");
 			const char *srate =
 				xnode_prop_ns_get(xn, BITZI_BZ, "audioSamplerate");
+			const char *duration = xnode_prop_ns_get(xn, BITZI_MM, "duration");
 			guint32 seconds;
 			char desc[256];
+			size_t len;
 
 			if (duration) {
 				int error;
+				/* Bitzi stores it in ms */
 				seconds = parse_uint32(duration, NULL, 10, &error) / 1000;
 			} else {
 				seconds = 0;
 			}
 
-			gm_snprintf(desc, sizeof desc, "%s%s%s%s%s%s%s",
+			data->duration = seconds;
+
+			/*
+			 * We don't include the duration in the string because the
+			 * output of short_time() is localized and we don't want to
+			 * freeze that description in the database.  Units like Hz
+			 * or acronyms like kbps are OK because they're "international".
+			 */
+
+			len = gm_snprintf(desc, sizeof desc, "%s%s%s%s%s%s",
 				kbps ? kbps : "", kbps ? "kbps " : "",
 				srate ? srate : "", srate ? "Hz " : "",
-				channels ? channels : "", channels ? "ch " : "",
-				seconds ? short_time(seconds) : "");
+				channels ? channels : "", channels ? "ch" : "");
 
+			ascii_chomp_trailing_spaces(desc, len);
 			atom_str_change(&data->mime_desc, desc);
 		}
 	}
@@ -642,6 +715,7 @@ bitzi_fill_data(bitzi_data_t *data,
 	data->mime_desc = bz->mime_desc;
 	data->ticket = bz->ticket;
 	data->size = bz->size;
+	data->duration = bz->duration;
 	data->judgment = bz->judgment;
 	data->goodness = bz->goodness;
 	data->expiry = bz->etime;
@@ -980,6 +1054,7 @@ bitzi_cache_add(bitzi_data_t *data, const xnode_t *root)
 			bitzi_prefixes, G_N_ELEMENTS(bitzi_prefixes), BITZI_RDF);
 	}
 	bzo->size = data->size;
+	bzo->duration = data->duration;
 	bzo->judgment = data->judgment;
 	bzo->goodness = data->goodness;
 	bzo->etime = data->expiry;
@@ -988,15 +1063,16 @@ bitzi_cache_add(bitzi_data_t *data, const xnode_t *root)
 
 	if (GNET_PROPERTY(bitzi_debug)) {
 		g_debug("BITZI %s: %s %s ticket, filesize=%s, type=%s, desc=\"%s\", "
-			"judgment=\"%s\", goodness=%f, expire=%s",
+			"judgment=\"%s\", goodness=%f, duration=%s, expire=%s",
 			G_STRFUNC, bzo->ctime == tm_time() ? "added" : "updated",
 			sha1_to_string(data->sha1),
 			filesize_to_string(bzo->size), bzo->mime_type,
 			bzo->mime_desc, bitzi_judgment_to_string(bzo->judgment),
-			bzo->goodness, timestamp_to_string(bzo->etime));
+			bzo->goodness, short_time_ascii(bzo->duration),
+			timestamp_to_string(bzo->etime));
 		if (GNET_PROPERTY(bitzi_debug) > 5 && bzo->ticket != NULL) {
 			g_debug("BITZI XML ticket:");
-			dump_string(stderr, bzo->ticket, strlen(bzo->ticket), "----");
+			dump_string(stderr, bzo->ticket, strlen(bzo->ticket), "");
 		}
 	}
 

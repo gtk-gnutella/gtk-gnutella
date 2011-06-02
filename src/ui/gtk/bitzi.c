@@ -117,16 +117,20 @@ bitzi_gui_get_metadata(const bitzi_data_t *data)
 		return h_strdup(bitzi_fj_to_string(data->judgment));
 	} else if (data->mime_type) {
 		if (data->mime_desc) {
-			return h_strdup_printf("%s (%1.1f): %s (%s)",
+			return h_strdup_printf("%s (%1.1f): %s (%s)%s%s",
 					bitzi_fj_to_string(data->judgment),
 					data->goodness,
 					data->mime_type,
-					data->mime_desc);
+					data->mime_desc,
+					data->duration != 0 ? "; " : "",
+					data->duration != 0 ? short_time(data->duration) : "");
 		} else {
-			return h_strdup_printf("%s (%1.1f): %s",
+			return h_strdup_printf("%s (%1.1f): %s%s%s",
 					bitzi_fj_to_string(data->judgment),
 					data->goodness,
-					data->mime_type);
+					data->mime_type,
+					data->duration != 0 ? "; " : "",
+					data->duration != 0 ? short_time(data->duration) : "");
 		}
 	} else if (data->judgment != BITZI_FJ_UNKNOWN) {
 		return h_strdup_printf("%s (%1.1f): %s",
