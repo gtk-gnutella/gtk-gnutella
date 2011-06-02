@@ -238,6 +238,7 @@ int ascii_strcasecmp_delimit(const char *a, const char *b,
 		const char *delimit);
 char *ascii_strcasestr(const char *haystack, const char *needle);
 int ascii_strcmp_delimit(const char *a, const char *b, const char *delimit);
+size_t ascii_chomp_trailing_spaces(char *str, size_t len);
 
 guint ascii_strcase_hash(gconstpointer key);
 int ascii_strcase_eq(gconstpointer a, gconstpointer b);

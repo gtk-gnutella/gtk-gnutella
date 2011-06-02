@@ -263,5 +263,32 @@ ascii_strcmp_delimit(const char *a, const char *b, const char *delimit)
 	return strcmp_delimit_full(a, b, delimit, TRUE);
 }
 
+/**
+ * Chomp trailing ASCII white spaces (' ' and '\t') inplace.
+ * Use strchomp() to remove trailing newline.
+ * If len is 0, compute it with strlen().
+ *
+ * @return new string length
+ */
+size_t
+ascii_chomp_trailing_spaces(char *str, size_t len)
+{
+	size_t i;
+
+	g_assert(str != NULL);
+
+	if (0 == len) {
+		len = strlen(str);
+		if (0 == len)
+			return 0;
+	}
+
+	i = len;
+	while (i > 0 && (str[i-1] == ' ' || str[i-1] == '\t')) {
+		str[--i] = '\0';
+	}
+
+	return i;
+}
 
 /* vi: set ts=4 sw=4 cindent: */
