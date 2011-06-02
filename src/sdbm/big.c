@@ -30,12 +30,6 @@
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/*
- * FIXME:
- * We'd need some kind of "dbmck" to check and fix inconsistencies: duplicate
- * keys, duplicate pages, wrong bitmaps, etc...
- */
-
 #ifdef BIGDATA
 
 /**
