@@ -1706,7 +1706,7 @@ vxml_parser_buffer_remains(vxml_parser_t *vp)
 		case VXML_BUFFER_FILE:
 			{
 				struct vxml_buffer *vnext;
-				int error;
+				int error = 0;
 
 				/*
 				 * Reaching a file buffer means we have to read more data
