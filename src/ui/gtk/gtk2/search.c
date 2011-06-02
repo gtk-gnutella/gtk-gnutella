@@ -427,18 +427,10 @@ prepare_remove_record(GtkTreeModel *model, GtkTreePath *unused_path,
 static void
 search_gui_clear_queue(search_t *search)
 {
-	if (slist_length(search->queue) > 0) {
-		slist_iter_t *iter;
+	struct result_data *rd;
 
-		iter = slist_iter_removable_on_head(search->queue);
-		while (slist_iter_has_item(iter)) {
-			struct result_data *rd;
-
-			rd = slist_iter_current(iter);
-			slist_iter_remove(iter);
-			result_data_free(search, rd);
-		}
-		slist_iter_free(&iter);
+	while (NULL != (rd = slist_shift(search->queue))) {
+		result_data_free(search, rd);
 	}
 }
 
