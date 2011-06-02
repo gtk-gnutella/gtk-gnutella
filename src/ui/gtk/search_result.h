@@ -70,6 +70,7 @@ typedef struct results_set {
 	guint16 speed;
 	guint8 hops;
 	guint8 ttl;
+	guint8 media;				/**< Optional: media type filtering */
 } results_set_t;
 
 typedef enum {

@@ -765,6 +765,12 @@ guc_search_is_whats_new(gnet_search_t sh)
 	return search_is_whats_new(sh);
 }
 
+const char *
+guc_search_media_mask_to_string(unsigned mask)
+{
+	return search_media_mask_to_string(mask);
+}
+
 void
 guc_search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1)
 {

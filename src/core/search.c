@@ -446,7 +446,7 @@ map_muid_to_query_string(const struct guid *muid, unsigned *media_mask)
  *
  * @return pointer to static string
  */
-static const char *
+const char *
 search_media_mask_to_string(unsigned mask)
 {
 	static char buf[80];
@@ -1979,7 +1979,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	gboolean tag_has_nul = FALSE;
 	const char *vendor = NULL;
 	const char *badmsg = NULL;
-	unsigned media_mask;
+	unsigned media_mask = 0;
 	const struct guid *muid = gnutella_header_get_muid(&n->header);
 
 	/* We shall try to detect malformed packets as best as we can */
@@ -2713,6 +2713,15 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 		query = map_muid_to_query_string(muid, &media_mask);
 		rs->query = query != NULL ? atom_str_get(query) : NULL;
+
+		/*
+		 * The field rs->media is only 8 bits, but we rely on the fact that
+		 * the currently architected media types all fit in one single byte.
+		 * This allows us to store the media type in the results without
+		 * really increasing the memory requirements (uses padding space).
+		 */
+
+		rs->media = media_mask;
 
 		if (NULL == query && NODE_P_ULTRA == GNET_PROPERTY(current_peermode)) {
 			gnet_stats_count_general(GNR_QUERY_HIT_FOR_UNTRACKED_QUERY, +1);

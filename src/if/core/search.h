@@ -130,6 +130,7 @@ typedef struct gnet_results_set {
 	guint16 country;			/**< Country code -- encoded ISO3166 */
 	guint8 hops;
 	guint8 ttl;
+	guint8 media;				/**< Optional: media type filtering */
 } gnet_results_set_t;
 
 /*
@@ -265,6 +266,8 @@ void search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1);
 void search_dissociate_sha1(const struct sha1 *sha1);
 GSList *search_associated_sha1(gnet_search_t sh);
 unsigned search_associated_sha1_count(gnet_search_t sh);
+
+const char *search_media_mask_to_string(unsigned mask);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_search_h_ */

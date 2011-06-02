@@ -1225,6 +1225,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 	rs->last_hop = r_set->last_hop;
 	rs->hops = r_set->hops;
 	rs->ttl = r_set->ttl;
+	rs->media = r_set->media;
 
     rs->num_recs = 0;
     rs->records = NULL;
@@ -3976,9 +3977,17 @@ search_gui_set_details(const record_t *rc)
 			search_gui_append_detail(_("Hops"), uint32_to_string(rs->hops));
 			search_gui_append_detail(_("TTL"), uint32_to_string(rs->ttl));
 
-			search_gui_append_detail(_("Query"),
-				lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
-					UNI_NORM_GUI, NULL));
+			if (0 == rs->media) {
+				search_gui_append_detail(_("Query"),
+					lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
+						UNI_NORM_GUI, NULL));
+			} else {
+				const char *media = guc_search_media_mask_to_string(rs->media);
+				const char *query = str_smsg("%s (%s)",
+					lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
+						UNI_NORM_GUI, NULL), media);
+				search_gui_append_detail(_("Query"), query);
+			}
 		}
 		search_gui_append_detail(_("Received"), timestamp_to_string(rs->stamp));
 	}
