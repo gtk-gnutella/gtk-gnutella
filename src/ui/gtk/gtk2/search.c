@@ -951,6 +951,11 @@ remove_selected_file(void *iter_ptr, void *search_ptr)
 
 		rd->iter = *iter;
 		rd->children = children;
+
+		/*
+		 * Keep metadata from the parent row (we swapped rd and child_data).
+		 */
+
 		atom_str_change(&rd->meta, child_data->meta);
 
 		/* And remove the child's row */
@@ -1748,6 +1753,24 @@ search_gui_flush_queue_data(search_t *search, GtkTreeModel *model,
 			search_gui_data_changed(model, parent);
 		} else {
 			gm_hash_table_insert_const(search->parents, rd, rd);
+
+			/*
+			 * Inserting a new parent.
+			 * Check for available (cached) Bitzi data.
+			 */
+
+			if (NULL == rd->meta && guc_bitzi_has_cached_ticket(rc->sha1)) {
+				bitzi_data_t data;
+				char *text = NULL;
+				const char *meta;
+
+				if (guc_bitzi_data_by_sha1(&data, rc->sha1, rc->size)) {
+					text = bitzi_gui_get_metadata(&data);
+				}
+				meta = text != NULL ? text : _("Not in database");
+				atom_str_change(&rd->meta, meta);
+				HFREE_NULL(text);
+			}
 		}
 	} else {
 		parent_iter = NULL;
@@ -1773,23 +1796,17 @@ search_gui_flush_queue(search_t *search)
 	
 	if (slist_length(search->queue) > 0) {
 		GtkTreeModel *model;
-		slist_iter_t *iter;
 		guint max_items;
+		struct result_data *data;
 
 		search_gui_start_massive_update(search);
 
 		model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 		max_items = search_gui_is_sorted(search) ? 100 : 500;
 
-		iter = slist_iter_removable_on_head(search->queue);
-		while (slist_iter_has_item(iter) && max_items-- > 0) {
-			struct result_data *data;
-
-			data = slist_iter_current(iter);
-			slist_iter_remove(iter);
+		while (max_items-- > 0 && NULL != (data = slist_shift(search->queue))) {
 			search_gui_flush_queue_data(search, model, data);
 		}
-		slist_iter_free(&iter);
 
 		search_gui_end_massive_update(search);
 	}
