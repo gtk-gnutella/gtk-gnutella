@@ -983,6 +983,26 @@ search_gui_sort_column(search_t *search, gint column)
     }
 }
 
+/**
+ * Add available Bitzi metadata to a parent node.
+ */
+static void
+search_parent_add_metadata(GtkCTree *ctree, GtkCTreeNode *parent, record_t *rc)
+{
+	if (guc_bitzi_has_cached_ticket(rc->sha1)) {
+		bitzi_data_t data;
+
+		if (guc_bitzi_data_by_sha1(&data, rc->sha1, rc->size)) {
+			char *text = bitzi_gui_get_metadata(&data);
+			gtk_ctree_node_set_text(ctree, parent, c_sr_meta,
+				text != NULL ? text : _("Not in database"));
+			HFREE_NULL(text);
+		} else {
+			gtk_ctree_node_set_text(ctree, parent, c_sr_meta,
+				_("Not in database"));
+		}
+	}
+}
 
 /**
  *	Adds the record to gth GtkCTree for this search.
@@ -1269,6 +1289,15 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 	gtk_ctree_node_set_foreground(ctree, node, gui_color_get(color));
 	gtk_ctree_node_set_background(ctree, node,
 		gui_color_get(GUI_COLOR_BACKGROUND));
+
+	/*
+	 * If we inserted a parent node and we have Bitzi metadata available,
+	 * display it as well.
+	 */
+
+	if (is_parent && rc->sha1 != NULL) {
+		search_parent_add_metadata(ctree, node, rc);
+	}
 }
 
 /**
@@ -1348,6 +1377,11 @@ search_gui_remove_result(struct search *search, GtkCTreeNode *node)
 			} else {
 				*tmpstr = '\0';
             }
+
+			/* Display Bitzi metadata again if available */
+			if (rc->sha1 != NULL) {
+				search_parent_add_metadata(ctree, child_node, rc);
+			}
 
 			/* Update record count, child_rc will become the rc for the parent*/
 			child_grc->num_children = n;

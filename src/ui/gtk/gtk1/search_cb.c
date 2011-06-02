@@ -410,7 +410,7 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	
 	/* Queue up our requests */
     gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
-	if (bitzi_debug)
+	if (bitzi_debug > 10)
 		g_debug("on_popup_search_metadata_activate: %d items, %p",
 			  g_slist_position(data_list, g_slist_last(data_list)) + 1,
 			  cast_to_gconstpointer(data_list));
