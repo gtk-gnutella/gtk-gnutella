@@ -2788,8 +2788,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 	search_results_identify_spam(rs);
 
-// XXX
-
 	return rs;
 
 	/*
