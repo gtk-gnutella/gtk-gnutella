@@ -1017,7 +1017,7 @@ bitzi_cache_add(bitzi_data_t *data, const xnode_t *root)
 			return FALSE;
 		}
 
-		if (bzo->size != data->size) {
+		if (bzo->size != 0 && bzo->size != data->size) {
 			g_warning("%s: entry for %s already present with filesize %s but "
 				"new entry says %s, keeping old ticket",
 				G_STRFUNC, sha1_to_string(data->sha1),
@@ -1219,8 +1219,10 @@ bitzi_query_by_sha1(const struct sha1 *sha1,
 
 	if (bz != NULL) {
 		if (GNET_PROPERTY(bitzi_debug)) {
-			g_debug("BITZI %s: result for %s already in cache",
-				G_STRFUNC, sha1_to_string(sha1));
+			g_debug("BITZI %s: result for %s already in cache, "
+				"size=%s, expires %s",
+				G_STRFUNC, sha1_to_string(sha1), filesize_to_string(bz->size),
+				timestamp_to_string(bz->etime));
 		}
 		if (refresh) {
 			bz = NULL;
