@@ -1707,14 +1707,6 @@ dq_common_init(dquery_t *dq)
 				deconstify_gpointer(dq->lmuid), dq);
 	}
 
-	if (GNET_PROPERTY(search_muid_track_amount) > 0) {
-		gconstpointer packet;
-
-		packet = pmsg_start(dq->mb);
-		record_query_string(gnutella_header_get_muid(packet),
-			gnutella_msg_search_get_text(packet));
-	}
-
 	if (GNET_PROPERTY(dq_debug) > 1) {
 		gconstpointer packet;
 		guint16 flags;
@@ -1746,9 +1738,13 @@ dq_common_init(dquery_t *dq)
 
 /**
  * Start new dynamic query out of a message we got from one of our leaves.
+ *
+ * @param n				leaf node from which query comes from
+ * @param qhv			computed query hash vector, for routing query via QRT
+ * @param media_types	requested media type filters (0 if none)
  */
 void
-dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
+dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 {
 	dquery_t *dq;
 	guint16 flags;
@@ -1878,6 +1874,14 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	leaf_muid = oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header));
 	if (leaf_muid != NULL)
 		dq->lmuid = atom_guid_get(leaf_muid);
+
+	if (GNET_PROPERTY(search_muid_track_amount) > 0) {
+		const void *packet;
+
+		packet = pmsg_start(dq->mb);
+		record_query_string(gnutella_header_get_muid(packet),
+			gnutella_msg_search_get_text(packet), media_types);
+	}
 
 	if (GNET_PROPERTY(dq_debug) > 1) {
 		const char *qstr = gnutella_msg_search_get_text(pmsg_start(dq->mb));

@@ -333,8 +333,8 @@ guint32  gnet_property_variable_search_answers_forward_size     = 16384;
 static const guint32  gnet_property_variable_search_answers_forward_size_default = 16384;
 guint32  gnet_property_variable_search_answers_kick_size     = 65536;
 static const guint32  gnet_property_variable_search_answers_kick_size_default = 65536;
-guint32  gnet_property_variable_search_muid_track_amount     = 0;
-static const guint32  gnet_property_variable_search_muid_track_amount_default = 0;
+guint32  gnet_property_variable_search_muid_track_amount     = 2500;
+static const guint32  gnet_property_variable_search_muid_track_amount_default = 2500;
 guint32  gnet_property_variable_other_messages_kick_size     = 40960;
 static const guint32  gnet_property_variable_other_messages_kick_size_default = 40960;
 guint32  gnet_property_variable_hops_random_factor     = 0;
@@ -3704,7 +3704,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[140].name = "search_muid_track_amount";
-    gnet_property->props[140].desc = _("Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query Hits to the original search term. In the worst case this causes about 300 bytes per Query of memory overhead.");
+    gnet_property->props[140].desc = _("Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of Query Hits to the original search term and media type filtering to be able to avoid relaying spam and non-matching results.  In the worst case this causes about 300 bytes per Query of memory overhead. This is only used when running as an Ultrapeer.");
     gnet_property->props[140].ev_changed = event_new("search_muid_track_amount_changed");
     gnet_property->props[140].save = TRUE;
     gnet_property->props[140].vector_size = 1;

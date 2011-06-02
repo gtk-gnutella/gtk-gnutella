@@ -98,6 +98,7 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Bogus result from Morpheus"),	 /**< MSG_DROP_MORPHEUS_BOGUS */
 		N_("Spam"),							 /**< MSG_DROP_SPAM */
 		N_("Evil filename"),				 /**< MSG_DROP_EVIL */
+		N_("Improper media type"),			 /**< MSG_DROP_MEDIA */
 		N_("Payload inflating error"),		 /**< MSG_DROP_INFLATE_ERROR */
 		N_("Unknown header flags present"),/**< MSG_DROP_UNKNOWN_HEADER_FLAGS */
 		N_("Own search results"),			 /**< MSG_DROP_OWN_RESULT */
@@ -148,6 +149,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"partially_claimed_oob_hits",
 		"spurious_oob_hit_claim",
 		"unrequested_oob_hits",
+		"query_hit_for_untracked_query",
 		"query_compact_count",
 		"query_compact_size",
 		"query_utf8",

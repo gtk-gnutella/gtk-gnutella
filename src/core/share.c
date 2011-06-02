@@ -2732,6 +2732,26 @@ shared_file_has_media_type(const shared_file_t *sf, unsigned mask)
 }
 
 /**
+ * Convenience routine: compute media type mask for a file name, corresponding
+ * to the bits in the media type filter that must be set to return this type
+ * of file.
+ *
+ * @return media mask associated to filename, 0 meaning we don't recognize
+ * this type of file.
+ */
+unsigned
+share_filename_media_mask(const char *filename)
+{
+	enum mime_type mime;
+	const void *v;
+
+	mime = mime_type_from_filename(filename);
+	v = g_hash_table_lookup(share_media_types, int_to_pointer(mime));
+
+	return pointer_to_uint(v);
+}
+
+/**
  * Get accessor for ``kbytes_scanned''
  */
 guint64

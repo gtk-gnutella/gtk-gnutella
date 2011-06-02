@@ -10244,7 +10244,6 @@ create_dlg_prefs_gnet_tab (void)
   GtkObject *spinbutton_config_node_rx_flowc_ratio_adj;
   GtkWidget *spinbutton_config_node_rx_flowc_ratio;
   GtkWidget *label573;
-  GtkWidget *vseparator4;
   GtkWidget *label773;
   GtkObject *spinbutton_node_queries_half_life_adj;
   GtkWidget *spinbutton_node_queries_half_life;
@@ -10253,6 +10252,10 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *spinbutton_node_requery_threshold;
   GtkWidget *checkbutton_node_watch_similar_queries;
   GtkWidget *label982;
+  GtkWidget *vseparator4;
+  GtkWidget *label1076;
+  GtkObject *spinbutton_config_search_muid_track_amount_adj;
+  GtkWidget *spinbutton_config_search_muid_track_amount;
   GtkWidget *label429;
   GtkWidget *hbox287;
   GtkWidget *frame_expert_gnet_connections;
@@ -11243,7 +11246,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_quality, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame_expert_gnet_quality), 4);
 
-  table37 = gtk_table_new (3, 7, FALSE);
+  table37 = gtk_table_new (4, 7, FALSE);
   gtk_widget_set_name (table37, "table37");
   gtk_widget_show (table37);
   gtk_container_add (GTK_CONTAINER (frame_expert_gnet_quality), table37);
@@ -11321,13 +11324,6 @@ create_dlg_prefs_gnet_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label573), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label573), 4, 0);
 
-  vseparator4 = gtk_vseparator_new ();
-  gtk_widget_set_name (vseparator4, "vseparator4");
-  gtk_widget_show (vseparator4);
-  gtk_table_attach (GTK_TABLE (table37), vseparator4, 3, 4, 0, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-
   label773 = gtk_label_new (_("Similar query half-life"));
   gtk_widget_set_name (label773, "label773");
   gtk_widget_show (label773);
@@ -11377,6 +11373,29 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label982), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label982), 4, 0);
+
+  vseparator4 = gtk_vseparator_new ();
+  gtk_widget_set_name (vseparator4, "vseparator4");
+  gtk_widget_show (vseparator4);
+  gtk_table_attach (GTK_TABLE (table37), vseparator4, 3, 4, 0, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label1076 = gtk_label_new (_("Relayed queries remembered"));
+  gtk_widget_set_name (label1076, "label1076");
+  gtk_widget_show (label1076);
+  gtk_table_attach (GTK_TABLE (table37), label1076, 4, 5, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label1076), 0, 0.5);
+
+  spinbutton_config_search_muid_track_amount_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_search_muid_track_amount = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_search_muid_track_amount_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_search_muid_track_amount, "spinbutton_config_search_muid_track_amount");
+  gtk_widget_show (spinbutton_config_search_muid_track_amount);
+  gtk_table_attach (GTK_TABLE (table37), spinbutton_config_search_muid_track_amount, 5, 6, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label429 = gtk_label_new (_("Quality management"));
   gtk_widget_set_name (label429, "label429");
@@ -11780,13 +11799,15 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label574, "label574");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_config_node_rx_flowc_ratio, "spinbutton_config_node_rx_flowc_ratio");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label573, "label573");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, vseparator4, "vseparator4");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label773, "label773");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_node_queries_half_life, "spinbutton_node_queries_half_life");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label774, "label774");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_node_requery_threshold, "spinbutton_node_requery_threshold");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_node_watch_similar_queries, "checkbutton_node_watch_similar_queries");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label982, "label982");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, vseparator4, "vseparator4");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label1076, "label1076");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_config_search_muid_track_amount, "spinbutton_config_search_muid_track_amount");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label429, "label429");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, hbox287, "hbox287");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_gnet_connections, "frame_expert_gnet_connections");

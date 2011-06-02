@@ -656,3 +656,4 @@ N_("Restart session-only searches with pending downloads");
 N_("Configured DHT mode");
 N_("Store DHT keys/values in memory");
 N_("Store SPAM SHA1 table in memory");
+N_("Relayed queries remembered");

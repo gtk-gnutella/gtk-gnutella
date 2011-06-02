@@ -10506,7 +10506,6 @@ create_dlg_prefs (void)
   GtkWidget *label280;
   GtkWidget *label281;
   GtkWidget *label458;
-  GtkWidget *vseparator3;
   GtkWidget *checkbutton_node_watch_similar_queries;
   GtkWidget *label597;
   GtkObject *spinbutton_node_queries_half_life_adj;
@@ -10514,6 +10513,10 @@ create_dlg_prefs (void)
   GtkWidget *label598;
   GtkObject *spinbutton_node_requery_threshold_adj;
   GtkWidget *spinbutton_node_requery_threshold;
+  GtkWidget *vseparator3;
+  GtkWidget *label8033;
+  GtkObject *spinbutton_config_search_muid_track_amount_adj;
+  GtkWidget *spinbutton_config_search_muid_track_amount;
   GtkWidget *frame_expert_gnet_connections;
   GtkWidget *table66;
   GtkWidget *label550;
@@ -13170,7 +13173,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame_expert_gnet_quality);
   gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_quality, FALSE, TRUE, 0);
 
-  table30 = gtk_table_new (3, 6, FALSE);
+  table30 = gtk_table_new (4, 6, FALSE);
   gtk_widget_set_name (table30, "table30");
   gtk_widget_ref (table30);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table30", table30,
@@ -13288,16 +13291,6 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label458), 0, 0.5);
 
-  vseparator3 = gtk_vseparator_new ();
-  gtk_widget_set_name (vseparator3, "vseparator3");
-  gtk_widget_ref (vseparator3);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "vseparator3", vseparator3,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vseparator3);
-  gtk_table_attach (GTK_TABLE (table30), vseparator3, 3, 4, 0, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-
   checkbutton_node_watch_similar_queries = gtk_check_button_new_with_label (_("Watch for similar queries"));
   gtk_widget_set_name (checkbutton_node_watch_similar_queries, "checkbutton_node_watch_similar_queries");
   gtk_widget_ref (checkbutton_node_watch_similar_queries);
@@ -13352,6 +13345,39 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (spinbutton_node_requery_threshold, 56, -2);
+
+  vseparator3 = gtk_vseparator_new ();
+  gtk_widget_set_name (vseparator3, "vseparator3");
+  gtk_widget_ref (vseparator3);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "vseparator3", vseparator3,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vseparator3);
+  gtk_table_attach (GTK_TABLE (table30), vseparator3, 3, 4, 0, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label8033 = gtk_label_new (_("Relayed queries remembered"));
+  gtk_widget_set_name (label8033, "label8033");
+  gtk_widget_ref (label8033);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8033", label8033,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8033);
+  gtk_table_attach (GTK_TABLE (table30), label8033, 4, 5, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8033), 0, 0.5);
+
+  spinbutton_config_search_muid_track_amount_adj = gtk_adjustment_new (1700, 0, 1800, 1, 10, 10);
+  spinbutton_config_search_muid_track_amount = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_search_muid_track_amount_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_search_muid_track_amount, "spinbutton_config_search_muid_track_amount");
+  gtk_widget_ref (spinbutton_config_search_muid_track_amount);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_search_muid_track_amount", spinbutton_config_search_muid_track_amount,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_search_muid_track_amount);
+  gtk_table_attach (GTK_TABLE (table30), spinbutton_config_search_muid_track_amount, 5, 6, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_config_search_muid_track_amount, 56, -2);
 
   frame_expert_gnet_connections = gtk_frame_new (_("Connection settings"));
   gtk_widget_set_name (frame_expert_gnet_connections, "frame_expert_gnet_connections");

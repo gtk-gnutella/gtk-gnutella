@@ -4466,6 +4466,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_SEARCH_MUID_TRACK_AMOUNT,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_search_muid_track_amount",
+        FREQ_UPDATES, 0
+	),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_NODE_REQUERY_THRESHOLD,
         update_spinbutton,
         TRUE,

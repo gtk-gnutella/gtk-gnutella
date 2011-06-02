@@ -54,6 +54,7 @@ enum {
  * Result sets `status' flags.
  */
 enum {
+	 ST_MEDIA				= (1 << 27), /**< No proper media type in hit */
 	 ST_ALIEN				= (1 << 26), /**< Alien IP address in UDP hit */
 	 ST_GUESS				= (1 << 25), /**< Results from a GUESS query */
 	 ST_MORPHEUS_BOGUS		= (1 << 24), /**< Bogus result from Morpheus */

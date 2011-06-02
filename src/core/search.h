@@ -95,6 +95,7 @@ void search_shutdown(void);
 
 search_request_info_t *search_request_info_alloc(void);
 void search_request_info_free_null(search_request_info_t **sri_ptr);
+unsigned search_request_media(const search_request_info_t *sri);
 
 gboolean search_results(gnutella_node_t *n, int *results);
 gboolean search_query_allowed(gnet_search_t sh);
@@ -119,8 +120,8 @@ void search_compact(struct gnutella_node *n);
 void query_strip_oob_flag(const struct gnutella_node *n, char *data);
 void query_set_oob_flag(const struct gnutella_node *n, char *data);
 
-void record_query_string(const struct guid *muid, const char *query);
-const char *map_muid_to_query_string(const struct guid *muid);
+void record_query_string(const struct guid *muid,
+	const char *query, unsigned media_mask);
 
 void search_query_key_generate(sectoken_t *tok, host_addr_t addr, guint16 port);
 

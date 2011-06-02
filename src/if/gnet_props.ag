@@ -1607,12 +1607,15 @@ prop = {
 
 prop = {
     name = "search_muid_track_amount";
-    desc =  "Maximum number of Query MUIDs to track. This allows mapping "
-			"MUIDs of Query Hits to the original search term. In the worst "
-			"case this causes about 300 bytes per Query of memory overhead.";
+    desc =  "Maximum number of relayed Query MUIDs to track. This allows "
+			"mapping MUIDs of Query Hits to the original search term and "
+			"media type filtering to be able to avoid relaying spam and "
+			"non-matching results.  In the worst case this causes about "
+			"300 bytes per Query of memory overhead. "
+			"This is only used when running as an Ultrapeer.";
     type = guint32;
     data = {
-        default = 0;
+        default = 2500;
         min     = 0;
         max     = 1000000;
     };

@@ -141,6 +141,8 @@ void shared_files_match(const char *query,
 
 size_t share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned mask);
 
+unsigned share_filename_media_mask(const char *filename);
+
 static inline gboolean
 share_can_answer_partials(void)
 {

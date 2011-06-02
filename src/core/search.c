@@ -239,8 +239,25 @@ static GHashTable *search_by_muid;
 static idtable_t *search_handle_map;
 static query_hashvec_t *query_hashvec;
 
-static GHashTable *muid_to_query_map;
-static hash_list_t *query_muids;
+/*
+ * These tables are used to map the query MUIDs we relay as an ultrapeer with
+ * the corresponding search string and media type filtering requested.
+ *
+ * We only remember a few of them (as configured by search_muid_track_amount)
+ * and focus on the "most active" ones, i.e. attempt to keep alive the ones
+ * we see hits for (LRU-type caching).
+ */
+static GHashTable *muid_to_query_map;	/* MUID -> query_desc */
+static hash_list_t *query_muids;		/* list of MUID, to manage LRU cache */
+
+/**
+ * Description of a query we remember.
+ */
+struct query_desc {
+	const char *query;		/* Query string, UTF-8 canonized (atom) */
+	unsigned media_mask;	/* The requested media mask (0 if none) */
+};
+
 static GHashTable *sha1_to_search;	/**< Downloaded SHA1 -> search handle */
 
 /**
@@ -257,6 +274,11 @@ static time_t search_last_whats_new;	/**< When we last sent "What's New?" */
 static void
 query_muid_map_init(void)
 {
+	/*
+	 * Because we use atoms as keys, we can use pointer_hash_func() instead
+	 * of guid_hash(), which is more efficient.  And we can use direct
+	 * pointer comparison for keys as well.
+	 */
 	muid_to_query_map = g_hash_table_new(pointer_hash_func, NULL);
 	query_muids = hash_list_new(guid_hash, guid_eq);
 }
@@ -268,18 +290,19 @@ query_muid_map_remove_oldest(void)
 
 	old_muid = hash_list_head(query_muids);
 	if (old_muid) {
-		const char *old_query;
-		
+		struct query_desc *old_qd;
+
 		hash_list_remove(query_muids, old_muid);
 
-		old_query = g_hash_table_lookup(muid_to_query_map, old_muid);
+		old_qd = g_hash_table_lookup(muid_to_query_map, old_muid);
 		g_hash_table_remove(muid_to_query_map, old_muid);
 
 		atom_guid_free_null(&old_muid);
-		atom_str_free_null(&old_query);
+		atom_str_free_null(&old_qd->query);
+		WFREE(old_qd);
 		return TRUE;
 	} else {
-		return FALSE;
+		return FALSE;	/* Nothing else to remove */
 	}
 }
 
@@ -297,72 +320,124 @@ static void
 query_muid_map_garbage_collect(void)
 {
 	guint removed = 0;
-	
-	while (
-		hash_list_length(query_muids) > GNET_PROPERTY(search_muid_track_amount)
-	) {
+	guint32 max;
 
+	/*
+	 * When not running as an Ultrapeer, there is no need for us to track
+	 * queries since we're not relaying any hits and the only hits we're
+	 * going to get are the ones for our own queries.
+	 */
+
+	max = NODE_P_ULTRA == GNET_PROPERTY(current_peermode) ?
+		GNET_PROPERTY(search_muid_track_amount) : 0;
+
+	while (hash_list_length(query_muids) > max) {
 		if (!query_muid_map_remove_oldest())
 			break;
 
-		/* If search_muid_track_amount was lowered drastically, there might
-		 * be thousands of items to remove. If there are too much to be
+		/*
+		 * If search_muid_track_amount was lowered drastically, there might
+		 * be thousands of items to remove. If there is too much to be
 		 * removed, we abort and come back later to prevent stalling.
 		 */
-		if (++removed > 100)
+
+		if (++removed > 100)	/* arbitrary limit */
 			break;
 	}
 }
 
 /**
- * Associate a query message ID with the query string.
+ * Associate a query message ID with the query string and the media filter.
  */
 void
-record_query_string(const struct guid *muid, const char *query)
+record_query_string(const guid_t *muid, const char *query, unsigned media_types)
 {
-	const struct guid *key;
-	
 	g_assert(muid);
 	g_assert(query);
 
 	if (GNET_PROPERTY(search_muid_track_amount) > 0) {
-		gconstpointer orig_key;
+		const void *orig_key;
 
-		orig_key = hash_list_remove(query_muids, muid);
-	   	if (orig_key) {
-			const char *old_query;
+		if (hash_list_find(query_muids, muid, &orig_key)) {
+			/*
+			 * Already know, keep the query we have, assuming the query
+			 * string and media types will be identical: MUIDs for queries
+			 * are supposedly unique, and if they aren't, there is nothing
+			 * useful we can do about it anyway.
+			 *
+			 * Move the key to the tail of the list to keep this query active.
+			 */
 
-			/* We'll append the new value to the list */
-			key = orig_key;
-			old_query = g_hash_table_lookup(muid_to_query_map, key);
-			atom_str_free_null(&old_query);
-			g_hash_table_remove(muid_to_query_map, old_query);
+			hash_list_moveto_tail(query_muids, orig_key);
 		} else {
-			key = atom_guid_get(muid);
-		}
+			struct query_desc *qd;
+			char *canonized;
+			const guid_t *key;
 
-		gm_hash_table_insert_const(muid_to_query_map, key, atom_str_get(query));
-		hash_list_append(query_muids, key);
+			/*
+			 * New query must be remembered and put at the tail of the list.
+			 */
+
+			WALLOC(qd);
+			canonized = UNICODE_CANONIZE(query);
+			qd->query = atom_str_get(canonized);
+			qd->media_mask = media_types;
+			if (canonized != query)
+				HFREE_NULL(canonized);
+
+			key = atom_guid_get(muid);
+			hash_list_append(query_muids, key);
+			gm_hash_table_insert_const(muid_to_query_map, key, qd);
+		}
 	}
 	query_muid_map_garbage_collect();
 }
 
 /**
+ * @param muid			the query MUID for which we want the query string
+ * @param media_mask	where media mask is written if MUID is known
+ *
  * @return the query string associated with the given message ID, or NULL
- * if we can't find any.
+ * if we can't find any.  The ``media_mask'' is filled with the known media
+ * types requested.  The query string is in UTF-8 canonic form.
  */
-const char *
-map_muid_to_query_string(const struct guid *muid)
+static const char *
+map_muid_to_query_string(const struct guid *muid, unsigned *media_mask)
 {
-	gconstpointer orig_key;
-	
-	if (hash_list_find(query_muids, muid, &orig_key)) {
-		return g_hash_table_lookup(muid_to_query_map, orig_key);
+	const void *key;
+
+	g_assert(muid != NULL);
+	g_assert(media_mask != NULL);
+
+	/*
+	 * Relayed MUID of queries (as an ultrapeer) are stored in the "query_muids"
+	 * hash list, whereas those of our searches are kept in search mapping
+	 * table.
+	 *
+	 * This ensures that we are always able to reconstruct the query strings
+	 * for the hits we receive out of our own queries.
+	 */
+
+	if (hash_list_find(query_muids, muid, &key)) {
+		struct query_desc *qd = g_hash_table_lookup(muid_to_query_map, key);
+		g_assert(qd != NULL);
+
+		/*
+		 * Move MUID to the tail of the list so that we remember it for a
+		 * longer period of time, given that we're seeing query hits.
+		 */
+
+		hash_list_moveto_tail(query_muids, muid);	/* LRU cache management */
+		*media_mask = qd->media_mask;
+		return qd->query;
 	} else {
 		search_ctrl_t *sch = g_hash_table_lookup(search_by_muid, muid);
-		if (sch && sch->query)
+		if (sch != NULL && sch->query != NULL) {
+			*media_mask = sch->media_type;
 			return sch->query;
+		}
 	}
+
 	return NULL;
 }
 
@@ -1004,25 +1079,24 @@ search_results_from_country(const gnet_results_set_t *rs, const char *cc)
 /*
  * Is filename similar to the query string?
  *
+ * @param filename		filename from search results
+ * @param query			canonized UTF-8 query string
+ *
  * @attention
- * Both strings must be valid UTF-8, a precondition for canonization.
+ * The filename must be valid UTF-8, a precondition for canonization.
  */
 static gboolean
 search_filename_similar(const char *filename, const char *query)
 {
 	char *filename_canonic;
-	char *query_canonic;
 	gboolean result;
 
 	filename_canonic = UNICODE_CANONIZE(filename);
-	query_canonic = UNICODE_CANONIZE(query);
 
-	result = NULL != is_strprefix(filename_canonic, query_canonic);
+	result = NULL != is_strprefix(filename_canonic, query);
 
 	if (filename_canonic != filename)
 		hfree(filename_canonic);
-	if (query_canonic != query)
-		hfree(query_canonic);
 
 	return result;
 }
@@ -1905,6 +1979,8 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	gboolean tag_has_nul = FALSE;
 	const char *vendor = NULL;
 	const char *badmsg = NULL;
+	unsigned media_mask;
+	const struct guid *muid = gnutella_header_get_muid(&n->header);
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -2509,7 +2585,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	}
 
 	/* Very funny */
-	if (guid_eq(rs->guid, gnutella_header_get_muid(&n->header))) {
+	if (guid_eq(rs->guid, muid)) {
 		gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 		badmsg = "bad MUID";
 		goto bad_packet;		
@@ -2635,18 +2711,23 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	{
 		const char *query;
 
-		query = map_muid_to_query_string(gnutella_header_get_muid(&n->header));
-		rs->query = query ? atom_str_get(query) : NULL;
+		query = map_muid_to_query_string(muid, &media_mask);
+		rs->query = query != NULL ? atom_str_get(query) : NULL;
 
-		/**
+		if (NULL == query && NODE_P_ULTRA == GNET_PROPERTY(current_peermode)) {
+			gnet_stats_count_general(GNR_QUERY_HIT_FOR_UNTRACKED_QUERY, +1);
+		}
+
+		/*
 		 * Morpheus ignores all non-ASCII characters in query strings
 		 * which results in completely bogus results. For example, if you
 		 * search for "<chinese>.txt" every filename ending with .txt will
 		 * match!
 		 */
+
 		if (
 			T_MRPH == rs->vcode.u32 &&
-			rs->query && !is_ascii_string(rs->query)
+			rs->query != NULL && !is_ascii_string(rs->query)
 		) {
 			GSList *sl;
 
@@ -2656,9 +2737,49 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				record->flags |= SR_DONT_SHOW | SR_IGNORED;
 			}
 		}
+
+		/*
+		 * If we have a non-zero media type filter for the query, then
+		 * look whether at least one of the records matches.  Otherwise,
+		 * it's bye-bye.
+		 */
+
+		if (query != NULL && media_mask != 0) {
+			GSList *sl;
+			size_t matching = 0;
+			gboolean own_query = gm_hash_table_contains(search_by_muid, muid);
+
+			GM_SLIST_FOREACH(rs->records, sl) {
+				gnet_record_t *rc = sl->data;
+				unsigned mask = share_filename_media_mask(rc->filename);
+
+				if (mask != 0 && !(mask & media_mask)) {
+					/*
+					 * Not matching the requested media type.
+					 *
+					 * Hide in the GUI, if it's for one of our queries
+					 * otherwise display them as "ignored" (in passive
+					 * searches).
+					 */
+
+					if (own_query)
+						rc->flags |= SR_DONT_SHOW;
+					rc->flags |= SR_IGNORED;
+				} else {
+					matching++;
+				}
+			}
+
+			if (0 == matching) {
+				/* We will not forward this packet */
+				rs->status |= ST_MEDIA;		/* Lacking proper media type */
+			}
+		}
 	}
 
 	search_results_identify_spam(rs);
+
+// XXX
 
 	return rs;
 
@@ -2668,7 +2789,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	 *				--RAM, 09/01/2001
 	 */
 
-  bad_packet:
+bad_packet:
 	if (GNET_PROPERTY(search_debug)) {
 		g_warning(
 			"BAD %s from %s (via %s) -- %u/%u record%s parsed: %s",
@@ -2679,7 +2800,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	}
 
 	search_free_r_set(rs);
-	str_destroy(info);
+	str_destroy_null(&info);
 
 	return NULL;				/* Forget set, comes from a bad node */
 }
@@ -3467,8 +3588,6 @@ search_add_new_muid(search_ctrl_t *sch, struct guid *muid)
 	sch->muids = g_slist_prepend(sch->muids, muid);
 	g_hash_table_insert(search_by_muid, muid, sch);
 
-	record_query_string(muid, sch->query);
-
 	/*
 	 * If we got more than MUID_MAX entries in the list, chop last items.
 	 */
@@ -4126,7 +4245,10 @@ search_results(gnutella_node_t *n, int *results)
 	 * `drop_it' as this is reserved for bad packets.
 	 */
 
-	if (rs->status & (ST_SPAM | ST_EVIL | ST_HOSTILE | ST_MORPHEUS_BOGUS)) {
+	if (
+		rs->status &
+			(ST_SPAM | ST_EVIL | ST_HOSTILE | ST_MORPHEUS_BOGUS | ST_MEDIA)
+	) {
 		forward_it = FALSE;
 		/* It's not really dropped, just not forwarded, count it anyway. */
 		if (ST_SPAM & rs->status) {
@@ -4137,6 +4259,8 @@ search_results(gnutella_node_t *n, int *results)
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		} else if (ST_MORPHEUS_BOGUS & rs->status) {
 			gnet_stats_count_dropped(n, MSG_DROP_MORPHEUS_BOGUS);
+		} else if (ST_MEDIA & rs->status) {
+			gnet_stats_count_dropped(n, MSG_DROP_MEDIA);
 		}
 	} else {
 		if (
@@ -6050,6 +6174,17 @@ search_request_info_alloc(void)
 }
 
 /**
+ * @return search media type filter (0 if none).
+ */
+unsigned
+search_request_media(const search_request_info_t *sri)
+{
+	g_assert(sri != NULL);
+
+	return sri->media_types;
+}
+
+/**
  * Free data structure and nullify its pointer.
  */
 void
@@ -6645,7 +6780,6 @@ search_request_preprocess(struct gnutella_node *n, search_request_info_t *sri)
 		gm_hash_table_insert_const(n->qseen, atom,
 			uint_to_pointer((unsigned) delta_time(now, (time_t) 0)));
 	}
-	record_query_string(gnutella_header_get_muid(&n->header), search);
 
 	/*
 	 * For point #2, there are two tables to consider: `qrelayed_old' and
@@ -6895,6 +7029,19 @@ skip_throttling:
 	) {
 		gnet_stats_count_dropped(n, MSG_DROP_MAX_TTL_EXCEEDED);
 		goto drop;  /* Drop this long-lived search */
+	}
+
+	/*
+	 * Remember the query string and the media types they are looking
+	 * for when running as an Ultrapeer, provided it's not an URN search.
+	 */
+
+	if (
+		NODE_P_ULTRA == GNET_PROPERTY(current_peermode) &&
+		0 == sri->exv_sha1cnt		/* Not an URN search */
+	) {
+		record_query_string(gnutella_header_get_muid(&n->header),
+			search, sri->media_types);
 	}
 
 	return FALSE;

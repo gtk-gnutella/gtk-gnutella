@@ -7426,6 +7426,7 @@ route_only:
 
 	if (qhv != NULL && NODE_IS_LEAF(n)) {
 		g_assert(GNET_PROPERTY(current_peermode) == NODE_P_ULTRA);
+		g_assert(sri != NULL);
 
 		/*
 		 * For leaf nodes, undo decrement of TTL: act as if we were
@@ -7460,7 +7461,7 @@ route_only:
 		 * query mechanism.
 		 */
 
-		dq_launch_net(n, qhv);
+		dq_launch_net(n, qhv, search_request_media(sri));
 
 	} else if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF) {
 		/*

@@ -56,7 +56,8 @@ struct query_hashvec;
 void dq_init(void);
 void dq_close(void);
 
-void dq_launch_net(struct gnutella_node *n, struct query_hashvec *qhv);
+void dq_launch_net(struct gnutella_node *n,
+	struct query_hashvec *qhv, unsigned media_mask);
 void dq_node_removed(const struct nid *node_id);
 gboolean dq_got_results(const struct guid *muid, guint count, guint32 status);
 gboolean dq_oob_results_ind(const struct guid *muid, int count);
