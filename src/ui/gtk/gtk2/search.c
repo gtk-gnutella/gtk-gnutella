@@ -1529,8 +1529,8 @@ search_gui_request_bitzi_data(struct search *search)
 		guint32 bitzi_debug;
 
 		gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
-		if (bitzi_debug) {
-			g_debug("on_search_meta_data: %u items",
+		if (bitzi_debug > 10) {
+			g_debug("search_gui_request_bitzi_data: %u items",
 					g_hash_table_size(results));
 		}
 	}

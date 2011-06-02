@@ -322,7 +322,7 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
-	if (bitzi_debug) {
+	if (bitzi_debug > 10) {
 		g_message("on_search_meta_data_active: called");
 	}
 	search_gui_request_bitzi_data(search_gui_get_current_search());
