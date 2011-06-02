@@ -1477,7 +1477,7 @@ bigval_mark_used(DBM *db, const char *bval, size_t blen)
 	size_t len = big_length(bval);
 
 	if (bigval_length(len) != blen) {
-		g_carp("sdbm: \"%s\": %s: inconsistent key length %lu in .pag",
+		g_carp("sdbm: \"%s\": %s: inconsistent value length %lu in .pag",
 			sdbm_name(db), G_STRFUNC, (unsigned long) len);
 		return;
 	}
