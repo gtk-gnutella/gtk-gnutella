@@ -93,6 +93,10 @@ struct DBMBIG {
 	unsigned long key_matching;	/* stats: amount of keys matching attempts */
 	unsigned long key_short_match;	/* stats: keys matching size, head & tail */
 	unsigned long key_full_match;	/* stats: fully matched keys */
+	unsigned long bigread;		/* stats: amount of big data read syscalls */
+	unsigned long bigwrite;		/* stats: amount of big data write syscalls */
+	unsigned long bigread_blk;	/* stats: amount of big data blocks read */
+	unsigned long bigwrite_blk;	/* stats: amount of big data blocks written */
 	guint8 bitbuf_dirty;	/* whether bitbuf needs flushing to disk */
 };
 
@@ -153,6 +157,12 @@ log_bigstats(DBM *db)
 		sdbm_name(db),
 		dbg->key_full_match * 100.0 / MAX(dbg->key_short_match, 1),
 		dbg->key_short_match, 1 == dbg->key_short_match ? "" : "s");
+	g_info("sdbm: \"%s\" big blocks read = %lu (%lu system call%s)",
+		sdbm_name(db),
+		dbg->bigread_blk, dbg->bigread, 1 == dbg->bigread ? "" : "s");
+	g_info("sdbm: \"%s\" big blocks written = %lu (%lu system call%s)",
+		sdbm_name(db),
+		dbg->bigwrite_blk, dbg->bigwrite, 1 == dbg->bigwrite ? "" : "s");
 }
 
 /**
@@ -752,6 +762,7 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 			remain = size_saturate_sub(remain, amount);
 		}
 
+		dbg->bigread++;
 		if (-1 == compat_pread(dbg->fd, q, toread, OFF_DAT(bno))) {
 			g_warning("sdbm: \"%s\": "
 				"could not read %lu bytes starting at data block #%u: %s",
@@ -762,6 +773,7 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 		}
 
 		q += toread;
+		dbg->bigread_blk += bigblocks(toread);
 		g_assert(UNSIGNED(q - dbg->scratch) <= dbg->scratch_len);
 	}
 
@@ -966,6 +978,7 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 			remain = size_saturate_sub(remain, amount);
 		}
 
+		dbg->bigwrite++;
 		if (-1 == compat_pwrite(dbg->fd, q, towrite, OFF_DAT(bno))) {
 			g_warning("sdbm: \"%s\": "
 				"could not write %lu bytes starting at data block #%u: %s",
@@ -976,6 +989,7 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 		}
 
 		q += towrite;
+		dbg->bigwrite_blk += bigblocks(towrite);
 		g_assert(ptr_diff(q, data) <= len);
 	}
 
