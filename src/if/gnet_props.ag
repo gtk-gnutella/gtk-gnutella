@@ -1611,17 +1611,18 @@ prop = {
 			"mapping MUIDs of Query Hits to the original search term and "
 			"media type filtering to be able to avoid relaying spam and "
 			"non-matching results.  In the worst case this causes about "
-			"300 bytes per Query of memory overhead. "
-			"This is only used when running as an Ultrapeer and the default "
-			"value of 2500 corresponds to the memory used by the Query "
-			"Routing Tables of about 4 leaf connections.  If as an Ultrapeer "
-			"you maintain more than the default amount of connections, you "
-			"should increase the value used here proportionally.";
+			"300 bytes per Query of memory overhead, but will be much lower "
+			"than that in practice (minimum size is about 40 bytes). "
+			"This is only used when running as an Ultrapeer. "
+			"When the value specified is greater than the amount of messages "
+			"that the Gnutella routing table can track, gtk-gnutella will "
+			"automatically cap the amount of tracked MUIDs to fit the "
+			"queries it remembers for routing.";
     type = guint32;
     data = {
-        default = 2500;
+        default = 100000;
         min     = 0;
-        max     = 1000000;
+        max     = 10000000;
     };
 };
 

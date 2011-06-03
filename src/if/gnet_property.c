@@ -333,8 +333,8 @@ guint32  gnet_property_variable_search_answers_forward_size     = 16384;
 static const guint32  gnet_property_variable_search_answers_forward_size_default = 16384;
 guint32  gnet_property_variable_search_answers_kick_size     = 65536;
 static const guint32  gnet_property_variable_search_answers_kick_size_default = 65536;
-guint32  gnet_property_variable_search_muid_track_amount     = 2500;
-static const guint32  gnet_property_variable_search_muid_track_amount_default = 2500;
+guint32  gnet_property_variable_search_muid_track_amount     = 100000;
+static const guint32  gnet_property_variable_search_muid_track_amount_default = 100000;
 guint32  gnet_property_variable_other_messages_kick_size     = 40960;
 static const guint32  gnet_property_variable_other_messages_kick_size_default = 40960;
 guint32  gnet_property_variable_hops_random_factor     = 0;
@@ -3704,7 +3704,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[140].name = "search_muid_track_amount";
-    gnet_property->props[140].desc = _("Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of Query Hits to the original search term and media type filtering to be able to avoid relaying spam and non-matching results.  In the worst case this causes about 300 bytes per Query of memory overhead. This is only used when running as an Ultrapeer and the default value of 2500 corresponds to the memory used by the Query Routing Tables of about 4 leaf connections.  If as an Ultrapeer you maintain more than the default amount of connections, you should increase the value used here proportionally.");
+    gnet_property->props[140].desc = _("Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of Query Hits to the original search term and media type filtering to be able to avoid relaying spam and non-matching results.  In the worst case this causes about 300 bytes per Query of memory overhead, but will be much lower than that in practice (minimum size is about 40 bytes). This is only used when running as an Ultrapeer. When the value specified is greater than the amount of messages that the Gnutella routing table can track, gtk-gnutella will automatically cap the amount of tracked MUIDs to fit the queries it remembers for routing.");
     gnet_property->props[140].ev_changed = event_new("search_muid_track_amount_changed");
     gnet_property->props[140].save = TRUE;
     gnet_property->props[140].vector_size = 1;
@@ -3714,7 +3714,7 @@ gnet_prop_init(void) {
     gnet_property->props[140].data.guint32.def   = (void *) &gnet_property_variable_search_muid_track_amount_default;
     gnet_property->props[140].data.guint32.value = (void *) &gnet_property_variable_search_muid_track_amount;
     gnet_property->props[140].data.guint32.choices = NULL;
-    gnet_property->props[140].data.guint32.max   = 1000000;
+    gnet_property->props[140].data.guint32.max   = 10000000;
     gnet_property->props[140].data.guint32.min   = 0;
 
 
