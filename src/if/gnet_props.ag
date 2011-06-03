@@ -1612,7 +1612,11 @@ prop = {
 			"media type filtering to be able to avoid relaying spam and "
 			"non-matching results.  In the worst case this causes about "
 			"300 bytes per Query of memory overhead. "
-			"This is only used when running as an Ultrapeer.";
+			"This is only used when running as an Ultrapeer and the default "
+			"value of 2500 corresponds to the memory used by the Query "
+			"Routing Tables of about 4 leaf connections.  If as an Ultrapeer "
+			"you maintain more than the default amount of connections, you "
+			"should increase the value used here proportionally.";
     type = guint32;
     data = {
         default = 2500;

@@ -3704,7 +3704,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[140].name = "search_muid_track_amount";
-    gnet_property->props[140].desc = _("Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of Query Hits to the original search term and media type filtering to be able to avoid relaying spam and non-matching results.  In the worst case this causes about 300 bytes per Query of memory overhead. This is only used when running as an Ultrapeer.");
+    gnet_property->props[140].desc = _("Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of Query Hits to the original search term and media type filtering to be able to avoid relaying spam and non-matching results.  In the worst case this causes about 300 bytes per Query of memory overhead. This is only used when running as an Ultrapeer and the default value of 2500 corresponds to the memory used by the Query Routing Tables of about 4 leaf connections.  If as an Ultrapeer you maintain more than the default amount of connections, you should increase the value used here proportionally.");
     gnet_property->props[140].ev_changed = event_new("search_muid_track_amount_changed");
     gnet_property->props[140].save = TRUE;
     gnet_property->props[140].vector_size = 1;
