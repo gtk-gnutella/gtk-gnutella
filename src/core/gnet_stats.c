@@ -150,6 +150,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"spurious_oob_hit_claim",
 		"unrequested_oob_hits",
 		"query_hit_for_untracked_query",
+		"query_tracked_muids",
 		"query_compact_count",
 		"query_compact_size",
 		"query_utf8",

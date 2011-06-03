@@ -129,6 +129,7 @@ general_type_str(gint value)
 		N_("Spurious OOB hit claiming received"),
 		N_("Unrequested OOB hits received"),
 		N_("Received query hits for untracked queries"),
+		N_("Tracked query MUIDs"),
 		N_("Compacted queries"),
 		N_("Bytes saved by compacting"),
 		N_("UTF8 queries"),

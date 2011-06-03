@@ -283,10 +283,17 @@ query_muid_map_init(void)
 	query_muids = hash_list_new(guid_hash, guid_eq);
 }
 
+static inline gboolean
+query_muid_map_head_expired(void)
+{
+	const guid_t *muid = hash_list_head(query_muids);
+	return muid != NULL && !route_exists_for_reply(muid, GTA_MSG_SEARCH);
+}
+
 static gboolean
 query_muid_map_remove_oldest(void)
 {
-	const struct guid *old_muid;
+	const guid_t *old_muid;
 
 	old_muid = hash_list_head(query_muids);
 	if (old_muid) {
@@ -331,7 +338,16 @@ query_muid_map_garbage_collect(void)
 	max = NODE_P_ULTRA == GNET_PROPERTY(current_peermode) ?
 		GNET_PROPERTY(search_muid_track_amount) : 0;
 
-	while (hash_list_length(query_muids) > max) {
+	/*
+	 * We remove LRU entries if the list is too long or LRU entries for
+	 * which the MUID has expired in the routing table, meaning we would
+	 * not be able to route back any hits we would get bearing this MUID.
+	 */
+
+	while (
+		hash_list_length(query_muids) > max ||
+		query_muid_map_head_expired()
+	) {
 		if (!query_muid_map_remove_oldest())
 			break;
 
@@ -344,6 +360,9 @@ query_muid_map_garbage_collect(void)
 		if (++removed > 100)	/* arbitrary limit */
 			break;
 	}
+
+	gnet_stats_set_general(GNR_QUERY_TRACKED_MUIDS,
+		hash_list_length(query_muids));
 }
 
 /**
