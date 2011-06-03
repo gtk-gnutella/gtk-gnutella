@@ -1277,10 +1277,17 @@ bitzi_data_by_sha1(bitzi_data_t *data,
 	struct bzdata *bz;
 	
 	bz = get_bzdata(sha1);
-	if (NULL == bz || (filesize != 0 && bz->size != filesize))
+	if (NULL == bz)
 		return FALSE;
 
 	bitzi_fill_data(data, sha1, bz);
+
+	if (0 == bz->size) {
+		data->judgment = BITZI_FJ_UNKNOWN;
+	} else if (filesize != 0 && bz->size != filesize) {
+		data->judgment = BITZI_FJ_WRONG_FILESIZE;
+	}
+
 	return TRUE;
 }
 

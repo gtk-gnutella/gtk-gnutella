@@ -86,8 +86,8 @@ bitzi_gui_update(const bitzi_data_t *bitzi_data)
 	g_assert(bitzi_data != NULL);
 
     gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
-	if (bitzi_debug)
-    	g_debug("bitzi_gui_update: data %p, size %s\n"
+	if (bitzi_debug > 10)
+    	g_debug("bitzi_gui_update: data %p, size %s, "
 			  "goodness %f, judgment %d, type %s, details %s",
 			cast_to_gconstpointer(bitzi_data),
 			uint64_to_string(bitzi_data->size),
