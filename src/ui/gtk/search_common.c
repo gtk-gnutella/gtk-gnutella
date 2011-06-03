@@ -3924,7 +3924,8 @@ search_gui_set_details(const record_t *rc)
 
 		if (guc_bitzi_data_by_sha1(&data, rc->sha1, rc->size)) {
 			char *meta = bitzi_gui_get_metadata(&data);
-			search_gui_append_detail(_("Bitzi metadata"), meta);
+			search_gui_append_detail(_("Bitzi metadata"),
+				meta != NULL ? meta : _("Not in database"));
 			HFREE_NULL(meta);
 		}
 	}
