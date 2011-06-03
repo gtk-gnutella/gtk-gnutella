@@ -4503,6 +4503,9 @@ search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1)
 
 /**
  * Dissociate a SHA1 from its search.
+ *
+ * This is called when the corresponding file has finished downloading and
+ * its SHA1 has been correctly verified.
  */
 void
 search_dissociate_sha1(const struct sha1 *sha1)
@@ -4531,7 +4534,7 @@ search_dissociate_sha1(const struct sha1 *sha1)
 		atom_sha1_free(sha1);
 
 		/*
-		 * When a download has no more pending downloads, stop it.
+		 * When a search has no more pending downloads, stop it.
 		 */
 
 		if (GNET_PROPERTY(search_smart_stop) && 0 == sch->sha1_downloaded) {
