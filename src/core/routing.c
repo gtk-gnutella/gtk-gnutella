@@ -124,7 +124,7 @@ struct message {
  * are removed only when needed.
  *
  * The node is a generic pointer, which refers to either a gnutella_node or
- * an udp_node.  Both structures start with a magic number and structural
+ * a routing_udp_node.  Both structures start with a magic number and structural
  * equivalence allows us to easily know which structure it really refers to.
  */
 struct route_data {
