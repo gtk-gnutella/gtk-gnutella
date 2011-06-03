@@ -35,7 +35,6 @@ build_datadir=
 build_dbus=
 build_gnutls=
 build_halloc=
-build_ipv6=
 build_libdir=
 build_localedir=
 build_nls=
@@ -94,7 +93,6 @@ while [ $# -gt 0 ]; do
 	--datadir=*)		build_datadir="${1#--*=}";;
 	--disable-dbus)		build_dbus='d_dbus';;
 	--disable-gnutls)	build_gnutls='d_gnutls';;
-	--disable-ipv6)		build_ipv6='d_ipv6';;
 	--disable-nls)		build_nls='d_enablenls';;
 	--disable-socker)	build_socker='d_socker_get';;
 	--enable-halloc)	build_halloc='true';;
@@ -124,7 +122,6 @@ The following switches are available, defaults are shown in brackets:
   --topless        Compile for topless use (no graphical user interface).
   --disable-dbus   Do not use D-Bus even if available.
   --disable-gnutls Do not use GnuTLS even if available.
-  --disable-ipv6   Do not use IPv6 even if supported.
   --disable-nls    Disable NLS (native language support).
   --disable-socker Disable support for Socker.
   --prefix=PATH    Path prefix used for installing files. [$PREFIX]
@@ -259,7 +256,6 @@ else
 	${build_nls:+-U "$build_nls"} \
 	${build_dbus:+-U "$build_dbus"} \
 	${build_gnutls:+-U "$build_gnutls"} \
-	${build_ipv6:+-U "$build_ipv6"} \
 	${build_socker:+-U "$build_socker"} \
 	|| { echo; echo 'ERROR: Configure failed.'; exit 1; }
 fi
