@@ -37,7 +37,8 @@
  * @author Alex Bennee <alex@bennee.com>
  * @date 2004
  *
- * Removed dependency on libxml2 and switched to a DBMW-based cache.
+ * Removed dependency on libxml2 and switched to a DBMW-based cache with
+ * an SDBM back-end to avoid keeping all the known tickets into memory.
  *
  * @author Raphael Manfredi
  * @date 2011
