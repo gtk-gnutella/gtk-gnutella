@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "pmsg.h"
 #include "bstr.h"
 #include "hashlist.h"
+#include "stacktrace.h"
 #include "stringify.h"
 #include "zalloc.h"
 #include "walloc.h"
@@ -250,11 +251,14 @@ dbmw_create(dbmap_t *dm, const char *name,
 	/*
 	 * If a serialization routine is provided, we'll also have a need for
 	 * deserialization.  Allocate the message in/out streams.
+	 *
+	 * We're allocating one more byte than necessary to be able to check
+	 * whether serialization stays within the imposed boundaries.
 	 */
 
 	if (dw->pack) {
 		dw->bs = bstr_create();
-		dw->mb = pmsg_new(PMSG_P_DATA, NULL, dw->value_data_size);
+		dw->mb = pmsg_new(PMSG_P_DATA, NULL, dw->value_data_size + 1);
 	}
 
 	/*
@@ -314,6 +318,22 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 
 			dval.data = pmsg_start(dw->mb);
 			dval.len = pmsg_size(dw->mb);
+
+			/*
+			 * We allocated the message block one byte larger than the
+			 * maximum size, in order to detect unexpected serialization
+			 * overflows.
+			 */
+
+			if (dval.len > dw->value_data_size) {
+				/* Don't g_carp() as this is asynchronous wrt data change */
+				g_warning("DBMW \"%s\" serialization overflow in %s() "
+					"whilst %s dirty entry",
+					dw->name,
+					stacktrace_routine_name(func_to_pointer(dw->pack), FALSE),
+					value->absent ? "deleting" : "flushing");
+				return FALSE;
+			}
 		} else {
 			dval.data = value->data;
 			dval.len = value->len;
@@ -710,9 +730,11 @@ dbmw_deserialize(const dbmw_t *dw, bstr_t *bs, gpointer valptr, size_t len)
 	if (bstr_has_error(bs))
 		return FALSE;
 	else if (bstr_unread_size(bs)) {
-		/* Something is wrong, we're not deserializing the right data? */
-		g_warning("DBMW \"%s\" deserialization has %lu trailing unread bytes",
-			dbmw_name(dw), (gulong) bstr_unread_size(bs));
+		/*
+		 * Something is wrong, we're not deserializing the right data?
+		 * Let bstr_error() report the error (caller to check returned value).
+		 */
+		bstr_trailing_error(bs);
 		return FALSE;
 	}
 
@@ -880,8 +902,10 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 		bstr_reset(dw->bs, dval.data, dval.len, BSTR_F_ERROR);
 
 		if (!dbmw_deserialize(dw, dw->bs, entry->data, dw->value_size)) {
-			g_warning("DBMW \"%s\" deserialization error: %s",
-				dw->name, bstr_error(dw->bs));
+			g_carp("DBMW \"%s\" deserialization error in %s(): %s",
+				dw->name,
+				stacktrace_routine_name(func_to_pointer(dw->unpack), FALSE),
+				bstr_error(dw->bs));
 			/* Not calling value free routine on deserialization failures */
 			wfree(entry->data, dw->value_size);
 			WFREE(entry);
@@ -1190,8 +1214,10 @@ dbmw_foreach_common(gboolean removing,
 			bstr_reset(dw->bs, d->data, d->len, BSTR_F_ERROR);
 
 			if (!dbmw_deserialize(dw, dw->bs, data, len)) {
-				g_warning("DBMW \"%s\" deserialization error: %s",
-					dw->name, bstr_error(dw->bs));
+				g_carp("DBMW \"%s\" deserialization error in %s(): %s",
+					dw->name,
+					stacktrace_routine_name(func_to_pointer(dw->unpack), FALSE),
+					bstr_error(dw->bs));
 				/* Not calling value free routine on deserialization failures */
 				wfree(data, len);
 				return FALSE;

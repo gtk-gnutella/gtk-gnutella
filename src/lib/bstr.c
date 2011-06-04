@@ -80,6 +80,7 @@ bstr_check(const struct bstr * const bs)
 #define BSTR_F_PRIVATE	0xffff0000	/**< Mask for private flags */
 #define BSTR_F_EOS		(1 << 16)	/**< End of stream reached */
 #define BSTR_F_PENDING	(1 << 17)	/**< Pending reset, stream invalid */
+#define BSTR_F_TRAILING	(1 << 18)	/**< Has trailing unread bytes */
 
 /**
  * Reset the stream.
@@ -301,6 +302,8 @@ bstr_error(const bstr_t *bs)
 		return str_2c(bs->error);
 	else if (bs->flags & BSTR_F_EOS)
 		return "end of stream reached";
+	else if (bs->flags & BSTR_F_TRAILING)
+		return "has trailing unread bytes";
 	else
 		return "parsing error";
 }
@@ -386,6 +389,29 @@ bstr_unread_size(const bstr_t *bs)
 	g_assert(bs->end >= bs->rptr);
 
 	return bs->end - bs->rptr;
+}
+
+/**
+ * Record presence of trailing bytes as an error.
+ */
+void
+bstr_trailing_error(bstr_t *bs)
+{
+	size_t n;
+
+	bstr_check(bs);
+
+	n = bstr_unread_size(bs);
+
+	if (n != 0) {
+		if (bs->flags & BSTR_F_ERROR) {
+			alloc_error(bs);
+			str_printf(bs->error, "has %lu trailing unread byte%s",
+				(unsigned long) n, 1 == n ? "" : "s");
+		} else {
+			bs->flags |= BSTR_F_TRAILING;
+		}
+	}
 }
 
 /**
