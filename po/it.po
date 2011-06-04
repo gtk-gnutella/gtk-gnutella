@@ -10,14 +10,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-21 18:39+0200\n"
+"POT-Creation-Date: 2011-06-04 16:18+0200\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
-"Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: it\n"
 "Plural-Forms: nplurals=2; plural=n==1?0:1;\n"
 "Language-Code: it\n"
 "Language-Name: Italiano\n"
@@ -601,6 +601,10 @@ msgstr ""
 #, fuzzy
 msgid "Evil filename"
 msgstr "Nome del file"
+
+#, fuzzy
+msgid "Improper media type"
+msgstr "Termina ricerca"
 
 msgid "Payload inflating error"
 msgstr ""
@@ -1806,9 +1810,15 @@ msgstr ""
 "altrimenti chiude la connessione (in byte)."
 
 msgid ""
-"Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query "
-"Hits to the original search term. In the worst case this causes about 300 "
-"bytes per Query of memory overhead."
+"Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of "
+"Query Hits to the original search term and media type filtering to be able "
+"to avoid relaying spam and non-matching results.  In the worst case this "
+"causes about 300 bytes per Query of memory overhead, but will be much lower "
+"than that in practice (minimum size is about 40 bytes). This is only used "
+"when running as an Ultrapeer. When the value specified is greater than the "
+"amount of messages that the Gnutella routing table can track, gtk-gnutella "
+"will automatically cap the amount of tracked MUIDs to fit the queries it "
+"remembers for routing."
 msgstr ""
 
 msgid ""
@@ -3962,14 +3972,18 @@ msgstr ""
 
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
-"specifically on their Windows archive / program files such as ZIP or EXE "
-"files and other Windows-centric extensions."
+"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, "
+"rpm and also exe files."
 msgstr ""
 
 msgid ""
-"Remote nodes supporting media type filtering will apply your query "
-"specifically on their UNIX archive / program files such as tar, bz2, gz, "
-"deb, rpm and other UNIX / Linux / OSX extensions."
+"Discard search results whith an alien IP address, not matching the one from "
+"which the results come from."
+msgstr ""
+
+msgid ""
+"Whether session-only searches which happen to have pending downloads should "
+"be restarted when gtk-gnutella is launched."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -5449,6 +5463,9 @@ msgstr ""
 msgid "SPAM dynamically caught hostile IP addresses"
 msgstr ""
 
+msgid "SPAM dynamically caught hostile IP held"
+msgstr ""
+
 msgid "SPAM spotted spamming IP addresses held"
 msgstr ""
 
@@ -5499,6 +5516,12 @@ msgid "Spurious OOB hit claiming received"
 msgstr ""
 
 msgid "Unrequested OOB hits received"
+msgstr ""
+
+msgid "Received query hits for untracked queries"
+msgstr ""
+
+msgid "Tracked query MUIDs"
 msgstr ""
 
 msgid "Compacted queries"
@@ -5734,6 +5757,9 @@ msgid "Launched SHA-1 file verifications"
 msgstr ""
 
 msgid "Launched TTH file verifications"
+msgstr ""
+
+msgid "Bitzi tickets held"
 msgstr ""
 
 msgid "Re-seeding of orphan downloads through query hits"
@@ -8120,12 +8146,9 @@ msgstr "Conteggio"
 msgid "Image"
 msgstr "Intervallo"
 
-msgid "Windows archives"
-msgstr ""
-
 #, fuzzy
-msgid "Linux archives"
-msgstr "%u attivi"
+msgid "Archive"
+msgstr "Attivi"
 
 #, fuzzy
 msgid "Search Configuration"
@@ -8146,6 +8169,28 @@ msgstr "indefinito"
 
 msgid "Search filters to apply locally on newly created searches."
 msgstr ""
+
+msgid "Discard results bearing an alien IP address"
+msgstr ""
+
+msgid "Restart session-only searches with pending downloads"
+msgstr ""
+
+#, fuzzy
+msgid "Configured DHT mode"
+msgstr "Modalità peer configurata"
+
+msgid "Store DHT keys/values in memory"
+msgstr ""
+
+msgid "Store SPAM SHA1 table in memory"
+msgstr ""
+
+msgid "Relayed queries remembered"
+msgstr ""
+
+msgid "Not in database"
+msgstr "Non c'è nel database"
 
 #, fuzzy
 msgid "owned"
@@ -8169,9 +8214,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "Scartato %u risultato"
 msgstr[1] "Scartati %u risultati"
-
-msgid "Not in database"
-msgstr "Non c'è nel database"
 
 msgid "Query queued..."
 msgstr "Query accodata..."
@@ -8222,9 +8264,6 @@ msgid "What's New?"
 msgstr ""
 
 msgid "Do not specify any media type (will match any kind of files remotely)"
-msgstr ""
-
-msgid "UNIX archives"
 msgstr ""
 
 #, fuzzy
@@ -8365,6 +8404,10 @@ msgstr "posizioni"
 
 msgid "unit_of_time|s"
 msgstr "s"
+
+#, fuzzy
+msgid "Gnutella Distributed Hash Table"
+msgstr "Livello di collaudo per il codice condiviso dei file."
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
@@ -8544,6 +8587,13 @@ msgstr ""
 msgid "bogus"
 msgstr "fittizio"
 
+#, fuzzy
+msgid "alien"
+msgstr "Sininimi"
+
+msgid "media"
+msgstr ""
+
 msgid "No search"
 msgstr "Nessuna ricerca"
 
@@ -8570,8 +8620,8 @@ msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
 "TCP, %u UDP)"
 msgstr ""
-"%u %s (%u saltati, %u ignorati, %u nascosti, %u auto-d/l, %u %s) Tentativi: "
-"%u (%u TCP, %u UDP)"
+"%u %s (%u saltati, %u ignorati, %u nascosti, %u auto-d/l, %u %s) Tentativi: %"
+"u (%u TCP, %u UDP)"
 
 msgid "item"
 msgid_plural "items"
@@ -8700,6 +8750,10 @@ msgstr ""
 msgid "Source"
 msgstr "Sorgenti"
 
+#, fuzzy
+msgid "Alien IP"
+msgstr "Sininimi"
+
 msgid "Alt-Locs"
 msgstr ""
 
@@ -8710,10 +8764,6 @@ msgstr "Totale"
 #, fuzzy
 msgid "Latinized"
 msgstr "Martinica"
-
-#, fuzzy
-msgid "Index"
-msgstr "Indice:"
 
 #, fuzzy
 msgid "Pathname"
@@ -8973,6 +9023,14 @@ msgstr "Invio coda, riconnessione..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Coda inviata, in attesa dei titoli"
+
+#, fuzzy
+#~ msgid "Linux archives"
+#~ msgstr "%u attivi"
+
+#, fuzzy
+#~ msgid "Index"
+#~ msgstr "Indice:"
 
 #, fuzzy
 #~ msgid "Seaerch Media Type"

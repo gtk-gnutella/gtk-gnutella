@@ -11,14 +11,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-21 18:39+0200\n"
+"POT-Creation-Date: 2011-06-04 16:18+0200\n"
 "PO-Revision-Date: 2008-07-05 13:20+0200\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
-"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: de\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
 #, c-format
@@ -575,6 +575,10 @@ msgstr "Spam"
 
 msgid "Evil filename"
 msgstr "Böser Dateiname"
+
+#, fuzzy
+msgid "Improper media type"
+msgstr "Suchbegriff"
 
 msgid "Payload inflating error"
 msgstr ""
@@ -1717,9 +1721,15 @@ msgstr ""
 "Verbindung abgebrochen."
 
 msgid ""
-"Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query "
-"Hits to the original search term. In the worst case this causes about 300 "
-"bytes per Query of memory overhead."
+"Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of "
+"Query Hits to the original search term and media type filtering to be able "
+"to avoid relaying spam and non-matching results.  In the worst case this "
+"causes about 300 bytes per Query of memory overhead, but will be much lower "
+"than that in practice (minimum size is about 40 bytes). This is only used "
+"when running as an Ultrapeer. When the value specified is greater than the "
+"amount of messages that the Gnutella routing table can track, gtk-gnutella "
+"will automatically cap the amount of tracked MUIDs to fit the queries it "
+"remembers for routing."
 msgstr ""
 
 msgid ""
@@ -1733,8 +1743,8 @@ msgid ""
 "Random factor for the hops field in search packets we send (between 0 and 3 "
 "inclusive)."
 msgstr ""
-"Zufallsfaktor für das Hops-Feld in von uns gesendeten Suchanfragepaketen "
-"(0-3)"
+"Zufallsfaktor für das Hops-Feld in von uns gesendeten Suchanfragepaketen (0-"
+"3)"
 
 msgid ""
 "Whether or not to send push requests.  If you are firewalled, gtk-gnutella "
@@ -3787,14 +3797,18 @@ msgstr ""
 
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
-"specifically on their Windows archive / program files such as ZIP or EXE "
-"files and other Windows-centric extensions."
+"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, "
+"rpm and also exe files."
 msgstr ""
 
 msgid ""
-"Remote nodes supporting media type filtering will apply your query "
-"specifically on their UNIX archive / program files such as tar, bz2, gz, "
-"deb, rpm and other UNIX / Linux / OSX extensions."
+"Discard search results whith an alien IP address, not matching the one from "
+"which the results come from."
+msgstr ""
+
+msgid ""
+"Whether session-only searches which happen to have pending downloads should "
+"be restarted when gtk-gnutella is launched."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -5210,6 +5224,9 @@ msgstr ""
 msgid "SPAM dynamically caught hostile IP addresses"
 msgstr ""
 
+msgid "SPAM dynamically caught hostile IP held"
+msgstr ""
+
 msgid "SPAM spotted spamming IP addresses held"
 msgstr ""
 
@@ -5260,6 +5277,12 @@ msgid "Spurious OOB hit claiming received"
 msgstr ""
 
 msgid "Unrequested OOB hits received"
+msgstr ""
+
+msgid "Received query hits for untracked queries"
+msgstr ""
+
+msgid "Tracked query MUIDs"
 msgstr ""
 
 msgid "Compacted queries"
@@ -5495,6 +5518,9 @@ msgid "Launched SHA-1 file verifications"
 msgstr ""
 
 msgid "Launched TTH file verifications"
+msgstr ""
+
+msgid "Bitzi tickets held"
 msgstr ""
 
 msgid "Re-seeding of orphan downloads through query hits"
@@ -7832,12 +7858,9 @@ msgstr "Anzahl"
 msgid "Image"
 msgstr "Bereich"
 
-msgid "Windows archives"
-msgstr ""
-
 #, fuzzy
-msgid "Linux archives"
-msgstr "%u aktiv"
+msgid "Archive"
+msgstr "Aktiv"
 
 #, fuzzy
 msgid "Search Configuration"
@@ -7859,6 +7882,28 @@ msgstr "undefiniert"
 msgid "Search filters to apply locally on newly created searches."
 msgstr ""
 
+msgid "Discard results bearing an alien IP address"
+msgstr ""
+
+msgid "Restart session-only searches with pending downloads"
+msgstr ""
+
+#, fuzzy
+msgid "Configured DHT mode"
+msgstr "Eingestellter Peer-Modus"
+
+msgid "Store DHT keys/values in memory"
+msgstr ""
+
+msgid "Store SPAM SHA1 table in memory"
+msgstr ""
+
+msgid "Relayed queries remembered"
+msgstr ""
+
+msgid "Not in database"
+msgstr "Nicht in Datenbank"
+
 msgid "owned"
 msgstr "Status"
 
@@ -7879,9 +7924,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u Treffer verworfen"
 msgstr[1] "%u Treffer verworfen"
-
-msgid "Not in database"
-msgstr "Nicht in Datenbank"
 
 msgid "Query queued..."
 msgstr "In Warteschlange gestellt"
@@ -7932,9 +7974,6 @@ msgid "What's New?"
 msgstr ""
 
 msgid "Do not specify any media type (will match any kind of files remotely)"
-msgstr ""
-
-msgid "UNIX archives"
 msgstr ""
 
 #, fuzzy
@@ -8075,6 +8114,10 @@ msgstr "Slots"
 
 msgid "unit_of_time|s"
 msgstr ""
+
+#, fuzzy
+msgid "Gnutella Distributed Hash Table"
+msgstr "Bandbreitenkontrolle für Gnet-Verkehr"
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Max. Prozentsatz, den ein Client-Typ einnehmen kann."
@@ -8249,6 +8292,13 @@ msgstr "Proxy"
 msgid "bogus"
 msgstr ""
 
+#, fuzzy
+msgid "alien"
+msgstr "Aliase"
+
+msgid "media"
+msgstr ""
+
 msgid "No search"
 msgstr "Keine Suche"
 
@@ -8402,6 +8452,10 @@ msgstr "vielleicht"
 msgid "Source"
 msgstr "Quelle"
 
+#, fuzzy
+msgid "Alien IP"
+msgstr "Aliase"
+
 msgid "Alt-Locs"
 msgstr ""
 
@@ -8411,9 +8465,6 @@ msgstr "unvollständig"
 
 msgid "Latinized"
 msgstr ""
-
-msgid "Index"
-msgstr "Index"
 
 msgid "Pathname"
 msgstr "Pfadname"
@@ -8662,6 +8713,13 @@ msgstr "Sende QUEUE, verbinde zurück..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
+
+#, fuzzy
+#~ msgid "Linux archives"
+#~ msgstr "%u aktiv"
+
+#~ msgid "Index"
+#~ msgstr "Index"
 
 #, fuzzy
 #~ msgid "Seaerch Media Type"

@@ -76,14 +76,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-21 18:39+0200\n"
+"POT-Creation-Date: 2011-06-04 16:18+0200\n"
 "PO-Revision-Date: 2010-01-11 02:32+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
-"Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: ja\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #, c-format
@@ -652,6 +652,11 @@ msgstr "スパム"
 
 msgid "Evil filename"
 msgstr "有害ファイル名"
+
+# FIXME: `Search Term' -> `Searches' or `Search queries'
+#, fuzzy
+msgid "Improper media type"
+msgstr "検索クエリー"
 
 # XXX: wtf
 msgid "Payload inflating error"
@@ -1249,10 +1254,10 @@ msgid ""
 "is not used to guard against undue censorship."
 msgstr ""
 "gtk-gnutella が利用するローカル TCP ポートです。加入するプロバイダが TCP "
-"6346 番ポートのトラフィックを遮断したり絞り込むかもしれませんので、"
-"1024-65535 の範囲内で他の所へ変更するのが良いでしょう。必要に応じてファイア"
-"ウォールのポートを転送する/開けるのを忘れないで下さい。行き過ぎた検閲に対する"
-"防護のため、標準では TCP 6346番ポートは使用されない事を覚えておいて下さい。"
+"6346 番ポートのトラフィックを遮断したり絞り込むかもしれませんので、1024-"
+"65535 の範囲内で他の所へ変更するのが良いでしょう。必要に応じてファイアウォー"
+"ルのポートを転送する/開けるのを忘れないで下さい。行き過ぎた検閲に対する防護の"
+"ため、標準では TCP 6346番ポートは使用されない事を覚えておいて下さい。"
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
 msgstr "「強制ローカルIP」を有効にすると、これを発信元アドレスとして用います。"
@@ -1827,13 +1832,16 @@ msgstr ""
 "す。(バイト単位)"
 
 msgid ""
-"Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query "
-"Hits to the original search term. In the worst case this causes about 300 "
-"bytes per Query of memory overhead."
+"Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of "
+"Query Hits to the original search term and media type filtering to be able "
+"to avoid relaying spam and non-matching results.  In the worst case this "
+"causes about 300 bytes per Query of memory overhead, but will be much lower "
+"than that in practice (minimum size is about 40 bytes). This is only used "
+"when running as an Ultrapeer. When the value specified is greater than the "
+"amount of messages that the Gnutella routing table can track, gtk-gnutella "
+"will automatically cap the amount of tracked MUIDs to fit the queries it "
+"remembers for routing."
 msgstr ""
-"記録しておくクエリーMUIDの最大数です。これで、クエリーヒットのMUIDを元の検索"
-"語のままでマッピングしておくことが可能になります。ただし最悪の場合、クエリー"
-"ごとに300バイトのメモリのオーバーヘッドが発生します。"
 
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
@@ -3885,14 +3893,18 @@ msgstr ""
 
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
-"specifically on their Windows archive / program files such as ZIP or EXE "
-"files and other Windows-centric extensions."
+"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, "
+"rpm and also exe files."
 msgstr ""
 
 msgid ""
-"Remote nodes supporting media type filtering will apply your query "
-"specifically on their UNIX archive / program files such as tar, bz2, gz, "
-"deb, rpm and other UNIX / Linux / OSX extensions."
+"Discard search results whith an alien IP address, not matching the one from "
+"which the results come from."
+msgstr ""
+
+msgid ""
+"Whether session-only searches which happen to have pending downloads should "
+"be restarted when gtk-gnutella is launched."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -5373,6 +5385,9 @@ msgstr ""
 msgid "SPAM dynamically caught hostile IP addresses"
 msgstr ""
 
+msgid "SPAM dynamically caught hostile IP held"
+msgstr ""
+
 msgid "SPAM spotted spamming IP addresses held"
 msgstr ""
 
@@ -5438,6 +5453,12 @@ msgstr "受信した偽のOOBヒット要求"
 # XXX: wtf
 msgid "Unrequested OOB hits received"
 msgstr "リクエストしていないOOBヒットの受信数"
+
+msgid "Received query hits for untracked queries"
+msgstr ""
+
+msgid "Tracked query MUIDs"
+msgstr ""
 
 msgid "Compacted queries"
 msgstr "圧縮検索クエリー"
@@ -5678,6 +5699,9 @@ msgid "Launched SHA-1 file verifications"
 msgstr ""
 
 msgid "Launched TTH file verifications"
+msgstr ""
+
+msgid "Bitzi tickets held"
 msgstr ""
 
 msgid "Re-seeding of orphan downloads through query hits"
@@ -8072,12 +8096,9 @@ msgstr "回数"
 msgid "Image"
 msgstr "<画像>"
 
-msgid "Windows archives"
-msgstr ""
-
 #, fuzzy
-msgid "Linux archives"
-msgstr "%u 件が動作中"
+msgid "Archive"
+msgstr "<アーカイブ>"
 
 #, fuzzy
 msgid "Search Configuration"
@@ -8098,6 +8119,30 @@ msgstr "未定義"
 
 msgid "Search filters to apply locally on newly created searches."
 msgstr ""
+
+# XXX: wtf
+#, fuzzy
+msgid "Discard results bearing an alien IP address"
+msgstr "無関係なIPアドレスに関するOOBヒット"
+
+msgid "Restart session-only searches with pending downloads"
+msgstr ""
+
+#, fuzzy
+msgid "Configured DHT mode"
+msgstr "設定するピアモード"
+
+msgid "Store DHT keys/values in memory"
+msgstr ""
+
+msgid "Store SPAM SHA1 table in memory"
+msgstr ""
+
+msgid "Relayed queries remembered"
+msgstr ""
+
+msgid "Not in database"
+msgstr "データベースにありません"
 
 msgid "owned"
 msgstr "取得済"
@@ -8127,9 +8172,6 @@ msgstr[0] "%u 件のダウンロードを作成しました。"
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u 件の結果を破棄しました。"
-
-msgid "Not in database"
-msgstr "データベースにありません"
 
 msgid "Query queued..."
 msgstr "検索クエリーをキューに入れました..."
@@ -8176,9 +8218,6 @@ msgid "What's New?"
 msgstr ""
 
 msgid "Do not specify any media type (will match any kind of files remotely)"
-msgstr ""
-
-msgid "UNIX archives"
 msgstr ""
 
 #, fuzzy
@@ -8344,6 +8383,10 @@ msgstr "個"
 
 msgid "unit_of_time|s"
 msgstr "秒"
+
+#, fuzzy
+msgid "Gnutella Distributed Hash Table"
+msgstr "分散ハッシュテーブル (DHT) のデバッグレベルです。"
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "ベンダーが占有できる接続スロットの最大割合です。"
@@ -8526,6 +8569,14 @@ msgstr "プロキシ"
 msgid "bogus"
 msgstr "偽IP"
 
+#, fuzzy
+msgid "alien"
+msgstr "別名"
+
+#, fuzzy
+msgid "media"
+msgstr "アルメニア共和国"
+
 msgid "No search"
 msgstr "検索無し"
 
@@ -8673,6 +8724,10 @@ msgstr "多分"
 msgid "Source"
 msgstr "送信元"
 
+#, fuzzy
+msgid "Alien IP"
+msgstr "別名"
+
 msgid "Alt-Locs"
 msgstr "別の送信元"
 
@@ -8683,9 +8738,6 @@ msgstr "部分取得済"
 
 msgid "Latinized"
 msgstr "ローマ字表記"
-
-msgid "Index"
-msgstr "インデックス"
 
 msgid "Pathname"
 msgstr "パス名"
@@ -8929,6 +8981,22 @@ msgstr "QUEUE送信、折り返し接続中..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE送信完了、ヘッダーを待受中..."
+
+#~ msgid ""
+#~ "Maximum number of Query MUIDs to track. This allows mapping MUIDs of "
+#~ "Query Hits to the original search term. In the worst case this causes "
+#~ "about 300 bytes per Query of memory overhead."
+#~ msgstr ""
+#~ "記録しておくクエリーMUIDの最大数です。これで、クエリーヒットのMUIDを元の検"
+#~ "索語のままでマッピングしておくことが可能になります。ただし最悪の場合、クエ"
+#~ "リーごとに300バイトのメモリのオーバーヘッドが発生します。"
+
+#, fuzzy
+#~ msgid "Linux archives"
+#~ msgstr "%u 件が動作中"
+
+#~ msgid "Index"
+#~ msgstr "インデックス"
 
 # FIXME: `Search Term' -> `Searches' or `Search queries'
 #, fuzzy

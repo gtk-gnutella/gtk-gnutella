@@ -10,14 +10,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-21 18:39+0200\n"
+"POT-Creation-Date: 2011-06-04 16:18+0200\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
-"Language: el\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: el\n"
 "Plural-Forms:  nplurals=2; plural=(1 != n);\n"
 "X-Generator: KBabel 1.10.2\n"
 
@@ -604,6 +604,10 @@ msgstr ""
 #, fuzzy
 msgid "Evil filename"
 msgstr "Όνομα αρχείου"
+
+#, fuzzy
+msgid "Improper media type"
+msgstr "Κριτήριο αναζήτησης"
 
 msgid "Payload inflating error"
 msgstr ""
@@ -1777,9 +1781,15 @@ msgstr ""
 "γίνεται κλείσιμο της σύνδεσης (σε bytes)."
 
 msgid ""
-"Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query "
-"Hits to the original search term. In the worst case this causes about 300 "
-"bytes per Query of memory overhead."
+"Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of "
+"Query Hits to the original search term and media type filtering to be able "
+"to avoid relaying spam and non-matching results.  In the worst case this "
+"causes about 300 bytes per Query of memory overhead, but will be much lower "
+"than that in practice (minimum size is about 40 bytes). This is only used "
+"when running as an Ultrapeer. When the value specified is greater than the "
+"amount of messages that the Gnutella routing table can track, gtk-gnutella "
+"will automatically cap the amount of tracked MUIDs to fit the queries it "
+"remembers for routing."
 msgstr ""
 
 msgid ""
@@ -3837,14 +3847,18 @@ msgstr ""
 
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
-"specifically on their Windows archive / program files such as ZIP or EXE "
-"files and other Windows-centric extensions."
+"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, "
+"rpm and also exe files."
 msgstr ""
 
 msgid ""
-"Remote nodes supporting media type filtering will apply your query "
-"specifically on their UNIX archive / program files such as tar, bz2, gz, "
-"deb, rpm and other UNIX / Linux / OSX extensions."
+"Discard search results whith an alien IP address, not matching the one from "
+"which the results come from."
+msgstr ""
+
+msgid ""
+"Whether session-only searches which happen to have pending downloads should "
+"be restarted when gtk-gnutella is launched."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -5345,6 +5359,9 @@ msgstr ""
 msgid "SPAM dynamically caught hostile IP addresses"
 msgstr ""
 
+msgid "SPAM dynamically caught hostile IP held"
+msgstr ""
+
 msgid "SPAM spotted spamming IP addresses held"
 msgstr ""
 
@@ -5397,6 +5414,12 @@ msgstr ""
 #, fuzzy
 msgid "Unrequested OOB hits received"
 msgstr "Ερωτήματα αναζήτησης χτυπημάτων παράδοσης OOB"
+
+msgid "Received query hits for untracked queries"
+msgstr ""
+
+msgid "Tracked query MUIDs"
+msgstr ""
 
 msgid "Compacted queries"
 msgstr "Συμπαγή ερωτήματα"
@@ -5636,6 +5659,9 @@ msgid "Launched SHA-1 file verifications"
 msgstr ""
 
 msgid "Launched TTH file verifications"
+msgstr ""
+
+msgid "Bitzi tickets held"
 msgstr ""
 
 msgid "Re-seeding of orphan downloads through query hits"
@@ -8017,12 +8043,9 @@ msgstr "Μέτρηση"
 msgid "Image"
 msgstr "Εύρος"
 
-msgid "Windows archives"
-msgstr ""
-
 #, fuzzy
-msgid "Linux archives"
-msgstr "%u εν ενεργεία"
+msgid "Archive"
+msgstr "Ενεργός"
 
 #, fuzzy
 msgid "Search Configuration"
@@ -8043,6 +8066,29 @@ msgstr "δεν έχει οριστεί"
 
 msgid "Search filters to apply locally on newly created searches."
 msgstr ""
+
+#, fuzzy
+msgid "Discard results bearing an alien IP address"
+msgstr "Χτυπήματα OOB που δημιουργούν ξένες διευθύνσεις IP"
+
+msgid "Restart session-only searches with pending downloads"
+msgstr ""
+
+#, fuzzy
+msgid "Configured DHT mode"
+msgstr "Ρυθμισμένη λειτουργία κόμβου"
+
+msgid "Store DHT keys/values in memory"
+msgstr ""
+
+msgid "Store SPAM SHA1 table in memory"
+msgstr ""
+
+msgid "Relayed queries remembered"
+msgstr ""
+
+msgid "Not in database"
+msgstr "Όχι στη βάση δεδομένων"
 
 #, fuzzy
 msgid "owned"
@@ -8067,9 +8113,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u αποτέλεσμα απορρίφθηκε"
 msgstr[1] "%u αποτελέσματα απορρίφθηκαν"
-
-msgid "Not in database"
-msgstr "Όχι στη βάση δεδομένων"
 
 msgid "Query queued..."
 msgstr "Το ερώτημα μπήκε στη λίστα αναμονής..."
@@ -8121,9 +8164,6 @@ msgid "What's New?"
 msgstr ""
 
 msgid "Do not specify any media type (will match any kind of files remotely)"
-msgstr ""
-
-msgid "UNIX archives"
 msgstr ""
 
 #, fuzzy
@@ -8264,6 +8304,10 @@ msgstr "Υποδοχές:"
 
 msgid "unit_of_time|s"
 msgstr ""
+
+#, fuzzy
+msgid "Gnutella Distributed Hash Table"
+msgstr "Επίπεδο αποσφαλμάτωσης κώδικα ανταλλαγής αρχείων."
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
@@ -8443,6 +8487,14 @@ msgstr "διαμεσολαβητής"
 msgid "bogus"
 msgstr "ψεύτικο"
 
+#, fuzzy
+msgid "alien"
+msgstr "Εναλλακτικές ονομασίες"
+
+#, fuzzy
+msgid "media"
+msgstr "Αρμενία"
+
 msgid "No search"
 msgstr "Χωρίς αναζήτηση"
 
@@ -8599,6 +8651,10 @@ msgstr ""
 msgid "Source"
 msgstr "Πηγές"
 
+#, fuzzy
+msgid "Alien IP"
+msgstr "Εναλλακτικές ονομασίες"
+
 msgid "Alt-Locs"
 msgstr ""
 
@@ -8608,10 +8664,6 @@ msgstr "Λετονία"
 
 msgid "Latinized"
 msgstr ""
-
-#, fuzzy
-msgid "Index"
-msgstr "Ευρετήριο:"
 
 #, fuzzy
 msgid "Pathname"
@@ -8872,6 +8924,14 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
+
+#, fuzzy
+#~ msgid "Linux archives"
+#~ msgstr "%u εν ενεργεία"
+
+#, fuzzy
+#~ msgid "Index"
+#~ msgstr "Ευρετήριο:"
 
 #, fuzzy
 #~ msgid "Seaerch Media Type"

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-21 18:39+0200\n"
+"POT-Creation-Date: 2011-06-04 16:18+0200\n"
 "PO-Revision-Date: 2011-05-21 18:40+0100\n"
 "Last-Translator: Jeroen Asselman <j.asselman@rubicongroup.biz>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -559,6 +559,10 @@ msgstr "Spam"
 
 msgid "Evil filename"
 msgstr "Slechte bestandsnaam"
+
+#, fuzzy
+msgid "Improper media type"
+msgstr "Zoek Media Type"
 
 msgid "Payload inflating error"
 msgstr "Payload inflating fout"
@@ -1732,13 +1736,16 @@ msgstr ""
 "anders wordt de verbinding gesloten (in bytes)."
 
 msgid ""
-"Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query "
-"Hits to the original search term. In the worst case this causes about 300 "
-"bytes per Query of memory overhead."
+"Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of "
+"Query Hits to the original search term and media type filtering to be able "
+"to avoid relaying spam and non-matching results.  In the worst case this "
+"causes about 300 bytes per Query of memory overhead, but will be much lower "
+"than that in practice (minimum size is about 40 bytes). This is only used "
+"when running as an Ultrapeer. When the value specified is greater than the "
+"amount of messages that the Gnutella routing table can track, gtk-gnutella "
+"will automatically cap the amount of tracked MUIDs to fit the queries it "
+"remembers for routing."
 msgstr ""
-"Maximum aantal te volgen Query MUID's . Hiermee is is het mogelijk om MUID's "
-"van Query Hits in te delen bij de orginele zoek term. Dit kan maximaal 300 "
-"bytes per Query aan extra geheugen betekenen."
 
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
@@ -3981,23 +3988,25 @@ msgstr ""
 "Externe nodes die media type filtering ondersteunen zullen uw query "
 "specifiek op hun afbeelding bestanden uitvoeren."
 
+#, fuzzy
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
-"specifically on their Windows archive / program files such as ZIP or EXE "
-"files and other Windows-centric extensions."
-msgstr ""
-"Externe nodes die media type filtering ondersteunen zullen uw query "
-"specifiek op hun Windows archief / programma bestanden uitvoeren zoals ZIP, "
-"EXE en andere Windows-specifieke extensies."
-
-msgid ""
-"Remote nodes supporting media type filtering will apply your query "
-"specifically on their UNIX archive / program files such as tar, bz2, gz, "
-"deb, rpm and other UNIX / Linux / OSX extensions."
+"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, "
+"rpm and also exe files."
 msgstr ""
 "Externe nodes die media type filtering ondersteunen zullen uw query "
 "specifiek op hun UNIX archief / programma bestanden uitvoeren, zoals tar, "
 "bz2, gz, deb, rpm en andere UNIX / Linux / OSX extensies."
+
+msgid ""
+"Discard search results whith an alien IP address, not matching the one from "
+"which the results come from."
+msgstr ""
+
+msgid ""
+"Whether session-only searches which happen to have pending downloads should "
+"be restarted when gtk-gnutella is launched."
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr "Anonieme proxies"
@@ -5393,6 +5402,10 @@ msgstr "SPAM dubbele hits"
 msgid "SPAM dynamically caught hostile IP addresses"
 msgstr "SPAM dynamisch opgevangen vijandige IP-adressen"
 
+#, fuzzy
+msgid "SPAM dynamically caught hostile IP held"
+msgstr "SPAM dynamisch opgevangen vijandige IP-adressen"
+
 msgid "SPAM spotted spamming IP addresses held"
 msgstr "SPAM opgemerkte spammende IP adressen in bezit"
 
@@ -5443,6 +5456,12 @@ msgstr "Vals OOB hit beweert te zijn ontvangen"
 
 msgid "Unrequested OOB hits received"
 msgstr "Ongevraagde OOB overeenkomsten ontvangen"
+
+msgid "Received query hits for untracked queries"
+msgstr ""
+
+msgid "Tracked query MUIDs"
+msgstr ""
 
 msgid "Compacted queries"
 msgstr "Verkleinde zoekopdrachten"
@@ -5672,6 +5691,10 @@ msgstr "SHA-1 bestandsverificatie begonnen"
 
 msgid "Launched TTH file verifications"
 msgstr "TTH bestandsverificatie begonnen"
+
+#, fuzzy
+msgid "Bitzi tickets held"
+msgstr "Nog geen Bitzi ticket verzocht."
 
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr "Re-seeding of orphan-downloads dmv query hits"
@@ -7971,11 +7994,9 @@ msgstr "Document"
 msgid "Image"
 msgstr "Afbeelding"
 
-msgid "Windows archives"
-msgstr "Windows archieven"
-
-msgid "Linux archives"
-msgstr "Linux archieven"
+#, fuzzy
+msgid "Archive"
+msgstr "<Archief>"
 
 msgid "Search Configuration"
 msgstr "Zoek Configuratie"
@@ -7995,6 +8016,29 @@ msgstr "Ongedefinieerd"
 
 msgid "Search filters to apply locally on newly created searches."
 msgstr "Lokaal toe te passen zoek filter voor nieuw gecreëerde zoekopdrachten."
+
+#, fuzzy
+msgid "Discard results bearing an alien IP address"
+msgstr "OOB resultaten welke een vreemd IP-adres dragen"
+
+msgid "Restart session-only searches with pending downloads"
+msgstr ""
+
+#, fuzzy
+msgid "Configured DHT mode"
+msgstr "De geconfigureerde peermodus"
+
+msgid "Store DHT keys/values in memory"
+msgstr ""
+
+msgid "Store SPAM SHA1 table in memory"
+msgstr ""
+
+msgid "Relayed queries remembered"
+msgstr ""
+
+msgid "Not in database"
+msgstr "Niet in de database"
 
 msgid "owned"
 msgstr "eigenaar"
@@ -8016,9 +8060,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u resultaat genegeerd"
 msgstr[1] "%u resultaten genegeerd"
-
-msgid "Not in database"
-msgstr "Niet in de database"
 
 msgid "Query queued..."
 msgstr "Query in de wacht gezet..."
@@ -8066,9 +8107,6 @@ msgstr "\"Wat is er nieuw?\""
 
 msgid "Do not specify any media type (will match any kind of files remotely)"
 msgstr "Specificeer geen media type (alle remote bestanden komen overeen)"
-
-msgid "UNIX archives"
-msgstr "UNIX archieven"
 
 msgid "CPU overloaded"
 msgstr "CPU overbelast"
@@ -8205,6 +8243,10 @@ msgstr "sloten"
 
 msgid "unit_of_time|s"
 msgstr "s"
+
+#, fuzzy
+msgid "Gnutella Distributed Hash Table"
+msgstr "Bandbreedte limiet voor de gedistributeerde hash table (DHT)"
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Maximum percentage verbindingen dat een leverancier kan bezetten."
@@ -8375,6 +8417,14 @@ msgstr "proxy"
 msgid "bogus"
 msgstr "onzin"
 
+#, fuzzy
+msgid "alien"
+msgstr "Vreemd"
+
+#, fuzzy
+msgid "media"
+msgstr "Armenië"
+
 msgid "No search"
 msgstr "Geen zoekopdrachten"
 
@@ -8526,6 +8576,10 @@ msgstr "Misschien"
 msgid "Source"
 msgstr "Bron"
 
+#, fuzzy
+msgid "Alien IP"
+msgstr "Vreemd"
+
 msgid "Alt-Locs"
 msgstr "Alt-Locs"
 
@@ -8534,9 +8588,6 @@ msgstr "Gedeeltelijk"
 
 msgid "Latinized"
 msgstr "Latinized"
-
-msgid "Index"
-msgstr "Index"
 
 msgid "Pathname"
 msgstr "Padnaam"
@@ -8787,6 +8838,36 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
+#~ msgid ""
+#~ "Maximum number of Query MUIDs to track. This allows mapping MUIDs of "
+#~ "Query Hits to the original search term. In the worst case this causes "
+#~ "about 300 bytes per Query of memory overhead."
+#~ msgstr ""
+#~ "Maximum aantal te volgen Query MUID's . Hiermee is is het mogelijk om "
+#~ "MUID's van Query Hits in te delen bij de orginele zoek term. Dit kan "
+#~ "maximaal 300 bytes per Query aan extra geheugen betekenen."
+
+#~ msgid ""
+#~ "Remote nodes supporting media type filtering will apply your query "
+#~ "specifically on their Windows archive / program files such as ZIP or EXE "
+#~ "files and other Windows-centric extensions."
+#~ msgstr ""
+#~ "Externe nodes die media type filtering ondersteunen zullen uw query "
+#~ "specifiek op hun Windows archief / programma bestanden uitvoeren zoals "
+#~ "ZIP, EXE en andere Windows-specifieke extensies."
+
+#~ msgid "Windows archives"
+#~ msgstr "Windows archieven"
+
+#~ msgid "Linux archives"
+#~ msgstr "Linux archieven"
+
+#~ msgid "UNIX archives"
+#~ msgstr "UNIX archieven"
+
+#~ msgid "Index"
+#~ msgstr "Index"
 
 #~ msgid "Seaerch Media Type"
 #~ msgstr "Zoek Media Type"

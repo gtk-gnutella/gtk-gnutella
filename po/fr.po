@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-05-21 18:39+0200\n"
+"POT-Creation-Date: 2011-06-04 16:18+0200\n"
 "PO-Revision-Date: 2008-09-03 23:05+0100\n"
 "Last-Translator: stegozor <stegozor@gmail.com>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -570,6 +570,10 @@ msgstr "Spam"
 
 msgid "Evil filename"
 msgstr "Mauvais nom de fichier"
+
+#, fuzzy
+msgid "Improper media type"
+msgstr "Terme de recherche"
 
 msgid "Payload inflating error"
 msgstr "Erreur d'exrtaction de la charge utile"
@@ -1764,13 +1768,16 @@ msgstr ""
 "sinon termine la connexion (en octets)."
 
 msgid ""
-"Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query "
-"Hits to the original search term. In the worst case this causes about 300 "
-"bytes per Query of memory overhead."
+"Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of "
+"Query Hits to the original search term and media type filtering to be able "
+"to avoid relaying spam and non-matching results.  In the worst case this "
+"causes about 300 bytes per Query of memory overhead, but will be much lower "
+"than that in practice (minimum size is about 40 bytes). This is only used "
+"when running as an Ultrapeer. When the value specified is greater than the "
+"amount of messages that the Gnutella routing table can track, gtk-gnutella "
+"will automatically cap the amount of tracked MUIDs to fit the queries it "
+"remembers for routing."
 msgstr ""
-"Nombre macimum de requêtes MUIDs à suivre. Autorise l'association des MUIDs "
-"des 'query hits' avec la recherche originale. Dans le pire des cas cela "
-"utilise un surplus 300 octets par requête en mémoire."
 
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
@@ -3944,14 +3951,18 @@ msgstr ""
 
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
-"specifically on their Windows archive / program files such as ZIP or EXE "
-"files and other Windows-centric extensions."
+"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, "
+"rpm and also exe files."
 msgstr ""
 
 msgid ""
-"Remote nodes supporting media type filtering will apply your query "
-"specifically on their UNIX archive / program files such as tar, bz2, gz, "
-"deb, rpm and other UNIX / Linux / OSX extensions."
+"Discard search results whith an alien IP address, not matching the one from "
+"which the results come from."
+msgstr ""
+
+msgid ""
+"Whether session-only searches which happen to have pending downloads should "
+"be restarted when gtk-gnutella is launched."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -5359,6 +5370,9 @@ msgstr ""
 msgid "SPAM dynamically caught hostile IP addresses"
 msgstr ""
 
+msgid "SPAM dynamically caught hostile IP held"
+msgstr ""
+
 msgid "SPAM spotted spamming IP addresses held"
 msgstr ""
 
@@ -5410,6 +5424,12 @@ msgstr "Fausse demande de hit OOB reçue"
 
 msgid "Unrequested OOB hits received"
 msgstr "Hits OOB reçus mais non demandés"
+
+msgid "Received query hits for untracked queries"
+msgstr ""
+
+msgid "Tracked query MUIDs"
+msgstr ""
 
 msgid "Compacted queries"
 msgstr "Demandes compressées"
@@ -5645,6 +5665,9 @@ msgid "Launched SHA-1 file verifications"
 msgstr ""
 
 msgid "Launched TTH file verifications"
+msgstr ""
+
+msgid "Bitzi tickets held"
 msgstr ""
 
 msgid "Re-seeding of orphan downloads through query hits"
@@ -7981,12 +8004,9 @@ msgstr "Nombre"
 msgid "Image"
 msgstr "<Image>"
 
-msgid "Windows archives"
-msgstr ""
-
 #, fuzzy
-msgid "Linux archives"
-msgstr "%u actif"
+msgid "Archive"
+msgstr "<Archive>"
 
 #, fuzzy
 msgid "Search Configuration"
@@ -8008,6 +8028,29 @@ msgstr "indéfini"
 msgid "Search filters to apply locally on newly created searches."
 msgstr ""
 
+#, fuzzy
+msgid "Discard results bearing an alien IP address"
+msgstr "Hits OOB avec une adresse IP alien"
+
+msgid "Restart session-only searches with pending downloads"
+msgstr ""
+
+#, fuzzy
+msgid "Configured DHT mode"
+msgstr "Peermode configuré"
+
+msgid "Store DHT keys/values in memory"
+msgstr ""
+
+msgid "Store SPAM SHA1 table in memory"
+msgstr ""
+
+msgid "Relayed queries remembered"
+msgstr ""
+
+msgid "Not in database"
+msgstr "Pas dans la base de données"
+
 msgid "owned"
 msgstr "détenu"
 
@@ -8028,9 +8071,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u résultat écarté"
 msgstr[1] "%u résultats écartés"
-
-msgid "Not in database"
-msgstr "Pas dans la base de données"
 
 msgid "Query queued..."
 msgstr "Demande dans la file..."
@@ -8077,9 +8117,6 @@ msgid "What's New?"
 msgstr ""
 
 msgid "Do not specify any media type (will match any kind of files remotely)"
-msgstr ""
-
-msgid "UNIX archives"
 msgstr ""
 
 #, fuzzy
@@ -8220,6 +8257,11 @@ msgstr "créneaux"
 
 msgid "unit_of_time|s"
 msgstr "s"
+
+#, fuzzy
+msgid "Gnutella Distributed Hash Table"
+msgstr ""
+"Niveau de débugage pour le code de la table de hachage distribuée (DHT)."
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
@@ -8398,6 +8440,14 @@ msgstr "proxy"
 msgid "bogus"
 msgstr "faux"
 
+#, fuzzy
+msgid "alien"
+msgstr "Alias"
+
+#, fuzzy
+msgid "media"
+msgstr "Arménie"
+
 msgid "No search"
 msgstr "Pas de recherche"
 
@@ -8552,6 +8602,10 @@ msgstr "Peut-être"
 msgid "Source"
 msgstr "Source"
 
+#, fuzzy
+msgid "Alien IP"
+msgstr "Alias"
+
 msgid "Alt-Locs"
 msgstr "Alt-Locs"
 
@@ -8561,9 +8615,6 @@ msgstr "partiel"
 
 msgid "Latinized"
 msgstr "Latinized"
-
-msgid "Index"
-msgstr "Index"
 
 msgid "Pathname"
 msgstr "Chemin"
@@ -8814,6 +8865,22 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid ""
+#~ "Maximum number of Query MUIDs to track. This allows mapping MUIDs of "
+#~ "Query Hits to the original search term. In the worst case this causes "
+#~ "about 300 bytes per Query of memory overhead."
+#~ msgstr ""
+#~ "Nombre macimum de requêtes MUIDs à suivre. Autorise l'association des "
+#~ "MUIDs des 'query hits' avec la recherche originale. Dans le pire des cas "
+#~ "cela utilise un surplus 300 octets par requête en mémoire."
+
+#, fuzzy
+#~ msgid "Linux archives"
+#~ msgstr "%u actif"
+
+#~ msgid "Index"
+#~ msgstr "Index"
 
 #, fuzzy
 #~ msgid "Seaerch Media Type"
