@@ -78,7 +78,31 @@ static gboolean
 sdbm_storage_needs(size_t key_size, size_t value_size, size_t *needed)
 {
 #ifdef BIGDATA
-	if (key_size <= DBM_PAIRMAX && DBM_PAIRMAX - key_size >= value_size) {
+	/*
+	 * This is the same logic as in putpair().
+	 *
+	 * Instead of just checking:
+	 *
+	 *		key_size <= DBM_PAIRMAX && DBM_PAIRMAX - key_size >= value_size
+	 *
+	 * which would only indicate whether the expanded key and value can
+	 * fit in the page we loook at whether the sum of key + value sizes is
+	 * big enough to warrant offloading of the value in a .dat file, thereby
+	 * reducing the memory constraints in the .pag file.  However we don't
+	 * offload the value to the .dat if its ends up wasting more than half
+	 * the pages there.
+	 *
+	 * NOTE: any change to the logic below must also be reported to putpair().
+	 */
+
+	if (
+		key_size <= DBM_PAIRMAX && DBM_PAIRMAX - key_size >= value_size &&
+		(
+			key_size + value_size < DBM_PAIRMAX / 2 ||
+			value_size < DBM_BBLKSIZ / 2
+		)
+	) {
+		/* Will expand both the key and the value in the page */
 		if (needed != NULL)
 			*needed = key_size + value_size;
 		return TRUE;
@@ -98,6 +122,7 @@ sdbm_storage_needs(size_t key_size, size_t value_size, size_t *needed)
 			return FALSE;
 
 		if (key_size <= DBM_PAIRMAX && DBM_PAIRMAX - key_size >= vl) {
+			/* Will expand the key but store the value in the .dat file */
 			if (needed != NULL)
 				*needed = key_size + vl;
 			return TRUE;

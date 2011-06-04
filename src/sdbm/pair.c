@@ -191,7 +191,28 @@ gboolean
 putpair(DBM *db, char *pag, datum key, datum val)
 {
 #ifdef BIGDATA
-	if (key.dsize <= DBM_PAIRMAX && DBM_PAIRMAX - key.dsize >= val.dsize) {
+	/*
+	 * Our strategy for using big values is the following: if the key+value
+	 * won't fit in expanded form in the page, there's no question we have
+	 * to use a big value and/or big key.
+	 *
+	 * If it would fit however but the size of key+value is >= DBM_PAIRMAX/2
+	 * and the value will waste less than half the .dat page then we force a
+	 * big value to be used.  The rationale is to avoid filling-up the page
+	 * and ending up having to split it later on for the next hashing conflict.
+	 *
+	 * NOTE: any change to the logic below must also be reported to
+	 * sdbm_storage_needs().
+	 */
+
+	if (
+		key.dsize <= DBM_PAIRMAX && DBM_PAIRMAX - key.dsize >= val.dsize &&
+		(
+			key.dsize + val.dsize < DBM_PAIRMAX / 2 ||
+			val.dsize < DBM_BBLKSIZ / 2
+		)
+	) {
+		/* Expand both the key and the value in the page */
 		putpair_ext(pag, key, FALSE, val, FALSE);
 	} else {
 		unsigned n;
@@ -215,13 +236,13 @@ putpair(DBM *db, char *pag, datum key, datum val)
 
 		if (key.dsize > DBM_PAIRMAX || DBM_PAIRMAX - key.dsize < vl) {
 			size_t kl = bigkey_length(key.dsize);
-			/* Large key */
+			/* Large key (and will use a large value as well) */
 			off -= kl;
 			if (!bigkey_put(db, pag + off, kl, key.dptr, key.dsize))
 				return FALSE;
 			ino[n + 1] = off | BIG_FLAG;
 		} else {
-			/* Regular inlined key */
+			/* Regular inlined key, only the value will be held in .dat */
 			off -= key.dsize;
 			memcpy(pag + off, key.dptr, key.dsize);
 			ino[n + 1] = off;
