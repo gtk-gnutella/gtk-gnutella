@@ -2742,7 +2742,10 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 		rs->media = media_mask;
 
-		if (NULL == query && NODE_P_ULTRA == GNET_PROPERTY(current_peermode)) {
+		if (
+			NULL == query && !browse &&
+			NODE_P_ULTRA == GNET_PROPERTY(current_peermode)
+		) {
 			gnet_stats_count_general(GNR_QUERY_HIT_FOR_UNTRACKED_QUERY, +1);
 		}
 
@@ -2792,7 +2795,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 					if (own_query)
 						rc->flags |= SR_DONT_SHOW;
-					rc->flags |= SR_IGNORED;
+					rc->flags |= SR_IGNORED | SR_MEDIA;
 				} else {
 					matching++;
 				}

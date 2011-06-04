@@ -133,6 +133,7 @@ static struct {
 	{ ST_PUSH_PROXY,	N_("proxy") },
 	{ ST_BOGUS,			N_("bogus") },		/**< Bogus IP address */
 	{ ST_ALIEN,			N_("alien") },		/**< Alien IP address */
+	{ ST_MEDIA,			N_("media") },		/**< Media-type mismatch */
 };
 
 static struct {
@@ -153,6 +154,7 @@ static struct {
 	{ "#2F4F4F", GUI_COLOR_PUSH_PROXY,	{ 0, 0, 0, 0 } }, /* dark slate gray */
 	{ "#7B68EE", GUI_COLOR_PARTIAL_PUSH,{ 0, 0, 0, 0 } }, /* med. slate blue */
 	{ "#DCDC00", GUI_COLOR_PARTIAL,		{ 0, 0, 0, 0 } }, /* yellow */
+	{ "#8B4513", GUI_COLOR_MEDIA,		{ 0, 0, 0, 0 } }, /* chocolate4 */
 	{ "#FFFFFF", GUI_COLOR_BACKGROUND,	{ 0, 0, 0, 0 } }, /* white */
 };
 
@@ -1785,6 +1787,8 @@ search_gui_color_for_record(const record_t * const rc)
 		return GUI_COLOR_MAYBE_SPAM;
 	} else if (rs->status & ST_UNREQUESTED) {
 		return GUI_COLOR_UNREQUESTED;
+	} else if (rc->flags & SR_MEDIA) {
+		return GUI_COLOR_MEDIA;
 	} else if (rc->flags & (SR_IGNORED | SR_OWNED | SR_SHARED)) {
 		return GUI_COLOR_IGNORED;
 	} else if (rc->flags & (SR_DOWNLOADED | SR_PARTIAL)) {
