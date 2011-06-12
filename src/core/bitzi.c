@@ -81,9 +81,9 @@
 
 #define BITZI_XML_MAXLEN		16384
 #define BITZI_DB_CACHE_SIZE		32
-#define BITZI_SYNC_PERIOD		(60 * 1000)		/** ms: 1 minute */
-#define BITZI_PRUNE_PERIOD		(3600 * 1000)	/** ms: 1 hour */
-#define BITZI_HEARTBEAT_PERIOD	(5 * 1000)		/** ms: 5 secs */
+#define BITZI_SYNC_PERIOD		(60 * 1000)			/** ms: 1 minute */
+#define BITZI_PRUNE_PERIOD		(24 * 3600 * 1000)	/** ms: 1 day */
+#define BITZI_HEARTBEAT_PERIOD	(5 * 1000)			/** ms: 5 secs */
 
 static const char bitzi_url_fmt[] =
 	"http://ticket.bitzi.com/rdf/urn:sha1:%s?ref=gtk-gnutella";
