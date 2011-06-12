@@ -2248,6 +2248,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					seen_bitprint = TRUE;
 					paylen = ext_paylen(e);
 					if (paylen >= BITPRINT_BASE32_SIZE) {
+						paylen -= (SHA1_BASE32_SIZE + 1);	/* include '.' */
 						paylen = MIN(paylen, TTH_BASE32_SIZE);
 						payload = ext_payload(e);
 						if (
@@ -2294,6 +2295,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 							g_debug("huge_tth_extract32() failed");
 						}
 					}
+					break;
+				case EXT_T_URN_UNKNOWN:
+					/* Silently ignore unknown URNs like urn:ed2khash */
 					break;
 				case EXT_T_GGEP_TT:	/* TTH (binary) */
 					paylen = ext_paylen(e);
@@ -6483,6 +6487,7 @@ search_request_preprocess(struct gnutella_node *n, search_request_info_t *sri)
 
 			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
 			case EXT_T_URN_SHA1:
+			case EXT_T_URN_BITPRINT:
 			case EXT_T_GGEP_u:			/* We handle sha1 / bitprint only */
 				sha1 = &sri->exv_sha1[sri->exv_sha1cnt].sha1;
 
@@ -6522,7 +6527,10 @@ search_request_preprocess(struct gnutella_node *n, search_request_info_t *sri)
 							NODE_M_EXT_CLEANUP | NODE_M_STRIP_GGEP_u;
 						continue;
 					}
-				} else if (EXT_T_URN_SHA1 == e->ext_token) {
+				} else if (
+					EXT_T_URN_SHA1 == e->ext_token ||
+					EXT_T_URN_BITPRINT == e->ext_token
+				) {
 					size_t paylen = ext_paylen(e);
 
 					/*
@@ -6537,6 +6545,17 @@ search_request_preprocess(struct gnutella_node *n, search_request_info_t *sri)
 					if (paylen == 0) {
 						n->msg_flags |= NODE_M_EXT_CLEANUP;
 						continue;				/* A simple "urn:sha1:" */
+					}
+
+					/*
+					 * Handle urn:bitprint: as if it were urn:sha1 by only
+					 * parsing the leading SHA1 part.
+					 */
+
+					if (EXT_T_URN_BITPRINT == e->ext_token) {
+						paylen = MIN(paylen, SHA1_BASE32_SIZE);
+						/* Request cleanup to rewrite as urn:sha1 */
+						n->msg_flags |= NODE_M_EXT_CLEANUP;
 					}
 
 					if (
@@ -6566,6 +6585,15 @@ search_request_preprocess(struct gnutella_node *n, search_request_info_t *sri)
 
 			case EXT_T_UNKNOWN_GGEP:
 				search_log_ggep(n, e, NULL, "unknown");
+				break;
+
+			case EXT_T_URN_TTH:
+			case EXT_T_URN_UNKNOWN:
+				/*
+				 * Silently ignore unknown URNs like urn:ed2khash or urn:md5,
+				 * and rewrite query to remove them if we have to forward.
+				 */
+				n->msg_flags |= NODE_M_EXT_CLEANUP;
 				break;
 
 			case EXT_T_UNKNOWN:
@@ -7589,7 +7617,10 @@ search_compact(struct gnutella_node *n)
 				case EXT_T_URN_EMPTY:
 					break;					/* Don't emit empty "urn:" */
 				case EXT_T_URN_BAD:
+				case EXT_T_URN_UNKNOWN:
 					break;					/* Don't emit, obviously! */
+				case EXT_T_URN_TTH:
+					break;					/* Only the TTH root, skip */
 				case EXT_T_URN_SHA1:
 					{
 						size_t paylen = ext_paylen(e);
@@ -7598,16 +7629,36 @@ search_compact(struct gnutella_node *n)
 					}
 					/* FALL THROUGH */
 				case EXT_T_URN_BITPRINT:
-				case EXT_T_URN_TTH:
 					{
-						const char *prefix = ext_huge_urn_name(e);
+						size_t paylen = ext_paylen(e);
 						size_t w;
 
-						w = g_strlcpy(p, prefix, end - p);
+						/*
+						 * We force an urn:sha1: in the queries because sending
+						 * bitprints is a waste of space: legacy servents will
+						 * not understand this larger URN and moreoever URN
+						 * queries are deprecated and should now be done via
+						 * the DHT.
+						 *		--RAM, 2011-06-12
+						 */
+
+						if (
+							GNET_PROPERTY(query_debug) > 2 &&
+							EXT_T_URN_SHA1 != e->ext_token
+						) {
+							const char *prefix = ext_huge_urn_name(e);
+							g_debug("QUERY %s rewriting %s as urn:sha1",
+								guid_hex_str(
+									gnutella_header_get_muid(&n->header)),
+								prefix);
+						}
+
+						w = g_strlcpy(p, "urn:sha1", end - p);
 						p += w;
 						*p++ = ':';
-						memcpy(p, ext_payload(e), ext_paylen(e));
-						p += ext_paylen(e);
+						paylen = MIN(paylen, SHA1_BASE32_SIZE);
+						memcpy(p, ext_payload(e), paylen);
+						p += paylen;
 						*p++ = HUGE_FS;
 					}
 				default:
