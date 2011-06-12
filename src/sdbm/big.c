@@ -391,6 +391,7 @@ fetch_bitbuf(DBM *db, long num)
 			memset(dbg->bitbuf, 0, BIG_BLKSIZE);
 		}
 		dbg->bitbno = bno;
+		dbg->bitbuf_dirty = FALSE;
 	} else {
 		dbg->bitbno_hit++;
 	}
