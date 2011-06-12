@@ -2703,8 +2703,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	{
 		host_addr_t c_addr;
 
-		str_destroy_null(&info);
-
 		/*
 		 * Prefer an UDP source IP for the country computation.
 		 *
@@ -2813,6 +2811,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	}
 
 	search_results_identify_spam(rs);
+	str_destroy_null(&info);
 
 	return rs;
 
