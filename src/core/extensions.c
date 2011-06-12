@@ -716,36 +716,35 @@ ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 
 		name_start = p;
 		name_end = memchr(p, ':', end - name_start);
-		name_len = (name_end != NULL) ? name_end - name_start : 0;
 
 		/*
 		 * Some broken servents don't include the trailing ':', which is a
-		 * mistake.  Try to accomodate them by lookup up to the next HUGE
+		 * mistake.  Try to accomodate them by looking up the next HUGE
 		 * field separator.
 		 */
 
-		if (NULL == name_end || name_len >= sizeof name_buf) {
+		if (NULL == name_end) {
 			name_end = memchr(p, HUGE_FS, end - name_start);
-			name_len = (name_end != NULL) ? name_end - name_start : 0;
 		}
 
-		/* Not found, empty name or too long */
-		if (0 == name_len || name_len >= sizeof name_buf)
-			return 0;
+		name_len = (name_end != NULL) ? name_end - name_start : 0;
 
-		memcpy(name_buf, name_start, name_len);
-		name_buf[name_len] = '\0';
-
-		/*
-		 * Lookup the token.
-		 */
-
-		token = rw_urn_screen(name_buf, &name);
-		p = &name_end[1];
+		if (0 == name_len) {
+			return 0;			/* No sperator found, extension is weird */
+		} else if (name_len >= sizeof name_buf) {
+			/* We shall treat this URN extension as being unknown */
+			token = EXT_T_URN_UNKNOWN;
+		} else {
+			/* Lookup the name token to determine the URN type */
+			memcpy(name_buf, name_start, name_len);
+			name_buf[name_len] = '\0';
+			token = rw_urn_screen(name_buf, &name);
+		}
+		p = &name_end[1];	/* Skip the ':' following the URN name */
 	}
 
 	/*
-	 * Now extract the payload (must be made of alphanum chars),
+	 * Now extract the payload (must be made of alphanum chars or '.'),
 	 * until we reach a delimiter (NUL byte, GGEP header, GEM separator).
 	 * NB: of those, only GGEP_MAGIC could be "alnum" under some locales.
 	 */
@@ -753,7 +752,7 @@ ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 	payload_start = p;
 	for (/* NOTHING*/; p < end; p++) {
 		guchar c = *p;
-		if (!is_ascii_alnum(c) || c == GGEP_MAGIC) {
+		if (!(is_ascii_alnum(c) || '.' == c) || c == GGEP_MAGIC) {
 			break;
 		}
 	}
