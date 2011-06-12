@@ -329,7 +329,11 @@ rw_ggep_screen(char *word, const char **retkw)
 static ext_token_t
 rw_urn_screen(const char *word, const char **retkw)
 {
-	return rw_screen(FALSE, urntable, G_N_ELEMENTS(urntable), word, retkw);
+	ext_token_t t;
+
+	t = rw_screen(FALSE, urntable, G_N_ELEMENTS(urntable), word, retkw);
+
+	return EXT_T_UNKNOWN == t ? EXT_T_URN_UNKNOWN : t;
 }
 
 /***
@@ -1913,6 +1917,7 @@ ext_huge_urn_name(const extvec_t *e)
 	case EXT_T_URN_SHA1:		return "urn:sha1";
 	case EXT_T_URN_TTH:			return "urn:ttroot";
 	case EXT_T_URN_EMPTY:		return "urn";
+	case EXT_T_URN_UNKNOWN:		return "urn:*";		/* Parsed but unknown */
 	default:					return "";
 	}
 }
@@ -2026,6 +2031,7 @@ ext_to_string_buf(const extvec_t *e, char *buf, size_t len)
 			case EXT_T_URN_BITPRINT:
 			case EXT_T_URN_SHA1:
 			case EXT_T_URN_TTH:
+			case EXT_T_URN_UNKNOWN:
 			case EXT_T_URN_EMPTY:		what = ext_huge_urn_name(e); break;
 			case EXT_T_URN_BAD:			what = "bad URN"; break;
 			default:					what = "<unknown>"; break;
