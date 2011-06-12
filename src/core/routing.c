@@ -110,6 +110,7 @@ struct message {
 	GSList *ttls;				/**< For broadcasted messages: TTL by route */
 	guint8 function;			/**< Type of the message */
 	guint8 ttl;					/**< Max TTL we saw for this message */
+	guint8 chunk_idx;			/**< Index of chunk holding the slot */
 };
 
 /**
@@ -148,7 +149,7 @@ static const char *debug_msg[256];
 /*
  * Routing table data structures.
  *
- * This is known as the message_array[].  It used to be a fixed-sized
+ * This is known as the "message_array[]".  It used to be a fixed-sized
  * array, but it is no more.  Instead, we use an array of chunks that
  * are dynamically allocated as needed.  The aim is to not cycle
  * back to the beginning of the table, loosing all the routing information
@@ -161,8 +162,8 @@ static const char *debug_msg[256];
  */
 
 #define CHUNK_BITS			14 	  /**< log2 of # messages stored  in a chunk */
-#define MAX_CHUNKS			32	  /**< Max # of chunks */
-#define TABLE_MIN_CYCLE		1800  /**< 30 minutes at least */
+#define MAX_CHUNKS			64	  /**< Max # of chunks */
+#define TABLE_MIN_CYCLE		3600  /**< 1 hour at least */
 
 #define CHUNK_MESSAGES		(1 << CHUNK_BITS)
 #define CHUNK_INDEX(x)		(((x) & ~(CHUNK_MESSAGES - 1)) >> CHUNK_BITS)
@@ -751,14 +752,20 @@ clean_entry(struct message *entry)
  * @return message entry to use
  */
 static struct message *
-prepare_entry(struct message **entryp)
+prepare_entry(struct message **entryp, unsigned chunk_idx)
 {
 	struct message *entry = *entryp;
+
+	STATIC_ASSERT(MAX_CHUNKS <= MAX_INT_VAL(guint8));
+
+	g_assert(uint_is_non_negative(chunk_idx));
+	g_assert(chunk_idx < MAX_CHUNKS);
 
 	if (entry == NULL) {
 		WALLOC0(entry);
 		*entryp = entry;
 		entry->slot = entryp;
+		entry->chunk_idx = chunk_idx;	/* 8-bit value, must fit */
 		routing.count++;
 		goto done;
 	}
@@ -772,19 +779,52 @@ prepare_entry(struct message **entryp)
 	clean_entry(entry);
 
 done:
-	g_assert(entry->slot == entryp);
+	g_assert(entryp == entry->slot);
+	g_assert(chunk_idx == entry->chunk_idx);
+
 
 	return entry;
 }
 
 /**
+ * Advance slot index so that a call to get_next_slot() will return the
+ * next available slot.
+ */
+static void
+advance_slot(void)
+{
+	/*
+	 * It's OK to go beyond the last allocated chunk (a new chunk will
+	 * be allocated next time) unless we already reached the last chunk.
+	 */
+
+	routing.next_idx++;
+
+	if (CHUNK_INDEX(routing.next_idx) >= MAX_CHUNKS)
+		routing.next_idx = 0;		/* Will force cycling over next time */
+}
+
+/**
  * Fetch next routing table slot, a pointer to a routing entry.
+ *
+ * When `advance' is FALSE, the slot is allocated as usual but there is
+ * no increment of the slot index for next time.  This allows trial allocation
+ * to see where the message will be allocated.  If the slot is kept, the
+ * caller must call advance_slot().
+ *
+ * When `advance' is TRUE, the slot is allocated and the slot index is
+ * incremented immediately.
+ *
+ * @param advance		whether to advance the slot index
+ * @param cidx			if non-NULL, filled with the chunk index where slot is
+ *
+ * @return the address of the allocated slot.
  */
 static struct message **
-get_next_slot(void)
+get_next_slot(gboolean advance, unsigned *cidx)
 {
-	guint idx;
-	guint chunk_idx;
+	unsigned idx;
+	unsigned chunk_idx;
 	struct message **chunk;
 	struct message **slot = NULL;
 	time_t now = tm_time();
@@ -854,15 +894,11 @@ get_next_slot(void)
 	g_assert(idx == UNSIGNED(routing.next_idx));
 	g_assert(idx < UNSIGNED(routing.capacity));
 
-	/*
-	 * It's OK to go beyond the last allocated chunk (a new chunk will
-	 * be allocated next time) unless we already reached the last chunk.
-	 */
+	if (advance)
+		advance_slot();
 
-	routing.next_idx++;
-
-	if (CHUNK_INDEX(routing.next_idx) >= MAX_CHUNKS)
-		routing.next_idx = 0;		/* Will force cycling over next time */
+	if (cidx != NULL)
+		*cidx = chunk_idx;
 
 	return slot;
 }
@@ -874,9 +910,10 @@ static struct message *
 get_next_entry(void)
 {
 	struct message **slot;
+	unsigned chunk_idx;
 
-	slot = get_next_slot();
-	return prepare_entry(slot);
+	slot = get_next_slot(TRUE, &chunk_idx);
+	return prepare_entry(slot, chunk_idx);
 }
 
 /**
@@ -891,6 +928,7 @@ revitalize_entry(struct message *entry, gboolean force)
 {
 	struct message **relocated;
 	struct message *prev;
+	unsigned chunk_idx;
 
 	/*
 	 * Leaves don't route anything, so we usually don't revitalize its
@@ -905,18 +943,24 @@ revitalize_entry(struct message *entry, gboolean force)
 	 * Relocate at the end of the table, preventing early expiration.
 	 */
 
-	relocated = get_next_slot();
+	relocated = get_next_slot(FALSE, &chunk_idx);
 
-	if (entry->slot == relocated)			/* Same slot being used */
+	/*
+	 * If slot is allocated in the same chunk, there's no need to revitalize.
+	 */
+
+	if (chunk_idx == entry->chunk_idx)			/* Same chunk being used */
 		return;
 
 	/*
 	 * Clean and reclaim new slot content, if present.
 	 */
 
+	advance_slot();							/* Keeping the slot */
 	prev = *relocated;
 
 	if (prev != NULL) {
+		g_assert(chunk_idx == prev->chunk_idx);
 		clean_entry(prev);
 		WFREE(prev);
 		routing.count--;
@@ -929,6 +973,7 @@ revitalize_entry(struct message *entry, gboolean force)
 	*relocated = entry;
 	*(entry->slot) = NULL;					/* Old slot "freed" */
 	entry->slot = relocated;				/* Entry now at new slot */
+	entry->chunk_idx = chunk_idx;			/* Entry moved to new chunk */
 }
 
 /**
