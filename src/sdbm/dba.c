@@ -100,14 +100,18 @@ pagestat(char *pag,
 
 		pfree = offset(ino[n]) - (n + 1) * sizeof(short);
 
-		printf(
-			"%3d entries, %2d%% used, keys %3d, values %3d, free %3d%s%s%s\n",
-		       n / 2, ((DBM_PBLKSIZ - pfree) * 100) / DBM_PBLKSIZ,
-			   keysize, valsize, pfree,
-			   (DBM_PBLKSIZ - pfree) / (n/2) * (1+n/2) > DBM_PBLKSIZ ?
-					" (LOW)" : "",
-				lk ? " (LKEY)" : "",
-				lv ? " (LVAL)" : "");
+		printf("%3d entries, %2d%% used, keys %3d, values %3d, free %3d%s",
+			n / 2, ((DBM_PBLKSIZ - pfree) * 100) / DBM_PBLKSIZ,
+			keysize, valsize, pfree,
+			(DBM_PBLKSIZ - pfree) / (n/2) * (1+n/2) > DBM_PBLKSIZ ?
+				" (LOW)" : "");
+
+		if (lk != 0)
+			printf(" (LKEY %d)", lk);
+		if (lv != 0)
+			printf(" (LVAL %d)", lv);
+
+		putc('\n', stdout);
 	}
 	if (large_keys)		*large_keys = lk;
 	if (large_values)	*large_values = lv;
