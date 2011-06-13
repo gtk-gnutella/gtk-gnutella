@@ -3143,6 +3143,20 @@ build_search_message(const guid_t *muid, const char *query,
 		}
 	}
 
+	if (is_sha1_search) {
+		/*
+		 * As long as we have to use plain text hash queries instead
+		 * of GGEP H, we need to add a separator between the hash
+		 * and the following GGEP block.
+		 */
+		if (sizeof msg.bytes == msize) {
+			g_warning("dropping too large query \"%s\"", query);
+			goto error;
+		}
+		msg.bytes[msize] = HUGE_FS; /* extension separator */
+		msize++;
+	}
+
 	ggep_stream_init(&gs, &msg.bytes[msize], sizeof msg.bytes - msize);
 
 	/*
@@ -3150,19 +3164,6 @@ build_search_message(const guid_t *muid, const char *query,
 	 */
 
 	if (QUERY_F_OOB_REPLY & flags) {
-		if (is_sha1_search) {
-			/* As long as we have to use plain text hash queries instead
-			 * of GGEP H, we need to add a separator between the hash
-			 * and the following GGEP block.
-			 */
-			if (sizeof msg.bytes == msize) {
-				g_warning("dropping too large query \"%s\"", query);
-				goto error;
-			}
-			msg.bytes[msize] = HUGE_FS; /* extension separator */
-			msize++;
-		}
-
 		/** 
 		 * Indicate support for OOB v3.
 		 * @see http://the-gdf.org/index.php?title=OutOfBandV3
