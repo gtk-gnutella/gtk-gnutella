@@ -3397,13 +3397,8 @@ search_gui_restart_search(search_t *search)
 	search->auto_downloaded = 0;
 	search->duplicates = 0;
 
-	search_gui_start_search(search);
-
 	guc_search_set_create_time(search->search_handle, tm_time());
-	if (!search_gui_is_passive(search)) {
-		guc_search_reissue(search->search_handle);
-	}
-	search_gui_update_status(search);
+	search_gui_start_search(search);
 }
 
 static void

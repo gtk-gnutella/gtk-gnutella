@@ -233,7 +233,6 @@ gboolean guc_search_browse(gnet_search_t,
 	const char *hostname, host_addr_t addr, guint16 port,
 	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags);
 gboolean guc_search_locally(gnet_search_t, const char *query);
-void guc_search_reissue(gnet_search_t);
 void guc_search_close(gnet_search_t);
 void guc_search_start(gnet_search_t);
 void guc_search_stop(gnet_search_t);

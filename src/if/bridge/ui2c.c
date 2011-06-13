@@ -813,12 +813,6 @@ guc_search_locally(gnet_search_t sh, const char *query)
 
 
 void
-guc_search_reissue(gnet_search_t sh)
-{
-	search_reissue(sh);
-}
-
-void
 guc_search_close(gnet_search_t sh)
 {
 	search_close(sh);

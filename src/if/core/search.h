@@ -224,7 +224,6 @@ void search_stop(gnet_search_t);
 gboolean search_is_stopped(gnet_search_t sh);
 */
 
-void search_reissue(gnet_search_t);
 void search_add_kept(gnet_search_t, const struct guid *, guint32 kept);
 
 const char *search_query(gnet_search_t);

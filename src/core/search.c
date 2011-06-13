@@ -271,6 +271,8 @@ static const char WHATS_NEW[] = "What's New?";
 
 static time_t search_last_whats_new;	/**< When we last sent "What's New?" */
 
+static gboolean search_reissue_timeout_callback(gpointer data);
+
 static void
 query_muid_map_init(void)
 {
@@ -3660,19 +3662,79 @@ search_send_packet_all(search_ctrl_t *sch)
 }
 
 /**
- * Called when the reissue timer for any search is triggered.
- *
- * The data given is the search to be reissued.
+ * @return whether search has expired.
  */
 static gboolean
-search_reissue_timeout_callback(gpointer data)
+search_expired(const search_ctrl_t *sch)
 {
-	search_ctrl_t *sch = data;
+	time_t ct;
+	guint lt;
 
 	search_ctrl_check(sch);
 
-	search_reissue(sch->search_handle);
-	return TRUE;
+	ct = sch->create_time;			/* In local (kernel) time */
+	lt = 3600U * sch->lifetime;
+
+	/*
+	 * A lifetime of zero indicates session-only searches.
+	 */
+
+	if (lt) {
+		time_delta_t d;
+
+		d = delta_time(tm_time(), ct);
+		d = MAX(0, d);
+		return UNSIGNED(d) >= lt;
+	}
+	return FALSE;
+}
+
+/**
+ * Allocate a new MUID for a search.
+ *
+ * @param initial indicates whether this is an initial query or a requery.
+ *
+ * @return a new MUID that can be wfree()'d when done.
+ */
+static struct guid * 
+search_new_muid(gboolean initial)
+{
+	struct guid *muid;
+	host_addr_t addr;
+	int i;
+
+	WALLOC(muid);
+
+	/*
+	 * Determine whether this is going to be an OOB query, because we have
+	 * to encode our IP port correctly right now, at MUID selection time.
+	 *
+	 * We allow them to change their mind on `send_oob_queries', as we're not
+	 * testing that flag yet, but if they allow UDP, and have a valid IP,
+	 * we can encode an OOB-compatible MUID.  Likewise, we ignore the
+	 * `is_udp_firewalled' yet, as this can change between now and the time
+	 * we emit the query.
+	 */
+
+	addr = listen_addr();
+
+	for (i = 0; i < 100; i++) {
+		if (
+			udp_active() &&
+			NET_TYPE_IPV4 == host_addr_net(addr) &&
+			host_addr_is_routable(addr)
+		)
+			guid_query_oob_muid(muid, addr, socket_listen_port(), initial);
+		else
+			guid_query_muid(muid, initial);
+
+		if (NULL == g_hash_table_lookup(search_by_muid, muid))
+			return muid;
+	}
+
+	g_error("random number generator not random enough");	/* Sorry */
+
+	return NULL;
 }
 
 static guint32
@@ -3741,6 +3803,79 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	} else {
 		cq_periodic_resched(sch->reissue_ev, tm * 1000);
 	}
+}
+
+/**
+ * Force a reissue of the given search. Restart reissue timer.
+ */
+static void
+search_reissue(search_ctrl_t *sch)
+{
+	struct guid *muid;
+
+	search_ctrl_check(sch);
+	g_return_if_fail(!sbool_get(sch->frozen));
+
+	if (sbool_get(sch->local)) {
+		search_locally(sch->search_handle, sch->query);
+		return;
+	}
+
+	g_return_if_fail(sbool_get(sch->active));
+
+	/*
+	 * If the search has expired, disable any further invocation.
+	 */
+
+	if (search_expired(sch)) {
+		if (GNET_PROPERTY(search_debug))
+			g_debug("expired search \"%s\" (queries broadcasted: %d)",
+				sch->query, sch->query_emitted);
+		sch->frozen = sbool_set(TRUE);
+		wd_sleep(sch->activity);
+		goto done;
+	}
+
+	if (GNET_PROPERTY(search_debug))
+		g_debug("reissuing search \"%s\" (queries broadcasted: %d)",
+			sch->query, sch->query_emitted);
+
+	/*
+	 * When a "broadcasting" search is issued, cancel any running
+	 * backgound "iterating" search as soon as it will be starving...
+	 *
+	 * Otherwise, let it continue its crawl in the background, as we
+	 * may explore ultrapeers that our broadcast may never be reaching.
+	 */
+
+	if (sch->guess != NULL)
+		guess_end_when_starving(sch->guess);
+
+	muid = search_new_muid(FALSE);
+
+	sch->query_emitted = 0;
+	search_add_new_muid(sch, muid);
+	search_send_packet_all(sch);
+
+done:
+	update_one_reissue_timeout(sch);
+}
+
+/**
+ * Called when the reissue timer for any search is triggered.
+ *
+ * The data given is the search to be reissued.
+ */
+static gboolean
+search_reissue_timeout_callback(gpointer data)
+{
+	search_ctrl_t *sch = data;
+
+	search_ctrl_check(sch);
+
+	search_reissue(sch);
+	search_status_changed(sch->search_handle);
+	return TRUE;
 }
 
 #define CLOSED_SEARCH	0xffff
@@ -4660,140 +4795,6 @@ search_close(gnet_search_t sh)
 }
 
 /**
- * Allocate a new MUID for a search.
- *
- * @param initial indicates whether this is an initial query or a requery.
- *
- * @return a new MUID that can be wfree()'d when done.
- */
-static struct guid * 
-search_new_muid(gboolean initial)
-{
-	struct guid *muid;
-	host_addr_t addr;
-	int i;
-
-	WALLOC(muid);
-
-	/*
-	 * Determine whether this is going to be an OOB query, because we have
-	 * to encode our IP port correctly right now, at MUID selection time.
-	 *
-	 * We allow them to change their mind on `send_oob_queries', as we're not
-	 * testing that flag yet, but if they allow UDP, and have a valid IP,
-	 * we can encode an OOB-compatible MUID.  Likewise, we ignore the
-	 * `is_udp_firewalled' yet, as this can change between now and the time
-	 * we emit the query.
-	 */
-
-	addr = listen_addr();
-
-	for (i = 0; i < 100; i++) {
-		if (
-			udp_active() &&
-			NET_TYPE_IPV4 == host_addr_net(addr) &&
-			host_addr_is_routable(addr)
-		)
-			guid_query_oob_muid(muid, addr, socket_listen_port(), initial);
-		else
-			guid_query_muid(muid, initial);
-
-		if (NULL == g_hash_table_lookup(search_by_muid, muid))
-			return muid;
-	}
-
-	g_error("random number generator not random enough");	/* Sorry */
-
-	return NULL;
-}
-
-/**
- * @return whether search has expired.
- */
-static gboolean
-search_expired(const search_ctrl_t *sch)
-{
-	time_t ct;
-	guint lt;
-
-	search_ctrl_check(sch);
-
-	ct = sch->create_time;			/* In local (kernel) time */
-	lt = 3600U * sch->lifetime;
-
-	/*
-	 * A lifetime of zero indicates session-only searches.
-	 */
-
-	if (lt) {
-		time_delta_t d;
-
-		d = delta_time(tm_time(), ct);
-		d = MAX(0, d);
-		return UNSIGNED(d) >= lt;
-	}
-	return FALSE;
-}
-
-/**
- * Force a reissue of the given search. Restart reissue timer.
- */
-void
-search_reissue(gnet_search_t sh)
-{
-    search_ctrl_t *sch = search_find_by_handle(sh);
-	struct guid *muid;
-
-	search_ctrl_check(sch);
-	g_return_if_fail(!sbool_get(sch->frozen));
-
-	if (sbool_get(sch->local)) {
-		search_locally(sh, sch->query);
-		return;
-	}
-
-	g_return_if_fail(sbool_get(sch->active));
-
-	/*
-	 * If the search has expired, disable any further invocation.
-	 */
-
-	if (search_expired(sch)) {
-		if (GNET_PROPERTY(search_debug))
-			g_debug("expired search \"%s\" (queries broadcasted: %d)",
-				sch->query, sch->query_emitted);
-		sch->frozen = sbool_set(TRUE);
-		wd_sleep(sch->activity);
-		goto done;
-	}
-
-	if (GNET_PROPERTY(search_debug))
-		g_debug("reissuing search \"%s\" (queries broadcasted: %d)",
-			sch->query, sch->query_emitted);
-
-	/*
-	 * When a "broadcasting" search is issued, cancel any running
-	 * backgound "iterating" search as soon as it will be starving...
-	 *
-	 * Otherwise, let it continue its crawl in the background, as we
-	 * may explore ultrapeers that our broadcast may never be reaching.
-	 */
-
-	if (sch->guess != NULL)
-		guess_end_when_starving(sch->guess);
-
-	muid = search_new_muid(FALSE);
-
-	sch->query_emitted = 0;
-	search_add_new_muid(sch, muid);
-	search_send_packet_all(sch);
-
-done:
-	update_one_reissue_timeout(sch);
-	search_status_changed(sch->search_handle);
-}
-
-/**
  * Indicates that the search is starting: we're emitting the query.
  */
 void
@@ -5190,30 +5191,18 @@ search_start(gnet_search_t sh)
     sch->frozen = sbool_set(FALSE);
 
     if (sbool_get(sch->active)) {
-		/*
-		 * If we just created the search with search_new(), there will be
-		 * no message ever sent, and sch->muids will be NULL.
-		 */
-
-		if (sch->muids == NULL) {
-			struct guid *muid;
-
-			muid = search_new_muid(TRUE);
-			search_add_new_muid(sch, muid);
-			search_send_packet_all(sch);		/* Send initial query */
-		}
-        update_one_reissue_timeout(sch);
+		search_reissue(sch);
 	}
-	search_status_changed(sch->search_handle);
+	search_status_changed(sh);
 }
 
 /**
  * Stop search. Cancel reissue timer and don't return any results anymore.
  */
 void
-search_stop(gnet_search_t search_handle)
+search_stop(gnet_search_t sh)
 {
-    search_ctrl_t *sch = search_find_by_handle(search_handle);
+    search_ctrl_t *sch = search_find_by_handle(sh);
 
 	search_ctrl_check(sch);
 
@@ -5227,7 +5216,7 @@ search_stop(gnet_search_t search_handle)
     if (sbool_get(sch->active)) {
 		update_one_reissue_timeout(sch);
 	}
-	search_status_changed(sch->search_handle);
+	search_status_changed(sh);
 }
 
 /*
