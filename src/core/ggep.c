@@ -471,7 +471,7 @@ ggep_stream_end(ggep_stream_t *gs)
 			if (!ok)
 				goto cleanup;
 		} else if (GNET_PROPERTY(ggep_debug) > 3)
-			g_warning("GGEP \"%.*s\" compressed %d bytes into %d",
+			g_debug("GGEP \"%.*s\" compressed %d bytes into %d",
 				(int) (*gs->fp & GGEP_F_IDLEN),
 				gs->fp + 1, (int) ilen, (int) plen);
 	}
@@ -578,7 +578,7 @@ ggep_stream_end(ggep_stream_t *gs)
 		hlen[1] = GGEP_L_CONT | ((plen >> GGEP_L_VSHIFT) & GGEP_L_VALUE);
 		hlen[2] = GGEP_L_LAST | (plen & GGEP_L_VALUE);
 	} else {
-		g_warning("too large GGEP payload length (%d bytes) for \"%.*s\"",
+		g_carp("too large GGEP payload length (%d bytes) for \"%.*s\"",
 			(int) plen, (int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1);
 		goto cleanup;
 	}
