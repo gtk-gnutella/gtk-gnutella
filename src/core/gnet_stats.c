@@ -684,7 +684,6 @@ gnet_stats_count_expired(const gnutella_node_t *n)
 #define DROP_STATS(gs,t,s) do {							\
     if (												\
         (reason == MSG_DROP_ROUTE_LOST) ||				\
-        (reason == MSG_DROP_DUPLICATE) ||				\
         (reason == MSG_DROP_NO_ROUTE)					\
     )													\
         gnet_stats.general[GNR_ROUTING_ERRORS]++;		\
