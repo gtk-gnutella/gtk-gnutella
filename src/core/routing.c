@@ -174,6 +174,7 @@ static struct {
 	int next_idx;				 /**< Next slot to use in "message_array[]" */
 	int capacity;				 /**< Capacity in terms of messages */
 	int count;					 /**< Amount really stored */
+	unsigned nchunks;			 /**< Amount of allocated chunks */
 	GHashTable *messages_hashed; /**< All messages (key = struct message) */
 	time_t last_rotation;		 /**< Last time we restarted from idx=0 */
 } routing;
@@ -734,6 +735,8 @@ init_routing_data(struct gnutella_node *node)
 static void
 clean_entry(struct message *entry)
 {
+	g_assert(entry != NULL);
+
 	g_hash_table_remove(routing.messages_hashed, entry);
 
 	if (entry->routes != NULL)
@@ -837,6 +840,44 @@ get_next_slot(gboolean advance, unsigned *cidx)
 
 	chunk = routing.chunks[chunk_idx];
 
+	/*
+	 * If we've taken more than TABLE_MIN_CYCLE seconds since the last
+	 * rotation and reach the start of the last allocated chunk, it means we
+	 * have more chunks than we need.  Discard that last chunk before rotating.
+	 */
+
+	if (
+		chunk != NULL && elapsed > TABLE_MIN_CYCLE &&
+		0 == ENTRY_INDEX(idx) && chunk_idx == routing.nchunks - 1
+	) {
+		size_t i;
+
+		if (GNET_PROPERTY(routing_debug)) {
+			g_debug("RT freeing chunk #%d, now holds %d / %d",
+				chunk_idx, routing.count, routing.capacity);
+		}
+
+		for (i = 0; i < CHUNK_MESSAGES; i++) {
+			struct message *m = chunk[i];
+
+			if (m != NULL) {
+				g_assert(m->chunk_idx == chunk_idx);
+				clean_entry(m);
+				WFREE(m);
+				routing.count--;
+			}
+		}
+
+		routing.nchunks--;
+		routing.capacity -= CHUNK_MESSAGES;
+		HFREE_NULL(routing.chunks[chunk_idx]);
+		chunk = NULL;
+
+		g_assert(uint_is_non_negative(routing.nchunks));
+
+		/* FALL THROUGH */
+	}
+
 	if (chunk == NULL) {
 
 		g_assert(idx >= UNSIGNED(routing.capacity));
@@ -861,7 +902,9 @@ get_next_slot(gboolean advance, unsigned *cidx)
 			 */
 
 			g_assert(idx == 0 || chunk_idx > 0);
+			g_assert(chunk_idx == routing.nchunks);
 
+			routing.nchunks++;
 			routing.capacity += CHUNK_MESSAGES;
 			routing.chunks[chunk_idx] =
 				halloc0(CHUNK_MESSAGES * sizeof(struct message *));
@@ -881,7 +924,7 @@ get_next_slot(gboolean advance, unsigned *cidx)
 		 * because we have already allocated the maximum amount of chunks.
 		 */
 
-		if (idx == 0) {
+		if (0 == idx && MAX_CHUNKS == routing.nchunks) {
 			if (GNET_PROPERTY(routing_debug))
 				g_warning("RT cycling over FORCED, elapsed=%u, holds %d / %d",
 					(unsigned) elapsed, routing.count, routing.capacity);
@@ -893,6 +936,7 @@ get_next_slot(gboolean advance, unsigned *cidx)
 	g_assert(slot != NULL);
 	g_assert(idx == UNSIGNED(routing.next_idx));
 	g_assert(idx < UNSIGNED(routing.capacity));
+	g_assert(routing.nchunks <= MAX_CHUNKS);
 
 	if (advance)
 		advance_slot();
