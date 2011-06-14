@@ -53,6 +53,7 @@ struct route_dest {
 		struct gnutella_node *u_node;
 		GSList *u_nodes;	/**< For ROUTE_MULTI */
 	} ur;
+	unsigned duplicate:1;	/**< Set if message was a duplicate */
 };
 
 /**

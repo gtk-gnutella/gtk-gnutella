@@ -1827,7 +1827,7 @@ check_duplicate(struct route_log *route_log, struct gnutella_node **node,
 			}
 		} else {
 			if (m->routes == NULL)
-				routing_log_extra(route_log, "dup message, original route lost");
+				routing_log_extra(route_log, "dup message, all routes lost");
 			else
 				routing_log_extra(route_log, "dup message");
 		}
@@ -1884,7 +1884,7 @@ check_duplicate(struct route_log *route_log, struct gnutella_node **node,
 			routing_log_extra(route_log, "dup OOB query (from the same node!)");
 		} else {
 			if (m->routes == NULL)
-				routing_log_extra(route_log, "dup OOB query, original route lost");
+				routing_log_extra(route_log, "dup OOB query, all routes lost");
 			else
 				routing_log_extra(route_log, "dup OOB query");
 		}
@@ -2352,7 +2352,6 @@ handle:
 	return TRUE;
 }
 
-
 /**
  * Main route computation function.
  *
@@ -2383,6 +2382,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	g_assert(function != QUERY_HIT_ROUTE_SAVE);
 
 	dest->type = ROUTE_NONE;
+	dest->duplicate = FALSE;
 
 	routing_log_init(&route_log, sender,
 		gnutella_header_get_muid(&sender->header),
@@ -2413,7 +2413,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	case GTA_MSG_PUSH_REQUEST:
 	case GTA_MSG_SEARCH:
 		route_it = check_duplicate(&route_log, node, mangled, &m);
-		duplicate = (m != NULL);
+		dest->duplicate = duplicate = booleanize(m != NULL);
 
 		/*
 		 * Record the message in the routing table.

@@ -6227,9 +6227,9 @@ search_request_info_free_null(search_request_info_t **sri_ptr)
 /**
  * Preprocesses searches requests (from others nodes).
  *
- * This is called before route_message(), so TTL and hops hold the values
- * that were set by the sender, i.e. they have not been adjusted to mark
- * the passage at our node yet.
+ * This is called after route_message(), so TTL and hops do not hold the values
+ * that were set by the sender, i.e. they have been adjusted to mark the
+ * passage at our node.
  *
  * @return TRUE if the query should be discarded, FALSE if everything was OK.
  */
@@ -6638,14 +6638,14 @@ search_request_preprocess(struct gnutella_node *n, search_request_info_t *sri)
 		 * Because "What's New?" queries are broadcasted broadly, we must
 		 * restrict their scope to the close vincinity of the issuer.
 		 * Enforce a maximum of 2 hops (plus all the leaves at destination).
-		 * Remember: we haven't decremented the TTL and increased the hop count
+		 * Remember: we have decremented the TTL and increased the hop count
 		 * at this stage.
 		 */
 
 		if (
 			sri->whats_new &&
-			gnutella_header_get_hops(&n->header) >= 1 &&
-			gnutella_header_get_ttl(&n->header) > 1
+			gnutella_header_get_hops(&n->header) >= 2 &&
+			gnutella_header_get_ttl(&n->header) > 0
 		) {
 			if (GNET_PROPERTY(query_debug) > 1) {
 				g_debug("QUERY %s%s [hops=%u, TTL=%u] \"%s\" "
@@ -6655,6 +6655,7 @@ search_request_preprocess(struct gnutella_node *n, search_request_info_t *sri)
 					gnutella_header_get_hops(&n->header),
 					gnutella_header_get_ttl(&n->header), WHATS_NEW);
 			}
+			/* Message will not be forwarded -- see gmsg_sendto_route() */
 			gnutella_header_set_ttl(&n->header, 0);
 		}
 
@@ -6699,30 +6700,31 @@ search_request_preprocess(struct gnutella_node *n, search_request_info_t *sri)
 			 * not be propagated to other ultrapeeers, only local leaves.
 			 */
 
-			if (1 != gnutella_header_get_ttl(&n->header)) {
+			if (0 != gnutella_header_get_ttl(&n->header)) {
 				if (GNET_PROPERTY(guess_server_debug)) {
 					g_warning("GUESS node %s sent query MUID=%s with TTL=%u, "
-						"adjusting to 1 before handling routing",
+						"dropping",
 						node_infostr(n),
 						guid_hex_str(gnutella_header_get_muid(&n->header)),
-						gnutella_header_get_ttl(&n->header));
+						gnutella_header_get_ttl(&n->header) + 1);
 				}
-				gnutella_header_set_ttl(&n->header, 1);
+				/* Message will not be forwarded -- see gmsg_sendto_route() */
+				gnutella_header_set_ttl(&n->header, 0);
 			}
 
 			/*
-			 * Enforce hops=0 since a GUESS query is not relayed.
+			 * Enforce sending with hops=0 since a GUESS query is not relayed.
 			 */
 
-			if (0 != gnutella_header_get_hops(&n->header)) {
+			if (1 != gnutella_header_get_hops(&n->header)) {
 				if (GNET_PROPERTY(guess_server_debug)) {
 					g_warning("GUESS node %s sent query MUID=%s with hops=%u, "
-						"adjusting to 0 before handling routing",
+						"adjusting to 1 before forwarding",
 						node_infostr(n),
 						guid_hex_str(gnutella_header_get_muid(&n->header)),
-						gnutella_header_get_hops(&n->header));
+						gnutella_header_get_hops(&n->header) - 1);
 				}
-				gnutella_header_set_hops(&n->header, 0);
+				gnutella_header_set_hops(&n->header, 1);
 			}
 
 			/*

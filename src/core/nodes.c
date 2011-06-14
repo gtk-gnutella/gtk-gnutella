@@ -7321,21 +7321,6 @@ node_parse(struct gnutella_node *n)
 			}
 		}
 		goto reset_header;
-	case GTA_MSG_SEARCH:
-			/* Only handle if no unknown header flags */
-			if (0 != n->header_flags)
-				break;
-
-            /*
-             * search_request_preprocess() takes care of telling the stats that
-             * the message was dropped.
-			 */
-
-			sri = search_request_info_alloc();
-		 	if (search_request_preprocess(n, sri))
-				goto reset_header;
-
-			break;
 	case GTA_MSG_SEARCH_RESULTS:	/* "semi-pongs" */
 		if (host_low_on_pongs) {
 			host_addr_t addr;
@@ -7377,6 +7362,19 @@ route_only:
 				break;
 
             /*
+             * search_request_preprocess() takes care of telling the stats
+			 * that the message was dropped.
+			 *
+			 * If at pre-processing time we find out that the message should
+			 * really be dropped, it will not be processed locally nor will
+			 * it be routed, despite route_message() having been called.
+			 */
+
+			sri = search_request_info_alloc();
+		 	if (search_request_preprocess(n, sri))
+				goto reset_header;
+
+            /*
              * search_request() takes care of telling the stats that
              * the message was dropped.
 			 *
@@ -7415,6 +7413,27 @@ route_only:
 			if (GNET_PROPERTY(node_debug) && !n->header_flags)
 				message_dump(n);
 			break;
+		}
+	} else if (n != NULL) {
+		/*
+		 * We don't handle the message but if we have to forward it and it is
+		 * a duplicate, extra checks are called for to ensure we don't resend
+		 * a bad message.
+		 */
+
+		if (dest.type != ROUTE_NONE && dest.duplicate) {
+			switch (gnutella_header_get_function(&n->header)) {
+			case GTA_MSG_SEARCH:
+				if (0 == n->header_flags) {
+					sri = search_request_info_alloc();
+					if (search_request_preprocess(n, sri))
+						goto reset_header;
+					/* Message is good, will forward it */
+				}
+				break;
+			default:
+				break;
+			}
 		}
 	}
 
