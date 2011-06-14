@@ -842,36 +842,40 @@ get_next_slot(gboolean advance, unsigned *cidx)
 
 	/*
 	 * If we've taken more than TABLE_MIN_CYCLE seconds since the last
-	 * rotation and reach the start of the last allocated chunk, it means we
-	 * have more chunks than we need.  Discard that last chunk before rotating.
+	 * rotation and reach the start of an allocated chunk, it means we
+	 * have more chunks than we need.  Discard all remaining chunks before
+	 * rotating.
 	 */
 
-	if (
-		chunk != NULL && elapsed > TABLE_MIN_CYCLE &&
-		0 == ENTRY_INDEX(idx) && chunk_idx == routing.nchunks - 1
-	) {
+	if (chunk != NULL && elapsed > TABLE_MIN_CYCLE && 0 == ENTRY_INDEX(idx)) {
 		size_t i;
 
-		if (GNET_PROPERTY(routing_debug)) {
-			g_debug("RT freeing chunk #%d, now holds %d / %d",
-				chunk_idx, routing.count, routing.capacity);
-		}
+		for (i = chunk_idx; i < routing.nchunks; i++) {
+			struct message **rchunk = routing.chunks[i];
+			size_t j;
 
-		for (i = 0; i < CHUNK_MESSAGES; i++) {
-			struct message *m = chunk[i];
-
-			if (m != NULL) {
-				g_assert(m->chunk_idx == chunk_idx);
-				clean_entry(m);
-				WFREE(m);
-				routing.count--;
+			if (GNET_PROPERTY(routing_debug)) {
+				g_debug("RT freeing chunk #%d, now holds %d / %d",
+					i, routing.count, routing.capacity);
 			}
+
+			for (j = 0; j < CHUNK_MESSAGES; j++) {
+				struct message *m = rchunk[j];
+
+				if (m != NULL) {
+					g_assert(m->chunk_idx == i);
+					clean_entry(m);
+					WFREE(m);
+					routing.count--;
+				}
+			}
+
+			routing.capacity -= CHUNK_MESSAGES;
+			HFREE_NULL(routing.chunks[i]);
 		}
 
-		routing.nchunks--;
-		routing.capacity -= CHUNK_MESSAGES;
-		HFREE_NULL(routing.chunks[chunk_idx]);
 		chunk = NULL;
+		routing.nchunks = chunk_idx;
 
 		g_assert(uint_is_non_negative(routing.nchunks));
 
