@@ -791,6 +791,16 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 	struct gnutella_node *rt_node = rt->ur.u_node;
 	const GSList *sl;
 
+	/*
+	 * If during processing (e.g. in search_request_preprocess()) after
+	 * route_message() was called someone is resetting the TTL to 0,
+	 * then it will cause the message to not be sent out, regardless of
+	 * the computed route.
+	 */
+
+	if (0 == gnutella_header_get_ttl(&n->header))
+		return;
+
 	switch (rt->type) {
 	case ROUTE_NONE:
 		return;
