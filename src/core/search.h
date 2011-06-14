@@ -112,7 +112,7 @@ void search_dissociate_browse(gnet_search_t sh, struct download *d);
 void search_browse_results(gnutella_node_t *n, gnet_search_t sh);
 
 gboolean search_request_preprocess(struct gnutella_node *n,
-	search_request_info_t *sri);
+	search_request_info_t *sri, gboolean isdup);
 void search_request(struct gnutella_node *n,
 	const search_request_info_t *sri, struct query_hashvec *qhv);
 size_t compact_query(char *search);

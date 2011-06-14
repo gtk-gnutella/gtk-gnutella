@@ -7371,7 +7371,7 @@ route_only:
 			 */
 
 			sri = search_request_info_alloc();
-		 	if (search_request_preprocess(n, sri))
+		 	if (search_request_preprocess(n, sri, FALSE))
 				goto reset_header;
 
             /*
@@ -7426,7 +7426,7 @@ route_only:
 			case GTA_MSG_SEARCH:
 				if (0 == n->header_flags) {
 					sri = search_request_info_alloc();
-					if (search_request_preprocess(n, sri))
+					if (search_request_preprocess(n, sri, TRUE))
 						goto reset_header;
 					/* Message is good, will forward it */
 				}

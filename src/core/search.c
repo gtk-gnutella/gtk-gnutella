@@ -6231,10 +6231,15 @@ search_request_info_free_null(search_request_info_t **sri_ptr)
  * that were set by the sender, i.e. they have been adjusted to mark the
  * passage at our node.
  *
+ * @param n		the node from which the query comes from (relay)
+ * @param sri	search request information structure filled with parsed data
+ * @param isdup	whether query is known to have been seen with a lower TTL
+ *
  * @return TRUE if the query should be discarded, FALSE if everything was OK.
  */
 gboolean
-search_request_preprocess(struct gnutella_node *n, search_request_info_t *sri)
+search_request_preprocess(struct gnutella_node *n,
+	search_request_info_t *sri, gboolean isdup)
 {
 	static char stmp_1[4096];
 	char *search;
@@ -6790,6 +6795,9 @@ search_request_preprocess(struct gnutella_node *n, search_request_info_t *sri)
 
 	if (sri->whats_new)
 		goto skip_throttling;		/* What's New? queries are exempted */
+
+	if (isdup)
+		goto skip_throttling;		/* We already know message is a dup */
 
 	if (gnutella_header_get_hops(&n->header) == 1 && n->qseen != NULL) {
 		time_t now = tm_time();
