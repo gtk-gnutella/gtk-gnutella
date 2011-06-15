@@ -923,8 +923,8 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 	static host_addr_t peers[3], last_addr_seen;
 	guint i;
 
-	g_return_if_fail(NET_TYPE_IPV4 == host_addr_net(new_addr));
-	g_return_if_fail(NET_TYPE_IPV4 == host_addr_net(peer));
+	g_return_if_fail(host_addr_is_ipv4(new_addr));
+	g_return_if_fail(host_addr_is_ipv4(peer));
 
 	if (GNET_PROPERTY(force_local_ip))
 		return;
@@ -978,8 +978,8 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 	static host_addr_t peers[3], last_addr_seen;
 	guint i;
 
-	g_return_if_fail(NET_TYPE_IPV6 == host_addr_net(new_addr));
-	g_return_if_fail(NET_TYPE_IPV6 == host_addr_net(peer));
+	g_return_if_fail(host_addr_is_ipv6(new_addr));
+	g_return_if_fail(host_addr_is_ipv6(peer));
 
 	if (GNET_PROPERTY(force_local_ip6))
 		return;

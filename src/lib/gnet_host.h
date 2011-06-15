@@ -111,6 +111,18 @@ gnet_host_get_net(const gnet_host_t *h)
 	return h->data.ha.net;
 }
 
+static inline G_GNUC_CONST gboolean
+gnet_host_is_ipv4(const gnet_host_t *h)
+{
+	return NET_TYPE_IPV4 == h->data.ha.net;
+}
+
+static inline G_GNUC_CONST gboolean
+gnet_host_is_ipv6(const gnet_host_t *h)
+{
+	return NET_TYPE_IPV6 == h->data.ha.net;
+}
+
 const char *gnet_host_to_string(const gnet_host_t *h);
 const char *gnet_host_to_string2(const gnet_host_t *h);
 size_t gnet_host_to_string_buf(

@@ -1887,7 +1887,7 @@ vmsg_send_head_pong_v1(struct gnutella_node *n, const struct sha1 *sha1,
 				
 				p = poke_be16(p, hcnt * 6);
 				for (i = 0; i < hcnt; i++) {
-					if (NET_TYPE_IPV4 != gnet_host_get_net(&hvec[i]))
+					if (!gnet_host_is_ipv4(&hvec[i]))
 						continue;
 					p = poke_be32(p,
 							host_addr_ipv4(gnet_host_get_addr(&hvec[i])));
@@ -1979,7 +1979,7 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 					guint16 port;
 					char alt[6];
 
-					if (NET_TYPE_IPV4 != gnet_host_get_net(&hvec[i]))
+					if (!gnet_host_is_ipv4(&hvec[i]))
 						continue;
 
 					addr = gnet_host_get_addr(&hvec[i]);

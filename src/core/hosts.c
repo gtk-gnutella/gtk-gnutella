@@ -485,7 +485,7 @@ host_is_nearby(const host_addr_t addr)
 {
 	guint i;
 
-	if (NET_TYPE_IPV4 == host_addr_net(addr)) {
+	if (host_addr_is_ipv4(addr)) {
 		for (i = 0; i < number_local_networks; i++) {
 			guint32 m_mask = local_networks[i].mask;
 			guint32 m_ip = local_networks[i].net;
@@ -493,7 +493,7 @@ host_is_nearby(const host_addr_t addr)
 			if ((host_addr_ipv4(addr) & m_mask) == (m_ip & m_mask))
 				return TRUE;
 		}
-	} else if (NET_TYPE_IPV6 == host_addr_net(addr)) {
+	} else if (host_addr_is_ipv6(addr)) {
 		/* XXX: Implement this! */
 	}
 	return FALSE;

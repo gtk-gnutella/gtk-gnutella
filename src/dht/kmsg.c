@@ -643,7 +643,7 @@ k_send_find_value_response(
 		}
 
 		/* That's the specs and the 61 above depends on the following... */
-		g_assert(NET_TYPE_IPV4 == host_addr_net(dht_value_creator(v)->addr));
+		g_assert(host_addr_is_ipv4(dht_value_creator(v)->addr));
 
 		dht_value_serialize(mb, v);
 		values++;

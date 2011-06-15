@@ -569,7 +569,7 @@ build_push(guint8 ttl, guint8 hops, const struct guid *guid,
 		}
 	}
 
-	if (is_host_addr(addr_v6) && NET_TYPE_IPV6 == host_addr_net(addr_v6)) {
+	if (is_host_addr(addr_v6) && host_addr_is_ipv6(addr_v6)) {
 		const guint8 *ipv6 = host_addr_ipv6(&addr_v6);
 
 		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0)) {

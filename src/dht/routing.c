@@ -386,7 +386,7 @@ dht_c_class_get_count(knode_t *kn)
 {
 	knode_check(kn);
 
-	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
+	if (!host_addr_is_ipv4(kn->addr))
 		return 0;
 
 	return acct_net_get(c_class, kn->addr, NET_CLASS_C_MASK);
@@ -405,7 +405,7 @@ dht_c_class_update_count(knode_t *kn, int pmone)
 	knode_check(kn);
 	g_assert(pmone == +1 || pmone == -1);
 
-	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
+	if (!host_addr_is_ipv4(kn->addr))
 		return;
 
 	acct_net_update(c_class, kn->addr, NET_CLASS_C_MASK, pmone);
@@ -1755,7 +1755,7 @@ c_class_get_count(knode_t *kn, struct kbucket *kb)
 	g_assert(is_leaf(kb));
 	g_assert(kb->nodes->c_class);
 
-	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
+	if (!host_addr_is_ipv4(kn->addr))
 		return 0;
 
 	return acct_net_get(kb->nodes->c_class, kn->addr, NET_CLASS_C_MASK);
@@ -1778,7 +1778,7 @@ c_class_update_count(knode_t *kn, struct kbucket *kb, int pmone)
 	g_assert(kb->nodes->c_class);
 	g_assert(pmone == +1 || pmone == -1);
 
-	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
+	if (!host_addr_is_ipv4(kn->addr))
 		return;
 
 	acct_net_update(kb->nodes->c_class, kn->addr, NET_CLASS_C_MASK, pmone);

@@ -176,8 +176,8 @@ socket_ipv6_trt_map(const host_addr_t addr)
 {
 	if (
 		GNET_PROPERTY(use_ipv6_trt) &&
-		NET_TYPE_IPV4 == host_addr_net(addr) &&
-		NET_TYPE_IPV6 == host_addr_net(GNET_PROPERTY(ipv6_trt_prefix))
+		host_addr_is_ipv4(addr) &&
+		host_addr_is_ipv6(GNET_PROPERTY(ipv6_trt_prefix))
 	) {
 		host_addr_t ret;
 
@@ -3130,7 +3130,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 
 #if defined(HAS_IPV6) && defined(IPV6_V6ONLY)
 		if (
-			NET_TYPE_IPV6 == host_addr_net(bind_addr) &&
+			host_addr_is_ipv6(bind_addr) &&
 			setsockopt(fd, sol_ipv6(), IPV6_V6ONLY, &enable, sizeof enable)
 		) {
 			g_warning("setsockopt() failed for IPV6_V6ONLY (%s)",

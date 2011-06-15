@@ -1898,7 +1898,7 @@ lookup_c_class_get_count(const nlookup_t *nl, const knode_t *kn)
 	lookup_check(nl);
 	knode_check(kn);
 
-	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
+	if (!host_addr_is_ipv4(kn->addr))
 		return 0;
 
 	return acct_net_get(nl->c_class, kn->addr, NET_CLASS_C_MASK);
@@ -1918,7 +1918,7 @@ lookup_c_class_update_count(const nlookup_t *nl, const knode_t *kn, int pmone)
 	knode_check(kn);
 	g_assert(pmone == +1 || pmone == -1);
 	
-	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
+	if (!host_addr_is_ipv4(kn->addr))
 		return;
 
 	acct_net_update(nl->c_class, kn->addr, NET_CLASS_C_MASK, pmone);

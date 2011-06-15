@@ -1051,7 +1051,7 @@ validate_creator(const knode_t *sender, const dht_value_t *v)
 		what = "version number";
 		goto mismatch;
 	}
-	if (NET_TYPE_IPV4 != host_addr_net(creator->addr)) {
+	if (!host_addr_is_ipv4(creator->addr)) {
 		what = "creator must use an IPv4 address";
 		goto wrong;
 	}
@@ -1124,7 +1124,7 @@ validate_quotas(const dht_value_t *v)
 	const knode_t *c = v->creator;
 
 	/* Specifications say: creator address must be IPv4 */
-	if (NET_TYPE_IPV4 != host_addr_net(c->addr))
+	if (!host_addr_is_ipv4(c->addr))
 		return STORE_SC_BAD_CREATOR;
 
 	count = acct_net_get(values_per_class_c, c->addr, NET_CLASS_C_MASK);

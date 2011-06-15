@@ -530,7 +530,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 				guint16 port;
 
 				/* @todo TODO: IPv6 */
-				if (NET_TYPE_IPV4 != gnet_host_get_net(&host[i]))
+				if (!gnet_host_is_ipv4(&host[i]))
 					continue;
 				
 				addr = gnet_host_get_addr(&host[i]);
@@ -593,7 +593,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 				guint16 port;
 
 				/* @todo TODO: IPv6 */
-				if (NET_TYPE_IPV4 != gnet_host_get_net(&host[i]))
+				if (!gnet_host_is_ipv4(&host[i]))
 					continue;
 				
 				addr = gnet_host_get_addr(&host[i]);
@@ -613,7 +613,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 	 * of the sending host be echoed back.
 	 */
 
-	if ((flags & PING_F_IP) && NET_TYPE_IPV4 == host_addr_net(sender_addr)) {
+	if ((flags & PING_F_IP) && host_addr_is_ipv4(sender_addr)) {
 		char ip_port[6];
 
 		/* Ip Port (not UHC IPP!)*/

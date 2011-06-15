@@ -1806,7 +1806,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 				continue;		/* Only propagate good alt locs */
 		}
 
-		if (NET_TYPE_IPV4 != host_addr_net(dme->e.url.addr))
+		if (!host_addr_is_ipv4(dme->e.url.addr))
 			continue;
 
 		if (g2_cache_lookup(dme->e.url.addr, dme->e.url.port))

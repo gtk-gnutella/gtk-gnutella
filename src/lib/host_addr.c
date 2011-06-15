@@ -163,15 +163,13 @@ ipv4_addr_is_routable(guint32 ip)
 static inline gboolean
 host_addr_is_6to4(const host_addr_t ha)
 {
-	return NET_TYPE_IPV6 == host_addr_net(ha) &&
-		0x2002 == peek_be16(&ha.addr.ipv6[0]);
+	return host_addr_is_ipv6(ha) && 0x2002 == peek_be16(&ha.addr.ipv6[0]);
 }
 
 static inline gboolean
 host_addr_is_teredo(const host_addr_t ha)
 {
-	return NET_TYPE_IPV6 == host_addr_net(ha) &&
-		0x20010000UL == peek_be32(&ha.addr.ipv6[0]);
+	return host_addr_is_ipv6(ha) && 0x20010000UL == peek_be32(&ha.addr.ipv6[0]);
 }
 
 static inline guint32

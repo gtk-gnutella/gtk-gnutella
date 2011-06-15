@@ -250,7 +250,7 @@ on_entry_config_force_ipv6_activate(GtkEditable *unused_editable,
 	if (
 		string_to_host_addr(text, &endptr, &addr)
 			&& '\0' == endptr[0]
-			&& NET_TYPE_IPV6 == host_addr_net(addr)
+			&& host_addr_is_ipv6(addr)
 	) {
 		gnet_prop_set_ip_val(PROP_FORCED_LOCAL_IP6, addr);
 	} else if (0 == strcmp(text, "") || 0 == strcmp(text, "<none>")) {
@@ -272,7 +272,7 @@ on_entry_config_force_ipv6_changed(GtkEditable *editable, gpointer unused_udata)
 	g_strstrip(text);
 	sensitive = string_to_host_addr(text, &endptr, &addr)
 			&& '\0' == endptr[0]
-			&& NET_TYPE_IPV6 == host_addr_net(addr);
+			&& host_addr_is_ipv6(addr);
 	gtk_widget_set_sensitive(
         gui_dlg_prefs_lookup("checkbutton_config_force_ipv6"),
 		sensitive);
@@ -299,7 +299,7 @@ on_entry_config_ipv6_trt_prefix_activate(GtkEditable *unused_editable,
 	if (
 		string_to_host_addr(text, &endptr, &addr)
 			&& '\0' == endptr[0]
-			&& NET_TYPE_IPV6 == host_addr_net(addr)
+			&& host_addr_is_ipv6(addr)
 	) {
 		gnet_prop_set_ip_val(PROP_IPV6_TRT_PREFIX, addr);
 	} else if (0 == strcmp(text, "") || 0 == strcmp(text, "<none>")) {
@@ -322,7 +322,7 @@ on_entry_config_ipv6_trt_prefix_changed(GtkEditable *editable,
 	g_strstrip(text);
 	sensitive = string_to_host_addr(text, &endptr, &addr)
 			&& '\0' == endptr[0]
-			&& NET_TYPE_IPV6 == host_addr_net(addr);
+			&& host_addr_is_ipv6(addr);
 	gtk_widget_set_sensitive(
         gui_dlg_prefs_lookup("checkbutton_config_ipv6_trt_enable"),
 		sensitive);

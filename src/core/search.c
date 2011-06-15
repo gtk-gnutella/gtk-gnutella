@@ -3716,7 +3716,7 @@ search_new_muid(gboolean initial)
 	for (i = 0; i < 100; i++) {
 		if (
 			udp_active() &&
-			NET_TYPE_IPV4 == host_addr_net(addr) &&
+			host_addr_is_ipv4(addr) &&
 			host_addr_is_routable(addr)
 		)
 			guid_query_oob_muid(muid, addr, socket_listen_port(), initial);

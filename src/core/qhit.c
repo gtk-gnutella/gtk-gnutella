@@ -478,7 +478,7 @@ flush_match(void)
 				guint16 port = gnet_host_get_port(host);
 				char proxy[6];
 
-				if (NET_TYPE_IPV4 != host_addr_net(addr))
+				if (!host_addr_is_ipv4(addr))
 					continue;
 
 				poke_be32(&proxy[0], host_addr_ipv4(addr));
@@ -533,7 +533,7 @@ flush_match(void)
 	{
 		const host_addr_t addr = listen_addr6();
 
-		if (NET_TYPE_IPV6 == host_addr_net(addr)) {
+		if (host_addr_is_ipv6(addr)) {
 			const guint8 *ipv6 = host_addr_ipv6(&addr);
 
 			if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0))
@@ -796,7 +796,7 @@ add_file(const shared_file_t *sf)
 			char alt[6];
 
 			g_assert(start == gs.outbuf);
-			if (NET_TYPE_IPV4 != gnet_host_get_net(&hvec[i]))
+			if (!gnet_host_is_ipv4(&hvec[i]))
 				continue;
 
 			addr = gnet_host_get_addr(&hvec[i]);

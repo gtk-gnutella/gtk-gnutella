@@ -52,7 +52,7 @@ acct_net_get(GHashTable *ht, host_addr_t addr, guint32 mask)
 	gpointer val;
 
 	g_assert(ht);
-	g_assert(host_addr_net(addr) == NET_TYPE_IPV4);
+	g_assert(host_addr_is_ipv4(addr));
 
 	net = host_addr_ipv4(addr) & mask;
 	val = g_hash_table_lookup(ht, &net);
@@ -72,7 +72,7 @@ acct_net_update(GHashTable *ht, host_addr_t addr, guint32 mask, int pmone)
 	gboolean found;
 
 	g_assert(ht);
-	g_assert(host_addr_net(addr) == NET_TYPE_IPV4);
+	g_assert(host_addr_is_ipv4(addr));
 	g_assert(pmone == +1 || pmone == -1);
 
 	net = host_addr_ipv4(addr) & mask;

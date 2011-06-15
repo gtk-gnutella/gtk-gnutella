@@ -568,7 +568,7 @@ gboolean host_addr_is_unspecified(const host_addr_t addr);
 static inline gboolean
 host_addr_is_ipv4_mapped(const host_addr_t addr)
 {
-	return NET_TYPE_IPV6 == host_addr_net(addr) && 
+	return host_addr_is_ipv6(addr) && 
 		host_addr_matches(addr, ipv6_ipv4_mapped, 96);
 }
 

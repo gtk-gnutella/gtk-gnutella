@@ -246,10 +246,10 @@ bogons_check(const host_addr_t ha)
 	if (delta_time(tm_time(), bogons_mtime) > 15552000)	/* ~6 months */
 		return !host_addr_is_routable(ha);
 
-	if (NET_TYPE_IPV4 == host_addr_net(ha)) {
+	if (host_addr_is_ipv4(ha)) {
 		guint32 ip = host_addr_ipv4(ha);
 		return bogons_db && iprange_get(bogons_db, ip);
-	} else if (NET_TYPE_IPV6 == host_addr_net(ha)) {
+	} else if (host_addr_is_ipv6(ha)) {
 		host_addr_t to;
 
 		if (host_addr_convert(ha, &to, NET_TYPE_IPV4))

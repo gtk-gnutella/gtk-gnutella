@@ -462,7 +462,7 @@ whitelist_retrieve(void)
 					}
 
 					if (string_to_ip_strict(endptr, &mask, &ep)) {
-						if (NET_TYPE_IPV4 != host_addr_net(addr)) {
+						if (!host_addr_is_ipv4(addr)) {
 							g_warning("whitelist_retrieve(): Line %d: "
 								"IPv4 netmask after non-IPv4 address", linenum);
 							item_ok = FALSE;
@@ -485,8 +485,8 @@ whitelist_retrieve(void)
 						if (
 							error ||
 							0 == v ||
-							(v > 32 && NET_TYPE_IPV4 == host_addr_net(addr)) ||
-							(v > 128 && NET_TYPE_IPV6 == host_addr_net(addr))
+							(v > 32 && host_addr_is_ipv4(addr)) ||
+							(v > 128 && host_addr_is_ipv6(addr))
 						) {
 							g_warning("whitelist_retrieve(): Line %d: "
 								"Invalid numeric netmask after host", linenum);
