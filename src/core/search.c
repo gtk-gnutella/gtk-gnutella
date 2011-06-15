@@ -7084,7 +7084,8 @@ skip_throttling:
 
 	if (
 		!sri->oob &&
-		gnutella_header_get_hops(&n->header) > GNET_PROPERTY(max_ttl)
+		gnutella_header_get_hops(&n->header) > GNET_PROPERTY(max_ttl) &&
+		NODE_P_LEAF != GNET_PROPERTY(current_peermode)
 	) {
 		gnet_stats_count_dropped(n, MSG_DROP_MAX_TTL_EXCEEDED);
 		goto drop;  /* Drop this long-lived search */
