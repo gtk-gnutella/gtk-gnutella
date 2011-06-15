@@ -1322,8 +1322,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 				int i = args ? va_arg(args, int) : 0;
 				precis = (i < 0) ? 0 : i;
 				q++;
-			}
-			else {
+			} else {
 				precis = 0;
 				while (is_ascii_digit(*q)) {
 					precis = size_saturate_mult(precis, 10);
@@ -1368,7 +1367,12 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 				eptr = va_arg(args, char*);
 				if (NULL == eptr)
 					eptr = nullstr;
-				elen = strlen(eptr);
+				if (has_precis) {
+					/* String may not be NUL-terminated */
+					elen = clamp_strlen(eptr, precis);
+				} else {
+					elen = strlen(eptr);
+				}
 			}
 
 		string:
