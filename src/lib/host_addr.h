@@ -241,6 +241,18 @@ host_addr_net(const host_addr_t ha)
 	return ha.net;
 }
 
+static inline G_GNUC_CONST gboolean
+host_addr_is_ipv4(const host_addr_t ha)
+{
+	return NET_TYPE_IPV4 == ha.net;
+}
+
+static inline G_GNUC_CONST gboolean
+host_addr_is_ipv6(const host_addr_t ha)
+{
+	return NET_TYPE_IPV6 == ha.net;
+}
+
 static inline guint32
 host_addr_ipv4(const host_addr_t ha)
 {
