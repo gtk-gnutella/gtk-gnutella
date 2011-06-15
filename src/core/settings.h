@@ -48,7 +48,6 @@
 
 extern struct in_addr *local_netmasks;
 
-
 /*
  * Global Functions
  */
@@ -69,5 +68,9 @@ void settings_close(void);
 guint32 get_average_servent_uptime(time_t now);
 guint32 get_average_ip_lifetime(time_t now, enum net_type net);
 
+gboolean settings_is_leaf(void);
+gboolean settings_is_ultra(void);
+
 #endif /* _core_settings_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

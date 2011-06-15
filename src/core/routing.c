@@ -37,15 +37,16 @@
 
 RCSID("$Id$")
 
-#include "search.h"			/* For search_passive. */
 #include "routing.h"
-#include "hosts.h"
 #include "gmsg.h"
-#include "nodes.h"
 #include "gnet_stats.h"
-#include "hostiles.h"
 #include "guid.h"
+#include "hostiles.h"
+#include "hosts.h"
+#include "nodes.h"
 #include "oob_proxy.h"
+#include "search.h"			/* For search_passive. */
+#include "settings.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -984,7 +985,7 @@ revitalize_entry(struct message *entry, gboolean force)
 	 * PUSH routes, i.e. when it initiates a PUSH.
 	 */
 
-	if (!force && GNET_PROPERTY(current_peermode) == NODE_P_LEAF)
+	if (!force && settings_is_leaf())
 		return;
 
 	/*
@@ -1585,7 +1586,7 @@ forward_message(
 	struct gnutella_node *sender = *node;
 
 	g_assert(routes == NULL || target == NULL);
-	g_assert(GNET_PROPERTY(current_peermode) != NODE_P_LEAF);
+	g_assert(settings_is_ultra());
 
 	routing_log_set_new(route_log);
 
@@ -1931,7 +1932,7 @@ route_push(struct route_log *route_log,
 		return TRUE;
 	}
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF)
+	if (settings_is_leaf())
 		return FALSE;				/* Not for us, and we can't relay */
 
 	/*
@@ -2020,7 +2021,7 @@ route_query(struct route_log *route_log,
 	 * Leaves process all the queries and don't route them.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF)
+	if (settings_is_leaf())
 		return TRUE;
 
 	/*
@@ -2295,7 +2296,7 @@ route_query_hit(struct route_log *route_log,
 			gnutella_header_set_ttl(&sender->header, 2);
 		} else {
 			/* TTL expired, message stops here in any case */
-			if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF) {
+			if (!settings_is_leaf()) {
 				routing_log_extra(route_log, "TTL expired");
 				gnet_stats_count_expired(sender);
 			}

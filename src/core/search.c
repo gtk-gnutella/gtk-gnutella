@@ -337,8 +337,7 @@ query_muid_map_garbage_collect(void)
 	 * going to get are the ones for our own queries.
 	 */
 
-	max = NODE_P_ULTRA == GNET_PROPERTY(current_peermode) ?
-		GNET_PROPERTY(search_muid_track_amount) : 0;
+	max = settings_is_ultra() ? GNET_PROPERTY(search_muid_track_amount) : 0;
 
 	/*
 	 * We remove LRU entries if the list is too long or LRU entries for
@@ -2746,10 +2745,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 		rs->media = media_mask;
 
-		if (
-			NULL == query && !browse &&
-			NODE_P_ULTRA == GNET_PROPERTY(current_peermode)
-		) {
+		if (NULL == query && !browse && settings_is_ultra()) {
 			gnet_stats_count_general(GNR_QUERY_HIT_FOR_UNTRACKED_QUERY, +1);
 		}
 
@@ -3028,7 +3024,7 @@ build_search_message(const guid_t *muid, const char *query,
 	{
 		gnutella_header_t *header = gnutella_msg_search_header(&msg.data);
 		guint8 hops;
-		gboolean is_leaf = NODE_P_LEAF == GNET_PROPERTY(current_peermode);
+		gboolean is_leaf = settings_is_leaf();
 
 		hops = !udp && !whats_new && GNET_PROPERTY(hops_random_factor) &&
 			!is_leaf ? random_value(GNET_PROPERTY(hops_random_factor)) : 0;
@@ -3417,7 +3413,7 @@ search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
 
 	g_assert(sch != NULL);
 	g_assert(qhv != NULL);
-	g_assert(GNET_PROPERTY(current_peermode) == NODE_P_ULTRA);
+	g_assert(settings_is_ultra());
 
 	qhvec_reset(qhv);
 
@@ -3519,11 +3515,9 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	/*
 	 * If we're a leaf node, broadcast to all our ultra peers.
 	 * If we're a regular node, broadcast to all peers.
-	 *
-	 * FIXME: Drop support for regular nodes after 0.95 --RAM, 2004-08-31.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
+	if (settings_is_leaf()) {
 		if (sbool_get(sch->whats_new)) {
 			if (!search_whats_new_can_reissue())
 				goto cleanup;
@@ -3584,7 +3578,7 @@ search_node_added(void *search, void *node)
 	 * If we're in UP mode, we're using dynamic querying for our own queries.
 	 */
 
-	if (NODE_P_ULTRA != GNET_PROPERTY(current_peermode)) {
+	if (settings_is_leaf()) {
 		/*
 		 * Send search to new node if not already done and if the search
 		 * is still active and if we're not in GUESS querying mode.
@@ -3993,7 +3987,7 @@ search_dequeue_all_nodes(gnet_search_t sh)
 	 * continue sending queries on our behalf.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
+	if (settings_is_ultra())
 		dq_search_closed(sh);
 	else
 		search_notify_closed(sh);
@@ -5169,13 +5163,9 @@ search_add_kept(gnet_search_t sh, const guid_t *muid, guint32 kept)
 	 * to which we're connected) about the amount of results we got so far.
 	 */
 
-	if (
-		!sbool_get(sch->active) ||
-		GNET_PROPERTY(current_peermode) != NODE_P_LEAF
-	)
-		return;
-
-	search_update_results(sch);
+	if (sbool_get(sch->active) && settings_is_leaf()) {
+		search_update_results(sch);
+	}
 }
 
 /**
@@ -7085,7 +7075,7 @@ skip_throttling:
 	if (
 		!sri->oob &&
 		gnutella_header_get_hops(&n->header) > GNET_PROPERTY(max_ttl) &&
-		NODE_P_LEAF != GNET_PROPERTY(current_peermode)
+		!settings_is_leaf()
 	) {
 		gnet_stats_count_dropped(n, MSG_DROP_MAX_TTL_EXCEEDED);
 		goto drop;  /* Drop this long-lived search */
@@ -7096,10 +7086,7 @@ skip_throttling:
 	 * for when running as an Ultrapeer, provided it's not an URN search.
 	 */
 
-	if (
-		NODE_P_ULTRA == GNET_PROPERTY(current_peermode) &&
-		0 == sri->exv_sha1cnt		/* Not an URN search */
-	) {
+	if (settings_is_ultra() && 0 == sri->exv_sha1cnt) {
 		record_query_string(gnutella_header_get_muid(&n->header),
 			search, sri->media_types);
 	}
@@ -7267,10 +7254,7 @@ search_request(struct gnutella_node *n,
 			 * be counted in QRP filterting statistics.
 			 */
 
-			if (
-				GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
-				node_ultra_received_qrp(n)
-			) {
+			if (settings_is_leaf() && node_ultra_received_qrp(n)) {
 				node_inc_qrp_query(n);
 			}
 			gnet_stats_count_general(GNR_LOCAL_SEARCHES, 1);
@@ -7323,10 +7307,7 @@ search_request(struct gnutella_node *n,
 		}
 
 		if (qctx->found > 0) {
-			if (
-				GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
-				node_ultra_received_qrp(n)
-			)
+			if (settings_is_leaf() && node_ultra_received_qrp(n))
 				node_inc_qrp_match(n);
 
 			if (GNET_PROPERTY(share_debug) > 3) {

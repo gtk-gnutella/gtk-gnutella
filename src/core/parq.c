@@ -3563,7 +3563,7 @@ parq_upload_request(struct upload *u)
 		guint max_fd_used =
 			GNET_PROPERTY(max_downloads) +
 			GNET_PROPERTY(max_uploads) + 
-			(GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
+			(settings_is_leaf() ?
 				GNET_PROPERTY(max_ultrapeers) :
 				(GNET_PROPERTY(max_connections) + GNET_PROPERTY(max_leaves))
 			);

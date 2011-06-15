@@ -49,6 +49,7 @@ RCSID("$Id$")
 #include "nodes.h"					/* For NODE_IS_WRITABLE() */
 #include "routing.h"				/* For message_set_muid() */
 #include "search.h"					/* For search_compact() */
+#include "settings.h"
 #include "share.h"
 
 #include "lib/atoms.h"
@@ -1243,7 +1244,7 @@ mrg_step_merge_one(struct bgtask *unused_h, gpointer u, int ticks)
 	 * immediately.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
+	if (!settings_is_ultra())
 		return BGR_DONE;
 
 	while (ctx->tables != NULL && ticks_used < ticks) {
@@ -1284,7 +1285,7 @@ mrg_step_install_table(struct bgtask *unused_h, gpointer u, int unused_ticks)
 	 * not make sense.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
+	if (settings_is_ultra()) {
 		struct routing_table *mt;
 		if (ctx->slots != 0)
 			mt = qrt_create("Merged table",
@@ -1927,7 +1928,7 @@ qrp_step_install_leaf(struct bgtask *unused_h, gpointer u, int unused_ticks)
 	 * from our leaves with ours, before proceeding with the patch computation.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
+	if (!settings_is_ultra()) {
 		install_routing_table(*ctx->rtp);
 		install_merged_table(NULL);			/* We're not an ultra node */
 		qrt_patch_compute(routing_table, ctx->rpp);
@@ -1955,7 +1956,7 @@ qrp_step_wait_for_merged_table(struct bgtask *h, gpointer u, int unused_ticks)
 	 * catch this.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
+	if (settings_is_leaf())
 		return BGR_NEXT;
 
 	/*
@@ -2033,7 +2034,7 @@ qrp_step_merge_with_leaves(struct bgtask *unused_h, gpointer u, int ticks)
 	 * catch this.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
+	if (settings_is_leaf())
 		return BGR_NEXT;
 
 	g_assert(st != NULL && lt != NULL);
@@ -2082,7 +2083,7 @@ qrp_step_install_ultra(struct bgtask *h, gpointer u, int ticks)
 	 * "leaf install" mode.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
+	if (settings_is_leaf())
 		return qrp_step_install_leaf(h, u, ticks);
 
 	/*
@@ -4173,7 +4174,7 @@ qrp_monitor(gpointer unused_obj)
 	 * is already running, don't bother...
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA || merge_comp != NULL)
+	if (!settings_is_ultra() || merge_comp != NULL)
 		return TRUE;
 
 	/*

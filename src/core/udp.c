@@ -37,6 +37,7 @@
 
 RCSID("$Id$")
 
+#include "udp.h"
 #include "bogons.h"
 #include "bsched.h"
 #include "gmsg.h"
@@ -47,8 +48,8 @@ RCSID("$Id$")
 #include "nodes.h"
 #include "pcache.h"
 #include "routing.h"
+#include "settings.h"
 #include "sockets.h"
-#include "udp.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -166,10 +167,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean dht, gboolean truncated)
 	case GTA_MSG_DHT:
 		return n;
 	case GTA_MSG_SEARCH:
-		if (
-			NODE_P_LEAF != GNET_PROPERTY(current_peermode) &&
-			GNET_PROPERTY(enable_guess)
-		) {
+		if (settings_is_ultra() && GNET_PROPERTY(enable_guess)) {
 			return n;	/* GUESS query accepted */
 		}
 		msg = "Query from UDP refused";

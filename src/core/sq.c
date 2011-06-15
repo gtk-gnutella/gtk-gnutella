@@ -49,10 +49,11 @@
 RCSID("$Id$")
 
 #include "sq.h"					/* search_queue structures */
+#include "dq.h"
 #include "mq_tcp.h"
 #include "nodes.h"
 #include "search.h"
-#include "dq.h"
+#include "settings.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -107,7 +108,7 @@ sq_pmsg_free(pmsg_t *mb, gpointer arg)
 	 * query for it to the specified node ID.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF)
+	if (settings_is_leaf())
 		search_notify_sent(smi->shandle, smi->node_id);
 
 	nid_unref(smi->node_id);
@@ -411,7 +412,7 @@ retry:
 		 * Processing the global SQ.
 		 */
 
-		if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
+		if (settings_is_leaf())
 			return;
 
 		if (3*UNSIGNED(node_keep_missing()) > 2*GNET_PROPERTY(up_connections))
@@ -462,7 +463,7 @@ retry:
 		 * queries that go out.
 		 */
 
-		if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF)
+		if (settings_is_leaf())
 			smsg_mutate(sb, n);
 
 		mq_tcp_putq(n->outq, sb->mb, NULL);

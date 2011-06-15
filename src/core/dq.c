@@ -1369,7 +1369,7 @@ dq_send_next(dquery_t *dq)
 	 * Terminate query immediately if we're no longer an UP.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
+	if (!settings_is_ultra()) {
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug("DQ[%s] terminating (no longer an ultra node)",
 				nid_to_string(&dq->qid));
@@ -1921,7 +1921,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	 * If we're no longer an ultra node, ignore the request.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
+	if (!settings_is_ultra()) {
 		msg = "no longer an ultra node";
 		goto ignore;
 	}

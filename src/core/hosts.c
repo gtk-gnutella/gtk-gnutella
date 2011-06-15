@@ -37,19 +37,19 @@
 
 RCSID("$Id$")
 
-#include "sockets.h"
 #include "hosts.h"
-#include "nodes.h"
-#include "share.h"			/* For files_scanned and kbytes_scanned. */
-#include "routing.h"
-#include "gmsg.h"
-#include "pcache.h"
-#include "whitelist.h"
-#include "settings.h"
 #include "bogons.h"
-#include "uhc.h"
+#include "gmsg.h"
 #include "hostiles.h"
+#include "nodes.h"
+#include "pcache.h"
+#include "routing.h"
+#include "settings.h"
+#include "share.h"			/* For files_scanned and kbytes_scanned. */
+#include "sockets.h"
 #include "udp.h"
+#include "uhc.h"
+#include "whitelist.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/dht/dht.h"		/* For dht_fill_random() */
@@ -138,7 +138,7 @@ host_timer(void)
 	if (in_shutdown || !GNET_PROPERTY(online_mode))
 		return;
 
-	max_nodes = (GNET_PROPERTY(current_peermode) == NODE_P_LEAF) ?
+	max_nodes = settings_is_leaf() ?
 		GNET_PROPERTY(max_ultrapeers) : GNET_PROPERTY(max_connections);
 	count = node_count();			/* Established + connecting */
 	missing = node_keep_missing();
@@ -184,11 +184,10 @@ host_timer(void)
 	 * to the connection list
 	 */
 
-	htype = (GNET_PROPERTY(current_peermode) == NODE_P_NORMAL) ?
-        HOST_ANY : HOST_ULTRA;
+	htype = HOST_ULTRA;
 
 	if (
-        GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
+        settings_is_ultra() &&
         GNET_PROPERTY(node_normal_count) < GNET_PROPERTY(normal_connections) &&
         GNET_PROPERTY(node_ultra_count) >=
 			(GNET_PROPERTY(up_connections) - GNET_PROPERTY(normal_connections))

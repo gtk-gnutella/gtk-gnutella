@@ -40,14 +40,15 @@ RCSID("$Id$")
 #include <zlib.h>	/* Z_DEFAULT_COMPRESSION */
 
 #include "gmsg.h"
-#include "nodes.h"
-#include "sq.h"
+#include "gnet_stats.h"
 #include "mq_tcp.h"
 #include "mq_udp.h"
+#include "nodes.h"
 #include "routing.h"
-#include "vmsg.h"
 #include "search.h"
-#include "gnet_stats.h"
+#include "settings.h"
+#include "sq.h"
+#include "vmsg.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/dht/kmsg.h"
@@ -725,7 +726,7 @@ gmsg_split_routeto_all_but_one(const struct gnutella_node *from,
 	 */
 
 	if (
-		GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
+		settings_is_ultra() &&
 		gnutella_header_get_function(head) == GTA_MSG_SEARCH &&
 		gnutella_header_get_ttl(head) == 1
 	)

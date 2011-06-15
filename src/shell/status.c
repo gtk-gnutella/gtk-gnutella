@@ -200,7 +200,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 				"TTH " : empty,
 			GNET_PROPERTY(library_rebuilding) ? "LIB " : empty,
 			fw, dht,
-			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ? "UP" : "LF");
+			settings_is_ultra() ? "UP" : "LF");
 
 		gm_snprintf(buf, sizeof buf,
 			"+%s+\n"
@@ -286,9 +286,8 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			+ GNET_PROPERTY(node_leaf_count)
 			+ GNET_PROPERTY(node_normal_count),
 		GNET_PROPERTY(node_ultra_count),
-		NODE_P_ULTRA == GNET_PROPERTY(current_peermode)
-			? GNET_PROPERTY(max_connections)
-			: GNET_PROPERTY(max_ultrapeers),
+		settings_is_ultra() ?
+			GNET_PROPERTY(max_connections) : GNET_PROPERTY(max_ultrapeers),
 		GNET_PROPERTY(node_leaf_count),
 		GNET_PROPERTY(max_leaves),
 		GNET_PROPERTY(node_normal_count),

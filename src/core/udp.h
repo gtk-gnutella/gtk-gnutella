@@ -37,6 +37,7 @@
 #define _core_udp_h_
 
 #include "common.h"
+#include "gnutella.h"
 
 #include "lib/host_addr.h"
 

@@ -97,13 +97,14 @@
 
 RCSID("$Id$")
 
-#include "gmsg.h"
-#include "routing.h"
-#include "nodes.h"
 #include "hsep.h"
-#include "uploads.h"
-#include "share.h"
 #include "features.h"
+#include "gmsg.h"
+#include "nodes.h"
+#include "routing.h"
+#include "settings.h"
+#include "share.h"
+#include "uploads.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -744,9 +745,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	 * it contains only our own triple, which is correct.
 	 */
 
-	triples = NODE_P_LEAF == GNET_PROPERTY(current_peermode)
-				? 1
-				: G_N_ELEMENTS(tmp);
+	triples = settings_is_leaf() ? 1 : G_N_ELEMENTS(tmp);
 
 	/*
 	 * Allocate and initialize message to send.

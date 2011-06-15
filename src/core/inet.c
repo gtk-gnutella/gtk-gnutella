@@ -658,7 +658,7 @@ inet_can_answer_ping(void)
 
 	/* Leaves don't send pongs */
 	if (!GNET_PROPERTY(is_firewalled))
-		return GNET_PROPERTY(current_peermode) != NODE_P_LEAF;
+		return !settings_is_leaf();
 
 	if (!is_host_addr(listen_addr()) && !is_host_addr(listen_addr6()))
 		return FALSE;		/* We don't know our local IP, we can't reply */

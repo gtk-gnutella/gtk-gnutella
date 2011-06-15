@@ -41,10 +41,11 @@ RCSID("$Id$")
 
 #include <zlib.h>
 
-#include "sockets.h"
-#include "hosts.h"
 #include "tx.h"
 #include "tx_deflate.h"
+#include "hosts.h"
+#include "settings.h"
+#include "sockets.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -733,7 +734,7 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 		int mem_level = MAX_MEM_LEVEL;		/* Must be 1 .. MAX_MEM_LEVEL */
 		int level = Z_BEST_COMPRESSION;
 
-		if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
+		if (settings_is_ultra()) {
 			window_bits = 14;
 			mem_level = 6;
 			level = Z_DEFAULT_COMPRESSION;

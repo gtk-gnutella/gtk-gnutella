@@ -857,7 +857,7 @@ node_slow_timer(time_t now)
 	 * record the first time at which we came here with no leaf connected.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
+	if (settings_is_ultra()) {
 		if (GNET_PROPERTY(node_leaf_count))
 			no_leaves_connected = 0;
 		else if (no_leaves_connected == 0)
@@ -870,7 +870,7 @@ node_slow_timer(time_t now)
 	 * ultra peer, less so as a leaf node.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF && tok_is_ancient(now)) {
+	if (!settings_is_leaf() && tok_is_ancient(now)) {
 		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
 		return;
 	}
@@ -888,7 +888,7 @@ node_slow_timer(time_t now)
 	if (
 		(GNET_PROPERTY(configured_peermode) == NODE_P_AUTO ||
 			GNET_PROPERTY(configured_peermode) == NODE_P_ULTRA) &&
-		GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
+		settings_is_leaf() &&
 		delta_time(now, GNET_PROPERTY(node_last_ultra_leaf_switch)) >
 			(time_delta_t) leaf_to_up_switch &&
 		can_become_ultra(now)
@@ -912,7 +912,7 @@ node_slow_timer(time_t now)
 
 	if (
 		GNET_PROPERTY(configured_peermode) == NODE_P_AUTO &&
-		GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
+		settings_is_ultra() &&
 		delta_time(now, GNET_PROPERTY(node_last_ultra_leaf_switch))
 			> NODE_AUTO_SWITCH_MIN &&
 		!can_become_ultra(now)
@@ -952,7 +952,7 @@ node_slow_timer(time_t now)
 
 	if (
 		!GNET_PROPERTY(allow_firewalled_ultra) &&
-		GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
+		settings_is_ultra() &&
 		GNET_PROPERTY(is_firewalled)
 	) {
 		g_warning("firewalled node being demoted from Ultrapeer status");
@@ -973,7 +973,7 @@ node_slow_timer(time_t now)
 
 	if (
 		GNET_PROPERTY(configured_peermode) == NODE_P_AUTO &&
-		GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
+		settings_is_ultra() &&
 		no_leaves_connected != 0 &&
 		delta_time(now, no_leaves_connected) > NODE_UP_NO_LEAF_MAX
 	) {
@@ -1161,10 +1161,7 @@ node_timer(time_t now)
 					node_remove(n, _("Shutdown (%s)"), reason);
 					continue;
 				}
-			} else if (
-				GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
-				NODE_IS_ULTRA(n)
-			) {
+			} else if (settings_is_ultra() && NODE_IS_ULTRA(n)) {
 				time_delta_t quiet = delta_time(now, n->last_tx);
 
 				/*
@@ -1317,9 +1314,8 @@ node_timer(time_t now)
 					 * a non-null window to send our queries, that's fine.
 					 */
 
-					max_ratio = GNET_PROPERTY(current_peermode) == NODE_P_LEAF
-								? 95
-								: GNET_PROPERTY(node_rx_flowc_ratio);
+					max_ratio = settings_is_leaf() ?
+						95 : GNET_PROPERTY(node_rx_flowc_ratio);
 
 					if (rxfc->fc_start) {		/* In flow control */
 						rxfc->fc_accumulator += delta_time(now, rxfc->fc_start);
@@ -1591,7 +1587,7 @@ node_leaves_missing(void)
 {
 	int missing;
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
+	if (settings_is_leaf())
 		return 0;
 
 	missing = GNET_PROPERTY(max_leaves) - GNET_PROPERTY(node_leaf_count);
@@ -3029,7 +3025,7 @@ node_crawler_headers(struct gnutella_node *n)
 
 	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA || rw >= maxsize)
+	if (!settings_is_ultra() || rw >= maxsize)
 		goto cleanup;
 
 	/*
@@ -3156,10 +3152,8 @@ send_error(
 	if (code == 550 || (code >= 400 && code < 500)) {
 		xultrapeer[0] = '\0';
 	} else {
-		gm_snprintf(xultrapeer, sizeof(xultrapeer),
-			GNET_PROPERTY(current_peermode) == NODE_P_NORMAL ?
-			"" : GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
-			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n");
+		gm_snprintf(xultrapeer, sizeof(xultrapeer), "X-Ultrapeer: %s\r\n",
+			settings_is_leaf() ? "False" : "True");
 	}
 
 	/*
@@ -3507,17 +3501,15 @@ node_is_now_connected(struct gnutella_node *n)
 	n->peermode = NODE_P_NORMAL;
 
 	if (n->flags & NODE_F_ULTRA) {
-		if (GNET_PROPERTY(current_peermode) != NODE_P_NORMAL)
-			n->peermode = NODE_P_ULTRA;
+		n->peermode = NODE_P_ULTRA;
 	} else if (n->flags & NODE_F_LEAF) {
-		if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
+		if (settings_is_ultra())
 			n->peermode = NODE_P_LEAF;
 	} else if (n->attrs & NODE_A_ULTRA)
 		n->peermode = NODE_P_ULTRA;
 
 	/* If peermode did not change, current_peermode = leaf => node is Ultra */
-	g_assert(peermode_changed ||
-		GNET_PROPERTY(current_peermode) != NODE_P_LEAF || NODE_IS_ULTRA(n));
+	g_assert(peermode_changed || !settings_is_leaf() || NODE_IS_ULTRA(n));
 
 	/*
 	 * Update state, and mark node as valid.
@@ -3674,7 +3666,7 @@ node_is_now_connected(struct gnutella_node *n)
 	 * dynamic querying, so there is no need for a per-node search queue.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
+	if (!settings_is_ultra())
 		n->searchq = sq_make(n);
 
 	/*
@@ -3706,9 +3698,10 @@ node_is_now_connected(struct gnutella_node *n)
 
 	if (
 		NODE_IS_ULTRA(n) &&
-			(GNET_PROPERTY(current_peermode) == NODE_P_LEAF ||
-			(GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
-			 (n->attrs & NODE_A_UP_QRP)))
+		(
+			settings_is_leaf() ||
+			(settings_is_ultra() && (n->attrs & NODE_A_UP_QRP))
+		)
 	) {
 		struct routing_table *qrt = qrt_get_table();
 
@@ -3763,7 +3756,7 @@ node_is_now_connected(struct gnutella_node *n)
 	 * our leaves and by our neighbours.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF) {
+	if (settings_is_ultra()) {
 		if (NODE_IS_LEAF(n))
 			n->qseen = g_hash_table_new(g_str_hash, g_str_equal);
 		else {
@@ -4807,7 +4800,7 @@ node_can_accept_protocol(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "Accept");
 	if (
 		field &&
-		GNET_PROPERTY(current_peermode) != NODE_P_LEAF &&
+		settings_is_ultra() &&
 		!(n->flags & NODE_F_LEAF) &&
 		strtok_case_has(field, ",", "application/x-gnutella2")
 	) {
@@ -4889,7 +4882,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "X-Ultrapeer");
 	if (field && 0 == ascii_strcasecmp(field, "false")) {
 		n->attrs &= ~NODE_A_ULTRA;
-		if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
+		if (settings_is_ultra()) {
 			n->flags |= NODE_F_LEAF;		/* Remote accepted to become leaf */
 			if (GNET_PROPERTY(node_debug))
 				g_debug("%s accepted to become our leaf", node_infostr(n));
@@ -5251,7 +5244,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		if (0 == ascii_strcasecmp(field, "true"))
 			n->attrs |= NODE_A_ULTRA;
 		else if (0 == ascii_strcasecmp(field, "false")) {
-			if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
+			if (settings_is_ultra())
 				n->flags |= NODE_F_LEAF;
 		}
 	} else {
@@ -5471,7 +5464,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * (otherwise, node_can_accept_connection() would have triggered)
 	 */
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF) {
+	if (settings_is_leaf()) {
 		g_assert((n->flags & NODE_F_CRAWLER) || (n->attrs & NODE_A_ULTRA));
 		if (!(n->flags & NODE_F_CRAWLER))
 			n->flags |= NODE_F_ULTRA;			/* This is our ultranode */
@@ -5698,7 +5691,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 
 	if (
-		GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
+		settings_is_leaf() &&
 		!(n->flags & NODE_F_CRAWLER) &&
 		(n->degree < 2 * NODE_LEGACY_DEGREE || !(n->attrs & NODE_A_DYN_QUERY))
 	) {
@@ -5744,7 +5737,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 			if (n->attrs & NODE_A_ULTRA) {
 				if (
-					GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
+					settings_is_ultra() &&
 					GNET_PROPERTY(configured_peermode) != NODE_P_ULTRA &&
 					GNET_PROPERTY(node_leaf_count) == 0 &&
 					n->up_date != 0 &&
@@ -5758,7 +5751,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 					mode_changed = TRUE;
 					gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE,
 						NODE_P_LEAF);
-				} else if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF) {
+				} else if (settings_is_ultra()) {
 					static const char msg[] = N_("Not becoming a leaf node");
 
 					if (GNET_PROPERTY(node_debug) > 2) {
@@ -5789,8 +5782,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		 * Prepare our final acknowledgment.
 		 */
 
-		g_assert(!mode_changed ||
-			GNET_PROPERTY(current_peermode) == NODE_P_LEAF);
+		g_assert(!mode_changed || settings_is_leaf());
 
 		rw = gm_snprintf(gnet_response, gnet_response_max,
 			"GNUTELLA/0.6 200 OK\r\n"
@@ -5841,7 +5833,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			 *		--RAM, 2004-08-05
 			 */
 
-			if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
+			if (settings_is_ultra()) {
 				gm_snprintf(degree, sizeof(degree),
 					"X-Degree: %d\r\n"
 					"X-Max-TTL: %d\r\n",
@@ -5862,10 +5854,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 			if (
 				GNET_PROPERTY(enable_guess) &&
-				(
-					NODE_P_ULTRA == GNET_PROPERTY(current_peermode) ||
-					GNET_PROPERTY(enable_guess_client)
-				)
+				(settings_is_ultra() || GNET_PROPERTY(enable_guess_client))
 			) {
 				gm_snprintf(guess, sizeof(guess),
 					"X-Guess: %d.%d\r\n",
@@ -5882,46 +5871,38 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"GGEP: 0.5\r\n"
 				"Vendor-Message: 0.2\r\n"
 				"Remote-IP: %s\r\n"
+				"X-Ultrapeer: %s\r\n"
+	 			"X-Requeries: False\r\n"
 				"%s"		/* Accept-Encoding */
 				"%s"		/* Content-Encoding */
-				"%s"		/* X-Ultrapeer */
 				"%s"		/* X-Ultrapeer-Needed */
 				"%s"		/* X-Query-Routing */
 				"%s"		/* X-Ultrapeer-Query-Routing */
 				"%s"		/* X-Degree + X-Max-TTL */
 				"%s"		/* X-Dynamic-Querying */
 				"%s"		/* X-Ext-Probes */
-				"%s"		/* X-Requeries */
 				"%s"		/* X-Guess */
 				"%s%s%s"	/* X-Token (optional) */
 				"X-Live-Since: %s\r\n",
 				version_string,
 				host_addr_to_string(n->socket->addr),
+				settings_is_leaf() ? "False" : "True",
 				GNET_PROPERTY(gnet_deflate_enabled)
 					? "Accept-Encoding: deflate\r\n" : "",
 				(GNET_PROPERTY(gnet_deflate_enabled)
 				 	&& (n->attrs & NODE_A_TX_DEFLATE)) ? compressing : "",
-				GNET_PROPERTY(current_peermode) == NODE_P_NORMAL ? "" :
-				GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
-					"X-Ultrapeer: False\r\n" :
-					"X-Ultrapeer: True\r\n",
-				GNET_PROPERTY(current_peermode) != NODE_P_ULTRA ? "" :
+				settings_is_leaf() ? "" :
 				GNET_PROPERTY(node_ultra_count) < ultra_max
 					? "X-Ultrapeer-Needed: True\r\n"
 					: GNET_PROPERTY(node_leaf_count) < GNET_PROPERTY(max_leaves)
 						? "X-Ultrapeer-Needed: False\r\n"
 						: "",
-				GNET_PROPERTY(current_peermode) != NODE_P_NORMAL ?
-					node_query_routing_header(n) : "",
-				GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
+				node_query_routing_header(n),
+				settings_is_ultra () ?
 					"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
 				degree,
-				GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
-					"X-Dynamic-Querying: 0.1\r\n" : "",
-				GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
-					"X-Ext-Probes: 0.1\r\n" : "",
-				GNET_PROPERTY(current_peermode) != NODE_P_NORMAL ?
-	 				"X-Requeries: False\r\n" : "",
+				settings_is_ultra() ? "X-Dynamic-Querying: 0.1\r\n" : "",
+				settings_is_ultra() ? "X-Ext-Probes: 0.1\r\n" : "",
 				guess,
 	 			token ? "X-Token: " : "",
 				token ? token : "",
@@ -6797,11 +6778,15 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	 */
 
     if (
-		(GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
-	 	 GNET_PROPERTY(node_ultra_count) > GNET_PROPERTY(max_ultrapeers)) ||
-		(GNET_PROPERTY(current_peermode) != NODE_P_LEAF &&
-		 GNET_PROPERTY(node_ultra_count) + GNET_PROPERTY(node_normal_count)
-		 	>= GNET_PROPERTY(max_connections))
+		(
+			settings_is_leaf() &&
+	 	 	GNET_PROPERTY(node_ultra_count) > GNET_PROPERTY(max_ultrapeers)
+		) ||
+		(
+			settings_is_ultra() &&
+		 	GNET_PROPERTY(node_ultra_count) + GNET_PROPERTY(node_normal_count)
+				>= GNET_PROPERTY(max_connections)
+		)
 	) {
         if (!already_connected) {
 			if (forced || whitelist_check(addr)) {
@@ -7177,7 +7162,7 @@ node_parse(struct gnutella_node *n)
 				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (
-			GNET_PROPERTY(current_peermode) != NODE_P_ULTRA ||
+			settings_is_leaf() ||
 			!(
 				n->peermode == NODE_P_LEAF ||
 				(n->peermode == NODE_P_ULTRA && (n->attrs & NODE_A_UP_QRP))
@@ -7382,7 +7367,7 @@ route_only:
 			 * even if its TTL expired here.
              */
 
-			if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
+			if (settings_is_ultra()) {
 				qhv = query_hashvec;
 				qhvec_reset(qhv);
 			}
@@ -7444,7 +7429,7 @@ route_only:
 		goto dropped;
 
 	if (qhv != NULL && NODE_IS_LEAF(n)) {
-		g_assert(GNET_PROPERTY(current_peermode) == NODE_P_ULTRA);
+		g_assert(settings_is_ultra());
 		g_assert(sri != NULL);
 
 		/*
@@ -7482,7 +7467,7 @@ route_only:
 
 		dq_launch_net(n, qhv, search_request_media(sri));
 
-	} else if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF) {
+	} else if (settings_is_ultra()) {
 		/*
 		 * Propagate message, if needed
 		 */
@@ -7767,19 +7752,20 @@ node_init_outgoing(struct gnutella_node *n)
 		n->hello.size = MAX_LINE_SIZE;
 		n->hello.ptr = walloc(n->hello.size);
 
-		if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
+		if (settings_is_ultra()) {
 			gm_snprintf(degree, sizeof(degree),
 				"X-Degree: %d\r\n"
 				"X-Max-TTL: %d\r\n",
 				(GNET_PROPERTY(up_connections) + GNET_PROPERTY(max_connections)
 				 	- GNET_PROPERTY(normal_connections)) / 2,
 				GNET_PROPERTY(max_ttl));
-		else
+		} else {
 			gm_snprintf(degree, sizeof(degree),
 				"X-Dynamic-Querying: 0.1\r\n"
 				"X-Ultrapeer-Query-Routing: 0.1\r\n"
 				"X-Degree: 32\r\n"
 				"X-Max-TTL: 4\r\n");
+		}
 
 		{
 			host_addr_t addr;
@@ -7804,10 +7790,7 @@ node_init_outgoing(struct gnutella_node *n)
 
 		if (
 			GNET_PROPERTY(enable_guess) &&
-			(
-				NODE_P_ULTRA == GNET_PROPERTY(current_peermode) ||
-				GNET_PROPERTY(enable_guess_client)
-			)
+			(settings_is_ultra() || GNET_PROPERTY(enable_guess_client))
 		) {
 			gm_snprintf(guess, sizeof(guess),
 				"X-Guess: %d.%d\r\n",
@@ -7825,17 +7808,17 @@ node_init_outgoing(struct gnutella_node *n)
 			"Bye-Packet: 0.1\r\n"
 			"GGEP: 0.5\r\n"
 			"Vendor-Message: 0.2\r\n"
+			"X-Query-Routing: 0.2\r\n"
+			"X-Requeries: False\r\n"
 			"%s"		/* "Accept-Encoding: deflate */
 			"X-Token: %s\r\n"
 			"X-Live-Since: %s\r\n"
-			"%s"		/* X-Ultrapeer */
-			"%s"		/* X-Query-Routing */
+			"X-Ultrapeer: %s\r\n"
 			"%s"		/* X-Ultrapeer-Query-Routing */
 			"%s"		/* X-Degree + X-Max-TTL */
 			"%s"		/* X-Dynamic-Querying */
 			"%s"		/* X-Ext-Probes */
-			"%s"		/* X-Guess */
-			"%s",		/* X-Requeries */
+			"%s",		/* X-Guess */
 			GNUTELLA_HELLO,
 			n->proto_major, n->proto_minor,
 			my_addr, my_addr[0] && my_addr_v6[0] ? ", " : "", my_addr_v6,
@@ -7845,21 +7828,12 @@ node_init_outgoing(struct gnutella_node *n)
 				? "Accept-Encoding: deflate\r\n" : "",
 			tok_version(),
 			start_rfc822_date,
-			GNET_PROPERTY(current_peermode) == NODE_P_NORMAL ? "" :
-				GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
-				"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
-			GNET_PROPERTY(current_peermode) != NODE_P_NORMAL
-				? "X-Query-Routing: 0.2\r\n" : "",
-			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
-				"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
+			settings_is_leaf() ? "False" : "True",
+			settings_is_ultra() ? "X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
 			degree,
-			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
-				"X-Dynamic-Querying: 0.1\r\n" : "",
-			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
-				"X-Ext-Probes: 0.1\r\n" : "",
-			guess,
-			GNET_PROPERTY(current_peermode) != NODE_P_NORMAL ?
-				"X-Requeries: False\r\n" : ""
+			settings_is_ultra() ? "X-Dynamic-Querying: 0.1\r\n" : "",
+			settings_is_ultra() ? "X-Ext-Probes: 0.1\r\n" : "",
+			guess
 		);
 
 		header_features_generate(FEATURES_CONNECTIONS,
@@ -8362,7 +8336,7 @@ node_sent_ttl0(struct gnutella_node *n)
 	 * Ignore if we're a leaf node -- we'll even handle the message.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF)
+	if (settings_is_leaf())
 		return;
 
 	gnet_stats_count_dropped(n, MSG_DROP_TTL0);
@@ -8585,7 +8559,7 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 	 * Only operate when we're an ultra node ourselves.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
+	if (!settings_is_ultra())
 		return FALSE;
 
     for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
@@ -8687,7 +8661,7 @@ node_remove_uncompressed_ultra(gboolean *is_gtkg)
 	 * Only operate when we're an ultra node ourselves.
 	 */
 	
-	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
+	if (!settings_is_ultra())
 		return FALSE;
 
     for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
@@ -8937,7 +8911,7 @@ node_qrt_changed(struct routing_table *query_table)
 	 * patch was stale.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF) {
+	if (settings_is_leaf()) {
 		for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 			n = sl->data;
 			if (n->qrt_update != NULL) {
@@ -8960,10 +8934,7 @@ node_qrt_changed(struct routing_table *query_table)
 		if (!NODE_IS_WRITABLE(n) || !NODE_IS_ULTRA(n))
 			continue;
 
-		if (
-			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
-			!(n->attrs & NODE_A_UP_QRP)
-		)
+		if (settings_is_ultra() && !(n->attrs & NODE_A_UP_QRP))
 			continue;
 
 		/*
@@ -9396,7 +9367,7 @@ node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags)
 		else if (node->recv_query_table != NULL)
 			flags->qrt_state = QRT_S_RECEIVED;
 	} else if (node->peermode == NODE_P_ULTRA) {
-		if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
+		if (settings_is_ultra()) {
 			/* Remote ultranode connected to us, ultranode */
 			if (node->qrt_receive != NULL)
 				flags->qrt_state = node->recv_query_table != NULL ?
@@ -9500,8 +9471,7 @@ node_get_status(const struct nid *node_id, gnet_node_status_t *status)
 
 	status->qrp_efficiency =
 		(float) node->qrp_matches / (float) MAX(1, node->qrp_queries);
-	status->has_qrp = GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
-		node_ultra_received_qrp(node);
+	status->has_qrp = settings_is_leaf() && node_ultra_received_qrp(node);
 
 	if (node->qrt_info != NULL) {
 		qrt_info_t *qi = node->qrt_info;

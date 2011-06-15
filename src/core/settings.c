@@ -843,6 +843,25 @@ settings_ipc_dir(void)
 	return NOT_LEAKING(path);
 
 }
+
+/**
+ * Are we running as a leaf node?
+ */
+gboolean
+settings_is_leaf(void)
+{
+	return NODE_P_LEAF == GNET_PROPERTY(current_peermode);
+}
+
+/**
+ * Are we running as a ultra node?
+ */
+gboolean
+settings_is_ultra(void)
+{
+	return NODE_P_ULTRA == GNET_PROPERTY(current_peermode);
+}
+
 /**
  * Gets the path of the local socket.
  */

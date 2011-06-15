@@ -558,7 +558,7 @@ gtk_gnutella_exit(int exit_code)
 	 * have more connections to flush.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
+	if (settings_is_ultra())
 		exit_grace *= 2;
 
 	if (debugging(0) || signal_received || shutdown_requested) {

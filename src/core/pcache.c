@@ -203,7 +203,7 @@ build_ping_msg(const struct guid *muid, guint8 ttl, gboolean uhc, guint32 *size)
 		ggep = cast_to_gpointer(&m[1]);
 		ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
 		
-		spp = GNET_PROPERTY(current_peermode) == NODE_P_LEAF ? 0x0 : 0x1;
+		spp = settings_is_leaf() ? 0x0 : 0x1;
 		spp |= tls_enabled() ? 0x02 : 0;
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
@@ -302,12 +302,12 @@ build_guess_ping_msg(const struct guid *muid,
 			 * be sent back, only the proper query key in a single pong.
 			 */
 
-			spp = GNET_PROPERTY(current_peermode) == NODE_P_LEAF ? 0x0 : 0x1;
+			spp = settings_is_leaf() ? 0x0 : 0x1;
 			spp |= tls_enabled() ? 0x02 : 0;
 
 			ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
 			g_assert(ok);
-		} else if (!intro || NODE_P_ULTRA != GNET_PROPERTY(current_peermode)) {
+		} else if (!intro || !settings_is_ultra()) {
 			/*
 			 * An "SCP" request for more GUESS hosts, in the absence of "QK",
 			 * is indicated by a "GUE" extension.  Here it's sent empty
@@ -331,7 +331,7 @@ build_guess_ping_msg(const struct guid *muid,
 	 * This is only sent when running in ultrapeer mode.
 	 */
 
-	if (intro && NODE_P_ULTRA == GNET_PROPERTY(current_peermode)) {
+	if (intro && settings_is_ultra()) {
 		char buf[3];
 		poke_u8(&buf[0], (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR);
 		poke_le16(&buf[1], socket_listen_port());
@@ -753,10 +753,7 @@ ping_type(const gnutella_node_t *n)
 			break;
 
 		case EXT_T_GGEP_QK:
-			if (
-				0 == ext_paylen(e) &&
-				NODE_P_ULTRA == GNET_PROPERTY(current_peermode)
-			) {
+			if (0 == ext_paylen(e) && settings_is_ultra()) {
 				flags |= PING_F_QK;
 			}
 			break;
@@ -818,7 +815,7 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 
 	kbytes = MIN(shared_kbytes_scanned(), ~((guint32) 0U));
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
+	if (settings_is_ultra()) {
 		guint32 next, prev;
 		
 		next = next_pow2(kbytes);
@@ -856,7 +853,7 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 	 * Activate "UP" only if we're an ultrapeer right now.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
+	if (settings_is_ultra()) {
 		local_meta.flags |= PONG_META_HAS_UP;
 		local_meta.leaf_slots = MIN(node_leaves_missing(), 255);
 		local_meta.up_slots = MIN(node_missing(), 255);
@@ -1932,7 +1929,7 @@ pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 	unsigned leaves;
 	struct gnutella_node *leaf = NULL;
 
-	g_assert(GNET_PROPERTY(current_peermode) == NODE_P_ULTRA);
+	g_assert(settings_is_ultra());
 
 	for (sl = node_all_nodes(), leaves = 0; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *cn = sl->data;
@@ -2275,7 +2272,7 @@ pcache_ping_received(struct gnutella_node *n)
 		if (gnutella_header_get_ttl(&n->header) == 1)
 			send_personal_info(n, TRUE, PING_F_NONE);	/* Prioritary */
 		else if (gnutella_header_get_ttl(&n->header) == 2) {
-			if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF)
+			if (settings_is_ultra())
 				send_neighbouring_info(n);
 		} else
 			alive_ack_first(n->alive_pings,
@@ -2350,7 +2347,7 @@ pcache_ping_received(struct gnutella_node *n)
 			return;
 	}
 
-	if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF)
+	if (settings_is_leaf())
 		return;
 
 	/*
@@ -2737,7 +2734,7 @@ pcache_pong_received(struct gnutella_node *n)
 	 * received it from, provided they need more pongs of this hop count.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF)
+	if (settings_is_ultra())
 		pong_all_neighbours_but_one(n, cp, ptype,
 			CACHE_HOP_IDX(gnutella_header_get_hops(&n->header)),
 			MAX(1, gnutella_header_get_ttl(&n->header)));
@@ -2747,10 +2744,7 @@ pcache_pong_received(struct gnutella_node *n)
 	 * to one random leaf.
 	 */
 
-	if (
-		GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
-		ptype == HOST_ULTRA && random_value(99) < 33
-	)
+	if (settings_is_ultra() && ptype == HOST_ULTRA && random_value(99) < 33)
 		pong_random_leaf(cp,
 			CACHE_HOP_IDX(gnutella_header_get_hops(&n->header)),
 			MAX(1, gnutella_header_get_ttl(&n->header)));

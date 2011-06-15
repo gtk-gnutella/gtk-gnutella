@@ -2434,7 +2434,7 @@ handle_head_ping(struct gnutella_node *n,
 	if (has_guid && !guid_eq(&guid, GNET_PROPERTY(servent_guid))) {
 		struct gnutella_node *target;
 
-		if (NODE_P_LEAF == GNET_PROPERTY(current_peermode)) {
+		if (settings_is_leaf()) {
 		   	if (GNET_PROPERTY(vmsg_debug) > 1) {
 				g_debug("VMSG HEAD Ping: not forwarding as leaf");
 			}
@@ -2587,7 +2587,7 @@ forward_head_pong(struct gnutella_node *n,
 		!node_id_self(source->ping.node_id) &&
 		gnutella_header_get_ttl(&n->header) > 0 &&
 		gnutella_header_get_hops(&n->header) == 0 &&
-		NODE_P_LEAF != GNET_PROPERTY(current_peermode)
+		settings_is_ultra()
 	) {
 		struct gnutella_node *target;
 
