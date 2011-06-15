@@ -39,10 +39,10 @@
 #define IS_POWER_OF_2(x) ((x) && 0 == ((x) & ((x) - 1)))
 
 guint32 next_pow2(guint32 n) G_GNUC_CONST;
-int highest_bit_set(guint32 n) G_GNUC_PURE;
-int highest_bit_set64(guint64 n) G_GNUC_PURE;
-int bits_set(guint8 b) G_GNUC_PURE;
-int bits_set32(guint32 v) G_GNUC_PURE;
+int highest_bit_set(guint32 n) G_GNUC_CONST;
+int highest_bit_set64(guint64 n) G_GNUC_CONST;
+int bits_set(guint8 b) G_GNUC_CONST;
+int bits_set32(guint32 v) G_GNUC_CONST;
 
 /**
  * Checks whether the given value is a power of 2.
