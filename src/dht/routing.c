@@ -349,7 +349,7 @@ dht_configured_mode_changed(dht_mode_t mode)
 	case DHT_MODE_ACTIVE:
 		if (GNET_PROPERTY(is_udp_firewalled))
 			new_mode = DHT_MODE_PASSIVE;
-		else if (GNET_PROPERTY(dht_current_mode) != DHT_MODE_ACTIVE)
+		else if (!dht_is_active())
 			bootstrap_needed = TRUE;
 		break;
 	}

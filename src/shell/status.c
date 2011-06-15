@@ -155,8 +155,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 				dht = "bDH ";
 				break;
 			case DHT_BOOT_COMPLETED:
-				dht = DHT_MODE_ACTIVE == GNET_PROPERTY(dht_current_mode) ?
-						"A " : "P ";
+				dht = dht_is_active() ? "A " : "P ";
 				break;
 			case DHT_BOOT_MAX_VALUE:
 				g_assert_not_reached();
