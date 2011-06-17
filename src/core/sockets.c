@@ -278,7 +278,8 @@ socket_evt_set(struct gnutella_socket *s,
 
 	if (!(INPUT_EVENT_W & cond) && s->wio.flush(&s->wio) < 0) {
 		if (!is_temporary_error(errno)) {
-			g_warning("socket_evt_set: flush error: %s", g_strerror(errno));
+			g_warning("socket_evt_set: flush error: %s (%s)",
+				symbolic_errno(errno), g_strerror(errno));
 		}
 	}
 }
@@ -2134,7 +2135,8 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 
 		if (fd < 0) {
 			if (errno != ECONNABORTED && !is_temporary_error(errno)) {
-				g_warning("accept() failed (%s)", g_strerror(errno));
+				g_warning("accept() failed: %s (%s)",
+					symbolic_errno(errno), g_strerror(errno));
 				if (errno == EMFILE || errno == ENFILE) {
 					/*
 					 * Disable accept() temporarily to prevent spinning
@@ -2180,7 +2182,8 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 
 	if ((SOCK_F_TCP & t->flags) && !is_host_addr(t->addr)) {
 		if (socket_addr_getpeername(&addr, t->file_desc)) {
-			g_warning("getpeername() failed: %s", g_strerror(errno));
+			g_warning("getpeername() failed: %s (%s)",
+				symbolic_errno(errno), g_strerror(errno));
 			socket_free_null(&t);
 			return;
 		}
@@ -2518,8 +2521,8 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 		if ((ssize_t) -1 == r) {
 			/* ECONNRESET is meaningless with UDP but happens on Windows */
 			if (!is_temporary_error(errno) && errno != ECONNRESET) {
-				g_warning("ignoring datagram reception error: %s",
-					g_strerror(errno));
+				g_warning("ignoring datagram reception error: %s (%s)",
+					symbolic_errno(errno), g_strerror(errno));
 			}
 			break;
 		}
@@ -2916,8 +2919,9 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 			goto failure;	/* Check the proxy configuration */
 		}
 
-		g_warning("Unable to connect to %s: (%s)",
-			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
+		g_warning("unable to connect to %s: %s (%s)",
+			host_addr_port_to_string(s->addr, s->port),
+			symbolic_errno(errno), g_strerror(errno));
 		goto failure;
 	}
 
@@ -3133,8 +3137,8 @@ socket_create_and_bind(const host_addr_t bind_addr,
 			host_addr_is_ipv6(bind_addr) &&
 			setsockopt(fd, sol_ipv6(), IPV6_V6ONLY, &enable, sizeof enable)
 		) {
-			g_warning("setsockopt() failed for IPV6_V6ONLY (%s)",
-				g_strerror(errno));
+			g_warning("setsockopt() failed for IPV6_V6ONLY: %s (%s)",
+				symbolic_errno(errno), g_strerror(errno));
 		}
 #endif /* HAS_IPV6 && IPV6_V6ONLY */
 
@@ -3157,7 +3161,8 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		host_addr_to_string_buf(bind_addr, addr_str, sizeof addr_str);
 		fd = socker_get(family, type, 0, addr_str, port);
 		if (!is_valid_fd(fd)) {
-			g_warning("socker_get() failed (%s)", g_strerror(errno));
+			g_warning("socker_get() failed: %s (%s)",
+				symbolic_errno(errno), g_strerror(errno));
 		}
 	}
 #endif /* HAS_SOCKER_GET */
@@ -3167,15 +3172,16 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		const char *net_str = net_type_to_string(host_addr_net(bind_addr));
 
 		if (socket_failed) {
-			g_warning("unable to create the %s (%s) socket (%s)",
-				type_str, net_str, g_strerror(errno));
+			g_warning("unable to create the %s (%s) socket: %s (%s)",
+				type_str, net_str, symbolic_errno(errno), g_strerror(errno));
 		} else {
 			char bind_addr_str[HOST_ADDR_PORT_BUFLEN];
 
 			host_addr_port_to_string_buf(bind_addr, port,
 				bind_addr_str, sizeof bind_addr_str);
-			g_warning("unable to bind() the %s (%s) socket to %s (%s)",
-				type_str, net_str, bind_addr_str, g_strerror(errno));
+			g_warning("unable to bind() the %s (%s) socket to %s: %s (%s)",
+				type_str, net_str, bind_addr_str, symbolic_errno(errno),
+				g_strerror(errno));
 		}
 	} else {
 		fd = get_non_stdio_fd(fd);
@@ -3210,8 +3216,8 @@ socket_is_local(const struct gnutella_socket *s)
 
 		if (compat_getsockname(s->file_desc, cast_to_gpointer(&addr), &len)) {
 			is_local = FALSE;
-			g_warning("socket_is_local(): getsockname() failed: %s",
-				g_strerror(errno));
+			g_warning("socket_is_local(): getsockname() failed: %s (%s)",
+				symbolic_errno(errno), g_strerror(errno));
 		} else if (AF_LOCAL != addr.sun_family) {
 			is_local = FALSE;
 			g_warning("socket_is_local(): "
@@ -3251,8 +3257,8 @@ socket_local_listen(const char *pathname)
 
 	fd = compat_socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (fd < 0) {
-		g_warning("socket(PF_LOCAL, SOCK_STREAM, 0) failed: %s",
-			g_strerror(errno));
+		g_warning("socket(PF_LOCAL, SOCK_STREAM, 0) failed: %s (%s)",
+			symbolic_errno(errno), g_strerror(errno));
 		return NULL;
 	}
 	fd = get_non_stdio_fd(fd);
@@ -3270,8 +3276,8 @@ socket_local_listen(const char *pathname)
 		(void) umask(mask);
 
 		if (0 != ret) {
-			g_warning("socket_local_listen(): bind() failed: %s",
-				g_strerror(saved_errno));
+			g_warning("socket_local_listen(): bind() failed: %s (%s)",
+				symbolic_errno(saved_errno), g_strerror(saved_errno));
 			compat_socket_close(fd);
 			return NULL;
 		}
@@ -3296,7 +3302,8 @@ socket_local_listen(const char *pathname)
 	/* listen() the socket */
 
 	if (compat_listen(fd, 5) == -1) {
-		g_warning("Unable to listen() the socket (%s)", g_strerror(errno));
+		g_warning("unable to listen() on the socket: %s (%s)",
+			symbolic_errno(errno), g_strerror(errno));
 		socket_destroy(s, "Unable to listen on socket");
 		return NULL;
 	}
@@ -3341,7 +3348,8 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 	/* listen() the socket */
 
 	if (listen(fd, 5) == -1) {
-		g_warning("Unable to listen() the socket (%s)", g_strerror(errno));
+		g_warning("unable to listen() on the socket: %s (%s)",
+			symbolic_errno(errno), g_strerror(errno));
 		socket_destroy(s, "Unable to listen on socket");
 		return NULL;
 	}
@@ -3356,8 +3364,9 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 		socket_addr_t addr;
 
 		if (0 != socket_addr_getsockname(&addr, fd)) {
-			g_warning("Unable to get the port of the socket: "
-				"getsockname() failed (%s)", g_strerror(errno));
+			g_warning("unable to get the port of the socket: "
+				"getsockname() failed: %s (%s)",
+				symbolic_errno(errno), g_strerror(errno));
 			socket_destroy(s, "Can't probe socket for port");
 			return NULL;
 		}
@@ -3478,8 +3487,9 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port,
 		socket_addr_t addr;
 
 		if (0 != socket_addr_getsockname(&addr, fd)) {
-			g_warning("Unable to get the port of the socket: "
-				"getsockname() failed (%s)", g_strerror(errno));
+			g_warning("unable to get the port of the socket: "
+				"getsockname() failed: %s (%s)",
+				symbolic_errno(errno), g_strerror(errno));
 			socket_destroy(s, "Can't probe socket for port");
 			return NULL;
 		}
@@ -3802,7 +3812,8 @@ socket_plain_sendto(
 	if ((ssize_t) -1 == ret && GNET_PROPERTY(udp_debug)) {
 		int e = errno;
 
-		g_warning("sendto() failed: %s", g_strerror(errno));
+		g_warning("sendto() failed: %s (%s)",
+			symbolic_errno(errno), g_strerror(errno));
 		errno = e;
 	}
 	return ret;
