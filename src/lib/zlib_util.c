@@ -123,7 +123,7 @@ zlib_deflater_alloc(
 
 	if (ret != Z_OK) {
 		WFREE(outz);
-		g_warning("unable to initialize compressor: %s", zlib_strerror(ret));
+		g_carp("unable to initialize compressor: %s", zlib_strerror(ret));
 		return NULL;
 	}
 
@@ -252,7 +252,7 @@ zlib_deflate_step(zlib_deflater_t *zd, int amount, gboolean may_close)
 	switch (ret) {
 	case Z_OK:
 		if (outz->avail_out == 0) {
-			g_warning("under-estimated output buffer size: input=%d, output=%d",
+			g_carp("under-estimated output buffer size: input=%d, output=%d",
 				zd->inlen, zd->outlen);
 
 			if (zd->allocated) {
@@ -275,7 +275,7 @@ zlib_deflate_step(zlib_deflater_t *zd, int amount, gboolean may_close)
 
 		ret = deflateEnd(outz);
 		if (ret != Z_OK)
-			g_warning("while freeing compressor: %s", zlib_strerror(ret));
+			g_carp("while freeing compressor: %s", zlib_strerror(ret));
 
 		WFREE(outz);
 		zd->opaque = NULL;
@@ -285,7 +285,7 @@ zlib_deflate_step(zlib_deflater_t *zd, int amount, gboolean may_close)
 		/* NOTREACHED */
 
 	default:
-		g_warning("error during compression: %s", zlib_strerror(ret));
+		g_carp("error during compression: %s", zlib_strerror(ret));
 	}
 
 	/* FALL THROUGH */
@@ -293,7 +293,7 @@ zlib_deflate_step(zlib_deflater_t *zd, int amount, gboolean may_close)
 error:
 	ret = deflateEnd(outz);
 	if (ret != Z_OK && ret != Z_DATA_ERROR)
-		g_warning("while freeing compressor: %s", zlib_strerror(ret));
+		g_carp("while freeing compressor: %s", zlib_strerror(ret));
 	WFREE(outz);
 	zd->opaque = NULL;
 
@@ -375,7 +375,7 @@ zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
 		int ret = deflateEnd(outz);
 
 		if (ret != Z_OK && ret != Z_DATA_ERROR)
-			g_warning("while freeing compressor: %s", zlib_strerror(ret));
+			g_carp("while freeing compressor: %s", zlib_strerror(ret));
 
 		WFREE(outz);
 	}
@@ -403,12 +403,12 @@ zlib_uncompress(gconstpointer data, int len, gulong uncompressed_len)
 
 	if (ret == Z_OK) {
 		if (retlen != uncompressed_len)
-			g_warning("expected %lu bytes of decompressed data, got %ld",
+			g_carp("expected %lu bytes of decompressed data, got %ld",
 				uncompressed_len, retlen);
 		return out;
 	}
 
-	g_warning("while decompressing data: %s", zlib_strerror(ret));
+	g_carp("while decompressing data: %s", zlib_strerror(ret));
 	HFREE_NULL(out);
 
 	return NULL;
@@ -450,7 +450,7 @@ zlib_inflate_into(gconstpointer data, int len, gpointer out, int *outlen)
 	ret = inflateInit(inz);
 
 	if (ret != Z_OK) {
-		g_warning("unable to setup decompressor: %s", zlib_strerror(ret));
+		g_carp("unable to setup decompressor: %s", zlib_strerror(ret));
 		goto done;
 	}
 

@@ -45,7 +45,7 @@ typedef struct  {
 	gconstpointer in;	/**< Buffer being compressed */
 	int inlen;			/**< Length of input buffer */
 	gpointer out;		/**< Compressed data */
-	int outlen;		/**< Length of ouput buffer */
+	int outlen;			/**< Length of ouput buffer */
 	int inlen_total;	/**< Total input length seen */
 	gpointer opaque;	/**< Internal data structures */
 	gboolean allocated;	/**< Whether output buffer was allocated or static */
