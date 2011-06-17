@@ -1100,8 +1100,8 @@ bitzi_entry_prune(gpointer key, gpointer value, size_t u_len, gpointer u_data)
 		g_debug("BITZI ticket %s expire=%s%s",
 			sha1_to_string(sha1),
 			timestamp_to_string(bz->etime), expired ? " [EXPIRED]" : "");
-		if (GNET_PROPERTY(bitzi_debug) > 5 && bz->ticket != NULL) {
-			g_debug("BITZI XML ticket:");
+		if (GNET_PROPERTY(bitzi_debug) > 5 && expired && bz->ticket != NULL) {
+			g_debug("BITZI Expired XML ticket:");
 			dump_string(stderr, bz->ticket, strlen(bz->ticket), "----");
 		}
 	}
