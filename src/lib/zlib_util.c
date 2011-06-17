@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include <zlib.h>
 
 #include "zlib_util.h"
+#include "glib-missing.h"
 #include "misc.h"
 #include "halloc.h"
 #include "walloc.h"
