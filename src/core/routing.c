@@ -1952,6 +1952,9 @@ route_push(struct route_log *route_log,
 	g_assert(sender->size > GUID_RAW_SIZE);	/* Must be a valid push */
 	guid = cast_to_guid_ptr_const(sender->data);	/* Targetted GUID */
 
+	if (NODE_IS_UDP(sender))
+		routing_log_extra(route_log, "UDP");
+
 	/*
 	 * Is it for us?
 	 */
@@ -2007,10 +2010,8 @@ route_push(struct route_log *route_log,
 		 * a local neighbour, we were most likely the push-proxy for that node.
 		 */
 
-		if (NODE_IS_UDP(sender)) {
-			routing_log_extra(route_log, "UDP");
+		if (NODE_IS_UDP(sender))
 			gnet_stats_count_general(GNR_PUSH_PROXY_UDP_RELAYED, 1);
-		}
 
 		routing_log_extra(route_log, "connected to target GUID %s",
 				guid_hex_str(guid));
@@ -2065,8 +2066,10 @@ route_query(struct route_log *route_log,
 	 * If the message comes from UDP, it's not going to go anywhere.
 	 */
 
-	if (NODE_IS_UDP(sender))
+	if (NODE_IS_UDP(sender)) {
+		routing_log_extra(route_log, "UDP");
 		return TRUE;			/* Process it, but don't route */
+	}
 
 	is_oob_query = gmsg_split_is_oob_query(&sender->header, sender->data);
 
@@ -2164,7 +2167,9 @@ route_query_hit(struct route_log *route_log,
 	 *		--RAM, 06/01/2002
 	 */
 
-	if (!NODE_IS_UDP(sender)) {
+	if (NODE_IS_UDP(sender)) {
+		routing_log_extra(route_log, "UDP");
+	} else {
 		if (!find_message(origin_guid, QUERY_HIT_ROUTE_SAVE, &m)) {
 			/*
 			 * We've never seen any Query Hit from that servent.
@@ -2284,6 +2289,7 @@ route_query_hit(struct route_log *route_log,
 		g_carp("BUG: forgot we sent OOB-proxied query %s in routing table!",
 			guid_hex_str(gnutella_header_get_muid(&sender->header)));
 		node_is_target = TRUE;		/* We are the target of the reply */
+		routing_log_extra(route_log, "forgot OOB-proxied MUID");
 		goto handle;
 	}
 
