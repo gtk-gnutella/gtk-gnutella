@@ -612,12 +612,12 @@ routing_log_flush(struct route_log *route_log)
 	if (!GNET_PROPERTY(log_gnutella_routing))
 		return;
 
-	g_debug("ROUTE %-21s %s %s %3d/%3d: [%c] %s%s%s-> %s",
+	g_debug("ROUTE %-21s %s %s %3d/%3d: [%c%c] %s%s%s-> %s",
 		route_log->local ? "OURSELVES"
 			: host_addr_port_to_string(route_log->addr, route_log->port),
 		debug_msg[route_log->function], guid_hex_str(&route_log->muid),
 		route_log->hops, route_log->ttl, route_log->handle ? 'H' : ' ',
-		route_log->new ? "[NEW] " : "",
+		route_log->new ? 'N' : ' ',
 		route_log->extra, route_log->extra[0] == '\0' ? "" : " ",
 		route_string(&route_log->dest, route_log->addr, route_log->routing));
 }
@@ -1593,8 +1593,6 @@ forward_message(
 	g_assert(routes == NULL || target == NULL);
 	g_assert(settings_is_ultra());
 
-	routing_log_set_new(route_log);
-
 	/* Drop messages that would travel way too many nodes --RAM */
 	if (
 		(guint32) gnutella_header_get_ttl(&sender->header) +
@@ -1917,6 +1915,8 @@ check_duplicate(struct route_log *route_log, struct gnutella_node **node,
 
 	g_assert(*mp == NULL);
 
+	routing_log_set_new(route_log);
+
 	if (GNET_PROPERTY(log_new_gnutella)) {
 		g_debug("NEW %s %s from %s", guid_hex_str(muid),
 			gmsg_infostr_full_split(
@@ -1969,11 +1969,12 @@ route_push(struct route_log *route_log,
 	 */
 
 	if (is_banned_push(guid)) {
-		if (GNET_PROPERTY(routing_debug) > 3)
+		if (GNET_PROPERTY(routing_debug) > 3) {
 			gmsg_log_split_dropped(&sender->header, sender->data, sender->size,
 				"from %s, banned GUID %s",
 				node_addr(sender), guid_hex_str(guid));
-
+		}
+		routing_log_extra(route_log, "to banned GUID %s", guid_hex_str(guid));
 		gnet_stats_count_dropped(sender, MSG_DROP_BANNED);
 		return FALSE;
 	}
@@ -1983,6 +1984,8 @@ route_push(struct route_log *route_log,
 	 */
 
 	if (hostiles_check(host_addr_peek_ipv4(&sender->data[20]))) {
+		routing_log_extra(route_log, "callback IP %s is hostile",
+			host_addr_to_string(host_addr_peek_ipv4(&sender->data[20])));
 		gnet_stats_count_dropped(sender, MSG_DROP_HOSTILE_IP);
 		return FALSE;
 	}
@@ -2004,8 +2007,13 @@ route_push(struct route_log *route_log,
 		 * a local neighbour, we were most likely the push-proxy for that node.
 		 */
 
-		if (NODE_IS_UDP(sender))
+		if (NODE_IS_UDP(sender)) {
+			routing_log_extra(route_log, "UDP");
 			gnet_stats_count_general(GNR_PUSH_PROXY_UDP_RELAYED, 1);
+		}
+
+		routing_log_extra(route_log, "connected to target GUID %s",
+				guid_hex_str(guid));
 
 	} else if (find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes) {
 		gnet_stats_count_general(GNR_PUSH_RELAYED_VIA_TABLE_ROUTE, 1);
@@ -2068,6 +2076,7 @@ route_query(struct route_log *route_log,
 	 */
 
 	if (!NODE_IS_READABLE(sender) && !is_oob_query) {
+		routing_log_extra(route_log, "relay shutting down");
 		gnet_stats_count_dropped(sender, MSG_DROP_SHUTDOWN);
 		return FALSE;
 	}
@@ -2092,6 +2101,7 @@ route_query(struct route_log *route_log,
 	 */
 
 	if (!is_oob_query && NODE_IN_TX_FLOW_CONTROL(sender)) {
+		routing_log_extra(route_log, "relay in TX flow control");
 		gnet_stats_count_dropped(sender, MSG_DROP_FLOW_CONTROL);
 		return FALSE;
 	}
