@@ -4383,7 +4383,7 @@ search_results(gnutella_node_t *n, int *results)
 			(0 == rs->hops && !NODE_IS_UDP(n))
 		)
 	) {
-		hostiles_dynamic_add(rs->last_hop);
+		hostiles_dynamic_add(rs->last_hop, "spam/evil query hits");
 		rs->status |= ST_HOSTILE;
 
 		/*

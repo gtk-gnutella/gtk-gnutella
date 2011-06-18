@@ -11098,7 +11098,7 @@ http_version_nofix:
 	}
 
 	if (is_dumb_spammer(download_vendor_str(d))) {	
-		hostiles_dynamic_add(download_addr(d));
+		hostiles_dynamic_add(download_addr(d), "dumb spammer");
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "%s", _("Spammer detected"));
 		return;

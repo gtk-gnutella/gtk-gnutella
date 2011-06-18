@@ -1213,7 +1213,7 @@ node_timer(time_t now)
 					node_infostr(n));
 				ban_record(n->addr,
 					"IP with Gnutella security violations");
-				hostiles_dynamic_add(n->addr);
+				hostiles_dynamic_add(n->addr, "Gnutella security violations");
 				node_bye_if_writable(n, 412, "Security violation");
 				continue;
 			}

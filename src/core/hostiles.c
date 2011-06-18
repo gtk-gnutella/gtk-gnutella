@@ -536,10 +536,11 @@ hostiles_static_check_ipv4(guint32 ipv4)
  *		 handled and indeed these equal IPv6 prefixes not just
  *		 individual addresses.
  *
- * @param addr The address to blacklist.
+ * @param addr 		the address to blacklist.
+ * @param reason	how we detected that the address was hostile
  */
 void
-hostiles_dynamic_add(const host_addr_t addr)
+hostiles_dynamic_add(const host_addr_t addr, const char *reason)
 {
 	host_addr_t ipv4_addr;
 
@@ -549,8 +550,14 @@ hostiles_dynamic_add(const host_addr_t addr)
 	) {
 		guint32 ip = host_addr_ipv4(ipv4_addr);
 
-		if (!hostiles_static_check_ipv4(ip))
+		if (!hostiles_static_check_ipv4(ip)) {
 			hostiles_dynamic_add_ipv4(ip);
+
+			if (GNET_PROPERTY(spam_debug) > 1) {
+				g_debug("SPAM dynamically caught hostile %s: %s",
+					host_addr_to_string(ipv4_addr), reason);
+			}
+		}
 	}
 }
 
