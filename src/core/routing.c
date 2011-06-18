@@ -2107,7 +2107,7 @@ route_query(struct route_log *route_log,
 	 */
 
 	if (
-		!(sender->flags & NODE_A_DYN_QUERY) &&
+		!(sender->attrs & NODE_A_DYN_QUERY) &&
 		(guint) gnutella_header_get_ttl(&sender->header) +
 			gnutella_header_get_hops(&sender->header) > GNET_PROPERTY(my_ttl)
 	) {
