@@ -4714,6 +4714,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	if (
 		GNET_PROPERTY(qrp_debug) > 4 ||
 		GNET_PROPERTY(query_debug) > 10 ||
+		GNET_PROPERTY(log_gnutella_routing) ||
 		(NODE_IS_UDP(n) && GNET_PROPERTY(guess_server_debug) > 4)
 	) {
 		GSList *sl;
