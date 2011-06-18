@@ -400,6 +400,8 @@ zlib_uncompress(gconstpointer data, int len, gulong uncompressed_len)
 	guchar *out = halloc(uncompressed_len);
 	gulong retlen = uncompressed_len;
 
+	g_return_val_if_fail(uncompressed_len != 0, NULL);
+
 	ret = uncompress(out, &retlen, data, len);
 
 	if (ret == Z_OK) {
