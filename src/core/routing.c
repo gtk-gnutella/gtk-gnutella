@@ -1749,7 +1749,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 	if (oob)
 		gnet_stats_count_general(GNR_QUERY_OOB_PROXIED_DUPS, 1);
 
-	routing_log_extra(route_log, oob ? "dup OOB query" : "dup message");
+	routing_log_extra(route_log, oob ? "dup OOB GUID" : "dup message");
 
 	if (gnutella_header_get_ttl(&sender->header) > m->ttl) {
 		routing_log_extra(route_log, "higher TTL");
@@ -1856,7 +1856,11 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 					node_infostr(sender), oob ? "OOB, " : "", sender->n_dups);
 			}
 		} else {
-			routing_log_extra(route_log, "route remains");
+			if (GNET_PROPERTY(log_gnutella_routing)) {
+				unsigned count = g_slist_length(m->routes);
+				routing_log_extra(route_log, "%u remaining route%s",
+					count, 1 == count ? "" : "s");
+			}
 
 			if (GNET_PROPERTY(log_dup_gnutella_other_node)) {
 				unsigned count = g_slist_length(m->routes);
@@ -1999,10 +2003,6 @@ route_push(struct route_log *route_log,
 	 */
 
 	if (NULL != (neighbour = node_by_guid(guid))) {
-		gboolean inserted;
-		message_add(guid, QUERY_HIT_ROUTE_SAVE, neighbour);
-		inserted = find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes;
-		g_assert(inserted);
 		gnet_stats_count_general(GNR_PUSH_RELAYED_VIA_LOCAL_ROUTE, 1);
 
 		/*
@@ -2016,8 +2016,24 @@ route_push(struct route_log *route_log,
 		routing_log_extra(route_log, "connected to target GUID %s",
 				guid_hex_str(guid));
 
+		/*
+		 * Since we have a direct connection to the target, relay the message
+		 * directly withou using the known routes.
+		 */
+
+		forward_message(route_log, node, neighbour, dest, NULL);
+
 	} else if (find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes) {
 		gnet_stats_count_general(GNR_PUSH_RELAYED_VIA_TABLE_ROUTE, 1);
+
+		/*
+		 * By revitalizing the entry, we'll remember the route for
+		 * at least TABLE_MIN_CYCLE secs more after seeing this PUSH.
+		 */
+
+		revitalize_entry(m, FALSE);
+		forward_message(route_log, node, NULL, dest, m->routes);
+
 	} else {
 		if (m && m->routes == NULL) {
 			routing_log_extra(route_log, "route to target GUID %s gone",
@@ -2031,14 +2047,6 @@ route_push(struct route_log *route_log,
 
 		return FALSE;
 	}
-
-	/*
-	 * By revitalizing the entry, we'll remember the route for
-	 * at least TABLE_MIN_CYCLE secs more after seeing this PUSH.
-	 */
-
-	revitalize_entry(m, FALSE);
-	forward_message(route_log, node, NULL, dest, m->routes);
 
 	return FALSE;		/* We are not the target, don't handle it */
 }
@@ -2447,6 +2455,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		mangled = route_mangled_oob_muid(
 						gnutella_header_get_muid(&sender->header));
 		gnet_stats_count_general(GNR_OOB_QUERIES, 1);
+		routing_log_extra(&route_log, "OOB");
 	}
 
 	/*
