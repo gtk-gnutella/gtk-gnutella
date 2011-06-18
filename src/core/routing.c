@@ -515,7 +515,7 @@ routing_log_set_route(struct route_log *route_log,
 static void
 routing_log_set_new(struct route_log *route_log)
 {
-	if (GNET_PROPERTY(log_gnutella_routing))
+	if (!GNET_PROPERTY(log_gnutella_routing))
 		return;
 
 	route_log->new = TRUE;
@@ -2119,7 +2119,7 @@ route_query(struct route_log *route_log,
 		ttl_max = MAX(1, ttl_max);
 		gnutella_header_set_ttl(&sender->header, ttl_max);
 
-		routing_log_extra(route_log, "No dyn. query, TTL forced to %d ",
+		routing_log_extra(route_log, "no dynamic querying, TTL forced to %u ",
 			gnutella_header_get_ttl(&sender->header));
 	}
 
