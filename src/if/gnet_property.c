@@ -992,6 +992,10 @@ gboolean gnet_property_variable_log_dup_gnutella_higher_ttl     = FALSE;
 static const gboolean gnet_property_variable_log_dup_gnutella_higher_ttl_default = FALSE;
 gboolean gnet_property_variable_log_dup_gnutella_other_node     = FALSE;
 static const gboolean gnet_property_variable_log_dup_gnutella_other_node_default = FALSE;
+gboolean gnet_property_variable_log_new_gnutella     = FALSE;
+static const gboolean gnet_property_variable_log_new_gnutella_default = FALSE;
+gboolean gnet_property_variable_log_gnutella_routing     = FALSE;
+static const gboolean gnet_property_variable_log_gnutella_routing_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -9098,6 +9102,40 @@ gnet_prop_init(void) {
     gnet_property->props[424].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[424].data.boolean.def   = (void *) &gnet_property_variable_log_dup_gnutella_other_node_default;
     gnet_property->props[424].data.boolean.value = (void *) &gnet_property_variable_log_dup_gnutella_other_node;
+
+
+    /*
+     * PROP_LOG_NEW_GNUTELLA:
+     *
+     * General data:
+     */
+    gnet_property->props[425].name = "log_new_gnutella";
+    gnet_property->props[425].desc = _("Whether to log new Gnutella messages, never seen before.");
+    gnet_property->props[425].ev_changed = event_new("log_new_gnutella_changed");
+    gnet_property->props[425].save = TRUE;
+    gnet_property->props[425].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[425].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[425].data.boolean.def   = (void *) &gnet_property_variable_log_new_gnutella_default;
+    gnet_property->props[425].data.boolean.value = (void *) &gnet_property_variable_log_new_gnutella;
+
+
+    /*
+     * PROP_LOG_GNUTELLA_ROUTING:
+     *
+     * General data:
+     */
+    gnet_property->props[426].name = "log_gnutella_routing";
+    gnet_property->props[426].desc = _("Whether to log Gnutella routing decisions.");
+    gnet_property->props[426].ev_changed = event_new("log_gnutella_routing_changed");
+    gnet_property->props[426].save = TRUE;
+    gnet_property->props[426].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[426].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[426].data.boolean.def   = (void *) &gnet_property_variable_log_gnutella_routing_default;
+    gnet_property->props[426].data.boolean.value = (void *) &gnet_property_variable_log_gnutella_routing;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

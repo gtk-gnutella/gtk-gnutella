@@ -224,11 +224,12 @@ struct route_log {
 	guint8 function;			/**< Message function */
 	guint8 hops;				/**< Message hops */
 	guint8 ttl;					/**< Message ttl */
-	gboolean handle;			/**< Whether message will be handled */
-	gboolean local;				/**< Whether message originated locally */
-	gboolean new;				/**< Whether message is a new message */
 	char extra[80];				/**< Extra text for logging */
 	struct route_dest dest;		/**< Message destination */
+	unsigned handle:1;			/**< Whether message will be handled */
+	unsigned local:1;			/**< Whether message originated locally */
+	unsigned new:1;				/**< Whether message is a new message */
+	unsigned routing:1;			/**< Whether message is routed */
 };
 
 /**
@@ -468,7 +469,7 @@ routing_log_init(struct route_log *route_log,
 	struct gnutella_node *n,
 	const struct guid *muid, guint8 function, guint8 hops, guint8 ttl)
 {
-	if (GNET_PROPERTY(routing_debug) <= 7)
+	if (!GNET_PROPERTY(log_gnutella_routing))
 		return;
 
 	if (n == NULL) {
@@ -489,6 +490,7 @@ routing_log_init(struct route_log *route_log,
 	route_log->extra[0] = '\0';
 	route_log->handle = FALSE;
 	route_log->new = FALSE;
+	route_log->routing = FALSE;
 	route_log->dest.type = ROUTE_NONE;
 }
 
@@ -499,11 +501,12 @@ static void
 routing_log_set_route(struct route_log *route_log,
 	struct route_dest *dest, gboolean handle)
 {
-	if (GNET_PROPERTY(routing_debug) <= 7)
+	if (!GNET_PROPERTY(log_gnutella_routing))
 		return;
 
 	route_log->dest = *dest;		/* Struct copy */
 	route_log->handle = handle;
+	route_log->routing = TRUE;
 }
 
 /**
@@ -512,7 +515,7 @@ routing_log_set_route(struct route_log *route_log,
 static void
 routing_log_set_new(struct route_log *route_log)
 {
-	if (GNET_PROPERTY(routing_debug) <= 7)
+	if (GNET_PROPERTY(log_gnutella_routing))
 		return;
 
 	route_log->new = TRUE;
@@ -532,7 +535,7 @@ routing_log_extra(struct route_log *route_log, const char *fmt, ...)
 	int buflen;
 	int len;
 
-	if (GNET_PROPERTY(routing_debug) <= 7)
+	if (!GNET_PROPERTY(log_gnutella_routing))
 		return;
 
 	buf = route_log->extra;
@@ -568,16 +571,18 @@ routing_log_extra(struct route_log *route_log, const char *fmt, ...)
  * @return string representation of message route, as pointer to static data.
  */
 static char *
-route_string(struct route_dest *dest, const host_addr_t origin_addr)
+route_string(struct route_dest *dest,
+	const host_addr_t origin_addr, gboolean routed)
 {
 	static char msg[80];
 
 	switch (dest->type) {
 	case ROUTE_NONE:
-		gm_snprintf(msg, sizeof msg, "stops here");
+		gm_snprintf(msg, sizeof msg, routed ? "stops here" : "registered");
 		break;
 	case ROUTE_ONE:
-		gm_snprintf(msg, sizeof msg, "node %s", node_addr(dest->ur.u_node));
+		gm_snprintf(msg, sizeof msg, "%s %s",
+			node_type(dest->ur.u_node), node_addr(dest->ur.u_node));
 		break;
 	case ROUTE_ALL_BUT_ONE:
 		gm_snprintf(msg, sizeof msg, "all but %s",
@@ -604,7 +609,7 @@ route_string(struct route_dest *dest, const host_addr_t origin_addr)
 static void
 routing_log_flush(struct route_log *route_log)
 {
-	if (GNET_PROPERTY(routing_debug) <= 7)
+	if (!GNET_PROPERTY(log_gnutella_routing))
 		return;
 
 	g_debug("ROUTE %-21s %s %s %3d/%3d: [%c] %s%s%s-> %s",
@@ -614,7 +619,7 @@ routing_log_flush(struct route_log *route_log)
 		route_log->hops, route_log->ttl, route_log->handle ? 'H' : ' ',
 		route_log->new ? "[NEW] " : "",
 		route_log->extra, route_log->extra[0] == '\0' ? "" : " ",
-		route_string(&route_log->dest, route_log->addr));
+		route_string(&route_log->dest, route_log->addr, route_log->routing));
 }
 
 /**
@@ -1912,6 +1917,13 @@ check_duplicate(struct route_log *route_log, struct gnutella_node **node,
 
 	g_assert(*mp == NULL);
 
+	if (GNET_PROPERTY(log_new_gnutella)) {
+		g_debug("NEW %s %s from %s", guid_hex_str(muid),
+			gmsg_infostr_full_split(
+				&sender->header, sender->data, sender->size),
+				node_infostr(sender));
+	}
+
 	return TRUE;				/* Forward and handle (new message) */
 }
 
@@ -2389,7 +2401,6 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	struct gnutella_node *sender = *node;
 	struct message *m;
 	gboolean duplicate = FALSE;
-	gboolean route_it = FALSE;
 	struct route_log route_log;
 	const struct guid *mangled = NULL;
 	guint8 function;
@@ -2430,7 +2441,9 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	switch (function) {
 	case GTA_MSG_PUSH_REQUEST:
 	case GTA_MSG_SEARCH:
-		route_it = check_duplicate(&route_log, node, mangled, &m);
+	{
+		gboolean route_it = check_duplicate(&route_log, node, mangled, &m);
+
 		dest->duplicate = duplicate = booleanize(m != NULL);
 
 		/*
@@ -2465,6 +2478,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		if (!route_it)
 			goto done;
 		break;
+	}
 	default:
 		break;
 	}
@@ -2492,9 +2506,8 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		break;
 	}
 
-	routing_log_set_route(&route_log, dest, handle_it);
-
 done:
+	routing_log_set_route(&route_log, dest, handle_it);
 	routing_log_flush(&route_log);
 
 	/* Paranoid: avoid hop overflow */

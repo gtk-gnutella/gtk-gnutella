@@ -4964,4 +4964,22 @@ prop = {
     };
 };
 
+prop = {
+	name = "log_new_gnutella";
+	desc = "Whether to log new Gnutella messages, never seen before.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_gnutella_routing";
+	desc = "Whether to log Gnutella routing decisions.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */
