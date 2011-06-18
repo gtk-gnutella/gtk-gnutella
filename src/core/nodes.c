@@ -7399,7 +7399,7 @@ route_only:
 				message_dump(n);
 			break;
 		}
-	} else if (n != NULL) {
+	} else if (n != NULL && settings_is_ultra()) {
 		/*
 		 * We don't handle the message but if we have to forward it and it is
 		 * a duplicate, extra checks are called for to ensure we don't resend
@@ -7413,7 +7413,16 @@ route_only:
 					sri = search_request_info_alloc();
 					if (search_request_preprocess(n, sri, TRUE))
 						goto reset_header;
-					/* Message is good, will forward it */
+					/*
+					 * Message is good, will forward it: mark it as a duplicate
+					 * and call search_request() only to fill the query hash
+					 * vector (and re-mangle the MUID if we OOB-proxy this
+					 * query).
+					 */
+					search_request_info_mark_duplicate(sri);
+					qhv = query_hashvec;
+					qhvec_reset(qhv);
+					search_request(n, sri, qhv);
 				}
 				break;
 			default:
@@ -7477,30 +7486,25 @@ route_only:
 		switch (gnutella_header_get_function(&n->header)) {
 		case GTA_MSG_SEARCH:
 			/*
+			 * (if running as ultra mode, in which case qhv is not NULL).
+			 *
 			 * Route it to the appropriate leaves, and if TTL=1,
 			 * to UPs that support last-hop QRP and to all other
-			 * non-QRP awware UPs.
+			 * non-QRP awware UPs, and if TTL>1 to all ultrapeers
+			 * without any QRP check.
 			 *
-			 * (if running as ultra mode, in which case qhv is not NULL).
-			 */
-
-			if (qhv != NULL)
-				qrt_route_query(n, qhv);
-
-			/*
-			 * If normal node, or if the TTL is not 1, broadcast (to
-			 * non-leaf nodes).
+			 * The sender of the message is always excluded, of course.
 			 *
 			 * There's no need to test for GGEP here, as searches are
 			 * variable-length messages and the GGEP check is only for
 			 * fixed-sized message enriched with trailing GGEP extensions.
 			 */
 
-			if (
-				GNET_PROPERTY(current_peermode) == NODE_P_NORMAL ||
-				gnutella_header_get_ttl(&n->header) > 1
-			)
-				gmsg_sendto_route(n, &dest);
+			if (qhv != NULL)
+				qrt_route_query(n, qhv);
+
+			/* Leaves do not relay queries */
+
 			break;
 
 		case GTA_MSG_SEARCH_RESULTS:

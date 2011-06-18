@@ -160,6 +160,7 @@ struct search_request_info {
 	unsigned skip_file_search:1;	/**< Should we skip library searching? */
 	unsigned may_oob_proxy:1;		/**< Can we OOB-proxy the query? */
 	unsigned partials:1;			/**< Do they want partial results? */
+	unsigned duplicate:1;			/**< Known duplicate, with higher TTL */
 };
 
 enum search_ctrl_magic { SEARCH_CTRL_MAGIC = 0x0add8c06 };
@@ -6189,6 +6190,17 @@ search_request_info_alloc(void)
 }
 
 /**
+ * Mark the query as a duplicate.
+ */
+void
+search_request_info_mark_duplicate(search_request_info_t *sri)
+{
+	g_assert(sri != NULL);
+
+	sri->duplicate = TRUE;
+}
+
+/**
  * @return search media type filter (0 if none).
  */
 unsigned
@@ -7151,38 +7163,6 @@ search_request(struct gnutella_node *n,
 	}
 
 	/*
-	 * Check limits.
-	 */
-
-	if (oob) {
-		host_addr_t addr;
-		guint16 port;
-
-		guid_oob_get_addr_port(gnutella_header_get_muid(&n->header),
-			&addr, &port);
-
-		if (ctl_limit(addr, CTL_D_QUERY)) {
-			if (GNET_PROPERTY(ctl_debug) > 3) {
-				g_debug("CTL ignoring OOB query to be answered at %s [%s]",
-					host_addr_to_string(addr), gip_country_cc(addr));
-			}
-			goto finish;
-		}
-	} else if (1 == gnutella_header_get_hops(&n->header)) {
-		/*
-		 * Query comes from one of our neighbours.
-		 */
-
-		if (ctl_limit(n->addr, CTL_D_QUERY)) {
-			if (GNET_PROPERTY(ctl_debug) > 3) {
-				g_debug("CTL ignoring neighbour query from %s [%s]",
-					node_infostr(n), gip_country_cc(n->addr));
-			}
-			goto finish;
-		}
-	}
-
-	/*
 	 * If the query does not have an OOB mark, comes from a leaf node and
 	 * they allow us to be an OOB-proxy, then replace the IP:port of the
 	 * query with ours, so that we are the ones to get the UDP replies.
@@ -7211,6 +7191,48 @@ search_request(struct gnutella_node *n,
 		if (oob_proxy_create(n)) {
 			oob = TRUE;
 			gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
+		}
+	}
+
+	/*
+	 * If this is a duplicate query (with higher TTL), we just need to relay
+	 * it, and for that we need to compute the query hash vector.
+	 */
+
+	if (sri->duplicate)
+		goto finish;
+
+	/* We're going to attempt to process the query (i.e. search our library) */
+
+	/*
+	 * Check limits.
+	 */
+
+	if (oob) {
+		host_addr_t addr;
+		guint16 port;
+
+		guid_oob_get_addr_port(gnutella_header_get_muid(&n->header),
+			&addr, &port);
+
+		if (ctl_limit(addr, CTL_D_QUERY)) {
+			if (GNET_PROPERTY(ctl_debug) > 3) {
+				g_debug("CTL ignoring OOB query to be answered at %s [%s]",
+					host_addr_to_string(addr), gip_country_cc(addr));
+			}
+			goto finish;
+		}
+	} else if (1 == gnutella_header_get_hops(&n->header)) {
+		/*
+		 * Query comes from one of our neighbours.
+		 */
+
+		if (ctl_limit(n->addr, CTL_D_QUERY)) {
+			if (GNET_PROPERTY(ctl_debug) > 3) {
+				g_debug("CTL ignoring neighbour query from %s [%s]",
+					node_infostr(n), gip_country_cc(n->addr));
+			}
+			goto finish;
 		}
 	}
 
