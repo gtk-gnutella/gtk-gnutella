@@ -332,6 +332,34 @@ sequence_is_empty(const sequence_t *s)
 }
 
 /**
+ * @return how many items are held in the sequence.
+ */
+size_t
+sequence_count(const sequence_t *s)
+{
+	sequence_check(s);
+
+	switch (s->type) {
+	case SEQUENCE_GSLIST:
+		return g_slist_length(s->u.gsl);
+	case SEQUENCE_GLIST:
+		return g_list_length(s->u.gl);
+	case SEQUENCE_LIST:
+		return list_length(s->u.l);
+	case SEQUENCE_SLIST:
+		return slist_length(s->u.sl);
+	case SEQUENCE_HLIST:
+		return hash_list_length(s->u.hl);
+	case SEQUENCE_VECTOR:
+		return vector_length(s->u.vec);
+	case SEQUENCE_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return 0;
+}
+
+/**
  * Returns the underlying sequence implementation.
  */
 gpointer
