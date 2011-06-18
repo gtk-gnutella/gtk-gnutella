@@ -471,6 +471,9 @@ extern const gboolean gnet_property_variable_query_answer_whats_new;
 extern const gboolean gnet_property_variable_search_smart_stop;
 extern const guint32  gnet_property_variable_whats_new_search_max_results;
 extern const guint32  gnet_property_variable_passive_search_max_results;
+extern const gboolean gnet_property_variable_log_dup_gnutella_same_node;
+extern const gboolean gnet_property_variable_log_dup_gnutella_higher_ttl;
+extern const gboolean gnet_property_variable_log_dup_gnutella_other_node;
 
 
 prop_set_t *gnet_prop_init(void);

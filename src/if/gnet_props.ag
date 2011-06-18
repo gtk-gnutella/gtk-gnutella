@@ -4937,4 +4937,31 @@ prop = {
     };
 };
 
+prop = {
+	name = "log_dup_gnutella_same_node";
+	desc = "Whether to log duplicate Gnutella messages from same node.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_dup_gnutella_higher_ttl";
+	desc = "Whether to log duplicate Gnutella messages with a higher TTL.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_dup_gnutella_other_node";
+	desc = "Whether to log duplicate Gnutella messages (not from same node).";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

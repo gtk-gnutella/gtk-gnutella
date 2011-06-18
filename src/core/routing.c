@@ -1714,6 +1714,162 @@ forward_message(
 }
 
 /**
+ * Handle duplicate message.
+ *
+ * @param route_log	a structure recording to-be-logged information for debug
+ * @param node		pointer to variable holding the sender of the message
+ * @param m			the message, as already found in the routing table
+ * @param oob		whether this a duplicate OOB query (spot with mangled MUID)
+ *
+ * @return whether we should route the message (a duplicate with a higher TTL).
+ */
+static gboolean
+handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
+	struct message *m, gboolean oob)
+{
+	gnutella_node_t *sender = *node;
+	gboolean forward = FALSE;
+
+	node_check(sender);
+	g_assert(m != NULL);
+
+	/*
+	 * This is a duplicated message, which we might drop.
+	 *
+	 * We don't drop queries/pushes that come to us with a higher TTL
+	 * as we have previously seen.  In that case, we forward them but
+	 * don't handle them, since this was done when we saw them the
+	 * very first time.
+	 *		--RAM, 2004-08-28
+	 */
+
+	if (oob)
+		gnet_stats_count_general(GNR_QUERY_OOB_PROXIED_DUPS, 1);
+
+	routing_log_extra(route_log, oob ? "dup OOB query" : "dup message");
+
+	if (gnutella_header_get_ttl(&sender->header) > m->ttl) {
+		routing_log_extra(route_log, "higher TTL");
+
+		gnet_stats_count_general(GNR_DUPS_WITH_HIGHER_TTL, 1);
+
+		if (GNET_PROPERTY(log_dup_gnutella_higher_ttl)) {
+			gmsg_log_split_duplicate(&sender->header, sender->data,
+				sender->size,
+				"from %s: %shigher TTL (previous TTL was %u)",
+				node_infostr(sender), oob ? "OOB, " : "", m->ttl);
+		}
+
+		/* Remember highest TTL */
+		m->ttl = gnutella_header_get_ttl(&sender->header);
+
+		forward = TRUE;			/* Forward but don't handle */
+	}
+
+	if (!forward)
+		gnet_stats_count_dropped(sender, MSG_DROP_DUPLICATE);
+
+	/*
+	 * Even if we decided to forward the message, we must continue
+	 * to update the highest TTL seen for a given message along
+	 * each route.
+	 */
+
+	if (m->routes && route_node_sent_message(sender, m)) {
+		gboolean higher_ttl;
+
+		/*
+		 * The same node has sent us a message twice!
+		 *
+		 * Check whether we have a higher TTL this time, and update
+		 * the highest TTL seen along this route.
+		 */
+
+		higher_ttl = route_node_ttl_higher(sender, m,
+						gnutella_header_get_ttl(&sender->header));
+
+		if (higher_ttl) {
+			routing_log_extra(route_log, "same node");
+
+			if (GNET_PROPERTY(log_dup_gnutella_higher_ttl)) {
+				gmsg_log_split_duplicate(&sender->header, sender->data,
+					sender->size,
+					"from %s: %ssame node, higher TTL (dups=%u)",
+					node_infostr(sender), oob ? "OOB, " : "", sender->n_dups);
+			}
+		} else {
+			routing_log_extra(route_log, "same node and no higher TTL");
+
+			if (GNET_PROPERTY(log_dup_gnutella_same_node)) {
+				gmsg_log_split_duplicate(&sender->header, sender->data,
+					sender->size, "from %s: %ssame node (dups=%u)",
+					node_infostr(sender), oob ? "OOB, " : "", sender->n_dups);
+			}
+		}
+
+		/*
+		 * That is a really good reason to kick the offender
+		 * But do so only if killing this node would not bring
+		 * us too low in node count, and if they have sent enough
+		 * dups to be sure it's not bad luck in MUID generation.
+		 * Finally, check the ratio of dups on received messages,
+		 * because a dup once in a while is nothing.
+		 *		--RAM, 08/09/2001
+		 *
+		 * Don't count duplicates coming with a higher TTL, those are OK!
+		 *		--RAM, 2005-10-02
+		 */
+
+		/* XXX max_dup_msg & max_dup_ratio XXX ***/
+
+		if (
+			!higher_ttl && !oob &&
+			!NODE_IS_UDP(sender) &&
+			sender->n_dups++ >= GNET_PROPERTY(min_dup_msg) &&
+			connected_nodes() > MAX(2, GNET_PROPERTY(up_connections)) &&
+			sender->n_dups >
+				(guint16)(1.0 * GNET_PROPERTY(min_dup_ratio) / 10000.0
+							* sender->received)
+		) {
+			node_mark_bad_vendor(sender);
+			node_bye(sender, 401, "Sent %d dups (%.1f%% of RX)",
+				sender->n_dups, sender->received ?
+					100.0 * sender->n_dups / sender->received :
+					0.0);
+			*node = NULL;
+		} else {
+			if (GNET_PROPERTY(routing_debug) > 2)
+				gmsg_log_bad(sender, "dup message ID %s from same node",
+				   guid_hex_str(gnutella_header_get_muid(&sender->header)));
+		}
+	} else {
+		if (m->routes == NULL) {
+			routing_log_extra(route_log, "all routes lost");
+
+			if (GNET_PROPERTY(log_dup_gnutella_other_node)) {
+				gmsg_log_split_duplicate(&sender->header, sender->data,
+					sender->size,
+					"from %s: %sother node, no route (dups=%u)",
+					node_infostr(sender), oob ? "OOB, " : "", sender->n_dups);
+			}
+		} else {
+			routing_log_extra(route_log, "route remains");
+
+			if (GNET_PROPERTY(log_dup_gnutella_other_node)) {
+				unsigned count = g_slist_length(m->routes);
+				gmsg_log_split_duplicate(&sender->header, sender->data,
+					sender->size,
+					"from %s: %sother node, %u route%s (dups=%u)",
+					node_infostr(sender), oob ? "OOB, " : "",
+					count, 1 == count ? "" : "s", sender->n_dups);
+			}
+		}
+	}
+
+	return forward;
+}
+
+/**
  * Lookup message in the routing table and check whether we have a duplicate.
  *
  * @param route_log is a structure recording to-be-logged information for debug
@@ -1728,113 +1884,14 @@ forward_message(
  */
 static gboolean
 check_duplicate(struct route_log *route_log, struct gnutella_node **node,
-	const struct guid *mangled, struct message **mp)
+	const guid_t *mangled, struct message **mp)
 {
 	struct gnutella_node *sender = *node;
+	guint8 function = gnutella_header_get_function(&sender->header);
+	const guid_t *muid = gnutella_header_get_muid(&sender->header);
 
-	if (
-		find_message(gnutella_header_get_muid(&sender->header),
-			gnutella_header_get_function(&sender->header), mp)
-	) {
-		struct message *m = *mp;
-		gboolean forward = FALSE;
-
-		g_assert(m != NULL);		/* find_message() succeeded */
-
-		/*
-		 * This is a duplicated message, which we might drop.
-		 *
-		 * We don't drop queries/pushes that come to us with a higher TTL
-		 * as we have previously seen.  In that case, we forward them but
-		 * don't handle them, since this was done when we saw them the
-		 * very first time.
-		 *		--RAM, 2004-08-28
-		 */
-
-		if (gnutella_header_get_ttl(&sender->header) > m->ttl) {
-			routing_log_extra(route_log, "dup message with higher ttl");
-
-			gnet_stats_count_general(GNR_DUPS_WITH_HIGHER_TTL, 1);
-
-			/* Remember highest TTL */
-			m->ttl = gnutella_header_get_ttl(&sender->header);
-
-			forward = TRUE;			/* Forward but don't handle */
-		}
-
-		if (!forward)
-			gnet_stats_count_dropped(sender, MSG_DROP_DUPLICATE);
-
-		/*
-		 * Even if we decided to forward the message, we must continue
-		 * to update the highest TTL seen for a given message along
-		 * each route.
-		 */
-
-		if (m->routes && route_node_sent_message(sender, m)) {
-			gboolean higher_ttl;
-
-			/*
-			 * The same node has sent us a message twice!
-			 *
-			 * Check whether we have a higher TTL this time, and update
-			 * the highest TTL seen along this route.
-			 */
-
-			higher_ttl = route_node_ttl_higher(sender, m,
-							gnutella_header_get_ttl(&sender->header));
-
-			if (higher_ttl) {
-				routing_log_extra(route_log,
-					"dup message (same node, higher TTL)");
-			} else {
-				routing_log_extra(route_log, "dup message (same node)");
-			}
-
-			/*
-			 * That is a really good reason to kick the offender
-			 * But do so only if killing this node would not bring
-			 * us too low in node count, and if they have sent enough
-			 * dups to be sure it's not bad luck in MUID generation.
-			 * Finally, check the ratio of dups on received messages,
-			 * because a dup once in a while is nothing.
-			 *		--RAM, 08/09/2001
-			 *
-			 * Don't count duplicates coming with a higher TTL, those are OK!
-			 *		--RAM, 2005-10-02
-			 */
-
-			/* XXX max_dup_msg & max_dup_ratio XXX ***/
-
-			if (
-				!higher_ttl &&
-				!NODE_IS_UDP(sender) &&
-				sender->n_dups++ >= GNET_PROPERTY(min_dup_msg) &&
-				connected_nodes() > MAX(2, GNET_PROPERTY(up_connections)) &&
-				sender->n_dups >
-					(guint16)(1.0 * GNET_PROPERTY(min_dup_ratio) / 10000.0
-							  	* sender->received)
-			) {
-				node_mark_bad_vendor(sender);
-				node_bye(sender, 401, "Sent %d dups (%.1f%% of RX)",
-					sender->n_dups, sender->received ?
-						100.0 * sender->n_dups / sender->received :
-						0.0);
-				*node = NULL;
-			} else {
-				if (GNET_PROPERTY(routing_debug) > 2)
-					gmsg_log_bad(sender, "dup message ID %s from same node",
-					   guid_hex_str(gnutella_header_get_muid(&sender->header)));
-			}
-		} else {
-			if (m->routes == NULL)
-				routing_log_extra(route_log, "dup message, all routes lost");
-			else
-				routing_log_extra(route_log, "dup message");
-		}
-
-		return forward;
-	}
+	if (find_message(muid, function, mp))
+		return handle_duplicate(route_log, node, *mp, FALSE);
 
 	/*
 	 * If we have a mangled MUID to test against, we have to look at whether
@@ -1848,50 +1905,10 @@ check_duplicate(struct route_log *route_log, struct gnutella_node **node,
 	 * higher TTL as we saw before.
 	 *
 	 *		--RAM, 2004-09-19
-	 *
-	 * The code in the following if() almost mirrors the one in the preceding
-	 * if() with two exceptions: we don't kick offenders, and we increment
-	 * the global stats counter of duplicate OOB queries.
-	 *
-	 * XXX factorize this code.
 	 */
 
-	if (
-		mangled &&
-		find_message(mangled,
-			gnutella_header_get_function(&sender->header), mp)
-	) {
-		struct message *m = *mp;
-
-		g_assert(m != NULL);		/* find_message() succeeded */
-
-		gnet_stats_count_general(GNR_QUERY_OOB_PROXIED_DUPS, 1);
-
-		if (gnutella_header_get_ttl(&sender->header) > m->ttl) {
-			routing_log_extra(route_log, "dup OOB query with higher ttl");
-
-			gnet_stats_count_general(GNR_DUPS_WITH_HIGHER_TTL, 1);
-
-			/* Remember highest TTL */
-			m->ttl = gnutella_header_get_ttl(&sender->header);
-
-			return TRUE;			/* Forward but don't handle */
-		}
-
-		gnet_stats_count_dropped(sender, MSG_DROP_DUPLICATE);
-
-		if (m->routes && route_node_sent_message(sender, m)) {
-			/* The same node has sent us a message twice ! */
-			routing_log_extra(route_log, "dup OOB query (from the same node!)");
-		} else {
-			if (m->routes == NULL)
-				routing_log_extra(route_log, "dup OOB query, all routes lost");
-			else
-				routing_log_extra(route_log, "dup OOB query");
-		}
-
-		return FALSE;			/* Don't forward and don't handle */
-	}
+	if (mangled != NULL && find_message(mangled, function, mp))
+		return handle_duplicate(route_log, node, *mp, TRUE);
 
 	g_assert(*mp == NULL);
 

@@ -986,6 +986,12 @@ guint32  gnet_property_variable_whats_new_search_max_results     = 10000;
 static const guint32  gnet_property_variable_whats_new_search_max_results_default = 10000;
 guint32  gnet_property_variable_passive_search_max_results     = 5000;
 static const guint32  gnet_property_variable_passive_search_max_results_default = 5000;
+gboolean gnet_property_variable_log_dup_gnutella_same_node     = FALSE;
+static const gboolean gnet_property_variable_log_dup_gnutella_same_node_default = FALSE;
+gboolean gnet_property_variable_log_dup_gnutella_higher_ttl     = FALSE;
+static const gboolean gnet_property_variable_log_dup_gnutella_higher_ttl_default = FALSE;
+gboolean gnet_property_variable_log_dup_gnutella_other_node     = FALSE;
+static const gboolean gnet_property_variable_log_dup_gnutella_other_node_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -9041,6 +9047,57 @@ gnet_prop_init(void) {
     gnet_property->props[421].data.guint32.choices = NULL;
     gnet_property->props[421].data.guint32.max   = 500000;
     gnet_property->props[421].data.guint32.min   = 100;
+
+
+    /*
+     * PROP_LOG_DUP_GNUTELLA_SAME_NODE:
+     *
+     * General data:
+     */
+    gnet_property->props[422].name = "log_dup_gnutella_same_node";
+    gnet_property->props[422].desc = _("Whether to log duplicate Gnutella messages from same node.");
+    gnet_property->props[422].ev_changed = event_new("log_dup_gnutella_same_node_changed");
+    gnet_property->props[422].save = TRUE;
+    gnet_property->props[422].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[422].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[422].data.boolean.def   = (void *) &gnet_property_variable_log_dup_gnutella_same_node_default;
+    gnet_property->props[422].data.boolean.value = (void *) &gnet_property_variable_log_dup_gnutella_same_node;
+
+
+    /*
+     * PROP_LOG_DUP_GNUTELLA_HIGHER_TTL:
+     *
+     * General data:
+     */
+    gnet_property->props[423].name = "log_dup_gnutella_higher_ttl";
+    gnet_property->props[423].desc = _("Whether to log duplicate Gnutella messages with a higher TTL.");
+    gnet_property->props[423].ev_changed = event_new("log_dup_gnutella_higher_ttl_changed");
+    gnet_property->props[423].save = TRUE;
+    gnet_property->props[423].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[423].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[423].data.boolean.def   = (void *) &gnet_property_variable_log_dup_gnutella_higher_ttl_default;
+    gnet_property->props[423].data.boolean.value = (void *) &gnet_property_variable_log_dup_gnutella_higher_ttl;
+
+
+    /*
+     * PROP_LOG_DUP_GNUTELLA_OTHER_NODE:
+     *
+     * General data:
+     */
+    gnet_property->props[424].name = "log_dup_gnutella_other_node";
+    gnet_property->props[424].desc = _("Whether to log duplicate Gnutella messages (not from same node).");
+    gnet_property->props[424].ev_changed = event_new("log_dup_gnutella_other_node_changed");
+    gnet_property->props[424].save = TRUE;
+    gnet_property->props[424].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[424].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[424].data.boolean.def   = (void *) &gnet_property_variable_log_dup_gnutella_other_node_default;
+    gnet_property->props[424].data.boolean.value = (void *) &gnet_property_variable_log_dup_gnutella_other_node;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
