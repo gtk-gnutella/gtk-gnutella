@@ -716,8 +716,27 @@ guess_rpc_handle(struct gnutella_node *n)
 	guess_rpc_check(grp);
 
 	gq = guess_is_alive(grp->gid);
-	if (gq != NULL)
+	if (gq != NULL) {
+		/*
+		 * If we get a reply, the message must have been sent, otherwise this
+		 * is an improbable collision (or a local bookkeeping bug).
+		 *
+		 * TODO: check that our bookkepping of grp->pmi is correct, after 0.97
+		 * is out. 	--RAM, 2011-06-18
+		 */
+
+		if (grp->pmi != NULL) {
+			if (GNET_PROPERTY(guess_client_debug)) {
+				g_warning("GUESS QUERY[%s] got RPC reply for %s from %s "
+					"but message to %s still unsent?",
+					nid_to_string(&gq->gid), guid_hex_str(key.muid),
+					node_infostr(n), gnet_host_to_string(grp->pmi->host));
+			}
+			return FALSE;		/* Don't handle message */
+		}
+
 		(*grp->cb)(GUESS_RPC_REPLY, grp, n, gq);
+	}
 
 	guess_rpc_free(grp);
 	return TRUE;
