@@ -612,7 +612,7 @@ routing_log_flush(struct route_log *route_log)
 	if (!GNET_PROPERTY(log_gnutella_routing))
 		return;
 
-	g_debug("ROUTE %-21s %s %s %3d/%3d: [%c%c] %s%s%s-> %s",
+	g_debug("ROUTE %-21s %s %s %3d/%3d: [%c%c] %s%s-> %s",
 		route_log->local ? "OURSELVES"
 			: host_addr_port_to_string(route_log->addr, route_log->port),
 		debug_msg[route_log->function], guid_hex_str(&route_log->muid),
