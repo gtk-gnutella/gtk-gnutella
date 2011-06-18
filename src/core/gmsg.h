@@ -148,6 +148,9 @@ void gmsg_log_dropped_pmsg(pmsg_t *msg,
 void gmsg_log_split_dropped(
 	gconstpointer head, gconstpointer data, size_t data_len,
 	const char *reason, ...) G_GNUC_PRINTF(4, 5);
+void gmsg_log_split_duplicate(
+	gconstpointer head, gconstpointer data, size_t data_len,
+	const char *reason, ...) G_GNUC_PRINTF(4, 5);
 
 void gmsg_search_sendto_one(struct gnutella_node *n, gnet_search_t sh,
 	gconstpointer msg, guint32 size);

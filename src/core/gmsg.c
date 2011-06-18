@@ -1233,7 +1233,7 @@ gmsg_log_split_dropped(
 	gconstpointer head, gconstpointer data, size_t data_len,
 	const char *reason, ...)
 {
-	char rbuf[128];
+	char rbuf[256];
 	char buf[128];
 
 	gmsg_infostr_full_split_to_buf(head, data, data_len, buf, sizeof buf);
@@ -1253,12 +1253,40 @@ gmsg_log_split_dropped(
 }
 
 /**
+ * Log duplicate message (given with separated header and data) with reason.
+ */
+void
+gmsg_log_split_duplicate(
+	gconstpointer head, gconstpointer data, size_t data_len,
+	const char *reason, ...)
+{
+	char rbuf[256];
+	char buf[128];
+
+	gmsg_infostr_full_split_to_buf(head, data, data_len, buf, sizeof buf);
+
+	if (reason) {
+		va_list args;
+		va_start(args, reason);
+		rbuf[0] = ':';
+		rbuf[1] = ' ';
+		gm_vsnprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		va_end(args);
+	} else {
+		rbuf[0] = '\0';
+	}
+
+	g_debug("DUP %s %s%s",
+		guid_hex_str(gnutella_header_get_muid(head)), buf, rbuf);
+}
+
+/**
  * Log dropped message (held in message block) with supplied reason.
  */
 void
 gmsg_log_dropped_pmsg(pmsg_t *mb, const char *reason, ...)
 {
-	char rbuf[128];
+	char rbuf[256];
 	char buf[128];
 
 	gmsg_infostr_full_to_buf(pmsg_start(mb), pmsg_written_size(mb),
@@ -1284,7 +1312,7 @@ gmsg_log_dropped_pmsg(pmsg_t *mb, const char *reason, ...)
 void
 gmsg_log_bad(const struct gnutella_node *n, const char *reason, ...)
 {
-	char rbuf[128];
+	char rbuf[256];
 	char buf[128];
 
 	gmsg_infostr_full_split_to_buf(
