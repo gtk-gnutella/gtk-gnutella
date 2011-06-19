@@ -224,7 +224,7 @@ struct route_log {
 	guint8 function;			/**< Message function */
 	guint8 hops;				/**< Message hops */
 	guint8 ttl;					/**< Message ttl */
-	char extra[80];				/**< Extra text for logging */
+	char extra[120];			/**< Extra text for logging */
 	struct route_dest dest;		/**< Message destination */
 	unsigned handle:1;			/**< Whether message will be handled */
 	unsigned local:1;			/**< Whether message originated locally */
