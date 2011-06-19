@@ -27,7 +27,7 @@
  * @ingroup core
  * @file
  *
- * Pong caching (LimeWire's ping/pong reducing scheme).
+ * Internet status.
  *
  * @author Raphael Manfredi
  * @date 2001-2003
