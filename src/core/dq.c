@@ -1456,10 +1456,8 @@ dq_send_next(dquery_t *dq)
 			nid_to_string(&dq->qid), found, found == 1 ? "" : "s",
 			(dq->flags & DQ_F_GOT_GUIDANCE) ? "reported kept " : "", results);
 
-	if (found == 0) {
-		dq_terminate(dq);	/* Terminate query: no more UP to send it to */
-		return;
-	}
+	if (found == 0)
+		goto terminate;	/* Terminate query: no more UP to send it to */
 
 	/*
 	 * Sort the array by increasing queue size, so that the nodes with
@@ -1499,10 +1497,8 @@ dq_send_next(dquery_t *dq)
 		break;
 	}
 
-	if (!sent) {
-		dq_terminate(dq);
-		return;
-	}
+	if (!sent)
+		goto terminate;
 
 	/*
 	 * Adjust waiting period if we don't get enough results, indicating
