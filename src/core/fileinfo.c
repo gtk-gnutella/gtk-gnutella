@@ -5173,7 +5173,7 @@ file_info_reserve(const struct download *d,
 	filesize_t from, filesize_t to, const struct dl_file_chunk *chunk)
 {
 	fileinfo_t *fi = d->file_info;
-	int busy, old_busy = 0;
+	int busy = 0, old_busy = 0;
 	const struct download *old_d = NULL;
 
 	g_assert(to >= from);
