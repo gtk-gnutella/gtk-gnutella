@@ -585,7 +585,7 @@ proxy_is_enabled(void)
 
 /*
  * The socks 4/5 code was taken from tsocks 1.16 Copyright (C) 2000 Shaun
- * Clowes It was modified to work with gtk_gnutella and non-blocking sockets.
+ * Clowes. It was modified to work with gtk_gnutella and non-blocking sockets.
  * --DW
  */
 static socket_fd_t
@@ -2781,7 +2781,8 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 		if (fd < 0) {
 			int saved_errno = errno;
-			g_warning("unable to create a socket (%s)",
+			g_warning("unable to create %s socket: %s (%s)",
+				socket_type_to_string(type), symbolic_errno(saved_errno),
 				g_strerror(saved_errno));
 			errno = saved_errno;
 			return -1;
