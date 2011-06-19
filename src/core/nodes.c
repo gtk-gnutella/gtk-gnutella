@@ -7414,12 +7414,11 @@ route_only:
 					if (search_request_preprocess(n, sri, TRUE))
 						goto reset_header;
 					/*
-					 * Message is good, will forward it: mark it as a duplicate
-					 * and call search_request() only to fill the query hash
+					 * Message is good, will forward it: since it is a duplicate
+					 * we call search_request() only to fill the query hash
 					 * vector (and re-mangle the MUID if we OOB-proxy this
 					 * query).
 					 */
-					search_request_info_mark_duplicate(sri);
 					qhv = query_hashvec;
 					qhvec_reset(qhv);
 					search_request(n, sri, qhv);

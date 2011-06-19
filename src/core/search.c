@@ -6190,17 +6190,6 @@ search_request_info_alloc(void)
 }
 
 /**
- * Mark the query as a duplicate.
- */
-void
-search_request_info_mark_duplicate(search_request_info_t *sri)
-{
-	g_assert(sri != NULL);
-
-	sri->duplicate = TRUE;
-}
-
-/**
  * @return search media type filter (0 if none).
  */
 unsigned
@@ -6257,6 +6246,8 @@ search_request_preprocess(struct gnutella_node *n,
 			guid_hex_str(gnutella_header_get_muid(&n->header)));
 		}
 	}
+
+	sri->duplicate = booleanize(isdup);
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
