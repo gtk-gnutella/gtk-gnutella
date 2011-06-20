@@ -996,6 +996,8 @@ gboolean gnet_property_variable_log_new_gnutella     = FALSE;
 static const gboolean gnet_property_variable_log_new_gnutella_default = FALSE;
 gboolean gnet_property_variable_log_gnutella_routing     = FALSE;
 static const gboolean gnet_property_variable_log_gnutella_routing_default = FALSE;
+gboolean gnet_property_variable_log_bad_gnutella     = FALSE;
+static const gboolean gnet_property_variable_log_bad_gnutella_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -9136,6 +9138,23 @@ gnet_prop_init(void) {
     gnet_property->props[426].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[426].data.boolean.def   = (void *) &gnet_property_variable_log_gnutella_routing_default;
     gnet_property->props[426].data.boolean.value = (void *) &gnet_property_variable_log_gnutella_routing;
+
+
+    /*
+     * PROP_LOG_BAD_GNUTELLA:
+     *
+     * General data:
+     */
+    gnet_property->props[427].name = "log_bad_gnutella";
+    gnet_property->props[427].desc = _("Whether to log bad Gnutella messages, corrupted or unexpected.");
+    gnet_property->props[427].ev_changed = event_new("log_bad_gnutella_changed");
+    gnet_property->props[427].save = TRUE;
+    gnet_property->props[427].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[427].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[427].data.boolean.def   = (void *) &gnet_property_variable_log_bad_gnutella_default;
+    gnet_property->props[427].data.boolean.value = (void *) &gnet_property_variable_log_bad_gnutella;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

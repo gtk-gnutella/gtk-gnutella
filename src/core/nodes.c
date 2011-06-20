@@ -7085,7 +7085,7 @@ node_parse(struct gnutella_node *n)
 		) {
 			n->n_bad++;
 			drop = TRUE;
-			if (GNET_PROPERTY(node_debug))
+			if (GNET_PROPERTY(node_debug) || GNET_PROPERTY(log_bad_gnutella))
 				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		}
@@ -7141,7 +7141,10 @@ node_parse(struct gnutella_node *n)
 			) {
 				n->n_bad++;
 				drop = TRUE;
-				if (GNET_PROPERTY(node_debug))
+				if (
+					GNET_PROPERTY(node_debug) ||
+					GNET_PROPERTY(log_bad_gnutella)
+				)
 					gmsg_log_bad(n, "expected hops=0 and TTL<=1");
 				gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 			} else {
@@ -7158,7 +7161,7 @@ node_parse(struct gnutella_node *n)
 		) {
 			n->n_bad++;
 			drop = TRUE;
-			if (GNET_PROPERTY(node_debug))
+			if (GNET_PROPERTY(node_debug) || GNET_PROPERTY(log_bad_gnutella))
 				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (
@@ -7170,7 +7173,7 @@ node_parse(struct gnutella_node *n)
 		) {
 			drop = TRUE;
 			n->n_bad++;
-			if (GNET_PROPERTY(node_debug))
+			if (GNET_PROPERTY(node_debug) || GNET_PROPERTY(log_bad_gnutella))
 				gmsg_log_bad(n, "unexpected QRP message");
 			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
 		}
@@ -7182,13 +7185,13 @@ node_parse(struct gnutella_node *n)
 		) {
 			n->n_bad++;
 			drop = TRUE;
-			if (GNET_PROPERTY(node_debug))
+			if (GNET_PROPERTY(node_debug) || GNET_PROPERTY(log_bad_gnutella))
 				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
 			gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (!(n->attrs & NODE_A_CAN_HSEP)) {
 			drop = TRUE;
 			n->n_bad++;
-			if (GNET_PROPERTY(node_debug))
+			if (GNET_PROPERTY(node_debug) || GNET_PROPERTY(log_bad_gnutella))
 				gmsg_log_bad(n, "unexpected HSEP message");
 			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
 		}
@@ -7198,7 +7201,7 @@ node_parse(struct gnutella_node *n)
 	default:					/* Unknown message type - we drop it */
 		drop = TRUE;
 		n->n_bad++;
-		if (GNET_PROPERTY(node_debug))
+		if (GNET_PROPERTY(node_debug) || GNET_PROPERTY(log_bad_gnutella))
 			gmsg_log_bad(n, "unknown message type");
         gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
 		break;
@@ -8346,7 +8349,7 @@ node_sent_ttl0(struct gnutella_node *n)
 
 	n->n_bad++;
 
-	if (GNET_PROPERTY(node_debug))
+	if (GNET_PROPERTY(node_debug) || GNET_PROPERTY(log_bad_gnutella))
 		gmsg_log_bad(n, "message received with TTL=0");
 }
 

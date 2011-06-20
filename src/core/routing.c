@@ -1552,7 +1552,7 @@ check_hops_ttl(struct route_log *route_log, struct gnutella_node *sender)
 		routing_log_extra(route_log, "max hop count reached");
 		gnet_stats_count_dropped(sender, MSG_DROP_MAX_HOP_COUNT);
 		sender->n_bad++;
-		if (GNET_PROPERTY(routing_debug))
+		if (GNET_PROPERTY(routing_debug) || GNET_PROPERTY(log_bad_gnutella))
 			gmsg_log_bad(sender, "message with HOPS=255!");
 		return FALSE;	/* Don't route, something is wrong */
 	}
@@ -1841,7 +1841,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 					0.0);
 			*node = NULL;
 		} else {
-			if (GNET_PROPERTY(routing_debug) > 2)
+			if (GNET_PROPERTY(log_bad_gnutella))
 				gmsg_log_bad(sender, "dup message ID %s from same node",
 				   guid_hex_str(gnutella_header_get_muid(&sender->header)));
 		}
@@ -2249,7 +2249,7 @@ route_query_hit(struct route_log *route_log,
 		gnet_stats_count_dropped(sender, MSG_DROP_NO_ROUTE);
 		sender->n_bad++;	/* Node shouldn't have forwarded this message */
 
-		if (GNET_PROPERTY(routing_debug))
+		if (GNET_PROPERTY(log_bad_gnutella))
 			gmsg_log_bad(sender, "got reply without matching request %s%s",
 				guid_hex_str(gnutella_header_get_muid(&sender->header)),
 				is_oob_proxied ? " (OOB-proxied)" : "");

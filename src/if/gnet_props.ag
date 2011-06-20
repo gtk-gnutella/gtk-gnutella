@@ -4982,4 +4982,13 @@ prop = {
     };
 };
 
+prop = {
+	name = "log_bad_gnutella";
+	desc = "Whether to log bad Gnutella messages, corrupted or unexpected.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

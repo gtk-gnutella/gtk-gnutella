@@ -5362,7 +5362,7 @@ search_oob_pending_results(
 			g_warning("got OOB indication of %d hit%s for unknown search %s",
 				hits, hits == 1 ? "" : "s", guid_hex_str(muid));
 
-		if (GNET_PROPERTY(search_debug) > 3)
+		if (GNET_PROPERTY(log_bad_gnutella))
 			gmsg_log_bad(n, "unexpected OOB hit indication");
 
 		gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
