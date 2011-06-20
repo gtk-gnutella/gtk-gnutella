@@ -1533,13 +1533,14 @@ find_message(const struct guid *muid, guint8 function, struct message **m)
 }
 
 /**
- * Ensure sane hops and TTL counts.
+ * Ensure sane hop count.
  *
- * @return TRUE if we can continue, FALSE if we should not forward the
- * message.
+ * If the hop count has reached 255, drop the message and count it as bad.
+ *
+ * @return TRUE if OK, FALSE if message should not be forwarded.
  */
 static gboolean
-check_hops_ttl(struct route_log *route_log, struct gnutella_node *sender)
+check_hops(struct route_log *route_log, struct gnutella_node *sender)
 {
 	/*
 	 * Can't forward a message with 255 hops: we can't increase the
@@ -1554,9 +1555,22 @@ check_hops_ttl(struct route_log *route_log, struct gnutella_node *sender)
 		sender->n_bad++;
 		if (GNET_PROPERTY(routing_debug) || GNET_PROPERTY(log_bad_gnutella))
 			gmsg_log_bad(sender, "message with HOPS=255!");
-		return FALSE;	/* Don't route, something is wrong */
+		return FALSE;
 	}
 
+	return TRUE;
+}
+
+/**
+ * Ensure sane TTL value.
+ *
+ * If the TTL value reached 0, drop the message and count it as bad.
+ *
+ * @return TRUE if OK, FALSE if message should not be forwarded.
+ */
+static gboolean
+check_ttl(struct route_log *route_log, struct gnutella_node *sender)
+{
 	if (gnutella_header_get_ttl(&sender->header) == 0) {
 		routing_log_extra(route_log, "TTL was 0");
 		node_sent_ttl0(sender);
@@ -1564,6 +1578,18 @@ check_hops_ttl(struct route_log *route_log, struct gnutella_node *sender)
 	}
 
 	return TRUE;
+}
+
+/**
+ * Ensure sane hops and TTL counts.
+ *
+ * @return TRUE if we can continue, FALSE if we should not forward the
+ * message.
+ */
+static gboolean
+check_hops_ttl(struct route_log *route_log, struct gnutella_node *sender)
+{
+	return check_hops(route_log, sender) && check_ttl(route_log, sender);
 }
 
 /**
@@ -2163,8 +2189,15 @@ route_query_hit(struct route_log *route_log,
 	struct gnutella_node *found;
 	gboolean is_oob_proxied;
 	const struct guid *origin_guid;
+	const guid_t *muid = gnutella_header_get_muid(&sender->header);
+
+	/*
+	 * The last GUID_RAW_SIZE bytes of the message are the GUID of the servent
+	 * which generated the query hit.
+	 */
 
 	g_assert(sender->size >= GUID_RAW_SIZE);
+
    	origin_guid =
 		cast_to_guid_ptr_const(&sender->data[sender->size - GUID_RAW_SIZE]);
 
@@ -2232,16 +2265,9 @@ route_query_hit(struct route_log *route_log,
 	 * the initial query, regardless of the hops/TTL value of the hit.
 	 */
 
-	is_oob_proxied = NULL != oob_proxy_muid_proxied(
-								gnutella_header_get_muid(&sender->header));
+	is_oob_proxied = NULL != oob_proxy_muid_proxied(muid);
 
-	if (!is_oob_proxied && !check_hops_ttl(route_log, sender))
-		goto handle;				/* We will handle the hit nonetheless */
-
-	if (
-		!find_message(gnutella_header_get_muid(&sender->header),
-						GTA_MSG_SEARCH, &m)
-	) {
+	if (!find_message(muid, GTA_MSG_SEARCH, &m)) {
 		/* We have never seen any request matching this reply ! */
 
 		routing_log_extra(route_log, "no request matching the reply!");
@@ -2268,7 +2294,7 @@ route_query_hit(struct route_log *route_log,
 
 	/*
 	 * If `m->routes' is NULL, we have seen the request, but unfortunately
-	 * none of the nodes that sent us the request is connected any more.
+	 * none of the nodes that sent us the request are connected any more.
 	 */
 
 	if (m->routes == NULL)
@@ -2337,12 +2363,23 @@ route_query_hit(struct route_log *route_log,
 		goto route_lost;
 
 	/*
+	 * We don't call check_hops_ttl() but inline it here as we don't
+	 * want to necessarily drop TTL=0 messages if they are going to
+	 * be routed to a leaf node.
+	 */
+
+	if (!check_hops(route_log, sender))
+		goto handle;	/* Don't route, something is wrong */
+
+	(void) check_ttl(route_log, sender);	/* Just flag TTL=0, don't drop */
+
+	/*
 	 * If the TTL expired, drop the message, unless the target is a
 	 * leaf node, in which case we'll forward it the reply, or we
 	 * are a leaf node, in which case we won't route the message!.
 	 */
 
-	if (gnutella_header_get_ttl(&sender->header) == 1) {
+	if (gnutella_header_get_ttl(&sender->header) <= 1) {
 		if (NODE_IS_LEAF(found)) {
 			/* TTL expired, but target is a leaf node */
 			routing_log_extra(route_log, "expired TTL bumped");
