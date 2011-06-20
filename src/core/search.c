@@ -5396,9 +5396,15 @@ search_oob_pending_results(
 	 * If we got more than 15% of our maximum amount of shown results,
 	 * then we have a very popular query here.  We don't really need
 	 * to get more results, ignore.
+	 *
+	 * Exception is made for "What's New?" searches of course since by
+	 * definition we need to grab all the hits that come back.
 	 */
 
-	if (kept > search_max_results_for_ui(sch) * 0.15) {
+	if (
+		!sbool_get(sch->whats_new) &&
+		kept > search_max_results_for_ui(sch) * 0.15
+	) {
 		if (GNET_PROPERTY(search_debug)) {
 			g_debug("ignoring %d %sOOB hit%s for search %s (already got %u)",
 				hits,
