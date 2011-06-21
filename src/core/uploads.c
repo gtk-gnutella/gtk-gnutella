@@ -120,6 +120,7 @@ RCSID("$Id$")
 #define MAX_ERRORS		10			/**< Max # of errors before we close */
 #define PUSH_REPLY_MAX	5			/**< Answer to up to 5 pushes per IP... */
 #define PUSH_REPLY_FREQ	30			/**< ...in an interval of 30 secs */
+#define ALT_LOC_SIZE	160			/**< Size of X-Alt under b/w pressure */
 
 static GSList *list_uploads;
 static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
@@ -1611,7 +1612,7 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 		!shared_file_is_finished(u->sf) &&
 		(flags & (HTTP_CBF_SHOW_RANGES|HTTP_CBF_BUSY_SIGNAL))
 	) {
-		char alt_locs[160];
+		char alt_locs[ALT_LOC_SIZE];
 
 		/*
 		 * PFSP-server: if they requested a partial file, let them know about
@@ -1670,7 +1671,7 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 			 *		--RAM, 18/10/2003
 			 */
 
-			avail = MIN(avail, 160);
+			avail = MIN(avail, ALT_LOC_SIZE);
 		}
 
 		len = dmesh_alternate_location(sha1,
