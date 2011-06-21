@@ -60,7 +60,7 @@ struct gnutella_host;
 ggept_status_t ggept_h_sha1_extract(const extvec_t *, struct sha1 *);
 ggept_status_t ggept_h_tth_extract(const extvec_t *, struct tth *);
 
-/** Decompiled payload of "GTKGV1" */
+/** Decompiled payload of "GTKGV1" (deprecated @0.97) */
 struct ggep_gtkgv1 {
 	guint8 major;
 	guint8 minor;
@@ -70,6 +70,18 @@ struct ggep_gtkgv1 {
 	guint32 build;
 };
 
+/** Decompiled payload of "GTKGV" */
+struct ggep_gtkgv {
+	guint8 version;		/**< Initial version: 0 */
+	guint8 major;
+	guint8 minor;
+	guint8 patch;
+	guint8 revchar;
+	guint32 release;
+	guint32 build;
+};
+
+ggept_status_t ggept_gtkgv_extract(const extvec_t *, struct ggep_gtkgv *info);
 ggept_status_t ggept_gtkgv1_extract(const extvec_t *, struct ggep_gtkgv1 *info);
 ggept_status_t ggept_hname_extract(const extvec_t *, char *buf, int len);
 ggept_status_t ggept_filesize_extract(const extvec_t *, guint64 *fs);

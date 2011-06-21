@@ -398,7 +398,7 @@ flush_match(void)
 	ggep_stream_init(&gs, found_open(), QHIT_MAX_GGEP);
 
 	/*
-	 * Build the "GTKGV1" GGEP extension.
+	 * Build the "GTKGV" GGEP extension.
 	 */
 
 	{
@@ -410,6 +410,7 @@ flush_match(void)
 		guint32 release;
 		guint32 date = release_date;
 		guint32 build;
+		guint8 version = 0;		/* This is GTKGV version 0 */
 		gboolean ok;
 
 #ifdef GTA_PATCHLEVEL
@@ -422,7 +423,8 @@ flush_match(void)
 		poke_be32(&build, main_get_build());
 
 		ok =
-			ggep_stream_begin(&gs, GGEP_NAME(GTKGV1), 0) &&
+			ggep_stream_begin(&gs, GGEP_NAME(GTKGV), 0) &&
+			ggep_stream_write(&gs, &version, 1) &&
 			ggep_stream_write(&gs, &major, 1) &&
 			ggep_stream_write(&gs, &minor, 1) &&
 			ggep_stream_write(&gs, &patch, 1) &&
@@ -432,7 +434,7 @@ flush_match(void)
 			ggep_stream_end(&gs);
 
 		if (!ok)
-			qhit_log_ggep_write_failure("GTKGV1");
+			qhit_log_ggep_write_failure("GTKGV");
 	}
 
 	{

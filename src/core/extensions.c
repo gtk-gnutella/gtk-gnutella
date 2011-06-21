@@ -183,7 +183,8 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(GGEP),		/**< GGEP extension names known, NUL-separated */
 	GGEP_GTKG_ID(IPV6),	/**< GTKG IPv6 address */
 	GGEP_GTKG_ID(TLS),	/**< GTKG TLS support indication */
-	GGEP_ID(GTKGV1),	/**< GTKG complete version number (binary) */
+	GGEP_ID(GTKGV),		/**< GTKG complete version number (binary) */
+	GGEP_ID(GTKGV1),	/**< GTKG complete version (bin, deprecated @0.97) */
 	GGEP_ID(GUE),		/**< GUESS support */
 	GGEP_ID(H),			/**< Hashes in binary form */
 	GGEP_ID(HNAME),		/**< Hostname */

@@ -1,30 +1,28 @@
-The 'GTKGV1' GGEP Extension
+The 'GTKGV' GGEP Extension
 ======================
 
-Name: GTKGV1
+Name: GTKGV
+Version: 0
 Where: Query Hit trailer
-Status: Decrecated
-Date: Fri Jan 10 21:05:59 MET 2003
-Date: Sat Aug 26 16:02:12 MEST 2006 (revised)
-Date: Tue Jun 21 23:35:46 CEST 2011 (deprecation)
-Format: <major> <minor> <patchlevel> <lettercode> <release time> <build>
+Status: Production
+Date: Tue Jun 21 23:36:46 CEST 2011
+Format: <ver> <major> <minor> <patchlevel> <lettercode> <release time> <build>
 COBS-Encoding: Never
 Deflate: Never
 
-This extension was deprecated and replaced by GTKGV.
-
-The 'GTKGV1' extension is a private GTKG extension that carries servent
+The 'GTKGV' extension is a private GTKG extension that carries servent
 version information.  It appears in the extension trailer of the Query Hits.
 
 The payload format is (BE stands for Big-Endian):
 
+    <ver>			1 byte		extension version (0)
     <major>			1 byte		major release
     <minor>			1 byte		minor release
     <patchlevel>	1 byte		patch-level
     <lettercode>	1 byte		'u', 'b', or '\0' if none
     <release time>	4 bytes BE	UNIX timestamp of release date (GMT)
-    <build>			4 bytes	BE	build number (starting 2006-08-27)
+    <build>			4 bytes	BE	build number
 
-Total payload size: 12 bytes
+Total payload size: 13 bytes
 
 The payload is never deflated nor COBS-encoded.

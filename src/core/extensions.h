@@ -93,7 +93,8 @@ typedef enum ext_token {
 	EXT_T_GGEP_GTKG_IPV6,	/**< GTKG IPv6 address */
 	EXT_T_GGEP_GTKG_TLS,	/**< GTKG TLS support indication */
 	/* watch out, below is off-order */
-	EXT_T_GGEP_GTKGV1,		/**< GTKG version indication #1 */
+	EXT_T_GGEP_GTKGV,		/**< GTKG version indication */
+	EXT_T_GGEP_GTKGV1,		/**< GTKG version ind. #1 (deprecated @0.97) */
 	/* keep remaining sorted */
 	EXT_T_GGEP_GUE,			/**< GUESS support */
 	EXT_T_GGEP_H,			/**< GGEP binary hash value */

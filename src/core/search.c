@@ -1747,7 +1747,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					}
 				}
 				break;
-			case EXT_T_GGEP_GTKGV1:
+			case EXT_T_GGEP_GTKGV1:		/* Deprecated @0.97, now uses GTKGV */
 				if (NULL != rs->version) {
 					search_log_multiple_ggep(n, e, vendor);
 				} else {
@@ -1765,6 +1765,31 @@ search_results_handle_trailer(const gnutella_node_t *n,
 						/* Build information valid after 2006-08-27 */
 						if (vi.release >= 1156629600)
 							ver.build = vi.build;
+						if (ver.tag)
+							ver.timestamp = vi.release;
+
+						rs->version = atom_str_get(version_str(&ver));
+					} else if (ret == GGEP_INVALID) {
+						search_log_bad_ggep(n, e, vendor);
+					}
+				}
+				break;
+			case EXT_T_GGEP_GTKGV:
+				if (NULL != rs->version) {
+					search_log_multiple_ggep(n, e, vendor);
+				} else {
+					struct ggep_gtkgv vi;
+
+					ret = ggept_gtkgv_extract(e, &vi);
+					if (ret == GGEP_OK) {
+						version_t ver;
+
+						ZERO(&ver);
+						ver.major = vi.major;
+						ver.minor = vi.minor;
+						ver.patchlevel = vi.patch;
+						ver.tag = vi.revchar;
+						ver.build = vi.build;
 						if (ver.tag)
 							ver.timestamp = vi.release;
 

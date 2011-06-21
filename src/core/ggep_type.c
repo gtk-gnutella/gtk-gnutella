@@ -123,13 +123,55 @@ ggept_h_tth_extract(const extvec_t *exv, struct tth *tth)
 
 	return GGEP_OK;
 }
+
+/**
+ * Extract payload information from "GTKGV" into `info'.
+ */
+ggept_status_t
+ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
+{
+	const char *p;
+	int tlen;
+
+	g_assert(exv->ext_type == EXT_GGEP);
+	g_assert(exv->ext_token == EXT_T_GGEP_GTKGV);
+
+	tlen = ext_paylen(exv);
+
+	/*
+	 * The original payload length was 13 bytes.
+	 *
+	 * In order to allow backward-compatible extension of the payload, don't
+	 * check for a size equal to 13 bytes but for a size of at least 13.
+	 *
+	 * Further extensions, if any, will simply append new fields to the payload
+	 * which will be ignored (not deserialized) by older versions.  Since the
+	 * version number is serialized, it will be possible to derive default
+	 * values for older versions of the payload.
+	 */
+
+	if (tlen < 13)
+		return GGEP_INVALID;
+
+	p = ext_payload(exv);
+
+	info->version = p[0];
+	info->major = p[1];
+	info->minor = p[2];
+	info->patch = p[3];
+	info->revchar = p[4];
+	info->release = peek_be32(&p[5]);
+	info->build = peek_be32(&p[9]);
+
+	return GGEP_OK;
+}
+
 /**
  * Extract payload information from "GTKGV1" into `info'.
  */
 ggept_status_t
 ggept_gtkgv1_extract(const extvec_t *exv, struct ggep_gtkgv1 *info)
 {
-	const char *payload;
 	const char *p;
 	int tlen;
 
@@ -138,20 +180,10 @@ ggept_gtkgv1_extract(const extvec_t *exv, struct ggep_gtkgv1 *info)
 
 	tlen = ext_paylen(exv);
 
-	/*
-	 * The original payload length was 12 bytes.
-	 *
-	 * In order to allow backward-compatible extension of the payload, don't
-	 * check for a size equal to 12 bytes but for a size of at least 12.
-	 *
-	 * Further extensions, if any, will simply append new fields to the payload
-	 * which will be ignored (not deserialized) by older versions.
-	 */
-
 	if (tlen < 12)
 		return GGEP_INVALID;
 
-	payload = p = ext_payload(exv);
+	p = ext_payload(exv);
 
 	info->major = p[0];
 	info->minor = p[1];
