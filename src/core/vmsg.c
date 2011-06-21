@@ -2412,12 +2412,12 @@ handle_head_ping(struct gnutella_node *n,
 
 		/*
 		 * The hash length can differ (bitprint or sha1) but it's
-		 * ASCII not binary, so GGEP_MAGIC (0xc3) should appear in
-		 * it.
+		 * ASCII not binary, so GGEP_MAGIC (0xc3) should not appear
+		 * in it.
 		 */
 		p = memchr(&payload[1], GGEP_MAGIC, size - 1);
 		if (p) {
-			has_guid = extract_guid(p, p - &payload[1], &guid);
+			has_guid = extract_guid(p, &payload[size] - p, &guid);
 		}
 		if (has_guid) {
 		   	if (GNET_PROPERTY(vmsg_debug) > 1) {
