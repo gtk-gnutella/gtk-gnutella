@@ -998,6 +998,8 @@ gboolean gnet_property_variable_log_gnutella_routing     = FALSE;
 static const gboolean gnet_property_variable_log_gnutella_routing_default = FALSE;
 gboolean gnet_property_variable_log_bad_gnutella     = FALSE;
 static const gboolean gnet_property_variable_log_bad_gnutella_default = FALSE;
+gboolean gnet_property_variable_log_spam_query_hit     = FALSE;
+static const gboolean gnet_property_variable_log_spam_query_hit_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -9155,6 +9157,23 @@ gnet_prop_init(void) {
     gnet_property->props[427].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[427].data.boolean.def   = (void *) &gnet_property_variable_log_bad_gnutella_default;
     gnet_property->props[427].data.boolean.value = (void *) &gnet_property_variable_log_bad_gnutella;
+
+
+    /*
+     * PROP_LOG_SPAM_QUERY_HIT:
+     *
+     * General data:
+     */
+    gnet_property->props[428].name = "log_spam_query_hit";
+    gnet_property->props[428].desc = _("Whether to log conditions triggering query hit spam flagging.");
+    gnet_property->props[428].ev_changed = event_new("log_spam_query_hit_changed");
+    gnet_property->props[428].save = TRUE;
+    gnet_property->props[428].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[428].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[428].data.boolean.def   = (void *) &gnet_property_variable_log_spam_query_hit_default;
+    gnet_property->props[428].data.boolean.value = (void *) &gnet_property_variable_log_spam_query_hit;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

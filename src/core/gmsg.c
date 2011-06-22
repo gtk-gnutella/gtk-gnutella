@@ -1109,7 +1109,7 @@ gmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
  * Same as gmsg_infostr_full_split() but fills the supplied buffer with
  * the formatted string and returns the amount of bytes written.
  */
-static size_t
+size_t
 gmsg_infostr_full_split_to_buf(gconstpointer head, gconstpointer data,
 	size_t data_len, char *buf, size_t buf_size)
 {

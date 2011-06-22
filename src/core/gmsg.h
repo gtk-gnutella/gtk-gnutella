@@ -138,6 +138,8 @@ const char *gmsg_node_infostr(const struct gnutella_node *n);
 char *gmsg_infostr_full(gconstpointer msg, size_t msg_len);
 char *gmsg_infostr_full_split(gconstpointer head,
 	gconstpointer data, size_t data_len);
+size_t gmsg_infostr_full_split_to_buf(gconstpointer head, gconstpointer data,
+	size_t data_len, char *buf, size_t buf_size);
 
 void gmsg_install_presend(pmsg_t *mb);
 

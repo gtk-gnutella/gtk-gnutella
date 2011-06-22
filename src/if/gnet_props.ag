@@ -4991,4 +4991,13 @@ prop = {
     };
 };
 
+prop = {
+	name = "log_spam_query_hit";
+	desc = "Whether to log conditions triggering query hit spam flagging.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

@@ -966,11 +966,12 @@ is_evil_filename(const char *filename)
 	return FALSE;
 }
 
-static void
+static unsigned
 search_results_identify_dupes(gnet_results_set_t *rs)
 {
 	GHashTable *ht = g_hash_table_new(pointer_hash_func, NULL);
 	GSList *sl;
+	unsigned duplicates = 0;
 
 	/* Look for identical file index */
 	GM_SLIST_FOREACH(rs->records, sl) {
@@ -1000,6 +1001,7 @@ search_results_identify_dupes(gnet_results_set_t *rs)
 		if (g_hash_table_lookup(ht, key)) {
 			rs->status |= ST_DUP_SPAM;
 			record->flags |= SR_SPAM;
+			duplicates++;
 		} else {
 			gm_hash_table_insert_const(ht, key, record);
 		}
@@ -1009,6 +1011,8 @@ search_results_identify_dupes(gnet_results_set_t *rs)
 		gnet_stats_count_general(GNR_SPAM_DUP_HITS, 1);
 
 	g_hash_table_destroy(ht);
+
+	return duplicates;
 }
 
 static gboolean
@@ -1067,6 +1071,45 @@ search_results_mark_fake_spam(gnet_results_set_t *rs)
 	}
 }
 
+/**
+ * Log spam reason.
+ */
+static void
+search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
+	const char *reason, ...)
+{
+	char rbuf[256];
+	char buf[128];
+
+	if (!GNET_PROPERTY(log_spam_query_hit))
+		return;
+
+	if (n != NULL) {
+		gmsg_infostr_full_split_to_buf(
+			&n->header, n->data, n->size, buf, sizeof buf);
+	} else {
+		buf[0] = '\0';
+	}
+
+	if (reason) {
+		va_list args;
+		unsigned off = 0;
+		va_start(args, reason);
+		if (n != NULL) {
+			rbuf[0] = ':';
+			rbuf[1] = ' ';
+			off = 2;
+		}
+		gm_vsnprintf(&rbuf[off], sizeof rbuf - off, reason, args);
+		va_end(args);
+	} else {
+		rbuf[0] = '\0';
+	}
+
+	g_debug("SPAM QHIT [%s] %s %s%s", vendor_code_to_string(rs->vcode.u32),
+		NULL == n ? "==>" : node_infostr(n), buf, rbuf);
+}
+
 static gboolean
 is_evil_timestamp(time_t t)
 {
@@ -1123,7 +1166,7 @@ search_filename_similar(const char *filename, const char *query)
 }
 
 static void
-search_results_identify_spam(gnet_results_set_t *rs)
+search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 {
 	const GSList *sl;
 	guint8 has_ct = 0, has_tth = 0, has_xml = 0, expected_xml = 0;
@@ -1146,6 +1189,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			rc->flags |= SR_SPAM;
 		} else if (!rc->file_index && T_GTKG == rs->vcode.u32) {
 			search_results_mark_fake_spam(rs);
+			search_log_spam(n, rs, "hit with invalid file index");
 			rc->flags |= SR_SPAM;
 		} else if (
 			T_GTKG == rs->vcode.u32 &&
@@ -1155,11 +1199,15 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			)
 		) {
 			search_results_mark_fake_spam(rs);
+			search_log_spam(n, rs, "hit with %s",
+				NULL == rs->version ? "no version indication" : "bad GUID");
 			rc->flags |= SR_SPAM;
 		} else if (n_alt > 16 || (T_LIME == rs->vcode.u32 && n_alt > 10)) {
 			search_results_mark_fake_spam(rs);
+			search_log_spam(n, rs, "hit with %u alt-locs", n_alt);
 			rc->flags |= SR_SPAM;
 		} else if (rc->sha1 && spam_sha1_check(rc->sha1)) {
+			search_log_spam(n, rs, "URN %s", sha1_base32(rc->sha1));
 			rs->status |= ST_URN_SPAM;
 			rc->flags |= SR_SPAM;
 			gnet_stats_count_general(GNR_SPAM_SHA1_HITS, 1);
@@ -1168,8 +1216,11 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			is_evil_timestamp(rc->create_time)
 		) {
 			search_results_mark_fake_spam(rs);
+			search_log_spam(n, rs, "evil timestamp 0x%lx",
+				(unsigned long) rc->create_time);
 			rc->flags |= SR_SPAM;
 		} else if (spam_check_filename_size(rc->filename, rc->size)) {
+			search_log_spam(n, rs, "SPAM filename/size hit");
 			rs->status |= ST_NAME_SPAM;
 			rc->flags |= SR_SPAM;
 			gnet_stats_count_general(GNR_SPAM_NAME_HITS, 1);
@@ -1177,9 +1228,11 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			rc->xml &&
 			is_lime_xml_spam(rc->xml, strlen(rc->xml))
 		) {
+			search_log_spam(n, rs, "LIME XML SPAM");
 			rs->status |= ST_URL_SPAM;
 			rc->flags |= SR_SPAM;
 		} else if (is_evil_filename(rc->filename)) {
+			search_log_spam(n, rs, "evil filename");
 			rs->status |= ST_EVIL;
 			rc->flags |= SR_IGNORED;
 		} else if (
@@ -1188,6 +1241,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		) {
 			/* LimeWire is a program known to generate valid UTF-8 strings */
 			search_results_mark_fake_spam(rs);
+			search_log_spam(n, rs, "invalid UTF-8 filename");
 			rc->flags |= SR_SPAM;
 		} else if (
 			T_LIME == rs->vcode.u32 && rs->query != NULL &&
@@ -1196,6 +1250,8 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		) {
 			/* All genuine LimeWire nodes understand "What's New?" queries */
 			search_results_mark_fake_spam(rs);
+			search_log_spam(n, rs, "filename mimics query \"%s\"",
+				WHATS_NEW_QUERY);
 			rc->flags |= SR_SPAM;
 		}
 
@@ -1265,6 +1321,8 @@ search_results_identify_spam(gnet_results_set_t *rs)
 				)
 			) {
 				search_results_mark_fake_spam(rs);
+				search_log_spam(n, rs, "filename similar to query \"%s\"",
+					rs->query);
 				rc->flags |= SR_SPAM;
 			}
 		}
@@ -1274,13 +1332,16 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		 * there's no need to inspect the other records.
 		 */
 
-		if (search_results_from_spammer(rs))
+		if (search_results_from_spammer(rs)) {
+			search_log_spam(NULL, rs, "hit from spammer");
 			goto flag_all;
+		}
 	}
 
 	if (!is_vendor_acceptable(rs->vcode)) {
 		/* A proper vendor code is mandatory */
 		search_results_mark_fake_spam(rs);
+		search_log_spam(n, rs, "improper vendor code");
 	} else if (expected_xml && !has_xml) {
 		/**
 		 * LimeWire adds XML metadata for AVI and MPG files
@@ -1289,6 +1350,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		 */
 		if (!search_results_from_country(rs, "jp")) {
 			search_results_mark_fake_spam(rs);
+			search_log_spam(n, rs, "was expecting XML");
 		}
 	} else if (
 		T_LIME == rs->vcode.u32 &&
@@ -1301,17 +1363,27 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		 * Make an exception for Cabos popular in Japan.
 		 */
 		search_results_mark_fake_spam(rs);
+		search_log_spam(n, rs, "no CT");
 	} else if (is_odd_guid(rs->guid)) {
 		search_results_mark_fake_spam(rs);
+		search_log_spam(n, rs, "odd GUID %s", guid_hex_str(rs->guid));
 	} else if (!(ST_SPAM & rs->status)) {
+		unsigned dups;
+
 		/*
 		 * Avoid costly checks if already marked as spam.
 		 */
-		search_results_identify_dupes(rs);
+		dups = search_results_identify_dupes(rs);
+		if (dups != 0) {
+			search_log_spam(n, rs, "%u duplicate%s",
+				dups, 1 == dups ? "" : "s");
+		}
 	}
 
-	if (search_results_from_spammer(rs))
+	if (search_results_from_spammer(rs)) {
+		search_log_spam(NULL, rs, "hit from spammer, finally");
 		goto flag_all;
+	}
 
 	return;
 
@@ -2834,7 +2906,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		}
 	}
 
-	search_results_identify_spam(rs);
+	search_results_identify_spam(n, rs);
 	str_destroy_null(&info);
 
 	return rs;

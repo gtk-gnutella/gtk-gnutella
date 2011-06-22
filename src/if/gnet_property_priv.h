@@ -477,6 +477,7 @@ extern const gboolean gnet_property_variable_log_dup_gnutella_other_node;
 extern const gboolean gnet_property_variable_log_new_gnutella;
 extern const gboolean gnet_property_variable_log_gnutella_routing;
 extern const gboolean gnet_property_variable_log_bad_gnutella;
+extern const gboolean gnet_property_variable_log_spam_query_hit;
 
 
 prop_set_t *gnet_prop_init(void);
