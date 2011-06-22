@@ -1,0 +1,389 @@
+                  Making Gnutella "IPv6-Ready"
+
+                        Raphael Manfredi
+                  <Raphael_Manfredi@pobox.com>
+
+                        June 22nd, 2011
+
+
+1. Introduction
+
+Now that IPv4 address exhaustion is a fact, there is going to be a
+huge incentive to accelerate IPv6 deployment.  People equipped with
+an IPv4 address are going to be supplied an IPv6 address (actually a
+network prefix where they can host several thousands of machines, if
+not millions) whilst others are going to only have IPv6, without any
+IPv4 address at all.
+
+The Gnutella protocol needs to evolve slightly to make it possible
+to run on IPv6 because it architected some of its core fields holding
+IP addresses as being 4-byte long, i.e. only capable of storing IPv4
+addresses.
+
+However, IPv6 is a totally new network protocol, distinct from IPv4.
+Although there are some mechanisms in IPv6 to be able to reach IPv4
+addresses, the necessary translation mechanisms may not be available
+everywhere.  This means Gnutella on IPv6 is going to form a network
+overlay completely distinct than the current Gnutella network, which
+is IPv4-based.
+
+Fortunately, the fact that many people are going to be given an IPv6
+address in addition to a legacy IPv4 one is an opportunity to bootstrap
+the IPv6 network nicely, until there are sufficient IPv6 peers to create
+a stable Gnutella core.
+
+This article only focuses on the Gnutella network protocol changes
+that must be incorporated into all Gnutella servents to make them
+"IPv6-Ready", that is capable of being a part of the IPv6-only Gnutella
+network tomorrow.  Servents that are not IPv6-Ready are condemned to stick
+to the IPv4 network, which will be slowly dying first, until a critical
+point is reached at which time the stable IPv4 core will disappear,
+replaced by the IPv6 core.
+
+These IPv6-Ready Specifications are meant to be totally backward
+compatible, so that legacy servents see almost no difference and can
+still usefully interact with modern IPv6-Ready servents.
+
+
+2. Gnutella Messages
+
+This section introduces new GGEP extensions to be used in various Gnutella
+messages to be able to transport IPv6 addresses.
+
+
+2.1 Legacy Messages
+
+The following Gnutella messages have been historically architected to
+hold IPv4 addresses only: Pong, Query Hit, Push.
+
+To expand them so that they can hold an additional IPv6 address or simply
+a single IPv6 one, two strategic GGEP extensions are introduced:
+
+The "I6" extension holds a full IPv6 address, in raw binary big-endian
+format, that is 16 bytes.  Its presence in Pong, Push or Query Hit
+trailer indicates that the servent is running both on IPv4 and on IPv6.
+
+The "6" extension holds the *leading* 12 bytes of the IPv6 address, the
+trailing 4 bytes being held in the legacy IPv4 field of the message.
+The IPv6 address needs therefore to be reconstructed by concatenating
+the leading 12 bytes (big-endian) of the "6" extension payload with
+the trailing 4 bytes (big-endian) of the legacy field to form the 16
+bytes (big-endian) of the servent's IPv6 address.  The presence of this
+extension indicates that the servent only has an IPv6 address.
+
+This design has the following properties:
+
+- It clearly communicates the level of IPv6 support: IPv4 only (neither
+  "I6" nor "6" present), IPv4 and IPv6 support ("I6" present), IPv6 only
+  ("6" present).
+
+- When parsed by a non IPv6-Ready servent, the IPv4 field will be
+  meaningful most of the time, excepted when "6" is present.
+  In that case however, since the address read will be the lowest 4 bytes
+  of the actual IPv6 address, it is likely that this will be read as an
+  address in 0/8, which is an invalid IPv4 address block.
+
+- Ultimately when everyone uses IPv6, the legacy 4-byte field will not be
+  wasted.  Everyone will be sending "6" extensions, thereby optimizing the
+  overhead.
+
+
+2.2 Extended Messages
+
+Over time, some legacy messages have been extended with GGEP extensions
+to transport packed IPv4:port tuples.  These are the "IPP", "ALT",
+"PUSH" extensions found in pongs or in query hits, forming vectors of
+6-byte items.
+
+All the legacy extensions are kept but new ones are introduced
+specifically for transporting packed IPv6:port tuples, the IPv6 address
+being in big-endian and the port in little-endian, to form a vector of
+18-byte items.
+
+The "ALT6" and "ALT6_TLS" extensions are introduced for query hits:
+"ALT6" packs IPv6:port alternate locations and "ALT6_TLS" is like
+"ALT_TLS" but applies to the "ALT6" vector, indicating which of the
+alternate location hosts are known to support TLS.
+
+Likewise, the "IPP6" and "IPP6_TLS" extensions are introduced for UHC
+pongs, "PUSH6" and "PUSH6_TLS" for query hits push-proxies.
+
+The "IP" extension in Pongs (used to send back the IP:port of the remote
+host) is extended to be able to hold IPv4:port or IPv6:port, as needed.
+The size of the extension payload (6 or 18 bytes) will discriminate
+between the two forms.
+
+
+2.3 OOB Queries
+
+Queries requesting Out Of Band hit delivery encode the IPv4 address of
+the recipient in the GUID.
+
+Queries requiring that delivery by sent back to an IPv6 address must
+use the same splitting technique as described in 2.1: the leading 12
+bytes of the address are put in a GGEP "6" extension, the trailing 4
+bytes being left in the GUID.
+
+Because there is no guarantee that the servent reporting hits will support
+IPv6, the "6" extension should only be used when there is no other choice,
+i.e. when the querying party only has access to IPv6.
+
+Otherwise, chances are that the lowest 4 bytes of the IPv6 address will
+form an invalid IPv4 address (since this is how a non IPv6-Ready servent
+would interpret the IP address) and the hit will simply be sent back
+through Gnutella (i.e. the OOB bit will be ignored).
+
+
+2.4 Vendor Messages
+
+2.4.1 HEAD Ping and HEAD Pong (LIME/23 and LIME/24)
+
+GGEP "A6" and "T6" are introduced for HEAD pongs (v2) to transport IPv6
+alt locations and TLS indication (mirroring "A" and "T").  Since HEAD
+pongs (v1) cannot be made IPv6-Ready, servents should obsolete HEAD
+ping (v1) requests and only send v2 ones (LIME/23v2 vendor messages aka
+"HEAD Ping", answered to by LIME/24v2 aka "HEAD Pong").
+
+
+2.4.2 Connect Back
+
+There is no need to change the connect back messages (BEAR/7 and GTKG/7):
+they connect back to the originating address as communicated by the TCP
+or UDP layer, be it on top of IPv4 or IPv6.
+
+
+2.4.3 OOB Reply Indication (LIME/12)
+
+There is no need to change anything in the message: the sender knows to
+which address send the message, and the recipient will request results
+by contacting the address given by UDP, be it UDP/IPv6 or UDP/IPv4.
+
+
+2.4.4 UDP Crawler Ping (LIME/5)
+
+There is no provision in the LIME/5v1 to request IPv6 addresses, nor is
+there any provision in the UDP Crawler Pong (LIME/6v1) to include them.
+
+These messages therefore need to be extended as v2, using the "features"
+byte to include a flag requesting IPv6.  A new format will need to be
+used for the reply Pong, probably using GGEP keys instead ("U" and "U6"
+keys for ultras, "L" and "L6" for leaves, for instance). [To be specified
+in another document]
+
+The v1 message will only report IPv4 peers.
+
+
+3. Header Extensions
+
+All the Gnutella and HTTP headers that can propagate hosts in the form
+of IP:port must be extended to allow inclusion of IPv6 addresses as well.
+
+When emitting an ASCII representation for IPv6:port, the IPv6 address
+MUST be included between brackets, such as:
+
+	[2001:3d4:12aa:200::5]:5400
+
+The impacted headers are: X-Alt, X-Nalt, X-Falt, X-Push-Proxies,
+X-FW-Node-Info and X-Try-Ultrapeers.
+
+These headers can freely mix IPv4 and IPv6 addresses, as needed.
+For instance:
+
+	X-Push-Proxies: [2001:3d4:12aa:200::5]:5400, 5.6.7.8:4600
+
+In X-FW-Node-Info, the local host information is given as port:IP, and
+this can also be an IPv6 address, which must be included within brackets
+since it is given with a port number:
+
+	X-FW-Node-Info: 8ac8d3b457788a906f599b268698b200;fwt/1;
+		5400:[2001:3d4:12aa:200::5]
+
+All IPv6-Ready servents must be able to parse these IPv6 addresses, but
+do not necessarily need to use them.  However, as will be described in
+section 5, there is a mechanism to negotiate the level of IPv6 support
+so that servents unaware of these specification are not impacted.
+
+
+4. Network Connection
+
+It is essential that servents equipped with both and IPv4 and an IPv6
+address be listening on the two networks.  Their "primary" IP address
+advertised in query hits, pongs, etc... will be the IPv4 one, but they can
+also include their IPv6 address to seed the IPv6 Gnutella network as well.
+
+Given that IPv4 still has a solid core of Gnutella users and the IPv6-only
+Gnutella network is today close to inexistent (due to lack of IPv6-Ready
+specs so far), running Gnutella on IPv6 only is not going to be much
+useful.
+
+With time however, the number of servents with two addresses will start
+to shrink and by then the IPv6-only network will start to consolidate.
+As long as one has two addresses though, it will still be useful to
+listen on the two networks, using whichever network is appropriate to
+contact sources.
+
+
+5. Communicating IPv6 Support Level
+
+It would be a waste for servents to make use of the new GGEP extensions
+defined if they are not going to be understood by the recipient.
+
+This section introduces new headers that need to be exchanged during
+Gnutella handshaking and HTTP exchanges.
+
+5.1 New Feature
+
+But first, let us define a new feature (to be exchanged via the X-Features
+header, defined for Gnutella and HTTP), called "IP".
+
+Advertising the "IP" feature indicates that the servent is IPv6-Ready.
+
+All features have the form "NAME/major.minor". Here we define two versions
+of the IP feature to convey different meanings:
+
+- "IP/6.0" indicates that the servent has both IPv4 and IPv6 connectivity.
+  It can accept IPv6 and IPv4 addresses, so one should send back "ALT" or
+  "ALT6" extensions in query hits for instance, or freely mix IPv4 and
+  IPv6 addresses in X-Push-Proxies or in X-Try-Ultrapeers headers.
+
+- "IP/6.4" indicates that the servent has only IPv6 connectivity and does
+  not support IPv4 at all.  There should only be IPv6 addresses given in
+  X-Alt headers for instance, including IPv4 being a waste as the servent
+  will have no way to validate these alternate locations.
+
+Not seeing the "IP" feature advertised means the servent is not IPv6-Ready
+and should only be given IPv4 addresses in headers, and only legacy GGEP
+extensions like "IPP", "ALT", etc...
+
+
+5.2 Gnutella Headers
+
+All Gnutella handshakes made by IPv6-Ready servents MUST include the
+"IP" feature at the proper version number.
+
+Here is a sample X-Features line  for Gnutella handshakes:
+
+	X-Features: tls/1.0, browse/1.0, sflag/0.1, HSEP/0.2, IP/6.0
+
+We see a list of features, all separated by "," (they could also each be
+emitted on distinct X-Features: lines, however it would be more verbose).
+
+Since we see "IP/6.0" there, we know we can supply IPv6 addresses in
+X-Try-Ultrapeers, should we refuse the Gnutella connection.
+
+In addition to the X-Features line, all IPv6-Ready servents MUST include
+a new GUID: header, listing their GUID in hexadecimal format.
+
+The reason for the GUID: header is to be able to detect duplicate
+connections.  Since a servent can listen to both IPv4 and IPv6, one could
+easily end up connecting to the same servent using the two different
+network protocols to establish the link.  The GUID header is then going
+to tell us that we are connecting twice to the same host and we can then
+close the connection -- if the remote end does not do it already, since
+we also supply our own GUID, hence a remote servent could (and should)
+perform the same detection.
+
+Example of a valid GUID header:
+
+	GUID: 7c406ae0b8286c939f12fb8b50ed7a0e
+
+
+5.3 HTTP Headers
+
+All HTTP exchanges should include the X-Features line (at least once,
+in the first request, not necessarily for each follow-up request on
+the same connection) listing the "IP" feature and the proper version,
+as explained in 5.1.
+
+As for GUID exchanges, normally all HTTP servers should include X-GUID
+or X-FW-Node-Info (when firewalled, supplying the GUID), so servents
+will be able to detect they're trying to download from the same server
+(listening on both IPv4 and IPv6).  A server not listening to both IPv4
+and IPv6 does not need to generate a X-GUID header for that purpose
+(but may wish to do so anyway, especially if it is DHT-enabled).
+
+Downloaders are not required to send an X-GUID header but MUST ensure
+they are not attempting to download twice the same resource from the
+same server using two different networks, in order to be fair to others
+and not cannibalize uploading resources.  To that end, they must parse
+the GUID indication from the server supplied via either the X-GUID or
+the X-FW-Node-Info line.
+
+
+5.4 Ping
+
+The "SCP" payload is extended to include two new flags:
+
+	0x4		Node also wants IPv6 addresses
+	0x8		Node does not want any IPv4
+
+These flags govern whether "IPP" or "IPP6" (or both) will be sent back.
+Legacy servents will not supply any of these flags and will therefore
+only get back "IPP" in their pongs.
+
+
+5.5 Queries and HEAD Ping
+
+Gnutella queries and HEAD Ping request must include an empty "I6" GGEP
+extension to advertise that they can accept IPv6 addresses.  If they
+can only accept IPv6, then they must include a 1 byte payload with the
+value 1.
+
+Without "I6", queries and HEAD Ping will continue to only return IPv4
+addresses, for legacy servents.
+
+IPv6-Ready servents should not include "I6" unless they have an IPv6
+address on which they are listening.
+
+Note that for queries, "I6" needs to be inserted regardless of the
+presence of "6".  Indeed, "6" is tied to OOB replies, and a query can be
+OOB-proxied by a servent running both IPv4 and IPv6, in which case there
+would be no "6".  So "6" and "I6" in queries serve different roles and
+should not be confused.
+
+
+5.6 GUESS Queries
+
+GUESS 0.2 queries can include an "SCP" extension to request more GUESS
+hosts returned in a packed "IPP".  The same set of flags defined in 5.4
+for Ping are applicable there as well.
+
+
+6. On the Filling Strategy
+
+When a host indicates support for both IPv4 and IPv6 and we have to fill
+in vectors of IP:port like "IPP" and "IPP6", what should be the allocation
+strategy when we have a large pool of both IPv4 and IPv6 addresses?
+
+Since the long-term goal is to run an IPv6-only network, we should favor
+the IPv6 network.  Therefore, hosts present on both IPv4 and IPv6 should
+get more IPv6 addresses than IPv4 addresses.
+
+Therefore, in our example, one should start filling up the "IPP6"
+extension with as many IPv6:port entries as possible.  Then, if there
+is enough room left or we included too little entries, fill up "IPP".
+
+This filling strategy does not apply to the download mesh exchange where
+there are less entries available than in a host cache.  It is probably
+better for X-Alt to fill up whatever is available and is matching the
+requested IP network, randomly picking entries if all cannot fit in the
+allocated reply buffer.
+
+For Push Proxies, which are limited to a handful of addresses, simply
+select the addresses matching the request (IPv4, IPv6 or both).
+
+
+7. Additional Considerations
+
+In order to fully support the IPv6 Gnutella core, as it will form, it is
+important to make UHC caches (such as GhostWhiteCrab) IPv6-Ready as well,
+in order to give IPv6 servents the ability to bootstrap.
+
+The DHT side of Gnutella will need to be made fully IPv6-Ready.  This will
+be the focus of a separate document, as making the DHT IPv6-Ready requires
+that "DOVE" (DHT Open Versatile Extension) be implemented first.
+
+
+A. Change History
+
+June 22nd, 2011 - initial publishing
