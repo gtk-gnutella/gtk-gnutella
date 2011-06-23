@@ -482,7 +482,6 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 }
 
 static const guint FILENAME_CLASH = -1;		/**< Indicates basename clashes */
-static const guint PARTIAL_FILE = -2;		/**< File index for partials */
 
 /**
  * Initialize special file entry, returning shared_file_t structure if
@@ -2065,6 +2064,19 @@ recursive_scan_step_update_qrp(struct bgtask *bt, void *data, int ticks)
 
 	while (NULL != (sf = slist_shift(ctx->partial_files))) {
 		shared_file_check(sf);
+
+		/*
+		 * Assign a unique file index to each partial file, but don't flag
+		 * the partial file with SHARE_F_INDEXED as we don't map the index
+		 * to the partial file (we only allow retrieval of partials by SHA1).
+		 *
+		 * The file index is required to send proper information in query hits
+		 * when inserting partial files.
+		 */
+
+		sf->file_index = files_scanned + (hash_list_length(partial_files) -
+			slist_length(ctx->partial_files));
+
 		qrp_add_file(sf, ctx->words);
 		shared_file_unref(&sf);
 
@@ -2579,8 +2591,7 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 	 */
 
 	sf->file_size = fi->size;
-	sf->file_index = PARTIAL_FILE;	/* Partials are never requested by index */
-	
+
 	/*
 	 * Determine a proper human-readable name for the file.
 	 * If it is an URN, look through the aliases.
