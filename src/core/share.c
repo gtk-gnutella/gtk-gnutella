@@ -482,6 +482,7 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 }
 
 static const guint FILENAME_CLASH = -1;		/**< Indicates basename clashes */
+static const guint PARTIAL_FILE = -2;		/**< File index for partials */
 
 /**
  * Initialize special file entry, returning shared_file_t structure if
@@ -2436,6 +2437,9 @@ guint32
 shared_file_index(const shared_file_t *sf)
 {
 	shared_file_check(sf);
+
+	g_assert(sf->file_index != 0);		/* Either PARTIAL_FILE or > 0 */
+
 	return sf->file_index;
 }
 
@@ -2575,6 +2579,7 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 	 */
 
 	sf->file_size = fi->size;
+	sf->file_index = PARTIAL_FILE;	/* Partials are never requested by index */
 	
 	/*
 	 * Determine a proper human-readable name for the file.
@@ -2585,8 +2590,8 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 		shared_file_free(&sf);
 		return;
 	}
-	sf->mime_type = mime_type_from_filename(sf->name_nfc);
 
+	sf->mime_type = mime_type_from_filename(sf->name_nfc);
 	sf->file_path = atom_str_get(fi->pathname);
 
 	sf->fi = fi;		/* Signals it's a partially downloaded file */
