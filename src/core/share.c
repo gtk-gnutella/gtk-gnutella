@@ -483,6 +483,7 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 
 static const guint FILENAME_CLASH = -1;		/**< Indicates basename clashes */
 static const guint PARTIAL_FILE = -2;		/**< Indicates partial file */
+static const guint SPECIAL_FILE = -3;		/**< Special served files */
 
 /**
  * Initialize special file entry, returning shared_file_t structure if
@@ -520,6 +521,7 @@ share_special_load(const struct special_file *sp)
 
 	sf = shared_file_alloc();
 	sf->flags |= SHARE_F_SPECIAL;
+	sf->file_index = SPECIAL_FILE;
 
 	{
 		char *filename = make_pathname(fp[idx].dir, fp[idx].name);
