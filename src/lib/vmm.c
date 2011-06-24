@@ -3601,7 +3601,21 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 	void *p = mmap(addr, length, prot, flags, fd, offset);
 
 	if (p != MAP_FAILED) {
-		pmap_insert_foreign(vmm_pmap(), p, round_pagesize_fast(length));
+		size_t size = round_pagesize_fast(length);
+
+		/*
+		 * The mapped memory region is "foreign" memory as far as we are
+		 * concerned and may overlap with previously allocated "foreign"
+		 * chunks in whole or in part.
+		 *
+		 * Invoke pmap_overrule() before pmap_insert_foreign() to make
+		 * sure we clean up our memory map before attempting to insert
+		 * a new chunk since the insertion code is not prepared to handle
+		 * all the overlapping cases we can encounter.
+		 */
+
+		pmap_overrule(vmm_pmap(), p, size);
+		pmap_insert_foreign(vmm_pmap(), p, size);
 		assert_vmm_is_allocated(p, length);
 
 		if (vmm_debugging(5)) {
