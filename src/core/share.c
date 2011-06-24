@@ -482,6 +482,7 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 }
 
 static const guint FILENAME_CLASH = -1;		/**< Indicates basename clashes */
+static const guint PARTIAL_FILE = -2;		/**< Indicates partial file */
 
 /**
  * Initialize special file entry, returning shared_file_t structure if
@@ -2591,6 +2592,7 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 	 */
 
 	sf->file_size = fi->size;
+	sf->file_index = PARTIAL_FILE;	/* Until inserted in partial search table */
 
 	/*
 	 * Determine a proper human-readable name for the file.
