@@ -57,35 +57,24 @@ The following Gnutella messages have been historically architected to
 hold IPv4 addresses only: Pong, Query Hit, Push.
 
 To expand them so that they can hold an additional IPv6 address or simply
-a single IPv6 one, two strategic GGEP extensions are introduced:
+a single IPv6 one, one strategic GGEP extension is introduced:
 
-The "I6" extension holds a full IPv6 address, in raw binary big-endian
+The "6" extension holds a full IPv6 address, in raw binary big-endian
 format, that is 16 bytes.  Its presence in Pong, Push or Query Hit
-trailer indicates that the servent is running both on IPv4 and on IPv6.
+trailer indicates that the servent is running both on IPv6.
 
-The "6" extension holds the *leading* 12 bytes of the IPv6 address, the
-trailing 4 bytes being held in the legacy IPv4 field of the message.
-The IPv6 address needs therefore to be reconstructed by concatenating
-the leading 12 bytes (big-endian) of the "6" extension payload with
-the trailing 4 bytes (big-endian) of the legacy field to form the 16
-bytes (big-endian) of the servent's IPv6 address.  The presence of this
-extension indicates that the servent only has an IPv6 address.
+The regular IPv4 field is filled normally if the servent also runs on IPv4,
+and is set to 127.0.0.0 if the servent does not have a valid IPv4 address.
 
 This design has the following properties:
 
-- It clearly communicates the level of IPv6 support: IPv4 only (neither
-  "I6" nor "6" present), IPv4 and IPv6 support ("I6" present), IPv6 only
-  ("6" present).
+- It clearly communicates the level of IPv6 support: IPv4 only (no "6"
+  present), IPv4 and IPv6 support ("6" present, valid IPv4), IPv6 only
+  ("6" present and IPv4 is 127.0.0.0).
 
 - When parsed by a non IPv6-Ready servent, the IPv4 field will be
-  meaningful most of the time, excepted when "6" is present.
-  In that case however, since the address read will be the lowest 4 bytes
-  of the actual IPv6 address, it is likely that this will be read as an
-  address in 0/8, which is an invalid IPv4 address block.
-
-- Ultimately when everyone uses IPv6, the legacy 4-byte field will not be
-  wasted.  Everyone will be sending "6" extensions, thereby optimizing the
-  overhead.
+  meaningful most of the time.  Interpreting the IPv4 address present
+  in the packet cannot harm anyone, should it be 127.0.0.0.
 
 
 2.2 Extended Messages
@@ -120,18 +109,17 @@ Queries requesting Out Of Band hit delivery encode the IPv4 address of
 the recipient in the GUID.
 
 Queries requiring that delivery by sent back to an IPv6 address must
-use the same splitting technique as described in 2.1: the leading 12
-bytes of the address are put in a GGEP "6" extension, the trailing 4
-bytes being left in the GUID.
+make sure to encode 127.0.0.0 as the IPv4 address in the GUID,
+supplying the IPv6 address in a GGEP "6" extension.
 
 Because there is no guarantee that the servent reporting hits will support
 IPv6, the "6" extension should only be used when there is no other choice,
 i.e. when the querying party only has access to IPv6.
 
-Otherwise, chances are that the lowest 4 bytes of the IPv6 address will
-form an invalid IPv4 address (since this is how a non IPv6-Ready servent
-would interpret the IP address) and the hit will simply be sent back
-through Gnutella (i.e. the OOB bit will be ignored).
+Well-written legacy servents should also gracefully handle the 127.0.0.0
+case by recognizing that this is a non-routable address and therefore the
+OOB flag in the query should be ignored and the query hit routed back
+through Gnutella.
 
 
 2.4 Vendor Messages
@@ -387,3 +375,6 @@ that "DOVE" (DHT Open Versatile Extension) be implemented first.
 A. Change History
 
 June 22nd, 2011 - initial publishing
+
+June 24nd, 2011 - took feedback from Michael Green into account to make sure
+legacy servents will be ignoring invalid IPv4 addresses gracefully.

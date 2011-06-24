@@ -27,7 +27,7 @@ GGEP "GTKG.IPV6"
   respectively connectivity. As a special case, a zero-length payload
   may be used to indicate support (including connectivity) for IPv6.
 
-  [This has been obsoleted by the standard "I6" --RAM, 2011-06-22]
+  [This has been obsoleted by the standard "6" --RAM, 2011-06-22]
 
 GGEP "GTKG.IPP6"
 
