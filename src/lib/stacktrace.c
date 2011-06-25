@@ -1431,7 +1431,7 @@ void
 stacktrace_where_cautious_print_offset(int fd, size_t offset)
 {
 	void *stack[STACKTRACE_DEPTH_MAX + 5];	/* See stacktrace_unwind() */
-	size_t count;
+	volatile size_t count;
 
 	static volatile sig_atomic_t printing;
 	signal_handler_t old_sigsegv;
