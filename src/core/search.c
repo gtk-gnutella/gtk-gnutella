@@ -966,44 +966,86 @@ is_evil_filename(const char *filename)
 	return FALSE;
 }
 
-static unsigned
-search_results_identify_dupes(gnet_results_set_t *rs)
+/**
+ * Log spam reason.
+ */
+static void
+search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
+	const char *reason, ...)
+{
+	char rbuf[256];
+	char buf[128];
+
+	if (!GNET_PROPERTY(log_spam_query_hit))
+		return;
+
+	if (n != NULL) {
+		gmsg_infostr_full_split_to_buf(
+			&n->header, n->data, n->size, buf, sizeof buf);
+	} else {
+		buf[0] = '\0';
+	}
+
+	if (reason) {
+		va_list args;
+		unsigned off = 0;
+		va_start(args, reason);
+		if (n != NULL) {
+			rbuf[0] = ':';
+			rbuf[1] = ' ';
+			off = 2;
+		}
+		gm_vsnprintf(&rbuf[off], sizeof rbuf - off, reason, args);
+		va_end(args);
+	} else {
+		rbuf[0] = '\0';
+	}
+
+	g_debug("SPAM QHIT [%s] %s %s%s", vendor_code_to_string(rs->vcode.u32),
+		NULL == n ? "==>" : node_infostr(n), buf, rbuf);
+}
+
+static void
+search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
 {
 	GHashTable *ht = g_hash_table_new(pointer_hash_func, NULL);
 	GSList *sl;
-	unsigned duplicates = 0;
+	unsigned dups = 0;
 
 	/* Look for identical file index */
 	GM_SLIST_FOREACH(rs->records, sl) {
-		gnet_record_t *record;
+		gnet_record_t *rc;
 		const void *key;
 
-		record = sl->data;
-		key = ulong_to_pointer(record->file_index);
+		rc = sl->data;
+		key = ulong_to_pointer(rc->file_index);
 		if (g_hash_table_lookup(ht, key)) {
 			rs->status |= ST_DUP_SPAM;
-			record->flags |= SR_SPAM;
+			rc->flags |= SR_SPAM;
+			dups++;
+			search_log_spam(n, rs, "duplicate file index %u", rc->file_index);
 		} else {
-			gm_hash_table_insert_const(ht, key, record);
+			gm_hash_table_insert_const(ht, key, rc);
 		}
 	}
 
 	/* Look for identical SHA-1 */
 	GM_SLIST_FOREACH(rs->records, sl) {
-		gnet_record_t *record;
+		gnet_record_t *rc;
 		const void *key;
 
-		record = sl->data;
-		key = record->sha1;
+		rc = sl->data;
+		key = rc->sha1;
 		if (NULL == key)
 			continue;
 
 		if (g_hash_table_lookup(ht, key)) {
 			rs->status |= ST_DUP_SPAM;
-			record->flags |= SR_SPAM;
-			duplicates++;
+			rc->flags |= SR_SPAM;
+			dups++;
+			search_log_spam(n, rs, "duplicate SHA1 %s", sha1_base32(rc->sha1));
 		} else {
-			gm_hash_table_insert_const(ht, key, record);
+			gm_hash_table_insert_const(ht, key, rc);
 		}
 	}
 
@@ -1012,7 +1054,10 @@ search_results_identify_dupes(gnet_results_set_t *rs)
 
 	g_hash_table_destroy(ht);
 
-	return duplicates;
+	if (dups != 0) {
+		search_log_spam(n, rs, "--> %u duplicate%s",
+			dups, 1 == dups ? "" : "s");
+	}
 }
 
 static gboolean
@@ -1069,45 +1114,6 @@ search_results_mark_fake_spam(gnet_results_set_t *rs)
 		gnet_stats_count_general(GNR_SPAM_FAKE_HITS, 1);
 		rs->status |= ST_FAKE_SPAM;
 	}
-}
-
-/**
- * Log spam reason.
- */
-static void
-search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
-	const char *reason, ...)
-{
-	char rbuf[256];
-	char buf[128];
-
-	if (!GNET_PROPERTY(log_spam_query_hit))
-		return;
-
-	if (n != NULL) {
-		gmsg_infostr_full_split_to_buf(
-			&n->header, n->data, n->size, buf, sizeof buf);
-	} else {
-		buf[0] = '\0';
-	}
-
-	if (reason) {
-		va_list args;
-		unsigned off = 0;
-		va_start(args, reason);
-		if (n != NULL) {
-			rbuf[0] = ':';
-			rbuf[1] = ' ';
-			off = 2;
-		}
-		gm_vsnprintf(&rbuf[off], sizeof rbuf - off, reason, args);
-		va_end(args);
-	} else {
-		rbuf[0] = '\0';
-	}
-
-	g_debug("SPAM QHIT [%s] %s %s%s", vendor_code_to_string(rs->vcode.u32),
-		NULL == n ? "==>" : node_infostr(n), buf, rbuf);
 }
 
 static gboolean
@@ -1368,16 +1374,10 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 		search_results_mark_fake_spam(rs);
 		search_log_spam(n, rs, "odd GUID %s", guid_hex_str(rs->guid));
 	} else if (!(ST_SPAM & rs->status)) {
-		unsigned dups;
-
 		/*
 		 * Avoid costly checks if already marked as spam.
 		 */
-		dups = search_results_identify_dupes(rs);
-		if (dups != 0) {
-			search_log_spam(n, rs, "%u duplicate%s",
-				dups, 1 == dups ? "" : "s");
-		}
+		search_results_identify_dupes(n, rs);
 	}
 
 	if (search_results_from_spammer(rs)) {
