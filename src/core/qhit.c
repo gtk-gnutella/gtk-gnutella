@@ -95,6 +95,7 @@ struct found_struct {
 	size_t max_size;			/**< max query hit size */
 	const struct guid *muid;	/**< the MUID to put in all query hits */
 	const struct array *token;	/**< Optional secure OOB token */
+	GHashTable *ht;				/**< Records file indices and SHA1 atoms */
 	qhit_process_t process;		/**< processor once query hit is built */
 	gpointer udata;				/**< processor argument */
 	gboolean open;				/**< Set if found_open() was used */
@@ -287,6 +288,7 @@ found_init(size_t max_size, const struct guid *xuid, gboolean ggep_h,
 	g_assert(xuid != NULL);
 	g_assert(proc != NULL);
 	g_assert(token != NULL);
+	g_assert(NULL == f->ht);
 
 	f->max_size = max_size;
 	f->muid = xuid;
@@ -295,6 +297,31 @@ found_init(size_t max_size, const struct guid *xuid, gboolean ggep_h,
 	f->udata = udata;
 	f->open = FALSE;
 	f->token = token;
+	f->ht = g_hash_table_new(pointer_hash_func, NULL);
+}
+
+static void
+found_done(void)
+{
+	struct found_struct *f = found_get();
+
+	gm_hash_table_destroy_null(&f->ht);
+}
+
+static gboolean
+found_contains(const void *key)
+{
+	struct found_struct *f = found_get();
+
+	return gm_hash_table_contains(f->ht, key);
+}
+
+static void
+found_insert(const void *key)
+{
+	struct found_struct *f = found_get();
+
+	gm_hash_table_insert_const(f->ht, key, NULL);
 }
 
 static time_t release_date;
@@ -612,10 +639,25 @@ add_file(const shared_file_t *sf)
 	size_t left, needed;
 	gpointer start;
 	gboolean is_partial;
+	guint32 file_index;
 
 	is_partial = shared_file_is_partial(sf);
 	needed = 8 + 2 + shared_file_name_nfc_len(sf);	/* size of hit entry */
 	sha1_available = sha1_hash_available(sf);
+
+	/*
+	 * Make sure we never insert duplicate indices in a query hit.
+	 *
+	 * This code assumes there will never be any collision between shared
+	 * file indices and pointers to SHA1, which will always hold fortunately
+	 * in real life.
+	 */
+
+	file_index = shared_file_index(sf);
+
+	g_assert(!found_contains(uint_to_pointer(file_index)));
+
+	found_insert(uint_to_pointer(file_index));
 
 	/*
 	 * In case we emit the SHA1 as a GGEP "H", we'll grow the buffer
@@ -628,9 +670,25 @@ add_file(const shared_file_t *sf)
 	 */
 
 	if (sha1_available) {
+		const sha1_t *sha1 = shared_file_sha1(sf);
+
+		/*
+		 * They can share twice or more identical files.  Make sure we only
+		 * include each SHA1 once in the query hits we return for a query:
+		 * having multiple entries would waste bandwidth anyway.
+		 */
+
+		if (found_contains(sha1)) {
+			if (GNET_PROPERTY(qhit_debug))
+				g_warning("QHIT not including SHA1 %s twice",
+					sha1_base32(sha1));
+			return TRUE;		/* Entry consumed, but not included */
+		}
+
+		found_insert(sha1);		/* SHA1 are atoms, address is unique */
+
 		needed += 9 + SHA1_BASE32_SIZE;
-		hcnt = dmesh_fill_alternate(shared_file_sha1(sf),
-					hvec, G_N_ELEMENTS(hvec));
+		hcnt = dmesh_fill_alternate(sha1, hvec, G_N_ELEMENTS(hvec));
 		needed += hcnt * 6 + 6;
 	}
 
@@ -659,7 +717,7 @@ add_file(const shared_file_t *sf)
 
 	fs32 = shared_file_size(sf) >= (1U << 31) ? ~0U : shared_file_size(sf);
 
-	poke_le32(&idx_le, shared_file_index(sf));
+	poke_le32(&idx_le, file_index);
 	if (!found_write(&idx_le, sizeof idx_le))
 		return FALSE;
 	poke_le32(&fs32_le, fs32);
@@ -959,6 +1017,8 @@ qhit_send_results(struct gnutella_node *n, GSList *files, int count,
 
 	if (GNET_PROPERTY(dbg) > 3)
 		g_debug("sent %d/%d hits to %s", sent, count, node_addr(n));
+
+	found_done();
 }
 
 /**
