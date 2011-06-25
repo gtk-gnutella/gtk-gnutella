@@ -1066,6 +1066,8 @@ qhit_build_results(const GSList *files, int count, size_t max_msgsize,
 	if (0 != found_file_count())	/* Still some unflushed results */
 		flush_match();				/* Send last packet */
 
+	found_done();
+
 	/*
 	 * Nothing to free, since everything is the property of the calling module.
 	 */
