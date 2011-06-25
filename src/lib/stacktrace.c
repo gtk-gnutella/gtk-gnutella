@@ -153,7 +153,23 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 
 	g_assert(size_is_non_negative(offset));
 
-	depth = backtrace(trace, G_N_ELEMENTS(trace));
+	/*
+	 * When the size of stack[] is greater than the size of trace[], we
+	 * backtrace directly into stack[], then copy over the result to be
+	 * able to perform the offsetting.
+	 *
+	 * This is required for "safe" partial unwinding if coming from
+	 * stacktrace_where_cautious_print_offset(): if we get a signal, the
+	 * backtrace() operation will be aborted the hard way but hopefully we
+	 * will have already filled some items in stack[].
+	 */
+
+	if (count >= G_N_ELEMENTS(trace)) {
+		depth = backtrace(stack, G_N_ELEMENTS(trace));
+		memcpy(trace, stack, depth * sizeof trace[0]);
+	} else {
+		depth = backtrace(trace, G_N_ELEMENTS(trace));
+	}
 	idx = size_saturate_add(offset, stack_auto_offset);
 
 	g_assert(size_is_non_negative(idx));
@@ -1367,7 +1383,8 @@ stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
 static struct {
 	int fd;
 	Sigjmp_buf env;
-	gboolean done;
+	unsigned unwinded:1;
+	unsigned done:1;
 } print_context;
 
 /*
@@ -1385,11 +1402,16 @@ stacktrace_cautious_was_logged(void)
 static void
 stacktrace_got_signal(int signo)
 {
-	DECLARE_STR(3);
+	DECLARE_STR(4);
 
 	print_str("WARNING: got ");
 	print_str(signal_name(signo));
-	print_str(" during stack unwinding\n");
+	print_str(" during stack ");
+	if (print_context.unwinded) {
+		print_str("printing\n");
+	} else {
+		print_str("unwinding\n");
+	}
 	flush_str(print_context.fd);
 
 	Siglongjmp(print_context.env, signo);
@@ -1408,7 +1430,7 @@ stacktrace_got_signal(int signo)
 void
 stacktrace_where_cautious_print_offset(int fd, size_t offset)
 {
-	void *stack[STACKTRACE_DEPTH_MAX];
+	void *stack[STACKTRACE_DEPTH_MAX + 5];	/* See stacktrace_unwind() */
 	size_t count;
 
 	static volatile sig_atomic_t printing;
@@ -1421,11 +1443,12 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 #endif
 
 	if (printing) {
-		DECLARE_STR(3);
+		DECLARE_STR(4);
 
 		print_str("WARNING: ignoring ");
-		print_str("recursive stacktrace_where_cautious_print_offset() call");
-		print_str("\n");
+		print_str("recursive ");
+		print_str(G_STRFUNC);
+		print_str("() call\n");
 		flush_str(fd);
 		return;
 	}
@@ -1448,14 +1471,43 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 	printing = TRUE;
 	print_context.fd = fd;
 
-	if (Sigsetjmp(print_context.env, 1)) {
+	if (Sigsetjmp(print_context.env, TRUE)) {
 		DECLARE_STR(1);
-		print_str("WARNING: truncated stack frame\n");
+		print_str("WARNING: truncated stack unwinding\n");
+		flush_str(fd);
+
+		/*
+		 * Becasue we zeroed the stack[] array before attempting the unwinding
+		 * we can now go back and count the amount of items that were put
+		 * there in case we got interrupted by a signal, to be able to dump
+		 * the part of the stack we were able to unwind correctly.
+		 */
+
+		count = 0;
+		while (count < G_N_ELEMENTS(stack) && stack[count] != NULL)
+			count++;
+		goto print_stack;
+	}
+
+	/*
+	 * Prepare for possible harmful signal during stack unwinding: we zero
+	 * the stack to be able to determine the amount of filled items in case
+	 * the operation is aborted and stacktrace_unwind() does not return.
+	 */
+
+	ZERO(&stack);
+	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+
+print_stack:
+
+	print_context.unwinded = TRUE;
+
+	if (Sigsetjmp(print_context.env, TRUE)) {
+		DECLARE_STR(1);
+		print_str("WARNING: truncated stack printing\n");
 		flush_str(fd);
 		goto restore;
 	}
-
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 
 	if (0 == count) {
 		DECLARE_STR(1);
