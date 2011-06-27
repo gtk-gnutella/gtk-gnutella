@@ -1631,6 +1631,7 @@ static void
 dq_common_init(dquery_t *dq)
 {
 	gconstpointer head;
+	const guid_t *muid;
 
 	dquery_check(dq);
 	dq->qid = dquery_id_create();
@@ -1679,13 +1680,13 @@ dq_common_init(dquery_t *dq)
 	 */
 
 	head = cast_to_gconstpointer(pmsg_start(dq->mb));
+	muid = atom_guid_get(gnutella_header_get_muid(head));
 
-	if (g_hash_table_lookup(by_muid, gnutella_header_get_muid(head)))
-		g_warning("conflicting MUID \"%s\" for dynamic query, ignoring.",
-			guid_hex_str(gnutella_header_get_muid(head)));
-	else {
-		const struct guid *muid = atom_guid_get(gnutella_header_get_muid(head));
-		gm_hash_table_insert_const(by_muid, muid, dq);
+	if (g_hash_table_lookup(by_muid, muid)) {
+		g_warning("conflicting MUID \"%s\" for dynamic query from %s, "
+			"ignoring.", guid_hex_str(muid), node_id_infostr(dq->node_id));
+	} else {
+		gm_hash_table_insert_const(by_muid, atom_guid_get(muid), dq);
 	}
 
 	/*
@@ -1695,12 +1696,14 @@ dq_common_init(dquery_t *dq)
 	 */
 
 	if (dq->lmuid != NULL) {
-		if (g_hash_table_lookup(by_leaf_muid, dq->lmuid))
-			g_warning("ignoring conflicting leaf MUID \"%s\" for dynamic query",
-				guid_hex_str(dq->lmuid));
-		else
+		if (g_hash_table_lookup(by_leaf_muid, dq->lmuid)) {
+			g_warning("ignoring conflicting leaf MUID \"%s\" for "
+				"dynamic query from %s",
+				guid_hex_str(dq->lmuid), node_id_infostr(dq->node_id));
+		} else {
 			g_hash_table_insert(by_leaf_muid,
 				deconstify_gpointer(dq->lmuid), dq);
+		}
 	}
 
 	if (GNET_PROPERTY(dq_debug) > 1) {

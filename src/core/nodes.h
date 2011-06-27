@@ -597,6 +597,7 @@ const char *node_addr(const gnutella_node_t *n);
 const char *node_addr2(const gnutella_node_t *n);
 const char *node_gnet_addr(const gnutella_node_t *n);
 const char *node_infostr(const gnutella_node_t *n);
+const char *node_id_infostr(const struct nid *node_id);
 
 void node_connect_back(const gnutella_node_t *n, guint16 port);
 void node_connected_back(struct gnutella_socket *s);

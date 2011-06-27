@@ -9604,6 +9604,30 @@ node_infostr(const gnutella_node_t *n)
 	return buf;
 }
 
+/*
+ * Node information string fror a node given by ID.
+ *
+ * @return pointer to static buffer.
+ */
+const char *
+node_id_infostr(const struct nid *node_id)
+{
+	gnutella_node_t *n;
+
+	if (node_id_self(node_id))
+		return "ourselves";
+
+	n = node_by_id(node_id);
+	if (n != NULL) {
+		return node_infostr(n);
+	} else {
+		static char buf[128];
+		gm_snprintf(buf, sizeof buf,
+			"unknown node ID %s", nid_to_string(node_id));
+		return buf;
+	}
+}
+
 /**
  * Connect back to node on specified port and emit a "\n\n" sequence.
  *
