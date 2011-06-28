@@ -416,12 +416,12 @@ gnet_stats_randomness(const gnutella_node_t *n, guint8 type, guint32 val)
 	gnet_host_t host;
 
 	tm_now(&now);
-	gnet_stats_crc32 = crc32_update_crc(gnet_stats_crc32, &now, sizeof now);
+	gnet_stats_crc32 = crc32_update(gnet_stats_crc32, &now, sizeof now);
 	gnet_host_set(&host, n->addr, n->port);
-	gnet_stats_crc32 = crc32_update_crc(
+	gnet_stats_crc32 = crc32_update(
 		gnet_stats_crc32, &host, gnet_host_length(&host));
-	gnet_stats_crc32 = crc32_update_crc(gnet_stats_crc32, &type, sizeof type);
-	gnet_stats_crc32 = crc32_update_crc(gnet_stats_crc32, &val, sizeof val);
+	gnet_stats_crc32 = crc32_update(gnet_stats_crc32, &type, sizeof type);
+	gnet_stats_crc32 = crc32_update(gnet_stats_crc32, &val, sizeof val);
 }
 
 /**

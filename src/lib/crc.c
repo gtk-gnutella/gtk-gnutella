@@ -96,7 +96,7 @@ crc32_gen_crc_table(void)
  *
  */
 guint32
-crc32_update_crc(guint32 crc_accum, gconstpointer data, size_t len)
+crc32_update(guint32 crc_accum, gconstpointer data, size_t len)
 {
 	const guchar *p = data;
 	size_t j;
