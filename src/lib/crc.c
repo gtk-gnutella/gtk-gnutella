@@ -104,7 +104,7 @@ crc32_update_crc(guint32 crc_accum, gconstpointer data, size_t len)
 	for (j = 0; j < len; j++) {
 		guint8 i;
 
-		i = (crc_accum >> 24) ^ p[j];
+		i = (crc_accum >> 24) ^ *p++;
 		crc_accum = (crc_accum << 8) ^ crc_table[i];
 	}
 
