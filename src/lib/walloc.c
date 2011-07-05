@@ -60,7 +60,6 @@ RCSID("$Id$")
  */
 #define WALLOC_MAX		4096
 
-#define WALLOC_CHUNK	WALLOC_MAX	/**< Target chunk size for small structs */
 #define WALLOC_MINCOUNT	8			/**< Minimum amount of structs in a chunk */
 
 #define WZONE_SIZE	(WALLOC_MAX / ZALLOC_ALIGNBYTES + 1)
@@ -99,22 +98,16 @@ wzone_index(size_t rounded)
 static zone_t *
 wzone_get(size_t rounded)
 {
-	size_t count;
 	zone_t *zone;
 
 	g_assert(rounded == zalloc_round(rounded));
 
 	/*
 	 * We're paying this computation/allocation cost once per size!
-	 *
-	 * Try to create approximately WALLOC_CHUNK byte chunks, but
-	 * capable of holding at least WALLOC_MINCOUNT structures.
+	 * Create chunks capable of holding at least WALLOC_MINCOUNT structures.
 	 */
 
-	count = WALLOC_CHUNK / rounded;
-	count = MAX(count, WALLOC_MINCOUNT);
-
-	if (!(zone = zget(rounded, count)))
+	if (!(zone = zget(rounded, WALLOC_MINCOUNT)))
 		g_error("zget() failed?");
 
 	return zone;
@@ -331,19 +324,12 @@ walloc_track(size_t size, const char *file, int line)
 	g_assert(idx < WZONE_SIZE);
 
 	if (!(zone = wzone[idx])) {
-		size_t count;
-
 		/*
 		 * We're paying this computation/allocation cost once per size!
-		 *
-		 * Try to create approximately WALLOC_CHUNK byte chunks, but
-		 * capable of holding at least WALLOC_MINCOUNT structures.
+		 * Create chunks capable of holding at least WALLOC_MINCOUNT structures.
 		 */
 
-		count = WALLOC_CHUNK / rounded;
-		count = MAX(count, WALLOC_MINCOUNT);
-
-		if (!(zone = wzone[idx] = zget(rounded, count)))
+		if (!(zone = wzone[idx] = zget(rounded, WALLOC_MINCOUNT)))
 			g_error("zget() failed?");
 	}
 
