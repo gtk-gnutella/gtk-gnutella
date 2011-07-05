@@ -1742,6 +1742,45 @@ vmm_is_fragment(const void *base, size_t size)
 }
 
 /**
+ * Is region starting at ``base'' and of ``size'' bytes a relocatable memory
+ * fragment, i.e. a standalone mapping in the middle of the VM space that
+ * could be reallocated (using newsize bytes) at a better address?
+ */
+gboolean
+vmm_is_relocatable(const void *base, size_t size, size_t newsize)
+{
+	g_assert(base != NULL);
+	g_assert(size_is_positive(size));
+	g_assert(newsize <= size);
+
+	if (pmap_is_fragment(vmm_pmap(), base, pagecount_fast(size))) {
+		const void *hole;
+		size_t len;
+
+		/*
+		 * We have a memory fragment. Look for a hole better placed in
+		 * the VM space.
+		 */
+		
+		hole = NULL;
+		len = vmm_first_hole(&hole);
+
+		if (len < newsize)
+			return FALSE;
+
+		g_assert(hole != NULL);
+
+		if (kernel_mapaddr_increasing) {
+			return ptr_cmp(hole, base) < 0;
+		} else {
+			return ptr_cmp(hole, base) > 0;
+		}
+	} else {
+		return FALSE;
+	}
+}
+
+/**
  * Remove whole region from the list of identified fragments.
  */
 static void

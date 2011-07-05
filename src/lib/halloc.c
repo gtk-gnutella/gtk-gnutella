@@ -274,6 +274,7 @@ void *
 hrealloc(void *old, size_t new_size)
 {
 	size_t old_size;
+	size_t rounded_new_size;
 	void *p;
 
 	if (NULL == old)
@@ -291,8 +292,13 @@ hrealloc(void *old, size_t new_size)
 	 * This is our chance to move a virtual memory fragment out of the way.
 	 */
 
+	rounded_new_size = round_pagesize(new_size);
+
 	if (old_size >= page_threshold) {
-		if (vmm_is_fragment(old, old_size))
+		if (
+			rounded_new_size <= old_size &&
+			vmm_is_relocatable(old, old_size, rounded_new_size)
+		)
 			goto relocate;
 	} else {
 		if (new_size < page_threshold) {
@@ -309,7 +315,7 @@ hrealloc(void *old, size_t new_size)
 		}
 	}
 
-	if (new_size >= page_threshold && round_pagesize(new_size) == old_size)
+	if (new_size >= page_threshold && rounded_new_size == old_size)
 		return old;
 
 	if (old_size >= new_size && old_size / 2 < new_size)
