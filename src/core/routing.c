@@ -736,6 +736,37 @@ init_routing_data(struct gnutella_node *node)
 }
 
 /**
+ * Make sure slot belongs to specified chunk index.
+ */
+static void
+slot_check(struct message * const * const slot, unsigned chunk_idx)
+{
+	const void *chunk_base;
+	const void *chunk_end;
+
+	g_assert(uint_is_non_negative(chunk_idx));
+	g_assert(chunk_idx < MAX_CHUNKS);
+	g_assert(chunk_idx < routing.nchunks);
+
+	chunk_base = routing.chunks[chunk_idx];
+	chunk_end = const_ptr_add_offset(chunk_base, CHUNK_MESSAGES * sizeof *slot);
+
+	g_assert(ptr_cmp(slot, chunk_base) >= 0);
+	g_assert(ptr_cmp(slot, chunk_end) < 0);
+}
+
+/**
+ * Asserts that a message entry is consistent and belongs to the correct chunk.
+ */
+static void
+message_check(const struct message * const m, unsigned chunk_idx)
+{
+	g_assert(m != NULL);
+	slot_check(m->slot, chunk_idx);
+	g_assert(chunk_idx == m->chunk_idx);
+}
+
+/**
  * Clean already allocated entry.
  */
 static void
@@ -769,6 +800,7 @@ prepare_entry(struct message **entryp, unsigned chunk_idx)
 
 	g_assert(uint_is_non_negative(chunk_idx));
 	g_assert(chunk_idx < MAX_CHUNKS);
+	slot_check(entryp, chunk_idx);
 
 	if (entry == NULL) {
 		WALLOC0(entry);
@@ -789,10 +821,49 @@ prepare_entry(struct message **entryp, unsigned chunk_idx)
 
 done:
 	g_assert(entryp == entry->slot);
-	g_assert(chunk_idx == entry->chunk_idx);
-
+	message_check(entry, chunk_idx);
 
 	return entry;
+}
+
+/**
+ * Attempt to reallocate an already allocated chunk to see if the VMM layer
+ * can relocate a fragment.
+ */
+static struct message **
+routing_chunk_move(struct message **chunk, unsigned chunk_idx)
+{
+	struct message **nchunk;
+	struct message **p;
+	unsigned i;
+
+	g_assert(chunk != NULL);
+	g_assert(uint_is_non_negative(chunk_idx));
+	g_assert(chunk_idx < MAX_CHUNKS);
+	g_assert(chunk == routing.chunks[chunk_idx]);
+
+	nchunk = hrealloc(chunk, CHUNK_MESSAGES * sizeof(struct message *));
+	if (nchunk == chunk)
+		return chunk;
+
+	/*
+	 * VMM layer chose to relocate the chunk, update all the entries.
+	 */
+
+	if (GNET_PROPERTY(routing_debug)) {
+		g_debug("RT moving chunk #%u from %p to %p", chunk_idx, chunk, nchunk);
+	}
+
+	for (p = &nchunk[0], i = 0; i < CHUNK_MESSAGES; i++, p++) {
+		struct message *m = *p;
+
+		if (m != NULL) {
+			message_check(m, chunk_idx);
+			m->slot = p;
+		}
+	}
+
+	return routing.chunks[chunk_idx] = nchunk;
 }
 
 /**
@@ -869,7 +940,7 @@ get_next_slot(gboolean advance, unsigned *cidx)
 				struct message *m = rchunk[j];
 
 				if (m != NULL) {
-					g_assert(m->chunk_idx == i);
+					message_check(m, i);
 					clean_entry(m);
 					WFREE(m);
 					routing.count--;
@@ -926,7 +997,17 @@ get_next_slot(gboolean advance, unsigned *cidx)
 			slot = routing.chunks[chunk_idx];	/* First slot in new chunk */
 		}
 	} else {
-		slot = &chunk[ENTRY_INDEX(idx)];
+		unsigned entry_idx = ENTRY_INDEX(idx);
+
+		/*
+		 * We are at the beginning of a chunk, it is our chance to
+		 * reallocate it, possibly moving it somewhere else to free up
+		 * a memory fragment.
+		 */
+
+		if (0 == entry_idx) {
+			chunk = routing_chunk_move(chunk, chunk_idx);
+		}
 
 		/*
 		 * If we went back to the first index without allocating a chunk,
@@ -935,12 +1016,14 @@ get_next_slot(gboolean advance, unsigned *cidx)
 		 */
 
 		if (0 == idx && MAX_CHUNKS == routing.nchunks) {
-			if (GNET_PROPERTY(routing_debug))
+			if (GNET_PROPERTY(routing_debug)) {
 				g_warning("RT cycling over FORCED, elapsed=%u, holds %d / %d",
 					(unsigned) elapsed, routing.count, routing.capacity);
-
+			}
 			routing.last_rotation = now;
 		}
+
+		slot = &chunk[entry_idx];
 	}
 
 	g_assert(slot != NULL);
@@ -953,6 +1036,8 @@ get_next_slot(gboolean advance, unsigned *cidx)
 
 	if (cidx != NULL)
 		*cidx = chunk_idx;
+
+	slot_check(slot, chunk_idx);
 
 	return slot;
 }
@@ -1014,7 +1099,7 @@ revitalize_entry(struct message *entry, gboolean force)
 	prev = *relocated;
 
 	if (prev != NULL) {
-		g_assert(chunk_idx == prev->chunk_idx);
+		message_check(prev, chunk_idx);
 		clean_entry(prev);
 		WFREE(prev);
 		routing.count--;
@@ -1028,6 +1113,8 @@ revitalize_entry(struct message *entry, gboolean force)
 	*(entry->slot) = NULL;					/* Old slot "freed" */
 	entry->slot = relocated;				/* Entry now at new slot */
 	entry->chunk_idx = chunk_idx;			/* Entry moved to new chunk */
+
+	message_check(entry, chunk_idx);
 }
 
 /**

@@ -3947,6 +3947,19 @@ qrt_handle_patch(
 	qrcv->seqno++;
 
 	/*
+	 * Attempt to relocate the table if it is a standalone memory fragment.
+	 */
+
+	{
+		struct routing_table *rt = qrcv->table;
+
+		g_assert(rt != NULL);
+		g_assert(rt->compacted);	/* 8 bits per byte, table is compacted */
+
+		rt->arena = hrealloc(rt->arena, rt->slots / 8);
+	}
+
+	/*
 	 * Process the patch data.
 	 */
 
