@@ -1680,7 +1680,7 @@ dq_common_init(dquery_t *dq)
 	 */
 
 	head = cast_to_gconstpointer(pmsg_start(dq->mb));
-	muid = atom_guid_get(gnutella_header_get_muid(head));
+	muid = gnutella_header_get_muid(head);
 
 	if (g_hash_table_lookup(by_muid, muid)) {
 		g_warning("conflicting MUID \"%s\" for dynamic query from %s, "
