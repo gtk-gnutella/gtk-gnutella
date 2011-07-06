@@ -295,10 +295,7 @@ hrealloc(void *old, size_t new_size)
 	rounded_new_size = round_pagesize(new_size);
 
 	if (old_size >= page_threshold) {
-		if (
-			rounded_new_size <= old_size &&
-			vmm_is_relocatable(old, old_size, rounded_new_size)
-		)
+		if (vmm_is_relocatable(old, rounded_new_size))
 			goto relocate;
 	} else {
 		if (new_size < page_threshold) {

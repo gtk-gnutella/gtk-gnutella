@@ -132,12 +132,13 @@ rxbuf_page_free(gpointer p, gboolean fragment)
 }
 
 /**
- * Check whether buffer is a memory fragment.
+ * Check whether buffer is relocatable or is a memory fragment.
  */
 static gboolean
 rxbuf_page_is_fragment(gpointer p)
 {
-	return vmm_is_fragment(p, rxbuf_pagesize);
+	return vmm_is_relocatable(p, rxbuf_pagesize) ||
+		vmm_is_fragment(p, rxbuf_pagesize);
 }
 
 /**

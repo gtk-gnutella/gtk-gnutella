@@ -638,12 +638,14 @@ subzone_free_arena(struct subzone *sz)
 }
 
 /*
- * Is subzone held in a standalone virtual memory fragment?
+ * Is subzone held in a virtual memory region that could be relocated or
+ * is a standalone fragment?
  */
 static inline gboolean
 subzone_is_fragment(const struct subzone *sz)
 {
-	return vmm_is_fragment(sz->sz_base, sz->sz_size);
+	return vmm_is_relocatable(sz->sz_base, sz->sz_size) ||
+		vmm_is_fragment(sz->sz_base, sz->sz_size);
 }
 
 /**
