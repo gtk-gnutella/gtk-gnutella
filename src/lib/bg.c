@@ -600,14 +600,12 @@ bg_task_terminate(struct bgtask *bt)
 
 	g_assert(!(bt->flags & TASK_F_RUNNING));
 
-	if (bt->flags & TASK_F_SLEEPING) {
+	if (bt->flags & TASK_F_SLEEPING)
 		bg_sched_wakeup(bt);
-		bg_runcount--;					/* One task less to run */
-		g_assert(bg_runcount >= 0);
-	}
 
 	bt->flags |= TASK_F_EXITED;		/* Task has now exited */
 	bg_sched_remove(bt);			/* Ensure it's no longer scheduled */
+	bg_runcount--;					/* One task less to run */
 
 	g_assert(bg_runcount >= 0);
 
