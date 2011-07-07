@@ -7216,7 +7216,6 @@ search_request(struct gnutella_node *n,
 	const search_request_info_t *sri, query_hashvec_t *qhv)
 {
 	const char *search;
-	size_t search_len;
 	struct guid muid;
 	gboolean qhv_filled = FALSE;
 	gboolean oob;
@@ -7231,7 +7230,6 @@ search_request(struct gnutella_node *n,
 	 */
 
 	search = n->data + 2;	/* skip flags */
-	search_len = sri->search_len;
 	oob = sri->oob;
 
 	if (sri->extended_query != NULL) {
@@ -7244,7 +7242,6 @@ search_request(struct gnutella_node *n,
 				lazy_safe_search(search), safe_ext);
 		}
 		search = sri->extended_query;
-		search_len = strlen(search);
 		safe_search = safe_ext;
 	} else {
 		safe_search = hex_escape(search, FALSE);

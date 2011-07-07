@@ -191,10 +191,9 @@ static inline xnode_t *
 xml_new_child(xnode_t *parent, const char *name, const char *content)
 {
 	xnode_t *cn;
-	xnode_t *tn;
 
 	cn = xnode_new_element(parent, NULL, name);
-	tn = xnode_new_text(cn, content, FALSE);
+	xnode_new_text(cn, content, FALSE);
 
 	return cn;
 }

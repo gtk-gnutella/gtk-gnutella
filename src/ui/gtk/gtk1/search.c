@@ -1488,6 +1488,7 @@ search_resort_required(struct search *search, GtkCTreeNode *node)
 	}
 	return FALSE;
 #endif
+	(void) row;		/* #if 0 above */
 
 	return TRUE;
 }

@@ -2819,7 +2819,6 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 	gboolean seen_proxy = FALSE;
 	gboolean seen_guid = FALSE;
 	gboolean seen_pptls = FALSE;
-	const char *msg = NULL;
 	time_t stamp = 0;
 	const char *tok;
 	strtok_t *st;
@@ -2853,10 +2852,8 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 
 		/* GUID is the first item we expect */
 		if (!seen_guid) {
-			if (!hex_to_guid(tok, &guid)) {
-				msg = "bad leading GUID";
+			if (!hex_to_guid(tok, &guid))
 				break;
-			}
 			seen_guid = TRUE;
 			info.guid = atom_guid_get(&guid);
 			continue;

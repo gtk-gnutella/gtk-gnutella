@@ -4720,8 +4720,6 @@ download_queue_update_status(struct download *d)
 static void
 download_queue_v(struct download *d, const char *fmt, va_list ap)
 {
-	size_t len;
-
 	download_check(d);
 	file_info_check(d->file_info);
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
@@ -4744,9 +4742,9 @@ download_queue_v(struct download *d, const char *fmt, va_list ap)
 	 */
 
 	if (fmt) {
-		len = gm_vsnprintf(d->error_str, sizeof d->error_str, fmt, ap);
+		gm_vsnprintf(d->error_str, sizeof d->error_str, fmt, ap);
 	} else {
-		len = g_strlcpy(d->error_str, "", sizeof d->error_str);
+		g_strlcpy(d->error_str, "", sizeof d->error_str);
 	}
 
 	if (DOWNLOAD_IS_RUNNING(d)) {
@@ -13947,7 +13945,6 @@ download_retrieve_old(FILE *f)
 	const char *d_name;
 	host_addr_t d_addr;
 	guint16 d_port;
-	guint32 d_index = 0;
 	guint32 flags;
 	char d_hexguid[33];
 	char d_hostname[256];	/* Server hostname */
@@ -14053,7 +14050,7 @@ download_retrieve_old(FILE *f)
 			g_assert(*endptr == ',');
 			endptr = skip_ascii_blanks(++endptr);
 
-			d_index = parse_uint32(endptr, &endptr, 10, &error);
+			parse_uint32(endptr, &endptr, 10, &error);
 			if (error || NULL == strchr(":,", *endptr)) {
 				g_warning("download_retrieve(): "
 					"cannot parse index in line #%u: %s", line, dl_tmp);

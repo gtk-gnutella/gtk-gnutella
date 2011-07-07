@@ -833,10 +833,11 @@ html_view_load(struct html_view *html_view)
 	}
 #else	/* Gtk+ < 2.0 */
 
+	(void) widget;
 	ctx->html_view = html_view;
 	gtk_text_freeze(html_view->widget);
 	gtk_text_set_word_wrap(html_view->widget, TRUE);
-	
+
 #endif	/* Gtk+ >= 2.0 */
 
 	ctx->output = html_output_alloc();

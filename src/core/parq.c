@@ -2880,8 +2880,6 @@ parq_upload_continue(struct parq_ul_queued *puq)
 	GList *l = NULL;
 	int slots_free;
 	gboolean quick_allowed = FALSE;
-	int allowed_max_uploads;
-
 	g_assert(puq != NULL);
 
 	/**
@@ -2913,12 +2911,6 @@ parq_upload_continue(struct parq_ul_queued *puq)
 		parq_upload_unfreeze_all(puq);
 		/* FALL THROUGH */
 	}
-
-	/*
-	 * max_uploads holds the number of upload slots a queue may currently
-	 * use. This is the lowest number of upload slots used by a queue + 1.
-	 */
-	allowed_max_uploads = -1;
 
 	slots_free = free_upload_slots(puq->queue);
 

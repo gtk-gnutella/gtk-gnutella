@@ -1915,7 +1915,6 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size)
 
 		if (NULL == vmf) {
 			const void *end = const_ptr_add_offset(base, remain);
-			const void *vend;
 			size_t gap;
 
 			/* ``base'' does not belong to any known region, ``idx'' is next */
@@ -1924,7 +1923,6 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size)
 				break;
 
 			vmf = &pm->array[idx];
-			vend = vmf_end(vmf);
 
 			if (ptr_cmp(end, vmf->start) <= 0)
 				return;		/* Next region starts after our target */

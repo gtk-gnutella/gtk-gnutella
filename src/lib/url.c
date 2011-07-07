@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "ascii.h"
+#include "debug.h"
 #include "glib-missing.h"
 #include "halloc.h"
 #include "host_addr.h"
@@ -699,7 +700,7 @@ url_normalize(char *url, url_policy_t pol)
 			80 != port &&
 			443 != port
 		) {
-			warn = "Ports below 1024 other than 80 and 443 are disallowed";
+			warn = "ports below 1024 other than 80 and 443 are disallowed";
 			goto bad;
 		}
 
@@ -781,6 +782,9 @@ url_normalize(char *url, url_policy_t pol)
 	return url;
 
 bad:
+	if (common_dbg)
+		g_warning("%s() rejecting URL \"%s\": %s", G_STRFUNC, url, warn);
+
 	return NULL;
 }
 

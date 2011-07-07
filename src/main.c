@@ -932,7 +932,6 @@ prehandle_arguments(char **argv)
 static void
 parse_arguments(int argc, char **argv)
 {
-	const char *argv0;
 	unsigned i;
 
 	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
@@ -944,8 +943,7 @@ parse_arguments(int argc, char **argv)
 	options[main_arg_topless].used = TRUE;
 #endif	/* USE_TOPLESS */
 
-	argv0 = argv[0];
-	argv++;
+	argv++;		/* Skip argv[0] */
 	argc--;
 
 	while (argc > 0) {

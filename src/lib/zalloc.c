@@ -1788,7 +1788,6 @@ zgc_scan(zone_t *zone)
 {
 	struct zone_gc *zg = zone->zn_gc;
 	unsigned i;
-	time_t now;
 	gboolean must_continue = FALSE;
 
 	g_assert(zg != NULL);
@@ -1804,7 +1803,6 @@ zgc_scan(zone_t *zone)
 	}
 
 	i = zg->zg_free;
-	now = tm_time();
 
 	while (i < zg->zg_zones) {
 		struct subzinfo *szi = &zg->zg_subzinfo[i];

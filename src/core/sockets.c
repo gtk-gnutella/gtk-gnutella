@@ -3166,6 +3166,8 @@ socket_create_and_bind(const host_addr_t bind_addr,
 				symbolic_errno(errno), g_strerror(errno));
 		}
 	}
+#else
+	(void) saved_errno;
 #endif /* HAS_SOCKER_GET */
 
 	if (!is_valid_fd(fd)) {

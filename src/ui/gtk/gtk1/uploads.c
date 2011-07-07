@@ -131,11 +131,7 @@ find_row(gnet_upload_t u, upload_row_data_t **data)
 {
     GtkCList *clist;
     GList *iter;
-    upload_row_data_t fake;
     gint row = 0;
-
-    fake.handle = u;
-    fake.valid  = TRUE;
 
     clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
 

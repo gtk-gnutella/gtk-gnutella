@@ -889,6 +889,7 @@ xfmt_handle_pass2_enter(xnode_t *xn, void *data)
 				goto ignore;
 
 			/* FIXME: handle blank collapsing */
+			(void) start;
 		}
 
 		/*

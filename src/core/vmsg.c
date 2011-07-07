@@ -1618,6 +1618,8 @@ vmsg_send_node_info_ans(struct gnutella_node *n, const rnode_info_t *ri)
 
 	ggep_len = ggep_stream_close(&gs);
 
+	(void) ggep_len;	/* XXX code not finished, do we need this variable? */
+
 	/*
 	 * Now that the message has been fully generated, we know its size and
 	 * can fill in the header.

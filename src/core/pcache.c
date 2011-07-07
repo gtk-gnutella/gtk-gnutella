@@ -406,12 +406,10 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 
 	if (meta != NULL) {
 		if (meta->flags & PONG_META_HAS_VC) {	/* Vendor code */
-			gboolean ok;
-
-			ok = ggep_stream_begin(&gs, GGEP_NAME(VC), 0) &&
+			(void) (ggep_stream_begin(&gs, GGEP_NAME(VC), 0) &&
 			ggep_stream_write(&gs, meta->vendor, sizeof meta->vendor) &&
 			ggep_stream_write(&gs, &meta->version_ua, 1) &&
-			ggep_stream_end(&gs);
+			ggep_stream_end(&gs));
 		}
 
 		if (meta->flags & PONG_META_HAS_GUE) {	/* GUESS support */
@@ -420,13 +418,11 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		}
 
 		if (meta->flags & PONG_META_HAS_UP) {	/* Ultrapeer info */
-			gboolean ok;
-
-			ok = ggep_stream_begin(&gs, GGEP_NAME(UP), 0) &&
+			(void) (ggep_stream_begin(&gs, GGEP_NAME(UP), 0) &&
 			ggep_stream_write(&gs, &meta->version_up, 1) &&
 			ggep_stream_write(&gs, &meta->leaf_slots, 1) &&
 			ggep_stream_write(&gs, &meta->up_slots, 1) &&
-			ggep_stream_end(&gs);
+			ggep_stream_end(&gs));
 		}
 
 		if (meta->flags & PONG_META_HAS_LOC) {	/* Locale preferencing */
@@ -461,13 +457,11 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		}
 
 		if (meta->flags & PONG_META_HAS_DHT) {
-			gboolean ok;
-
-			ok = ggep_stream_begin(&gs, GGEP_NAME(DHT), 0) &&
+			(void) (ggep_stream_begin(&gs, GGEP_NAME(DHT), 0) &&
 			ggep_stream_write(&gs, &meta->dht_major, 1) &&
 			ggep_stream_write(&gs, &meta->dht_minor, 1) &&
 			ggep_stream_write(&gs, &meta->dht_mode, 1) &&
-			ggep_stream_end(&gs);
+			ggep_stream_end(&gs));
 		}
 	}
 

@@ -1673,7 +1673,6 @@ pdht_cancel_nope(const struct guid *guid, gboolean callback)
 static gboolean
 pdht_nope_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 {
-	int delay = PDHT_PROX_RETRY;
 	gboolean accepted = TRUE;
 	struct nid *node_id = arg;
 	gnutella_node_t *n;
@@ -1688,7 +1687,6 @@ pdht_nope_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
 	 */
 
 	if (PDHT_E_OK == code) {
-		delay = publisher_delay(info, DHT_VALUE_NOPE_EXPIRE);
 		accepted = publisher_is_acceptable(info);
 	}
 
