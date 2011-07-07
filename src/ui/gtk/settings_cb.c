@@ -890,7 +890,8 @@ on_clist_dbg_property_click_column(GtkCList *clist, gint column,
 		g_assert_not_reached();
 	}
 			
-	gtk_clist_sort(clist);
+	if (do_sort)
+		gtk_clist_sort(clist);
 }
 #endif /* USE_GTK1 */
 
