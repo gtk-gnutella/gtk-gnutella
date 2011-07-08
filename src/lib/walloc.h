@@ -169,6 +169,8 @@ G_STMT_START {				\
 	p = walloc0(sizeof *p);	\
 } G_STMT_END
 
+#define WMOVE(p)			wmove(p, sizeof *p)
+
 #define WFREE(p)			\
 G_STMT_START {				\
 	wfree(p, sizeof *p);	\

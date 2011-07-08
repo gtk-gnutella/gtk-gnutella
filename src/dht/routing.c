@@ -2158,7 +2158,7 @@ static knode_t *
 move_node(struct kbucket *kb, knode_t *kn)
 {
 	if (1 == knode_refcnt(kn)) {
-		knode_t *moved = wmove(kn, sizeof *kn);
+		knode_t *moved = WMOVE(kn);
 		if (moved != kn) {
 			g_hash_table_remove(kb->nodes->all, moved->id);
 			g_hash_table_insert(kb->nodes->all, moved->id, moved);
