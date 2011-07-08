@@ -819,6 +819,17 @@ prepare_entry(struct message **entryp, unsigned chunk_idx)
 
 	clean_entry(entry);
 
+	/*
+	 * Attempt to move the object around if it can help compacting.
+	 */
+
+	{
+		struct message *nentry = WMOVE(entry);
+
+		if (nentry != entry)
+			entry = *entryp = nentry;
+	}
+
 done:
 	g_assert(entryp == entry->slot);
 	message_check(entry, chunk_idx);
@@ -864,6 +875,22 @@ routing_chunk_move(struct message **chunk, unsigned chunk_idx)
 	}
 
 	return routing.chunks[chunk_idx] = nchunk;
+}
+
+/**
+ * Try to move the chunks we have, since the lowest indices
+ * (which are going to be the more permanent chunks) will be
+ * better hosted in the early VM space, freeing up the upper
+ * VM space for more volatile data and possibly defragmenting.
+ */
+static void
+routing_chunk_move_attempt(void)
+{
+	size_t i;
+
+	for (i = 0; i < routing.nchunks; i++) {
+		routing.chunks[i] = routing_chunk_move(routing.chunks[i], i);
+	}
 }
 
 /**
@@ -932,8 +959,8 @@ get_next_slot(gboolean advance, unsigned *cidx)
 			size_t j;
 
 			if (GNET_PROPERTY(routing_debug)) {
-				g_debug("RT freeing chunk #%lu, now holds %d / %d",
-					(unsigned long) i, routing.count, routing.capacity);
+				g_debug("RT freeing chunk #%lu at %p, now holds %d / %d",
+					(unsigned long) i, rchunk, routing.count, routing.capacity);
 			}
 
 			for (j = 0; j < CHUNK_MESSAGES; j++) {
@@ -941,6 +968,7 @@ get_next_slot(gboolean advance, unsigned *cidx)
 
 				if (m != NULL) {
 					message_check(m, i);
+					g_assert(m->slot == &rchunk[j]);
 					clean_entry(m);
 					WFREE(m);
 					routing.count--;
@@ -956,6 +984,13 @@ get_next_slot(gboolean advance, unsigned *cidx)
 
 		g_assert(uint_is_non_negative(routing.nchunks));
 
+		/*
+		 * After freeing chunks, we may be able to move around some of the
+		 * remaining ones.
+		 */
+
+		routing_chunk_move_attempt();
+
 		/* FALL THROUGH */
 	}
 
@@ -969,9 +1004,10 @@ get_next_slot(gboolean advance, unsigned *cidx)
 		 */
 
 		if (idx > 0 && elapsed > TABLE_MIN_CYCLE) {
-			if (GNET_PROPERTY(routing_debug))
+			if (GNET_PROPERTY(routing_debug)) {
 				g_debug("RT cycling over table, elapsed=%u, holds %d / %d",
 					(unsigned) elapsed, routing.count, routing.capacity);
+			}
 
 			chunk_idx = 0;
 			idx = routing.next_idx = 0;
@@ -979,20 +1015,24 @@ get_next_slot(gboolean advance, unsigned *cidx)
 			slot = routing.chunks[0];
 		} else {
 			/*
-			 * Allocate new chunk, extending the capacity of the table.
+			 * Allocate new chunk, expanding the capacity of the table.
 			 */
 
 			g_assert(idx == 0 || chunk_idx > 0);
 			g_assert(chunk_idx == routing.nchunks);
+
+			routing_chunk_move_attempt();		/* Compact before allocating */
 
 			routing.nchunks++;
 			routing.capacity += CHUNK_MESSAGES;
 			routing.chunks[chunk_idx] =
 				halloc0(CHUNK_MESSAGES * sizeof(struct message *));
 
-			if (GNET_PROPERTY(routing_debug))
-				g_debug("RT created new chunk #%d, now holds %d / %d",
-					chunk_idx, routing.count, routing.capacity);
+			if (GNET_PROPERTY(routing_debug)) {
+				g_debug("RT created new chunk #%d at %p, now holds %d / %d",
+					chunk_idx, routing.chunks[chunk_idx],
+					routing.count, routing.capacity);
+			}
 
 			slot = routing.chunks[chunk_idx];	/* First slot in new chunk */
 		}
@@ -1000,14 +1040,11 @@ get_next_slot(gboolean advance, unsigned *cidx)
 		unsigned entry_idx = ENTRY_INDEX(idx);
 
 		/*
-		 * We are at the beginning of a chunk, it is our chance to
-		 * reallocate it, possibly moving it somewhere else to free up
-		 * a memory fragment.
+		 * Each time we move to a new chunk, see whether we can move some
+		 * of the existing ones around to compact the VM space.
 		 */
 
-		if (0 == entry_idx) {
-			chunk = routing_chunk_move(chunk, chunk_idx);
-		}
+		routing_chunk_move_attempt();
 
 		/*
 		 * If we went back to the first index without allocating a chunk,
@@ -1070,9 +1107,9 @@ revitalize_entry(struct message *entry, gboolean force)
 	unsigned chunk_idx;
 
 	/*
-	 * Leaves don't route anything, so we usually don't revitalize its
+	 * Leaves don't route anything, so we usually don't revitalize their
 	 * entries.  The only exception is when it makes use of the recorded
-	 * PUSH routes, i.e. when it initiates a PUSH.
+	 * PUSH routes, i.e. when it initiates a PUSH ("force" will be TRUE).
 	 */
 
 	if (!force && settings_is_leaf())
@@ -1085,7 +1122,8 @@ revitalize_entry(struct message *entry, gboolean force)
 	relocated = get_next_slot(FALSE, &chunk_idx);
 
 	/*
-	 * If slot is allocated in the same chunk, there's no need to revitalize.
+	 * If slot is allocated in the same chunk, there's no need to revitalize
+	 * since entries in the same chunk will roughly have the same lifetime.
 	 */
 
 	if (chunk_idx == entry->chunk_idx)			/* Same chunk being used */
@@ -1100,6 +1138,7 @@ revitalize_entry(struct message *entry, gboolean force)
 
 	if (prev != NULL) {
 		message_check(prev, chunk_idx);
+		g_assert(prev->slot == relocated);
 		clean_entry(prev);
 		WFREE(prev);
 		routing.count--;
@@ -2798,6 +2837,7 @@ routing_close(void)
 			for (i = 0; i < CHUNK_MESSAGES; i++) {
 				struct message *m = chunk[i];
 				if (m != NULL) {
+					message_check(m, cnt);
 					free_route_list(m);
 					WFREE(m);
 				}
