@@ -1044,7 +1044,10 @@ get_next_slot(gboolean advance, unsigned *cidx)
 		 * of the existing ones around to compact the VM space.
 		 */
 
-		routing_chunk_move_attempt();
+		if (0 == entry_idx) {
+			routing_chunk_move_attempt();
+			chunk = routing.chunks[chunk_idx];	/* In case it moved */
+		}
 
 		/*
 		 * If we went back to the first index without allocating a chunk,
