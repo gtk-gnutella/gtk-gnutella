@@ -2,20 +2,11 @@ This documents describes briefly the things we want to have in gtk-gnutella
 and which are not already implemented in SVN, by loose order of decreasing
 priority.
 
-0.97:
-	* Finish port to Windows.
-	* HTTP request pipelining.
-	* GUESS (Gnutella UDP Extension for Scalable Searches)
-	* DHT GUI configuration (active / passive modes)
-	* Remove dependency on libxml, switching to GTKG's own XML routines.
-	* Write specifications for the DHT "NOPE" value.
-	* Media type filtering.
-	* Partial results requests.
-	* "What's New?" queries.
-
 0.97.1
+	* Implement "IPv6-Ready" specifications.
 	* DOVE extension for the DHT, adding IPv6 support and smarter publishing
 	* Firewalled to firewalled transfers (reverse engineer LimeWire specs)
+	* Configurable SOCKS usage: Gnutella connections, downloads and/or uploads.
 	* Area-specific logging?
 	* Disk space monitoring (~/.gtk-gnutella, download incomplete / complete)?
 	* Keep track of long-running ultrapeers for faster startup after inactivity
@@ -23,6 +14,10 @@ priority.
 	* PARQ: Tigertree aware
 	* PARQ: 'Rotating' queue by filename?
 	* Meta data support (locally)
+
+0.98
+	* Optional gtk-gnutella clustering
+	* Optional locale preferencing support
 
 Possible other changes
 	* Smaller memory footprint by using sdbm for:
