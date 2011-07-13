@@ -622,7 +622,7 @@ whitelist_periodic_dns(gpointer unused_obj)
 		 * Use this opportunity to refresh the TLS cache.
 		 */
 
-		if (item->use_tls && item->port != 0)
+		if (item->use_tls && item->port != 0 && is_host_addr(item->addr))
 			tls_cache_insert(item->addr, item->port);
 
 		if (NULL == item->host)
