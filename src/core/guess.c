@@ -3040,20 +3040,22 @@ guess_bandwidth_available(void *data, void *unused)
 	guess_t *gq = data;
 
 	guess_check(gq);
+	g_return_val_if_fail(guess_out_bw < GNET_PROPERTY(bw_guess_out), WQ_SLEEP);
 
 	(void) unused;
 
-	if (guess_out_bw >= GNET_PROPERTY(bw_guess_out)) {
-		if (GNET_PROPERTY(guess_client_debug) > 4) {
-			g_debug("GUESS QUERY[%s] not scheduling, waiting for bandwidth",
-				nid_to_string(&gq->gid));
-		}
-		return WQ_SLEEP;
-	}
-
 	gq->bwait = NULL;
 	guess_iterate(gq);
-	return WQ_REMOVE;
+
+	/*
+	 * If iteration got all the available bandwidth, then there's no need
+	 * to continue scheduling other queries waiting for more bandwidth:
+	 * WQ_EXCLUSIVE signals to the dispatching logic that it can stop after
+	 * removing the current entry from the waiting queue.
+	 */
+
+	return guess_out_bw >= GNET_PROPERTY(bw_guess_out) ?
+		WQ_EXCLUSIVE : WQ_REMOVE;
 }
 
 /**
