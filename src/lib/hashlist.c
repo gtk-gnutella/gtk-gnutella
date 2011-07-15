@@ -253,13 +253,27 @@ hash_list_insert_item(hash_list_t *hl, struct hash_list_item *item)
 
 	g_assert(hl->len < INT_MAX);
 	hl->len++;
-	hl->stamp++;
+
+	/*
+	 * Insertion in the list is "safe" with respect to iterators.
+	 *
+	 * Although there is no guarantee the inserted item will be iterated
+	 * over (if it lies before the iterating point), there is no invalidation
+	 * of the "next" and "prev" entries that we can have pre-computed in the
+	 * iterator, nor is there the risk that we would iterate forever.  All
+	 * existing references to linkable cells will remain valid after the
+	 * insertion took place.
+	 *
+	 * Therefore, do not update the hl->stamp value.
+	 */
 
 	hash_list_regression(hl);
 }
 
 /**
  * Append `key' to the list.
+ *
+ * It is safe to call this routine whilst iterating.
  */
 void
 hash_list_append(hash_list_t *hl, const void *key)
@@ -267,7 +281,6 @@ hash_list_append(hash_list_t *hl, const void *key)
 	struct hash_list_item *item;
 
 	hash_list_check(hl);
-	g_assert(1 == hl->refcount);
 
 	WALLOC(item);
 	hl->tail = g_list_last(g_list_append(hl->tail, item));
@@ -281,6 +294,8 @@ hash_list_append(hash_list_t *hl, const void *key)
 
 /**
  * Prepend `key' to the list.
+ *
+ * It is safe to call this routine whilst iterating.
  */
 void
 hash_list_prepend(hash_list_t *hl, const void *key)
@@ -288,7 +303,6 @@ hash_list_prepend(hash_list_t *hl, const void *key)
 	struct hash_list_item *item;
 
 	hash_list_check(hl);
-	g_assert(1 == hl->refcount);
 
 	WALLOC(item);
 	hl->head = g_list_prepend(hl->head, item);
@@ -302,6 +316,9 @@ hash_list_prepend(hash_list_t *hl, const void *key)
 
 /**
  * Insert `key' into the list.
+ *
+ * It is safe to call this routine whilst iterating although there is no
+ * guarantee as to whether the iteration will see the new item.
  */
 void
 hash_list_insert_sorted(hash_list_t *hl, const void *key, GCompareFunc func)
@@ -309,7 +326,6 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, GCompareFunc func)
 	GList *iter;
 
 	hash_list_check(hl);
-	g_assert(1 == hl->refcount);
 	g_assert(NULL != func);
 	g_assert(NULL == g_hash_table_lookup(hl->ht, key));
 
@@ -427,7 +443,7 @@ hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 
 	g_assert(hl->len > 0);
 	hl->len--;
-	hl->stamp++;
+	hl->stamp++;		/* Unsafe operation when iterating */
 
 	hash_list_regression(hl);
 	return orig_key;
@@ -528,7 +544,7 @@ hash_list_remove_position(hash_list_t *hl, const void *key)
 	 * the predecessor of the item.  For sanity checks, we save the hash_list_t
 	 * object as well to make sure items are re-inserted in the proper list!
 	 *
-	 * No update (insertion / deletion) must happen between the removal and
+	 * No unsafe update (moving / deletion) must happen between the removal and
 	 * the re-insertion, and this is checked by the saved stamp.
 	 */
 
