@@ -330,14 +330,31 @@ static void
 wq_notify(hash_list_t *hl, void *data)
 {
 	hash_list_iter_t *iter;
+	size_t i, count;
 
 	iter = hash_list_iterator(hl);
+	count = hash_list_length(hl);
+	i = 0;
 
 	while (hash_list_iter_has_next(iter)) {
 		wq_event_t *we = hash_list_iter_next(iter);
 		wq_status_t status;
 
 		wq_event_check(we);
+
+		/*
+		 * Stop iteration in case callbacks have called wq_sleep() on the
+		 * same waiting queue we're iterating on and added items to the list.
+		 * This sanity check ensures we're not going to loop forever with a
+		 * callback systematically appending something.
+		 */
+
+		if (i++ >= count) {
+			/* Something is odd, let them know about the calling stack */
+			g_carp("stopping after processing %lu item%s (list now has %lu)",
+				(unsigned long) count, 1 == count ? "" : "s",
+				(unsigned long) hash_list_length(hl));
+		}
 
 		status = (*we->cb)(we->arg, data);
 
