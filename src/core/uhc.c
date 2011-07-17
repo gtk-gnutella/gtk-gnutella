@@ -101,7 +101,6 @@ static const struct {
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
 	{ "yin.cloud.bishopston.net:33558" },
-	{ "uhc1.frostwire.com:9000" }, /* possibly dead (2010-10-27) */
 #endif	/* USE_LOCAL_UHC */
 };
 
