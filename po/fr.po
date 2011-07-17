@@ -42,7 +42,6 @@ msgstr "Stoppé (%s)"
 msgid "Too many attempts (%u times)"
 msgstr "Trop de tentatives (%u fois)"
 
-#, fuzzy
 msgid "Requeued due to no push-proxy"
 msgstr "Remis dans la file pour manque de relai 'push'"
 
@@ -55,11 +54,10 @@ msgstr "Remis dans la file pour changement d'info du fichier"
 msgid "Duplicate download"
 msgstr "Téléchargement en double"
 
-#, fuzzy
 msgid "Nothing else to switch to"
 msgstr "Rien d'autre à obtenir de cette source"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Switching (after error) to \"%s\""
 msgstr "Basculement sur \"%s\" après erreur"
 
@@ -681,9 +679,8 @@ msgstr "Protocole non acceptable"
 msgid "Servent Shutdown"
 msgstr "Arrêt du servent"
 
-#, fuzzy
 msgid "Not a network member"
-msgstr "Mode réseau Gnutella"
+msgstr "Pas un membre du réseau"
 
 msgid "Too frequent crawling"
 msgstr "Fouinage trop fréquent"
@@ -1119,7 +1116,7 @@ msgid "Timestamp at which servent was started."
 msgstr "Le moment auquel le servent a été lancé."
 
 msgid "Average servent uptime."
-msgstr Temps moyen d'utilisation du servent."
+msgstr "Temps moyen d'utilisation du servent."
 
 msgid ""
 "Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
@@ -2859,7 +2856,7 @@ msgstr ""
 msgid "Debug level for the callout queue."
 msgstr "Niveau de débugage pour queue d'appels en instance."
 
-#msgid "Debug level for DHT node lookups."
+msgid "Debug level for DHT node lookups."
 msgstr "Niveau de débugage pour les recherches dans la DHT."
 
 msgid "Debug level for DHT key/value storage."
@@ -2909,7 +2906,7 @@ msgid "Defines which download HTTP header exchanges should be traced."
 msgstr "Définit quels en-tëtes HTTP doivent ëtre tracés sur les téléchargements."
 
 msgid "Defines which upload HTTP header exchanges should be traced."
-msgstr "Définit quels en-tëtes HTTP doivent ëtre tracés sur les envois
+msgstr "Définit quels en-tëtes HTTP doivent ëtre tracés sur les envois."
 
 msgid "Defines which Gnutella header exchanges should be traced."
 msgstr "Définit quels en-tëtes Gnutella doivent ëtre tracés."
@@ -3205,7 +3202,7 @@ msgstr ""
 "locale, faisant en sorte de permettre les connexions entrantes.  Par défaut "
 "vous devriez laisser cette possibilié activée sauf si vous êtes capable "
 "de configurer votre équipement réseau pour laisser entrer correctement les "
-"connexions sur TCP et UDP".
+"connexions sur TCP et UDP."
 
 msgid ""
 "Whether gtk-gnutella was able to locate a NAT-PMP gateway to install port "
@@ -8347,9 +8344,9 @@ msgstr "Welcome envoyé"
 msgid "No UDP traffic yet"
 msgstr "Pas de traffic UDP pour l'instant"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"
-msgstr "Fermeture: %s [Stop dans %ds] RX=%d Q=%d,%d%%"
+msgstr "Fermeture: %s [Stop dans %us] RX=%u Q=%u,%u%%"
 
 msgid "Removing"
 msgstr "Retire"
@@ -8751,9 +8748,9 @@ msgstr "(rapide) "
 msgid " E=%u"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "%s(%s) TR: %s %s#%u"
-msgstr "%s(%s) TR: %s %s #%u"
+msgstr "%s(%s) TR: %s %s#%u"
 
 msgid "stalled"
 msgstr "bloqué"
