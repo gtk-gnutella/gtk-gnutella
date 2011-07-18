@@ -2898,12 +2898,18 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 		delta_time(tm_time(), qk->last_update) > GUESS_QK_LIFE
 	) {
 		struct guess_qk_context *ctx;
+		gboolean intro = settings_is_ultra();
 
 		WALLOC(ctx);
 		ctx->gid = gq->gid;
 		ctx->host = atom_host_get(host);
 
-		if (!guess_request_qk_full(gq, host, FALSE, guess_got_query_key, ctx)) {
+		/*
+		 * Contacting the host to request a query key is also an opportunity
+		 * to introduce ourselves as a GUESS server when running as ultra node.
+		 */
+
+		if (!guess_request_qk_full(gq, host, intro, guess_got_query_key, ctx)) {
 			guess_qk_context_free(ctx);
 			goto unqueried;
 		}
@@ -3513,6 +3519,7 @@ guess_introduction_ping(const struct gnutella_node *n,
 	const char *buf, guint16 len)
 {
 	guint16 port;
+	gnet_host_t host;
 
 	/*
 	 * GUESS 0.2 defines the "GUE" payload for introduction as:
@@ -3526,6 +3533,15 @@ guess_introduction_ping(const struct gnutella_node *n,
 
 	port = peek_le16(&buf[1]);
 	hcache_add_valid(HOST_GUESS, n->addr, port, "introduction ping");
+
+	/*
+	 * Since we got information that this host is an ultranode (or it would
+	 * not send an introduction ping), make sure we add it to the cache
+	 * of GUESS hosts and update its traffic information if already present.
+	 */
+
+	gnet_host_set(&host, n->addr, port);
+	guess_traffic_from(&host);
 }
 
 /**
