@@ -1,3 +1,124 @@
+# v 0.97     2011-07-18  [stable]
+
+This is a major release, fixing critical long-standing bugs and introducing
+handy new features.  It is also the first stable release for Windows.
+
+New Features:
+- Added HTTP request pipelining.
+- Added GUESS (Gnutella UDP Extension for Scalable Searches).
+- Added the ability to look for specific media types.
+- Added the ability to query for partial files as well.
+- Added "What's New?" queries.
+- Added smart search stopping / resuming options.
+- Added command-line option --minimized; useful when auto-starting gtk-gnutella.
+
+Improvements:
+- Improved unpredictability of random numbers.
+  Continuously collect new randomness from message events (RX, TX, dropping).
+- No longer uses download overlaps as soon as we know the TTH of the file.
+- When the download queue is auto-frozen due to lack of space, monitor the
+  filesystem to auto-unfreeze when enough space is available again.
+- Can configure different amount of limits for various kind of search results.
+- [GTK2] Added missing configuration option for case-insensitive sorting.
+- [GTK] Flag search results bearing an alien IP as such, using both a tag
+  (alien) and a color (deep pink).
+- [GTK] Added option to discard results bearing an alien IP (TRUE by default).
+- [GTK] Added option to restart session-only searches that still have pending
+  downloads registered (FALSE by default).
+- [GTK] Search details now include a line to display available metadata.
+- [GTK] Fill in the Bitzi metadata column on the fly as results come in when
+  we have cached ticket information available.
+- [GTK] Show media type filter attached to query, when known, in the search
+  detail window.
+
+Bug Fixes:
+- Fixed *grave* routing bug whereby TTL was wrongly trimmed down by one
+  extra step. Furthermore, the trimming threshold was wrong, which in effect
+  caused ultrapeers to drop queries with TTL <= 2.
+- Fixed *grave* routing bug: was sending TTL>1 queries twice on the same
+  connection when running as ultrapeer.
+- Fixed *grave* routing bug: was not properly forwarding duplicate OOB-proxied
+  queries with a higher TTL (MUID was not altered the second time).
+- Make sure ~ expansion is done for path variables when changed at runtime.
+  Fixes bug #3215847.
+- Was not processing updates of "search_reissue_timeout" from the GUI!
+- Filename sanitizer led to a crash when given a filename with leading spaces.
+- TTH downloads would crash when not receiving any data back.
+- An off-by-one bug prevented proper token validation, causing GTKG to not
+  properly recognize the latest releases.
+- Avoid crash when attempting to connect to a node that would be internally
+  flagged as "useless".
+- Fixed chunk selection algorithm to properly request from servers providing
+  partial files.
+- Various "crash at shutdown time" type of fixes (occuring rarely and randomly).
+- Plugged hole leading to a file completing but not being checked for its SHA-1
+  when we have a few sources competing against each-other and all these sources
+  end up ignoring data to preserve their connection.
+- Fixed crashes with GTK2 on some platforms at quit time by ignoring duplicate
+  "quit" requests.
+- Fixed race condition that could lead to an incomplete QRP configuration.
+- Fixed important LRU cache management bug in the SDBM layer, which was causing
+  data loss in persisted databases.
+- Head pings had their GGEP "PUSH" key improperly parsed.
+- [GTK] Was not saving the column size of the search list.
+- Fixed cause of random crashes in the VMM layer on systems using mmap() to
+  serve uploaded files.
+
+Miscellaneous:
+- Dutch translation updated.
+- French translation updated.
+- By default, auto-clear completed and failed chunk downloads.
+- Changed user-visible connection state wording: "Connected" -> "Receiving" or
+  "Awaiting data".
+- Added documentation for DHT "NOPE" values.
+- Allow one to disable partial file sharing in general, enabling it only for
+  rare files (no full copy present).
+- Moved SDBM files to dedicated directories, either "gnet-db" or "dht-db".
+- Added visual indication that the download queue is frozen.
+- Added GUI configuration for "tth_auto_discovery".
+- [GTK] New colors for search results, to quickly spot partial hits, alien hits,
+  hits with media-type mismatch and hits from firewalled sources with no
+  push-proxy listed.
+- [GTK] Added expert-level configuration for the DHT mode, for whether DHT
+  keys/values should be kept in memory, and for the SPAM SHA1 look-up table.
+- Option --disable-ipv6 was removed from build.sh:  we now always compile with
+  IPv6 when Configure detects OS support.
+
+Under the Hood:
+- Tweaked aggressive chunk selection logic.
+- Let the RX link layer use the configured socket RX buffer size to determine
+  the maximum amount of data that we can attempt to read in one system call,
+  when the input layer cannot let us know how much data is pending.
+- Ensure we only keep valid address and port information when merging PUSH
+  servent addresses for a given GUID.
+- Make sure fast assertion routines are never inlined or it would perturb
+  stack traces due to missing offsets.
+- When building search request, be careful to not include unnecessary bloat at
+  the end of the extension block or other GTKG nodes will drop the query.
+- DHT statistics now show local k-ball info along with the theoretical one.
+- Added probalistic model to randomly avoid cached DHT values too far from the
+  key's theoretical k-ball during value lookups.
+- Smarter handling of "duplicate DHT values" (coming from the same publisher).
+  We now allow fetching of these duplicates and retain different versions of the
+  same value if we find a discrepancy (due to caching or partial re-publishing).
+- PUSH flooding detection no longer bans offending hosts, but only regulates
+  the traffic by dropping flooding requests.
+- Compact extensions of forwarded queries to remove needless bloat: the XML is
+  compacted, legacy HUGE requests to return URNs in hits are dropped, GGEP
+  payload that are large enough are possibly compressed.
+- s390(x) has IEEE 754 floats.
+- Handle GGEP "u" in queries (SHA1 and bitprint URNs).
+- Avoid showing "negative" retry delays.
+- Turned some debugging-only assertions off.
+- Fixed bad test that led to a crash when receiving improper FIND_NODE messages.
+- Removed dependency to libxml2: now uses built-in XML support.
+- Converted bitzi cache to a persistent SDBM-based database.
+- Faster Bitzi request scheduling.
+- The Gnutella routing table now dynamically adjusts its size.
+- Deprecated GGEP "GTKGV1" in query hits, replacing it with "GTKGV".
+- Make sure we never send back duplicate SHA1 hits, even if they are sharing
+  twice the same file from different directories.
+
 # v 0.96.9   2011-03-20  [beta for Windows]
 
 This release only concerns the Windows platform.
