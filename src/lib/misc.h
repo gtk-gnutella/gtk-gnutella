@@ -156,7 +156,7 @@ char *sha1_to_base32_buf(const struct sha1 *, char *dst, size_t size);
 const char *sha1_base32(const struct sha1 *);
 const struct sha1 *base32_sha1(const char *base32);
 
-static inline int
+static inline G_GNUC_CONST int
 sha1_cmp(const struct sha1 *a, const struct sha1 *b)
 {
 	return memcmp(a, b, SHA1_RAW_SIZE);
@@ -264,7 +264,8 @@ void dump_string(FILE *out, const char *str, size_t len, const char *trailer);
 gboolean is_printable_iso8859_string(const char *s);
 void locale_strlower(char *, const char *);
 size_t common_leading_bits(
-	gconstpointer k1, size_t k1bits, gconstpointer k2, size_t k2bits);
+	gconstpointer k1, size_t k1bits, gconstpointer k2, size_t k2bits)
+	G_GNUC_CONST;
 float force_range(float value, float min, float max);
 const char *short_filename(const char *fullname);
 char *data_hex_str(const char *data, size_t len);
