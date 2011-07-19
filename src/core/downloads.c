@@ -2295,11 +2295,30 @@ get_server(const struct guid *guid, const host_addr_t addr, guint16 port,
 			 */
 
 			if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
-				gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
+				/*
+				 * Make sure the server address is not ours, otherwise we
+				 * don't count that as a GUID collision.
+				 */
 
-				if (GNET_PROPERTY(download_debug)) {
-					g_warning("host %s bears our GUID!",
-						host_addr_port_to_string(addr, port));
+				if (!is_my_address_and_port(addr, port)) {
+					gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
+
+					if (GNET_PROPERTY(download_debug)) {
+						g_warning("host %s bears our GUID!",
+							host_addr_port_to_string(addr, port));
+					}
+				} else {
+					/*
+					 * We're supposed to detect our IP:port earlier and avoid
+					 * attempting to download from ourselves.  When debugging,
+					 * trace the calling stack to see flaws in the logic.
+					 *		--RAM, 2011-07-19
+					 */
+
+					if (GNET_PROPERTY(download_debug)) {
+						g_carp("%s() called with our IP:port %s", G_STRFUNC,
+							host_addr_port_to_string(addr, port));
+					}
 				}
 
 				if (allocate)
