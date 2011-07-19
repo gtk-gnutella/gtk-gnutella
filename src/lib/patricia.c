@@ -661,7 +661,7 @@ matched_bits(
  * of matching leading bits within the key can be determined by calling
  * matched_bits() on the resulting node).
  */
-static struct patricia_node *
+static G_GNUC_HOT struct patricia_node *
 match_best(patricia_t *pt, gconstpointer key, size_t keybits)
 {
 	const struct patricia_node *pn;
@@ -712,7 +712,7 @@ match_best(patricia_t *pt, gconstpointer key, size_t keybits)
  *
  * @return the node which is an exact match, or NULL if not found.
  */
-static const struct patricia_node *
+static G_GNUC_HOT const struct patricia_node *
 match_exact(const patricia_t *pt, gconstpointer key, size_t keybits)
 {
 	const struct patricia_node *pn;

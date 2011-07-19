@@ -172,7 +172,7 @@ static char base32_map[(unsigned char) -1];
  *
  * @return the amount of bytes decoded into the destination.
  */
-size_t
+G_GNUC_HOT size_t
 base32_decode(char *dst, size_t size, const void *data, size_t len)
 {
 	const char *end = &dst[size];

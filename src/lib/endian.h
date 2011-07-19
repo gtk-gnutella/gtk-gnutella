@@ -33,14 +33,14 @@
  * or little-endian.
  */
 
-static inline ALWAYS_INLINE unsigned char
+static inline ALWAYS_INLINE G_GNUC_PURE unsigned char
 peek_u8(const void *p)
 {
 	const unsigned char *q = p;
 	return q[0] & 0xff;
 }
 
-static inline ALWAYS_INLINE guint16
+static inline ALWAYS_INLINE G_GNUC_PURE guint16
 peek_u16(const void *p)
 {
 	const unsigned char *q = p;
@@ -49,7 +49,7 @@ peek_u16(const void *p)
 	return v;
 }
 
-static inline ALWAYS_INLINE guint32
+static inline ALWAYS_INLINE G_GNUC_PURE guint32
 peek_u32(const void *p)
 {
 	const unsigned char *q = p;
@@ -58,7 +58,7 @@ peek_u32(const void *p)
 	return v;
 }
 
-static inline ALWAYS_INLINE guint64
+static inline ALWAYS_INLINE G_GNUC_PURE guint64
 peek_u64(const void *p)
 {
 	const unsigned char *q = p;
@@ -67,7 +67,7 @@ peek_u64(const void *p)
 	return v;
 }
 
-static inline guint16
+static inline G_GNUC_PURE guint16
 peek_be16(const void *p)
 {
 	const unsigned char *q = p;
@@ -81,7 +81,7 @@ peek_be16(const void *p)
 	return v;
 }
 
-static inline guint32
+static inline G_GNUC_PURE guint32
 peek_be32(const void *p)
 {
 	const unsigned char *q = p;
@@ -95,7 +95,7 @@ peek_be32(const void *p)
 	return v;
 }
 
-static inline guint64
+static inline G_GNUC_PURE guint64
 peek_be64(const void *p)
 {
 	const unsigned char *q = p;
@@ -109,7 +109,7 @@ peek_be64(const void *p)
 	return v;
 }
 
-static inline guint16
+static inline G_GNUC_PURE guint16
 peek_le16(const void *p)
 {
 	const unsigned char *q = p;
@@ -284,7 +284,7 @@ poke_float_be32(gpointer p, float v)
 	return poke_be32(p, tmp);
 }
 
-static inline float
+static inline G_GNUC_PURE float
 peek_float_be32(const void *p)
 {
 	guint32 tmp;
