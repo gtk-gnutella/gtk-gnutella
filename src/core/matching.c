@@ -538,7 +538,7 @@ st_fill_qhv(const char *search_term, query_hashvec_t *qhv)
  *
  * @return number of hits we produced
  */
-int
+G_GNUC_HOT int
 st_search(
 	search_table_t *table,
 	const char *search_term,

@@ -158,7 +158,7 @@ RCSID("$Id$")
 }
 
 /* The compress function is a function. Requires smaller cache?    */
-static inline void
+static inline G_GNUC_HOT void
 tiger_compress(const guint64 *data, guint64 state[3])
 {
   tiger_compress_macro(data, state);

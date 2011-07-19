@@ -217,7 +217,7 @@ extern const char VXS_XML_URI[];	/* "http://www.w3.org/XML/1998/namespace" */
 
 void vxml_test(void);
 void set_vxml_debug(guint32 level);
-gboolean vxml_debugging(guint32 level);
+gboolean vxml_debugging(guint32 level) G_GNUC_PURE;
 
 const char *vxml_strerror(vxml_error_t error);
 const char *vxml_parser_strerror(const vxml_parser_t *vp, vxml_error_t error);

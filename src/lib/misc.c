@@ -937,7 +937,7 @@ alnum2int(guchar c)
 /**
  * Initializes the lookup table for hex2int().
  */
-static void
+static G_GNUC_COLD void
 hex2int_init(void)
 {
 	size_t i;
@@ -985,7 +985,7 @@ hex2int_init(void)
 /**
  * Initializes the lookup table for dec2int().
  */
-static void
+static G_GNUC_COLD void
 dec2int_init(void)
 {
 	size_t i;
@@ -1021,7 +1021,7 @@ dec2int_init(void)
 /**
  * Initializes the lookup table for alnum2int().
  */
-static void
+static G_GNUC_COLD void
 alnum2int_init(void)
 {
 	static const char abc[] = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -1331,7 +1331,7 @@ tth_to_urn_string(const struct tth *tth)
  * @return the number of common leading bits, which is at most
  * min(k1bits, k2bits) if everything matches.
  */
-size_t
+G_GNUC_HOT size_t
 common_leading_bits(
 	gconstpointer k1, size_t k1bits, gconstpointer k2, size_t k2bits)
 {
@@ -1816,7 +1816,7 @@ html_escape(const char *src, char *dst, size_t dst_size)
 
 static GHashTable *html_entities_lut;
 
-static void
+static G_GNUC_COLD void
 html_entities_init(void)
 {
 	size_t i;
@@ -2100,7 +2100,7 @@ symbolic_errno(int errnum)
 /**
  * Initialize miscellaneous data structures.
  */
-void
+G_GNUC_COLD void
 misc_init(void)
 {
 	hex2int_init();

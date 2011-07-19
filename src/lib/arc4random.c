@@ -133,7 +133,7 @@ arc4_stir(struct arc4_stream *as)
 		arc4_getbyte(as);
 }
 
-static inline guint8
+static inline G_GNUC_HOT guint8
 arc4_getbyte(struct arc4_stream *as)
 {
 	guint8 si, sj;
@@ -148,7 +148,7 @@ arc4_getbyte(struct arc4_stream *as)
 	return (as->s[(si + sj) & 0xff]);
 }
 
-static inline guint32
+static inline G_GNUC_HOT guint32
 arc4_getword(struct arc4_stream *as)
 {
 	guint32 val;
@@ -217,7 +217,7 @@ arc4random_addrandom(const unsigned char *dat, int datlen)
 /**
  * @return a new 32-bit random number.
  */
-guint32
+G_GNUC_HOT guint32
 arc4random(void)
 {
 	guint32 rnd;

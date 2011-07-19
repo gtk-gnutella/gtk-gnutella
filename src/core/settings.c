@@ -229,7 +229,7 @@ is_my_address_and_port(const host_addr_t addr, guint16 port)
  *			locked. Other errno values imply that the PID file could not
  *			be created.
  */
-static int
+static G_GNUC_COLD int
 ensure_unicity(const char *file, int *fd_ptr)
 {
 	gboolean locked = FALSE;
@@ -445,7 +445,7 @@ settings_mkdir(const char *path, gboolean fatal)
 /**
  * Initializes "config_dir", "home_dir", "crash_dir", etc...
  */
-void
+G_GNUC_COLD void
 settings_early_init(void)
 {
 	config_dir = h_strdup(getenv("GTK_GNUTELLA_DIR"));
@@ -634,7 +634,7 @@ settings_update_downtime(void)
 	gnet_prop_set_guint32_val(PROP_AVERAGE_SERVENT_DOWNTIME, average);
 }
 
-void
+G_GNUC_COLD void
 settings_init(void)
 {
 	guint64 memory = getphysmemsize();
@@ -2921,7 +2921,7 @@ static prop_map_t property_map[] = {
 
 static gboolean init_list[GNET_PROPERTY_NUM];
 
-static void
+static G_GNUC_COLD void
 settings_callbacks_init(void)
 {
     unsigned n;

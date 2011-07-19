@@ -262,7 +262,7 @@ int SHA1Input(    SHA1Context    *context,
  *
  *
  */
-void SHA1ProcessMessageBlock(SHA1Context *context)
+G_GNUC_HOT void SHA1ProcessMessageBlock(SHA1Context *context)
 {
     const guint32 K[] =    {       /* Constants defined in SHA-1 */
                             0x5A827999,

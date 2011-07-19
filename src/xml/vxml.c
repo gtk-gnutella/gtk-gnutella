@@ -1377,7 +1377,7 @@ vxml_versionsrc_to_string(enum vxml_versionsrc v)
 /**
  * Translates errors into English.
  */
-const char *
+G_GNUC_COLD const char *
 vxml_strerror(vxml_error_t error)
 {
 	switch (error) {
@@ -1468,7 +1468,7 @@ vxml_encoding_is_utf32(enum vxml_encoding e)
  * Formats document parsing name and parsing position into a static buffer
  * for error logging.
  */
-static const char *
+static G_GNUC_COLD const char *
 vxml_document_where(vxml_parser_t *vp)
 {
 	static char buf[1024];
@@ -2276,7 +2276,7 @@ new_line:
 /**
  * Is Unicode character a valid character for a name start.
  */
-static gboolean
+static G_GNUC_CONST gboolean
 vxml_is_valid_name_start_char(guint32 uc)
 {
 	/*
@@ -2324,7 +2324,7 @@ vxml_is_valid_name_start_char(guint32 uc)
 /*
  * Is Unicode character a valid character within a name.
  */
-static gboolean
+static G_GNUC_CONST gboolean
 vxml_is_valid_name_char(guint32 uc)
 {
 	/*
@@ -2351,7 +2351,7 @@ vxml_is_valid_name_char(guint32 uc)
 /**
  * Is Unicode character a white space?
  */
-static gboolean
+static G_GNUC_CONST gboolean
 vxml_is_white_space_char(guint32 uc)
 {
 	/*
@@ -2364,7 +2364,7 @@ vxml_is_white_space_char(guint32 uc)
 /*
  * Is Unicode character in the upper-ASCII letter range?
  */
-static gboolean
+static G_GNUC_CONST gboolean
 vxml_is_ascii_upper_letter_char(guint32 uc)
 {
 	return uc >= 0x41U && uc <= 0x5AU;		/* [A-Z] */
@@ -6392,7 +6392,7 @@ const char bad_namespace3[] =
 
 const char faulty[] = "<a>text<b>other text<c>x</c><d><e>text</a>";
 
-static void
+static G_GNUC_COLD void
 vxml_run_simple_test(int num, const char *name,
 	const char *data, size_t len, guint32 flags, vxml_error_t error)
 {
@@ -6416,7 +6416,7 @@ vxml_run_simple_test(int num, const char *name,
 	vxml_parser_free(vp);
 }
 
-static void
+static G_GNUC_COLD void
 vxml_run_ns_simple_test(int num, const char *name,
 	const char *data, size_t len, guint32 flags,
 	vxml_error_t error_no_ns, vxml_error_t error_with_ns)
@@ -6440,7 +6440,7 @@ struct vxml_test_info {
 	void *data;
 };
 
-static void
+static G_GNUC_COLD void
 vxml_run_callback_test(int num, const char *name,
 	const char *data, size_t len, guint32 flags,
 	const struct vxml_ops *ops, struct vxml_token *tvec, size_t tlen,
@@ -6496,7 +6496,7 @@ vxml_tree_extended_dump(const xnode_t *root, FILE *f, const char *default_ns)
 	ostream_close(os);
 }
 
-static xnode_t *
+static G_GNUC_COLD xnode_t *
 vxml_run_tree_test(int num, const char *name,
 	const char *data, size_t len, guint32 flags, vxml_error_t error)
 {
@@ -6528,7 +6528,7 @@ vxml_run_tree_test(int num, const char *name,
 	return VXML_E_OK == e ? root : NULL;
 }
 
-static void
+static G_GNUC_COLD void
 tricky_text(vxml_parser_t *vp,
 	const char *name, const char *text, size_t len, void *data)
 {
@@ -6555,7 +6555,7 @@ tricky_text(vxml_parser_t *vp,
 #define T_C		3
 #define T_D		4
 
-static void
+static G_GNUC_COLD void
 evaluation_text(vxml_parser_t *vp,
 	unsigned id, const char *text, size_t len, void *data)
 {
@@ -6578,7 +6578,7 @@ evaluation_text(vxml_parser_t *vp,
 	g_assert(0 == strcmp(text, expected));
 }
 
-static void
+static G_GNUC_COLD void
 blank_text(vxml_parser_t *vp,
 	unsigned id, const char *text, size_t len, void *data)
 {
@@ -6693,7 +6693,7 @@ subparse_token_end(vxml_parser_t *vp, unsigned id, void *data)
 	}
 }
 
-static void
+static G_GNUC_COLD void
 subparse_start(vxml_parser_t *vp,
 	const char *name, const xattr_table_t *attrs, void *data)
 {
@@ -6741,7 +6741,7 @@ vxml_node_is_named(const xnode_t *xn, void *data)
 	return xnode_is_element(xn) && 0 == strcmp(name, xnode_element_name(xn));
 }
 
-void
+G_GNUC_COLD void
 vxml_test(void)
 {
 	struct vxml_ops ops;
