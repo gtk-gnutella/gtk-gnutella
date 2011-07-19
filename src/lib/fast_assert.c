@@ -48,7 +48,7 @@ RCSID("$Id$")
  *       even use assertions in signal handlers. See also:
  * http://www.opengroup.org/onlinepubs/009695399/functions/xsh_chap02_04.html
  */
-static void
+static G_GNUC_COLD void
 assertion_message(const assertion_data * const data, int fatal)
 {
 	char line_buf[22];
@@ -86,7 +86,7 @@ assertion_message(const assertion_data * const data, int fatal)
  *		--RAM, 2009-10-31
  */
 
-NO_INLINE void NON_NULL_PARAM((1)) /* REGPARM(1) */
+NO_INLINE void G_GNUC_COLD NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_warning(const assertion_data * const data)
 {
 	assertion_message(data, FALSE);
@@ -100,7 +100,7 @@ assertion_warning(const assertion_data * const data)
 		stacktrace_where_safe_print_offset(STDOUT_FILENO, 1);
 }
 
-NO_INLINE void G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
+NO_INLINE void G_GNUC_COLD G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_failure(const assertion_data * const data)
 {
 	static volatile sig_atomic_t seen_fatal;

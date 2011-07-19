@@ -473,7 +473,7 @@ str_str(gconstpointer v)
 /**
  * Hash `len' bytes starting from `data'.
  */
-guint
+G_GNUC_HOT guint
 binary_hash(gconstpointer data, size_t len)
 {
 	const unsigned char *key = data;

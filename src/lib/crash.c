@@ -171,7 +171,7 @@ typedef struct cursor {
 /**
  * Append positive value to buffer, formatted as "%02u".
  */
-static void
+static G_GNUC_COLD void
 crash_append_fmt_02u(cursor_t *cursor, long v)
 {
 	if (cursor->size < 2 || v < 0)
@@ -195,7 +195,7 @@ crash_append_fmt_02u(cursor_t *cursor, long v)
 /**
  * Append positive value to buffer, formatted as "%u".
  */
-static void
+static G_GNUC_COLD void
 crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 {
 	char buf[ULONG_DEC_BUFLEN];
@@ -216,7 +216,7 @@ crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 /**
  * Append a character to supplied buffer.
  */
-static void
+static G_GNUC_COLD void
 crash_append_fmt_c(cursor_t *cursor, unsigned char c)
 {
 	if (cursor->size < 1)
@@ -233,7 +233,7 @@ crash_append_fmt_c(cursor_t *cursor, unsigned char c)
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
  */
-void
+G_GNUC_COLD void
 crash_time(char *buf, size_t size)
 {
 	const size_t num_reserved = 1;
@@ -276,7 +276,7 @@ crash_time(char *buf, size_t size)
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
  */
-void
+G_GNUC_COLD void
 crash_time_iso(char *buf, size_t size)
 {
 	const size_t num_reserved = 1;
@@ -317,7 +317,7 @@ crash_time_iso(char *buf, size_t size)
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
  */
-static void
+static G_GNUC_COLD void
 crash_run_time(char *buf, size_t size)
 {
 	const size_t num_reserved = 1;
@@ -365,7 +365,7 @@ crash_run_time(char *buf, size_t size)
 /**
  * Emit leading crash information: who crashed and why.
  */
-static void
+static G_GNUC_COLD void
 crash_message(const char *signame, gboolean trace, gboolean recursive)
 {
 	DECLARE_STR(11);
@@ -418,7 +418,7 @@ crash_message(const char *signame, gboolean trace, gboolean recursive)
 /**
  * Marks end of crash logging and potential pausing or debugger hook calling.
  */
-static void
+static G_GNUC_COLD void
 crash_end_of_line(void)
 {
 	DECLARE_STR(7);
@@ -452,7 +452,7 @@ crash_end_of_line(void)
 /**
  * Construct name of GTKG crash log.
  */
-static void
+static G_GNUC_COLD void
 crash_logname(char *buf, size_t len, const char *pidstr)
 {
 	clamp_strcpy(buf, len, EMPTY_STRING(vars->progname));
@@ -480,7 +480,7 @@ crash_logname(char *buf, size_t len, const char *pidstr)
  * Emit the current stack frame to specified file, or the assertion stack
  * if we have one.
  */
-static NO_INLINE void
+static G_GNUC_COLD NO_INLINE void
 crash_stack_print(int fd, size_t offset)
 {
 	if (vars != NULL && vars->stackcnt != 0) {
@@ -495,7 +495,7 @@ crash_stack_print(int fd, size_t offset)
  * Invoke the inspector process (gdb, or any other program specified at
  * initialization time).
  */
-static void
+static G_GNUC_COLD void
 crash_invoke_inspector(int signo, const char *cwd)
 {
    	const char *pid_str;
@@ -981,7 +981,7 @@ parent_failure:
 /**
  * The signal handler used to trap harmful signals.
  */
-void
+G_GNUC_COLD void
 crash_handler(int signo)
 {
 	static volatile sig_atomic_t crashed;
@@ -1115,7 +1115,7 @@ crash_handler(int signo)
  * @param flags		any combination of CRASH_F_GDB and CRASH_F_PAUSE
  * @parah exec_path	pathname of custom program to execute on crash
  */
-void
+G_GNUC_COLD void
 crash_init(const char *argv0, const char *progname,
 	int flags, const char *exec_path)
 {
@@ -1238,7 +1238,7 @@ G_STMT_START { \
  * @param dst_size The size of the destination buffer in bytes.
  * @return Required buffer size.
  */
-static size_t
+static G_GNUC_COLD size_t
 crashfile_name(char *dst, size_t dst_size, const char *pathname)
 {
 	const char *pid_str, *item;
@@ -1277,7 +1277,7 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 /**
  * Record current working directory and configured crash directory.
  */
-void
+G_GNUC_COLD void
 crash_setdir(const char *pathname)
 {
 	const char *curdir = NULL;
@@ -1334,7 +1334,7 @@ crash_setdir(const char *pathname)
 /**
  * Record program's version string.
  */
-void
+G_GNUC_COLD void
 crash_setver(const char *version)
 {
 	const char *value;
@@ -1384,7 +1384,7 @@ crash_assert_failure(const struct assertion_data *a)
  * Save given stack trace, which will be displayed during crashes instead
  * of the current stack frame.
  */
-void
+G_GNUC_COLD void
 crash_save_stackframe(void *stack[], size_t count)
 {
 	if (count > G_N_ELEMENTS(vars->stack))
@@ -1404,7 +1404,7 @@ crash_save_stackframe(void *stack[], size_t count)
  * is to protect against SIGABRT signal delivery happening on a dedicated
  * signal stack.
  */
-void
+G_GNUC_COLD void
 crash_save_current_stackframe(void)
 {
 	if (vars != NULL) {
