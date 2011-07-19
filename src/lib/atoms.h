@@ -258,21 +258,21 @@ atom_is_host(const gnet_host_t *k)
 /*
  * Hash functions and equality checks
  */
-guint filesize_hash(gconstpointer key) G_GNUC_CONST;
-int filesize_eq(gconstpointer a, gconstpointer b) G_GNUC_CONST;
-guint sha1_hash(gconstpointer key) G_GNUC_CONST;
-int sha1_eq(gconstpointer a, gconstpointer b) G_GNUC_CONST;
+guint filesize_hash(gconstpointer key) G_GNUC_PURE;
+int filesize_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
+guint sha1_hash(gconstpointer key) G_GNUC_PURE;
+int sha1_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
 guint tth_hash(gconstpointer key) G_GNUC_CONST;
-int tth_eq(gconstpointer a, gconstpointer b) G_GNUC_CONST;
+int tth_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
 guint guid_hash(gconstpointer key) G_GNUC_CONST;
-int guid_eq(gconstpointer a, gconstpointer b) G_GNUC_CONST;
+int guid_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
 guint uint64_hash(gconstpointer key) G_GNUC_CONST;
-int uint64_eq(gconstpointer a, gconstpointer b) G_GNUC_CONST;
-guint uint64_mem_hash(gconstpointer key) G_GNUC_CONST;
-int uint64_mem_eq(gconstpointer a, gconstpointer b) G_GNUC_CONST;
-guint binary_hash(gconstpointer key, size_t len) G_GNUC_CONST;
-guint uint32_hash(gconstpointer key) G_GNUC_CONST;
-int uint32_eq(gconstpointer a, gconstpointer b) G_GNUC_CONST;
+int uint64_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
+guint uint64_mem_hash(gconstpointer key) G_GNUC_PURE;
+int uint64_mem_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
+guint binary_hash(gconstpointer key, size_t len) G_GNUC_PURE;
+guint uint32_hash(gconstpointer key) G_GNUC_PURE;
+int uint32_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
 
 #ifdef TRACK_ATOMS
 gconstpointer atom_get_track(enum atom_type, gconstpointer key,

@@ -61,8 +61,8 @@ struct stackatom {
 /**
  * Hashing /equality functions for "struct stacktracea" atomic traces.
  */
-size_t stack_hash(const void *key);
-int stack_eq(const void *a, const void *b);
+size_t stack_hash(const void *key) G_GNUC_PURE;
+int stack_eq(const void *a, const void *b) G_GNUC_PURE;
 
 void stacktrace_get(struct stacktrace *st);
 void stacktrace_get_offset(struct stacktrace *st, size_t offset);

@@ -223,7 +223,7 @@ utf32_bad_codepoint(guint32 uc)
 		utf32_is_surrogate(uc);
 }
 
-static inline unsigned
+static inline G_GNUC_CONST unsigned
 utf8_encoded_len(guint32 cp)
 {
   if (cp < 0x80U) {
@@ -239,13 +239,13 @@ utf8_encoded_len(guint32 cp)
   }
 }
 
-static inline gboolean
+static inline G_GNUC_CONST gboolean
 utf32_is_ascii(guint32 cp)
 {
   return cp < 0x80U;
 }
 
-static inline unsigned
+static inline G_GNUC_CONST unsigned
 utf8_first_byte_length_hint(unsigned char ch)
 {
   switch (ch & ~0x0fU) {
@@ -265,13 +265,13 @@ utf8_first_byte_length_hint(unsigned char ch)
   }
 }
 
-static inline gboolean
+static inline G_GNUC_CONST gboolean
 utf8_first_byte_valid(unsigned char ch)
 {
   return 0 != utf8_first_byte_length_hint(ch);
 }
 
-static inline gboolean
+static inline G_GNUC_CONST gboolean
 utf8_first_bytes_valid(unsigned char ch1, unsigned char ch2)
 {
   if (ch1 < 0x80) {

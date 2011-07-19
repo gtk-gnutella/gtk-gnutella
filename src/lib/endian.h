@@ -123,7 +123,7 @@ peek_le16(const void *p)
 	return v;
 }
 
-static inline guint32
+static inline G_GNUC_PURE guint32
 peek_le32(const void *p)
 {
 	const unsigned char *q = p;

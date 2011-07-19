@@ -504,7 +504,7 @@ found:
 /**
  * Number of bits for the node's prefix.
  */
-static inline G_GNUC_CONST size_t
+static inline G_GNUC_PURE size_t
 node_prefix_bits(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -515,7 +515,7 @@ node_prefix_bits(const struct patricia_node *pn)
 /**
  * Whether node holds data.
  */
-static inline G_GNUC_CONST gboolean
+static inline G_GNUC_PURE gboolean
 node_has_data(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -526,7 +526,7 @@ node_has_data(const struct patricia_node *pn)
 /**
  * The key of the data held in the node.
  */
-static inline G_GNUC_CONST gconstpointer
+static inline G_GNUC_PURE gconstpointer
 node_key(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -542,7 +542,7 @@ node_key(const struct patricia_node *pn)
 /**
  * The key size in bits of the data held in the node.
  */
-static inline G_GNUC_CONST size_t
+static inline G_GNUC_PURE size_t
 node_keybits(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -558,7 +558,7 @@ node_keybits(const struct patricia_node *pn)
 /**
  * The value of the data held in the node.
  */
-static inline G_GNUC_CONST gconstpointer
+static inline G_GNUC_PURE gconstpointer
 node_value(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -574,7 +574,7 @@ node_value(const struct patricia_node *pn)
 /**
  * Is the current node test bit matched by the key?
  */
-static inline G_GNUC_CONST gboolean
+static inline G_GNUC_PURE gboolean
 node_matches(const struct patricia_node *pn, gconstpointer key, size_t keybits)
 {
 	const guint8 *k = key;
@@ -595,7 +595,7 @@ node_matches(const struct patricia_node *pn, gconstpointer key, size_t keybits)
  *
  * @return TRUE if keys are identical.
  */
-static gboolean G_GNUC_CONST
+static gboolean G_GNUC_PURE
 key_eq(gconstpointer k1, gconstpointer k2, size_t keybits)
 {
 	size_t bytes;			/* Amount of bytes to compare */
@@ -633,7 +633,7 @@ key_eq(gconstpointer k1, gconstpointer k2, size_t keybits)
  * @param keybits	the size of the key in bits
  * @param pprefix	where to write the prefix for the match, if not NULL
  */
-static size_t G_GNUC_CONST
+static size_t
 matched_bits(
 	const struct patricia_node *pn, gconstpointer key, size_t keybits,
 	gconstpointer *pprefix)

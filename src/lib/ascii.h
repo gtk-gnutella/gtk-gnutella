@@ -180,7 +180,7 @@ ascii_tolower(int c)
  *
  * @return a pointer to the first non-space character starting from s.
  */
-static inline WARN_UNUSED_RESULT char *
+static inline G_GNUC_PURE WARN_UNUSED_RESULT char *
 skip_ascii_spaces(const char *s)
 {
 	while (is_ascii_space(*s))
@@ -194,7 +194,7 @@ skip_ascii_spaces(const char *s)
  *
  * @return a pointer to the first space or NUL character starting from s.
  */
-static inline WARN_UNUSED_RESULT char *
+static inline G_GNUC_PURE WARN_UNUSED_RESULT char *
 skip_ascii_non_spaces(const char *s)
 {
 	while ('\0' != *s && !is_ascii_space(*s))
@@ -210,7 +210,7 @@ skip_ascii_non_spaces(const char *s)
  * @return a pointer to the first non-alphanumerical or NUL character
  * starting from s.
  */
-static inline WARN_UNUSED_RESULT char *
+static inline G_GNUC_PURE WARN_UNUSED_RESULT char *
 skip_ascii_alnum(const char *s)
 {
 	while (is_ascii_alnum(*s))
@@ -224,7 +224,7 @@ skip_ascii_alnum(const char *s)
  *
  * @return A pointer to the first non-blank character starting from s.
  */
-static inline WARN_UNUSED_RESULT char *
+static inline G_GNUC_PURE WARN_UNUSED_RESULT char *
 skip_ascii_blanks(const char *s)
 {
 	while (is_ascii_blank(*s))

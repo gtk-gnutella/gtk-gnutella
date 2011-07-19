@@ -105,19 +105,19 @@ gnet_host_get_port(const gnet_host_t *h)
 	return port;
 }
 
-static inline enum net_type
+static inline G_GNUC_PURE enum net_type
 gnet_host_get_net(const gnet_host_t *h)
 {
 	return h->data.ha.net;
 }
 
-static inline G_GNUC_CONST gboolean
+static inline G_GNUC_PURE gboolean
 gnet_host_is_ipv4(const gnet_host_t *h)
 {
 	return NET_TYPE_IPV4 == h->data.ha.net;
 }
 
-static inline G_GNUC_CONST gboolean
+static inline G_GNUC_PURE gboolean
 gnet_host_is_ipv6(const gnet_host_t *h)
 {
 	return NET_TYPE_IPV6 == h->data.ha.net;
@@ -132,9 +132,9 @@ size_t gnet_host_to_string_buf(
  * Gnutella host hashing and comparison functions.
  */
 
-guint gnet_host_hash(gconstpointer key);
-int gnet_host_eq(gconstpointer v1, gconstpointer v2);
-int gnet_host_cmp(gconstpointer v1, gconstpointer v2);
+guint gnet_host_hash(gconstpointer key) G_GNUC_PURE;
+int gnet_host_eq(gconstpointer v1, gconstpointer v2) G_GNUC_PURE;
+int gnet_host_cmp(gconstpointer v1, gconstpointer v2) G_GNUC_PURE;
 
 /*
  * Serialized IPv4 and IPv6 Gnutella hosts.
