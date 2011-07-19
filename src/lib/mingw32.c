@@ -487,7 +487,7 @@ mingw_signal(int signo, signal_handler_t handler)
 /**
  * Synthesize a fatal signal as the kernel would on an exception.
  */
-static void
+static G_GNUC_COLD void
 mingw_sigraise(int signo)
 {
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
@@ -2746,7 +2746,7 @@ mingw_backtrace(void **buffer, int size)
 /**
  * Convert exception code to string.
  */
-static const char *
+static G_GNUC_COLD const char *
 mingw_exception_to_string(int code)
 {
 	switch (code) {
@@ -2777,7 +2777,7 @@ mingw_exception_to_string(int code)
 /**
  * Log reported exception.
  */
-static void
+static G_GNUC_COLD void
 mingw_exception_log(int code, const void *pc)
 {
 	DECLARE_STR(9);
@@ -2809,7 +2809,7 @@ mingw_exception_log(int code, const void *pc)
 /**
  * Log extra information on memory faults.
  */
-static void
+static G_GNUC_COLD void
 mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 {
 	DECLARE_STR(6);
