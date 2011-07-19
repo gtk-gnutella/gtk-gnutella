@@ -536,8 +536,8 @@ typedef void (*GCallback) (void);
 #define G_GNUC_PURE __attribute__((__pure__))
 #else
 #define G_GNUC_PURE
-#endif	/* GCC >= 3.0 */
-#endif	/* G_GNUC_MALLOC */
+#endif	/* GCC >= 2.96 */
+#endif	/* G_GNUC_PURE */
 
 #ifndef G_GNUC_MALLOC
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
@@ -547,14 +547,37 @@ typedef void (*GCallback) (void);
 #endif	/* GCC >= 3.0 */
 #endif	/* G_GNUC_MALLOC */
 
+/**
+ * A hot function is optimized more aggressively.
+ */
+#ifndef G_GNUC_HOT
+#if defined(HASATTRIBUTE) && HAS_GCC(4, 3)
+#define G_GNUC_HOT __attribute__((hot))
+#else
+#define G_GNUC_HOT
+#endif	/* GCC >= 4.3 */
+#endif	/* G_GNUC_HOT */
+
+/**
+ * A cold function is unlikely executed, and is optimized for size rather
+ * than speed.  All branch tests leading to it are marked "unlikely".
+ */
+#ifndef G_GNUC_COLD
+#if defined(HASATTRIBUTE) && HAS_GCC(4, 3)
+#define G_GNUC_COLD __attribute__((cold))
+#else
+#define G_GNUC_COLD
+#endif	/* GCC >= 4.3 */
+#endif	/* G_GNUC_COLD */
+
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
-#define ALWAYS_INLINE __attribute__((__always_inline__))
+#define ALWAYS_INLINE __attribute__((always_inline))
 #else
 #define ALWAYS_INLINE
 #endif	/* GCC >= 3.1 */
 
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
-#define NO_INLINE __attribute__((__noinline__))
+#define NO_INLINE __attribute__((noinline))
 #else
 #define NO_INLINE
 #endif	/* GCC >= 3.1 */
