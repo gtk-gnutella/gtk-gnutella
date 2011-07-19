@@ -63,7 +63,6 @@ RCSID("$Id$")
 
 #define NATPMP_SRV_PORT		5351			/**< Server port */
 #define NATPMP_CLT_PORT		5350			/**< Client port */
-#define NATPMP_MCAST_ADDR	"224.0.0.1"		/**< Multicast address */
 
 #define NATPMP_TIMEOUT		250				/**< 250 ms */
 #define NATPMP_ITER_MAX		8				/**< Max number of iterations */
