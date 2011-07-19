@@ -1399,7 +1399,7 @@ stacktrace_cautious_was_logged(void)
 /**
  * Invoked when a fatal signal is received during stack unwinding.
  */
-static void
+static G_GNUC_COLD void
 stacktrace_got_signal(int signo)
 {
 	DECLARE_STR(4);
@@ -1427,7 +1427,7 @@ stacktrace_got_signal(int signo)
  * @param fd		file descriptor where stack should be printed
  * @param offset	amount of immediate callers to remove (ourselves excluded)
  */
-void
+G_GNUC_COLD void
 stacktrace_where_cautious_print_offset(int fd, size_t offset)
 {
 	void *stack[STACKTRACE_DEPTH_MAX + 5];	/* See stacktrace_unwind() */
