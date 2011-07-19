@@ -18,7 +18,7 @@
  * use: 65599	nice.
  *      65587   even better. 
  */
-long
+G_GNUC_HOT long
 sdbm_hash(const char *s, size_t len)
 {
 	unsigned long n = 0;

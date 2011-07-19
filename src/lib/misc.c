@@ -1625,7 +1625,7 @@ failure:
 /**
  * Find amount of common leading bits between two IP addresses.
  */
-static guint8
+static G_GNUC_HOT guint8
 find_common_leading(guint32 ip1, guint32 ip2)
 {
 	guint8 n;
