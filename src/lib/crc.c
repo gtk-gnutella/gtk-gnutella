@@ -95,7 +95,7 @@ crc32_gen_crc_table(void)
  * @param len		no brief description.
  *
  */
-guint32
+G_GNUC_HOT guint32
 crc32_update(guint32 crc_accum, gconstpointer data, size_t len)
 {
 	const guchar *p = data;

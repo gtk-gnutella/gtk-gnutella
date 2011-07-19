@@ -90,7 +90,7 @@ tea_squeeze(gpointer buf, size_t len)
  * @param key	the encryption key
  * @param value	the value to encrypt
  */
-static void
+static G_GNUC_HOT void
 t_encrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
 {
 	guint32 v0, v1, sum = 0;
@@ -123,7 +123,7 @@ t_encrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
  * @param value	the value to decrypt
  *
  */
-static void
+static G_GNUC_HOT void
 t_decrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
 {
 	guint32 v0, v1, sum = 0xC6EF3720;

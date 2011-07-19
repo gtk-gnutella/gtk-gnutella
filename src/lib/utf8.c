@@ -276,7 +276,7 @@ primary_filename_charset_is_utf8(void)
 	return t->is_utf8;
 }
 
-static inline G_GNUC_CONST guint
+static inline G_GNUC_PURE guint
 utf8_skip(guchar c)
 {
 	/*
@@ -804,7 +804,7 @@ malformed:
  * If `s' does not point to a well-formed UTF-8 character, `retlen' is
  * set to 0 and the function returns 0.
  */
-guint32
+G_GNUC_HOT guint32
 utf8_decode_char_fast(const char *s, guint *retlen)
 {
 	guint32 uc = (guchar) *s;

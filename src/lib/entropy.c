@@ -114,7 +114,7 @@ sha1_feed_fstat(SHA1Context *ctx, int fd)
  * must be called only when a truly random seed is required, ideally only
  * during initialization.
  */
-void
+G_GNUC_COLD void
 entropy_collect(struct sha1 *digest)
 {
 	SHA1Context ctx;
