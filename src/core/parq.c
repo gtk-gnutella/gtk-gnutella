@@ -5089,7 +5089,7 @@ parq_is_enabled(void)
 /**
  * Initialises the upload queue for PARQ.
  */
-void
+G_GNUC_COLD void
 parq_init(void)
 {
 #define bs_nop(x)	(x)
@@ -5132,7 +5132,7 @@ parq_init(void)
 /**
  * Saves any queueing information and frees all memory used by PARQ.
  */
-void
+G_GNUC_COLD void
 parq_close_pre(void)
 {
 	GList *dl, *queues;

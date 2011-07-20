@@ -4812,7 +4812,7 @@ G_STMT_START {								\
 #define CHECK(x) g_assert((x))
 #endif /* TEST */
 
-void
+G_GNUC_COLD void
 test_hash(void)
 {
 	static const struct {

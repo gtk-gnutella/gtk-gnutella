@@ -644,7 +644,7 @@ test_map_remove(void *o, sha1_t *keys, size_t count)
 		map_remove(m, &keys[i]);
 }
 
-static double
+static G_GNUC_COLD double
 timeit(
 	void (*f)(void *, sha1_t *, size_t),
 	void *o, sha1_t *keys, size_t count, size_t iter, const char *what,
@@ -668,7 +668,7 @@ timeit(
 	return elapsed;
 }
 
-void
+G_GNUC_COLD void
 map_test(void)
 {
 	sha1_t *keys;

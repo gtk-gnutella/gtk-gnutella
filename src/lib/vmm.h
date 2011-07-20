@@ -80,15 +80,15 @@ void vmm_free(void *p, size_t size);
 void vmm_shrink(void *p, size_t size, size_t new_size);
 #endif	/* VMM_SOURCE || !TRACK_VMM */
 
-size_t round_pagesize(size_t n);
-size_t compat_pagesize(void);
+size_t round_pagesize(size_t n) G_GNUC_PURE;
+size_t compat_pagesize(void) G_GNUC_PURE;
 const void *vmm_trap_page(void);
 gboolean vmm_is_fragment(const void *base, size_t size);
 gboolean vmm_is_relocatable(const void *base, size_t size);
-gboolean vmm_grows_upwards(void);
+gboolean vmm_grows_upwards(void) G_GNUC_PURE;
 
 void set_vmm_debug(guint32 level);
-gboolean vmm_is_debugging(guint32 level);
+gboolean vmm_is_debugging(guint32 level) G_GNUC_PURE;
 void vmm_init(const void *sp);
 void vmm_malloc_inited(void);
 void vmm_post_init(void);

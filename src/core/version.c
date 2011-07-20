@@ -578,7 +578,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
  *
  * @return A pointer to a static buffer holding the version string.
  */
-const char *
+G_GNUC_COLD const char *
 version_build_string(void)
 {
 	static gboolean initialized;
@@ -617,7 +617,7 @@ version_build_string(void)
 /**
  * Initialize version string.
  */
-void
+G_GNUC_COLD void
 version_init(void)
 {
 	time_t now;
@@ -759,7 +759,7 @@ version_ancient_warn(void)
 /**
  * Free version string.
  */
-void
+G_GNUC_COLD void
 version_close(void)
 {
 	atom_str_free(version_string);

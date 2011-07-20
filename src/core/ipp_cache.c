@@ -661,7 +661,7 @@ ipp_cache_invalidate(enum ipp_cache_id cid)
  * structures, as some callbacks may insert data in the caches.  Later on,
  * the caches can be loaded when we know the properties are all initialized.
  */
-void
+G_GNUC_COLD void
 ipp_cache_init(void)
 {
 	caches[IPP_CACHE_TLS] = ipp_cache_alloc(

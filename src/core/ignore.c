@@ -139,7 +139,7 @@ open_append(const char *file)
 /**
  * Initialize the ignore tables.
  */
-void
+G_GNUC_COLD void
 ignore_init(void)
 {
 	by_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
@@ -231,7 +231,7 @@ ignore_sha1_load(const char *file, time_t *stamp)
 /**
  * Parse opened `f' containing size/filenames to ignore.
  */
-static void
+static G_GNUC_COLD void
 namesize_parse(FILE *f, const char *file)
 {
 	int line = 0, error;
@@ -482,7 +482,7 @@ free_namesize_kv(gpointer key, gpointer unused_value, gpointer unused_udata)
 /**
  * Called during servent shutdown to free up resources.
  */
-void
+G_GNUC_COLD void
 ignore_close(void)
 {
 	g_hash_table_foreach_remove(by_sha1, free_sha1_kv, NULL);

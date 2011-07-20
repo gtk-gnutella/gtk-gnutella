@@ -64,7 +64,7 @@ RCSID("$Id$")
  *
  * @return 0 on success, -1 on failure with errno set.
  */
-static int
+static G_GNUC_COLD int
 parse_netstat(host_addr_t *addrp)
 #ifdef HAS_POPEN
 {
@@ -153,7 +153,7 @@ parse_netstat(host_addr_t *addrp)
  *
  * @return 0 on success, -1 on failure with errno set.
  */
-int
+G_GNUC_COLD int
 getgateway(host_addr_t *addrp)
 #if defined(MINGW32)
 {

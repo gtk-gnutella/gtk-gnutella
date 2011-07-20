@@ -776,7 +776,7 @@ inet_read_activity(void)
 /**
  * Initialization code.
  */
-void
+G_GNUC_COLD void
 inet_init(void)
 {
 	/*
@@ -822,7 +822,7 @@ inet_init(void)
 /**
  * Shutdown cleanup.
  */
-void
+G_GNUC_COLD void
 inet_close(void)
 {
 	aging_destroy(&outgoing_udp);

@@ -374,8 +374,7 @@ iso3166_encode_cc(const char *cc)
     return ISO3166_INVALID;
 }
 
-
-void
+G_GNUC_COLD void
 iso3166_init(void)
 {
 	size_t i;
@@ -401,7 +400,7 @@ iso3166_init(void)
 	}
 }
 
-void
+G_GNUC_COLD void
 iso3166_close(void)
 {
 	size_t i;

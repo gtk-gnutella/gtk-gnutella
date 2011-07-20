@@ -1277,7 +1277,7 @@ download_source_progress(const struct download *d)
 /**
  * Initialize downloading data structures.
  */
-void
+G_GNUC_COLD void
 download_init(void)
 {
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
@@ -15171,7 +15171,7 @@ download_remove_all(void)
 /**
  * Terminating processing, cleanup data structures.
  */
-void
+G_GNUC_COLD void
 download_close(void)
 {
 	gcu_download_gui_updates_freeze();

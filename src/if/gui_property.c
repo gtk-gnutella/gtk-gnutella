@@ -341,7 +341,7 @@ static const gboolean gui_property_variable_search_restart_when_pending_default 
 
 static prop_set_t *gui_property;
 
-prop_set_t *
+G_GNUC_COLD prop_set_t *
 gui_prop_init(void) {
     guint32 n;
 
@@ -2517,7 +2517,7 @@ gui_prop_init(void) {
 /**
  * Free memory allocated by the property set.
  */
-void
+G_GNUC_COLD void
 gui_prop_shutdown(void) {
     guint32 n;
 

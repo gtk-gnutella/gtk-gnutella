@@ -198,7 +198,7 @@ urlinfo_eq(gconstpointer a, gconstpointer b)
 /**
  * Initialize the download mesh.
  */
-void
+G_GNUC_COLD void
 dmesh_init(void)
 {
 	mesh = g_hash_table_new(sha1_hash, sha1_eq);
@@ -3147,7 +3147,7 @@ dmesh_store(void)
  * Retrieve download mesh and add entries that have not expired yet.
  * The mesh is normally retrieved from ~/.gtk-gnutella/dmesh.
  */
-static void
+static G_GNUC_COLD void
 dmesh_retrieve(void)
 {
 	FILE *f;
@@ -3267,7 +3267,7 @@ dmesh_ban_store(void)
  * Retrieve banned mesh and add entries that have not expired yet.
  * The mesh is normally retrieved from ~/.gtk-gnutella/dmesh_ban.
  */
-static void
+static G_GNUC_COLD void
 dmesh_ban_retrieve(void)
 {
 	FILE *in;
@@ -3357,7 +3357,7 @@ dmesh_ban_prepend_list(gpointer key, gpointer value, gpointer user)
 /**
  * Called at servent shutdown time.
  */
-void
+G_GNUC_COLD void
 dmesh_close(void)
 {
 	GSList *banned = NULL;

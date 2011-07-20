@@ -2726,7 +2726,7 @@ fill_array(gpointer key, gpointer value, gpointer user)
 /**
  * Dump the links sorted by decreasing leak size.
  */
-void
+G_GNUC_COLD void
 leak_dump(gpointer o)
 {
 	struct leak_set *ls =  o;
@@ -2870,7 +2870,7 @@ stats_fill_array(const void *unused_key, void *value, void *user)
 /**
  * Dump the stats held in the specified array.
  */
-static void
+static G_GNUC_COLD void
 stats_array_dump(FILE *f, struct afiller *filler)
 {
 	int i;
@@ -3063,7 +3063,7 @@ alloc_reset(FILE *f, gboolean total)
  * This routine checks whether calling a simple memory allocation
  * function from glib will cause real_malloc() to be called.
  */
-static void
+static G_GNUC_COLD void
 malloc_glib12_check(void)
 {
 	vtable_works = TRUE;
@@ -3101,7 +3101,7 @@ malloc_glib12_check(void)
  * enables us to see frees for blocks we track but give to GTK, and never
  * see again otherwise.
  */
-void
+G_GNUC_COLD void
 malloc_init_vtable(void)
 {
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
@@ -3159,7 +3159,7 @@ malloc_init_vtable(void)
 /**
  * Called from main() to log settings at startup.
  */
-void
+G_GNUC_COLD void
 malloc_show_settings(void)
 {
 	gboolean has_setting = FALSE;
@@ -3296,7 +3296,7 @@ malloc_show_settings(void)
 /**
  * @return amount of memory used by internal tracking structures.
  */
-size_t
+G_GNUC_COLD size_t
 malloc_memory_used(void)
 {
 	size_t res = 0;
@@ -3320,7 +3320,7 @@ malloc_memory_used(void)
 /**
  * Dump all the blocks that are still used.
  */
-void
+G_GNUC_COLD void
 malloc_close(void)
 {
 #ifdef TRACK_MALLOC

@@ -300,7 +300,7 @@ statusbar_gui_free_timeout_list(void)
 	}
 }
 
-void
+G_GNUC_COLD void
 statusbar_gui_init(void)
 {
     GtkStatusbar *sb;

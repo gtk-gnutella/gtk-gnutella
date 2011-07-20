@@ -82,7 +82,7 @@ extern const char *version_string;
 extern const char *version_short_string;
 
 const char *version_build_string(void);
-guint8 version_get_code(void);
+guint8 version_get_code(void) G_GNUC_PURE;
 
 #endif	/* _core_version_h_ */
 

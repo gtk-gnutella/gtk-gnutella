@@ -4109,7 +4109,7 @@ search_gc(void *unused_cq)
  *** Public functions
  ***/
 
-void
+G_GNUC_COLD void
 search_init(void)
 {
 	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
@@ -4124,7 +4124,7 @@ search_init(void)
 	cq_periodic_main_add(SEARCH_GC_PERIOD * 1000, search_gc, NULL);
 }
 
-void
+G_GNUC_COLD void
 search_shutdown(void)
 {
 	while (sl_search_ctrl != NULL) {

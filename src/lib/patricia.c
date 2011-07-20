@@ -2626,7 +2626,7 @@ remove_odd_key(gpointer key, size_t keybits, gpointer uv, gpointer uu)
 	return (p[3] & 0x1) ? TRUE : FALSE;
 }
 
-static void
+static G_GNUC_COLD void
 test_keys(guint32 keys[], size_t nkeys)
 {
 	size_t i;
@@ -2858,7 +2858,7 @@ test_keys(guint32 keys[], size_t nkeys)
 /**
  * Perform unit tests of PATRICIA trees.
  */
-void
+G_GNUC_COLD void
 patricia_test(void)
 {
 	size_t i;

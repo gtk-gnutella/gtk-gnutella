@@ -1107,7 +1107,7 @@ settings_max_msg_size(void)
 /**
  * Called at exit time to flush the property files.
  */
-void
+G_GNUC_COLD void
 settings_shutdown(void)
 {
 	update_uptimes();

@@ -204,7 +204,7 @@ upload_stats_add(const char *pathname, filesize_t size, const char *name,
 	gcu_upload_stats_gui_add(s);
 }
 
-void
+G_GNUC_COLD void
 upload_stats_load_history(const char *ul_history_file_name)
 {
 	FILE *upload_stats_file;
@@ -600,7 +600,7 @@ upload_stats_prune_nonexistent(void)
 /**
  * Clear all the upload stats data structure.
  */
-static void
+static G_GNUC_COLD void
 upload_stats_free_all(void)
 {
 	if (upload_stats_list) {

@@ -1271,7 +1271,7 @@ keys_periodic_kball(cqueue_t *unused_cq, gpointer unused_obj)
 /**
  * Initialize local key management.
  */
-void
+G_GNUC_COLD void
 keys_init(void)
 {
 	size_t i;
@@ -1453,7 +1453,7 @@ keys_free_kv(gpointer u_key, gpointer val, gpointer u_x)
 /**
  * Close local key management.
  */
-void
+G_GNUC_COLD void
 keys_close(void)
 {
 	dbstore_delete(db_keydata);

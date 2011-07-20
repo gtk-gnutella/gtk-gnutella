@@ -5403,7 +5403,7 @@ upload_is_enabled(void)
 /**
  * Initialize uploads.
  */
-void
+G_GNUC_COLD void
 upload_init(void)
 {
 	mesh_info = g_hash_table_new(mi_key_hash, mi_key_eq);
@@ -5431,7 +5431,7 @@ upload_init(void)
 /**
  * Final cleanup at shutdown time.
  */
-void
+G_GNUC_COLD void
 upload_close(void)
 {
 	while (list_uploads) {

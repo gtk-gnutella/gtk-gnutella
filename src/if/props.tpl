@@ -367,7 +367,7 @@ ENDFOR prop =]
 
 static prop_set_t *[=(. prop-set)=];
 
-prop_set_t *
+G_GNUC_COLD prop_set_t *
 [=(. func-prefix)=]_init(void) {
     guint32 n;
 
@@ -536,7 +536,7 @@ ENDFOR prop=]
 /**
  * Free memory allocated by the property set.
  */
-void
+G_GNUC_COLD void
 [=(. func-prefix)=]_shutdown(void) {
     guint32 n;
 

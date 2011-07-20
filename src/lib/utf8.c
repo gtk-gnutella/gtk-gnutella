@@ -1602,7 +1602,7 @@ conv_to_utf8_cd_get(const char *cs)
  * 			used character sets. The first is the one that should be
  *			used when creating files.
  */
-static GSList *
+static G_GNUC_COLD GSList *
 get_filename_charsets(const char *locale)
 {
 	const char *s, *next;
@@ -1716,7 +1716,7 @@ locale_init_show_results(void)
 	}
 }
 
-static void
+static G_GNUC_COLD void
 conversion_init(void)
 {
 	const char *pfcs = primary_filename_charset();
@@ -1797,7 +1797,7 @@ conversion_close(void)
 	gm_hash_table_destroy_null(&charset2conv_to_utf8);
 }
 
-void
+G_GNUC_COLD void
 locale_init(void)
 {
 	static const char * const latin_sets[] = {
@@ -1907,7 +1907,7 @@ compose_free_slist(gpointer unused_key, gpointer value, gpointer unused_udata)
 /**
  * Called at shutdown time.
  */
-void
+G_GNUC_COLD void
 locale_close(void)
 {
 #if 0   /* xxxUSE_ICU */
@@ -5545,7 +5545,7 @@ unicode_compose_add(guint idx)
 		g_hash_table_insert(utf32_compose_roots, key, new_sl);
 }
 
-static void
+static G_GNUC_COLD void
 unicode_compose_init(void)
 {
 	size_t i;
@@ -5813,7 +5813,7 @@ utf8_latinize(char *dst, const size_t dst_size, const char *src)
  * Checks all cases listed in NormalizationTest.txt. This does not take
  * very long but the table is pretty huge.
  */
-static void
+static G_GNUC_COLD void
 regression_normalization_test_txt(void)
 {
 	size_t i;
@@ -5969,7 +5969,7 @@ regression_normalization_test_txt(void)
  *
  * X == NFC(X) == NFD(X) == NFKC(X) == NFKD(X)
  */
-static void
+static G_GNUC_COLD void
 regression_normalization_character_identity(void)
 {
 	size_t i;
@@ -6000,7 +6000,7 @@ regression_normalization_character_identity(void)
 /**
  * See: http://www.unicode.org/review/pr-29.html
  */
-static void
+static G_GNUC_COLD void
 regression_normalization_issue(void)
 {
 	static const struct {
@@ -6029,7 +6029,7 @@ regression_normalization_issue(void)
 	}
 }
 
-static void
+static G_GNUC_COLD void
 regression_utf8_strlower(void)
 {
 	{
@@ -6107,7 +6107,7 @@ regression_iconv_utf8_to_utf8(void)
  * Verify that each UTF-8 encoded codepoint is decoded to the same
  * codepoint.
  */
-static void
+static G_GNUC_COLD void
 regression_utf8_bijection(void)
 {
 	guint32 uc;
@@ -6162,7 +6162,7 @@ regression_utf8_unknown_conversion(void)
  * Check utf8_decode_char_fast() for all 4-byte combinations. This
  * takes about 3 minutes of CPU time on an Athlon Duron 1.4GHz.
  */
-static void
+static G_GNUC_COLD void
 regression_utf8_decoder(void)
 {
 	guint32 uc = 0;
@@ -6202,7 +6202,7 @@ regression_utf8_decoder(void)
  * The following checks are broken as GLib does not implement Unicode 4.1.0
  * at the moment. --cbiere, 2005-08-02
  */
-static void
+static G_GNUC_COLD void
 regression_utf8_vs_glib2(void)
 {
 #if defined(USE_GLIB2)
@@ -6678,7 +6678,7 @@ G_STMT_START { \
 	printf(" PASSED\n"); \
 } G_STMT_END
 
-void
+G_GNUC_COLD void
 utf8_regression_checks(void)
 {
 	/* unicode_compose_init() must be called before this */

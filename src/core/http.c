@@ -4031,7 +4031,7 @@ http_close(void)
  ***/
 
 #ifdef HTTP_TESTING
-static void
+static G_GNUC_COLD void
 http_transaction_failed(char *data, size_t len, int code, header_t *h, void *a)
 {
 	const char *url = a;
@@ -4047,7 +4047,7 @@ http_transaction_failed(char *data, size_t len, int code, header_t *h, void *a)
 	}
 }
 
-static void
+static G_GNUC_COLD void
 http_transaction_done(char *data, size_t len, int code, header_t *h, void *arg)
 {
 	char *url = arg;
@@ -4077,7 +4077,7 @@ http_transaction_done(char *data, size_t len, int code, header_t *h, void *arg)
 	}
 }
 
-void
+G_GNUC_COLD void
 http_test(void)
 {
 	void *ha;

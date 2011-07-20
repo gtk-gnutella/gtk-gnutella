@@ -462,7 +462,7 @@ status_icon_init(void)
  * See --
  *    http://tronche.com/gui/x/icccm/sec-4.html#s-4.1.9
  */
-void
+G_GNUC_COLD void
 icon_init(void)
 {
     create_icon();
@@ -519,7 +519,7 @@ icon_close(void)
 static GdkPixmap *icon_map;
 static GdkBitmap *icon_mask;
 
-void
+G_GNUC_COLD void
 icon_init(void)
 {
     GtkPixmap *pixmap;
@@ -531,7 +531,7 @@ icon_init(void)
 void
 icon_close(void)
 {
-    return;
+	/* Nothing */
 }
 
 #endif /* USE_GTK1 */

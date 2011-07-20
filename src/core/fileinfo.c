@@ -2261,7 +2261,7 @@ file_info_close_pre(void)
 /**
  * Close and free all file_info structs in the list.
  */
-void
+G_GNUC_COLD void
 file_info_close(void)
 {
 	unsigned i;
@@ -2871,7 +2871,7 @@ fi_copy_chunks(fileinfo_t *fi, fileinfo_t *trailer)
 /**
  * Loads the fileinfo database from disk, and saves a copy in fileinfo.orig.
  */
-void
+G_GNUC_COLD void
 file_info_retrieve(void)
 {
 	FILE *f;
@@ -7104,7 +7104,7 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 /**
  * Initialize fileinfo handling.
  */
-void
+G_GNUC_COLD void
 file_info_init(void)
 {
 

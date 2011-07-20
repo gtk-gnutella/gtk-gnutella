@@ -113,7 +113,7 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
  *
  * @return The amount of entries loaded.
  */
-static guint
+static G_GNUC_COLD guint
 gip_load(FILE *f)
 {
 	char line[1024];

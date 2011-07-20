@@ -231,7 +231,7 @@ ntp_send_probe(const host_addr_t addr)
 		ntp_received, NULL);
 }
 
-static gboolean
+static G_GNUC_COLD gboolean
 ntp_send_probes(void)
 {
 	static const struct {

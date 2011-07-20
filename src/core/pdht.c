@@ -1786,7 +1786,7 @@ error:
 /**
  * Initialize the Gnutella DHT layer.
  */
-void
+G_GNUC_COLD void
 pdht_init(void)
 {
 	aloc_publishes = g_hash_table_new(sha1_hash, sha1_eq);
@@ -1812,7 +1812,7 @@ free_publish_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 /**
  * Shutdown the Gnutella DHT layer.
  */
-void
+G_GNUC_COLD void
 pdht_close(void)
 {
 	if (pdht_proxy.pp != NULL) {

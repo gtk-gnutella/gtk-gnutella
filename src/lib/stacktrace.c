@@ -283,7 +283,7 @@ trace_remove(size_t i)
 /**
  * Sort trace array, remove duplicate entries.
  */
-static void
+static G_GNUC_COLD void
 trace_sort(void)
 {
 	size_t i = 0;
@@ -434,7 +434,7 @@ trace_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
  * @return symbolic name for given pc offset, if found, otherwise
  * the hexadecimal value.
  */
-static const char *
+static G_GNUC_COLD const char *
 trace_name(const void *pc, gboolean offset)
 {
 	static char buf[256];
@@ -769,7 +769,7 @@ open_file:
  * limitation is that we cannot know which symbols are correct, so all symbols
  * will be flagged as doubtful when we detect the slightest inconsistency.
  */
-static void
+static G_GNUC_COLD void
 load_symbols(const char *path, const  char *lpath)
 {
 	char tmp[MAX_PATH_LEN + 80];
@@ -867,7 +867,7 @@ done:
  * @return a newly allocated string (through halloc()) that points to the
  * path of the program being run, NULL if we can't compute a suitable path.
  */
-static char *
+static G_GNUC_COLD char *
 program_path_allocate(const char *argv0)
 {
 	filestat_t buf;
@@ -917,7 +917,7 @@ error:
 /**
  * Tune the level of offsetting we have to do to get the current caller.
  */
-static NO_INLINE void
+static G_GNUC_COLD NO_INLINE void
 stacktrace_auto_tune(void)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
@@ -957,7 +957,7 @@ stacktrace_auto_tune(void)
  * @param argv0		the value of argv[0], from main(): the program's filename
  * @param deferred	if TRUE, do not load symbols until it's needed
  */
-void
+G_GNUC_COLD void
 stacktrace_init(const char *argv0, gboolean deferred)
 {
 	char *path;
@@ -1017,7 +1017,7 @@ stacktrace_memory_used(void)
 /**
  * Close stack tracing.
  */
-void
+G_GNUC_COLD void
 stacktrace_close(void)
 {
 	HFREE_NULL(local_path);
@@ -1036,7 +1036,7 @@ stacktrace_close(void)
 /**
  * Load symbols if not done already.
  */
-void
+G_GNUC_COLD void
 stacktrace_load_symbols(void)
 {
 	if (symbols_loaded)

@@ -6002,7 +6002,7 @@ settings_gui_restore_panes(void)
 	}
 }
 
-void
+G_GNUC_COLD void
 settings_gui_init(void)
 {
     gint n;
@@ -6037,7 +6037,7 @@ settings_gui_init(void)
 #endif /* USE_REMOTE_CTRL */
 }
 
-void
+G_GNUC_COLD void
 settings_gui_shutdown(void)
 {
     guint n;

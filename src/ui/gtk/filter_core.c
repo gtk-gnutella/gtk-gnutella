@@ -2442,7 +2442,7 @@ filter_record(struct search *search, const struct record *rec)
 /**
  * Free global filters and save state.
  */
-void
+G_GNUC_COLD void
 filter_shutdown(void)
 {
     GList *f;
@@ -2490,7 +2490,7 @@ filter_shutdown(void)
         filter_free(f->data);
 }
 
-static void
+static G_GNUC_COLD void
 filter_preset_init(const char *name, const char *regexp, filesize_t minsize)
 {
 	filter_t *filter;
@@ -2541,7 +2541,7 @@ filter_preset_init(const char *name, const char *regexp, filesize_t minsize)
 /**
  *  Adds simple filter rules, for use by novice users.
  */
-void
+G_GNUC_COLD void
 filter_init_presets(void)
 {
 	static const struct {
@@ -2574,7 +2574,7 @@ filters_add(const char *name, unsigned flags)
 	return filter;
 }
 
-static void
+static G_GNUC_COLD void
 filter_init_globals(void)
 {
 	const unsigned flags = FILTER_FLAG_GLOBAL;
@@ -2583,7 +2583,7 @@ filter_init_globals(void)
     filter_global_post = filters_add(_("Global (post)"), flags);
 }
 
-static void
+static G_GNUC_COLD void
 filter_init_builtins(void)
 {
 	const unsigned flags = FILTER_FLAG_BUILTIN;
@@ -2598,7 +2598,7 @@ filter_init_builtins(void)
 /**
  * Initialize global filters.
  */
-void
+G_GNUC_COLD void
 filter_init(void)
 {
 	filter_init_globals();

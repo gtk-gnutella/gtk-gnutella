@@ -1816,7 +1816,7 @@ values_get(guint64 dbkey, dht_value_type_t type)
 /**
  * Initialize values management.
  */
-void
+G_GNUC_COLD void
 values_init(void)
 {
 	dbstore_kv_t value_kv =
@@ -1875,7 +1875,7 @@ expired_free_kv(gpointer key, gpointer u_val, gpointer u_data)
 /**
  * Close values management.
  */
-void
+G_GNUC_COLD void
 values_close(void)
 {
 	dbstore_delete(db_valuedata);

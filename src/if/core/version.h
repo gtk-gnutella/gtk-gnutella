@@ -32,7 +32,7 @@
 
 #ifdef CORE_SOURCES
 
-const char *version_get_string(void);
+const char *version_get_string(void) G_GNUC_PURE;
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_version_h */

@@ -919,7 +919,7 @@ publisher_trim_pubdata(void)
 /**
  * Initialize the DHT publisher.
  */
-void
+G_GNUC_COLD void
 publisher_init(void)
 {
 	size_t i;
@@ -1002,7 +1002,7 @@ publisher_remove_orphan(gpointer key,
 /**
  * Shutdown the DHT publisher.
  */
-void
+G_GNUC_COLD void
 publisher_close(void)
 {
 	/*

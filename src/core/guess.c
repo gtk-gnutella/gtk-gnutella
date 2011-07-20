@@ -3547,7 +3547,7 @@ guess_introduction_ping(const struct gnutella_node *n,
 /**
  * Initialize the GUESS client layer.
  */
-void
+G_GNUC_COLD void
 guess_init(void)
 {
 	dbstore_kv_t kv = { sizeof(gnet_host_t), gnet_host_length,
@@ -3627,7 +3627,7 @@ guess_rpc_free_kv(void *key, void *val, void *unused_x)
 /*
  * Shutdown the GUESS client layer.
  */
-void
+G_GNUC_COLD void
 guess_close(void)
 {
 	if (NULL == db_qkdata)

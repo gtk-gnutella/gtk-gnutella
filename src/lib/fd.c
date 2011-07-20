@@ -109,7 +109,7 @@ close_file_descriptors(const int first_fd)
  *
  * @return 0 on success, -1 on failure.
  */
-int
+G_GNUC_COLD int
 reserve_standard_file_descriptors(void)
 {
 	int fd;
@@ -140,7 +140,7 @@ reserve_standard_file_descriptors(void)
 	return 0;
 }
 
-gboolean
+G_GNUC_COLD gboolean
 need_get_non_stdio_fd(void)
 {
 	static int needed = -1;

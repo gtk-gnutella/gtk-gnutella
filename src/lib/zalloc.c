@@ -1050,7 +1050,7 @@ free_zone(const void *u_key, void *value, void *u_data)
  * Close the zone allocator, destroying all the remaining zones regardless
  * of their reference count.
  */
-void
+G_GNUC_COLD void
 zclose(void)
 {
 	if (NULL == zt)
@@ -2280,7 +2280,7 @@ zgc(gboolean overloaded)
 /**
  * Initialize zone allocator.
  */
-void
+G_GNUC_COLD void
 zinit(void)
 {
 	addr_grows_upwards = vmm_grows_upwards();

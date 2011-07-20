@@ -1719,7 +1719,7 @@ on_search_list_row_move_event(GtkCList *clist,
  *** Public functions
  ***/
 
-void
+G_GNUC_COLD void
 search_gui_init(void)
 {
 	{
@@ -1752,7 +1752,7 @@ search_gui_init(void)
 	search_gui_common_init();
 }
 
-void
+G_GNUC_COLD void
 search_gui_shutdown(void)
 {
 	GtkCList *clist = clist_search();

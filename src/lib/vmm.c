@@ -227,7 +227,7 @@ static void vmm_track_close(void);
 #endif
 
 
-static inline gboolean
+static inline G_GNUC_PURE gboolean
 vmm_debugging(guint32 lvl)
 {
 	return safe_to_log && vmm_debug > lvl;
@@ -264,7 +264,7 @@ init_kernel_pagesize(void)
 /**
  * Fast version of pagesize rounding (without the slow % operator).
  */
-static inline size_t
+static inline size_t G_GNUC_PURE
 round_pagesize_fast(size_t n)
 {
 	return (n + kernel_pagemask) & ~kernel_pagemask;
@@ -3185,7 +3185,7 @@ vmm_malloc_inited(void)
  * region and reserve an extra VMM_STACK_MINSIZE bytes for it to grow
  * further.
  */
-static void
+static G_GNUC_COLD void
 vmm_reserve_stack(size_t amount)
 {
 	const void *stack_base, *stack_end, *stack_low;
@@ -3310,7 +3310,7 @@ vm_setup:
  * Called later in the initialization chain once the callout queue has been
  * initialized and the properties loaded.
  */
-void
+G_GNUC_COLD void
 vmm_post_init(void)
 {
 	struct {
@@ -3433,7 +3433,7 @@ vmm_post_init(void)
  * No external memory allocation (malloc() and friends) can be done in this
  * routine, which is called very early at startup.
  */
-void
+G_GNUC_COLD void
 vmm_init(const void *sp)
 {
 	int i;

@@ -491,7 +491,7 @@ uploads_gui_init(void)
 /**
  * Unregister callbacks in the backend and clean up.
  */
-void
+G_GNUC_COLD void
 uploads_gui_shutdown(void)
 {
 	GtkCList *clist;

@@ -137,7 +137,7 @@ on_clist_ul_stats_row_removed(void *data)
 }
 
 /* Public functions */
-void
+G_GNUC_COLD void
 upload_stats_gui_init(void)
 {
 	enum c_us i;

@@ -1076,7 +1076,7 @@ log_stat(enum log_file which, struct logstat *buf)
 /**
  * Initialization of logging layer.
  */
-void
+G_GNUC_COLD void
 log_init(void)
 {
 	unsigned i;
@@ -1113,7 +1113,7 @@ log_atoms_inited(void)
 /**
  * Shutdown the logging layer.
  */
-void
+G_GNUC_COLD void
 log_close(void)
 {
 	size_t i;
