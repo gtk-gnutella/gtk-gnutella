@@ -2077,7 +2077,7 @@ search_results_postprocess(const gnutella_node_t *n, gnet_results_set_t *rs)
  * @returns a structure describing the whole result set, or NULL if we
  * were unable to parse it properly.
  */
-static gnet_results_set_t *
+static G_GNUC_HOT gnet_results_set_t *
 get_results_set(gnutella_node_t *n, gboolean browse)
 {
 	gnet_results_set_t *rs;

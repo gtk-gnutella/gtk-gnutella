@@ -189,7 +189,7 @@ bogons_retrieve(void)
 	char *tmp;
 
 	file_path_set(&fp[length++], settings_config_dir(), bogons_file);
-	tmp = get_folder_path(PRIVLIB, NULL);
+	tmp = get_folder_path(PRIVLIB_PATH, NULL);
 	if (tmp != NULL)
 		file_path_set(&fp[length++], tmp, bogons_file);
 	

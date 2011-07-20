@@ -264,7 +264,7 @@ init_kernel_pagesize(void)
 /**
  * Fast version of pagesize rounding (without the slow % operator).
  */
-static inline size_t G_GNUC_PURE
+static inline ALWAYS_INLINE size_t G_GNUC_PURE
 round_pagesize_fast(size_t n)
 {
 	return (n + kernel_pagemask) & ~kernel_pagemask;
@@ -273,7 +273,7 @@ round_pagesize_fast(size_t n)
 /**
  * Fast version of page counting: how many pages does it take to store `n'?
  */
-static inline size_t
+static inline ALWAYS_INLINE size_t G_GNUC_PURE
 pagecount_fast(size_t n)
 {
 	return round_pagesize_fast(n) >> kernel_pageshift;
@@ -347,7 +347,7 @@ compat_pagesize(void)
 /**
  * @return whether fragment is identified as foreign.
  */
-static inline gboolean
+static inline ALWAYS_INLINE gboolean
 vmf_is_foreign(const struct vm_fragment *vmf)
 {
 	return booleanize((pointer_to_ulong(vmf->end) & 0x1));
@@ -363,7 +363,7 @@ vmf_set_end(struct vm_fragment *vmf, const void *end, gboolean foreign)
 /**
  * @return first byte after the end of a fragment.
  */
-static inline const void *
+static inline ALWAYS_INLINE const void *
 vmf_end(const struct vm_fragment *vmf)
 {
 	return vmf_is_foreign(vmf) ? const_ptr_add_offset(vmf->end, 1) : vmf->end;
@@ -372,7 +372,7 @@ vmf_end(const struct vm_fragment *vmf)
 /**
  * @return size of a memory fragment.
  */
-static inline size_t
+static inline ALWAYS_INLINE size_t
 vmf_size(const struct vm_fragment *vmf)
 {
 	return ptr_diff(vmf_end(vmf), vmf->start);
@@ -472,7 +472,7 @@ vmm_find_hole(size_t size)
  * Compute the size of the first hole at the base of the VM space and return
  * its location in ``hole_ptr'', if we find one with a non-zero length.
  */
-static size_t
+static G_GNUC_HOT size_t
 vmm_first_hole(const void **hole_ptr)
 {
 	struct pmap *pm = vmm_pmap();
@@ -900,7 +900,7 @@ free_pages(void *p, size_t size, gboolean update_pmap)
  * @return found fragment if address lies within the fragment, NULL if
  * no fragment containing the address was found.
  */
-static struct vm_fragment *
+static G_GNUC_HOT struct vm_fragment *
 pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 {
 	size_t low = 0, high = pm->count - 1;

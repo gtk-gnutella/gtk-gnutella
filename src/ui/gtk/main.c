@@ -592,7 +592,7 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 	add_pixmap_directory(PACKAGE_SOURCE_DIR G_DIR_SEPARATOR_S "pixmaps");
 #endif
 
-	tmp = get_folder_path(PRIVLIB, "pixmaps");
+	tmp = get_folder_path(PRIVLIB_PATH, "pixmaps");
 	if (tmp != NULL)
 		add_pixmap_directory(ostrdup(tmp));
 #ifdef MINGW32

@@ -521,22 +521,7 @@ guid_hash(gconstpointer key)
 int
 guid_eq(gconstpointer a, gconstpointer b)
 {
-/* FIXME:	Disabled because of alignment problems
- *			This should work if guid was declared as guint32[4] or for
- *			architectures that require no certain alignment.
- */
-#if 0
-	const guint32 *ax = (const guint32 *) a;
-	const guint32 *bx = (const guint32 *) b;
-
-	return
-		ax[0] == bx[0] &&
-		ax[1] == bx[1] &&
-		ax[2] == bx[2] &&
-		ax[3] == bx[3];
-#else
 	return a == b || 0 == memcmp(a, b, GUID_RAW_SIZE);
-#endif
 }
 
 /**

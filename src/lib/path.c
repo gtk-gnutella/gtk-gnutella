@@ -247,7 +247,7 @@ get_folder_path(enum special_folder which_folder, const char *path)
 	char *special_path = NULL;
 
 	switch (which_folder) {
-	case PRIVLIB:	special_path = getenv("XDG_DATA_DIRS"); break;
+	case PRIVLIB_PATH:	special_path = getenv("XDG_DATA_DIRS"); break;
 	}
 	
 	if (NULL == special_path)

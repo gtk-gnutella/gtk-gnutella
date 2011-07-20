@@ -298,7 +298,7 @@ gip_retrieve(void)
 	
 	file_path_set(&fp[length++], settings_config_dir(), gip_file);
 	
-	tmp = get_folder_path(PRIVLIB, NULL);
+	tmp = get_folder_path(PRIVLIB_PATH, NULL);
 	if (tmp != NULL)
 		file_path_set(&fp[length++], tmp, gip_file);
 	

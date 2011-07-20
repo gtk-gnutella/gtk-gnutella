@@ -500,7 +500,7 @@ share_special_load(const struct special_file *sp)
 	file_path_t fp[4];
 	unsigned length = 0;
 
-	tmp = get_folder_path(PRIVLIB, NULL);
+	tmp = get_folder_path(PRIVLIB_PATH, NULL);
 	if (tmp != NULL)
 		file_path_set(&fp[length++], tmp, sp->file);
 

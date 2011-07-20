@@ -72,7 +72,7 @@ load_faq(void)
 		char *tmp;
 		char *path;
 
-		tmp = get_folder_path(PRIVLIB, NULL);
+		tmp = get_folder_path(PRIVLIB_PATH, NULL);
 		
 		if (tmp != NULL) {
 			path = make_pathname(tmp, lang);

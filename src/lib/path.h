@@ -47,7 +47,7 @@ gboolean filepath_exists(const char *dir, const char *file);
 const char *filepath_basename(const char *pathname);
 char *filepath_directory(const char *pathname);
 
-enum special_folder { PRIVLIB };
+enum special_folder { PRIVLIB_PATH };
 
 char *get_folder_path(enum special_folder which_folder, const char *path);
 

@@ -323,7 +323,7 @@ spam_sha1_retrieve(void)
 	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, spam_sha1_file);
 #endif	/* !OFFICIAL_BUILD */
 
-	tmp = get_folder_path(PRIVLIB, NULL);
+	tmp = get_folder_path(PRIVLIB_PATH, NULL);
 	if (tmp != NULL)
 		file_path_set(&fp[length++], tmp, spam_sha1_file);
 
