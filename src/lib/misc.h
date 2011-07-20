@@ -510,11 +510,11 @@ swap_guint32(guint32 i)
  */
 static inline G_GNUC_CONST WARN_UNUSED_RESULT guint8
 netmask_to_cidr(guint32 netmask)
-#ifdef HAVE_BUILTIN_POPCOUNT
+#ifdef HAS_BUILTIN_POPCOUNT
 {
 	__builtin_popcount(netmask);
 }
-#else	/* HAVE_BUILTIN_POPCOUNT */
+#else	/* !HAS_BUILTIN_POPCOUNT */
 {
 	guint8 bits = 32;
 
@@ -524,7 +524,7 @@ netmask_to_cidr(guint32 netmask)
 	}
 	return bits;
 }
-#endif /* HAVE_BUILTIN_POPCOUNT */
+#endif /* HAS_BUILTIN_POPCOUNT */
 
 /**
  * Converts the CIDR prefix length to a IPv4 netmask in host byte order.
