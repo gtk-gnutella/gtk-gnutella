@@ -1214,7 +1214,7 @@ zgc_find_subzone(struct zone_gc *zg, void *blk, unsigned *low_ptr)
 /**
  * Check whether address falls within the subzone boundaries.
  */
-static inline gboolean
+static inline G_GNUC_HOT gboolean
 zgc_within_subzone(const struct subzinfo *szi, const void *p)
 {
 	struct subzone *sz;

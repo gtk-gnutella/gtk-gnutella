@@ -36,9 +36,9 @@
 #ifndef _omalloc_h_
 #define _omalloc_h_
 
-void *omalloc(size_t size);
-void *omalloc0(size_t size);
-char *ostrdup(const char *str);
+void *omalloc(size_t size) G_GNUC_MALLOC;
+void *omalloc0(size_t size) G_GNUC_MALLOC;
+char *ostrdup(const char *str) G_GNUC_MALLOC;
 
 size_t omalloc_page_count(void);
 void set_omalloc_debug(guint32 level);

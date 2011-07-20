@@ -81,7 +81,7 @@ sorted_array_free(struct sorted_array **tab_ptr)
 	}
 }
 
-static void *
+static inline ALWAYS_INLINE void *
 sorted_array_item_intern(const struct sorted_array *tab, size_t i)
 {
 	char *base = tab->items;
@@ -97,7 +97,7 @@ sorted_array_item(const struct sorted_array *tab, size_t i)
 	return sorted_array_item_intern(tab, i);
 }
 
-void *
+G_GNUC_HOT void *
 sorted_array_lookup(struct sorted_array *tab, const void *key)
 {
 	g_assert(tab);

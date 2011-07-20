@@ -538,7 +538,7 @@ set_omalloc_debug(guint32 level)
 /**
  * Final shutdown.
  */
-void
+G_GNUC_COLD void
 omalloc_close(void)
 {
 	/*
