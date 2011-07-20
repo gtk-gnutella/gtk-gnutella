@@ -306,7 +306,7 @@ pool_free(pool_t *p)
 /**
  * Allocate buffer from the pool.
  */
-gpointer
+G_GNUC_HOT gpointer
 palloc(pool_t *p)
 {
 	pool_check(p);
@@ -323,7 +323,7 @@ palloc(pool_t *p)
 		g_assert(uint_is_positive(p->held));
 
 		obj = p->buffers->data;
-		p->buffers = g_slist_remove(p->buffers, obj);
+		p->buffers = g_slist_delete_link(p->buffers, p->buffers);
 		p->held--;
 
 		return obj;

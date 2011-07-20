@@ -396,7 +396,7 @@ RT_SLOT_READ(const guint8 *arena, guint i)
  * As a side effect, increment rt->set_count if the position ``i'' ends-up
  * being set after patching.
  */
-static inline void
+static inline G_GNUC_HOT ALWAYS_INLINE void
 qrt_patch_slot(struct routing_table *rt, guint i, guint8 v)
 {
 	guint b = 0x80U >> (i & 0x7);
@@ -3422,7 +3422,7 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte,
 	 * advertised table size.
 	 */
 
-	if (qrcv->current_index >= rt->slots) {
+	if G_UNLIKELY(qrcv->current_index >= rt->slots) {
 		struct gnutella_node *n = qrcv->node;
 		g_warning("%s overflowed its QRP %d-bit patch of %s slots"
 			" (current_index=%d, slots=%d at %s message #%u/%u)",
@@ -3443,7 +3443,7 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte,
 
 	last_patch_slot = (guint) qrcv->current_slot + len * slots_per_byte;
 
-	if (last_patch_slot > rt->client_slots) {
+	if G_UNLIKELY(last_patch_slot > rt->client_slots) {
 		struct gnutella_node *n = qrcv->node;
 		g_warning("%s overflowed its QRP %d-bit patch of "
 			"%s slots by extra %s at %s message #%u/%u",
@@ -3528,7 +3528,7 @@ qrt_apply_patch8(struct qrt_receive *qrcv, const guchar *data, int len,
  *
  * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
  */
-static gboolean
+static G_GNUC_HOT gboolean
 qrt_apply_patch4(struct qrt_receive *qrcv, const guchar *data, int len,
 	const struct qrp_patch *patch)
 {

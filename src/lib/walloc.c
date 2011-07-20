@@ -123,7 +123,7 @@ wzone_get(size_t rounded)
  *
  * @return a pointer to the start of the allocated block.
  */
-gpointer
+G_GNUC_HOT gpointer
 walloc(size_t size)
 {
 	zone_t *zone;
