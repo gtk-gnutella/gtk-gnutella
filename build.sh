@@ -44,6 +44,7 @@ build_socker=
 build_ui=
 build_verbose='-s'
 build_xmingw='false'
+build_osxbundle='false'
 build_xtarget=
 
 # There is something broken about Configure, so it needs to know the
@@ -53,6 +54,12 @@ case "$build_target" in
 darwin|Darwin)
     build_so_suffix='dylib'
     ;;
+osxbundle)
+	build_so_suffix='dylib'
+	build_osxbundle='true'
+	PREFIX=`dirname ${PWD}/$0`/extra_files/osx/bundle
+	echo $PREFIX
+	;;
 MINGW*)
     # FIXME: The MingW installation prefix is hardcoded (as default) for now,
     # This could be detected maybe. On Ubuntu and Debian it is
@@ -193,6 +200,12 @@ build_ui=${build_ui:-gtkversion=2}
 ${MAKE} clobber >/dev/null 2>&1 || : ignore failure
 rm -f config.sh
 
+if [ "X$build_osxbundle" = Xtrue ]
+then
+	build_ui='gtkversion=2'
+	echo $build_ui
+fi
+
 # Use /bin/sh explicitely so that it works on noexec mounted file systems.
 # Note: Configure won't work as of yet on such a file system.
 if [ "X$build_xmingw" = Xtrue ]
@@ -267,7 +280,15 @@ fi
 ${MAKE} depend || { echo; echo 'ERROR: make depend failed.'; exit 1; }
 ${MAKE} || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
 
+if [ "X$build_osxbundle" = Xtrue ]
+then
+	rm -rf bundle
+	make install &&
+	ige-mac-bundler extra_files/osx/gtk-gnutella.bundle &&
+	rm -rf bundle
+else
 echo "Run \"${MAKE} install\" to install gtk-gnutella."
+fi
 exit
 
 # vi: set ts=4 sw=4 et:
