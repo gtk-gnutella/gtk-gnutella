@@ -2897,8 +2897,8 @@ msgstr "Niveau de débugage pour la file d'attente de recherche dans la DHT."
 
 msgid "If TRUE, DHT storage uses memory instead of diskspace."
 msgstr ""
-"Si positionné, le DHT utilisera de la mémoire et non de l'espace disquepour "
-"le stockage des informations."
+"Si positionné, le DHT utilisera de la mémoire et non de l'espace disque "
+"pour le stockage des informations."
 
 msgid "Defines which download HTTP header exchanges should be traced."
 msgstr ""
@@ -2911,7 +2911,8 @@ msgid "Defines which Gnutella header exchanges should be traced."
 msgstr "Définit quels en-tëtes Gnutella doivent ëtre tracés."
 
 msgid "Defines which push-proxy HTTP header exchanges should be traced."
-msgstr "Définit quels en-tëtes HTTP doivent ëtre tracés sur les relais 'push'."
+msgstr ""
+"Définit quels en-tëtes HTTP doivent ëtre tracés sur les relais 'push'."
 
 msgid ""
 "Defines which HTTP header exchanges should be traced, other than downloads, "
