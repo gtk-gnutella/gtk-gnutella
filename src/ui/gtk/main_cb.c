@@ -52,7 +52,7 @@ static void
 load_faq(void)
 {
 	static const gchar faq_file[] = "FAQ";
-	static file_path_t fp[4];
+	static file_path_t fp[6];
 	static int initialized;
 	GtkWidget *textview;
 	const gchar *lang;
@@ -67,6 +67,14 @@ load_faq(void)
 	if (initialized != 0) {
 		i = initialized;
 	} else {
+		char *tmp;
+		tmp = get_folder_path(PRIVLIB, NULL);
+		
+		if (tmp) {
+			file_path_set(&fp[i++], NOT_LEAKING(make_pathname(tmp, lang)), faq_file);
+			file_path_set(&fp[i++], NOT_LEAKING(make_pathname(tmp, "en")), faq_file);
+		}
+		
 		file_path_set(&fp[i++],
 			NOT_LEAKING(make_pathname(PRIVLIB_EXP, lang)), faq_file);
 		file_path_set(&fp[i++], PRIVLIB_EXP G_DIR_SEPARATOR_S "en", faq_file);

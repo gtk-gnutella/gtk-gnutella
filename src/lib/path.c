@@ -231,4 +231,33 @@ filepath_directory(const char *pathname)
 	return dir;
 }
 
+
+
+char *
+get_folder_path(enum special_folder which_folder, const char *path)
+{
+	char *pathname = calloc(MAX_PATH_LEN, sizeof(char));
+	size_t offset = 0;	
+	char *xdg_path = getenv("XDG_DATA_DIRS");
+	
+	if (NULL == xdg_path)
+		return NULL;
+		
+	offset += clamp_strcpy(
+		&pathname[offset], MAX_PATH_LEN - offset, xdg_path);
+		
+	offset += clamp_strcpy(
+		&pathname[offset], MAX_PATH_LEN - offset, 
+			G_DIR_SEPARATOR_S PACKAGE G_DIR_SEPARATOR_S);
+
+	if (path != NULL) {
+		offset += clamp_strcpy(
+			&pathname[offset], MAX_PATH_LEN - offset, path);
+	}
+	
+	g_debug(pathname);
+	
+	return pathname;
+}
+
 /* vi: set ts=4 sw=4 cindent: */

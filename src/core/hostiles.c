@@ -374,6 +374,8 @@ hostiles_retrieve(hostiles_t which)
 
 	case HOSTILE_GLOBAL:
 		{
+			/* FIXME: Load also the hostiles from get_folder_path */
+	
 			FILE *f;
 			int idx;
 			static const file_path_t fp[] = {

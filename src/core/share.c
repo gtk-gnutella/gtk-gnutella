@@ -82,6 +82,7 @@ RCSID("$Id$")
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define SHARE_RECENT_THRESH		(2 * 7 * 24 * 60 * 60)	/* 2 weeks */
@@ -493,23 +494,34 @@ static shared_file_t *
 share_special_load(const struct special_file *sp)
 {
 	FILE *f;
-	int idx;
+	int idx = 0, length = 2;
+	char *tmp;
 	shared_file_t *sf;
+	file_path_t *fp;
 
 #ifndef OFFICIAL_BUILD
-	file_path_t fp[3];
-#else
-	file_path_t fp[2];
+	length++;
 #endif
 
-	file_path_set(&fp[0], settings_config_dir(), sp->file);
-	file_path_set(&fp[1], PRIVLIB_EXP, sp->file);
+	tmp = get_folder_path(PRIVLIB, NULL);
+	if (tmp)
+		length++;
+	
+	fp = alloca(sizeof(file_path_t) * length);
+	
+	if (tmp)
+		file_path_set(&fp[idx++], tmp, sp->file);
+
+	file_path_set(&fp[idx++], settings_config_dir(), sp->file);
+	file_path_set(&fp[idx++], PRIVLIB_EXP, sp->file);
 #ifndef OFFICIAL_BUILD
-	file_path_set(&fp[2], PACKAGE_EXTRA_SOURCE_DIR, sp->file);
+	file_path_set(&fp[idx++], PACKAGE_EXTRA_SOURCE_DIR, sp->file);
 #endif
 
+	idx = 0;
+	
 	f = file_config_open_read_norename_chosen(
-			sp->what, fp, G_N_ELEMENTS(fp), &idx);
+			sp->what, fp, length, &idx);
 
 	if (!f)
 		return NULL;

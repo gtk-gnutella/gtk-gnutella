@@ -73,6 +73,7 @@ RCSID("$Id$")
 #include "lib/halloc.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
+#include "lib/path.h"
 #include "lib/override.h"			/* Must be the last header included */
 
 /***
@@ -575,6 +576,8 @@ main_gui_show_prefences(void)
 void
 main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 {
+	char *tmp;
+	
 	/* Glade inits */
 
 	gtk_set_locale();
@@ -588,6 +591,9 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 	add_pixmap_directory(PACKAGE_SOURCE_DIR G_DIR_SEPARATOR_S "pixmaps");
 #endif
 
+	tmp = get_folder_path(PRIVLIB, "pixmaps");
+	if (tmp)
+		add_pixmap_directory(tmp);
 #ifdef MINGW32
 	add_pixmap_directory(mingw_filename_nearby("pixmaps"));
 #endif

@@ -292,20 +292,23 @@ gip_retrieve(void)
 	FILE *f;
 	int idx;
 	char *filename;
+	static file_path_t fp[4];
+	int length = 0;
+	char *tmp;
+	
+	file_path_set(&fp[length++], settings_config_dir(), gip_file);
+	
+	tmp = get_folder_path(PRIVLIB, NULL);
+	if (tmp)
+		file_path_set(&fp[length++], tmp, gip_file);
+	
+	file_path_set(&fp[length++], PRIVLIB_EXP, gip_file);
 #ifndef OFFICIAL_BUILD
-	static file_path_t fp[3];
-#else
-	static file_path_t fp[2];
-#endif
-
-	file_path_set(&fp[0], settings_config_dir(), gip_file);
-	file_path_set(&fp[1], PRIVLIB_EXP, gip_file);
-#ifndef OFFICIAL_BUILD
-	file_path_set(&fp[2], PACKAGE_EXTRA_SOURCE_DIR, gip_file);
+	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, gip_file);
 #endif
 
 	f = file_config_open_read_norename_chosen(
-			gip_what, fp, G_N_ELEMENTS(fp), &idx);
+			gip_what, fp, length, &idx);
 
 	if (!f)
 	   return;

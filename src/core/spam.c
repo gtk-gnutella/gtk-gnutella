@@ -484,10 +484,11 @@ spam_retrieve_from_file(FILE *f, const char *path, const char *filename)
 static void
 spam_retrieve(void)
 {
-	static file_path_t fp[3];
-	guint num_fp = G_N_ELEMENTS(fp) - 1;
+	static file_path_t fp[4];
+	guint num_fp = G_N_ELEMENTS(fp) - 2;
 	FILE *f;
 	int idx;
+	char *tmp;
 	
 	file_path_set(&fp[0], settings_config_dir(), spam_text_file);
 	file_path_set(&fp[1], PRIVLIB_EXP, spam_text_file);
@@ -496,6 +497,11 @@ spam_retrieve(void)
 	file_path_set(&fp[2], PACKAGE_EXTRA_SOURCE_DIR, spam_text_file);
 	num_fp++;
 #endif	/* !OFFICIAL_BUILD */
+
+	tmp = get_folder_path(PRIVLIB, NULL);
+	if (tmp)
+		file_path_set(&fp[num_fp++], tmp, spam_text_file);
+
 
 	f = file_config_open_read_norename_chosen(spam_what, fp, num_fp, &idx);
 	if (f) {

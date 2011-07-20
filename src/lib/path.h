@@ -47,6 +47,10 @@ gboolean filepath_exists(const char *dir, const char *file);
 const char *filepath_basename(const char *pathname);
 char *filepath_directory(const char *pathname);
 
+enum special_folder { PRIVLIB };
+
+char *get_folder_path(enum special_folder which_folder, const char *path);
+
 #endif /* _path_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

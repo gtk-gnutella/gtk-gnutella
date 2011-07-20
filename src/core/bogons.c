@@ -184,20 +184,22 @@ bogons_retrieve(void)
 	FILE *f;
 	int idx;
 	char *filename;
-#ifndef OFFICIAL_BUILD
-	static file_path_t fp[3];
-#else
-	static file_path_t fp[2];
-#endif
+	static file_path_t fp[4];
+	int length=0;	
+	char *tmp;
 
-	file_path_set(&fp[0], settings_config_dir(), bogons_file);
-	file_path_set(&fp[1], PRIVLIB_EXP, bogons_file);
+	file_path_set(&fp[length++], settings_config_dir(), bogons_file);
+	tmp = get_folder_path(PRIVLIB, NULL);
+	if (tmp)
+		file_path_set(&fp[length++], tmp, bogons_file);
+	
+	file_path_set(&fp[length++], PRIVLIB_EXP, bogons_file);
 #ifndef OFFICIAL_BUILD
-	file_path_set(&fp[2], PACKAGE_EXTRA_SOURCE_DIR, bogons_file);
+	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, bogons_file);
 #endif
 
 	f = file_config_open_read_norename_chosen(
-			bogons_what, fp, G_N_ELEMENTS(fp), &idx);
+			bogons_what, fp, length, &idx);
 
 	if (!f)
 	   return;
