@@ -809,7 +809,7 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 	gm_slist_free_null(&ctx->removed);
 }
 
-static void
+static G_GNUC_HOT void
 inputevt_timer(struct poll_ctx *ctx)
 {
 	int num_events;

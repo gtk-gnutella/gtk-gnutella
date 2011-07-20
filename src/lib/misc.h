@@ -64,7 +64,7 @@ typedef struct short_string {
 	char str[SIZE_FIELD_MAX];
 } short_string_t;
 
-static inline int
+static inline G_GNUC_CONST ALWAYS_INLINE int 
 is_dir_separator(int c)
 {
 	return '/' == c || G_DIR_SEPARATOR == c;
@@ -77,7 +77,7 @@ is_dir_separator(int c)
  * @param x An integer between 0 and 15.
  * @return The ASCII character corresponding to the hex digit [0-9a-f].
  */
-static inline guchar
+static inline G_GNUC_PURE ALWAYS_INLINE guchar
 hex_digit(guchar x)
 {
 	extern const char hex_alphabet_lower[];
