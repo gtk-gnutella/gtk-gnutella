@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 19197 2011-05-31 20:55:41Z rmanfredi $
+# $X-Id: Jmakefile 19361 2011-07-20 08:34:38Z rmanfredi $
 
 # Those files lie in the ../gtk-shared directory
 REMOTE_GLADE_C = callbacks.c
@@ -171,6 +171,9 @@ callbacks.h: $(GTK_SHARED)/callbacks.h
 	$(RM) callbacks.h
 	$(CP) $(GTK_SHARED)/callbacks.h .
 
+
+interface-glade.o: interface-glade.c
+	$(CC) -c $(JCFLAGS) -O0 -w $<
 
 depend:: $(REMOTE_GLADE)
 
