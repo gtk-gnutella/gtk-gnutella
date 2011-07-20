@@ -1462,7 +1462,7 @@ host_pack(const host_addr_t addr, guint16 port)
 	return phost;
 }
 
-void
+G_GNUC_HOT void
 packed_host_unpack(const struct packed_host *phost,	/* MUST be a pointer */
 	host_addr_t *addr_ptr, guint16 *port_ptr)
 {

@@ -306,7 +306,7 @@ zprepare(zone_t *zone, char **blk)
  * @return a pointer to a block containing at least 'size' bytes of
  * memory.  It is a fatal error if memory cannot be allocated.
  */
-void *
+G_GNUC_HOT void *
 zalloc(zone_t *zone)
 {
 	char **blk;		/**< Allocated block */
@@ -1176,7 +1176,7 @@ subzinfo_cmp(const void *a, const void *b)
  *
  * @return a pointer to the found subzone information, NULL if not found.
  */
-static struct subzinfo *
+static G_GNUC_HOT struct subzinfo *
 zgc_find_subzone(struct zone_gc *zg, void *blk, unsigned *low_ptr)
 {
 	struct subzinfo *item, *array = zg->zg_subzinfo;
@@ -1930,7 +1930,7 @@ zgc_dispose(zone_t *zone)
 /**
  * Allocate a block from the first subzone with free items.
  */
-static void *
+static G_GNUC_HOT void *
 zgc_zalloc(zone_t *zone)
 {
 	struct zone_gc *zg = zone->zn_gc;

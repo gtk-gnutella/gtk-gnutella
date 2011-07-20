@@ -57,7 +57,7 @@ int sdbm_exists(DBM *, datum);
  * other
  */
 DBM *sdbm_prep(const char *, const char *, const char *, int, int);
-long sdbm_hash(const char *, size_t);
+long sdbm_hash(const char *, size_t) G_GNUC_PURE;
 gboolean sdbm_rdonly(DBM *);
 gboolean sdbm_error(DBM *);
 void sdbm_clearerr(DBM *);

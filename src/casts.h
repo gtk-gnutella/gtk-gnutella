@@ -213,7 +213,8 @@ ptr_cmp(const void *a, const void *b)
 static inline fileoffset_t G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
 filesize_to_fileoffset_t(filesize_t pos)
 {
-	fileoffset_t offset = pos > OFF_T_MAX ? (fileoffset_t) -1 : (fileoffset_t) pos;
+	fileoffset_t offset = pos > OFF_T_MAX ?
+		(fileoffset_t) -1 : (fileoffset_t) pos;
 
 	/* Handle -1 explicitly just in case there might be platform with
 	 * an non-standard unsigned fileoffset_t.

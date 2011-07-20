@@ -3585,7 +3585,7 @@ qrt_apply_patch4(struct qrt_receive *qrcv, const guchar *data, int len,
  * name will be qrp_can_route_21.
  */
 #define CAN_ROUTE(bits) \
-static gboolean \
+static G_GNUC_HOT gboolean \
 qrp_can_route_##bits(const query_hashvec_t *qhv, \
 					 const struct routing_table *rt) \
  \
@@ -4557,7 +4557,7 @@ qrp_node_can_route(const gnutella_node_t *n, const query_hashvec_t *qhv)
  * @returns list of nodes, a subset of the currently connected nodes.
  * Once used, the list of nodes can be freed with g_slist_free().
  */
-GSList *
+G_GNUC_HOT GSList *
 qrt_build_query_target(
 	query_hashvec_t *qhvec, int hops, int ttl, struct gnutella_node *source)
 {

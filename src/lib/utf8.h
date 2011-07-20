@@ -102,7 +102,7 @@ guint16 *utf8_to_utf16_string(const char *in);
 char *utf16_to_utf8_string(const guint16 *in);
 
 size_t utf32_to_utf8(const guint32 *in, char *out, size_t size);
-guint32 utf32_lowercase(guint32 uc);
+guint32 utf32_lowercase(guint32 uc) G_GNUC_PURE;
 gboolean utf32_canonical_sorted(const guint32 *src);
 gboolean utf32_is_decomposed(const guint32 *src, gboolean nfkd);
 size_t utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size);

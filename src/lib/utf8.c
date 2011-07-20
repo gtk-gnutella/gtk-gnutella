@@ -3534,7 +3534,7 @@ utf32_uppercase(guint32 uc)
  *
  * @return the lowercase variant of ``uc'' or ``uc'' itself.
  */
-guint32
+G_GNUC_HOT guint32
 utf32_lowercase(guint32 uc)
 {
 	if (uc < 0x80)

@@ -265,7 +265,7 @@ host_addr_ipv6(const host_addr_t *ha)
 	return NET_TYPE_IPV6 == ha->net ? ha->addr.ipv6 : NULL;
 }
 
-static inline host_addr_t
+static inline G_GNUC_CONST host_addr_t
 host_addr_get_ipv4(guint32 ip)
 {
 	host_addr_t ha;
@@ -275,13 +275,13 @@ host_addr_get_ipv4(guint32 ip)
 	return ha;
 }
 
-static inline host_addr_t
+static inline G_GNUC_PURE host_addr_t
 host_addr_peek_ipv4(const void *ipv4)
 {
 	return host_addr_get_ipv4(peek_be32(ipv4));
 }
 
-static inline host_addr_t
+static inline G_GNUC_PURE host_addr_t
 host_addr_peek_ipv6(const guint8 *ipv6)
 {
 	host_addr_t ha;
@@ -399,7 +399,7 @@ host_addr_matches(const host_addr_t a, const host_addr_t b, guint8 bits)
 }
 
 
-static inline gboolean
+static inline G_GNUC_PURE gboolean
 is_host_addr(const host_addr_t ha)
 {
 	switch (host_addr_net(ha)) {
