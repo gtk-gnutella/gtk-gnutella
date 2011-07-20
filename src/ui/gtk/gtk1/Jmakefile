@@ -117,6 +117,18 @@ GTK_SHARED = ../gtk-shared
 -expand
 
 /*
+ * GCC 4.6 cannot compile interface-glade.c unless -O0 is given.
+ * We rely on the fact that the C compiler will use the last -O option
+ * it sees on the command line to supersede any optimization setting
+ * specified through Configure.
+ *
+ * Also, since interface-glade.c is automatically generated code over
+ * which we have no control, suppress all warnings via -w.
+ */
+interface-glade.o: interface-glade.c
+	$(CC) -c $(JCFLAGS) -O0 -w $<
+
+/*
  * Since the copied files are compiled, they must be part of the dependency
  * for the "depend" target.  It's a multiple target, hence the "::".
  */
