@@ -512,7 +512,7 @@ static inline G_GNUC_CONST WARN_UNUSED_RESULT guint8
 netmask_to_cidr(guint32 netmask)
 #ifdef HAS_BUILTIN_POPCOUNT
 {
-	__builtin_popcount(netmask);
+	return __builtin_popcount(netmask);
 }
 #else	/* !HAS_BUILTIN_POPCOUNT */
 {
