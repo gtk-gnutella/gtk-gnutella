@@ -77,7 +77,7 @@ RCSID("$Id$")
 /**
  * Hash function for use in g_hash_table_new.
  */
-guint
+G_GNUC_HOT guint
 gnet_host_hash(gconstpointer key)
 {
 	const gnet_host_t *host = key;
@@ -94,7 +94,7 @@ gnet_host_hash(gconstpointer key)
  *
  * @note For use in g_hash_table_new.
  */
-int
+G_GNUC_HOT int
 gnet_host_eq(gconstpointer v1, gconstpointer v2)
 {
 	const gnet_host_t *h1 = v1, *h2 = v2;
@@ -210,7 +210,9 @@ gnet_host_to_string_buf(const gnet_host_t *h, void *buf, size_t len)
 	host_addr_t addr;
 	guint16 port;
 
-	packed_host_unpack(&h->data, &addr, &port);
+	packed_host_unpack_addr(&h->data, &addr);
+	port = gnet_host_get_port(h);
+
 	return host_addr_port_to_string_buf(addr, port, buf, len);
 }
 

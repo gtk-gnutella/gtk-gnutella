@@ -1463,12 +1463,10 @@ host_pack(const host_addr_t addr, guint16 port)
 }
 
 G_GNUC_HOT void
-packed_host_unpack(const struct packed_host *phost,	/* MUST be a pointer */
-	host_addr_t *addr_ptr, guint16 *port_ptr)
+packed_host_unpack_addr(
+	const struct packed_host *phost,	/* MUST be a pointer */
+	host_addr_t *addr_ptr)
 {
-	if (port_ptr) {
-		*port_ptr = peek_be16(&phost->port);
-	}
 	switch (phost->ha.net) {
 	case NET_TYPE_IPV4:
 		if (addr_ptr) {

@@ -93,16 +93,14 @@ static inline host_addr_t
 gnet_host_get_addr(const gnet_host_t *h)
 {
 	host_addr_t addr;
-	packed_host_unpack(&h->data, &addr, NULL);
+	packed_host_unpack_addr(&h->data, &addr);
 	return addr;
 }
 
-static inline guint16
+static inline G_GNUC_PURE ALWAYS_INLINE guint16
 gnet_host_get_port(const gnet_host_t *h)
 {
-	guint16 port;
-	packed_host_unpack(&h->data, NULL, &port);
-	return port;
+	return peek_be16(&h->data.port);
 }
 
 static inline G_GNUC_PURE enum net_type
