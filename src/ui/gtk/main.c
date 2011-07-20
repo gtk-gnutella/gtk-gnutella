@@ -73,6 +73,7 @@ RCSID("$Id$")
 #include "lib/halloc.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
+#include "lib/omalloc.h"
 #include "lib/path.h"
 #include "lib/override.h"			/* Must be the last header included */
 
@@ -592,8 +593,8 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 #endif
 
 	tmp = get_folder_path(PRIVLIB, "pixmaps");
-	if (tmp)
-		add_pixmap_directory(tmp);
+	if (tmp != NULL)
+		add_pixmap_directory(ostrdup(tmp));
 #ifdef MINGW32
 	add_pixmap_directory(mingw_filename_nearby("pixmaps"));
 #endif
@@ -634,6 +635,8 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 		gui_main_window_lookup("combo_search")));
 
 	clipboard_attach(gui_main_window());
+
+	HFREE_NULL(tmp);
 }
 
 void

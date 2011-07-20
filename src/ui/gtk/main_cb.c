@@ -38,6 +38,8 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 
 #include "lib/file.h"
+#include "lib/halloc.h"
+#include "lib/omalloc.h"
 #include "lib/utf8.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -48,7 +50,7 @@ RCSID("$Id$")
 
 static struct html_view *faq_html_view;
 
-static void
+static G_GNUC_COLD void
 load_faq(void)
 {
 	static const gchar faq_file[] = "FAQ";
@@ -68,21 +70,30 @@ load_faq(void)
 		i = initialized;
 	} else {
 		char *tmp;
+		char *path;
+
 		tmp = get_folder_path(PRIVLIB, NULL);
 		
-		if (tmp) {
-			file_path_set(&fp[i++], NOT_LEAKING(make_pathname(tmp, lang)), faq_file);
-			file_path_set(&fp[i++], NOT_LEAKING(make_pathname(tmp, "en")), faq_file);
+		if (tmp != NULL) {
+			path = make_pathname(tmp, lang);
+			file_path_set(&fp[i++], ostrdup(path), faq_file);
+			HFREE_NULL(path);
+			path = make_pathname(tmp, "en");
+			file_path_set(&fp[i++], ostrdup(path), faq_file);
+			HFREE_NULL(path);
 		}
-		
-		file_path_set(&fp[i++],
-			NOT_LEAKING(make_pathname(PRIVLIB_EXP, lang)), faq_file);
+
+		HFREE_NULL(tmp);
+
+		path = make_pathname(PRIVLIB_EXP, lang);
+		file_path_set(&fp[i++], ostrdup(path), faq_file);
+		HFREE_NULL(path);
 		file_path_set(&fp[i++], PRIVLIB_EXP G_DIR_SEPARATOR_S "en", faq_file);
 	
 #ifndef OFFICIAL_BUILD
-		file_path_set(&fp[i++],
-			NOT_LEAKING(make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang)),
-			faq_file);
+		path = make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang);
+		file_path_set(&fp[i++], ostrdup(path), faq_file);
+		HFREE_NULL(path);
 
 		file_path_set(&fp[i++],
 			PACKAGE_EXTRA_SOURCE_DIR G_DIR_SEPARATOR_S "en", faq_file);

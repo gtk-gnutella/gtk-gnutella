@@ -70,7 +70,7 @@ static time_t bogons_mtime;			 /**< Modification time of loaded file */
  *
  * @returns the amount of entries loaded.
  */
-static int
+static G_GNUC_COLD int
 bogons_load(FILE *f)
 {
 	char line[1024];
@@ -178,19 +178,19 @@ bogons_changed(const char *filename, gpointer unused_udata)
  * The selected file will then be monitored and a reloading will occur
  * shortly after a modification.
  */
-static void
+static G_GNUC_COLD void
 bogons_retrieve(void)
 {
 	FILE *f;
 	int idx;
 	char *filename;
-	static file_path_t fp[4];
-	int length=0;	
+	file_path_t fp[4];
+	unsigned length = 0;	
 	char *tmp;
 
 	file_path_set(&fp[length++], settings_config_dir(), bogons_file);
 	tmp = get_folder_path(PRIVLIB, NULL);
-	if (tmp)
+	if (tmp != NULL)
 		file_path_set(&fp[length++], tmp, bogons_file);
 	
 	file_path_set(&fp[length++], PRIVLIB_EXP, bogons_file);
@@ -198,11 +198,12 @@ bogons_retrieve(void)
 	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, bogons_file);
 #endif
 
-	f = file_config_open_read_norename_chosen(
-			bogons_what, fp, length, &idx);
+	g_assert(length <= G_N_ELEMENTS(fp));
 
-	if (!f)
-	   return;
+	f = file_config_open_read_norename_chosen(bogons_what, fp, length, &idx);
+
+	if (NULL == f)
+	   goto done;
 
 	filename = make_pathname(fp[idx].dir, fp[idx].name);
 	watcher_register(filename, bogons_changed, NULL);
@@ -210,6 +211,9 @@ bogons_retrieve(void)
 
 	bogons_load(f);
 	fclose(f);
+
+done:
+	HFREE_NULL(tmp);
 }
 
 /**

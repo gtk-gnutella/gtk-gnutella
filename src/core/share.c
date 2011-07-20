@@ -494,37 +494,28 @@ static shared_file_t *
 share_special_load(const struct special_file *sp)
 {
 	FILE *f;
-	int idx = 0, length = 2;
+	int idx = 0;
 	char *tmp;
-	shared_file_t *sf;
-	file_path_t *fp;
-
-#ifndef OFFICIAL_BUILD
-	length++;
-#endif
+	shared_file_t *sf = NULL;
+	file_path_t fp[4];
+	unsigned length = 0;
 
 	tmp = get_folder_path(PRIVLIB, NULL);
-	if (tmp)
-		length++;
-	
-	fp = alloca(sizeof(file_path_t) * length);
-	
-	if (tmp)
-		file_path_set(&fp[idx++], tmp, sp->file);
+	if (tmp != NULL)
+		file_path_set(&fp[length++], tmp, sp->file);
 
-	file_path_set(&fp[idx++], settings_config_dir(), sp->file);
-	file_path_set(&fp[idx++], PRIVLIB_EXP, sp->file);
+	file_path_set(&fp[length++], settings_config_dir(), sp->file);
+	file_path_set(&fp[length++], PRIVLIB_EXP, sp->file);
 #ifndef OFFICIAL_BUILD
-	file_path_set(&fp[idx++], PACKAGE_EXTRA_SOURCE_DIR, sp->file);
+	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, sp->file);
 #endif
 
-	idx = 0;
+	g_assert(length <= G_N_ELEMENTS(fp));
 	
-	f = file_config_open_read_norename_chosen(
-			sp->what, fp, length, &idx);
+	f = file_config_open_read_norename_chosen(sp->what, fp, length, &idx);
 
-	if (!f)
-		return NULL;
+	if (NULL == f)
+		goto done;
 
 	/*
 	 * Create fake special file sharing structure, so that we can
@@ -547,6 +538,10 @@ share_special_load(const struct special_file *sp)
 	}
 
 	fclose(f);
+
+done:
+	HFREE_NULL(tmp);
+
 	return sf;
 }
 

@@ -235,7 +235,7 @@ struct spam_item {
  *
  * @returns the amount of entries loaded or -1 on failure.
  */
-static gulong
+static G_GNUC_COLD gulong
 spam_load(FILE *f)
 {
 	static const struct spam_item zero_item;
@@ -484,30 +484,32 @@ spam_retrieve_from_file(FILE *f, const char *path, const char *filename)
 static void
 spam_retrieve(void)
 {
-	static file_path_t fp[4];
-	guint num_fp = G_N_ELEMENTS(fp) - 2;
+	file_path_t fp[4];
 	FILE *f;
 	int idx;
 	char *tmp;
-	
-	file_path_set(&fp[0], settings_config_dir(), spam_text_file);
-	file_path_set(&fp[1], PRIVLIB_EXP, spam_text_file);
+	unsigned length = 0;
+
+	file_path_set(&fp[length++], settings_config_dir(), spam_text_file);
+	file_path_set(&fp[length++], PRIVLIB_EXP, spam_text_file);
 
 #ifndef OFFICIAL_BUILD
-	file_path_set(&fp[2], PACKAGE_EXTRA_SOURCE_DIR, spam_text_file);
-	num_fp++;
+	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, spam_text_file);
 #endif	/* !OFFICIAL_BUILD */
 
 	tmp = get_folder_path(PRIVLIB, NULL);
-	if (tmp)
-		file_path_set(&fp[num_fp++], tmp, spam_text_file);
+	if (tmp != NULL)
+		file_path_set(&fp[length++], tmp, spam_text_file);
 
+	g_assert(length <= G_N_ELEMENTS(fp));
 
-	f = file_config_open_read_norename_chosen(spam_what, fp, num_fp, &idx);
-	if (f) {
+	f = file_config_open_read_norename_chosen(spam_what, fp, length, &idx);
+	if (f != NULL) {
 		spam_retrieve_from_file(f, fp[idx].dir, fp[idx].name);
 		fclose(f);
 	}
+
+	HFREE_NULL(tmp);
 }
 
 /**

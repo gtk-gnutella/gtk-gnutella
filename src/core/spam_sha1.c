@@ -189,7 +189,7 @@ spam_sha1_sync(void)
  *
  * @returns the amount of entries loaded or -1 on failure.
  */
-static gulong
+static G_GNUC_COLD gulong
 spam_sha1_load(FILE *f)
 {
 	char line[1024];
@@ -310,29 +310,30 @@ spam_sha1_retrieve_from_file(FILE *f, const char *path, const char *filename)
 static void
 spam_sha1_retrieve(void)
 {
-	static file_path_t fp[4];
-	guint num_fp = G_N_ELEMENTS(fp) - 2;
+	file_path_t fp[4];
 	FILE *f;
 	int idx;
 	char *tmp;
-	
-	file_path_set(&fp[0], settings_config_dir(), spam_sha1_file);
-	file_path_set(&fp[1], PRIVLIB_EXP, spam_sha1_file);
+	unsigned length = 0;
+
+	file_path_set(&fp[length++], settings_config_dir(), spam_sha1_file);
+	file_path_set(&fp[length++], PRIVLIB_EXP, spam_sha1_file);
 
 #ifndef OFFICIAL_BUILD
-	file_path_set(&fp[2], PACKAGE_EXTRA_SOURCE_DIR, spam_sha1_file);
-	num_fp++;
+	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, spam_sha1_file);
 #endif	/* !OFFICIAL_BUILD */
 
 	tmp = get_folder_path(PRIVLIB, NULL);
-	if (tmp)
-		file_path_set(&fp[num_fp++], tmp, spam_sha1_file);
+	if (tmp != NULL)
+		file_path_set(&fp[length++], tmp, spam_sha1_file);
 
-	f = file_config_open_read_norename_chosen(spam_sha1_what, fp, num_fp, &idx);
-	if (f) {
+	f = file_config_open_read_norename_chosen(spam_sha1_what, fp, length, &idx);
+	if (f != NULL) {
 		spam_sha1_retrieve_from_file(f, fp[idx].dir, fp[idx].name);
 		fclose(f);
 	}
+
+	HFREE_NULL(tmp);
 }
 
 /**

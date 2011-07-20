@@ -231,20 +231,32 @@ filepath_directory(const char *pathname)
 	return dir;
 }
 
-
-
+/**
+ * Compute special folder path.
+ *
+ * @param which_folder		the special folder token
+ * @param path				sub-path undernead the special folder
+ *
+ * @return halloc()'ed full path, NULL if special folder is unknown.
+ */
 char *
 get_folder_path(enum special_folder which_folder, const char *path)
 {
-	char *pathname = calloc(MAX_PATH_LEN, sizeof(char));
+	char *pathname;
 	size_t offset = 0;	
-	char *xdg_path = getenv("XDG_DATA_DIRS");
+	char *special_path = NULL;
+
+	switch (which_folder) {
+	case PRIVLIB:	special_path = getenv("XDG_DATA_DIRS"); break;
+	}
 	
-	if (NULL == xdg_path)
+	if (NULL == special_path)
 		return NULL;
-		
+	
+	pathname = halloc0(MAX_PATH_LEN);
+			
 	offset += clamp_strcpy(
-		&pathname[offset], MAX_PATH_LEN - offset, xdg_path);
+		&pathname[offset], MAX_PATH_LEN - offset, special_path);
 		
 	offset += clamp_strcpy(
 		&pathname[offset], MAX_PATH_LEN - offset, 
@@ -254,8 +266,6 @@ get_folder_path(enum special_folder which_folder, const char *path)
 		offset += clamp_strcpy(
 			&pathname[offset], MAX_PATH_LEN - offset, path);
 	}
-	
-	g_debug(pathname);
 	
 	return pathname;
 }
