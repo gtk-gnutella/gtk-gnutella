@@ -56,6 +56,7 @@ doc/gnutella/GGEP
 doc/gnutella/GUESS
 doc/gnutella/HSEP
 doc/gnutella/IPv6
+doc/gnutella/IPv6-Ready
 doc/gnutella/PARQ
 doc/gnutella/PFSP
 doc/gnutella/QRP
@@ -139,8 +140,11 @@ extra_files/en/Jmakefile
 extra_files/en/Makefile.SH
 extra_files/favicon.png      GTKG's favorite web icon
 extra_files/geo-ip.txt
+extra_files/gtk-gnutella.128.png
 extra_files/gtk-gnutella.16.png
+extra_files/gtk-gnutella.256.png
 extra_files/gtk-gnutella.32.png
+extra_files/gtk-gnutella.512.png
 extra_files/gtk-gnutella.desktop
 extra_files/gtk-gnutella.png
 extra_files/gtk-gnutella.svg
@@ -149,6 +153,10 @@ extra_files/ja/FAQ
 extra_files/ja/Jmakefile
 extra_files/ja/Makefile.SH
 extra_files/magnet.svg
+extra_files/osx/Info-gtk-gnutella.plist
+extra_files/osx/gtk-gnutella.bundle
+extra_files/osx/gtk-gnutella.icns
+extra_files/osx/launcher.sh
 extra_files/robots.txt       Default hints for web crawlers
 extra_files/spam.txt
 extra_files/spam_sha1.txt
