@@ -99,7 +99,7 @@ delta_time(time_t t1, time_t t0)
 #else	/* !USE_DIFFTIME */
 typedef time_t time_delta_t;
 
-static inline time_delta_t
+static inline ALWAYS_INLINE time_delta_t
 delta_time(time_t t1, time_t t0)
 {
 	return t1 - t0;

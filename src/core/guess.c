@@ -824,7 +824,7 @@ guess_timeout_from(const gnet_host_t *h)
 /**
  * Reset old timeout indication.
  */
-static void
+static G_GNUC_HOT void
 guess_timeout_reset(const gnet_host_t *h, struct qkdata *qk)
 {
 	g_assert(h != NULL);
