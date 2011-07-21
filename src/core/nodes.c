@@ -1403,7 +1403,7 @@ node_id_new(const struct gnutella_node *n)
 /**
  * Network init.
  */
-void
+G_GNUC_COLD void
 node_init(void)
 {
 	time_t now = clock_loc2gmt(tm_time());
@@ -8961,7 +8961,7 @@ node_qrt_changed(struct routing_table *query_table)
 /**
  * Final cleanup when application terminates.
  */
-void
+G_GNUC_COLD void
 node_close(void)
 {
 	GSList *sl;

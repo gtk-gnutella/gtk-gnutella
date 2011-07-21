@@ -347,7 +347,7 @@ hostiles_retrieve_from_file(FILE *f, hostiles_t which,
  * The selected file will then be monitored and a reloading will occur
  * shortly after a modification.
  */
-static void
+static G_GNUC_COLD void
 hostiles_retrieve(hostiles_t which)
 {
 	g_assert(UNSIGNED(which) < NUM_HOSTILES);
@@ -913,7 +913,7 @@ hostiles_spam_periodic_sync(void *unused_obj)
 /**
  * Called on startup. Loads the hostiles.txt into memory.
  */
-void
+G_GNUC_COLD void
 hostiles_init(void)
 {
 	dbstore_kv_t kv =

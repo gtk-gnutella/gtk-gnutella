@@ -359,7 +359,7 @@ bsched_reset_stealers(bsched_t *bs)
 /**
  * Configure outband DHT traffic cross-stealing with Gnutella UDP
  */
-static void
+static G_GNUC_COLD void
 bsched_dht_cross_stealing(void)
 {
 	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_DHT_OUT);
@@ -369,7 +369,7 @@ bsched_dht_cross_stealing(void)
 /**
  * Allow cross-stealing of unused bandwidth between HTTP/gnet.
  */
-void
+G_GNUC_COLD void
 bsched_config_steal_http_gnet(void)
 {
 	GSList *iter;
@@ -419,7 +419,7 @@ bsched_config_steal_http_gnet(void)
 /**
  * Allow cross-stealing of unused bandwidth between TCP and UDP gnet only.
  */
-void
+G_GNUC_COLD void
 bsched_config_steal_gnet(void)
 {
 	GSList *iter;
@@ -440,7 +440,7 @@ bsched_config_steal_gnet(void)
  * This is called BEFORE settings_init(), bandwidth values are the default
  * values, not the configured ones.
  */
-void
+G_GNUC_COLD void
 bsched_early_init(void)
 {
 	bws_set[BSCHED_BWS_OUT] = bsched_make("out",
@@ -548,7 +548,7 @@ bsched_early_init(void)
 /**
  * Configure schedules with actual limits set by the user.
  */
-static void
+static G_GNUC_COLD void
 bsched_correct_init(void)
 {
 	bsched_set_bandwidth(BSCHED_BWS_OUT, GNET_PROPERTY(bw_http_out));
@@ -566,7 +566,7 @@ bsched_correct_init(void)
 /**
  * Initialize global bandwidth schedulers.
  */
-void
+G_GNUC_COLD void
 bsched_init(void)
 {
 	bsched_correct_init();	/* Fix badnwidth using user-configured values */
@@ -588,7 +588,7 @@ bsched_init(void)
 /**
  * Discard global bandwidth schedulers.
  */
-void
+G_GNUC_COLD void
 bsched_close(void)
 {
 	GSList *iter;
@@ -752,7 +752,7 @@ bsched_enable_all(void)
  * Disable all known bandwidth schedulers, so that any pending I/O can
  * go through as quickly as possible.
  */
-void
+G_GNUC_COLD void
 bsched_shutdown(void)
 {
 	GSList *sl;

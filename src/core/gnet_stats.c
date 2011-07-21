@@ -329,7 +329,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	return type_string[type];
 }
 
-void
+G_GNUC_COLD void
 gnet_stats_init(void)
 {
 	guint i;

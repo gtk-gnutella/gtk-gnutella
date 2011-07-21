@@ -490,7 +490,7 @@ static const guint SPECIAL_FILE = -3;		/**< Special served files */
  * Initialize special file entry, returning shared_file_t structure if
  * the file exists, NULL otherwise.
  */
-static shared_file_t *
+static G_GNUC_COLD shared_file_t *
 share_special_load(const struct special_file *sp)
 {
 	FILE *f;
@@ -581,7 +581,7 @@ shared_files_match(const char *query,
 /**
  * Initialize the special files we're sharing.
  */
-static void
+static G_GNUC_COLD void
 share_special_init(void)
 {
 	guint i;
@@ -2237,7 +2237,7 @@ share_special_close(void)
 /**
  * Shutdown cleanup.
  */
-void
+G_GNUC_COLD void
 share_close(void)
 {
 	recursive_scan_free(&recursive_scan_context);
@@ -2851,7 +2851,7 @@ share_add_partial(const shared_file_t *sf)
 	/*
 	 * We added a new partial file, we need to rebuild the QRP table.
 	 * Do that asynchronously in case we're called frequently from a loop,
-	 * for instane at startup or when many new files are downloaded.
+	 * for instance at startup or when many new files are downloaded.
 	 */
 
 	share_qrp_rebuild_if_needed();
@@ -2895,7 +2895,7 @@ share_update_matching_information(void)
 /**
  * Initialization of the sharing library.
  */
-void
+G_GNUC_COLD void
 share_init(void)
 {
 	size_t i;

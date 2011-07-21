@@ -2398,7 +2398,7 @@ dq_get_results_wanted(const struct guid *muid, guint32 *wanted)
 /**
  * Initialize dynamic querying.
  */
-void
+G_GNUC_COLD void
 dq_init(void)
 {
 	dqueries = g_hash_table_new(nid_hash, nid_equal);
@@ -2484,7 +2484,7 @@ free_leaf_muid(gpointer key, gpointer unused_value, gpointer unused_udata)
 /**
  * Cleanup data structures used by dynamic querying.
  */
-void
+G_GNUC_COLD void
 dq_close(void)
 {
 	g_hash_table_foreach(dqueries, free_query, NULL);

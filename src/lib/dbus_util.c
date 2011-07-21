@@ -64,7 +64,7 @@ static DBusConnection *bus = NULL; /**< D-Bus connection to the message bus */
 /**
  * Initialize the bus connection.
  */
-void
+G_GNUC_COLD void
 dbus_util_init(void)
 {
 	DBusError error;

@@ -477,7 +477,7 @@ deserialize_lifedata(bstr_t *bs, gpointer valptr, size_t len)
 /**
  * Initialize node stability caching.
  */
-void
+G_GNUC_COLD void
 stable_init(void)
 {
 	dbstore_kv_t kv = { KUID_RAW_SIZE, NULL, sizeof(struct lifedata), 0 };
@@ -508,7 +508,7 @@ stable_init(void)
 /**
  * Close node stability caching.
  */
-void
+G_GNUC_COLD void
 stable_close(void)
 {
 	dbstore_close(db_lifedata, settings_dht_db_dir(), db_stable_base);

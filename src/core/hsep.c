@@ -328,7 +328,7 @@ hsep_triples_to_send(const hsep_triple *table, unsigned int triples)
  * Initializes HSEP.
  */
 
-void
+G_GNUC_COLD void
 hsep_init(void)
 {
 	header_features_add(FEATURES_CONNECTIONS,

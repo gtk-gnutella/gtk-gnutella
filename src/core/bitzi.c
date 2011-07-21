@@ -1326,7 +1326,7 @@ bitzi_ticket_by_sha1(const struct sha1 *sha1, filesize_t filesize)
 /**
  * Initialise any bitzi specific stuff we want to here.
  */
-void
+G_GNUC_COLD void
 bitzi_init(void)
 {
 	dbstore_kv_t kv = { SHA1_RAW_SIZE, NULL, sizeof(struct bzdata),
@@ -1360,7 +1360,7 @@ bitzi_init(void)
 		BITZI_HEARTBEAT_PERIOD, bitzi_heartbeat, NULL);
 }
 
-void
+G_GNUC_COLD void
 bitzi_close(void)
 {
 	g_return_if_fail(bitzi_rq);

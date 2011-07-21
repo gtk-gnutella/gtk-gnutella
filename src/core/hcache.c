@@ -680,7 +680,7 @@ hcache_request_slot(hcache_type_t type)
  * @return TRUE when IP/port passed sanity checks, regardless of whether it
  *         was added to the cache. (See above)
  */
-static gboolean
+static G_GNUC_HOT gboolean
 hcache_add_internal(hcache_type_t type, time_t added,
 	const host_addr_t addr, guint16 port, const char *what)
 {
@@ -1563,7 +1563,7 @@ hcache_free(hostcache_t *hc)
 /**
  * Parse and load the hostcache file.
  */
-static void
+static G_GNUC_COLD void
 hcache_load_file(hostcache_t *hc, FILE *f)
 {
 	char buffer[1024];
@@ -1787,7 +1787,7 @@ hcache_periodic_save(gpointer unused_obj)
 /**
  * Initialize host caches.
  */
-void
+G_GNUC_COLD void
 hcache_init(void)
 {
 	ht_known_hosts = g_hash_table_new(gnet_host_hash, gnet_host_eq);
@@ -1855,7 +1855,7 @@ hcache_init(void)
 /**
  * Load hostcache data from disk.
  */
-void
+G_GNUC_COLD void
 hcache_retrieve_all(void)
 {
 	hcache_retrieve(caches[HCACHE_FRESH_ANY], HOSTS_FILE);
@@ -1866,7 +1866,7 @@ hcache_retrieve_all(void)
 /**
  * Shutdown host caches.
  */
-void
+G_GNUC_COLD void
 hcache_shutdown(void)
 {
 	cq_periodic_remove(&hcache_save_ev);
@@ -1878,7 +1878,7 @@ hcache_shutdown(void)
 /**
  * Destroy all host caches.
  */
-void
+G_GNUC_COLD void
 hcache_close(void)
 {
 	static const hcache_type_t types[] = {

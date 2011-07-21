@@ -454,7 +454,7 @@ ipp_cache_remove(enum ipp_cache_id cid, const host_addr_t addr, guint16 port)
 /**
  * Parse persisted cache.
  */
-static void
+static G_GNUC_COLD void
 ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 {
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_IPP_CACHE_TAGS)];
@@ -604,7 +604,7 @@ ipp_cache_clear(ipp_cache_t *ic)
 /**
  * Retrieve cache from disk file.
  */
-static void
+static G_GNUC_COLD void
 ipp_cache_load(ipp_cache_t *ic)
 {
 	FILE *f;

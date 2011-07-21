@@ -257,7 +257,7 @@ mime_type_from_filename(const char *filename)
 	return mime_type_from_extension(extension ? &extension[1] : NULL);
 }
 
-void
+G_GNUC_COLD void
 mime_type_init(void)
 {
 	size_t i;

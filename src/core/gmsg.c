@@ -159,7 +159,7 @@ gmsg_split_dump(FILE *out, gconstpointer head, gconstpointer data,
 /**
  * Initialization of the Gnutella message structures.
  */
-void
+G_GNUC_COLD void
 gmsg_init(void)
 {
 	int i;

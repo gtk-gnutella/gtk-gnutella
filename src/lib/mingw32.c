@@ -1436,7 +1436,7 @@ mingw_valloc(void *hint, size_t size)
 	void *p = NULL;
 
 	if (NULL == hint && mingw_vmm_res_nonhinted >= 0) {
-		if (NULL == mingw_vmm_res_mem) {
+		if G_UNLIKELY(NULL == mingw_vmm_res_mem) {
 			MEMORYSTATUSEX memStatus;
 			SYSTEM_INFO system_info;
 			void *mem_later;
@@ -2852,7 +2852,7 @@ mingw_in_exception(void)
 /**
  * Our default exception handler.
  */
-static LONG WINAPI
+static G_GNUC_COLD LONG WINAPI
 mingw_exception(EXCEPTION_POINTERS *ei)
 {
 	EXCEPTION_RECORD *er;
@@ -3003,7 +3003,7 @@ mingw_stdio_reset(void)
 	close(STDERR_FILENO);
 }
 
-void
+G_GNUC_COLD void
 mingw_early_init(void)
 {
 	int console_err;

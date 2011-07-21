@@ -134,7 +134,7 @@ static const struct vendor {
  *
  * @returns vendor string if found, NULL otherwise.
  */
-static const char *
+static G_GNUC_HOT const char *
 find_vendor(guint32 code)
 {
 #define GET_KEY(i) (vendor_map[(i)].code)
@@ -259,7 +259,7 @@ vendor_get_name(guint32 code)
 /**
  * Initialize the vendor lookup.
  */
-void
+G_GNUC_COLD void
 vendor_init(void)
 {
 	BINARY_ARRAY_SORTED(vendor_map, struct vendor, code,

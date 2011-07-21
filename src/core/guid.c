@@ -164,7 +164,7 @@ guid_hec_oob(const struct guid *guid)
 /**
  * Initialize GUID management.
  */
-void
+G_GNUC_COLD void
 guid_init(void)
 {
 	const char *rev = GTA_REVCHAR;	/* Empty string means stable release */

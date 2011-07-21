@@ -1302,7 +1302,7 @@ download_init(void)
 /**
  * Initialize downloading data structures.
  */
-void
+G_GNUC_COLD void
 download_restore_state(void)
 {
 	/*

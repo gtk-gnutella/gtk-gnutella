@@ -579,7 +579,7 @@ ban_message(const host_addr_t addr)
 /**
  * Initialize the banning system.
  */
-void
+G_GNUC_COLD void
 ban_init(void)
 {
 	info = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
@@ -620,7 +620,7 @@ free_info(gpointer unused_key, gpointer value, gpointer unused_udata)
 /**
  * Called at shutdown time to reclaim all memory.
  */
-void
+G_GNUC_COLD void
 ban_close(void)
 {
 	GList *l;

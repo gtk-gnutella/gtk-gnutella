@@ -463,7 +463,7 @@ move_queue(struct download *d, const char *dest, const char *ext)
 /**
  * Initializes the background moving/copying task.
  */
-void
+G_GNUC_COLD void
 move_init(void)
 {
 	struct moved *md;

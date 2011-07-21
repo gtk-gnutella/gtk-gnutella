@@ -215,7 +215,7 @@ void tea_decrypt(const tea_key_t *key,
 /**
  * Test implementation.
  */
-void
+G_GNUC_COLD void
 tea_test(void)
 {
 	tea_key_t key;

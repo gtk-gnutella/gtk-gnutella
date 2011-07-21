@@ -158,7 +158,7 @@ RCSID("$Id$")
 }
 
 /* The compress function is a function. Requires smaller cache?    */
-static inline G_GNUC_HOT void
+static G_GNUC_HOT void
 tiger_compress(const guint64 *data, guint64 state[3])
 {
   tiger_compress_macro(data, state);
@@ -246,7 +246,7 @@ tiger(gconstpointer data, guint64 length, char hash[24])
  * Runs some test cases to check whether the implementation of the tiger
  * hash algorithm is alright.
  */
-void
+G_GNUC_COLD void
 tiger_check(void)
 {
 	static const char zeros[1025];
