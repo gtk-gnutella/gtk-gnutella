@@ -2285,7 +2285,7 @@ mingw_adns_getaddrinfo(const struct adns_request *req)
 	struct async_data *ad;
 	
 	if (common_dbg > 2) {
-		t_debug(altc, "%s", G_STRFUNC);
+		g_debug("%s", G_STRFUNC);
 	}	
 	g_assert(req);
 	g_assert(req->common.user_callback);
