@@ -57,7 +57,11 @@ darwin|Darwin)
 osxbundle)
 	build_so_suffix='dylib'
 	build_osxbundle='true'
-	PREFIX=`dirname ${PWD}/$0`/extra_files/osx/bundle
+	CPPFLAGS="$CPPFLAGS -DHAVE_GTKOSXAPPLICATION"
+	CPPFLAG="${CPPFLAGS# *}"    # strip leading spaces
+	LIBS="$LIBS -ligemacintegration -liconv -lz"
+	LIBS="${LIBS# *}"           # strip leading spaces
+	PREFIX=`dirname ${PWD}/$0`/osx/bundle
 	echo $PREFIX
 	;;
 MINGW*)
@@ -282,10 +286,14 @@ ${MAKE} || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
 
 if [ "X$build_osxbundle" = Xtrue ]
 then
-	rm -rf bundle
+	rm -rf osx/bundle
 	make install &&
-	ige-mac-bundler extra_files/osx/gtk-gnutella.bundle &&
-	rm -rf bundle
+	ige-mac-bundler osx/gtk-gnutella.bundle &&
+	rm -rf osx/bundle &&
+	ln -s /Applications osx/image/Applications &&
+	cp README osx/image/ &&
+	hdiutil create -srcfolder osx/image -volname Gtk-Gnutella ~/Desktop/Gtk-Gnutella.dmg &&
+	rm -rf osx/image
 else
 echo "Run \"${MAKE} install\" to install gtk-gnutella."
 fi
