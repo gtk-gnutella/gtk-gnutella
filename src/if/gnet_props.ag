@@ -1699,7 +1699,7 @@ prop = {
         default =
           "aac;avi;"
 		  "bin;bz2;7z;"
-		  "cue;"
+		  "cue;dmg;"
 		  "deb;divx;"
 		  "flac;flc;fli;"
 		  "gif;gz;"
