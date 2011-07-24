@@ -160,6 +160,15 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 
 	g_assert(s != NULL);
 
+	/*
+	 * IPv6 address may also be formed like [2001::1].
+	 *	-- JA 24/7/2011
+	 */
+	/* FIXME: Should also check for leading ] */
+	if ('[' == *s) {
+		p++;
+	}
+	
 	for (i = 0; i < 16; /* NOTHING */) {
 		const char *ep;
 		guint32 v;

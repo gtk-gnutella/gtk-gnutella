@@ -108,6 +108,7 @@ static gboolean uhc_connecting = FALSE;
 
 static void uhc_host_resolved(const host_addr_t *addr, size_t n,
 				gpointer uu_udata);
+static void uhc_send_ping(void);
 
 /**
  * Parse hostname:port and return the hostname and port parts.
@@ -215,6 +216,9 @@ uhc_list_add(const char *host)
 		return;
 	}
 
+	if (GNET_PROPERTY(bootstrap_debug) > 1)
+			g_debug("Adding UHC %s", host);
+			
 	if (random_value(100) < 50) {
 		hash_list_append(uhc_list, uhc);
 	} else {
@@ -309,6 +313,8 @@ finish:
 static void
 uhc_try_random(void)
 {
+	host_addr_t addr;
+
 	g_assert(uhc_connecting);
 	g_assert(uhc_ctx.timeout_ev == NULL);
 
@@ -322,8 +328,17 @@ uhc_try_random(void)
 	 * we're protected by the `attempts' counter.
 	 */
 
-	(void) adns_resolve(uhc_ctx.host, settings_dns_net(),
-				uhc_host_resolved, NULL);
+	if (string_to_host_addr(uhc_ctx.host, NULL, &addr)) {
+		uhc_ctx.addr = addr;
+		
+		if (GNET_PROPERTY(bootstrap_debug))
+			g_debug("BOOT UDP host cache \"%s\"", uhc_ctx.host);
+
+		uhc_send_ping();
+	} else {
+		(void) adns_resolve(uhc_ctx.host, settings_dns_net(),
+					uhc_host_resolved, NULL);
+	}
 }
 
 /**
@@ -408,7 +423,37 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, gpointer uu_udata)
 		return;
 	}
 
-	uhc_ctx.addr = addrs[random_u32() % n];
+	if (n > 1)
+	{
+		uint i;
+		/* Current uhc was moved to tail by uhc_get_next */
+		struct uhc *uhc = hash_list_tail(uhc_list);
+		
+		/*
+		 * UHC resolved to multiple endpoints. Could be roundrobbin or
+		 * IPv4 and IPv6 address. Adding them as seperate entries if the IPv6 is
+		 * unreachable we might be retrying the IPv6 over and over again, there
+		 * is no garantee that the random_u32() above will eventually pick
+		 * the IPv4 address.
+		 * 	-- JA 24/7/2011
+		 */
+		for(i = 0; i < n; i++) {	
+			const char *host = host_addr_port_to_string(addrs[i], uhc_ctx.port);
+			g_debug("BOOT UDP host cache \"%s\" resolved to %s",
+				uhc_ctx.host, host);
+			
+			uhc_list_add(host);
+		}
+		
+		hash_list_remove(uhc_list, uhc);
+		
+		uhc_try_random();
+		
+		return;
+	}
+	
+	uhc_ctx.addr = addrs[0];
+
 	
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_debug("BOOT UDP host cache \"%s\" resolved to %s",
