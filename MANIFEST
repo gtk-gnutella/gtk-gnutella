@@ -153,10 +153,10 @@ extra_files/ja/FAQ
 extra_files/ja/Jmakefile
 extra_files/ja/Makefile.SH
 extra_files/magnet.svg
-extra_files/osx/Info-gtk-gnutella.plist
-extra_files/osx/gtk-gnutella.bundle
-extra_files/osx/gtk-gnutella.icns
-extra_files/osx/launcher.sh
+osx/Info-gtk-gnutella.plist
+osx/gtk-gnutella.bundle
+osx/gtk-gnutella.icns
+osx/launcher.sh
 extra_files/robots.txt       Default hints for web crawlers
 extra_files/spam.txt
 extra_files/spam_sha1.txt
