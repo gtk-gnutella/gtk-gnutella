@@ -200,6 +200,7 @@ parse_dispatch_lines(gpointer handle, const gchar *buf, size_t len,
 		HFREE_NULL(line);
 
 		if (error) {
+			ghc_ctx.ha = NULL;
 			ghc_connecting = FALSE;
 			return;
 		}
@@ -363,6 +364,7 @@ ghc_host_eof(struct parse_context *ctx)
 			ctx->processed, ctx->processed == 1 ? "" : "s",
 			http_async_info(ghc_ctx.ha, NULL, NULL, NULL, NULL));
 
+	ghc_ctx.ha = NULL;
 	ghc_connecting = FALSE;
 }
 
@@ -383,6 +385,7 @@ ghc_error_ind(struct http_async *handle, http_errtype_t type, gpointer v)
 {
 	http_async_log_error_dbg(handle, type, v, "BOOT GHC",
 		GNET_PROPERTY(bootstrap_debug) > 1);
+	ghc_ctx.ha = NULL;
 	ghc_connecting = FALSE;
 }
 
@@ -444,7 +447,6 @@ ghc_try_random(void)
 
 	if (!ghc_pick()) {
 		ghc_connecting = FALSE;
-		return;
 	}
 }
 
