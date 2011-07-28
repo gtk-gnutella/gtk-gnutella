@@ -425,7 +425,7 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, gpointer uu_udata)
 
 	if (n > 1)
 	{
-		uint i;
+		size_t i;
 		/* Current uhc was moved to tail by uhc_get_next */
 		struct uhc *uhc = hash_list_tail(uhc_list);
 		
