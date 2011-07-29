@@ -791,8 +791,20 @@ mingw_patch_personal_path(const char *pathname)
 		 * the GUI.
 		 */
 
-		patched = h_strconcat(mingw_getpersonal(),
-			G_DIR_SEPARATOR_S, GTA_PRODUCT_NAME, p, (void *) 0);
+		/* 
+		 * Put the gtk-gnutella-downloads/complete into the downloads folder
+		 * as this is where the user would expect completed downloads to be
+		 * be placed
+		 * 	-- JA 29/7/2011
+		 */
+		if (is_strsuffix(pathname, -1, "gtk-gnutella-downloads/complete")) {
+			patched = h_strdup(
+				g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD));
+		}
+		else {
+			patched = h_strconcat(mingw_getpersonal(),
+				G_DIR_SEPARATOR_S, GTA_PRODUCT_NAME, p, (void *) 0);
+		}
 		s_debug("patched \"%s\" into \"%s\"", pathname, patched);
 		return patched;
 	} else {
