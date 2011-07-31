@@ -784,24 +784,22 @@ mingw_patch_personal_path(const char *pathname)
 	p = is_strprefix(pathname, home);
 	if (p != NULL && !is_directory(pathname)) {
 		char *patched;
-
-		/*
-		 * Put everything under "My Documents/gtk-gnutella", were we should
-		 * already find stdout and stderr files created when running from
-		 * the GUI.
-		 */
-
-		/* 
-		 * Put the gtk-gnutella-downloads/complete into the downloads folder
-		 * as this is where the user would expect completed downloads to be
-		 * be placed
-		 * 	-- JA 29/7/2011
-		 */
 		if (is_strsuffix(pathname, -1, "gtk-gnutella-downloads/complete")) {
+			/* 
+			 * Put the gtk-gnutella-downloads/complete into the downloads folder
+			 * as this is where the user would expect completed downloads to be
+			 * be placed
+			 * 	-- JA 29/7/2011
+			 */
 			patched = h_strdup(
 				g_get_user_special_dir(G_USER_DIRECTORY_DOWNLOAD));
-		}
-		else {
+		} else {
+			/*
+			 * Put everything else under "My Documents/gtk-gnutella", were
+			 * we should already find stdout and stderr files created when
+			 * running from the GUI.
+			 */
+
 			patched = h_strconcat(mingw_getpersonal(),
 				G_DIR_SEPARATOR_S, GTA_PRODUCT_NAME, p, (void *) 0);
 		}
