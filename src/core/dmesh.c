@@ -2269,7 +2269,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 	if (can_share_partials && GNET_PROPERTY(is_firewalled)) {
 		size_t url_len;
-		guid_t *servent_guid;
+		guid_t servent_guid;
 
 		gnet_prop_get_storage(PROP_SERVENT_GUID,
 			&servent_guid, sizeof servent_guid);
