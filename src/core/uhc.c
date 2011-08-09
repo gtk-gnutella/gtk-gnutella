@@ -101,6 +101,7 @@ static const struct {
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
 	{ "yin.cloud.bishopston.net:33558" },
+	{ "uhc.gtk-gnutella.nl:15749" },
 #endif	/* USE_LOCAL_UHC */
 };
 
