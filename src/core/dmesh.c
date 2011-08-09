@@ -2281,7 +2281,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		 */
 
 		url_len = dmesh_fwalt_string(url, sizeof url,
-			servent_guid, ipv4_unspecified, 0, NULL);
+			&servent_guid, ipv4_unspecified, 0, NULL);
 
 		g_assert(url_len < sizeof url);
 
