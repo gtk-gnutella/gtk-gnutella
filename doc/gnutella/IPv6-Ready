@@ -309,13 +309,16 @@ These flags govern whether "IPP" or "IPP6" (or both) will be sent back.
 Legacy servents will not supply any of these flags and will therefore
 only get back "IPP" in their pongs.
 
+When 0x8 is set, nodes should act as if 0x4 was set, regardless of its
+actual value, and supply IPv6 addresses.
+
 
 5.5 Queries and HEAD Ping
 
 Gnutella queries and HEAD Ping request must include an empty "I6" GGEP
 extension to advertise that they can accept IPv6 addresses.  If they
 can only accept IPv6, then they must include a 1 byte payload with the
-value 1.
+bit 0 set (value is 0x1).
 
 Without "I6", queries and HEAD Ping will continue to only return IPv4
 addresses, for legacy servents.
