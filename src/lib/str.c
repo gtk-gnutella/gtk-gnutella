@@ -1173,7 +1173,6 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	str_check(str);
 	g_assert(size_is_non_negative(maxlen));
 	g_assert(fmt != NULL);
-	g_assert(args != NULL);
 
 	fmtlen = strlen(fmt);
 	origlen = str->s_len;
@@ -1201,13 +1200,11 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 		return 0;
 
 	if (2 == fmtlen && fmt[0] == '%' && fmt[1] == 's') {
-		if (args) {
-			const char *s = va_arg(args, char*);
-			size_t len;
-			s = s ? s : nullstr;
-			len = strlen(s);
-			str_ncat_foreign(str, s, len > maxlen ? maxlen : len);
-		}
+		const char *s = va_arg(args, char*);
+		size_t len;
+		s = s ? s : nullstr;
+		len = strlen(s);
+		str_ncat_foreign(str, s, len > maxlen ? maxlen : len);
 		goto done;
 	}
 
@@ -1306,7 +1303,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 
 		case '*':
 			{
-				int i = args ? va_arg(args, int) : 0;
+				int i = va_arg(args, int);
 				left |= (i < 0);
 				width = (i < 0) ? -UNSIGNED(i) : UNSIGNED(i);
 				q++;
@@ -1319,7 +1316,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 		if (*q == '.') {
 			q++;
 			if (*q == '*') {
-				int i = args ? va_arg(args, int) : 0;
+				int i = va_arg(args, int);
 				precis = (i < 0) ? 0 : i;
 				q++;
 			} else {
@@ -1354,25 +1351,20 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			goto string;
 
 		case 'c':
-			if (args)
-				c = va_arg(args, int) & MAX_INT_VAL(unsigned char);
-			else
-				c = 0;
+			c = va_arg(args, int) & MAX_INT_VAL(unsigned char);
 			eptr = &c;
 			elen = 1;
 			goto string;
 
 		case 's':
-			if (args) {
-				eptr = va_arg(args, char*);
-				if (NULL == eptr)
-					eptr = nullstr;
-				if (has_precis) {
-					/* String may not be NUL-terminated */
-					elen = clamp_strlen(eptr, precis);
-				} else {
-					elen = strlen(eptr);
-				}
+			eptr = va_arg(args, char*);
+			if (NULL == eptr)
+				eptr = nullstr;
+			if (has_precis) {
+				/* String may not be NUL-terminated */
+				elen = clamp_strlen(eptr, precis);
+			} else {
+				elen = strlen(eptr);
 			}
 
 		string:
@@ -1383,10 +1375,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			/* INTEGERS */
 
 		case 'p':
-			if (args)
-				uv = (unsigned long) va_arg(args, void*);
-			else
-				uv = 0;
+			uv = (unsigned long) va_arg(args, void*);
 			base = 16;
 			c = 'x';		/* Request lower-cased pointer */
 			goto integer;
@@ -1396,15 +1385,10 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			/* FALL THROUGH */
 		case 'd':
 		case 'i':
-			if (args) {
-				switch (intsize) {
-				case 'h':		iv = (short) va_arg(args, int); break;
-				default:		iv = va_arg(args, int); break;
-				case 'l':		iv = va_arg(args, long); break;
-				}
-			}
-			else {
-				iv = 0;
+			switch (intsize) {
+			case 'h':		iv = (short) va_arg(args, int); break;
+			case 'l':		iv = va_arg(args, long); break;
+			default:		iv = va_arg(args, int); break;
 			}
 			if (iv >= 0) {
 				uv = iv;
@@ -1437,16 +1421,13 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			base = 16;
 
 		uns_integer:
-			if (args) {
-				switch (intsize) {
-				case 'h':  uv = (unsigned short) va_arg(args, unsigned); break;
-				case 'l':  uv = va_arg(args, unsigned long); break;
-				default:   uv = va_arg(args, unsigned); break;
-				}
+			switch (intsize) {
+			case 'h':  uv = (unsigned short) va_arg(args, unsigned); break;
+			case 'l':  uv = va_arg(args, unsigned long); break;
+			default:   uv = va_arg(args, unsigned); break;
 			}
-			else {
-				uv = 0;
-			}
+
+		/* FALL THROUGH */
 
 		integer:
 			mptr = ebuf + sizeof ebuf;
@@ -1502,10 +1483,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			 * Formatting of floats is delegated to system's snprintf().
 			 */
 
-			if (args)
-				nv = va_arg(args, double);
-			else
-				nv = 0.0;
+			nv = va_arg(args, double);
 
 			/*
 			 * Ensure nv is a valid number, and not NaN, +Inf or -Inf,
@@ -1565,7 +1543,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			/* SPECIAL */
 
 		case 'n':
-			if (args) {
+			{
 				size_t n = str->s_len - origlen;
 				switch (intsize) {
 				case 'h': *(va_arg(args, short*)) = MIN(n, SHRT_MAX); break;
