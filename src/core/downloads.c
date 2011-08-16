@@ -5241,6 +5241,8 @@ download_remove(struct download *d)
 	}
 	if (d->thex) {
 		g_assert(d->flags & DL_F_THEX);
+		/* In case download_stop() is not called, untie association */
+		dualhash_remove_value(dl_thex, d->id);
 		thex_download_free(&d->thex);
 	}
 
