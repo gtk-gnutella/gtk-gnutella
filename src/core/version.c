@@ -273,7 +273,9 @@ version_parse(const char *str, version_t *ver)
 	}
 
 	/*
-	 * Parse optional "-build".
+	 * Parse optional "-build" (legacy SVN) or "-change-bxxxxxxxx" (git
+	 * version scheme) to be able to sort identical versions with distinct
+	 * changes applied to them.
 	 */
 
 	if ('-' == *v) {
