@@ -1,0 +1,29 @@
+# ignore objects and archives, anywhere in the tree.
+*.[oa]
+Makefile
+Makefile.bak
+
+/config.h
+/mkdep
+/.package
+/config.sh
+/.config
+/gtk-gnutella.spec
+/config.sh.old
+/install
+
+/src/gtk-gnutella
+/src/gtk-gnutella.nm
+
+/src/lib/bit_array.h
+/src/lib/bit_field.h
+
+# Ignore gtk1 and gtk2 generated callbacks
+/src/ui/gtk/gtk?/callbacks.[ch]
+
+# SDBM
+/src/sdbm/dba
+/src/sdbm/dbu
+
+/po/*.gmo
+/po/stamp-po
