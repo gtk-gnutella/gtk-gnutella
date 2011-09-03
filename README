@@ -290,8 +290,8 @@ Feel free to sign up and participate in the mail list. To get up to speed, you
 might want to read some of the past messages in the archives and see what we 
 have been up to lately.
 
-If you want contribute code, please follow the style guide in the SVN version:
-gtk-gnutella-current/doc/devguide/STYLE
+If you want contribute code, please follow the style guide, as described in
+the doc/devguide/STYLE file.
 
 Read the "Development" and "Developers Howto" pages on the gtk-gnutella home 
 page. 
