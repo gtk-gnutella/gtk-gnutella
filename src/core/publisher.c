@@ -679,7 +679,7 @@ publisher_handle(struct publisher_entry *pe)
 		fileinfo_t *fi = shared_file_fileinfo(sf);
 
 		if (
-			!GNET_PROPERTY(pfsp_server) ||
+			!file_info_partial_shareable(fi) ||
 			fi->done < GNET_PROPERTY(pfsp_minimum_filesize)
 		) {
 			publisher_hold(pe, PUBLISH_BUSY, "PFSP minima not reached");
