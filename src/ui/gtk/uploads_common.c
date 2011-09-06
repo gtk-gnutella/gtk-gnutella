@@ -25,8 +25,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "uploads.h"			/* For upload_row_data_t */
 #include "uploads_common.h"
 #include "search.h"

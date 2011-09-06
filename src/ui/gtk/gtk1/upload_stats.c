@@ -57,8 +57,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "gtk/gui.h"
 
 #include "if/ui/gtk/upload_stats.h"

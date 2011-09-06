@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "geo_ip.h"
 #include "settings.h"
 

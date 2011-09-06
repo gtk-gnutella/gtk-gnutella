@@ -35,8 +35,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "gtk/search_common.h"
 #include "gtk/search_xml.h"
 

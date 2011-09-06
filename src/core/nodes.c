@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include <zlib.h>	/* Z_DEFAULT_COMPRESSION, Z_OK */
 
 #include "gtk-gnutella.h"

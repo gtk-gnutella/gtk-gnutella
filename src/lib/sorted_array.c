@@ -33,8 +33,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "misc.h"
 #include "halloc.h"
 #include "walloc.h"

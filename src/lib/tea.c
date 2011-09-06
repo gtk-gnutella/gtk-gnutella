@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "tea.h"
 
 #include "endian.h"

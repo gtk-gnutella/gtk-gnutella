@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "alive.h"
 #include "extensions.h"
 #include "ggep.h"

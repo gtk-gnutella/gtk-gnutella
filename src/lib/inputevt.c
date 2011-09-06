@@ -44,8 +44,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 /**
  * Debugging options.
  */

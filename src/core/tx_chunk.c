@@ -55,8 +55,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "tx.h"
 #include "tx_chunk.h"
 

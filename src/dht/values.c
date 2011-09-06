@@ -64,8 +64,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "values.h"
 #include "kuid.h"
 #include "knode.h"

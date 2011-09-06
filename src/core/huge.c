@@ -39,8 +39,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "huge.h"
 #include "share.h"
 #include "gmsg.h"

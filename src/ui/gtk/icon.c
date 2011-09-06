@@ -35,8 +35,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "icon.h"
 
 #ifdef USE_GTK2

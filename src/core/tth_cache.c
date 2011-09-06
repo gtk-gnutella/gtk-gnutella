@@ -48,8 +48,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "settings.h"
 #include "tth_cache.h"
 

@@ -53,8 +53,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "bogons.h"
 #include "hcache.h"
 #include "hostiles.h"

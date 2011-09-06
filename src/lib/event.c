@@ -33,8 +33,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "event.h"
 #include "glib-missing.h"
 #include "misc.h"

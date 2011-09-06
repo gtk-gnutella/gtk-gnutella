@@ -36,8 +36,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "vector.h"
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */

@@ -35,8 +35,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "upload_stats.h"
 #include "notebooks.h"
 

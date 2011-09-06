@@ -37,8 +37,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "shell.h"
 #include "cmd.h"
 

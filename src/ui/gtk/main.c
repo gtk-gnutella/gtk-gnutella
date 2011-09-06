@@ -36,8 +36,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #ifdef I_PWD
 #include <pwd.h>
 #endif /* I_PWD */

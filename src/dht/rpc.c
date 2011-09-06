@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "rpc.h"
 #include "routing.h"
 #include "kmsg.h"

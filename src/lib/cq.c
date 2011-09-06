@@ -36,8 +36,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "atoms.h"
 #include "cq.h"
 #include "glib-missing.h"

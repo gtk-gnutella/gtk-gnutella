@@ -35,8 +35,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "lib/ascii.h"
 #include "lib/concat.h"
 #include "lib/glib-missing.h"

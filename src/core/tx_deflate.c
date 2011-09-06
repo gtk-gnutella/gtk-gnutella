@@ -37,8 +37,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include <zlib.h>
 
 #include "tx.h"

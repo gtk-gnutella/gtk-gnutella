@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "url_factory.h"
 #include "concat.h"
 #include "halloc.h"

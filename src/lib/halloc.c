@@ -44,8 +44,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "halloc.h"
 #include "hashtable.h"
 #include "pagetable.h"

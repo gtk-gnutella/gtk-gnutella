@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "cmd.h"
 
 #include "core/sockets.h"

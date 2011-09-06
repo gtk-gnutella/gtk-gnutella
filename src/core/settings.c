@@ -96,8 +96,6 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-RCSID("$Id$")
-
 static const char config_file[] = "config_gnet";
 static const char ul_stats_file[] = "upload_stats";
 

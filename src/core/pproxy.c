@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "pproxy.h"
 #include "http.h"
 #include "hosts.h"

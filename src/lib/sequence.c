@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "sequence.h"
 #include "glib-missing.h"
 #include "walloc.h"

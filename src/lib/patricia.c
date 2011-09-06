@@ -145,8 +145,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "patricia.h"
 #include "endian.h"
 #include "glib-missing.h"

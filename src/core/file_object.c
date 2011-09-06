@@ -86,8 +86,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "file_object.h"
 
 #include "lib/atoms.h"

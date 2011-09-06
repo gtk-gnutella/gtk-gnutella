@@ -37,8 +37,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #ifdef I_PWD
 #include <pwd.h>				/* For getpwuid() and struct passwd */
 #endif

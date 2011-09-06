@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "hosts.h"				/* For host_ip() */
 #include "rx.h"
 #include "rx_chunk.h"

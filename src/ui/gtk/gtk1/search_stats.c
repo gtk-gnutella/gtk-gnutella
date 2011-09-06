@@ -48,8 +48,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "gtk/gui.h"
 
 #include "gtk/columns.h"

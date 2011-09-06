@@ -41,8 +41,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "spam.h"
 #include "settings.h"
 #include "nodes.h"

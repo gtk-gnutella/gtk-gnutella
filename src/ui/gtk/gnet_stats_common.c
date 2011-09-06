@@ -25,8 +25,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "gtk/notebooks.h"
 
 #include "gnet_stats_common.h"

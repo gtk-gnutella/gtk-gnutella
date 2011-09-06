@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "dbstore.h"
 
 #include "if/core/settings.h"

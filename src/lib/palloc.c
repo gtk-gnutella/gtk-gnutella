@@ -61,8 +61,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "cq.h"
 #include "hashlist.h"
 #include "glib-missing.h"

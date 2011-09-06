@@ -40,8 +40,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "hostiles.h"
 #include "settings.h"
 #include "nodes.h"

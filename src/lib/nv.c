@@ -51,8 +51,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "nv.h"
 #include "atoms.h"
 #include "glib-missing.h"

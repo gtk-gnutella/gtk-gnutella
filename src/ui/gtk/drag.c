@@ -35,8 +35,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "drag.h"
 
 #include "lib/override.h"		/* Must be the last header included */

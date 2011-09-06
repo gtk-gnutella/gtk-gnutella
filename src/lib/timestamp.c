@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "timestamp.h"
 #include "ascii.h"
 #include "offtime.h"

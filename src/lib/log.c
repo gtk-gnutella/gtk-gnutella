@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "log.h"
 #include "atoms.h"
 #include "ckalloc.h"

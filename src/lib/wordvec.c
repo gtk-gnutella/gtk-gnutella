@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "wordvec.h"
 #include "utf8.h"
 #include "halloc.h"

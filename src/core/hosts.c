@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "hosts.h"
 #include "bogons.h"
 #include "gmsg.h"

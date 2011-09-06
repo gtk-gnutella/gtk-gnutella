@@ -55,8 +55,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "ulq.h"
 #include "kuid.h"
 #include "lookup.h"

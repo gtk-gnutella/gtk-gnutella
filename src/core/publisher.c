@@ -42,8 +42,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #ifdef I_MATH
 #include <math.h>		/* For log() */
 #endif	/* I_MATH */

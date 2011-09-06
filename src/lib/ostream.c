@@ -41,8 +41,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "ostream.h"
 #include "fd.h"
 #include "halloc.h"

@@ -61,8 +61,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "revent.h"
 #include "knode.h"
 #include "kmsg.h"

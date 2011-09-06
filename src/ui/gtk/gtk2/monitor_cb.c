@@ -25,8 +25,6 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$")
-
 #include "gtk/monitor_cb.h"
 #include "gtk/misc.h"
 #include "gtk/search.h"

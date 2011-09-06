@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "downloads.h"
 #include "file_object.h"
 #include "guid.h"

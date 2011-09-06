@@ -42,8 +42,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "lib/compat_pio.h"
 #include "lib/iovec.h"
 #include "lib/misc.h"

@@ -38,8 +38,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "upload_stats_cb.h"
 #include "upload_stats.h"
 #include "gtkcolumnchooser.h"

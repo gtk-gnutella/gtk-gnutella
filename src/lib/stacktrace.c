@@ -43,8 +43,6 @@
 
 #include "common.h"		/* For RCSID */
 
-RCSID("$Id$")
-
 #include "stacktrace.h"
 #include "atoms.h"		/* For binary_hash() */
 #include "ascii.h"

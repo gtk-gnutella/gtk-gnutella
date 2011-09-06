@@ -41,8 +41,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #ifdef ENABLE_NLS
 #include <libintl.h>
 #endif /* ENABLE_NLS */

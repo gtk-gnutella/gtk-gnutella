@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "nodes.h"
 #include "tsync.h"
 #include "vmsg.h"

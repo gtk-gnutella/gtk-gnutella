@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "vendors.h"
 #include "ascii.h"
 #include "endian.h"

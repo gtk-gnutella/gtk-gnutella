@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #ifdef I_NET_ROUTE
 #include <net/route.h>
 #endif

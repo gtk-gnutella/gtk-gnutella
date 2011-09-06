@@ -45,8 +45,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "lib/hashtable.h"
 #include "lib/vmm.h"
 

@@ -36,8 +36,6 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$")
-
 #include "gtk/misc.h"
 #include "gtk/nodes_common.h"
 #include "gtk/nodes.h"

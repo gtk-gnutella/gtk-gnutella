@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "gtk-gnutella.h"
 
 #include "ban.h"

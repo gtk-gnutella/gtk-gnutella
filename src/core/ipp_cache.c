@@ -56,8 +56,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "lib/bit_array.h"
 #include "lib/file.h"
 #include "lib/getdate.h"

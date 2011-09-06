@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "fifo.h"
 #include "glib-missing.h"
 #include "walloc.h"

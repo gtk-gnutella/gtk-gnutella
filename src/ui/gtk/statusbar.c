@@ -37,8 +37,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "gtk-gnutella.h"
 #include "statusbar.h"
 

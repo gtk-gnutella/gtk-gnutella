@@ -34,8 +34,6 @@
  */
 
 #include "common.h"
-RCSID("$Id$")
-
 #ifdef I_PWD
 #include <pwd.h>
 #endif

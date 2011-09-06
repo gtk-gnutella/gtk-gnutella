@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "crash.h"				/* For print_str() and crash_time() */
 #include "fast_assert.h"
 #include "log.h"

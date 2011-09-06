@@ -92,8 +92,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #define VMM_SOURCE
 #include "vmm.h"
 

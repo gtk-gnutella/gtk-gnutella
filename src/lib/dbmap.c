@@ -47,8 +47,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "sdbm/sdbm.h"
 
 #include "dbmap.h"

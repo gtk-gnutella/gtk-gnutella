@@ -43,8 +43,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include <math.h>		/* For frexp() and isfinite() */
 
 #include "ascii.h"

@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id: wordvec.c 11437 2006-08-05 00:24:20Z cbiere $")
-
 #include "strtok.h"
 
 #include "ascii.h"

@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "ohash_table.h"
 #include "glib-missing.h"
 #include "hashlist.h"

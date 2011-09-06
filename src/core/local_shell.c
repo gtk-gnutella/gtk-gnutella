@@ -104,8 +104,6 @@ fd_set_nonblocking(int fd)
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "core/local_shell.h"
 
 #include "lib/misc.h"

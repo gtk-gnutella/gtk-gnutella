@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "cpufreq.h"
 #include "filehead.h"
 

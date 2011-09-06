@@ -44,8 +44,6 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-RCSID("$Id$")
-
 #if HAS_GCC(3, 0)
 #define FRAGCHECK_TRACK_CALLERS
 #endif	/* GCC >= 3.0 */

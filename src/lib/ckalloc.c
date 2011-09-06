@@ -43,8 +43,6 @@
 
 #include "common.h"		/* For RCSID */
 
-RCSID("$Id$")
-
 #include "ckalloc.h"
 #include "signal.h"
 #include "unsigned.h"

@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "routing.h"
 #include "gmsg.h"
 #include "gnet_stats.h"

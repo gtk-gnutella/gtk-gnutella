@@ -95,8 +95,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "hsep.h"
 #include "features.h"
 #include "gmsg.h"

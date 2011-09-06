@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "misc.h"
 #include "pattern.h"
 #include "halloc.h"

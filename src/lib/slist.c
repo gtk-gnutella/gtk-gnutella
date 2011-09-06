@@ -40,8 +40,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "slist.h"
 #include "misc.h"
 #include "glib-missing.h"

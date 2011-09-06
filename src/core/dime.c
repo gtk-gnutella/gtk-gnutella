@@ -37,8 +37,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "dime.h"
 
 #include "lib/endian.h"

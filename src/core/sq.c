@@ -46,8 +46,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "sq.h"					/* search_queue structures */
 #include "dq.h"
 #include "mq_tcp.h"

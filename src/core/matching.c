@@ -27,8 +27,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "matching.h"
 #include "qrp.h"				/* For qhvec_add() */
 #include "share.h"

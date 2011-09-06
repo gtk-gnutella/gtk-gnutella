@@ -36,8 +36,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "aging.h"
 #include "cq.h"
 #include "glib-missing.h"

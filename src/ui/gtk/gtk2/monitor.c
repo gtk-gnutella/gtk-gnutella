@@ -36,8 +36,6 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$")
-
 #include "gtk/drag.h"
 #include "gtk/monitor.h"
 #include "gtk/monitor_cb.h"

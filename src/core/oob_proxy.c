@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "oob_proxy.h"
 #include "dh.h"
 #include "dq.h"

@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "pdht.h"
 #include "gdht.h"
 #include "share.h"

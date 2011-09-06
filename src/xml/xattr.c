@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "xattr.h"
 
 #include "lib/atoms.h"

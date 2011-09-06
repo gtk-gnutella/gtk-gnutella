@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "alive.h"
 #include "nodes.h"
 #include "guid.h"

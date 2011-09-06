@@ -68,8 +68,6 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-RCSID("$Id$")
-
 static GtkTreeView *tree_view_search;
 
 /** For cyclic updates of the tooltip. */

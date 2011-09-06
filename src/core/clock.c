@@ -36,8 +36,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "clock.h"
 
 #include "lib/cq.h"

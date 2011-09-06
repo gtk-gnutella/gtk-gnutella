@@ -35,8 +35,6 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$")
-
 #include "gtk/search.h"
 #include "gtk/misc.h"			/* gui_record_sha1_eq() */
 

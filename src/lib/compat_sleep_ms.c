@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "compat_sleep_ms.h"
 #include "compat_poll.h"
 

@@ -43,8 +43,6 @@
 #include "atoms.h"
 #include "endian.h"
 
-RCSID("$Id$")
-
 #if 0
 #define PROTECT_ATOMS
 #endif

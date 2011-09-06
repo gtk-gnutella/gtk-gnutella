@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "share.h"
 #include "extensions.h"
 #include "downloads.h"

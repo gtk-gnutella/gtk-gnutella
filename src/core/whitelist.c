@@ -41,8 +41,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "whitelist.h"
 #include "settings.h"
 #include "ipp_cache.h"

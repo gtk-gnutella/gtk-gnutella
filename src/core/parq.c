@@ -37,8 +37,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "parq.h"
 #include "ban.h"
 #include "downloads.h"

@@ -25,8 +25,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include <gtk/gtkcheckmenuitem.h>
 
 #include "gtkcolumnchooser.h"

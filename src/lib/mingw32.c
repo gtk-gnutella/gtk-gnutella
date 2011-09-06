@@ -42,8 +42,6 @@
 
 #ifdef MINGW32
 
-RCSID("$Id$")
-
 #include <stdlib.h>
 #include <windows.h>
 #include <mswsock.h>

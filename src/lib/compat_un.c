@@ -71,8 +71,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 /***
  *** This entire file is compiled when there is no support for UNIX sockets.
  ***/

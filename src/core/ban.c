@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "ban.h"
 #include "sockets.h"		/* For socket_register_fd_reclaimer() */
 #include "token.h"

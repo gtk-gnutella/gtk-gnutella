@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "map.h"
 #include "debug.h"
 #include "random.h"

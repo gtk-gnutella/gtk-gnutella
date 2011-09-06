@@ -35,8 +35,6 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$")
-
 #include "gtk/columns.h"
 #include "gtk/downloads_common.h"
 #include "gtk/drag.h"

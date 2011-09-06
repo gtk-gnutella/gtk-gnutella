@@ -32,8 +32,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #ifdef HAS_GNUTLS
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>

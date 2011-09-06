@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "token.h"
 #include "clock.h"
 #include "version.h"

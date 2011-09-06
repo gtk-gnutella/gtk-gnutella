@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "ioheader.h"
 #include "sockets.h"
 #include "bsched.h"

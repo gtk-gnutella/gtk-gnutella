@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "concat.h"
 #include "glib-missing.h"
 #include "unsigned.h"

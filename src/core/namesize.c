@@ -35,8 +35,6 @@
 
 #include "common.h"			/* For safe compilation under USE_DMALLOC */
 
-RCSID("$Id$")
-
 #include "namesize.h"
 
 #include "lib/atoms.h"

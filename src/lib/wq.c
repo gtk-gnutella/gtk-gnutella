@@ -70,8 +70,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "wq.h"
 #include "cq.h"
 #include "glib-missing.h"

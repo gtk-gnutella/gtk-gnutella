@@ -35,8 +35,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "drop.h"
 
 #include "if/gui_property_priv.h"

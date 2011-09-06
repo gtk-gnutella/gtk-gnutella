@@ -35,8 +35,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "gtk-gnutella.h"
 
 #include "filter_core.h"

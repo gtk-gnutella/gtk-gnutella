@@ -25,8 +25,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "gtk/columns.h"
 #include "gtk/downloads.h"
 #include "gtk/downloads_common.h"

@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "search.h"
 #include "bogons.h"
 #include "ctl.h"

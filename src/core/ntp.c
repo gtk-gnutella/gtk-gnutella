@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "ntp.h"
 #include "settings.h"
 #include "urpc.h"

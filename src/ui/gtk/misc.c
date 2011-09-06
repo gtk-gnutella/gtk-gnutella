@@ -36,8 +36,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "gtk-shared/callbacks.h"
 
 #include "gtk/misc.h"

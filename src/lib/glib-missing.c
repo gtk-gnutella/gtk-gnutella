@@ -41,8 +41,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "glib-missing.h"
 #include "ascii.h"
 #include "compat_poll.h"

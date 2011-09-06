@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "dualhash.h"
 #include "glib-missing.h"
 #include "walloc.h"

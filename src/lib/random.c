@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "random.h"
 #include "arc4random.h"
 #include "endian.h"

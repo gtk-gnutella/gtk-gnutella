@@ -61,8 +61,6 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$")
-
 #include "pbarcellrenderer.h"
 
 #if defined(USING_CUSTOM_TYPE_CELL_RENDERER_PROGRESS)

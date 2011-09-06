@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #define MQ_INTERNAL
 #include "mq.h"
 

@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "udp.h"
 #include "bogons.h"
 #include "bsched.h"

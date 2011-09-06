@@ -48,8 +48,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "symtab.h"
 #include "glib-missing.h"
 #include "nv.h"

@@ -36,8 +36,6 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$")
-
 #include "nodes_cb.h"
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/nodes_common.h"

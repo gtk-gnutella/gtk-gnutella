@@ -36,8 +36,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "debug.h"
 #include "dbmw.h"
 #include "dbmap.h"

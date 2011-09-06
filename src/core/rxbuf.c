@@ -39,8 +39,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "rxbuf.h"
 
 #include "if/gnet_property_priv.h"

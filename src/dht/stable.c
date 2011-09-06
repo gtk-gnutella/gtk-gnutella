@@ -132,8 +132,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "stable.h"
 
 #include "if/dht/kuid.h"

@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #ifdef I_NETDB
 #include <netdb.h>		/* For getaddrinfo() */
 #endif

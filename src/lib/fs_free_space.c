@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 /*
  * NOTE: The following header files pull in definition of ST_* macros
  * 	 which are conflicting with identifiers in the GUI code. Therefore,

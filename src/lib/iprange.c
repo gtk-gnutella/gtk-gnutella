@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "host_addr.h"
 #include "iprange.h"
 #include "parse.h"

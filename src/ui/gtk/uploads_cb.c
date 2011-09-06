@@ -25,8 +25,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "uploads_cb.h"
 #include "uploads.h"
 #include "uploads_common.h"

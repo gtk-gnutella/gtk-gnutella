@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include <math.h>		/* For log() */
 
 #include "lookup.h"

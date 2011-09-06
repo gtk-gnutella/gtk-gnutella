@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "fd.h"
 #include "compat_misc.h"
 #include "compat_un.h"

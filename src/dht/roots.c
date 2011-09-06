@@ -60,8 +60,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "roots.h"
 #include "keys.h"
 #include "kuid.h"

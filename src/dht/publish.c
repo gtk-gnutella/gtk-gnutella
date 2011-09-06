@@ -135,8 +135,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "publish.h"
 #include "keys.h"
 #include "kmsg.h"

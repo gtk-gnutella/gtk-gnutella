@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "compat_misc.h"
 #include "override.h"			/* Must be the last header included */
 

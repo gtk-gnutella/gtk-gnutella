@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "glib-missing.h"
 #include "pow2.h"
 #include "unsigned.h"

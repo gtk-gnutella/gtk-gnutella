@@ -59,8 +59,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "gnet_host.h"
 #include "atoms.h"
 #include "stringify.h"

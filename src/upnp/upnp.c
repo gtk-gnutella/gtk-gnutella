@@ -46,8 +46,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "upnp.h"
 #include "control.h"
 #include "discovery.h"

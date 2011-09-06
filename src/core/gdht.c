@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "gdht.h"
 #include "fileinfo.h"
 #include "extensions.h"

@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "control.h"
 #include "service.h"
 #include "error.h"

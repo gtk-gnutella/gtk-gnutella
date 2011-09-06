@@ -36,8 +36,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "compat_poll.h"
 #include "fd.h"					/* For assertions */
 

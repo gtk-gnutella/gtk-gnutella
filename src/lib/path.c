@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "ascii.h"
 #include "path.h"
 #include "misc.h"

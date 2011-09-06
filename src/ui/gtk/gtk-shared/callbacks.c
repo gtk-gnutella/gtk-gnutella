@@ -25,8 +25,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "gtk/gui.h"
 #include "gtk/misc.h"
 #include "gtk/search.h"

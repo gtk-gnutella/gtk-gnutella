@@ -32,8 +32,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "topless.h"
 
 #ifndef USE_TOPLESS

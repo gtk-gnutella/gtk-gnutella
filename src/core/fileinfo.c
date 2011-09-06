@@ -42,8 +42,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include <math.h>		/* For fabs() */
 
 #include "fileinfo.h"

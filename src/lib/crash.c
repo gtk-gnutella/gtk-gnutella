@@ -69,8 +69,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "crash.h"
 #include "ckalloc.h"
 #include "compat_sleep_ms.h"

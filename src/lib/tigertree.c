@@ -80,8 +80,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "base32.h"
 #include "endian.h"
 #include "halloc.h"

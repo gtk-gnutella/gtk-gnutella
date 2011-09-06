@@ -37,8 +37,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "columns.h"
 
 #ifdef USE_GTK1

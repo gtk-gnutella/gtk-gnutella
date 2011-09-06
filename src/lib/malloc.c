@@ -35,8 +35,6 @@
 
 #include "common.h"		/* For RCSID */
 
-RCSID("$Id$")
-
 #if defined(MALLOC_STATS) && !defined(TRACK_MALLOC)
 #define TRACK_MALLOC
 #endif

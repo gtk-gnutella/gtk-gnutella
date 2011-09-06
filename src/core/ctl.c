@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "ctl.h"
 #include "geo_ip.h"
 #include "whitelist.h"

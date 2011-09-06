@@ -72,8 +72,6 @@
 
 #include "common.h"		/* For RCSID */
 
-RCSID("$Id$")
-
 #include "omalloc.h"
 #include "log.h"
 #include "misc.h"

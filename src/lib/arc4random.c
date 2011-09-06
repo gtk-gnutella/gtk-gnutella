@@ -40,8 +40,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #ifndef HAS_ARC4RANDOM
 
 /*

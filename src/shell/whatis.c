@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "cmd.h"
 
 #include "if/gnet_property.h"

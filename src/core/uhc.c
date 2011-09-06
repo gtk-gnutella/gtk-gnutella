@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "gnutella.h"
 #include "guid.h"
 #include "hcache.h"

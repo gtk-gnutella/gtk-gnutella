@@ -53,8 +53,6 @@
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-RCSID("$Id$")
-
 static gboolean uploads_remove_lock;
 static gboolean uploads_shutting_down;
 

@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #ifdef I_MATH
 #include <math.h>
 #endif	/* I_MATH */

@@ -55,8 +55,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include <math.h>
 
 #include "routing.h"

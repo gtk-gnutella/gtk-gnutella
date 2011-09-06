@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "ggep.h"
 #include "ggep_type.h"
 #include "hosts.h"				/* For struct gnutella_host */

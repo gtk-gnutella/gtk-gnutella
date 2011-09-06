@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "pow2.h"
 #include "override.h"			/* Must be the last header included */
 

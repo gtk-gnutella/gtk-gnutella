@@ -36,8 +36,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "misc.h"
 #include "settings_cb.h"
 #include "settings.h"

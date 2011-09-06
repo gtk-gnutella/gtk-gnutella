@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "ghc.h"
 #include "http.h"
 #include "hcache.h"

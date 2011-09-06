@@ -44,8 +44,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "visual_progress.h"
 
 #include "if/core/http.h"

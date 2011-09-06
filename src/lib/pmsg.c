@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "pmsg.h"
 #include "halloc.h"
 #include "walloc.h"

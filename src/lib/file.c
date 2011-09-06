@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "concat.h"			/* For concat_strings() */
 #include "file.h"
 #include "debug.h"

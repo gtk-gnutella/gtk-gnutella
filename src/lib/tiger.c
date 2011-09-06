@@ -48,8 +48,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "endian.h"
 #include "misc.h"
 #include "base32.h"

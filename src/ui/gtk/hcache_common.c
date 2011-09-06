@@ -25,8 +25,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "hcache_common.h"
 #include "gtk/notebooks.h"
 

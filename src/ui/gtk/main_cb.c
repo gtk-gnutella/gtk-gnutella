@@ -25,8 +25,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "html_view.h"
 #include "main.h"
 #include "main_cb.h"

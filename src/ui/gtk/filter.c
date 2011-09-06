@@ -36,8 +36,6 @@
 
 #include "gui.h"
 
-RCSID("$Id$")
-
 #include "gtk/misc.h"
 
 #include "filter.h"

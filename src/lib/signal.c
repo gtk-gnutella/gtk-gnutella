@@ -35,8 +35,6 @@
 
 #include "common.h"		/* For RCSID */
 
-RCSID("$Id$")
-
 #include "signal.h"
 #include "ckalloc.h"
 #include "log.h"

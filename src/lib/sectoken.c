@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "sectoken.h"
 #include "atoms.h"			/* For binary_hash() */
 #include "cq.h"

@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "stringify.h"
 #include "ascii.h"
 #include "endian.h"

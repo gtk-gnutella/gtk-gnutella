@@ -76,8 +76,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include <math.h>		/* For pow() */
 
 #include "guess.h"

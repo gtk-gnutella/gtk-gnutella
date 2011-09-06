@@ -36,8 +36,6 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$")
-
 #include "search_cb.h"
 
 #include "gtk/columns.h"

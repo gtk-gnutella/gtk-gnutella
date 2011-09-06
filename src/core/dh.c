@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "dh.h"
 #include "nodes.h"
 #include "gmsg.h"

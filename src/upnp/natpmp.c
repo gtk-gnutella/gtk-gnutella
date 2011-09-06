@@ -44,8 +44,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "natpmp.h"
 
 #include "core/urpc.h"

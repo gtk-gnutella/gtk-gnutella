@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "urpc.h"
 #include "sockets.h"
 #include "inet.h"

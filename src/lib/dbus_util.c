@@ -40,8 +40,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "dbus_util.h"
 #include "misc.h"			/* For str_chomp() */
 #include "halloc.h"			/* For h_strdup() */

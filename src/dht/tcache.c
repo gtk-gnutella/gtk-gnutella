@@ -68,8 +68,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "tcache.h"
 #include "lookup.h"
 #include "token.h"

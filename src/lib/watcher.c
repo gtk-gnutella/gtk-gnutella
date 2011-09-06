@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "watcher.h"
 #include "atoms.h"
 #include "cq.h"

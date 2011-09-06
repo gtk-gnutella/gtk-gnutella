@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "wd.h"
 #include "atoms.h"
 #include "cq.h"

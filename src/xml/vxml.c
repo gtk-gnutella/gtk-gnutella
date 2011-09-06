@@ -35,8 +35,6 @@
 
 #include "common.h"
 
-RCSID("$Id$")
-
 #include "vxml.h"
 #include "xattr.h"
 #include "xfmt.h"
