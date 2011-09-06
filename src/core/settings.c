@@ -99,7 +99,6 @@
 RCSID("$Id$")
 
 static const char config_file[] = "config_gnet";
-static const char ul_stats_file[] = "upload_stats";
 
 static const mode_t IPC_DIR_MODE = S_IRUSR | S_IWUSR | S_IXUSR; /* 0700 */
 static const mode_t PID_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
@@ -720,13 +719,7 @@ settings_init(void)
 		}
 	}
 
-	{
-		char *path;
-
-		path = make_pathname(config_dir, ul_stats_file);
-		upload_stats_load_history(path);	/* Loads the upload statistics */
-		HFREE_NULL(path);
-	}
+	upload_stats_load_history();	/* Loads the upload statistics */
 
 
 	/* watch for filter_file defaults */
