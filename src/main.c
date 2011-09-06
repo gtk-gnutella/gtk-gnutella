@@ -265,6 +265,34 @@ main_get_build(void)
 }
 
 /**
+ * Get full build number string.
+ */
+const char *
+main_get_build_full(void)
+{
+	static char *result;
+
+	if (NULL == result) {
+		const char *p;
+		p = is_strprefix(GTA_BUILD, "$Revision: ");
+		if (p != NULL) {
+			char *tmp;
+			char *q;
+
+			tmp = h_strdup(p);
+			q = strchr(tmp, ' ');
+			if (q != NULL)
+				*q = '\0';		/* Truncate at first space */
+
+			result = ostrdup(tmp);
+			HFREE_NULL(tmp);
+		}
+	}
+
+	return result;
+}
+
+/**
  * Are we debugging anything at a level greater than some threshold "t"?
  */
 gboolean
