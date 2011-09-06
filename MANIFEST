@@ -239,6 +239,7 @@ po/zh_CN.po
 scripts/fix_copyright.pl
 scripts/generic-cat
 scripts/geo-to-db.pl
+scripts/git-version.sh
 scripts/gtkg-dbus-listener.py
 scripts/gtkg-version
 scripts/magnet-handler.sh
@@ -777,8 +778,6 @@ src/lib/zalloc.h
 src/lib/zlib_util.c
 src/lib/zlib_util.h
 src/main.c
-src/revision.h
-src/revision_h.SH
 src/sdbm/CHANGES
 src/sdbm/Jmakefile
 src/sdbm/Makefile.SH
