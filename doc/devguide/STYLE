@@ -1,7 +1,6 @@
 Ladies and gentleman, here's the 
        
     GTK-GNUTELLA CODING STYLE GUIDELINE
-    $Id$
 
 0. INTRODUCTION ********************************************************
 
@@ -45,8 +44,6 @@ Ladies and gentleman, here's the
 2.1  Every file must start with a comment block like this:
 
         /*
-         * $Id$
-         *
          * Copyright (c) [year], [name of the author]
          *
          *----------------------------------------------------------------------
@@ -81,9 +78,6 @@ Ladies and gentleman, here's the
          * (@version [number])
          * @date [year]
          */
-
-    The tag $Id$ is expanded
-    by SVN when the file is committed.
 
     The bracketed sections "[...]" have to be replaced by the respective
     things they describe. "(...)" sections are optional, also you can use
