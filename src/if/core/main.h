@@ -29,6 +29,7 @@
 #include "common.h"
 
 guint32 main_get_build(void);
+const char *main_get_build_full(void);
 
 #ifdef CORE_SOURCES
 
