@@ -151,7 +151,7 @@ static GHashTable *fi_by_outname;
 static GHashTable *fi_by_guid;
 
 static const char file_info_file[] = "fileinfo";
-static const char file_info_what[] = "the fileinfo database";
+static const char file_info_what[] = "fileinfo database";
 static gboolean fileinfo_dirty = FALSE;
 static gboolean can_swarm = FALSE;		/**< Set by file_info_retrieve() */
 static gboolean can_publish_partial_sha1;
@@ -2897,7 +2897,7 @@ file_info_retrieve(void)
 	can_swarm = TRUE;			/* Allows file_info_try_to_swarm_with() */
 
 	file_path_set(&fp, settings_config_dir(), file_info_file);
-	f = file_config_open_read("fileinfo database", &fp, 1);
+	f = file_config_open_read(file_info_what, &fp, 1);
 	if (!f)
 		return;
 
