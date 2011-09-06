@@ -1,13 +1,33 @@
 #!/bin/sh
 
-DEF_VER=v0.97
+DIR=scripts
+
+if test -d $DIR; then TOP=.;
+elif test -d ../$DIR; then TOP=..;
+elif test -d ../../$DIR; then TOP=../..;
+elif test -d ../../../$DIR; then TOP=../../..;
+elif test -d ../../../../$DIR; then TOP=../../../..;
+else
+	echo "Can't find the $DIR directory."; exit 1
+fi
+
+# Build reasonable default
+FILE=$TOP/src/gtk-gnutella.h
+
+version=`grep "define GTA_VERSION" $FILE | head -n1 | awk '{ print $3 }'`
+subversion=`grep "define GTA_SUBVERSION" $FILE | head -n1 | awk '{ print $3 }'`
+patchlevel=`grep "define GTA_PATCHLEVEL" $FILE | head -n1 | awk '{ print $3 }'`
+revchar=`grep "define GTA_REVCHAR" $FILE | head -n1 | awk '{ print $3 }'`
+revchar=`echo $revchar | sed -e 's/"//g'`
+
+DEF_VER=$version.$subversion.$patchlevel$revchar
 
 LF='
 '
 
 # First see if there is a version file (included in release tarballs),
 # then try git-describe, then default.
-if test -f version
+if test -f $TOP/version
 then
 	VN=$(cat version) || VN="$DEF_VER"
 elif git describe >/dev/null 2>&1 &&
