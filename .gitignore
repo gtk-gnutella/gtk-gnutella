@@ -2,6 +2,7 @@
 *.[oa]
 Makefile
 Makefile.bak
+MANIFEST.new
 
 /config.h
 /mkdep
