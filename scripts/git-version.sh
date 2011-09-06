@@ -31,12 +31,19 @@ echo $VN
 V=$VN
 
 VMajor=${V%%.*}
-V=${V:${#VMajor}}
+V=`echo $V | sed -e s/^$VMajor//`
 
-[ "${V:0:1}" == "." ] && V=${V:1} && VMinor=${V%%[.-]*}
-V=${V:${#VMinor}}
+VMinor=`echo $V | sed -e 's/^\.\([0-9]*\).*/\1/'`
+V=`echo $V | sed -e s/^.$VMinor//`
+case "$V" in
+.*) VPatch=`echo $V | sed -e 's/^\.\([0-9]*\).*/\1/'`;;
+*) VPatch=0;;
+esac
 
-[ "${V:0:1}" == "." ] && V=${V:1} && VPatch=${V%%-*} && V=${V:${#VPatch}} || VPatch=0
+# Strip "u" or "b" in the version, if present
+case "$V" in
+[a-z]*) VRev=`echo $V | sed -e s/^[a-z]//`;;
+*) VRev=$V;;
+esac
 
-VRev=${V:1}
-
+VRev=`echo $VRev | sed -e s/^-//`

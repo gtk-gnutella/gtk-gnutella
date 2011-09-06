@@ -777,8 +777,6 @@ src/lib/zalloc.h
 src/lib/zlib_util.c
 src/lib/zlib_util.h
 src/main.c
-src/revision.h
-src/revision_h.SH
 src/sdbm/CHANGES
 src/sdbm/Jmakefile
 src/sdbm/Makefile.SH
