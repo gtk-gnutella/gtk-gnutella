@@ -44,12 +44,5 @@ oldrev=`grep Revision src/revision.h 2>/dev/null | head -n1 | cut -d' ' -f4`
 . scripts/git-version.sh >/dev/null
 revnum=$VRev
 
-FILE=src/gtk-gnutella.h
-
-version=`grep "define GTA_VERSION" $FILE | head -n1 | awk '{ print $3 }'`
-subversion=`grep "define GTA_SUBVERSION" $FILE | head -n1 | awk '{ print $3 }'`
-patchlevel=`grep "define GTA_PATCHLEVEL" $FILE | head -n1 | awk '{ print $3 }'`
-revchar=`grep "define GTA_REVCHAR" $FILE | head -n1 | awk '{ print $3 }'`
-revchar=`echo $revchar | sed -e 's/"//g'`
-
+# These variables computed in git-version.sh
 echo $version.$subversion.$patchlevel$revchar-$revnum

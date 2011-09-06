@@ -12,12 +12,12 @@ else
 fi
 
 # Build reasonable default
-FILE=$TOP/src/gtk-gnutella.h
+file=$TOP/src/gtk-gnutella.h
 
-version=`grep "define GTA_VERSION" $FILE | head -n1 | awk '{ print $3 }'`
-subversion=`grep "define GTA_SUBVERSION" $FILE | head -n1 | awk '{ print $3 }'`
-patchlevel=`grep "define GTA_PATCHLEVEL" $FILE | head -n1 | awk '{ print $3 }'`
-revchar=`grep "define GTA_REVCHAR" $FILE | head -n1 | awk '{ print $3 }'`
+version=`grep "define GTA_VERSION" $file | head -n1 | awk '{ print $3 }'`
+subversion=`grep "define GTA_SUBVERSION" $file | head -n1 | awk '{ print $3 }'`
+patchlevel=`grep "define GTA_PATCHLEVEL" $file | head -n1 | awk '{ print $3 }'`
+revchar=`grep "define GTA_REVCHAR" $file | head -n1 | awk '{ print $3 }'`
 revchar=`echo $revchar | sed -e 's/"//g'`
 
 DEF_VER=$version.$subversion.$patchlevel$revchar
