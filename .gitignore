@@ -14,6 +14,7 @@ Makefile.bak
 
 /src/gtk-gnutella
 /src/gtk-gnutella.nm
+/src/revision.h
 
 /src/lib/bit_array.h
 /src/lib/bit_field.h

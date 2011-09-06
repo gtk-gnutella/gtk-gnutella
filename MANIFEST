@@ -239,6 +239,7 @@ po/zh_CN.po
 scripts/fix_copyright.pl
 scripts/generic-cat
 scripts/geo-to-db.pl
+scripts/git-version.sh
 scripts/gtkg-dbus-listener.py
 scripts/gtkg-version
 scripts/magnet-handler.sh
