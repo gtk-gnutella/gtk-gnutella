@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2004, Alex Bennee <alex@bennee.com>
  * Copyright (c) 2011, Raphael Manfredi
  *

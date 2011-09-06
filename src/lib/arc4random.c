@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 1996, David Mazieres <dm@lcs.mit.edu>.
  *
  * Adaptated for inclusion in gtk-gnutella by Raphael Manfredi.

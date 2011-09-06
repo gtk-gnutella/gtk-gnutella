@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * This file comes from RFC 3174. Inclusion in gtk-gnutella is:
  *
  *   Copyright (c) 2002-2003, Raphael Manfredi

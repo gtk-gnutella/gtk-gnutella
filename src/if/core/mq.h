@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2011, Raphael Manfredi
  *
  * Interface definition file.  One of the files that defines structures,

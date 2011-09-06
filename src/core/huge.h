@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2002-2003, Ch. Tronche & Raphael Manfredi
  *
  * Started by Ch. Tronche (http://tronche.com/) 28/04/2002

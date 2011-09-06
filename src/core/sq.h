@@ -1,7 +1,5 @@
 /* -*- mode: cc-mode; tab-width:4; -*-
  *
- * $Id$
- *
  * Copyright (c) 2002-2003, Alex Bennee <alex@bennee.com> & Raphael Manfredi
  *
  *----------------------------------------------------------------------

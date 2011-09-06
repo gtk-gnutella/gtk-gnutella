@@ -33,8 +33,6 @@ static int yygrowstack(void);
 #define YYPREFIX "yy"
 #line 2 "getdate.y"
 /*
- * $Id$
- *
  * Date parsing.
  *
  *----------------------------------------------------------------------

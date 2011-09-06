@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2005, Martijn van Oosterhout <kleptog@svana.org>
  * Copyright (c) 2005, 2011 Raphael Manfredi
  *

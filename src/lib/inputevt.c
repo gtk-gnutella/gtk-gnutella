@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2002, ko (ko-@wanadoo.fr)
  * Copyright (c) 2005, Christian Biere
  *

@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2003-2004, Jeroen Asselman
  * Copyright (c) 2005, Martijn van Oosterhout <kleptog@svana.org>
  *

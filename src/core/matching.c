@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2001-2003, Raphael Manfredi
  *
  * Search bins are Copyright (c) 2001-2003, Kenn Brooks Hamm & Raphael Manfredi

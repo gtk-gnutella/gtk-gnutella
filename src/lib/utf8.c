@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2002-2003, 2010, Raphael Manfredi
  * Copyright (c) 2004-2006, Christian Biere
  *

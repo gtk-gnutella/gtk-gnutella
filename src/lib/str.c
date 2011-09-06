@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 1996-2000, 2007, 2010 Raphael Manfredi
  *
  * This code given by Raphael Manfredi, extracted from his fm2html package.

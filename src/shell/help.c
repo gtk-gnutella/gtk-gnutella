@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2002-2003, Richard Eckart
  * Copyright (c) 2007, Raphael Manfredi
  *
