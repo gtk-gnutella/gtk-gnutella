@@ -367,7 +367,7 @@ shared_file_deindex(shared_file_t *sf)
 	}
 	sf->flags &= ~SHARE_F_BASENAME;
 
-	/**
+	/*
 	 * The shared file might not be referenced by the current file_table
 	 * either because it hasn't been build yet or because of a rescan.
 	 */
@@ -393,6 +393,22 @@ shared_file_deindex(shared_file_t *sf)
 	sf->file_index = 0;
 	sf->sort_index = 0;
 	sf->flags &= ~SHARE_F_INDEXED;
+
+	/*
+	 * Shared file is no longer indexed so it no longer belongs to the
+	 * shared set and needs to be removed if it was referenced there.
+	 */
+
+	if (sf->sha1 != NULL) {
+		shared_file_t *current;
+		gpointer key;
+
+		key = deconstify_gpointer(sf->sha1);
+		current = g_tree_lookup(sha1_to_share, key);
+		if (current == sf) {
+			g_tree_remove(sha1_to_share, key);
+		}
+	}
 }
 
 /**
