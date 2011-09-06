@@ -10,7 +10,7 @@ LF='
 if test -f version
 then
 	VN=$(cat version) || VN="$DEF_VER"
-elif test -d .git -o -f .git &&
+elif git describe >/dev/null 2>&1 &&
 	VN=$(git describe --match "v[0-9]*" --abbrev=4 HEAD 2>/dev/null) &&
 	case "$VN" in
 	*$LF*) (exit 1) ;;
