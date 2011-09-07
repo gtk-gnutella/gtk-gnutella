@@ -1106,8 +1106,13 @@ sha1_to_base32_buf(const struct sha1 *sha1, char *dst, size_t size)
 {
 	g_assert(sha1);
 	if (size > 0) {
-		base32_encode(dst, size, sha1->data, sizeof sha1->data);
-		dst[size - 1] = '\0';
+		size_t len;
+		size_t offset;
+
+		len = base32_encode(dst, size, sha1->data, sizeof sha1->data);
+		g_assert(len <= size);
+		offset = len < size ? len : size - 1;
+		dst[offset] = '\0';
 	}
 	return dst;
 }
@@ -1124,6 +1129,45 @@ sha1_base32(const struct sha1 *sha1)
 
 	g_assert(sha1);
 	return sha1_to_base32_buf(sha1, digest_b32, sizeof digest_b32);
+}
+
+/**
+ * Convert binary SHA1 into a base16 string.
+ *
+ * @param dst The destination buffer for the string.
+ * @param size The size of "dst" in bytes; should be larger than
+ *             SHA1_BASE16_SIZE, otherwise the resulting string will be
+ *             truncated.
+ * @return dst.
+ */
+char *
+sha1_to_base16_buf(const struct sha1 *sha1, char *dst, size_t size)
+{
+	g_assert(sha1);
+	if (size > 0) {
+		size_t len;
+		size_t offset;
+
+		len = base16_encode(dst, size, sha1->data, sizeof sha1->data);
+		g_assert(len <= size);
+		offset = len < size ? len : size - 1;
+		dst[offset] = '\0';
+	}
+	return dst;
+}
+
+/**
+ * Convert binary SHA1 into a base16 string.
+ *
+ * @return pointer to static data.
+ */
+const char *
+sha1_base16(const struct sha1 *sha1)
+{
+	static char digest_b16[SHA1_BASE16_SIZE + 1];
+
+	g_assert(sha1);
+	return sha1_to_base16_buf(sha1, digest_b16, sizeof digest_b16);
 }
 
 const char *

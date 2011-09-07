@@ -152,6 +152,8 @@ const char *sha1_to_urn_string(const struct sha1 *);
 size_t sha1_to_urn_string_buf(const struct sha1 *, char *dst, size_t size);
 char *sha1_to_base32_buf(const struct sha1 *, char *dst, size_t size);
 const char *sha1_base32(const struct sha1 *);
+char *sha1_to_base16_buf(const struct sha1 *, char *dst, size_t size);
+const char *sha1_base16(const struct sha1 *);
 const struct sha1 *base32_sha1(const char *base32);
 
 static inline G_GNUC_PURE int
