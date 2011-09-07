@@ -1,5 +1,5 @@
 The 'GTKGV' GGEP Extension
-======================
+==========================
 
 Name: GTKGV
 Version: 0
@@ -15,14 +15,84 @@ version information.  It appears in the extension trailer of the Query Hits.
 
 The payload format is (BE stands for Big-Endian):
 
-    <ver>			1 byte		extension version (0)
-    <major>			1 byte		major release
-    <minor>			1 byte		minor release
-    <patchlevel>	1 byte		patch-level
-    <lettercode>	1 byte		'u', 'b', or '\0' if none
-    <release time>	4 bytes BE	UNIX timestamp of release date (GMT)
-    <build>			4 bytes	BE	build number
+    <ver>           1 byte      extension version (0)
+    <major>         1 byte      major release
+    <minor>         1 byte      minor release
+    <patchlevel>    1 byte      patch-level
+    <lettercode>    1 byte      'u', 'b', or '\0' if none
+    <release time>  4 bytes BE  UNIX timestamp of release date (GMT)
+    <build>         4 bytes BE  build number
 
 Total payload size: 13 bytes
+
+The payload is never deflated nor COBS-encoded.
+
+--------------------------
+
+Name: GTKGV
+Version: 1
+Status: Production
+Date: Tue Sep  6 23:28:56 CEST 2011
+Format: [regular GTKGV v0 payload] <flags> [variable]
+COBS-Encoding: Never
+Deflate: Never
+
+This extension is backward compatible with version 0 with the following
+additions / changes:
+
+* The first byte <ver> is the number 1.
+* The following fields are added:
+
+    <flags>         variable      flags (see below)
+
+The first byte of the <flags> are architected thusly:
+
+    bit 0           indicates git's commit identifier present
+    bit 1           "dirty", signals uncommitted local changes at build time
+    bit 2           indicates OS code present
+    bit 3 to 6      RESERVED
+    bit 7           if set, indicates an additional <flags> byte
+
+The 7th bit of the flags is a "continuation" flag.  Each continuation byte
+will abide the same logic, so that one can easily skip over flags that one
+does not understand or know about.  The first bit of the second flag byte
+will be denoted as bit 8.
+
+To allow for easier extension of the payload without having to increase
+the version number, v1 handlers MUST be prepared to skip over all the flags
+bytes present before continuing the parsing of the payload.
+
+Extensions following the flags are listed in the order they are listed as
+present by the flags, in increasing bit order.  This means extension specified
+by bit 0 will be serialized before that of bit 2, for instance.
+
+* For "git" versionning, the following fields are following the <flags>:
+
+    <commit-len>    1 byte      amount of nybbles in the commit identifier
+    <commit-bin>    variable    identifies the GIT commit SHA1 identifier
+
+The <commit-len> byte holds the amount of significant nybbles present
+in the <commit-bin> field.  One byte is made of 2 nybbles, and each nybble
+corresponds to an hexadecimal digit.  For instance "2ad35" is made of 5
+nybbles, stored in 3 bytes (the last nybble is zeroed and MUST be ignored).
+The binary representation is big-endian.
+
+* OS codes are specified thusly:
+
+    <os>            1 byte      OS code
+
+The following table represents the operating systems we advertise:
+
+    0               Unknown OS
+    1               Generic UNIX-type
+    2               Generic UNIX BSD type
+    3               Linux
+    4               FreeBSD
+    5               NetBSD
+    6               Windows
+    7               Mac OSX
+
+The total payload size is variable but typically the git commit
+identifier will fit in 4 bytes, making the extension payload 20 bytes.
 
 The payload is never deflated nor COBS-encoded.
