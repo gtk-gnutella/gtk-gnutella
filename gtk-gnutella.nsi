@@ -15,9 +15,6 @@
 !insertmacro Script 'echo -n \"!define DLLDIR_GNUTLS \"'
 !insertmacro Script 'pkg-config gnutls --libs-only-L | cut -c3- | \ 
 	sed -e s,gtk/lib,gtk/bin,' 
-!insertmacro Script 'echo -n \"!define DLLDIR_XML2 \"'
-!insertmacro Script 'pkg-config gnutls --libs-only-L | cut -c3- | \
-	sed -e s/gtk/xml2/ -e s,xml2/lib,xml2/bin,' 
 !insertmacro Script 'echo \"!define MINGW $MINGW\"'
 
 ; gtk installer name for embedding
@@ -173,9 +170,6 @@ SectionIn 1 RO
 
 	File ${MINGW}\bin\libiconv-2.dll
 	File ${MINGW}\bin\libpthread-2.dll
-
-	; Include XML2
-	File ${DLLDIR_XML2}\libxml2-2.dll
 
 	; Include gnutls
 	File ${DLLDIR_GNUTLS}\libgnutls-26.dll
@@ -445,8 +439,6 @@ Section Uninstall
 	Delete "$INSTDIR\gtk-gnutella.exe"
 	Delete "$INSTDIR\gtk-gnutella.nm"
 	Delete "$INSTDIR\icon.ico"
-	Delete "$INSTDIR\libxml2-2.dll"
-	Delete "$INSTDIR\libxml2.dll"
 	Delete "$INSTDIR\libiconv-2.dll"
 	Delete "$INSTDIR\libpthread-2.dll"
 	Delete "$INSTDIR\libiconv.dll"
