@@ -27,7 +27,7 @@ LF='
 
 # First see if there is a version file (included in release tarballs),
 # then try git-describe, then default.
-if test -f $TOP/version
+if test -s $TOP/version
 then
 	VN=$(cat version) || VN="$DEF_VER"
 elif git describe >/dev/null 2>&1 &&
