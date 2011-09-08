@@ -13,6 +13,9 @@ MANIFEST.new
 /config.sh.old
 /install
 
+# This file is used to hardwire the result of scripts/git-version.sh
+/version
+
 /src/gtk-gnutella
 /src/gtk-gnutella.nm
 /src/revision.h
