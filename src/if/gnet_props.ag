@@ -4098,7 +4098,7 @@ prop = {
 		"you can also set spam_lut_in_memory to FALSE.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
