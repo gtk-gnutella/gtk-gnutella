@@ -974,16 +974,16 @@ msgid "IP denying uploads"
 msgstr "Η IP αρνείται τις αποστολές"
 
 #, fuzzy, c-format
-msgid " - Newer versions available: release %s / from SVN %s"
-msgstr " - Υπάρχουν νεότερες εκδόσεις διαθέσιμες: έκδοση %s / από CVS %s"
+msgid " - Newer versions available: release %s / from git %s"
+msgstr " - Υπάρχουν νεότερες εκδόσεις διαθέσιμες: έκδοση %s / από git %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr " - Υπάρχει νεότερη έκδοση διαθέσιμη: έκδοση %s"
 
 #, fuzzy, c-format
-msgid " - Newer version available: from SVN %s"
-msgstr " - Υπάρχει νεότερη έκδοση διαθέσιμη: από CVS %s"
+msgid " - Newer version available: from git %s"
+msgstr " - Υπάρχει νεότερη έκδοση διαθέσιμη: από git %s"
 
 msgid "No proxy"
 msgstr "Χωρίς διαμεσολαβητή"

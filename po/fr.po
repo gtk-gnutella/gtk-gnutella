@@ -913,16 +913,16 @@ msgid "IP denying uploads"
 msgstr "L'IP interdit les envois"
 
 #, c-format
-msgid " - Newer versions available: release %s / from SVN %s"
-msgstr " - Nouvelles versions disponibles : version %s / depuis SVN %s"
+msgid " - Newer versions available: release %s / from git %s"
+msgstr " - Nouvelles versions disponibles : version %s / depuis git %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr " - Nouvelle version disponible : version %s"
 
 #, c-format
-msgid " - Newer version available: from SVN %s"
-msgstr " - Nouvelle version disponible : depuis SVN %s"
+msgid " - Newer version available: from git %s"
+msgstr " - Nouvelle version disponible : depuis git %s"
 
 msgid "No proxy"
 msgstr "Pas de proxy"

@@ -1022,16 +1022,16 @@ msgid "IP denying uploads"
 msgstr "IP がアップロードを拒否します"
 
 #, c-format
-msgid " - Newer versions available: release %s / from SVN %s"
-msgstr " - 新しいバージョンが利用可能です: リリース %s / SVN %s"
+msgid " - Newer versions available: release %s / from git %s"
+msgstr " - 新しいバージョンが利用可能です: リリース %s / git %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr " - 新しいバージョンが利用可能です: リリース %s"
 
 #, c-format
-msgid " - Newer version available: from SVN %s"
-msgstr " - 新しいバージョンが利用可能です: SVN %s"
+msgid " - Newer version available: from git %s"
+msgstr " - 新しいバージョンが利用可能です: git %s"
 
 msgid "No proxy"
 msgstr "使用しない"

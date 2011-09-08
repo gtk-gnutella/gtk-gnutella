@@ -384,7 +384,7 @@ version_new_found(const char *text, gboolean stable)
 
 	if ('\0' != last_stable[0] && '\0' != last_dev[0]) {
 		gm_snprintf(s, sizeof s,
-			_(" - Newer versions available: release %s / from SVN %s"),
+			_(" - Newer versions available: release %s / from git %s"),
 			last_stable, last_dev);
 	} else if ('\0' != last_stable[0]) {
 		gm_snprintf(s, sizeof s,
@@ -392,7 +392,7 @@ version_new_found(const char *text, gboolean stable)
 			last_stable);
 	} else if ('\0' != last_dev[0]) {
 		gm_snprintf(s, sizeof s,
-			_(" - Newer version available: from SVN %s"),
+			_(" - Newer version available: from git %s"),
 			last_dev);
 	}
 

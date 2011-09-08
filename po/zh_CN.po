@@ -936,16 +936,16 @@ msgid "IP denying uploads"
 msgstr "IP 正拒绝上传"
 
 #, c-format
-msgid " - Newer versions available: release %s / from SVN %s"
-msgstr " - 新版本可用：发布版 %s / SVN 版本 %s"
+msgid " - Newer versions available: release %s / from git %s"
+msgstr " - 新版本可用：发布版 %s / git 版本 %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr " - 新版本可用：发布版 %s"
 
 #, c-format
-msgid " - Newer version available: from SVN %s"
-msgstr " - 新版本可用：SVN 版本 %s"
+msgid " - Newer version available: from git %s"
+msgstr " - 新版本可用：git 版本 %s"
 
 msgid "No proxy"
 msgstr "无代理"

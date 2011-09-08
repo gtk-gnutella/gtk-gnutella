@@ -929,16 +929,16 @@ msgid "IP denying uploads"
 msgstr "IP nekter opplastinger"
 
 #, c-format
-msgid " - Newer versions available: release %s / from SVN %s"
-msgstr " - Nyere versjoner tilgjengelig: utgivelse %s / fra SVN %s"
+msgid " - Newer versions available: release %s / from git %s"
+msgstr " - Nyere versjoner tilgjengelig: utgivelse %s / fra git %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr "- Nyere versjon tilgjengelig: utgivelse %s"
 
 #, c-format
-msgid " - Newer version available: from SVN %s"
-msgstr " - Nyere versjon tilgjengelig: fra SVN %s"
+msgid " - Newer version available: from git %s"
+msgstr " - Nyere versjon tilgjengelig: fra git %s"
 
 msgid "No proxy"
 msgstr "Ingen mellomtjener"

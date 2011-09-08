@@ -934,7 +934,7 @@ msgid "IP denying uploads"
 msgstr ""
 
 #, c-format
-msgid " - Newer versions available: release %s / from SVN %s"
+msgid " - Newer versions available: release %s / from git %s"
 msgstr ""
 
 #, c-format
@@ -942,7 +942,7 @@ msgid " - Newer version available: release %s"
 msgstr ""
 
 #, c-format
-msgid " - Newer version available: from SVN %s"
+msgid " - Newer version available: from git %s"
 msgstr ""
 
 msgid "No proxy"

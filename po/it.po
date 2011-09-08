@@ -970,16 +970,16 @@ msgid "IP denying uploads"
 msgstr "IP che rifiuta caricamenti"
 
 #, fuzzy, c-format
-msgid " - Newer versions available: release %s / from SVN %s"
-msgstr " - Versioni più recenti disponibili: rilascio %s / dal CVS %s"
+msgid " - Newer versions available: release %s / from git %s"
+msgstr " - Versioni più recenti disponibili: rilascio %s / dal git %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr " - Versione più recente disponibile: rilascio %s"
 
 #, fuzzy, c-format
-msgid " - Newer version available: from SVN %s"
-msgstr " - Versione più recente disponibile: dal CVS %s"
+msgid " - Newer version available: from git %s"
+msgstr " - Versione più recente disponibile: dal git %s"
 
 msgid "No proxy"
 msgstr ""
