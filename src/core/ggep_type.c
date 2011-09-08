@@ -37,6 +37,7 @@
 #include "ggep_type.h"
 #include "hosts.h"				/* For struct gnutella_host */
 
+#include "lib/bstr.h"
 #include "lib/endian.h"
 #include "lib/gnet_host.h"
 #include "lib/misc.h"
@@ -44,6 +45,7 @@
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 
+#include "if/gnet_property_priv.h"
 #include "if/core/search.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -121,6 +123,101 @@ ggept_h_tth_extract(const extvec_t *exv, struct tth *tth)
 }
 
 /**
+ * The known OS names we encode into the GTKGV extension.
+ */
+static const char *gtkgv_osname[] = {
+	"Unknown OS",				/* 0 */
+	"UNIX",						/* 1 */
+	"BSD",						/* 2 */
+	"Linux",					/* 3 */
+	"FreeBSD",					/* 4 */
+	"NetBSD",					/* 5 */
+	"Windows",					/* 6 */
+	"Darwin",					/* 7 */
+};
+
+/**
+ * @return the OS name encoded into a GTKGV extension.
+ */
+static const char *
+ggept_gtkgv_osname(guint8 value)
+{
+	return value >= G_N_ELEMENTS(gtkgv_osname) ?
+		gtkgv_osname[0] : gtkgv_osname[value];
+}
+
+/**
+ * Given a system name, look how it should be encoded in GTKGV.
+ */
+static guint8
+ggept_gtkgv_osname_encode(const char *sysname)
+{
+	guint8 result = 0;
+	size_t i;
+
+	/*
+	 * First some defaults in case we don't get an exact match.
+	 */
+
+	if (is_running_on_mingw())
+		result = 6;
+	else if (strstr(sysname, "BSD"))
+		result = 2;
+	else
+		result = 1;
+
+	/*
+	 * Now attempt a case-insensitive match to see whether we have
+	 * something more specific to use than the defaults.
+	 */
+
+	for (i = 3; i < G_N_ELEMENTS(gtkgv_osname); i++) {
+		if (0 == strcasecmp(sysname, gtkgv_osname[i])) {
+			result = i;
+			break;
+		}
+	}
+
+	if (GNET_PROPERTY(ggep_debug)) {
+		g_debug("GGEP encoded OS name \"%s\" in GTKGV will be %u",
+			sysname, result);
+	}
+
+	return result;
+}
+
+/**
+ * @return the value that should be advertised as the OS name.
+ */
+guint8
+ggept_gtkgv_osname_value(void)
+{
+	static guint8 result = -1;
+
+	/*
+	 * Computation only happens once.
+	 */
+
+	if (result >= G_N_ELEMENTS(gtkgv_osname)) {
+#ifdef HAS_UNAME
+		{
+			struct utsname un;
+
+			if (-1 != uname(&un)) {
+				result = ggept_gtkgv_osname_encode(un.sysname);
+			} else {
+				g_carp("uname() failed: %s", g_strerror(errno));
+			}
+		}
+#else
+		result = 0;
+#endif /* HAS_UNAME */
+	}
+
+	return result;
+}
+
+/**
  * Extract payload information from "GTKGV" into `info'.
  */
 ggept_status_t
@@ -128,6 +225,7 @@ ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
 {
 	const char *p;
 	int tlen;
+	ggept_status_t status = GGEP_OK;
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_GTKGV);
@@ -159,7 +257,65 @@ ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
 	info->release = peek_be32(&p[5]);
 	info->build = peek_be32(&p[9]);
 
-	return GGEP_OK;
+	info->dirty = FALSE;
+	info->commit_len = 0;
+	ZERO(&info->commit);
+	info->osname = NULL;
+
+	if (info->version >= 1) {
+		bstr_t *bs;
+		guint8 flags;
+
+		bs = bstr_open(p, tlen, GNET_PROPERTY(ggep_debug) ? BSTR_F_ERROR : 0);
+		bstr_skip(bs, 13);
+
+		if (bstr_read_u8(bs, &flags)) {
+			guint8 aflags = flags;
+
+			/*
+			 * Swallow extra flags, if present (for now we expect only 1 byte).
+			 */
+
+			while ((aflags & GTKGV_F_CONT) && bstr_read_u8(bs, &aflags))
+				/* empty */;
+
+
+			info->dirty = booleanize(aflags & GTKGV_F_DIRTY);
+
+			/*
+			 * Process git commit SHA1, if present.
+			 */
+
+			if (aflags & GTKGV_F_GIT) {
+				if (bstr_read_u8(bs, &info->commit_len)) {
+					if (info->commit_len <= 2 * SHA1_RAW_SIZE) {
+						guint8 bytes = (info->commit_len + 1) / 2;
+						if (!bstr_read(bs, &info->commit, bytes)) {
+							status = GGEP_INVALID;
+						}
+					} else {
+						status = GGEP_INVALID;
+					}
+				}
+			}
+
+			/*
+			 * Process OS information is present and we got no error so far.
+			 */
+
+			if ((aflags & GTKGV_F_OS) && GGEP_OK == status) {
+				guint8 value;
+
+				if (bstr_read_u8(bs, &value)) {
+					info->osname = ggept_gtkgv_osname(value);
+				}
+			}
+		}
+
+		bstr_free(&bs);
+	}
+
+	return status;
 }
 
 /**

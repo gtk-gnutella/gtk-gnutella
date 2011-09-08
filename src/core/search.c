@@ -1850,18 +1850,22 @@ search_results_handle_trailer(const gnutella_node_t *n,
 
 					ret = ggept_gtkgv_extract(e, &vi);
 					if (ret == GGEP_OK) {
-						version_t ver;
+						version_ext_t ver;
 
 						ZERO(&ver);
-						ver.major = vi.major;
-						ver.minor = vi.minor;
-						ver.patchlevel = vi.patch;
-						ver.tag = vi.revchar;
-						ver.build = vi.build;
-						if (ver.tag)
-							ver.timestamp = vi.release;
+						ver.version.major = vi.major;
+						ver.version.minor = vi.minor;
+						ver.version.patchlevel = vi.patch;
+						ver.version.tag = vi.revchar;
+						ver.version.build = vi.build;
+						if (ver.version.tag)
+							ver.version.timestamp = vi.release;
+						ver.commit_len = vi.commit_len;
+						ver.commit = vi.commit;		/* Struct copy */
+						ver.osname = vi.osname;		/* Static string */
+						ver.dirty = vi.dirty;
 
-						rs->version = atom_str_get(version_str(&ver));
+						rs->version = atom_str_get(version_ext_str(&ver));
 					} else if (ret == GGEP_INVALID) {
 						search_log_bad_ggep(n, e, vendor);
 					}

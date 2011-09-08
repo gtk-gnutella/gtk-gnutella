@@ -48,6 +48,7 @@
 #include "ipp_cache.h"
 #include "uploads.h"	/* For count_uploads */
 #include "sockets.h"	/* For socket_listen_port() */
+#include "version.h"	/* For version_get_commit() and version_is_dirty() */
 
 #include "if/gnet_property_priv.h"
 #include "if/core/main.h"			/* For main_get_build() */
@@ -433,7 +434,12 @@ flush_match(void)
 		guint32 release;
 		guint32 date = release_date;
 		guint32 build;
-		guint8 version = 0;		/* This is GTKGV version 0 */
+		guint8 version = 1;		/* This is GTKGV version 1 */
+		guint8 osname;
+		guint8 flags;
+		guint8 commit_len;
+		size_t commit_bytes;
+		const sha1_t *commit;
 		gboolean ok;
 
 #ifdef GTA_PATCHLEVEL
@@ -442,8 +448,16 @@ flush_match(void)
 		patch = 0;
 #endif
 
+		flags = GTKGV_F_GIT | GTKGV_F_OS;
+		if (version_is_dirty())
+			flags |= GTKGV_F_DIRTY;
+
 		poke_be32(&release, date);
 		poke_be32(&build, main_get_build());
+
+		commit = version_get_commit(&commit_len);
+		commit_bytes = (1 + commit_len) / 2;
+		osname = ggept_gtkgv_osname_value();
 
 		ok =
 			ggep_stream_begin(&gs, GGEP_NAME(GTKGV), 0) &&
@@ -454,6 +468,10 @@ flush_match(void)
 			ggep_stream_write(&gs, &revchar, 1) &&
 			ggep_stream_write(&gs, &release, 4) &&
 			ggep_stream_write(&gs, &build, 4) &&
+			ggep_stream_write(&gs, &flags, 1) &&
+			ggep_stream_write(&gs, &commit_len, 1) &&
+			ggep_stream_write(&gs, commit, commit_bytes) &&
+			ggep_stream_write(&gs, &osname, 1) &&
 			ggep_stream_end(&gs);
 
 		if (!ok)

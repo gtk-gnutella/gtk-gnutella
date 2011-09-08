@@ -46,8 +46,10 @@
 
 #include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/base16.h"
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
+#include "lib/misc.h"
 #include "lib/parse.h"
 #include "lib/tm.h"
 #include "lib/timestamp.h"
@@ -60,6 +62,7 @@ const char *version_string = NULL;
 const char *version_short_string = NULL;
 
 static version_t our_version;
+static version_ext_t our_ext_version;
 static version_t last_rel_version;
 static version_t last_dev_version;
 static guint8 version_code;
@@ -83,6 +86,27 @@ version_get_code(void)
 }
 
 /**
+ * Is our version indicating dirtyness?
+ */
+gboolean
+version_is_dirty(void)
+{
+	return our_ext_version.dirty;
+}
+
+/**
+ * Get commit string and commit length (amount of valid nybbles).
+ */
+const struct sha1 *
+version_get_commit(guint8 *len)
+{
+	if (len != NULL)
+		*len = our_ext_version.commit_len;
+
+	return &our_ext_version.commit;
+}
+
+/**
  * Dump original version string and decompiled form to stdout.
  */
 static void
@@ -92,6 +116,68 @@ version_dump(const char *str, const version_t *ver, const char *cmptag)
 		"major=%u minor=%u patch=%u tag=%c taglevel=%u build=%u",
 		cmptag, str, ver->major, ver->minor, ver->patchlevel,
 		ver->tag ? ver->tag : ' ', ver->taglevel, ver->build);
+}
+
+/**
+ * @return a user-friendly description of the extended version.
+ * NB: returns pointer to static data.
+ */
+const char *version_ext_str(const version_ext_t *vext)
+{
+	static char str[120];
+	const version_t *ver = &vext->version;
+	int rw;
+	gboolean has_extra = FALSE;
+	gboolean need_closing = FALSE;
+
+	rw = gm_snprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
+
+	if (ver->patchlevel)
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, ".%u", ver->patchlevel);
+
+	if (ver->tag) {
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%c", ver->tag);
+		if (ver->taglevel)
+			rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
+	}
+
+	if (ver->build)
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "-%u", ver->build);
+
+	if (vext->commit_len != 0) {
+		static char digest[SHA1_BASE16_SIZE + 1];
+		size_t offset = MIN(vext->commit_len, SHA1_BASE16_SIZE);
+
+		sha1_to_base16_buf(&vext->commit, digest, sizeof digest);
+		digest[offset] = '\0';
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "-g%s", digest);
+	}
+
+	if (vext->dirty)
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "-dirty");
+
+	if (ver->timestamp || vext->osname != NULL) {
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, " (");
+		need_closing = TRUE;
+	}
+
+	if (ver->timestamp) {
+		struct tm *tmp = localtime(&ver->timestamp);
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%d-%02d-%02d",
+			tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday);
+		has_extra = TRUE;
+	}
+
+	if (vext->osname != NULL) {
+		if (has_extra)
+			rw += gm_snprintf(&str[rw], sizeof(str)-rw, "; ");
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%s", vext->osname);
+	}
+
+	if (need_closing)
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, ")");
+
+	return str;
 }
 
 /**
@@ -178,16 +264,91 @@ version_stamp(const char *str, version_t *ver)
 	}
 }
 
+/**
+ * Parse extended build information (git's commit string + dirtyness)
+ * from a version string, starting at the first byte after the build number.
+ *
+ * A typical extended build information would look like:
+ *
+ *		-g5c02b-dirty
+ *
+ * The hexadecimal string after "-g" points to the leading git commit ID.
+ * The "-dirty" indication is present when the binary was built with
+ * uncommitted changes.
+ *
+ * @returns TRUE if we parsed the extended build information properly, FALSE
+ * if we were not facing a proper extension.
+ */
+static gboolean
+version_ext_parse(const char *str, version_ext_t *vext)
+{
+	const char *v;
+	const char *e;
+	size_t commit_len;
+	char commit[SHA1_BASE16_SIZE + 1];
+
+	v = is_strprefix(str, "-g");
+	if (NULL == v)
+		return FALSE;
+
+	/*
+	 * Compute the length of the hexadecimal string, up to the next '-' or
+	 * the next ' ' or the end of the string.
+	 */
+
+	e = strchr(v, ' ');
+	if (e != NULL) {
+		const char *d;
+		d = strchr(v, '-');
+		if (NULL == d || d > e) {
+			commit_len = e - v;		/* '-' before ' ' or no '-' at all */
+		} else {
+			commit_len = d - v;		/* '-' after ' ' */
+			e = d;
+		}
+	} else {
+		e = strchr(v, '-');
+		if (e != NULL) {
+			commit_len = e - v;
+		} else {
+			commit_len = strlen(v);
+		}
+	}
+
+	if (commit_len > SHA1_BASE16_SIZE)
+		return FALSE;
+
+	vext->commit_len = commit_len;
+
+	memset(commit, '0', sizeof commit - 1);
+	commit[SHA1_BASE16_SIZE] = '\0';
+	memcpy(commit, v, commit_len);
+
+	base16_decode(vext->commit.data, sizeof vext->commit,
+		commit, SHA1_BASE16_SIZE);
+
+	if (e != NULL && is_strprefix(e, "-dirty")) {
+		vext->dirty = TRUE;
+	} else {
+		vext->dirty = FALSE;
+	}
+
+	return TRUE;
+}
 
 /**
  * Parse gtk-gnutella's version number in User-Agent/Server string `str'
  * and extract relevant information into `ver'.
  *
+ * @param str	the version string to be parsed
+ * @param ver	the structure filled with parsed information
+ * @param end	filled with a pointer to the first unparsed character
+ *
  * @returns TRUE if we parsed a gtk-gnutella version correctly, FALSE if we
  * were not facing a gtk-gnutella version, or if we did not recognize it.
  */
 static gboolean
-version_parse(const char *str, version_t *ver)
+version_parse(const char *str, version_t *ver, const char **end)
 {
 	const char *v;
 	int error;
@@ -282,6 +443,9 @@ version_parse(const char *str, version_t *ver)
 	} else
 		ver->build = 0;
 
+	if (end != NULL)
+		*end = v;
+
 	if (GNET_PROPERTY(version_debug) > 1)
 		version_dump(str, ver, "#");
 
@@ -359,7 +523,7 @@ version_build_cmp(const version_t *a, const version_t *b)
 gboolean
 version_fill(const char *version, version_t *vs)
 {
-	if (!version_parse(version, vs))
+	if (!version_parse(version, vs, NULL))
 		return FALSE;
 
 	version_stamp(version, vs);			/* Optional, set to 0 if missing */
@@ -416,7 +580,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 	int cmp;
 	const char *version;
 
-	if (!version_parse(str, &their_version))
+	if (!version_parse(str, &their_version, NULL))
 		return TRUE;			/* Not gtk-gnutella, or unparseable */
 
 	/*
@@ -596,7 +760,7 @@ version_build_string(void)
 				sysname = un.sysname;
 				machine = un.machine;
 			} else {
-				g_warning("uname() failed: %s", g_strerror(errno));
+				g_carp("uname() failed: %s", g_strerror(errno));
 			}
 		}
 #endif /* HAS_UNAME */
@@ -625,8 +789,11 @@ version_init(void)
 
 	{
 		gboolean ok;
-		ok = version_parse(version_string, &our_version);
+		const char *end;
+
+		ok = version_parse(version_string, &our_version, &end);
 		g_assert(ok);
+		ok = version_ext_parse(end, &our_ext_version);
 	}
 
 	g_info("%s", version_string);
@@ -644,8 +811,9 @@ version_init(void)
 		version_short_string = atom_str_get(buf);
 	}
 
-	last_rel_version = our_version;		/* struct copy */
-	last_dev_version = our_version;		/* struct copy */
+	last_rel_version = our_version;			/* struct copy */
+	last_dev_version = our_version;			/* struct copy */
+	our_ext_version.version = our_version;	/* struct copy */
 
 	/*
 	 * The version code is a one-byte encoding of the year/month, since

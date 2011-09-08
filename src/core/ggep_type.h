@@ -50,6 +50,15 @@ typedef enum ggept_status {
 } ggept_status_t;
 
 /*
+ * Flags for the GTKGV extension (version >= 1).
+ */
+
+#define GTKGV_F_CONT	(1U << 7)	/**< Continuation flag */
+#define GTKGV_F_GIT		(1U << 0)	/**< Has git commit identifier */
+#define GTKGV_F_DIRTY	(1U << 1)	/**< Had local changes at build time */
+#define GTKGV_F_OS		(1U << 2)	/**< Has OS code */
+
+/*
  * Public interface.
  */
 
@@ -77,7 +86,14 @@ struct ggep_gtkgv {
 	guint8 revchar;
 	guint32 release;
 	guint32 build;
+	/* Introduced at version 1 */
+	const char *osname;		/**< Operating system name (static string) */
+	sha1_t commit;			/**< Commit version (may be partial) */
+	guint8 commit_len;		/**< Amount of valid nybbles */
+	unsigned dirty:1;
 };
+
+guint8 ggept_gtkgv_osname_value(void);
 
 ggept_status_t ggept_gtkgv_extract(const extvec_t *, struct ggep_gtkgv *info);
 ggept_status_t ggept_gtkgv1_extract(const extvec_t *, struct ggep_gtkgv1 *info);

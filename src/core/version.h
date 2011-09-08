@@ -52,6 +52,17 @@ typedef struct version {
 	time_t timestamp;
 } version_t;
 
+/**
+ * An extended decompiled version descriptor.
+ */
+typedef struct version_ext {
+	version_t version;			/**< Basic version information */
+	guint8 commit_len;			/**< Amount of valid nybbles in commit */
+	sha1_t commit;				/**< Git's commit SHA1 (partial) */
+	const char *osname;			/**< Static string */
+	unsigned dirty:1;
+} version_ext_t;
+
 /*
  * Banning periods for our versions.
  */
@@ -75,12 +86,15 @@ int version_build_cmp(const version_t *a, const version_t *b);
 gboolean version_fill(const char *version, version_t *vs);
 
 const char *version_str(const version_t *ver);
+const char *version_ext_str(const version_ext_t *vext);
 
 extern const char *version_string;
 extern const char *version_short_string;
 
 const char *version_build_string(void);
 guint8 version_get_code(void) G_GNUC_PURE;
+gboolean version_is_dirty(void) G_GNUC_PURE;
+const struct sha1 *version_get_commit(guint8 *len);
 
 #endif	/* _core_version_h_ */
 
