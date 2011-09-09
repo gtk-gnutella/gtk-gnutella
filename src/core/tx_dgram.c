@@ -162,6 +162,7 @@ tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, const char *func)
 #ifdef EDQUOT
 	case EDQUOT:
 #endif /* EDQUOT */
+	case EMSGSIZE:			/* Message too large */
 	case EFBIG:
 	case EIO:
 	case EADDRNOTAVAIL:
@@ -181,7 +182,7 @@ tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, const char *func)
 		/*
 		 * Don't set TX_ERROR here, we don't care about lost packets.
 		 */
-		g_warning("UDP write to %s failed: %s",
+		g_carp("UDP write to %s failed: %s",
 			gnet_host_to_string(to), g_strerror(errno));
 		return -1;
 	default:
