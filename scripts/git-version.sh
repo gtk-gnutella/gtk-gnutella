@@ -29,7 +29,7 @@ LF='
 # then try git-describe, then default.
 if test -s $TOP/version
 then
-	VN=`cat version` || VN="$DEF_VER"
+	VN=`cat $TOP/version` || VN="$DEF_VER"
 elif git describe >/dev/null 2>&1 &&
 	VN=`git describe --match "v[0-9]*" --abbrev=4 HEAD 2>/dev/null` &&
 	case "$VN" in
