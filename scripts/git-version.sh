@@ -29,14 +29,14 @@ LF='
 # then try git-describe, then default.
 if test -s $TOP/version
 then
-	VN=$(cat version) || VN="$DEF_VER"
+	VN=`cat version` || VN="$DEF_VER"
 elif git describe >/dev/null 2>&1 &&
-	VN=$(git describe --match "v[0-9]*" --abbrev=4 HEAD 2>/dev/null) &&
+	VN=`git describe --match "v[0-9]*" --abbrev=4 HEAD 2>/dev/null` &&
 	case "$VN" in
-	*$LF*) (exit 1) ;;
+	*$LF*) exit 1 ;;
 	v[0-9]*)
 		git update-index -q --refresh
-		test -z "$(git diff-index --name-only HEAD --)" ||
+		test -z "`git diff-index --name-only HEAD --`" ||
 		VN="$VN-dirty" ;;
 	esac
 then
@@ -45,12 +45,12 @@ else
 	VN="$DEF_VER"
 fi
 
-VN=$(expr "$VN" : v*'\(.*\)')
+VN=`echo $VN | sed -e s/^v//`
 
 echo $VN
 V=$VN
 
-VMajor=${V%%.*}
+VMajor=`echo $V | sed -e 's/^\([0-9]*\).*/\1/'`
 V=`echo $V | sed -e s/^$VMajor//`
 
 VMinor=`echo $V | sed -e 's/^\.\([0-9]*\).*/\1/'`
