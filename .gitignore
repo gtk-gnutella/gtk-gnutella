@@ -8,6 +8,8 @@ MANIFEST.new
 *.exe
 makefile
 makefile.bak
+makensis.log
+gtk-gnutella.nsh
 
 /config.h
 /mkdep
