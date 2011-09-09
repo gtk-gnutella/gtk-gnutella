@@ -136,7 +136,8 @@ tx_dgram_destroy(txdrv_t *tx)
 }
 
 static inline int
-tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, const char *func)
+tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, size_t len,
+	const char *func)
 {
 	if (is_temporary_error(errno) || ENOBUFS == errno)
 		return 0;
@@ -150,9 +151,9 @@ tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, const char *func)
 	case EINPROGRESS:		/* Weird, but seen it -- RAM, 07/10/2003 */
 	{
 		const struct attr *attr = tx->opaque;
-		g_warning("%s(fd=%d) failed with weird errno = %d (%s), "
-			"assuming EAGAIN", func, attr->wio->fd(attr->wio), errno,
-			g_strerror(errno));
+		g_warning("%s(fd=%d, len=%lu) failed with weird errno = %d (%s), "
+			"assuming EAGAIN", func, attr->wio->fd(attr->wio),
+			(unsigned long) len, errno, g_strerror(errno));
 	}
 		return 0;
 	case EPIPE:
@@ -182,15 +183,16 @@ tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, const char *func)
 		/*
 		 * Don't set TX_ERROR here, we don't care about lost packets.
 		 */
-		g_carp("UDP write to %s failed: %s",
-			gnet_host_to_string(to), g_strerror(errno));
+		g_carp("UDP write of %lu bytes to %s failed: %s",
+			(unsigned long) len, gnet_host_to_string(to), g_strerror(errno));
 		return -1;
 	default:
 		{
 			int terr = errno;
 			tx->flags |= TX_ERROR;				/* This should be fatal! */
-			g_error("%s: UDP write to %s failed with unexpected errno: %d (%s)",
-				func, gnet_host_to_string(to),
+			g_error("%s: UDP write of %lu bytes to %s failed "
+				"with unexpected errno: %d (%s)",
+				func, (unsigned long) len, gnet_host_to_string(to),
 				terr, g_strerror(terr));
 		}
 	}
@@ -217,7 +219,7 @@ tx_dgram_sendto(txdrv_t *tx, const gnet_host_t *to,
 		r = -1;
 	}
 	if ((ssize_t) -1 == r)
-		return tx_dgram_write_error(tx, to, "tx_dgram_sendto");
+		return tx_dgram_write_error(tx, to, len, "tx_dgram_sendto");
 
 	if (attr->cb->add_tx_written != NULL)
 		attr->cb->add_tx_written(tx->owner, r);
