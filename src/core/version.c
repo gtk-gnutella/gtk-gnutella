@@ -437,9 +437,11 @@ version_parse(const char *str, version_t *ver, const char **end)
 
 	if ('-' == *v) {
 		v++;
-		ver->build = parse_uint32(v, &v, 10, &error);
-		if (error)
-			return FALSE;
+		if (!is_strprefix(v, "dirty")) {
+			ver->build = parse_uint32(v, &v, 10, &error);
+			if (error)
+				return FALSE;
+		}
 	} else
 		ver->build = 0;
 
