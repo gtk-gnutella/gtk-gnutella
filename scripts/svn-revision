@@ -44,7 +44,7 @@ fi
 . $TOP/scripts/git-version.sh >/dev/null
 revnum="$VRev"
 
-if [ "x$revnum" = "x$oldrev" ]; then
+if [ "x$revnum" = "x$oldrev" -a -f $FILE ]; then
 	exit 0
 fi
 
