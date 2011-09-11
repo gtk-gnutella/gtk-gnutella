@@ -288,8 +288,17 @@ version_ext_parse(const char *str, version_ext_t *vext)
 	char commit[SHA1_BASE16_SIZE + 1];
 
 	v = is_strprefix(str, "-g");
-	if (NULL == v)
+	if (NULL == v) {
+		/*
+		 * There may not be any git tag, but there may be a dirty indication.
+		 */
+
+		if ('-' == *str || ' ' == *str || '\0' == *str) {
+			e = str;
+			goto dirty_check;
+		}
 		return FALSE;
+	}
 
 	/*
 	 * Compute the length of the hexadecimal string, up to the next '-' or
@@ -327,6 +336,7 @@ version_ext_parse(const char *str, version_ext_t *vext)
 	base16_decode(vext->commit.data, sizeof vext->commit,
 		commit, SHA1_BASE16_SIZE);
 
+dirty_check:
 	if (e != NULL && is_strprefix(e, "-dirty")) {
 		vext->dirty = TRUE;
 	} else {
