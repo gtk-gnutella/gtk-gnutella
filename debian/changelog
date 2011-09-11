@@ -1,3 +1,9 @@
+gtk-gnutella (0.97.1-0) unstable; urgency=medium
+
+  * New upstream bug fixing release.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Sun, 11 Sep 2011 10:20:07 +0000
+
 gtk-gnutella (0.97.0-0) unstable; urgency=medium
 
   * New upstream major release.

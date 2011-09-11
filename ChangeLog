@@ -1,3 +1,39 @@
+# v 0.97.1   2011-09-11  [stable]
+
+This is a bug-fixing release, addressing critical bugs that slipped through
+in the 0.97 release but which happen only in particular conditions.
+
+The project also switched from SVN to git.  This affects the version number
+which no longer includes a single SVN revision but instead uses the combination
+of a counter for the number of changes since the last release plus git's
+abbreviated commit ID.
+
+Bug Fixes:
+- Fixed bootstrapping problems on IPv6 enabled hosts [bug #3376322].
+- Forgot to clear global HTTP handle on GHC errors [bug #376322].
+- Typo caused crash when processing alternate locations in firewalled mode
+  with PFSP enabled.
+- Forgot to clear pending THEX downloads on download stops.
+- Make sure we remove the SHA1 of de-indexed files from the shared set.
+- Handle "message too large" errors when sending on UDP.
+
+Under the Hood:
+- When running as ultra node, use GUESS introduction pings when requesting
+  a query key so that the remote ultrapeer can passively discover us.
+- Do not count GUID collisions with our own GUID when we see our own IP:port!
+- Added some gcc 4.6 "hot" / "cold" routine tagging for better optimizations.
+- netmask_to_cidr(): was not using the proper metaconfig symbol to activate
+  the usage of __builtin_popcount.
+- Updated build.sh to build an app bundle for OSX with target=osxbundle
+- Added "dmg" to the default extension list for shared files.
+- Added OS X integration support: menu bar is now on the OS menubar on top,
+  the application does a clean exit on cmd-q and the application continues
+  to run when only the window is closed.
+- Use the downloads folder on Windows 7 and Vista for completed downloads.
+- Updated the geographic IP mapping database.
+- Integrated spell check of the French translation from stegozor@gmail.com.
+- Turned "zalloc_always_gc" to FALSE by default.
+
 # v 0.97     2011-07-18  [stable]
 
 This is a major release, fixing critical long-standing bugs and introducing
