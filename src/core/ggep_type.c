@@ -288,7 +288,10 @@ ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
 
 			if (aflags & GTKGV_F_GIT) {
 				if (bstr_read_u8(bs, &info->commit_len)) {
-					if (info->commit_len <= 2 * SHA1_RAW_SIZE) {
+					if (
+						info->commit_len != 0 &&
+						info->commit_len <= 2 * SHA1_RAW_SIZE
+					) {
 						guint8 bytes = (info->commit_len + 1) / 2;
 						if (!bstr_read(bs, &info->commit, bytes)) {
 							status = GGEP_INVALID;
