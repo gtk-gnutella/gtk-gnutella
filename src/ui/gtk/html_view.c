@@ -614,11 +614,9 @@ static void
 set_cursor_if_appropriate(GtkTextView *text_view, gint x, gint y)
 {
 	GSList *tags, *sl;
-	GtkTextBuffer *buffer;
 	GtkTextIter iter;
 	gboolean hovering = FALSE;
 
-	buffer = gtk_text_view_get_buffer(text_view);
 	gtk_text_view_get_iter_at_location(text_view, &iter, x, y);
 	tags = gtk_text_iter_get_tags(&iter);
 

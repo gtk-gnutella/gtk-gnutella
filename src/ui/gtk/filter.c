@@ -275,7 +275,6 @@ filter_gui_filter_clear_list(void)
 		{ N_("Search filters") },
 		{ N_("Free filters") },
 	};
-    GdkColor *bg_color;
     GtkTreeView *tv;
 	GtkTreeModel *model;
 	guint i;
@@ -285,8 +284,6 @@ filter_gui_filter_clear_list(void)
 
     tv = GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_filters"));
 	model = gtk_tree_view_get_model(tv);
-
-    bg_color = &(gtk_widget_get_style(GTK_WIDGET(tv))->bg[GTK_STATE_ACTIVE]);
 
 	for (i = 0; i < G_N_ELEMENTS(nodes); i++) {
 		GtkTreeIter iter;
@@ -1544,7 +1541,7 @@ filter_gui_set_ruleset(GList *ruleset)
 {
     GList *l_iter;
     gint count = 0;
-    GdkColor *color;
+	GdkColor *color;
     GtkCList *clist_filter_rules;
 
     if (gui_filter_dialog() == NULL)
@@ -1556,8 +1553,8 @@ filter_gui_set_ruleset(GList *ruleset)
     gtk_clist_freeze(clist_filter_rules);
     gtk_clist_clear(clist_filter_rules);
 
-    color = &(gtk_widget_get_style(GTK_WIDGET(clist_filter_rules))
-                ->bg[GTK_STATE_INSENSITIVE]);
+	color = &(gtk_widget_get_style(GTK_WIDGET(clist_filter_rules))
+				->bg[GTK_STATE_INSENSITIVE]);
 
     gtk_widget_set_sensitive(
         GTK_WIDGET
@@ -1629,9 +1626,12 @@ filter_gui_set_ruleset(GList *ruleset)
 			4, "...",
 			(-1));
 
+		/* XXX Why is this disabled? --RAM, 2011-09-11 */
 #if 0
         if (!RULE_IS_ACTIVE(r))
              gtk_clist_set_foreground(clist_filter_rules, row, color);
+#else
+		(void) color;
 #endif
     }
 

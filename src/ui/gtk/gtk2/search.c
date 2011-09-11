@@ -1088,9 +1088,7 @@ static void
 add_results_column(GtkTreeView *tv, const gchar *name, gint id, gfloat xalign)
 {
     GtkTreeViewColumn *column;
-	GtkTreeModel *model;
 
-	model = gtk_tree_view_get_model(tv);
 	column = add_column(tv, name, id, xalign, cell_renderer, -1, -1);
    	gtk_tree_view_column_set_sort_column_id(column, id);
 }

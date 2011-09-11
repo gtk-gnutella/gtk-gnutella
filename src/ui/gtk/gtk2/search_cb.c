@@ -82,11 +82,8 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	}
 
 	if (!rc) {
-		GtkWidget *w;
-
 		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
 			_("Move the cursor over a row to see details."), NULL);
-		w = settings_gui_tooltips()->tip_window;
 	} else {
 		gchar text[4096];
 
@@ -184,7 +181,7 @@ search_set_xml_metadata(const record_t *rc)
 	const char *xml;
 
 	xml = rc ? rc->xml : NULL;
-	search_set_xml(gui_main_window_lookup("textview_result_info_xml"), rc->xml);
+	search_set_xml(gui_main_window_lookup("textview_result_info_xml"), xml);
 }
 
 static GtkTreeView *

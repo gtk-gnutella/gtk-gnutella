@@ -448,8 +448,6 @@ host_lookup_callback(const gchar *hostname, gpointer key)
 	const struct nid *node_id = key;
 	gnet_node_info_t info;
 	struct node_data *data;
-	GtkListStore *store;
-	GtkTreeView *tv;
 	host_addr_t addr;
 	guint16 port;
 
@@ -459,8 +457,6 @@ host_lookup_callback(const gchar *hostname, gpointer key)
 	if (!remove_item(ht_pending_lookups, node_id))
 		goto finish;
 
-	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_nodes"));
-	store = GTK_LIST_STORE(gtk_tree_view_get_model(tv));
 	data = find_node(node_id);
 	if (!data)
 		goto finish;

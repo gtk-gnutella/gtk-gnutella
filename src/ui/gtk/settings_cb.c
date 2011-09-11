@@ -425,13 +425,11 @@ on_enter_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 
 static gboolean
 on_leave_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
-	gpointer data)
+	gpointer unused_data)
 {
-	GtkTreeView *tv;
-
 	(void) unused_event;
+	(void) unused_data;
 
-	tv = GTK_TREE_VIEW(data);
 	update_tooltip(GTK_TREE_VIEW(widget), NULL);
 	tree_view_motion_clear_callback(&tvm_dbg_property);
 	return FALSE;
