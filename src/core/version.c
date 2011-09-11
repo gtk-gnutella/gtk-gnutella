@@ -778,7 +778,7 @@ version_build_string(void)
 #endif /* HAS_UNAME */
 
 		gm_snprintf(buf, sizeof buf,
-			GTA_PRODUCT_NAME "/%s-%s (%s; %s; %s%s%s)",
+			GTA_PRODUCT_NAME "/%s%s (%s; %s; %s%s%s)",
 			GTA_VERSION_NUMBER, main_get_build_full(),
 			GTA_RELEASE, gtk_gnutella_interface(),
 			sysname,
@@ -817,7 +817,7 @@ version_init(void)
 		char buf[128];
 
 		gm_snprintf(buf, sizeof(buf),
-			GTA_PRODUCT_NAME "/%s-%s (%s)",
+			GTA_PRODUCT_NAME "/%s%s (%s)",
 			GTA_VERSION_NUMBER, main_get_build_full(), GTA_RELEASE);
 
 		version_short_string = atom_str_get(buf);

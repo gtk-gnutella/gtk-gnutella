@@ -276,14 +276,19 @@ main_get_build_full(void)
 		if (p != NULL) {
 			char *tmp;
 			char *q;
+			size_t len = strlen(p) + 2;		/* Leading '-', trailing NUL */
 
-			tmp = h_strdup(p);
+			tmp = halloc(len);
+			g_strlcpy(tmp + 1, p, len - 1);
+			*tmp = '-';
 			q = strchr(tmp, ' ');
 			if (q != NULL)
 				*q = '\0';		/* Truncate at first space */
 
 			result = ostrdup(tmp);
 			HFREE_NULL(tmp);
+		} else {
+			result = "";		/* No change since last git tag */
 		}
 	}
 

@@ -60,7 +60,7 @@ cat <<EOF
 EOF
 
 if [ "x$revnum" = x ]; then
-	echo '/* Subversion information not available */'
+	echo '/* No change since last git tag */'
 else
 	XRev='$Revision'
 	cat <<EOF
