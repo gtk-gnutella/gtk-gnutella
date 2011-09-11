@@ -58,7 +58,10 @@ V=`echo $V | sed -e s/^$VMajor//`
 VMinor=`echo $V | sed -e 's/^\.\([0-9]*\).*/\1/'`
 V=`echo $V | sed -e s/^.$VMinor//`
 case "$V" in
-.*) VPatch=`echo $V | sed -e 's/^\.\([0-9]*\).*/\1/'`;;
+.*)
+	VPatch=`echo $V | sed -e 's/^\.\([0-9]*\).*/\1/'`
+	V=`echo $V | sed -e s/^.$VPatch//`
+	;;
 *) VPatch=0;;
 esac
 
