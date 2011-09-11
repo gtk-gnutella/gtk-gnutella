@@ -293,9 +293,12 @@ version_ext_parse(const char *str, version_ext_t *vext)
 		 * There may not be any git tag, but there may be a dirty indication.
 		 */
 
-		if ('-' == *str || ' ' == *str || '\0' == *str) {
-			e = str;
-			goto dirty_check;
+		e = is_strprefix(str, "dirty");
+		if (e != NULL) {
+			vext->dirty = TRUE;
+			return TRUE;
+		} else if (' ' == *str || '\0' == *str) {
+			return TRUE;
 		}
 		return FALSE;
 	}
@@ -336,7 +339,6 @@ version_ext_parse(const char *str, version_ext_t *vext)
 	base16_decode(vext->commit.data, sizeof vext->commit,
 		commit, SHA1_BASE16_SIZE);
 
-dirty_check:
 	if (e != NULL && is_strprefix(e, "-dirty")) {
 		vext->dirty = TRUE;
 	} else {
@@ -394,6 +396,27 @@ version_parse(const char *str, version_t *ver, const char **end)
 	 *    gtk-gnutella/0.90b2-3404 (04/04/2002; X11; FreeBSD 4.6-STABLE i386)
 	 *
 	 * where the '-3404' introduces the build number.
+	 *
+	 * Since switching to git (2011-09-11), the SVN build is no longer present
+	 * but rather the output of "git describe" is used to show any difference
+	 * with the latest release tag.
+	 *
+	 * A release would be described as:
+	 *
+	 *    gtk-gnutella/0.97.1 (2011-09-11; GTK1; Linux i686)
+	 *
+	 * but any change on top of that would be seen as:
+	 *
+	 *    gtk-gnutella/0.97.1-24-g844b7 (2011-09-11; GTK1; Linux i686)
+	 *
+	 * to indicate that 24 commits were made after the release, and the commit
+	 * ID is 844b7... (only enough hexadecimal digits are output to make the
+	 * string unique at the time it was generated.
+	 *
+	 * If furthermore a build is done from a dirty git repository, the string
+	 * "-dirty" is appended after the commit ID:
+	 *
+	 *    gtk-gnutella/0.97.1-24-g844b7-dirty (2011-09-11; GTK1; Linux i686)
 	 */
 
 	if (NULL == (v = is_strprefix(str, GTA_PRODUCT_NAME "/")))
@@ -806,6 +829,7 @@ version_init(void)
 		ok = version_parse(version_string, &our_version, &end);
 		g_assert(ok);
 		ok = version_ext_parse(end, &our_ext_version);
+		g_assert(ok);
 	}
 
 	g_info("%s", version_string);
