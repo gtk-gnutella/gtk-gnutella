@@ -292,7 +292,8 @@ then
 	rm -rf osx/bundle &&
 	ln -s /Applications osx/image/Applications &&
 	cp README osx/image/ &&
-	hdiutil create -srcfolder osx/image -volname Gtk-Gnutella ~/Desktop/Gtk-Gnutella.dmg &&
+	dmg="${HOME}/Desktop/Gtk-Gnutella-`./scripts/git-version.sh`.dmg" &&
+	hdiutil create -srcfolder osx/image -volname Gtk-Gnutella "${dmg}"
 	rm -rf osx/image
 else
 echo "Run \"${MAKE} install\" to install gtk-gnutella."
