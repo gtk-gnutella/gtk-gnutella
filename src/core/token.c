@@ -55,6 +55,8 @@
 #define LEVEL_SIZE			(2 * G_N_ELEMENTS(token_keys))	/**< at most */
 #define LEVEL_BASE64_SIZE	(LEVEL_SIZE * 4 / 3 + 3)	/**< +2 for == tail */
 
+#define GIT_SWITCH			1315692000		/* 2011-09-11 */
+
 /*
  * Keys are generated through "od -x /dev/random".
  * There can be up to 2^5 = 32 keys per version.
@@ -421,7 +423,7 @@ struct tokkey {
 		keys_097_0, G_N_ELEMENTS(keys_097_0),
 	},
 	{
-		{ 0, 97, 1, '\0', 0, 0, 1315692000 },		/* 2011-09-11 */
+		{ 0, 97, 1, '\0', 0, 0, GIT_SWITCH },		/* 2011-09-11 */
 		keys_097_1, G_N_ELEMENTS(keys_097_1),
 	},
 };
@@ -560,9 +562,16 @@ find_tokkey_version(const version_t *ver, time_t now)
 	 * All versions before r16370 used the first key set when they expired.
 	 * If we're more recent, we probably have a stripped list of past key
 	 * sets, and therefore cannot validate their token.
+	 *
+	 * All versions after we switched to git are can be checked provided
+	 * we still have a copy of the keys that they had at the time they
+	 * were released.
 	 */
 
-	if (ver->build < 16370)
+	if (
+		ver->timestamp < GIT_SWITCH &&			/* Before we switched to git */
+		ver->build != 0 && ver->build < 16370
+	)
 		return find_tokkey(now);
 
 	if (GNET_PROPERTY(version_debug) > 4) {
@@ -891,9 +900,16 @@ tok_version_valid(
 
 	/*
 	 * Verify build.
+	 *
+	 * Build numbers were emitted when we switched to SVN on 2006-08-26
+	 * and stopped being a monotonous increasing function when we switched
+	 * to git on 2011-09-11.
 	 */
 
-	if (rver.timestamp >= 1156543200) {		/* 2006-08-26 */
+	if (
+		rver.timestamp >= 1156543200 &&		/* 2006-08-26 */
+		rver.timestamp < GIT_SWITCH			/* 2011-09-11 */
+	) {
 		if (0 == rver.build)
 			return TOK_MISSING_BUILD;
 		if (rver.build < latest->ver.build)
