@@ -6516,7 +6516,7 @@ search_request_preprocess(struct gnutella_node *n,
 				break;
 
 			case EXT_T_GGEP_SCP:		/* Wants GUESS pongs in "IPP" */
-				wants_ipp = TRUE;
+				wants_ipp = TRUE;		/* GUESS >= v0.2 */
 				break;
 
 			case EXT_T_GGEP_WH:			/* Feature Query (What's New?) */
@@ -6791,7 +6791,13 @@ search_request_preprocess(struct gnutella_node *n,
 				pcache_guess_acknowledge(n, FALSE, wants_ipp);
 				goto drop;
 			} else {
-				gnet_stats_count_general(GNR_QUERY_GUESS, 1);
+				if (wants_ipp) {
+					/* This is a GUESS 0.2 query, at least */
+					gnet_stats_count_general(GNR_QUERY_GUESS_02, 1);
+				} else {
+					/* This is a GUESS query from a legacy servent */
+					gnet_stats_count_general(GNR_QUERY_GUESS, 1);
+				}
 				/* Send back a pong */
 				pcache_guess_acknowledge(n, TRUE, wants_ipp);
 			}

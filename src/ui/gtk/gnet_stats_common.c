@@ -132,6 +132,7 @@ general_type_str(gint value)
 		N_("SHA1 queries"),
 		N_("\"What's New?\" queries"),
 		N_("GUESS queries"),
+		N_("GUESS queries (0.2)"),
 		N_("GUESS cached query keys held"),
 		N_("GUESS locally generated queries"),
 		N_("GUESS currently running queries"),

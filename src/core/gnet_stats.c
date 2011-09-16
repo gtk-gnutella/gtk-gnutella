@@ -153,6 +153,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"query_sha1",
 		"query_whats_new",
 		"query_guess",
+		"query_guess_02",
 		"guess_cached_query_keys_held",
 		"guess_local_queries",
 		"guess_local_running",
