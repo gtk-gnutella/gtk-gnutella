@@ -301,6 +301,13 @@ static char db_qkdata_base[] = "guess_hosts";
 static char db_qkdata_what[] = "GUESS hosts & query keys";
 
 /**
+ * Keeps track of the amount of GUESS 0.2 hosts in the cache.
+ * Those are identified when they are returning hosts in GGEP "IPP" on pings
+ * sent by GUESS 0.2 clients (which we are).
+ */
+static guint64 guess_02_hosts;
+
+/**
  * Information about a host that is stored to disk.
  * The structure is serialized first, not written as-is.
  */
@@ -747,9 +754,12 @@ guess_host_set_flags(const gnet_host_t *h, guint32 flags)
 	struct qkdata *qk;
 
 	qk = get_qkdata(h);
+
 	if (qk != NULL) {
-		qk->flags |= flags;
-		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		if ((qk->flags & flags) != flags) {
+			qk->flags |= flags;
+			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		}
 	}
 }
 
@@ -762,9 +772,52 @@ guess_host_clear_flags(const gnet_host_t *h, guint32 flags)
 	struct qkdata *qk;
 
 	qk = get_qkdata(h);
+
 	if (qk != NULL) {
-		qk->flags &= ~flags;
-		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		if (qk->flags & flags) {
+			qk->flags &= ~flags;
+			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		}
+	}
+}
+
+/**
+ * Mark host as being at least a GUESS 0.2 one.
+ */
+static void
+guess_host_set_v2(const gnet_host_t *h)
+{
+	struct qkdata *qk;
+
+	qk = get_qkdata(h);
+
+	if (qk != NULL) {
+		if (!(qk->flags & GUESS_F_PONG_IPP)) {
+			qk->flags |= GUESS_F_PONG_IPP;
+			guess_02_hosts++;
+			gnet_stats_count_general(GNR_GUESS_CACHED_02_HOSTS_HELD, +1);
+			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		}
+	}
+}
+
+/**
+ * Clear indication that host is a GUESS 0.2 one.
+ */
+static void
+guess_host_clear_v2(const gnet_host_t *h)
+{
+	struct qkdata *qk;
+
+	qk = get_qkdata(h);
+
+	if (qk != NULL) {
+		if (qk->flags & GUESS_F_PONG_IPP) {
+			qk->flags &= ~GUESS_F_PONG_IPP;
+			guess_02_hosts--;
+			gnet_stats_count_general(GNR_GUESS_CACHED_02_HOSTS_HELD, -1);
+			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		}
 	}
 }
 
@@ -1235,7 +1288,7 @@ guess_extract_ipp(guess_t *gq,
 					}
 				}
 
-				guess_host_set_flags(h, GUESS_F_PONG_IPP);
+				guess_host_set_v2(h);	/* Replied with IPP, is GUESS 0.2 */
 
 				for (i = 0; i < cnt; i++) {
 					host_addr_t addr;
@@ -1624,7 +1677,8 @@ guess_request_hosts(host_addr_t addr, guint16 port)
 		atom_host_free(h);
 	else {
 		guess_host_set_flags(h, GUESS_F_PINGED);
-		guess_host_clear_flags(h, GUESS_F_OTHER_HOST | GUESS_F_PONG_IPP);
+		guess_host_clear_flags(h, GUESS_F_OTHER_HOST);
+		guess_host_clear_v2(h);
 	}
 
 	return sent;
@@ -1641,6 +1695,7 @@ qk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 	const struct qkdata *qk = value;
 	time_delta_t d;
 	gboolean expired, hostile;
+	unsigned minor;
 	double p;
 
 	(void) u_len;
@@ -1668,9 +1723,19 @@ qk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 		expired = p < GUESS_STABLE_PROBA;
 	}
 
+	/*
+	 * Use this opportunity where we're looping to update the amount
+	 * of GUESS 0.2 hosts present in the cache.
+	 */
+
+	minor = (qk->flags & GUESS_F_PONG_IPP) ? 2 : 1;
+
+	if (!expired && minor > 1)
+		guess_02_hosts++;
+
 	if (GNET_PROPERTY(guess_client_debug) > 5) {
-		g_debug("GUESS QKCACHE node %s life=%s last_seen=%s, p=%.2f%%%s",
-			gnet_host_to_string(h),
+		g_debug("GUESS QKCACHE node %s v%u life=%s last_seen=%s, p=%.2f%%%s",
+			gnet_host_to_string(h), minor,
 			compact_time(delta_time(qk->last_seen, qk->first_seen)),
 			compact_time2(d), p * 100.0,
 			hostile ? " [HOSTILE]" : expired ? " [EXPIRED]" : "");
@@ -1690,9 +1755,12 @@ guess_qk_prune_old(void)
 			(unsigned long) dbmw_count(db_qkdata));
 	}
 
+	guess_02_hosts = 0;		/* Will be updated by qk_prune_old() */
+
 	dbmw_foreach_remove(db_qkdata, qk_prune_old, NULL);
 	gnet_stats_set_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD,
 		dbmw_count(db_qkdata));
+	gnet_stats_set_general(GNR_GUESS_CACHED_02_HOSTS_HELD, guess_02_hosts);
 
 	if (GNET_PROPERTY(guess_client_debug)) {
 		g_debug("GUESS QKCACHE pruned expired query keys (%lu remaining)",
