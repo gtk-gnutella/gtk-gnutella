@@ -453,9 +453,11 @@ guid_query_oob_muid(struct guid *muid, const host_addr_t addr, guint16 port,
 {
 	guint32 ip;
 
+	g_assert(host_addr_is_ipv4(addr));
+
 	guid_random_fill(muid);
 
-	ip = host_addr_ipv4(addr); /* @todo TODO: IPv6 */
+	ip = host_addr_ipv4(addr);
 	poke_be32(&muid->v[0], ip);
 	poke_le16(&muid->v[13], port);
 
@@ -479,7 +481,12 @@ guid_oob_get_addr_port(const struct guid *guid,
 	host_addr_t *addr, guint16 *port)
 {
 	if (addr) {
-		*addr = host_addr_peek_ipv4(&guid->v[0]); /* @todo TODO: IPv6 */
+		/*
+		 * IPv6-Ready: this is always 4 bytes, even if the final address is
+		 * an IPv6 one because the GGEP "6" key will supply us the IPv6
+		 * address should the IPv4 one be 127.0.0.0.
+		 */
+		*addr = host_addr_peek_ipv4(&guid->v[0]);
 	}
 	if (port) {
 		*port = peek_le16(&guid->v[13]);
