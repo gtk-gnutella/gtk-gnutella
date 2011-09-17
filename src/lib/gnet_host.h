@@ -63,7 +63,7 @@ void gnet_host_free_item(gpointer key, gpointer unused_data);
  * This routine MUST only be used on a gnet_host_t variable, that is to
  * say a variable on the stack or a static one.  Never on a pointer!
  *
- * Indeed, gnet_host_t pointer allocated through gnet_host_dup() and
+ * Indeed, gnet_host_t pointers allocated through gnet_host_dup() and
  * gnet_host_new() are sized to be able to contain exactly the address
  * that is stored within.
  */
@@ -195,6 +195,14 @@ void gnet_host_vec_add(gnet_host_vec_t *, host_addr_t addr, guint16 port);
 gnet_host_vec_t *gnet_host_vec_from_gslist(GSList *);
 gnet_host_vec_t *gnet_host_vec_from_hash_list(hash_list_t *);
 gnet_host_vec_t *gnet_host_vec_from_vector(vector_t *);
+
+/*
+ * Gnutella-style addr:port serialization routines (port as little-endian).
+ */
+
+void *host_ip_port_poke(void *p, const host_addr_t ha, guint16 port, size_t *l);
+void host_ip_port_peek(const void *p, enum net_type nt,
+	host_addr_t *addr, guint16 *port);
 
 #endif /* _gnet_host_h_ */
 

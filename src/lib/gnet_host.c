@@ -236,6 +236,67 @@ gnet_host_to_string2(const gnet_host_t *h)
 	return buf;
 }
 
+/**
+ * Serialization convenience for IP:port.
+ *
+ * Write the IP:port (IP as big-endian, port as little-endian) into the
+ * supplied buffer, whose length MUST be 18 bytes at least.
+ *
+ * If len is non-NULL, it is written with the length of the serialized data.
+ *
+ * @return pointer following serialization data.
+ */
+void *
+host_ip_port_poke(void *p, const host_addr_t addr, guint16 port, size_t *len)
+{
+	void *q = p;
+
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+		q = poke_be32(q, host_addr_ipv4(addr));
+		break;
+	case NET_TYPE_IPV6:
+		memcpy(q, host_addr_ipv6(&addr), sizeof addr.addr.ipv6);
+		q = ptr_add_offset(q, sizeof addr.addr.ipv6);
+		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
+	}
+
+	q = poke_le16(q, port);
+
+	if (len != NULL)
+		*len = ptr_diff(q, p);
+
+	return q;
+}
+
+/**
+ * Deserialization convenience for IP:port.
+ *
+ * The supplied buffer must hold either 6 or 18 more bytes of data, depending
+ * on the address type we want to deserialize.
+ */
+void
+host_ip_port_peek(const void *p, enum net_type nt,
+	host_addr_t *addr, guint16 *port)
+{
+	const void *q = p;
+
+	if (NET_TYPE_IPV4 == nt) {
+		*addr = host_addr_peek_ipv4(q);
+		q = const_ptr_add_offset(q, 4);
+	} else if (NET_TYPE_IPV6 == nt) {
+		*addr = host_addr_peek_ipv6(q);
+		q = const_ptr_add_offset(q, 16);
+	} else {
+		/* Can only deserialize IPv4:port or IPv6:port */
+		g_assert_not_reached();
+	}
+	*port = peek_le16(q);
+}
+
 /***
  *** Vectors of Gnutella hosts.
  ***/
@@ -292,8 +353,10 @@ gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
 gnet_host_vec_t *
 gnet_host_vec_alloc(void)
 {
-	static const gnet_host_vec_t zero_vec;
-	return wcopy(&zero_vec, sizeof zero_vec);
+	gnet_host_vec_t *vec;
+
+	WALLOC0(vec);
+	return vec;
 }
 
 /**
