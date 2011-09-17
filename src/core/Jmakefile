@@ -66,6 +66,7 @@ SRC = \
 	inet.c \
 	ioheader.c \
 	ipp_cache.c \
+	ipv6-ready.c \
 	local_shell.c \
 	matching.c \
 	move.c \

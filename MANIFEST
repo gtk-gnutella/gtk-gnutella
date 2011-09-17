@@ -330,6 +330,8 @@ src/core/ioheader.c
 src/core/ioheader.h
 src/core/ipp_cache.c
 src/core/ipp_cache.h
+src/core/ipv6-ready.c
+src/core/ipv6-ready.h
 src/core/local_shell.c
 src/core/local_shell.h
 src/core/matching.c
