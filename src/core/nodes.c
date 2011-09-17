@@ -57,6 +57,7 @@
 #include "hsep.h"
 #include "http.h"
 #include "ioheader.h"
+#include "inet.h"			/* For INET_IP_V6READY */
 #include "ipp_cache.h"
 #include "mq.h"
 #include "mq_tcp.h"
@@ -1451,6 +1452,18 @@ node_init(void)
 
 	header_features_add(FEATURES_CONNECTIONS, "sflag", 0, 1);
 
+	/*
+	 * IPv6-Ready:
+	 * - advertise "IP/6.4" if we don't run IPv4.
+	 * - advertise "IP/6.0" if we run both IPv4 and IPv6.
+	 * - advertise nothing otherwise (running IPv4 only)
+	 */
+
+	header_features_add_guarded_function(FEATURES_CONNECTIONS, "IP",
+		INET_IP_V6READY, INET_IP_NOV4, settings_running_ipv6_only);
+	header_features_add_guarded_function(FEATURES_CONNECTIONS, "IP",
+		INET_IP_V6READY, INET_IP_V4V6, settings_running_ipv4_and_ipv6);
+
 	cq_periodic_main_add(
 		node_error_cleanup_timer * 1000, node_error_cleanup, NULL);
 }
@@ -2814,35 +2827,53 @@ node_host_is_connected(const host_addr_t addr, guint16 port)
 }
 
 /**
- * Build CONNECT_PONGS_COUNT pongs to emit as an X-Try header.
+ * Build header line to return connection pongs during handshake.
  * We stick to strict formatting rules: no line of more than 76 chars.
  *
  * @return a pointer to static data.
  */
 static const char *
-formatted_connection_pongs(const char *field, host_type_t htype, int num)
+formatted_connection_pongs(const char *field, gnutella_node_t *n,
+	host_net_t net, host_type_t htype, int num)
 {
 	struct gnutella_host hosts[CONNECT_PONGS_COUNT];
 	const char *line = "";
 	int hcount;
 
-	g_assert(num > 0 && num <= CONNECT_PONGS_COUNT);
+	g_assert(num >= 0 && num <= CONNECT_PONGS_COUNT);
 
-	hcount = hcache_fill_caught_array(htype, hosts, num);
+	if (0 == num || NULL == n)
+		return line;
+
+	hcount = hcache_fill_caught_array(net, htype, hosts, num);
 	g_assert(hcount >= 0 && hcount <= num);
 
-	/* The most a pong can take is "xxx.xxx.xxx.xxx:yyyyy, ", i.e. 23 */
+	/*
+	 * The most a pong can take is
+	 *	"[xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx]:yyyyy, "
+	 * i.e. 49 bytes
+	 */
 	if (hcount) {
 		int i;
-		header_fmt_t *fmt = header_fmt_make(field, ", ", 0,
-			23 /* 23 == PONG_LEN */ * CONNECT_PONGS_COUNT + 30);
+		unsigned added;
 
-		for (i = 0; i < hcount; i++) {
-			header_fmt_append_value(fmt, gnet_host_to_string(&hosts[i]));
+		header_fmt_t *fmt = header_fmt_make(field, ", ", 0,
+			49 /* 49 == PONG_LEN */ * CONNECT_PONGS_COUNT + 30);
+
+		for (i = 0, added = 0; i < hcount; i++) {
+			gnet_host_t *h = &hosts[i];
+			if (gnet_host_is_ipv4(h)) {
+				if (n != NULL && n->attrs & NODE_A_IPV6_ONLY)
+					continue;
+			} else if (n != NULL && !(n->attrs & NODE_A_CAN_IPV6))
+				continue;
+			header_fmt_append_value(fmt, gnet_host_to_string(h));
+			added++;
 		}
 
 		header_fmt_end(fmt);
-		line = header_fmt_to_string(fmt);
+		if (added != 0)
+			line = header_fmt_to_string(fmt);
 		header_fmt_free(&fmt);
 	}
 
@@ -3089,6 +3120,7 @@ send_error(
 	char xtoken[128];
 	char xultrapeer[30];
 	int pongs = saturated ? CONNECT_PONGS_LOW : CONNECT_PONGS_COUNT;
+	host_net_t net;
 
 	socket_check(s);
 	g_assert(n == NULL || n->socket == s);
@@ -3156,6 +3188,14 @@ send_error(
 	 * Build the response.
 	 */
 
+	net = HOST_NET_IPV4;
+	if (n != NULL) {
+		if (n->attrs & NODE_A_IPV6_ONLY) 
+			net = HOST_NET_IPV6;
+		else if (n->attrs & NODE_A_CAN_IPV6)
+			net = HOST_NET_BOTH;
+	}
+
 	rw = gm_snprintf(gnet_response, sizeof(gnet_response),
 		"GNUTELLA/0.6 %d %s\r\n"
 		"User-Agent: %s\r\n"
@@ -3163,16 +3203,12 @@ send_error(
 		"%s"		/* X-Token */
 		"%s"		/* X-Live-Since */
 		"%s"		/* X-Ultrapeer */
-		"%s"		/* X-Try */
 		"%s"		/* X-Try-Ultrapeers */
 		"\r\n",
 		code, msg_tmp, version, host_addr_to_string(s->addr),
 		xtoken, xlive, xultrapeer,
-		(GNET_PROPERTY(current_peermode) == NODE_P_NORMAL && pongs) ?
-			formatted_connection_pongs("X-Try", HOST_ANY, pongs) : "",
-		(GNET_PROPERTY(current_peermode) != NODE_P_NORMAL && pongs) ?
-			formatted_connection_pongs("X-Try-Ultrapeers", HOST_ULTRA, pongs)
-			: ""
+		formatted_connection_pongs("X-Try-Ultrapeers",
+			n, net, HOST_ULTRA, pongs)
 	);
 
 	g_assert(rw < sizeof(gnet_response));
@@ -5355,6 +5391,21 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	}
 
 	/*
+	 * IPv6-Ready: check remote support for IPv6.
+	 */
+
+	{
+		unsigned major, minor;
+
+ 		if (header_get_feature("IP", head, &major, &minor)) {
+			if (INET_IP_V6READY == major) {
+				n->attrs |= NODE_A_CAN_IPV6;
+				n->attrs |= (INET_IP_NOV4 == minor) ? NODE_A_IPV6_ONLY : 0;
+			}
+		}
+	}
+
+	/*
 	 * Crawler -- LimeWire's Gnutella crawler
 	 */
 
@@ -5629,6 +5680,31 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		return;
 
 	/*
+	 * IPv6-Ready: make sure we're not already connected to the host by
+	 * checking the GUID advertised in the handshake.  This can happen
+	 * when we learn the IPv4 and the IPv6 of a host listening on both.
+	 */
+
+	field = header_get(head, "GUID");
+	if (field) {
+		guid_t guid;
+
+		if (hex_to_guid(field, &guid)) {
+			if (gm_hash_table_contains(nodes_by_guid, &guid)) {
+				node_send_error(n, 409, "Already connected to this GUID");
+				node_remove(n, _("Already connected to this GUID"));
+				return;
+			}
+			node_set_guid(n, &guid);
+		} else {
+			if (GNET_PROPERTY(node_debug)) {
+				g_warning("%s sent garbage GUID header \"%s\"",
+					node_infostr(n), field);
+			}
+		}
+	}
+
+	/*
 	 * Avoid one vendor occupying all our slots
 	 *		-- JA, 21/11/2003
 	 */
@@ -5642,7 +5718,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	}
 
 	/*
-	 * Wether we should reserve a slot for gtk-gnutella
+	 * Whether we should reserve a slot for gtk-gnutella
 	 */
 
 	if (node_reserve_slot(n)) {
@@ -5661,7 +5737,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		guint major, minor;
 
         /* Ensure hsep feature is present for major version zero. */
- 		if(header_get_feature("hsep", head, &major, &minor)) {
+ 		if (header_get_feature("hsep", head, &major, &minor)) {
 			if (major == HSEP_VERSION_MAJOR && minor <= HSEP_VERSION_MINOR) {
 				n->attrs |= NODE_A_CAN_HSEP;
 				hsep_connection_init(n, major & 0xff, minor & 0xff);
@@ -5815,8 +5891,16 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			const char *token;
 			char degree[100];
 			char guess[60];
+			guid_t guid;
 
 			token = socket_omit_token(n->socket) ? NULL : tok_version();
+
+			/*
+			 * IPv6-Ready: emit our GUID during handshake so that we can
+			 * detect connections to the same host via different IP protocols.
+			 */
+
+			gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
 
 			/*
 			 * Special hack for LimeWire, which really did not find anything
@@ -5865,6 +5949,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"Pong-Caching: 0.1\r\n"
 				"Bye-Packet: 0.1\r\n"
 				"GGEP: 0.5\r\n"
+				"GUID: %s\r\n"
 				"Vendor-Message: 0.2\r\n"
 				"Remote-IP: %s\r\n"
 				"X-Ultrapeer: %s\r\n"
@@ -5881,6 +5966,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"%s%s%s"	/* X-Token (optional) */
 				"X-Live-Since: %s\r\n",
 				version_string,
+				guid_hex_str(&guid),
 				host_addr_to_string(n->socket->addr),
 				settings_is_leaf() ? "False" : "True",
 				GNET_PROPERTY(gnet_deflate_enabled)
@@ -7731,21 +7817,11 @@ node_init_outgoing(struct gnutella_node *n)
 
 	socket_check(s);
 
-	/*
-	 * Special hack for LimeWire, which insists on the presence of dynamic
-	 * querying headers and high outdegree to consider a leaf "good".
-	 * They should fix their clueless code instead of forcing everyone to
-	 * emit garbage.
-	 *
-	 * Oh well, contend them with totally bogus (fixed) headers.
-	 *
-	 *		--RAM, 2004-08-05
-	 */
-
 	if (!n->hello.ptr) {
 		char my_addr[HOST_ADDR_PORT_BUFLEN];
 		char my_addr_v6[HOST_ADDR_PORT_BUFLEN];
 		char guess[60];
+		guid_t guid;
 
 		g_assert(0 == s->gdk_tag);
 
@@ -7753,6 +7829,17 @@ node_init_outgoing(struct gnutella_node *n)
 		n->hello.len = 0;
 		n->hello.size = MAX_LINE_SIZE;
 		n->hello.ptr = walloc(n->hello.size);
+
+		/*
+		 * Special hack for LimeWire, which insists on the presence of dynamic
+		 * querying headers and high outdegree to consider a leaf "good".
+		 * They should fix their clueless code instead of forcing everyone to
+		 * emit garbage.
+		 *
+		 * Oh well, contend them with totally bogus (fixed) headers.
+		 *
+		 *		--RAM, 2004-08-05
+		 */
 
 		if (settings_is_ultra()) {
 			gm_snprintf(degree, sizeof(degree),
@@ -7801,6 +7888,13 @@ node_init_outgoing(struct gnutella_node *n)
 			guess[0] = '\0';
 		}
 
+		/*
+		 * IPv6-Ready: emit our GUID during handshake so that we can
+		 * detect connections to the same host via different IP protocols.
+		 */
+
+		gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
+
 		n->hello.len = gm_snprintf(n->hello.ptr, n->hello.size,
 			"%s%d.%d\r\n"
 			"Node: %s%s%s\r\n"
@@ -7809,6 +7903,7 @@ node_init_outgoing(struct gnutella_node *n)
 			"Pong-Caching: 0.1\r\n"
 			"Bye-Packet: 0.1\r\n"
 			"GGEP: 0.5\r\n"
+			"GUID: %s\r\n"
 			"Vendor-Message: 0.2\r\n"
 			"X-Query-Routing: 0.2\r\n"
 			"X-Requeries: False\r\n"
@@ -7826,6 +7921,7 @@ node_init_outgoing(struct gnutella_node *n)
 			my_addr, my_addr[0] && my_addr_v6[0] ? ", " : "", my_addr_v6,
 			host_addr_to_string(n->addr),
 			version_string,
+			guid_hex_str(&guid),
 			GNET_PROPERTY(gnet_deflate_enabled)
 				? "Accept-Encoding: deflate\r\n" : "",
 			tok_version(),
@@ -9969,9 +10065,15 @@ node_is_firewalled(gnutella_node_t *n)
  *
  * The header emitted is the complete one with push-proxies unless the
  * ``with_proxies'' parameter is FALSE.
+ *
+ * @param buf			buffer where header must be generated
+ * @param size			size of buffer
+ * @param with_proxies	whether to include push-proxies
+ * @param net			IP address allowed networks, for push-proxies
  */
 size_t
-node_http_fw_node_info_add(char *buf, size_t size, gboolean with_proxies)
+node_http_fw_node_info_add(char *buf, size_t size, gboolean with_proxies,
+	host_net_t net)
 {
 	header_fmt_t *fmt;
 	size_t len;
@@ -9989,15 +10091,10 @@ node_http_fw_node_info_add(char *buf, size_t size, gboolean with_proxies)
 	header_fmt_append_value(fmt, "fwt/1");
 #endif
 
-	/* Local node information, as port:IP */
+	/* Local node information, as port:IP (regardless of their network pref) */
 
-	if (host_is_valid(listen_addr(), port)) {
-		header_fmt_append_value(fmt,
-			port_host_addr_to_string(port, listen_addr()));
-	} else if (host_is_valid(listen_addr6(), port)) {
-		header_fmt_append_value(fmt,
-			port_host_addr_to_string(port, listen_addr6()));
-	}
+	header_fmt_append_value(fmt,
+		port_host_addr_to_string(port, listen_addr_primary()));
 
 	/* Push proxies */
 
@@ -10011,9 +10108,12 @@ node_http_fw_node_info_add(char *buf, size_t size, gboolean with_proxies)
 		while (sequence_iter_has_next(iter)) {
 			const gnet_host_t *host = sequence_iter_next(iter);
 			const char *str;
+			const host_addr_t haddr = gnet_host_get_addr(host);
 
-			str = host_addr_port_to_string(
-				gnet_host_get_addr(host), gnet_host_get_port(host));
+			if (!hcache_addr_within_net(haddr, net))	/* IPv6-Ready */
+				continue;
+
+			str = host_addr_port_to_string(haddr, gnet_host_get_port(host));
 			header_fmt_append_value(fmt, str);
 		}
 
@@ -10040,20 +10140,25 @@ node_http_fw_node_info_add(char *buf, size_t size, gboolean with_proxies)
  * via the X-Push-Proxy header.
  */
 size_t
-node_http_proxies_add(char *buf, size_t size,
-		gpointer unused_arg, guint32 unused_flags)
+node_http_proxies_add(char *buf, size_t size, void *arg, guint32 unused_flags)
 {
 	size_t rw = 0;
+	host_net_t *netp = arg;
+	host_net_t net;
 
-	(void) unused_arg;
+	g_assert(buf != NULL);
+	g_assert(arg != NULL);
+
 	(void) unused_flags;
+
+	net = *netp;		/* IPv6-Ready: which IP addresses they accept */
 
 	/*
 	 * If node is firewalled, send basic information: GUID and port:IP
 	 */
 
 	if (GNET_PROPERTY(is_firewalled)) {
-		rw = node_http_fw_node_info_add(buf, size, FALSE);
+		rw = node_http_fw_node_info_add(buf, size, FALSE, net);
 	}
 
 	/*
@@ -10077,9 +10182,12 @@ node_http_proxies_add(char *buf, size_t size,
 		while (sequence_iter_has_next(iter)) {
 			const gnet_host_t *host = sequence_iter_next(iter);
 			const char *str;
+			const host_addr_t haddr = gnet_host_get_addr(host);
 
-			str = host_addr_port_to_string(
-				gnet_host_get_addr(host), gnet_host_get_port(host));
+			if (!hcache_addr_within_net(haddr, net))	/* IPv6-Ready */
+				continue;
+
+			str = host_addr_port_to_string(haddr, gnet_host_get_port(host));
 			header_fmt_append_value(fmt, str);
 		}
 
@@ -10382,6 +10490,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		gnutella_node_t *cn = sl->data;
+		host_addr_t ha;
 
 		if (!NODE_IS_ESTABLISHED(cn))
 			continue;
@@ -10390,6 +10499,10 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 			continue;
 
 		if (crawlable_only && !(cn->attrs & NODE_A_CRAWLABLE))
+			continue;
+
+		/* FIXME: IPv6-Ready: how to adjust the crawler pong to hold IPv6? */
+		if (!host_addr_convert(cn->gnet_addr, &ha, NET_TYPE_IPV4))
 			continue;
 
 		if (ucnt && NODE_IS_ULTRA(cn)) {
@@ -10494,7 +10607,6 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 	if (ui != un) {
 		g_assert(ui < un);
 		payload[0] = ui;
-		/* FIXME: This nonsense is emitted if connected to IPv6 peers */
 		g_warning("crawler pong can only hold %d ultras out of selected %d",
 			ui, un);
 	}
@@ -10502,7 +10614,6 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 	if (li != ln) {
 		g_assert(li < ln);
 		payload[1] = li;
-		/* FIXME: This nonsense is emitted if connected to IPv6 peers */
 		g_warning("crawler pong can only hold %d leaves out of selected %d",
 			li, ln);
 	}

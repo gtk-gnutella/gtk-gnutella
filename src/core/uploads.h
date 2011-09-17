@@ -39,6 +39,7 @@
 
 #include "common.h"
 #include "bsched.h"
+#include "hcache.h"
 #include "http.h"
 
 #include "if/core/uploads.h"
@@ -118,6 +119,8 @@ struct upload {
 
 	int http_major;				/**< HTTP major version */
 	int http_minor;				/**< HTTP minor version */
+
+	host_net_t net;				/**< IPv6-Ready: type of addresses they want */
 
 	unsigned keep_alive:1;		/**< Keep HTTP connection? */
 	unsigned push:1;

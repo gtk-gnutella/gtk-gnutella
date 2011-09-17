@@ -36,6 +36,7 @@
 
 #include "common.h"
 #include "downloads.h"
+#include "hcache.h"			/* For host_net_t */
 
 #include "lib/hashlist.h"
 
@@ -138,7 +139,7 @@ int dmesh_fill_alternate(const struct sha1 *sha1,
 int dmesh_alternate_location(
 	const struct sha1 *sha1, char * buf, size_t size, const host_addr_t addr,
 	time_t last_sent, const char *vendor, fileinfo_t *fi,
-	gboolean request, const struct guid *guid);
+	gboolean request, const struct guid *guid, host_net_t net);
 
 void dmesh_multiple_downloads(
 	const struct sha1 *sha1, filesize_t size, fileinfo_t *fi);
