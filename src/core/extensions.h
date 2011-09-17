@@ -73,23 +73,28 @@ typedef enum ext_token {
 	EXT_T_XML,				/**< XML payload */
 	EXT_T_UNKNOWN_GGEP,		/**< Unknown GGEP extension */
 	EXT_T_OVERHEAD,			/**< Pure overhead */
+	/* sort below according to ggeptable[] in core/extension.c */
+	EXT_T_GGEP_6,			/**< IPv6 address */
 	EXT_T_GGEP_LIME_XML,	/**< LimeWire XML metadata, in query hits */
-	/* sort below */
 	EXT_T_GGEP_A,			/**< Same as GGEP ALT but used in HEAD Pongs */
-	EXT_T_GGEP_ALT,			/**< Alternate locations in query hits */
+	EXT_T_GGEP_A6,			/**< Same as GGEP ALT6 but used in HEAD Pongs */
+	EXT_T_GGEP_ALT,			/**< IPv4:port alternate locations in query hits */
+	EXT_T_GGEP_ALT6,		/**< IPv6:port alternate locations in query hits */
+	EXT_T_GGEP_ALT6_TLS,	/**< TLS-capability bitmap for GGEP ALT6 */
 	EXT_T_GGEP_ALT_TLS,		/**< TLS-capability bitmap for GGEP ALT */
 	EXT_T_GGEP_BH,			/**< Browseable host indication */
 	EXT_T_GGEP_C,			/**< Result Code in HEAD Pongs */
 	EXT_T_GGEP_CHAT,		/**< Chat support info in qhit trailers */
 	EXT_T_GGEP_CT,			/**< Resource creation time */
 	EXT_T_GGEP_DHT,			/**< DHT version and flags, in pongs */
-	EXT_T_GGEP_DHTIPP,		/**< DHT nodes in packed IP:Port format (pongs) */
+	EXT_T_GGEP_DHTIPP,		/**< DHT nodes in packed IPv4:Port format (pongs) */
+	EXT_T_GGEP_DHTIPP6,		/**< DHT nodes in packed IPv6:Port format (pongs) */
 	EXT_T_GGEP_DU,			/**< Daily Uptime */
 	EXT_T_GGEP_F,			/**< Flags in HEAD Pongs */
 	EXT_T_GGEP_FW,			/**< Firewalled-to-Firewalled protocol version */
 	EXT_T_GGEP_GGEP,		/**< Name of known GGEP extensions, NUL-separated */
-	EXT_T_GGEP_GTKG_IPV6,	/**< GTKG IPv6 address */
-	EXT_T_GGEP_GTKG_TLS,	/**< GTKG TLS support indication */
+	EXT_T_GGEP_GTKG_IPV6,	/**< GTKG IPv6 address (deprecated @0.97) */
+	EXT_T_GGEP_GTKG_TLS,	/**< GTKG TLS support ind. (deprecated @0.97) */
 	/* watch out, below is off-order */
 	EXT_T_GGEP_GTKGV,		/**< GTKG version indication */
 	EXT_T_GGEP_GTKGV1,		/**< GTKG version ind. #1 (deprecated @0.97) */
@@ -97,8 +102,11 @@ typedef enum ext_token {
 	EXT_T_GGEP_GUE,			/**< GUESS support */
 	EXT_T_GGEP_H,			/**< GGEP binary hash value */
 	EXT_T_GGEP_HNAME,		/**< Hostname info, in query hits and ALOC */
+	EXT_T_GGEP_I6,			/**< IPv6 support indication (can flag no IPv4) */
 	EXT_T_GGEP_IP,			/**< IP:Port, in ping and pongs (F2F) */
-	EXT_T_GGEP_IPP,			/**< IP:Port, in pongs (UHC) */
+	EXT_T_GGEP_IPP,			/**< IPv4:port, in pongs (UHC) */
+	EXT_T_GGEP_IPP6,		/**< IPv6:port, in pongs (UHC) */
+	EXT_T_GGEP_IPP6_TLS,	/**< TLS-capability bitmap for GGEP IPP6 */
 	EXT_T_GGEP_IPP_TLS,		/**< TLS-capability bitmap for GGEP IPP */
 	EXT_T_GGEP_LF,			/**< Large File, in query hits */
 	EXT_T_GGEP_LOC,			/**< Locale preferences */
@@ -114,13 +122,16 @@ typedef enum ext_token {
 	EXT_T_GGEP_PR3,			/**< Partial intervals coded on 3 bytes */
 	EXT_T_GGEP_PR4,			/**< Partial intervals coded on 4 bytes */
 	EXT_T_GGEP_PRU,			/**< Partial Result Unverified (query hits) */
-	EXT_T_GGEP_PUSH,		/**< Push proxy info, in query hits */
+	EXT_T_GGEP_PUSH,		/**< IPv4:port push proxy info, in query hits */
+	EXT_T_GGEP_PUSH6,		/**< IPv6:port push proxy info, in query hits */
+	EXT_T_GGEP_PUSH6_TLS,	/**< TLS-capability bitmap for GGEP PUSH6 */
 	EXT_T_GGEP_PUSH_TLS,	/**< TLS-capability bitmap for GGEP PUSH */
 	EXT_T_GGEP_Q,			/**< Queue status in HEAD Pongs */
 	EXT_T_GGEP_QK,			/**< GUESS Query Key */
 	EXT_T_GGEP_SCP,			/**< Support Cached Pongs, in pings (UHC) */
 	EXT_T_GGEP_SO,			/**< Secure OOB */
 	EXT_T_GGEP_T,			/**< Same as ALT_TLS but for HEAD Pongs */
+	EXT_T_GGEP_T6,			/**< Same as ALT6_TLS but for HEAD Pongs */
 	EXT_T_GGEP_TLS,			/**< Supports TLS */
 	EXT_T_GGEP_TT,			/**< Tigertree root hash (TTH); binary */
 	EXT_T_GGEP_UA,			/**< User-Agent string */
