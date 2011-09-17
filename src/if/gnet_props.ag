@@ -1400,7 +1400,7 @@ prop = {
 
 prop = {
     name = "hosts_in_ultra_catcher";
-    desc = "Current number of hosts in ultra node caches.";
+    desc = "Current number of IPv4 hosts in ultra node caches.";
     save = FALSE;
     type = guint32;
     data = {
@@ -1435,7 +1435,7 @@ prop = {
 
 prop = {
     name = "max_ultra_hosts_cached";
-    desc = "Maximum number of hosts in the ultra node cache.";
+    desc = "Maximum number of IPv4 hosts in the ultra node cache.";
     type = guint32;
     data = {
         default = 10000;
@@ -4750,7 +4750,7 @@ prop = {
 
 prop = {
     name = "max_guess_hosts_cached";
-    desc = "Maximum number of hosts in the regular GUESS cache.";
+    desc = "Maximum number of IPv4 hosts in the regular GUESS cache.";
     type = guint32;
     data = {
         default = 1000;
@@ -4761,7 +4761,7 @@ prop = {
 
 prop = {
     name = "hosts_in_guess_catcher";
-    desc = "Current number of hosts in the regular GUESS cache.";
+    desc = "Current number of IPv4 hosts in the regular GUESS cache.";
     save = FALSE;
     type = guint32;
     data = {
@@ -4773,7 +4773,7 @@ prop = {
 
 prop = {
     name = "max_guess_intro_hosts_cached";
-    desc = "Maximum number of hosts in the introduction GUESS cache.";
+    desc = "Maximum number of IPv4 hosts in the introduction GUESS cache.";
     type = guint32;
     data = {
         default = 5000;
@@ -4784,7 +4784,7 @@ prop = {
 
 prop = {
     name = "hosts_in_guess_intro_catcher";
-    desc = "Current number of hosts in the introduction GUESS cache.";
+    desc = "Current number of IPv4 hosts in the introduction GUESS cache.";
     save = FALSE;
     type = guint32;
     data = {
@@ -4997,6 +4997,75 @@ prop = {
     type = boolean;
     data = {
         default = FALSE;
+    };
+};
+
+prop = {
+    name = "max_ultra6_hosts_cached";
+    desc = "Maximum number of IPv6 hosts in the ultra node cache.";
+    type = guint32;
+    data = {
+        default = 10000;
+        min     = 100;
+        max     = 50000;
+    };
+};
+
+prop = {
+    name = "hosts_in_ultra6_catcher";
+    desc = "Current number of IPv6 hosts in ultra node caches.";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = INT_MAX;
+    };
+};
+
+prop = {
+    name = "hosts_in_guess6_catcher";
+    desc = "Current number of IPv6 hosts in the regular GUESS cache.";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = INT_MAX;
+    };
+};
+
+prop = {
+    name = "hosts_in_guess6_intro_catcher";
+    desc = "Current number of IPv6 hosts in the introduction GUESS cache.";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = INT_MAX;
+    };
+};
+
+prop = {
+    name = "max_guess6_hosts_cached";
+    desc = "Maximum number of IPv6 hosts in the regular GUESS cache.";
+    type = guint32;
+    data = {
+        default = 1000;
+        min     = 100;
+        max     = 10000;
+    };
+};
+
+prop = {
+    name = "max_guess6_intro_hosts_cached";
+    desc = "Maximum number of IPv6 hosts in the introduction GUESS cache.";
+    type = guint32;
+    data = {
+        default = 5000;
+        min     = 1000;
+        max     = 50000;
     };
 };
 
