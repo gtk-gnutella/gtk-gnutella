@@ -90,20 +90,29 @@ net_type_to_af(enum net_type net)
 	return AF_UNSPEC;
 }
 
-
+/**
+ * Structure used to hold any IPv4 or IPv6 address whilst keeping track
+ * of which type it is.
+ */
 typedef struct host_addr {
 	guint32 net;	/**< The address network type */
 	union {
 		guint8	ipv6[16];	/**< This is valid if "net == NET_TYPE_IPV6" */
-		guint32 ipv4;	/**< @attention: Always in host byte order! */
+		guint32 ipv4;		/**< @attention: Always in host byte order! */
 	} addr;
 } host_addr_t;
 
+/**
+ * Serialized host address.
+ */
 struct packed_host_addr {
 	guchar net;
 	guchar addr[sizeof ((host_addr_t *) 0)->addr];
 };
 
+/**
+ * Serialized host (IP:port).
+ */
 struct packed_host {
 	guchar port[sizeof (guint16)];
 	struct packed_host_addr ha;
@@ -233,7 +242,7 @@ net_type_to_string(enum net_type net)
 	return NULL;
 }
 
-static inline enum net_type 
+static inline G_GNUC_CONST enum net_type 
 host_addr_net(const host_addr_t ha)
 {
 	return ha.net;
@@ -251,7 +260,7 @@ host_addr_is_ipv6(const host_addr_t ha)
 	return NET_TYPE_IPV6 == ha.net;
 }
 
-static inline guint32
+static inline G_GNUC_CONST guint32
 host_addr_ipv4(const host_addr_t ha)
 {
 	return NET_TYPE_IPV4 == ha.net ? ha.addr.ipv4 : 0;
@@ -280,7 +289,7 @@ host_addr_peek_ipv4(const void *ipv4)
 }
 
 static inline G_GNUC_PURE host_addr_t
-host_addr_peek_ipv6(const guint8 *ipv6)
+host_addr_peek_ipv6(const void *ipv6)
 {
 	host_addr_t ha;
 	
