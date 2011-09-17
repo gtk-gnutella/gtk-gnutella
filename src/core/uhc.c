@@ -515,26 +515,27 @@ uhc_get_hosts(void)
  * Called when a pong with an "IPP" extension was received.
  */
 void
-uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen)
+uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
+	enum net_type type)
 {
 	int i, cnt;
+	int len = NET_TYPE_IPV6 == type ? 18 : 6;
+	const void *p;
 
-	g_assert(0 == paylen % 6);
+	g_assert(0 == paylen % len);
 
-	cnt = paylen / 6;
+	cnt = paylen / len;
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_debug("extracting %d host%s in UDP IPP pong %s from %s",
 			cnt, cnt == 1 ? "" : "s",
 			guid_hex_str(gnutella_header_get_muid(&n->header)), node_addr(n));
 
-	for (i = 0; i < cnt; i++) {
+	for (i = 0, p = payload; i < cnt; i++, p = const_ptr_add_offset(p, len)) {
 		host_addr_t ha;
 		guint16 port;
 
-		ha = host_addr_peek_ipv4(&payload[i * 6]);
-		port = peek_le16(&payload[i * 6 + 4]);
-
+		host_ip_port_peek(p, type, &ha, &port);
 		hcache_add_caught(HOST_ULTRA, ha, port, "UDP-HC");
 
 		if (GNET_PROPERTY(bootstrap_debug) > 2)

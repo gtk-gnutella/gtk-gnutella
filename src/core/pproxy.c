@@ -40,23 +40,25 @@
 
 /* Following extra needed for the server-side */
 
-#include "sockets.h"
-#include "ioheader.h"
 #include "bsched.h"
-#include "routing.h"
-#include "gmsg.h"
-#include "uploads.h"
 #include "ggep.h"
 #include "ggep_type.h"
+#include "gmsg.h"
 #include "gnet_stats.h"
+#include "ioheader.h"
+#include "ipv6-ready.h"
+#include "routing.h"
+#include "sockets.h"
+#include "uploads.h"
+
 #include "lib/url.h"
 
 /* Following extra needed for the client-side */
 
-#include "settings.h"			/* For listen_addr() */
-#include "token.h"
 #include "downloads.h"
 #include "features.h"
+#include "settings.h"			/* For listen_addr() */
+#include "token.h"
 
 #include "lib/ascii.h"
 #include "lib/atoms.h"
@@ -503,13 +505,14 @@ error:
  * it does not come from our node really.  The file ID may be set to 0, but
  * it should be ignored when the GIV is received anyway.
  *
- * @param size_ptr no document
- * @param ttl the TTL to use for the packet header.
- * @param hops the hops value to use for the packet header.
- * @param guid the hops value to use for the packet header.
- * @param addr the host address the receiving peer should connect to.
- * @param port the port number the receiving peer should connect to.
- * @param file_idx the file index this push is for.
+ * @param ttl		the TTL to use for the packet header.
+ * @param hops		the hops value to use for the packet header.
+ * @param guid		the hops value to use for the packet header.
+ * @param addr_v4	the IPv4 address the receiving peer should connect to.
+ * @param addr_v6	the IPv6 address the receiving peer should connect to.
+ * @param port		the port number the receiving peer should connect to.
+ * @param file_idx	the file index this push is for.
+ *
  * @return	A pointer to a static buffer holding the created Gnutella PUSH
  *			packet on success, an empty array on failure.
  */
@@ -525,6 +528,8 @@ build_push(guint8 ttl, guint8 hops, const struct guid *guid,
 	char *p = packet.data;
 	size_t len = 0, size = sizeof packet;
 	ggep_stream_t gs;
+	host_addr_t primary;
+	guint32 ipv4;
 
 	g_assert(guid);
 	g_assert(0 != port);
@@ -545,6 +550,12 @@ build_push(guint8 ttl, guint8 hops, const struct guid *guid,
 	size -= sizeof packet.m;
 	len += sizeof packet.m - GTA_HEADER_SIZE;	/* Exclude the header size */
 
+	/*
+	 * IPv6-Ready: our primary address is the IPv4 one, IPv6 being a fallback.
+	 */
+
+	primary = is_host_addr(addr_v4) ? addr_v4 : addr_v6;
+
 	ggep_stream_init(&gs, p, size);
 
 	if (!supports_tls && tls_enabled()) {
@@ -558,18 +569,26 @@ build_push(guint8 ttl, guint8 hops, const struct guid *guid,
 			ggep_stream_close(&gs);
 			return zero_array;
 		}
-		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0)) {
-			g_warning("could not write GGEP \"GTKG.TLS\" extension into PUSH");
-			ggep_stream_close(&gs);
-			return zero_array;
-		}
 	}
 
-	if (is_host_addr(addr_v6) && host_addr_is_ipv6(addr_v6)) {
+	/*
+	 * IPv6-Ready support: the PUSH message is architected with an IPv4 address.
+	 * When the address we want to send is an IPv6 one, it needs to be sent
+	 * in a GGEP "6" field, the IPv4 field being set to 127.0.0.0.
+	 */
+
+	ipv4 = ipv6_ready_advertised_ipv4(primary);
+
+	if (
+		ipv6_ready_has_no_ipv4(ipv4) ||
+		(is_host_addr(addr_v6) && host_addr_is_ipv6(addr_v6))
+	) {
 		const guint8 *ipv6 = host_addr_ipv6(&addr_v6);
 
-		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0)) {
-			g_warning("could not write GGEP \"GTKG.IPV6\" extension into PUSH");
+		g_assert(ipv6 != NULL);
+
+		if (!ggep_stream_pack(&gs, GGEP_NAME(6), ipv6, 16, 0)) {
+			g_warning("could not write GGEP \"6\" extension into PUSH");
 			ggep_stream_close(&gs);
 			return zero_array;
 		}
@@ -590,7 +609,7 @@ build_push(guint8 ttl, guint8 hops, const struct guid *guid,
 
 	gnutella_msg_push_request_set_file_id(&packet.m,
 		file_idx == URN_INDEX ? 0 : file_idx);
-	gnutella_msg_push_request_set_host_ip(&packet.m, host_addr_ipv4(addr_v4));
+	gnutella_msg_push_request_set_host_ip(&packet.m, ipv4);
 	gnutella_msg_push_request_set_host_port(&packet.m, port);
 	gnutella_header_set_size(gnutella_msg_push_request_header(&packet.m), len);
 

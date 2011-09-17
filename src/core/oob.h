@@ -36,6 +36,8 @@
 
 #include "common.h"
 
+#include "lib/host_addr.h"
+
 /*
  * Public interface.
  */
@@ -49,7 +51,8 @@ void oob_shutdown(void);
 void oob_close(void);
 
 void oob_got_results(struct gnutella_node *n, GSList *files,
-		int count, gboolean secure_oob, gboolean ggep_h);
+		int count, host_addr_t addr, guint16 port,
+		gboolean secure_oob, unsigned flags);
 void oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 		guint8 wanted, const struct array *token);
 

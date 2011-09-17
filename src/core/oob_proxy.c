@@ -38,6 +38,7 @@
 #include "dq.h"
 #include "gnet_stats.h"
 #include "hostiles.h"
+#include "ipv6-ready.h"
 #include "nodes.h"
 #include "routing.h"
 #include "settings.h"
@@ -184,7 +185,8 @@ oob_proxy_create(gnutella_node_t *n)
 {
 	struct guid proxied_muid;
 	struct oob_proxy_rec *opr;
-	guint32 ip;
+	host_addr_t primary;
+	guint32 ipv4;
 
 	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_SEARCH);
 	g_assert(NODE_IS_LEAF(n));
@@ -193,13 +195,23 @@ oob_proxy_create(gnutella_node_t *n)
 
 	/*
 	 * Mangle the MUID of the query to insert our own IP:port.
+	 *
+	 * IPv6-Ready: if our primary address is IPv6, we'll need to include
+	 * a GGEP "6" extension to hold the IP address and we stuff 127.0.0.0
+	 * in the GUID.
 	 */
 
-	ip = host_addr_ipv4(listen_addr()); /* @todo TODO: IPv6 */
-	memcpy(&proxied_muid, gnutella_header_get_muid(&n->header),
-		GUID_RAW_SIZE);
-	poke_be32(&proxied_muid.v[0], ip);
+	primary = listen_addr_primary();
+	ipv4 = ipv6_ready_advertised_ipv4(primary);
+
+	memcpy(&proxied_muid, gnutella_header_get_muid(&n->header), GUID_RAW_SIZE);
+	poke_be32(&proxied_muid.v[0], ipv4);
 	poke_le16(&proxied_muid.v[13], socket_listen_port());
+
+	if (ipv6_ready_has_no_ipv4(ipv4)) {
+		/* Tell search_compact() to append a GGEP "6" */
+		n->msg_flags |= NODE_M_EXT_CLEANUP | NODE_M_FINISH_IPV6;
+	}
 
 	/*
 	 * Look whether we already have something for this proxied MUID.
