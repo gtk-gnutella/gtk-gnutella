@@ -36,6 +36,7 @@
 #define _core_settings_h_
 
 #include "common.h"
+#include "hcache.h"		/* For host_net_t */
 
 #include "if/core/settings.h"
 #include "lib/host_addr.h"
@@ -68,6 +69,16 @@ guint32 get_average_ip_lifetime(time_t now, enum net_type net);
 
 gboolean settings_is_leaf(void);
 gboolean settings_is_ultra(void);
+gboolean settings_use_ipv4(void);
+gboolean settings_use_ipv6(void);
+gboolean settings_running_ipv4(void);
+gboolean settings_running_ipv6(void);
+gboolean settings_running_ipv4_and_ipv6(void);
+gboolean settings_running_ipv6_only(void);
+gboolean settings_running_same_net(const host_addr_t addr);
+
+host_addr_t listen_addr_primary(void);
+host_addr_t listen_addr_primary_net(host_net_t net);
 
 #endif /* _core_settings_h_ */
 

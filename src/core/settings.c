@@ -188,6 +188,47 @@ listen_addr6(void)
 	}
 }
 
+/**
+ * @return the primary listening address we should advertise in PUSH,
+ * query hits, etc...
+ */
+host_addr_t
+listen_addr_primary(void)
+{
+	host_addr_t ipv4 = listen_addr();
+
+	/*
+	 * IPv6-Ready: if we have both a valid IPv4 and IPv6 address, use the IPv4
+	 * one, otherwise use the actual sole listening address.
+	 */
+
+	if (is_host_addr(ipv4)) {
+		return ipv4;
+	} else {
+		return listen_addr6();
+	}
+}
+
+/**
+ * @return the primary listening address we should advertise in alt-locs,
+ * based on the address type they want.
+ */
+host_addr_t
+listen_addr_primary_net(host_net_t net)
+{
+	switch (net) {
+	case HOST_NET_BOTH:
+		return listen_addr_primary();
+	case HOST_NET_IPV4:
+		return listen_addr();
+	case HOST_NET_IPV6:
+		return listen_addr6();
+	case HOST_NET_MAX:
+		g_assert_not_reached();
+	}
+	return zero_host_addr;
+}
+
 host_addr_t
 listen_addr_by_net(enum net_type net)
 {
@@ -849,6 +890,88 @@ gboolean
 settings_is_ultra(void)
 {
 	return NODE_P_ULTRA == GNET_PROPERTY(current_peermode);
+}
+
+/**
+ * Can we use IPv4?
+ */
+gboolean
+settings_use_ipv4(void)
+{
+	return
+		NET_USE_IPV4 == GNET_PROPERTY(network_protocol) ||
+		NET_USE_BOTH == GNET_PROPERTY(network_protocol);
+}
+
+/**
+ * Can we use IPv6?
+ */
+gboolean
+settings_use_ipv6(void)
+{
+	return
+		NET_USE_IPV6 == GNET_PROPERTY(network_protocol) ||
+		NET_USE_BOTH == GNET_PROPERTY(network_protocol);
+}
+
+/**
+ * Are we running with a valid IPv4 address?
+ */
+gboolean
+settings_running_ipv4(void)
+{
+	host_addr_t ha = listen_addr();
+
+	return host_addr_is_ipv4(ha) && is_host_addr(ha);
+}
+
+/**
+ * Are we running with a valid IPv6 address?
+ */
+gboolean
+settings_running_ipv6(void)
+{
+	host_addr_t ha = listen_addr6();
+
+	return host_addr_is_ipv6(ha) && is_host_addr(ha);
+}
+
+/**
+ * Are we running with both IPv4 and IPv6 addresses?
+ */
+gboolean
+settings_running_ipv4_and_ipv6(void)
+{
+	return settings_running_ipv6() && settings_running_ipv4();
+}
+
+/**
+ * Are we running with only an IPv6 address?
+ */
+gboolean
+settings_running_ipv6_only(void)
+{
+	return settings_running_ipv6() && !settings_running_ipv4();
+}
+
+/**
+ * Are we running with only an IP address on the same network as the one
+ * given as argument?
+ */
+gboolean
+settings_running_same_net(const host_addr_t addr)
+{
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+		return settings_running_ipv4();
+	case NET_TYPE_IPV6:
+		return settings_running_ipv6();
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
+	}
+
+	return FALSE;
 }
 
 /**
@@ -1633,10 +1756,7 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 	 * If UDP is enabled, also listen on the same UDP port.
 	 */
 
-	if (
-		NET_USE_BOTH == GNET_PROPERTY(network_protocol) ||
-		NET_USE_IPV4 == GNET_PROPERTY(network_protocol)
-	) {
+	if (settings_use_ipv4()) {
 		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV4);
 
 		s_tcp_listen = socket_tcp_listen(bind_addr, port);
@@ -1651,10 +1771,7 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 			}
 		}
 	}
-	if (
-		NET_USE_BOTH == GNET_PROPERTY(network_protocol) ||
-		NET_USE_IPV6 == GNET_PROPERTY(network_protocol)
-	) {
+	if (settings_use_ipv6()) {
 		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV6);
 
 		s_tcp_listen6 = socket_tcp_listen(bind_addr, port);
