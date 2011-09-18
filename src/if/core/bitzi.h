@@ -65,6 +65,7 @@ typedef struct bitzi_data {
 	bitzi_fj_t	judgment;
 	float		goodness;
 	time_t		expiry;			/**< expiry date of meta-data */
+	time_t		first_seen;		/**< local creation time in database */
 } bitzi_data_t;
 
 #ifdef CORE_SOURCES

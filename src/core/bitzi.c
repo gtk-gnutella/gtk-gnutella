@@ -79,9 +79,10 @@
 
 #define BITZI_XML_MAXLEN		16384
 #define BITZI_DB_CACHE_SIZE		32
-#define BITZI_SYNC_PERIOD		(60 * 1000)			/** ms: 1 minute */
-#define BITZI_PRUNE_PERIOD		(24 * 3600 * 1000)	/** ms: 1 day */
-#define BITZI_HEARTBEAT_PERIOD	(5 * 1000)			/** ms: 5 secs */
+#define BITZI_SYNC_PERIOD		(60 * 1000)			/**< ms: 1 minute */
+#define BITZI_PRUNE_PERIOD		(24 * 3600 * 1000)	/**< ms: 1 day */
+#define BITZI_HEARTBEAT_PERIOD	(5 * 1000)			/**< ms: 5 secs */
+#define BITZI_UNKNOWN_TIMEOUT	(60 * 60)			/**< s: 1 hour */
 
 static const char bitzi_url_fmt[] =
 	"http://ticket.bitzi.com/rdf/urn:sha1:%s?ref=gtk-gnutella";
@@ -718,6 +719,7 @@ bitzi_fill_data(bitzi_data_t *data,
 	data->judgment = bz->judgment;
 	data->goodness = bz->goodness;
 	data->expiry = bz->etime;
+	data->first_seen = bz->ctime;
 }
 
 /**
@@ -892,6 +894,8 @@ done:
  * Send a meta-data query
  *
  * Called directly when a request launched or via the bitzi_heartbeat tick.
+ *
+ * @return TRUE if an HTTP request was launched.
  */
 static gboolean
 bitzi_launch_query(bitzi_request_t *breq)
@@ -907,10 +911,40 @@ bitzi_launch_query(bitzi_request_t *breq)
 
 
 		if (bitzi_data_by_sha1(&data, breq->sha1, breq->filesize)) {
-			if (GNET_PROPERTY(bitzi_debug)) {
-				g_debug("BITZI has cached ticket for %s",
-					sha1_to_string(breq->sha1));
+			gboolean ignore = FALSE;
+
+			/*
+			 * If the cached entry indicates that the SHA1 was not in the
+			 * Bitzi database, re-query Bitzi if the indication was inserted
+			 * more than BITZI_UNKNOWN_TIMEOUT seconds ago, thereby ignoring
+			 * the default Bitzi expiration time of about 2 weeks.
+			 *
+			 * The reason for ignoring this timeout is that we're facing an
+			 * explicit user request here, not an automatic lookup. Imposing
+			 * the BITZI_UNKNOWN_TIMEOUT interval between requests avoids
+			 * hammering Bitzi and protects against broad user selections
+			 * for updates.
+			 *		--RAM, 2011-09-18
+			 */
+
+			if (
+				BITZI_FJ_UNKNOWN == data.judgment &&
+				delta_time(tm_time(), data.first_seen) > BITZI_UNKNOWN_TIMEOUT
+			) {
+				ignore = TRUE;
 			}
+
+			if (GNET_PROPERTY(bitzi_debug)) {
+				g_debug("BITZI has cached ticket for %s: \"%s\", inserted %s%s",
+					sha1_to_string(breq->sha1),
+					bitzi_judgment_to_string(data.judgment),
+					timestamp_to_string(data.first_seen),
+					ignore ? " (ignoring and re-fetching)" : "");
+			}
+
+			if (ignore)
+				goto fetch;
+
 			gcu_bitzi_result(&data);
 		} else {
 			/*
@@ -925,6 +959,8 @@ bitzi_launch_query(bitzi_request_t *breq)
 	/*
 	 * Launch the HTTP asynchronous request.
 	 */
+
+fetch:
 
 	if (GNET_PROPERTY(bitzi_debug))
 		g_debug("BITZI launching query for %s", sha1_to_string(breq->sha1));
@@ -1219,8 +1255,9 @@ bitzi_query_by_sha1(const struct sha1 *sha1,
 	if (bz != NULL) {
 		if (GNET_PROPERTY(bitzi_debug)) {
 			g_debug("BITZI %s: result for %s already in cache, "
-				"size=%s, expires %s",
+				"size=%s, refresh=%s, expires %s",
 				G_STRFUNC, sha1_to_string(sha1), filesize_to_string(bz->size),
+				refresh ? "y" : "n",
 				timestamp_to_string(bz->etime));
 		}
 		if (refresh) {
