@@ -838,11 +838,8 @@ guess_traffic_from(const gnet_host_t *h)
 	qk = get_qkdata(h);
 
 	if (NULL == qk) {
+		ZERO(&new_qk);				/* Precaution */
 		new_qk.first_seen = new_qk.last_update = tm_time();
-		new_qk.last_timeout = 0;
-		new_qk.flags = 0;
-		new_qk.timeouts = 0;
-		new_qk.length = 0;
 		new_qk.query_key = NULL;	/* Query key unknown */
 		qk = &new_qk;
 		gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, +1);
@@ -3593,7 +3590,7 @@ guess_introduction_ping(const struct gnutella_node *n,
 	 */
 
 	if (len < 3)
-		return;
+		return;			/* Not a GUESS 0.2 ping */
 
 	port = peek_le16(&buf[1]);
 	hcache_add_valid(HOST_GUESS, n->addr, port, "introduction ping");
@@ -3606,6 +3603,7 @@ guess_introduction_ping(const struct gnutella_node *n,
 
 	gnet_host_set(&host, n->addr, port);
 	guess_traffic_from(&host);
+	guess_host_set_v2(&host);
 }
 
 /**
