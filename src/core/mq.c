@@ -77,7 +77,7 @@ mq_status(const mqueue_t *q)
 	if (q->flags & MQ_FLOWC)
 		return MQ_S_FLOWC;
 
-	return (q->count > q->lowat) ? MQ_S_WARNZONE : MQ_S_DELAY;
+	return (q->size > q->lowat) ? MQ_S_WARNZONE : MQ_S_DELAY;
 }
 
 guint32 mq_debug(const mqueue_t *q)
