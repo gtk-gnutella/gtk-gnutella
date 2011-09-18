@@ -126,7 +126,7 @@ InstallManPage(gtk-gnutella, $(MANSRC))
 main.o: revision.h
 
 revision.h: .FORCE
-	$(TOP)/scripts/svn-revision $(TOP) $@
+	$(TOP)/scripts/git-revision $(TOP) $@
 
 /*
  * Generate a gtk-gnutella.nm file containing the executable's symbols.

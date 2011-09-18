@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-95]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-96]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -95,7 +95,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 19197 2011-05-31 20:55:41Z rmanfredi $
+# $X-Id$
 
 all::
 
@@ -309,7 +309,7 @@ local_deinstall.man::
 main.o: revision.h
 
 revision.h: .FORCE
-	$(TOP)/scripts/svn-revision $(TOP) $@
+	$(TOP)/scripts/git-revision $(TOP) $@
 
 all:: gtk-gnutella.nm
 

@@ -246,7 +246,7 @@ scripts/gtkg-version
 scripts/magnet-handler.sh
 scripts/sha1_cache.pl
 scripts/sha1_cache.sh
-scripts/svn-revision
+scripts/git-revision
 src/Jmakefile
 src/Makefile.SH
 src/casts.h
