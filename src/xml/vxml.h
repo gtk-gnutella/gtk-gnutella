@@ -86,6 +86,7 @@ typedef enum {
 	VXML_E_VERSION_OUT_OF_RANGE,		/**< Version number out of range */
 	VXML_E_UNKNOWN_CHAR_ENCODING_NAME,	/**< Unknown character encoding name */
 	VXML_E_INVALID_CHAR_ENCODING_NAME,	/**< Invalid character encoding name */
+	VXML_E_ILLEGAL_CHAR_BYTE_SEQUENCE,	/**< Illegal character byte sequence */
 	VXML_E_UNREADABLE_CHAR_ENCODING,	/**< Unreadable input */
 	VXML_E_USER,						/**< User-defined error */
 	VXML_E_DUP_ATTRIBUTE,				/**< Duplicate attribute */

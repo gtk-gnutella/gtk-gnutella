@@ -1422,6 +1422,8 @@ vxml_strerror(vxml_error_t error)
 		return "Invalid character encoding name";
 	case VXML_E_UNREADABLE_CHAR_ENCODING:
 		return "Input is unreadable in the specified encoding";
+	case VXML_E_ILLEGAL_CHAR_BYTE_SEQUENCE:
+		return "Reached illegal character byte sequence";
 	case VXML_E_MAX:
 		break;
 	}
@@ -2004,6 +2006,7 @@ vxml_read_char(vxml_parser_t *vp, guint32 *uc)
 	struct vxml_buffer *vb;
 	struct vxml_buffer_memory *m = NULL;
 	guint retlen;
+	guint32 prev_uc;
 
 	if G_UNLIKELY(vp->flags & VXML_F_FATAL_ERROR) {
 		*uc = VXC_NUL;
@@ -2155,33 +2158,47 @@ has_buffer:
 	 * Not UTF-8 or not an ASCII character, use general-purpose reader.
 	 */
 
+	prev_uc = vp->last_uc;
 	*uc = vp->last_uc =
 		(*m->reader)(m->vb_rptr, vxml_buffer_remains(vb), &retlen);
 
 	if G_UNLIKELY(0 == retlen) {
 		struct vxml_buffer *vnext;
+		GSList *next;
 
 		/*
 		 * We were unable to grab the character, maybe because the input
-		 * buffer is too short to hold the whole character.
+		 * buffer is too short to hold the whole character, or because
+		 * the input is malformed UTF-8 or whatever encoding they specified.
 		 *
-		 * This can only happen with file inputs, since we arbitrarily
-		 * read a fixed amount of bytes held in the synthetized memory
-		 * buffer.
+		 * First rule-out memory buffers, which MUST contain an entire
+		 * sequence of correctly encoded character.
+		 */
+
+		g_assert(0 == vp->last_uc);		/* Reader did not return any char */
+
+		if (VXML_BUFFER_MEMORY == vb->type)
+			goto illegal_byte_sequence;
+
+		/*
+		 * Short buffer can only happen with file inputs, since we
+		 * arbitrarily read a fixed amount of bytes held in the
+		 * synthetized memory buffer.
 		 *
 		 * If there is a next input buffer and it is a file, this memory
 		 * buffer comes from the file, so read more data from the file
 		 * and retry.
 		 */
 
-		vnext = g_slist_next(vp->input)->data;
-		if (NULL == vnext)
-			return FALSE;
+		next = g_slist_next(vp->input);
+		if (NULL == next || NULL == next->data)
+			goto illegal_byte_sequence;
 
+		vnext = next->data;
 		vxml_buffer_check(vnext);
 
 		if (VXML_BUFFER_FILE != vnext->type)
-			return FALSE;
+			goto illegal_byte_sequence;
 
 		if (vxml_debugging(1))
 			vxml_parser_debug(vp, "must read ahead more file data");
@@ -2198,7 +2215,7 @@ has_buffer:
 			(*m->reader)(m->vb_rptr, vxml_buffer_remains(vb), &retlen);
 
 		if (0 == retlen)
-			return FALSE;
+			goto illegal_byte_sequence;
 
 		/* FALL THROUGH */
 	}
@@ -2222,6 +2239,11 @@ uc_read:
 	}
 
 	return m->user;
+
+illegal_byte_sequence:		/* Reached invalid character */
+
+	vxml_fatal_error_uc(vp, VXML_E_ILLEGAL_CHAR_BYTE_SEQUENCE, prev_uc);
+	return FALSE;
 }
 
 /**
@@ -6387,6 +6409,7 @@ const char bad_namespace3[] =
 	"<a xmlns:x='urn:x-ns' xmlns:y='urn:x-ns'><b x:a='' y:a=''/></a>";
 
 const char faulty[] = "<a>text<b>other text<c>x</c><d><e>text</a>";
+const char illseq[] = "<a>mañ</a>";
 
 static G_GNUC_COLD void
 vxml_run_simple_test(int num, const char *name,
@@ -6900,18 +6923,21 @@ vxml_test(void)
 	root = vxml_run_tree_test(27,
 		"namespaces", namespaces, CONST_STRLEN(namespaces), 0, VXML_E_OK);
 
-	vxml_run_simple_test(28, "recursion", recursion, CONST_STRLEN(recursion),
-		0, VXML_E_ENTITY_RECURSION);
-
-	vxml_run_simple_test(29, "recursion_pe", recursion_pe,
-		CONST_STRLEN(recursion_pe), 0, VXML_E_ENTITY_RECURSION);
-
 	if (vxml_debugging(0)) {
 		g_debug("VXML extended tree dump with default namespace:");
 		vxml_tree_extended_dump(root, stderr, "urn:x-ns");
 	}
 
 	xnode_tree_free(root);
+
+	vxml_run_simple_test(28, "recursion", recursion, CONST_STRLEN(recursion),
+		0, VXML_E_ENTITY_RECURSION);
+
+	vxml_run_simple_test(29, "recursion_pe", recursion_pe,
+		CONST_STRLEN(recursion_pe), 0, VXML_E_ENTITY_RECURSION);
+
+	vxml_run_simple_test(30, "illseq", illseq, CONST_STRLEN(illseq),
+		0, VXML_E_ILLEGAL_CHAR_BYTE_SEQUENCE);
 }
 #else	/* !VXML_TESTING */
 void
