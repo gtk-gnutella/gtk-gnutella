@@ -2170,15 +2170,9 @@ has_buffer:
 		 * We were unable to grab the character, maybe because the input
 		 * buffer is too short to hold the whole character, or because
 		 * the input is malformed UTF-8 or whatever encoding they specified.
-		 *
-		 * First rule-out memory buffers, which MUST contain an entire
-		 * sequence of correctly encoded character.
 		 */
 
 		g_assert(0 == vp->last_uc);		/* Reader did not return any char */
-
-		if (VXML_BUFFER_MEMORY == vb->type)
-			goto illegal_byte_sequence;
 
 		/*
 		 * Short buffer can only happen with file inputs, since we
@@ -2196,6 +2190,11 @@ has_buffer:
 
 		vnext = next->data;
 		vxml_buffer_check(vnext);
+
+		/*
+		 * First rule-out memory buffers, which MUST contain an entire
+		 * sequence of correctly encoded character.
+		 */
 
 		if (VXML_BUFFER_FILE != vnext->type)
 			goto illegal_byte_sequence;
