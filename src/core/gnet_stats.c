@@ -121,6 +121,9 @@ gnet_stats_general_to_string(gnr_stats_t type)
 
 	static const char * const type_string[] = {
 		"routing_errors",
+		"routing_table_chunks",
+		"routing_table_capacity",
+		"routing_table_count",
 		"dups_with_higher_ttl",
 		"spam_sha1_hits",
 		"spam_name_hits",

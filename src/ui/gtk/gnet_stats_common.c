@@ -100,6 +100,9 @@ general_type_str(gint value)
 {
 	static const char * const strs[] = {
 		N_("Routing errors"),
+		N_("Routing table chunks"),
+		N_("Routing table message capacity"),
+		N_("Routing table message count"),
 		N_("Duplicates with higher TTL"),
 		N_("SPAM SHA1 database hits"),
 		N_("SPAM filename and size hits"),

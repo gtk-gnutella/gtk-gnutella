@@ -804,6 +804,7 @@ prepare_entry(struct message **entryp, unsigned chunk_idx)
 		entry->slot = entryp;
 		entry->chunk_idx = chunk_idx;	/* 8-bit value, must fit */
 		routing.count++;
+		gnet_stats_count_general(GNR_ROUTING_TABLE_COUNT, +1);
 		goto done;
 	}
 
@@ -977,6 +978,9 @@ get_next_slot(gboolean advance, unsigned *cidx)
 
 		chunk = NULL;
 		routing.nchunks = chunk_idx;
+		gnet_stats_set_general(GNR_ROUTING_TABLE_CHUNKS, routing.nchunks);
+		gnet_stats_set_general(GNR_ROUTING_TABLE_CAPACITY, routing.capacity);
+		gnet_stats_set_general(GNR_ROUTING_TABLE_COUNT, routing.count);
 
 		g_assert(uint_is_non_negative(routing.nchunks));
 
@@ -1023,6 +1027,10 @@ get_next_slot(gboolean advance, unsigned *cidx)
 			routing.capacity += CHUNK_MESSAGES;
 			routing.chunks[chunk_idx] =
 				halloc0(CHUNK_MESSAGES * sizeof(struct message *));
+
+			gnet_stats_count_general(GNR_ROUTING_TABLE_CHUNKS, +1);
+			gnet_stats_count_general(GNR_ROUTING_TABLE_CAPACITY,
+				CHUNK_MESSAGES);
 
 			if (GNET_PROPERTY(routing_debug)) {
 				g_debug("RT created new chunk #%d at %p, now holds %d / %d",
@@ -1141,6 +1149,7 @@ revitalize_entry(struct message *entry, gboolean force)
 		clean_entry(prev);
 		WFREE(prev);
 		routing.count--;
+		gnet_stats_count_general(GNR_ROUTING_TABLE_COUNT, -1);
 	}
 
 	/*
@@ -1349,8 +1358,6 @@ routing_init(void)
 
 	routing.messages_hashed =
 		g_hash_table_new(message_hash_func, message_compare_func);
-	routing.next_idx = 0;
-	routing.capacity = 0;
 	routing.last_rotation = tm_time();
 
 	/*
