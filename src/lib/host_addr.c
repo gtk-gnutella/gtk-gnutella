@@ -622,6 +622,11 @@ host_port_to_string(const char *hostname, host_addr_t addr, guint16 port)
  * Parses IPv4 and IPv6 addresses. The latter requires IPv6 support to be
  * enabled.
  *
+ * For convenience, if the first character is '[' then the address is parsed
+ * as an IPv6 one and the trailing ']' is both expected and swallowed.  This
+ * allows the routine to be used when parsing "ipv4:port" or "[ipv6]:port"
+ * strings.
+ *
  * @param s The string to parse.
  * @param endptr This will point to the first character after the parsed
  *        address.
@@ -633,22 +638,42 @@ gboolean
 string_to_host_addr(const char *s, const char **endptr, host_addr_t *addr_ptr)
 {
 	guint32 ip;
+	gboolean brackets = FALSE;
 
 	g_assert(s);
 
-	if (string_to_ip_strict(s, &ip, endptr)) {
+	if ('[' == *s) {
+		brackets = TRUE;
+		s++;
+	}
+
+	if (!brackets && string_to_ip_strict(s, &ip, endptr)) {
 		if (addr_ptr) {
 			*addr_ptr = host_addr_get_ipv4(ip);
 		}
 		return TRUE;
 	} else {
 		guint8 ipv6[16];
-		if (parse_ipv6_addr(s, ipv6, endptr)) {
+		const char *end;
+		gboolean ok;
+
+		ok = parse_ipv6_addr(s, ipv6, &end);
+		if (ok) {
 			if (addr_ptr) {
 				*addr_ptr = host_addr_peek_ipv6(ipv6);
 			}
-			return TRUE;
+			if (brackets) {
+				if (']' == *end) {
+					end++;
+				} else {
+					ok = FALSE;		/* Trailing ']' required if we had '[' */
+				}
+			}
 		}
+
+		if (endptr != NULL)
+			*endptr = end;
+		return ok;
 	}
 
 	if (addr_ptr)
@@ -661,8 +686,7 @@ string_to_host_addr(const char *s, const char **endptr, host_addr_t *addr_ptr)
  * If ``s'' points to a parsable address, ``*ha'' will be set to it. Otherwise,
  * ``*ha'' is set to ``zero_host_addr''. If the string is a possible hostname
  * the function returns TRUE nonetheless and ``*endptr'' will point to the
- * first character after hostname. If IPv6 support is disabled, "[::]" will
- * be considered a hostname rather than a host address.
+ * first character after hostname.
  *
  * @param s the string to parse.
  * @param endptr if not NULL, it will point the first character after
@@ -678,21 +702,6 @@ string_to_host_or_addr(const char *s, const char **endptr, host_addr_t *ha)
 	const char *ep;
 	size_t len;
 	host_addr_t addr;
-
-	if ('[' == s[0]) {
-		guint8 ipv6[16];
-
-		if (parse_ipv6_addr(&s[1], ipv6, &ep) && ']' == *ep) {
-
-			if (ha) {
-				*ha = host_addr_peek_ipv6(ipv6);
-			}
-			if (endptr)
-				*endptr = ++ep;
-
-			return TRUE;
-		}
-	}
 
 	if (string_to_host_addr(s, endptr, &addr)) {
 		if (ha)

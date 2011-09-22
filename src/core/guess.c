@@ -1220,21 +1220,23 @@ guess_extract_host_addr(const struct gnutella_node *n)
 	node_check(n);
 	g_assert(GTA_MSG_INIT_RESPONSE == gnutella_header_get_function(&n->header));
 
+	ipv4_addr = host_addr_peek_ipv4(&n->data[2]);
 	ipv6_addr = zero_host_addr;
 
 	for (i = 0; i < n->extcount; i++) {
 		const extvec_t *e = &n->extvec[i];
 
 		switch (e->ext_token) {
-		case EXT_T_GGEP_GTKG_IPV6:
-			ggept_gtkg_ipv6_extract(e, &ipv6_addr);
+		case EXT_T_GGEP_6:
+		case EXT_T_GGEP_GTKG_IPV6:	/* Deprecated for 0.97 */
+			if (ext_paylen(e) != 0) {
+				ggept_gtkg_ipv6_extract(e, &ipv6_addr);
+			}
 			break;
 		default:
 			break;
 		}
 	}
-
-	ipv4_addr = host_addr_peek_ipv4(&n->data[2]);
 
 	/*
 	 * We give preference to the IPv4 address unless it's unusable and there
@@ -1243,7 +1245,8 @@ guess_extract_host_addr(const struct gnutella_node *n)
 
 	if (
 		!host_address_is_usable(ipv4_addr) &&
-		host_address_is_usable(ipv6_addr)
+		host_address_is_usable(ipv6_addr) &&
+		settings_running_ipv6()
 	) {
 		return ipv6_addr;
 	}
@@ -2422,6 +2425,13 @@ guess_load_host_added(void *data, void *hostinfo)
 	switch (nhost->type) {
 	case HCACHE_GUESS:
 	case HCACHE_GUESS_INTRO:
+		if (!settings_use_ipv4())
+			return WQ_SLEEP;
+		break;
+	case HCACHE_GUESS6:
+	case HCACHE_GUESS6_INTRO:
+		if (!settings_use_ipv6())
+			return WQ_SLEEP;
 		break;
 	default:
 		return WQ_SLEEP;		/* Still waiting for a GUESS host */
@@ -2488,7 +2498,7 @@ guess_pmsg_free(pmsg_t *mb, void *arg)
 	/*
 	 * If the RPC callback triggered before processing by the UDP queue,
 	 * then we don't need to further process: it was already handled by
-	 * the RPC time out.
+	 * the RPC timeout.
 	 */
 
 	if (pmi->rpc_done)
@@ -3522,16 +3532,20 @@ guess_cancel(guess_t **gq_ptr, gboolean callback)
  * Fill `hosts', an array of `hcount' hosts already allocated with at most
  *  `hcount' hosts from out caught list.
  *
+ * @param net		network preference
+ * @param hosts		base of vector to fill
+ * @param hcount	size of host vector
+ *
  * @return amount of hosts filled
  */
 int
-guess_fill_caught_array(gnet_host_t *hosts, int hcount)
+guess_fill_caught_array(host_net_t net, gnet_host_t *hosts, int hcount)
 {
 	int i, filled, added = 0;
 	hash_list_iter_t *iter;
 	GHashTable *seen_host = g_hash_table_new(gnet_host_hash, gnet_host_eq);
 
-	filled = hcache_fill_caught_array(HOST_GUESS, hosts, hcount);
+	filled = hcache_fill_caught_array(net, HOST_GUESS, hosts, hcount);
 	iter = hash_list_iterator(link_cache);
 
 	for (i = 0; i < hcount; i++) {
@@ -3544,6 +3558,13 @@ guess_fill_caught_array(gnet_host_t *hosts, int hcount)
 
 		if (gm_hash_table_contains(seen_host, h))
 			goto next;
+
+		if (net != HOST_NET_BOTH) {
+			if (HOST_NET_IPV4 == net && !gnet_host_is_ipv4(h))
+				goto next;
+			else if (HOST_NET_IPV6 == net && !gnet_host_is_ipv6(h))
+				goto next;
+		}
 
 		/*
 		 * Hosts from the link cache have a 65% chance of superseding hosts

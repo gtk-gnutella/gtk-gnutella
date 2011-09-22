@@ -312,6 +312,8 @@ enum {
  * Node attributes.
  */
 enum {
+	NODE_A_IPV6_ONLY	= 1 << 28,	/**< Node does not want any IPv4 */
+	NODE_A_CAN_IPV6		= 1 << 27,	/**< Node supports IPv6 */
 	NODE_A_CAN_WHAT		= 1 << 26,	/**< Node supports "What's New?" queries? */
 	NODE_A_GUESS		= 1 << 25,	/**< Node advertized GUESS support */
 	NODE_A_CAN_DHT		= 1 << 24,	/**< Indicated support for DHT */
@@ -345,10 +347,11 @@ enum {
  * Message flags, set during parsing / processing.
  */
 enum {
+	NODE_M_FINISH_IPV6	= 1 << 5,	/**< Add GGEP "6" extension for our IPv6 */
 	NODE_M_WHATS_NEW	= 1 << 4,	/**< Facing a "What's New?" query */
 	NODE_M_STRIP_GGEP_u	= 1 << 3,	/**< Must strip GGEP "u" */
 	NODE_M_STRIP_GUESS	= 1 << 2,	/**< Must strip all GUESS extensions */
-	NODE_M_EXT_CLEANUP	= 1 << 1,	/**< Must cleanup extensions */
+	NODE_M_EXT_CLEANUP	= 1 << 1,	/**< Must cleanup / rewrite extensions */
 	NODE_M_COMPACTED	= 1 << 0	/**< Compaction occurred */
 };
  
@@ -606,9 +609,8 @@ void node_proxying_remove(gnutella_node_t *n);
 gboolean node_proxying_add(gnutella_node_t *n, const struct guid *guid);
 void node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port);
 void node_proxy_cancel_all(void);
-size_t node_http_fw_node_info_add(char *buf, size_t size, gboolean);
-size_t node_http_proxies_add(char *buf, size_t size,
-			gpointer arg, guint32 flags);
+size_t node_http_fw_node_info_add(char *buf, size_t size, gboolean, host_net_t);
+size_t node_http_proxies_add(char *buf, size_t size, void *arg, guint32 flags);
 sequence_t *node_push_proxies(void);
 const gnet_host_t *node_oldest_push_proxy(void);
 const GSList *node_all_nodes(void);

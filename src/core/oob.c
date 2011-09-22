@@ -85,7 +85,7 @@ struct oob_results {
 	int count;				/**< Amount of hits to deliver */
 	int notify_requeued;	/**< Amount of LIME/12v2 requeued after dropping */
 	gboolean secure;		/**< TRUE -> secure OOB, FALSE -> normal OOB */
-	gboolean ggep_h;		/**< TRUE -> use GGEP H, FALSE -> plain text */
+	unsigned flags;			/**< A combination of QHIT_F_* flags */
 };
 
 /**
@@ -150,7 +150,7 @@ oob_results_check(const struct oob_results *r)
  */
 static struct oob_results *
 results_make(const struct guid *muid, GSList *files, int count,
-	gnet_host_t *to, gboolean secure, gboolean ggep_h)
+	gnet_host_t *to, gboolean secure, unsigned flags)
 {
 	static const struct oob_results zero_results;
 	struct oob_results *r;
@@ -165,7 +165,7 @@ results_make(const struct guid *muid, GSList *files, int count,
 	r->count = count;
 	gnet_host_copy(&r->dest, to);
 	r->secure = secure;
-	r->ggep_h = ggep_h;
+	r->flags = flags;
 
 	r->ev_expire = cq_main_insert(OOB_EXPIRE_MS, results_destroy, r);
 	r->refcount++;
@@ -520,7 +520,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 		qhit_build_results(
 			r->files, deliver_count,
 			s->can_deflate ? OOB_MAX_DQHIT_SIZE : OOB_MAX_QHIT_SIZE,
-			oob_record_hit, s, r->muid, r->ggep_h, token);
+			oob_record_hit, s, r->muid, r->flags, token);
 
 	if (wanted < r->count)
 		gnet_stats_count_general(GNR_PARTIALLY_CLAIMED_OOB_HITS, 1);
@@ -634,25 +634,25 @@ oob_send_reply_ind(struct oob_results *r)
  * @param n				the node from which we got the query
  * @param files			the list of shared_file_t entries that make up results
  * @param count			the amount of results
+ * @param addr			address where we must send the OOB result indication
+ * @param port			port where we must send the OOB result indication
  * @param secure		whether secure OOB was requested
- * @param ggep_h		whether GGEP H is understood
+ * @param flags			a combination of QHIT_F_* flags
  */
 void
 oob_got_results(struct gnutella_node *n, GSList *files,
-	int count, gboolean secure, gboolean ggep_h)
+	int count, host_addr_t addr, guint16 port,
+	gboolean secure, unsigned flags)
 {
 	struct oob_results *r;
 	gnet_host_t to;
-	host_addr_t addr;
-	guint16 port;
 
 	g_assert(count > 0);
 	g_assert(files != NULL);
 
-	guid_oob_get_addr_port(gnutella_header_get_muid(&n->header), &addr, &port);
 	gnet_host_set(&to, addr, port);
 	r = results_make(gnutella_header_get_muid(&n->header), files, count, &to,
-			secure, ggep_h);
+			secure, flags);
 	if (r) {
 		oob_send_reply_ind(r);
 	}

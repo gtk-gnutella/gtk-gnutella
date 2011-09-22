@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,37 +25,34 @@
  * @ingroup core
  * @file
  *
- * Out-of-band query hit management.
+ * Support for IPv6-Ready.
  *
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2011
  */
 
-#ifndef _core_oob_h_
-#define _core_oob_h_
-
-#include "common.h"
+#ifndef _core_ipv6_ready_h_
+#define _core_ipv6_ready_h_
 
 #include "lib/host_addr.h"
 
-/*
- * Public interface.
+/**
+ * This address is used by the IPv6-Ready code to signal that the host
+ * has no IPv4 address.
  */
+#define IPV4_NONE 	0x7f000000U			/* 127.0.0.0/32 */
 
-struct array;
-struct gnutella_node;
-struct guid;
+guint32 ipv6_ready_advertised_ipv4(const host_addr_t addr) G_GNUC_PURE;
+gboolean ipv6_ready_no_ipv4_addr(const host_addr_t ha) G_GNUC_CONST;
 
-void oob_init(void);
-void oob_shutdown(void);
-void oob_close(void);
+/**
+ * @return whether advertised IPv4 address indicates no IPv4 support.
+ */
+static inline G_GNUC_CONST gboolean
+ipv6_ready_has_no_ipv4(const guint32 advertised)
+{
+	return advertised == IPV4_NONE;
+}
 
-void oob_got_results(struct gnutella_node *n, GSList *files,
-		int count, host_addr_t addr, guint16 port,
-		gboolean secure_oob, unsigned flags);
-void oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
-		guint8 wanted, const struct array *token);
+#endif /* _core_ipv6_ready_h_ */
 
-#endif /* _core_oob_h_ */
-
-/* vi: set ts=4: */

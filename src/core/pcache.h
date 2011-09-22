@@ -50,8 +50,7 @@ typedef struct pong_meta {
 	guchar country[2];    /**< Node's country, from GGEP "LOC" */
 	guint8 guess;	      /**< Node supports GUESS, from GGEP "GUE" */
 
-	host_addr_t ipv6_addr;		/**< For GGEP "IPV6" */
-
+	host_addr_t ipv6_addr;		/**< For GGEP "6" */
 	host_addr_t sender_addr;	/**< For GGEP "IP" */
 	guint16 sender_port;  		/**< For GGEP "IP" */
 
@@ -82,6 +81,14 @@ enum {
 };
 
 /**
+ * SCP flags (used by UHC and GUESS 0.2 queries).
+ */
+#define SCP_F_ULTRA		(1 << 0)		/**< Wants Ultra nodes */
+#define SCP_F_TLS		(1 << 1)		/**< Node supports TLS */
+#define SCP_F_IPV6		(1 << 2)		/**< Node also wants IPv6 addresses */
+#define SCP_F_NO_IPV4	(1 << 3)		/**< Node does not want any IPv4 */
+
+/**
  * Global Functions.
  */
 
@@ -110,7 +117,7 @@ void pcache_pong_fake(struct gnutella_node *n,
 gboolean pcache_get_recent(host_type_t type, host_addr_t *addr, guint16 *port);
 void pcache_clear_recent(host_type_t type);
 void pcache_guess_acknowledge(struct gnutella_node *n,
-	gboolean good_qk, gboolean wants_ipp);
+	gboolean good_qk, gboolean wants_ipp, host_net_t net);
 
 void ping_all_neighbours(void);
 

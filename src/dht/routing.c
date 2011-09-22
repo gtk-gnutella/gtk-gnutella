@@ -5093,24 +5093,26 @@ dht_bootstrap_if_needed(host_addr_t addr, guint16 port)
  * Collect packed IP:port DHT hosts from "DHTIPP" we get in a pong.
  */
 void
-dht_ipp_extract(const struct gnutella_node *n, const char *payload, int paylen)
+dht_ipp_extract(const struct gnutella_node *n, const char *payload, int paylen,
+	enum net_type type)
 {
 	int i, cnt;
+	int len = NET_TYPE_IPV6 == type ? 18 : 6;
+	const void *p;
 
-	g_assert(0 == paylen % 6);
+	g_assert(0 == paylen % len);
 
-	cnt = paylen / 6;
+	cnt = paylen / len;
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(bootstrap_debug))
 		g_debug("extracting %d DHT host%s in DHTIPP pong from %s",
 			cnt, cnt == 1 ? "" : "s", node_addr(n));
 
-	for (i = 0; i < cnt; i++) {
+	for (i = 0, p = payload; i < cnt; i++, p = const_ptr_add_offset(p, len)) {
 		host_addr_t ha;
 		guint16 port;
 
-		ha = host_addr_peek_ipv4(&payload[i * 6]);
-		port = peek_le16(&payload[i * 6 + 4]);
+		host_ip_port_peek(p, type, &ha, &port);
 
 		if (GNET_PROPERTY(bootstrap_debug) > 1)
 			g_debug("BOOT collected DHT node %s from DHTIPP pong from %s",

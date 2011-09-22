@@ -35,21 +35,22 @@
 
 #include "gtk-gnutella.h"
 
-#include "gnutella.h"
-#include "downloads.h"
-#include "uploads.h"		/* For upload_is_enabled() */
 #include "dmesh.h"
-#include "huge.h"
-#include "http.h"
-#include "hostiles.h"
-#include "guid.h"
-#include "share.h"
-#include "fileinfo.h"
-#include "settings.h"
-#include "hosts.h"
-#include "ipp_cache.h"
 #include "ctl.h"
+#include "downloads.h"
+#include "fileinfo.h"
+#include "gnutella.h"
+#include "guid.h"
+#include "hcache.h"
+#include "hostiles.h"
+#include "hosts.h"
+#include "http.h"
+#include "huge.h"
+#include "ipp_cache.h"
+#include "settings.h"
+#include "share.h"
 #include "tls_common.h"
+#include "uploads.h"		/* For upload_is_enabled() */
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1871,12 +1872,14 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
  * @param addr		the known address of the servent
  * @param port		the known listening port of the servent
  * @param proxies	sequence of known push-proxies (gnet_host_t *)
+ * @param net		network type for proxies that we want to include
  *
  * @return the length of generated string.
  */
 static size_t
 dmesh_fwalt_string(char *buf, size_t size,
-	const guid_t *guid, host_addr_t addr, guint16 port, sequence_t *proxies)
+	const guid_t *guid, host_addr_t addr, guint16 port, sequence_t *proxies,
+	host_net_t net)
 {
 	size_t rw;
 
@@ -1899,9 +1902,13 @@ dmesh_fwalt_string(char *buf, size_t size,
 		iter = sequence_forward_iterator(proxies);
 		while (sequence_iter_has_next(iter) && n++ < FW_MAX_PROXIES) {
 			const gnet_host_t *host = sequence_iter_next(iter);
+			const host_addr_t haddr = gnet_host_get_addr(host);
+
+			if (!hcache_addr_within_net(haddr, net))
+				continue;
+
 			rw += gm_snprintf(&buf[rw], size - rw, ";%s",
-				host_addr_port_to_string(
-					gnet_host_get_addr(host), gnet_host_get_port(host)));
+				host_addr_port_to_string(haddr, gnet_host_get_port(host)));
 		}
 		sequence_iterator_release(&iter);
 	}
@@ -1910,33 +1917,36 @@ dmesh_fwalt_string(char *buf, size_t size,
 }
 
 /**
- * Build alternate location header for a given SHA1 key.  We generate at
+ * Build alternate location headers for a given SHA1 key.  We generate at
  * most `size' bytes of data into `alt'.
  *
- * @param `sha1'	no brief description.
- * @param `buf'		no brief description.
- * @param 'size'	no brief description.
+ * @param sha1	the SHA1 of the resource for which we're emitting alt-locs
+ * @param buf	buffer where headers are generated
+ * @param size	size of buffer
  *
- * @param `addr' is the host to which those alternate locations are meant:
+ * @param addr is the host to which those alternate locations are meant:
  * we skip any data pertaining to that host.
  *
- * @param `last_sent' is the time at which we sent some previous alternate
+ * @param last_sent is the time at which we sent some previous alternate
  * locations. If there has been no change to the mesh since then, we'll
  * return an empty string.  Otherwise we return entries inserted after
  * `last_sent'.
  *
- * @param `vendor' is given to determine whether it is apt to read our
+ * @param vendor is given to determine whether it is apt to read our
  * X-Alt and X-Nalt fields formatted with continuations or not.
  *
- * @param `fi' when it is non-NULL, it means we're sharing that file and
+ * @param fi when it is non-NULL, it means we're sharing that file and
  * we're sending alternate locations to remote servers: include ourselves
  * in the list of alternate locations if PFSP-server is enabled.
  *
- * @param `request' if it is true, then the mesh entries are generated in
+ * @param request if it is true, then the mesh entries are generated in
  * an HTTP request; otherwise it's for an HTTP reply.
  *
- * @param `guid' if non-NULL, then we can also include firewalled locations
+ * @param guid if non-NULL, then we can also include firewalled locations
  * and this is the GUID that we must not include.
+ *
+ * @param net specifies which networks are allowed for alt-locs: IPv4, IPv6
+ * or both.
  *
  * unless the `vendor' is GTKG, don't use continuation: most
  * servent authors don't bother with a proper HTTP header parsing layer.
@@ -1947,7 +1957,8 @@ int
 dmesh_alternate_location(const struct sha1 *sha1,
 	char *buf, size_t size, const host_addr_t addr,
 	time_t last_sent, const char *vendor,
-	fileinfo_t *fi, gboolean request, const struct guid *guid)
+	fileinfo_t *fi, gboolean request, const struct guid *guid,
+	host_net_t net)
 {
 	char url[1024];
 	struct dmesh *dm;
@@ -1986,22 +1997,18 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 	if (request) {
 		/* We're sending the request: assume they can't read continuations */
-		if (
-			vendor == NULL || *vendor != 'g' ||
-			!is_strprefix(vendor, "gtk-gnutella/")
-		)
+		if (vendor == NULL || !is_strprefix(vendor, "gtk-gnutella/"))
 			maxlinelen = 100000;	/* In practice, no continuations! */
 	} else {
 		/* We're sending a reply: assume they can read continuations */
-		if (
-			vendor != NULL && *vendor == 'B' &&
-			is_strprefix(vendor, "BearShare ")
-		) {
+		if (vendor != NULL && is_strprefix(vendor, "BearShare ")) {
 			/*
 			 * Only versions newer than (included) BS 4.3.4 and BS 4.4b25
 			 * will properly support continuations.
 			 *
-			 * XXX for now disable for all.
+			 * Given that BearShare is almost extinct in the Gnutella world,
+			 * no need to bother, just avoid continuations for all versions.
+			 *		--RAM, 2011-06-21
 			 */
 
 			maxlinelen = 100000;	/* In practice, no continuations! */
@@ -2028,6 +2035,13 @@ dmesh_alternate_location(const struct sha1 *sha1,
 			dmesh_urlinfo_t *info = banned->info;
 
 			if (info->idx != URN_INDEX)
+				continue;
+
+			/*
+			 * IPv6-Ready: only include IP addresses they want.
+			 */
+
+			if (!hcache_addr_within_net(info->addr, net))
 				continue;
 
 			if (delta_time(banned->created, last_sent) > 0) {
@@ -2072,7 +2086,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 	can_share_partials =
 		fi != NULL && file_info_partial_shareable(fi) &&
-		is_host_addr(listen_addr()) && upload_is_enabled();
+		is_host_addr(listen_addr_primary_net(net)) && upload_is_enabled();
 
 	/*
 	 * For unfirewalled servers, the PFSP-server alt-loc is listed in X-Alt.
@@ -2086,7 +2100,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 		ourselves.inserted = now;
 		ourselves.stamp = now;
-		ourselves.e.url.addr = listen_addr();
+		ourselves.e.url.addr = listen_addr_primary_net(net);
 		ourselves.e.url.port = GNET_PROPERTY(listen_port);
 		ourselves.e.url.idx = URN_INDEX;
 		ourselves.e.url.name = NULL;
@@ -2169,6 +2183,9 @@ dmesh_alternate_location(const struct sha1 *sha1,
 			continue;
 
 		if (host_addr_equal(dme->e.url.addr, addr))
+			continue;
+
+		if (!hcache_addr_within_net(dme->e.url.addr, net))
 			continue;
 
 		if (dme->e.url.idx != URN_INDEX)
@@ -2277,7 +2294,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		 */
 
 		url_len = dmesh_fwalt_string(url, sizeof url,
-			&servent_guid, ipv4_unspecified, 0, NULL);
+			&servent_guid, ipv4_unspecified, 0, NULL, net);
 
 		g_assert(url_len < sizeof url);
 
@@ -2338,8 +2355,12 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		) {
 			size_t url_len;
 			url_len = dmesh_fwalt_string(url, sizeof url,
-				dme->e.fwh.guid, servent_addr, servent_port, proxies);
+				dme->e.fwh.guid, servent_addr, servent_port, proxies, net);
 			sequence_release(&proxies);
+
+
+			if (!hcache_addr_within_net(servent_addr, net))
+				continue;
 
 			g_assert(url_len < sizeof url);
 
@@ -2355,7 +2376,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 			}
 
 			url_len = dmesh_fwalt_string(url, sizeof url,
-				dme->e.fwh.guid, ipv4_unspecified, 0, proxies);
+				dme->e.fwh.guid, ipv4_unspecified, 0, proxies, net);
 			sequence_release(&proxies);
 
 			g_assert(url_len < sizeof url);

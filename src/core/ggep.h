@@ -77,10 +77,9 @@
  * Flags for ggep_ext_write() and friends.
  */
 
-#define GGEP_W_LAST		0x00000001	/**< This is the last extension */
-#define GGEP_W_COBS		0x00000002	/**< Attempt COBS encoding, if needed */
-#define GGEP_W_DEFLATE	0x00000004	/**< Attempt payload compression */
-#define GGEP_W_FIRST	0x00000008	/**< First extension, write GGEP_MAGIC */
+#define GGEP_W_STRIP	(1U << 0)	/**< Strip if payload is empty */
+#define GGEP_W_COBS		(1U << 1)	/**< Attempt COBS encoding, if needed */
+#define GGEP_W_DEFLATE	(1U << 2)	/**< Attempt payload compression */
 
 enum ggep_magic { GGEP_MAGIC_ID = 0x62961da4U };
 
@@ -88,7 +87,7 @@ enum ggep_magic { GGEP_MAGIC_ID = 0x62961da4U };
  * Structure keeping track of incremental GGEP writes.
  */
 typedef struct ggep_stream {
-	enum ggep_magic magic;/**< Magic number */
+	enum ggep_magic magic;	/**< Magic number */
 	char *outbuf;			/**< Base address of output buffer */
 	char *end;				/**< First address beyond output buffer */
 	char *o;				/**< Where next output should go */
@@ -97,10 +96,11 @@ typedef struct ggep_stream {
 	char *last_fp;			/**< Flags of last successfully written ext. */
 	size_t size;			/**< Size of the outbuf buffer */
 	guint8 flags;			/**< Extension flags (COBS / DEFLATE) */
-	gboolean magic_emitted;	/**< Whether leading magic was emitted */
-	gboolean begun;			/**< Whether extension was correctly begun */
 	cobs_stream_t cs;		/**< Used if COBS needed */
 	zlib_deflater_t *zd;	/**< Allocated and used if deflation needed */
+	unsigned magic_sent:1;	/**< Whether leading magic was emitted */
+	unsigned begun:1;		/**< Whether extension was correctly begun */
+	unsigned strip_empty:1;	/**< Whether empty extension should be stripped */
 } ggep_stream_t;
 
 /*

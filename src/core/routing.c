@@ -2146,6 +2146,9 @@ route_push(struct route_log *route_log,
 
 	/*
 	 * If IP address is among the hostile set, drop.
+	 *
+	 * FIXME: need to check for "6" for IPv6-Ready because it may not be
+	 * an IPv4 target.
 	 */
 
 	if (hostiles_check(host_addr_peek_ipv4(&sender->data[20]))) {

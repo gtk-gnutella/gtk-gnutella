@@ -50,11 +50,13 @@
 #include "gmsg.h"
 #include "gnet_stats.h"
 #include "guid.h"
+#include "hcache.h"		/* For HOST_NET_* flags */
 #include "hostiles.h"
 #include "hosts.h"
 #include "http.h"
 #include "huge.h"
 #include "ignore.h"
+#include "inet.h"		/* For INET_IP_V6READY */
 #include "ioheader.h"
 #include "ipp_cache.h"
 #include "move.h"
@@ -1168,6 +1170,25 @@ dl_random_guid_atom(void)
 	return NULL;
 }
 
+/**
+ * Determine the set of networks we can return for alt-locs and push-proxies.
+ */
+static host_net_t
+dl_server_net(const struct dl_server *server)
+{
+	host_net_t net;
+
+	g_assert(dl_server_valid(server));
+
+	net = HOST_NET_IPV4;
+	if (server->attrs & DLS_A_IPV6_ONLY)
+		net = HOST_NET_IPV6;
+	else if (server->attrs & DLS_A_CAN_IPV6)
+		net = HOST_NET_BOTH;
+
+	return net;
+}
+
 /* ----------------------------------------- */
 
 /**
@@ -1290,6 +1311,18 @@ download_init(void)
 	header_features_add_guarded_function(FEATURES_DOWNLOADS,
 		"fwalt", FWALT_VERSION_MAJOR, FWALT_VERSION_MINOR,
 		dmesh_can_use_fwalt);
+
+	/*
+	 * IPv6-Ready:
+	 * - advertise "IP/6.4" if we don't run IPv4.
+	 * - advertise "IP/6.0" if we run both IPv4 and IPv6.
+	 * - advertise nothing otherwise (running IPv4 only)
+	 */
+
+	header_features_add_guarded_function(FEATURES_DOWNLOADS, "IP",
+		INET_IP_V6READY, INET_IP_NOV4, settings_running_ipv6_only);
+	header_features_add_guarded_function(FEATURES_DOWNLOADS, "IP",
+		INET_IP_V6READY, INET_IP_V4V6, settings_running_ipv4_and_ipv6);
 
 	sl_downloads = hash_list_new(NULL, NULL);
 	sl_unqueued = hash_list_new(NULL, NULL);
@@ -10967,6 +11000,22 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		d->server->attrs |= DLS_A_FWALT;
 
 	/*
+	 * IPv6-Ready: check remote support of IPv6.
+	 */
+
+	{
+		unsigned major, minor;
+
+		if (header_get_feature("IP", header, &major, &minor)) {
+			if (INET_IP_V6READY == major) {
+				d->server->attrs |= DLS_A_CAN_IPV6;
+				d->server->attrs |=
+					(INET_IP_NOV4 == minor) ? DLS_A_IPV6_ONLY : 0;
+			}
+		}
+	}
+
+	/*
 	 * Check status.
 	 */
 
@@ -12834,7 +12883,9 @@ picked:
 		GNET_PROPERTY(is_firewalled) &&
 		!(d->server->attrs & (DLS_A_MINIMAL_HTTP | DLS_A_FAKE_G2))
 	) {
-		rw += node_http_fw_node_info_add(&request_buf[rw], maxsize - rw, TRUE);
+
+		rw += node_http_fw_node_info_add(
+			&request_buf[rw], maxsize - rw, TRUE, dl_server_net(d->server));
 	}
 
 	/*
@@ -12905,7 +12956,8 @@ picked:
 				download_addr(d), d->last_dmesh, download_vendor(d),
 				file_info, TRUE,
 				(d->server->attrs & DLS_A_FWALT) ?
-					download_guid(d) : NULL);
+					download_guid(d) : NULL,
+				dl_server_net(d->server));
 			rw += wmesh;
 
 			if (wmesh > 0)
