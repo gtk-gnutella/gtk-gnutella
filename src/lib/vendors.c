@@ -48,6 +48,7 @@ static const struct vendor {
 
     { T_ACQL, "AcqLite" },
     { T_ACQX, "Acquisition" },
+    { T_AGIO, "Adagio" },
     { T_AGNT, "Agentella" },
     { T_ARES, "Ares" },
     { T_ATOM, "AtomWire" },
@@ -106,6 +107,10 @@ static const struct vendor {
     { T_RASP, "Rasputin" },
     { T_RAZA, "Shareaza" },
     { T_RAZB, "Shareaza Beta" },
+    { T_RAZL, "ShareazaLite" },
+    { T_RZCA, "ShareazaPlus Alpha" },
+    { T_RZCB, "ShareazaPlus Beta" },
+    { T_RZCC, "ShareazaPlus" },
     { T_SHNB, "Shinobu" },
     { T_SNOW, "FrostWire" },
     { T_SNUT, "SwapNut" },
