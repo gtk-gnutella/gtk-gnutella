@@ -86,7 +86,7 @@ int version_build_cmp(const version_t *a, const version_t *b);
 gboolean version_fill(const char *version, version_t *vs);
 
 const char *version_str(const version_t *ver);
-const char *version_ext_str(const version_ext_t *vext);
+const char *version_ext_str(const version_ext_t *vext, gboolean full);
 
 extern const char *version_string;
 extern const char *version_short_string;

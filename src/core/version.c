@@ -122,7 +122,8 @@ version_dump(const char *str, const version_t *ver, const char *cmptag)
  * @return a user-friendly description of the extended version.
  * NB: returns pointer to static data.
  */
-const char *version_ext_str(const version_ext_t *vext)
+const char *
+version_ext_str(const version_ext_t *vext, gboolean full)
 {
 	static char str[120];
 	const version_t *ver = &vext->version;
@@ -156,7 +157,7 @@ const char *version_ext_str(const version_ext_t *vext)
 	if (vext->dirty)
 		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "-dirty");
 
-	if (ver->timestamp || vext->osname != NULL) {
+	if (ver->timestamp || (full && vext->osname != NULL)) {
 		rw += gm_snprintf(&str[rw], sizeof(str)-rw, " (");
 		need_closing = TRUE;
 	}
@@ -168,7 +169,7 @@ const char *version_ext_str(const version_ext_t *vext)
 		has_extra = TRUE;
 	}
 
-	if (vext->osname != NULL) {
+	if (full && vext->osname != NULL) {
 		if (has_extra)
 			rw += gm_snprintf(&str[rw], sizeof(str)-rw, "; ");
 		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%s", vext->osname);
@@ -611,12 +612,26 @@ gboolean
 version_check(const char *str, const char *token, const host_addr_t addr)
 {
 	version_t their_version;
+	version_ext_t their_version_ext;
 	version_t *target_version;
 	int cmp;
 	const char *version;
+	const char *end;
+	gboolean extended;
 
-	if (!version_parse(str, &their_version, NULL))
+	if (!version_parse(str, &their_version, &end))
 		return TRUE;			/* Not gtk-gnutella, or unparseable */
+
+	/*
+	 * Check for extended version information (git commit ID, dirty status).
+	 */
+
+	ZERO(&their_version_ext);
+	extended = version_ext_parse(end, &their_version_ext);
+	if (!extended) {
+		/* Structure could have been partially filled */
+		ZERO(&their_version_ext);
+	}
 
 	/*
 	 * Is their version a development one, or a release?
@@ -639,6 +654,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 	 */
 
 	version_stamp(str, &their_version);
+	their_version_ext.version = their_version;		/* Struct copy */
 
 	if (GNET_PROPERTY(version_debug) > 3)
 		g_debug("VERSION time=%d", (int) their_version.timestamp);
@@ -753,7 +769,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 	 * updates to them: they're probably not interested.
 	 */
 
-	version =  version_str(&their_version);
+	version =  version_ext_str(&their_version_ext, FALSE);	/* No OS name */
 
 	g_message("more recent %s version of gtk-gnutella: %s",
 		target_version == &last_dev_version ? "development" : "released",

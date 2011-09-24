@@ -1884,7 +1884,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 						ver.osname = vi.osname;		/* Static string */
 						ver.dirty = vi.dirty;
 
-						rs->version = atom_str_get(version_ext_str(&ver));
+						rs->version = atom_str_get(version_ext_str(&ver, TRUE));
 					} else if (ret == GGEP_INVALID) {
 						search_log_bad_ggep(n, e, vendor);
 					}
