@@ -151,6 +151,7 @@
 
 #define	STABLE_DB_CACHE_SIZE	4096	/**< Cached amount of stable nodes */
 #define STABLE_MAP_CACHE_SIZE	64		/**< Amount of SDBM pages to cache */
+#define STABLE_UPPER_THRESH		(3600 * 24 * 30 * 3)	/**< ~ 3 months in s */
 
 #define STABLE_EXPIRE (2 * DHT_VALUE_REPUBLISH)	/**< 2 republish periods */
 #define STABLE_PROBA  (0.3333)					/**< 33.33% */
@@ -267,7 +268,14 @@ stable_still_alive_probability(time_t first_seen, time_t last_seen)
 
 	elapsed = delta_time(tm_time(), last_seen);
 
-	return stable_alive_probability(life, elapsed);
+	/*
+	 * Safety precaution: regardless of the past lifetime of the node, if
+	 * we have not heard from it for more than STABLE_UPPER_THRESH, then
+	 * consider it dead.
+	 */
+
+	return elapsed < STABLE_UPPER_THRESH ?
+		stable_alive_probability(life, elapsed) : 0.0;
 }
 
 /**
