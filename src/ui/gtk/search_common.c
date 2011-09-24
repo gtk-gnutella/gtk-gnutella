@@ -3879,11 +3879,12 @@ search_gui_set_details(const record_t *rc)
 		if (ST_ALIEN & rs->status) {
 			search_gui_append_detail(_("Alien IP"), _("Yes"));
 		}
-		search_gui_append_detail(_("Created"),
-			(time_t) -1 != rc->create_time
-			? timestamp_to_string(rc->create_time)
-			: _("Unknown"));
 	}
+
+	search_gui_append_detail(_("Created"),
+		(time_t) -1 != rc->create_time
+		? timestamp_to_string(rc->create_time)
+		: _("Unknown"));
 
 	if (rc->alt_locs) {
 		gchar *hosts = gnet_host_vec_to_string(rc->alt_locs);
