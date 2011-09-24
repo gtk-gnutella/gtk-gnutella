@@ -115,6 +115,7 @@ gboolean shared_file_is_finished(const shared_file_t *sf);
 filesize_t shared_file_size(const shared_file_t *sf);
 guint32 shared_file_index(const shared_file_t *sf);
 time_t shared_file_modification_time(const shared_file_t *sf);
+time_t shared_file_creation_time(const shared_file_t *sf);
 const char *shared_file_path(const shared_file_t *sf);
 const struct sha1 *shared_file_sha1(const shared_file_t *sf);
 const struct tth *shared_file_tth(const shared_file_t *sf);

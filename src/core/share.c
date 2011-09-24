@@ -103,6 +103,7 @@ struct shared_file {
 	size_t name_canonic_len;	/**< strlen(name_canonic) */
 
 	time_t mtime;				/**< Last modif. time, for SHA1 computation */
+	time_t ctime;				/**< File creation time */
 
 	filesize_t file_size;		/**< File size in Bytes */
 	guint32 file_index;			/**< the files index within our local DB */
@@ -645,6 +646,7 @@ shared_special(const char *path)
 
 	sf->file_size = file_stat.st_size;
 	sf->mtime = file_stat.st_mtime;
+	sf->ctime = file_stat.st_ctime;
 
 	return sf;
 }
@@ -1074,6 +1076,7 @@ share_scan_add_file(const char *relative_path,
 	sf->relative_path = relative_path ? atom_str_get(relative_path) : NULL;
 	sf->file_size = sb->st_size;
 	sf->mtime = sb->st_mtime;
+	sf->ctime = sb->st_ctime;
 
 	if (shared_file_set_names(sf, name)) {
 		shared_file_free(&sf);
@@ -2548,11 +2551,31 @@ shared_file_path(const shared_file_t *sf)
 	return sf->file_path;
 }
 
+/**
+ * @return the last modification time of the shared file.
+ */
 time_t
 shared_file_modification_time(const shared_file_t *sf)
 {
 	shared_file_check(sf);
-	return sf->mtime;
+
+	/*
+	 * For partial files, we need to query the fileinfo as the value in
+	 * the shared_file is the one copied at the time we create the
+	 * structure from the partial file. It is not updated regularily.
+	 */
+
+	return NULL == sf->fi ? sf->mtime : sf->fi->modified;
+}
+
+/**
+ * @return the creation time of the shared file.
+ */
+time_t
+shared_file_creation_time(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+	return sf->ctime;
 }
 
 guint32
@@ -2605,6 +2628,7 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 	sf = shared_file_alloc();
 	sf->flags = SHARE_F_HAS_DIGEST;
 	sf->mtime = fi->last_flush;
+	sf->ctime = fi->created;
 	sf->sha1 = atom_sha1_get(fi->sha1);
 
 	/* FIXME: DOWNLOAD_SIZE:

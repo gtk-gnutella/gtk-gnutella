@@ -5898,8 +5898,7 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 	}
 	rc->tag = atom_str_get(shared_file_path(sf));
 
-	/* FIXME: Create time != modification time */
-	rc->create_time = shared_file_modification_time(sf);
+	rc->create_time = shared_file_creation_time(sf);
 	rs->records = g_slist_prepend(rs->records, rc);
 	rs->num_recs++;
 }

@@ -853,11 +853,10 @@ add_file(const shared_file_t *sf)
 	}
 
 	{
-		time_t mtime;	
+		time_t create_time;	
 
-		/* FIXME: Create time != modification time */
-		mtime = shared_file_modification_time(sf);
-		if ((time_t) -1 != mtime) {
+		create_time = shared_file_creation_time(sf);
+		if ((time_t) -1 != create_time) {
 			char buf[sizeof(guint64)];
 			int len;
 
@@ -865,9 +864,9 @@ add_file(const shared_file_t *sf)
 			 * Suppress negative values (if time_t is signed) as this would
 			 * be interpreted as a date far in this future.
 			 */
-			mtime = MAX(0, mtime);
+			create_time = MAX(0, create_time);
 
-			len = ggept_ct_encode(mtime, buf);
+			len = ggept_ct_encode(create_time, buf);
 			g_assert(UNSIGNED(len) <= sizeof buf);
 
 			ok = ggep_stream_pack(&gs, GGEP_NAME(CT), buf, len, GGEP_W_COBS);
