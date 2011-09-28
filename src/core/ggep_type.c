@@ -927,7 +927,7 @@ ggept_gtkg_ipv6_extract(const extvec_t *exv, host_addr_t *addr)
 		exv->ext_token == EXT_T_GGEP_6);
 
 	len = ext_paylen(exv);
-	if (0 != len && 16 < len)
+	if (0 != len && len < 16)
 		return GGEP_INVALID;
 
 	if (addr != NULL) {
