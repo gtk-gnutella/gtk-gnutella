@@ -975,6 +975,34 @@ settings_running_same_net(const host_addr_t addr)
 }
 
 /**
+ * Are they allowing connections to a given IP address?
+ *
+ * When only IPv4 or IPv6 is allowed, the connection to an address not
+ * belonging to that allowed protocol is not permitted.
+ */
+gboolean
+settings_can_connect(const host_addr_t addr)
+{
+	static gboolean warned = FALSE;
+
+	switch (GNET_PROPERTY(network_protocol)) {
+	case NET_USE_BOTH:
+		return TRUE;
+	case NET_USE_IPV4:
+		return NET_TYPE_IPV4 == host_addr_net(addr);
+	case NET_USE_IPV6:
+		return NET_TYPE_IPV6 == host_addr_net(addr);
+	default:
+		if (!warned) {
+			g_carp("%s: invalid network_protocol property value: %u",
+				G_STRFUNC, GNET_PROPERTY(network_protocol));
+			warned = TRUE;
+		}
+		return TRUE;	/* Assume connection is permitted */
+	}
+}
+
+/**
  * Gets the path of the local socket.
  */
 const char *

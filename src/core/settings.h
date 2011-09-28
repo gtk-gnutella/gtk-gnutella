@@ -76,6 +76,7 @@ gboolean settings_running_ipv6(void);
 gboolean settings_running_ipv4_and_ipv6(void);
 gboolean settings_running_ipv6_only(void);
 gboolean settings_running_same_net(const host_addr_t addr);
+gboolean settings_can_connect(const host_addr_t addr);
 
 host_addr_t listen_addr_primary(void);
 host_addr_t listen_addr_primary_net(host_net_t net);

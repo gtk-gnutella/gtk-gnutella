@@ -2761,6 +2761,26 @@ socket_connect_prepare(struct gnutella_socket *s,
 		return -1;
 	}
 
+	/*
+	 * If they configured IPv4 or IPv6 only, make sure we're not attempting
+	 * a connection to a forbidden network (even though the network protocol
+	 * is understood by the kernel).
+	 */
+
+	if (!settings_can_connect(addr)) {
+		host_addr_t to;
+		enum net_type target;
+
+		target = settings_use_ipv6() ? NET_TYPE_IPV6 : NET_TYPE_IPV4;
+
+		if (host_addr_convert(addr, &to, target)) {
+			addr = to;
+		} else {
+			errno = EPERM;
+			return -1;
+		}
+	}
+
 	fd = socket(family, SOCK_STREAM, 0);
 	if (fd < 0) {
 		/*
