@@ -64,4 +64,5 @@ gboolean svn_release_notification_verify(guint32 revision, time_t date,
 	const struct array *signature);
 
 #endif /* _core_tls_common_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

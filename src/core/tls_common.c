@@ -56,6 +56,14 @@
 
 #ifdef HAS_GNUTLS
 
+#ifdef GNUTLS_VERSION_MAJOR
+#define HAS_TLS(major, minor) \
+	((GNUTLS_VERSION_MAJOR > (major) || \
+	 (GNUTLS_VERSION_MAJOR == (major) && GNUTLS_VERSION_MINOR >= (minor))))
+#else
+#define HAS_TLS(major, minor) 0
+#endif
+
 #define USE_TLS_CUSTOM_IO
 #define TLS_DH_BITS 768
 
@@ -394,8 +402,15 @@ tls_init(struct gnutella_socket *s)
 	gnutls_transport_set_ptr(ctx->session, s);
 	gnutls_transport_set_push_function(ctx->session, tls_push);
 	gnutls_transport_set_pull_function(ctx->session, tls_pull);
+#if !HAS_TLS(3,0)
+	/*
+	 * This routine has been removed starting TLS 3.0.  It was used to disable
+	 * the lowat feature, and apparently this is now always the case in recent
+	 * TLS versions.	--RAM, 2011-09-28
+	 */
 	gnutls_transport_set_lowat(ctx->session, 0);
-#else
+#endif
+#else	/* !USE_TLS_CUSTOM_IO */
 	g_assert(is_valid_fd(s->file_desc));
 	gnutls_transport_set_ptr(ctx->session, int_to_pointer(s->file_desc));
 #endif	/* USE_TLS_CUSTOM_IO */
