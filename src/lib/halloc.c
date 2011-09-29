@@ -341,6 +341,32 @@ hdestroy(void)
 	/* EMPTY */
 }
 
+#ifdef REMAP_ZALLOC
+void *
+halloc(size_t size)
+{
+	return g_malloc(size);
+}
+
+void *
+halloc0(size_t size)
+{
+	return g_malloc0(size);
+}
+
+void
+hfree(void *ptr)
+{
+	g_free(ptr);
+}
+
+void *
+hrealloc(void *old, size_t size)
+{
+	return g_realloc(old, size);
+}
+#endif	/* REMAP_ZALLOC */
+
 #endif	/* !REMAP_ZALLOC && !TRACK_MALLOC */
 
 #ifdef USE_HALLOC
