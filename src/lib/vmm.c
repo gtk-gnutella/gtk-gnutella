@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006, Christian Biere
- * Copyright (c) 2006, 2009, Raphael Manfredi
+ * Copyright (c) 2006, 2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -85,7 +85,7 @@
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2006, 2009
+ * @date 2006, 2009, 2011
  */
 
 #include "common.h"
@@ -151,6 +151,8 @@ static gboolean kernel_mapaddr_increasing;
 #define VMM_CACHE_LIFE		60	/**< At most 1 minute if not fragmenting */
 #define VMM_CACHE_MAXLIFE	180	/**< At most 3 minutes if fragmenting */
 #define VMM_STACK_MINSIZE	(64 * 1024)		/**< Minimum stack size */
+#define VMM_FOREIGN_LIFE	(60 * 60)		/**< 60 minutes */
+#define VMM_FOREIGN_MAXLEN	(512 * 1024)	/**< 512 KiB */
 
 struct page_info {
 	void *base;		/**< base address */
@@ -173,16 +175,22 @@ struct page_cache {
 static struct page_cache page_cache[VMM_CACHE_LINES];
 
 /**
+ * Fragment types
+ */
+typedef enum {
+	VMF_NATIVE	= 0,		/**< Allocated by this layer */
+	VMF_MAPPED	= 1,		/**< Memory-mapped by this layer */
+	VMF_FOREIGN	= 2			/**< Foreign region */
+} vmf_type_t;
+
+/**
  * Structure used to represent a fragment in the virtual memory space.
- *
- * If the fragment is owned by the VMM layer, the end address is the first byte
- * beyond the end of the memory region (hence it is even).
- * If the fragment is a foreign one, then the end address is the last byte of
- * the memory region (hence it is odd).
  */
 struct vm_fragment {
 	const void *start;		/**< Start address */
-	const void *end;		/**< End address (special, see comment above) */
+	const void *end;		/**< First byte beyond end of region */
+	time_t mtime;			/**< Last time we updated fragment */
+	vmf_type_t type;		/**< Fragment type */
 };
 
 /**
@@ -244,7 +252,7 @@ static void page_cache_insert_pages(void *base, size_t n);
 static void pmap_remove(struct pmap *pm, const void *p, size_t size);
 static void pmap_load(struct pmap *pm);
 static void pmap_insert_region(struct pmap *pm,
-	const void *start, size_t size, gboolean foreign);
+	const void *start, size_t size, vmf_type_t type);
 static void pmap_overrule(struct pmap *pm, const void *p, size_t size);
 static void vmm_reserve_stack(size_t amount);
 
@@ -346,23 +354,25 @@ compat_pagesize(void)
 static inline ALWAYS_INLINE gboolean
 vmf_is_foreign(const struct vm_fragment *vmf)
 {
-	return booleanize((pointer_to_ulong(vmf->end) & 0x1));
-}
-
-static inline void
-vmf_set_end(struct vm_fragment *vmf, const void *end, gboolean foreign)
-{
-	g_assert(0 == (pointer_to_ulong(end) & 0x1));
-	vmf->end = const_ptr_add_offset(end, -booleanize(foreign));
+	return VMF_FOREIGN == vmf->type;
 }
 
 /**
- * @return first byte after the end of a fragment.
+ * @return whether fragment is identified as being memory-mapped.
  */
-static inline ALWAYS_INLINE const void *
-vmf_end(const struct vm_fragment *vmf)
+static inline ALWAYS_INLINE gboolean
+vmf_is_mapped(const struct vm_fragment *vmf)
 {
-	return vmf_is_foreign(vmf) ? const_ptr_add_offset(vmf->end, 1) : vmf->end;
+	return VMF_MAPPED == vmf->type;
+}
+
+/**
+ * @return whether fragment is identified as being native.
+ */
+static inline ALWAYS_INLINE gboolean
+vmf_is_native(const struct vm_fragment *vmf)
+{
+	return VMF_NATIVE == vmf->type;
 }
 
 /**
@@ -371,7 +381,41 @@ vmf_end(const struct vm_fragment *vmf)
 static inline ALWAYS_INLINE size_t
 vmf_size(const struct vm_fragment *vmf)
 {
-	return ptr_diff(vmf_end(vmf), vmf->start);
+	return ptr_diff(vmf->end, vmf->start);
+}
+
+/**
+ * @return whether memory fragment is an "old" foreign region thatwe may
+ * discard.
+ */
+static inline ALWAYS_INLINE gboolean
+vmf_is_old_foreign(const struct vm_fragment *vmf)
+{
+	/*
+	 * We only discard "foreign" regions that are not too large, because we
+	 * don't want to spend too much time attempting to use addresses from
+	 * that range as allocation hints, in case it is a truly "foreign" region.
+	 */
+
+	return vmf_is_foreign(vmf) &&
+		vmf_size(vmf) <= VMM_FOREIGN_MAXLEN &&
+		delta_time(tm_time(), vmf->mtime) > VMM_FOREIGN_LIFE;
+}
+
+/**
+ * @return textual description of memory fragment type.
+ */
+static const char *
+vmf_type_str(const vmf_type_t type)
+{
+	switch (type) {
+	case VMF_NATIVE:	return "native";
+	case VMF_MAPPED:	return "mapped";
+	case VMF_FOREIGN:	return "foreign";
+	}
+
+	g_error("corrupted VM fragment type: %d", type);
+	return NULL;
 }
 
 /**
@@ -394,14 +438,14 @@ vmm_dump_pmap(void)
 
 		if (i < pm->count - 1) {
 			const void *next = pm->array[i+1].start;
-			hole = ptr_diff(next, vmf_end(vmf));
+			hole = ptr_diff(next, vmf->end);
 		}
 
-		s_debug("VMM [0x%lx, 0x%lx] %luKiB%s%s%s%s",
+		s_debug("VMM [0x%lx, 0x%lx] %luKiB %s%s%s%s",
 			(unsigned long) vmf->start,
-			(unsigned long) const_ptr_add_offset(vmf_end(vmf), -1),
+			(unsigned long) const_ptr_add_offset(vmf->end, -1),
 			(unsigned long) (vmf_size(vmf) / 1024),
-			vmf_is_foreign(vmf) ? " (foreign)" : "",
+			vmf_type_str(vmf->type),
 			hole ? " + " : "",
 			hole ? size_t_to_string(hole / 1024) : "",
 			hole ? "KiB hole" : "");
@@ -424,7 +468,7 @@ vmm_find_hole(size_t size)
 	if (kernel_mapaddr_increasing) {
 		for (i = 0; i < pm->count; i++) {
 			struct vm_fragment *vmf = &pm->array[i];
-			const void *end = vmf_end(vmf);
+			const void *end = vmf->end;
 
 			if (ptr_cmp(end, vmm_base) < 0)
 				continue;
@@ -441,17 +485,18 @@ vmm_find_hole(size_t size)
 	} else {
 		for (i = pm->count; i > 0; i--) {
 			struct vm_fragment *vmf = &pm->array[i - 1];
+			const void *start = vmf->start;
 
-			if (ptr_cmp(vmf->start, vmm_base) > 0)
+			if (ptr_cmp(start, vmm_base) > 0)
 				continue;
 
 			if (i == 1) {
-				return page_start(const_ptr_add_offset(vmf->start, -size));
+				return page_start(const_ptr_add_offset(start, -size));
 			} else {
 				struct vm_fragment *prev = &pm->array[i - 2];
 
-				if (ptr_diff(vmf->start, vmf_end(prev)) >= size)
-					return page_start(const_ptr_add_offset(vmf->start, -size));
+				if (ptr_diff(start, prev->end) >= size)
+					return page_start(const_ptr_add_offset(start, -size));
 			}
 		}
 	}
@@ -462,6 +507,32 @@ vmm_find_hole(size_t size)
 	}
 
 	return NULL;
+}
+
+/**
+ * Discard foreign region at specified index within the pmap.
+ */
+static void
+pmap_discard_index(struct pmap *pm, size_t idx)
+{
+	g_assert(pm != NULL);
+	g_assert(size_is_non_negative(idx) && idx < pm->count);
+
+	if (vmm_debugging(0)) {
+		struct vm_fragment *vmf = &pm->array[idx];
+
+		s_debug("VMM discarding %s region at 0x%lx (%luKiB) updated %us ago",
+			vmf_type_str(vmf->type), (unsigned long) vmf->start,
+			(unsigned long) (vmf_size(vmf) / 1024),
+			(unsigned) delta_time(tm_time(), vmf->mtime));
+	}
+
+	if (idx != pm->count - 1) {
+		memmove(&pm->array[idx], &pm->array[idx + 1],
+			(pm->count - idx - 1) * sizeof pm->array[0]);
+	}
+
+	pm->count--;
 }
 
 /**
@@ -480,7 +551,7 @@ vmm_first_hole(const void **hole_ptr)
 	if (kernel_mapaddr_increasing) {
 		for (i = 0; i < pm->count; i++) {
 			struct vm_fragment *vmf = &pm->array[i];
-			const void *end = vmf_end(vmf);
+			const void *end = vmf->end;
 
 			if (ptr_cmp(end, vmm_base) < 0)
 				continue;
@@ -490,8 +561,21 @@ vmm_first_hole(const void **hole_ptr)
 				return SIZE_MAX;
 			} else {
 				struct vm_fragment *next = &pm->array[i + 1];
+
+				/*
+				 * If we are at a foreign region that has not been updated
+				 * for some time, discard it and try to reuse that region.
+				 */
+
+				if (vmf_is_old_foreign(vmf)) {
+					const void *start = vmf->start;
+					pmap_discard_index(pm, i);
+					*hole_ptr = start;
+					return ptr_diff(next->start, start);
+				}
+
 				if (next->start == end)
-					continue;		/* Foreign and native do not coalesce */
+					continue;		/* Different types do not coalesce */
 				*hole_ptr = end;
 				return ptr_diff(next->start, end);
 			}
@@ -499,8 +583,9 @@ vmm_first_hole(const void **hole_ptr)
 	} else {
 		for (i = pm->count; i > 0; i--) {
 			struct vm_fragment *vmf = &pm->array[i - 1];
+			const void *start = vmf->start;
 
-			if (ptr_cmp(vmf->start, vmm_base) > 0)
+			if (ptr_cmp(start, vmm_base) > 0)
 				continue;
 
 			if (i == 1) {
@@ -508,11 +593,23 @@ vmm_first_hole(const void **hole_ptr)
 				return SIZE_MAX;
 			} else {
 				struct vm_fragment *prev = &pm->array[i - 2];
-				const void *end = vmf_end(prev);
-				if (vmf->start == end)
+
+				/*
+				 * If we are at a foreign region that has not been updated
+				 * for some time, discard it and try to reuse that region.
+				 */
+
+				if (vmf_is_old_foreign(vmf)) {
+					const void *end = vmf->end;
+					pmap_discard_index(pm, i - 1);
+					*hole_ptr = end;
+					return ptr_diff(end, prev->end);
+				}
+
+				if (start == prev->end)
 					continue;		/* Foreign and native do not coalesce */
-				*hole_ptr = vmf->start;
-				return ptr_diff(vmf->start, end);
+				*hole_ptr = start;
+				return ptr_diff(start, prev->end);
 			}
 		}
 	}
@@ -592,7 +689,16 @@ vmm_first_hole(const void **unused)
 static void
 pmap_insert_foreign(struct pmap *pm, const void *start, size_t size)
 {
-	pmap_insert_region(pm, start, size, TRUE);
+	pmap_insert_region(pm, start, size, VMF_FOREIGN);
+}
+
+/**
+ * Insert memory-mapped region in the pmap.
+ */
+static void
+pmap_insert_mapped(struct pmap *pm, const void *start, size_t size)
+{
+	pmap_insert_region(pm, start, size, VMF_MAPPED);
 }
 
 /**
@@ -752,6 +858,11 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 			}
 		}
 	} else if (hint != NULL) {
+		if (vmm_debugging(0) && 0 == (hint_followed & 0xff)) {
+			s_debug("VMM hint 0x%lx followed for %luKiB (%lu consecutive)",
+				(unsigned long) hint, (unsigned long) (size / 1024),
+				(unsigned long) hint_followed);
+		}
 		hint_followed++;
 	}
 done:
@@ -783,12 +894,12 @@ done:
 #endif	/* HAS_MMAP */
 
 /**
- * Insert region in the pmap, known to be native (i.e. non-foreign).
+ * Insert region in the pmap, known to be native.
  */
 static void
 pmap_insert(struct pmap *pm, const void *start, size_t size)
 {
-	pmap_insert_region(pm, start, size, FALSE);
+	pmap_insert_region(pm, start, size, VMF_NATIVE);
 }
 
 /**
@@ -916,7 +1027,7 @@ pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 		g_assert(mid < pm->count);
 
 		item = &pm->array[mid];
-		if (ptr_cmp(p, vmf_end(item)) >= 0)
+		if (ptr_cmp(p, item->end) >= 0)
 			low = mid + 1;
 		else if (ptr_cmp(p, item->start) < 0)
 			high = mid - 1;
@@ -1072,7 +1183,7 @@ retry:
  * fragments of the same foreign type.
  */
 static void
-pmap_add(struct pmap *pm, const void *start, const void *end, gboolean foreign)
+pmap_add(struct pmap *pm, const void *start, const void *end, vmf_type_t type)
 {
 	struct vm_fragment *vmf;
 
@@ -1091,7 +1202,7 @@ pmap_add(struct pmap *pm, const void *start, const void *end, gboolean foreign)
 
 	if (pm->count > 0) {
 		vmf = &pm->array[pm->count - 1];
-		g_assert(ptr_cmp(start, vmf_end(vmf)) >= 0);
+		g_assert(ptr_cmp(start, vmf->end) >= 0);
 	}
 
 	/*
@@ -1100,21 +1211,17 @@ pmap_add(struct pmap *pm, const void *start, const void *end, gboolean foreign)
 
 	if (pm->count > 0) {
 		vmf = &pm->array[pm->count - 1];
-		if (vmf_is_foreign(vmf) == foreign && vmf_end(vmf) == start) {
-			vmf_set_end(vmf, end, foreign);
+		if (vmf->type == type && vmf->end == start) {
+			vmf->end = end;
+			vmf->mtime = tm_time();
 			return;
 		}
 	}
 
-	/*
-	 * For foreign fragments (not allocated by VMM), the end pointer is not
-	 * the first byte after the end of the region but the last valid pointer
-	 * of the region.
-	 */
-
 	vmf = &pm->array[pm->count++];
 	vmf->start = start;
-	vmf_set_end(vmf, end, foreign);
+	vmf->end = end;
+	vmf->mtime = tm_time();
 }
 
 /**
@@ -1122,7 +1229,7 @@ pmap_add(struct pmap *pm, const void *start, const void *end, gboolean foreign)
  */
 static void
 pmap_insert_region(struct pmap *pm,
-	const void *start, size_t size, gboolean foreign)
+	const void *start, size_t size, vmf_type_t type)
 {
 	const void *end = const_ptr_add_offset(start, size);
 	struct vm_fragment *vmf;
@@ -1132,7 +1239,6 @@ pmap_insert_region(struct pmap *pm,
 	g_assert(pm->array != NULL);
 	g_assert(pm->count <= pm->size);
 	g_assert(ptr_cmp(start, end) < 0);
-	foreign = booleanize(foreign);
 
 	/*
 	 * Watch out for the kernel pmap being reloaded because the kernel did not
@@ -1147,8 +1253,8 @@ pmap_insert_region(struct pmap *pm,
 		if (kernel_pmap.generation != generation) {
 			if (vmm_debugging(1)) {
 				s_debug("VMM kernel pmap reloaded before inserting "
-					"%s[0x%lx, 0x%lx]",
-					foreign ? "foreign " : "",
+					"%s [0x%lx, 0x%lx]",
+					vmf_type_str(type),
 					(unsigned long) start,
 					(unsigned long) const_ptr_add_offset(end, -1));
 			}
@@ -1161,25 +1267,27 @@ pmap_insert_region(struct pmap *pm,
 	if (vmf != NULL) {
 		if (reloaded) {
 			if (vmm_debugging(2)) {
-				s_debug("VMM good, reloaded kernel pmap contains region");
+				s_debug("VMM good, reloaded kernel pmap contains %s region",
+					vmf_type_str(vmf->type));
 			}
 		} else {
 			if (vmm_debugging(0)) {
-				s_warning("pmap already contains the new region [0x%lx, 0x%lx]",
+				s_warning("pmap already contains new %s region [0x%lx, 0x%lx]",
+					vmf_type_str(vmf->type),
 					(unsigned long) start,
 					(unsigned long) const_ptr_add_offset(start, size - 1));
 				vmm_dump_pmap();
 			}
-			g_assert(foreign);
+			g_assert(VMF_FOREIGN == type);
 			g_assert(vmf_is_foreign(vmf));
-			g_assert(ptr_cmp(end, vmf_end(vmf)) <= 0);
+			g_assert(ptr_cmp(end, vmf->end) <= 0);
 		}
 		return;
 	} else if (reloaded) {
 		if (vmm_debugging(0)) {
 			s_warning("VMM reloaded kernel pmap does not contain "
-				"%s[0x%lx, 0x%lx], will add now",
-				foreign ? "foreign " : "",
+				"%s [0x%lx, 0x%lx], will add now",
+				vmf_type_str(type),
 				(unsigned long) start,
 				(unsigned long) const_ptr_add_offset(end, -1));
 		}
@@ -1191,16 +1299,17 @@ pmap_insert_region(struct pmap *pm,
 
 	/*
 	 * See whether we can coalesce the new region with the existing ones.
-	 * We can't coalesce a native region with a foreign one.
+	 * We can't coalesce regions of different types.
 	 */
 
 	if (idx > 0) {
 		struct vm_fragment *prev = &pm->array[idx - 1];
 
-		g_assert(ptr_cmp(vmf_end(prev), start) <= 0); /* No overlap with prev */
+		g_assert(ptr_cmp(prev->end, start) <= 0); /* No overlap with prev */
 
-		if (vmf_is_foreign(prev) == foreign && vmf_end(prev) == start) {
-			vmf_set_end(prev, end, foreign);
+		if (prev->type == type && prev->end == start) {
+			prev->end = end;
+			prev->mtime = tm_time();
 
 			/*
 			 * If we're now bumping into the next chunk, we need to coalesce
@@ -1210,8 +1319,8 @@ pmap_insert_region(struct pmap *pm,
 			if (idx < pm->count) {
 				struct vm_fragment *next = &pm->array[idx];
 
-				if (vmf_is_foreign(next) == foreign && next->start == end) {
-					vmf_set_end(prev, vmf_end(next), foreign);
+				if (next->type == type && next->start == end) {
+					prev->end = next->end;	/* prev->mtime updated above */
 
 					/*
 					 * Get rid of the entry at ``idx'' in the array.
@@ -1235,8 +1344,9 @@ pmap_insert_region(struct pmap *pm,
 
 		g_assert(ptr_cmp(end, next->start) <= 0);	/* No overlap with next */
 
-		if (vmf_is_foreign(next) == foreign && next->start == end) {
+		if (next->type == type && next->start == end) {
 			next->start = start;
+			next->mtime = tm_time();
 			return;
 		}
 
@@ -1251,7 +1361,9 @@ pmap_insert_region(struct pmap *pm,
 	pm->count++;
 	vmf = &pm->array[idx];
 	vmf->start = start;
-	vmf_set_end(vmf, end, foreign);
+	vmf->end = end;
+	vmf->type = type;
+	vmf->mtime = tm_time();
 }
 
 /**
@@ -1327,7 +1439,13 @@ pmap_parse_and_add(struct pmap *pm, const char *line)
 			foreign = TRUE;		/* This region was not allocated by VMM */
 	}
 
-	pmap_add(pm, start, end, foreign);
+	/*
+	 * FIXME: now that we have 3 types of memory region, we must recognize
+	 * memory mapped regions we know about when reloading a pmap, by looking
+	 * at the current map we have.	-- RAM, 2011-10-01.
+	 */
+
+	pmap_add(pm, start, end, foreign ? VMF_FOREIGN : VMF_NATIVE);
 
 	return TRUE;
 }
@@ -1595,7 +1713,7 @@ pmap_is_within_region(const struct pmap *pm, const void *p, size_t size)
 		return FALSE;
 	}
 
-	return p != vmf->start && vmf_end(vmf) != const_ptr_add_offset(p, size);
+	return p != vmf->start && vmf->end != const_ptr_add_offset(p, size);
 }
 
 /**
@@ -1623,7 +1741,7 @@ pmap_nesting_within_region(const struct pmap *pm, const void *p, size_t size)
 
 	middle = const_ptr_add_offset(p, size / 2);
 	distance_to_start = ptr_diff(middle, vmf->start);
-	distance_to_end = ptr_diff(vmf_end(vmf), middle);
+	distance_to_end = ptr_diff(vmf->end, middle);
 
 	return MIN(distance_to_start, distance_to_end);
 }
@@ -1672,7 +1790,7 @@ pmap_is_available(const struct pmap *pm, const void *p, size_t size)
 /**
  * Assert range is within one single (coalesced) region of the VM space.
  */
-void
+static void
 assert_vmm_is_allocated(const void *base, size_t size)
 {
 	struct vm_fragment *vmf;
@@ -1688,17 +1806,17 @@ assert_vmm_is_allocated(const void *base, size_t size)
 	g_assert(vmf_size(vmf) >= size);
 
 	end = const_ptr_add_offset(base, size);
-	vend = vmf_end(vmf);
+	vend = vmf->end;
 
 	g_assert(ptr_cmp(base, vmf->start) >= 0);
 	g_assert(ptr_cmp(end, vend) <= 0);
 }
 
 /**
- * Assert that pointer is not belonging to a foreign VM space.
+ * Assert that pointer is natively allocated within the VM space.
  */
-void
-assert_vmm_is_not_foreign(const void *p)
+static void
+assert_vmm_is_native(const void *p)
 {
 	struct vm_fragment *vmf;
 
@@ -1706,14 +1824,14 @@ assert_vmm_is_not_foreign(const void *p)
 	vmf = pmap_lookup(vmm_pmap(), p, NULL);
 
 	g_assert(vmf != NULL);
-	g_assert(!vmf_is_foreign(vmf));
+	g_assert(vmf_is_native(vmf));
 }
 
 /**
- * Assert that pointer is belonging to a foreign VM space.
+ * Assert that pointer is belonging to a mapped VM space.
  */
-void
-assert_vmm_is_foreign(const void *p)
+static void
+assert_vmm_is_mapped(const void *p)
 {
 	struct vm_fragment *vmf;
 
@@ -1721,7 +1839,7 @@ assert_vmm_is_foreign(const void *p)
 	vmf = pmap_lookup(vmm_pmap(), p, NULL);
 
 	g_assert(vmf != NULL);
-	g_assert(vmf_is_foreign(vmf));
+	g_assert(vmf_is_mapped(vmf));
 }
 
 /**
@@ -1804,16 +1922,15 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 
 	if (vmf != NULL) {
 		const void *end = const_ptr_add_offset(p, size);
-		const void *vend = vmf_end(vmf);
-		gboolean foreign = vmf_is_foreign(vmf);
+		const void *vend = vmf->end;
 
 		g_assert(vmf_size(vmf) >= size);
 
 		if (p == vmf->start) {
 
 			if (vmm_debugging(2)) {
-				s_debug("VMM %s%luKiB region at 0x%lx was %s fragment",
-					foreign ? "foreign " : "",
+				s_debug("VMM %s %luKiB region at 0x%lx was %s fragment",
+					vmf_type_str(vmf->type),
 					(unsigned long) size / 1024, (unsigned long) p,
 					end == vend ? "a whole" : "start of a");
 			}
@@ -1822,22 +1939,24 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 				pmap_remove_whole_region(pm, p, size);
 			} else {
 				vmf->start = end;			/* Known fragment reduced */
+				vmf->mtime = tm_time();
 				g_assert(ptr_cmp(vmf->start, vend) < 0);
 			}
 		} else {
 			g_assert(ptr_cmp(vmf->start, p) < 0);
 			g_assert(ptr_cmp(end, vend) <= 0);
 
-			vmf_set_end(vmf, p, foreign);
+			vmf->end = p;
+			vmf->mtime = tm_time();
 
 			if (end != vend) {
 				if (vmm_debugging(1)) {
-					s_debug("VMM freeing %s%luKiB region at 0x%lx "
+					s_debug("VMM freeing %s %luKiB region at 0x%lx "
 						"fragments VM space",
-						foreign ? "foreign " : "",
+						vmf_type_str(vmf->type),
 						(unsigned long) size / 1024, (unsigned long) p);
 				}
-				pmap_insert_region(pm, end, ptr_diff(vend, end), foreign);
+				pmap_insert_region(pm, end, ptr_diff(vend, end), vmf->type);
 			}
 		}
 	} else {
@@ -1863,7 +1982,7 @@ pmap_remove_foreign(struct pmap *pm, struct vm_fragment *vmf,
 	g_assert(vmf_is_foreign(vmf));
 	g_assert(size_is_positive(size));
 
-	vend = vmf_end(vmf);
+	vend = vmf->end;
 
 	g_assert(ptr_cmp(vmf->start, p) <= 0);
 	g_assert(ptr_cmp(p, vend) < 0);
@@ -1880,9 +1999,11 @@ pmap_remove_foreign(struct pmap *pm, struct vm_fragment *vmf,
 			pmap_remove_whole_region(pm, p, size);
 		} else {
 			vmf->start = end;			/* Known fragment reduced */
+			vmf->mtime = tm_time();
 		}
 	} else {
-		vmf_set_end(vmf, p, TRUE);
+		vmf->end = p;
+		vmf->mtime = tm_time();
 
 		if (end != vend) {
 			/* Insert trailing part back as a foreign region */
@@ -1941,7 +2062,7 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size)
 		 * We have to remove ``remain'' bytes starting at ``base''.
 		 */
 
-		len = ptr_diff(vmf_end(vmf), base);		/* From base to end of region */
+		len = ptr_diff(vmf->end, base);		/* From base to end of region */
 
 		g_assert(vmf_is_foreign(vmf));
 		g_assert(size_is_positive(len));
@@ -2059,7 +2180,7 @@ vpc_remove(struct page_cache *pc, void *p)
 
 	idx = vpc_lookup(pc, p, NULL);
 	assert_vmm_is_allocated(p, pc->chunksize);
-	assert_vmm_is_not_foreign(p);
+	assert_vmm_is_native(p);
 	g_assert(idx != (size_t) -1);		/* Must have been found */
 	vpc_delete_slot(pc, idx);
 }
@@ -2077,7 +2198,7 @@ vpc_free(struct page_cache *pc, size_t idx)
 
 	p = pc->info[idx].base;
 	assert_vmm_is_allocated(p, pc->chunksize);
-	assert_vmm_is_not_foreign(p);
+	assert_vmm_is_native(p);
 	free_pages_forced(p, pc->chunksize, FALSE);
 	vpc_delete_slot(pc, idx);
 }
@@ -2109,7 +2230,7 @@ vpc_insert(struct page_cache *pc, void *p)
 
 	g_assert(size_is_non_negative(idx) && idx <= pc->current);
 	assert_vmm_is_allocated(p, pc->chunksize);
-	assert_vmm_is_not_foreign(p);
+	assert_vmm_is_native(p);
 
 	/*
 	 * If we're inserting in the highest-order cache, there's no need
@@ -2564,7 +2685,7 @@ page_cache_insert_pages(void *base, size_t n)
 	void *p = base;
 
 	assert_vmm_is_allocated(base, n * kernel_pagesize);
-	assert_vmm_is_not_foreign(base);
+	assert_vmm_is_native(base);
 
 	/*
 	 * Identified memory fragments are immediately freed and not put
@@ -2903,7 +3024,7 @@ vmm_alloc(size_t size)
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		assert_vmm_is_allocated(p, size);
-		assert_vmm_is_not_foreign(p);
+		assert_vmm_is_native(p);
 		return p;
 	}
 
@@ -2913,7 +3034,7 @@ vmm_alloc(size_t size)
 			(unsigned long) size);
 
 	assert_vmm_is_allocated(p, size);
-	assert_vmm_is_not_foreign(p);
+	assert_vmm_is_native(p);
 	return p;
 }
 
@@ -2942,7 +3063,7 @@ vmm_alloc0(size_t size)
 		vmm_validate_pages(p, size);
 		memset(p, 0, size);
 		assert_vmm_is_allocated(p, size);
-		assert_vmm_is_not_foreign(p);
+		assert_vmm_is_native(p);
 		return p;
 	}
 
@@ -2952,7 +3073,7 @@ vmm_alloc0(size_t size)
 			(unsigned long) size);
 
 	assert_vmm_is_allocated(p, size);
-	assert_vmm_is_not_foreign(p);
+	assert_vmm_is_native(p);
 	return p;		/* Memory allocated by the kernel is already zero-ed */
 }
 
@@ -2974,7 +3095,7 @@ vmm_free(void *p, size_t size)
 		g_assert(n >= 1);
 
 		assert_vmm_is_allocated(p, size);
-		assert_vmm_is_not_foreign(p);
+		assert_vmm_is_native(p);
 
 		/*
 		 * Memory regions that are larger than our highest-order cache
@@ -3012,7 +3133,7 @@ void vmm_shrink(void *p, size_t size, size_t new_size)
 		size_t osize, nsize;
 
 		assert_vmm_is_allocated(p, size);
-		assert_vmm_is_not_foreign(p);
+		assert_vmm_is_native(p);
 
 		osize = round_pagesize_fast(size);
 		nsize = round_pagesize_fast(new_size);
@@ -3210,7 +3331,7 @@ vmm_reserve_stack(size_t amount)
 			}
 
 			stack_end = deconstify_gpointer(
-				sp_increasing ? vmf_end(vmf) : vmf->start);
+				sp_increasing ? vmf->end : vmf->start);
 			reserve_start = const_ptr_add_offset(stack_end,
 				(kernel_mapaddr_increasing ? +1 : -1) * VMM_STACK_MINSIZE);
 
@@ -3525,6 +3646,8 @@ void
 vmm_close(void)
 {
 	struct pmap *pm = vmm_pmap();
+	size_t mapped_pages = 0;
+	size_t mapped_memory = 0;
 	size_t pages = 0;
 	size_t memory = 0;
 	size_t i;
@@ -3560,8 +3683,15 @@ vmm_close(void)
 		 * Found an allocated region, still.
 		 */
 
-		memory += vmf_size(vmf) / 1024;
-		pages += pagecount_fast(vmf_size(vmf));
+		if (vmf_is_native(vmf)) {
+			memory += vmf_size(vmf) / 1024;
+			pages += pagecount_fast(vmf_size(vmf));
+		} else if (vmf_is_mapped(vmf)) {
+			mapped_memory += vmf_size(vmf) / 1024;
+			mapped_pages += pagecount_fast(vmf_size(vmf));
+		} else {
+			s_warning("VMM invalid memory fragment type (%d)", vmf->type);
+		}
 	}
 
 	/*
@@ -3608,6 +3738,11 @@ vmm_close(void)
 			(unsigned long) pages, 1 == pages ? "" : "s",
 			size_t_to_string(memory));
 	}
+	if (mapped_pages != 0) {
+		s_warning("VMM still holds %lu memory-mapped page%s totaling %s KiB",
+			(unsigned long) mapped_pages, 1 == mapped_pages ? "" : "s",
+			size_t_to_string(mapped_memory));
+	}
 }
 
 /***
@@ -3641,7 +3776,7 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 		 */
 
 		pmap_overrule(vmm_pmap(), p, size);
-		pmap_insert_foreign(vmm_pmap(), p, size);
+		pmap_insert_mapped(vmm_pmap(), p, size);
 		assert_vmm_is_allocated(p, length);
 
 		if (vmm_debugging(5)) {
@@ -3680,7 +3815,7 @@ vmm_munmap(void *addr, size_t length)
 	int ret;
 
 	assert_vmm_is_allocated(addr, length);
-	assert_vmm_is_foreign(addr);
+	assert_vmm_is_mapped(addr);
 
 	ret = munmap(addr, length);
 
