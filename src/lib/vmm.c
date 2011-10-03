@@ -538,9 +538,14 @@ pmap_discard_index(struct pmap *pm, size_t idx)
 /**
  * Compute the size of the first hole at the base of the VM space and return
  * its location in ``hole_ptr'', if we find one with a non-zero length.
+ *
+ * @param hole_ptr		where first hole address is written to
+ * @param discard		whether we can discard foreign regions during lookup
+ *
+ * @return size of the first hole we found, 0 if none found.
  */
 static G_GNUC_HOT size_t
-vmm_first_hole(const void **hole_ptr)
+vmm_first_hole(const void **hole_ptr, gboolean discard)
 {
 	struct pmap *pm = vmm_pmap();
 	size_t i;
@@ -567,7 +572,7 @@ vmm_first_hole(const void **hole_ptr)
 				 * for some time, discard it and try to reuse that region.
 				 */
 
-				if (vmf_is_old_foreign(vmf)) {
+				if (discard && vmf_is_old_foreign(vmf)) {
 					const void *start = vmf->start;
 					pmap_discard_index(pm, i);
 					*hole_ptr = start;
@@ -599,7 +604,7 @@ vmm_first_hole(const void **hole_ptr)
 				 * for some time, discard it and try to reuse that region.
 				 */
 
-				if (vmf_is_old_foreign(vmf)) {
+				if (discard && vmf_is_old_foreign(vmf)) {
 					const void *end = vmf->end;
 					pmap_discard_index(pm, i - 1);
 					*hole_ptr = end;
@@ -676,9 +681,10 @@ vmm_vfree_fragment(void *addr, size_t size)
 
 #else	/* !HAS_MMAP && !MINGW32 */
 static inline size_t
-vmm_first_hole(const void **unused)
+vmm_first_hole(const void **unused, gboolean discard)
 {
 	(void) unused;
+	(void) discard;
 	return 0;
 }
 #endif	/* HAS_MMAP || MINGW32 */
@@ -1873,7 +1879,7 @@ vmm_is_relocatable(const void *base, size_t size)
 	 */
 	
 	hole = NULL;
-	len = vmm_first_hole(&hole);
+	len = vmm_first_hole(&hole, FALSE);
 
 	if (len < size)
 		return FALSE;
@@ -2599,7 +2605,7 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 	 */
 
 	hole = NULL;
-	len = vmm_first_hole(&hole);
+	len = vmm_first_hole(&hole, TRUE);
 
 	if (pagecount_fast(len) < n) {
 		hole = NULL;
