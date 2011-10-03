@@ -1794,10 +1794,11 @@ pmap_is_available(const struct pmap *pm, const void *p, size_t size)
 }
 
 /**
- * Assert range is within one single (coalesced) region of the VM space.
+ * Assert range is within one single (coalesced) region of the VM space
+ * of the specified type.
  */
 static void
-assert_vmm_is_allocated(const void *base, size_t size)
+assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type)
 {
 	struct vm_fragment *vmf;
 	const void *end;
@@ -1816,36 +1817,12 @@ assert_vmm_is_allocated(const void *base, size_t size)
 
 	g_assert(ptr_cmp(base, vmf->start) >= 0);
 	g_assert(ptr_cmp(end, vend) <= 0);
-}
 
-/**
- * Assert that pointer is natively allocated within the VM space.
- */
-static void
-assert_vmm_is_native(const void *p)
-{
-	struct vm_fragment *vmf;
+	/*
+	 * Range was part of a single fragment, now check it is of proper type.
+	 */
 
-	g_assert(p != NULL);
-	vmf = pmap_lookup(vmm_pmap(), p, NULL);
-
-	g_assert(vmf != NULL);
-	g_assert(vmf_is_native(vmf));
-}
-
-/**
- * Assert that pointer is belonging to a mapped VM space.
- */
-static void
-assert_vmm_is_mapped(const void *p)
-{
-	struct vm_fragment *vmf;
-
-	g_assert(p != NULL);
-	vmf = pmap_lookup(vmm_pmap(), p, NULL);
-
-	g_assert(vmf != NULL);
-	g_assert(vmf_is_mapped(vmf));
+	g_assert(vmf->type == type);
 }
 
 /**
@@ -2185,8 +2162,7 @@ vpc_remove(struct page_cache *pc, void *p)
 	size_t idx;
 
 	idx = vpc_lookup(pc, p, NULL);
-	assert_vmm_is_allocated(p, pc->chunksize);
-	assert_vmm_is_native(p);
+	assert_vmm_is_allocated(p, pc->chunksize, VMF_NATIVE);
 	g_assert(idx != (size_t) -1);		/* Must have been found */
 	vpc_delete_slot(pc, idx);
 }
@@ -2203,8 +2179,7 @@ vpc_free(struct page_cache *pc, size_t idx)
 	g_assert(size_is_non_negative(idx) && idx < pc->current);
 
 	p = pc->info[idx].base;
-	assert_vmm_is_allocated(p, pc->chunksize);
-	assert_vmm_is_native(p);
+	assert_vmm_is_allocated(p, pc->chunksize, VMF_NATIVE);
 	free_pages_forced(p, pc->chunksize, FALSE);
 	vpc_delete_slot(pc, idx);
 }
@@ -2235,8 +2210,7 @@ vpc_insert(struct page_cache *pc, void *p)
 	}
 
 	g_assert(size_is_non_negative(idx) && idx <= pc->current);
-	assert_vmm_is_allocated(p, pc->chunksize);
-	assert_vmm_is_native(p);
+	assert_vmm_is_allocated(p, pc->chunksize, VMF_NATIVE);
 
 	/*
 	 * If we're inserting in the highest-order cache, there's no need
@@ -2690,8 +2664,7 @@ page_cache_insert_pages(void *base, size_t n)
 	size_t pages = n;
 	void *p = base;
 
-	assert_vmm_is_allocated(base, n * kernel_pagesize);
-	assert_vmm_is_native(base);
+	assert_vmm_is_allocated(base, n * kernel_pagesize, VMF_NATIVE);
 
 	/*
 	 * Identified memory fragments are immediately freed and not put
@@ -2737,7 +2710,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	const size_t old_pages = pages;
 	void *end;
 
-	assert_vmm_is_allocated(base, pages * kernel_pagesize);
+	assert_vmm_is_allocated(base, pages * kernel_pagesize, VMF_NATIVE);
 
 	if (pages >= VMM_CACHE_LINES)
 		return FALSE;
@@ -2774,7 +2747,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 							pages * kernel_pagesize - 1));
 				}
 				assert_vmm_is_allocated(before,
-					(pages + lopc->pages) * kernel_pagesize);
+					(pages + lopc->pages) * kernel_pagesize, VMF_NATIVE);
 				base = before;
 				pages += lopc->pages;
 				vpc_remove(lopc, before);
@@ -2818,7 +2791,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 						pages * kernel_pagesize - 1));
 			}
 			assert_vmm_is_allocated(before,
-				(pages + hopc->pages) * kernel_pagesize);
+				(pages + hopc->pages) * kernel_pagesize, VMF_NATIVE);
 			base = before;
 			pages += hopc->pages;
 			vpc_remove(hopc, before);
@@ -2856,7 +2829,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 						(unsigned long) ptr_add_offset(end, -1));
 				}
 				assert_vmm_is_allocated(base,
-					(pages + lopc->pages) * kernel_pagesize);
+					(pages + lopc->pages) * kernel_pagesize, VMF_NATIVE);
 				pages += lopc->pages;
 				vpc_remove(lopc, end);
 				end = ptr_add_offset(end, lopc->chunksize);
@@ -2896,7 +2869,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 					(unsigned long) ptr_add_offset(end, -1));
 			}
 			assert_vmm_is_allocated(base,
-				(pages + hopc->pages) * kernel_pagesize);
+				(pages + hopc->pages) * kernel_pagesize, VMF_NATIVE);
 			pages += hopc->pages;
 			vpc_remove(hopc, end);
 			end = ptr_add_offset(end, hopc->chunksize);
@@ -2906,7 +2879,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	}
 
 done:
-	assert_vmm_is_allocated(base, pages * kernel_pagesize);
+	assert_vmm_is_allocated(base, pages * kernel_pagesize, VMF_NATIVE);
 
 	if (pages != old_pages) {
 		if (vmm_debugging(2)) {
@@ -3029,8 +3002,7 @@ vmm_alloc(size_t size)
 	p = page_cache_find_pages(n, &hole);
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
-		assert_vmm_is_allocated(p, size);
-		assert_vmm_is_native(p);
+		assert_vmm_is_allocated(p, size, VMF_NATIVE);
 		return p;
 	}
 
@@ -3039,8 +3011,7 @@ vmm_alloc(size_t size)
 		s_error("cannot allocate %lu bytes: out of virtual memory",
 			(unsigned long) size);
 
-	assert_vmm_is_allocated(p, size);
-	assert_vmm_is_native(p);
+	assert_vmm_is_allocated(p, size, VMF_NATIVE);
 	return p;
 }
 
@@ -3068,8 +3039,7 @@ vmm_alloc0(size_t size)
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		memset(p, 0, size);
-		assert_vmm_is_allocated(p, size);
-		assert_vmm_is_native(p);
+		assert_vmm_is_allocated(p, size, VMF_NATIVE);
 		return p;
 	}
 
@@ -3078,8 +3048,7 @@ vmm_alloc0(size_t size)
 		s_error("cannot allocate %lu bytes: out of virtual memory",
 			(unsigned long) size);
 
-	assert_vmm_is_allocated(p, size);
-	assert_vmm_is_native(p);
+	assert_vmm_is_allocated(p, size, VMF_NATIVE);
 	return p;		/* Memory allocated by the kernel is already zero-ed */
 }
 
@@ -3100,8 +3069,7 @@ vmm_free(void *p, size_t size)
 		n = pagecount_fast(size);
 		g_assert(n >= 1);
 
-		assert_vmm_is_allocated(p, size);
-		assert_vmm_is_native(p);
+		assert_vmm_is_allocated(p, size, VMF_NATIVE);
 
 		/*
 		 * Memory regions that are larger than our highest-order cache
@@ -3127,7 +3095,8 @@ vmm_free(void *p, size_t size)
  * Calling with a NULL pointer is OK when the size is 0.
  * Otherwise calling with a new_size of 0 actually performs a vmm_free().
  */
-void vmm_shrink(void *p, size_t size, size_t new_size)
+void
+vmm_shrink(void *p, size_t size, size_t new_size)
 {
 	g_assert(0 == size || p != NULL);
 	g_assert(new_size <= size);
@@ -3138,8 +3107,7 @@ void vmm_shrink(void *p, size_t size, size_t new_size)
 	} else if (p != NULL) {
 		size_t osize, nsize;
 
-		assert_vmm_is_allocated(p, size);
-		assert_vmm_is_native(p);
+		assert_vmm_is_allocated(p, size, VMF_NATIVE);
 
 		osize = round_pagesize_fast(size);
 		nsize = round_pagesize_fast(new_size);
@@ -3783,7 +3751,7 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 
 		pmap_overrule(vmm_pmap(), p, size);
 		pmap_insert_mapped(vmm_pmap(), p, size);
-		assert_vmm_is_allocated(p, length);
+		assert_vmm_is_allocated(p, length, VMF_MAPPED);
 
 		if (vmm_debugging(5)) {
 			s_debug("VMM mapped %luKiB region at 0x%lx "
@@ -3820,8 +3788,7 @@ vmm_munmap(void *addr, size_t length)
 #if defined(HAS_MMAP)
 	int ret;
 
-	assert_vmm_is_allocated(addr, length);
-	assert_vmm_is_mapped(addr);
+	assert_vmm_is_allocated(addr, length, VMF_MAPPED);
 
 	ret = munmap(addr, length);
 
