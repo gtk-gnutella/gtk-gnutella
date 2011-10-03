@@ -1360,6 +1360,7 @@ dq_send_next(dquery_t *dq)
 
 	dquery_check(dq);
 	g_assert(dq->results_ev == NULL);
+	g_assert(!(dq->flags & DQ_F_LINGER));
 
 	/*
 	 * Terminate query immediately if we're no longer an UP.
@@ -1550,6 +1551,7 @@ dq_send_probe(dquery_t *dq)
 
 	dquery_check(dq);
 	g_assert(dq->results_ev == NULL);
+	g_assert(!(dq->flags & DQ_F_LINGER));
 
 	nv = walloc(ncount * sizeof nv[0]);
 	found = dq_fill_probe_up(dq, nv, ncount);
