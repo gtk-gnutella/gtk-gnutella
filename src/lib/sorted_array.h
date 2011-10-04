@@ -25,6 +25,8 @@
  * @ingroup lib
  * @file
  *
+ * Sorted array of fixed-size items.
+ *
  * @author Christian Biere
  * @date 2007
  */

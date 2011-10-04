@@ -25,8 +25,6 @@
  * @ingroup lib
  * @file
  *
- * Needs brief description here.
- *
  * Debugging malloc, to supplant dmalloc which is not satisfactory for
  * leak detection.
  *
