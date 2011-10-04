@@ -543,6 +543,12 @@ pmap_discard_index(struct pmap *pm, size_t idx)
  * @param discard		whether we can discard foreign regions during lookup
  *
  * @return size of the first hole we found, 0 if none found.
+ *
+ * @attention
+ * When kernel_mapaddr_increasing is FALSE, the value in hole_ptr is the end
+ * of the memory region.  To get the starting address of the hole (i.e. the
+ * memory pointer that would get allocated to cover the hole), one has to
+ * substract the size of the region from the returned pointer.
  */
 static G_GNUC_HOT size_t
 vmm_first_hole(const void **hole_ptr, gboolean discard)
@@ -1863,9 +1869,16 @@ vmm_is_relocatable(const void *base, size_t size)
 
 	g_assert(hole != NULL);
 
+	/*
+	 * Don't use vmm_ptr_cmp() here since we need to correct the starting
+	 * address returned by vmm_first_hole() when kernel_mapaddr_increasing
+	 * is FALSE.
+	 */
+
 	if (kernel_mapaddr_increasing) {
 		return ptr_cmp(hole, base) < 0;
 	} else {
+		hole = const_ptr_add_offset(hole, -round_pagesize_fast(size));
 		return ptr_cmp(hole, base) > 0;
 	}
 }
@@ -2593,8 +2606,10 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 	}
 
 	if (hole != NULL && vmm_debugging(8)) {
-		s_debug("VMM lowest hole of %lu page%s at 0x%lx",
-			(unsigned long) n, n == 1 ? "" : "s", (unsigned long) hole);
+		size_t np = pagecount_fast(len);
+		s_debug("VMM lowest hole of %lu page%s at 0x%lx (%lu page%s)",
+			(unsigned long) n, 1 == n ? "" : "s", (unsigned long) hole,
+			(unsigned long) np, 1 == np ? "" : "s");
 	}
 
 	*hole_ptr = hole;
