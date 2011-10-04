@@ -58,7 +58,7 @@
 
 #include "zalloc.h"
 #include "hashtable.h"
-#include "glib-missing.h"	/* For g_mem_is_system_malloc() */
+#include "glib-missing.h"	/* For g_debug() */
 #include "malloc.h"			/* For MALLOC_FRAMES */
 #include "misc.h"			/* For short_filename() */
 #include "stacktrace.h"

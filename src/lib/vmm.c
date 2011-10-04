@@ -2110,7 +2110,7 @@ free_pages_forced(void *p, size_t size, gboolean fragment)
  * Lookup page within a cache line.
  *
  * If ``low_ptr'' is non-NULL, it is written with the index where insertion
- * of a new item should happen (in which case the returned value must be NULL).
+ * of a new item should happen (in which case the returned value must be -1).
  *
  * @return index within the page cache info[] sorted array where "p" is stored,
  * -1 if not found.
