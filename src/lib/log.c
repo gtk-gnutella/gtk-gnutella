@@ -133,6 +133,30 @@ log_thread_alloc(void)
 	return lt;
 }
 
+/**
+ * Get suitable thread-private logging data descriptor.
+ *
+ * If argument is non-NULL, use that one, otherwise use a private local one.
+ * This allows non-threaded code to use the t_xxx() logging routines with a
+ * NULL object and get safe logging with no call to malloc().
+ *
+ * @return valid logging data object.
+ */
+static logthread_t *
+logthread_object(logthread_t *lt)
+{
+	if G_UNLIKELY(NULL == lt) {
+		static logthread_t *ltp;
+
+		if G_UNLIKELY(NULL == ltp)
+			ltp = log_thread_alloc();
+
+		return ltp;
+	} else {
+		return lt;
+	}
+}
+
 static void
 log_file_check(enum log_file which)
 {
@@ -597,6 +621,7 @@ t_critical(logthread_t *lt, const char *format, ...)
 {
 	va_list args;
 
+	lt = logthread_object(lt);
 	logthread_check(lt);
 
 	va_start(args, format);
@@ -612,13 +637,14 @@ t_error(logthread_t *lt, const char *format, ...)
 {
 	va_list args;
 
+	lt = logthread_object(lt);
 	logthread_check(lt);
 
 	va_start(args, format);
 	s_logv(lt, G_LOG_LEVEL_ERROR, format, args);
 	va_end(args);
 
-	raise(SIGABRT);		/* In case we did not enter g_logv() */
+	raise(SIGABRT);		/* We did not enter g_logv() */
 }
 
 /**
@@ -629,6 +655,7 @@ t_carp(logthread_t *lt, const char *format, ...)
 {
 	va_list args;
 
+	lt = logthread_object(lt);
 	logthread_check(lt);
 
 	va_start(args, format);
@@ -646,6 +673,7 @@ t_warning(logthread_t *lt, const char *format, ...)
 {
 	va_list args;
 
+	lt = logthread_object(lt);
 	logthread_check(lt);
 
 	va_start(args, format);
@@ -661,6 +689,7 @@ t_message(logthread_t *lt, const char *format, ...)
 {
 	va_list args;
 
+	lt = logthread_object(lt);
 	logthread_check(lt);
 
 	va_start(args, format);
@@ -676,6 +705,7 @@ t_info(logthread_t *lt, const char *format, ...)
 {
 	va_list args;
 
+	lt = logthread_object(lt);
 	logthread_check(lt);
 
 	va_start(args, format);
@@ -691,6 +721,7 @@ t_debug(logthread_t *lt, const char *format, ...)
 {
 	va_list args;
 
+	lt = logthread_object(lt);
 	logthread_check(lt);
 
 	va_start(args, format);
