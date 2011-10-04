@@ -698,21 +698,6 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
 #define NG_(Single, Plural, Number) ngettext_((Single), (Plural), (Number))
 
 /**
- * Stores a RCS ID tag inside the object file. Every .c source file should
- * use this macro once as `RCSID("<dollar>Id$")' on top. The ID tag is
- * automagically updated each time the file is committed to the CVS repository.
- * The RCS IDs can be looked up from the compiled binary with e.g. `what',
- * `ident' or `strings'. See also rcs(1) and ident(1).
- */
-#define RCSID(x) \
-static KEEP_FUNCTION inline const char *	\
-get_rcsid_string(void)	\
-{	\
-	static const char rcsid[] = "@(#) " x;	\
-	return rcsid;	\
-}
-
-/**
  * Composes a 32-bit native endian integer from four characters (bytes) given
  * in big endian byte order.
  */
