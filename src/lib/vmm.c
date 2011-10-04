@@ -218,10 +218,12 @@ static struct pmap local_pmap;
 static gboolean safe_to_log;		/**< True when we can log */
 static gboolean stop_freeing;		/**< No longer release memory */
 static guint32 vmm_debug;			/**< Debug level */
-static const void *initial_brk;		/**< Startup position of the heap */
 static const void *initial_sp;		/**< Initial "bottom" of the stack */
 static gboolean sp_increasing;		/**< Growing direction of the stack */
 static const void *vmm_base;		/**< Where we'll start allocating */
+#ifdef HAS_SBRK
+static const void *initial_brk;		/**< Startup position of the heap */
+#endif
 
 #ifdef TRACK_VMM
 static void vmm_track_init(void);
@@ -229,7 +231,6 @@ static void vmm_track_malloc_inited(void);
 static void vmm_track_post_init(void);
 static void vmm_track_close(void);
 #endif
-
 
 static inline G_GNUC_PURE gboolean
 vmm_debugging(guint32 lvl)
@@ -3456,7 +3457,9 @@ vmm_post_init(void)
 	}
 
 	if (vmm_debugging(1)) {
+#ifdef HAS_SBRK
 		s_debug("VMM initial break at 0x%lx", (unsigned long) initial_brk);
+#endif
 		s_debug("VMM stack bottom at 0x%lx", (unsigned long) initial_sp);
 	}
 
@@ -3546,7 +3549,7 @@ vmm_init(const void *sp)
 
 	g_assert(sp != &i);
 
-#ifndef MINGW32
+#ifdef HAS_SBRK
 	initial_brk = sbrk(0);
 #endif
 	initial_sp = sp;

@@ -31,7 +31,7 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  * that running config_h.SH again will wipe out any changes you've made.
  * For a more permanent change edit $CONFIG_SH and rerun config_h.SH.
  *
- * \$Id$
+ * \$Id: Config_h.U 1 2006-08-24 12:32:52Z rmanfredi $
  */
 
 /*
@@ -416,6 +416,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	Inclusion of <sys/resource.h> and <sys/time.h> may be necessary.
  */
 #$d_rusage HAS_GETRUSAGE		/**/
+
+/* HAS_SBRK:
+ *	This symbol, if defined, indicates that the sbrk system call is
+ *	available to add/relase core. Always true on Unix.
+ */
+#$d_sbrk HAS_SBRK	/**/
 
 /* HAS_SELECT:
  *	This symbol, if defined, indicates that the select routine is
