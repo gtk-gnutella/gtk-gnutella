@@ -1374,6 +1374,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			uv = (unsigned long) va_arg(args, void*);
 			base = 16;
 			c = 'x';		/* Request lower-cased pointer */
+			alt = TRUE;		/* Request leading "0x" */
 			goto integer;
 
 		case 'D':
