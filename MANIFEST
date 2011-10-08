@@ -153,10 +153,6 @@ extra_files/ja/FAQ
 extra_files/ja/Jmakefile
 extra_files/ja/Makefile.SH
 extra_files/magnet.svg
-osx/Info-gtk-gnutella.plist
-osx/gtk-gnutella.bundle
-osx/gtk-gnutella.icns
-osx/launcher.sh
 extra_files/robots.txt       Default hints for web crawlers
 extra_files/spam.txt
 extra_files/spam_sha1.txt
@@ -165,6 +161,10 @@ gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 install.SH                   BSD-compatible install program
 makensis.sh                  Wrapper for the makensis Windows command
 mingw/config.sh.xmingw
+osx/Info-gtk-gnutella.plist
+osx/gtk-gnutella.bundle
+osx/gtk-gnutella.icns
+osx/launcher.sh
 pixmaps/Jmakefile
 pixmaps/Makefile.SH
 pixmaps/arrow_down.xpm
@@ -240,13 +240,13 @@ po/zh_CN.po
 scripts/fix_copyright.pl
 scripts/generic-cat
 scripts/geo-to-db.pl
+scripts/git-revision
 scripts/git-version.sh
 scripts/gtkg-dbus-listener.py
 scripts/gtkg-version
 scripts/magnet-handler.sh
 scripts/sha1_cache.pl
 scripts/sha1_cache.sh
-scripts/git-revision
 src/Jmakefile
 src/Makefile.SH
 src/casts.h
@@ -776,6 +776,8 @@ src/lib/wordvec.c
 src/lib/wordvec.h
 src/lib/wq.c
 src/lib/wq.h
+src/lib/xmalloc.c
+src/lib/xmalloc.h
 src/lib/zalloc.c
 src/lib/zalloc.h
 src/lib/zlib_util.c

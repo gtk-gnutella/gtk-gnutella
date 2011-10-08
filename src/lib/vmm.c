@@ -104,6 +104,7 @@
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
+#include "xmalloc.h"
 
 #ifdef TRACK_VMM
 #include "hashtable.h"
@@ -257,6 +258,9 @@ static void pmap_insert_region(struct pmap *pm,
 static void pmap_overrule(struct pmap *pm, const void *p, size_t size);
 static void vmm_reserve_stack(size_t amount);
 
+/**
+ * Initialize constants for the computation of kernel page roundings.
+ */
 static void
 init_kernel_pagesize(void)
 {
@@ -303,6 +307,15 @@ page_start(const void *p)
 
 	addr &= ~kernel_pagemask;
 	return ulong_to_pointer(addr);
+}
+
+/**
+ * Rounds pointer down so that it is aligned to the start of its page.
+ */
+const void *
+vmm_page_start(const void *p)
+{
+	return page_start(p);
 }
 
 static long
@@ -2184,7 +2197,7 @@ vpc_delete_slot(struct page_cache *pc, size_t idx)
  * Remove entry within a cache line.
  */
 static void
-vpc_remove(struct page_cache *pc, void *p)
+vpc_remove(struct page_cache *pc, const void *p)
 {
 	size_t idx;
 
@@ -3611,6 +3624,12 @@ vmm_init(const void *sp)
 #ifdef TRACK_VMM
 	vmm_track_init();
 #endif
+
+	/*
+	 * We can now use the VMM layer to allocate memory via xmalloc().
+	 */
+
+	xmalloc_vmm_inited();
 }
 
 /**

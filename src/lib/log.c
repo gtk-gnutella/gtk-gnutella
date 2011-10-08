@@ -44,6 +44,7 @@
 #include "str.h"
 #include "stringify.h"
 #include "tm.h"
+#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -257,6 +258,10 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * because it could allocate memory and we have not fully initialized
 	 * the memory layer yet (only the VMM layer can be assumed to be ready).
 	 *
+	 * When xmalloc() is remapped to malloc(), we don't want to enter g_logv()
+	 * at all since we don't know how they will allocate memory, and recursion
+	 * would not be detected easily.
+	 *
 	 * Therefore, avoid any general memory allocation by behaving as if
 	 * we were in a signal handler.
 	 *
@@ -264,7 +269,8 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * the process.
 	 */
 
-	in_signal_handler = lt != NULL || signal_in_handler() || !atoms_are_inited;
+	in_signal_handler = lt != NULL || signal_in_handler() ||
+		!atoms_are_inited || xmalloc_is_malloc();
 
 	if (!in_log_handler && !in_signal_handler) {
 		g_logv(G_LOG_DOMAIN, level, format, args);
