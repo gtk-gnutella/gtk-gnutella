@@ -1194,7 +1194,8 @@ gmsg_infostr(gconstpointer msg)
  * that node and being routed or processed).
  *
  * The advantage over calling gmsg_infostr(&n->header) is that the node
- * information is also printed if by chance the hop count of the message is 1.
+ * information is also printed if by chance the hop count of the message is 1
+ * or 0 (for UDP messages).
  *
  * @returns formatted static string:
  *
@@ -1214,7 +1215,7 @@ gmsg_node_infostr(const gnutella_node_t *n)
 
 	w = gmsg_infostr_to_buf(&n->header, buf, sizeof buf);
 
-	if (gnutella_header_get_hops(n->header) == 1) {
+	if (gnutella_header_get_hops(n->header) <= 1) {
 		gm_snprintf(&buf[w], sizeof buf - w, " //%s//", node_infostr(n));
 	}
 
