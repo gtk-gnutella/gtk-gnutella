@@ -296,7 +296,7 @@ round_pagesize(size_t n)
 /**
  * Rounds pointer down so that it is aligned to the start of the page.
  */
-static inline const void *
+static inline G_GNUC_PURE ALWAYS_INLINE const void *
 page_start(const void *p)
 {
 	unsigned long addr = pointer_to_ulong(p);
@@ -1830,6 +1830,19 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type)
 	 */
 
 	g_assert(vmf->type == type);
+}
+
+/**
+ * Is pointer a valid native VMM one?
+ */
+gboolean
+vmm_is_native_pointer(const void *p)
+{
+	struct vm_fragment *vmf;
+
+	vmf = pmap_lookup(vmm_pmap(), page_start(p), NULL);
+
+	return vmf != NULL && VMF_NATIVE == vmf->type;
 }
 
 /**
