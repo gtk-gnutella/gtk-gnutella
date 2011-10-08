@@ -689,7 +689,39 @@ assert_valid_freelist_pointer(const struct xfreelist *fl, const void *p)
 	}
 }
 
-/*
+/**
+ * Remove from the free list the block selected by xmalloc_freelist_lookup().
+ */
+static void
+xfl_remove_selected(struct xfreelist *fl)
+{
+	fl->count--;
+
+	/*
+	 * See xmalloc_freelist_lookup() for the selection algorithm.
+	 *
+	 * If we selected the last item of the array (the typical setup on
+	 * UNIX machines where the VM space grows downwards from the end
+	 * of the VM space), then we have nothing to do.
+	 *
+	 * Otherwise, we have to switch the remaining items downwards by
+	 * one position (first item of the pointers[] array was selected).
+	 */
+
+	if (xmalloc_grows_up && fl->count != 0) {
+		memmove(&fl->pointers[0], &fl->pointers[1],
+			fl->count * sizeof(fl->pointers[0]));
+	}
+
+	/*
+	 * Forbid any bucket shrinking as we could be in the middle of a bucket
+	 * allocation and that could cause harmful recursion.
+	 */
+
+	xfl_count_decreased(fl, FALSE);
+}
+
+/**
  * Allocate a block from the freelist, of given physical length, but without
  * performing any split if that would alter the specified freelist.
  *
@@ -713,7 +745,7 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 
 		g_assert(blksize >= len);
 
-		fl->count--;
+		xfl_remove_selected(fl);
 
 		/*
 		 * Allocating from the bucket itself is OK, but when debugging it's
@@ -726,27 +758,6 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 				(unsigned long) fl->blocksize, p, (unsigned long) xfl_index(fl),
 				(unsigned long) fl->count);
 		}
-
-		/*
-		 * If we selected the last item of the array (the typical setup on
-		 * UNIX machines where the VM space grows downwards from the end
-		 * of the VM space), then we have nothing to do.
-		 *
-		 * Otherwise, we have to switch the remaining items downwards by
-		 * one position (first item of the pointers[] array was selected).
-		 */
-
-		if (xmalloc_grows_up && fl->count != 0) {
-			memmove(&fl->pointers[0], &fl->pointers[1],
-				fl->count * sizeof(fl->pointers[0]));
-		}
-
-		/*
-		 * Forbid any bucket shrinking as we are in the middle of a bucket
-		 * allocation and that could cause harmful recursion.
-		 */
-
-		xfl_count_decreased(fl, FALSE);
 
 		/*
 		 * If the block is larger than the size we requested, the remainder
@@ -1556,23 +1567,7 @@ xmalloc_freelist_alloc(size_t len)
 
 		g_assert(blksize >= len);
 
-		fl->count--;
-
-		/*
-		 * If we selected the last item of the array (the typical setup on
-		 * UNIX machines where the VM space grows downwards from the end
-		 * of the VM space), then we have nothing to do.
-		 *
-		 * Otherwise, we have to switch the remaining items downwards by
-		 * one position (first item of the pointers[] array was selected).
-		 */
-
-		if (xmalloc_grows_up && fl->count != 0) {
-			memmove(&fl->pointers[0], &fl->pointers[1],
-				fl->count * sizeof(fl->pointers[0]));
-		}
-
-		xfl_count_decreased(fl, FALSE);
+		xfl_remove_selected(fl);
 
 		/*
 		 * If the block is larger than the size we requested, the remainder
@@ -1825,32 +1820,119 @@ xrealloc(void *p, size_t size)
 	newlen = xmalloc_round_blocksize(xmalloc_round(size) + XHEADER_SIZE);
 
 	/*
-	 * Nothing to do if size remains the same.
-	 */
-
-	if (newlen == xh->length)
-		return p;
-
-	/*
-	 * If the block was allocated through the VMM layer and the new size is
-	 * smaller than the original, yet remains larger than XMALLOC_MAXSIZE,
-	 * we can call vmm_shrink() to shrink the block inplace.
+	 * Identify blocks allocated from the VMM layer: they are page-aligned
+	 * and their size is a multiple of the system's page size, and they are
+	 * not located in the heap.
 	 */
 
 	if (
-		newlen > XMALLOC_MAXSIZE &&
-		xh->length > XMALLOC_MAXSIZE &&
-		newlen < xh->length && 
+		round_pagesize(xh->length) == xh->length &&
+		vmm_page_start(xh) == xh &&
 		!xmalloc_isheap(xh, xh->length)
 	) {
-		if (xmalloc_debugging(1)) {
-			t_debug(NULL, "XM using vmm_shrink() on %lu-byte block at %p"
-				" (new size is %lu bytes)",
-				(unsigned long) xh->length, xh, (unsigned long) newlen);
+		newlen = round_pagesize(newlen);
+
+		/*
+		 * If the size remains the same in the VMM space, we have nothing
+		 * to do unless we have a relocatable fragment.
+		 */
+
+		if (newlen == xh->length && vmm_is_relocatable(xh, xh->length)) {
+			void *q;
+
+			q = vmm_alloc(newlen);
+			np = xmalloc_block_setup(q, newlen);
+
+			if (xmalloc_debugging(1)) {
+				t_debug(NULL, "XM relocated %lu-byte VMM region at %p to %p"
+					" (new pysical size is %lu bytes, user size is %lu)",
+					(unsigned long) xh->length, xh, q, (unsigned long) newlen,
+					(unsigned long) size);
+			}
+
+			goto relocate;
 		}
 
-		vmm_shrink(xh, xh->length, newlen);
-		goto inplace;
+		/*
+		 * If the new size is smaller than the original, yet remains larger
+		 * than a page size, we can call vmm_shrink() to shrink the block
+		 * inplace.
+		 */
+
+		if (newlen < xh->length) {
+			if (xmalloc_debugging(1)) {
+				t_debug(NULL, "XM using vmm_shrink() on %lu-byte block at %p"
+					" (new size is %lu bytes)",
+					(unsigned long) xh->length, xh, (unsigned long) newlen);
+			}
+
+			vmm_shrink(xh, xh->length, newlen);
+			goto inplace;
+		}
+
+		/*
+		 * If we have to extend the VMM region, we can skip all the coalescing
+		 * logic since we have to allocate a new region.
+		 */
+
+		if (newlen > xh->length)
+			goto skip_coalescing;
+
+		if (xmalloc_debugging(2)) {
+			t_debug(NULL, "XM realloc of %p to %lu bytes can be a noop "
+				"(already %lu-byte long VMM region)",
+				p, (unsigned long) size, (unsigned long) xh->length);
+		}
+
+		return p;
+	}
+
+	/*
+	 * We are not dealing with a whole VMM region.
+	 *
+	 * Normally we have nothing to do if the size remains the same.
+	 *
+	 * However, we use can use this opportunity to move around the block
+	 * to a more strategic place in memory.
+	 */
+
+	if (newlen == xh->length) {
+		if G_LIKELY(!xmalloc_isheap(p, size)) {
+			struct xfreelist *fl;
+			void *q;
+
+			/*
+			 * We don't want to split a block and we want a pointer closer
+			 * to the base.
+			 */
+
+			q = xmalloc_freelist_lookup(newlen, &fl);
+			if (
+				q != NULL && newlen == fl->blocksize &&
+				(xmalloc_grows_up ? +1 : -1) * ptr_cmp(q, xh) < 0
+			) {
+				np = xmalloc_block_setup(q, newlen);
+				xfl_remove_selected(fl);
+
+				if (xmalloc_debugging(1)) {
+					t_debug(NULL, "XM relocated %lu-byte block at %p to %p"
+						" (new pysical size is %lu bytes, user size is %lu)",
+						(unsigned long) xh->length, xh, q,
+						(unsigned long) newlen, (unsigned long) size);
+				}
+
+				goto relocate;
+			}
+		}
+
+		if (xmalloc_debugging(2)) {
+			t_debug(NULL, "XM realloc of %p to %lu bytes can be a noop "
+				"(already %lu-byte long from %s)",
+				p, (unsigned long) size, (unsigned long) xh->length,
+				xmalloc_isheap(p, size) ? "heap" : "VMM");
+		}
+
+		return p;
 	}
 
 	/*
@@ -2110,6 +2192,8 @@ xrealloc(void *p, size_t size)
 		/* FALL THROUGH */
 	}
 
+skip_coalescing:
+
 	/*
 	 * Regular case: allocate a new block, move data around, free old block.
 	 */
@@ -2124,6 +2208,9 @@ xrealloc(void *p, size_t size)
 			ptr_add_offset(np, -XHEADER_SIZE));
 	}
 
+	/* FALL THROUGH */
+
+relocate:
 	{
 		size_t old_size = xh->length - XHEADER_SIZE;
 
