@@ -180,10 +180,8 @@ static size_t sbrk_allocated;		/**< Bytes allocated with sbrk() */
 static gboolean xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
 static gboolean xmalloc_no_freeing;	/**< No longer release memory */
 
-#ifdef HAS_SBRK
 static void *initial_break;			/**< Initial heap break */
 static void *current_break;			/**< Current known heap break */
-#endif
 
 static void xmalloc_freelist_add(void *p, size_t len, guint32 coalesce);
 static void *xmalloc_freelist_alloc(size_t len);
@@ -272,6 +270,8 @@ xmalloc_round_blocksize(size_t len)
 static void *
 xmalloc_addcore_from_heap(size_t len)
 {
+	void *p;
+
 	g_assert(size_is_positive(len));
 	g_assert(xmalloc_round(len) == len);
 
@@ -279,9 +279,14 @@ xmalloc_addcore_from_heap(size_t len)
 	 * Initialize the heap break point if not done so already.
 	 */
 
+	if G_UNLIKELY(NULL == initial_break) {
+
 #ifdef HAS_SBRK
-	if G_UNLIKELY(NULL == current_break) {
 		current_break = sbrk(0);
+#else
+		current_break = (void *) -1;
+#endif	/* HAS_SBRK */
+
 		initial_break = current_break;
 		if ((void *) -1 == current_break) {
 			t_error(NULL, "cannot get initial heap break address: %s (%s)",
@@ -289,36 +294,34 @@ xmalloc_addcore_from_heap(size_t len)
 		}
 		xmalloc_freelist_setup();
 	}
-#endif	/* HAS_SBRK */
 
 	/*
 	 * The VMM layer has not been initialized yet: allocate from the heap.
 	 */
 
 #ifdef HAS_SBRK
-	{
-		void *p = sbrk(len);
-
-		if ((void *) -1 == p) {
-			t_error(NULL, "cannot allocate more core (%lu bytes): %s (%s)",
-				(unsigned long) len,
-				g_strerror(errno), symbolic_errno(errno));
-		}
-
-		current_break = ptr_add_offset(current_break, len);
-		sbrk_allocated += len;
-
-		if (xmalloc_debugging(0)) {
-			t_debug(NULL, "XM added %lu bytes of heap core at %p",
-				(unsigned long) len, p);
-		}
-
-		return p;
-	}
+	p = sbrk(len);
 #else
-	t_error(NULL, "cannot allocate more core (%lu bytes)", (unsigned long) len);
-	return NULL;
-#endif	/* HAS_SBRK */
+	t_error(NULL, "cannot allocate core on this platform (%lu bytes)",
+		(unsigned long) len);
+	return p = NULL;
+#endif
+
+	if ((void *) -1 == p) {
+		t_error(NULL, "cannot allocate more core (%lu bytes): %s (%s)",
+			(unsigned long) len,
+			g_strerror(errno), symbolic_errno(errno));
+	}
+
+	current_break = ptr_add_offset(current_break, len);
+	sbrk_allocated += len;
+
+	if (xmalloc_debugging(0)) {
+		t_debug(NULL, "XM added %lu bytes of heap core at %p",
+			(unsigned long) len, p);
+	}
+
+	return p;
 }
 
 /**
@@ -327,26 +330,19 @@ xmalloc_addcore_from_heap(size_t len)
  * On UNIX we know that heap memory is allocated contiguously starting from
  * the initial break and moving forward.
  *
- * On Windows we reserve an inital heap of a known size and know that by
- * definition all the memory will be allocated in contiguous pages up to
- * the maximum size we specified.
+ * On Windows we emulate the behaviour of sbrk() and therefore can use the same
+ * logic as on UNIX.
  */
 static inline gboolean
 xmalloc_isheap(const void *ptr, size_t len)
 {
-#ifdef HAS_SBRK
-	g_assert(current_break != NULL);
-
-	if (ptr_cmp(ptr, current_break) < 0) {
+	if G_UNLIKELY(ptr_cmp(ptr, current_break) < 0) {
 		/* Make sure whole region is under the break */
 		g_assert(ptr_cmp(const_ptr_add_offset(ptr, len), current_break) <= 0);
 		return ptr_cmp(ptr, initial_break) >= 0;
 	} else {
 		return FALSE;
 	}
-#else
-	return FALSE;
-#endif	/* HAS_SBRK */
 }
 
 /**
@@ -376,9 +372,6 @@ xmalloc_freecore(void *ptr, size_t len)
 	 * forever: it should be put back into the free list by the caller.
 	 */
 
-#ifdef HAS_SBRK
-	g_assert(current_break != NULL);
-
 	if G_UNLIKELY(ptr_cmp(ptr, current_break) < 0) {
 		const void *end = const_ptr_add_offset(ptr, len);
 
@@ -387,9 +380,12 @@ xmalloc_freecore(void *ptr, size_t len)
 				t_debug(NULL, "XM releasing %lu bytes of trailing heap",
 					(unsigned long) len);
 			}
+
+#ifdef HAS_SBRK
 			current_break = sbrk(-len);
+#endif	/* HAS_SBRK */
 			g_assert(ptr_cmp(current_break, initial_break) >= 0);
-			return TRUE;
+			return !is_running_on_mingw();	/* no sbrk(-x) on Windows */
 		} else {
 			if (xmalloc_debugging(0)) {
 				t_debug(NULL, "XM releasing %lu bytes in middle of heap",
@@ -398,7 +394,6 @@ xmalloc_freecore(void *ptr, size_t len)
 			return FALSE;		/* Memory not freed */
 		}
 	}
-#endif	/* HAS_SBRK */
 
 	if (xmalloc_debugging(0))
 		t_debug(NULL, "XM releasing %lu bytes of core", (unsigned long) len);
