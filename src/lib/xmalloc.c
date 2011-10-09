@@ -316,7 +316,7 @@ xmalloc_addcore_from_heap(size_t len)
 	current_break = ptr_add_offset(current_break, len);
 	sbrk_allocated += len;
 
-	if (xmalloc_debugging(0)) {
+	if (xmalloc_debugging(1)) {
 		t_debug(NULL, "XM added %lu bytes of heap core at %p",
 			(unsigned long) len, p);
 	}
@@ -395,7 +395,7 @@ xmalloc_freecore(void *ptr, size_t len)
 		}
 	}
 
-	if (xmalloc_debugging(0))
+	if (xmalloc_debugging(1))
 		t_debug(NULL, "XM releasing %lu bytes of core", (unsigned long) len);
 
 	vmm_free(ptr, len);
@@ -618,7 +618,7 @@ xfl_count_decreased(struct xfreelist *fl, gboolean may_shrink)
 		g_assert(size_is_non_negative(xfreelist_maxidx));
 		g_assert(xfreelist_maxidx < G_N_ELEMENTS(xfreelist));
 
-		if (xmalloc_debugging(1)) {
+		if (xmalloc_debugging(2)) {
 			t_debug(NULL, "XM max frelist index decreased to %lu",
 				(unsigned long) xfreelist_maxidx);
 		}
@@ -747,7 +747,7 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 		 * nice to trace as it happens.
 		 */
 
-		if (xmalloc_debugging(0) && fl == flb) {
+		if (xmalloc_debugging(1) && fl == flb) {
 			t_debug(NULL, "XM allocated %lu-byte long block at %p "
 				"for freelist #%lu from itself (count down to %lu)",
 				(unsigned long) fl->blocksize, p, (unsigned long) xfl_index(fl),
@@ -921,7 +921,7 @@ xfl_extend(struct xfreelist *fl)
 		 * freelist, we may still safely recurse here since.
 		 */
 
-		if (xmalloc_debugging(0)) {
+		if (xmalloc_debugging(1)) {
 			t_debug(NULL, "XM discarding allocated bucket %p (%lu bytes) for "
 				"freelist #%lu", new_ptr, (unsigned long) allocated_size,
 				(unsigned long) xfl_index(fl));
@@ -1716,7 +1716,7 @@ xmalloc(size_t size)
 			size_t vlen = round_pagesize(len);
 			p = vmm_alloc(vlen);
 
-			if (xmalloc_debugging(0)) {
+			if (xmalloc_debugging(1)) {
 				t_debug(NULL, "XM added %lu bytes of VMM core at %p",
 					(unsigned long) vlen, p);
 			}
@@ -1725,7 +1725,7 @@ xmalloc(size_t size)
 		} else {
 			p = vmm_alloc(pagesize);
 
-			if (xmalloc_debugging(0)) {
+			if (xmalloc_debugging(1)) {
 				t_debug(NULL, "XM added %lu bytes of VMM core at %p",
 					(unsigned long) pagesize, p);
 			}
@@ -1938,7 +1938,7 @@ xrealloc(void *p, size_t size)
 
 				if (xmalloc_debugging(1)) {
 					t_debug(NULL, "XM relocated %lu-byte block at %p to %p"
-						" (new pysical size is %lu bytes, user size is %lu)",
+						" (pysical size is still %lu bytes, user size is %lu)",
 						(unsigned long) xh->length, xh, q,
 						(unsigned long) newlen, (unsigned long) size);
 				}
@@ -2289,7 +2289,7 @@ xmalloc_post_init(void)
 	}
 
 	if (xmalloc_debugging(0)) {
-		t_debug(NULL, "XM using %d freelist buckets", XMALLOC_FREELIST_COUNT);
+		t_info(NULL, "XM using %d freelist buckets", XMALLOC_FREELIST_COUNT);
 	}
 }
 
