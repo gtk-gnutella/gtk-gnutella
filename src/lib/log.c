@@ -520,7 +520,7 @@ s_fatal_exit(int status, const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(NULL, G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL, format, args);
+	s_logv(NULL, G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
 	exit(status);
 }
