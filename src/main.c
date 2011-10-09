@@ -700,6 +700,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(xmalloc_pre_close);
 	DO(vmm_close);
 	DO(signal_close);
+	DO(xmalloc_stop_freeing);
 
 	if (debugging(0) || signal_received || shutdown_requested) {
 		g_info("gtk-gnutella shut down cleanly.");
