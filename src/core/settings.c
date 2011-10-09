@@ -90,6 +90,7 @@
 #include "lib/sha1.h"
 #include "lib/tm.h"
 #include "lib/vmm.h"
+#include "lib/xmalloc.h"
 #include "lib/zalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -2426,6 +2427,17 @@ vxml_debug_changed(property_t prop)
 }
 
 static gboolean
+xmalloc_debug_changed(property_t prop)
+{
+	guint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_xmalloc_debug(val);
+
+    return FALSE;
+}
+
+static gboolean
 lib_debug_changed(property_t prop)
 {
 	guint32 val;
@@ -2878,6 +2890,11 @@ static prop_map_t property_map[] = {
     {
         PROP_VMM_DEBUG,
         vmm_debug_changed,
+        TRUE
+    },
+    {
+        PROP_XMALLOC_DEBUG,
+        xmalloc_debug_changed,
         TRUE
     },
     {

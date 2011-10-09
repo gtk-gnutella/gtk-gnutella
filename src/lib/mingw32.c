@@ -2998,6 +2998,91 @@ void mingw_invalid_parameter(const wchar_t * expression,
 	wprintf(L"mingw: Invalid parameter in %s %s:%d\r\n", function, file, line);
 }
 
+#ifdef EMULATE_SBRK
+static void *initial_break;
+static void *current_break;
+
+/**
+ * @return the initial break value, as defined by the first memory address
+ * where HeapAlloc() allocates memory from.
+ */
+static void *
+mingw_get_break(void)
+{
+	void *p;
+
+	p = HeapAlloc(GetProcessHeap(), HEAP_NO_SERIALIZE, 1);
+
+	if (NULL == p) {
+		errno = ENOMEM;
+		return (void *) -1;
+	}
+
+	HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, p);
+	return p;
+}
+
+/**
+ * Add/remove specified amount of new core.
+ *
+ * The aim here is not to be able to do a malloc() but rather to mimic
+ * what can be achieved on UNIX systems with sbrk().
+ *
+ * @return the new break position.
+ */
+void *
+mingw_sbrk(long incr)
+{
+	void *p;
+	void *end;
+
+	if (0 == incr) {
+		p = mingw_get_break();
+		if G_UNLIKELY(NULL == initial_break) {
+			initial_break = current_break = p;
+		}
+		return p;
+	} else if (incr > 0) {
+		p = HeapAlloc(GetProcessHeap(), HEAP_NO_SERIALIZE, incr);
+
+		if (NULL == p) {
+			errno = ENOMEM;
+			return (void *) -1;
+		}
+
+		end = ptr_add_offset(p, incr);
+
+		if G_UNLIKELY(NULL == initial_break)
+			initial_break = current_break = p;
+
+		if (ptr_cmp(end, current_break) > 0)
+			current_break = end;
+
+		return p;
+	} else if (incr < 0) {
+
+		/*
+		 * Don't release memory.  We have no idea how HeapAlloc() and
+		 * HeapFree() work, and if they are like malloc(), then HeapFree()
+		 * will frown upon a request for releasing core coming from coalesced
+		 * blocks.
+		 *
+		 * That's OK, since sbrk() is only used in gtk-gnutella by xmalloc()
+		 * to be able to allocate memory at startup time until the VMM layer
+		 * is up.  The unfreed memory won't be lost.
+		 *
+		 * On Windows, the C runtime should not depend on malloc() however,
+		 * so very little memory, if any, should be allocated on the heap
+		 * before the VMM layer can be brought up.
+		 */
+
+		return current_break;	/* No change, since no memory was released */
+	}
+
+	g_assert_not_reached();
+}
+#endif 	/* EMULATE_SBRK */
+
 static void
 mingw_stdio_reset(void)
 {

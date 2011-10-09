@@ -117,6 +117,7 @@
 #include "lib/halloc.h"
 #include "lib/inputevt.h"
 #include "lib/iso3166.h"
+#include "lib/exit.h"
 #include "lib/log.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
@@ -144,6 +145,7 @@
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
 #include "lib/wq.h"
+#include "lib/xmalloc.h"
 #include "lib/zalloc.h"
 #include "shell/shell.h"
 #include "upnp/upnp.h"
@@ -332,6 +334,7 @@ debugging(guint t)
 		GNET_PROPERTY(udp_debug) > t ||
 		GNET_PROPERTY(upload_debug) > t ||
 		GNET_PROPERTY(url_debug) > t ||
+		GNET_PROPERTY(xmalloc_debug) > t ||
 		GNET_PROPERTY(vmm_debug) > t ||
 		GNET_PROPERTY(vmsg_debug) > t ||
 		GNET_PROPERTY(zalloc_debug) > t ||
@@ -694,8 +697,9 @@ gtk_gnutella_exit(int exit_code)
 	DO(malloc_close);
 	DO(hdestroy);
 	DO(omalloc_close);
-	DO(signal_close);
+	DO(xmalloc_pre_close);
 	DO(vmm_close);
+	DO(signal_close);
 
 	if (debugging(0) || signal_received || shutdown_requested) {
 		g_info("gtk-gnutella shut down cleanly.");
@@ -1673,6 +1677,7 @@ main(int argc, char **argv)
 	 * Routines requiring access to properties should therefore be put below.
 	 */
 
+	xmalloc_post_init();	/* after settings_init() */
 	vmm_post_init();		/* after settings_init() */
 
 	if (debugging(0) || is_running_on_mingw())

@@ -78,6 +78,7 @@ LSRC = \
 	entropy.c \
 	eval.c \
 	event.c \
+	exit.c \
 	fast_assert.c \
 	fd.c \
 	fifo.c \
@@ -156,6 +157,7 @@ LSRC = \
 	wd.c \
 	wordvec.c \
 	wq.c \
+	xmalloc.c \
 	zalloc.c \
 	zlib_util.c
 

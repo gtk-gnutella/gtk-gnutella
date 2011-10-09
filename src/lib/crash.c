@@ -243,6 +243,7 @@ crash_time(char *buf, size_t size)
 	const size_t num_reserved = 1;
 	struct tm tm;
 	cursor_t cursor;
+	time_delta_t gmtoff;
 
 	/* We need at least space for a NUL */
 	if (size < num_reserved)
@@ -251,7 +252,14 @@ crash_time(char *buf, size_t size)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	if (!off_time(time(NULL) + vars->gmtoff, 0, &tm)) {
+	/*
+	 * If called very early from the logging layer, crash_init() may not have
+	 * been invoked yet, so vars would still be NULL.
+	 */
+
+	gmtoff = (vars != NULL) ? vars->gmtoff : 0;
+
+	if (!off_time(time(NULL) + gmtoff, 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}

@@ -104,6 +104,7 @@
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
+#include "xmalloc.h"
 
 #ifdef TRACK_VMM
 #include "hashtable.h"
@@ -218,10 +219,12 @@ static struct pmap local_pmap;
 static gboolean safe_to_log;		/**< True when we can log */
 static gboolean stop_freeing;		/**< No longer release memory */
 static guint32 vmm_debug;			/**< Debug level */
-static const void *initial_brk;		/**< Startup position of the heap */
 static const void *initial_sp;		/**< Initial "bottom" of the stack */
 static gboolean sp_increasing;		/**< Growing direction of the stack */
 static const void *vmm_base;		/**< Where we'll start allocating */
+#ifdef HAS_SBRK
+static const void *initial_brk;		/**< Startup position of the heap */
+#endif
 
 #ifdef TRACK_VMM
 static void vmm_track_init(void);
@@ -229,7 +232,6 @@ static void vmm_track_malloc_inited(void);
 static void vmm_track_post_init(void);
 static void vmm_track_close(void);
 #endif
-
 
 static inline G_GNUC_PURE gboolean
 vmm_debugging(guint32 lvl)
@@ -256,6 +258,9 @@ static void pmap_insert_region(struct pmap *pm,
 static void pmap_overrule(struct pmap *pm, const void *p, size_t size);
 static void vmm_reserve_stack(size_t amount);
 
+/**
+ * Initialize constants for the computation of kernel page roundings.
+ */
 static void
 init_kernel_pagesize(void)
 {
@@ -295,13 +300,22 @@ round_pagesize(size_t n)
 /**
  * Rounds pointer down so that it is aligned to the start of the page.
  */
-static inline const void *
+static inline G_GNUC_PURE ALWAYS_INLINE const void *
 page_start(const void *p)
 {
 	unsigned long addr = pointer_to_ulong(p);
 
 	addr &= ~kernel_pagemask;
 	return ulong_to_pointer(addr);
+}
+
+/**
+ * Rounds pointer down so that it is aligned to the start of its page.
+ */
+const void *
+vmm_page_start(const void *p)
+{
+	return page_start(p);
 }
 
 static long
@@ -1832,6 +1846,19 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type)
 }
 
 /**
+ * Is pointer a valid native VMM one?
+ */
+gboolean
+vmm_is_native_pointer(const void *p)
+{
+	struct vm_fragment *vmf;
+
+	vmf = pmap_lookup(vmm_pmap(), page_start(p), NULL);
+
+	return vmf != NULL && VMF_NATIVE == vmf->type;
+}
+
+/**
  * Is region starting at ``base'' and of ``size'' bytes a virtual memory
  * fragment, i.e. a standalone mapping in the middle of the VM space?
  */
@@ -2113,7 +2140,7 @@ free_pages_forced(void *p, size_t size, gboolean fragment)
  * Lookup page within a cache line.
  *
  * If ``low_ptr'' is non-NULL, it is written with the index where insertion
- * of a new item should happen (in which case the returned value must be NULL).
+ * of a new item should happen (in which case the returned value must be -1).
  *
  * @return index within the page cache info[] sorted array where "p" is stored,
  * -1 if not found.
@@ -2173,7 +2200,7 @@ vpc_delete_slot(struct page_cache *pc, size_t idx)
  * Remove entry within a cache line.
  */
 static void
-vpc_remove(struct page_cache *pc, void *p)
+vpc_remove(struct page_cache *pc, const void *p)
 {
 	size_t idx;
 
@@ -3459,7 +3486,9 @@ vmm_post_init(void)
 	}
 
 	if (vmm_debugging(1)) {
+#ifdef HAS_SBRK
 		s_debug("VMM initial break at 0x%lx", (unsigned long) initial_brk);
+#endif
 		s_debug("VMM stack bottom at 0x%lx", (unsigned long) initial_sp);
 	}
 
@@ -3549,7 +3578,7 @@ vmm_init(const void *sp)
 
 	g_assert(sp != &i);
 
-#ifndef MINGW32
+#ifdef HAS_SBRK
 	initial_brk = sbrk(0);
 #endif
 	initial_sp = sp;
@@ -3598,6 +3627,12 @@ vmm_init(const void *sp)
 #ifdef TRACK_VMM
 	vmm_track_init();
 #endif
+
+	/*
+	 * We can now use the VMM layer to allocate memory via xmalloc().
+	 */
+
+	xmalloc_vmm_inited();
 }
 
 /**
