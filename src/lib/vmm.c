@@ -435,7 +435,7 @@ vmf_type_str(const vmf_type_t type)
 /**
  * Dump current pmap.
  */
-static void
+G_GNUC_COLD void
 vmm_dump_pmap(void)
 {
 	struct pmap *pm = vmm_pmap();
