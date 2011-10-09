@@ -478,7 +478,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			}
 		}
 
-		if (
+		if G_UNLIKELY(
 			G_LOG_LEVEL_CRITICAL == level ||
 			G_LOG_LEVEL_ERROR == level
 		) {
