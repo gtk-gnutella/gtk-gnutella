@@ -400,8 +400,8 @@ zblock_log(const char *p, size_t size, void *leakset)
 #endif
 #if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
 	if (not_leaking != NULL && hash_table_lookup(not_leaking, uptr)) {
-		g_message("block 0x%lx from \"%s:%u\" marked as non-leaking",
-			(unsigned long) uptr, file, line);
+		g_message("block %p from \"%s:%u\" marked as non-leaking",
+			uptr, file, line);
 		return;
 	}
 #endif
@@ -415,8 +415,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 	ago[0] = '\0';
 #endif
 
-	g_warning("leaked block 0x%lx from \"%s:%u\"%s",
-		(unsigned long) uptr, file, line, ago);
+	g_warning("leaked block %p from \"%s:%u\"%s", uptr, file, line, ago);
 
 #ifdef MALLOC_FRAMES
 	{
@@ -426,8 +425,8 @@ zblock_log(const char *p, size_t size, void *leakset)
 		if (f != INVALID_FRAME_PTR) {
 			stacktrace_atom_print(stderr, f->ast);
 		} else {
-			g_warning("however frame pointer suggests block 0x%lx was freed?",
-				(unsigned long) uptr);
+			g_warning("however frame pointer suggests block %p was freed?",
+				uptr);
 		}
 	}
 #endif
@@ -552,9 +551,9 @@ zfree(zone_t *zone, void *ptr)
 		tmp = ptr_add_offset(ptr, -OVH_LENGTH + OVH_ZONE_SAFE_OFFSET);
 
 		if (tmp[0] != BLOCK_USED)
-			g_error("trying to free block 0x%lx twice", (gulong) ptr);
+			g_error("trying to free block %p twice", ptr);
 		if (tmp[1] != (char *) zone)
-			g_error("trying to free block 0x%lx to wrong zone", (gulong) ptr);
+			g_error("trying to free block %p to wrong zone", ptr);
 	}
 #endif
 #ifdef MALLOC_FRAMES
@@ -850,9 +849,9 @@ zn_shrink(zone_t *zone)
 	g_assert(0 == zone->zn_cnt);		/* No blocks used */
 
 	if (zalloc_debug > 1) {
-		g_debug("ZGC %lu-byte zone 0x%lx shrunk: "
+		g_debug("ZGC %lu-byte zone %p shrunk: "
 			"freeing %u subzone%s of %uKiB (%u blocks each)",
-			(unsigned long) zone->zn_size, (unsigned long) zone,
+			(unsigned long) zone->zn_size, (void *) zone,
 			zone->zn_subzones - 1, 2 == zone->zn_subzones ? "" : "s",
 			(unsigned) zone->zn_arena.sz_size / 1024, zone->zn_hint);
 	}
@@ -1368,12 +1367,11 @@ zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 
 	if (zalloc_debug > 1) {
 		time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
-		g_debug("ZGC %lu-byte zone 0x%lx: %ssubzone "
-			"[0x%lx, 0x%lx] %uKiB, %u blocks, lifetime %s is a fragment",
-			(unsigned long) zone->zn_size, (unsigned long) zone,
+		g_debug("ZGC %lu-byte zone %p: %ssubzone "
+			"[%p, %p] %uKiB, %u blocks, lifetime %s is a fragment",
+			(unsigned long) zone->zn_size, (void *) zone,
 			&zone->zn_arena == sz ? "first " : "extra ",
-			(unsigned long) szi->szi_base,
-			(unsigned long) szi->szi_end - 1,
+			szi->szi_base, szi->szi_end - 1,
 			(unsigned) ptr_diff(szi->szi_end, szi->szi_base) / 1024,
 			zone->zn_hint, compact_time(life));
 	}
@@ -1389,11 +1387,9 @@ zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 	nszi = zgc_insert_subzone(zone, sz, blk);
 
 	if (zalloc_debug > 4) {
-		g_debug("ZGC %lu-byte zone 0x%lx recreated "
-			"%u blocks in [0x%lx, 0x%lx]",
-			(unsigned long) zone->zn_size, (unsigned long) zone,
-			zone->zn_hint, (unsigned long) nszi->szi_base,
-			(unsigned long) nszi->szi_end);
+		g_debug("ZGC %lu-byte zone %p recreated %u blocks in [%p, %p]",
+			(unsigned long) zone->zn_size, (void *) zone,
+			zone->zn_hint, nszi->szi_base, nszi->szi_end);
 	}
 }
 
@@ -1434,13 +1430,12 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 	if (subzone_is_fragment(szi->szi_sz)) {
 		if (zalloc_debug > 1) {
 			time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
-			g_debug("ZGC %lu-byte zone 0x%lx: %ssubzone "
-				"[0x%lx, 0x%lx] %uKiB, %u blocks, lifetime %s is a fragment, "
+			g_debug("ZGC %lu-byte zone %p: %ssubzone "
+				"[%p, %p] %uKiB, %u blocks, lifetime %s is a fragment, "
 				"attempting release",
-				(unsigned long) zone->zn_size, (unsigned long) zone,
+				(unsigned long) zone->zn_size, (void *) zone,
 				&zone->zn_arena == szi->szi_sz ? "first " : "extra ",
-				(unsigned long) szi->szi_base,
-				(unsigned long) szi->szi_end - 1,
+				szi->szi_base, szi->szi_end - 1,
 				(unsigned) ptr_diff(szi->szi_end, szi->szi_base) / 1024,
 				zone->zn_hint, compact_time(life));
 		}
@@ -1485,8 +1480,8 @@ release_zone:
 		zgc_context.subzone_freed >= ZGC_SUBZONE_FREEMAX
 	) {
 		if (zalloc_debug > 3) {
-			g_debug("ZGC %lu-byte zone 0x%lx: hit subzone free limit",
-				(unsigned long) zone->zn_size, (unsigned long) zone);
+			g_debug("ZGC %lu-byte zone %p: hit subzone free limit",
+				(unsigned long) zone->zn_size, (void *) zone);
 		}
 		zg->zg_flags |= ZGC_SCAN_ALL;
 		return FALSE;
@@ -1500,12 +1495,11 @@ release_zone:
 			unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
 				zone->zn_hint;
 			time_delta_t life = delta_time(tm_time(), zone->zn_arena.sz_ctime);
-			g_debug("ZGC %lu-byte zone 0x%lx: freeing first subzone "
-				"[0x%lx, 0x%lx] %uKiB, %u blocks, lifetime %s "
+			g_debug("ZGC %lu-byte zone %p: freeing first subzone "
+				"[%p, %p] %uKiB, %u blocks, lifetime %s "
 				"(still has %u free block%s)",
-				(unsigned long) zone->zn_size, (unsigned long) zone,
-				(unsigned long) szi->szi_base,
-				(unsigned long) szi->szi_end - 1,
+				(unsigned long) zone->zn_size, (void *) zone,
+				szi->szi_base, szi->szi_end - 1,
 				(unsigned) ptr_diff(szi->szi_end, szi->szi_base) / 1024,
 				zone->zn_hint, compact_time(life),
 				free_blocks, 1 == free_blocks ? "" : "s");
@@ -1537,12 +1531,11 @@ release_zone:
 					unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
 						zone->zn_hint;
 					time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
-					g_debug("ZGC %lu-byte zone 0x%lx: freeing subzone #%u "
-						"[0x%lx, 0x%lx] %uKiB, %u blocks, lifetime %s "
+					g_debug("ZGC %lu-byte zone %p: freeing subzone #%u "
+						"[%p, %p] %uKiB, %u blocks, lifetime %s "
 						"(still has %u free block%s)",
-						(unsigned long) zone->zn_size, (unsigned long) zone, n,
-						(unsigned long) szi->szi_base,
-						(unsigned long) szi->szi_end - 1,
+						(unsigned long) zone->zn_size, (void *) zone, n,
+						szi->szi_base, szi->szi_end - 1,
 						(unsigned) ptr_diff(szi->szi_end, szi->szi_base) / 1024,
 						zone->zn_hint, compact_time(life),
 						free_blocks, 1 == free_blocks ? "" : "s");
@@ -1653,9 +1646,9 @@ zgc_allocate(zone_t *zone)
 
 	if (zalloc_debug > 1) {
 		unsigned free_blocks = zone->zn_blocks - zone->zn_cnt;
-		g_debug("ZGC %lu-byte zone 0x%lx: "
+		g_debug("ZGC %lu-byte zone %p: "
 			"setting up garbage collection for %u subzone%s, %u free block%s",
-			(unsigned long) zone->zn_size, (unsigned long) zone,
+			(unsigned long) zone->zn_size, (void *) zone,
 			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s",
 			free_blocks, 1 == free_blocks ? "" : "s");
 	}
@@ -1764,11 +1757,10 @@ zgc_extend(zone_t *zone)
 	szi->szi_free_cnt--;
 
 	if (zalloc_debug > 4) {
-		g_debug("ZGC %lu-byte zone 0x%lx extended by "
-			"%u blocks in [0x%lx, 0x%lx]",
-			(unsigned long) zone->zn_size, (unsigned long) zone,
-			zone->zn_hint, (unsigned long) szi->szi_base,
-			(unsigned long) szi->szi_end);
+		g_debug("ZGC %lu-byte zone %p extended by "
+			"%u blocks in [%p, %p]",
+			(unsigned long) zone->zn_size, (void *) zone,
+			zone->zn_hint, szi->szi_base, szi->szi_end - 1);
 	}
 
 	zone->zn_free = NULL;		/* In GC mode, we never use this */
@@ -1791,9 +1783,9 @@ zgc_scan(zone_t *zone)
 	g_assert(uint_is_non_negative(zg->zg_free));
 
 	if (zalloc_debug > 4) {
-		g_debug("ZGC %lu-byte zone 0x%lx scanned for free subzones: "
+		g_debug("ZGC %lu-byte zone %p scanned for free subzones: "
 			"%u blocks, %u free (hint=%u, %u subzones)",
-			(unsigned long) zone->zn_size, (unsigned long) zone,
+			(unsigned long) zone->zn_size, (void *) zone,
 			zone->zn_blocks, zone->zn_blocks - zone->zn_cnt, zone->zn_hint,
 			zone->zn_subzones);
 	}
@@ -1817,9 +1809,9 @@ zgc_scan(zone_t *zone)
 
 		if (zgc_context.subzone_freed >= ZGC_SUBZONE_FREEMAX) {
 			if (zalloc_debug > 3) {
-				g_debug("ZGC %lu-byte zone 0x%lx: hit subzone free limit, "
+				g_debug("ZGC %lu-byte zone %p: hit subzone free limit, "
 					"will resume scanning at next run",
-					(unsigned long) zone->zn_size, (unsigned long) zone);
+					(unsigned long) zone->zn_size, (void *) zone);
 			}
 			must_continue = TRUE;
 			break;
@@ -1848,9 +1840,9 @@ finished:
 	zg->zg_flags &= ~ZGC_SCAN_ALL;
 
 	if (zalloc_debug > 4) {
-		g_debug("ZGC %lu-byte zone 0x%lx turned scan-all off: "
+		g_debug("ZGC %lu-byte zone %p turned scan-all off: "
 			"%u blocks, %u free (hint=%u, %u subzones)",
-			(unsigned long) zone->zn_size, (unsigned long) zone,
+			(unsigned long) zone->zn_size, (void *) zone,
 			zone->zn_blocks, zone->zn_blocks - zone->zn_cnt, zone->zn_hint,
 			zone->zn_subzones);
 	}
@@ -1874,10 +1866,10 @@ zgc_dispose(zone_t *zone)
 
 	if (zalloc_debug > 1) {
 		time_delta_t elapsed = delta_time(tm_time(), zg->zg_start);
-		g_debug("ZGC %lu-byte zone 0x%lx ending garbage collection "
+		g_debug("ZGC %lu-byte zone %p ending garbage collection "
 			"(%u free block%s, %u subzone%s, freed %u and defragmented %u "
 			"in %s)",
-			(unsigned long) zone->zn_size, (unsigned long) zone,
+			(unsigned long) zone->zn_size, (void *) zone,
 			free_blocks, 1 == free_blocks ? "" : "s",
 			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s",
 			zg->zg_zone_freed, zg->zg_zone_defragmented,
@@ -2091,11 +2083,10 @@ found:
 
 	if (zalloc_debug > 1) {
 		size_t used = zone->zn_hint - szi->szi_free_cnt - 1;
-		g_debug("ZGC %lu-byte zone 0x%lx: moved 0x%lx to 0x%lx, "
+		g_debug("ZGC %lu-byte zone %p: moved %p to %p, "
 			"zone has %u blocks, %u used (hint=%u, %u subzone%s), previous "
 			"subzone has %lu block%s",
-			(unsigned long) zone->zn_size, (unsigned long) zone,
-			(unsigned long) p, (unsigned long) np,
+			(unsigned long) zone->zn_size, (void *) zone, p, np,
 			zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
 			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s",
 			(unsigned long) used, 1 == used ? "" : "s");
@@ -2172,9 +2163,9 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 	) {
 		if (++zone->zn_oversized >= ZN_OVERSIZE_THRESH || zalloc_always_gc) {
 			if (zalloc_debug > 4) {
-				g_debug("ZGC %lu-byte zone 0x%lx %s: "
+				g_debug("ZGC %lu-byte zone %p %s: "
 					"%u blocks, %u used (hint=%u, %u subzones)",
-					(unsigned long) zone->zn_size, (unsigned long) zone,
+					(unsigned long) zone->zn_size, (void *) zone,
 					zalloc_always_gc ? "forced in GC mode" : "oversized",
 					zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
 					zone->zn_subzones);
@@ -2194,9 +2185,9 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 			}
 
 			if (zalloc_debug > 4) {
-				g_debug("ZGC %lu-byte zone 0x%lx %s: "
+				g_debug("ZGC %lu-byte zone %p %s: "
 					"%u blocks, %u used (hint=%u, %u subzone%s)",
-					(unsigned long) zone->zn_size, (unsigned long) zone,
+					(unsigned long) zone->zn_size, (void *) zone,
 					NULL == zone->zn_gc ? "after shrinking" : "has GC on",
 					zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
 					zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s");
@@ -2205,9 +2196,9 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 	} else if (zalloc_always_gc) {
 		if (NULL == zone->zn_gc) {
 			if (zalloc_debug > 4) {
-				g_debug("ZGC %lu-byte zone 0x%lx forced in GC mode: "
+				g_debug("ZGC %lu-byte zone %p forced in GC mode: "
 					"%u blocks, %u used (hint=%u, %u subzones)",
-					(unsigned long) zone->zn_size, (unsigned long) zone,
+					(unsigned long) zone->zn_size, (void *) zone,
 					zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
 					zone->zn_subzones);
 			}

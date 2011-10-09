@@ -173,13 +173,13 @@ mq_info(const mqueue_t *q)
 
 	if (q->magic != MQ_MAGIC) {
 		gm_snprintf(buf, sizeof(buf),
-			"queue 0x%lx INVALID (bad magic)", (gulong) q);
+			"queue %p INVALID (bad magic)", (void *) q);
 	} else {
 		gboolean udp = NODE_IS_UDP(q->node);
 
 		gm_snprintf(buf, sizeof(buf),
-			"queue 0x%lx [%s %s node %s%s%s%s%s] (%d item%s, %d byte%s)",
-			(gulong) q, udp ? "UDP" : "TCP",
+			"queue %p [%s %s node %s%s%s%s%s] (%d item%s, %d byte%s)",
+			(void *) q, udp ? "UDP" : "TCP",
 			NODE_IS_ULTRA(q->node) ? "ultra" :
 			udp ? "remote" : "leaf", node_addr(q->node),
 			(q->flags & MQ_FLOWC) ? " FLOWC" : "",
@@ -217,11 +217,11 @@ mq_add_linkable(mqueue_t *q, GList *l)
 
 	owner = g_hash_table_lookup(qown, l);
 	if (owner) {
-		g_carp("BUG: added linkable 0x%lx already owned by %s%s",
-			(gulong) l, owner == q ? "ourselves" : "other", mq_info(owner));
+		g_carp("BUG: added linkable %p already owned by %s%s",
+			(void *) l, owner == q ? "ourselves" : "other", mq_info(owner));
 		if (owner != q)
-			g_warning("BUG: will make linkable 0x%lx belong to %s",
-				(gulong) l, mq_info(q));
+			g_warning("BUG: will make linkable %p belong to %s",
+				(void *) l, mq_info(q));
 		g_assert_not_reached();
 	}
 
@@ -243,11 +243,11 @@ mq_remove_linkable(mqueue_t *q, GList *l)
 	owner = g_hash_table_lookup(qown, l);
 
 	if (owner == NULL)
-		g_error("BUG: removed linkable 0x%lx from %s belongs to no queue!",
-			(gulong) l, mq_info(q));
+		g_error("BUG: removed linkable %p from %s belongs to no queue!",
+			(void *) l, mq_info(q));
 	else if (owner != q)
-		g_error("BUG: removed linkable 0x%lx from %s is from another queue!",
-			(gulong) l, mq_info(q));
+		g_error("BUG: removed linkable %p from %s is from another queue!",
+			(void *) l, mq_info(q));
 	else
 		g_hash_table_remove(qown, l);
 }
@@ -778,8 +778,8 @@ qlink_create(mqueue_t *q)
 	}
 
 	if (l || n != q->count)
-		g_error("BUG: queue count of %d for 0x%lx is wrong (has %d)",
-			q->count, (gulong) q, g_list_length(q->qhead));
+		g_error("BUG: queue count of %d for %p is wrong (has %d)",
+			q->count, (void *) q, g_list_length(q->qhead));
 
 	/*
 	 * We use `n' and not `q->count' in case the warning above is emitted,
@@ -1059,9 +1059,9 @@ qlink_remove(mqueue_t *q, GList *l)
 		/* Should have been found -- FALL THROUGH */
 	}
 
-	g_error("BUG: linkable 0x%lx for %s not found "
+	g_error("BUG: linkable %p for %s not found "
 		"(qlink has %d slots, queue has %d counted items, really %d) at %s:%d",
-		(gulong) l, mq_info(q),
+		(void *) l, mq_info(q),
 		q->qlink_count, q->count, g_list_length(q->qhead),
 		_WHERE_, __LINE__);
 }
@@ -1096,9 +1096,9 @@ make_room_internal(mqueue_t *q,
 	mq_check(q, 0);
 
 	if (MQ_DEBUG_LVL(q) > 5)
-		g_debug("MQ %s try to make room for %d bytes in queue 0x%lx (node %s)",
+		g_debug("MQ %s try to make room for %d bytes in queue %p (node %s)",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-			needed, (gulong) q, node_addr(q->node));
+			needed, (void *) q, node_addr(q->node));
 
 	if (q->qhead == NULL)			/* Queue is empty */
 		return FALSE;

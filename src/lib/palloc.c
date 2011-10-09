@@ -359,10 +359,8 @@ pfree(pool_t *p, gpointer obj)
 	if (p->is_frag(obj)) {
 		g_assert(uint_is_positive(p->allocated));
 
-		if (palloc_debug > 1) {
-			g_debug("PGC pool \"%s\": buffer 0x%lx is a fragment",
-				p->name, (unsigned long) obj);
-		}
+		if (palloc_debug > 1)
+			g_debug("PGC pool \"%s\": buffer %p is a fragment", p->name, obj);
 
 		p->dealloc(obj, TRUE);
 		p->allocated--;

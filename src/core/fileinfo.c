@@ -2353,7 +2353,7 @@ file_info_hash_insert(fileinfo_t *fi)
 		xfi = g_hash_table_lookup(fi_by_sha1, fi->sha1);
 
 		if (NULL != xfi && xfi != fi)		/* See comment above */
-			g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
+			g_error("xfi = %p, fi = %p", (void *) xfi, (void *) fi);
 
 		if (NULL == xfi)
 			gm_hash_table_insert_const(fi_by_sha1, fi->sha1, fi);
@@ -2380,7 +2380,7 @@ transient:
 	xfi = g_hash_table_lookup(fi_by_guid, fi->guid);
 
 	if (NULL != xfi && xfi != fi)		/* See comment above */
-		g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
+		g_error("xfi = %p, fi = %p", (void *) xfi, (void *) fi);
 
 	if (NULL == xfi)
 		gm_hash_table_insert_const(fi_by_guid, fi->guid, fi);
@@ -2412,9 +2412,8 @@ file_info_hash_remove(fileinfo_t *fi)
 	g_assert(fi->guid);
 
 	if (GNET_PROPERTY(fileinfo_debug) > 4) {
-		g_debug("FILEINFO remove 0x%lx \"%s\" "
-			"(%s/%s bytes done) sha1=%s\n",
-			(gulong) fi, fi->pathname,
+		g_debug("FILEINFO remove %p \"%s\" (%s/%s bytes done) sha1=%s",
+			(void *) fi, fi->pathname,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size),
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 	}

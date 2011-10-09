@@ -911,8 +911,7 @@ bg_task_ended(struct bgtask *bt)
 	item = bt->wq->data;
 
 	if (bg_debug > 2) {
-		g_debug("BGTASK daemon \"%s\" done with item 0x%lx",
-			bt->name, (gulong) item);
+		g_debug("BGTASK daemon \"%s\" done with item %p", bt->name, item);
 	}
 
 	(*bt->end_cb)(bt, bt->ucontext, item);
@@ -1104,9 +1103,10 @@ bg_sched_timer(void *unused_arg)
 
 			item = bt->wq->data;
 
-			if (bg_debug > 2)
-				g_debug("BGTASK daemon \"%s\" starting with item 0x%lx",
-					bt->name, (gulong) item);
+			if (bg_debug > 2) {
+				g_debug("BGTASK daemon \"%s\" starting with item %p",
+					bt->name, item);
+			}
 
 			(*bt->start_cb)(bt, bt->ucontext, item);
 		}

@@ -1142,8 +1142,8 @@ dump_tracking_table(gpointer atom, GHashTable *h, char *what)
 {
 	guint count = g_hash_table_size(h);
 
-	g_warning("all %u %s spot%s for 0x%lx:",
-		count, what, count == 1 ? "" : "s", (gulong) atom);
+	g_warning("all %u %s spot%s for %p:",
+		count, what, count == 1 ? "" : "s", atom);
 
 	g_hash_table_foreach(h, dump_tracking_entry, what);
 }
@@ -1161,8 +1161,8 @@ atom_warn_free(gpointer key, gpointer unused_value, gpointer udata)
 
 	(void) unused_value;
 
-	g_warning("found remaining %s atom 0x%lx, refcnt=%d: \"%s\"",
-		td->type, (glong) key, a->refcnt, (*td->str_func)(key));
+	g_warning("found remaining %s atom %p, refcnt=%d: \"%s\"",
+		td->type, key, a->refcnt, (*td->str_func)(key));
 
 #ifdef TRACK_ATOMS
 	dump_tracking_table(key, a->get, "get");

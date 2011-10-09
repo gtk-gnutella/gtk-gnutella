@@ -859,7 +859,8 @@ routing_chunk_move(struct message **chunk, unsigned chunk_idx)
 	 */
 
 	if (GNET_PROPERTY(routing_debug)) {
-		g_debug("RT moving chunk #%u from %p to %p", chunk_idx, chunk, nchunk);
+		g_debug("RT moving chunk #%u from %p to %p",
+			chunk_idx, (void *) chunk, (void *) nchunk);
 	}
 
 	for (p = &nchunk[0], i = 0; i < CHUNK_MESSAGES; i++, p++) {
@@ -957,7 +958,8 @@ get_next_slot(gboolean advance, unsigned *cidx)
 
 			if (GNET_PROPERTY(routing_debug)) {
 				g_debug("RT freeing chunk #%lu at %p, now holds %d / %d",
-					(unsigned long) i, rchunk, routing.count, routing.capacity);
+					(unsigned long) i, (void *) rchunk,
+					routing.count, routing.capacity);
 			}
 
 			for (j = 0; j < CHUNK_MESSAGES; j++) {
@@ -1034,7 +1036,7 @@ get_next_slot(gboolean advance, unsigned *cidx)
 
 			if (GNET_PROPERTY(routing_debug)) {
 				g_debug("RT created new chunk #%d at %p, now holds %d / %d",
-					chunk_idx, routing.chunks[chunk_idx],
+					chunk_idx, (void *) routing.chunks[chunk_idx],
 					routing.count, routing.capacity);
 			}
 
