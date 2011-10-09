@@ -517,8 +517,8 @@ xfl_find_freelist(size_t len)
 static void
 xfl_shrink(struct xfreelist *fl)
 {
-	void **new_ptr;
-	void **old_ptr;
+	void *new_ptr;
+	void *old_ptr;
 	size_t old_size, old_used, new_size, allocated_size;
 
 	g_assert(fl->count < fl->capacity);
@@ -852,8 +852,8 @@ xfl_bucket_alloc(const struct xfreelist *flb,
 static void
 xfl_extend(struct xfreelist *fl)
 {
-	void **new_ptr;
-	void **old_ptr;
+	void *new_ptr;
+	void *old_ptr;
 	size_t old_size, old_used, new_size = 0, allocated_size;
 
 	g_assert(fl->count >= fl->capacity);
@@ -1868,8 +1868,8 @@ xrealloc(void *p, size_t size)
 			if (xmalloc_debugging(1)) {
 				t_debug(NULL, "XM relocated %lu-byte VMM region at %p to %p"
 					" (new pysical size is %lu bytes, user size is %lu)",
-					(unsigned long) xh->length, xh, q, (unsigned long) newlen,
-					(unsigned long) size);
+					(unsigned long) xh->length, (void *) xh, q,
+					(unsigned long) newlen, (unsigned long) size);
 			}
 
 			goto relocate;
@@ -1885,7 +1885,8 @@ xrealloc(void *p, size_t size)
 			if (xmalloc_debugging(1)) {
 				t_debug(NULL, "XM using vmm_shrink() on %lu-byte block at %p"
 					" (new size is %lu bytes)",
-					(unsigned long) xh->length, xh, (unsigned long) newlen);
+					(unsigned long) xh->length, (void *) xh,
+					(unsigned long) newlen);
 			}
 
 			vmm_shrink(xh, xh->length, newlen);
@@ -1939,7 +1940,7 @@ xrealloc(void *p, size_t size)
 				if (xmalloc_debugging(1)) {
 					t_debug(NULL, "XM relocated %lu-byte block at %p to %p"
 						" (pysical size is still %lu bytes, user size is %lu)",
-						(unsigned long) xh->length, xh, q,
+						(unsigned long) xh->length, (void *) xh, q,
 						(unsigned long) newlen, (unsigned long) size);
 				}
 
@@ -1970,7 +1971,8 @@ xrealloc(void *p, size_t size)
 		if (xmalloc_debugging(1)) {
 			t_debug(NULL, "XM using inplace shrink on %lu-byte block at %p"
 				" (new size is %lu bytes, splitting at %p)",
-				(unsigned long) xh->length, xh, (unsigned long) newlen, end);
+				(unsigned long) xh->length, (void *) xh,
+				(unsigned long) newlen, end);
 		}
 
 		xmalloc_freelist_insert(end, xh->length - newlen, XM_COALESCE_AFTER);
@@ -2033,7 +2035,7 @@ xrealloc(void *p, size_t size)
 							"resulting size of %lu bytes",
 							(unsigned long) blksize, end,
 							ptr_add_offset(end, blksize), (unsigned long) i,
-							xh, end, (unsigned long) csize);
+							(void *) xh, end, (unsigned long) csize);
 					}
 					break;
 				}
@@ -2044,7 +2046,7 @@ xrealloc(void *p, size_t size)
 						"%lu-byte block",
 						(unsigned long) blksize, end,
 						ptr_add_offset(end, blksize), (unsigned long) i,
-						xh, end, (unsigned long) csize);
+						(void *) xh, end, (unsigned long) csize);
 				}
 				xfl_delete_slot(fl, idx);
 				end = ptr_add_offset(end, blksize);
@@ -2077,7 +2079,7 @@ xrealloc(void *p, size_t size)
 					t_debug(NULL,
 						"XM realloc splitting large %lu-byte block at %p"
 						" (need only %lu bytes: returning %lu bytes at %p)",
-						(unsigned long) ptr_diff(end, xh), xh,
+						(unsigned long) ptr_diff(end, xh), (void *) xh,
 						(unsigned long) newlen,
 						(unsigned long) split_len, split);
 				}
@@ -2093,7 +2095,8 @@ xrealloc(void *p, size_t size)
 			if (xmalloc_debugging(1)) {
 				t_debug(NULL, "XM realloc used inplace coalescing on "
 					"%lu-byte block at %p (new size is %lu bytes)",
-					(unsigned long) xh->length, xh, (unsigned long) newlen);
+					(unsigned long) xh->length, (void *) xh,
+					(unsigned long) newlen);
 			}
 
 			goto inplace;
@@ -2139,7 +2142,7 @@ xrealloc(void *p, size_t size)
 							"invalid resulting size of %lu bytes",
 							(unsigned long) blksize, before,
 							ptr_add_offset(before, blksize), (unsigned long) i,
-							xh, end, (unsigned long) csize);
+							(void *) xh, end, (unsigned long) csize);
 					}
 					break;
 				}
@@ -2149,7 +2152,7 @@ xrealloc(void *p, size_t size)
 						"[%p, %p[ from list #%lu with [%p, %p[",
 						(unsigned long) blksize, before,
 						ptr_add_offset(before, blksize), (unsigned long) i,
-						xh, end);
+						(void *) xh, end);
 				}
 				xfl_delete_slot(fl, idx);
 				old_len = xh->length - XHEADER_SIZE;	/* Old user size */
@@ -2186,7 +2189,7 @@ xrealloc(void *p, size_t size)
 					t_debug(NULL,
 						"XM realloc splitting large %lu-byte block at %p"
 						" (need only %lu bytes: returning %lu bytes at %p)",
-						(unsigned long) ptr_diff(end, xh), xh,
+						(unsigned long) ptr_diff(end, xh), (void *) xh,
 						(unsigned long) newlen,
 						(unsigned long) split_len, split);
 				}
@@ -2205,7 +2208,7 @@ xrealloc(void *p, size_t size)
 					"(new size is %lu bytes, new address is %p)",
 					(unsigned long) (old_len + XHEADER_SIZE),
 					ptr_add_offset(p, -XHEADER_SIZE),
-					(unsigned long) newlen, xh);
+					(unsigned long) newlen, (void *) xh);
 			}
 
 			return xmalloc_block_setup(xh, newlen);
@@ -2225,7 +2228,7 @@ skip_coalescing:
 	if (xmalloc_debugging(1)) {
 		t_debug(NULL, "XM realloc used regular strategy: "
 			"%lu-byte block at %p moved to %lu-byte block at %p",
-			(unsigned long) xh->length, xh,
+			(unsigned long) xh->length, (void *) xh,
 			(unsigned long) (size + XHEADER_SIZE),
 			ptr_add_offset(np, -XHEADER_SIZE));
 	}
