@@ -52,7 +52,7 @@
 #include "vmm.h"
 #include "glib-missing.h"
 
-#include "override.h"	/* Must be the last header included */
+#include "override.h"		/* Must be the last header included */
 
 #if 1
 #define XMALLOC_IS_MALLOC		/* xmalloc() becomes malloc() */
@@ -900,17 +900,44 @@ xfl_extend(struct xfreelist *fl)
 	g_assert(allocated_size >= new_size);
 
 	/*
-	 * Paranoid: detect harmful recursion.  Cannot happen by design.
+	 * Detect possible recursion.
 	 */
 
 	if (fl->pointers != old_ptr) {
-		t_error(NULL, "XM recursion during extension of freelist #%lu "
-				"(%lu-byte block): already has new bucket at %p "
-				"(count = %lu, capacity = %lu)",
-				(unsigned long) xfl_index(fl), (unsigned long) fl->blocksize,
-				fl->pointers, (unsigned long) fl->count,
-				(unsigned long) fl->capacity);
+		if (xmalloc_debugging(0)) {
+			t_debug(NULL, "XM recursion during extension of freelist #%lu "
+					"(%lu-byte block): already has new bucket at %p "
+					"(count = %lu, capacity = %lu)",
+					(unsigned long) xfl_index(fl), (unsigned long) fl->blocksize,
+					fl->pointers, (unsigned long) fl->count,
+					(unsigned long) fl->capacity);
+		}
+
+		g_assert(fl->capacity >= fl->count);	/* Extending was OK */
+
+		/*
+		 * The freelist structure is coherent, we can release the bucket
+		 * we had allocated and if it causes it to be put back in this
+		 * freelist, we may still safely recurse here since.
+		 */
+
+		if (xmalloc_debugging(0)) {
+			t_debug(NULL, "XM discarding allocated bucket %p (%lu bytes) for "
+				"freelist #%lu", new_ptr, (unsigned long) allocated_size,
+				(unsigned long) xfl_index(fl));
+		}
+
+		xmalloc_freelist_add(new_ptr, allocated_size, XM_COALESCE_ALL);
+		return;
 	}
+
+	/*
+	 * If the freelist bucket has more items than before without having faced
+	 * recursive extension (already detected and handled above), then we
+	 * may have written beyond the bucket itself.
+	 *
+	 * This should never happen, hence the fatal error.
+	 */
 
 	if (old_used < fl->count * sizeof(void *)) {
 		t_error(NULL, "XM self-increase during extension of freelist #%lu "
