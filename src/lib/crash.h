@@ -103,8 +103,6 @@ G_STMT_START { \
 #define flush_str(fd) \
 	IGNORE_RESULT(writev((fd), print_str_iov_, print_str_iov_cnt_))
 
-#define vector_str	print_str_iov_, print_str_iov_cnt_
-
 #define flush_err_str() flush_str(STDERR_FILENO)
 
 #define rewind_str(i) \
