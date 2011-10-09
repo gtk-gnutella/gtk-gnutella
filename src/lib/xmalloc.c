@@ -908,9 +908,9 @@ xfl_extend(struct xfreelist *fl)
 			t_debug(NULL, "XM recursion during extension of freelist #%lu "
 					"(%lu-byte block): already has new bucket at %p "
 					"(count = %lu, capacity = %lu)",
-					(unsigned long) xfl_index(fl), (unsigned long) fl->blocksize,
-					fl->pointers, (unsigned long) fl->count,
-					(unsigned long) fl->capacity);
+					(unsigned long) xfl_index(fl),
+					(unsigned long) fl->blocksize, (void *) fl->pointers,
+					(unsigned long) fl->count, (unsigned long) fl->capacity);
 		}
 
 		g_assert(fl->capacity >= fl->count);	/* Extending was OK */
