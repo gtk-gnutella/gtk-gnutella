@@ -437,6 +437,29 @@ ck_readonly(ckhunk_t *ck)
 }
 
 /**
+ * Turn chunk into a writable memory area.
+ */
+void
+ck_writable(ckhunk_t *ck)
+{
+	ckhunk_check(ck);
+
+	if (NULL == ck)
+		return;
+
+	/*
+	 * The chunk is allocated with vmm_alloc() so its start is page-aligned.
+	 * To make sure we call mprotect() on an integer amount of pages, also
+	 * check that the chunk size is a multiple of the kernel page size.
+	 */
+
+	if (ck->read_only) {
+		mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
+		ck->read_only = FALSE;
+	}
+}
+
+/**
  * Allocate memory from a read-only chunk.
  */
 void *

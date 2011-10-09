@@ -54,6 +54,7 @@ void ck_free_all(ckhunk_t *ck);
 void *ck_copy(ckhunk_t *ck, const void *p, size_t size);
 char *ck_strdup(ckhunk_t *ck, const char *str);
 void ck_readonly(ckhunk_t *ck);
+void ck_writable(ckhunk_t *ck);
 void *ck_alloc_readonly(ckhunk_t *ck, size_t len);
 void *ck_copy_readonly(ckhunk_t *ck, const void *p, size_t size);
 char *ck_strdup_readonly(ckhunk_t *ck, const char *str);
