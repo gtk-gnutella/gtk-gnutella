@@ -1362,7 +1362,7 @@ xmalloc_free_pages(void *p, size_t len,
 	end = ptr_add_offset(p, len);
 
 	if (ptr_cmp(page, p) < 0) {
-		page += pagesize;
+		page = ptr_add_offset(page, pagesize);
 		if (ptr_cmp(page, end) >= 0)
 			return FALSE;		/* Block is fully held in one VMM page */
 	}
