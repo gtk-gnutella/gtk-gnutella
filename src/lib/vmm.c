@@ -2060,8 +2060,11 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size)
 
 		len = ptr_diff(vmf->end, base);		/* From base to end of region */
 
-		g_assert(vmf_is_foreign(vmf));
-		g_assert(size_is_positive(len));
+		g_assert_log(size_is_positive(len), "len = %lu", (unsigned long) len);
+		g_assert_log(vmf_is_foreign(vmf),
+			"vmf=[%p, %p[ (type %d), base=%p, len=%lu, remain=%lu",
+			vmf->start, vmf->end, vmf->type, base, (unsigned long) len,
+			(unsigned long) remain);
 
 		if (len <= remain) {
 			pmap_remove_foreign(pm, vmf, base, len);
