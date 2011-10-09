@@ -412,10 +412,45 @@ xmalloc_is_valid_pointer(const void *p)
 		return FALSE;
 
 	if G_LIKELY(xmalloc_vmm_is_up) {
-		return vmm_is_native_pointer(p) || xmalloc_isheap(p, sizeof(p));
+		return vmm_is_native_pointer(p) || xmalloc_isheap(p, sizeof p);
 	} else {
-		return xmalloc_isheap(p, sizeof(p));
+		return xmalloc_isheap(p, sizeof p);
 	}
+}
+
+/**
+ * When pointer is invalid or mis-aligned, return the reason.
+ * Also dump the VMM and heap info when facing an invalid pointer.
+ *
+ * @return reason why pointer is not valid, for logging.
+ */
+static const char *
+xmalloc_invalid_ptrstr(const void *p)
+{
+	if (xmalloc_round(p) != pointer_to_ulong(p))
+		return "not correctly aligned";
+
+	if G_LIKELY(xmalloc_vmm_is_up) {
+		if (vmm_is_native_pointer(p)) {
+			return "valid VMM pointer!";		/* Should never happen */
+		} else {
+			if (xmalloc_isheap(p, sizeof p)) {
+				return "valid heap pointer!";	/* Should never happen */
+			} else {
+				vmm_dump_pmap();
+				s_debug("heap is [%p, %p[", initial_break, current_break);
+				return "neither VMM nor heap pointer";
+			}
+		}
+	} else {
+		if (xmalloc_isheap(p, sizeof p)) {
+			return "valid heap pointer!";		/* Should never happen */
+		} else {
+			s_debug("heap is [%p, %p[", initial_break, current_break);
+			return "not a heap pointer";
+		}
+	}
+	g_assert_not_reached();
 }
 
 /**
@@ -666,8 +701,8 @@ static void
 assert_valid_freelist_pointer(const struct xfreelist *fl, const void *p)
 {
 	if (!xmalloc_is_valid_pointer(p)) {
-		t_error(NULL, "invalid pointer %p in %lu-byte malloc freelist",
-			p, (unsigned long) fl->blocksize);
+		t_error(NULL, "invalid pointer %p in %lu-byte malloc freelist: %s",
+			p, (unsigned long) fl->blocksize, xmalloc_invalid_ptrstr(p));
 	}
 
 	if (*(size_t *) p != fl->blocksize) {
@@ -1799,8 +1834,10 @@ xfree(void *p)
 
 	xh = ptr_add_offset(p, -XHEADER_SIZE);
 
-	if (!xmalloc_is_valid_pointer(xh))
-		t_error(NULL, "attempt to free invalid pointer %p", p);
+	if (!xmalloc_is_valid_pointer(xh)) {
+		t_error(NULL, "attempt to free invalid pointer %p: %s",
+			p, xmalloc_invalid_ptrstr(p));
+	}
 
 	if (!xmalloc_is_valid_length(xh, xh->length))
 		t_error(NULL, "corrupted malloc header for pointer %p", p);
@@ -1833,8 +1870,10 @@ xrealloc(void *p, size_t size)
 		return NULL;
 	}
 
-	if (!xmalloc_is_valid_pointer(xh))
-		t_error(NULL, "attempt to realloc invalid pointer %p", p);
+	if (!xmalloc_is_valid_pointer(xh)) {
+		t_error(NULL, "attempt to realloc invalid pointer %p: %s",
+			p, xmalloc_invalid_ptrstr(p));
+	}
 
 	if (!xmalloc_is_valid_length(xh, xh->length))
 		t_error(NULL, "corrupted malloc header for pointer %p", p);
