@@ -463,7 +463,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
 				if (log_stdout_is_distinct())
 					flush_str(STDOUT_FILENO);
-				crash_set_error_vec(vector_str);
+				crash_set_error(str_2c(msg));
 			}
 		} else {
 			time_t now = tm_time_exact();
@@ -547,7 +547,7 @@ s_error(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(NULL, G_LOG_LEVEL_ERROR, format, args);
+	s_logv(NULL, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
 
 	raise(SIGABRT);		/* In case we did not enter g_logv() */
@@ -652,7 +652,7 @@ t_error(logthread_t *lt, const char *format, ...)
 	logthread_check(lt);
 
 	va_start(args, format);
-	s_logv(lt, G_LOG_LEVEL_ERROR, format, args);
+	s_logv(lt, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
 
 	raise(SIGABRT);		/* We did not enter g_logv() */
