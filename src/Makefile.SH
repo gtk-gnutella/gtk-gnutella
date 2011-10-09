@@ -131,7 +131,6 @@ LDFLAGS = \
 	-Lupnp -lupnp \
 	-Ldht -ldht \
 	-Lcore -lcore \
-	~/usr/local/lib/libz.a \
 !NO!SUBS!
 case "$d_headless" in
 undef)
