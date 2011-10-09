@@ -313,7 +313,13 @@ xmalloc_addcore_from_heap(size_t len)
 			g_strerror(errno), symbolic_errno(errno));
 	}
 
-	current_break = ptr_add_offset(current_break, len);
+	/*
+	 * Don't assume we're the only caller of sbrk(): move the current
+	 * break pointer relatively to the allocated space rather than
+	 * simply increasing our old break pointer by ``len''.
+	 */
+
+	current_break = ptr_add_offset(p, len);
 	sbrk_allocated += len;
 
 	if (xmalloc_debugging(1)) {
@@ -1671,6 +1677,11 @@ static void *
 xmalloc_block_setup(void *p, size_t len)
 {
 	struct xheader *xh = p;
+
+	if (xmalloc_debugging(9)) {
+		t_debug(NULL, "XM setup allocated %lu-byte block at %p (user %p)",
+			(unsigned long) len, p, ptr_add_offset(p, XHEADER_SIZE));
+	}
 
 	xh->length = len;
 	return ptr_add_offset(p, XHEADER_SIZE);
