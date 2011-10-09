@@ -346,6 +346,7 @@ debugging(guint t)
 		GNET_PROPERTY(udp_debug) > t ||
 		GNET_PROPERTY(upload_debug) > t ||
 		GNET_PROPERTY(url_debug) > t ||
+		GNET_PROPERTY(xmalloc_debug) > t ||
 		GNET_PROPERTY(vmm_debug) > t ||
 		GNET_PROPERTY(vmsg_debug) > t ||
 		GNET_PROPERTY(zalloc_debug) > t ||
