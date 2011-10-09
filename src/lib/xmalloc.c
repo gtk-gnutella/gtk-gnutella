@@ -1846,6 +1846,22 @@ xfree(void *p)
 	xh = ptr_add_offset(p, -XHEADER_SIZE);
 
 	if (!xmalloc_is_valid_pointer(xh)) {
+		/*
+		 * On FreeBSD, glib calls us to free pointers that we never
+		 * allocated through our malloc().
+		 *
+		 * Don't understand how this is possible.  They seem to all
+		 * come from a 1 MiB "foreign" region that we never allocate.
+		 * Maybe glib uses mmap() to allocate some large chunk of
+		 * memory hidden from us?  But then why use free()?
+		 *		--RAM, 2011-10-09
+		 */
+
+		if (!vmm_is_native_pointer(xh)) {
+			t_carp(NULL, "XM ignoring attempt to free non-VMM %p", p);
+			return;
+		}
+
 		t_error(NULL, "attempt to free invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
 	}
