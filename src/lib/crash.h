@@ -78,6 +78,8 @@
 	unsigned print_str_iov_cnt_ = 0; \
 	iovec_t print_str_iov_[(num_iov)]
 
+#define TRUNCATION_STR	"TRUNCATION AT " _WHERE_ ":" STRINGIFY(__LINE__) "\n"
+
 #define print_str(text) \
 G_STMT_START { \
 	const char *print_str_text_ = (text); \
@@ -90,11 +92,18 @@ G_STMT_START { \
 		iovec_set_len(&print_str_iov_[print_str_iov_cnt_], \
 			strlen(print_str_text_)); \
 		print_str_iov_cnt_++; \
+	} else { \
+		iovec_set_base(&print_str_iov_[G_N_ELEMENTS(print_str_iov_) - 1], \
+			TRUNCATION_STR); \
+		iovec_set_len(&print_str_iov_[G_N_ELEMENTS(print_str_iov_) - 1], \
+			sizeof(TRUNCATION_STR) - 1); \
 	} \
 } G_STMT_END
 
 #define flush_str(fd) \
 	IGNORE_RESULT(writev((fd), print_str_iov_, print_str_iov_cnt_))
+
+#define vector_str	print_str_iov_, print_str_iov_cnt_
 
 #define flush_err_str() flush_str(STDERR_FILENO)
 
@@ -154,6 +163,9 @@ void crash_setdir(const char *dir);
 void crash_setver(const char *version);
 void crash_setbuild(unsigned build);
 void crash_assert_failure(const struct assertion_data *a);
+const char *crash_assert_logv(const char * const fmt, va_list ap);
+void crash_set_error(const char * const msg);
+void crash_set_error_vec(iovec_t *iov, unsigned iovcnt);
 void crash_save_current_stackframe(void);
 void crash_save_stackframe(void *stack[], size_t count);
 void crash_post_init(void);

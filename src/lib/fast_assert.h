@@ -64,6 +64,9 @@ typedef struct assertion_data {
 void G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_failure(const assertion_data * const data);
 
+void G_GNUC_NORETURN NON_NULL_PARAM((1)) G_GNUC_PRINTF(2,3)
+assertion_failure_log(const assertion_data * const data, const char *fmt, ...);
+
 void NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_warning(const assertion_data * const data);
 
@@ -77,6 +80,16 @@ G_STMT_START { \
 			_WHERE_, expr_string, __LINE__ \
 		}; \
 		assertion_failure(&assertion_data_); \
+	} \
+} G_STMT_END
+
+#define fast_assert_log(expr, expr_string, fmt, ...) \
+G_STMT_START { \
+	if (G_UNLIKELY(!(expr))) { \
+		static const struct assertion_data assertion_data_ = { \
+			_WHERE_, expr_string, __LINE__ \
+		}; \
+		assertion_failure_log(&assertion_data_, (fmt), __VA_ARGS__); \
 	} \
 } G_STMT_END
 
@@ -126,6 +139,8 @@ G_STMT_START { \
 } G_STMT_END
 
 #define g_soft_assert(expr) warn_unless((expr), #expr)
+#define g_assert_log(expr, fmt, ...) \
+	fast_assert_log((expr), #expr, (fmt), __VA_ARGS__)
 
 #ifdef FAST_ASSERTIONS
 

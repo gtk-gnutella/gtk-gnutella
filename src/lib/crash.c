@@ -76,10 +76,12 @@
 #include "fd.h"
 #include "file.h"
 #include "halloc.h"
+#include "iovec.h"
 #include "log.h"
 #include "offtime.h"
 #include "path.h"
 #include "signal.h"
+#include "str.h"
 #include "stringify.h"
 #include "timestamp.h"
 #include "tm.h"
@@ -89,6 +91,7 @@
 #include "override.h"			/* Must be the last header included */
 
 #define PARENT_STDERR_FILENO	3
+#define CRASH_MSG_MAXLEN		512
 
 #ifdef HAS_FORK
 #define has_fork() 1
@@ -102,6 +105,7 @@ struct crash_vars {
 	ckhunk_t *mem;			/**< Reserved memory, read-only */
 	ckhunk_t *mem2;			/**< Reserved memory, read-only */
 	ckhunk_t *mem3;			/**< Reserved memory, read-only */
+	ckhunk_t *logck;		/**< Reserved memory, read-only */
 	const char *argv0;		/**< The original argv[0]. */
 	const char *progname;	/**< The program name */
 	const char *exec_path;	/**< Path of program (optional, may be NULL) */
@@ -110,9 +114,11 @@ struct crash_vars {
 	const char *crashdir;	/**< Directory where crash logs are written */
 	const char *version;	/**< Program version string (NULL if unknown) */
 	const assertion_data *failure;	/**< Failed assertion, NULL if none */
+	const char *message;	/**< Additional error messsage, NULL if none */
 	time_delta_t gmtoff;	/**< Offset to GMT, supposed to be fixed */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	size_t stackcnt;		/**< Valid stack items in stack[] */
+	str_t *logstr;			/**< String to build error message */
 	unsigned build;			/**< Build number, unique version number */
 	unsigned pause_process:1;
 	unsigned invoke_inspector:1;
@@ -695,6 +701,15 @@ crash_invoke_inspector(int signo, const char *cwd)
 					print_str(failure->expr);		/* 8 */
 					print_str("\n");				/* 9 */
 				}
+				if (vars->message != NULL) {
+					print_str("Assertion-Info: ");	/* 10 */
+					print_str(vars->message);		/* 11 */
+					print_str("\n");				/* 12 */
+				}
+			} else if (vars->message != NULL) {
+				print_str("Error-Message: ");		/* 3 */
+				print_str(vars->message);			/* 4 */
+				print_str("\n");					/* 5 */
 			}
 			flush_str(clf);
 
@@ -1105,6 +1120,12 @@ crash_handler(int signo)
 	raise(SIGABRT);
 }
 
+#define crash_set_var(name, src) \
+G_STMT_START { \
+	STATIC_ASSERT(sizeof(src) == sizeof(vars->name)); \
+	ck_memcpy(vars->mem, (void *) &(vars->name), &(src), sizeof(vars->name)); \
+} G_STMT_END
+
 /**
  * Installs a simple crash handler.
  * 
@@ -1223,13 +1244,28 @@ crash_init(const char *argv0, const char *progname,
 
 	if (executable != argv0)
 		HFREE_NULL(executable);
-}
 
-#define crash_set_var(name, src) \
-G_STMT_START { \
-	STATIC_ASSERT(sizeof(src) == sizeof(vars->name)); \
-	ck_memcpy(vars->mem, (void *) &(vars->name), &(src), sizeof(vars->name)); \
-} G_STMT_END
+	/*
+	 * This chunk is used to save error messages and to hold a string object
+	 * that can be used to format an error message.
+	 *
+	 * After initialization, the chunk is turned read-only to avoid accidental
+	 * corruption until the time we need to use the string object.
+	 */
+
+	{
+		ckhunk_t *logck;
+		str_t *logstr;
+
+		logck = ck_init_not_leaking(compat_pagesize(), 0);
+		crash_set_var(logck, logck);
+
+		logstr = str_new_in_chunk(logck, CRASH_MSG_MAXLEN);
+		crash_set_var(logstr, logstr);
+
+		ck_readonly(vars->logck);
+	}
+}
 
 /**
  * @param dst The destination buffer, may be NULL for dry run.
@@ -1376,6 +1412,90 @@ crash_assert_failure(const struct assertion_data *a)
 {
 	if (vars != NULL)
 		crash_set_var(failure, a);
+}
+
+/**
+ * Record additional assertion message.
+ *
+ * @return formatted message string, NULL if it could not be built
+ */
+const char *
+crash_assert_logv(const char * const fmt, va_list ap)
+{
+	if (vars != NULL && vars->logstr != NULL) {
+		const char *msg;
+
+		/*
+		 * The string we use for formatting is held in a read-only chunk.
+		 * Before formatting inside, we must therfore make the chunk writable,
+		 * turning it back to read-only after formatting to prevent tampering.
+		 */
+
+		ck_writable(vars->logck);
+		str_vprintf(vars->logstr, fmt, ap);
+		msg = str_2c(vars->logstr);
+		ck_readonly(vars->logck);
+		crash_set_var(message, msg);
+		return msg;
+	} else {
+		return NULL;
+	}
+}
+
+/**
+ * Record crash error message.
+ */
+void
+crash_set_error(const char * const msg)
+{
+	if (vars != NULL && vars->logck != NULL) {
+		const char *m = ck_strdup_readonly(vars->logck, msg);
+		crash_set_var(message, m);
+	}
+}
+
+/**
+ * Record crash error message vector.
+ */
+void
+crash_set_error_vec(iovec_t *iov, unsigned iovcnt)
+{
+	if (vars != NULL && vars->logck != NULL) {
+		size_t len = iov_calculate_size(iov, iovcnt);
+		char *m;
+		size_t i, w = 0;
+
+		/*
+		 * The chunk from which we're going to allocate the error string
+		 * is read-only to prevent accidental corruption.  Turn it back to
+		 * the writable state in order to update it, then re-protect it.
+		 */
+
+		ck_writable(vars->logck);
+		m = ck_alloc(vars->logck, len + 1);		/* Trailing NUL */
+		if (NULL == m)
+			goto done;
+
+		/*
+		 * Catenate the strings held in the vector into ``m'', with final NUL.
+		 */
+
+		for (i = 0; i < iovcnt; i++) {
+			size_t lv = iovec_len(&iov[i]);
+
+			if (w + lv > len)		/* Be VERY careful, we're in a crash */
+				break;
+
+			memcpy(&m[w], iovec_base(&iov[i]), lv);
+			w += lv;
+		}
+
+		m[len] = '\0';
+		crash_set_var(message, m);
+
+	done:
+		ck_readonly(vars->logck);
+	}
 }
 
 /**

@@ -446,24 +446,29 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			print_str(" (");		/* 1 */
 			print_str(prefix);		/* 2 */
 			print_str(")");			/* 3 */
-			if (level & G_LOG_FLAG_RECURSION)
+			if G_UNLIKELY(level & G_LOG_FLAG_RECURSION)
 				print_str(" [RECURSIVE]");	/* 4 */
-			if (level & G_LOG_FLAG_FATAL)
+			if G_UNLIKELY(level & G_LOG_FLAG_FATAL)
 				print_str(" [FATAL]");		/* 5 */
 			print_str(": ");		/* 6 */
 			print_str(str_2c(msg));	/* 7 */
 			print_str("\n");		/* 8 */
 			flush_err_str();
-			if ((level & G_LOG_FLAG_FATAL) && log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+			if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
+				if (log_stdout_is_distinct())
+					flush_str(STDOUT_FILENO);
+				crash_set_error_vec(vector_str);
+			}
 		} else {
 			time_t now = tm_time_exact();
 			struct tm *ct = localtime(&now);
 
 			log_fprint(LOG_STDERR, ct, level, prefix, str_2c(msg));
 
-			if ((level & G_LOG_FLAG_FATAL) && log_stdout_is_distinct()) {
-				log_fprint(LOG_STDOUT, ct, level, prefix, str_2c(msg));
+			if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
+				if (log_stdout_is_distinct())
+					log_fprint(LOG_STDOUT, ct, level, prefix, str_2c(msg));
+				crash_set_error(str_2c(msg));
 			}
 		}
 
@@ -776,8 +781,10 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 
 	log_fprint(LOG_STDERR, ct, level, prefix, safer);
 
-	if ((level & G_LOG_FLAG_FATAL) && log_stdout_is_distinct()) {
-		log_fprint(LOG_STDOUT, ct, level, prefix, safer);
+	if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
+		if (log_stdout_is_distinct())
+			log_fprint(LOG_STDOUT, ct, level, prefix, safer);
+		crash_set_error(safer);
 	}
 
 	if (

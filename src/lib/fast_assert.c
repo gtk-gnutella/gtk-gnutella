@@ -74,41 +74,13 @@ assertion_message(const assertion_data * const data, int fatal)
 		flush_str(STDOUT_FILENO);
 }
 
-/*
- * Due to an optimizer bug in gcc 4.2.1 (and maybe later verions), avoid
- * specifying the REGPARM(1) attribute in the assertion_xxx() routines
- * or the pointer being passed will be garbage, causing a segmentation fault
- * in assertion_message().
- *		--RAM, 2009-10-31
+/**
+ * Abort execution, possibly dumping a stack frame.
  */
-
-NO_INLINE void G_GNUC_COLD NON_NULL_PARAM((1)) /* REGPARM(1) */
-assertion_warning(const assertion_data * const data)
-{
-	assertion_message(data, FALSE);
-
-	/*
-	 * Trace the code path leading to this assertion warning.
-	 */
-
-	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
-	if (log_stdout_is_distinct())
-		stacktrace_where_safe_print_offset(STDOUT_FILENO, 1);
-}
-
-NO_INLINE void G_GNUC_COLD G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
-assertion_failure(const assertion_data * const data)
+static G_GNUC_COLD G_GNUC_NORETURN void
+assertion_abort(void)
 {
 	static volatile sig_atomic_t seen_fatal;
-
-	assertion_message(data, TRUE);
-
-	/*
-	 * Record the root cause of the assertion failure to be able to log it
-	 * in the crash log in case they don't have gdb available.
-	 */
-
-	crash_assert_failure(data);
 
 	/*
 	 * We're going to stop the execution.
@@ -136,6 +108,88 @@ assertion_failure(const assertion_data * const data)
 	}
 
 	abort();
+}
+
+/*
+ * Due to an optimizer bug in gcc 4.2.1 (and maybe later verions), avoid
+ * specifying the REGPARM(1) attribute in the assertion_xxx() routines
+ * or the pointer being passed will be garbage, causing a segmentation fault
+ * in assertion_message().
+ *		--RAM, 2009-10-31
+ */
+
+NO_INLINE void G_GNUC_COLD
+assertion_warning(const assertion_data * const data)
+{
+	assertion_message(data, FALSE);
+
+	/*
+	 * Trace the code path leading to this assertion warning.
+	 */
+
+	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
+	if (log_stdout_is_distinct())
+		stacktrace_where_safe_print_offset(STDOUT_FILENO, 1);
+}
+
+NO_INLINE void G_GNUC_COLD
+assertion_failure(const assertion_data * const data)
+{
+	assertion_message(data, TRUE);
+
+	/*
+	 * Record the root cause of the assertion failure to be able to log it
+	 * in the crash log in case they don't have gdb available.
+	 */
+
+	crash_assert_failure(data);
+	assertion_abort();
+}
+
+NO_INLINE void G_GNUC_COLD
+assertion_failure_log(const assertion_data * const data,
+	const char * const fmt, ...)
+{
+	va_list args;
+	const char *msg;
+
+	assertion_message(data, TRUE);
+
+	/*
+	 * Record the root cause of the assertion failure to be able to log it
+	 * in the crash log in case they don't have gdb available.
+	 */
+
+	crash_assert_failure(data);
+
+	/*
+	 * Record additional message in the crash log as well.
+	 */
+
+	va_start(args, fmt);
+	msg = crash_assert_logv(fmt, args);
+	va_end(args);
+
+	/*
+	 * Log additional message.
+	 */
+
+	if (msg != NULL) {
+		char time_buf[18];
+		DECLARE_STR(4);
+
+		crash_time(time_buf, sizeof time_buf);
+
+		print_str(time_buf);
+		print_str(" (FATAL): ");
+		print_str(msg);
+		print_str("\n");
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+	}
+
+	assertion_abort();
 }
 
 /* vi: set ts=4 sw=4 cindent: */
