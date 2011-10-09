@@ -117,6 +117,7 @@
 #include "lib/halloc.h"
 #include "lib/inputevt.h"
 #include "lib/iso3166.h"
+#include "lib/exit.h"
 #include "lib/log.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
@@ -180,19 +181,6 @@ static volatile sig_atomic_t shutdown_requested;
 static volatile sig_atomic_t sig_hup_received;
 static jmp_buf atexit_env;
 static volatile const char *exit_step = "gtk_gnutella_exit";
-
-/**
- * Our own exit() wrapper to make sure anything allocated by the libc startup
- * will not be freed, as it could not have proper block sizes when xmalloc()
- * supersedes malloc(): at startup time, we had no chance to initialize the
- * necessary constants to compute page size alignments.
- */
-static void
-do_exit(int status)
-{
-	xmalloc_stop_freeing();
-	exit(status);
-}
 
 #ifdef SIGALRM
 /**
@@ -478,7 +466,7 @@ gtk_gnutella_exit(int exit_code)
 	if (exiting) {
 		if (safe_to_exit) {
 			g_warning("forced exit(%d), good bye.", exit_code);
-			do_exit(exit_code);
+			exit(exit_code);
 		}
 		g_warning("ignoring re-entrant exit(%d), unsafe now (in %s)",
 			exit_code, exit_step);
@@ -719,7 +707,7 @@ gtk_gnutella_exit(int exit_code)
 	if (!running_topless) {
 		main_gui_exit(exit_code);
 	}
-	do_exit(exit_code);
+	exit(exit_code);
 
 #undef DO
 #undef DO_ARG
@@ -732,7 +720,7 @@ sig_terminate(int n)
 	signal_received = n;		/* Terminate asynchronously in main_timer() */
 
 	if (from_atexit)			/* Might be stuck in some cleanup callback */
-		do_exit(EXIT_FAILURE);	/* Terminate ASAP */
+		exit(EXIT_FAILURE);		/* Terminate ASAP */
 }
 
 extern char **environ;
@@ -927,7 +915,7 @@ usage(int exit_code)
 		}
 	}
 	
-	do_exit(exit_code);
+	exit(exit_code);
 }
 
 /* NOTE: This function must not allocate any memory. */
@@ -1351,7 +1339,7 @@ initialize_logfiles(void)
 		log_set(LOG_STDERR, options[main_arg_log_stderr].arg);
 
 	if (!log_reopen_all(options[main_arg_daemonize].used)) {
-		do_exit(EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -1393,7 +1381,7 @@ handle_version_argument(void)
 	if (tls_version_string()) {
 		printf("%s\n", tls_version_string());
 	}
-	do_exit(EXIT_SUCCESS);
+	exit(EXIT_SUCCESS);
 }
 
 static void
@@ -1455,7 +1443,7 @@ handle_compile_info_argument(void)
 		MAX_INT_VAL(fileoffset_t) > MAX_INT_VAL(guint32) ?
 			"enabled" : "disabled");
 
-	do_exit(EXIT_SUCCESS);
+	exit(EXIT_SUCCESS);
 }
 
 /* Handle certain arguments as soon as possible */
@@ -1480,11 +1468,11 @@ handle_arguments_asap(void)
 	}
 	if (options[main_arg_daemonize].used) {
 		if (0 != compat_daemonize(NULL)) {
-			do_exit(EXIT_FAILURE);
+			exit(EXIT_FAILURE);
 		}
 		/* compat_daemonize() assigned stdout and stderr to /dev/null */
 		if (!log_reopen_all(TRUE)) {
-			do_exit(EXIT_FAILURE);
+			exit(EXIT_FAILURE);
 		}
 	}
 }
@@ -1497,16 +1485,16 @@ handle_arguments(void)
 {
 	if (options[main_arg_shell].used) {
 		local_shell(settings_local_socket_path());
-		do_exit(EXIT_SUCCESS);
+		exit(EXIT_SUCCESS);
 	}
 	if (options[main_arg_ping].used) {
 		if (settings_is_unique_instance()) {
 			/* gtk-gnutella was running. */
-			do_exit(EXIT_SUCCESS);
+			exit(EXIT_SUCCESS);
 		} else {
 			/* gtk-gnutella was not running or the PID file could
 			 * not be created. */
-			do_exit(EXIT_FAILURE);
+			exit(EXIT_FAILURE);
 		}
 	}
 }
@@ -1522,7 +1510,7 @@ main(int argc, char **argv)
 		fprintf(stderr, "Never ever run this as root! You may use:\n\n");
 		fprintf(stderr, "    su - username -c 'gtk-gnutella --daemonize'\n\n");
 		fprintf(stderr, "where 'username' stands for a regular user name.\n");
-		do_exit(EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
 	tm_init();
@@ -1538,7 +1526,7 @@ main(int argc, char **argv)
 		
 	if (reserve_standard_file_descriptors()) {
 		fprintf(stderr, "unable to reserve standard file descriptors\n");
-		do_exit(EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
 	/* First inits -- no memory allocated */

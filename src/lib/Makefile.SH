@@ -130,6 +130,7 @@ LSRC = \
 	entropy.c \
 	eval.c \
 	event.c \
+	exit.c \
 	fast_assert.c \
 	fd.c \
 	fifo.c \
@@ -244,6 +245,7 @@ LOBJ = \
 	entropy.o \
 	eval.o \
 	event.o \
+	exit.o \
 	fast_assert.o \
 	fd.o \
 	fifo.o \

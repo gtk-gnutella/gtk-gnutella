@@ -213,6 +213,7 @@
 typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
 
 #include "lib/mingw32.h"
+#include "lib/exit.h"		/* Transparent exit() trapping */
 
 #ifndef MINGW32
 

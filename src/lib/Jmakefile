@@ -78,6 +78,7 @@ LSRC = \
 	entropy.c \
 	eval.c \
 	event.c \
+	exit.c \
 	fast_assert.c \
 	fd.c \
 	fifo.c \
