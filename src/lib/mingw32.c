@@ -3028,7 +3028,7 @@ mingw_get_break(void)
  * The aim here is not to be able to do a malloc() but rather to mimic
  * what can be achieved on UNIX systems with sbrk().
  *
- * @return the new break position.
+ * @return the prior break position.
  */
 void *
 mingw_sbrk(long incr)
@@ -3076,7 +3076,8 @@ mingw_sbrk(long incr)
 		 * before the VMM layer can be brought up.
 		 */
 
-		return current_break;	/* No change, since no memory was released */
+		/* No memory was released, but fake a successful break decrease */
+		return ptr_add_offset(current_break, -incr);
 	}
 
 	g_assert_not_reached();

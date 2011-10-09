@@ -382,16 +382,28 @@ xmalloc_freecore(void *ptr, size_t len)
 		const void *end = const_ptr_add_offset(ptr, len);
 
 		if G_UNLIKELY(end == current_break) {
+			void *old_break;
+			gboolean success = FALSE;
+
 			if (xmalloc_debugging(0)) {
 				t_debug(NULL, "XM releasing %lu bytes of trailing heap",
 					(unsigned long) len);
 			}
 
 #ifdef HAS_SBRK
-			current_break = sbrk(-len);
+			old_break = sbrk(-len);
+			if ((void *) -1 == old_break) {
+				t_warning(NULL,
+					"XM cannot decrease break by %lu bytes: %s (%s)",
+					(unsigned long) len, g_strerror(errno),
+					symbolic_errno(errno));
+			} else {
+				current_break = ptr_add_offset(old_break, -len);
+				success = !is_running_on_mingw();	/* no sbrk(-x) on Windows */
+			}
 #endif	/* HAS_SBRK */
 			g_assert(ptr_cmp(current_break, initial_break) >= 0);
-			return !is_running_on_mingw();	/* no sbrk(-x) on Windows */
+			return success;
 		} else {
 			if (xmalloc_debugging(0)) {
 				t_debug(NULL, "XM releasing %lu bytes in middle of heap",
@@ -1847,8 +1859,8 @@ xfree(void *p)
 
 	if (!xmalloc_is_valid_pointer(xh)) {
 		/*
-		 * On FreeBSD, glib calls us to free pointers that we never
-		 * allocated through our malloc().
+		 * Glib 2.x calls us to free pointers that we never allocated through
+		 * our malloc().
 		 *
 		 * Don't understand how this is possible.  They seem to all
 		 * come from a 1 MiB "foreign" region that we never allocate.
