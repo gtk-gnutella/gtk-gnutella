@@ -58,6 +58,24 @@
 #define XMALLOC_IS_MALLOC		/* xmalloc() becomes malloc() */
 #endif
 
+/*
+ * The VMM layer is based on mmap() and falls back to posix_memalign()
+ * or memalign().
+ *
+ * However, when trapping malloc() we also have to define posix_memalign(),
+ * memalign() and valign() because glib 2.x can use these routines in its
+ * slice allocator and the pointers returned by these functions must be
+ * free()able.
+ *
+ * It follows that when mmap() is not available, we cannot trap malloc().
+ */
+#if defined(HAS_MMAP) || defined(MINGW32)
+#define CAN_TRAP_MALLOC
+#endif
+#if defined(XMALLOC_IS_MALLOC) && !defined(CAN_TRAP_MALLOC)
+#undef XMALLOC_IS_MALLOC
+#endif
+
 /**
  * Memory alignment constraints.
  */
@@ -98,7 +116,7 @@
  * sizing strategy operates is called the "cut-over" index.
  */
 #define XMALLOC_FACTOR_MAXSIZE	1024
-#define XMALLOC_BUCKET_FACTOR	(2 * MAX(MEM_ALIGNBYTES, sizeof(void *)))
+#define XMALLOC_BUCKET_FACTOR	MAX(MEM_ALIGNBYTES, sizeof(void *))
 #define XMALLOC_BLOCK_SIZE		XMALLOC_FACTOR_MAXSIZE
 #define XMALLOC_MAXSIZE			32768	/**< Largest block size in free list */
 
@@ -219,6 +237,9 @@ xmalloc_vmm_inited(void)
 	safe_to_log = TRUE;
 	xmalloc_grows_up = vmm_grows_upwards();
 	xmalloc_freelist_setup();
+#ifdef XMALLOC_IS_MALLOC
+	vmm_malloc_inited();
+#endif
 }
 
 /**
@@ -1065,7 +1086,7 @@ xfl_lookup(const struct xfreelist *fl, const void *p, size_t *low_ptr)
 	for (;;) {
 		const void *item;
 
-		if (low > high || high > SIZE_MAX / 2) {
+		if G_UNLIKELY(low > high || high > SIZE_MAX / 2) {
 			mid = -1;		/* Not found */
 			break;
 		}
@@ -1722,7 +1743,15 @@ xmalloc_is_malloc(void)
 #define xfree free
 #define xrealloc realloc
 #define xcalloc calloc
-#endif
+
+#define is_trapping_malloc()	1
+
+static size_t xalign_is_page(const void *p);
+
+#else	/* !XMALLOC_IS_MALLOC */
+#define is_trapping_malloc()	0
+#define xalign_is_page(p)		0
+#endif	/* XMALLOC_IS_MALLOC */
 
 /**
  * Allocate a memory chunk capable of holding ``size'' bytes.
@@ -1857,23 +1886,21 @@ xfree(void *p)
 
 	xh = ptr_add_offset(p, -XHEADER_SIZE);
 
-	if (!xmalloc_is_valid_pointer(xh)) {
-		/*
-		 * Glib 2.x calls us to free pointers that we never allocated through
-		 * our malloc().
-		 *
-		 * Don't understand how this is possible.  They seem to all
-		 * come from a 1 MiB "foreign" region that we never allocate.
-		 * Maybe glib uses mmap() to allocate some large chunk of
-		 * memory hidden from us?  But then why use free()?
-		 *		--RAM, 2011-10-09
-		 */
+	/*
+	 * Handle pointers returned by posix_memalign() and friends that
+	 * would be page-aligned and therefore directly allocated by VMM.
+	 */
 
-		if (!vmm_is_native_pointer(xh)) {
-			t_carp(NULL, "XM ignoring attempt to free non-VMM %p", p);
+	if (is_trapping_malloc()) {
+		size_t len = xalign_is_page(p);
+
+		if (len != 0) {
+			vmm_free(p, len);
 			return;
 		}
+	}
 
+	if (!xmalloc_is_valid_pointer(xh)) {
 		t_error(NULL, "attempt to free invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
 	}
@@ -2370,6 +2397,9 @@ xmalloc_post_init(void)
 			(unsigned long) ptr_diff(current_break, initial_break));
 	}
 
+	t_info(NULL, "will use %s", xmalloc_is_malloc() ?
+		"our own malloc() replacement" : "native malloc()");
+
 	if (xmalloc_debugging(0)) {
 		t_info(NULL, "XM using %d freelist buckets", XMALLOC_FREELIST_COUNT);
 	}
@@ -2385,5 +2415,553 @@ xmalloc_stop_freeing(void)
 {
 	xmalloc_no_freeing = TRUE;
 }
+
+#ifdef XMALLOC_IS_MALLOC
+/***
+ *** The following routines are only defined when xmalloc() replaces malloc()
+ *** because glib 2.x uses these routines internally to allocate memory and
+ *** expects this memory to be freed eventually by calling free().
+ ***
+ *** Since we are also trapping free(), we need to be able to handle these
+ *** pointers correctly in free().  There is no need to bother with realloc()
+ *** because none of the memory allocated there is supposed to be resized.
+ ***
+ *** Glib 2.x makes heavy use of posix_memalign() calls for small blocks and
+ *** therefore it is necessary to implement strategies to limit the memory
+ *** overhead per block, along with memory fragmentation.
+ ***/
+
+/**** FIXME: add xzalloc-like for cases where size <= alignment with
+ **** size >= alignment/2 to not lose too much.
+ **** Pages for xzalloc-like are flagged (use low bits from "len" in xaligned).
+ **** Maintain a bitmap of blocks in the pages in an extra structure,
+ **** indexed by zone size (figured out by the low bits in "len") for fast
+ **** allocation and de-allocation, and possible reclaim of empty pages..
+ **** Reserve xzalloc-like to size > 2*MEM_ALIGNBYTES, otherwise use the
+ **** freelist.  Maintain the bitmap in the first block of the page, the
+ **** extra structure simply linking the zones together?
+ ****/
+
+/**
+ * To be efficient for regular use cases where the allocated memory is aligned
+ * on the system's page boundary, we keep track of the base addresses and the
+ * size of the corresponding blocks in a sorted table.
+ *
+ * Memory with alignment requirements larger than a page boundary are handled
+ * by allocating larger zones where we're certain to find alignment, then
+ * by releasing the parts that are not required.
+ *
+ * Memory with alignment requirement smaller than a page boundary are handled
+ * by allocating through the freelist a larger zone and then putting back the
+ * excess to the freelist, which can cause fragmentation of course.
+ */
+struct xaligned {
+	const void *start;
+	size_t len;
+};
+
+static struct xaligned *aligned;
+static size_t aligned_count;
+static size_t aligned_capacity;
+
+/**
+ * Lookup for a page within the aligned page array.
+ *
+ * If ``low_ptr'' is non-NULL, it is written with the index where insertion
+ * of a new item should happen (in which case the returned value must be -1).
+ *
+ * @return index within the array where ``p'' is stored, * -1 if not found.
+ */
+static G_GNUC_HOT size_t
+xa_lookup(const void *p, size_t *low_ptr)
+{
+	size_t low = 0, high = aligned_count - 1;
+	size_t mid;
+
+	/* Binary search */
+
+	for (;;) {
+		const struct xaligned *item;
+
+		if G_UNLIKELY(low > high || high > SIZE_MAX / 2) {
+			mid = -1;		/* Not found */
+			break;
+		}
+
+		mid = low + (high - low) / 2;
+		item = &aligned[mid];
+
+		if (p > item->start)
+			low = mid + 1;
+		else if (p < item->start)
+			high = mid - 1;
+		else
+			break;				/* Found */
+	}
+
+	if (low_ptr != NULL)
+		*low_ptr = low;
+
+	return mid;
+}
+
+/**
+ * Delete slot ``idx'' within the aligned array.
+ */
+static void
+xa_delete_slot(size_t idx)
+{
+	g_assert(size_is_positive(aligned_count));
+	g_assert(size_is_non_negative(idx) && idx < aligned_count);
+
+	if (xmalloc_debugging(2)) {
+		t_debug(NULL, "XM forgot aligned %p (%lu bytes)",
+			aligned[idx].start, (unsigned long) aligned[idx].len);
+	}
+
+	aligned_count--;
+	if (idx < aligned_count) {
+		memmove(&aligned[idx], &aligned[idx + 1],
+			(aligned_count - idx) * sizeof(aligned[0]));
+	}
+}
+
+/**
+ * Insert tuple (p, size) in the list of aligned pages.
+ */
+static void
+xa_insert(const void *p, size_t size)
+{
+	size_t idx;
+
+	g_assert(size_is_non_negative(aligned_count));
+	g_assert(aligned_count <= aligned_capacity);
+	g_assert(size_is_positive(size));
+
+	if (aligned_count >= aligned_capacity) {
+		size_t new_capacity = size_saturate_mult(aligned_capacity, 2);
+
+		if (0 == new_capacity)
+			new_capacity = 2;
+
+		aligned = xrealloc(aligned, new_capacity * sizeof(aligned[0]));
+		aligned_capacity = new_capacity;
+	}
+
+	/*
+	 * Compute insertion index in the sorted array.
+	 *
+	 * At the same time, this allows us to make sure we're not dealing with
+	 * a duplicate insertion.
+	 */
+
+	if ((size_t ) -1 != xa_lookup(p, &idx)) {
+		t_error(NULL, "page %p already in aligned list (%lu bytes)",
+			p, (unsigned long) aligned[idx].len);
+	}
+
+	g_assert(size_is_non_negative(idx) && idx <= aligned_count);
+
+	/*
+	 * Shift items if we're not inserting at the last position in the array.
+	 */
+
+	g_assert(aligned != NULL);
+
+	if (idx < aligned_count) {
+		memmove(&aligned[idx + 1], &aligned[idx],
+			(aligned_count - idx) * sizeof(aligned[0]));
+	}
+
+	aligned_count++;
+	aligned[idx].start = p;
+	aligned[idx].len = size;
+
+	if (xmalloc_debugging(2)) {
+		t_debug(NULL, "XM recorded aligned %p (%lu bytes)",
+			p, (unsigned long) size);
+	}
+}
+
+/**
+ * Checks whether address is that of an aligned page we keep track of
+ * and remove it from the set of tracked pages when found.
+ *
+ * @return length of page if found, 0 otherwise.
+ */
+static size_t
+xalign_is_page(const void *p)
+{
+	size_t idx;
+	size_t len;
+
+	if (vmm_page_start(p) != p)
+		return 0;
+
+	idx = xa_lookup(p, NULL);
+
+	if G_LIKELY((size_t) -1 == idx)
+		return 0;
+
+	len = aligned[idx].len;
+	g_assert(0 != len);
+
+	xa_delete_slot(idx);
+
+	return len;
+}
+
+/**
+ * Block truncation flags, for debugging.
+ */
+enum truncation {
+	TRUNCATION_NONE 		= 0,
+	TRUNCATION_BEFORE		= (1 << 0),	
+	TRUNCATION_AFTER		= (1 << 1),
+	TRUNCATION_BOTH			= (TRUNCATION_BEFORE | TRUNCATION_AFTER)
+};
+
+static const char *
+xa_truncation_str(enum truncation truncation)
+{
+	switch (truncation) {
+	case TRUNCATION_NONE:	return "";
+	case TRUNCATION_BEFORE:	return " with leading truncation";
+	case TRUNCATION_AFTER:	return " with trailing truncation";
+	case TRUNCATION_BOTH:	return " with side truncations";
+	}
+
+	return " with WEIRD truncation";
+}
+
+/**
+ * Allocates size bytes and places the address of the allocated memory in
+ * "*memptr". The address of the allocated memory will be a multiple of
+ * "alignment", which must be a power of two and a multiple of sizeof(void *).
+ *
+ * If size is 0, then returns a pointer that can later be successfully passed
+ * to free().
+ *
+ * @return 0 on success, or an error code (but the global "errno" is not set).
+ */
+int
+posix_memalign(void **memptr, size_t alignment, size_t size)
+{
+	void *p;
+	size_t pagesize;
+	const char *method = "xmalloc";
+	enum truncation truncation = TRUNCATION_NONE;
+
+	if (!is_pow2(alignment))
+		return EINVAL;
+
+	if (0 != alignment % sizeof(void *))
+		return EINVAL;
+
+	if G_UNLIKELY(alignment <= MEM_ALIGNBYTES) {
+		p = xmalloc(size);
+		goto done;
+	}
+
+	if G_UNLIKELY(!xmalloc_vmm_is_up)
+		return ENOMEM;		/* Cannot allocate without the VMM layer */
+
+	/*
+	 * If they want to align on some boundary, they better be allocating
+	 * a block large enough to minimize waste.  Warn if that is not
+	 * the case.
+	 */
+
+	if G_UNLIKELY(size <= alignment / 2 && xmalloc_debugging(0)) {
+		t_carp(NULL,
+			"XM requested to allocate only %lu bytes with %lu-byte alignment",
+			(unsigned long) size, (unsigned long) alignment);
+	}
+
+	/*
+	 * If they're requesting a block aligned to more than a system page size,
+	 * allocate enough pages to get a proper alignment and free the rest.
+	 */
+
+	pagesize = compat_pagesize();
+
+	if G_UNLIKELY(alignment == pagesize) {
+		p = vmm_alloc(size);	/* More than we need */
+		method = "VMM";
+
+		/*
+		 * There is no xmalloc() header for this block, hence we need to
+		 * record the address to be able to free() the pointer.
+		 */
+
+		xa_insert(p, round_pagesize(size));
+		goto done;
+	} if (alignment > pagesize) {
+		size_t rsize = round_pagesize(size);
+		size_t nalloc = size_saturate_add(alignment, rsize);
+		size_t mask = alignment - 1;
+		unsigned long addr;
+		void *end;
+
+		p = vmm_alloc(nalloc);	/* More than we need */
+		method = "VMM";
+
+		/*
+		 * Is the address already properly aligned?
+		 * If so, we just need to remove the excess pages at the end.
+		 */
+
+		addr = pointer_to_ulong(p);
+
+		if ((addr & ~mask) == addr) {
+			end = ptr_add_offset(p, rsize);
+			vmm_free(end, size_saturate_sub(nalloc, rsize));
+			truncation = TRUNCATION_AFTER;
+		} else {
+			void *q, *qend;
+
+			/*
+			 * Find next aligned address.
+			 */
+
+			addr = size_saturate_add(addr, mask) & ~mask;
+			q = ulong_to_pointer(addr);
+			end = ptr_add_offset(p, nalloc);
+
+			g_assert(ptr_cmp(q, end) <= 0);
+			g_assert(ptr_cmp(ptr_add_offset(q, rsize), end) <= 0);
+
+			/*
+			 * Remove excess pages at the beginning and the end.
+			 */
+
+			g_assert(ptr_cmp(q, p) > 0);
+
+			vmm_free(p, ptr_diff(q, p));		/* Beginning */
+			qend = ptr_add_offset(q, rsize);
+			if (qend != end) {
+				vmm_free(qend, ptr_diff(end, qend));	/* End */
+				truncation = TRUNCATION_BOTH;
+			} else {
+				truncation = TRUNCATION_BEFORE;
+			}
+
+			p = q;		/* The selected page */
+		}
+
+		/*
+		 * There is no xmalloc() header for this block, hence we need to
+		 * record the address to be able to free() the pointer.
+		 */
+
+		xa_insert(p, rsize);
+		goto done;
+	}
+
+	/*
+	 * Requesting alignment of less than a page size is done by allocating
+	 * a large block and trimming the unneeded parts.
+	 */
+
+	if (size >= pagesize) {
+		size_t rsize = round_pagesize(size);
+
+		p = vmm_alloc(rsize);		/* Necessarily aligned */
+
+		/*
+		 * There is no xmalloc() header for this block, hence we need to
+		 * record the address to be able to free() the pointer.
+		 * Unfortunately, we cannot trim anything since free() will require
+		 * the total size of the allocated VMM block to be in-use.
+		 */
+
+		xa_insert(p, rsize);
+		method = "plain VMM";
+		goto done;
+	} else {
+		size_t nalloc, len, blen;
+		size_t mask = alignment - 1;
+		unsigned long addr;
+		void *u, *end;
+
+		/*
+		 * We add XHEADER_SIZE to account for the xmalloc() header.
+		 */
+
+		nalloc = size_saturate_add(alignment, size);
+		len = xmalloc_round_blocksize(xmalloc_round(nalloc) + XHEADER_SIZE);
+
+		/*
+		 * Attempt to locate a block in the freelist.
+		 */
+
+		p = NULL;
+
+		if (len <= XMALLOC_MAXSIZE)
+			p = xmalloc_freelist_alloc(len);
+
+		if (p != NULL) {
+			end = ptr_add_offset(p, len);
+			method = "freelist";
+		} else {
+			if (len >= pagesize) {
+				size_t vlen = round_pagesize(len);
+
+				p = vmm_alloc(vlen);
+				end = ptr_add_offset(p, vlen);
+				method = "freelist, then large VMM";
+
+				if (xmalloc_debugging(1)) {
+					t_debug(NULL, "XM added %lu bytes of VMM core at %p",
+						(unsigned long) vlen, p);
+				}
+			} else {
+				p = vmm_alloc(pagesize);
+				end = ptr_add_offset(p, pagesize);
+				method = "freelist, then plain VMM";
+
+				if (xmalloc_debugging(1)) {
+					t_debug(NULL, "XM added %lu bytes of VMM core at %p",
+						(unsigned long) pagesize, p);
+				}
+			}
+		}
+
+		g_assert(p != NULL);
+
+		/*
+		 * This is the physical block size we want to return in the block
+		 * header to flag it as a valid xmalloc()ed one.
+		 */
+
+		blen = xmalloc_round_blocksize(xmalloc_round(size) + XHEADER_SIZE);
+
+		/*
+		 * Is the address already properly aligned?
+		 *
+		 * If so, we just need to put back the excess at the end into
+		 * the freelist.
+		 *
+		 * The block we are about to return will have a regular xmalloc()
+		 * header so it will be free()able normally.  However, we need to
+		 * account for aligning the user pointer, not the one where the
+		 * block is actually allocated.
+		 */
+
+		u = ptr_add_offset(p, XHEADER_SIZE);	/* User pointer */
+		addr = pointer_to_ulong(u);
+
+		if ((addr & ~mask) == addr) {
+			void *split = ptr_add_offset(p, blen);
+			size_t split_len = ptr_diff(end, split);
+
+			g_assert(size_is_non_negative(split_len));
+
+			if (split_len >= XMALLOC_SPLIT_MIN) {
+				xmalloc_freelist_insert(split, split_len, XM_COALESCE_AFTER);
+				truncation = TRUNCATION_AFTER;
+			}
+
+			p = xmalloc_block_setup(p, blen);	/* User pointer */
+		} else {
+			void *q, *uend;
+
+			/*
+			 * Find next aligned address.
+			 */
+
+			addr = size_saturate_add(pointer_to_ulong(u), mask) & ~mask;
+			u = ulong_to_pointer(addr);		/* Aligned user pointer */
+
+			g_assert(ptr_cmp(u, end) <= 0);
+			g_assert(ptr_cmp(ptr_add_offset(u, size), end) <= 0);
+
+			/*
+			 * Remove excess pages at the beginning and the end.
+			 */
+
+			g_assert(ptr_diff(u, p) >= XHEADER_SIZE);
+
+			q = ptr_add_offset(u, -XHEADER_SIZE);	/* Physical block start */
+
+			if (q != p) {
+				/* Beginning of block, in excess */
+				xmalloc_freelist_insert(p, ptr_diff(q, p), XM_COALESCE_BEFORE);
+				truncation |= TRUNCATION_BEFORE;
+			}
+
+			uend = ptr_add_offset(q, blen);
+
+			if (uend != end) {
+				/* End of block, in excess */
+				xmalloc_freelist_insert(uend, ptr_diff(end, uend),
+					XM_COALESCE_AFTER);
+				truncation |= TRUNCATION_AFTER;
+			}
+
+			p = xmalloc_block_setup(q, blen);	/* User pointer */
+		}
+	}
+
+done:
+	*memptr = p;
+
+	if (xmalloc_debugging(1)) {
+		t_debug(NULL, "XM aligned %p (%lu bytes) on 0x%lx / %lu via %s%s",
+			p, (unsigned long) size, (unsigned long) alignment,
+			(unsigned long) alignment, method, xa_truncation_str(truncation));
+	}
+
+	/*
+	 * Ensure memory is aligned properly.
+	 */
+
+	g_assert_log(
+		pointer_to_ulong(p) == (pointer_to_ulong(p) & ~(alignment - 1)),
+		"p=%p, alignment=%lu, aligned=%p",
+		p, (unsigned long) alignment,
+		ulong_to_pointer(pointer_to_ulong(p) & ~(alignment - 1)));
+
+	return G_UNLIKELY(NULL == p) ? ENOMEM : 0;
+}
+
+/**
+ * Allocates size bytes and returns a pointer to the allocated memory.
+ *
+ * The memory address will be a multiple of "boundary", which must be a
+ * power of two.
+ *
+ * @return allocated memory address, NULL on error with errno set.
+ */
+void *
+memalign(size_t boundary, size_t size)
+{
+	void *p;
+	int error;
+
+	g_assert(is_pow2(boundary));
+
+	error = posix_memalign(&p, boundary, size);
+
+	if G_LIKELY(0 == error)
+		return p;
+
+	errno = error;
+	return NULL;
+}
+
+/**
+ * Allocates size bytes and returns a pointer to the allocated memory.
+ * The memory address will be a multiple of the page size.
+ *
+ * @return allocated memory address.
+ */
+void *
+valloc(size_t size)
+{
+	return memalign(compat_pagesize(), size);
+}
+
+#endif	/* XMALLOC_IS_MALLOC */
 
 /* vi: set ts=4 sw=4 cindent:  */
