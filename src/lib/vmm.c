@@ -255,7 +255,8 @@ static void pmap_remove(struct pmap *pm, const void *p, size_t size);
 static void pmap_load(struct pmap *pm);
 static void pmap_insert_region(struct pmap *pm,
 	const void *start, size_t size, vmf_type_t type);
-static void pmap_overrule(struct pmap *pm, const void *p, size_t size);
+static void pmap_overrule(struct pmap *pm,
+	const void *p, size_t size, vmf_type_t type);
 static void vmm_reserve_stack(size_t amount);
 
 /**
@@ -782,7 +783,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 * reason the memory was released and we could not notice it.
 		 */
 
-		pmap_overrule(vmm_pmap(), p, size);
+		pmap_overrule(vmm_pmap(), p, size, VMF_NATIVE);
 
 		if (NULL == hint)
 			goto done;
@@ -1976,18 +1977,17 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 }
 
 /**
- * Forcefully remove a foreign region from the pmap (``size'' bytes starting
- * at ``p''), belonging to a given foreign fragment.
+ * Forcefully remove a region from the pmap (``size'' bytes starting
+ * at ``p''), belonging to a given fragment.
  */
 static void
-pmap_remove_foreign(struct pmap *pm, struct vm_fragment *vmf,
+pmap_remove_from(struct pmap *pm, struct vm_fragment *vmf,
 	const void *p, size_t size)
 {
 	const void *end = const_ptr_add_offset(p, size);
 	const void *vend;
 
 	g_assert(vmf != NULL);
-	g_assert(vmf_is_foreign(vmf));
 	g_assert(size_is_positive(size));
 
 	vend = vmf->end;
@@ -1998,8 +1998,8 @@ pmap_remove_foreign(struct pmap *pm, struct vm_fragment *vmf,
 	g_assert(ptr_cmp(end, vend) <= 0);
 
 	if (vmm_debugging(0)) {
-		s_warning("VMM forgetting foreign %luKiB region at %p in pmap",
-			(unsigned long) size / 1024, p);
+		s_warning("VMM forgetting %s %luKiB region at %p in pmap",
+			vmf_type_str(vmf->type), (unsigned long) size / 1024, p);
 	}
 
 	if (p == vmf->start) {
@@ -2014,8 +2014,8 @@ pmap_remove_foreign(struct pmap *pm, struct vm_fragment *vmf,
 		vmf->mtime = tm_time();
 
 		if (end != vend) {
-			/* Insert trailing part back as a foreign region */
-			pmap_insert_foreign(pm, end, ptr_diff(vend, end));
+			/* Insert trailing part back as a region of the same type */
+			pmap_insert_region(pm, end, ptr_diff(vend, end), vmf->type);
 		}
 	}
 }
@@ -2026,7 +2026,7 @@ pmap_remove_foreign(struct pmap *pm, struct vm_fragment *vmf,
  * in this space.
  */
 static void
-pmap_overrule(struct pmap *pm, const void *p, size_t size)
+pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 {
 	const void *base = p;
 	size_t remain = size;
@@ -2054,7 +2054,10 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size)
 
 			/* We have an overlap with region in ``vmf'' */
 
-			g_assert(vmf_is_foreign(vmf));
+			g_assert_log(vmf_is_foreign(vmf),
+				"vmf=[%p, %p[ (type %d, %lu bytes), base=%p, remain=%lu",
+				vmf->start, vmf->end, vmf->type, (unsigned long) vmf_size(vmf),
+				base, (unsigned long) remain);
 
 			gap = ptr_diff(vmf->start, base);
 			g_assert(size_is_positive(gap));
@@ -2073,17 +2076,26 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size)
 		len = ptr_diff(vmf->end, base);		/* From base to end of region */
 
 		g_assert_log(size_is_positive(len), "len = %lu", (unsigned long) len);
-		g_assert_log(vmf_is_foreign(vmf),
-			"vmf=[%p, %p[ (type %d), base=%p, len=%lu, remain=%lu",
-			vmf->start, vmf->end, vmf->type, base, (unsigned long) len,
-			(unsigned long) remain);
+
+		/*
+		 * When attempting an mmap() operation, we can safely overlap
+		 * an existing memory-mapped region since one can mmap() a different
+		 * portion of a file at the same address for instance.
+		 */
+
+		g_assert_log(VMF_MAPPED == type || vmf_is_foreign(vmf),
+			"vmf=[%p, %p[ (type %d, %lu bytes), base=%p, len=%lu, remain=%lu",
+			vmf->start, vmf->end, vmf->type, (unsigned long) vmf_size(vmf),
+			base, (unsigned long) len, (unsigned long) remain);
+
+		g_assert(!vmf_is_native(vmf));	/* Never overrule allocated memory */
 
 		if (len <= remain) {
-			pmap_remove_foreign(pm, vmf, base, len);
+			pmap_remove_from(pm, vmf, base, len);
 			base = const_ptr_add_offset(base, len);
 			remain -= len;
 		} else {
-			pmap_remove_foreign(pm, vmf, base, remain);
+			pmap_remove_from(pm, vmf, base, remain);
 			break;
 		}
 	}
@@ -3753,13 +3765,13 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 		 * concerned and may overlap with previously allocated "foreign"
 		 * chunks in whole or in part.
 		 *
-		 * Invoke pmap_overrule() before pmap_insert_foreign() to make
+		 * Invoke pmap_overrule() before pmap_insert_mapped() to make
 		 * sure we clean up our memory map before attempting to insert
 		 * a new chunk since the insertion code is not prepared to handle
 		 * all the overlapping cases we can encounter.
 		 */
 
-		pmap_overrule(vmm_pmap(), p, size);
+		pmap_overrule(vmm_pmap(), p, size, VMF_MAPPED);
 		pmap_insert_mapped(vmm_pmap(), p, size);
 		assert_vmm_is_allocated(p, length, VMF_MAPPED);
 
