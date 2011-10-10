@@ -63,6 +63,7 @@ logthread_t *log_thread_alloc(void);
 
 void log_init(void);
 void log_atoms_inited(void);
+void log_assertion_failed(void);
 void log_close(void);
 void log_set_disabled(enum log_file which, gboolean disabled);
 void log_set(enum log_file which, const char *path);

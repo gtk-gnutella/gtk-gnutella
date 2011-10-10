@@ -57,6 +57,7 @@ static const char * const log_domains[] = {
 
 static gboolean atoms_are_inited;
 static gboolean log_inited;
+static gboolean in_assert_failure;
 
 /**
  * A Log file we manage.
@@ -270,7 +271,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 */
 
 	in_signal_handler = lt != NULL || signal_in_handler() ||
-		!atoms_are_inited || xmalloc_is_malloc();
+		!atoms_are_inited || in_assert_failure || xmalloc_is_malloc();
 
 	if (!in_log_handler && !in_signal_handler) {
 		g_logv(G_LOG_DOMAIN, level, format, args);
@@ -1148,6 +1149,15 @@ void
 log_atoms_inited(void)
 {
 	atoms_are_inited = TRUE;
+}
+
+/**
+ * Signals assertion failure occurred.
+ */
+void
+log_assertion_failed(void)
+{
+	in_assert_failure = TRUE;
 }
 
 /**
