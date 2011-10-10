@@ -3076,6 +3076,7 @@ void
 vmm_free(void *p, size_t size)
 {
 	g_assert(0 == size || p);
+	g_assert(size_is_non_negative(size));
 
 	if (p) {
 		size_t n;
