@@ -943,14 +943,37 @@ get_next_slot(gboolean advance, unsigned *cidx)
 	chunk = routing.chunks[chunk_idx];
 
 	/*
+	 * If we get back here with a next index of zero and the chunk is
+	 * allocated, it means we've naturally cycled over.  There is nothing
+	 * to free up (or we would discard the whole table).
+	 */
+
+	if G_UNLIKELY(0 == idx && NULL != chunk) {
+		if (GNET_PROPERTY(routing_debug)) {
+			g_debug("RT cycled naturally over table, elapsed=%u, holds %d / %d",
+				(unsigned) elapsed, routing.count, routing.capacity);
+		}
+		routing.last_rotation = now;	/* Just cycled over */
+		elapsed = 0;
+	}
+
+	/*
 	 * If we've taken more than TABLE_MIN_CYCLE seconds since the last
 	 * rotation and reach the start of an allocated chunk, it means we
 	 * have more chunks than we need.  Discard all remaining chunks before
 	 * rotating.
 	 */
 
-	if (chunk != NULL && elapsed > TABLE_MIN_CYCLE && 0 == ENTRY_INDEX(idx)) {
+	if G_UNLIKELY(elapsed > TABLE_MIN_CYCLE) {
 		size_t i;
+
+		/*
+		 * 0 != ENTRY_INDEX(idx): means we're not at the start of a chunk.
+		 * chunk == NULL: means we've reached an empty chunk, nothing to free.
+		 */
+
+		if G_LIKELY(0 != ENTRY_INDEX(idx) || NULL == chunk)
+			goto get_slot;
 
 		for (i = chunk_idx; i < routing.nchunks; i++) {
 			struct message **rchunk = routing.chunks[i];
@@ -995,6 +1018,8 @@ get_next_slot(gboolean advance, unsigned *cidx)
 
 		/* FALL THROUGH */
 	}
+
+get_slot:
 
 	if (chunk == NULL) {
 
