@@ -625,8 +625,39 @@ xfl_shrink(struct xfreelist *fl)
 	 * get more core, leading to a larger arena.
 	 */
 
-	if (NULL == new_ptr)
+	if G_UNLIKELY(NULL == new_ptr)
 		return;
+
+	/*
+	 * Detect possible recursion.
+	 */
+
+	if G_UNLIKELY(fl->pointers != old_ptr) {
+		if G_UNLIKELY(xmalloc_debugging(0)) {
+			t_debug(NULL, "XM recursion during shrinking of freelist #%lu "
+					"(%lu-byte block): already has new bucket at %p "
+					"(count = %lu, capacity = %lu)",
+					(unsigned long) xfl_index(fl),
+					(unsigned long) fl->blocksize, (void *) fl->pointers,
+					(unsigned long) fl->count, (unsigned long) fl->capacity);
+		}
+
+		g_assert(fl->capacity >= fl->count);	/* Shrinking was OK */
+
+		/*
+		 * The freelist structure is coherent, we can release the bucket
+		 * we had allocated.
+		 */
+
+		if G_UNLIKELY(xmalloc_debugging(1)) {
+			t_debug(NULL, "XM discarding allocated bucket %p (%lu bytes) for "
+				"freelist #%lu", new_ptr, (unsigned long) allocated_size,
+				(unsigned long) xfl_index(fl));
+		}
+
+		xmalloc_freelist_add(new_ptr, allocated_size, XM_COALESCE_ALL);
+		return;
+	}
 
 	g_assert(allocated_size >= new_size);
 	g_assert(new_ptr != old_ptr);
@@ -979,7 +1010,7 @@ xfl_extend(struct xfreelist *fl)
 	 */
 
 	if G_UNLIKELY(fl->pointers != old_ptr) {
-		if (xmalloc_debugging(0)) {
+		if G_UNLIKELY(xmalloc_debugging(0)) {
 			t_debug(NULL, "XM recursion during extension of freelist #%lu "
 					"(%lu-byte block): already has new bucket at %p "
 					"(count = %lu, capacity = %lu)",
@@ -996,7 +1027,7 @@ xfl_extend(struct xfreelist *fl)
 		 * freelist, we may still safely recurse here since.
 		 */
 
-		if (xmalloc_debugging(1)) {
+		if G_UNLIKELY(xmalloc_debugging(1)) {
 			t_debug(NULL, "XM discarding allocated bucket %p (%lu bytes) for "
 				"freelist #%lu", new_ptr, (unsigned long) allocated_size,
 				(unsigned long) xfl_index(fl));
