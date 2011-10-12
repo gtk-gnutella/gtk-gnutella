@@ -2663,7 +2663,7 @@ xa_align_extend(void)
 	if G_UNLIKELY(xmalloc_debugging(1)) {
 		t_debug(NULL,
 			"XM aligned array capacity now %lu, starts at %p (%lu bytes)",
-			(unsigned long) aligned_capacity, aligned,
+			(unsigned long) aligned_capacity, (void *) aligned,
 			(unsigned long) (new_capacity * sizeof(aligned[0])));
 	}
 }
