@@ -45,6 +45,7 @@
 #include "common.h"
 
 #include "xmalloc.h"
+#include "bit_array.h"
 #include "log.h"
 #include "misc.h"
 #include "pow2.h"
@@ -85,6 +86,15 @@
 	((unsigned long) (((unsigned long) (s) + XMALLOC_MASK) & ~XMALLOC_MASK))
 
 /**
+ * Header prepended to all allocated objects.
+ */
+struct xheader {
+	size_t length;			/**< Length of the allocated block */
+};
+
+#define XHEADER_SIZE	xmalloc_round(sizeof(struct xheader))
+
+/**
  * Allocated block size controls.
  *
  * We have two block sizing strategies: one for smaller blocks and one for
@@ -116,7 +126,7 @@
  * sizing strategy operates is called the "cut-over" index.
  */
 #define XMALLOC_FACTOR_MAXSIZE	1024
-#define XMALLOC_BUCKET_FACTOR	MAX(MEM_ALIGNBYTES, sizeof(void *))
+#define XMALLOC_BUCKET_FACTOR	MAX(MEM_ALIGNBYTES, XHEADER_SIZE)
 #define XMALLOC_BLOCK_SIZE		XMALLOC_FACTOR_MAXSIZE
 #define XMALLOC_MAXSIZE			32768	/**< Largest block size in free list */
 
@@ -140,15 +150,6 @@
  */
 #define XMALLOC_FACTOR_MASK	(XMALLOC_BUCKET_FACTOR - 1)
 #define XMALLOC_BLOCK_MASK	(XMALLOC_BLOCK_SIZE - 1)
-
-/**
- * Header prepended to all allocated objects.
- */
-struct xheader {
-	size_t length;			/**< Length of the allocated block */
-};
-
-#define XHEADER_SIZE	xmalloc_round(sizeof(struct xheader))
 
 /**
  * Minimum size for a block split: the size of blocks in bucket #0.
@@ -343,7 +344,7 @@ xmalloc_addcore_from_heap(size_t len)
 	current_break = ptr_add_offset(p, len);
 	sbrk_allocated += len;
 
-	if (xmalloc_debugging(1)) {
+	if G_UNLIKELY(xmalloc_debugging(1)) {
 		t_debug(NULL, "XM added %lu bytes of heap core at %p",
 			(unsigned long) len, p);
 	}
@@ -434,7 +435,7 @@ xmalloc_freecore(void *ptr, size_t len)
 		}
 	}
 
-	if (xmalloc_debugging(1))
+	if G_UNLIKELY(xmalloc_debugging(1))
 		t_debug(NULL, "XM releasing %lu bytes of core", (unsigned long) len);
 
 	vmm_free(ptr, len);
@@ -637,7 +638,7 @@ xfl_shrink(struct xfreelist *fl)
 
 	g_assert(fl->capacity >= fl->count);	/* Still has room for all items */
 
-	if (xmalloc_debugging(1)) {
+	if G_UNLIKELY(xmalloc_debugging(1)) {
 		t_debug(NULL, "XM shrunk freelist #%lu (%lu-byte block) to %lu items"
 			" (holds %lu): old size was %lu bytes, new is %lu, requested %lu,"
 			" bucket at %p",
@@ -692,7 +693,7 @@ xfl_count_decreased(struct xfreelist *fl, gboolean may_shrink)
 		g_assert(size_is_non_negative(xfreelist_maxidx));
 		g_assert(xfreelist_maxidx < G_N_ELEMENTS(xfreelist));
 
-		if (xmalloc_debugging(2)) {
+		if G_UNLIKELY(xmalloc_debugging(2)) {
 			t_debug(NULL, "XM max frelist index decreased to %lu",
 				(unsigned long) xfreelist_maxidx);
 		}
@@ -821,7 +822,7 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 		 * nice to trace as it happens.
 		 */
 
-		if (xmalloc_debugging(1) && fl == flb) {
+		if G_UNLIKELY(xmalloc_debugging(1) && fl == flb) {
 			t_debug(NULL, "XM allocated %lu-byte long block at %p "
 				"for freelist #%lu from itself (count down to %lu)",
 				(unsigned long) fl->blocksize, p, (unsigned long) xfl_index(fl),
@@ -840,7 +841,7 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 
 			split_len = blksize - len;
 
-			if (!xfl_block_falls_in(flb, split_len)) {
+			if G_LIKELY(!xfl_block_falls_in(flb, split_len)) {
 				if (xmalloc_grows_up) {
 					/* Split the end of the block */
 					split = ptr_add_offset(p, len);
@@ -850,7 +851,7 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 					p = ptr_add_offset(p, split_len);
 				}
 
-				if (xmalloc_debugging(3)) {
+				if G_UNLIKELY(xmalloc_debugging(3)) {
 					t_debug(NULL, "XM splitting large %lu-byte block at %p"
 						" (need only %lu bytes: returning %lu bytes at %p)",
 						(unsigned long) blksize, p, (unsigned long) len,
@@ -862,7 +863,7 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 				xmalloc_freelist_insert(split, split_len, XM_COALESCE_NONE);
 				blksize = len;		/* We shrank the allocted block */
 			} else {
-				if (xmalloc_debugging(3)) {
+				if G_UNLIKELY(xmalloc_debugging(3)) {
 					t_debug(NULL, "XM not splitting large %lu-byte block at %p"
 						" (need only %lu bytes but split %lu bytes would fall"
 						" in freelist #%lu)",
@@ -947,7 +948,7 @@ xfl_extend(struct xfreelist *fl)
 
 	g_assert(new_size > old_size);
 
-	if (xmalloc_debugging(1)) {
+	if G_UNLIKELY(xmalloc_debugging(1)) {
 		t_debug(NULL, "XM extending freelist #%lu (%lu-byte block) "
 			"to %lu items, count = %lu, current bucket at %p -- "
 			"requesting %lu bytes",
@@ -977,7 +978,7 @@ xfl_extend(struct xfreelist *fl)
 	 * Detect possible recursion.
 	 */
 
-	if (fl->pointers != old_ptr) {
+	if G_UNLIKELY(fl->pointers != old_ptr) {
 		if (xmalloc_debugging(0)) {
 			t_debug(NULL, "XM recursion during extension of freelist #%lu "
 					"(%lu-byte block): already has new bucket at %p "
@@ -1030,7 +1031,7 @@ xfl_extend(struct xfreelist *fl)
 
 	g_assert(fl->capacity > fl->count);		/* Extending was OK */
 
-	if (xmalloc_debugging(1)) {
+	if G_UNLIKELY(xmalloc_debugging(1)) {
 		t_debug(NULL, "XM extended freelist #%lu (%lu-byte block) to %lu items"
 			" (holds %lu): new size is %lu bytes, requested %lu, bucket at %p",
 			(unsigned long) xfl_index(fl), (unsigned long) fl->blocksize,
@@ -1154,7 +1155,7 @@ xfl_insert(struct xfreelist *fl, void *p)
 	 * a duplicate insertion.
 	 */
 
-	if ((size_t ) -1 != xfl_lookup(fl, p, &idx)) {
+	if G_UNLIKELY((size_t ) -1 != xfl_lookup(fl, p, &idx)) {
 		t_error(NULL, "block %p already in free list #%lu (%lu bytes)",
 			p, (unsigned long) xfl_index(fl),
 			(unsigned long) fl->blocksize);
@@ -1168,7 +1169,7 @@ xfl_insert(struct xfreelist *fl, void *p)
 
 	g_assert(fl->pointers != NULL);
 
-	if (idx < fl->count) {
+	if G_LIKELY(idx < fl->count) {
 		memmove(&fl->pointers[idx + 1], &fl->pointers[idx],
 			(fl->count - idx) * sizeof(fl->pointers[0]));
 	}
@@ -1183,7 +1184,7 @@ xfl_insert(struct xfreelist *fl, void *p)
 
 	*(size_t *) p = fl->blocksize;
 
-	if (xmalloc_debugging(2)) {
+	if G_UNLIKELY(xmalloc_debugging(2)) {
 		t_debug(NULL, "XM inserted block %p in free list #%lu (%lu bytes)",
 			p, (unsigned long) xfl_index(fl),
 			(unsigned long) fl->blocksize);
@@ -1197,7 +1198,7 @@ xfl_insert(struct xfreelist *fl, void *p)
 		xfreelist_maxidx = xfl_index(fl);
 		g_assert(xfreelist_maxidx < G_N_ELEMENTS(xfreelist));
 
-		if (xmalloc_debugging(1)) {
+		if G_UNLIKELY(xmalloc_debugging(1)) {
 			t_debug(NULL, "XM max frelist index increased to %lu",
 				(unsigned long) xfreelist_maxidx);
 		}
@@ -1331,8 +1332,8 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, guint32 flags)
 
 			idx = xfl_lookup(fl, before, NULL);
 
-			if ((size_t) -1 != idx) {
-				if (xmalloc_debugging(6)) {
+			if G_UNLIKELY((size_t) -1 != idx) {
+				if G_UNLIKELY(xmalloc_debugging(6)) {
 					t_debug(NULL, "XM iter #%lu, "
 						"coalescing previous %lu-byte [%p, %p[ "
 						"from list #%lu with %lu-byte [%p, %p[",
@@ -1373,10 +1374,10 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, guint32 flags)
 
 			idx = xfl_lookup(fl, end, NULL);
 
-			if ((size_t) -1 != idx) {
+			if G_UNLIKELY((size_t) -1 != idx) {
 				size_t blksize = fl->blocksize;
 
-				if (xmalloc_debugging(6)) {
+				if G_UNLIKELY(xmalloc_debugging(6)) {
 					t_debug(NULL, "XM iter #%lu, "
 						"coalescing next %lu-byte [%p, %p[ "
 						"from list #%lu with %lu-byte [%p, %p[",
@@ -1457,7 +1458,7 @@ xmalloc_free_pages(void *p, size_t len,
 	 * We can free the zone [page, vend[.
 	 */
 
-	if (xmalloc_debugging(1)) {
+	if G_UNLIKELY(xmalloc_debugging(1)) {
 		t_debug(NULL,
 			"XM releasing VMM [%p, %p[ (%lu bytes) within [%p, %p[ (%lu bytes)",
 			page, vend, (unsigned long) ptr_diff(vend, page),
@@ -1496,8 +1497,8 @@ xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
 	 * actually spread over two distinct VM pages..
 	 */
 
-	if (len > XMALLOC_MAXSIZE) {
-		if (xmalloc_debugging(3)) {
+	if G_UNLIKELY(len > XMALLOC_MAXSIZE) {
+		if G_UNLIKELY(xmalloc_debugging(3)) {
 			t_debug(NULL, "XM breaking up %s block %p (%lu bytes)",
 				xmalloc_isheap(p, len) ? "heap" : "VMM",
 				p, (unsigned long) len);
@@ -1525,7 +1526,7 @@ xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
 		multiple = len & ~XMALLOC_BLOCK_MASK;
 
 		if (multiple != len) {
-			if (xmalloc_debugging(3)) {
+			if G_UNLIKELY(xmalloc_debugging(3)) {
 				t_debug(NULL, "XM breaking up %s block %p (%lu bytes)",
 					xmalloc_isheap(p, len) ? "heap" : "VMM",
 					p, (unsigned long) len);
@@ -1566,7 +1567,7 @@ xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
 			xmalloc_isheap(p, len)
 		) {
 			xmalloc_freelist_coalesce(&p, &len, coalesce);
-		} else if (xmalloc_debugging(4)) {
+		} else if G_UNLIKELY(xmalloc_debugging(4)) {
 			t_debug(NULL,
 				"XM not attempting coalescing of %lu-byte VMM region at %p",
 				(unsigned long) len, p);
@@ -1584,7 +1585,7 @@ xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
 	if G_UNLIKELY(xmalloc_isheap(p, len)) {
 		/* Heap memory */
 		if (xmalloc_freecore(p, len)) {
-			if (xmalloc_debugging(1)) {
+			if G_UNLIKELY(xmalloc_debugging(1)) {
 				t_debug(NULL, "XM %lu bytes of heap released at %p, "
 					"not adding to free list", (unsigned long) len, p);
 			}
@@ -1616,7 +1617,7 @@ xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
 
 			if (head_len != 0) {
 				g_assert(head == p);
-				if (xmalloc_debugging(4)) {
+				if G_UNLIKELY(xmalloc_debugging(4)) {
 					t_debug(NULL, "XM freeing head of %p at %p (%lu bytes)",
 						p, head, (unsigned long) head_len);
 				}
@@ -1685,7 +1686,7 @@ xmalloc_freelist_alloc(size_t len)
 				p = ptr_add_offset(p, split_len);
 			}
 
-			if (xmalloc_debugging(3)) {
+			if G_UNLIKELY(xmalloc_debugging(3)) {
 				t_debug(NULL, "XM splitting large %lu-byte block at %p"
 					" (need only %lu bytes: returning %lu bytes at %p)",
 					(unsigned long) blksize, p, (unsigned long) len,
@@ -1711,7 +1712,7 @@ xmalloc_block_setup(void *p, size_t len)
 {
 	struct xheader *xh = p;
 
-	if (xmalloc_debugging(9)) {
+	if G_UNLIKELY(xmalloc_debugging(9)) {
 		t_debug(NULL, "XM setup allocated %lu-byte block at %p (user %p)",
 			(unsigned long) len, p, ptr_add_offset(p, XHEADER_SIZE));
 	}
@@ -1746,15 +1747,19 @@ xmalloc_is_malloc(void)
 
 #define is_trapping_malloc()	1
 
-static size_t xalign_is_page(const void *p);
+static gboolean xalign_free(const void *p);
 
 #else	/* !XMALLOC_IS_MALLOC */
 #define is_trapping_malloc()	0
-#define xalign_is_page(p)		0
+#define xalign_free(p)			FALSE
 #endif	/* XMALLOC_IS_MALLOC */
 
 /**
  * Allocate a memory chunk capable of holding ``size'' bytes.
+ *
+ * If no memory is available, crash with a fatal error message.
+ *
+ * @return allocated pointer (never NULL).
  */
 void *
 xmalloc(size_t size)
@@ -1803,7 +1808,7 @@ xmalloc(size_t size)
 			size_t vlen = round_pagesize(len);
 			p = vmm_alloc(vlen);
 
-			if (xmalloc_debugging(1)) {
+			if G_UNLIKELY(xmalloc_debugging(1)) {
 				t_debug(NULL, "XM added %lu bytes of VMM core at %p",
 					(unsigned long) vlen, p);
 			}
@@ -1812,7 +1817,7 @@ xmalloc(size_t size)
 		} else {
 			p = vmm_alloc(pagesize);
 
-			if (xmalloc_debugging(1)) {
+			if G_UNLIKELY(xmalloc_debugging(1)) {
 				t_debug(NULL, "XM added %lu bytes of VMM core at %p",
 					(unsigned long) pagesize, p);
 			}
@@ -1846,6 +1851,22 @@ xmalloc(size_t size)
 }
 
 /**
+ * Allocate a memory chunk capable of holding ``size'' bytes and zero it.
+ *
+ * @return pointer to allocated zeroed memory.
+ */
+void *
+xmalloc0(size_t size)
+{
+	void *p;
+
+	p = xmalloc(size);
+	memset(p, 0 ,size);
+
+	return p;
+}
+
+/**
  * Allocate nmemb elements of size bytes each, zeroing the allocated memory.
  */
 void *
@@ -1856,8 +1877,7 @@ xcalloc(size_t nmemb, size_t size)
 	if (nmemb > 0 && size > 0 && size < ((size_t) -1) / nmemb) {
 		size_t len = nmemb * size;
 
-		p = xmalloc(len);
-		memset(p, 0, len);
+		p = xmalloc0(len);
 	} else {
 		p = NULL;
 	}
@@ -1891,14 +1911,8 @@ xfree(void *p)
 	 * would be page-aligned and therefore directly allocated by VMM.
 	 */
 
-	if (is_trapping_malloc()) {
-		size_t len = xalign_is_page(p);
-
-		if (len != 0) {
-			vmm_free(p, len);
-			return;
-		}
-	}
+	if (is_trapping_malloc() && xalign_free(p))
+		return;
 
 	if (!xmalloc_is_valid_pointer(xh)) {
 		t_error(NULL, "attempt to free invalid pointer %p: %s",
@@ -1970,7 +1984,7 @@ xrealloc(void *p, size_t size)
 			q = vmm_alloc(newlen);
 			np = xmalloc_block_setup(q, newlen);
 
-			if (xmalloc_debugging(1)) {
+			if G_UNLIKELY(xmalloc_debugging(1)) {
 				t_debug(NULL, "XM relocated %lu-byte VMM region at %p to %p"
 					" (new pysical size is %lu bytes, user size is %lu)",
 					(unsigned long) xh->length, (void *) xh, q,
@@ -1987,7 +2001,7 @@ xrealloc(void *p, size_t size)
 		 */
 
 		if (newlen < xh->length) {
-			if (xmalloc_debugging(1)) {
+			if G_UNLIKELY(xmalloc_debugging(1)) {
 				t_debug(NULL, "XM using vmm_shrink() on %lu-byte block at %p"
 					" (new size is %lu bytes)",
 					(unsigned long) xh->length, (void *) xh,
@@ -2006,7 +2020,7 @@ xrealloc(void *p, size_t size)
 		if (newlen > xh->length)
 			goto skip_coalescing;
 
-		if (xmalloc_debugging(2)) {
+		if G_UNLIKELY(xmalloc_debugging(2)) {
 			t_debug(NULL, "XM realloc of %p to %lu bytes can be a noop "
 				"(already %lu-byte long VMM region)",
 				p, (unsigned long) size, (unsigned long) xh->length);
@@ -2042,7 +2056,7 @@ xrealloc(void *p, size_t size)
 				np = xmalloc_block_setup(q, newlen);
 				xfl_remove_selected(fl);
 
-				if (xmalloc_debugging(1)) {
+				if G_UNLIKELY(xmalloc_debugging(1)) {
 					t_debug(NULL, "XM relocated %lu-byte block at %p to %p"
 						" (pysical size is still %lu bytes, user size is %lu)",
 						(unsigned long) xh->length, (void *) xh, q,
@@ -2053,7 +2067,7 @@ xrealloc(void *p, size_t size)
 			}
 		}
 
-		if (xmalloc_debugging(2)) {
+		if G_UNLIKELY(xmalloc_debugging(2)) {
 			t_debug(NULL, "XM realloc of %p to %lu bytes can be a noop "
 				"(already %lu-byte long from %s)",
 				p, (unsigned long) size, (unsigned long) xh->length,
@@ -2073,7 +2087,7 @@ xrealloc(void *p, size_t size)
 
 		end = ptr_add_offset(xh, newlen);
 
-		if (xmalloc_debugging(1)) {
+		if G_UNLIKELY(xmalloc_debugging(1)) {
 			t_debug(NULL, "XM using inplace shrink on %lu-byte block at %p"
 				" (new size is %lu bytes, splitting at %p)",
 				(unsigned long) xh->length, (void *) xh,
@@ -2124,7 +2138,7 @@ xrealloc(void *p, size_t size)
 
 			idx = xfl_lookup(fl, end, NULL);
 
-			if ((size_t) -1 != idx) {
+			if G_UNLIKELY((size_t) -1 != idx) {
 				size_t blksize = fl->blocksize;
 				size_t csize = blksize + xh->length;
 
@@ -2134,7 +2148,7 @@ xrealloc(void *p, size_t size)
 				 */
 
 				if (xmalloc_round_blocksize(csize) != csize) {
-					if (xmalloc_debugging(6)) {
+					if G_UNLIKELY(xmalloc_debugging(6)) {
 						t_debug(NULL, "XM realloc NOT coalescing next %lu-byte "
 							"[%p, %p[ from list #%lu with [%p, %p[: invalid "
 							"resulting size of %lu bytes",
@@ -2145,7 +2159,7 @@ xrealloc(void *p, size_t size)
 					break;
 				}
 
-				if (xmalloc_debugging(6)) {
+				if G_UNLIKELY(xmalloc_debugging(6)) {
 					t_debug(NULL, "XM realloc coalescing next %lu-byte "
 						"[%p, %p[ from list #%lu with [%p, %p[ yielding "
 						"%lu-byte block",
@@ -2165,7 +2179,7 @@ xrealloc(void *p, size_t size)
 		 * with a larger block which may need to be split.
 		 */
 
-		if (coalesced) {
+		if G_UNLIKELY(coalesced) {
 			void *split = ptr_add_offset(xh, newlen);
 			size_t split_len = ptr_diff(end, xh) - newlen;
 
@@ -2180,7 +2194,7 @@ xrealloc(void *p, size_t size)
 				split_len >= XMALLOC_SPLIT_MIN &&
 				xmalloc_round_blocksize(split_len) == split_len
 			) {
-				if (xmalloc_debugging(6)) {
+				if G_UNLIKELY(xmalloc_debugging(6)) {
 					t_debug(NULL,
 						"XM realloc splitting large %lu-byte block at %p"
 						" (need only %lu bytes: returning %lu bytes at %p)",
@@ -2197,7 +2211,7 @@ xrealloc(void *p, size_t size)
 				newlen = ptr_diff(end, xh);
 			}
 
-			if (xmalloc_debugging(1)) {
+			if G_UNLIKELY(xmalloc_debugging(1)) {
 				t_debug(NULL, "XM realloc used inplace coalescing on "
 					"%lu-byte block at %p (new size is %lu bytes)",
 					(unsigned long) xh->length, (void *) xh,
@@ -2232,7 +2246,7 @@ xrealloc(void *p, size_t size)
 
 			idx = xfl_lookup(fl, before, NULL);
 
-			if ((size_t) -1 != idx) {
+			if G_UNLIKELY((size_t) -1 != idx) {
 				size_t csize = blksize + xh->length;
 
 				/*
@@ -2241,7 +2255,7 @@ xrealloc(void *p, size_t size)
 				 */
 
 				if (xmalloc_round_blocksize(csize) != csize) {
-					if (xmalloc_debugging(6)) {
+					if G_UNLIKELY(xmalloc_debugging(6)) {
 						t_debug(NULL, "XM realloc not coalescing previous "
 							"%lu-byte [%p, %p[ from list #%lu with [%p, %p[: "
 							"invalid resulting size of %lu bytes",
@@ -2252,7 +2266,7 @@ xrealloc(void *p, size_t size)
 					break;
 				}
 
-				if (xmalloc_debugging(6)) {
+				if G_UNLIKELY(xmalloc_debugging(6)) {
 					t_debug(NULL, "XM realloc coalescing previous %lu-byte "
 						"[%p, %p[ from list #%lu with [%p, %p[",
 						(unsigned long) blksize, before,
@@ -2273,7 +2287,7 @@ xrealloc(void *p, size_t size)
 		 * be split appropriately.
 		 */
 
-		if (coalesced) {
+		if G_UNLIKELY(coalesced) {
 			void *split = ptr_add_offset(xh, newlen);
 			size_t split_len = ptr_diff(end, xh) - newlen;
 
@@ -2290,7 +2304,7 @@ xrealloc(void *p, size_t size)
 				split_len >= XMALLOC_SPLIT_MIN &&
 				xmalloc_round_blocksize(split_len) == split_len
 			) {
-				if (xmalloc_debugging(6)) {
+				if G_UNLIKELY(xmalloc_debugging(6)) {
 					t_debug(NULL,
 						"XM realloc splitting large %lu-byte block at %p"
 						" (need only %lu bytes: returning %lu bytes at %p)",
@@ -2307,7 +2321,7 @@ xrealloc(void *p, size_t size)
 				newlen = ptr_diff(end, xh);
 			}
 
-			if (xmalloc_debugging(1)) {
+			if G_UNLIKELY(xmalloc_debugging(1)) {
 				t_debug(NULL, "XM realloc used coalescing with block preceding "
 					"%lu-byte block at %p "
 					"(new size is %lu bytes, new address is %p)",
@@ -2330,7 +2344,7 @@ skip_coalescing:
 
 	np = xmalloc(size);
 
-	if (xmalloc_debugging(1)) {
+	if G_UNLIKELY(xmalloc_debugging(1)) {
 		t_debug(NULL, "XM realloc used regular strategy: "
 			"%lu-byte block at %p moved to %lu-byte block at %p",
 			(unsigned long) xh->length, (void *) xh,
@@ -2401,7 +2415,8 @@ xmalloc_post_init(void)
 		"our own malloc() replacement" : "native malloc()");
 
 	if (xmalloc_debugging(0)) {
-		t_info(NULL, "XM using %d freelist buckets", XMALLOC_FREELIST_COUNT);
+		t_info(NULL, "XM using %ld freelist buckets",
+			(long) XMALLOC_FREELIST_COUNT);
 	}
 }
 
@@ -2431,18 +2446,7 @@ xmalloc_stop_freeing(void)
  *** overhead per block, along with memory fragmentation.
  ***/
 
-/**** FIXME: add xzalloc-like for cases where size <= alignment with
- **** size >= alignment/2 to not lose too much.
- **** Pages for xzalloc-like are flagged (use low bits from "len" in xaligned).
- **** Maintain a bitmap of blocks in the pages in an extra structure,
- **** indexed by zone size (figured out by the low bits in "len") for fast
- **** allocation and de-allocation, and possible reclaim of empty pages..
- **** Reserve xzalloc-like to size > 2*MEM_ALIGNBYTES, otherwise use the
- **** freelist.  Maintain the bitmap in the first block of the page, the
- **** extra structure simply linking the zones together?
- ****/
-
-/**
+/*
  * To be efficient for regular use cases where the allocated memory is aligned
  * on the system's page boundary, we keep track of the base addresses and the
  * size of the corresponding blocks in a sorted table.
@@ -2452,17 +2456,135 @@ xmalloc_stop_freeing(void)
  * by releasing the parts that are not required.
  *
  * Memory with alignment requirement smaller than a page boundary are handled
- * by allocating through the freelist a larger zone and then putting back the
- * excess to the freelist, which can cause fragmentation of course.
+ * by three different techniques:
+ *
+ * 1. For sizes larger or equal to the page size, allocate pages and waste the
+ *    excess part at the tail of the last allocated page.
+ *
+ * 2. For alignments larger than or equal to XALIGN_MINSIZE and a size such
+ *    the size <= alignment and size > alignment/2, use sub-blocks of
+ *    alignment bytes crammed from a system page, as handled by xzalloc().
+ *
+ * 3. For all other cases, allocate through the freelist a larger zone and then
+ *    put back the excess to the freelist, which can cause fragmentation!
+ */
+
+#define XALIGN_MINSIZE	64	/**< Minimum alignment for xzalloc() */
+#define XALIGN_SHIFT	6	/* 2**6 */
+
+/**
+ * Description of aligned memory blocks we keep track of.
  */
 struct xaligned {
 	const void *start;
-	size_t len;
+	void *pdesc;	/**< struct xdesc* holds information on the page(s) */
 };
 
-static struct xaligned *aligned;
+static struct xaligned *aligned;	/**< All known aligned blocks and pages */
 static size_t aligned_count;
 static size_t aligned_capacity;
+
+/**
+ * Type of pages that we can describe.
+ */
+enum xpage_type {
+	XPAGE_SET,
+	XPAGE_ZONE
+};
+
+/**
+ * Description of descriptor type held in the aligned array.
+ */
+struct xdesc_type {
+	enum xpage_type type;	/**< Type of structure (have distinct sizes) */
+};
+
+/**
+ * Descriptor for a page set.
+ */
+struct xdesc_set {
+	enum xpage_type type;	/* MUST be first for structural equivalence */
+	size_t len;				/**< Length in bytes of the page set */
+};
+
+/**
+ * Descriptor for an allocation zone.
+ *
+ * Zones are linked together to make sure we can quickly find a page with
+ * free blocks.
+ */
+struct xdesc_zone {
+	enum xpage_type type;		/* MUST be first for structural equivalence */
+	struct xdesc_zone *next;	/**< Next zone with same alignment */
+	struct xdesc_zone *prev;	/**< Previous zone with same alignment */
+	void *arena;				/**< Allocated zone arena */
+	bit_array_t *bitmap;		/**< Allocation bitmap in page */
+	size_t alignment;			/**< Zone alignment (also the block size) */
+	size_t nblocks;				/**< Amount of blocks in the zone */
+};
+
+struct xdesc_zone **xzones;		/**< Array of known zones */
+size_t xzones_capacity;			/**< Amount of zones in array */
+
+/**
+ * Descriptor type string.
+ */
+static const char *
+xdesc_type_str(enum xpage_type type)
+{
+	switch (type) {
+	case XPAGE_SET:		return "set";
+	case XPAGE_ZONE:	return "zone";
+	}
+
+	return "UNKNOWN";
+}
+
+/**
+ * Free a page descriptor.
+ *
+ * @param pdesc		page descriptor to free
+ * @param p			aligned address for which we had the descriptor (logging)
+ */
+static void
+xdesc_free(void *pdesc, const void *p)
+{
+	if G_UNLIKELY(xmalloc_debugging(2)) {
+		struct xdesc_type *xt = pdesc;
+		size_t len = 0;
+
+		switch (xt->type) {
+		case XPAGE_SET:
+			{
+				struct xdesc_set *xs = pdesc;
+				len = xs->len;
+			}
+			break;
+		case XPAGE_ZONE:
+			len = compat_pagesize();
+			break;
+		}
+		t_debug(NULL, "XM forgot aligned %s %p (%lu bytes)",
+			xdesc_type_str(xt->type), p, (unsigned long) len);
+	}
+
+	xfree(pdesc);
+}
+
+/**
+ * Descriptor type string of an aligned entry.
+ */
+static const char *
+xalign_type_str(const struct xaligned *xa)
+{
+	struct xdesc_type *xt;
+
+	g_assert(xa != NULL);
+	g_assert(xa->pdesc != NULL);
+
+	xt = xa->pdesc;
+	return xdesc_type_str(xt->type);
+}
 
 /**
  * Lookup for a page within the aligned page array.
@@ -2513,13 +2635,11 @@ xa_delete_slot(size_t idx)
 {
 	g_assert(size_is_positive(aligned_count));
 	g_assert(size_is_non_negative(idx) && idx < aligned_count);
+	g_assert(aligned[idx].pdesc != NULL);
 
-	if (xmalloc_debugging(2)) {
-		t_debug(NULL, "XM forgot aligned %p (%lu bytes)",
-			aligned[idx].start, (unsigned long) aligned[idx].len);
-	}
-
+	xdesc_free(aligned[idx].pdesc, aligned[idx].start);
 	aligned_count--;
+
 	if (idx < aligned_count) {
 		memmove(&aligned[idx], &aligned[idx + 1],
 			(aligned_count - idx) * sizeof(aligned[0]));
@@ -2527,26 +2647,41 @@ xa_delete_slot(size_t idx)
 }
 
 /**
- * Insert tuple (p, size) in the list of aligned pages.
+ * Extend the "aligned" array.
  */
 static void
-xa_insert(const void *p, size_t size)
+xa_align_extend(void)
+{
+	size_t new_capacity = size_saturate_mult(aligned_capacity, 2);
+
+	if (0 == new_capacity)
+		new_capacity = 2;
+
+	aligned = xrealloc(aligned, new_capacity * sizeof(aligned[0]));
+	aligned_capacity = new_capacity;
+
+	if G_UNLIKELY(xmalloc_debugging(1)) {
+		t_debug(NULL,
+			"XM aligned array capacity now %lu, starts at %p (%lu bytes)",
+			(unsigned long) aligned_capacity, aligned,
+			(unsigned long) (new_capacity * sizeof(aligned[0])));
+	}
+}
+
+/**
+ * Insert tuple (p, pdesc) in the list of aligned pages.
+ */
+static void
+xa_insert(const void *p, void *pdesc)
 {
 	size_t idx;
 
 	g_assert(size_is_non_negative(aligned_count));
 	g_assert(aligned_count <= aligned_capacity);
-	g_assert(size_is_positive(size));
+	g_assert(vmm_page_start(p) == p);
 
-	if (aligned_count >= aligned_capacity) {
-		size_t new_capacity = size_saturate_mult(aligned_capacity, 2);
-
-		if (0 == new_capacity)
-			new_capacity = 2;
-
-		aligned = xrealloc(aligned, new_capacity * sizeof(aligned[0]));
-		aligned_capacity = new_capacity;
-	}
+	if G_UNLIKELY(aligned_count >= aligned_capacity)
+		xa_align_extend();
 
 	/*
 	 * Compute insertion index in the sorted array.
@@ -2555,9 +2690,9 @@ xa_insert(const void *p, size_t size)
 	 * a duplicate insertion.
 	 */
 
-	if ((size_t ) -1 != xa_lookup(p, &idx)) {
-		t_error(NULL, "page %p already in aligned list (%lu bytes)",
-			p, (unsigned long) aligned[idx].len);
+	if G_UNLIKELY((size_t ) -1 != xa_lookup(p, &idx)) {
+		t_error(NULL, "page %p already in aligned list (as page %s)",
+			p, xalign_type_str(&aligned[idx]));
 	}
 
 	g_assert(size_is_non_negative(idx) && idx <= aligned_count);
@@ -2568,47 +2703,302 @@ xa_insert(const void *p, size_t size)
 
 	g_assert(aligned != NULL);
 
-	if (idx < aligned_count) {
+	if G_LIKELY(idx < aligned_count) {
 		memmove(&aligned[idx + 1], &aligned[idx],
 			(aligned_count - idx) * sizeof(aligned[0]));
 	}
 
 	aligned_count++;
 	aligned[idx].start = p;
-	aligned[idx].len = size;
+	aligned[idx].pdesc = pdesc;
+}
 
-	if (xmalloc_debugging(2)) {
+/**
+ * Insert tuple (p, set) in the list of aligned pages.
+ */
+static void
+xa_insert_set(const void *p, size_t size)
+{
+	struct xdesc_set *xs;
+
+	g_assert(size_is_positive(size));
+
+	xs = xmalloc(sizeof *xs);
+	xs->type = XPAGE_SET;
+	xs->len = size;
+
+	xa_insert(p, xs);
+
+	if G_UNLIKELY(xmalloc_debugging(2)) {
 		t_debug(NULL, "XM recorded aligned %p (%lu bytes)",
 			p, (unsigned long) size);
 	}
 }
 
 /**
- * Checks whether address is that of an aligned page we keep track of
- * and remove it from the set of tracked pages when found.
- *
- * @return length of page if found, 0 otherwise.
+ * Initialize the array of zones.
  */
-static size_t
-xalign_is_page(const void *p)
+static G_GNUC_COLD void
+xzones_init(void)
+{
+	g_assert(NULL == xzones);
+
+	xzones_capacity = highest_bit_set(compat_pagesize()) - XALIGN_SHIFT;
+	g_assert(size_is_positive(xzones_capacity));
+
+	xzones = xmalloc(xzones_capacity * sizeof xzones[0]);
+}
+
+/**
+ * Allocate a zone with blocks of ``alignment'' bytes each.
+ *
+ * @return new page descriptor for the zone.
+ */
+static struct xdesc_zone *
+xzget(size_t alignment)
+{
+	struct xdesc_zone *xz;
+	void *arena;
+	size_t nblocks;
+	size_t pagesize = compat_pagesize();
+
+	g_assert(size_is_positive(alignment));
+	g_assert(alignment < pagesize);
+
+	arena = vmm_alloc(pagesize);
+	nblocks = pagesize / alignment;
+
+	g_assert(nblocks >= 2);		/* Because alignment < pagesize */
+
+	xz = xmalloc0(sizeof *xz);
+	xz->type = XPAGE_ZONE;
+	xz->alignment = alignment;
+	xz->arena = arena;
+	xz->bitmap = xmalloc0(BIT_ARRAY_BYTE_SIZE(nblocks));
+	xz->nblocks = nblocks;
+
+	xa_insert(arena, xz);
+
+	if G_UNLIKELY(xmalloc_debugging(2)) {
+		t_debug(NULL, "XM recorded aligned %p (%lu bytes) as %lu-byte zone",
+			arena, (unsigned long) pagesize, (unsigned long) alignment);
+	}
+
+	return xz;
+}
+
+static void
+xzdestroy(struct xdesc_zone *xz)
+{
+	/*
+	 * Unlink structure from the zone list.
+	 */
+
+	if (xz->prev != NULL)
+		xz->prev->next = xz->next;
+	if (xz->next != NULL)
+		xz->next->prev = xz->prev;
+
+	if G_UNLIKELY(xmalloc_debugging(2)) {
+		t_debug(NULL, "XM discarding %szone for %lu-byte blocks at %p",
+			(NULL == xz->next && NULL == xz->prev) ? "last " : "",
+			(unsigned long) xz->alignment, xz->arena);
+	}
+
+	if G_UNLIKELY(NULL == xz->prev) {
+		size_t zn;
+
+		/*
+		 * Was head of list, need to update the zone's head.
+		 */
+
+		zn = highest_bit_set(xz->alignment >> XALIGN_SHIFT);
+
+		g_assert(xzones != NULL);
+		g_assert(zn < xzones_capacity);
+		g_assert(xzones[zn] == xz);
+
+		xzones[zn] = xz->next;
+	}
+
+	xfree(xz->bitmap);
+	vmm_free(xz->arena, compat_pagesize());
+}
+
+/**
+ * Allocate an aligned block from a zone.
+ *
+ * @return pointer of allocated block.
+ */
+static void *
+xzalloc(size_t alignment)
+{
+	size_t zn;
+	struct xdesc_zone *xz, *xzf;
+	size_t bn;
+	void *p;
+
+	g_assert(size_is_positive(alignment));
+	g_assert(alignment >= XALIGN_MINSIZE);
+	g_assert(is_pow2(alignment));
+	g_assert(alignment < compat_pagesize());
+
+	if G_UNLIKELY(NULL == xzones)
+		xzones_init();
+
+	zn = highest_bit_set(alignment >> XALIGN_SHIFT);
+
+	g_assert(zn < xzones_capacity);
+
+	xz = xzones[zn];
+
+	if G_UNLIKELY(NULL == xz)
+		xz = xzones[zn] = xzget(alignment);
+
+	/*
+	 * Find which zone in the list has any free block available and compute
+	 * the number of the first block available in the zone.
+	 */
+
+	bn = (size_t) -1;
+
+	for (xzf = xz; xzf != NULL; xzf = xzf->next) {
+		bn = bit_array_first_clear(xzf->bitmap, 0, xzf->nblocks - 1);
+		if G_LIKELY((size_t) -1 != bn)
+			break;
+	}
+
+	/*
+	 * If we haven't found any zone with a free block, allocate a new one.
+	 */
+
+	if G_UNLIKELY((size_t) -1 == bn) {
+		xzf = xzget(alignment);
+		bn = 0;						/* Grab first block */
+		g_assert(NULL == xz->prev);
+		xzones[zn] = xzf;			/* New head of list */
+		xzf->next = xz;
+		xz->prev = xzf;
+		xz = xzf;					/* Update head */
+	}
+
+	/*
+	 * Mark selected block as used and compute the block's address.
+	 */
+
+	bit_array_set(xzf->bitmap, bn);
+	p = ptr_add_offset(xzf->arena, bn * xzf->alignment);
+
+	if G_UNLIKELY(xmalloc_debugging(3)) {
+		t_debug(NULL, "XM allocated %lu-byte aligned block #%lu at %p from %p",
+			(unsigned long) xzf->alignment, (unsigned long) bn, p, xzf->arena);
+	}
+
+	/*
+	 * Place the zone where we allocated a block from at the top of the
+	 * list unless there are no more free blocks in the zone or the block
+	 * is already at the head.
+	 *
+	 * Because we attempt to keep zones with free blocks at the start of
+	 * the list, it is unlikely we have to move around the block in the list.
+	 */
+
+	if G_UNLIKELY(bn != xzf->nblocks - 1 && xzf != xz) {
+		if G_UNLIKELY(xmalloc_debugging(2)) {
+			t_debug(NULL, "XM moving %lu-byte zone %p to head of zone list",
+				(unsigned long) xzf->alignment, xzf->arena);
+		}
+		g_assert(xzf->prev != NULL);		/* Not at start of list */
+		g_assert(NULL == xz->prev);			/* Old head of list */
+		xzf->prev->next = xzf->next;
+		if (xzf->next != NULL)
+			xzf->next->prev = xzf->prev;
+		xzf->next = xz;
+		xzf->prev = NULL;
+		xz->prev = xzf;
+		xzones[zn] = xzf;					/* New head of list */
+	}
+
+	return p;
+}
+
+/**
+ * Free block from zone.
+ *
+ * @return TRUE if zone was all clear and freed.
+ */
+static gboolean
+xzfree(struct xdesc_zone *xz, const void *p)
+{
+	size_t bn;
+
+	g_assert(vmm_page_start(p) == xz->arena);
+
+	bn = ptr_diff(p, xz->arena) / xz->alignment;
+
+	g_assert(bn < xz->nblocks);
+	g_assert(bit_array_get(xz->bitmap, bn));
+
+	bit_array_clear(xz->bitmap, bn);
+
+	if ((size_t) -1 == bit_array_last_set(xz->bitmap, 0, xz->nblocks - 1)) {
+		xzdestroy(xz);
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
+/**
+ * Checks whether address is that of an aligned page or a sub-block we keep
+ * track of and remove memory from the set of tracked blocks when found.
+ *
+ * @return TRUE if aligned block was found and freed, FALSE otherwise.
+ */
+static gboolean
+xalign_free(const void *p)
 {
 	size_t idx;
-	size_t len;
+	const void *start;
+	struct xdesc_type *xt;
 
-	if (vmm_page_start(p) != p)
-		return 0;
+	/*
+	 * We do not only consider page-aligned pointers because we can allocate
+	 * aligned page sub-blocks.  However, they are all located within a page
+	 * so the enclosing page will be found if it is a sub-block.
+	 */
 
-	idx = xa_lookup(p, NULL);
+	start = vmm_page_start(p);
+
+	idx = xa_lookup(start, NULL);
 
 	if G_LIKELY((size_t) -1 == idx)
-		return 0;
+		return FALSE;
 
-	len = aligned[idx].len;
-	g_assert(0 != len);
+	xt = aligned[idx].pdesc;
 
-	xa_delete_slot(idx);
+	switch (xt->type) {
+	case XPAGE_SET:
+		{
+			struct xdesc_set *xs = (struct xdesc_set *) xt;
+			size_t len = xs->len;
 
-	return len;
+			g_assert(0 != len);
+			xa_delete_slot(idx);
+			vmm_free(deconstify_gpointer(p), len);
+		}
+		return TRUE;
+	case XPAGE_ZONE:
+		{
+			struct xdesc_zone *xz = (struct xdesc_zone *) xt;
+
+			if (xzfree(xz, p))
+				xa_delete_slot(idx);	/* Last block from zone freed */
+		}
+		return TRUE;
+	}
+
+	g_assert_not_reached();
 }
 
 /**
@@ -2694,7 +3084,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		 * record the address to be able to free() the pointer.
 		 */
 
-		xa_insert(p, round_pagesize(size));
+		xa_insert_set(p, round_pagesize(size));
 		goto done;
 	} if (alignment > pagesize) {
 		size_t rsize = round_pagesize(size);
@@ -2754,7 +3144,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		 * record the address to be able to free() the pointer.
 		 */
 
-		xa_insert(p, rsize);
+		xa_insert_set(p, rsize);
 		goto done;
 	}
 
@@ -2775,8 +3165,17 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		 * the total size of the allocated VMM block to be in-use.
 		 */
 
-		xa_insert(p, rsize);
+		xa_insert_set(p, rsize);
 		method = "plain VMM";
+		goto done;
+	} else if (size > alignment / 2 && size <= alignment) {
+		/*
+		 * Blocks of a size close to their alignment get allocated from
+		 * a dedicated zone to limit fragmentation within the freelist.
+		 */
+
+		p = xzalloc(alignment);
+		method = "zone";
 		goto done;
 	} else {
 		size_t nalloc, len, blen;
@@ -2811,7 +3210,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 				end = ptr_add_offset(p, vlen);
 				method = "freelist, then large VMM";
 
-				if (xmalloc_debugging(1)) {
+				if G_UNLIKELY(xmalloc_debugging(1)) {
 					t_debug(NULL, "XM added %lu bytes of VMM core at %p",
 						(unsigned long) vlen, p);
 				}
@@ -2820,7 +3219,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 				end = ptr_add_offset(p, pagesize);
 				method = "freelist, then plain VMM";
 
-				if (xmalloc_debugging(1)) {
+				if G_UNLIKELY(xmalloc_debugging(1)) {
 					t_debug(NULL, "XM added %lu bytes of VMM core at %p",
 						(unsigned long) pagesize, p);
 				}
@@ -2906,7 +3305,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 done:
 	*memptr = p;
 
-	if (xmalloc_debugging(1)) {
+	if G_UNLIKELY(xmalloc_debugging(1)) {
 		t_debug(NULL, "XM aligned %p (%lu bytes) on 0x%lx / %lu via %s%s",
 			p, (unsigned long) size, (unsigned long) alignment,
 			(unsigned long) alignment, method, xa_truncation_str(truncation));
