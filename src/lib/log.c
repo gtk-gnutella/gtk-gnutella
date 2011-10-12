@@ -397,7 +397,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			saved = ck_save(ck);
 			msg = str_new_in_chunk(ck, LOG_MSG_MAXLEN);
 
-			if (NULL == msg) {
+			if G_UNLIKELY(NULL == msg) {
 				DECLARE_STR(6);
 				char time_buf[18];
 
@@ -413,7 +413,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 				return;
 			}
 		} else {
-			if (NULL == cstr)
+			if G_UNLIKELY(NULL == cstr)
 				cstr = str_new_not_leaking(0);
 			msg = cstr;
 		}

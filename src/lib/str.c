@@ -155,7 +155,7 @@ str_new_in_chunk(ckhunk_t *ck, size_t size)
 	 */
 
 	arena = ck_alloc(ck, size);
-	if (NULL == arena)
+	if G_UNLIKELY(NULL == arena)
 		return NULL;
 
 	/*
@@ -165,7 +165,7 @@ str_new_in_chunk(ckhunk_t *ck, size_t size)
 	 */
 
 	str = ck_alloc_critical(ck, sizeof *str);
-	if (NULL == str)
+	if G_UNLIKELY(NULL == str)
 		return NULL;
 
 	/*
@@ -364,7 +364,7 @@ str_destroy(str_t *str)
 {
 	str_check(str);
 
-	if (!(str->s_flags & STR_OBJECT))
+	if G_UNLIKELY(!(str->s_flags & STR_OBJECT))
 		g_error("str_destroy() called on \"static\" string object");
 
 	str_free(str);
@@ -401,7 +401,7 @@ str_resize(str_t *str, size_t newsize)
 	 * are called to expand that space.
 	 */
 
-	if (str->s_flags & STR_FOREIGN_PTR) {
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		if (str->s_size >= newsize)
 			return;
 		g_error("str_resize() would expand \"foreign\" string");
@@ -438,7 +438,7 @@ str_makeroom(str_t *s, size_t len)
 {
 	size_t n = size_saturate_add(len, s->s_len);
 
-	if (s->s_size < n) {
+	if G_UNLIKELY(s->s_size < n) {
 		size_t newsize = s->s_size;
 
 		while (newsize < n) {
@@ -460,10 +460,10 @@ str_grow(str_t *str, size_t size)
 	str_check(str);
 	g_assert(size_is_non_negative(size));
 
-	if (str->s_size >= size)
+	if G_LIKELY(str->s_size >= size)
 		return;					/* Nothing to do */
 
-	if (str->s_flags & STR_FOREIGN_PTR)
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR)
 		g_error("str_grow() called on \"foreign\" string");
 
 	str->s_data = hrealloc(str->s_data, size);
@@ -481,7 +481,7 @@ str_setlen(str_t *str, size_t len)
 	str_check(str);
 	g_assert(size_is_non_negative(len));
 
-	if (0 == len) {
+	if G_UNLIKELY(0 == len) {
 		str_reset(str);
 		return;
 	}
@@ -516,7 +516,7 @@ str_2c(str_t *str)
 {
 	size_t len;
 
-	if (NULL == str)
+	if G_UNLIKELY(NULL == str)
 		return NULL;
 
 	str_check(str);
@@ -524,7 +524,7 @@ str_2c(str_t *str)
 	len = str->s_len;
 
 	if (len == str->s_size) {
-		if (str->s_flags & STR_FOREIGN_PTR) {
+		if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 			len--;						/* Truncate the string */
 			str->s_len = len;
 		} else {
@@ -559,12 +559,12 @@ str_s2c(str_t *str)
 
 	str_check(str);
 
-	if (!(str->s_flags & STR_OBJECT))
+	if G_UNLIKELY(!(str->s_flags & STR_OBJECT))
 		g_error("str_s2c() called on \"static\" string object");
 
 	len = str->s_len;
 
-	if (str->s_flags & STR_FOREIGN_PTR) {
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		if (len == str->s_size)
 			len--;						/* Truncate the string */
 	} else {
@@ -685,7 +685,7 @@ str_cat_len(str_t *str, const char *string, size_t len)
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
-	if (0 == len)
+	if G_UNLIKELY(0 == len)
 		return;
 
 	str_makeroom(str, len + 1);		/* Allow for trailing NUL */
@@ -708,7 +708,7 @@ str_ncat(str_t *str, const char *string, size_t len)
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
-	if (0 == len)
+	if G_UNLIKELY(0 == len)
 		return;
 
 	str_makeroom(str, len + 1);			/* Allow for trailing NUL */
@@ -739,10 +739,10 @@ str_ncat_foreign(str_t *str, const char *string, size_t len)
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
-	if (0 == len)
+	if G_UNLIKELY(0 == len)
 		return;
 
-	if (str->s_flags & STR_FOREIGN_PTR) {
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		size_t n;
 
 		if (str->s_len == str->s_size)
@@ -782,7 +782,7 @@ str_shift(str_t *str, size_t n)
 	str_check(str);
 	g_assert(size_is_non_negative(n));
 
-	if (0 == n)
+	if G_UNLIKELY(0 == n)
 		return;
 
 	if (n >= str->s_len) {
@@ -814,7 +814,7 @@ str_ichar(str_t *str, ssize_t idx, char c)
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
-	if (idx < 0 || (size_t) idx >= len)			/* Off string */
+	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)		/* Off string */
 		return FALSE;
 
 	str_makeroom(str, 1);
@@ -857,13 +857,13 @@ str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 
 	len = str->s_len;
 
-	if (0 == n)							/* Empty string */
+	if G_UNLIKELY(0 == n)				/* Empty string */
 		return TRUE;					/* Did nothing but nothing to do */
 
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
-	if (idx < 0 || (size_t) idx >= len)			/* Off string */
+	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)	/* Off string */
 		return FALSE;
 
 	str_makeroom(str, n);
@@ -889,7 +889,7 @@ str_remove(str_t *str, ssize_t idx, size_t n)
 
 	len = str->s_len;
 
-	if (!n)								/* Nothing to remove */
+	if G_UNLIKELY(0 == n)				/* Nothing to remove */
 		return;
 
 	if (idx < 0)						/* Stands for chars before end */
@@ -935,7 +935,7 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
-	if (idx < 0 || (size_t) idx >= len)			/* Off string */
+	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)	/* Off string */
 		return FALSE;
 
 	if (amount > (len - idx))			/* More than what remains afterwards */
@@ -1021,7 +1021,7 @@ str_escape(str_t *str, char c, char e)
 
 	len = str->s_len;
 
-	if (0 == len)
+	if G_UNLIKELY(0 == len)
 		return;
 
 	for (idx = 0; idx < len; idx++) {
@@ -1185,17 +1185,17 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	 * to be able to truncate the output if there is not enough space.
 	 */
 
-	if (str->s_flags & STR_FOREIGN_PTR)
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR)
 		remain = str->s_size - str->s_len;
 
 	/*
 	 * Special-case "" and "%s".
 	 */
 
-	if (0 == fmtlen)
+	if G_UNLIKELY(0 == fmtlen)
 		return 0;
 
-	if (2 == fmtlen && fmt[0] == '%' && fmt[1] == 's') {
+	if G_UNLIKELY(2 == fmtlen && fmt[0] == '%' && fmt[1] == 's') {
 		const char *s = va_arg(args, char*);
 		size_t len;
 		s = s ? s : nullstr;
@@ -1839,7 +1839,7 @@ str_cmsg(const char *fmt, ...)
 	static str_t *str;
 	va_list args;
 	
-	if (NULL == str)
+	if G_UNLIKELY(NULL == str)
 		str = str_new_not_leaking(0);
 
 	str->s_len = 0;
@@ -1863,7 +1863,7 @@ str_smsg(const char *fmt, ...)
 	static str_t *str;
 	va_list args;
 	
-	if (NULL == str)
+	if G_UNLIKELY(NULL == str)
 		str = str_new_not_leaking(0);
 
 	str->s_len = 0;
@@ -1883,7 +1883,7 @@ str_smsg2(const char *fmt, ...)
 	static str_t *str;
 	va_list args;
 	
-	if (NULL == str)
+	if G_UNLIKELY(NULL == str)
 		str = str_new_not_leaking(0);
 
 	str->s_len = 0;
