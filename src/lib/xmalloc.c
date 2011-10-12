@@ -2320,6 +2320,7 @@ relocate:
 		g_assert(size_is_positive(old_size));
 
 		memcpy(np, p, MIN(size, old_size));
+		xfree(p);
 	}
 
 	return np;
