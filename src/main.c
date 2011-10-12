@@ -1611,8 +1611,9 @@ main(int argc, char **argv)
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
-	malloc_show_settings();
 	version_init();
+	malloc_show_settings();
+	xmalloc_show_settings();
 	crash_setver(version_get_string());
 	crash_post_init();		/* Done with crash initialization */
 

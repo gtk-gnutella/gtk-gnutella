@@ -480,10 +480,10 @@ vmm_find_hole(size_t size)
 			struct vm_fragment *vmf = &pm->array[i];
 			const void *end = vmf->end;
 
-			if (ptr_cmp(end, vmm_base) < 0)
+			if G_UNLIKELY(ptr_cmp(end, vmm_base) < 0)
 				continue;
 
-			if (i == pm->count - 1) {
+			if G_UNLIKELY(i == pm->count - 1) {
 				return end;
 			} else {
 				struct vm_fragment *next = &pm->array[i + 1];
@@ -497,10 +497,10 @@ vmm_find_hole(size_t size)
 			struct vm_fragment *vmf = &pm->array[i - 1];
 			const void *start = vmf->start;
 
-			if (ptr_cmp(start, vmm_base) > 0)
+			if G_UNLIKELY(ptr_cmp(start, vmm_base) > 0)
 				continue;
 
-			if (i == 1) {
+			if G_UNLIKELY(1 == i) {
 				return page_start(const_ptr_add_offset(start, -size));
 			} else {
 				struct vm_fragment *prev = &pm->array[i - 2];
@@ -566,7 +566,7 @@ vmm_first_hole(const void **hole_ptr, gboolean discard)
 	struct pmap *pm = vmm_pmap();
 	size_t i;
 
-	if (0 == pm->count)
+	if G_UNLIKELY(0 == pm->count)
 		return 0;
 
 	if (kernel_mapaddr_increasing) {
@@ -574,10 +574,10 @@ vmm_first_hole(const void **hole_ptr, gboolean discard)
 			struct vm_fragment *vmf = &pm->array[i];
 			const void *end = vmf->end;
 
-			if (ptr_cmp(end, vmm_base) < 0)
+			if G_UNLIKELY(ptr_cmp(end, vmm_base) < 0)
 				continue;
 
-			if (i == pm->count - 1) {
+			if G_UNLIKELY(i == pm->count - 1) {
 				*hole_ptr = end;
 				return SIZE_MAX;
 			} else {
@@ -588,7 +588,7 @@ vmm_first_hole(const void **hole_ptr, gboolean discard)
 				 * for some time, discard it and try to reuse that region.
 				 */
 
-				if (discard && vmf_is_old_foreign(vmf)) {
+				if G_UNLIKELY(discard && vmf_is_old_foreign(vmf)) {
 					const void *start = vmf->start;
 					pmap_discard_index(pm, i);
 					*hole_ptr = start;
@@ -606,10 +606,10 @@ vmm_first_hole(const void **hole_ptr, gboolean discard)
 			struct vm_fragment *vmf = &pm->array[i - 1];
 			const void *start = vmf->start;
 
-			if (ptr_cmp(start, vmm_base) > 0)
+			if G_UNLIKELY(ptr_cmp(start, vmm_base) > 0)
 				continue;
 
-			if (i == 1) {
+			if G_UNLIKELY(1 == i) {
 				*hole_ptr = ulong_to_pointer(kernel_pagesize);	/* Not NULL */
 				return SIZE_MAX;
 			} else {
@@ -620,7 +620,7 @@ vmm_first_hole(const void **hole_ptr, gboolean discard)
 				 * for some time, discard it and try to reuse that region.
 				 */
 
-				if (discard && vmf_is_old_foreign(vmf)) {
+				if G_UNLIKELY(discard && vmf_is_old_foreign(vmf)) {
 					const void *end = vmf->end;
 					pmap_discard_index(pm, i - 1);
 					*hole_ptr = end;
@@ -2261,7 +2261,7 @@ vpc_insert(struct page_cache *pc, void *p)
 		void *before = pc->info[idx - 1].base;
 		void *after = ptr_add_offset(before, pc->chunksize);
 
-		if (after == p) {
+		if G_UNLIKELY(after == p) {
 			if (vmm_debugging(6)) {
 				s_debug("VMM page cache #%lu: "
 					"coalescing previous [%p, %p] with [%p, %p]",
@@ -2285,7 +2285,7 @@ vpc_insert(struct page_cache *pc, void *p)
 		void *end = ptr_add_offset(p, pc->chunksize);
 		void *next = pc->info[idx].base;
 
-		if (next == end) {
+		if G_UNLIKELY(next == end) {
 			if (vmm_debugging(6)) {
 				s_debug("VMM page cache #%lu: "
 					"coalescing [%p, %p] with next [%p, %p]",
@@ -2303,7 +2303,7 @@ vpc_insert(struct page_cache *pc, void *p)
 	 * Otherwise, insertion is happening before ``idx''.
 	 */
 
-	if (pages != pc->pages) {
+	if G_UNLIKELY(pages != pc->pages) {
 		if (vmm_debugging(2)) {
 			s_debug("VMM coalesced %luKiB region [%p, %p] into "
 				"%luKiB region [%p, %p] (recursing)",
@@ -2322,7 +2322,7 @@ insert:
 	 * Insert region in the local cache line.
 	 */
 
-	if (VMM_CACHE_SIZE == pc->current) {
+	if G_UNLIKELY(VMM_CACHE_SIZE == pc->current) {
 		size_t kidx = kernel_mapaddr_increasing ? VMM_CACHE_SIZE - 1 : 0;
 		if (vmm_debugging(4)) {
 			void *lbase = pc->info[kidx].base;
@@ -3177,7 +3177,7 @@ page_cache_timer(gpointer unused_udata)
 
 	(void) unused_udata;
 
-	if (VMM_CACHE_LINES == line)
+	if G_UNLIKELY(VMM_CACHE_LINES == line)
 		line = 0;
 
 	pc = &page_cache[line];
@@ -3211,18 +3211,19 @@ page_cache_timer(gpointer unused_udata)
 		}
 	}
 
-	if G_UNLIKELY(expired > 0 && vmm_debugging(1)) {
-		size_t regions = vmm_pmap()->count;
-		s_debug("VMM expired %lu item%s (%luKiB total) from "
-			"page cache #%lu (%lu item%s remaining), "
-			"process has %lu VM regions%s",
-			(unsigned long) expired, 1 == expired ? "" : "s",
-			(unsigned long) (expired * pc->chunksize / 1024),
-			(unsigned long) line,
-			(unsigned long) pc->current, 1 == pc->current ? "" : "s",
-			(unsigned long) regions,
-			old_regions < regions ? " (fragmented further)" : "");
-
+	if G_UNLIKELY(expired > 0) {
+		if (vmm_debugging(1)) {
+			size_t regions = vmm_pmap()->count;
+			s_debug("VMM expired %lu item%s (%luKiB total) from "
+				"page cache #%lu (%lu item%s remaining), "
+				"process has %lu VM regions%s",
+				(unsigned long) expired, 1 == expired ? "" : "s",
+				(unsigned long) (expired * pc->chunksize / 1024),
+				(unsigned long) line,
+				(unsigned long) pc->current, 1 == pc->current ? "" : "s",
+				(unsigned long) regions,
+				old_regions < regions ? " (fragmented further)" : "");
+		}
 		if (vmm_debugging(5)) {
 			vmm_dump_pmap();
 		}

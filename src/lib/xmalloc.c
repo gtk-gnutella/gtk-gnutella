@@ -234,9 +234,20 @@ xmalloc_vmm_inited(void)
 	safe_to_log = TRUE;
 	xmalloc_grows_up = vmm_grows_upwards();
 	xmalloc_freelist_setup();
+
 #ifdef XMALLOC_IS_MALLOC
 	vmm_malloc_inited();
 #endif
+}
+
+/**
+ * Called to log which malloc() is used.
+ */
+G_GNUC_COLD void
+xmalloc_show_settings(void)
+{
+	t_info(NULL, "using %s", xmalloc_is_malloc() ?
+		"our own malloc() replacement" : "native malloc()");
 }
 
 /**
@@ -639,6 +650,7 @@ xfl_shrink(struct xfreelist *fl)
 		}
 
 		g_assert(fl->capacity >= fl->count);	/* Shrinking was OK */
+		g_assert(fl->pointers != new_ptr);
 
 		/*
 		 * The freelist structure is coherent, we can release the bucket
@@ -705,7 +717,7 @@ xfl_count_decreased(struct xfreelist *fl, gboolean may_shrink)
 	 * Update maximum bucket index.
 	 */
 
-	if (0 == fl->count && xfl_index(fl) == xfreelist_maxidx) {
+	if G_UNLIKELY(0 == fl->count && xfl_index(fl) == xfreelist_maxidx) {
 		size_t i;
 
 		xfreelist_maxidx = 0;
@@ -964,7 +976,7 @@ xfl_extend(struct xfreelist *fl)
 	old_size = sizeof(void *) * fl->capacity;
 	old_used = sizeof(void *) * fl->count;
 
-	if (0 == old_size) {
+	if G_UNLIKELY(0 == old_size) {
 		g_assert(NULL == fl->pointers);
 		new_size = XM_BUCKET_MINSIZE * sizeof(void *);
 	} else if (old_size < XM_BUCKET_THRESHOLD * sizeof(void *)) {
@@ -1016,6 +1028,7 @@ xfl_extend(struct xfreelist *fl)
 		}
 
 		g_assert(fl->capacity >= fl->count);	/* Extending was OK */
+		g_assert(fl->pointers != new_ptr);
 
 		/*
 		 * The freelist structure is coherent, we can release the bucket
@@ -1429,7 +1442,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, guint32 flags)
 	 * Update information for caller if we have coalesced something.
 	 */
 
-	if (coalesced) {
+	if G_UNLIKELY(coalesced) {
 		*base_ptr = base;
 		*len_ptr = ptr_diff(end, base);
 	}
@@ -1667,6 +1680,14 @@ xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
 		}
 	}
 
+	/*
+	 * Fallback for unfreed core memory, or unfreed VMM subspace.
+	 *
+	 * Insert in freelist, without doing any coalescing since it was attempted
+	 * at the beginning if requested, so we already attempted to coalesce
+	 * as much as possible.
+	 */
+
 	xmalloc_freelist_insert(p, len, XM_COALESCE_NONE);
 }
 
@@ -1850,7 +1871,7 @@ xmalloc(size_t size)
 			}
 
 			if (pagesize - len >= XMALLOC_SPLIT_MIN) {
-				void * split = ptr_add_offset(p, len);
+				void *split = ptr_add_offset(p, len);
 				xmalloc_freelist_insert(split,
 					pagesize - len, XM_COALESCE_AFTER);
 				return xmalloc_block_setup(p, len);
@@ -1888,7 +1909,7 @@ xmalloc0(size_t size)
 	void *p;
 
 	p = xmalloc(size);
-	memset(p, 0 ,size);
+	memset(p, 0, size);
 
 	return p;
 }
@@ -1984,6 +2005,10 @@ xrealloc(void *p, size_t size)
 
 	if (!xmalloc_is_valid_length(xh, xh->length))
 		t_error(NULL, "corrupted malloc header for pointer %p", p);
+
+	/*
+	 * Compute the size of the physical block we need, including overhead.
+	 */
 
 	newlen = xmalloc_round_blocksize(xmalloc_round(size) + XHEADER_SIZE);
 
@@ -2437,9 +2462,6 @@ xmalloc_post_init(void)
 			(unsigned long) sbrk_allocated,
 			(unsigned long) ptr_diff(current_break, initial_break));
 	}
-
-	t_info(NULL, "will use %s", xmalloc_is_malloc() ?
-		"our own malloc() replacement" : "native malloc()");
 
 	if (xmalloc_debugging(0)) {
 		t_info(NULL, "XM using %ld freelist buckets",
