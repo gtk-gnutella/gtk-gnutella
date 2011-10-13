@@ -49,6 +49,7 @@
 #include "log.h"
 #include "misc.h"
 #include "pow2.h"
+#include "tm.h"
 #include "unsigned.h"
 #include "vmm.h"
 #include "glib-missing.h"
@@ -189,7 +190,10 @@ static struct xfreelist {
 	size_t count;			/**< Amount of pointers held */
 	size_t capacity;		/**< Maximum amount of pointers that can be held */
 	size_t blocksize;		/**< Block size handled by this list */
+	time_t last_shrink;		/**< Last shrinking attempt */
 } xfreelist[XMALLOC_FREELIST_COUNT];
+
+#define XMALLOC_SHRINK_PERIOD	5	/**< Seconds between shrinking attempts */
 
 static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
 static guint32 xmalloc_debug;		/**< Debug level */
@@ -619,6 +623,7 @@ xfl_shrink(struct xfreelist *fl)
 	 */
 
 	new_size = MAX(XM_BUCKET_MINSIZE * sizeof(void *), new_size);
+	new_size = xmalloc_round_blocksize(new_size);
 
 	if (new_size >= old_size)
 		return;
@@ -670,6 +675,24 @@ xfl_shrink(struct xfreelist *fl)
 	g_assert(allocated_size >= new_size);
 	g_assert(new_ptr != old_ptr);
 
+	fl->last_shrink = tm_time();
+
+	/*
+	 * If we allocated the same block size as before, free it immediately:
+	 * no need to move around data.
+	 */
+
+	if G_UNLIKELY(old_size == allocated_size) {
+		if (xmalloc_debugging(1)) {
+			t_debug(NULL, "XM discarding allocated bucket %p (%lu bytes) for "
+				"freelist #%lu: same size as old bucket",
+				new_ptr, (unsigned long) allocated_size,
+				(unsigned long) xfl_index(fl));
+		}
+		xmalloc_freelist_add(new_ptr, allocated_size, XM_COALESCE_ALL);
+		return;
+	}
+
 	memcpy(new_ptr, old_ptr, old_used);
 
 	fl->pointers = new_ptr;
@@ -709,7 +732,11 @@ xfl_count_decreased(struct xfreelist *fl, gboolean may_shrink)
 	 * Make sure we resize the pointers[] array when we had enough removals.
 	 */
 
-	if (may_shrink && (fl->capacity - fl->count) >= XM_BUCKET_INCREMENT) {
+	if (
+		may_shrink &&
+		(fl->capacity - fl->count) >= XM_BUCKET_INCREMENT &&
+		delta_time(tm_time(), fl->last_shrink) > XMALLOC_SHRINK_PERIOD
+	) {
 		xfl_shrink(fl);
 	}
 
@@ -861,11 +888,13 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 		 * nice to trace as it happens.
 		 */
 
-		if (xmalloc_debugging(1) && fl == flb) {
-			t_debug(NULL, "XM allocated %lu-byte long block at %p "
-				"for freelist #%lu from itself (count down to %lu)",
-				(unsigned long) fl->blocksize, p, (unsigned long) xfl_index(fl),
-				(unsigned long) fl->count);
+		if G_UNLIKELY(fl == flb) {
+			if (xmalloc_debugging(1)) {
+				t_debug(NULL, "XM allocated %lu-byte long block at %p "
+					"for freelist #%lu from itself (count down to %lu)",
+					(unsigned long) fl->blocksize, p,
+					(unsigned long) xfl_index(fl), (unsigned long) fl->count);
+			}
 		}
 
 		/*
@@ -1091,21 +1120,6 @@ xfl_extend(struct xfreelist *fl)
 }
 
 /**
- * Quick test to avoid costly xfl_lookup() call when we can determine that
- * the block is nowhere to be found.
- */
-static inline G_GNUC_HOT ALWAYS_INLINE gboolean
-xfl_could_contain(const struct xfreelist *fl, const void *p)
-{
-	if (0 == fl->count)
-		return FALSE;
-
-	return
-		ptr_cmp(p, fl->pointers[0]) >= 0 &&
-		ptr_cmp(p, fl->pointers[fl->count - 1]) <= 0;
-}
-
-/**
  * Lookup for a block within a free list chunk.
  *
  * If ``low_ptr'' is non-NULL, it is written with the index where insertion
@@ -1120,7 +1134,37 @@ xfl_lookup(const struct xfreelist *fl, const void *p, size_t *low_ptr)
 	size_t low = 0, high = fl->count - 1;
 	size_t mid;
 
-	g_assert(fl->count <= fl->capacity);
+	if G_UNLIKELY(0 == fl->count) {
+		if (low_ptr != NULL)
+			*low_ptr = 0;
+		return -1;
+	}
+
+	/*
+	 * Optimize if we have more than 4 items by looking whether the
+	 * pointer falls within the min/max ranges.
+	 */
+
+	if G_LIKELY(fl->count > 4) {
+		if G_UNLIKELY(fl->pointers[0] == p)
+			return 0;
+		if (ptr_cmp(p, fl->pointers[0]) < 0) {
+			if (low_ptr != NULL) {
+				*low_ptr = 0;
+				return -1;
+			}
+		}
+		low++;
+		if G_UNLIKELY(fl->pointers[high] == p)
+			return high;
+		if (ptr_cmp(p, fl->pointers[high]) > 0) {
+			if (low_ptr != NULL) {
+				*low_ptr = fl->count;
+				return -1;
+			}
+		}
+		high--;
+	}
 
 	/* Binary search */
 
@@ -1367,9 +1411,6 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, guint32 flags)
 			 * Avoid costly lookup if the pointer cannot be found.
 			 */
 
-			if (!xfl_could_contain(fl, before))
-				continue;
-
 			idx = xfl_lookup(fl, before, NULL);
 
 			if G_UNLIKELY((size_t) -1 != idx) {
@@ -1405,11 +1446,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, guint32 flags)
 			struct xfreelist *fl = &xfreelist[j];
 			size_t idx;
 
-			/*
-			 * Avoid costly lookup if the pointer cannot be found.
-			 */
-
-			if (!xfl_could_contain(fl, end))
+			if (0 == fl->count)
 				continue;
 
 			idx = xfl_lookup(fl, end, NULL);
@@ -1795,11 +1832,18 @@ xmalloc_is_malloc(void)
 
 #define is_trapping_malloc()	1
 
+#define XALIGN_MINSIZE	128	/**< Minimum alignment for xzalloc() */
+#define XALIGN_SHIFT	7	/* 2**7 */
+#define XALIGN_MASK		((1 << XALIGN_SHIFT) - 1)
+
+#define xaligned(p)		(0 == (pointer_to_ulong(p) & XALIGN_MASK))
+
 static gboolean xalign_free(const void *p);
 
 #else	/* !XMALLOC_IS_MALLOC */
 #define is_trapping_malloc()	0
 #define xalign_free(p)			FALSE
+#define xaligned(p)				FALSE
 #endif	/* XMALLOC_IS_MALLOC */
 
 /**
@@ -1956,10 +2000,15 @@ xfree(void *p)
 
 	/*
 	 * Handle pointers returned by posix_memalign() and friends that
-	 * would be page-aligned and therefore directly allocated by VMM.
+	 * would be aligned and therefore directly allocated by VMM or through
+	 * zones.
+	 *
+	 * The xaligned() test checks whether the pointer is at least aligned
+	 * to the minimum size we're aligning through special allocations, so
+	 * that we don't invoke the costly xalign_free() if we can avoid it.
 	 */
 
-	if (is_trapping_malloc() && xalign_free(p))
+	if (is_trapping_malloc() && xaligned(p) && xalign_free(p))
 		return;
 
 	if (!xmalloc_is_valid_pointer(xh)) {
@@ -2185,7 +2234,7 @@ xrealloc(void *p, size_t size)
 			struct xfreelist *fl = &xfreelist[i];
 			size_t idx;
 
-			if (!xfl_could_contain(fl, end))
+			if (0 == fl->count)
 				continue;
 
 			idx = xfl_lookup(fl, end, NULL);
@@ -2288,13 +2337,6 @@ xrealloc(void *p, size_t size)
 
 			blksize = fl->blocksize;
 			before = ptr_add_offset(xh, -blksize);
-
-			/*
-			 * Avoid costly lookup if the pointer cannot be found.
-			 */
-
-			if (!xfl_could_contain(fl, before))
-				continue;
 
 			idx = xfl_lookup(fl, before, NULL);
 
@@ -2517,9 +2559,6 @@ xmalloc_stop_freeing(void)
  * 3. For all other cases, allocate through the freelist a larger zone and then
  *    put back the excess to the freelist, which can cause fragmentation!
  */
-
-#define XALIGN_MINSIZE	64	/**< Minimum alignment for xzalloc() */
-#define XALIGN_SHIFT	6	/* 2**6 */
 
 /**
  * Description of aligned memory blocks we keep track of.
