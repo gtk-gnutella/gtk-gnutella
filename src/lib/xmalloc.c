@@ -608,6 +608,7 @@ xfl_shrink(struct xfreelist *fl)
 	size_t old_size, old_used, new_size, allocated_size;
 
 	g_assert(fl->count < fl->capacity);
+	g_assert(size_is_non_negative(fl->count));
 
 	old_ptr = fl->pointers;
 	old_size = sizeof(void *) * fl->capacity;
@@ -831,6 +832,8 @@ assert_valid_freelist_pointer(const struct xfreelist *fl, const void *p)
 static void
 xfl_remove_selected(struct xfreelist *fl)
 {
+	g_assert(size_is_positive(fl->count));
+
 	fl->count--;
 
 	/*
