@@ -115,20 +115,16 @@ struct xheader {
  * blocks, and so on.
  *
  * Above XMALLOC_FACTOR_MAXSIZE and until XMALLOC_MAXSIZE, buckets are
- * multiple of a single XMALLOC_BLOCK_SIZE constant.  For a block size of
- * 1024, the first bucket would be 1024-byte blocks, the fourth 4*1024-byte
- * blocks, etc...
- *
- * When XMALLOC_FACTOR_MAXSIZE equals XMALLOC_BLOCK_SIZE, and in order to
- * avoid having two buckets of XMALLOC_FACTOR_MAXSIZE bytes, the first bucket
- * of the second sizing strategy is 2 * XMALLOC_BLOCK_SIZE.
+ * increasing by XMALLOC_BLOCK_SIZE bytes.  For a block size of
+ * 1024, the first bucket would be XMALLOC_FACTOR_MAXSIZE + 0 * 1024,
+ * the second XMALLOC_FACTOR_MAXSIZE + 1 * 1024, etc...
  *
  * The index in the bucket array where the switch between the first and second
  * sizing strategy operates is called the "cut-over" index.
  */
 #define XMALLOC_FACTOR_MAXSIZE	1024
 #define XMALLOC_BUCKET_FACTOR	MAX(MEM_ALIGNBYTES, XHEADER_SIZE)
-#define XMALLOC_BLOCK_SIZE		XMALLOC_FACTOR_MAXSIZE
+#define XMALLOC_BLOCK_SIZE		256
 #define XMALLOC_MAXSIZE			32768	/**< Largest block size in free list */
 
 /**
@@ -140,8 +136,8 @@ struct xheader {
 
 /**
  * The cut-over index is the index of the first bucket using multiples of
- * XMALLOC_BLOCK_SIZE, and it is also the last index using the first sizing
- * strategy since XMALLOC_FACTOR_MAXSIZE == XMALLOC_BLOCK_SIZE.
+ * XMALLOC_BLOCK_SIZE, or the last bucket using XMALLOC_BUCKET_FACTOR
+ * multiples.
  */
 #define XMALLOC_BUCKET_CUTOVER	\
 	((XMALLOC_FACTOR_MAXSIZE / XMALLOC_BUCKET_FACTOR) - 1)
@@ -181,7 +177,8 @@ struct xheader {
  * The structure at index i tracks blocks of size:
  *
  *  - if i <= XMALLOC_BUCKET_CUTOVER, size = (i+1) * XMALLOC_BUCKET_FACTOR
- *  - otherwise size = (i - XMALLOC_BUCKET_CUTOVER + 1) * XMALLOC_BLOCK_SIZE
+ *  - otherwise size = XMALLOC_FACTOR_MAXSIZE +
+ *                     (i - XMALLOC_BUCKET_CUTOVER) * XMALLOC_BLOCK_SIZE
  *
  * The above function is linear by chunk and continuous.
  */
@@ -192,6 +189,11 @@ static struct xfreelist {
 	size_t blocksize;		/**< Block size handled by this list */
 	time_t last_shrink;		/**< Last shrinking attempt */
 } xfreelist[XMALLOC_FREELIST_COUNT];
+
+/**
+ * Each bit set in this bit array indicates a freelist with blocks in it.
+ */
+static bit_array_t xfreebits[BIT_ARRAY_SIZE(XMALLOC_FREELIST_COUNT)];
 
 #define XMALLOC_SHRINK_PERIOD	5	/**< Seconds between shrinking attempts */
 
@@ -529,13 +531,6 @@ xmalloc_is_valid_length(const void *p, size_t len)
 	return xmalloc_isheap(p, len);
 }
 
-/***
- *** TODO
- *** Add heap-management to mingw32.c.  Make sure to implement
- *** mingw_addcore() to handle core allocation and mingw_freecore() to free
- *** memory, with mingw_isheap() to check for heap memory.
- ***/
-
 /**
  * Computes index of free list in the array.
  */
@@ -558,7 +553,8 @@ xfl_block_size_idx(size_t idx)
 {
 	return (idx <= XMALLOC_BUCKET_CUTOVER) ?
 		XMALLOC_BUCKET_FACTOR * (idx + 1) :
-		XMALLOC_BLOCK_SIZE * (idx + 1 - XMALLOC_BUCKET_CUTOVER);
+		XMALLOC_FACTOR_MAXSIZE +
+			XMALLOC_BLOCK_SIZE * (idx - XMALLOC_BUCKET_CUTOVER);
 }
 
 /**
@@ -582,7 +578,8 @@ xfl_find_freelist_index(size_t len)
 
 	return (len <= XMALLOC_FACTOR_MAXSIZE) ? 
 		len / XMALLOC_BUCKET_FACTOR - 1 :
-		XMALLOC_BUCKET_CUTOVER - 1 + len / XMALLOC_BLOCK_SIZE;
+		XMALLOC_BUCKET_CUTOVER +
+			(len - XMALLOC_FACTOR_MAXSIZE) / XMALLOC_BLOCK_SIZE;
 }
 
 /**
@@ -730,6 +727,32 @@ static void
 xfl_count_decreased(struct xfreelist *fl, gboolean may_shrink)
 {
 	/*
+	 * Update maximum bucket index and clear freelist bit if we removed
+	 * the last block from the list.
+	 */
+
+	if G_UNLIKELY(0 == fl->count) {
+		size_t idx = xfl_index(fl);
+
+		bit_array_clear(xfreebits, idx);
+
+		if G_UNLIKELY(idx == xfreelist_maxidx) {
+			size_t i;
+
+			i = bit_array_last_set(xfreebits, 0, XMALLOC_FREELIST_COUNT - 1);
+			xfreelist_maxidx = (size_t) -1 == i ? 0 : i;
+
+			g_assert(size_is_non_negative(xfreelist_maxidx));
+			g_assert(xfreelist_maxidx < G_N_ELEMENTS(xfreelist));
+
+			if (xmalloc_debugging(2)) {
+				t_debug(NULL, "XM max frelist index decreased to %lu",
+					(unsigned long) xfreelist_maxidx);
+			}
+		}
+	}
+
+	/*
 	 * Make sure we resize the pointers[] array when we had enough removals.
 	 */
 
@@ -739,31 +762,6 @@ xfl_count_decreased(struct xfreelist *fl, gboolean may_shrink)
 		delta_time(tm_time(), fl->last_shrink) > XMALLOC_SHRINK_PERIOD
 	) {
 		xfl_shrink(fl);
-	}
-
-	/*
-	 * Update maximum bucket index.
-	 */
-
-	if G_UNLIKELY(0 == fl->count && xfl_index(fl) == xfreelist_maxidx) {
-		size_t i;
-
-		xfreelist_maxidx = 0;
-
-		for (i = xfl_index(fl); i > 0; i--) {
-			if (xfreelist[i - 1].count != 0) {
-				xfreelist_maxidx = i - 1;
-				break;
-			}
-		}
-
-		g_assert(size_is_non_negative(xfreelist_maxidx));
-		g_assert(xfreelist_maxidx < G_N_ELEMENTS(xfreelist));
-
-		if (xmalloc_debugging(2)) {
-			t_debug(NULL, "XM max frelist index decreased to %lu",
-				(unsigned long) xfreelist_maxidx);
-		}
 	}
 }
 
@@ -1134,10 +1132,11 @@ xfl_extend(struct xfreelist *fl)
 static G_GNUC_HOT size_t
 xfl_lookup(const struct xfreelist *fl, const void *p, size_t *low_ptr)
 {
-	size_t low = 0, high = fl->count - 1;
-	size_t mid;
+	size_t low, mid, high;
+	void **pointers;
+	size_t count = fl->count;
 
-	if G_UNLIKELY(0 == fl->count) {
+	if G_UNLIKELY(0 == count) {
 		if (low_ptr != NULL)
 			*low_ptr = 0;
 		return -1;
@@ -1148,21 +1147,25 @@ xfl_lookup(const struct xfreelist *fl, const void *p, size_t *low_ptr)
 	 * pointer falls within the min/max ranges.
 	 */
 
-	if G_LIKELY(fl->count > 4) {
-		if G_UNLIKELY(fl->pointers[0] == p)
+	pointers = fl->pointers;
+	high = count - 1;
+	low = 0;
+
+	if G_LIKELY(count > 4) {
+		if G_UNLIKELY(pointers[0] == p)
 			return 0;
-		if (ptr_cmp(p, fl->pointers[0]) < 0) {
+		if (ptr_cmp(p, pointers[0]) < 0) {
 			if (low_ptr != NULL) {
 				*low_ptr = 0;
 				return -1;
 			}
 		}
 		low++;
-		if G_UNLIKELY(fl->pointers[high] == p)
+		if G_UNLIKELY(pointers[high] == p)
 			return high;
-		if (ptr_cmp(p, fl->pointers[high]) > 0) {
+		if (ptr_cmp(p, pointers[high]) > 0) {
 			if (low_ptr != NULL) {
-				*low_ptr = fl->count;
+				*low_ptr = count;
 				return -1;
 			}
 		}
@@ -1180,7 +1183,7 @@ xfl_lookup(const struct xfreelist *fl, const void *p, size_t *low_ptr)
 		}
 
 		mid = low + (high - low) / 2;
-		item = fl->pointers[mid];
+		item = pointers[mid];
 
 		if (p > item)
 			low = mid + 1;
@@ -1265,6 +1268,30 @@ xfl_insert(struct xfreelist *fl, void *p)
 	fl->pointers[idx] = p;
 
 	/*
+	 * Set corresponding bit if this is the first block inserted in the list.
+	 */
+
+	if G_UNLIKELY(1 == fl->count) {
+		size_t fidx = xfl_index(fl);
+
+		bit_array_set(xfreebits, fidx);
+
+		/*
+		 * Update maximum bucket index.
+		 */
+
+		if (xfreelist_maxidx < fidx) {
+			xfreelist_maxidx = fidx;
+			g_assert(xfreelist_maxidx < G_N_ELEMENTS(xfreelist));
+
+			if (xmalloc_debugging(1)) {
+				t_debug(NULL, "XM max frelist index increased to %lu",
+					(unsigned long) xfreelist_maxidx);
+			}
+		}
+	}
+
+	/*
 	 * To detect freelist corruptions, write the size of the block at the
 	 * beginning of the block itself.
 	 */
@@ -1275,20 +1302,6 @@ xfl_insert(struct xfreelist *fl, void *p)
 		t_debug(NULL, "XM inserted block %p in free list #%lu (%lu bytes)",
 			p, (unsigned long) xfl_index(fl),
 			(unsigned long) fl->blocksize);
-	}
-
-	/*
-	 * Update maximum bucket index.
-	 */
-
-	if (1 == fl->count && xfreelist_maxidx < xfl_index(fl)) {
-		xfreelist_maxidx = xfl_index(fl);
-		g_assert(xfreelist_maxidx < G_N_ELEMENTS(xfreelist));
-
-		if (xmalloc_debugging(1)) {
-			t_debug(NULL, "XM max frelist index increased to %lu",
-				(unsigned long) xfreelist_maxidx);
-		}
 	}
 }
 
@@ -1305,6 +1318,11 @@ xmalloc_freelist_setup(void)
 		struct xfreelist *fl = &xfreelist[i];
 
 		fl->blocksize = xfl_block_size_idx(i);
+
+		g_assert_log(xfl_find_freelist_index(fl->blocksize) == i,
+			"i=%lu, blocksize=%lu, inverted_index=%lu",
+			(unsigned long) i, (unsigned long) fl->blocksize,
+			(unsigned long) xfl_find_freelist_index(fl->blocksize));
 	}
 }
 
@@ -3153,10 +3171,12 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 	 * the case.
 	 */
 
-	if G_UNLIKELY(size <= alignment / 2 && xmalloc_debugging(0)) {
-		t_carp(NULL,
-			"XM requested to allocate only %lu bytes with %lu-byte alignment",
-			(unsigned long) size, (unsigned long) alignment);
+	if G_UNLIKELY(size <= alignment / 2) {
+		if (xmalloc_debugging(0)) {
+			t_carp(NULL, "XM requested to allocate only %lu bytes "
+				"with %lu-byte alignment",
+				(unsigned long) size, (unsigned long) alignment);
+		}
 	}
 
 	/*
