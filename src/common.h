@@ -590,12 +590,12 @@ typedef void (*GCallback) (void);
 /**
  * CMP() returns the sign of a-b, that means -1, 0, or 1.
  */
-#define CMP(a, b) ((a) == (b) ? 0 : (a) > (b) ? 1 : (-1))
+#define CMP(a, b) (G_UNLIKELY((a) == (b)) ? 0 : (a) > (b) ? 1 : (-1))
 
 /**
  * SIGN() returns the sign of an integer value.
  */
-#define SIGN(x) ((x) == 0 ? 0 : (x) > 0 ? 1 : (-1))
+#define SIGN(x) (G_UNLIKELY((x) == 0) ? 0 : (x) > 0 ? 1 : (-1))
 
 
 /**
