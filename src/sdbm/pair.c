@@ -437,7 +437,9 @@ delipair(DBM *db, char *pag, int i, gboolean free_bigdata)
 
 	n = ino[0];
 
-	if (0 == n || i >= n || !(i & 0x1))		/* In range, and odd number */
+	/* Must be in range, and odd number */
+
+	if G_UNLIKELY(0 == n || i >= n || !(i & 0x1))
 		return FALSE;
 
 	/*
@@ -531,7 +533,7 @@ delnpair(DBM *db, char *pag, int num)
 
 	i = num * 2 - 1;
 
-	if (ino[0] == 0 || i > ino[0])
+	if G_UNLIKELY(ino[0] == 0 || i > ino[0])
 		return FALSE;
 
 	return delipair(db, pag, i, TRUE);
@@ -600,9 +602,9 @@ seepair(DBM *db, const char *pag, unsigned n, const char *key, size_t siz)
 				return i;
 		} else
 #endif
-		if (siz == off - koff) {
+		if G_UNLIKELY(siz == off - koff) {
 			const char *p = pag + koff;
-			if (0 == siz) {
+			if G_UNLIKELY(0 == siz) {
 				return i;
 			} else if (b == p[0]) {
 				if (1 == siz) {
@@ -745,10 +747,10 @@ sdbm_internal_chkpage(const char *pag)
 	 * this could be made more rigorous.
 	 */
 
-	if ((n = ino[0]) > DBM_PBLKSIZ / sizeof(unsigned short))
+	if G_UNLIKELY((n = ino[0]) > DBM_PBLKSIZ / sizeof(unsigned short))
 		return FALSE;
 
-	if (n & 0x1)
+	if G_UNLIKELY(n & 0x1)
 		return FALSE;		/* Always a multiple of 2 */
 
 	if (n > 0) {
@@ -757,9 +759,9 @@ sdbm_internal_chkpage(const char *pag)
 		for (ino++; n > 0; ino += 2) {
 			unsigned short koff = offset(ino[0]);
 			unsigned short voff = offset(ino[1]);
-			if (koff > off || voff > off || voff > koff)
+			if G_UNLIKELY(koff > off || voff > off || voff > koff)
 				return FALSE;
-			if (koff < ino_end || voff < ino_end)
+			if G_UNLIKELY(koff < ino_end || voff < ino_end)
 				return FALSE;
 			off = voff;
 			n -= 2;
