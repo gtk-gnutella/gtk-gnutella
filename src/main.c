@@ -531,6 +531,15 @@ gtk_gnutella_exit(int exit_code)
 		return;
 
 	/*
+	 * Before running final cleanup, show allocation statistics.
+	 */
+
+	if (debugging(0)) {
+		DO(vmm_dump_stats);
+		DO(xmalloc_dump_stats);
+	}
+
+	/*
 	 * When halloc() is replacing malloc(), we need to make sure no memory
 	 * allocated through halloc() is going to get invalidated because some
 	 * GTK callbacks seem to access freed memory.

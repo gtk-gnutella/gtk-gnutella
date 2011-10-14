@@ -211,6 +211,34 @@ struct pmap {
 };
 
 /**
+ * Internal statistics collected.
+ */
+static struct {
+	guint64 allocations;			/**< Total number of allocations */
+	guint64 allocations_zeroed;		/**< Total number of zeroing in allocs */
+	guint64 freeings;				/**< Total number of freeings */
+	guint64 shrinkings;				/**< Total number of shrinks */
+	guint64 mmaps;					/**< Total number of mmap() calls */
+	guint64 munmaps;				/**< Total number of munmap() calls */
+	guint64 hints_followed;			/**< Allocations following hints */
+	guint64 alloc_from_cache;		/**< Allocation from cache */
+	guint64 alloc_from_cache_pages;	/**< Pages allocated from cache */
+	guint64 alloc_direct_core;		/**< Allocation done through core */
+	guint64 alloc_direct_core_pages;/**< Pages allocated from core */
+	guint64 free_to_cache;			/**< Freeings directed to cache */
+	guint64 free_to_cache_pages;	/**< Amount of pages directed to cache */
+	guint64 free_to_system;			/**< Freeings returned to kernel */
+	guint64 free_to_system_pages;	/**< Amount of pages returned to kernel */
+	guint64 forced_freed;			/**< Amount of forceful freeings */
+	guint64 forced_freed_pages;		/**< Amount of pages forcefully freed */
+	guint64 cache_evictions;		/**< Evictions due to cache being full */
+	guint64 cache_coalescing;		/**< Amount of coalescing from cache */
+	guint64 cache_line_coalescing;	/**< Amount of coalescing in cache line */
+	guint64 cache_expired;			/**< Amount of entries expired from cache */
+	guint64 cache_expired_pages;	/**< Expired pages from cache */
+} vmm_stats;
+
+/**
  * The kernel version of the pmap and our own version.
  */
 static struct pmap kernel_pmap;
@@ -246,7 +274,7 @@ vmm_pmap(void)
 	return kernel_pmap.count ? &kernel_pmap : &local_pmap;
 }
 
-static void page_cache_insert_pages(void *base, size_t n);
+static gboolean page_cache_insert_pages(void *base, size_t n);
 static void pmap_remove(struct pmap *pm, const void *p, size_t size);
 static void pmap_load(struct pmap *pm);
 static void pmap_insert_region(struct pmap *pm,
@@ -746,10 +774,12 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		hint = deconstify_gpointer(NULL == hole ? vmm_find_hole(size) : hole);
 	}
 
-	if G_UNLIKELY(hint != NULL && vmm_debugging(8)) {
-		s_debug("VMM hinting %s%p for new %luKiB region",
-			NULL == hole ? "" : "supplied ",
-			hint, (unsigned long) (size / 1024));
+	if G_UNLIKELY(hint != NULL) {
+		if (vmm_debugging(8)) {
+			s_debug("VMM hinting %s%p for new %luKiB region",
+				NULL == hole ? "" : "supplied ",
+				hint, (unsigned long) (size / 1024));
+		}
 	}
 
 	p = vmm_valloc(hint, size);
@@ -760,12 +790,15 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 			return_value_unless(MAP_FAILED != p, NULL);
 		}
 		p = NULL;
-	} else if (p != hint) {
-		if G_UNLIKELY(hint != NULL && vmm_debugging(0)) {
-			s_warning("VMM kernel did not follow hint %p for %luKiB region, "
-				"picked %p (after %lu followed hint%s)",
-				hint, (unsigned long) (size / 1024), p,
-				(unsigned long) hint_followed, hint_followed == 1 ? "" : "s");
+	} else if G_UNLIKELY(p != hint) {
+		if G_UNLIKELY(hint != NULL) {
+			if (vmm_debugging(0)) {
+				s_warning("VMM kernel did not follow hint %p for %luKiB "
+					"region, picked %p (after %lu followed hint%s)",
+					hint, (unsigned long) (size / 1024), p,
+					(unsigned long) hint_followed,
+					hint_followed == 1 ? "" : "s");
+			}
 		}
 
 		/*
@@ -873,12 +906,15 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 			}
 		}
 	} else if (hint != NULL) {
-		if G_UNLIKELY(0 == (hint_followed & 0xff) && vmm_debugging(0)) {
-			s_debug("VMM hint %p followed for %luKiB (%lu consecutive)",
-				hint, (unsigned long) (size / 1024),
-				(unsigned long) hint_followed);
+		if G_UNLIKELY(0 == (hint_followed & 0xff)) {
+			if (vmm_debugging(0)) {
+				s_debug("VMM hint %p followed for %luKiB (%lu consecutive)",
+					hint, (unsigned long) (size / 1024),
+					(unsigned long) hint_followed);
+			}
 		}
 		hint_followed++;
+		vmm_stats.hints_followed++;
 	}
 done:
 	return p;
@@ -2313,6 +2349,7 @@ vpc_insert(struct page_cache *pc, void *p)
 				base, ptr_add_offset(base, pages * kernel_pagesize - 1));
 		}
 		page_cache_insert_pages(base, pages);
+		vmm_stats.cache_line_coalescing++;
 		return;
 	}
 
@@ -2334,6 +2371,7 @@ insert:
 		vpc_free(pc, kidx);
 		if (idx > kidx)
 			idx--;
+		vmm_stats.cache_evictions++;
 	}
 
 	g_assert(size_is_non_negative(pc->current) && pc->current < VMM_CACHE_SIZE);
@@ -2618,11 +2656,13 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 		hole = const_ptr_add_offset(hole, -length);
 	}
 
-	if G_UNLIKELY(hole != NULL && vmm_debugging(8)) {
-		size_t np = pagecount_fast(len);
-		s_debug("VMM lowest hole of %lu page%s at %p (%lu page%s)",
-			(unsigned long) n, 1 == n ? "" : "s", hole,
-			(unsigned long) np, 1 == np ? "" : "s");
+	if G_UNLIKELY(hole != NULL) {
+		if (vmm_debugging(8)) {
+			size_t np = pagecount_fast(len);
+			s_debug("VMM lowest hole of %lu page%s at %p (%lu page%s)",
+				(unsigned long) n, 1 == n ? "" : "s", hole,
+				(unsigned long) np, 1 == np ? "" : "s");
+		}
 	}
 
 	*hole_ptr = hole;
@@ -2668,12 +2708,14 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 		}
 	}
 
-	if G_UNLIKELY(p != NULL && vmm_debugging(5)) {
-		s_debug("VMM found %luKiB region at %p in cache #%lu%s",
-			(unsigned long) (n * kernel_pagesize / 1024),
-			p, (unsigned long) pc->pages - 1,
-			pc->pages == n ? "" :
-			n > VMM_CACHE_LINES ? " (merged)" : " (split)");
+	if G_UNLIKELY(p != NULL) {
+		if (vmm_debugging(5)) {
+			s_debug("VMM found %luKiB region at %p in cache #%lu%s",
+				(unsigned long) (n * kernel_pagesize / 1024),
+				p, (unsigned long) pc->pages - 1,
+				pc->pages == n ? "" :
+				n > VMM_CACHE_LINES ? " (merged)" : " (split)");
+		}
 	}
 
 	return p;
@@ -2684,8 +2726,10 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
  *
  * If the cache is full, older memory is released and the new one is kept,
  * so that we minimize the risk of having cached memory swapped out.
+ *
+ * @return TRUE if pages were cached, FALSE if they were forcefully freed.
  */
-static void
+static gboolean
 page_cache_insert_pages(void *base, size_t n)
 {
 	size_t pages = n;
@@ -2701,7 +2745,9 @@ page_cache_insert_pages(void *base, size_t n)
 
 	if (pmap_is_fragment(vmm_pmap(), base, n)) {
 		free_pages_forced(base, n * kernel_pagesize, TRUE);
-		return;
+		vmm_stats.forced_freed++;
+		vmm_stats.forced_freed_pages += n;
+		return FALSE;
 	}
 
 	/*
@@ -2721,6 +2767,8 @@ page_cache_insert_pages(void *base, size_t n)
 		g_assert(pages <= VMM_CACHE_LINES);
 		vpc_insert(&page_cache[pages - 1], p);
 	}
+
+	return TRUE;
 }
 
 /**
@@ -2914,6 +2962,8 @@ done:
 
 		*base_ptr = base;
 		*pages_ptr = pages;
+		vmm_stats.cache_coalescing++;
+
 		return TRUE;
 	}
 
@@ -3010,6 +3060,7 @@ vmm_alloc(size_t size)
 	
 	size = round_pagesize_fast(size);
 	n = pagecount_fast(size);
+	vmm_stats.allocations++;
 
 	/*
 	 * First look in the page cache to avoid requesting a new memory
@@ -3020,6 +3071,8 @@ vmm_alloc(size_t size)
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		assert_vmm_is_allocated(p, size, VMF_NATIVE);
+		vmm_stats.alloc_from_cache++;
+		vmm_stats.alloc_from_cache_pages += n;
 		return p;
 	}
 
@@ -3029,6 +3082,9 @@ vmm_alloc(size_t size)
 			(unsigned long) size);
 
 	assert_vmm_is_allocated(p, size, VMF_NATIVE);
+	vmm_stats.alloc_direct_core++;
+	vmm_stats.alloc_direct_core_pages += n;
+
 	return p;
 }
 
@@ -3046,6 +3102,8 @@ vmm_alloc0(size_t size)
 
 	size = round_pagesize_fast(size);
 	n = pagecount_fast(size);
+	vmm_stats.allocations++;
+	vmm_stats.allocations_zeroed++;
 
 	/*
 	 * First look in the page cache to avoid requesting a new memory
@@ -3057,6 +3115,8 @@ vmm_alloc0(size_t size)
 		vmm_validate_pages(p, size);
 		memset(p, 0, size);
 		assert_vmm_is_allocated(p, size, VMF_NATIVE);
+		vmm_stats.alloc_from_cache++;
+		vmm_stats.alloc_from_cache_pages += n;
 		return p;
 	}
 
@@ -3066,6 +3126,9 @@ vmm_alloc0(size_t size)
 			(unsigned long) size);
 
 	assert_vmm_is_allocated(p, size, VMF_NATIVE);
+	vmm_stats.alloc_direct_core++;
+	vmm_stats.alloc_direct_core_pages += n;
+
 	return p;		/* Memory allocated by the kernel is already zero-ed */
 }
 
@@ -3085,6 +3148,8 @@ vmm_free(void *p, size_t size)
 
 		size = round_pagesize_fast(size);
 		n = pagecount_fast(size);
+		vmm_stats.freeings++;
+
 		g_assert(n >= 1);			/* Asserts that size != 0 */
 
 		assert_vmm_is_allocated(p, size, VMF_NATIVE);
@@ -3100,9 +3165,14 @@ vmm_free(void *p, size_t size)
 		if (n <= VMM_CACHE_LINES) {
 			vmm_invalidate_pages(p, size);
 			page_cache_coalesce_pages(&p, &n);
-			page_cache_insert_pages(p, n);
+			if (page_cache_insert_pages(p, n)) {
+				vmm_stats.free_to_cache++;
+				vmm_stats.free_to_cache_pages += n;
+			}
 		} else {
 			free_pages(p, size, TRUE);
+			vmm_stats.free_to_system++;
+			vmm_stats.free_to_system_pages += pagecount_fast(size);
 		}
 	}
 }
@@ -3146,12 +3216,19 @@ vmm_shrink(void *p, size_t size, size_t new_size)
 			 * kernel to find a large consecutive virtual memory region.
 			 */
 
+			vmm_stats.shrinkings++;
+
 			if (n <= VMM_CACHE_LINES) {
 				vmm_invalidate_pages(q, osize - nsize);
 				page_cache_coalesce_pages(&q, &n);
-				page_cache_insert_pages(q, n);
+				if (page_cache_insert_pages(q, n)) {
+					vmm_stats.free_to_cache++;
+					vmm_stats.free_to_cache_pages += n;
+				}
 			} else {
 				free_pages(q, osize - nsize, TRUE);
+				vmm_stats.free_to_system++;
+				vmm_stats.free_to_system_pages += pagecount_fast(osize - nsize);
 			}
 		}
 	}
@@ -3206,6 +3283,8 @@ page_cache_timer(gpointer unused_udata)
 		) {
 			vpc_free(pc, i);
 			expired++;
+			vmm_stats.cache_expired++;
+			vmm_stats.cache_expired_pages += pagecount_fast(pc->chunksize);
 		} else {
 			i++;
 		}
@@ -3640,7 +3719,7 @@ vmm_stop_freeing(void)
 /**
  * Final shutdown.
  */
-void
+G_GNUC_COLD void
 vmm_close(void)
 {
 	struct pmap *pm = vmm_pmap();
@@ -3762,6 +3841,8 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 	if G_LIKELY(p != MAP_FAILED) {
 		size_t size = round_pagesize_fast(length);
 
+		vmm_stats.mmaps++;
+
 		/*
 		 * The mapped memory region is "foreign" memory as far as we are
 		 * concerned and may overlap with previously allocated "foreign"
@@ -3777,12 +3858,12 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 		pmap_insert_mapped(vmm_pmap(), p, size);
 		assert_vmm_is_allocated(p, length, VMF_MAPPED);
 
-		if G_UNLIKELY(vmm_debugging(5)) {
+		if (vmm_debugging(5)) {
 			s_debug("VMM mapped %luKiB region at %p (fd #%d, offset 0x%lx)",
 				(unsigned long) length / 1024, p,
 				fd, (unsigned long) offset);
 		}
-	} else if G_UNLIKELY(vmm_debugging(0)) {
+	} else if (vmm_debugging(0)) {
 		s_warning("VMM FAILED maping of %luKiB region "
 			"(fd #%d, offset 0x%lx)",
 			(unsigned long) length / 1024, fd, (unsigned long) offset);
@@ -3817,6 +3898,7 @@ vmm_munmap(void *addr, size_t length)
 
 	if G_LIKELY(0 == ret) {
 		pmap_remove(vmm_pmap(), addr, round_pagesize_fast(length));
+		vmm_stats.munmaps++;
 
 		if (vmm_debugging(5)) {
 			s_debug("VMM unmapped %luKiB region at %p",
@@ -3834,6 +3916,40 @@ vmm_munmap(void *addr, size_t length)
 
 	return -1;
 #endif	/* HAS_MMAP */
+}
+
+/**
+ * Dump VMM statistics.
+ */
+G_GNUC_COLD void
+vmm_dump_stats(void)
+{
+#define DUMP(x)	s_info("VMM %s = %s", #x, uint64_to_string(vmm_stats.x))
+
+	DUMP(allocations);
+	DUMP(allocations_zeroed);
+	DUMP(freeings);
+	DUMP(shrinkings);
+	DUMP(mmaps);
+	DUMP(munmaps);
+	DUMP(hints_followed);
+	DUMP(alloc_from_cache);
+	DUMP(alloc_from_cache_pages);
+	DUMP(alloc_direct_core);
+	DUMP(alloc_direct_core_pages);
+	DUMP(free_to_cache);
+	DUMP(free_to_cache_pages);
+	DUMP(free_to_system);
+	DUMP(free_to_system_pages);
+	DUMP(forced_freed);
+	DUMP(forced_freed_pages);
+	DUMP(cache_evictions);
+	DUMP(cache_coalescing);
+	DUMP(cache_line_coalescing);
+	DUMP(cache_expired);
+	DUMP(cache_expired_pages);
+
+#undef DUMP
 }
 
 /***

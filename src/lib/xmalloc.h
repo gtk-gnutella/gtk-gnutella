@@ -45,6 +45,7 @@ void xmalloc_post_init(void);
 gboolean xmalloc_is_malloc(void) G_GNUC_CONST;
 void xmalloc_show_settings(void);
 void xmalloc_stop_freeing(void);
+void xmalloc_dump_stats(void);
 
 void *xmalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xmalloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;

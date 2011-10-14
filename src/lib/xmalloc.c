@@ -49,6 +49,7 @@
 #include "log.h"
 #include "misc.h"
 #include "pow2.h"
+#include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
 #include "vmm.h"
@@ -196,6 +197,38 @@ static struct xfreelist {
 static bit_array_t xfreebits[BIT_ARRAY_SIZE(XMALLOC_FREELIST_COUNT)];
 
 #define XMALLOC_SHRINK_PERIOD	5	/**< Seconds between shrinking attempts */
+
+/**
+ * Internal statistics collected.
+ */
+static struct {
+	guint64 allocations;
+	guint64 allocations_zeroed;
+	guint64 allocations_aligned;
+	guint64 alloc_via_freelist;
+	guint64 alloc_via_vmm;
+	guint64 alloc_via_sbrk;
+	guint64 freeings;
+	guint64 aligned_via_freelist;
+	guint64 aligned_via_freelist_then_vmm;
+	guint64 aligned_via_vmm;
+	guint64 aligned_via_zone;
+	guint64 aligned_via_xmalloc;
+	guint64 aligned_freed;
+	guint64 aligned_free_false_positives;
+	guint64 aligned_zones_created;
+	guint64 aligned_zones_destroyed;
+	guint64 reallocs;
+	guint64 realloc_noop;
+	guint64 realloc_inplace_vmm_shrinking;
+	guint64 realloc_inplace_shrinking;
+	guint64 realloc_inplace_extension;
+	guint64 realloc_coalescing_extension;
+	guint64 realloc_relocate_vmm_fragment;
+	guint64 realloc_relocate_smart_attempts;
+	guint64 realloc_relocate_smart_success;
+	guint64 realloc_regular_strategy;
+} xstats;
 
 static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
 static guint32 xmalloc_debug;		/**< Debug level */
@@ -1894,6 +1927,7 @@ xmalloc(size_t size)
 	 */
 
 	len = xmalloc_round_blocksize(xmalloc_round(size) + XHEADER_SIZE);
+	xstats.allocations++;
 
 	/*
 	 * First try to allocate from the freelist when the length is less than
@@ -1902,8 +1936,10 @@ xmalloc(size_t size)
 
 	if (len <= XMALLOC_MAXSIZE) {
 		p = xmalloc_freelist_alloc(len);
-		if (p != NULL)
+		if (p != NULL) {
+			xstats.alloc_via_freelist++;
 			return xmalloc_block_setup(p, len);
+		}
 	}
 
 	/*
@@ -1916,6 +1952,8 @@ xmalloc(size_t size)
 		/*
 		 * As soon as the VMM layer is up, use it for all core allocations.
 		 */
+
+		xstats.alloc_via_vmm++;
 
 		if (len >= pagesize) {
 			size_t vlen = round_pagesize(len);
@@ -1951,6 +1989,7 @@ xmalloc(size_t size)
 		 */
 
 		p = xmalloc_addcore_from_heap(len);
+		xstats.alloc_via_sbrk++;
 
 		if (xmalloc_debugging(0)) {
 			t_debug(NULL, "XM added %lu bytes of heap core at %p",
@@ -1975,6 +2014,7 @@ xmalloc0(size_t size)
 
 	p = xmalloc(size);
 	memset(p, 0, size);
+	xstats.allocations_zeroed++;
 
 	return p;
 }
@@ -2018,6 +2058,7 @@ xfree(void *p)
 		return;
 
 	xh = ptr_add_offset(p, -XHEADER_SIZE);
+	xstats.freeings++;
 
 	/*
 	 * Handle pointers returned by posix_memalign() and friends that
@@ -2081,6 +2122,7 @@ xrealloc(void *p, size_t size)
 	 */
 
 	newlen = xmalloc_round_blocksize(xmalloc_round(size) + XHEADER_SIZE);
+	xstats.reallocs++;
 
 	/*
 	 * Identify blocks allocated from the VMM layer: they are page-aligned
@@ -2105,6 +2147,7 @@ xrealloc(void *p, size_t size)
 
 			q = vmm_alloc(newlen);
 			np = xmalloc_block_setup(q, newlen);
+			xstats.realloc_relocate_vmm_fragment++;
 
 			if (xmalloc_debugging(1)) {
 				t_debug(NULL, "XM relocated %lu-byte VMM region at %p to %p"
@@ -2131,6 +2174,7 @@ xrealloc(void *p, size_t size)
 			}
 
 			vmm_shrink(xh, xh->length, newlen);
+			xstats.realloc_inplace_vmm_shrinking++;
 			goto inplace;
 		}
 
@@ -2147,6 +2191,8 @@ xrealloc(void *p, size_t size)
 				"(already %lu-byte long VMM region)",
 				p, (unsigned long) size, (unsigned long) xh->length);
 		}
+
+		xstats.realloc_noop++;
 
 		return p;
 	}
@@ -2171,12 +2217,15 @@ xrealloc(void *p, size_t size)
 			 */
 
 			q = xmalloc_freelist_lookup(newlen, &fl);
+			xstats.realloc_relocate_smart_attempts++;
+
 			if (
 				q != NULL && newlen == fl->blocksize &&
 				(xmalloc_grows_up ? +1 : -1) * ptr_cmp(q, xh) < 0
 			) {
 				np = xmalloc_block_setup(q, newlen);
 				xfl_remove_selected(fl);
+				xstats.realloc_relocate_smart_success++;
 
 				if (xmalloc_debugging(1)) {
 					t_debug(NULL, "XM relocated %lu-byte block at %p to %p"
@@ -2196,6 +2245,7 @@ xrealloc(void *p, size_t size)
 				xmalloc_isheap(p, size) ? "heap" : "VMM");
 		}
 
+		xstats.realloc_noop++;
 		return p;
 	}
 
@@ -2217,6 +2267,7 @@ xrealloc(void *p, size_t size)
 		}
 
 		xmalloc_freelist_insert(end, xh->length - newlen, XM_COALESCE_AFTER);
+		xstats.realloc_inplace_shrinking++;
 		goto inplace;
 	}
 
@@ -2340,6 +2391,7 @@ xrealloc(void *p, size_t size)
 					(unsigned long) newlen);
 			}
 
+			xstats.realloc_inplace_extension++;
 			goto inplace;
 		}
 
@@ -2445,6 +2497,7 @@ xrealloc(void *p, size_t size)
 					(unsigned long) newlen, (void *) xh);
 			}
 
+			xstats.realloc_coalescing_extension++;
 			return xmalloc_block_setup(xh, newlen);
 		}
 
@@ -2458,6 +2511,7 @@ skip_coalescing:
 	 */
 
 	np = xmalloc(size);
+	xstats.realloc_regular_strategy++;
 
 	if (xmalloc_debugging(1)) {
 		t_debug(NULL, "XM realloc used regular strategy: "
@@ -2541,6 +2595,44 @@ G_GNUC_COLD void
 xmalloc_stop_freeing(void)
 {
 	xmalloc_no_freeing = TRUE;
+}
+
+/**
+ * Dump xmalloc statistics.
+ */
+G_GNUC_COLD void
+xmalloc_dump_stats(void)
+{
+#define DUMP(x)	s_info("XM %s = %s", #x, uint64_to_string(xstats.x))
+
+	DUMP(allocations);
+	DUMP(allocations_zeroed);
+	DUMP(allocations_aligned);
+	DUMP(alloc_via_freelist);
+	DUMP(alloc_via_vmm);
+	DUMP(alloc_via_sbrk);
+	DUMP(freeings);
+	DUMP(aligned_via_freelist);
+	DUMP(aligned_via_freelist_then_vmm);
+	DUMP(aligned_via_vmm);
+	DUMP(aligned_via_zone);
+	DUMP(aligned_via_xmalloc);
+	DUMP(aligned_freed);
+	DUMP(aligned_free_false_positives);
+	DUMP(aligned_zones_created);
+	DUMP(aligned_zones_destroyed);
+	DUMP(reallocs);
+	DUMP(realloc_noop);
+	DUMP(realloc_inplace_vmm_shrinking);
+	DUMP(realloc_inplace_shrinking);
+	DUMP(realloc_inplace_extension);
+	DUMP(realloc_coalescing_extension);
+	DUMP(realloc_relocate_vmm_fragment);
+	DUMP(realloc_relocate_smart_attempts);
+	DUMP(realloc_relocate_smart_success);
+	DUMP(realloc_regular_strategy);
+
+#undef DUMP
 }
 
 #ifdef XMALLOC_IS_MALLOC
@@ -2887,6 +2979,7 @@ xzget(size_t alignment)
 	xz->nblocks = nblocks;
 
 	xa_insert(arena, xz);
+	xstats.aligned_zones_created++;
 
 	if (xmalloc_debugging(2)) {
 		t_debug(NULL, "XM recorded aligned %p (%lu bytes) as %lu-byte zone",
@@ -2932,6 +3025,7 @@ xzdestroy(struct xdesc_zone *xz)
 
 	xfree(xz->bitmap);
 	vmm_free(xz->arena, compat_pagesize());
+	xstats.aligned_zones_destroyed++;
 }
 
 /**
@@ -3081,10 +3175,13 @@ xalign_free(const void *p)
 
 	idx = xa_lookup(start, NULL);
 
-	if G_LIKELY((size_t) -1 == idx)
+	if G_LIKELY((size_t) -1 == idx) {
+		xstats.aligned_free_false_positives++;
 		return FALSE;
+	}
 
 	xt = aligned[idx].pdesc;
+	xstats.aligned_freed++;
 
 	switch (xt->type) {
 	case XPAGE_SET:
@@ -3157,8 +3254,11 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 	if (0 != alignment % sizeof(void *))
 		return EINVAL;
 
+	xstats.allocations_aligned++;
+
 	if G_UNLIKELY(alignment <= MEM_ALIGNBYTES) {
 		p = xmalloc(size);
+		xstats.aligned_via_xmalloc++;
 		goto done;
 	}
 
@@ -3189,6 +3289,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 	if G_UNLIKELY(alignment == pagesize) {
 		p = vmm_alloc(size);	/* More than we need */
 		method = "VMM";
+		xstats.aligned_via_vmm++;
 
 		/*
 		 * There is no xmalloc() header for this block, hence we need to
@@ -3206,6 +3307,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 		p = vmm_alloc(nalloc);	/* More than we need */
 		method = "VMM";
+		xstats.aligned_via_vmm++;
 
 		/*
 		 * Is the address already properly aligned?
@@ -3278,6 +3380,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 		xa_insert_set(p, rsize);
 		method = "plain VMM";
+		xstats.aligned_via_vmm++;
 		goto done;
 	} else if (size > alignment / 2 && size <= alignment) {
 		/*
@@ -3287,6 +3390,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 		p = xzalloc(alignment);
 		method = "zone";
+		xstats.aligned_via_zone++;
 		goto done;
 	} else {
 		size_t nalloc, len, blen;
@@ -3313,6 +3417,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		if (p != NULL) {
 			end = ptr_add_offset(p, len);
 			method = "freelist";
+			xstats.aligned_via_freelist++;
 		} else {
 			if (len >= pagesize) {
 				size_t vlen = round_pagesize(len);
@@ -3335,6 +3440,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 						(unsigned long) pagesize, p);
 				}
 			}
+			xstats.aligned_via_freelist_then_vmm++;
 		}
 
 		g_assert(p != NULL);
