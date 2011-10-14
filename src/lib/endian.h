@@ -31,11 +31,11 @@
  * or little-endian.
  */
 
-static inline ALWAYS_INLINE G_GNUC_PURE unsigned char
+static inline ALWAYS_INLINE G_GNUC_PURE guint8
 peek_u8(const void *p)
 {
-	const unsigned char *q = p;
-	return q[0] & 0xff;
+	const guint8 *q = p;
+	return q[0];
 }
 
 static inline ALWAYS_INLINE G_GNUC_PURE guint16
