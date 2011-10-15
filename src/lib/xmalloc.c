@@ -239,6 +239,11 @@ static struct {
 	guint64 realloc_relocate_smart_attempts;	/**< Attempts to move pointer */
 	guint64 realloc_relocate_smart_success;		/**< Smart placement was OK */
 	guint64 realloc_regular_strategy;		/**< Regular resizing strategy */
+	guint64 freelist_further_breakups;		/**< Breakups due to extra size */
+	guint64 freelist_coalescing_done;		/**< Successful coalescings */
+	guint64 freelist_coalescing_failed;		/**< Failed coalescings */
+	guint64 freelist_split;				/**< Block splitted on allocation */
+	guint64 freelist_nosplit;			/**< Block not splitted on allocation */
 } xstats;
 
 static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
@@ -974,10 +979,13 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 
 			split_len = blksize - len;
 
-			if G_UNLIKELY(split_len < XMALLOC_SPLIT_MIN)
+			if G_UNLIKELY(split_len < XMALLOC_SPLIT_MIN) {
+				xstats.freelist_nosplit++;
 				goto no_split;
+			}
 
 			if G_LIKELY(!xfl_block_falls_in(flb, split_len)) {
+				xstats.freelist_split++;
 				if (xmalloc_grows_up) {
 					/* Split the end of the block */
 					split = ptr_add_offset(p, len);
@@ -999,6 +1007,7 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 				xmalloc_freelist_insert(split, split_len, XM_COALESCE_NONE);
 				blksize = len;		/* We shrank the allocted block */
 			} else {
+				xstats.freelist_nosplit++;
 				if (xmalloc_debugging(3)) {
 					t_debug(NULL, "XM not splitting large %lu-byte block at %p"
 						" (need only %lu bytes but split %lu bytes would fall"
@@ -1571,6 +1580,9 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, guint32 flags)
 	if G_UNLIKELY(coalesced) {
 		*base_ptr = base;
 		*len_ptr = ptr_diff(end, base);
+		xstats.freelist_coalescing_done++;
+	} else {
+		xstats.freelist_coalescing_failed++;
 	}
 
 	return coalesced;
@@ -1755,6 +1767,7 @@ xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
 					(unsigned long) (len - multiple));
 			}
 
+			xstats.freelist_further_breakups++;
 			goto split_again;
 		}
 
@@ -1908,6 +1921,7 @@ xmalloc_freelist_alloc(size_t len, size_t *allocated)
 			split_len = blksize - len;
 
 			if (split_len >= XMALLOC_SPLIT_MIN) {
+				xstats.freelist_split++;
 				if (xmalloc_grows_up) {
 					/* Split the end of the block */
 					split = ptr_add_offset(p, len);
@@ -1928,6 +1942,7 @@ xmalloc_freelist_alloc(size_t len, size_t *allocated)
 
 				xmalloc_freelist_insert(split, split_len, XM_COALESCE_NONE);
 			} else {
+				xstats.freelist_nosplit++;
 				len = blksize;		/* Wasting some trailing bytes */
 
 				if (xmalloc_debugging(3)) {
@@ -2757,6 +2772,11 @@ xmalloc_dump_stats(void)
 	DUMP(realloc_relocate_smart_attempts);
 	DUMP(realloc_relocate_smart_success);
 	DUMP(realloc_regular_strategy);
+	DUMP(freelist_further_breakups);
+	DUMP(freelist_coalescing_done);
+	DUMP(freelist_coalescing_failed);
+	DUMP(freelist_split);
+	DUMP(freelist_nosplit);
 
 #undef DUMP
 
