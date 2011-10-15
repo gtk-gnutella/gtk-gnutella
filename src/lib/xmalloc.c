@@ -2709,7 +2709,11 @@ xmalloc_stop_freeing(void)
 G_GNUC_COLD void
 xmalloc_dump_stats(void)
 {
+	size_t i;
+
 #define DUMP(x)	s_info("XM %s = %s", #x, uint64_to_string(xstats.x))
+
+	s_info("XM running statistics:");
 
 	DUMP(allocations);
 	DUMP(allocations_zeroed);
@@ -2739,6 +2743,19 @@ xmalloc_dump_stats(void)
 	DUMP(realloc_regular_strategy);
 
 #undef DUMP
+
+	s_info("XM freelist status:");
+
+	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+		struct xfreelist *fl = &xfreelist[i];
+
+		if (0 == fl->capacity)
+			continue;
+
+		s_info("XM freelist #%lu (%lu bytes): capacity=%lu, count=%lu",
+			(unsigned long) i, (unsigned long) fl->blocksize,
+			(unsigned long) fl->capacity, (unsigned long) fl->count);
+	}
 }
 
 #ifdef XMALLOC_IS_MALLOC

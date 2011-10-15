@@ -3926,6 +3926,8 @@ vmm_dump_stats(void)
 {
 #define DUMP(x)	s_info("VMM %s = %s", #x, uint64_to_string(vmm_stats.x))
 
+	s_info("VMM running statistics:");
+
 	DUMP(allocations);
 	DUMP(allocations_zeroed);
 	DUMP(freeings);
@@ -3950,6 +3952,8 @@ vmm_dump_stats(void)
 	DUMP(cache_expired_pages);
 
 #undef DUMP
+
+	vmm_dump_pmap();
 }
 
 /***
