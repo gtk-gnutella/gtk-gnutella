@@ -9201,8 +9201,8 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 	owner = node_by_guid(guid);
 	if (owner) {
 		if (GNET_PROPERTY(node_debug)) {
-			g_warning("%s uses same GUID as %s <%s>",
-				node_infostr(n),
+			g_warning("%s uses same GUID %s as %s <%s>",
+				node_infostr(n), guid_hex_str(guid),
 				node_addr2(owner), node_vendor(owner));
 		}
 		gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
