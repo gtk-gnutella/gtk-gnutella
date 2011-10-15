@@ -212,32 +212,32 @@ static bit_array_t xfreebits[BIT_ARRAY_SIZE(XMALLOC_FREELIST_COUNT)];
  * Internal statistics collected.
  */
 static struct {
-	guint64 allocations;
-	guint64 allocations_zeroed;
-	guint64 allocations_aligned;
-	guint64 alloc_via_freelist;
-	guint64 alloc_via_vmm;
-	guint64 alloc_via_sbrk;
-	guint64 freeings;
-	guint64 aligned_via_freelist;
-	guint64 aligned_via_freelist_then_vmm;
-	guint64 aligned_via_vmm;
-	guint64 aligned_via_zone;
-	guint64 aligned_via_xmalloc;
-	guint64 aligned_freed;
-	guint64 aligned_free_false_positives;
-	guint64 aligned_zones_created;
-	guint64 aligned_zones_destroyed;
-	guint64 reallocs;
-	guint64 realloc_noop;
-	guint64 realloc_inplace_vmm_shrinking;
-	guint64 realloc_inplace_shrinking;
-	guint64 realloc_inplace_extension;
-	guint64 realloc_coalescing_extension;
-	guint64 realloc_relocate_vmm_fragment;
-	guint64 realloc_relocate_smart_attempts;
-	guint64 realloc_relocate_smart_success;
-	guint64 realloc_regular_strategy;
+	guint64 allocations;				/**< Total # of allocations */
+	guint64 allocations_zeroed;			/**< Total # of zeroing allocations */
+	guint64 allocations_aligned;		/**< Total # of aligned allocations */
+	guint64 alloc_via_freelist;			/**< Allocations from freelist */
+	guint64 alloc_via_vmm;				/**< Allocations from VMM */
+	guint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
+	guint64 freeings;					/**< Total # of freeings */
+	guint64 aligned_via_freelist;			/**< Aligned memory from freelist */
+	guint64 aligned_via_freelist_then_vmm;	/**< Aligned memory from VMM */
+	guint64 aligned_via_vmm;				/**< Idem, no freelist tried */
+	guint64 aligned_via_zone;				/**< Aligned memory from zone */
+	guint64 aligned_via_xmalloc;			/**< Aligned memory from xmalloc */
+	guint64 aligned_freed;					/**< Freed aligned memory */
+	guint64 aligned_free_false_positives;	/**< Aligned pointers not aligned */
+	guint64 aligned_zones_created;			/**< Zones created for alignment */
+	guint64 aligned_zones_destroyed;		/**< Alignment zones destroyed */
+	guint64 reallocs;						/**< Total # of reallocations */
+	guint64 realloc_noop;					/**< Reallocs not doing anything */
+	guint64 realloc_inplace_vmm_shrinking;	/**< Reallocs with inplace shrink */
+	guint64 realloc_inplace_shrinking;		/**< Idem but from freelist */
+	guint64 realloc_inplace_extension;		/**< Reallocs not moving data */
+	guint64 realloc_coalescing_extension;	/**< Reallocs through coalescing */
+	guint64 realloc_relocate_vmm_fragment;	/**< Reallocs of moved fragments */
+	guint64 realloc_relocate_smart_attempts;	/**< Attempts to move pointer */
+	guint64 realloc_relocate_smart_success;		/**< Smart placement was OK */
+	guint64 realloc_regular_strategy;		/**< Regular resizing strategy */
 } xstats;
 
 static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
