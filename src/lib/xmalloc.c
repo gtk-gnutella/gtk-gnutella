@@ -2741,6 +2741,8 @@ G_GNUC_COLD void
 xmalloc_dump_stats(void)
 {
 	size_t i;
+	guint64 bytes = 0;
+	size_t blocks = 0;
 
 #define DUMP(x)	s_info("XM %s = %s", #x, uint64_to_string(xstats.x))
 
@@ -2788,10 +2790,17 @@ xmalloc_dump_stats(void)
 		if (0 == fl->capacity)
 			continue;
 
+		bytes += fl->blocksize * fl->count;
+		blocks = size_saturate_add(blocks, fl->count);
+
 		s_info("XM freelist #%lu (%lu bytes): capacity=%lu, count=%lu",
 			(unsigned long) i, (unsigned long) fl->blocksize,
 			(unsigned long) fl->capacity, (unsigned long) fl->count);
 	}
+
+	s_info("XM freelist holds %s bytes spread among %lu block%s",
+		uint64_to_string(bytes), (unsigned long) blocks,
+		1 == blocks ? "" : "s");
 }
 
 #ifdef XMALLOC_IS_MALLOC
