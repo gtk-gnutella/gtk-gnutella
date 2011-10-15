@@ -49,6 +49,7 @@
 #include "log.h"
 #include "misc.h"
 #include "pow2.h"
+#include "random.h"
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
@@ -244,6 +245,7 @@ static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
 static guint32 xmalloc_debug;		/**< Debug level */
 static gboolean safe_to_log;		/**< True when we can log */
 static gboolean xmalloc_vmm_is_up;	/**< True when the VMM layer is up */
+static gboolean xmalloc_random_up;	/**< True when we can use random numbers */
 static size_t sbrk_allocated;		/**< Bytes allocated with sbrk() */
 static gboolean xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
 static gboolean xmalloc_no_freeing;	/**< No longer release memory */
@@ -1732,7 +1734,19 @@ xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
 		 */
 
 		if (len > XMALLOC_FACTOR_MAXSIZE) {
-			multiple = XMALLOC_FACTOR_MAXSIZE / 2;
+		 	/*
+		 	 * The split bucket is chosen randomly so as to not artificially
+			 * raise the amount of blocks held in a given freelist.  We can
+			 * only use the random values after initialization.
+			 */
+
+			if G_LIKELY(xmalloc_random_up) {
+				size_t bucket = random_value(
+					XMALLOC_BUCKET_CUTOVER - XMALLOC_BUCKET_OFFSET);
+				multiple = xfl_block_size_idx(bucket);
+			} else {
+				multiple = XMALLOC_FACTOR_MAXSIZE / 2;
+			}
 
 			if (xmalloc_debugging(3)) {
 				t_debug(NULL, "XM further adjusting remaining length of %lu: "
@@ -2690,6 +2704,8 @@ xmalloc_post_init(void)
 		t_info(NULL, "XM using %ld freelist buckets",
 			(long) XMALLOC_FREELIST_COUNT);
 	}
+
+	xmalloc_random_up = TRUE;	/* Can use random numbers now */
 }
 
 /**
