@@ -129,11 +129,23 @@ struct xheader {
 #define XMALLOC_MAXSIZE			32768	/**< Largest block size in free list */
 
 /**
+ * Minimum size for a block split: the size of blocks in bucket #0.
+ */
+#define XMALLOC_SPLIT_MIN	(2 * XMALLOC_BUCKET_FACTOR)
+
+/**
+ * Correction offset due to bucket #0 having a minimum size.
+ */
+#define XMALLOC_BUCKET_OFFSET \
+	((XMALLOC_SPLIT_MIN / XMALLOC_BUCKET_FACTOR) - 1)
+
+/**
  * This contant defines the total number of buckets in the free list.
  */
 #define XMALLOC_FREELIST_COUNT	\
 	((XMALLOC_FACTOR_MAXSIZE / XMALLOC_BUCKET_FACTOR) + \
-	((XMALLOC_MAXSIZE - XMALLOC_FACTOR_MAXSIZE) / XMALLOC_BLOCK_SIZE))
+	((XMALLOC_MAXSIZE - XMALLOC_FACTOR_MAXSIZE) / XMALLOC_BLOCK_SIZE) - \
+	XMALLOC_BUCKET_OFFSET)
 
 /**
  * The cut-over index is the index of the first bucket using multiples of
@@ -141,18 +153,14 @@ struct xheader {
  * multiples.
  */
 #define XMALLOC_BUCKET_CUTOVER	\
-	((XMALLOC_FACTOR_MAXSIZE / XMALLOC_BUCKET_FACTOR) - 1)
+	((XMALLOC_FACTOR_MAXSIZE / XMALLOC_BUCKET_FACTOR) - \
+	1 - XMALLOC_BUCKET_OFFSET)
 
 /**
  * Masks for rounding a given size to one of the supported allocation lengths.
  */
 #define XMALLOC_FACTOR_MASK	(XMALLOC_BUCKET_FACTOR - 1)
 #define XMALLOC_BLOCK_MASK	(XMALLOC_BLOCK_SIZE - 1)
-
-/**
- * Minimum size for a block split: the size of blocks in bucket #0.
- */
-#define XMALLOC_SPLIT_MIN	XMALLOC_BUCKET_FACTOR
 
 /**
  * Block coalescing options.
@@ -177,7 +185,9 @@ struct xheader {
  *
  * The structure at index i tracks blocks of size:
  *
- *  - if i <= XMALLOC_BUCKET_CUTOVER, size = (i+1) * XMALLOC_BUCKET_FACTOR
+ *  with off = XMALLOC_BUCKET_OFFSET
+ *
+ *  - if i <= XMALLOC_BUCKET_CUTOVER, size = (i+1+off) * XMALLOC_BUCKET_FACTOR
  *  - otherwise size = XMALLOC_FACTOR_MAXSIZE +
  *                     (i - XMALLOC_BUCKET_CUTOVER) * XMALLOC_BLOCK_SIZE
  *
@@ -242,7 +252,7 @@ static void *initial_break;			/**< Initial heap break */
 static void *current_break;			/**< Current known heap break */
 
 static void xmalloc_freelist_add(void *p, size_t len, guint32 coalesce);
-static void *xmalloc_freelist_alloc(size_t len);
+static void *xmalloc_freelist_alloc(size_t len, size_t *allocated);
 static void xmalloc_freelist_setup(void);
 static void *xmalloc_freelist_lookup(size_t len, struct xfreelist **flp);
 static void xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce);
@@ -268,6 +278,8 @@ xmalloc_vmm_inited(void)
 {
 	STATIC_ASSERT(IS_POWER_OF_2(XMALLOC_BUCKET_FACTOR));
 	STATIC_ASSERT(IS_POWER_OF_2(XMALLOC_BLOCK_SIZE));
+	STATIC_ASSERT(0 == (XMALLOC_FACTOR_MASK & XMALLOC_SPLIT_MIN));
+	STATIC_ASSERT(XMALLOC_SPLIT_MIN / 2 == XMALLOC_BUCKET_FACTOR);
 
 	xmalloc_vmm_is_up = TRUE;
 	safe_to_log = TRUE;
@@ -299,16 +311,21 @@ xmalloc_round_blocksize(size_t len)
 	 * Blocks larger than XMALLOC_MAXSIZE are allocated via the VMM layer.
 	 */
 
-	if (len > XMALLOC_MAXSIZE)
+	if G_UNLIKELY(len > XMALLOC_MAXSIZE)
 		return round_pagesize(len);
 
 	/*
 	 * Blocks smaller than XMALLOC_FACTOR_MAXSIZE are allocated using the
-	 * first sizing strategy: multiples of XMALLOC_BUCKET_FACTOR bytes.
+	 * first sizing strategy: multiples of XMALLOC_BUCKET_FACTOR bytes,
+	 * with a minimum of XMALLOC_SPLIT_MIN bytes.
 	 */
 
-	if (len <= XMALLOC_FACTOR_MAXSIZE)
-		return (len + XMALLOC_FACTOR_MASK) & ~XMALLOC_FACTOR_MASK;
+	if (len <= XMALLOC_FACTOR_MAXSIZE) {
+		size_t blen = (len + XMALLOC_FACTOR_MASK) & ~XMALLOC_FACTOR_MASK;
+		if G_UNLIKELY(blen < XMALLOC_SPLIT_MIN)
+			blen = XMALLOC_SPLIT_MIN;
+		return blen;
+	}
 
 	/*
 	 * Blocks smaller than XMALLOC_MAXSIZE are allocated using the second
@@ -546,6 +563,7 @@ static inline gboolean
 xmalloc_is_valid_length(const void *p, size_t len)
 {
 	size_t rounded;
+	size_t adjusted;
 
 	if (!size_is_positive(len))
 		return FALSE;
@@ -553,6 +571,16 @@ xmalloc_is_valid_length(const void *p, size_t len)
 	rounded = xmalloc_round_blocksize(len);
 
 	if G_LIKELY(rounded == len || round_pagesize(rounded) == len)
+		return TRUE;
+
+	/*
+	 * Could have extra (unsplit due to minimum split size) data at the
+	 * end of the block.  Remove this data and see whether size would be
+	 * fitting.
+	 */
+
+	adjusted = len - XMALLOC_SPLIT_MIN / 2;		/* Half of split factor */
+	if G_LIKELY(adjusted == xmalloc_round_blocksize(adjusted))
 		return TRUE;
 
 	/*
@@ -585,7 +613,7 @@ static inline G_GNUC_PURE size_t
 xfl_block_size_idx(size_t idx)
 {
 	return (idx <= XMALLOC_BUCKET_CUTOVER) ?
-		XMALLOC_BUCKET_FACTOR * (idx + 1) :
+		XMALLOC_BUCKET_FACTOR * (idx + 1 + XMALLOC_BUCKET_OFFSET) :
 		XMALLOC_FACTOR_MAXSIZE +
 			XMALLOC_BLOCK_SIZE * (idx - XMALLOC_BUCKET_CUTOVER);
 }
@@ -608,9 +636,10 @@ xfl_find_freelist_index(size_t len)
 	g_assert(size_is_positive(len));
 	g_assert(xmalloc_round_blocksize(len) == len);
 	g_assert(len <= XMALLOC_MAXSIZE);
+	g_assert(len >= XMALLOC_SPLIT_MIN);
 
 	return (len <= XMALLOC_FACTOR_MAXSIZE) ? 
-		len / XMALLOC_BUCKET_FACTOR - 1 :
+		len / XMALLOC_BUCKET_FACTOR - 1 - XMALLOC_BUCKET_OFFSET :
 		XMALLOC_BUCKET_CUTOVER +
 			(len - XMALLOC_FACTOR_MAXSIZE) / XMALLOC_BLOCK_SIZE;
 }
@@ -943,6 +972,9 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 
 			split_len = blksize - len;
 
+			if G_UNLIKELY(split_len < XMALLOC_SPLIT_MIN)
+				goto no_split;
+
 			if G_LIKELY(!xfl_block_falls_in(flb, split_len)) {
 				if (xmalloc_grows_up) {
 					/* Split the end of the block */
@@ -976,6 +1008,7 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 			}
 		}
 
+	no_split:
 		*allocated = blksize;	/* Could be larger than requested initially */
 	}
 
@@ -1656,6 +1689,27 @@ xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
 
 		multiple = len & ~XMALLOC_BLOCK_MASK;
 
+		/*
+		 * Watch out for blocks having a trailing unsplit part and which
+		 * will therefore not end up with a completely valid blocksize if
+		 * they are blindly put in the largest freelist first.
+		 */
+
+		if G_UNLIKELY(len - multiple == XMALLOC_SPLIT_MIN / 2) {
+			if (len < 2 * XMALLOC_FACTOR_MAXSIZE) {
+				multiple = XMALLOC_FACTOR_MAXSIZE / 2;
+			} else {
+				multiple = (len - XMALLOC_FACTOR_MAXSIZE) & ~XMALLOC_BLOCK_MASK;
+			}
+			if (xmalloc_debugging(3)) {
+				t_debug(NULL, "XM specially adjusting length of %lu: "
+					"breaking into %lu and %lu bytes",
+					(unsigned long) len, (unsigned long) multiple,
+					(unsigned long) (len - multiple));
+			}
+		}
+
+	split_again:
 		if (multiple != len) {
 			if (xmalloc_debugging(3)) {
 				t_debug(NULL, "XM breaking up %s block %p (%lu bytes)",
@@ -1667,6 +1721,27 @@ xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
 			xfl_insert(fl, p);
 			p = ptr_add_offset(p, multiple);
 			len -= multiple;
+		}
+
+		/*
+		 * Again, when facing an initial length of 2048+4 = 2052 bytes,
+		 * we would end up with 1028 bytes here, which is still not good
+		 * enough.  As soon as we break under the XMALLOC_FACTOR_MAXSIZE
+		 * limit, we'll hit buckets with multiple of the alignbytes constant,
+		 * so we will always be able to find a matching bucket.
+		 */
+
+		if (len > XMALLOC_FACTOR_MAXSIZE) {
+			multiple = XMALLOC_FACTOR_MAXSIZE / 2;
+
+			if (xmalloc_debugging(3)) {
+				t_debug(NULL, "XM further adjusting remaining length of %lu: "
+					"breaking into %lu and %lu bytes",
+					(unsigned long) len, (unsigned long) multiple,
+					(unsigned long) (len - multiple));
+			}
+
+			goto split_again;
 		}
 
 		/* FALL THROUGH */
@@ -1786,12 +1861,14 @@ xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
  * Allocate a block from the freelist, of given physical length.
  *
  * @param len		the desired block length (including our overhead)
+ * @param allocated	the length of the allocated block is returned there
  *
  * @return the block address we found, NULL if nothing was found.
- * The returned block is removed from the freelist.
+ * The returned block is removed from the freelist.  When allocated, the
+ * size of the block is returned via ``allocated''.
  */
 static void *
-xmalloc_freelist_alloc(size_t len)
+xmalloc_freelist_alloc(size_t len, size_t *allocated)
 {
 	struct xfreelist *fl;
 	void *p;
@@ -1816,26 +1893,38 @@ xmalloc_freelist_alloc(size_t len)
 
 			split_len = blksize - len;
 
-			if (xmalloc_grows_up) {
-				/* Split the end of the block */
-				split = ptr_add_offset(p, len);
+			if (split_len >= XMALLOC_SPLIT_MIN) {
+				if (xmalloc_grows_up) {
+					/* Split the end of the block */
+					split = ptr_add_offset(p, len);
+				} else {
+					/* Split the head of the block */
+					split = p;
+					p = ptr_add_offset(p, split_len);
+				}
+
+				if (xmalloc_debugging(3)) {
+					t_debug(NULL, "XM splitting large %lu-byte block at %p"
+						" (need only %lu bytes: returning %lu bytes at %p)",
+						(unsigned long) blksize, p, (unsigned long) len,
+						(unsigned long) split_len, split);
+				}
+
+				g_assert(split_len <= XMALLOC_MAXSIZE);
+
+				xmalloc_freelist_insert(split, split_len, XM_COALESCE_NONE);
 			} else {
-				/* Split the head of the block */
-				split = p;
-				p = ptr_add_offset(p, split_len);
+				len = blksize;		/* Wasting some trailing bytes */
+
+				if (xmalloc_debugging(3)) {
+					t_debug(NULL, "XM NOT splitting large %lu-byte block at %p"
+						" (need only %lu bytes, split of %lu bytes too small)",
+						(unsigned long) blksize, p, (unsigned long) len,
+						(unsigned long) split_len);
+				}
 			}
-
-			if (xmalloc_debugging(3)) {
-				t_debug(NULL, "XM splitting large %lu-byte block at %p"
-					" (need only %lu bytes: returning %lu bytes at %p)",
-					(unsigned long) blksize, p, (unsigned long) len,
-					(unsigned long) split_len, split);
-			}
-
-			g_assert(split_len <= XMALLOC_MAXSIZE);
-
-			xmalloc_freelist_insert(split, split_len, XM_COALESCE_NONE);
 		}
+		*allocated = len;
 	}
 
 	return p;
@@ -1935,10 +2024,11 @@ xmalloc(size_t size)
 	 */
 
 	if (len <= XMALLOC_MAXSIZE) {
-		p = xmalloc_freelist_alloc(len);
+		size_t allocated;
+		p = xmalloc_freelist_alloc(len, &allocated);
 		if (p != NULL) {
 			xstats.alloc_via_freelist++;
-			return xmalloc_block_setup(p, len);
+			return xmalloc_block_setup(p, allocated);
 		}
 	}
 
@@ -2078,8 +2168,10 @@ xfree(void *p)
 			p, xmalloc_invalid_ptrstr(p));
 	}
 
-	if (!xmalloc_is_valid_length(xh, xh->length))
-		t_error(NULL, "corrupted malloc header for pointer %p", p);
+	if (!xmalloc_is_valid_length(xh, xh->length)) {
+		t_error(NULL, "corrupted malloc header for pointer %p: bad lengh %lu",
+			p, (unsigned long) xh->length);
+	}
 
 	xmalloc_freelist_add(xh, xh->length, XM_COALESCE_ALL);
 }
@@ -2114,8 +2206,10 @@ xrealloc(void *p, size_t size)
 			p, xmalloc_invalid_ptrstr(p));
 	}
 
-	if (!xmalloc_is_valid_length(xh, xh->length))
-		t_error(NULL, "corrupted malloc header for pointer %p", p);
+	if (!xmalloc_is_valid_length(xh, xh->length)) {
+		t_error(NULL, "corrupted malloc header for pointer %p: bad length %lu",
+			p, (unsigned long) xh->length);
+	}
 
 	/*
 	 * Compute the size of the physical block we need, including overhead.
@@ -2255,20 +2349,32 @@ xrealloc(void *p, size_t size)
 	 */
 
 	if (xh->length <= XMALLOC_MAXSIZE && newlen < xh->length) {
-		void *end;
+		size_t extra = xh->length - newlen;
 
-		end = ptr_add_offset(xh, newlen);
+		if G_UNLIKELY(extra < XMALLOC_SPLIT_MIN) {
+			if (xmalloc_debugging(2)) {
+				t_debug(NULL, "XM realloc of %p to %lu bytes can be a noop "
+					"(already %lu-byte long from %s, not shrinking %lu bytes)",
+					p, (unsigned long) size, (unsigned long) xh->length,
+					xmalloc_isheap(p, size) ? "heap" : "VMM",
+					(unsigned long) extra);
+			}
+			xstats.realloc_noop++;
+			return p;
+		} else {
+			void *end = ptr_add_offset(xh, newlen);
 
-		if (xmalloc_debugging(1)) {
-			t_debug(NULL, "XM using inplace shrink on %lu-byte block at %p"
-				" (new size is %lu bytes, splitting at %p)",
-				(unsigned long) xh->length, (void *) xh,
-				(unsigned long) newlen, end);
+			if (xmalloc_debugging(1)) {
+				t_debug(NULL, "XM using inplace shrink on %lu-byte block at %p"
+					" (new size is %lu bytes, splitting at %p)",
+					(unsigned long) xh->length, (void *) xh,
+					(unsigned long) newlen, end);
+			}
+
+			xmalloc_freelist_insert(end, extra, XM_COALESCE_AFTER);
+			xstats.realloc_inplace_shrinking++;
+			goto inplace;
 		}
-
-		xmalloc_freelist_insert(end, xh->length - newlen, XM_COALESCE_AFTER);
-		xstats.realloc_inplace_shrinking++;
-		goto inplace;
 	}
 
 	/*
@@ -3412,10 +3518,10 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		p = NULL;
 
 		if (len <= XMALLOC_MAXSIZE)
-			p = xmalloc_freelist_alloc(len);
+			p = xmalloc_freelist_alloc(len, &nalloc);
 
 		if (p != NULL) {
-			end = ptr_add_offset(p, len);
+			end = ptr_add_offset(p, nalloc);
 			method = "freelist";
 			xstats.aligned_via_freelist++;
 		} else {
@@ -3476,6 +3582,8 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 			if (split_len >= XMALLOC_SPLIT_MIN) {
 				xmalloc_freelist_insert(split, split_len, XM_COALESCE_AFTER);
 				truncation = TRUNCATION_AFTER;
+			} else {
+				blen = ptr_diff(end, p);
 			}
 
 			p = xmalloc_block_setup(p, blen);	/* User pointer */
@@ -3501,18 +3609,28 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 			q = ptr_add_offset(u, -XHEADER_SIZE);	/* Physical block start */
 
 			if (q != p) {
+				size_t before = ptr_diff(q, p);
+
+				/* Because alignment is large enough, this must hold */
+				g_assert(before >= XMALLOC_SPLIT_MIN);
+
 				/* Beginning of block, in excess */
-				xmalloc_freelist_insert(p, ptr_diff(q, p), XM_COALESCE_BEFORE);
+				xmalloc_freelist_insert(p, before, XM_COALESCE_BEFORE);
 				truncation |= TRUNCATION_BEFORE;
 			}
 
 			uend = ptr_add_offset(q, blen);
 
 			if (uend != end) {
-				/* End of block, in excess */
-				xmalloc_freelist_insert(uend, ptr_diff(end, uend),
-					XM_COALESCE_AFTER);
-				truncation |= TRUNCATION_AFTER;
+				size_t after = ptr_diff(end, uend);
+
+				if (after >= XMALLOC_SPLIT_MIN) {
+					/* End of block, in excess */
+					xmalloc_freelist_insert(uend, after, XM_COALESCE_AFTER);
+					truncation |= TRUNCATION_AFTER;
+				} else {
+					blen += after;	/* Not truncated */
+				}
 			}
 
 			p = xmalloc_block_setup(q, blen);	/* User pointer */
