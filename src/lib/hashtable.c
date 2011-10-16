@@ -95,6 +95,8 @@ struct hash_table {
 	 */
 	unsigned real:1;			/* If TRUE, created as "real" */
 #endif
+	unsigned special:1;			/* Set if structure allocated specially */
+	unsigned readonly:1;		/* Set if data structures protected */
 };
 
 static inline void *
@@ -129,7 +131,7 @@ static inline void
 hash_mark_real(hash_table_t * ht, gboolean is_real)
 {
 #ifdef TRACK_VMM
-	ht->real = is_real;
+	ht->real = booleanize(is_real);
 #else
 	(void) ht;
 	(void) is_real;
@@ -137,7 +139,7 @@ hash_mark_real(hash_table_t * ht, gboolean is_real)
 }
 
 static inline void
-hash_copy_real_flag(hash_table_t *dest, hash_table_t *src)
+hash_copy_real_flag(hash_table_t *dest, const hash_table_t *src)
 {
 #ifdef TRACK_VMM
 	dest->real = src->real;
@@ -233,6 +235,7 @@ hash_table_new_intern(hash_table_t *ht,
 
 	g_assert(ht);
 	g_assert(num_bins > 1);
+	g_assert(!ht->readonly);
 
 	ht->magic = HASHTABLE_MAGIC;
 	ht->num_held = 0;
@@ -266,14 +269,17 @@ hash_table_new_intern(hash_table_t *ht,
 	}
 
 	hash_table_check(ht);
+	g_assert(!ht->readonly);
 }
 
 hash_table_t *
 hash_table_new_full(hash_table_hash_func hash, hash_table_eq_func eq)
 {
 	hash_table_t *ht = malloc(sizeof *ht);
+
 	g_assert(ht);
-	hash_mark_real(ht, FALSE);
+
+	ZERO(ht);
 	hash_table_new_intern(ht, 2, hash, eq);
 	return ht;
 }
@@ -458,6 +464,7 @@ hash_table_resize(hash_table_t *ht, size_t n)
 {
 	hash_table_t tmp;
 
+	ZERO(&tmp);
 	hash_copy_real_flag(&tmp, ht);
 	hash_table_new_intern(&tmp, n, ht->hash, ht->eq);
 	hash_table_foreach(ht, hash_table_resize_helper, &tmp);
@@ -503,6 +510,7 @@ gboolean
 hash_table_insert(hash_table_t *ht, const void *key, const void *value)
 {
 	hash_table_check(ht);
+	g_assert(!ht->readonly);
 
 	hash_table_resize_on_insert(ht);
 	return hash_table_insert_no_resize(ht, key, value);
@@ -531,6 +539,7 @@ hash_table_remove(hash_table_t *ht, const void *key)
 	size_t bin;
 
 	hash_table_check(ht);
+	g_assert(!ht->readonly);
 
 	item = hash_table_find(ht, key, &bin);
 	if (item) {
@@ -575,6 +584,7 @@ hash_table_replace(hash_table_t *ht, const void *key, const void *value)
 	hash_item_t *item;
 
 	hash_table_check(ht);
+	g_assert(!ht->readonly);
 
 	item = hash_table_find(ht, key, NULL);
 	if (item == NULL) {
@@ -616,12 +626,88 @@ hash_table_lookup_extended(const hash_table_t *ht,
 	return TRUE;
 }
 
+/**
+ * Check whether hashlist contains the key.
+ * @return TRUE if the key is present.
+ */
+gboolean
+hash_table_contains(const hash_table_t *ht, const void *key)
+{
+	hash_table_check(ht);
+
+	return NULL != hash_table_find(ht, key, NULL);
+}
+
+/**
+ * Destroy hash table, reclaiming all the space.
+ */
 void
 hash_table_destroy(hash_table_t *ht)
 {
+	hash_table_check(ht);
+	g_assert(!ht->special);
+
 	hash_table_clear(ht);
 	ht->magic = 0;
 	free(ht);
+}
+
+/**
+ * Make hash table read-only.
+ *
+ * Any accidental attempt to change items will cause a memory protection fault.
+ */
+void
+hash_table_readonly(hash_table_t *ht)
+{
+	hash_table_check(ht);
+
+	if (!ht->readonly) {
+		size_t arena = hash_bins_items_arena_size(ht, NULL);
+
+		ht->readonly = booleanize(TRUE);
+		mprotect(ht->bins, round_pagesize(arena), PROT_READ);
+	}
+}
+
+/**
+ * Make hash table writable again.
+ */
+void
+hash_table_writable(hash_table_t *ht)
+{
+	hash_table_check(ht);
+
+	if (ht->readonly) {
+		size_t arena = hash_bins_items_arena_size(ht, NULL);
+
+		ht->readonly = booleanize(FALSE);
+		mprotect(ht->bins, round_pagesize(arena), PROT_READ | PROT_WRITE);
+	}
+}
+
+/**
+ * Create "special" hash table, where the object is allocated through the
+ * specified allocator.
+ */
+hash_table_t *
+hash_table_new_special_full(const hash_table_alloc_t alloc, void *obj,
+	hash_table_hash_func hash, hash_table_eq_func eq)
+{
+	hash_table_t *ht = (*alloc)(obj, sizeof *ht);
+
+	g_assert(ht);
+
+	ZERO(ht);
+	ht->special = booleanize(TRUE);
+	hash_table_new_intern(ht, 2, hash, eq);
+	return ht;
+}
+
+hash_table_t *
+hash_table_new_special(const hash_table_alloc_t alloc, void *obj)
+{
+	return hash_table_new_special_full(alloc, obj, NULL, NULL);
 }
 
 /*
@@ -641,7 +727,10 @@ hash_table_t *
 hash_table_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
 {
 	hash_table_t *ht = malloc(sizeof *ht);
+
 	g_assert(ht);
+
+	ZERO(ht);
 	hash_mark_real(ht, TRUE);
 	hash_table_new_intern(ht, 2, hash, eq);
 	return ht;
@@ -656,6 +745,8 @@ hash_table_new_real(void)
 void
 hash_table_destroy_real(hash_table_t *ht)
 {
+	hash_table_check(ht);
+
 	hash_table_clear(ht);
 	ht->magic = 0;
 	free(ht);
