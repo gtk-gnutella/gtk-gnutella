@@ -394,6 +394,23 @@ crash_run_time(char *buf, size_t size)
 }
 
 /**
+ * Get the hook function that we have to run in order to log more context.
+ *
+ * @return the hook function to run, NULL if nothing.
+ */
+static G_GNUC_COLD crash_hook_t
+crash_get_hook(void)
+{
+	if (NULL == vars || NULL == vars->failure)
+		return NULL;		/* Not an assertion failure */
+
+	if (vars->recursive)
+		return NULL;		/* Already recursed, maybe through hook? */
+
+	return hash_table_lookup(vars->hooks, vars->failure->file);
+}
+
+/**
  * Run crash hooks if we have an identified assertion failure.
  *
  * @param logfile		if non-NULL, redirect messages there as well.
@@ -402,7 +419,6 @@ crash_run_time(char *buf, size_t size)
 static G_GNUC_COLD void
 crash_run_hooks(const char *logfile, int logfd)
 {
-	const char *file;
 	crash_hook_t hook;
 	const char *routine;
 	char pid_buf[22];
@@ -410,14 +426,7 @@ crash_run_hooks(const char *logfile, int logfd)
 	DECLARE_STR(7);
 	int fd = logfd;
 
-	if (NULL == vars || NULL == vars->failure)
-		return;		/* Not an assertion failure */
-
-	if (vars->recursive)
-		return;		/* Already recursed, maybe through hook? */
-
-	file = vars->failure->file;
-	hook = hash_table_lookup(vars->hooks, file);
+	hook = crash_get_hook();
 	if (NULL == hook)
 		return;
 
@@ -647,8 +656,11 @@ crash_invoke_inspector(int signo, const char *cwd)
 	pid_t pid;
 	int fd[2];
 	const char *stage = NULL;
+	gboolean retried_child = FALSE;
 
 	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
+
+retry_child:
 
 	/* Make sure we don't exceed the system-wide file descriptor limit */
 	close_file_descriptors(3);
@@ -694,7 +706,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 		goto parent_failure;
 	case 0:	/* executed by child */
 		{
-			const int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
+			int flags;
 			const mode_t mode = S_IRUSR | S_IWUSR;
 			char const *argv[8];
 			char filename[80];
@@ -704,8 +716,30 @@ crash_invoke_inspector(int signo, const char *cwd)
 			char tbuf[22];
 			char lbuf[22];
 			time_delta_t t;
+			unsigned i;
 			int clf = STDOUT_FILENO;	/* crash log file fd */
 			DECLARE_STR(15);
+
+			/*
+			 * Immediately unplug the crash handler in case we do something
+			 * bad in the child: we want it to crash immediately and have
+			 * the parent see the failure.
+			 */
+
+			for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+				signal_set(signals[i], SIG_DFL);
+			}
+
+			/*
+			 * If we are retrying the child, don't discard what we can
+			 * have already from a previous run.
+			 */
+
+			if (retried_child) {
+				flags = O_WRONLY | O_APPEND;
+			} else {
+				flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
+			}
 
 			if (vars->exec_path) {
 				argv[0] = vars->exec_path;
@@ -774,6 +808,16 @@ crash_invoke_inspector(int signo, const char *cwd)
 					goto child_failure;
 			} else {
 				clf = open(filename, flags, mode);
+			}
+
+			/*
+			 * When retrying, issue a blank line, and mark retrying attempt.
+			 */
+
+			if (retried_child) {
+				print_str("\n---- Retrying:\n\n");	/* 0 */
+				flush_str(clf);
+				rewind_str(0);
 			}
 
 			/*
@@ -882,11 +926,17 @@ crash_invoke_inspector(int signo, const char *cwd)
 			 * But first, we have to force stderr to use a new file descriptor
 			 * since we're in the child process and stdout has been remapped
 			 * to the crash file.
+			 *
+			 * If we have already been trough the child, don't attempt to
+			 * run hooks again in case they were responsible for the crash
+			 * of the process already.
 			 */
 
-			log_force_fd(LOG_STDERR, PARENT_STDERR_FILENO);
-			log_set_disabled(LOG_STDOUT, TRUE);
-			crash_run_hooks(NULL, STDOUT_FILENO);
+			if (!retried_child) {
+				log_force_fd(LOG_STDERR, PARENT_STDERR_FILENO);
+				log_set_disabled(LOG_STDOUT, TRUE);
+				crash_run_hooks(NULL, STDOUT_FILENO);
+			}
 
 #ifdef HAS_SETSID
 			if (-1 == setsid())
@@ -1030,15 +1080,34 @@ parent_process:
 				flush_err_str();
 			}
 		} else {
+			gboolean may_retry = FALSE;
+
 			if (WIFSIGNALED(status)) {
 				int sig = WTERMSIG(status);
 				print_str("child got a ");			/* 4 */
 				print_str(signal_name(sig));		/* 5 */
+				if (!retried_child && NULL != crash_get_hook()) {
+					may_retry = TRUE;
+				}
 			} else {
 				print_str("child exited abnormally");	/* 4 */
 			}
 			print_str("\n");						/* 6, at most */
 			flush_err_str();
+
+			/*
+			 * If we have hooks to run and the child crashed with a signal,
+			 * attempt to run the child again without the hooks to make sure
+			 * we get the full gdb stack.
+			 */
+
+			if (may_retry) {
+				rewind_str(iov_prolog);
+				print_str("retrying child fork without hooks\n");
+				flush_err_str();
+				retried_child = TRUE;
+				goto retry_child;
+			}
 		}
 #else
 		(void) status;
