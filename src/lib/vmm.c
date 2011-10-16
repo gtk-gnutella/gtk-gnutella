@@ -3667,8 +3667,6 @@ vmm_post_init(void)
 #ifdef TRACK_VMM
 	vmm_track_post_init();
 #endif
-
-	g_assert(FALSE);
 }
 
 /**
