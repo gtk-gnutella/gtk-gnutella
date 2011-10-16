@@ -82,8 +82,6 @@ assertion_abort(void)
 {
 	static volatile sig_atomic_t seen_fatal;
 
-	log_assertion_failed();
-
 	/*
 	 * We're going to stop the execution.
 	 *

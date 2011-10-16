@@ -59,11 +59,13 @@ typedef struct logthread logthread_t;
  * Public interface.
  */
 
+struct str;
+
 logthread_t *log_thread_alloc(void);
 
 void log_init(void);
+void log_crashing(struct str *str);
 void log_atoms_inited(void);
-void log_assertion_failed(void);
 void log_close(void);
 void log_set_disabled(enum log_file which, gboolean disabled);
 void log_set(enum log_file which, const char *path);
@@ -77,6 +79,7 @@ gboolean log_is_disabled(enum log_file which);
 gboolean log_stdout_is_distinct(void);
 gboolean log_printable(enum log_file which);
 gboolean log_file_printable(const FILE *out);
+void log_set_duplicate(enum log_file which, int dupfd);
 
 /*
  * Safe logging interface (to avoid recursive logging, or from signal handlers).

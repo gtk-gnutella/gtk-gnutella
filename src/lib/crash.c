@@ -41,11 +41,12 @@
  * in the field where core dumps are usually not allowed and where people
  * do not necessarily know how to launch a debugger anyway.
  *
- * There are two aspects to crash handling:
+ * There are three aspects to crash handling:
  *
  * - Logging of the crash condition (cause, call stack if possible).
  * - Capturing a debugging stack with local variable in case there is
  *   no persistent logging.
+ * - Providing contextual side information that can assist forensics.
  *
  * Note that when crashing with an assertion failure, we usually already
  * have the stack trace, but crash handling is triggered anyway to collect
@@ -60,6 +61,11 @@
  *
  * When using "fast assertions", there is also a hook to record the
  * fatal failing assertion through crash_assert_failure().
+ *
+ * Side information can be provided through crash hooks: these routines are
+ * invoked when an assertion failure happens in a specific file.  The purpose
+ * of the crash hook is to dump all the information it can to assist tracking
+ * of the assertion failure.
  *
  * @author Christian Biere
  * @date 2006
@@ -76,6 +82,7 @@
 #include "fd.h"
 #include "file.h"
 #include "halloc.h"
+#include "hashtable.h"
 #include "iovec.h"
 #include "log.h"
 #include "offtime.h"
@@ -91,7 +98,7 @@
 #include "override.h"			/* Must be the last header included */
 
 #define PARENT_STDERR_FILENO	3
-#define CRASH_MSG_MAXLEN		512
+#define CRASH_MSG_MAXLEN		3072
 
 #ifdef HAS_FORK
 #define has_fork() 1
@@ -106,6 +113,8 @@ struct crash_vars {
 	ckhunk_t *mem2;			/**< Reserved memory, read-only */
 	ckhunk_t *mem3;			/**< Reserved memory, read-only */
 	ckhunk_t *logck;		/**< Reserved memory, read-only */
+	ckhunk_t *fmtck;		/**< Reserved memory, read-only */
+	ckhunk_t *hookmem;		/**< Reserved memory, read-only */
 	const char *argv0;		/**< The original argv[0]. */
 	const char *progname;	/**< The program name */
 	const char *exec_path;	/**< Path of program (optional, may be NULL) */
@@ -118,12 +127,21 @@ struct crash_vars {
 	time_delta_t gmtoff;	/**< Offset to GMT, supposed to be fixed */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	size_t stackcnt;		/**< Valid stack items in stack[] */
-	str_t *logstr;			/**< String to build error message */
+	str_t *logstr;			/**< String to build and hold error message */
+	str_t *fmtstr;			/**< String to allow log formatting during crash */
+	hash_table_t *hooks;	/**< Records crash hooks by file name */
+	gboolean crash_mode;	/**< True when we enter crash mode */
 	unsigned build;			/**< Build number, unique version number */
 	unsigned pause_process:1;
 	unsigned invoke_inspector:1;
 	unsigned dumps_core:1;
 };
+
+#define crash_set_var(name, src) \
+G_STMT_START { \
+	STATIC_ASSERT(sizeof(src) == sizeof(vars->name)); \
+	ck_memcpy(vars->mem, (void *) &(vars->name), &(src), sizeof(vars->name)); \
+} G_STMT_END
 
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
 
@@ -375,6 +393,111 @@ crash_run_time(char *buf, size_t size)
 }
 
 /**
+ * Run crash hooks if we have an identified assertion failure.
+ *
+ * @param logfile		if non-NULL, redirect messages there as well.
+ */
+static G_GNUC_COLD void
+crash_run_hooks(const char *logfile)
+{
+	const char *file;
+	crash_hook_t hook;
+	const char *routine;
+	char pid_buf[22];
+	char time_buf[18];
+	DECLARE_STR(7);
+	int fd = -1;
+
+	if (NULL == vars || NULL == vars->failure)
+		return;		/* Not an assertion failure */
+
+	file = vars->failure->file;
+	hook = hash_table_lookup(vars->hooks, file);
+	if (NULL == hook)
+		return;
+
+	/*
+	 * Let them know we're going to run a hook.
+	 */
+
+	routine = stacktrace_routine_name(func_to_pointer(hook), FALSE);
+
+	crash_time(time_buf, sizeof time_buf);
+	print_str(time_buf);					/* 0 */
+	print_str(" CRASH (pid=");				/* 1 */
+	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(") ");						/* 3 */
+	print_str(" invoking crash hook \"");	/* 4 */
+	print_str(routine);						/* 5 */
+	print_str("\"...\n");					/* 6 */
+	flush_err_str();
+	if (log_stdout_is_distinct())
+		flush_str(STDOUT_FILENO);
+	rewind_str(0);
+
+	/*
+	 * If there is a crash filename given, open it for appending and
+	 * configure the stderr logfile with a duplicate logging to that file.
+	 */
+
+	if (logfile != NULL) {
+		fd = open(logfile, O_WRONLY | O_APPEND, 0);
+		if (-1 != fd) {
+			log_set_duplicate(LOG_STDERR, fd);
+			print_str("\ninvoking crash hook \"");	/* 0 */
+			print_str(routine);						/* 1 */
+			print_str("\"...\n");					/* 2 */
+			flush_str(fd);
+			rewind_str(0);
+		} else {
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);					/* 0 */
+			print_str(" WARNING: cannot reopen ");	/* 1 */
+			print_str(logfile);						/* 2 */
+			print_str(" for appending: ");			/* 3 */
+			print_str(symbolic_errno(errno));		/* 4 */
+			print_str("\n");						/* 5 */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+			rewind_str(0);
+		}
+	}
+
+	/*
+	 * Invoke hook, then log a message indicating we're done.
+	 */
+
+	(*hook)();
+
+	crash_time(time_buf, sizeof time_buf);
+	print_str(time_buf);					/* 0 */
+	print_str(" CRASH (pid=");				/* 1 */
+	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(") ");						/* 3 */
+	print_str("done with hook \"");			/* 4 */
+	print_str(routine);						/* 5 */
+	print_str("\"\n");						/* 6 */
+	flush_err_str();
+	if (log_stdout_is_distinct())
+		flush_str(STDOUT_FILENO);
+
+	if (fd != -1) {
+		rewind_str(0);
+		print_str("done with hook \"");			/* 0 */
+		print_str(routine);						/* 1 */
+		print_str("\".\n");						/* 2 */
+		flush_str(fd);
+	}
+
+	/*
+	 * We do not close the file if opened so as to continue logging
+	 * duplicate information until the end should anyone call g_logv()
+	 * or s_logv().
+	 */
+}
+
+/**
  * Emit leading crash information: who crashed and why.
  */
 static G_GNUC_COLD void
@@ -436,6 +559,9 @@ crash_end_of_line(void)
 	DECLARE_STR(7);
 	char pid_buf[22];
 	char time_buf[18];
+
+	if (!vars->invoke_inspector)
+		crash_run_hooks(NULL);
 
 	crash_time(time_buf, sizeof time_buf);
 
@@ -506,8 +632,10 @@ crash_stack_print(int fd, size_t offset)
 /**
  * Invoke the inspector process (gdb, or any other program specified at
  * initialization time).
+ *
+ * @return TRUE if we were able to invoke the inspector.
  */
-static G_GNUC_COLD void
+static G_GNUC_COLD gboolean
 crash_invoke_inspector(int signo, const char *cwd)
 {
    	const char *pid_str;
@@ -912,11 +1040,18 @@ no_fork:
 		{
 			char buf[64];
 
+			/*
+			 * If there are crashing hooks recorded that we can invoke, run
+			 * them and redirect a copy of the messages to the crash log.
+			 */
+
+			crash_logname(buf, sizeof buf, pid_str);
+			crash_run_hooks(buf);
+
 			rewind_str(iov_prolog);
 			if (!child_ok)
 				print_str("possibly incomplete ");		/* 4 */
 			print_str("trace left in ");				/* 5 */
-			crash_logname(buf, sizeof buf, pid_str);
 			if (*cwd != '\0') {
 				print_str(cwd);					/* 6 */
 				print_str(G_DIR_SEPARATOR_S);	/* 7 */
@@ -981,7 +1116,7 @@ no_fork:
 			flush_str(STDOUT_FILENO);
 	}
 
-	return;
+	return TRUE;
 
 parent_failure:
 	{
@@ -995,6 +1130,42 @@ parent_failure:
 		print_str(") error in parent during ");	/* 3 */
 		print_str(EMPTY_STRING(stage));			/* 4 */
 		print_str("\n");						/* 5 */
+		flush_err_str();
+	}
+
+	return FALSE;
+}
+
+/**
+ * Entering crash mode.
+ */
+static G_GNUC_COLD void
+crash_mode(void)
+{
+	if (vars != NULL) {
+		if (!vars->crash_mode) {
+			gboolean t = TRUE;
+
+			crash_set_var(crash_mode, t);
+
+			/*
+			 * Configuring crash mode logging requires a formatting string.
+			 *
+			 * In crashing mode, logging will avoid fprintf() and will use
+			 * the pre-allocated string to format message, calling write()
+			 * to emit the message.
+			 */
+
+			ck_writable(vars->fmtck);		/* Chunk holding vars->fmtstr */
+			log_crashing(vars->fmtstr);
+		}
+	} else {
+		char time_buf[18];
+		DECLARE_STR(2);
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);
+		print_str(" WARNING: crashing with NULL crash variables\n");
 		flush_err_str();
 	}
 }
@@ -1011,6 +1182,12 @@ crash_handler(int signo)
 	unsigned i;
 	gboolean trace;
 	gboolean recursive = crashed > 0;
+
+	/*
+	 * Immediately enter crash mode and configure safe logging parameters.
+	 */
+
+	crash_mode();
 
 	/*
 	 * SIGBUS and SIGSEGV are configured by signal_set() to be reset to the
@@ -1101,9 +1278,11 @@ crash_handler(int signo)
 	}
 	crash_end_of_line();
 	if (vars->invoke_inspector) {
-		crash_invoke_inspector(signo, cwd);
+		gboolean hooks = crash_invoke_inspector(signo, cwd);
+		if (!hooks) {
+			crash_run_hooks(NULL);
+		}
 	}
-
 	if (vars->pause_process)
 #if defined(HAS_SIGPROCMASK)
 	{
@@ -1128,11 +1307,17 @@ crash_handler(int signo)
 	raise(SIGABRT);
 }
 
-#define crash_set_var(name, src) \
-G_STMT_START { \
-	STATIC_ASSERT(sizeof(src) == sizeof(vars->name)); \
-	ck_memcpy(vars->mem, (void *) &(vars->name), &(src), sizeof(vars->name)); \
-} G_STMT_END
+static size_t
+str_hash(const void *p)
+{
+	return g_str_hash(p);
+}
+
+static void *
+crash_ck_allocator(void *allocator, size_t len)
+{
+	return ck_alloc(allocator, len);
+}
 
 /**
  * Installs a simple crash handler.
@@ -1272,6 +1457,47 @@ crash_init(const char *argv0, const char *progname,
 		crash_set_var(logstr, logstr);
 
 		ck_readonly(vars->logck);
+	}
+
+	/*
+	 * This chunk is used to hold a string object that can be used to format
+	 * logs during crashes to bypass fprintf().
+	 *
+	 * After initialization, the chunk is turned read-only to avoid accidental
+	 * corruption until the time we need to use the string object during a
+	 * crash.
+	 */
+
+	{
+		ckhunk_t *fmtck;
+		str_t *str;
+
+		fmtck = ck_init_not_leaking(compat_pagesize(), 0);
+		crash_set_var(fmtck, fmtck);
+
+		str = str_new_in_chunk(fmtck, CRASH_MSG_MAXLEN);
+		crash_set_var(fmtstr, str);
+
+		ck_readonly(vars->fmtck);
+	}
+
+	/*
+	 * This chunk is used to record "on-crash" handlers.
+	 */
+
+	{
+		ckhunk_t *hookmem;
+		hash_table_t *ht;
+
+		hookmem = ck_init_not_leaking(compat_pagesize(), 0);
+		crash_set_var(hookmem, hookmem);
+
+		ht = hash_table_new_special_full(crash_ck_allocator, hookmem,
+			str_hash, g_str_equal);
+		crash_set_var(hooks, ht);
+
+		hash_table_readonly(ht);
+		ck_readonly(vars->hookmem);
 	}
 }
 
@@ -1413,11 +1639,56 @@ crash_setbuild(unsigned build)
 }
 
 /**
+ * Record a crash hook for a file.
+ */
+void
+crash_hook_add(const char *filename, const crash_hook_t hook)
+{
+	g_assert(filename != NULL);
+	g_assert(hook != NULL);
+	g_assert(vars != NULL);			/* Must have run crash_init() */
+
+	/*
+	 * Only one crash hook can be added per file.
+	 */
+
+	if (hash_table_contains(vars->hooks, filename)) {
+		const void *oldhook = hash_table_lookup(vars->hooks, filename);
+		s_carp("CRASH cannot add hook \"%s\" for \"%s\", already have \"%s\"",
+			stacktrace_routine_name(func_to_pointer(hook), FALSE),
+			filename, stacktrace_routine_name(oldhook, FALSE));
+	} else {
+		ck_writable(vars->hookmem);			/* Holds the hash table object */
+		hash_table_writable(vars->hooks);
+		hash_table_insert(vars->hooks, filename, func_to_pointer(hook));
+		hash_table_readonly(vars->hooks);
+		ck_readonly(vars->hookmem);
+	}
+}
+
+/**
+ * Final call to signal that crash initialization is done and we can now
+ * shrink the pre-sized data structures to avoid wasting too much space.
+ */
+void
+crash_post_init(void)
+{
+	ck_shrink(vars->mem, 0);		/* Shrink as much as possible */
+	ck_shrink(vars->mem2, 0);
+}
+
+/***
+ *** Calling any of the following routines means we're about to crash.
+ ***/
+
+/**
  * Record failed assertion data.
  */
 void
 crash_assert_failure(const struct assertion_data *a)
 {
+	crash_mode();
+
 	if (vars != NULL)
 		crash_set_var(failure, a);
 }
@@ -1430,6 +1701,8 @@ crash_assert_failure(const struct assertion_data *a)
 const char *
 crash_assert_logv(const char * const fmt, va_list ap)
 {
+	crash_mode();
+
 	if (vars != NULL && vars->logstr != NULL) {
 		const char *msg;
 
@@ -1456,6 +1729,8 @@ crash_assert_logv(const char * const fmt, va_list ap)
 void
 crash_set_error(const char * const msg)
 {
+	crash_mode();
+
 	if (vars != NULL && vars->logck != NULL) {
 		const char *m = ck_strdup_readonly(vars->logck, msg);
 		crash_set_var(message, m);
@@ -1468,6 +1743,8 @@ crash_set_error(const char * const msg)
 void
 crash_set_error_vec(iovec_t *iov, unsigned iovcnt)
 {
+	crash_mode();
+
 	if (vars != NULL && vars->logck != NULL) {
 		size_t len = iov_calculate_size(iov, iovcnt);
 		char *m;
@@ -1513,6 +1790,8 @@ crash_set_error_vec(iovec_t *iov, unsigned iovcnt)
 G_GNUC_COLD void
 crash_save_stackframe(void *stack[], size_t count)
 {
+	crash_mode();
+
 	if (count > G_N_ELEMENTS(vars->stack))
 		count = G_N_ELEMENTS(vars->stack);
 
@@ -1533,6 +1812,8 @@ crash_save_stackframe(void *stack[], size_t count)
 G_GNUC_COLD void
 crash_save_current_stackframe(void)
 {
+	crash_mode();
+
 	if (vars != NULL) {
 		void *stack[STACKTRACE_DEPTH_MAX];
 		size_t count;
@@ -1540,17 +1821,6 @@ crash_save_current_stackframe(void)
 		count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 2);
 		crash_save_stackframe(stack, count);
 	}
-}
-
-/**
- * Final call to signal that crash initialization is done and we can now
- * shrink the pre-sized data structures to avoid wasting too much space.
- */
-void
-crash_post_init(void)
-{
-	ck_shrink(vars->mem, 0);		/* Shrink as much as possible */
-	ck_shrink(vars->mem2, 0);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

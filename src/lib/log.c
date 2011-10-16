@@ -38,6 +38,7 @@
 #include "ckalloc.h"
 #include "crash.h"
 #include "halloc.h"
+#include "fd.h"				/* For is_valid_fd() */
 #include "offtime.h"
 #include "signal.h"
 #include "stacktrace.h"
@@ -57,7 +58,7 @@ static const char * const log_domains[] = {
 
 static gboolean atoms_are_inited;
 static gboolean log_inited;
-static gboolean in_assert_failure;
+static str_t *log_str;
 
 /**
  * A Log file we manage.
@@ -66,12 +67,15 @@ struct logfile {
 	const char *name;		/**< Name (static string) */
 	const char *path;		/**< File path (atom or static constant) */
 	FILE *f;				/**< File descriptor */
+	int crash_fd;			/**< When crashing, additional dump done there */
 	time_t otime;			/**< Opening time, for stats */
 	time_t etime;			/**< Time of last I/O error */
 	unsigned disabled:1;	/**< Disabled when opened to /dev/null */
 	unsigned changed:1;		/**< Logfile path was changed, pending reopen */
 	unsigned path_is_atom:1;	/**< Path is an atom */
 	unsigned ioerror:1;		/**< Recent I/O error occurred */
+	unsigned crashing:1;	/**< Crashing mode, don't use stdio */
+	unsigned duplicate:1;	/**< Duplicate logs to crash_fd without prefixing */
 };
 
 enum logthread_magic { LOGTHREAD_MAGIC = 0x72a32c36 };
@@ -213,7 +217,8 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 	const char *prefix, const char *msg)
 {
 	struct logfile *lf;
-	gboolean ioerr;
+
+#define FORMAT_STR	"%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n"
 
 	log_file_check(which);
 
@@ -222,18 +227,57 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 
 	lf = &logfile[which];
 
-	ioerr = 0 > fprintf(lf->f, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n",
-		(TM_YEAR_ORIGIN + ct->tm_year) % 100,
-		ct->tm_mon + 1, ct->tm_mday,
-		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
-		(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
-		(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
-		msg);
+	/*
+	 * When crashing. we use a pre-allocated string object to format the
+	 * message and the write() system call to log, bypassing any memory
+	 * allocation and stdio.
+	 */
 
-	if G_UNLIKELY(ioerr) {
-		lf->ioerror = TRUE;
-		lf->etime = tm_time();
+	if G_UNLIKELY(log_str != NULL) {
+		ssize_t w;
+
+		str_printf(log_str, FORMAT_STR,
+			(TM_YEAR_ORIGIN + ct->tm_year) % 100,
+			ct->tm_mon + 1, ct->tm_mday,
+			ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
+			(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
+			(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
+			msg);
+
+		w = write(fileno(lf->f), str_2c(log_str), str_len(log_str));
+
+		if G_UNLIKELY((ssize_t) -1 == w) {
+			lf->ioerror = TRUE;
+			lf->etime = tm_time();
+		}
+
+		/*
+		 * When duplication is configured, write a copy of the message
+		 * without any timestamp and debug level tagging.
+		 */
+
+		if (lf->duplicate) {
+			IGNORE_RESULT(write(lf->crash_fd, msg, strlen(msg)));
+			IGNORE_RESULT(write(lf->crash_fd, "\n", 1));
+		}
+	} else {
+		gboolean ioerr;
+
+		ioerr = 0 > fprintf(lf->f, FORMAT_STR,
+			(TM_YEAR_ORIGIN + ct->tm_year) % 100,
+			ct->tm_mon + 1, ct->tm_mday,
+			ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
+			(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
+			(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
+			msg);
+
+		if G_UNLIKELY(ioerr) {
+			lf->ioerror = TRUE;
+			lf->etime = tm_time();
+		}
 	}
+
+#undef FORMAT_STR
 }
 
 /**
@@ -271,7 +315,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 */
 
 	in_signal_handler = lt != NULL || signal_in_handler() ||
-		!atoms_are_inited || in_assert_failure || xmalloc_is_malloc();
+		!atoms_are_inited || log_str != NULL || xmalloc_is_malloc();
 
 	if (!in_log_handler && !in_signal_handler) {
 		g_logv(G_LOG_DOMAIN, level, format, args);
@@ -465,6 +509,16 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 				if (log_stdout_is_distinct())
 					flush_str(STDOUT_FILENO);
 				crash_set_error(str_2c(msg));
+			}
+			/*
+			 * When duplication is configured, write a copy of the message
+			 * without any timestamp and debug level tagging.
+			 */
+
+			if G_UNLIKELY(logfile[LOG_STDERR].duplicate) {
+				int fd = logfile[LOG_STDERR].crash_fd;
+				IGNORE_RESULT(write(fd, str_2c(msg), str_len(msg)));
+				IGNORE_RESULT(write(fd, "\n", 1));
 			}
 		} else {
 			time_t now = tm_time_exact();
@@ -966,6 +1020,22 @@ log_set_disabled(enum log_file which, gboolean disabled)
 }
 
 /**
+ * Record duplicate file descriptor where messages will also be written
+ * albeit without any prefixing.
+ *
+ * Duplication is only triggered when the log layer is in crashing mode.
+ */
+void
+log_set_duplicate(enum log_file which, int dupfd)
+{
+	log_file_check(which);
+	g_assert(is_valid_fd(dupfd));
+
+	logfile[which].duplicate = booleanize(TRUE);
+	logfile[which].crash_fd = dupfd;
+}
+
+/**
  * Set a managed log file.
  */
 void
@@ -1152,12 +1222,14 @@ log_atoms_inited(void)
 }
 
 /**
- * Signals assertion failure occurred.
+ * Record formatting string to be used to format messages when crashing.
  */
 void
-log_assertion_failed(void)
+log_crashing(struct str *str)
 {
-	in_assert_failure = TRUE;
+	g_assert(str != NULL);
+
+	log_str = str;
 }
 
 /**
