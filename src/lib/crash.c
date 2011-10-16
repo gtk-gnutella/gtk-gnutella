@@ -131,6 +131,7 @@ struct crash_vars {
 	str_t *fmtstr;			/**< String to allow log formatting during crash */
 	hash_table_t *hooks;	/**< Records crash hooks by file name */
 	gboolean crash_mode;	/**< True when we enter crash mode */
+	gboolean recursive;		/**< True when we are in a recursive crash */
 	unsigned build;			/**< Build number, unique version number */
 	unsigned pause_process:1;
 	unsigned invoke_inspector:1;
@@ -411,6 +412,9 @@ crash_run_hooks(const char *logfile, int logfd)
 
 	if (NULL == vars || NULL == vars->failure)
 		return;		/* Not an assertion failure */
+
+	if (vars->recursive)
+		return;		/* Already recursed, maybe through hook? */
 
 	file = vars->failure->file;
 	hook = hash_table_lookup(vars->hooks, file);
@@ -1197,12 +1201,6 @@ crash_handler(int signo)
 	gboolean recursive = crashed > 0;
 
 	/*
-	 * Immediately enter crash mode and configure safe logging parameters.
-	 */
-
-	crash_mode();
-
-	/*
 	 * SIGBUS and SIGSEGV are configured by signal_set() to be reset to the
 	 * default behaviour on delivery, and are not masked during signal delivery.
 	 *
@@ -1256,6 +1254,19 @@ crash_handler(int signo)
 	case SIGSEGV:
 	case SIGABRT:
 		signal_unblock(signo);
+	}
+
+	/*
+	 * Enter crash mode and configure safe logging parameters.
+	 */
+
+	crash_mode();
+
+	if (recursive) {
+		if (vars != NULL && !vars->recursive) {
+			gboolean t = TRUE;
+			crash_set_var(recursive, t);
+		}
 	}
 
 	/*
