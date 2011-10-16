@@ -94,6 +94,7 @@
 #include "vmm.h"
 
 #include "ascii.h"
+#include "crash.h"			/* For crash_hook_add() */
 #include "cq.h"
 #include "fd.h"
 #include "glib-missing.h"
@@ -3368,6 +3369,58 @@ vmm_malloc_inited(void)
 }
 
 /**
+ * Dump VMM statistics.
+ */
+G_GNUC_COLD void
+vmm_dump_stats(void)
+{
+#define DUMP(x)	s_info("VMM %s = %s", #x, uint64_to_string(vmm_stats.x))
+
+	s_info("VMM running statistics:");
+
+	DUMP(allocations);
+	DUMP(allocations_zeroed);
+	DUMP(freeings);
+	DUMP(shrinkings);
+	DUMP(mmaps);
+	DUMP(munmaps);
+	DUMP(hints_followed);
+	DUMP(alloc_from_cache);
+	DUMP(alloc_from_cache_pages);
+	DUMP(alloc_direct_core);
+	DUMP(alloc_direct_core_pages);
+	DUMP(free_to_cache);
+	DUMP(free_to_cache_pages);
+	DUMP(free_to_system);
+	DUMP(free_to_system_pages);
+	DUMP(forced_freed);
+	DUMP(forced_freed_pages);
+	DUMP(cache_evictions);
+	DUMP(cache_coalescing);
+	DUMP(cache_line_coalescing);
+	DUMP(cache_expired);
+	DUMP(cache_expired_pages);
+
+#undef DUMP
+
+	vmm_dump_pmap();
+}
+
+/**
+ * In case an assertion failure occurs in this file, dump statistics
+ * and the pmap.
+ */
+static G_GNUC_COLD void
+vmm_crash_hook(void)
+{
+	s_debug("VMM pagesize=%lu bytes, virtual addresses are %s",
+		(unsigned long) kernel_pagesize,
+		kernel_mapaddr_increasing ? "increasing" : "decreasing");
+
+	vmm_dump_stats();
+}
+
+/**
  * Mark "amount" bytes as foreign in the local pmap, reserved for the stack.
  *
  * When the kernel pmap is loaded, simply make sure we find the stack
@@ -3505,6 +3558,8 @@ vmm_post_init(void)
 		unsigned vmm_protect_free_pages:1;
 	} settings = { FALSE, FALSE, FALSE };
 
+	crash_hook_add(_WHERE_, vmm_crash_hook);
+
 	/*
 	 * Log VMM configuration.
 	 */
@@ -3612,6 +3667,8 @@ vmm_post_init(void)
 #ifdef TRACK_VMM
 	vmm_track_post_init();
 #endif
+
+	g_assert(FALSE);
 }
 
 /**
@@ -3916,44 +3973,6 @@ vmm_munmap(void *addr, size_t length)
 
 	return -1;
 #endif	/* HAS_MMAP */
-}
-
-/**
- * Dump VMM statistics.
- */
-G_GNUC_COLD void
-vmm_dump_stats(void)
-{
-#define DUMP(x)	s_info("VMM %s = %s", #x, uint64_to_string(vmm_stats.x))
-
-	s_info("VMM running statistics:");
-
-	DUMP(allocations);
-	DUMP(allocations_zeroed);
-	DUMP(freeings);
-	DUMP(shrinkings);
-	DUMP(mmaps);
-	DUMP(munmaps);
-	DUMP(hints_followed);
-	DUMP(alloc_from_cache);
-	DUMP(alloc_from_cache_pages);
-	DUMP(alloc_direct_core);
-	DUMP(alloc_direct_core_pages);
-	DUMP(free_to_cache);
-	DUMP(free_to_cache_pages);
-	DUMP(free_to_system);
-	DUMP(free_to_system_pages);
-	DUMP(forced_freed);
-	DUMP(forced_freed_pages);
-	DUMP(cache_evictions);
-	DUMP(cache_coalescing);
-	DUMP(cache_line_coalescing);
-	DUMP(cache_expired);
-	DUMP(cache_expired_pages);
-
-#undef DUMP
-
-	vmm_dump_pmap();
 }
 
 /***
