@@ -396,9 +396,10 @@ crash_run_time(char *buf, size_t size)
  * Run crash hooks if we have an identified assertion failure.
  *
  * @param logfile		if non-NULL, redirect messages there as well.
+ * @param logfd			if not -1, the already opened file where we should log ot
  */
 static G_GNUC_COLD void
-crash_run_hooks(const char *logfile)
+crash_run_hooks(const char *logfile, int logfd)
 {
 	const char *file;
 	crash_hook_t hook;
@@ -406,7 +407,7 @@ crash_run_hooks(const char *logfile)
 	char pid_buf[22];
 	char time_buf[18];
 	DECLARE_STR(7);
-	int fd = -1;
+	int fd = logfd;
 
 	if (NULL == vars || NULL == vars->failure)
 		return;		/* Not an assertion failure */
@@ -418,6 +419,9 @@ crash_run_hooks(const char *logfile)
 
 	/*
 	 * Let them know we're going to run a hook.
+	 *
+	 * Because we can be called from the child prorcess, we do not
+	 * hardwire the stderr file descriptor but get it from the log layer.
 	 */
 
 	routine = stacktrace_routine_name(func_to_pointer(hook), FALSE);
@@ -430,9 +434,7 @@ crash_run_hooks(const char *logfile)
 	print_str(" invoking crash hook \"");	/* 4 */
 	print_str(routine);						/* 5 */
 	print_str("\"...\n");					/* 6 */
-	flush_err_str();
-	if (log_stdout_is_distinct())
-		flush_str(STDOUT_FILENO);
+	flush_str(log_get_fd(LOG_STDERR));
 	rewind_str(0);
 
 	/*
@@ -440,16 +442,9 @@ crash_run_hooks(const char *logfile)
 	 * configure the stderr logfile with a duplicate logging to that file.
 	 */
 
-	if (logfile != NULL) {
+	if (logfile != NULL && -1 == logfd) {
 		fd = open(logfile, O_WRONLY | O_APPEND, 0);
-		if (-1 != fd) {
-			log_set_duplicate(LOG_STDERR, fd);
-			print_str("\ninvoking crash hook \"");	/* 0 */
-			print_str(routine);						/* 1 */
-			print_str("\"...\n");					/* 2 */
-			flush_str(fd);
-			rewind_str(0);
-		} else {
+		if (-1 == fd) {
 			crash_time(time_buf, sizeof time_buf);
 			print_str(time_buf);					/* 0 */
 			print_str(" WARNING: cannot reopen ");	/* 1 */
@@ -457,9 +452,7 @@ crash_run_hooks(const char *logfile)
 			print_str(" for appending: ");			/* 3 */
 			print_str(symbolic_errno(errno));		/* 4 */
 			print_str("\n");						/* 5 */
-			flush_err_str();
-			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+			flush_str(log_get_fd(LOG_STDERR));
 			rewind_str(0);
 		}
 	}
@@ -467,6 +460,15 @@ crash_run_hooks(const char *logfile)
 	/*
 	 * Invoke hook, then log a message indicating we're done.
 	 */
+
+	if (-1 != fd) {
+		log_set_duplicate(LOG_STDERR, fd);
+		print_str("invoking crash hook \"");	/* 0 */
+		print_str(routine);						/* 1 */
+		print_str("\"...\n");					/* 2 */
+		flush_str(fd);
+		rewind_str(0);
+	}
 
 	(*hook)();
 
@@ -478,9 +480,7 @@ crash_run_hooks(const char *logfile)
 	print_str("done with hook \"");			/* 4 */
 	print_str(routine);						/* 5 */
 	print_str("\"\n");						/* 6 */
-	flush_err_str();
-	if (log_stdout_is_distinct())
-		flush_str(STDOUT_FILENO);
+	flush_str(log_get_fd(LOG_STDERR));
 
 	if (fd != -1) {
 		rewind_str(0);
@@ -561,7 +561,7 @@ crash_end_of_line(void)
 	char time_buf[18];
 
 	if (!vars->invoke_inspector)
-		crash_run_hooks(NULL);
+		crash_run_hooks(NULL, -1);
 
 	crash_time(time_buf, sizeof time_buf);
 
@@ -633,7 +633,7 @@ crash_stack_print(int fd, size_t offset)
  * Invoke the inspector process (gdb, or any other program specified at
  * initialization time).
  *
- * @return TRUE if we were able to invoke the inspector.
+ * @return TRUE if we were able to invoke the crash hooks.
  */
 static G_GNUC_COLD gboolean
 crash_invoke_inspector(int signo, const char *cwd)
@@ -872,6 +872,18 @@ crash_invoke_inspector(int signo, const char *cwd)
 				goto parent_process;
 			}
 
+			/*
+			 * Since we have fork(), and we're in the crash inspector,
+			 * run the crash hooks, directing output into the crash file.
+			 * But first, we have to force stderr to use a new file descriptor
+			 * since we're in the child process and stdout has been remapped
+			 * to the crash file.
+			 */
+
+			log_force_fd(LOG_STDERR, PARENT_STDERR_FILENO);
+			log_set_disabled(LOG_STDOUT, TRUE);
+			crash_run_hooks(NULL, STDOUT_FILENO);
+
 #ifdef HAS_SETSID
 			if (-1 == setsid())
 				goto child_failure;
@@ -1046,7 +1058,8 @@ no_fork:
 			 */
 
 			crash_logname(buf, sizeof buf, pid_str);
-			crash_run_hooks(buf);
+			if (!has_fork())
+				crash_run_hooks(buf, -1);
 
 			rewind_str(iov_prolog);
 			if (!child_ok)
@@ -1280,7 +1293,7 @@ crash_handler(int signo)
 	if (vars->invoke_inspector) {
 		gboolean hooks = crash_invoke_inspector(signo, cwd);
 		if (!hooks) {
-			crash_run_hooks(NULL);
+			crash_run_hooks(NULL, -1);
 		}
 	}
 	if (vars->pause_process)

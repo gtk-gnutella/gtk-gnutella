@@ -80,6 +80,8 @@ gboolean log_stdout_is_distinct(void);
 gboolean log_printable(enum log_file which);
 gboolean log_file_printable(const FILE *out);
 void log_set_duplicate(enum log_file which, int dupfd);
+void log_force_fd(enum log_file which, int fd);
+int log_get_fd(enum log_file which);
 
 /*
  * Safe logging interface (to avoid recursive logging, or from signal handlers).

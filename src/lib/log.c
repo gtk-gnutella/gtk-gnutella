@@ -66,7 +66,8 @@ static str_t *log_str;
 struct logfile {
 	const char *name;		/**< Name (static string) */
 	const char *path;		/**< File path (atom or static constant) */
-	FILE *f;				/**< File descriptor */
+	FILE *f;				/**< File to log to */
+	int fd;					/**< The kernel file descriptor */
 	int crash_fd;			/**< When crashing, additional dump done there */
 	time_t otime;			/**< Opening time, for stats */
 	time_t etime;			/**< Time of last I/O error */
@@ -101,6 +102,10 @@ logthread_check(const struct logthread * const lt)
  * Set of log files.
  */
 static struct logfile logfile[LOG_MAX_FILES];
+
+#define log_flush_out()	flush_str(logfile[LOG_STDOUT].fd)
+#define log_flush_err()	flush_str(logfile[LOG_STDERR].fd)
+
 
 /**
  * This is used to protect critical sections of the log_handler() routine.
@@ -389,9 +394,9 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 					print_str(time_buf);	/* 0 */
 					print_str(" (CRITICAL): back from raise(SIGBART)"); /* 1 */
 					print_str(" -- invoking crash_handler()\n");		/* 2 */
-					flush_err_str();
+					log_flush_err();
 					if (log_stdout_is_distinct())
-						flush_str(STDOUT_FILENO);
+						log_flush_out();
 
 					crash_handler(SIGABRT);
 
@@ -406,9 +411,9 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 					print_str(time_buf);	/* 0 */
 					print_str(" (CRITICAL): back from crash_handler()"); /* 1 */
 					print_str(" -- exiting\n");		/* 2 */
-					flush_err_str();
+					log_flush_err();
 					if (log_stdout_is_distinct())
-						flush_str(STDOUT_FILENO);
+						log_flush_out();
 
 					exit(1);
 				}
@@ -504,10 +509,10 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			print_str(": ");		/* 6 */
 			print_str(str_2c(msg));	/* 7 */
 			print_str("\n");		/* 8 */
-			flush_err_str();
+			log_flush_err();
 			if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
 				if (log_stdout_is_distinct())
-					flush_str(STDOUT_FILENO);
+					log_flush_out();
 				crash_set_error(str_2c(msg));
 			}
 			/*
@@ -1202,10 +1207,12 @@ log_init(void)
 	}
 
 	logfile[LOG_STDOUT].f = stdout;
+	logfile[LOG_STDOUT].fd = fileno(stdout);
 	logfile[LOG_STDOUT].name = "out";
 	logfile[LOG_STDOUT].otime = tm_time();
 
 	logfile[LOG_STDERR].f = stderr;
+	logfile[LOG_STDOUT].fd = fileno(stderr);
 	logfile[LOG_STDERR].name = "err";
 	logfile[LOG_STDERR].otime = tm_time();
 
@@ -1230,6 +1237,43 @@ log_crashing(struct str *str)
 	g_assert(str != NULL);
 
 	log_str = str;
+}
+
+/**
+ * Force new file descriptor for given logfile.
+ * Previous file is NOT closed.
+ *
+ * @attention
+ * This is only meant to be used in the crash handler.
+ */
+void
+log_force_fd(enum log_file which, int fd)
+{
+	struct logfile *lf;
+	FILE *f;
+
+	g_assert(is_valid_fd(fd));
+	log_file_check(which);
+
+	lf = &logfile[which];
+	f = fdopen(fd, "a");
+	if (f != NULL) {
+		lf->f = f;
+		lf->fd = fd;
+	} else {
+		s_critical("fdopen(\"%d\", \"a\") failed: %s", fd, g_strerror(errno));
+	}
+}
+
+/**
+ * Get file descriptor associated with a logfile.
+ */
+int
+log_get_fd(enum log_file which)
+{
+	log_file_check(which);
+
+	return logfile[which].fd;
 }
 
 /**
