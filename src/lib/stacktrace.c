@@ -1398,9 +1398,12 @@ stacktrace_cautious_was_logged(void)
 static G_GNUC_COLD void
 stacktrace_got_signal(int signo)
 {
-	DECLARE_STR(4);
+	char time_buf[18];
+	DECLARE_STR(5);
 
-	print_str("WARNING: got ");
+	crash_time(time_buf, sizeof time_buf);
+	print_str(time_buf);
+	print_str(" WARNING: got ");
 	print_str(signal_name(signo));
 	print_str(" during stack ");
 	if (print_context.unwinded) {
@@ -1439,9 +1442,12 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 #endif
 
 	if (printing) {
-		DECLARE_STR(4);
+		char time_buf[18];
+		DECLARE_STR(5);
 
-		print_str("WARNING: ignoring ");
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);
+		print_str(" WARNING: ignoring ");
 		print_str("recursive ");
 		print_str(G_STRFUNC);
 		print_str("() call\n");
@@ -1468,7 +1474,11 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 	print_context.fd = fd;
 
 	if (Sigsetjmp(print_context.env, TRUE)) {
-		DECLARE_STR(1);
+		char time_buf[18];
+		DECLARE_STR(2);
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);
 		print_str("WARNING: truncated stack unwinding\n");
 		flush_str(fd);
 
@@ -1499,15 +1509,23 @@ print_stack:
 	print_context.unwinded = TRUE;
 
 	if (Sigsetjmp(print_context.env, TRUE)) {
-		DECLARE_STR(1);
-		print_str("WARNING: truncated stack printing\n");
+		char time_buf[18];
+		DECLARE_STR(2);
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);
+		print_str(" WARNING: truncated stack printing\n");
 		flush_str(fd);
 		goto restore;
 	}
 
 	if (0 == count) {
-		DECLARE_STR(1);
-		print_str("WARNING: corrupted stack\n");
+		char time_buf[18];
+		DECLARE_STR(2);
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);
+		print_str(" WARNING: corrupted stack\n");
 		flush_str(fd);
 	} else {
 		if (!signal_in_handler())
