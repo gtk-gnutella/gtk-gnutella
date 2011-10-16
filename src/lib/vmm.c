@@ -934,7 +934,7 @@ done:
 #else
 	(void) size;
 	p = NULL;
-	RUNTIME_UNREACHABLE();
+	g_assert_not_reached();
 #error "Neither mmap(), posix_memalign() nor memalign() available"
 #endif	/* HAS_POSIX_MEMALIGN */
 	if (p) {
@@ -1023,7 +1023,7 @@ free_pages_intern(void *p, size_t size, gboolean update_pmap)
 #else
 	(void) p;
 	(void) size;
-	RUNTIME_UNREACHABLE();
+	g_assert_not_reached();
 #error "Neither mmap(), posix_memalign() nor memalign() available"
 #endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
 
