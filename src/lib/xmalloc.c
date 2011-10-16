@@ -857,12 +857,23 @@ xfl_block_falls_in(const struct xfreelist *flb, size_t len)
 	if (len > XMALLOC_FACTOR_MAXSIZE) {
 		size_t multiple = len & ~XMALLOC_BLOCK_MASK;
 
+		if G_UNLIKELY(len - multiple == XMALLOC_SPLIT_MIN / 2) {
+			if (len < 2 * XMALLOC_FACTOR_MAXSIZE) {
+				multiple = XMALLOC_FACTOR_MAXSIZE / 2;
+			} else {
+				multiple = (len - XMALLOC_FACTOR_MAXSIZE) & ~XMALLOC_BLOCK_MASK;
+			}
+		}
+
 		if (multiple != len) {
 			if (xfl_find_freelist(multiple) == flb)
 				return TRUE;
 
 			len -= multiple;
 		}
+
+		if (len > XMALLOC_FACTOR_MAXSIZE)
+			return TRUE;		/* Assume it could */
 	}
 
 	return xfl_find_freelist(len) == flb;
