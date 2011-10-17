@@ -3825,7 +3825,8 @@ xmalloc_crash_hook(void)
 		for (j = 0; j < G_N_ELEMENTS(xfreelist); j++) {
 			if ((size_t) -1 != xfl_lookup(&xfreelist[j], fl->pointers, NULL)) {
 				s_warning("XM freelist #%lu bucket %p listed in freelist #%lu!",
-					(unsigned long) i, fl->pointers, (unsigned long) j);
+					(unsigned long) i, (void *) fl->pointers,
+					(unsigned long) j);
 				goto next;
 			}
 		}
