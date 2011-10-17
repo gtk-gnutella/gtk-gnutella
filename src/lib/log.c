@@ -103,9 +103,10 @@ logthread_check(const struct logthread * const lt)
  */
 static struct logfile logfile[LOG_MAX_FILES];
 
-#define log_flush_out()	flush_str(logfile[LOG_STDOUT].fd)
-#define log_flush_err()	flush_str(logfile[LOG_STDERR].fd)
-
+#define log_flush_out()	\
+	flush_str(G_LIKELY(log_inited) ? logfile[LOG_STDOUT].fd : STDOUT_FILENO)
+#define log_flush_err()	\
+	flush_str(G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
 
 /**
  * This is used to protect critical sections of the log_handler() routine.
@@ -363,7 +364,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			print_str("\" from ");	/* 3 */
 			print_str(stacktrace_caller_name(2));	/* 4 */
 			print_str("\n");		/* 5 */
-			flush_err_str();
+			log_flush_err();
 
 			/*
 			 * A recursion with an error message is always fatal.
@@ -457,7 +458,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 				print_str("\" from ");	/* 3 */
 				print_str(stacktrace_caller_name(2));	/* 4 */
 				print_str("\n");		/* 5 */
-				flush_err_str();
+				log_flush_err();
 				ck_restore(ck, saved);
 				return;
 			}
@@ -1212,7 +1213,7 @@ log_init(void)
 	logfile[LOG_STDOUT].otime = tm_time();
 
 	logfile[LOG_STDERR].f = stderr;
-	logfile[LOG_STDOUT].fd = fileno(stderr);
+	logfile[LOG_STDERR].fd = fileno(stderr);
 	logfile[LOG_STDERR].name = "err";
 	logfile[LOG_STDERR].otime = tm_time();
 
@@ -1273,7 +1274,18 @@ log_get_fd(enum log_file which)
 {
 	log_file_check(which);
 
-	return logfile[which].fd;
+	if G_LIKELY(log_inited) {
+		return logfile[which].fd;
+	}
+
+	switch (which) {
+	case LOG_STDOUT: return STDOUT_FILENO;
+	case LOG_STDERR: return STDERR_FILENO;
+	case LOG_MAX_FILES:
+		break;
+	}
+
+	g_assert_not_reached();
 }
 
 /**
