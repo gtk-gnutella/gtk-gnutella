@@ -124,6 +124,7 @@ struct crash_vars {
 	const char *version;	/**< Program version string (NULL if unknown) */
 	const assertion_data *failure;	/**< Failed assertion, NULL if none */
 	const char *message;	/**< Additional error messsage, NULL if none */
+	const char *filename;	/**< Filename where error occurred, NULL if node */
 	time_delta_t gmtoff;	/**< Offset to GMT, supposed to be fixed */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	size_t stackcnt;		/**< Valid stack items in stack[] */
@@ -401,13 +402,27 @@ crash_run_time(char *buf, size_t size)
 static G_GNUC_COLD crash_hook_t
 crash_get_hook(void)
 {
-	if (NULL == vars || NULL == vars->failure)
-		return NULL;		/* Not an assertion failure */
+	const char *file;
+
+	if (NULL == vars)
+		return NULL;		/* No crash_init() yet */
 
 	if (vars->recursive)
 		return NULL;		/* Already recursed, maybe through hook? */
 
-	return hash_table_lookup(vars->hooks, vars->failure->file);
+	/*
+	 * File name can come from an assertion failure or from an explict
+	 * call to crash_set_filename().
+	 */
+
+	if (vars->failure != NULL)
+		file = vars->failure->file;
+	else if (vars->filename != NULL)
+		file = vars->filename;
+	else
+		file = NULL;
+
+	return hash_table_lookup(vars->hooks, file);
 }
 
 /**
@@ -1777,7 +1792,7 @@ crash_post_init(void)
 /**
  * Record failed assertion data.
  */
-void
+G_GNUC_COLD void
 crash_assert_failure(const struct assertion_data *a)
 {
 	crash_mode();
@@ -1791,7 +1806,7 @@ crash_assert_failure(const struct assertion_data *a)
  *
  * @return formatted message string, NULL if it could not be built
  */
-const char *
+G_GNUC_COLD const char *
 crash_assert_logv(const char * const fmt, va_list ap)
 {
 	crash_mode();
@@ -1817,9 +1832,25 @@ crash_assert_logv(const char * const fmt, va_list ap)
 }
 
 /**
+ * Record crash filename (static string).
+ *
+ * This allows triggering of crash hooks, if any defined for the file.
+ */
+G_GNUC_COLD void
+crash_set_filename(const char * const filename)
+{
+	crash_mode();
+
+	if (vars != NULL && vars->logck != NULL) {
+		const char *f = ck_strdup_readonly(vars->logck, filename);
+		crash_set_var(filename, f);
+	}
+}
+
+/**
  * Record crash error message.
  */
-void
+G_GNUC_COLD void
 crash_set_error(const char * const msg)
 {
 	crash_mode();
@@ -1833,7 +1864,7 @@ crash_set_error(const char * const msg)
 /**
  * Record crash error message vector.
  */
-void
+G_GNUC_COLD void
 crash_set_error_vec(iovec_t *iov, unsigned iovcnt)
 {
 	crash_mode();
