@@ -46,6 +46,7 @@
 
 #include "xmalloc.h"
 #include "bit_array.h"
+#include "crash.h"			/* For crash_hook_add() */
 #include "log.h"
 #include "misc.h"
 #include "pow2.h"
@@ -265,6 +266,7 @@ static void *xmalloc_freelist_lookup(size_t len, struct xfreelist **flp);
 static void xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce);
 static void *xfl_bucket_alloc(const struct xfreelist *flb,
 	size_t size, gboolean core, size_t *allocated);
+static void xmalloc_crash_hook(void);
 
 #define xmalloc_debugging(lvl)	G_UNLIKELY(xmalloc_debug > (lvl) && safe_to_log)
 
@@ -306,6 +308,8 @@ xmalloc_show_settings(void)
 {
 	t_info(NULL, "using %s", xmalloc_is_malloc() ?
 		"our own malloc() replacement" : "native malloc()");
+
+	crash_hook_add(_WHERE_, xmalloc_crash_hook);
 }
 
 /**
@@ -530,7 +534,6 @@ xmalloc_is_valid_pointer(const void *p)
 
 /**
  * When pointer is invalid or mis-aligned, return the reason.
- * Also dump the VMM and heap info when facing an invalid pointer.
  *
  * @return reason why pointer is not valid, for logging.
  */
@@ -547,8 +550,6 @@ xmalloc_invalid_ptrstr(const void *p)
 			if (xmalloc_isheap(p, sizeof p)) {
 				return "valid heap pointer!";	/* Should never happen */
 			} else {
-				vmm_dump_pmap();
-				s_debug("heap is [%p, %p[", initial_break, current_break);
 				return "neither VMM nor heap pointer";
 			}
 		}
@@ -556,7 +557,6 @@ xmalloc_invalid_ptrstr(const void *p)
 		if (xmalloc_isheap(p, sizeof p)) {
 			return "valid heap pointer!";		/* Should never happen */
 		} else {
-			s_debug("heap is [%p, %p[", initial_break, current_break);
 			return "not a heap pointer";
 		}
 	}
@@ -886,18 +886,21 @@ static void
 assert_valid_freelist_pointer(const struct xfreelist *fl, const void *p)
 {
 	if (!xmalloc_is_valid_pointer(p)) {
-		t_error(NULL, "invalid pointer %p in %lu-byte malloc freelist: %s",
+		t_error_from(_WHERE_, NULL,
+			"invalid pointer %p in %lu-byte malloc freelist: %s",
 			p, (unsigned long) fl->blocksize, xmalloc_invalid_ptrstr(p));
 	}
 
 	if (*(size_t *) p != fl->blocksize) {
 		size_t len = *(size_t *) p;
 		if (!size_is_positive(len)) {
-			t_error(NULL, "detected free block corruption at %p: "
+			t_error_from(_WHERE_, NULL,
+				"detected free block corruption at %p: "
 				"block in a bucket handling %lu bytes has corrupted length %ld",
 				p, (unsigned long) fl->blocksize, (long) len);
 		} else {
-			t_error(NULL, "detected free block corruption at %p: "
+			t_error_from(_WHERE_, NULL,
+				"detected free block corruption at %p: "
 				"%lu-byte long block in a bucket handling %lu bytes", p,
 				(unsigned long) len, (unsigned long) fl->blocksize);
 		}
@@ -1173,12 +1176,13 @@ xfl_extend(struct xfreelist *fl)
 	 */
 
 	if (old_used < fl->count * sizeof(void *)) {
-		t_error(NULL, "XM self-increase during extension of freelist #%lu "
-				"(%lu-byte block): has more items than initial %lu "
-				"(count = %lu, capacity = %lu)",
-				(unsigned long) xfl_index(fl), (unsigned long) fl->blocksize,
-				(unsigned long) (old_used / sizeof(void *)),
-				(unsigned long) fl->count, (unsigned long) fl->capacity);
+		t_error_from(_WHERE_, NULL,
+			"XM self-increase during extension of freelist #%lu "
+			"(%lu-byte block): has more items than initial %lu "
+			"(count = %lu, capacity = %lu)",
+			(unsigned long) xfl_index(fl), (unsigned long) fl->blocksize,
+			(unsigned long) (old_used / sizeof(void *)),
+			(unsigned long) fl->count, (unsigned long) fl->capacity);
 	}
 
 	g_assert(new_ptr != old_ptr);
@@ -1334,7 +1338,8 @@ xfl_insert(struct xfreelist *fl, void *p)
 	 */
 
 	if G_UNLIKELY((size_t ) -1 != xfl_lookup(fl, p, &idx)) {
-		t_error(NULL, "block %p already in free list #%lu (%lu bytes)",
+		t_error_from(_WHERE_, NULL,
+			"block %p already in free list #%lu (%lu bytes)",
 			p, (unsigned long) xfl_index(fl),
 			(unsigned long) fl->blocksize);
 	}
@@ -2204,12 +2209,13 @@ xfree(void *p)
 		return;
 
 	if (!xmalloc_is_valid_pointer(xh)) {
-		t_error(NULL, "attempt to free invalid pointer %p: %s",
+		t_error_from(_WHERE_, NULL, "attempt to free invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
 	}
 
 	if (!xmalloc_is_valid_length(xh, xh->length)) {
-		t_error(NULL, "corrupted malloc header for pointer %p: bad lengh %lu",
+		t_error_from(_WHERE_, NULL,
+			"corrupted malloc header for pointer %p: bad lengh %lu",
 			p, (unsigned long) xh->length);
 	}
 
@@ -2242,12 +2248,13 @@ xrealloc(void *p, size_t size)
 	}
 
 	if (!xmalloc_is_valid_pointer(xh)) {
-		t_error(NULL, "attempt to realloc invalid pointer %p: %s",
+		t_error_from(_WHERE_, NULL, "attempt to realloc invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
 	}
 
 	if (!xmalloc_is_valid_length(xh, xh->length)) {
-		t_error(NULL, "corrupted malloc header for pointer %p: bad length %lu",
+		t_error_from(_WHERE_, NULL,
+			"corrupted malloc header for pointer %p: bad length %lu",
 			p, (unsigned long) xh->length);
 	}
 
@@ -3071,7 +3078,8 @@ xa_insert(const void *p, void *pdesc)
 	 */
 
 	if G_UNLIKELY((size_t ) -1 != xa_lookup(p, &idx)) {
-		t_error(NULL, "page %p already in aligned list (as page %s)",
+		t_error_from(_WHERE_, NULL,
+			"page %p already in aligned list (as page %s)",
 			p, xalign_type_str(&aligned[idx]));
 	}
 
@@ -3770,5 +3778,87 @@ valloc(size_t size)
 }
 
 #endif	/* XMALLOC_IS_MALLOC */
+
+/**
+ * In case of crash, dump statistics and make some sanity checks.
+ */
+static G_GNUC_COLD void
+xmalloc_crash_hook(void)
+{
+	unsigned i;
+
+	/*
+	 * When crashing log handlers will not use stdio nor allocate memory.
+	 * Therefore it's OK to be using s_xxx() logging routines here.
+	 */
+
+	s_debug("XM heap is [%p, %p[", initial_break, current_break);
+	s_debug("XM xfreelist_maxidx = %lu", (unsigned long) xfreelist_maxidx);
+#ifdef XMALLOC_IS_MALLOC
+	s_debug("XM xzones_capacity = %lu", (unsigned long) xzones_capacity);
+#endif
+	s_debug("XM dumping virtual memory page map:");
+	vmm_dump_pmap();
+	xmalloc_dump_stats();
+
+	/*
+	 * Now verify that all freelist buckets are not part of the freelist
+	 * and that addresses in the freelist are correctly sorted and valid!
+	 */
+
+	s_debug("XM verifying freelist...");
+
+	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+		struct xfreelist *fl = &xfreelist[i];
+		unsigned j;
+		const void *prev;
+
+		if (NULL == fl->pointers)
+			continue;
+
+		if (fl->capacity < fl->count) {
+			s_warning("XM freelist #%lu has corrupted count %lu (capacity %lu)",
+				(unsigned long) i,
+				(unsigned long) fl->count, (unsigned long) fl->capacity);
+		}
+
+		for (j = 0; j < G_N_ELEMENTS(xfreelist); j++) {
+			if ((size_t) -1 != xfl_lookup(&xfreelist[j], fl->pointers, NULL)) {
+				s_warning("XM freelist #%lu bucket %p listed in freelist #%lu!",
+					(unsigned long) i, fl->pointers, (unsigned long) j);
+				goto next;
+			}
+		}
+
+		for (j = 0, prev = NULL; j < fl->count; j++) {
+			const void *p = fl->pointers[j];
+
+			if (ptr_cmp(p, prev) <= 0) {
+				s_warning("XM item #%lu p=%p in freelist #%lu <= prev %p",
+					(unsigned long) j, p, (unsigned long) i, prev);
+				goto next;
+			}
+
+			if (!xmalloc_is_valid_pointer(p)) {
+				s_warning("XM item #%lu p=%p in freelist #%lu is invalid",
+					(unsigned long) j, p, (unsigned long) i);
+				goto next;
+			}
+
+			prev = p;
+		}
+
+		if (i > xfreelist_maxidx && fl->count != 0) {
+			s_warning("XM freelist #%lu has %lu items and is above maxidx=%lu",
+				(unsigned long) i, (unsigned long) fl->count,
+				(unsigned long) xfreelist_maxidx);
+		}
+
+		s_debug("XM freelist #%lu OK", (unsigned long) i);
+
+		next:
+			continue;
+	}
+}
 
 /* vi: set ts=4 sw=4 cindent:  */
