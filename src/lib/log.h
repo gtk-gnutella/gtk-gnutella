@@ -95,6 +95,7 @@ void s_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_fatal_exit(int status, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void s_error_from(const char *file, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
 
 /*
  * Thread-safe logging interface.
@@ -107,6 +108,8 @@ void t_warning(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_message(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_info(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_debug(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void t_error_from(const char *file,
+	logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(3, 4);
 
 #endif /* _log_h_ */
 

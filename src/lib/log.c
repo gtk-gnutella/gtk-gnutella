@@ -614,6 +614,23 @@ s_error(const char *format, ...)
 	raise(SIGABRT);		/* In case we did not enter g_logv() */
 }
 
+/*
+ * Safe error, recording the source of the crash to allow crash hooks.
+ */
+void
+s_error_from(const char *file, const char *format, ...)
+{
+	va_list args;
+
+	crash_set_filename(file);
+
+	va_start(args, format);
+	s_logv(NULL, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
+	va_end(args);
+
+	raise(SIGABRT);		/* In case we did not enter g_logv() */
+}
+
 /**
  * Safe verbose warning message.
  */
@@ -711,6 +728,26 @@ t_error(logthread_t *lt, const char *format, ...)
 
 	lt = logthread_object(lt);
 	logthread_check(lt);
+
+	va_start(args, format);
+	s_logv(lt, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
+	va_end(args);
+
+	raise(SIGABRT);		/* We did not enter g_logv() */
+}
+
+/**
+ * Thread-safe error, recording the source of the crash to allow crash hooks.
+ */
+void
+t_error_from(const char *file, logthread_t *lt, const char *format, ...)
+{
+	va_list args;
+
+	lt = logthread_object(lt);
+	logthread_check(lt);
+
+	crash_set_filename(file);
 
 	va_start(args, format);
 	s_logv(lt, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
