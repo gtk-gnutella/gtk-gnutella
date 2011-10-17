@@ -3837,13 +3837,11 @@ xmalloc_crash_hook(void)
 			if (ptr_cmp(p, prev) <= 0) {
 				s_warning("XM item #%lu p=%p in freelist #%lu <= prev %p",
 					(unsigned long) j, p, (unsigned long) i, prev);
-				goto next;
 			}
 
 			if (!xmalloc_is_valid_pointer(p)) {
 				s_warning("XM item #%lu p=%p in freelist #%lu is invalid",
 					(unsigned long) j, p, (unsigned long) i);
-				goto next;
 			}
 
 			prev = p;
