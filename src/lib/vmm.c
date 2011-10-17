@@ -2275,7 +2275,7 @@ vpc_insert(struct page_cache *pc, void *p)
 		pc->current <= VMM_CACHE_SIZE);
 
 	if G_UNLIKELY((size_t ) -1 != vpc_lookup(pc, p, &idx)) {
-		s_error("memory chunk at %p already present in cache", p);
+		s_error_from(_WHERE_, "memory chunk at %p already present in cache", p);
 	}
 
 	g_assert(size_is_non_negative(idx) && idx <= pc->current);
@@ -4138,7 +4138,8 @@ vmm_free_record_desc(const void *p, const struct page_track *pt)
 			s_carp("VMM (%s:%d) attempt to free page at %p twice?",
 				pt->file, pt->line, p);
 			if (0 == vmm_buffer.missed) {
-				s_error("VMM vmm_free() of unknown address %p", p);
+				s_error_from(_WHERE_,
+					"VMM vmm_free() of unknown address %p", p);
 			}
 		}
 		return;
