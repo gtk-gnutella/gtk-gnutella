@@ -240,6 +240,8 @@ static struct {
 	guint64 realloc_relocate_smart_attempts;	/**< Attempts to move pointer */
 	guint64 realloc_relocate_smart_success;		/**< Smart placement was OK */
 	guint64 realloc_regular_strategy;		/**< Regular resizing strategy */
+	guint64 freelist_insertions;			/**< Insertions in freelist */
+	guint64 freelist_insertions_no_coalescing;	/**< Coalescing forbidden */
 	guint64 freelist_further_breakups;		/**< Breakups due to extra size */
 	guint64 freelist_coalescing_done;		/**< Successful coalescings */
 	guint64 freelist_coalescing_failed;		/**< Failed coalescings */
@@ -1681,8 +1683,13 @@ xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
 	 * First attempt to coalesce memory as much as possible if requested.
 	 */
 
-	if (coalesce)
+	xstats.freelist_insertions++;
+
+	if (coalesce) {
 		xmalloc_freelist_coalesce(&p, &len, coalesce);
+	} else {
+		xstats.freelist_insertions_no_coalescing++;
+	}
 
 	/*
 	 * Chunks of memory larger than XMALLOC_MAXSIZE need to be broken up
@@ -2792,6 +2799,8 @@ xmalloc_dump_stats(void)
 	DUMP(realloc_relocate_smart_attempts);
 	DUMP(realloc_relocate_smart_success);
 	DUMP(realloc_regular_strategy);
+	DUMP(freelist_insertions);
+	DUMP(freelist_insertions_no_coalescing);
 	DUMP(freelist_further_breakups);
 	DUMP(freelist_coalescing_done);
 	DUMP(freelist_coalescing_failed);
@@ -2816,9 +2825,9 @@ xmalloc_dump_stats(void)
 			(unsigned long) fl->capacity, (unsigned long) fl->count);
 	}
 
-	s_info("XM freelist holds %s bytes spread among %lu block%s",
-		uint64_to_string(bytes), (unsigned long) blocks,
-		1 == blocks ? "" : "s");
+	s_info("XM freelist holds %s bytes (%s) spread among %lu block%s",
+		uint64_to_string(bytes), short_size(bytes, FALSE),
+		(unsigned long) blocks, 1 == blocks ? "" : "s");
 }
 
 #ifdef XMALLOC_IS_MALLOC
