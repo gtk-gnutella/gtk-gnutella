@@ -4611,13 +4611,20 @@ qrt_build_query_target(
 		struct routing_table *rt = dn->recv_query_table;
 		gboolean is_leaf;
 
-		if G_UNLIKELY(!NODE_IS_WRITABLE(dn))
+		/*
+		 * Avoid G_UNLIKELY() hints in the loop.  Either they are wrong hints
+		 * or they increase the code size and resuly in I-cache misses, but
+		 * profiling showed that these hints actually slow down this routine.
+		 *		--RAM, 2011-10-18
+		 */
+
+		if (!NODE_IS_WRITABLE(dn))
 			continue;
 
-		if G_UNLIKELY(hops >= dn->hops_flow)	/* Hops-flow prevents sending */
+		if (hops >= dn->hops_flow)	/* Hops-flow prevents sending */
 			continue;
 
-		if G_UNLIKELY(dn == source)		/* Skip node that sent us the query */
+		if (dn == source)			/* Skip node that sent us the query */
 			continue;
 
 		/*
@@ -4629,14 +4636,14 @@ qrt_build_query_target(
 
 		if (is_leaf) {
 			/* Leaf node */
-			if G_UNLIKELY(whats_new) {
+			if (whats_new) {
 				if (NODE_CAN_WHAT(dn)) {
 					goto can_send;		/* What's New? queries broadcasted */
 				} else {
 					continue;
 				}
 			}
-			if G_UNLIKELY(rt == NULL)	/* No QRT yet */
+			if (rt == NULL)				/* No QRT yet */
 				continue;				/* Don't send anything */
 		} else {
 			/* Ultra node */
@@ -4644,14 +4651,14 @@ qrt_build_query_target(
 				continue;
 			if (ttl > 1)				/* Only deal with last-hop UP */
 				goto can_send;			/* Send to other UP if ttl > 1 */
-			if G_UNLIKELY(whats_new) {
+			if (whats_new) {
 				if (NODE_CAN_WHAT(dn)) {
 					goto can_send;		/* Broadcast to that node */
 				} else {
 					continue;			/* Skip node, would not be efficient */
 				}
 			}
-			if G_UNLIKELY(rt == NULL)	/* UP has not sent us its table */
+			if (rt == NULL)				/* UP has not sent us its table */
 				goto can_send;			/* Forward everything then */
 		}
 
@@ -4697,7 +4704,7 @@ qrt_build_query_target(
 		 *		--RAM, 31/12/2003
 		 */
 
-		if G_UNLIKELY(NODE_IN_TX_FLOW_CONTROL(dn)) {
+		if (NODE_IN_TX_FLOW_CONTROL(dn)) {
 			if (sha1_query)
 				continue;
 			if (random_u32() % 256 >= 128)
