@@ -312,4 +312,17 @@ If your patch requires other patches, you should include them also.
 Before starting a big project, you may want to ask the list if anyone
 else is working on that fix so you don't duplicate work.
 
+
+In Memoriam
+-----------
+
+Dennis MacAlistair Ritchie, 1941-2011
+
+#include <stdio.h>
+main()
+{
+    printf("Farewell, Dennis!\n");
+	return 0;
+}
+
 /* vi: set et ts=4: */
