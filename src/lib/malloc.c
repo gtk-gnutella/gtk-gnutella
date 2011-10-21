@@ -3147,7 +3147,7 @@ malloc_init_vtable(void)
  * Called from main() to log settings at startup.
  */
 G_GNUC_COLD void
-malloc_show_settings(void)
+malloc_show_settings_log(logagent_t *la)
 {
 	gboolean has_setting = FALSE;
 	struct malloc_settings {
@@ -3250,7 +3250,7 @@ malloc_show_settings(void)
 #endif
 
 	if (has_setting) {
-		g_message("malloc settings: %s%s%s%s%s%s%s%s%s%s%s%s%s%s",
+		log_message(la, "malloc settings: %s%s%s%s%s%s%s%s%s%s%s%s%s%s",
 			settings.track_vmm ? "TRACK_VMM " : "",
 			settings.track_malloc ? "TRACK_MALLOC " : "",
 			settings.track_zalloc ? "TRACK_ZALLOC " : "",
@@ -3268,16 +3268,25 @@ malloc_show_settings(void)
 	}
 
 	if (settings.malloc_safe)
-		g_message("malloc variable MALLOC_TRAILER_LEN = %lu",
+		log_message(la, "malloc variable MALLOC_TRAILER_LEN = %lu",
 			settings.malloc_trailer_len);
 
 	if (settings.malloc_periodic)
-		g_message("malloc variable MALLOC_PERIOD = %lu",
+		log_message(la, "malloc variable MALLOC_PERIOD = %lu",
 			settings.malloc_period);
 
 	if (settings.malloc_vtable)
-		g_message("malloc setting MALLOC_VTABLE %s",
+		log_message(la, "malloc setting MALLOC_VTABLE %s",
 			settings.vtable_works ? "works" : "does NOT work!");
+}
+
+/**
+ * Called from main() to log settings at startup.
+ */
+G_GNUC_COLD void
+malloc_show_settings(void)
+{
+	malloc_show_settings_log(log_agent_stderr_get());
 }
 
 /**
