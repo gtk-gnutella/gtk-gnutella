@@ -459,15 +459,15 @@ vmf_type_str(const vmf_type_t type)
 }
 
 /**
- * Dump current pmap.
+ * Dump current pmap to specified logagent.
  */
 G_GNUC_COLD void
-vmm_dump_pmap(void)
+vmm_dump_pmap_log(logagent_t *la)
 {
 	struct pmap *pm = vmm_pmap();
 	size_t i;
 
-	s_debug("VMM current %s pmap (%lu region%s):",
+	log_debug(la, "VMM current %s pmap (%lu region%s):",
 		pm == &kernel_pmap ? "kernel" :
 		pm == &local_pmap ? "local" : "unknown",
 		(unsigned long) pm->count, 1 == pm->count ? "" : "s");
@@ -481,7 +481,7 @@ vmm_dump_pmap(void)
 			hole = ptr_diff(next, vmf->end);
 		}
 
-		s_debug("VMM [%p, %p] %luKiB %s%s%s%s",
+		log_debug(la, "VMM [%p, %p] %luKiB %s%s%s%s",
 			vmf->start, const_ptr_add_offset(vmf->end, -1),
 			(unsigned long) (vmf_size(vmf) / 1024),
 			vmf_type_str(vmf->type),
@@ -489,6 +489,15 @@ vmm_dump_pmap(void)
 			hole ? size_t_to_string(hole / 1024) : "",
 			hole ? "KiB hole" : "");
 	}
+}
+
+/**
+ * Dump current pmap.
+ */
+G_GNUC_COLD void
+vmm_dump_pmap(void)
+{
+	vmm_dump_pmap_log(log_agent_stderr_get());
 }
 
 #if defined(HAS_MMAP) || defined(MINGW32)
@@ -3369,14 +3378,12 @@ vmm_malloc_inited(void)
 }
 
 /**
- * Dump VMM statistics.
+ * Dump VMM statistics to specified logging agent.
  */
 G_GNUC_COLD void
-vmm_dump_stats(void)
+vmm_dump_stats_log(logagent_t *la)
 {
-#define DUMP(x)	s_info("VMM %s = %s", #x, uint64_to_string(vmm_stats.x))
-
-	s_info("VMM running statistics:");
+#define DUMP(x)	log_info(la, "VMM %s = %s", #x, uint64_to_string(vmm_stats.x))
 
 	DUMP(allocations);
 	DUMP(allocations_zeroed);
@@ -3402,7 +3409,16 @@ vmm_dump_stats(void)
 	DUMP(cache_expired_pages);
 
 #undef DUMP
+}
 
+/**
+ * Dump VMM statistics at exit time, along with the current pmap.
+ */
+G_GNUC_COLD void
+vmm_dump_stats(void)
+{
+	s_info("VMM running statistics:");
+	vmm_dump_stats_log(log_agent_stderr_get());
 	vmm_dump_pmap();
 }
 
