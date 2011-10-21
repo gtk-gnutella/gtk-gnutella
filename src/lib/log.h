@@ -55,6 +55,9 @@ struct logstat {
 struct logthread;
 typedef struct logthread logthread_t;
 
+struct logagent;
+typedef struct logagent logagent_t;
+
 /*
  * Public interface.
  */
@@ -110,6 +113,23 @@ void t_info(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_debug(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_error_from(const char *file,
 	logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(3, 4);
+
+/*
+ * Polymorphic logging interface.
+ */
+
+logagent_t *log_agent_stderr_get(void);
+logagent_t *log_agent_string_make(size_t size, const char *prefix);
+void log_agent_string_reset(logagent_t *la);
+const char *log_agent_string_get(const logagent_t *la);
+char *log_agent_string_get_null(logagent_t **la_ptr);
+void log_agent_free_null(logagent_t **la_ptr);
+
+void log_critical(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void log_warning(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void log_message(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void log_info(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void log_debug(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
 
 #endif /* _log_h_ */
 
