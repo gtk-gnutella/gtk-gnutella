@@ -46,6 +46,8 @@ typedef enum shell_reply (*shell_cmd_handler_t)(struct gnutella_shell *,
 
 void shell_check(const struct gnutella_shell *);
 void shell_set_msg(struct gnutella_shell *, const char *);
+void shell_set_formatted(struct gnutella_shell *, const char *, ...)
+	G_GNUC_PRINTF(2, 3);
 void shell_write(struct gnutella_shell *, const char *);
 void shell_shutdown(struct gnutella_shell *);
 gboolean shell_toggle_interactive(struct gnutella_shell *);
