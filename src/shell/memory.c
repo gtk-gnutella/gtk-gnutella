@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009, Christian Biere
+ * Copyright (c) 2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,6 +30,8 @@
  *
  * @author Christian Biere
  * @date 2009
+ * @author Raphael Manfredi
+ * @date 2011
  */
 
 #include "common.h"
@@ -37,13 +40,22 @@
 
 #include "lib/ascii.h"
 #include "lib/fd.h"
-#include "lib/parse.h"
+#include "lib/file.h"
+#include "lib/log.h"
 #include "lib/misc.h"
+#include "lib/parse.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
-#include "lib/file.h"
+#include "lib/vmm.h"
+#include "lib/xmalloc.h"
+#include "lib/zalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+#if defined(MALLOC_STATS) || defined(MALLOC_FRAMES) || \
+	defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
+#define ALLOW_DUMP
+#endif
 
 /**
  * Reads a piece of memory from the process address space using a pipe. As
@@ -79,7 +91,7 @@ read_memory(int fd[2], const unsigned char *addr, size_t length,
 	}
 }
 
-static enum shell_reply
+static inline enum shell_reply	/* "inline" to avoid warning if unused */
 shell_exec_memory_dump(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
@@ -93,16 +105,16 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	if (4 != argc) {
-		shell_set_msg(sh, "Invalid parameter count");
+	if (2 != argc) {
+		shell_set_formatted(sh, "Invalid parameter count (%d)", argc);
 		goto failure;
 	}
-	addr = parse_pointer(argv[2], &endptr, &error);
+	addr = parse_pointer(argv[0], &endptr, &error);
 	if (error || NULL == addr || '\0' != *endptr) {
 		shell_set_msg(sh, "Bad address");
 		goto failure;
 	}
-	length = parse_size(argv[3], &endptr, 10, &error);
+	length = parse_size(argv[1], &endptr, 10, &error);
 	if (error || '\0' != *endptr) {
 		shell_set_msg(sh, "Bad length");
 		goto failure;
@@ -169,6 +181,171 @@ failure:
 	return REPLY_ERROR;
 }
 
+typedef void (*shower_cb_t)(logagent_t *la);
+
+typedef struct show_vec {
+	shower_cb_t cb;
+	const char *prefix;
+} show_vec_t;
+
+static enum shell_reply
+memory_run_showerv(struct gnutella_shell *sh, show_vec_t *sv, unsigned sv_cnt)
+{
+	unsigned i;
+
+	shell_check(sh);
+
+	shell_write(sh, "100~\n");
+
+	for (i = 0; i < sv_cnt; i++) {
+		show_vec_t *v = &sv[i];
+		logagent_t *la = log_agent_string_make(0, v->prefix);
+		(*v->cb)(la);
+		shell_write(sh, log_agent_string_get(la));
+		log_agent_free_null(&la);
+	}
+
+	shell_write(sh, ".\n");
+
+	return REPLY_READY;
+}
+
+static enum shell_reply
+memory_run_shower(struct gnutella_shell *sh,
+	shower_cb_t cb, const char *prefix)
+{
+	show_vec_t v;
+
+	shell_check(sh);
+
+	v.cb = cb;
+	v.prefix = prefix;
+
+	return memory_run_showerv(sh, &v, 1);
+}
+
+static enum shell_reply
+shell_exec_memory_show_options(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	show_vec_t v[2];
+
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	v[0].cb = xmalloc_show_settings_log;
+	v[0].prefix = NULL;
+	v[1].cb = malloc_show_settings_log;
+	v[1].prefix = "malloc ";
+
+	return memory_run_showerv(sh, v, G_N_ELEMENTS(v));
+}
+
+static enum shell_reply
+shell_exec_memory_show_pmap(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return memory_run_shower(sh, vmm_dump_pmap_log, "VMM ");
+}
+
+static enum shell_reply
+shell_exec_memory_show_xmalloc(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return memory_run_shower(sh, xmalloc_dump_freelist_log, "XM ");
+}
+
+static enum shell_reply
+shell_exec_memory_show_zones(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return memory_run_shower(sh, zalloc_dump_zones_log, "ZALLOC ");
+}
+
+static enum shell_reply
+shell_exec_memory_show(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc < 2)
+		return REPLY_ERROR;
+
+#define CMD(name) G_STMT_START { \
+	if (0 == ascii_strcasecmp(argv[1], #name)) \
+		return shell_exec_memory_show_## name(sh, argc - 1, argv + 1); \
+} G_STMT_END
+
+	CMD(options);
+	CMD(pmap);
+	CMD(xmalloc);
+	CMD(zones);
+
+#undef CMD
+
+	shell_set_formatted(sh, _("Unknown operation \"show %s\""), argv[1]);
+	return REPLY_ERROR;
+}
+
+static enum shell_reply
+shell_exec_memory_stats_vmm(struct gnutella_shell *sh)
+{
+	return memory_run_shower(sh, vmm_dump_stats_log, "VMM ");
+}
+
+static enum shell_reply
+shell_exec_memory_stats_xmalloc(struct gnutella_shell *sh)
+{
+	return memory_run_shower(sh, xmalloc_dump_stats_log, "XM ");
+}
+
+static enum shell_reply
+shell_exec_memory_stats_zalloc(struct gnutella_shell *sh)
+{
+	return memory_run_shower(sh, zalloc_dump_stats_log, "ZALLOC ");
+}
+
+static enum shell_reply
+shell_exec_memory_stats(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc < 2)
+		return REPLY_ERROR;
+
+#define CMD(name) G_STMT_START { \
+	if (0 == ascii_strcasecmp(argv[1], #name)) \
+		return shell_exec_memory_stats_## name(sh); \
+} G_STMT_END
+
+	CMD(vmm);
+	CMD(xmalloc);
+	CMD(zalloc);
+
+#undef CMD
+
+	shell_set_formatted(sh, _("Unknown operation \"stats %s\""), argv[1]);
+	return REPLY_ERROR;
+}
+
 /**
  * Handles the memory command.
  */
@@ -180,20 +357,22 @@ shell_exec_memory(struct gnutella_shell *sh, int argc, const char *argv[])
 	g_assert(argc > 0);
 
 	if (argc < 2)
-		goto error;
+		return REPLY_ERROR;
 
 #define CMD(name) G_STMT_START { \
 	if (0 == ascii_strcasecmp(argv[1], #name)) \
-		return shell_exec_memory_ ## name(sh, argc, argv); \
+		return shell_exec_memory_ ## name(sh, argc - 1, argv + 1); \
 } G_STMT_END
 
+#ifdef ALLOW_DUMP
 	CMD(dump);
+#endif
+	CMD(show);
+	CMD(stats);
+
 #undef CMD
 	
-	shell_set_msg(sh, _("Unknown operation"));
-	goto error;
-
-error:
+	shell_set_formatted(sh, _("Unknown operation \"%s\""), argv[1]);
 	return REPLY_ERROR;
 }
 
@@ -210,11 +389,31 @@ shell_help_memory(int argc, const char *argv[])
 	g_assert(argc > 0);
 
 	if (argc > 1) {
-		/* FIXME */
-		return NULL;
+#ifdef ALLOW_DUMP
+		if (0 == ascii_strcasecmp(argv[1], "dump")) {
+			return "memory dump ADDRESS LENGTH\n"
+				"dumps LENGTH bytes of memory starting at ADDRESS\n";
+		} else
+#endif
+		if (0 == ascii_strcasecmp(argv[1], "show")) {
+			return
+				"memory show options   # display memory options\n"
+				"memory show pmap      # display VMM pmap\n"
+				"memory show xmalloc   # display xmalloc() freelist info\n"
+				"memory show zones     # display zone usage\n";
+		} else if (0 == ascii_strcasecmp(argv[1], "stats")) {
+			return "memory stats vmm|xmalloc\n"
+				"show statistics about specified memory sub-system\n";
+		}
 	} else {
-		return "memory dump ADDRESS LENGTH\n";
+		return
+#ifdef ALLOW_DUMP
+		"memory dump ADDRESS LENGTH\n"
+#endif
+		"memory show [options|pmap|xmalloc|zones]\n"
+		"memory stats vmm|xmalloc|zalloc\n";
 	}
+	return NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
