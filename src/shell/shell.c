@@ -170,6 +170,19 @@ shell_set_msg(struct gnutella_shell *sh, const char *text)
 	sh->msg = h_strdup(text);
 }
 
+void
+shell_set_formatted(struct gnutella_shell *sh, const char *fmt, ...)
+{
+	va_list args;
+
+	shell_check(sh);
+
+	HFREE_NULL(sh->msg);
+	va_start(args, fmt);
+	sh->msg = str_vcmsg(fmt, args);
+	va_end(args);
+}
+
 static void
 shell_write_msg(struct gnutella_shell *sh)
 {

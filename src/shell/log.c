@@ -249,33 +249,25 @@ shell_exec_log_status(struct gnutella_shell *sh,
 enum shell_reply
 shell_exec_log(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	enum shell_reply reply_code;
-
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
 	if (argc < 2)
-		goto error;
+		return REPLY_ERROR;
 
-	if (0 == ascii_strcasecmp(argv[1], "cwd")){
-		reply_code = shell_exec_log_cwd(sh, argc - 1, argv + 1);
-	} else if (0 == ascii_strcasecmp(argv[1], "rename")) {
-		reply_code = shell_exec_log_rename(sh, argc - 1, argv + 1);
-	} else if (0 == ascii_strcasecmp(argv[1], "reopen")) {
-		reply_code = shell_exec_log_reopen(sh, argc - 1, argv + 1);
-	} else if (0 == ascii_strcasecmp(argv[1], "set")){
-		reply_code = shell_exec_log_set(sh, argc - 1, argv + 1);
-	} else if (0 == ascii_strcasecmp(argv[1], "status")){
-		reply_code = shell_exec_log_status(sh, argc - 1, argv + 1);
-	} else {
-		shell_set_msg(sh, _("Unknown operation"));
-		goto error;
-	}
+#define CMD(name) G_STMT_START { \
+	if (0 == ascii_strcasecmp(argv[1], #name)) \
+		return shell_exec_log_ ## name(sh, argc - 1, argv + 1); \
+} G_STMT_END
 
-	return reply_code;
+	CMD(cwd);
+	CMD(rename);
+	CMD(reopen);
+	CMD(set);
+	CMD(status);
 
-error:
+	shell_set_formatted(sh, _("Unknown operation \"%s\""), argv[1]);
 	return REPLY_ERROR;
 }
 

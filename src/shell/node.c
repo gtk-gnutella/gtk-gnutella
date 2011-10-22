@@ -177,27 +177,22 @@ error:
 enum shell_reply
 shell_exec_node(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	enum shell_reply reply_code;
-
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
 	if (argc < 2)
-		goto error;
+		return REPLY_ERROR;
 
-	if (0 == ascii_strcasecmp(argv[1], "add")) {
-		reply_code = shell_exec_node_add(sh, argc, argv);
-	} else if (0 == ascii_strcasecmp(argv[1], "drop")){
-		reply_code = shell_exec_node_drop(sh, argc, argv);
-	} else {
-		shell_set_msg(sh, _("Unknown operation"));
-		goto error;
-	}
+#define CMD(name) G_STMT_START { \
+	if (0 == ascii_strcasecmp(argv[1], #name)) \
+		return shell_exec_node_ ## name(sh, argc - 1, argv + 1); \
+} G_STMT_END
 
-	return reply_code;
+	CMD(add);
+	CMD(drop);
 
-error:
+	shell_set_formatted(sh, _("Unknown operation \"%s\""), argv[1]);
 	return REPLY_ERROR;
 }
 

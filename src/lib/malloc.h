@@ -360,6 +360,9 @@ struct frame *get_frame_atom(hash_table_t **hptr, const struct stacktrace *st);
  * Public interface, available no matter which compile options are used.
  */
 
+struct logagent;
+
+void malloc_show_settings_log(struct logagent *la);
 void malloc_show_settings(void);
 void malloc_init_vtable(void);
 void malloc_close(void);

@@ -13,10 +13,7 @@ SHELL_CMD(help)
 SHELL_CMD(horizon)
 SHELL_CMD(intr)
 SHELL_CMD(log)
-#if defined(MALLOC_STATS) || defined(MALLOC_FRAMES) || \
-	defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
 SHELL_CMD(memory)
-#endif
 SHELL_CMD(node)
 SHELL_CMD(nodes)
 SHELL_CMD(offline)

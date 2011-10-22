@@ -78,6 +78,8 @@ void vmm_free(void *p, size_t size);
 void vmm_shrink(void *p, size_t size, size_t new_size);
 #endif	/* VMM_SOURCE || !TRACK_VMM */
 
+struct logagent;
+
 size_t round_pagesize(size_t n) G_GNUC_PURE;
 size_t compat_pagesize(void) G_GNUC_PURE;
 const void *vmm_page_start(const void *p) G_GNUC_PURE;
@@ -96,7 +98,9 @@ void vmm_pre_close(void);
 void vmm_stop_freeing(void);
 void vmm_close(void);
 void vmm_dump_pmap(void);
+void vmm_dump_pmap_log(struct logagent *la);
 void vmm_dump_stats(void);
+void vmm_dump_stats_log(struct logagent *la);
 
 void vmm_madvise_free(void *p, size_t size);
 void vmm_madvise_normal(void *p, size_t size);

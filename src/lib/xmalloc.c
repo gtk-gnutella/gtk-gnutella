@@ -303,14 +303,26 @@ xmalloc_vmm_inited(void)
 }
 
 /**
+ * Called to log which malloc() is used on the specified log agent.
+ */
+G_GNUC_COLD void
+xmalloc_show_settings_log(logagent_t *la)
+{
+	log_info(la, "using %s", xmalloc_is_malloc() ?
+		"our own malloc() replacement" : "native malloc()");
+}
+
+/**
  * Called to log which malloc() is used.
+ *
+ * @attention
+ * This is called very early, and is used to record crash hooks for the
+ * file as a side effect.
  */
 G_GNUC_COLD void
 xmalloc_show_settings(void)
 {
-	t_info(NULL, "using %s", xmalloc_is_malloc() ?
-		"our own malloc() replacement" : "native malloc()");
-
+	xmalloc_show_settings_log(log_agent_stderr_get());
 	crash_hook_add(_WHERE_, xmalloc_crash_hook);
 }
 
@@ -2760,18 +2772,12 @@ xmalloc_stop_freeing(void)
 }
 
 /**
- * Dump xmalloc statistics.
+ * Dump xmalloc statistics to specified log agent.
  */
 G_GNUC_COLD void
-xmalloc_dump_stats(void)
+xmalloc_dump_stats_log(logagent_t *la)
 {
-	size_t i;
-	guint64 bytes = 0;
-	size_t blocks = 0;
-
-#define DUMP(x)	s_info("XM %s = %s", #x, uint64_to_string(xstats.x))
-
-	s_info("XM running statistics:");
+#define DUMP(x)	log_info(la, "XM %s = %s", #x, uint64_to_string(xstats.x))
 
 	DUMP(allocations);
 	DUMP(allocations_zeroed);
@@ -2808,8 +2814,17 @@ xmalloc_dump_stats(void)
 	DUMP(freelist_nosplit);
 
 #undef DUMP
+}
 
-	s_info("XM freelist status:");
+/**
+ * Dump freelist status to specified log agent.
+ */
+G_GNUC_COLD void
+xmalloc_dump_freelist_log(logagent_t *la)
+{
+	size_t i;
+	guint64 bytes = 0;
+	size_t blocks = 0;
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
@@ -2820,14 +2835,26 @@ xmalloc_dump_stats(void)
 		bytes += fl->blocksize * fl->count;
 		blocks = size_saturate_add(blocks, fl->count);
 
-		s_info("XM freelist #%lu (%lu bytes): capacity=%lu, count=%lu",
+		log_info(la, "XM freelist #%lu (%lu bytes): capacity=%lu, count=%lu",
 			(unsigned long) i, (unsigned long) fl->blocksize,
 			(unsigned long) fl->capacity, (unsigned long) fl->count);
 	}
 
-	s_info("XM freelist holds %s bytes (%s) spread among %lu block%s",
+	log_info(la, "XM freelist holds %s bytes (%s) spread among %lu block%s",
 		uint64_to_string(bytes), short_size(bytes, FALSE),
 		(unsigned long) blocks, 1 == blocks ? "" : "s");
+}
+
+/**
+ * Dump xmalloc statistics.
+ */
+G_GNUC_COLD void
+xmalloc_dump_stats(void)
+{
+	s_info("XM running statistics:");
+	xmalloc_dump_stats_log(log_agent_stderr_get());
+	s_info("XM freelist status:");
+	xmalloc_dump_freelist_log(log_agent_stderr_get());
 }
 
 #ifdef XMALLOC_IS_MALLOC

@@ -1142,6 +1142,17 @@ stack_reached_main(const char *where)
 }
 
 /**
+ * Is PC falling in the text segment?
+ */
+static inline gboolean
+stack_is_text(const void *pc)
+{
+	extern const char *data_start;		/* linker-defined symbol */
+
+	return pc != NULL && ptr_cmp(pc, data_start) < 0;
+}
+
+/**
  * Print array of PCs, using symbolic names if possible.
  *
  * @param f			where to print the stack
@@ -1157,6 +1168,9 @@ stack_print(FILE *f, void * const *stack, size_t count)
 
 	for (i = 0; i < count; i++) {
 		const char *where = trace_name(stack[i], TRUE);
+
+		if (!stack_is_text(stack[i]))
+			break;
 
 		fprintf(f, "\t%s\n", where);
 		if (stack_reached_main(where))
@@ -1184,6 +1198,9 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 		print_str(where);		/* 1 */
 		print_str("\n");		/* 2 */
 		flush_str(fd);
+
+		if (!stack_is_text(stack[i]))
+			break;
 
 		if (stack_reached_main(where))
 			break;

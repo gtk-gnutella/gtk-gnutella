@@ -1834,6 +1834,24 @@ str_msg(const char *fmt, ...)
  * freshly allocated C string, which needs to be disposed of by hfree().
  */
 char *
+str_vcmsg(const char *fmt, va_list args)
+{
+	static str_t *str;
+	
+	if G_UNLIKELY(NULL == str)
+		str = str_new_not_leaking(0);
+
+	str->s_len = 0;
+	str_vncatf(str, INT_MAX, fmt, args);
+
+	return str_dup(str);
+}
+
+/**
+ * sprintf() the arguments inside a dynamic string and return the result in a
+ * freshly allocated C string, which needs to be disposed of by hfree().
+ */
+char *
 str_cmsg(const char *fmt, ...)
 {
 	static str_t *str;
