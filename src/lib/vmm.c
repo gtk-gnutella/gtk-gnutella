@@ -172,7 +172,7 @@ struct page_cache {
  * The page cache.
  *
  * At index 0, we have pages whose size is the VMM page size.
- * Ad index n, we have areas made of n consecutive pages.
+ * Ad index n, we have areas made of n+1 consecutive pages.
  */
 static struct page_cache page_cache[VMM_CACHE_LINES];
 
@@ -237,6 +237,7 @@ static struct {
 	guint64 cache_line_coalescing;	/**< Amount of coalescing in cache line */
 	guint64 cache_expired;			/**< Amount of entries expired from cache */
 	guint64 cache_expired_pages;	/**< Expired pages from cache */
+	guint64 high_order_coalescing;	/**< Large regions successfully coalesced */
 } vmm_stats;
 
 /**
@@ -2463,8 +2464,10 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 		size_t i;
 
 		/*
-		 * Since we're looking for less pages than what this cache line stores,
-		 * we'll have to split the page.
+		 * Since we're looking for more pages than what this cache line stores,
+		 * we'll have to coalesce the page with neighbouring chunks, which
+		 * only makes sense when looking for pages in the highest order page
+		 * cache.
 		 */
 
 		for (i = 0; i < pc->current; i++) {
@@ -2480,9 +2483,11 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 
 			if (hole != NULL && vmm_ptr_cmp(base, hole) > 0) {
 				if (vmm_debugging(7)) {
-					s_debug("VMM page cache #%lu: stopping split attempt "
-						"at %p (upper than hole %p)",
-						(unsigned long) pc->pages - 1, base, hole);
+					s_debug("VMM page cache #%lu: stopping lookup attempt "
+						"for %lu page%s at %p (upper than hole %p)",
+						(unsigned long) pc->pages - 1,
+						(unsigned long) n, 1 == n ? "" : "s",
+						base, hole);
 				}
 				break;
 			}
@@ -2490,13 +2495,16 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 			goto selected;
 		}
 
-		return NULL;
+		return NULL;		/* Cache line was empty */
 	} else {
 		size_t i;
 		size_t max_distance = 0;
 		base = NULL;
 
 		/*
+		 * We're looking for less consecutive pages than what this cache
+		 * line holds, which will require splitting of the entry.
+		 *
 		 * Allocate the innermost pages within the region, so that pages at
 		 * the beginning or end of the region remain unused and can be
 		 * released if they're not needed.
@@ -2516,9 +2524,11 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 
 			if (hole != NULL && vmm_ptr_cmp(p, hole) > 0) {
 				if (vmm_debugging(7)) {
-					s_debug("VMM page cache #%lu: stopping lookup at %p "
+					s_debug("VMM page cache #%lu: "
+						"stopping lookup for %lu page%s at %p "
 						"(upper than hole %p)",
-						(unsigned long) pc->pages - 1, p, hole);
+						(unsigned long) pc->pages - 1,
+						(unsigned long) n, 1 == n ? "" : "s", p, hole);
 				}
 				break;
 			}
@@ -2531,7 +2541,7 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 		}
 
 		if (NULL == base)
-			return NULL;
+			return NULL;		/* Cache line was empty */
 
 		/* FALL THROUGH */
 	}
@@ -2550,8 +2560,11 @@ selected:
 	if (total < n) {
 		size_t i;
 
+		if (VMM_CACHE_LINES != pc->pages)
+			return NULL;		/* Not at highest-order cache line */
+
 		if (1 == pc->current)
-			return NULL;
+			return NULL;		/* No other entries to coalesce with */
 
 		if (kernel_mapaddr_increasing) {
 			for (i = 1; i < pc->current; i++) {
@@ -2565,12 +2578,21 @@ selected:
 				} else {
 					if (hole != NULL && vmm_ptr_cmp(start, hole) > 0) {
 						if (vmm_debugging(7)) {
-							s_debug("VMM cache #%lu: stopping merge at "
-								"%p (upper than hole %p)",
-								(unsigned long) pc->pages - 1, start, hole);
+							s_debug("VMM cache #%lu: stopping merge for "
+								"%lu page%s (had %lu already) at %p "
+								"(upper than hole %p)",
+								(unsigned long) pc->pages - 1,
+								(unsigned long) n, 1 == n ? "" : "s",
+								(unsigned long) total, start, hole);
 						}
 						break;
 					}
+
+					/*
+					 * No luck coalescing what we had so far with the next
+					 * entry.  Restart the coalescing process from this
+					 * cached entry then.
+					 */
 
 					total = pc->pages;
 					base = start;
@@ -2590,12 +2612,21 @@ selected:
 				} else {
 					if (hole != NULL && vmm_ptr_cmp(prev_base, hole) > 0) {
 						if (vmm_debugging(7)) {
-							s_debug("VMM cache #%lu: stopping merge at "
-								"%p (upper than hole %p)",
-								(unsigned long) pc->pages - 1, prev_base, hole);
+							s_debug("VMM cache #%lu: stopping merge for "
+								"%lu page%s (had %lu already) at %p "
+								"(upper than hole %p)",
+								(unsigned long) pc->pages - 1,
+								(unsigned long) n, 1 == n ? "" : "s",
+								(unsigned long) total, prev_base, hole);
 						}
 						break;
 					}
+
+					/*
+					 * No luck coalescing what we had so far with the next
+					 * entry.  Restart the coalescing process from this
+					 * cached entry then.
+					 */
 
 					total = pc->pages;
 					base = prev_base;
@@ -2625,7 +2656,7 @@ found:
 
 		g_assert(end == p);
 	}
-	 
+
 	/*
 	 * If we got more consecutive pages than the amount asked for, put
 	 * the leading / trailing pages back into the cache.
@@ -2706,6 +2737,13 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 
 		pc = &page_cache[VMM_CACHE_LINES - 1];
 		p = vpc_find_pages(pc, n, hole);
+
+		/*
+		 * Count when we coalesce large blocks from the higher cache line.
+		 */
+
+		if (p != NULL && n > VMM_CACHE_LINES)
+			vmm_stats.high_order_coalescing++;
 
 		if (vmm_debugging(3)) {
 			s_debug("VMM lookup for large area (%lu pages) returned %p",
@@ -3434,6 +3472,7 @@ vmm_dump_stats_log(logagent_t *la)
 	DUMP(cache_line_coalescing);
 	DUMP(cache_expired);
 	DUMP(cache_expired_pages);
+	DUMP(high_order_coalescing);
 
 #undef DUMP
 }
