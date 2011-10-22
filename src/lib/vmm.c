@@ -859,7 +859,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 				void *try;
 
 				/*
-				 * The hint address is not included in the allocted segment.
+				 * The hint address is not included in the allocated segment.
 				 *
 				 * Try allocating a single page at the hint location, and
 				 * if we don't succeed, we can mark it as foreign.  If
@@ -1298,13 +1298,14 @@ pmap_insert_region(struct pmap *pm,
 	g_assert(pm->array != NULL);
 	g_assert(pm->count <= pm->size);
 	g_assert(ptr_cmp(start, end) < 0);
+	g_assert(round_pagesize_fast(size) == size);
 
 	/*
 	 * Watch out for the kernel pmap being reloaded because the kernel did not
 	 * follow our hint when the pmap pages were allocated.
 	 */
 
-	if (pm->count == pm->size) {
+	if G_UNLIKELY(pm->count == pm->size) {
 		size_t generation = kernel_pmap.generation;
 
 		pmap_extend(pm);
@@ -1316,11 +1317,13 @@ pmap_insert_region(struct pmap *pm,
 			}
 			reloaded = TRUE;
 		}
+
+		g_assert(pm->count < pm->size);
 	}
 
 	vmf = pmap_lookup(pm, start, &idx);
 
-	if (vmf != NULL) {
+	if G_UNLIKELY(vmf != NULL) {
 		if (reloaded) {
 			if (vmm_debugging(2)) {
 				s_debug("VMM good, reloaded kernel pmap contains %s region",
@@ -1334,11 +1337,14 @@ pmap_insert_region(struct pmap *pm,
 				vmm_dump_pmap();
 			}
 			g_assert(VMF_FOREIGN == type);
-			g_assert(vmf_is_foreign(vmf));
+			g_assert_log(vmf_is_foreign(vmf),
+				"vmf=[%p, %p[ (type %d, %lu bytes), start=%p, size=%lu",
+				vmf->start, vmf->end, vmf->type, (unsigned long) vmf_size(vmf),
+				start, (unsigned long) size);
 			g_assert(ptr_cmp(end, vmf->end) <= 0);
 		}
 		return;
-	} else if (reloaded) {
+	} else if G_UNLIKELY(reloaded) {
 		if (vmm_debugging(0)) {
 			s_warning("VMM reloaded kernel pmap does not contain "
 				"%s [%p, %p], will add now",
@@ -1347,7 +1353,6 @@ pmap_insert_region(struct pmap *pm,
 		/* FALL THROUGH */
 	}
 
-	g_assert(pm->count < pm->size);
 	g_assert(idx <= pm->count);
 
 	/*
@@ -1371,6 +1376,8 @@ pmap_insert_region(struct pmap *pm,
 			
 			if G_LIKELY(idx < pm->count) {
 				struct vm_fragment *next = &pm->array[idx];
+
+				g_assert(ptr_cmp(next->start, end) >= 0);	/* No overlap */
 
 				if (next->type == type && next->start == end) {
 					prev->end = next->end;	/* prev->mtime updated above */
@@ -1670,7 +1677,7 @@ pmap_load(struct pmap *pm)
 	 * Before the 0.96.7 release, I'm disabling kernel pmap loading.
 	 *
 	 * This is because upon kernel map loading, we do not know currently
-	 * how to propagate the regions we have allocated already to o prevent
+	 * how to propagate the regions we have allocated already to prevent
 	 * them from being coalesced by the loading into a "foreign" area (despite
 	 * them being truly owned by us already).
 	 *
@@ -1946,6 +1953,8 @@ pmap_remove_whole_region(struct pmap *pm, const void *p, size_t size)
 	struct vm_fragment *vmf;
 	size_t idx;
 
+	g_assert(round_pagesize_fast(size) == size);
+
 	vmf = pmap_lookup(pm, p, NULL);
 
 	g_assert(vmf != NULL);				/* Must be found */
@@ -1954,12 +1963,12 @@ pmap_remove_whole_region(struct pmap *pm, const void *p, size_t size)
 	idx = vmf - pm->array;
 	g_assert(size_is_non_negative(idx) && idx < pm->count);
 
-	if (idx != pm->count - 1) {
-		memmove(&pm->array[idx], &pm->array[idx + 1],
-			(pm->count - idx - 1) * sizeof pm->array[0]);
-	}
-
 	pm->count--;
+
+	if (idx != pm->count) {
+		memmove(&pm->array[idx], &pm->array[idx + 1],
+			(pm->count - idx) * sizeof pm->array[0]);
+	}
 }
 
 /**
@@ -1968,7 +1977,11 @@ pmap_remove_whole_region(struct pmap *pm, const void *p, size_t size)
 static void
 pmap_remove(struct pmap *pm, const void *p, size_t size)
 {
-	struct vm_fragment *vmf = pmap_lookup(pm, p, NULL);
+	struct vm_fragment *vmf;
+
+	g_assert(round_pagesize_fast(size) == size);
+
+	vmf = pmap_lookup(pm, p, NULL);
 
 	if (vmf != NULL) {
 		const void *end = const_ptr_add_offset(p, size);
@@ -2029,6 +2042,7 @@ pmap_remove_from(struct pmap *pm, struct vm_fragment *vmf,
 
 	g_assert(vmf != NULL);
 	g_assert(size_is_positive(size));
+	g_assert(round_pagesize_fast(size) == size);
 
 	vend = vmf->end;
 
@@ -2130,7 +2144,7 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 
 		g_assert(!vmf_is_native(vmf));	/* Never overrule allocated memory */
 
-		if (len <= remain) {
+		if (len < remain) {
 			pmap_remove_from(pm, vmf, base, len);
 			base = const_ptr_add_offset(base, len);
 			remain -= len;
@@ -2305,14 +2319,14 @@ vpc_insert(struct page_cache *pc, void *p)
 
 	if (idx > 0) {
 		void *before = pc->info[idx - 1].base;
-		void *after = ptr_add_offset(before, pc->chunksize);
+		void *bend = ptr_add_offset(before, pc->chunksize);
 
-		if G_UNLIKELY(after == p) {
+		if G_UNLIKELY(bend == p) {
 			if (vmm_debugging(6)) {
 				s_debug("VMM page cache #%lu: "
 					"coalescing previous [%p, %p] with [%p, %p]",
 					(unsigned long) pc->pages - 1, before,
-					ptr_add_offset(after, -1), p,
+					ptr_add_offset(bend, -1), p,
 					ptr_add_offset(p, pc->chunksize - 1));
 			}
 			base = before;
@@ -2590,19 +2604,22 @@ selected:
 	}
 
 found:
+	g_assert(total >= n);
+
 	/*
 	 * Remove the entries from the cache.
 	 */
+
 	{
-		char *p = base;
+		void *p = base;
 		size_t i;
 
 		for (i = 0; i < total; i += pc->pages) {
 			vpc_remove(pc, p);
-			p += pc->chunksize;
+			p = ptr_add_offset(p, pc->chunksize);
 		}
 
-		g_assert(cast_to_char_ptr(end) == p);
+		g_assert(end == p);
 	}
 	 
 	/*
@@ -2718,7 +2735,7 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 		}
 	}
 
-	if G_UNLIKELY(p != NULL) {
+	if (p != NULL) {
 		if (vmm_debugging(5)) {
 			s_debug("VMM found %luKiB region at %p in cache #%lu%s",
 				(unsigned long) (n * kernel_pagesize / 1024),
@@ -3238,7 +3255,7 @@ vmm_shrink(void *p, size_t size, size_t new_size)
 			} else {
 				free_pages(q, osize - nsize, TRUE);
 				vmm_stats.free_to_system++;
-				vmm_stats.free_to_system_pages += pagecount_fast(osize - nsize);
+				vmm_stats.free_to_system_pages += n;
 			}
 		}
 	}
