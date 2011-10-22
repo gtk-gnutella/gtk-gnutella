@@ -2231,13 +2231,20 @@ vpc_lookup(const struct page_cache *pc, const char *p, size_t *low_ptr)
 }
 
 /**
- * Delete slot ``idx'' within cache line.
+ * Remove entry within a cache line at specified index.
  */
-static inline void
-vpc_delete_slot(struct page_cache *pc, size_t idx)
+static void
+vpc_remove_at(struct page_cache *pc, const void *p, size_t idx)
 {
-	g_assert(size_is_positive(pc->current));
 	g_assert(size_is_non_negative(idx) && idx < pc->current);
+	g_assert(p == pc->info[idx].base);
+	assert_vmm_is_allocated(p, pc->chunksize, VMF_NATIVE);
+	g_assert(size_is_positive(pc->current));
+
+	/*
+	 * Delete the slot entry, moving back items by one position unless the
+	 * last item was removed.
+	 */
 
 	pc->current--;
 	if (idx < pc->current) {
@@ -2255,9 +2262,8 @@ vpc_remove(struct page_cache *pc, const void *p)
 	size_t idx;
 
 	idx = vpc_lookup(pc, p, NULL);
-	assert_vmm_is_allocated(p, pc->chunksize, VMF_NATIVE);
 	g_assert(idx != (size_t) -1);		/* Must have been found */
-	vpc_delete_slot(pc, idx);
+	vpc_remove_at(pc, p, idx);
 }
 
 /**
@@ -2268,13 +2274,11 @@ vpc_free(struct page_cache *pc, size_t idx)
 {
 	void *p;
 
-	g_assert(size_is_positive(pc->current));
 	g_assert(size_is_non_negative(idx) && idx < pc->current);
 
 	p = pc->info[idx].base;
-	assert_vmm_is_allocated(p, pc->chunksize, VMF_NATIVE);
+	vpc_remove_at(pc, p, idx);
 	free_pages_forced(p, pc->chunksize, FALSE);
-	vpc_delete_slot(pc, idx);
 }
 
 /**
@@ -2331,7 +2335,7 @@ vpc_insert(struct page_cache *pc, void *p)
 			}
 			base = before;
 			pages += pc->pages;
-			vpc_remove(pc, before);
+			vpc_remove_at(pc, before, idx - 1);
 			idx--;		/* Removed entry before insertion point */
 		}
 	}
@@ -2354,7 +2358,7 @@ vpc_insert(struct page_cache *pc, void *p)
 					ptr_add_offset(next, pc->chunksize - 1));
 			}
 			pages += pc->pages;
-			vpc_remove(pc, next);
+			vpc_remove_at(pc, next, idx);
 		}
 	}
 
@@ -2801,6 +2805,9 @@ page_cache_insert_pages(void *base, size_t n)
 /**
  * Attempting to coalesce the block with other entries in the cache.
  *
+ * Cached pages being coalesced with the block are removed from the cache
+ * and the resulting block is not part of the cache.
+ *
  * @return TRUE if coalescing occurred, with updated base and amount of pages.
  */
 static gboolean
@@ -2816,6 +2823,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 	if (pages >= VMM_CACHE_LINES)
 		return FALSE;
+
+	end = ptr_add_offset(base, pages * kernel_pagesize);
 
 	/*
 	 * Look in low-order caches whether we can find chunks before.
@@ -2849,7 +2858,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 					(pages + lopc->pages) * kernel_pagesize, VMF_NATIVE);
 				base = before;
 				pages += lopc->pages;
-				vpc_remove(lopc, before);
+				vpc_remove_at(lopc, before, loidx);
 				coalesced = TRUE;
 				if (pages >= VMM_CACHE_LINES)
 					goto done;
@@ -2890,7 +2899,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 				(pages + hopc->pages) * kernel_pagesize, VMF_NATIVE);
 			base = before;
 			pages += hopc->pages;
-			vpc_remove(hopc, before);
+			vpc_remove_at(hopc, before, hoidx);
 			if (pages >= VMM_CACHE_LINES)
 				goto done;
 		}
@@ -2900,7 +2909,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	 * Look in low-order caches whether we can find chunks after.
 	 */
 
-	end = ptr_add_offset(base, pages * kernel_pagesize);
+	g_assert(ptr_add_offset(base, pages * kernel_pagesize) == end);
 
 	for (i = 0; /* empty */; i++) {
 		gboolean coalesced = FALSE;
@@ -2927,7 +2936,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 				assert_vmm_is_allocated(base,
 					(pages + lopc->pages) * kernel_pagesize, VMF_NATIVE);
 				pages += lopc->pages;
-				vpc_remove(lopc, end);
+				vpc_remove_at(lopc, end, loidx);
 				end = ptr_add_offset(end, lopc->chunksize);
 				coalesced = TRUE;
 				if (pages >= VMM_CACHE_LINES)
@@ -2966,7 +2975,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 			assert_vmm_is_allocated(base,
 				(pages + hopc->pages) * kernel_pagesize, VMF_NATIVE);
 			pages += hopc->pages;
-			vpc_remove(hopc, end);
+			vpc_remove_at(hopc, end, hoidx);
 			end = ptr_add_offset(end, hopc->chunksize);
 			if (pages >= VMM_CACHE_LINES)
 				goto done;
@@ -2975,6 +2984,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 done:
 	assert_vmm_is_allocated(base, pages * kernel_pagesize, VMF_NATIVE);
+	g_assert(ptr_add_offset(base, pages * kernel_pagesize) == end);
 
 	if G_UNLIKELY(pages != old_pages) {
 		if (vmm_debugging(2)) {
