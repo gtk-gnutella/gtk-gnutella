@@ -1147,9 +1147,9 @@ stack_reached_main(const char *where)
 static inline gboolean
 stack_is_text(const void *pc)
 {
-	extern const char *data_start;		/* linker-defined symbol */
+	extern const char *end;		/* linker-defined symbol */
 
-	return pc != NULL && ptr_cmp(pc, data_start) < 0;
+	return pc != NULL && ptr_cmp(pc, end) < 0;
 }
 
 /**
