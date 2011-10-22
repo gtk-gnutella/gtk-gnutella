@@ -247,8 +247,8 @@ static struct {
 	guint64 zmove_attempts;			/**< Total attempts to move blocks */
 	guint64 zmove_attempts_gc;		/**< Subset of moves attempted in GC mode */
 	guint64 zmove_successful_gc;	/**< Subset of successful moves */
-	guint64 zgc_zone_freed;			/**< Total amount of zones freed by GC */
-	guint64 zgc_zone_defragmented;	/**< Total amount of zones defragmented */
+	guint64 zgc_zones_freed;		/**< Total amount of zones freed by GC */
+	guint64 zgc_zones_defragmented;	/**< Total amount of zones defragmented */
 	guint64 zgc_free_quota_reached;	/**< Subzone freeing quota reached */
 } zstats;
 
@@ -1407,7 +1407,7 @@ zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 
 	subzone_free_arena(sz);
 	zg->zg_zone_defragmented++;
-	zstats.zgc_zone_defragmented++;
+	zstats.zgc_zones_defragmented++;
 	zgc_remove_subzone(zone, szi);
 	blk = zgc_subzone_new_arena(zone, sz);
 	nszi = zgc_insert_subzone(zone, sz, blk);
@@ -1586,7 +1586,7 @@ found:
 	zone->zn_blocks -= zone->zn_hint;
 	zone->zn_subzones--;
 	zgc_context.subzone_freed++;
-	zstats.zgc_zone_freed++;
+	zstats.zgc_zones_freed++;
 
 	/*
 	 * Remove subzone info from sorted array.
@@ -2421,8 +2421,8 @@ zalloc_dump_stats_log(logagent_t *la)
 	DUMP(zmove_attempts);
 	DUMP(zmove_attempts_gc);
 	DUMP(zmove_successful_gc);
-	DUMP(zgc_zone_freed);
-	DUMP(zgc_zone_defragmented);
+	DUMP(zgc_zones_freed);
+	DUMP(zgc_zones_defragmented);
 	DUMP(zgc_free_quota_reached);
 
 #undef DUMP
