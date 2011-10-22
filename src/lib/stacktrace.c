@@ -1142,14 +1142,12 @@ stack_reached_main(const char *where)
 }
 
 /**
- * Is PC falling in the text segment?
+ * Is PC a valid routine address?
  */
 static inline gboolean
 stack_is_text(const void *pc)
 {
-	extern const char *end;		/* linker-defined symbol */
-
-	return pc != NULL && ptr_cmp(pc, end) < 0;
+	return pointer_to_ulong(pc) >= 0x1000;
 }
 
 /**
