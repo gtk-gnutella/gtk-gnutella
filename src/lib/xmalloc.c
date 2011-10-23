@@ -1696,6 +1696,7 @@ xmalloc_free_pages(void *p, size_t len,
 	void *page;
 	const void *end;
 	const void *vend;
+	size_t hlen, tlen;
 
 	page = deconstify_gpointer(vmm_page_start(p));
 	end = ptr_add_offset(p, len);
@@ -1719,6 +1720,24 @@ xmalloc_free_pages(void *p, size_t len,
 		return FALSE;			/* Block partially spread among two VMM pages */
 
 	/*
+	 * If head or tail falls below the minimum block size, don't free the
+	 * page as we won't be able to put the remains back to the freelist.
+	 */
+
+	hlen = ptr_diff(page, p);
+	if (hlen != 0 && hlen < XMALLOC_SPLIT_MIN)
+		return FALSE;
+
+	tlen = ptr_diff(end, vend);
+	if (tlen != 0 && tlen < XMALLOC_SPLIT_MIN)
+		return FALSE;
+
+	*head = deconstify_gpointer(p);
+	*head_len = hlen;
+	*tail = deconstify_gpointer(vend);
+	*tail_len = tlen;
+
+	/*
 	 * We can free the zone [page, vend[.
 	 */
 
@@ -1731,11 +1750,6 @@ xmalloc_free_pages(void *p, size_t len,
 
 	vmm_free(page, ptr_diff(vend, page));
 	xstats.free_vmm_core++;
-
-	*head = deconstify_gpointer(p);
-	*head_len = ptr_diff(page, p);
-	*tail = deconstify_gpointer(vend);
-	*tail_len = ptr_diff(end, vend);
 
 	return TRUE;
 }
