@@ -71,8 +71,14 @@ enum shell_magic {
 	SHELL_MAGIC = 0x33f3e711U
 };
 
+struct shell_pending {
+	enum shell_reply code;	/**< Reply code */
+	char *msg;				/**< Line of text (no trailing new-line) */
+};
+
 struct gnutella_shell {
-	enum shell_magic	magic;
+	enum shell_magic magic;
+	struct shell_pending pending;
 	struct gnutella_socket *socket;
 	slist_t *output;
 	char *msg;   			/**< Additional information to reply code */
@@ -103,13 +109,11 @@ shell_has_pending_output(struct gnutella_shell *sh)
 static struct gnutella_shell *
 shell_new(struct gnutella_socket *s)
 {
-	static const struct gnutella_shell zero_shell;
 	struct gnutella_shell *sh;
 
 	socket_check(s);
 
-	WALLOC(sh);
-	*sh = zero_shell;
+	WALLOC0(sh);
 	sh->magic = SHELL_MAGIC;
 	sh->socket = s;
 	sh->output = slist_new();
@@ -130,6 +134,7 @@ shell_free(struct gnutella_shell *sh)
 	g_assert(NULL == sh->socket); /* must have called shell_destroy before */
 	g_assert(NULL == sh->output); /* must have called shell_destroy before */
 	HFREE_NULL(sh->msg);
+	HFREE_NULL(sh->pending.msg);
 
 	sh->magic = 0;
 	WFREE(sh);
@@ -481,6 +486,27 @@ shell_cmd_get_handler(const char *cmd)
 }
 
 /**
+ * Flush any pending line.
+ */
+static void
+shell_pending_flush(struct gnutella_shell *sh, gboolean last)
+{
+	shell_check(sh);
+	g_return_if_fail(sh->output);
+
+	if (sh->pending.msg != NULL) {
+		char buf[5];
+
+		gm_snprintf(buf, sizeof buf, "%03d%c",
+			sh->pending.code, last ? ' ' : '-');
+		shell_write(sh, buf);
+		shell_write(sh, sh->pending.msg);
+		shell_write(sh, "\n");
+		HFREE_NULL(sh->pending.msg);
+	}
+}
+
+/**
  * Takes a command string and tries to parse and execute it.
  */
 static enum shell_reply
@@ -510,7 +536,9 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 
 		handler = shell_cmd_get_handler(argv[0]);
 		if (handler) {
+			HFREE_NULL(sh->pending.msg);
 			reply_code = (*handler)(sh, argc, argv);
+			shell_pending_flush(sh, !sh->interactive);
 			if (NULL == sh->msg) {
 				switch (reply_code) {
 				case REPLY_ERROR:
@@ -767,16 +795,34 @@ shell_write(struct gnutella_shell *sh, const char *text)
 void
 shell_write_line(struct gnutella_shell *sh, int code, const char *text)
 {
-	char buf[5];
+	shell_check(sh);
+	g_return_if_fail(text);
+
+	shell_pending_flush(sh, FALSE);
+	sh->pending.msg = h_strdup(text);
+	sh->pending.code = code;
+}
+
+/**
+ * Writes single formatted line of text, appending final trailing "\n".
+ */
+void
+shell_write_linef(struct gnutella_shell *sh, int code, const char *fmt, ...)
+{
+	va_list args;
+	char *s;
 
 	shell_check(sh);
 	g_return_if_fail(sh->output);
-	g_return_if_fail(text);
+	g_return_if_fail(fmt);
 
-	gm_snprintf(buf, sizeof buf, "%03d%c", code, sh->interactive ? '-' : ' ');
-	shell_write(sh, buf);
-	shell_write(sh, text);
-	shell_write(sh, "\n");
+	va_start(args, fmt);
+	s = str_vcmsg(fmt, args);
+	va_end(args);
+
+	shell_pending_flush(sh, FALSE);
+	sh->pending.msg = s;
+	sh->pending.code = code;
 }
 
 void
