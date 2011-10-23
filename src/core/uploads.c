@@ -3848,6 +3848,15 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	}
 
 	/*
+	 * When changing resources, clear u->last_demsh since this relates
+	 * to the previous resource.
+	 */
+
+	if (switched) {
+		u->last_dmesh = 0;
+	}
+
+	/*
 	 * We already have a non-NULL u->name in the structure, because we
 	 * saved the uri there or the name from a push request.
 	 * However, we want to display the actual name of the shared file.
