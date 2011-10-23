@@ -136,6 +136,11 @@ struct xheader {
 #define XMALLOC_SPLIT_MIN	(2 * XMALLOC_BUCKET_FACTOR)
 
 /**
+ * Minimum amount of items we want to keep in each freelist.
+ */
+#define XMALLOC_BUCKET_MINCOUNT	4
+
+/**
  * Correction offset due to bucket #0 having a minimum size.
  */
 #define XMALLOC_BUCKET_OFFSET \
@@ -171,6 +176,7 @@ struct xheader {
 #define XM_COALESCE_BEFORE	(1 << 0)	/**< Coalesce with blocks before */
 #define XM_COALESCE_AFTER	(1 << 1)	/**< Coalesce with blocks after */
 #define XM_COALESCE_ALL		(XM_COALESCE_BEFORE | XM_COALESCE_AFTER)
+#define XM_COALESCE_SMART	(1 << 2)	/**< Choose whether to coalesce */
 
 /**
  * Bucket capacity management
@@ -221,6 +227,9 @@ static struct {
 	guint64 alloc_via_vmm;				/**< Allocations from VMM */
 	guint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
 	guint64 freeings;					/**< Total # of freeings */
+	guint64 free_sbrk_core;				/**< Freeing sbrk()-allocated core */
+	guint64 free_sbrk_core_released;	/**< Released sbrk()-allocated core */
+	guint64 free_vmm_core;				/**< Freeing VMM-allocated core */
 	guint64 aligned_via_freelist;			/**< Aligned memory from freelist */
 	guint64 aligned_via_freelist_then_vmm;	/**< Aligned memory from VMM */
 	guint64 aligned_via_vmm;				/**< Idem, no freelist tried */
@@ -243,6 +252,8 @@ static struct {
 	guint64 freelist_insertions;			/**< Insertions in freelist */
 	guint64 freelist_insertions_no_coalescing;	/**< Coalescing forbidden */
 	guint64 freelist_further_breakups;		/**< Breakups due to extra size */
+	guint64 freelist_coalescing_ignore_vmm;	/**< Ignored due to VMM block */
+	guint64 freelist_coalescing_ignored;	/**< Smart algo chose to ignore */
 	guint64 freelist_coalescing_done;		/**< Successful coalescings */
 	guint64 freelist_coalescing_failed;		/**< Failed coalescings */
 	guint64 freelist_split;				/**< Block splitted on allocation */
@@ -491,7 +502,14 @@ xmalloc_freecore(void *ptr, size_t len)
 	if G_UNLIKELY(ptr_cmp(ptr, current_break) < 0) {
 		const void *end = const_ptr_add_offset(ptr, len);
 
-		if G_UNLIKELY(end == current_break) {
+		xstats.free_sbrk_core++;
+
+		/*
+		 * Don't assume we're the only ones using sbrk(), check the actual
+		 * break, not our cached value.
+		 */
+
+		if G_UNLIKELY(end == sbrk(0)) {
 			void *old_break;
 			gboolean success = FALSE;
 
@@ -513,6 +531,8 @@ xmalloc_freecore(void *ptr, size_t len)
 			}
 #endif	/* HAS_SBRK */
 			g_assert(ptr_cmp(current_break, initial_break) >= 0);
+			if (success)
+				xstats.free_sbrk_core_released++;
 			return success;
 		} else {
 			if (xmalloc_debugging(0)) {
@@ -527,6 +547,8 @@ xmalloc_freecore(void *ptr, size_t len)
 		t_debug(NULL, "XM releasing %lu bytes of core", (unsigned long) len);
 
 	vmm_free(ptr, len);
+	xstats.free_vmm_core++;
+
 	return TRUE;
 }
 
@@ -1508,6 +1530,40 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, guint32 flags)
 	gboolean coalesced = FALSE;
 
 	/*
+	 * When "smart" coalescing is requested and we're facing a block which
+	 * can be put directly in the freelist (i.e. there is no special splitting
+	 * to do as its size fits one of the existing buckets), look at whether
+	 * it is smart to attempt any coalescing.
+	 */
+
+	if ((flags & XM_COALESCE_SMART) && xmalloc_round_blocksize(len) == len) {
+		size_t idx = xfl_find_freelist_index(len);
+		struct xfreelist *fl = &xfreelist[idx];
+
+		/*
+		 * If there are little blocks in the list, there's no need to coalesce.
+		 * We want to keep a few blocks in each list for quicker allocations.
+		 * Avoiding coalescing may mean avoiding further splitting if we have
+		 * to re-allocate a block of the same size soon.
+		 *
+		 * However, if the length of the block is nearing a page size, we want
+		 * to always attempt coalescing to be able to free up memory as soon
+		 * as we can re-assemble a full page.
+		 */
+
+		if (fl->count < XMALLOC_BUCKET_MINCOUNT && len < compat_pagesize()) {
+			if (xmalloc_debugging(6)) {
+				t_debug(NULL, "XM ignoring coalescing request for %lu-byte %p:"
+					" target free list #%lu has only %lu item%s",
+					(unsigned long) len, base, (unsigned long) idx,
+					(unsigned long) fl->count, 1 == fl->count ? "" : "s");
+			}
+			xstats.freelist_coalescing_ignored++;
+			return FALSE;
+		}
+	}
+
+	/*
 	 * Since every block inserted in the freelist is not fully coalesced
 	 * because we have to respect the discrete set of allowed block size,
 	 * we have to perform coalescing iteratively in the hope of being able
@@ -1674,6 +1730,7 @@ xmalloc_free_pages(void *p, size_t len,
 	}
 
 	vmm_free(page, ptr_diff(vend, page));
+	xstats.free_vmm_core++;
 
 	*head = deconstify_gpointer(p);
 	*head_len = ptr_diff(page, p);
@@ -1835,10 +1892,13 @@ xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
 			xmalloc_isheap(p, len)
 		) {
 			xmalloc_freelist_coalesce(&p, &len, coalesce);
-		} else if (xmalloc_debugging(4)) {
-			t_debug(NULL,
-				"XM not attempting coalescing of %lu-byte VMM region at %p",
-				(unsigned long) len, p);
+		} else {
+			if (xmalloc_debugging(4)) {
+				t_debug(NULL,
+					"XM not attempting coalescing of %lu-byte VMM region at %p",
+					(unsigned long) len, p);
+			}
+			xstats.freelist_coalescing_ignore_vmm++;
 		}
 	}
 
@@ -2238,7 +2298,7 @@ xfree(void *p)
 			p, (unsigned long) xh->length);
 	}
 
-	xmalloc_freelist_add(xh, xh->length, XM_COALESCE_ALL);
+	xmalloc_freelist_add(xh, xh->length, XM_COALESCE_ALL | XM_COALESCE_SMART);
 }
 
 /**
@@ -2786,6 +2846,9 @@ xmalloc_dump_stats_log(logagent_t *la)
 	DUMP(alloc_via_vmm);
 	DUMP(alloc_via_sbrk);
 	DUMP(freeings);
+	DUMP(free_sbrk_core);
+	DUMP(free_sbrk_core_released);
+	DUMP(free_vmm_core);
 	DUMP(aligned_via_freelist);
 	DUMP(aligned_via_freelist_then_vmm);
 	DUMP(aligned_via_vmm);
@@ -2808,6 +2871,8 @@ xmalloc_dump_stats_log(logagent_t *la)
 	DUMP(freelist_insertions);
 	DUMP(freelist_insertions_no_coalescing);
 	DUMP(freelist_further_breakups);
+	DUMP(freelist_coalescing_ignore_vmm);
+	DUMP(freelist_coalescing_ignored);
 	DUMP(freelist_coalescing_done);
 	DUMP(freelist_coalescing_failed);
 	DUMP(freelist_split);
