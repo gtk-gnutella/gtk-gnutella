@@ -63,9 +63,10 @@ shell_exec_whatis(struct gnutella_shell *sh, int argc, const char *argv[])
 		goto error;
 	}
 
+	shell_write(sh, "100~\n");
 	shell_write(sh, _("Help: "));
 	shell_write(sh, gnet_prop_description(prop));
-	shell_write(sh, "\n");
+	shell_write(sh, "\n.\n");
 
 	shell_set_msg(sh, "");
 	return REPLY_READY;

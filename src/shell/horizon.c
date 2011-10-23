@@ -169,6 +169,8 @@ shell_exec_horizon(struct gnutella_shell *sh, int argc, const char *argv[])
 	if (parsed < 0)
 		return REPLY_ERROR;
 
+	shell_write(sh, "100~\n");
+
 	hsep_get_global_table(globaltable, G_N_ELEMENTS(globaltable));
 	hsep_get_non_hsep_triple(non_hsep);
 
@@ -208,6 +210,7 @@ shell_exec_horizon(struct gnutella_shell *sh, int argc, const char *argv[])
 		}
 	}
 
+	shell_write(sh, ".\n");
 	return REPLY_READY;
 }
 
