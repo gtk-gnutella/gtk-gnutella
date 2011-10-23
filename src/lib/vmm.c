@@ -3453,6 +3453,8 @@ vmm_malloc_inited(void)
 G_GNUC_COLD void
 vmm_dump_stats_log(logagent_t *la)
 {
+	struct pmap *pm = vmm_pmap();
+
 #define DUMP(x)	log_info(la, "VMM %s = %s", #x, uint64_to_string(vmm_stats.x))
 
 	DUMP(allocations);
@@ -3479,6 +3481,14 @@ vmm_dump_stats_log(logagent_t *la)
 	DUMP(cache_expired_pages);
 	DUMP(high_order_coalescing);
 	DUMP(pmap_overruled);
+
+#undef DUMP
+#define DUMP(x)	log_info(la, "VMM pmap_%s = %lu", #x, (unsigned long) pm->x)
+
+	DUMP(count);
+	DUMP(size);
+	DUMP(pages);
+	DUMP(generation);
 
 #undef DUMP
 }
