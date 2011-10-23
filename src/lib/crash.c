@@ -1934,7 +1934,7 @@ crash_save_stackframe(void *stack[], size_t count)
  * signal stack.
  */
 G_GNUC_COLD void
-crash_save_current_stackframe(void)
+crash_save_current_stackframe(unsigned offset)
 {
 	crash_mode();
 
@@ -1942,7 +1942,7 @@ crash_save_current_stackframe(void)
 		void *stack[STACKTRACE_DEPTH_MAX];
 		size_t count;
 
-		count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 2);
+		count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 		crash_save_stackframe(stack, count);
 	}
 }

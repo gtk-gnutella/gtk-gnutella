@@ -82,6 +82,9 @@ assertion_abort(void)
 {
 	static volatile sig_atomic_t seen_fatal;
 
+	
+#define STACK_OFF	2		/* 2 extra calls: assertion_failure(), then here */
+
 	/*
 	 * We're going to stop the execution.
 	 *
@@ -93,9 +96,9 @@ assertion_abort(void)
 
 	if (!seen_fatal) {
 		seen_fatal = TRUE;
-		stacktrace_where_cautious_print_offset(STDERR_FILENO, 1);
+		stacktrace_where_cautious_print_offset(STDERR_FILENO, STACK_OFF);
 		if (log_stdout_is_distinct())
-			stacktrace_where_cautious_print_offset(STDOUT_FILENO, 1);
+			stacktrace_where_cautious_print_offset(STDOUT_FILENO, STACK_OFF);
 
 		/*
 		 * Before calling abort(), which will generate a SIGABRT and invoke
@@ -104,7 +107,7 @@ assertion_abort(void)
 		 * longer be possible to get the frame of the assertion failure.
 		 */
 
-		crash_save_current_stackframe();
+		crash_save_current_stackframe(STACK_OFF);
 	}
 
 	abort();
