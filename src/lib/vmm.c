@@ -467,6 +467,7 @@ vmm_dump_pmap_log(logagent_t *la)
 {
 	struct pmap *pm = vmm_pmap();
 	size_t i;
+	time_t now = tm_time();
 
 	log_debug(la, "VMM current %s pmap (%lu region%s):",
 		pm == &kernel_pmap ? "kernel" :
@@ -482,13 +483,14 @@ vmm_dump_pmap_log(logagent_t *la)
 			hole = ptr_diff(next, vmf->end);
 		}
 
-		log_debug(la, "VMM [%p, %p] %luKiB %s%s%s%s",
+		log_debug(la, "VMM [%p, %p] %luKiB %s%s%s%s (%s)",
 			vmf->start, const_ptr_add_offset(vmf->end, -1),
 			(unsigned long) (vmf_size(vmf) / 1024),
 			vmf_type_str(vmf->type),
 			hole ? " + " : "",
 			hole ? size_t_to_string(hole / 1024) : "",
-			hole ? "KiB hole" : "");
+			hole ? "KiB hole" : "",
+			compact_time(delta_time(now, vmf->mtime)));
 	}
 }
 
