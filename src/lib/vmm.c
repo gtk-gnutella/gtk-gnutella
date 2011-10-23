@@ -238,6 +238,7 @@ static struct {
 	guint64 cache_expired;			/**< Amount of entries expired from cache */
 	guint64 cache_expired_pages;	/**< Expired pages from cache */
 	guint64 high_order_coalescing;	/**< Large regions successfully coalesced */
+	guint64 pmap_overruled;			/**< Regions overruled by kernel */
 } vmm_stats;
 
 /**
@@ -2130,6 +2131,7 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 		 * We have to remove ``remain'' bytes starting at ``base''.
 		 */
 
+		vmm_stats.pmap_overruled++;
 		len = ptr_diff(vmf->end, base);		/* From base to end of region */
 
 		g_assert_log(size_is_positive(len), "len = %lu", (unsigned long) len);
@@ -2235,6 +2237,7 @@ vpc_lookup(const struct page_cache *pc, const char *p, size_t *low_ptr)
 
 /**
  * Remove entry within a cache line at specified index.
+ * The associated pages are not released to the system.
  */
 static void
 vpc_remove_at(struct page_cache *pc, const void *p, size_t idx)
@@ -2257,7 +2260,7 @@ vpc_remove_at(struct page_cache *pc, const void *p, size_t idx)
 }
 
 /**
- * Remove entry within a cache line.
+ * Remove entry within a cache line, keeping the associated pages mapped.
  */
 static void
 vpc_remove(struct page_cache *pc, const void *p)
@@ -2409,7 +2412,7 @@ insert:
 	g_assert(size_is_non_negative(idx) && idx < VMM_CACHE_SIZE);
 
 	/*
-	 * Shift items if we're not inserting at the last position in the array.
+	 * Shift items up if we're not inserting at the last position in the array.
 	 */
 
 	if G_LIKELY(idx < pc->current) {
@@ -3475,6 +3478,7 @@ vmm_dump_stats_log(logagent_t *la)
 	DUMP(cache_expired);
 	DUMP(cache_expired_pages);
 	DUMP(high_order_coalescing);
+	DUMP(pmap_overruled);
 
 #undef DUMP
 }
