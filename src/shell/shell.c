@@ -761,6 +761,24 @@ shell_write(struct gnutella_shell *sh, const char *text)
 	}
 }
 
+/**
+ * Writes single line of text, appending final trailing "\n".
+ */
+void
+shell_write_line(struct gnutella_shell *sh, int code, const char *text)
+{
+	char buf[5];
+
+	shell_check(sh);
+	g_return_if_fail(sh->output);
+	g_return_if_fail(text);
+
+	gm_snprintf(buf, sizeof buf, "%03d%c", code, sh->interactive ? '-' : ' ');
+	shell_write(sh, buf);
+	shell_write(sh, text);
+	shell_write(sh, "\n");
+}
+
 void
 shell_shutdown(struct gnutella_shell *sh)
 {

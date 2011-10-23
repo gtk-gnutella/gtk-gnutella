@@ -40,6 +40,7 @@ SRC = \
 	nodes.c \
 	offline.c \
 	online.c \
+	pid.c \
 	print.c \
 	props.c \
 	quit.c \
@@ -51,6 +52,7 @@ SRC = \
 	stats.c \
 	status.c \
 	uploads.c \
+	version.c \
 	whatis.c
 
 OBJ = \

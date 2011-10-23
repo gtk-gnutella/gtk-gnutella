@@ -827,6 +827,7 @@ src/shell/node.c
 src/shell/nodes.c
 src/shell/offline.c
 src/shell/online.c
+src/shell/pid.c
 src/shell/print.c
 src/shell/props.c
 src/shell/quit.c
@@ -839,6 +840,7 @@ src/shell/shutdown.c
 src/shell/stats.c
 src/shell/status.c
 src/shell/uploads.c
+src/shell/version.c
 src/shell/whatis.c
 src/ui/Jmakefile
 src/ui/Makefile.SH
