@@ -1794,12 +1794,21 @@ xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
 				p, (unsigned long) len);
 		}
 
-		fl = xfl_find_freelist(XMALLOC_MAXSIZE);
-
 		while (len > XMALLOC_MAXSIZE) {
+			fl = &xfreelist[XMALLOC_FREELIST_COUNT - 1];
+
+			/*
+			 * Ensure we're not left with a block whose size cannot
+			 * be inserted.
+			 */
+
+			if G_UNLIKELY(len - fl->blocksize < XMALLOC_SPLIT_MIN) {
+				fl = &xfreelist[XMALLOC_FREELIST_COUNT - 2];
+			}
+
 			xfl_insert(fl, p);
-			p = ptr_add_offset(p, XMALLOC_MAXSIZE);
-			len -= XMALLOC_MAXSIZE;
+			p = ptr_add_offset(p, fl->blocksize);
+			len -= fl->blocksize;
 		}
 
 		/* FALL THROUGH */
@@ -1870,6 +1879,12 @@ xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
 				multiple = xfl_block_size_idx(bucket);
 			} else {
 				multiple = XMALLOC_FACTOR_MAXSIZE / 2;
+			}
+
+			if G_UNLIKELY(len - multiple < XMALLOC_SPLIT_MIN) {
+				multiple -= XMALLOC_BUCKET_FACTOR;
+				g_assert(size_is_positive(multiple));
+				g_assert(multiple >= XMALLOC_SPLIT_MIN);
 			}
 
 			if (xmalloc_debugging(3)) {
