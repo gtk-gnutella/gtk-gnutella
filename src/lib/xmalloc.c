@@ -136,6 +136,12 @@ struct xheader {
 #define XMALLOC_SPLIT_MIN	(2 * XMALLOC_BUCKET_FACTOR)
 
 /**
+ * Minimum fraction of the size we accept to waste in a block to avoid
+ * a split.
+ */
+#define XMALLOC_WASTE_SHIFT		4	/* 1/16th of a block */
+
+/**
  * Minimum amount of items we want to keep in each freelist.
  */
 #define XMALLOC_BUCKET_MINCOUNT	4
@@ -370,6 +376,25 @@ xmalloc_round_blocksize(size_t len)
 	 */
 
 	return (len + XMALLOC_BLOCK_MASK) & ~XMALLOC_BLOCK_MASK;
+}
+
+/**
+ * Should we split a block?
+ *
+ * @param current		the current physical block size
+ * @param wanted		the final physical block size after splitting
+ */
+static gboolean
+xmalloc_should_split(size_t current, size_t wanted)
+{
+	size_t waste;
+
+	g_assert(current >= wanted);
+
+	waste = current - wanted;
+
+	return waste >= XMALLOC_SPLIT_MIN &&
+		(current >> XMALLOC_WASTE_SHIFT) <= waste;
 }
 
 /**
@@ -1030,7 +1055,7 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 
 			split_len = blksize - len;
 
-			if G_UNLIKELY(split_len < XMALLOC_SPLIT_MIN) {
+			if G_UNLIKELY(!xmalloc_should_split(blksize, len)) {
 				xstats.freelist_nosplit++;
 				goto no_split;
 			}
@@ -2055,7 +2080,7 @@ xmalloc_freelist_alloc(size_t len, size_t *allocated)
 
 			split_len = blksize - len;
 
-			if (split_len >= XMALLOC_SPLIT_MIN) {
+			if (xmalloc_should_split(blksize, len)) {
 				xstats.freelist_split++;
 				if (xmalloc_grows_up) {
 					/* Split the end of the block */
@@ -2517,7 +2542,7 @@ xrealloc(void *p, size_t size)
 	if (xh->length <= XMALLOC_MAXSIZE && newlen < xh->length) {
 		size_t extra = xh->length - newlen;
 
-		if G_UNLIKELY(extra < XMALLOC_SPLIT_MIN) {
+		if G_UNLIKELY(!xmalloc_should_split(xh->length, newlen)) {
 			if (xmalloc_debugging(2)) {
 				t_debug(NULL, "XM realloc of %p to %lu bytes can be a noop "
 					"(already %lu-byte long from %s, not shrinking %lu bytes)",
