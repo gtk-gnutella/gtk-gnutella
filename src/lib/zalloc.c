@@ -2330,8 +2330,7 @@ zalloc_dump_zones_log(logagent_t *la)
 {
 	struct zonesize_filler filler;
 	size_t zcount, i;
-	guint64 bytes;
-	guint64 blocks;
+	guint64 bytes, blocks, wasted, subzones;
 
 	if (NULL == zt)
 		return;
@@ -2347,17 +2346,21 @@ zalloc_dump_zones_log(logagent_t *la)
 
 	qsort(filler.array, filler.count, sizeof filler.array[0], zonesize_cmp);
 
-	bytes = blocks = 0;
+	bytes = blocks = wasted = subzones = 0;
 
 	for (i = 0; i < filler.count; i++) {
 		zone_t *zone = filler.array[i].zone;
 		unsigned bcnt;
+		size_t remain;
 
 		bcnt = zone->zn_blocks - zone->zn_cnt;
 		g_assert(uint_is_non_negative(bcnt));
 
 		blocks += bcnt;
 		bytes += size_saturate_mult(bcnt, zone->zn_size);
+		remain = zone->zn_arena.sz_size % zone->zn_size;
+		wasted += size_saturate_mult(zone->zn_subzones, remain);
+		subzones += zone->zn_subzones;
 
 		log_info(la, "ZALLOC zone(%lu bytes): "
 			"blocks=%lu, free=%u, %u %luK-subzone%s, %s mode",
@@ -2371,6 +2374,10 @@ zalloc_dump_zones_log(logagent_t *la)
 	log_info(la, "ZALLOC zones have %s bytes (%s) free among %lu block%s",
 		uint64_to_string(bytes), short_size(bytes, FALSE),
 		(unsigned long) blocks, 1 == blocks ? "" : "s");
+
+	log_info(la, "ZALLOC zones wasting %s bytes (%s) among %lu subzone%s",
+		uint64_to_string(wasted), short_size(wasted, FALSE),
+		(unsigned long) subzones, 1 == subzones ? "" : "s");
 
 	xfree(filler.array);
 }
