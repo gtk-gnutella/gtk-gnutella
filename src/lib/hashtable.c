@@ -47,6 +47,7 @@
 
 #include "lib/hashtable.h"
 #include "lib/vmm.h"
+#include "lib/xmalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -275,7 +276,7 @@ hash_table_new_intern(hash_table_t *ht,
 hash_table_t *
 hash_table_new_full(hash_table_hash_func hash, hash_table_eq_func eq)
 {
-	hash_table_t *ht = malloc(sizeof *ht);
+	hash_table_t *ht = xpmalloc(sizeof *ht);
 
 	g_assert(ht);
 
@@ -649,7 +650,7 @@ hash_table_destroy(hash_table_t *ht)
 
 	hash_table_clear(ht);
 	ht->magic = 0;
-	free(ht);
+	xfree(ht);
 }
 
 /**

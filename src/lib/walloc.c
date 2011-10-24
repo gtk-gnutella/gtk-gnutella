@@ -41,6 +41,7 @@
 #include "walloc.h"
 #include "zalloc.h"
 #include "vmm.h"
+#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -49,12 +50,6 @@
 #undef walloc0
 #undef wrealloc
 #endif
-
-/**
- * Maximum size for a walloc().  Anything larger is allocated by using
- * either halloc() or malloc().
- */
-#define WALLOC_MAX		4096
 
 #define WALLOC_MINCOUNT	8			/**< Minimum amount of structs in a chunk */
 
@@ -114,7 +109,7 @@ wzone_get(size_t rounded)
  *
  * The basics for this algorithm is to allocate from fixed-sized zones, which
  * are multiples of ZALLOC_ALIGNBYTES until WALLOC_MAX (e.g. 8, 16, 24, 40, ...)
- * and to halloc()/malloc() if size is greater than WALLOC_MAX.
+ * and to halloc()/xpmalloc() if size is greater than WALLOC_MAX.
  * Naturally, zones are allocated on demand only.
  *
  * @return a pointer to the start of the allocated block.
@@ -130,11 +125,7 @@ walloc(size_t size)
 
 	if (rounded > WALLOC_MAX) {
 		/* Too big for efficient zalloc() */
-		void *p = size >= halloc_threshold ? halloc(size) : malloc(size);
-		if (NULL == p)
-			g_error("out of memory");
-
-		return p;
+		return size >= halloc_threshold ? halloc(size) : xpmalloc(size);
 	}
 
 	idx = wzone_index(rounded);
@@ -163,7 +154,7 @@ walloc0(size_t size)
  * Free a block allocated via walloc().
  *
  * The size is used to find the zone from which the block was allocated, or
- * to determine that we actually malloc()'ed it so it gets free()'ed.
+ * to determine that we actually xpmalloc()'ed it so it gets xfree()'ed.
  */
 void
 wfree(gpointer ptr, size_t size)
@@ -178,12 +169,12 @@ wfree(gpointer ptr, size_t size)
 	if (rounded > WALLOC_MAX) {
 #ifdef TRACK_ZALLOC
 		/* halloc_track() is going to walloc_track() which uses malloc() */ 
-		free(ptr);
+		xfree(ptr);
 #else
 		if (rounded >= halloc_threshold) {
 			hfree(ptr);
 		} else {
-			free(ptr);
+			xfree(ptr);
 		}
 #endif
 		return;
@@ -306,11 +297,8 @@ walloc_track(size_t size, const char *file, int line)
 			malloc_track(size, file, line);
 #else
 			/* Can't reroute to halloc() since it may come back here */
-			malloc(size);
+			xpmalloc(size);
 #endif
-			if (NULL == p)
-				g_error("out of memory");
-
 			return p;
 	}
 
@@ -394,6 +382,8 @@ void
 wdestroy(void)
 {
 	size_t i;
+
+	xmalloc_stop_wfree();
 
 	for (i = 0; i < WZONE_SIZE; i++) {
 		if (wzone[i] != NULL) {

@@ -67,6 +67,7 @@
 #include "unsigned.h"
 #include "tm.h"
 #include "vmm.h"
+#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -683,7 +684,7 @@ zn_free_additional_subzones(zone_t *zone)
 	while (sz) {
 		struct subzone *next = sz->sz_next;
 		subzone_free_arena(sz);
-		g_free(sz);
+		xfree(sz);
 		sz = next;
 	}
 
@@ -841,16 +842,7 @@ zn_extend(zone_t *zone)
 {
 	struct subzone *sz;		/* New sub-zone */
 
-	/*
-	 * We use g_malloc() here and not a raw malloc() so that we can benefit
-	 * from leak tracking for our underlying memory usage when compiled
-	 * under TRACK_MALLOC.
-	 */
-
-	sz = g_malloc(sizeof *sz);
-	if (NULL == sz)
-		g_error("out of memory");
-
+	sz = xpmalloc(sizeof *sz);			/* Plain malloc */
 	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
 
 	if (NULL == sz->sz_base)
@@ -909,16 +901,7 @@ zcreate(size_t size, unsigned hint)
 {
 	zone_t *zone;			/* Zone descriptor */
 
-	/*
-	 * We use g_malloc() here and not a raw malloc() so that we can benefit
-	 * from leak tracking for our underlying memory usage when compiled
-	 * under TRACK_MALLOC.
-	 */
-
-	zone = g_malloc(sizeof *zone);
-	if (NULL == zone)
-		g_error("out of memory");
-
+	zone = xpmalloc(sizeof *zone);
 	zn_create(zone, size, hint);
 
 #ifndef REMAP_ZALLOC
@@ -967,7 +950,7 @@ zdestroy(zone_t *zone)
 	if (!zalloc_closing)
 		hash_table_remove(zt, ulong_to_pointer(zone->zn_size));
 
-	g_free(zone);
+	xfree(zone);
 }
 
 /**
@@ -1279,7 +1262,7 @@ zgc_insert_subzone(const zone_t *zone, struct subzone *sz, char **blk)
 	 */
 
 	zg->zg_zones++;
-	array = g_realloc(zg->zg_subzinfo,
+	array = xrealloc(zg->zg_subzinfo,
 		zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
 
 	zg->zg_subzinfo = array;
@@ -1545,7 +1528,7 @@ release_zone:
 				}
 			}
 		}
-		g_free(sz);
+		xfree(sz);
 	} else {
 		unsigned n = 2;
 		struct subzone *prev = &zone->zn_arena;
@@ -1568,7 +1551,7 @@ release_zone:
 						free_blocks, 1 == free_blocks ? "" : "s");
 				}
 				subzone_free_arena(sz);
-				g_free(sz);
+				xfree(sz);
 				prev->sz_next = next;
 				goto found;
 			}
@@ -1681,23 +1664,11 @@ zgc_allocate(zone_t *zone)
 			free_blocks, 1 == free_blocks ? "" : "s");
 	}
 
-	/*
-	 * We use g_malloc() here and not a raw malloc() so that we can benefit
-	 * from leak tracking for our underlying memory usage when compiled
-	 * under TRACK_MALLOC.
-	 */
-
-	zg = g_malloc(sizeof *zg);
-	if (NULL == zg)
-		g_error("out of memory");
-
+	zg = xpmalloc(sizeof *zg);
 	zone->zn_gc = zg;
 
 	zg->zg_zones = zone->zn_subzones;
-	zg->zg_subzinfo = g_malloc(zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
-	if (NULL == zg->zg_subzinfo)
-		g_error("out of memory");
-
+	zg->zg_subzinfo = xpmalloc(zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
 	zg->zg_zone_freed = 0;
 	zg->zg_zone_defragmented = 0;
 	zg->zg_start = tm_time();
@@ -1935,8 +1906,8 @@ zgc_dispose(zone_t *zone)
 	 * Dispose the GC structures.
 	 */
 
-	g_free(zg->zg_subzinfo);
-	g_free(zg);
+	xfree(zg->zg_subzinfo);
+	xfree(zg);
 	zone->zn_gc = NULL;			/* Back to regular zalloc() */
 	zgc_zone_cnt--;
 
@@ -2366,7 +2337,7 @@ zalloc_dump_zones_log(logagent_t *la)
 		return;
 
 	zcount = hash_table_size(zt);
-	filler.array = g_malloc(zcount * sizeof filler.array[0]);
+	filler.array = xpmalloc(zcount * sizeof filler.array[0]);
 	filler.capacity = zcount;
 	filler.count = 0;
 
@@ -2401,7 +2372,7 @@ zalloc_dump_zones_log(logagent_t *la)
 		uint64_to_string(bytes), short_size(bytes, FALSE),
 		(unsigned long) blocks, 1 == blocks ? "" : "s");
 
-	g_free(filler.array);
+	xfree(filler.array);
 }
 
 /**

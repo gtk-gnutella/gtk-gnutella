@@ -47,6 +47,7 @@
 #include "xmalloc.h"
 #include "bit_array.h"
 #include "crash.h"			/* For crash_hook_add() */
+#include "glib-missing.h"
 #include "log.h"
 #include "misc.h"
 #include "pow2.h"
@@ -55,7 +56,7 @@
 #include "tm.h"
 #include "unsigned.h"
 #include "vmm.h"
-#include "glib-missing.h"
+#include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -176,6 +177,17 @@ struct xheader {
 #define XMALLOC_BLOCK_MASK	(XMALLOC_BLOCK_SIZE - 1)
 
 /**
+ * Magic size indication.
+ *
+ * Blocks allocated via walloc() have a size of WALLOC_MAX bytes at most.
+ * The leading 16 bits of the 32-bit size quantity are used to flag walloc()
+ * allocation to make sure the odd size is not a mistake.
+ */
+#define XMALLOC_MAGIC_FLAG		0x1U
+#define XMALLOC_WALLOC_MAGIC	(0xa10c0000U | XMALLOC_MAGIC_FLAG)
+#define XMALLOC_WALLOC_SIZE		(0x0000ffffU & ~XMALLOC_MAGIC_FLAG)
+
+/**
  * Block coalescing options.
  */
 #define XM_COALESCE_NONE	0			/**< No coalescing */
@@ -230,6 +242,7 @@ static struct {
 	guint64 allocations_zeroed;			/**< Total # of zeroing allocations */
 	guint64 allocations_aligned;		/**< Total # of aligned allocations */
 	guint64 alloc_via_freelist;			/**< Allocations from freelist */
+	guint64 alloc_via_walloc;			/**< Allocations from walloc() */
 	guint64 alloc_via_vmm;				/**< Allocations from VMM */
 	guint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
 	guint64 freeings;					/**< Total # of freeings */
@@ -237,6 +250,7 @@ static struct {
 	guint64 free_sbrk_core_released;	/**< Released sbrk()-allocated core */
 	guint64 free_vmm_core;				/**< Freeing VMM-allocated core */
 	guint64 free_coalesced_vmm;			/**< VMM-freeing of coalesced block */
+	guint64 free_walloc;				/**< Freeing a walloc()'ed block */
 	guint64 aligned_via_freelist;		/**< Aligned memory from freelist */
 	guint64 aligned_via_freelist_then_vmm;	/**< Aligned memory from VMM */
 	guint64 aligned_via_vmm;				/**< Idem, no freelist tried */
@@ -256,6 +270,8 @@ static struct {
 	guint64 realloc_relocate_smart_attempts;	/**< Attempts to move pointer */
 	guint64 realloc_relocate_smart_success;		/**< Smart placement was OK */
 	guint64 realloc_regular_strategy;		/**< Regular resizing strategy */
+	guint64 realloc_wrealloc;				/**< Used wrealloc() */
+	guint64 realloc_walloc_convert;			/**< Converted from walloc() */
 	guint64 freelist_insertions;			/**< Insertions in freelist */
 	guint64 freelist_insertions_no_coalescing;	/**< Coalescing forbidden */
 	guint64 freelist_further_breakups;		/**< Breakups due to extra size */
@@ -275,6 +291,7 @@ static gboolean xmalloc_random_up;	/**< True when we can use random numbers */
 static size_t sbrk_allocated;		/**< Bytes allocated with sbrk() */
 static gboolean xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
 static gboolean xmalloc_no_freeing;	/**< No longer release memory */
+static gboolean xmalloc_no_wfree;	/**< No longer release memory via wfree() */
 
 static void *initial_break;			/**< Initial heap break */
 static void *current_break;			/**< Current known heap break */
@@ -309,6 +326,7 @@ xmalloc_vmm_inited(void)
 	STATIC_ASSERT(IS_POWER_OF_2(XMALLOC_BLOCK_SIZE));
 	STATIC_ASSERT(0 == (XMALLOC_FACTOR_MASK & XMALLOC_SPLIT_MIN));
 	STATIC_ASSERT(XMALLOC_SPLIT_MIN / 2 == XMALLOC_BUCKET_FACTOR);
+	STATIC_ASSERT(1 == (((1 << WALLOC_MAX_SHIFT) - 1) & XMALLOC_WALLOC_MAGIC));
 
 	xmalloc_vmm_is_up = TRUE;
 	safe_to_log = TRUE;
@@ -395,6 +413,24 @@ xmalloc_should_split(size_t current, size_t wanted)
 
 	return waste >= XMALLOC_SPLIT_MIN &&
 		(current >> XMALLOC_WASTE_SHIFT) <= waste;
+}
+
+/**
+ * Is block length tagged as being that of a walloc()ed block?
+ */
+static inline ALWAYS_INLINE gboolean
+xmalloc_is_walloc(size_t len)
+{
+	return XMALLOC_WALLOC_MAGIC == (len & XMALLOC_WALLOC_MAGIC);
+}
+
+/**
+ * Return size of walloc()ed block given a tagged length.
+ */
+static inline ALWAYS_INLINE size_t
+xmalloc_walloc_size(size_t len)
+{
+	return len & XMALLOC_WALLOC_SIZE;
 }
 
 /**
@@ -586,6 +622,9 @@ xmalloc_is_valid_pointer(const void *p)
 {
 	if (xmalloc_round(p) != pointer_to_ulong(p))
 		return FALSE;
+
+	if G_UNLIKELY(xmalloc_no_freeing)
+		return TRUE;	/* Don't validate if we're shutdowning */
 
 	if G_LIKELY(xmalloc_vmm_is_up) {
 		return vmm_is_native_pointer(p) || xmalloc_isheap(p, sizeof p);
@@ -2139,6 +2178,33 @@ xmalloc_block_setup(void *p, size_t len)
 }
 
 /**
+ * Setup walloc()ed block.
+ *
+ * @return the user pointer within the physical block.
+ */
+static void *
+xmalloc_wsetup(void *p, size_t len)
+{
+	struct xheader *xh = p;
+
+	if (xmalloc_debugging(9)) {
+		t_debug(NULL, "XM setup walloc()ed %lu-byte block at %p (user %p)",
+			(unsigned long) len, p, ptr_add_offset(p, XHEADER_SIZE));
+	}
+
+	/*
+	 * Flag length specially so that we know this is a block allocated
+	 * via walloc(), to be able to handle freeing and reallocations.
+	 */
+
+	g_assert(len <= WALLOC_MAX);
+	g_assert(0 == (len & XMALLOC_MAGIC_FLAG));
+
+	xh->length = (unsigned) len | XMALLOC_WALLOC_MAGIC;
+	return ptr_add_offset(p, XHEADER_SIZE);
+}
+
+/**
  * Is xmalloc() remapped to malloc()?
  */
 gboolean
@@ -2183,10 +2249,13 @@ static gboolean xalign_free(const void *p);
  *
  * If no memory is available, crash with a fatal error message.
  *
+ * @param size			minimal size of block to allocate (user space)
+ * @param can_walloc	whether small blocks can be allocated via walloc()
+ *
  * @return allocated pointer (never NULL).
  */
-void *
-xmalloc(size_t size)
+static void *
+xallocate(size_t size, gboolean can_walloc)
 {
 	size_t len;
 	void *p;
@@ -2226,10 +2295,29 @@ xmalloc(size_t size)
 	 */
 
 	if G_LIKELY(xmalloc_vmm_is_up) {
-		size_t pagesize = compat_pagesize();
+		static size_t pagesize;
+
+		if G_UNLIKELY(0 == pagesize) {
+			pagesize = compat_pagesize();
+		}
 
 		/*
-		 * As soon as the VMM layer is up, use it for all core allocations.
+		 * If we're allowed to use walloc() and the size is small-enough,
+		 * prefer this method of allocation to minimize freelist fragmentation.
+		 */
+
+		if (can_walloc) {
+			size_t wlen = xmalloc_round(size + XHEADER_SIZE);
+
+			if (wlen <= WALLOC_MAX) {
+				p = walloc(wlen);
+				xstats.alloc_via_walloc++;
+				return xmalloc_wsetup(p, wlen);
+			}
+		}
+
+		/*
+		 * The VMM layer is up, use it for all core allocations.
 		 */
 
 		xstats.alloc_via_vmm++;
@@ -2282,6 +2370,36 @@ xmalloc(size_t size)
 }
 
 /**
+ * Allocate a memory chunk capable of holding ``size'' bytes.
+ *
+ * If no memory is available, crash with a fatal error message.
+ *
+ * @return allocated pointer (never NULL).
+ */
+void *
+xmalloc(size_t size)
+{
+	return xallocate(size, TRUE);
+}
+
+/**
+ * Allocate a memory chunk capable of holding ``size'' bytes.
+ *
+ * If no memory is available, crash with a fatal error message.
+ *
+ * This is a "plain" malloc, not redirecting to walloc() for small-sized
+ * objects, and therefore it can be used by low-level allocators for their
+ * own data structures without fear of recursion.
+ *
+ * @return allocated pointer (never NULL).
+ */
+void *
+xpmalloc(size_t size)
+{
+	return xallocate(size, FALSE);
+}
+
+/**
  * Allocate a memory chunk capable of holding ``size'' bytes and zero it.
  *
  * @return pointer to allocated zeroed memory.
@@ -2325,15 +2443,20 @@ xfree(void *p)
 {
 	struct xheader *xh;
 
-	if G_UNLIKELY(xmalloc_no_freeing)
-		return;
-
 	/*
 	 * Some parts of the libc can call free() with a NULL pointer.
 	 * So we explicitly allow this to be able to replace free() correctly.
 	 */
 
-	if (NULL == p)
+	if G_UNLIKELY(NULL == p)
+		return;
+
+	/*
+	 * As soon as wdestroy() has been called, we're deep into shutdowning
+	 * so don't bother freeing anything.
+	 */
+
+	if G_UNLIKELY(xmalloc_no_wfree)
 		return;
 
 	xh = ptr_add_offset(p, -XHEADER_SIZE);
@@ -2356,6 +2479,23 @@ xfree(void *p)
 		t_error_from(_WHERE_, NULL, "attempt to free invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
 	}
+
+	/*
+	 * Handle walloc()ed blocks specially.
+	 */
+
+	if (xmalloc_is_walloc(xh->length)) {
+		xstats.free_walloc++;
+		wfree(xh, xmalloc_walloc_size(xh->length));
+		return;
+	}
+
+	/*
+	 * Freeings to freelist are disabled at shutdown time.
+	 */
+
+	if G_UNLIKELY(xmalloc_no_freeing)
+		return;
 
 	if (!xmalloc_is_valid_length(xh, xh->length)) {
 		t_error_from(_WHERE_, NULL,
@@ -2391,12 +2531,15 @@ xrealloc(void *p, size_t size)
 		return NULL;
 	}
 
-	if (!xmalloc_is_valid_pointer(xh)) {
+	if G_UNLIKELY(!xmalloc_is_valid_pointer(xh)) {
 		t_error_from(_WHERE_, NULL, "attempt to realloc invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
 	}
 
-	if (!xmalloc_is_valid_length(xh, xh->length)) {
+	if (xmalloc_is_walloc(xh->length))
+		goto realloc_from_walloc;
+
+	if G_UNLIKELY(!xmalloc_is_valid_length(xh, xh->length)) {
 		t_error_from(_WHERE_, NULL,
 			"corrupted malloc header for pointer %p: bad length %lu",
 			p, (unsigned long) xh->length);
@@ -2805,9 +2948,13 @@ skip_coalescing:
 
 	/*
 	 * Regular case: allocate a new block, move data around, free old block.
+	 *
+	 * If the old block was smaller than the WALLOC_MAX limit, use a plain
+	 * malloc to allocate a new block since obbviously a plain malloc was
+	 * used to allocate the old block.
 	 */
 
-	np = xmalloc(size);
+	np = xh->length <= WALLOC_MAX ? xpmalloc(size) : xmalloc(size);
 	xstats.realloc_regular_strategy++;
 
 	if (xmalloc_debugging(1)) {
@@ -2835,6 +2982,51 @@ relocate:
 inplace:
 	xh->length = newlen;
 	return p;
+
+realloc_from_walloc:
+	{
+		size_t old_len = xmalloc_walloc_size(xh->length);
+		size_t new_len = xmalloc_round(size + XHEADER_SIZE);
+		size_t old_size;
+
+		if (new_len <= WALLOC_MAX) {
+			void *wp = wrealloc(xh, old_len, new_len);
+			xstats.realloc_wrealloc++;
+
+			if (xmalloc_debugging(1)) {
+				t_debug(NULL, "XM realloc used wrealloc(): "
+					"%lu-byte block at %p moved to %lu-byte block at %p",
+					(unsigned long) old_len, (void *) xh,
+					(unsigned long) new_len, wp);
+			}
+
+			return xmalloc_wsetup(wp, new_len);
+		}
+
+		/*
+		 * Have to convert walloc() block to real malloc.
+		 */
+
+		np = xmalloc(size);
+		xstats.realloc_walloc_convert++;
+
+		if (xmalloc_debugging(1)) {
+			t_debug(NULL, "XM realloc converted from walloc(): "
+				"%lu-byte block at %p moved to %lu-byte block at %p",
+				(unsigned long) old_len, (void *) xh,
+				(unsigned long) (size + XHEADER_SIZE),
+				ptr_add_offset(np, -XHEADER_SIZE));
+		}
+
+		old_size = old_len - XHEADER_SIZE;
+
+		g_assert(size_is_non_negative(old_size));
+
+		memcpy(np, p, MIN(size, old_size));
+		wfree(p, old_len);
+
+		return np;
+	}
 }
 
 /**
@@ -2886,7 +3078,7 @@ xmalloc_post_init(void)
 }
 
 /**
- * Signal that we should stop freeing memory.
+ * Signal that we should stop freeing memory to the freelist.
  *
  * This is mostly useful during final cleanup when xmalloc() replaces malloc().
  */
@@ -2894,6 +3086,17 @@ G_GNUC_COLD void
 xmalloc_stop_freeing(void)
 {
 	xmalloc_no_freeing = TRUE;
+}
+
+/**
+ * Signal that we should stop freeing memory via wfree().
+ *
+ * This is mostly useful during final cleanup once wdestroy() has been called.
+ */
+G_GNUC_COLD void
+xmalloc_stop_wfree(void)
+{
+	xmalloc_no_wfree = TRUE;
 }
 
 /**
@@ -2908,6 +3111,7 @@ xmalloc_dump_stats_log(logagent_t *la)
 	DUMP(allocations_zeroed);
 	DUMP(allocations_aligned);
 	DUMP(alloc_via_freelist);
+	DUMP(alloc_via_walloc);
 	DUMP(alloc_via_vmm);
 	DUMP(alloc_via_sbrk);
 	DUMP(freeings);
@@ -2915,6 +3119,7 @@ xmalloc_dump_stats_log(logagent_t *la)
 	DUMP(free_sbrk_core_released);
 	DUMP(free_vmm_core);
 	DUMP(free_coalesced_vmm);
+	DUMP(free_walloc);
 	DUMP(aligned_via_freelist);
 	DUMP(aligned_via_freelist_then_vmm);
 	DUMP(aligned_via_vmm);
@@ -2934,6 +3139,8 @@ xmalloc_dump_stats_log(logagent_t *la)
 	DUMP(realloc_relocate_smart_attempts);
 	DUMP(realloc_relocate_smart_success);
 	DUMP(realloc_regular_strategy);
+	DUMP(realloc_wrealloc);
+	DUMP(realloc_walloc_convert);
 	DUMP(freelist_insertions);
 	DUMP(freelist_insertions_no_coalescing);
 	DUMP(freelist_further_breakups);
@@ -3519,6 +3726,9 @@ xalign_free(const void *p)
 	const void *start;
 	struct xdesc_type *xt;
 
+	if G_UNLIKELY(xmalloc_no_freeing)
+		return FALSE;
+
 	/*
 	 * We do not only consider page-aligned pointers because we can allocate
 	 * aligned page sub-blocks.  However, they are all located within a page
@@ -4026,5 +4236,40 @@ xmalloc_crash_hook(void)
 			continue;
 	}
 }
+
+/*
+ * Internally, code willing to use xmalloc() ignores whether it is actually
+ * trapping malloc, so we need to define suitable wrapping entry points here.
+ */
+#ifdef XMALLOC_IS_MALLOC
+#undef xmalloc
+#undef xfree
+#undef xrealloc
+#undef xcalloc
+
+void *
+xmalloc(size_t size)
+{
+	return malloc(size);
+}
+
+void *
+xcalloc(size_t nmemb, size_t size)
+{
+	return calloc(nmemb, size);
+}
+
+void
+xfree(void *p)
+{
+	free(p);
+}
+
+void *
+xrealloc(void *p, size_t size)
+{
+	return realloc(p, size);
+}
+#endif	/* XMALLOC_IS_MALLOC */
 
 /* vi: set ts=4 sw=4 cindent:  */

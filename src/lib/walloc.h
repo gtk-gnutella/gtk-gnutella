@@ -37,6 +37,13 @@
 #include "common.h"
 #include "malloc.h"
 
+/**
+ * Maximum size for a walloc().  Anything larger is allocated by using
+ * either halloc() or xpmalloc().
+ */
+#define WALLOC_MAX_SHIFT	12	/* 2^12 = 4096 bytes */
+#define WALLOC_MAX			(1 << WALLOC_MAX_SHIFT)
+
 /*
  * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.
  * Under TRACK_ZALLOC, we keep track of the allocation places.
