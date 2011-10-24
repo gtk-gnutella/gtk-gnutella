@@ -244,7 +244,9 @@ static struct {
 	guint64 allocations_gc;			/**< Subset of allocations in GC mode */
 	guint64 freeings_gc;			/**< Subset of freeings in GC mode */
 	guint64 subzones_allocated;		/**< Total amount of subzone creations */
-	guint64 subzones_freed;			/**< Total amount of subzeon freeings */
+	guint64 subzones_allocated_pages;	/**< Total pages used by subzones */
+	guint64 subzones_freed;			/**< Total amount of subzone freeings */
+	guint64 subzones_freed_pages;	/**< Total pages freed in subzones */
 	guint64 zmove_attempts;			/**< Total attempts to move blocks */
 	guint64 zmove_attempts_gc;		/**< Subset of moves attempted in GC mode */
 	guint64 zmove_successful_gc;	/**< Subset of successful moves */
@@ -650,16 +652,18 @@ subzone_alloc_arena(struct subzone *sz, size_t size)
 	sz->sz_ctime = tm_time();
 
 	zstats.subzones_allocated++;
+	zstats.subzones_allocated_pages += vmm_page_count(sz->sz_size);
 }
 
 static void
 subzone_free_arena(struct subzone *sz)
 {
+	zstats.subzones_freed++;
+	zstats.subzones_freed_pages += vmm_page_count(sz->sz_size);
+
 	vmm_free(sz->sz_base, sz->sz_size);
 	sz->sz_base = NULL;
 	sz->sz_size = 0;
-
-	zstats.subzones_freed++;
 }
 
 /*
@@ -2395,7 +2399,9 @@ zalloc_dump_stats_log(logagent_t *la)
 	DUMP(allocations_gc);
 	DUMP(freeings_gc);
 	DUMP(subzones_allocated);
+	DUMP(subzones_allocated_pages);
 	DUMP(subzones_freed);
+	DUMP(subzones_freed_pages);
 	DUMP(zmove_attempts);
 	DUMP(zmove_attempts_gc);
 	DUMP(zmove_successful_gc);
