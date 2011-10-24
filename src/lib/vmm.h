@@ -84,6 +84,7 @@ size_t round_pagesize(size_t n) G_GNUC_PURE;
 size_t compat_pagesize(void) G_GNUC_PURE;
 const void *vmm_page_start(const void *p) G_GNUC_PURE;
 const void *vmm_trap_page(void);
+size_t vmm_page_count(size_t size) G_GNUC_PURE;
 gboolean vmm_is_fragment(const void *base, size_t size);
 gboolean vmm_is_relocatable(const void *base, size_t size);
 gboolean vmm_is_native_pointer(const void *p);

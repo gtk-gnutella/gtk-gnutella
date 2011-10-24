@@ -346,6 +346,15 @@ vmm_page_start(const void *p)
 	return page_start(p);
 }
 
+/**
+ * Count amount of pages required to hold given size.
+ */
+size_t
+vmm_page_count(size_t size)
+{
+	return pagecount_fast(size);
+}
+
 static long
 compat_pagesize_intern(void)
 #if defined (_SC_PAGESIZE) || defined(_SC_PAGE_SIZE)
