@@ -1826,3 +1826,6 @@
 # emits fake results for illegal files from fake gtk-gnutella peers
 #66.249.5.139
 
+# "fake" LimeWire node, returning "blah blah [query words]" results
+# with ever-changing (random?) GUID.
+206.67.234.41
