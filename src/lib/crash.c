@@ -657,6 +657,56 @@ crash_stack_print(int fd, size_t offset)
 	}
 }
 
+static Sigjmp_buf crash_fork_env;
+
+/**
+ * Handle fork() timeouts.
+ */
+static G_GNUC_COLD void
+crash_fork_timeout(int signo)
+{
+	DECLARE_STR(2);
+	char time_buf[18];
+
+	crash_time(time_buf, sizeof time_buf);
+	print_str(time_buf);
+	print_str(" (WARNING): fork() timed out, found a libc bug?\n");
+	flush_err_str();
+
+	Siglongjmp(crash_fork_env, signo);
+}
+
+/**
+ * A fork() wrapper to work around libc6 bugs causing hangs within fork().
+ */
+static G_GNUC_COLD pid_t
+crash_fork(void)
+{
+	pid_t pid;
+	signal_handler_t old_sigalrm;
+	unsigned remain;
+
+	if (!has_fork())
+		return 0;			/* Act as if we were in a child upon return */
+
+	old_sigalrm = signal_set(SIGALRM, crash_fork_timeout);
+	remain = alarm(15);		/* Guess, large enough to withstand system load */
+
+	if (Sigsetjmp(crash_fork_env, TRUE)) {
+		errno = EDEADLK;	/* Probable deadlock in the libc */
+		pid = -1;
+		goto restore;
+	}
+
+	pid = fork();
+	/* FALL THROUGH */
+restore:
+	alarm(remain);
+	signal_set(SIGALRM, old_sigalrm);
+
+	return pid;
+}
+
 /**
  * Invoke the inspector process (gdb, or any other program specified at
  * initialization time).
@@ -714,7 +764,7 @@ retry_child:
 	signal_set(SIGCHLD, SIG_DFL);
 #endif
 
-	pid = fork();
+	pid = crash_fork();
 	switch (pid) {
 	case -1:
 		stage = "fork()";
