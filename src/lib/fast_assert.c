@@ -110,7 +110,22 @@ assertion_abort(void)
 		crash_save_current_stackframe(STACK_OFF);
 	}
 
-	abort();
+	/*
+	 * We used to call abort() here.
+	 *
+	 * However, assertion handling is already coupled to crash handling and
+	 * therefore it buys us little to call abort() to raise a SIGABRT signal
+	 * which will then be trapped by the crash handler anyway.
+	 *
+	 * Furthermore, there is a bug in the linux kernel that causes a hang in
+	 * the fork() system call used by the crash handler to exec() a debugger,
+	 * and this may be due to signal delivery.
+	 *
+	 * Calling crash_abort() will ensure synchronous crash handling.
+	 *		--RAM, 2011-10-24
+	 */
+
+	crash_abort();
 }
 
 /*

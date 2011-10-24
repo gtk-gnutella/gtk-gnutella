@@ -1785,6 +1785,16 @@ crash_post_init(void)
 	ck_shrink(vars->mem2, 0);
 }
 
+/**
+ * Abort execution, synchronously.
+ */
+void
+crash_abort(void)
+{
+	crash_handler(SIGABRT);
+	abort();
+}
+
 /***
  *** Calling any of the following routines means we're about to crash.
  ***/

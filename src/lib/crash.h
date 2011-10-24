@@ -162,6 +162,7 @@ void crash_time(char *buf, size_t buflen);
 void crash_time_iso(char *buf, size_t size);
 const char *crash_signame(int signo);
 void crash_handler(int signo);
+void crash_abort(void) G_GNUC_NORETURN;
 void crash_setdir(const char *dir);
 void crash_setver(const char *version);
 void crash_setbuild(unsigned build);
