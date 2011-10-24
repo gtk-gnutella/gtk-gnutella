@@ -230,7 +230,8 @@ static struct {
 	guint64 free_sbrk_core;				/**< Freeing sbrk()-allocated core */
 	guint64 free_sbrk_core_released;	/**< Released sbrk()-allocated core */
 	guint64 free_vmm_core;				/**< Freeing VMM-allocated core */
-	guint64 aligned_via_freelist;			/**< Aligned memory from freelist */
+	guint64 free_coalesced_vmm;			/**< VMM-freeing of coalesced block */
+	guint64 aligned_via_freelist;		/**< Aligned memory from freelist */
 	guint64 aligned_via_freelist_then_vmm;	/**< Aligned memory from VMM */
 	guint64 aligned_via_vmm;				/**< Idem, no freelist tried */
 	guint64 aligned_via_zone;				/**< Aligned memory from zone */
@@ -1523,11 +1524,16 @@ xmalloc_freelist_lookup(size_t len, struct xfreelist **flp)
 static G_GNUC_HOT gboolean
 xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, guint32 flags)
 {
+	static size_t smallsize;
 	size_t i, j;
 	void *base = *base_ptr;
 	size_t len = *len_ptr;
 	void *end;
 	gboolean coalesced = FALSE;
+
+	if G_UNLIKELY(0 == smallsize) {
+		smallsize = compat_pagesize() / 2;
+	}
 
 	/*
 	 * When "smart" coalescing is requested and we're facing a block which
@@ -1551,7 +1557,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, guint32 flags)
 		 * as we can re-assemble a full page.
 		 */
 
-		if (fl->count < XMALLOC_BUCKET_MINCOUNT && len < compat_pagesize()) {
+		if (fl->count < XMALLOC_BUCKET_MINCOUNT && len < smallsize) {
 			if (xmalloc_debugging(6)) {
 				t_debug(NULL, "XM ignoring coalescing request for %lu-byte %p:"
 					" target free list #%lu has only %lu item%s",
@@ -1890,6 +1896,8 @@ xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
 static void
 xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
 {
+	gboolean coalesced = FALSE;
+
 	/*
 	 * First attempt to coalesce memory as much as possible if requested.
 	 *
@@ -1905,7 +1913,7 @@ xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
 			round_pagesize(len) != len ||
 			xmalloc_isheap(p, len)
 		) {
-			xmalloc_freelist_coalesce(&p, &len, coalesce);
+			coalesced = xmalloc_freelist_coalesce(&p, &len, coalesce);
 		} else {
 			if (xmalloc_debugging(4)) {
 				t_debug(NULL,
@@ -1951,6 +1959,9 @@ xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
 						(unsigned long) len, p);
 				}
 			}
+
+			if (coalesced)
+				xstats.free_coalesced_vmm++;
 
 			/*
 			 * Head and tail are smaller than a page size but could still be
@@ -2863,6 +2874,7 @@ xmalloc_dump_stats_log(logagent_t *la)
 	DUMP(free_sbrk_core);
 	DUMP(free_sbrk_core_released);
 	DUMP(free_vmm_core);
+	DUMP(free_coalesced_vmm);
 	DUMP(aligned_via_freelist);
 	DUMP(aligned_via_freelist_then_vmm);
 	DUMP(aligned_via_vmm);
