@@ -33,15 +33,15 @@
 
 #include "common.h"
 
-#include "glib-missing.h"
+#include "walloc.h"
+#include "halloc.h"
+#include "log.h"
 #include "pow2.h"
 #include "unsigned.h"
-#include "halloc.h"
 #include "unsigned.h"
-#include "walloc.h"
-#include "zalloc.h"
 #include "vmm.h"
 #include "xmalloc.h"
+#include "zalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -99,7 +99,7 @@ wzone_get(size_t rounded)
 	 */
 
 	if (!(zone = zget(rounded, WALLOC_MINCOUNT)))
-		g_error("zget() failed?");
+		s_error("zget() failed?");
 
 	return zone;
 }
@@ -314,7 +314,7 @@ walloc_track(size_t size, const char *file, int line)
 		 */
 
 		if (!(zone = wzone[idx] = zget(rounded, WALLOC_MINCOUNT)))
-			g_error("zget() failed?");
+			s_error("zget() failed?");
 	}
 
 	return zalloc_track(zone, file, line);
