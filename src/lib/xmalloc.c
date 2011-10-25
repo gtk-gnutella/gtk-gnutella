@@ -251,6 +251,10 @@ static struct {
 	guint64 free_vmm_core;				/**< Freeing VMM-allocated core */
 	guint64 free_coalesced_vmm;			/**< VMM-freeing of coalesced block */
 	guint64 free_walloc;				/**< Freeing a walloc()'ed block */
+	guint64 sbrk_alloc_bytes;			/**< Bytes allocated from sbrk() */
+	guint64 sbrk_freed_bytes;			/**< Bytes released via sbrk() */
+	guint64 vmm_alloc_pages;			/**< Pages allocated via VMM */
+	guint64 vmm_freed_pages;			/**< Pages released via VMM */
 	guint64 aligned_via_freelist;		/**< Aligned memory from freelist */
 	guint64 aligned_via_freelist_then_vmm;	/**< Aligned memory from VMM */
 	guint64 aligned_via_vmm;				/**< Idem, no freelist tried */
@@ -260,6 +264,7 @@ static struct {
 	guint64 aligned_free_false_positives;	/**< Aligned pointers not aligned */
 	guint64 aligned_zones_created;			/**< Zones created for alignment */
 	guint64 aligned_zones_destroyed;		/**< Alignment zones destroyed */
+	guint64 aligned_overhead_bytes;			/**< Structural overhead */
 	guint64 reallocs;						/**< Total # of reallocations */
 	guint64 realloc_noop;					/**< Reallocs not doing anything */
 	guint64 realloc_inplace_vmm_shrinking;	/**< Reallocs with inplace shrink */
@@ -504,6 +509,7 @@ xmalloc_addcore_from_heap(size_t len)
 
 	current_break = ptr_add_offset(p, len);
 	sbrk_allocated += len;
+	xstats.sbrk_alloc_bytes += len;
 
 	if (xmalloc_debugging(1)) {
 		t_debug(NULL, "XM added %lu bytes of heap core at %p",
@@ -593,8 +599,10 @@ xmalloc_freecore(void *ptr, size_t len)
 			}
 #endif	/* HAS_SBRK */
 			g_assert(ptr_cmp(current_break, initial_break) >= 0);
-			if (success)
+			if (success) {
 				xstats.free_sbrk_core_released++;
+				xstats.sbrk_freed_bytes += len;
+			}
 			return success;
 		} else {
 			if (xmalloc_debugging(0)) {
@@ -610,6 +618,7 @@ xmalloc_freecore(void *ptr, size_t len)
 
 	vmm_free(ptr, len);
 	xstats.free_vmm_core++;
+	xstats.vmm_freed_pages += vmm_page_count(len);
 
 	return TRUE;
 }
@@ -1031,7 +1040,7 @@ xfl_remove_selected(struct xfreelist *fl)
 
 	if (xmalloc_grows_up && fl->count != 0) {
 		memmove(&fl->pointers[0], &fl->pointers[1],
-			fl->count * sizeof(fl->pointers[0]));
+			fl->count * sizeof fl->pointers[0]);
 	}
 
 	/*
@@ -1174,6 +1183,7 @@ xfl_bucket_alloc(const struct xfreelist *flb,
 	if G_LIKELY(xmalloc_vmm_is_up) {
 		len = round_pagesize(size);
 		p = vmm_alloc(len);
+		xstats.vmm_alloc_pages += vmm_page_count(len);
 	} else {
 		p = xmalloc_addcore_from_heap(len);
 	}
@@ -1766,7 +1776,7 @@ xmalloc_free_pages(void *p, size_t len,
 	void *page;
 	const void *end;
 	const void *vend;
-	size_t hlen, tlen;
+	size_t plen, hlen, tlen;
 
 	page = deconstify_gpointer(vmm_page_start(p));
 	end = ptr_add_offset(p, len);
@@ -1818,8 +1828,11 @@ xmalloc_free_pages(void *p, size_t len,
 			p, end, (unsigned long) len);
 	}
 
-	vmm_free(page, ptr_diff(vend, page));
+	plen = ptr_diff(vend, page);
+	vmm_free(page, plen);
+
 	xstats.free_vmm_core++;
+	xstats.vmm_freed_pages += vmm_page_count(plen);
 
 	return TRUE;
 }
@@ -2339,6 +2352,7 @@ xallocate(size_t size, gboolean can_walloc)
 		if (len >= pagesize) {
 			size_t vlen = round_pagesize(len);
 			p = vmm_alloc(vlen);
+			xstats.vmm_alloc_pages += vmm_page_count(vlen);
 
 			if (xmalloc_debugging(1)) {
 				t_debug(NULL, "XM added %lu bytes of VMM core at %p",
@@ -2348,6 +2362,7 @@ xallocate(size_t size, gboolean can_walloc)
 			return xmalloc_block_setup(p, vlen);
 		} else {
 			p = vmm_alloc(pagesize);
+			xstats.vmm_alloc_pages++;
 
 			if (xmalloc_debugging(1)) {
 				t_debug(NULL, "XM added %lu bytes of VMM core at %p",
@@ -2589,7 +2604,9 @@ xrealloc(void *p, size_t size)
 
 			q = vmm_alloc(newlen);
 			np = xmalloc_block_setup(q, newlen);
+
 			xstats.realloc_relocate_vmm_fragment++;
+			xstats.vmm_alloc_pages += vmm_page_count(newlen);
 
 			if (xmalloc_debugging(1)) {
 				t_debug(NULL, "XM relocated %lu-byte VMM region at %p to %p"
@@ -3134,6 +3151,10 @@ xmalloc_dump_stats_log(logagent_t *la)
 	DUMP(free_vmm_core);
 	DUMP(free_coalesced_vmm);
 	DUMP(free_walloc);
+	DUMP(sbrk_alloc_bytes);
+	DUMP(sbrk_freed_bytes);
+	DUMP(vmm_alloc_pages);
+	DUMP(vmm_freed_pages);
 	DUMP(aligned_via_freelist);
 	DUMP(aligned_via_freelist_then_vmm);
 	DUMP(aligned_via_vmm);
@@ -3143,6 +3164,7 @@ xmalloc_dump_stats_log(logagent_t *la)
 	DUMP(aligned_free_false_positives);
 	DUMP(aligned_zones_created);
 	DUMP(aligned_zones_destroyed);
+	DUMP(aligned_overhead_bytes);
 	DUMP(reallocs);
 	DUMP(realloc_noop);
 	DUMP(realloc_inplace_vmm_shrinking);
@@ -3324,8 +3346,9 @@ xdesc_type_str(enum xpage_type type)
 static void
 xdesc_free(void *pdesc, const void *p)
 {
+	struct xdesc_type *xt = pdesc;
+
 	if (xmalloc_debugging(2)) {
-		struct xdesc_type *xt = pdesc;
 		size_t len = 0;
 
 		switch (xt->type) {
@@ -3341,6 +3364,15 @@ xdesc_free(void *pdesc, const void *p)
 		}
 		t_debug(NULL, "XM forgot aligned %s %p (%lu bytes)",
 			xdesc_type_str(xt->type), p, (unsigned long) len);
+	}
+
+	switch (xt->type) {
+	case XPAGE_SET:
+		xstats.aligned_overhead_bytes -= sizeof(struct xdesc_set);
+		break;
+	case XPAGE_ZONE:
+		xstats.aligned_overhead_bytes -= sizeof(struct xdesc_zone);
+		break;
 	}
 
 	xfree(pdesc);
@@ -3432,14 +3464,16 @@ xa_align_extend(void)
 	if (0 == new_capacity)
 		new_capacity = 2;
 
-	aligned = xrealloc(aligned, new_capacity * sizeof(aligned[0]));
+	aligned = xrealloc(aligned, new_capacity * sizeof aligned[0]);
+	xstats.aligned_overhead_bytes +=
+		(new_capacity - aligned_capacity) * sizeof aligned[0];
 	aligned_capacity = new_capacity;
 
 	if (xmalloc_debugging(1)) {
 		t_debug(NULL,
 			"XM aligned array capacity now %lu, starts at %p (%lu bytes)",
 			(unsigned long) aligned_capacity, (void *) aligned,
-			(unsigned long) (new_capacity * sizeof(aligned[0])));
+			(unsigned long) (new_capacity * sizeof aligned[0]));
 	}
 }
 
@@ -3481,7 +3515,7 @@ xa_insert(const void *p, void *pdesc)
 
 	if G_LIKELY(idx < aligned_count) {
 		memmove(&aligned[idx + 1], &aligned[idx],
-			(aligned_count - idx) * sizeof(aligned[0]));
+			(aligned_count - idx) * sizeof aligned[0]);
 	}
 
 	aligned_count++;
@@ -3505,6 +3539,8 @@ xa_insert_set(const void *p, size_t size)
 
 	xa_insert(p, xs);
 
+	xstats.aligned_overhead_bytes += sizeof *xs;
+
 	if (xmalloc_debugging(2)) {
 		t_debug(NULL, "XM recorded aligned %p (%lu bytes)",
 			p, (unsigned long) size);
@@ -3523,6 +3559,7 @@ xzones_init(void)
 	g_assert(size_is_positive(xzones_capacity));
 
 	xzones = xmalloc(xzones_capacity * sizeof xzones[0]);
+	xstats.aligned_overhead_bytes += xzones_capacity * sizeof xzones[0];
 }
 
 /**
@@ -3554,7 +3591,10 @@ xzget(size_t alignment)
 	xz->nblocks = nblocks;
 
 	xa_insert(arena, xz);
+
+	xstats.vmm_alloc_pages++;
 	xstats.aligned_zones_created++;
+	xstats.aligned_overhead_bytes += sizeof *xz + BIT_ARRAY_BYTE_SIZE(nblocks);
 
 	if (xmalloc_debugging(2)) {
 		t_debug(NULL, "XM recorded aligned %p (%lu bytes) as %lu-byte zone",
@@ -3600,7 +3640,10 @@ xzdestroy(struct xdesc_zone *xz)
 
 	xfree(xz->bitmap);
 	vmm_free(xz->arena, compat_pagesize());
+
+	xstats.vmm_freed_pages++;
 	xstats.aligned_zones_destroyed++;
+	xstats.aligned_overhead_bytes -= BIT_ARRAY_BYTE_SIZE(xz->nblocks);
 }
 
 /**
@@ -3770,6 +3813,7 @@ xalign_free(const void *p)
 			g_assert(0 != len);
 			xa_delete_slot(idx);
 			vmm_free(deconstify_gpointer(p), len);
+			xstats.vmm_freed_pages += vmm_page_count(len);
 		}
 		return TRUE;
 	case XPAGE_ZONE:
@@ -3867,7 +3911,9 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 	if G_UNLIKELY(alignment == pagesize) {
 		p = vmm_alloc(size);	/* More than we need */
 		method = "VMM";
+
 		xstats.aligned_via_vmm++;
+		xstats.vmm_alloc_pages += vmm_page_count(size);
 
 		/*
 		 * There is no xmalloc() header for this block, hence we need to
@@ -3885,6 +3931,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 		p = vmm_alloc(nalloc);	/* More than we need */
 		method = "VMM";
+
 		xstats.aligned_via_vmm++;
 
 		/*
@@ -3918,7 +3965,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 			g_assert(ptr_cmp(q, p) > 0);
 
-			vmm_free(p, ptr_diff(q, p));		/* Beginning */
+			vmm_free(p, ptr_diff(q, p));				/* Beginning */
 			qend = ptr_add_offset(q, rsize);
 			if (qend != end) {
 				vmm_free(qend, ptr_diff(end, qend));	/* End */
@@ -3936,6 +3983,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		 */
 
 		xa_insert_set(p, rsize);
+		xstats.vmm_alloc_pages += vmm_page_count(rsize);
 		goto done;
 	}
 
@@ -3958,7 +4006,9 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 		xa_insert_set(p, rsize);
 		method = "plain VMM";
+
 		xstats.aligned_via_vmm++;
+		xstats.vmm_alloc_pages += vmm_page_count(rsize);
 		goto done;
 	} else if (size > alignment / 2 && size <= alignment) {
 		/*
@@ -4003,6 +4053,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 				p = vmm_alloc(vlen);
 				end = ptr_add_offset(p, vlen);
 				method = "freelist, then large VMM";
+				xstats.vmm_alloc_pages += vmm_page_count(vlen);
 
 				if (xmalloc_debugging(1)) {
 					t_debug(NULL, "XM added %lu bytes of VMM core at %p",
@@ -4012,6 +4063,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 				p = vmm_alloc(pagesize);
 				end = ptr_add_offset(p, pagesize);
 				method = "freelist, then plain VMM";
+				xstats.vmm_alloc_pages++;
 
 				if (xmalloc_debugging(1)) {
 					t_debug(NULL, "XM added %lu bytes of VMM core at %p",
