@@ -258,6 +258,8 @@ static struct {
 	guint64 zgc_runs;				/**< Allowed zgc() runs */
 	guint64 zgc_zone_scans;			/**< Calls to zgc_scan() */
 	guint64 zgc_scan_freed;			/**< Zones freed during zgc_scan() */
+	guint64 zgc_excess_zones_freed;	/**< Zones freed during zn_shrink() */
+	guint64 zgc_shrinked;			/**< Amount of zn_shrink() calls */
 } zstats;
 
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
@@ -876,6 +878,8 @@ zn_extend(zone_t *zone)
 static void
 zn_shrink(zone_t *zone)
 {
+	unsigned old_subzones;
+
 	g_assert(0 == zone->zn_cnt);		/* No blocks used */
 
 	if (zalloc_debugging(1)) {
@@ -886,13 +890,16 @@ zn_shrink(zone_t *zone)
 			(unsigned) zone->zn_arena.sz_size / 1024, zone->zn_hint);
 	}
 
+	old_subzones = zone->zn_subzones;
 	zn_free_additional_subzones(zone);
+	zstats.zgc_excess_zones_freed += old_subzones - zone->zn_subzones;
 	zone->zn_subzones = 1;				/* One subzone remains */
 	zone->zn_blocks = zone->zn_hint;
 	zone->zn_free = cast_to_void_ptr(zone->zn_arena.sz_base);
 	zone->zn_oversized = 0;
 
 	zn_cram(zone, zone->zn_arena.sz_base);	/* Recreate free list */
+	zstats.zgc_shrinked++;
 }
 #endif	/* !REMAP_ZALLOC */
 
@@ -2173,7 +2180,11 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 	 *
 	 * However, to account for demand variability, we wait for at least
 	 * ZN_OVERSIZE_THRESH times before flagging the zone as definitively
-	 * oversized and candidate for stricter free block management.
+	 * oversized and candidate for stricter free block management, when we
+	 * have less than "4 hints" blocks free.
+	 *
+	 * As soon as we have "4 hints" blocks free, we unconditionally trigger
+	 * garbage collection mode.
 	 */
 
 	if (
@@ -2181,7 +2192,11 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 		zone->zn_subzones > 1 &&
 		zone->zn_blocks - zone->zn_cnt >= (zone->zn_hint + zone->zn_hint / 2)
 	) {
-		if (++zone->zn_oversized >= ZN_OVERSIZE_THRESH || zalloc_always_gc) {
+		if (
+			++zone->zn_oversized >= ZN_OVERSIZE_THRESH ||
+			zalloc_always_gc ||
+			zone->zn_blocks - zone->zn_cnt >= (4 * zone->zn_hint)
+		) {
 			if (zalloc_debugging(4)) {
 				s_debug("ZGC %lu-byte zone %p %s: "
 					"%u blocks, %u used (hint=%u, %u subzones)",
@@ -2430,6 +2445,8 @@ zalloc_dump_stats_log(logagent_t *la)
 	DUMP(zgc_runs);
 	DUMP(zgc_zone_scans);
 	DUMP(zgc_scan_freed);
+	DUMP(zgc_excess_zones_freed);
+	DUMP(zgc_shrinked);
 
 #undef DUMP
 
