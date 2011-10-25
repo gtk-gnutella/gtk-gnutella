@@ -256,6 +256,8 @@ static struct {
 	guint64 zgc_last_zone_kept;		/**< First zone kept to avoid depletion */
 	guint64 zgc_throttled;			/**< Throttled zgc() runs */
 	guint64 zgc_runs;				/**< Allowed zgc() runs */
+	guint64 zgc_zone_scans;			/**< Calls to zgc_scan() */
+	guint64 zgc_scan_freed;			/**< Zones freed during zgc_scan() */
 } zstats;
 
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
@@ -1799,6 +1801,7 @@ zgc_scan(zone_t *zone)
 	}
 
 	i = zg->zg_free;
+	zstats.zgc_zone_scans++;
 
 	while (i < zg->zg_zones) {
 		struct subzinfo *szi = &zg->zg_subzinfo[i];
@@ -1828,8 +1831,10 @@ zgc_scan(zone_t *zone)
 		if (szi->szi_free_cnt != zone->zn_hint)
 			goto next;
 
-		if (zgc_subzone_free(zone, szi))
+		if (zgc_subzone_free(zone, szi)) {
+			zstats.zgc_scan_freed++;
 			continue;
+		}
 
 		must_continue = TRUE;		/* Did not free empty subzone */
 
@@ -2423,6 +2428,8 @@ zalloc_dump_stats_log(logagent_t *la)
 	DUMP(zgc_last_zone_kept);
 	DUMP(zgc_throttled);
 	DUMP(zgc_runs);
+	DUMP(zgc_zone_scans);
+	DUMP(zgc_scan_freed);
 
 #undef DUMP
 
