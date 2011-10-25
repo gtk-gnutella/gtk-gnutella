@@ -422,6 +422,9 @@ crash_get_hook(void)
 	else
 		file = NULL;
 
+	if (NULL == file)
+		return NULL;		/* Nothing to lookup against */
+
 	return cast_pointer_to_func(hash_table_lookup(vars->hooks, file));
 }
 
