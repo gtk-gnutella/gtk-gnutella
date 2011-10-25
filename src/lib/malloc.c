@@ -3290,7 +3290,7 @@ malloc_show_settings(void)
 }
 
 /**
- * @return amount of memory used by internal tracking structures.
+ * @return amount of VMM memory used by internal tracking structures.
  */
 G_GNUC_COLD size_t
 malloc_memory_used(void)
@@ -3299,15 +3299,15 @@ malloc_memory_used(void)
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 
 	if (reals != NULL)
-		res += hash_table_memory_size(reals);
+		res += hash_table_arena_memory(reals);
 	if (unknowns != NULL)
-		res += hash_table_memory_size(unknowns);
+		res += hash_table_arena_memory(unknowns);
 #endif
 #if defined(TRACK_MALLOC) || defined(MALLOC_SAFE_HEAD)
 	if (blocks != NULL)
-		res += hash_table_memory_size(blocks);
+		res += hash_table_arena_memory(blocks);
 	if (not_leaking != NULL)
-		res += hash_table_memory_size(not_leaking);
+		res += hash_table_arena_memory(not_leaking);
 #endif
 
 	return res;

@@ -308,9 +308,9 @@ hash_table_size(const hash_table_t *ht)
  * @return amount of memory used by the hash table arena.
  */
 size_t
-hash_table_memory_size(const hash_table_t *ht)
+hash_table_arena_memory(const hash_table_t *ht)
 {
-	return hash_bins_items_arena_size(ht, NULL);
+	return round_pagesize(hash_bins_items_arena_size(ht, NULL));
 }
 
 /**
@@ -684,6 +684,24 @@ hash_table_writable(hash_table_t *ht)
 
 		ht->readonly = booleanize(FALSE);
 		mprotect(ht->bins, round_pagesize(arena), PROT_READ | PROT_WRITE);
+	}
+}
+
+/**
+ * Get memory used by the hash table structures, not counting memory used
+ * to store the elements themselves but including the size of the arena
+ * and that of the hash table object.
+ *
+ * @return amount of memory used by the hash table.
+ */
+size_t
+hash_table_memory(const hash_table_t *ht)
+{
+	if (NULL == ht) {
+		return 0;
+	} else {
+		hash_table_check(ht);
+		return sizeof(*ht) + hash_table_arena_memory(ht);
 	}
 }
 

@@ -1004,7 +1004,7 @@ stacktrace_memory_used(void)
 
 	res = trace_array.size * sizeof trace_array.base[0];
 	if (stack_atoms != NULL) {
-		res += hash_table_memory_size(stack_atoms);
+		res += hash_table_arena_memory(stack_atoms);
 	}
 
 	return res;
