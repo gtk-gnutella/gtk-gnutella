@@ -3726,9 +3726,6 @@ xalign_free(const void *p)
 	const void *start;
 	struct xdesc_type *xt;
 
-	if G_UNLIKELY(xmalloc_no_freeing)
-		return FALSE;
-
 	/*
 	 * We do not only consider page-aligned pointers because we can allocate
 	 * aligned page sub-blocks.  However, they are all located within a page
@@ -3743,6 +3740,9 @@ xalign_free(const void *p)
 		xstats.aligned_free_false_positives++;
 		return FALSE;
 	}
+
+	if G_UNLIKELY(xmalloc_no_freeing)
+		return TRUE;
 
 	xt = aligned[idx].pdesc;
 	xstats.aligned_freed++;
