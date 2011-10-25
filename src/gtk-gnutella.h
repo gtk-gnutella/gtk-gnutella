@@ -72,6 +72,14 @@
 #define GTA_BUILD					"$Revision$"
 #endif
 
+/*
+ * GTA_BUILD_DATE comes from "revision.h" and supersedes GTA_RELEASE.
+ */
+#ifdef GTA_BUILD_DATE
+#undef GTA_RELEASE
+#define GTA_RELEASE GTA_BUILD_DATE
+#endif
+
 #endif	/* _gtk_gnutella_h_ */
 
 /* vi: set ts=4: */

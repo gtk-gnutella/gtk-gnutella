@@ -3,9 +3,9 @@
 #
 # $Id$
 #
-# Copyright (c) 2006, Raphael Manfredi
+# Copyright (c) 2006, 2011, Raphael Manfredi
 #
-# Computes SVN current revision number, if possible, emitting it in
+# Computes git current revision number, if possible, emitting it in
 # the form of a #define for C perusal.
 #
 #----------------------------------------------------------------------
@@ -43,6 +43,7 @@ fi
 
 . $TOP/scripts/git-version.sh >/dev/null
 revnum="$VRev"
+date="$DATE"
 
 if [ "x$revnum" = "x$oldrev" -a -f $FILE ]; then
 	exit 0
@@ -67,6 +68,13 @@ else
 #undef GTA_BUILD
 #define GTA_BUILD "$XRev: $revnum \$"
 EOF
+	if [ "x$DATE" != x ]; then
+		cat <<EOF
+
+#undef GTA_BUILD_DATE
+#define GTA_BUILD_DATE "$DATE"
+EOF
+	fi
 fi
 
 } > "$FILE"

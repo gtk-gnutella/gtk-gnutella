@@ -33,8 +33,6 @@
 
 #include "common.h"
 
-#include "gtk-gnutella.h"
-
 #include "qhit.h"
 #include "bsched.h"
 #include "dmesh.h"		/* For dmesh_fill_alternate() */
@@ -457,11 +455,10 @@ flush_match(void)
 	 */
 
 	{
-		guint8 major = GTA_VERSION;
-		guint8 minor = GTA_SUBVERSION;
-		const char *revp = GTA_REVCHAR;
-		guint8 revchar = (guint8) revp[0];
-		guint8 patch;
+		guint8 major = version_get_major();
+		guint8 minor = version_get_minor();
+		guint8 revchar = version_get_revchar();
+		guint8 patch = version_get_patchlevel();
 		guint32 release;
 		guint32 date = release_date;
 		guint32 build;
@@ -472,12 +469,6 @@ flush_match(void)
 		size_t commit_bytes;
 		const sha1_t *commit;
 		gboolean ok;
-
-#ifdef GTA_PATCHLEVEL
-		patch = GTA_PATCHLEVEL;
-#else
-		patch = 0;
-#endif
 
 		flags = GTKGV_F_GIT | GTKGV_F_OS;
 		if (version_is_dirty())
@@ -1038,7 +1029,7 @@ qhit_build_results(const GSList *files, int count, size_t max_msgsize,
 void
 qhit_init(void)
 {
-	release_date = date2time(GTA_RELEASE, tm_time());
+	release_date = date2time(version_get_date(), tm_time());
 }
 
 /**

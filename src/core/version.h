@@ -93,6 +93,11 @@ extern const char *version_short_string;
 
 const char *version_build_string(void);
 guint8 version_get_code(void) G_GNUC_PURE;
+const char *version_get_date(void) G_GNUC_CONST;
+guint8 version_get_major(void) G_GNUC_CONST;
+guint8 version_get_minor(void) G_GNUC_CONST;
+guint8 version_get_revchar(void) G_GNUC_CONST;
+guint8 version_get_patchlevel(void) G_GNUC_CONST;
 gboolean version_is_dirty(void) G_GNUC_PURE;
 const struct sha1 *version_get_commit(guint8 *len);
 

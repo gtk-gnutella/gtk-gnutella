@@ -33,6 +33,7 @@
 
 #include "common.h"
 
+#include "revision.h"
 #include "gtk-gnutella.h"
 
 #include "version.h"
@@ -83,6 +84,57 @@ guint8
 version_get_code(void)
 {
 	return version_code;
+}
+
+/**
+ * Get version date string, as an ISO string.
+ */
+const char *
+version_get_date(void)
+{
+	return GTA_RELEASE;
+}
+
+/**
+ * Get major version.
+ */
+guint8
+version_get_major(void)
+{
+	return GTA_VERSION;
+}
+
+/**
+ * Get minor version.
+ */
+guint8
+version_get_minor(void)
+{
+	return GTA_SUBVERSION;
+}
+
+/**
+ * Get revision character.
+ */
+guint8
+version_get_revchar(void)
+{
+	static const char *revp = GTA_REVCHAR;
+
+	return (guint8) revp[0];
+}
+
+/**
+ * Get revision patchlevel.
+ */
+guint8
+version_get_patchlevel(void)
+{
+#ifdef GTA_PATCHLEVEL
+	return GTA_PATCHLEVEL;
+#else
+	return 0;
+#endif
 }
 
 /**

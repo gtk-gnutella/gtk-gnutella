@@ -23,6 +23,7 @@
 
 #include "common.h"
 
+#include "revision.h"
 #include "gtk-gnutella.h"
 
 #include "ascii.h"

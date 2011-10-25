@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# Can be sourced to set two variables:
+#
+# Vrev, the git version number.
+# DATE, the ISO date of the HEAD commit.
+#
+# Otherwise, when executed it prints the full version number.
+
 DIR=scripts
 
 if test -d $DIR; then TOP=.;
@@ -43,6 +50,7 @@ if test -d $TOP/.git && git describe >/dev/null 2>&1 &&
 	esac
 then
 	VN="$VN"
+	DATE=`git show --format="%ai" HEAD 2>/dev/null | head -1 | cut -f1 -d ' '`
 else
 	VN="$DEF_VER"
 fi
