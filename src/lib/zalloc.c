@@ -2361,7 +2361,7 @@ G_GNUC_COLD  void
 zalloc_dump_zones_log(logagent_t *la)
 {
 	struct zonesize_filler filler;
-	size_t zcount, i;
+	size_t zcount, i, zpages;
 	guint64 bytes, blocks, wasted, subzones, overhead;
 
 	if (NULL == zt)
@@ -2378,6 +2378,7 @@ zalloc_dump_zones_log(logagent_t *la)
 
 	qsort(filler.array, filler.count, sizeof filler.array[0], zonesize_cmp);
 
+	zpages = 0;
 	bytes = blocks = wasted = subzones = overhead = 0;
 
 	for (i = 0; i < filler.count; i++) {
@@ -2393,6 +2394,7 @@ zalloc_dump_zones_log(logagent_t *la)
 		remain = zone->zn_arena.sz_size % zone->zn_size;
 		wasted += size_saturate_mult(zone->zn_subzones, remain);
 		subzones += zone->zn_subzones;
+		zpages += vmm_page_count(zone->zn_arena.sz_size) * zone->zn_subzones;
 
 		over = sizeof(*zone) + (zone->zn_subzones - 1) * sizeof(zone->zn_arena);
 		if (zone->zn_gc != NULL) {
@@ -2417,9 +2419,11 @@ zalloc_dump_zones_log(logagent_t *la)
 		uint64_to_string(bytes), short_size(bytes, FALSE),
 		(unsigned long) blocks, 1 == blocks ? "" : "s");
 
-	log_info(la, "ZALLOC zones wasting %s bytes (%s) among %lu subzone%s",
+	log_info(la, "ZALLOC zones wasting %s bytes (%s) among %lu subzone%s "
+		"(%lu page%s)",
 		uint64_to_string(wasted), short_size(wasted, FALSE),
-		(unsigned long) subzones, 1 == subzones ? "" : "s");
+		(unsigned long) subzones, 1 == subzones ? "" : "s",
+		(unsigned long) zpages, 1 == zpages ? "" : "s");
 
 	log_info(la, "ZALLOC zones structural overhead totals %s bytes (%s)",
 		uint64_to_string(overhead), short_size(overhead, FALSE));
