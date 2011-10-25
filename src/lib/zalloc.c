@@ -252,7 +252,11 @@ static struct {
 	guint64 zmove_successful_gc;	/**< Subset of successful moves */
 	guint64 zgc_zones_freed;		/**< Total amount of zones freed by GC */
 	guint64 zgc_zones_defragmented;	/**< Total amount of zones defragmented */
+	guint64 zgc_fragments_freed;	/**< Total fragment zones freed */
 	guint64 zgc_free_quota_reached;	/**< Subzone freeing quota reached */
+	guint64 zgc_last_zone_kept;		/**< First zone kept to avoid depletion */
+	guint64 zgc_throttled;			/**< Throttled zgc() runs */
+	guint64 zgc_runs;				/**< Allowed zgc() runs */
 } zstats;
 
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
@@ -1433,6 +1437,7 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 	if G_UNLIKELY(1 == zone->zn_subzones) {
 		g_assert(zone->zn_blocks == zone->zn_hint);
 		zgc_subzone_defragment(zone, szi);
+		zstats.zgc_last_zone_kept++;
 		return FALSE;
 	}
 
@@ -1453,6 +1458,7 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 				zone->zn_hint, compact_time(life));
 		}
 
+		zstats.zgc_fragments_freed++;
 		goto release_zone;
 	}
 
@@ -2246,9 +2252,12 @@ zgc(gboolean overloaded)
 	 */
 
 	now = tm_time();
-	if (last_run == now)
+	if (last_run == now) {
+		zstats.zgc_throttled++;
 		return;
+	}
 	last_run = now;
+	zstats.zgc_runs++;
 
 	if (zalloc_debugging(2))
 		tm_now_exact(&start);
@@ -2392,6 +2401,9 @@ zalloc_dump_zones_log(logagent_t *la)
 G_GNUC_COLD void
 zalloc_dump_stats_log(logagent_t *la)
 {
+	log_info(la, "ZALLOC zone_count = %s",
+		size_t_to_string(NULL == zt ? 0 : hash_table_size(zt)));
+
 #define DUMP(x) log_info(la, "ZALLOC %s = %s", #x, uint64_to_string(zstats.x))
 
 	DUMP(allocations);
@@ -2407,9 +2419,15 @@ zalloc_dump_stats_log(logagent_t *la)
 	DUMP(zmove_successful_gc);
 	DUMP(zgc_zones_freed);
 	DUMP(zgc_zones_defragmented);
+	DUMP(zgc_fragments_freed);
 	DUMP(zgc_free_quota_reached);
+	DUMP(zgc_last_zone_kept);
+	DUMP(zgc_throttled);
+	DUMP(zgc_runs);
 
 #undef DUMP
+
+	log_info(la, "ZALLOC zgc_zone_count = %u", zgc_zone_cnt);
 }
 
 /**
