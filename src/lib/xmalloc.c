@@ -1970,7 +1970,7 @@ xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
 }
 
 /**
- * Add memory chunk to free list.
+ * Add memory chunk to free list, possibly releasing core.
  */
 static void
 xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
@@ -2053,9 +2053,13 @@ xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
 					t_debug(NULL, "XM freeing head of %p at %p (%lu bytes)",
 						p, head, (unsigned long) head_len);
 				}
-				xmalloc_freelist_add(head, head_len,
-					(coalesce & XM_COALESCE_BEFORE) ?
-						XM_COALESCE_NONE : XM_COALESCE_BEFORE);
+				if (coalesce & XM_COALESCE_BEFORE) {
+					/* Already coalesced */
+					xmalloc_freelist_insert(head, head_len, XM_COALESCE_NONE);
+				} else {
+					/* Maybe there is enough before to free core again? */
+					xmalloc_freelist_add(head, head_len, XM_COALESCE_BEFORE);
+				}
 			}
 			if (tail_len != 0) {
 				g_assert(
@@ -2064,9 +2068,13 @@ xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
 					t_debug(NULL, "XM freeing tail of %p at %p (%lu bytes)",
 						p, tail, (unsigned long) tail_len);
 				}
-				xmalloc_freelist_add(tail, tail_len,
-					(coalesce & XM_COALESCE_AFTER) ?
-						XM_COALESCE_NONE : XM_COALESCE_AFTER);
+				if (coalesce & XM_COALESCE_AFTER) {
+					/* Already coalesced */
+					xmalloc_freelist_insert(tail, tail_len, XM_COALESCE_NONE);
+				} else {
+					/* Maybe there is enough after to free core again? */
+					xmalloc_freelist_add(head, head_len, XM_COALESCE_AFTER);
+				}
 			}
 			return;
 		}
@@ -2711,7 +2719,7 @@ xrealloc(void *p, size_t size)
 					(unsigned long) newlen, end);
 			}
 
-			xmalloc_freelist_insert(end, extra, XM_COALESCE_AFTER);
+			xmalloc_freelist_add(end, extra, XM_COALESCE_AFTER);
 			xstats.realloc_inplace_shrinking++;
 			goto inplace;
 		}
@@ -2824,7 +2832,7 @@ xrealloc(void *p, size_t size)
 
 				g_assert(split_len <= XMALLOC_MAXSIZE);
 
-				xmalloc_freelist_insert(split, split_len, XM_COALESCE_AFTER);
+				xmalloc_freelist_add(split, split_len, XM_COALESCE_AFTER);
 			} else {
 				/* Actual size ends up being larger than requested */
 				newlen = ptr_diff(end, xh);
@@ -2928,7 +2936,7 @@ xrealloc(void *p, size_t size)
 
 				g_assert(split_len <= XMALLOC_MAXSIZE);
 
-				xmalloc_freelist_insert(split, split_len, XM_COALESCE_AFTER);
+				xmalloc_freelist_add(split, split_len, XM_COALESCE_AFTER);
 			} else {
 				/* Actual size ends up being larger than requested */
 				newlen = ptr_diff(end, xh);
