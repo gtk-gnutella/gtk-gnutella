@@ -2362,7 +2362,7 @@ zalloc_dump_zones_log(logagent_t *la)
 {
 	struct zonesize_filler filler;
 	size_t zcount, i;
-	guint64 bytes, blocks, wasted, subzones;
+	guint64 bytes, blocks, wasted, subzones, overhead;
 
 	if (NULL == zt)
 		return;
@@ -2378,11 +2378,11 @@ zalloc_dump_zones_log(logagent_t *la)
 
 	qsort(filler.array, filler.count, sizeof filler.array[0], zonesize_cmp);
 
-	bytes = blocks = wasted = subzones = 0;
+	bytes = blocks = wasted = subzones = overhead = 0;
 
 	for (i = 0; i < filler.count; i++) {
 		zone_t *zone = filler.array[i].zone;
-		unsigned bcnt;
+		unsigned bcnt, over;
 		size_t remain;
 
 		bcnt = zone->zn_blocks - zone->zn_cnt;
@@ -2394,14 +2394,24 @@ zalloc_dump_zones_log(logagent_t *la)
 		wasted += size_saturate_mult(zone->zn_subzones, remain);
 		subzones += zone->zn_subzones;
 
+		over = sizeof(*zone) + (zone->zn_subzones - 1) * sizeof(zone->zn_arena);
+		if (zone->zn_gc != NULL) {
+			struct zone_gc *zg = zone->zn_gc;
+			over += sizeof(*zg);
+			over += zg->zg_zones * sizeof(zg->zg_subzinfo[0]);
+		}
+		overhead += over;
+
 		log_info(la, "ZALLOC zone(%lu bytes): "
-			"blocks=%lu, free=%u, %u %luK-subzone%s, %s mode",
+			"blocks=%lu, free=%u, %u %luK-subzone%s, over=%u, %s mode",
 			(unsigned long) zone->zn_size, (unsigned long) zone->zn_blocks,
 			bcnt, zone->zn_subzones,
 			(unsigned long) zone->zn_arena.sz_size / 1024,
-			1 == zone->zn_subzones ? "" : "s",
+			1 == zone->zn_subzones ? "" : "s", over,
 			zone->zn_gc != NULL ? "GC" : "normal");
 	}
+
+	overhead += hash_table_memory(zt);
 
 	log_info(la, "ZALLOC zones have %s bytes (%s) free among %lu block%s",
 		uint64_to_string(bytes), short_size(bytes, FALSE),
@@ -2410,6 +2420,9 @@ zalloc_dump_zones_log(logagent_t *la)
 	log_info(la, "ZALLOC zones wasting %s bytes (%s) among %lu subzone%s",
 		uint64_to_string(wasted), short_size(wasted, FALSE),
 		(unsigned long) subzones, 1 == subzones ? "" : "s");
+
+	log_info(la, "ZALLOC zones structural overhead totals %s bytes (%s)",
+		uint64_to_string(overhead), short_size(overhead, FALSE));
 
 	xfree(filler.array);
 }
