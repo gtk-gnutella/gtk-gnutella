@@ -2309,7 +2309,13 @@ xallocate(size_t size, gboolean can_walloc)
 		if (can_walloc) {
 			size_t wlen = xmalloc_round(size + XHEADER_SIZE);
 
-			if (wlen <= WALLOC_MAX) {
+			/*
+			 * As soon as ``xmalloc_no_wfree'' is set, it means we're deep in
+			 * shutdown time with wdestroy() being called.  Therefore, we can
+			 * no longer allow any walloc().
+			 */
+
+			if (wlen <= WALLOC_MAX && !xmalloc_no_wfree) {
 				p = walloc(wlen);
 				xstats.alloc_via_walloc++;
 				return xmalloc_wsetup(p, wlen);
