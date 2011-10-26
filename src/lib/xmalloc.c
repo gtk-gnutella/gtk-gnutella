@@ -2369,7 +2369,7 @@ xallocate(size_t size, gboolean can_walloc)
 					(unsigned long) pagesize, p);
 			}
 
-			if (pagesize - len >= XMALLOC_SPLIT_MIN) {
+			if (xmalloc_should_split(pagesize, len)) {
 				void *split = ptr_add_offset(p, len);
 				xmalloc_freelist_insert(split,
 					pagesize - len, XM_COALESCE_AFTER);
