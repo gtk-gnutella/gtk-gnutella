@@ -241,6 +241,7 @@ static struct {
 	guint64 allocations;				/**< Total # of allocations */
 	guint64 allocations_zeroed;			/**< Total # of zeroing allocations */
 	guint64 allocations_aligned;		/**< Total # of aligned allocations */
+	guint64 allocations_plain;			/**< Total # of xpmalloc() calls */
 	guint64 alloc_via_freelist;			/**< Allocations from freelist */
 	guint64 alloc_via_walloc;			/**< Allocations from walloc() */
 	guint64 alloc_via_vmm;				/**< Allocations from VMM */
@@ -2429,6 +2430,7 @@ xmalloc(size_t size)
 void *
 xpmalloc(size_t size)
 {
+	xstats.allocations_plain++;
 	return xallocate(size, FALSE);
 }
 
@@ -3147,6 +3149,7 @@ xmalloc_dump_stats_log(logagent_t *la)
 	DUMP(allocations);
 	DUMP(allocations_zeroed);
 	DUMP(allocations_aligned);
+	DUMP(allocations_plain);
 	DUMP(alloc_via_freelist);
 	DUMP(alloc_via_walloc);
 	DUMP(alloc_via_vmm);
