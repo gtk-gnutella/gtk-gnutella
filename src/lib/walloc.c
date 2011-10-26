@@ -401,9 +401,8 @@ walloc_init(void)
 {
 	/*
 	 * We know that halloc() will redirect to walloc() if the size of the
-	 * block is slightly smaller than the system's page size.  If the maximum
-	 * size of blocks we can handle via walloc() is equal to the page size
-	 * or larger, then it is safe to halloc() the larger blocks.
+	 * block is slightly smaller than the halloc_threshold computed below.
+	 * It is safe to call halloc() on blocks larger than this threshold.
 	 */
 
 	halloc_threshold = MAX(WALLOC_MAX, compat_pagesize());

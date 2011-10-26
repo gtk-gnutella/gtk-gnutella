@@ -41,7 +41,7 @@
  * Maximum size for a walloc().  Anything larger is allocated by using
  * either halloc() or xpmalloc().
  */
-#define WALLOC_MAX_SHIFT	12	/* 2^12 = 4096 bytes */
+#define WALLOC_MAX_SHIFT	13	/* 2^13 = 8192 bytes */
 #define WALLOC_MAX			(1 << WALLOC_MAX_SHIFT)
 
 /*
