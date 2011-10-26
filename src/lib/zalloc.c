@@ -233,6 +233,7 @@ static void *z_leakset;
 
 #define DEFAULT_HINT		8		/**< Default amount of blocks in a zone */
 #define MAX_ZONE_SIZE		32768	/**< Maximum zone size */
+#define WALLOC_GC_THRESH	4096	/**< Blocksize limit for always-GC mode */
 
 /**
  * Internal statistics collected.
@@ -291,6 +292,15 @@ static void zgc_zfree(zone_t *, void *);
 static void zgc_allocate(zone_t *zone);
 static void zgc_dispose(zone_t *);
 static void *zgc_zmove(zone_t *, void *);
+
+/**
+ * Should we always put the zone in GC mode?
+ */
+static inline ALWAYS_INLINE gboolean
+zgc_always(const zone_t *zone)
+{
+	return zalloc_always_gc || zone->zn_size >= WALLOC_GC_THRESH;
+}
 
 /**
  * Return block, with possible start address adjustment due to tracking and
@@ -921,7 +931,7 @@ zcreate(size_t size, unsigned hint)
 	zn_create(zone, size, hint);
 
 #ifndef REMAP_ZALLOC
-	if (zalloc_always_gc)
+	if (zgc_always(zone))
 		zgc_allocate(zone);
 #endif
 
@@ -1990,7 +2000,7 @@ zgc_zalloc(zone_t *zone)
 
 	g_assert(zone->zn_blocks == zone->zn_cnt);
 
-	if (zalloc_always_gc) {
+	if (zgc_always(zone)) {
 		blk = zgc_extend(zone);
 	} else {
 		zgc_dispose(zone);
@@ -2194,14 +2204,14 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 	) {
 		if (
 			++zone->zn_oversized >= ZN_OVERSIZE_THRESH ||
-			zalloc_always_gc ||
+			zgc_always(zone) ||
 			zone->zn_blocks - zone->zn_cnt >= (4 * zone->zn_hint)
 		) {
 			if (zalloc_debugging(4)) {
 				s_debug("ZGC %lu-byte zone %p %s: "
 					"%u blocks, %u used (hint=%u, %u subzones)",
 					(unsigned long) zone->zn_size, (void *) zone,
-					zalloc_always_gc ? "forced in GC mode" : "oversized",
+					zgc_always(zone) ? "forced in GC mode" : "oversized",
 					zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
 					zone->zn_subzones);
 			}
@@ -2215,7 +2225,7 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 				zn_shrink(zone);
 			} else {
 				zgc_allocate(zone);
-				if (1 == zone->zn_subzones && !zalloc_always_gc)
+				if (1 == zone->zn_subzones && !zgc_always(zone))
 					zgc_dispose(zone);
 			}
 
@@ -2228,7 +2238,7 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 					zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s");
 			}
 		}
-	} else if (zalloc_always_gc) {
+	} else if (zgc_always(zone)) {
 		if (NULL == zone->zn_gc) {
 			if (zalloc_debugging(4)) {
 				s_debug("ZGC %lu-byte zone %p forced in GC mode: "
