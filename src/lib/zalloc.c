@@ -56,6 +56,23 @@
 
 #include "common.h"
 
+/*
+ * Debugging options.
+ */
+
+/**
+ * Turning ZALLOC_SAFETY_ASSERT triggers safety assertions at zalloc() and
+ * zfree() time that make sure the block being handled belongs to the zone
+ * in which it is tracked.
+ *
+ * This is much more costly that turning on ZONE_SAFE, but it does not cause
+ * any additional overhead on the blocks being allocated.  The runtime penalty
+ * comes from zbelongs().
+ */
+#if 0
+#define ZALLOC_SAFETY_ASSERT	/**< Enables costly assertions */
+#endif
+
 #include "zalloc.h"
 #include "hashtable.h"
 #include "log.h"			/* For statistics logging */
@@ -73,6 +90,12 @@
 #define equiv(p,q)		(!(p) == !(q))
 
 #define zalloc_debugging(lvl)	G_UNLIKELY(zalloc_debug > (lvl))
+
+#ifdef ZALLOC_SAFETY_ASSERT
+#define safety_assert(x)		g_assert(x)
+#else
+#define safety_assert(x)
+#endif
 
 /**
  * Extra allocated zones.
@@ -116,6 +139,13 @@ struct zone_gc {
  */
 #define ZGC_SCAN_ALL	(1 << 0)	/**< Scan all subzones at next run */
 
+#ifdef ZALLOC_SAFETY_ASSERT
+typedef struct zrange {
+	const char *start;				/**< Arena start */
+	const char *end;				/**< First byte beyond */
+} zrange_t;
+#endif	/* ZALLOC_SAFETY_ASSERT */
+
 /**
  * @struct zone
  *
@@ -124,11 +154,13 @@ struct zone_gc {
  * Subzone structures are used to linked together several allocation arenas
  * that are used to allocate objects for the zone.
  */
-
 struct zone {				/* Zone descriptor */
     struct subzone zn_arena;
 	struct zone_gc *zn_gc;	/**< Optional: garbage collecting information */
 	char **zn_free;			/**< Pointer to first free block */
+#ifdef ZALLOC_SAFETY_ASSERT
+	zrange_t *zn_rang;		/**< Sorted array of subzone ranges */
+#endif
 	size_t zn_size;			/**< Size of blocks in zone */
 	unsigned zn_refcnt;		/**< How many references to that zone? */
 	unsigned zn_hint;		/**< Hint size, for next zone extension */
@@ -293,6 +325,120 @@ static void zgc_allocate(zone_t *zone);
 static void zgc_dispose(zone_t *);
 static void *zgc_zmove(zone_t *, void *);
 
+#ifdef ZALLOC_SAFETY_ASSERT
+/**
+ * Compare two ranges.
+ */
+static int
+zrange_cmp(const void *a, const void *b)
+{
+	const zrange_t *ra = a, *rb = b;
+
+	return ptr_cmp(ra->start, rb->start);
+}
+
+/**
+ * Is key falling into range?
+ */
+static int
+zrange_falls_in(const zrange_t *ra, const void *key)
+{
+	if (ptr_cmp(key, ra->start) >= 0 && ptr_cmp(key, ra->end) < 0)
+		return 0;
+
+	return ptr_cmp(ra->start, key);
+}
+
+/**
+ * Initialize the sorted range array to speed up zbelongs().
+ */
+static void
+zrange_init(zone_t *zn)
+{
+	const struct subzone *sz;
+	unsigned i = 0;
+
+	g_assert(NULL == zn->zn_rang);
+
+	zn->zn_rang = xpmalloc(zn->zn_subzones * sizeof zn->zn_rang[0]);
+
+	for (sz = &zn->zn_arena; sz; sz = sz->sz_next) {
+		g_assert(i < zn->zn_subzones);
+		zn->zn_rang[i].start = sz->sz_base;
+		zn->zn_rang[i++].end = ptr_add_offset(sz->sz_base, sz->sz_size);
+	}
+
+	g_assert(i == zn->zn_subzones);
+
+	qsort(zn->zn_rang, zn->zn_subzones, sizeof zn->zn_rang[0], zrange_cmp);
+}
+
+/**
+ * Validates the block address within a zone, to make sure it lies at an
+ * exact multiple of the zone's block size within its subzone..
+ */
+static gboolean
+zvalid(const zone_t *zone, const zrange_t *range, const void *blk)
+{
+	size_t boff = ptr_diff(blk, range->start);
+
+	g_assert_log(0 == boff % zone->zn_size,
+		"%lu-byte zone: %luK subzone %p, block %p, offset %lu (off by %lu)",
+		(unsigned long) zone->zn_size,
+		(unsigned long) zone->zn_arena.sz_size / 1024, range->start, blk,
+		(unsigned long) boff, (unsigned long) boff % zone->zn_size);
+
+	return TRUE;
+}
+
+/**
+ * Check that block address falls within the set of addresses belonging to
+ * the zone.
+ *
+ * @param zone		the zone to which block should belong
+ * @param blk		block address
+ *
+ * @return TRUE if address belongs to the zone
+ *
+ * @attention due to the naive alogorithm used here, the runtime penalty is
+ * astonishing.  Almost 60% of the CPU time ends up being spent there!
+ */
+static G_GNUC_HOT gboolean
+zbelongs(const zone_t *zone, const void *blk)
+{
+	if G_UNLIKELY(NULL == zone->zn_rang)
+		zrange_init(deconstify_gpointer(zone));
+
+#define GET_ITEM(i)	(&zone->zn_rang[i])
+#define FOUND(i)	return zvalid(zone, &zone->zn_rang[i], blk)
+
+	BINARY_SEARCH(const zrange_t *, blk, zone->zn_subzones,
+		zrange_falls_in, GET_ITEM, FOUND);
+
+	return FALSE;
+}
+
+/**
+ * Clear sorted range array each time there is a subzone update.
+ *
+ * Each time a subzone is added or removed from the zone, this routine
+ * must be called to clear the obsoleted sorted array.
+ */
+static void
+zrange_clear(const zone_t *zone)
+{
+	if (zone->zn_rang != NULL) {
+		zone_t *zw = deconstify_gpointer(zone);
+		xfree(zw->zn_rang);
+		zw->zn_rang = NULL;
+	}
+}
+#else	/* !ZALLOC_SAFETY_ASSERT */
+
+#define zrange_clear(z)
+
+#endif	/* ZALLOC_SAFETY_ASSERT */
+
 /**
  * Should we always put the zone in GC mode?
  */
@@ -361,6 +507,8 @@ zalloc(zone_t *zone)
 	if G_LIKELY(blk != NULL) {
 		zone->zn_free = (char **) *blk;
 		zone->zn_cnt++;
+		safety_assert(zone->zn_free != NULL || zone->zn_blocks == zone->zn_cnt);
+		safety_assert(NULL == zone->zn_free || zbelongs(zone, zone->zn_free));
 		return zprepare(zone, blk);
 	}
 
@@ -389,6 +537,7 @@ zalloc(zone_t *zone)
 	blk = zn_extend(zone);
 	zone->zn_free = (char **) *blk;
 	zone->zn_cnt++;
+	safety_assert(NULL == zone->zn_free || zbelongs(zone, zone->zn_free));
 
 	return zprepare(zone, blk);
 }
@@ -585,6 +734,7 @@ zfree(zone_t *zone, void *ptr)
 	char **head;
 	g_assert(ptr);
 	g_assert(zone);
+	safety_assert(zbelongs(zone, ptr));
 
 	zstats.freeings++;
 
@@ -626,10 +776,13 @@ zfree(zone_t *zone, void *ptr)
 	g_assert(uint_is_positive(zone->zn_cnt)); 	/* Has something to free! */
 
 	head = zone->zn_free;
+	safety_assert(NULL == zone->zn_free || zbelongs(zone, zone->zn_free));
 
 	if G_UNLIKELY(NULL == head && NULL != zone->zn_gc) {
 		zgc_zfree(zone, ptr);
 	} else {
+		safety_assert(head != NULL || zone->zn_blocks == zone->zn_cnt);
+
 		*(char **) ptr = (char *) head;			/* Will precede old head */
 		zone->zn_free = ptr;					/* New free list head */
 		zone->zn_cnt--;							/* To make zone gc easier */
@@ -710,6 +863,7 @@ zn_free_additional_subzones(zone_t *zone)
 	}
 
 	zone->zn_arena.sz_next = NULL;
+	zrange_clear(zone);
 }
 
 /**
@@ -826,6 +980,8 @@ zn_create(zone_t *zone, size_t size, unsigned hint)
 	g_assert(size > 0);
 	g_assert(uint_is_non_negative(hint));
 
+	ZERO(zone);
+
 	/*
 	 * Allocate the arena.
 	 */
@@ -847,6 +1003,7 @@ zn_create(zone_t *zone, size_t size, unsigned hint)
 	zone->zn_gc = NULL;
 
 	zn_cram(zone, zone->zn_arena.sz_base);
+	safety_assert(zbelongs(zone, zone->zn_free));
 
 	return zone;
 }
@@ -865,6 +1022,7 @@ zn_extend(zone_t *zone)
 
 	sz = xpmalloc(sizeof *sz);			/* Plain malloc */
 	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
+	zrange_clear(zone);
 
 	if (NULL == sz->sz_base)
 		s_error("cannot extend %lu-byte zone", (unsigned long) zone->zn_size);
@@ -877,6 +1035,7 @@ zn_extend(zone_t *zone)
 	zone->zn_blocks += zone->zn_hint;
 
 	zn_cram(zone, sz->sz_base);
+	safety_assert(zbelongs(zone, zone->zn_free));
 
 	return zone->zn_free;
 }
@@ -909,6 +1068,8 @@ zn_shrink(zone_t *zone)
 	zone->zn_oversized = 0;
 
 	zn_cram(zone, zone->zn_arena.sz_base);	/* Recreate free list */
+	safety_assert(zbelongs(zone, zone->zn_free));
+
 	zstats.zgc_shrinked++;
 }
 #endif	/* !REMAP_ZALLOC */
@@ -1369,6 +1530,7 @@ static void *
 zgc_subzone_new_arena(const zone_t *zone, struct subzone *sz)
 {
 	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
+	zrange_clear(zone);
 
 	if G_UNLIKELY(NULL == sz->sz_base) {
 		s_error("cannot recreate %lu-byte zone arena",
@@ -1415,6 +1577,7 @@ zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 	 */
 
 	subzone_free_arena(sz);
+	zrange_clear(zone);
 	zg->zg_zone_defragmented++;
 	zstats.zgc_zones_defragmented++;
 	zgc_remove_subzone(zone, szi);
@@ -1544,6 +1707,7 @@ release_zone:
 		}
 
 		subzone_free_arena(&zone->zn_arena);
+		zrange_clear(zone);
 		zone->zn_arena = *sz;	/* Struct copy */
 		{
 			size_t i;
@@ -1579,6 +1743,7 @@ release_zone:
 						free_blocks, 1 == free_blocks ? "" : "s");
 				}
 				subzone_free_arena(sz);
+				zrange_clear(zone);
 				xfree(sz);
 				prev->sz_next = next;
 				goto found;
