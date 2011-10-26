@@ -254,6 +254,7 @@ static struct {
 	guint64 sbrk_alloc_bytes;			/**< Bytes allocated from sbrk() */
 	guint64 sbrk_freed_bytes;			/**< Bytes released via sbrk() */
 	guint64 vmm_alloc_pages;			/**< Pages allocated via VMM */
+	guint64 vmm_split_pages;			/**< VMM pages that were split */
 	guint64 vmm_freed_pages;			/**< Pages released via VMM */
 	guint64 aligned_via_freelist;		/**< Aligned memory from freelist */
 	guint64 aligned_via_freelist_then_vmm;	/**< Aligned memory from VMM */
@@ -2375,6 +2376,7 @@ xallocate(size_t size, gboolean can_walloc)
 				void *split = ptr_add_offset(p, len);
 				xmalloc_freelist_insert(split,
 					pagesize - len, XM_COALESCE_AFTER);
+				xstats.vmm_split_pages++;
 				return xmalloc_block_setup(p, len);
 			} else {
 				return xmalloc_block_setup(p, pagesize);
@@ -3158,6 +3160,7 @@ xmalloc_dump_stats_log(logagent_t *la)
 	DUMP(sbrk_alloc_bytes);
 	DUMP(sbrk_freed_bytes);
 	DUMP(vmm_alloc_pages);
+	DUMP(vmm_split_pages);
 	DUMP(vmm_freed_pages);
 	DUMP(aligned_via_freelist);
 	DUMP(aligned_via_freelist_then_vmm);
