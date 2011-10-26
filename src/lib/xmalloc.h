@@ -58,6 +58,7 @@ void *xmalloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xpmalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xcalloc(size_t nmemb, size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xrealloc(void *ptr, size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *xprealloc(void *ptr, size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void xfree(void *ptr);
 
 #endif /* _xmalloc_h_ */

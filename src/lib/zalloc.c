@@ -1288,7 +1288,7 @@ zgc_insert_subzone(const zone_t *zone, struct subzone *sz, char **blk)
 	 */
 
 	zg->zg_zones++;
-	array = xrealloc(zg->zg_subzinfo,
+	array = xprealloc(zg->zg_subzinfo,
 		zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
 
 	zg->zg_subzinfo = array;

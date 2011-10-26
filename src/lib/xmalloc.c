@@ -278,7 +278,8 @@ static struct {
 	guint64 realloc_relocate_smart_success;		/**< Smart placement was OK */
 	guint64 realloc_regular_strategy;		/**< Regular resizing strategy */
 	guint64 realloc_wrealloc;				/**< Used wrealloc() */
-	guint64 realloc_walloc_convert;			/**< Converted from walloc() */
+	guint64 realloc_converted_from_walloc;	/**< Converted from walloc() */
+	guint64 realloc_promoted_to_walloc;		/**< Promoted to walloc() */
 	guint64 freelist_insertions;			/**< Insertions in freelist */
 	guint64 freelist_insertions_no_coalescing;	/**< Coalescing forbidden */
 	guint64 freelist_further_breakups;		/**< Breakups due to extra size */
@@ -2544,6 +2545,10 @@ xfree(void *p)
 /**
  * Reallocate a block allocated via xmalloc().
  *
+ * @param p				original user pointer
+ * @param size			new user-size
+ * @param can_walloc	whether plain block can be reallocated with walloc()
+ *
  * @return
  * If a NULL pointer is given, act as if xmalloc() had been called and
  * return a new pointer.
@@ -2551,15 +2556,15 @@ xfree(void *p)
  * Otherwise return a pointer to the reallocated block, which may be different
  * than the original pointer.
  */
-void *
-xrealloc(void *p, size_t size)
+static void *
+xreallocate(void *p, size_t size, gboolean can_walloc)
 {
 	struct xheader *xh = ptr_add_offset(p, -XHEADER_SIZE);
 	size_t newlen;
 	void *np;
 
 	if (NULL == p)
-		return xmalloc(size);
+		return can_walloc ? xmalloc(size) : xpmalloc(size);
 
 	if (0 == size) {
 		xfree(p);
@@ -2985,21 +2990,35 @@ skip_coalescing:
 
 	/*
 	 * Regular case: allocate a new block, move data around, free old block.
-	 *
-	 * If the old block was smaller than the WALLOC_MAX limit, use a plain
-	 * malloc to allocate a new block since obbviously a plain malloc was
-	 * used to allocate the old block.
 	 */
 
-	np = xh->length <= WALLOC_MAX ? xpmalloc(size) : xmalloc(size);
-	xstats.realloc_regular_strategy++;
+	{
+		struct xheader *nxh;
+		gboolean converted;
 
-	if (xmalloc_debugging(1)) {
-		t_debug(NULL, "XM realloc used regular strategy: "
-			"%lu-byte block at %p moved to %lu-byte block at %p",
-			(unsigned long) xh->length, (void *) xh,
-			(unsigned long) (size + XHEADER_SIZE),
-			ptr_add_offset(np, -XHEADER_SIZE));
+		np = can_walloc ? xmalloc(size) : xpmalloc(size);
+		xstats.realloc_regular_strategy++;
+
+		/*
+		 * See whether plain block was converted to a walloc()ed one.
+		 */
+
+		nxh = ptr_add_offset(np, -XHEADER_SIZE);
+		converted = xmalloc_is_walloc(nxh->length);
+
+		if (converted) {
+			g_assert(can_walloc);
+			xstats.realloc_promoted_to_walloc++;
+		}
+
+		if (xmalloc_debugging(1)) {
+			t_debug(NULL, "XM realloc used regular strategy: "
+				"%lu-byte block at %p %s %lu-byte block at %p",
+				(unsigned long) xh->length, (void *) xh,
+				converted ? "converted to walloc()ed" : "moved to",
+				(unsigned long) (size + XHEADER_SIZE),
+				ptr_add_offset(np, -XHEADER_SIZE));
+		}
 	}
 
 	/* FALL THROUGH */
@@ -3047,7 +3066,7 @@ realloc_from_walloc:
 		 */
 
 		np = xmalloc(size);
-		xstats.realloc_walloc_convert++;
+		xstats.realloc_converted_from_walloc++;
 
 		if (xmalloc_debugging(1)) {
 			t_debug(NULL, "XM realloc converted from walloc(): "
@@ -3062,10 +3081,49 @@ realloc_from_walloc:
 		g_assert(size_is_non_negative(old_size));
 
 		memcpy(np, p, MIN(size, old_size));
-		wfree(p, old_len);
+		wfree(xh, old_len);
 
 		return np;
 	}
+}
+
+/**
+ * Reallocate a block allocated via xmalloc().
+ *
+ * @param p				original user pointer
+ * @param size			new user-size
+ *
+ * @return
+ * If a NULL pointer is given, act as if xmalloc() had been called and
+ * return a new pointer.
+ * If the new size is 0, act as if xfree() had been called and return NULL.
+ * Otherwise return a pointer to the reallocated block, which may be different
+ * than the original pointer.
+ */
+void *
+xrealloc(void *p, size_t size)
+{
+	return xreallocate(p, size, TRUE);
+}
+
+/**
+ * Reallocate a block allocated via xmalloc(), forcing xpmalloc() if needed
+ * to ensure walloc() is not used.
+ *
+ * @param p				original user pointer
+ * @param size			new user-size
+ *
+ * @return
+ * If a NULL pointer is given, act as if xmalloc() had been called and
+ * return a new pointer.
+ * If the new size is 0, act as if xfree() had been called and return NULL.
+ * Otherwise return a pointer to the reallocated block, which may be different
+ * than the original pointer.
+ */
+void *
+xprealloc(void *p, size_t size)
+{
+	return xreallocate(p, size, FALSE);
 }
 
 /**
@@ -3186,7 +3244,8 @@ xmalloc_dump_stats_log(logagent_t *la)
 	DUMP(realloc_relocate_smart_success);
 	DUMP(realloc_regular_strategy);
 	DUMP(realloc_wrealloc);
-	DUMP(realloc_walloc_convert);
+	DUMP(realloc_converted_from_walloc);
+	DUMP(realloc_promoted_to_walloc);
 	DUMP(freelist_insertions);
 	DUMP(freelist_insertions_no_coalescing);
 	DUMP(freelist_further_breakups);
