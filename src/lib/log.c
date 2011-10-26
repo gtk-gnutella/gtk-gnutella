@@ -180,6 +180,21 @@ static volatile sig_atomic_t in_safe_handler;
 
 static const char DEV_NULL[] = "/dev/null";
 
+/**
+ * @return pre-allocated chunk for allocating memory when no malloc() wanted.
+ */
+static ckhunk_t *
+log_chunk(void)
+{
+	static ckhunk_t *ck;
+
+	if G_UNLIKELY(NULL == ck) {
+		ck = ck_init(LOG_MSG_MAXLEN * 4, LOG_MSG_MAXLEN);
+	}
+
+	return ck;
+}
+
 static void
 log_file_check(enum log_file which)
 {
@@ -520,7 +535,8 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 static void
 s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
-	gboolean in_signal_handler;
+	gboolean in_signal_handler = signal_in_handler();
+	gboolean avoid_malloc;
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
@@ -541,10 +557,10 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * the process.
 	 */
 
-	in_signal_handler = lt != NULL || signal_in_handler() ||
+	avoid_malloc = lt != NULL || in_signal_handler ||
 		!atoms_are_inited || log_str != NULL || xmalloc_is_malloc();
 
-	if (!in_log_handler && !in_signal_handler) {
+	if (!in_log_handler && !avoid_malloc) {
 		g_logv(G_LOG_DOMAIN, level, format, args);
 	} else {
 		static str_t *cstr;
@@ -561,8 +577,8 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		 * were in a signal handler.
 		 */
 
-		if (G_LOG_LEVEL_ERROR == level)
-			in_signal_handler = TRUE;
+		if G_UNLIKELY(G_LOG_LEVEL_ERROR == level)
+			avoid_malloc = TRUE;
 
 		/*
 		 * Detect recursion, but don't make it fatal.
@@ -663,8 +679,9 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		 * perform the formatting.
 		 */
 
-		if (in_signal_handler) {
-			ck = (NULL == lt) ? signal_chunk() : lt->ck;
+		if (avoid_malloc) {
+			ck = (lt != NULL) ? lt->ck :
+				in_signal_handler ? signal_chunk() : log_chunk();
 			saved = ck_save(ck);
 			msg = str_new_in_chunk(ck, LOG_MSG_MAXLEN);
 
@@ -717,7 +734,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		 * re-entering fprintf() through a signal handler would be safe.
 		 */
 
-		if (in_signal_handler) {
+		if (avoid_malloc) {
 			DECLARE_STR(9);
 			char time_buf[18];
 
@@ -766,7 +783,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			G_LOG_LEVEL_CRITICAL == level ||
 			G_LOG_LEVEL_ERROR == level
 		) {
-			if (in_signal_handler)
+			if (avoid_malloc)
 				stacktrace_where_safe_print_offset(STDERR_FILENO, 2);
 			else
 				stacktrace_where_sym_print_offset(stderr, 2);
@@ -781,10 +798,10 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		 * message logged.
 		 */
 
-		if (in_signal_handler)
+		if (avoid_malloc)
 			ck_restore(ck, saved);
 
-		if (is_running_on_mingw() && !in_signal_handler)
+		if (is_running_on_mingw() && !avoid_malloc)
 			fflush(stderr);		/* Unbuffering does not work on Windows */
 
 		if (G_LIKELY(NULL == lt)) {
