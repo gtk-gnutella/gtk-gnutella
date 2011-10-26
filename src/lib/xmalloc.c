@@ -805,13 +805,11 @@ xfl_shrink(struct xfreelist *fl)
 	if (new_size >= old_size)
 		return;
 
-	new_ptr = xfl_bucket_alloc(fl, new_size, new_size >= compat_pagesize(),
-		&allocated_size);
+	new_ptr = xfl_bucket_alloc(fl, new_size, FALSE, &allocated_size);
 
 	/*
-	 * If the new requested size is less than a VM page size and there's
-	 * nothing in the freelist, don't bother shrinking: we would need to
-	 * get more core, leading to a larger arena.
+	 * If there's nothing in the freelist, don't bother shrinking: we would
+	 * need to get more core.
 	 */
 
 	if G_UNLIKELY(NULL == new_ptr)
