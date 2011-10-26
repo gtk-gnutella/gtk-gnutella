@@ -169,6 +169,14 @@ str_new_in_chunk(ckhunk_t *ck, size_t size)
 		return NULL;
 
 	/*
+	 * Detect harmful asynchronous ck_restore() between two allocations.
+	 */
+
+	g_assert_log(ptr_diff(str, arena) >= size,
+		"str=%p, arena=%p, size=%lu",
+		(void *) str, arena, (unsigned long) size);
+
+	/*
 	 * Don't set the STR_OBJECT because the object is non-freeable.
 	 * Force STR_FOREIGN_PTR because the arena is non-freeable.
 	 */
