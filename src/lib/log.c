@@ -683,6 +683,8 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 				ck_restore(ck, saved);
 				return;
 			}
+
+			g_assert(ptr_diff(ck_save(ck), saved) > LOG_MSG_MAXLEN);
 		} else {
 			if G_UNLIKELY(NULL == cstr)
 				cstr = str_new_not_leaking(0);
