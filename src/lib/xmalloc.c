@@ -2041,12 +2041,17 @@ xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
 		if (xmalloc_free_pages(p, len, &head, &head_len, &tail, &tail_len)) {
 			if (xmalloc_debugging(3)) {
 				if (head_len != 0 || tail_len != 0) {
-					t_debug(NULL, "XM freeed embedded pages, %s head, %s tail",
+					size_t npages = len / compat_pagesize();
+
+					t_debug(NULL, "XM freed %sembedded %lu page%s, "
+						"%s head, %s tail",
+						coalesced ? "coalesced " : "",
+						(unsigned long) npages, 1 == npages ? "" : "s",
 						head_len != 0 ? "has" : "no",
 						tail_len != 0 ? "has" : "no");
 				} else {
-					t_debug(NULL, "XM freeed whole %lu-byte region at %p",
-						(unsigned long) len, p);
+					t_debug(NULL, "XM freed %swhole %lu-byte region at %p",
+						coalesced ? "coalesced " : "", (unsigned long) len, p);
 				}
 			}
 
@@ -2160,15 +2165,14 @@ xmalloc_freelist_alloc(size_t len, size_t *allocated)
 
 				xmalloc_freelist_insert(split, split_len, XM_COALESCE_NONE);
 			} else {
-				xstats.freelist_nosplit++;
-				len = blksize;		/* Wasting some trailing bytes */
-
 				if (xmalloc_debugging(3)) {
 					t_debug(NULL, "XM NOT splitting large %lu-byte block at %p"
 						" (need only %lu bytes, split of %lu bytes too small)",
 						(unsigned long) blksize, p, (unsigned long) len,
 						(unsigned long) split_len);
 				}
+				xstats.freelist_nosplit++;
+				len = blksize;		/* Wasting some trailing bytes */
 			}
 		}
 		*allocated = len;
@@ -3024,8 +3028,10 @@ realloc_from_walloc:
 
 			if (xmalloc_debugging(1)) {
 				t_debug(NULL, "XM realloc used wrealloc(): "
-					"%lu-byte block at %p moved to %lu-byte block at %p",
+					"%lu-byte block at %p %s %lu-byte block at %p",
 					(unsigned long) old_len, (void *) xh,
+					old_len == new_len && 0 == ptr_cmp(xh, wp) ?
+						"stays" : "moved to",
 					(unsigned long) new_len, wp);
 			}
 
