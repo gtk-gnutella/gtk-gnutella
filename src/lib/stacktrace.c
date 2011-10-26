@@ -92,6 +92,7 @@ static struct {
 	unsigned stale:1;			/**< Pre-computed nm file was stale */
 	unsigned mismatch:1;		/**< Symbol mismatches were identified */
 	unsigned garbage:1;			/**< Symbols are probably pure garbage */
+	unsigned sorted:1;			/**< Symbols were sorted */
 } trace_array;
 
 /**
@@ -305,6 +306,8 @@ trace_sort(void)
 		s_warning("stripped %lu duplicate symbol%s",
 			(unsigned long) delta, 1 == delta ? "" : "s");
 	}
+
+	trace_array.sorted = TRUE;
 }
 
 /**
@@ -435,7 +438,7 @@ trace_name(const void *pc, gboolean offset)
 {
 	static char buf[256];
 
-	if (0 == trace_array.count) {
+	if (!trace_array.sorted) {
 		trace_fmt_pointer(buf, sizeof buf, pc);
 	} else {
 		struct trace *t;
@@ -1290,7 +1293,7 @@ static gboolean
 stacktrace_got_symbols(void)
 {
 	stacktrace_load_symbols();
-	return trace_array.count != 0;
+	return trace_array.sorted;
 }
 
 /**
