@@ -2377,8 +2377,21 @@ zalloc_dump_zones_log(logagent_t *la)
 	if (NULL == zt)
 		return;
 
+	/*
+	 * We want to avoid calling xpmalloc() here, but since xmalloc() can
+	 * call walloc() which can create a new zone, we have to be careful.
+	 *
+	 * Soon enough the call to walloc() will not create a new zone anyway,
+	 * and in case the malloc freelist is depleted, using xmalloc() can
+	 * avoid creating new core.
+	 */
+
 	zcount = hash_table_size(zt);
-	filler.array = xpmalloc(zcount * sizeof filler.array[0]);
+	filler.array = xmalloc(zcount * sizeof filler.array[0]);
+	while (hash_table_size(zt) != zcount) {
+		zcount = hash_table_size(zt);
+		filler.array = xrealloc(filler.array, zcount * sizeof filler.array[0]);
+	}
 	filler.capacity = zcount;
 	filler.count = 0;
 
