@@ -499,10 +499,11 @@ soap_header_ind(http_async_t *ha, header_t *header,
 		len = parse_uint32(buf, NULL, 10, &error);
 		if (error) {
 			if (GNET_PROPERTY(soap_debug)) {
-				g_warning("SOAP \"%s\" at \"%s\": "
+				errno = error;
+				s_warning("SOAP \"%s\" at \"%s\": "
 					"cannot parse Content-Length header: "
-					"value is \"%s\", error is %s",
-					sr->action, sr->url, buf, g_strerror(error));
+					"value is \"%s\", error is %m",
+					sr->action, sr->url, buf);
 			}
 			http_async_error(ha, HTTP_ASYNC_BAD_HEADER);
 			return FALSE;

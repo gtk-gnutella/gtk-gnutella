@@ -67,6 +67,7 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
+#include "lib/log.h"
 #include "lib/parse.h"
 #include "lib/stats.h"
 #include "lib/stringify.h"
@@ -4460,15 +4461,14 @@ parq_upload_send_queue_conf(struct upload *u)
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, queue, rw);
 	if ((ssize_t) -1 == sent) {
-		g_warning("[PARQ UL] "
-			"Unable to send back QUEUE for \"%s\" to %s: %s",
-			  u->name, host_addr_port_to_string(s->addr, s->port),
-			  g_strerror(errno));
+		s_warning("[PARQ UL] "
+			"Unable to send back QUEUE for \"%s\" to %s: %m",
+			  u->name, host_addr_port_to_string(s->addr, s->port));
 	} else if ((size_t) sent < rw) {
 		g_warning("[PARQ UL] "
-			"Only sent %lu out of %lu bytes of QUEUE for \"%s\" to %s: %s",
+			"Only sent %lu out of %lu bytes of QUEUE for \"%s\" to %s",
 			  (gulong) sent, (gulong) rw, u->name,
-			  host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
+			  host_addr_port_to_string(s->addr, s->port));
 	} else if (GNET_PROPERTY(parq_debug) > 2) {
 		g_debug("PARQ UL: Sent #%d to %s: %s",
 			  puq->queue_sent, host_addr_port_to_string(s->addr, s->port),

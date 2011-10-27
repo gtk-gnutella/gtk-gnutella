@@ -728,12 +728,12 @@ stacktrace_open_symbols(const char *exe, const char *nm)
 	trace_array.stale = FALSE;
 
 	if (-1 == stat(nm, &nbuf)) {
-		s_warning("can't stat \"%s\": %s", nm, g_strerror(errno));
+		s_warning("can't stat \"%s\": %m", nm);
 		return NULL;
 	}
 
 	if (-1 == stat(exe, &ebuf)) {
-		s_warning("can't stat \"%s\": %s", exe, g_strerror(errno));
+		s_warning("can't stat \"%s\": %m", exe);
 		trace_array.stale = TRUE;
 		goto open_file;
 	}
@@ -749,7 +749,7 @@ open_file:
 	f = fopen(nm, is_running_on_mingw() ? "rb" : "r");
 
 	if (NULL == f)
-		s_warning("can't open \"%s\": %s", nm, g_strerror(errno));
+		s_warning("can't open \"%s\": %m", nm);
 
 	return f;
 }
@@ -809,7 +809,7 @@ load_symbols(const char *path, const  char *lpath)
 		f = popen(tmp, "r");
 
 		if (NULL == f) {
-			s_warning("can't run \"%s\": %s", tmp, g_strerror(errno));
+			s_warning("can't run \"%s\": %m", tmp);
 			goto done;
 		}
 
@@ -876,8 +876,8 @@ program_path_allocate(const char *argv0)
 		int saved_errno = errno;
 		file = file_locate_from_path(argv0);
 		if (NULL == file) {
-			s_warning("could not stat() \"%s\": %s",
-				argv0, g_strerror(saved_errno));
+			errno = saved_errno;
+			s_warning("could not stat() \"%s\": %m", argv0);
 			s_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
 			goto error;
 		}
@@ -972,7 +972,7 @@ stacktrace_init(const char *argv0, gboolean deferred)
 		filestat_t buf;
 
 		if (-1 == stat(path, &buf)) {
-			s_warning("cannot stat \"%s\": %s", path, g_strerror(errno));
+			s_warning("cannot stat \"%s\": %m", path);
 			s_warning("will not be loading symbols for %s", argv0);
 			goto done;
 		}
@@ -1052,8 +1052,7 @@ stacktrace_load_symbols(void)
 		filestat_t buf;
 
 		if (-1 == stat(program_path, &buf)) {
-			s_warning("cannot stat \"%s\": %s",
-				program_path, g_strerror(errno));
+			s_warning("cannot stat \"%s\": %m", program_path);
 			goto error;
 		}
 

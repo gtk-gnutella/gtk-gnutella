@@ -43,6 +43,7 @@
 #include "compat_misc.h"
 #include "compat_sleep_ms.h"
 #include "eval.h"
+#include "log.h"
 #include "misc.h"
 #include "sha1.h"
 #include "tm.h"
@@ -130,7 +131,7 @@ entropy_collect(struct sha1 *digest)
 	{
 		guint8 data[128];
 		if (0 == mingw_random_bytes(data, sizeof data)) {
-			g_warning("unable to generate random bytes: %s", g_strerror(errno));
+			s_warning("unable to generate random bytes: %m");
 		} else {
 			SHA1Input(&ctx, data, sizeof data);
 		}

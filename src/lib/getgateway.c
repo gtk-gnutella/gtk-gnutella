@@ -47,6 +47,7 @@
 #include "ascii.h"
 #include "fd.h"
 #include "host_addr.h"
+#include "log.h"
 #include "misc.h"
 #include "parse.h"
 
@@ -156,8 +157,7 @@ getgateway(host_addr_t *addrp)
 	guint32 ip;
 
 	if (-1 == mingw_getgateway(&ip)) {
-		g_warning("getgateway(): GetBestRoute() failed: %s",
-			g_strerror(errno));
+		s_warning("getgateway(): GetBestRoute() failed: %m");
 		return parse_netstat(addrp);	/* Avoids "unused function" warning */
 	}
 
@@ -206,7 +206,7 @@ getgateway(host_addr_t *addrp)
 
 		rw = recv(fd, &nlm, sizeof nlm, MSG_DONTWAIT);
 		if ((ssize_t) -1 == rw) {
-			g_warning("getgateway(): recv() failed: %s", g_strerror(errno));
+			s_warning("getgateway(): recv() failed: %m");
 			goto error;
 		}
 

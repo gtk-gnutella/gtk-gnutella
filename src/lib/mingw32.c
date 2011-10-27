@@ -1500,8 +1500,8 @@ mingw_valloc(void *hint, size_t size)
 		if (NULL == p) {
 			errno = mingw_last_error();
 			if (vmm_is_debugging(0))
-				g_debug("could not allocate %s of memory: %s",
-					compact_size(size, FALSE), g_strerror(errno));
+				s_debug("could not allocate %s of memory: %m",
+					compact_size(size, FALSE));
 		}
 	} else if (NULL == hint && mingw_vmm_res_nonhinted < 0) {
 		/*
@@ -2024,8 +2024,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 
 	if (0 == SetWaitableTimer(t, &dueTime, 0, NULL, NULL, FALSE)) {
 		errno = mingw_last_error();
-		g_carp("could not set timer, unable to nanosleep(): %s (%s)",
-			g_strerror(errno), symbolic_errno(errno));
+		s_carp("could not set timer, unable to nanosleep(): %m");
 		return -1;
 	}
 
@@ -2543,7 +2542,7 @@ mingw_filename_nearby(const char *filename)
 			if (!done) {
 				done = TRUE;
 				errno = mingw_last_error();
-				g_warning("cannot locate my executable: %s", g_strerror(errno));
+				s_warning("cannot locate my executable: %m");
 			}
 		}
 		offset = filepath_basename(pathname) - pathname;
@@ -2569,7 +2568,7 @@ mingw_fifo_pending(int fd)
 		errno = mingw_last_error();
 		if (EPIPE == errno)
 			return TRUE;		/* Let them read EOF */
-		g_warning("peek failed for fd #%d: %s", fd, g_strerror(errno));
+		s_warning("peek failed for fd #%d: %m", fd);
 		return FALSE;
 	}
 

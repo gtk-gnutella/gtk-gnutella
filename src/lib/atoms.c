@@ -76,8 +76,8 @@ typedef enum {
 
 
 #include "stringify.h"
-#include "misc.h"
 #include "glib-missing.h"
+#include "log.h"
 #include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -280,8 +280,8 @@ mem_protect(gpointer ptr, size_t size)
 	size = round_size(ps, size);
 
 	if (-1 == mprotect(p, size, PROT_READ))
-		g_warning("mem_protect: mprotect(%p, %u, PROT_READ) failed: %s",
-			p, size, g_strerror(errno));
+		s_warning("mem_protect: mprotect(%p, %u, PROT_READ) failed: %m",
+			p, size);
 }
 
 /**
@@ -299,8 +299,8 @@ mem_unprotect(gpointer ptr, size_t size)
 	size = round_size(ps, size);
 
 	if (-1 == mprotect(p, size, PROT_READ | PROT_WRITE))
-		g_warning("mem_unprotect: mprotect(%p, %u, PROT_RDWR) failed: %s",
-			p, size, g_strerror(errno));
+		s_warning("mem_unprotect: mprotect(%p, %u, PROT_RDWR) failed: %m",
+			p, size);
 }
 
 /**

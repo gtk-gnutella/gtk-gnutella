@@ -50,7 +50,7 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/inputevt.h"
-#include "lib/halloc.h"
+#include "lib/log.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
@@ -644,7 +644,7 @@ shell_read_data(struct gnutella_shell *sh)
 			}
 		} else if ((ssize_t) -1 == ret) {
 			if (!is_temporary_error(errno)) {
-				g_warning("Receiving data failed: %s\n", g_strerror(errno));
+				s_warning("receiving data failed: %m");
 				shell_shutdown(sh);
 				goto finish;
 			}

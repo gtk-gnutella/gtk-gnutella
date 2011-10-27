@@ -37,6 +37,8 @@
 #include "common.h"
 
 #include "compat_misc.h"
+#include "log.h"
+
 #include "override.h"			/* Must be the last header included */
 
 gboolean
@@ -88,7 +90,7 @@ compat_daemonize(const char *directory)
 		fflush(NULL);
 		pid = fork();
 		if ((pid_t) -1 == pid) {
-			g_warning("fork() failed: %s", g_strerror(errno));
+			s_warning("fork() failed: %m");
 			return -1;
 		}
 
@@ -100,20 +102,19 @@ compat_daemonize(const char *directory)
 
 		/* Create a new session after the first fork() */
 		if (0 == i && (pid_t) -1 == setsid()) {
-			g_warning("setsid() failed: %s", g_strerror(errno));
+			s_warning("setsid() failed: %m");
 			return -1;
 		}
 	}
 
 	pid = getpid();
 	if (setpgid(0, pid)) {
-		g_warning("setpgid(0, %lu) failed: %s",
-				(unsigned long) pid, g_strerror(errno));
+		s_warning("setpgid(0, %lu) failed: %m", (unsigned long) pid);
 		return -1;
 	}
 
 	if (chdir(directory)) {
-		g_warning("chdir(\"%s\") failed: %s", directory, g_strerror(errno));
+		s_warning("chdir(\"%s\") failed: %m", directory);
 		return -1;
 	}
 

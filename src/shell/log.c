@@ -185,8 +185,8 @@ shell_exec_log_rename(struct gnutella_shell *sh, int argc, const char *argv[])
 		return shell_unknown_logfile(sh, argv[1]);
 
 	if (!log_rename(token_to_logfile(which), argv[2])) {
-		shell_set_msg(sh, str_smsg(_("Could not rename logfile as \"%s\": %s"),
-			argv[2], g_strerror(errno)));
+		shell_set_msg(sh,
+			str_smsg(_("Could not rename logfile as \"%s\": %m"), argv[2]));
 		return REPLY_ERROR;
 	}
 

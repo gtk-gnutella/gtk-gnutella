@@ -279,7 +279,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 		int saved_errno = errno;
 
 		if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
-			g_warning("could not create \"%s\": %s", file, g_strerror(errno));
+			s_warning("could not create \"%s\": %m", file);
 		}
 
 		errno = saved_errno;
@@ -312,8 +312,8 @@ ensure_unicity(const char *file, int *fd_ptr)
 			int saved_errno = errno;
 
 			if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
-				g_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %s",
-					fd, file, g_strerror(saved_errno));
+				s_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %m",
+					fd, file);
 				/*
 				 * Use F_GETLK to determine the PID of the process, the
 				 * reinitialization of "fl" might be unnecessary but who
@@ -328,8 +328,8 @@ ensure_unicity(const char *file, int *fd_ptr)
 							"be using \"%s\" (pid=%lu)",
 							file, (gulong) fl.l_pid);
 				} else {
-					g_warning("fcntl(%d, F_GETLK, ...) failed for \"%s\": %s",
-						fd, file, g_strerror(errno));
+					s_warning("fcntl(%d, F_GETLK, ...) failed for \"%s\": %m",
+						fd, file);
 				}
 			}
 
@@ -358,8 +358,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 		if ((ssize_t) -1 == r) {
 			/* This would be odd */
 			if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
-				g_warning("could not read file \"%s\": %s",
-					file, g_strerror(errno));
+				s_warning("could not read file \"%s\": %m", file);
 			}
 			goto failed;
 		}
@@ -442,16 +441,15 @@ save_pid(int fd, const char *path)
 			path, (gulong) getpid(), fd);
 	}
 	if (-1 == ftruncate(fd, 0))	{
-		g_warning("ftruncate() failed for \"%s\": %s",
-			path, g_strerror(errno));
+		s_warning("ftruncate() failed for \"%s\": %m", path);
 		return;
 	}
 	if (0 != lseek(fd, 0, SEEK_SET))	{
-		g_warning("lseek() failed for \"%s\": %s", path, g_strerror(errno));
+		s_warning("lseek() failed for \"%s\": %m", path);
 		return;
 	}
 	if (len != (size_t) write(fd, buf, len)) {
-		g_warning("could not flush \"%s\": %s", path, g_strerror(errno));
+		s_warning("could not flush \"%s\": %m", path);
 	}
 }
 
@@ -467,11 +465,9 @@ settings_mkdir(const char *path, gboolean fatal)
 {
 	if (-1 == mkdir(path, CONFIG_DIR_MODE)) {
 		if (fatal) {
-			s_fatal_exit(EXIT_FAILURE, _("mkdir(\"%s\") failed: \"%s\""),
-				path, g_strerror(errno));
+			s_fatal_exit(EXIT_FAILURE, _("mkdir(\"%s\") failed: %m"), path);
 		} else {
-			s_warning(_("mkdir(\"%s\") failed: \"%s\""),
-				path, g_strerror(errno));
+			s_warning(_("mkdir(\"%s\") failed: %m"), path);
 		}
 		return FALSE;
 	} else {
@@ -1051,8 +1047,7 @@ settings_remove_lockfile(const char *path, const char *lockfile)
 
 	file = make_pathname(path, lockfile);
 	if (-1 == unlink(file)) {
-		g_warning("could not remove lockfile \"%s\": %s",
-			file, g_strerror(errno));
+		s_warning("could not remove lockfile \"%s\": %m", file);
 	}
 	HFREE_NULL(file);
 }
@@ -1742,8 +1737,7 @@ enable_local_socket_changed(property_t prop)
 				socket_path = settings_local_socket_path();
 				s_local_listen = socket_local_listen(socket_path);
 			} else {
-				g_warning("mkdir(\"%s\") failed: %s (errno = %d)",
-					ipc_dir, g_strerror(errno), errno);
+				s_warning("mkdir(\"%s\") failed: %m", ipc_dir);
 			}
 
 			if (!s_local_listen) {
@@ -2037,8 +2031,7 @@ request_directory(const char *pathname)
 	if (0 == create_directory(pathname, DEFAULT_DIRECTORY_MODE))
 		return 0;
 
-	g_message("attempt to create directory \"%s\" failed: %s",
-		pathname, g_strerror(errno));
+	s_message("attempt to create directory \"%s\" failed: %m", pathname);
 
 	return -1;
 }

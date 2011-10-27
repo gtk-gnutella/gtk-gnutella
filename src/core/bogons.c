@@ -42,6 +42,7 @@
 #include "lib/halloc.h"
 #include "lib/host_addr.h"
 #include "lib/iprange.h"
+#include "lib/log.h"
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/tm.h"
@@ -79,7 +80,7 @@ bogons_load(FILE *f)
 
 	bogons_db = iprange_new();
 	if (-1 == fstat(fileno(f), &buf)) {
-		g_warning("cannot stat %s: %s", bogons_file, g_strerror(errno));
+		s_warning("cannot stat %s: %m", bogons_file);
 	} else {
 		bogons_mtime = buf.st_mtime;
 	}

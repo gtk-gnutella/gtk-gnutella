@@ -43,6 +43,7 @@
 #include "inet.h"
 
 #include "lib/gnet_host.h"
+#include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -151,9 +152,9 @@ tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, size_t len,
 	case EINPROGRESS:		/* Weird, but seen it -- RAM, 07/10/2003 */
 	{
 		const struct attr *attr = tx->opaque;
-		g_warning("%s(fd=%d, len=%lu) failed with weird errno = %d (%s), "
+		s_warning("%s(fd=%d, len=%lu) failed with weird errno = %d: %m -- "
 			"assuming EAGAIN", func, attr->wio->fd(attr->wio),
-			(unsigned long) len, errno, g_strerror(errno));
+			(unsigned long) len, errno);
 	}
 		return 0;
 	case EPIPE:
@@ -183,17 +184,16 @@ tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, size_t len,
 		/*
 		 * Don't set TX_ERROR here, we don't care about lost packets.
 		 */
-		g_carp("UDP write of %lu bytes to %s failed: %s",
-			(unsigned long) len, gnet_host_to_string(to), g_strerror(errno));
+		s_carp("UDP write of %lu bytes to %s failed: %m",
+			(unsigned long) len, gnet_host_to_string(to));
 		return -1;
 	default:
 		{
 			int terr = errno;
 			tx->flags |= TX_ERROR;				/* This should be fatal! */
-			g_error("%s: UDP write of %lu bytes to %s failed "
-				"with unexpected errno: %d (%s)",
-				func, (unsigned long) len, gnet_host_to_string(to),
-				terr, g_strerror(terr));
+			s_error("%s: UDP write of %lu bytes to %s failed "
+				"with unexpected errno %d: %m",
+				func, (unsigned long) len, gnet_host_to_string(to), terr);
 		}
 	}
 

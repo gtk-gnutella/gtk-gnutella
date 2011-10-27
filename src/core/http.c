@@ -270,8 +270,8 @@ http_send_status(
 	if ((ssize_t) -1 == sent) {
 		socket_eof(s);
 		if (GNET_PROPERTY(http_debug) > 1)
-			g_warning("unable to send back HTTP status %d (%s) to %s: %s",
-			code, status_msg, host_addr_to_string(s->addr), g_strerror(errno));
+			s_warning("unable to send back HTTP status %d (%s) to %s: %m",
+			code, status_msg, host_addr_to_string(s->addr));
 		return FALSE;
 	} else if ((size_t) sent < rw) {
 		if (GNET_PROPERTY(http_debug)) g_warning(
@@ -3286,8 +3286,8 @@ next_buffer:
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, base, rw);
 	if ((ssize_t) -1 == sent) {
-		g_warning("HTTP request sending to %s failed: %s",
-			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
+		s_warning("HTTP request sending to %s failed: %m",
+			host_addr_port_to_string(s->addr, s->port));
 		http_async_syserr(ha, errno);
 		return;
 	} else if ((size_t) sent < rw) {
@@ -3384,8 +3384,8 @@ http_async_connected(http_async_t *ha)
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, req, rw);
 
 	if ((ssize_t) -1 == sent) {
-		g_warning("HTTP request sending to %s failed: %s",
-			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
+		s_warning("HTTP request sending to %s failed: %m",
+			host_addr_port_to_string(s->addr, s->port));
 		http_async_syserr(ha, errno);
 		return;
 	} else if ((size_t) sent < rw) {
@@ -3429,8 +3429,8 @@ http_async_connected(http_async_t *ha)
 		sent = bws_write(BSCHED_BWS_OUT, &s->wio, ha->data, ha->datalen);
 
 		if ((ssize_t) -1 == sent) {
-			g_warning("HTTP data sending to %s failed: %s",
-				host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
+			s_warning("HTTP data sending to %s failed: %m",
+				host_addr_port_to_string(s->addr, s->port));
 			http_async_syserr(ha, errno);
 			return;
 		} else if ((size_t) sent < ha->datalen) {
@@ -3498,9 +3498,9 @@ http_async_log_error_dbg(http_async_t *handle,
 
 	switch (type) {
 	case HTTP_ASYNC_SYSERR:
-		g_message("%s: aborting \"%s %s\" at %s on system error: %s",
-			what, req, url, host_addr_port_to_string(addr, port),
-			g_strerror(error));
+		errno = error;
+		s_message("%s: aborting \"%s %s\" at %s on system error: %m",
+			what, req, url, host_addr_port_to_string(addr, port));
 		return TRUE;
 	case HTTP_ASYNC_ERROR:
 		if (error == HTTP_ASYNC_CANCELLED) {

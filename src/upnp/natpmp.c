@@ -51,6 +51,7 @@
 #include "lib/bstr.h"
 #include "lib/cq.h"
 #include "lib/getgateway.h"
+#include "lib/log.h"
 #include "lib/pmsg.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -676,10 +677,9 @@ natpmp_rpc_iterate(cqueue_t *unused_cq, void *obj)
 
 	if (0 != ret) {
 		if (GNET_PROPERTY(natpmp_debug)) {
-			g_warning("NATPMP could not send \"%s\" #%u to %s: %s",
+			s_warning("NATPMP could not send \"%s\" #%u to %s: %m",
 				natpmp_op_to_string(rd->op), rd->count,
-				host_addr_port_to_string(rd->gateway, NATPMP_SRV_PORT),
-				g_strerror(errno));
+				host_addr_port_to_string(rd->gateway, NATPMP_SRV_PORT));
 		}
 		goto finished;
 	} else {

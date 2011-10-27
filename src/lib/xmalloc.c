@@ -49,7 +49,7 @@
 #include "crash.h"			/* For crash_hook_add() */
 #include "glib-missing.h"
 #include "log.h"
-#include "misc.h"
+#include "misc.h"			/* For short_size() */
 #include "pow2.h"
 #include "random.h"
 #include "stringify.h"
@@ -480,8 +480,7 @@ xmalloc_addcore_from_heap(size_t len)
 
 		initial_break = current_break;
 		if ((void *) -1 == current_break) {
-			t_error(NULL, "cannot get initial heap break address: %s (%s)",
-				g_strerror(errno), symbolic_errno(errno));
+			t_error(NULL, "cannot get initial heap break address: %m");
 		}
 		xmalloc_freelist_setup();
 	}
@@ -499,9 +498,8 @@ xmalloc_addcore_from_heap(size_t len)
 #endif
 
 	if ((void *) -1 == p) {
-		t_error(NULL, "cannot allocate more core (%lu bytes): %s (%s)",
-			(unsigned long) len,
-			g_strerror(errno), symbolic_errno(errno));
+		t_error(NULL, "cannot allocate more core (%lu bytes): %m",
+			(unsigned long) len);
 	}
 
 	/*
@@ -593,9 +591,8 @@ xmalloc_freecore(void *ptr, size_t len)
 			old_break = sbrk(-len);
 			if ((void *) -1 == old_break) {
 				t_warning(NULL,
-					"XM cannot decrease break by %lu bytes: %s (%s)",
-					(unsigned long) len, g_strerror(errno),
-					symbolic_errno(errno));
+					"XM cannot decrease break by %lu bytes: %m",
+					(unsigned long) len);
 			} else {
 				current_break = ptr_add_offset(old_break, -len);
 				success = !is_running_on_mingw();	/* no sbrk(-x) on Windows */

@@ -3216,13 +3216,13 @@ send_error(
 	sent = bws_write(BSCHED_BWS_GOUT, &s->wio, gnet_response, rw);
 	if ((ssize_t) -1 == sent) {
 		if (GNET_PROPERTY(node_debug))
-			g_warning("Unable to send back error %d (%s) to node %s: %s",
-			code, msg_tmp, host_addr_to_string(s->addr), g_strerror(errno));
+			s_warning("unable to send back error %d (%s) to node %s: %m",
+			code, msg_tmp, host_addr_to_string(s->addr));
 	} else if ((size_t) sent < rw) {
 		if (GNET_PROPERTY(node_debug)) {
-			g_warning("Only sent %d out of %d bytes of error %d (%s) "
-				"to node %s: %s", (int) sent, (int) rw, code, msg_tmp,
-				host_addr_to_string(s->addr), g_strerror(errno));
+			g_warning("only sent %d out of %d bytes of error %d (%s) "
+				"to node %s", (int) sent, (int) rw, code, msg_tmp,
+				host_addr_to_string(s->addr));
 		}
 	} else if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_OUT) {
 		g_debug("----Sent error %d to node %s (%u bytes):",
@@ -6009,14 +6009,14 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	if ((ssize_t) -1 == sent) {
 		int errcode = errno;
 		if (GNET_PROPERTY(node_debug))
-			g_warning("Unable to send back %s to node %s: %s",
-			what, host_addr_to_string(n->addr), g_strerror(errcode));
+			s_warning("unable to send back %s to node %s: %m",
+			what, host_addr_to_string(n->addr));
 		node_remove(n, _("Failed (Cannot send %s: %s)"),
 			what, g_strerror(errcode));
 		goto free_gnet_response;
 	} else if ((size_t) sent < rw) {
 		if (GNET_PROPERTY(node_debug)) g_warning(
-			"Could only send %d out of %d bytes of %s to node %s",
+			"could only send %d out of %d bytes of %s to node %s",
 			(int) sent, (int) rw, what, host_addr_to_string(n->addr));
 		node_remove(n, _("Failed (Cannot send %s atomically)"), what);
 		goto free_gnet_response;
@@ -7963,7 +7963,7 @@ node_init_outgoing(struct gnutella_node *n)
 
 	switch (sent) {
 	case (ssize_t) -1:
-		g_warning("bws_write() failed: %s", g_strerror(errno));
+		s_carp("bws_write() failed: %m");
 		if (!is_temporary_error(errno)) {
 			node_remove(n, _("Write error during HELLO: %s"),
 				g_strerror(errno));

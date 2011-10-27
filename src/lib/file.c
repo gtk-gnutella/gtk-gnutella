@@ -190,8 +190,8 @@ open_read(
 			in = NULL;
 		}
 		if (renaming && -1 == rename(path, path_orig)) {
-			g_warning("[%s] could not rename \"%s\" as \"%s\": %s",
-				what, path, path_orig, g_strerror(errno));
+			s_warning("[%s] could not rename \"%s\" as \"%s\": %m",
+				what, path, path_orig);
 		}
 		if (NULL == in) {
 			in = fopen(path_orig, "r");
@@ -204,8 +204,7 @@ open_read(
 			}
 		} else {
 			instead = instead_str;			/* Regular file was present */
-			g_warning("[%s] failed to retrieve from \"%s\": %s", what, path,
-				g_strerror(errno));
+			s_warning("[%s] failed to retrieve from \"%s\": %m", what, path);
 		}
         if (fvcnt > 1 && common_dbg > 0)
             g_debug("[%s] trying to load from alternate locations...", what);
@@ -367,7 +366,7 @@ file_config_close(FILE *out, const file_path_t *fv)
 	gboolean success = FALSE;
 
 	if (0 != fclose(out)) {
-		g_warning("could not flush \"%s\": %s", fv->name, g_strerror(errno));
+		s_warning("could not flush \"%s\": %m", fv->name);
 		goto failed;
 	}
 
@@ -378,8 +377,7 @@ file_config_close(FILE *out, const file_path_t *fv)
 		goto failed;
 
 	if (-1 == rename(path_new, path)) {
-		g_warning("could not rename \"%s\" as \"%s\": %s",
-			path_new, path, g_strerror(errno));
+		s_warning("could not rename \"%s\" as \"%s\": %m", path_new, path);
 		goto failed;
 	}
 
@@ -491,8 +489,7 @@ do_open(const char *path, int flags, int mode,
 	}
 
 	if (!missing || errno != ENOENT) {
-		g_warning("do_open(): can't %s file \"%s\": %s",
-			what, path, g_strerror(errno));
+		s_warning("do_open(): can't %s file \"%s\": %m", what, path);
 	}
 
 	return -1;
@@ -602,7 +599,7 @@ do_fopen(const char *path, const char *mode, gboolean missing)
 	}
 
 	if (!missing || errno != ENOENT)
-		g_warning("can't %s file \"%s\": %s", what, path, g_strerror(errno));
+		s_warning("can't %s file \"%s\": %m", what, path);
 
 	return NULL;
 }

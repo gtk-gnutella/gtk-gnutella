@@ -22,10 +22,12 @@
 #include "lib/debug.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/log.h"
 #include "lib/slist.h"
 #include "lib/stacktrace.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #ifdef LRU
@@ -739,12 +741,13 @@ flushpag(DBM *db, char *pag, long num)
 	w = compat_pwrite(db->pagf, pag, DBM_PBLKSIZ, OFF_PAG(num));
 
 	if (w < 0 || w != DBM_PBLKSIZ) {
-		if (w < 0)
-			g_warning("sdbm: \"%s\": cannot flush page #%ld: %s",
-				sdbm_name(db), num, g_strerror(errno));
-		else
+		if (w < 0) {
+			s_warning("sdbm: \"%s\": cannot flush page #%ld: %m",
+				sdbm_name(db), num);
+		} else {
 			g_warning("sdbm: \"%s\": could only flush %u bytes from page #%ld",
 				sdbm_name(db), (unsigned) w, num);
+		}
 		ioerr(db, TRUE);
 		db->flush_errors++;
 		return FALSE;

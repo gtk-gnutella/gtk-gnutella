@@ -384,7 +384,7 @@ signal_leave_critical(const sigset_t *oset)
 #ifdef HAS_SIGPROCMASK
 	if (!in_critical_section) {
 		if (-1 == sigprocmask(SIG_SETMASK, oset, NULL))
-			s_error("cannot leave critical section: %s", g_strerror(errno));
+			s_error("cannot leave critical section: %m");
 	}
 #else
 	(void) oset;

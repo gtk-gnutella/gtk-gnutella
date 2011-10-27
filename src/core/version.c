@@ -50,6 +50,7 @@
 #include "lib/base16.h"
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
+#include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/parse.h"
 #include "lib/tm.h"
@@ -863,7 +864,7 @@ version_build_string(void)
 				sysname = un.sysname;
 				machine = un.machine;
 			} else {
-				g_carp("uname() failed: %s", g_strerror(errno));
+				s_carp("uname() failed: %m");
 			}
 		}
 #endif /* HAS_UNAME */

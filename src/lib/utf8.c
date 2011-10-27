@@ -67,6 +67,7 @@
 #include "concat.h"
 #include "endian.h"
 #include "halloc.h"
+#include "log.h"
 #include "misc.h"
 #include "random.h"
 #include "debug.h"
@@ -2011,7 +2012,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 			int e = errno;
 
 			if (common_dbg > 1)
-				g_warning("complete_iconv: iconv() failed: %s", g_strerror(e));
+				s_warning("complete_iconv: iconv() failed: %m");
 
 			g_assert(E2BIG != e);
 			g_assert(EINVAL == e || EILSEQ == e);

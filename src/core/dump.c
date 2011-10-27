@@ -41,10 +41,11 @@
 
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/halloc.h"
+#include "lib/log.h"
 #include "lib/path.h"
 #include "lib/pmsg.h"
 #include "lib/slist.h"
-#include "lib/halloc.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -227,8 +228,8 @@ dump_flush(struct dump *dump)
 
 		if ((ssize_t)-1 == written) {
 			if (!is_temporary_error(errno)) {
-				g_warning("error writing to %s: %s -- disabling dumping",
-					dump->filename, g_strerror(errno));
+				s_warning("error writing to %s: %m -- disabling dumping",
+					dump->filename);
 				dump_disable(dump);
 			}
 			if (dump->fill >= 256 * 1024UL) {

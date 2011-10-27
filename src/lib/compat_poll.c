@@ -42,6 +42,8 @@
 #endif
 
 #include "lib/fd.h"
+#include "lib/log.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /* Fallback on select() if they miss poll() */
@@ -144,7 +146,7 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 			}
 		}
 	} else if (ret < 0) {
-		g_warning("error during select %s", g_strerror(errno));
+		s_warning("error during select(): %m");
 	}
 	return ret;
 }

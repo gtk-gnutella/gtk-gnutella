@@ -42,6 +42,7 @@
 #include "lib/bstr.h"
 #include "lib/endian.h"
 #include "lib/gnet_host.h"
+#include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/sequence.h"
 #include "lib/unsigned.h"
@@ -210,7 +211,7 @@ ggept_gtkgv_osname_value(void)
 			if (-1 != uname(&un)) {
 				result = ggept_gtkgv_osname_encode(un.sysname);
 			} else {
-				g_carp("uname() failed: %s", g_strerror(errno));
+				s_carp("uname() failed: %m");
 			}
 		}
 #else

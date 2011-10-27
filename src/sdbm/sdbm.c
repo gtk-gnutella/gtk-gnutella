@@ -22,9 +22,11 @@
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/pow2.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 const datum nullitem = {0, 0};
@@ -411,8 +413,8 @@ fetch_pagbuf(DBM *db, long pagnum)
 		db->pagread++;
 		got = compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(pagnum));
 		if G_UNLIKELY(got < 0) {
-			g_warning("sdbm: \"%s\": cannot read page #%ld: %s",
-				sdbm_name(db), pagnum, g_strerror(errno));
+			s_warning("sdbm: \"%s\": cannot read page #%ld: %m",
+				sdbm_name(db), pagnum);
 			ioerr(db, FALSE);
 			db->pagbno = -1;
 			return FALSE;
@@ -872,8 +874,8 @@ makroom(DBM *db, long int hash, size_t need)
 			db->pagwrite++,
 			compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0)
 		) {
-			g_warning("sdbm: \"%s\": cannot flush new page #%ld: %s",
-				sdbm_name(db), newp, g_strerror(errno));
+			s_warning("sdbm: \"%s\": cannot flush new page #%ld: %m",
+				sdbm_name(db), newp);
 			ioerr(db, TRUE);
 			memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
 			db->spl_errors++;
@@ -1003,8 +1005,8 @@ restore:
 		if (failed) {
 			db->spl_errors++;
 			db->spl_corrupt++;
-			g_warning("sdbm: \"%s\": cannot undo split of page #%lu: %s",
-				sdbm_name(db), curbno, g_strerror(errno));
+			s_warning("sdbm: \"%s\": cannot undo split of page #%lu: %m",
+				sdbm_name(db), curbno);
 		}
 	} else {
 		/*
@@ -1020,8 +1022,8 @@ restore:
 #endif
 		memset(New, 0, DBM_PBLKSIZ);
 		if (compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0) {
-			g_warning("sdbm: \"%s\": cannot zero-back new split page #%ld: %s",
-				sdbm_name(db), newp, g_strerror(errno));
+			s_warning("sdbm: \"%s\": cannot zero-back new split page #%ld: %m",
+				sdbm_name(db), newp);
 			ioerr(db, TRUE);
 			db->spl_errors++;
 			db->spl_corrupt++;
@@ -1250,8 +1252,8 @@ fetch_dirbuf(DBM *db, long dirb)
 		db->dirread++;
 		got = compat_pread(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(dirb));
 		if G_UNLIKELY(got < 0) {
-			g_warning("sdbm: \"%s\": could not read dir page #%ld: %s",
-				sdbm_name(db), dirb, g_strerror(errno));
+			s_warning("sdbm: \"%s\": could not read dir page #%ld: %m",
+				sdbm_name(db), dirb);
 			ioerr(db, FALSE);
 			return FALSE;
 		}

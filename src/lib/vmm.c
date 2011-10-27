@@ -911,14 +911,13 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 						}
 					}
 					if (0 != vmm_vfree(try, kernel_pagesize)) {
-						s_warning("VMM cannot free single page at %p: %s",
-							try, g_strerror(errno));
+						s_warning("VMM cannot free single page at %p: %m", try);
 					}
 
 				} else {
 					if (vmm_debugging(0)) {
-						s_warning("VMM cannot allocate one page at %p: %s",
-							hint, g_strerror(errno));
+						s_warning("VMM cannot allocate one page at %p: %m",
+							hint);
 					}
 				}
 			} else {
@@ -1629,7 +1628,7 @@ pmap_load_data(struct pmap *pm)
 	fd = open("/proc/self/maps", O_RDONLY);
 	if (fd < 0) {
 		if (vmm_debugging(0)) {
-			s_warning("VMM cannot open /proc/self/maps: %s", g_strerror(errno));
+			s_warning("VMM cannot open /proc/self/maps: %m");
 		}
 		goto failure;
 	}
@@ -1651,8 +1650,7 @@ pmap_load_data(struct pmap *pm)
 		if (NULL == line) {
 			if (iob.error) {
 				if (vmm_debugging(0)) {
-					s_warning("VMM error reading /proc/self/maps: %s",
-							g_strerror(errno));
+					s_warning("VMM error reading /proc/self/maps: %m");
 				}
 				goto failure;
 			}
@@ -4067,7 +4065,7 @@ vmm_munmap(void *addr, size_t length)
 				(unsigned long) length / 1024, addr);
 		}
 	} else {
-		s_warning("munmap() failed: %s", g_strerror(errno));
+		s_warning("munmap() failed: %m");
 	}
 
 	return ret;

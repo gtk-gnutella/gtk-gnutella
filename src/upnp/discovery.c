@@ -56,11 +56,13 @@
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/host_addr.h"
+#include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/parse.h"
 #include "lib/strtok.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define UPNP_PORT		1900
@@ -955,10 +957,9 @@ upnp_discover(unsigned timeout, upnp_discover_cb_t cb, void *arg)
 
 	if (NULL == s) {
 		if (GNET_PROPERTY(upnp_debug)) {
-			g_warning("unable to create anonymous UDP %s socket for "
-				"UPnP discovery: %s",
-				net_type_to_string(host_addr_net(bind_addr)),
-				g_strerror(errno));
+			s_warning("unable to create anonymous UDP %s socket for "
+				"UPnP discovery: %m",
+				net_type_to_string(host_addr_net(bind_addr)));
 		}
 		goto failed;
 	}

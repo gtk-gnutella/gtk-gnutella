@@ -1314,8 +1314,7 @@ log_reopen(enum log_file which)
 		lf->otime = tm_time();
 		lf->changed = FALSE;
 	} else {
-		s_critical("freopen(\"%s\", \"a\", ...) failed: %s",
-			lf->path, g_strerror(errno));
+		s_critical("freopen(\"%s\", \"a\", ...) failed: %m", lf->path);
 		lf->disabled = TRUE;
 		lf->otime = 0;
 		success = FALSE;
@@ -1530,14 +1529,13 @@ log_rename(enum log_file which, const char *newname)
 		const char *tmp = str_smsg("%s.__tmp__", lf->path);
 		IGNORE_RESULT(freopen(lf->path, "a", lf->f));
 		if (-1 == unlink(tmp)) {
-			g_warning("cannot unlink temporary log file \"%s\": %s",
-				tmp, g_strerror(errno));
+			s_warning("cannot unlink temporary log file \"%s\": %m", tmp);
 		}
 	}
 
 	if (!ok) {
-		g_warning("could not rename \"%s\" as \"%s\": %s",
-			lf->path, newname, g_strerror(saved_errno));
+		errno = saved_errno;
+		s_warning("could not rename \"%s\" as \"%s\": %m", lf->path, newname);
 		errno = saved_errno;
 		return FALSE;
 	}
@@ -1577,8 +1575,8 @@ log_stat(enum log_file which, struct logstat *buf)
 		fflush(lf->f);
 
 		if (-1 == fstat(fileno(lf->f), &sbuf)) {
-			g_warning("cannot stat logfile \"%s\" at \"%s\": %s",
-				lf->name, lf->path, g_strerror(errno));
+			s_warning("cannot stat logfile \"%s\" at \"%s\": %m",
+				lf->name, lf->path);
 			buf->size = 0;
 		} else
 			buf->size = sbuf.st_size;
@@ -1657,7 +1655,7 @@ log_force_fd(enum log_file which, int fd)
 		lf->f = f;
 		lf->fd = fd;
 	} else {
-		s_critical("fdopen(\"%d\", \"a\") failed: %s", fd, g_strerror(errno));
+		s_critical("fdopen(\"%d\", \"a\") failed: %m", fd);
 	}
 }
 

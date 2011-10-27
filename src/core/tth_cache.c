@@ -53,6 +53,7 @@
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
+#include "lib/log.h"
 #include "lib/path.h"
 #include "lib/stringify.h"
 #include "lib/tigertree.h"
@@ -170,10 +171,9 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n_leaves)
 		size = TTH_RAW_SIZE * n_leaves;
 		ret = write(fd, leaves, size);
 		if ((ssize_t) -1 == ret) {
-			g_warning("tth_cache_insert(): write() failed: %s",
-				g_strerror(errno));
+			s_warning("%s(%s): write() failed: %m", G_STRFUNC, tth_base32(tth));
 		} else if ((size_t) ret != size) {
-			g_warning("tth_cache_insert(): incomplete write()");
+			g_warning("%s(%s): incomplete write()", G_STRFUNC, tth_base32(tth));
 		}
 		fd_forget_and_close(&fd);
 	}
@@ -222,8 +222,8 @@ tth_cache_lookup(const struct tth *tth, filesize_t filesize)
 		if (stat(pathname, &sb)) {
 			leave_count = 0;
 			if (ENOENT != errno) {
-				g_warning("tth_cache_lookup(%s): stat() failed: %s",
-					tth_base32(tth), g_strerror(errno));
+				s_warning("%s(%s): stat() failed: %m",
+					G_STRFUNC, tth_base32(tth));
 			}
 		} else {
 			leave_count = tth_cache_leave_count(tth, &sb);
@@ -261,8 +261,7 @@ tth_cache_get_leaves(const struct tth *tth,
 		filestat_t sb;
 
 		if (fstat(fd, &sb)) {
-			g_warning("tth_cache_get_leaves(%s): fstat() failed: %s",
-				tth_base32(tth), g_strerror(errno));
+			s_warning("%s(%s): fstat() failed: %m", G_STRFUNC, tth_base32(tth));
 		} else {
 			size_t n_leaves;
 		

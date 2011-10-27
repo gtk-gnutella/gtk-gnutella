@@ -36,13 +36,14 @@
 #include "geo_ip.h"
 #include "settings.h"
 
-#include "lib/file.h"
 #include "lib/ascii.h"
+#include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/host_addr.h"
 #include "lib/iprange.h"
 #include "lib/iso3166.h"
+#include "lib/log.h"
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/tm.h"
@@ -123,7 +124,7 @@ gip_load(FILE *f)
 
 	geo_db = iprange_new();
 	if (-1 == fstat(fileno(f), &buf)) {
-		g_warning("cannot stat %s: %s", gip_file, g_strerror(errno));
+		s_warning("cannot stat %s: %m", gip_file);
 	} else {
 		geo_mtime = buf.st_mtime;
 	}

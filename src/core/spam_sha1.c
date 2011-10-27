@@ -47,6 +47,7 @@
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/log.h"
 #include "lib/path.h"
 #include "lib/sorted_array.h"
 #include "lib/watcher.h"
@@ -108,8 +109,8 @@ spam_lut_create(void)
 
 		if (NULL == dm) {
 			if (GNET_PROPERTY(spam_debug))
-				g_warning("unable to create SDBM database for %s: %s",
-					db_spambase, g_strerror(errno));
+				s_warning("unable to create SDBM database for %s: %m",
+					db_spambase);
 			sha1_lut.tab = sorted_array_new(sizeof(struct sha1), sha1_cmp_func);
 		} else {
 			/*
