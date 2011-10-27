@@ -1108,9 +1108,11 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * - The string is a foreign buffer.
  * - No floating-point formatting is attempted (%f, %e, %g, %F, %E or %G)
  *
- * Adpated from Perl 5.004_04 by Raphael Manfredi to use str_t intead of SV,
- * removing Perlism such as %_ and %V. Also added the `maxlen' constraint and
- * handling of "foreign" strings.
+ * Adpated from Perl 5.004_04 by Raphael Manfredi:
+ *
+ * - use str_t intead of SV, removing Perlism such as %_ and %V.
+ * - added the `maxlen' constraint and  handling of "foreign" strings.
+ * - added the %' formatting directive to group integers by thousands.
  *
  * Here are the supported universally-known conversions:
  *
@@ -1125,7 +1127,7 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * %f   a floating-point number, in fixed decimal notation
  * %g   a floating-point number, in %e or %f notation
  *
- * The routine alos allows the following widely-supported conversions:
+ * The routine also allows the following widely-supported conversions:
  *
  * %X   like %x, but using upper-case letters
  * %E   like %e, but using an upper-case "E"
@@ -1133,6 +1135,10 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * %p   a pointer (outputs the value's address in lower-cased hexadecimal)
  * %n   special: *stores* the number of characters output so far
  *      into the next variable in the parameter list
+ *
+ * The routine understands the following extensions, correctly parsed by gcc:
+ *
+ * %m   replaced by symbolic errno value + message: "EIO (I/O error)"
  *
  * Finally, for backward compatibility, the following unnecessary but
  * widely-supported conversions are allowed:
@@ -1151,6 +1157,7 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * -        left-justify within the field
  * 0        use zeros, not spaces, to right-justify
  * #        prefix octal with "0", hex with "0x"
+ * '        use thousands groupping in decimal integers with ","
  * number   minimum field width
  * .number  precision: digits after decimal point for floating-point,
  *          max length for string, minimum length for integer
@@ -1178,6 +1185,17 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	str_check(str);
 	g_assert(size_is_non_negative(maxlen));
 	g_assert(fmt != NULL);
+
+#define STR_APPEND(x, l) \
+G_STMT_START {									\
+	if ((l) > remain) {							\
+		str_ncat_foreign(str, (x), remain);		\
+		goto done;	/* Reached maxlen */		\
+	} else {									\
+		str_ncat_foreign(str, (x), (l));		\
+		remain -= (l);							\
+	}											\
+} G_STMT_END
 
 	fmtlen = strlen(fmt);
 	origlen = str->s_len;
@@ -1218,6 +1236,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	for (f = fmt; f < fmtend; f = q) {
 		bool alt = FALSE;
 		bool left = FALSE;
+		bool group = FALSE;
 		char fill = ' ';
 		char plus = 0;
 		char intsize = 0;
@@ -1252,13 +1271,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 
 		if (q > f) {
 			size_t len = q - f;
-			if (len > remain) {
-				str_ncat_foreign(str, f, remain);
-				goto done;						/* Reached maxlen */
-			} else {
-				str_ncat_foreign(str, f, len);
-				remain -= len;
-			}
+			STR_APPEND(f, len);
 			f = q;
 		}
 		if (q++ >= fmtend)
@@ -1284,6 +1297,11 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 
 			case '#':
 				alt = TRUE;
+				q++;
+				continue;
+
+			case '\'':
+				group = TRUE;
 				q++;
 				continue;
 
@@ -1361,6 +1379,21 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			elen = 1;
 			goto string;
 
+		case 'm':
+			{
+				const char *e = symbolic_errno(errno);
+				const char *s = g_strerror(errno);
+				size_t len;
+
+				len = strlen(e);
+				STR_APPEND(e, len);
+				STR_APPEND(" (", 2);
+				len = strlen(s);
+				STR_APPEND(s, len);
+				STR_APPEND(")", 1);
+			}
+			continue;
+
 		case 's':
 			eptr = va_arg(args, char*);
 			if (NULL == eptr)
@@ -1371,6 +1404,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			} else {
 				elen = strlen(eptr);
 			}
+			/* FALL THROUGH */
 
 		string:
 			if (has_precis && elen > precis)
@@ -1460,10 +1494,21 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 					*--mptr = '0';
 				break;
 			case 10:
-				do {
-					dig = uv % base;
-					*--mptr = '0' + dig;
-				} while (uv /= base);
+				if G_UNLIKELY(group) {
+					/* Highlight thousands groups with "," */
+					unsigned d = 0;
+					do {
+						dig = uv % base;
+						if (0 == d++ % 3 && d != 1)
+							*--mptr = ',';
+						*--mptr = '0' + dig;
+					} while (uv /= base);
+				} else {
+					do {
+						dig = uv % base;
+						*--mptr = '0' + dig;
+					} while (uv /= base);
+				}
 				break;
 			default:
 				g_assert_not_reached();
@@ -1711,6 +1756,8 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 
 done:
 	return str->s_len - origlen;
+
+#undef STR_APPEND
 }
 
 /*
