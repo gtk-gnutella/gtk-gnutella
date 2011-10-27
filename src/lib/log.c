@@ -27,6 +27,31 @@
  *
  * Logging support.
  *
+ * Routines that pose a risk of emitting a message recursively (e.g. routines
+ * that can be called by log_handler(), or signal handlers) should use the
+ * safe s_xxx() logging routines instead of the corresponding g_xxx().
+ *
+ * All s_xxx() routines also supports an enhanced %m formatting option which
+ * displays both the symbolic errno and the error message string, plus %' to
+ * format integers with groupped thousands separated with ",".
+ *
+ * The t_xxx() routines are meant to be used in dedicate threads to avoid
+ * concurrent memory allocation which is not otherwise supported.  They require
+ * a thread-private logging object, which can be NULL to request a default
+ * object for the main thread.  A side effect of using t_xxx() routines is that
+ * there is a guarantee that no malloc()-like routine will be called to log
+ * the message.
+ *
+ * There is also support for a polymorphic logging interface, through a
+ * so-called "log agent" object.
+ *
+ * The log agent is a polymorphic dispatcher to allow transparent logging to
+ * stderr or to a string.  This allows one to write a logging routine that can
+ * be used to either write things to the log files or to generate a string
+ * without any timestamp and logging level information.
+ *
+ * File loggging through log agent is guaranteed to not call malloc().
+ *
  * @author Raphael Manfredi
  * @date 2010-2011
  */
@@ -46,7 +71,6 @@
 #include "stringify.h"
 #include "tm.h"
 #include "walloc.h"
-#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -164,14 +188,6 @@ static struct logfile logfile[LOG_MAX_FILES];
 #define log_flush_err()	\
 	flush_str(G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
 
-/**
- * This is used to protect critical sections of the log_handler() routine.
- *
- * Routines that pose a risk of emitting a message recursively (e.g. routines
- * that can be called by log_handler(), or signal handlers) should use the
- * safe s_xxx() logging routines instead of the corresponding g_xxx().
- */
-static volatile sig_atomic_t in_log_handler;
 
 /**
  * This is used to detect recurstion in s_logv().
@@ -537,278 +553,268 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
 	gboolean in_signal_handler = signal_in_handler();
 	gboolean avoid_malloc;
+	static str_t *cstr;
+	const char *prefix;
+	str_t *msg;
+	ckhunk_t *ck;
+	void *saved;
+	gboolean recursing;
+	GLogLevelFlags loglvl;
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
 
 	/*
-	 * Until the atom layer is up, consider it unsafe to call g_logv()
-	 * because it could allocate memory and we have not fully initialized
-	 * the memory layer yet (only the VMM layer can be assumed to be ready).
-	 *
-	 * When xmalloc() is remapped to malloc(), we don't want to enter g_logv()
-	 * at all since we don't know how they will allocate memory, and recursion
-	 * would not be detected easily.
-	 *
-	 * Therefore, avoid any general memory allocation by behaving as if
-	 * we were in a signal handler.
+	 * Until the atom layer is up, consider it unsafe to use malloc()
+	 * because we have not fully initialized the memory layer yet
+	 * (only the VMM layer can be assumed to be ready).
 	 *
 	 * This allows the usage of s_xxx() logging routines very early in
 	 * the process.
 	 */
 
 	avoid_malloc = lt != NULL || in_signal_handler ||
-		!atoms_are_inited || log_str != NULL || xmalloc_is_malloc();
+		!atoms_are_inited || log_str != NULL;
 
-	if (!in_log_handler && !avoid_malloc) {
-		g_logv(G_LOG_DOMAIN, level, format, args);
+	/*
+	 * An error is fatal, and indicates something is terribly wrong.
+	 * Avoid allocating memory as much as possible, acting as if we
+	 * were in a signal handler.
+	 */
+
+	if G_UNLIKELY(G_LOG_LEVEL_ERROR == level)
+		avoid_malloc = TRUE;
+
+	/*
+	 * Detect recursion, but don't make it fatal.
+	 */
+
+	if (G_UNLIKELY(lt != NULL)) {
+		recursing = lt->in_log_handler;
 	} else {
-		static str_t *cstr;
-		const char *prefix;
-		str_t *msg;
-		ckhunk_t *ck = NULL;
-		void *saved = NULL;
-		gboolean recursing;
-		GLogLevelFlags loglvl;
+		recursing = in_safe_handler;
+	}
+
+	if G_UNLIKELY(recursing) {
+		DECLARE_STR(6);
+		char time_buf[18];
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);	/* 0 */
+		print_str(" (CRITICAL): recursion to format string \""); /* 1 */
+		print_str(format);		/* 2 */
+		print_str("\" from ");	/* 3 */
+		print_str(stacktrace_caller_name(2));	/* 4 */
+		print_str("\n");		/* 5 */
+		log_flush_err();
 
 		/*
-		 * An error is fatal, and indicates something is terribly wrong.
-		 * Avoid allocating memory as much as possible, acting as if we
-		 * were in a signal handler.
+		 * A recursion with an error message is always fatal.
 		 */
 
-		if G_UNLIKELY(G_LOG_LEVEL_ERROR == level)
-			avoid_malloc = TRUE;
+		if (G_LOG_LEVEL_ERROR == level) {
+			/*
+			 * In case the error occurs within a critical section with
+			 * all the signals blocked, make sure to unblock SIGBART.
+			 */
 
-		/*
-		 * Detect recursion, but don't make it fatal.
-		 */
+			signal_unblock(SIGABRT);
+			raise(SIGABRT);
 
-		if (G_UNLIKELY(lt != NULL)) {
-			recursing = lt->in_log_handler;
-		} else {
-			recursing = in_safe_handler;
+			/*
+			 * Back from raise(), that's bad.
+			 *
+			 * Either we don't have sigprocmask(), or it failed to
+			 * unblock SIGBART.  Invoke the crash_handler() manually
+			 * then so that we can pause() or exec() as configured
+			 * in case of a crash.
+			 */
+
+			{
+				rewind_str(0);
+
+				crash_time(time_buf, sizeof time_buf);
+				print_str(time_buf);	/* 0 */
+				print_str(" (CRITICAL): back from raise(SIGBART)"); /* 1 */
+				print_str(" -- invoking crash_handler()\n");		/* 2 */
+				log_flush_err();
+				if (log_stdout_is_distinct())
+					log_flush_out();
+
+				crash_handler(SIGABRT);
+
+				/*
+				 * We can be back from crash_handler() if they haven't
+				 * configured any pause() or exec() in case of a crash.
+				 * Since SIGBART is blocked, there won't be any core.
+				 */
+
+				rewind_str(0);
+				crash_time(time_buf, sizeof time_buf);
+				print_str(time_buf);	/* 0 */
+				print_str(" (CRITICAL): back from crash_handler()"); /* 1 */
+				print_str(" -- exiting\n");		/* 2 */
+				log_flush_err();
+				if (log_stdout_is_distinct())
+					log_flush_out();
+
+				exit(1);
+			}
 		}
 
-		if (recursing) {
+		return;
+	}
+
+	/*
+	 * OK, no recursion so far.  Emit log.
+	 */
+
+	if (G_LIKELY(NULL == lt)) {
+		in_safe_handler = TRUE;
+	} else {
+		lt->in_log_handler = TRUE;
+	}
+
+	/*
+	 * Within a signal handler, we can safely allocate memory to be
+	 * able to format the log message by using the pre-allocated signal
+	 * chunk and creating a string object out of it.
+	 *
+	 * When not from a signal handler, we use a static string object to
+	 * perform the formatting.
+	 */
+
+	if G_UNLIKELY(avoid_malloc) {
+		ck = (lt != NULL) ? lt->ck :
+			in_signal_handler ? signal_chunk() : log_chunk();
+		saved = ck_save(ck);
+		msg = str_new_in_chunk(ck, LOG_MSG_MAXLEN);
+
+		if G_UNLIKELY(NULL == msg) {
 			DECLARE_STR(6);
 			char time_buf[18];
 
 			crash_time(time_buf, sizeof time_buf);
 			print_str(time_buf);	/* 0 */
-			print_str(" (CRITICAL): recursion to format string \""); /* 1 */
+			print_str(" (CRITICAL): no memory to format string \""); /* 1 */
 			print_str(format);		/* 2 */
 			print_str("\" from ");	/* 3 */
 			print_str(stacktrace_caller_name(2));	/* 4 */
 			print_str("\n");		/* 5 */
 			log_flush_err();
-
-			/*
-			 * A recursion with an error message is always fatal.
-			 */
-
-			if (G_LOG_LEVEL_ERROR == level) {
-				/*
-				 * In case the error occurs within a critical section with
-				 * all the signals blocked, make sure to unblock SIGBART.
-				 */
-
-				signal_unblock(SIGABRT);
-				raise(SIGABRT);
-
-				/*
-				 * Back from raise(), that's bad.
-				 *
-				 * Either we don't have sigprocmask(), or it failed to
-				 * unblock SIGBART.  Invoke the crash_handler() manually
-				 * then so that we can pause() or exec() as configured
-				 * in case of a crash.
-				 */
-
-				{
-					rewind_str(0);
-
-					crash_time(time_buf, sizeof time_buf);
-					print_str(time_buf);	/* 0 */
-					print_str(" (CRITICAL): back from raise(SIGBART)"); /* 1 */
-					print_str(" -- invoking crash_handler()\n");		/* 2 */
-					log_flush_err();
-					if (log_stdout_is_distinct())
-						log_flush_out();
-
-					crash_handler(SIGABRT);
-
-					/*
-					 * We can be back from crash_handler() if they haven't
-					 * configured any pause() or exec() in case of a crash.
-					 * Since SIGBART is blocked, there won't be any core.
-					 */
-
-					rewind_str(0);
-					crash_time(time_buf, sizeof time_buf);
-					print_str(time_buf);	/* 0 */
-					print_str(" (CRITICAL): back from crash_handler()"); /* 1 */
-					print_str(" -- exiting\n");		/* 2 */
-					log_flush_err();
-					if (log_stdout_is_distinct())
-						log_flush_out();
-
-					exit(1);
-				}
-			}
-
+			ck_restore(ck, saved);
 			return;
 		}
 
+		g_assert(ptr_diff(ck_save(ck), saved) > LOG_MSG_MAXLEN);
+	} else {
+		if G_UNLIKELY(NULL == cstr)
+			cstr = str_new_not_leaking(0);
+		msg = cstr;
+		ck = NULL;
+		saved = NULL;
+	}
+
+	/*
+	 * The str_vprintf() routine is safe to use in signal handlers provided
+	 * we do not attempt to format floating point numbers.
+	 */
+
+	str_vprintf(msg, format, args);
+
+	loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
+
+	switch (loglvl) {
+	case G_LOG_LEVEL_CRITICAL: prefix = "CRITICAL"; break;
+	case G_LOG_LEVEL_ERROR:    prefix = "ERROR";    break;
+	case G_LOG_LEVEL_WARNING:  prefix = "WARNING";  break;
+	case G_LOG_LEVEL_MESSAGE:  prefix = "MESSAGE";  break;
+	case G_LOG_LEVEL_INFO:     prefix = "INFO";     break;
+	case G_LOG_LEVEL_DEBUG:    prefix = "DEBUG";    break;
+	default:
+		prefix = "UNKNOWN";
+	}
+
+	/*
+	 * Avoid stdio's fprintf() from within a signal handler since we
+	 * don't know how the string will be formattted, nor whether
+	 * re-entering fprintf() through a signal handler would be safe.
+	 */
+
+	if (avoid_malloc) {
+		DECLARE_STR(9);
+		char time_buf[18];
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);	/* 0 */
+		print_str(" (");		/* 1 */
+		print_str(prefix);		/* 2 */
+		print_str(")");			/* 3 */
+		if G_UNLIKELY(level & G_LOG_FLAG_RECURSION)
+			print_str(" [RECURSIVE]");	/* 4 */
+		if G_UNLIKELY(level & G_LOG_FLAG_FATAL)
+			print_str(" [FATAL]");		/* 5 */
+		print_str(": ");		/* 6 */
+		print_str(str_2c(msg));	/* 7 */
+		print_str("\n");		/* 8 */
+		log_flush_err();
+		if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
+			if (log_stdout_is_distinct())
+				log_flush_out();
+			crash_set_error(str_2c(msg));
+		}
 		/*
-		 * OK, no recursion so far.  Emit log.
+		 * When duplication is configured, write a copy of the message
+		 * without any timestamp and debug level tagging.
 		 */
 
-		if (G_LIKELY(NULL == lt)) {
-			in_safe_handler = TRUE;
-		} else {
-			lt->in_log_handler = TRUE;
+		if G_UNLIKELY(logfile[LOG_STDERR].duplicate) {
+			int fd = logfile[LOG_STDERR].crash_fd;
+			IGNORE_RESULT(write(fd, str_2c(msg), str_len(msg)));
+			IGNORE_RESULT(write(fd, "\n", 1));
 		}
+	} else {
+		time_t now = tm_time_exact();
+		struct tm *ct = localtime(&now);
 
-		/*
-		 * Within a signal handler, we can safely allocate memory to be
-		 * able to format the log message by using the pre-allocated signal
-		 * chunk and creating a string object out of it.
-		 *
-		 * When not from a signal handler, we use a static string object to
-		 * perform the formatting.
-		 */
+		log_fprint(LOG_STDERR, ct, level, prefix, str_2c(msg));
 
-		if (avoid_malloc) {
-			ck = (lt != NULL) ? lt->ck :
-				in_signal_handler ? signal_chunk() : log_chunk();
-			saved = ck_save(ck);
-			msg = str_new_in_chunk(ck, LOG_MSG_MAXLEN);
-
-			if G_UNLIKELY(NULL == msg) {
-				DECLARE_STR(6);
-				char time_buf[18];
-
-				crash_time(time_buf, sizeof time_buf);
-				print_str(time_buf);	/* 0 */
-				print_str(" (CRITICAL): no memory to format string \""); /* 1 */
-				print_str(format);		/* 2 */
-				print_str("\" from ");	/* 3 */
-				print_str(stacktrace_caller_name(2));	/* 4 */
-				print_str("\n");		/* 5 */
-				log_flush_err();
-				ck_restore(ck, saved);
-				return;
-			}
-
-			g_assert(ptr_diff(ck_save(ck), saved) > LOG_MSG_MAXLEN);
-		} else {
-			if G_UNLIKELY(NULL == cstr)
-				cstr = str_new_not_leaking(0);
-			msg = cstr;
+		if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
+			if (log_stdout_is_distinct())
+				log_fprint(LOG_STDOUT, ct, level, prefix, str_2c(msg));
+			crash_set_error(str_2c(msg));
 		}
+	}
 
-		/*
-		 * The str_vprintf() routine is safe to use in signal handlers provided
-		 * we do not attempt to format floating point numbers.
-		 */
-
-		str_vprintf(msg, format, args);
-
-		loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
-
-		switch (loglvl) {
-		case G_LOG_LEVEL_CRITICAL: prefix = "CRITICAL"; break;
-		case G_LOG_LEVEL_ERROR:    prefix = "ERROR";    break;
-		case G_LOG_LEVEL_WARNING:  prefix = "WARNING";  break;
-		case G_LOG_LEVEL_MESSAGE:  prefix = "MESSAGE";  break;
-		case G_LOG_LEVEL_INFO:     prefix = "INFO";     break;
-		case G_LOG_LEVEL_DEBUG:    prefix = "DEBUG";    break;
-		default:
-			prefix = "UNKNOWN";
-		}
-
-		/*
-		 * Avoid stdio's fprintf() from within a signal handler since we
-		 * don't know how the string will be formattted, nor whether
-		 * re-entering fprintf() through a signal handler would be safe.
-		 */
-
-		if (avoid_malloc) {
-			DECLARE_STR(9);
-			char time_buf[18];
-
-			crash_time(time_buf, sizeof time_buf);
-			print_str(time_buf);	/* 0 */
-			print_str(" (");		/* 1 */
-			print_str(prefix);		/* 2 */
-			print_str(")");			/* 3 */
-			if G_UNLIKELY(level & G_LOG_FLAG_RECURSION)
-				print_str(" [RECURSIVE]");	/* 4 */
-			if G_UNLIKELY(level & G_LOG_FLAG_FATAL)
-				print_str(" [FATAL]");		/* 5 */
-			print_str(": ");		/* 6 */
-			print_str(str_2c(msg));	/* 7 */
-			print_str("\n");		/* 8 */
-			log_flush_err();
-			if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
-				if (log_stdout_is_distinct())
-					log_flush_out();
-				crash_set_error(str_2c(msg));
-			}
-			/*
-			 * When duplication is configured, write a copy of the message
-			 * without any timestamp and debug level tagging.
-			 */
-
-			if G_UNLIKELY(logfile[LOG_STDERR].duplicate) {
-				int fd = logfile[LOG_STDERR].crash_fd;
-				IGNORE_RESULT(write(fd, str_2c(msg), str_len(msg)));
-				IGNORE_RESULT(write(fd, "\n", 1));
-			}
-		} else {
-			time_t now = tm_time_exact();
-			struct tm *ct = localtime(&now);
-
-			log_fprint(LOG_STDERR, ct, level, prefix, str_2c(msg));
-
-			if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
-				if (log_stdout_is_distinct())
-					log_fprint(LOG_STDOUT, ct, level, prefix, str_2c(msg));
-				crash_set_error(str_2c(msg));
-			}
-		}
-
-		if G_UNLIKELY(
-			G_LOG_LEVEL_CRITICAL == level ||
-			G_LOG_LEVEL_ERROR == level
-		) {
-			if (avoid_malloc)
-				stacktrace_where_safe_print_offset(STDERR_FILENO, 2);
-			else
-				stacktrace_where_sym_print_offset(stderr, 2);
-		}
-
-		/*
-		 * Free up the string memory by restoring the allocation context
-		 * using the checkpoint we made before allocating that string.
-		 *
-		 * This allows signal handlers to log as many messages as they want,
-		 * the only penalty being the critical section overhead for each
-		 * message logged.
-		 */
-
+	if G_UNLIKELY(
+		G_LOG_LEVEL_CRITICAL == level ||
+		G_LOG_LEVEL_ERROR == level
+	) {
 		if (avoid_malloc)
-			ck_restore(ck, saved);
+			stacktrace_where_safe_print_offset(STDERR_FILENO, 2);
+		else
+			stacktrace_where_sym_print_offset(stderr, 2);
+	}
 
-		if (is_running_on_mingw() && !avoid_malloc)
-			fflush(stderr);		/* Unbuffering does not work on Windows */
+	/*
+	 * Free up the string memory by restoring the allocation context
+	 * using the checkpoint we made before allocating that string.
+	 *
+	 * This allows signal handlers to log as many messages as they want,
+	 * the only penalty being the critical section overhead for each
+	 * message logged.
+	 */
 
-		if (G_LIKELY(NULL == lt)) {
-			in_safe_handler = FALSE;
-		} else {
-			lt->in_log_handler = FALSE;
-		}
+	if (avoid_malloc)
+		ck_restore(ck, saved);
+
+	if (is_running_on_mingw() && !avoid_malloc)
+		fflush(stderr);		/* Unbuffering does not work on Windows */
+
+	if (G_LIKELY(NULL == lt)) {
+		in_safe_handler = FALSE;
+	} else {
+		lt->in_log_handler = FALSE;
 	}
 }
 
@@ -1214,8 +1220,6 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
 
-	in_log_handler = TRUE;
-
 	now = tm_time_exact();
 	ct = localtime(&now);
 
@@ -1259,8 +1263,6 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 				fflush(stdout);		/* Unbuffering does not work on Windows */
 		}
 	}
-
-	in_log_handler = FALSE;
 
 	if (safer != message) {
 		HFREE_NULL(safer);
