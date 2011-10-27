@@ -96,6 +96,7 @@
 #include "ascii.h"
 #include "crash.h"			/* For crash_hook_add() */
 #include "cq.h"
+#include "dump_options.h"
 #include "fd.h"
 #include "glib-missing.h"
 #include "log.h"
@@ -3458,11 +3459,13 @@ vmm_malloc_inited(void)
  * Dump VMM statistics to specified logging agent.
  */
 G_GNUC_COLD void
-vmm_dump_stats_log(logagent_t *la)
+vmm_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct pmap *pm = vmm_pmap();
 
-#define DUMP(x)	log_info(la, "VMM %s = %s", #x, uint64_to_string(vmm_stats.x))
+#define DUMP(x)	log_info(la, "VMM %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?					\
+		uint64_to_gstring(vmm_stats.x) : uint64_to_string(vmm_stats.x))
 
 	DUMP(allocations);
 	DUMP(allocations_zeroed);
@@ -3490,7 +3493,9 @@ vmm_dump_stats_log(logagent_t *la)
 	DUMP(pmap_overruled);
 
 #undef DUMP
-#define DUMP(x)	log_info(la, "VMM pmap_%s = %lu", #x, (unsigned long) pm->x)
+#define DUMP(x) log_info(la, "VMM pmap_%s = %s", #x,	\
+	(options & DUMP_OPT_PRETTY) ?						\
+		size_t_to_gstring(pm->x) : size_t_to_string(pm->x))
 
 	DUMP(count);
 	DUMP(size);
@@ -3507,7 +3512,7 @@ G_GNUC_COLD void
 vmm_dump_stats(void)
 {
 	s_info("VMM running statistics:");
-	vmm_dump_stats_log(log_agent_stderr_get());
+	vmm_dump_stats_log(log_agent_stderr_get(), 0);
 	vmm_dump_pmap();
 }
 

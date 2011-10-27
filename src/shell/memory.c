@@ -39,6 +39,7 @@
 #include "cmd.h"
 
 #include "lib/ascii.h"
+#include "lib/dump_options.h"
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/log.h"
@@ -182,11 +183,18 @@ failure:
 }
 
 typedef void (*shower_cb_t)(logagent_t *la);
+typedef void (*shower_opt_cb_t)(logagent_t *la, unsigned options);
 
 typedef struct show_vec {
 	shower_cb_t cb;
 	const char *prefix;
 } show_vec_t;
+
+typedef struct show_opt_vec {
+	shower_opt_cb_t cb;
+	const char *prefix;
+	unsigned options;
+} show_opt_vec_t;
 
 static enum shell_reply
 memory_run_showerv(struct gnutella_shell *sh, show_vec_t *sv, unsigned sv_cnt)
@@ -211,6 +219,29 @@ memory_run_showerv(struct gnutella_shell *sh, show_vec_t *sv, unsigned sv_cnt)
 }
 
 static enum shell_reply
+memory_run_opt_showerv(struct gnutella_shell *sh,
+	show_opt_vec_t *sv, unsigned sv_cnt)
+{
+	unsigned i;
+
+	shell_check(sh);
+
+	shell_write(sh, "100~\n");
+
+	for (i = 0; i < sv_cnt; i++) {
+		show_opt_vec_t *v = &sv[i];
+		logagent_t *la = log_agent_string_make(0, v->prefix);
+		(*v->cb)(la, v->options);
+		shell_write(sh, log_agent_string_get(la));
+		log_agent_free_null(&la);
+	}
+
+	shell_write(sh, ".\n");
+
+	return REPLY_READY;
+}
+
+static enum shell_reply
 memory_run_shower(struct gnutella_shell *sh,
 	shower_cb_t cb, const char *prefix)
 {
@@ -222,6 +253,21 @@ memory_run_shower(struct gnutella_shell *sh,
 	v.prefix = prefix;
 
 	return memory_run_showerv(sh, &v, 1);
+}
+
+static enum shell_reply
+memory_run_opt_shower(struct gnutella_shell *sh,
+	shower_opt_cb_t cb, const char *prefix, gboolean options)
+{
+	show_opt_vec_t v;
+
+	shell_check(sh);
+
+	v.cb = cb;
+	v.prefix = prefix;
+	v.options = options;
+ 
+	return memory_run_opt_showerv(sh, &v, 1);
 }
 
 static enum shell_reply
@@ -303,37 +349,52 @@ shell_exec_memory_show(struct gnutella_shell *sh,
 }
 
 static enum shell_reply
-shell_exec_memory_stats_vmm(struct gnutella_shell *sh)
+shell_exec_memory_stats_vmm(struct gnutella_shell *sh, unsigned options)
 {
-	return memory_run_shower(sh, vmm_dump_stats_log, "VMM ");
+	return memory_run_opt_shower(sh, vmm_dump_stats_log, "VMM ", options);
 }
 
 static enum shell_reply
-shell_exec_memory_stats_xmalloc(struct gnutella_shell *sh)
+shell_exec_memory_stats_xmalloc(struct gnutella_shell *sh, unsigned options)
 {
-	return memory_run_shower(sh, xmalloc_dump_stats_log, "XM ");
+	return memory_run_opt_shower(sh, xmalloc_dump_stats_log, "XM ", options);
 }
 
 static enum shell_reply
-shell_exec_memory_stats_zalloc(struct gnutella_shell *sh)
+shell_exec_memory_stats_zalloc(struct gnutella_shell *sh, unsigned options)
 {
-	return memory_run_shower(sh, zalloc_dump_stats_log, "ZALLOC ");
+	return memory_run_opt_shower(sh, zalloc_dump_stats_log, "ZALLOC ", options);
 }
 
 static enum shell_reply
 shell_exec_memory_stats(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
+	const char *pretty;
+	const option_t options[] = {
+		{ "p", &pretty },
+	};
+	int parsed;
+	unsigned opt = 0;
 
-	if (argc < 2)
+	shell_check(sh);
+
+	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	if (parsed < 0)
 		return REPLY_ERROR;
 
+	argv += parsed;	/* args[0] is first command argument */
+	argc -= parsed;	/* counts only command arguments now */
+
+	if (argc < 1)
+		return REPLY_ERROR;
+
+	if (pretty != NULL)
+		opt |= DUMP_OPT_PRETTY;
+
 #define CMD(name) G_STMT_START { \
-	if (0 == ascii_strcasecmp(argv[1], #name)) \
-		return shell_exec_memory_stats_## name(sh); \
+	if (0 == ascii_strcasecmp(argv[0], #name)) \
+		return shell_exec_memory_stats_## name(sh, opt); \
 } G_STMT_END
 
 	CMD(vmm);
@@ -402,8 +463,9 @@ shell_help_memory(int argc, const char *argv[])
 				"memory show xmalloc   # display xmalloc() freelist info\n"
 				"memory show zones     # display zone usage\n";
 		} else if (0 == ascii_strcasecmp(argv[1], "stats")) {
-			return "memory stats vmm|xmalloc\n"
-				"show statistics about specified memory sub-system\n";
+			return "memory stats [-p] vmm|xmalloc\n"
+				"show statistics about specified memory sub-system\n"
+				"-p : pretty-print numbers with thousands separators\n";
 		}
 	} else {
 		return
@@ -411,7 +473,7 @@ shell_help_memory(int argc, const char *argv[])
 		"memory dump ADDRESS LENGTH\n"
 #endif
 		"memory show [options|pmap|xmalloc|zones]\n"
-		"memory stats vmm|xmalloc|zalloc\n";
+		"memory stats [-p] vmm|xmalloc|zalloc\n";
 	}
 	return NULL;
 }

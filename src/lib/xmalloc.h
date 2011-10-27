@@ -50,7 +50,7 @@ void xmalloc_show_settings_log(struct logagent *la);
 void xmalloc_stop_freeing(void);
 void xmalloc_stop_wfree(void);
 void xmalloc_dump_stats(void);
-void xmalloc_dump_stats_log(struct logagent *la);
+void xmalloc_dump_stats_log(struct logagent *la, unsigned options);
 void xmalloc_dump_freelist_log(struct logagent *la);
 
 void *xmalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;

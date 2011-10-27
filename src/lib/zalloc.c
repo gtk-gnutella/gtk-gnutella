@@ -74,14 +74,15 @@
 #endif
 
 #include "zalloc.h"
+#include "dump_options.h"
 #include "hashtable.h"
 #include "log.h"			/* For statistics logging */
 #include "malloc.h"			/* For MALLOC_FRAMES */
 #include "misc.h"			/* For short_filename() */
 #include "stacktrace.h"
 #include "stringify.h"
-#include "unsigned.h"
 #include "tm.h"
+#include "unsigned.h"
 #include "vmm.h"
 #include "xmalloc.h"
 
@@ -2623,12 +2624,15 @@ zalloc_dump_zones_log(logagent_t *la)
  * Dump zalloc() statistics to specified log agent.
  */
 G_GNUC_COLD void
-zalloc_dump_stats_log(logagent_t *la)
+zalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
+	/* Will be always less than a thousand, ignore pretty-priting */
 	log_info(la, "ZALLOC zone_count = %s",
 		size_t_to_string(NULL == zt ? 0 : hash_table_size(zt)));
 
-#define DUMP(x) log_info(la, "ZALLOC %s = %s", #x, uint64_to_string(zstats.x))
+#define DUMP(x)	log_info(la, "ZALLOC %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?						\
+		uint64_to_gstring(zstats.x) : uint64_to_string(zstats.x))
 
 	DUMP(allocations);
 	DUMP(freeings);
@@ -2655,6 +2659,7 @@ zalloc_dump_stats_log(logagent_t *la)
 
 #undef DUMP
 
+	/* Will be always less than a thousand, ignore pretty-priting */
 	log_info(la, "ZALLOC zgc_zone_count = %u", zgc_zone_cnt);
 }
 
@@ -2665,7 +2670,7 @@ G_GNUC_COLD void
 zalloc_dump_stats(void)
 {
 	s_info("ZALLOC running statistics:");
-	zalloc_dump_stats_log(log_agent_stderr_get());
+	zalloc_dump_stats_log(log_agent_stderr_get(), 0);
 	s_info("ZALLOC zones status:");
 	zalloc_dump_zones_log(log_agent_stderr_get());
 }

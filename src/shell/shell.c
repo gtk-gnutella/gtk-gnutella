@@ -326,9 +326,8 @@ shell_options_parse(struct gnutella_shell *sh,
 
 	ret = options_parse(argv, ovec, ovcnt);
 	if (ret < 0) {
-		shell_write(sh, "400-Syntax error: ");
-		shell_write(sh, options_parse_last_error());
-		shell_write(sh, "\n");
+		shell_write_linef(sh, REPLY_ERROR, "Syntax error: %s",
+			options_parse_last_error());
 		shell_set_msg(sh, _("Invalid command syntax"));
 	}
 	return ret;

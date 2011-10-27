@@ -47,6 +47,7 @@
 #include "xmalloc.h"
 #include "bit_array.h"
 #include "crash.h"			/* For crash_hook_add() */
+#include "dump_options.h"
 #include "glib-missing.h"
 #include "log.h"
 #include "misc.h"			/* For short_size() */
@@ -3197,9 +3198,11 @@ xmalloc_stop_wfree(void)
  * Dump xmalloc statistics to specified log agent.
  */
 G_GNUC_COLD void
-xmalloc_dump_stats_log(logagent_t *la)
+xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
-#define DUMP(x)	log_info(la, "XM %s = %s", #x, uint64_to_string(xstats.x))
+#define DUMP(x)	log_info(la, "XM %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?					\
+		uint64_to_gstring(xstats.x) : uint64_to_string(xstats.x))
 
 	DUMP(allocations);
 	DUMP(allocations_zeroed);
@@ -3292,7 +3295,7 @@ G_GNUC_COLD void
 xmalloc_dump_stats(void)
 {
 	s_info("XM running statistics:");
-	xmalloc_dump_stats_log(log_agent_stderr_get());
+	xmalloc_dump_stats_log(log_agent_stderr_get(), 0);
 	s_info("XM freelist status:");
 	xmalloc_dump_freelist_log(log_agent_stderr_get());
 }
