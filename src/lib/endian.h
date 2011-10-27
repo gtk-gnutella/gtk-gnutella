@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2006, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -19,6 +20,18 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Endiannes peek/poke routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ * @author Christian Biere
+ * @date 2006
  */
 
 #ifndef _endian_h_
