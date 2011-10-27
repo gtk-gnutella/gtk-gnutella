@@ -294,6 +294,8 @@ static struct {
 	guint64 zgc_scan_freed;			/**< Zones freed during zgc_scan() */
 	guint64 zgc_excess_zones_freed;	/**< Zones freed during zn_shrink() */
 	guint64 zgc_shrinked;			/**< Amount of zn_shrink() calls */
+	size_t user_memory;				/**< Current user memory allocated */
+	size_t user_blocks;				/**< Current amount of user blocks */
 } zstats;
 
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
@@ -498,6 +500,8 @@ zalloc(zone_t *zone)
 	/* NB: this routine must be as fast as possible. No assertions */
 
 	zstats.allocations++;
+	zstats.user_blocks++;
+	zstats.user_memory += zone->zn_size;
 
 	/*
 	 * Grab first available free block and update free list pointer. If we
@@ -788,6 +792,9 @@ zfree(zone_t *zone, void *ptr)
 		zone->zn_free = ptr;					/* New free list head */
 		zone->zn_cnt--;							/* To make zone gc easier */
 	}
+
+	zstats.user_blocks--;
+	zstats.user_memory -= zone->zn_size;
 }
 #endif	/* !REMAP_ZALLOC */
 
@@ -2657,10 +2664,18 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(zgc_excess_zones_freed);
 	DUMP(zgc_shrinked);
 
-#undef DUMP
-
 	/* Will be always less than a thousand, ignore pretty-priting */
 	log_info(la, "ZALLOC zgc_zone_count = %u", zgc_zone_cnt);
+
+#undef DUMP
+#define DUMP(x)	log_info(la, "ZALLOC %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?						\
+		size_t_to_gstring(zstats.x) : size_t_to_string(zstats.x))
+
+	DUMP(user_memory);
+	DUMP(user_blocks);
+
+#undef DUMP
 }
 
 /**
