@@ -43,12 +43,13 @@
 
 #include <math.h>		/* For frexp() and isfinite() */
 
+#include "str.h"
 #include "ascii.h"
 #include "ckalloc.h"
-#include "str.h"
 #include "glib-missing.h"
-#include "misc.h"			/* For clamp_strcpy */
 #include "halloc.h"
+#include "log.h"
+#include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
 #include "unsigned.h"
 #include "walloc.h"
 
@@ -373,7 +374,7 @@ str_destroy(str_t *str)
 	str_check(str);
 
 	if G_UNLIKELY(!(str->s_flags & STR_OBJECT))
-		g_error("str_destroy() called on \"static\" string object");
+		s_error("str_destroy() called on \"static\" string object");
 
 	str_free(str);
 	str->s_magic = 0;
@@ -412,7 +413,7 @@ str_resize(str_t *str, size_t newsize)
 	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		if (str->s_size >= newsize)
 			return;
-		g_error("str_resize() would expand \"foreign\" string");
+		s_error("str_resize() would expand \"foreign\" string");
 	}
 
 	/*
@@ -472,7 +473,7 @@ str_grow(str_t *str, size_t size)
 		return;					/* Nothing to do */
 
 	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR)
-		g_error("str_grow() called on \"foreign\" string");
+		s_error("str_grow() called on \"foreign\" string");
 
 	str->s_data = hrealloc(str->s_data, size);
 	str->s_size = size;
@@ -568,7 +569,7 @@ str_s2c(str_t *str)
 	str_check(str);
 
 	if G_UNLIKELY(!(str->s_flags & STR_OBJECT))
-		g_error("str_s2c() called on \"static\" string object");
+		s_error("str_s2c() called on \"static\" string object");
 
 	len = str->s_len;
 
@@ -1501,7 +1502,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 				int i = INT_MIN;
 				(void) frexp(nv, &i);
 				if (i == INT_MIN)
-					g_error("frexp");
+					s_error("frexp");
 				if (i > 0)
 					need = BIT_DIGITS(i);
 			}
@@ -1562,9 +1563,9 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 
 		default:
 			if (c)
-				g_warning("str_vncatf(): invalid conversion \"%%%c\"", c & 0xff);
+				s_warning("str_vncatf(): invalid conversion \"%%%c\"", c & 0xff);
 			else
-				g_warning("str_vncatf(): invalid end of string");
+				s_warning("str_vncatf(): invalid end of string");
 
 			/* output mangled stuff ... */
 			if (c == '\0')
