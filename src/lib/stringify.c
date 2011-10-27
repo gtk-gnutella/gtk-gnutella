@@ -520,6 +520,173 @@ fileoffset_t_to_string(fileoffset_t v)
 	return buf;
 }
 
+size_t
+int32_to_gstring_buf(gint32 v, char *dst, size_t size)
+{
+	char buf[UINT32_DEC_GRP_BUFLEN + 1];
+	char *p;
+	gboolean neg;
+	unsigned n;
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	p = buf;
+	neg = v < 0;
+	n = 0;
+
+	do {
+		int d = v % 10;
+
+		v /= 10;
+		if (0 == n++ % 3 && n != 1)
+			*p++ = ',';
+		*p++ = dec_digit(neg ? -d : d);
+	} while (0 != v);
+
+	if (neg) {
+		*p++ = '-';
+	}
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+size_t
+uint32_to_gstring_buf(guint32 v, char *dst, size_t size)
+{
+	char buf[UINT32_DEC_GRP_BUFLEN];
+	char *p;
+	unsigned n;
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	for (p = buf, n = 0; /* NOTHING */; v /= 10, n++) {
+		if (n != 0 && 0 == n % 3)
+			*p++ = ',';
+		*p++ = dec_digit(v % 10);
+		if (v < 10)
+			break;
+	}
+
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+size_t
+uint64_to_gstring_buf(guint64 v, char *dst, size_t size)
+{
+	char buf[UINT64_DEC_GRP_BUFLEN];
+	char *p;
+	unsigned n;
+
+	if ((guint32) -1 >= v) {
+		/* 32-bit arithmetic is cheaper for most machines */
+		return uint32_to_gstring_buf(v, dst, size);
+	}
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	for (p = buf, n = 0; /* NOTHING */; v /= 10, n++) {
+		if (n != 0 && 0 == n % 3)
+			*p++ = ',';
+		*p++ = dec_digit(v % 10);
+		if (v < 10)
+			break;
+	}
+
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+size_t
+uint_to_gstring_buf(unsigned v, char *dst, size_t size)
+{
+	char buf[UINT_DEC_GRP_BUFLEN];
+	char *p;
+	unsigned n;
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	for (p = buf, n = 0; /* NOTHING */; v /= 10, n++) {
+		if (n != 0 && 0 == n % 3)
+			*p++ = ',';
+		*p++ = dec_digit(v % 10);
+		if (v < 10)
+			break;
+	}
+
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+size_t
+size_t_to_gstring_buf(size_t v, char *dst, size_t size)
+{
+	char buf[SIZE_T_DEC_GRP_BUFLEN];
+	char *p;
+	unsigned n;
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	for (p = buf, n = 0; /* NOTHING */; v /= 10, n++) {
+		if (n != 0 && 0 == n % 3)
+			*p++ = ',';
+		*p++ = dec_digit(v % 10);
+		if (v < 10)
+			break;
+	}
+
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+const char *
+uint32_to_gstring(guint32 v)
+{
+	static char buf[UINT32_DEC_GRP_BUFLEN];
+	size_t n;
+
+	n = uint32_to_gstring_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+const char *
+uint64_to_gstring(guint64 v)
+{
+	static char buf[UINT64_DEC_GRP_BUFLEN];
+	size_t n;
+
+	n = uint64_to_gstring_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+const char *
+uint_to_gstring(unsigned v)
+{
+	static char buf[UINT_DEC_GRP_BUFLEN];
+	size_t n;
+
+	n = uint_to_gstring_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+const char *
+size_t_to_gstring(size_t v)
+{
+	static char buf[SIZE_T_DEC_GRP_BUFLEN];
+	size_t n;
+
+	n = size_t_to_gstring_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
 /**
  * @return hexadecimal string representation of "small" binary buffer.
  *

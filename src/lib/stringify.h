@@ -65,6 +65,9 @@
 #define TYPE_DEC_BUFLEN(t) BIT_DEC_BUFLEN(sizeof(t) * CHAR_BIT + SIGNED_TYPE(t))
 #define TYPE_HEX_BUFLEN(t) (1 + sizeof(t) * (CHAR_BIT / 4))
 
+#define GROUPPED_DEC_BUFLEN(t) \
+	(TYPE_DEC_BUFLEN(t) + (BIT_DEC_BUFLEN(sizeof(t) * CHAR_BIT)) / 3)
+
 /*
  * The following include space for NUL, too.
  */
@@ -88,6 +91,16 @@
 #define HOST_ADDR_BUFLEN		(MAX(IPV4_ADDR_BUFLEN, IPV6_ADDR_BUFLEN))
 #define HOST_ADDR_PORT_BUFLEN	(HOST_ADDR_BUFLEN + sizeof ":[65535]")
 
+#define UINT16_DEC_GRP_BUFLEN	GROUPPED_DEC_BUFLEN(guint16)
+#define UINT32_DEC_GRP_BUFLEN	GROUPPED_DEC_BUFLEN(guint32)
+#define UINT64_DEC_GRP_BUFLEN	GROUPPED_DEC_BUFLEN(guint64)
+#define OFF_T_DEC_GRP_BUFLEN	GROUPPED_DEC_BUFLEN(fileoffset_t)
+#define TIME_T_DEC_GRP_BUFLEN	GROUPPED_DEC_BUFLEN(time_t)
+#define SIZE_T_DEC_GRP_BUFLEN	GROUPPED_DEC_BUFLEN(size_t)
+#define USHRT_DEC_GRP_BUFLEN	GROUPPED_DEC_BUFLEN(unsigned short)
+#define UINT_DEC_GRP_BUFLEN		GROUPPED_DEC_BUFLEN(unsigned int)
+#define ULONG_DEC_GRP_BUFLEN	GROUPPED_DEC_BUFLEN(unsigned long)
+
 size_t int32_to_string_buf(gint32 v, char *dst, size_t size);
 size_t uint32_to_string_buf(guint32 v, char *dst, size_t size);
 size_t uint64_to_string_buf(guint64 v, char *dst, size_t size);
@@ -110,6 +123,20 @@ size_t ipv6_to_string_buf(const guint8 *ipv6, char *dst, size_t size);
 char *hex_escape(const char *name, gboolean strict);
 char *control_escape(const char *s);
 const char *lazy_string_to_printf_escape(const char *src);
+
+/*
+ * Groupped by thousands integer values.
+ */
+
+size_t int32_to_gstring_buf(gint32 v, char *dst, size_t size);
+size_t uint32_to_gstring_buf(guint32 v, char *dst, size_t size);
+size_t uint64_to_gstring_buf(guint64 v, char *dst, size_t size);
+size_t uint_to_gstring_buf(unsigned v, char *dst, size_t size);
+size_t size_t_to_gstring_buf(size_t v, char *dst, size_t size);
+const char *uint32_to_gstring(guint32);
+const char *uint64_to_gstring(guint64);
+const char *uint_to_gstring(unsigned v);
+const char *size_t_to_gstring(size_t v);
 
 /*
  * Time string conversions
