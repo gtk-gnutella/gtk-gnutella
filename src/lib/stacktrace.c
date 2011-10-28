@@ -122,15 +122,13 @@ static size_t stack_auto_offset;
 static hash_table_t *stack_atoms;
 static const char NM_FILE[] = "gtk-gnutella.nm";
 
-#ifndef HAS_BACKTRACE
 static void *getreturnaddr(size_t level);
 static void *getframeaddr(size_t level);
-#endif
 
 /**
  * Unwind current stack into supplied stacktrace array.
  *
- * If possible, do not inline stacktrace_unwind() as this would perturb
+ * If possible, do not inline stacktrace_gcc_unwind() as this would perturb
  * offsetting of stack elements to ignore.
  *
  * @param stack		array where stack should be written
@@ -139,48 +137,8 @@ static void *getframeaddr(size_t level);
  *
  * @return the amount of entries filled in stack[].
  */
-NO_INLINE size_t
-stacktrace_unwind(void *stack[], size_t count, size_t offset)
-#ifdef HAS_BACKTRACE
-{
-	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
-	int depth;
-    size_t amount;		/* Amount of entries we can copy in result */
-	size_t idx;
-
-	g_assert(size_is_non_negative(offset));
-
-	/*
-	 * When the size of stack[] is greater than the size of trace[], we
-	 * backtrace directly into stack[], then copy over the result to be
-	 * able to perform the offsetting.
-	 *
-	 * This is required for "safe" partial unwinding if coming from
-	 * stacktrace_where_cautious_print_offset(): if we get a signal, the
-	 * backtrace() operation will be aborted the hard way but hopefully we
-	 * will have already filled some items in stack[].
-	 */
-
-	if (count >= G_N_ELEMENTS(trace)) {
-		depth = backtrace(stack, G_N_ELEMENTS(trace));
-		memcpy(trace, stack, depth * sizeof trace[0]);
-	} else {
-		depth = backtrace(trace, G_N_ELEMENTS(trace));
-	}
-	idx = size_saturate_add(offset, stack_auto_offset);
-
-	g_assert(size_is_non_negative(idx));
-
-	if (UNSIGNED(depth) <= idx)
-		return 0;
-
-	amount = idx - UNSIGNED(depth);
-	amount = MIN(amount, count);
-	memcpy(stack, &trace[idx], amount * sizeof trace[0]);
-
-	return amount;
-}
-#else	/* !HAS_BACKTRACE */
+static NO_INLINE size_t
+stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 {
     size_t i;
 	void *frame;
@@ -244,6 +202,89 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 	}
 
 	return i - offset;
+}
+
+/**
+ * Unwind current stack into supplied stacktrace array.
+ *
+ * If possible, do not inline stacktrace_unwind() as this would perturb
+ * offsetting of stack elements to ignore.
+ *
+ * @param stack		array where stack should be written
+ * @param count		amount of items in stack[]
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ *
+ * @return the amount of entries filled in stack[].
+ */
+NO_INLINE size_t
+stacktrace_unwind(void *stack[], size_t count, size_t offset)
+#ifdef HAS_BACKTRACE
+{
+	static gboolean in_unwind;
+	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
+	int depth;
+    size_t amount;		/* Amount of entries we can copy in result */
+	size_t idx;
+
+	g_assert(size_is_non_negative(offset));
+
+	/*
+	 * backtrace() can call malloc(), which can cause fatal recursion here when
+	 * compiled with xmalloc() trapping malloc()...
+	 */
+
+	if (in_unwind) {
+		/*
+		 * Don't "return" here, to avoid tail recursion since we increase the
+		 * stack offsetting.
+		 */
+
+		amount = stacktrace_gcc_unwind(stack, count, offset + 1);
+		goto done;
+	}
+
+	/*
+	 * When the size of stack[] is greater than the size of trace[], we
+	 * backtrace directly into stack[], then copy over the result to be
+	 * able to perform the offsetting.
+	 *
+	 * This is required for "safe" partial unwinding if coming from
+	 * stacktrace_where_cautious_print_offset(): if we get a signal, the
+	 * backtrace() operation will be aborted the hard way but hopefully we
+	 * will have already filled some items in stack[].
+	 */
+
+	in_unwind = TRUE;
+
+	if (count >= G_N_ELEMENTS(trace)) {
+		depth = backtrace(stack, count);
+		memcpy(trace, stack, depth * sizeof trace[0]);
+	} else {
+		depth = backtrace(trace, G_N_ELEMENTS(trace));
+	}
+
+	in_unwind = FALSE;
+	idx = size_saturate_add(offset, stack_auto_offset);
+
+	g_assert(size_is_non_negative(idx));
+
+	if (UNSIGNED(depth) <= idx)
+		return 0;
+
+	amount = idx - UNSIGNED(depth);
+	amount = MIN(amount, count);
+	memcpy(stack, &trace[idx], amount * sizeof trace[0]);
+
+done:
+	return amount;
+}
+#else	/* !HAS_BACKTRACE */
+{
+	/*
+	 * Don't increase offset, this is tail recursion and it can be optimized
+	 * away.  At worst we'll see this call in the stack.
+	 */
+	return stacktrace_gcc_unwind(stack, count, offset);
 }
 #endif	/* HAS_BACKTRACE */
 
@@ -1651,8 +1692,6 @@ stacktrace_get_atom(const struct stacktrace *st)
  ***		--RAM, 2010-10-24
  ***/
 
-#ifndef HAS_BACKTRACE
-
 /*
  * getreturnaddr() and getframeaddr() are:
  *
@@ -1991,7 +2030,5 @@ getframeaddr(size_t level)
 	return NULL;
 }
 #endif	/* GCC >= 3.0 */
-
-#endif	/* !HAS_BACKTRACE */
 
 /* vi: set ts=4 sw=4 cindent:  */
