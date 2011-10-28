@@ -79,6 +79,7 @@ typedef enum {
 #include "glib-missing.h"
 #include "log.h"
 #include "walloc.h"
+#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -158,7 +159,7 @@ mem_pool_new(size_t size, size_t hold)
   ps = compat_pagesize();
   len = hold * size;
   
-  mp = vmm_alloc(len);
+  mp = vmm_core_alloc(len);
   if (mp) {
     size_t i, step = size / sizeof mp->chunks[0];
     
@@ -184,7 +185,7 @@ mem_new(size_t size)
 
   g_assert(size > 0);
   
-  mc = g_malloc(sizeof *mc);
+  mc = xpmalloc(sizeof *mc);
   if (mc) {
     union mem_chunk chunk;
     
@@ -216,7 +217,7 @@ mem_alloc(struct mem_cache *mc)
     if (mp) {
       void *q;
       
-      q = g_realloc(mc->pools, (1 + mc->num_pools) * sizeof mc->pools[0]);
+      q = xprealloc(mc->pools, (1 + mc->num_pools) * sizeof mc->pools[0]);
       if (q) {
         mc->pools = q;
         mc->pools[mc->num_pools++] = mp;
@@ -225,7 +226,7 @@ mem_alloc(struct mem_cache *mc)
         p = mc->avail;
         mc->avail = mc->avail->next;
       } else {
-        free(mp);
+        vmm_core_free(mp, compat_pagesize() * mc->hold);
       }
     }
   }
