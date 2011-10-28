@@ -978,6 +978,7 @@ upnp_map_publish_reply(int code, void *value, size_t size, void *arg)
 
 	g_assert(NULL == value);
 	g_assert(0 == size);
+	upnp_mapping_check(um);
 
 	um->rpc = NULL;		/* RPC completed */
 
@@ -1027,6 +1028,8 @@ upnp_map_natpmp_publish_reply(int code,
 	guint16 port, unsigned lifetime, void *arg)
 {
 	struct upnp_mapping *um = arg;
+
+	upnp_mapping_check(um);
 
 	if (NATPMP_E_OK == code && port == um->port) {
 		if (GNET_PROPERTY(upnp_debug) > 2) {
@@ -1308,6 +1311,7 @@ upnp_map_remove(enum upnp_map_proto proto, guint16 port)
 				upnp_map_proto_to_string(proto), port);
 		}
 	} else {
+		upnp_mapping_check(um);
 		g_hash_table_remove(upnp_mappings, um);
 
 		if (upnp_map_unpublish(um)) {
