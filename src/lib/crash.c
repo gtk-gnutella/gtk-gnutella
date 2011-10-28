@@ -133,6 +133,7 @@ struct crash_vars {
 	hash_table_t *hooks;	/**< Records crash hooks by file name */
 	gboolean crash_mode;	/**< True when we enter crash mode */
 	gboolean recursive;		/**< True when we are in a recursive crash */
+	gboolean closed;		/**< True when crash_close() was called */
 	unsigned build;			/**< Build number, unique version number */
 	unsigned pause_process:1;
 	unsigned invoke_inspector:1;
@@ -573,8 +574,11 @@ crash_message(const char *signame, gboolean trace, gboolean recursive)
 	print_str(signame);					/* 6 */
 	print_str(" after ");				/* 7 */
 	print_str(runtime_buf);				/* 8 */
-	if (trace)
+	if (vars->closed) {
+		print_str(" during final exit()");	/* 9 */
+	} else if (trace) {
 		print_str(" -- stack was:");	/* 9 */
+	}
 	print_str("\n");					/* 10, at most */
 	flush_err_str();
 	if (log_stdout_is_distinct())
@@ -591,7 +595,7 @@ crash_end_of_line(void)
 	char pid_buf[22];
 	char time_buf[18];
 
-	if (!vars->invoke_inspector)
+	if (!vars->invoke_inspector && !vars->closed)
 		crash_run_hooks(NULL, -1);
 
 	crash_time(time_buf, sizeof time_buf);
@@ -600,7 +604,9 @@ crash_end_of_line(void)
 	print_str(" CRASH (pid=");		/* 1 */
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
-	if (vars->invoke_inspector) {
+	if (vars->closed) {
+		print_str("end of line.");	/* 4 */
+	} else if (vars->invoke_inspector) {
 		if (NULL != vars->exec_path) {
 			print_str("calling ");				/* 4 */
 			print_str(vars->exec_path);			/* 5 */
@@ -1358,7 +1364,7 @@ crash_handler(int signo)
 		} else if (3 == crashed) {
 			raise(signo);
 		}
-		exit(1);	/* Die, die, die! */
+		_exit(EXIT_FAILURE);	/* Die, die, die! */
 	}
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
@@ -1407,6 +1413,18 @@ crash_handler(int signo)
 	}
 
 	/*
+	 * When crash_close() was called, print minimal error message and exit.
+	 */
+
+	name = signal_name(signo);
+
+	if (vars->closed) {
+		crash_message(name, FALSE, recursive);
+		crash_end_of_line();
+		_exit(EXIT_FAILURE);
+	}
+
+	/*
 	 * Try to go back to the crashing directory, if configured, when we're
 	 * about to exec() a process, so that the core dump happens there,
 	 * even if we're daemonized.
@@ -1429,7 +1447,6 @@ crash_handler(int signo)
 	}
 
 	trace = recursive ? FALSE : !stacktrace_cautious_was_logged();
-	name = signal_name(signo);
 
 	crash_message(name, trace, recursive);
 	if (trace) {
@@ -1836,6 +1853,24 @@ crash_post_init(void)
 {
 	ck_shrink(vars->mem, 0);		/* Shrink as much as possible */
 	ck_shrink(vars->mem2, 0);
+}
+
+/**
+ * Called at exit() time, when all the program data structures have been
+ * released and when we give control back to possible atexit() handlers.
+ *
+ * When xmalloc() is malloc(), it is possible to get occasional SIGSEGV
+ * in exit handlers from gdk_exit() in the XCloseDisplay() sequence.
+ *
+ * When that happens, we don't want to pause() or dump a core.
+ */
+void
+crash_close(void)
+{
+	if (vars != NULL) {
+		gboolean t = TRUE;
+		crash_set_var(closed, t);
+	}
 }
 
 /**

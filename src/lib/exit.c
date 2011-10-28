@@ -39,6 +39,7 @@
 #include "common.h"
 
 #include "exit.h"
+#include "crash.h"
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -53,6 +54,7 @@ G_GNUC_COLD void
 do_exit(int status)
 {
 	xmalloc_stop_freeing();
+	crash_close();
 	exit(status);
 }
 

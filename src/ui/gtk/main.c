@@ -70,12 +70,14 @@
 
 #include "if/bridge/ui2c.h"
 
+#include "lib/crash.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
-#include "lib/tm.h"
-#include "lib/utf8.h"
 #include "lib/omalloc.h"
 #include "lib/path.h"
+#include "lib/tm.h"
+#include "lib/utf8.h"
+
 #include "lib/override.h"			/* Must be the last header included */
 
 /***
@@ -902,6 +904,7 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 void
 main_gui_exit(int n)
 {
+	crash_close();
 	gtk_exit(n);
 }
 

@@ -158,6 +158,7 @@ struct assertion_data;
 
 void crash_init(const char *argv0, const char *progname,
 	int flags, const char *exec_path);
+void crash_close(void);
 void crash_time(char *buf, size_t buflen);
 void crash_time_iso(char *buf, size_t size);
 const char *crash_signame(int signo);
