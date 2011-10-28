@@ -69,6 +69,7 @@
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
+#include "timestamp.h"
 #include "tm.h"
 #include "walloc.h"
 
@@ -85,6 +86,7 @@ static const char * const log_domains[] = {
 static gboolean atoms_are_inited;
 static gboolean log_inited;
 static str_t *log_str;
+static time_delta_t log_gmtoff;
 
 /**
  * A Log file we manage.
@@ -775,13 +777,27 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		}
 	} else {
 		time_t now = tm_time_exact();
-		struct tm *ct = localtime(&now);
+		struct tm ct;
 
-		log_fprint(LOG_STDERR, ct, level, prefix, str_2c(msg));
+		/*
+		 * Can't use localtime(&now) to fill-in ``ct'' since we're in a
+		 * safe logging routine and we may be in the middle of a regular
+		 * g_logv() call which calls localtime() already, and that call
+		 * can malloc().  Any logging done in a memory allocator would cause
+		 * us to come here and deadlock on the second localtime().
+		 *
+		 * Therefore, do the conversion ourselves.
+		 */
+
+		if G_UNLIKELY(!off_time(now + log_gmtoff, 0, &ct)) {
+			ZERO(&ct);
+		}
+
+		log_fprint(LOG_STDERR, &ct, level, prefix, str_2c(msg));
 
 		if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
 			if (log_stdout_is_distinct())
-				log_fprint(LOG_STDOUT, ct, level, prefix, str_2c(msg));
+				log_fprint(LOG_STDOUT, &ct, level, prefix, str_2c(msg));
 			crash_set_error(str_2c(msg));
 		}
 	}
@@ -1609,6 +1625,8 @@ log_init(void)
 	logfile[LOG_STDERR].fd = fileno(stderr);
 	logfile[LOG_STDERR].name = "err";
 	logfile[LOG_STDERR].otime = tm_time();
+
+	log_gmtoff = timestamp_gmt_offset(time(NULL), NULL);
 
 	log_inited = TRUE;
 }
