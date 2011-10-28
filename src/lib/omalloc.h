@@ -38,9 +38,12 @@ void *omalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *omalloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 char *ostrdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 
+struct logagent;
+
 size_t omalloc_page_count(void);
 void set_omalloc_debug(guint32 level);
 void omalloc_close(void);
+void omalloc_dump_stats_log(struct logagent *la, unsigned options);
 
 #endif /* _omalloc_h_ */
 

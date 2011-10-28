@@ -44,6 +44,7 @@
 #include "lib/file.h"
 #include "lib/log.h"
 #include "lib/misc.h"
+#include "lib/omalloc.h"
 #include "lib/parse.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -349,21 +350,27 @@ shell_exec_memory_show(struct gnutella_shell *sh,
 }
 
 static enum shell_reply
-shell_exec_memory_stats_vmm(struct gnutella_shell *sh, unsigned options)
+shell_exec_memory_stats_vmm(struct gnutella_shell *sh, unsigned opt)
 {
-	return memory_run_opt_shower(sh, vmm_dump_stats_log, "VMM ", options);
+	return memory_run_opt_shower(sh, vmm_dump_stats_log, "VMM ", opt);
 }
 
 static enum shell_reply
-shell_exec_memory_stats_xmalloc(struct gnutella_shell *sh, unsigned options)
+shell_exec_memory_stats_xmalloc(struct gnutella_shell *sh, unsigned opt)
 {
-	return memory_run_opt_shower(sh, xmalloc_dump_stats_log, "XM ", options);
+	return memory_run_opt_shower(sh, xmalloc_dump_stats_log, "XM ", opt);
 }
 
 static enum shell_reply
-shell_exec_memory_stats_zalloc(struct gnutella_shell *sh, unsigned options)
+shell_exec_memory_stats_zalloc(struct gnutella_shell *sh, unsigned opt)
 {
-	return memory_run_opt_shower(sh, zalloc_dump_stats_log, "ZALLOC ", options);
+	return memory_run_opt_shower(sh, zalloc_dump_stats_log, "ZALLOC ", opt);
+}
+
+static enum shell_reply
+shell_exec_memory_stats_omalloc(struct gnutella_shell *sh, unsigned opt)
+{
+	return memory_run_opt_shower(sh, omalloc_dump_stats_log, "OMALLOC ", opt);
 }
 
 static enum shell_reply
@@ -400,10 +407,11 @@ shell_exec_memory_stats(struct gnutella_shell *sh,
 	CMD(vmm);
 	CMD(xmalloc);
 	CMD(zalloc);
+	CMD(omalloc);
 
 #undef CMD
 
-	shell_set_formatted(sh, _("Unknown operation \"stats %s\""), argv[1]);
+	shell_set_formatted(sh, _("Unknown operation \"stats %s\""), argv[0]);
 	return REPLY_ERROR;
 }
 
@@ -463,7 +471,7 @@ shell_help_memory(int argc, const char *argv[])
 				"memory show xmalloc   # display xmalloc() freelist info\n"
 				"memory show zones     # display zone usage\n";
 		} else if (0 == ascii_strcasecmp(argv[1], "stats")) {
-			return "memory stats [-p] vmm|xmalloc\n"
+			return "memory stats [-p] omalloc|vmm|xmalloc|zalloc\n"
 				"show statistics about specified memory sub-system\n"
 				"-p : pretty-print numbers with thousands separators\n";
 		}
@@ -472,8 +480,8 @@ shell_help_memory(int argc, const char *argv[])
 #ifdef ALLOW_DUMP
 		"memory dump ADDRESS LENGTH\n"
 #endif
-		"memory show [options|pmap|xmalloc|zones]\n"
-		"memory stats [-p] vmm|xmalloc|zalloc\n";
+		"memory show options|pmap|xmalloc|zones\n"
+		"memory stats [-p] omalloc|vmm|xmalloc|zalloc\n";
 	}
 	return NULL;
 }
