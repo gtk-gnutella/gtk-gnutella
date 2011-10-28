@@ -31,8 +31,20 @@ const char *main_get_build_full(void);
 
 #ifdef CORE_SOURCES
 
+/**
+ * Mode for gtk_gnutella_request_shutdown().
+ */
+
+enum shutdown_mode {
+	GTKG_SHUTDOWN_NORMAL = 1,
+	GTKG_SHUTDOWN_ASSERT,
+	GTKG_SHUTDOWN_ERROR,
+	GTKG_SHUTDOWN_MEMORY,
+	GTKG_SHUTDOWN_SIGNAL
+};
+
 void gtk_gnutella_exit(int n);
-void gtk_gnutella_request_shutdown(void);
+void gtk_gnutella_request_shutdown(enum shutdown_mode mode);
 gboolean debugging(guint t);
 const char *gtk_gnutella_interface(void);
 

@@ -179,6 +179,7 @@ static volatile sig_atomic_t from_atexit;
 static volatile sig_atomic_t signal_received;
 static volatile sig_atomic_t shutdown_requested;
 static volatile sig_atomic_t sig_hup_received;
+static enum shutdown_mode shutdown_user_mode = GTKG_SHUTDOWN_NORMAL;
 static jmp_buf atexit_env;
 static volatile const char *exit_step = "gtk_gnutella_exit";
 
@@ -428,9 +429,10 @@ log_cpu_usage(tm_t *since_time, double *prev_user, double *prev_sys)
 }
 
 void
-gtk_gnutella_request_shutdown(void)
+gtk_gnutella_request_shutdown(enum shutdown_mode mode)
 {
 	shutdown_requested = 1;
+	shutdown_user_mode = mode;
 }
 
 /**
@@ -450,13 +452,44 @@ main_dispatch(void)
 	cq_dispatch();
 }
 
+/*
+ * If they requested abnormal termination after shutdown, comply now.
+ */
+static G_GNUC_COLD void
+handle_user_shutdown_request(enum shutdown_mode mode)
+{
+	const char *msg = "crashing at your request";
+	const char *trigger = "shutdown completed, triggering";
+	volatile int *p = uint_to_pointer(0xdeadbeefU);
+
+	switch (mode) {
+	case GTKG_SHUTDOWN_NORMAL:
+		break;
+	case GTKG_SHUTDOWN_ASSERT:
+		s_message("%s assertion failure", trigger);
+		g_assert_log(FALSE, "%s", msg);
+	case GTKG_SHUTDOWN_ERROR:
+		s_message("%s error", trigger);
+		s_error("%s", msg);
+		break;
+	case GTKG_SHUTDOWN_MEMORY:
+		s_message("%s memory access error", trigger);
+		*p = 0xc001;
+		break;
+	case GTKG_SHUTDOWN_SIGNAL:
+		s_message("%s SIGILL", trigger);
+		raise(SIGILL);
+		break;
+	}
+}
+
 /**
  * Exit program, return status `exit_code' to parent process.
  *
  * Shutdown systems, so we can track memory leaks, and wait for EXIT_GRACE
  * seconds so that BYE messages can be sent to other nodes.
  */
-void
+G_GNUC_COLD void
 gtk_gnutella_exit(int exit_code)
 {
 	static volatile sig_atomic_t safe_to_exit;
@@ -712,17 +745,19 @@ gtk_gnutella_exit(int exit_code)
 	DO(vmm_close);
 	DO(signal_close);
 
-	if (debugging(0) || signal_received || shutdown_requested) {
+	if (debugging(0) || signal_received || shutdown_requested)
 		g_info("gtk-gnutella shut down cleanly.");
-	}
-	if (!running_topless) {
+
+	if (shutdown_requested)
+		handle_user_shutdown_request(shutdown_user_mode);
+
+	if (!running_topless)
 		main_gui_exit(exit_code);
-	}
+
 	exit(exit_code);
 
 #undef DO
 #undef DO_ARG
-
 }
 
 static void
