@@ -1319,6 +1319,15 @@ crash_mode(void)
 			ck_writable(vars->fmtck);		/* Chunk holding vars->fmtstr */
 			log_crashing(vars->fmtstr);
 		}
+		if (ck_is_readonly(vars->fmtck)) {
+			char time_buf[18];
+			DECLARE_STR(2);
+
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);
+			print_str(" WARNING: formatting string held in read-only chunk\n");
+			flush_err_str();
+		}
 	} else {
 		char time_buf[18];
 		DECLARE_STR(2);
