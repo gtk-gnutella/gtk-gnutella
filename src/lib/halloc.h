@@ -72,10 +72,8 @@ hcopy(const void *p, size_t size)
 	return cp;
 }
 
-char *h_strdup(const char *str) WARN_UNUSED_RESULT
-	G_GNUC_MALLOC;
-char *h_strndup(const char *str, size_t n) WARN_UNUSED_RESULT
-	G_GNUC_MALLOC;
+char *h_strdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+char *h_strndup(const char *str, size_t n) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 char *h_strjoinv(const char *separator, char **str_array);
 void h_strfreev(char **str_array);
 char *h_strconcat(const char *str1, ...) WARN_UNUSED_RESULT G_GNUC_MALLOC 
