@@ -42,6 +42,7 @@
 #include "common.h"		/* For RCSID */
 
 #include "ckalloc.h"
+#include "log.h"
 #include "signal.h"
 #include "unsigned.h"
 #include "vmm.h"
@@ -76,6 +77,17 @@ ckhunk_check(const struct ckhunk * const ck)
 {
 	/* A NULL `ck' argument is allowed in the interface, for robustness */
 	g_assert(NULL == ck || CKHUNK_MAGIC == ck->magic);
+}
+
+/**
+ * Is chunk read-only?
+ */
+gboolean
+ck_is_readonly(ckhunk_t *ck)
+{
+	ckhunk_check(ck);
+
+	return NULL == ck ? FALSE : ck->read_only;
 }
 
 /**
@@ -412,6 +424,23 @@ ck_strdup(ckhunk_t *ck, const char *str)
 }
 
 /**
+ * Change chunk memory protections.
+ */
+static void
+ck_protect(ckhunk_t *ck, int prot)
+{
+	ckhunk_check(ck);
+	g_assert(ck != NULL);
+
+	if (-1 == mprotect(ck, ck->size, prot)) {
+		s_error("mprotect(%p, %lu, %s) failed: %m",
+			(void *) ck, (unsigned long) ck->size,
+			(PROT_WRITE & prot) ? "PROT_READ | PROT_WRITE" :
+			(PROT_READ & prot) ? "PROT_READ" : "PROT_NONE");
+	}
+}
+
+/**
  * Turn chunk into a read-only memory area.
  */
 void
@@ -432,7 +461,7 @@ ck_readonly(ckhunk_t *ck)
 
 	if (!ck->read_only) {
 		ck->read_only = TRUE;
-		mprotect(ck, ck->size, PROT_READ);
+		ck_protect(ck, PROT_READ);
 	}
 }
 
@@ -454,7 +483,7 @@ ck_writable(ckhunk_t *ck)
 	 */
 
 	if (ck->read_only) {
-		mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
+		ck_protect(ck, PROT_READ | PROT_WRITE);
 		ck->read_only = FALSE;
 	}
 }
@@ -478,11 +507,11 @@ ck_alloc_readonly(ckhunk_t *ck, size_t len)
 	if (!signal_enter_critical(&set))
 		return NULL;
 
-	mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
+	ck_protect(ck, PROT_READ | PROT_WRITE);
 	ck->read_only = FALSE;
 	p = ckalloc(ck, len, FALSE);
 	ck->read_only = TRUE;
-	mprotect(ck, ck->size, PROT_READ);
+	ck_protect(ck, PROT_READ);
 
 	signal_leave_critical(&set);
 	return p;
@@ -509,14 +538,14 @@ ck_copy_readonly(ckhunk_t *ck, const void *p, size_t size)
 	if (!signal_enter_critical(&set))
 		return NULL;
 
-	mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
+	ck_protect(ck, PROT_READ | PROT_WRITE);
 	ck->read_only = FALSE;
 	/* FIXME: Don't increase alignment of p */
 	cp = ckalloc(ck, size, FALSE);
 	if (cp != NULL)
 		memcpy(cp, p, size);
 	ck->read_only = TRUE;
-	mprotect(ck, ck->size, PROT_READ);
+	ck_protect(ck, PROT_READ);
 
 	signal_leave_critical(&set);
 	return cp;
@@ -572,14 +601,14 @@ ck_shrink(ckhunk_t *ck, size_t size)
 		return FALSE;
 
 	if (ck->read_only)
-		mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
+		ck_protect(ck, PROT_READ | PROT_WRITE);
 
 	vmm_shrink(ck->arena, ck->size, nsize);
 	ck->size = nsize;
 	ck->end = ck->arena + ck->size;
 
 	if (ck->read_only)
-		mprotect(ck, ck->size, PROT_READ);
+		ck_protect(ck, PROT_READ);
 
 	g_assert(ptr_cmp(ck->end, ck->avail) >= 0);
 
@@ -618,12 +647,12 @@ ck_memcpy(ckhunk_t *ck, void *dest, const void *src, size_t size)
 		return FALSE;
 
 	if (ck->read_only)
-		mprotect(ck, ck->size, PROT_READ | PROT_WRITE);
+		ck_protect(ck, PROT_READ | PROT_WRITE);
 
 	memcpy(dest, src, size);		/* The copy operation */
 
 	if (ck->read_only)
-		mprotect(ck, ck->size, PROT_READ);
+		ck_protect(ck, PROT_READ);
 
 	signal_leave_critical(&set);
 	return TRUE;
