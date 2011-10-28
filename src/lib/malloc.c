@@ -920,7 +920,8 @@ real_malloc(size_t size)
 	return o;
 }
 
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined(MALLOC_VTABLE)
+#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
+	defined(TRACK_VMM) || defined(MALLOC_VTABLE)
 
 #ifdef MALLOC_SAFE
 /**
@@ -1054,9 +1055,9 @@ real_free(void *p)
 		free(p);		/* NOT g_free(): would recurse if MALLOC_VTABLE */
 	}
 }
-#endif /* TRACK_MALLOC || TRACK_ZALLOC || MALLOC_VTABLE */
+#endif /* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM || MALLOC_VTABLE */
 
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
+#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined(TRACK_VMM)
 /**
  * Wraps strdup() call so that real_free() can be used on the result.
  */
@@ -1075,7 +1076,7 @@ real_strdup(const char *s)
 
 	return p;
 }
-#endif	/* TRACK_MALLOC || TRACK_ZALLOC */
+#endif	/* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM */
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 /**

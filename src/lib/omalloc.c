@@ -427,10 +427,10 @@ omalloc(size_t size)
 		return omalloc_chunk_allocate_from(ck, rounded);
 
 	/*
-	 * Request new memory.
+	 * Request new "core" memory.
 	 */
 
-	result = vmm_alloc_not_leaking(rounded);
+	result = vmm_core_alloc(rounded);
 	allocated = round_pagesize(rounded);
 
 	if (omalloc_debug > 2) {

@@ -82,6 +82,20 @@
  * other allocators may need to be initialized, and the initialization order
  * is important.
  *
+ * We distinguish two different type of memory regions here: "user" and "core".
+ *
+ * A "user" region is one allocated explicitly by user code to use as a
+ * storage area. It is allocated by vmm_alloc() and needs to be released by
+ * calling vmm_free().
+ *
+ * A "core" region is one allocated by other memory allocators and which will
+ * be broken up into pieces possibly before being distributed to users.
+ *
+ * Portions of "core" regions may be freed at any time, whereas "user" regions
+ * are allocated and freed atomically.  No "user" region should leak, but "core"
+ * regions can and will leak due to possible memory fragmentation at the memory
+ * allocator level.
+ *
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
@@ -240,6 +254,12 @@ static struct {
 	guint64 cache_expired_pages;	/**< Expired pages from cache */
 	guint64 high_order_coalescing;	/**< Large regions successfully coalesced */
 	guint64 pmap_overruled;			/**< Regions overruled by kernel */
+	size_t user_memory;				/**< Amount of "user" memory allocated */
+	size_t user_pages;				/**< Amount of "user" memory pages used */
+	size_t user_blocks;				/**< Amount of "user" memory blocks */
+	size_t core_memory;				/**< Amount of "core" memory allocated */
+	size_t core_pages;				/**< Amount of "core" memory pages used */
+	/* Tracking core blocks doesn't make sense: "core" can be fragmented */
 } vmm_stats;
 
 /**
@@ -3135,10 +3155,18 @@ vmm_invalidate_pages(void *p, size_t size)
  * Allocates a page-aligned memory chunk, possibly returning a cached region
  * and only allocating a new region when necessary.
  *
- * @param size The size in bytes to allocate; will be rounded to the pagesize.
+ * When ``user_mem'' is FALSE, it means we're allocating memory that will be
+ * used by other memory allocators, not by "users": that memory will be
+ * accounted for when it is in turn allocated for user consumption, which is
+ * why we must not account for it here as being user memory.
+ *
+ * @param size 		size in bytes to allocate; will be rounded to the pagesize.
+ * @param user_mem	whether this memory is meant for "user" consumption
+ *
+ * @return pointer to allocated memory region
  */
-void *
-vmm_alloc(size_t size)
+static void *
+vmm_alloc_internal(size_t size, gboolean user_mem)
 {
 	size_t n;
 	void *p;
@@ -3159,9 +3187,10 @@ vmm_alloc(size_t size)
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		assert_vmm_is_allocated(p, size, VMF_NATIVE);
+
 		vmm_stats.alloc_from_cache++;
 		vmm_stats.alloc_from_cache_pages += n;
-		return p;
+		goto update_stats;
 	}
 
 	p = alloc_pages(size, TRUE, hole);
@@ -3173,7 +3202,46 @@ vmm_alloc(size_t size)
 	vmm_stats.alloc_direct_core++;
 	vmm_stats.alloc_direct_core_pages += n;
 
+	/* FALL THROUGH */
+
+update_stats:
+	if (user_mem) {
+		vmm_stats.user_memory += size;
+		vmm_stats.user_pages += n;
+		vmm_stats.user_blocks++;
+	} else {
+		vmm_stats.core_memory += size;
+		vmm_stats.core_pages += n;
+	}
+
 	return p;
+}
+
+/**
+ * Allocates a page-aligned memory chunk, possibly returning a cached region
+ * and only allocating a new region when necessary.
+ *
+ * @param size The size in bytes to allocate; will be rounded to the pagesize.
+ */
+void *
+vmm_alloc(size_t size)
+{
+	return vmm_alloc_internal(size, TRUE);
+}
+
+/**
+ * Allocates a page-aligned memory chunk, meant to be use as core for other
+ * memory allocator built on top of this layer.
+ *
+ * This means memory allocated here will NOT be accounted for as "user memory"
+ * and it MUST be freed with vmm_core_free() for sound accounting.
+ *
+ * @param size The size in bytes to allocate; will be rounded to the pagesize.
+ */
+void *
+vmm_core_alloc(size_t size)
+{
+	return vmm_alloc_internal(size, FALSE);
 }
 
 /**
@@ -3203,9 +3271,10 @@ vmm_alloc0(size_t size)
 		vmm_validate_pages(p, size);
 		memset(p, 0, size);
 		assert_vmm_is_allocated(p, size, VMF_NATIVE);
+
 		vmm_stats.alloc_from_cache++;
 		vmm_stats.alloc_from_cache_pages += n;
-		return p;
+		goto update_stats;
 	}
 
 	p = alloc_pages(size, TRUE, hole);
@@ -3213,18 +3282,39 @@ vmm_alloc0(size_t size)
 		s_error("cannot allocate %lu bytes: out of virtual memory",
 			(unsigned long) size);
 
+	/* Memory allocated by the kernel is already zero-ed */
+
 	assert_vmm_is_allocated(p, size, VMF_NATIVE);
 	vmm_stats.alloc_direct_core++;
 	vmm_stats.alloc_direct_core_pages += n;
 
-	return p;		/* Memory allocated by the kernel is already zero-ed */
+	/* FALL THROUGH */
+
+update_stats:
+
+	/*
+	 * Always allocating "user" memory: since "core" memory does not need
+	 * to be zeroed, which is why there is no vmm_core_alloc0().
+	 */
+
+	vmm_stats.user_memory += size;
+	vmm_stats.user_pages += n;
+	vmm_stats.user_blocks++;
+
+	return p;
 }
 
 /**
- * Free memory allocated via vmm_alloc(), possibly returning it to the cache.
+ * Free memory allocated via vmm_alloc() or vmm_core_alloc(), possibly
+ * returning it to the cache.
+ *
+ * When ``user_mem'' is FALSE, it means we're freeing memory that was being
+ * used by other memory allocators, not by "users": that memory was not
+ * accounted for as being used by this layer but rather as "core" memory,
+ * i.e. resource for other memory allocators.
  */
-void
-vmm_free(void *p, size_t size)
+static void
+vmm_free_internal(void *p, size_t size, gboolean user_mem)
 {
 	g_assert(0 == size || p);
 	g_assert(size_is_non_negative(size));
@@ -3251,35 +3341,73 @@ vmm_free(void *p, size_t size)
 		 */
 
 		if (n <= VMM_CACHE_LINES) {
+			size_t m = n;
 			vmm_invalidate_pages(p, size);
-			page_cache_coalesce_pages(&p, &n);
-			if (page_cache_insert_pages(p, n)) {
+			page_cache_coalesce_pages(&p, &m);
+			if (page_cache_insert_pages(p, m)) {
 				vmm_stats.free_to_cache++;
 				vmm_stats.free_to_cache_pages += n;
 			}
 		} else {
 			free_pages(p, size, TRUE);
 			vmm_stats.free_to_system++;
-			vmm_stats.free_to_system_pages += pagecount_fast(size);
+			vmm_stats.free_to_system_pages += n;
+		}
+
+		if (user_mem) {
+			vmm_stats.user_memory -= size;
+			vmm_stats.user_pages -= n;
+			g_assert(size_is_non_negative(vmm_stats.user_pages));
+			g_assert(size_is_non_negative(vmm_stats.user_memory));
+			vmm_stats.user_blocks--;
+		} else {
+			vmm_stats.core_memory -= size;
+			vmm_stats.core_pages -= n;
+			g_assert(size_is_non_negative(vmm_stats.core_pages));
+			g_assert(size_is_non_negative(vmm_stats.core_memory));
 		}
 	}
 }
 
 /**
- * Shrink allocated space via vmm_alloc() down to specified size.
- *
- * Calling with a NULL pointer is OK when the size is 0.
- * Otherwise calling with a new_size of 0 actually performs a vmm_free().
+ * Free memory allocated via vmm_alloc(), possibly returning it to the cache.
  */
 void
-vmm_shrink(void *p, size_t size, size_t new_size)
+vmm_free(void *p, size_t size)
+{
+	vmm_free_internal(p, size, TRUE);
+}
+
+/**
+ * Free core allocated via vmm_core_alloc(), possibly returning it to the cache.
+ */
+void
+vmm_core_free(void *p, size_t size)
+{
+	vmm_free_internal(p, size, FALSE);
+}
+
+/**
+ * Shrink allocated space via vmm_alloc() or vmm_core_alloc() down to
+ * specified size.
+ *
+ * @param p			the memory region base
+ * @param size		current size of the memory region
+ * @param new_size	new requested size of the memory region (smaller)
+ * @param user_mem	whether this was memory used directly by callers
+ *
+ * Calling with a NULL pointer is OK when the size is 0.
+ * Otherwise calling with a new_size of 0 actually frees the memory region.
+ */
+static void
+vmm_shrink_internal(void *p, size_t size, size_t new_size, gboolean user_mem)
 {
 	g_assert(0 == size || p != NULL);
 	g_assert(new_size <= size);
 	g_assert(page_start(p) == p);
 
 	if (0 == new_size) {
-		vmm_free(p, size);
+		vmm_free_internal(p, size, user_mem);
 	} else if (p != NULL) {
 		size_t osize, nsize;
 
@@ -3291,7 +3419,8 @@ vmm_shrink(void *p, size_t size, size_t new_size)
 		g_assert(nsize <= osize);
 
 		if (osize != nsize) {
-			size_t n = pagecount_fast(osize - nsize);
+			size_t delta = osize - nsize;
+			size_t n = pagecount_fast(delta);
 			void *q = ptr_add_offset(p, nsize);
 
 			g_assert(n >= 1);
@@ -3307,19 +3436,56 @@ vmm_shrink(void *p, size_t size, size_t new_size)
 			vmm_stats.shrinkings++;
 
 			if (n <= VMM_CACHE_LINES) {
-				vmm_invalidate_pages(q, osize - nsize);
-				page_cache_coalesce_pages(&q, &n);
-				if (page_cache_insert_pages(q, n)) {
+				size_t m = n;
+				vmm_invalidate_pages(q, delta);
+				page_cache_coalesce_pages(&q, &m);
+				if (page_cache_insert_pages(q, m)) {
 					vmm_stats.free_to_cache++;
 					vmm_stats.free_to_cache_pages += n;
 				}
 			} else {
-				free_pages(q, osize - nsize, TRUE);
+				free_pages(q, delta, TRUE);
 				vmm_stats.free_to_system++;
 				vmm_stats.free_to_system_pages += n;
 			}
+
+			if (user_mem) {
+				vmm_stats.user_memory -= delta;
+				vmm_stats.user_pages -= n;
+				g_assert(size_is_non_negative(vmm_stats.user_pages));
+				g_assert(size_is_non_negative(vmm_stats.user_memory));
+			} else {
+				vmm_stats.core_memory -= delta;
+				vmm_stats.core_pages -= n;
+				g_assert(size_is_non_negative(vmm_stats.core_pages));
+				g_assert(size_is_non_negative(vmm_stats.core_memory));
+			}
 		}
 	}
+}
+
+/**
+ * Shrink allocated user space via vmm_alloc() down to specified size.
+ *
+ * Calling with a NULL pointer is OK when the size is 0.
+ * Otherwise calling with a new_size of 0 actually performs a vmm_free().
+ */
+void
+vmm_shrink(void *p, size_t size, size_t new_size)
+{
+	return vmm_shrink_internal(p, size, new_size, TRUE);
+}
+
+/**
+ * Shrink allocated core space via vmm_core_alloc() down to specified size.
+ *
+ * Calling with a NULL pointer is OK when the size is 0.
+ * Otherwise calling with a new_size of 0 actually performs a vmm_core_free().
+ */
+void
+vmm_core_shrink(void *p, size_t size, size_t new_size)
+{
+	return vmm_shrink_internal(p, size, new_size, FALSE);
 }
 
 /**
@@ -3501,6 +3667,17 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(size);
 	DUMP(pages);
 	DUMP(generation);
+
+#undef DUMP
+#define DUMP(x)	log_info(la, "VMM %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?					\
+		size_t_to_gstring(vmm_stats.x) : size_t_to_string(vmm_stats.x))
+
+	DUMP(user_memory);
+	DUMP(user_pages);
+	DUMP(user_blocks);
+	DUMP(core_memory);
+	DUMP(core_pages);
 
 #undef DUMP
 }
@@ -3976,9 +4153,23 @@ vmm_close(void)
 	}
 
 	if (pages != 0) {
-		s_warning("VMM still holds %lu page%s totaling %s KiB",
+		s_warning("VMM still holds %lu non-attributed page%s totaling %s KiB",
 			(unsigned long) pages, 1 == pages ? "" : "s",
 			size_t_to_string(memory));
+		if (vmm_stats.user_pages != 0) {
+			s_warning("VMM holds %lu user page%s (%lu block%s) totaling %s KiB",
+				(unsigned long) vmm_stats.user_pages,
+				1 == vmm_stats.user_pages ? "" : "s",
+				(unsigned long) vmm_stats.user_blocks,
+				1 == vmm_stats.user_blocks ? "" : "s",
+				size_t_to_string(vmm_stats.user_memory / 1024));
+		}
+		if (vmm_stats.core_pages != 0) {
+			s_message("VMM holds %lu core page%s totaling %s KiB",
+				(unsigned long) vmm_stats.core_pages,
+				1 == vmm_stats.core_pages ? "" : "s",
+				size_t_to_string(vmm_stats.core_memory / 1024));
+		}
 	}
 	if (mapped_pages != 0) {
 		s_warning("VMM still holds %lu memory-mapped page%s totaling %s KiB",
@@ -4107,6 +4298,7 @@ struct page_track {
 #ifdef MALLOC_TIME
 	time_t atime;					/**< Allocation time */
 #endif
+	unsigned user:1;				/**< User memory or core? */
 };
 
 /**
@@ -4170,8 +4362,17 @@ track_operation_to_string(enum track_operation op)
 }
 
 static void unbuffer_operations(void);
-static void vmm_free_record(const void *p, size_t size,
+static void vmm_free_record(const void *p, size_t size, gboolean user_mem,
 	const char *file, int line);
+
+/**
+ * User or core memory?
+ */
+static const char *
+track_mem(gboolean user_mem)
+{
+	return user_mem ? "user" : "core";
+}
 
 /**
  * Buffer operation for deferred processing (up to next alloc/free).
@@ -4180,16 +4381,16 @@ static void vmm_free_record(const void *p, size_t size,
  */
 static void
 buffer_operation(enum track_operation op,
-	const void *p, size_t size, const char *file, int line)
+	const void *p, size_t size, gboolean user_mem, const char *file, int line)
 {
 	if (vmm_buffer.idx >= G_N_ELEMENTS(vmm_buffered)) {
 		vmm_buffer.missed++;
 		if (vmm_debugging(0)) {
 			s_warning("VMM unable to defer tracking of "
-				"%s (%lu bytes starting %p) at \"%s:%d\" (issue #%lu)",
+				"%s (%lu %s bytes starting %p) at \"%s:%d\" (issue #%lu)",
 				track_operation_to_string(op),
-				(unsigned long) size, p, file, line,
-				(unsigned long) vmm_buffer.missed);
+				(unsigned long) size, track_mem(user_mem), p,
+				file, line, (unsigned long) vmm_buffer.missed);
 			stacktrace_where_print(stderr);
 		}
 	} else {
@@ -4202,10 +4403,10 @@ buffer_operation(enum track_operation op,
 
 		if (vmm_debugging(5)) {
 			s_warning("VMM deferring tracking of "
-				"%s (%lu bytes starting %p) at \"%s:%d\" (item #%lu)",
+				"%s (%lu %s bytes starting %p) at \"%s:%d\" (item #%lu)",
 				track_operation_to_string(op),
-				(unsigned long) size, p, file, line,
-				(unsigned long) vmm_buffer.idx);
+				(unsigned long) size, track_mem(user_mem), p,
+				file, line, (unsigned long) vmm_buffer.idx);
 		}
 
 		tb->op = op;
@@ -4213,6 +4414,7 @@ buffer_operation(enum track_operation op,
 		tb->pt.size = size;
 		tb->pt.file = file;
 		tb->pt.line = line;
+		tb->pt.user = booleanize(user_mem);
 #ifdef MALLOC_FRAMES
 		stacktrace_get_offset(&tb->where, 2);
 #endif
@@ -4223,13 +4425,13 @@ buffer_operation(enum track_operation op,
 }
 
 /*
- * In case TRACK_MALLOC is activated, we want the raw malloc() and free()
+ * In case TRACK_MALLOC is activated, we want the raw xpmalloc() and xfree()
  * from here on...
  *
  * For that reason, the following code should stay at the bottom of the file.
  */
-#undef malloc
-#undef free
+#undef xpmalloc
+#undef xfree
 
 /**
  * Handle freeing of page, as described by the supplied page_track structure.
@@ -4244,9 +4446,21 @@ vmm_free_record_desc(const void *p, const struct page_track *pt)
 	xpt = hash_table_lookup(tracked, p);
 
 	if (NULL == xpt) {
+		/*
+		 * If we're dealing with a "core" region, we can free any sub-part
+		 * of the initially allocated region, not just the start of the
+		 * region.
+		 *
+		 * Therefore, our tracking of "core" regions is imperfect and we
+		 * must not emit any warning when the base address is not found.
+		 */
+
+		if (!pt->user)
+			return;			/* Freeing middle of "core" region */
+
 		if (vmm_debugging(0)) {
-			s_carp("VMM (%s:%d) attempt to free page at %p twice?",
-				pt->file, pt->line, p);
+			s_carp("VMM (%s:%d) attempt to free %s page at %p twice?",
+				pt->file, pt->line, track_mem(pt->user), p);
 			if (0 == vmm_buffer.missed) {
 				s_error_from(_WHERE_,
 					"VMM vmm_free() of unknown address %p", p);
@@ -4255,19 +4469,38 @@ vmm_free_record_desc(const void *p, const struct page_track *pt)
 		return;
 	}
 
-	if (xpt->size != pt->size) {
+	/*
+	 * Again, since we can free any part of a core region before freeing
+	 * the beginning, we may end up with a much smaller region to free when
+	 * the base pointer (which is the only thing we track) is finally freed.
+	 *
+	 * Only warn for "user" regions.
+	 */
+
+	if (pt->user && xpt->size != pt->size) {
 		if (vmm_debugging(0)) {
-			s_carp("VMM (%s:%d) freeing page at %p (%lu bytes) "
+			s_carp("VMM (%s:%d) freeing %s page at %p (%lu bytes) "
 				"from \"%s:%d\" with wrong size %lu [%lu missed event%s]",
-				pt->file, pt->line, p,
+				pt->file, pt->line, track_mem(xpt->user), p,
 				(unsigned long) xpt->size, xpt->file, xpt->line,
 				(unsigned long) pt->size, (unsigned long) vmm_buffer.missed,
 				1 == vmm_buffer.missed ? "" : "s");
 		}
 	}
 
+	if (xpt->user != pt->user) {
+		if (vmm_debugging(0)) {
+			s_carp("VMM (%s:%d) freeing %s page at %p (%lu bytes) "
+				"from \"%s:%d\" as wrong type \"%s\" [%lu missed event%s]",
+				pt->file, pt->line, track_mem(xpt->user), p,
+				(unsigned long) xpt->size, xpt->file, xpt->line,
+				track_mem(pt->user), (unsigned long) vmm_buffer.missed,
+				1 == vmm_buffer.missed ? "" : "s");
+		}
+	}
+
 	hash_table_remove(tracked, p);
-	free(xpt);						/* raw free() */
+	xfree(xpt);						/* raw free() */
 }
 
 /**
@@ -4281,12 +4514,13 @@ vmm_alloc_record_desc(const void *p, const struct page_track *pt)
 	g_assert(pt != NULL);
 
 	if (NULL != (xpt = hash_table_lookup(tracked, p))) {
-		s_warning("VMM (%s:%d) reusing page start %p (%lu bytes) "
+		s_warning("VMM (%s:%d) reusing page start %p (%lu %s bytes) "
 			"from %s:%d, missed its freeing",
 			pt->file, pt->line, p, (unsigned long) xpt->size,
-			xpt->file, xpt->line);
+			track_mem(xpt->user), xpt->file, xpt->line);
 #ifdef MALLOC_FRAMES
-		s_warning("VMM page %p was allocated from:", p);
+		s_warning("VMM %s page %p was allocated from:",
+			track_mem(xpt->user), p);
 		stacktrace_atom_print(stderr, xpt->ast);
 #endif
 		s_warning("VMM current stack:");
@@ -4295,7 +4529,7 @@ vmm_alloc_record_desc(const void *p, const struct page_track *pt)
 		vmm_free_record_desc(p, pt);
 	}
 
-	xpt = malloc(sizeof *xpt);		/* raw malloc() */
+	xpt = xpmalloc(sizeof *xpt);	/* raw malloc() */
 	*xpt = *pt;						/* struct copy */
 
 	if (!hash_table_insert(tracked, p, xpt))
@@ -4308,7 +4542,8 @@ vmm_alloc_record_desc(const void *p, const struct page_track *pt)
  * @return its argument ``p''
  */
 static void *
-vmm_alloc_record(void *p, size_t size, const char *file, int line)
+vmm_alloc_record(void *p, size_t size, gboolean user_mem,
+	const char *file, int line)
 {
 	struct page_track pt;
 
@@ -4316,7 +4551,7 @@ vmm_alloc_record(void *p, size_t size, const char *file, int line)
 		return p;					/* Tracking not initialized yet */
 
 	if (vmm_recursed) {
-		buffer_operation(VMM_ALLOC, p, size, file, line);
+		buffer_operation(VMM_ALLOC, p, size, user_mem, file, line);
 		return p;
 	}
 
@@ -4334,6 +4569,7 @@ vmm_alloc_record(void *p, size_t size, const char *file, int line)
 	pt.size = size;
 	pt.file = file;
 	pt.line = line;
+	pt.user = booleanize(user_mem);
 #ifdef MALLOC_FRAMES
 	{
 		struct stacktrace st;
@@ -4356,12 +4592,13 @@ vmm_alloc_record(void *p, size_t size, const char *file, int line)
  * Record that ``p'' (pointing to ``size'' bytes is now free.
  */
 static void
-vmm_free_record(const void *p, size_t size, const char *file, int line)
+vmm_free_record(const void *p, size_t size, gboolean user_mem,
+	const char *file, int line)
 {
 	struct page_track pt;
 
 	if (vmm_recursed) {
-		buffer_operation(VMM_FREE, p, size, file, line);
+		buffer_operation(VMM_FREE, p, size, user_mem, file, line);
 		return;
 	}
 
@@ -4379,6 +4616,7 @@ vmm_free_record(const void *p, size_t size, const char *file, int line)
 	pt.size = size;
 	pt.file = file;
 	pt.line = line;
+	pt.user = booleanize(user_mem);
 	vmm_free_record_desc(p, &pt);
 	vmm_recursed = FALSE;
 }
@@ -4429,11 +4667,11 @@ static void unbuffer_operations(void)
 
 		if (vmm_debugging(2)) {
 			s_warning("VMM processing deferred "
-				"%s (%lu bytes starting %p) at \"%s:%d\" "
+				"%s (%lu %s bytes starting %p) at \"%s:%d\" "
 				"(%lu other record%s pending)",
 				track_operation_to_string(tb.op),
-				(unsigned long) tb.pt.size, tb.addr,
-				tb.pt.file, tb.pt.line,
+				(unsigned long) tb.pt.size, track_mem(tb.pt.user),
+				tb.addr, tb.pt.file, tb.pt.line,
 				(unsigned long) vmm_buffer.idx, 1 == vmm_buffer.idx ? "" : "s");
 		}
 
@@ -4488,12 +4726,12 @@ vmm_not_leaking(const void *o)
  * Tracking version of vmm_alloc().
  */
 void *
-vmm_alloc_track(size_t size, const char *file, int line)
+vmm_alloc_track(size_t size, gboolean user_mem, const char *file, int line)
 {
 	void *p;
 
-	p = vmm_alloc(size);
-	return vmm_alloc_record(p, size, file, line);
+	p = vmm_alloc_internal(size, user_mem);
+	return vmm_alloc_record(p, size, user_mem, file, line);
 }
 
 /**
@@ -4504,7 +4742,7 @@ vmm_alloc_track_not_leaking(size_t size, const char *file, int line)
 {
 	void *p;
 
-	p = vmm_alloc_track(size, file, line);
+	p = vmm_alloc_track(size, TRUE, file, line);
 	return vmm_not_leaking(p);
 }
 
@@ -4517,35 +4755,35 @@ vmm_alloc0_track(size_t size, const char *file, int line)
 	void *p;
 
 	p = vmm_alloc0(size);
-	return vmm_alloc_record(p, size, file, line);
+	return vmm_alloc_record(p, size, TRUE, file, line);
 }
 
 /**
  * Tracking version of vmm_free().
  */
 void
-vmm_free_track(void *p, size_t size, const char *file, int line)
+vmm_free_track(void *p, size_t size, gboolean user_mem,
+	const char *file, int line)
 {
 	if (not_leaking != NULL) {
 		hash_table_remove(not_leaking, p);
 	}
 
-	vmm_free_record(p, size, file, line);
-	vmm_free(p, size);
+	vmm_free_record(p, size, user_mem, file, line);
+	vmm_free_internal(p, size, user_mem);
 }
 
 /**
  * Tracking version of vmm_shrink().
  */
 void
-vmm_shrink_track(void *p, size_t size, size_t new_size,
+vmm_shrink_track(void *p, size_t size, size_t new_size, gboolean user_mem,
 	const char *file, int line)
 {
 	/* The shrinking point becomes the new allocation point (file, line) */
-	vmm_free_record(p, size, file, line);
-	vmm_alloc_record(p, new_size, file, line);
-
-	vmm_shrink(p, size, new_size);
+	vmm_free_record(p, size, user_mem, file, line);
+	vmm_alloc_record(p, new_size, user_mem, file, line);
+	vmm_shrink_internal(p, size, new_size, user_mem);
 }
 
 /**
@@ -4615,6 +4853,16 @@ vmm_log_pages(const void *k, void *v, gpointer leaksort)
 	if (hash_table_lookup(not_leaking, k))
 		return;
 
+	/*
+	 * If page is a "core" page, then it was allocated by a memory allocator
+	 * for its own supply of memory to manage and distribute to users, not
+	 * for direct "user" consumption.  Therefore, we're not interested by
+	 * its leaking.
+	 */
+
+	if (!pt->user)
+		return;
+
 #ifdef MALLOC_TIME
 	gm_snprintf(ago, sizeof ago, " [%s]",
 		short_time(delta_time(tm_time(), pt->atime)));
@@ -4622,14 +4870,14 @@ vmm_log_pages(const void *k, void *v, gpointer leaksort)
 	ago[0] = '\0';
 #endif	/* MALLOC_TIME */
 
-	s_warning("leaked page%s %p (%lu bytes) from \"%s:%d\"%s",
-		pt->size > kernel_pagesize ? "s" : "",
+	s_warning("leaked %s page%s %p (%lu bytes) from \"%s:%d\"%s",
+		track_mem(pt->user), pt->size > kernel_pagesize ? "s" : "",
 		k, (unsigned long) pt->size, pt->file, pt->line, ago);
 
 	leak_add(leaksort, pt->size, pt->file, pt->line);
 
 #ifdef MALLOC_FRAMES
-	s_message("block %p allocated from: ", k);
+	s_message("%s block %p allocated from: ", track_mem(pt->user), k);
 	stacktrace_atom_print(stderr, pt->ast);
 #endif
 }

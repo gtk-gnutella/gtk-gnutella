@@ -44,10 +44,17 @@
  */
 
 #if defined(TRACK_VMM) && !defined(VMM_SOURCE)
-#define vmm_alloc(s)		vmm_alloc_track((s), _WHERE_, __LINE__)
+#define vmm_alloc(s)		vmm_alloc_track((s), TRUE, _WHERE_, __LINE__)
+#define vmm_core_alloc(s)	vmm_alloc_track((s), FALSE, _WHERE_, __LINE__)
 #define vmm_alloc0(s)		vmm_alloc0_track((s), _WHERE_, __LINE__)
-#define vmm_free(p,s)		vmm_free_track((p), (s), _WHERE_, __LINE__)
-#define vmm_shrink(p,s,n)	vmm_shrink_track((p), (s), (n), _WHERE_, __LINE__)
+#define vmm_free(p,s)		vmm_free_track((p), (s), TRUE, _WHERE_, __LINE__)
+#define vmm_core_free(p,s)	vmm_free_track((p), (s), FALSE, _WHERE_, __LINE__)
+
+#define vmm_shrink(p,s,n) \
+	vmm_shrink_track((p), (s), (n), TRUE, _WHERE_, __LINE__)
+
+#define vmm_core_shrink(p,s,n) \
+	vmm_shrink_track((p), (s), (n), FALSE, _WHERE_, __LINE__)
 
 #define vmm_alloc_not_leaking(s) \
 	vmm_alloc_track_not_leaking((s), _WHERE_, __LINE__)
@@ -55,14 +62,16 @@
 #endif	/* TRACK_VMM && !VMM_SOURCE */
 
 #ifdef TRACK_VMM
-void *vmm_alloc_track(size_t size,
+void *vmm_alloc_track(size_t size, gboolean user_mem,
 	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *vmm_alloc_track_not_leaking(size_t size,
 	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *vmm_alloc0_track(size_t size,
 	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-void vmm_free_track(void *p, size_t size, const char *file, int line);
-void vmm_shrink_track(void *p, size_t o, size_t n, const char *file, int line);
+void vmm_free_track(void *p, size_t size, gboolean user_mem,
+	const char *file, int line);
+void vmm_shrink_track(void *p, size_t o, size_t n, gboolean user_mem,
+	const char *file, int line);
 
 void *vmm_alloc_notrack(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void vmm_free_notrack(void *p, size_t size);
@@ -73,9 +82,12 @@ void vmm_free_notrack(void *p, size_t size);
 
 #if defined(VMM_SOURCE) || !defined(TRACK_VMM)
 void *vmm_alloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *vmm_core_alloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *vmm_alloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void vmm_free(void *p, size_t size);
+void vmm_core_free(void *p, size_t size);
 void vmm_shrink(void *p, size_t size, size_t new_size);
+void vmm_core_shrink(void *p, size_t size, size_t new_size);
 #endif	/* VMM_SOURCE || !TRACK_VMM */
 
 struct logagent;

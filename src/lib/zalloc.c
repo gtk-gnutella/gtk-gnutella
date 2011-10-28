@@ -564,9 +564,7 @@ zalloc_track(zone_t *zone, const char *file, int line)
 
 	return blk;
 }
-#endif	/* TRACK_ZALLOC */
 
-#if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
 /**
  * Log information about block, `p' being the physical start of the block, not
  * the user part of it.  The block is known to be of size `size' and should
@@ -584,18 +582,14 @@ zblock_log(const char *p, size_t size, void *leakset)
 
 	uptr = const_ptr_add_offset(p, OVH_LENGTH);
 
-#ifdef TRACK_ZALLOC
 	{
 		const char *q = const_ptr_add_offset(p, OVH_TRACK_OFFSET);
 		file = *(char **) q;
 		q += sizeof(char *);
 		line = *(int *) q;
 	}
-#else
-	file = "none";
-	line = 0;
-#endif
-#if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
+
+#ifdef MALLOC_FRAMES
 	if (not_leaking != NULL && hash_table_lookup(not_leaking, uptr)) {
 		s_message("block %p from \"%s:%u\" marked as non-leaking",
 			uptr, file, line);
@@ -667,7 +661,9 @@ zdump_used(const zone_t *zone, void *leakset)
 			(unsigned long) zone->zn_size, zone->zn_cnt);
 	}
 }
+#endif	/* TRACK_ZALLOC */
 
+#if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
 /**
  * Flag object ``o'' as "not leaking" if not freed at exit time.
  * @return argument ``o''.
@@ -826,7 +822,7 @@ static void
 subzone_alloc_arena(struct subzone *sz, size_t size)
 {
 	sz->sz_size = round_pagesize(size);
-	sz->sz_base = vmm_alloc(sz->sz_size);
+	sz->sz_base = vmm_core_alloc(sz->sz_size);
 	sz->sz_ctime = tm_time();
 
 	zstats.subzones_allocated++;
@@ -839,7 +835,7 @@ subzone_free_arena(struct subzone *sz)
 	zstats.subzones_freed++;
 	zstats.subzones_freed_pages += vmm_page_count(sz->sz_size);
 
-	vmm_free(sz->sz_base, sz->sz_size);
+	vmm_core_free(sz->sz_base, sz->sz_size);
 	sz->sz_base = NULL;
 	sz->sz_size = 0;
 }
