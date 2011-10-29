@@ -56,6 +56,7 @@
 #include "lib/getdate.h"
 #include "lib/endian.h"
 #include "lib/misc.h"
+#include "lib/random.h"
 #include "lib/sequence.h"
 #include "lib/tm.h"
 #include "lib/override.h"			/* Must be the last header included */
@@ -340,6 +341,14 @@ found_contains(const void *key)
 	struct found_struct *f = found_get();
 
 	return gm_hash_table_contains(f->ht, key);
+}
+
+static size_t
+found_contains_count(void)
+{
+	struct found_struct *f = found_get();
+
+	return g_hash_table_size(f->ht);
 }
 
 static void
@@ -631,6 +640,8 @@ add_file(const shared_file_t *sf)
 	needed = 8 + 2 + shared_file_name_nfc_len(sf);	/* size of hit entry */
 	sha1_available = sha1_hash_available(sf);
 
+	g_return_val_unless(!is_partial || sha1_available, FALSE);
+
 	/*
 	 * Make sure we never insert duplicate indices in a query hit.
 	 *
@@ -641,8 +652,33 @@ add_file(const shared_file_t *sf)
 
 	file_index = shared_file_index(sf);
 
-	g_assert(!found_contains(uint_to_pointer(file_index)));
+	if (!is_partial) {
+		g_assert_log(
+			!found_contains(uint_to_pointer(file_index)),
+			"file_index=%u (%s SHA1), qhit_contains=%lu, qhit_files=%lu",
+			(unsigned) file_index, sha1_available ? "has" : "no",
+			(unsigned long) found_contains_count(),
+			(unsigned long) found_file_count());
+	} else {
+		unsigned i;
 
+		/*
+		 * Generate a random file index, unique to this query hit.
+		 *
+		 * This is for the sake of our own spam detector which will
+		 * frown upon duplicate file indices.
+		 */
+
+		for (i = 0; i < 100; i++) {
+			file_index = 1 + random_value(INT_MAX - 1);
+
+			if (!found_contains(uint_to_pointer(file_index)))
+				goto unique_file_index;
+		}
+		g_error("no luck with random number generator");
+	}
+
+unique_file_index:
 	found_insert(uint_to_pointer(file_index));
 
 	/*
