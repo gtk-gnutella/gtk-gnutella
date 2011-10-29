@@ -62,18 +62,19 @@
 #include "adns.h"
 
 #include "ascii.h"				/* For is_ascii_alpha() */
-#include "crash.h"
 #include "cq.h"
+#include "crash.h"
 #include "debug.h"
 #include "fd.h"					/* For is_open_fd() */
-#include "gtk-gnutella.h"		/* For GTA_PRODUCT_NAME */
 #include "glib-missing.h"
+#include "gtk-gnutella.h"		/* For GTA_PRODUCT_NAME */
 #include "halloc.h"
 #include "iovec.h"
 #include "log.h"
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
 #include "stacktrace.h"
+#include "str.h"
 #include "stringify.h"			/* For ULONG_DEC_BUFLEN */
 #include "unsigned.h"
 #include "utf8.h"
@@ -2809,6 +2810,8 @@ mingw_exception_log(int code, const void *pc)
 	flush_err_str();
 	if (log_stdout_is_distinct())
 		flush_str(STDOUT_FILENO);
+
+	crash_set_error(mingw_exception_to_string(code));
 }
 
 /**
@@ -2843,6 +2846,19 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 	flush_err_str();
 	if (log_stdout_is_distinct())
 		flush_str(STDOUT_FILENO);
+
+	/*
+	 * Format an additional error message to propagate into the crash log.
+	 */
+
+	{
+		str_t str;
+		char data[80];
+
+		str_from_foreign(&str, data, 0, sizeof data);
+		str_printf(&str, "; memory fault (%s) at VA=%p", prot, va);
+		crash_append_error(str_2c(&str));
+	}
 }
 
 static volatile sig_atomic_t in_exception_handler;
