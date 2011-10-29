@@ -587,6 +587,16 @@ typedef void (*GCallback) (void);
 #define REGPARM(n)
 #endif	/* HAS_REGPARM */
 
+/*
+ * Redefine G_GNUC_PRINTF to use "GNU printf" argument form.
+ * This ensures that "%m" is recognized as valid since the GNU libc supports it.
+ */
+#if defined(HASATTRIBUTE) && HAS_GCC(2, 5)
+#undef G_GNUC_PRINTF
+#define G_GNUC_PRINTF(_fmt_, _arg_) \
+	 __attribute__((__format__ (__gnu_printf__, _fmt_, _arg_)))
+#endif
+
 /**
  * CMP() returns the sign of a-b, that means -1, 0, or 1.
  */
