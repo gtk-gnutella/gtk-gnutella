@@ -37,6 +37,8 @@
 #include "atoms.h"
 #include "cq.h"
 #include "glib-missing.h"
+#include "halloc.h"
+#include "log.h"
 #include "misc.h"
 #include "tm.h"
 #include "walloc.h"
@@ -117,6 +119,7 @@ struct cqueue {
 	int cq_items;				/**< Amount of recorded events */
 	int cq_last_bucket;			/**< Last bucket slot we were at */
 	int cq_period;				/**< Regular callout period, in ms */
+	unsigned cq_heartbeating:1;	/**< Set during heartbeats */
 };
 
 static inline void
@@ -158,7 +161,7 @@ cq_initialize(cqueue_t *cq, const char *name, cq_time_t now, int period)
 
 	cq->cq_magic = CQUEUE_MAGIC;
 	cq->cq_name = atom_str_get(name);
-	cq->cq_hash = g_malloc0(HASH_SIZE * sizeof *cq->cq_hash);
+	cq->cq_hash = halloc0(HASH_SIZE * sizeof *cq->cq_hash);
 	cq->cq_items = 0;
 	cq->cq_ticks = 0;
 	cq->cq_time = now;
@@ -585,7 +588,7 @@ done:
 	cq->cq_current = NULL;
 
 	if (cq_debug() > 5) {
-		g_debug("CQ: %squeue \"%s\" triggered %d event%s (%d item%s)",
+		s_debug("CQ: %squeue \"%s\" triggered %d event%s (%d item%s)",
 			cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "",
 			cq->cq_name, processed, 1 == processed ? "" : "s",
 			cq->cq_items, 1 == cq->cq_items ? "" : "s");
@@ -614,10 +617,28 @@ cq_idle(cqueue_t *cq)
 static void
 cq_heartbeat(cqueue_t *cq)
 {
+	static unsigned safety;
 	tm_t tv;
 	time_delta_t delay;
 
 	cqueue_check(cq);
+
+	/*
+	 * Protect against concurrent calls to the heartbeat from multiple
+	 * sources, since one can call cq_dispatch() manually from anywhere,
+	 * and maybe even indirectly from an event dispatched by the callout
+	 * queue during its current heartbeat.
+	 */
+
+	if (G_UNLIKELY(cq->cq_heartbeating)) {
+		if (++safety > 100) {			/* Arbitrary threshold */
+			s_carp("callout queue \"%s\" stuck in cq_clock()?", cq->cq_name);
+			safety = 0;
+		}
+		return;
+	}
+
+	safety = 0;
 
 	/*
 	 * How much milliseconds elapsed since last heart beat?
@@ -635,7 +656,9 @@ cq_heartbeat(cqueue_t *cq)
 	if (delay < 0 || delay > 10 * cq->cq_period)
 		delay = cq->cq_period;
 
+	cq->cq_heartbeating = TRUE;
 	cq_clock(cq, delay);
+	cq->cq_heartbeating = FALSE;
 }
 
 /**
@@ -1133,6 +1156,9 @@ cq_halt(void)
 		g_source_remove(callout_timer_id);
 		callout_timer_id = 0;
 	}
+
+	if (callout_queue->cq_heartbeating)
+		s_carp("%s(): main callout queue still within heartbeat", G_STRFUNC);
 }
 
 static gboolean
@@ -1194,7 +1220,7 @@ cq_free(cqueue_t *cq)
 		gm_hash_table_destroy_null(&cq->cq_idle);
 	}
 
-	G_FREE_NULL(cq->cq_hash);
+	HFREE_NULL(cq->cq_hash);
 	atom_str_free_null(&cq->cq_name);
 
 	/*
