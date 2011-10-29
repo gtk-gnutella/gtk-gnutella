@@ -61,6 +61,14 @@ void *xrealloc(void *ptr, size_t size) WARN_UNUSED_RESULT;
 void *xprealloc(void *ptr, size_t size) WARN_UNUSED_RESULT;
 void xfree(void *ptr);
 
+#define XFREE_NULL(p)	\
+G_STMT_START {			\
+	if (p) {			\
+		xfree(p);		\
+		p = NULL;		\
+	}					\
+} G_STMT_END
+
 #endif /* _xmalloc_h_ */
 
 /* vi: set ts=4 sw=4 cindent:  */
