@@ -171,7 +171,7 @@ void crash_assert_failure(const struct assertion_data *a);
 const char *crash_assert_logv(const char * const fmt, va_list ap);
 void crash_set_filename(const char * const filename);
 void crash_set_error(const char * const msg);
-void crash_set_error_vec(iovec_t *iov, unsigned iovcnt);
+void crash_append_error(const char * const msg);
 void crash_save_current_stackframe(unsigned offset);
 void crash_save_stackframe(void *stack[], size_t count);
 void crash_post_init(void);

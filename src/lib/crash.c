@@ -1963,54 +1963,45 @@ crash_set_error(const char * const msg)
 	crash_mode();
 
 	if (vars != NULL && vars->logck != NULL) {
-		const char *m = ck_strdup_readonly(vars->logck, msg);
+		const char *m;
+
+		/*
+		 * The string we use for formatting is held in a read-only chunk.
+		 * Before formatting inside, we must therfore make the chunk writable,
+		 * turning it back to read-only after formatting to prevent tampering.
+		 */
+
+		ck_writable(vars->logck);
+		str_reset(vars->logstr);
+		str_ncat_safe(vars->logstr, msg, strlen(msg));
+		m = str_2c(vars->logstr);
+		ck_readonly(vars->logck);
 		crash_set_var(message, m);
 	}
 }
 
 /**
- * Record crash error message vector.
+ * Append information to existing error message.
  */
 G_GNUC_COLD void
-crash_set_error_vec(iovec_t *iov, unsigned iovcnt)
+crash_append_error(const char * const msg)
 {
 	crash_mode();
 
 	if (vars != NULL && vars->logck != NULL) {
-		size_t len = iov_calculate_size(iov, iovcnt);
-		char *m;
-		size_t i, w = 0;
+		const char *m;
 
 		/*
-		 * The chunk from which we're going to allocate the error string
-		 * is read-only to prevent accidental corruption.  Turn it back to
-		 * the writable state in order to update it, then re-protect it.
+		 * The string we use for formatting is held in a read-only chunk.
+		 * Before formatting inside, we must therfore make the chunk writable,
+		 * turning it back to read-only after formatting to prevent tampering.
 		 */
 
 		ck_writable(vars->logck);
-		m = ck_alloc(vars->logck, len + 1);		/* Trailing NUL */
-		if (NULL == m)
-			goto done;
-
-		/*
-		 * Catenate the strings held in the vector into ``m'', with final NUL.
-		 */
-
-		for (i = 0; i < iovcnt; i++) {
-			size_t lv = iovec_len(&iov[i]);
-
-			if (w + lv > len)		/* Be VERY careful, we're in a crash */
-				break;
-
-			memcpy(&m[w], iovec_base(&iov[i]), lv);
-			w += lv;
-		}
-
-		m[len] = '\0';
-		crash_set_var(message, m);
-
-	done:
+		str_ncat_safe(vars->logstr, msg, strlen(msg));
+		m = str_2c(vars->logstr);
 		ck_readonly(vars->logck);
+		crash_set_var(message, m);
 	}
 }
 
