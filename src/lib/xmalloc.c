@@ -275,6 +275,7 @@ static struct {
 	guint64 realloc_inplace_extension;		/**< Reallocs not moving data */
 	guint64 realloc_coalescing_extension;	/**< Reallocs through coalescing */
 	guint64 realloc_relocate_vmm_fragment;	/**< Reallocs of moved fragments */
+	guint64 realloc_relocate_vmm_shrinked;	/**< Reallocs of moved fragments */
 	guint64 realloc_relocate_smart_attempts;	/**< Attempts to move pointer */
 	guint64 realloc_relocate_smart_success;		/**< Smart placement was OK */
 	guint64 realloc_regular_strategy;		/**< Regular resizing strategy */
@@ -2581,7 +2582,7 @@ xreallocate(void *p, size_t size, gboolean can_walloc)
 	void *np;
 
 	if (NULL == p)
-		return can_walloc ? xmalloc(size) : xpmalloc(size);
+		return xallocate(size, can_walloc);
 
 	if (0 == size) {
 		xfree(p);
@@ -2628,31 +2629,22 @@ xreallocate(void *p, size_t size, gboolean can_walloc)
 		 */
 
 		if (newlen == xh->length && vmm_is_relocatable(xh, xh->length)) {
-			void *q;
-
-			q = vmm_core_alloc(newlen);
-			np = xmalloc_block_setup(q, newlen);
-
 			xstats.realloc_relocate_vmm_fragment++;
-			xstats.vmm_alloc_pages += vmm_page_count(newlen);
-
-			if (xmalloc_debugging(1)) {
-				t_debug(NULL, "XM relocated %lu-byte VMM region at %p to %p"
-					" (new pysical size is %lu bytes, user size is %lu)",
-					(unsigned long) xh->length, (void *) xh, q,
-					(unsigned long) newlen, (unsigned long) size);
-			}
-
-			goto relocate;
+			goto relocate_vmm;
 		}
 
 		/*
 		 * If the new size is smaller than the original, yet remains larger
 		 * than a page size, we can call vmm_core_shrink() to shrink the block
-		 * inplace.
+		 * inplace or relocate it.
 		 */
 
 		if (newlen < xh->length) {
+			if (vmm_is_relocatable(xh, newlen)) {
+				xstats.realloc_relocate_vmm_shrinked++;
+				goto relocate_vmm;
+			}
+
 			if (xmalloc_debugging(1)) {
 				t_debug(NULL, "XM using vmm_core_shrink() on "
 					"%lu-byte block at %p (new size is %lu bytes)",
@@ -3017,7 +3009,7 @@ skip_coalescing:
 		struct xheader *nxh;
 		gboolean converted;
 
-		np = can_walloc ? xmalloc(size) : xpmalloc(size);
+		np = xallocate(size, can_walloc);
 		xstats.realloc_regular_strategy++;
 
 		/*
@@ -3055,6 +3047,28 @@ relocate:
 	}
 
 	return np;
+
+relocate_vmm:
+	{
+		void *q;
+
+		g_assert(xh->length >= newlen);
+
+		q = vmm_core_alloc(newlen);
+		np = xmalloc_block_setup(q, newlen);
+
+		xstats.vmm_alloc_pages += vmm_page_count(newlen);
+		xstats.user_memory -= xh->length - newlen;
+
+		if (xmalloc_debugging(1)) {
+			t_debug(NULL, "XM relocated %lu-byte VMM region at %p to %p"
+				" (new pysical size is %lu bytes, user size is %lu)",
+				(unsigned long) xh->length, (void *) xh, q,
+				(unsigned long) newlen, (unsigned long) size);
+		}
+
+		goto relocate;
+	}
 
 inplace:
 	xh->length = newlen;
@@ -3266,6 +3280,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(realloc_inplace_extension);
 	DUMP(realloc_coalescing_extension);
 	DUMP(realloc_relocate_vmm_fragment);
+	DUMP(realloc_relocate_vmm_shrinked);
 	DUMP(realloc_relocate_smart_attempts);
 	DUMP(realloc_relocate_smart_success);
 	DUMP(realloc_regular_strategy);
