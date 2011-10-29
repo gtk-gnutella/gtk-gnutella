@@ -36,8 +36,24 @@
 
 #include "common.h"
 
-struct str;
-typedef struct str str_t;
+/*
+ * The string structure is public to allow static string objects.
+ */
+
+enum str_magic { STR_MAGIC = 0x04ed2baa };
+
+/**
+ * A dynamic string. That string is not NUL-terminated and is expanded
+ * as necessary. To get the final C version, a call to str_2c() is mandatory:
+ * It ensures the string is NUL-terminated and returns a pointer to it.
+ */
+typedef struct str {
+	enum str_magic s_magic;
+	guint32 s_flags;		/**< General flags */
+	char *s_data;			/**< Where string data is held */
+	size_t s_len;			/**< String length (amount of chars held) */
+	size_t s_size;			/**< Size of the data arena */
+} str_t;
 
 struct ckhunk;		/* Avoids dependency on "ckalloc.h" here */
 
@@ -69,6 +85,7 @@ void str_cpy(str_t *str, const char *string);
 void str_cat(str_t *str, const char *string);
 void str_cat_len(str_t *str, const char *string, size_t len);
 void str_ncat(str_t *str, const char *string, size_t len);
+void str_ncat_safe(str_t *str, const char *string, size_t len);
 void str_shift(str_t *str, size_t len);
 gboolean str_ichar(str_t *str, ssize_t idx, char c);
 gboolean str_istr(str_t *str, ssize_t idx, const char *string);

@@ -60,21 +60,6 @@
 #define STR_MAXGROW		4096	/* Above this size, increase by STR_CHUNK */
 #define STR_CHUNK		4096	/* Size increase if above STR_MAXGROW */
 
-enum str_magic { STR_MAGIC = 0x04ed2baa };
-
-/**
- * A dynamic string. That string is not NUL-terminated and is expanded
- * as necessary. To get the final C version, a call to str_2c() is mandatory:
- * It ensures the string is NUL-terminated and returns a pointer to it.
- */
-struct str {
-	enum str_magic s_magic;
-	guint32 s_flags;		/**< General flags */
-	char *s_data;			/**< Where string data is held */
-	size_t s_len;			/**< String length (amount of chars held) */
-	size_t s_size;			/**< Size of the data arena */
-};
-
 static inline void
 str_check(const struct str * const s)
 {
@@ -270,7 +255,7 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
 	g_assert(size_is_non_negative(len + 1));
 	g_assert(size_is_non_negative(size));
 
-	if (str->s_data && !(str->s_flags & STR_FOREIGN_PTR))
+	if (str->s_data != NULL && !(str->s_flags & STR_FOREIGN_PTR))
 		str_free(str);
 
 	if ((size_t) -1 == len)
@@ -288,15 +273,21 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
 /**
  * Like str_foreign(), but string structure has not been initialized yet
  * and is a static buffer.
+ *
+ * To create a string on the stack with no memory allocation:
+ *
+ *    str_t str;
+ *    char data[80];
+ *
+ *    str_from_foreign(&str, data, 0, sizeof data);
  */
 void
 str_from_foreign(str_t *str, char *ptr, size_t len, size_t size)
 {
 	g_assert(str != NULL);
 
+	ZERO(str);
 	str->s_magic = STR_MAGIC;
-	str->s_flags = 0;
-	str->s_data = NULL;
 	str_foreign(str, ptr, len, size);
 }
 
@@ -736,9 +727,14 @@ str_ncat(str_t *str, const char *string, size_t len)
  * Append specified amount of bytes into the string, or less if the
  * string is shorter than `len' or if the string arena is foreign and not
  * large enough to hold all the data.
+ *
+ * The routine is "safe" in that it will never trigger an error when the
+ * foreign string is too small, silently truncating instead.
+ *
+ * When the string arena can be resized, this routine behaves as str_ncat().
  */
-static void
-str_ncat_foreign(str_t *str, const char *string, size_t len)
+void
+str_ncat_safe(str_t *str, const char *string, size_t len)
 {
 	char *p;
 	const char *q;
@@ -1189,10 +1185,10 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 #define STR_APPEND(x, l) \
 G_STMT_START {									\
 	if ((l) > remain) {							\
-		str_ncat_foreign(str, (x), remain);		\
+		str_ncat_safe(str, (x), remain);		\
 		goto done;	/* Reached maxlen */		\
 	} else {									\
-		str_ncat_foreign(str, (x), (l));		\
+		str_ncat_safe(str, (x), (l));			\
 		remain -= (l);							\
 	}											\
 } G_STMT_END
@@ -1208,7 +1204,7 @@ G_STMT_START {									\
 	 * of the foreign buffer, so we use that as assertions that our logic
 	 * is correct.
 	 *
-	 * However, this routine uses str_ncat_foreign() instead of str_ncat()
+	 * However, this routine uses str_ncat_safe() instead of str_ncat()
 	 * to be able to truncate the output if there is not enough space.
 	 */
 
@@ -1227,7 +1223,7 @@ G_STMT_START {									\
 		size_t len;
 		s = s ? s : nullstr;
 		len = strlen(s);
-		str_ncat_foreign(str, s, len > maxlen ? maxlen : len);
+		str_ncat_safe(str, s, len > maxlen ? maxlen : len);
 		goto done;
 	}
 
@@ -1620,10 +1616,10 @@ G_STMT_START {									\
 
 			/* ... right here, because formatting flags should not apply */
 			if (elen > remain) {
-				str_ncat_foreign(str, eptr, remain);
+				str_ncat_safe(str, eptr, remain);
 				goto done;						/* Reached maxlen */
 			} else {
-				str_ncat_foreign(str, eptr, elen);
+				str_ncat_safe(str, eptr, elen);
 				remain -= elen;
 			}
 			continue;	/* not "break" */
