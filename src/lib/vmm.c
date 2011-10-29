@@ -259,6 +259,7 @@ static struct {
 	size_t user_blocks;				/**< Amount of "user" memory blocks */
 	size_t core_memory;				/**< Amount of "core" memory allocated */
 	size_t core_pages;				/**< Amount of "core" memory pages used */
+	size_t special_pages;			/**< Amount of special memory pages used */
 	/* Tracking core blocks doesn't make sense: "core" can be fragmented */
 } vmm_stats;
 
@@ -3586,6 +3587,7 @@ vmm_trap_page(void)
 		g_assert(p);
 		mprotect(p, kernel_pagesize, PROT_NONE);
 		trap_page = p;
+		vmm_stats.special_pages++;
 	}
 	return trap_page;
 }
@@ -3628,6 +3630,8 @@ G_GNUC_COLD void
 vmm_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct pmap *pm = vmm_pmap();
+	size_t cached_pages = 0, mapped_pages = 0, native_pages = 0;
+	size_t i;
 
 #define DUMP(x)	log_info(la, "VMM %s = %s", #x,		\
 	(options & DUMP_OPT_PRETTY) ?					\
@@ -3678,6 +3682,51 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(user_blocks);
 	DUMP(core_memory);
 	DUMP(core_pages);
+	DUMP(special_pages);
+
+#undef DUMP
+
+	/*
+	 * Compute amount of cached pages.
+	 */
+
+	for (i = 0; i < VMM_CACHE_LINES; i++) {
+		struct page_cache *pc = &page_cache[i];
+
+		cached_pages += pc->current * pc->pages;
+	}
+
+	/*
+	 * Compute the amount of known native / mapped pages.
+	 */
+
+	for (i = 0; i < pm->count; i++) {
+		struct vm_fragment *vmf = &pm->array[i];
+
+		if (vmf_is_native(vmf)) {
+			native_pages += pagecount_fast(vmf_size(vmf));
+		} else if (vmf_is_mapped(vmf)) {
+			mapped_pages += pagecount_fast(vmf_size(vmf));
+		}
+	}
+
+
+#define DUMP(v,x)	log_info(la, "VMM %s = %s", (v),	\
+	(options & DUMP_OPT_PRETTY) ?						\
+		size_t_to_gstring(x) : size_t_to_string(x))
+
+	DUMP("cached_pages", cached_pages);
+	DUMP("mapped_pages", mapped_pages);
+	DUMP("native_pages", native_pages);
+
+	/*
+	 * "computed_native_pages" MUST be equal to "native_pages" or it means
+	 * we're not accounting the allocated pages correctly, either in the
+	 * statistics or in the pmap regions.
+	 */
+
+	DUMP("computed_native_pages", cached_pages + vmm_stats.special_pages +
+		vmm_stats.user_pages + vmm_stats.core_pages + pm->pages);
 
 #undef DUMP
 }
@@ -4068,6 +4117,7 @@ vmm_close(void)
 	size_t mapped_pages = 0;
 	size_t mapped_memory = 0;
 	size_t pages = 0;
+	size_t native_pages = 0;
 	size_t memory = 0;
 	size_t i;
 
@@ -4103,8 +4153,10 @@ vmm_close(void)
 		 */
 
 		if (vmf_is_native(vmf)) {
+			size_t n = pagecount_fast(vmf_size(vmf));
 			memory += vmf_size(vmf) / 1024;
-			pages += pagecount_fast(vmf_size(vmf));
+			pages += n;
+			native_pages += n;
 		} else if (vmf_is_mapped(vmf)) {
 			mapped_memory += vmf_size(vmf) / 1024;
 			mapped_pages += pagecount_fast(vmf_size(vmf));
@@ -4170,6 +4222,12 @@ vmm_close(void)
 				1 == vmm_stats.core_pages ? "" : "s",
 				size_t_to_string(vmm_stats.core_memory / 1024));
 		}
+	}
+	if (native_pages != vmm_stats.user_pages + vmm_stats.core_pages) {
+		s_warning("VMM holds %lu native pages, but %lu user + %lu core = %lu",
+			(unsigned long) native_pages, (unsigned long) vmm_stats.user_pages,
+			(unsigned long) vmm_stats.core_pages,
+			(unsigned long) (vmm_stats.user_pages + vmm_stats.core_pages));
 	}
 	if (mapped_pages != 0) {
 		s_warning("VMM still holds %lu memory-mapped page%s totaling %s KiB",
