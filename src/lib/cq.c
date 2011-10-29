@@ -600,6 +600,15 @@ done:
 }
 
 /**
+ * Force callout queue idle tasks to be run.
+ */
+void
+cq_idle(cqueue_t *cq)
+{
+	cq_run_idle(cq);
+}
+
+/**
  * Called every period to heartbeat the callout queue.
  */
 static void

@@ -86,6 +86,7 @@ void cq_clock(cqueue_t *cq, int elapsed);
 int cq_ticks(const cqueue_t *cq);
 int cq_count(const cqueue_t *cq);
 const char *cq_name(const cqueue_t *cq);
+void cq_idle(cqueue_t *cq);
 
 cperiodic_t *cq_periodic_add(cqueue_t *cq,
 	int period, cq_invoke_t event, gpointer arg);

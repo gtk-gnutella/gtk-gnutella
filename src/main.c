@@ -1092,7 +1092,7 @@ more_randomness(void)
 static void
 slow_main_timer(time_t now)
 {
-	static unsigned i = 0;
+	static unsigned i = 0, j = 0;
 
 	if (GNET_PROPERTY(cpu_debug)) {
 		static tm_t since = { 0, 0 };
@@ -1143,7 +1143,18 @@ slow_main_timer(time_t now)
 	download_slow_timer(now);
 	node_slow_timer(now);
 	ignore_timer(now);
-	more_randomness();
+
+	/*
+	 * Our "idle" tasks need to be scheduled at least once in a while.
+	 *
+	 * We don't know how busy the callout queue is going to get, so forcing
+	 * its "idle" tasks to run may be the only option to ensure these
+	 * background but important operations get a chance to be run at all.
+	 */
+
+	if (0 == j++ % 2) {
+		cq_idle(callout_queue);
+	}
 }
 
 /**
