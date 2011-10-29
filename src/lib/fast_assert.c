@@ -37,6 +37,7 @@
 #include "fast_assert.h"
 #include "log.h"
 #include "stacktrace.h"
+#include "str.h"
 #include "override.h"			/* Must be the last header included */
 
 /**
@@ -126,6 +127,23 @@ assertion_abort(void)
 	 */
 
 	crash_abort();
+
+#undef STACK_OFF
+}
+
+/*
+ * Trace the code path leading to this assertion.
+ */
+static NO_INLINE void G_GNUC_COLD
+assertion_stacktrace(void)
+{
+#define STACK_OFF	2		/* 2 extra calls: assertion_warning(), then here */
+
+	stacktrace_where_safe_print_offset(STDERR_FILENO, STACK_OFF);
+	if (log_stdout_is_distinct())
+		stacktrace_where_safe_print_offset(STDOUT_FILENO, STACK_OFF);
+
+#undef STACK_OFF
 }
 
 /*
@@ -140,14 +158,45 @@ NO_INLINE void G_GNUC_COLD
 assertion_warning(const assertion_data * const data)
 {
 	assertion_message(data, FALSE);
+	assertion_stacktrace();
+}
+
+NO_INLINE void G_GNUC_COLD
+assertion_warning_log(const assertion_data * const data,
+	const char * const fmt, ...)
+{
+	static str_t *str;
+	va_list args;
+
+	assertion_message(data, TRUE);
+
+	if G_UNLIKELY(NULL == str)
+		str = str_new_not_leaking(512);
 
 	/*
-	 * Trace the code path leading to this assertion warning.
+	 * Log additional message.
 	 */
 
-	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
-	if (log_stdout_is_distinct())
-		stacktrace_where_safe_print_offset(STDOUT_FILENO, 1);
+	va_start(args, fmt);
+	str_vprintf(str, fmt, args);
+	va_end(args);
+
+	{
+		char time_buf[18];
+		DECLARE_STR(4);
+
+		crash_time(time_buf, sizeof time_buf);
+
+		print_str(time_buf);
+		print_str(" (WARNING): ");
+		print_str(str_2c(str));
+		print_str("\n");
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+	}
+
+	assertion_stacktrace();
 }
 
 NO_INLINE void G_GNUC_COLD
