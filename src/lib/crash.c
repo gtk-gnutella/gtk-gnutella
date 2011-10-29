@@ -668,6 +668,7 @@ crash_stack_print(int fd, size_t offset)
 
 static Sigjmp_buf crash_fork_env;
 
+#ifdef HAS_FORK
 /**
  * Handle fork() timeouts.
  */
@@ -684,6 +685,7 @@ crash_fork_timeout(int signo)
 
 	Siglongjmp(crash_fork_env, signo);
 }
+#endif	/* HAS_FORK */
 
 /**
  * A fork() wrapper to work around libc6 bugs causing hangs within fork().
@@ -691,12 +693,10 @@ crash_fork_timeout(int signo)
 static G_GNUC_COLD pid_t
 crash_fork(void)
 {
+#ifdef HAS_FORK
 	pid_t pid;
 	signal_handler_t old_sigalrm;
 	unsigned remain;
-
-	if (!has_fork())
-		return 0;			/* Act as if we were in a child upon return */
 
 	old_sigalrm = signal_set(SIGALRM, crash_fork_timeout);
 	remain = alarm(15);		/* Guess, large enough to withstand system load */
@@ -714,6 +714,9 @@ restore:
 	signal_set(SIGALRM, old_sigalrm);
 
 	return pid;
+#else
+	return 0;			/* Act as if we were in a child upon return */
+#endif	/* HAS_FORK */
 }
 
 /**
@@ -734,7 +737,9 @@ crash_invoke_inspector(int signo, const char *cwd)
 
 	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
 
+#ifdef HAS_WAITPID
 retry_child:
+#endif
 
 	/* Make sure we don't exceed the system-wide file descriptor limit */
 	close_file_descriptors(3);
