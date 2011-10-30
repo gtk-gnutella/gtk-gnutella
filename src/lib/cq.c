@@ -1108,7 +1108,7 @@ callout_queue_coverage(int old_ticks)
  *** Main callout queue instance beating every CALLOUT_PERIOD.
  ***/
 
-#define CALLOUT_PERIOD			100	/* milliseconds */
+#define CALLOUT_PERIOD			25	/* milliseconds */
 
 static guint callout_timer_id = 0;
 
