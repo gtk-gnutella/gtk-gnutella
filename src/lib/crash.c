@@ -131,12 +131,12 @@ struct crash_vars {
 	str_t *logstr;			/**< String to build and hold error message */
 	str_t *fmtstr;			/**< String to allow log formatting during crash */
 	hash_table_t *hooks;	/**< Records crash hooks by file name */
-	gboolean crash_mode;	/**< True when we enter crash mode */
-	gboolean recursive;		/**< True when we are in a recursive crash */
-	gboolean closed;		/**< True when crash_close() was called */
 	unsigned build;			/**< Build number, unique version number */
+	guint8 crash_mode;		/**< True when we enter crash mode */
+	guint8 recursive;		/**< True when we are in a recursive crash */
+	guint8 closed;			/**< True when crash_close() was called */
+	guint8 invoke_inspector;
 	unsigned pause_process:1;
-	unsigned invoke_inspector:1;
 	unsigned dumps_core:1;
 };
 
@@ -666,9 +666,9 @@ crash_stack_print(int fd, size_t offset)
 	}
 }
 
+#ifdef HAS_FORK
 static Sigjmp_buf crash_fork_env;
 
-#ifdef HAS_FORK
 /**
  * Handle fork() timeouts.
  */
@@ -734,6 +734,8 @@ crash_invoke_inspector(int signo, const char *cwd)
 	int fd[2];
 	const char *stage = NULL;
 	gboolean retried_child = FALSE;
+	gboolean could_fork = has_fork();
+	int fork_errno = 0;
 
 	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
 
@@ -765,9 +767,6 @@ retry_child:
 		DECLARE_STR(2);
 		char time_buf[18];
 
-		(void) signo;
-		(void) cwd;
-
 		crash_time(time_buf, sizeof time_buf);
 		print_str(time_buf);
 		print_str(" (WARNING): cannot fork() on this platform\n");
@@ -781,8 +780,27 @@ retry_child:
 	pid = crash_fork();
 	switch (pid) {
 	case -1:
-		stage = "fork()";
-		goto parent_failure;
+		fork_errno = errno;
+		could_fork = FALSE;
+		{
+			DECLARE_STR(6);
+			char time_buf[18];
+
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);
+			print_str(" (WARNING): fork() failed: ");
+			print_str(symbolic_errno(errno));
+			print_str(" (");
+			print_str(g_strerror(errno));
+			print_str(")\n");
+			flush_err_str();
+		}
+		/*
+		 * Even though we could not fork() for some reason, we're going
+		 * to continue as if we were in the "child process" to create
+		 * the crash log file and save important information.
+		 */
+		/* FALL THROUGH */
 	case 0:	/* executed by child */
 		{
 			int flags;
@@ -864,7 +882,7 @@ retry_child:
 			crash_run_time(rbuf, sizeof rbuf);
 			t = delta_time(time(NULL), vars->start_time);
 
-			if (has_fork()) {
+			if (could_fork) {
 				/* STDIN must be kept open when piping to gdb */
 				if (vars->exec_path != NULL) {
 					if (
@@ -877,7 +895,7 @@ retry_child:
 				set_close_on_exec(PARENT_STDERR_FILENO);
 			}
 
-			if (has_fork()) {
+			if (could_fork) {
 				if (
 					close(STDOUT_FILENO) ||
 					close(STDERR_FILENO) ||
@@ -986,14 +1004,22 @@ retry_child:
 			flush_str(clf);
 
 			/*
-			 * If we don't have fork() on this platform, we've logged the
-			 * essential stuff, we can now execute what is normally
-			 * done by the parent process.
+			 * If we don't have fork() on this platform (or could not fork)
+			 * we've now logged the essential stuff: we can execute what is
+			 * normally done by the parent process.
 			 */
 
-			if (!has_fork()) {
+			if (!could_fork) {
 				rewind_str(0);
-				print_str("No fork() on this platform.\n");
+				if (!has_fork()) {
+					print_str("No fork() on this platform.\n");
+				} else {
+					print_str("fork() failed: ");
+					print_str(symbolic_errno(fork_errno));
+					print_str(" (");
+					print_str(g_strerror(fork_errno));
+					print_str(")\n");
+				}
 				flush_str(clf);
 				close(clf);
 				goto parent_process;
@@ -1063,7 +1089,9 @@ retry_child:
 			print_str(") ");					/* 3 */
 			print_str("exec() error: ");		/* 4 */
 			print_str(symbolic_errno(errno));	/* 5 */
-			print_str("\n");					/* 6 */
+			print_str(" (");					/* 6 */
+			print_str(g_strerror(errno));		/* 7 */
+			print_str(")\n");					/* 8 */
 			flush_str(PARENT_STDERR_FILENO);
 			flush_str(STDOUT_FILENO);			/* into crash file as well */
 
@@ -1098,7 +1126,7 @@ parent_process:
 		 * succeed or get EPIPE if the child dies and closes its end.
 		 */
 
-		if (has_fork()) {
+		if (could_fork) {
 			static const char commands[] = "bt\nbt full\nquit\n";
 			const size_t n = CONST_STRLEN(commands);
 			ssize_t ret;
@@ -1134,7 +1162,7 @@ parent_process:
 		print_str(") ");					/* 3 */
 		iov_prolog = getpos_str();
 
-		if (!has_fork()) {
+		if (!could_fork) {
 			child_ok = TRUE;
 			goto no_fork;
 		}
@@ -1210,7 +1238,7 @@ no_fork:
 			 */
 
 			crash_logname(buf, sizeof buf, pid_str);
-			if (!has_fork())
+			if (!could_fork)
 				crash_run_hooks(buf, -1);
 
 			rewind_str(iov_prolog);
@@ -1256,7 +1284,7 @@ no_fork:
 				close(STDOUT_FILENO) ||
 				STDOUT_FILENO != open("/dev/null", O_WRONLY, 0)
 			) {
-				stage = "stdout closing";
+				stage = "final stdout closing";
 				goto parent_failure;
 			}
 
@@ -1264,7 +1292,7 @@ no_fork:
 				close(STDIN_FILENO) ||
 				STDIN_FILENO != open("/dev/null", O_RDONLY, 0)
 			) {
-				stage = "stdin closing";
+				stage = "final stdin closing";
 				goto parent_failure;
 			}
 		}
@@ -1309,7 +1337,7 @@ crash_mode(void)
 {
 	if (vars != NULL) {
 		if (!vars->crash_mode) {
-			gboolean t = TRUE;
+			guint8 t = TRUE;
 
 			crash_set_var(crash_mode, t);
 
@@ -1421,7 +1449,7 @@ crash_handler(int signo)
 
 	if (recursive) {
 		if (vars != NULL && !vars->recursive) {
-			gboolean t = TRUE;
+			guint8 t = TRUE;
 			crash_set_var(recursive, t);
 		}
 	}
@@ -1472,8 +1500,16 @@ crash_handler(int signo)
 	if (vars->invoke_inspector) {
 		gboolean hooks = crash_invoke_inspector(signo, cwd);
 		if (!hooks) {
+			guint8 f = FALSE;
 			crash_run_hooks(NULL, -1);
+			crash_set_var(invoke_inspector, f);
+			crash_end_of_line();
 		}
+	}
+	if (vars->pause_process && vars->invoke_inspector) {
+		guint8 f = FALSE;
+		crash_set_var(invoke_inspector, f);
+		crash_end_of_line();
 	}
 	if (vars->pause_process)
 #if defined(HAS_SIGPROCMASK)
@@ -1882,7 +1918,7 @@ void
 crash_close(void)
 {
 	if (vars != NULL) {
-		gboolean t = TRUE;
+		guint8 t = TRUE;
 		crash_set_var(closed, t);
 	}
 }
