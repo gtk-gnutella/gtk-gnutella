@@ -2811,7 +2811,22 @@ mingw_exception_log(int code, const void *pc)
 	if (log_stdout_is_distinct())
 		flush_str(STDOUT_FILENO);
 
-	crash_set_error(mingw_exception_to_string(code));
+	/*
+	 * Format an error message to propagate into the crash log.
+	 */
+
+	{
+		str_t str;
+		char data[128];
+
+		str_from_foreign(&str, data, 0, sizeof data);
+		str_printf(&str, "%s at PC=%p%s%s%s",
+			mingw_exception_to_string(code), pc,
+			NULL == name ? "" : " (",
+			NULL == name ? "" : name,
+			NULL == name ? "" : ")");
+		crash_set_error(str_2c(&str));
+	}
 }
 
 /**
@@ -2856,7 +2871,7 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 		char data[80];
 
 		str_from_foreign(&str, data, 0, sizeof data);
-		str_printf(&str, "; memory fault (%s) at VA=%p", prot, va);
+		str_printf(&str, "; %s fault at VA=%p", prot, va);
 		crash_append_error(str_2c(&str));
 	}
 }
