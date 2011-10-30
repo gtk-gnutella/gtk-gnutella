@@ -64,6 +64,7 @@
 #include "glib-missing.h"
 #include "unsigned.h"
 #include "palloc.h"
+#include "tm.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -512,10 +513,21 @@ reset:
 void
 pgc(void)
 {
+	static time_t last_run;
+	time_t now;
 	hash_list_iter_t *iter;
 
 	if (NULL == pool_gc)
 		return;
+
+	/*
+	 * Limit iterations to one per second.
+	 */
+
+	now = tm_time();
+	if (last_run == now)
+		return;
+	last_run = now;
 
 	iter = hash_list_iterator(pool_gc);
 
