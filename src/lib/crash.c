@@ -2,7 +2,7 @@
  * Copyright (c) 2006 Christian Biere <christianbiere@gmx.de>
  * All rights reserved.
  *
- * Copyright (c) 2009 Raphael Manfredi <Raphael_Manfredi@pobox.com>
+ * Copyright (c) 2009-2011 Raphael Manfredi <Raphael_Manfredi@pobox.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2009
+ * @date 2009-2011
  */
 
 #include "common.h"
