@@ -97,7 +97,8 @@
 
 #include "override.h"			/* Must be the last header included */
 
-#define PARENT_STDERR_FILENO	3
+#define PARENT_STDOUT_FILENO	3
+#define PARENT_STDERR_FILENO	4
 #define CRASH_MSG_MAXLEN		3072
 
 #ifdef HAS_FORK
@@ -736,6 +737,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 	gboolean retried_child = FALSE;
 	gboolean could_fork = has_fork();
 	int fork_errno = 0;
+	int parent_stdout = STDOUT_FILENO;
 
 	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
 
@@ -747,6 +749,19 @@ retry_child:
 	close_file_descriptors(3);
 
 	if (has_fork()) {
+		/* In case fork() fails, make sure we leave stdout open */
+		if (PARENT_STDOUT_FILENO != dup(STDOUT_FILENO)) {
+			stage = "parent's stdout duplication";
+			goto parent_failure;
+		}
+		parent_stdout = PARENT_STDOUT_FILENO;
+
+		/* Make sure child will get access to the stderr of its parent */
+		if (PARENT_STDERR_FILENO != dup(STDERR_FILENO)) {
+			stage = "parent's stderr duplication";
+			goto parent_failure;
+		}
+
 		if (
 			close(STDIN_FILENO) ||
 			close(STDOUT_FILENO) ||
@@ -757,12 +772,6 @@ retry_child:
 			stage = "pipe setup";
 			goto parent_failure;
 		}
-
-		/* Make sure child will get access to the stderr of its parent */
-		if (PARENT_STDERR_FILENO != dup(STDERR_FILENO)) {
-			stage = "parent's stderr duplication";
-			goto parent_failure;
-		}
 	} else {
 		DECLARE_STR(2);
 		char time_buf[18];
@@ -771,6 +780,8 @@ retry_child:
 		print_str(time_buf);
 		print_str(" (WARNING): cannot fork() on this platform\n");
 		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
 	}
 
 #ifdef SIGCHLD
@@ -794,6 +805,8 @@ retry_child:
 			print_str(g_strerror(errno));
 			print_str(")\n");
 			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(parent_stdout);
 		}
 		/*
 		 * Even though we could not fork() for some reason, we're going
@@ -893,6 +906,7 @@ retry_child:
 				}
 
 				set_close_on_exec(PARENT_STDERR_FILENO);
+				set_close_on_exec(PARENT_STDOUT_FILENO);
 			}
 
 			if (could_fork) {
@@ -1041,6 +1055,7 @@ retry_child:
 				log_force_fd(LOG_STDERR, PARENT_STDERR_FILENO);
 				log_set_disabled(LOG_STDOUT, TRUE);
 				crash_run_hooks(NULL, STDOUT_FILENO);
+				log_set_disabled(LOG_STDOUT, FALSE);
 			}
 
 #ifdef HAS_SETSID
@@ -1094,6 +1109,8 @@ retry_child:
 			print_str(")\n");					/* 8 */
 			flush_str(PARENT_STDERR_FILENO);
 			flush_str(STDOUT_FILENO);			/* into crash file as well */
+			if (log_stdout_is_distinct())
+				flush_str(parent_stdout);
 
 		child_failure:
 			_exit(EXIT_FAILURE);
@@ -1185,6 +1202,8 @@ parent_process:
 					WEXITSTATUS(status)));				/* 5 */
 				print_str("\n");						/* 6 */
 				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(parent_stdout);
 			}
 		} else {
 			gboolean may_retry = FALSE;
@@ -1201,6 +1220,8 @@ parent_process:
 			}
 			print_str("\n");						/* 6, at most */
 			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(parent_stdout);
 
 			/*
 			 * If we have hooks to run and the child crashed with a signal,
@@ -1212,6 +1233,8 @@ parent_process:
 				rewind_str(iov_prolog);
 				print_str("retrying child fork without hooks\n");
 				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(parent_stdout);
 				retried_child = TRUE;
 				goto retry_child;
 			}
@@ -1255,7 +1278,7 @@ no_fork:
 			print_str("\n");					/* 9, at most */
 			flush_err_str();
 			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+				flush_str(parent_stdout);
 		}
 
 		/*
@@ -1271,7 +1294,7 @@ no_fork:
 			print_str("\n");				/* 6 */
 			flush_err_str();
 			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+				flush_str(parent_stdout);
 		}
 
 		/*
@@ -1282,9 +1305,10 @@ no_fork:
 		if (has_fork()) {
 			if (
 				close(STDOUT_FILENO) ||
-				STDOUT_FILENO != open("/dev/null", O_WRONLY, 0)
+				-1 == dup2(PARENT_STDOUT_FILENO, STDOUT_FILENO) ||
+				close(PARENT_STDOUT_FILENO)
 			) {
-				stage = "final stdout closing";
+				stage = "stdout restore";
 				goto parent_failure;
 			}
 
@@ -1324,6 +1348,8 @@ parent_failure:
 		print_str(EMPTY_STRING(stage));			/* 4 */
 		print_str("\n");						/* 5 */
 		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(parent_stdout);
 	}
 
 	return FALSE;
