@@ -2536,7 +2536,7 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 
 	if (i > 16 && GNET_PROPERTY(socket_debug)) {
 		tm_now_exact(&end);
-		g_debug("%s() iterated %u times, read %'lu bytes in %'u usecs",
+		s_debug("%s() iterated %u times, read %'lu bytes in %'u usecs",
 			G_STRFUNC, i, (unsigned long) rd,
 			(unsigned) tm_elapsed_us(&end, &start));
 	}
