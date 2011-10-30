@@ -54,6 +54,7 @@
 #include "stringify.h"	/* For uint64_to_string() and short_time() */
 #include "tm.h"			/* For tm_time() */
 #include "unsigned.h"	/* For size_is_non_negative() */
+#include "xmalloc.h"
 
 /*
  * The following setups are more or less independent from each other.
@@ -3069,7 +3070,7 @@ malloc_glib12_check(void)
 		p = g_strdup("");
 		if (hash_table_size(reals) == old_size) {
 			static GMemVTable zero_vtable;
-			fprintf(stderr, "WARNING: resetting g_mem_set_vtable\n");
+			s_warning("resetting g_mem_set_vtable()");
 			g_mem_set_vtable(&zero_vtable);
 			vtable_works = FALSE;
 		} else {
@@ -3079,6 +3080,34 @@ malloc_glib12_check(void)
 #endif	/* GLib < 2.0.0 */
 }
 #endif	/* MALLOC_VTABLE */
+
+/*
+ * Sanity checks of malloc settings.
+ */
+static G_GNUC_COLD void
+malloc_sanity_checks(void)
+{
+	static const char test_string[] = "test string";
+	gchar *p = g_strdup(test_string);
+
+	if (0 != strcmp(test_string, p))
+		s_error("g_strdup() is not working");
+	G_FREE_NULL(p);
+
+	p = g_malloc(CONST_STRLEN(test_string) + 20);
+	memcpy(p, test_string, CONST_STRLEN(test_string) + 1);
+	if (0 != strcmp(test_string, p))
+		s_error("g_malloc() is not working");
+
+	p = g_realloc(p, CONST_STRLEN(test_string) + 1);
+	if (0 != strcmp(test_string, p))
+		s_error("g_realloc() is not working");
+
+	p = g_realloc(p, CONST_STRLEN(test_string) + 512);
+	if (0 != strcmp(test_string, p))
+		s_error("g_realloc() is not working");
+	G_FREE_NULL(p);
+}
 
 /**
  * Attempt to trap all raw g_malloc(), g_free(), g_realloc() calls
@@ -3114,34 +3143,30 @@ malloc_init_vtable(void)
 		g_mem_set_vtable(&vtable);
 		malloc_glib12_check();
 	}
-
+#else	/* !MALLOC_VTABLE */
 	/*
-	 * Sanity checks of malloc settings
+	 * On Windows, when xmalloc() is actually malloc(), redirect all glib
+	 * memory allocation to malloc() / free().
 	 */
 
-	{
-		static const char test_string[] = "test string";
-		gchar *p = g_strdup(test_string);
+	if (is_running_on_mingw() && xmalloc_is_malloc()) {
+		static GMemVTable vtable;
 
-		if (0 != strcmp(test_string, p))
-			s_error("g_strdup() is not working");
-		G_FREE_NULL(p);
+#if GLIB_CHECK_VERSION(2,0,0)
+		vtable.malloc = malloc;
+		vtable.realloc = realloc;
+		vtable.free = free;
+#else	/* GLib < 2.0.0 */
+		vtable.gmvt_malloc = malloc;
+		vtable.gmvt_realloc = realloc;
+		vtable.gmvt_free = free;
+#endif	/* GLib >= 2.0.0 */
 
-		p = g_malloc(CONST_STRLEN(test_string) + 20);
-		memcpy(p, test_string, CONST_STRLEN(test_string) + 1);
-		if (0 != strcmp(test_string, p))
-			s_error("g_malloc() is not working");
-
-		p = g_realloc(p, CONST_STRLEN(test_string) + 1);
-		if (0 != strcmp(test_string, p))
-			s_error("g_realloc() is not working");
-
-		p = g_realloc(p, CONST_STRLEN(test_string) + 512);
-		if (0 != strcmp(test_string, p))
-			s_error("g_realloc() is not working");
-		G_FREE_NULL(p);
+		g_mem_set_vtable(&vtable);
 	}
 #endif	/* MALLOC_VTABLE */
+
+	malloc_sanity_checks();
 }
 
 /**
