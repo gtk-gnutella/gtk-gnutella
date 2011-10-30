@@ -696,8 +696,8 @@ gm_hash_table_destroy_null(GHashTable **h_ptr)
  *** undefine malloc, g_malloc, etc... which are possibly set up by override.h.
  ***/
 
-#if defined(USE_GLIB1) && \
-	(defined(USE_HALLOC) || defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
+#ifdef USE_GLIB1
+#if (defined(USE_HALLOC) || defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
 		defined(REMAP_ZALLOC))
 
 static GMemVTable gm_vtable;
@@ -889,6 +889,25 @@ g_mem_is_system_malloc(void)
 		cast_pointer_to_func(gm_vtable.gmvt_malloc) ==
 			cast_pointer_to_func(malloc);
 }
+#else
+/**
+ * Sets the GMemVTable to use for memory allocation.
+ */
+void
+g_mem_set_vtable(GMemVTable *vtable)
+{
+	g_error("%s() not supported in glib1");
+}
+
+/**
+ * Are we using system's malloc?
+ */
+gboolean
+g_mem_is_system_malloc(void)
+{
+	return TRUE;		/* Remapping is not possible natively with glib1 */
+}
+#endif	/* USE_HALLOC || TRACK_MALLOC || TRACK_ZALLOC || REMAP_ZALLOC */
 #endif	/* USE_GLIB1 */
 
 /**
