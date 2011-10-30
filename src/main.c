@@ -751,8 +751,9 @@ gtk_gnutella_exit(int exit_code)
 	if (shutdown_requested)
 		handle_user_shutdown_request(shutdown_user_mode);
 
-	if (!running_topless)
+	if (!running_topless) {
 		main_gui_exit(exit_code);
+	}
 
 	exit(exit_code);
 
