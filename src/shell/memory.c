@@ -42,6 +42,7 @@
 #include "lib/dump_options.h"
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/glib-missing.h"
 #include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/omalloc.h"
@@ -183,6 +184,13 @@ failure:
 	return REPLY_ERROR;
 }
 
+static void
+shell_vtable_settings_log(logagent_t *la)
+{
+	log_info(la, "glib's g_malloc() is %s the system's malloc()",
+		g_mem_is_system_malloc() ? "using" : "distinct from");
+}
+
 typedef void (*shower_cb_t)(logagent_t *la);
 typedef void (*shower_opt_cb_t)(logagent_t *la, unsigned options);
 
@@ -275,7 +283,7 @@ static enum shell_reply
 shell_exec_memory_show_options(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
-	show_vec_t v[2];
+	show_vec_t v[3];
 
 	shell_check(sh);
 	g_assert(argv);
@@ -285,6 +293,8 @@ shell_exec_memory_show_options(struct gnutella_shell *sh,
 	v[0].prefix = NULL;
 	v[1].cb = malloc_show_settings_log;
 	v[1].prefix = "malloc ";
+	v[2].cb = shell_vtable_settings_log;
+	v[2].prefix = NULL;
 
 	return memory_run_showerv(sh, v, G_N_ELEMENTS(v));
 }
