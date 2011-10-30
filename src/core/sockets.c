@@ -2527,18 +2527,18 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 		if (s->flags & SOCK_F_SINGLE)
 			break;
 
-		/* Do not monopolize CPU for too long -- break out after 150 ms */
+		/* Do not monopolize CPU for too long -- break out after 37 ms */
 		tm_now_exact(&end);
-		if (tm_elapsed_ms(&end, &start) > 150)
+		if (tm_elapsed_ms(&end, &start) > 37)
 			break;
 
 	} while (i < MAX_UDP_RECV_LOOP);
 
 	if (i > 16 && GNET_PROPERTY(socket_debug)) {
 		tm_now_exact(&end);
-		g_debug(
-			"socket_udp_event() iterated %u times, read %lu bytes in %u usecs",
-			i, (unsigned long) rd, (unsigned) tm_elapsed_us(&end, &start));
+		g_debug("%s() iterated %u times, read %'lu bytes in %'u usecs",
+			G_STRFUNC, i, (unsigned long) rd,
+			(unsigned) tm_elapsed_us(&end, &start));
 	}
 }
 
