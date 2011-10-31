@@ -929,7 +929,6 @@ s_minicarp(const char *format, ...)
 {
 	gboolean in_signal_handler = signal_in_handler();
 	va_list args;
-	str_t str;
 	char data[LOG_MSG_MAXLEN];
 	DECLARE_STR(4);
 	char time_buf[18];
@@ -940,16 +939,15 @@ s_minicarp(const char *format, ...)
 	if (!log_printable(LOG_STDERR))
 		return;
 
-	str_from_foreign(&str, data, 0, sizeof data);
-
 	va_start(args, format);
-	str_vprintf(&str, format, args);	/* str_ncat_safe() is recursion-safe */
+	/* str_ncat_safe() and str_vncatf() are recursion-safe */
+	str_vbprintf(data, sizeof data, format, args);
 	va_end(args);
 
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);		/* 0 */
 	print_str(" (WARNING): ");	/* 1 */
-	print_str(str_2c(&str));	/* 2 */
+	print_str(data);			/* 2 */
 	print_str("\n");			/* 3 */
 	log_flush_err();
 	if (log_stdout_is_distinct())
