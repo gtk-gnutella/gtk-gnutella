@@ -887,7 +887,9 @@ g_mem_is_system_malloc(void)
 void
 g_mem_set_vtable(GMemVTable *vtable)
 {
-	g_error("%s() not supported in glib1");
+	(void) vtable;
+
+	g_error("%s() not supported in glib1", G_STRFUNC);
 }
 
 /**
