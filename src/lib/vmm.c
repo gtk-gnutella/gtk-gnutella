@@ -3778,9 +3778,15 @@ vmm_dump_stats(void)
 static G_GNUC_COLD void
 vmm_crash_hook(void)
 {
+	int dummy;
+
 	s_debug("VMM pagesize=%lu bytes, virtual addresses are %s",
 		(unsigned long) kernel_pagesize,
 		kernel_mapaddr_increasing ? "increasing" : "decreasing");
+
+	s_debug("VMM base=%p, initial_sp=%p, current_sp=%p (stack growing %s)",
+		vmm_base, initial_sp, (void *) &dummy,
+		ptr_cmp(initial_sp, &dummy) < 0 ? "up" : "down");
 
 	vmm_dump_stats();
 }
