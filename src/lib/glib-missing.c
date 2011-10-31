@@ -43,6 +43,7 @@
 #include "ascii.h"
 #include "compat_poll.h"
 #include "iovec.h"
+#include "log.h"			/* For s_minicarp() */
 #include "misc.h"			/* For clamp_strcpy() */
 #include "str.h"
 #include "unsigned.h"
@@ -239,8 +240,9 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 #ifdef HAS_VSNPRINTF
 {
 	int retval;	/* printf()-functions really return int, not size_t */
-	
-	g_assert(size > 0);	
+	int truncated = 0;
+
+	g_assert(size_is_positive(size));	
 
 	dst[0] = '\0';
 	retval = vsnprintf(dst, size, fmt, args);
@@ -248,10 +250,16 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 		/* Old versions of vsnprintf() */
 		dst[size - 1] = '\0';
 		retval = strlen(dst);
+		truncated = (size - 1 == (size_t) retval) ? 1 : 0;
 	} else if ((size_t) retval >= size) {
 		/* New versions (compliant with C99) */
 		dst[size - 1] = '\0';
+		truncated = retval - size + 1;
 		retval = size - 1;
+	}
+	if G_UNLIKELY(truncated != 0) {
+		s_minicarp("truncated %d byte%s when formatting into %lu-byte buffer",
+			truncated, 1 == truncated ? "" : "s", (unsigned long) size);
 	}
 	return retval;
 }
