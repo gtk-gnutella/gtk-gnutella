@@ -1615,13 +1615,7 @@ G_STMT_START {									\
 			elen = q - f;
 
 			/* ... right here, because formatting flags should not apply */
-			if (elen > remain) {
-				str_ncat_safe(str, eptr, remain);
-				goto done;						/* Reached maxlen */
-			} else {
-				str_ncat_safe(str, eptr, elen);
-				remain -= elen;
-			}
+			STR_APPEND(eptr, elen);
 			continue;	/* not "break" */
 		}
 
