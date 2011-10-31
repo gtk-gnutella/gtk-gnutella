@@ -1165,6 +1165,7 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  *          max length for string, minimum length for integer
  * l        interpret integer as C type "long" or "unsigned long"
  * h        interpret integer as C type "short" or "unsigned short"
+ * z        interpret integer as C type "size_t" or "ssize_t"
  *
  * Where a number would appear in the flags, an asterisk ("*") may be
  * instead, in which case the routine uses the next item in the parameter
@@ -1364,6 +1365,8 @@ G_STMT_START {									\
 		case 'l':
 			/* FALL THROUGH */
 		case 'h':
+			/* FALL THROUGH */
+		case 'z':
 			intsize = *q++;
 			break;
 		}
@@ -1434,6 +1437,7 @@ G_STMT_START {									\
 			switch (intsize) {
 			case 'h':		iv = (short) va_arg(args, int); break;
 			case 'l':		iv = va_arg(args, long); break;
+			case 'z':		iv = va_arg(args, ssize_t); break;
 			default:		iv = va_arg(args, int); break;
 			}
 			if (iv >= 0) {
@@ -1465,11 +1469,13 @@ G_STMT_START {									\
 		case 'X':
 		case 'x':
 			base = 16;
+			/* FALL THROUGH */
 
 		uns_integer:
 			switch (intsize) {
 			case 'h':  uv = (unsigned short) va_arg(args, unsigned); break;
 			case 'l':  uv = va_arg(args, unsigned long); break;
+			case 'z':  uv = va_arg(args, size_t); break;
 			default:   uv = va_arg(args, unsigned); break;
 			}
 
@@ -1605,6 +1611,7 @@ G_STMT_START {									\
 				switch (intsize) {
 				case 'h': *(va_arg(args, short*)) = MIN(n, SHRT_MAX); break;
 				case 'l': *(va_arg(args, long*)) = MIN(n, LONG_MAX); break;
+				case 'z': *(va_arg(args, ssize_t*)) = MIN(n, SSIZE_MAX); break;
 				default:  *(va_arg(args, int*)) = MIN(n, INT_MAX); break;
 				}
 			}

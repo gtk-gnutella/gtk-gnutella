@@ -400,6 +400,10 @@ typedef void (*GCallback) (void);
 #define SIZE_MAX MAX_INT_VAL(size_t)
 #endif
 
+#ifndef SSIZE_MAX
+#define SSIZE_MAX MAX_INT_VAL(ssize_t)
+#endif
+
 /*
  * Other common macros.
  */
