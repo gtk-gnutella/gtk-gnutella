@@ -1729,45 +1729,33 @@ G_STMT_START {									\
 			remain -= esignlen;
 		}
 		if (gap && !left) {
-			if (gap >= remain) {
-				memset(p, fill, remain);
-				goto done;
-			} else {
-				memset(p, fill, gap);
-				p += gap;
-			}
+			p += clamp_memset(p, q - p, fill, gap);
+			if (p >= q)
+				goto clamped;
 			remain -= gap;
 		}
 		if (esignlen && fill != '0') {
 			p += clamp_memcpy(p, q - p, esignbuf, esignlen);
 			if (p >= q)
-				goto done;
+				goto clamped;
 			remain -= esignlen;
 		}
 		if (zeros) {
 			p += clamp_memset(p, q - p, '0', zeros);
 			if (p >= q)
-				goto done;
+				goto clamped;
 			remain -= zeros;
 		}
 		if (elen) {
-			if (elen >= remain) {
-				memcpy(p, eptr, remain);
-				goto done;
-			} else {
-				memcpy(p, eptr, elen);
-				p += elen;
-			}
+			p += clamp_memcpy(p, q - p, eptr, elen);
+			if (p >= q)
+				goto clamped;
 			remain -= elen;
 		}
 		if (gap && left) {
-			if (gap >= remain) {
-				memset(p, ' ', remain);
-				goto done;
-			} else {
-				memset(p, ' ', gap);
-				p += gap;
-			}
+			p += clamp_memset(p, q - p, ' ', gap);
+			if (p >= q)
+				goto clamped;
 			remain -= gap;
 		}
 
