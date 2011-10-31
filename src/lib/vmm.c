@@ -117,6 +117,7 @@
 #include "omalloc.h"
 #include "parse.h"
 #include "pow2.h"
+#include "str.h"			/* For str_bprintf() */
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
@@ -500,7 +501,7 @@ vmf_to_string(const struct vm_fragment *vmf)
 	static char buf[80];
 	size_t n = pagecount_fast(vmf_size(vmf));
 
-	gm_snprintf(buf, sizeof buf, "%s [%p, %p[ (%lu page%s)",
+	str_bprintf(buf, sizeof buf, "%s [%p, %p[ (%lu page%s)",
 		vmf_type_str(vmf->type), vmf->start, vmf->end,
 		(unsigned long) n, 1 == n ? "" : "s");
 
