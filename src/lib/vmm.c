@@ -3474,7 +3474,7 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, gboolean user_mem)
 void
 vmm_shrink(void *p, size_t size, size_t new_size)
 {
-	return vmm_shrink_internal(p, size, new_size, TRUE);
+	vmm_shrink_internal(p, size, new_size, TRUE);
 }
 
 /**
@@ -3486,7 +3486,7 @@ vmm_shrink(void *p, size_t size, size_t new_size)
 void
 vmm_core_shrink(void *p, size_t size, size_t new_size)
 {
-	return vmm_shrink_internal(p, size, new_size, FALSE);
+	vmm_shrink_internal(p, size, new_size, FALSE);
 }
 
 /**
