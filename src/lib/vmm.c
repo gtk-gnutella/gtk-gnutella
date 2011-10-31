@@ -255,6 +255,8 @@ static struct {
 	guint64 cache_expired;			/**< Amount of entries expired from cache */
 	guint64 cache_expired_pages;	/**< Expired pages from cache */
 	guint64 high_order_coalescing;	/**< Large regions successfully coalesced */
+	guint64 pmap_foreign_discards;	/**< Foreign regions discarded */
+	guint64 pmap_foreign_discarded_pages;	/**< Foreign pages discarded */
 	guint64 pmap_overruled;			/**< Regions overruled by kernel */
 	size_t user_memory;				/**< Amount of "user" memory allocated */
 	size_t user_pages;				/**< Amount of "user" memory pages used */
@@ -623,10 +625,15 @@ pmap_discard_index(struct pmap *pm, size_t idx)
 	if (vmm_debugging(0)) {
 		struct vm_fragment *vmf = &pm->array[idx];
 
+		g_assert_log(vmf_is_foreign(vmf), "vmf={%s}", vmf_to_string(vmf));
+
 		s_debug("VMM discarding %s region at %p (%luKiB) updated %us ago",
 			vmf_type_str(vmf->type), vmf->start,
 			(unsigned long) (vmf_size(vmf) / 1024),
 			(unsigned) delta_time(tm_time(), vmf->mtime));
+
+		vmm_stats.pmap_foreign_discards++;
+		vmm_stats.pmap_foreign_discarded_pages += pagecount_fast(vmf_size(vmf));
 	}
 
 	if G_LIKELY(idx != pm->count - 1) {
@@ -3689,6 +3696,8 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(cache_expired);
 	DUMP(cache_expired_pages);
 	DUMP(high_order_coalescing);
+	DUMP(pmap_foreign_discards);
+	DUMP(pmap_foreign_discarded_pages);
 	DUMP(pmap_overruled);
 
 #undef DUMP
