@@ -802,16 +802,6 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		}
 	}
 
-	if G_UNLIKELY(
-		G_LOG_LEVEL_CRITICAL == level ||
-		G_LOG_LEVEL_ERROR == level
-	) {
-		if (avoid_malloc)
-			stacktrace_where_safe_print_offset(STDERR_FILENO, 2);
-		else
-			stacktrace_where_sym_print_offset(stderr, 2);
-	}
-
 	/*
 	 * Free up the string memory by restoring the allocation context
 	 * using the checkpoint we made before allocating that string.
@@ -831,6 +821,22 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		in_safe_handler = FALSE;
 	} else {
 		lt->in_log_handler = FALSE;
+	}
+
+	/*
+	 * Now that we're done with the message logging, we can attempt to print
+	 * a stack trace if we've been emitting a critical or error message.
+	 *
+	 * Because this can trigger symbol loading and possibly log errors when
+	 * we can't find the executable or the symbol file, it's best to wait
+	 * until the end to avoid recursion.
+	 */
+
+	if G_UNLIKELY(G_LOG_LEVEL_CRITICAL == level || G_LOG_LEVEL_ERROR == level) {
+		if (avoid_malloc)
+			stacktrace_where_safe_print_offset(STDERR_FILENO, 2);
+		else
+			stacktrace_where_sym_print_offset(stderr, 2);
 	}
 }
 
