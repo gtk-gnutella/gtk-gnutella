@@ -1390,9 +1390,8 @@ pmap_insert_region(struct pmap *pm,
 			}
 			g_assert(VMF_FOREIGN == type);
 			g_assert_log(vmf_is_foreign(vmf),
-				"vmf=[%p, %p[ (type %d, %lu bytes), start=%p, size=%lu",
-				vmf->start, vmf->end, vmf->type, (unsigned long) vmf_size(vmf),
-				start, (unsigned long) size);
+				"vmf={%s}, start=%p, size=%lu",
+				vmf_to_string(vmf), start, (unsigned long) size);
 			g_assert(ptr_cmp(end, vmf->end) <= 0);
 		}
 		return;
@@ -2170,9 +2169,8 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 			/* We have an overlap with region in ``vmf'' */
 
 			g_assert_log(vmf_is_foreign(vmf),
-				"vmf=[%p, %p[ (type %d, %lu bytes), base=%p, remain=%lu",
-				vmf->start, vmf->end, vmf->type, (unsigned long) vmf_size(vmf),
-				base, (unsigned long) remain);
+				"vmf={%s}, base=%p, remain=%lu",
+				vmf_to_string(vmf), base, (unsigned long) remain);
 
 			gap = ptr_diff(vmf->start, base);
 			g_assert(size_is_positive(gap));
@@ -2200,9 +2198,9 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 		 */
 
 		g_assert_log(VMF_MAPPED == type || vmf_is_foreign(vmf),
-			"vmf=[%p, %p[ (type %d, %lu bytes), base=%p, len=%lu, remain=%lu",
-			vmf->start, vmf->end, vmf->type, (unsigned long) vmf_size(vmf),
-			base, (unsigned long) len, (unsigned long) remain);
+			"vmf={%s}, base=%p, len=%lu, remain=%lu",
+			vmf_to_string(vmf), base, (unsigned long) len,
+			(unsigned long) remain);
 
 		g_assert(!vmf_is_native(vmf));	/* Never overrule allocated memory */
 
