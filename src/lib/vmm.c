@@ -492,6 +492,22 @@ vmf_type_str(const vmf_type_t type)
 }
 
 /**
+ * @return textual description of a memory fragment type in static buffer.
+ */
+static const char *
+vmf_to_string(const struct vm_fragment *vmf)
+{
+	static char buf[80];
+	size_t n = pagecount_fast(vmf_size(vmf));
+
+	gm_snprintf(buf, sizeof buf, "%s [%p, %p[ (%lu page%s)",
+		vmf_type_str(vmf->type), vmf->start, vmf->end,
+		(unsigned long) n, 1 == n ? "" : "s");
+
+	return buf;
+}
+
+/**
  * Dump current pmap to specified logagent.
  */
 G_GNUC_COLD void
@@ -1397,7 +1413,11 @@ pmap_insert_region(struct pmap *pm,
 	if (idx > 0) {
 		struct vm_fragment *prev = &pm->array[idx - 1];
 
-		g_assert(ptr_cmp(prev->end, start) <= 0); /* No overlap with prev */
+		g_assert_log(
+			ptr_cmp(prev->end, start) <= 0, /* No overlap with prev */
+			"idx=%lu, start=%p, size=%lu, prev={%s}",
+			(unsigned long) idx, start, (unsigned long) size,
+			vmf_to_string(prev));
 
 		if (prev->type == type && prev->end == start) {
 			prev->end = end;
@@ -1411,7 +1431,10 @@ pmap_insert_region(struct pmap *pm,
 			if G_LIKELY(idx < pm->count) {
 				struct vm_fragment *next = &pm->array[idx];
 
-				g_assert(ptr_cmp(next->start, end) >= 0);	/* No overlap */
+				g_assert_log(ptr_cmp(next->start, end) >= 0, /* No overlap */
+					"idx=%lu, end=%p, size=%lu, next={%s}",
+					(unsigned long) idx, end, (unsigned long) size,
+					vmf_to_string(next));
 
 				if (next->type == type && next->start == end) {
 					prev->end = next->end;	/* prev->mtime updated above */
@@ -1436,7 +1459,10 @@ pmap_insert_region(struct pmap *pm,
 	if G_LIKELY(idx < pm->count) {
 		struct vm_fragment *next = &pm->array[idx];
 
-		g_assert(ptr_cmp(end, next->start) <= 0);	/* No overlap with next */
+		g_assert_log(ptr_cmp(end, next->start) <= 0, /* No overlap with next */
+			"idx=%lu, end=%p, size=%lu, next={%s}",
+			(unsigned long) idx, end, (unsigned long) size,
+			vmf_to_string(next));
 
 		if (next->type == type && next->start == end) {
 			next->start = start;
