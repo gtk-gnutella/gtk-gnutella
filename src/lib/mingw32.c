@@ -2816,16 +2816,14 @@ mingw_exception_log(int code, const void *pc)
 	 */
 
 	{
-		str_t str;
 		char data[128];
 
-		str_from_foreign(&str, data, 0, sizeof data);
-		str_printf(&str, "%s at PC=%p%s%s%s",
+		str_bprintf(data, sizeof data, "%s at PC=%p%s%s%s",
 			mingw_exception_to_string(code), pc,
 			NULL == name ? "" : " (",
 			NULL == name ? "" : name,
 			NULL == name ? "" : ")");
-		crash_set_error(str_2c(&str));
+		crash_set_error(data);
 	}
 }
 
@@ -2867,12 +2865,10 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 	 */
 
 	{
-		str_t str;
 		char data[80];
 
-		str_from_foreign(&str, data, 0, sizeof data);
-		str_printf(&str, "; %s fault at VA=%p", prot, va);
-		crash_append_error(str_2c(&str));
+		str_bprintf(data, sizeof data, "; %s fault at VA=%p", prot, va);
+		crash_append_error(data);
 	}
 }
 

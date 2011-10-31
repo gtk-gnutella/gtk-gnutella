@@ -2493,17 +2493,14 @@ node_eof_v(struct gnutella_node *n, const char *reason, va_list args)
 	if (n->flags & NODE_F_BYE_SENT) {
 		g_assert(n->status == GTA_NODE_SHUTDOWN);
 		if (GNET_PROPERTY(node_debug)) {
-			str_t str;
 			char data[128];
 			va_list dbargs;
 
-			str_from_foreign(&str, data, 0, sizeof data);
 			VA_COPY(dbargs, args);
-			str_vprintf(&str, reason, dbargs);
+			str_vbprintf(data, sizeof data, reason, dbargs);
 			va_end(dbargs);
 
-			g_debug("EOF-style error during BYE to %s: %s",
-				node_addr(n), str_2c(&str));
+			g_debug("EOF-style error during BYE to %s: %s", node_addr(n), data);
 		}
 	}
 
