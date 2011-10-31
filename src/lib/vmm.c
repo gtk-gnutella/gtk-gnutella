@@ -4091,7 +4091,14 @@ vmm_init(const void *sp)
 	pmap_allocate(&local_pmap);
 	pmap_allocate(&kernel_pmap);
 
-	pmap_insert_foreign(vmm_pmap(), vmm_trap_page(), kernel_pagesize);
+	/*
+	 * The VMM trap page was allocated earlier, before we have the pmap
+	 * structure to record it.
+	 *
+	 * Insert it now, as a native region since we have allocated it.
+	 */
+
+	pmap_insert(vmm_pmap(), vmm_trap_page(), kernel_pagesize);
 
 	/*
 	 * Determine how the kernel is growing the virtual memory region.
