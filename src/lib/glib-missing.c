@@ -258,8 +258,9 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 		retval = size - 1;
 	}
 	if G_UNLIKELY(truncated != 0) {
-		s_minicarp("truncated %d byte%s when formatting into %lu-byte buffer",
-			truncated, 1 == truncated ? "" : "s", (unsigned long) size);
+		s_minicarp("truncated %d byte%s when formatting into %lu-byte buffer "
+			"with \"%s\"", truncated, 1 == truncated ? "" : "s",
+			(unsigned long) size, fmt);
 	}
 	return retval;
 }

@@ -1760,9 +1760,9 @@ clamped:
 		if (!recursion) {
 			recursion = TRUE;
 			s_minicarp("truncated output within %lu-byte buffer "
-				"(%lu max, %lu written)",
+				"(%lu max, %lu written) with \"%s\"",
 				(unsigned long) str->s_size, (unsigned long) maxlen,
-				(unsigned long) (str->s_len - origlen));
+				(unsigned long) (str->s_len - origlen), fmt);
 			recursion = FALSE;
 		}
 	}
