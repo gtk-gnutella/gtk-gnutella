@@ -85,7 +85,7 @@ void str_cpy(str_t *str, const char *string);
 void str_cat(str_t *str, const char *string);
 void str_cat_len(str_t *str, const char *string, size_t len);
 void str_ncat(str_t *str, const char *string, size_t len);
-void str_ncat_safe(str_t *str, const char *string, size_t len);
+gboolean str_ncat_safe(str_t *str, const char *string, size_t len);
 void str_shift(str_t *str, size_t len);
 gboolean str_ichar(str_t *str, ssize_t idx, char c);
 gboolean str_istr(str_t *str, ssize_t idx, const char *string);

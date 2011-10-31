@@ -732,33 +732,36 @@ str_ncat(str_t *str, const char *string, size_t len)
  * foreign string is too small, silently truncating instead.
  *
  * When the string arena can be resized, this routine behaves as str_ncat().
+ *
+ * @return TRUE if written normally, FALSE when clamping was done.
  */
-void
+gboolean
 str_ncat_safe(str_t *str, const char *string, size_t len)
 {
 	char *p;
 	const char *q;
 	char c;
+	gboolean fits = TRUE;
 
 	str_check(str);
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
 	if G_UNLIKELY(0 == len)
-		return;
+		return TRUE;
 
 	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		size_t n;
-		gboolean truncating = FALSE;
 
 		if (str->s_len == str->s_size) {
+			fits = FALSE;
 			len = 0;		/* Nothing can fit */
 		} else {
 			n = size_saturate_add(len, str->s_len);
 
 			if (n >= str->s_size) {
 				len = str->s_size - str->s_len - 1;	/* -1 for trailing NUL */
-				truncating = TRUE;
+				fits = FALSE;
 			}
 		}
 
@@ -766,7 +769,7 @@ str_ncat_safe(str_t *str, const char *string, size_t len)
 		 * Warn them loudly when truncation is about to happen.
 		 */
 
-		if G_UNLIKELY(0 == len || truncating) {
+		if G_UNLIKELY(!fits) {
 			static gboolean recursion;
 
 			/*
@@ -784,7 +787,7 @@ str_ncat_safe(str_t *str, const char *string, size_t len)
 			}
 
 			if (0 == len)
-				return;
+				return FALSE;
 		}
 	} else {
 		str_makeroom(str, len + 1);			/* Allow for trailing NUL */
@@ -799,6 +802,7 @@ str_ncat_safe(str_t *str, const char *string, size_t len)
 	}
 
 	str->s_len = p - str->s_data;
+	return fits;
 }
 
 /**
@@ -1210,12 +1214,16 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 
 #define STR_APPEND(x, l) \
 G_STMT_START {									\
-	if ((l) > remain) {							\
-		str_ncat_safe(str, (x), remain);		\
-		goto done;	/* Reached maxlen */		\
+	if G_UNLIKELY((l) > remain) {				\
+		if (!str_ncat_safe(str, (x), remain))	\
+			goto done;	/* Logged already */	\
+		goto clamped;	/* Reached maxlen */	\
 	} else {									\
-		str_ncat_safe(str, (x), (l));			\
-		remain -= (l);							\
+		if (str_ncat_safe(str, (x), (l))) {		\
+			remain -= (l);						\
+		} else {								\
+			goto done;	/* Logged clamping */	\
+		}										\
 	}											\
 } G_STMT_END
 
@@ -1773,6 +1781,28 @@ G_STMT_START {									\
 	}
 
 done:
+	return str->s_len - origlen;
+
+clamped:
+	{
+		static gboolean recursion;
+
+		/*
+		 * This routine MUST be recursion-safe since it is used indirectly
+		 * by s_minicarp() through the str_vprintf() call and we're calling
+		 * the former now!
+		 */
+
+		if (!recursion) {
+			recursion = TRUE;
+			s_minicarp("truncated output within %lu-byte buffer "
+				"(%lu max, %lu written)",
+				(unsigned long) str->s_size, (unsigned long) maxlen,
+				(unsigned long) (str->s_len - origlen));
+			recursion = FALSE;
+		}
+	}
+
 	return str->s_len - origlen;
 
 #undef STR_APPEND
