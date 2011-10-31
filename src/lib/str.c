@@ -2038,4 +2038,22 @@ str_bprintf(char *dst, size_t size, const char *fmt, ...)
 	return formatted;
 }
 
+/**
+ * A regular vsprintf() into a fix sized buffer without fear of overflow...
+ * @return the amount of formatted chars.
+ */
+size_t
+str_vbprintf(char *dst, size_t size, const char *fmt, va_list args)
+{
+	str_t str;
+	size_t formatted;
+
+	str_from_foreign(&str, dst, 0, size);
+
+	formatted = str_vncatf(&str, size - 1, fmt, args);
+	str_putc(&str, '\0');
+
+	return formatted;
+}
+
 /* vi: set ts=4 sw=4 cindent: */

@@ -111,6 +111,7 @@ const char *str_smsg(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
 const char *str_smsg2(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
 size_t str_bprintf(char *dst, size_t size, const char *fmt, ...)
 	G_GNUC_PRINTF(3, 4);
+size_t str_vbprintf(char *dst, size_t size, const char *fmt, va_list args);
 
 #endif /* _str_h_ */
 
