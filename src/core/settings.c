@@ -3074,7 +3074,7 @@ settings_callbacks_init(void)
         init_list[n] = FALSE;
 
     if (GNET_PROPERTY(dbg) >= 2) {
-        printf("settings_callbacks_init: property_map size: %u\n",
+        g_debug("settings_callbacks_init: property_map size: %u",
             (guint) PROPERTY_MAP_SIZE);
     }
 
@@ -3093,7 +3093,7 @@ settings_callbacks_init(void)
                 property_map[n].cb,
                 property_map[n].init);
         } else if (GNET_PROPERTY(dbg) >= 10) {
-            printf("settings_callbacks_init: property ignored: %s\n",
+            g_warning("settings_callbacks_init: property ignored: %s",
 				gnet_prop_name(prop));
         }
     }
@@ -3101,7 +3101,7 @@ settings_callbacks_init(void)
     if (GNET_PROPERTY(dbg) >= 1) {
         for (n = 0; n < GNET_PROPERTY_NUM; n++) {
             if (!init_list[n])
-                printf("settings_callbacks_init: unmapped property: %s\n",
+                g_message("settings_callbacks_init: unmapped property: %s",
 					gnet_prop_name(n+GNET_PROPERTY_MIN));
         }
     }
