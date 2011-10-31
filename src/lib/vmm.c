@@ -531,14 +531,15 @@ vmm_dump_pmap_log(logagent_t *la)
 			hole = ptr_diff(next, vmf->end);
 		}
 
-		log_debug(la, "VMM [%p, %p] %luKiB %s%s%s%s (%s)",
+		log_debug(la, "VMM [%p, %p] %luKiB %s%s%s%s (%s)%s",
 			vmf->start, const_ptr_add_offset(vmf->end, -1),
 			(unsigned long) (vmf_size(vmf) / 1024),
 			vmf_type_str(vmf->type),
 			hole ? " + " : "",
 			hole ? size_t_to_string(hole / 1024) : "",
 			hole ? "KiB hole" : "",
-			compact_time(delta_time(now, vmf->mtime)));
+			compact_time(delta_time(now, vmf->mtime)),
+			size_is_non_negative(hole) ? "" : " *UNSORTED*");
 	}
 }
 
