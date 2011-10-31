@@ -754,40 +754,16 @@ str_ncat_safe(str_t *str, const char *string, size_t len)
 		size_t n;
 
 		if (str->s_len == str->s_size) {
-			fits = FALSE;
-			len = 0;		/* Nothing can fit */
+			return FALSE;		/* Nothing can fit */
 		} else {
 			n = size_saturate_add(len, str->s_len);
 
 			if (n >= str->s_size) {
-				len = str->s_size - str->s_len - 1;	/* -1 for trailing NUL */
 				fits = FALSE;
+				len = str->s_size - str->s_len - 1;	/* -1 for trailing NUL */
+				if (0 == len)
+					return FALSE;
 			}
-		}
-
-		/*
-		 * Warn them loudly when truncation is about to happen.
-		 */
-
-		if G_UNLIKELY(!fits) {
-			static gboolean recursion;
-
-			/*
-			 * This routine MUST be recursion-safe since it is used indirectly
-			 * by s_minicarp() through the str_vprintf() call and we're calling
-			 * the former now!
-			 */
-
-			if (!recursion) {
-				recursion = TRUE;
-				s_minicarp("can only emit %lu more byte%s into %lu-byte buffer",
-					(unsigned long) len, 1 == len ? "" : "s",
-					(unsigned long) str->s_size);
-				recursion = FALSE;
-			}
-
-			if (0 == len)
-				return FALSE;
 		}
 	} else {
 		str_makeroom(str, len + 1);			/* Allow for trailing NUL */
@@ -1215,15 +1191,12 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 #define STR_APPEND(x, l) \
 G_STMT_START {									\
 	if G_UNLIKELY((l) > remain) {				\
-		if (!str_ncat_safe(str, (x), remain))	\
-			goto done;	/* Logged already */	\
+		str_ncat_safe(str, (x), remain);		\
 		goto clamped;	/* Reached maxlen */	\
 	} else {									\
-		if (str_ncat_safe(str, (x), (l))) {		\
-			remain -= (l);						\
-		} else {								\
-			goto done;	/* Logged clamping */	\
-		}										\
+		if (!str_ncat_safe(str, (x), (l))) 		\
+			goto clamped;	/* Full! */			\
+		remain -= (l);							\
 	}											\
 } G_STMT_END
 
@@ -1259,7 +1232,8 @@ G_STMT_START {									\
 		size_t len;
 		s = s ? s : nullstr;
 		len = strlen(s);
-		str_ncat_safe(str, s, len > maxlen ? maxlen : len);
+		if (!str_ncat_safe(str, s, len > maxlen ? maxlen : len))
+			goto clamped;
 		goto done;
 	}
 
@@ -1727,7 +1701,7 @@ G_STMT_START {									\
 		if (esignlen && fill == '0') {
 			p += clamp_memcpy(p, q - p, esignbuf, esignlen);
 			if (p >= q)
-				goto done;
+				goto clamped;
 			remain -= esignlen;
 		}
 		if (gap && !left) {
@@ -1779,8 +1753,8 @@ clamped:
 
 		/*
 		 * This routine MUST be recursion-safe since it is used indirectly
-		 * by s_minicarp() through the str_vprintf() call and we're calling
-		 * the former now!
+		 * by s_minicarp() through the str_vprintf() call and we're about
+		 * to call the former now!
 		 */
 
 		if (!recursion) {

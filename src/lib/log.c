@@ -940,7 +940,7 @@ s_minicarp(const char *format, ...)
 		return;
 
 	va_start(args, format);
-	/* str_ncat_safe() and str_vncatf() are recursion-safe */
+	/* str_vncatf() is recursion-safe */
 	str_vbprintf(data, sizeof data, format, args);
 	va_end(args);
 
