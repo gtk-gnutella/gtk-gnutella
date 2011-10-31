@@ -504,7 +504,7 @@ str_setlen(str_t *str, size_t len)
 }
 
 /**
- * Returns a pointer to the data, as a `C' string (NUL-terminated).
+ * @return a pointer to the data, as a `C' string (NUL-terminated).
  *
  * As a convenience, returns NULL if "str" is NULL.
  *
@@ -601,7 +601,7 @@ str_s2c_null(str_t **s_ptr)
 
 /**
  * Create a pure C string copy of the string currently held in the arena.
- * Returns pointer to the copied string location.
+ * @return pointer to the copied string location.
  *
  * NB: The str_t object is not disposed of. If the object is no longer needed,
  * use str_s2c() to dispose of it whilst retaining its arena.
@@ -1785,7 +1785,7 @@ done:
 
 /**
  * Append to string the variable formatted argument list, just like sprintf().
- * Returns the amount of formatted chars.
+ * @return the amount of formatted chars.
  */
 size_t
 str_vcatf(str_t *str, const char *fmt, va_list args)
@@ -1795,7 +1795,7 @@ str_vcatf(str_t *str, const char *fmt, va_list args)
 
 /**
  * Like str_vcatf(), but resets the string first.
- * Returns the amount of formatted chars.
+ * @return the amount of formatted chars.
  */
 size_t
 str_vprintf(str_t *str, const char *fmt, va_list args)
@@ -1808,7 +1808,7 @@ str_vprintf(str_t *str, const char *fmt, va_list args)
 
 /**
  * Append result of "printf(fmt, ...)" to string.
- * Returns the amount of formatted chars.
+ * @return the amount of formatted chars.
  */
 size_t
 str_catf(str_t *str, const char *fmt, ...)
@@ -1825,7 +1825,7 @@ str_catf(str_t *str, const char *fmt, ...)
 
 /**
  * Append result of "nprintf(fmt, ...)" to string.
- * Returns the amount of formatted chars.
+ * @return the amount of formatted chars.
  */
 size_t
 str_ncatf(str_t *str, size_t n, const char *fmt, ...)
@@ -1842,7 +1842,7 @@ str_ncatf(str_t *str, size_t n, const char *fmt, ...)
 
 /**
  * A regular sprintf() without fear of buffer overflow...
- * Returns the amount of formatted chars.
+ * @return the amount of formatted chars.
  */
 size_t
 str_printf(str_t *str, const char *fmt, ...)
@@ -1863,7 +1863,7 @@ str_printf(str_t *str, const char *fmt, ...)
 
 /**
  * Like str_printf(), but formats at most `n' characters.
- * Returns the amount of formatted chars.
+ * @return the amount of formatted chars.
  */
 size_t
 str_nprintf(str_t *str, size_t n, const char *fmt, ...)
@@ -1884,7 +1884,7 @@ str_nprintf(str_t *str, size_t n, const char *fmt, ...)
 
 /**
  * Create a new string, and sprintf() the arguments inside.
- * Returns the new string item, which may be disposed of with str_destroy().
+ * @return the new string item, which may be disposed of with str_destroy().
  */
 str_t *
 str_msg(const char *fmt, ...)
@@ -1984,6 +1984,28 @@ str_smsg2(const char *fmt, ...)
 	va_end(args);
 
 	return str_2c(str);
+}
+
+/**
+ * A regular sprintf() into a fix sized buffer without fear of overflow...
+ * @return the amount of formatted chars.
+ */
+size_t
+str_bprintf(char *dst, size_t size, const char *fmt, ...)
+{
+	str_t str;
+	va_list args;
+	size_t formatted;
+
+	str_from_foreign(&str, dst, 0, size);
+
+	va_start(args, fmt);
+	formatted = str_vncatf(&str, size - 1, fmt, args);
+	va_end(args);
+
+	str_putc(&str, '\0');
+
+	return formatted;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
