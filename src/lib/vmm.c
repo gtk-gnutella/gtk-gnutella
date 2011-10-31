@@ -238,6 +238,7 @@ static struct {
 	guint64 mmaps;					/**< Total number of mmap() calls */
 	guint64 munmaps;				/**< Total number of munmap() calls */
 	guint64 hints_followed;			/**< Allocations following hints */
+	guint64 hints_ignored;			/**< Allocations ignoring non-NULL hints */
 	guint64 alloc_from_cache;		/**< Allocation from cache */
 	guint64 alloc_from_cache_pages;	/**< Pages allocated from cache */
 	guint64 alloc_direct_core;		/**< Allocation done through core */
@@ -862,6 +863,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 					(unsigned long) hint_followed,
 					hint_followed == 1 ? "" : "s");
 			}
+			vmm_stats.hints_ignored++;
 		}
 
 		/*
@@ -3670,6 +3672,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(mmaps);
 	DUMP(munmaps);
 	DUMP(hints_followed);
+	DUMP(hints_ignored);
 	DUMP(alloc_from_cache);
 	DUMP(alloc_from_cache_pages);
 	DUMP(alloc_direct_core);
