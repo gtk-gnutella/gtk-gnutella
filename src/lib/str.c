@@ -1242,8 +1242,10 @@ G_STMT_START {									\
 	 * to be able to truncate the output if there is not enough space.
 	 */
 
-	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR)
-		remain = str->s_size - str->s_len;
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
+		size_t avail = str->s_size - str->s_len;
+		remain = MIN(maxlen, avail);
+	}
 
 	/*
 	 * Special-case "" and "%s".
