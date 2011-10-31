@@ -749,17 +749,43 @@ str_ncat_safe(str_t *str, const char *string, size_t len)
 
 	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		size_t n;
+		gboolean truncating = FALSE;
 
-		if (str->s_len == str->s_size)
-			return;		/* Nothing can fit */
+		if (str->s_len == str->s_size) {
+			len = 0;		/* Nothing can fit */
+		} else {
+			n = size_saturate_add(len, str->s_len);
 
-		n = size_saturate_add(len, str->s_len);
+			if (n >= str->s_size) {
+				len = str->s_size - str->s_len - 1;	/* -1 for trailing NUL */
+				truncating = TRUE;
+			}
+		}
 
-		if (n >= str->s_size)
-			len = str->s_size - str->s_len - 1;		/* -1 for trailing NUL */
+		/*
+		 * Warn them loudly when truncation is about to happen.
+		 */
 
-		if (0 == len)
-			return;
+		if G_UNLIKELY(0 == len || truncating) {
+			static gboolean recursion;
+
+			/*
+			 * This routine MUST be recursion-safe since it is used indirectly
+			 * by s_minicarp() through the str_vprintf() call and we're calling
+			 * the former now!
+			 */
+
+			if (!recursion) {
+				recursion = TRUE;
+				s_minicarp("can only emit %lu more byte%s into %lu-byte buffer",
+					(unsigned long) len, 1 == len ? "" : "s",
+					(unsigned long) str->s_size);
+				recursion = FALSE;
+			}
+
+			if (0 == len)
+				return;
+		}
 	} else {
 		str_makeroom(str, len + 1);			/* Allow for trailing NUL */
 	}
@@ -1603,10 +1629,12 @@ G_STMT_START {									\
 			/* UNKNOWN */
 
 		default:
-			if (c)
-				s_warning("str_vncatf(): invalid conversion \"%%%c\"", c & 0xff);
-			else
-				s_warning("str_vncatf(): invalid end of string");
+			if (c) {
+				s_minicarp("%s(): invalid conversion \"%%%c\"",
+					G_STRFUNC, c & 0xff);
+			} else {
+				s_minicarp("%s(): invalid end of string", G_STRFUNC);
+			}
 
 			/* output mangled stuff ... */
 			if (c == '\0')

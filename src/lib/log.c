@@ -919,6 +919,54 @@ s_carp(const char *format, ...)
 }
 
 /**
+ * Safe verbose warning message, with minimal resource consumption.
+ *
+ * This is intended to be used by the string formatting code to emit loud
+ * warnings and avoid a recursion into the regular logging routine.
+ */
+void
+s_minicarp(const char *format, ...)
+{
+	gboolean in_signal_handler = signal_in_handler();
+	va_list args;
+	str_t str;
+	char data[LOG_MSG_MAXLEN];
+	DECLARE_STR(4);
+	char time_buf[18];
+
+	if G_UNLIKELY(logfile[LOG_STDERR].disabled)
+		return;
+
+	if (!log_printable(LOG_STDERR))
+		return;
+
+	str_from_foreign(&str, data, 0, sizeof data);
+
+	va_start(args, format);
+	str_vprintf(&str, format, args);	/* str_ncat_safe() is recursion-safe */
+	va_end(args);
+
+	crash_time(time_buf, sizeof time_buf);
+	print_str(time_buf);		/* 0 */
+	print_str(" (WARNING): ");	/* 1 */
+	print_str(str_2c(&str));	/* 2 */
+	print_str("\n");			/* 3 */
+	log_flush_err();
+	if (log_stdout_is_distinct())
+		log_flush_out();
+
+	if (in_signal_handler) {
+		stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
+		if (log_stdout_is_distinct())
+			stacktrace_where_safe_print_offset(STDOUT_FILENO, 1);
+	} else {
+		stacktrace_where_sym_print_offset(stderr, 1);
+		if (log_stdout_is_distinct())
+			stacktrace_where_sym_print_offset(stdout, 1);
+	}
+}
+
+/**
  * Safe warning message.
  */
 void

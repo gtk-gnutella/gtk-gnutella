@@ -93,6 +93,7 @@ int log_get_fd(enum log_file which);
 void s_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_error(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_minicarp(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
