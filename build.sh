@@ -57,7 +57,7 @@ darwin|Darwin)
 osxbundle)
 	build_so_suffix='dylib'
 	build_osxbundle='true'
-	CPPFLAGS="$CPPFLAGS -DHAVE_GTKOSXAPPLICATION"
+	CPPFLAGS="$CPPFLAGS -DHAVE_GTKOSXAPPLICATION -mmacosx-version-min=10.5.8"
 	CPPFLAG="${CPPFLAGS# *}"    # strip leading spaces
 	LIBS="$LIBS -ligemacintegration -liconv -lz"
 	LIBS="${LIBS# *}"           # strip leading spaces
