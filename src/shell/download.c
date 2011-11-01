@@ -39,9 +39,6 @@
 
 #include "if/bridge/ui2c.h"
 
-#include "if/gnet_property.h"
-#include "if/gnet_property_priv.h"
-
 #include "lib/ascii.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"

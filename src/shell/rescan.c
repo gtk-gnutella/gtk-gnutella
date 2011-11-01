@@ -35,8 +35,6 @@
 
 #include "cmd.h"
 
-#include "if/gnet_property.h"
-#include "if/gnet_property_priv.h"
 #include "if/bridge/ui2c.h"
 
 #include "lib/override.h"		/* Must be the last header included */

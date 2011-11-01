@@ -37,7 +37,6 @@
 
 #include "core/uploads.h"
 
-#include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/glib-missing.h"

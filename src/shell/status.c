@@ -42,7 +42,6 @@
 #include "core/settings.h"
 #include "core/nodes.h"
 
-#include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
 #include "if/core/net_stats.h"
