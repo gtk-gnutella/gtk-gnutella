@@ -43,8 +43,14 @@ enum shutdown_mode {
 	GTKG_SHUTDOWN_SIGNAL
 };
 
+/**
+ * Shutdown options.
+ */
+
+#define GTKG_SHUTDOWN_OFAST		(1U << 0) /**< BYE sent to supporting nodes */
+
 void gtk_gnutella_exit(int n);
-void gtk_gnutella_request_shutdown(enum shutdown_mode mode);
+void gtk_gnutella_request_shutdown(enum shutdown_mode mode, unsigned flags);
 gboolean debugging(guint t);
 const char *gtk_gnutella_interface(void);
 

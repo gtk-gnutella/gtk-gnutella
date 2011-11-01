@@ -443,6 +443,7 @@ enum {
 
 #define NODE_ID(n)				((n)->id)
 
+#define NODE_CAN_BYE(n)			((n)->attrs & NODE_A_BYE_PACKET)
 #define NODE_CAN_SFLAG(n)		((n)->attrs & NODE_A_CAN_SFLAG)
 #define NODE_UP_QRP(n)			((n)->attrs & NODE_A_UP_QRP)
 #define NODE_LEAF_GUIDE(n)		((n)->attrs & NODE_A_GUIDANCE)
@@ -572,7 +573,7 @@ void node_tx_leave_flowc(struct gnutella_node *n);
 void node_tx_enter_warnzone(struct gnutella_node *n);
 void node_tx_leave_warnzone(struct gnutella_node *n);
 void node_tx_swift_changed(struct gnutella_node *n);
-void node_bye_all(void);
+void node_bye_all(gboolean all);
 gboolean node_bye_pending(void);
 void node_close(void);
 gboolean node_remove_worst(gboolean non_local);

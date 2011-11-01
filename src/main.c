@@ -180,6 +180,7 @@ static volatile sig_atomic_t signal_received;
 static volatile sig_atomic_t shutdown_requested;
 static volatile sig_atomic_t sig_hup_received;
 static enum shutdown_mode shutdown_user_mode = GTKG_SHUTDOWN_NORMAL;
+static unsigned shutdown_user_flags;
 static jmp_buf atexit_env;
 static volatile const char *exit_step = "gtk_gnutella_exit";
 
@@ -429,10 +430,11 @@ log_cpu_usage(tm_t *since_time, double *prev_user, double *prev_sys)
 }
 
 void
-gtk_gnutella_request_shutdown(enum shutdown_mode mode)
+gtk_gnutella_request_shutdown(enum shutdown_mode mode, unsigned flags)
 {
 	shutdown_requested = 1;
 	shutdown_user_mode = mode;
+	shutdown_user_flags = flags;
 }
 
 /**
@@ -495,6 +497,7 @@ gtk_gnutella_exit(int exit_code)
 	static volatile sig_atomic_t safe_to_exit;
 	time_t exit_time = time(NULL);
 	time_delta_t exit_grace = EXIT_GRACE;
+	gboolean byeall = TRUE;
 
 	if (exiting) {
 		if (safe_to_exit) {
@@ -505,6 +508,9 @@ gtk_gnutella_exit(int exit_code)
 			exit_code, exit_step);
 		return;
 	}
+
+	if (shutdown_requested && (shutdown_user_flags & GTKG_SHUTDOWN_OFAST))
+		byeall = FALSE;
 
 	exiting = TRUE;
 
@@ -525,7 +531,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(shell_close);
 	DO(file_info_store_if_dirty);	/* For safety, will run again below */
 	DO(file_info_close_pre);
-	DO(node_bye_all);
+	DO_ARG(node_bye_all, byeall);
 	DO(upload_close);	/* Done before upload_stats_close() for stats update */
 	DO(upload_stats_close);
 	DO(parq_close_pre);

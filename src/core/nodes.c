@@ -8482,9 +8482,11 @@ node_bye_all_but_one(struct gnutella_node *nskip,
 
 /**
  * Send a BYE message to all the nodes.
+ *
+ * @param all	when FALSE, only send BYE to nodes advertizing BYE support
  */
 void
-node_bye_all(void)
+node_bye_all(gboolean all)
 {
 	GSList *sl;
 	gnutella_node_t *udp_nodes[] = { udp_node, udp6_node, dht_node, dht6_node };
@@ -8527,7 +8529,7 @@ node_bye_all(void)
 		 *		--RAM, 17/05/2002
 		 */
 
-		if (NODE_IS_WRITABLE(n)) {
+		if (NODE_IS_WRITABLE(n) && (all || NODE_CAN_BYE(n))) {
 			n->flags |= NODE_F_EOF_WAIT;
 			pending_byes++;
 			node_bye(n, 200, "Servent shutdown");
