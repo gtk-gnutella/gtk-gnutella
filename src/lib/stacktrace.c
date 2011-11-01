@@ -102,6 +102,7 @@ static char *local_path;		/**< Path before a chdir() */
 static char *program_path;		/**< Absolute program path */
 static time_t program_mtime;	/**< Last modification time of executable */
 static gboolean symbols_loaded;
+static gboolean stacktrace_inited;
 
 /**
  * "nm" output parsing context.
@@ -1004,6 +1005,7 @@ stacktrace_init(const char *argv0, gboolean deferred)
 
 	g_assert(argv0 != NULL);
 
+	stacktrace_inited = TRUE;
 	path = program_path_allocate(argv0);
 
 	if (NULL == path)
@@ -1079,7 +1081,7 @@ stacktrace_close(void)
 G_GNUC_COLD void
 stacktrace_load_symbols(void)
 {
-	if (symbols_loaded)
+	if G_UNLIKELY(symbols_loaded || !stacktrace_inited)
 		return;
 
 	symbols_loaded = TRUE;		/* Whatever happens, don't try again */
