@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2011, Raphael Manfredi
+ * Copyright (c) 2005-2011, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +29,9 @@
  * Main functions for gtk-gnutella.
  *
  * @author Raphael Manfredi
- * @date 2001-2003
+ * @date 2001-2011
+ * @author Christian Biere
+ * @date 2005-2011
  */
 
 #include "common.h"
@@ -132,6 +135,7 @@
 #include "lib/random.h"
 #include "lib/signal.h"
 #include "lib/stacktrace.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
 #include "lib/tea.h"
@@ -1719,6 +1723,13 @@ main(int argc, char **argv)
 		_("unofficial build, accessing files from"),
 		PACKAGE_SOURCE_DIR);
 #endif
+
+	if (main_argc > 1) {
+		char *cmd = main_command_line();
+
+		g_info("running %s", cmd);
+		HFREE_NULL(cmd);
+	}
 
 	/*
 	 * If one of the two below fails, the GLib installation is broken.

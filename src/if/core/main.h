@@ -54,6 +54,8 @@ void gtk_gnutella_request_shutdown(enum shutdown_mode mode, unsigned flags);
 gboolean debugging(guint t);
 const char *gtk_gnutella_interface(void);
 
+char *main_command_line(void);
+ 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_main_h_ */
 
