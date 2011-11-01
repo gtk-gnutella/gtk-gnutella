@@ -422,8 +422,6 @@ str_resize(str_t *str, size_t newsize)
 	str->s_size = newsize;
 	if (str->s_len > newsize)
 		str->s_len = newsize;
-
-	return;
 }
 
 /*
