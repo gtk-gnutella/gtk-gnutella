@@ -1563,6 +1563,37 @@ handle_arguments(void)
 	}
 }
 
+/*
+ * Duplicated main() arguments, in read-only memory.
+ */
+static int main_argc;
+static const char **main_argv;
+static const char **main_env;
+
+/**
+ * Allocate new string containing the original command line that launched us.
+ *
+ * @return command line string, which must be freed with hfree().
+ */
+char *
+main_command_line(void)
+{
+	str_t *s;
+	int i;
+
+	g_assert(main_argv != NULL);		/* gm_dupmain() called */
+
+	s = str_new(1024);
+
+	for (i = 0; i < main_argc; i++) {
+		if (i != 0)
+			str_putc(s, ' ');
+		str_cat(s, main_argv[i]);
+	}
+
+	return str_s2c_null(&s);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -1633,6 +1664,7 @@ main(int argc, char **argv)
 	/* Early inits */
 
 	log_init();
+	main_argc = gm_dupmain(&main_argv, &main_env);
 	parse_arguments(argc, argv);
 	initialize_logfiles();
 	{

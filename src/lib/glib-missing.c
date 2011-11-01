@@ -364,7 +364,7 @@ gm_savemain(int argc, char **argv, char **env)
 }
 
 static inline size_t
-str_vec_count(char *strv[])
+string_vec_count(char *strv[])
 {
 	size_t i = 0;
 
@@ -372,6 +372,91 @@ str_vec_count(char *strv[])
 		i++;
 	}
 	return i;
+}
+
+static inline size_t
+string_vec_size(char *strv[])
+{
+	size_t i = 0;
+	size_t bytes = 0;
+
+	while (strv[i]) {
+		bytes += strlen(strv[i]) + 1;	/* Include trailing NUL */
+		i++;
+	}
+
+	return bytes;
+}
+
+static void *
+string_vec_strdup(char *orig[], int count, const char *dest[], void *mem)
+{
+	int i;
+
+	for (i = 0; i < count; i++) {
+		size_t len = strlen(orig[i]) + 1;
+		void *p = mem;		/* Linearily increased allocation pointer */
+
+		mem = ptr_add_offset(mem, len);
+		clamp_strncpy(p, len, orig[i], len - 1);
+		dest[i] = p;
+	}
+
+	dest[count] = NULL;
+	return mem;
+}
+
+/**
+ * Duplicate the original main() arguments + environment into read-only
+ * memory, returning pointers to the argument vector, the environment and
+ * the size of the argument vector.
+ *
+ * The gm_savemain() routine must be called first to record the original
+ * argument pointers and gm_dupmain() must be called as soon as possible,
+ * before alteration of the argument list or the passed environment.
+ *
+ * @param argv_ptr		where the allocated argment vector is returned
+ * @param env_ptr		where the allocated environment is returned
+ *
+ * @return the amount of entries in the returned argv[]
+ */
+int
+gm_dupmain(const char ***argv_ptr, const char ***env_ptr)
+{
+	size_t env_count, arg_count;
+	size_t env_size, arg_size;
+	size_t total_size;
+	void *p, *q;
+	const char **argv;
+	const char **env;
+
+	g_assert(orig_argv != NULL);	/* gm_savemain() was called */
+
+	env_count = string_vec_count(orig_env);
+	env_size = string_vec_size(orig_env);
+	arg_count = orig_argc;
+	arg_size = string_vec_size(orig_argv);
+
+	total_size = (arg_count + env_count + 2) * sizeof(char *) +
+		env_size + arg_size;
+
+	p = vmm_alloc_not_leaking(total_size);
+	argv = p;
+	env = ptr_add_offset(argv, (arg_count + 1) * sizeof(char *));
+	q = ptr_add_offset(env, (env_count + 1) * sizeof(char *));
+
+	q = string_vec_strdup(orig_argv, arg_count, argv, q);
+	q = string_vec_strdup(orig_env, env_count, env, q);
+
+	g_assert(ptr_diff(q, p) == total_size);
+
+	if (-1 == mprotect(p, total_size, PROT_READ))
+		s_warning("%s(): cannot protect memory as read-only: %m", G_STRFUNC);
+
+	*argv_ptr = argv;
+	*env_ptr = env;
+
+	return arg_count;
 }
 
 #if !defined(HAS_SETPROCTITLE)
@@ -392,7 +477,7 @@ gm_setproctitle_init(int argc, char *argv[], char *env_ptr[])
 	g_assert(argv);
 	g_assert(env_ptr);
 
-	env_count = str_vec_count(env_ptr);
+	env_count = string_vec_count(env_ptr);
 	n = argc + env_count;
 	iov = iov_alloc_n(n);
 

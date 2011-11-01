@@ -126,6 +126,7 @@ size_t gm_snprintf(char *str, size_t n,
 	char const *fmt, ...) G_GNUC_PRINTF(3, 4);
 
 void gm_savemain(int argc, char **argv, char **env);
+int gm_dupmain(const char ***argv_ptr, const char ***env_ptr);
 const char *gm_getproctitle(void);
 void gm_setproctitle(const char *title);
 
