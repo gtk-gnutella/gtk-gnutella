@@ -81,6 +81,7 @@ all:: .FORCE_DEPEND
 # $X-Id: Jmakefile 14365 2007-08-08 05:05:08Z cbiere $
 
 SRC = \
+	command.c \
 	download.c \
 	downloads.c \
 	echo.c \
@@ -109,6 +110,7 @@ SRC = \
 	whatis.c
 
 OBJ = \
+	command.o \
 	download.o \
 	downloads.o \
 	echo.o \

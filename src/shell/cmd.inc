@@ -6,6 +6,7 @@
  * ls *.c | grep -v shell.c | sed 's,^\(.*\)[.]c,SHELL_CMD(\1),'
  */
 
+SHELL_CMD(command)
 SHELL_CMD(download)
 SHELL_CMD(downloads)
 SHELL_CMD(echo)
