@@ -511,7 +511,7 @@ cq_expire(cevent_t *ev)
  * elapased delay given by regular calls to cq_clock() that define its unit.
  * For gtk-gnutella, the time unit is the millisecond.
  */
-void
+static void
 cq_clock(cqueue_t *cq, int elapsed)
 {
 	int bucket;
