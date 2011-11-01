@@ -263,7 +263,6 @@ static struct {
 	size_t user_blocks;				/**< Amount of "user" memory blocks */
 	size_t core_memory;				/**< Amount of "core" memory allocated */
 	size_t core_pages;				/**< Amount of "core" memory pages used */
-	size_t special_pages;			/**< Amount of special memory pages used */
 	/* Tracking core blocks doesn't make sense: "core" can be fragmented */
 } vmm_stats;
 
@@ -3584,7 +3583,6 @@ vmm_trap_page(void)
 		g_assert(p);
 		mprotect(p, kernel_pagesize, PROT_NONE);
 		trap_page = p;
-		vmm_stats.special_pages++;
 	}
 	return trap_page;
 }
@@ -3682,7 +3680,6 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(user_blocks);
 	DUMP(core_memory);
 	DUMP(core_pages);
-	DUMP(special_pages);
 
 #undef DUMP
 
@@ -3725,8 +3722,8 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	 * statistics or in the pmap regions.
 	 */
 
-	DUMP("computed_native_pages", cached_pages + vmm_stats.special_pages +
-		vmm_stats.user_pages + vmm_stats.core_pages + pm->pages);
+	DUMP("computed_native_pages",
+		cached_pages + vmm_stats.user_pages + vmm_stats.core_pages + pm->pages);
 
 #undef DUMP
 }
