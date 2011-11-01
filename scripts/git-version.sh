@@ -46,7 +46,11 @@ if test -d $TOP/.git && git describe >/dev/null 2>&1 &&
 	esac
 then
 	VN="$VN"
-	DATE=`git show --format="%ai" HEAD 2>/dev/null | head -1 | cut -f1 -d ' '`
+	case "$revchar" in
+	'') BRANCH=master;;
+	*) BRANCH=devel;;
+	esac
+	DATE=`git show --format="%ai" $BRANCH 2>/dev/null | head -1 | cut -f1 -d ' '`
 elif test -s $TOP/version; then
 	VN=`cat $TOP/version`
 else
