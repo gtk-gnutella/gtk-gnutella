@@ -3585,6 +3585,11 @@ vmm_trap_page(void)
 		g_assert(p);
 		mprotect(p, kernel_pagesize, PROT_NONE);
 		trap_page = p;
+
+		/* The trap page is accounted as user memory */
+		vmm_stats.user_memory += kernel_pagesize;
+		vmm_stats.user_pages++;
+		vmm_stats.user_blocks++;
 	}
 	return trap_page;
 }
@@ -3725,7 +3730,8 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	 */
 
 	DUMP("computed_native_pages",
-		cached_pages + vmm_stats.user_pages + vmm_stats.core_pages + pm->pages);
+		cached_pages + vmm_stats.user_pages + vmm_stats.core_pages +
+		local_pmap.pages + kernel_pmap.pages);
 
 #undef DUMP
 }
@@ -4048,6 +4054,10 @@ vmm_init(const void *sp)
 
 	pmap_allocate(&local_pmap);
 	pmap_allocate(&kernel_pmap);
+
+	g_assert_log(2 == local_pmap.pages + kernel_pmap.pages,
+		"local_pmap.pages = %zu, kernel_pmap.pages = %zu",
+		local_pmap.pages, kernel_pmap.pages);
 
 	/*
 	 * The VMM trap page was allocated earlier, before we have the pmap
