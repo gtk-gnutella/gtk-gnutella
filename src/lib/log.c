@@ -541,6 +541,85 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 }
 
 /**
+ * Compute prefix based on glib's log level.
+ *
+ * @return pointer to static string.
+ */
+static const char * G_GNUC_CONST
+log_prefix(GLogLevelFlags loglvl)
+{
+	switch (loglvl) {
+	case G_LOG_LEVEL_CRITICAL: return "CRITICAL";
+	case G_LOG_LEVEL_ERROR:    return "ERROR";
+	case G_LOG_LEVEL_WARNING:  return "WARNING"; 
+	case G_LOG_LEVEL_MESSAGE:  return "MESSAGE";
+	case G_LOG_LEVEL_INFO:     return "INFO"; 
+	case G_LOG_LEVEL_DEBUG:    return "DEBUG";
+	default:                   return "UNKNOWN";
+	}
+}
+
+/**
+ * Minimal logging service, in case of recursion or other drastic conditions.
+ *
+ * This routine never allocates memory and by-passes stdio.
+ *
+ * @param level		glib-compatible log level flags
+ * @param copy		whether to copy message to stdout as well
+ * @param fmt		formatting string
+ * @param args		variable argument list to format
+ */
+static void
+s_minilogv(GLogLevelFlags level, gboolean copy, const char *fmt, va_list args)
+{
+	char data[LOG_MSG_MAXLEN];
+	DECLARE_STR(9);
+	char time_buf[18];
+	const char *prefix;
+	GLogLevelFlags loglvl;
+
+	/*
+	 * Force emisison on stdout as well for fatal messages.
+	 */
+
+	if G_UNLIKELY(level & G_LOG_FLAG_FATAL)
+		copy = TRUE;
+
+	/*
+	 * When ``copy'' is set, always emit message.
+	 */
+
+	if (!copy && !log_printable(LOG_STDERR))
+		return;
+
+	loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
+	prefix = log_prefix(loglvl);
+
+	/*
+	 * Because str_vncatf() is recursion-safe, we know we can't return
+	 * to here through it.
+	 */
+
+	str_vbprintf(data, sizeof data, fmt, args);		/* Uses str_vncatf() */
+
+	crash_time(time_buf, sizeof time_buf);
+	print_str(time_buf);		/* 0 */
+	print_str(" (");			/* 1 */
+	print_str(prefix);			/* 2 */
+	print_str(")");				/* 3 */
+	if G_UNLIKELY(level & G_LOG_FLAG_RECURSION)
+		print_str(" [RECURSIVE]");	/* 4 */
+	if G_UNLIKELY(level & G_LOG_FLAG_FATAL)
+		print_str(" [FATAL]");		/* 5 */
+	print_str(": ");			/* 6 */
+	print_str(data);			/* 7 */
+	print_str("\n");			/* 8 */
+	log_flush_err();
+	if (copy && log_stdout_is_distinct())
+		log_flush_out();
+}
+
+/**
  * Safe logging to avoid recursion from the log handler, and safe to use
  * from a signal handler if needed, or from a concurrent thread with a
  * thread-private allocation chunk.
@@ -600,13 +679,16 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	if G_UNLIKELY(recursing) {
 		DECLARE_STR(6);
 		char time_buf[18];
+		const char *caller;
+
+		caller = stacktrace_caller_name(2);	/* Could log, so pre-compute */
 
 		crash_time(time_buf, sizeof time_buf);
 		print_str(time_buf);	/* 0 */
 		print_str(" (CRITICAL): recursion to format string \""); /* 1 */
 		print_str(format);		/* 2 */
 		print_str("\" from ");	/* 3 */
-		print_str(stacktrace_caller_name(2));	/* 4 */
+		print_str(caller);		/* 4 */
 		print_str("\n");		/* 5 */
 		log_flush_err();
 
@@ -664,6 +746,12 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			}
 		}
 
+		/*
+		 * Use minimal logging.
+		 */
+
+		s_minilogv(level | G_LOG_FLAG_RECURSION, level & G_LOG_FLAG_FATAL,
+			format, args);
 		return;
 	}
 
@@ -725,17 +813,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	str_vprintf(msg, format, args);
 
 	loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
-
-	switch (loglvl) {
-	case G_LOG_LEVEL_CRITICAL: prefix = "CRITICAL"; break;
-	case G_LOG_LEVEL_ERROR:    prefix = "ERROR";    break;
-	case G_LOG_LEVEL_WARNING:  prefix = "WARNING";  break;
-	case G_LOG_LEVEL_MESSAGE:  prefix = "MESSAGE";  break;
-	case G_LOG_LEVEL_INFO:     prefix = "INFO";     break;
-	case G_LOG_LEVEL_DEBUG:    prefix = "DEBUG";    break;
-	default:
-		prefix = "UNKNOWN";
-	}
+	prefix = log_prefix(loglvl);
 
 	/*
 	 * Avoid stdio's fprintf() from within a signal handler since we
@@ -832,7 +910,10 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * until the end to avoid recursion.
 	 */
 
-	if G_UNLIKELY(G_LOG_LEVEL_CRITICAL == level || G_LOG_LEVEL_ERROR == level) {
+	if G_UNLIKELY(
+		G_LOG_LEVEL_CRITICAL == loglvl ||
+		G_LOG_LEVEL_ERROR == loglvl
+	) {
 		if (avoid_malloc)
 			stacktrace_where_safe_print_offset(STDERR_FILENO, 2);
 		else
@@ -929,29 +1010,19 @@ s_minicarp(const char *format, ...)
 {
 	gboolean in_signal_handler = signal_in_handler();
 	va_list args;
-	char data[LOG_MSG_MAXLEN];
-	DECLARE_STR(4);
-	char time_buf[18];
 
 	if G_UNLIKELY(logfile[LOG_STDERR].disabled)
 		return;
 
-	if (!log_printable(LOG_STDERR))
-		return;
+	/*
+	 * This routine is only called in exceptional conditions, so even if
+	 * the LOG_STDERR file is not deemed printable for now, attempt to do
+	 * that as well and copy the message to LOG_STDOUT anyway.
+	 */
 
 	va_start(args, format);
-	/* str_vncatf() is recursion-safe */
-	str_vbprintf(data, sizeof data, format, args);
+	s_minilogv(G_LOG_LEVEL_WARNING, TRUE, format, args);
 	va_end(args);
-
-	crash_time(time_buf, sizeof time_buf);
-	print_str(time_buf);		/* 0 */
-	print_str(" (WARNING): ");	/* 1 */
-	print_str(data);			/* 2 */
-	print_str("\n");			/* 3 */
-	log_flush_err();
-	if (log_stdout_is_distinct())
-		log_flush_out();
 
 	if (in_signal_handler) {
 		stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
@@ -1292,17 +1363,7 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 	ct = localtime(&now);
 
 	loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
-
-	switch (loglvl) {
-	case G_LOG_LEVEL_CRITICAL: prefix = "CRITICAL"; break;
-	case G_LOG_LEVEL_ERROR:    prefix = "ERROR";    break;
-	case G_LOG_LEVEL_WARNING:  prefix = "WARNING";  break;
-	case G_LOG_LEVEL_MESSAGE:  prefix = "MESSAGE";  break;
-	case G_LOG_LEVEL_INFO:     prefix = "INFO";     break;
-	case G_LOG_LEVEL_DEBUG:    prefix = "DEBUG";    break;
-	default:
-		prefix = "UNKNOWN";
-	}
+	prefix = log_prefix(loglvl);
 
 	if (level & G_LOG_FLAG_RECURSION) {
 		/* Probably logging from memory allocator, string should be safe */
