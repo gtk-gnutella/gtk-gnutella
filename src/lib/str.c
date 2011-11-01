@@ -159,8 +159,7 @@ str_new_in_chunk(ckhunk_t *ck, size_t size)
 	 */
 
 	g_assert_log(ptr_diff(str, arena) >= size,
-		"str=%p, arena=%p, size=%lu",
-		(void *) str, arena, (unsigned long) size);
+		"str=%p, arena=%p, size=%zu", (void *) str, arena, size);
 
 	/*
 	 * Don't set the STR_OBJECT because the object is non-freeable.
@@ -1189,37 +1188,8 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	g_assert(size_is_non_negative(maxlen));
 	g_assert(fmt != NULL);
 
-#define STR_APPEND(x, l) \
-G_STMT_START {									\
-	if G_UNLIKELY((l) > remain) {				\
-		str_ncat_safe(str, (x), remain);		\
-		goto clamped;	/* Reached maxlen */	\
-	} else {									\
-		if (!str_ncat_safe(str, (x), (l))) 		\
-			goto clamped;	/* Full! */			\
-		remain -= (l);							\
-	}											\
-} G_STMT_END
-
 	fmtlen = strlen(fmt);
 	origlen = str->s_len;
-
-	/*
-	 * Clamp available space for foreign strings, which cannot be resized.
-	 *
-	 * We still allow calls to str_makeroom() on such strings though, because
-	 * it will be allowed to proceed if it does not try to exceed the size
-	 * of the foreign buffer, so we use that as assertions that our logic
-	 * is correct.
-	 *
-	 * However, this routine uses str_ncat_safe() instead of str_ncat()
-	 * to be able to truncate the output if there is not enough space.
-	 */
-
-	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
-		size_t avail = str->s_size - str->s_len;
-		remain = MIN(maxlen, avail);
-	}
 
 	/*
 	 * Special-case "" and "%s".
@@ -1237,6 +1207,42 @@ G_STMT_START {									\
 			goto clamped;
 		goto done;
 	}
+
+	/*
+	 * Clamp available space for foreign strings, which cannot be resized.
+	 *
+	 * We still allow calls to str_makeroom() on such strings though, because
+	 * it will be allowed to proceed if it does not try to exceed the size
+	 * of the foreign buffer, so we use that as assertions that our logic
+	 * is correct.
+	 *
+	 * However, this routine uses str_ncat_safe() instead of str_ncat()
+	 * to be able to truncate the output if there is not enough space.
+	 */
+
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
+		size_t avail = str->s_size - str->s_len;
+		if G_UNLIKELY(0 == avail)
+			goto clamped;
+		avail--;					/* Leave room for trailing NUL */
+		remain = MIN(maxlen, avail);
+	}
+
+#define STR_APPEND(x, l) \
+G_STMT_START {									\
+	if G_UNLIKELY((l) > remain) {				\
+		str_ncat_safe(str, (x), remain);		\
+		goto clamped;	/* Reached maxlen */	\
+	} else {									\
+		if (!str_ncat_safe(str, (x), (l))) 		\
+			goto clamped;	/* Full! */			\
+		remain -= (l);							\
+	}											\
+} G_STMT_END
+
+	/*
+	 * Here we go, process the whole format string.
+	 */
 
 	fmtend = fmt + fmtlen;
 
@@ -1766,10 +1772,10 @@ clamped:
 
 		if (!recursion) {
 			recursion = TRUE;
-			s_minicarp("truncated output within %lu-byte buffer "
-				"(%lu max, %lu written) with \"%s\"",
-				(unsigned long) str->s_size, (unsigned long) maxlen,
-				(unsigned long) (str->s_len - origlen), fmt);
+			s_minicarp("truncated output within %zu-byte buffer "
+				"(%zu max, %zu written, %zu available) with \"%s\"",
+				str->s_size, maxlen, str->s_len - origlen,
+				str->s_size - str->s_len, fmt);
 			recursion = FALSE;
 		}
 	}
