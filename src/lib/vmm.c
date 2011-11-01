@@ -809,6 +809,7 @@ pmap_insert_foreign(struct pmap *pm, const void *start, size_t size)
 	pmap_insert_region(pm, start, size, VMF_FOREIGN);
 }
 
+#ifdef HAS_MMAP
 /**
  * Insert memory-mapped region in the pmap.
  */
@@ -817,6 +818,7 @@ pmap_insert_mapped(struct pmap *pm, const void *start, size_t size)
 {
 	pmap_insert_region(pm, start, size, VMF_MAPPED);
 }
+#endif	/* HAS_MMAP */
 
 /**
  * Allocate a new chunk of anonymous memory.
@@ -4248,7 +4250,7 @@ void *
 vmm_mmap(void *addr, size_t length, int prot, int flags,
 	int fd, fileoffset_t offset)
 {
-#if defined(HAS_MMAP)
+#ifdef HAS_MMAP
 	void *p = mmap(addr, length, prot, flags, fd, offset);
 
 	if G_LIKELY(p != MAP_FAILED) {
