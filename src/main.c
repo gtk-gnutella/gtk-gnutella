@@ -798,9 +798,11 @@ enum main_arg {
 	main_arg_log_stdout,
 	main_arg_minimized,
 	main_arg_no_halloc,
+	main_arg_no_restart,
 	main_arg_no_xshm,
 	main_arg_pause_on_crash,
 	main_arg_ping,
+	main_arg_restart_on_crash,
 	main_arg_shell,
 	main_arg_topless,
 	main_arg_use_poll,
@@ -859,9 +861,11 @@ static struct {
 #else
 	OPTION(no_halloc,		NONE, NULL),	/* ignore silently */
 #endif	/* USE_HALLOC */
+	OPTION(no_restart,		NONE, "Disable auto-restarts on crash."),
 	OPTION(no_xshm,			NONE, "Disable MIT shared memory extension."),
 	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
 	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
+	OPTION(restart_on_crash,NONE, "Force auto-restarts on crash."),
 	OPTION(shell,			NONE, "Access the local shell interface."),
 #ifdef USE_TOPLESS
 	OPTION(topless,			NONE, NULL),	/* accept but hide */
@@ -1092,6 +1096,28 @@ parse_arguments(int argc, char **argv)
 			break;
 		}
 	}
+}
+
+/**
+ * Validate combination of arguments, rejecting those that do not make sense.
+ */
+static void
+validate_arguments(void)
+{
+	if (
+		options[main_arg_no_restart].used &&
+		options[main_arg_restart_on_crash].used)
+	{
+		fputs("Say either --restart-on-crash or --no-restart\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+#ifndef HAS_FORK
+	if (
+		options[main_arg_restart_on_crash].used && !crash_coredumps_disabled()
+	) {
+		fputs("--restart-on-crash has no effect on this platform\n", stderr);
+	}
+#endif	/* !HAS_FORK */
 }
 
 /**
@@ -1675,12 +1701,32 @@ main(int argc, char **argv)
 	log_init();
 	main_argc = gm_dupmain(&main_argv, &main_env);
 	parse_arguments(argc, argv);
+	validate_arguments();
 	initialize_logfiles();
 	{
 		int flags = 0;
 
 		flags |= options[main_arg_pause_on_crash].used ? CRASH_F_PAUSE : 0;
 		flags |= options[main_arg_gdb_on_crash].used ? CRASH_F_GDB : 0;
+
+		/*
+		 * With no core dumps, we want to auto-restart by default, unless
+		 * they say --no-restart.
+		 *
+		 * With core dumps enabled, we dump a core of course.
+		 * To get an additional restart, users may say --restart-on-crash.
+		 *
+		 * Regardless of the core dumping condition, saying --no-restart will
+		 * prevent restarts and saying --restart-on-crash will enable them,
+		 * given that supplying both is forbidden.
+		 */
+
+		if (crash_coredumps_disabled()) {
+			flags |= options[main_arg_no_restart].used ? 0 : CRASH_F_RESTART;
+		} else {
+			flags |=
+				options[main_arg_restart_on_crash].used ? CRASH_F_RESTART : 0;
+		}
 
 		/*
 		 * If core dumps are disabled, force gdb execution on crash
