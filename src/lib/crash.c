@@ -717,6 +717,19 @@ crash_fork(void)
 	signal_handler_t old_sigalrm;
 	unsigned remain;
 
+#ifdef SIGPROF
+	/*
+	 * We're forking following a crash, we're going to abort() or exit()
+	 * abnormally, we could not care less about profiling at this stage.
+	 *
+	 * SIGPROF could also be the cause of the libc6 hangs I've been witnessing
+	 * on Linux, since I'm often running with profiling enabled.
+	 *		--RAM, 2011-11-02
+	 */
+
+	signal_set(SIGPROF, SIG_IGN);
+#endif
+
 	old_sigalrm = signal_set(SIGALRM, crash_fork_timeout);
 	remain = alarm(15);		/* Guess, large enough to withstand system load */
 
