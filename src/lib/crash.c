@@ -687,6 +687,26 @@ crash_stack_print(int fd, size_t offset)
 	}
 }
 
+/**
+ * Reset the handler of all the signals we trap, and unblock them.
+ */
+static G_GNUC_COLD void
+crash_reset_signals(void)
+{
+	unsigned i;
+
+	/*
+	 * The signal mask is preserved across execve(), therefore it is
+	 * important to also unblock all the signals we trap in case we
+	 * are about to re-exec() ourselves from a signal handler!
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+		signal_set(signals[i], SIG_DFL);
+		signal_unblock(signals[i]);
+	}
+}
+
 #ifdef HAS_FORK
 static Sigjmp_buf crash_fork_env;
 
@@ -859,7 +879,6 @@ retry_child:
 			char tbuf[22];
 			char lbuf[22];
 			time_delta_t t;
-			unsigned i;
 			int clf = STDOUT_FILENO;	/* crash log file fd */
 			DECLARE_STR(15);
 
@@ -870,9 +889,7 @@ retry_child:
 			 */
 
 			if (could_fork) {
-				for (i = 0; i < G_N_ELEMENTS(signals); i++) {
-					signal_set(signals[i], SIG_DFL);
-				}
+				crash_reset_signals();
 			}
 
 			/*
@@ -1499,6 +1516,7 @@ crash_try_reexec(void)
 #endif
 
 	close_file_descriptors(3);
+	crash_reset_signals();
 	execve(vars->argv0,
 		(const void *) vars->argv, (const void *) vars->environ);
 
