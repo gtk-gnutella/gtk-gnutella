@@ -1010,7 +1010,7 @@ retry_child:
 			print_str(tbuf);					/* 1 */
 			print_str("\n");					/* 2 */
 			print_str("Core-Dump: ");			/* 3 */
-			print_str(vars->dumps_core ? "enabled" : "disabled");
+			print_str(vars->dumps_core ? "enabled" : "disabled");	/* 4 */
 			print_str("\n");					/* 5 */
 			if (NULL != vars->cwd) {
 				print_str("Working-Directory: ");	/* 6 */
@@ -1061,7 +1061,18 @@ retry_child:
 			flush_str(clf);
 
 			rewind_str(0);
-			print_str("Stacktrace:\n");			/* 0 */
+			print_str("Auto-Restart: ");		/* 0 */
+			print_str(vars->may_restart ? "enabled" : "disabled"); /* 1 */
+			if (t <= CRASH_MIN_ALIVE) {
+				char rtbuf[ULONG_DEC_BUFLEN];
+				print_str("; run time threshold of ");	/* 2 */
+				print_str(print_number(rtbuf, sizeof rtbuf, CRASH_MIN_ALIVE));
+				print_str("s not reached");				/* 4 */
+			} else {
+				print_str("; will be attempted");		/* 2 */
+			}
+			print_str("\n");					/* 5 */
+			print_str("Stacktrace:\n");			/* 6 */
 			flush_str(clf);
 			crash_stack_print(clf, 2);
 
