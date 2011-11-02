@@ -95,8 +95,9 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 	if (opt_r != NULL)
 		flags |= GTKG_SHUTDOWN_ORESTART;
 
-	if (flags != 0 && mode != GTKG_SHUTDOWN_NORMAL) {
-		shell_set_msg(sh, "The -a, -e, -m and -s options are standalone ones.");
+	if ((flags & GTKG_SHUTDOWN_ORESTART) && mode != GTKG_SHUTDOWN_NORMAL) {
+		shell_set_msg(sh,
+			"The -a, -e, -m and -s options are incompatible with -r.");
 		return REPLY_ERROR;
 	}
 
