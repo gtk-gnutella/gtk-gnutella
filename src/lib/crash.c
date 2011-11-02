@@ -869,8 +869,10 @@ retry_child:
 			 * the parent see the failure.
 			 */
 
-			for (i = 0; i < G_N_ELEMENTS(signals); i++) {
-				signal_set(signals[i], SIG_DFL);
+			if (could_fork) {
+				for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+					signal_set(signals[i], SIG_DFL);
+				}
 			}
 
 			/*
