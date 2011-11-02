@@ -132,8 +132,8 @@ struct crash_vars {
 	str_t *logstr;			/**< String to build and hold error message */
 	str_t *fmtstr;			/**< String to allow log formatting during crash */
 	hash_table_t *hooks;	/**< Records crash hooks by file name */
-	const char **argv;		/**< Saved argv[] array */
-	const char **environ;	/**< Saved environment array */
+	const char * const *argv;		/**< Saved argv[] array */
+	const char * const *environ;	/**< Saved environment array */
 	int argc;				/**< Saved argv[] count */
 	unsigned build;			/**< Build number, unique version number */
 	guint8 crash_mode;		/**< True when we enter crash mode */
@@ -642,7 +642,7 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 	 */
 
 	if (0 != vars->build) {
-		char build_buf[22];
+		char build_buf[ULONG_DEC_BUFLEN + 2];
 		const char *build_str;
 
 		build_str = print_number(build_buf, sizeof build_buf, vars->build);
@@ -652,6 +652,21 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 
 	clamp_strcat(buf, len, "-crash.");
 	clamp_strcat(buf, len, pidstr);
+
+	/*
+	 * Because we can re-execute ourselves (at user's request after an upgrade
+	 * or after a crash), we need to include our starting time as well.
+	 */
+
+	{
+		char time_buf[ULONG_HEX_BUFLEN];
+		const char *time_str;
+
+		time_str = print_hex(time_buf, sizeof time_buf, vars->start_time);
+		clamp_strcat(buf, len, ".");
+		clamp_strcat(buf, len, time_str);
+	}
+
 	clamp_strcat(buf, len, ".log");
 }
 
@@ -1977,6 +1992,111 @@ crash_abort(void)
 {
 	crash_handler(SIGABRT);
 	abort();
+}
+
+/**
+ * Re-execute the same process with the same arguments.
+ *
+ * This function does not return: either it succeeds exec()ing or it exits.
+ */
+G_GNUC_COLD void
+crash_reexec(void)
+{
+	char dir[MAX_PATH_LEN];
+
+	crash_mode();		/* Not really, but prevents any memory allocation */
+
+	if (NULL == vars) {
+		s_carp("%s(): no crash_init() yet!", G_STRFUNC);
+		_exit(EXIT_FAILURE);
+	}
+
+	/*
+	 * They may have specified a relative path for the program (argv0)
+	 * or for some of the arguments (--log-stderr file) so go back to the
+	 * initial working directory before launching the new process.
+	 */
+
+	if (NULL != vars->cwd) {
+		gboolean gotcwd = NULL != getcwd(dir, sizeof dir);
+
+		if (-1 == chdir(vars->cwd)) {
+			s_warning("%s(): cannot chdir() to \"%s\": %m",
+				G_STRFUNC, vars->cwd);
+		} else if (gotcwd && 0 != strcmp(dir, vars->cwd)) {
+			s_message("switched back to directory %s", vars->cwd);
+		}
+	}
+
+	if (vars->logstr != NULL) {
+		int i;
+
+		/*
+		 * The string we use for formatting is held in a read-only chunk.
+		 * Before formatting inside, we must therfore make the chunk writable.
+		 * Since we're about to exec(), we don't bother turning it back to
+		 * the read-only status.
+		 */
+
+		ck_writable(vars->logck);
+		str_reset(vars->logstr);
+
+		for (i = 0; i < vars->argc; i++) {
+			if (i != 0)
+				str_putc(vars->logstr, ' ');
+			str_cat(vars->logstr, vars->argv[i]);
+		}
+
+		s_message("launching %s", str_2c(vars->logstr));
+	} else {
+		s_message("launching %s with %d argument%s", vars->argv0,
+			vars->argc, 1 == vars->argc ? "" : "s");
+	}
+
+	/*
+	 * Off we go...
+	 */
+
+	close_file_descriptors(3);
+	execve(vars->argv0,
+		(const void *) vars->argv, (const void *) vars->environ);
+
+	/* Log exec() failure */
+
+	{
+		char tbuf[22];
+		DECLARE_STR(6);
+
+		crash_time(tbuf, sizeof tbuf);
+		print_str(tbuf);							/* 0 */
+		print_str(" (CRITICAL) exec() error: ");	/* 1 */
+		print_str(symbolic_errno(errno));			/* 2 */
+		print_str(" (");							/* 3 */
+		print_str(g_strerror(errno));				/* 4 */
+		print_str(")\n");							/* 5 */
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+
+		rewind_str(1);
+		print_str(" (CRITICAL) executable file was: ");	/* 1 */
+		print_str(vars->argv0);							/* 2 */
+		print_str("\n");								/* 3 */
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+
+		if (NULL != getcwd(dir, sizeof dir)) {
+			rewind_str(1);
+			print_str(" (CRITICAL) current directory was: ");	/* 1 */
+			print_str(dir);										/* 2 */
+			print_str("\n");									/* 3 */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+		}
+	}
+	_exit(EXIT_FAILURE);
 }
 
 /***

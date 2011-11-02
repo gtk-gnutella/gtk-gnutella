@@ -143,6 +143,36 @@ print_number(char *dst, size_t size, unsigned long value)
 }
 
 /**
+ * Print an "unsigned long" as hexadecimal NUL-terminated string into supplied
+ * buffer and returns the address within that buffer where the printed string
+ * starts (value is generated backwards from the end of the buffer).
+ *
+ * @note This routine can be used safely in signal handlers.
+ * @param dst The destination buffer.
+ * @param size The length of dst; should be ULONG_HEX_BUFLEN or larger.
+ * @param value The value to print.
+ * @return The start of the NUL-terminated string, usually not dst!
+ */
+static inline WARN_UNUSED_RESULT const char *
+print_hex(char *dst, size_t size, unsigned long value)
+{
+	char *p = &dst[size];
+	extern const char hex_alphabet_lower[];
+
+	if (size > 0) {
+		*--p = '\0';
+	}
+	while (p != dst) {
+		*--p = hex_alphabet_lower[value & 0xf];
+		value >>= 4;
+		if (0 == value)
+			break;
+	}
+	return p;
+}
+
+
+/**
  * Signature of a crash hook.
  */
 typedef void (*crash_hook_t)(void);
@@ -178,6 +208,7 @@ void crash_save_stackframe(void *stack[], size_t count);
 void crash_post_init(void);
 int crash_coredumps_disabled(void);
 void crash_hook_add(const char *filename, const crash_hook_t hook);
+void crash_reexec(void) G_GNUC_NORETURN;
 
 #endif	/* _crash_h_ */
 
