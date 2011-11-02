@@ -183,6 +183,7 @@ typedef void (*crash_hook_t)(void);
 
 #define CRASH_F_PAUSE	(1 << 0)
 #define CRASH_F_GDB		(1 << 1)
+#define CRASH_F_RESTART	(1 << 2)
 
 struct assertion_data;
 
