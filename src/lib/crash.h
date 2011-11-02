@@ -143,6 +143,36 @@ print_number(char *dst, size_t size, unsigned long value)
 }
 
 /**
+ * Print an "unsigned long" as hexadecimal NUL-terminated string into supplied
+ * buffer and returns the address within that buffer where the printed string
+ * starts (value is generated backwards from the end of the buffer).
+ *
+ * @note This routine can be used safely in signal handlers.
+ * @param dst The destination buffer.
+ * @param size The length of dst; should be ULONG_HEX_BUFLEN or larger.
+ * @param value The value to print.
+ * @return The start of the NUL-terminated string, usually not dst!
+ */
+static inline WARN_UNUSED_RESULT const char *
+print_hex(char *dst, size_t size, unsigned long value)
+{
+	char *p = &dst[size];
+	extern const char hex_alphabet_lower[];
+
+	if (size > 0) {
+		*--p = '\0';
+	}
+	while (p != dst) {
+		*--p = hex_alphabet_lower[value & 0xf];
+		value >>= 4;
+		if (0 == value)
+			break;
+	}
+	return p;
+}
+
+
+/**
  * Signature of a crash hook.
  */
 typedef void (*crash_hook_t)(void);
@@ -153,6 +183,7 @@ typedef void (*crash_hook_t)(void);
 
 #define CRASH_F_PAUSE	(1 << 0)
 #define CRASH_F_GDB		(1 << 1)
+#define CRASH_F_RESTART	(1 << 2)
 
 struct assertion_data;
 
@@ -167,6 +198,7 @@ void crash_abort(void) G_GNUC_NORETURN;
 void crash_setdir(const char *dir);
 void crash_setver(const char *version);
 void crash_setbuild(unsigned build);
+void crash_setmain(int argc, const char *argv[], const char *env[]);
 void crash_assert_failure(const struct assertion_data *a);
 const char *crash_assert_logv(const char * const fmt, va_list ap);
 void crash_set_filename(const char * const filename);
@@ -177,6 +209,7 @@ void crash_save_stackframe(void *stack[], size_t count);
 void crash_post_init(void);
 int crash_coredumps_disabled(void);
 void crash_hook_add(const char *filename, const crash_hook_t hook);
+void crash_reexec(void) G_GNUC_NORETURN;
 
 #endif	/* _crash_h_ */
 

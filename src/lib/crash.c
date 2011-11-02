@@ -99,7 +99,8 @@
 
 #define PARENT_STDOUT_FILENO	3
 #define PARENT_STDERR_FILENO	4
-#define CRASH_MSG_MAXLEN		3072
+#define CRASH_MSG_MAXLEN		3072	/**< Pre-allocated max length */
+#define CRASH_MIN_ALIVE			600		/**< secs, minimum uptime for exec() */
 
 #ifdef HAS_FORK
 #define has_fork() 1
@@ -132,6 +133,9 @@ struct crash_vars {
 	str_t *logstr;			/**< String to build and hold error message */
 	str_t *fmtstr;			/**< String to allow log formatting during crash */
 	hash_table_t *hooks;	/**< Records crash hooks by file name */
+	const char * const *argv;		/**< Saved argv[] array */
+	const char * const *environ;	/**< Saved environment array */
+	int argc;				/**< Saved argv[] count */
 	unsigned build;			/**< Build number, unique version number */
 	guint8 crash_mode;		/**< True when we enter crash mode */
 	guint8 recursive;		/**< True when we are in a recursive crash */
@@ -139,6 +143,7 @@ struct crash_vars {
 	guint8 invoke_inspector;
 	unsigned pause_process:1;
 	unsigned dumps_core:1;
+	unsigned may_restart:1;
 };
 
 #define crash_set_var(name, src) \
@@ -639,7 +644,7 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 	 */
 
 	if (0 != vars->build) {
-		char build_buf[22];
+		char build_buf[ULONG_DEC_BUFLEN + 2];
 		const char *build_str;
 
 		build_str = print_number(build_buf, sizeof build_buf, vars->build);
@@ -649,6 +654,21 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 
 	clamp_strcat(buf, len, "-crash.");
 	clamp_strcat(buf, len, pidstr);
+
+	/*
+	 * Because we can re-execute ourselves (at user's request after an upgrade
+	 * or after a crash), we need to include our starting time as well.
+	 */
+
+	{
+		char time_buf[ULONG_HEX_BUFLEN];
+		const char *time_str;
+
+		time_str = print_hex(time_buf, sizeof time_buf, vars->start_time);
+		clamp_strcat(buf, len, ".");
+		clamp_strcat(buf, len, time_str);
+	}
+
 	clamp_strcat(buf, len, ".log");
 }
 
@@ -664,6 +684,26 @@ crash_stack_print(int fd, size_t offset)
 		stacktrace_stack_safe_print(fd, vars->stack, vars->stackcnt);
 	} else {
 		stacktrace_where_cautious_print_offset(fd, offset + 1);
+	}
+}
+
+/**
+ * Reset the handler of all the signals we trap, and unblock them.
+ */
+static G_GNUC_COLD void
+crash_reset_signals(void)
+{
+	unsigned i;
+
+	/*
+	 * The signal mask is preserved across execve(), therefore it is
+	 * important to also unblock all the signals we trap in case we
+	 * are about to re-exec() ourselves from a signal handler!
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+		signal_set(signals[i], SIG_DFL);
+		signal_unblock(signals[i]);
 	}
 }
 
@@ -698,6 +738,19 @@ crash_fork(void)
 	pid_t pid;
 	signal_handler_t old_sigalrm;
 	unsigned remain;
+
+#ifdef SIGPROF
+	/*
+	 * We're forking following a crash, we're going to abort() or exit()
+	 * abnormally, we could not care less about profiling at this stage.
+	 *
+	 * SIGPROF could also be the cause of the libc6 hangs I've been witnessing
+	 * on Linux, since I'm often running with profiling enabled.
+	 *		--RAM, 2011-11-02
+	 */
+
+	signal_set(SIGPROF, SIG_IGN);
+#endif
 
 	old_sigalrm = signal_set(SIGALRM, crash_fork_timeout);
 	remain = alarm(15);		/* Guess, large enough to withstand system load */
@@ -826,7 +879,6 @@ retry_child:
 			char tbuf[22];
 			char lbuf[22];
 			time_delta_t t;
-			unsigned i;
 			int clf = STDOUT_FILENO;	/* crash log file fd */
 			DECLARE_STR(15);
 
@@ -836,8 +888,8 @@ retry_child:
 			 * the parent see the failure.
 			 */
 
-			for (i = 0; i < G_N_ELEMENTS(signals); i++) {
-				signal_set(signals[i], SIG_DFL);
+			if (could_fork) {
+				crash_reset_signals();
 			}
 
 			/*
@@ -1399,6 +1451,226 @@ crash_mode(void)
 }
 
 /**
+ * Re-execute the same process with the same arguments.
+ *
+ * This function only returns when exec()ing fails.
+ */
+static G_GNUC_COLD void
+crash_try_reexec(void)
+{
+	char dir[MAX_PATH_LEN];
+
+	if (NULL == vars) {
+		s_carp("%s(): no crash_init() yet!", G_STRFUNC);
+		_exit(EXIT_FAILURE);
+	}
+
+	/*
+	 * They may have specified a relative path for the program (argv0)
+	 * or for some of the arguments (--log-stderr file) so go back to the
+	 * initial working directory before launching the new process.
+	 */
+
+	if (NULL != vars->cwd) {
+		gboolean gotcwd = NULL != getcwd(dir, sizeof dir);
+
+		if (-1 == chdir(vars->cwd)) {
+			s_warning("%s(): cannot chdir() to \"%s\": %m",
+				G_STRFUNC, vars->cwd);
+		} else if (gotcwd && 0 != strcmp(dir, vars->cwd)) {
+			s_message("switched back to directory %s", vars->cwd);
+		}
+	}
+
+	if (vars->logstr != NULL) {
+		int i;
+
+		/*
+		 * The string we use for formatting is held in a read-only chunk.
+		 * Before formatting inside, we must therfore make the chunk writable.
+		 * Since we're about to exec(), we don't bother turning it back to
+		 * the read-only status.
+		 */
+
+		ck_writable(vars->logck);
+		str_reset(vars->logstr);
+
+		for (i = 0; i < vars->argc; i++) {
+			if (i != 0)
+				str_putc(vars->logstr, ' ');
+			str_cat(vars->logstr, vars->argv[i]);
+		}
+
+		s_message("launching %s", str_2c(vars->logstr));
+	} else {
+		s_message("launching %s with %d argument%s", vars->argv0,
+			vars->argc, 1 == vars->argc ? "" : "s");
+	}
+
+	/*
+	 * Off we go...
+	 */
+
+#ifdef SIGPROF
+	signal_set(SIGPROF, SIG_IGN);	/* In case we're running under profiler */
+#endif
+
+	close_file_descriptors(3);
+	crash_reset_signals();
+	execve(vars->argv0,
+		(const void *) vars->argv, (const void *) vars->environ);
+
+	/* Log exec() failure */
+
+	{
+		char tbuf[22];
+		DECLARE_STR(6);
+
+		crash_time(tbuf, sizeof tbuf);
+		print_str(tbuf);							/* 0 */
+		print_str(" (CRITICAL) exec() error: ");	/* 1 */
+		print_str(symbolic_errno(errno));			/* 2 */
+		print_str(" (");							/* 3 */
+		print_str(g_strerror(errno));				/* 4 */
+		print_str(")\n");							/* 5 */
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+
+		rewind_str(1);
+		print_str(" (CRITICAL) executable file was: ");	/* 1 */
+		print_str(vars->argv0);							/* 2 */
+		print_str("\n");								/* 3 */
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+
+		if (NULL != getcwd(dir, sizeof dir)) {
+			rewind_str(1);
+			print_str(" (CRITICAL) current directory was: ");	/* 1 */
+			print_str(dir);										/* 2 */
+			print_str("\n");									/* 3 */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+		}
+	}
+}
+
+/**
+ * Handle possible auto-restart, if configured.
+ * This function does not return when auto-restart succeeds
+ */
+static G_GNUC_COLD void
+crash_auto_restart(void)
+{
+	/*
+	 * When the process has been alive for some time (CRASH_MIN_ALIVE secs,
+	 * to avoid repetitive frequent failures), we can consider auto-restarts
+	 * if CRASH_F_RESTART was given.
+	 */
+
+	if (delta_time(time(NULL), vars->start_time) <= CRASH_MIN_ALIVE) {
+		if (vars->may_restart) {
+			char time_buf[18];
+			char runtime_buf[22];
+			DECLARE_STR(5);
+
+			crash_time(time_buf, sizeof time_buf);
+			crash_run_time(runtime_buf, sizeof runtime_buf);
+			print_str(time_buf);							/* 0 */
+			print_str(" (WARNING) not auto-restarting ");	/* 1 */
+			print_str("since process was only up for ");	/* 2 */
+			print_str(runtime_buf);							/* 3 */
+			print_str("\n");								/* 4 */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+		}
+		return;
+	}
+
+	if (vars->may_restart) {
+		char time_buf[18];
+		char runtime_buf[22];
+		DECLARE_STR(6);
+
+		crash_time(time_buf, sizeof time_buf);
+		crash_run_time(runtime_buf, sizeof runtime_buf);
+		print_str(time_buf);					/* 0 */
+		print_str(" (INFO) ");					/* 1 */
+		if (vars->dumps_core) {
+			print_str("auto-restart was requested");	/* 2 */
+		} else {
+			print_str("core dumps are disabled");		/* 2 */
+		}
+		print_str(" and process was up for ");	/* 3 */
+		print_str(runtime_buf);					/* 4 */
+		print_str("\n");						/* 5 */
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+
+		rewind_str(1);
+		print_str(" (MESSAGE) ");					/* 1 */
+		print_str("attempting auto-restart...");	/* 2 */
+		print_str("\n");							/* 3 */
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+
+		/*
+		 * We want to preserve our ability to dump a core, so fork() a child
+		 * to perform the exec() and keep the parent going for core dumping.
+		 */
+
+		if (vars->dumps_core) {
+			pid_t pid = crash_fork();
+			switch (pid) {
+			case -1:	/* fork() error */
+				crash_time(time_buf, sizeof time_buf);
+				print_str(time_buf);						/* 0 */
+				print_str(" (CRITICAL) fork() error: ");	/* 1 */
+				print_str(symbolic_errno(errno));			/* 2 */
+				print_str(" (");							/* 3 */
+				print_str(g_strerror(errno));				/* 4 */
+				print_str(")\n");							/* 5 */
+				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(STDOUT_FILENO);
+
+				rewind_str(1);
+				print_str(" (CRITICAL) ");			/* 1 */
+				print_str("core dump suppressed");	/* 2 */
+				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(STDOUT_FILENO);
+				/* FALL THROUGH */
+			case 0:		/* Child process */
+				break;
+			default:	/* Parent process */
+				return;
+			}
+			/* FALL THROUGH */
+		}
+
+		crash_try_reexec();
+
+		/* The exec() failed, we may dump a core then */
+
+		if (vars->dumps_core) {
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);					/* 0 */
+			print_str(" (CRITICAL) ");				/* 1 */
+			print_str("core dump re-enabled");		/* 2 */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+		}
+	}
+}
+
+/**
  * The signal handler used to trap harmful signals.
  */
 G_GNUC_COLD void
@@ -1558,7 +1830,8 @@ crash_handler(int signo)
 	}
 #endif	/* HAS_SIGPROCMASK || HAS_PAUSE */
 
-	raise(SIGABRT);
+	crash_auto_restart();
+	raise(SIGABRT);			/* This is the end of our road */
 }
 
 static size_t
@@ -1679,6 +1952,7 @@ crash_init(const char *argv0, const char *progname,
 
 	iv.pause_process = booleanize(CRASH_F_PAUSE & flags);
 	iv.invoke_inspector = booleanize(CRASH_F_GDB & flags) || NULL != exec_path;
+	iv.may_restart = booleanize(CRASH_F_RESTART & flags);
 	iv.dumps_core = booleanize(!crash_coredumps_disabled());
 	iv.start_time = time(NULL);
 
@@ -1893,6 +2167,23 @@ crash_setbuild(unsigned build)
 }
 
 /**
+ * Save original argc/argv and environment.
+ *
+ * These should not be the original argv[] and environ pointer but rather
+ * copies that point to read-only memory to prevent tampering.
+ *
+ * The gm_dupmain() routine handles this duplication into a read-only memory
+ * region and it should ideally be called before calling this routine.
+ */
+void
+crash_setmain(int argc, const char *argv[], const char *env[])
+{
+	crash_set_var(argc, argc);
+	crash_set_var(argv, argv);
+	crash_set_var(environ, env);
+}
+
+/**
  * Record a crash hook for a file.
  */
 void
@@ -1957,6 +2248,20 @@ crash_abort(void)
 {
 	crash_handler(SIGABRT);
 	abort();
+}
+
+/**
+ * Re-execute the same process with the same arguments.
+ *
+ * This function does not return: either it succeeds exec()ing or it exits.
+ */
+G_GNUC_COLD void
+crash_reexec(void)
+{
+	crash_mode();		/* Not really, but prevents any memory allocation */
+
+	crash_try_reexec();
+	_exit(EXIT_FAILURE);
 }
 
 /***

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2011, Raphael Manfredi
+ * Copyright (c) 2005-2011, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +29,9 @@
  * Main functions for gtk-gnutella.
  *
  * @author Raphael Manfredi
- * @date 2001-2003
+ * @date 2001-2011
+ * @author Christian Biere
+ * @date 2005-2011
  */
 
 #include "common.h"
@@ -132,6 +135,7 @@
 #include "lib/random.h"
 #include "lib/signal.h"
 #include "lib/stacktrace.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
 #include "lib/tea.h"
@@ -754,8 +758,13 @@ gtk_gnutella_exit(int exit_code)
 	if (debugging(0) || signal_received || shutdown_requested)
 		g_info("gtk-gnutella shut down cleanly.");
 
-	if (shutdown_requested)
+	if (shutdown_requested) {
 		handle_user_shutdown_request(shutdown_user_mode);
+		if (shutdown_user_flags & GTKG_SHUTDOWN_ORESTART) {
+			g_info("gtk-gnutella will now restart itself.");
+			crash_reexec();
+		}
+	}
 
 	if (!running_topless) {
 		main_gui_exit(exit_code);
@@ -789,9 +798,11 @@ enum main_arg {
 	main_arg_log_stdout,
 	main_arg_minimized,
 	main_arg_no_halloc,
+	main_arg_no_restart,
 	main_arg_no_xshm,
 	main_arg_pause_on_crash,
 	main_arg_ping,
+	main_arg_restart_on_crash,
 	main_arg_shell,
 	main_arg_topless,
 	main_arg_use_poll,
@@ -850,9 +861,11 @@ static struct {
 #else
 	OPTION(no_halloc,		NONE, NULL),	/* ignore silently */
 #endif	/* USE_HALLOC */
+	OPTION(no_restart,		NONE, "Disable auto-restarts on crash."),
 	OPTION(no_xshm,			NONE, "Disable MIT shared memory extension."),
 	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
 	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
+	OPTION(restart_on_crash,NONE, "Force auto-restarts on crash."),
 	OPTION(shell,			NONE, "Access the local shell interface."),
 #ifdef USE_TOPLESS
 	OPTION(topless,			NONE, NULL),	/* accept but hide */
@@ -1083,6 +1096,28 @@ parse_arguments(int argc, char **argv)
 			break;
 		}
 	}
+}
+
+/**
+ * Validate combination of arguments, rejecting those that do not make sense.
+ */
+static void
+validate_arguments(void)
+{
+	if (
+		options[main_arg_no_restart].used &&
+		options[main_arg_restart_on_crash].used)
+	{
+		fputs("Say either --restart-on-crash or --no-restart\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+#ifndef HAS_FORK
+	if (
+		options[main_arg_restart_on_crash].used && !crash_coredumps_disabled()
+	) {
+		fputs("--restart-on-crash has no effect on this platform\n", stderr);
+	}
+#endif	/* !HAS_FORK */
 }
 
 /**
@@ -1563,6 +1598,37 @@ handle_arguments(void)
 	}
 }
 
+/*
+ * Duplicated main() arguments, in read-only memory.
+ */
+static int main_argc;
+static const char **main_argv;
+static const char **main_env;
+
+/**
+ * Allocate new string containing the original command line that launched us.
+ *
+ * @return command line string, which must be freed with hfree().
+ */
+char *
+main_command_line(void)
+{
+	str_t *s;
+	int i;
+
+	g_assert(main_argv != NULL);		/* gm_dupmain() called */
+
+	s = str_new(1024);
+
+	for (i = 0; i < main_argc; i++) {
+		if (i != 0)
+			str_putc(s, ' ');
+		str_cat(s, main_argv[i]);
+	}
+
+	return str_s2c_null(&s);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -1633,13 +1699,34 @@ main(int argc, char **argv)
 	/* Early inits */
 
 	log_init();
+	main_argc = gm_dupmain(&main_argv, &main_env);
 	parse_arguments(argc, argv);
+	validate_arguments();
 	initialize_logfiles();
 	{
 		int flags = 0;
 
 		flags |= options[main_arg_pause_on_crash].used ? CRASH_F_PAUSE : 0;
 		flags |= options[main_arg_gdb_on_crash].used ? CRASH_F_GDB : 0;
+
+		/*
+		 * With no core dumps, we want to auto-restart by default, unless
+		 * they say --no-restart.
+		 *
+		 * With core dumps enabled, we dump a core of course.
+		 * To get an additional restart, users may say --restart-on-crash.
+		 *
+		 * Regardless of the core dumping condition, saying --no-restart will
+		 * prevent restarts and saying --restart-on-crash will enable them,
+		 * given that supplying both is forbidden.
+		 */
+
+		if (crash_coredumps_disabled()) {
+			flags |= options[main_arg_no_restart].used ? 0 : CRASH_F_RESTART;
+		} else {
+			flags |=
+				options[main_arg_restart_on_crash].used ? CRASH_F_RESTART : 0;
+		}
 
 		/*
 		 * If core dumps are disabled, force gdb execution on crash
@@ -1652,6 +1739,7 @@ main(int argc, char **argv)
 		crash_init(argv[0], GTA_PRODUCT_NAME,
 			flags, options[main_arg_exec_on_crash].arg);
 		crash_setbuild(main_get_build());
+		crash_setmain(main_argc, main_argv, main_env);
 	}	
 	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
 	handle_arguments_asap();
@@ -1687,6 +1775,13 @@ main(int argc, char **argv)
 		_("unofficial build, accessing files from"),
 		PACKAGE_SOURCE_DIR);
 #endif
+
+	if (main_argc > 1) {
+		char *cmd = main_command_line();
+
+		g_info("running %s", cmd);
+		HFREE_NULL(cmd);
+	}
 
 	/*
 	 * If one of the two below fails, the GLib installation is broken.

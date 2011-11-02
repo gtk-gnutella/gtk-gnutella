@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -21,43 +21,57 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _if_core_main_h_
-#define _if_core_main_h_
+/**
+ * @ingroup shell
+ * @file
+ *
+ * The "command" command.
+ *
+ * @author Raphael Manfredi
+ * @date 2011
+ */
 
 #include "common.h"
 
-guint32 main_get_build(void);
-const char *main_get_build_full(void);
+#include "cmd.h"
 
-#ifdef CORE_SOURCES
+#include "if/core/main.h"
+#include "lib/halloc.h"
 
-/**
- * Mode for gtk_gnutella_request_shutdown().
- */
-
-enum shutdown_mode {
-	GTKG_SHUTDOWN_NORMAL = 1,
-	GTKG_SHUTDOWN_ASSERT,
-	GTKG_SHUTDOWN_ERROR,
-	GTKG_SHUTDOWN_MEMORY,
-	GTKG_SHUTDOWN_SIGNAL
-};
+#include "lib/override.h"		/* Must be the last header included */
 
 /**
- * Shutdown options.
+ * Print command line used to launch this process.
  */
+enum shell_reply
+shell_exec_command(struct gnutella_shell *sh, int argc, const char *argv[])
+{
+	char *cmd;
 
-#define GTKG_SHUTDOWN_OFAST		(1U << 0) /**< BYE sent to supporting nodes */
-#define GTKG_SHUTDOWN_ORESTART	(1U << 1) /**< Restart gtk-gnutella */
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
 
-void gtk_gnutella_exit(int n);
-void gtk_gnutella_request_shutdown(enum shutdown_mode mode, unsigned flags);
-gboolean debugging(guint t);
-const char *gtk_gnutella_interface(void);
+	cmd = main_command_line();
+	shell_write_line(sh, REPLY_READY, cmd);
+	HFREE_NULL(cmd);
 
-char *main_command_line(void);
- 
-#endif /* CORE_SOURCES */
-#endif /* _if_core_main_h_ */
+	return REPLY_READY;
+}
+
+const char *
+shell_summary_command(void)
+{
+	return "Shows process command line";
+}
+
+const char *
+shell_help_command(int argc, const char *argv[])
+{
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return "Prints the full command line used to launch the server.\n";
+}
 
 /* vi: set ts=4 sw=4 cindent: */
