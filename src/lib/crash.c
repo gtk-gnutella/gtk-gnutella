@@ -132,6 +132,9 @@ struct crash_vars {
 	str_t *logstr;			/**< String to build and hold error message */
 	str_t *fmtstr;			/**< String to allow log formatting during crash */
 	hash_table_t *hooks;	/**< Records crash hooks by file name */
+	const char **argv;		/**< Saved argv[] array */
+	const char **environ;	/**< Saved environment array */
+	int argc;				/**< Saved argv[] count */
 	unsigned build;			/**< Build number, unique version number */
 	guint8 crash_mode;		/**< True when we enter crash mode */
 	guint8 recursive;		/**< True when we are in a recursive crash */
@@ -1890,6 +1893,23 @@ void
 crash_setbuild(unsigned build)
 {
 	crash_set_var(build, build);
+}
+
+/**
+ * Save original argc/argv and environment.
+ *
+ * These should not be the original argv[] and environ pointer but rather
+ * copies that point to read-only memory to prevent tampering.
+ *
+ * The gm_dupmain() routine handles this duplication into a read-only memory
+ * region and it should ideally be called before calling this routine.
+ */
+void
+crash_setmain(int argc, const char *argv[], const char *env[])
+{
+	crash_set_var(argc, argc);
+	crash_set_var(argv, argv);
+	crash_set_var(environ, env);
 }
 
 /**

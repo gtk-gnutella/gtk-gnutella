@@ -1688,6 +1688,7 @@ main(int argc, char **argv)
 		crash_init(argv[0], GTA_PRODUCT_NAME,
 			flags, options[main_arg_exec_on_crash].arg);
 		crash_setbuild(main_get_build());
+		crash_setmain(main_argc, main_argv, main_env);
 	}	
 	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
 	handle_arguments_asap();

@@ -167,6 +167,7 @@ void crash_abort(void) G_GNUC_NORETURN;
 void crash_setdir(const char *dir);
 void crash_setver(const char *version);
 void crash_setbuild(unsigned build);
+void crash_setmain(int argc, const char *argv[], const char *env[]);
 void crash_assert_failure(const struct assertion_data *a);
 const char *crash_assert_logv(const char * const fmt, va_list ap);
 void crash_set_filename(const char * const filename);
