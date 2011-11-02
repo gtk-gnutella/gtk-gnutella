@@ -133,8 +133,8 @@ struct crash_vars {
 	str_t *logstr;			/**< String to build and hold error message */
 	str_t *fmtstr;			/**< String to allow log formatting during crash */
 	hash_table_t *hooks;	/**< Records crash hooks by file name */
-	const char * const *argv;		/**< Saved argv[] array */
-	const char * const *environ;	/**< Saved environment array */
+	const char * const *argv;	/**< Saved argv[] array */
+	const char * const *envp;	/**< Saved environment array */
 	int argc;				/**< Saved argv[] count */
 	unsigned build;			/**< Build number, unique version number */
 	guint8 crash_mode;		/**< True when we enter crash mode */
@@ -1518,7 +1518,7 @@ crash_try_reexec(void)
 	close_file_descriptors(3);
 	crash_reset_signals();
 	execve(vars->argv0,
-		(const void *) vars->argv, (const void *) vars->environ);
+		(const void *) vars->argv, (const void *) vars->envp);
 
 	/* Log exec() failure */
 
@@ -2180,7 +2180,7 @@ crash_setmain(int argc, const char *argv[], const char *env[])
 {
 	crash_set_var(argc, argc);
 	crash_set_var(argv, argv);
-	crash_set_var(environ, env);
+	crash_set_var(envp, env);
 }
 
 /**
