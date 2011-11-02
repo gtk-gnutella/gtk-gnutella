@@ -57,12 +57,13 @@ shutdown_mode_string(enum shutdown_mode mode)
 enum shell_reply
 shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	const char *opt_a, *opt_e, *opt_f, *opt_m, *opt_s;
+	const char *opt_a, *opt_e, *opt_f, *opt_m, *opt_r, *opt_s;
 	const option_t options[] = {
 		{ "a", &opt_a },
 		{ "e", &opt_e },
 		{ "f", &opt_f },
 		{ "m", &opt_m },
+		{ "r", &opt_r },
 		{ "s", &opt_s },
 	};
 	int parsed;
@@ -91,6 +92,8 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	if (opt_f != NULL)
 		flags |= GTKG_SHUTDOWN_OFAST;
+	if (opt_r != NULL)
+		flags |= GTKG_SHUTDOWN_ORESTART;
 
 	if (flags != 0 && mode != GTKG_SHUTDOWN_NORMAL) {
 		shell_set_msg(sh, "The -a, -e, -m and -s options are standalone ones.");
@@ -98,11 +101,13 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 	}
 
 	gtk_gnutella_request_shutdown(mode, flags);
-	shell_write_linef(sh, REPLY_READY, "Shutdown %ssequence initiated%s.",
+
+	shell_write_linef(sh, REPLY_READY, "%s %ssequence initiated%s.",
+		(flags & GTKG_SHUTDOWN_ORESTART) ? "Restart" : "Shutdown",
 		(flags & GTKG_SHUTDOWN_OFAST) ? "fast " : "",
 		shutdown_mode_string(mode));
-	shell_shutdown(sh);
 
+	shell_shutdown(sh);
 	return REPLY_NONE;
 }
 
@@ -117,10 +122,11 @@ shell_help_shutdown(int argc, const char *argv[])
 {
 	(void) argc;
 	(void) argv;
-	return "shutdown [-f] [-aems]\n"
-		"Initiates a shutdown of " GTA_PRODUCT_NAME ".\n"
+	return "shutdown [-fr] [-aems]\n"
+		"Initiates a shutdown/restart of " GTA_PRODUCT_NAME ".\n"
 		"As a side effect the shell connection is closed as well.\n"
 		"-f: request fast shutdown, sending BYE only to nodes supporting it\n"
+		"-r: request immediate restart after shutdown\n"
 		"The following help trigger a crash after shutdown has completed\n"
 		"to exercise the crash handler and make sure everything works:\n"
 		"-a: finish with assertion failure\n"
