@@ -2057,6 +2057,10 @@ crash_reexec(void)
 	 * Off we go...
 	 */
 
+#ifdef SIGPROF
+	signal_set(SIGPROF, SIG_IGN);	/* In case we're running under profiler */
+#endif
+
 	close_file_descriptors(3);
 	execve(vars->argv0,
 		(const void *) vars->argv, (const void *) vars->environ);
