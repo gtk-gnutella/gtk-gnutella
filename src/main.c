@@ -525,17 +525,19 @@ gtk_gnutella_exit(int exit_code)
 	fn();								\
 } while (0)
 
-#define DO_ARG(fn, arg)	do {			\
-	exit_step = STRINGIFY(fn);					\
-	if (GNET_PROPERTY(shutdown_debug))	\
-		g_debug("SHUTDOWN calling %s(%s)", exit_step, STRINGIFY(arg));	\
-	fn(arg);							\
+#define DO_BOOL(fn, arg)	do {			\
+	exit_step = STRINGIFY(fn);				\
+	if (GNET_PROPERTY(shutdown_debug)) {	\
+		g_debug("SHUTDOWN calling %s(%s)",	\
+			exit_step, (arg) ? "TRUE" : "FALSE"); \
+	}										\
+	fn(arg);								\
 } while (0)
 
 	DO(shell_close);
 	DO(file_info_store_if_dirty);	/* For safety, will run again below */
 	DO(file_info_close_pre);
-	DO_ARG(node_bye_all, byeall);
+	DO_BOOL(node_bye_all, byeall);
 	DO(upload_close);	/* Done before upload_stats_close() for stats update */
 	DO(upload_stats_close);
 	DO(parq_close_pre);
@@ -552,7 +554,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(publisher_close);
 	DO(pdht_close);
 	DO(guess_close);
-	DO_ARG(dht_close, TRUE);
+	DO_BOOL(dht_close, TRUE);
 	DO(ipp_cache_save_all);
 	DO(bg_close);
 
@@ -1329,7 +1331,8 @@ main_timer(void *unused_data)
 	time_t now;
 
 	(void) unused_data;
-	if (signal_received || shutdown_requested) {
+
+	if G_UNLIKELY((signal_received || shutdown_requested) && !exiting) {
 		if (signal_received) {
 			g_warning("caught %s, exiting...", signal_name(signal_received));
 		}
