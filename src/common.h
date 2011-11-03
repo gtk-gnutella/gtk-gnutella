@@ -592,10 +592,10 @@ typedef void (*GCallback) (void);
 #endif	/* HAS_REGPARM */
 
 /*
- * Redefine G_GNUC_PRINTF to use "GNU printf" argument form.
+ * Redefine G_GNUC_PRINTF to use "GNU printf" argument form (gcc >= 4.4).
  * This ensures that "%m" is recognized as valid since the GNU libc supports it.
  */
-#if defined(HASATTRIBUTE) && HAS_GCC(2, 5)
+#if defined(HASATTRIBUTE) && HAS_GCC(4, 4)
 #undef G_GNUC_PRINTF
 #define G_GNUC_PRINTF(_fmt_, _arg_) \
 	 __attribute__((__format__ (__gnu_printf__, _fmt_, _arg_)))
