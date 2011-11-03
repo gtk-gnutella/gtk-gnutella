@@ -2073,7 +2073,6 @@ static gboolean
 guess_should_terminate(guess_t *gq)
 {
 	const char *reason = NULL;
-	tm_t now;
 
 	guess_check(gq);
 
@@ -2081,8 +2080,6 @@ guess_should_terminate(guess_t *gq)
 		reason = "GUESS disabled";
 		goto terminate;
 	}
-
-	tm_now(&now);
 
 	if (gq->query_acks >= gq->max_ultrapeers) {
 		reason = "max amount of successfully queried ultrapeers reached";
