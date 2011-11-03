@@ -183,10 +183,13 @@ static volatile sig_atomic_t from_atexit;
 static volatile sig_atomic_t signal_received;
 static volatile sig_atomic_t shutdown_requested;
 static volatile sig_atomic_t sig_hup_received;
+static gboolean asynchronous_exit;
 static enum shutdown_mode shutdown_user_mode = GTKG_SHUTDOWN_NORMAL;
 static unsigned shutdown_user_flags;
 static jmp_buf atexit_env;
 static volatile const char *exit_step = "gtk_gnutella_exit";
+
+static gboolean main_timer(void *);
 
 #ifdef SIGALRM
 /**
@@ -456,6 +459,22 @@ main_dispatch(void)
 
 	inputevt_dispatch();
 	cq_dispatch();
+
+	/*
+	 * If gtk_gnutella_exit() was called from main_timer(), glib's scheduling
+	 * of that timer will prevent further invocations, but we need them to
+	 * be done each second.
+	 */
+
+	if (asynchronous_exit) {
+		static time_t last_call;
+		time_t now = time(NULL);
+
+		if (last_call != now) {
+			last_call = now;
+			main_timer(NULL);
+		}
+	}
 }
 
 /*
@@ -1336,7 +1355,8 @@ main_timer(void *unused_data)
 		if (signal_received) {
 			g_warning("caught %s, exiting...", signal_name(signal_received));
 		}
-		gtk_gnutella_exit(EXIT_FAILURE);
+		asynchronous_exit = TRUE;
+ 		gtk_gnutella_exit(EXIT_FAILURE);
 	}
 
 	now = check_cpu_usage();
