@@ -278,6 +278,7 @@ typedef struct gnutella_node {
  * Node flags.
  */
 enum {
+	NODE_F_BYE_WAIT		= 1 << 28,	/**< Waiting for BYE being sent */
 	NODE_F_NOT_GENUINE	= 1 << 27,	/**< Vendor cannot be genuine */
 	NODE_F_VMSG_SUPPORT	= 1 << 26,	/**< Indicated which VMSGs are supported */
 	NODE_F_CAN_TLS		= 1 << 25,	/**< Indicated support for TLS */

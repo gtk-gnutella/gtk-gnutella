@@ -2719,6 +2719,11 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 			g_debug("successfully sent BYE %d \"%s\" to %s",
 				code, n->error_str, node_infostr(n));
 
+			if (n->flags & NODE_F_BYE_WAIT) {
+				g_assert(pending_byes > 0);
+				pending_byes--;
+			}
+
 			if (n->socket != NULL && !socket_uses_tls(n->socket)) {
 				/* Socket could have been nullified on a write error */
 				socket_tx_shutdown(n->socket);
@@ -8185,6 +8190,11 @@ node_bye_sent(struct gnutella_node *n)
 
 	n->flags &= ~NODE_F_BYE_SENT;
 
+	if (n->flags & NODE_F_BYE_WAIT) {
+		g_assert(pending_byes > 0);
+		pending_byes--;
+	}
+
 	/*
 	 * Do not shutdown the TX side with TLS since we don't know whether
 	 * the TLS layer will have to still exchange data with the other TLS
@@ -8483,7 +8493,7 @@ node_bye_all_but_one(struct gnutella_node *nskip,
 /**
  * Send a BYE message to all the nodes.
  *
- * @param all	when FALSE, only send BYE to nodes advertizing BYE support
+ * @param all	when FALSE, will only wait for nodes advertizing BYE support
  */
 void
 node_bye_all(gboolean all)
@@ -8529,9 +8539,10 @@ node_bye_all(gboolean all)
 		 *		--RAM, 17/05/2002
 		 */
 
-		if (NODE_IS_WRITABLE(n) && (all || NODE_CAN_BYE(n))) {
-			n->flags |= NODE_F_EOF_WAIT;
+		if (NODE_IS_WRITABLE(n)) {
 			pending_byes++;
+			n->flags |= (all || NODE_CAN_BYE(n)) ?
+				NODE_F_EOF_WAIT : NODE_F_BYE_WAIT;
 			node_bye(n, 200, "Servent shutdown");
 		}
 	}
