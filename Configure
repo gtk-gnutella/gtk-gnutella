@@ -18,7 +18,7 @@
 
 # $Id: Head.U 41 2010-11-28 00:21:26Z rmanfredi $
 #
-# Generated on Tue Oct  4 22:02:06 CEST 2011 [metaconfig 3.5-96]
+# Generated on Thu Nov  3 20:30:03 CET 2011 [metaconfig 3.5-96]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -306,6 +306,7 @@ d_gettblsz=''
 nofile=''
 tablesize=''
 d_access=''
+d_alarm=''
 d_arc4random=''
 d_attribut=''
 d_backtrace=''
@@ -645,7 +646,7 @@ glibpth="/lib /usr/lib $xlibpth"
 glibpth="$glibpth /usr/ccs/lib /usr/ucblib /usr/local/lib"
 test -f /usr/shlib/libc.so && glibpth="/usr/shlib $glibpth"
 test -f /shlib/libc.so     && glibpth="/shlib $glibpth"
-
+glibpth="$glibpth /lib32 /lib64"
 : Private path used by Configure to find libraries.  Its value
 : is prepended to libpth. This variable takes care of special
 : machines, like the mips.  Usually, it should be empty.
@@ -4420,6 +4421,23 @@ EOCP
 	;;
 esac
 $rm -f access*
+
+: see if alarm exists
+$cat >try.c <<EOC
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static unsigned ret;
+	ret |= alarm(1);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=alarm
+set d_alarm
+eval $trylink
 
 : see if stdlib is available
 set stdlib.h i_stdlib
@@ -9938,6 +9956,7 @@ cpprun='$cpprun'
 cppstdin='$cppstdin'
 csh='$csh'
 d_access='$d_access'
+d_alarm='$d_alarm'
 d_arc4random='$d_arc4random'
 d_archlib='$d_archlib'
 d_attribut='$d_attribut'

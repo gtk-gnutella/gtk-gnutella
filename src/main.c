@@ -385,11 +385,11 @@ gtk_gnutella_atexit(void)
 			g_warning("cleanup aborted while in %s().", exit_step);
 			return;
 		}
-#ifndef MINGW32	/* FIXME MINGW32 */
+#ifdef HAS_ALARM
 		alarm(ATEXIT_TIMEOUT);
 #endif
 		gtk_gnutella_exit(1);	/* Won't exit() since from_atexit is set */
-#ifndef MINGW32	
+#ifdef HAS_ALARM
 		alarm(0);
 #endif
 		g_warning("cleanup all done.");

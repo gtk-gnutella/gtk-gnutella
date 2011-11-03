@@ -107,6 +107,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_gettblsz getdtablesize() $tablesize	/**/
 
+/* HAS_ALARM:
+ *	This symbol, if defined, indicates that the alarm routine is
+ *	available.
+ */
+#$d_alarm HAS_ALARM		/**/
+
 /* HAS_ARC4RANDOM:
  *	This symbol, if defined, indicates that the arc4random routine is
  *	available.

@@ -737,7 +737,9 @@ crash_fork(void)
 #ifdef HAS_FORK
 	pid_t pid;
 	signal_handler_t old_sigalrm;
+#ifdef HAS_ALARM
 	unsigned remain;
+#endif
 
 #ifdef SIGPROF
 	/*
@@ -752,8 +754,10 @@ crash_fork(void)
 	signal_set(SIGPROF, SIG_IGN);
 #endif
 
+#ifdef HAS_ALARM
 	old_sigalrm = signal_set(SIGALRM, crash_fork_timeout);
 	remain = alarm(15);		/* Guess, large enough to withstand system load */
+#endif
 
 	if (Sigsetjmp(crash_fork_env, TRUE)) {
 		errno = EDEADLK;	/* Probable deadlock in the libc */
@@ -764,8 +768,10 @@ crash_fork(void)
 	pid = fork();
 	/* FALL THROUGH */
 restore:
+#ifdef HAS_ALARM
 	alarm(remain);
 	signal_set(SIGALRM, old_sigalrm);
+#endif
 
 	return pid;
 #else
