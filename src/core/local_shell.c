@@ -106,6 +106,7 @@ fd_set_nonblocking(int fd)
 
 #include "lib/misc.h"
 #include "lib/fd.h"
+#include "lib/log.h"
 #include "lib/compat_poll.h"
 #include "lib/compat_un.h"
 
@@ -150,6 +151,9 @@ unix_write(int fd, const void *buf, size_t size)
 
 	return write(fd, buf, size);
 }
+
+#undef perror
+#define perror(x)	s_warning("%s: %m", (x));
 
 #endif	/* LOCAL_SHELL_STANDALONE */
 
