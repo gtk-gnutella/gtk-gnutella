@@ -1439,13 +1439,13 @@ callout_queue_idle(void *unused_data)
 /**
  * Scan files when the GUI is up.
  */
-static gboolean
-scan_files_once(void *unused_data)
+static void
+scan_files_once(cqueue_t *unused_cq, void *unused_data)
 {
+	(void) unused_cq;
 	(void) unused_data;
-	share_scan();
 
-	return FALSE;
+	share_scan();
 }
 
 /**
@@ -1935,10 +1935,9 @@ main(int argc, char **argv)
 	signal_set(SIGXFSZ, SIG_IGN);
 #endif
 
-	/* Setup the main timers */
+	/* Setup the main timer */
 
 	(void) g_timeout_add(1000, main_timer, NULL);
-	(void) g_timeout_add(1000, scan_files_once, NULL);
 
 	/* Prepare against X connection losses -> exit() */
 
@@ -1947,6 +1946,7 @@ main(int argc, char **argv)
 	/* Okay, here we go */
 
 	(void) tm_time_exact();
+	cq_main_insert(1000, scan_files_once, NULL);
 	bsched_enable_all();
 	version_ancient_warn();
 	dht_attempt_bootstrap();
