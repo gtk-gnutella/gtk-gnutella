@@ -1785,6 +1785,7 @@ main(int argc, char **argv)
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
+	str_test();
 	version_init();
 	malloc_show_settings();
 	xmalloc_show_settings();

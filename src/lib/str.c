@@ -60,6 +60,8 @@
 #define STR_MAXGROW		4096	/* Above this size, increase by STR_CHUNK */
 #define STR_CHUNK		4096	/* Size increase if above STR_MAXGROW */
 
+static gboolean tests_completed;	/* Controls truncation warnings */
+
 static inline void
 str_check(const struct str * const s)
 {
@@ -1201,7 +1203,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 		size_t len;
 		s = s ? s : nullstr;
 		len = strlen(s);
-		if (!str_ncat_safe(str, s, len > maxlen ? maxlen : len))
+		if (!str_ncat_safe(str, s, len > maxlen ? maxlen : len) || len > maxlen)
 			goto clamped;
 		goto done;
 	}
@@ -1768,7 +1770,7 @@ clamped:
 		 * to call the former now!
 		 */
 
-		if (!recursion) {
+		if (!recursion && tests_completed) {
 			recursion = TRUE;
 			s_minicarp("truncated output within %zu-byte buffer "
 				"(%zu max, %zu written, %zu available) with \"%s\"",
@@ -2029,6 +2031,180 @@ str_vbprintf(char *dst, size_t size, const char *fmt, va_list args)
 	str_putc(&str, '\0');
 
 	return formatted;
+}
+
+/***
+ *** Non-regression tests for str_vncatf().
+ ***/
+
+/**
+ * str_bprintf() without any format argument checking, for testing purposes.
+ */
+static void
+str_tprintf(char *dst, size_t size, const char *fmt, ...)
+{
+	str_t str;
+	va_list args;
+
+	str_from_foreign(&str, dst, 0, size);
+
+	va_start(args, fmt);
+	str_vncatf(&str, size - 1, fmt, args);
+	va_end(args);
+
+	str_putc(&str, '\0');
+}
+
+/**
+ * Non-regression tests for the str_vncatf() formatting routine.
+ */
+G_GNUC_COLD void
+str_test(void)
+{
+#define MLEN		64
+#define DEADBEEF	((void *) 0xdeadbeef)
+#define INTEGER		345000
+#define LONG		345000L
+#define PI			3.141592654
+#define DOUBLE		3.45e8
+#define LN2			0.69314718056
+
+	static const char ANYTHING[] = "anything";
+	static const char INTSTR[] = "345000";
+	static const char INThex[] = "543a8";
+	static const char INTHEX[] = "543A8";
+	static const struct tstring {
+		const char *fmt;
+		size_t buflen;
+		const char *value;
+		const char *result;
+	} test_strings[] = {
+		{ "",				10,		ANYTHING,		"" },
+		{ "%%",				10,		ANYTHING,		"%" },
+		{ "%s",				MLEN,	ANYTHING,		ANYTHING },
+		{ "%s",				5,		ANYTHING,		"anyt" },
+		{ "%.2s",			5,		ANYTHING,		"an" },
+		{ "%.15s",			MLEN,	ANYTHING,		ANYTHING },
+		{ "%15s",			MLEN,	ANYTHING,		"       anything" },
+		{ "%15s",			9,		ANYTHING,		"       a" },
+		{ "%-15s",			MLEN,	ANYTHING,		"anything       " },
+		{ "%-15s.",			MLEN,	ANYTHING,		"anything       ." },
+		{ "%015s.",			MLEN,	ANYTHING,		"0000000anything." },
+		{ "%-5s",			MLEN,	ANYTHING,		ANYTHING },
+		{ "%-5s.",			MLEN,	ANYTHING,		"anything." },
+	};
+	static const struct tpointer {
+		const char *fmt;
+		size_t buflen;
+		void *value;
+		const char *result;
+	} test_pointers[] = {
+		{ "%p",				MLEN,	DEADBEEF,		"0xdeadbeef" },
+		{ "%p",				5,		DEADBEEF,		"0xde" },
+	};
+	static const struct tint {
+		const char *fmt;
+		size_t buflen;
+		int value;
+		const char *result;
+	} test_ints[] = {
+		{ "%d",				MLEN,	INTEGER,		INTSTR },
+		{ "%x",				MLEN,	INTEGER,		INThex },
+		{ "%X",				MLEN,	INTEGER,		INTHEX },
+		{ "%x",				5,		INTEGER,		"543a" },
+		{ "%#x",			5,		INTEGER,		"0x54" },
+		{ "%#x",			MLEN,	INTEGER,		"0x543a8" },
+		{ "%#X",			MLEN,	INTEGER,		"0X543A8" },
+		{ "%.2d",			MLEN,	INTEGER,		INTSTR },
+		{ "%2d",			MLEN,	INTEGER,		INTSTR },
+		{ "%'d",			MLEN,	INTEGER,		"345,000" },
+		{ "%-8d.",			MLEN,	INTEGER,		"345000  ." },
+		{ "%-8d.",			MLEN,	INTEGER,		"345000  ." },
+		{ "%8d",			MLEN,	INTEGER,		"  345000" },
+		{ "%8d",			5,		INTEGER,		"  34" },
+	};
+	static const struct tlong {
+		const char *fmt;
+		size_t buflen;
+		long value;
+		const char *result;
+	} test_longs[] = {
+		{ "%ld",			MLEN,	LONG,		INTSTR },
+		{ "%lx",			MLEN,	LONG,		INThex },
+		{ "%lX",			MLEN,	LONG,		INTHEX },
+		{ "%lx",			5,		LONG,		"543a" },
+		{ "%#lx",			5,		LONG,		"0x54" },
+		{ "%#lx",			MLEN,	LONG,		"0x543a8" },
+		{ "%#lX",			MLEN,	LONG,		"0X543A8" },
+		{ "%.2ld",			MLEN,	LONG,		INTSTR },
+		{ "%2ld",			MLEN,	LONG,		INTSTR },
+		{ "%'d",			MLEN,	LONG,		"345,000" },
+		{ "%-8ld.",			MLEN,	LONG,		"345000  ." },
+		{ "%-8ld.",			MLEN,	LONG,		"345000  ." },
+		{ "%8ld",			MLEN,	LONG,		"  345000" },
+		{ "%8ld",			5,		LONG,		"  34" },
+	};
+	static const struct tdouble {
+		const char *fmt;
+		size_t buflen;
+		double value;
+		const char *result;
+	} test_doubles[] = {
+		{ "%f",				MLEN,	PI,			"3.141593" },
+#if 0	/* Disabled since it relies on libc's vsnprintf() */
+		{ "%g",				MLEN,	PI,			"3.14159" },
+		{ "%e",				MLEN,	PI,			"3.141593e+00" },
+		{ "%e",				MLEN,	-PI,		"-3.141593e+00" },
+		{ "%.2e",			MLEN,	-PI,		"-3.14e+00" },
+		{ "%.2f",			MLEN,	-PI,		"-3.14" },
+		{ "%8.2f",			MLEN,	-PI,		"   -3.14" },
+		{ "%g",				MLEN,	DOUBLE,		"3.45e+08" },
+		{ "%g",				MLEN,	-DOUBLE,	"-3.45e+08" },
+		{ "%G",				MLEN,	DOUBLE,		"3.45E+08" },
+		{ "%e",				MLEN,	DOUBLE,		"3.45e+08" },
+		{ "%E",				MLEN,	DOUBLE,		"3.45E+08" },
+		{ "%.17f",			MLEN,	LN2,		"0.69314718056000002" },
+		{ "%e",				MLEN,	LN2,		"6.931472e-01" },
+		{ "%.0e",			MLEN,	LN2,		"7e-01" },
+		{ "%.0f",			MLEN,	LN2,		"1" },
+		{ "%.1f",			MLEN,	LN2,		"0.7" },
+#endif
+	};
+
+#define TEST(what) G_STMT_START {							\
+	unsigned i;												\
+															\
+	for (i = 0; i < G_N_ELEMENTS(test_##what##s); i++) {	\
+		char buf[MLEN];										\
+		const struct t##what *t = &test_##what##s[i];		\
+															\
+		g_assert(sizeof buf >= t->buflen);					\
+															\
+		str_tprintf(buf, t->buflen, t->fmt, t->value);		\
+															\
+		g_assert_log(0 == strcmp(buf, t->result),			\
+			"fmt=\"%s\", len=%zu, "							\
+			"returned=\"%s\", expected=\"%s\"",				\
+			t->fmt, t->buflen, buf, t->result);				\
+	}														\
+} G_STMT_END
+
+	TEST(string);
+	TEST(pointer);
+	TEST(int);
+	TEST(long);
+	TEST(double);
+
+	tests_completed = TRUE;		/* Allow warnings on truncations */
+
+#undef MLEN
+#undef TEST
+#undef DEADBEEF
+#undef INTEGER
+#undef LONG
+#undef PI
+#undef DOUBLE
+#undef LN2
 }
 
 /* vi: set ts=4 sw=4 cindent: */
