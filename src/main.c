@@ -461,9 +461,9 @@ main_dispatch(void)
 	cq_dispatch();
 
 	/*
-	 * If gtk_gnutella_exit() was called from main_timer(), glib's scheduling
-	 * of that timer will prevent further invocations, but we need them to
-	 * be done each second.
+	 * If gtk_gnutella_exit() was called from main_timer(), the callout
+	 * queue will no longer schedule invocations (since the event callback
+	 * has not returned yet), but we need them to be done each second.
 	 */
 
 	if (asynchronous_exit) {
@@ -1937,7 +1937,7 @@ main(int argc, char **argv)
 
 	/* Setup the main timer */
 
-	(void) g_timeout_add(1000, main_timer, NULL);
+	cq_periodic_main_add(1000, main_timer, NULL);
 
 	/* Prepare against X connection losses -> exit() */
 
