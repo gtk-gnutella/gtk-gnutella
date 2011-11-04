@@ -119,7 +119,6 @@ struct cqueue {
 	int cq_items;				/**< Amount of recorded events */
 	int cq_last_bucket;			/**< Last bucket slot we were at */
 	int cq_period;				/**< Regular callout period, in ms */
-	unsigned cq_heartbeating:1;	/**< Set during heartbeats */
 };
 
 static inline void
@@ -515,15 +514,27 @@ static void
 cq_clock(cqueue_t *cq, int elapsed)
 {
 	int bucket;
-	int last_bucket;
-	struct chash *ch;
+	int last_bucket, old_last_bucket;
+	struct chash *ch, *old_current;
 	cevent_t *ev;
 	cq_time_t now;
 	int processed = 0;
 
 	cqueue_check(cq);
 	g_assert(elapsed >= 0);
-	g_assert(cq->cq_current == NULL);
+
+	/*
+	 * Recursive calls are possible: in the middle of an event, we could
+	 * trigger something that will call cq_dispatch() manually for instance.
+	 *
+	 * Therefore, we save the cq_current and cq_last_bucket fields upon
+	 * entry and restore them at the end as appropriate. If cq_current is
+	 * NULL initially, it means we were not in the middle of any recursion
+	 * so we won't have to restore cq_last_bucket.
+	 */
+
+	old_current = cq->cq_current;
+	old_last_bucket = cq->cq_last_bucket;
 
 	cq->cq_ticks++;
 	cq->cq_time += elapsed;
@@ -585,12 +596,16 @@ cq_clock(cqueue_t *cq, int elapsed)
 	} while (bucket != last_bucket);
 
 done:
-	cq->cq_current = NULL;
+	cq->cq_current = old_current;
+
+	if G_UNLIKELY(old_current != NULL)
+		cq->cq_last_bucket = old_last_bucket;	/* Was in recursive call */
 
 	if (cq_debug() > 5) {
-		s_debug("CQ: %squeue \"%s\" triggered %d event%s (%d item%s)",
+		s_debug("CQ: %squeue \"%s\" %striggered %d event%s (%d item%s)",
 			cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "",
-			cq->cq_name, processed, 1 == processed ? "" : "s",
+			cq->cq_name, NULL == old_current ? "" : "recursively",
+			processed, 1 == processed ? "" : "s",
 			cq->cq_items, 1 == cq->cq_items ? "" : "s");
 	}
 
@@ -617,28 +632,10 @@ cq_idle(cqueue_t *cq)
 static void
 cq_heartbeat(cqueue_t *cq)
 {
-	static unsigned safety;
 	tm_t tv;
 	time_delta_t delay;
 
 	cqueue_check(cq);
-
-	/*
-	 * Protect against concurrent calls to the heartbeat from multiple
-	 * sources, since one can call cq_dispatch() manually from anywhere,
-	 * and maybe even indirectly from an event dispatched by the callout
-	 * queue during its current heartbeat.
-	 */
-
-	if (G_UNLIKELY(cq->cq_heartbeating)) {
-		if (++safety > 100) {			/* Arbitrary threshold */
-			s_carp("callout queue \"%s\" stuck in cq_clock()?", cq->cq_name);
-			safety = 0;
-		}
-		return;
-	}
-
-	safety = 0;
 
 	/*
 	 * How much milliseconds elapsed since last heart beat?
@@ -656,9 +653,7 @@ cq_heartbeat(cqueue_t *cq)
 	if (delay < 0 || delay > 10 * cq->cq_period)
 		delay = cq->cq_period;
 
-	cq->cq_heartbeating = TRUE;
 	cq_clock(cq, delay);
-	cq->cq_heartbeating = FALSE;
 }
 
 /**
@@ -1156,9 +1151,6 @@ cq_halt(void)
 		g_source_remove(callout_timer_id);
 		callout_timer_id = 0;
 	}
-
-	if (callout_queue->cq_heartbeating)
-		s_carp("%s(): main callout queue still within heartbeat", G_STRFUNC);
 }
 
 static gboolean
@@ -1201,6 +1193,11 @@ cq_free(cqueue_t *cq)
 	struct chash *ch;
 
 	cqueue_check(cq);
+
+	if (cq->cq_current != NULL) {
+		s_carp("%s(): %squeue \"%s\" still within cq_clock()", G_STRFUNC,
+			CSUBQUEUE_MAGIC == cq->cq_magic ? "sub" : "", cq->cq_name);
+	}
 
 	for (ch = cq->cq_hash, i = 0; i < HASH_SIZE; i++, ch++) {
 		for (ev = ch->ch_head; ev; ev = ev_next) {
@@ -1256,6 +1253,7 @@ cq_free_null(cqueue_t **cq_ptr)
 void
 cq_close(void)
 {
+	callout_queue->cq_current = NULL;	/* No warning if we were recursing */
 	cq_free_null(&callout_queue);
 }
 
