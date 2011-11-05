@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-96]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-99]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -39,9 +39,12 @@ DIR = $DIR
 AR = ar rc
 CC = $cc
 CTAGS = ctags
+_EXE = $_exe
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
 JCPPFLAGS = $cppflags
+JLDFLAGS = \$(LDFLAGS) $optimize $ldflags
 JYFLAGS = \$(YFLAGS) $yaccflags
+LIBS = $libs
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 RANLIB = $ranlib
@@ -53,10 +56,12 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-SOURCES =  \$(LSRC)
-OBJECTS =  \$(LOBJ)
+GLIB_LDFLAGS =  $glibldflags
+SOURCES =  \$(LSRC)  float-test.c
+OBJECTS =  \$(LOBJ)  float-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
+COMMON_LIBS =  $libs
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -69,7 +74,7 @@ DBUS_CFLAGS =  $dbuscflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 94 2011-02-10 14:06:58Z rmanfredi $
+# $X-Id: Jmake.rules 99 2011-11-05 13:27:37Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -137,6 +142,7 @@ LSRC = \
 	file.c \
 	filehead.c \
 	filename.c \
+	float.c \
 	fragcheck.c \
 	fs_free_space.c \
 	getdate.c \
@@ -252,6 +258,7 @@ LOBJ = \
 	file.o \
 	filehead.o \
 	filename.o \
+	float.o \
 	fragcheck.o \
 	fs_free_space.o \
 	getdate.o \
@@ -365,6 +372,47 @@ getdate.c: getdate.y
 		$(YACC) $(JYFLAGS) $<; \
 		echo "	$(MV) y.tab.c $@"; \
 		$(MV) y.tab.c $@; else touch $@; fi
+
+#
+# Floating point formatting tests
+#
+# The "bad-fixed" target show formatting errors: the output file MUST be empty
+# or there are bugs in the floating point formatting routine.
+#
+
+LDFLAGS =
+LIBS = $(GLIB_LDFLAGS) $(COMMON_LIBS)
+
+floats: floats.bz2
+	bzip2 -c -d floats.bz2 >$@
+
+bad-fixed: float-test floats
+	./float-test floats compare >$@
+
+float-times: float-test floats
+	uname -a >$@
+	echo -n "base:    " >>$@
+	sh -c "time ./float-test floats base" >>$@ 2>&1
+	echo -n "sprintf: " >>$@
+	sh -c "time ./float-test floats sprintf" >>$@ 2>&1
+	echo -n "printf:  " >>$@
+	sh -c "time ./float-test floats printf > /dev/null" >>$@ 2>&1
+	echo -n "fixed:   " >>$@
+	sh -c "time ./float-test floats fixed > /dev/null" >>$@ 2>&1
+
+local_clean::
+	$(RM) floats bad-fixed float-times
+
+all:: float-test
+
+local_realclean::
+	$(RM) float-test$(_EXE)
+
+float-test:  float-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  float-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

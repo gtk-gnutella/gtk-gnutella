@@ -625,6 +625,10 @@ src/lib/filehead.c
 src/lib/filehead.h
 src/lib/filename.c
 src/lib/filename.h
+src/lib/float-test.c
+src/lib/float.c
+src/lib/float.h
+src/lib/floats.bz2
 src/lib/fragcheck.c
 src/lib/fragcheck.h
 src/lib/fs_free_space.c

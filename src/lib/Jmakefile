@@ -85,6 +85,7 @@ LSRC = \
 	file.c \
 	filehead.c \
 	filename.c \
+	float.c \
 	fragcheck.c \
 	fs_free_space.c \
 	getdate.c \
@@ -191,4 +192,40 @@ getdate.c: getdate.y
 		$(YACC) $(JYFLAGS) $<; \
 		echo "	$(MV) y.tab.c $@"; \
 		$(MV) y.tab.c $@; else touch $@; fi
+
+
+;#
+;# Floating point formatting tests
+;#
+;# The "bad-fixed" target show formatting errors: the output file MUST be empty
+;# or there are bugs in the floating point formatting routine.
+;#
+
+++GLIB_LDFLAGS $glibldflags
+++COMMON_LIBS $libs
+
+LDFLAGS =
+LIBS = $(GLIB_LDFLAGS) $(COMMON_LIBS)
+
+floats: floats.bz2
+	bzip2 -c -d floats.bz2 >$@
+
+bad-fixed: float-test floats
+	./float-test floats compare >$@
+
+float-times: float-test floats
+	uname -a >$@
+	echo -n "base:    " >>$@
+	sh -c "time ./float-test floats base" >>$@ 2>&1
+	echo -n "sprintf: " >>$@
+	sh -c "time ./float-test floats sprintf" >>$@ 2>&1
+	echo -n "printf:  " >>$@
+	sh -c "time ./float-test floats printf > /dev/null" >>$@ 2>&1
+	echo -n "fixed:   " >>$@
+	sh -c "time ./float-test floats fixed > /dev/null" >>$@ 2>&1
+
+local_clean::
+	$(RM) floats bad-fixed float-times
+
+NormalProgramLibTarget(float-test, float-test.c, float-test.o, libshared.a)
 
