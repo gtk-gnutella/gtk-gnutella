@@ -1989,8 +1989,15 @@ lookup_reset_closest(nlookup_t *nl, const knode_t *kn)
 	lookup_check(nl);
 	knode_check(kn);
 
-	if (nl->closest == kn)
+	if (nl->closest == kn) {
 		nl->closest = patricia_closest(nl->ball, nl->kuid);
+
+		if (GNET_PROPERTY(dht_lookup_debug)) {
+			g_debug("DHT LOOKUP[%s] removing closest node, new closest is %s",
+				nid_to_string(&nl->lid),
+				NULL == nl->closest ? "empty" : knode_to_string(nl->closest));
+		}
+	}
 
 	if (nl->prev_closest == kn)
 		nl->prev_closest = patricia_closest(nl->path, nl->kuid);
@@ -2615,10 +2622,16 @@ log_status(nlookup_t *nl)
 		nl->rpc_timeouts, nl->rpc_bad, nl->rpc_replies);
 	g_debug("DHT LOOKUP[%s] B/W incoming=%d bytes, outgoing=%d bytes",
 		nid_to_string(&nl->lid), nl->bw_incoming, nl->bw_outgoing);
-	g_debug("DHT LOOKUP[%s] current %s closest node: %s",
-		nid_to_string(&nl->lid),
-		map_contains(nl->queried, nl->closest->id) ? "queried" : "unqueried",
-		knode_to_string(nl->closest));
+	if (NULL == nl->closest) {
+		g_debug("DHT LOOKUP[%s] no current closest node",
+			nid_to_string(&nl->lid));
+	} else {
+		g_debug("DHT LOOKUP[%s] current %s closest node: %s",
+			nid_to_string(&nl->lid),
+			map_contains(nl->queried, nl->closest->id) ?
+				"queried" : "unqueried",
+			knode_to_string(nl->closest));
+	}
 }
 
 /**
@@ -3682,15 +3695,32 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 	if (patricia_count(nl->shortlist)) {
 		knode_t *closest = patricia_closest(nl->shortlist, nl->kuid);
 
-		knode_check(nl->closest);
 		g_assert(knode_is_shared(closest, TRUE));
 
-		if (kuid_cmp3(nl->kuid, closest->id, nl->closest->id) < 0) {
+		/*
+		 * Due to active node removal from the path, we could have a NULL
+		 * closest node here.
+		 *		--RAM, 2011-11-05
+		 */
+
+		if (NULL == nl->closest) {
 			nl->closest = closest;
 
-			if (GNET_PROPERTY(dht_lookup_debug) > 2)
-				g_debug("DHT LOOKUP[%s] new shortlist closest %s",
+			if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+				g_debug("DHT LOOKUP[%s] reset shortlist closest to %s",
 					nid_to_string(&nl->lid), knode_to_string(closest));
+			}
+		} else {
+			knode_check(nl->closest);
+
+			if (kuid_cmp3(nl->kuid, closest->id, nl->closest->id) < 0) {
+				nl->closest = closest;
+
+				if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+					g_debug("DHT LOOKUP[%s] new shortlist closest %s",
+						nid_to_string(&nl->lid), knode_to_string(closest));
+				}
+			}
 		}
 	}
 
