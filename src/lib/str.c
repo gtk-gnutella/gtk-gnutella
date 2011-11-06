@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000, 2007, 2010 Raphael Manfredi
+ * Copyright (c) 1996-2000, 2007, 2010, 2011 Raphael Manfredi
  *
  * This code given by Raphael Manfredi, extracted from his fm2html package.
  * Also contains some code borrowed from Perl: routine str_vncatf().
@@ -36,7 +36,7 @@
  * Memory must be released with hfree().
  *
  * @author Raphael Manfredi
- * @date 1996-2000, 2007, 2010
+ * @date 1996-2000, 2007, 2010, 2011
  */
 
 #include "common.h"
@@ -1297,11 +1297,11 @@ G_STMT_START {									\
 		char intsize = 0;
 		size_t width = 0;
 		size_t zeros = 0;
-		size_t ezeros = 0;		/* Trailing mantissa zero in %e form */
+		size_t ezeros = 0;		/* Trailing mantissa zeros in %e form */
 		size_t dzeros = 0;		/* Trailing zeros before dot */
 		size_t azeros = 0;		/* After-dot zeros, before value */
-		size_t fzeros = 0;		/* Trailing filling zeros */
-		size_t dot = 0;
+		size_t fzeros = 0;		/* Trailing fixed zeros */
+		size_t dot = 0;			/* Emit floating point '.' if 1 */
 		bool has_precis = FALSE;
 		size_t precis = 0;
 		size_t digits = 0;
@@ -1659,11 +1659,13 @@ G_STMT_START {									\
 					 * supported by 64-bit IEEE numbers with a 52-bit mantissa.
 					 */
 
-					asked = digits ? MIN(FPREC, digits) : MIN(FPREC, precis);
-					if (!digits)
-						asked++;
-					if ('f' == c || 'F' == c)
+					if ('f' == c || 'F' == c) {
 						asked = FPREC;		/* Will do rounding ourselves */
+					} else if (digits) {
+						asked = MIN(FPREC, digits);
+					} else {
+						asked = 1 + MIN(FPREC, precis);
+					}
 
 					/*
 					 * Format the floating point number, separating the
@@ -1699,7 +1701,7 @@ G_STMT_START {									\
 
 					if ('g' == c || 'G' == c) {
 						if (e < -4 || e >= (int) precis + 1)
-							c = ('g' == c) ? 'e' : 'E';
+							c = 'g' == c ? 'e' : 'E';
 					}
 
 					if ('e' == c || 'E' == c) {
@@ -1830,7 +1832,7 @@ G_STMT_START {									\
 								i = d + subdot;		/* First excluded */
 								i = MIN(i, mlen);
 
-								/* Trailing floating zeros to emit */
+								/* Trailing fixed zeros to emit */
 								if (i < precis)
 									fzeros = precis - i;
 
@@ -1935,7 +1937,7 @@ G_STMT_START {									\
 			/* Floating-point specific formatting */
 			ezeros + explen + dzeros + dot + azeros + fzeros;
 
-		need = (have > width ? have : width);
+		need = MAX(have, width);
 		gap = need - have;
 
 		/*
