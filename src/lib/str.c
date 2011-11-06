@@ -46,6 +46,7 @@
 #include "str.h"
 #include "ascii.h"
 #include "ckalloc.h"
+#include "float.h"
 #include "glib-missing.h"
 #include "halloc.h"
 #include "log.h"
@@ -60,7 +61,10 @@
 #define STR_MAXGROW		4096	/* Above this size, increase by STR_CHUNK */
 #define STR_CHUNK		4096	/* Size increase if above STR_MAXGROW */
 
+#define FPREC			17		/* IEEE 64-bit double maximum digit precision */
+
 static gboolean tests_completed;	/* Controls truncation warnings */
+static gboolean format_verbose;		/* Controls debugging of formatting */
 
 static inline void
 str_check(const struct str * const s)
@@ -1044,42 +1048,82 @@ str_escape(str_t *str, char c, char e)
 }
 
 /**
- * Wrapper over vsnprintf() to avoid GCC warning on the use of printf()
- * routines with a non-litteral string format buffer.
+ * Round up floating-point mantissa, with leading extra carry digit.
  *
- * Do NOT add a G_GNUC_PRINTF(3, 4) attribute for this routine.
+ * For instance, given "314159" with a rounding position of 2, the routine
+ * returns "0314".  However, given "9995", it would return "1000".
  *
- * NOTE: this routine is only called to format floating point numbers from
- * within str_vncatf().
+ * This routine is used internally by str_nvcatf() to format floats.
+ *
+ * @param mbuf		the mantissa
+ * @param mlen		the length of the mantissa
+ * @param pos		rounding position (index of first digit to exclude in mbuf)
+ * @param rbuf		where rounded mantissa is writen
+ * @param rlen		length of rounded mantissa (at least mlen + 1)
+ *
+ * @return number of characters written in the rounded mantissa buffer
  */
-static void
-str_snprintf(char *dst, size_t size, const char *fmt, ...)
+static size_t
+str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
 {
-	va_list args;
+	g_assert(mbuf != NULL);
+	g_assert(size_is_non_negative(mlen));
+	g_assert(size_is_non_negative(pos));
+	g_assert(pos <= mlen);
+	g_assert(rbuf != NULL);
+	g_assert(rlen >= mlen + 1);
 
-	g_assert(dst != NULL);
-	g_assert(fmt != NULL);
+	if (pos == mlen) {
+		/* Nothing to round, copy whole mantissa, leading carry is '0' */
+		rbuf[0] = '0';
+		clamp_memcpy(&rbuf[1], rlen - 1, mbuf, mlen);
+	} else if (0 == pos) {
+		char c = mbuf[0];
+		/* Look adhead next digit to round approximated mantissa */
+		if (mlen > 1) {
+			if (mbuf[1] >= '5' && '9' != c)
+				c++;
+		}
+		rbuf[0] = c < '5' ? '0' : '1';
+	} else if (mbuf[pos] < '5') {
+		/* Nothing to round, copy truncated mantissa, leading carry is '0' */
+		rbuf[0] = '0';
+		clamp_memcpy(&rbuf[1], rlen - 1, mbuf, pos);
+	} else {
+		const char *p = &mbuf[pos - 1];
+		char *q = &rbuf[pos];
+		size_t n = pos - 1;
 
-	va_start(args, fmt);
+		do {
+			char c = *p--;
+			if ('9' == c) {
+				*q-- = '0';
+			} else {
+				*q-- = c + 1;
+				break;				/* No more carry over */
+			}
+		} while (n--);
 
-	/*
-	 * Do not use gm_vsnprintf() here, because if vsnprintf() is missing,
-	 * it could get back here as it relies on str_vncatf().
-	 *
-	 * Better avoid any overhead and directly call the routines we need.
-	 */
+		g_assert(ptr_cmp(p + 1, mbuf) >= 0);		/* No underflow */
+		g_assert(ptr_cmp(q + 1, rbuf) >= 0);
 
-#ifdef HAS_VSNPRINTF
-	vsnprintf(dst, size, fmt, args);
-#else
-	{
-		char *buf = g_strdup_vprintf(fmt, args);
-		clamp_strcpy(dst, size, buf);
-		G_FREE_NULL(buf);
+		if (size_is_non_negative(n)) {
+			/* Broken up from loop without carrying over till the end */
+			rbuf[0] = '0';
+			clamp_memcpy(&rbuf[1], rlen - 1, mbuf, n);	/* Leading mantissa */
+		} else {
+			g_assert(0 == ptr_cmp(q, rbuf));
+			rbuf[0] = '1';
+		}
 	}
-#endif	/* HAS_VSNPRINTF */
 
-	va_end(args);
+	if G_UNLIKELY(format_verbose) {
+		s_debug("%s(): m=\"%.*s\" (len=%zu), pos=%zu, r=\"%.*s\" (len=%zu)",
+			G_STRFUNC, (int) mlen, mbuf, mlen, pos,
+			(int) pos + 1, rbuf, pos + 1);
+	}
+
+	return pos + 1;		/* Includes extra leading carry digit */
 }
 
 /*
@@ -1104,16 +1148,14 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * the string buffer.
  *
  * This routine can be safely called from a signal handler provided the
- * following conditions are met:
- *
- * - The string is a foreign buffer.
- * - No floating-point formatting is attempted (%f, %e, %g, %F, %E or %G)
+ * string is a foreign buffer.
  *
  * Adpated from Perl 5.004_04 by Raphael Manfredi:
  *
  * - use str_t intead of SV, removing Perlism such as %_ and %V.
- * - added the `maxlen' constraint and  handling of "foreign" strings.
+ * - added the `maxlen' constraint and handling of "foreign" strings.
  * - added the %' formatting directive to group integers by thousands.
+ * - added native floating point formatting.
  *
  * Here are the supported universally-known conversions:
  *
@@ -1255,19 +1297,26 @@ G_STMT_START {									\
 		char intsize = 0;
 		size_t width = 0;
 		size_t zeros = 0;
+		size_t ezeros = 0;		/* Trailing mantissa zero in %e form */
+		size_t dzeros = 0;		/* Trailing zeros before dot */
+		size_t azeros = 0;		/* After-dot zeros, before value */
+		size_t fzeros = 0;		/* Trailing filling zeros */
+		size_t dot = 0;
 		bool has_precis = FALSE;
 		size_t precis = 0;
+		size_t digits = 0;
 
 		char esignbuf[4];
 		int esignlen = 0;
 
+		char expbuf[6];
+		int explen = 0;
+
 		const char *eptr = NULL;
+		const char *expptr = NULL;
 		char *mptr;
 		size_t elen = 0;
 		char ebuf[TYPE_DIGITS(long) * 2 + 16]; /* large enough for "%#.#f" */
-
-		static char *efloatbuf = NULL;
-		static size_t efloatsize = 0;
 
 		char c;
 		unsigned base;
@@ -1547,66 +1596,304 @@ G_STMT_START {									\
 		case 'f':
 		case 'g': case 'G':
 
-			/*
-			 * This is evil, but floating point is even more evil.
-			 * Formatting of floats is delegated to system's snprintf().
-			 */
-
 			nv = va_arg(args, double);
 
 			/*
-			 * Ensure nv is a valid number, and not NaN, +Inf or -Inf,
-			 * since frexp() has undefined behaviour for these three
-			 * special values.
+			 * Adjust precision: it's 6 by default.
+			 *
+			 * For %g, the precision is the number of digits displayed, whereas
+			 * for %e it's the number of digits after the decimal point.
 			 */
 
-			need = 0;
-			if (c != 'e' && c != 'E' && isfinite(nv)) {
-				int i = INT_MIN;
-				(void) frexp(nv, &i);
-				if (i == INT_MIN)
-					s_error("frexp");
-				if (i > 0)
-					need = BIT_DIGITS(i);
-			}
-			need += has_precis ? precis : 6;	/* known default */
-			if (need < width)
-				need = width;
+			if (!has_precis)
+				precis = 6;
 
-			need += 20; /* fudge factor */
-			if (efloatsize < need) {
-				efloatsize = need + 20;			/* more fudge */
-				efloatbuf = NOT_LEAKING(hrealloc(efloatbuf, efloatsize));
+			if ('g' == c || 'G' == c) {
+				digits = MAX(1, precis);	/* Non-zero, flags %g or %G */
+				precis = (0 == precis) ? 0 : precis - 1;
 			}
+
+			/*
+			 * Ensure nv is a valid number, and not NaN, +Inf or -Inf
+			 * before calling the formatting routine.
+			 */
 
 			mptr = ebuf + sizeof ebuf;
-			*--mptr = '\0';
-			*--mptr = c;
-			if (has_precis) {
-				base = precis;
-				do { *--mptr = '0' + (base % 10); } while (base /= 10);
-				*--mptr = '.';
+
+			switch (fpclassify(nv)) {
+			case FP_NAN:
+				if (is_ascii_upper(c)) {
+					elen = 4;
+					eptr = "NAN*";
+				} else {
+					elen = 3;
+					eptr = "nan";
+				}
+				break;
+			case FP_INFINITE:
+				mptr -= 3;
+				clamp_memcpy(mptr, 3, is_ascii_upper(c) ? "INF" : "inf", 3);
+				if (nv < 0)
+					*--mptr = '-';
+				else if (plus)
+					*--mptr = plus;
+				eptr = mptr;
+				elen = (ebuf + sizeof ebuf) - eptr;
+				break;
+			default:
+				{
+					int e;
+					char m[32], r[33];
+					size_t mlen, rlen, asked;
+
+					if (nv >= 0) {
+						if (plus)
+							esignbuf[esignlen++] = plus;
+					} else {
+						nv = -nv;
+						esignbuf[esignlen++] = '-';
+					}
+
+					/*
+					 * We cap the precision at FPREC since this is the maximum
+					 * supported by 64-bit IEEE numbers with a 52-bit mantissa.
+					 */
+
+					asked = digits ? MIN(FPREC, digits) : MIN(FPREC, precis);
+					if (!digits)
+						asked++;
+					if ('f' == c || 'F' == c)
+						asked = FPREC;		/* Will do rounding ourselves */
+
+					/*
+					 * Format the floating point number, separating the
+					 * mantissa and the exponent.
+					 *
+					 * The returned values are such that one presentation
+					 * of the number would be the output of:
+					 *
+					 *		printf("0.%se%d", m, e + 1);
+					 */
+
+					mlen = float_fixed(m, sizeof m, nv, asked, &e);
+
+					g_assert(size_is_positive(mlen));
+					g_assert(mlen < sizeof m);
+
+					if G_UNLIKELY(format_verbose) {
+						char buf[150];
+						gm_snprintf(buf, sizeof buf,
+							"%g with \"%%%c\": m=\"%.*s\" "
+							"(len=%zu, asked=%zu), e=%d "
+							"[precis=%zu, digits=%zu]",
+							nv, c, (int) mlen, m, mlen, asked,
+							e, precis, digits);
+						s_debug("%s", buf);
+					}
+
+					/*
+					 * %g is turned into %e (and %G to %E) when the exponent
+					 * is less than -4 or when it is greater than or equal
+					 * to the precision.
+					 */
+
+					if ('g' == c || 'G' == c) {
+						if (e < -4 || e >= (int) precis + 1)
+							c = ('g' == c) ? 'e' : 'E';
+					}
+
+					if ('e' == c || 'E' == c) {
+						size_t v;
+						size_t start;
+						bool non_zero;
+
+						/* Exponent */
+
+						mptr = expbuf + sizeof expbuf;
+
+						v = (e >= 0) ? e : -e;
+						do {
+							unsigned dig = v % 10;
+							*--mptr = '0' + dig;
+						} while (v /= 10);
+						v = (e >= 0) ? e : -e;
+						if (v < 10)
+							*--mptr = '0';
+						*--mptr = (e >= 0) ? '+' : '-';
+						*--mptr = is_ascii_upper(c) ? 'E' : 'e';
+
+						g_assert(ptr_cmp(mptr, expbuf) >= 0);
+
+						expptr = mptr;
+						explen = (expbuf + sizeof expbuf) - expptr;
+
+						/* Mantissa */
+
+						mptr = ebuf + sizeof ebuf;
+
+						v = precis + 1;
+						v = MIN(mlen, v);
+						start = v; 			/* Starting index */
+						non_zero = 0 == digits;
+
+						rlen = str_fround(m, mlen, v, r, sizeof r);
+
+						do {
+							if (1 == v && start != 1)
+								*--mptr = '.';
+							if (r[v] != '0')
+								non_zero = TRUE;
+							if (1 == v || non_zero)
+								*--mptr = r[v];
+						} while (--v);
+
+						/* Trailing mantissa zeros if %e or %E */
+						if (mlen < precis && !digits)
+							ezeros = precis - mlen;
+
+					} else {
+						size_t i;
+						char *t;
+						size_t d;	/* Dot position */
+
+						/* %f or %F -- THE FUN BEGINS! */
+
+						if (e < 0) {
+							size_t v = -e;
+							size_t z = v - 1;	/* Amount of zeros after dot */
+
+							/* Formatted as 0.xxxx */
+
+							if (z >= precis) {
+								i = 0;
+							} else {
+								/* How many trailing zeros? */
+								if (precis > z + mlen)
+									fzeros = precis - z - mlen;
+
+								i = precis - z;
+								i = MIN(i, mlen);
+							}
+
+							/* How many after-dot zeros? (0.000xxx) */
+							if (z != 0) {
+								azeros = z;
+								dot = 1;
+								dzeros = 1;		/* Will emit "0." later */
+							}
+
+							/* Rounding for the precision digit */
+							rlen = str_fround(m, mlen, i, r, sizeof r);
+
+							/* Remove one leading zero due to rounding carry */
+							if (azeros != 0)
+								azeros--;
+
+							/* Don't emit if we're down to printing 0.0 */
+							if (0 == azeros || azeros < precis) {
+								/* Compute position of digital dot */
+								d = azeros ? 0 : 1;
+								for (i = rlen, t = r + rlen; i > 0;) {
+									*--mptr = *--t;
+									if (--i == d) {
+										/* Leading "0.0" done later?*/
+										if (0 != azeros)
+											break;
+										/* No, emit now */
+										*--mptr = '.';
+										*--mptr = *--t;
+										i--;
+									}
+								}
+							}
+						} else {
+							unsigned v = e;
+
+							if (v < mlen) {
+								size_t subdot;
+								bool has_non_zero;
+
+								/* Formatted as y.xxxx with y >= 0 */
+
+								d = e + 1;	/* Dot position */
+
+								if (digits) {
+									/* Formatting from %g or %G */
+									has_non_zero = FALSE;
+									subdot = digits > d ? digits - d : 0;
+								} else {
+									subdot = precis;
+									has_non_zero = TRUE;
+								}
+
+								/* Rounding for the precision digit */
+								i = d + subdot;		/* First excluded */
+								i = MIN(i, mlen);
+
+								/* Trailing floating zeros to emit */
+								if (i < precis)
+									fzeros = precis - i;
+
+								rlen = str_fround(m, mlen, i, r, sizeof r);
+
+								i = rlen - 1;
+								d++;		/* Extra carry digit in r[] */
+
+								do {
+									/* No leading zero carry? */
+									if (0 == i && i < d - 1 && '0' == r[0])
+										break;
+									/* Skip trailing zeros if %g or %G */
+									if (digits && i >= d) {
+										if (r[i] != '0') {
+											*--mptr = r[i];
+											has_non_zero = TRUE;
+										}
+									} else {
+										*--mptr = r[i];
+									}
+									if (i == d && has_non_zero)
+										*--mptr = '.';
+								} while (i--);
+							} else {
+								size_t x = e - mlen + 1;	/* Extra 10s */
+								size_t subdot;
+
+								if (digits) {
+									/* Formatting from %g or %G */
+									subdot = precis > v ? precis - v : 0;
+								} else {
+									subdot = precis;
+								}
+
+								dzeros = x; /* Zeros before the decimal point */
+								dot = (0 == subdot) ? 0 : 1; /* Emit a dot? */
+								fzeros = subdot;	/* Zeros after the dot */
+
+								g_assert(mlen <= sizeof ebuf);
+
+								mptr -= mlen;
+								memcpy(mptr, m, mlen);
+							}
+						}
+					}
+				}
+				g_assert(ptr_cmp(mptr, ebuf) >= 0);		/* No underflow */
+				eptr = mptr;
+				elen = (ebuf + sizeof ebuf) - eptr;
+
+				if G_UNLIKELY(format_verbose) {
+					char buf[150];
+					gm_snprintf(buf, sizeof buf,
+						"%g as \"%%%c\": elen=%zu, eptr=\"%.*s\", "
+						"expptr=\"%.*s\", dot=%s, zeros<e=%zu, d=%zu, "
+						"a=%zu, f=%zu>",
+						nv, c, elen, (int) elen, eptr, explen, expptr,
+						dot ? "y" : "n", ezeros, dzeros, azeros, fzeros);
+					s_debug("%s", buf);
+				}
+				break;
 			}
-			if (width) {
-				base = width;
-				do { *--mptr = '0' + (base % 10); } while (base /= 10);
-			}
-			if (fill == '0')
-				*--mptr = fill;
-			if (left)
-				*--mptr = '-';
-			if (plus)
-				*--mptr = plus;
-			if (alt)
-				*--mptr = '#';
-			*--mptr = '%';
-
-			/* should be big enough */
-			str_snprintf(efloatbuf, efloatsize, mptr, nv);
-
-			eptr = efloatbuf;
-			elen = strlen(efloatbuf);
-
 			break;
 
 			/* SPECIAL */
@@ -1644,7 +1931,10 @@ G_STMT_START {									\
 			continue;	/* not "break" */
 		}
 
-		have = esignlen + zeros + elen;
+		have = esignlen + zeros + elen +
+			/* Floating-point specific formatting */
+			ezeros + explen + dzeros + dot + azeros + fzeros;
+
 		need = (have > width ? have : width);
 		gap = need - have;
 
@@ -1684,9 +1974,36 @@ G_STMT_START {									\
 			memset(p, '0', zeros);
 			p += zeros;
 		}
-		if (elen) {
+		if (elen && 0 == azeros) {
 			memcpy(p, eptr, elen);
 			p += elen;
+		}
+		if (ezeros) {
+			memset(p, '0', ezeros);
+			p += ezeros;
+		}
+		if (explen) {
+			memcpy(p, expptr, explen);
+			p += explen;
+		}
+		if (dzeros) {
+			memset(p, '0', dzeros);
+			p += dzeros;
+		}
+		if (dot) {
+			*p++ = '.';
+		}
+		if (azeros) {
+			memset(p, '0', azeros);
+			p += azeros;
+		}
+		if (elen && 0 != azeros) {
+			memcpy(p, eptr, elen);
+			p += elen;
+		}
+		if (fzeros) {
+			memset(p, '0', fzeros);
+			p += fzeros;
 		}
 		if (gap && left) {
 			memset(p, ' ', gap);
@@ -1735,11 +2052,53 @@ G_STMT_START {									\
 				goto clamped;
 			remain -= zeros;
 		}
-		if (elen) {
+		if (elen && 0 == azeros) {
 			p += clamp_memcpy(p, q - p, eptr, elen);
 			if (p >= q)
 				goto clamped;
 			remain -= elen;
+		}
+		if (ezeros) {
+			p += clamp_memset(p, q - p, '0', ezeros);
+			if (p >= q)
+				goto clamped;
+			remain -= ezeros;
+		}
+		if (explen) {
+			p += clamp_memcpy(p, q - p, expptr, explen);
+			if (p >= q)
+				goto clamped;
+			remain -= explen;
+		}
+		if (dzeros) {
+			p += clamp_memset(p, q - p, '0', dzeros);
+			if (p >= q)
+				goto clamped;
+			remain -= dzeros;
+		}
+		if (dot) {
+			if (0 == remain)
+				goto clamped;
+			*p++ = '.';
+			remain--;
+		}
+		if (azeros) {
+			p += clamp_memset(p, q - p, '0', azeros);
+			if (p >= q)
+				goto clamped;
+			remain -= azeros;
+		}
+		if (elen && 0 != azeros) {
+			p += clamp_memcpy(p, q - p, eptr, elen);
+			if (p >= q)
+				goto clamped;
+			remain -= elen;
+		}
+		if (fzeros) {
+			p += clamp_memset(p, q - p, '0', fzeros);
+			if (p >= q)
+				goto clamped;
+			remain -= fzeros;
 		}
 		if (gap && left) {
 			p += clamp_memset(p, q - p, ' ', gap);
@@ -2068,6 +2427,7 @@ str_test(void)
 #define PI			3.141592654
 #define DOUBLE		3.45e8
 #define LN2			0.69314718056
+#define INF			HUGE_VAL
 
 	static const char ANYTHING[] = "anything";
 	static const char INTSTR[] = "345000";
@@ -2122,6 +2482,9 @@ str_test(void)
 		{ "%-8d.",			MLEN,	INTEGER,		"345000  ." },
 		{ "%8d",			MLEN,	INTEGER,		"  345000" },
 		{ "%8d",			5,		INTEGER,		"  34" },
+		{ "%d",				MLEN,	-INTEGER,		"-345000" },
+		{ "%-8d.",			MLEN,	-INTEGER,		"-345000 ." },
+		{ "%.08d",			MLEN,	INTEGER,		"00345000" },
 	};
 	static const struct tlong {
 		const char *fmt;
@@ -2143,6 +2506,9 @@ str_test(void)
 		{ "%-8ld.",			MLEN,	LONG,		"345000  ." },
 		{ "%8ld",			MLEN,	LONG,		"  345000" },
 		{ "%8ld",			5,		LONG,		"  34" },
+		{ "%ld",			MLEN,	-LONG,		"-345000" },
+		{ "%-8ld.",			MLEN,	-LONG,		"-345000 ." },
+		{ "%.08ld",			MLEN,	LONG,		"00345000" },
 	};
 	static const struct tdouble {
 		const char *fmt;
@@ -2150,43 +2516,124 @@ str_test(void)
 		double value;
 		const char *result;
 	} test_doubles[] = {
+		/* #1 */
+		{ "%g",				MLEN,	INF,		"inf" },
+		{ "%G",				MLEN,	INF,		"INF" },
+		{ "%g",				MLEN,	-INF,		"-inf" },
+		{ "%G",				MLEN,	-INF,		"-INF" },
 		{ "%f",				MLEN,	PI,			"3.141593" },
-#if 0	/* Disabled since it relies on libc's vsnprintf() */
 		{ "%g",				MLEN,	PI,			"3.14159" },
+		{ "%.1g",			MLEN,	PI,			"3" },
 		{ "%e",				MLEN,	PI,			"3.141593e+00" },
 		{ "%e",				MLEN,	-PI,		"-3.141593e+00" },
+		/* #10 */
 		{ "%.2e",			MLEN,	-PI,		"-3.14e+00" },
 		{ "%.2f",			MLEN,	-PI,		"-3.14" },
 		{ "%8.2f",			MLEN,	-PI,		"   -3.14" },
 		{ "%g",				MLEN,	DOUBLE,		"3.45e+08" },
 		{ "%g",				MLEN,	-DOUBLE,	"-3.45e+08" },
 		{ "%G",				MLEN,	DOUBLE,		"3.45E+08" },
-		{ "%e",				MLEN,	DOUBLE,		"3.45e+08" },
-		{ "%E",				MLEN,	DOUBLE,		"3.45E+08" },
-		{ "%.17f",			MLEN,	LN2,		"0.69314718056000002" },
+		{ "%e",				MLEN,	DOUBLE,		"3.450000e+08" },
+		{ "%E",				MLEN,	DOUBLE,		"3.450000E+08" },
 		{ "%e",				MLEN,	LN2,		"6.931472e-01" },
 		{ "%.0e",			MLEN,	LN2,		"7e-01" },
+		/* #20 */
+		{ "%.17f",			MLEN,	LN2,		"0.69314718056000002" },
 		{ "%.0f",			MLEN,	LN2,		"1" },
 		{ "%.1f",			MLEN,	LN2,		"0.7" },
-#endif
+		{ "%f",				MLEN,	LN2,		"0.693147" },
+		{ "%.5f",			MLEN,	LN2,		"0.69315" },
+		{ "%.5f",			5,		LN2,		"0.69" },
+		{ "%f",				MLEN,	-LN2,		"-0.693147" },
+		{ "%.5f",			MLEN,	-LN2,		"-0.69315" },
+		{ "%.5f",			5,		-LN2,		"-0.6" },
+		{ "%g",				MLEN,	5434e-9,	"5.434e-06" },
+		/* #30 */
+		{ "%g",				MLEN,	5434e-9,	"5.434e-06" },
+		{ "%.2g",			MLEN,	5434e-9,	"5.4e-06" },
+		{ "%.0g",			MLEN,	5434e-9,	"5e-06" },
+		{ "%.14f",			MLEN,	5434e-9,	"0.00000543400000" },
+		{ "%f",				MLEN,	1e-7,		"0.000000" },
+		{ "%f",				MLEN,	9e-7,		"0.000001" },
+		{ "%f",				MLEN,	5e-7,		"0.000001" },
+		{ "%f",				MLEN,	4e-7,		"0.000000" },
+		{ "%f",				MLEN,	4e-6,		"0.000004" },
+		{ "%f",				MLEN,	9e-6,		"0.000009" },
+		/* #40 */
+		{ "%f",				MLEN,	94e-7,		"0.000009" },
+		{ "%f",				MLEN,	95e-7,		"0.000010" },
+		{ "%f",				MLEN,	150,		"150.000000" },
+		{ "%.0f",			MLEN,	150,		"150" },
+		{ "%.0f",			MLEN,	180,		"180" },
+		{ "%g",				MLEN,	150,		"150" },
+		{ "%e",				MLEN,	150,		"1.500000e+02" },
+		{ "%.15e",			MLEN,	150,		"1.500000000000000e+02" },
+		{ "%.0e",			MLEN,	150,		"2e+02" },
+		{ "%.0e",			MLEN,	180,		"2e+02" },
+		/* #50 */
+		{ "%.0e",			MLEN,	140,		"1e+02" },
+		{ "%.0e",			MLEN,	149,		"1e+02" },
+		{ "%.0e",			MLEN,	151,		"2e+02" },
+		{ "%g",				MLEN,	15000,		"15000" },
+		{ "%g",				MLEN,	15000.4,	"15000.4" },
+		{ "%.10e",			MLEN,	150000.04,	"1.5000004000e+05" },
+		{ "%.0f",			MLEN,	15000.9,	"15001" },
+		{ "%.0f",			MLEN,	0.899,		"1" },
+		{ "%.1f",			MLEN,	0.899,		"0.9" },
+		{ "%.3f",			MLEN,	0.899,		"0.899" },
+		/* #60 */
+		{ "%.2f",			MLEN,	0.899,		"0.90" },
+		{ "%g",				MLEN,	150000,		"150000" },
+		{ "%g",				MLEN,	1500000,	"1.5e+06" },
+		{ "%g",				MLEN,	1.5e-200,	"1.5e-200" },
+		{ "%+g",			MLEN,	1.5e200,	"+1.5e+200" },
+		{ "%+g",			MLEN,	-1.5e200,	"-1.5e+200" },
+		{ "%12g",			MLEN,	-1.5e200,	"   -1.5e+200" },
+		{ "%-12g.",			MLEN,	-1.5e200,	"-1.5e+200   ." },
+		{ "%-12g.",			MLEN,	-1.5e20,	"-1.5e+20    ." },
+		{ "%-12g.",			MLEN,	-1.5e09,	"-1.5e+09    ." },
+		/* #70 */
+		{ "%-12g.",			MLEN,	-1.5e-09,	"-1.5e-09    ." },
+		{ "%-12g.",			MLEN,	+1.5e-09,	"1.5e-09     ." },
+		{ "%+12g",			MLEN,	+1.5e-09,	"    +1.5e-09" },
+		{ "%.4g",			MLEN,	-1.5e200,	"-1.5e+200" },
+		{ "%.5g",			MLEN,	15000,		"15000" },
+		{ "%.4g",			MLEN,	15000,		"1.5e+04" },
+		{ "%.0f",			MLEN,	2e+19,		"20000000000000000000" },
+		{ "%.20g",			MLEN,	2e+19,		"20000000000000000000" },
+		{ "%.51g",			MLEN,	2e+50,		"20000000000000002000000000"
+												"0000000000000000000000000" },
+		{ "%5.4f",			MLEN,	4561056.99,	"4561056.9900" },
+		/* #80 */
+		{ "%5.2f",			MLEN,	4561056.99,	"4561056.99" },
+		{ "%5.1f",			MLEN,	4561056.99,	"4561057.0" },
+		{ "%5.2f",			MLEN,	-61056.99,	"-61056.99" },
+		{ "%5.1f",			MLEN,	-61056.99,	"-61057.0" },
 	};
 
-#define TEST(what) G_STMT_START {							\
-	unsigned i;												\
-															\
-	for (i = 0; i < G_N_ELEMENTS(test_##what##s); i++) {	\
-		char buf[MLEN];										\
-		const struct t##what *t = &test_##what##s[i];		\
-															\
-		g_assert(sizeof buf >= t->buflen);					\
-															\
-		str_tprintf(buf, t->buflen, t->fmt, t->value);		\
-															\
-		g_assert_log(0 == strcmp(buf, t->result),			\
-			"fmt=\"%s\", len=%zu, "							\
-			"returned=\"%s\", expected=\"%s\"",				\
-			t->fmt, t->buflen, buf, t->result);				\
-	}														\
+#define TEST(what) G_STMT_START {								\
+	unsigned i;													\
+																\
+	for (i = 0; i < G_N_ELEMENTS(test_##what##s); i++) {		\
+		char buf[MLEN];											\
+		const struct t##what *t = &test_##what##s[i];			\
+																\
+		g_assert(sizeof buf >= t->buflen);						\
+																\
+		str_tprintf(buf, t->buflen, t->fmt, t->value);			\
+																\
+		if (0 != strcmp(buf, t->result) && !format_verbose) {	\
+			/* Retry with debugging before crashing */			\
+			format_verbose = TRUE;								\
+			str_tprintf(buf, t->buflen, t->fmt, t->value);		\
+		}														\
+																\
+		g_assert_log(0 == strcmp(buf, t->result),				\
+			"%s test #%u/%zu fmt=\"%s\", len=%zu, "				\
+			"returned=\"%s\", expected=\"%s\"",					\
+			#what, i + 1, G_N_ELEMENTS(test_##what##s),			\
+			t->fmt, t->buflen, buf, t->result);					\
+	}															\
 } G_STMT_END
 
 	TEST(string);
