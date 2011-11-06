@@ -69,7 +69,11 @@
 #define FLOAT_DRAGON			/* If you need float_dragon() */
 #endif
 
-#if defined(__alpha) || defined(__i386) || defined(_M_IX86)
+#if \
+	defined(__alpha) || \
+	defined(__i386) || \
+	defined(__x86_64__) || \
+	defined(_M_IX86)
 #define LITTLE_ENDIAN_IEEE_DOUBLE
 #endif
 
