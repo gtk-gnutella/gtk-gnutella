@@ -602,6 +602,15 @@ typedef void (*GCallback) (void);
 #endif
 
 /**
+ * IS_CONSTANT() returns TRUE if the expression is a compile-time constant.
+ */
+#if HAS_GCC(3, 0)
+#define IS_CONSTANT(x)	__builtin_constant_p(x)
+#else
+#define IS_CONSTANT(x)	FALSE
+#endif
+
+/**
  * CMP() returns the sign of a-b, that means -1, 0, or 1.
  */
 #define CMP(a, b) (G_UNLIKELY((a) == (b)) ? 0 : (a) > (b) ? 1 : (-1))
@@ -611,6 +620,29 @@ typedef void (*GCallback) (void);
  */
 #define SIGN(x) (G_UNLIKELY((x) == 0) ? 0 : (x) > 0 ? 1 : (-1))
 
+/**
+ * GUINT32_SWAP_CONSTANT() byte-swaps a 32-bit word, preferrably a constant.
+ * If the value is a variable, use GUINT32_SWAP().
+ */
+#define GUINT32_SWAP_CONSTANT(x_) ((guint32) ( \
+    (((guint32) (x_) & (guint32) 0x000000ffU) << 24) | \
+    (((guint32) (x_) & (guint32) 0x0000ff00U) <<  8) | \
+    (((guint32) (x_) & (guint32) 0x00ff0000U) >>  8) | \
+    (((guint32) (x_) & (guint32) 0xff000000U) >> 24)))
+
+/**
+ * GUINT32_SWAP() byte-swaps a 32-bit word.
+ *
+ * Avoid using glib's GUINT32_SWAP_LE_BE(): it triggers compile-time
+ * warnings on a wrong __asm__ statement with glib 1.2.  This version
+ * should be as efficient as the one defined by glib.
+ */
+#if HAS_GCC(4, 0)
+#define GUINT32_SWAP(x_) \
+	(IS_CONSTANT(x_) ? GUINT32_SWAP_CONSTANT(x_) : __builtin_bswap32(x_))
+#else
+#define GUINT32_SWAP(x_) GUINT32_SWAP_CONSTANT(x_)
+#endif
 
 /**
  * STATIC_ASSERT() can be used to verify conditions at compile-time. For
