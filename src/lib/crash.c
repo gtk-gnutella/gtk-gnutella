@@ -100,6 +100,7 @@
 #define PARENT_STDOUT_FILENO	3
 #define PARENT_STDERR_FILENO	4
 #define CRASH_MSG_MAXLEN		3072	/**< Pre-allocated max length */
+#define CRASH_MSG_SAFELEN		512		/**< Failsafe static string */
 #define CRASH_MIN_ALIVE			600		/**< secs, minimum uptime for exec() */
 
 #ifdef HAS_FORK
@@ -1457,13 +1458,18 @@ crash_mode(void)
 			flush_err_str();
 		}
 	} else {
-		char time_buf[18];
-		DECLARE_STR(2);
+		static gboolean warned;
 
-		crash_time(time_buf, sizeof time_buf);
-		print_str(time_buf);
-		print_str(" WARNING: crashing with NULL crash variables\n");
-		flush_err_str();
+		if (!warned) {
+			char time_buf[18];
+			DECLARE_STR(2);
+
+			warned = TRUE;
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);
+			print_str(" WARNING: crashing before any crash_init() call\n");
+			flush_err_str();
+		}
 	}
 }
 
@@ -2323,7 +2329,10 @@ crash_assert_logv(const char * const fmt, va_list ap)
 		crash_set_var(message, msg);
 		return msg;
 	} else {
-		return NULL;
+		static char msg[CRASH_MSG_SAFELEN];
+
+		str_vbprintf(msg, sizeof msg, fmt, ap);
+		return msg;
 	}
 }
 
