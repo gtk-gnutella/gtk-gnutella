@@ -83,25 +83,30 @@
 #define m1mask 0xf
 #define hidden_bit 0x100000
 
+/* Little-Endian IEEE Double Floats */
+struct dblflt_le {
+    unsigned int m4: 16;
+    unsigned int m3: 16;
+    unsigned int m2: 16;
+    unsigned int m1: 4;
+    unsigned int e: 11;
+    unsigned int s: 1;
+};
+
+/* Big-Endian IEEE Double Floats */
+struct dblflt_be {
+    unsigned int s: 1;
+    unsigned int e: 11;
+    unsigned int m1: 4;
+    unsigned int m2: 16;
+    unsigned int m3: 16;
+    unsigned int m4: 16;
+};
+
 #ifdef LITTLE_ENDIAN_IEEE_DOUBLE
-struct dblflt {
-    unsigned int m4: 16;
-    unsigned int m3: 16;
-    unsigned int m2: 16;
-    unsigned int m1: 4;
-    unsigned int e: 11;
-    unsigned int s: 1;
-};
+typedef struct dblflt_le dblflt_t;
 #else
-/* Big Endian IEEE Double Floats */
-struct dblflt {
-    unsigned int s: 1;
-    unsigned int e: 11;
-    unsigned int m1: 4;
-    unsigned int m2: 16;
-    unsigned int m3: 16;
-    unsigned int m4: 16;
-};
+typedef struct dblflt_be dblflt_t;
 #endif
 
 #define BIGSIZE 24
@@ -141,6 +146,7 @@ static struct float_context {
 static bignum_t five[MAX_FIVE];
 static int recursion_level = -1;
 static gboolean float_inited;
+static gboolean float_little_endian;
 
 #define R			float_context[recursion_level].c_R
 #define S			float_context[recursion_level].c_S
@@ -470,6 +476,30 @@ float_init(void)
 	bignum_t *b;
 	guint64 *xp, *zp, k;
 
+	/*
+	 * Determine dynamically whether floats are stored as
+	 * little- or big-endian.  This will only impose negligeable
+	 * overhead to the formatting.
+	 *		--RAM, 2011-11-06
+	 */
+
+	{
+		double v = 4.0;
+		struct dblflt_le *le;
+		struct dblflt_be *be;
+
+		le = (struct dblflt_le *) &v;
+		be = (struct dblflt_be *) &v;
+
+		if (0 == le->s && 1025 == le->e) {
+			float_little_endian = TRUE;
+		} else if (0 == be->s && 1025 == be->e) {
+			float_little_endian = FALSE;
+		} else {
+			g_error("your double values are not stored in IEEE format");
+		}
+	}
+
 	five[0].l = l = 0;
 	five[0].d[0] = 5;
 	for (n = MAX_FIVE-1, b = &five[0]; n > 0; n--) {
@@ -520,7 +550,7 @@ add_cmp(void)
 int
 float_dragon(char *buf, double v)
 {
-	struct dblflt *x;
+	dblflt_t *x;
 	int sign, e, f_n, m_n, i, d, tc1, tc2;
 	guint64 f;
 	int ruf, k, sl = 0, slr = 0;
@@ -532,7 +562,7 @@ float_dragon(char *buf, double v)
 	g_assert(recursion_level < FLOAT_RECURSION);
 
 	/* decompose float into sign, mantissa & exponent */
-	x = (struct dblflt *)&v;
+	x = (dblflt_t *)&v;
 	sign = x->s;
 	e = x->e; 
 	f = (guint64)(x->m1 << 16 | x->m2) << 32 | (guint32)(x->m3 << 16 | x->m4);
@@ -755,7 +785,6 @@ G_STMT_START {							\
 size_t
 float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 {
-	struct dblflt *x;
 	int sign, e, f_n, i, d, n;
 	guint64 f;
 	int k, sl = 0, slr = 0;
@@ -774,10 +803,20 @@ float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 	g_assert(recursion_level < FLOAT_RECURSION);
 
 	/* decompose float into sign, mantissa & exponent */
-	x = (struct dblflt *)&v;
-	sign = x->s;
-	e = x->e;
-	f = (guint64)(x->m1 << 16 | x->m2) << 32 | (guint32)(x->m3 << 16 | x->m4);
+	if (float_little_endian) {
+		struct dblflt_le *x = (struct dblflt_le *)&v;
+		sign = x->s;
+		e = x->e;
+		f = (guint64)(x->m1 << 16 | x->m2) << 32 |
+			(guint32)(x->m3 << 16 | x->m4);
+	} else {
+		struct dblflt_be *x = (struct dblflt_be *)&v;
+		sign = x->s;
+		e = x->e;
+		f = (guint64)(x->m1 << 16 | x->m2) << 32 |
+			(guint32)(x->m3 << 16 | x->m4);
+	}
+
 	if (e != 0) {
 		e = e - bias - bitstoright;
 		f |= (guint64)hidden_bit << 32;
