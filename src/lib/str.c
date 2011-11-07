@@ -1479,7 +1479,6 @@ G_STMT_START {									\
 		string:
 			if (has_precis && elen > precis)
 				elen = precis;
-			fill = ' ';			/* Ignore possible %0 with strings! */
 			break;
 
 			/* INTEGERS */
@@ -2544,7 +2543,7 @@ str_test(gboolean verbose)
 #define LN2			0.69314718056
 #define INF			HUGE_VAL
 #define S			TRUE			/* Standard */
-#define X			FALSE			/* Extension, skip snprintf() consistency */
+#define X			FALSE			/* Excluded from snprintf() consistency */
 
 	size_t discrepancies = 0;
 	static const char ANYTHING[] = "anything";
@@ -2568,7 +2567,7 @@ str_test(gboolean verbose)
 		{ "%15s",		S, 9,		ANYTHING,	"       a" },
 		{ "%-15s",		S, MLEN,	ANYTHING,	"anything       " },
 		{ "%-15s.",		S, MLEN,	ANYTHING,	"anything       ." },
-		{ "%015s.",		S, MLEN,	ANYTHING,	"       anything." },
+		{ "%015s.",		X, MLEN,	ANYTHING,	"0000000anything." },
 		{ "%-5s",		S, MLEN,	ANYTHING,	ANYTHING },
 		{ "%-5s.",		S, MLEN,	ANYTHING,	"anything." },
 	};
