@@ -2049,7 +2049,7 @@ guess_final_stats(const guess_t *gq)
 	tm_now_exact(&end);
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
-		g_debug("GUESS QUERY[%s] \"%s\" took %f secs, "
+		g_debug("GUESS QUERY[%s] \"%s\" took %g secs, "
 			"queried_set=%lu, pool_set=%lu, "
 			"queried=%lu, acks=%lu, max_ultras=%lu, kept_results=%u/%u, "
 			"out_qk=%u bytes, out_query=%u bytes",
@@ -2844,7 +2844,7 @@ guess_handle_ack(guess_t *gq,
 		if (GNET_PROPERTY(guess_client_debug) > 4) {
 			tm_t now;
 			tm_now_exact(&now);
-			g_debug("GUESS QUERY[%s] %f secs, hop %u, "
+			g_debug("GUESS QUERY[%s] %g secs, hop %u, "
 				"got acknowledgement pong from %s for %s at hop %u",
 				nid_to_string(&gq->gid), tm_elapsed_f(&now, &gq->start),
 				gq->hops, gnet_host_to_string(host),
@@ -3207,7 +3207,7 @@ guess_iterate(guess_t *gq)
 	if (GNET_PROPERTY(guess_client_debug) > 2) {
 		tm_t now;
 		tm_now_exact(&now);
-		g_debug("GUESS QUERY[%s] iterating, %f secs, hop %u, "
+		g_debug("GUESS QUERY[%s] iterating, %g secs, hop %u, "
 		"[acks/pool: %lu/%u] "
 		"(%s parallelism: sending %d RPC%s at most, %d outstanding)",
 			nid_to_string(&gq->gid), tm_elapsed_f(&now, &gq->start),

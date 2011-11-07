@@ -183,12 +183,12 @@ ntp_got_reply(host_addr_t addr, const void *payload, size_t len)
 	clock_offset = tm2f(&offset) / 2;		/* Should be close to 0 */
 
 	if (GNET_PROPERTY(tsync_debug) > 1)
-		g_debug("NTP local clock offset is %.6f secs",
+		g_debug("NTP local clock offset is %g secs",
 			(double) clock_offset);
 
 	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, (guint32) clock_offset);
 
-	g_info("detected NTP-%u, stratum %u, offset %.6f secs",
+	g_info("detected NTP-%u, stratum %u, offset %g secs",
 		version, m->stratum, (double) clock_offset);
 }
 

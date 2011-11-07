@@ -1311,7 +1311,7 @@ check_cpu_usage(void)
 	avg = load_avg / 100;
 
 	if (GNET_PROPERTY(cpu_debug) > 1 && last_cpu > 0.0)
-		g_debug("CPU: %.3f secs in %.3f secs (~%.3f%% @ cover=%.2f) avg=%d%%",
+		g_debug("CPU: %g secs in %g secs (~%.3f%% @ cover=%g) avg=%d%%",
 			cpu - last_cpu, elapsed, cpu_percent, coverage, avg);
 
 	/*

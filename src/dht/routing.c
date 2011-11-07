@@ -91,6 +91,7 @@
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
+#include "lib/log.h"			/* For s_debug() */
 #include "lib/map.h"
 #include "lib/patricia.h"
 #include "lib/parse.h"
@@ -3547,14 +3548,14 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 		double ds = kuid_to_double(&dsum);
 		double s = kuid_to_double(&sq);
 
-		g_debug("DHT target KUID is %s (%d node%s wanted, %u used)",
+		s_debug("DHT target KUID is %s (%d node%s wanted, %u used)",
 			kuid_to_hex_string(kuid), amount, 1 == amount ? "" : "s",
 			(unsigned) (i - 1));
-		g_debug("DHT dsum is %s = %f", kuid_to_hex_string(&dsum), ds);
-		g_debug("DHT squares is %s = %f (%d)",
+		s_debug("DHT dsum is %s = %F", kuid_to_hex_string(&dsum), ds);
+		s_debug("DHT squares is %s = %F (%d)",
 			kuid_to_hex_string(&sq), s, squares);
 
-		g_debug("DHT sparseness over %u nodes is %s = %f (%f)",
+		s_debug("DHT sparseness over %u nodes is %s = %F (%F)",
 			(unsigned) i - 1, kuid_to_hex_string(&sparseness),
 			kuid_to_double(&sparseness), ds / s);
 	}
@@ -3811,7 +3812,7 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 	kuid_divide(&accum, &prev, &avg, &remain);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT average distance of %u KUIDs near %s is %s (%f)",
+		g_debug("DHT average distance of %u KUIDs near %s is %s (%F)",
 			(unsigned) count - 1,
 			kuid_to_hex_string(kuid), kuid_to_hex_string2(&avg),
 			kuid_to_double(&avg));
@@ -3973,7 +3974,7 @@ update_cached_size_estimate(void)
 			stats.kball_furthest, 1 == stats.kball_furthest ? "" : "s");
 		if (n > 1) {
 			g_debug(
-				"DHT collected average is %.0f (%d points), avg_stderr = %.2f",
+				"DHT collected average is %.0f (%d points), avg_stderr = %g",
 				statx_avg(stats.lookdata), n, statx_stderr(stats.lookdata));
 		}
 	}

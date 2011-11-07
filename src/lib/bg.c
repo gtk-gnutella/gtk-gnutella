@@ -293,7 +293,7 @@ bg_task_suspend(struct bgtask *bt, int target)
 		if (bg_debug > 4) {
 			g_debug("BGTASK \"%s\" total=%d msecs, "
 				"elapsed=%lu usecs (targeted %d), "
-				"ticks=%d, used=%d, tick_cost=%f usecs (was %f)",
+				"ticks=%d, used=%d, tick_cost=%g usecs (was %g)",
 				bt->name, bt->wtime, (gulong) elapsed, target,
 				bt->ticks, bt->ticks_used,
 				new_cost, bt->tick_cost);

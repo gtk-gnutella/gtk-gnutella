@@ -695,7 +695,7 @@ lookup_final_stats(const nlookup_t *nl)
 	tm_now_exact(&end);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1 || GNET_PROPERTY(dht_debug) > 1)
-		g_debug("DHT LOOKUP[%s] type %s, took %f secs, "
+		g_debug("DHT LOOKUP[%s] type %s, took %g secs, "
 			"hops=%u, path=%u, in=%d bytes, out=%d bytes, %d RPC repl%s",
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
 			tm_elapsed_f(&end, &nl->start),
@@ -1385,7 +1385,7 @@ lookup_value_done(nlookup_t *nl)
 		tm_t now;
 
 		tm_now_exact(&now);
-		g_debug("DHT LOOKUP[%s] %f secs, ending secondary key fetch from %s",
+		g_debug("DHT LOOKUP[%s] %g secs, ending secondary key fetch from %s",
 			nid_to_string(&nl->lid), tm_elapsed_f(&now, &fv->start),
 			knode_to_string(sk->kn));
 	}
@@ -1472,7 +1472,7 @@ lookup_value_expired(cqueue_t *unused_cq, gpointer obj)
 		g_assert(remain > 0);
 
 		g_debug("DHT LOOKUP[%s] expiring secondary key fetching in "
-			"%s lookup (%s) for %s after %f secs, %d key%s remaining",
+			"%s lookup (%s) for %s after %g secs, %d key%s remaining",
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
 			dht_value_type_to_string(nl->u.fv.vtype),
 			kuid_to_hex_string(nl->kuid),
@@ -1650,7 +1650,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
-		g_debug("DHT LOOKUP[%s] (remote load = %.2f) "
+		g_debug("DHT LOOKUP[%s] (remote load = %g) "
 			"got %d value%s of type %s and %d secondary key%s from %s",
 			nid_to_string(&nl->lid), load, vcnt, 1 == vcnt ? "" : "s",
 			dht_value_type_to_string(type),
@@ -2162,8 +2162,8 @@ kullback_leibler_div(const nlookup_t *nl, size_t nodes, int bmin,
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 			g_debug("DHT LOOKUP[%s] %u-bit prefix: "
-				"freq = %f (%u/%u node%s, log2=%f), theoric = %f => "
-				"K-L contribution: %f",
+				"freq = %g (%u/%u node%s, log2=%g), theoric = %g => "
+				"K-L contribution: %g",
 				nid_to_string(&nl->lid), (unsigned) (i + bmin),
 				M[i], (unsigned) prefix[i], (unsigned) nodes,
 				1 == prefix[i] ? "" : "s",
@@ -2295,7 +2295,7 @@ compute:
 	dkl = kullback_leibler_div(nl, nodes, min_common_bits, prefix, items);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence to %s = %f",
+		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence to %s = %g",
 			nid_to_string(&nl->lid), (unsigned) nodes,
 			(unsigned) patricia_count(nl->path),
 			1 == nodes ? "" : "s", kuid_to_hex_string(nl->kuid), dkl);
@@ -2432,7 +2432,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 	qsort(&items, G_N_ELEMENTS(items), sizeof(items[0]), kl_item_revcmp);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_debug("DHT LOOKUP[%s] largest K-L divergence %f from %lu-bit prefix",
+		g_debug("DHT LOOKUP[%s] largest K-L divergence %g from %lu-bit prefix",
 			nid_to_string(&nl->lid), items[0].contrib,
 			(unsigned long) items[0].prefix);
 	}
@@ -2478,7 +2478,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 	dkl = kullback_leibler_div(nl, nodes, min_common_bits, prefix, items);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence down to %f",
+		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence down to %g",
 			nid_to_string(&nl->lid), (unsigned) nodes,
 			(unsigned) patricia_count(nl->path), 1 == nodes ? "" : "s", dkl);
 	}
@@ -2525,7 +2525,7 @@ done:
 
 	if (GNET_PROPERTY(dht_lookup_debug)) {
 		g_debug("DHT LOOKUP[%s] after counter-measures: path holds %u node%s, "
-			"K-L divergence is %f (%u node%s in window, stripped %u)",
+			"K-L divergence is %g (%u node%s in window, stripped %u)",
 			nid_to_string(&nl->lid),
 			(unsigned) patricia_count(nl->path),
 			1 == patricia_count(nl->path) ? "" : "s", dkl,
@@ -2609,7 +2609,7 @@ log_status(nlookup_t *nl)
 
 	tm_now_exact(&now);
 
-	g_debug("DHT LOOKUP[%s] %s lookup status for %s at hop %u after %f secs",
+	g_debug("DHT LOOKUP[%s] %s lookup status for %s at hop %u after %g secs",
 		nid_to_string(&nl->lid), kuid_to_hex_string(nl->kuid),
 		lookup_type_to_string(nl), nl->hops,
 		tm_elapsed_f(&now, &nl->start));
@@ -2973,7 +2973,7 @@ lookup_handle_reply(
 	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 		tm_t now;
 		tm_now_exact(&now);
-		g_debug("DHT LOOKUP[%s] %f secs, handling hop %u reply from %s",
+		g_debug("DHT LOOKUP[%s] %g secs, handling hop %u reply from %s",
 			nid_to_string(&nl->lid), tm_elapsed_f(&now, &nl->start),
 		 	hop, knode_to_string(kn));
 	}
@@ -3939,7 +3939,7 @@ lookup_delay(nlookup_t *nl)
 	g_assert(!(nl->flags & NL_F_DELAYED));
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
-		g_debug("DHT LOOKUP[%s] delaying next iteration by %f seconds",
+		g_debug("DHT LOOKUP[%s] delaying next iteration by %g seconds",
 			nid_to_string(&nl->lid), NL_FIND_DELAY / 1000.0);
 
 	nl->flags |= NL_F_DELAYED;
@@ -4679,7 +4679,7 @@ lookup_value_handle_reply(nlookup_t *nl,
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
-		g_debug("DHT LOOKUP[%s] (remote load = %.2f) "
+		g_debug("DHT LOOKUP[%s] (remote load = %g) "
 			"value for secondary key #%u is %s",
 			nid_to_string(&nl->lid), load, sk->next_skey + 1,
 			dht_value_to_string(v));
@@ -5001,7 +5001,7 @@ lookup_value_iterate(nlookup_t *nl)
 		tm_t now;
 
 		tm_now_exact(&now);
-		g_debug("DHT LOOKUP[%s] %f secs, asking %ssecondary key %d/%d from %s",
+		g_debug("DHT LOOKUP[%s] %g secs, asking %ssecondary key %d/%d from %s",
 			nid_to_string(&nl->lid), tm_elapsed_f(&now, &fv->start),
 			map_contains(fv->seen, sk->skeys[sk->next_skey]) ?
 				"duplicate " : "",

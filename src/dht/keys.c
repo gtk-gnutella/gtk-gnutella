@@ -477,7 +477,7 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 
 	if (GNET_PROPERTY(dht_storage_debug) > 1)
 		g_debug("DHT STORE key %s holds %d/%d value%s, "
-			"load avg: get = %.2f [%s], store = %.2f [%s], expire in %s",
+			"load avg: get = %g [%s], store = %g [%s], expire in %s",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
 			1 == ki->values ? "" : "s",
 			(int) (ki->get_req_load * 100) / 100.0,
@@ -898,7 +898,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	g_assert(ki);	/* If called, we know the key exists */
 
 	if (GNET_PROPERTY(dht_storage_debug) > 5)
-		g_debug("DHT FETCH key %s (load = %.2f, current reqs = %u) type %s"
+		g_debug("DHT FETCH key %s (load = %g, current reqs = %u) type %s"
 			" with %d secondary key%s",
 			kuid_to_hex_string(id), ki->get_req_load, ki->get_requests,
 			dht_value_type_to_string(type),

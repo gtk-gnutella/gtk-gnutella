@@ -169,7 +169,7 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 	if (GNET_PROPERTY(tsync_debug) > 1) {
 		tm_t elapsed = *final;
 		tm_sub(&elapsed, orig);
-		g_debug("TSYNC request %d.%d sent at %d.%d (delay = %.6f secs)",
+		g_debug("TSYNC request %d.%d sent at %d.%d (delay = %g secs)",
 			(int) orig->tv_sec, (int) orig->tv_usec,
 			(int) final->tv_sec, (int) final->tv_usec,
 			tm2f(&elapsed));
@@ -239,7 +239,7 @@ tsync_got_reply(struct gnutella_node *n,
 	rtt = tm2f(&delay);
 
 	if (GNET_PROPERTY(tsync_debug) > 2) {
-		g_debug("TSYNC RTT for %d.%d with %s via %s is: %.6f secs",
+		g_debug("TSYNC RTT for %d.%d with %s via %s is: %g secs",
 			(int) sent->tv_sec, (int) sent->tv_usec,
 			node_addr(n), NODE_IS_UDP(n) ? "UDP" : "TCP", (double) rtt);
 	}
@@ -276,7 +276,7 @@ tsync_got_reply(struct gnutella_node *n,
 		clock_offset = tm2f(&offset) / 2;
 
 		if (GNET_PROPERTY(tsync_debug)) {
-			g_debug("TSYNC offset between %s clock at %s and ours: %.6f secs",
+			g_debug("TSYNC offset between %s clock at %s and ours: %g secs",
 				ntp ? "NTP" : "regular", node_addr(n), (double) clock_offset);
 		}
 

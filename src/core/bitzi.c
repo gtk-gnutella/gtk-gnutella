@@ -506,7 +506,7 @@ bitzi_process_rdf_description(const xnode_t *xn, bitzi_data_t *data)
 	if (value) {
 		data->goodness = g_strtod(value, NULL);
 		if (GNET_PROPERTY(bitzi_debug)) {
-			g_debug("BITZI %s: fileGoodness is %s/%f",
+			g_debug("BITZI %s: fileGoodness is %s/%g",
 				G_STRFUNC, value, data->goodness);
 		}
 	} else {
@@ -1098,7 +1098,7 @@ bitzi_cache_add(bitzi_data_t *data, const xnode_t *root)
 
 	if (GNET_PROPERTY(bitzi_debug)) {
 		g_debug("BITZI %s: %s %s ticket, filesize=%s, type=%s, desc=\"%s\", "
-			"judgment=\"%s\", goodness=%f, duration=%s, expire=%s",
+			"judgment=\"%s\", goodness=%g, duration=%s, expire=%s",
 			G_STRFUNC, bzo->ctime == tm_time() ? "added" : "updated",
 			sha1_to_string(data->sha1),
 			filesize_to_string(bzo->size), bzo->mime_type,
