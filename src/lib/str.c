@@ -1739,12 +1739,12 @@ G_STMT_START {									\
 						v = precis + 1;
 						v = MIN(mlen, v);
 						start = v; 			/* Starting index */
-						non_zero = 0 == digits;
+						non_zero = alt || 0 == digits;
 
 						rlen = str_fround(m, mlen, v, r, sizeof r);
 
 						do {
-							if (1 == v && start != 1)
+							if (1 == v && (alt || start != 1))
 								*--mptr = '.';
 							if (r[v] != '0')
 								non_zero = TRUE;
@@ -1752,9 +1752,9 @@ G_STMT_START {									\
 								*--mptr = r[v];
 						} while (--v);
 
-						/* Trailing mantissa zeros if %e or %E */
-						if (mlen < precis && !digits)
-							ezeros = precis - mlen;
+						/* Trailing mantissa zeros if %e or %E or %#[gG] */
+						if (mlen < precis + 1 && (alt || 0 == digits))
+							ezeros = precis + 1 - mlen;
 
 					} else {
 						size_t i;
@@ -1822,9 +1822,9 @@ G_STMT_START {									\
 
 								d = e + 1;	/* Dot position */
 
-								if (digits) {
+								if (0 != digits) {
 									/* Formatting from %g or %G */
-									has_non_zero = FALSE;
+									has_non_zero = alt;	/* %#g wants dot */
 									subdot = digits > d ? digits - d : 0;
 								} else {
 									subdot = precis;
@@ -1849,7 +1849,8 @@ G_STMT_START {									\
 									if (0 == i && i < d - 1 && '0' == r[0])
 										break;
 									/* Skip trailing zeros if %g or %G */
-									if (digits && i >= d) {
+									/* Trailing zeros kept with %#g (alt) */
+									if (digits && !alt && i >= d) {
 										if (r[i] != '0') {
 											*--mptr = r[i];
 											has_non_zero = TRUE;
@@ -1860,20 +1861,30 @@ G_STMT_START {									\
 									if (i == d && has_non_zero)
 										*--mptr = '.';
 								} while (i--);
+
+								/* Ensure trailing dot present if %# */
+								dot = (alt && d > rlen - 1) ? 1 : 0;
 							} else {
 								size_t x = e - mlen + 1;	/* Extra 10s */
 								size_t subdot;
 
 								if (digits) {
-									/* Formatting from %g or %G */
-									subdot = precis > v ? precis - v : 0;
+									if (alt) {
+										/* Formatting from %#g or %#G */
+										subdot = precis;
+									} else {
+										/* Formatting from %g or %G */
+										subdot = precis > v ? precis - v : 0;
+									}
 								} else {
 									subdot = precis;
 								}
 
 								dzeros = x; /* Zeros before the decimal point */
-								dot = (0 == subdot) ? 0 : 1; /* Emit a dot? */
 								fzeros = subdot;	/* Zeros after the dot */
+
+								/* Emit a dot? */
+								dot = (0 == subdot && !alt) ? 0 : 1;
 
 								g_assert(mlen <= sizeof ebuf);
 
@@ -2615,6 +2626,16 @@ str_test(void)
 		{ "%5.1f",			MLEN,	4561056.99,	"4561057.0" },
 		{ "%5.2f",			MLEN,	-61056.99,	"-61056.99" },
 		{ "%5.1f",			MLEN,	-61056.99,	"-61057.0" },
+		{ "%#f",			MLEN,	-61056.99,	"-61056.990000" },
+		{ "%#g",			MLEN,	5434e-9,	"5.43400e-06" },
+		{ "%#e",			MLEN,	5434e-9,	"5.434000e-06" },
+		{ "%#.0g",			MLEN,	5434e-9,	"5.e-06" },
+		{ "%#.0e",			MLEN,	5434e-9,	"5.e-06" },
+		{ "%#.3g",			MLEN,	100.0,		"100." },
+		/* #90 */
+		{ "%#.0e",			MLEN,	0.0,		"0.e+00" },
+		{ "%#.0f",			MLEN,	0.0,		"0." },
+		{ "%#.0g",			MLEN,	0.0,		"0." },
 	};
 
 #define TEST(what) G_STMT_START {								\
