@@ -51,6 +51,7 @@
 #include "halloc.h"
 #include "log.h"
 #include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
+#include "stringify.h"		/* For logging */
 #include "unsigned.h"
 #include "walloc.h"
 
@@ -62,6 +63,7 @@
 #define STR_CHUNK		4096	/* Size increase if above STR_MAXGROW */
 
 #define FPREC			17		/* IEEE 64-bit double maximum digit precision */
+#define FPDIG			10		/* For free format, max # of digits before %e */
 
 static gboolean tests_completed;	/* Controls truncation warnings */
 static gboolean format_verbose;		/* Controls debugging of formatting */
@@ -1183,6 +1185,7 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
  * The routine understands the following extensions, correctly parsed by gcc:
  *
  * %m   replaced by symbolic errno value + message: "EIO (I/O error)"
+ * %F   "free format" for floats, almost similar to %G if precision is given
  *
  * Finally, for backward compatibility, the following unnecessary but
  * widely-supported conversions are allowed:
@@ -1191,7 +1194,6 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
  * %D   a synonym for %ld
  * %U   a synonym for %lu
  * %O   a synonym for %lo
- * %F   a synonym for %f
  *
  * The routine permits the following universally-known flags between the
  * % and the conversion letter:
@@ -1201,6 +1203,7 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
  * -        left-justify within the field
  * 0        use zeros, not spaces, to right-justify
  * #        prefix octal with "0", hex with "0x"
+ *          force trailing dot for floats, don't strip trailing zeros for %[gG]
  * '        use thousands groupping in decimal integers with ","
  * number   minimum field width
  * .number  precision: digits after decimal point for floating-point,
@@ -1592,29 +1595,14 @@ G_STMT_START {									\
 
 			/* FLOATING POINT */
 
-		case 'F':
-			c = 'f';			/* maybe %F isn't supported here */
-			/* FALL THROUGH */
 		case 'e': case 'E':
-		case 'f':
+		case 'f': case 'F':
 		case 'g': case 'G':
 
 			nv = va_arg(args, double);
 
-			/*
-			 * Adjust precision: it's 6 by default.
-			 *
-			 * For %g, the precision is the number of digits displayed, whereas
-			 * for %e it's the number of digits after the decimal point.
-			 */
-
 			if (!has_precis)
-				precis = 6;
-
-			if ('g' == c || 'G' == c) {
-				digits = MAX(1, precis);	/* Non-zero, flags %g or %G */
-				precis = (0 == precis) ? 0 : precis - 1;
-			}
+				precis = 6;					/* Default precision */
 
 			/*
 			 * Ensure nv is a valid number, and not NaN, +Inf or -Inf
@@ -1648,6 +1636,29 @@ G_STMT_START {									\
 					int e;
 					char m[32], r[33];
 					size_t mlen, rlen, asked;
+					gboolean dragon = FALSE;
+					gboolean short_exp = FALSE;
+
+					if ('F' == c) {
+						short_exp = TRUE;
+						if (has_precis)
+							c = 'G';
+						else
+							dragon = TRUE;
+					}
+
+					/*
+					 * For %g, the precision is the number of digits displayed,
+					 * whereas for %e it's the number of digits after the
+					 * decimal point.
+					 */
+
+					if ('g' == c || 'G' == c) {
+						/* A non-zero digits value flags %g or %G */
+						digits = MAX(1, precis);
+						precis = (0 == precis) ? 0 : precis - 1;
+					}
+
 
 					if (nv >= 0) {
 						if (plus)
@@ -1662,7 +1673,7 @@ G_STMT_START {									\
 					 * supported by 64-bit IEEE numbers with a 52-bit mantissa.
 					 */
 
-					if ('f' == c || 'F' == c) {
+					if ('f' == c) {
 						asked = FPREC;		/* Will do rounding ourselves */
 					} else if (digits) {
 						asked = MIN(FPREC, digits);
@@ -1680,7 +1691,11 @@ G_STMT_START {									\
 					 *		printf("0.%se%d", m, e + 1);
 					 */
 
-					mlen = float_fixed(m, sizeof m, nv, asked, &e);
+					if (dragon) {
+						mlen = float_dragon(m, sizeof m, nv, &e);
+					} else {
+						mlen = float_fixed(m, sizeof m, nv, asked, &e);
+					}
 
 					g_assert(size_is_positive(mlen));
 					g_assert(mlen < sizeof m);
@@ -1689,9 +1704,10 @@ G_STMT_START {									\
 						char buf[150];
 						gm_snprintf(buf, sizeof buf,
 							"%g with \"%%%c\": m=\"%.*s\" "
-							"(len=%zu, asked=%zu), e=%d "
+							"(len=%zu, asked=%s), e=%d "
 							"[precis=%zu, digits=%zu, alt=%s]",
-							nv, c, (int) mlen, m, mlen, asked,
+							nv, c, (int) mlen, m, mlen,
+							dragon ? "none" : size_t_to_string(asked),
 							e, precis, digits, alt ? "y" : "n");
 						s_debug("%s", buf);
 					}
@@ -1700,11 +1716,29 @@ G_STMT_START {									\
 					 * %g is turned into %e (and %G to %E) when the exponent
 					 * is less than -4 or when it is greater than or equal
 					 * to the precision.
+					 *
+					 * %F is our special "free format":
+					 * - If e = 0, we show the mantissa as-is.
+					 * - If e > 0, we switch to scientific notation as soon
+					 *   as the digits in the mantissa + trailing zeros would
+					 *   lead to a number with more than FPDIG digits.
+					 * - If e < 0, we switch to scientific notation when
+					 *   the number of leading zeros + the mantissa would be
+					 *   larger than FPDIG digits (deemed harder to read at
+					 *   that time), or when e < -5.
 					 */
 
 					if ('g' == c || 'G' == c) {
 						if (e < -4 || e >= (int) precis + 1)
 							c = 'g' == c ? 'e' : 'E';
+					} else if (dragon) {
+						c = 'f';				/* For logging only */
+						if (e > 0) {
+							size_t v = e;
+							if (MAX(v, mlen) > FPDIG)		c = 'E';
+						} else if (e < 0) {
+							if (e < -5 || mlen - e > FPREC)	c = 'E';
+						}
 					}
 
 					if ('e' == c || 'E' == c) {
@@ -1722,7 +1756,7 @@ G_STMT_START {									\
 							*--mptr = '0' + dig;
 						} while (v /= 10);
 						v = (e >= 0) ? e : -e;
-						if (v < 10)
+						if (v < 10 && !short_exp)
 							*--mptr = '0';
 						*--mptr = (e >= 0) ? '+' : '-';
 						*--mptr = is_ascii_upper(c) ? 'E' : 'e';
@@ -1736,26 +1770,39 @@ G_STMT_START {									\
 
 						mptr = ebuf + sizeof ebuf;
 
-						v = precis + 1;
-						v = MIN(mlen, v);
-						start = v; 			/* Starting index */
-						non_zero = alt || 0 == digits;
+						if (dragon) {
+							v = mlen - 1;
+							do {
+								if (0 == v && mlen > 1)
+									*--mptr = '.';
+								*--mptr = m[v];
+							} while (v--);
 
-						rlen = str_fround(m, mlen, v, r, sizeof r);
+							/* Trailing mantissa filler if has precision */
+							if (has_precis && mlen < precis + 1)
+								ezeros = precis + 1 - mlen;
 
-						do {
-							if (1 == v && (alt || start != 1))
-								*--mptr = '.';
-							if (r[v] != '0')
-								non_zero = TRUE;
-							if (1 == v || non_zero)
-								*--mptr = r[v];
-						} while (--v);
+						} else {
+							v = precis + 1;
+							v = MIN(mlen, v);
+							start = v; 			/* Starting index */
+							non_zero = alt || 0 == digits;
 
-						/* Trailing mantissa zeros if %e or %E or %#[gG] */
-						if (mlen < precis + 1 && (alt || 0 == digits))
-							ezeros = precis + 1 - mlen;
+							rlen = str_fround(m, mlen, v, r, sizeof r);
 
+							do {
+								if (1 == v && (alt || start != 1))
+									*--mptr = '.';
+								if (r[v] != '0')
+									non_zero = TRUE;
+								if (1 == v || non_zero)
+									*--mptr = r[v];
+							} while (--v);
+
+							/* Trailing mantissa zeros if %e or %E or %#[gG] */
+							if (mlen < precis + 1 && (alt || 0 == digits))
+								ezeros = precis + 1 - mlen;
+						}
 					} else {
 						size_t i;
 						char *t;
@@ -1763,28 +1810,63 @@ G_STMT_START {									\
 
 						/* %f or %F -- THE FUN BEGINS! */
 
-						if (e < 0) {
+						if (dragon) {
+							if (e < 0) {
+								azeros = -e - 1;	/* Zeros after dot */
+								g_assert(mlen <= sizeof ebuf);
+								mptr -= mlen;
+								memcpy(mptr, m, mlen);
+								if (0 == azeros) {
+									*--mptr = '.';
+									*--mptr = '0';
+								} else {
+									dot = 2;		/* Will emit "0." later */
+								}
+							} else {
+								size_t v = e;
+
+								if (v < mlen) {
+									d = e + 1;		/* Dot position */
+									i = mlen - 1;
+									do {
+										*--mptr = m[i];
+										if (i == d)
+											*--mptr = '.';
+									} while (i--);
+									/* Ensure trailing dot present if %# */
+									dot = (alt && d > mlen - 1) ? 1 : 0;
+								} else {
+									size_t x = e - mlen + 1;	/* Extra 10s */
+
+									dzeros = x; /* Before the decimal point */
+									g_assert(mlen <= sizeof ebuf);
+									mptr -= mlen;
+									memcpy(mptr, m, mlen);
+									/* Ensure trailing dot present if %# */
+									dot = alt ? 1 : 0;
+								}
+							}
+						} else if (e < 0) {
 							size_t v = -e;
 							size_t z = v - 1;	/* Amount of zeros after dot */
 
 							/* Formatted as 0.xxxx */
 
-							if (z >= precis) {
+							if (z >= precis && 0 == digits) {
 								i = 0;
 							} else {
 								/* How many trailing zeros? */
 								if (precis > z + mlen)
 									fzeros = precis - z - mlen;
 
-								i = precis - z;
+								i = (0 == digits) ? precis - z : mlen;
 								i = MIN(i, mlen);
 							}
 
 							/* How many after-dot zeros? (0.000xxx) */
 							if (z != 0) {
 								azeros = z;
-								dot = 1;
-								dzeros = 1;		/* Will emit "0." later */
+								dot = 2;		/* Will emit "0." later */
 							}
 
 							/* Rounding for the precision digit */
@@ -1902,10 +1984,12 @@ G_STMT_START {									\
 					char buf[150];
 					gm_snprintf(buf, sizeof buf,
 						"%g as \"%%%c\": elen=%zu, eptr=\"%.*s\", "
-						"expptr=\"%.*s\", dot=%s, zeros<e=%zu, d=%zu, "
+						"expptr=\"%.*s\", dot=\"%s\", zeros<e=%zu, d=%zu, "
 						"a=%zu, f=%zu>",
 						nv, c, elen, (int) elen, eptr, explen, expptr,
-						dot ? "y" : "n", ezeros, dzeros, azeros, fzeros);
+						2 == dot ? "0." :
+						1 == dot ? "." : "",
+						ezeros, dzeros, azeros, fzeros);
 					s_debug("%s", buf);
 				}
 				break;
@@ -2007,6 +2091,8 @@ G_STMT_START {									\
 			p += dzeros;
 		}
 		if (dot) {
+			if (2 == dot)
+				*p++ = '0';
 			*p++ = '.';
 		}
 		if (azeros) {
@@ -2095,6 +2181,11 @@ G_STMT_START {									\
 		if (dot) {
 			if (0 == remain)
 				goto clamped;
+			if (2 == dot) {
+				*p++ = '0';
+				if (0 == --remain)
+					goto clamped;
+			}
 			*p++ = '.';
 			remain--;
 		}
@@ -2456,19 +2547,19 @@ str_test(void)
 		const char *value;
 		const char *result;
 	} test_strings[] = {
-		{ "",				10,		ANYTHING,		"" },
-		{ "%%",				10,		ANYTHING,		"%" },
-		{ "%s",				MLEN,	ANYTHING,		ANYTHING },
-		{ "%s",				5,		ANYTHING,		"anyt" },
-		{ "%.2s",			5,		ANYTHING,		"an" },
-		{ "%.15s",			MLEN,	ANYTHING,		ANYTHING },
-		{ "%15s",			MLEN,	ANYTHING,		"       anything" },
-		{ "%15s",			9,		ANYTHING,		"       a" },
-		{ "%-15s",			MLEN,	ANYTHING,		"anything       " },
-		{ "%-15s.",			MLEN,	ANYTHING,		"anything       ." },
-		{ "%015s.",			MLEN,	ANYTHING,		"0000000anything." },
-		{ "%-5s",			MLEN,	ANYTHING,		ANYTHING },
-		{ "%-5s.",			MLEN,	ANYTHING,		"anything." },
+		{ "",			10,		ANYTHING,		"" },
+		{ "%%",			10,		ANYTHING,		"%" },
+		{ "%s",			MLEN,	ANYTHING,		ANYTHING },
+		{ "%s",			5,		ANYTHING,		"anyt" },
+		{ "%.2s",		5,		ANYTHING,		"an" },
+		{ "%.15s",		MLEN,	ANYTHING,		ANYTHING },
+		{ "%15s",		MLEN,	ANYTHING,		"       anything" },
+		{ "%15s",		9,		ANYTHING,		"       a" },
+		{ "%-15s",		MLEN,	ANYTHING,		"anything       " },
+		{ "%-15s.",		MLEN,	ANYTHING,		"anything       ." },
+		{ "%015s.",		MLEN,	ANYTHING,		"0000000anything." },
+		{ "%-5s",		MLEN,	ANYTHING,		ANYTHING },
+		{ "%-5s.",		MLEN,	ANYTHING,		"anything." },
 	};
 	static const struct tpointer {
 		const char *fmt;
@@ -2476,8 +2567,8 @@ str_test(void)
 		void *value;
 		const char *result;
 	} test_pointers[] = {
-		{ "%p",				MLEN,	DEADBEEF,		"0xdeadbeef" },
-		{ "%p",				5,		DEADBEEF,		"0xde" },
+		{ "%p",			MLEN,	DEADBEEF,		"0xdeadbeef" },
+		{ "%p",			5,		DEADBEEF,		"0xde" },
 	};
 	static const struct tint {
 		const char *fmt;
@@ -2485,23 +2576,23 @@ str_test(void)
 		int value;
 		const char *result;
 	} test_ints[] = {
-		{ "%d",				MLEN,	INTEGER,		INTSTR },
-		{ "%x",				MLEN,	INTEGER,		INThex },
-		{ "%X",				MLEN,	INTEGER,		INTHEX },
-		{ "%x",				5,		INTEGER,		"543a" },
-		{ "%#x",			5,		INTEGER,		"0x54" },
-		{ "%#x",			MLEN,	INTEGER,		"0x543a8" },
-		{ "%#X",			MLEN,	INTEGER,		"0X543A8" },
-		{ "%.2d",			MLEN,	INTEGER,		INTSTR },
-		{ "%2d",			MLEN,	INTEGER,		INTSTR },
-		{ "%'d",			MLEN,	INTEGER,		"345,000" },
-		{ "%-8d.",			MLEN,	INTEGER,		"345000  ." },
-		{ "%-8d.",			MLEN,	INTEGER,		"345000  ." },
-		{ "%8d",			MLEN,	INTEGER,		"  345000" },
-		{ "%8d",			5,		INTEGER,		"  34" },
-		{ "%d",				MLEN,	-INTEGER,		"-345000" },
-		{ "%-8d.",			MLEN,	-INTEGER,		"-345000 ." },
-		{ "%.08d",			MLEN,	INTEGER,		"00345000" },
+		{ "%d",			MLEN,	INTEGER,		INTSTR },
+		{ "%x",			MLEN,	INTEGER,		INThex },
+		{ "%X",			MLEN,	INTEGER,		INTHEX },
+		{ "%x",			5,		INTEGER,		"543a" },
+		{ "%#x",		5,		INTEGER,		"0x54" },
+		{ "%#x",		MLEN,	INTEGER,		"0x543a8" },
+		{ "%#X",		MLEN,	INTEGER,		"0X543A8" },
+		{ "%.2d",		MLEN,	INTEGER,		INTSTR },
+		{ "%2d",		MLEN,	INTEGER,		INTSTR },
+		{ "%'d",		MLEN,	INTEGER,		"345,000" },
+		{ "%-8d.",		MLEN,	INTEGER,		"345000  ." },
+		{ "%-8d.",		MLEN,	INTEGER,		"345000  ." },
+		{ "%8d",		MLEN,	INTEGER,		"  345000" },
+		{ "%8d",		5,		INTEGER,		"  34" },
+		{ "%d",			MLEN,	-INTEGER,		"-345000" },
+		{ "%-8d.",		MLEN,	-INTEGER,		"-345000 ." },
+		{ "%.08d",		MLEN,	INTEGER,		"00345000" },
 	};
 	static const struct tlong {
 		const char *fmt;
@@ -2509,23 +2600,23 @@ str_test(void)
 		long value;
 		const char *result;
 	} test_longs[] = {
-		{ "%ld",			MLEN,	LONG,		INTSTR },
-		{ "%lx",			MLEN,	LONG,		INThex },
-		{ "%lX",			MLEN,	LONG,		INTHEX },
-		{ "%lx",			5,		LONG,		"543a" },
-		{ "%#lx",			5,		LONG,		"0x54" },
-		{ "%#lx",			MLEN,	LONG,		"0x543a8" },
-		{ "%#lX",			MLEN,	LONG,		"0X543A8" },
-		{ "%.2ld",			MLEN,	LONG,		INTSTR },
-		{ "%2ld",			MLEN,	LONG,		INTSTR },
-		{ "%'d",			MLEN,	LONG,		"345,000" },
-		{ "%-8ld.",			MLEN,	LONG,		"345000  ." },
-		{ "%-8ld.",			MLEN,	LONG,		"345000  ." },
-		{ "%8ld",			MLEN,	LONG,		"  345000" },
-		{ "%8ld",			5,		LONG,		"  34" },
-		{ "%ld",			MLEN,	-LONG,		"-345000" },
-		{ "%-8ld.",			MLEN,	-LONG,		"-345000 ." },
-		{ "%.08ld",			MLEN,	LONG,		"00345000" },
+		{ "%ld",		MLEN,	LONG,		INTSTR },
+		{ "%lx",		MLEN,	LONG,		INThex },
+		{ "%lX",		MLEN,	LONG,		INTHEX },
+		{ "%lx",		5,		LONG,		"543a" },
+		{ "%#lx",		5,		LONG,		"0x54" },
+		{ "%#lx",		MLEN,	LONG,		"0x543a8" },
+		{ "%#lX",		MLEN,	LONG,		"0X543A8" },
+		{ "%.2ld",		MLEN,	LONG,		INTSTR },
+		{ "%2ld",		MLEN,	LONG,		INTSTR },
+		{ "%'d",		MLEN,	LONG,		"345,000" },
+		{ "%-8ld.",		MLEN,	LONG,		"345000  ." },
+		{ "%-8ld.",		MLEN,	LONG,		"345000  ." },
+		{ "%8ld",		MLEN,	LONG,		"  345000" },
+		{ "%8ld",		5,		LONG,		"  34" },
+		{ "%ld",		MLEN,	-LONG,		"-345000" },
+		{ "%-8ld.",		MLEN,	-LONG,		"-345000 ." },
+		{ "%.08ld",		MLEN,	LONG,		"00345000" },
 	};
 	static const struct tdouble {
 		const char *fmt;
@@ -2534,108 +2625,158 @@ str_test(void)
 		const char *result;
 	} test_doubles[] = {
 		/* #1 */
-		{ "%g",				MLEN,	INF,		"inf" },
-		{ "%G",				MLEN,	INF,		"INF" },
-		{ "%g",				MLEN,	-INF,		"-inf" },
-		{ "%G",				MLEN,	-INF,		"-INF" },
-		{ "%f",				MLEN,	PI,			"3.141593" },
-		{ "%g",				MLEN,	PI,			"3.14159" },
-		{ "%.1g",			MLEN,	PI,			"3" },
-		{ "%e",				MLEN,	PI,			"3.141593e+00" },
-		{ "%e",				MLEN,	-PI,		"-3.141593e+00" },
+		{ "%g",			MLEN,	INF,		"inf" },
+		{ "%G",			MLEN,	INF,		"INF" },
+		{ "%g",			MLEN,	-INF,		"-inf" },
+		{ "%G",			MLEN,	-INF,		"-INF" },
+		{ "%f",			MLEN,	PI,			"3.141593" },
+		{ "%g",			MLEN,	PI,			"3.14159" },
+		{ "%.1g",		MLEN,	PI,			"3" },
+		{ "%e",			MLEN,	PI,			"3.141593e+00" },
+		{ "%e",			MLEN,	-PI,		"-3.141593e+00" },
 		/* #10 */
-		{ "%.2e",			MLEN,	-PI,		"-3.14e+00" },
-		{ "%.2f",			MLEN,	-PI,		"-3.14" },
-		{ "%8.2f",			MLEN,	-PI,		"   -3.14" },
-		{ "%g",				MLEN,	DOUBLE,		"3.45e+08" },
-		{ "%g",				MLEN,	-DOUBLE,	"-3.45e+08" },
-		{ "%G",				MLEN,	DOUBLE,		"3.45E+08" },
-		{ "%e",				MLEN,	DOUBLE,		"3.450000e+08" },
-		{ "%E",				MLEN,	DOUBLE,		"3.450000E+08" },
-		{ "%e",				MLEN,	LN2,		"6.931472e-01" },
-		{ "%.0e",			MLEN,	LN2,		"7e-01" },
+		{ "%.2e",		MLEN,	-PI,		"-3.14e+00" },
+		{ "%.2f",		MLEN,	-PI,		"-3.14" },
+		{ "%8.2f",		MLEN,	-PI,		"   -3.14" },
+		{ "%g",			MLEN,	DOUBLE,		"3.45e+08" },
+		{ "%g",			MLEN,	-DOUBLE,	"-3.45e+08" },
+		{ "%G",			MLEN,	DOUBLE,		"3.45E+08" },
+		{ "%e",			MLEN,	DOUBLE,		"3.450000e+08" },
+		{ "%E",			MLEN,	DOUBLE,		"3.450000E+08" },
+		{ "%e",			MLEN,	LN2,		"6.931472e-01" },
+		{ "%.0e",		MLEN,	LN2,		"7e-01" },
 		/* #20 */
-		{ "%.17f",			MLEN,	LN2,		"0.69314718056000002" },
-		{ "%.0f",			MLEN,	LN2,		"1" },
-		{ "%.1f",			MLEN,	LN2,		"0.7" },
-		{ "%f",				MLEN,	LN2,		"0.693147" },
-		{ "%.5f",			MLEN,	LN2,		"0.69315" },
-		{ "%.5f",			5,		LN2,		"0.69" },
-		{ "%f",				MLEN,	-LN2,		"-0.693147" },
-		{ "%.5f",			MLEN,	-LN2,		"-0.69315" },
-		{ "%.5f",			5,		-LN2,		"-0.6" },
-		{ "%g",				MLEN,	5434e-9,	"5.434e-06" },
+		{ "%.17f",		MLEN,	LN2,		"0.69314718056000002" },
+		{ "%.0f",		MLEN,	LN2,		"1" },
+		{ "%.1f",		MLEN,	LN2,		"0.7" },
+		{ "%f",			MLEN,	LN2,		"0.693147" },
+		{ "%.5f",		MLEN,	LN2,		"0.69315" },
+		{ "%.5f",		5,		LN2,		"0.69" },
+		{ "%f",			MLEN,	-LN2,		"-0.693147" },
+		{ "%.5f",		MLEN,	-LN2,		"-0.69315" },
+		{ "%.5f",		5,		-LN2,		"-0.6" },
+		{ "%g",			MLEN,	5434e-9,	"5.434e-06" },
 		/* #30 */
-		{ "%.3e",			MLEN,	-5434e-9,	"-5.434e-06" },
-		{ "%.2g",			MLEN,	5434e-9,	"5.4e-06" },
-		{ "%.0g",			MLEN,	5434e-9,	"5e-06" },
-		{ "%.14f",			MLEN,	5434e-9,	"0.00000543400000" },
-		{ "%f",				MLEN,	1e-7,		"0.000000" },
-		{ "%f",				MLEN,	9e-7,		"0.000001" },
-		{ "%f",				MLEN,	5e-7,		"0.000001" },
-		{ "%f",				MLEN,	4e-7,		"0.000000" },
-		{ "%f",				MLEN,	4e-6,		"0.000004" },
-		{ "%f",				MLEN,	9e-6,		"0.000009" },
+		{ "%.3e",		MLEN,	-5434e-9,	"-5.434e-06" },
+		{ "%.2g",		MLEN,	5434e-9,	"5.4e-06" },
+		{ "%.0g",		MLEN,	5434e-9,	"5e-06" },
+		{ "%.14f",		MLEN,	5434e-9,	"0.00000543400000" },
+		{ "%f",			MLEN,	1e-7,		"0.000000" },
+		{ "%f",			MLEN,	9e-7,		"0.000001" },
+		{ "%f",			MLEN,	5e-7,		"0.000001" },
+		{ "%f",			MLEN,	4e-7,		"0.000000" },
+		{ "%f",			MLEN,	4e-6,		"0.000004" },
+		{ "%f",			MLEN,	9e-6,		"0.000009" },
 		/* #40 */
-		{ "%f",				MLEN,	94e-7,		"0.000009" },
-		{ "%f",				MLEN,	95e-7,		"0.000010" },
-		{ "%f",				MLEN,	150,		"150.000000" },
-		{ "%.0f",			MLEN,	150,		"150" },
-		{ "%.0f",			MLEN,	180,		"180" },
-		{ "%g",				MLEN,	150,		"150" },
-		{ "%e",				MLEN,	150,		"1.500000e+02" },
-		{ "%.15e",			MLEN,	150,		"1.500000000000000e+02" },
-		{ "%.0e",			MLEN,	150,		"2e+02" },
-		{ "%.0e",			MLEN,	180,		"2e+02" },
+		{ "%f",			MLEN,	94e-7,		"0.000009" },
+		{ "%f",			MLEN,	95e-7,		"0.000010" },
+		{ "%f",			MLEN,	150,		"150.000000" },
+		{ "%.0f",		MLEN,	150,		"150" },
+		{ "%.0f",		MLEN,	180,		"180" },
+		{ "%g",			MLEN,	150,		"150" },
+		{ "%e",			MLEN,	150,		"1.500000e+02" },
+		{ "%.15e",		MLEN,	150,		"1.500000000000000e+02" },
+		{ "%.0e",		MLEN,	150,		"2e+02" },
+		{ "%.0e",		MLEN,	180,		"2e+02" },
 		/* #50 */
-		{ "%.0e",			MLEN,	140,		"1e+02" },
-		{ "%.0e",			MLEN,	149,		"1e+02" },
-		{ "%.0e",			MLEN,	151,		"2e+02" },
-		{ "%g",				MLEN,	15000,		"15000" },
-		{ "%g",				MLEN,	15000.4,	"15000.4" },
-		{ "%.10e",			MLEN,	150000.04,	"1.5000004000e+05" },
-		{ "%.0f",			MLEN,	15000.9,	"15001" },
-		{ "%.0f",			MLEN,	0.899,		"1" },
-		{ "%.1f",			MLEN,	0.899,		"0.9" },
-		{ "%.3f",			MLEN,	0.899,		"0.899" },
+		{ "%.0e",		MLEN,	140,		"1e+02" },
+		{ "%.0e",		MLEN,	149,		"1e+02" },
+		{ "%.0e",		MLEN,	151,		"2e+02" },
+		{ "%g",			MLEN,	15000,		"15000" },
+		{ "%g",			MLEN,	15000.4,	"15000.4" },
+		{ "%.10e",		MLEN,	150000.04,	"1.5000004000e+05" },
+		{ "%.0f",		MLEN,	15000.9,	"15001" },
+		{ "%.0f",		MLEN,	0.899,		"1" },
+		{ "%.1f",		MLEN,	0.899,		"0.9" },
+		{ "%.3f",		MLEN,	0.899,		"0.899" },
 		/* #60 */
-		{ "%.2f",			MLEN,	0.899,		"0.90" },
-		{ "%g",				MLEN,	150000,		"150000" },
-		{ "%g",				MLEN,	1500000,	"1.5e+06" },
-		{ "%g",				MLEN,	1.5e-200,	"1.5e-200" },
-		{ "%+g",			MLEN,	1.5e200,	"+1.5e+200" },
-		{ "%+g",			MLEN,	-1.5e200,	"-1.5e+200" },
-		{ "%12g",			MLEN,	-1.5e200,	"   -1.5e+200" },
-		{ "%-12g.",			MLEN,	-1.5e200,	"-1.5e+200   ." },
-		{ "%-12g.",			MLEN,	-1.5e20,	"-1.5e+20    ." },
-		{ "%-12g.",			MLEN,	-1.5e09,	"-1.5e+09    ." },
+		{ "%.2f",		MLEN,	0.899,		"0.90" },
+		{ "%g",			MLEN,	150000,		"150000" },
+		{ "%g",			MLEN,	1500000,	"1.5e+06" },
+		{ "%g",			MLEN,	1.5e-200,	"1.5e-200" },
+		{ "%+g",		MLEN,	1.5e200,	"+1.5e+200" },
+		{ "%+g",		MLEN,	-1.5e200,	"-1.5e+200" },
+		{ "%12g",		MLEN,	-1.5e200,	"   -1.5e+200" },
+		{ "%-12g.",		MLEN,	-1.5e200,	"-1.5e+200   ." },
+		{ "%-12g.",		MLEN,	-1.5e20,	"-1.5e+20    ." },
+		{ "%-12g.",		MLEN,	-1.5e09,	"-1.5e+09    ." },
 		/* #70 */
-		{ "%-12g.",			MLEN,	-1.5e-09,	"-1.5e-09    ." },
-		{ "%-12g.",			MLEN,	+1.5e-09,	"1.5e-09     ." },
-		{ "%+12g",			MLEN,	+1.5e-09,	"    +1.5e-09" },
-		{ "%.4g",			MLEN,	-1.5e200,	"-1.5e+200" },
-		{ "%.5g",			MLEN,	15000,		"15000" },
-		{ "%.4g",			MLEN,	15000,		"1.5e+04" },
-		{ "%.0f",			MLEN,	2e+19,		"20000000000000000000" },
-		{ "%.20g",			MLEN,	2e+19,		"20000000000000000000" },
-		{ "%.51g",			MLEN,	2e+50,		"20000000000000002000000000"
-												"0000000000000000000000000" },
-		{ "%5.4f",			MLEN,	4561056.99,	"4561056.9900" },
+		{ "%-12g.",		MLEN,	-1.5e-09,	"-1.5e-09    ." },
+		{ "%-12g.",		MLEN,	+1.5e-09,	"1.5e-09     ." },
+		{ "%+12g",		MLEN,	+1.5e-09,	"    +1.5e-09" },
+		{ "%.4g",		MLEN,	-1.5e200,	"-1.5e+200" },
+		{ "%.5g",		MLEN,	15000,		"15000" },
+		{ "%.4g",		MLEN,	15000,		"1.5e+04" },
+		{ "%.0f",		MLEN,	2e+19,		"20000000000000000000" },
+		{ "%.20g",		MLEN,	2e+19,		"20000000000000000000" },
+		{ "%.51g",		MLEN,	2e+50,		"20000000000000002000000000"
+											"0000000000000000000000000" },
+		{ "%5.4f",		MLEN,	4561056.99,	"4561056.9900" },
 		/* #80 */
-		{ "%5.2f",			MLEN,	4561056.99,	"4561056.99" },
-		{ "%5.1f",			MLEN,	4561056.99,	"4561057.0" },
-		{ "%5.2f",			MLEN,	-61056.99,	"-61056.99" },
-		{ "%5.1f",			MLEN,	-61056.99,	"-61057.0" },
-		{ "%#f",			MLEN,	-61056.99,	"-61056.990000" },
-		{ "%#g",			MLEN,	5434e-9,	"5.43400e-06" },
-		{ "%#e",			MLEN,	5434e-9,	"5.434000e-06" },
-		{ "%#.0g",			MLEN,	5434e-9,	"5.e-06" },
-		{ "%#.0e",			MLEN,	5434e-9,	"5.e-06" },
-		{ "%#.3g",			MLEN,	100.0,		"100." },
+		{ "%5.2f",		MLEN,	4561056.99,	"4561056.99" },
+		{ "%5.1f",		MLEN,	4561056.99,	"4561057.0" },
+		{ "%5.2f",		MLEN,	-61056.99,	"-61056.99" },
+		{ "%5.1f",		MLEN,	-61056.99,	"-61057.0" },
+		{ "%#f",		MLEN,	-61056.99,	"-61056.990000" },
+		{ "%#g",		MLEN,	5434e-9,	"5.43400e-06" },
+		{ "%#e",		MLEN,	5434e-9,	"5.434000e-06" },
+		{ "%#.0g",		MLEN,	5434e-9,	"5.e-06" },
+		{ "%#.0e",		MLEN,	5434e-9,	"5.e-06" },
+		{ "%#.3g",		MLEN,	100.0,		"100." },
 		/* #90 */
-		{ "%#.0e",			MLEN,	0.0,		"0.e+00" },
-		{ "%#.0f",			MLEN,	0.0,		"0." },
-		{ "%#.0g",			MLEN,	0.0,		"0." },
+		{ "%#.0e",		MLEN,	0.0,		"0.e+00" },
+		{ "%#.0f",		MLEN,	0.0,		"0." },
+		{ "%#.0g",		MLEN,	0.0,		"0." },
+		{ "%g",			MLEN,	.00012435395457,	"0.000124354" },
+		{ "%.11g",		MLEN,	.00012435395457,	"0.00012435395457" },
+		{ "%.11g",		MLEN,	12435.3954575763,	"12435.395458" },
+		{ "%g",			MLEN,	12435.3954575763,	"12435.4" },
+		{ "%.17g",		MLEN,	12435.3954575763,	"12435.3954575763" },
+		{ "%.17g",		MLEN,	124353954575.763,	"124353954575.763" },
+		{ "%.10g",		MLEN,	124353954575.763,	"1.243539546e+11" },
+		/* #100 */
+		{ "%.11g",		MLEN,	124353954575.763,	"1.2435395458e+11" },
+		{ "%.12g",		MLEN,	124353954575.763,	"124353954576" },
+		{ "%.13g",		MLEN,	124353954575.763,	"124353954575.8" },
+		{ "%.14g",		MLEN,	124353954575.763,	"124353954575.76" },
+		{ "%F",			MLEN,	0,			"0" },
+		{ "%F",			MLEN,	1,			"1" },
+		{ "%F",			MLEN,	-1,			"-1" },
+		{ "%F",			MLEN,	1.5,		"1.5" },
+		{ "%F",			MLEN,	-1.5,		"-1.5" },
+		{ "%F",			MLEN,	.5,			"0.5" },
+		/* #110 */
+		{ "%F",			MLEN,	.05,			"0.05" },
+		{ "%F",			MLEN,	.005,			"0.005" },
+		{ "%F",			MLEN,	.0005,			"0.0005" },
+		{ "%F",			MLEN,	.00005,			"0.00005" },
+		{ "%F",			MLEN,	.000005,		"5E-6" },
+		{ "%F",			MLEN,	-.0000005,		"-5E-7" },
+		{ "%F",			MLEN,	.0005342532345,	"0.0005342532345" },
+		{ "%F",			MLEN,	.0005342532345536986, "5.342532345536986E-4" },
+		{ "%F",			MLEN,	50,				"50" },
+		{ "%F",			MLEN,	500,			"500" },
+		/* #120 */
+		{ "%F",			MLEN,	50000000000,	"50000000000" },
+		{ "%F",			MLEN,	500000000000,	"5E+11" },
+		{ "%F",			MLEN,	50000000000.25,	"5.000000000025E+10" },
+		{ "%F",			MLEN,	54321987654,	"5.4321987654E+10" },
+		{ "%F",			MLEN,	54321987654.999,"5.4321987654999E+10" },
+		{ "%.1F",		MLEN,	4561056.99,		"5E+6" },
+		{ "%.1F",		MLEN,	500000000000,	"5E+11" },
+		{ "%.12F",		MLEN,	500000000000,	"500000000000" },
+		{ "%.8F",		MLEN,	4561056.99,		"4561057" },
+		{ "%.9F",		MLEN,	4561056.99,		"4561056.99" },
+		/* #130 */
+		{ "%F",			MLEN,	5.12345678901e4,"5.12345678901E+4" },
+		{ "%F",			MLEN,	1.2342543e200,	"1.2342543E+200" },
+		{ "%#F",		MLEN,	0,				"0." },
+		{ "%#F",		MLEN,	-1,				"-1." },
+		{ "%#F",		MLEN,	.5,				"0.5" },
+		{ "%#F",		MLEN,	500,			"500." },
+		{ "%#F",		MLEN,	50000000000,	"50000000000." },
+		{ "%#F",		MLEN,	500000000.1,	"500000000.1" },
+		{ "%#.1F",		MLEN,	4561056.99,		"5.E+6" },
 	};
 
 #define TEST(what) G_STMT_START {								\

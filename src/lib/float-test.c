@@ -231,19 +231,14 @@ int main (int argc, char **argv) {
       printf("%.17g\n", *fp++);
   }
   else if (strcmp(argv[2], "dragon") == 0) {
-#if 0
     int n, k;
     double *fp;
     char s[32];
 
     for (n = nfloats, fp = floats; n > 0; n--) {
-      k = float_dragon(s, *fp++);
+      float_dragon(s, sizeof s, *fp++, &k);
       printf("%s %d\n", s, k);
     }
-#else
-	fprintf(stderr, "float_dragon() not defined in gtk-gnutella\n");
-	exit(1);
-#endif
   }
   else if (strcmp(argv[2], "fixed") == 0) {
     int n, k;

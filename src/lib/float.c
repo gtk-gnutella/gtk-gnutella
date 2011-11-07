@@ -65,17 +65,6 @@
 #if 0
 #define FLOAT_DEBUG
 #endif
-#if 0
-#define FLOAT_DRAGON			/* If you need float_dragon() */
-#endif
-
-#if \
-	defined(__alpha) || \
-	defined(__i386) || \
-	defined(__x86_64__) || \
-	defined(_M_IX86)
-#define LITTLE_ENDIAN_IEEE_DOUBLE
-#endif
 
 /* exponent stored + 1024, hidden bit to left of decimal point */
 #define bias 1023
@@ -102,12 +91,6 @@ struct dblflt_be {
     unsigned int m3: 16;
     unsigned int m4: 16;
 };
-
-#ifdef LITTLE_ENDIAN_IEEE_DOUBLE
-typedef struct dblflt_le dblflt_t;
-#else
-typedef struct dblflt_be dblflt_t;
-#endif
 
 #define BIGSIZE 24
 #define MIN_E -1074
@@ -137,10 +120,8 @@ static struct float_context {
 	bignum_t c_R, c_S, c_MM;
 	bignum_t c_S2, c_S3, c_S4, c_S5, c_S6, c_S7, c_S8, c_S9;
 	int c_s_n, c_qr_shift;
-#ifdef FLOAT_DRAGON
+	/* For float_dragon() */
 	bignum_t c_MP;
-	int c_use_mp;
-#endif
 } float_context[FLOAT_RECURSION];
 
 static bignum_t five[MAX_FIVE];
@@ -161,10 +142,7 @@ static gboolean float_little_endian;
 #define S9			float_context[recursion_level].c_S9
 #define s_n			float_context[recursion_level].c_s_n
 #define qr_shift	float_context[recursion_level].c_qr_shift
-#ifdef FLOAT_DRAGON
 #define MP			float_context[recursion_level].c_MP
-#define use_mp		float_context[recursion_level].c_use_mp
-#endif
 
 #define ADD(x, y, z, k) {\
 	guint64 x_add, z_add;\
@@ -525,9 +503,8 @@ float_init(void)
 	float_inited = TRUE;
 }
 
-#ifdef FLOAT_DRAGON
 static int
-add_cmp(void)
+add_cmp(int use_mp)
 {
 	int rl, ml, sl, suml;
 	static bignum_t sum;
@@ -544,16 +521,105 @@ add_cmp(void)
 	return big_comp(&sum, &S);
 }
 
-
-#define OUTDIG(d) { *buf++ = (d) + '0'; *buf = '\0'; return k; }
-
-int
-float_dragon(char *buf, double v)
+static guint64
+float_decompose(double v, int *sign, int *ep)
 {
-	dblflt_t *x;
+	guint64 f;
+	int e;
+
+	/* decompose float into sign, mantissa & exponent */
+	if (float_little_endian) {
+		struct dblflt_le *x = (struct dblflt_le *)&v;
+		*sign = x->s;
+		e = x->e;
+		f = (guint64)(x->m1 << 16 | x->m2) << 32 |
+			(guint32)(x->m3 << 16 | x->m4);
+	} else {
+		struct dblflt_be *x = (struct dblflt_be *)&v;
+		*sign = x->s;
+		e = x->e;
+		f = (guint64)(x->m1 << 16 | x->m2) << 32 |
+			(guint32)(x->m3 << 16 | x->m4);
+	}
+
+	if (e != 0) {
+		*ep = e - bias - bitstoright;
+		f |= (guint64)hidden_bit << 32;
+	} else if (f != 0) {
+		/* denormalized */
+		*ep = 1 - bias - bitstoright;
+	}
+
+	return f;
+}
+
+/*
+ * Safety buffer manipulation macros added by RAM.
+ */
+
+#define PUTINC_CHAR(x)					\
+G_STMT_START {							\
+	if (remain != 0) {					\
+		*bp++ = (x);					\
+		remain--;						\
+	}									\
+} G_STMT_END
+
+#define PUTDEC_CHAR(x)					\
+G_STMT_START {							\
+	if (remain != 0) {					\
+		*bp-- = (x);					\
+		remain++;						\
+		g_assert(remain <= len);		\
+	}									\
+} G_STMT_END
+
+#define PUT_CHAR(x)						\
+G_STMT_START {							\
+	if (remain != 0) {					\
+		*bp = (x);						\
+	}									\
+} G_STMT_END
+
+#define INCPUT_CHAR(x)					\
+G_STMT_START {							\
+	if (remain > 1) {					\
+		*++bp = (x);					\
+		remain -= 2;					\
+	}									\
+} G_STMT_END
+
+#define OUTDIG(d) 						\
+G_STMT_START {							\
+	PUTINC_CHAR((d) + '0');				\
+	PUT_CHAR('\0');						\
+	goto done;							\
+} G_STMT_END
+
+/* Signature changed by RAM, was:
+   int float_dragon(char *dest, double v); */
+
+/**
+ * Format 64-bit floating point value into mantissa and exponent,
+ * using a free format consisting of the minimum amount of digits
+ * capable of correctly representing the floating point value.
+ *
+ * @param dest		where mantissa is written
+ * @param len		length of destination buffer
+ * @param v			the floating point value to format
+ * @param exponent	where exponent is returned
+ *
+ * @return amount of characters formatted into destination buffer.
+ */
+size_t
+float_dragon(char *dest, size_t len, double v, int *exponent)
+{
 	int sign, e, f_n, m_n, i, d, tc1, tc2;
 	guint64 f;
 	int ruf, k, sl = 0, slr = 0;
+	int use_mp;
+	char *bp = dest;
+	size_t remain = len;
 
 	if G_UNLIKELY(!float_inited)
 		float_init();
@@ -562,23 +628,13 @@ float_dragon(char *buf, double v)
 	g_assert(recursion_level < FLOAT_RECURSION);
 
 	/* decompose float into sign, mantissa & exponent */
-	x = (dblflt_t *)&v;
-	sign = x->s;
-	e = x->e; 
-	f = (guint64)(x->m1 << 16 | x->m2) << 32 | (guint32)(x->m3 << 16 | x->m4);
-	if (e != 0) {
-		e = e - bias - bitstoright;
-		f |= (guint64)hidden_bit << 32;
-	} else if (f != 0) {
-		/* denormalized */
-		e = 1 - bias - bitstoright;
-	}
+	f = float_decompose(v, &sign, &e);
 
-	if (sign) *buf++ = '-';
+	if (sign)
+		PUTINC_CHAR('-');
 	if (f == 0) {
-		*buf++ = '0';
-		*buf = 0;
-		return 0;
+		k = 0;
+		OUTDIG(0);
 	}
 
 	ruf = !(f & 1); /* ruf = (even? f) */
@@ -641,7 +697,7 @@ float_dragon(char *buf, double v)
 	}
 
 	/* fixup */
-	if (add_cmp() <= -ruf) {
+	if (add_cmp(use_mp) <= -ruf) {
 		k--;
 		mul10(&R);
 		mul10(&MM);
@@ -702,67 +758,44 @@ again:
 	}
 
 	tc1 = big_comp(&R, &MM) < ruf;
-	tc2 = add_cmp() > -ruf;
+	tc2 = add_cmp(use_mp) > -ruf;
 	if (!tc1) {
 		if (!tc2) {
 			mul10(&R);
 			mul10(&MM);
 			if (use_mp)
 				mul10(&MP);
-			*buf++ = d + '0';
+			PUTINC_CHAR(d + '0');
 			goto again;
 		} else {
-			OUTDIG(d+1)
+			OUTDIG(d+1);
 		}
 	} else {
 		if (!tc2) {
-			OUTDIG(d)
+			OUTDIG(d);
 		} else {
 			big_shift_left(&R, 1, &MM);
 			if (big_comp(&MM, &S) == -1)
-				OUTDIG(d)
+				OUTDIG(d);
 			else
-				OUTDIG(d+1)
+				OUTDIG(d+1);
 		}
 	}
+
+	g_assert_not_reached();
+
+done:
+	*exponent = k;
+
+	g_assert_log(ptr_diff(bp, dest) == len - remain,
+		"ptr_diff=%zu, len=%zu, remain=%zu, len-remain=%zu",
+		ptr_diff(bp, dest), len, remain, len - remain);
+
+	recursion_level--;
+	g_assert(recursion_level >= -1);
+
+	return ptr_diff(bp, dest);
 }
-#endif	/* FLOAT_DRAGON */
-
-/*
- * Safety buffer manipulation macros added by RAM.
- */
-
-#define PUTINC_CHAR(x)					\
-G_STMT_START {							\
-	if (remain != 0) {					\
-		*bp++ = (x);					\
-		remain--;						\
-	}									\
-} G_STMT_END
-
-#define PUTDEC_CHAR(x)					\
-G_STMT_START {							\
-	if (remain != 0) {					\
-		*bp-- = (x);					\
-		remain++;						\
-		g_assert(remain <= len);		\
-	}									\
-} G_STMT_END
-
-#define PUT_CHAR(x)						\
-G_STMT_START {							\
-	if (remain != 0) {					\
-		*bp = (x);						\
-	}									\
-} G_STMT_END
-
-#define INCPUT_CHAR(x)					\
-G_STMT_START {							\
-	if (remain > 1) {					\
-		*++bp = (x);					\
-		remain -= 2;					\
-	}									\
-} G_STMT_END
 
 
 /* Fixed-format floating point printer
@@ -772,7 +805,8 @@ G_STMT_START {							\
    int float_fixed(char *dest, double v, int prec); */
 
 /**
- * Format 64-bit floating point value into mantissa and exponent.
+ * Format 64-bit floating point value into mantissa and exponent,
+ * using specified precision for the mantissa.
  *
  * @param dest		where mantissa is written
  * @param len		length of destination buffer
@@ -803,27 +837,7 @@ float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 	g_assert(recursion_level < FLOAT_RECURSION);
 
 	/* decompose float into sign, mantissa & exponent */
-	if (float_little_endian) {
-		struct dblflt_le *x = (struct dblflt_le *)&v;
-		sign = x->s;
-		e = x->e;
-		f = (guint64)(x->m1 << 16 | x->m2) << 32 |
-			(guint32)(x->m3 << 16 | x->m4);
-	} else {
-		struct dblflt_be *x = (struct dblflt_be *)&v;
-		sign = x->s;
-		e = x->e;
-		f = (guint64)(x->m1 << 16 | x->m2) << 32 |
-			(guint32)(x->m3 << 16 | x->m4);
-	}
-
-	if (e != 0) {
-		e = e - bias - bitstoright;
-		f |= (guint64)hidden_bit << 32;
-	} else if (f != 0) {
-		/* denormalized */
-		e = 1 - bias - bitstoright;
-	}
+	f = float_decompose(v, &sign, &e);
 
 	if (sign)
 		PUTINC_CHAR('-');

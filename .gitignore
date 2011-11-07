@@ -32,6 +32,8 @@ src/lib/float-test
 src/lib/float-times
 src/lib/floats
 src/lib/bad-fixed
+src/lib/bad-free
+src/lib/float-dragon.out
 
 # This file is used to hardwire the result of scripts/git-version.sh
 /version

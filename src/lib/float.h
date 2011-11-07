@@ -41,6 +41,7 @@
  */
 
 size_t float_fixed(char *dest, size_t len, double v, int prec, int *exponent);
+size_t float_dragon(char *dest, size_t len, double v, int *exponent);
 
 #endif /* _float_h_ */
 
