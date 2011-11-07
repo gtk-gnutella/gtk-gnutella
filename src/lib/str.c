@@ -65,6 +65,7 @@
 
 static gboolean tests_completed;	/* Controls truncation warnings */
 static gboolean format_verbose;		/* Controls debugging of formatting */
+static unsigned format_recursion;	/* Prevents recursive verbose debugging */
 
 static inline void
 str_check(const struct str * const s)
@@ -1117,7 +1118,7 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
 		}
 	}
 
-	if G_UNLIKELY(format_verbose) {
+	if G_UNLIKELY(format_verbose && 1 == format_recursion) {
 		s_debug("%s(): m=\"%.*s\" (len=%zu), pos=%zu, r=\"%.*s\" (len=%zu)",
 			G_STRFUNC, (int) mlen, mbuf, mlen, pos,
 			(int) pos + 1, rbuf, pos + 1);
@@ -1239,6 +1240,8 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 
 	if G_UNLIKELY(0 == fmtlen)
 		return 0;
+
+	format_recursion++;
 
 	if G_UNLIKELY(2 == fmtlen && fmt[0] == '%' && fmt[1] == 's') {
 		const char *s = va_arg(args, char*);
@@ -1682,14 +1685,14 @@ G_STMT_START {									\
 					g_assert(size_is_positive(mlen));
 					g_assert(mlen < sizeof m);
 
-					if G_UNLIKELY(format_verbose) {
+					if G_UNLIKELY(format_verbose && 1 == format_recursion) {
 						char buf[150];
 						gm_snprintf(buf, sizeof buf,
 							"%g with \"%%%c\": m=\"%.*s\" "
 							"(len=%zu, asked=%zu), e=%d "
-							"[precis=%zu, digits=%zu]",
+							"[precis=%zu, digits=%zu, alt=%s]",
 							nv, c, (int) mlen, m, mlen, asked,
-							e, precis, digits);
+							e, precis, digits, alt ? "y" : "n");
 						s_debug("%s", buf);
 					}
 
@@ -1884,7 +1887,7 @@ G_STMT_START {									\
 				eptr = mptr;
 				elen = (ebuf + sizeof ebuf) - eptr;
 
-				if G_UNLIKELY(format_verbose) {
+				if G_UNLIKELY(format_verbose && 1 == format_recursion) {
 					char buf[150];
 					gm_snprintf(buf, sizeof buf,
 						"%g as \"%%%c\": elen=%zu, eptr=\"%.*s\", "
@@ -2119,6 +2122,7 @@ G_STMT_START {									\
 	}
 
 done:
+	format_recursion--;
 	return str->s_len - origlen;
 
 clamped:
@@ -2141,7 +2145,7 @@ clamped:
 		}
 	}
 
-	return str->s_len - origlen;
+	goto done;
 
 #undef STR_APPEND
 }
