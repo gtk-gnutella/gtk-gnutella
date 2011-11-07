@@ -629,6 +629,7 @@ src/lib/float-test.c
 src/lib/float.c
 src/lib/float.h
 src/lib/floats.bz2
+src/lib/float-dragon_out.bz2
 src/lib/fragcheck.c
 src/lib/fragcheck.h
 src/lib/fs_free_space.c

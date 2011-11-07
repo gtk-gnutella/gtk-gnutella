@@ -210,8 +210,14 @@ LIBS = $(GLIB_LDFLAGS) $(COMMON_LIBS)
 floats: floats.bz2
 	bzip2 -c -d floats.bz2 >$@
 
+float-dragon.out: float-dragon_out.bz2
+	bzip2 -c -d float-dragon_out.bz2 >$@
+
 bad-fixed: float-test floats
 	./float-test floats compare >$@
+
+bad-free: float-test floats float-dragon.out
+	./float-test floats dragon | diff -u - float-dragon.out >$@
 
 float-times: float-test floats
 	uname -a >$@
@@ -223,9 +229,11 @@ float-times: float-test floats
 	sh -c "time ./float-test floats printf > /dev/null" >>$@ 2>&1
 	echo -n "fixed:   " >>$@
 	sh -c "time ./float-test floats fixed > /dev/null" >>$@ 2>&1
+	echo -n "free:    " >>$@
+	sh -c "time ./float-test floats dragon > /dev/null" >>$@ 2>&1
 
 local_clean::
-	$(RM) floats bad-fixed float-times
+	$(RM) floats float-dragon.out bad-fixed float-times
 
 NormalProgramLibTarget(float-test, float-test.c, float-test.o, libshared.a)
 
