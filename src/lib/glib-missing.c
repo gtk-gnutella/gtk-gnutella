@@ -348,6 +348,33 @@ gm_snprintf(char *dst, size_t size, const char *fmt, ...)
 	return len;
 }
 
+/**
+ * Same as gm_snprintf() but with unchecked format string.
+ *
+ * @attention
+ * Do not use unless ``fmt'' is a variable that cannot be used for
+ * static argument list checking by gcc.
+ */
+size_t
+gm_snprintf_unchecked(char *dst, size_t size, const char *fmt, ...)
+{
+	va_list args;
+	size_t len;
+
+	g_return_val_if_fail(dst != NULL, 0);
+	g_return_val_if_fail(fmt != NULL, 0);
+	g_return_val_if_fail(size_is_positive(size), 0);
+	g_return_val_if_fail(size <= (size_t) INT_MAX, 0);
+
+	va_start(args, fmt);
+	len = buf_vprintf(dst, size, fmt, args);
+	va_end(args);
+
+	g_assert(len < size);
+
+	return len;
+}
+
 static int orig_argc;
 static char **orig_argv;
 static char **orig_env;

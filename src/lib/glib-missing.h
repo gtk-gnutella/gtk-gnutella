@@ -124,6 +124,8 @@ void gm_hash_table_destroy_null(GHashTable **h_ptr);
 size_t gm_vsnprintf(char *str, size_t n, char const *fmt, va_list args);
 size_t gm_snprintf(char *str, size_t n,
 	char const *fmt, ...) G_GNUC_PRINTF(3, 4);
+size_t gm_snprintf_unchecked(char *dst, size_t size,
+	const char *fmt, ...); /* No G_GNUC_PRINTF here, on purpose! */
 
 void gm_savemain(int argc, char **argv, char **env);
 int gm_dupmain(const char ***argv_ptr, const char ***env_ptr);
