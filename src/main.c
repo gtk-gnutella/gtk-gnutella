@@ -1656,6 +1656,7 @@ int
 main(int argc, char **argv)
 {
 	int sp;
+	gboolean str_discrepancies;
 
 	mingw_early_init();
 	
@@ -1723,6 +1724,7 @@ main(int argc, char **argv)
 
 	log_init();
 	main_argc = gm_dupmain(&main_argv, &main_env);
+	str_discrepancies = str_test(FALSE);
 	parse_arguments(argc, argv);
 	validate_arguments();
 	initialize_logfiles();
@@ -1785,7 +1787,6 @@ main(int argc, char **argv)
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
-	str_test();
 	version_init();
 	malloc_show_settings();
 	xmalloc_show_settings();
@@ -1866,6 +1867,12 @@ main(int argc, char **argv)
 
 	if (debugging(0) || is_running_on_mingw())
 		stacktrace_load_symbols();
+
+	if (str_discrepancies && debugging(0)) {
+		g_info("found %zu discrepanc%s in string formatting:",
+			str_discrepancies, 1 == str_discrepancies ? "y" : "ies");
+		str_test(TRUE);
+	}
 
 	map_test();
 	ipp_cache_load_all();

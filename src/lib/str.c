@@ -1479,6 +1479,7 @@ G_STMT_START {									\
 		string:
 			if (has_precis && elen > precis)
 				elen = precis;
+			fill = ' ';			/* Ignore possible %0 with strings! */
 			break;
 
 			/* INTEGERS */
@@ -1659,7 +1660,6 @@ G_STMT_START {									\
 						precis = (0 == precis) ? 0 : precis - 1;
 					}
 
-
 					if (nv >= 0) {
 						if (plus)
 							esignbuf[esignlen++] = plus;
@@ -1724,7 +1724,7 @@ G_STMT_START {									\
 					 *   lead to a number with more than FPDIG digits.
 					 * - If e < 0, we switch to scientific notation when
 					 *   the number of leading zeros + the mantissa would be
-					 *   larger than FPDIG digits (deemed harder to read at
+					 *   larger than FPREC digits (deemed harder to read at
 					 *   that time), or when e < -5.
 					 */
 
@@ -2017,7 +2017,8 @@ G_STMT_START {									\
 				s_minicarp("%s(): invalid conversion \"%%%c\"",
 					G_STRFUNC, c & 0xff);
 			} else {
-				s_minicarp("%s(): invalid end of string", G_STRFUNC);
+				s_minicarp("%s(): invalid end of format string \"%s\"",
+					G_STRFUNC, fmt);
 			}
 
 			/* output mangled stuff ... */
@@ -2524,9 +2525,15 @@ str_tprintf(char *dst, size_t size, const char *fmt, ...)
 
 /**
  * Non-regression tests for the str_vncatf() formatting routine.
+ *
+ * Aborts execution on failure.
+ *
+ * @param verbose		whether to log differences with snprintf()
+ *
+ * @return amount of discrepancies found with the system's snprintf().
  */
-G_GNUC_COLD void
-str_test(void)
+G_GNUC_COLD size_t
+str_test(gboolean verbose)
 {
 #define MLEN		64
 #define DEADBEEF	((void *) 0xdeadbeef)
@@ -2536,250 +2543,259 @@ str_test(void)
 #define DOUBLE		3.45e8
 #define LN2			0.69314718056
 #define INF			HUGE_VAL
+#define S			TRUE			/* Standard */
+#define X			FALSE			/* Extension, skip snprintf() consistency */
 
+	size_t discrepancies = 0;
 	static const char ANYTHING[] = "anything";
 	static const char INTSTR[] = "345000";
 	static const char INThex[] = "543a8";
 	static const char INTHEX[] = "543A8";
 	static const struct tstring {
 		const char *fmt;
+		gboolean std;
 		size_t buflen;
 		const char *value;
 		const char *result;
 	} test_strings[] = {
-		{ "",			10,		ANYTHING,		"" },
-		{ "%%",			10,		ANYTHING,		"%" },
-		{ "%s",			MLEN,	ANYTHING,		ANYTHING },
-		{ "%s",			5,		ANYTHING,		"anyt" },
-		{ "%.2s",		5,		ANYTHING,		"an" },
-		{ "%.15s",		MLEN,	ANYTHING,		ANYTHING },
-		{ "%15s",		MLEN,	ANYTHING,		"       anything" },
-		{ "%15s",		9,		ANYTHING,		"       a" },
-		{ "%-15s",		MLEN,	ANYTHING,		"anything       " },
-		{ "%-15s.",		MLEN,	ANYTHING,		"anything       ." },
-		{ "%015s.",		MLEN,	ANYTHING,		"0000000anything." },
-		{ "%-5s",		MLEN,	ANYTHING,		ANYTHING },
-		{ "%-5s.",		MLEN,	ANYTHING,		"anything." },
+		{ "",			S, 10,		ANYTHING,	"" },
+		{ "%%",			S, 10,		ANYTHING,	"%" },
+		{ "%s",			S, MLEN,	ANYTHING,	ANYTHING },
+		{ "%s",			S, 5,		ANYTHING,	"anyt" },
+		{ "%.2s",		S, 5,		ANYTHING,	"an" },
+		{ "%.15s",		S, MLEN,	ANYTHING,	ANYTHING },
+		{ "%15s",		S, MLEN,	ANYTHING,	"       anything" },
+		{ "%15s",		S, 9,		ANYTHING,	"       a" },
+		{ "%-15s",		S, MLEN,	ANYTHING,	"anything       " },
+		{ "%-15s.",		S, MLEN,	ANYTHING,	"anything       ." },
+		{ "%015s.",		S, MLEN,	ANYTHING,	"       anything." },
+		{ "%-5s",		S, MLEN,	ANYTHING,	ANYTHING },
+		{ "%-5s.",		S, MLEN,	ANYTHING,	"anything." },
 	};
 	static const struct tpointer {
 		const char *fmt;
+		gboolean std;
 		size_t buflen;
 		void *value;
 		const char *result;
 	} test_pointers[] = {
-		{ "%p",			MLEN,	DEADBEEF,		"0xdeadbeef" },
-		{ "%p",			5,		DEADBEEF,		"0xde" },
+		{ "%p",			S, MLEN,	DEADBEEF,	"0xdeadbeef" },
+		{ "%p",			S, 5,		DEADBEEF,	"0xde" },
 	};
 	static const struct tint {
 		const char *fmt;
+		gboolean std;
 		size_t buflen;
 		int value;
 		const char *result;
 	} test_ints[] = {
-		{ "%d",			MLEN,	INTEGER,		INTSTR },
-		{ "%x",			MLEN,	INTEGER,		INThex },
-		{ "%X",			MLEN,	INTEGER,		INTHEX },
-		{ "%x",			5,		INTEGER,		"543a" },
-		{ "%#x",		5,		INTEGER,		"0x54" },
-		{ "%#x",		MLEN,	INTEGER,		"0x543a8" },
-		{ "%#X",		MLEN,	INTEGER,		"0X543A8" },
-		{ "%.2d",		MLEN,	INTEGER,		INTSTR },
-		{ "%2d",		MLEN,	INTEGER,		INTSTR },
-		{ "%'d",		MLEN,	INTEGER,		"345,000" },
-		{ "%-8d.",		MLEN,	INTEGER,		"345000  ." },
-		{ "%-8d.",		MLEN,	INTEGER,		"345000  ." },
-		{ "%8d",		MLEN,	INTEGER,		"  345000" },
-		{ "%8d",		5,		INTEGER,		"  34" },
-		{ "%d",			MLEN,	-INTEGER,		"-345000" },
-		{ "%-8d.",		MLEN,	-INTEGER,		"-345000 ." },
-		{ "%.08d",		MLEN,	INTEGER,		"00345000" },
+		{ "%d",			S, MLEN,	INTEGER,	INTSTR },
+		{ "%x",			S, MLEN,	INTEGER,	INThex },
+		{ "%X",			S, MLEN,	INTEGER,	INTHEX },
+		{ "%x",			S, 5,		INTEGER,	"543a" },
+		{ "%#x",		S, 5,		INTEGER,	"0x54" },
+		{ "%#x",		S, MLEN,	INTEGER,	"0x543a8" },
+		{ "%#X",		S, MLEN,	INTEGER,	"0X543A8" },
+		{ "%.2d",		S, MLEN,	INTEGER,	INTSTR },
+		{ "%2d",		S, MLEN,	INTEGER,	INTSTR },
+		{ "%'d",		X, MLEN,	INTEGER,	"345,000" },
+		{ "%-8d.",		S, MLEN,	INTEGER,	"345000  ." },
+		{ "%-8d.",		S, MLEN,	INTEGER,	"345000  ." },
+		{ "%8d",		S, MLEN,	INTEGER,	"  345000" },
+		{ "%8d",		S, 5,		INTEGER,	"  34" },
+		{ "%d",			S, MLEN,	-INTEGER,	"-345000" },
+		{ "%-8d.",		S, MLEN,	-INTEGER,	"-345000 ." },
+		{ "%.08d",		S, MLEN,	INTEGER,	"00345000" },
 	};
 	static const struct tlong {
 		const char *fmt;
+		gboolean std;
 		size_t buflen;
 		long value;
 		const char *result;
 	} test_longs[] = {
-		{ "%ld",		MLEN,	LONG,		INTSTR },
-		{ "%lx",		MLEN,	LONG,		INThex },
-		{ "%lX",		MLEN,	LONG,		INTHEX },
-		{ "%lx",		5,		LONG,		"543a" },
-		{ "%#lx",		5,		LONG,		"0x54" },
-		{ "%#lx",		MLEN,	LONG,		"0x543a8" },
-		{ "%#lX",		MLEN,	LONG,		"0X543A8" },
-		{ "%.2ld",		MLEN,	LONG,		INTSTR },
-		{ "%2ld",		MLEN,	LONG,		INTSTR },
-		{ "%'d",		MLEN,	LONG,		"345,000" },
-		{ "%-8ld.",		MLEN,	LONG,		"345000  ." },
-		{ "%-8ld.",		MLEN,	LONG,		"345000  ." },
-		{ "%8ld",		MLEN,	LONG,		"  345000" },
-		{ "%8ld",		5,		LONG,		"  34" },
-		{ "%ld",		MLEN,	-LONG,		"-345000" },
-		{ "%-8ld.",		MLEN,	-LONG,		"-345000 ." },
-		{ "%.08ld",		MLEN,	LONG,		"00345000" },
+		{ "%ld",		S, MLEN,	LONG,		INTSTR },
+		{ "%lx",		S, MLEN,	LONG,		INThex },
+		{ "%lX",		S, MLEN,	LONG,		INTHEX },
+		{ "%lx",		S, 5,		LONG,		"543a" },
+		{ "%#lx",		S, 5,		LONG,		"0x54" },
+		{ "%#lx",		S, MLEN,	LONG,		"0x543a8" },
+		{ "%#lX",		S, MLEN,	LONG,		"0X543A8" },
+		{ "%.2ld",		S, MLEN,	LONG,		INTSTR },
+		{ "%2ld",		S, MLEN,	LONG,		INTSTR },
+		{ "%'d",		X, MLEN,	LONG,		"345,000" },
+		{ "%-8ld.",		S, MLEN,	LONG,		"345000  ." },
+		{ "%-8ld.",		S, MLEN,	LONG,		"345000  ." },
+		{ "%8ld",		S, MLEN,	LONG,		"  345000" },
+		{ "%8ld",		S, 5,		LONG,		"  34" },
+		{ "%ld",		S, MLEN,	-LONG,		"-345000" },
+		{ "%-8ld.",		S, MLEN,	-LONG,		"-345000 ." },
+		{ "%.08ld",		S, MLEN,	LONG,		"00345000" },
 	};
 	static const struct tdouble {
 		const char *fmt;
+		gboolean std;
 		size_t buflen;
 		double value;
 		const char *result;
 	} test_doubles[] = {
 		/* #1 */
-		{ "%g",			MLEN,	INF,		"inf" },
-		{ "%G",			MLEN,	INF,		"INF" },
-		{ "%g",			MLEN,	-INF,		"-inf" },
-		{ "%G",			MLEN,	-INF,		"-INF" },
-		{ "%f",			MLEN,	PI,			"3.141593" },
-		{ "%g",			MLEN,	PI,			"3.14159" },
-		{ "%.1g",		MLEN,	PI,			"3" },
-		{ "%e",			MLEN,	PI,			"3.141593e+00" },
-		{ "%e",			MLEN,	-PI,		"-3.141593e+00" },
+		{ "%g",			S, MLEN,	INF,		"inf" },
+		{ "%G",			S, MLEN,	INF,		"INF" },
+		{ "%g",			S, MLEN,	-INF,		"-inf" },
+		{ "%G",			S, MLEN,	-INF,		"-INF" },
+		{ "%f",			S, MLEN,	PI,			"3.141593" },
+		{ "%g",			S, MLEN,	PI,			"3.14159" },
+		{ "%.1g",		S, MLEN,	PI,			"3" },
+		{ "%e",			S, MLEN,	PI,			"3.141593e+00" },
+		{ "%e",			S, MLEN,	-PI,		"-3.141593e+00" },
 		/* #10 */
-		{ "%.2e",		MLEN,	-PI,		"-3.14e+00" },
-		{ "%.2f",		MLEN,	-PI,		"-3.14" },
-		{ "%8.2f",		MLEN,	-PI,		"   -3.14" },
-		{ "%g",			MLEN,	DOUBLE,		"3.45e+08" },
-		{ "%g",			MLEN,	-DOUBLE,	"-3.45e+08" },
-		{ "%G",			MLEN,	DOUBLE,		"3.45E+08" },
-		{ "%e",			MLEN,	DOUBLE,		"3.450000e+08" },
-		{ "%E",			MLEN,	DOUBLE,		"3.450000E+08" },
-		{ "%e",			MLEN,	LN2,		"6.931472e-01" },
-		{ "%.0e",		MLEN,	LN2,		"7e-01" },
+		{ "%.2e",		S, MLEN,	-PI,		"-3.14e+00" },
+		{ "%.2f",		S, MLEN,	-PI,		"-3.14" },
+		{ "%8.2f",		S, MLEN,	-PI,		"   -3.14" },
+		{ "%g",			S, MLEN,	DOUBLE,		"3.45e+08" },
+		{ "%g",			S, MLEN,	-DOUBLE,	"-3.45e+08" },
+		{ "%G",			S, MLEN,	DOUBLE,		"3.45E+08" },
+		{ "%e",			S, MLEN,	DOUBLE,		"3.450000e+08" },
+		{ "%E",			S, MLEN,	DOUBLE,		"3.450000E+08" },
+		{ "%e",			S, MLEN,	LN2,		"6.931472e-01" },
+		{ "%.0e",		S, MLEN,	LN2,		"7e-01" },
 		/* #20 */
-		{ "%.17f",		MLEN,	LN2,		"0.69314718056000002" },
-		{ "%.0f",		MLEN,	LN2,		"1" },
-		{ "%.1f",		MLEN,	LN2,		"0.7" },
-		{ "%f",			MLEN,	LN2,		"0.693147" },
-		{ "%.5f",		MLEN,	LN2,		"0.69315" },
-		{ "%.5f",		5,		LN2,		"0.69" },
-		{ "%f",			MLEN,	-LN2,		"-0.693147" },
-		{ "%.5f",		MLEN,	-LN2,		"-0.69315" },
-		{ "%.5f",		5,		-LN2,		"-0.6" },
-		{ "%g",			MLEN,	5434e-9,	"5.434e-06" },
+		{ "%.17f",		S, MLEN,	LN2,		"0.69314718056000002" },
+		{ "%.0f",		S, MLEN,	LN2,		"1" },
+		{ "%.1f",		S, MLEN,	LN2,		"0.7" },
+		{ "%f",			S, MLEN,	LN2,		"0.693147" },
+		{ "%.5f",		S, MLEN,	LN2,		"0.69315" },
+		{ "%.5f",		S, 5,		LN2,		"0.69" },
+		{ "%f",			S, MLEN,	-LN2,		"-0.693147" },
+		{ "%.5f",		S, MLEN,	-LN2,		"-0.69315" },
+		{ "%.5f",		S, 5,		-LN2,		"-0.6" },
+		{ "%g",			S, MLEN,	5434e-9,	"5.434e-06" },
 		/* #30 */
-		{ "%.3e",		MLEN,	-5434e-9,	"-5.434e-06" },
-		{ "%.2g",		MLEN,	5434e-9,	"5.4e-06" },
-		{ "%.0g",		MLEN,	5434e-9,	"5e-06" },
-		{ "%.14f",		MLEN,	5434e-9,	"0.00000543400000" },
-		{ "%f",			MLEN,	1e-7,		"0.000000" },
-		{ "%f",			MLEN,	9e-7,		"0.000001" },
-		{ "%f",			MLEN,	5e-7,		"0.000001" },
-		{ "%f",			MLEN,	4e-7,		"0.000000" },
-		{ "%f",			MLEN,	4e-6,		"0.000004" },
-		{ "%f",			MLEN,	9e-6,		"0.000009" },
+		{ "%.3e",		S, MLEN,	-5434e-9,	"-5.434e-06" },
+		{ "%.2g",		S, MLEN,	5434e-9,	"5.4e-06" },
+		{ "%.0g",		S, MLEN,	5434e-9,	"5e-06" },
+		{ "%.14f",		S, MLEN,	5434e-9,	"0.00000543400000" },
+		{ "%f",			S, MLEN,	1e-7,		"0.000000" },
+		{ "%f",			S, MLEN,	9e-7,		"0.000001" },
+		{ "%f",			S, MLEN,	5.01e-7,	"0.000001" },
+		{ "%f",			S, MLEN,	4e-7,		"0.000000" },
+		{ "%f",			S, MLEN,	4e-6,		"0.000004" },
+		{ "%f",			S, MLEN,	9e-6,		"0.000009" },
 		/* #40 */
-		{ "%f",			MLEN,	94e-7,		"0.000009" },
-		{ "%f",			MLEN,	95e-7,		"0.000010" },
-		{ "%f",			MLEN,	150,		"150.000000" },
-		{ "%.0f",		MLEN,	150,		"150" },
-		{ "%.0f",		MLEN,	180,		"180" },
-		{ "%g",			MLEN,	150,		"150" },
-		{ "%e",			MLEN,	150,		"1.500000e+02" },
-		{ "%.15e",		MLEN,	150,		"1.500000000000000e+02" },
-		{ "%.0e",		MLEN,	150,		"2e+02" },
-		{ "%.0e",		MLEN,	180,		"2e+02" },
+		{ "%f",			S, MLEN,	94e-7,		"0.000009" },
+		{ "%f",			S, MLEN,	95e-7,		"0.000010" },
+		{ "%f",			S, MLEN,	150,		"150.000000" },
+		{ "%.0f",		S, MLEN,	150,		"150" },
+		{ "%.0f",		S, MLEN,	180,		"180" },
+		{ "%g",			S, MLEN,	150,		"150" },
+		{ "%e",			S, MLEN,	150,		"1.500000e+02" },
+		{ "%.15e",		S, MLEN,	150,		"1.500000000000000e+02" },
+		{ "%.0e",		S, MLEN,	150,		"2e+02" },
+		{ "%.0e",		S, MLEN,	180,		"2e+02" },
 		/* #50 */
-		{ "%.0e",		MLEN,	140,		"1e+02" },
-		{ "%.0e",		MLEN,	149,		"1e+02" },
-		{ "%.0e",		MLEN,	151,		"2e+02" },
-		{ "%g",			MLEN,	15000,		"15000" },
-		{ "%g",			MLEN,	15000.4,	"15000.4" },
-		{ "%.10e",		MLEN,	150000.04,	"1.5000004000e+05" },
-		{ "%.0f",		MLEN,	15000.9,	"15001" },
-		{ "%.0f",		MLEN,	0.899,		"1" },
-		{ "%.1f",		MLEN,	0.899,		"0.9" },
-		{ "%.3f",		MLEN,	0.899,		"0.899" },
+		{ "%.0e",		S, MLEN,	140,		"1e+02" },
+		{ "%.0e",		S, MLEN,	149,		"1e+02" },
+		{ "%.0e",		S, MLEN,	151,		"2e+02" },
+		{ "%g",			S, MLEN,	15000,		"15000" },
+		{ "%g",			S, MLEN,	15000.4,	"15000.4" },
+		{ "%.10e",		S, MLEN,	150000.04,	"1.5000004000e+05" },
+		{ "%.0f",		S, MLEN,	15000.9,	"15001" },
+		{ "%.0f",		S, MLEN,	0.899,		"1" },
+		{ "%.1f",		S, MLEN,	0.899,		"0.9" },
+		{ "%.3f",		S, MLEN,	0.899,		"0.899" },
 		/* #60 */
-		{ "%.2f",		MLEN,	0.899,		"0.90" },
-		{ "%g",			MLEN,	150000,		"150000" },
-		{ "%g",			MLEN,	1500000,	"1.5e+06" },
-		{ "%g",			MLEN,	1.5e-200,	"1.5e-200" },
-		{ "%+g",		MLEN,	1.5e200,	"+1.5e+200" },
-		{ "%+g",		MLEN,	-1.5e200,	"-1.5e+200" },
-		{ "%12g",		MLEN,	-1.5e200,	"   -1.5e+200" },
-		{ "%-12g.",		MLEN,	-1.5e200,	"-1.5e+200   ." },
-		{ "%-12g.",		MLEN,	-1.5e20,	"-1.5e+20    ." },
-		{ "%-12g.",		MLEN,	-1.5e09,	"-1.5e+09    ." },
+		{ "%.2f",		S, MLEN,	0.899,		"0.90" },
+		{ "%g",			S, MLEN,	150000,		"150000" },
+		{ "%g",			S, MLEN,	1500000,	"1.5e+06" },
+		{ "%g",			S, MLEN,	1.5e-200,	"1.5e-200" },
+		{ "%+g",		S, MLEN,	1.5e200,	"+1.5e+200" },
+		{ "%+g",		S, MLEN,	-1.5e200,	"-1.5e+200" },
+		{ "%12g",		S, MLEN,	-1.5e200,	"   -1.5e+200" },
+		{ "%-12g.",		S, MLEN,	-1.5e200,	"-1.5e+200   ." },
+		{ "%-12g.",		S, MLEN,	-1.5e20,	"-1.5e+20    ." },
+		{ "%-12g.",		S, MLEN,	-1.5e09,	"-1.5e+09    ." },
 		/* #70 */
-		{ "%-12g.",		MLEN,	-1.5e-09,	"-1.5e-09    ." },
-		{ "%-12g.",		MLEN,	+1.5e-09,	"1.5e-09     ." },
-		{ "%+12g",		MLEN,	+1.5e-09,	"    +1.5e-09" },
-		{ "%.4g",		MLEN,	-1.5e200,	"-1.5e+200" },
-		{ "%.5g",		MLEN,	15000,		"15000" },
-		{ "%.4g",		MLEN,	15000,		"1.5e+04" },
-		{ "%.0f",		MLEN,	2e+19,		"20000000000000000000" },
-		{ "%.20g",		MLEN,	2e+19,		"20000000000000000000" },
-		{ "%.51g",		MLEN,	2e+50,		"20000000000000002000000000"
-											"0000000000000000000000000" },
-		{ "%5.4f",		MLEN,	4561056.99,	"4561056.9900" },
+		{ "%-12g.",		S, MLEN,	-1.5e-09,	"-1.5e-09    ." },
+		{ "%-12g.",		S, MLEN,	+1.5e-09,	"1.5e-09     ." },
+		{ "%+12g",		S, MLEN,	+1.5e-09,	"    +1.5e-09" },
+		{ "%.4g",		S, MLEN,	-1.5e200,	"-1.5e+200" },
+		{ "%.5g",		S, MLEN,	15000,		"15000" },
+		{ "%.4g",		S, MLEN,	15000,		"1.5e+04" },
+		{ "%.0f",		S, MLEN,	2e+19,		"20000000000000000000" },
+		{ "%.20g",		S, MLEN,	2e+19,		"20000000000000000000" },
+		{ "%.51g",		X, MLEN,	2e+50,		"20000000000000002000000000"
+												"0000000000000000000000000" },
+		{ "%5.4f",		S, MLEN,	4561056.99,	"4561056.9900" },
 		/* #80 */
-		{ "%5.2f",		MLEN,	4561056.99,	"4561056.99" },
-		{ "%5.1f",		MLEN,	4561056.99,	"4561057.0" },
-		{ "%5.2f",		MLEN,	-61056.99,	"-61056.99" },
-		{ "%5.1f",		MLEN,	-61056.99,	"-61057.0" },
-		{ "%#f",		MLEN,	-61056.99,	"-61056.990000" },
-		{ "%#g",		MLEN,	5434e-9,	"5.43400e-06" },
-		{ "%#e",		MLEN,	5434e-9,	"5.434000e-06" },
-		{ "%#.0g",		MLEN,	5434e-9,	"5.e-06" },
-		{ "%#.0e",		MLEN,	5434e-9,	"5.e-06" },
-		{ "%#.3g",		MLEN,	100.0,		"100." },
+		{ "%5.2f",		S, MLEN,	4561056.99,	"4561056.99" },
+		{ "%5.1f",		S, MLEN,	4561056.99,	"4561057.0" },
+		{ "%5.2f",		S, MLEN,	-61056.99,	"-61056.99" },
+		{ "%5.1f",		S, MLEN,	-61056.99,	"-61057.0" },
+		{ "%#f",		S, MLEN,	-61056.99,	"-61056.990000" },
+		{ "%#g",		S, MLEN,	5434e-9,	"5.43400e-06" },
+		{ "%#e",		S, MLEN,	5434e-9,	"5.434000e-06" },
+		{ "%#.0g",		S, MLEN,	5434e-9,	"5.e-06" },
+		{ "%#.0e",		S, MLEN,	5434e-9,	"5.e-06" },
+		{ "%#.3g",		S, MLEN,	100.0,		"100." },
 		/* #90 */
-		{ "%#.0e",		MLEN,	0.0,		"0.e+00" },
-		{ "%#.0f",		MLEN,	0.0,		"0." },
-		{ "%#.0g",		MLEN,	0.0,		"0." },
-		{ "%g",			MLEN,	.00012435395457,	"0.000124354" },
-		{ "%.11g",		MLEN,	.00012435395457,	"0.00012435395457" },
-		{ "%.11g",		MLEN,	12435.3954575763,	"12435.395458" },
-		{ "%g",			MLEN,	12435.3954575763,	"12435.4" },
-		{ "%.17g",		MLEN,	12435.3954575763,	"12435.3954575763" },
-		{ "%.17g",		MLEN,	124353954575.763,	"124353954575.763" },
-		{ "%.10g",		MLEN,	124353954575.763,	"1.243539546e+11" },
+		{ "%#.0e",		S, MLEN,	0.0,		"0.e+00" },
+		{ "%#.0f",		S, MLEN,	0.0,		"0." },
+		{ "%#.0g",		S, MLEN,	0.0,		"0." },
+		{ "%g",			S, MLEN,	.00012435395457,	"0.000124354" },
+		{ "%.11g",		S, MLEN,	.00012435395457,	"0.00012435395457" },
+		{ "%.11g",		S, MLEN,	12435.3954575763,	"12435.395458" },
+		{ "%g",			S, MLEN,	12435.3954575763,	"12435.4" },
+		{ "%.17g",		S, MLEN,	12435.3954575763,	"12435.3954575763" },
+		{ "%.17g",		S, MLEN,	124353954575.763,	"124353954575.763" },
+		{ "%.10g",		S, MLEN,	124353954575.763,	"1.243539546e+11" },
 		/* #100 */
-		{ "%.11g",		MLEN,	124353954575.763,	"1.2435395458e+11" },
-		{ "%.12g",		MLEN,	124353954575.763,	"124353954576" },
-		{ "%.13g",		MLEN,	124353954575.763,	"124353954575.8" },
-		{ "%.14g",		MLEN,	124353954575.763,	"124353954575.76" },
-		{ "%F",			MLEN,	0,			"0" },
-		{ "%F",			MLEN,	1,			"1" },
-		{ "%F",			MLEN,	-1,			"-1" },
-		{ "%F",			MLEN,	1.5,		"1.5" },
-		{ "%F",			MLEN,	-1.5,		"-1.5" },
-		{ "%F",			MLEN,	.5,			"0.5" },
+		{ "%.11g",		S, MLEN,	124353954575.763,	"1.2435395458e+11" },
+		{ "%.12g",		S, MLEN,	124353954575.763,	"124353954576" },
+		{ "%.13g",		S, MLEN,	124353954575.763,	"124353954575.8" },
+		{ "%.14g",		S, MLEN,	124353954575.763,	"124353954575.76" },
+		{ "%F",			X, MLEN,	0,			"0" },
+		{ "%F",			X, MLEN,	1,			"1" },
+		{ "%F",			X, MLEN,	-1,			"-1" },
+		{ "%F",			X, MLEN,	1.5,		"1.5" },
+		{ "%F",			X, MLEN,	-1.5,		"-1.5" },
+		{ "%F",			X, MLEN,	.5,			"0.5" },
 		/* #110 */
-		{ "%F",			MLEN,	.05,			"0.05" },
-		{ "%F",			MLEN,	.005,			"0.005" },
-		{ "%F",			MLEN,	.0005,			"0.0005" },
-		{ "%F",			MLEN,	.00005,			"0.00005" },
-		{ "%F",			MLEN,	.000005,		"5E-6" },
-		{ "%F",			MLEN,	-.0000005,		"-5E-7" },
-		{ "%F",			MLEN,	.0005342532345,	"0.0005342532345" },
-		{ "%F",			MLEN,	.0005342532345536986, "5.342532345536986E-4" },
-		{ "%F",			MLEN,	50,				"50" },
-		{ "%F",			MLEN,	500,			"500" },
+		{ "%F",			X, MLEN,	.05,			"0.05" },
+		{ "%F",			X, MLEN,	.005,			"0.005" },
+		{ "%F",			X, MLEN,	.0005,			"0.0005" },
+		{ "%F",			X, MLEN,	.00005,			"0.00005" },
+		{ "%F",			X, MLEN,	.000005,		"5E-6" },
+		{ "%F",			X, MLEN,	-.0000005,		"-5E-7" },
+		{ "%F",			X, MLEN,	.0005342532345,	"0.0005342532345" },
+		{ "%F",			X, MLEN,	.0005342532345536986,
+													"5.342532345536986E-4" },
+		{ "%F",			X, MLEN,	50,				"50" },
+		{ "%F",			X, MLEN,	500,			"500" },
 		/* #120 */
-		{ "%F",			MLEN,	50000000000,	"50000000000" },
-		{ "%F",			MLEN,	500000000000,	"5E+11" },
-		{ "%F",			MLEN,	50000000000.25,	"5.000000000025E+10" },
-		{ "%F",			MLEN,	54321987654,	"5.4321987654E+10" },
-		{ "%F",			MLEN,	54321987654.999,"5.4321987654999E+10" },
-		{ "%.1F",		MLEN,	4561056.99,		"5E+6" },
-		{ "%.1F",		MLEN,	500000000000,	"5E+11" },
-		{ "%.12F",		MLEN,	500000000000,	"500000000000" },
-		{ "%.8F",		MLEN,	4561056.99,		"4561057" },
-		{ "%.9F",		MLEN,	4561056.99,		"4561056.99" },
+		{ "%F",			X, MLEN,	50000000000,	"50000000000" },
+		{ "%F",			X, MLEN,	500000000000,	"5E+11" },
+		{ "%F",			X, MLEN,	50000000000.25,	"5.000000000025E+10" },
+		{ "%F",			X, MLEN,	54321987654,	"5.4321987654E+10" },
+		{ "%F",			X, MLEN,	54321987654.999,"5.4321987654999E+10" },
+		{ "%.1F",		X, MLEN,	4561056.99,		"5E+6" },
+		{ "%.1F",		X, MLEN,	500000000000,	"5E+11" },
+		{ "%.12F",		X, MLEN,	500000000000,	"500000000000" },
+		{ "%.8F",		X, MLEN,	4561056.99,		"4561057" },
+		{ "%.9F",		X, MLEN,	4561056.99,		"4561056.99" },
 		/* #130 */
-		{ "%F",			MLEN,	5.12345678901e4,"5.12345678901E+4" },
-		{ "%F",			MLEN,	1.2342543e200,	"1.2342543E+200" },
-		{ "%#F",		MLEN,	0,				"0." },
-		{ "%#F",		MLEN,	-1,				"-1." },
-		{ "%#F",		MLEN,	.5,				"0.5" },
-		{ "%#F",		MLEN,	500,			"500." },
-		{ "%#F",		MLEN,	50000000000,	"50000000000." },
-		{ "%#F",		MLEN,	500000000.1,	"500000000.1" },
-		{ "%#.1F",		MLEN,	4561056.99,		"5.E+6" },
+		{ "%F",			X, MLEN,	5.12345678901e4,"5.12345678901E+4" },
+		{ "%F",			X, MLEN,	1.2342543e200,	"1.2342543E+200" },
+		{ "%#F",		X, MLEN,	0,				"0." },
+		{ "%#F",		X, MLEN,	-1,				"-1." },
+		{ "%#F",		X, MLEN,	.5,				"0.5" },
+		{ "%#F",		X, MLEN,	500,			"500." },
+		{ "%#F",		X, MLEN,	50000000000,	"50000000000." },
+		{ "%#F",		X, MLEN,	500000000.1,	"500000000.1" },
+		{ "%#.1F",		X, MLEN,	4561056.99,		"5.E+6" },
 	};
 
-#define TEST(what) G_STMT_START {								\
+#define TEST(what, vfmt) G_STMT_START {							\
 	unsigned i;													\
 																\
 	for (i = 0; i < G_N_ELEMENTS(test_##what##s); i++) {		\
@@ -2801,16 +2817,41 @@ str_test(void)
 			"returned=\"%s\", expected=\"%s\"",					\
 			#what, i + 1, G_N_ELEMENTS(test_##what##s),			\
 			t->fmt, t->buflen, buf, t->result);					\
+																\
+		if (t->std) {											\
+			char std[MLEN];										\
+			char value[MLEN];									\
+			/* Avoid truncation warning in logs */				\
+			gm_snprintf_unchecked(std, sizeof std,				\
+				t->fmt, t->value);								\
+			std[t->buflen - 1] = '\0';	/* Truncate here */		\
+			gm_snprintf(value, sizeof value, vfmt, t->value);	\
+			if (0 != strcmp(std, buf)) {						\
+				discrepancies++;								\
+				if (verbose) g_message(							\
+					"formatting %s \"%s\" in test #%u/%zu "		\
+					"with \"%s\" yields "						\
+					"\"%s\" with snprintf() but "				\
+					"\"%s\" with str_vncatf()",					\
+					#what, value,								\
+					i + 1, G_N_ELEMENTS(test_##what##s),		\
+					t->fmt, std, buf);							\
+			}													\
+		}														\
 	}															\
 } G_STMT_END
 
-	TEST(string);
-	TEST(pointer);
-	TEST(int);
-	TEST(long);
-	TEST(double);
+	tests_completed = FALSE;	/* Disables warnings on truncations */
+
+	TEST(string,	"%s");
+	TEST(pointer,	"%p");
+	TEST(int,		"%d");
+	TEST(long,		"%ld");
+	TEST(double,	"%.17g");
 
 	tests_completed = TRUE;		/* Allow warnings on truncations */
+
+	return discrepancies;
 
 #undef MLEN
 #undef TEST

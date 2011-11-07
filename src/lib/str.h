@@ -113,7 +113,7 @@ size_t str_bprintf(char *dst, size_t size, const char *fmt, ...)
 	G_GNUC_PRINTF(3, 4);
 size_t str_vbprintf(char *dst, size_t size, const char *fmt, va_list args);
 
-void str_test(void);
+size_t str_test(gboolean verbose);
 
 #endif /* _str_h_ */
 
