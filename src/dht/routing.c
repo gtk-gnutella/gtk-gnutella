@@ -3812,7 +3812,7 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 	kuid_divide(&accum, &prev, &avg, &remain);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT average distance of %u KUIDs near %s is %s (%F)",
+		s_debug("DHT average distance of %u KUIDs near %s is %s (%F)",
 			(unsigned) count - 1,
 			kuid_to_hex_string(kuid), kuid_to_hex_string2(&avg),
 			kuid_to_double(&avg));
