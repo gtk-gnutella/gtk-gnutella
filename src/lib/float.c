@@ -66,14 +66,6 @@
 #define FLOAT_DEBUG
 #endif
 
-#if \
-	defined(__alpha) || \
-	defined(__i386) || \
-	defined(__x86_64__) || \
-	defined(_M_IX86)
-#define LITTLE_ENDIAN_IEEE_DOUBLE
-#endif
-
 /* exponent stored + 1024, hidden bit to left of decimal point */
 #define bias 1023
 #define bitstoright 52
@@ -99,12 +91,6 @@ struct dblflt_be {
     unsigned int m3: 16;
     unsigned int m4: 16;
 };
-
-#ifdef LITTLE_ENDIAN_IEEE_DOUBLE
-typedef struct dblflt_le dblflt_t;
-#else
-typedef struct dblflt_be dblflt_t;
-#endif
 
 #define BIGSIZE 24
 #define MIN_E -1074
