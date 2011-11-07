@@ -527,6 +527,9 @@ float_decompose(double v, int *sign, int *ep)
 	guint64 f;
 	int e;
 
+	STATIC_ASSERT(sizeof v == sizeof(struct dblflt_le));
+	STATIC_ASSERT(sizeof(struct dblflt_le) == sizeof(struct dblflt_be));
+
 	/* decompose float into sign, mantissa & exponent */
 	if (float_little_endian) {
 		struct dblflt_le *x = (struct dblflt_le *)&v;
