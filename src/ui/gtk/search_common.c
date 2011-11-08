@@ -64,7 +64,6 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/iso3166.h"
-#include "lib/log.h"
 #include "lib/magnet.h"
 #include "lib/mime_type.h"
 #include "lib/parse.h"
@@ -1718,7 +1717,7 @@ search_gui_real_store_searches(void)
             	"stored in the new XML format and the old file is renamed to\n"
             	"%s"), path_old);
         	if (-1 == rename(path, path_old))
-          		s_warning(_("could not rename %s as %s: %m\n"
+          		g_warning(_("could not rename %s as %s: %m\n"
                 	"The XML file will not be used "
 					"unless this problem is resolved."), path, path_old);
 			HFREE_NULL(path_old);

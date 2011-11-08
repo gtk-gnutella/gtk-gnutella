@@ -56,7 +56,6 @@
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/host_addr.h"
-#include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/parse.h"
 #include "lib/strtok.h"
@@ -957,7 +956,7 @@ upnp_discover(unsigned timeout, upnp_discover_cb_t cb, void *arg)
 
 	if (NULL == s) {
 		if (GNET_PROPERTY(upnp_debug)) {
-			s_warning("unable to create anonymous UDP %s socket for "
+			g_warning("unable to create anonymous UDP %s socket for "
 				"UPnP discovery: %m",
 				net_type_to_string(host_addr_net(bind_addr)));
 		}

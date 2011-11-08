@@ -41,7 +41,6 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/endian.h"
-#include "lib/log.h"
 #include "lib/tm.h"
 #include "lib/override.h"				/* Must be the last header included */
 
@@ -260,7 +259,7 @@ ntp_send_probes(void)
 			 * does not guarantee anything. */
 			sent = TRUE;
 		} else if (GNET_PROPERTY(tsync_debug)) {
-			s_debug("NTP ntp_probe(): sendto() failed for \"%s\" (\"%s\"): %m",
+			g_debug("NTP ntp_probe(): sendto() failed for \"%s\" (\"%s\"): %m",
 				hosts[i].addr,
 				host_addr_to_string(addr));
 		}

@@ -48,7 +48,6 @@
 #include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
-#include "lib/log.h"
 #include "lib/path.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
@@ -101,13 +100,13 @@ tls_transport_debug(const char *op, const struct gnutella_socket *s,
 		unsigned level = is_temporary_error(errno) ? 2 : 0;
 
 		if (GNET_PROPERTY(tls_debug) > level) {
-			s_debug("%s(): fd=%d size=%lu host=%s ret=-1 errno=%m",
+			g_debug("%s(): fd=%d size=%lu host=%s ret=-1 errno=%m",
 				op, s->file_desc, (unsigned long) size,
 				host_addr_port_to_string(s->addr, s->port));
 		}
 	} else {
 		if (GNET_PROPERTY(tls_debug) > 2) {
-			s_debug("%s(): fd=%d size=%lu host=%s ret=%lu",
+			g_debug("%s(): fd=%d size=%lu host=%s ret=%lu",
 				op, s->file_desc, (unsigned long) size,
 				host_addr_port_to_string(s->addr, s->port),
 				(unsigned long) ret);
@@ -655,7 +654,7 @@ tls_read(struct wrap_io *wio, void *buf, size_t size)
 
 	if (tls_flush(wio) && !is_temporary_error(errno)) {
 		if (GNET_PROPERTY(tls_debug)) {
-			s_warning("tls_read: tls_flush(fd=%d) error: %m", s->file_desc);
+			g_warning("tls_read: tls_flush(fd=%d) error: %m", s->file_desc);
 		}
 		return -1;
 	}
@@ -817,7 +816,7 @@ tls_bye(struct gnutella_socket *s)
 			break;
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
-				s_carp("gnutls_bye() failed: host=%s error=%m",
+				g_carp("gnutls_bye() failed: host=%s error=%m",
 					host_addr_port_to_string(s->addr, s->port));
 			}
 		}

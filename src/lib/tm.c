@@ -38,7 +38,6 @@
 #endif
 
 #include "tm.h"
-#include "log.h"			/* For s_warning() */
 
 #include "override.h"		/* Must be the last header included */
 
@@ -190,7 +189,7 @@ clock_hz(void)
 		errno = ENOTSUP;
 		freq = sysconf(_SC_CLK_TCK);
 		if (-1L == freq)
-			s_warning("sysconf(_SC_CLK_TCK) failed: %m");
+			g_warning("sysconf(_SC_CLK_TCK) failed: %m");
 #endif
 	}
 
@@ -232,7 +231,7 @@ tm_cputime(double *user, double *sys)
 		if G_UNLIKELY(-1 == getrusage(RUSAGE_SELF, &usage)) {
 			u = 0;
 			s = 0;
-			s_warning("getrusage(RUSAGE_SELF, ...) failed: %m");
+			g_warning("getrusage(RUSAGE_SELF, ...) failed: %m");
 		} else {
 			u = tm2f(&usage.ru_utime);
 			s = tm2f(&usage.ru_stime);

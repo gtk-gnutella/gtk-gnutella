@@ -241,7 +241,7 @@ local_hostname(void)
 	static char name[256 + 1];
 
 	if (-1 == gethostname(name, sizeof name))
-		s_warning("gethostname() failed: %m");
+		g_warning("gethostname() failed: %m");
 
 	name[sizeof(name) - 1] = '\0';
 	return name;
@@ -1657,7 +1657,7 @@ finish:
 	return is_directory(dir) ? 0 : -1;
 
 failure:
-	s_warning("mkdir(\"%s\") failed: %m", dir);
+	g_warning("mkdir(\"%s\") failed: %m", dir);
 	errno = error;
 	return -1;
 }

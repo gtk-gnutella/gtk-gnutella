@@ -25,7 +25,6 @@
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
-#include "lib/log.h"
 #include "lib/pow2.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
@@ -383,7 +382,7 @@ fetch_bitbuf(DBM *db, long num)
 		dbg->bitread++;
 		got = compat_pread(dbg->fd, dbg->bitbuf, BIG_BLKSIZE, OFF_DAT(bno));
 		if (got < 0) {
-			s_warning("sdbm: \"%s\": could not read bitmap block #%ld: %m",
+			g_warning("sdbm: \"%s\": could not read bitmap block #%ld: %m",
 				sdbm_name(db), num);
 			ioerr(db, FALSE);
 			return FALSE;
@@ -767,7 +766,7 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 
 		dbg->bigread++;
 		if (-1 == compat_pread(dbg->fd, q, toread, OFF_DAT(bno))) {
-			s_warning("sdbm: \"%s\": "
+			g_warning("sdbm: \"%s\": "
 				"could not read %lu bytes starting at data block #%u: %m",
 				sdbm_name(db), (unsigned long) toread, bno);
 
@@ -983,7 +982,7 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 
 		dbg->bigwrite++;
 		if (-1 == compat_pwrite(dbg->fd, q, towrite, OFF_DAT(bno))) {
-			s_warning("sdbm: \"%s\": "
+			g_warning("sdbm: \"%s\": "
 				"could not write %lu bytes starting at data block #%u: %m",
 				sdbm_name(db), (unsigned long) towrite, bno);
 

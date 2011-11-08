@@ -56,7 +56,6 @@
 #endif	/* HAS_STATFS */
 
 #include "fs_free_space.h"
-#include "log.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -86,7 +85,7 @@ get_fs_info(const char *path, struct fs_info *fsi)
 		struct statvfs buf;
 
 		if (-1 == statvfs(path, &buf)) {
-			s_warning("statvfs(\"%s\") failed: %m", path);
+			g_warning("statvfs(\"%s\") failed: %m", path);
 		} else {
 			free_space = ((filesize_t) 0 + buf.f_bavail) * buf.f_bsize;
 			total_space = ((filesize_t) 0 + buf.f_blocks) * buf.f_frsize;
@@ -98,7 +97,7 @@ get_fs_info(const char *path, struct fs_info *fsi)
 		struct statfs buf;
 
 		if (-1 == statfs(path, &buf)) {
-			s_warning("statfs(\"%s\") failed: %m", path);
+			g_warning("statfs(\"%s\") failed: %m", path);
 		} else {
 			free_space = ((filesize_t) 0 + buf.f_bavail) * buf.f_bsize;
 			total_space = ((filesize_t) 0 + buf.f_blocks) * buf.f_bsize;
@@ -109,7 +108,7 @@ get_fs_info(const char *path, struct fs_info *fsi)
 		struct mingw_statvfs buf;
 
 		if (-1 == mingw_statvfs(path, &buf)) {
-			s_warning("statvfs(\"%s\") failed: %m", path);
+			g_warning("statvfs(\"%s\") failed: %m", path);
 		} else {
 			free_space = ((filesize_t) 0 + buf.f_cavail) * buf.f_csize;
 			total_space = ((filesize_t) 0 + buf.f_clusters) * buf.f_csize;

@@ -22,7 +22,6 @@
 #include "lib/debug.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
-#include "lib/log.h"
 #include "lib/slist.h"
 #include "lib/stacktrace.h"
 #include "lib/vmm.h"
@@ -742,7 +741,7 @@ flushpag(DBM *db, char *pag, long num)
 
 	if (w < 0 || w != DBM_PBLKSIZ) {
 		if (w < 0) {
-			s_warning("sdbm: \"%s\": cannot flush page #%ld: %m",
+			g_warning("sdbm: \"%s\": cannot flush page #%ld: %m",
 				sdbm_name(db), num);
 		} else {
 			g_warning("sdbm: \"%s\": could only flush %u bytes from page #%ld",

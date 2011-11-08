@@ -52,7 +52,6 @@
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
-#include "lib/log.h"
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/random.h"
@@ -335,7 +334,7 @@ whitelist_retrieve(void)
 		return;
 
 	if (fstat(fileno(f), &st)) {
-		s_warning("whitelist_retrieve: fstat() failed: %m");
+		g_warning("whitelist_retrieve: fstat() failed: %m");
 		fclose(f);
 		return;
 	}

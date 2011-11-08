@@ -92,7 +92,6 @@
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/iovec.h"
-#include "lib/log.h"
 #include "lib/path.h"
 #include "lib/walloc.h"
 
@@ -596,7 +595,7 @@ reopen:
 			fo->fd = file_absolute_open(fo->pathname, fo->accmode, 0);
 
 			if (!is_valid_fd(fo->fd)) {
-				s_warning("cannot reopen \"%s\" mode 0%o "
+				g_warning("cannot reopen \"%s\" mode 0%o "
 					"after %s %s of \"%s\": %m",
 					fo->pathname, fo->accmode,
 					ok ? "successful" : "failed", file_object_op_to_string(op),

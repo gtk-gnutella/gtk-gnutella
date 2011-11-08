@@ -45,7 +45,6 @@
 #include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
-#include "lib/log.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -382,7 +381,7 @@ verify_next_file(struct verify *ctx)
 				}
 			}
 			if (NULL == ctx->file) {
-				s_warning("failed to open \"%s\" for %s hashing: %m",
+				g_warning("failed to open \"%s\" for %s hashing: %m",
 					verify_hash_name(ctx), item->pathname);
 			}
 		} else {
@@ -452,7 +451,7 @@ verify_update(struct verify *ctx)
 
 	if ((ssize_t) -1 == r) {
 		if (!is_temporary_error(errno)) {
-			s_warning("error while reading \"%s\": %m",
+			g_warning("error while reading \"%s\": %m",
 				file_object_get_pathname(ctx->file));
 			goto error;
 		}

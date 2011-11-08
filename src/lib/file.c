@@ -38,7 +38,6 @@
 #include "debug.h"
 #include "fd.h"
 #include "halloc.h"
-#include "log.h"			/* For s_warning() */
 #include "path.h"
 #include "timestamp.h"
 #include "tm.h"
@@ -98,7 +97,7 @@ file_locate_from_path(const char *argv0)
 
 	if (filepath_basename(argv0) != argv0) {
 		if (!already_done) {
-			s_warning("can't locate \"%s\" in PATH: name contains '%c' already",
+			g_warning("can't locate \"%s\" in PATH: name contains '%c' already",
 				argv0,
 				strchr(argv0, G_DIR_SEPARATOR) != NULL ? G_DIR_SEPARATOR : '/');
 		}
@@ -108,7 +107,7 @@ file_locate_from_path(const char *argv0)
 	path = getenv("PATH");
 	if (NULL == path) {
 		if (!already_done) {
-			s_warning("can't locate \"%s\" in PATH: "
+			g_warning("can't locate \"%s\" in PATH: "
 				"no such environment variable", argv0);
 		}
 		goto done;
@@ -190,7 +189,7 @@ open_read(
 			in = NULL;
 		}
 		if (renaming && -1 == rename(path, path_orig)) {
-			s_warning("[%s] could not rename \"%s\" as \"%s\": %m",
+			g_warning("[%s] could not rename \"%s\" as \"%s\": %m",
 				what, path, path_orig);
 		}
 		if (NULL == in) {
@@ -204,7 +203,7 @@ open_read(
 			}
 		} else {
 			instead = instead_str;			/* Regular file was present */
-			s_warning("[%s] failed to retrieve from \"%s\": %m", what, path);
+			g_warning("[%s] failed to retrieve from \"%s\": %m", what, path);
 		}
         if (fvcnt > 1 && common_dbg > 0)
             g_debug("[%s] trying to load from alternate locations...", what);
@@ -366,7 +365,7 @@ file_config_close(FILE *out, const file_path_t *fv)
 	gboolean success = FALSE;
 
 	if (0 != fclose(out)) {
-		s_warning("could not flush \"%s\": %m", fv->name);
+		g_warning("could not flush \"%s\": %m", fv->name);
 		goto failed;
 	}
 
@@ -377,7 +376,7 @@ file_config_close(FILE *out, const file_path_t *fv)
 		goto failed;
 
 	if (-1 == rename(path_new, path)) {
-		s_warning("could not rename \"%s\" as \"%s\": %m", path_new, path);
+		g_warning("could not rename \"%s\" as \"%s\": %m", path_new, path);
 		goto failed;
 	}
 
@@ -489,7 +488,7 @@ do_open(const char *path, int flags, int mode,
 	}
 
 	if (!missing || errno != ENOENT) {
-		s_warning("do_open(): can't %s file \"%s\": %m", what, path);
+		g_warning("do_open(): can't %s file \"%s\": %m", what, path);
 	}
 
 	return -1;
@@ -599,7 +598,7 @@ do_fopen(const char *path, const char *mode, gboolean missing)
 	}
 
 	if (!missing || errno != ENOENT)
-		s_warning("can't %s file \"%s\": %m", what, path);
+		g_warning("can't %s file \"%s\": %m", what, path);
 
 	return NULL;
 }

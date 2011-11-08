@@ -101,7 +101,6 @@
 #include "lib/hashlist.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
-#include "lib/log.h"
 #include "lib/magnet.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
@@ -8560,7 +8559,7 @@ download_overlap_check(struct download *d)
 			fo = file_object_new(fd, fi->pathname, O_RDONLY);
 		} else {
 			const char *error = g_strerror(errno);
-			s_warning("cannot check resuming for \"%s\": %m",
+			g_warning("cannot check resuming for \"%s\": %m",
 				filepath_basename(fi->pathname));
 			download_stop(d, GTA_DL_ERROR, _("Can't check resume data: %s"),
 				error);
@@ -8577,7 +8576,7 @@ download_overlap_check(struct download *d)
 		if (-1 == fstat(file_object_get_fd(fo), &sb)) {
 			/* Should never happen */
 			const char *error = g_strerror(errno);
-			s_warning("cannot stat opened \"%s\": %m", fi->pathname);
+			g_warning("cannot stat opened \"%s\": %m", fi->pathname);
 			download_stop(d, GTA_DL_ERROR, _("Can't stat opened file: %s"),
 				error);
 			goto out;
@@ -8608,7 +8607,7 @@ download_overlap_check(struct download *d)
 
 		if ((ssize_t) -1 == r) {
 			const char *error = g_strerror(errno);
-			s_warning("cannot read resuming data for \"%s\": %m",
+			g_warning("cannot read resuming data for \"%s\": %m",
 					fi->pathname);
 			download_stop(d, GTA_DL_ERROR, _("Can't read resume data: %s"),
 				error);
@@ -8832,13 +8831,13 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		case EIO:		/* I/O error */
 			if (!download_queue_is_frozen()) {
 				download_freeze_queue();
-				s_warning("freezing download queue due to write error: %m");
+				g_warning("freezing download queue due to write error: %m");
 			}
 			break;
 		}
 	
 	   	error = g_strerror(errno);
-		s_warning("write of %lu bytes to file \"%s\" failed: %m",
+		g_warning("write of %lu bytes to file \"%s\" failed: %m",
 			(gulong) b->held, download_basename(d));
 
 		/* FIXME: We should never discard downloaded data! This
@@ -14265,7 +14264,7 @@ download_retrieve(void)
 		if (!download_retrieve_magnets(f)) {
 			clearerr(f);
 			if (fseek(f, 0, SEEK_SET)) {
-				s_carp("fseek(f, 0, SEEK_SET) failed: %m");
+				g_carp("fseek(f, 0, SEEK_SET) failed: %m");
 			} else {
 				download_retrieve_old(f);
 			}
@@ -14431,7 +14430,7 @@ download_move(struct download *d, const char *dir, const char *ext)
 	goto cleanup;
 
 error:
-	s_warning("could not rename \"%s\" as \"%s\": %m", fi->pathname, dest);
+	g_warning("could not rename \"%s\" as \"%s\": %m", fi->pathname, dest);
 	download_move_error(d);
 	goto cleanup;
 
@@ -14549,7 +14548,7 @@ download_move_error(struct download *d)
 	file_info_strip_binary(fi);
 
 	if (NULL == dest || !file_object_rename(fi->pathname, dest)) {
-		s_warning("could not rename completed file \"%s\" as \"%s\": %m",
+		g_warning("could not rename completed file \"%s\" as \"%s\": %m",
 			fi->pathname, dest);
 		download_set_status(d, GTA_DL_DONE);
 	} else {

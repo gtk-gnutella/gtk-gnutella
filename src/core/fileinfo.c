@@ -75,7 +75,6 @@
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/idtable.h"
-#include "lib/log.h"
 #include "lib/magnet.h"
 #include "lib/parse.h"
 #include "lib/path.h"
@@ -743,7 +742,7 @@ file_info_fd_store_binary(fileinfo_t *fi, const struct file_object *fo)
 	tbuf_write(fo, fi->size);
 
 	if (0 != ftruncate(file_object_get_fd(fo), fi->size + length)) {
-		s_warning("%s(): truncate() failed for \"%s\": %m",
+		g_warning("%s(): truncate() failed for \"%s\": %m",
 			G_STRFUNC, file_info_readable_filename(fi));
 	}
 
@@ -878,7 +877,7 @@ file_info_strip_trailer(fileinfo_t *fi, const char *pathname)
 		if (ENOENT == errno) {
 			file_info_mark_stripped(fi);
 		}
-		s_warning("could not chop fileinfo trailer off \"%s\": %m", pathname);
+		g_warning("could not chop fileinfo trailer off \"%s\": %m", pathname);
 	} else {
 		file_info_mark_stripped(fi);
 	}
@@ -1128,7 +1127,7 @@ file_info_get_trailer(int fd, struct trailer *tb, filestat_t *sb,
 	g_assert(tb);
 
 	if (-1 == fstat(fd, &buf)) {
-		s_warning("error fstat()ing \"%s\": %m", name);
+		g_warning("error fstat()ing \"%s\": %m", name);
 		return FALSE;
 	}
 
@@ -1155,13 +1154,13 @@ file_info_get_trailer(int fd, struct trailer *tb, filestat_t *sb,
 
 	/* No wrapper because this is a native fileoffset_t value. */
 	if (offset != lseek(fd, offset, SEEK_SET)) {
-		s_warning("%s(): error seek()ing in file \"%s\": %m", G_STRFUNC, name);
+		g_warning("%s(): error seek()ing in file \"%s\": %m", G_STRFUNC, name);
 		return FALSE;
 	}
 
 	r = read(fd, tr, sizeof tr);
 	if ((ssize_t) -1 == r) {
-		s_warning("%s(): error reading trailer in \"%s\": %m", G_STRFUNC, name);
+		g_warning("%s(): error reading trailer in \"%s\": %m", G_STRFUNC, name);
 		return FALSE;
 	}
 
@@ -1645,7 +1644,7 @@ G_STMT_START {				\
 			ret = seek_to_filepos(fd, trailer.filesize);
 		}
 		if (0 != ret) {
-			s_warning("seek to position %s within \"%s\" failed: %m",
+			g_warning("seek to position %s within \"%s\" failed: %m",
 				uint64_to_string(trailer.filesize), pathname);
 			goto eof;
 		}
@@ -1656,7 +1655,7 @@ G_STMT_START {				\
 	 */
 
 	if (-1 == tbuf_read(fd, trailer.length)) {
-		s_warning("%s(): "
+		g_warning("%s(): "
 			"unable to read whole trailer %s bytes) from \"%s\": %m",
 			G_STRFUNC, uint64_to_string(trailer.filesize), pathname);
 		goto eof;
@@ -2560,7 +2559,7 @@ file_info_unlink(fileinfo_t *fi)
 		 */
 
 		if (fi->done)
-			s_warning("cannot unlink \"%s\": %m", fi->pathname);
+			g_warning("cannot unlink \"%s\": %m", fi->pathname);
 	} else {
 		g_warning("unlinked \"%s\" (%s/%s bytes or %u%% done, %s SHA1%s%s)",
 			fi->pathname,
@@ -3033,7 +3032,7 @@ file_info_retrieve(void)
 						fi->pathname, new_pathname);
 					atom_str_change(&fi->pathname, new_pathname);
 				} else {
-					s_warning("cannot rename \"%s\" into \"%s\": %m",
+					g_warning("cannot rename \"%s\" into \"%s\": %m",
 						fi->pathname, new_pathname);
 				}
 				atom_str_free_null(&new_pathname);
@@ -3619,7 +3618,7 @@ fi_rename_dead(fileinfo_t *fi, const char *pathname)
 	if (dead && 0 == rename(pathname, dead)) {
 		file_info_strip_trailer(fi, dead);
 	} else {
-		s_warning("cannot rename \"%s\" as \"%s\": %m",
+		g_warning("cannot rename \"%s\" as \"%s\": %m",
 			pathname, NULL_STRING(dead));
 	}
 	HFREE_NULL(dead);
@@ -5641,7 +5640,7 @@ file_info_scandir(const char *dir)
 
 	d = opendir(dir);
 	if (NULL == d) {
-		s_warning("can't open directory %s: %m", dir);
+		g_warning("can't open directory %s: %m", dir);
 		return;
 	}
 
@@ -5674,7 +5673,7 @@ file_info_scandir(const char *dir)
 			filestat_t sb;
 
 			if (-1 == stat(pathname, &sb)) {
-				s_warning("cannot stat %s: %m", pathname);
+				g_warning("cannot stat %s: %m", pathname);
 				continue;
 			}
 			if (!S_ISREG(sb.st_mode))			/* Only regular files */

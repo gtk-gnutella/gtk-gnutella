@@ -53,7 +53,6 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
-#include "lib/log.h"
 #include "lib/parse.h"
 #include "lib/pattern.h"
 #include "lib/sha1.h"
@@ -443,7 +442,7 @@ huge_update_hashes(shared_file_t *sf,
 	 */
 
 	if (-1 == stat(shared_file_path(sf), &sb)) {
-		s_warning("discarding SHA1 for file \"%s\": can't stat(): %m",
+		g_warning("discarding SHA1 for file \"%s\": can't stat(): %m",
 			shared_file_path(sf));
 		shared_file_remove(sf);
 		return TRUE;
@@ -534,7 +533,7 @@ huge_need_sha1(shared_file_t *sf)
 		filestat_t sb;
 
 		if (-1 == stat(shared_file_path(sf), &sb)) {
-			s_warning("ignoring SHA1 recomputation request for \"%s\": %m",
+			g_warning("ignoring SHA1 recomputation request for \"%s\": %m",
 				shared_file_path(sf));
 			return FALSE;
 		}

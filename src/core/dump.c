@@ -42,7 +42,6 @@
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
-#include "lib/log.h"
 #include "lib/path.h"
 #include "lib/pmsg.h"
 #include "lib/slist.h"
@@ -228,7 +227,7 @@ dump_flush(struct dump *dump)
 
 		if ((ssize_t)-1 == written) {
 			if (!is_temporary_error(errno)) {
-				s_warning("error writing to %s: %m -- disabling dumping",
+				g_warning("error writing to %s: %m -- disabling dumping",
 					dump->filename);
 				dump_disable(dump);
 			}

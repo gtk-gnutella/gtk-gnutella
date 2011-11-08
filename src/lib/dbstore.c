@@ -43,7 +43,6 @@
 #include "dbmap.h"
 #include "dbmw.h"
 #include "file.h"
-#include "log.h"
 #include "halloc.h"
 #include "path.h"
 #include "override.h"		/* Must be the last header included */
@@ -107,7 +106,7 @@ dbstore_create_internal(const char *name, const char *dir, const char *base,
 		if (dm != NULL) {
 			dbmap_set_deferred_writes(dm, TRUE);
 		} else {
-			s_warning("DBSTORE cannot open SDBM at %s for %s: %m", path, name);
+			g_warning("DBSTORE cannot open SDBM at %s for %s: %m", path, name);
 		}
 		HFREE_NULL(path);
 	} else {
@@ -241,7 +240,7 @@ dbstore_sync(dbmw_t *dw)
 
 	n = dbmw_sync(dw, DBMW_SYNC_MAP);
 	if (-1 == n) {
-		s_warning("DBSTORE could not synchronize DBMW \"%s\": %m",
+		g_warning("DBSTORE could not synchronize DBMW \"%s\": %m",
 			dbmw_name(dw));
 	} else if (n && dbstore_debug > 1) {
 		g_debug("DBSTORE flushed %u SDBM page%s in DBMW \"%s\"",
@@ -259,7 +258,7 @@ dbstore_flush(dbmw_t *dw)
 
 	n = dbmw_sync(dw, DBMW_SYNC_CACHE);
 	if (-1 == n) {
-		s_warning("DBSTORE could not flush cache for DBMW \"%s\": %m",
+		g_warning("DBSTORE could not flush cache for DBMW \"%s\": %m",
 			dbmw_name(dw));
 	} else if (n && dbstore_debug > 1) {
 		g_debug("DBSTORE flushed %u dirty value%s in DBMW \"%s\"",
@@ -363,7 +362,7 @@ dbstore_move_file(const char *old_path, const char *new_path, const char *ext)
 
 	if (file_exists(old_file)) {
 		if (-1 == rename(old_file, new_file)) {
-			s_warning("could not rename \"%s\" as \"%s\": %m",
+			g_warning("could not rename \"%s\" as \"%s\": %m",
 				old_file, new_file);
 		}
 	}

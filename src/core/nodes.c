@@ -3217,7 +3217,7 @@ send_error(
 	sent = bws_write(BSCHED_BWS_GOUT, &s->wio, gnet_response, rw);
 	if ((ssize_t) -1 == sent) {
 		if (GNET_PROPERTY(node_debug))
-			s_warning("unable to send back error %d (%s) to node %s: %m",
+			g_warning("unable to send back error %d (%s) to node %s: %m",
 			code, msg_tmp, host_addr_to_string(s->addr));
 	} else if ((size_t) sent < rw) {
 		if (GNET_PROPERTY(node_debug)) {
@@ -6010,7 +6010,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	if ((ssize_t) -1 == sent) {
 		int errcode = errno;
 		if (GNET_PROPERTY(node_debug))
-			s_warning("unable to send back %s to node %s: %m",
+			g_warning("unable to send back %s to node %s: %m",
 			what, host_addr_to_string(n->addr));
 		node_remove(n, _("Failed (Cannot send %s: %s)"),
 			what, g_strerror(errcode));

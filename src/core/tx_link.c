@@ -42,7 +42,6 @@
 #include "tx_link.h"
 #include "bsched.h"
 
-#include "lib/log.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -151,7 +150,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 	 * robust against bugs in the components we rely on. --RAM, 09/10/2003
 	 */
 	case EINPROGRESS:		/* Weird, but seen it -- RAM, 07/10/2003 */
-		s_warning("%s(fd=%d) failed with weird errno = %d: %m -- "
+		g_warning("%s(fd=%d) failed with weird errno = %d: %m -- "
 			"assuming EAGAIN", func, attr->wio->fd(attr->wio), errno);
 		return 0;
 
@@ -167,7 +166,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 		{
 			wrap_io_t *wio = ((struct attr *) tx->opaque)->wio;
 			int fd = wio->fd(wio);
-			s_warning("%s: write failed on fd #%d with unexpected error: %m",
+			g_warning("%s: write failed on fd #%d with unexpected error: %m",
 				func, fd);
 		}
 		/* FALL THROUGH */

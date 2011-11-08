@@ -51,7 +51,6 @@
 #include "atoms.h"
 #include "bstr.h"
 #include "debug.h"
-#include "log.h"
 #include "map.h"
 #include "pmsg.h"
 #include "stringify.h"			/* For compact_time() */
@@ -252,7 +251,7 @@ dbmap_sdbm_strip_superblock(DBM *sdbm)
 	if (0 == sdbm_delete(sdbm, key))
 		return TRUE;
 
-	s_warning("SDBM \"%s\": cannot strip superblock: %m", sdbm_name(sdbm));
+	g_warning("SDBM \"%s\": cannot strip superblock: %m", sdbm_name(sdbm));
 
 	return FALSE;
 }
@@ -1205,7 +1204,7 @@ static void
 unlink_sdbm(const char *file)
 {
 	if (-1 == unlink(file) && errno != ENOENT)
-		s_warning("cannot unlink SDBM file %s: %m", file);
+		g_warning("cannot unlink SDBM file %s: %m", file);
 }
 
 /**
@@ -1262,7 +1261,7 @@ dbmap_store(dbmap_t *dm, const char *base, gboolean inplace)
 			return ok;
 		}
 
-		s_warning("SDBM \"%s\": cannot store superblock: %m",
+		g_warning("SDBM \"%s\": cannot store superblock: %m",
 			sdbm_name(dm->u.s.sdbm));
 
 		/* FALL THROUGH */
@@ -1275,7 +1274,7 @@ dbmap_store(dbmap_t *dm, const char *base, gboolean inplace)
 		O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
 
 	if (!ndm) {
-		s_warning("SDBM \"%s\": cannot store to %s: %m",
+		g_warning("SDBM \"%s\": cannot store to %s: %m",
 			sdbm_name(dm->u.s.sdbm), base);
 		return FALSE;
 	}

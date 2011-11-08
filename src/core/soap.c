@@ -500,7 +500,7 @@ soap_header_ind(http_async_t *ha, header_t *header,
 		if (error) {
 			if (GNET_PROPERTY(soap_debug)) {
 				errno = error;
-				s_warning("SOAP \"%s\" at \"%s\": "
+				g_warning("SOAP \"%s\" at \"%s\": "
 					"cannot parse Content-Length header: "
 					"value is \"%s\", error is %m",
 					sr->action, sr->url, buf);

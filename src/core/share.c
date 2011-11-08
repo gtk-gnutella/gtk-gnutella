@@ -72,7 +72,6 @@
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/listener.h"
-#include "lib/log.h"
 #include "lib/mime_type.h"
 #include "lib/str.h"
 #include "lib/tm.h"
@@ -630,7 +629,7 @@ shared_special(const char *path)
 		return NULL;
 
 	if (-1 == stat(sf->file_path, &file_stat)) {
-		s_warning("can't stat %s: %m", sf->file_path);
+		g_warning("can't stat %s: %m", sf->file_path);
 		return NULL;
 	}
 
@@ -1425,7 +1424,7 @@ recursive_scan_opendir(struct recursive_scan *ctx, const char * const dir)
 	 *		  must be used to get the Unicode filenames.		
 	 */
 	if (!(ctx->directory = opendir(dir))) {
-		s_warning("can't open directory %s: %m", dir);
+		g_warning("can't open directory %s: %m", dir);
 		return;
 	}
 
@@ -1506,12 +1505,12 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 		fullpath = make_pathname(ctx->current_dir, filename);
 		if (S_ISREG(sb.st_mode) || S_ISDIR(sb.st_mode)) {
 			if (stat(fullpath, &sb)) {
-				s_warning("stat() failed %s: %m", fullpath);
+				g_warning("stat() failed %s: %m", fullpath);
 				goto finish;
 			}
 		} else if (!S_ISLNK(sb.st_mode)) {
 			if (lstat(fullpath, &sb)) {
-				s_warning("lstat() failed %s: %m", fullpath);
+				g_warning("lstat() failed %s: %m", fullpath);
 				goto finish;
 			}
 
@@ -1535,7 +1534,7 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 		/* Get info on the symlinked file */
 		if (S_ISLNK(sb.st_mode)) {
 			if (stat(fullpath, &sb)) {
-				s_warning("broken symlink %s: %m", fullpath);
+				g_warning("broken symlink %s: %m", fullpath);
 				goto finish;
 			}
 			
@@ -2412,7 +2411,7 @@ sha1_hash_is_uptodate(shared_file_t *sf)
 	}
 
 	if (-1 == stat(sf->file_path, &buf)) {
-		s_warning("can't stat shared file #%d \"%s\": %m",
+		g_warning("can't stat shared file #%d \"%s\": %m",
 			sf->file_index, sf->file_path);
 		shared_file_set_sha1(sf, NULL);
 		return FALSE;

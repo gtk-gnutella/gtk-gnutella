@@ -112,7 +112,6 @@ typedef struct {
 #include "hashlist.h"
 #include "inputevt.h"
 #include "glib-missing.h"
-#include "log.h"
 #include "misc.h"
 #include "tm.h"
 #include "walloc.h"
@@ -507,7 +506,7 @@ collect_events_with_devpoll(struct poll_ctx *ctx, int timeout_ms)
 
 	ret = ioctl(ctx->master_fd, DP_POLL, &dvp);
 	if (-1 == ret && !is_temporary_error(errno)) {
-		s_warning("check_dev_poll(): ioctl() failed: %m");
+		g_warning("check_dev_poll(): ioctl() failed: %m");
 	}
 	return ret;
 }
@@ -616,7 +615,7 @@ collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
 
 	if (ret < 0) {
 		if (!is_temporary_error(errno)) {
-			s_warning("select() failed: %m");
+			g_warning("select() failed: %m");
 		}
 		return -1;
 	}
@@ -647,7 +646,7 @@ collect_events_with_poll(struct poll_ctx *ctx, int timeout_ms)
 
 	ret = compat_poll(ctx->pfd_arr, ctx->max_poll_idx, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
-		s_warning("collect_events(): poll() failed: %m");
+		g_warning("collect_events(): poll() failed: %m");
 	}
 	return ret;
 }
@@ -820,7 +819,7 @@ inputevt_timer(struct poll_ctx *ctx)
 
 	num_events = (*ctx->event_check_all)(ctx);
 	if (-1 == num_events && !is_temporary_error(errno)) {
-		s_warning("event_check_all(%d) failed: %m", ctx->master_fd);
+		g_warning("event_check_all(%d) failed: %m", ctx->master_fd);
 	}
 
 	ctx->dispatching = TRUE;
@@ -959,7 +958,7 @@ poll_func(GPollFD *gfds, unsigned n, int timeout_ms)
 
 #ifdef INPUTEVT_DEBUGGING
 	if (-1 == r) {
-		s_warning("INPUTEVT default poll function failed: %m");
+		g_warning("INPUTEVT default poll function failed: %m");
 	}
 #endif
 
@@ -1032,7 +1031,7 @@ inputevt_remove(unsigned *id_ptr)
 		(rl->writers ? INPUT_EVENT_W : 0);
 
 	if (-1 == (*ctx->event_set_mask)(ctx, fd, old, cur)) {
-		s_warning("event_set_mask(%d, %d) failed: %m", ctx->master_fd, fd);
+		g_warning("event_set_mask(%d, %d) failed: %m", ctx->master_fd, fd);
 	}
 
 	/* Mark as removed */
@@ -1186,7 +1185,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 		(-1 == (*ctx->event_set_mask)(ctx, relay->fd,
 									 old, (old | relay->condition))
 	) {
-		s_error("event_set_mask(%d, %d, ...) failed: %m",
+		g_error("event_set_mask(%d, %d, ...) failed: %m",
 			ctx->master_fd, relay->fd);
 	}
 
@@ -1220,7 +1219,7 @@ init_with_kqueue(struct poll_ctx *ctx)
 	const int fd = kqueue();
 	
 	if (!is_valid_fd(fd)) {
-		s_warning("kqueue() failed: %m");
+		g_warning("kqueue() failed: %m");
 		return -1;
 	}
 
@@ -1248,7 +1247,7 @@ init_with_devpoll(struct poll_ctx *ctx)
 	const int fd = get_non_stdio_fd(open("/dev/poll", O_RDWR));
 
 	if (!is_valid_fd(fd)) {
-		s_warning("open(\"/dev/poll\", O_RDWR) failed: %m");
+		g_warning("open(\"/dev/poll\", O_RDWR) failed: %m");
 		return -1;
 	}
 
@@ -1276,7 +1275,7 @@ init_with_epoll(struct poll_ctx *ctx)
 	const int fd = epoll_create(1024 /* Just an arbitrary value as hint */);
 
 	if (!is_valid_fd(fd)) {
-		s_warning("epoll_create() failed: %m");
+		g_warning("epoll_create() failed: %m");
 		return -1;
 	}
 
