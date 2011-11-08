@@ -64,6 +64,7 @@
 #include "crash.h"
 #include "halloc.h"
 #include "fd.h"				/* For is_valid_fd() */
+#include "glog.h"
 #include "offtime.h"
 #include "signal.h"
 #include "stacktrace.h"
@@ -545,7 +546,7 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
  *
  * @return pointer to static string.
  */
-static const char * G_GNUC_CONST
+const char *
 log_prefix(GLogLevelFlags loglvl)
 {
 	switch (loglvl) {
@@ -560,6 +561,61 @@ log_prefix(GLogLevelFlags loglvl)
 }
 
 /**
+ * Abort and make sure we never return.
+ */
+void log_abort(void)
+{
+	/*
+	 * In case the error occurs within a critical section with
+	 * all the signals blocked, make sure to unblock SIGBART.
+	 */
+
+	signal_unblock(SIGABRT);
+	raise(SIGABRT);
+
+	/*
+	 * Back from raise(), that's bad.
+	 *
+	 * Either we don't have sigprocmask(), or it failed to
+	 * unblock SIGBART.  Invoke the crash_handler() manually
+	 * then so that we can pause() or exec() as configured
+	 * in case of a crash.
+	 */
+
+	{
+		DECLARE_STR(3);
+		char time_buf[18];
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);	/* 0 */
+		print_str(" (CRITICAL): back from raise(SIGBART)"); /* 1 */
+		print_str(" -- invoking crash_handler()\n");		/* 2 */
+		log_flush_err();
+		if (log_stdout_is_distinct())
+			log_flush_out();
+
+		crash_handler(SIGABRT);
+
+		/*
+		 * We can be back from crash_handler() if they haven't
+		 * configured any pause() or exec() in case of a crash.
+		 * Since SIGBART is blocked, there won't be any core.
+		 */
+
+		rewind_str(0);
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);	/* 0 */
+		print_str(" (CRITICAL): back from crash_handler()"); /* 1 */
+		print_str(" -- exiting\n");		/* 2 */
+		log_flush_err();
+		if (log_stdout_is_distinct())
+			log_flush_out();
+
+		_exit(EXIT_FAILURE);	/* Immediate exit */
+	}
+}
+
+/**
  * Minimal logging service, in case of recursion or other drastic conditions.
  *
  * This routine never allocates memory and by-passes stdio.
@@ -569,7 +625,7 @@ log_prefix(GLogLevelFlags loglvl)
  * @param fmt		formatting string
  * @param args		variable argument list to format
  */
-static void
+void
 s_minilogv(GLogLevelFlags level, gboolean copy, const char *fmt, va_list args)
 {
 	char data[LOG_MSG_MAXLEN];
@@ -697,55 +753,8 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		 * A recursion with an error message is always fatal.
 		 */
 
-		if (G_LOG_LEVEL_ERROR == level) {
-			/*
-			 * In case the error occurs within a critical section with
-			 * all the signals blocked, make sure to unblock SIGBART.
-			 */
-
-			signal_unblock(SIGABRT);
-			raise(SIGABRT);
-
-			/*
-			 * Back from raise(), that's bad.
-			 *
-			 * Either we don't have sigprocmask(), or it failed to
-			 * unblock SIGBART.  Invoke the crash_handler() manually
-			 * then so that we can pause() or exec() as configured
-			 * in case of a crash.
-			 */
-
-			{
-				rewind_str(0);
-
-				crash_time(time_buf, sizeof time_buf);
-				print_str(time_buf);	/* 0 */
-				print_str(" (CRITICAL): back from raise(SIGBART)"); /* 1 */
-				print_str(" -- invoking crash_handler()\n");		/* 2 */
-				log_flush_err();
-				if (log_stdout_is_distinct())
-					log_flush_out();
-
-				crash_handler(SIGABRT);
-
-				/*
-				 * We can be back from crash_handler() if they haven't
-				 * configured any pause() or exec() in case of a crash.
-				 * Since SIGBART is blocked, there won't be any core.
-				 */
-
-				rewind_str(0);
-				crash_time(time_buf, sizeof time_buf);
-				print_str(time_buf);	/* 0 */
-				print_str(" (CRITICAL): back from crash_handler()"); /* 1 */
-				print_str(" -- exiting\n");		/* 2 */
-				log_flush_err();
-				if (log_stdout_is_distinct())
-					log_flush_out();
-
-				_exit(EXIT_FAILURE);	/* Immediate exit */
-			}
-		}
+		if (G_LOG_LEVEL_ERROR == level)
+			log_abort();
 
 		/*
 		 * Use minimal logging.
@@ -807,8 +816,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	}
 
 	/*
-	 * The str_vprintf() routine is safe to use in signal handlers provided
-	 * we do not attempt to format floating point numbers.
+	 * The str_vprintf() routine is safe to use in signal handlers.
 	 */
 
 	str_vprintf(msg, format, args);
@@ -964,7 +972,7 @@ s_error(const char *format, ...)
 	s_logv(NULL, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
 
-	raise(SIGABRT);
+	log_abort();
 }
 
 /*
@@ -981,7 +989,7 @@ s_error_from(const char *file, const char *format, ...)
 	s_logv(NULL, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
 
-	raise(SIGABRT);
+	log_abort();
 }
 
 /**
@@ -1037,6 +1045,31 @@ s_minicarp(const char *format, ...)
 		if (log_stdout_is_distinct())
 			stacktrace_where_sym_print_offset(stdout, 1);
 	}
+}
+
+/**
+ * Safe logging with minimal resource consumption.
+ *
+ * This is intended to be used in emergency situations when higher-level
+ * logging mechanisms can't be used (recursion possibility, logging layer).
+ */
+void
+s_minilog(GLogLevelFlags flags, const char *format, ...)
+{
+	va_list args;
+
+	if G_UNLIKELY(logfile[LOG_STDERR].disabled)
+		return;
+
+	/*
+	 * This routine is only called in exceptional conditions, so even if
+	 * the LOG_STDERR file is not deemed printable for now, attempt to log
+	 * anyway.
+	 */
+
+	va_start(args, format);
+	s_minilogv(flags, FALSE, format, args);
+	va_end(args);
 }
 
 /**
@@ -1122,7 +1155,7 @@ t_error(logthread_t *lt, const char *format, ...)
 	s_logv(lt, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
 
-	raise(SIGABRT);
+	log_abort();
 }
 
 /**
@@ -1142,7 +1175,7 @@ t_error_from(const char *file, logthread_t *lt, const char *format, ...)
 	s_logv(lt, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
 
-	raise(SIGABRT);
+	log_abort();
 }
 
 /**
@@ -1731,6 +1764,8 @@ log_init(void)
 			G_LOG_LEVEL_MESSAGE | G_LOG_LEVEL_INFO | G_LOG_LEVEL_DEBUG,
 			log_handler, NULL);
 	}
+
+	gl_log_set_handler(log_handler, NULL);
 
 	logfile[LOG_STDOUT].f = stdout;
 	logfile[LOG_STDOUT].fd = fileno(stdout);

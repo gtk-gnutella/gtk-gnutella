@@ -761,6 +761,7 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
 
 #include "casts.h"
 #include "lib/fast_assert.h"
+#include "lib/glog.h"
 
 #endif /* _common_h_ */
 

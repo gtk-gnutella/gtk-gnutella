@@ -93,6 +93,7 @@ LSRC = \
 	getgateway.c \
 	getphysmemsize.c \
 	glib-missing.c \
+	glog.c \
 	gnet_host.c \
 	halloc.c \
 	hashlist.c \

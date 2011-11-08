@@ -150,6 +150,7 @@ LSRC = \
 	getgateway.c \
 	getphysmemsize.c \
 	glib-missing.c \
+	glog.c \
 	gnet_host.c \
 	halloc.c \
 	hashlist.c \
@@ -266,6 +267,7 @@ LOBJ = \
 	getgateway.o \
 	getphysmemsize.o \
 	glib-missing.o \
+	glog.o \
 	gnet_host.o \
 	halloc.o \
 	hashlist.o \

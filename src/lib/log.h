@@ -65,6 +65,8 @@ typedef struct logagent logagent_t;
 struct str;
 
 logthread_t *log_thread_alloc(void);
+const char *log_prefix(GLogLevelFlags loglvl) G_GNUC_CONST;
+void log_abort(void) G_GNUC_NORETURN;
 
 void log_init(void);
 void log_crashing(struct str *str);
@@ -94,12 +96,14 @@ void s_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_error(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_minicarp(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_minilog(GLogLevelFlags flags, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
 void s_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_fatal_exit(int status, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void s_error_from(const char *file, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+void s_minilogv(GLogLevelFlags, gboolean copy, const char *fmt, va_list args);
 
 /*
  * Thread-safe logging interface.
