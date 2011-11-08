@@ -1656,7 +1656,7 @@ int
 main(int argc, char **argv)
 {
 	int sp;
-	gboolean str_discrepancies;
+	size_t str_discrepancies;
 
 	mingw_early_init();
 	
