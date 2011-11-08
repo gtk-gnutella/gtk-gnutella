@@ -433,8 +433,8 @@ ck_protect(ckhunk_t *ck, int prot)
 	g_assert(ck != NULL);
 
 	if (-1 == mprotect(ck, ck->size, prot)) {
-		s_error("mprotect(%p, %lu, %s) failed: %m",
-			(void *) ck, (unsigned long) ck->size,
+		s_error("mprotect(%p, %zu, %s) failed: %m",
+			(void *) ck, ck->size,
 			(PROT_WRITE & prot) ? "PROT_READ | PROT_WRITE" :
 			(PROT_READ & prot) ? "PROT_READ" : "PROT_NONE");
 	}

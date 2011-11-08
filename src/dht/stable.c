@@ -411,16 +411,16 @@ static void
 stable_prune_old(void)
 {
 	if (GNET_PROPERTY(dht_stable_debug)) {
-		g_debug("DHT STABLE pruning old stable node records (%lu)",
-			(unsigned long) dbmw_count(db_lifedata));
+		g_debug("DHT STABLE pruning old stable node records (%zu)",
+			dbmw_count(db_lifedata));
 	}
 
 	dbmw_foreach_remove(db_lifedata, prune_old, NULL);
 	gnet_stats_set_general(GNR_DHT_STABLE_NODES_HELD, dbmw_count(db_lifedata));
 
 	if (GNET_PROPERTY(dht_stable_debug)) {
-		g_debug("DHT STABLE pruned old stable node records (%lu remaining)",
-			(unsigned long) dbmw_count(db_lifedata));
+		g_debug("DHT STABLE pruned old stable node records (%zu remaining)",
+			dbmw_count(db_lifedata));
 	}
 
 	dbstore_shrink(db_lifedata);

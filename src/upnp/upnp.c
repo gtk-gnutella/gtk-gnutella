@@ -446,8 +446,8 @@ upnp_discovered(GSList *devlist, void *unused_arg)
 		if (selected != NULL) {
 			if (GNET_PROPERTY(upnp_debug) > 2) {
 				g_message("UPNP selecting device \"%s\" among the "
-					"%lu discovered, bearing known external IP %s",
-					selected->desc_url, (unsigned long) count,
+					"%zu discovered, bearing known external IP %s",
+					selected->desc_url, count,
 					host_addr_to_string(selected->u.igd.wan_ip));
 			}
 		} else {
@@ -455,8 +455,8 @@ upnp_discovered(GSList *devlist, void *unused_arg)
 
 			if (GNET_PROPERTY(upnp_debug) > 2) {
 				g_message("UPNP randomly picking device \"%s\" among the "
-					"%lu discovered, has external IP %s",
-					selected->desc_url, (unsigned long) count,
+					"%zu discovered, has external IP %s",
+					selected->desc_url, count,
 					host_addr_to_string(selected->u.igd.wan_ip));
 			}
 		}

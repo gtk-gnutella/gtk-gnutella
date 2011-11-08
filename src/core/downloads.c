@@ -6543,9 +6543,9 @@ download_got_push_proxies(const struct guid *guid,
 
 	if (added > 0) {
 		if (GNET_PROPERTY(download_debug)) {
-			g_debug("PUSH found %lu new push prox%s in query hit "
+			g_debug("PUSH found %zu new push prox%s in query hit "
 				"for GUID %s at %s",
-				(unsigned long) added, 1 == added ? "y" : "ies",
+				added, 1 == added ? "y" : "ies",
 				guid_hex_str(guid), server_host_info(server));
 		}
 		gnet_stats_count_general(GNR_COLLECTED_PUSH_PROXIES, +1);
@@ -8614,10 +8614,9 @@ download_overlap_check(struct download *d)
 			goto out;
 		} else if ((size_t) r != d->chunk.overlap) {
 			g_warning(
-				"short read (got %u instead of %u bytes at offset %lu) "
+				"short read (got %zu instead of %zu bytes at offset %zu) "
 				"on resuming data for \"%s\"",
-				(guint) r, (guint) d->chunk.overlap,
-				(unsigned long) d->chunk.start - d->chunk.overlap,
+				r, d->chunk.overlap, (size_t) d->chunk.start - d->chunk.overlap,
 				fi->pathname);
 			download_stop(d, GTA_DL_ERROR, _("Short read on resume data"));
 			goto out;
@@ -14876,9 +14875,8 @@ download_tigertree_sweep(struct download *d,
 
 		if (!tth_eq(&leaves[i], &fi->tigertree.leaves[i])) {
 			g_warning("TTH tree sweep: "
-				"bad slice #%lu (%s-%s) in \"%s\" (%s bytes)",
-				(unsigned long) i,
-				filesize_to_string(offset),
+				"bad slice #%zu (%s-%s) in \"%s\" (%s bytes)",
+				i, filesize_to_string(offset),
 				uint64_to_string(next - 1),
 				download_basename(d),
 				filesize_to_string2(download_filesize(d)));
@@ -14890,14 +14888,13 @@ download_tigertree_sweep(struct download *d,
 	}
 	if (bad_slices > 0) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_warning("TTH tree sweep: %lu/%lu bad slice%s",
-				(unsigned long) bad_slices, (unsigned long) num_leaves,
-				1 == bad_slices ? "" : "s");
+			g_warning("TTH tree sweep: %zu/%zu bad slice%s",
+				bad_slices, num_leaves, 1 == bad_slices ? "" : "s");
 		}
 	} else {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_debug("TTH tree sweep: all %lu slice%s okay",
-				(unsigned long) num_leaves, 1 == num_leaves ? "" : "s");
+			g_debug("TTH tree sweep: all %zu slice%s okay",
+				num_leaves, 1 == num_leaves ? "" : "s");
 		}
 	}
 	HFREE_NULL(nodes);

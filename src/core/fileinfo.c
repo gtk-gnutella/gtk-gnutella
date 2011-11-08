@@ -3056,8 +3056,8 @@ file_info_retrieve(void)
 			if (dfi != NULL && reload_chunks) {
 				fi_copy_chunks(fi, dfi);
 				if (fi->chunklist) g_message(
-					"recovered %lu downloaded bytes from trailer of \"%s\"",
-						(gulong) fi->done, fi->pathname);
+					"recovered %s downloaded bytes from trailer of \"%s\"",
+						filesize_to_string(fi->done), fi->pathname);
 			} else if (reload_chunks)
 				g_warning("lost all CHNK info for \"%s\" -- downloading again",
 					fi->pathname);
@@ -5138,7 +5138,7 @@ fi_find_aggressive_candidate(
 	*chunk = fc;
 
 	if (GNET_PROPERTY(download_debug) > 1)
-		g_debug("aggressively requesting %s@%s [%ld, %ld] "
+		g_debug("aggressively requesting %s@%s [%lu, %lu] "
 			"for \"%s\" using %s source from %s",
 			filesize_to_string(*to - *from), short_size(*from, FALSE),
 			(unsigned long) *from, (unsigned long) *to - 1,

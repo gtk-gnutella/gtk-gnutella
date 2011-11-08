@@ -341,10 +341,10 @@ vmsg_bad_payload(struct gnutella_node *n,
 	gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
 
 	if (GNET_PROPERTY(vmsg_debug) || GNET_PROPERTY(log_bad_gnutella))
-		gmsg_log_bad(n, "bad payload size %lu for %s/%uv%u (%s), "
-			"expected at least %lu bytes",
-			(gulong) size, vendor_code_to_string(vmsg->vendor), vmsg->id,
-			vmsg->version, vmsg->name, (gulong) expected);
+		gmsg_log_bad(n, "bad payload size %zu for %s/%uv%u (%s), "
+			"expected at least %zu bytes",
+			size, vendor_code_to_string(vmsg->vendor), vmsg->id,
+			vmsg->version, vmsg->name, expected);
 
 	return TRUE;	/* bad */
 }
@@ -1789,13 +1789,13 @@ handle_svn_release_notify(struct gnutella_node *n,
 		gnet_prop_set_string(PROP_LATEST_SVN_RELEASE_SIGNATURE, hex);
 		G_FREE_NULL(hex);
 	} else {
-		g_message("VMSG BAD %s v%u from %s (TTL=%u, hops=%u, size=%lu)",
+		g_message("VMSG BAD %s v%u from %s (TTL=%u, hops=%u, size=%zu)",
 			vmsg->name,
 			vmsg->version,
 			node_infostr(n),
 			gnutella_header_get_ttl(n->header),
 			gnutella_header_get_hops(n->header),
-			(unsigned long) size);
+			size);
 	}
 }
 
@@ -2333,13 +2333,13 @@ handle_head_ping(struct gnutella_node *n,
 		return;
 
 	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_debug("VMSG got %s v%u from %s (TTL=%u, hops=%u, size=%lu)",
+		g_debug("VMSG got %s v%u from %s (TTL=%u, hops=%u, size=%zu)",
 			vmsg->name,
 			vmsg->version,
 			node_infostr(n),
 			gnutella_header_get_ttl(n->header),
 			gnutella_header_get_hops(n->header),
-			(unsigned long) size);
+			size);
 	}
 
 	if (NODE_IS_UDP(n))
@@ -2868,8 +2868,8 @@ handle_head_pong_v2(const struct head_ping_source *source,
 
 				if (name[0]) {
 					g_debug("VMSG HEAD Pong carries unhandled "
-						"GGEP \"%s\" (%lu byte)",
-						name, (unsigned long) ext_paylen(e));
+						"GGEP \"%s\" (%zu bytes)",
+						name, (size_t) ext_paylen(e));
 				} else {
 					g_debug("VMSG HEAD Pong carries unknown extra payload");
 				}

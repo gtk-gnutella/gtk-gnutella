@@ -852,9 +852,9 @@ bitzi_ticket_requested(char *data, size_t len, int code,
 	}
 
 	if (GNET_PROPERTY(bitzi_debug) > 1) {
-		g_debug("BITZI request for %s returned %lu byte%s",
+		g_debug("BITZI request for %s returned %zu byte%s",
 			sha1_to_string(breq->sha1),
-			(unsigned long) len, 1 == len ? "" : "s");
+			len, 1 == len ? "" : "s");
 		if (GNET_PROPERTY(bitzi_debug) > 5) {
 			g_debug("BITZI got HTTP %u:", code);
 			header_dump(stderr, header, "----");
@@ -1150,16 +1150,15 @@ static void
 bitzi_prune_old(void)
 {
 	if (GNET_PROPERTY(bitzi_debug)) {
-		g_debug("BITZI pruning expired tickets (%lu)",
-			(unsigned long) dbmw_count(db_bzdata));
+		g_debug("BITZI pruning expired tickets (%zu)", dbmw_count(db_bzdata));
 	}
 
 	dbmw_foreach_remove(db_bzdata, bitzi_entry_prune, NULL);
 	gnet_stats_set_general(GNR_BITZI_TICKETS_HELD, dbmw_count(db_bzdata));
 
 	if (GNET_PROPERTY(bitzi_debug)) {
-		g_debug("BITZI pruned expired tickets (%lu remaining)",
-			(unsigned long) dbmw_count(db_bzdata));
+		g_debug("BITZI pruned expired tickets (%zu remaining)",
+			dbmw_count(db_bzdata));
 	}
 
 	dbstore_shrink(db_bzdata);

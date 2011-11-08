@@ -148,9 +148,8 @@ send_pproxy_error_v(
 		size_t extlen = clamp_strcpy(extra, sizeof extra, ext);
 
 		if ('\0' != ext[extlen]) {
-			g_warning("send_pproxy_error_v: "
-				"ignoring too large extra header (%lu bytes)",
-				(unsigned long) strlen(ext));
+			g_warning("%s: ignoring too large extra header (%zu bytes)",
+				G_STRFUNC, strlen(ext));
 		} else {
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
 			hev[hevcnt++].he_msg = extra;
@@ -1249,9 +1248,9 @@ cproxy_sent_request(const struct http_async *unused_ha,
 	(void) unused_ha;
 
 	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_OUT) {
-		g_debug("----Sent push-proxy request%s to %s (%u bytes):",
+		g_debug("----Sent push-proxy request%s to %s (%zu bytes):",
 			deferred ? " completely" : "",
-			host_addr_port_to_string(s->addr, s->port), (unsigned) len);
+			host_addr_port_to_string(s->addr, s->port), len);
 		dump_string(stderr, req, len, "----");
 	}
 }

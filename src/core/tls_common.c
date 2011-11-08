@@ -100,16 +100,15 @@ tls_transport_debug(const char *op, const struct gnutella_socket *s,
 		unsigned level = is_temporary_error(errno) ? 2 : 0;
 
 		if (GNET_PROPERTY(tls_debug) > level) {
-			g_debug("%s(): fd=%d size=%lu host=%s ret=-1 errno=%m",
-				op, s->file_desc, (unsigned long) size,
+			g_debug("%s(): fd=%d size=%zu host=%s ret=-1 errno=%m",
+				op, s->file_desc, size,
 				host_addr_port_to_string(s->addr, s->port));
 		}
 	} else {
 		if (GNET_PROPERTY(tls_debug) > 2) {
-			g_debug("%s(): fd=%d size=%lu host=%s ret=%lu",
-				op, s->file_desc, (unsigned long) size,
-				host_addr_port_to_string(s->addr, s->port),
-				(unsigned long) ret);
+			g_debug("%s(): fd=%d size=%zu host=%s ret=%zu",
+				op, s->file_desc, size,
+				host_addr_port_to_string(s->addr, s->port), ret);
 		}
 	}
 }
@@ -151,7 +150,7 @@ tls_signal_pending(struct gnutella_socket *s)
 		int saved_errno = errno;
 
 		if (GNET_PROPERTY(tls_debug) > 1) {
-			g_debug("%s: pending=%lu", G_STRFUNC, (unsigned long) n);
+			g_debug("%s: pending=%zu", G_STRFUNC, n);
 		}
 		inputevt_set_readable(s->file_desc);
 		errno = saved_errno;
@@ -568,10 +567,9 @@ tls_write_intern(struct wrap_io *wio, const void *buf, size_t size)
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
 				g_carp("tls_write(): gnutls_record_send(fd=%d) failed: "
-					"host=%s snarf=%lu error=\"%s\"",
+					"host=%s snarf=%zu error=\"%s\"",
 					s->file_desc, host_addr_port_to_string(s->addr, s->port),
-					(unsigned long) s->tls.snarf,
-					gnutls_strerror(ret));
+					s->tls.snarf, gnutls_strerror(ret));
 			}
 			errno = EIO;
 			ret = -1;
@@ -606,8 +604,8 @@ tls_flush(struct wrap_io *wio)
 
 	if (s->tls.snarf) {
 		if (GNET_PROPERTY(tls_debug > 1)) {
-			g_debug("tls_flush: snarf=%lu host=%s fd=%d",
-					(unsigned long) s->tls.snarf,
+			g_debug("tls_flush: snarf=%zu host=%s fd=%d",
+					s->tls.snarf,
 					host_addr_port_to_string(s->addr, s->port), s->file_desc);
 		}
 		(void ) tls_write_intern(wio, NULL, 0);

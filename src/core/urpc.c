@@ -107,15 +107,15 @@ urpc_received(struct gnutella_socket *s, gboolean truncated)
 	ucb = g_hash_table_lookup(pending, s);
 
 	if (NULL == ucb) {
-		g_warning("UDP got unexpected %s%lu-byte RPC reply from %s",
-			truncated ? "truncated " : "", (unsigned long) s->pos,
+		g_warning("UDP got unexpected %s%zu-byte RPC reply from %s",
+			truncated ? "truncated " : "", s->pos,
 			host_addr_port_to_string(s->addr, s->port));
 		return;
 	}
 
 	if (GNET_PROPERTY(udp_debug) > 1) {
-		g_debug("UDP [%s] got %s%lu-byte RPC reply from %s",
-			ucb->what, truncated ? "truncated " : "", (unsigned long) s->pos,
+		g_debug("UDP [%s] got %s%zu-byte RPC reply from %s",
+			ucb->what, truncated ? "truncated " : "", s->pos,
 			host_addr_port_to_string(s->addr, s->port));
 	}
 
@@ -228,11 +228,10 @@ urpc_send(const char *what,
 	if (len != UNSIGNED(r)) {
 		if ((ssize_t) -1 != r) {
 			if (GNET_PROPERTY(udp_debug)) {
-				g_warning("unable to send whole %lu-byte UDP %s RPC to %s: "
-					"only sent %lu byte%s",
-					(unsigned long) len, what,
-					host_addr_port_to_string(addr, port),
-					(unsigned long) r, 1 == r ? "" : "s");
+				g_warning("unable to send whole %zu-byte UDP %s RPC to %s: "
+					"only sent %zu byte%s",
+					len, what, host_addr_port_to_string(addr, port),
+					r, 1 == r ? "" : "s");
 			}
 		}
 		socket_free_null(&s);

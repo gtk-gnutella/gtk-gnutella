@@ -36,7 +36,6 @@
 #include "map.h"
 #include "atoms.h"				/* For tests */
 #include "debug.h"
-#include "log.h"				/* For s_debug() and s_info() */
 #include "ohash_table.h"
 #include "patricia.h"
 #include "random.h"
@@ -659,9 +658,8 @@ timeit(
 	elapsed = tm_elapsed_f(&end, &start);
 
 	if (verbose)
-		s_debug("%s (%lu items, %lu loop%s): %F s (average: %F s)", what,
-			(unsigned long) count, (gulong) iter, iter == 1 ? "" : "s",
-			elapsed, elapsed / iter);
+		g_debug("%s (%zu items, %zu loop%s): %F s (average: %F s)", what,
+			count, iter, iter == 1 ? "" : "s", elapsed, elapsed / iter);
 
 	return elapsed;
 }
@@ -715,8 +713,8 @@ map_test(void)
 			1, "map PATRICIA reloading", verbose);
 
 		if (verbose)
-			s_info("PATRICIA insertion %s than hash with %lu items",
-				ptime < htime ? "faster" : "slower", (unsigned long) count);
+			g_info("PATRICIA insertion %s than hash with %zu items",
+				ptime < htime ? "faster" : "slower", count);
 
 		if (ptime < htime)
 			faster.insertion++;
@@ -728,8 +726,8 @@ map_test(void)
 			LOOPS, "map PATRICIA contains", verbose);
 
 		if (verbose)
-			s_info("PATRICIA contains %s than hash with %lu items",
-				ptime < htime ? "faster" : "slower", (unsigned long) count);
+			g_info("PATRICIA contains %s than hash with %zu items",
+				ptime < htime ? "faster" : "slower", count);
 
 		if (ptime < htime)
 			faster.contains++;
@@ -741,8 +739,8 @@ map_test(void)
 			1, "map PATRICIA remove", verbose);
 
 		if (verbose)
-			s_info("PATRICIA remove %s than hash with %lu items",
-				ptime < htime ? "faster" : "slower", (unsigned long) count);
+			g_info("PATRICIA remove %s than hash with %zu items",
+				ptime < htime ? "faster" : "slower", count);
 
 		if (ptime < htime)
 			faster.removal++;
@@ -752,14 +750,14 @@ map_test(void)
 	}
 
 	if (faster.insertion)
-		s_info("PATRICIA insert was faster than hash in %d out of %d tests",
+		g_info("PATRICIA insert was faster than hash in %d out of %d tests",
 			faster.insertion, tests);
 	if (faster.contains)
-		s_info(
+		g_info(
 			"PATRICIA contains was faster than hash in %d out of %d tests",
 			faster.contains, tests);
 	if (faster.removal)
-		s_info("PATRICIA remove was faster than hash in %d out of %d tests",
+		g_info("PATRICIA remove was faster than hash in %d out of %d tests",
 			faster.removal, tests);
 
 	G_FREE_NULL(keys);

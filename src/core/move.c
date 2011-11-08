@@ -328,8 +328,9 @@ error:
 	elapsed = MAX(1, elapsed);		/* time warp? clock not monotic? */
 
 	if (GNET_PROPERTY(move_debug) > 1)
-		g_debug("MOVE moved file \"%s\" at %lu bytes/sec [error=%d]\n",
-			download_basename(md->d), (gulong) md->size / elapsed, md->error);
+		g_debug("MOVE moved file \"%s\" at %s bytes/sec [error=%d]\n",
+			download_basename(md->d),
+			filesize_to_string(md->size / elapsed), md->error);
  
 	/* FALL THROUGH */
 

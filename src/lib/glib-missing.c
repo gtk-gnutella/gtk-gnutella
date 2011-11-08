@@ -258,9 +258,9 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 		retval = size - 1;
 	}
 	if G_UNLIKELY(truncated != 0) {
-		s_minicarp("truncated %d byte%s when formatting into %lu-byte buffer "
+		s_minicarp("truncated %d byte%s when formatting into %zu-byte buffer "
 			"with \"%s\"", truncated, 1 == truncated ? "" : "s",
-			(unsigned long) size, fmt);
+			size, fmt);
 	}
 	return retval;
 }
@@ -520,7 +520,7 @@ gm_setproctitle_init(int argc, char *argv[], char *env_ptr[])
 		size_t size;
 		
 		size = iov_contiguous_size(iov, n);
-		g_info("%lu bytes available for gm_setproctitle().", (gulong) size);
+		g_info("%zu bytes available for gm_setproctitle().", size);
 	}
 
 	/*

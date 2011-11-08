@@ -1597,9 +1597,7 @@ mingw_mprotect(void *addr, size_t len, int prot)
 	if (!res) {
 		errno = mingw_last_error();
 		if (vmm_is_debugging(0)) {
-			g_debug("VMM mprotect(%p, %lu) failed: errno=%d (%s)",
-				addr, (unsigned long) len, errno,
-				symbolic_errno(errno));
+			g_debug("VMM mprotect(%p, %zu) failed: errno=%m", addr, len);
 		}
 		return -1;
 	}

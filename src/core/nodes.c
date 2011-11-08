@@ -10668,8 +10668,8 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 			int remains;
 
 			if (GNET_PROPERTY(node_debug)) g_debug(
-				"crawler compressed %lu bytes user-agent string into %d",
-				(unsigned long) (str_len(agents) - 1), dlen);
+				"crawler compressed %zu bytes user-agent string into %d",
+				str_len(agents) - 1, dlen);
 
 			/*
 			 * If we have room to include it, do so.

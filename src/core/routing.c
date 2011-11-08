@@ -980,9 +980,8 @@ get_next_slot(gboolean advance, unsigned *cidx)
 			size_t j;
 
 			if (GNET_PROPERTY(routing_debug)) {
-				g_debug("RT freeing chunk #%lu at %p, now holds %d / %d",
-					(unsigned long) i, (void *) rchunk,
-					routing.count, routing.capacity);
+				g_debug("RT freeing chunk #%zu at %p, now holds %d / %d",
+					i, (void *) rchunk, routing.count, routing.capacity);
 			}
 
 			for (j = 0; j < CHUNK_MESSAGES; j++) {

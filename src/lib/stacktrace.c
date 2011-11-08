@@ -345,8 +345,8 @@ trace_sort(void)
 	if (old_count != trace_array.count) {
 		size_t delta = old_count - trace_array.count;
 		g_assert(size_is_non_negative(delta));
-		s_warning("stripped %lu duplicate symbol%s",
-			(unsigned long) delta, 1 == delta ? "" : "s");
+		s_warning("stripped %zu duplicate symbol%s",
+			delta, 1 == delta ? "" : "s");
 	}
 
 	trace_array.sorted = TRUE;

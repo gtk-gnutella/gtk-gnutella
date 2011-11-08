@@ -478,8 +478,8 @@ find_tokkey_upto(time_t now, size_t count)
 	guint i;
 
 	if (GNET_PROPERTY(version_debug) > 4) {
-		g_debug("%s: count=%lu, from %s()",
-			G_STRFUNC, (unsigned long) count, stacktrace_caller_name(1));
+		g_debug("%s: count=%zu, from %s()",
+			G_STRFUNC, count, stacktrace_caller_name(1));
 	}
 
 	g_assert(count <= G_N_ELEMENTS(token_keys));
@@ -600,8 +600,8 @@ find_tokkey_version(const version_t *ver, time_t now)
 	}
 
 	if (GNET_PROPERTY(version_debug) > 4) {
-		g_debug("%s: fallback max=%u (/%lu)",
-			G_STRFUNC, i, (unsigned long) G_N_ELEMENTS(token_keys));
+		g_debug("%s: fallback max=%u (/%zu)",
+			G_STRFUNC, i, G_N_ELEMENTS(token_keys));
 	}
 
 	i++;									/* We need a count, not an index */

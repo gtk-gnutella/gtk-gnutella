@@ -389,11 +389,10 @@ omalloc_chunk_allocate_from(struct ochunk *ck, size_t size)
 		ostats.chunks--;
 
 		if (omalloc_debug > 2) {
-			s_debug("OMALLOC dissolving chunk header on %lu-byte allocation",
-				(unsigned long) size);
+			s_debug("OMALLOC dissolving chunk header on %zu-byte allocation",
+				size);
 			if (csize != size) {
-				s_debug("OMALLOC %lu trailing bytes lost",
-					(unsigned long) (csize - size));
+				s_debug("OMALLOC %zu trailing bytes lost", csize - size);
 				ostats.wasted += csize - size;
 			}
 		}
@@ -440,10 +439,9 @@ omalloc(size_t size)
 
 	if (omalloc_debug > 2) {
 		size_t pages = allocated / compat_pagesize();
-		s_debug("OMALLOC allocated %lu page%s (%lu total for %lu object%s)",
-			(unsigned long) pages, 1 == pages ? "" : "s",
-			(unsigned long) ostats.pages, (unsigned long) ostats.objects,
-			1 == ostats.objects ? "" : "s");
+		s_debug("OMALLOC allocated %zu page%s (%zu total for %zu object%s)",
+			pages, 1 == pages ? "" : "s",
+			ostats.pages, ostats.objects, 1 == ostats.objects ? "" : "s");
 	}
 
 	ostats.pages += allocated / compat_pagesize();
@@ -463,15 +461,14 @@ omalloc(size_t size)
 		ostats.chunks++;
 
 		if (omalloc_debug > 2) {
-			s_debug("OMALLOC adding %lu byte-long chunk (%lu chunk%s total)",
-				(unsigned long) omalloc_chunk_size(ck),
-				(unsigned long) ostats.chunks, 1 == ostats.chunks ? "" : "s");
+			s_debug("OMALLOC adding %zu byte-long chunk (%zu chunk%s total)",
+				omalloc_chunk_size(ck),
+				ostats.chunks, 1 == ostats.chunks ? "" : "s");
 		}
 	} else if (allocated != rounded) {
 		if (omalloc_debug > 2) {
-			s_debug("OMALLOC %lu trailing bytes lost on %lu-byte allocation",
-				(unsigned long) (allocated - rounded),
-				(unsigned long) rounded);
+			s_debug("OMALLOC %zu trailing bytes lost on %zu-byte allocation",
+				allocated - rounded, rounded);
 		}
 	}
 
@@ -549,12 +546,12 @@ omalloc_close(void)
 	 */
 
 	if (omalloc_debug) {
-		s_debug("omalloc() allocated %lu object%s spread on %lu page%s",
-			(unsigned long) ostats.objects, 1 == ostats.objects ? "" : "s",
-			(unsigned long) ostats.pages, 1 == ostats.pages ? "" : "s");
-		s_debug("omalloc() allocated %s, %lu partial page%s remain%s",
+		s_debug("omalloc() allocated %zu object%s spread on %zu page%s",
+			ostats.objects, 1 == ostats.objects ? "" : "s",
+			ostats.pages, 1 == ostats.pages ? "" : "s");
+		s_debug("omalloc() allocated %s, %zu partial page%s remain%s",
 			short_size(ostats.memory, FALSE),
-			(unsigned long) ostats.chunks, 1 == ostats.chunks ? "" : "s",
+			ostats.chunks, 1 == ostats.chunks ? "" : "s",
 			1 == ostats.chunks ? "s" : "");
 	}
 }

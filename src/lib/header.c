@@ -1032,8 +1032,8 @@ header_fmt_to_string(const header_fmt_t *hf)
 	header_fmt_check(hf);
 
 	if (str_len(hf->header) >= sizeof line) {
-		g_warning("trying to format too long an HTTP line (%lu bytes)",
-			(unsigned long) str_len(hf->header));
+		g_warning("trying to format too long an HTTP line (%zu bytes)",
+			str_len(hf->header));
 	}
 	clamp_strncpy(line, sizeof line, str_2c(hf->header), str_len(hf->header));
 	return line;

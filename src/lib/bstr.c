@@ -126,8 +126,8 @@ error_eos(bstr_t *bs, size_t expected, const char *where)
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		str_printf(bs->error,
-			"%s: end of stream reached at offset %lu; expected %s more byte%s",
-			where, (unsigned long) (bs->end - bs->start),
+			"%s: end of stream reached at offset %zu; expected %s more byte%s",
+			where, ptr_diff(bs->end, bs->start),
 			expected ? size_t_to_string(expected) : "some",
 			expected == 1 ? "" : "s");
 	}
@@ -314,9 +314,8 @@ invalid_len(bstr_t *bs, size_t len, const char *what, const char *where)
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		str_printf(bs->error,
-			"%s: invalid %s length %lu at offset %lu",
-			where, what, (unsigned long ) len,
-			(unsigned long) (bs->rptr - bs->start));
+			"%s: invalid %s length %zu at offset %zu",
+			where, what, len, ptr_diff(bs->rptr, bs->start));
 	}
 
 	return bs->ok = FALSE;
@@ -333,9 +332,8 @@ invalid_len_max(
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		str_printf(bs->error,
-			"%s: invalid %s length %lu (max is %lu) at offset %lu",
-			where, what, (unsigned long) len, (unsigned long) max,
-			(unsigned long) (bs->rptr - bs->start));
+			"%s: invalid %s length %zu (max is %zu) at offset %zu",
+			where, what, len, max, ptr_diff(bs->rptr, bs->start));
 	}
 
 	return bs->ok = FALSE;
@@ -351,8 +349,8 @@ invalid_encoding(bstr_t *bs, const char *what, const char *where)
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		str_printf(bs->error,
-			"%s: invalid encoding at offset %lu: %s",
-			where, (unsigned long) (bs->rptr - bs->start), what);
+			"%s: invalid encoding at offset %zu: %s",
+			where, ptr_diff(bs->rptr, bs->start), what);
 	}
 
 	return bs->ok = FALSE;
@@ -368,8 +366,8 @@ report_error(bstr_t *bs, const char *what, const char *where)
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		str_printf(bs->error,
-			"%s: error at offset %lu: %s",
-			where, (unsigned long) (bs->rptr - bs->start), what);
+			"%s: error at offset %zu: %s",
+			where, ptr_diff(bs->rptr, bs->start), what);
 	}
 
 	return bs->ok = FALSE;
@@ -402,8 +400,8 @@ bstr_trailing_error(bstr_t *bs)
 	if (n != 0) {
 		if (bs->flags & BSTR_F_ERROR) {
 			alloc_error(bs);
-			str_printf(bs->error, "has %lu trailing unread byte%s",
-				(unsigned long) n, 1 == n ? "" : "s");
+			str_printf(bs->error, "has %zu trailing unread byte%s",
+				n, 1 == n ? "" : "s");
 		} else {
 			bs->flags |= BSTR_F_TRAILING;
 		}

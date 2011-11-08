@@ -922,8 +922,8 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 
 			if (GNET_PROPERTY(publisher_debug) > 1) {
 				size_t roots = lookup_result_path_length(rs);
-				g_debug("PDHT ALOC found %lu publish root%s for %s \"%s\"",
-					(unsigned long) roots, 1 == roots ? "" : "s",
+				g_debug("PDHT ALOC found %zu publish root%s for %s \"%s\"",
+					roots, 1 == roots ? "" : "s",
 					shared_file_is_partial(sf) ? "partial" : "shared",
 					shared_file_name_nfc(sf));
 			}
@@ -953,8 +953,8 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 	case PDHT_T_NOPE:
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
-			g_debug("PDHT NOPE found %lu publish root%s for %s",
-				(unsigned long) roots, 1 == roots ? "" : "s",
+			g_debug("PDHT NOPE found %zu publish root%s for %s",
+				roots, 1 == roots ? "" : "s",
 				guid_hex_str(pp->u.nope.guid));
 		}
 
@@ -963,8 +963,8 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 	case PDHT_T_PROX:
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
-			g_debug("PDHT PROX found %lu publish root%s",
-				(unsigned long) roots, 1 == roots ? "" : "s");
+			g_debug("PDHT PROX found %zu publish root%s",
+				roots, 1 == roots ? "" : "s");
 		}
 
 		value = pdht_get_prox(pp->id);
@@ -1413,8 +1413,8 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 	g_list_free(list);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_debug("PDHT PROX using %lu push-prox%s for local node (%s)",
-			(unsigned long) i, 1 == i ? "y" : "ies",
+		g_debug("PDHT PROX using %zu push-prox%s for local node (%s)",
+			i, 1 == i ? "y" : "ies",
 			GNET_PROPERTY(is_firewalled) ? "firewalled" : "not firewalled");
 	}
 

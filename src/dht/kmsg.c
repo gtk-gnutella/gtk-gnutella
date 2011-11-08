@@ -279,9 +279,9 @@ warn_unparsed_trailer(const knode_t *kn, const kademlia_header_t *header,
 	if (unparsed && GNET_PROPERTY(dht_debug)) {
 		guint8 function = kademlia_header_get_function(header);
 		g_warning("DHT message %s from %s "
-			"has %lu byte%s of unparsed trailing data (ignored)",
+			"has %zu byte%s of unparsed trailing data (ignored)",
 			kmsg_name(function), knode_to_string(kn),
-			(gulong) unparsed, 1 == unparsed ? "" : "s");
+			unparsed, 1 == unparsed ? "" : "s");
 		if (GNET_PROPERTY(dht_debug) > 15)
 			dump_hex(stderr, "Unparsed trailing data",
 				bstr_read_base(bs), unparsed);
@@ -465,8 +465,8 @@ k_send_pong(struct gnutella_node *n, const guid_t *muid)
 	 */
 
 	if (GNET_PROPERTY(dht_debug > 3))
-		g_debug("DHT sending back %s (%lu bytes) to %s",
-			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
+		g_debug("DHT sending back %s (%zu bytes) to %s",
+			kmsg_infostr(header), (size_t) pmsg_size(mb),
 			host_addr_port_to_string(n->addr, n->port));
 
 	udp_dht_send_mb(n, mb);
@@ -540,9 +540,9 @@ k_send_find_node_response(
 	 */
 
 	if (GNET_PROPERTY(dht_debug > 3))
-		g_debug("DHT sending back %s (%lu bytes) with %lu contact%s to %s",
-			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
-			(unsigned long) klen, klen == 1 ? "" : "s",
+		g_debug("DHT sending back %s (%zu bytes) with %zu contact%s to %s",
+			kmsg_infostr(header), (size_t) pmsg_size(mb),
+			klen, klen == 1 ? "" : "s",
 			host_addr_port_to_string(n->addr, n->port));
 
 	udp_dht_send_mb(n, mb);
@@ -632,9 +632,8 @@ k_send_find_value_response(
 		if (value_size + secondary_size > (size_t) pmsg_available(mb)) {
 			if (GNET_PROPERTY(dht_debug) > 3)
 				g_warning(
-					"DHT after sending %lu DHT values, will send %lu key%s",
-					(unsigned long) i, (unsigned long) (vlen - i),
-					(1 == vlen - i) ? "" : "s");
+					"DHT after sending %zu DHT values, will send %zu key%s",
+					i, vlen - i, (1 == vlen - i) ? "" : "s");
 			break;
 		}
 
@@ -645,7 +644,7 @@ k_send_find_value_response(
 		values++;
 
 		if (GNET_PROPERTY(dht_debug) > 4)
-			g_warning("DHT packed value %d/%lu: %s", values, (gulong) vlen,
+			g_warning("DHT packed value %d/%zu: %s", values, vlen,
 				dht_value_to_string(v));
 	}
 
@@ -672,9 +671,8 @@ k_send_find_value_response(
 			secondaries++;
 
 			if (GNET_PROPERTY(dht_debug) > 4)
-				g_warning("DHT packed secondary key %d/%lu for %s",
-					secondaries, (gulong) remain,
-					dht_value_to_string(v));
+				g_warning("DHT packed secondary key %d/%zu for %s",
+					secondaries, remain, dht_value_to_string(v));
 		}
 	}
 
@@ -701,9 +699,9 @@ k_send_find_value_response(
 	 */
 
 	if (GNET_PROPERTY(dht_debug > 3))
-		g_debug("DHT sending back %s (%lu bytes) with "
+		g_debug("DHT sending back %s (%zu bytes) with "
 			"%d value%s and %d secondary key%s to %s",
-			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
+			kmsg_infostr(header), (size_t) pmsg_size(mb),
 			values, values == 1 ? "" : "s",
 			secondaries, secondaries == 1 ? "" : "s",
 			host_addr_port_to_string(n->addr, n->port));
@@ -800,8 +798,8 @@ k_send_store_response(
 	 */
 
 	if (GNET_PROPERTY(dht_debug > 3))
-		g_debug("DHT sending back %s (%lu bytes) with %d status%s to %s",
-			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
+		g_debug("DHT sending back %s (%zu bytes) with %d status%s to %s",
+			kmsg_infostr(header), (size_t) pmsg_size(mb),
 			i, i == 1 ? "" : "es",
 			host_addr_port_to_string(n->addr, n->port));
 
@@ -827,8 +825,8 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 	warn_no_header_extension(kn, header, extlen);
 
 	if (len && GNET_PROPERTY(dht_debug)) {
-		g_warning("DHT unhandled PING payload (%lu byte%s) from %s",
-			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
+		g_warning("DHT unhandled PING payload (%zu byte%s) from %s",
+			len, len == 1 ? "" : "s", knode_to_string(kn));
 		dump_hex(stderr, "Kademlia Ping payload", payload, len);
 	}
 
@@ -989,8 +987,8 @@ error:
 		KDA_MSG_PING_RESPONSE, MSG_DROP_DHT_UNPARSEABLE);
 
 	if (GNET_PROPERTY(dht_debug))
-		g_warning("DHT unhandled PONG payload (%lu byte%s) from %s: %s: %s",
-			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
+		g_warning("DHT unhandled PONG payload (%zu byte%s) from %s: %s: %s",
+			len, len == 1 ? "" : "s", knode_to_string(kn),
 			reason, bstr_error(bs));
 
 	bstr_free(&bs);
@@ -1213,8 +1211,8 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 
 	if (len != KUID_RAW_SIZE) {
 		if (GNET_PROPERTY(dht_debug)) {
-			g_warning("DHT bad FIND_NODE payload (%lu byte%s) from %s",
-				(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
+			g_warning("DHT bad FIND_NODE payload (%zu byte%s) from %s",
+				len, len == 1 ? "" : "s", knode_to_string(kn));
 			dump_hex(stderr, "Kademlia FIND_NODE payload", payload, len);
 		}
 		gnet_dht_stats_count_dropped(n,
@@ -1428,8 +1426,8 @@ error:
 
 invalid_token:
 	if (GNET_PROPERTY(dht_debug))
-		g_warning("DHT unhandled STORE payload (%lu byte%s) from %s: %s: %s",
-			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
+		g_warning("DHT unhandled STORE payload (%zu byte%s) from %s: %s: %s",
+			len, len == 1 ? "" : "s", knode_to_string(kn),
 			reason, bstr_error(bs));
 
 	/* FALL THROUGH */
@@ -1476,8 +1474,8 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 
 	if (len < KUID_RAW_SIZE + 4) {
 		if (GNET_PROPERTY(dht_debug)) {
-			g_warning("DHT bad FIND_VALUE payload (%lu byte%s) from %s",
-				(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
+			g_warning("DHT bad FIND_VALUE payload (%zu byte%s) from %s",
+				len, len == 1 ? "" : "s", knode_to_string(kn));
 			dump_hex(stderr, "Kademlia FIND_VALUE payload", payload, len);
 		}
 		gnet_dht_stats_count_dropped(n,
@@ -1621,8 +1619,8 @@ error:
 
 	if (GNET_PROPERTY(dht_debug))
 		g_warning(
-			"DHT unhandled FIND_VALUE payload (%lu byte%s) from %s: %s: %s",
-			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
+			"DHT unhandled FIND_VALUE payload (%zu byte%s) from %s: %s: %s",
+			len, len == 1 ? "" : "s", knode_to_string(kn),
 			reason, bstr_error(bs));
 
 	/* FALL THROUGH */
@@ -2363,9 +2361,9 @@ void kmsg_received(
 
 drop:
 	if (GNET_PROPERTY(dht_debug)) {
-		g_warning("DHT got invalid Kademlia packet (%u bytes) "
+		g_warning("DHT got invalid Kademlia packet (%zu bytes) "
 			"\"%s\" from UDP (%s): %s",
-			(unsigned) len, gmsg_infostr_full(data, len),
+			len, gmsg_infostr_full(data, len),
 			host_addr_port_to_string(addr, port), reason);
 		if (len)
 			dump_hex(stderr, "UDP datagram", data, len);

@@ -400,9 +400,8 @@ again:
 
 		if (written > 0) {
 			g_warning(
-				"partial UDP write (%lu bytes) to %s for %lu-byte datagram",
-				(unsigned long) written, gnet_host_to_string(to),
-				(unsigned long) size);
+				"partial UDP write (%zu bytes) to %s for %zu-byte datagram",
+				written, gnet_host_to_string(to), size);
 			goto cleanup;
 		}
 

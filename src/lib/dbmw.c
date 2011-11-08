@@ -276,12 +276,10 @@ dbmw_create(dbmap_t *dm, const char *name,
 
 	if (common_dbg)
 		g_debug("DBMW created \"%s\" with %s back-end "
-			"(max cached = %lu, key=%lu bytes, value=%lu bytes, "
-			"%lu max serialized)",
+			"(max cached = %zu, key=%zu bytes, value=%zu bytes, "
+			"%zu max serialized)",
 			dw->name, dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
-			(gulong) dw->max_cached,
-			(gulong) dw->key_size, (gulong) dw->value_size,
-			(gulong) dw->value_data_size);
+			dw->max_cached, dw->key_size, dw->value_size, dw->value_data_size);
 
 	return dw;
 }
@@ -344,9 +342,9 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 	 */
 
 	if (common_dbg > 4)
-		g_debug("DBMW \"%s\" %s dirty value (%lu byte%s)",
+		g_debug("DBMW \"%s\" %s dirty value (%zu byte%s)",
 			dw->name, value->absent ? "deleting" : "flushing",
-			(unsigned long) dval.len, 1 == dval.len ? "" : "s");
+			dval.len, 1 == dval.len ? "" : "s");
 
 	dw->ioerr = FALSE;
 	ok = value->absent ?

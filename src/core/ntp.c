@@ -140,8 +140,7 @@ ntp_got_reply(host_addr_t addr, const void *payload, size_t len)
 	g_info("NTP detected at %s", host_addr_to_string(addr));
 
 	if (len != NTP_MINSIZE && len != NTP_MAXSIZE) {
-		g_warning("got weird reply from NTP server (%lu bytes)",
-			(unsigned long) len);
+		g_warning("got weird reply from NTP server (%zu bytes)", len);
 		return;
 	}
 

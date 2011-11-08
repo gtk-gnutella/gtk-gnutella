@@ -869,16 +869,15 @@ static void
 hostiles_spam_prune_old(void)
 {
 	if (GNET_PROPERTY(spam_debug)) {
-		g_debug("SPAM pruning expired hosts (%lu)",
-			(unsigned long) dbmw_count(db_spam));
+		g_debug("SPAM pruning expired hosts (%zu)", dbmw_count(db_spam));
 	}
 
 	dbmw_foreach_remove(db_spam, spam_prune_old, NULL);
 	gnet_stats_set_general(GNR_SPAM_IP_HELD, dbmw_count(db_spam));
 
 	if (GNET_PROPERTY(spam_debug)) {
-		g_debug("SPAM pruned expired hosts (%lu remaining)",
-			(unsigned long) dbmw_count(db_spam));
+		g_debug("SPAM pruned expired hosts (%zu remaining)",
+			dbmw_count(db_spam));
 	}
 }
 

@@ -312,8 +312,8 @@ static gboolean
 ghc_host_line(struct parse_context *ctx, const gchar *buf, size_t len)
 {
 	if (GNET_PROPERTY(bootstrap_debug) > 2)
-		g_debug("BOOT GHC host line #%u (%lu bytes): %s",
-			ctx->processed + 1, (gulong) len, buf);
+		g_debug("BOOT GHC host line #%u (%zu bytes): %s",
+			ctx->processed + 1, len, buf);
 
 	if (len) {
 		host_addr_t addr;

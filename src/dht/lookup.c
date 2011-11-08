@@ -661,9 +661,8 @@ log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what, guint level)
 	lookup_check(nl);
 
 	count = patricia_count(pt);
-	g_debug("DHT LOOKUP[%s] %s contains %lu item%s:",
-		nid_to_string(&nl->lid), what, (gulong) count,
-		count == 1 ? "" : "s");
+	g_debug("DHT LOOKUP[%s] %s contains %zu item%s:",
+		nid_to_string(&nl->lid), what, count, 1 == count ? "" : "s");
 
 	iter = patricia_metric_iterator_lazy(pt, nl->kuid, FALSE);
 
@@ -947,12 +946,11 @@ lookup_value_terminate(nlookup_t *nl,
 			GNET_PROPERTY(dht_publish_debug) > 2
 		) {
 			g_debug("DHT LOOKUP[%s] "
-				"not caching %d \"%s\" value%s for %s: local=%s, path size=%lu",
+				"not caching %d \"%s\" value%s for %s: local=%s, path size=%zu",
 				nid_to_string(&nl->lid),
 				vcnt, dht_value_type_to_string(nl->u.fv.vtype),
 				1 == vcnt ? "" : "s",
-				kuid_to_hex_string(nl->kuid), local ? "y" : "n",
-				(unsigned long)  count);
+				kuid_to_hex_string(nl->kuid), local ? "y" : "n", count);
 		}
 	}
 
@@ -1720,9 +1718,9 @@ bad:
 	 */
 
 	if (GNET_PROPERTY(dht_debug))
-		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%lu byte%s) "
+		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%zu byte%s) "
 			"from %s: %s: %s",
-			 (unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
+			 len, len == 1 ? "" : "s", knode_to_string(kn),
 			 reason, bstr_error(bs));
 
 	/* FALL THROUGH */
@@ -2432,9 +2430,9 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 	qsort(&items, G_N_ELEMENTS(items), sizeof(items[0]), kl_item_revcmp);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_debug("DHT LOOKUP[%s] largest K-L divergence %g from %lu-bit prefix",
+		g_debug("DHT LOOKUP[%s] largest K-L divergence %g from %zu-bit prefix",
 			nid_to_string(&nl->lid), items[0].contrib,
-			(unsigned long) items[0].prefix);
+			items[0].prefix);
 	}
 
 	/*
@@ -3334,9 +3332,9 @@ bad:
 	 */
 
 	if (GNET_PROPERTY(dht_debug))
-		g_warning("DHT improper FIND_NODE_RESPONSE payload (%lu byte%s) "
+		g_warning("DHT improper FIND_NODE_RESPONSE payload (%zu byte%s) "
 			"from %s: %s: %s",
-			 (unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
+			 len, len == 1 ? "" : "s", knode_to_string(kn),
 			 reason, bstr_error(bs));
 
 	if (token != NULL)
@@ -3400,11 +3398,11 @@ lookup_value_acceptable(nlookup_t *nl, const knode_t *kn)
 refusing:
 	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 		g_debug("DHT LOOKUP[%s] %s lookup for %s refusing (proba = %.3f%%) "
-			"value at node with only %lu common bits (k-ball at %lu bits): %s",
+			"value at node with only %zu common bits (k-ball at %zu bits): %s",
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
 			kuid_to_hex_string(nl->kuid),
-			(double) proba / (NL_KBALL_FACTOR / 100), (unsigned long) common,
-			(unsigned long) kball, knode_to_string(kn));
+			(double) proba / (NL_KBALL_FACTOR / 100), common,
+			kball, knode_to_string(kn));
 	}
 
 	return FALSE;
@@ -3412,10 +3410,10 @@ refusing:
 accepting:
 	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 		g_debug("DHT LOOKUP[%s] %s lookup for %s accepting value "
-			"(%lu common bits, k-ball at %lu bits, proba = %.3f%%) from %s",
+			"(%zu common bits, k-ball at %zu bits, proba = %.3f%%) from %s",
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
-			kuid_to_hex_string(nl->kuid), (unsigned long) common,
-			(unsigned long) kball, (double) proba / (NL_KBALL_FACTOR / 100),
+			kuid_to_hex_string(nl->kuid), common,
+			kball, (double) proba / (NL_KBALL_FACTOR / 100),
 			knode_to_string(kn));
 	}
 
@@ -4701,10 +4699,9 @@ bad:
 	 */
 
 	if (GNET_PROPERTY(dht_debug))
-		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%lu byte%s) "
+		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%zu byte%s) "
 			"from %s: %s%s%s",
-			 (unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
-			 reason,
+			 len, len == 1 ? "" : "s", knode_to_string(kn), reason,
 			 bstr_has_error(bs) ? ": " : "",
 			 bstr_has_error(bs) ? bstr_error(bs) : "");
 

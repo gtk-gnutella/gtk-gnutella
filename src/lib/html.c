@@ -696,7 +696,7 @@ parse(struct html_output *output, const struct array array)
 	return 0;
 
 error:
-	g_warning("line %lu: error: %s", (unsigned long)line_num, msg);
+	g_warning("line %zu: error: %s", line_num, msg);
 	return -1;
 }
 

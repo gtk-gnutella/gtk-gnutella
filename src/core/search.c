@@ -2691,10 +2691,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		} else {
 			if (GNET_PROPERTY(search_debug)) {
 				g_warning(
-					"UNKNOWN %lu-byte trailer at offset %lu in %s from %s "
+					"UNKNOWN %zu-byte trailer at offset %zu in %s from %s "
 					"(%u/%u records parsed)",
-					(unsigned long) trailer_len,
-					(unsigned long) (s - n->data),
+					trailer_len, s - n->data,
 					gmsg_node_infostr(n),
 					node_addr(n), (guint) nr, (guint) rs->num_recs);
 			}
@@ -6625,13 +6624,13 @@ search_request_preprocess(struct gnutella_node *n,
 
 		if (exvcnt && GNET_PROPERTY(query_debug) > 13) {
 			g_debug("QUERY %s%s [hops=%u, TTL=%u] with extensions: "
-				"\"%s\" (%lu byte%s)",
+				"\"%s\" (%zu byte%s)",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
 				sri->whats_new ? WHATS_NEW : lazy_safe_search(search),
-				(unsigned long) extra, 1 == extra ? "" : "s");
+				extra, 1 == extra ? "" : "s");
 			ext_dump(stderr, exv, exvcnt, "> ", "\n",
 				GNET_PROPERTY(query_debug) > 14);
 		}
@@ -8112,10 +8111,10 @@ search_compact(struct gnutella_node *n)
 				GNET_PROPERTY(guess_server_debug) > 5
 			)
 		) {
-			g_debug("QUERY %s%s search extension part %lu -> %lu bytes",
+			g_debug("QUERY %s%s search extension part %zu -> %zu bytes",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				(unsigned long) extra, (unsigned long) newlen);
+				extra, newlen);
 		}
 
 		/*
@@ -8142,10 +8141,10 @@ search_compact(struct gnutella_node *n)
 		if (GNET_PROPERTY(query_debug) > 13) {
 			if (newlen > 0) {
 				exvcnt = ext_parse(start, newlen, exv, MAX_EXTVEC);
-				g_debug("QUERY %s%s rewritten extensions (%lu byte%s)",
+				g_debug("QUERY %s%s rewritten extensions (%zu byte%s)",
 					NODE_IS_UDP(n) ? "(GUESS) " : "",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
-					(unsigned long) newlen, 1 == newlen ? "" : "s");
+					newlen, 1 == newlen ? "" : "s");
 				ext_dump(stderr, exv, exvcnt, "> ", "\n",
 					GNET_PROPERTY(query_debug) > 14);
 				ext_reset(exv, MAX_EXTVEC);
@@ -8157,18 +8156,17 @@ search_compact(struct gnutella_node *n)
 		}
 	} else if (newlen > extra) {
 		if (GNET_PROPERTY(query_debug)) {
-			g_warning("QUERY %s%s not rewritten: new size %lu byte%s > old %lu",
+			g_warning("QUERY %s%s not rewritten: new size %zu byte%s > old %zu",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				(unsigned long) newlen, 1 == newlen ? "" : "s",
-				(unsigned long) extra);
+				newlen, 1 == newlen ? "" : "s", extra);
 		}
 	} else {
 		if (GNET_PROPERTY(query_debug) > 13) {
-			g_info("QUERY %s%s not rewritten: no change in size (%lu byte%s)",
+			g_info("QUERY %s%s not rewritten: no change in size (%zu byte%s)",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				(unsigned long) newlen, 1 == newlen ? "" : "s");
+				newlen, 1 == newlen ? "" : "s");
 		}
 	}
 

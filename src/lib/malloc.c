@@ -451,9 +451,9 @@ block_check_trailer(gconstpointer o, size_t size,
 	if (MALLOC_END_MARK != peek_be32(const_ptr_add_offset(o, size))) {
 		error = TRUE;
 		g_warning(
-			"MALLOC (%s:%d) block %p (%lu bytes) from %s:%d "
+			"MALLOC (%s:%d) block %p (%zu bytes) from %s:%d "
 			"has corrupted end mark",
-			op_file, op_line, o, (unsigned long) size, file, line);
+			op_file, op_line, o, size, file, line);
 		goto done;
 	}
 
@@ -462,9 +462,9 @@ block_check_trailer(gconstpointer o, size_t size,
 		if (*p++ != MALLOC_TRAILER_MARK) {
 			error = TRUE;
 			g_warning(
-				"MALLOC (%s:%d) block %p (%lu bytes) from %s:%d "
+				"MALLOC (%s:%d) block %p (%zu bytes) from %s:%d "
 				"has corrupted trailer",
-				op_file, op_line, o, (unsigned long) size, file, line);
+				op_file, op_line, o, size, file, line);
 			break;
 		}
 	}
@@ -680,16 +680,15 @@ real_check(const void *key, void *value, void *ctx)
 		if (REAL_MALLOC_MAGIC != rmh->magic) {
 			rb->header_corrupted = TRUE;
 			bc->new_corrupted++;
-			g_warning("MALLOC corrupted real block magic at %p (%lu byte%s)",
-				p, (unsigned long) rb->size, 1 == rb->size ? "" : "s");
+			g_warning("MALLOC corrupted real block magic at %p (%zu byte%s)",
+				p, rb->size, 1 == rb->size ? "" : "s");
 		} else if (rmh->size != rb->size) {
 			/* Can indicate memory corruption as well */
 			bc->new_corrupted++;
 			rb->header_corrupted = TRUE;
 			g_warning("MALLOC size mismatch for real block %p: "
-				"hashtable says %lu byte%s, header says %u",
-				p, (unsigned long) rb->size,
-				1 == rb->size ? "" : "s", rmh->size);
+				"hashtable says %zu byte%s, header says %zu",
+				p, rb->size, 1 == rb->size ? "" : "s", rmh->size);
 		}
 	}
 #endif	/* MALLOC_SAFE */
@@ -785,10 +784,10 @@ block_check_missed_free(const void *p, const char *file, int line)
 
 	b = hash_table_lookup(blocks, p);
 	if (b != NULL) {
-		g_warning("MALLOC (%s:%d) reusing %sblock %p (%lu byte%s) "
+		g_warning("MALLOC (%s:%d) reusing %sblock %p (%zu byte%s) "
 			"from %s:%d, missed its freeing",
 			file, line, b->owned ? "owned " : "foreign ",
-			p, (gulong) b->size, 1 == b->size ? "" : "s",
+			p, b->size, 1 == b->size ? "" : "s",
 			b->file, b->line);
 		stacktrace_where_print(stderr);
 
@@ -824,19 +823,19 @@ real_check_missed_free(void *p)
 				 * reuse the address and need to track it.
 				 */
 
-				g_warning("MALLOC reusing %s block %p (%lu byte%s) "
+				g_warning("MALLOC reusing %s block %p (%zu byte%s) "
 					"from %s:%d, missed its freeing",
 					b->owned ? "owned" : "foreign",
-					p, (gulong) rb->size, 1 == rb->size ? "" : "s",
+					p, rb->size, 1 == rb->size ? "" : "s",
 					b->file, b->line);
 				b->owned = FALSE;
 				free_record(p, _WHERE_, __LINE__);
 			}
 		}
 #else	/* !TRACK_MALLOC */
-		g_warning("MALLOC reusing real block %p (%lu byte%s), "
+		g_warning("MALLOC reusing real block %p (%zu byte%s), "
 			"missed its freeing",
-			p, (gulong) rb->size, 1 == rb->size ? "" : "s");
+			p, rb->size, 1 == rb->size ? "" : "s");
 #endif	/* TRACK_MALLOC */
 		g_warning("current_frame:");
 		stacktrace_where_print(stderr);
@@ -871,7 +870,7 @@ real_malloc(size_t size)
 		rmh = malloc(len);
 
 		if (rmh == NULL)
-			g_error("unable to allocate %lu bytes", (gulong) size);
+			g_error("unable to allocate %zu bytes", size);
 
 		rmh->magic = REAL_MALLOC_MAGIC;
 		rmh->size = size;
@@ -885,7 +884,7 @@ real_malloc(size_t size)
 #endif /* MALLOC_SAFE */
 
 	if (o == NULL)
-		g_error("unable to allocate %lu bytes", (gulong) size);
+		g_error("unable to allocate %zu bytes", size);
 
 	block_clear_dead(o, size);
 
@@ -1163,7 +1162,7 @@ real_realloc(void *ptr, size_t size)
 #endif	/* MALLOC_SAFE */
 
 		if (n == NULL)
-			g_error("cannot realloc block into a %lu-byte one", (gulong) size);
+			g_error("cannot realloc block into a %zu-byte one", size);
 
 #ifdef TRACK_MALLOC
 		if (n != p && not_leaking != NULL) {
@@ -1276,8 +1275,8 @@ malloc_log_block(const void *k, void *v, gpointer leaksort)
 	ago[0] = '\0';
 #endif	/* MALLOC_TIME */
 
-	g_warning("leaked block %p (%lu bytes) from \"%s:%d\"%s",
-		k, (gulong) b->size, b->file, b->line, ago);
+	g_warning("leaked block %p (%zu bytes) from \"%s:%d\"%s",
+		k, b->size, b->file, b->line, ago);
 
 	leak_add(leaksort, b->size, b->file, b->line);
 
@@ -1369,7 +1368,7 @@ malloc_log_real_block(const void *k, void *v, gpointer leaksort)
 	ago[0] = '\0';
 #endif	/* MALLOC_TIME */
 
-	g_warning("leaked block %p (%lu bytes)%s", p, (gulong) rb->size, ago);
+	g_warning("leaked block %p (%zu bytes)%s", p, rb->size, ago);
 
 	leak_add(leaksort, rb->size, "FAKED", 0);
 
@@ -1535,7 +1534,7 @@ malloc_track(size_t size, const char *file, int line)
 		mh = real_malloc(len);
 
 		if (mh == NULL)
-			g_error("unable to allocate %lu bytes", (gulong) size);
+			g_error("unable to allocate %zu bytes", size);
 
 		mh->start = MALLOC_START_MARK;
 		o = mh->arena;
@@ -1549,7 +1548,7 @@ malloc_track(size_t size, const char *file, int line)
 #endif /* MALLOC_SAFE */
 
 	if (o == NULL)
-		g_error("unable to allocate %lu bytes", (gulong) size);
+		g_error("unable to allocate %zu bytes", size);
 
 	block_clear_dead(o, size);
 
@@ -1885,8 +1884,7 @@ realloc_track(gpointer o, size_t size, const char *file, int line)
 				mh = real_realloc(mh, total);
 
 				if (mh == NULL) {
-					g_error("cannot realloc block into a %lu-byte one",
-						(gulong) size);
+					g_error("cannot realloc block into a %zu-byte one", size);
 				}
 
 				mh->start = MALLOC_START_MARK;
@@ -1907,7 +1905,7 @@ realloc_track(gpointer o, size_t size, const char *file, int line)
 #endif /* MALLOC_SAFE */
 
 		if (n == NULL)
-			g_error("cannot realloc block into a %lu-byte one", (gulong) size);
+			g_error("cannot realloc block into a %zu-byte one", size);
 
 		return realloc_record(o, n, size, file, line);
 	}
@@ -2749,9 +2747,8 @@ leak_dump(gpointer o)
 
 	for (i = 0; i < count; i++) {
 		struct leak *l = &filler.leaks[i];
-		g_warning("%lu bytes (%lu block%s) from \"%s\"",
-			(gulong) l->lr->size, (gulong) l->lr->count,
-			l->lr->count == 1 ? "" : "s", l->place);
+		g_warning("%zu bytes (%zu block%s) from \"%s\"",
+			l->lr->size, l->lr->count, l->lr->count == 1 ? "" : "s", l->place);
 	}
 
 	real_free(filler.leaks);

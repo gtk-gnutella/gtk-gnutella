@@ -942,8 +942,8 @@ publisher_init(void)
 		inverse_decimation[i] = 1.0 / (1.0 + v * v);
 
 		if (GNET_PROPERTY(publisher_debug) > 4) {
-			g_debug("PUBLISHER inverse_decimation[%lu] = %g",
-				(unsigned long) i, inverse_decimation[i]);
+			g_debug("PUBLISHER inverse_decimation[%zu] = %g",
+				i, inverse_decimation[i]);
 		}
 	}
 

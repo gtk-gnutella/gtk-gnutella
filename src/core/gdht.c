@@ -54,6 +54,7 @@
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/sha1.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -387,9 +388,10 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	if (filesize != 0 && fi->size != 0 && fi->size != filesize) {
 		if (GNET_PROPERTY(download_debug))
 			g_warning("discarding %s from %s for %s: "
-				"we have size=%lu, ALOC says %lu",
+				"we have size=%s, ALOC says %s",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
-				fi->pathname, (gulong) fi->size, (gulong) filesize);
+				fi->pathname, filesize_to_string(fi->size),
+				filesize_to_string2(filesize));
 		goto cleanup;
 	}
 
@@ -468,9 +470,8 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 	g_assert(slk->id == kuid);		/* They are atoms */
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_debug("DHT ALOC lookup for %s returned %lu value%s",
-			kuid_to_string(kuid), (gulong) rs->count,
-			1 == rs->count ? "" : "s");
+		g_debug("DHT ALOC lookup for %s returned %zu value%s",
+			kuid_to_string(kuid), rs->count, 1 == rs->count ? "" : "s");
 
 	fi = file_info_by_guid(slk->fi_guid);
 
@@ -871,9 +872,8 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 	g_assert(glk->id == kuid);		/* They are atoms */
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_debug("DHT PROX lookup for GUID %s returned %lu value%s",
-			guid_to_string(glk->guid), (gulong) rs->count,
-			1 == rs->count ? "" : "s");
+		g_debug("DHT PROX lookup for GUID %s returned %zu value%s",
+			guid_to_string(glk->guid), rs->count, 1 == rs->count ? "" : "s");
 	}
 
 	/*
@@ -902,10 +902,9 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug)) {
-		g_debug("DHT PROX %s lookup for GUID %s returned %lu other value%s",
+		g_debug("DHT PROX %s lookup for GUID %s returned %zu other value%s",
 			(prox || nope) ? "successful" : "failed",
-			guid_to_string(glk->guid),
-			(gulong) other, 1 == other ? "" : "s");
+			guid_to_string(glk->guid), other, 1 == other ? "" : "s");
 	}
 
 	if (other > 0) {

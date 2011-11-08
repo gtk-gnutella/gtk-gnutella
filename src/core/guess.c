@@ -966,9 +966,9 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 		hash_list_prepend(link_cache, atom_host_get(h));
 
 		if (GNET_PROPERTY(guess_client_debug) > 2) {
-			g_info("GUESS adding %s to link cache (p=%d%%, n=%lu)",
+			g_info("GUESS adding %s to link cache (p=%d%%, n=%zu)",
 				gnet_host_to_string(h), p,
-				(unsigned long) hash_list_length(link_cache));
+				hash_list_length(link_cache));
 		}
 	}
 
@@ -1751,8 +1751,8 @@ static void
 guess_qk_prune_old(void)
 {
 	if (GNET_PROPERTY(guess_client_debug)) {
-		g_debug("GUESS QKCACHE pruning expired query keys (%lu)",
-			(unsigned long) dbmw_count(db_qkdata));
+		g_debug("GUESS QKCACHE pruning expired query keys (%zu)",
+			dbmw_count(db_qkdata));
 	}
 
 	guess_02_hosts = 0;		/* Will be updated by qk_prune_old() */
@@ -1763,8 +1763,8 @@ guess_qk_prune_old(void)
 	gnet_stats_set_general(GNR_GUESS_CACHED_02_HOSTS_HELD, guess_02_hosts);
 
 	if (GNET_PROPERTY(guess_client_debug)) {
-		g_debug("GUESS QKCACHE pruned expired query keys (%lu remaining)",
-			(unsigned long) dbmw_count(db_qkdata));
+		g_debug("GUESS QKCACHE pruned expired query keys (%zu remaining)",
+			dbmw_count(db_qkdata));
 	}
 
 	dbstore_shrink(db_qkdata);
@@ -2050,17 +2050,15 @@ guess_final_stats(const guess_t *gq)
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
 		g_debug("GUESS QUERY[%s] \"%s\" took %g secs, "
-			"queried_set=%lu, pool_set=%lu, "
-			"queried=%lu, acks=%lu, max_ultras=%lu, kept_results=%u/%u, "
+			"queried_set=%zu, pool_set=%zu, "
+			"queried=%zu, acks=%zu, max_ultras=%zu, kept_results=%u/%u, "
 			"out_qk=%u bytes, out_query=%u bytes",
 			nid_to_string(&gq->gid),
 			lazy_safe_search(gq->query),
 			tm_elapsed_f(&end, &gq->start),
-			(unsigned long) map_count(gq->queried),
-			(unsigned long) hash_list_length(gq->pool),
-			(unsigned long) gq->queried_nodes,
-			(unsigned long) gq->query_acks,
-			(unsigned long) gq->max_ultrapeers,
+			map_count(gq->queried),
+			hash_list_length(gq->pool),
+			gq->queried_nodes, gq->query_acks, gq->max_ultrapeers,
 			gq->kept_results, gq->recv_results,
 			gq->bw_out_qk, gq->bw_out_query);
 	}
@@ -2383,9 +2381,8 @@ guess_load_more_hosts(guess_t *gq)
 	added = guess_load_pool(gq, FALSE);
 
 	if (GNET_PROPERTY(guess_client_debug) > 4) {
-		g_debug("GUESS QUERY[%s] loaded %lu more host%s in the pool",
-			nid_to_string(&gq->gid), (unsigned long) added,
-			1 == added ? "" : "s");
+		g_debug("GUESS QUERY[%s] loaded %zu more host%s in the pool",
+			nid_to_string(&gq->gid), added, 1 == added ? "" : "s");
 	}
 }
 
@@ -3208,11 +3205,11 @@ guess_iterate(guess_t *gq)
 		tm_t now;
 		tm_now_exact(&now);
 		g_debug("GUESS QUERY[%s] iterating, %g secs, hop %u, "
-		"[acks/pool: %lu/%u] "
+		"[acks/pool: %zu/%u] "
 		"(%s parallelism: sending %d RPC%s at most, %d outstanding)",
 			nid_to_string(&gq->gid), tm_elapsed_f(&now, &gq->start),
-			gq->hops, (unsigned long) gq->query_acks,
-			hash_list_length(gq->pool), guess_mode_to_string(gq->mode),
+			gq->hops, gq->query_acks, hash_list_length(gq->pool),
+			guess_mode_to_string(gq->mode),
 			alpha, 1 == alpha ? "" : "s", gq->rpc_pending);
 	}
 

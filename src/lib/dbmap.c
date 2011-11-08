@@ -744,8 +744,8 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 					}
 					dm->count = dbmap_sdbm_count_keys(dm, FALSE);
 					g_warning("DBMAP on sdbm \"%s\": "
-						"key count reset to %lu after counting",
-						sdbm_name(dm->u.s.sdbm), (gulong) dm->count);
+						"key count reset to %zu after counting",
+						sdbm_name(dm->u.s.sdbm), dm->count);
 				} else {
 					dm->count--;
 				}
@@ -1115,8 +1115,8 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg)
 				dmw->count = count;
 			}
 			if (invalid) {
-				g_warning("DBMAP on sdbm \"%s\": found %lu invalid key%s",
-					sdbm_name(sdbm), (gulong) invalid, 1 == invalid ? "" : "s");
+				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s",
+					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s");
 			}
 		}
 		break;
@@ -1190,8 +1190,8 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
 				dmw->count = count;
 			}
 			if (invalid) {
-				g_warning("DBMAP on sdbm \"%s\": found %lu invalid key%s",
-					sdbm_name(sdbm), (gulong) invalid, 1 == invalid ? "" : "s");
+				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s",
+					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s");
 			}
 		}
 		break;

@@ -4730,10 +4730,10 @@ static void unbuffer_operations(void)
 		if (vmm_debugging(2)) {
 			s_warning("VMM processing deferred "
 				"%s (%zu %s bytes starting %p) at \"%s:%d\" "
-				"(%lu other record%s pending)",
+				"(%zu other record%s pending)",
 				track_operation_to_string(tb.op), tb.pt.size,
 				track_mem(tb.pt.user), tb.addr, tb.pt.file, tb.pt.line,
-				(unsigned long) vmm_buffer.idx, 1 == vmm_buffer.idx ? "" : "s");
+				vmm_buffer.idx, 1 == vmm_buffer.idx ? "" : "s");
 		}
 
 		switch (tb.op) {

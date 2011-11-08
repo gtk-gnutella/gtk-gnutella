@@ -733,8 +733,7 @@ settings_init(void)
 			short_kb_size(amount, GNET_PROPERTY(display_metric_units)));
 		g_info("process can use %u file descriptors", max_fd);
 		g_info("max I/O vector size is %d items", MAX_IOV_COUNT);
-		g_info("virtual memory page size is %lu bytes",
-			(gulong) compat_pagesize());
+		g_info("virtual memory page size is %zu bytes", compat_pagesize());
 		g_info("core dumps are %s",
 			crash_coredumps_disabled() ? "disabled" : "enabled");
 

@@ -3724,8 +3724,8 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 	estimate = (guint64) (retained * pow(2.0, bits));
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT average common prefix is %f bits over %lu node%s",
-			bits, (unsigned long) retained, 1 == retained ? "" : "s");
+		g_debug("DHT average common prefix is %f bits over %zu node%s",
+			bits, retained, 1 == retained ? "" : "s");
 	}
 
 	return estimate;

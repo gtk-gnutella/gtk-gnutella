@@ -1016,9 +1016,9 @@ handle_push_request(struct gnutella_node *n)
 			default:
 				if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
 					size_t paylen = ext_paylen(e);
-					g_warning("%s (PUSH): unhandled GGEP \"%s\" (%lu byte%s)",
+					g_warning("%s (PUSH): unhandled GGEP \"%s\" (%zu byte%s)",
 						gmsg_node_infostr(n), ext_ggep_id_str(e),
-						(gulong) paylen, paylen == 1 ? "" : "s");
+						paylen, paylen == 1 ? "" : "s");
 				}
 				break;
 			}
@@ -2711,8 +2711,8 @@ upload_connect_conf(struct upload *u)
 			u->name, host_addr_to_string(s->addr), g_strerror(errno));
 	} else if ((size_t) sent < rw) {
 		if (GNET_PROPERTY(upload_debug)) g_warning(
-			"only sent %lu out of %lu bytes of GIV for \"%s\" to %s",
-			(gulong) sent, (gulong) rw, u->name, host_addr_to_string(s->addr));
+			"only sent %zu out of %zu bytes of GIV for \"%s\" to %s",
+			sent, rw, u->name, host_addr_to_string(s->addr));
 	} else if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT) {
 		g_debug("----Sent GIV to %s:", host_addr_to_string(s->addr));
 		dump_string(stderr, giv, rw, "----");

@@ -151,9 +151,8 @@ tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, size_t len,
 	case EINPROGRESS:		/* Weird, but seen it -- RAM, 07/10/2003 */
 	{
 		const struct attr *attr = tx->opaque;
-		g_warning("%s(fd=%d, len=%lu) failed with weird errno = %d: %m -- "
-			"assuming EAGAIN", func, attr->wio->fd(attr->wio),
-			(unsigned long) len, errno);
+		g_warning("%s(fd=%d, len=%zu) failed with weird errno = %m -- "
+			"assuming EAGAIN", func, attr->wio->fd(attr->wio), len);
 	}
 		return 0;
 	case EPIPE:
@@ -183,8 +182,8 @@ tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, size_t len,
 		/*
 		 * Don't set TX_ERROR here, we don't care about lost packets.
 		 */
-		g_carp("UDP write of %lu bytes to %s failed: %m",
-			(unsigned long) len, gnet_host_to_string(to));
+		g_carp("UDP write of %zu bytes to %s failed: %m",
+			len, gnet_host_to_string(to));
 		return -1;
 	default:
 		{

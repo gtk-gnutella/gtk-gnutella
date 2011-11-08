@@ -493,9 +493,9 @@ publish_roots_update(const publish_t *pb)
 path_loaded:
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
 		size_t count = patricia_count(path);
-		g_debug("DHT PUBLISH[%s] updating roots cache with %lu entr%s near %s",
-			nid_to_string(&pb->pid), (unsigned long) count,
-			1 == count ? "y" : "ies", kuid_to_hex_string(pb->key));
+		g_debug("DHT PUBLISH[%s] updating roots cache with %zu entr%s near %s",
+			nid_to_string(&pb->pid), count, 1 == count ? "y" : "ies",
+			kuid_to_hex_string(pb->key));
 	}
 
 	roots_record(path, pb->key);
@@ -1102,10 +1102,9 @@ bad:
 
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT PUBLISH[%s] improper STORE_RESPONSE payload "
-			"(%lu byte%s) from %s: %s%s%s",
+			"(%zu byte%s) from %s: %s%s%s",
 			nid_to_string(&pb->pid),
-			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
-			reason,
+			len, len == 1 ? "" : "s", knode_to_string(kn), reason,
 			bstr_has_error(bs) ? ": " : "",
 			bstr_has_error(bs) ? bstr_error(bs) : "");
 

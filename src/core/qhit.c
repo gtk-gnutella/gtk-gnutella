@@ -655,10 +655,9 @@ add_file(const shared_file_t *sf)
 	if (!is_partial) {
 		g_assert_log(
 			!found_contains(uint_to_pointer(file_index)),
-			"file_index=%u (%s SHA1), qhit_contains=%lu, qhit_files=%lu",
+			"file_index=%u (%s SHA1), qhit_contains=%zu, qhit_files=%zu",
 			(unsigned) file_index, sha1_available ? "has" : "no",
-			(unsigned long) found_contains_count(),
-			(unsigned long) found_file_count());
+			found_contains_count(), found_file_count());
 	} else {
 		unsigned i;
 

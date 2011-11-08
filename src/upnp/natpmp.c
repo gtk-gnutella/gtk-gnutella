@@ -461,11 +461,11 @@ error:
 	if (GNET_PROPERTY(natpmp_debug)) {
 		if (bstr_has_error(bs)) {
 			g_warning("NATPMP parsing error while processing discovery reply "
-				"(%lu byte%s): %s",
-				(unsigned long) len, 1 == len ? "" : "s", bstr_error(bs));
+				"(%zu byte%s): %s",
+				len, 1 == len ? "" : "s", bstr_error(bs));
 		} else {
-			g_warning("NATPMP inconsistent discovery reply (%lu byte%s)",
-				(unsigned long) len, 1 == len ? "" : "s");
+			g_warning("NATPMP inconsistent discovery reply (%zu byte%s)",
+				len, 1 == len ? "" : "s");
 		}
 	}
 	bstr_free(&bs);
@@ -578,11 +578,11 @@ error:
 	if (GNET_PROPERTY(natpmp_debug)) {
 		if (bstr_has_error(bs)) {
 			g_warning("NATPMP parsing error while processing discovery reply "
-				"(%lu byte%s): %s",
-				(unsigned long) len, 1 == len ? "" : "s", bstr_error(bs));
+				"(%zu byte%s): %s",
+				len, 1 == len ? "" : "s", bstr_error(bs));
 		} else {
-			g_warning("NATPMP inconsistent discovery reply (%lu byte%s)",
-				(unsigned long) len, 1 == len ? "" : "s");
+			g_warning("NATPMP inconsistent discovery reply (%zu byte%s)",
+				len, 1 == len ? "" : "s");
 		}
 	}
 	bstr_free(&bs);

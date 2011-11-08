@@ -223,13 +223,12 @@ dime_log_truncated_record(const char *name, const struct dime_record *header,
 
 	g_warning("dime_parse_record_header(): truncated %s "
 		"in \"%s\" record%s%s%s: "
-		"announced %lu (padded to %lu), got only %lu byte%s left",
+		"announced %zu (padded to %zu), got only %zu byte%s left",
 		name, type,
 		(header->flags & DIME_F_MB) ? " [MB]" : "",
 		(header->flags & DIME_F_ME) ? " [ME]" : "",
 		(header->flags & DIME_F_CF) ? " [CF]" : "",
-		(unsigned long) announced, (unsigned long) dime_ceil(announced),
-		(unsigned long) real, 1 == real ? "" : "s");
+		announced, dime_ceil(announced), real, 1 == real ? "" : "s");
 }
 
 /**

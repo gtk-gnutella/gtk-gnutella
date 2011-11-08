@@ -302,8 +302,8 @@ rw_is_sorted(const char *name,
 			strcmp(prev->rw_name, e->rw_name) >= 0
 		)
 			g_error("reserved word table \"%s\" unsorted "
-				"(item #%lu \"%s\" = %d follows \"%s\" = %d)",
-				name, (unsigned long) (i + 1), e->rw_name, e->rw_token,
+				"(item #%zu \"%s\" = %d follows \"%s\" = %d)",
+				name, i + 1, e->rw_name, e->rw_token,
 				prev->rw_name, prev->rw_token);
 
 		if (ggeptable == table) {
@@ -1415,9 +1415,8 @@ ext_ggep_stripkey(char *buf, int len, const char *key,
 			 */
 
 			if (GNET_PROPERTY(ggep_debug) > 5) {
-				g_debug("GGEP stripping \"%s\" %skey (%lu bytes)",
-					key, (flags & GGEP_F_LAST) ? "last " : "",
-					(unsigned long) elen);
+				g_debug("GGEP stripping \"%s\" %skey (%zu bytes)",
+					key, (flags & GGEP_F_LAST) ? "last " : "", elen);
 			}
 
 			if (flags & GGEP_F_LAST) {
