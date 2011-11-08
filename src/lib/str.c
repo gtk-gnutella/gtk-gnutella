@@ -1636,15 +1636,15 @@ G_STMT_START {									\
 					int e;
 					char m[32], r[33];
 					size_t mlen, rlen, asked;
-					gboolean dragon = FALSE;
-					gboolean short_exp = FALSE;
+					gboolean dragon_fmt = FALSE;
+					gboolean asked_dragon = FALSE;
 
 					if ('F' == c) {
-						short_exp = TRUE;
+						asked_dragon = TRUE;
 						if (has_precis)
 							c = 'G';
 						else
-							dragon = TRUE;
+							dragon_fmt = TRUE;
 					}
 
 					/*
@@ -1690,7 +1690,7 @@ G_STMT_START {									\
 					 *		printf("0.%se%d", m, e + 1);
 					 */
 
-					if (dragon) {
+					if (asked_dragon) {
 						mlen = float_dragon(m, sizeof m, nv, &e);
 					} else {
 						mlen = float_fixed(m, sizeof m, nv, asked, &e);
@@ -1706,7 +1706,7 @@ G_STMT_START {									\
 							"(len=%zu, asked=%s), e=%d "
 							"[precis=%zu, digits=%zu, alt=%s]",
 							nv, c, (int) mlen, m, mlen,
-							dragon ? "none" : size_t_to_string(asked),
+							asked_dragon ? "none" : size_t_to_string(asked),
 							e, precis, digits, alt ? "y" : "n");
 						s_debug("%s", buf);
 					}
@@ -1730,7 +1730,7 @@ G_STMT_START {									\
 					if ('g' == c || 'G' == c) {
 						if (e < -4 || e >= (int) precis + 1)
 							c = 'g' == c ? 'e' : 'E';
-					} else if (dragon) {
+					} else if (dragon_fmt) {
 						c = 'f';				/* For logging only */
 						if (e > 0) {
 							size_t v = e;
@@ -1755,7 +1755,7 @@ G_STMT_START {									\
 							*--mptr = '0' + dig;
 						} while (v /= 10);
 						v = (e >= 0) ? e : -e;
-						if (v < 10 && !short_exp)
+						if (v < 10 && !asked_dragon)
 							*--mptr = '0';
 						*--mptr = (e >= 0) ? '+' : '-';
 						*--mptr = is_ascii_upper(c) ? 'E' : 'e';
@@ -1769,7 +1769,7 @@ G_STMT_START {									\
 
 						mptr = ebuf + sizeof ebuf;
 
-						if (dragon) {
+						if (dragon_fmt) {
 							v = mlen - 1;
 							do {
 								if (0 == v && mlen > 1)
@@ -1809,7 +1809,7 @@ G_STMT_START {									\
 
 						/* %f or %F -- THE FUN BEGINS! */
 
-						if (dragon) {
+						if (dragon_fmt) {
 							if (e < 0) {
 								azeros = -e - 1;	/* Zeros after dot */
 								g_assert(mlen <= sizeof ebuf);
