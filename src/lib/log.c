@@ -632,6 +632,7 @@ s_minilogv(GLogLevelFlags level, gboolean copy, const char *fmt, va_list args)
 static void
 s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
+	int saved_errno = errno;
 	gboolean in_signal_handler = signal_in_handler();
 	gboolean avoid_malloc;
 	static str_t *cstr;
@@ -752,7 +753,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 		s_minilogv(level | G_LOG_FLAG_RECURSION, level & G_LOG_FLAG_FATAL,
 			format, args);
-		return;
+		goto done;
 	}
 
 	/*
@@ -793,7 +794,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			print_str("\n");		/* 5 */
 			log_flush_err();
 			ck_restore(ck, saved);
-			return;
+			goto done;
 		}
 
 		g_assert(ptr_diff(ck_save(ck), saved) > LOG_MSG_MAXLEN);
@@ -919,6 +920,9 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		else
 			stacktrace_where_sym_print_offset(stderr, 2);
 	}
+
+done:
+	errno = saved_errno;
 }
 
 /**
@@ -1665,7 +1669,6 @@ log_rename(enum log_file which, const char *newname)
 	if (!ok) {
 		errno = saved_errno;
 		s_warning("could not rename \"%s\" as \"%s\": %m", lf->path, newname);
-		errno = saved_errno;
 		return FALSE;
 	}
 
