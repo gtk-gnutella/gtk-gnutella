@@ -85,6 +85,9 @@
 #if 0
 #define MINGW_SYSCALL_DEBUG		/**< Trace all Windows API call errors */
 #endif
+#if 0
+#define MINGW_STARTUP_DEBUG		/**< Trace early startup stages */
+#endif
 
 #undef signal
 
@@ -3121,10 +3124,32 @@ mingw_stdio_reset(void)
 	close(STDERR_FILENO);
 }
 
+#ifdef MINGW_STARTUP_DEBUG
+static FILE *
+getlog(gboolean initial)
+{
+	return fopen("gtkg-log.txt", initial ? "wb" : "ab");
+}
+
+#define STARTUP_DEBUG(...)	G_STMT_START {	\
+	if (lf != NULL) {						\
+		fprintf(lf, __VA_ARGS__);			\
+		fputc('\n', lf);					\
+	}										\
+} G_STMT_END
+
+#else	/* !MINGW_STARTUP_DEBUG */
+#define getlog(x)	NULL
+#define STARTUP_DEBUG(...)
+#endif	/* MINGW_STARTUP_DEBUG */
+
 G_GNUC_COLD void
 mingw_early_init(void)
 {
 	int console_err;
+	FILE *lf = getlog(TRUE);
+
+	STARTUP_DEBUG("starting");
 
 #if __MSVCRT_VERSION__ >= 0x800
 	_set_invalid_parameter_handler(mingw_invalid_parameter);
@@ -3139,13 +3164,27 @@ mingw_early_init(void)
 
 	_fcloseall();
 
+	lf = getlog(FALSE);
+	STARTUP_DEBUG("attempting AttachConsole()...");
+
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-		mingw_stdio_reset();
-		freopen("CONIN$", "rb", stdin);
-		freopen("CONOUT$", "wb", stdout);
-		freopen("CONOUT$", "wb", stderr);
+		int tty = isatty(STDIN_FILENO);
+		STARTUP_DEBUG("AttachConsole() succeeded (stdin is%s a tty)",
+			tty ? "" : "n't");
+		if (tty) {
+			mingw_stdio_reset();
+			freopen("CONIN$", "rb", stdin);
+			freopen("CONOUT$", "wb", stdout);
+			freopen("CONOUT$", "wb", stderr);
+			STARTUP_DEBUG("stdio reset");
+		} else {
+			STARTUP_DEBUG("stdio not reset");
+		}
 	} else {
 		console_err = GetLastError();
+
+		STARTUP_DEBUG("AttachConsole() failed, error = %d", console_err);
+		STARTUP_DEBUG("stdin is%s a tty", isatty(STDIN_FILENO) ? "" : "n't");
 
 		switch (console_err) {
 		case ERROR_INVALID_HANDLE:
@@ -3159,17 +3198,26 @@ mingw_early_init(void)
 				pathname = mingw_getstdout_path();
 				freopen(pathname, "wb", stdout);
 				log_set(LOG_STDOUT, pathname);
+				STARTUP_DEBUG("stdout sent to %s", pathname);
 
 				pathname = mingw_getstderr_path();
 				freopen(pathname, "wb", stderr);
 				log_set(LOG_STDERR, pathname);
+				STARTUP_DEBUG("stderr sent to %s", pathname);
 			}
 			break;
 		case ERROR_ACCESS_DENIED:
 			/* Ignore, we already have a console */
+			STARTUP_DEBUG("AttachConsole() denied");
+			break;
+		default:
+			STARTUP_DEBUG("AttachConsole() has unhandled error");
 			break;
 		}
 	}
+
+	if (lf != NULL)
+		fclose(lf);
 }
 
 void 
