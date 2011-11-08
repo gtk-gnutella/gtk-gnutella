@@ -97,10 +97,8 @@ static inline void
 tls_transport_debug(const char *op, const struct gnutella_socket *s,
 	size_t size, ssize_t ret)
 {
-	int saved_errno = errno;
-
 	if ((ssize_t) -1 == ret) {
-		unsigned level = is_temporary_error(saved_errno) ? 2 : 0;
+		unsigned level = is_temporary_error(errno) ? 2 : 0;
 
 		if (GNET_PROPERTY(tls_debug) > level) {
 			s_debug("%s(): fd=%d size=%lu host=%s ret=-1 errno=%m",
@@ -115,7 +113,6 @@ tls_transport_debug(const char *op, const struct gnutella_socket *s,
 				(unsigned long) ret);
 		}
 	}
-	errno = saved_errno;
 }
 
 /**

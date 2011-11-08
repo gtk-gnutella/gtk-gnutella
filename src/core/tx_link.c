@@ -165,13 +165,10 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 
 	default:
 		{
-			int saved_errno = errno;
 			wrap_io_t *wio = ((struct attr *) tx->opaque)->wio;
 			int fd = wio->fd(wio);
-			s_warning(
-				"%s: write failed on fd #%d with unexpected errno %d: %m",
-				func, fd, saved_errno);
-			errno = saved_errno;
+			s_warning("%s: write failed on fd #%d with unexpected error: %m",
+				func, fd);
 		}
 		/* FALL THROUGH */
 

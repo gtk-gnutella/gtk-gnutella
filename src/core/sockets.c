@@ -2781,10 +2781,8 @@ socket_connect_prepare(struct gnutella_socket *s,
 		}
 
 		if (fd < 0) {
-			int saved_errno = errno;
 			s_warning("unable to create %s socket: %m",
 				socket_type_to_string(type));
-			errno = saved_errno;
 			return -1;
 		}
 

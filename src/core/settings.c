@@ -276,13 +276,9 @@ ensure_unicity(const char *file, int *fd_ptr)
 
 	fd = file_create(file, O_RDWR, PID_FILE_MODE);
 	if (fd < 0) {
-		int saved_errno = errno;
-
 		if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
 			s_warning("could not create \"%s\": %m", file);
 		}
-
-		errno = saved_errno;
 		return -1;
 	}
 

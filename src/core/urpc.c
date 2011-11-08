@@ -199,10 +199,8 @@ urpc_send(const char *what,
 	s = socket_udp_listen(bind_addr, 0, urpc_received);
 	if (NULL == s) {
 		if (GNET_PROPERTY(udp_debug)) {
-			int saved_errno = errno;
 			s_warning("unable to create anonymous UDP %s socket for %s RPC: %m",
 				net_type_to_string(host_addr_net(bind_addr)), what);
-			errno = saved_errno;
 		}
 		return -1;
 	}
@@ -221,10 +219,8 @@ urpc_send(const char *what,
 
 	if ((ssize_t) -1 == r) {
 		if (GNET_PROPERTY(udp_debug)) {
-			int saved_errno = errno;
 			s_warning("unable to send UDP %s RPC to %s: %m",
 				what, host_addr_port_to_string(addr, port));
-			errno = saved_errno;
 		}
 	} else {
 		errno = 0;
