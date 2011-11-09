@@ -146,12 +146,23 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 	sed -e '/^#/d' $< > t-$@
 	mv t-$@ $@
 
-
 all-yes: stamp-po
 all-no:
 
 # Must run whenever there are new strings to be translated in the source files.
-update: update-po
+update: update-potfiles update-po
+
+# Recompute list of files with translatable strings
+# Only looks for the "_(" string in source files, which may be imperfect
+update-potfiles:
+	( \
+		echo "# List of source files containing translatable strings."; \
+		echo "# Regenerated on `date`"; \
+		echo ""; \
+		(cd $(top_srcdir); find src -name "*.[ct]" | xargs grep -l _\( | \
+			grep -v gtk1/interface-glade.c | sort); \
+		echo "# The End"; \
+	) >POTFILES.in
 
 # stamp-po is a timestamp denoting the last time at which the CATALOGS have
 # been loosely updated. Its purpose is that when a developer or translator
@@ -373,7 +384,7 @@ $(DUMMYPOFILES):
 update-gmo: Makefile $(GMOFILES)
 	@:
 
-Makefile: Makefile.SH LINGUAS
+Makefile: Makefile.SH LINGUAS POTFILES.in
 	sh Makefile.SH
 
 force:
