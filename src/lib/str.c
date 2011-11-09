@@ -1139,6 +1139,633 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
 #define TYPE_DIGITS(t)	BIT_DIGITS(sizeof(t) * 8)
 
 /**
+ * Append formatted floating point value.
+ *
+ * @param str			string to which fomatting occurs
+ * @param maxlen		maximum amount of bytes to print
+ * @param nv			floating point value
+ * @param f				format letter: 'f', 'g', 'e' or upper-cased version
+ * @param has_precis	whether precision was requested
+ * @param precision		precision for formatting (0 if !has_precis)
+ * @param width			field width
+ * @param written		set with amount of bytes appended to string
+ *
+ * @return TRUE if written normally, FALSE when clamping was done.
+ */
+static size_t
+str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
+	gboolean has_precis, const size_t precision, const size_t width,
+	const char plus, const bool left, const bool alt, size_t *written)
+{
+	size_t ezeros = 0;		/* Trailing mantissa zeros in %e form */
+	size_t dzeros = 0;		/* Trailing zeros before dot */
+	size_t azeros = 0;		/* After-dot zeros, before value */
+	size_t fzeros = 0;		/* Trailing fixed zeros */
+	size_t dot = 0;			/* Emit floating point "." if 1, "0." if 2 */
+	size_t digits = 0;
+
+	char esignbuf[4];
+	int esignlen = 0;
+	char expbuf[6];
+	int explen = 0;
+
+	const char *eptr = NULL;
+	const char *expptr = NULL;
+	char *mptr;
+	size_t elen = 0;
+	char ebuf[TYPE_DIGITS(long) * 2 + 16]; /* large enough for "%#.#f" */
+	char *p, *q;
+
+	size_t have;
+	size_t need;
+	size_t gap;
+
+	char c = f;
+	size_t origlen = str->s_len;
+	size_t precis = precision;
+	size_t remain = maxlen;
+
+	str_check(str);
+	g_assert(size_is_non_negative(maxlen));
+
+	/*
+	 * Sanity check of the ``maxlen'' parameter.
+	 */
+
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
+		size_t avail = str->s_size - str->s_len;
+		if G_UNLIKELY(avail <= 1)
+			goto clamped;
+		avail--;					/* Leave room for trailing NUL */
+		remain = MIN(maxlen, avail);
+	}
+
+	/*
+	 * Ensure nv is a valid number, and not NaN, +Inf or -Inf
+	 * before calling the formatting routine.
+	 */
+
+	mptr = ebuf + sizeof ebuf;
+
+	switch (fpclassify(nv)) {
+	case FP_NAN:
+		if (is_ascii_upper(c)) {
+			elen = 4;
+			eptr = "NAN*";
+		} else {
+			elen = 3;
+			eptr = "nan";
+		}
+		break;
+	case FP_INFINITE:
+		mptr -= 3;
+		clamp_memcpy(mptr, 3, is_ascii_upper(c) ? "INF" : "inf", 3);
+		if (nv < 0)
+			*--mptr = '-';
+		else if (plus)
+			*--mptr = plus;
+		eptr = mptr;
+		elen = (ebuf + sizeof ebuf) - eptr;
+		break;
+	default:
+		{
+			int e;
+			char m[32], r[33];
+			size_t mlen, rlen, asked;
+			gboolean dragon_fmt = FALSE;
+			gboolean asked_dragon = FALSE;
+
+			if ('F' == c) {
+				asked_dragon = TRUE;
+				if (has_precis)
+					c = 'G';
+				else
+					dragon_fmt = TRUE;
+			}
+
+			/*
+			 * For %g, the precision is the number of digits displayed,
+			 * whereas for %e it's the number of digits after the
+			 * decimal point.
+			 */
+
+			if ('g' == c || 'G' == c) {
+				/* A non-zero digits value flags %g or %G */
+				digits = MAX(1, precis);
+				precis = (0 == precis) ? 0 : precis - 1;
+			}
+
+			if (nv >= 0) {
+				if (plus)
+					esignbuf[esignlen++] = plus;
+			} else {
+				nv = -nv;
+				esignbuf[esignlen++] = '-';
+			}
+
+			/*
+			 * We cap the precision at FPREC since this is the maximum
+			 * supported by 64-bit IEEE numbers with a 52-bit mantissa.
+			 */
+
+			if ('f' == c) {
+				asked = FPREC;		/* Will do rounding ourselves */
+			} else if (digits) {
+				asked = MIN(FPREC, digits);
+			} else {
+				asked = 1 + MIN(FPREC, precis);
+			}
+
+			/*
+			 * Format the floating point number, separating the
+			 * mantissa and the exponent.
+			 *
+			 * The returned values are such that one presentation
+			 * of the number would be the output of:
+			 *
+			 *		printf("0.%se%d", m, e + 1);
+			 */
+
+			if (asked_dragon) {
+				mlen = float_dragon(m, sizeof m, nv, &e);
+			} else {
+				mlen = float_fixed(m, sizeof m, nv, asked, &e);
+			}
+
+			g_assert(size_is_positive(mlen));
+			g_assert(mlen < sizeof m);
+
+			if G_UNLIKELY(format_verbose && 1 == format_recursion) {
+				char buf[150];
+				gm_snprintf(buf, sizeof buf,
+					"%g with \"%%%c\": m=\"%.*s\" "
+					"(len=%zu, asked=%s), e=%d "
+					"[precis=%zu, digits=%zu, alt=%s]",
+					nv, c, (int) mlen, m, mlen,
+					asked_dragon ? "none" : size_t_to_string(asked),
+					e, precis, digits, alt ? "y" : "n");
+				s_debug("%s", buf);
+			}
+
+			/*
+			 * %g is turned into %e (and %G to %E) when the exponent
+			 * is less than -4 or when it is greater than or equal
+			 * to the precision.
+			 *
+			 * %F is our special "free format":
+			 * - If e = 0, we show the mantissa as-is.
+			 * - If e > 0, we switch to scientific notation as soon
+			 *   as the digits in the mantissa + trailing zeros would
+			 *   lead to a number with more than FPDIG digits.
+			 * - If e < 0, we switch to scientific notation when
+			 *   the number of leading zeros + the mantissa would be
+			 *   larger than FPREC digits (deemed harder to read at
+			 *   that time), or when e < -5.
+			 */
+
+			if ('g' == c || 'G' == c) {
+				if (e < -4 || e >= (int) precis + 1)
+					c = 'g' == c ? 'e' : 'E';
+			} else if (dragon_fmt) {
+				c = 'f';				/* For logging only */
+				if (e > 0) {
+					size_t v = e;
+					if (MAX(v, mlen) > FPDIG)		c = 'E';
+				} else if (e < 0) {
+					if (e < -5 || mlen - e > FPREC)	c = 'E';
+				}
+			}
+
+			if ('e' == c || 'E' == c) {
+				size_t v;
+				size_t start;
+				bool non_zero;
+
+				/* Exponent */
+
+				mptr = expbuf + sizeof expbuf;
+
+				v = (e >= 0) ? e : -e;
+				do {
+					unsigned dig = v % 10;
+					*--mptr = '0' + dig;
+				} while (v /= 10);
+				v = (e >= 0) ? e : -e;
+				if (v < 10 && !asked_dragon)
+					*--mptr = '0';
+				*--mptr = (e >= 0) ? '+' : '-';
+				*--mptr = is_ascii_upper(c) ? 'E' : 'e';
+
+				g_assert(ptr_cmp(mptr, expbuf) >= 0);
+
+				expptr = mptr;
+				explen = (expbuf + sizeof expbuf) - expptr;
+
+				/* Mantissa */
+
+				mptr = ebuf + sizeof ebuf;
+
+				if (dragon_fmt) {
+					v = mlen - 1;
+					do {
+						if (0 == v && mlen > 1)
+							*--mptr = '.';
+						*--mptr = m[v];
+					} while (v--);
+
+					/* Trailing mantissa filler if has precision */
+					if (has_precis && mlen < precis + 1)
+						ezeros = precis + 1 - mlen;
+
+				} else {
+					v = precis + 1;
+					v = MIN(mlen, v);
+					start = v; 			/* Starting index */
+					non_zero = alt || 0 == digits;
+
+					rlen = str_fround(m, mlen, v, r, sizeof r);
+
+					do {
+						if (1 == v && (alt || start != 1))
+							*--mptr = '.';
+						if (r[v] != '0')
+							non_zero = TRUE;
+						if (1 == v || non_zero)
+							*--mptr = r[v];
+					} while (--v);
+
+					/* Trailing mantissa zeros if %e or %E or %#[gG] */
+					if (mlen < precis + 1 && (alt || 0 == digits))
+						ezeros = precis + 1 - mlen;
+				}
+			} else {
+				size_t i;
+				char *t;
+				size_t d;	/* Dot position */
+
+				/* %f or %F -- THE FUN BEGINS! */
+
+				if (dragon_fmt) {
+					if (e < 0) {
+						azeros = -e - 1;	/* Zeros after dot */
+						g_assert(mlen <= sizeof ebuf);
+						mptr -= mlen;
+						memcpy(mptr, m, mlen);
+						if (0 == azeros) {
+							*--mptr = '.';
+							*--mptr = '0';
+						} else {
+							dot = 2;		/* Will emit "0." later */
+						}
+					} else {
+						size_t v = e;
+
+						if (v < mlen) {
+							d = e + 1;		/* Dot position */
+							i = mlen - 1;
+							do {
+								*--mptr = m[i];
+								if (i == d)
+									*--mptr = '.';
+							} while (i--);
+							/* Ensure trailing dot present if %# */
+							dot = (alt && d > mlen - 1) ? 1 : 0;
+						} else {
+							size_t x = e - mlen + 1;	/* Extra 10s */
+
+							dzeros = x; /* Before the decimal point */
+							g_assert(mlen <= sizeof ebuf);
+							mptr -= mlen;
+							memcpy(mptr, m, mlen);
+							/* Ensure trailing dot present if %# */
+							dot = alt ? 1 : 0;
+						}
+					}
+				} else if (e < 0) {
+					size_t v = -e;
+					size_t z = v - 1;	/* Amount of zeros after dot */
+
+					/* Formatted as 0.xxxx */
+
+					if (z >= precis && 0 == digits) {
+						i = 0;
+					} else {
+						/* How many trailing zeros? */
+						if (precis > z + mlen)
+							fzeros = precis - z - mlen;
+
+						i = (0 == digits) ? precis - z : mlen;
+						i = MIN(i, mlen);
+					}
+
+					/* How many after-dot zeros? (0.000xxx) */
+					if (z != 0) {
+						azeros = z;
+						dot = 2;		/* Will emit "0." later */
+					}
+
+					/* Rounding for the precision digit */
+					rlen = str_fround(m, mlen, i, r, sizeof r);
+
+					/* Remove one leading zero due to rounding carry */
+					if (azeros != 0)
+						azeros--;
+
+					/* Don't emit if we're down to printing 0.0 */
+					if (0 == azeros || azeros < precis) {
+						/* Compute position of digital dot */
+						d = azeros ? 0 : 1;
+						for (i = rlen, t = r + rlen; i > 0;) {
+							*--mptr = *--t;
+							if (--i == d) {
+								/* Leading "0.0" done later?*/
+								if (0 != azeros)
+									break;
+								/* No, emit now */
+								*--mptr = '.';
+								*--mptr = *--t;
+								i--;
+							}
+						}
+					}
+				} else {
+					unsigned v = e;
+
+					if (v < mlen) {
+						size_t subdot;
+						bool has_non_zero;
+
+						/* Formatted as y.xxxx with y >= 0 */
+
+						d = e + 1;	/* Dot position */
+
+						if (0 != digits) {
+							/* Formatting from %g or %G */
+							has_non_zero = alt;	/* %#g wants dot */
+							subdot = digits > d ? digits - d : 0;
+						} else {
+							subdot = precis;
+							has_non_zero = TRUE;
+						}
+
+						/* Rounding for the precision digit */
+						i = d + subdot;		/* First excluded */
+						i = MIN(i, mlen);
+
+						/* Trailing fixed zeros to emit */
+						if (i < precis)
+							fzeros = precis - i;
+
+						rlen = str_fround(m, mlen, i, r, sizeof r);
+
+						i = rlen - 1;
+						d++;		/* Extra carry digit in r[] */
+
+						do {
+							/* No leading zero carry? */
+							if (0 == i && i < d - 1 && '0' == r[0])
+								break;
+							/* Skip trailing zeros if %g or %G */
+							/* Trailing zeros kept with %#g (alt) */
+							if (digits && !alt && i >= d) {
+								if (r[i] != '0') {
+									*--mptr = r[i];
+									has_non_zero = TRUE;
+								}
+							} else {
+								*--mptr = r[i];
+							}
+							if (i == d && has_non_zero)
+								*--mptr = '.';
+						} while (i--);
+
+						/* Ensure trailing dot present if %# */
+						dot = (alt && d > rlen - 1) ? 1 : 0;
+					} else {
+						size_t x = e - mlen + 1;	/* Extra 10s */
+						size_t subdot;
+
+						if (digits) {
+							if (alt) {
+								/* Formatting from %#g or %#G */
+								subdot = precis;
+							} else {
+								/* Formatting from %g or %G */
+								subdot = precis > v ? precis - v : 0;
+							}
+						} else {
+							subdot = precis;
+						}
+
+						dzeros = x; /* Zeros before the decimal point */
+						fzeros = subdot;	/* Zeros after the dot */
+
+						/* Emit a dot? */
+						dot = (0 == subdot && !alt) ? 0 : 1;
+
+						g_assert(mlen <= sizeof ebuf);
+
+						mptr -= mlen;
+						memcpy(mptr, m, mlen);
+					}
+				}
+			}
+		}
+		g_assert(ptr_cmp(mptr, ebuf) >= 0);		/* No underflow */
+		eptr = mptr;
+		elen = (ebuf + sizeof ebuf) - eptr;
+
+		if G_UNLIKELY(format_verbose && 1 == format_recursion) {
+			char buf[150];
+			gm_snprintf(buf, sizeof buf,
+				"%g as \"%%%c\": elen=%zu, eptr=\"%.*s\", "
+				"expptr=\"%.*s\", dot=\"%s\", zeros<e=%zu, d=%zu, "
+				"a=%zu, f=%zu>",
+				nv, c, elen, (int) elen, eptr, explen, expptr,
+				2 == dot ? "0." :
+				1 == dot ? "." : "",
+				ezeros, dzeros, azeros, fzeros);
+			s_debug("%s", buf);
+		}
+		break;
+	}
+
+	have = esignlen + elen + ezeros + explen + dzeros + dot + azeros + fzeros;
+	need = MAX(have, width);
+	gap = need - have;
+
+	/*
+	 * Now, append item inside string, mangling freely with str_t
+	 * internals for efficient appending...
+	 *
+	 * It would be very inefficient to check for maxlen before appending
+	 * each char, so that check is performed once and for all at the
+	 * beginning, and only when we do need to be careful do we check
+	 * more precisely.
+	 */
+
+	if (remain <= need)				/* Cannot fit entirely */
+		goto careful;
+
+	/*
+	 * CAUTION: code duplication with "careful" below. Any change made
+	 * here NEEDS TO BE REPORTED to the next section.
+	 */
+
+	str_makeroom(str, need);		/* we do not NUL terminate it */
+	p = str->s_data + str->s_len;	/* next "free" char in arena */
+	if (gap && !left) {
+		memset(p, ' ', gap);
+		p += gap;
+	}
+	if (esignlen) {
+		memcpy(p, esignbuf, esignlen);
+		p += esignlen;
+	}
+	if (elen && 0 == azeros) {
+		memcpy(p, eptr, elen);
+		p += elen;
+	}
+	if (ezeros) {
+		memset(p, '0', ezeros);
+		p += ezeros;
+	}
+	if (explen) {
+		memcpy(p, expptr, explen);
+		p += explen;
+	}
+	if (dzeros) {
+		memset(p, '0', dzeros);
+		p += dzeros;
+	}
+	if (dot) {
+		if (2 == dot)
+			*p++ = '0';
+		*p++ = '.';
+	}
+	if (azeros) {
+		memset(p, '0', azeros);
+		p += azeros;
+	}
+	if (elen && 0 != azeros) {
+		memcpy(p, eptr, elen);
+		p += elen;
+	}
+	if (fzeros) {
+		memset(p, '0', fzeros);
+		p += fzeros;
+	}
+	if (gap && left) {
+		memset(p, ' ', gap);
+		p += gap;
+	}
+	str->s_len = p - str->s_data;	/* trailing NUL does not count */
+	g_assert(str->s_len <= str->s_size);
+	goto done;
+
+careful:
+	/*
+	 * Have to be careful, because current field will be only partially
+	 * printed (remain is less or equal to the amount of chars we need).
+	 * In particular, one cannot expect the trailing NUL char to be
+	 * present in the string.
+	 *
+	 * CAUTION: code duplication with previous section. Any change made
+	 * to code here MAY NEED TO BE REPORTED to the above section.
+	 */
+
+	str_makeroom(str, remain);			/* we do not NUL terminate it */
+	p = str->s_data + str->s_len;		/* next "free" char in arena */
+	str->s_len += remain;				/* know how much we'll append */
+	q = p + remain;						/* first char past limit */
+	if (gap && !left) {
+		p += clamp_memset(p, q - p, ' ', gap);
+		if (p >= q)
+			goto clamped;
+		remain -= gap;
+	}
+	if (esignlen) {
+		p += clamp_memcpy(p, q - p, esignbuf, esignlen);
+		if (p >= q)
+			goto clamped;
+		remain -= esignlen;
+	}
+	if (elen && 0 == azeros) {
+		p += clamp_memcpy(p, q - p, eptr, elen);
+		if (p >= q)
+			goto clamped;
+		remain -= elen;
+	}
+	if (ezeros) {
+		p += clamp_memset(p, q - p, '0', ezeros);
+		if (p >= q)
+			goto clamped;
+		remain -= ezeros;
+	}
+	if (explen) {
+		p += clamp_memcpy(p, q - p, expptr, explen);
+		if (p >= q)
+			goto clamped;
+		remain -= explen;
+	}
+	if (dzeros) {
+		p += clamp_memset(p, q - p, '0', dzeros);
+		if (p >= q)
+			goto clamped;
+		remain -= dzeros;
+	}
+	if (dot) {
+		if (0 == remain)
+			goto clamped;
+		if (2 == dot) {
+			*p++ = '0';
+			if (0 == --remain)
+				goto clamped;
+		}
+		*p++ = '.';
+		remain--;
+	}
+	if (azeros) {
+		p += clamp_memset(p, q - p, '0', azeros);
+		if (p >= q)
+			goto clamped;
+		remain -= azeros;
+	}
+	if (elen && 0 != azeros) {
+		p += clamp_memcpy(p, q - p, eptr, elen);
+		if (p >= q)
+			goto clamped;
+		remain -= elen;
+	}
+	if (fzeros) {
+		p += clamp_memset(p, q - p, '0', fzeros);
+		if (p >= q)
+			goto clamped;
+		remain -= fzeros;
+	}
+	if (gap && left) {
+		p += clamp_memset(p, q - p, ' ', gap);
+		if (p >= q)
+			goto clamped;
+		remain -= gap;
+	}
+
+	/*
+	 * At this point, `remain' can only be zero anyway.
+	 */
+
+	g_assert(0 == remain);
+
+done:
+	*written = str->s_len - origlen;
+	return TRUE;
+
+clamped:
+	*written = str->s_len - origlen;
+	return FALSE;
+}
+
+/**
  * Append to string the variable formatted argument list, just like sprintf()
  * would, but avoiding the need of computing a suitable buffer size for the
  * output...
@@ -1217,6 +1844,13 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
  * list as the given number (that is, as the field width or precision).
  * If a field width obtained through "*" is negative, it has the same effect
  * as the '-' flag: left-justification.
+ *
+ * @param str		string to which fomatting occurs
+ * @param maxlen	maximum amount of bytes to print
+ * @param fmt		format string
+ * @param args		variable arguments
+ *
+ * @return amount of bytes appended to string.
  */
 size_t
 str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
@@ -1270,7 +1904,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 
 	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		size_t avail = str->s_size - str->s_len;
-		if G_UNLIKELY(0 == avail)
+		if G_UNLIKELY(avail <= 1)
 			goto clamped;
 		avail--;					/* Leave room for trailing NUL */
 		remain = MIN(maxlen, avail);
@@ -1303,23 +1937,13 @@ G_STMT_START {									\
 		char intsize = 0;
 		size_t width = 0;
 		size_t zeros = 0;
-		size_t ezeros = 0;		/* Trailing mantissa zeros in %e form */
-		size_t dzeros = 0;		/* Trailing zeros before dot */
-		size_t azeros = 0;		/* After-dot zeros, before value */
-		size_t fzeros = 0;		/* Trailing fixed zeros */
-		size_t dot = 0;			/* Emit floating point '.' if 1 */
 		bool has_precis = FALSE;
 		size_t precis = 0;
-		size_t digits = 0;
 
 		char esignbuf[4];
 		int esignlen = 0;
 
-		char expbuf[6];
-		int explen = 0;
-
 		const char *eptr = NULL;
-		const char *expptr = NULL;
 		char *mptr;
 		size_t elen = 0;
 		char ebuf[TYPE_DIGITS(long) * 2 + 16]; /* large enough for "%#.#f" */
@@ -1598,402 +2222,23 @@ G_STMT_START {									\
 		case 'e': case 'E':
 		case 'f': case 'F':
 		case 'g': case 'G':
+			{
+				size_t written;
+				gboolean ok;
 
-			nv = va_arg(args, double);
+				nv = va_arg(args, double);
+				if (!has_precis)
+					precis = 6;					/* Default precision */
 
-			if (!has_precis)
-				precis = 6;					/* Default precision */
+				/* Floating point formatting is complex, handle separately */
 
-			/*
-			 * Ensure nv is a valid number, and not NaN, +Inf or -Inf
-			 * before calling the formatting routine.
-			 */
-
-			mptr = ebuf + sizeof ebuf;
-
-			switch (fpclassify(nv)) {
-			case FP_NAN:
-				if (is_ascii_upper(c)) {
-					elen = 4;
-					eptr = "NAN*";
-				} else {
-					elen = 3;
-					eptr = "nan";
-				}
-				break;
-			case FP_INFINITE:
-				mptr -= 3;
-				clamp_memcpy(mptr, 3, is_ascii_upper(c) ? "INF" : "inf", 3);
-				if (nv < 0)
-					*--mptr = '-';
-				else if (plus)
-					*--mptr = plus;
-				eptr = mptr;
-				elen = (ebuf + sizeof ebuf) - eptr;
-				break;
-			default:
-				{
-					int e;
-					char m[32], r[33];
-					size_t mlen, rlen, asked;
-					gboolean dragon_fmt = FALSE;
-					gboolean asked_dragon = FALSE;
-
-					if ('F' == c) {
-						asked_dragon = TRUE;
-						if (has_precis)
-							c = 'G';
-						else
-							dragon_fmt = TRUE;
-					}
-
-					/*
-					 * For %g, the precision is the number of digits displayed,
-					 * whereas for %e it's the number of digits after the
-					 * decimal point.
-					 */
-
-					if ('g' == c || 'G' == c) {
-						/* A non-zero digits value flags %g or %G */
-						digits = MAX(1, precis);
-						precis = (0 == precis) ? 0 : precis - 1;
-					}
-
-					if (nv >= 0) {
-						if (plus)
-							esignbuf[esignlen++] = plus;
-					} else {
-						nv = -nv;
-						esignbuf[esignlen++] = '-';
-					}
-
-					/*
-					 * We cap the precision at FPREC since this is the maximum
-					 * supported by 64-bit IEEE numbers with a 52-bit mantissa.
-					 */
-
-					if ('f' == c) {
-						asked = FPREC;		/* Will do rounding ourselves */
-					} else if (digits) {
-						asked = MIN(FPREC, digits);
-					} else {
-						asked = 1 + MIN(FPREC, precis);
-					}
-
-					/*
-					 * Format the floating point number, separating the
-					 * mantissa and the exponent.
-					 *
-					 * The returned values are such that one presentation
-					 * of the number would be the output of:
-					 *
-					 *		printf("0.%se%d", m, e + 1);
-					 */
-
-					if (asked_dragon) {
-						mlen = float_dragon(m, sizeof m, nv, &e);
-					} else {
-						mlen = float_fixed(m, sizeof m, nv, asked, &e);
-					}
-
-					g_assert(size_is_positive(mlen));
-					g_assert(mlen < sizeof m);
-
-					if G_UNLIKELY(format_verbose && 1 == format_recursion) {
-						char buf[150];
-						gm_snprintf(buf, sizeof buf,
-							"%g with \"%%%c\": m=\"%.*s\" "
-							"(len=%zu, asked=%s), e=%d "
-							"[precis=%zu, digits=%zu, alt=%s]",
-							nv, c, (int) mlen, m, mlen,
-							asked_dragon ? "none" : size_t_to_string(asked),
-							e, precis, digits, alt ? "y" : "n");
-						s_debug("%s", buf);
-					}
-
-					/*
-					 * %g is turned into %e (and %G to %E) when the exponent
-					 * is less than -4 or when it is greater than or equal
-					 * to the precision.
-					 *
-					 * %F is our special "free format":
-					 * - If e = 0, we show the mantissa as-is.
-					 * - If e > 0, we switch to scientific notation as soon
-					 *   as the digits in the mantissa + trailing zeros would
-					 *   lead to a number with more than FPDIG digits.
-					 * - If e < 0, we switch to scientific notation when
-					 *   the number of leading zeros + the mantissa would be
-					 *   larger than FPREC digits (deemed harder to read at
-					 *   that time), or when e < -5.
-					 */
-
-					if ('g' == c || 'G' == c) {
-						if (e < -4 || e >= (int) precis + 1)
-							c = 'g' == c ? 'e' : 'E';
-					} else if (dragon_fmt) {
-						c = 'f';				/* For logging only */
-						if (e > 0) {
-							size_t v = e;
-							if (MAX(v, mlen) > FPDIG)		c = 'E';
-						} else if (e < 0) {
-							if (e < -5 || mlen - e > FPREC)	c = 'E';
-						}
-					}
-
-					if ('e' == c || 'E' == c) {
-						size_t v;
-						size_t start;
-						bool non_zero;
-
-						/* Exponent */
-
-						mptr = expbuf + sizeof expbuf;
-
-						v = (e >= 0) ? e : -e;
-						do {
-							unsigned dig = v % 10;
-							*--mptr = '0' + dig;
-						} while (v /= 10);
-						v = (e >= 0) ? e : -e;
-						if (v < 10 && !asked_dragon)
-							*--mptr = '0';
-						*--mptr = (e >= 0) ? '+' : '-';
-						*--mptr = is_ascii_upper(c) ? 'E' : 'e';
-
-						g_assert(ptr_cmp(mptr, expbuf) >= 0);
-
-						expptr = mptr;
-						explen = (expbuf + sizeof expbuf) - expptr;
-
-						/* Mantissa */
-
-						mptr = ebuf + sizeof ebuf;
-
-						if (dragon_fmt) {
-							v = mlen - 1;
-							do {
-								if (0 == v && mlen > 1)
-									*--mptr = '.';
-								*--mptr = m[v];
-							} while (v--);
-
-							/* Trailing mantissa filler if has precision */
-							if (has_precis && mlen < precis + 1)
-								ezeros = precis + 1 - mlen;
-
-						} else {
-							v = precis + 1;
-							v = MIN(mlen, v);
-							start = v; 			/* Starting index */
-							non_zero = alt || 0 == digits;
-
-							rlen = str_fround(m, mlen, v, r, sizeof r);
-
-							do {
-								if (1 == v && (alt || start != 1))
-									*--mptr = '.';
-								if (r[v] != '0')
-									non_zero = TRUE;
-								if (1 == v || non_zero)
-									*--mptr = r[v];
-							} while (--v);
-
-							/* Trailing mantissa zeros if %e or %E or %#[gG] */
-							if (mlen < precis + 1 && (alt || 0 == digits))
-								ezeros = precis + 1 - mlen;
-						}
-					} else {
-						size_t i;
-						char *t;
-						size_t d;	/* Dot position */
-
-						/* %f or %F -- THE FUN BEGINS! */
-
-						if (dragon_fmt) {
-							if (e < 0) {
-								azeros = -e - 1;	/* Zeros after dot */
-								g_assert(mlen <= sizeof ebuf);
-								mptr -= mlen;
-								memcpy(mptr, m, mlen);
-								if (0 == azeros) {
-									*--mptr = '.';
-									*--mptr = '0';
-								} else {
-									dot = 2;		/* Will emit "0." later */
-								}
-							} else {
-								size_t v = e;
-
-								if (v < mlen) {
-									d = e + 1;		/* Dot position */
-									i = mlen - 1;
-									do {
-										*--mptr = m[i];
-										if (i == d)
-											*--mptr = '.';
-									} while (i--);
-									/* Ensure trailing dot present if %# */
-									dot = (alt && d > mlen - 1) ? 1 : 0;
-								} else {
-									size_t x = e - mlen + 1;	/* Extra 10s */
-
-									dzeros = x; /* Before the decimal point */
-									g_assert(mlen <= sizeof ebuf);
-									mptr -= mlen;
-									memcpy(mptr, m, mlen);
-									/* Ensure trailing dot present if %# */
-									dot = alt ? 1 : 0;
-								}
-							}
-						} else if (e < 0) {
-							size_t v = -e;
-							size_t z = v - 1;	/* Amount of zeros after dot */
-
-							/* Formatted as 0.xxxx */
-
-							if (z >= precis && 0 == digits) {
-								i = 0;
-							} else {
-								/* How many trailing zeros? */
-								if (precis > z + mlen)
-									fzeros = precis - z - mlen;
-
-								i = (0 == digits) ? precis - z : mlen;
-								i = MIN(i, mlen);
-							}
-
-							/* How many after-dot zeros? (0.000xxx) */
-							if (z != 0) {
-								azeros = z;
-								dot = 2;		/* Will emit "0." later */
-							}
-
-							/* Rounding for the precision digit */
-							rlen = str_fround(m, mlen, i, r, sizeof r);
-
-							/* Remove one leading zero due to rounding carry */
-							if (azeros != 0)
-								azeros--;
-
-							/* Don't emit if we're down to printing 0.0 */
-							if (0 == azeros || azeros < precis) {
-								/* Compute position of digital dot */
-								d = azeros ? 0 : 1;
-								for (i = rlen, t = r + rlen; i > 0;) {
-									*--mptr = *--t;
-									if (--i == d) {
-										/* Leading "0.0" done later?*/
-										if (0 != azeros)
-											break;
-										/* No, emit now */
-										*--mptr = '.';
-										*--mptr = *--t;
-										i--;
-									}
-								}
-							}
-						} else {
-							unsigned v = e;
-
-							if (v < mlen) {
-								size_t subdot;
-								bool has_non_zero;
-
-								/* Formatted as y.xxxx with y >= 0 */
-
-								d = e + 1;	/* Dot position */
-
-								if (0 != digits) {
-									/* Formatting from %g or %G */
-									has_non_zero = alt;	/* %#g wants dot */
-									subdot = digits > d ? digits - d : 0;
-								} else {
-									subdot = precis;
-									has_non_zero = TRUE;
-								}
-
-								/* Rounding for the precision digit */
-								i = d + subdot;		/* First excluded */
-								i = MIN(i, mlen);
-
-								/* Trailing fixed zeros to emit */
-								if (i < precis)
-									fzeros = precis - i;
-
-								rlen = str_fround(m, mlen, i, r, sizeof r);
-
-								i = rlen - 1;
-								d++;		/* Extra carry digit in r[] */
-
-								do {
-									/* No leading zero carry? */
-									if (0 == i && i < d - 1 && '0' == r[0])
-										break;
-									/* Skip trailing zeros if %g or %G */
-									/* Trailing zeros kept with %#g (alt) */
-									if (digits && !alt && i >= d) {
-										if (r[i] != '0') {
-											*--mptr = r[i];
-											has_non_zero = TRUE;
-										}
-									} else {
-										*--mptr = r[i];
-									}
-									if (i == d && has_non_zero)
-										*--mptr = '.';
-								} while (i--);
-
-								/* Ensure trailing dot present if %# */
-								dot = (alt && d > rlen - 1) ? 1 : 0;
-							} else {
-								size_t x = e - mlen + 1;	/* Extra 10s */
-								size_t subdot;
-
-								if (digits) {
-									if (alt) {
-										/* Formatting from %#g or %#G */
-										subdot = precis;
-									} else {
-										/* Formatting from %g or %G */
-										subdot = precis > v ? precis - v : 0;
-									}
-								} else {
-									subdot = precis;
-								}
-
-								dzeros = x; /* Zeros before the decimal point */
-								fzeros = subdot;	/* Zeros after the dot */
-
-								/* Emit a dot? */
-								dot = (0 == subdot && !alt) ? 0 : 1;
-
-								g_assert(mlen <= sizeof ebuf);
-
-								mptr -= mlen;
-								memcpy(mptr, m, mlen);
-							}
-						}
-					}
-				}
-				g_assert(ptr_cmp(mptr, ebuf) >= 0);		/* No underflow */
-				eptr = mptr;
-				elen = (ebuf + sizeof ebuf) - eptr;
-
-				if G_UNLIKELY(format_verbose && 1 == format_recursion) {
-					char buf[150];
-					gm_snprintf(buf, sizeof buf,
-						"%g as \"%%%c\": elen=%zu, eptr=\"%.*s\", "
-						"expptr=\"%.*s\", dot=\"%s\", zeros<e=%zu, d=%zu, "
-						"a=%zu, f=%zu>",
-						nv, c, elen, (int) elen, eptr, explen, expptr,
-						2 == dot ? "0." :
-						1 == dot ? "." : "",
-						ezeros, dzeros, azeros, fzeros);
-					s_debug("%s", buf);
-				}
-				break;
+				ok = str_fcat_safe(str, remain, nv, c,
+						has_precis, precis, width, plus, left, alt, &written);
+				if (!ok)
+					goto clamped;
+				remain -= written;
 			}
-			break;
+			continue;	/* not "break" */
 
 			/* SPECIAL */
 
@@ -2031,10 +2276,7 @@ G_STMT_START {									\
 			continue;	/* not "break" */
 		}
 
-		have = esignlen + zeros + elen +
-			/* Floating-point specific formatting */
-			ezeros + explen + dzeros + dot + azeros + fzeros;
-
+		have = esignlen + zeros + elen;
 		need = MAX(have, width);
 		gap = need - have;
 
@@ -2074,44 +2316,16 @@ G_STMT_START {									\
 			memset(p, '0', zeros);
 			p += zeros;
 		}
-		if (elen && 0 == azeros) {
+		if (elen) {
 			memcpy(p, eptr, elen);
 			p += elen;
-		}
-		if (ezeros) {
-			memset(p, '0', ezeros);
-			p += ezeros;
-		}
-		if (explen) {
-			memcpy(p, expptr, explen);
-			p += explen;
-		}
-		if (dzeros) {
-			memset(p, '0', dzeros);
-			p += dzeros;
-		}
-		if (dot) {
-			if (2 == dot)
-				*p++ = '0';
-			*p++ = '.';
-		}
-		if (azeros) {
-			memset(p, '0', azeros);
-			p += azeros;
-		}
-		if (elen && 0 != azeros) {
-			memcpy(p, eptr, elen);
-			p += elen;
-		}
-		if (fzeros) {
-			memset(p, '0', fzeros);
-			p += fzeros;
 		}
 		if (gap && left) {
 			memset(p, ' ', gap);
 			p += gap;
 		}
 		str->s_len = p - str->s_data;	/* trailing NUL does not count */
+		g_assert(str->s_len <= str->s_size);
 		remain -= need;
 		continue;
 
@@ -2154,58 +2368,11 @@ G_STMT_START {									\
 				goto clamped;
 			remain -= zeros;
 		}
-		if (elen && 0 == azeros) {
+		if (elen) {
 			p += clamp_memcpy(p, q - p, eptr, elen);
 			if (p >= q)
 				goto clamped;
 			remain -= elen;
-		}
-		if (ezeros) {
-			p += clamp_memset(p, q - p, '0', ezeros);
-			if (p >= q)
-				goto clamped;
-			remain -= ezeros;
-		}
-		if (explen) {
-			p += clamp_memcpy(p, q - p, expptr, explen);
-			if (p >= q)
-				goto clamped;
-			remain -= explen;
-		}
-		if (dzeros) {
-			p += clamp_memset(p, q - p, '0', dzeros);
-			if (p >= q)
-				goto clamped;
-			remain -= dzeros;
-		}
-		if (dot) {
-			if (0 == remain)
-				goto clamped;
-			if (2 == dot) {
-				*p++ = '0';
-				if (0 == --remain)
-					goto clamped;
-			}
-			*p++ = '.';
-			remain--;
-		}
-		if (azeros) {
-			p += clamp_memset(p, q - p, '0', azeros);
-			if (p >= q)
-				goto clamped;
-			remain -= azeros;
-		}
-		if (elen && 0 != azeros) {
-			p += clamp_memcpy(p, q - p, eptr, elen);
-			if (p >= q)
-				goto clamped;
-			remain -= elen;
-		}
-		if (fzeros) {
-			p += clamp_memset(p, q - p, '0', fzeros);
-			if (p >= q)
-				goto clamped;
-			remain -= fzeros;
 		}
 		if (gap && left) {
 			p += clamp_memset(p, q - p, ' ', gap);
