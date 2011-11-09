@@ -3030,6 +3030,35 @@ str_test(gboolean verbose)
 
 	tests_completed = TRUE;		/* Allow warnings on truncations */
 
+	/*
+	 * Make sure gm_snprintf() and str_bprintf() behave similarily.
+	 *
+	 * The gm_snprintf() call is a wrapper on top of libc's vsnprintf().
+	 * The str_bprintf() call is a wrapper on top of our str_vncatf().
+	 */
+
+#define FORMAT	"\"%s\" on %u-byte buffer"
+#define ARGS	"Testing", (unsigned) sizeof vsnp
+
+	{
+		char vsnp[28], ours[28];
+		size_t vsn_count, our_count;
+
+		STATIC_ASSERT(sizeof vsnp == sizeof ours);
+
+		vsn_count = gm_snprintf(vsnp, sizeof vsnp, FORMAT, ARGS);
+		our_count = str_bprintf(ours, sizeof ours, FORMAT, ARGS);
+
+		g_assert_log(0 == strcmp(vsnp, ours),
+			"vsnprintf() returned \"%s\", str_vncatf() returned \"%s\"",
+			vsnp, ours);
+		g_assert_log(vsn_count == our_count,
+			"vsnprintf() returned %zu, str_vncatf() returned %zu",
+			vsn_count, our_count);
+		g_assert(strlen(vsnp) == vsn_count);	/* Consistency check */
+		g_assert(sizeof vsnp - 1 == vsn_count);	/* Ensure we filled buffer */
+	}
+
 	return discrepancies;
 
 #undef MLEN
@@ -3040,6 +3069,8 @@ str_test(gboolean verbose)
 #undef PI
 #undef DOUBLE
 #undef LN2
+#undef FORMAT
+#undef ARGS
 }
 
 /* vi: set ts=4 sw=4 cindent: */
