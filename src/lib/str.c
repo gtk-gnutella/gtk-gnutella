@@ -1450,41 +1450,50 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 					if (z >= precis && 0 == digits) {
 						i = 0;
 					} else {
-						/* How many trailing zeros? */
-						if (precis > z + mlen)
+						/* How many trailing zeros? (none for %g) */
+						if (precis > z + mlen && (0 == digits || alt))
 							fzeros = precis - z - mlen;
 
 						i = (0 == digits) ? precis - z : mlen;
 						i = MIN(i, mlen);
 					}
 
-					/* How many after-dot zeros? (0.000xxx) */
+					/*
+					 * How many after-dot zeros? (0.000xxx)
+					 *
+					 * We remove one after-dot zero due to the leading carry
+					 * digit, which is known to be 0.  However, if we were
+					 * about to emit just one zero, we need to emit the
+					 * dot ourselves in the printing loop below.
+					 */
+
 					if (z != 0) {
-						azeros = z;
-						dot = 2;		/* Will emit "0." later */
+						azeros = z - 1;
+						dot = (z > 1) ? 2 : 0;	/* Will emit "0." later */
 					}
 
 					/* Rounding for the precision digit */
 					rlen = str_fround(m, mlen, i, r, sizeof r);
 
-					/* Remove one leading zero due to rounding carry */
-					if (azeros != 0)
-						azeros--;
-
 					/* Don't emit if we're down to printing 0.0 */
 					if (0 == azeros || azeros < precis) {
+						bool has_non_zero = 0 == digits || alt;
 						/* Compute position of digital dot */
-						d = azeros ? 0 : 1;
+						d = (z != 0) ? 0 : 1;
 						for (i = rlen, t = r + rlen; i > 0;) {
-							*--mptr = *--t;
+							char dig = *--t;
+							if (has_non_zero || dig != '0') {
+								*--mptr = dig;
+								has_non_zero = TRUE;
+							}
 							if (--i == d) {
 								/* Leading "0.0" done later?*/
-								if (0 != azeros)
-									break;
-								/* No, emit now */
-								*--mptr = '.';
-								*--mptr = *--t;
-								i--;
+								if (0 == dot) {
+									/* No, emit now */
+									*--mptr = '.';
+									*--mptr = '0';
+								}
+								break;
 							}
 						}
 					}
@@ -2971,6 +2980,24 @@ str_test(gboolean verbose)
 		{ "%#F",		X, MLEN,	50000000000,	"50000000000." },
 		{ "%#F",		X, MLEN,	500000000.1,	"500000000.1" },
 		{ "%#.1F",		X, MLEN,	4561056.99,		"5.E+6" },
+		{ "%g",			S, MLEN,	0.009999997868, "0.01" },
+		/* #140 */
+		{ "%g",			S, MLEN,	0.000999999868, "0.001" },
+		{ "%g",			S, MLEN,	0.000099999998, "0.0001" },
+		{ "%g",			S, MLEN,	0.1, 			"0.1" },
+		{ "%g",			S, MLEN,	0.01, 			"0.01" },
+		{ "%g",			S, MLEN,	0.001, 			"0.001" },
+		{ "%g",			S, MLEN,	0.0001, 		"0.0001" },
+		{ "%f",			S, MLEN,	0.1, 			"0.100000" },
+		{ "%f",			S, MLEN,	0.01, 			"0.010000" },
+		{ "%f",			S, MLEN,	0.001, 			"0.001000" },
+		{ "%f",			S, MLEN,	0.0001, 		"0.000100" },
+		/* #150 */
+		{ "%f",			S, MLEN,	0.00001, 		"0.000010" },
+		{ "%f",			S, MLEN,	0.000001, 		"0.000001" },
+		{ "%f",			S, MLEN,	0.0000001, 		"0.000000" },
+		{ "%#g",		S, MLEN,	0.1, 			"0.100000" },
+		{ "%#g",		S, MLEN,	0.01, 			"0.0100000" },
 	};
 
 #define TEST(what, vfmt) G_STMT_START {							\
