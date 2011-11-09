@@ -2559,6 +2559,7 @@ str_test(gboolean verbose)
 	} test_strings[] = {
 		{ "",			S, 10,		ANYTHING,	"" },
 		{ "%%",			S, 10,		ANYTHING,	"%" },
+		{ "s%st",		S, MLEN,	"tar",		"start" },
 		{ "%s",			S, MLEN,	ANYTHING,	ANYTHING },
 		{ "%s",			S, 5,		ANYTHING,	"anyt" },
 		{ "%.2s",		S, 5,		ANYTHING,	"an" },
@@ -2570,6 +2571,17 @@ str_test(gboolean verbose)
 		{ "%015s.",		X, MLEN,	ANYTHING,	"0000000anything." },
 		{ "%-5s",		S, MLEN,	ANYTHING,	ANYTHING },
 		{ "%-5s.",		S, MLEN,	ANYTHING,	"anything." },
+	};
+	static const struct tchar {
+		const char *fmt;
+		gboolean std;
+		size_t buflen;
+		const char value;
+		const char *result;
+	} test_chars[] = {
+		{ "%c",			S, 10,		'\0',		"" },
+		{ "%c",			S, 10,		'A',		"A" },
+		{ "%c",			S, 1,		'A',		"" },
 	};
 	static const struct tpointer {
 		const char *fmt;
@@ -2843,6 +2855,7 @@ str_test(gboolean verbose)
 	tests_completed = FALSE;	/* Disables warnings on truncations */
 
 	TEST(string,	"%s");
+	TEST(char,		"%c");
 	TEST(pointer,	"%p");
 	TEST(int,		"%d");
 	TEST(long,		"%ld");
