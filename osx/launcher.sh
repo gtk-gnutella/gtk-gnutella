@@ -167,5 +167,7 @@ fi
 
 cd "$bundle_contents/Resources/"
 
+export NLSPATH="$I18NDIR"
+
 $EXEC "$bundle_contents/MacOS/$name-bin" $* $EXTRA_ARGS
 #$EXEC "$bundle_res/gtk-gnutella" $* $EXTRA_ARGS
