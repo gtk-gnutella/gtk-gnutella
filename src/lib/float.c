@@ -568,27 +568,10 @@ G_STMT_START {							\
 	}									\
 } G_STMT_END
 
-#define PUTDEC_CHAR(x)					\
-G_STMT_START {							\
-	if (remain != 0) {					\
-		*bp-- = (x);					\
-		remain++;						\
-		g_assert(remain <= len);		\
-	}									\
-} G_STMT_END
-
 #define PUT_CHAR(x)						\
 G_STMT_START {							\
 	if (remain != 0) {					\
 		*bp = (x);						\
-	}									\
-} G_STMT_END
-
-#define INCPUT_CHAR(x)					\
-G_STMT_START {							\
-	if (remain > 1) {					\
-		*++bp = (x);					\
-		remain -= 2;					\
 	}									\
 } G_STMT_END
 
@@ -635,6 +618,7 @@ float_dragon(char *dest, size_t len, double v, int *exponent)
 
 	if (sign)
 		PUTINC_CHAR('-');
+
 	if (f == 0) {
 		k = 0;
 		OUTDIG(0);
@@ -827,6 +811,7 @@ float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 	int k, sl = 0, slr = 0;
 	char *bp = dest;
 	size_t remain = len;
+	size_t flen;
 
 	g_assert(dest != NULL);
 	g_assert(exponent != NULL);
@@ -844,11 +829,13 @@ float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 
 	if (sign)
 		PUTINC_CHAR('-');
+
 	if (f == 0) {
 		for (i = prec; i > 0; i--)
 			PUTINC_CHAR('0');
 		PUT_CHAR('\0');
 		k = 0;
+		flen = ptr_diff(bp, dest);
 		goto done;
 	}
 
@@ -949,46 +936,47 @@ float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 	switch (big_comp(&MM, &S)) {
 	case -1: /* No rounding needed */
 		PUT_CHAR('\0');
+		flen = ptr_diff(bp, dest);
 		goto done;
 	case 0: /* Exactly in the middle */
 		PUTINC_CHAR('5');
 		PUT_CHAR('\0');
+		flen = ptr_diff(bp, dest);
 		goto done;
 	default:  /* Round up */
-		PUTDEC_CHAR('\0');
+		flen = ptr_diff(bp, dest);
+		*bp-- = '\0';
 		break;
 	}
+
+	/* Patch string in-place to perform upwards rounding */
 
 	for (n = prec; n > 0; n--) {
 		char c;
 		c = *bp;
+		g_assert(ptr_cmp(bp, dest) >= 0);
 		if (c != '9') {
-			PUT_CHAR(c+1);
-			bp++;
-			remain--;
+			*bp = c + 1;
 			goto done;
 		}
-		if (0 == ptr_cmp(bp, dest)) {
-			PUT_CHAR('1');
-			k++;
-			goto done;
-		}
-		PUTDEC_CHAR('0');
+		*bp-- = '0';
+		flen--;
 	}
-	INCPUT_CHAR('1');
+	g_assert(ptr_diff(dest, bp) == 1);
+	*++bp = '1';
+	flen = 1;		/* Rounded up to one single non-zero digit */
 	k++;
 	/* FALL THROUGH */
 done:
 	*exponent = k;
 
-	g_assert_log(ptr_diff(bp, dest) == len - remain,
-		"ptr_diff=%zu, len=%zu, remain=%zu, len-remain=%zu",
-		ptr_diff(bp, dest), len, remain, len - remain);
+	g_assert(size_is_positive(flen));
+	g_assert(flen <= len);
 
 	recursion_level--;
 	g_assert(recursion_level >= -1);
 
-	return ptr_diff(bp, dest);
+	return flen;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
