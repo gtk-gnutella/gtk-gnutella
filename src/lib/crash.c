@@ -1763,13 +1763,21 @@ crash_handler(int signo)
 	}
 
 	/*
+	 * Crashing early means we can't be called from a signal handler: rather
+	 * we were called manually, from crash_abort().
+	 */
+
+	if (NULL == vars)
+		return;
+
+	/*
 	 * Enter crash mode and configure safe logging parameters.
 	 */
 
 	crash_mode();
 
 	if (recursive) {
-		if (vars != NULL && !vars->recursive) {
+		if (!vars->recursive) {
 			guint8 t = TRUE;
 			crash_set_var(recursive, t);
 		}
