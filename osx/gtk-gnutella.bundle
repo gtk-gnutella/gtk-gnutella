@@ -122,6 +122,9 @@
     ${env:JHBUILD_PREFIX}/share/themes/Quartz/gtk-2.0/gtkrc
   </data-->
 
+  <data dest="${bundle}/Contents/Resources/etc/${gtkdir}/gtkrc">
+    ${env:JHBUILD_PREFIX}/share/themes/Clearlooks/gtk-2.0/gtkrc
+  </data>
   
   <!-- Icon themes to copy. The "icons" property can be either of
        "auto", "all", or "none". All or none should be
