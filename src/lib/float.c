@@ -523,6 +523,7 @@ float_init(void)
 		if (k != 0)
 			*zp = k, l++;
 		b->l = l;
+		g_assert(b->l < BIGSIZE);
 	}
 
 #ifdef FLOAT_DEBUG
