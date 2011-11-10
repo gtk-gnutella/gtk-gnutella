@@ -69,14 +69,6 @@ static gboolean tests_completed;	/* Controls truncation warnings */
 static gboolean format_verbose;		/* Controls debugging of formatting */
 static unsigned format_recursion;	/* Prevents recursive verbose debugging */
 
-static inline void
-str_check(const struct str * const s)
-{
-	g_assert(s != NULL);
-	g_assert(STR_MAGIC == s->s_magic);
-	g_assert(s->s_len <= s->s_size);
-}
-
 /**
  * Flags for s_flags
  */
@@ -267,7 +259,7 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
 		str_free(str);
 
 	if ((size_t) -1 == len)
-		len = strlen(ptr);
+		len = (0 == size) ? strlen(ptr) : clamp_strlen(ptr, size);
 
 	if (0 == size)
 		size = len + 1;			/* Must include hidden NUL in foreign string */
@@ -288,15 +280,27 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
  *    char data[80];
  *
  *    str_new_buffer(&str, data, 0, sizeof data);
+ *
+ * @param str	pointer to uninitialized existing string object
+ * @param ptr	start of fix sized buffer where string data will be held
+ * @param len	length of existing string, computed if (size_t) -1
+ * @param size	size (positive) of buffer starting at ptr
  */
 void
 str_new_buffer(str_t *str, char *ptr, size_t len, size_t size)
 {
 	g_assert(str != NULL);
+	g_assert(ptr != NULL);
+	g_assert(size_is_non_negative(len + 1));
+	g_assert(size_is_positive(size));
 
-	ZERO(str);
 	str->s_magic = STR_MAGIC;
-	str_foreign(str, ptr, len, size);
+	str->s_flags = STR_FOREIGN_PTR;
+	str->s_data = ptr;
+	str->s_len = ((size_t) -1 == len) ? clamp_strlen(ptr, size) : len;
+	str->s_size = size;
+
+	g_assert(str->s_len <= str->s_size);
 }
 
 /**
@@ -2671,6 +2675,48 @@ str_vbprintf(char *dst, size_t size, const char *fmt, va_list args)
 	str_new_buffer(&str, dst, 0, size);
 
 	formatted = str_vncatf(&str, size - 1, fmt, args);
+	str_putc(&str, '\0');
+
+	return formatted;
+}
+
+/**
+ * Append formatted string to previous string in fix sized buffer.
+ * @return the amount of formatted chars.
+ */
+size_t
+str_bcatf(char *dst, size_t size, const char *fmt, ...)
+{
+	str_t str;
+	va_list args;
+	size_t len, formatted;
+
+	len = clamp_strlen(dst, size);
+	str_new_buffer(&str, dst, len, size);
+
+	va_start(args, fmt);
+	formatted = str_vncatf(&str, size - len - 1, fmt, args);
+	va_end(args);
+
+	str_putc(&str, '\0');
+
+	return formatted;
+}
+
+/**
+ * Append formatted string to previous string in fix sized buffer.
+ * @return the amount of formatted chars.
+ */
+size_t
+str_vbcatf(char *dst, size_t size, const char *fmt, va_list args)
+{
+	str_t str;
+	size_t len, formatted;
+
+	len = clamp_strlen(dst, size);
+	str_new_buffer(&str, dst, len, size);
+
+	formatted = str_vncatf(&str, size - len - 1, fmt, args);
 	str_putc(&str, '\0');
 
 	return formatted;

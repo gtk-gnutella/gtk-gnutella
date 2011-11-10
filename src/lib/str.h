@@ -55,6 +55,24 @@ typedef struct str {
 	size_t s_size;			/**< Size of the data arena */
 } str_t;
 
+static inline void
+str_check(const struct str * const s)
+{
+	g_assert(s != NULL);
+	g_assert(STR_MAGIC == s->s_magic);
+	g_assert(s->s_len <= s->s_size);
+}
+
+/**
+ * @return available bytes in current string's buffer.
+ */
+static inline size_t
+str_avail(const struct str * const s)
+{
+	str_check(s);
+	return s->s_size - s->s_len;
+}
+
 struct ckhunk;		/* Avoids dependency on "ckalloc.h" here */
 
 /*
@@ -112,6 +130,9 @@ const char *str_smsg2(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
 size_t str_bprintf(char *dst, size_t size, const char *fmt, ...)
 	G_GNUC_PRINTF(3, 4);
 size_t str_vbprintf(char *dst, size_t size, const char *fmt, va_list args);
+size_t str_bcatf(char *dst, size_t size, const char *fmt, ...)
+	G_GNUC_PRINTF(3, 4);
+size_t str_vbcatf(char *dst, size_t size, const char *fmt, va_list args);
 
 size_t str_test(gboolean verbose);
 
