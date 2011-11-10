@@ -1151,7 +1151,10 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
  * @param f				format letter: 'f', 'g', 'e' or upper-cased version
  * @param has_precis	whether precision was requested
  * @param precision		precision for formatting (0 if !has_precis)
- * @param width			field width
+ * @param width			field width (0 if none enforced)
+ * @param plus			the leading '+' sign to use, or '\0' for none.
+ * @param left			whether to left-justify the field
+ * @param alt			whether to use "alternate" float formatting
  * @param written		set with amount of bytes appended to string
  *
  * @return TRUE if written normally, FALSE when clamping was done.
