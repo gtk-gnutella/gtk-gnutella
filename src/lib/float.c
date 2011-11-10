@@ -65,6 +65,15 @@
 #if 0
 #define FLOAT_DEBUG
 #endif
+#if 0
+#define FLOAT_SAFETY			/* Enable safety assertions */
+#endif
+
+#ifdef FLOAT_SAFETY
+#define safety_assert(x)	g_assert(x)
+#else
+#define safety_assert(x)
+#endif
 
 /* exponent stored + 1024, hidden bit to left of decimal point */
 #define bias 1023
@@ -187,6 +196,7 @@ print_big(bignum_t *x)
 
 	printf("#x");
 	i = x->l;
+	safety_assert(i < BIGSIZE);
 	p = &x->d[i];
 	for (p = &x->d[i]; i >= 0; i--) {
 		guint64 b = *p--;
@@ -201,11 +211,15 @@ mul10(bignum_t *x)
 	int i, l;
 	guint64 *p, k;
 
+	safety_assert(x->l < BIGSIZE);
+
 	l = x->l;
 	for (i = l, p = &x->d[0], k = 0; i >= 0; i--)
 		MUL(*p, 10, *p++, k);
 	if (k != 0)
 		*p = k, x->l = l+1;
+
+	safety_assert(x->l < BIGSIZE);
 }
 
 static void
@@ -214,6 +228,8 @@ big_short_mul(bignum_t *x, guint64 y, bignum_t *z)
 	int i, xl, zl;
 	guint64 *xp, *zp, k;
 	guint32 high, low;
+
+	safety_assert(x->l < BIGSIZE);
 
 	xl = x->l;
 	xp = &x->d[0];
@@ -238,6 +254,8 @@ big_short_mul(bignum_t *x, guint64 y, bignum_t *z)
 	if (k != 0)
 		*zp = k, zl++;
 	z->l = zl;
+
+	safety_assert(z->l < BIGSIZE);
 }
 
 static int
@@ -257,6 +275,7 @@ one_shift_left(int y, bignum_t *z)
 
 	n = y / 64;
 	m = y % 64;
+	safety_assert(n < BIGSIZE);
 	zp = &z->d[0];
 	for (i = n; i > 0; i--)
 		*zp++ = 0;
@@ -272,6 +291,7 @@ short_shift_left(guint64 x, int y, bignum_t *z)
 
 	n = y / 64;
 	m = y % 64;
+	safety_assert(n < BIGSIZE);
 	zl = n;
 	zp = &(z->d[0]);
 	for (i = n; i > 0; i--)
@@ -285,6 +305,7 @@ short_shift_left(guint64 x, int y, bignum_t *z)
 			*++zp = high, zl++;
 	}
 	z->l = zl;
+	safety_assert(z->l < BIGSIZE);
 }
 
 static void
@@ -295,6 +316,7 @@ big_shift_left(bignum_t *x, int y, bignum_t *z)
 
 	n = y / 64;
 	m = y % 64;
+	safety_assert(n < BIGSIZE);
 	xl = x->l;
 	xp = &(x->d[0]);
 	zl = xl + n;
@@ -311,6 +333,7 @@ big_shift_left(bignum_t *x, int y, bignum_t *z)
 			*zp = k, zl++;
 	}
 	z->l = zl;
+	safety_assert(z->l < BIGSIZE);
 }
 
 static int
@@ -318,6 +341,9 @@ big_comp(bignum_t *x, bignum_t *y)
 {
 	int i, xl, yl;
 	guint64 *xp, *yp;
+
+	safety_assert(x->l < BIGSIZE);
+	safety_assert(y->l < BIGSIZE);
 
 	xl = x->l;
 	yl = y->l;
@@ -343,6 +369,9 @@ sub_big(bignum_t *x, bignum_t *y, bignum_t *z)
 	int xl, yl, zl, b, i;
 	guint64 *xp, *yp, *zp;
 
+	safety_assert(x->l < BIGSIZE);
+	safety_assert(y->l < BIGSIZE);
+
 	xl = x->l;
 	yl = y->l;
 	if (yl > xl)
@@ -367,6 +396,7 @@ sub_big(bignum_t *x, bignum_t *y, bignum_t *z)
 	while (*--zp == 0)
 		zl--;
 	z->l = zl;
+	safety_assert(z->l < BIGSIZE);
 	return 0;
 }
 
@@ -375,6 +405,9 @@ add_big(bignum_t *x, bignum_t *y, bignum_t *z)
 {
 	int xl, yl, k, i;
 	guint64 *xp, *yp, *zp;
+
+	safety_assert(x->l < BIGSIZE);
+	safety_assert(y->l < BIGSIZE);
 
 	xl = x->l;
 	yl = y->l;
@@ -403,6 +436,7 @@ add_big(bignum_t *x, bignum_t *y, bignum_t *z)
 		*zp = 1, z->l = xl+1;
 	else
 		z->l = xl;
+	safety_assert(z->l < BIGSIZE);
 }
 
 static int
