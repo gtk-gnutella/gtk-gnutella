@@ -119,7 +119,7 @@ typedef struct {
  * format floating-point numbers from within a signal handler, possibly
  * interrupting a previously running floating point formatting.
  *
- * To avoid chaning too much code and putting a big context on the stack, we
+ * To avoid changing too much code and putting a big context on the stack, we
  * keep the context static but have a set of context elements indexed by a
  * global recursion variable.
  *		--RAM, 2011-11-06
@@ -307,7 +307,7 @@ short_shift_left(guint64 x, int y, bignum_t *z)
 	m = y % 64;
 	safety_assert(n < BIGSIZE);
 	zl = n;
-	zp = &(z->d[0]);
+	zp = &z->d[0];
 	for (i = n; i > 0; i--)
 		*zp++ = 0;
 	if (m == 0) {
@@ -469,7 +469,8 @@ add_big(bignum_t *x, bignum_t *y, bignum_t *z)
 }
 
 static int
-qr(void) {
+qr(void)
+{
 	if (big_comp(&R, &S5) < 0) {
 		if (big_comp(&R, &S2) < 0) {
 			if (big_comp(&R, &S) < 0) {
