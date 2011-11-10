@@ -287,10 +287,10 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
  *    str_t str;
  *    char data[80];
  *
- *    str_from_foreign(&str, data, 0, sizeof data);
+ *    str_new_buffer(&str, data, 0, sizeof data);
  */
 void
-str_from_foreign(str_t *str, char *ptr, size_t len, size_t size)
+str_new_buffer(str_t *str, char *ptr, size_t len, size_t size)
 {
 	g_assert(str != NULL);
 
@@ -2647,7 +2647,7 @@ str_bprintf(char *dst, size_t size, const char *fmt, ...)
 	va_list args;
 	size_t formatted;
 
-	str_from_foreign(&str, dst, 0, size);
+	str_new_buffer(&str, dst, 0, size);
 
 	va_start(args, fmt);
 	formatted = str_vncatf(&str, size - 1, fmt, args);
@@ -2668,7 +2668,7 @@ str_vbprintf(char *dst, size_t size, const char *fmt, va_list args)
 	str_t str;
 	size_t formatted;
 
-	str_from_foreign(&str, dst, 0, size);
+	str_new_buffer(&str, dst, 0, size);
 
 	formatted = str_vncatf(&str, size - 1, fmt, args);
 	str_putc(&str, '\0');
@@ -2689,7 +2689,7 @@ str_tprintf(char *dst, size_t size, const char *fmt, ...)
 	str_t str;
 	va_list args;
 
-	str_from_foreign(&str, dst, 0, size);
+	str_new_buffer(&str, dst, 0, size);
 
 	va_start(args, fmt);
 	str_vncatf(&str, size - 1, fmt, args);
