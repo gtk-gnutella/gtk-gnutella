@@ -1301,13 +1301,15 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 
 			if G_UNLIKELY(format_verbose && 1 == format_recursion) {
 				char buf[150];
+				/* Don't use %zu here, could be unsupported by vsnprintf() */
 				gm_snprintf(buf, sizeof buf,
 					"%g with \"%%%c\": m=\"%.*s\" "
-					"(len=%zu, asked=%s), e=%d "
-					"[precis=%zu, digits=%zu, alt=%s]",
-					nv, c, (int) mlen, m, mlen,
+					"(len=%lu, asked=%s), e=%d "
+					"[precis=%lu, digits=%lu, alt=%s]",
+					nv, c, (int) mlen, m, (unsigned long) mlen,
 					asked_dragon ? "none" : size_t_to_string(asked),
-					e, precis, digits, alt ? "y" : "n");
+					e, (unsigned long) precis, (unsigned long) digits,
+					alt ? "y" : "n");
 				s_debug("%s", buf);
 			}
 
@@ -1590,14 +1592,16 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 
 		if G_UNLIKELY(format_verbose && 1 == format_recursion) {
 			char buf[150];
+			/* Don't use %zu here, could be unsupported by vsnprintf() */
 			gm_snprintf(buf, sizeof buf,
-				"%g as \"%%%c\": elen=%zu, eptr=\"%.*s\", "
-				"expptr=\"%.*s\", dot=\"%s\", zeros<e=%zu, d=%zu, "
-				"a=%zu, f=%zu>",
-				nv, c, elen, (int) elen, eptr, explen, expptr,
+				"%g as \"%%%c\": elen=%lu, eptr=\"%.*s\", "
+				"expptr=\"%.*s\", dot=\"%s\", zeros<e=%lu, d=%lu, "
+				"a=%lu, f=%lu>",
+				nv, c, (unsigned long) elen, (int) elen, eptr, explen, expptr,
 				2 == dot ? "0." :
 				1 == dot ? "." : "",
-				ezeros, dzeros, azeros, fzeros);
+				(unsigned long) ezeros, (unsigned long) dzeros,
+				(unsigned long) azeros, (unsigned long) fzeros);
 			s_debug("%s", buf);
 		}
 		break;
