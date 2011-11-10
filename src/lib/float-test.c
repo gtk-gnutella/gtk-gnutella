@@ -211,6 +211,7 @@ int main (int argc, char **argv) {
   }
   read_floats(f);
   fclose(f);
+  float_init();		/* Always run this to establish baseline */
 
   if (strcmp(argv[2], "base") == 0) {
     exit(0);

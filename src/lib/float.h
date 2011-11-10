@@ -40,6 +40,7 @@
  * Public interface.
  */
 
+void float_init(void);
 size_t float_fixed(char *dest, size_t len, double v, int prec, int *exponent);
 size_t float_dragon(char *dest, size_t len, double v, int *exponent);
 

@@ -511,7 +511,14 @@ qr(void)
 	}
 }
 
-static void
+/**
+ * Initialized floating point formatting constants.
+ *
+ * This routine will be called as needed the first time the API is
+ * used but is made public to allow setting a baseline when doing
+ * timing measurements.
+ */
+G_GNUC_COLD void
 float_init(void)
 {
 	int n, i, l;
