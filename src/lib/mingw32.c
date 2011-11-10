@@ -3111,17 +3111,6 @@ mingw_sbrk(long incr)
 }
 #endif 	/* EMULATE_SBRK */
 
-static void
-mingw_stdio_reset(void)
-{
-	fclose(stdin);
-	fclose(stdout);
-	fclose(stderr);
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
-}
-
 #ifdef MINGW_STARTUP_DEBUG
 static FILE *
 getlog(gboolean initial)
@@ -3140,6 +3129,45 @@ getlog(gboolean initial)
 #define getlog(x)	NULL
 #define STARTUP_DEBUG(...)
 #endif	/* MINGW_STARTUP_DEBUG */
+
+static G_GNUC_COLD void
+mingw_stdio_reset(FILE *lf, gboolean console)
+{
+	(void) lf;			/* In case no MINGW_STARTUP_DEBUG */
+	if (console) {
+		int tty;
+		
+		tty = isatty(STDIN_FILENO);
+		STARTUP_DEBUG("stdin is%s a tty", tty ? "" : "n't");
+		if (tty) {
+			fclose(stdin);
+			close(STDIN_FILENO);
+			freopen("CONIN$", "rb", stdin);
+		}
+		tty = isatty(STDOUT_FILENO);
+		STARTUP_DEBUG("stdout is%s a tty", tty ? "" : "n't");
+		if (tty) {
+			fclose(stdout);
+			close(STDOUT_FILENO);
+			freopen("CONOUT$", "wb", stdout);
+		}
+		tty = isatty(STDERR_FILENO);
+		STARTUP_DEBUG("stderr is%s a tty", tty ? "" : "n't");
+		if (tty) {
+			fclose(stderr);
+			close(STDERR_FILENO);
+			freopen("CONOUT$", "wb", stderr);
+		}
+	} else {
+		fclose(stdin);
+		fclose(stdout);
+		fclose(stderr);
+		close(STDIN_FILENO);
+		close(STDOUT_FILENO);
+		close(STDERR_FILENO);
+		STARTUP_DEBUG("stdio fully reset");
+	}
+}
 
 G_GNUC_COLD void
 mingw_early_init(void)
@@ -3166,29 +3194,18 @@ mingw_early_init(void)
 	STARTUP_DEBUG("attempting AttachConsole()...");
 
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-		int tty = isatty(STDIN_FILENO);
-		STARTUP_DEBUG("AttachConsole() succeeded (stdin is%s a tty)",
-			tty ? "" : "n't");
-		if (tty) {
-			mingw_stdio_reset();
-			freopen("CONIN$", "rb", stdin);
-			freopen("CONOUT$", "wb", stdout);
-			freopen("CONOUT$", "wb", stderr);
-			STARTUP_DEBUG("stdio reset");
-		} else {
-			STARTUP_DEBUG("stdio not reset");
-		}
+		STARTUP_DEBUG("AttachConsole() succeeded");
+		mingw_stdio_reset(lf, TRUE);
 	} else {
 		console_err = GetLastError();
 
 		STARTUP_DEBUG("AttachConsole() failed, error = %d", console_err);
-		STARTUP_DEBUG("stdin is%s a tty", isatty(STDIN_FILENO) ? "" : "n't");
 
 		switch (console_err) {
 		case ERROR_INVALID_HANDLE:
 		case ERROR_GEN_FAILURE:
 			/* We had no console, and we got no console. */
-			mingw_stdio_reset();
+			mingw_stdio_reset(lf, FALSE);
 			freopen("NUL", "rb", stdin);
 			{
 				const char *pathname;
