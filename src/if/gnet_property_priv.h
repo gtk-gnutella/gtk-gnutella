@@ -485,6 +485,7 @@ extern const guint32  gnet_property_variable_hosts_in_guess6_intro_catcher;
 extern const guint32  gnet_property_variable_max_guess6_hosts_cached;
 extern const guint32  gnet_property_variable_max_guess6_intro_hosts_cached;
 extern const guint32  gnet_property_variable_xmalloc_debug;
+extern const guint32  gnet_property_variable_qhit_bad_debug;
 
 
 prop_set_t *gnet_prop_init(void);
