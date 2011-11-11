@@ -2972,12 +2972,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	 */
 
 bad_packet:
-	if (GNET_PROPERTY(search_debug)) {
+	if (GNET_PROPERTY(qhit_bad_debug)) {
 		g_warning(
 			"BAD %s from %s (via %s) -- %u/%u record%s parsed: %s",
 			 gmsg_node_infostr(n), vendor ? vendor : "????", node_infostr(n),
 			 nr, rs->num_recs, 1 == rs->num_recs ? "" : "s", badmsg);
-		if (GNET_PROPERTY(search_debug) > 1)
+		if (GNET_PROPERTY(qhit_bad_debug) > 1)
 			dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
 	}
 
@@ -5235,7 +5235,7 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 
 	if (NULL != (endptr = is_strprefix(query, "urn:sha1:"))) {
 		if (SHA1_BASE32_SIZE != strlen(endptr) || !urn_get_sha1(query, NULL)) {
-			g_warning("Rejected invalid urn:sha1 search");
+			g_warning("rejected invalid urn:sha1 search");
 			qdup = NULL;
 			result = SEARCH_NEW_INVALID_URN;
 			goto failure;
