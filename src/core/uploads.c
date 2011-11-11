@@ -94,6 +94,7 @@
 #include "lib/header.h"
 #include "lib/listener.h"
 #include "lib/parse.h"
+#include "lib/product.h"
 #include "lib/strtok.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -2063,13 +2064,13 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 				"</script>"
 				"</head>"
 				"<body onload=\"main();\">"
-				"<h1>" GTA_PRODUCT_NAME "</h1>"
+				"<h1>%s</h1>"
 				"<p>The download starts in <em id=\"x\">%ld</em> seconds.</p>"
 				"</body>"
 				"</html>"
 					"\r\n",
 					retry, '\0' != href[0] ? index_href : "", href,
-					retry, retry);
+					retry, product_get_name(), retry);
 			upload_http_extra_line_add(u,
 				"Content-Type: text/html; charset=utf-8\r\n");
 			upload_http_extra_body_add(u, buf);

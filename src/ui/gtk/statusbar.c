@@ -39,7 +39,9 @@
 #include "statusbar.h"
 
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/misc.h"
+#include "lib/product.h"
 #include "lib/tm.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -74,8 +76,8 @@ static GSList *sl_statusbar_timeouts;
 /*
  * Status bar
  */
-static gchar *statbar_botstr;
-static gchar *statbar_botstr_new;
+static char *statbar_botstr;
+static char *statbar_botstr_new;
 
 static void statusbar_gui_free_timeout(struct statusbar_timeout * t);
 static void statusbar_gui_free_timeout_list(void);
@@ -197,13 +199,13 @@ statusbar_gui_set_default(const char *format, ...)
 
     va_start(args, format);
 
-    G_FREE_NULL(statbar_botstr_new);
+    HFREE_NULL(statbar_botstr_new);
 
     if (format != NULL) {
         gm_vsnprintf(buf, sizeof(buf), format, args);
-        statbar_botstr_new = g_strdup(buf);
+        statbar_botstr_new = h_strdup(buf);
     } else {
-        statbar_botstr_new = g_strdup(GTA_WEBSITE);
+        statbar_botstr_new = h_strdup(product_get_website());
     }
 
     va_end(args);
@@ -276,7 +278,7 @@ statusbar_gui_clear_timeouts(time_t now)
 
 	if (sl_statusbar_timeouts == NULL && statbar_botstr_new) {
     	gtk_statusbar_pop(statusbar_get(), scid_bottom);
-		G_FREE_NULL(statbar_botstr);
+		HFREE_NULL(statbar_botstr);
 		statbar_botstr = statbar_botstr_new;
 		statbar_botstr_new = NULL;
 		statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, "%s", statbar_botstr);
@@ -322,7 +324,7 @@ statusbar_gui_init(void)
 	 *		--RAM, 27/06/2002
 	 */
 
-	statbar_botstr = g_strdup(GTA_WEBSITE);
+	statbar_botstr = h_strdup(product_get_website());
 	statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, "%s", statbar_botstr);
 
 	main_gui_add_timer(statusbar_gui_clear_timeouts);
@@ -332,8 +334,8 @@ void
 statusbar_gui_shutdown(void)
 {
     statusbar_gui_free_timeout_list();
-	G_FREE_NULL(statbar_botstr_new);
-	G_FREE_NULL(statbar_botstr);
+	HFREE_NULL(statbar_botstr_new);
+	HFREE_NULL(statbar_botstr);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

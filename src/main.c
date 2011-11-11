@@ -132,6 +132,7 @@
 #include "lib/patricia.h"
 #include "lib/pattern.h"
 #include "lib/pow2.h"
+#include "lib/product.h"
 #include "lib/random.h"
 #include "lib/signal.h"
 #include "lib/stacktrace.h"
@@ -249,64 +250,6 @@ sig_malloc(int n)
 #endif /* MALLOC_STATS */
 
 /**
- * Get build number.
- */
-guint32
-main_get_build(void)
-{
-	static guint32 build;
-	static int initialized;
-
-	if (build)
-		return build;
-
-	if (!initialized) {
-		const char *p;
-
-		initialized = TRUE;
-		p = is_strprefix(GTA_BUILD, "$Revision: ");
-		if (p) {
-			int error;
-			build = parse_uint32(p, NULL, 10, &error);
-		}
-	}
-	return build;
-}
-
-/**
- * Get full build number string.
- */
-const char *
-main_get_build_full(void)
-{
-	static char *result;
-
-	if (NULL == result) {
-		const char *p;
-		p = is_strprefix(GTA_BUILD, "$Revision: ");
-		if (p != NULL) {
-			char *tmp;
-			char *q;
-			size_t len = strlen(p) + 2;		/* Leading '-', trailing NUL */
-
-			tmp = halloc(len);
-			g_strlcpy(tmp + 1, p, len - 1);
-			*tmp = '-';
-			q = strchr(tmp, ' ');
-			if (q != NULL)
-				*q = '\0';		/* Truncate at first space */
-
-			result = ostrdup(tmp);
-			HFREE_NULL(tmp);
-		} else {
-			result = "";		/* No change since last git tag */
-		}
-	}
-
-	return result;
-}
-
-/**
  * Are we debugging anything at a level greater than some threshold "t"?
  */
 gboolean
@@ -350,12 +293,6 @@ debugging(guint t)
 
 		/* Above line left blank for easy "!}sort" under vi */
 		0;
-}
-
-const char *
-gtk_gnutella_interface(void)
-{
-	return running_topless ? "Topless" : GTA_INTERFACE;
 }
 
 /**
@@ -1652,23 +1589,35 @@ main_command_line(void)
 	return str_s2c_null(&s);
 }
 
+#ifndef GTA_PATCHLEVEL
+#define GTA_PATCHLEVEL 0
+#endif
+#ifndef GTA_REVISION
+#define GTA_REVISION NULL
+#endif
+
 int
 main(int argc, char **argv)
 {
 	int sp;
 	size_t str_discrepancies;
 
+	product_init(GTA_PRODUCT_NAME,
+		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
+		GTA_RELEASE, GTA_VERSION_NUMBER, GTA_REVISION, GTA_BUILD);
+	product_set_website(GTA_WEBSITE);
+	product_set_interface(GTA_INTERFACE);
+
 	mingw_early_init();
-	
+	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
+	tm_init();
+
 	if (compat_is_superuser()) {
 		fprintf(stderr, "Never ever run this as root! You may use:\n\n");
 		fprintf(stderr, "    su - username -c 'gtk-gnutella --daemonize'\n\n");
 		fprintf(stderr, "where 'username' stands for a regular user name.\n");
 		exit(EXIT_FAILURE);
 	}
-
-	tm_init();
-	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
 
 	/*
 	 * This must be run before we allocate memory because we might
@@ -1761,9 +1710,9 @@ main(int argc, char **argv)
 
 		flags |= crash_coredumps_disabled() ? CRASH_F_GDB : 0;
 
-		crash_init(argv[0], GTA_PRODUCT_NAME,
+		crash_init(argv[0], product_get_name(),
 			flags, options[main_arg_exec_on_crash].arg);
-		crash_setbuild(main_get_build());
+		crash_setbuild(product_get_build());
 		crash_setmain(main_argc, main_argv, main_env);
 	}	
 	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
@@ -1787,6 +1736,7 @@ main(int argc, char **argv)
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
+	product_set_interface(running_topless ? "Topless" : GTA_INTERFACE);
 	version_init();
 	malloc_show_settings();
 	xmalloc_show_settings();

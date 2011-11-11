@@ -33,7 +33,6 @@
 
 #include "common.h"
 
-#include "gtk-gnutella.h"
 #include "cmd.h"
 
 #include "lib/ascii.h"

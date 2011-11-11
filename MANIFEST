@@ -720,6 +720,8 @@ src/lib/pmsg.c
 src/lib/pmsg.h
 src/lib/pow2.c
 src/lib/pow2.h
+src/lib/product.c
+src/lib/product.h
 src/lib/prop.c
 src/lib/prop.h
 src/lib/random.c

@@ -33,8 +33,6 @@
 
 #include "gui.h"
 
-#include "gtk-gnutella.h"
-
 #include "filter_core.h"
 #include "search_xml.h"
 #include "settings.h"
@@ -54,6 +52,7 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/parse.h"
+#include "lib/product.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
@@ -369,7 +368,7 @@ search_store_xml(void)
 
     root = xnode_new_element(NULL, NULL, NODE_SEARCHES);
     xnode_prop_printf(root, "Time", "%s", timestamp_to_string(now));
-    xnode_prop_printf(root, "Version", "%s", GTA_VERSION_NUMBER);
+    xnode_prop_printf(root, "Version", "%s", product_get_version());
 
     /*
      * Store UIDs for the builtin targets

@@ -33,8 +33,6 @@
 
 #include "gui.h"
 
-#include "gtk-gnutella.h"
-
 #include "columns.h"
 #include "downloads_common.h"
 #include "filter.h"
@@ -55,10 +53,12 @@
 #include "if/dht/routing.h"
 
 #include "lib/concat.h"
-#include "lib/prop.h"
 #include "lib/glib-missing.h"
+#include "lib/product.h"
+#include "lib/prop.h"
 #include "lib/stringify.h"
 #include "lib/utf8.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
@@ -1610,7 +1610,7 @@ new_version_str_changed(property_t prop)
 	g_return_val_if_fail(PROP_NEW_VERSION_STR == prop, FALSE);
 
     str = gnet_prop_get_string(prop, NULL, 0);
-   	statusbar_gui_set_default("%s%s", GTA_WEBSITE, str ? str : "");
+   	statusbar_gui_set_default("%s%s", product_get_website(), str ? str : "");
 	G_FREE_NULL(str);
 
     return FALSE;

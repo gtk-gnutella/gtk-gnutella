@@ -26,9 +26,6 @@
 
 #include "common.h"
 
-guint32 main_get_build(void);
-const char *main_get_build_full(void);
-
 #ifdef CORE_SOURCES
 
 /**
@@ -53,7 +50,6 @@ enum shutdown_mode {
 void gtk_gnutella_exit(int n);
 void gtk_gnutella_request_shutdown(enum shutdown_mode mode, unsigned flags);
 gboolean debugging(guint t);
-const char *gtk_gnutella_interface(void);
 
 char *main_command_line(void);
  

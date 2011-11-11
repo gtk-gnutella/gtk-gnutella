@@ -185,6 +185,7 @@ LSRC = \
 	pattern.c \
 	pmsg.c \
 	pow2.c \
+	product.c \
 	prop.c \
 	random.c \
 	sectoken.c \
@@ -302,6 +303,7 @@ LOBJ = \
 	pattern.o \
 	pmsg.o \
 	pow2.o \
+	product.o \
 	prop.o \
 	random.o \
 	sectoken.o \
