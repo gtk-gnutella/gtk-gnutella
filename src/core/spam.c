@@ -262,9 +262,8 @@ spam_load(FILE *f)
 			 * exact format. If we continued, we would read from the
 			 * middle of a line which could be the filename or ID.
 			 */
-			g_warning("spam_load(): "
-				"line too long or missing newline in line %u",
-				line_no);
+			g_warning("%s(): line too long or missing newline in line %u",
+				G_STRFUNC, line_no);
 			break;
 		}
 		*nl = '\0';
@@ -286,8 +285,8 @@ spam_load(FILE *f)
 		g_assert(UNSIGNED(tag) < UNSIGNED(NUM_SPAM_TAGS));
 
 		if (SPAM_TAG_UNKNOWN != tag && !bit_array_flip(tag_used, tag)) {
-			g_warning("spam_load(): duplicate tag \"%s\" in entry in line %u",
-				tag_name, line_no);
+			g_warning("%s(): duplicate tag \"%s\" in entry in line %u",
+				G_STRFUNC, tag_name, line_no);
 			continue;
 		}
 		
@@ -307,7 +306,7 @@ spam_load(FILE *f)
 			{
 				if (strlen(value) != SHA1_BASE32_SIZE) {
 					item.damaged = TRUE;
-					g_warning("spam_load(): SHA-1 has wrong length.");
+					g_warning("%s(): SHA-1 has wrong length.", G_STRFUNC);
 				} else {
 					const struct sha1 *raw;
 
@@ -324,10 +323,11 @@ spam_load(FILE *f)
 			{
 				if ('\0' == value[0]) {
 					item.damaged = TRUE;
-					g_warning("spam_load(): Missing filename pattern.");
+					g_warning("%s(): missing filename pattern.", G_STRFUNC);
 				} else if (!utf8_is_valid_string(value)) {
 					item.damaged = TRUE;
-					g_warning("spam_load(): Filename pattern is not UTF-8.");
+					g_warning("%s(): filename pattern is not UTF-8.",
+						G_STRFUNC);
 				} else {
 					item.name = h_strdup(value);
 				}
@@ -343,7 +343,7 @@ spam_load(FILE *f)
 				u = parse_uint64(value, &endptr, 10, &error);
 				if (error) {
 					item.damaged = TRUE;
-					g_warning("spam_load(): Cannot parse SIZE: %s", value);
+					g_warning("%s(): cannot parse SIZE: %s", G_STRFUNC, value);
 				} else {
 					item.min_size = u;
 					item.max_size = u;
@@ -352,13 +352,13 @@ spam_load(FILE *f)
 						u = parse_uint64(&endptr[1], &endptr, 10, &error);
 						if (error) {
 							item.damaged = TRUE;
-							g_warning("spam_load(): Cannot parse SIZE: %s",
-								value);
+							g_warning("%s(): cannot parse SIZE: %s",
+								G_STRFUNC, value);
 						}
 						if (u < item.min_size) {
 							item.damaged = TRUE;
-							g_warning("spam_load(): "
-								"Maximum size below minimum size");
+							g_warning("%s(): maximum size below minimum size",
+								G_STRFUNC);
 						} else {
 							item.max_size = u;
 						}
@@ -372,11 +372,11 @@ spam_load(FILE *f)
 				!bit_array_get(tag_used, SPAM_TAG_SHA1) &&
 				!bit_array_get(tag_used, SPAM_TAG_NAME)
 			) {
-				g_warning("spam_load(): missing SHA1 or NAME tag");
+				g_warning("%s(): missing SHA1 or NAME tag", G_STRFUNC);
 				item.damaged = TRUE;
 			}
 			if (!bit_array_get(tag_used, SPAM_TAG_ADDED)) {
-				g_warning("spam_load(): missing ADDED tag");
+				g_warning("%s(): missing ADDED tag", G_STRFUNC);
 				item.damaged = TRUE;
 			}
 			item.done = TRUE;
@@ -413,9 +413,9 @@ spam_load(FILE *f)
 		}
 
 		if (item.damaged) {
-			g_warning("Damaged spam entry in line %u: "
+			g_warning("%s(): damaged spam entry in line %u: "
 				"tag_name=\"%s\", value=\"%s\"",
-				line_no, tag_name, value);
+				G_STRFUNC, line_no, tag_name, value);
 		}
 
 		if (item.done) {
