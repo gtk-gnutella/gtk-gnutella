@@ -39,9 +39,7 @@
  * Inclusion in gtk-gnutella done by Raphael Manfredi.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "common.h"
 
 #include "float.h"
 
@@ -202,6 +200,8 @@ static int convert(char *s, char *buf, int prec) {
 
 int main (int argc, char **argv) {
   FILE *f;
+
+  mingw_early_init();
 
   if (argc != 3) USAGE_ERROR;
 
