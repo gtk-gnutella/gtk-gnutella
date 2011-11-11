@@ -133,6 +133,8 @@ static aging_table_t *ul_queue_sent;	/** Used as search table by IP addr */
 static GHashTable *ul_all_parq_by_addr_and_name;
 static GHashTable *ul_all_parq_by_addr;
 static GHashTable *ul_all_parq_by_id;
+static cperiodic_t *parq_dead_timer_ev;
+static cperiodic_t *parq_save_timer_ev;
 
 /**
  * If enable_real_passive is TRUE, a dead upload is only marked dead,
@@ -5220,8 +5222,10 @@ parq_init(void)
 	parq_upload_load_queue();
 	parq_start = tm_time();
 
-	cq_periodic_main_add(QUEUE_DEAD_SCAN * 1000, parq_dead_timer, NULL);
-	cq_periodic_main_add(QUEUE_SAVE_PERIOD * 1000, parq_save_timer, NULL);
+	parq_dead_timer_ev = cq_periodic_main_add(QUEUE_DEAD_SCAN * 1000,
+		parq_dead_timer, NULL);
+	parq_save_timer_ev = cq_periodic_main_add(QUEUE_SAVE_PERIOD * 1000,
+		parq_save_timer, NULL);
 }
 
 /**
@@ -5236,6 +5240,8 @@ parq_close_pre(void)
 	parq_shutdown = TRUE;
 
 	parq_upload_save_queue();
+	cq_periodic_remove(&parq_dead_timer_ev);
+	cq_periodic_remove(&parq_save_timer_ev);
 
 	for (dl = parq_banned_sources ; dl != NULL; dl = g_list_next(dl)) {
 		struct parq_banned *banned = dl->data;
