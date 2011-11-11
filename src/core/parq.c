@@ -2886,6 +2886,50 @@ parq_upload_unfreeze_all(struct parq_ul_queued *puq)
 }
 
 /**
+ * Dump all queued entries before the specified item whose enties have
+ * a slot number less than the maximum amount of upload slots we have.
+ */
+static void
+parq_ul_dump_earlier(struct parq_ul_queued *item)
+{
+	struct parq_ul_queue *q;
+	hash_list_iter_t *iter;
+	unsigned old_relative = 0;
+
+	parq_ul_queued_check(item);
+
+	q = item->queue;
+	parq_ul_queue_check(q);
+
+	iter = hash_list_iterator(q->by_rel_pos);
+
+	while (hash_list_iter_has_next(iter)) {
+		struct parq_ul_queued *puq = hash_list_iter_next(iter);
+		
+		parq_ul_queued_check(puq);
+		g_assert_log(puq->relative_position > old_relative,
+			"relative=%u, old=%u", puq->relative_position, old_relative);
+		old_relative = puq->relative_position;
+
+		if (
+			puq->relative_position >= item->relative_position ||
+			puq->relative_position > GNET_PROPERTY(max_uploads)
+		)
+			break;
+
+		g_debug("[PARQ UL] Q#%d pos=%u, rel=%u, slot<has=%s had=%s> updated=%s"
+			" active=%s, quick=%s, alive=%s",
+			q->num, puq->position, puq->relative_position,
+			puq->has_slot ? "y" : "n", puq->had_slot ? "y" : "n",
+			short_time(delta_time(tm_time(), puq->updated)),
+			puq->active_queued ? "y" : "n", puq->quick ? "y" : "n",
+			puq->is_alive ? "y" : "n");
+	}
+	
+	hash_list_iter_release(&iter);
+}
+
+/**
  * @return TRUE if the current upload is allowed to get an upload slot.
  */
 static gboolean
@@ -2991,13 +3035,17 @@ parq_upload_continue(struct parq_ul_queued *puq)
 		return TRUE;
 	}
 
-	if (GNET_PROPERTY(parq_debug) > 1)
+	if (GNET_PROPERTY(parq_debug) > 1) {
 		g_debug("[PARQ UL] [#%d] Not allowing regular for \"%s\""
-			"from %s (%s) pos=%d",
+			" from %s (%s) pos=%d",
 			puq->queue->num, puq->u->name,
 			host_addr_port_to_string(
 				puq->u->socket->addr, puq->u->socket->port),
 			upload_vendor_str(puq->u), puq->relative_position);
+
+		if (GNET_PROPERTY(parq_debug) > 5)
+			parq_ul_dump_earlier(puq);
+	}
 
 check_quick:
 	/*
