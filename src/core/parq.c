@@ -155,10 +155,15 @@ static gboolean parq_shutdown;
 static time_t parq_start;					/**< Init time */
 static guint64 parq_slots_removed = 0;		/**< Amount of slots removed */
 
+enum parq_ul_queue_magic {
+	PARQ_UL_QUEUE_MAGIC = 0x7dbab331
+};
+
 /**
  * Holds status of current queue.
  */
 struct parq_ul_queue {
+	enum parq_ul_queue_magic magic;
 	GList *by_position;		/**< Queued items sorted on position. Newest is
 								 added to the end. */
 	hash_list_t *by_rel_pos;	/**< Queued items sorted by relative position */
@@ -170,12 +175,19 @@ struct parq_ul_queue {
 	int active_uploads;
 	int active_queued_cnt;	/**< Number of actively queued entries */
 	int alive;
-	gboolean recompute;		/**< Flagged as requiring update of internal data */
-	gboolean active;		/**< Set to false when the number of upload slots
+	unsigned recompute:1;	/**< Flagged as requiring update of internal data */
+	unsigned active:1;		/**< Set to false when the number of upload slots
 								 was decreased but the queue still contained
 								 queued items. This queue shall be removed when
 								 all queued items are finished / removed. */
 };
+
+static inline void
+parq_ul_queue_check(const struct parq_ul_queue * const q)
+{
+	g_assert(q != NULL);
+	g_assert(PARQ_UL_QUEUE_MAGIC == q->magic);
+}
 
 struct parq_ul_queued_by_addr {
 	int	uploading;		/**< Number of uploads uploading */
@@ -191,7 +203,7 @@ struct parq_ul_queued_by_addr {
 };
 
 enum parq_ul_magic {
-	PARQ_UL_MAGIC = 0x6a3900a1U
+	PARQ_UL_MAGIC = 0x6a3900a1
 };
 
 /**
@@ -203,10 +215,6 @@ struct parq_ul_queued {
 	guint position;			/**< Current position in the queue */
 	guint relative_position; /**< Relative position in the queue, if 'not alive'
 								  uploads are taken into account */
-	gboolean quick;			/**< Slot granted for allowed quick upload */
-	gboolean active_queued;	/**< Whether the current upload is actively queued */
-	gboolean has_slot;		/**< Whether the items is currently uploading */
-	gboolean had_slot;		/**< Whether we granted a slot to that entry */
 	guint eta;				/**< Expected time in seconds till an upload slot is
 							     reached, this is a relative timestamp */
 
@@ -228,8 +236,6 @@ struct parq_ul_queued {
 	guint32 queue_sent;		/**< Amount of QUEUE messages we tried to send */
 	guint32 queue_refused;	/**< Amount of QUEUE messages refused remotely */
 
-	gboolean is_alive;		/**< Whether client is still requesting this file */
-
 	struct guid id;			/**< PARQ identifier; GUID atom */
 
 	char *addr_and_name;	/**< "IP name", used as key in hash table */
@@ -250,9 +256,22 @@ struct parq_ul_queued {
 	struct parq_ul_queue *queue;	/**< In which queue this entry is listed */
 	struct parq_ul_queued_by_addr *by_addr;
 
-	struct upload *u;	/**< Internal reference to upload structure if
-							     available */
+	struct upload *u;	/**< Internal ref to upload structure if available */
+
+	unsigned quick:1;			/**< Slot granted for allowed quick upload */
+	unsigned active_queued:1;	/**< Whether current upload actively queued */
+	unsigned has_slot:1;		/**< Whether the items is currently uploading */
+	unsigned had_slot:1;		/**< Whether we granted a slot to that entry */
+	unsigned is_alive:1;		/**< Whether client is still requesting file */
+
 };
+
+static inline void
+parq_ul_queued_check(const struct parq_ul_queued * const puq)
+{
+	g_assert(puq != NULL);
+	g_assert(PARQ_UL_MAGIC == puq->magic);
+}
 
 /*
  * Flags for parq_ul_queued.
@@ -1227,8 +1246,7 @@ ignore:
 static inline struct parq_ul_queued *
 handle_to_queued(struct parq_ul_queued *puq)
 {
-	g_assert(puq != NULL);
-	g_assert(puq->magic == PARQ_UL_MAGIC);
+	parq_ul_queued_check(puq);
 
 	return puq;
 }
@@ -1648,12 +1666,10 @@ parq_ul_calc_retry(struct parq_ul_queued *puq)
 static struct parq_ul_queue *
 parq_upload_new_queue(void)
 {
-	static const struct parq_ul_queue zero_queue;
 	struct parq_ul_queue *queue;
 
-	WALLOC(queue);
-	*queue = zero_queue;
-
+	WALLOC0(queue);
+	queue->magic = PARQ_UL_QUEUE_MAGIC;
 	queue->active = TRUE;
 	queue->slot_stats = statx_make();
 	queue->by_rel_pos = hash_list_new(NULL, NULL);
@@ -1710,12 +1726,12 @@ parq_upload_which_queue(struct upload *u)
 		parq_upload_new_queue();
 
 	queue = g_list_nth_data(ul_parqs, slot - 1);
+	parq_ul_queue_check(queue);
 
 	/* We might need to reactivate the queue */
 	queue->active = TRUE;
 
-	g_assert(queue != NULL);
-	g_assert(queue->active == TRUE);
+	g_assert(queue->active);
 
 	return queue;
 }
@@ -1924,13 +1940,13 @@ parq_upload_recompute_queue_num(void)
 static void
 parq_upload_free_queue(struct parq_ul_queue *queue)
 {
-	g_assert(queue != NULL);
+	parq_ul_queue_check(queue);
 	g_assert(ul_parqs != NULL);
 
 	/* Never ever remove a queue which is in use and/or marked as active */
 	g_assert(queue->by_position_length == 0);
 	g_assert(queue->active_uploads == 0);
-	g_assert(queue->active == FALSE);
+	g_assert(!queue->active);
 
 	if (GNET_PROPERTY(parq_debug))
 		g_debug("PARQ UL: Removing inactive queue %d", queue->num);
@@ -1946,6 +1962,7 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 	hash_list_free(&queue->by_rel_pos);
 	hash_list_free(&queue->by_date_dead);
 	statx_free(queue->slot_stats);
+	queue->magic = 0;
 	WFREE(queue);
 }
 
@@ -2512,7 +2529,8 @@ parq_upload_timer(time_t now)
 		/*
 		 * Mark queue as inactive when there are less uploads slots available.
 		 */
-		queue->active = queue_selected <= GNET_PROPERTY(max_uploads);
+		queue->active =
+			booleanize(queue_selected <= GNET_PROPERTY(max_uploads));
 	}
 
 	/*
@@ -2741,7 +2759,7 @@ free_upload_slots(struct parq_ul_queue *q)
 /**
  * Mark all the entries which do not have a slot for this IP as "frozen",
  * thereby removing them from the PARQ scheduling logic until the amount
- * of slots used by this IP decreases..
+ * of slots used by this IP decreases.
  */
 static void
 parq_upload_freeze_all(struct parq_ul_queued *puq)
@@ -3894,6 +3912,8 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 
 		while (hash_list_iter_has_next(iter)) {
 			struct parq_ul_queued *puq_next = hash_list_iter_next(iter);
+
+			parq_ul_queued_check(puq_next);
 
 			if (!puq_next->has_slot) {
 				g_assert(puq_next->queue->active <= 1);
