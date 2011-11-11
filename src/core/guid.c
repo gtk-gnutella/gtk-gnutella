@@ -37,11 +37,11 @@
 
 #include "common.h"
 
-#include "gtk-gnutella.h"
-
 #include "guid.h"
-#include "lib/misc.h"
+
 #include "lib/endian.h"
+#include "lib/misc.h"
+#include "lib/product.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -163,12 +163,14 @@ guid_hec_oob(const struct guid *guid)
 G_GNUC_COLD void
 guid_init(void)
 {
-	const char *rev = GTA_REVCHAR;	/* Empty string means stable release */
+	char rev;		/* NUL means stable release */
 
 	guid_gen_syndrome_table();
 
+	rev = product_get_revchar();
 	gtkg_version_mark =
-		guid_gtkg_encode_version(GTA_VERSION, GTA_SUBVERSION, *rev == '\0');
+		guid_gtkg_encode_version(product_get_major(),
+			product_get_minor(), '\0' == rev);
 
 	if (GNET_PROPERTY(node_debug))
 		g_debug("GTKG version mark is 0x%x", gtkg_version_mark);
@@ -242,6 +244,7 @@ guid_extract_gtkg_info(const struct guid *guid, size_t start,
 	gboolean release;
 	guint16 mark;
 	guint16 xmark;
+	guint8 product_major;
 
 	g_assert(start < GUID_RAW_SIZE - 1);
 	major = peek_u8(&guid->v[start]) & 0x0f;
@@ -261,8 +264,10 @@ guid_extract_gtkg_info(const struct guid *guid, size_t start,
 	 * release per year, this strengthens the positive check.
 	 */
 
-	if (major != GTA_VERSION) {
-		if (major + 1 != GTA_VERSION || major - 1 != GTA_VERSION)
+	product_major = product_get_major();
+
+	if (major != product_major) {
+		if (major + 1 != product_major || major - 1 != product_major)
 			return FALSE;
 	}
 

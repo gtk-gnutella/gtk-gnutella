@@ -56,12 +56,11 @@
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
-#include "if/core/main.h"		/* For main_get_build() */
-
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/glib-missing.h"
 #include "lib/host_addr.h"
+#include "lib/product.h"		/* For product_get_build() */
 #include "lib/stacktrace.h"
 #include "lib/walloc.h"
 
@@ -172,7 +171,7 @@ upnp_mapping_description(void)
 	static char buf[32];
 
 	if ('\0' == buf[0])
-		gm_snprintf(buf, sizeof buf, "gtk-gnutella/r%u", main_get_build());
+		gm_snprintf(buf, sizeof buf, "gtk-gnutella/r%u", product_get_build());
 
 	return buf;
 }

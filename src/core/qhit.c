@@ -57,6 +57,7 @@
 #include "lib/endian.h"
 #include "lib/misc.h"
 #include "lib/random.h"
+#include "lib/product.h"
 #include "lib/sequence.h"
 #include "lib/tm.h"
 #include "lib/override.h"			/* Must be the last header included */
@@ -464,10 +465,10 @@ flush_match(void)
 	 */
 
 	{
-		guint8 major = version_get_major();
-		guint8 minor = version_get_minor();
-		guint8 revchar = version_get_revchar();
-		guint8 patch = version_get_patchlevel();
+		guint8 major = product_get_major();
+		guint8 minor = product_get_minor();
+		guint8 revchar = product_get_revchar();
+		guint8 patch = product_get_patchlevel();
 		guint32 release;
 		guint32 date = release_date;
 		guint32 build;
@@ -484,7 +485,7 @@ flush_match(void)
 			flags |= GTKGV_F_DIRTY;
 
 		poke_be32(&release, date);
-		poke_be32(&build, main_get_build());
+		poke_be32(&build, product_get_build());
 
 		commit = version_get_commit(&commit_len);
 		commit_bytes = (1 + commit_len) / 2;
@@ -1064,7 +1065,7 @@ qhit_build_results(const GSList *files, int count, size_t max_msgsize,
 void
 qhit_init(void)
 {
-	release_date = date2time(version_get_date(), tm_time());
+	release_date = date2time(product_get_date(), tm_time());
 }
 
 /**
