@@ -1303,17 +1303,14 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 			g_assert(mlen < sizeof m);
 
 			if G_UNLIKELY(format_verbose && 1 == format_recursion) {
-				char buf[150];
-				/* Don't use %zu here, could be unsupported by vsnprintf() */
-				gm_snprintf(buf, sizeof buf,
-					"%g with \"%%%c\": m=\"%.*s\" "
-					"(len=%lu, asked=%s), e=%d "
-					"[precis=%lu, digits=%lu, alt=%s]",
-					nv, c, (int) mlen, m, (unsigned long) mlen,
+				char buf[32];
+				gm_snprintf(buf, sizeof buf, "%g", nv);
+				s_debug("%s with \"%%%c\": m=\"%.*s\" "
+					"(len=%zu, asked=%s), e=%d "
+					"[precis=%zu, digits=%zu, alt=%s]",
+					buf, c, (int) mlen, m, mlen,
 					asked_dragon ? "none" : size_t_to_string(asked),
-					e, (unsigned long) precis, (unsigned long) digits,
-					alt ? "y" : "n");
-				s_debug("%s", buf);
+					e, precis, digits, alt ? "y" : "n");
 			}
 
 			/*
@@ -1594,18 +1591,15 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 		elen = (ebuf + sizeof ebuf) - eptr;
 
 		if G_UNLIKELY(format_verbose && 1 == format_recursion) {
-			char buf[150];
-			/* Don't use %zu here, could be unsupported by vsnprintf() */
-			gm_snprintf(buf, sizeof buf,
-				"%g as \"%%%c\": elen=%lu, eptr=\"%.*s\", "
-				"expptr=\"%.*s\", dot=\"%s\", zeros<e=%lu, d=%lu, "
-				"a=%lu, f=%lu>",
-				nv, c, (unsigned long) elen, (int) elen, eptr, explen, expptr,
+			char buf[32];
+			gm_snprintf(buf, sizeof buf, "%g", nv);
+			s_debug("%s as \"%%%c\": elen=%zu, eptr=\"%.*s\", "
+				"expptr=\"%.*s\", dot=\"%s\", zeros<e=%zu, d=%zu, "
+				"a=%zu, f=%zu>",
+				buf, c, elen, (int) elen, eptr, explen, expptr,
 				2 == dot ? "0." :
 				1 == dot ? "." : "",
-				(unsigned long) ezeros, (unsigned long) dzeros,
-				(unsigned long) azeros, (unsigned long) fzeros);
-			s_debug("%s", buf);
+				ezeros, dzeros, azeros, fzeros);
 		}
 		break;
 	}
