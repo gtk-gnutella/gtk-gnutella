@@ -43,8 +43,6 @@
 #include "settings_cb.h"
 #endif
 
-#include "gtk-gnutella.h"
-
 #include "notebooks.h"
 #include "main.h"
 #include "misc.h"
@@ -75,6 +73,7 @@
 #include "lib/halloc.h"
 #include "lib/omalloc.h"
 #include "lib/path.h"
+#include "lib/product.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 
@@ -144,13 +143,15 @@ static void
 gui_init_window_title(void)
 {
 	gchar title[256];
+	const char *revision = product_get_revision();
 
-#ifdef GTA_REVISION
-	gm_snprintf(title, sizeof(title), "gtk-gnutella %s %s",
-		GTA_VERSION_NUMBER, GTA_REVISION);
-#else
-	gm_snprintf(title, sizeof(title), "gtk-gnutella %s", GTA_VERSION_NUMBER);
-#endif
+	if (revision[0] != '\0') {
+		gm_snprintf(title, sizeof(title), "gtk-gnutella %s %s",
+			product_get_version(), revision);
+	} else {
+		gm_snprintf(title, sizeof(title), "gtk-gnutella %s",
+			product_get_version());
+	}
 
 	gtk_window_set_title(GTK_WINDOW(gui_main_window()), title);
 }

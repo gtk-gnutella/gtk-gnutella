@@ -23,9 +23,6 @@
 
 #include "common.h"
 
-#include "revision.h"
-#include "gtk-gnutella.h"
-
 #include "ascii.h"
 #include "concat.h"
 #include "getdate.h"
@@ -36,6 +33,7 @@
 #include "halloc.h"
 #include "parse.h"
 #include "path.h"
+#include "product.h"
 #include "sha1.h"
 #include "str.h"
 #include "stringify.h"
@@ -1615,13 +1613,9 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 
 	fprintf(config,
 			"#\n# gtk-gnutella %s%s (%s) by Olrick & Co.\n# %s\n#\n",
-			GTA_VERSION_NUMBER,
-#ifdef GTA_REVISION
-			" " GTA_REVISION,
-#else
-			"",
-#endif
-			GTA_RELEASE, GTA_WEBSITE);
+			product_get_version(),
+			product_get_revision(),
+			product_get_date(), product_get_website());
 
 	{
 		char *comment = config_comment(ps->desc);

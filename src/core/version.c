@@ -33,7 +33,6 @@
 
 #include "common.h"
 
-#include "revision.h"
 #include "gtk-gnutella.h"
 
 #include "version.h"
@@ -43,8 +42,6 @@
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
-#include "if/core/main.h"
-
 #include "lib/atoms.h"
 #include "lib/ascii.h"
 #include "lib/base16.h"
@@ -53,6 +50,7 @@
 #include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/parse.h"
+#include "lib/product.h"
 #include "lib/tm.h"
 #include "lib/timestamp.h"
 #include "lib/utf8.h"
@@ -85,57 +83,6 @@ guint8
 version_get_code(void)
 {
 	return version_code;
-}
-
-/**
- * Get version date string, as an ISO string.
- */
-const char *
-version_get_date(void)
-{
-	return GTA_RELEASE;
-}
-
-/**
- * Get major version.
- */
-guint8
-version_get_major(void)
-{
-	return GTA_VERSION;
-}
-
-/**
- * Get minor version.
- */
-guint8
-version_get_minor(void)
-{
-	return GTA_SUBVERSION;
-}
-
-/**
- * Get revision character.
- */
-guint8
-version_get_revchar(void)
-{
-	static const char *revp = GTA_REVCHAR;
-
-	return (guint8) revp[0];
-}
-
-/**
- * Get revision patchlevel.
- */
-guint8
-version_get_patchlevel(void)
-{
-#ifdef GTA_PATCHLEVEL
-	return GTA_PATCHLEVEL;
-#else
-	return 0;
-#endif
 }
 
 /**
@@ -870,9 +817,10 @@ version_build_string(void)
 #endif /* HAS_UNAME */
 
 		gm_snprintf(buf, sizeof buf,
-			GTA_PRODUCT_NAME "/%s%s (%s; %s; %s%s%s)",
-			GTA_VERSION_NUMBER, main_get_build_full(),
-			GTA_RELEASE, gtk_gnutella_interface(),
+			"%s/%s%s (%s; %s; %s%s%s)",
+			product_get_name(), product_get_version(),
+			product_get_build_full(), product_get_date(),
+			product_get_interface(),
 			sysname,
 			machine && machine[0] ? " " : "",
 			machine ? machine : "");
@@ -910,8 +858,9 @@ version_init(void)
 		char buf[128];
 
 		gm_snprintf(buf, sizeof(buf),
-			GTA_PRODUCT_NAME "/%s%s (%s)",
-			GTA_VERSION_NUMBER, main_get_build_full(), GTA_RELEASE);
+			"%s/%s%s (%s)",
+			product_get_name(), product_get_version(),
+			product_get_build_full(), product_get_date());
 
 		version_short_string = atom_str_get(buf);
 	}

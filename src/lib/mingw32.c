@@ -67,12 +67,12 @@
 #include "debug.h"
 #include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
-#include "gtk-gnutella.h"		/* For GTA_PRODUCT_NAME */
 #include "halloc.h"
 #include "iovec.h"
 #include "log.h"
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
+#include "product.h"
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"			/* For ULONG_DEC_BUFLEN */
@@ -715,7 +715,7 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 		goto fallback;
 
 	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
-	clamp_strcat(dest, size, GTA_PRODUCT_NAME);
+	clamp_strcat(dest, size, product_get_name());
 
 	/*
 	 * Can't use mingw_mkdir() as we can't allocate memory here.
@@ -801,7 +801,7 @@ mingw_patch_personal_path(const char *pathname)
 			 */
 
 			patched = h_strconcat(mingw_getpersonal(),
-				G_DIR_SEPARATOR_S, GTA_PRODUCT_NAME, p, (void *) 0);
+				G_DIR_SEPARATOR_S, product_get_name(), p, (void *) 0);
 		}
 		s_debug("patched \"%s\" into \"%s\"", pathname, patched);
 		return patched;

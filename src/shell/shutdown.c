@@ -33,10 +33,12 @@
 
 #include "common.h"
 
-#include "gtk-gnutella.h"
 #include "cmd.h"
 
 #include "if/core/main.h"
+
+#include "lib/str.h"
+#include "lib/product.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -115,7 +117,7 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 const char *
 shell_summary_shutdown(void)
 {
-	return "Terminate " GTA_PRODUCT_NAME;
+	return str_smsg("Terminate %s", product_get_name());
 }
 
 const char *
@@ -123,8 +125,8 @@ shell_help_shutdown(int argc, const char *argv[])
 {
 	(void) argc;
 	(void) argv;
-	return "shutdown [-fr] [-aems]\n"
-		"Initiates a shutdown/restart of " GTA_PRODUCT_NAME ".\n"
+	return str_smsg("shutdown [-fr] [-aems]\n"
+		"Initiates a shutdown/restart of %s.\n"
 		"As a side effect the shell connection is closed as well.\n"
 		"-f: request fast shutdown, sending BYE only to nodes supporting it\n"
 		"-r: request immediate restart after shutdown\n"
@@ -133,8 +135,8 @@ shell_help_shutdown(int argc, const char *argv[])
 		"-a: finish with assertion failure\n"
 		"-e: finish with forced error\n"
 		"-m: finish with memory error\n"
-		"-s: finish with harmful signal\n"
-		;
+		"-s: finish with harmful signal\n",
+		product_get_name());
 }
 
 /* vi: set ts=4 sw=4 cindent: */
