@@ -1076,7 +1076,9 @@ retry_child:
 				print_str(print_number(rtbuf, sizeof rtbuf, CRASH_MIN_ALIVE));
 				print_str("s not reached");				/* 4 */
 			} else {
-				print_str("; will be attempted");		/* 2 */
+				print_str("; ");				/* 2 */
+				print_str(vars->may_restart ? "will" : "would"); /* 3 */
+				print_str(" be attempted");		/* 4 */
 			}
 			print_str("\n");					/* 5 */
 			print_str("Stacktrace:\n");			/* 6 */
