@@ -147,7 +147,7 @@ static int
 sha1_collision(const void *a, const void *b)
 {
 	(void) a;
-	g_warning("spam_sha1_sync(): Removing duplicate SHA-1 %s", sha1_base32(b));
+	g_warning("spam_sha1_sync(): removing duplicate SHA-1 %s", sha1_base32(b));
 	return 1;
 }
 
@@ -211,9 +211,8 @@ spam_sha1_load(FILE *f)
 			 * exact format. If we continued, we would read from the
 			 * middle of a line which could be the filename or ID.
 			 */
-			g_warning("spam_sha1_load(): "
-				"line too long or missing newline in line %u",
-				line_no);
+			g_warning("%s(): line too long or missing newline in line %u",
+				G_STRFUNC, line_no);
 			break;
 		}
 		*nl = '\0';
@@ -223,8 +222,8 @@ spam_sha1_load(FILE *f)
 			continue;
 
 		if (strlen(line) < SHA1_BASE32_SIZE) {
-			g_warning("spam_sha1_load(): SHA-1 has wrong length in line %u.",
-				line_no);
+			g_warning("%s(): SHA-1 has wrong length in line %u.",
+				G_STRFUNC, line_no);
 			continue;
 		}
 
@@ -233,15 +232,14 @@ spam_sha1_load(FILE *f)
 		 * the leading SHA-1 is separated from the trailing data.
 		 */
 		if (is_ascii_alnum(line[SHA1_BASE32_SIZE])) {
-			g_warning("spam_sha1_load(): Bad SHA-1 in line %u.",
-				line_no);
+			g_warning("%s(): bad SHA-1 in line %u.", G_STRFUNC, line_no);
 			continue;
 		}
 		
 		sha1 = base32_sha1(line);
 		if (NULL == sha1) {
-			g_warning("spam_sha1_load(): Could not parse SHA-1 in line %u.",
-				line_no);
+			g_warning("%s(): could not parse SHA-1 in line %u.",
+				G_STRFUNC, line_no);
 			continue;
 		}
 		spam_sha1_add(sha1);
