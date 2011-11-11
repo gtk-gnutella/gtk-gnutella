@@ -3150,6 +3150,10 @@ mingw_stdio_reset(FILE *lf, gboolean console)
 			fclose(stdout);
 			close(STDOUT_FILENO);
 			freopen("CONOUT$", "wb", stdout);
+		} else {
+			setmode(fileno(stdout), O_BINARY);
+			STARTUP_DEBUG("forced stdout (fd=%d) to binary mode",
+				fileno(stdout));
 		}
 		tty = isatty(STDERR_FILENO);
 		STARTUP_DEBUG("stderr is%s a tty", tty ? "" : "n't");
@@ -3157,6 +3161,10 @@ mingw_stdio_reset(FILE *lf, gboolean console)
 			fclose(stderr);
 			close(STDERR_FILENO);
 			freopen("CONOUT$", "wb", stderr);
+		} else {
+			setmode(fileno(stderr), O_BINARY);
+			STARTUP_DEBUG("forced stderr (fd=%d) to binary mode",
+				fileno(stderr));
 		}
 	} else {
 		fclose(stdin);
