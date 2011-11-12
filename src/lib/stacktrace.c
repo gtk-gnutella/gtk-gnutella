@@ -127,7 +127,18 @@ static void *getreturnaddr(size_t level);
 static void *getframeaddr(size_t level);
 
 /**
+ * Is PC a valid routine address?
+ */
+static inline gboolean
+stack_is_text(const void *pc)
+{
+	return pointer_to_ulong(pc) >= 0x1000;
+}
+
+/**
  * Unwind current stack into supplied stacktrace array.
+ *
+ * This routine stops unwinding as soon as it reaches a non-text address.
  *
  * If possible, do not inline stacktrace_gcc_unwind() as this would perturb
  * offsetting of stack elements to ignore.
@@ -187,7 +198,7 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 		if (NULL == nframe || i - offset >= count)
 			break;
 
-        if (NULL == (stack[i - offset] = getreturnaddr(i)))
+        if (!stack_is_text(stack[i - offset] = getreturnaddr(i)))
 			break;
 
 		/*
@@ -208,6 +219,8 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 /**
  * Unwind current stack into supplied stacktrace array.
  *
+ * This routine stops unwinding as soon as it reaches a non-text address.
+ *
  * If possible, do not inline stacktrace_unwind() as this would perturb
  * offsetting of stack elements to ignore.
  *
@@ -225,7 +238,7 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
 	int depth;
     size_t amount;		/* Amount of entries we can copy in result */
-	size_t idx;
+	size_t i, idx;
 
 	g_assert(size_is_non_negative(offset));
 
@@ -238,9 +251,12 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 		/*
 		 * Don't "return" here, to avoid tail recursion since we increase the
 		 * stack offsetting.
+		 *
+		 * Since stacktrace_gcc_unwind() will stop at the first non-text
+		 * address it reaches, there is no need to post-process the result.
 		 */
 
-		amount = stacktrace_gcc_unwind(stack, count, offset + 1);
+		i = stacktrace_gcc_unwind(stack, count, offset + 1);
 		goto done;
 	}
 
@@ -274,10 +290,17 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 
 	amount = idx - UNSIGNED(depth);
 	amount = MIN(amount, count);
-	memcpy(stack, &trace[idx], amount * sizeof trace[0]);
+
+	/*
+	 * Only copy entries that are likely to be "text" addresses.
+	 */
+
+	for (i = 0; i < amount && stack_is_text(trace[idx]); i++) {
+		stack[i] = trace[idx++];
+	}
 
 done:
-	return amount;
+	return i;		/* Amount of copied entries */
 }
 #else	/* !HAS_BACKTRACE */
 {
@@ -1184,15 +1207,6 @@ stack_reached_main(const char *where)
 	 */
 
 	return is_strprefix(where, "main+") != NULL;	/* HACK ALERT */
-}
-
-/**
- * Is PC a valid routine address?
- */
-static inline gboolean
-stack_is_text(const void *pc)
-{
-	return pointer_to_ulong(pc) >= 0x1000;
 }
 
 /**
