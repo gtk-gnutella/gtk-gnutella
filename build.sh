@@ -68,7 +68,9 @@ MINGW*)
 	CC="${CC:-gcc}"
 	CPPFLAGS="$CPPFLAGS -DMINGW32 "
 
-	PREFIX=`dirname ${PWD}/$0`/win32/bundle
+	PREFIX="`readlink -f $0`"
+	PREFIX="`dirname $PREFIX`/win32/bundle"
+	build_bindir="${PREFIX}"
 
 	if [ "X$build_target" = XMINGW7 ]; then
 		# Uses the environment settings to avoid any hard coded paths, 
