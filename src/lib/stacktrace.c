@@ -1645,7 +1645,7 @@ stacktrace_get_atom(const struct stacktrace *st)
 
 	STATIC_ASSERT(sizeof st->stack[0] == sizeof result->stack[0]);
 
-	if (NULL == stack_atoms) {
+	if G_UNLIKELY(NULL == stack_atoms) {
 		stack_atoms = hash_table_new_full_real(stack_hash, stack_eq);
 	}
 
@@ -1654,7 +1654,7 @@ stacktrace_get_atom(const struct stacktrace *st)
 
 	result = hash_table_lookup(stack_atoms, &key);
 
-	if (NULL == result) {
+	if G_UNLIKELY(NULL == result) {
 		/* These objects will be never freed */
 		result = omalloc0(sizeof *result);
 		if (st->len != 0) {
