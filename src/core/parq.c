@@ -177,7 +177,8 @@ struct parq_ul_queue {
 	int num;				/**< Queue number */
 	int active_uploads;
 	int active_queued_cnt;	/**< Number of actively queued entries */
-	int alive;
+	int alive;				/**< Amount of alive entries */
+	int frozen;				/**< Subset of alive entries that are frozen */
 	unsigned recompute:1;	/**< Flagged as requiring update of internal data */
 	unsigned active:1;		/**< Set to false when the number of upload slots
 								 was decreased but the queue still contained
@@ -1548,6 +1549,39 @@ parq_upload_recompute_relative_positions(struct parq_ul_queue *q)
 }
 
 /**
+ * Set frozen flag on upload entry.
+ */
+static void
+parq_upload_frozen_set(struct parq_ul_queued *puq)
+{
+	parq_ul_queued_check(puq);
+	g_assert(!(puq->flags & PARQ_UL_FROZEN));
+
+	puq->flags |= PARQ_UL_FROZEN;
+
+	puq->by_addr->frozen++;
+	puq->queue->frozen++;
+}
+
+/**
+ * Clear frozen flag on upload entry.
+ */
+static void
+parq_upload_frozen_clear(struct parq_ul_queued *puq)
+{
+	parq_ul_queued_check(puq);
+	g_assert(puq->flags & PARQ_UL_FROZEN);
+
+	puq->flags &= ~PARQ_UL_FROZEN;
+
+	g_assert(puq->by_addr->frozen > 0);
+	g_assert(puq->queue->frozen > 0);
+
+	puq->by_addr->frozen--;
+	puq->queue->frozen--;
+}
+
+/**
  * removes an puq from the parq list and frees all its memory.
  */
 static void
@@ -1573,6 +1607,9 @@ parq_upload_free(struct parq_ul_queued *puq)
 	puq->by_addr->list = g_list_remove(puq->by_addr->list, puq);
 	puq->by_addr->total--;
 
+	if (puq->flags & PARQ_UL_FROZEN)
+		parq_upload_frozen_clear(puq);
+
 	if (puq->by_addr->total == 0) {
 		g_assert(host_addr_equal(puq->remote_addr, puq->by_addr->addr));
 		g_assert(NULL == puq->by_addr->list);
@@ -1588,6 +1625,7 @@ parq_upload_free(struct parq_ul_queued *puq)
 	puq->by_addr = NULL;
 
 	if (puq->is_alive) {
+		g_assert(puq->queue->alive > 0);
 		puq->queue->alive--;
 		puq->is_alive = FALSE;
 	} else {
@@ -1630,8 +1668,7 @@ parq_upload_free(struct parq_ul_queued *puq)
 	puq->name = NULL;
 
 	if (GNET_PROPERTY(parq_debug) > 3)
-		g_debug(
-			"PARQ UL: Entry %s freed from memory", guid_hex_str(&puq->id));
+		g_debug("PARQ UL: entry %s freed from memory", guid_hex_str(&puq->id));
 
 	puq->magic = 0;
 	WFREE(puq);
@@ -1954,7 +1991,7 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 	g_assert(!queue->active);
 
 	if (GNET_PROPERTY(parq_debug))
-		g_debug("PARQ UL: Removing inactive queue %d", queue->num);
+		g_debug("PARQ UL: removing inactive queue %d", queue->num);
 
 	/* Remove queue from the list containing all the queues */
 	ul_parqs = g_list_remove(ul_parqs, queue);
@@ -2545,9 +2582,14 @@ parq_upload_timer(time_t now)
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
 		struct parq_ul_queued *puq = sl->data;
 
+		parq_ul_queued_check(puq);
+
 		puq->is_alive = FALSE;
 		g_assert(puq->queue->alive > 0);
 		puq->queue->alive--;
+
+		if (puq->flags & PARQ_UL_FROZEN)
+			parq_upload_frozen_clear(puq);
 
 		parq_upload_remove_relative(puq);
 		puq->queue->recompute = TRUE;	/* Defer costly recomputations */
@@ -2725,12 +2767,30 @@ free_upload_slots(struct parq_ul_queue *q)
 
 	for (l = ul_parqs; l; l = g_list_next(l)) {
 		struct parq_ul_queue *queue = l->data;
-		int wanted = queue->alive - queue->active_uploads;
+		int wanted = queue->alive - queue->active_uploads - queue->frozen;
+
+		/*
+		 * Frozen upload queue entries are not accounted as "wanted" because
+		 * although they are active, they are not schedulable.
+		 *
+		 * Naturally, this means another upload from the same queue can be
+		 * scheduled before the frozen one, even though the latter was ahead
+		 * of the former in the queue.  That's what "frozen" is about.
+		 *		--RAM, 2011-11-11
+		 */
 
 		g_assert(wanted >= 0);
 
 		if (wanted < even_slots)
 			surplus += even_slots - wanted;
+
+		if (GNET_PROPERTY(parq_debug) > 5) {
+			g_debug("[PARQ UL] Q#%-2d "
+				"alive=%-4d active=%-4d frozen=%-4d surplus=%-4d",
+				queue->num,
+				queue->alive, queue->active_uploads, queue->frozen,
+				wanted < even_slots ? even_slots - wanted : 0);
+		}
 	}
 
 	g_assert(surplus >= 0);
@@ -2749,10 +2809,10 @@ free_upload_slots(struct parq_ul_queue *q)
 	result = MAX(0, result);
 
 	if (GNET_PROPERTY(parq_debug) >= 5) {
-		g_debug("[PARQ UL] free_upload_slots(#%d): "
+		g_debug("[PARQ UL] %s(#%d): "
 			"free_slots=%d (with %u quick), even=%d, remainder=%d, "
 			"surplus=%d, usage=%d, usable=%d, avail=%d -> result=%d",
-			q->num, slots_free,
+			G_STRFUNC, q->num, slots_free,
 			GNET_PROPERTY(ul_quick_running), even_slots, remainder,
 			surplus, q->active_uploads, even_slots + remainder + surplus,
 			available, result);
@@ -2770,8 +2830,8 @@ static void
 parq_upload_freeze_all(struct parq_ul_queued *puq)
 {
 	GList *l;
-	unsigned frozen = 0;
-	unsigned extra = 0;
+	int frozen = 0;
+	int extra = 0;
 
 	g_assert(puq);
 	g_assert(puq->by_addr);
@@ -2797,7 +2857,7 @@ parq_upload_freeze_all(struct parq_ul_queued *puq)
 					uqx->relative_position);
 
 			parq_upload_remove_relative(uqx);
-			uqx->flags |= PARQ_UL_FROZEN;
+			parq_upload_frozen_set(uqx);
 			uqx->queue->recompute = TRUE;	/* Defer update */
 			extra++;
 		}
@@ -2806,11 +2866,11 @@ parq_upload_freeze_all(struct parq_ul_queued *puq)
 	}
 
 	if (GNET_PROPERTY(parq_debug))
-		g_debug("[PARQ UL] froze %u entr%s for IP %s (%u total)",
+		g_debug("[PARQ UL] froze %d entr%s for IP %s (%d total)",
 			extra, extra == 1 ? "y" : "ies",
 			host_addr_to_string(puq->by_addr->addr), frozen);
 
-	puq->by_addr->frozen = frozen;
+	g_assert(puq->by_addr->frozen == frozen);
 
 	/*
 	 * Recompute data only for the queues in which we removed items.
@@ -2846,14 +2906,11 @@ parq_upload_unfreeze_one(struct parq_ul_queued *puq)
 			guid_hex_str(&puq->id), puq->queue->num,
 			host_addr_to_string(puq->by_addr->addr));
 
+	parq_upload_frozen_clear(puq);
+
 	g_assert(!hash_list_contains(puq->queue->by_rel_pos, puq));
 
-	puq->flags &= ~PARQ_UL_FROZEN;
 	parq_upload_insert_relative(puq);
-
-	g_assert(puq->by_addr->frozen > 0);
-	puq->by_addr->frozen--;
-
 	parq_upload_recompute_relative_positions(puq->queue);
 }
 
@@ -2882,7 +2939,7 @@ parq_upload_unfreeze_all(struct parq_ul_queued *puq)
 		if (uqx->flags & PARQ_UL_FROZEN) {
 			g_assert(!uqx->has_slot);
 
-			uqx->flags &= ~PARQ_UL_FROZEN;
+			parq_upload_frozen_clear(uqx);
 			if (uqx->is_alive) {
 				parq_upload_insert_relative(uqx);
 				uqx->queue->recompute = TRUE;		/* Defer update */
@@ -2904,7 +2961,7 @@ parq_upload_unfreeze_all(struct parq_ul_queued *puq)
 			thawed, thawed == 1 ? "y" : "ies",
 			host_addr_to_string(puq->by_addr->addr), inserted);
 
-	puq->by_addr->frozen = 0;
+	g_assert(0 == puq->by_addr->frozen);
 
 	/*
 	 * Recompute data only for the queues in which we inserted items.
@@ -2988,9 +3045,9 @@ parq_upload_continue(struct parq_ul_queued *puq)
 
 	if (puq->flags & PARQ_UL_FROZEN) {
 		if (GNET_PROPERTY(parq_debug) >= 5)
-			g_debug("[PARQ UL] parq_upload_continue, "
+			g_debug("[PARQ UL] %s: "
 				"frozen entry, IP %s has %d entries uploading (max %u)",
-				host_addr_to_string(puq->by_addr->addr),
+				G_STRFUNC, host_addr_to_string(puq->by_addr->addr),
 				puq->by_addr->uploading, GNET_PROPERTY(max_uploads_ip));
 
 		/*
@@ -3020,9 +3077,10 @@ parq_upload_continue(struct parq_ul_queued *puq)
 	 */
 	if (UNSIGNED(puq->by_addr->uploading) >= GNET_PROPERTY(max_uploads_ip)) {
 		if (GNET_PROPERTY(parq_debug) >= 5)
-			g_debug("[PARQ UL] parq_upload_continue, "
+			g_debug("[PARQ UL] %s: "
 				"max_uploads_ip per single host reached %d/%d",
-				puq->by_addr->uploading, GNET_PROPERTY(max_uploads_ip));
+				G_STRFUNC, puq->by_addr->uploading,
+				GNET_PROPERTY(max_uploads_ip));
 		parq_upload_freeze_all(puq);
 		goto check_quick;
 	}
@@ -3037,11 +3095,11 @@ parq_upload_continue(struct parq_ul_queued *puq)
 	l = g_list_last(ul_parqs);
 	{
 		struct parq_ul_queue *queue = l->data;
-		if (!queue->active && queue->alive > 0) {
+		if (!queue->active && queue->alive - queue->frozen > 0) {
 			if (puq->queue->active) {
 				if (GNET_PROPERTY(parq_debug))
-					g_debug("[PARQ UL] upload in inactive queue #%d first",
-						puq->queue->num);
+					g_debug("[PARQ UL] %s: upload in inactive queue #%d first",
+						G_STRFUNC, queue->num);
 				goto check_quick;
 			}
 		}
