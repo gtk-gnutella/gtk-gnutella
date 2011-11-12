@@ -64,7 +64,7 @@ void *halloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void hfree(void *ptr);
 void *hrealloc(void *old, size_t size) WARN_UNUSED_RESULT;
 
-static inline void *
+static inline void * WARN_UNUSED_RESULT G_GNUC_MALLOC
 hcopy(const void *p, size_t size)
 {
 	void *cp = halloc(size);
