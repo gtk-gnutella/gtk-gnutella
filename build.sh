@@ -68,6 +68,8 @@ MINGW*)
 	CC="${CC:-gcc}"
 	CPPFLAGS="$CPPFLAGS -DMINGW32 "
 
+	PREFIX=`dirname ${PWD}/$0`/win32/bundle
+
 	if [ "X$build_target" = XMINGW7 ]; then
 		# Uses the environment settings to avoid any hard coded paths, 
 		# for example put in your ~/.profile:
