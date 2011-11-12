@@ -2426,6 +2426,27 @@ xmalloc0(size_t size)
 }
 
 /**
+ * Allocate a memory chunk capable of holding ``size'' bytes and zero it.
+ *
+ * This is a "plain" malloc, not redirecting to walloc() for small-sized
+ * objects, and therefore it can be used by low-level allocators for their
+ * own data structures without fear of recursion.
+ *
+ * @return pointer to allocated zeroed memory.
+ */
+void *
+xpmalloc0(size_t size)
+{
+	void *p;
+
+	p = xpmalloc(size);
+	memset(p, 0, size);
+	xstats.allocations_zeroed++;
+
+	return p;
+}
+
+/**
  * Allocate nmemb elements of size bytes each, zeroing the allocated memory.
  */
 void *
@@ -2442,6 +2463,38 @@ xcalloc(size_t nmemb, size_t size)
 	}
 
 	return p;
+}
+
+/**
+ * A clone of strdup() using xmalloc().
+ * The resulting string must be freed via xfree().
+ *
+ * @param str		the string to duplicate (can be NULL)
+ *
+ * @return a pointer to the new string.
+ */
+char *
+xstrdup(const char *str)
+{
+	return str ? xcopy(str, 1 + strlen(str)) : NULL;
+}
+
+/**
+ * A clone of strdup() using xpmalloc().
+ * The resulting string must be freed via xfree().
+ *
+ * This is using a "plain" malloc, not redirecting to walloc() for small-sized
+ * objects, and therefore it can be used by low-level allocators for their
+ * own data structures without fear of recursion.
+ *
+ * @param str		the string to duplicate (can be NULL)
+ *
+ * @return a pointer to the new string.
+ */
+char *
+xpstrdup(const char *str)
+{
+	return str ? xpcopy(str, 1 + strlen(str)) : NULL;
 }
 
 /**

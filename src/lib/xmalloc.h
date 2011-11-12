@@ -56,10 +56,29 @@ void xmalloc_dump_freelist_log(struct logagent *la);
 void *xmalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xmalloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xpmalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *xpmalloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xcalloc(size_t nmemb, size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xrealloc(void *ptr, size_t size) WARN_UNUSED_RESULT;
 void *xprealloc(void *ptr, size_t size) WARN_UNUSED_RESULT;
 void xfree(void *ptr);
+char *xstrdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+char *xpstrdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+
+static inline void * WARN_UNUSED_RESULT G_GNUC_MALLOC
+xcopy(const void *p, size_t size)
+{
+	void *cp = xmalloc(size);
+	memcpy(cp, p, size);
+	return cp;
+}
+
+static inline void * WARN_UNUSED_RESULT G_GNUC_MALLOC
+xpcopy(const void *p, size_t size)
+{
+	void *cp = xpmalloc(size);
+	memcpy(cp, p, size);
+	return cp;
+}
 
 #define XFREE_NULL(p)	\
 G_STMT_START {			\
