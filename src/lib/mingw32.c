@@ -2524,6 +2524,28 @@ mingw_adns_close(void)
 
 /*** End of ADNS section ***/
 
+const char *
+mingw_get_folder_basepath(enum special_folder which_folder)
+{
+	const char *special_path = NULL;
+
+	switch (which_folder) {
+	case PRIVLIB_PATH:
+		special_path = mingw_filename_nearby(
+			"share" G_DIR_SEPARATOR_S PACKAGE G_DIR_SEPARATOR_S);
+		break;
+	case NLS_PATH:
+		special_path = mingw_filename_nearby(
+			"share" G_DIR_SEPARATOR_S "locale");
+		break;
+	default:
+		g_warning("mingw_get_folder_basepath needs implementation "
+			"for foldertype %d", which_folder);
+	}
+
+	return special_path;
+}
+
 /**
  * Build pathname of file located nearby our executable.
  *
@@ -3241,6 +3263,8 @@ mingw_early_init(void)
 
 	if (lf != NULL)
 		fclose(lf);
+
+	set_folder_basepath_func(mingw_get_folder_basepath);
 }
 
 void 
