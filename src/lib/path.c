@@ -235,10 +235,27 @@ char *
 get_folder_basepath(enum special_folder which_folder)
 {
 	char *special_path = NULL;
+	char *pathname;
+	size_t offset = 0;
 
 	switch (which_folder) {
-	case PRIVLIB_PATH:	special_path = getenv("XDG_DATA_DIRS"); break;
-	case NLS_PATH:	
+	case PRIVLIB_PATH:
+		special_path = getenv("XDG_DATA_DIRS");
+
+		if (special_path != NULL) {
+			pathname = halloc0(MAX_PATH_LEN);
+
+			offset += clamp_strcpy(
+				&pathname[offset], MAX_PATH_LEN - offset, special_path);
+
+			offset += clamp_strcpy(
+				&pathname[offset], MAX_PATH_LEN - offset,
+					G_DIR_SEPARATOR_S PACKAGE G_DIR_SEPARATOR_S);
+
+			special_path = pathname;
+		}
+		break;
+	case NLS_PATH:
 		special_path = getenv("NLSPATH");
 		if (NULL == special_path)
 			special_path = LOCALE_EXP;
@@ -279,10 +296,6 @@ get_folder_path(enum special_folder which_folder, const char *path)
 	offset += clamp_strcpy(
 		&pathname[offset], MAX_PATH_LEN - offset, special_path);
 		
-	offset += clamp_strcpy(
-		&pathname[offset], MAX_PATH_LEN - offset, 
-			G_DIR_SEPARATOR_S PACKAGE G_DIR_SEPARATOR_S);
-
 	if (path != NULL) {
 		offset += clamp_strcpy(
 			&pathname[offset], MAX_PATH_LEN - offset, path);
