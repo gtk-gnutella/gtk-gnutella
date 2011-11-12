@@ -110,6 +110,7 @@ LSRC = \
 	magnet.c \
 	malloc.c \
 	map.c \
+	memusage.c \
 	mime_type.c \
 	mingw32.c \
 	misc.c \
