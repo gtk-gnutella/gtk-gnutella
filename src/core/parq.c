@@ -3819,12 +3819,13 @@ parq_upload_busy(struct upload *u, struct parq_ul_queued *handle)
 	g_assert(puq != NULL);
 
 	if (GNET_PROPERTY(parq_debug) > 2) {
-		g_debug("PARQ UL: Upload %d[%d] (%s, %s, %s) is now busy [%s]",
-		  	  puq->position, puq->relative_position,
-			  puq->active_queued ? "active" : "passive",
-			  puq->has_slot ? "with slot" : "no slot yet",
-			  puq->quick ? "quick" : "regular",
-			  guid_hex_str(&puq->id));
+		g_debug("PARQ UL [#%d] upload pos=%d rel=%d (%s, %s, %s) "
+			"is now busy [%s]",
+			puq->queue->num, puq->position, puq->relative_position,
+			puq->active_queued ? "active" : "passive",
+			puq->has_slot ? "with slot" : "no slot yet",
+			puq->quick ? "quick" : "regular",
+			guid_hex_str(&puq->id));
 	}
 
 	u->parq_status = FALSE;			/* XXX -- get rid of `parq_status'? */
