@@ -80,7 +80,9 @@ void zinit(void);
 void zclose(void);
 void set_zalloc_debug(guint32 level);
 void set_zalloc_always_gc(gboolean val);
+void zalloc_memusage_init(void);
 void zalloc_dump_stats(void);
+void zalloc_dump_usage_log(struct logagent *la, unsigned options);
 void zalloc_dump_stats_log(struct logagent *la, unsigned options);
 void zalloc_dump_zones_log(struct logagent *la);
 
