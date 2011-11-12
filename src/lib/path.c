@@ -42,6 +42,10 @@
 #include "halloc.h"
 #include "override.h"			/* Must be the last header included */
 
+char *get_folder_basepath(enum special_folder which_folder);
+
+get_folder_basepath_func_t get_folder_basepath_func = get_folder_basepath;
+
 /**
  * Create new pathname from the concatenation of the dirname and the basename
  * of the file. A directory separator is inserted, unless "dir" already ends
@@ -227,6 +231,29 @@ filepath_directory(const char *pathname)
 	return dir;
 }
 
+char *
+get_folder_basepath(enum special_folder which_folder)
+{
+	char *special_path = NULL;
+
+	switch (which_folder) {
+	case PRIVLIB_PATH:	special_path = getenv("XDG_DATA_DIRS"); break;
+	case NLS_PATH:	
+		special_path = getenv("NLSPATH");
+		if (NULL == special_path)
+			special_path = LOCALE_EXP;
+		break;
+	}
+	
+	return special_path;
+}
+
+void
+set_folder_basepath_func(get_folder_basepath_func_t func)
+{
+	get_folder_basepath_func = func;
+}
+
 /**
  * Compute special folder path.
  *
@@ -242,9 +269,7 @@ get_folder_path(enum special_folder which_folder, const char *path)
 	size_t offset = 0;	
 	char *special_path = NULL;
 
-	switch (which_folder) {
-	case PRIVLIB_PATH:	special_path = getenv("XDG_DATA_DIRS"); break;
-	}
+	special_path = get_folder_basepath_func(which_folder);
 	
 	if (NULL == special_path)
 		return NULL;
