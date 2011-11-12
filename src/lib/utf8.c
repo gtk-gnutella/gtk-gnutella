@@ -68,6 +68,7 @@
 #include "endian.h"
 #include "halloc.h"
 #include "misc.h"
+#include "path.h"
 #include "random.h"
 #include "debug.h"
 #include "glib-missing.h"
@@ -1674,8 +1675,8 @@ textdomain_init(const char *codeset)
 	{
 		const char *nlspath;
 
-		nlspath = getenv("NLSPATH");
-		bindtextdomain(PACKAGE, nlspath ? nlspath : LOCALE_EXP);
+		nlspath = get_folder_path(NLS_PATH, NULL);
+		bindtextdomain(PACKAGE, nlspath);
 	}
 
 #ifdef HAS_BIND_TEXTDOMAIN_CODESET
