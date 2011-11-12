@@ -246,7 +246,7 @@ struct parq_ul_queued {
 	char *addr_and_name;	/**< "IP name", used as key in hash table */
 	const char *name;		/**< NB: points directly into `addr_and_name' */
 	const struct sha1 *sha1;	/**< SHA1 digest for easy reference */
-	host_addr_t remote_addr;		/**< IP address of the socket endpoint */
+	host_addr_t remote_addr;	/**< IP address of the socket endpoint */
 
 	filesize_t file_size;	/**< Needed to recalculate ETA */
 	filesize_t chunk_size;	/**< Requested chunk size */
@@ -268,7 +268,7 @@ struct parq_ul_queued {
 	unsigned has_slot:1;		/**< Whether the items is currently uploading */
 	unsigned had_slot:1;		/**< Whether we granted a slot to that entry */
 	unsigned is_alive:1;		/**< Whether client is still requesting file */
-
+	unsigned supports_parq:1;	/**< Is downloader PARQ-aware? */
 };
 
 static inline void
@@ -326,6 +326,17 @@ fd_avail_status(void)
 		return FD_AVAIL_YELLOW;
 	else
 		return FD_AVAIL_GREEN;
+}
+
+static const char *
+fd_avail_status_string(enum fd_avail_status s)
+{
+	switch (s) {
+	case FD_AVAIL_GREEN:	return "green";
+	case FD_AVAIL_YELLOW:	return "yellow";
+	case FD_AVAIL_RED:		return "red";
+	}
+	return "UNKNOWN";
 }
 
 /**
@@ -2025,7 +2036,12 @@ parq_upload_find_id(const struct upload *u, const header_t *header)
 			struct guid id;
 			
 			if (hex_to_guid(id_str, &id)) {
-				return g_hash_table_lookup(ul_all_parq_by_id, &id);
+				struct parq_ul_queued *puq;
+				puq = g_hash_table_lookup(ul_all_parq_by_id, &id);
+				/* In case we missed it earlier, record PARQ support */
+				if (puq != NULL)
+					puq->supports_parq = TRUE;
+				return puq;
 			}
 			return NULL;
 		}
@@ -2103,6 +2119,24 @@ static void
 parq_upload_register_send_queue(struct parq_ul_queued *puq)
 {
 	g_assert(!(puq->flags & PARQ_UL_QUEUE));
+
+	/* Not a PARQ-aware host */
+	if (!puq->supports_parq) {
+		if (GNET_PROPERTY(parq_debug) > 2) {
+			g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
+				"not PARQ-aware, not sending QUEUE: %s '%s'",
+				  puq->queue->num,
+				  ul_parqs_cnt,
+				  puq->position,
+				  puq->relative_position,
+				  puq->queue->by_position_length,
+				  host_addr_to_string(puq->remote_addr),
+				  puq->name
+			);
+		}
+		puq->flags |= PARQ_UL_NOQUEUE;
+		return;
+	}
 
 	/* No known connect back port / ip */
 	if (!host_is_valid(puq->addr, puq->port)) {
@@ -3277,6 +3311,17 @@ parq_upload_get(struct upload *u, const header_t *header)
 
 		g_assert(puq != NULL);
 
+		/*
+		 * Remember whether host supports PARQ.
+		 */
+
+		buf = header_get(header, "X-Queue");
+		if (buf != NULL) {			/* Remote server does support queues */
+			unsigned major;
+			get_header_version(buf, &major, NULL);
+			puq->supports_parq = booleanize(major >= 1);
+		}
+
 		if (GNET_PROPERTY(parq_debug) >= 3)
 			g_debug("[PARQ UL] Q %d/%d (%3d[%3d]/%3d) "
 				"ETA: %s Added: %s '%s' %s",
@@ -3545,9 +3590,10 @@ parq_upload_request(struct upload *u)
 	puq->expire = time_advance(puq->retry, MIN_LIFE_TIME + PARQ_RETRY_SAFETY);
 
 	if (GNET_PROPERTY(parq_debug) > 1)
-		g_debug("[PARQ UL] Request for \"%s\" from %s <%s>: %s, "
+		g_debug("[PARQ UL] %srequest for \"%s\" from %s <%s>: %s, "
 			"chunk=%s, now=%lu, retry=%lu, expire=%lu, quick=%s, has_slot=%s, "
 			"uploaded=%s id=%s",
+			puq->supports_parq ? "PARQ-" : "",
 			u->name, host_addr_to_string(u->addr),
 			upload_vendor_str(u),
 			puq->active_queued ?
@@ -3700,10 +3746,11 @@ parq_upload_request(struct upload *u)
 
 			if (GNET_PROPERTY(parq_debug))
 				g_debug("PARQ UL: [#%d] [%s] "
-					"fd_avail=%d, position=%d, push=%s, frozen=%s => "
+					"fds=%s, position=%d, push=%s, frozen=%s => "
 					"switching from active to passive for %s (%s)",
 					puq->queue->num, guid_hex_str(&puq->id),
-					fds, puq->relative_position, u->push ? "y" : "n",
+					fd_avail_status_string(fds),
+					puq->relative_position, u->push ? "y" : "n",
 					(puq->flags & PARQ_UL_FROZEN) ? "y" : "n",
 					host_addr_port_to_string(u->socket->addr, u->socket->port),
 					upload_vendor_str(u));
@@ -3778,10 +3825,10 @@ parq_upload_request(struct upload *u)
 			if ((puq->flags & PARQ_UL_FROZEN) && !activeable) {
 				if (GNET_PROPERTY(parq_debug))
 					g_debug("PARQ UL: [#%d] [%s] "
-						"fd_avail=%d, push=%s, frozen=%s => "
+						"fds=%s, push=%s, frozen=%s => "
 						"denying active queueing for %s (%s)",
 						puq->queue->num, guid_hex_str(&puq->id),
-						fds, u->push ? "y" : "n",
+						fd_avail_status_string(fds), u->push ? "y" : "n",
 						(puq->flags & PARQ_UL_FROZEN) ? "y" : "n",
 						host_addr_port_to_string(
 							u->socket->addr, u->socket->port),
@@ -4734,9 +4781,12 @@ parq_store(gpointer data, gpointer file_ptr)
 		);
 	}
 
-	if (puq->sha1) {
+	if (puq->sha1)
 		fprintf(f, "SHA1: %s\n", sha1_base32(puq->sha1));
-	}
+
+	if (puq->supports_parq)
+		fprintf(f, "PARQ: \n");	/* No value needed, tag presence is enough */
+	
 	if (
 		!(puq->flags & PARQ_UL_NOQUEUE) &&
 		puq->port != 0 && is_host_addr(puq->addr)
@@ -4824,6 +4874,7 @@ typedef enum {
 	PARQ_TAG_ID,
 	PARQ_TAG_IP,
 	PARQ_TAG_NAME,
+	PARQ_TAG_PARQ,
 	PARQ_TAG_POS,
 	PARQ_TAG_QUEUE,
 	PARQ_TAG_SHA1,
@@ -4851,6 +4902,7 @@ static const struct parq_tag {
 	PARQ_TAG(IP),
 	PARQ_TAG(LASTQUEUE),
 	PARQ_TAG(NAME),
+	PARQ_TAG(PARQ),
 	PARQ_TAG(POS),
 	PARQ_TAG(QUEUE),
 	PARQ_TAG(QUEUESSENT),
@@ -4902,6 +4954,7 @@ typedef struct {
 	int queue_sent;
 	char name[1024];
 	struct guid id;
+	unsigned supports_parq:1;
 } parq_entry_t;
 
 /**
@@ -4931,7 +4984,7 @@ parq_upload_load_queue(void)
 		return;
 
 	if (GNET_PROPERTY(parq_debug))
-		g_warning("[PARQ UL] Loading queue information");
+		g_warning("[PARQ UL] loading queue information");
 
 	/* Reset state */
 	entry = zero_entry;
@@ -4954,9 +5007,8 @@ parq_upload_load_queue(void)
 			 * exact format. If we continued, we would read from the
 			 * middle of a line which could be the filename or ID.
 			 */
-			g_warning("parq_upload_load_queue(): "
-				"line too long or missing newline in line %u",
-				line_no);
+			g_warning("%s(): line too long or missing newline in line %u",
+				G_STRFUNC, line_no);
 			break;
 		}
 		*nl = '\0';
@@ -4973,17 +5025,15 @@ parq_upload_load_queue(void)
 
 		colon = strchr(line, ':');
 		if (!colon) {
-			g_warning("parq_upload_load_queue(): missing colon in line %u",
-				line_no);
+			g_warning("%s(): missing colon in line %u", G_STRFUNC, line_no);
 			break;
 		}
 		*colon = '\0';
 		tag_name = line;
 		value = &colon[1];
 		if (*value != ' ') {
-			g_warning("parq_upload_load_queue(): "
-				"missing space after colon in line %u",
-				line_no);
+			g_warning("%s(): missing space after colon in line %u",
+				G_STRFUNC, line_no);
 			break;
 		}
 		value++;	/* skip blank after colon */
@@ -4991,9 +5041,8 @@ parq_upload_load_queue(void)
 		tag = parq_string_to_tag(tag_name);
 		g_assert(UNSIGNED(tag) < NUM_PARQ_TAGS);
 		if (PARQ_TAG_UNKNOWN != tag && bit_array_get(tag_used, tag)) {
-			g_warning("parq_upload_load_queue(): "
-				"ignoring duplicate tag \"%s\" in entry in line %u",
-				tag_name, line_no);
+			g_warning("%s(): ignoring duplicate tag \"%s\" in entry in line %u",
+				G_STRFUNC, tag_name, line_no);
 			continue;
 		}
 		bit_array_set(tag_used, tag);
@@ -5089,6 +5138,10 @@ parq_upload_load_queue(void)
 			}
 			break;
 
+		case PARQ_TAG_PARQ:
+			entry.supports_parq = TRUE;
+			break;
+
 		case PARQ_TAG_SHA1:
 			{
 				if (strlen(value) != SHA1_BASE32_SIZE) {
@@ -5141,7 +5194,7 @@ parq_upload_load_queue(void)
 		}
 
 		if (damaged) {
-			g_warning("Damaged PARQ entry in line %u: "
+			g_warning("damaged PARQ entry in line %u: "
 				"tag_name=\"%s\", value=\"%s\"",
 				line_no, tag_name, value);
 
@@ -5180,6 +5233,7 @@ parq_upload_load_queue(void)
 			 *		--RAM, 2007-08-18
 			 */
 
+			puq->supports_parq = entry.supports_parq;
 			puq->enter = entry.entered;
 			puq->expire = time_advance(now, MIN_LIFE_TIME + entry.expire);
 			puq->addr = entry.x_addr;
@@ -5199,7 +5253,7 @@ parq_upload_load_queue(void)
 
 			if (GNET_PROPERTY(parq_debug) > 2) {
 				g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s "
-					"restored: %s '%s'",
+					"restored: %s%s '%s'",
 					puq->queue->num,
 					ul_parqs_cnt,
 					puq->position,
@@ -5207,6 +5261,7 @@ parq_upload_load_queue(void)
 					puq->queue->by_position_length,
 					short_time(parq_upload_lookup_eta(fake_upload)),
 					host_addr_to_string(puq->remote_addr),
+					puq->supports_parq ? " (PARQ)" : "",
 					puq->name);
 			}
 
