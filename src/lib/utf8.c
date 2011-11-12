@@ -1825,7 +1825,11 @@ locale_init(void)
 	BINARY_ARRAY_SORTED(utf32_general_category_lut,
 		struct utf32_general_category, uc, CMP, uint32_to_string);
 
+#ifdef MINGW32
+	setlocale(LC_ALL, g_win32_getlocale());
+#else
 	setlocale(LC_ALL, "");
+#endif
 	charset = deconstify_gpointer(locale_get_charset());
 
 	/*
