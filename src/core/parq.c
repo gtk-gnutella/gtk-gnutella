@@ -55,6 +55,7 @@
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
+#include "if/core/main.h"			/* For debugging() */
 
 #include "lib/atoms.h"
 #include "lib/aging.h"
@@ -2012,7 +2013,7 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
  * Find the parq upload entry based on the PARQ ID found in the X-Queued header.
  */
 static struct parq_ul_queued *
-parq_upload_find_id(const header_t *header)
+parq_upload_find_id(const struct upload *u, const header_t *header)
 {
 	char *buf;
 
@@ -2028,10 +2029,13 @@ parq_upload_find_id(const header_t *header)
 			}
 			return NULL;
 		}
-		g_warning("[PARQ UL] missing ID in PARQ request");
-		if (GNET_PROPERTY(parq_debug)) {
-			g_warning("[PARQ UL] header dump:");
-			header_dump(stderr, header, NULL);
+		if (debugging(0)) {
+			g_warning("[PARQ UL] missing ID in PARQ request from %s",
+				upload_host_info(u));
+			if (GNET_PROPERTY(parq_debug) > 1) {
+				g_warning("[PARQ UL] header dump:");
+				header_dump(stderr, header, NULL);
+			}
 		}
 	}
 	return NULL;
@@ -3032,7 +3036,7 @@ parq_upload_continue(struct parq_ul_queued *puq)
 	gboolean quick_allowed = FALSE;
 	g_assert(puq != NULL);
 
-	/**
+	/*
 	 * A "frozen" entry is an entry still in the queue but removed from the
 	 * "by_rel_pos" list because it has concurrent uploads from the same
 	 * address and its its max number of uploads per IP.
@@ -3046,9 +3050,11 @@ parq_upload_continue(struct parq_ul_queued *puq)
 	if (puq->flags & PARQ_UL_FROZEN) {
 		if (GNET_PROPERTY(parq_debug) >= 5)
 			g_debug("[PARQ UL] %s: "
-				"frozen entry, IP %s has %d entries uploading (max %u)",
+				"frozen entry, IP %s has %d entr%s uploading (max %u)",
 				G_STRFUNC, host_addr_to_string(puq->by_addr->addr),
-				puq->by_addr->uploading, GNET_PROPERTY(max_uploads_ip));
+				puq->by_addr->uploading,
+				1 == puq->by_addr->uploading ? "y" : "ies",
+				GNET_PROPERTY(max_uploads_ip));
 
 		/*
 		 * Maybe the max_uploads_ip setting changed since last time we froze
@@ -3247,7 +3253,7 @@ parq_upload_get(struct upload *u, const header_t *header)
 	 * the one they got already.
 	 */
 
-	puq = parq_upload_find_id(header);
+	puq = parq_upload_find_id(u, header);
 
 	/*
 	 * If they supply a valid ID, they are always allowed to proceed even
