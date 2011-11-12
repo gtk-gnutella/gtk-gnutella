@@ -42,9 +42,10 @@
 #include "halloc.h"
 #include "override.h"			/* Must be the last header included */
 
-char *get_folder_basepath(enum special_folder which_folder);
+static const char *get_folder_basepath(enum special_folder which_folder);
 
-get_folder_basepath_func_t get_folder_basepath_func = get_folder_basepath;
+static get_folder_basepath_func_t get_folder_basepath_func =
+	get_folder_basepath;
 
 /**
  * Create new pathname from the concatenation of the dirname and the basename
@@ -231,26 +232,36 @@ filepath_directory(const char *pathname)
 	return dir;
 }
 
-char *
+/**
+ * Get special folder path.
+ *
+ * @return pointer to static string.
+ */
+static const char *
 get_folder_basepath(enum special_folder which_folder)
 {
 	char *special_path = NULL;
-	char *pathname;
-	size_t offset = 0;
 
 	switch (which_folder) {
 	case PRIVLIB_PATH:
-		special_path = getenv("XDG_DATA_DIRS");
+		{
+			static char *pathname;
+	
+			if (NULL == pathname) {
+				special_path = getenv("XDG_DATA_DIRS");
+				if (special_path != NULL) {
+					size_t offset = 0;
 
-		if (special_path != NULL) {
-			pathname = halloc0(MAX_PATH_LEN);
+					pathname = NOT_LEAKING(halloc0(MAX_PATH_LEN));
 
-			offset += clamp_strcpy(
-				&pathname[offset], MAX_PATH_LEN - offset, special_path);
+					offset += clamp_strcpy(
+						&pathname[offset], MAX_PATH_LEN - offset, special_path);
 
-			offset += clamp_strcpy(
-				&pathname[offset], MAX_PATH_LEN - offset,
-					G_DIR_SEPARATOR_S PACKAGE G_DIR_SEPARATOR_S);
+					offset += clamp_strcpy(
+						&pathname[offset], MAX_PATH_LEN - offset,
+							G_DIR_SEPARATOR_S PACKAGE G_DIR_SEPARATOR_S);
+				}
+			}
 
 			special_path = pathname;
 		}
@@ -284,9 +295,9 @@ get_folder_path(enum special_folder which_folder, const char *path)
 {
 	char *pathname;
 	size_t offset = 0;	
-	char *special_path = NULL;
+	const char *special_path = NULL;
 
-	special_path = get_folder_basepath_func(which_folder);
+	special_path = (*get_folder_basepath_func)(which_folder);
 	
 	if (NULL == special_path)
 		return NULL;

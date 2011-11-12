@@ -47,7 +47,8 @@ char *filepath_directory(const char *pathname);
 
 enum special_folder { PRIVLIB_PATH, NLS_PATH };
 
-typedef char* (*get_folder_basepath_func_t)(enum special_folder which_folder);
+typedef const char *(*get_folder_basepath_func_t)(
+	enum special_folder which_folder);
 void set_folder_basepath_func(get_folder_basepath_func_t func);
 char *get_folder_path(enum special_folder which_folder, const char *path);
 

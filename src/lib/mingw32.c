@@ -2524,7 +2524,7 @@ mingw_adns_close(void)
 
 /*** End of ADNS section ***/
 
-const char *
+static const char *
 mingw_get_folder_basepath(enum special_folder which_folder)
 {
 	const char *special_path = NULL;
@@ -2539,8 +2539,8 @@ mingw_get_folder_basepath(enum special_folder which_folder)
 			"share" G_DIR_SEPARATOR_S "locale");
 		break;
 	default:
-		g_warning("mingw_get_folder_basepath needs implementation "
-			"for foldertype %d", which_folder);
+		g_warning("%s() needs implementation for foldertype %d",
+			G_STRFUNC, which_folder);
 	}
 
 	return special_path;
