@@ -304,7 +304,7 @@ if [ "X$build_osxbundle" = Xtrue ]
 then
 	rm -rf osx/bundle
 	make install &&
-	ige-mac-bundler osx/gtk-gnutella.bundle &&
+	gtk-mac-bundler osx/gtk-gnutella.bundle &&
 	rm -rf osx/bundle &&
 	ln -s /Applications osx/image/Applications &&
 	dmg="${HOME}/Desktop/Gtk-Gnutella-`./scripts/git-version.sh`.dmg" &&
