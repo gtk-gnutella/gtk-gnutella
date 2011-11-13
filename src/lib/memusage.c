@@ -661,6 +661,8 @@ memusage_frame_dump_log(const memusage_t *mu, logagent_t *la)
 		return;
 	}
 
+	memusage_summary_dump_log(mu, la, 0);
+
 	memusage_sort_frames(mu, TRUE, mu->recent_allocs, &filler);
 	memusage_sorted_frame_dump_log(la, mu, name, "recent allocation",
 		filler.array, filler.count, mu->allocs, mu->alloc_recursions);
