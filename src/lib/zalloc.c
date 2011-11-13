@@ -87,6 +87,10 @@
 #include "vmm.h"
 #include "xmalloc.h"
 
+#ifdef MALLOC_TIME
+#include "glib-missing.h"	/* For gm_snprintf() */
+#endif
+
 #include "override.h"		/* Must be the last header included */
 
 #define equiv(p,q)		(!(p) == !(q))
