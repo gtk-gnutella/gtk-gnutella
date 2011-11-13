@@ -2805,7 +2805,9 @@ free_upload_slots(struct parq_ul_queue *q)
 
 	for (l = ul_parqs; l; l = g_list_next(l)) {
 		struct parq_ul_queue *queue = l->data;
-		int wanted = queue->alive - queue->active_uploads - queue->frozen;
+		int wanted = queue->alive - queue->active_uploads;
+
+		g_assert(wanted >= 0);
 
 		/*
 		 * Frozen upload queue entries are not accounted as "wanted" because
@@ -2817,7 +2819,10 @@ free_upload_slots(struct parq_ul_queue *q)
 		 *		--RAM, 2011-11-11
 		 */
 
-		g_assert(wanted >= 0);
+		if (queue->frozen >= wanted)
+			wanted = 0;
+		else
+			wanted -= queue->frozen;
 
 		if (wanted < even_slots)
 			surplus += even_slots - wanted;
