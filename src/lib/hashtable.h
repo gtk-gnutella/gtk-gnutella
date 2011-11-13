@@ -57,6 +57,7 @@ hash_table_t *hash_table_new_full(
 	hash_table_hash_func hash, hash_table_eq_func eq);
 void hash_table_clear(hash_table_t *ht);
 void hash_table_destroy(hash_table_t *ht);
+void hash_table_destroy_null(hash_table_t **ht_ptr);
 
 void hash_table_readonly(hash_table_t *ht);
 void hash_table_writable(hash_table_t *ht);

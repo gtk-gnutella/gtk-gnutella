@@ -676,6 +676,20 @@ hash_table_destroy(hash_table_t *ht)
 }
 
 /**
+ * Destroy hash table, nullifying its pointer.
+ */
+void
+hash_table_destroy_null(hash_table_t **ht_ptr)
+{
+	hash_table_t *ht = *ht_ptr;
+
+	if (ht != NULL) {
+		hash_table_destroy(ht);
+		*ht_ptr = NULL;
+	}
+}
+
+/**
  * Make hash table read-only.
  *
  * Any accidental attempt to change items will cause a memory protection fault.
