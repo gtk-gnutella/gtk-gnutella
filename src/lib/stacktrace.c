@@ -559,10 +559,11 @@ trace_atom(struct nm_parser *ctx, const char *name)
 	const char *result;
 
 	/*
-	 * On Windows, there is an obnoxious '_' prepended to all routine names.
+	 * On Windows and OS X, there is an obnoxious '_' prepended to all
+	 * routine names.
 	 */
 
-	if (is_running_on_mingw() && '_' == name[0])
+	if ('_' == name[0])
 		name++;
 
 	result = hash_table_lookup(ctx->atoms, name);
