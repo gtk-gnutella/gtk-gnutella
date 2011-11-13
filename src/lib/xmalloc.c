@@ -3186,8 +3186,6 @@ xmalloc_pre_close(void)
 	 */
 
 	safe_to_log = FALSE;		/* Turn logging off */
-
-	memusage_free_null(&xstats.user_mem);
 }
 
 /**
@@ -3231,6 +3229,7 @@ xmalloc_post_init(void)
 G_GNUC_COLD void
 xmalloc_stop_freeing(void)
 {
+	memusage_free_null(&xstats.user_mem);
 	xmalloc_no_freeing = TRUE;
 }
 

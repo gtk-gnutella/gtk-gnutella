@@ -4149,9 +4149,6 @@ vmm_pre_close(void)
 	 */
 
 	safe_to_log = FALSE;		/* Turn logging off */
-
-	memusage_free_null(&vmm_stats.user_mem);
-	memusage_free_null(&vmm_stats.core_mem);
 }
 
 /**
@@ -4165,6 +4162,9 @@ vmm_pre_close(void)
 void
 vmm_stop_freeing(void)
 {
+	memusage_free_null(&vmm_stats.user_mem);
+	memusage_free_null(&vmm_stats.core_mem);
+
 	stop_freeing = TRUE;
 
 	if (vmm_debugging(0))
