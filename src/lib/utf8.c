@@ -1673,10 +1673,11 @@ textdomain_init(const char *codeset)
 {
 #ifdef ENABLE_NLS
 	{
-		const char *nlspath;
+		char *nlspath;
 
 		nlspath = get_folder_path(NLS_PATH, NULL);
 		bindtextdomain(PACKAGE, nlspath);
+		HFREE_NULL(nlspath);
 	}
 
 #ifdef HAS_BIND_TEXTDOMAIN_CODESET
