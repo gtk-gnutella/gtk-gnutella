@@ -1694,7 +1694,7 @@ restore:
 }
 
 /**
- * Hashing routine for a "struct stacktracea".
+ * Hashing routine for a "struct stacktrace".
  */
 size_t
 stack_hash(const void *key)
@@ -1708,7 +1708,7 @@ stack_hash(const void *key)
 }
 
 /**
- * Comparison of two "struct stacktracea" structures.
+ * Comparison of two "struct stacktrace" structures.
  */
 int
 stack_eq(const void *a, const void *b)
