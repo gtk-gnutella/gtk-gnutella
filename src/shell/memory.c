@@ -465,6 +465,7 @@ shell_exec_memory_usage_zone(struct gnutella_shell *sh,
 	size_t size;
 	const char *endptr;
 	int error;
+	gboolean ok;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -488,15 +489,24 @@ shell_exec_memory_usage_zone(struct gnutella_shell *sh,
 	 */
 
 	if (0 == ascii_strcasecmp(argv[2], "on")) {
-		/* XXX LATER */
+		ok = zalloc_stack_accounting_ctrl(size, ZALLOC_SA_SET, TRUE);
 	} else if (0 == ascii_strcasecmp(argv[2], "off")) {
-		/* XXX LATER */
+		ok = zalloc_stack_accounting_ctrl(size, ZALLOC_SA_SET, FALSE);
 	} else if (0 == ascii_strcasecmp(argv[2], "show")) {
-		/* XXX LATER */
+		logagent_t *la = log_agent_string_make(65536, NULL);
+		ok = zalloc_stack_accounting_ctrl(size, ZALLOC_SA_SHOW, la);
+		if (ok)
+			shell_write(sh, log_agent_string_get(la));
+		log_agent_free_null(&la);
 	} else {
 		shell_set_formatted(sh, "Unknown action \"%s\" on zone %zu",
 			argv[2], size);
 		goto failed;
+	}
+
+	if (!ok) {
+		shell_set_formatted(sh, "Operation failed");
+		return REPLY_ERROR;
 	}
 
 	return REPLY_READY;

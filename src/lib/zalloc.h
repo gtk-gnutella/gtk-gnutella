@@ -86,6 +86,16 @@ void zalloc_dump_usage_log(struct logagent *la, unsigned options);
 void zalloc_dump_stats_log(struct logagent *la, unsigned options);
 void zalloc_dump_zones_log(struct logagent *la);
 
+enum zalloc_stack_ctrl {
+	ZALLOC_SA_SET = 0,		/**< Turn stack accounting on/off */
+	ZALLOC_SA_SHOW,			/**< Show statistics on specified logger */
+
+	ZALLOC_SA_MAX
+};
+
+gboolean zalloc_stack_accounting_ctrl(size_t size,
+	enum zalloc_stack_ctrl op, ...);
+
 #ifdef TRACK_ZALLOC
 
 #define zalloc(z)	zalloc_track(z, _WHERE_, __LINE__)

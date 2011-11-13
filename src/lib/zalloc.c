@@ -2540,6 +2540,62 @@ zalloc_memusage_init(void)
 	hash_table_foreach(zt, zalloc_memusage_add, NULL);
 }
 
+/**
+ * Control stackframe collection for a zone of given size.
+ *
+ * @param size		zone size
+ *
+ * @return TRUE if OK, FALSE if we found no zone with specified size.
+ */
+gboolean
+zalloc_stack_accounting_ctrl(size_t size, enum zalloc_stack_ctrl op, ...)
+{
+	zone_t *zone;
+	unsigned hint = 0;
+	gboolean ok = TRUE;
+	va_list args;
+
+	if (NULL == zt)
+		return FALSE;
+
+	size = adjust_size(size, &hint);
+	zone = hash_table_lookup(zt, ulong_to_pointer(size));
+
+	if (NULL == zone)
+		return FALSE;
+
+	zone_check(zone);
+
+	if (NULL == zone->zn_mem)
+		return FALSE;
+
+	va_start(args, op);
+
+	switch (op) {
+	case ZALLOC_SA_SET:
+		{
+			gboolean on = va_arg(args, gboolean);
+			memusage_set_stack_accounting(zone->zn_mem, on);
+			goto done;
+		}
+		return TRUE;
+	case ZALLOC_SA_SHOW:
+		{
+			logagent_t *la = va_arg(args, logagent_t *);
+			memusage_frame_dump_log(zone->zn_mem, la);
+			goto done;
+		}
+	case ZALLOC_SA_MAX:
+		break;
+	}
+
+	ok = FALSE;
+
+done:
+	va_end(args);
+	return ok;
+}
+
 struct zonesize {
 	size_t size;
 	zone_t *zone;
