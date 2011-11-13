@@ -1270,6 +1270,32 @@ stack_print(FILE *f, void * const *stack, size_t count)
 }
 
 /**
+ * Log array of PCs to logging agent, using symbolic names if possible.
+ *
+ * @param la		where to print the stack
+ * @param stack		array of Program Counters making up the stack
+ * @param count		number of items in stack[] to print, at most.
+ */
+static void
+stack_log(logagent_t *la, void * const *stack, size_t count)
+{
+	size_t i;
+
+	stacktrace_load_symbols();
+
+	for (i = 0; i < count; i++) {
+		const char *where = trace_name(stack[i], TRUE);
+
+		if (!stack_is_text(stack[i]))
+			break;
+
+		log_info(la, "\t%s", where);
+		if (stack_reached_main(where))
+			break;
+	}
+}
+
+/**
  * Safely print array of PCs, using symbolic names if possible.
  *
  * @param fd		where to print the stack
@@ -1318,6 +1344,17 @@ stacktrace_atom_print(FILE *f, const struct stackatom *st)
 	g_assert(st != NULL);
 
 	stack_print(f, st->stack, st->len);
+}
+
+/**
+ * Log stack trace atom to logging agent, using symbolic names if possible.
+ */
+void
+stacktrace_atom_log(logagent_t *la, const struct stackatom *st)
+{
+	g_assert(st != NULL);
+
+	stack_log(la, st->stack, st->len);
 }
 
 /**

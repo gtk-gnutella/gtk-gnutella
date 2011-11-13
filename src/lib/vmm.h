@@ -105,6 +105,7 @@ gboolean vmm_grows_upwards(void) G_GNUC_PURE;
 void set_vmm_debug(guint32 level);
 gboolean vmm_is_debugging(guint32 level) G_GNUC_PURE;
 void vmm_init(const void *sp);
+void vmm_memusage_init(void);
 void vmm_malloc_inited(void);
 void vmm_post_init(void);
 void vmm_pre_close(void);
@@ -114,6 +115,7 @@ void vmm_dump_pmap(void);
 void vmm_dump_pmap_log(struct logagent *la);
 void vmm_dump_stats(void);
 void vmm_dump_stats_log(struct logagent *la, unsigned options);
+void vmm_dump_usage_log(struct logagent *la, unsigned options);
 
 void vmm_madvise_free(void *p, size_t size);
 void vmm_madvise_normal(void *p, size_t size);

@@ -133,9 +133,15 @@ product_get_patchlevel(void)
  * Set product interface.
  */
 void
+<<<<<<< HEAD
 product_set_interface(const char *iface)
 {
 	product_interface = iface;
+=======
+product_set_interface(const char *interface)
+{
+	product_interface = interface;
+>>>>>>> alloc-rate
 }
 
 /**

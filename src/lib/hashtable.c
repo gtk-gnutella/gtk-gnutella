@@ -370,26 +370,32 @@ hash_table_foreach(hash_table_t *ht, hash_table_foreach_func func, void *data)
 
 	n = ht->num_held;
 	i = ht->num_bins;
+
 	while (i-- > 0) {
 		hash_item_t *item;
 
 		for (item = ht->bins[i]; NULL != item; item = item->next) {
-			(*func) (item->key, deconstify_gpointer(item->value), data);
+			(*func)(item->key, deconstify_gpointer(item->value), data);
 			n--;
 		}
 	}
 	g_assert(0 == n);
 }
 
-static void
+/**
+ * Remove all items from hash table.
+ */
+void
 hash_table_clear(hash_table_t *ht)
 {
 	size_t i;
-	size_t arena;
+	size_t n;
 
 	hash_table_check(ht);
 
+	n = ht->num_held;
 	i = ht->num_bins;
+
 	while (i-- > 0) {
 		hash_item_t *item = ht->bins[i];
 
@@ -399,9 +405,25 @@ hash_table_clear(hash_table_t *ht)
 			next = item->next;
 			hash_item_free(ht, item);
 			item = next;
+			n--;
 		}
 		ht->bins[i] = NULL;
 	}
+	g_assert(0 == n);
+
+	ht->num_held = 0;
+	ht->bin_fill = 0;
+}
+
+/**
+ * Empty data structure.
+ */
+static void
+hash_table_reset(hash_table_t *ht)
+{
+	size_t arena;
+
+	hash_table_check(ht);
 
 	arena = hash_bins_items_arena_size(ht, NULL);
 
@@ -470,7 +492,7 @@ hash_table_resize(hash_table_t *ht, size_t n)
 	hash_table_new_intern(&tmp, n, ht->hash, ht->eq);
 	hash_table_foreach(ht, hash_table_resize_helper, &tmp);
 	g_assert(ht->num_held == tmp.num_held);
-	hash_table_clear(ht);
+	hash_table_reset(ht);
 	*ht = tmp;
 }
 
@@ -648,9 +670,23 @@ hash_table_destroy(hash_table_t *ht)
 	hash_table_check(ht);
 	g_assert(!ht->special);
 
-	hash_table_clear(ht);
+	hash_table_reset(ht);
 	ht->magic = 0;
 	xfree(ht);
+}
+
+/**
+ * Destroy hash table, nullifying its pointer.
+ */
+void
+hash_table_destroy_null(hash_table_t **ht_ptr)
+{
+	hash_table_t *ht = *ht_ptr;
+
+	if (ht != NULL) {
+		hash_table_destroy(ht);
+		*ht_ptr = NULL;
+	}
 }
 
 /**
@@ -766,7 +802,7 @@ hash_table_destroy_real(hash_table_t *ht)
 {
 	hash_table_check(ht);
 
-	hash_table_clear(ht);
+	hash_table_reset(ht);
 	ht->magic = 0;
 	free(ht);
 }

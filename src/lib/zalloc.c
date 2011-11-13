@@ -78,6 +78,7 @@
 #include "hashtable.h"
 #include "log.h"			/* For statistics logging */
 #include "malloc.h"			/* For MALLOC_FRAMES */
+#include "memusage.h"
 #include "misc.h"			/* For short_filename() */
 #include "stacktrace.h"
 #include "stringify.h"
@@ -147,6 +148,10 @@ typedef struct zrange {
 } zrange_t;
 #endif	/* ZALLOC_SAFETY_ASSERT */
 
+enum zone_magic {
+	ZONE_MAGIC = 0x58fdc399
+};
+
 /**
  * @struct zone
  *
@@ -156,12 +161,14 @@ typedef struct zrange {
  * that are used to allocate objects for the zone.
  */
 struct zone {				/* Zone descriptor */
-    struct subzone zn_arena;
+	enum zone_magic zn_magic;
+	struct subzone zn_arena;
 	struct zone_gc *zn_gc;	/**< Optional: garbage collecting information */
 	char **zn_free;			/**< Pointer to first free block */
 #ifdef ZALLOC_SAFETY_ASSERT
 	zrange_t *zn_rang;		/**< Sorted array of subzone ranges */
 #endif
+	memusage_t *zn_mem;		/**< Dynamic memory usage statistics */
 	size_t zn_size;			/**< Size of blocks in zone */
 	unsigned zn_refcnt;		/**< How many references to that zone? */
 	unsigned zn_hint;		/**< Hint size, for next zone extension */
@@ -171,11 +178,19 @@ struct zone {				/* Zone descriptor */
 	unsigned zn_oversized;	/**< For GC: amount of times we see oversizing */
 };
 
+static inline void
+zone_check(const struct zone *zn)
+{
+	g_assert(zn != NULL);
+	g_assert(ZONE_MAGIC == zn->zn_magic);
+}
+
 static hash_table_t *zt;			/**< Keeps size (rounded up) -> zone */
 static guint32 zalloc_debug;		/**< Debug level */
 static gboolean zalloc_always_gc;	/**< Whether zones should stay in GC mode */
 static gboolean addr_grows_upwards;	/**< Whether newer VM addresses increase */
 static gboolean zalloc_closing;		/**< Whether zclose() was called */
+static gboolean zalloc_memusage_ok;	/**< Whether we can enable memusage stats */
 
 #ifdef MALLOC_FRAMES
 static hash_table_t *zalloc_frames;	/**< Tracks allocation frame atoms */
@@ -501,6 +516,7 @@ zalloc(zone_t *zone)
 	zstats.allocations++;
 	zstats.user_blocks++;
 	zstats.user_memory += zone->zn_size;
+	memusage_add_one(zone->zn_mem);
 
 	/*
 	 * Grab first available free block and update free list pointer. If we
@@ -731,11 +747,13 @@ void
 zfree(zone_t *zone, void *ptr)
 {
 	char **head;
+
 	g_assert(ptr);
-	g_assert(zone);
+	zone_check(zone);
 	safety_assert(zbelongs(zone, ptr));
 
 	zstats.freeings++;
+	memusage_remove_one(zone->zn_mem);
 
 #ifdef ZONE_SAFE
 	{
@@ -990,6 +1008,7 @@ zn_create(zone_t *zone, size_t size, unsigned hint)
 	 * Initialize zone descriptor.
 	 */
 
+	zone->zn_magic = ZONE_MAGIC;
 	zone->zn_hint = hint;
 	zone->zn_size = size;
 	zone->zn_arena.sz_next = NULL;			/* Link keep track of arenas */
@@ -999,6 +1018,12 @@ zn_create(zone_t *zone, size_t size, unsigned hint)
 	zone->zn_subzones = 1;					/* One subzone to start with */
 	zone->zn_blocks = zone->zn_hint;
 	zone->zn_gc = NULL;
+
+	if (zalloc_memusage_ok) {
+		zone->zn_mem = memusage_alloc("zone", size);
+	} else {
+		zone->zn_mem = NULL;
+	}
 
 	zn_cram(zone, zone->zn_arena.sz_base);
 	safety_assert(zbelongs(zone, zone->zn_free));
@@ -2484,6 +2509,93 @@ zinit(void)
 #endif
 }
 
+/**
+ * Hash table iterator -- setup memory usage stats on allocated zones.
+ */
+static void
+zalloc_memusage_add(const void *key, void *value, void *data)
+{
+	zone_t *zone = value;
+
+	(void) key;
+	(void) data;
+
+	zone_check(zone);
+	g_assert(NULL == zone->zn_mem);
+
+	zone->zn_mem = memusage_alloc("zone", zone->zn_size);
+}
+
+/**
+ * Turn on dynamic memory usage stats collection.
+ */
+G_GNUC_COLD void
+zalloc_memusage_init(void)
+{
+	zalloc_memusage_ok = TRUE;
+
+	if (NULL == zt)
+		return;
+
+	hash_table_foreach(zt, zalloc_memusage_add, NULL);
+}
+
+/**
+ * Control stackframe collection for a zone of given size.
+ *
+ * @param size		zone size
+ *
+ * @return TRUE if OK, FALSE if we found no zone with specified size.
+ */
+gboolean
+zalloc_stack_accounting_ctrl(size_t size, enum zalloc_stack_ctrl op, ...)
+{
+	zone_t *zone;
+	unsigned hint = 0;
+	gboolean ok = TRUE;
+	va_list args;
+
+	if (NULL == zt)
+		return FALSE;
+
+	size = adjust_size(size, &hint);
+	zone = hash_table_lookup(zt, ulong_to_pointer(size));
+
+	if (NULL == zone)
+		return FALSE;
+
+	zone_check(zone);
+
+	if (NULL == zone->zn_mem)
+		return FALSE;
+
+	va_start(args, op);
+
+	switch (op) {
+	case ZALLOC_SA_SET:
+		{
+			gboolean on = va_arg(args, gboolean);
+			memusage_set_stack_accounting(zone->zn_mem, on);
+			goto done;
+		}
+		return TRUE;
+	case ZALLOC_SA_SHOW:
+		{
+			logagent_t *la = va_arg(args, logagent_t *);
+			memusage_frame_dump_log(zone->zn_mem, la);
+			goto done;
+		}
+	case ZALLOC_SA_MAX:
+		break;
+	}
+
+	ok = FALSE;
+
+done:
+	va_end(args);
+	return ok;
+}
+
 struct zonesize {
 	size_t size;
 	zone_t *zone;
@@ -2516,6 +2628,7 @@ zalloc_filler_add(const void *key, void *value, void *data)
 	zone_t *zone = value;
 	struct zonesize *zs;
 
+	zone_check(zone);
 	g_assert(pointer_to_ulong(key) == zone->zn_size);
 	g_assert(filler->count < filler->capacity);
 
@@ -2525,17 +2638,14 @@ zalloc_filler_add(const void *key, void *value, void *data)
 }
 
 /**
- * Dump zone status to specified log agent.
+ * Construct sorted array of zones.
  */
-G_GNUC_COLD  void
-zalloc_dump_zones_log(logagent_t *la)
+static void
+zalloc_sort_zones(struct zonesize_filler *fill)
 {
-	struct zonesize_filler filler;
-	size_t zcount, i, zpages, blocks, subzones;
-	size_t bytes, wasted, overhead;
+	size_t zcount;
 
-	if (NULL == zt)
-		return;
+	g_assert(zt != NULL);
 
 	/*
 	 * We want to avoid calling xpmalloc() here, but since xmalloc() can
@@ -2547,19 +2657,35 @@ zalloc_dump_zones_log(logagent_t *la)
 	 */
 
 	zcount = hash_table_size(zt);
-	filler.array = xmalloc(zcount * sizeof filler.array[0]);
+	fill->array = xmalloc(zcount * sizeof fill->array[0]);
 	while (hash_table_size(zt) != zcount) {
 		zcount = hash_table_size(zt);
-		filler.array = xrealloc(filler.array, zcount * sizeof filler.array[0]);
+		fill->array = xrealloc(fill->array, zcount * sizeof fill->array[0]);
 	}
-	filler.capacity = zcount;
-	filler.count = 0;
+	fill->capacity = zcount;
+	fill->count = 0;
 
-	hash_table_foreach(zt, zalloc_filler_add, &filler);
+	hash_table_foreach(zt, zalloc_filler_add, fill);
 
-	g_assert(filler.count == filler.capacity);
+	g_assert(fill->count == fill->capacity);
 
-	qsort(filler.array, filler.count, sizeof filler.array[0], zonesize_cmp);
+	qsort(fill->array, fill->count, sizeof fill->array[0], zonesize_cmp);
+}
+
+/**
+ * Dump zone status to specified log agent.
+ */
+G_GNUC_COLD  void
+zalloc_dump_zones_log(logagent_t *la)
+{
+	struct zonesize_filler filler;
+	size_t i, zpages, blocks, subzones;
+	size_t bytes, wasted, overhead;
+
+	if (NULL == zt)
+		return;
+
+	zalloc_sort_zones(&filler);
 
 	zpages = blocks = subzones = 0;
 	bytes = wasted = overhead = 0;
@@ -2607,6 +2733,35 @@ zalloc_dump_zones_log(logagent_t *la)
 
 	log_info(la, "ZALLOC zones structural overhead totals %zu bytes (%s)",
 		overhead, short_size(overhead, FALSE));
+
+	xfree(filler.array);
+}
+
+/**
+ * Dump zalloc() usage stats about zones to specified log agent.
+ */
+G_GNUC_COLD void
+zalloc_dump_usage_log(logagent_t *la, unsigned options)
+{
+	struct zonesize_filler filler;
+	size_t i;
+
+	if (NULL == zt)
+		return;
+
+	zalloc_sort_zones(&filler);
+
+	for (i = 0; i < filler.count; i++) {
+		zone_t *zone = filler.array[i].zone;
+
+		if (NULL == zone->zn_mem) {
+			log_warning(la,
+				"zone(%zu bytes): memory usage stats not configured",
+				zone->zn_size);
+		} else {
+			memusage_summary_dump_log(zone->zn_mem, la, options);
+		}
+	}
 
 	xfree(filler.array);
 }
