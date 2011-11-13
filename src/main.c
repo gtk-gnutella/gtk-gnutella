@@ -565,8 +565,9 @@ gtk_gnutella_exit(int exit_code)
 	 *		--RAM, 2010-02-19
 	 */
 
-	DO(vmm_stop_freeing);
-	DO(xmalloc_stop_freeing);
+	DO(vmm_stop_freeing);		/* Also stops memusage monitoring */
+	DO(xmalloc_stop_freeing);	/* Ditto */
+	DO(zalloc_memusage_close);	/* No longer needed */
 
 	if (!running_topless) {
 		DO(settings_gui_save_if_dirty);

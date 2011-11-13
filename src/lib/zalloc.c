@@ -2517,17 +2517,22 @@ zinit(void)
  * Hash table iterator -- setup memory usage stats on allocated zones.
  */
 static void
-zalloc_memusage_add(const void *key, void *value, void *data)
+zalloc_memusage_set(const void *key, void *value, void *data)
 {
 	zone_t *zone = value;
+	gboolean *set = data;
 
 	(void) key;
 	(void) data;
 
 	zone_check(zone);
-	g_assert(NULL == zone->zn_mem);
 
-	zone->zn_mem = memusage_alloc("zone", zone->zn_size);
+	if (*set) {
+		g_assert(NULL == zone->zn_mem);
+		zone->zn_mem = memusage_alloc("zone", zone->zn_size);
+	} else {
+		memusage_free_null(&zone->zn_mem);
+	}
 }
 
 /**
@@ -2541,7 +2546,21 @@ zalloc_memusage_init(void)
 	if (NULL == zt)
 		return;
 
-	hash_table_foreach(zt, zalloc_memusage_add, NULL);
+	hash_table_foreach(zt, zalloc_memusage_set, &zalloc_memusage_ok);
+}
+
+/**
+ * Turn off dynamic memory usage stats collection.
+ */
+G_GNUC_COLD void
+zalloc_memusage_close(void)
+{
+	zalloc_memusage_ok = FALSE;
+
+	if (NULL == zt)
+		return;
+
+	hash_table_foreach(zt, zalloc_memusage_set, &zalloc_memusage_ok);
 }
 
 /**
