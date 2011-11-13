@@ -57,6 +57,18 @@ struct stackatom {
 };
 
 /**
+ * Self-assessed stacktrace symbol quality.
+ */
+enum stacktrace_sym_quality {
+	STACKTRACE_SYM_GOOD = 0,
+	STACKTRACE_SYM_STALE,
+	STACKTRACE_SYM_MISMATCH,
+	STACKTRACE_SYM_GARBAGE,
+
+	STACKTRACE_SYM_MAX
+};
+
+/**
  * Hashing /equality functions for "struct stacktracea" atomic traces.
  */
 size_t stack_hash(const void *key) G_GNUC_PURE;
@@ -87,6 +99,8 @@ void stacktrace_load_symbols(void);
 void stacktrace_post_init(void);
 void stacktrace_close(void);
 size_t stacktrace_memory_used(void);
+enum stacktrace_sym_quality stacktrace_quality(void);
+const char *stacktrace_quality_string(const enum stacktrace_sym_quality sq);
 
 #endif /* _stacktrace_h_ */
 
