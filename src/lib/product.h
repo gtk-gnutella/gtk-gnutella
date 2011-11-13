@@ -55,10 +55,14 @@ guint32 product_get_build(void);
 const char *product_get_build_full(void);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 void product_set_interface(const char *iface);
 =======
 void product_set_interface(const char *interface);
 >>>>>>> alloc-rate
+=======
+void product_set_interface(const char *interface);
+>>>>>>> parq-bug
 const char *product_get_interface(void);
 void product_set_website(const char *web);
 const char *product_get_website(void);

@@ -1620,7 +1620,6 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 			*revision != '\0' ? " " : "", revision,
 			product_get_date(), product_get_website());
 	}
-
 	{
 		char *comment = config_comment(ps->desc);
 

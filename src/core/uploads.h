@@ -198,6 +198,8 @@ void upload_free_info_list(GSList **sl_ptr);
 struct upload *upload_alloc(void);
 void upload_free(struct upload **ptr);
 
+const char *upload_host_info(const struct upload *u);
+
 #endif /* _core_uploads_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
