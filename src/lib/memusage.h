@@ -47,9 +47,11 @@ void memusage_add(memusage_t *mu, size_t size);
 void memusage_add_one(memusage_t *mu);
 void memusage_remove(memusage_t *mu, size_t size);
 void memusage_remove_one(memusage_t *mu);
+void memusage_set_stack_accounting(memusage_t *mu, gboolean on);
 
 struct logagent;
 
+void memusage_frame_dump_log(const memusage_t *mu, struct logagent *la);
 void memusage_summary_dump_log(const memusage_t *mu,
 	struct logagent *la, unsigned opt);
 
