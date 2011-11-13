@@ -62,10 +62,13 @@ struct stackatom {
 size_t stack_hash(const void *key) G_GNUC_PURE;
 int stack_eq(const void *a, const void *b) G_GNUC_PURE;
 
+struct logagent;
+
 void stacktrace_get(struct stacktrace *st);
 void stacktrace_get_offset(struct stacktrace *st, size_t offset);
 void stacktrace_print(FILE *f, const struct stacktrace *st);
 void stacktrace_atom_print(FILE *f, const struct stackatom *st);
+void stacktrace_atom_log(struct logagent *la, const struct stackatom *st);
 
 const char *stacktrace_caller_name(size_t n);
 const char *stacktrace_routine_name(const void *pc, gboolean offset);
