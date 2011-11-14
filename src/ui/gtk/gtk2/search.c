@@ -1336,13 +1336,13 @@ search_by_regex(GtkTreeModel *model, gint column, const gchar *key,
 	if (!last_key || 0 != strcmp(last_key, key)) {
 		if (last_key) {
 			regfree(&re);
-			G_FREE_NULL(last_key);
+			HFREE_NULL(last_key);
 		}
 
 		ret = regcomp(&re, key, REG_EXTENDED | REG_NOSUB | REG_ICASE);
 		g_return_val_if_fail(0 == ret, !found);
 
-		last_key = g_strdup(key);
+		last_key = h_strdup(key);
 	}
 
 	{
