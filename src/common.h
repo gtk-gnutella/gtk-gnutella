@@ -281,9 +281,14 @@ typedef int socket_fd_t;
 #include <stdarg.h>
 #endif
 
+#ifdef HAS_REGCOMP
 #ifdef I_REGEX
 #include <regex.h>
 #endif
+#else	/* !HAS_REGCOMP */
+/* We embed regex 0.12, used as fallback */
+#include "lib/regex.h"
+#endif	/* HAS_REGCOMP */
 
 #ifdef USE_GLIB1
 typedef void (*GCallback) (void);

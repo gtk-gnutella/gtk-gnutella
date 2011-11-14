@@ -132,6 +132,7 @@ LSRC = \
 	product.c \
 	prop.c \
 	random.c \
+	regex.c \
 	sectoken.c \
 	sequence.c \
 	sha1.c \

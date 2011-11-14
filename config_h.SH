@@ -425,6 +425,15 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_recvmsg HAS_RECVMSG		/**/
 
+/* HAS_REGCOMP:
+ *	This symbol, if defined, indicates that the regcomp() routine is
+ *	available to do some regular patern matching (usually on POSIX.2
+ *	conforming systems).
+ *	When regcomp() exists, it is safe to assume regexec() and regfree()
+ *	are also available.
+ */
+#$d_regcomp HAS_REGCOMP	/**/
+
 /* HAS_REGPARM:
  *	This symbol is defined when __attribute__((__regparm__(n))) can be used.
  */
