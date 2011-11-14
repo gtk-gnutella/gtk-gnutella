@@ -3179,8 +3179,11 @@ vmm_alloc_internal(size_t size, gboolean user_mem)
 	void *p;
 	const void *hole;
 
+	if G_UNLIKELY(0 == kernel_pagesize)
+		vmm_init(&n);
+
 	g_assert(size_is_positive(size));
-	
+
 	size = round_pagesize_fast(size);
 	n = pagecount_fast(size);
 	vmm_stats.allocations++;
@@ -3261,6 +3264,9 @@ vmm_alloc0(size_t size)
 	size_t n;
 	void *p;
 	const void *hole;
+
+	if G_UNLIKELY(0 == kernel_pagesize)
+		vmm_init(&n);
 
 	g_assert(size_is_positive(size));
 
