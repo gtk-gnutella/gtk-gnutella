@@ -238,7 +238,7 @@ char *alloca ();
 #undef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-typedef char boolean;
+#define boolean char
 #define false 0
 #define true 1
 
