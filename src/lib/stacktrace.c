@@ -129,10 +129,34 @@ static void *getframeaddr(size_t level);
 /**
  * Is PC a valid routine address?
  */
-static inline gboolean
+static inline gboolean G_GNUC_CONST
 stack_is_text(const void *pc)
 {
 	return pointer_to_ulong(pc) >= 0x1000;
+}
+
+/**
+ * Is PC a routine address for something within our code?
+ */
+static inline gboolean G_GNUC_CONST
+stack_is_our_text(const void *pc)
+{
+#if defined(HAS_ETEXT_SYMBOL)
+	extern const int etext;		/* linker-defined symbol */
+
+	/* The address of "etext" marks the end of the text segment */
+	return ptr_cmp(pc, &etext) < 0;
+
+#elif defined(HAS_END_SYMBOL)
+	extern const int end;		/* linker-defined symbol */
+
+	/* The address of "end" marks the end of the BSS segment */
+	return ptr_cmp(pc, &end) < 0;
+
+#else
+	(void) pc;
+	return TRUE;
+#endif
 }
 
 /**
@@ -1727,6 +1751,7 @@ stacktrace_get_atom(const struct stacktrace *st)
 {
 	struct stackatom key;
 	struct stackatom *result;
+	size_t len;
 
 	STATIC_ASSERT(sizeof st->stack[0] == sizeof result->stack[0]);
 
@@ -1734,21 +1759,37 @@ stacktrace_get_atom(const struct stacktrace *st)
 		stack_atoms = hash_table_new_full_real(stack_hash, stack_eq);
 	}
 
+	/*
+	 * Adjust the length of the stack: any trailing address not belonging
+	 * to our text segment is that of shared libraries, i.e. not code for
+	 * which we have symbols.
+	 *
+	 * By chopping these trailing addresses off, we keep only the relevant
+	 * parts and also considerably limit the amount of stack atoms we have
+	 * to keep around during a session (since this memory is never freed).
+	 */
+
+	len = st->len;
+	while (len > 0) {
+		if (stack_is_our_text(st->stack[len - 1]))
+			break;
+		len--;
+	}
+
 	key.stack = deconstify_gpointer(st->stack);
-	key.len = st->len;
+	key.len = len;
 
 	result = hash_table_lookup(stack_atoms, &key);
 
 	if G_UNLIKELY(NULL == result) {
 		/* These objects will be never freed */
 		result = omalloc0(sizeof *result);
-		if (st->len != 0) {
-			result->stack = omalloc(st->len * sizeof st->stack[0]);
-			memcpy(result->stack, st->stack, st->len * sizeof st->stack[0]);
+		if (len != 0) {
+			result->stack = ocopy(st->stack, len * sizeof st->stack[0]);
 		} else {
 			result->stack = NULL;
 		}
-		result->len = st->len;
+		result->len = len;
 
 		if (!hash_table_insert(stack_atoms, result, result))
 			g_error("cannot record stack trace atom");

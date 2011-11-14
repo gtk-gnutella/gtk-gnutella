@@ -180,10 +180,24 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_dirent_d_type HAS_DIRENT_D_TYPE		/**/
 
+/* HAS_END_SYMBOL:
+ *	This symbol, if defined, indicates that the C program can declare
+ *		extern const int end;
+ *	and then use &end to know the end of the BSS segment.
+ */
+#$d_end_symbol HAS_END_SYMBOL	/**/
+
 /* HAS_EPOLL:
  *	This symbol is defined when epoll() can be used.
  */
 #$d_epoll HAS_EPOLL
+
+/* HAS_ETEXT_SYMBOL:
+ *	This symbol, if defined, indicates that the C program can declare
+ *		extern const int etext;
+ *	and then use &etext to know the end of the text segment.
+ */
+#$d_etext_symbol HAS_ETEXT_SYMBOL	/**/
 
 /* FAST_ASSERTIONS:
  *	This symbol, when defined, indicates that the program should make
