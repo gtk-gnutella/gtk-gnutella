@@ -87,7 +87,7 @@ MINGW*)
 		mingwlib=/mingw/lib
 		PATH="$PATH${PATH:+:}${mingwlib}/gtk/bin"
 		export PATH
-		CPPFLAGS="$CPPFLAGS -I${mingwlib}/regex/include -I${mingwlib}/gtk/include"
+		CPPFLAGS="$CPPFLAGS -I${mingwlib}/gtk/include"
 		CPPFLAGS="$CPPFLAGS -I${mingwlib}/zlib/include"
 		# It's necessary to statically link gtk-gnutella to libz.a or it crashes
 		# randomly in pre-compiled zlib1.dll from GTK.
@@ -99,12 +99,12 @@ MINGW*)
 		# Also one needs to rename gtk/include/zlib.h as gtk/include/zlib.h.gtk to
 		# make sure this header is not picked when including <zlib.h>
 		LDFLAGS="$LDFLAGS ${mingwlib}/zlib/lib/libz.a"
-		LDFLAGS="$LDFLAGS -mwindows -L${mingwlib}/regex/lib -L${mingwlib}/gtk/lib"
+		LDFLAGS="$LDFLAGS -mwindows -L${mingwlib}/gtk/lib"
     fi
 
 	CPPFLAG="${CPPFLAGS# *}"    # strip leading spaces
 	LDFLAGS="${LDFLAGS# *}"     # strip leading spaces
-	LIBS="$LIBS -lwsock32 -lws2_32 -lregex -liconv -limagehlp -liphlpapi"
+	LIBS="$LIBS -lwsock32 -lws2_32 -liconv -limagehlp -liphlpapi"
 	LIBS="$LIBS -lws2_32 -lpowrprof -lpsapi -lkernel32"
     LIBS="${LIBS# *}"           # strip leading spaces
 	;;
