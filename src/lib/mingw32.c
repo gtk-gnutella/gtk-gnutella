@@ -1761,7 +1761,7 @@ mingw_fopen(const char *pathname, const char *mode)
 	if (NULL == strchr(mode, 'b')) {
 		int l = clamp_strcpy(bin_mode, sizeof bin_mode - 2, mode);
 		bin_mode[l++] = 'b';
-		bin_mode[l] = '\0'';
+		bin_mode[l] = '\0';
 		mode = bin_mode;
 	}
 	
@@ -1799,7 +1799,7 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 	if (NULL == strchr(mode, 'b')) {
 		int l = clamp_strcpy(bin_mode, sizeof bin_mode - 2, mode);
 		bin_mode[l++] = 'b';
-		bin_mode[l] = '\0'';
+		bin_mode[l] = '\0';
 		mode = bin_mode;
 	}
 	
