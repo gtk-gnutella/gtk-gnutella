@@ -108,12 +108,13 @@
 #include "vmm.h"
 
 #include "ascii.h"
-#include "crash.h"			/* For crash_hook_add() */
 #include "cq.h"
+#include "crash.h"			/* For crash_hook_add() */
 #include "dump_options.h"
 #include "fd.h"
 #include "glib-missing.h"
 #include "log.h"
+#include "memusage.h"
 #include "omalloc.h"
 #include "parse.h"
 #include "pow2.h"
@@ -264,6 +265,8 @@ static struct {
 	size_t core_memory;				/**< Amount of "core" memory allocated */
 	size_t core_pages;				/**< Amount of "core" memory pages used */
 	/* Tracking core blocks doesn't make sense: "core" can be fragmented */
+	memusage_t *user_mem;			/**< User memory usage statistics */
+	memusage_t *core_mem;			/**< Core usage statistics */
 } vmm_stats;
 
 /**
@@ -3212,9 +3215,11 @@ update_stats:
 		vmm_stats.user_memory += size;
 		vmm_stats.user_pages += n;
 		vmm_stats.user_blocks++;
+		memusage_add(vmm_stats.user_mem, size);
 	} else {
 		vmm_stats.core_memory += size;
 		vmm_stats.core_pages += n;
+		memusage_add(vmm_stats.core_mem, size);
 	}
 
 	return p;
@@ -3302,6 +3307,7 @@ update_stats:
 	vmm_stats.user_memory += size;
 	vmm_stats.user_pages += n;
 	vmm_stats.user_blocks++;
+	memusage_add(vmm_stats.user_mem, size);
 
 	return p;
 }
@@ -3362,11 +3368,13 @@ vmm_free_internal(void *p, size_t size, gboolean user_mem)
 			g_assert(size_is_non_negative(vmm_stats.user_pages));
 			g_assert(size_is_non_negative(vmm_stats.user_memory));
 			vmm_stats.user_blocks--;
+			memusage_remove(vmm_stats.user_mem, size);
 		} else {
 			vmm_stats.core_memory -= size;
 			vmm_stats.core_pages -= n;
 			g_assert(size_is_non_negative(vmm_stats.core_pages));
 			g_assert(size_is_non_negative(vmm_stats.core_memory));
+			memusage_remove(vmm_stats.core_mem, size);
 		}
 	}
 }
@@ -3456,11 +3464,13 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, gboolean user_mem)
 				vmm_stats.user_pages -= n;
 				g_assert(size_is_non_negative(vmm_stats.user_pages));
 				g_assert(size_is_non_negative(vmm_stats.user_memory));
+				memusage_remove(vmm_stats.user_mem, delta);
 			} else {
 				vmm_stats.core_memory -= delta;
 				vmm_stats.core_pages -= n;
 				g_assert(size_is_non_negative(vmm_stats.core_pages));
 				g_assert(size_is_non_negative(vmm_stats.core_memory));
+				memusage_remove(vmm_stats.core_mem, delta);
 			}
 		}
 	}
@@ -3590,6 +3600,7 @@ vmm_trap_page(void)
 		vmm_stats.user_memory += kernel_pagesize;
 		vmm_stats.user_pages++;
 		vmm_stats.user_blocks++;
+		memusage_add(vmm_stats.user_mem, kernel_pagesize);
 	}
 	return trap_page;
 }
@@ -3748,6 +3759,24 @@ vmm_dump_stats(void)
 }
 
 /**
+ * Dump VMM usage statistics to specified logging agent.
+ */
+G_GNUC_COLD void
+vmm_dump_usage_log(logagent_t *la, unsigned options)
+{
+	if (NULL == vmm_stats.user_mem) {
+		log_warning(la, "VMM user memory usage stats not configured");
+	} else {
+		memusage_summary_dump_log(vmm_stats.user_mem, la, options);
+	}
+	if (NULL == vmm_stats.core_mem) {
+		log_warning(la, "VMM core memory usage stats not configured");
+	} else {
+		memusage_summary_dump_log(vmm_stats.core_mem, la, options);
+	}
+}
+
+/**
  * In case an assertion failure occurs in this file, dump statistics
  * and the pmap.
  */
@@ -3890,6 +3919,19 @@ vm_setup:
 		s_debug("VMM will allocate pages from %p %swards",
 			vmm_base, kernel_mapaddr_increasing ? "up" : "down");
 	}
+}
+
+/**
+ * Enable memory usage statistics collection.
+ */
+G_GNUC_COLD void
+vmm_memusage_init(void)
+{
+	g_assert(NULL == vmm_stats.user_mem);
+	g_assert(NULL == vmm_stats.core_mem);
+
+	vmm_stats.user_mem = memusage_alloc("VMM user", 0);
+	vmm_stats.core_mem = memusage_alloc("VMM core", 0);
 }
 
 /**
@@ -4120,6 +4162,9 @@ vmm_pre_close(void)
 void
 vmm_stop_freeing(void)
 {
+	memusage_free_null(&vmm_stats.user_mem);
+	memusage_free_null(&vmm_stats.core_mem);
+
 	stop_freeing = TRUE;
 
 	if (vmm_debugging(0))

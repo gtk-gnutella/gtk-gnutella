@@ -68,7 +68,9 @@ gl_logv(const char *domain, GLogLevelFlags flags, const char *fmt, va_list args)
 
 	logging = TRUE;
 
-	msg = str_new_not_leaking(0);
+	if G_UNLIKELY(NULL == msg)
+		msg = str_new_not_leaking(0);
+
 	str_vprintf(msg, fmt, args);
 
 	if (handler_cb != NULL)

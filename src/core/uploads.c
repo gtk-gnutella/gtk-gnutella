@@ -440,14 +440,18 @@ use_sendfile(struct upload *u)
 }
 
 /**
- * Summary host information for uploader.
+ * Generate summary host information for uploading host.
+ *
+ * @return pointer to static buffer.
  */
-static const char *
+const char *
 upload_host_info(const struct upload *u)
 {
 	static char info[256];
 	char host[128];
-	
+
+	upload_check(u);
+
 	host_addr_to_string_buf(u->addr, host, sizeof host);
 	concat_strings(info, sizeof info,
 		"<", host, " \'", upload_vendor_str(u), "\'>",

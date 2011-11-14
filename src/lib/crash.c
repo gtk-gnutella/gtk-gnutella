@@ -1081,7 +1081,16 @@ retry_child:
 				print_str(" be attempted");		/* 4 */
 			}
 			print_str("\n");					/* 5 */
-			print_str("Stacktrace:\n");			/* 6 */
+			{
+				enum stacktrace_sym_quality sq = stacktrace_quality();
+				if (STACKTRACE_SYM_GOOD != sq) {
+					const char *quality = stacktrace_quality_string(sq);
+					print_str("Stacktrace-Symbols: ");		/* 6 */
+					print_str(quality);						/* 7 */
+					print_str("\n");						/* 8 */
+				}
+			}
+			print_str("Stacktrace:\n");			/* 9 */
 			flush_str(clf);
 			crash_stack_print(clf, 2);
 

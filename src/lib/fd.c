@@ -75,6 +75,12 @@ try_close_from(const int first_fd)
 #endif	/* HAS_CLOSEFROM */
 }
 
+static inline gboolean
+fd_is_opened(const int fd)
+{
+	return is_open_fd(fd) || is_a_socket(fd) || is_a_fifo(fd);
+}
+
 /**
  * Closes all file descriptors greater or equal to ``first_fd''.
  */
@@ -90,11 +96,14 @@ close_file_descriptors(const int first_fd)
 
 	fd = getdtablesize() - 1;
 	while (fd >= first_fd) {
-		if (close(fd)) {
+		/* OS X frowns upon random fds being closed --RAM 2011-11-13  */
+		if (fd_is_opened(fd)) {
+			if (close(fd)) {
 #if defined(F_MAXFD)
-			fd = fcntl(0, F_MAXFD);
-			continue;
+				fd = fcntl(0, F_MAXFD);
+				continue;
 #endif	/* F_MAXFD */
+			}
 		}
 		fd--;
 	}

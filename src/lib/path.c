@@ -286,7 +286,7 @@ set_folder_basepath_func(get_folder_basepath_func_t func)
  * Compute special folder path.
  *
  * @param which_folder		the special folder token
- * @param path				sub-path undernead the special folder
+ * @param path				sub-path underneath the special folder
  *
  * @return halloc()'ed full path, NULL if special folder is unknown.
  */

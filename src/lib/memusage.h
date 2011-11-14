@@ -25,39 +25,36 @@
  * @ingroup lib
  * @file
  *
- * Records and gives back product information.
+ * Memory usage statistics collection.
  *
  * @author Raphael Manfredi
  * @date 2011
  */
 
-#ifndef _product_h_
-#define _product_h_
+#ifndef _memusage_h_
+#define _memusage_h_
+
+struct memusage;
+typedef struct memusage memusage_t;
 
 /*
  * Public interface.
  */
 
-void product_init(const char *name,
-	guint8 major, guint8 minor, guint8 patchlevel, const char *revchar,
-	const char *date, const char *version, const char *revision,
-	const char *build);
+memusage_t *memusage_alloc(const char *name, size_t width);
+void memusage_free_null(memusage_t **mu_ptr);
+void memusage_add(memusage_t *mu, size_t size);
+void memusage_add_one(memusage_t *mu);
+void memusage_remove(memusage_t *mu, size_t size);
+void memusage_remove_one(memusage_t *mu);
+void memusage_set_stack_accounting(memusage_t *mu, gboolean on);
 
-const char *product_get_name(void) G_GNUC_PURE;
-const char *product_get_date(void) G_GNUC_PURE;
-const char *product_get_version(void) G_GNUC_PURE;
-guint8 product_get_major(void) G_GNUC_PURE;
-guint8 product_get_minor(void) G_GNUC_PURE;
-guint8 product_get_revchar(void) G_GNUC_PURE;
-const char *product_get_revision(void) G_GNUC_PURE;
-guint8 product_get_patchlevel(void) G_GNUC_PURE;
-guint32 product_get_build(void);
-const char *product_get_build_full(void);
-void product_set_interface(const char *iface);
-const char *product_get_interface(void);
-void product_set_website(const char *web);
-const char *product_get_website(void);
+struct logagent;
 
-#endif /* _product_h_ */
+void memusage_frame_dump_log(const memusage_t *mu, struct logagent *la);
+void memusage_summary_dump_log(const memusage_t *mu,
+	struct logagent *la, unsigned opt);
+
+#endif /* _memusage_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

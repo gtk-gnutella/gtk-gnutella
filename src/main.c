@@ -565,8 +565,9 @@ gtk_gnutella_exit(int exit_code)
 	 *		--RAM, 2010-02-19
 	 */
 
-	DO(vmm_stop_freeing);
-	DO(xmalloc_stop_freeing);
+	DO(vmm_stop_freeing);		/* Also stops memusage monitoring */
+	DO(xmalloc_stop_freeing);	/* Ditto */
+	DO(zalloc_memusage_close);	/* No longer needed */
 
 	if (!running_topless) {
 		DO(settings_gui_save_if_dirty);
@@ -1737,9 +1738,12 @@ main(int argc, char **argv)
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
 	product_set_interface(running_topless ? "Topless" : GTA_INTERFACE);
+	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
+	vmm_memusage_init();	/* After callouut queue is up */
+	zalloc_memusage_init();
 	version_init();
-	malloc_show_settings();
 	xmalloc_show_settings();
+	malloc_show_settings();
 	crash_setver(version_get_string());
 	crash_post_init();		/* Done with crash initialization */
 
@@ -1772,7 +1776,6 @@ main(int argc, char **argv)
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
 	random_init();
-	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
 	wq_init();
 	inputevt_init(options[main_arg_use_poll].used);
 	tiger_check();
