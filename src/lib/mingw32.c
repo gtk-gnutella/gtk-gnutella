@@ -1791,7 +1791,6 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 	char bin_mode[14];
 	wchar_t wmode[32];
 	FILE *res;
-	int l;
 
 	if (pncs_convert(&wpathname, pathname))
 		return NULL;
