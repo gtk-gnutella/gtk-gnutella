@@ -13,8 +13,8 @@
 !insertmacro Script 'scripts/gtkg-version .'
 
 !insertmacro Script 'echo -n \"!define DLLDIR_GNUTLS \"'
-!insertmacro Script 'pkg-config gnutls --libs-only-L | cut -c3- | \ 
-	sed -e s,gtk/lib,gtk/bin,' 
+!insertmacro Script 'echo `pkg-config gnutls --libs-only-L | cut -c3- `| \ 
+	sed -e s,/lib$,/bin,' 
 !insertmacro Script 'echo \"!define MINGW $MINGW\"'
 
 ; gtk installer name for embedding
@@ -164,8 +164,8 @@ SectionIn 1 RO
 	SetOverwrite Off ; don't overwrite the config file
 
 	SetOverwrite On
-	File src\gtk-gnutella.exe
-	File src\gtk-gnutella.nm
+	File win32\bundle\bin\gtk-gnutella.exe
+	File win32\bundle\lib\gtk-gnutella\gtk-gnutella.nm
 	File pixmaps\icon.ico
 
 	File ${MINGW}\bin\libiconv-2.dll
@@ -176,23 +176,10 @@ SectionIn 1 RO
 	File ${DLLDIR_GNUTLS}\libgcrypt-11.dll
 	File ${DLLDIR_GNUTLS}\libgpg-error-0.dll
 	File ${DLLDIR_GNUTLS}\libtasn1-3.dll
+		
+	SetOutPath $INSTDIR\share
+	File /r win32\bundle\share\*.*
 	
-	SetOutPath $INSTDIR\pixmaps
-	File pixmaps\*.xpm
-	File pixmaps\*.png
-	
-	SetOutPath $INSTDIR\extra_files
-	File extra_files\*.txt	
-	
-	SetOutPath $INSTDIR\extra_files\en
-	File extra_files\en\FAQ
-	
-	SetOutPath $INSTDIR\extra_files\el
-	File extra_files\el\FAQ
-	
-	SetOutPath $INSTDIR\extra_files\ja
-	File extra_files\ja\FAQ
-
 	; Include the "doc" directory completely, excluding the file
 	; we're not using (e.g. the -nogtk file in gtk installer).
 ;!ifdef NO_GTK
@@ -447,10 +434,9 @@ Section Uninstall
 	Delete "$INSTDIR\pixmaps\*.png"
 	Delete "$INSTDIR\extra_files\*.txt"
 	
-	
 	RMDir /r "$INSTDIR\extra_files"
 	RMDir /r "$INSTDIR\pixmaps"
-	RMDir /r "$INSTDIR\share"		; left-over as "share/local"
+	RMDir /r "$INSTDIR\share"	
 
 	; clean up generated stuff
 	Delete "$INSTDIR\*stdout.txt"
