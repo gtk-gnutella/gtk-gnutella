@@ -38,6 +38,14 @@ void *omalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *omalloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 char *ostrdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 
+static inline void * WARN_UNUSED_RESULT G_GNUC_MALLOC
+ocopy(const void *p, size_t size)
+{
+	void *cp = omalloc(size);
+	memcpy(cp, p, size);
+	return cp;
+}
+
 struct logagent;
 
 size_t omalloc_page_count(void);
