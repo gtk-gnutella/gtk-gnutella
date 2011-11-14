@@ -1754,15 +1754,19 @@ FILE *
 mingw_fopen(const char *pathname, const char *mode)
 {
 	pncs_t wpathname;
+	static char bin_mode[14];
 	wchar_t wmode[32];
 	FILE *res;
 
+	int l = clamp_strcpy(bin_mode, sizeof bin_mode, mode);
+	bin_mode[l] = 'b';
+	
 	if (pncs_convert(&wpathname, pathname))
 		return NULL;
 
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >= G_N_ELEMENTS(wmode)
+		utf8_to_utf16(bin_mode, wmode, G_N_ELEMENTS(wmode)) >= G_N_ELEMENTS(wmode)
 	) {
 		errno = EINVAL;
 		return NULL;
@@ -1779,15 +1783,20 @@ FILE *
 mingw_freopen(const char *pathname, const char *mode, FILE *file)
 {
 	pncs_t wpathname;
+	static char bin_mode[14];
 	wchar_t wmode[32];
 	FILE *res;
+	int l;
 
 	if (pncs_convert(&wpathname, pathname))
 		return NULL;
 
+	l = clamp_strcpy(bin_mode, sizeof bin_mode, mode);
+	bin_mode[l] = 'b';
+
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >= G_N_ELEMENTS(wmode)
+		utf8_to_utf16(bin_mode, wmode, G_N_ELEMENTS(wmode)) >= G_N_ELEMENTS(wmode)
 	) {
 		errno = EINVAL;
 		return NULL;
