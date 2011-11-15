@@ -658,7 +658,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	 * Open "socket" rendez-vous file to extract the connection information.
 	 */
 
-	fd = file_open(saddr->sun_path, O_RDONLY, 0);
+	fd = file_open_missing(saddr->sun_path, O_RDONLY);
 	if (-1 == fd)
 		return -1;
 
