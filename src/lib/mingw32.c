@@ -136,6 +136,7 @@
 #endif
 
 static HINSTANCE libws2_32;
+static gboolean mingw_inited;
 
 typedef struct processor_power_information {
   ULONG Number;
@@ -306,6 +307,7 @@ mingw_wsa_last_error(void)
 	switch (error) {
 	case WSAEWOULDBLOCK:	result = EAGAIN; break;
 	case WSAEINTR:			result = EINTR; break;
+	case WSAENOTSOCK:		result = ENOTSOCK; break;
 	}
 
 	if (mingw_syscall_debug()) {
@@ -419,6 +421,8 @@ mingw_win2posix(int error)
 		return 0;			/* EOF must be treated as a read of 0 bytes */
 	case ERROR_HANDLE_DISK_FULL:
 		return ENOSPC;
+	case WSAENOTSOCK:		/* For fstat() calls */
+		return ENOTSOCK;
 	default:
 		if (!gm_hash_table_contains(warned, int_to_pointer(error))) {
 			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
@@ -1225,6 +1229,10 @@ mingw_socket(int domain, int type, int protocol)
 {
 	socket_fd_t res;
 
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
 	/*
 	 * Use WSASocket() to avoid creating "overlapped" sockets (i.e. sockets
 	 * that can support asynchronous I/O).  This normally allows sockets to be
@@ -1245,7 +1253,13 @@ mingw_socket(int domain, int type, int protocol)
 int
 mingw_bind(socket_fd_t sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {
-	int res = bind(sockfd, addr, addrlen);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = bind(sockfd, addr, addrlen);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1255,7 +1269,13 @@ socket_fd_t
 mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 	  socklen_t addrlen)
 {
-	socket_fd_t res = connect(sockfd, addr, addrlen);
+	socket_fd_t res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = connect(sockfd, addr, addrlen);
 	if (INVALID_SOCKET == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1264,7 +1284,13 @@ mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 int
 mingw_listen(socket_fd_t sockfd, int backlog)
 {
-	int res = listen(sockfd, backlog);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = listen(sockfd, backlog);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1273,7 +1299,13 @@ mingw_listen(socket_fd_t sockfd, int backlog)
 socket_fd_t
 mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
-	socket_fd_t res = accept(sockfd, addr, addrlen);
+	socket_fd_t res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = accept(sockfd, addr, addrlen);
 	if (INVALID_SOCKET == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1283,7 +1315,13 @@ int
 mingw_shutdown(socket_fd_t sockfd, int how)
 {
 
-	int res = shutdown(sockfd, how);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = shutdown(sockfd, how);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1293,7 +1331,13 @@ int
 mingw_getsockopt(socket_fd_t sockfd, int level, int optname,
 	void *optval, socklen_t *optlen)
 {
-	int res = getsockopt(sockfd, level, optname, optval, optlen);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = getsockopt(sockfd, level, optname, optval, optlen);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1303,7 +1347,13 @@ int
 mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 	  const void *optval, socklen_t optlen)
 {
-	int res = setsockopt(sockfd, level, optname, optval, optlen);
+	int res;
+	
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = setsockopt(sockfd, level, optname, optval, optlen);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -2703,7 +2753,12 @@ void
 mingw_init(void)
 {
 	WSADATA wsaData;
-	
+
+	if G_UNLIKELY(mingw_inited)
+		return;
+
+	mingw_inited = TRUE;
+
 	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
 		s_error("WSAStartup() failed");
 		
