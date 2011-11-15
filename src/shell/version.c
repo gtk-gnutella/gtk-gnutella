@@ -56,7 +56,7 @@ shell_exec_version(struct gnutella_shell *sh, int argc, const char *argv[])
 const char *
 shell_summary_version(void)
 {
-	return "Shows full version string";
+	return "Show full version string";
 }
 
 const char *

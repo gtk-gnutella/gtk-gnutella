@@ -60,7 +60,7 @@ shell_exec_pid(struct gnutella_shell *sh, int argc, const char *argv[])
 const char *
 shell_summary_pid(void)
 {
-	return "Shows process ID";
+	return "Show process ID";
 }
 
 const char *

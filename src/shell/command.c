@@ -62,7 +62,7 @@ shell_exec_command(struct gnutella_shell *sh, int argc, const char *argv[])
 const char *
 shell_summary_command(void)
 {
-	return "Shows process command line";
+	return "Show process command line";
 }
 
 const char *
