@@ -124,10 +124,11 @@ load_faq(void)
 	}
 }
 
+static gboolean quitting;
+
 static void
 quit(gboolean force)
 {
-	static gboolean quitting;
 	gboolean confirm;
 
 	/*
@@ -185,7 +186,8 @@ on_popup_tray_preferences_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	main_gui_show_prefences();
+	if (!quitting)
+		main_gui_show_prefences();
 }
 
 void
@@ -243,7 +245,7 @@ on_menu_keyboard_shortcuts_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	g_message("on_menu_keyboard_shortcuts_activate(): This is a stub");
+	g_carp("%s(): this is a stub", G_STRFUNC);
 }
 
 
