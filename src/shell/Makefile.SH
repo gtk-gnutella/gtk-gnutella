@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-96]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-104]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -66,7 +66,7 @@ GLIB_CFLAGS =  $glibcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 94 2011-02-10 14:06:58Z rmanfredi $
+# $X-Id: Jmake.rules 99 2011-11-05 13:27:37Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -82,6 +82,7 @@ all:: .FORCE_DEPEND
 
 SRC = \
 	command.c \
+	date.c \
 	download.c \
 	downloads.c \
 	echo.c \
@@ -111,6 +112,7 @@ SRC = \
 
 OBJ = \
 	command.o \
+	date.o \
 	download.o \
 	downloads.o \
 	echo.o \

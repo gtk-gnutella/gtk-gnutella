@@ -29,6 +29,7 @@
 
 SRC = \
 	command.c \
+	date.c \
 	download.c \
 	downloads.c \
 	echo.c \

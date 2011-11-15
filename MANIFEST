@@ -830,6 +830,7 @@ src/shell/Makefile.SH
 src/shell/cmd.h
 src/shell/cmd.inc
 src/shell/command.c
+src/shell/date.c
 src/shell/download.c
 src/shell/downloads.c
 src/shell/echo.c

@@ -7,6 +7,7 @@
  */
 
 SHELL_CMD(command)
+SHELL_CMD(date)
 SHELL_CMD(download)
 SHELL_CMD(downloads)
 SHELL_CMD(echo)
