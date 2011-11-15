@@ -3229,6 +3229,8 @@ getlog(gboolean initial)
 #define STARTUP_DEBUG(...)
 #endif	/* MINGW_STARTUP_DEBUG */
 
+static char mingw_stdout_buf[1024];		/* Used as stdout buffer */
+
 static G_GNUC_COLD void
 mingw_stdio_reset(FILE *lf, gboolean console)
 {
@@ -3242,16 +3244,27 @@ mingw_stdio_reset(FILE *lf, gboolean console)
 			fclose(stdin);
 			close(STDIN_FILENO);
 			freopen("CONIN$", "rb", stdin);
+		} else {
+			setmode(fileno(stdin), O_BINARY);
+			STARTUP_DEBUG("forced stdin (fd=%d) to binary mode",
+				fileno(stdout));
 		}
+		setvbuf(stdin, NULL, _IONBF, 0);	/* stdin must be unbuffered */
 		tty = isatty(STDOUT_FILENO);
 		STARTUP_DEBUG("stdout is%s a tty", tty ? "" : "n't");
 		if (tty) {
 			fclose(stdout);
 			close(STDOUT_FILENO);
 			freopen("CONOUT$", "wb", stdout);
+			/* stdout to a terminal is line-buffered */
+			setvbuf(stdout, mingw_stdout_buf, _IOLBF, sizeof mingw_stdout_buf);
+			STARTUP_DEBUG("forced stdout (fd=%d) to buffered "
+				"(%zu bytes) binary mode",
+				fileno(stdout), sizeof mingw_stdout_buf);
 		} else {
 			setmode(fileno(stdout), O_BINARY);
-			STARTUP_DEBUG("forced stdout (fd=%d) to binary mode",
+			setvbuf(stdout, NULL, _IONBF, 0);	/* stdout is unbuffered */
+			STARTUP_DEBUG("forced stdout (fd=%d) to (unbuffered) binary mode",
 				fileno(stdout));
 		}
 		tty = isatty(STDERR_FILENO);
@@ -3265,6 +3278,7 @@ mingw_stdio_reset(FILE *lf, gboolean console)
 			STARTUP_DEBUG("forced stderr (fd=%d) to binary mode",
 				fileno(stderr));
 		}
+		setvbuf(stderr, NULL, _IONBF, 0);	/* stderr must be unbuffered */
 	} else {
 		fclose(stdin);
 		fclose(stdout);
@@ -3319,13 +3333,15 @@ mingw_early_init(void)
 
 				pathname = mingw_getstdout_path();
 				freopen(pathname, "wb", stdout);
+				setvbuf(stdout, NULL, _IONBF, 0);
 				log_set(LOG_STDOUT, pathname);
-				STARTUP_DEBUG("stdout sent to %s", pathname);
+				STARTUP_DEBUG("stdout (unbuffered) sent to %s", pathname);
 
 				pathname = mingw_getstderr_path();
 				freopen(pathname, "wb", stderr);
+				setvbuf(stderr, NULL, _IONBF, 0);
 				log_set(LOG_STDERR, pathname);
-				STARTUP_DEBUG("stderr sent to %s", pathname);
+				STARTUP_DEBUG("stderr (unbuffered) sent to %s", pathname);
 			}
 			break;
 		case ERROR_ACCESS_DENIED:

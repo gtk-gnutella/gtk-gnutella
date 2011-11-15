@@ -1756,7 +1756,6 @@ log_init(void)
 {
 	unsigned i;
 
-	setvbuf(stderr, NULL, _IONBF, 0);	/* Windows buffers stderr by default */
 	for (i = 0; i < G_N_ELEMENTS(log_domains); i++) {
 		g_log_set_handler(log_domains[i],
 			G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL |
