@@ -4075,6 +4075,16 @@ vmm_init(const void *sp)
 
 	g_assert(sp != &i);
 
+	/*
+	 * Detect whether vmm_init() was already run due to an earlier vmm_alloc()
+	 * call, which indicates that something went wrong already in the startup
+	 * and the process had to allocate memory earlier than expected, probably
+	 * due to error logging.
+	 */
+
+	if G_UNLIKELY(0 != kernel_pagesize)
+		return;
+
 #ifdef HAS_SBRK
 	initial_brk = sbrk(0);
 #endif

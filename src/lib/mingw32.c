@@ -136,6 +136,7 @@
 #endif
 
 static HINSTANCE libws2_32;
+static gboolean mingw_inited;
 
 typedef struct processor_power_information {
   ULONG Number;
@@ -306,10 +307,11 @@ mingw_wsa_last_error(void)
 	switch (error) {
 	case WSAEWOULDBLOCK:	result = EAGAIN; break;
 	case WSAEINTR:			result = EINTR; break;
+	case WSAENOTSOCK:		result = ENOTSOCK; break;
 	}
 
 	if (mingw_syscall_debug()) {
-		g_debug("%s() failed: %s (%d)", stacktrace_caller_name(1),
+		s_debug("%s() failed: %s (%d)", stacktrace_caller_name(1),
 			symbolic_errno(result), error);
 	}
 
@@ -419,9 +421,11 @@ mingw_win2posix(int error)
 		return 0;			/* EOF must be treated as a read of 0 bytes */
 	case ERROR_HANDLE_DISK_FULL:
 		return ENOSPC;
+	case WSAENOTSOCK:		/* For fstat() calls */
+		return ENOTSOCK;
 	default:
 		if (!gm_hash_table_contains(warned, int_to_pointer(error))) {
-			g_warning("Windows error code %d (%s) not remapped to a POSIX one",
+			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
 				error, g_strerror(error));
 			g_hash_table_insert(warned, int_to_pointer(error), NULL);
 		}
@@ -441,7 +445,7 @@ mingw_last_error(void)
 	int result = mingw_win2posix(error);
 
 	if (mingw_syscall_debug()) {
-		g_debug("%s() failed: %s (%d)", stacktrace_caller_name(1),
+		s_debug("%s() failed: %s (%d)", stacktrace_caller_name(1),
 			symbolic_errno(result), error);
 	}
 
@@ -664,7 +668,7 @@ mingw_gethome(void)
 		ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, pathname);
 
 		if (E_INVALIDARG == ret) {
-			g_warning("could not determine home directory");
+			s_warning("could not determine home directory");
 			g_strlcpy(pathname, "/", sizeof pathname);
 		}
 	}
@@ -684,7 +688,7 @@ mingw_getpersonal(void)
 		ret = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, pathname);
 
 		if (E_INVALIDARG == ret) {
-			g_warning("could not determine personal document directory");
+			s_warning("could not determine personal document directory");
 			g_strlcpy(pathname, "/", sizeof pathname);
 		}
 	}
@@ -1225,6 +1229,10 @@ mingw_socket(int domain, int type, int protocol)
 {
 	socket_fd_t res;
 
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
 	/*
 	 * Use WSASocket() to avoid creating "overlapped" sockets (i.e. sockets
 	 * that can support asynchronous I/O).  This normally allows sockets to be
@@ -1245,7 +1253,13 @@ mingw_socket(int domain, int type, int protocol)
 int
 mingw_bind(socket_fd_t sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {
-	int res = bind(sockfd, addr, addrlen);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = bind(sockfd, addr, addrlen);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1255,7 +1269,13 @@ socket_fd_t
 mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 	  socklen_t addrlen)
 {
-	socket_fd_t res = connect(sockfd, addr, addrlen);
+	socket_fd_t res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = connect(sockfd, addr, addrlen);
 	if (INVALID_SOCKET == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1264,7 +1284,13 @@ mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 int
 mingw_listen(socket_fd_t sockfd, int backlog)
 {
-	int res = listen(sockfd, backlog);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = listen(sockfd, backlog);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1273,7 +1299,13 @@ mingw_listen(socket_fd_t sockfd, int backlog)
 socket_fd_t
 mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
-	socket_fd_t res = accept(sockfd, addr, addrlen);
+	socket_fd_t res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = accept(sockfd, addr, addrlen);
 	if (INVALID_SOCKET == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1283,7 +1315,13 @@ int
 mingw_shutdown(socket_fd_t sockfd, int how)
 {
 
-	int res = shutdown(sockfd, how);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = shutdown(sockfd, how);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1293,7 +1331,13 @@ int
 mingw_getsockopt(socket_fd_t sockfd, int level, int optname,
 	void *optval, socklen_t *optlen)
 {
-	int res = getsockopt(sockfd, level, optname, optval, optlen);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = getsockopt(sockfd, level, optname, optval, optlen);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1303,7 +1347,13 @@ int
 mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 	  const void *optval, socklen_t optlen)
 {
-	int res = setsockopt(sockfd, level, optname, optval, optlen);
+	int res;
+	
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = setsockopt(sockfd, level, optname, optval, optlen);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1484,17 +1534,17 @@ mingw_valloc(void *hint, size_t size)
 			VirtualFree(mem_later, 0, MEM_RELEASE);
 
 			if (NULL == mingw_vmm_res_mem) {
-				g_error("could not reserve %s of memory",
+				s_error("could not reserve %s of memory",
 					compact_size(mingw_vmm_res_size, FALSE));
 			} else if (vmm_is_debugging(0)) {
-				g_debug("reserved %s of memory",
+				s_debug("reserved %s of memory",
 					compact_size(mingw_vmm_res_size, FALSE));
 			}
 		} else {
 			size_t n;
 
 			if (vmm_is_debugging(0))
-				g_debug("no hint given for %s allocation",
+				s_debug("no hint given for %s allocation",
 					compact_size(size, FALSE));
 
 			n = mingw_getpagesize();
@@ -1597,7 +1647,7 @@ mingw_mprotect(void *addr, size_t len, int prot)
 	if (!res) {
 		errno = mingw_last_error();
 		if (vmm_is_debugging(0)) {
-			g_debug("VMM mprotect(%p, %zu) failed: errno=%m", addr, len);
+			s_debug("VMM mprotect(%p, %zu) failed: errno=%m", addr, len);
 		}
 		return -1;
 	}
@@ -1770,7 +1820,7 @@ mingw_fopen(const char *pathname, const char *mode)
 
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(bin_mode, wmode, G_N_ELEMENTS(wmode)) >=
+		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >=
 			G_N_ELEMENTS(wmode)
 	) {
 		errno = EINVAL;
@@ -1804,7 +1854,7 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 	
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(bin_mode, wmode, G_N_ELEMENTS(wmode)) >=
+		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >=
 			G_N_ELEMENTS(wmode)
 	) {
 		errno = EINVAL;
@@ -2049,7 +2099,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 	}
 
 	if (WaitForSingleObject(t, INFINITE) != WAIT_OBJECT_0) {
-		g_warning("timer returned an unexpected value, nanosleep() failed");
+		s_warning("timer returned an unexpected value, nanosleep() failed");
 		errno = EINTR;
 		return -1;
 	}
@@ -2248,7 +2298,7 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 	unsigned i;
 
 	if (common_dbg > 2)
-		g_debug("mingw_adns_getaddrinfo_cb");
+		s_debug("mingw_adns_getaddrinfo_cb");
 		
 	g_assert(ad);
 	g_assert(ad->user_data);
@@ -2264,7 +2314,7 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 
 		addrs[i] = addrinfo_to_addr(response);						
 		if (common_dbg) {	
-			g_debug("ADNS got %s for hostname %s",
+			s_debug("ADNS got %s for hostname %s",
 				host_addr_to_string(addrs[i]),
 				(const char *) ad->thread_arg_data);
 		}
@@ -2275,7 +2325,7 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 		adns_callback_t func = (adns_callback_t) req->common.user_callback;
 		g_assert(NULL != func);
 		if (common_dbg) {
-			g_debug("ADNS performing user-callback to %p with %u results", 
+			s_debug("ADNS performing user-callback to %p with %u results", 
 				req->common.user_data, i);
 		}
 		func(addrs, i, req->common.user_data);		
@@ -2310,7 +2360,7 @@ mingw_adns_getaddrinfo(const struct adns_request *req)
 	struct async_data *ad;
 	
 	if (common_dbg > 2) {
-		g_debug("%s", G_STRFUNC);
+		s_debug("%s", G_STRFUNC);
 	}	
 	g_assert(req);
 	g_assert(req->common.user_callback);
@@ -2351,13 +2401,13 @@ mingw_adns_getnameinfo_cb(struct async_data *ad)
 	struct arg_data *arg_data = ad->thread_arg_data;
 
 	if (common_dbg) {	
-		g_debug("ADNS resolved to %s", arg_data->hostname);
+		s_debug("ADNS resolved to %s", arg_data->hostname);
 	}
 	
 	{
 		adns_reverse_callback_t func =
 			(adns_reverse_callback_t) req->common.user_callback;
-		g_debug("ADNS getnameinfo performing user-callback to %p with %s", 
+		s_debug("ADNS getnameinfo performing user-callback to %p with %s", 
 			req->common.user_data, arg_data->hostname);
 		func(arg_data->hostname, req->common.user_data);
 	}
@@ -2487,7 +2537,7 @@ mingw_adns_timer(void *unused_arg)
 	
 	if (NULL != ad) {
 		if (common_dbg) {
-			g_debug("performing callback to func @%p", ad->callback_func);
+			s_debug("performing callback to func @%p", ad->callback_func);
 		}
 		ad->callback_func(ad);
 	} 
@@ -2557,7 +2607,7 @@ mingw_get_folder_basepath(enum special_folder which_folder)
 			"share" G_DIR_SEPARATOR_S "locale");
 		break;
 	default:
-		g_warning("%s() needs implementation for foldertype %d",
+		s_warning("%s() needs implementation for foldertype %d",
 			G_STRFUNC, which_folder);
 	}
 
@@ -2703,9 +2753,14 @@ void
 mingw_init(void)
 {
 	WSADATA wsaData;
-	
+
+	if G_UNLIKELY(mingw_inited)
+		return;
+
+	mingw_inited = TRUE;
+
 	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
-		g_error("WSAStartup() failed");
+		s_error("WSAStartup() failed");
 		
 	libws2_32 = LoadLibrary(WS2_LIBRARY);
     if (libws2_32 != NULL) {
