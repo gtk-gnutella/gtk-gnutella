@@ -1770,7 +1770,7 @@ mingw_fopen(const char *pathname, const char *mode)
 
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(bin_mode, wmode, G_N_ELEMENTS(wmode)) >=
+		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >=
 			G_N_ELEMENTS(wmode)
 	) {
 		errno = EINVAL;
@@ -1804,7 +1804,7 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 	
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(bin_mode, wmode, G_N_ELEMENTS(wmode)) >=
+		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >=
 			G_N_ELEMENTS(wmode)
 	) {
 		errno = EINVAL;
