@@ -382,7 +382,13 @@ mingw_win2posix(int error)
 		return EPIPE;
 	case ERROR_INVALID_NAME:		/* Invalid syntax in filename */
 		return EINVAL;
-	/* The following remapped because their number is in the POSIX range */
+	case ERROR_DIRECTORY:			/* "Directory name is invalid" */
+		return ENOTDIR;				/* Seems the closest mapping */
+	case WSAENOTSOCK:				/* For fstat() calls */
+		return ENOTSOCK;
+	/*
+	 * The following remapped because their number is in the POSIX range
+	 */
 	case ERROR_ARENA_TRASHED:
 		return EFAULT;
 	case ERROR_INVALID_BLOCK:
@@ -421,8 +427,6 @@ mingw_win2posix(int error)
 		return 0;			/* EOF must be treated as a read of 0 bytes */
 	case ERROR_HANDLE_DISK_FULL:
 		return ENOSPC;
-	case WSAENOTSOCK:		/* For fstat() calls */
-		return ENOTSOCK;
 	default:
 		if (!gm_hash_table_contains(warned, int_to_pointer(error))) {
 			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
