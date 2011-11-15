@@ -45,10 +45,12 @@
 #include "atoms.h"		/* For binary_hash() */
 #include "ascii.h"
 #include "base16.h"
+#include "concat.h"
 #include "crash.h"		/* For print_str() and crash_signame() */
 #include "file.h"
 #include "glib-missing.h"
 #include "halloc.h"
+#include "misc.h"		/* For is_strprefix() and is_strsuffix() */
 #include "log.h"
 #include "offtime.h"
 #include "omalloc.h"
@@ -994,13 +996,20 @@ program_path_allocate(const char *argv0)
 {
 	filestat_t buf;
 	const char *file = argv0;
+	char filepath[MAX_PATH_LEN + 1];
 
-	if (-1 == stat(argv0, &buf)) {
+	if (is_running_on_mingw() && !is_strsuffix(argv0, (size_t) -1, ".exe")) {
+		concat_strings(filepath, sizeof filepath, argv0, ".exe", NULL);
+	} else {
+		clamp_strcpy(filepath, sizeof filepath, argv0);
+	}
+
+	if (-1 == stat(filepath, &buf)) {
 		int saved_errno = errno;
 		file = file_locate_from_path(argv0);
 		if (NULL == file) {
 			errno = saved_errno;
-			s_warning("could not stat() \"%s\": %m", argv0);
+			s_warning("could not stat() \"%s\": %m", filepath);
 			s_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
 			goto error;
 		}
@@ -1027,7 +1036,7 @@ program_path_allocate(const char *argv0)
 	if (file != NULL && file != argv0)
 		return deconstify_gpointer(file);
 
-	return h_strdup(argv0);
+	return h_strdup(filepath);
 
 error:
 	if (file != NULL && file != argv0)

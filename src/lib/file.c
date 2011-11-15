@@ -34,14 +34,16 @@
 #include "common.h"
 
 #include "concat.h"			/* For concat_strings() */
-#include "file.h"
 #include "debug.h"
 #include "fd.h"
+#include "file.h"
+#include "glib-missing.h"
 #include "halloc.h"
+#include "misc.h"			/* For is_strsuffix() */
 #include "path.h"
 #include "timestamp.h"
 #include "tm.h"
-#include "glib-missing.h"
+
 #include "override.h"		/* Must be the last header included */
 
 static const char orig_ext[] = "orig";
@@ -94,6 +96,11 @@ file_locate_from_path(const char *argv0)
 	char *tok;
 	char filepath[MAX_PATH_LEN + 1];
 	char *result = NULL;
+	char *ext = "";
+
+	if (is_running_on_mingw() && !is_strsuffix(argv0, (size_t) -1, ".exe")) {
+		ext = ".exe";
+	}
 
 	if (filepath_basename(argv0) != argv0) {
 		if (!already_done) {
@@ -123,7 +130,7 @@ file_locate_from_path(const char *argv0)
 		if ('\0' == *dir)
 			dir = ".";
 		concat_strings(filepath, sizeof filepath,
-			dir, G_DIR_SEPARATOR_S, argv0, NULL);
+			dir, G_DIR_SEPARATOR_S, argv0, ext, NULL);
 
 		if (-1 != stat(filepath, &buf)) {
 			if (S_ISREG(buf.st_mode) && -1 != access(filepath, X_OK)) {
