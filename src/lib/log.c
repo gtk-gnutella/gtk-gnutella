@@ -676,6 +676,32 @@ s_minilogv(GLogLevelFlags level, gboolean copy, const char *fmt, va_list args)
 }
 
 /**
+ * Emit stacktrace to stderr and stdout (if distinct from stderr).
+ *
+ * @param no_stdio		whether we must avoid stdio
+ * @param offset		stack offset to apply to remove overhead from stack
+ */
+static void NO_INLINE
+s_stacktrace(gboolean no_stdio, unsigned offset)
+{
+	if (no_stdio) {
+		stacktrace_where_safe_print_offset(STDERR_FILENO, offset + 1);
+		if (log_stdout_is_distinct())
+			stacktrace_where_safe_print_offset(STDOUT_FILENO, offset + 1);
+	} else {
+		stacktrace_where_sym_print_offset(stderr, offset + 1);
+		if (log_stdout_is_distinct())
+			stacktrace_where_sym_print_offset(stdout, offset + 1);
+
+		if (is_running_on_mingw()) {
+			/* Unbuffering does not work on Windows, flush both */
+			fflush(stderr);
+			fflush(stdout);
+		}
+	}
+}
+
+/**
  * Safe logging to avoid recursion from the log handler, and safe to use
  * from a signal handler if needed, or from a concurrent thread with a
  * thread-private allocation chunk.
@@ -847,11 +873,18 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		print_str(str_2c(msg));	/* 7 */
 		print_str("\n");		/* 8 */
 		log_flush_err();
-		if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
+
+		if G_UNLIKELY(
+			(level & G_LOG_FLAG_FATAL) ||
+			G_LOG_LEVEL_CRITICAL == loglvl ||
+			G_LOG_LEVEL_ERROR == loglvl
+		) {
 			if (log_stdout_is_distinct())
 				log_flush_out();
-			crash_set_error(str_2c(msg));
+			if (level & G_LOG_FLAG_FATAL)
+				crash_set_error(str_2c(msg));
 		}
+
 		/*
 		 * When duplication is configured, write a copy of the message
 		 * without any timestamp and debug level tagging.
@@ -882,10 +915,15 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 		log_fprint(LOG_STDERR, &ct, level, prefix, str_2c(msg));
 
-		if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
+		if G_UNLIKELY(
+			(level & G_LOG_FLAG_FATAL) ||
+			G_LOG_LEVEL_CRITICAL == loglvl ||
+			G_LOG_LEVEL_ERROR == loglvl
+		) {
 			if (log_stdout_is_distinct())
 				log_fprint(LOG_STDOUT, &ct, level, prefix, str_2c(msg));
-			crash_set_error(str_2c(msg));
+			if (level & G_LOG_FLAG_FATAL)
+				crash_set_error(str_2c(msg));
 		}
 	}
 
@@ -919,15 +957,8 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * until the end to avoid recursion.
 	 */
 
-	if G_UNLIKELY(
-		G_LOG_LEVEL_CRITICAL == loglvl ||
-		G_LOG_LEVEL_ERROR == loglvl
-	) {
-		if (avoid_malloc)
-			stacktrace_where_safe_print_offset(STDERR_FILENO, 2);
-		else
-			stacktrace_where_sym_print_offset(stderr, 2);
-	}
+	if G_UNLIKELY(G_LOG_LEVEL_CRITICAL == loglvl || G_LOG_LEVEL_ERROR == loglvl)
+		s_stacktrace(avoid_malloc, 2);
 
 done:
 	errno = saved_errno;
@@ -1036,15 +1067,7 @@ s_minicarp(const char *format, ...)
 	s_minilogv(G_LOG_LEVEL_WARNING, TRUE, format, args);
 	va_end(args);
 
-	if (in_signal_handler) {
-		stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
-		if (log_stdout_is_distinct())
-			stacktrace_where_safe_print_offset(STDOUT_FILENO, 1);
-	} else {
-		stacktrace_where_sym_print_offset(stderr, 1);
-		if (log_stdout_is_distinct())
-			stacktrace_where_sym_print_offset(stdout, 1);
-	}
+	s_stacktrace(in_signal_handler, 1);
 }
 
 /**
@@ -1411,13 +1434,18 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 
 	log_fprint(LOG_STDERR, ct, level, prefix, safer);
 
-	if G_UNLIKELY(level & G_LOG_FLAG_FATAL) {
+	if G_UNLIKELY(
+		(level & G_LOG_FLAG_FATAL) ||
+		G_LOG_LEVEL_CRITICAL == loglvl ||
+		G_LOG_LEVEL_ERROR == loglvl
+	) {
 		if (log_stdout_is_distinct())
 			log_fprint(LOG_STDOUT, ct, level, prefix, safer);
-		crash_set_error(safer);
+		if (level & G_LOG_FLAG_FATAL)
+			crash_set_error(safer);
 	}
 
-	if (
+	if G_UNLIKELY(
 		G_LOG_LEVEL_CRITICAL == loglvl ||
 		G_LOG_LEVEL_ERROR == loglvl ||
 		(level & (G_LOG_FLAG_RECURSION|G_LOG_FLAG_FATAL))
@@ -1430,7 +1458,7 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 		}
 	}
 
-	if (safer != message) {
+	if G_UNLIKELY(safer != message) {
 		HFREE_NULL(safer);
 	}
 
