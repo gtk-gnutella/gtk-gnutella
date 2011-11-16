@@ -3235,6 +3235,18 @@ static G_GNUC_COLD void
 mingw_stdio_reset(FILE *lf, gboolean console)
 {
 	(void) lf;			/* In case no MINGW_STARTUP_DEBUG */
+
+	/*
+	 * A note on setvbuf():
+	 *
+	 * Setting _IONBF on Windows for output is a really bad idea because
+	 * this results in a write for every character emitted.
+	 *
+	 * Setting _IOLBF on output for "binary" I/O is not working as expected
+	 * because of the lack of "\r\n" termination.  It will require explicit
+	 * fflush() calls in the logging layer.
+	 */
+
 	if (console) {
 		int tty;
 		
@@ -3255,7 +3267,7 @@ mingw_stdio_reset(FILE *lf, gboolean console)
 		if (tty) {
 			fclose(stdout);
 			close(STDOUT_FILENO);
-			freopen("CONOUT$", "wb", stdout);
+			freopen("CONOUT$", "w", stdout);	/* Not "wb" */
 			/* stdout to a terminal is line-buffered */
 			setvbuf(stdout, mingw_stdout_buf, _IOLBF, sizeof mingw_stdout_buf);
 			STARTUP_DEBUG("forced stdout (fd=%d) to buffered "
@@ -3263,8 +3275,7 @@ mingw_stdio_reset(FILE *lf, gboolean console)
 				fileno(stdout), sizeof mingw_stdout_buf);
 		} else {
 			setmode(fileno(stdout), O_BINARY);
-			setvbuf(stdout, NULL, _IONBF, 0);	/* stdout is unbuffered */
-			STARTUP_DEBUG("forced stdout (fd=%d) to (unbuffered) binary mode",
+			STARTUP_DEBUG("forced stdout (fd=%d) to binary mode",
 				fileno(stdout));
 		}
 		tty = isatty(STDERR_FILENO);
@@ -3272,13 +3283,13 @@ mingw_stdio_reset(FILE *lf, gboolean console)
 		if (tty) {
 			fclose(stderr);
 			close(STDERR_FILENO);
-			freopen("CONOUT$", "wb", stderr);
+			freopen("CONOUT$", "w", stderr);	/* Not "wb" */
+			setvbuf(stderr, NULL, _IOLBF, 0);
 		} else {
 			setmode(fileno(stderr), O_BINARY);
 			STARTUP_DEBUG("forced stderr (fd=%d) to binary mode",
 				fileno(stderr));
 		}
-		setvbuf(stderr, NULL, _IONBF, 0);	/* stderr must be unbuffered */
 	} else {
 		fclose(stdin);
 		fclose(stdout);
@@ -3333,13 +3344,11 @@ mingw_early_init(void)
 
 				pathname = mingw_getstdout_path();
 				freopen(pathname, "wb", stdout);
-				setvbuf(stdout, NULL, _IONBF, 0);
 				log_set(LOG_STDOUT, pathname);
 				STARTUP_DEBUG("stdout (unbuffered) sent to %s", pathname);
 
 				pathname = mingw_getstderr_path();
 				freopen(pathname, "wb", stderr);
-				setvbuf(stderr, NULL, _IONBF, 0);
 				log_set(LOG_STDERR, pathname);
 				STARTUP_DEBUG("stderr (unbuffered) sent to %s", pathname);
 			}
