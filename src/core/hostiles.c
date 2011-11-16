@@ -370,20 +370,24 @@ hostiles_retrieve(hostiles_t which)
 
 	case HOSTILE_GLOBAL:
 		{
-			/* FIXME: Load also the hostiles from get_folder_path */
-	
+			file_path_t fp[3];
 			FILE *f;
 			int idx;
-			static const file_path_t fp[] = {
+			char *tmp;
+			unsigned int length = 0;
+			
 #ifndef OFFICIAL_BUILD
-				{ PACKAGE_EXTRA_SOURCE_DIR, hostiles_file },
+			file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, hostiles_file);
 #endif
-				{ PRIVLIB_EXP, hostiles_file },
-			};
+			file_path_set(&fp[length++], PRIVLIB_EXP, hostiles_file);
 
-
+			tmp = get_folder_path(PRIVLIB_PATH, NULL);
+			if (tmp != NULL)
+				file_path_set(&fp[length++], tmp, hostiles_file);
+				
 			f = file_config_open_read_norename_chosen(
 					hostiles_what[HOSTILE_GLOBAL], fp, G_N_ELEMENTS(fp), &idx);
+					
 			if (f) {
 				hostiles_retrieve_from_file(f,
 				HOSTILE_GLOBAL, fp[idx].dir, fp[idx].name);
