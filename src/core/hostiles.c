@@ -377,14 +377,17 @@ hostiles_retrieve(hostiles_t which)
 			unsigned int length = 0;
 			
 #ifndef OFFICIAL_BUILD
-			file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, hostiles_file);
+			file_path_set(&fp[length++],
+				PACKAGE_EXTRA_SOURCE_DIR, hostiles_file);
 #endif
 			file_path_set(&fp[length++], PRIVLIB_EXP, hostiles_file);
 
 			tmp = get_folder_path(PRIVLIB_PATH, NULL);
 			if (tmp != NULL)
 				file_path_set(&fp[length++], tmp, hostiles_file);
-				
+
+			g_assert(length <= G_N_ELEMENTS(fp));
+
 			f = file_config_open_read_norename_chosen(
 					hostiles_what[HOSTILE_GLOBAL], fp, G_N_ELEMENTS(fp), &idx);
 					
@@ -393,6 +396,7 @@ hostiles_retrieve(hostiles_t which)
 				HOSTILE_GLOBAL, fp[idx].dir, fp[idx].name);
 				fclose(f);
 			}
+			HFREE_NULL(tmp);
 		}
 		break;
 

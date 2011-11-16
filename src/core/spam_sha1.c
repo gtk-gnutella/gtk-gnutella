@@ -321,6 +321,8 @@ spam_sha1_retrieve(void)
 	if (tmp != NULL)
 		file_path_set(&fp[length++], tmp, spam_sha1_file);
 
+	g_assert(length <= G_N_ELEMENTS(fp));
+
 	f = file_config_open_read_norename_chosen(spam_sha1_what, fp, length, &idx);
 	if (f != NULL) {
 		spam_sha1_retrieve_from_file(f, fp[idx].dir, fp[idx].name);
