@@ -34,6 +34,7 @@
 #include "gui.h"
 
 #include "icon.h"
+#include "misc.h"		/* For gui_save_window() / gui_restore_window() */
 
 #ifdef USE_GTK2
 
@@ -343,9 +344,11 @@ on_status_icon_activate(GtkStatusIcon *sicon, gpointer unused_udata)
 	(void) unused_udata;
 
 	if (GTK_WIDGET_VISIBLE(gui_main_window())) {
+		gui_save_window(gui_main_window(), PROP_WINDOW_COORDS);
 		gtk_widget_hide(gui_main_window());
 	} else {
 		gtk_widget_show(gui_main_window());
+		gui_restore_window(gui_main_window(), PROP_WINDOW_COORDS);
 	}
 }
 
