@@ -51,6 +51,7 @@
 #include "halloc.h"
 #include "log.h"
 #include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
+#include "omalloc.h"
 #include "stringify.h"		/* For logging */
 #include "unsigned.h"
 #include "walloc.h"
@@ -108,8 +109,19 @@ str_new_not_leaking(size_t szhint)
 {
 	str_t *str;
 
-	str = NOT_LEAKING_Z(str_new(szhint));
+	/*
+	 * We don't want something from a zone here to allow this object to be
+	 * use throughout the lifetime of the process, including after a zclose().
+	 * In other words, walloc() is forbidden!
+	 *
+	 * Because the memory will never be freed, it's best to use omalloc().
+	 */
+
+	str = omalloc(sizeof *str);
+	str_create(str, szhint);
 	(void) NOT_LEAKING(str->s_data);
+
+	/* Note: STR_OBJECT not set because structure allocated via xpmalloc() */
 
 	return str;
 }
