@@ -340,15 +340,37 @@ static GtkStatusIcon *status_icon;
 static void
 on_status_icon_activate(GtkStatusIcon *sicon, gpointer unused_udata)
 {
+	static gboolean hidden;
+
 	(void) sicon;
 	(void) unused_udata;
+
+	/*
+	 * Start from known state: force de-iconification of the Window if we
+	 * haven't hidden it through the tray icon previously.
+	 *
+	 * On Windows, hiding the window via the tray icon when the main window
+	 * is in the iconified state results in a window that can no longer
+	 * be restored to the screen!
+	 *
+	 * De-iconifying first is a hack because we don't want to trap the state
+	 * change events on the window to know whether it is already iconified.
+	 * The de-iconification will be visible by users, but it's better than
+	 * the alternative: not being able to restore the window later.
+	 *		--RAM, 2011-11-16.
+	 */
+
+	if (!hidden)
+		gtk_window_deiconify(GTK_WINDOW(gui_main_window()));
 
 	if (GTK_WIDGET_VISIBLE(gui_main_window())) {
 		gui_save_window(gui_main_window(), PROP_WINDOW_COORDS);
 		gtk_widget_hide(gui_main_window());
+		hidden = TRUE;
 	} else {
 		gtk_widget_show(gui_main_window());
 		gui_restore_window(gui_main_window(), PROP_WINDOW_COORDS);
+		hidden = FALSE;
 	}
 }
 
