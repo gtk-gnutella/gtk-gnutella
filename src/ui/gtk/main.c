@@ -900,8 +900,6 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 		gui_main_window_lookup("combo_search")));
 
 	clipboard_attach(gui_main_window());
-
-	HFREE_NULL(tmp);
 }
 
 void
