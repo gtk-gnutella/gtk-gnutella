@@ -37,9 +37,11 @@
 #include "common.h"
 
 #include "ascii.h"
+#include "concat.h"
 #include "path.h"
 #include "misc.h"
 #include "halloc.h"
+#include "omalloc.h"
 #include "override.h"			/* Must be the last header included */
 
 static const char *get_folder_basepath(enum special_folder which_folder);
@@ -235,7 +237,7 @@ filepath_directory(const char *pathname)
 /**
  * Get special folder path.
  *
- * @return pointer to static string.
+ * @return pointer to static string, NULL if folder does not exist.
  */
 static const char *
 get_folder_basepath(enum special_folder which_folder)
@@ -250,16 +252,9 @@ get_folder_basepath(enum special_folder which_folder)
 			if (NULL == pathname) {
 				special_path = getenv("XDG_DATA_DIRS");
 				if (special_path != NULL) {
-					size_t offset = 0;
-
-					pathname = NOT_LEAKING(halloc0(MAX_PATH_LEN));
-
-					offset += clamp_strcpy(
-						&pathname[offset], MAX_PATH_LEN - offset, special_path);
-
-					offset += clamp_strcpy(
-						&pathname[offset], MAX_PATH_LEN - offset,
-							G_DIR_SEPARATOR_S PACKAGE G_DIR_SEPARATOR_S);
+					pathname = omalloc(MAX_PATH_LEN);
+					concat_strings(pathname, MAX_PATH_LEN,
+						special_path, G_DIR_SEPARATOR_S, PACKAGE, (void *) 0);
 				}
 			}
 
@@ -302,14 +297,15 @@ get_folder_path(enum special_folder which_folder, const char *path)
 	if (NULL == special_path)
 		return NULL;
 	
-	pathname = halloc0(MAX_PATH_LEN);
-			
-	offset += clamp_strcpy(
-		&pathname[offset], MAX_PATH_LEN - offset, special_path);
+	pathname = halloc(MAX_PATH_LEN);
+
+	offset = clamp_strcpy(pathname, MAX_PATH_LEN, special_path);
 		
 	if (path != NULL) {
-		offset += clamp_strcpy(
-			&pathname[offset], MAX_PATH_LEN - offset, path);
+		/* Add directory separator if missing at the tail of the special path */
+		if (offset > 0 && pathname[offset - 1] != G_DIR_SEPARATOR)
+			pathname[offset++] = G_DIR_SEPARATOR;
+		clamp_strcpy(&pathname[offset], MAX_PATH_LEN - offset, path);
 	}
 	
 	return pathname;

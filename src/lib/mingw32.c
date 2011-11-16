@@ -2604,7 +2604,7 @@ mingw_get_folder_basepath(enum special_folder which_folder)
 	switch (which_folder) {
 	case PRIVLIB_PATH:
 		special_path = mingw_filename_nearby(
-			"share" G_DIR_SEPARATOR_S PACKAGE G_DIR_SEPARATOR_S);
+			"share" G_DIR_SEPARATOR_S PACKAGE);
 		break;
 	case NLS_PATH:
 		special_path = mingw_filename_nearby(
