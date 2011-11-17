@@ -780,6 +780,27 @@ restore:
 #endif	/* HAS_FORK */
 }
 
+/*
+ * Carefully close opened file descriptor.
+ *
+ * We must be careful for OS X: we cannot close random UNIX file descriptors
+ * or we get sanctionned with:
+ * BUG IN CLIENT OF LIBDISPATCH: Do not close random Unix descriptors
+ *		--RAM, 2011-11-17
+ *
+ * @param fd		file descriptor to close
+ *
+ * @return -1 if an error occured, 0 if OK.
+ */
+static inline int
+crash_fd_close(int fd)
+{
+	if (is_open_fd(fd))
+		return close(fd);
+
+	return 0;	/* Nothing done */
+}
+
 /**
  * Invoke the inspector process (gdb, or any other program specified at
  * initialization time).
@@ -823,8 +844,8 @@ retry_child:
 		}
 
 		if (
-			close(STDIN_FILENO) ||
-			close(STDOUT_FILENO) ||
+			crash_fd_close(STDIN_FILENO) ||
+			crash_fd_close(STDOUT_FILENO) ||
 			pipe(fd) ||
 			STDIN_FILENO != fd[0] ||
 			STDOUT_FILENO != fd[1]
@@ -958,7 +979,7 @@ retry_child:
 				/* STDIN must be kept open when piping to gdb */
 				if (vars->exec_path != NULL) {
 					if (
-						close(STDIN_FILENO) ||
+						crash_fd_close(STDIN_FILENO) ||
 						STDIN_FILENO != open("/dev/null", O_RDONLY, 0)
 					)
 						goto child_failure;
@@ -970,8 +991,8 @@ retry_child:
 
 			if (could_fork) {
 				if (
-					close(STDOUT_FILENO) ||
-					close(STDERR_FILENO) ||
+					crash_fd_close(STDOUT_FILENO) ||
+					crash_fd_close(STDERR_FILENO) ||
 					STDOUT_FILENO != open(filename, flags, mode) ||
 					STDERR_FILENO != dup(STDOUT_FILENO)
 				)
@@ -1116,7 +1137,7 @@ retry_child:
 					print_str(")\n");
 				}
 				flush_str(clf);
-				close(clf);
+				crash_fd_close(clf);
 				goto parent_process;
 			}
 
@@ -1215,7 +1236,7 @@ parent_process:
 		gboolean child_ok = FALSE;
 
 		if (has_fork()) {
-			close(PARENT_STDERR_FILENO);
+			crash_fd_close(PARENT_STDERR_FILENO);
 		}
 
 		/*
@@ -1385,16 +1406,16 @@ no_fork:
 
 		if (has_fork()) {
 			if (
-				close(STDOUT_FILENO) ||
+				crash_fd_close(STDOUT_FILENO) ||
 				-1 == dup2(PARENT_STDOUT_FILENO, STDOUT_FILENO) ||
-				close(PARENT_STDOUT_FILENO)
+				crash_fd_close(PARENT_STDOUT_FILENO)
 			) {
 				stage = "stdout restore";
 				goto parent_failure;
 			}
 
 			if (
-				close(STDIN_FILENO) ||
+				crash_fd_close(STDIN_FILENO) ||
 				STDIN_FILENO != open("/dev/null", O_RDONLY, 0)
 			) {
 				stage = "final stdin closing";
