@@ -2,7 +2,7 @@
 .SH NAME
 dbe \- Edit an sdbm(3) database
 .SH USAGE
-dbe <database> [-m r|w|rw] [-crtvx] -a|-d|-f|-F|-s [<key> [<content>]]
+dbe <database> [-m r|w|rw] [-crtvX] -a|-d|-f|-F|-s [<key> [<content>]]
 .SH DESCRIPTION
 \fIdbe\fP operates on sdbm(3) databases.
 It can be used to create them, look at them or change them.
@@ -35,8 +35,8 @@ Re-initialize the database before executing the command.
 .IP -v
 Verbose mode.
 Confirm stores and deletions.
-.IP -x
-If option -x is used with option -c, then if the database already exists,
+.IP -X
+If option -X is used with option -c, then if the database already exists,
 an error occurs.
 This can be used to implement a simple exclusive access locking mechanism.
 .SH SEE ALSO

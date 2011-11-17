@@ -92,7 +92,7 @@ my_getopt(int argc, char **argv, char *optstring)
 
 			if (my_optind >= argc) {
 
-				(void) fprintf(stderr, "%s: %c requires an argument\n",
+				(void) fprintf(stderr, "%s: option %c requires an argument\n",
 					       argv[0], c);
 				return '!';
 			}
@@ -202,17 +202,41 @@ key2s(datum db)
 
 char *progname;
 
+static void G_GNUC_NORETURN
+usage(void)
+{
+	fprintf(stderr,
+		"Usage: %s database "
+		"[-m r|w|rw] [-crtX] -a|-d|-f|-F|-s [key [content]]\n", progname);
+	fprintf(stderr,
+		"  -a : list all entries in the database.\n"
+		"  -c : create the database if it does not exist.\n"
+		"  -d : delete the entry associated with key.\n"
+		"  -f : fetch and display the entry associated with key.\n"
+		"  -F : fetch and display all the entries whose key "
+				"matches regular expression.\n"
+		"  -m : specifies database opening mode: "
+				"read-only, write-only, read-write.\n");
+	fprintf(stderr,
+		"  -r : replace the entry at key if it already exists (see -s).\n"
+		"  -s : store entry under key provided it does not already exist.\n"
+		"  -t : re-initialize the database before executing the command.\n"
+		"  -v : verbose mode: logs stores and deletions.\n"
+		"  -X : create database with O_EXCL to abort if it already exists.\n");
+	exit(-1);
+}
+
 int
 main(int argc, char **argv)
 {
 	typedef enum {
-		YOW, FETCH, STORE, DELETE, SCAN, REGEXP
+		HELP, FETCH, STORE, DELETE, SCAN, REGEXP
 	} commands;
 	char opt;
 	int flags;
 	int giveusage = 0;
 	int verbose = 0;
-	commands what = YOW;
+	commands what = HELP;
 	char *comarg[3];
 	int st_flag = DBM_INSERT;
 	int argn;
@@ -225,7 +249,7 @@ main(int argc, char **argv)
 	flags = O_RDWR;
 	argn = 0;
 
-	while ((opt = my_getopt(argc, argv, "acdfFm:rstvx")) != ':') {
+	while ((opt = my_getopt(argc, argv, "acdfFm:rstvX")) != ':') {
 		switch (opt) {
 		case 'a':
 			what = SCAN;
@@ -267,7 +291,7 @@ main(int argc, char **argv)
 		case 'v':
 			verbose = 1;
 			break;
-		case 'x':
+		case 'X':
 			flags |= O_EXCL;
 			break;
 		case '!':
@@ -284,10 +308,8 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (giveusage || what == YOW || argn < 1) {
-		fprintf(stderr, "Usage: %s database "
-			"[-m r|w|rw] [-crtx] -a|-d|-f|-F|-s [key [content]]\n", argv[0]);
-		exit(-1);
+	if (giveusage || what == HELP || argn < 1) {
+		usage();
 	}
 
 	if ((db = sdbm_open(comarg[0], flags, 0777)) == NULL) {
@@ -301,7 +323,7 @@ main(int argc, char **argv)
 		content = read_datum(comarg[2]);
 
 	switch (what) {
-	case YOW:
+	case HELP:
 		g_assert_not_reached();		/* Already handled above */
 	case SCAN:
 		key = sdbm_firstkey(db);
