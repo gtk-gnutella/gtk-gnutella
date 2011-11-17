@@ -93,6 +93,9 @@ wzone_get(size_t rounded)
 
 	g_assert(rounded == zalloc_round(rounded));
 
+	if G_UNLIKELY((size_t) -1 == halloc_threshold)
+		walloc_init();
+
 	/*
 	 * We're paying this computation/allocation cost once per size!
 	 * Create chunks capable of holding at least WALLOC_MINCOUNT structures.
@@ -396,9 +399,14 @@ wdestroy(void)
 /**
  * Initialize the width-based allocator.
  */
-void
+G_GNUC_COLD void
 walloc_init(void)
 {
+	int sp;
+
+	if G_UNLIKELY((size_t) -1 != halloc_threshold)
+		return;			/* Already done */
+
 	/*
 	 * We know that halloc() will redirect to walloc() if the size of the
 	 * block is slightly smaller than the halloc_threshold computed below.
@@ -406,6 +414,13 @@ walloc_init(void)
 	 */
 
 	halloc_threshold = MAX(WALLOC_MAX, compat_pagesize());
+
+	/*
+	 * Make sure the layers on top of which we are built are initialized.
+	 */
+
+	vmm_init(&sp);
+	zinit();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

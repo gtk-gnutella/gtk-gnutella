@@ -74,7 +74,7 @@ static size_t chunks_allocated;	/* Amount of chunks allocated */
 static int use_page_table;
 static page_table_t *pt_pages;
 static hash_table_t *ht_pages;
-size_t walloc_threshold;		/* walloc() size upper limit */
+static size_t walloc_threshold;		/* walloc() size upper limit */
 
 union align {
   size_t	size;
@@ -178,6 +178,9 @@ halloc(size_t size)
 
 	if (0 == size)
 		return NULL;
+
+	if G_UNLIKELY(0 == walloc_threshold)
+		halloc_init(TRUE);
 
 	if (size < walloc_threshold) {
 		union align *head;
@@ -457,12 +460,15 @@ void
 halloc_init(gboolean replace_malloc)
 {
 	static int initialized;
+	int sp;
 
 	RUNTIME_ASSERT(!initialized);
 	initialized = TRUE;
 	replacing_malloc = replace_malloc;
 
-	use_page_table = (size_t) -1 == (guint32)-1 && 4096 == compat_pagesize();
+	vmm_init(&sp);		/* Just in case, since we're built on top of VMM */
+
+	use_page_table = (size_t) -1 == (guint32) -1 && 4096 == compat_pagesize();
 	walloc_threshold = WALLOC_MAX - sizeof(union align) + 1;
 
 	if (use_page_table) {
