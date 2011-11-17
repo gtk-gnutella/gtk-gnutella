@@ -389,7 +389,7 @@ hostiles_retrieve(hostiles_t which)
 			g_assert(length <= G_N_ELEMENTS(fp));
 
 			f = file_config_open_read_norename_chosen(
-					hostiles_what[HOSTILE_GLOBAL], fp, G_N_ELEMENTS(fp), &idx);
+					hostiles_what[HOSTILE_GLOBAL], fp, length, &idx);
 					
 			if (f) {
 				hostiles_retrieve_from_file(f,
