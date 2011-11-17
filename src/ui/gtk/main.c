@@ -39,7 +39,8 @@
 #endif /* I_PWD */
 
 #ifdef HAVE_GTKOSXAPPLICATION
-#include <igemacintegration/gtkosxapplication.h>
+#include <gtkmacintegration/gtkosxapplication.h>
+#include <gtkmacintegration/gtk-mac-menu.h>
 #include "settings_cb.h"
 #endif
 
@@ -619,8 +620,8 @@ void main_gui_init_osx()
 	GError *err = NULL;
 	GtkOSXApplication *theApp = g_object_new(GTK_TYPE_OSX_APPLICATION, NULL);
 	GtkUIManager *mgr = gtk_ui_manager_new();
-	GtkOSXApplicationMenuGroup *group;
 	GtkWidget *item;
+	GtkWidget *sep;
 	GtkWidget *menubar;
 	
 	g_signal_connect(theApp, "NSApplicationBlockTermination",
@@ -807,12 +808,13 @@ void main_gui_init_osx()
 	gtk_widget_hide(GTK_WIDGET(item));
 	
 	item = gtk_ui_manager_get_widget(mgr,"/MenuBar/Help/About");
-	group = gtk_osxapplication_add_app_menu_group (theApp);
-	gtk_osxapplication_add_app_menu_item  (theApp, group, GTK_MENU_ITEM (item));
+	gtk_osxapplication_insert_app_menu_item  (theApp, item, 0);
+	sep = gtk_separator_menu_item_new();
+	g_object_ref(sep);
+	gtk_osxapplication_insert_app_menu_item  (theApp, sep, 1);	
 	
 	item = gtk_ui_manager_get_widget(mgr,"/MenuBar/File/Preferences");
-	group = gtk_osxapplication_add_app_menu_group (theApp);
-	gtk_osxapplication_add_app_menu_item  (theApp, group, GTK_MENU_ITEM (item));
+	gtk_osxapplication_insert_app_menu_item  (theApp, item, 2);
 	
 	
 	GtkWidget *dock_menu = gtk_menu_new();

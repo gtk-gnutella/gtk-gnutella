@@ -59,7 +59,7 @@ osxbundle)
 	build_osxbundle='true'
 	CPPFLAGS="$CPPFLAGS -DHAVE_GTKOSXAPPLICATION -mmacosx-version-min=10.5.8"
 	CPPFLAG="${CPPFLAGS# *}"    # strip leading spaces
-	LIBS="$LIBS -ligemacintegration -liconv -lz"
+	LIBS="$LIBS -lgtkmacintegration -liconv -lz"
 	LIBS="${LIBS# *}"           # strip leading spaces
 	PREFIX=`dirname ${PWD}/$0`/osx/bundle
 	echo $PREFIX
