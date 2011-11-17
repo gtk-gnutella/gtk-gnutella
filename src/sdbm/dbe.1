@@ -1,10 +1,10 @@
-.TH dbe 1 "ndbm(3) EDITOR"
+.TH dbe 1 "sdbm(3) EDITOR"
 .SH NAME
-dbe \- Edit a ndbm(3) database
+dbe \- Edit an sdbm(3) database
 .SH USAGE
 dbe <database> [-m r|w|rw] [-crtvx] -a|-d|-f|-F|-s [<key> [<content>]]
 .SH DESCRIPTION
-\fIdbme\fP operates on ndbm(3) databases.
+\fIdbe\fP operates on sdbm(3) databases.
 It can be used to create them, look at them or change them.
 When specifying the value of a key or the content of its associated entry,
 \\nnn, \\0, \\n, \\t, \\f and \\r are interpreted as usual.
@@ -40,7 +40,10 @@ If option -x is used with option -c, then if the database already exists,
 an error occurs.
 This can be used to implement a simple exclusive access locking mechanism.
 .SH SEE ALSO
-ndbm(3)
+sdbm(3)
 .SH AUTHOR
 janick@bnr.ca
+.sp
+Adapted for gtk-gnutella to use SDBM by
+.I Raphael.Manfredi@pobox.com.
 

@@ -1,12 +1,7 @@
-#include <stdio.h>
-#ifndef VMS
-#include <sys/file.h>
-#include <ndbm.h>
-#else
-#include "file.h"
-#include "ndbm.h"
-#endif
-#include <ctype.h>
+#include "common.h"
+#include "sdbm.h"
+
+extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
 
 /***************************************************************************\
 **                                                                         **
@@ -45,31 +40,31 @@
 **                                                                         **
 \***************************************************************************/
 
-char *optarg;			       /* Global argument pointer. */
+static char *my_optarg;			/* Global argument pointer. */
 
 #ifdef VMS
 #define index  strchr
 #endif
 
-char
-getopt(int argc, char **argv, char *optstring)
+static char
+my_getopt(int argc, char **argv, char *optstring)
 {
 	register int c;
 	register char *place;
 	extern char *index();
-	static int optind = 0;
+	static int my_optind = 0;
 	static char *scan = NULL;
 
-	optarg = NULL;
+	my_optarg = NULL;
 
 	if (scan == NULL || *scan == '\0') {
 
-		if (optind == 0)
-			optind++;
-		if (optind >= argc)
+		if (my_optind == 0)
+			my_optind++;
+		if (my_optind >= argc)
 			return ':';
 
-		optarg = place = argv[optind++];
+		my_optarg = place = argv[my_optind++];
 		if (place[0] != '-' || place[1] == '\0')
 			return '?';
 		if (place[1] == '-' && place[2] == '\0')
@@ -89,37 +84,37 @@ getopt(int argc, char **argv, char *optstring)
 
 		if (*scan != '\0') {
 
-			optarg = scan;
+			my_optarg = scan;
 			scan = NULL;
 
 		}
 		else {
 
-			if (optind >= argc) {
+			if (my_optind >= argc) {
 
 				(void) fprintf(stderr, "%s: %c requires an argument\n",
 					       argv[0], c);
 				return '!';
 			}
-			optarg = argv[optind];
-			optind++;
+			my_optarg = argv[my_optind];
+			my_optind++;
 		}
 	}
 	else if (*place == ';') {
 
 		if (*scan != '\0') {
 
-			optarg = scan;
+			my_optarg = scan;
 			scan = NULL;
 
 		}
 		else {
 
-			if (optind >= argc || *argv[optind] == '-')
-				optarg = NULL;
+			if (my_optind >= argc || *argv[my_optind] == '-')
+				my_optarg = NULL;
 			else {
-				optarg = argv[optind];
-				optind++;
+				my_optarg = argv[my_optind];
+				my_optind++;
 			}
 		}
 	}
@@ -130,7 +125,7 @@ getopt(int argc, char **argv, char *optstring)
 void
 print_datum(datum db)
 {
-	int i;
+	size_t i;
 
 	putchar('"');
 	for (i = 0; i < db.dsize; i++) {
@@ -205,6 +200,8 @@ key2s(datum db)
 	return buf;
 }
 
+char *progname;
+
 int
 main(int argc, char **argv)
 {
@@ -222,11 +219,13 @@ main(int argc, char **argv)
 	DBM *db;
 	datum key;
 	datum content;
+	regex_t re;
 
+	progname = argv[0];
 	flags = O_RDWR;
 	argn = 0;
 
-	while ((opt = getopt(argc, argv, "acdfFm:rstvx")) != ':') {
+	while ((opt = my_getopt(argc, argv, "acdfFm:rstvx")) != ':') {
 		switch (opt) {
 		case 'a':
 			what = SCAN;
@@ -245,14 +244,14 @@ main(int argc, char **argv)
 			break;
 		case 'm':
 			flags &= ~(000007);
-			if (strcmp(optarg, "r") == 0)
+			if (strcmp(my_optarg, "r") == 0)
 				flags |= O_RDONLY;
-			else if (strcmp(optarg, "w") == 0)
+			else if (strcmp(my_optarg, "w") == 0)
 				flags |= O_WRONLY;
-			else if (strcmp(optarg, "rw") == 0)
+			else if (strcmp(my_optarg, "rw") == 0)
 				flags |= O_RDWR;
 			else {
-				fprintf(stderr, "Invalid mode: \"%s\"\n", optarg);
+				fprintf(stderr, "Invalid mode: \"%s\"\n", my_optarg);
 				giveusage = 1;
 			}
 			break;
@@ -276,7 +275,7 @@ main(int argc, char **argv)
 			break;
 		case '?':
 			if (argn < 3)
-				comarg[argn++] = optarg;
+				comarg[argn++] = my_optarg;
 			else {
 				fprintf(stderr, "Too many arguments.\n");
 				giveusage = 1;
@@ -286,11 +285,12 @@ main(int argc, char **argv)
 	}
 
 	if (giveusage || what == YOW || argn < 1) {
-		fprintf(stderr, "Usage: %s databse [-m r|w|rw] [-crtx] -a|-d|-f|-F|-s [key [content]]\n", argv[0]);
+		fprintf(stderr, "Usage: %s database "
+			"[-m r|w|rw] [-crtx] -a|-d|-f|-F|-s [key [content]]\n", argv[0]);
 		exit(-1);
 	}
 
-	if ((db = dbm_open(comarg[0], flags, 0777)) == NULL) {
+	if ((db = sdbm_open(comarg[0], flags, 0777)) == NULL) {
 		fprintf(stderr, "Error opening database \"%s\"\n", comarg[0]);
 		exit(-1);
 	}
@@ -301,16 +301,17 @@ main(int argc, char **argv)
 		content = read_datum(comarg[2]);
 
 	switch (what) {
-
+	case YOW:
+		g_assert_not_reached();		/* Already handled above */
 	case SCAN:
-		key = dbm_firstkey(db);
-		if (dbm_error(db)) {
+		key = sdbm_firstkey(db);
+		if (sdbm_error(db)) {
 			fprintf(stderr, "Error when fetching first key\n");
 			goto db_exit;
 		}
 		while (key.dptr != NULL) {
-			content = dbm_fetch(db, key);
-			if (dbm_error(db)) {
+			content = sdbm_fetch(db, key);
+			if (sdbm_error(db)) {
 				fprintf(stderr, "Error when fetching ");
 				print_datum(key);
 				printf("\n");
@@ -320,11 +321,11 @@ main(int argc, char **argv)
 			printf(": ");
 			print_datum(content);
 			printf("\n");
-			if (dbm_error(db)) {
+			if (sdbm_error(db)) {
 				fprintf(stderr, "Error when fetching next key\n");
 				goto db_exit;
 			}
-			key = dbm_nextkey(db);
+			key = sdbm_nextkey(db);
 		}
 		break;
 
@@ -333,19 +334,20 @@ main(int argc, char **argv)
 			fprintf(stderr, "Missing regular expression.\n");
 			goto db_exit;
 		}
-		if (re_comp(comarg[1])) {
+		if (regcomp(&re, comarg[1], REG_EXTENDED)) {
 			fprintf(stderr, "Invalid regular expression\n");
 			goto db_exit;
 		}
-		key = dbm_firstkey(db);
-		if (dbm_error(db)) {
+		key = sdbm_firstkey(db);
+		if (sdbm_error(db)) {
 			fprintf(stderr, "Error when fetching first key\n");
 			goto db_exit;
 		}
 		while (key.dptr != NULL) {
-			if (re_exec(key2s(key))) {
-				content = dbm_fetch(db, key);
-				if (dbm_error(db)) {
+			char *str = key2s(key);
+			if (regexec(&re, str, 0, NULL, 0)) {
+				content = sdbm_fetch(db, key);
+				if (sdbm_error(db)) {
 					fprintf(stderr, "Error when fetching ");
 					print_datum(key);
 					printf("\n");
@@ -355,12 +357,13 @@ main(int argc, char **argv)
 				printf(": ");
 				print_datum(content);
 				printf("\n");
-				if (dbm_error(db)) {
+				if (sdbm_error(db)) {
 					fprintf(stderr, "Error when fetching next key\n");
 					goto db_exit;
 				}
 			}
-			key = dbm_nextkey(db);
+			free(str);
+			key = sdbm_nextkey(db);
 		}
 		break;
 
@@ -369,8 +372,8 @@ main(int argc, char **argv)
 			fprintf(stderr, "Missing fetch key.\n");
 			goto db_exit;
 		}
-		content = dbm_fetch(db, key);
-		if (dbm_error(db)) {
+		content = sdbm_fetch(db, key);
+		if (sdbm_error(db)) {
 			fprintf(stderr, "Error when fetching ");
 			print_datum(key);
 			printf("\n");
@@ -393,7 +396,7 @@ main(int argc, char **argv)
 			fprintf(stderr, "Missing delete key.\n");
 			goto db_exit;
 		}
-		if (dbm_delete(db, key) || dbm_error(db)) {
+		if (sdbm_delete(db, key) || sdbm_error(db)) {
 			fprintf(stderr, "Error when deleting ");
 			print_datum(key);
 			printf("\n");
@@ -410,7 +413,7 @@ main(int argc, char **argv)
 			fprintf(stderr, "Missing key and/or content.\n");
 			goto db_exit;
 		}
-		if (dbm_store(db, key, content, st_flag) || dbm_error(db)) {
+		if (sdbm_store(db, key, content, st_flag) || sdbm_error(db)) {
 			fprintf(stderr, "Error when storing ");
 			print_datum(key);
 			printf("\n");
@@ -426,10 +429,12 @@ main(int argc, char **argv)
 	}
 
 db_exit:
-	dbm_clearerr(db);
-	dbm_close(db);
-	if (dbm_error(db)) {
+	sdbm_clearerr(db);
+	sdbm_close(db);
+	if (sdbm_error(db)) {
 		fprintf(stderr, "Error closing database \"%s\"\n", comarg[0]);
 		exit(-1);
 	}
+
+	return 0;
 }
