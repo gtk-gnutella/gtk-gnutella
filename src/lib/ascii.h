@@ -48,7 +48,7 @@ int ascii_strncasecmp(const char *s1, const char *s2, size_t len);
  * @param c the character to convert.
  * @return 0..15 for valid hexadecimal ASCII characters, -1 otherwise.
  */
-static inline int
+static inline ALWAYS_INLINE int
 hex2int_inline(guchar c)
 {
 	extern const gint8 *hex2int_tab;
@@ -61,7 +61,7 @@ hex2int_inline(guchar c)
  * @param c the character to convert.
  * @return 0..9 for valid decimal ASCII characters, -1 otherwise.
  */
-static inline int
+static inline ALWAYS_INLINE int
 dec2int_inline(guchar c)
 {
 	extern const gint8 *dec2int_tab;
@@ -74,7 +74,7 @@ dec2int_inline(guchar c)
  * @param c the character to convert.
  * @return 0..9 for valid alphanumeric ASCII characters, -1 otherwise.
  */
-static inline int
+static inline ALWAYS_INLINE int
 alnum2int_inline(guchar c)
 {
 	extern const gint8 *alnum2int_tab;

@@ -673,7 +673,10 @@ string_to_host_addr(const char *s, const char **endptr, host_addr_t *addr_ptr)
 
 		if (endptr != NULL)
 			*endptr = end;
-		return ok;
+		if (ok)
+			return TRUE;
+
+		/* FALL THROUGH */
 	}
 
 	if (addr_ptr)

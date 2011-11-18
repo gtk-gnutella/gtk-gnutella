@@ -4278,10 +4278,27 @@ extract_my_addr(header_t *header)
 	if (!field)
 		field = header_get(header, "X-Remote-Ip");
 
-	if (field)
-		string_to_host_addr(field, NULL, &addr);
-	else
+	if (field) {
+		if (!string_to_host_addr(field, NULL, &addr)) {
+			if (
+				GNET_PROPERTY(node_debug) ||
+				GNET_PROPERTY(download_debug) ||
+				GNET_PROPERTY(upload_debug)
+			) {
+				g_debug("cannot parse Remote-IP header \"%s\"", field);
+				if (
+					GNET_PROPERTY(node_debug) > 1 ||
+					GNET_PROPERTY(download_debug) > 1 ||
+					GNET_PROPERTY(upload_debug) > 1
+				) {
+					g_debug("full header dump:");
+					header_dump(stderr, header, "----");
+				}
+			}
+		}
+	} else {
 		addr = zero_host_addr;
+	}
 
 	return addr;
 }

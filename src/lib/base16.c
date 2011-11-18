@@ -54,6 +54,7 @@
 
 #include "base16.h"
 #include "ascii.h"
+#include "misc.h"
 
 #include "override.h" /* Must be the last header included */
 
@@ -110,6 +111,9 @@ base16_decode(char *dst, size_t size, const void *data, size_t len)
   const unsigned char *p = data;
   char *q = dst;
   size_t i;
+
+  if G_UNLIKELY(0 == hex2int_inline('a'))
+	misc_init();	/* Auto-initialization of hex2int_inline() */
 
   len /= 2;
   len = 2 * (size < len ? size : len);

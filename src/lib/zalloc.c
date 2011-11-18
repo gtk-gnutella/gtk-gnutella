@@ -2507,6 +2507,12 @@ zgc(gboolean overloaded)
 G_GNUC_COLD void
 zinit(void)
 {
+	static int initialized;
+
+	if G_UNLIKELY(initialized)
+		return;
+
+	initialized = TRUE;
 	addr_grows_upwards = vmm_grows_upwards();
 #ifdef TRACK_ZALLOC
 	z_leakset = leak_init();
