@@ -2,7 +2,33 @@
 .SH NAME
 dbe \- Edit an sdbm(3) database
 .SH USAGE
-dbe <database> [-m r|w|rw] [-crtvX] -a|-d|-f|-F|-s [<key> [<content>]]
+.B dbe
+.B \-a
+|
+.B \-c
+|
+.B \-d
+|
+.B \-f
+|
+.B \-F
+|
+.B \-s
+.I database
+[
+.B \-m
+.B r
+|
+.B w
+|
+.B rw
+] [
+.B \-bikortvxXy
+] [
+.I key
+[
+.I content
+]]
 .SH DESCRIPTION
 \fIdbe\fP operates on sdbm(3) databases.
 It can be used to create them, look at them or change them.
@@ -10,9 +36,29 @@ When specifying the value of a key or the content of its associated entry,
 \\nnn, \\0, \\n, \\t, \\f and \\r are interpreted as usual.
 When displaying key/content pairs, non-printable characters are displayed
 using the \\nnn notation.
+.P
+It is possible to use hexadecimal representation for keys and content, 
+with
+.B \-x
+and
+.B \-y
+respectively, or force binary output of content
+with the
+.B \-b
+switch.
+.P
+Content can be supplied via a file with
+.B \-i
+or output to a file with
+.B \-o
+by interpreting the
+.I content
+argument as a filename when either of these options are present.
 .SH OPTIONS
 .IP -a
-List all entries in the database.
+List all entries in the database as "key: value".
+.IP -b
+Content given / output as binary (no interpretation).
 .IP -c
 Create the database if it does not exist.
 .IP -d
@@ -22,8 +68,20 @@ Fetch and display the entry associated with the specified key.
 .IP -F
 Fetch and display all the entries whose key match the specified
 regular-expression
+.IP -i
+Input from file: content is interpreted as a filename containing the actual
+content.
+.IP -k
+Print only the keys for
+.B \-a
+and
+.B \-F
+scans.
 .IP "-m r|w|rw"
 Open the database in read-only, write-only or read-write mode
+.IP -o
+Output to file: content is interpreted as a filename where the actual
+content of the key is written.
 .IP -r
 Replace the entry associated with the specified key if it already exists.
 See option -s.
@@ -35,10 +93,16 @@ Re-initialize the database before executing the command.
 .IP -v
 Verbose mode.
 Confirm stores and deletions.
+.IP -x
+Keys are interpreted as hexadecimal.  Displayed keys are shown in hexadecimal,
+regardless of whether they are printable.
 .IP -X
 If option -X is used with option -c, then if the database already exists,
 an error occurs.
 This can be used to implement a simple exclusive access locking mechanism.
+.IP -y
+Content is interpreted as hexadecimal.  Displayed values are shown in
+hexadecimal, regardless of whether they are printable.
 .SH SEE ALSO
 sdbm(3)
 .SH AUTHOR
