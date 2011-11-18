@@ -33,6 +33,8 @@
 
 #include "common.h"
 
+#include "sdbm/sdbm.h"
+
 #include "dbstore.h"
 
 #include "if/core/settings.h"
@@ -387,8 +389,9 @@ dbstore_move(const char *src, const char *dst, const char *base)
 	old_path = make_pathname(src, base);
 	new_path = make_pathname(dst, base);
 
-	dbstore_move_file(old_path, new_path, ".dir");
-	dbstore_move_file(old_path, new_path, ".pag");
+	dbstore_move_file(old_path, new_path, DBM_DIRFEXT);
+	dbstore_move_file(old_path, new_path, DBM_PAGFEXT);
+	dbstore_move_file(old_path, new_path, DBM_DATFEXT);
 
 	HFREE_NULL(old_path);
 	HFREE_NULL(new_path);
