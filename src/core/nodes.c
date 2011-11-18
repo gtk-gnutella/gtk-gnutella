@@ -4263,6 +4263,15 @@ extract_header_pongs(header_t *header, struct gnutella_node *n)
 		TRUE, n->addr, node_vendor(n));
 }
 
+static inline gboolean
+extract_addr_debugging(guint32 level)
+{
+	return
+		GNET_PROPERTY(node_debug) > level ||
+		GNET_PROPERTY(download_debug) > level ||
+		GNET_PROPERTY(upload_debug) > level;
+}
+
 /**
  * Try to determine whether headers contain an indication of our own IP.
  *
@@ -4280,17 +4289,9 @@ extract_my_addr(header_t *header)
 
 	if (field) {
 		if (!string_to_host_addr(field, NULL, &addr)) {
-			if (
-				GNET_PROPERTY(node_debug) ||
-				GNET_PROPERTY(download_debug) ||
-				GNET_PROPERTY(upload_debug)
-			) {
+			if (extract_addr_debugging(0)) {
 				g_debug("cannot parse Remote-IP header \"%s\"", field);
-				if (
-					GNET_PROPERTY(node_debug) > 1 ||
-					GNET_PROPERTY(download_debug) > 1 ||
-					GNET_PROPERTY(upload_debug) > 1
-				) {
+				if (extract_addr_debugging(1)) {
 					g_debug("full header dump:");
 					header_dump(stderr, header, "----");
 				}
