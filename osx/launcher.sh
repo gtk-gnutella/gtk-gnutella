@@ -172,5 +172,5 @@ export NLSPATH="$I18NDIR"
 # Number of allowed file descriptors
 ulimit -n 2048
 
-$EXEC "$bundle_contents/MacOS/$name-bin" $* $EXTRA_ARGS
+$EXEC "$bundle_contents/MacOS/$name-bin" $* --no-restart $EXTRA_ARGS
 #$EXEC "$bundle_res/gtk-gnutella" $* $EXTRA_ARGS
