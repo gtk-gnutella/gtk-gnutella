@@ -63,6 +63,10 @@ DBE_SRC = \
 	dbe.c \
 	util.c
 
+DBT_SRC = \
+	dbt.c \
+	util.c
+
 DBA_OBJ = \
 |expand f!$(DBA_SRC)!
 	!f:\.c=.o \
@@ -78,16 +82,24 @@ DBE_OBJ = \
 	!f:\.c=.o \
 -expand \\
 
+DBT_OBJ = \
+|expand f!$(DBT_SRC)!
+	!f:\.c=.o \
+-expand \\
+
+
 ++GLIB_LDFLAGS $glibldflags
 ++COMMON_LIBS $libs
 
 LDFLAGS =
 LIBS = -L. -lsdbm -L../lib -lshared $(GLIB_LDFLAGS) $(COMMON_LIBS)
 
-dbu dbe: libsdbm.a
+dbu dbe dbt: libsdbm.a
 RemoteTargetDependency(dbu, ../lib, libshared.a)
 RemoteTargetDependency(dbe, ../lib, libshared.a)
+RemoteTargetDependency(dbt, ../lib, libshared.a)
 
 NormalProgramTarget(dba, $(DBA_SRC), $(DBA_OBJ))
 NormalProgramTarget(dbu, $(DBU_SRC), $(DBU_OBJ))
 NormalProgramTarget(dbe, $(DBE_SRC), $(DBE_OBJ))
+NormalProgramTarget(dbt, $(DBT_SRC), $(DBT_OBJ))
