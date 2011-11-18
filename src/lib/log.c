@@ -1043,6 +1043,30 @@ s_carp(const char *format, ...)
 }
 
 /**
+ * Safe verbose warning message, emitted once per calling stack.
+ */
+void
+s_carp_once(const char *format, ...)
+{
+	if (!stacktrace_caller_known(2))	{	/* Caller of our caller */
+		va_list args;
+
+		/*
+		 * We use a CRITICAL level because "once" carping denotes a
+		 * potentially dangerous situation something that we want to
+		 * note loudly in case there is a problem later.
+		 *
+		 * This will automatically trigger stack tracing in s_logv()
+		 * plus force a copy of the message to stdout, if distinct.
+		 */
+
+		va_start(args, format);
+		s_logv(NULL, G_LOG_LEVEL_CRITICAL, format, args);
+		va_end(args);
+	}
+}
+
+/**
  * Safe verbose warning message, with minimal resource consumption.
  *
  * This is intended to be used by the string formatting code to emit loud
@@ -1217,6 +1241,33 @@ t_carp(logthread_t *lt, const char *format, ...)
 	va_end(args);
 
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
+}
+
+/**
+ * Thread-safe verbose warning message, emitted once per calling stack.
+ */
+void
+t_carp_once(logthread_t *lt, const char *format, ...)
+{
+	if (!stacktrace_caller_known(2))	{	/* Caller of our caller */
+		va_list args;
+
+		lt = logthread_object(lt);
+		logthread_check(lt);
+
+		/*
+		 * We use a CRITICAL level because "once" carping denotes a
+		 * potentially dangerous situation something that we want to
+		 * note loudly in case there is a problem later.
+		 *
+		 * This will automatically trigger stack tracing in s_logv()
+		 * plus force a copy of the message to stdout, if distinct.
+		 */
+
+		va_start(args, format);
+		s_logv(lt, G_LOG_LEVEL_CRITICAL, format, args);
+		va_end(args);
+	}
 }
 
 /**

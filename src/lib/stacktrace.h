@@ -96,6 +96,7 @@ void stacktrace_stack_safe_print(int fd, void * const *stack, size_t count);
 gboolean stacktrace_cautious_was_logged(void);
 
 struct stackatom *stacktrace_get_atom(const struct stacktrace *st);
+gboolean stacktrace_caller_known(size_t offset);
 
 void stacktrace_init(const char *argv0, gboolean deferred);
 void stacktrace_load_symbols(void);
