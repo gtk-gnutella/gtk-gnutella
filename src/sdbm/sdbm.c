@@ -20,7 +20,7 @@
 #include "lib/debug.h"
 #include "lib/fd.h"
 #include "lib/file.h"
-#include "lib/glib-missing.h"
+#include "lib/log.h"
 #include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/pow2.h"
@@ -527,6 +527,14 @@ sdbm_close(DBM *db)
 	}
 }
 
+#define SDBM_WARN_ITERATING(db) G_STMT_START {			\
+	if G_UNLIKELY((db)->flags & DBM_ITERATING) {		\
+		s_carp_once("%s() called "						\
+			"whilst iterating on SDBM database \"%s\"",	\
+			G_STRFUNC, sdbm_name(db));					\
+	}													\
+} G_STMT_END
+
 datum
 sdbm_fetch(DBM *db, datum key)
 {
@@ -534,6 +542,7 @@ sdbm_fetch(DBM *db, datum key)
 		errno = EINVAL;
 		return nullitem;
 	}
+	SDBM_WARN_ITERATING(db);
 	if (getpage(db, exhash(key)))
 		return getpair(db, db->pagbuf, key);
 
@@ -548,6 +557,7 @@ sdbm_exists(DBM *db, datum key)
 		errno = EINVAL;
 		return -1;
 	}
+	SDBM_WARN_ITERATING(db);
 	if (getpage(db, exhash(key)))
 		return exipair(db, db->pagbuf, key);
 
@@ -570,6 +580,7 @@ sdbm_delete(DBM *db, datum key)
 		errno = EIO;
 		return -1;
 	}
+	SDBM_WARN_ITERATING(db);
 	if G_UNLIKELY(!getpage(db, exhash(key))) {
 		ioerr(db, FALSE);
 		return -1;
@@ -710,12 +721,14 @@ inserted:
 int
 sdbm_store(DBM *db, datum key, datum val, int flags)
 {
+	SDBM_WARN_ITERATING(db);
 	return storepair(db, key, val, flags, NULL);
 }
 
 int
 sdbm_replace(DBM *db, datum key, datum val, gboolean *existed)
 {
+	SDBM_WARN_ITERATING(db);
 	return storepair(db, key, val, DBM_REPLACE, existed);
 }
 
@@ -751,7 +764,7 @@ makroom(DBM *db, long int hash, size_t need)
 		 * split the current page
 		 */
 
-		splpage(cur, pag, New, db->hmask + 1);
+		splpage(db, cur, pag, New, db->hmask + 1);
 
 		/*
 		 * address of the new page
@@ -1054,7 +1067,7 @@ iteration_done(DBM *db)
 	}
 #endif
 
-	db->flags &= ~DBM_KEYCHECK;		/* Iteration done */
+	db->flags &= ~(DBM_KEYCHECK | DBM_ITERATING);	/* Iteration done */
 	return nullitem;
 }
 
@@ -1070,6 +1083,10 @@ sdbm_firstkey(DBM *db)
 		return iteration_done(db);
 	}
 
+	if G_UNLIKELY(db->flags & DBM_ITERATING)
+		g_carp("recursive iteration on SDBM database \"%s\"", sdbm_name(db));
+
+	db->flags |= DBM_ITERATING;
 	db->pagtail = lseek(db->pagf, 0L, SEEK_END);
 	if G_UNLIKELY(db->pagtail < 0)
 		return iteration_done(db);
@@ -1099,6 +1116,16 @@ sdbm_firstkey_safe(DBM *db)
 {
 	if (db != NULL) {
 		db->flags |= DBM_KEYCHECK;
+
+		/*
+		 * Loudly warn if called on a read-only database since this will
+		 * not allow any fixup to happen should the database be corrupted.
+		 */
+
+		if G_UNLIKELY(db->flags & DBM_RDONLY) {
+			g_carp("%s() called on read-only SDBM database \"%s\"",
+				G_STRFUNC, sdbm_name(db));
+		}
 	}
 	return sdbm_firstkey(db);
 }
@@ -1488,6 +1515,11 @@ sdbm_shrink(DBM *db)
 
 	if G_UNLIKELY(-1 == fstat(db->pagf, &buf))
 		return FALSE;
+
+	if G_UNLIKELY(db->flags & DBM_RDONLY) {
+		g_carp("%s() called on read-only SDBM database \"%s\"",
+			G_STRFUNC, sdbm_name(db));
+	}
 
 	/*
 	 * Look how many full pages we need in the .pag file by remembering the

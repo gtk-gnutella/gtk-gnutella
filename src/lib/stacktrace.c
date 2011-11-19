@@ -1243,7 +1243,7 @@ stacktrace_post_init(void)
  * Fill supplied stacktrace structure with the backtrace.
  * Trace will start with our caller.
  */
-void
+void NO_INLINE
 stacktrace_get(struct stacktrace *st)
 {
 	st->len = stacktrace_unwind(st->stack, G_N_ELEMENTS(st->stack), 1);
@@ -1253,7 +1253,7 @@ stacktrace_get(struct stacktrace *st)
  * Fill supplied stacktrace structure with the backtrace, removing ``offset''
  * amount of immediate callers (0 will make our caller be the first item).
  */
-void
+void NO_INLINE
 stacktrace_get_offset(struct stacktrace *st, size_t offset)
 {
 	st->len = stacktrace_unwind(st->stack, G_N_ELEMENTS(st->stack), offset + 1);
@@ -1752,31 +1752,23 @@ stack_eq(const void *a, const void *b)
 		0 == memcmp(sa->stack, sb->stack, sa->len * sizeof sa->stack[0]);
 }
 
-/**
- * Get a stack trace atom (never freed).
+/*
+ * Adjust the length of the stack: any trailing address not belonging
+ * to our text segment is that of shared libraries, i.e. not code for
+ * which we have symbols.
+ *
+ * By chopping these trailing addresses off, we keep only the relevant
+ * parts and also considerably limit the amount of stack atoms we have
+ * to keep around during a session (since this memory is never freed).
+ *
+ * @param st		full stacktrace
+ *
+ * @return amount of topmost items we should keep in the stack.
  */
-struct stackatom *
-stacktrace_get_atom(const struct stacktrace *st)
+static size_t
+stacktrace_chop_length(const struct stacktrace *st)
 {
-	struct stackatom key;
-	struct stackatom *result;
 	size_t len;
-
-	STATIC_ASSERT(sizeof st->stack[0] == sizeof result->stack[0]);
-
-	if G_UNLIKELY(NULL == stack_atoms) {
-		stack_atoms = hash_table_new_full_real(stack_hash, stack_eq);
-	}
-
-	/*
-	 * Adjust the length of the stack: any trailing address not belonging
-	 * to our text segment is that of shared libraries, i.e. not code for
-	 * which we have symbols.
-	 *
-	 * By chopping these trailing addresses off, we keep only the relevant
-	 * parts and also considerably limit the amount of stack atoms we have
-	 * to keep around during a session (since this memory is never freed).
-	 */
 
 	len = st->len;
 	while (len > 0) {
@@ -1785,26 +1777,109 @@ stacktrace_get_atom(const struct stacktrace *st)
 		len--;
 	}
 
+	return len;
+}
+
+/**
+ * Lookup stacktrace to see whether we already have an atom for it.
+ *
+ * @param st		full stacktrace
+ * @param len		amount of topmoar items to consider from stack
+ *
+ * @return stack atom if we have one, NULL if it is unknown.
+ */
+static struct stackatom *
+stacktrace_atom_lookup(const struct stacktrace *st, size_t len)
+{
+	struct stackatom key;
+	struct stackatom *result;
+
+	STATIC_ASSERT(sizeof st->stack[0] == sizeof result->stack[0]);
+
+	if G_UNLIKELY(NULL == stack_atoms) {
+		stack_atoms = hash_table_new_full_real(stack_hash, stack_eq);
+	}
+
 	key.stack = deconstify_gpointer(st->stack);
 	key.len = len;
 
-	result = hash_table_lookup(stack_atoms, &key);
+	return hash_table_lookup(stack_atoms, &key);
+}
+
+/**
+ * Allocate and record a new stack trace atom from given stacktrace.
+ */
+static struct stackatom *
+stacktrace_atom_record(const struct stacktrace *st, size_t len)
+{
+	struct stackatom *result;
+
+	/* These objects will be never freed */
+	result = omalloc0(sizeof *result);
+	if (len != 0) {
+		result->stack = ocopy(st->stack, len * sizeof st->stack[0]);
+	} else {
+		result->stack = NULL;
+	}
+	result->len = len;
+
+	if (!hash_table_insert(stack_atoms, result, result))
+		g_error("cannot record stack trace atom");
+
+	return result;
+}
+
+/**
+ * Get a stack trace atom (never freed).
+ */
+struct stackatom *
+stacktrace_get_atom(const struct stacktrace *st)
+{
+	struct stackatom *result;
+	size_t len;
+
+	len = stacktrace_chop_length(st);
+	result = stacktrace_atom_lookup(st, len);
 
 	if G_UNLIKELY(NULL == result) {
-		/* These objects will be never freed */
-		result = omalloc0(sizeof *result);
-		if (len != 0) {
-			result->stack = ocopy(st->stack, len * sizeof st->stack[0]);
-		} else {
-			result->stack = NULL;
-		}
-		result->len = len;
-
-		if (!hash_table_insert(stack_atoms, result, result))
-			g_error("cannot record stack trace atom");
+		result = stacktrace_atom_record(st, len);
 	}
 
 	return result;
+}
+
+/**
+ * Check whether current stack is known, recording it as a side effect.
+ *
+ * This can be used to emit warnings once for a given calling stack.
+ * The allocated objects are never freed so this should rather be used
+ * for uncommon paths, which warning paths are.
+ *
+ * @param offset		additional stackframes to skip
+ *
+ * @return whether calling stack was known
+ */
+gboolean
+stacktrace_caller_known(size_t offset)
+{
+	struct stacktrace t;
+	size_t len;
+	struct stackatom *result;
+
+	stacktrace_get_offset(&t, offset + 1);	/* Skip ourselves */
+	len = stacktrace_chop_length(&t);
+
+	if G_UNLIKELY(0 == len)
+		return FALSE;
+
+	result = stacktrace_atom_lookup(&t, len);
+
+	if G_UNLIKELY(NULL == result) {
+		(void) stacktrace_atom_record(&t, len);
+		return FALSE;
+	} else {
+		return TRUE;
+	}
 }
 
 /***

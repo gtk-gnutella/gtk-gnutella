@@ -55,8 +55,8 @@ SED = $sed
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =   \$(SRC)  \$(DBA_SRC)  \$(DBU_SRC)  \$(DBE_SRC)
-OBJECTS =   \$(OBJ)  \$(DBA_OBJ)  \$(DBU_OBJ)  \$(DBE_OBJ)
+SOURCES =   \$(SRC)  \$(DBA_SRC)  \$(DBU_SRC)  \$(DBE_SRC)  \$(DBT_SRC)
+OBJECTS =   \$(OBJ)  \$(DBA_OBJ)  \$(DBU_OBJ)  \$(DBE_OBJ)  \$(DBT_OBJ)
 GLIB_CFLAGS =  $glibcflags
 COMMON_LIBS =  $libs
 
@@ -144,6 +144,10 @@ DBE_SRC = \
 	dbe.c \
 	util.c
 
+DBT_SRC = \
+	dbt.c \
+	util.c
+
 DBA_OBJ = \
 	dba.o \
 	util.o 
@@ -156,10 +160,14 @@ DBE_OBJ = \
 	dbe.o \
 	util.o 
 
+DBT_OBJ = \
+	dbt.o \
+	util.o 
+
 LDFLAGS =
 LIBS = -L. -lsdbm -L../lib -lshared $(GLIB_LDFLAGS) $(COMMON_LIBS)
 
-dbu dbe: libsdbm.a
+dbu dbe dbt: libsdbm.a
 
 .FORCE:
 
@@ -171,6 +179,8 @@ dbu dbe: libsdbm.a
 dbu:  ../lib/libshared.a
 
 dbe:  ../lib/libshared.a
+
+dbt:  ../lib/libshared.a
 
 all:: dba
 
@@ -204,6 +214,17 @@ dbe:  $(DBE_OBJ)
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  $(DBE_OBJ) $(JLDFLAGS) $(LIBS)
+
+all:: dbt
+
+local_realclean::
+	$(RM) dbt$(_EXE)
+
+dbt:  $(DBT_OBJ)
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  $(DBT_OBJ) $(JLDFLAGS) $(LIBS)
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

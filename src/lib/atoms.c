@@ -803,6 +803,9 @@ atoms_init(void)
 	} settings;
 	guint i;
 
+	if G_UNLIKELY(ht_all_atoms != NULL)
+		return;		/* Already initialized */
+
 	ZERO(&settings);
 
 	STATIC_ASSERT(NUM_ATOM_TYPES <= (ATOM_TYPE_MASK + 1));
@@ -883,6 +886,9 @@ atom_exists(enum atom_type type, gconstpointer key)
 {
 	g_assert(key != NULL);
 
+	if G_UNLIKELY(NULL == ht_all_atoms)
+		return 0;
+
 	return atom_is_registered(type, key) > 0 ||
 		gm_hash_table_contains(atoms[type].table, key);
 }
@@ -905,6 +911,9 @@ atom_get(enum atom_type type, gconstpointer key)
 	
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
+
+	if G_UNLIKELY(NULL == ht_all_atoms)
+		atoms_init();
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 

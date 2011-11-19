@@ -741,6 +741,8 @@ flushpag(DBM *db, char *pag, long num)
 
 	if (w < 0 || w != DBM_PBLKSIZ) {
 		if (w < 0) {
+			if G_UNLIKELY(db->flags & DBM_RDONLY)
+				errno = EPERM;		/* Instead of EBADF on linux */
 			g_warning("sdbm: \"%s\": cannot flush page #%ld: %m",
 				sdbm_name(db), num);
 		} else {

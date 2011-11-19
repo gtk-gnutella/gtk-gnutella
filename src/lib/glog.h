@@ -34,6 +34,8 @@
 #ifndef _glog_h_
 #define _glog_h_
 
+#include "lib/stacktrace.h"		/* For stacktrace_caller_known() */
+
 /*
  * Trap all glib-defined logging and redirect them to our own.
  *
@@ -66,6 +68,14 @@
    			__VA_ARGS__);			\
 		stacktrace_where_sym_print(stderr); \
 	} G_STMT_END
+#define g_carp_once(...) G_STMT_START {		\
+	if (!stacktrace_caller_known(1)) {		\
+		gl_log(G_LOG_DOMAIN,				\
+   			G_LOG_LEVEL_WARNING,			\
+   			__VA_ARGS__);					\
+		stacktrace_where_sym_print(stderr); \
+	}										\
+} G_STMT_END
 #define g_error(...)	gl_error(G_LOG_DOMAIN,  __VA_ARGS__)
 #define g_critical(...)	gl_log(G_LOG_DOMAIN,		\
 							   G_LOG_LEVEL_CRITICAL,\
@@ -90,6 +100,14 @@
    			format);				\
 		stacktrace_where_sym_print(stderr); \
 	} G_STMT_END
+#define g_carp_once(format...) G_STMT_START {	\
+	if (!stacktrace_caller_known(1)) {		\
+		gl_log(G_LOG_DOMAIN,				\
+   			G_LOG_LEVEL_WARNING,			\
+   			format);						\
+		stacktrace_where_sym_print(stderr); \
+	}										\
+} G_STMT_END
 #define g_error(format...)		gl_error(G_LOG_DOMAIN, format)
 #define g_critical(format...)	gl_log(G_LOG_DOMAIN,		\
 								   G_LOG_LEVEL_CRITICAL,	\
@@ -115,6 +133,18 @@ g_carp(const char *format, ...)
   gl_logv(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, format, args);
   va_end(args);
   stacktrace_where_sym_print(stderr);
+}
+
+static inline G_GNUC_PRINTF(1, 2) void
+g_carp_once(const char *format, ...)
+{
+  if (!stacktrace_caller_known(1)) {
+	va_list args;
+	va_start(args, format);
+	gl_logv(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, format, args);
+	va_end(args);
+	stacktrace_where_sym_print(stderr);
+  }
 }
 
 static inline G_GNUC_PRINTF(1, 2) void

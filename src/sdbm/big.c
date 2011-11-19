@@ -847,7 +847,12 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 	size_t len = big_length(bkey);
 	DBMBIG *dbg = db->big;
 
-	g_assert(bigkey_length(len) == blen);
+	if G_UNLIKELY(bigkey_length(len) != blen) {
+		g_carp("sdbm: \"%s\": found %zu-byte corrupted key "
+			"(%zu byte%s on page instead of %zu)",
+			sdbm_name(db), len, blen, 1 == blen ? "" : "s", bigkey_length(len));
+		return FALSE;
+	}
 
 	/*
 	 * Comparing a key in memory with a big key on disk is potentially a
@@ -916,6 +921,38 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 	}
 
 	return FALSE;
+}
+
+/**
+ * Compute hash of big key, stored at bkey in an SDBM .pag file.
+ *
+ * @param db		the sdbm database
+ * @param bkey		start of big key in the page
+ * @param blen		length of big key in the page
+ *
+ * @return hashed value.
+ */
+long
+bigkey_hash(DBM *db, const char *bkey, size_t blen)
+{
+	size_t len = big_length(bkey);
+
+	if G_UNLIKELY(bigkey_length(len) != blen) {
+		g_carp("sdbm: \"%s\": found %zu-byte corrupted key "
+			"(%zu byte%s on page instead of %zu)",
+			sdbm_name(db), len, blen, 1 == blen ? "" : "s", bigkey_length(len));
+		ioerr(db, FALSE);
+		return 0;
+	}
+
+	if (-1 == big_fetch(db, bigkey_blocks(bkey), len)) {
+		g_warning("sdbm: \"%s\": returning hash of 0, corrupting database",
+			sdbm_name(db));
+		ioerr(db, FALSE);
+		return 0;
+	}
+
+	return sdbm_hash(db->big->scratch, len);
 }
 
 /**

@@ -811,6 +811,7 @@ src/sdbm/dba.c
 src/sdbm/dbd.c
 src/sdbm/dbe.1
 src/sdbm/dbe.c
+src/sdbm/dbt.c
 src/sdbm/dbu.c
 src/sdbm/hash.c
 src/sdbm/lru.c

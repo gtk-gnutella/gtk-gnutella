@@ -15,12 +15,6 @@
 #include "pair.h"
 #include "big.h"
 
-static inline long
-exhash(const datum item)
-{
-	return sdbm_hash(item.dptr, item.dsize);
-}
-
 /*
  * To accommodate larger key/values (that would otherwise not
  * fit within a page), the leading bit of each offset is set
@@ -38,29 +32,42 @@ exhash(const datum item)
 #define BIG_MASK	(BIG_FLAG - 1)
 
 #ifdef BIGDATA
-static inline unsigned short
+static inline ALWAYS_INLINE unsigned short
 offset(unsigned short off)
 {
 	return off & BIG_MASK;
 }
 
-static inline gboolean
+static inline ALWAYS_INLINE gboolean
 is_big(unsigned short off)
 {
 	return booleanize(off & BIG_FLAG);
 }
+static inline ALWAYS_INLINE long
+exhash_big(DBM *db, const datum item, gboolean big)
+{
+	return big ? bigkey_hash(db, item.dptr, item.dsize) :
+		sdbm_hash(item.dptr, item.dsize);
+}
 #else	/* !BIGDATA */
-static inline unsigned short
+static inline ALWAYS_INLINE unsigned short
 offset(unsigned short off)
 {
 	return off;
 }
 
-static inline gboolean
+static inline ALWAYS_INLINE gboolean
 is_big(unsigned short off)
 {
 	(void) off;
 	return FALSE;
+}
+static inline ALWAYS_INLINE long
+exhash_big(DBM *db, const datum item, gboolean big)
+{
+	(void) db;
+	(void) big;
+	return sdbm_hash(item.dptr, item.dsize);
 }
 #endif	/* BIGDATA */
 
@@ -76,7 +83,7 @@ static int seepair(DBM *db, const char *, unsigned, const char *, size_t);
  *      +------------+--------+--------+
  *      | datoff | - - - ---->         |
  *      +--------+---------------------+
- *      |        F R E E A R E A       |
+ *      |       F R E E  A R E A       |
  *      +--------------+---------------+
  *      |  <---- - - - | data          |
  *      +--------+-----+----+----------+
@@ -219,6 +226,7 @@ putpair(DBM *db, char *pag, datum key, datum val)
 		unsigned off;
 		unsigned short *ino = (unsigned short *) pag;
 		size_t vl;
+		gboolean largeval;
 
 		off = ((n = ino[0]) > 0) ? offset(ino[n]) : DBM_PBLKSIZ;
 
@@ -236,32 +244,37 @@ putpair(DBM *db, char *pag, datum key, datum val)
 
 		if (key.dsize > DBM_PAIRMAX || DBM_PAIRMAX - key.dsize < vl) {
 			size_t kl = bigkey_length(key.dsize);
-			/* Large key (and will use a large value as well) */
+			/* Large key (and could use a large value as well) */
 			off -= kl;
 			if (!bigkey_put(db, pag + off, kl, key.dptr, key.dsize))
 				return FALSE;
 			ino[n + 1] = off | BIG_FLAG;
+			largeval = val.dsize > DBM_PAIRMAX / 2 ||
+				val.dsize > DBM_PAIRMAX - bigkey_length(key.dsize);
 		} else {
 			/* Regular inlined key, only the value will be held in .dat */
 			off -= key.dsize;
 			memcpy(pag + off, key.dptr, key.dsize);
 			ino[n + 1] = off;
+			largeval = TRUE;
 		}
 
 		/*
-		 * Now the large data
+		 * Now the data.
 		 */
 
-		off -= vl;
-		if (!bigval_put(db, pag + off, vl, val.dptr, val.dsize))
-			return FALSE;
-		ino[n + 2] = off | BIG_FLAG;
+		if (largeval) {
+			off -= vl;
+			if (!bigval_put(db, pag + off, vl, val.dptr, val.dsize))
+				return FALSE;
+			ino[n + 2] = off | BIG_FLAG;
+		} else {
+			off -= val.dsize;
+			memcpy(pag + off, val.dptr, val.dsize);
+			ino[n + 2] = off;
+		}
 
-		/*
-		 * Adjust item count
-		 */
-
-		ino[0] += 2;
+		ino[0] += 2;	/* Stored 2 items: 1 key, 1 value */
 	}
 #else
 	(void) db;
@@ -679,7 +692,7 @@ pagcount(const char *pag)
 }
 
 void
-splpage(char *pag, char *pagzero, char *pagone, long int sbit)
+splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 {
 	datum key;
 	datum val;
@@ -699,6 +712,7 @@ splpage(char *pag, char *pagzero, char *pagone, long int sbit)
 		key.dsize = off - koff;
 		val.dptr = (char *) pag + voff;
 		val.dsize = koff - voff;
+		gboolean bk = is_big(ino[0]);
 
 		/*
 		 * With big data, we're moving around the indirection blocks only,
@@ -708,8 +722,8 @@ splpage(char *pag, char *pagzero, char *pagone, long int sbit)
 		 * Select the page pointer (by looking at sbit) and insert
 		 */
 
-		putpair_ext((exhash(key) & sbit) ? pagone : pagzero,
-			key, is_big(ino[0]), val, is_big(ino[1]));
+		putpair_ext((exhash_big(db, key, bk) & sbit) ? pagone : pagzero,
+			key, bk, val, is_big(ino[1]));
 
 		off = voff;
 		n -= 2;

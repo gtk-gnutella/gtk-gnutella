@@ -51,6 +51,8 @@ src/lib/float-dragon.out
 # SDBM
 /src/sdbm/dba
 /src/sdbm/dbu
+/src/sdbm/dbe
+/src/sdbm/dbt
 
 /po/*.gmo
 /po/stamp-po

@@ -482,9 +482,9 @@ main(int argc, char **argv)
 			goto db_exit;
 		}
 		while (key.dptr != NULL) {
-			content = sdbm_fetch(db, key);
+			content = sdbm_value(db);
 			if (sdbm_error(db)) {
-				log_keyerr(key, key_hexa, "fetching");
+				log_keyerr(key, key_hexa, "fetching value");
 				goto db_exit;
 			}
 			print_datum(f, key, key_hexa);
@@ -520,7 +520,7 @@ main(int argc, char **argv)
 		while (key.dptr != NULL) {
 			char *str = key2s(key);
 			if (0 == regexec(&re, str, 0, NULL, 0)) {
-				content = sdbm_fetch(db, key);
+				content = sdbm_value(db);
 				if (sdbm_error(db)) {
 					fprintf(stderr, "Error when fetching ");
 					print_datum(stderr, key, key_hexa);
