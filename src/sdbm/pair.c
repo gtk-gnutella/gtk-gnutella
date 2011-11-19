@@ -38,25 +38,25 @@ exhash(const datum item)
 #define BIG_MASK	(BIG_FLAG - 1)
 
 #ifdef BIGDATA
-static inline unsigned short
+static inline ALWAYS_INLINE unsigned short
 offset(unsigned short off)
 {
 	return off & BIG_MASK;
 }
 
-static inline gboolean
+static inline ALWAYS_INLINE gboolean
 is_big(unsigned short off)
 {
 	return booleanize(off & BIG_FLAG);
 }
 #else	/* !BIGDATA */
-static inline unsigned short
+static inline ALWAYS_INLINE unsigned short
 offset(unsigned short off)
 {
 	return off;
 }
 
-static inline gboolean
+static inline ALWAYS_INLINE gboolean
 is_big(unsigned short off)
 {
 	(void) off;
@@ -76,7 +76,7 @@ static int seepair(DBM *db, const char *, unsigned, const char *, size_t);
  *      +------------+--------+--------+
  *      | datoff | - - - ---->         |
  *      +--------+---------------------+
- *      |        F R E E A R E A       |
+ *      |       F R E E  A R E A       |
  *      +--------------+---------------+
  *      |  <---- - - - | data          |
  *      +--------+-----+----+----------+
@@ -219,6 +219,7 @@ putpair(DBM *db, char *pag, datum key, datum val)
 		unsigned off;
 		unsigned short *ino = (unsigned short *) pag;
 		size_t vl;
+		gboolean largeval;
 
 		off = ((n = ino[0]) > 0) ? offset(ino[n]) : DBM_PBLKSIZ;
 
@@ -236,32 +237,37 @@ putpair(DBM *db, char *pag, datum key, datum val)
 
 		if (key.dsize > DBM_PAIRMAX || DBM_PAIRMAX - key.dsize < vl) {
 			size_t kl = bigkey_length(key.dsize);
-			/* Large key (and will use a large value as well) */
+			/* Large key (and could use a large value as well) */
 			off -= kl;
 			if (!bigkey_put(db, pag + off, kl, key.dptr, key.dsize))
 				return FALSE;
 			ino[n + 1] = off | BIG_FLAG;
+			largeval = val.dsize > DBM_PAIRMAX / 2 ||
+				val.dsize > DBM_PAIRMAX - bigkey_length(key.dsize);
 		} else {
 			/* Regular inlined key, only the value will be held in .dat */
 			off -= key.dsize;
 			memcpy(pag + off, key.dptr, key.dsize);
 			ino[n + 1] = off;
+			largeval = TRUE;
 		}
 
 		/*
-		 * Now the large data
+		 * Now the data.
 		 */
 
-		off -= vl;
-		if (!bigval_put(db, pag + off, vl, val.dptr, val.dsize))
-			return FALSE;
-		ino[n + 2] = off | BIG_FLAG;
+		if (largeval) {
+			off -= vl;
+			if (!bigval_put(db, pag + off, vl, val.dptr, val.dsize))
+				return FALSE;
+			ino[n + 2] = off | BIG_FLAG;
+		} else {
+			off -= val.dsize;
+			memcpy(pag + off, val.dptr, val.dsize);
+			ino[n + 2] = off;
+		}
 
-		/*
-		 * Adjust item count
-		 */
-
-		ino[0] += 2;
+		ino[0] += 2;	/* Stored 2 items: 1 key, 1 value */
 	}
 #else
 	(void) db;
