@@ -626,7 +626,7 @@ shell_read_data(struct gnutella_shell *sh)
 	s = sh->socket;
 
 	if (s->buf_size - s->pos < 1) {
-		g_warning("Remote shell: Read more than buffer size.\n");
+		g_warning("SHELL read more than buffer size (%zu bytes)", s->buf_size);
 	} else {
 		size_t size = s->buf_size - s->pos - 1;
 		ssize_t ret;
