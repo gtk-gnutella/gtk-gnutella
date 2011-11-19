@@ -764,7 +764,7 @@ makroom(DBM *db, long int hash, size_t need)
 		 * split the current page
 		 */
 
-		splpage(cur, pag, New, db->hmask + 1);
+		splpage(db, cur, pag, New, db->hmask + 1);
 
 		/*
 		 * address of the new page

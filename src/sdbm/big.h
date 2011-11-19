@@ -4,6 +4,7 @@
 #define bigkey_length sdbm__bigkey_length
 #define bigval_length sdbm__bigval_length
 #define bigkey_eq sdbm__bigkey_eq
+#define bigkey_hash sdbm__bigkey_hash
 #define big_alloc sdbm__big_alloc
 #define big_free sdbm__big_free
 #define big_shrink sdbm__big_shrink
@@ -28,6 +29,7 @@ typedef struct DBMBIG DBMBIG;
 size_t bigkey_length(size_t);
 size_t bigval_length(size_t);
 gboolean bigkey_eq(DBM *, const char *, size_t, const char *, size_t);
+long bigkey_hash(DBM *, const char *, size_t);
 char *bigkey_get(DBM *, const char *, size_t);
 char *bigval_get(DBM *, const char *, size_t);
 struct DBMBIG *big_alloc(const char *, int, int);
