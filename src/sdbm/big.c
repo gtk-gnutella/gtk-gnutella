@@ -352,7 +352,7 @@ flush_bitbuf(DBM *db)
 		return TRUE;
 	}
 
-	g_warning("sdbm: \"%s\": cannot flush bitmap #%ld: %s",
+	g_critical("sdbm: \"%s\": cannot flush bitmap #%ld: %s",
 		sdbm_name(db), dbg->bitbno / BIG_BITCOUNT,
 		-1 == w ? g_strerror(errno) : "partial write");
 
@@ -382,7 +382,7 @@ fetch_bitbuf(DBM *db, long num)
 		dbg->bitread++;
 		got = compat_pread(dbg->fd, dbg->bitbuf, BIG_BLKSIZE, OFF_DAT(bno));
 		if (got < 0) {
-			g_warning("sdbm: \"%s\": could not read bitmap block #%ld: %m",
+			g_critical("sdbm: \"%s\": could not read bitmap block #%ld: %m",
 				sdbm_name(db), num);
 			ioerr(db, FALSE);
 			return FALSE;
@@ -766,7 +766,7 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 
 		dbg->bigread++;
 		if (-1 == compat_pread(dbg->fd, q, toread, OFF_DAT(bno))) {
-			g_warning("sdbm: \"%s\": "
+			g_critical("sdbm: \"%s\": "
 				"could not read %zu bytes starting at data block #%u: %m",
 				sdbm_name(db), toread, bno);
 
@@ -784,12 +784,12 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 	return 0;
 
 corrupted_database:
-	g_warning("sdbm: \"%s\": cannot read unallocated data block #%u",
+	g_critical("sdbm: \"%s\": cannot read unallocated data block #%u",
 		sdbm_name(db), prev_bno);
 	goto fault;
 
 corrupted_page:
-	g_warning("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
+	g_critical("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
 		sdbm_name(db), bcnt, 1 == bcnt ? "" : "s");
 
 	/* FALL THROUGH */
@@ -910,7 +910,7 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 		0 != memcmp(db->big->scratch + (siz-BIG_KEYSAVED),
 				bigkey_tail(bkey), BIG_KEYSAVED)
 	) {
-		g_warning("sdbm: \"%s\": found %zu-byte key page/data inconsistency",
+		g_critical("sdbm: \"%s\": found %zu-byte key page/data inconsistency",
 			sdbm_name(db), siz);
 		return FALSE;
 	}
@@ -1019,7 +1019,7 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 
 		dbg->bigwrite++;
 		if (-1 == compat_pwrite(dbg->fd, q, towrite, OFF_DAT(bno))) {
-			g_warning("sdbm: \"%s\": "
+			g_critical("sdbm: \"%s\": "
 				"could not write %zu bytes starting at data block #%u: %m",
 				sdbm_name(db), towrite, bno);
 
@@ -1037,7 +1037,7 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 	return 0;
 
 corrupted_page:
-	g_warning("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
+	g_critical("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
 		sdbm_name(db), bcnt, 1 == bcnt ? "" : "s");
 
 	ioerr(db, FALSE);
@@ -1239,7 +1239,7 @@ bigkey_get(DBM *db, const char *bkey, size_t blen)
 	DBMBIG *dbg = db->big;
 
 	if (bigkey_length(len) != blen) {
-		g_warning("sdbm: \"%s\": "
+		g_critical("sdbm: \"%s\": "
 			"bigkey_get: inconsistent key length %zu in .pag",
 			sdbm_name(db), len);
 		return NULL;
@@ -1267,7 +1267,7 @@ bigval_get(DBM *db, const char *bval, size_t blen)
 	DBMBIG *dbg = db->big;
 
 	if (bigval_length(len) != blen) {
-		g_warning("sdbm: \"%s\": "
+		g_critical("sdbm: \"%s\": "
 			"bigval_get: inconsistent value length %zu in .pag",
 			sdbm_name(db), len);
 		return NULL;
@@ -1294,7 +1294,7 @@ bigkey_free(DBM *db, const char *bkey, size_t blen)
 	size_t len = big_length(bkey);
 
 	if (bigkey_length(len) != blen) {
-		g_warning("sdbm: \"%s\": "
+		g_critical("sdbm: \"%s\": "
 			"bigkey_free: inconsistent key length %zu in .pag",
 			sdbm_name(db), len);
 		return FALSE;
@@ -1319,7 +1319,7 @@ bigval_free(DBM *db, const char *bval, size_t blen)
 	size_t len = big_length(bval);
 
 	if (bigval_length(len) != blen) {
-		g_warning("sdbm: \"%s\": "
+		g_critical("sdbm: \"%s\": "
 			"bigval_free: inconsistent key length %zu in .pag",
 			sdbm_name(db), len);
 		return FALSE;
@@ -1724,7 +1724,7 @@ big_shrink(DBM *db)
 		bno = bit_field_last_set(dbg->bitbuf, 0, BIG_BITCOUNT - 1);
 
 		if ((size_t) -1 == bno) {
-			g_warning("sdbm: \"%s\": corrupted bitmap #%ld, considered empty",
+			g_critical("sdbm: \"%s\": corrupted bitmap #%ld, considered empty",
 				sdbm_name(db), i);
 		} else if (bno != 0) {
 			bno = size_saturate_add(bno, size_saturate_mult(BIG_BITCOUNT, i));

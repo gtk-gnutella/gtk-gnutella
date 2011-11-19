@@ -567,7 +567,7 @@ lru_invalidate(DBM *db, long bno)
 		 */
 
 		if (cache->dirty[idx]) {
-			g_warning("sdbm: \"%s\": %s() invalidating dirty page #%ld",
+			g_critical("sdbm: \"%s\": %s() invalidating dirty page #%ld",
 				db->name, stacktrace_caller_name(1), bno);
 		}
 
@@ -689,7 +689,7 @@ cachepag(DBM *db, char *pag, long num)
 				db->name, num);
 		}
 		if (weird > 0) {
-			g_warning("sdbm: \"%s\": previous warning%s indicate possible "
+			g_critical("sdbm: \"%s\": previous warning%s indicate possible "
 				"corruption in the bitmap forest",
 				db->name, 1 == weird ? "" : "s");
 		}
@@ -746,7 +746,7 @@ flushpag(DBM *db, char *pag, long num)
 			g_warning("sdbm: \"%s\": cannot flush page #%ld: %m",
 				sdbm_name(db), num);
 		} else {
-			g_warning("sdbm: \"%s\": could only flush %u bytes from page #%ld",
+			g_critical("sdbm: \"%s\": could only flush %u bytes from page #%ld",
 				sdbm_name(db), (unsigned) w, num);
 		}
 		ioerr(db, TRUE);

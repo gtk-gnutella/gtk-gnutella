@@ -412,7 +412,7 @@ fetch_pagbuf(DBM *db, long pagnum)
 		db->pagread++;
 		got = compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(pagnum));
 		if G_UNLIKELY(got < 0) {
-			g_warning("sdbm: \"%s\": cannot read page #%ld: %m",
+			g_critical("sdbm: \"%s\": cannot read page #%ld: %m",
 				sdbm_name(db), pagnum);
 			ioerr(db, FALSE);
 			db->pagbno = -1;
@@ -420,12 +420,12 @@ fetch_pagbuf(DBM *db, long pagnum)
 		}
 		if G_UNLIKELY(got < DBM_PBLKSIZ) {
 			if (got > 0)
-				g_warning("sdbm: \"%s\": partial read (%u bytes) of page #%ld",
+				g_critical("sdbm: \"%s\": partial read (%u bytes) of page #%ld",
 					sdbm_name(db), (unsigned) got, pagnum);
 			memset(db->pagbuf + got, 0, DBM_PBLKSIZ - got);
 		}
 		if G_UNLIKELY(!sdbm_internal_chkpage(db->pagbuf)) {
-			g_warning("sdbm: \"%s\": corrupted page #%ld, clearing",
+			g_critical("sdbm: \"%s\": corrupted page #%ld, clearing",
 				sdbm_name(db), pagnum);
 			memset(db->pagbuf, 0, DBM_PBLKSIZ);
 			db->bad_pages++;
@@ -488,7 +488,7 @@ flush_dirbuf(DBM *db)
 #endif
 
 	if G_UNLIKELY(w != DBM_DBLKSIZ) {
-		g_warning("sdbm: \"%s\": cannot flush dir block #%ld: %s",
+		g_critical("sdbm: \"%s\": cannot flush dir block #%ld: %s",
 			sdbm_name(db), db->dirbno,
 			-1 == w ? g_strerror(errno) : "partial write");
 
@@ -943,7 +943,8 @@ makroom(DBM *db, long int hash, size_t need)
 		 */
 
 		if G_UNLIKELY(!setdbit(db, db->curbit)) {
-			g_warning("sdbm: \"%s\": cannot set bit in forest bitmap for 0x%lx",
+			g_critical("sdbm: \"%s\": "
+				"cannot set bit in forest bitmap for 0x%lx",
 				sdbm_name(db), db->curbit);
 			db->spl_errors++;
 			db->spl_corrupt++;
@@ -968,7 +969,7 @@ makroom(DBM *db, long int hash, size_t need)
 	 * we still cannot fit the key. say goodnight.
 	 */
 
-	g_warning("sdbm: \"%s\": cannot insert after DBM_SPLTMAX (%d) attempts",
+	g_critical("sdbm: \"%s\": cannot insert after DBM_SPLTMAX (%d) attempts",
 		sdbm_name(db), DBM_SPLTMAX);
 
 	return FALSE;
@@ -1017,7 +1018,7 @@ restore:
 		if (failed) {
 			db->spl_errors++;
 			db->spl_corrupt++;
-			g_warning("sdbm: \"%s\": cannot undo split of page #%lu: %m",
+			g_critical("sdbm: \"%s\": cannot undo split of page #%lu: %m",
 				sdbm_name(db), curbno);
 		}
 	} else {
@@ -1034,7 +1035,7 @@ restore:
 #endif
 		memset(New, 0, DBM_PBLKSIZ);
 		if (compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0) {
-			g_warning("sdbm: \"%s\": cannot zero-back new split page #%ld: %m",
+			g_critical("sdbm: \"%s\": cannot zero-back new split page #%ld: %m",
 				sdbm_name(db), newp);
 			ioerr(db, TRUE);
 			db->spl_errors++;
@@ -1278,7 +1279,7 @@ fetch_dirbuf(DBM *db, long dirb)
 		db->dirread++;
 		got = compat_pread(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(dirb));
 		if G_UNLIKELY(got < 0) {
-			g_warning("sdbm: \"%s\": could not read dir page #%ld: %m",
+			g_critical("sdbm: \"%s\": could not read dir page #%ld: %m",
 				sdbm_name(db), dirb);
 			ioerr(db, FALSE);
 			return FALSE;
