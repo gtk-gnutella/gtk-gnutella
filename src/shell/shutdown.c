@@ -48,7 +48,7 @@ shutdown_mode_string(enum shutdown_mode mode)
 	switch (mode) {
 	case GTKG_SHUTDOWN_NORMAL:	break;
 	case GTKG_SHUTDOWN_ASSERT:	return " (followed by assertion failure)";
-	case GTKG_SHUTDOWN_ERROR:	return " (followed by forcced error)";
+	case GTKG_SHUTDOWN_ERROR:	return " (followed by forced error)";
 	case GTKG_SHUTDOWN_MEMORY:	return " (followed by memory error)";
 	case GTKG_SHUTDOWN_SIGNAL:	return " (followed by harmful signal)";
 	}
