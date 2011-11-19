@@ -562,7 +562,7 @@ trace_name(const void *pc, gboolean offset)
 {
 	static char buf[256];
 
-	if (!trace_array.sorted) {
+	if (!trace_array.sorted || 0 == trace_array.count) {
 		trace_fmt_pointer(buf, sizeof buf, pc);
 	} else {
 		struct trace *t;
