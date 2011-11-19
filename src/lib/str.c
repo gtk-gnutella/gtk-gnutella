@@ -1889,6 +1889,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	size_t fmtlen;
 	size_t origlen;
 	size_t remain = maxlen;
+	size_t processed = 0;
 
 	str_check(str);
 	g_assert(size_is_non_negative(maxlen));
@@ -1909,6 +1910,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	if G_UNLIKELY(2 == fmtlen && fmt[0] == '%' && fmt[1] == 's') {
 		const char *s = va_arg(args, char*);
 		size_t len;
+		processed++;
 		s = s ? s : nullstr;
 		len = strlen(s);
 		if (!str_ncat_safe(str, s, len > maxlen ? maxlen : len) || len > maxlen)
@@ -2047,6 +2049,7 @@ G_STMT_START {									\
 				int i = va_arg(args, int);
 				left |= (i < 0);
 				width = (i < 0) ? -UNSIGNED(i) : UNSIGNED(i);
+				processed++;
 				q++;
 			}
 			break;
@@ -2059,6 +2062,7 @@ G_STMT_START {									\
 			if (*q == '*') {
 				int i = va_arg(args, int);
 				precis = (i < 0) ? 0 : i;
+				processed++;
 				q++;
 			} else {
 				precis = 0;
@@ -2097,6 +2101,7 @@ G_STMT_START {									\
 			c = va_arg(args, int) & MAX_INT_VAL(unsigned char);
 			eptr = &c;
 			elen = 1;
+			processed++;
 			goto string;
 
 		case 'm':
@@ -2116,6 +2121,7 @@ G_STMT_START {									\
 
 		case 's':
 			eptr = va_arg(args, char*);
+			processed++;
 			if (NULL == eptr)
 				eptr = nullstr;
 			if (has_precis) {
@@ -2138,6 +2144,7 @@ G_STMT_START {									\
 			base = 16;
 			c = 'x';		/* Request lower-cased pointer */
 			alt = TRUE;		/* Request leading "0x" */
+			processed++;
 			goto integer;
 
 		case 'D':
@@ -2151,6 +2158,7 @@ G_STMT_START {									\
 			case 'z':		iv = va_arg(args, ssize_t); break;
 			default:		iv = va_arg(args, int); break;
 			}
+			processed++;
 			if (iv >= 0) {
 				uv = iv;
 				if (plus)
@@ -2189,6 +2197,7 @@ G_STMT_START {									\
 			case 'z':  uv = va_arg(args, size_t); break;
 			default:   uv = va_arg(args, unsigned); break;
 			}
+			processed++;
 
 		/* FALL THROUGH */
 
@@ -2253,6 +2262,7 @@ G_STMT_START {									\
 				gboolean ok;
 
 				nv = va_arg(args, double);
+				processed++;
 				if (!has_precis)
 					precis = 6;					/* Default precision */
 
@@ -2277,6 +2287,7 @@ G_STMT_START {									\
 				case 'z': *(va_arg(args, ssize_t*)) = MIN(n, SSIZE_MAX); break;
 				default:  *(va_arg(args, int*)) = MIN(n, INT_MAX); break;
 				}
+				processed++;
 			}
 			continue;	/* not "break" */
 
@@ -2433,9 +2444,11 @@ clamped:
 		if (!recursion && tests_completed) {
 			recursion = TRUE;
 			s_minicarp("truncated output within %zu-byte buffer "
-				"(%zu max, %zu written, %zu available) with \"%s\"",
+				"(%zu max, %zu written, %zu available) with \"%s\" "
+				"(%zu arg%s processed)",
 				str->s_size, maxlen, str->s_len - origlen,
-				str->s_size - str->s_len, fmt);
+				str->s_size - str->s_len,
+				fmt, processed, 1 == processed ? "" : "s");
 			recursion = FALSE;
 		}
 	}
