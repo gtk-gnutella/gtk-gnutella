@@ -321,7 +321,7 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 
 			if (dval.len > dw->value_data_size) {
 				/* Don't g_carp() as this is asynchronous wrt data change */
-				g_warning("DBMW \"%s\" serialization overflow in %s() "
+				g_critical("DBMW \"%s\" serialization overflow in %s() "
 					"whilst %s dirty entry",
 					dw->name,
 					stacktrace_routine_name(func_to_pointer(dw->pack), FALSE),
