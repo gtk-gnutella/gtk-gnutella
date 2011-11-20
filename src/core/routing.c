@@ -2166,7 +2166,7 @@ route_push(struct route_log *route_log,
 				node_addr(sender), guid_hex_str(guid));
 		}
 		routing_log_extra(route_log, "to banned GUID %s", guid_hex_str(guid));
-		gnet_stats_count_dropped(sender, MSG_DROP_BANNED);
+		gnet_stats_count_dropped(sender, MSG_DROP_TO_BANNED);
 		return FALSE;
 	}
 

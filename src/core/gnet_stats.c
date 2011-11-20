@@ -79,7 +79,8 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Route lost"),					 /**< MSG_DROP_ROUTE_LOST */
 		N_("No route"),						 /**< MSG_DROP_NO_ROUTE */
 		N_("Duplicate message"),			 /**< MSG_DROP_DUPLICATE */
-		N_("Message to banned GUID"),		 /**< MSG_DROP_BANNED */
+		N_("Message to banned GUID"),		 /**< MSG_DROP_TO_BANNED */
+		N_("Message from banned GUID"),		 /**< MSG_DROP_FROM_BANNED */
 		N_("Node shutting down"),			 /**< MSG_DROP_SHUTDOWN */
 		N_("TX flow control"),				 /**< MSG_DROP_FLOW_CONTROL */
 		N_("Query text had no trailing NUL"),/**< MSG_DROP_QUERY_NO_NUL */
