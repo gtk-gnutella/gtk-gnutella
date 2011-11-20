@@ -243,7 +243,8 @@ static void free_route_list(struct message *m);
 static inline gboolean
 is_banned_push(const struct guid *guid)
 {
-	return NULL != g_hash_table_lookup(ht_banned_push, guid);
+	return NULL != g_hash_table_lookup(ht_banned_push, guid) ||
+		guid_is_banned(guid);
 }
 
 struct node_magic {
@@ -2761,6 +2762,18 @@ route_exists_for_reply(const struct guid *muid, guint8 function)
 		return FALSE;
 
 	return TRUE;
+}
+
+/**
+ * Check whether GUID is routable through a PUSH request.
+ *
+ * @return TRUE if GUID is routable, FALSE if no PUSH could ever properly
+ * reach the target node.
+ */
+gboolean
+route_guid_pushable(const struct guid *guid)
+{
+	return !is_banned_push(guid);
 }
 
 /**

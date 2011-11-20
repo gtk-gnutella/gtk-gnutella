@@ -2779,6 +2779,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		goto bad_packet;		
 	}
 
+	if ((rs->status & ST_FIREWALL) && !route_guid_pushable(rs->guid)) {
+        gnet_stats_count_dropped(n, MSG_DROP_FROM_BANNED);
+		badmsg = "firewalled origin & banned GUID";
+		goto bad_packet;		
+	}
+
 	/*
 	 * At this point we finished processing of the query hit, successfully.
 	 */

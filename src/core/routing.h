@@ -73,6 +73,7 @@ void routing_node_remove(void *node);
 void message_add(const struct guid *muid, guint8, struct gnutella_node *);
 GSList *route_towards_guid(const struct guid *guid);
 gboolean route_exists_for_reply(const struct guid *muid, guint8 function);
+gboolean route_guid_pushable(const struct guid *guid);
 
 gboolean route_proxy_add(const struct guid *guid, struct gnutella_node *n);
 void route_proxy_remove(const struct guid *guid);

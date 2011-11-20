@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -32,16 +32,28 @@
  * changed).
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2011
  */
 
 #include "common.h"
 
 #include "guid.h"
+#include "settings.h"
+#include "gnet_stats.h"
 
+#include "dht/stable.h"
+
+#include "lib/atoms.h"
+#include "lib/bstr.h"
+#include "lib/cq.h"
+#include "lib/dbmw.h"
+#include "lib/dbstore.h"
 #include "lib/endian.h"
 #include "lib/misc.h"
+#include "lib/pmsg.h"
 #include "lib/product.h"
+#include "lib/stringify.h"
+#include "lib/tm.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -67,10 +79,64 @@
 #define HEC_GENERATOR	0x107		/**< x^8 + x^2 + x + 1 */
 #define HEC_GTKG_MASK	0x0c3		/**< HEC GTKG's mask */
 
+/**
+ * DBM wrapper to store dynamically collected bad GUID.
+ */
+static dbmw_t *db_guid;
+static char db_guid_base[] = "banned_guid";
+static char db_guid_what[] = "Banned GUIDs";
+
+#define GUID_DATA_VERSION		0		/**< Serialization version number */
+#define GUID_PRUNE_PERIOD		(3000 * 1000)	/**< in ms */
+#define GUID_SYNC_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
+#define GUID_STABLE_PROBA		0.25			/**< 25% */
+#define GUID_STABLE_LIFETIME	(12 * 3600)		/**< 12 hours */
+
+/**
+ * Information about a bad GUID that is stored to disk.
+ * The structure is serialized first, not written as-is.
+ */
+struct guiddata {
+	time_t create_time;		/**< When we first encountered that GUID */
+	time_t last_time;		/**< Last time we had evidence of it being bad */
+};
+
+static cperiodic_t *guid_prune_ev;		/**< Bad GUID pruning */
+static cperiodic_t *guid_sync_ev;		/**< Bad GUID DB sync */
+
 const struct guid blank_guid;
 
 static guint8 syndrome_table[256];
 static guint16 gtkg_version_mark;
+
+/**
+ * Serialization routine for guiddata.
+ */
+static void
+serialize_guiddata(pmsg_t *mb, const void *data)
+{
+	const struct guiddata *gd = data;
+
+	pmsg_write_u8(mb, GUID_DATA_VERSION);
+	pmsg_write_time(mb, gd->create_time);
+	pmsg_write_time(mb, gd->last_time);
+}
+
+/**
+ * Deserialization routine for guiddata.
+ */
+static void
+deserialize_guiddata(bstr_t *bs, void *valptr, size_t len)
+{
+	struct guiddata *gd = valptr;
+	guint8 version;
+
+	g_assert(1 + sizeof *gd == len);	/* Version not stored in structure */
+
+	bstr_read_u8(bs, &version);
+	bstr_read_time(bs, &gd->create_time);
+	bstr_read_time(bs, &gd->last_time);
+}
 
 /**
  * Generate a table of CRC-8 syndromes for all possible input bytes.
@@ -158,37 +224,7 @@ guid_hec_oob(const struct guid *guid)
 }
 
 /**
- * Initialize GUID management.
- */
-G_GNUC_COLD void
-guid_init(void)
-{
-	char rev;		/* NUL means stable release */
-
-	guid_gen_syndrome_table();
-
-	rev = product_get_revchar();
-	gtkg_version_mark =
-		guid_gtkg_encode_version(product_get_major(),
-			product_get_minor(), '\0' == rev);
-
-	if (GNET_PROPERTY(node_debug))
-		g_debug("GTKG version mark is 0x%x", gtkg_version_mark);
-
-	/*
-	 * Validate that guid_random_muid() correctly marks GUIDs as being GTKG's.
-	 */
-
-	{
-		struct guid guid_buf;
-
-		guid_random_muid(&guid_buf);
-		g_assert(guid_is_gtkg(&guid_buf, NULL, NULL, NULL));
-	}
-}
-
-/**
- * FIXME: This actually long deprecated by now. LimeWire does not care about
+ * FIXME: This is actually long deprecated by now. LimeWire does not care about
  * it anymore but some older or less maintained clients might still care. It
  * reduces the randomness of the MUIDs resp. GUID and makes them stick out too.
  *
@@ -496,6 +532,202 @@ guid_oob_get_addr_port(const struct guid *guid,
 	if (port) {
 		*port = peek_le16(&guid->v[13]);
 	}
+}
+
+/**
+ * Is GUID banned?
+ */
+gboolean
+guid_is_banned(const struct guid *guid)
+{
+	return dbmw_exists(db_guid, guid);
+}
+
+/**
+ * Get banned GUID data from database, returning NULL if not found.
+ */
+static struct guiddata *
+get_guiddata(const struct guid *guid)
+{
+	struct guiddata *gd;
+
+	gd = dbmw_read(db_guid, guid, NULL);
+
+	if (NULL == gd) {
+		if (dbmw_has_ioerr(db_guid)) {
+			g_warning("DBMW \"%s\" I/O error", dbmw_name(db_guid));
+		}
+	}
+
+	return gd;
+}
+
+/**
+ * Add GUID to the banned list or refresh the fact that we are still seeing
+ * it as being worth banning.
+ */
+void
+guid_add_banned(const struct guid *guid)
+{
+	struct guiddata *gd;
+	struct guiddata new_gd;
+
+	gd = get_guiddata(guid);
+
+	if (NULL == gd) {
+		gd = &new_gd;
+		gd->create_time = gd->last_time = tm_time();
+		gnet_stats_count_general(GNR_BANNED_GUID_HELD, +1);
+
+		if (GNET_PROPERTY(guid_debug)) {
+			g_debug("GUID banning %s", guid_hex_str(guid));
+		}
+	} else {
+		gd->last_time = tm_time();
+	}
+
+	dbmw_write(db_guid, guid, gd, sizeof *gd);
+}
+
+/**
+ * DBMW foreach iterator to remove old entries.
+ * @return TRUE if entry must be deleted.
+ */
+static gboolean
+guid_prune_old_entries(void *key, void *value, size_t u_len, void *u_data)
+{
+	const guid_t *guid = key;
+	const struct guiddata *gd = value;
+	time_delta_t d;
+	double p = 0.0;
+	gboolean expired;
+
+	(void) u_len;
+	(void) u_data;
+
+	/*
+	 * We reuse the statistical probability model of DHT nodes to project
+	 * whether it makes sense to keep an entry.
+	 */
+
+	d = delta_time(tm_time(), gd->last_time);
+	if (gd->create_time == gd->last_time) {
+		expired = d > GUID_STABLE_LIFETIME;
+	} else {
+		p = stable_still_alive_probability(gd->create_time, gd->last_time);
+		expired = p < GUID_STABLE_PROBA;
+	}
+
+	if (GNET_PROPERTY(guid_debug) > 5) {
+		g_debug("GUID cached %s life=%s last_seen=%s, p=%.2f%%%s",
+			guid_hex_str(guid),
+			compact_time(delta_time(gd->create_time, gd->last_time)),
+			compact_time2(d), p * 100.0,
+			expired ? " [EXPIRED]" : "");
+	}
+
+	return expired;
+}
+
+/**
+ * Prune the database of banned GUIDs, removing expired entries.
+ */
+static void
+guid_prune_old(void)
+{
+	if (GNET_PROPERTY(guid_debug))
+		g_debug("GUID pruning expired entries (%zu)", dbmw_count(db_guid));
+
+	dbmw_foreach_remove(db_guid, guid_prune_old_entries, NULL);
+	gnet_stats_set_general(GNR_BANNED_GUID_HELD, dbmw_count(db_guid));
+
+	if (GNET_PROPERTY(guid_debug)) {
+		g_debug("GUID pruned expired entries (%zu remaining)",
+			dbmw_count(db_guid));
+	}
+}
+
+/**
+ * Callout queue periodic event to expire old entries.
+ */
+static gboolean
+guid_periodic_prune(void *unused_obj)
+{
+	(void) unused_obj;
+
+	guid_prune_old();
+	return TRUE;		/* Keep calling */
+}
+
+/**
+ * Callout queue periodic event to synchronize the disk image.
+ */
+static gboolean
+guid_periodic_sync(void *unused_obj)
+{
+	(void) unused_obj;
+
+	dbstore_sync_flush(db_guid);
+	return TRUE;		/* Keep calling */
+}
+
+/**
+ * Initialize GUID management.
+ */
+G_GNUC_COLD void
+guid_init(void)
+{
+	dbstore_kv_t kv =
+		{ sizeof(guid_t), NULL, 1 + sizeof(struct guiddata), 0 };
+	dbstore_packing_t packing =
+		{ serialize_guiddata, deserialize_guiddata, NULL };
+	char rev;		/* NUL means stable release */
+
+	g_assert(NULL == db_guid);
+
+	guid_gen_syndrome_table();
+
+	rev = product_get_revchar();
+	gtkg_version_mark =
+		guid_gtkg_encode_version(product_get_major(),
+			product_get_minor(), '\0' == rev);
+
+	if (GNET_PROPERTY(node_debug))
+		g_debug("GTKG version mark is 0x%x", gtkg_version_mark);
+
+	/*
+	 * Validate that guid_random_muid() correctly marks GUIDs as being GTKG's.
+	 */
+
+	{
+		struct guid guid_buf;
+
+		guid_random_muid(&guid_buf);
+		g_assert(guid_is_gtkg(&guid_buf, NULL, NULL, NULL));
+	}
+
+	db_guid = dbstore_open(db_guid_what, settings_gnet_db_dir(),
+		db_guid_base, kv, packing, 1,
+		guid_hash, guid_eq, FALSE);
+
+	guid_prune_old();
+
+	guid_prune_ev = cq_periodic_main_add(
+		GUID_PRUNE_PERIOD, guid_periodic_prune, NULL);
+	guid_sync_ev = cq_periodic_main_add(
+		GUID_SYNC_PERIOD, guid_periodic_sync, NULL);
+}
+
+/**
+ * Close GUID management.
+ */
+G_GNUC_COLD void
+guid_close(void)
+{
+	dbstore_close(db_guid, settings_gnet_db_dir(), db_guid_base);
+	db_guid = NULL;
+	cq_periodic_remove(&guid_prune_ev);
+	cq_periodic_remove(&guid_sync_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

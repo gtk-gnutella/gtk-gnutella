@@ -278,6 +278,7 @@ typedef struct gnutella_node {
  * Node flags.
  */
 enum {
+	NODE_F_DUP_GUID		= 1 << 29,	/**< Node bears duplicate GUID */
 	NODE_F_BYE_WAIT		= 1 << 28,	/**< Waiting for BYE being sent */
 	NODE_F_NOT_GENUINE	= 1 << 27,	/**< Vendor cannot be genuine */
 	NODE_F_VMSG_SUPPORT	= 1 << 26,	/**< Indicated which VMSGs are supported */
@@ -313,6 +314,7 @@ enum {
  * Node attributes.
  */
 enum {
+	NODE_A_BAD_GUID		= 1 << 29,	/**< Node has bad GUID */
 	NODE_A_IPV6_ONLY	= 1 << 28,	/**< Node does not want any IPv4 */
 	NODE_A_CAN_IPV6		= 1 << 27,	/**< Node supports IPv6 */
 	NODE_A_CAN_WHAT		= 1 << 26,	/**< Node supports "What's New?" queries? */
@@ -444,6 +446,8 @@ enum {
 
 #define NODE_ID(n)				((n)->id)
 
+#define NODE_USES_DUP_GUID(n)	((n)->flags & NODE_F_DUP_GUID)
+
 #define NODE_CAN_BYE(n)			((n)->attrs & NODE_A_BYE_PACKET)
 #define NODE_CAN_SFLAG(n)		((n)->attrs & NODE_A_CAN_SFLAG)
 #define NODE_UP_QRP(n)			((n)->attrs & NODE_A_UP_QRP)
@@ -451,6 +455,9 @@ enum {
 #define NODE_CAN_INFLATE(n)		((n)->attrs & NODE_A_CAN_INFLATE)
 #define NODE_USES_UDP(n)		((n)->attrs & NODE_A_UDP)
 #define NODE_CAN_WHAT(n)		((n)->attrs & NODE_A_CAN_WHAT)
+#define NODE_HAS_BAD_GUID(n)	((n)->attrs & NODE_A_BAD_GUID)
+#define NODE_IS_FIREWALLED(n)	((n)->attrs & NODE_A_FIREWALLED)
+
 
 /*
  * Peer inspection macros

@@ -201,6 +201,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"changed_server_guid",
 		"guid_collisions",
 		"own_guid_collisions",
+		"banned_guid_held",
 		"received_known_fw_node_info",
 		"revitalized_push_routes",
 		"collected_push_proxies",

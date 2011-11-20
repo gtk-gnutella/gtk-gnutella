@@ -4645,6 +4645,12 @@ qrt_build_query_target(
 			}
 			if (rt == NULL)				/* No QRT yet */
 				continue;				/* Don't send anything */
+			if (NODE_HAS_BAD_GUID(dn)) {
+				if (!NODE_USES_DUP_GUID(dn))
+					continue;			/* Rogue node, probably */
+				if (NODE_IS_FIREWALLED(dn))
+					continue;			/* Will not be able to PUSH to it */
+			}
 		} else {
 			/* Ultra node */
 			if (0 == ttl)				/* Exclude routing to other UPs */
