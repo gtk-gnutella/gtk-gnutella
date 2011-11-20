@@ -25,6 +25,6 @@
     <key>NSHumanReadableCopyright</key>
     <string>Copyright 2000-2011 gtk-gnutella Team, GNU General Public License.</string>
     <key>LSMinimumSystemVersion</key>
-    <string>10.4</string>
+    <string>10.5</string>
 </dict>
 </plist>
