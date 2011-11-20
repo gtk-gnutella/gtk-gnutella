@@ -5091,4 +5091,15 @@ prop = {
     };
 };
 
+prop = {
+	name = "guid_debug";
+	desc = "Debug level for GUID management.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */

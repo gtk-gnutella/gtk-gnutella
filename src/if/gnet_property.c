@@ -1016,6 +1016,8 @@ guint32  gnet_property_variable_xmalloc_debug     = 0;
 static const guint32  gnet_property_variable_xmalloc_debug_default = 0;
 guint32  gnet_property_variable_qhit_bad_debug     = 0;
 static const guint32  gnet_property_variable_qhit_bad_debug_default = 0;
+guint32  gnet_property_variable_guid_debug     = 0;
+static const guint32  gnet_property_variable_guid_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -9350,6 +9352,26 @@ gnet_prop_init(void) {
     gnet_property->props[436].data.guint32.choices = NULL;
     gnet_property->props[436].data.guint32.max   = 20;
     gnet_property->props[436].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_GUID_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[437].name = "guid_debug";
+    gnet_property->props[437].desc = _("Debug level for GUID management.");
+    gnet_property->props[437].ev_changed = event_new("guid_debug_changed");
+    gnet_property->props[437].save = TRUE;
+    gnet_property->props[437].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[437].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[437].data.guint32.def   = (void *) &gnet_property_variable_guid_debug_default;
+    gnet_property->props[437].data.guint32.value = (void *) &gnet_property_variable_guid_debug;
+    gnet_property->props[437].data.guint32.choices = NULL;
+    gnet_property->props[437].data.guint32.max   = 20;
+    gnet_property->props[437].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
