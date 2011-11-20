@@ -4790,12 +4790,10 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	 * if requested.
 	 */
 
-	if G_UNLIKELY(
-		GNET_PROPERTY(gnet_compact_query) ||
-		(n->msg_flags & NODE_M_EXT_CLEANUP)
-	) {
+	if (
+		GNET_PROPERTY(gnet_compact_query) || (n->msg_flags & NODE_M_EXT_CLEANUP)
+	)
 		search_compact(n);
-	}
 
 	/*
 	 * Now that the original TTL was used to build the node list, don't

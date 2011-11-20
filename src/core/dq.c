@@ -917,10 +917,7 @@ dq_free(dquery_t *dq)
 	 * mess with the table ourselves.
 	 */
 
-	if (
-		!node_id_self(dq->node_id) &&
-		!(dq->flags & DQ_F_ID_CLEANING)
-	) {
+	if (!node_id_self(dq->node_id) && !(dq->flags & DQ_F_ID_CLEANING)) {
 		gpointer value;
 		gboolean found;
 		GSList *list;
@@ -929,7 +926,7 @@ dq_free(dquery_t *dq)
 					NULL, &value);
 
 		if (!found) {
-			g_error("%s: Missing %s", G_STRLOC, nid_to_string(dq->node_id));
+			g_error("%s: missing %s", G_STRLOC, nid_to_string(dq->node_id));
 		}
 
 		list = value;
@@ -1854,6 +1851,15 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 		(flags_valid && !(flags & QUERY_F_OOB_REPLY))
 	)
 		dq->flags |= DQ_F_ROUTING_HITS;
+
+	/*
+	 * Compact query if requested.
+	 */
+
+	if (
+		GNET_PROPERTY(gnet_compact_query) || (n->msg_flags & NODE_M_EXT_CLEANUP)
+	)
+		search_compact(n);
 
 	dq->node_id = nid_ref(NODE_ID(n));
 	dq->mb = gmsg_split_to_pmsg(&n->header, n->data, n->size + GTA_HEADER_SIZE);
