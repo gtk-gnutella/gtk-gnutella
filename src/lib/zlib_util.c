@@ -321,6 +321,10 @@ zlib_deflate_data(zlib_deflater_t *zd, gconstpointer data, int len)
 	z_streamp outz = zd->opaque;
 
 	g_assert(outz != NULL);			/* Stream not closed yet */
+	g_assert(len >= 0);
+
+	if G_UNLIKELY(0 == len)
+		return TRUE;
 
 	zd->in = data;
 	zd->inlen = len;
