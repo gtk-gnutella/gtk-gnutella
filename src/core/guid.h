@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Globally Unique ID (GUID) manager.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2011
  */
 
 #ifndef _core_guid_h_
@@ -44,6 +44,11 @@
  */
 
 void guid_init(void);
+void guid_close(void);
+
+gboolean guid_is_banned(const struct guid *guid);
+void guid_add_banned(const struct guid *guid);
+
 gboolean guid_is_gtkg(const struct guid *xuid,
 	guint8 *majp, guint8 *minp, gboolean *relp);
 gboolean guid_is_requery(const struct guid *xuid);

@@ -37,6 +37,7 @@
 
 #include "gtk-gnutella.h"
 
+#include "nodes.h"
 #include "alive.h"
 #include "ban.h"
 #include "bh_upload.h"
@@ -51,18 +52,18 @@
 #include "geo_ip.h"
 #include "gmsg.h"
 #include "gnet_stats.h"
+#include "guid.h"
 #include "hcache.h"
 #include "hostiles.h"
 #include "hosts.h"
 #include "hsep.h"
 #include "http.h"
-#include "ioheader.h"
 #include "inet.h"			/* For INET_IP_V6READY */
+#include "ioheader.h"
 #include "ipp_cache.h"
 #include "mq.h"
 #include "mq_tcp.h"
 #include "mq_udp.h"
-#include "nodes.h"
 #include "pcache.h"
 #include "pdht.h"
 #include "pproxy.h"
@@ -8601,7 +8602,7 @@ node_remove_useless_leaf(gboolean *is_gtkg)
     GSList *sl;
 	struct gnutella_node *worst = NULL;
 	int greatest = 0;
-	time_t now = (time_t) -1;
+	time_t now = tm_time();
 
     for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
@@ -8619,7 +8620,7 @@ node_remove_useless_leaf(gboolean *is_gtkg)
             continue;
 
 		/*
-		 * Our targets are non-sharing leaves, or leaves preventing
+		 * Our primary targets are non-sharing leaves, or leaves preventing
 		 * any querying via hops-flow or lack of QRT.
 		 */
 
@@ -8633,18 +8634,15 @@ node_remove_useless_leaf(gboolean *is_gtkg)
 
 		if (n->gnet_files_count == 0)
 			target = n->connect_date;
-
-		if (n->recv_query_table == NULL && n->qrt_receive == NULL)
+		else if (n->recv_query_table == NULL && n->qrt_receive == NULL)
 			target = n->connect_date;
-
-		if (n->leaf_flowc_start != 0)
+		else if (NODE_HAS_BAD_GUID(n))
+			target = n->connect_date;
+		else if (n->leaf_flowc_start != 0)
 			target = n->leaf_flowc_start;
 
 		if ((time_t) -1 == target)
 			continue;
-
-		if ((time_t) -1 == now)
-			now = tm_time();
 
 		diff = delta_time(now, target);
 
@@ -8684,7 +8682,7 @@ node_remove_useless_ultra(gboolean *is_gtkg)
     GSList *sl;
 	struct gnutella_node *worst = NULL;
 	int greatest = 0;
-	time_t now = (time_t) -1;
+	time_t now = tm_time();
 
 	/*
 	 * Only operate when we're an ultra node ourselves.
@@ -8727,9 +8725,6 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 			break;
 		}
 
-		if (!NODE_RX_COMPRESSED(n))			/* No RX compression => candidate */
-			target = n->connect_date;
-
 		/*
 		 * Our targets are firewalled nodes, nodes which do not support
 		 * the inter-QRP table, nodes which have no leaves (as detected
@@ -8737,20 +8732,17 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 		 * basis).
 		 */
 
-		if (n->flags & NODE_F_PROXIED)		/* Firewalled node */
+		if (
+			!NODE_RX_COMPRESSED(n)  ||		/* No RX compression => candidate */
+			(n->flags & NODE_F_PROXIED) ||	/* Firewalled node */
+			(n->qrt_receive == NULL && n->recv_query_table == NULL) ||
+			(n->qrt_info && n->qrt_info->generation == 0) ||
+			NODE_HAS_BAD_GUID(n)
+		) {
 			target = n->connect_date;
-
-		if (n->qrt_receive == NULL && n->recv_query_table == NULL)
-			target = n->connect_date;
-
-		if (n->qrt_info && n->qrt_info->generation == 0)
-			target = n->connect_date;
-
-		if ((time_t) -1 == target)
+		} else {
 			continue;
-
-		if ((time_t) -1 == now)
-			now = tm_time();
+		}
 
 		diff = delta_time(now, target);
 
@@ -9202,6 +9194,13 @@ node_by_guid(const struct guid *guid)
 	return n;
 }
 
+static inline void
+node_flag_duplicate_guid(gnutella_node_t *n)
+{
+	n->attrs |= NODE_A_BAD_GUID;
+	n->flags |= NODE_F_DUP_GUID;
+}
+
 /**
  * Set the GUID of a connected node.
  *
@@ -9218,9 +9217,16 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 	g_return_val_if_fail(guid, TRUE);
 	g_return_val_if_fail(!n->guid, TRUE);
 
+	if (n->attrs & NODE_A_BAD_GUID) {
+		if (n->flags & NODE_F_DUP_GUID)
+			guid_add_banned(guid);		/* Update to flag it still alive */
+		goto error;
+	}
+
 	if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
 		g_warning("%s uses our GUID", node_infostr(n));
 		gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
+		n->attrs |= NODE_A_BAD_GUID;
 		goto error;
 	}
 
@@ -9228,6 +9234,7 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 		if (GNET_PROPERTY(node_debug)) {
 			g_warning("%s uses blank GUID", node_infostr(n));
 		}
+		n->attrs |= NODE_A_BAD_GUID;
 		goto error;
 	}
 
@@ -9239,6 +9246,9 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 				node_addr2(owner), node_vendor(owner));
 		}
 		gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
+		node_flag_duplicate_guid(n);
+		node_flag_duplicate_guid(owner);
+		guid_add_banned(guid);
 		goto error;
 	}
 
@@ -9833,12 +9843,11 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 	if (n->attrs & NODE_A_CAN_DHT)
 		return;
 
-	/*
-	 * Transient node, don't bother.
-	 */
-
 	if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME)
-		return;
+		return;			/* Transient node, don't bother */
+
+	if (NODE_HAS_BAD_GUID(n))
+		return;			/* Bad GUID, don't bother either */
 
 	n->dht_nope_ev = cq_main_insert((DHT_VALUE_NOPE_EXPIRE - (5*60)) * 1000,
 		node_publish_dht_nope, n);

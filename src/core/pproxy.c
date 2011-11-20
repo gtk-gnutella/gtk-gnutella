@@ -785,6 +785,9 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	 * Locate a route to that servent.
 	 */
 
+	if (!route_guid_pushable(pp->guid))
+		goto sorry;
+
 	n = route_proxy_find(pp->guid);
 
 	/*
@@ -897,6 +900,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	 * Sorry.
 	 */
 
+sorry:
 	gnet_stats_count_general(GNR_PUSH_PROXY_FAILED, 1);
 
 	pproxy_error_remove(pp, 410, "Push proxy: no route to servent GUID %s",
