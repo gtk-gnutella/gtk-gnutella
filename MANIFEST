@@ -161,7 +161,7 @@ gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 install.SH                   BSD-compatible install program
 makensis.sh                  Wrapper for the makensis Windows command
 mingw/config.sh.xmingw
-osx/Info-gtk-gnutella.plist
+osx/Info-gtk-gnutella.plist.tpl
 osx/gtk-gnutella.bundle
 osx/gtk-gnutella.icns
 osx/launcher.sh

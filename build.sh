@@ -302,12 +302,18 @@ ${MAKE} || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
 
 if [ "X$build_osxbundle" = Xtrue ]
 then
+	. ./scripts/git-version.sh
+	
+	sed -e "s/CFBundleShortVersionStringPlaceHolder/${VMajor}.${VMinor}.${VPatch}${revchar}/" \
+		-e "s/CFBundleVersionPlaceHolder/${VMajor}.${VMinor}.${VPatch}r${VRev}/" \
+		osx/Info-gtk-gnutella.plist.tpl > osx/Info-gtk-gnutella.plist
+	
 	rm -rf osx/bundle
 	make install &&
 	gtk-mac-bundler osx/gtk-gnutella.bundle &&
 	rm -rf osx/bundle &&
 	ln -s /Applications osx/image/Applications &&
-	dmg="${HOME}/Desktop/Gtk-Gnutella-`./scripts/git-version.sh`.dmg" &&
+	dmg="${HOME}/Desktop/Gtk-Gnutella-${VN}.dmg" &&
 	hdiutil create -srcfolder osx/image -volname Gtk-Gnutella "${dmg}" &&
 	hdiutil internet-enable -yes "${dmg}"
 	rm -rf osx/image
