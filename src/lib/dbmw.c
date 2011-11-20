@@ -75,9 +75,9 @@ struct dbmw {
 	dbmw_deserialize_t unpack;	/**< Deserialization routine for values */
 	dbmw_free_t valfree;		/**< Free routine for deserialized values */
 	int error;					/**< Last errno value */
-	guint8 ioerr;				/**< Had I/O error */
-	guint8 count_needs_sync;	/**< Whether we need to sync to get count */
-	guint8 is_volatile;			/**< Whether database dies when map dies */
+	unsigned ioerr:1;			/**< Had I/O error */
+	unsigned count_needs_sync:1;/**< Whether we need to sync to get count */
+	unsigned is_volatile:1;		/**< Whether database dies when map dies */
 };
 
 static inline void
