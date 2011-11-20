@@ -7534,8 +7534,14 @@ route_only:
 		}
 	}
 
-	if (!n)
-		goto clean_dest;	/* The node has been removed during processing */
+	/*
+	 * At this stage the node could be NULL (it has been removed during
+	 * earlier processing) or no longer connected (we tried to send a
+	 * message to it and it failed).
+	 */
+
+	if (NULL == n || !NODE_IS_CONNECTED(n))
+		goto clean_dest;
 
 	if (drop)
 		goto dropped;

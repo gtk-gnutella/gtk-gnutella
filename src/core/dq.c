@@ -1748,6 +1748,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 	/* Query from leaf node */
 	g_assert(NODE_IS_LEAF(n));
 	g_assert(gnutella_header_get_hops(&n->header) == 1);
+	g_assert(NODE_IS_CONNECTED(n));
 
 	WALLOC0(dq);
 	dq->magic = DQUERY_MAGIC;

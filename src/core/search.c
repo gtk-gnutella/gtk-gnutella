@@ -7779,6 +7779,7 @@ search_compact(struct gnutella_node *n)
 	gboolean has_ggep = FALSE;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
+	g_assert(n->data != NULL);
 
 	search = n->data + 2;	/* skip flags */
 	search_len = clamp_strlen(search, n->size - 2);
