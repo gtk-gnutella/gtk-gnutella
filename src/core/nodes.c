@@ -9843,12 +9843,11 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 	if (n->attrs & NODE_A_CAN_DHT)
 		return;
 
-	/*
-	 * Transient node, don't bother.
-	 */
-
 	if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME)
-		return;
+		return;			/* Transient node, don't bother */
+
+	if (NODE_HAS_BAD_GUID(n))
+		return;			/* Bad GUID, don't bother either */
 
 	n->dht_nope_ev = cq_main_insert((DHT_VALUE_NOPE_EXPIRE - (5*60)) * 1000,
 		node_publish_dht_nope, n);
