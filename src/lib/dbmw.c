@@ -972,9 +972,13 @@ dbmw_exists(dbmw_t *dw, gconstpointer key)
 	 *
 	 * Therefore, it makes sense to cache existence checks.  A data read
 	 * will also correctly return a null item from the cache.
+	 *
+	 * If the value length is not 0, we only cache negative lookups (i.e.
+	 * the value was not found) because we did not get any value so it is
+	 * possible to record an absent cache entry.
 	 */
 
-	if (0 == dw->value_size) {
+	if (0 == dw->value_size || !ret) {
 		WALLOC0(entry);
 		entry->absent = !ret;
 		(void) allocate_entry(dw, key, entry);
