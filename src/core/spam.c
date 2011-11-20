@@ -111,16 +111,6 @@ static const char spam_what[] = "Spam database";
 
 /****** END IDEAS ONLY ******/
 
-/* NOTE: This is disabled because SQLite does not seem worth the overhead
- *       here for now as spam.txt isn't horribly large. With a slow disk
- *		 or NFS, for example, the performance hit may be noticable.
- */
-#if 0
-#ifdef HAS_SQLITE
-#define USE_SQLITE 1
-#endif /* HAS_SQLITE */
-#endif
-
 struct spam_lut {
 	GSList *sl_names;	/* List of g_malloc()ed regex_t items */
 };
