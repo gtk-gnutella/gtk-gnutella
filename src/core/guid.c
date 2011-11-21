@@ -131,7 +131,7 @@ deserialize_guiddata(bstr_t *bs, void *valptr, size_t len)
 	struct guiddata *gd = valptr;
 	guint8 version;
 
-	g_assert(1 + sizeof *gd == len);	/* Version not stored in structure */
+	g_assert(sizeof *gd == len);
 
 	bstr_read_u8(bs, &version);
 	bstr_read_time(bs, &gd->create_time);
@@ -677,10 +677,13 @@ guid_periodic_sync(void *unused_obj)
 G_GNUC_COLD void
 guid_init(void)
 {
-	dbstore_kv_t kv =
-		{ sizeof(guid_t), NULL, 1 + sizeof(struct guiddata), 0 };
-	dbstore_packing_t packing =
-		{ serialize_guiddata, deserialize_guiddata, NULL };
+	dbstore_kv_t kv = {
+		sizeof(guid_t), NULL, sizeof(struct guiddata),
+		1 + sizeof(struct guiddata)	/* Version byte not held in structure */
+	};
+	dbstore_packing_t packing = {
+		serialize_guiddata, deserialize_guiddata, NULL
+	};
 	char rev;		/* NUL means stable release */
 
 	g_assert(NULL == db_guid);
