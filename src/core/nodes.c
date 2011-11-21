@@ -8581,6 +8581,15 @@ node_bye_pending(void)
 {
 	g_assert(in_shutdown);		/* Cannot be called before node_bye_all() */
 
+	if (GNET_PROPERTY(shutdown_debug) > 1) {
+		static time_t last;
+		if (last != tm_time()) {
+			g_debug("SHUTDOWN %d pending BYE message%s",
+				pending_byes, 1 == pending_byes ? "" : "s");
+			last = tm_time();
+		}
+	}
+
 	return pending_byes > 0;
 }
 

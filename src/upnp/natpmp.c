@@ -283,12 +283,12 @@ natpmp_rpc_free(struct natpmp_rpc *rd)
 }
 
 /**
- * Do we have pending NAT-PMP requests?
+ * How many pending NAT-PMP requests do we have?
  */
-gboolean
+unsigned
 natpmp_pending(void)
 {
-	return 0 != natpmp_rpc_pending;
+	return natpmp_rpc_pending;
 }
 
 /**

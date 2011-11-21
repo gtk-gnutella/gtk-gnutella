@@ -157,6 +157,17 @@ upnp_igd_ip_routed(void)
 gboolean
 upnp_delete_pending(void)
 {
+	if (GNET_PROPERTY(shutdown_debug) > 1) {
+		static time_t last;
+		if (last != tm_time()) {
+			unsigned nat = natpmp_pending();
+			g_debug("SHUTDOWN %u pending IDG delete%s and %u NAT-PMP delete%s",
+				igd.delete_pending, 1 == igd.delete_pending ? "" : "s",
+				nat, 1 == nat ? "" : "s");
+			last = tm_time();
+		}
+	}
+
 	return igd.delete_pending != 0 || natpmp_pending();
 }
 
