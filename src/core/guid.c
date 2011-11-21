@@ -621,7 +621,7 @@ guid_prune_old_entries(void *key, void *value, size_t u_len, void *u_data)
 	if (GNET_PROPERTY(guid_debug) > 5) {
 		g_debug("GUID cached %s life=%s last_seen=%s, p=%.2f%%%s",
 			guid_hex_str(guid),
-			compact_time(delta_time(gd->create_time, gd->last_time)),
+			compact_time(delta_time(gd->last_time, gd->create_time)),
 			compact_time2(d), p * 100.0,
 			expired ? " [EXPIRED]" : "");
 	}
