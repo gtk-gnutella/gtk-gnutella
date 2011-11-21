@@ -687,7 +687,8 @@ node_get_id(const struct gnutella_node * const n)
 	return n->id;
 }
 
-gboolean node_set_guid(struct gnutella_node *n, const struct guid *guid);
+gboolean node_set_guid(struct gnutella_node *n,
+	const struct guid *guid, gboolean gnet);
 struct gnutella_node *node_by_guid(const struct guid *guid);
 
 #endif /* _core_nodes_h_ */

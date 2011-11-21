@@ -5715,7 +5715,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				node_remove(n, _("Already connected to this GUID"));
 				return;
 			}
-			node_set_guid(n, &guid);
+			node_set_guid(n, &guid, FALSE);
 		} else {
 			if (GNET_PROPERTY(node_debug)) {
 				g_warning("%s sent garbage GUID header \"%s\"",
@@ -9210,10 +9210,14 @@ node_flag_duplicate_guid(gnutella_node_t *n)
 /**
  * Set the GUID of a connected node.
  *
+ * @param n		the node for which we want to set the GUID
+ * @param guid	the GUID to set
+ * @param gnet	if TRUE, GUID was extracted from a Gnutella message
+ *
  * @return TRUE if any error occured and the GUID was not set.
  */
 gboolean
-node_set_guid(struct gnutella_node *n, const struct guid *guid)
+node_set_guid(struct gnutella_node *n, const struct guid *guid, gboolean gnet)
 {
 	struct gnutella_node *owner;
 
@@ -9221,12 +9225,39 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 
 	g_return_val_if_fail(!NODE_USES_UDP(n), TRUE);
 	g_return_val_if_fail(guid, TRUE);
-	g_return_val_if_fail(!n->guid, TRUE);
 
-	if (n->attrs & NODE_A_BAD_GUID) {
-		if (n->flags & NODE_F_DUP_GUID)
-			guid_add_banned(guid);		/* Update to flag it still alive */
-		goto error;
+	/*
+	 * If we already have a GUID for this node, do nothing if it has not
+	 * changed or flag weirdness otherwise!
+	 */
+
+	if (n->guid != NULL) {
+		if (!guid_eq(n->guid, guid)) {
+			if (gnet)
+				n->n_weird++;
+			if (
+				(gnet && GNET_PROPERTY(search_debug) > 1) ||
+				GNET_PROPERTY(node_debug)
+			) {
+				char buf[sizeof("[weird #] ") + UINT32_DEC_BUFLEN];
+				const char *msg = gnet ? gmsg_node_infostr(n) : NULL;
+				char guid_buf[GUID_HEX_SIZE + 1];
+
+				if (gnet)
+					gm_snprintf(buf, sizeof buf, "[weird #%d] ", n->n_weird);
+				else
+					buf[0] = '\0';
+
+				guid_to_string_buf(guid, guid_buf, sizeof guid_buf);
+
+				g_warning("%s%s already has GUID %s but used %s%s%s",
+					buf, node_infostr(n), guid_hex_str(node_guid(n)),
+					guid_buf, NULL == msg ? "" : " in ",
+					NULL == msg ? "" : msg);
+			}
+			return TRUE;
+		}
+		return FALSE;	/* No change, everything OK */
 	}
 
 	if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
@@ -9252,6 +9283,8 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 		 * as having a bad GUID.
 		 */
 
+		g_soft_assert(owner != n);	/* Or n->guid would have been set */
+
 		if (
 			host_addr_equal(node_gnet(owner), node_gnet(n)) &&
 			n->vendor != NULL && owner->vendor != NULL &&
@@ -9259,16 +9292,24 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 		)
 			goto error;
 
-		if (GNET_PROPERTY(node_debug)) {
-			g_warning("%s uses same GUID %s as %s <%s>",
-				node_infostr(n), guid_hex_str(guid),
-				node_addr2(owner), node_vendor(owner));
+		/*
+		 * Do not account for a new collision if we already know that
+		 * the node bears a bad GUID.
+		 */
+
+		if (!(n->flags & NODE_F_DUP_GUID)) {
+			if (GNET_PROPERTY(node_debug)) {
+				g_warning("%s uses same GUID %s as %s <%s>",
+					node_infostr(n), guid_hex_str(guid),
+					node_addr2(owner), node_vendor(owner));
+			}
+
+			gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
+			node_flag_duplicate_guid(n);
+			node_flag_duplicate_guid(owner);
 		}
 
-		gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
-		node_flag_duplicate_guid(n);
-		node_flag_duplicate_guid(owner);
-		guid_add_banned(guid);
+		guid_add_banned(guid);		/* Add new, or refresh seen time */
 		goto error;
 	}
 
@@ -9276,7 +9317,6 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 	gm_hash_table_insert_const(nodes_by_guid, n->guid, n);
 	return FALSE;
 	
-
 error:
 	return TRUE;
 }
@@ -9959,20 +9999,8 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 		return TRUE;	/* Route already recorded */
 	}
 
-	if (node_guid(n)) {
-		if (!guid_eq(node_guid(n), guid)) {
-			if (GNET_PROPERTY(node_debug)) {
-				char guid_buf[GUID_HEX_SIZE + 1];
-
-				guid_to_string_buf(guid, guid_buf, sizeof guid_buf);
-				g_warning("%s has GUID %s but used %s",
-					node_infostr(n), guid_hex_str(node_guid(n)), guid_buf);
-			}
-			return FALSE;
-		}
-	} else if (node_set_guid(n, guid)) {
+	if (node_set_guid(n, guid, TRUE))
 		return FALSE;
-	}
 
 	/*
 	 * Refuse to be the push-proxy of a node who will be mostly transient.

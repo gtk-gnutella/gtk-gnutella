@@ -3071,25 +3071,13 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	}
 
 	/*
-	 * Save node's GUID.
+	 * Save node's GUID, extracted from the search results.
+	 *
+	 * If we already know the GUID of that node, this will also make
+	 * sure that it is not changing.
 	 */
 
-	if (node_guid(n)) {
-		if (!guid_eq(node_guid(n), rs->guid)) {
-			n->n_weird++;
-			if (GNET_PROPERTY(search_debug) > 1) {
-				char guid_buf[GUID_HEX_SIZE + 1];
-
-				guid_to_string_buf(rs->guid, guid_buf, sizeof guid_buf);
-				g_warning("[weird #%d] %s has GUID %s but used %s in %s",
-					n->n_weird, node_infostr(n),
-					guid_hex_str(node_guid(n)), guid_buf,
-					gmsg_node_infostr(n));
-			}
-		}
-	} else {
-		node_set_guid(n, rs->guid);
-	}
+	node_set_guid(n, rs->guid, TRUE);
 
 	/*
 	 * We don't declare any weirdness if the address in the results matches
