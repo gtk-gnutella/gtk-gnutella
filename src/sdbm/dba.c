@@ -11,10 +11,13 @@
 
 char *progname;
 extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
-void sdump(int);
+void sdump(int, long);
 void bdump(int);
 
-static int summary_only;
+#define bool int
+
+static bool summary_only;
+static bool on_tty;
 
 static void G_GNUC_NORETURN
 usage(void)
@@ -27,6 +30,17 @@ usage(void)
 	exit(EXIT_FAILURE);
 }
 
+static void
+show_progress(long n, long count)
+{
+	if (on_tty) {
+		static int c = 0;
+
+		printf("%c (%02ld%%)\r", "-\\|/"[c++ % 4], n * 100 / count);
+		fflush(stdout);
+	}
+}
+
 int
 main(int argc, char **argv)
 {
@@ -37,6 +51,8 @@ main(int argc, char **argv)
 
 	progname = argv[0];
 	(void) argc;
+
+	on_tty = isatty(STDOUT_FILENO);
 
 	while ((c = getopt(argc, argv, "s")) != EOF) {
 		switch (c) {
@@ -54,6 +70,8 @@ main(int argc, char **argv)
 		int datf;
 		char *name;
 		int n;
+		long npag;
+		filestat_t buf;
 
 		name = (char *) malloc((n = strlen(p)) + sizeof(DBM_PAGFEXT));
 		if (!name)
@@ -65,7 +83,11 @@ main(int argc, char **argv)
 		if ((pagf = open(name, O_RDONLY)) < 0)
 			oops("cannot open %s.", name);
 
-		sdump(pagf);
+		if (-1 == fstat(pagf, &buf))
+			oops("cannot fstat opened %s", name);
+
+		npag = buf.st_size / DBM_PBLKSIZ;
+		sdump(pagf, npag);
 		free(name);
 
 		name = (char *) malloc(n + sizeof(DBM_DATFEXT));
@@ -148,7 +170,7 @@ pagestat(char *pag,
 }
 
 void
-sdump(int pagf)
+sdump(int pagf, long npag)
 {
 	int b;
 	int n = 0;
@@ -164,6 +186,7 @@ sdump(int pagf)
 	while ((b = read(pagf, pag, DBM_PBLKSIZ)) > 0) {
 		int lk, lv;
 		unsigned ks, vs;
+		if (summary_only && 0 == n % 1000) show_progress(n, npag);
 		if (!summary_only) printf("#%d: ", n);
 		if (!sdbm_internal_chkpage(pag)) {
 			bad++;
