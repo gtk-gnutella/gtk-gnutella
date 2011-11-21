@@ -9194,6 +9194,12 @@ node_by_guid(const struct guid *guid)
 	return n;
 }
 
+static inline host_addr_t
+node_gnet(const gnutella_node_t *n)
+{
+	return is_host_addr(n->gnet_addr) ? n->gnet_addr : n->addr;
+}
+
 static inline void
 node_flag_duplicate_guid(gnutella_node_t *n)
 {
@@ -9239,12 +9245,26 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 	}
 
 	owner = node_by_guid(guid);
-	if (owner) {
+	if (owner != NULL) {
+		/*
+		 * Do not count a collision if this is the same address and
+		 * servent vendors are identical, and do not flag the node
+		 * as having a bad GUID.
+		 */
+
+		if (
+			host_addr_equal(node_gnet(owner), node_gnet(n)) &&
+			n->vendor != NULL && owner->vendor != NULL &&
+			0 == strcmp(owner->vendor, n->vendor)
+		)
+			goto error;
+
 		if (GNET_PROPERTY(node_debug)) {
 			g_warning("%s uses same GUID %s as %s <%s>",
 				node_infostr(n), guid_hex_str(guid),
 				node_addr2(owner), node_vendor(owner));
 		}
+
 		gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
 		node_flag_duplicate_guid(n);
 		node_flag_duplicate_guid(owner);
