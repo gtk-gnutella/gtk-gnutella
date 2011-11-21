@@ -179,7 +179,7 @@ general_type_str(gint value)
 		N_("Changed server GUIDs"),
 		N_("Detected GUID collisions"),
 		N_("Detected collisions with our own GUID"),
-		N_("GUID banned"),
+		N_("GUID dynamically banned"),
 		N_("Firewalled node info for known hosts received in upload requests"),
 		N_("Revitalized PUSH routes"),
 		N_("Collected new PUSH proxies from other query hits"),
