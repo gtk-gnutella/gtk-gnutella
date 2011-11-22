@@ -465,15 +465,15 @@ msgid_plural "%u DHT lookups"
 msgstr[0] "%u interrogation de la DHT"
 msgstr[1] "%u interrogations de la DHT"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Got %d host from %s"
 msgid_plural "Got %d hosts from %s"
-msgstr[0] "Reçu %d hôte du cache des hôtes UDP %s"
-msgstr[1] "Reçu %d hôtes du cache des hôtes UDP %s"
+msgstr[0] "Reçu %d hôte de %s"
+msgstr[1] "Reçu %d hôtes de %s"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Bootstrapping from %s"
-msgstr "DHT en initialisation"
+msgstr "Initialisation depuis %s"
 
 msgid "Bad size"
 msgstr "Mauvaise taille"
@@ -529,12 +529,11 @@ msgstr "Message doublon"
 msgid "Message to banned GUID"
 msgstr "Message vers un GUID banni"
 
-#, fuzzy
 msgid "Message from banned GUID"
-msgstr "Message vers un GUID banni"
+msgstr "Message depuis un GUID banni"
 
 msgid "Node shutting down"
-msgstr "Nœud en cours d'arrêt"
+msgstr "Noeud en cours d'arrêt"
 
 msgid "TX flow control"
 msgstr "Contrôle de flux TX"
@@ -640,7 +639,7 @@ msgid "HELLO %s error %d (%s)"
 msgstr "HELLO %s erreur %d (%s)"
 
 msgid "Shielded node"
-msgstr "Nœud feuille sous écran"
+msgstr "Noeud feuille sous écran"
 
 msgid "Gnet connections disabled"
 msgstr "Connexions Gnet désactivées"
@@ -654,24 +653,24 @@ msgstr "Trop de feuilles (%d max)"
 
 #, c-format
 msgid "Too many ultra nodes (%d max)"
-msgstr "Trop de nœuds ultra (%d max)"
+msgstr "Trop de noeuds ultra (%d max)"
 
 #, c-format
 msgid "Rejected normal node (%d max)"
 msgstr "Mode normal rejeté (%d max)"
 
 msgid "Rejected leaf node"
-msgstr "Nœud feuille rejeté"
+msgstr "Noeud feuille rejeté"
 
 #, c-format
 msgid "Too many nodes (%d max)"
-msgstr "Trop de nœuds (%d max)"
+msgstr "Trop de noeuds (%d max)"
 
 msgid "Sent shielded indication"
 msgstr "Indication de protection feuille envoyée"
 
 msgid "Not an ultra node"
-msgstr "Pas un nœud ultra"
+msgstr "Pas un noeud ultra"
 
 msgid "Unstable IP address"
 msgstr "Adresse IP instable"
@@ -698,9 +697,8 @@ msgstr "Pas un membre du réseau"
 msgid "Too frequent crawling"
 msgstr "Fouinage trop fréquent"
 
-#, fuzzy
 msgid "Already connected to this GUID"
-msgstr "Déjà connecté"
+msgstr "Déjà connecté à ce GUID"
 
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
@@ -716,7 +714,7 @@ msgid "Cannot connect to a crawler"
 msgstr "Impossible de se connecter à un fouineur"
 
 msgid "Not becoming a leaf node"
-msgstr "Ne deviendra pas un nœud feuille"
+msgstr "Ne deviendra pas un noeud feuille"
 
 #, c-format
 msgid "Failed (Cannot send %s: %s)"
@@ -743,10 +741,10 @@ msgid "Failed (Extra HELLO data)"
 msgstr "Échec (Données supplémentaires HELLO)"
 
 msgid "Pseudo UDP node"
-msgstr "Nœud pseudo UDP"
+msgstr "Noeud pseudo UDP"
 
 msgid "Pseudo DHT node"
-msgstr "Nœud pseudo DHT"
+msgstr "Noeud pseudo DHT"
 
 msgid "Already connected"
 msgstr "Déjà connecté"
@@ -804,9 +802,9 @@ msgstr "Erreur de lecture : %s"
 msgid "Must wait %u more seconds before resending \"What's New\""
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "mkdir(\"%s\") failed: %m"
-msgstr "mkdir(\"%s\") à échoué : \"%s\""
+msgstr "mkdir(\"%s\") a échoué : %m"
 
 msgid "Can't find your home directory!"
 msgstr "Ne peut trouver votre répertoire d'accueil !"
@@ -980,10 +978,10 @@ msgid "auto (recommended)"
 msgstr "automatique (recommandé)"
 
 msgid "ultra node"
-msgstr "nœud ultra"
+msgstr "noeud ultra"
 
 msgid "leaf node"
-msgstr "nœud feuille"
+msgstr "noeud feuille"
 
 msgid "none"
 msgstr "aucun"
@@ -1079,13 +1077,13 @@ msgstr ""
 "mettiez une valeur plus grande que 40."
 
 msgid "Number of leaf nodes currently connected."
-msgstr "Nombre de nœuds 'leaf' connectés actuellement."
+msgstr "Nombre de noeuds 'leaf' connectés actuellement."
 
 msgid "Number of normal nodes currently connected."
-msgstr "Nombre de nœuds 'normaux' connectés actuellement."
+msgstr "Nombre de noeuds 'normaux' connectés actuellement."
 
 msgid "Number of ultra nodes currently connected."
-msgstr "Nombre de nœuds 'ultra' connectés actuellement."
+msgstr "Nombre de noeuds 'ultra' connectés actuellement."
 
 msgid ""
 "Don't start more than this number of parallel downloads.  Others will remain "
@@ -1343,14 +1341,14 @@ msgid ""
 "Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150 "
 "percent of the maximum message size."
 msgstr ""
-"Taille maximum de la file d'envoi pour les nœuds (en octets). Doit être au "
+"Taille maximum de la file d'envoi pour les noeuds (en octets). Doit être au "
 "moins 150% de la taille maximum d'un message."
 
 msgid ""
 "Maximum number of seconds a node can remain in transmit flow control before "
 "being kicked out."
 msgstr ""
-"Nombre maximum de secondes qu'un nœud peut rester en contrôle de flux de "
+"Nombre maximum de secondes qu'un noeud peut rester en contrôle de flux de "
 "transmission avant d'être éjecté."
 
 msgid ""
@@ -1358,9 +1356,9 @@ msgid ""
 "control remotely before dropping the connection.  This only works with nodes "
 "that will send us an hops-flow message when they are flow-controlling us."
 msgstr ""
-"Pourcentage maximum du temps sur 5 minutes que notre nœud peut rester en "
+"Pourcentage maximum du temps sur 5 minutes que notre noeud peut rester en "
 "contrôle de flux à distance avant d'arrêter la connexion.  Fonctionne "
-"uniquement avec les nœuds qui nous enverront un message 'hops-flow' quand "
+"uniquement avec les noeuds qui nous enverront un message 'hops-flow' quand "
 "ils contrôleront notre flux."
 
 msgid ""
@@ -1380,7 +1378,7 @@ msgid ""
 msgstr ""
 "TTL que nous utilisons dans les messages que nous générons.  La valeur par "
 "défaut sur Gnutella est TTL=4. Si vous la mettez à une valeur trop grande, "
-"vous courrez le risque d'être diminué par les autres nœuds gtk-gnutella, ou "
+"vous courrez le risque d'être diminué par les autres noeuds gtk-gnutella, ou "
 "bien être éjecté par d'autres servents."
 
 msgid ""
@@ -1419,7 +1417,7 @@ msgid "Debug level for file sharing code."
 msgstr "Niveau de débogage pour le code de partage de fichier."
 
 msgid "Debug level for Gnutella nodes."
-msgstr "Niveau de débogage pour les nœuds Gnutella."
+msgstr "Niveau de débogage pour les noeuds Gnutella."
 
 msgid "Debug level for sockets."
 msgstr "Niveau de débogage pour les sockets."
@@ -1677,21 +1675,19 @@ msgstr ""
 "Le préfixe de l'adresse IPv6 utilisé par le convertisseur IPv6-vers-IPv4."
 
 msgid "Current number of hosts in regular node caches."
-msgstr "Nombre actuel d'hôtes dans la liste des nœuds réguliers."
+msgstr "Nombre actuel d'hôtes dans la liste des noeuds réguliers."
 
-#, fuzzy
 msgid "Current number of IPv4 hosts in ultra node caches."
-msgstr "Nombre actuel d'hôtes dans la liste des nœuds ultra."
+msgstr "Nombre actuel d'hôtes IPv4 dans la liste des noeuds ultra."
 
 msgid "Current number of hosts in bad node caches."
-msgstr "Nombre actuel d'hôtes dans la liste des mauvais nœuds."
+msgstr "Nombre actuel d'hôtes dans la liste des mauvais noeuds."
 
 msgid "Maximum number of hosts in the regular node cache."
-msgstr "Nombre maximum d'hôtes dans la liste des nœuds réguliers."
+msgstr "Nombre maximum d'hôtes dans la liste des noeuds réguliers."
 
-#, fuzzy
 msgid "Maximum number of IPv4 hosts in the ultra node cache."
-msgstr "Nombre maximum d'hôtes dans la liste des nœuds ultra."
+msgstr "Nombre maximum d'hôtes IPv4 dans la liste des noeuds ultra."
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
 msgstr "Nombre maximum d'hôtes dans les listes BUSY, UNSTABLE et TIMEOUT."
@@ -1700,7 +1696,7 @@ msgid ""
 "Amount of tolerable messages above hard TTL limit per node. See also "
 "MAX_HIGH_TTL_RADIUS"
 msgstr ""
-"Quantité de messages tolérés au dessus de la limite TTL en dur par nœud. "
+"Quantité de messages tolérés au dessus de la limite TTL en dur par noeud. "
 "Voir aussi MAX_HIGH_TTL_RADIUS"
 
 msgid ""
@@ -1816,7 +1812,7 @@ msgid ""
 "Minimum amount of dup messages to enable kicking, per node (also see "
 "[min_dup_ratio])."
 msgstr ""
-"Quantité minimum de messages en doubles pour autoriser l'éjection, par nœud "
+"Quantité minimum de messages en doubles pour autoriser l'éjection, par noeud "
 "(voir aussi [min_dup_ratio])."
 
 msgid ""
@@ -1824,7 +1820,7 @@ msgid ""
 "100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) "
 "and 10000 (100.0) in the config file."
 msgstr ""
-"Proportion minimum des doubles pour les messages reçus, par nœud (entre 0.00 "
+"Proportion minimum des doubles pour les messages reçus, par noeud (entre 0.00 "
 "et 100.00) (voir aussi [min_dup_msg]) Note : cette valeur est encodée entre "
 "0 (0.0) et 10000 (100.0) dans le fichier de configuration."
 
@@ -1899,10 +1895,10 @@ msgid "Total number of completed uploads in this session."
 msgstr "Nombre total d'envois terminés pendant cette session."
 
 msgid "Global Unique IDentifier of this node."
-msgstr "Identificateur unique global de ce nœud."
+msgstr "Identificateur unique global de ce noeud."
 
 msgid "Kademlia Unique IDentifier of this node in the DHT."
-msgstr "Identificateur unique Kademlia de ce nœud dans le DHT."
+msgstr "Identificateur unique Kademlia de ce noeud dans le DHT."
 
 msgid "Whether or not to use swarming (recommended = YES)."
 msgstr "Utiliser ou non le 'swarming' (recommandé = OUI)."
@@ -1938,7 +1934,7 @@ msgid ""
 "for files we are sharing or already have in our mesh."
 msgstr ""
 "S'il faut ou non rajouter automatiquement au maillage du téléchargement les "
-"données récupérées des 'query hits' qui circulent via notre nœud. Ça examine "
+"données récupérées des 'query hits' qui circulent via notre noeud. Ça examine "
 "les nouvelles entrées pour les fichiers que nous partageons ou que nous "
 "avons déjà dans notre maillage."
 
@@ -2234,7 +2230,7 @@ msgstr ""
 "Le nom d'hôte du serveur qui peut être utilisé par les téléchargeurs pour "
 "trouver l'adresse IP via une résolution DNS. Si vous avez une adresse IP "
 "dynamique avec un service DNS dynamique, alors c'est utile pour les "
-"téléchargeurs : ils pourront trouver votre nœud même après que vous ayez "
+"téléchargeurs : ils pourront trouver votre noeud même après que vous ayez "
 "changé votre adresse IP."
 
 msgid ""
@@ -2248,7 +2244,7 @@ msgid ""
 "Percentage of the number of connections we should reserve for gtk-gnutella "
 "nodes."
 msgstr ""
-"Pourcentage du nombre de connexions à réserver pour les nœuds gtk-gnutella."
+"Pourcentage du nombre de connexions à réserver pour les noeuds gtk-gnutella."
 
 msgid "Maximum percentage of slots a vendor can occupy."
 msgstr "Pourcentage maximum de créneaux qu'un vendeur peut occuper."
@@ -2275,7 +2271,7 @@ msgid ""
 "you don't read quickly enough, which would be the case if you limit the "
 "incoming bandwidth."
 msgstr ""
-"Taille du tampon du socket RX utilisé pour les nœuds, en koctets. Plus "
+"Taille du tampon du socket RX utilisé pour les noeuds, en koctets. Plus "
 "petite est la valeur, plus le serveur distant va rapidement faire du "
 "contrôle de flux au niveau TCP/IP si vous ne lisez pas assez vite, ce qui "
 "est la cas si vous limitez la bande passante entrante."
@@ -2301,43 +2297,43 @@ msgstr ""
 msgid ""
 "Whether we meet the sufficient average uptime requirement to become an Ultra "
 "node."
-msgstr "Si l'on a un uptime moyen suffisant pour devenir un nœud Ultra."
+msgstr "Si l'on a un uptime moyen suffisant pour devenir un noeud Ultra."
 
 msgid ""
 "Whether we meet the sufficient average IP address uptime requirement to "
 "become an Ultra node."
 msgstr ""
-"Si l'on garde en moyenne la même adresse IP pour devenir un nœud Ultra."
+"Si l'on garde en moyenne la même adresse IP pour devenir un noeud Ultra."
 
 msgid ""
 "Whether we meet the sufficient node uptime requirement to become an Ultra "
 "node."
-msgstr "Si l'on a un uptime suffisant pour devenir un nœud Ultra."
+msgstr "Si l'on a un uptime suffisant pour devenir un noeud Ultra."
 
 msgid "Whether we meet the non-firewalled requirement to become an Ultra node."
 msgstr ""
 "Si l'on satisfait à la condition de ne pas être derrière un firewall pour "
-"devenir un nœud Ultra."
+"devenir un noeud Ultra."
 
 msgid ""
 "Whether we meet the minimum amount of peer connections requirement to become "
 "an Ultra node."
-msgstr "Si l'on a assez de connexions pour devenir un nœud Ultra."
+msgstr "Si l'on a assez de connexions pour devenir un noeud Ultra."
 
 msgid ""
 "Whether we meet the amount of file descriptor requirement to become an Ultra "
 "node."
 msgstr ""
-"Si l'on a assez de descripteurs de fichiers pour devenir un nœud Ultra."
+"Si l'on a assez de descripteurs de fichiers pour devenir un noeud Ultra."
 
 msgid "Whether we meet the memory requirements to become an Ultra node."
-msgstr "Si l'on a assez de mémoire pour devenir un nœud Ultra."
+msgstr "Si l'on a assez de mémoire pour devenir un noeud Ultra."
 
 msgid "Whether we meet the bandwidth requirements to become an Ultra node."
-msgstr "Si l'on a assez de bande passante pour devenir un nœud Ultra."
+msgstr "Si l'on a assez de bande passante pour devenir un noeud Ultra."
 
 msgid "Whether we meet the UDP requirements to become an Ultra node."
-msgstr "Si l'on remplit les conditions UDP pour devenir un nœud Ultra."
+msgstr "Si l'on remplit les conditions UDP pour devenir un noeud Ultra."
 
 msgid ""
 "Size of the search queue holding the locally generated queries before they "
@@ -2417,7 +2413,7 @@ msgid ""
 "have exponential effects on the network traffic."
 msgstr ""
 "Le nombre de secondes à imposer entre deux requêtes identiques venant des "
-"nœuds feuilles.  Si la nouvelle demande arrive avant la quantité spécifiée, "
+"noeuds feuilles.  Si la nouvelle demande arrive avant la quantité spécifiée, "
 "elle est ignorée et comptée dans le compteur 'Message throttle'.  Des "
 "demandes trop fréquentes sont dangereuses pour le réseau, mais nous devons "
 "autoriser un certain nombre de redemandes étant donné la nature dynamique "
@@ -2566,10 +2562,10 @@ msgstr ""
 "Si gtk-gnutella doit honorer les requêtes pour la livraison out-of-band des "
 "query hits via UDP, en supposant que UDP est activé. Il ne devrait pas être "
 "nécessaire d'ouvrir un port sur votre firewall pour activer ceci car votre "
-"nœud sera l'origine du trafic UDP et devrait donc pouvoir recevoir les "
+"noeud sera l'origine du trafic UDP et devrait donc pouvoir recevoir les "
 "réponses via le port UDP ouvert par un pare-feu qui partage la connexion.  "
 "Ceci est activé par défaut parce qu'il est considéré comme sûr, car votre "
-"nœud contrôle la quantité de trafic émise et respecte les limitations de "
+"noeud contrôle la quantité de trafic émise et respecte les limitations de "
 "bande passante."
 
 msgid ""
@@ -2586,7 +2582,7 @@ msgstr ""
 "trafic UDP non sollicité.  Vous devez activer ce support en premier.  Ceci "
 "peut causer la réception de grandes quantités de réponses UDP, donc vous "
 "pouvez choisir de désactiver cette option.  Si vous le faites, vos hits vont "
-"traverser le réseau gnutella et peuvent être supprimés par un nœud relais en "
+"traverser le réseau gnutella et peuvent être supprimés par un noeud relais en "
 "contrôle de flux, limitant les résultats que vous obtiendrez."
 
 msgid ""
@@ -2600,8 +2596,8 @@ msgid ""
 msgstr ""
 "Si gtk-gnutella doit, en mode ultrapeer, agir comme un proxy pour les "
 "requêtes des feuilles qui ne demandent pas la livraison OOB des hits de "
-"recherche : gtk-gnutella va réclamer les hits des nœuds distants et va faire "
-"suivre les hits au bon nœud feuille.  C'est très bénéfique pour les "
+"recherche : gtk-gnutella va réclamer les hits des noeuds distants et va faire "
+"suivre les hits au bon noeud feuille.  C'est très bénéfique pour les "
 "feuilles, mais peut causer d'énormes augmentations du trafic UDP revenant "
 "vers vous.  Si vous désactivez ceci, tous les ultrapeers auxquels vous êtes "
 "connectés devront relayer les hits, en supprimant peut-être d'autres "
@@ -2805,10 +2801,10 @@ msgid "Signature of the latest SVN release notification."
 msgstr "Signature de la dernière notification de version SVN."
 
 msgid "Maximum number of hosts in the TLS node cache."
-msgstr "Nombre maximum d'hôtes dans la liste des nœuds supportant TLS."
+msgstr "Nombre maximum d'hôtes dans la liste des noeuds supportant TLS."
 
 msgid "Maximum time before removing hosts from the TLS cache."
-msgstr "Nombre maximum d'hôtes dans la liste des nœuds supportant TLS."
+msgstr "Nombre maximum d'hôtes dans la liste des noeuds supportant TLS."
 
 msgid ""
 "If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. "
@@ -2829,13 +2825,13 @@ msgstr ""
 "les  performances des téléchargements."
 
 msgid "Maximum number of hosts in the G2 node cache."
-msgstr "Nombre maximum d'hôtes dans la liste des nœuds G2."
+msgstr "Nombre maximum d'hôtes dans la liste des noeuds G2."
 
 msgid "Maximum time before removing hosts from the G2 cache."
-msgstr "Nombre maximum d'hôtes dans la liste des nœuds G2."
+msgstr "Nombre maximum d'hôtes dans la liste des noeuds G2."
 
 msgid "Debug level for management of G2-only hosts."
-msgstr "Niveau de débogage pour le nœuds G2."
+msgstr "Niveau de débogage pour le noeuds G2."
 
 msgid ""
 "Whether GTKG can switch among the several files waiting to be downloaded "
@@ -2951,7 +2947,7 @@ msgid ""
 msgstr ""
 "Si le KUID doit être conservé d'une session à l'autre. Un KUID persistant "
 "est utile à la DHT parce qu'il contribue à la stabilité de la table de "
-"routage et permet aux nœuds les plus proches de garder les informations les "
+"routage et permet aux noeuds les plus proches de garder les informations les "
 "uns sur les autres."
 
 msgid "Debug level for the DHT user lookup queue."
@@ -3020,7 +3016,7 @@ msgid ""
 "Maximum size of the UDP message queue (in bytes). Must be at least 150 "
 "percent of the maximum message size."
 msgstr ""
-"Taille maximum de la file d'envoi pour les nœuds (en octets). Doit être au "
+"Taille maximum de la file d'envoi pour les noeuds (en octets). Doit être au "
 "moins 150% de la taille maximum d'un message."
 
 msgid "Debug level for the management of the clock accuracy."
@@ -3035,15 +3031,13 @@ msgid "Debug level for host management."
 msgstr "Niveau de débogage pour la gestion des hôtes."
 
 msgid "Debug level for DHT root node caching."
-msgstr "Niveau de débogage pour le cache des nœuds racines de la DHT."
+msgstr "Niveau de débogage pour le cache des noeuds racines de la DHT."
 
 msgid "Logged statistics level for code shared between GUI and core."
 msgstr ""
 "Niveau de débogage pour le code partagé entre l'interface graphique et le "
-"cœur."
+"coeur."
 
-# Marked as fuzzy apparently because poedit returns "format specifications in 'msgid' and 'msgstr' for argument 1 are not the same" due to the % sign.
-#, fuzzy, c-format
 msgid ""
 "If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a "
 "fast disk database, which saves a large amount of core memory and reduces "
@@ -3136,7 +3130,7 @@ msgid "Debug level for bandwidth scheduler."
 msgstr "Niveau de débogage pour l'ordonnanceur de bande passante."
 
 msgid "Debug level for the DHT stable node recorder."
-msgstr "Niveau de débogage pour l'enregistreur de nœuds stables de la DHT."
+msgstr "Niveau de débogage pour l'enregistreur de noeuds stables de la DHT."
 
 msgid "Debug level for the file (re)loading, on change."
 msgstr "Niveau de débogage pour le (re)chargement dynamique de fichiers."
@@ -3170,14 +3164,14 @@ msgid ""
 "recommended because the DHT requires far more active nodes that passive ones "
 "to be efficient."
 msgstr ""
-"Le mode de travail de la DHT.  Un nœud actif pourra stocker des valeurs et "
+"Le mode de travail de la DHT.  Un noeud actif pourra stocker des valeurs et "
 "devient un participant à plein titre de la DHT (Distributed Hash Table, ou "
-"Table de Hash Distribuée en Français). Un nœud passif peut effectuer des "
+"Table de Hash Distribuée en Français). Un noeud passif peut effectuer des "
 "recherches et publier mais net peut pas stocker de valeurs ni devenir un "
-"membre de la structure de la DHT. Un nœud sans connexion UDP entrante "
-"possible est nécessairement un nœud passif, mais vous pouvez forcer le mode "
+"membre de la structure de la DHT. Un noeud sans connexion UDP entrante "
+"possible est nécessairement un noeud passif, mais vous pouvez forcer le mode "
 "passif dans tous les cas. Cependant, le mode passif n'est pas recommandé car "
-"la DHT a besoin de plus de nœuds actifs que de passifs pour être performante."
+"la DHT a besoin de plus de noeuds actifs que de passifs pour être performante."
 
 msgid "Current DHT running mode."
 msgstr "Mode de travail actuel de la DHT."
@@ -3216,7 +3210,7 @@ msgid ""
 "For testing purposes, allow to run as an ultranode even if the node cannot "
 "accept incoming TCP connections."
 msgstr ""
-"Pour des raisons de test, permet de tourner en mode ultra même si le nœud ne "
+"Pour des raisons de test, permet de tourner en mode ultra même si le noeud ne "
 "peut pas accepter de connexions TCP entrantes."
 
 msgid ""
@@ -3328,7 +3322,7 @@ msgstr ""
 "Indique si l'extension UDP pour les recherches Gnutella globales (GUESS, un "
 "acronyme pour Gnutella UDP Extension for Scalable Searches) doit être "
 "activée.  Avec GUESS, gtk-gnutella permet au réseau d'effectuer des "
-"recherches itératives sur les nœuds ultras, au lieu de simplement émettre "
+"recherches itératives sur les noeuds ultras, au lieu de simplement émettre "
 "les requêtes aux voisins.  Si vous voulez que gtk-gnutella puisse utiliser "
 "aussi un mode de requête GUESS, il faut vous assurer que le côté client est "
 "activé puisque cette variable ne gouverne que le côté serveur de GUESS "
@@ -3348,21 +3342,19 @@ msgstr ""
 "Niveau de débogage pour le côté client de GUESS (Gnutella UDP Extension for "
 "Scalable Searches)."
 
-#, fuzzy
 msgid "Maximum number of IPv4 hosts in the regular GUESS cache."
-msgstr "Nombre maximum d'hôtes dans la liste des nœuds GUESS réguliers."
+msgstr "Nombre maximum d'hôtes IPv4 dans la liste des noeuds GUESS réguliers."
 
-#, fuzzy
 msgid "Current number of IPv4 hosts in the regular GUESS cache."
-msgstr "Nombre actuel d'hôtes dans la liste des nœuds GUESS réguliers."
+msgstr "Nombre actuel d'hôtes IPv4 dans la liste des noeuds GUESS réguliers."
 
-#, fuzzy
 msgid "Maximum number of IPv4 hosts in the introduction GUESS cache."
-msgstr "Nombre maximum d'hôtes dans la liste d'introduction de nœuds GUESS."
+msgstr ""
+"Nombre maximum d'hôtes IPv4 dans la liste d'introduction de noeuds GUESS."
 
-#, fuzzy
 msgid "Current number of IPv4 hosts in the introduction GUESS cache."
-msgstr "Nombre actuel d'hôtes dans la liste d'introduction de nœuds GUESS."
+msgstr ""
+"Nombre actuel d'hôtes IPv4 dans la liste d'introduction de noeuds GUESS."
 
 msgid "Debug level for the DB disk/RAM storage layer."
 msgstr "Niveau de débogage pour la couche de base de donnée disque / mémoire."
@@ -3397,7 +3389,7 @@ msgid ""
 msgstr ""
 "Indique si le côté client de l'extension UDP pour les recherches Gnutella "
 "globales (GUESS) doit être activé, afin que gtk-gnutella puisse initier des "
-"recherches itératives sur les nœuds Ultra au lieu de simplement les envoyer "
+"recherches itératives sur les noeuds Ultra au lieu de simplement les envoyer "
 "à ses voisins pour qu'ils les relaient.  Cette fonction requiert que le "
 "support de GUESS soit activé par ailleurs."
 
@@ -3450,68 +3442,62 @@ msgstr "Nombre maximum de résultats à afficher par recherche quoi-de-neuf ?"
 msgid "Maximum number of results to show in a passive search request."
 msgstr "Nombre maximum de résultats à afficher par recherche passive."
 
-#, fuzzy
 msgid "Whether to log duplicate Gnutella messages from same node."
-msgstr "Si positionné, trace les messages Gnutella mis au rebut."
+msgstr ""
+"Si positionné, trace les messages Gnutella émis en double depuis un "
+"même noeud."
 
-#, fuzzy
 msgid "Whether to log duplicate Gnutella messages with a higher TTL."
-msgstr "Si positionné, trace les messages Gnutella mis au rebut."
+msgstr ""
+"Si positionné, trace les messages Gnutella émis en double avec "
+"un TTL plus élevé."
 
-#, fuzzy
 msgid "Whether to log duplicate Gnutella messages (not from same node)."
-msgstr "Si positionné, trace les messages Gnutella mis au rebut."
+msgstr "Si positionné, trace les messages Gnutella émis en double "
+"(depuis un noeud différent)."
 
-#, fuzzy
 msgid "Whether to log new Gnutella messages, never seen before."
-msgstr "Si positionné, trace les messages Gnutella mis au rebut."
+msgstr "Si positionné, trace les nouveaux messages Gnutella, jamais vus encore."
 
-#, fuzzy
 msgid "Whether to log Gnutella routing decisions."
-msgstr "Si positionné, trace les messages Gnutella mis au rebut."
+msgstr "Si positionné, trace les décisions de routage pour les "
+"messages Gnutella."
 
-#, fuzzy
 msgid "Whether to log bad Gnutella messages, corrupted or unexpected."
-msgstr "Si positionné, trace les messages Gnutella mis au rebut."
+msgstr "Si positionné, trace les mauvais messages Gnutella, corrompus ou "
+"non attendus."
 
 msgid "Whether to log conditions triggering query hit spam flagging."
-msgstr ""
+msgstr "Si positionné, trace les conditions provoquant le marquage d'un "
+"résultat comme spam."
 
-#, fuzzy
 msgid "Maximum number of IPv6 hosts in the ultra node cache."
-msgstr "Nombre maximum d'hôtes dans la liste des nœuds ultra."
+msgstr "Nombre maximum d'hôtes IPv6 dans la liste des noeuds ultra."
 
-#, fuzzy
 msgid "Current number of IPv6 hosts in ultra node caches."
-msgstr "Nombre actuel d'hôtes dans la liste des nœuds ultra."
+msgstr "Nombre actuel d'hôtes IPv6 dans la liste des noeuds ultra."
 
-#, fuzzy
 msgid "Current number of IPv6 hosts in the regular GUESS cache."
-msgstr "Nombre actuel d'hôtes dans la liste des nœuds GUESS réguliers."
+msgstr "Nombre actuel d'hôtes IPv6 dans la liste des noeuds GUESS réguliers."
 
-#, fuzzy
 msgid "Current number of IPv6 hosts in the introduction GUESS cache."
-msgstr "Nombre actuel d'hôtes dans la liste d'introduction de nœuds GUESS."
+msgstr "Nombre actuel d'hôtes IPv6 dans la liste d'introduction de noeuds GUESS."
 
-#, fuzzy
 msgid "Maximum number of IPv6 hosts in the regular GUESS cache."
-msgstr "Nombre maximum d'hôtes dans la liste des nœuds GUESS réguliers."
+msgstr "Nombre maximum d'hôtes IPv6 dans la liste des noeuds GUESS réguliers."
 
-#, fuzzy
 msgid "Maximum number of IPv6 hosts in the introduction GUESS cache."
-msgstr "Nombre maximum d'hôtes dans la liste d'introduction de nœuds GUESS."
+msgstr ""
+"Nombre maximum d'hôtes IPv6 dans la liste d'introduction de noeuds GUESS."
 
-#, fuzzy
 msgid "Debug level for the malloc() replacement allocator."
-msgstr "Niveau de débogage pour l'allocateur par zone."
+msgstr "Niveau de débogage pour l'allocateur qui remplace malloc()."
 
-#, fuzzy
 msgid "Debug level for bad query hit messages."
-msgstr "Niveau de débogage pour la génération des réponses aux requêtes."
+msgstr "Niveau de débogage pour les mauvaises réponses aux requêtes."
 
-#, fuzzy
 msgid "Debug level for GUID management."
-msgstr "Niveau de débogage pour la gestion des hôtes."
+msgstr "Niveau de débogage pour la gestion des GUIDs."
 
 msgid "disable"
 msgstr "désactiver"
@@ -3580,10 +3566,10 @@ msgid "DHT Store Ack"
 msgstr "Réponse écriture DHT"
 
 msgid "DHT Find Node"
-msgstr "Recherche de nœud DHT"
+msgstr "Recherche de noeud DHT"
 
 msgid "DHT Found Node"
-msgstr "Nœuds DHT trouvés"
+msgstr "Noeuds DHT trouvés"
 
 msgid "DHT Find Value"
 msgstr "Recherche de valeur DHT"
@@ -3641,10 +3627,10 @@ msgstr ""
 "automatique basé sur le SHA1 ou sur vos filtres."
 
 msgid "Widths of the columns in the nodes table."
-msgstr "Largeur des colonnes dans la table des nœuds."
+msgstr "Largeur des colonnes dans la table des noeuds."
 
 msgid "Which columns are visible in the nodes pane."
-msgstr "Quelles colonnes sont visibles dans le panneau des nœuds."
+msgstr "Quelles colonnes sont visibles dans le panneau des noeuds."
 
 msgid "Widths of the columns in the file info table."
 msgstr "Largeur des colonnes dans la table des infos fichiers."
@@ -3828,7 +3814,7 @@ msgid "Jump to newly created searches"
 msgstr "Sauter aux recherches créées en dernier"
 
 msgid "Collect statistics about searches that go through this node."
-msgstr "Collecter les statistiques sur les recherches qui passent par ce nœud."
+msgstr "Collecter les statistiques sur les recherches qui passent par ce noeud."
 
 msgid "Interval in which the search stats are updated."
 msgstr ""
@@ -3896,7 +3882,7 @@ msgid ""
 "Whether the node's uptime should be shown (not all nodes provide this "
 "information)."
 msgstr ""
-"Si l'uptime du nœud doit être affiché (tous les nœuds ne fournissent pas "
+"Si l'uptime du noeud doit être affiché (tous les noeuds ne fournissent pas "
 "cette information)."
 
 msgid "Whether the handshaking version number should be displayed."
@@ -3909,7 +3895,7 @@ msgid ""
 "message queue info."
 msgstr ""
 "Si des informations détaillées du trafic doivent être affichées pour le "
-"nœud. Quand activé, il est possible de paramétrer comment les informations "
+"noeud. Quand activé, il est possible de paramétrer comment les informations "
 "sont affichées. Quand désactivé, seuls le nombre de messages RX et TX sont "
 "affichés, suivis par l'information sur la file d'attente des messages."
 
@@ -3965,12 +3951,12 @@ msgid ""
 "received queries that are sent to the node after QRP table filtering."
 msgstr ""
 "Si les statistiques du Protocole de routage des requêtes (QRP) doivent être "
-"affichées. Pour un nœud feuille, c'est simplement la proportion de demandes "
+"affichées. Pour un noeud feuille, c'est simplement la proportion de demandes "
 "qui ont généré un hit par rapport au nombre de demandes reçues.  Pour un "
 "ultrapeer, ça affiche le nombre de créneaux dans la table QRP, 'g' le nombre "
 "de génération, 'f' la proportion de remplissage, 't' le seuil de dépassement "
 "et 'e' l'efficacité, c-à-d la proportion de demandes reçues qui sont "
-"envoyées au nœud après filtrage via la table QRP."
+"envoyées au noeud après filtrage via la table QRP."
 
 msgid ""
 "Whether we should display message counts for duplicate, bad, weird and "
@@ -3990,13 +3976,13 @@ msgid ""
 "Whether we should display the size of the node's library, when it is known "
 "to us."
 msgstr ""
-"Si on affiche la taille de la bibliothèque du nœud, quand il nous est connu."
+"Si on affiche la taille de la bibliothèque du noeud, quand il nous est connu."
 
 msgid ""
 "Whether we should display the amount of files shared by nodes, when that is "
 "known to us."
 msgstr ""
-"Si on affiche la quantité de fichiers partagés par nœud, quand il nous est "
+"Si on affiche la quantité de fichiers partagés par noeud, quand il nous est "
 "connu."
 
 msgid ""
@@ -4011,7 +3997,7 @@ msgstr ""
 "moins souvent rafraîchir le panel de recherche."
 
 msgid "Expanded stati of the nodes in the treemenu."
-msgstr "Étendre les statuts des nœuds dans l'arborescence de menu."
+msgstr "Étendre les statuts des noeuds dans l'arborescence de menu."
 
 msgid "Widths of the columns in the Gnet packet stats table (pkg). [GTK2]"
 msgstr ""
@@ -4059,14 +4045,14 @@ msgid ""
 "Remote nodes supporting media type filtering will apply your query "
 "specifically on their audio files."
 msgstr ""
-"Les nœuds distants qui supportent le filtrage par type de média ne vont "
+"Les noeuds distants qui supportent le filtrage par type de média ne vont "
 "appliquer la recherche que sur les fichiers de type audio."
 
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
 "specifically on their video files."
 msgstr ""
-"Les nœuds distants qui supportent le filtrage par type de média ne vont "
+"Les noeuds distants qui supportent le filtrage par type de média ne vont "
 "appliquer la recherche que sur les fichiers de type vidéo."
 
 msgid ""
@@ -4074,7 +4060,7 @@ msgid ""
 "specifically on their document files. Document files are XML, HTML, Word, "
 "PDF, etc..."
 msgstr ""
-"Les nœuds distants qui supportent le filtrage par type de média ne vont "
+"Les noeuds distants qui supportent le filtrage par type de média ne vont "
 "appliquer la recherche que sur les fichiers de type document, comme les "
 "fichiers XML, HTML, Word, PDF, etc..."
 
@@ -4082,7 +4068,7 @@ msgid ""
 "Remote nodes supporting media type filtering will apply your query "
 "specifically on their image files."
 msgstr ""
-"Les nœuds distants qui supportent le filtrage par type de média ne vont "
+"Les noeuds distants qui supportent le filtrage par type de média ne vont "
 "appliquer la recherche que sur les fichiers de type image."
 
 msgid ""
@@ -4090,7 +4076,7 @@ msgid ""
 "specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, "
 "rpm and also exe files."
 msgstr ""
-"Les nœuds distants qui supportent le filtrage par type de média ne vont "
+"Les noeuds distants qui supportent le filtrage par type de média ne vont "
 "appliquer la recherche que sur les fichiers de type archive / programme, "
 "comme les fichiers ZIP, 7z, tar, bz2, gz, dep, rpm et autres exe."
 
@@ -4926,7 +4912,7 @@ msgid "Hops"
 msgstr "Sauts"
 
 msgid "Nodes"
-msgstr "Nœuds"
+msgstr "Noeuds"
 
 msgid "Files"
 msgstr "Fichiers"
@@ -4936,11 +4922,11 @@ msgstr "Taille "
 
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
-msgstr "Taille de l'horizon (%u/%u nœuds supportant HSEP) :"
+msgstr "Taille de l'horizon (%u/%u noeuds supportant HSEP) :"
 
 #, c-format
 msgid "Horizon size via HSEP node %s (%s):"
-msgstr "Taille d'horizon via le nœud HSEP %s (%s) :"
+msgstr "Taille d'horizon via le noeud HSEP %s (%s) :"
 
 msgid "Interactive mode turned on."
 msgstr "Mode interactif activé."
@@ -4948,43 +4934,41 @@ msgstr "Mode interactif activé."
 msgid "Interactive mode turned off."
 msgstr "Mode interactif désactivé."
 
-#, fuzzy
 msgid "Cannot determine current working directory"
-msgstr "Ne peut trouver votre répertoire d'accueil !"
+msgstr "Ne peut trouver le répertoire courant"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown logfile name \"%s\""
-msgstr "Propriété \"%s\" inconnue"
+msgstr "Nom de fichier de log \"%s\" inconnu"
 
-#, fuzzy
 msgid "Unable to reopen"
-msgstr "Impossible d'envoyer un message GIV"
+msgstr "Impossible de ré-ouvrir"
 
 #, c-format
 msgid "Could not rename logfile as \"%s\": %m"
-msgstr ""
+msgstr "Ne peut pas renommer le fichier de log en \"%s\": %m"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"%s\""
-msgstr "opération inconnue"
+msgstr "Opération \"%s\" inconnue"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"show %s\""
-msgstr "opération inconnue"
+msgstr "Opération \"show %s\" inconnue"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"stats %s\""
-msgstr "opération inconnue"
+msgstr "Opération \"stats %s\" inconnue"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"usage %s\""
-msgstr "opération inconnue"
+msgstr "Opération \"usage %s\" inconnue"
 
 msgid "Invalid IP/Port"
 msgstr "IP/Port invalide"
 
 msgid "Node added"
-msgstr "Nœud ajouté"
+msgstr "Noeud ajouté"
 
 msgid "Invalid IP"
 msgstr "IP invalide"
@@ -4995,8 +4979,8 @@ msgstr "Port invalide"
 #, c-format
 msgid "Removed %u node"
 msgid_plural "Removed %u nodes"
-msgstr[0] "Enlevé %u nœud"
-msgstr[1] "Enlevé %u nœuds"
+msgstr[0] "Enlevé %u noeud"
+msgstr[1] "Enlevé %u noeuds"
 
 msgid "Property missing"
 msgstr "Propriété manquante"
@@ -5037,11 +5021,11 @@ msgstr "Valeur manquante"
 
 #, c-format
 msgid "Previous value was %s"
-msgstr ""
+msgstr "Valeur précédente: %s"
 
 #, c-format
 msgid "New value is %s"
-msgstr ""
+msgstr "Nouvelle valeur: %s"
 
 msgid "Value found and set"
 msgstr "Valeur trouvée et utilisée"
@@ -5540,16 +5524,14 @@ msgstr "DHT (tronqué)"
 msgid "Routing errors"
 msgstr "Erreurs de routage"
 
-#, fuzzy
 msgid "Routing table chunks"
-msgstr "DHT nombre d'emplacements de routage"
+msgstr "Nombre de morceaux dans la table de routage"
 
 msgid "Routing table message capacity"
-msgstr ""
+msgstr "Capacité en messages de la table de routage"
 
-#, fuzzy
 msgid "Routing table message count"
-msgstr "DHT nombre de nœuds pourris dans la table de routage"
+msgstr "Nombre de messages dans la table de routage"
 
 msgid "Duplicates with higher TTL"
 msgstr "En double avec un TTL plus élevé"
@@ -5645,16 +5627,14 @@ msgid "\"What's New?\" queries"
 msgstr "Demandes de type \"quoi de neuf ?\""
 
 msgid "GUESS queries"
-msgstr "Demandes GUESS"
+msgstr "GUESS nombre de requêtes"
 
-#, fuzzy
 msgid "GUESS queries (0.2)"
-msgstr "Demandes GUESS"
+msgstr "GUESS nombre de requêtes (0.2)"
 
 msgid "GUESS cached query keys held"
 msgstr "GUESS nombre de clés de requêtes connues"
 
-#, fuzzy
 msgid "GUESS cached 0.2 hosts held"
 msgstr "GUESS nombre de clés de requêtes connues"
 
@@ -5782,11 +5762,11 @@ msgid "Detected collisions with our own GUID"
 msgstr "Collisions avec notre propre GUID"
 
 msgid "GUID dynamically banned"
-msgstr ""
+msgstr "GUID bannis dynamiquement"
 
 msgid "Firewalled node info for known hosts received in upload requests"
 msgstr ""
-"Information de Push-proxy pour des nœuds connus reçues dans des demandes de "
+"Information de Push-proxy pour des noeuds connus reçues dans des demandes de "
 "téléchargement."
 
 msgid "Revitalized PUSH routes"
@@ -5886,7 +5866,7 @@ msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "Reprises de téléchargements orphelins sur requête de téléchargement"
 
 msgid "DHT estimated amount of nodes"
-msgstr "DHT estimation du nombre de nœuds"
+msgstr "DHT estimation du nombre de noeuds"
 
 msgid "DHT k-ball theoretical frontier (bits)"
 msgstr "DHT frontière théorique de la boule-k (en bits)"
@@ -5907,34 +5887,34 @@ msgid "DHT routing table maximum depth"
 msgstr "DHT profondeur maximum de la table de routage"
 
 msgid "DHT routing table good nodes"
-msgstr "DHT nombre de bons nœuds dans la table de routage"
+msgstr "DHT nombre de bons noeuds dans la table de routage"
 
 msgid "DHT routing table stale nodes"
-msgstr "DHT nombre de nœuds pourris dans la table de routage"
+msgstr "DHT nombre de noeuds pourris dans la table de routage"
 
 msgid "DHT routing table pending nodes"
-msgstr "DHT nombre de nœuds en attente dans la table de routage"
+msgstr "DHT nombre de noeuds en attente dans la table de routage"
 
 msgid "DHT routing table evicted nodes"
-msgstr "DHT nombre de nœuds évincés de la table de routage"
+msgstr "DHT nombre de noeuds évincés de la table de routage"
 
 msgid "DHT routing table evicted firewalled nodes"
-msgstr "DHT nombre de nœuds évincés car sans connexion entrante"
+msgstr "DHT nombre de noeuds évincés car sans connexion entrante"
 
 msgid "DHT routing table evicted nodes due to quota"
-msgstr "DHT nombre de nœuds évincés sur quota de présence"
+msgstr "DHT nombre de noeuds évincés sur quota de présence"
 
 msgid "DHT routing table promoted pending nodes"
-msgstr "DHT nombre de nœuds en attente promus"
+msgstr "DHT nombre de noeuds en attente promus"
 
 msgid "DHT routing table pinged promoted nodes"
-msgstr "DHT nombre de pings envoyés sur promotion de nœuds"
+msgstr "DHT nombre de pings envoyés sur promotion de noeuds"
 
 msgid "DHT routing table rejected node due to bucket network quota"
-msgstr "DHT nombre de nœuds rejetés pour cause de quota réseau (emplacement)"
+msgstr "DHT nombre de noeuds rejetés pour cause de quota réseau (emplacement)"
 
 msgid "DHT routing table rejected node due to global network quota"
-msgstr "DHT nombre de nœuds rejetés pour cause de quota réseau (global)"
+msgstr "DHT nombre de noeuds rejetés pour cause de quota réseau (global)"
 
 msgid "DHT completed bucket refreshes"
 msgstr "DHT nombre de rafraîchissements d'emplacements effectués correctement"
@@ -5952,13 +5932,13 @@ msgid "DHT initiated bucket alive checks"
 msgstr "DHT nombre de tests de vie lancés sur les emplacements de routage"
 
 msgid "DHT alive pings sent to good nodes"
-msgstr "DHT nombre de pings envoyés à de bons nœuds"
+msgstr "DHT nombre de pings envoyés à de bons noeuds"
 
 msgid "DHT alive pings sent to stale nodes"
-msgstr "DHT nombre de pings envoyés à des nœuds pourris"
+msgstr "DHT nombre de pings envoyés à des noeuds pourris"
 
 msgid "DHT alive pings sent to shutdowning nodes"
-msgstr "DHT nombre de pings envoyés à des nœuds en cours d'arrêt"
+msgstr "DHT nombre de pings envoyés à des noeuds en cours d'arrêt"
 
 msgid "DHT alive pings avoided"
 msgstr "DHT pings de vie non envoyés"
@@ -5967,7 +5947,7 @@ msgid "DHT alive pings skipped"
 msgstr "DHT pings de vie évités"
 
 msgid "DHT revitalized stale nodes on RPC reply"
-msgstr "DHT nœuds pourris ravivés sur réponse de RPC"
+msgstr "DHT noeuds pourris ravivés sur réponse de RPC"
 
 msgid "DHT value store rejected on IP/network quota grounds"
 msgstr "DHT stockage de valeur refusé sur la base de quota d'IP/réseau"
@@ -5976,13 +5956,13 @@ msgid "DHT value store rejected on creator validation grounds"
 msgstr "DHT stockage de valeur refusé sur créateur non validé"
 
 msgid "DHT nodes rejected during lookup based on network quota"
-msgstr "DHT nœuds rejetés lors de recherches pour cause de quota réseau"
+msgstr "DHT noeuds rejetés lors de recherches pour cause de quota réseau"
 
 msgid "DHT nodes rejected during lookup based on suspicious proximity"
-msgstr "DHT nœuds rejetés lors de recherches pour cause de proximité suspecte"
+msgstr "DHT noeuds rejetés lors de recherches pour cause de proximité suspecte"
 
 msgid "DHT nodes rejected during lookup based on frequency divergence"
-msgstr "DHT nœuds rejetés lors de recherches sur divergence de fréquence"
+msgstr "DHT noeuds rejetés lors de recherches sur divergence de fréquence"
 
 msgid "DHT keys held"
 msgstr "DHT nombre de clés contenues"
@@ -5997,13 +5977,13 @@ msgid "DHT cached KUID targets held"
 msgstr "DHT nombre d'identifiants KUIDs connus"
 
 msgid "DHT cached closest root nodes"
-msgstr "DHT nombre de plus proches nœuds racines cachés"
+msgstr "DHT nombre de plus proches noeuds racines cachés"
 
 msgid "DHT cached roots exact hits"
-msgstr "DHT nœuds racines trouvés dans le cache"
+msgstr "DHT noeuds racines trouvés dans le cache"
 
 msgid "DHT cached roots approximate hits"
-msgstr "DHT nœuds cachés fournissant des racines approximatives"
+msgstr "DHT noeuds cachés fournissant des racines approximatives"
 
 msgid "DHT cached roots misses"
 msgstr "DHT racines non trouvées dans le cache"
@@ -6012,7 +5992,7 @@ msgid "DHT cached roots lookups within k-ball"
 msgstr "DHT recherches de racines dans le cache à l'intérieur de la boule-k"
 
 msgid "DHT cached roots contact address refreshed"
-msgstr "DHT rafraîchissements des adresses de nœuds racines cachés"
+msgstr "DHT rafraîchissements des adresses de noeuds racines cachés"
 
 msgid "DHT cached security tokens held"
 msgstr "DHT jetons de sécurité caches"
@@ -6021,7 +6001,7 @@ msgid "DHT cached security tokens hits"
 msgstr "DHT jetons de sécurité trouvés dans le cache"
 
 msgid "DHT stable node information held"
-msgstr "DHT nombre de nœuds stables connus"
+msgstr "DHT nombre de noeuds stables connus"
 
 msgid "DHT local hits on value lookups"
 msgstr "DHT résultats locaux sur recherche de valeur"
@@ -6088,7 +6068,7 @@ msgstr "DHT cache de valeurs réalisé partiellement"
 
 msgid "DHT key-offloading checks after discovering new closest node"
 msgstr ""
-"DHT tests de déchargement de clé après découverte d'un nœud plus proche"
+"DHT tests de déchargement de clé après découverte d'un noeud plus proche"
 
 msgid "DHT keys selected for offloading"
 msgstr "DHT clés sélectionnées pour déchargement"
@@ -6156,15 +6136,15 @@ msgid "DHT successful push-proxy lookups"
 msgstr "DHT recherches de push-proxy terminées avec succès"
 
 msgid "DHT successful node push-entry lookups"
-msgstr "DHT recherches de nœuds push-proxy terminées avec succès"
+msgstr "DHT recherches de noeuds push-proxy terminées avec succès"
 
 msgid "DHT re-seeding of orphan downloads"
 msgstr "DHT reprises de téléchargements orphelins"
 
 msgid "node"
 msgid_plural "nodes"
-msgstr[0] "nœud"
-msgstr[1] "nœuds"
+msgstr[0] "noeud"
+msgstr[1] "noeuds"
 
 msgid "file"
 msgid_plural "files"
@@ -6255,7 +6235,7 @@ msgstr ""
 "utilisé (utilisé comme cible dans une règle)."
 
 msgid "A passive search matches any search results routed through this node"
-msgstr "Une recherche passive prends les résultats qui sont routés par ce nœud"
+msgstr "Une recherche passive prends les résultats qui sont routés par ce noeud"
 
 msgid "A_ggressive mode"
 msgstr "Mode a_gressif"
@@ -6311,7 +6291,7 @@ msgid "Amount of bytes to overlap when resuming download"
 msgstr "Quantité d'octets à recouvrir lors de la reprise de téléchargement"
 
 msgid "Amount of tolerable messages above hard TTL limit per node"
-msgstr "Nombre de messages tolérés au dessus de la limite TTL dure par nœud"
+msgstr "Nombre de messages tolérés au dessus de la limite TTL dure par noeud"
 
 msgid ""
 "Apply above conversions, upon startup, to existing files in the downloading "
@@ -6366,7 +6346,7 @@ msgid "Bandwidth limits for the Distributed Hash Table"
 msgstr "Limites de bande passante pour la table de hash distribuée (DHT)"
 
 msgid "Bandwidth targets for node lookups"
-msgstr "Bande passante cible pour les recherches de nœuds"
+msgstr "Bande passante cible pour les recherches de noeuds"
 
 msgid "Bandwidth"
 msgstr "Bande passante"
@@ -6509,7 +6489,7 @@ msgid "Connection settings"
 msgstr "Paramètres de connexion"
 
 msgid "Connections reserved for gtk-gnutella nodes"
-msgstr "Connexions réservées pour les nœuds gtk-gnutella"
+msgstr "Connexions réservées pour les noeuds gtk-gnutella"
 
 msgid "Contributors:"
 msgstr "Contributeurs :"
@@ -6612,7 +6592,7 @@ msgid "Discard spam"
 msgstr "Écarter le spam"
 
 msgid "Disconnect from selected nodes"
-msgstr "Se déconnecter des nœuds sélectionnés"
+msgstr "Se déconnecter des noeuds sélectionnés"
 
 msgid "Disconnect"
 msgstr "Se déconnecter"
@@ -6965,7 +6945,7 @@ msgid "Local networks"
 msgstr "Réseaux locaux"
 
 msgid "Local node"
-msgstr "Nœud local"
+msgstr "Noeud local"
 
 msgid "M_inimum chunk size"
 msgstr "Taille minimum des blocs"
@@ -7090,7 +7070,7 @@ msgid "Monitor and auto-ban unstable servent types"
 msgstr "Surveiller et bannir automatiquement les types de servents instables"
 
 msgid "Monitor bad node IP addresses"
-msgstr "Surveiller les adresses IP des mauvais nœuds"
+msgstr "Surveiller les adresses IP des mauvais noeuds"
 
 msgid "Move back to queue"
 msgstr "Remettre dans la file"
@@ -7133,7 +7113,7 @@ msgstr ""
 "timeout"
 
 msgid "Number of tolerable _duplicate messages per node"
-msgstr "Nombre de messages en _doubles tolérés par nœud"
+msgstr "Nombre de messages en _doubles tolérés par noeud"
 
 msgid "Ok"
 msgstr "OK"
@@ -7287,7 +7267,7 @@ msgid "Raphael Manfredi"
 msgstr ""
 
 msgid "Ratio of tolerable duplicate messages per _node"
-msgstr "Proportion de messages dupliqués tolérable par _nœud"
+msgstr "Proportion de messages dupliqués tolérable par _noeud"
 
 msgid "Raw length:"
 msgstr "Longueur brute :"
@@ -7623,7 +7603,7 @@ msgid ""
 "The current IP address and listening port for this node. To change these go "
 "to File->Preferences->Network."
 msgstr ""
-"L'adresse IP actuelle et le port d'écoute pour ce nœud. Pour les changer "
+"L'adresse IP actuelle et le port d'écoute pour ce noeud. Pour les changer "
 "aller dans Fichier->Configuration->Réseau."
 
 msgid ""
@@ -7828,7 +7808,7 @@ msgid ""
 "both your incoming and outgoing paths."
 msgstr ""
 "Vos envois s'arrêtent trop fréquemment, indiquant que votre bande passante "
-"est probablement saturée. Vous ne devriez pas tourner en mode nœud ultra, et "
+"est probablement saturée. Vous ne devriez pas tourner en mode noeud ultra, et "
 "essayez de réduire la bande passante allouée à gtk-gnutella pour éviter de "
 "saturer en même temps l'envoi et la réception."
 
@@ -7989,7 +7969,7 @@ msgid "enabled"
 msgstr "activé"
 
 msgid "from _nodes within a"
-msgstr "d'un _nœud dans un"
+msgstr "d'un _noeud dans un"
 
 msgid ""
 "gtk-gnutella is shutting down.\n"
@@ -8180,7 +8160,7 @@ msgid "Stop search when last download completes"
 msgstr "Arrête la recherche lorsque le dernier téléchargement est terminé"
 
 msgid "Look for newest files shared by nodes in the network vicinity"
-msgstr "Recherche les nouveaux fichiers partagés par les nœuds voisins"
+msgstr "Recherche les nouveaux fichiers partagés par les noeuds voisins"
 
 msgid "What's new?"
 msgstr "Quoi de neuf ?"
@@ -8297,7 +8277,7 @@ msgid "Connect to"
 msgstr "Se connecter à"
 
 msgid "ultrapeers"
-msgstr "nœuds ultra"
+msgstr "noeuds ultra"
 
 msgid "Try to keep at least"
 msgstr "Essayer de garder au moins"
@@ -8320,7 +8300,7 @@ msgid ""
 "The Global Unique IDentifier associated with this node. It's used for "
 "routing packets in the Gnutella network."
 msgstr ""
-"Le GUID (IDentifiant Unique Global) associé avec ce nœud. Il est utilisé "
+"Le GUID (IDentifiant Unique Global) associé avec ce noeud. Il est utilisé "
 "pour le cheminement des paquets dans le réseau Gnutella"
 
 msgid "[GUID placeholder]"
@@ -8504,21 +8484,17 @@ msgstr "Régulier frais"
 msgid "Valid regular"
 msgstr "Régulier valide"
 
-#, fuzzy
 msgid "Fresh IPv4 ultra"
-msgstr "Ultra frais"
+msgstr "Ultra IPv4 frais"
 
-#, fuzzy
 msgid "Valid IPv4 ultra"
-msgstr "Ultra valide"
+msgstr "Ultra IPv4 valide"
 
-#, fuzzy
 msgid "Fresh IPv6 ultra"
-msgstr "Ultra frais"
+msgstr "Ultra IPv6 frais"
 
-#, fuzzy
 msgid "Valid IPv6 ultra"
-msgstr "Ultra valide"
+msgstr "Ultra IPv6 valide"
 
 msgid "Unstable"
 msgstr "Instable"
@@ -8526,21 +8502,17 @@ msgstr "Instable"
 msgid "Alien"
 msgstr "Étranger"
 
-#, fuzzy
 msgid "GUESS (IPv4 running)"
-msgstr "GUESS (régulier)"
+msgstr "GUESS (IPv4 régulier)"
 
-#, fuzzy
 msgid "GUESS (IPv4 introductions)"
-msgstr "GUESS (introductions)"
+msgstr "GUESS (IPv4 introductions)"
 
-#, fuzzy
 msgid "GUESS (IPv6 running)"
-msgstr "GUESS (régulier)"
+msgstr "GUESS (IPv6 régulier)"
 
-#, fuzzy
 msgid "GUESS (IPv6 introductions)"
-msgstr "GUESS (introductions)"
+msgstr "GUESS (IPv6 introductions)"
 
 msgid "gtk-gnutella: Click to minimize/restore"
 msgstr "gtk-gnutella : Cliquez pour minimiser/restaurer"
@@ -8548,7 +8520,7 @@ msgstr "gtk-gnutella : Cliquez pour minimiser/restaurer"
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
 msgid "translation_credit|"
-msgstr ""
+msgstr "Traduction bénévole en français."
 
 #, c-format
 msgid "%d second"
@@ -8669,12 +8641,12 @@ msgstr ""
 "placées dans le nouveau format XML et l'ancien fichier est renommé en\n"
 "%s"
 
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "could not rename %s as %s: %m\n"
 "The XML file will not be used unless this problem is resolved."
 msgstr ""
-"n'a pas pu renommer %s en %s : %s\n"
+"n'a pas pu renommer %s en %s : %m\n"
 "Le fichier XML ne sera pas utilisé tant que ce problème n'est pas résolu."
 
 msgid "<unparsed>"
