@@ -163,3 +163,20 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
   values: checking that the blocks are properly allocated in the .dat file
   and that no allocated block is leaking (i.e. is indeed referred by a key or
   value) nor is shared (i.e. referred by several big keys or values).
+
+Mon Nov 21 22:54:22 CET 2011
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Ported "dbe" to SDBM (was written for NDBM) and added options to display
+  keys and values as hexadecimal, and input/send values from/to files,
+  in binary or hexadecimal format.
+* Added "dbt", a database testing / benchmarking tool to check the influence
+  of various configuration options (deferred writes, LRU cache size, usage
+  of large keys, etc...).
+* Added -s switch to "dba" to only print the trailing summary.
+* Turned some g_warning() calls into g_critical() for conditions that can
+  damage the integrity of the database or cause data loss / corruption.
+* Fixed page splits to make them work with large keys.
+* Added detection of regular API usage to store/fetch/delete entries from
+  within an iteration loop.
