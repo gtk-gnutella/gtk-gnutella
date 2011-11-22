@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-06-04 16:18+0200\n"
+"POT-Creation-Date: 2011-11-22 18:27+0100\n"
 "PO-Revision-Date: 2009-03-31 23:39+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norsk (bokmål) <nb@li.org>\n"
@@ -472,6 +472,16 @@ msgid_plural "%u DHT lookups"
 msgstr[0] ""
 msgstr[1] ""
 
+#, fuzzy, c-format
+msgid "Got %d host from %s"
+msgid_plural "Got %d hosts from %s"
+msgstr[0] "Fikk %d vert fra UPD-vertmine %s"
+msgstr[1] "Fikk %d verter fra UPD-vertminne %s"
+
+#, c-format
+msgid "Bootstrapping from %s"
+msgstr ""
+
 msgid "Bad size"
 msgstr "Ugyldig størrelse"
 
@@ -525,6 +535,10 @@ msgid "Duplicate message"
 msgstr "Duplisert melding"
 
 msgid "Message to banned GUID"
+msgstr "Melding til bannlyst GUID"
+
+#, fuzzy
+msgid "Message from banned GUID"
 msgstr "Melding til bannlyst GUID"
 
 msgid "Node shutting down"
@@ -696,6 +710,10 @@ msgstr "Nettverksmodus for Gnutella"
 msgid "Too frequent crawling"
 msgstr "For ofte kravling"
 
+#, fuzzy
+msgid "Already connected to this GUID"
+msgstr "Allerede koblet til"
+
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
 msgstr "Programmet ville bruke mer enn %d%% av plassene våre"
@@ -797,8 +815,12 @@ msgstr "Lesefeil (Inndatafeil)"
 msgid "Read error: %s"
 msgstr "Lesefeil: %s"
 
+#, c-format
+msgid "Must wait %u more seconds before resending \"What's New\""
+msgstr ""
+
 #, fuzzy, c-format
-msgid "mkdir(\"%s\") failed: \"%s\""
+msgid "mkdir(\"%s\") failed: %m"
 msgstr "Klarte ikke skrive: %s"
 
 msgid "Can't find your home directory!"
@@ -1651,7 +1673,8 @@ msgstr ""
 msgid "Current number of hosts in regular node caches."
 msgstr "Gjeldende antall verter i normalt nodeminne."
 
-msgid "Current number of hosts in ultra node caches."
+#, fuzzy
+msgid "Current number of IPv4 hosts in ultra node caches."
 msgstr "Gjeldende antall verter i ultranodeminne."
 
 msgid "Current number of hosts in bad node caches."
@@ -1660,7 +1683,8 @@ msgstr "Antal verter i minnet for dårlige noder."
 msgid "Maximum number of hosts in the regular node cache."
 msgstr "Høyeste antall maskiner i den normale nodeoversikten."
 
-msgid "Maximum number of hosts in the ultra node cache."
+#, fuzzy
+msgid "Maximum number of IPv4 hosts in the ultra node cache."
 msgstr "Høyeste antall maskiner i ultranodelisten."
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
@@ -3225,19 +3249,19 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-msgid "Maximum number of hosts in the regular GUESS cache."
+msgid "Maximum number of IPv4 hosts in the regular GUESS cache."
 msgstr "Høyeste antall maskiner i den normale nodeoversikten."
 
 #, fuzzy
-msgid "Current number of hosts in the regular GUESS cache."
+msgid "Current number of IPv4 hosts in the regular GUESS cache."
 msgstr "Gjeldende antall verter i normalt nodeminne."
 
 #, fuzzy
-msgid "Maximum number of hosts in the introduction GUESS cache."
+msgid "Maximum number of IPv4 hosts in the introduction GUESS cache."
 msgstr "Høyeste antall brukere i G2-nodeminnet."
 
 #, fuzzy
-msgid "Current number of hosts in the introduction GUESS cache."
+msgid "Current number of IPv4 hosts in the introduction GUESS cache."
 msgstr "Gjeldende antall verter i ultranodeminne."
 
 #, fuzzy
@@ -3308,6 +3332,69 @@ msgstr ""
 msgid "Maximum number of results to show in a passive search request."
 msgstr ""
 "Høyeste antall resultater å vise i en «browse_host» (bla i vert)-forespørsel."
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages from same node."
+msgstr "Feilsøkingsnivå for Gnutella-meldinger."
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages with a higher TTL."
+msgstr "Feilsøkingsnivå for Gnutella-meldinger."
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages (not from same node)."
+msgstr "Feilsøkingsnivå for Gnutella-meldinger."
+
+#, fuzzy
+msgid "Whether to log new Gnutella messages, never seen before."
+msgstr "Feilsøkingsnivå for Gnutella-meldinger."
+
+#, fuzzy
+msgid "Whether to log Gnutella routing decisions."
+msgstr "Feilsøkingsnivå for Gnutella-meldinger."
+
+#, fuzzy
+msgid "Whether to log bad Gnutella messages, corrupted or unexpected."
+msgstr "Feilsøkingsnivå for Gnutella-meldinger."
+
+msgid "Whether to log conditions triggering query hit spam flagging."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the ultra node cache."
+msgstr "Høyeste antall maskiner i ultranodelisten."
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in ultra node caches."
+msgstr "Gjeldende antall verter i ultranodeminne."
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the regular GUESS cache."
+msgstr "Gjeldende antall verter i normalt nodeminne."
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the introduction GUESS cache."
+msgstr "Gjeldende antall verter i ultranodeminne."
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the regular GUESS cache."
+msgstr "Høyeste antall maskiner i den normale nodeoversikten."
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the introduction GUESS cache."
+msgstr "Høyeste antall brukere i G2-nodeminnet."
+
+#, fuzzy
+msgid "Debug level for the malloc() replacement allocator."
+msgstr "Feilsøkingsnivå for grensesnittet."
+
+#, fuzzy
+msgid "Debug level for bad query hit messages."
+msgstr "Feilsøkingsnivå for meldingsdirigering."
+
+#, fuzzy
+msgid "Debug level for GUID management."
+msgstr "Feilsøkingsnivå for behandling av nedlastingsmaske."
 
 msgid "disable"
 msgstr "slå av"
@@ -4642,6 +4729,22 @@ msgstr "%s (%s byte)"
 msgid "B/s"
 msgstr "B/s"
 
+#, c-format
+msgid "%ud %uh"
+msgstr ""
+
+#, c-format
+msgid "%uh %um"
+msgstr ""
+
+#, c-format
+msgid "%um %us"
+msgstr ""
+
+#, c-format
+msgid "%us"
+msgstr ""
+
 msgid "locale_get_language|en"
 msgstr "nb"
 
@@ -4693,6 +4796,38 @@ msgstr "Interaktiv modus slått på"
 
 msgid "Interactive mode turned off."
 msgstr "Interaktiv modus slått av"
+
+#, fuzzy
+msgid "Cannot determine current working directory"
+msgstr "Klarte ikke finne hjemmekatalogen din."
+
+#, fuzzy, c-format
+msgid "Unknown logfile name \"%s\""
+msgstr "Ukjent verdi"
+
+#, fuzzy
+msgid "Unable to reopen"
+msgstr "Klarte ikke sende GIV"
+
+#, c-format
+msgid "Could not rename logfile as \"%s\": %m"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Unknown operation \"%s\""
+msgstr "Ukjent operasjon"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "Ukjent operasjon"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"stats %s\""
+msgstr "Ukjent operasjon"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"usage %s\""
+msgstr "Ukjent operasjon"
 
 msgid "Invalid IP/Port"
 msgstr "Ugyldig IP/port"
@@ -4748,6 +4883,14 @@ msgstr "Ukjent verdi"
 
 msgid "Value missing"
 msgstr "Manglende verdi"
+
+#, c-format
+msgid "Previous value was %s"
+msgstr ""
+
+#, c-format
+msgid "New value is %s"
+msgstr ""
 
 msgid "Value found and set"
 msgstr "Fant og satt verdi"
@@ -5254,6 +5397,17 @@ msgstr ""
 msgid "Routing errors"
 msgstr "Dirigeringsfeil"
 
+#, fuzzy
+msgid "Routing table chunks"
+msgstr "DHT rutingstabellbøtter"
+
+msgid "Routing table message capacity"
+msgstr ""
+
+#, fuzzy
+msgid "Routing table message count"
+msgstr "DHT rutingstabellens oppstoppede noder"
+
 msgid "Duplicates with higher TTL"
 msgstr "Duplikater med høyere TTL"
 
@@ -5355,7 +5509,15 @@ msgid "GUESS queries"
 msgstr "UTF-8-spørringer"
 
 #, fuzzy
+msgid "GUESS queries (0.2)"
+msgstr "UTF-8-spørringer"
+
+#, fuzzy
 msgid "GUESS cached query keys held"
+msgstr "Lagrede DHT-nøkler"
+
+#, fuzzy
+msgid "GUESS cached 0.2 hosts held"
 msgstr "Lagrede DHT-nøkler"
 
 #, fuzzy
@@ -5483,6 +5645,9 @@ msgstr "DHT-oppdagede KUID-kollisjoner"
 
 msgid "Detected collisions with our own GUID"
 msgstr "Oppdaget kollisjoner med vår egen GUID"
+
+msgid "GUID dynamically banned"
+msgstr ""
 
 msgid "Firewalled node info for known hosts received in upload requests"
 msgstr ""
@@ -7977,6 +8142,12 @@ msgid "Query queued..."
 msgstr "Spørring lagt i kø . . ."
 
 #, c-format
+msgid "%u term counted"
+msgid_plural "%u terms counted"
+msgstr[0] "Talte %u begrep"
+msgstr[1] "Talte %u begreper"
+
+#, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "Klarte ikke finne pikselkartfilen «%s»"
 
@@ -8231,12 +8402,6 @@ msgstr "Holder på med omvendt oppslag . . ."
 msgid "Size:"
 msgstr "Størrelse:"
 
-#, c-format
-msgid "%u term counted"
-msgid_plural "%u terms counted"
-msgstr[0] "Talte %u begrep"
-msgstr[1] "Talte %u begreper"
-
 msgid "Done"
 msgstr "Ferdig"
 
@@ -8246,10 +8411,20 @@ msgstr "Fersk vanlig"
 msgid "Valid regular"
 msgstr "Gyldig vanlig"
 
-msgid "Fresh ultra"
+#, fuzzy
+msgid "Fresh IPv4 ultra"
 msgstr "Fersk ultra"
 
-msgid "Valid ultra"
+#, fuzzy
+msgid "Valid IPv4 ultra"
+msgstr "Gyldig ultra"
+
+#, fuzzy
+msgid "Fresh IPv6 ultra"
+msgstr "Fersk ultra"
+
+#, fuzzy
+msgid "Valid IPv6 ultra"
 msgstr "Gyldig ultra"
 
 msgid "Unstable"
@@ -8259,10 +8434,16 @@ msgstr "Ustabil"
 msgid "Alien"
 msgstr "Aliaser"
 
-msgid "GUESS (running)"
+msgid "GUESS (IPv4 running)"
 msgstr ""
 
-msgid "GUESS (introductions)"
+msgid "GUESS (IPv4 introductions)"
+msgstr ""
+
+msgid "GUESS (IPv6 running)"
+msgstr ""
+
+msgid "GUESS (IPv6 introductions)"
 msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"
@@ -8393,9 +8574,9 @@ msgstr ""
 "XML-formatet, og den gamle filen har fått navnet\n"
 "«%s»"
 
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"could not rename %s as %s: %s\n"
+"could not rename %s as %s: %m\n"
 "The XML file will not be used unless this problem is resolved."
 msgstr ""
 "Klarte ikke gi «%s» det nye navnet «%s»: %s\n"

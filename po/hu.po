@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-06-04 16:18+0200\n"
+"POT-Creation-Date: 2011-11-22 18:27+0100\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -504,6 +504,15 @@ msgid "%u DHT lookup"
 msgid_plural "%u DHT lookups"
 msgstr[0] ""
 
+#, c-format
+msgid "Got %d host from %s"
+msgid_plural "Got %d hosts from %s"
+msgstr[0] ""
+
+#, c-format
+msgid "Bootstrapping from %s"
+msgstr ""
+
 msgid "Bad size"
 msgstr "Rossz méret"
 
@@ -558,6 +567,10 @@ msgid "Duplicate message"
 msgstr "Megkettőzött üzenet"
 
 msgid "Message to banned GUID"
+msgstr "Üzenet a kitiltott GUID-nek"
+
+#, fuzzy
+msgid "Message from banned GUID"
 msgstr "Üzenet a kitiltott GUID-nek"
 
 msgid "Node shutting down"
@@ -737,6 +750,10 @@ msgstr "Gnutella hálózati üzemmód"
 msgid "Too frequent crawling"
 msgstr ""
 
+#, fuzzy
+msgid "Already connected to this GUID"
+msgstr "Már nincs kapcsolatban"
+
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
 msgstr ""
@@ -845,7 +862,11 @@ msgid "Read error: %s"
 msgstr ""
 
 #, c-format
-msgid "mkdir(\"%s\") failed: \"%s\""
+msgid "Must wait %u more seconds before resending \"What's New\""
+msgstr ""
+
+#, c-format
+msgid "mkdir(\"%s\") failed: %m"
 msgstr ""
 
 msgid "Can't find your home directory!"
@@ -1774,7 +1795,7 @@ msgid "Current number of hosts in regular node caches."
 msgstr "Gazdák száma jelenleg a hagyományos gazdatárban"
 
 #, fuzzy
-msgid "Current number of hosts in ultra node caches."
+msgid "Current number of IPv4 hosts in ultra node caches."
 msgstr "Gazdák száma jelenleg az átjátszó gazdatárban"
 
 #, fuzzy
@@ -1786,7 +1807,7 @@ msgid "Maximum number of hosts in the regular node cache."
 msgstr "Gazdák maximális száma a hagyományos gazdatárban"
 
 #, fuzzy
-msgid "Maximum number of hosts in the ultra node cache."
+msgid "Maximum number of IPv4 hosts in the ultra node cache."
 msgstr "Gazdák maximális száma az átjátszó gazdatárban"
 
 #, fuzzy
@@ -3296,19 +3317,19 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-msgid "Maximum number of hosts in the regular GUESS cache."
+msgid "Maximum number of IPv4 hosts in the regular GUESS cache."
 msgstr "Gazdák maximális száma a hagyományos gazdatárban"
 
 #, fuzzy
-msgid "Current number of hosts in the regular GUESS cache."
+msgid "Current number of IPv4 hosts in the regular GUESS cache."
 msgstr "Gazdák száma jelenleg a hagyományos gazdatárban"
 
 #, fuzzy
-msgid "Maximum number of hosts in the introduction GUESS cache."
+msgid "Maximum number of IPv4 hosts in the introduction GUESS cache."
 msgstr "Gazdák maximális száma az átjátszó gazdatárban"
 
 #, fuzzy
-msgid "Current number of hosts in the introduction GUESS cache."
+msgid "Current number of IPv4 hosts in the introduction GUESS cache."
 msgstr "Gazdák száma jelenleg az átjátszó gazdatárban"
 
 #, fuzzy
@@ -3377,6 +3398,69 @@ msgstr "A legtöbb eredmény, amely valamely keresésből ered"
 #, fuzzy
 msgid "Maximum number of results to show in a passive search request."
 msgstr "A legtöbb eredmény, amely valamely keresésből ered"
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages from same node."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages with a higher TTL."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages (not from same node)."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log new Gnutella messages, never seen before."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log Gnutella routing decisions."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log bad Gnutella messages, corrupted or unexpected."
+msgstr "A gui hibajavítási szintje"
+
+msgid "Whether to log conditions triggering query hit spam flagging."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the ultra node cache."
+msgstr "Gazdák maximális száma az átjátszó gazdatárban"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in ultra node caches."
+msgstr "Gazdák száma jelenleg az átjátszó gazdatárban"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the regular GUESS cache."
+msgstr "Gazdák száma jelenleg a hagyományos gazdatárban"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the introduction GUESS cache."
+msgstr "Gazdák száma jelenleg az átjátszó gazdatárban"
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the regular GUESS cache."
+msgstr "Gazdák maximális száma a hagyományos gazdatárban"
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the introduction GUESS cache."
+msgstr "Gazdák maximális száma az átjátszó gazdatárban"
+
+#, fuzzy
+msgid "Debug level for the malloc() replacement allocator."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Debug level for bad query hit messages."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Debug level for GUID management."
+msgstr "A gui hibajavítási szintje"
 
 #, fuzzy
 msgid "disable"
@@ -4813,6 +4897,22 @@ msgstr "%s (%lu bájt)"
 msgid "B/s"
 msgstr "K/s"
 
+#, c-format
+msgid "%ud %uh"
+msgstr ""
+
+#, c-format
+msgid "%uh %um"
+msgstr ""
+
+#, c-format
+msgid "%um %us"
+msgstr ""
+
+#, c-format
+msgid "%us"
+msgstr ""
+
 msgid "locale_get_language|en"
 msgstr "hu"
 
@@ -4869,6 +4969,38 @@ msgstr "Inaktív forrás"
 #, fuzzy
 msgid "Interactive mode turned off."
 msgstr "Inaktív forrás"
+
+#, fuzzy
+msgid "Cannot determine current working directory"
+msgstr "Saját mappa nem található!"
+
+#, fuzzy, c-format
+msgid "Unknown logfile name \"%s\""
+msgstr "Ismeretlen hiba"
+
+#, fuzzy
+msgid "Unable to reopen"
+msgstr "Nyomás elküldése sikertelen"
+
+#, c-format
+msgid "Could not rename logfile as \"%s\": %m"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Unknown operation \"%s\""
+msgstr "Ismeretlen hiba"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "Ismeretlen hiba"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"stats %s\""
+msgstr "Ismeretlen hiba"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"usage %s\""
+msgstr "Ismeretlen hiba"
 
 msgid "Invalid IP/Port"
 msgstr ""
@@ -4931,6 +5063,14 @@ msgstr "Ismeretlen hiba"
 #, fuzzy
 msgid "Value missing"
 msgstr "Proxy beállítása"
+
+#, c-format
+msgid "Previous value was %s"
+msgstr ""
+
+#, c-format
+msgid "New value is %s"
+msgstr ""
 
 msgid "Value found and set"
 msgstr ""
@@ -5473,6 +5613,16 @@ msgid "Routing errors"
 msgstr "Útválasztó hiba"
 
 #, fuzzy
+msgid "Routing table chunks"
+msgstr "Keresés irányító tábla (QRP) sorszáma."
+
+msgid "Routing table message capacity"
+msgstr ""
+
+msgid "Routing table message count"
+msgstr ""
+
+#, fuzzy
 msgid "Duplicates with higher TTL"
 msgstr "E keresés megkettőzése"
 
@@ -5572,7 +5722,14 @@ msgstr "Generált keresések"
 msgid "GUESS queries"
 msgstr "UTF-8-keresések"
 
+#, fuzzy
+msgid "GUESS queries (0.2)"
+msgstr "UTF-8-keresések"
+
 msgid "GUESS cached query keys held"
+msgstr ""
+
+msgid "GUESS cached 0.2 hosts held"
 msgstr ""
 
 #, fuzzy
@@ -5700,6 +5857,9 @@ msgid "Detected GUID collisions"
 msgstr ""
 
 msgid "Detected collisions with our own GUID"
+msgstr ""
+
+msgid "GUID dynamically banned"
 msgstr ""
 
 msgid "Firewalled node info for known hosts received in upload requests"
@@ -8321,6 +8481,11 @@ msgstr[1] ""
 msgid "Query queued..."
 msgstr "%u sorban"
 
+#, fuzzy, c-format
+msgid "%u term counted"
+msgid_plural "%u terms counted"
+msgstr[0] "0 szó számlálva"
+
 #, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "%s képfájl betöltése sikertelen!"
@@ -8602,11 +8767,6 @@ msgstr ""
 msgid "Size:"
 msgstr "Méret:"
 
-#, fuzzy, c-format
-msgid "%u term counted"
-msgid_plural "%u terms counted"
-msgstr[0] "0 szó számlálva"
-
 msgid "Done"
 msgstr "Kész"
 
@@ -8616,10 +8776,20 @@ msgstr "Friss hagyományos"
 msgid "Valid regular"
 msgstr "Érvényes hagyományos"
 
-msgid "Fresh ultra"
+#, fuzzy
+msgid "Fresh IPv4 ultra"
 msgstr "Friss átjátszó"
 
-msgid "Valid ultra"
+#, fuzzy
+msgid "Valid IPv4 ultra"
+msgstr "Érvényes átjátszó"
+
+#, fuzzy
+msgid "Fresh IPv6 ultra"
+msgstr "Friss átjátszó"
+
+#, fuzzy
+msgid "Valid IPv6 ultra"
 msgstr "Érvényes átjátszó"
 
 msgid "Unstable"
@@ -8629,10 +8799,16 @@ msgstr "Bizonytalan"
 msgid "Alien"
 msgstr "Álnevek"
 
-msgid "GUESS (running)"
+msgid "GUESS (IPv4 running)"
 msgstr ""
 
-msgid "GUESS (introductions)"
+msgid "GUESS (IPv4 introductions)"
+msgstr ""
+
+msgid "GUESS (IPv6 running)"
+msgstr ""
+
+msgid "GUESS (IPv6 introductions)"
 msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"
@@ -8762,9 +8938,9 @@ msgstr ""
 "XML-formátumban elmentve és a régi fájl átnevezve\n"
 "%s-re."
 
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"could not rename %s as %s: %s\n"
+"could not rename %s as %s: %m\n"
 "The XML file will not be used unless this problem is resolved."
 msgstr ""
 "Nem sikerült átnevezni %s-t %s-re: %s\n"

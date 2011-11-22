@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-06-04 16:18+0200\n"
+"POT-Creation-Date: 2011-11-22 18:27+0100\n"
 "PO-Revision-Date: 2009-12-05 16:18+0800\n"
 "Last-Translator: Aron Xu <happyaron.xu@gmail.com>\n"
 "Language-Team: Chinese (Simplified) <i18n-zh@googlegroups.com>\n"
@@ -475,6 +475,15 @@ msgid "%u DHT lookup"
 msgid_plural "%u DHT lookups"
 msgstr[0] ""
 
+#, fuzzy, c-format
+msgid "Got %d host from %s"
+msgid_plural "Got %d hosts from %s"
+msgstr[0] "从 UDP 主机缓存 %2$s 中获取到 %1$d 个主机"
+
+#, c-format
+msgid "Bootstrapping from %s"
+msgstr ""
+
 msgid "Bad size"
 msgstr "尺寸错误"
 
@@ -529,6 +538,10 @@ msgid "Duplicate message"
 msgstr "复制消息"
 
 msgid "Message to banned GUID"
+msgstr "发往被禁止 GUID 的消息"
+
+#, fuzzy
+msgid "Message from banned GUID"
 msgstr "发往被禁止 GUID 的消息"
 
 msgid "Node shutting down"
@@ -703,6 +716,10 @@ msgstr "Gnutella 网络模式"
 msgid "Too frequent crawling"
 msgstr "网络爬行太过频繁"
 
+#, fuzzy
+msgid "Already connected to this GUID"
+msgstr "已连接"
+
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
 msgstr "制造商可能超出我们的插口 %d%%"
@@ -804,8 +821,12 @@ msgstr "读取失败 (输入异常)"
 msgid "Read error: %s"
 msgstr "读取错误：%s"
 
+#, c-format
+msgid "Must wait %u more seconds before resending \"What's New\""
+msgstr ""
+
 #, fuzzy, c-format
-msgid "mkdir(\"%s\") failed: \"%s\""
+msgid "mkdir(\"%s\") failed: %m"
 msgstr "写入失败：%s"
 
 msgid "Can't find your home directory!"
@@ -1588,7 +1609,8 @@ msgstr ""
 msgid "Current number of hosts in regular node caches."
 msgstr "目前正常节点缓存中的主机数量"
 
-msgid "Current number of hosts in ultra node caches."
+#, fuzzy
+msgid "Current number of IPv4 hosts in ultra node caches."
 msgstr "目前超级节点缓存中的主机数量"
 
 msgid "Current number of hosts in bad node caches."
@@ -1599,7 +1621,7 @@ msgid "Maximum number of hosts in the regular node cache."
 msgstr "正常节点捕捉器中的最大主机数量"
 
 #, fuzzy
-msgid "Maximum number of hosts in the ultra node cache."
+msgid "Maximum number of IPv4 hosts in the ultra node cache."
 msgstr "超级节点捕捉器中的最大主机数量"
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
@@ -2893,19 +2915,19 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-msgid "Maximum number of hosts in the regular GUESS cache."
+msgid "Maximum number of IPv4 hosts in the regular GUESS cache."
 msgstr "正常节点捕捉器中的最大主机数量"
 
 #, fuzzy
-msgid "Current number of hosts in the regular GUESS cache."
+msgid "Current number of IPv4 hosts in the regular GUESS cache."
 msgstr "目前正常节点缓存中的主机数量"
 
 #, fuzzy
-msgid "Maximum number of hosts in the introduction GUESS cache."
+msgid "Maximum number of IPv4 hosts in the introduction GUESS cache."
 msgstr "超级节点捕捉器中的最大主机数量"
 
 #, fuzzy
-msgid "Current number of hosts in the introduction GUESS cache."
+msgid "Current number of IPv4 hosts in the introduction GUESS cache."
 msgstr "目前超级节点缓存中的主机数量"
 
 #, fuzzy
@@ -2973,6 +2995,69 @@ msgstr "自动重试等待的最大秒数"
 #, fuzzy
 msgid "Maximum number of results to show in a passive search request."
 msgstr "自动重试等待的最大秒数"
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages from same node."
+msgstr "制造商信息的debug级别。"
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages with a higher TTL."
+msgstr "制造商信息的debug级别。"
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages (not from same node)."
+msgstr "制造商信息的debug级别。"
+
+#, fuzzy
+msgid "Whether to log new Gnutella messages, never seen before."
+msgstr "制造商信息的debug级别。"
+
+#, fuzzy
+msgid "Whether to log Gnutella routing decisions."
+msgstr "制造商信息的debug级别。"
+
+#, fuzzy
+msgid "Whether to log bad Gnutella messages, corrupted or unexpected."
+msgstr "制造商信息的debug级别。"
+
+msgid "Whether to log conditions triggering query hit spam flagging."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the ultra node cache."
+msgstr "超级节点捕捉器中的最大主机数量"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in ultra node caches."
+msgstr "目前超级节点缓存中的主机数量"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the regular GUESS cache."
+msgstr "目前正常节点缓存中的主机数量"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the introduction GUESS cache."
+msgstr "目前超级节点缓存中的主机数量"
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the regular GUESS cache."
+msgstr "正常节点捕捉器中的最大主机数量"
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the introduction GUESS cache."
+msgstr "超级节点捕捉器中的最大主机数量"
+
+#, fuzzy
+msgid "Debug level for the malloc() replacement allocator."
+msgstr "用于上传的debug级别。"
+
+#, fuzzy
+msgid "Debug level for bad query hit messages."
+msgstr "消息路由的debug级别。"
+
+#, fuzzy
+msgid "Debug level for GUID management."
+msgstr "用于下载的debug级别。"
 
 msgid "disable"
 msgstr "禁用"
@@ -4278,6 +4363,22 @@ msgstr "%s (%s 字节)"
 msgid "B/s"
 msgstr "B/秒"
 
+#, c-format
+msgid "%ud %uh"
+msgstr "%u天 %u小时"
+
+#, c-format
+msgid "%uh %um"
+msgstr "%u小时 %u分"
+
+#, c-format
+msgid "%um %us"
+msgstr "%u分 %u秒"
+
+#, c-format
+msgid "%us"
+msgstr "%u秒"
+
 msgid "locale_get_language|en"
 msgstr "zh_CN"
 
@@ -4328,6 +4429,38 @@ msgstr ""
 
 msgid "Interactive mode turned off."
 msgstr ""
+
+#, fuzzy
+msgid "Cannot determine current working directory"
+msgstr "无法找到您的主目录！"
+
+#, fuzzy, c-format
+msgid "Unknown logfile name \"%s\""
+msgstr "未知的属性"
+
+#, fuzzy
+msgid "Unable to reopen"
+msgstr "无法发送 GIV"
+
+#, c-format
+msgid "Could not rename logfile as \"%s\": %m"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Unknown operation \"%s\""
+msgstr "未知操作"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "未知操作"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"stats %s\""
+msgstr "未知操作"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"usage %s\""
+msgstr "未知操作"
 
 msgid "Invalid IP/Port"
 msgstr "非法的 IP/端口"
@@ -4384,6 +4517,14 @@ msgstr "未知的属性"
 
 msgid "Value missing"
 msgstr "丢失的值"
+
+#, c-format
+msgid "Previous value was %s"
+msgstr ""
+
+#, c-format
+msgid "New value is %s"
+msgstr ""
 
 msgid "Value found and set"
 msgstr "找到并设置的值"
@@ -4886,6 +5027,15 @@ msgstr ""
 msgid "Routing errors"
 msgstr "路由错误"
 
+msgid "Routing table chunks"
+msgstr ""
+
+msgid "Routing table message capacity"
+msgstr ""
+
+msgid "Routing table message count"
+msgstr ""
+
 msgid "Duplicates with higher TTL"
 msgstr ""
 
@@ -4986,7 +5136,14 @@ msgstr "已生成的查询"
 msgid "GUESS queries"
 msgstr "UTF-8 查询"
 
+#, fuzzy
+msgid "GUESS queries (0.2)"
+msgstr "UTF-8 查询"
+
 msgid "GUESS cached query keys held"
+msgstr ""
+
+msgid "GUESS cached 0.2 hosts held"
 msgstr ""
 
 #, fuzzy
@@ -5111,6 +5268,9 @@ msgid "Detected GUID collisions"
 msgstr ""
 
 msgid "Detected collisions with our own GUID"
+msgstr ""
+
+msgid "GUID dynamically banned"
 msgstr ""
 
 msgid "Firewalled node info for known hosts received in upload requests"
@@ -7522,6 +7682,11 @@ msgid "Query queued..."
 msgstr "已将查询加入队列..."
 
 #, c-format
+msgid "%u term counted"
+msgid_plural "%u terms counted"
+msgstr[0] ""
+
+#, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "无法找到位图文件：%s"
 
@@ -7772,11 +7937,6 @@ msgstr ""
 msgid "Size:"
 msgstr "大小："
 
-#, c-format
-msgid "%u term counted"
-msgid_plural "%u terms counted"
-msgstr[0] ""
-
 msgid "Done"
 msgstr "完成"
 
@@ -7786,10 +7946,20 @@ msgstr "新常规节点"
 msgid "Valid regular"
 msgstr "有效常规节点"
 
-msgid "Fresh ultra"
+#, fuzzy
+msgid "Fresh IPv4 ultra"
 msgstr "新超级节点"
 
-msgid "Valid ultra"
+#, fuzzy
+msgid "Valid IPv4 ultra"
+msgstr "有效超级节点"
+
+#, fuzzy
+msgid "Fresh IPv6 ultra"
+msgstr "新超级节点"
+
+#, fuzzy
+msgid "Valid IPv6 ultra"
 msgstr "有效超级节点"
 
 msgid "Unstable"
@@ -7799,10 +7969,16 @@ msgstr "不稳定"
 msgid "Alien"
 msgstr "别名"
 
-msgid "GUESS (running)"
+msgid "GUESS (IPv4 running)"
 msgstr ""
 
-msgid "GUESS (introductions)"
+msgid "GUESS (IPv4 introductions)"
+msgstr ""
+
+msgid "GUESS (IPv6 running)"
+msgstr ""
+
+msgid "GUESS (IPv6 introductions)"
 msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"
@@ -7926,7 +8102,7 @@ msgstr ""
 
 #, c-format
 msgid ""
-"could not rename %s as %s: %s\n"
+"could not rename %s as %s: %m\n"
 "The XML file will not be used unless this problem is resolved."
 msgstr ""
 
@@ -8290,18 +8466,6 @@ msgstr "发送队列，正等待头部..."
 
 #~ msgid "Banned for %s"
 #~ msgstr "因为 %s 而禁止"
-
-#~ msgid "%ud %uh"
-#~ msgstr "%u天 %u小时"
-
-#~ msgid "%uh %um"
-#~ msgstr "%u小时 %u分"
-
-#~ msgid "%um %us"
-#~ msgstr "%u分 %u秒"
-
-#~ msgid "%us"
-#~ msgstr "%u秒"
 
 #~ msgid "("
 #~ msgstr "("

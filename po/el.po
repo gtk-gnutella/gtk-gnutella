@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-06-04 16:18+0200\n"
+"POT-Creation-Date: 2011-11-22 18:27+0100\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -507,6 +507,18 @@ msgid_plural "%u DHT lookups"
 msgstr[0] ""
 msgstr[1] ""
 
+#, fuzzy, c-format
+msgid "Got %d host from %s"
+msgid_plural "Got %d hosts from %s"
+msgstr[0] ""
+"Ελήφθη %d υπολογιστής από την λανθάνουσα μνήμη UDP υπολογιστών %s:%u"
+msgstr[1] ""
+"Ελήφθη %d υπολογιστές από την λανθάνουσα μνήμη UDP υπολογιστών %s:%u"
+
+#, c-format
+msgid "Bootstrapping from %s"
+msgstr ""
+
 msgid "Bad size"
 msgstr "Κακό μέγεθος"
 
@@ -560,6 +572,10 @@ msgid "Duplicate message"
 msgstr "Ανατύπωση μηνύματος"
 
 msgid "Message to banned GUID"
+msgstr "Μήνυμα σε απαγορευμένο GUID"
+
+#, fuzzy
+msgid "Message from banned GUID"
 msgstr "Μήνυμα σε απαγορευμένο GUID"
 
 msgid "Node shutting down"
@@ -734,6 +750,10 @@ msgstr "Λειτουργία δικτύου Gnutella"
 msgid "Too frequent crawling"
 msgstr ""
 
+#, fuzzy
+msgid "Already connected to this GUID"
+msgstr "Ήδη συνδεδεμένος"
+
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
 msgstr "Ο κατασκευαστής υπερέβη %d%% των υποδοχών μας"
@@ -835,8 +855,12 @@ msgstr "Αποτυχία ανάγνωσης (Εξαίρεση εισόδου)"
 msgid "Read error: %s"
 msgstr "Σφάλμα ανάγνωσης: %s"
 
+#, c-format
+msgid "Must wait %u more seconds before resending \"What's New\""
+msgstr ""
+
 #, fuzzy, c-format
-msgid "mkdir(\"%s\") failed: \"%s\""
+msgid "mkdir(\"%s\") failed: %m"
 msgstr "Η εγγραφή απέτυχε: %s"
 
 msgid "Can't find your home directory!"
@@ -1695,7 +1719,8 @@ msgstr ""
 msgid "Current number of hosts in regular node caches."
 msgstr "Αριθμός υπολογιστών στις λανθάνουσες μνήμες συνήθων κόμβων."
 
-msgid "Current number of hosts in ultra node caches."
+#, fuzzy
+msgid "Current number of IPv4 hosts in ultra node caches."
 msgstr "Αριθμός υπολογιστών στις λανθάνουσες μνήμες υπερ-κόμβων."
 
 msgid "Current number of hosts in bad node caches."
@@ -1706,7 +1731,7 @@ msgid "Maximum number of hosts in the regular node cache."
 msgstr "Μέγιστος αριθμός υπολογιστών στο συλλέκτη κανονικών κόμβων."
 
 #, fuzzy
-msgid "Maximum number of hosts in the ultra node cache."
+msgid "Maximum number of IPv4 hosts in the ultra node cache."
 msgstr "Μέγιστος αριθμός υπολογιστών στο συλλέκτη υπερ-κόμβων."
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
@@ -3203,19 +3228,19 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-msgid "Maximum number of hosts in the regular GUESS cache."
+msgid "Maximum number of IPv4 hosts in the regular GUESS cache."
 msgstr "Μέγιστος αριθμός υπολογιστών στο συλλέκτη κανονικών κόμβων."
 
 #, fuzzy
-msgid "Current number of hosts in the regular GUESS cache."
+msgid "Current number of IPv4 hosts in the regular GUESS cache."
 msgstr "Αριθμός υπολογιστών στις λανθάνουσες μνήμες συνήθων κόμβων."
 
 #, fuzzy
-msgid "Maximum number of hosts in the introduction GUESS cache."
+msgid "Maximum number of IPv4 hosts in the introduction GUESS cache."
 msgstr "Μέγιστος αριθμός υπολογιστών στο συλλέκτη υπερ-κόμβων."
 
 #, fuzzy
-msgid "Current number of hosts in the introduction GUESS cache."
+msgid "Current number of IPv4 hosts in the introduction GUESS cache."
 msgstr "Αριθμός υπολογιστών στις λανθάνουσες μνήμες υπερ-κόμβων."
 
 #, fuzzy
@@ -3286,6 +3311,69 @@ msgstr ""
 msgid "Maximum number of results to show in a passive search request."
 msgstr ""
 "Μέγιστος αριθμός αποτελεσμάτων που εμφανίζονται σε οποιαδήποτε αναζήτηση."
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages from same node."
+msgstr "Επίπεδο αποσφαλμάτωσης μηνυμάτων Gnutella."
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages with a higher TTL."
+msgstr "Επίπεδο αποσφαλμάτωσης μηνυμάτων Gnutella."
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages (not from same node)."
+msgstr "Επίπεδο αποσφαλμάτωσης μηνυμάτων Gnutella."
+
+#, fuzzy
+msgid "Whether to log new Gnutella messages, never seen before."
+msgstr "Επίπεδο αποσφαλμάτωσης μηνυμάτων Gnutella."
+
+#, fuzzy
+msgid "Whether to log Gnutella routing decisions."
+msgstr "Επίπεδο αποσφαλμάτωσης μηνυμάτων Gnutella."
+
+#, fuzzy
+msgid "Whether to log bad Gnutella messages, corrupted or unexpected."
+msgstr "Επίπεδο αποσφαλμάτωσης μηνυμάτων Gnutella."
+
+msgid "Whether to log conditions triggering query hit spam flagging."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the ultra node cache."
+msgstr "Μέγιστος αριθμός υπολογιστών στο συλλέκτη υπερ-κόμβων."
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in ultra node caches."
+msgstr "Αριθμός υπολογιστών στις λανθάνουσες μνήμες υπερ-κόμβων."
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the regular GUESS cache."
+msgstr "Αριθμός υπολογιστών στις λανθάνουσες μνήμες συνήθων κόμβων."
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the introduction GUESS cache."
+msgstr "Αριθμός υπολογιστών στις λανθάνουσες μνήμες υπερ-κόμβων."
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the regular GUESS cache."
+msgstr "Μέγιστος αριθμός υπολογιστών στο συλλέκτη κανονικών κόμβων."
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the introduction GUESS cache."
+msgstr "Μέγιστος αριθμός υπολογιστών στο συλλέκτη υπερ-κόμβων."
+
+#, fuzzy
+msgid "Debug level for the malloc() replacement allocator."
+msgstr "Επίπεδο αποσφαλμάτωσης γραφικού ενδιαμέσου."
+
+#, fuzzy
+msgid "Debug level for bad query hit messages."
+msgstr "Επίπεδο αποσφαλμάτωσης δρομολόγησης μηνυμάτων."
+
+#, fuzzy
+msgid "Debug level for GUID management."
+msgstr "Επίπεδο αποσφαλμάτωσης διαχείρισης πλέγματος λήψεων."
 
 msgid "disable"
 msgstr "απενεργοποίηση"
@@ -4707,6 +4795,22 @@ msgstr "%s (%s bytes)"
 msgid "B/s"
 msgstr "B/s"
 
+#, c-format
+msgid "%ud %uh"
+msgstr ""
+
+#, c-format
+msgid "%uh %um"
+msgstr ""
+
+#, c-format
+msgid "%um %us"
+msgstr ""
+
+#, c-format
+msgid "%us"
+msgstr ""
+
 msgid "locale_get_language|en"
 msgstr "el"
 
@@ -4764,6 +4868,38 @@ msgstr "Ανενεργές πηγές"
 #, fuzzy
 msgid "Interactive mode turned off."
 msgstr "Ανενεργές πηγές"
+
+#, fuzzy
+msgid "Cannot determine current working directory"
+msgstr "Δεν είναι δυνατή η εύρεση του αρχικού καταλόγου σας!"
+
+#, fuzzy, c-format
+msgid "Unknown logfile name \"%s\""
+msgstr "Άγνωστη ιδιότητα"
+
+#, fuzzy
+msgid "Unable to reopen"
+msgstr "Αδυναμία αποστολής GIV"
+
+#, c-format
+msgid "Could not rename logfile as \"%s\": %m"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Unknown operation \"%s\""
+msgstr "Άγνωστη διαδικασία"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "Άγνωστη διαδικασία"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"stats %s\""
+msgstr "Άγνωστη διαδικασία"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"usage %s\""
+msgstr "Άγνωστη διαδικασία"
 
 msgid "Invalid IP/Port"
 msgstr "Λανθασμένη IP/Θύρα"
@@ -4823,6 +4959,14 @@ msgstr "Άγνωστη ιδιότητα"
 
 msgid "Value missing"
 msgstr "Λείπει η τιμή"
+
+#, c-format
+msgid "Previous value was %s"
+msgstr ""
+
+#, c-format
+msgid "New value is %s"
+msgstr ""
 
 msgid "Value found and set"
 msgstr "Η τιμή βρέθηκε και ορίστηκε"
@@ -5340,6 +5484,16 @@ msgstr ""
 msgid "Routing errors"
 msgstr "Σφάλματα δρομολόγησης"
 
+#, fuzzy
+msgid "Routing table chunks"
+msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
+
+msgid "Routing table message capacity"
+msgstr ""
+
+msgid "Routing table message count"
+msgstr ""
+
 msgid "Duplicates with higher TTL"
 msgstr "Ανατυπώνει με υψηλότερο TTL"
 
@@ -5441,7 +5595,14 @@ msgstr "Δημιουργημένα ερωτήματα"
 msgid "GUESS queries"
 msgstr "ερωτήματα UTF8"
 
+#, fuzzy
+msgid "GUESS queries (0.2)"
+msgstr "ερωτήματα UTF8"
+
 msgid "GUESS cached query keys held"
+msgstr ""
+
+msgid "GUESS cached 0.2 hosts held"
 msgstr ""
 
 #, fuzzy
@@ -5572,6 +5733,9 @@ msgid "Detected GUID collisions"
 msgstr ""
 
 msgid "Detected collisions with our own GUID"
+msgstr ""
+
+msgid "GUID dynamically banned"
 msgstr ""
 
 msgid "Firewalled node info for known hosts received in upload requests"
@@ -8117,6 +8281,12 @@ msgstr[1] "%u αποτελέσματα απορρίφθηκαν"
 msgid "Query queued..."
 msgstr "Το ερώτημα μπήκε στη λίστα αναμονής..."
 
+#, c-format
+msgid "%u term counted"
+msgid_plural "%u terms counted"
+msgstr[0] "Μετρήθηκε %u κριτήριο"
+msgstr[1] "Μετρήθηκαν %u κριτήρια"
+
 #, fuzzy, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "Αδυναμία εύρεσης του αρχείου pixmap: %s"
@@ -8383,12 +8553,6 @@ msgstr "Ανεστραμμένη εύρεση σε εξέλιξη..."
 msgid "Size:"
 msgstr "Μέγεθος:"
 
-#, c-format
-msgid "%u term counted"
-msgid_plural "%u terms counted"
-msgstr[0] "Μετρήθηκε %u κριτήριο"
-msgstr[1] "Μετρήθηκαν %u κριτήρια"
-
 msgid "Done"
 msgstr "Έγινε"
 
@@ -8398,10 +8562,20 @@ msgstr "Νέοι συνήθεις"
 msgid "Valid regular"
 msgstr "Έγκυροι συνήθεις"
 
-msgid "Fresh ultra"
+#, fuzzy
+msgid "Fresh IPv4 ultra"
 msgstr "Νέοι υπερ-κόμβοι"
 
-msgid "Valid ultra"
+#, fuzzy
+msgid "Valid IPv4 ultra"
+msgstr "Έγκυροι υπερ-κόμβοι"
+
+#, fuzzy
+msgid "Fresh IPv6 ultra"
+msgstr "Νέοι υπερ-κόμβοι"
+
+#, fuzzy
+msgid "Valid IPv6 ultra"
 msgstr "Έγκυροι υπερ-κόμβοι"
 
 msgid "Unstable"
@@ -8411,10 +8585,16 @@ msgstr "Ασταθές"
 msgid "Alien"
 msgstr "Εναλλακτικές ονομασίες"
 
-msgid "GUESS (running)"
+msgid "GUESS (IPv4 running)"
 msgstr ""
 
-msgid "GUESS (introductions)"
+msgid "GUESS (IPv4 introductions)"
+msgstr ""
+
+msgid "GUESS (IPv6 running)"
+msgstr ""
+
+msgid "GUESS (IPv6 introductions)"
 msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"
@@ -8548,9 +8728,9 @@ msgstr ""
 "αποθηκεύτηκαν στη νέα μορφή XML και το παλιό αρχείο μετονομάστηκε\n"
 "σε %s"
 
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"could not rename %s as %s: %s\n"
+"could not rename %s as %s: %m\n"
 "The XML file will not be used unless this problem is resolved."
 msgstr ""
 "δεν είναι δυνατή η μετονομασία του %s σε %s: %s\n"
