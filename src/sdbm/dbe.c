@@ -41,18 +41,19 @@ extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
 **                                                                         **
 \***************************************************************************/
 
-static char *my_optarg;			/* Global argument pointer. */
-
-#ifdef VMS
-#define index  strchr
+#ifndef HAS_INDEX
+#ifndef index
+#define index	strchr
 #endif
+#endif	/* HAS_INDEX */
+
+static char *my_optarg;			/* Global argument pointer. */
 
 static char
 my_getopt(int argc, char **argv, char *optstring)
 {
 	register int c;
 	register char *place;
-	extern char *index();
 	static int my_optind = 0;
 	static char *scan = NULL;
 
@@ -330,7 +331,7 @@ int
 main(int argc, char **argv)
 {
 	typedef enum {
-		HELP, FETCH, STORE, DELETE, SCAN, REGEXP
+		CMD_HELP, CMD_FETCH, CMD_STORE, CMD_DELETE, CMD_SCAN, CMD_REGEXP
 	} commands;
 	char opt;
 	int flags;
@@ -340,7 +341,7 @@ main(int argc, char **argv)
 	int content_hexa = 0;
 	int content_is_file = 0;
 	int key_only = 0;
-	commands what = HELP;
+	commands what = CMD_HELP;
 	char *comarg[3];
 	int st_flag = DBM_INSERT;
 	int argn;
@@ -361,7 +362,7 @@ main(int argc, char **argv)
 			key_only = 1;
 			break;
 		case 'a':
-			what = SCAN;
+			what = CMD_SCAN;
 			break;
 		case 'b':
 			content_hexa = -1;
@@ -370,13 +371,13 @@ main(int argc, char **argv)
 			flags |= O_CREAT;
 			break;
 		case 'd':
-			what = DELETE;
+			what = CMD_DELETE;
 			break;
 		case 'f':
-			what = FETCH;
+			what = CMD_FETCH;
 			break;
 		case 'F':
-			what = REGEXP;
+			what = CMD_REGEXP;
 			break;
 		case 'i':
 			mode = "rb";
@@ -403,7 +404,7 @@ main(int argc, char **argv)
 			st_flag = DBM_REPLACE;
 			/* FALL THROUGH */
 		case 's':
-			what = STORE;
+			what = CMD_STORE;
 			break;
 		case 't':
 			flags |= O_TRUNC;
@@ -434,10 +435,10 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (key_only && HELP == what)
-		what = SCAN;
+	if (key_only && CMD_HELP == what)
+		what = CMD_SCAN;
 
-	if (giveusage || what == HELP || argn < 1)
+	if (giveusage || what == CMD_HELP || argn < 1)
 		usage();
 
 	if ((db = sdbm_open(comarg[0], flags, 0777)) == NULL) {
@@ -472,9 +473,9 @@ main(int argc, char **argv)
 	}
 
 	switch (what) {
-	case HELP:
+	case CMD_HELP:
 		g_assert_not_reached();		/* Already handled above */
-	case SCAN:
+	case CMD_SCAN:
 		key = sdbm_firstkey(db);
 		if (sdbm_error(db)) {
 			fprintf(stderr, "Error when fetching first key: %s\n",
@@ -502,7 +503,7 @@ main(int argc, char **argv)
 		}
 		break;
 
-	case REGEXP:
+	case CMD_REGEXP:
 		if (argn < 2) {
 			fprintf(stderr, "Missing regular expression.\n");
 			goto db_exit;
@@ -543,7 +544,7 @@ main(int argc, char **argv)
 		}
 		break;
 
-	case FETCH:
+	case CMD_FETCH:
 		if (argn < 2) {
 			fprintf(stderr, "Missing fetch key.\n");
 			goto db_exit;
@@ -569,7 +570,7 @@ main(int argc, char **argv)
 		}
 		break;
 
-	case DELETE:
+	case CMD_DELETE:
 		if (argn < 2) {
 			fprintf(stderr, "Missing delete key.\n");
 			goto db_exit;
@@ -584,7 +585,7 @@ main(int argc, char **argv)
 		}
 		break;
 
-	case STORE:
+	case CMD_STORE:
 		if (argn < 3) {
 			fprintf(stderr, "Missing key and/or content.\n");
 			goto db_exit;

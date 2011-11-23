@@ -67,15 +67,21 @@
    `BSTRING', as far as I know, and neither of them use this code.  */
 #ifdef I_STRING
 #include <string.h>
+#ifndef HAS_BCMP
 #ifndef bcmp
 #define bcmp(s1, s2, n)	memcmp ((s1), (s2), (n))
 #endif
+#endif	/* HAS_BCMP */
+#ifndef HAS_BCOPY
 #ifndef bcopy
 #define bcopy(s, d, n)	memcpy ((d), (s), (n))
 #endif
+#endif	/* HAS_BCOPY */
+#ifndef HAS_BZERO
 #ifndef bzero
 #define bzero(s, n)	memset ((s), 0, (n))
 #endif
+#endif	/* HAS_BZERO */
 #else
 #include <strings.h>
 #endif
