@@ -110,6 +110,7 @@
 #include "lib/listener.h"
 #include "lib/nid.h"
 #include "lib/parse.h"
+#include "lib/pattern.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/sequence.h"
@@ -190,6 +191,11 @@ static gnutella_node_t *udp_route;
 static gnutella_node_t *browse_node;
 static char *payload_inflate_buffer;
 static int payload_inflate_buffer_len;
+static cpattern_t *pat_gtkg_23v1;
+static cpattern_t *pat_hsep;
+static cpattern_t *pat_impp;
+static cpattern_t *pat_lmup;
+static cpattern_t *pat_f2ft_1;
 
 static const char gtkg_vendor[] = "gtk-gnutella/";
 
@@ -1085,6 +1091,101 @@ node_supports_dht(struct gnutella_node *n, dht_mode_t mode)
 		pcache_collect_dht_hosts(n);
 }
 
+static gboolean
+node_str_match(const char *str, size_t len, const cpattern_t *pat)
+{
+	return NULL != pattern_qsearch(pat, str, len, 0, qs_any);
+}
+
+/**
+ * Called after list of supported vendor messages is known.
+ *
+ * The given string is a space-separated list of vendor messages, starting
+ * with a space.
+ */
+void
+node_supported_vmsg(struct gnutella_node *n, const char *str, size_t len)
+{
+	node_check(n);
+
+	if (GNET_PROPERTY(node_debug) > 1) {
+		g_debug("NODE [RX=%u] %s supported vendor messages:%s.",
+			n->received, node_infostr(n), str);
+	}
+
+	if (NULL == n->vendor)
+		return;
+
+	if (is_strcaseprefix(n->vendor, "limewire/")) {
+		if (node_str_match(str, len, pat_gtkg_23v1)) {
+			n->flags |= NODE_F_FAKE_NAME;
+			node_set_vendor(n, n->vendor);
+		}
+		return;
+	}
+}
+
+/**
+ * Called after list of supported features is known.
+ *
+ * The given string is a space-separated list of features, starting with
+ * a space.
+ */
+void
+node_supported_feats(struct gnutella_node *n, const char *str, size_t len)
+{
+	node_check(n);
+
+	if (GNET_PROPERTY(node_debug) > 1) {
+		g_debug("NODE [RX=%u] %s supported features:%s.",
+			n->received, node_infostr(n), str);
+	}
+
+	if (NULL == n->vendor)
+		return;
+
+	if (is_strcaseprefix(n->vendor, "limewire/")) {
+		if (
+			node_str_match(str, len, pat_hsep) ||
+			!node_str_match(str, len, pat_impp)
+		)
+			goto fake;
+	}
+
+	if (is_strcaseprefix(n->vendor, "limewire/5.")) {
+		if (!node_str_match(str, len, pat_f2ft_1))
+			goto fake;
+	}
+
+	if (is_strcaseprefix(n->vendor, "frosty/")) {
+		if (!node_str_match(str, len, pat_lmup))
+			goto fake;
+	}
+
+	if (GNET_PROPERTY(node_debug)) {
+		if (
+			node_str_match(str, len, pat_hsep) &&
+			!(n->attrs & NODE_A_CAN_HSEP)
+		) {
+			g_warning("NODE %s advertises HSEP outside Gnutella headers",
+				node_infostr(n));
+		}
+	}
+
+	if (node_is_gtkg(n)) {
+		if (!node_str_match(str, len, pat_hsep)) {
+			n->flags &= ~NODE_F_GTKG;
+			goto fake;
+		}
+	}
+
+	return;
+
+fake:
+	n->flags |= NODE_F_FAKE_NAME;
+	node_set_vendor(n, n->vendor);
+}
+
 /**
  * Periodic node heartbeat timer.
  */
@@ -1449,6 +1550,24 @@ node_init(void)
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 
 	/*
+	 * Known patterns for vendor messages and features.
+	 *
+	 * The leading space in each pattern is not a mistake: the string which
+	 * we will be matching separates tokens with spaces and starts with a
+	 * leading space as well.
+	 */
+
+#define PAT_COMPILE(x)	pattern_compile_fast((x), CONST_STRLEN(x))
+
+	pat_gtkg_23v1	= PAT_COMPILE(" GTKG/23v1");
+	pat_hsep		= PAT_COMPILE(" HSEP/");
+	pat_impp		= PAT_COMPILE(" IMPP/");
+	pat_lmup		= PAT_COMPILE(" LMUP/");
+	pat_f2ft_1		= PAT_COMPILE(" F2FT/1");
+
+#undef PAT_COMPILE
+
+	/*
 	 * Signal we support flags in the size header via "sflag/0.1"
 	 */
 
@@ -1724,7 +1843,8 @@ node_real_remove(gnutella_node_t *n)
 	if (
 		!NODE_IS_LEAF(n) &&
 		is_host_addr(n->gnet_addr) &&
-		(n->flags & NODE_F_VALID)
+		(n->flags & NODE_F_VALID) &&
+		!NODE_IS_TRANSIENT(n)
 	)
 		hcache_add_valid((n->attrs & NODE_A_ULTRA) ? HOST_ULTRA : HOST_ANY,
             n->gnet_addr, n->gnet_port, "save valid");
@@ -5105,6 +5225,7 @@ node_is_authentic(const char *vendor, const header_t *head)
 	if (vendor) {
 		if (is_strcaseprefix(vendor, "limewire/")) {
 			return !header_get(head, "Bye-Packet") &&
+				header_get(head, "Remote-IP") &&
 				header_get(head, "Vendor-Message") &&
 				header_get(head, "Accept-Encoding");
 		}
@@ -5139,6 +5260,9 @@ node_extract_user_agent(struct gnutella_node *n, const header_t *head)
 
 	/*
 	 * Spot remote GTKG nodes (even if faked name or ancient vesion).
+	 *
+	 * We may clear the flag later when we have definite confirmation
+	 * that the remote node is not a GTKG one.
 	 */
 
 	if (field &&
@@ -8635,18 +8759,16 @@ node_remove_useless_leaf(gboolean *is_gtkg)
         if (whitelist_check(n->addr))
             continue;
 
+		/* Transient nodes are the first to go */
+		if (NODE_IS_TRANSIENT(n)) {
+			worst = n;
+			break;
+		}
+
 		/*
 		 * Our primary targets are non-sharing leaves, or leaves preventing
 		 * any querying via hops-flow or lack of QRT.
 		 */
-
-		if (
-			(n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME ||
-			(n->flags & NODE_F_NOT_GENUINE)
-		) {
-			worst = n;
-			break;
-		}
 
 		if (n->gnet_files_count == 0)
 			target = n->connect_date;
@@ -8722,10 +8844,8 @@ node_remove_useless_ultra(gboolean *is_gtkg)
         if (whitelist_check(n->addr))
             continue;
 
-		if (
-			(n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME ||
-			(n->flags & NODE_F_NOT_GENUINE)
-		) {
+		/* Transient nodes are the first to go */
+		if (NODE_IS_TRANSIENT(n)) {
 			worst = n;
 			break;
 		}
@@ -9160,6 +9280,12 @@ node_close(void)
 		udp_route = NULL;
 	}
 
+	pattern_free_null(&pat_gtkg_23v1);
+	pattern_free_null(&pat_hsep);
+	pattern_free_null(&pat_impp);
+	pattern_free_null(&pat_lmup);
+	pattern_free_null(&pat_f2ft_1);
+
 	HFREE_NULL(payload_inflate_buffer);
 
     gm_hash_table_destroy_null(&ht_connected_nodes);
@@ -9369,7 +9495,8 @@ node_set_vendor(gnutella_node_t *n, const char *vendor)
 			size = w_concat_strings(&wbuf, full, " (", vendor, ")", (void *) 0);
 	}
 
-	n->vendor = atom_str_get(lazy_iso8859_1_to_utf8(wbuf ? wbuf : vendor));
+	atom_str_change(&n->vendor, lazy_iso8859_1_to_utf8(wbuf ? wbuf : vendor));
+
 	if (wbuf) {
 		wfree(wbuf, size);
 		wbuf = NULL;
@@ -9919,11 +10046,11 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
 	if (n->attrs & NODE_A_CAN_DHT)
 		return;
 
-	if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME)
-		return;			/* Transient node, don't bother */
+	if (NODE_IS_TRANSIENT(n))
+		return;					/* Transient node, don't bother */
 
 	if (NODE_HAS_BAD_GUID(n))
-		return;			/* Bad GUID, don't bother either */
+		return;					/* Bad GUID, don't bother either */
 
 	n->dht_nope_ev = cq_main_insert((DHT_VALUE_NOPE_EXPIRE - (5*60)) * 1000,
 		node_publish_dht_nope, n);
@@ -10022,7 +10149,7 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 	 * Refuse to be the push-proxy of a node who will be mostly transient.
 	 */
 
-	if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME)
+	if (NODE_IS_TRANSIENT(n))
 		return FALSE;
 
 	/*

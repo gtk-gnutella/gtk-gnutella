@@ -74,6 +74,7 @@
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
+#include "lib/str.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/urn.h"
@@ -368,6 +369,7 @@ handle_features_supported(struct gnutella_node *n,
 {
 	const char *description;
 	guint16 count;
+	str_t *feats;
 
 	if (NODE_IS_UDP(n)) {
 		if (GNET_PROPERTY(vmsg_debug)) {
@@ -393,6 +395,8 @@ handle_features_supported(struct gnutella_node *n,
 	 * Analyze the supported features.
 	 */
 
+	feats = str_new(count * 16);	/* Pre-size generously */
+
 	while (count-- > 0) {
 		char feature[5];
 		guint16 version;
@@ -401,6 +405,8 @@ handle_features_supported(struct gnutella_node *n,
 		feature[4] = '\0';
 		version = peek_le16(&description[4]);
 		description += 6;
+
+		str_catf(feats, " %s/%u", feature, version);
 
 		if (GNET_PROPERTY(vmsg_debug) > 2)
 			g_debug("VMSG %s supports feature %s/%u",
@@ -430,6 +436,11 @@ handle_features_supported(struct gnutella_node *n,
 			}
 		}
 	}
+
+	if (!NODE_IS_TRANSIENT(n))
+		node_supported_feats(n, str_2c(feats), str_len(feats));
+
+	str_destroy(feats);
 }
 
 /**
@@ -2999,6 +3010,7 @@ handle_messages_supported(struct gnutella_node *n,
 {
 	const char *description;
 	guint16 count;
+	str_t *msgs;
 
 	if (NODE_IS_UDP(n))			/* Don't waste time if we get this via UDP */
 		return;
@@ -3023,6 +3035,8 @@ handle_messages_supported(struct gnutella_node *n,
 	 * Analyze the supported messages.
 	 */
 
+	msgs = str_new(count * 16);		/* Pre-size generously */
+
 	while (count-- > 0) {
 		struct vmsg vm;
 		vendor_code_t vendor;
@@ -3032,6 +3046,9 @@ handle_messages_supported(struct gnutella_node *n,
 		id = peek_le16(&description[4]);
 		version = peek_le16(&description[6]);
 		description += 8;
+
+		str_catf(msgs, " %s/%dv%d",
+			vendor_code_to_string(vendor.u32), id, version);
 
 		if (!find_message(&vm, vendor, id, version)) {
 			if (GNET_PROPERTY(vmsg_debug) > 1)
@@ -3080,6 +3097,11 @@ handle_messages_supported(struct gnutella_node *n,
 	if (n->attrs & NODE_A_CAN_SVN_NOTIFY) {
 		vmsg_send_svn_release_notify(n);
 	}
+
+	if (!NODE_IS_TRANSIENT(n))
+		node_supported_vmsg(n, str_2c(msgs), str_len(msgs));
+
+	str_destroy(msgs);
 }
 
 /**

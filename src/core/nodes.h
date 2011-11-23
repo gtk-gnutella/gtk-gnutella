@@ -447,6 +447,7 @@ enum {
 #define NODE_ID(n)				((n)->id)
 
 #define NODE_USES_DUP_GUID(n)	((n)->flags & NODE_F_DUP_GUID)
+#define NODE_IS_GENUINE(n)		(!((n)->flags & NODE_F_NOT_GENUINE))
 
 #define NODE_CAN_BYE(n)			((n)->attrs & NODE_A_BYE_PACKET)
 #define NODE_CAN_SFLAG(n)		((n)->attrs & NODE_A_CAN_SFLAG)
@@ -458,6 +459,10 @@ enum {
 #define NODE_HAS_BAD_GUID(n)	((n)->attrs & NODE_A_BAD_GUID)
 #define NODE_IS_FIREWALLED(n)	((n)->attrs & NODE_A_FIREWALLED)
 
+#define NODE_HAS_FAKE_NAME(n)	\
+	(((n)->flags & (NODE_F_FAKE_NAME | NODE_F_GTKG)) == NODE_F_FAKE_NAME)
+
+#define NODE_IS_TRANSIENT(n)	(NODE_HAS_FAKE_NAME(n) || !NODE_IS_GENUINE(n))
 
 /*
  * Peer inspection macros
@@ -663,6 +668,8 @@ void node_supports_tls(struct gnutella_node *);
 void node_supports_whats_new(struct gnutella_node *);
 void node_supports_dht(struct gnutella_node *, dht_mode_t);
 void node_is_firewalled(gnutella_node_t *n);
+void node_supported_vmsg(struct gnutella_node *, const char *str, size_t len);
+void node_supported_feats(struct gnutella_node *, const char *str, size_t len);
 
 const struct nid *node_id_get_self(void);
 gboolean node_id_self(const struct nid *node_id);
