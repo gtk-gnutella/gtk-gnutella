@@ -179,6 +179,7 @@
 const char *start_rfc822_date;			/**< RFC822 format of start_time */
 
 static GSList *sl_nodes;
+static GSList *sl_up_nodes;
 static GHashTable *nodes_by_id;
 static GHashTable *nodes_by_guid;
 static gnutella_node_t *udp_node;
@@ -1826,6 +1827,9 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 			n->n_ping_sent, n->n_pong_received, n->n_pong_sent);
 	}
 
+	if (NODE_IS_ULTRA(n)) {
+		sl_up_nodes = g_slist_remove(sl_up_nodes, n);
+	}
 	if (n->routing_data) {
 		routing_node_remove(n);
 		n->routing_data = NULL;
@@ -3554,6 +3558,9 @@ node_is_now_connected(struct gnutella_node *n)
 	n->status = GTA_NODE_CONNECTED;
 	n->flags |= NODE_F_VALID;
 	n->last_update = n->connect_date = tm_time();
+	if (NODE_IS_ULTRA(n)) {
+		sl_up_nodes = g_slist_prepend(sl_up_nodes, n);
+	}
 
 	connected_node_cnt++;
 
@@ -4389,7 +4396,7 @@ analyse_status(struct gnutella_node *n, int *code)
 	if (code)
 		*code = ack_code;
 
-	if (GNET_PROPERTY(node_debug))
+	if (GNET_PROPERTY(node_debug) > 3)
 		g_debug("%s: code=%d, message=\"%s\", proto=%u.%u",
 			incoming ? "ACK" : "REPLY",
 			ack_code, ack_message, major, minor);
@@ -8700,7 +8707,7 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 	if (!settings_is_ultra())
 		return FALSE;
 
-    for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+    for (sl = sl_up_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 		time_t target = (time_t) -1;
 		int diff;
@@ -8796,7 +8803,7 @@ node_remove_uncompressed_ultra(gboolean *is_gtkg)
 	if (!settings_is_ultra())
 		return FALSE;
 
-    for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+    for (sl = sl_up_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 		
         if (n->status != GTA_NODE_CONNECTED)
@@ -9060,7 +9067,7 @@ node_qrt_changed(struct routing_table *query_table)
 	 * (n->sent_query_table holds the last query table we successfully sent)
 	 */
 
-    for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+    for (sl = sl_up_nodes; sl; sl = g_slist_next(sl)) {
         n = sl->data;
 
 		if (!NODE_IS_WRITABLE(n) || !NODE_IS_ULTRA(n))
@@ -10331,6 +10338,16 @@ node_all_nodes(void)
 {
 	return sl_nodes;
 }
+
+/**
+ * @return list of all ultra nodes.
+ */
+const GSList *
+node_all_ultranodes(void)
+{
+	return sl_up_nodes;
+}
+
 
 /**
  * @return writable node given its ID, or NULL if we can't reach that node.

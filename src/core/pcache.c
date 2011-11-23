@@ -129,7 +129,7 @@ ping_net(enum ping_flag flags)
  ***/
 
 /**
- * Sends a ping to given node, or broadcast to everyone if `n' is NULL.
+ * Sends a ping to given node.
  */
 static void
 send_ping(struct gnutella_node *n, guint8 ttl)
@@ -137,33 +137,15 @@ send_ping(struct gnutella_node *n, guint8 ttl)
 	gnutella_msg_init_t *m;
 	guint32 size;
 
+	node_check(n);
+	g_assert(!NODE_IS_UDP(n));
+
 	STATIC_ASSERT(23 == sizeof *m);	
 	m = build_ping_msg(NULL, ttl, FALSE, &size);
 
-	if (n) {
-		g_assert(!NODE_IS_UDP(n));
-
-		if (NODE_IS_WRITABLE(n)) {
-			n->n_ping_sent++;
-			gmsg_sendto_one(n, m, size);
-		}
-	} else {
-		const GSList *sl_nodes = node_all_nodes();
-		const GSList *sl;
-
-		/*
-		 * XXX Have to loop to count pings sent.
-		 * XXX Need to do that more generically, to factorize code.
-		 */
-
-		for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
-			n = sl->data;
-			if (!NODE_IS_WRITABLE(n))
-				continue;
-			n->n_ping_sent++;
-		}
-
-		gmsg_sendto_all(sl_nodes, m, size);
+	if (NODE_IS_WRITABLE(n)) {
+		n->n_ping_sent++;
+		gmsg_sendto_one(n, m, size);
 	}
 }
 
@@ -915,11 +897,14 @@ send_neighbouring_info(struct gnutella_node *n)
 	g_assert(gnutella_header_get_hops(&n->header) == 0);
 	g_assert(gnutella_header_get_ttl(&n->header) == 2);	/* "Crawler" ping */
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+	for (sl = node_all_ultranodes(); sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *cn = sl->data;
 		struct pong_info info;
 
 		if (!NODE_IS_WRITABLE(cn))
+			continue;
+
+		if (n == cn)
 			continue;
 
 		/*
@@ -1526,7 +1511,7 @@ ping_all_neighbours(void)
 	 *		--RAM, 12/01/2004
 	 */
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+	for (sl = node_all_ultranodes(); sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
 		if (!NODE_IS_WRITABLE(n) || NODE_IS_LEAF(n))

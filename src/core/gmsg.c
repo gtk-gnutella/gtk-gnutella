@@ -819,7 +819,7 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 		return;
 	case ROUTE_ALL_BUT_ONE:
 		g_assert(n == rt_node);
-		gmsg_split_routeto_all_but_one(n, node_all_nodes(), rt_node,
+		gmsg_split_routeto_all_but_one(n, node_all_ultranodes(), rt_node,
 			&n->header, n->data, n->size + GTA_HEADER_SIZE);
 		return;
 	case ROUTE_MULTI:

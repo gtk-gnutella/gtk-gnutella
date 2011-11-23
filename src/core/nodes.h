@@ -623,6 +623,7 @@ size_t node_http_proxies_add(char *buf, size_t size, void *arg, guint32 flags);
 sequence_t *node_push_proxies(void);
 const gnet_host_t *node_oldest_push_proxy(void);
 const GSList *node_all_nodes(void);
+const GSList *node_all_ultranodes(void);
 
 gnutella_node_t *node_by_id(const struct nid *node_id);
 gnutella_node_t *node_active_by_id(const struct nid *node_id);
