@@ -93,6 +93,9 @@
 #define DQ_MQ_EPSILON		2048   /**< Queues identical at +/- 2K */
 #define DQ_FUZZY_FACTOR		0.80   /**< Corrector for theoretical horizon */
 
+#define DQ_TTL_PROBE		(1 << 8)	/**< Flags probed requests */
+#define DQ_TTL_MASK			(DQ_TTL_PROBE - 1)
+
 /**
  * # of results before stopping search.
  *
@@ -338,7 +341,7 @@ dq_kept_results(dquery_t *dq)
  * specified node, assuming hosts are equally split among the remaining
  * connections we have yet to query.
  */
-static int
+static unsigned
 dq_select_ttl(dquery_t *dq, gnutella_node_t *node, int connections)
 {
 	guint32 needed;
@@ -375,7 +378,7 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, int connections)
 
 	g_assert(ttl > 0);
 
-	return ttl;
+	return (unsigned) ttl;
 }
 
 /**
@@ -396,6 +399,7 @@ dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl,
 	const struct nid *key = nid_ref(node_id);	
 
 	dquery_check(dq);
+	g_assert(ttl != 0);
 
 	WALLOC(pmi);
 	pmi->qid = dq->qid;
@@ -404,7 +408,12 @@ dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl,
 	pmi->node_id = nid_ref(node_id);
 	pmi->probe = booleanize(probe);
 
-	gm_hash_table_insert_const(dq->queried, key, key);
+	/*
+	 * Remember that we've queried this node, and with which TTL.
+	 */
+
+	gm_hash_table_insert_const(dq->queried, key,
+		uint_to_pointer(ttl | (pmi->probe ? DQ_TTL_PROBE : 0)));
 
 	return pmi;
 }
@@ -468,23 +477,40 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 
 	if (!pmsg_was_sent(mb)) {
 		struct nid *key;
+		gboolean found;
+		void *knid, *ttlv;
+		unsigned ttl;
 
 		/*
-		 * The message was not sent: we need to remove the entry for the
+		 * The message was not sent: we need to update the entry for the
 		 * node in the "dq->queried" structure, since the message did not
 		 * make it through the network.
 		 */
 
-		key = g_hash_table_lookup(dq->queried, pmi->node_id);
-		g_assert(key);		/* Or something is seriously corrupted */
-		g_hash_table_remove(dq->queried, key);
-		nid_unref(key);
+		found = g_hash_table_lookup_extended(dq->queried, pmi->node_id,
+			&knid, &ttlv);
 
-		if (GNET_PROPERTY(dq_debug) > 19)
+		g_assert(found);		/* Or something is seriously corrupted */
+
+		ttl = pointer_to_uint(ttlv);
+		key = knid;
+
+		g_assert(pmi->ttl >= (ttl & DQ_TTL_MASK));
+
+		if ((ttl & DQ_TTL_MASK) > 1) {
+			g_hash_table_replace(dq->queried, key,
+				uint_to_pointer((ttl - 1) | (ttl & DQ_TTL_PROBE)));
+		} else {
+			g_hash_table_remove(dq->queried, key);
+			nid_unref(key);
+		}
+
+		if (GNET_PROPERTY(dq_debug) > 19) {
 			g_debug("DQ[%s] %snode #%s degree=%d dropped message TTL=%d",
 				nid_to_string(&dq->qid),
 				node_id_self(dq->node_id) ? "(local) " : "",
 				nid_to_string2(pmi->node_id), pmi->degree, pmi->ttl);
+		}
 
 		/*
 		 * If we don't have any more pending message and we're waiting
@@ -500,7 +526,6 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 	} else {
 		/*
 		 * The message was sent.  Adjust the total horizon reached thus far.
-		 * Record that this UP got the query.
 		 */
 
 		dq->horizon += dq_get_horizon(pmi->degree, pmi->ttl);
@@ -522,22 +547,6 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 				(int) (tm_time() - dq->start),
 				dq->up_sent, dq->up_sent == 1 ? "" :"s",
 				dq->horizon, dq->results);
-		}
-
-		/*
-		 * If we sent a probe and not a highest-TTL query, then remove the
-		 * node from the list of queried nodes so that we can later on
-		 * requery it with a larger TTL message should the initial probing
-		 * not supply enough results.
-		 */
-
-		if (pmi->probe) {
-			struct nid *key;
-
-			key = g_hash_table_lookup(dq->queried, pmi->node_id);
-			g_assert(key);		/* Or something is seriously corrupted */
-			g_hash_table_remove(dq->queried, key);
-			nid_unref(key);
 		}
 	}
 
@@ -613,7 +622,7 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, int ncount)
 
 	dquery_check(dq);
 
-	GM_SLIST_FOREACH(node_all_nodes(), sl) {
+	GM_SLIST_FOREACH(node_all_ultranodes(), sl) {
 		struct gnutella_node *n;
 
 		if (i >= ncount)
@@ -724,9 +733,11 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 	 * Select candidate ultra peers for sending query.
 	 */
 
-	GM_SLIST_FOREACH(node_all_nodes(), sl) {
+	GM_SLIST_FOREACH(node_all_ultranodes(), sl) {
 		struct next_up *nup, *old_nup;
 		struct gnutella_node *n;
+		void *knid, *ttlv;
+		gboolean found;
 
 		if (i >= ncount)
 			break;
@@ -737,14 +748,22 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 
 		/*
 		 * Skip node if we haven't received the handshaking ping yet
-		 * or if we already queried it.
+		 * or if we already queried it at a lower TTL (and it did not
+		 * advertise support for probing queries).
 		 */
 
 		if (n->received == 0)
 			continue;
 
-		if (g_hash_table_lookup(dq->queried, NODE_ID(n)))
-			continue;
+		found = g_hash_table_lookup_extended(dq->queried, NODE_ID(n),
+			&knid, &ttlv);
+
+		if (found) {
+			if (!(n->attrs & NODE_A_DQ_PROBE))
+				continue;	/* Node can choke on requerying with higher TTL */
+			if (0 == (pointer_to_uint(ttlv) & DQ_TTL_PROBE))
+				continue;	/* Node already queried and not through a probe */
+		}
 
 		/*
 		 * Skip node if we're in TX flow-control (query will likely not
@@ -829,10 +848,11 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 }
 
 static gboolean
-free_node_id(gpointer key, gpointer value, gpointer unused_udata)
+free_node_id(gpointer key, gpointer unused_value, gpointer unused_udata)
 {
-	g_assert(key == value);
+	(void) unused_value;
 	(void) unused_udata;
+
 	nid_unref(key);
 	return TRUE;
 }
@@ -1349,7 +1369,6 @@ dq_send_next(dquery_t *dq)
 	struct next_up *nv;
 	int ncount = GNET_PROPERTY(max_connections);
 	int found;
-	int ttl;
 	int timeout;
 	int i;
 	gboolean sent = FALSE;
@@ -1470,19 +1489,49 @@ dq_send_next(dquery_t *dq)
 
 	for (i = 0; i < found; i++) {
 		struct gnutella_node *node;
+		struct nid *nid = nv[i].node_id;
+		void *knid, *ttlv;
+		unsigned ttl;
 
-		node = node_by_id(nv[i].node_id);
+		node = node_by_id(nid);
 		ttl = dq_select_ttl(dq, node, found);
+
+		/*
+		 * If we already queried the node, don't requery it unless it was
+		 * a probe and the TTL is greater now.
+		 */
+
+		if (g_hash_table_lookup_extended(dq->queried, nid, &knid, &ttlv)) {
+			unsigned prev_ttl = pointer_to_uint(ttlv);
+
+			if (prev_ttl & DQ_TTL_PROBE) {
+				unsigned sttl = prev_ttl & DQ_TTL_MASK;
+				if (sttl >= ttl)
+					continue;
+				if (GNET_PROPERTY(dq_debug) > 10) {
+					g_debug("DQ[%s] requerying node #%s (%s) with TTL=%u, "
+						"already probed with TTL=%u",
+						nid_to_string(&dq->qid),
+						nid_to_string2(NODE_ID(node)),
+						node_infostr(node), ttl, sttl);
+				}
+				g_hash_table_remove(dq->queried, knid);
+				nid_unref(knid);
+				g_assert(ttl > 1);
+			} else {
+				continue;		/* Already sent */
+			}
+		}
 
 		if (
 			ttl == 1 && NODE_UP_QRP(node) &&
 			!qrp_node_can_route(node, dq->qhv)
 		) {
-			if (GNET_PROPERTY(dq_debug) > 19)
+			if (GNET_PROPERTY(dq_debug) > 19) {
 				g_debug("DQ[%s] TTL=1, skipping node #%s: can't route query!",
 					nid_to_string(&dq->qid),
 					nid_to_string2(NODE_ID(node)));
-
+			}
 			continue;
 		}
 
