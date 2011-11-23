@@ -57,7 +57,8 @@ void pattern_close(void);
 cpattern_t *pattern_compile(const char *pattern);
 cpattern_t *pattern_compile_fast(const char *pattern, size_t plen);
 void pattern_free(cpattern_t *cpat);
-const char *pattern_qsearch(cpattern_t *cpat,
+void pattern_free_null(cpattern_t **cpat_ptr);
+const char *pattern_qsearch(const cpattern_t *cpat,
 	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
 
 #endif /* _pattern_h_ */
