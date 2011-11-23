@@ -3190,7 +3190,7 @@ dmesh_retrieve(void)
 	 */
 
 	while (fgets(tmp, sizeof tmp, f)) {
-		if (NULL == strchr(tmp, '\n')) {
+		if (!file_line_chomp_tail(tmp, sizeof tmp, NULL)) {
 			truncated = TRUE;
 			continue;
 		}
@@ -3200,10 +3200,10 @@ dmesh_retrieve(void)
 			continue;
 		}
 
-		if (tmp[0] == '#')
+		if (file_line_is_comment(tmp))
 			continue;			/* Skip comments */
 
-		if (tmp[0] == '\n') {
+		if (file_line_is_empty(tmp)) {
 			if (has_sha1)
 				has_sha1 = FALSE;
 			skip = FALSE;		/* Synchronization point */
@@ -3213,11 +3213,9 @@ dmesh_retrieve(void)
 		if (skip)
 			continue;
 
-		strchomp(tmp, 0);	/* Remove final "\n" */
-
 		if (has_sha1) {
 			if (GNET_PROPERTY(dmesh_debug))
-				g_debug("dmesh_retrieve(): parsing %s", tmp);
+				g_debug("%s(): parsing %s", G_STRFUNC, tmp);
 			if (is_strprefix(tmp, "http://")) {
 				dmesh_collect_locations(&sha1, tmp);
 			} else {
@@ -3229,8 +3227,8 @@ dmesh_retrieve(void)
 				SHA1_RAW_SIZE != base32_decode(sha1.data, sizeof sha1.data,
 									tmp, SHA1_BASE32_SIZE)
 			) {
-				g_warning("dmesh_retrieve: "
-					"bad base32 SHA1 '%.32s' at line #%d, ignoring", tmp, line);
+				g_warning("%s: bad base32 SHA1 '%.32s' at line #%d, ignoring",
+					G_STRFUNC, tmp, line);
 				skip = TRUE;
 			} else
 				has_sha1 = TRUE;
@@ -3289,7 +3287,7 @@ dmesh_ban_retrieve(void)
 {
 	FILE *in;
 	char tmp[1024];
-	int line = 0;
+	unsigned line = 0;
 	time_t stamp;
 	const char *p;
 	int error;
@@ -3311,13 +3309,13 @@ dmesh_ban_retrieve(void)
 	while (fgets(tmp, sizeof tmp, in)) {
 		line++;
 
-		if (tmp[0] == '#')
-			continue;			/* Skip comments */
+		if (!file_line_chomp_tail(tmp, sizeof tmp, NULL)) {
+			g_warning("%s: line %u too long, aborting", G_STRFUNC, line);
+			break;
+		}
 
-		if (tmp[0] == '\n')
-			continue;			/* Skip empty lines */
-
-		strchomp(tmp, 0);		/* Remove final "\n" */
+		if (file_line_is_skipable(tmp))
+			continue;			/* Skip empty or comment lines */
 
 		stamp = parse_uint64(tmp, &p, 10, &error);
 		if (error || *p != ' ') {

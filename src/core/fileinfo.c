@@ -2895,14 +2895,11 @@ file_info_retrieve(void)
 		return;
 
 	while (fgets(line, sizeof line, f)) {
-		size_t len;
 		int error;
 		gboolean truncated = FALSE, damaged;
 		const char *ep;
 		char *value;
 		guint64 v;
-
-		if ('#' == *line) continue;
 
 		/*
 		 * The following semi-complex logic attempts to determine whether
@@ -2914,9 +2911,7 @@ file_info_retrieve(void)
 		 * we'll be re-synchronized on the real end of the line.
 		 */
 
-		len = strlen(line);
-		if (sizeof line - 1 == len)
-			truncated = '\n' != line[sizeof line - 2];
+		truncated = !file_line_chomp_tail(line, sizeof line, NULL);
 
 		if (last_was_truncated) {
 			last_was_truncated = truncated;
@@ -2928,12 +2923,12 @@ file_info_retrieve(void)
 			continue;
 		}
 
+		if (file_line_is_comment(line))
+			continue;
+
 		/*
-		 * Remove trailing "\n" from line, then parse it.
 		 * Reaching an empty line means the end of the fileinfo description.
 		 */
-
-		strchomp(line, len);
 
 		if ('\0' == *line && fi) {
 			fileinfo_t *dfi;

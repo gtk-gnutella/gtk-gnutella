@@ -4995,31 +4995,29 @@ parq_upload_load_queue(void)
 	entry = zero_entry;
 	bit_array_init(tag_used, NUM_PARQ_TAGS);
 
-	while (fgets(line, sizeof(line), f)) {
+	while (fgets(line, sizeof line, f)) {
 		const char *tag_name, *value;
-		char *colon, *nl;
+		char *colon;
 		gboolean damaged;
 		parq_tag_t tag;
 
 		line_no++;
 
 		damaged = FALSE;
-		nl = strchr(line, '\n');
-		if (!nl) {
+		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
 			/*
 			 * If the line is too long or unterminated the file is either
 			 * corrupt or was manually edited without respecting the
 			 * exact format. If we continued, we would read from the
 			 * middle of a line which could be the filename or ID.
 			 */
-			g_warning("%s(): line too long or missing newline in line %u",
+			g_warning("%s(): line %u too long or missing newline",
 				G_STRFUNC, line_no);
 			break;
 		}
-		*nl = '\0';
 
 		/* Skip comments and empty lines */
-		if (*line == '#' || *line == '\0') {
+		if (file_line_is_skipable(line)) {
 			resync = FALSE;
 			continue;
 		}

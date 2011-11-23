@@ -33,6 +33,7 @@
 
 #include "common.h"
 
+#include "ascii.h"
 #include "concat.h"			/* For concat_strings() */
 #include "debug.h"
 #include "fd.h"
@@ -629,6 +630,44 @@ FILE *
 file_fopen_missing(const char *path, const char *mode)
 {
 	return do_fopen(path, mode, TRUE);
+}
+
+/**
+ * Remove trailing white space from line held within buffer.
+ *
+ * This is meant to be used to validate the line returned by fgets() and to
+ * remove final "\n", or "\r\n" markers as well as any other trailing white
+ * space.
+ *
+ * @param line		buffer where line is held
+ * @param size		buffer size
+ * @paran lenptr	if non-NULL, the final string length is written there
+ *
+ * @return TRUE if we were facing a line terminated by "\n", FALSE otherwise.
+ */
+gboolean
+file_line_chomp_tail(char *line, size_t size, size_t *lenptr)
+{
+	size_t len;
+	char *p;
+
+	len = clamp_strlen(line, size);
+
+	if (size == len || 0 == len)
+		return FALSE;		/* No NUL found or empty string */
+
+	if ('\n' != line[len - 1])
+		return FALSE;		/* Truncated line, reading buffer was too small */
+
+	p = &line[len - 1];
+	do {
+		*p = '\0';
+	} while (p != line && is_ascii_space(*--p));
+
+	if (lenptr != NULL)
+		*lenptr = p - line + ('\0' == *p ? 0 : 1);
+
+	return TRUE;
 }
 
 /* vi: set ts=4: */

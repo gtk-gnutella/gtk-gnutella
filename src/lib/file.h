@@ -73,5 +73,36 @@ int file_create_missing(const char *path, int flags, int mode);
 FILE *file_fopen(const char *path, const char *mode);
 FILE *file_fopen_missing(const char *path, const char *mode);
 
+/*
+ * File line predicates.
+ */
+
+gboolean file_line_chomp_tail(char *line, size_t size, size_t *lenptr);
+
+/**
+ * Is line a comment?
+ */
+static inline ALWAYS_INLINE gboolean G_GNUC_PURE
+file_line_is_comment(const char * const line)
+{
+	return '#' == line[0];
+}
+
+/**
+ * Is line empty?
+ */
+static inline ALWAYS_INLINE gboolean G_GNUC_PURE
+file_line_is_empty(const char * const line)
+{
+	return '\0' == line[0];
+}
+
+static inline ALWAYS_INLINE gboolean G_GNUC_PURE
+file_line_is_skipable(const char * const line)
+{
+	return file_line_is_comment(line) || file_line_is_empty(line);
+}
+
 #endif /* _file_ */
+
 /* vi: set ts=4 sw=4 cindent: */

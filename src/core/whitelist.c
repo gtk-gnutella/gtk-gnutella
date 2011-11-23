@@ -320,10 +320,10 @@ whitelist_dns_resolve(struct whitelist *item, gboolean revalidate)
 static G_GNUC_COLD void
 whitelist_retrieve(void)
 {
-    char line[1024];
-    FILE *f;
-    filestat_t st;
-    int linenum = 0;
+	char line[1024];
+	FILE *f;
+	filestat_t st;
+	unsigned linenum = 0;
 	file_path_t fp[1];
 
 	whitelist_generation++;
@@ -345,24 +345,19 @@ whitelist_retrieve(void)
 		host_addr_t addr;
     	guint16 port;
 		guint8 bits;
-		char *p;
 		gboolean item_ok;
 		gboolean use_tls;
 		char *hname;
 
         linenum++;
-        if ('#' == line[0]) continue;
 
-		/* Remove trailing spaces so that lines that contain spaces only
-		 * are ignored and cause no warnings. */
-		for (p = strchr(line, '\0'); p != line; p--) {
-			if (!is_ascii_space(*(p - 1)))
-				break;
+		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+			g_warning("%s: line %u too long, aborting", G_STRFUNC, linenum);
+			break;
 		}
-		*p = '\0';
 
-        if ('\0' == line[0])
-            continue;
+        if (file_line_is_skipable(line))
+			continue;
 
 		sl_addr = NULL;
 		addr = zero_host_addr;

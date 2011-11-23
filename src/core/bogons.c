@@ -70,7 +70,6 @@ static G_GNUC_COLD int
 bogons_load(FILE *f)
 {
 	char line[1024];
-	char *p;
 	guint32 ip, netmask;
 	int linenum = 0;
 	int bits;
@@ -84,24 +83,20 @@ bogons_load(FILE *f)
 		bogons_mtime = buf.st_mtime;
 	}
 
-	while (fgets(line, sizeof(line), f)) {
+	while (fgets(line, sizeof line, f)) {
 		linenum++;
-		if (*line == '\0' || *line == '#')
-			continue;
 
 		/*
 		 * Remove all trailing spaces in string.
 		 * Otherwise, lines which contain only spaces would cause a warning.
 		 */
 
-		p = strchr(line, '\0');
-		while (--p >= line) {
-			guchar c = (guchar) *p;
-			if (!is_ascii_space(c))
-				break;
-			*p = '\0';
+		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+			g_warning("%s, line %d: too long a line", bogons_file, linenum);
+			break;
 		}
-		if ('\0' == *line)
+
+		if (file_line_is_skipable(line))
 			continue;
 
 		if (!string_to_ip_and_mask(line, &ip, &netmask)) {

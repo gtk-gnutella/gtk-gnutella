@@ -287,8 +287,6 @@ dump_cache(gboolean force)
 static G_GNUC_COLD void
 parse_and_append_cache_entry(char *line)
 {
-	const char *file_name;
-	char *file_name_end;
 	const char *p, *end; /* pointers to scan the line */
 	int c, error;
 	filesize_t size;
@@ -298,14 +296,13 @@ parse_and_append_cache_entry(char *line)
 	gboolean has_tth;
 
 	/* Skip comments and blank lines */
-	c = line[0];
-	if (c == '\0' || c == '#' || c == '\n')
+	if (file_line_is_skipable(line))
 		return;
 
 	/* Scan until file size */
 
 	p = line;
-	while ((c = *p) != '\0' && c != '\t' && c != '\n') {
+	while ((c = *p) != '\0' && c != '\t') {
 		p++;
 	}
 
@@ -353,22 +350,15 @@ parse_and_append_cache_entry(char *line)
 
 	/* p is now supposed to point to the file name */
 
-	file_name = p;
-	file_name_end = strchr(file_name, '\n');
-
-	if (!file_name_end) {
+	if (strchr(p, '\t') != NULL)
 		goto failure;
-	}
 
-	/* Set string end markers */
-	*file_name_end = '\0';
-
-	add_volatile_cache_entry(file_name, size, mtime,
+	add_volatile_cache_entry(p, size, mtime,
 		&sha1, has_tth ? &tth : NULL, FALSE);
 	return;
 
 failure:
-	g_warning("Malformed line in SHA1 cache file: %s", line);
+	g_warning("malformed line in SHA1 cache file: %s", line);
 }
 
 /**
@@ -392,7 +382,7 @@ sha1_read_cache(void)
 			if (NULL == fgets(buffer, sizeof buffer, f))
 				break;
 
-			if (NULL == strchr(buffer, '\n')) {
+			if (!file_line_chomp_tail(buffer, sizeof buffer, NULL)) {
 				truncated = TRUE;
 			} else if (truncated) {
 				truncated = FALSE;

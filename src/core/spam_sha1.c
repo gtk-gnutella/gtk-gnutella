@@ -199,31 +199,29 @@ spam_sha1_load(FILE *f)
 
 	while (fgets(line, sizeof line, f)) {
 		const struct sha1 *sha1;
-		char *nl;
+		size_t len;
 
 		line_no++;
 
-		nl = strchr(line, '\n');
-		if (!nl) {
+		if (!file_line_chomp_tail(line, sizeof line, &len)) {
 			/*
 			 * If the line is too long or unterminated the file is either
 			 * corrupt or was manually edited without respecting the
 			 * exact format. If we continued, we would read from the
 			 * middle of a line which could be the filename or ID.
 			 */
-			g_warning("%s(): line too long or missing newline in line %u",
+			g_warning("%s(): line %u too long or missing newline",
 				G_STRFUNC, line_no);
 			break;
 		}
-		*nl = '\0';
 
 		/* Skip comments and empty lines */
-		if (*line == '#' || *line == '\0')
+		if (file_line_is_skipable(line))
 			continue;
 
-		if (strlen(line) < SHA1_BASE32_SIZE) {
-			g_warning("%s(): SHA-1 has wrong length in line %u.",
-				G_STRFUNC, line_no);
+		if (len < SHA1_BASE32_SIZE) {
+			g_warning("%s(): SHA-1 has wrong length %zu in line %u.",
+				G_STRFUNC, len, line_no);
 			continue;
 		}
 

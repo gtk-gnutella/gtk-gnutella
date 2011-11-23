@@ -5192,7 +5192,7 @@ dht_route_parse(FILE *f)
 {
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_DHT_ROUTE_TAGS + 1)];
 	char line[1024];
-	guint line_no = 0;
+	unsigned line_no = 0;
 	gboolean done = FALSE;
 	time_delta_t most_recent = REFRESH_PERIOD;
 	time_t now = tm_time();
@@ -5214,27 +5214,23 @@ dht_route_parse(FILE *f)
 
 	while (fgets(line, sizeof line, f)) {
 		const char *tag_name, *value;
-		char *sp, *nl;
+		char *sp;
 		dht_route_tag_t tag;
 
 		line_no++;
 
-		nl = strchr(line, '\n');
-		if (!nl) {
+		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
 			/*
 			 * Line was too long or the file was corrupted or manually
 			 * edited without consideration for the advertised format.
 			 */
 
-			g_warning("dht_route_parse(): "
-				"line too long or missing newline in line %u", line_no);
+			g_warning("%s(): line %u too long, aborting", G_STRFUNC, line_no);
 			break;
 		}
-		*nl = '\0';		/* Terminate string properly */
 
 		/* Skip comments and empty lines */
-
-		if (*line == '#' || *line == '\0')
+		if (file_line_is_skipable(line))
 			continue;
 
 		sp = strchr(line, ' ');		/* End of tag, normally */

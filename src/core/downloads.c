@@ -13953,10 +13953,8 @@ download_retrieve_magnets(FILE *f)
 
 		buffer = halloc(buffer_size);
 		while (fgets(buffer, buffer_size, f)) {
-			char *endptr;
 
-			endptr = strchr(buffer, '\n');
-			if (NULL == endptr) {
+			if (!file_line_chomp_tail(buffer, buffer_size, NULL)) {
 				g_warning("%s, line %u: line too long or unterminated",
 					download_file, line);
 				truncated = TRUE;
@@ -13968,14 +13966,8 @@ download_retrieve_magnets(FILE *f)
 				continue;
 			}
 
-			do {
-				*endptr = '\0';
-			} while (endptr != buffer && is_ascii_space(*--endptr));
-
-			if ('#' == buffer[0] || '\0' == buffer[0]) {
-				/* Skip comments and empty lines */
-				continue;
-			}
+			if (file_line_is_skipable(buffer))
+				continue;	/* Skip comments and empty lines */
 
 			if (expect_old_format && is_strprefix(buffer, "RECLINES=")) {
 				g_message("detected old downloads format");
@@ -14016,7 +14008,7 @@ download_retrieve_old(FILE *f)
 	char d_hexguid[33];
 	char d_hostname[256];	/* Server hostname */
 	int recline;			/* Record line number */
-	guint line;				/* File line number */
+	unsigned line;			/* File line number */
 	struct guid d_guid;
 	struct sha1 sha1;
 	gboolean has_sha1 = FALSE;
@@ -14045,7 +14037,12 @@ download_retrieve_old(FILE *f)
 	while (fgets(dl_tmp, sizeof dl_tmp, f)) {
 		line++;
 
-		if (dl_tmp[0] == '#' && allow_comments)
+		if (!file_line_chomp_tail(dl_tmp, sizeof dl_tmp, NULL)) {
+			g_warning("%s: line %u too long, aborting", G_STRFUNC, line);
+			break;
+		}
+
+		if (allow_comments && file_line_is_comment(dl_tmp))
 			continue;				/* Skip comments */
 
 		/*
@@ -14061,12 +14058,12 @@ download_retrieve_old(FILE *f)
 			}
 		}
 
-		if (dl_tmp[0] == '\n') {
+		if (file_line_is_empty(dl_tmp)) {
 			if (recline == 0)
 				continue;			/* Allow arbitrary blank lines */
 
-			g_warning("download_retrieve(): "
-				"unexpected empty line #%u, aborting", line);
+			g_warning("%s(): unexpected empty line #%u, aborting",
+				G_STRFUNC, line);
 			goto out;
 		}
 
@@ -14077,8 +14074,8 @@ download_retrieve_old(FILE *f)
 			strchomp(dl_tmp, 0);
 			/* Un-escape in place */
 			if (!url_unescape(dl_tmp, TRUE)) {
-				g_warning("download_retrieve(): "
-					"invalid escaping in line #%u, aborting", line);
+				g_warning("%s(): invalid escaping in line #%u, aborting",
+					G_STRFUNC, line);
 				goto out;
 			}
 			d_name = atom_str_get(dl_tmp);
@@ -14100,15 +14097,15 @@ download_retrieve_old(FILE *f)
 
 			size64 = parse_uint64(dl_tmp, &endptr, 10, &error);
 			if (error || ',' != *endptr) {
-				g_warning("download_retrieve(): "
-					"cannot parse line #%u: %s", line, dl_tmp);
+				g_warning("%s(): cannot parse line #%u: %s",
+					G_STRFUNC, line, dl_tmp);
 				goto out;
 			}
 
 			d_size = size64;
 			if ((guint64) d_size != size64) {
-				g_warning("download_retrieve(): "
-					"filesize is too large in line #%u: %s", line, dl_tmp);
+				g_warning("%s(): filesize is too large in line #%u: %s",
+					G_STRFUNC, line, dl_tmp);
 				goto out;
 			}
 
@@ -14119,8 +14116,8 @@ download_retrieve_old(FILE *f)
 
 			parse_uint32(endptr, &endptr, 10, &error);
 			if (error || NULL == strchr(":,", *endptr)) {
-				g_warning("download_retrieve(): "
-					"cannot parse index in line #%u: %s", line, dl_tmp);
+				g_warning("%s(): cannot parse index in line #%u: %s",
+					G_STRFUNC, line, dl_tmp);
 				goto out;
 			}
 
@@ -14135,15 +14132,15 @@ download_retrieve_old(FILE *f)
 			}
 
 			if (',' != *endptr) {
-				g_warning("download_retrieve(): "
-					"expected ',' in line #%u: %s", line, dl_tmp);
+				g_warning("%s(): expected ',' in line #%u: %s",
+					G_STRFUNC, line, dl_tmp);
 				goto out;
 			}
 			endptr = skip_ascii_blanks(++endptr);
 
 			if (!string_to_host_addr_port(endptr, &endptr, &d_addr, &d_port)) {
-				g_warning("download_retrieve(): "
-					"bad IP:port at line #%u: %s", line, dl_tmp);
+				g_warning("%s(): bad IP:port at line #%u: %s",
+					G_STRFUNC, line, dl_tmp);
 				d_port = 0;
 				d_addr = ipv4_unspecified;
 				/* Will drop download when scheduling it */
@@ -14174,9 +14171,8 @@ download_retrieve_old(FILE *f)
 				SHA1_RAW_SIZE != base32_decode(sha1.data, sizeof sha1.data,
 									dl_tmp, SHA1_BASE32_SIZE)
 			) {
-				g_warning("download_retrieve(): "
-					"bad base32 SHA1 '%32s' at line #%u, ignoring",
-					dl_tmp, line);
+				g_warning("%s(): bad base32 SHA1 '%32s' at line #%u, ignoring",
+					G_STRFUNC, dl_tmp, line);
 			} else
 				has_sha1 = TRUE;
 		no_sha1:
@@ -14185,8 +14181,8 @@ download_retrieve_old(FILE *f)
 			continue;
 		case 4:						/* PARQ id, or "*" if none */
 			if (maxlines != 4) {
-				g_warning("download_retrieve(): "
-					"can't handle %d lines in records, aborting", maxlines);
+				g_warning("%s(): can't handle %d lines in records, aborting",
+					G_STRFUNC, maxlines);
 				goto out;
 			}
 			if (dl_tmp[0] != '*') {
@@ -14195,8 +14191,8 @@ download_retrieve_old(FILE *f)
 			}
 			break;
 		default:
-			g_warning("download_retrieve(): "
-				"too many lines for record at line #%u, aborting", line);
+			g_warning("%s(): too many lines for record at line #%u, aborting",
+				G_STRFUNC, line);
 			goto out;
 		}
 
@@ -14205,8 +14201,8 @@ download_retrieve_old(FILE *f)
 		 */
 
 		if (!hex_to_guid(d_hexguid, &d_guid)) {
-			g_warning("download_rerieve(): malformed GUID %s near line #%u",
-				d_hexguid, line);
+			g_warning("%s(): malformed GUID %s near line #%u",
+				G_STRFUNC, d_hexguid, line);
         }
 
 		/*

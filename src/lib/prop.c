@@ -1982,10 +1982,9 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 		int c;
 		property_t prop;
 
-		s = strchr(prop_tmp, '\n');
-		if (!s) {
-			g_warning("config file, line %u: line too long or unterminated, "
-				"ignored", n);
+		if (!file_line_chomp_tail(prop_tmp, sizeof prop_tmp, NULL)) {
+			g_warning("config file \"%s\", line %u: too long a line, ignored",
+				filename, n);
 			truncated = TRUE;
 			continue;
 		}
@@ -1994,7 +1993,6 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 			truncated = FALSE;
 			continue;
 		}
-		*s = '\0';
 
 		k = v = NULL;
 		s = prop_tmp;
