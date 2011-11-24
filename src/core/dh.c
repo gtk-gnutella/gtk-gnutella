@@ -80,6 +80,7 @@ struct dh_pmsg_info {
 enum dh_drop {
 	DH_FORWARD = 0,			/**< Don't drop */
 	DH_DROP_FC,				/**< Drop because of flow-control */
+	DH_DROP_TRANSIENT,		/**< Drop because of transient node */
 	DH_DROP_THROTTLE		/**< Drop because of hit throttling */
 };
 
@@ -397,6 +398,26 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 		return DH_DROP_THROTTLE;
 	}
 
+	/*
+	 * Transient nodes are going to go away soon, results should not be
+	 * forwarded to them since they may not be relayed in time anyway or
+	 * could be just a waste of bandwidth.
+	 *
+	 * Avoid them if they already have enough in their TX queue.
+	 */
+
+	{
+		gnutella_node_t *n = mq_node(mq);
+
+		if (NODE_IS_TRANSIENT(n) && mq_size(mq) > mq_lowat(mq)) {
+			if (GNET_PROPERTY(dh_debug) > 19) {
+				g_debug("DH %stransient target %s with %d bytes in queue",
+					teststr, node_infostr(n), mq_size(mq));
+			}
+			return DH_DROP_TRANSIENT;
+		}
+	}
+
 	if (GNET_PROPERTY(dh_debug) > 19)
 		g_debug("DH %sforwarding", teststr);
 
@@ -446,6 +467,8 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 		goto drop_flow_control;
 	case DH_DROP_THROTTLE:
 		goto drop_throttle;
+	case DH_DROP_TRANSIENT:
+		goto drop_transient;
 	case DH_FORWARD:
 	default:
 		break;
@@ -519,6 +542,10 @@ drop_flow_control:
 
 drop_throttle:
 	gnet_stats_count_dropped(src, MSG_DROP_THROTTLE);
+	return;
+
+drop_transient:
+	gnet_stats_count_dropped(src, MSG_DROP_TRANSIENT);
 	return;
 }
 
