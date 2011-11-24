@@ -2206,7 +2206,7 @@ route_push(struct route_log *route_log,
 
 		/*
 		 * Since we have a direct connection to the target, relay the message
-		 * directly withou using the known routes.
+		 * directly without using the known routes.
 		 */
 
 		forward_message(route_log, node, neighbour, dest, NULL);
@@ -2497,6 +2497,7 @@ route_query_hit(struct route_log *route_log,
 	 */
 	{
 		GSList *sl;
+		gboolean skipped_transient = FALSE;
 
 		found = NULL;
 		for (sl = m->routes; sl; sl = g_slist_next(sl)) {
@@ -2508,12 +2509,37 @@ route_query_hit(struct route_log *route_log,
 			if (route->node == sender)
 				continue;
 
-			if (
-				route_node_is_gnutella(route->node) &&
-				node_guid(route->node) &&
-				guid_eq(node_guid(route->node), origin_guid)
-			) {
-				continue;
+			if (route_node_is_gnutella(route->node)) {
+				if (
+					node_guid(route->node) &&
+					guid_eq(node_guid(route->node), origin_guid)
+				)
+					continue;
+
+				/*
+				 * Don't waste bandwidth nor lose the hit: try to find a route
+				 * which is not through a transient node, if we can.
+				 *
+				 * Otherwise, the DH layer will drop the hit later and it
+				 * will be logged as a message targeted to a transient node.
+				 */
+
+				if (NULL != g_slist_next(sl)) {
+					gnutella_node_t *rn;
+
+					rn = route_node_get_gnutella(route->node);
+					if (NODE_IS_TRANSIENT(rn)) {
+						skipped_transient = TRUE;
+						continue;
+					}
+
+					/* Count non-transient route found after skipping */
+
+					if (skipped_transient) {
+						gnet_stats_count_general(
+							GNR_ROUTING_TRANSIENT_AVOIDED, 1);
+					}
+				}
 			}
 
 			found = route_node_get_gnutella(route->node);

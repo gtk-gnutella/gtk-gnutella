@@ -126,6 +126,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"routing_table_chunks",
 		"routing_table_capacity",
 		"routing_table_count",
+		"routing_transient_avoided",
 		"dups_with_higher_ttl",
 		"spam_sha1_hits",
 		"spam_name_hits",
