@@ -164,6 +164,8 @@
 #define NODE_TX_BUFSIZ			1024	/**< Buffer size for TX deflation */
 #define NODE_TX_FLUSH			16384	/**< Flush deflator every 16K */
 
+#define NODE_RX_VMSG_THRESH		50		/**< Limit to get vendor message info */
+
 #define NODE_AUTO_SWITCH_MIN	1800	/**< Don't switch too often UP - leaf */
 #define NODE_AUTO_SWITCH_MAX	61200	/**< Max between switches (17 hours) */
 #define NODE_UP_NO_LEAF_MAX		3600	/**< Don't remain UP if no leaves */
@@ -1106,6 +1108,8 @@ node_str_match(const char *str, size_t len, const cpattern_t *pat)
 void
 node_supported_vmsg(struct gnutella_node *n, const char *str, size_t len)
 {
+	gboolean expect_features = FALSE;
+
 	node_check(n);
 
 	if (GNET_PROPERTY(node_debug) > 1) {
@@ -1114,15 +1118,24 @@ node_supported_vmsg(struct gnutella_node *n, const char *str, size_t len)
 	}
 
 	if (NULL == n->vendor)
-		return;
+		goto done;
 
 	if (is_strcaseprefix(n->vendor, "limewire/")) {
 		if (node_str_match(str, len, pat_gtkg_23v1)) {
 			n->flags |= NODE_F_FAKE_NAME;
 			node_set_vendor(n, n->vendor);
+			goto done;
 		}
-		return;
+		expect_features = TRUE;
+	} else if (is_strcaseprefix(n->vendor, "frosty/")) {
+		expect_features = TRUE;
+	} else if (node_is_gtkg(n)) {
+		expect_features = TRUE;
 	}
+
+done:
+	if (!expect_features)
+		n->flags &= ~NODE_F_EXPECT_VMSG;
 }
 
 /**
@@ -1134,6 +1147,8 @@ node_supported_vmsg(struct gnutella_node *n, const char *str, size_t len)
 void
 node_supported_feats(struct gnutella_node *n, const char *str, size_t len)
 {
+	const char *p;
+
 	node_check(n);
 
 	if (GNET_PROPERTY(node_debug) > 1) {
@@ -1141,23 +1156,22 @@ node_supported_feats(struct gnutella_node *n, const char *str, size_t len)
 			n->received, node_infostr(n), str);
 	}
 
+	n->flags &= ~NODE_F_EXPECT_VMSG;
+
 	if (NULL == n->vendor)
 		return;
 
-	if (is_strcaseprefix(n->vendor, "limewire/")) {
+	if (NULL != (p = is_strcaseprefix(n->vendor, "limewire/"))) {
 		if (
 			node_str_match(str, len, pat_hsep) ||
 			!node_str_match(str, len, pat_impp)
 		)
 			goto fake;
-	}
-
-	if (is_strcaseprefix(n->vendor, "limewire/5.")) {
-		if (!node_str_match(str, len, pat_f2ft_1))
-			goto fake;
-	}
-
-	if (is_strcaseprefix(n->vendor, "frosty/")) {
+		if (is_strcaseprefix(p, "5.")) {
+			if (!node_str_match(str, len, pat_f2ft_1))
+				goto fake;
+		}
+	} else if (is_strcaseprefix(n->vendor, "frosty/")) {
 		if (!node_str_match(str, len, pat_lmup))
 			goto fake;
 	}
@@ -1184,6 +1198,22 @@ node_supported_feats(struct gnutella_node *n, const char *str, size_t len)
 fake:
 	n->flags |= NODE_F_FAKE_NAME;
 	node_set_vendor(n, n->vendor);
+}
+
+/**
+ * Triggered when we lack the vendor message info / features after a reasonable
+ * amount of received messages.
+ */
+static void
+node_missing_vmsg(gnutella_node_t *n)
+{
+	if (GNET_PROPERTY(node_debug)) {
+		g_warning("NODE [RX=%u] %s did not send expected vendor message info",
+			n->received, node_infostr(n));
+	}
+
+	n->flags |= NODE_F_NOT_GENUINE;
+	n->flags &= ~NODE_F_EXPECT_VMSG;
 }
 
 /**
@@ -1214,6 +1244,18 @@ node_timer(time_t now)
  		sl = g_slist_next(sl);
 
 		node_tls_refresh(n);
+
+		/*
+		 * Check that we get the expected vendor message description
+		 * within a reasonable time.
+		 */
+
+		if (
+			(n->flags & NODE_F_EXPECT_VMSG) &&
+			n->received > NODE_RX_VMSG_THRESH
+		) {
+			node_missing_vmsg(n);
+		}
 
 		/*
 		 * If we're sending a BYE message, check whether the whole TX
@@ -5478,6 +5520,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				node_infostr(n), major, minor);
 
 		n->attrs |= NODE_A_CAN_VENDOR;
+		n->flags |= NODE_F_EXPECT_VMSG;
 	}
 
 	/* Check for (X-)Remote-IP header and handle it */

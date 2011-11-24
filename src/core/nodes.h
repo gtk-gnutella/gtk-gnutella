@@ -278,6 +278,7 @@ typedef struct gnutella_node {
  * Node flags.
  */
 enum {
+	NODE_F_EXPECT_VMSG	= 1 << 30,	/**< Expecting vendor message info */
 	NODE_F_DUP_GUID		= 1 << 29,	/**< Node bears duplicate GUID */
 	NODE_F_BYE_WAIT		= 1 << 28,	/**< Waiting for BYE being sent */
 	NODE_F_NOT_GENUINE	= 1 << 27,	/**< Vendor cannot be genuine */
