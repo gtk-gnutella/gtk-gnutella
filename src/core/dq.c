@@ -140,6 +140,7 @@ typedef struct dquery {
 	pmsg_t *mb;				/**< The search messsage "template" */
 	query_hashvec_t *qhv;	/**< Query hash vector for QRP filtering */
 	GHashTable *queried;	/**< Contains node IDs that we queried so far */
+	GHashTable *enqueued;	/**< Contains node IDs with enqueued queries */
 	const struct guid *lmuid;/**< For proxied query: the original leaf MUID */
 	guint16 query_flags;	/**< Flags from the marked query speed field */
 	guint8 ttl;				/**< Initial query TTL */
@@ -415,6 +416,13 @@ dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl,
 	gm_hash_table_insert_const(dq->queried, key,
 		uint_to_pointer(ttl | (pmi->probe ? DQ_TTL_PROBE : 0)));
 
+	/*
+	 * Remember that there is a pending query on this node, which will
+	 * forbid further sending should this query be stuck in the TX queue.
+	 */
+
+	gm_hash_table_insert_const(dq->enqueued, pmi->node_id, int_to_pointer(1));
+
 	return pmi;
 }
 
@@ -474,6 +482,7 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 
 	g_assert(dq->pending > 0);
 	dq->pending--;
+	g_hash_table_remove(dq->enqueued, pmi->node_id);
 
 	if (!pmsg_was_sent(mb)) {
 		struct nid *key;
@@ -759,6 +768,13 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 			continue;
 
 		/*
+		 * Skip node if we already have a pending query.
+		 */
+
+		if (gm_hash_table_contains(dq->enqueued, NODE_ID(n)))
+			continue;
+
+		/*
 		 * Skip node if we haven't received the handshaking ping yet
 		 * or if we already queried it at a lower TTL (and it did not
 		 * advertise support for probing queries).
@@ -925,6 +941,7 @@ dq_free(dquery_t *dq)
 
 	g_hash_table_foreach_remove(dq->queried, free_node_id, NULL);
 	gm_hash_table_destroy_null(&dq->queried);
+	gm_hash_table_destroy_null(&dq->enqueued);
 
 	qhvec_free(dq->qhv);
 	dq_free_next_up(dq);
@@ -1692,6 +1709,7 @@ dq_common_init(dquery_t *dq)
 	dquery_check(dq);
 	dq->qid = dquery_id_create();
 	dq->queried = g_hash_table_new(nid_hash, nid_equal);
+	dq->enqueued = g_hash_table_new(nid_hash, nid_equal);
 	dq->result_timeout = DQ_QUERY_TIMEOUT;
 	dq->start = tm_time();
 
