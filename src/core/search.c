@@ -6484,15 +6484,17 @@ search_request_preprocess(struct gnutella_node *n,
 	char *search;
 	struct sha1 *last_sha1_digest = NULL;
 	host_addr_t ipv6_addr;
+	const guid_t *muid;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
 	g_assert(sri != NULL);
 
+	muid = gnutella_header_get_muid(&n->header);
+
 	if (GNET_PROPERTY(guess_server_debug) > 18) {
 		if (NODE_IS_UDP(n)) {
 			g_debug("GUESS got %s, GUID=%s",
-			gmsg_node_infostr(n),
-			guid_hex_str(gnutella_header_get_muid(&n->header)));
+				gmsg_node_infostr(n), guid_hex_str(muid));
 		}
 	}
 
@@ -6983,8 +6985,13 @@ search_request_preprocess(struct gnutella_node *n,
 				goto drop;
 			} else if (!valid_query_key) {
 				gnet_stats_count_dropped(n, MSG_DROP_GUESS_INVALID_TOKEN);
-				/* Send new query key */
+				/*
+				 * Send new query key and forget we saw this message to be
+				 * able to handle it again when it comes back with the
+				 * proper query key this time.
+				 */
 				pcache_guess_acknowledge(n, FALSE, wants_ipp, ipp_net);
+				message_forget(muid, GTA_MSG_SEARCH, n);
 				goto drop;
 			} else {
 				if (wants_ipp) {

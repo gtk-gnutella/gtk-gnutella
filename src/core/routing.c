@@ -1661,6 +1661,49 @@ purge_dangling_references(struct message *m)
 }
 
 /**
+ * Forget that node sent given message.
+ *
+ * @param muid is the message MUID
+ * @param function is the message type
+ * @param node is the node from which we got the message
+ */
+void
+message_forget(const struct guid *muid, guint8 function, gnutella_node_t *node)
+{
+	gboolean found;
+	struct message *m;
+	GSList *sl;
+	GSList *t;
+	struct route_data *route;
+
+	g_assert(muid != NULL);
+	node_check(node);
+
+	found = find_message(muid, function, &m);
+	g_return_unless(found);
+	g_assert(m != NULL);
+
+	route = get_routing_data(node);
+	g_return_unless(route != NULL);
+
+	for (
+		sl = m->routes, t = m->ttls;
+		sl != NULL;
+		sl = g_slist_next(sl), t = g_slist_next(t)
+	) {
+		struct route_data *rd = sl->data;
+
+		if (route == rd) {
+			m->routes = g_slist_remove_link(m->routes, sl);
+			if (t != NULL)
+				m->ttls = g_slist_remove_link(m->ttls, t);
+			remove_one_message_reference(rd);
+			break;
+		}
+	}
+}
+
+/**
  * Look for a particular message in the routing tables.
  *
  * If none of the nodes that sent us the message are still present, then
