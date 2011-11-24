@@ -629,7 +629,13 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, int ncount)
 			break;
 
 		n = sl->data;
-		if (!NODE_IS_ULTRA(n))
+
+		/*
+		 * Dont bother sending anything to transient nodes, we're going
+		 * to shut them down soon.
+		 */
+
+		if (NODE_IS_TRANSIENT(n))
 			continue;
 
 		/*
@@ -743,7 +749,13 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 			break;
 
 		n = sl->data;
-		if (!NODE_IS_ULTRA(n) || !NODE_IS_WRITABLE(n))
+
+		/*
+		 * Dont bother sending anything to transient nodes, we're going
+		 * to shut them down soon.
+		 */
+
+		if (NODE_IS_TRANSIENT(n) || !NODE_IS_WRITABLE(n))
 			continue;
 
 		/*

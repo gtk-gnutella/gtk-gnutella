@@ -4722,6 +4722,23 @@ qrt_build_query_target(
 		 */
 
 	can_send:
+
+		/*
+		 * Severely limit traffic to transient nodes since we're going
+		 * to shut them down soon anyway.  Send them something randomly
+		 * to limit easy spotting and account for the fact that the query
+		 * could be usefully relayed still (albeit it better have OOB
+		 * delivery).  The more spam they return, the less we send them.
+		 *		--RAM, 2011-11-24.
+		 */
+
+		if (NODE_IS_TRANSIENT(dn)) {
+			unsigned ratio;
+			ratio = uint_saturate_mult(dn->n_spam, 100) / (dn->received + 1);
+			if (random_u32() % 100 < ratio)
+				continue;
+		}
+
 		nodes = g_slist_prepend(nodes, dn);
 		if (rt != NULL && !whats_new)
 			node_inc_qrp_match(dn);
