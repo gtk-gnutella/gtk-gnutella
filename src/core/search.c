@@ -7651,8 +7651,15 @@ search_request(struct gnutella_node *n,
 								sri->exv_sha1[i].matched ? '+' : '-',
 								sha1_base32(&sri->exv_sha1[i].sha1));
 				}
-				g_debug("\tflags=0x%04x ttl=%u hops=%u",
+				g_debug("\tflags=0x%04x (%s%s%s%s%s%s%s) ttl=%u hops=%u",
 						(guint) sri->flags,
+						(sri->flags & QUERY_F_MARK) ? "MARKED" : "",
+						(sri->flags & QUERY_F_FIREWALLED) ? " FW" : "",
+						(sri->flags & QUERY_F_XML) ? " XML" : "",
+						(sri->flags & QUERY_F_LEAF_GUIDED) ? " GUIDED" : "",
+						(sri->flags & QUERY_F_GGEP_H) ? " GGEP_H" : "",
+						(sri->flags & QUERY_F_OOB_REPLY) ? " OOB" : "",
+						(sri->flags & QUERY_F_FW_TO_FW) ? " FW2FW" : "",
 						gnutella_header_get_ttl(&n->header),
 						gnutella_header_get_hops(&n->header));
 			}
