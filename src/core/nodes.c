@@ -8308,7 +8308,7 @@ node_tx_enter_flowc(struct gnutella_node *n)
 	/*
 	 * If uploads are stalling, output bandwdith is probably so saturated
 	 * that TCP has not enough opportunities to send data.  In that context,
-	 * avoid bumping UDP output even further.
+	 * avoid bumping output even further.
 	 */
 
 	if (GNET_PROPERTY(uploads_stalling))
@@ -8318,6 +8318,11 @@ node_tx_enter_flowc(struct gnutella_node *n)
 	 * UDP output is critical for proper Gnutella and DHT operations.
 	 * Ask for urgent bandwidth stealing, enough to flush past the
 	 * low watermark to clear the flow-control condition quickly.
+	 *
+	 * Otherwise, ultranode connections are important, so favour I/O
+	 * sources when the node is entering flow-control to help flushing
+	 * by giving stolen bandwidth to these sources immediately.  This is
+	 * a remanent condition that persists until cleared.
 	 */
 
 	if (NODE_IS_UDP(n)) {
@@ -8326,6 +8331,8 @@ node_tx_enter_flowc(struct gnutella_node *n)
 	} else if (NODE_IS_DHT(n)) {
 		bsched_set_urgent(BSCHED_BWS_DHT_OUT,
 			mq_size(n->outq) - mq_lowat(n->outq));
+	} if (NODE_IS_ULTRA(n)) {
+		bio_set_favour(mq_bio(n->outq), TRUE);
 	}
 }
 
@@ -8341,6 +8348,9 @@ node_tx_leave_flowc(struct gnutella_node *n)
 		g_debug("node %s spent %d second%s in TX FLOWC",
 			node_addr(n), spent, spent == 1 ? "" : "s");
 	}
+
+	if (NODE_IS_ULTRA(n))
+		bio_set_favour(mq_bio(n->outq), FALSE);
 
 	if ((n->attrs & NODE_A_CAN_VENDOR) && !NODE_USES_UDP(n))
 		vmsg_send_hops_flow(n, 255);		/* Re-enable query traffic */
