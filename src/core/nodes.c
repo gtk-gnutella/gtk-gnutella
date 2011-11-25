@@ -2668,6 +2668,11 @@ node_eof_v(struct gnutella_node *n, const char *reason, va_list args)
 			va_end(dbargs);
 
 			g_debug("EOF-style error during BYE to %s: %s", node_addr(n), data);
+
+			if (n->flags & NODE_F_BYE_WAIT) {
+				g_assert(pending_byes > 0);
+				pending_byes--;
+			}
 		}
 	}
 
