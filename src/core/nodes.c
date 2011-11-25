@@ -8801,6 +8801,10 @@ node_remove_useless_leaf(gboolean *is_gtkg)
 	struct gnutella_node *worst = NULL;
 	int greatest = 0;
 	time_t now = tm_time();
+	const char *last_reason;
+	const char *reason = NULL;
+
+#define t(x)	(last_reason = #x " (" G_STRLOC ")", (x))
 
     for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
@@ -8818,8 +8822,9 @@ node_remove_useless_leaf(gboolean *is_gtkg)
             continue;
 
 		/* Transient nodes are the first to go */
-		if (NODE_IS_TRANSIENT(n)) {
+		if t(NODE_IS_TRANSIENT(n)) {
 			worst = n;
+			reason = last_reason;
 			break;
 		}
 
@@ -8828,13 +8833,13 @@ node_remove_useless_leaf(gboolean *is_gtkg)
 		 * any querying via hops-flow or lack of QRT.
 		 */
 
-		if (n->gnet_files_count == 0)
+		if t(n->gnet_files_count == 0)
 			target = n->connect_date;
-		else if (n->recv_query_table == NULL && n->qrt_receive == NULL)
+		else if t(n->recv_query_table == NULL && n->qrt_receive == NULL)
 			target = n->connect_date;
-		else if (NODE_HAS_BAD_GUID(n))
+		else if t(NODE_HAS_BAD_GUID(n))
 			target = n->connect_date;
-		else if (n->leaf_flowc_start != 0)
+		else if t(n->leaf_flowc_start != 0)
 			target = n->leaf_flowc_start;
 
 		if ((time_t) -1 == target)
@@ -8848,14 +8853,23 @@ node_remove_useless_leaf(gboolean *is_gtkg)
 		if (diff > greatest) {
 			greatest = diff;
 			worst = n;
+			reason = last_reason;
 		}
 	}
+
+#undef t
 
 	if (worst == NULL)
 		return FALSE;
 
 	if (is_gtkg != NULL)
 		*is_gtkg = node_is_gtkg(worst);
+
+	if (GNET_PROPERTY(node_debug) > 1) {
+		g_debug("NODE kicking %s: %s [TX=%u, RX=%u, %s]",
+			node_infostr(worst), reason, worst->sent, worst->received,
+			compact_time(delta_time(now, worst->connect_date)));
+	}
 
 	node_bye_if_writable(worst, 202, "Making room for another leaf");
 
@@ -8879,6 +8893,8 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 	struct gnutella_node *worst = NULL;
 	int greatest = 0;
 	time_t now = tm_time();
+	const char *last_reason;
+	const char *reason = NULL;
 
 	/*
 	 * Only operate when we're an ultra node ourselves.
@@ -8886,6 +8902,8 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 
 	if (!settings_is_ultra())
 		return FALSE;
+
+#define t(x)	(last_reason = #x " (" G_STRLOC ")", (x))
 
     for (sl = sl_up_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
@@ -8903,8 +8921,9 @@ node_remove_useless_ultra(gboolean *is_gtkg)
             continue;
 
 		/* Transient nodes are the first to go */
-		if (NODE_IS_TRANSIENT(n)) {
+		if t(NODE_IS_TRANSIENT(n)) {
 			worst = n;
+			reason = last_reason;
 			break;
 		}
 
@@ -8914,8 +8933,9 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 		 * more bandwidth.
 		 */
 
-		if (!NODE_TX_COMPRESSED(n)) {
+		if t(!NODE_TX_COMPRESSED(n)) {
 			worst = n;
+			reason = last_reason;
 			break;
 		}
 
@@ -8927,11 +8947,11 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 		 */
 
 		if (
-			!NODE_RX_COMPRESSED(n)  ||		/* No RX compression => candidate */
-			(n->flags & NODE_F_PROXIED) ||	/* Firewalled node */
-			(n->qrt_receive == NULL && n->recv_query_table == NULL) ||
-			(n->qrt_info && n->qrt_info->generation == 0) ||
-			NODE_HAS_BAD_GUID(n)
+			t(!NODE_RX_COMPRESSED(n))  ||	/* No RX compression => candidate */
+			t(n->flags & NODE_F_PROXIED) ||	/* Firewalled node */
+			t(n->qrt_receive == NULL && n->recv_query_table == NULL) ||
+			t(n->qrt_info && n->qrt_info->generation == 0) ||
+			t(NODE_HAS_BAD_GUID(n))
 		) {
 			target = n->connect_date;
 		} else {
@@ -8946,14 +8966,23 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 		if (diff > greatest) {
 			greatest = diff;
 			worst = n;
+			reason = last_reason;
 		}
 	}
+
+#undef t
 
 	if (worst == NULL)
 		return FALSE;
 
 	if (is_gtkg != NULL)
 		*is_gtkg = node_is_gtkg(worst);
+
+	if (GNET_PROPERTY(node_debug) > 1) {
+		g_debug("NODE kicking %s: %s [TX=%u, RX=%u, %s]",
+			node_infostr(worst), reason, worst->sent, worst->received,
+			compact_time(delta_time(now, worst->connect_date)));
+	}
 
 	node_bye_if_writable(worst, 202, "Making room for another ultra node");
 
@@ -9002,6 +9031,12 @@ node_remove_uncompressed_ultra(gboolean *is_gtkg)
 	
 	if (is_gtkg != NULL)
 		*is_gtkg = node_is_gtkg(drop);
+
+	if (GNET_PROPERTY(node_debug) > 1) {
+		g_debug("NODE kicking non-compressing %s [TX=%u, RX=%u, %s]",
+			node_infostr(drop), drop->sent, drop->received,
+			compact_time(delta_time(tm_time(), drop->connect_date)));
+	}
 
 	node_bye_if_writable(drop, 202, "Making room for another ultra node");
 
