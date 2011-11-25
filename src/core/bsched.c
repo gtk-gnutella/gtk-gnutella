@@ -138,6 +138,7 @@ struct bsched {
 	int last_used;				/**< Nb of active sources last period */
 	int current_used;			/**< Nb of active sources this period */
 	int bw_urgent;				/**< Urgent b/w required in stealing */
+	int io_favours;				/**< Amount of sources wanting favours */
 	gboolean looped;			/**< True when looped once over sources */
 };
 
@@ -932,6 +933,8 @@ bsched_begin_timeslice(bsched_t *bs)
 	}
 
 	norm_factor = 1000.0 / bs->period;
+	bs->io_favours = 0;
+
 	for (count = 0, iter = bs->sources; iter; iter = g_list_next(iter)) {
 		bio_source_t *bio = iter->data;
 		guint32 actual;
@@ -944,6 +947,9 @@ bsched_begin_timeslice(bsched_t *bs)
 		bio->flags &= ~(BIO_F_ACTIVE | BIO_F_USED);
 		if (bio->io_tag == 0 && bio->io_callback)
 			bio_enable(bio);
+
+		if (bio->flags & BIO_F_FAVOUR)
+			bs->io_favours++;
 
 		/*
 		 * Fast EMA of bandwidth is computed on the last n=3 terms.
@@ -1226,6 +1232,7 @@ bw_available(bio_source_t *bio, int len)
 	gboolean capped = FALSE;
 	gboolean used;
 	gboolean active;
+	gboolean favoured;
 
 	bio_check(bio);
 
@@ -1249,6 +1256,41 @@ bw_available(bio_source_t *bio, int len)
 		bio_disable(bio);
 
 	/*
+	 * The BIO_F_USED flag is set only once during a period, and is used
+	 * to identify sources that already triggered.
+	 *
+	 * The BIO_F_ACTIVE flag is used to mark a source as being used as well,
+	 * but can be cleared during a period, when we redistribute bandwidth
+	 * among the slots.  So the flag is set when the source was already
+	 * used since we recomputed the bandwidth per slot.
+	 *
+	 * The BIO_F_FAVOUR flag marks sources we want to favour during b/w
+	 * distribution: they are allowed to use all the available bandwidth
+	 * immediately.
+	 */
+
+	used = bio->flags & BIO_F_USED;
+	active = bio->flags & BIO_F_ACTIVE;
+	favoured = bio->flags & BIO_F_FAVOUR;
+
+	if (!used) {
+		bs->current_used++;
+		bio->flags |= BIO_F_USED;
+	}
+
+	bio->flags |= BIO_F_ACTIVE;
+
+	/*
+	 * Set the `looped' flag the first time when we encounter a source that
+	 * was already marked used.  It means it is the second time we see
+	 * that source trigger during the period and it means we already gave
+	 * a chance to all the other sources to trigger.
+	 */
+
+	if (!bs->looped && used)
+		bs->looped = TRUE;
+
+	/*
 	 * If source was already active, recompute the per-slot value since
 	 * we already looped once through all the sources.  This prevents the
 	 * first scheduled sources from eating all the bandwidth.
@@ -1267,45 +1309,27 @@ bw_available(bio_source_t *bio, int len)
 			G_STRFUNC, bio->wio->fd(bio->wio), bs->bw_max, bs->bw_stolen,
 			bs->bw_actual, available);
 
-	if (available > bs->bw_max) {
+	/*
+	 * If we haven't looped yet and we have favoured I/O sources, don't give
+	 * anything to non-favoured ones.
+	 */
+
+	if (!bs->looped && bs->io_favours > 0 && !favoured) {
+		if (GNET_PROPERTY(bsched_debug) > 8)
+			g_debug("BSCHED \t(non-favoured denied) favour=%d", bs->io_favours);
+		return 0;
+	}
+
+	if (available > bs->bw_max && !favoured) {
 		available = bs->bw_max;
 		capped = TRUE;
 	}
 
-	/*
-	 * The BIO_F_USED flag is set only once during a period, and is used
-	 * to identify sources that already triggered.
-	 *
-	 * The BIO_F_ACTIVE flag is used to mark a source as being used as well,
-	 * but can be cleared during a period, when we redistribute bandwidth
-	 * among the slots.  So the flag is set when the source was already
-	 * used since we recomputed the bandwidth per slot.
-	 */
-
-	used = bio->flags & BIO_F_USED;
-	active = bio->flags & BIO_F_ACTIVE;
-
-	if (GNET_PROPERTY(bsched_debug) > 8)
-		g_debug("BSCHED \tcapped=%s, used=%s, active=%s => avail=%d",
-			capped ? "y" : "n", used ? "y" : "n", active ? "y" : "n",
-			available);
-
-	if (!used) {
-		bs->current_used++;
-		bio->flags |= BIO_F_USED;
+	if (GNET_PROPERTY(bsched_debug) > 8) {
+		g_debug("BSCHED \tcapped=%c, used=%c, active=%c, favour=%c => avail=%d",
+			capped ? 'y' : 'n', used ? 'y' : 'n', active ? 'y' : 'n',
+			favoured ? 'y' : 'n', available);
 	}
-
-	bio->flags |= BIO_F_ACTIVE;
-
-	/*
-	 * Set the `looped' flag the first time when we encounter a source that
-	 * was already marked used.  It means it is the second time we see
-	 * that source trigger during the period and it means we already gave
-	 * a chance to all the other sources to trigger.
-	 */
-
-	if (!bs->looped && used)
-		bs->looped = TRUE;
 
 	if (
 		!(bs->flags & BS_F_FROZEN_SLOT) &&
@@ -1364,6 +1388,8 @@ bw_available(bio_source_t *bio, int len)
 
 	if (used && (bs->flags & BS_F_UNIFORM_BW))
 		result = 0;
+	else if (bio->flags & BIO_F_FAVOUR)
+		result = available;
 	else
 		result = MIN(bs->bw_slot, available);
 
@@ -1499,6 +1525,29 @@ bsched_bw_update(bsched_t *bs, int used, int requested)
 
 	if (bs->bw_actual >= (bs->bw_max + bs->bw_stolen))
 		bsched_no_more_bandwidth(bs);
+}
+
+/**
+ * Set I/O favouring for source.
+ *
+ * @return previous status: TRUE if it was favoured, FALSE otheriwse.
+ */
+gboolean
+bio_set_favour(bio_source_t *bio, gboolean on)
+{
+	gboolean old;
+
+	bio_check(bio);
+
+	old = booleanize(bio->flags & BIO_F_FAVOUR);
+
+	if (on) {
+		bio->flags |= BIO_F_FAVOUR;
+	} else {
+		bio->flags &= ~BIO_F_FAVOUR;
+	}
+
+	return old;
 }
 
 /**
@@ -2678,6 +2727,7 @@ bsched_stealbeat(bsched_t *bs)
 	GSList *l;
 	GSList *all_used = NULL;		/* List of bsched_t that used all b/w */
 	int all_used_count = 0;			/* Amount of bsched_t that used all b/w */
+	int all_favour_count = 0;		/* I/O sources wanting favours */
 	guint all_bw_count = 0;			/* Sum of configured bandwidth */
 	int steal_count = 0;
 	int underused;
@@ -2753,6 +2803,7 @@ bsched_stealbeat(bsched_t *bs)
 		bsched_t *xbs = l->data;
 
 		steal_count++;
+		all_favour_count += xbs->io_favours;
 
 		if (xbs->bw_last_period >= xbs->bw_max) {
 			all_used = g_slist_prepend(all_used, xbs);
@@ -2787,12 +2838,37 @@ bsched_stealbeat(bsched_t *bs)
 	g_assert(steal_count > 0);
 
 	/*
+	 * If some stealers have I/O sources wanting favours (extra bandwidth),
+	 * distribute our surplus proportionally to the amount of sources.
+	 *
 	 * Distribute our available bandwidth proportionally to all the
 	 * schedulers that saturated their bandwidth, or evenly to all the
 	 * stealers if noone saturated.
 	 */
 
-	if (all_used_count == 0) {
+	if (all_favour_count != 0) {
+		for (l = bs->stealers; l; l = g_slist_next(l)) {
+			bsched_t *xbs = l->data;
+			double amount;
+
+			if (xbs->bw_max == 0)
+				continue;
+
+			amount = (double) underused *
+				(double) xbs->io_favours / all_favour_count;
+
+			if ((double) xbs->bw_stolen + amount > (double) BS_BW_MAX)
+				xbs->bw_stolen = BS_BW_MAX;
+			else
+				xbs->bw_stolen += (int) amount;
+
+			if (GNET_PROPERTY(bsched_debug) > 4)
+				g_debug("BSCHED %s: \"%s\" giving %d bytes to \"%s\" "
+					"(%d favour%s)",
+					G_STRFUNC, bs->name, (int) amount, xbs->name,
+					xbs->io_favours, 1 == xbs->io_favours ? "" : "s");
+		}
+	} else if (all_used_count == 0) {
 		for (l = bs->stealers; l; l = g_slist_next(l)) {
 			bsched_t *xbs = l->data;
 			xbs->bw_stolen += underused / steal_count;

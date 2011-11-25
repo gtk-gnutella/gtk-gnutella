@@ -76,10 +76,11 @@ typedef struct bio_source {
  * Source flags.
  */
 
-#define BIO_F_READ			0x00000001	/**< Reading source */
-#define BIO_F_WRITE			0x00000002	/**< Writing source */
-#define BIO_F_ACTIVE		0x00000004	/**< Source active since b/w scheduled */
-#define BIO_F_USED			0x00000008	/**< Source used this period */
+#define BIO_F_READ			(1 << 0)	/**< Reading source */
+#define BIO_F_WRITE			(1 << 1)	/**< Writing source */
+#define BIO_F_ACTIVE		(1 << 2)	/**< Source active since b/w scheduled */
+#define BIO_F_USED			(1 << 3)	/**< Source used this period */
+#define BIO_F_FAVOUR		(1 << 4)	/**< Try to favour source this period */
 
 #define BIO_F_RW			(BIO_F_READ|BIO_F_WRITE)
 
