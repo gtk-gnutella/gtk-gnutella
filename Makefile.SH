@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-62]
-: $X-Id: Jmake.tmpl 48 2010-11-28 23:05:09Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-105]
+: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -50,12 +50,12 @@ SUBDIRS = src pixmaps po extra_files
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 64 2011-01-01 21:57:17Z rmanfredi $
+# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 9860 2005-10-26 08:31:04Z rmanfredi $
+# $X-Id$
 
 all::
 
@@ -94,6 +94,8 @@ local_clobber:: local_realclean
 	$(RM) Makefile
 
 install:: local_install sub_install
+	@exit 0
+
 install.man:: maybe_install.man sub_install.man
 deinstall:: sub_deinstall local_deinstall
 deinstall.man:: sub_deinstall.man maybe_deinstall.man
