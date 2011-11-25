@@ -915,16 +915,16 @@ bsched_begin_timeslice(bsched_t *bs)
 	if (bs->flags & BS_F_STOLEN_IGN) {
 		if (bs->bw_stolen != 0) {
 			if (GNET_PROPERTY(bsched_debug)) {
-				g_debug("BSCHED b/w sched \"%s\" ignoring stolen %d byte%s",
-					bs->name, bs->bw_stolen, 1 == bs->bw_stolen ? "" : "s");
+				g_debug("BSCHED %s: \"%s\" ignoring stolen %d byte%s",
+					G_STRFUNC, bs->name, bs->bw_stolen,
+					1 == bs->bw_stolen ? "" : "s");
 			}
 			bs->bw_stolen = 0;
 		}
 		if (bs->bw_last_capped != 0) {
 			if (GNET_PROPERTY(bsched_debug)) {
-				g_debug("BSCHED b/w sched \"%s\" "
-					"ignoring %d byte%s of capped bandwidth",
-					bs->name, bs->bw_last_capped,
+				g_debug("BSCHED %s: \"%s\" ignoring %d byte%s of capped b/w",
+					G_STRFUNC, bs->name, bs->bw_last_capped,
 					1 == bs->bw_last_capped ? "" : "s");
 			}
 			bs->bw_last_capped = 0;
@@ -1010,7 +1010,7 @@ bsched_begin_timeslice(bsched_t *bs)
 	 * Finally, if we did not use all our sources last time, we give more
 	 * bandwidth to active sources.  We add 1 to the amount of sources used
 	 * to avoid the same sources using all the bandwidth each time before
-	 * it runs out for the time slice.  This adjust is turned off when
+	 * it runs out for the time slice.  This adjustment is turned off when
 	 * the BS_F_UNIFORM_BW flag is set: all sources get the same initial
 	 * allocation.
 	 */
@@ -1181,8 +1181,8 @@ bsched_set_bandwidth(bsched_bws_t bws, int bandwidth)
 	g_assert(bandwidth <= BS_BW_MAX);	/* Signed, and multiplied by 1000 */
 
 	if (GNET_PROPERTY(bsched_debug))
-		g_debug("BSCHED bsched_set_bandwidth: using %.2f KiB/s for %s",
-			(double) bandwidth / bs->period, bs->name);
+		g_debug("BSCHED %s: using %.2f KiB/s for %s",
+			G_STRFUNC, (double) bandwidth / bs->period, bs->name);
 
 	bs->bw_per_second = bandwidth;
 	bs->bw_max = (int) (bandwidth / 1000.0 * bs->period);
@@ -1251,7 +1251,7 @@ bw_available(bio_source_t *bio, int len)
 	/*
 	 * If source was already active, recompute the per-slot value since
 	 * we already looped once through all the sources.  This prevents the
-	 * first scheduled sources to eat all the bandwidth.
+	 * first scheduled sources from eating all the bandwidth.
 	 *
 	 * At this point, we'll distribute the stolen bandwidth, which was
 	 * not initially distributed.  If the stolen bandwidth is an order of
@@ -1262,10 +1262,10 @@ bw_available(bio_source_t *bio, int len)
 	available = bs->bw_max + bs->bw_stolen - bs->bw_actual;
 
 	if (GNET_PROPERTY(bsched_debug) > 8)
-		g_debug("BSCHED bw_available: "
+		g_debug("BSCHED %s: "
 			"[fd #%d] max=%d, stolen=%d, actual=%d => avail=%d",
-			bio->wio->fd(bio->wio), bs->bw_max, bs->bw_stolen, bs->bw_actual,
-			available);
+			G_STRFUNC, bio->wio->fd(bio->wio), bs->bw_max, bs->bw_stolen,
+			bs->bw_actual, available);
 
 	if (available > bs->bw_max) {
 		available = bs->bw_max;
@@ -1344,8 +1344,8 @@ bw_available(bio_source_t *bio, int len)
 		}
 
 		if (GNET_PROPERTY(bsched_debug) > 7)
-			g_debug("BSCHED bw_availble: new slot=%d for \"%s\" (%scapped)",
-				bs->bw_slot, bs->name, capped ? "" : "un");
+			g_debug("BSCHED %s: new slot=%d for \"%s\" (%scapped)",
+				G_STRFUNC, bs->bw_slot, bs->name, capped ? "" : "un");
 	}
 
 	/*
@@ -1433,9 +1433,9 @@ bw_available(bio_source_t *bio, int len)
 			adj = available;
 
 		if (GNET_PROPERTY(bsched_debug) > 4)
-			g_debug("BSCHED bw_available: \"%s\" adding %d to %d"
+			g_debug("BSCHED %s: \"%s\" adding %d to %d"
 				" (len=%d, capped=%d [%d-%d/%d], available=%d, used=%c)",
-				bs->name, adj, result, len, bs->bw_last_capped,
+				G_STRFUNC, bs->name, adj, result, len, bs->bw_last_capped,
 				bs->last_used, bs->current_used, bs->count,
 				available, (bio->flags & BIO_F_USED) ? 'y' : 'n');
 
@@ -1531,8 +1531,8 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 	amount = len > available ? available : len;
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED bio_write(wio=%d, len=%zu) available=%zu",
-			bio->wio->fd(bio->wio), len, available);
+		g_debug("BSCHED %s(wio=%d, len=%zu) available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
 
 	r = bio->wio->write(bio->wio, data, amount);
 
@@ -1643,8 +1643,8 @@ bio_writev(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	 */
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED bio_writev(fd=%d, len=%zu) available=%zu",
-			bio->wio->fd(bio->wio), len, available);
+		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_writev(bio->wio, iov, iovcnt);
@@ -1719,8 +1719,8 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 	}
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED bio_sendto(wio=%d, len=%zu) available=%zu",
-			bio->wio->fd(bio->wio), len, available);
+		g_debug("BSCHED %s(wio=%d, len=%zu) available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
 
 	g_assert(bio->wio != NULL);
 	g_assert(bio->wio->sendto != NULL);
@@ -1818,8 +1818,8 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 	amount = len > available ? available : len;
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED bsched_write(fd=%d, len=%zu) available=%zu",
-			bio->wio->fd(bio->wio), len, available);
+		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
 
 #if defined(HAS_MMAP) && !defined(HAS_SENDFILE)
 	{
@@ -1995,8 +1995,8 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 
 	amount = len > available ? available : len;
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED bsched_read(fd=%d, len=%zu) available=%zu",
-			bio->wio->fd(bio->wio), len, available);
+		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
 
 	r = bio->wio->read(bio->wio, data, amount);
 	if (r > 0) {
@@ -2095,8 +2095,8 @@ bio_readv(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	 */
 
 	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED bio_readv(fd=%d, len=%zu) available=%zu",
-			bio->wio->fd(bio->wio), len, available);
+		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_readv(bio->wio, iov, iovcnt);
@@ -2642,11 +2642,11 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 	bs->last_used = last_used;
 
 	if (GNET_PROPERTY(bsched_debug) > 4) {
-		g_debug("BSCHED bsched_timer(%s): delay=%d (EMA=%d), b/w=%d (EMA=%d), "
+		g_debug("BSCHED %s(%s): delay=%d (EMA=%d), b/w=%d (EMA=%d), "
 			"overused=%d (EMA=%d) stolen=%d (EMA=%d) unwritten=%d "
 			"capped=%d (%d) used %d/%d",
-			bs->name, delay, bs->period_ema, bs->bw_actual, bs->bw_ema,
-			overused, bs->bw_ema - bs->bw_stolen_ema - theoric,
+			G_STRFUNC, bs->name, delay, bs->period_ema, bs->bw_actual,
+			bs->bw_ema, overused, bs->bw_ema - bs->bw_stolen_ema - theoric,
 			bs->bw_stolen, bs->bw_stolen_ema, bs->bw_unwritten,
 			last_capped, bs->bw_capped, bs->last_used, bs->count);
 		g_debug("BSCHED    -> b/w delta=%d, max=%d, slot=%d, first=%d "
@@ -2775,9 +2775,9 @@ bsched_stealbeat(bsched_t *bs)
 			underused -= amount;
 
 			if (GNET_PROPERTY(bsched_debug) > 4)
-				g_debug("BSCHED b/w sched \"%s\" urgently giving %d bytes "
+				g_debug("BSCHED %s: \"%s\" urgently giving %d bytes "
 					"to \"%s\" (still wants %d bytes urgently)",
-					bs->name, amount, xbs->name, xbs->bw_urgent);
+					G_STRFUNC, bs->name, amount, xbs->name, xbs->bw_urgent);
 
 			if (underused <= 0)			/* Nothing left to redistribute */
 				goto done;
@@ -2798,8 +2798,8 @@ bsched_stealbeat(bsched_t *bs)
 			xbs->bw_stolen += underused / steal_count;
 
 			if (GNET_PROPERTY(bsched_debug) > 4)
-				g_debug("BSCHED b/w sched \"%s\" evenly giving %d bytes "
-					"to \"%s\"", bs->name, underused / steal_count, xbs->name);
+				g_debug("BSCHED %s: \"%s\" evenly giving %d bytes to \"%s\"",
+					G_STRFUNC, bs->name, underused / steal_count, xbs->name);
 		}
 	} else {
 		for (l = all_used; l; l = g_slist_next(l)) {
@@ -2817,8 +2817,8 @@ bsched_stealbeat(bsched_t *bs)
 				xbs->bw_stolen += (int) amount;
 
 			if (GNET_PROPERTY(bsched_debug) > 4)
-				g_debug("BSCHED b/w sched \"%s\" giving %d bytes to \"%s\"",
-					bs->name, (int) amount, xbs->name);
+				g_debug("BSCHED %s: \"%s\" giving %d bytes to \"%s\"",
+					G_STRFUNC, bs->name, (int) amount, xbs->name);
 		}
 	}
 
