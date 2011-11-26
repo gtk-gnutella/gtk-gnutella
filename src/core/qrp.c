@@ -57,6 +57,7 @@
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -839,7 +840,7 @@ qrt_create(const char *name, char *arena, int slots, int max)
 	WALLOC0(rt);
 
 	rt->magic         = QRP_ROUTE_MAGIC;
-	rt->name          = g_strdup(name);
+	rt->name          = h_strdup(name);
 	rt->arena         = (guchar *) arena;
 	rt->slots         = slots;
 	rt->generation    = generation++;
@@ -893,7 +894,7 @@ qrt_free(struct routing_table *rt)
 
 	atom_sha1_free_null(&rt->digest);
 	HFREE_NULL(rt->arena);
-	G_FREE_NULL(rt->name);
+	HFREE_NULL(rt->name);
 
 	gnet_prop_set_guint32_val(PROP_QRP_MEMORY,
 	  GNET_PROPERTY(qrp_memory) - (rt->compacted ? rt->slots / 8 : rt->slots));
@@ -3751,7 +3752,7 @@ qrt_handle_reset(
 
 	WALLOC(rt);
 	rt->magic = QRP_ROUTE_MAGIC;
-	rt->name = g_strdup_printf("QRT %s", node_infostr(n));
+	rt->name = str_cmsg("QRT %s", node_infostr(n));
 	rt->refcnt = 1;
 	rt->generation = old_generation + 1;
 	rt->infinity = reset->infinity;

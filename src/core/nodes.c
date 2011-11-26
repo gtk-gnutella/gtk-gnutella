@@ -2133,9 +2133,9 @@ node_recursive_shutdown_v(
 		if (*p == '%')
 			*p = 'X';
 
-	fmt = g_strdup_printf("%s (%s) [within %s]", where, reason, n->error_str);
+	fmt = str_cmsg("%s (%s) [within %s]", where, reason, n->error_str);
 	node_remove_v(n, fmt, ap);
-	G_FREE_NULL(fmt);
+	HFREE_NULL(fmt);
 }
 
 /**

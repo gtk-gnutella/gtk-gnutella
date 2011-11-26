@@ -106,8 +106,9 @@
 #include "lib/parse.h"
 #include "lib/random.h"
 #include "lib/sequence.h"
-#include "lib/strtok.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/strtok.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
 #include "lib/url.h"
@@ -15456,11 +15457,11 @@ download_browse_start(const char *hostname,
 	{
 		char *dname;
 
-		dname = g_strdup_printf(_("<Browse Host %s>"),
+		dname = str_cmsg(_("<Browse Host %s>"),
 					host_port_to_string(hostname, addr, port));
 
 		fi = file_info_get_transient(dname);
-		G_FREE_NULL(dname);
+		HFREE_NULL(dname);
 	}
 
 	d = create_download(filepath_basename(fi->pathname), "/",
@@ -15586,12 +15587,12 @@ download_thex_start(const char *uri,
 
 		fi = file_info_by_sha1(sha1);
 		
-		dname = g_strdup_printf(_("<THEX data for %s>"),
+		dname = str_cmsg(_("<THEX data for %s>"),
 					fi ? filepath_basename(fi->pathname)
 					   : bitprint_to_urn_string(sha1, tth));
 
 		fi = file_info_get_transient(dname);
-		G_FREE_NULL(dname);
+		HFREE_NULL(dname);
 	}
 
 	d = create_download(filepath_basename(fi->pathname),

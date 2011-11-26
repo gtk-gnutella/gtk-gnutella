@@ -1656,7 +1656,7 @@ search_gui_download(record_t *rc, gnet_search_t sh)
 		uri = NULL;
 		guc_search_associate_sha1(sh, rc->sha1);
 	} else {
-		uri = g_strdup_printf("/get/%lu/%s", (gulong) rc->file_index, rc->name);
+		uri = str_cmsg("/get/%lu/%s", (gulong) rc->file_index, rc->name);
 	}
 
 	guc_download_new(rc->name,
@@ -1676,7 +1676,7 @@ search_gui_download(record_t *rc, gnet_search_t sh)
 
 	rc->flags |= SR_DOWNLOADED;
 	search_gui_check_alt_locs(rc);
-	G_FREE_NULL(uri);
+	HFREE_NULL(uri);
 }
 
 /**

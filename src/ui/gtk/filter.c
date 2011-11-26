@@ -44,7 +44,9 @@
 
 #include "lib/ascii.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/parse.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/utf8.h"
 
@@ -1093,14 +1095,14 @@ filter_gui_edit_ip_rule(rule_t *r)
         return;
 
     if (r != NULL) {
-        ip   = g_strdup_printf("%s/%u",
+        ip   = str_cmsg("%s/%u",
 					host_addr_to_string(r->u.ip.addr), r->u.ip.cidr);
         target = r->target;
         invert = RULE_IS_NEGATED(r);
         active = RULE_IS_ACTIVE(r);
         soft   = RULE_IS_SOFT(r);
     } else {
-		ip = g_strdup("");
+		ip = h_strdup("");
 	}
 
     gtk_entry_set_text(
@@ -1122,7 +1124,7 @@ filter_gui_edit_ip_rule(rule_t *r)
             (gui_filter_dialog_lookup("checkbutton_filter_ip_soft")),
         soft);
 
-   	G_FREE_NULL(ip);
+   	HFREE_NULL(ip);
 
     gtk_notebook_set_current_page(
         GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),

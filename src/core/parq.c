@@ -71,6 +71,7 @@
 #include "lib/hashlist.h"
 #include "lib/parse.h"
 #include "lib/stats.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
@@ -1675,7 +1676,7 @@ parq_upload_free(struct parq_ul_queued *puq)
 	}
 
 	/* Free the memory used by the current queued item */
-	G_FREE_NULL(puq->addr_and_name);
+	HFREE_NULL(puq->addr_and_name);
 	atom_sha1_free_null(&puq->sha1);
 	puq->name = NULL;
 
@@ -1814,12 +1815,12 @@ parq_upload_update_addr_and_name(struct parq_ul_queued *puq,
 	if (puq->addr_and_name != NULL) {
 		g_hash_table_remove(ul_all_parq_by_addr_and_name,
 			puq->addr_and_name);
-		G_FREE_NULL(puq->addr_and_name);
+		HFREE_NULL(puq->addr_and_name);
 		puq->name = NULL;
 	}
 
-	puq->addr_and_name = g_strdup_printf("%s %s",
-								host_addr_to_string(u->addr), u->name);
+	puq->addr_and_name = str_cmsg("%s %s",
+		host_addr_to_string(u->addr), u->name);
 	puq->name = strchr(puq->addr_and_name, ' ') + 1;
 
 	g_hash_table_insert(ul_all_parq_by_addr_and_name, puq->addr_and_name,

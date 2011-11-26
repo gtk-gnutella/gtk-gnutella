@@ -79,24 +79,25 @@
 #include "if/dht/dht.h"		/* For dht_enabled() */
 
 #include "lib/aging.h"
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
-#include "lib/idtable.h"
-#include "lib/iso3166.h"
+#include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
-#include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/idtable.h"
+#include "lib/iso3166.h"
 #include "lib/listener.h"
 #include "lib/parse.h"
 #include "lib/product.h"
-#include "lib/strtok.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/strtok.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/url.h"
@@ -105,6 +106,7 @@
 #include "lib/vmm.h"
 #include "lib/walloc.h"
 #include "lib/wd.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 #define READ_BUF_SIZE	(64 * 1024)	/**< Read buffer size, if no sendfile(2) */
@@ -4574,9 +4576,9 @@ upload_request_special(struct upload *u, const header_t *header)
 	} else if (u->thex) {
 		char *name;
 		
-		name = g_strdup_printf(_("<THEX data for %s>"), u->name);
+		name = str_cmsg(_("<THEX data for %s>"), u->name);
 		atom_str_change(&u->name, name);
-		G_FREE_NULL(name);
+		HFREE_NULL(name);
 
 		upload_http_extra_line_add(u, "Content-Type: application/dime\r\n");
 
