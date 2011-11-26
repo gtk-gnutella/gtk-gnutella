@@ -4074,9 +4074,11 @@ node_got_bye(struct gnutella_node *n)
 		}
 	}
 
-	if (GNET_PROPERTY(node_debug))
-		g_warning("%s sent us BYE %d %.*s",
-			node_infostr(n), code, (int) MIN(120, message_len), message);
+	if (GNET_PROPERTY(node_debug)) {
+		g_warning("%s sent us BYE %d %.*s [%s]",
+			node_infostr(n), code, (int) MIN(120, message_len), message,
+			compact_time(delta_time(tm_time(), n->connect_date)));
+	}
 
 	node_remove(n, _("Got BYE %d %.*s"), code,
 		(int) MIN(120, message_len), message);
