@@ -2625,6 +2625,7 @@ pcache_pong_received(struct gnutella_node *n)
 		if (n->n_pong_received == 1 || host_addr_equal(addr, n->gnet_addr)) {
 			n->gnet_files_count = files_count;
 			n->gnet_kbytes_count = kbytes_count;
+			n->flags |= NODE_F_SHARED_INFO;
 		}
 
 		/*

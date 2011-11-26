@@ -278,6 +278,7 @@ typedef struct gnutella_node {
  * Node flags.
  */
 enum {
+	NODE_F_SHARED_INFO	= 1 << 31,	/**< Got pong describing shared files */
 	NODE_F_EXPECT_VMSG	= 1 << 30,	/**< Expecting vendor message info */
 	NODE_F_DUP_GUID		= 1 << 29,	/**< Node bears duplicate GUID */
 	NODE_F_BYE_WAIT		= 1 << 28,	/**< Waiting for BYE being sent */

@@ -8833,7 +8833,7 @@ node_remove_useless_leaf(gboolean *is_gtkg)
 		 * any querying via hops-flow or lack of QRT.
 		 */
 
-		if t(n->gnet_files_count == 0)
+		if t(0 == n->gnet_files_count && (n->flags & NODE_F_SHARED_INFO))
 			target = n->connect_date;
 		else if t(n->recv_query_table == NULL && n->qrt_receive == NULL)
 			target = n->connect_date;
@@ -9850,7 +9850,7 @@ node_get_status(const struct nid *node_id, gnet_node_status_t *status)
 	status->connect_date = node->connect_date;
 	status->up_date      = node->up_date;
 
-	if (is_host_addr(node->gnet_pong_addr)) {
+	if (node->flags & NODE_F_SHARED_INFO) {
 		/* Got a pong from this node, library info should be accurate */
 		status->gnet_files_count  = node->gnet_files_count;
 		status->gnet_kbytes_count = node->gnet_kbytes_count;
