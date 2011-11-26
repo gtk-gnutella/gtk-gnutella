@@ -143,7 +143,7 @@
 #define MAX_HOP_COUNT			255	  /**< Architecturally defined maximum */
 #define NODE_LEGACY_DEGREE		8	  /**< Older node without X-Degree */
 #define NODE_LEGACY_TTL			7	  /**< Older node without X-Max-TTL */
-#define NODE_USELESS_GRACE		20	  /**< No kick if condition too recent */
+#define NODE_USELESS_GRACE		300	  /**< No kick if condition too recent */
 #define NODE_UP_USELESS_GRACE	600	  /**< No kick if condition too recent */
 
 #define SHUTDOWN_GRACE_DELAY	120	  /**< Grace time for shutdowning nodes */
@@ -8831,16 +8831,23 @@ node_remove_useless_leaf(gboolean *is_gtkg)
 		/*
 		 * Our primary targets are non-sharing leaves, or leaves preventing
 		 * any querying via hops-flow or lack of QRT.
+		 *
+		 * Nodes which cannot send OOB replies force us to OOB-proxy their
+		 * queries.  We accept that as long as they supply content as well.
+		 * If they don't, then they're less interesting than another leaf,
+		 * who will potentially share.
 		 */
 
-		if t(0 == n->gnet_files_count && (n->flags & NODE_F_SHARED_INFO))
+		if t(NODE_HAS_BAD_GUID(n))
+			target = n->connect_date;
+		else if t(0 == n->gnet_files_count && (n->flags & NODE_F_SHARED_INFO))
 			target = n->connect_date;
 		else if t(n->recv_query_table == NULL && n->qrt_receive == NULL)
 			target = n->connect_date;
-		else if t(NODE_HAS_BAD_GUID(n))
-			target = n->connect_date;
 		else if t(n->leaf_flowc_start != 0)
 			target = n->leaf_flowc_start;
+		else if t(!NODE_CAN_OOB(n) && 0 == n->rx_qhits && 0 != n->tx_queries)
+			target = n->connect_date;
 
 		if ((time_t) -1 == target)
 			continue;

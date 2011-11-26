@@ -3091,6 +3091,8 @@ handle_messages_supported(struct gnutella_node *n,
 			n->attrs |= NODE_A_CAN_HEAD;
 		} else if (vm.handler == handle_svn_release_notify) {
 			n->attrs |= NODE_A_CAN_SVN_NOTIFY;
+		} else if (vm.handler == handle_oob_reply_ind) {
+			n->attrs |= NODE_A_CAN_OOB;;
 		}
 	}
 
