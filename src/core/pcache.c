@@ -639,8 +639,6 @@ send_pong(
 			control ? NULL : meta, flags, &size);
 	n->n_pong_sent++;
 
-	g_assert(!control || size == sizeof *r);	/* control => no extensions */
-
 	if (NODE_IS_UDP(n))
 		udp_send_msg(n, r, size);
 	else if (control)
