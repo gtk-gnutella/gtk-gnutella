@@ -8908,6 +8908,7 @@ node_remove_useless_ultra(gboolean *is_gtkg)
     for (sl = sl_up_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 		time_t target = (time_t) -1;
+		qrt_info_t *qi;
 		int diff;
 
         if (n->status != GTA_NODE_CONNECTED)
@@ -8943,14 +8944,16 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 		 * Our targets are firewalled nodes, nodes which do not support
 		 * the inter-QRP table, nodes which have no leaves (as detected
 		 * by the fact that they do not send QRP updates on a regular
-		 * basis).
+		 * basis and have mostly empty QRP tables).
 		 */
+
+		qi = n->qrt_info;
 
 		if (
 			t(!NODE_RX_COMPRESSED(n))  ||	/* No RX compression => candidate */
 			t(n->flags & NODE_F_PROXIED) ||	/* Firewalled node */
 			t(n->qrt_receive == NULL && n->recv_query_table == NULL) ||
-			t(n->qrt_info && n->qrt_info->generation == 0) ||
+			t(qi != NULL && 0 == qi->generation && 0 == qi->fill_ratio) ||
 			t(NODE_HAS_BAD_GUID(n))
 		) {
 			target = n->connect_date;
