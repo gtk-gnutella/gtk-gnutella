@@ -315,7 +315,7 @@ again:
 	size = pmsg_size(mb);
 
 	if (size == 0) {
-		g_warning("mq_udp_putq: called with empty message");
+		g_carp("%s: called with empty message", G_STRFUNC);
 		goto cleanup;
 	}
 
@@ -331,8 +331,8 @@ again:
 		pmsg_t *extended;
 
 		if (debugging(20))
-			g_warning("mq_udp_putq: %s recursion detected (%d already pending)",
-				mq_info(q), slist_length(q->qwait));
+			g_warning("%s: %s recursion detected (%u already pending)",
+				G_STRFUNC, mq_info(q), slist_length(q->qwait));
 
 		/*
 		 * We insert extended messages into the waiting queue since we need
@@ -465,8 +465,8 @@ cleanup:
 
 			if (debugging(20))
 				g_warning(
-					"mq_udp_putq: %s flushing waiting to %s (%d still pending)",
-					mq_info(q), gnet_host_to_string(to),
+					"%s: %s flushing waiting to %s (%u still pending)",
+					G_STRFUNC, mq_info(q), gnet_host_to_string(to),
 					slist_length(q->qwait));
 
 			goto again;

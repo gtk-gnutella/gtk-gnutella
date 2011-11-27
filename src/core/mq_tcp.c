@@ -328,7 +328,7 @@ again:
 
 	size = pmsg_size(mb);
 	if (size == 0) {
-		g_warning("mq_tcp_putq: called with empty message");
+		g_carp("%s: called with empty message", G_STRFUNC);
 		goto cleanup;
 	}
 
@@ -343,8 +343,8 @@ again:
 	if (q->putq_entered > 0) {
 		if (debugging(20))
 			g_warning(
-				"mq_tcp_putq: %s recursion detected (%d already pending)",
-				mq_info(q), slist_length(q->qwait));
+				"%s: %s recursion detected (%u already pending)",
+				G_STRFUNC, mq_info(q), slist_length(q->qwait));
 		slist_append(q->qwait, mb);
 		return;
 	}
@@ -461,8 +461,8 @@ cleanup:
 		if (mb) {
 			if (debugging(20))
 				g_warning(
-					"mq_tcp_putq: %s flushing waiting (%d still pending)",
-					mq_info(q), slist_length(q->qwait));
+					"%s: %s flushing waiting (%u still pending)",
+					G_STRFUNC, mq_info(q), slist_length(q->qwait));
 			goto again;
 		}
 	}
