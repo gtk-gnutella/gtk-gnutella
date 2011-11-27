@@ -1429,12 +1429,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 		guint prio = pmsg_prio(mb);
 		gboolean inserted = FALSE;
 
-		/*
-		 * Unfortunately, there's no g_list_insert_after() or equivalent,
-		 * so we break the GList encapsulation.
-		 */
-
-		for (l = q->qtail; l; l = l->prev) {
+		for (l = q->qtail; l; l = g_list_previous(l)) {
 			pmsg_t *m = l->data;
 
 			if (
@@ -1446,19 +1441,11 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 				 * we are, then leave the loop.
 				 */
 
-				new = g_list_alloc();
+				q->qhead = gm_list_insert_after(q->qhead, l, mb);
+				new = g_list_next(l);
 
-				new->data = mb;
-				new->prev = l;
-				new->next = l->next;
-
-				if (l->next)
-					l->next->prev = new;
-				else {
-					g_assert(l == q->qtail);	/* Inserted at tail */
+				if (l == q->qtail)				/* Inserted at tail */
 					q->qtail = new;				/* New tail */
-				}
-				l->next = new;
 
 				inserted = TRUE;
 				break;
