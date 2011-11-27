@@ -1320,6 +1320,9 @@ node_timer(time_t now)
 						(time_delta_t) GNET_PROPERTY(node_connected_timeout) &&
 					NODE_MQUEUE_COUNT(n)
 				) {
+					if (GNET_PROPERTY(node_debug) > 2 && n->outq != NULL)
+						g_debug("NODE activity timeout, %s", mq_info(n->outq));
+
                     hcache_add(HCACHE_TIMEOUT, n->addr, 0,
                         "activity timeout");
 					node_bye_if_writable(n, 405, "Activity timeout (%d sec%s)",
@@ -1331,6 +1334,9 @@ node_timer(time_t now)
 					delta_time(now, n->tx_flowc_date) >
 						(time_delta_t) GNET_PROPERTY(node_tx_flowc_timeout)
 				) {
+					if (GNET_PROPERTY(node_debug) > 2 && n->outq != NULL)
+						g_debug("NODE flow-controlled, %s", mq_info(n->outq));
+
                     hcache_add(HCACHE_UNSTABLE, n->addr, 0,
                         "flow-controlled too long");
 					node_bye(n, 405, "Flow-controlled for too long (%d sec%s)",
