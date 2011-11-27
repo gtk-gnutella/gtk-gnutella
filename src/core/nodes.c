@@ -1322,7 +1322,9 @@ node_timer(time_t now)
 				) {
                     hcache_add(HCACHE_TIMEOUT, n->addr, 0,
                         "activity timeout");
-					node_bye_if_writable(n, 405, "Activity timeout");
+					node_bye_if_writable(n, 405, "Activity timeout (%d sec%s)",
+						GNET_PROPERTY(node_connected_timeout),
+						1 == GNET_PROPERTY(node_connected_timeout) ? "" : "s");
 					continue;
 				} else if (
 					NODE_IN_TX_FLOW_CONTROL(n) &&
