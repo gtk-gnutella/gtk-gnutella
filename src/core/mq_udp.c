@@ -499,8 +499,25 @@ mq_no_putq(mqueue_t *unused_q, pmsg_t *unused_mb)
 	g_error("plain mq_putq() forbidden on UDP queue -- use mq_udp_putq()");
 }
 
+/**
+ * Is the last enqueued message still unwritten?
+ */
+static gboolean
+mq_udp_flushed(const mqueue_t *unused_q)
+{
+	(void) unused_q;
+
+	/*
+	 * This is always TRUE with UDP, since we either write the whole
+	 * message or send nothing.
+	 */
+
+	return TRUE;
+}
+
 static const struct mq_ops mq_udp_ops = {
 	mq_no_putq,			/* putq */
+	mq_udp_flushed,		/* flushed */
 };
 
 /* vi: set ts=4 sw=4 cindent: */

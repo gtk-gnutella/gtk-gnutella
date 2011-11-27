@@ -481,8 +481,25 @@ mq_no_putq(mqueue_t *unused_q, pmsg_t *unused_mb)
 	g_error("plain mq_putq() forbidden on TCP queue -- use mq_tcp_putq()");
 }
 
+/**
+ * Is the last enqueued message still unwritten, as opposed to having been
+ * partially sent already?
+ */
+static gboolean
+mq_tcp_flushed(const mqueue_t *q)
+{
+	pmsg_t *mb;
+
+	if (NULL == q->qtail)
+		return TRUE;			/* Empty queue */
+
+	mb = q->qtail->data;
+	return pmsg_is_unread(mb);
+}
+
 static const struct mq_ops mq_tcp_ops = {
 	mq_no_putq,			/* putq */
+	mq_tcp_flushed,		/* flushed */
 };
 
 /* vi: set ts=4 sw=4 cindent: */

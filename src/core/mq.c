@@ -320,7 +320,8 @@ mq_check_track(mqueue_t *q, int offset, const char *where, int line)
  * Polymorphic operations.
  */
 
-#define MQ_PUTQ(o,m)		((o)->ops->putq((o), (m)))
+#define MQ_PUTQ(o,m)	((o)->ops->putq((o), (m)))
+#define MQ_FLUSHED(o)	((o)->ops->flushed(o))
 
 /**
  * Free queue and all enqueued messages.
@@ -629,7 +630,8 @@ static void
 mq_update_flowc(mqueue_t *q)
 {
 	if (q->flags & MQ_FLOWC) {
-		if (q->size <= q->lowat) {
+	 	/* Never leave flow-control when the last message is partially sent */
+		if (q->size <= q->lowat && MQ_FLUSHED(q)) {
 			mq_leave_flowc(q);
 			q->flags &= ~MQ_WARNZONE;		/* no flow-control */
 		}

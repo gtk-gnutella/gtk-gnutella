@@ -53,6 +53,7 @@ typedef struct mqueue mqueue_t;
 
 struct mq_ops {
 	void (*putq)(mqueue_t *q, pmsg_t *mb);
+	gboolean (*flushed)(const mqueue_t *q);
 };
 
 struct mq_cops {
