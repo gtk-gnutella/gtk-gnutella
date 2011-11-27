@@ -1965,7 +1965,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	g_assert(!NODE_USES_UDP(n));
 
 	if (reason && no_reason != reason) {
-		gm_vsnprintf(n->error_str, sizeof n->error_str, reason, ap);
+		str_vbprintf(n->error_str, sizeof n->error_str, reason, ap);
 		n->remove_msg = n->error_str;
 	} else if (n->status != GTA_NODE_SHUTDOWN)	/* Preserve shutdown error */
 		n->remove_msg = NULL;
@@ -2757,7 +2757,7 @@ node_shutdown_v(struct gnutella_node *n, const char *reason, va_list args)
 	n->flags |= NODE_F_CLOSING;
 
 	if (reason) {
-		gm_vsnprintf(n->error_str, sizeof n->error_str, reason, args);
+		str_vbprintf(n->error_str, sizeof n->error_str, reason, args);
 		n->remove_msg = n->error_str;
 	} else {
 		n->remove_msg = "Unknown reason";
@@ -2808,7 +2808,7 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 	n->flags |= NODE_F_CLOSING;
 
 	if (reason) {
-		gm_vsnprintf(n->error_str, sizeof n->error_str, reason, ap);
+		str_vbprintf(n->error_str, sizeof n->error_str, reason, ap);
 		n->remove_msg = n->error_str;
 	} else {
 		n->remove_msg = NULL;
@@ -3304,7 +3304,7 @@ send_error(
 	socket_check(s);
 	g_assert(n == NULL || n->socket == s);
 
-	gm_vsnprintf(msg_tmp, sizeof(msg_tmp)-1,  msg, ap);
+	str_vbprintf(msg_tmp, sizeof(msg_tmp)-1,  msg, ap);
 
 	/*
 	 * Try to limit the size of our reply if we're saturating bandwidth.
