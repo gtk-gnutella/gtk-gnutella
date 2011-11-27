@@ -2815,6 +2815,12 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 		n->error_str[0] = '\0';
 	}
 
+	if (GNET_PROPERTY(node_debug) > 1) {
+		g_debug("NODE kicking %s: BYE %d \"%s\" [TX=%u, RX=%u, %s]",
+			node_infostr(n), code, n->error_str, n->sent, n->received,
+			compact_time(delta_time(tm_time(), n->connect_date)));
+	}
+
 	/*
 	 * Discard all the queued entries, we're not going to send them.
 	 * The only message that may remain is the oldest partially sent.
@@ -2887,7 +2893,7 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 	 */
 
 	if (mq_pending(n->outq) == 0) {
-		if (GNET_PROPERTY(node_debug))
+		if (GNET_PROPERTY(node_debug) > 2)
 			g_debug("successfully sent BYE %d \"%s\" to %s",
 				code, n->error_str, node_infostr(n));
 
@@ -2902,7 +2908,7 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 			}
 			node_shutdown_mode(n, BYE_GRACE_DELAY);
 	} else {
-		if (GNET_PROPERTY(node_debug))
+		if (GNET_PROPERTY(node_debug) > 2)
 			g_debug("delayed sending of BYE %d \"%s\" to %s",
 				code, n->error_str, node_infostr(n));
 
@@ -8398,7 +8404,7 @@ node_disable_read(struct gnutella_node *n)
 static void
 node_bye_sent(struct gnutella_node *n)
 {
-	if (GNET_PROPERTY(node_debug))
+	if (GNET_PROPERTY(node_debug) > 2)
 		g_debug("finally sent BYE \"%s\" to %s", n->error_str, node_infostr(n));
 
 	/*
