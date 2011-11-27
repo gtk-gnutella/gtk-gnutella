@@ -316,6 +316,7 @@ enum {
  * Node attributes.
  */
 enum {
+	NODE_A_HOPS_FLOW	= 1 << 31,	/**< Node supports "hops-flow" messages */
 	NODE_A_CAN_OOB		= 1 << 30,	/**< Node can send OOB replies */
 	NODE_A_BAD_GUID		= 1 << 29,	/**< Node has bad GUID */
 	NODE_A_IPV6_ONLY	= 1 << 28,	/**< Node does not want any IPv4 */
@@ -462,6 +463,7 @@ enum {
 #define NODE_HAS_BAD_GUID(n)	((n)->attrs & NODE_A_BAD_GUID)
 #define NODE_IS_FIREWALLED(n)	((n)->attrs & NODE_A_FIREWALLED)
 #define NODE_CAN_OOB(n)			((n)->attrs & NODE_A_CAN_OOB)
+#define NODE_CAN_HOPS_FLOW(n)	((n)->attrs & NODE_A_HOPS_FLOW)
 
 #define NODE_HAS_FAKE_NAME(n)	\
 	(((n)->flags & (NODE_F_FAKE_NAME | NODE_F_GTKG)) == NODE_F_FAKE_NAME)

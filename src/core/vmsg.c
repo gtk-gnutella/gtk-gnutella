@@ -70,6 +70,7 @@
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/misc.h"			/* For pointer_hash_func() */
 #include "lib/nid.h"
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
@@ -460,7 +461,7 @@ handle_hops_flow(struct gnutella_node *n,
 }
 
 /**
- * Send an "Hops Flow" message to specified node.
+ * Send an "Hops Flow" message to specified node, if it supports it.
  */
 void
 vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
@@ -468,6 +469,9 @@ vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
 	guint32 paysize = sizeof hops;
 	guint32 msgsize;
 	char *payload;
+
+	if (!NODE_CAN_HOPS_FLOW(n))
+		return;
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	payload = vmsg_fill_type(v_tmp_data, T_BEAR, 4, 1);
@@ -3011,6 +3015,7 @@ handle_messages_supported(struct gnutella_node *n,
 	const char *description;
 	guint16 count;
 	str_t *msgs;
+	GHashTable *handlers;
 
 	if (NODE_IS_UDP(n))			/* Don't waste time if we get this via UDP */
 		return;
@@ -3036,6 +3041,7 @@ handle_messages_supported(struct gnutella_node *n,
 	 */
 
 	msgs = str_new(count * 16);		/* Pre-size generously */
+	handlers = g_hash_table_new(pointer_hash_func, NULL);
 
 	while (count-- > 0) {
 		struct vmsg vm;
@@ -3062,48 +3068,45 @@ handle_messages_supported(struct gnutella_node *n,
 			g_debug("VMSG ...%s/%dv%d",
 				vendor_code_to_string(vendor.u32), id, version);
 
-		/*
-		 * Look for leaf-guided dynamic query support.
-		 *
-		 * Remote can advertise only one of the two messages needed, we
-		 * can infer support for the other!.
-		 */
-
-		if (
-			vm.handler == handle_qstat_req ||
-			vm.handler == handle_qstat_answer
-		) {
-			node_set_leaf_guidance(NODE_ID(n), TRUE);
-		} else if (
-			vm.handler == handle_time_sync_req ||
-			vm.handler == handle_time_sync_reply
-		) {
-			/*
-			 * Time synchronization support.
-			 */
-			node_can_tsync(n);
-		} else if (vm.handler == handle_udp_crawler_ping) {
-			/*
-			 * UDP-crawling support.
-			 */
-			n->attrs |= NODE_A_CRAWLABLE;
-		} else if (vm.handler == handle_head_ping) {
-			n->attrs |= NODE_A_CAN_HEAD;
-		} else if (vm.handler == handle_svn_release_notify) {
-			n->attrs |= NODE_A_CAN_SVN_NOTIFY;
-		} else if (vm.handler == handle_oob_reply_ind) {
-			n->attrs |= NODE_A_CAN_OOB;;
-		}
+		g_hash_table_insert(handlers, vm.handler, NULL);
 	}
 
-	if (n->attrs & NODE_A_CAN_SVN_NOTIFY) {
+	if (
+		gm_hash_table_contains(handlers, handle_qstat_req) ||
+		gm_hash_table_contains(handlers, handle_qstat_answer)
+	) {
+		node_set_leaf_guidance(NODE_ID(n), TRUE);
+	}
+
+	if (
+		gm_hash_table_contains(handlers, handle_time_sync_req) ||
+		gm_hash_table_contains(handlers, handle_time_sync_reply)
+	) {
+		node_can_tsync(n);				/* Time synchronization support */
+	}
+
+	if (gm_hash_table_contains(handlers, handle_udp_crawler_ping))
+		n->attrs |= NODE_A_CRAWLABLE;   /* UDP-crawling support */
+
+	if (gm_hash_table_contains(handlers, handle_head_ping))
+		n->attrs |= NODE_A_CAN_HEAD;
+
+	if (gm_hash_table_contains(handlers, handle_svn_release_notify)) {
+		n->attrs |= NODE_A_CAN_SVN_NOTIFY;
 		vmsg_send_svn_release_notify(n);
 	}
+
+	if (gm_hash_table_contains(handlers, handle_oob_reply_ind))
+		n->attrs |= NODE_A_CAN_OOB;
+
+	if (gm_hash_table_contains(handlers, handle_hops_flow))
+		n->attrs |= NODE_A_HOPS_FLOW;
 
 	if (!NODE_IS_TRANSIENT(n))
 		node_supported_vmsg(n, str_2c(msgs), str_len(msgs));
 
 	str_destroy(msgs);
+	g_hash_table_destroy(handlers);
 }
 
 /**
