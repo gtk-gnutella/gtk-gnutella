@@ -8335,9 +8335,11 @@ node_tx_enter_flowc(struct gnutella_node *n)
 	if (NODE_IS_UDP(n)) {
 		bsched_set_urgent(BSCHED_BWS_GOUT_UDP,
 			mq_size(n->outq) - mq_lowat(n->outq));
+		bio_set_favour(mq_bio(n->outq), TRUE);
 	} else if (NODE_IS_DHT(n)) {
 		bsched_set_urgent(BSCHED_BWS_DHT_OUT,
 			mq_size(n->outq) - mq_lowat(n->outq));
+		bio_set_favour(mq_bio(n->outq), TRUE);
 	} if (NODE_IS_ULTRA(n)) {
 		bio_set_favour(mq_bio(n->outq), TRUE);
 	}
@@ -8356,8 +8358,7 @@ node_tx_leave_flowc(struct gnutella_node *n)
 			node_addr(n), spent, spent == 1 ? "" : "s");
 	}
 
-	if (NODE_IS_ULTRA(n))
-		bio_set_favour(mq_bio(n->outq), FALSE);
+	bio_set_favour(mq_bio(n->outq), FALSE);
 
 	if ((n->attrs & NODE_A_CAN_VENDOR) && !NODE_USES_UDP(n))
 		vmsg_send_hops_flow(n, 255);		/* Re-enable query traffic */
