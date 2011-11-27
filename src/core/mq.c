@@ -408,9 +408,19 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 	int extra;
 
 	g_assert(q->flags & MQ_FLOWC);
-	g_assert(q->size > q->lowat);	/* Or we would have left FC */
 
 	q->swift_ev = NULL;				/* Event fired, we may not reinstall it */
+
+	/*
+	 * We do not necessarily leave the flow-control state when q->size
+	 * drops below q->lowat for TCP queues, where we want to reach a
+	 * state where we're not in the middle of sending one large message.
+	 *
+	 * When we're below the low watermark, there's nothing for us to do.
+	 */
+
+	if (q->size <= q->lowat)
+		goto done;
 
 	/*
 	 * For next period, the elapsed time will be...
@@ -527,6 +537,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		}
 	}
 
+done:
 	mq_update_flowc(q);		/* May cause us to leave "swift" mode */
 
 	/*
