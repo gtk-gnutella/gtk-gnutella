@@ -642,7 +642,7 @@ send_pong(
 	if (NODE_IS_UDP(n))
 		udp_send_msg(n, r, size);
 	else if (control)
-		gmsg_ctrl_sendto_one(n, r, sizeof *r);
+		gmsg_ctrl_sendto_one(n, r, size);
 	else
 		gmsg_sendto_one(n, r, size);
 }
