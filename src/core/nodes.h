@@ -67,10 +67,10 @@ typedef enum {
 #define NODE_RX_FC_HALF_PERIOD	300		/**< 5 minutes */
 
 struct node_rxfc_mon {
-	time_t start_half_period;	/**< When half period started */
-	time_t fc_last_half;		/**< Time spent in FC last half period */
-	time_t fc_accumulator;		/**< Time spent in FC this period */
-	time_t fc_start;			/**< Time when FC started, 0 if not in FC */
+	time_t start_half_period;		/**< When half period started */
+	time_t fc_start;				/**< Time when FC started, 0 if not in FC */
+	time_delta_t fc_last_half;		/**< Time spent in FC last half period */
+	time_delta_t fc_accumulator;	/**< Time spent in FC this period */
 };
 
 /**

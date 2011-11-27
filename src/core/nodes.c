@@ -1446,7 +1446,7 @@ node_timer(time_t now)
 					delta_time(now, rxfc->start_half_period)
 						> NODE_RX_FC_HALF_PERIOD
 				) {
-					time_t total;
+					time_delta_t total;
 					double fc_ratio;
 					guint32 max_ratio;
 
@@ -1465,6 +1465,9 @@ node_timer(time_t now)
 						rxfc->fc_accumulator += delta_time(now, rxfc->fc_start);
 						rxfc->fc_start = now;
 					}
+
+					rxfc->fc_accumulator =
+						MIN(rxfc->fc_accumulator, NODE_RX_FC_HALF_PERIOD);
 
 					total = rxfc->fc_accumulator + rxfc->fc_last_half;
 
@@ -9687,7 +9690,7 @@ node_set_hops_flow(gnutella_node_t *n, guint8 hops)
 			rxfc->fc_start = tm_time();
 	} else if (rxfc->fc_start != 0)	{	/* We were under flow control */
 		/* Leaving hops-flow control */
-		rxfc->fc_accumulator += tm_time() - rxfc->fc_start;
+		rxfc->fc_accumulator += delta_time(tm_time(), rxfc->fc_start);
 		rxfc->fc_start = 0;
 	}
 
