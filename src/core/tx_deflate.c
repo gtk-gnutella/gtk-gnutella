@@ -954,12 +954,22 @@ tx_deflate_pending(txdrv_t *tx)
 
 	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
 	pending = b->wptr - b->rptr;
-	pending += attr->unflushed;		/* Some of those made it to buffer */
 
 	if (-1 != attr->send_idx) {
 		b = &attr->buf[attr->send_idx];	/* Buffer we send */
 		pending += b->wptr - b->rptr;
 	}
+
+	/*
+	 * If there are unflushed data (bytes we deflated), make sure we do not
+	 * advertise 0 pending bytes.  Artificially add 50% of the bytes to make
+	 * sure the result is not 0, just in case everything deflated to 0 bytes
+	 * till now because it's not been flushed yet and it's hard to tell what
+	 * the resulting deflated output will be.
+	 */
+
+	if (0 == pending && 0 != attr->unflushed)
+		pending += attr->unflushed / 2 + 1;		/* Ensure it's not 0 */
 
 	return pending;
 }

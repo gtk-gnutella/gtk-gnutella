@@ -44,6 +44,15 @@ struct guid;
 struct pmsg;
 struct rnode_info;
 
+/**
+ * Send completion callback for a vendor message.
+ *
+ * @param n		the target to which message was directed to (NULL if node gone)
+ * @param sent	whether message was sent or dropped
+ * @param arg	user-supplied argument
+ */
+typedef void (*vmsg_sent_t)(struct gnutella_node *n, gboolean sent, void *arg);
+
 /*
  * Public interface
  */
@@ -53,7 +62,8 @@ const char *vmsg_infostr(gconstpointer data, size_t size);
 
 void vmsg_send_messages_supported(struct gnutella_node *n);
 void vmsg_send_features_supported(struct gnutella_node *n);
-void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops);
+void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops,
+	vmsg_sent_t sent, void *arg);
 void vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port);
 void vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port);
 void vmsg_send_proxy_req(struct gnutella_node *n, const struct guid *muid);

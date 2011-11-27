@@ -159,6 +159,7 @@ int mq_lowat(const mqueue_t *q) G_GNUC_PURE;
 int mq_hiwat(const mqueue_t *q) G_GNUC_PURE;
 int mq_count(const mqueue_t *q) G_GNUC_PURE;
 int mq_pending(const mqueue_t *q);
+int mq_tx_pending(const mqueue_t *q);
 struct bio_source *mq_bio(const mqueue_t *q);
 struct gnutella_node *mq_node(const mqueue_t *q) G_GNUC_PURE;
 

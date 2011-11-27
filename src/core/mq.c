@@ -133,6 +133,12 @@ mq_pending(const mqueue_t *q)
 	return q->size + tx_pending(q->tx_drv);
 }
 
+int
+mq_tx_pending(const mqueue_t *q)
+{
+	return tx_pending(q->tx_drv);
+}
+
 struct bio_source *
 mq_bio(const mqueue_t *q)
 {

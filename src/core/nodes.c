@@ -8318,8 +8318,8 @@ node_tx_enter_flowc(struct gnutella_node *n)
 {
 	n->tx_flowc_date = tm_time();
 
-	if ((n->attrs & NODE_A_CAN_VENDOR) && !NODE_USES_UDP(n))
-		vmsg_send_hops_flow(n, 0);			/* Disable all query traffic */
+	if (NODE_CAN_HOPS_FLOW(n) && !NODE_USES_UDP(n))
+		vmsg_send_hops_flow(n, 0, NULL, NULL);	/* Disable all query traffic */
 
     node_fire_node_flags_changed(n);
 
@@ -8357,6 +8357,48 @@ node_tx_enter_flowc(struct gnutella_node *n)
 }
 
 /**
+ * Callback invoked when the Hops-Flow message has been processed by the queue.
+ */
+static void
+node_tx_flowc_left(gnutella_node_t *n, gboolean sent, void *unused_arg)
+{
+	(void) unused_arg;
+
+	/*
+	 * If n is NULL, the node has been removed since we enqueued the message.
+	 *
+	 * We need to check that the queue has not re-entered flow-control since
+	 * the time we enqueued the message, otherwise we already re-asked for
+	 * I/O favours.
+	 */
+
+	if (n != NULL && n->outq != NULL && !mq_is_flow_controlled(n->outq)) {
+		bio_source_t *bio = mq_bio(n->outq);
+
+		/*
+		 * The message queue sent the Hops-Flow message, but it can still
+		 * be queued in the TX stack when there is a compressing layer.
+		 * To make sure it will get flushed quickly, we allocate exceptional
+		 * bandwidth to the I/O source.
+		 */
+
+		bio_set_favour(bio, FALSE);
+		bio_add_allocated(bio, mq_tx_pending(n->outq));
+	}
+
+	if (GNET_PROPERTY(node_debug) > 4) {
+		g_debug("NODE %s query-enabling Hops-Flow to %s, %s%s%s",
+			sent ? "sent" : "discarded",
+			NULL == n ? "gone node" : node_infostr(n),
+			(NULL == n || NULL == n->outq) ? "queue gone" : mq_info(n->outq),
+			(NULL == n || NULL == n->outq) ? "" : " TX pending=",
+			(NULL == n || NULL == n->outq) ?
+				"" : uint_to_string(mq_tx_pending(n->outq))
+		);
+	}
+}
+
+/**
  * Called by message queue when the node leaves TX flow control.
  */
 void
@@ -8369,10 +8411,19 @@ node_tx_leave_flowc(struct gnutella_node *n)
 			node_addr(n), spent, spent == 1 ? "" : "s");
 	}
 
-	bio_set_favour(mq_bio(n->outq), FALSE);
+	if (NODE_USES_UDP(n)) {
+		bio_set_favour(mq_bio(n->outq), FALSE);
+	} else if (NODE_CAN_HOPS_FLOW(n)) {
+		/*
+		 * We won't remove the I/O favour until the Hops-Flow message
+		 * indicating the end of the flow-control condition is sent out
+		 * to signal to the remote node that we re-enable query traffic.
+		 */
 
-	if ((n->attrs & NODE_A_CAN_VENDOR) && !NODE_USES_UDP(n))
-		vmsg_send_hops_flow(n, 255);		/* Re-enable query traffic */
+		vmsg_send_hops_flow(n, 255, node_tx_flowc_left, NULL);
+	} else {
+		bio_set_favour(mq_bio(n->outq), FALSE);
+	}
 
     node_fire_node_flags_changed(n);
 }

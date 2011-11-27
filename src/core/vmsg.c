@@ -117,6 +117,25 @@ struct vmsg {
 #define VMS_ITEM_SIZE		8		/**< Each entry is 8 bytes (4+2+2) */
 #define VMS_FEATURE_SIZE	6		/**< Each entry is 6 bytes (4+2) */
 
+enum vmsg_pmi_magic { VMSG_PMI_MAGIC = 0x1b311e93 };
+
+/**
+ * Message block information for those equipped with a free routine.
+ */
+struct vmsg_pmsg_info {
+	enum vmsg_pmi_magic magic;
+	struct nid *nid;				/**< Node ID of message target */
+	vmsg_sent_t sent;				/**< User callback to invoke */
+	void *arg;						/**< Additional user argument */
+};
+
+static inline void
+vmsg_pmsg_info_check(const struct vmsg_pmsg_info * const pmi)
+{
+	g_assert(pmi != NULL);
+	g_assert(VMSG_PMI_MAGIC == pmi->magic);
+}
+
 static guint
 vmsg_hash_func(gconstpointer key)
 {
@@ -216,6 +235,74 @@ vmsg_send_data(struct gnutella_node *n, gconstpointer data, guint32 size)
 		udp_send_msg(n, data, size);
 	else
 		gmsg_sendto_one(n, data, size);
+}
+
+/**
+ * Callback trampoline for vmsg_send_data_notify().
+ *
+ * Invoked when message is freed to trigger appropriate notification.
+ */
+static void
+vmsg_pmsg_free(pmsg_t *mb, void *arg)
+{
+	struct vmsg_pmsg_info *pmi = arg;
+	gnutella_node_t *n;
+
+	vmsg_pmsg_info_check(pmi);
+	g_assert(pmsg_is_extended(mb));
+
+	/*
+	 * Callback is invoked regardless of whether message was sent.
+	 */
+
+	n = node_by_id(pmi->nid);		/* Will be NULL if node is gone */
+	(*pmi->sent)(n, pmsg_was_sent(mb), pmi->arg);
+
+	nid_unref(pmi->nid);
+	pmi->magic = 0;
+	WFREE(pmi);
+}
+
+/**
+ * Send a message to node (data + size), via the appropriate channel.
+ *
+ * @param n				destination node
+ * @param prioritary	whether message is prioritary
+ * @param msg			pointer to start of message
+ * @param size			size of message
+ * @param sent			optional: if non-NULL, callback to invoke when sent
+ * @param arg			additional callback argument
+ *
+ * For TCP nodes we can optionally install a callback that will be
+ * triggered when the message has been finally sent.
+ */
+static void
+vmsg_send_data_notify(struct gnutella_node *n, gboolean prioritary,
+	gconstpointer msg, guint32 size, vmsg_sent_t sent, void *arg)
+{
+	g_assert(NULL == sent || !NODE_IS_UDP(n));
+
+	if (NODE_IS_UDP(n)) {
+		udp_send_msg(n, msg, size);
+	} else {
+		pmsg_t *mb;
+		int prio = prioritary ? PMSG_P_CONTROL : PMSG_P_DATA;
+
+		if (NULL == sent) {
+			mb = pmsg_new(prio, msg, size);
+		} else {
+			struct vmsg_pmsg_info *pmi;
+
+			WALLOC(pmi);
+			pmi->magic = VMSG_PMI_MAGIC;
+			pmi->nid = nid_ref(NODE_ID(n));
+			pmi->sent = sent;
+			pmi->arg = arg;
+
+			mb = pmsg_new_extend(prio, msg, size, vmsg_pmsg_free, pmi);
+		}
+		gmsg_mb_sendto_one(n, mb);
+	}
 }
 
 /**
@@ -461,17 +548,20 @@ handle_hops_flow(struct gnutella_node *n,
 }
 
 /**
- * Send an "Hops Flow" message to specified node, if it supports it.
+ * Send an "Hops Flow" message to specified node.
+ *
+ * @param n		target node
+ * @param hops	max number of hops allowed on received queries
+ * @param sent	if non-NULL, will be invoked when message is sent
+ * @param arg	additional callback argument
  */
 void
-vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
+vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops,
+	vmsg_sent_t sent, void *arg)
 {
 	guint32 paysize = sizeof hops;
 	guint32 msgsize;
 	char *payload;
-
-	if (!NODE_CAN_HOPS_FLOW(n))
-		return;
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	payload = vmsg_fill_type(v_tmp_data, T_BEAR, 4, 1);
@@ -482,7 +572,7 @@ vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
 	 * Send the message as a control message, so that it gets sent ASAP.
 	 */
 
-	gmsg_ctrl_sendto_one(n, v_tmp, msgsize);
+	vmsg_send_data_notify(n, TRUE, v_tmp, msgsize, sent, arg);
 }
 
 /**
