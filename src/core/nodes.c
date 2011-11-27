@@ -4990,26 +4990,26 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 	 */
 
 	if (n->attrs & NODE_A_ULTRA) {
-		const char *msg = "Unknown error";
+		const char *msg = N_("Unknown error");
 		enum node_bad bad = node_is_bad(n);
 
 		switch (bad) {
 		case NODE_BAD_OK:
 			break;
 		case NODE_BAD_IP:
-			msg = _("Unstable IP address");
+			msg = N_("Unstable IP address");
 			break;
 		case NODE_BAD_VENDOR:
-			msg = _("Servent version appears unstable");
+			msg = N_("Servent version appears unstable");
 			break;
 		case NODE_BAD_NO_VENDOR:
-			msg = _("No vendor string supplied");
+			msg = N_("No vendor string supplied");
 			break;
 		}
 
 		if (NODE_BAD_OK != bad) {
 			node_send_error(n, 403, "%s", msg);
-			node_remove(n, _("Not connecting: %s"), msg);
+			node_remove(n, _("Not connecting: %s"), _(msg));
 			return FALSE;
 		}
 	}
