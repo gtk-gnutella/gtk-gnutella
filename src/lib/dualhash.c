@@ -131,12 +131,13 @@ dualhash_insert_key(dualhash_t *dh, const void *key, const void *value)
 	g_assert(g_hash_table_size(dh->kht) == g_hash_table_size(dh->vht));
 
 	if (g_hash_table_lookup_extended(dh->kht, key, NULL, &held_value)) {
-		if (!(*dh->val_eq_func)(held_value, value)) {
-			g_hash_table_remove(dh->vht, held_value);
-		} else {
+		if ((*dh->val_eq_func)(held_value, value)) {
 			return;		/* Key/value tuple already present in the table */
+		} else {
+			g_hash_table_remove(dh->vht, held_value);
 		}
-	} else if (g_hash_table_lookup_extended(dh->vht, value, NULL, &held_key)) {
+	}
+	if (g_hash_table_lookup_extended(dh->vht, value, NULL, &held_key)) {
 		/* Keys cannot be equal, or we'd have the key/value tuple already */
 		g_assert(!(*dh->key_eq_func)(held_key, key));
 		g_hash_table_remove(dh->kht, held_key);
