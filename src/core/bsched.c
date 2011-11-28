@@ -1311,24 +1311,26 @@ bw_available(bio_source_t *bio, int len)
 
 	/*
 	 * If we haven't looped yet and we have favoured I/O sources, don't give
-	 * anything to non-favoured ones.
+	 * anything to non-favoured ones or ones with no pre-allocated bandwidth.
 	 */
 
-	if (!bs->looped && bs->io_favours > 0 && !favoured) {
+	if (favoured || 0 != bio->bw_allocated) {
+		/* Special-cased later */
+	} else if (!bs->looped && bs->io_favours > 0) {
 		if (GNET_PROPERTY(bsched_debug) > 8)
 			g_debug("BSCHED \t(non-favoured denied) favour=%d", bs->io_favours);
 		return 0;
-	}
-
-	if (available > bs->bw_max && !favoured) {
+	} else if (available > bs->bw_max) {
 		available = bs->bw_max;
 		capped = TRUE;
 	}
 
 	if (GNET_PROPERTY(bsched_debug) > 8) {
-		g_debug("BSCHED \tcapped=%c, used=%c, active=%c, favour=%c => avail=%d",
+		g_debug("BSCHED \tcapped=%c, used=%c, active=%c, favour=%c, alloc=%c"
+			" => avail=%d",
 			capped ? 'y' : 'n', used ? 'y' : 'n', active ? 'y' : 'n',
-			favoured ? 'y' : 'n', available);
+			favoured ? 'y' : 'n', 0 != bio->bw_allocated ? 'y' : 'n',
+			available);
 	}
 
 	if (
@@ -1390,7 +1392,10 @@ bw_available(bio_source_t *bio, int len)
 		result = 0;
 	else if (bio->flags & BIO_F_FAVOUR)
 		result = available;
-	else
+	else if (0 != bio->bw_allocated) {
+		result = MAX(bio->bw_allocated, UNSIGNED(bs->bw_slot));
+		result = MIN(result, available);
+	} else
 		result = MIN(bs->bw_slot, available);
 
 	available -= result;
@@ -1527,6 +1532,15 @@ bsched_bw_update(bsched_t *bs, int used, int requested)
 		bsched_no_more_bandwidth(bs);
 }
 
+static inline ALWAYS_INLINE void
+bio_bw_update(bio_source_t *bio, ssize_t used)
+{
+	bio->bw_actual += used;
+
+	if G_UNLIKELY(0 != bio->bw_allocated)
+		bio->bw_allocated -= MIN(bio->bw_allocated, UNSIGNED(used));
+}
+
 /**
  * Set I/O favouring for source.
  *
@@ -1543,11 +1557,27 @@ bio_set_favour(bio_source_t *bio, gboolean on)
 
 	if (on) {
 		bio->flags |= BIO_F_FAVOUR;
+		bio->bw_allocated = 0;
 	} else {
 		bio->flags &= ~BIO_F_FAVOUR;
 	}
 
 	return old;
+}
+
+/**
+ * Allocate bandwidth amount for I/O source to use prioritarily.
+ *
+ * @return total amount of allocated banwdidth.
+ */
+unsigned
+bio_add_allocated(bio_source_t *bio, unsigned bw)
+{
+	bio_check(bio);
+
+	bio->bw_allocated = uint_saturate_add(bio->bw_allocated, bw);
+
+	return bio->bw_allocated;
 }
 
 /**
@@ -1601,7 +1631,7 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 
 	if (r > 0) {
 		bsched_bw_update(bsched_get(bio->bws), r, amount);
-		bio->bw_actual += r;
+		bio_bw_update(bio, r);
 	}
 
 	return r;
@@ -1717,7 +1747,7 @@ bio_writev(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	if (r > 0) {
 		g_assert((size_t) r <= available);
 		bsched_bw_update(bsched_get(bio->bws), r, MIN(len, available));
-		bio->bw_actual += r;
+		bio_bw_update(bio, r);
 	}
 
 	/*
@@ -1792,7 +1822,7 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 	if (r > 0) {
 		bsched_bw_update(bsched_get(bio->bws),
 			r + BW_UDP_MSG, len + BW_UDP_MSG);
-		bio->bw_actual += r + BW_UDP_MSG;
+		bio_bw_update(bio, r + BW_UDP_MSG);
 	}
 
 	return r;
@@ -2007,7 +2037,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 
 	if (r > 0) {
 		bsched_bw_update(bsched_get(bio->bws), r, amount);
-		bio->bw_actual += r;
+		bio_bw_update(bio, r);
 	}
 
 	return r;
@@ -2050,7 +2080,7 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 	r = bio->wio->read(bio->wio, data, amount);
 	if (r > 0) {
 		bsched_bw_update(bsched_get(bio->bws), r, amount);
-		bio->bw_actual += r;
+		bio_bw_update(bio, r);
 		bsched_get(bio->bws)->flags |= BS_F_DATA_READ;
 	}
 
@@ -2169,7 +2199,7 @@ bio_readv(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	if (r > 0) {
 		g_assert((size_t) r <= available);
 		bsched_bw_update(bsched_get(bio->bws), r, MIN(len, available));
-		bio->bw_actual += r;
+		bio_bw_update(bio, r);
 		bsched_get(bio->bws)->flags |= BS_F_DATA_READ;
 	}
 
