@@ -2080,6 +2080,12 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 		socket_free_null(&n->socket);
 	}
 
+	if (n->flags & (NODE_F_EOF_WAIT|NODE_F_BYE_WAIT)) {
+		g_assert(pending_byes > 0);
+		pending_byes--;
+		n->flags &= ~(NODE_F_EOF_WAIT|NODE_F_BYE_WAIT);
+	}
+
 	cq_cancel(&n->tsync_ev);
 	cq_cancel(&n->dht_nope_ev);
 
@@ -2092,11 +2098,6 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	n->last_update = tm_time();
 
 	node_proxying_remove(n);
-
-	if (n->flags & NODE_F_EOF_WAIT) {
-		g_assert(pending_byes > 0);
-		pending_byes--;
-	}
 
 	if (is_host_addr(n->proxy_addr)) {
 		pproxy_set_remove(proxies, n->proxy_addr, n->proxy_port);
@@ -2679,11 +2680,6 @@ node_eof_v(struct gnutella_node *n, const char *reason, va_list args)
 			va_end(dbargs);
 
 			g_debug("EOF-style error during BYE to %s: %s", node_addr(n), data);
-
-			if (n->flags & NODE_F_BYE_WAIT) {
-				g_assert(pending_byes > 0);
-				pending_byes--;
-			}
 		}
 	}
 
@@ -2911,6 +2907,7 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 			if (n->flags & NODE_F_BYE_WAIT) {
 				g_assert(pending_byes > 0);
 				pending_byes--;
+				n->flags &= ~NODE_F_BYE_WAIT;
 			}
 
 			if (n->socket != NULL && !socket_uses_tls(n->socket)) {
@@ -8478,6 +8475,7 @@ node_bye_sent(struct gnutella_node *n)
 	if (n->flags & NODE_F_BYE_WAIT) {
 		g_assert(pending_byes > 0);
 		pending_byes--;
+		n->flags &= ~NODE_F_BYE_WAIT;
 	}
 
 	/*
