@@ -21,10 +21,14 @@ and which are not already implemented, by loose order of decreasing priority.
 	* GUI display and sorting of A/V attributes (bitrate, video size)
 
 Possible other changes
+	* Extend inter UP QRP tables from 128 Ki slots to 2 Mi slots?
 	* Smaller memory footprint by using sdbm for:
 	  - PARQ?
 	  - Host cache?
 	* Area-specific logging?
+	* User-visible logging, traced in GUI?
+	* Chat support?
+	* Specific "Library" pane showing meta-information about shared files?
 
 -- Raphael
 
