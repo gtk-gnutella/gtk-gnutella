@@ -5102,4 +5102,24 @@ prop = {
     };
 };
 
+prop = {
+	name = "tx_deflate_debug";
+	desc = "Debug level for the TX (transmit) deflating network layer.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+    name = "tx_debug_addrs";
+    desc = "Comma-separated list of TX debugging host (IP addresses only)";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
 /* vi: set ts=4: */

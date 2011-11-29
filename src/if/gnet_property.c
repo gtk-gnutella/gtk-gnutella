@@ -1018,6 +1018,10 @@ guint32  gnet_property_variable_qhit_bad_debug     = 0;
 static const guint32  gnet_property_variable_qhit_bad_debug_default = 0;
 guint32  gnet_property_variable_guid_debug     = 0;
 static const guint32  gnet_property_variable_guid_debug_default = 0;
+guint32  gnet_property_variable_tx_deflate_debug     = 0;
+static const guint32  gnet_property_variable_tx_deflate_debug_default = 0;
+char   *gnet_property_variable_tx_debug_addrs     = "";
+static const char   *gnet_property_variable_tx_debug_addrs_default = "";
 
 static prop_set_t *gnet_property;
 
@@ -9372,6 +9376,47 @@ gnet_prop_init(void) {
     gnet_property->props[437].data.guint32.choices = NULL;
     gnet_property->props[437].data.guint32.max   = 20;
     gnet_property->props[437].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_TX_DEFLATE_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[438].name = "tx_deflate_debug";
+    gnet_property->props[438].desc = _("Debug level for the TX (transmit) deflating network layer.");
+    gnet_property->props[438].ev_changed = event_new("tx_deflate_debug_changed");
+    gnet_property->props[438].save = TRUE;
+    gnet_property->props[438].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[438].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[438].data.guint32.def   = (void *) &gnet_property_variable_tx_deflate_debug_default;
+    gnet_property->props[438].data.guint32.value = (void *) &gnet_property_variable_tx_deflate_debug;
+    gnet_property->props[438].data.guint32.choices = NULL;
+    gnet_property->props[438].data.guint32.max   = 20;
+    gnet_property->props[438].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_TX_DEBUG_ADDRS:
+     *
+     * General data:
+     */
+    gnet_property->props[439].name = "tx_debug_addrs";
+    gnet_property->props[439].desc = _("Comma-separated list of TX debugging host (IP addresses only)");
+    gnet_property->props[439].ev_changed = event_new("tx_debug_addrs_changed");
+    gnet_property->props[439].save = TRUE;
+    gnet_property->props[439].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[439].type               = PROP_TYPE_STRING;
+    gnet_property->props[439].data.string.def    = (void *) &gnet_property_variable_tx_debug_addrs_default;
+    gnet_property->props[439].data.string.value  = (void *) &gnet_property_variable_tx_debug_addrs;
+    if (gnet_property->props[439].data.string.def) {
+        *gnet_property->props[439].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[439].data.string.def));
+    }
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
