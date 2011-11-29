@@ -162,7 +162,7 @@
 #define NODE_UPLOAD_QUEUE_FD	5	   /**< # of fds/upload slot we can queue */
 
 #define NODE_TX_BUFSIZ			1024	/**< Buffer size for TX deflation */
-#define NODE_TX_FLUSH			16384	/**< Flush deflator every 16K */
+#define NODE_TX_FLUSH			4096	/**< Flush deflator every 4K */
 
 #define NODE_RX_VMSG_THRESH		50		/**< Limit to get vendor message info */
 
