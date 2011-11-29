@@ -143,8 +143,8 @@ deflate_send(txdrv_t *tx)
 	r = tx_write(tx->lower, b->rptr, len);
 
 	if (tx_deflate_debugging(9)) {
-		g_debug("TX %s: (%s) wrote %zu bytes (buffer #%d) [%c%c]",
-			G_STRFUNC, gnet_host_to_string(&tx->host), r, attr->send_idx,
+		g_debug("TX %s: (%s) wrote %zu/%zu bytes (buffer #%d) [%c%c]",
+			G_STRFUNC, gnet_host_to_string(&tx->host), r, len, attr->send_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 	}
@@ -276,8 +276,10 @@ retry:
 	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
 
 	if (tx_deflate_debugging(9)) {
-		g_debug("TX %s: (%s) flushing (buffer #%d) [%c%c]",
-			G_STRFUNC, gnet_host_to_string(&tx->host), attr->fill_idx,
+		g_debug("TX %s: (%s) flushing %zu bytes (buffer #%d, unflushed %zu) "
+			"[%c%c]",
+			G_STRFUNC, gnet_host_to_string(&tx->host),
+			b->wptr - b->rptr, attr->fill_idx, attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 	}
@@ -412,8 +414,10 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
 	attr->tm_ev = NULL;
 
 	if (tx_deflate_debugging(9)) {
-		g_debug("TX %s: (%s) flushing (buffer #%d) [%c%c]",
-			G_STRFUNC, gnet_host_to_string(&tx->host), attr->fill_idx,
+		struct buffer *b = &attr->buf[attr->fill_idx];	/* Buffer to send */
+		g_debug("TX %s: (%s) flushing %zu bytes (buffer #%d) [%c%c]",
+			G_STRFUNC, gnet_host_to_string(&tx->host),
+			b->wptr - b->rptr, attr->fill_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 	}
@@ -435,9 +439,9 @@ deflate_add(txdrv_t *tx, gconstpointer data, int len)
 	int added = 0;
 
 	if (tx_deflate_debugging(9)) {
-		g_debug("TX %s: (%s) given %lu bytes (buffer #%d, nagle %s, "
+		g_debug("TX %s: (%s) given %u bytes (buffer #%d, nagle %s, "
 			"unflushed %zu) [%c%c]", G_STRFUNC,
-			gnet_host_to_string(&tx->host), (gulong) len, attr->fill_idx,
+			gnet_host_to_string(&tx->host), len, attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -503,6 +507,16 @@ deflate_add(txdrv_t *tx, gconstpointer data, int len)
 			attr->gzip.size += r;
 			attr->gzip.crc = crc32(attr->gzip.crc,
 								cast_to_gconstpointer(old_in), r);
+		}
+
+		if (tx_deflate_debugging(9)) {
+			g_debug("TX %s: (%s) deflated %d bytes into %d "
+				"(buffer #%d, nagle %s, unflushed %zu) [%c%c]", G_STRFUNC,
+				gnet_host_to_string(&tx->host),
+				added, old_avail - outz->avail_out, attr->fill_idx,
+				(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+				(attr->flags & DF_FLOWC) ? 'C' : '-',
+				(attr->flags & DF_FLUSH) ? 'f' : '-');
 		}
 
 		/*
@@ -1038,6 +1052,7 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 	}
+
 	/*
 	 * Flush whatever we can.
 	 */
