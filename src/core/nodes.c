@@ -3868,6 +3868,7 @@ node_is_now_connected(struct gnutella_node *n)
 		args.cb = &node_tx_deflate_cb;
 		args.nagle = TRUE;
 		args.gzip = FALSE;
+		args.reduced = settings_is_ultra() && NODE_IS_LEAF(n);
 		args.buffer_size = NODE_TX_BUFSIZ;
 		args.buffer_flush = NODE_TX_FLUSH;
 

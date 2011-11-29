@@ -617,6 +617,7 @@ browse_host_open(
 		args.cq = callout_queue;
 		args.cb = deflate_cb;
 		args.nagle = FALSE;
+		args.reduced = FALSE;
 		args.gzip = 0 != (flags & BH_F_GZIP);
 		args.buffer_flush = INT_MAX;		/* Flush only at the end */
 		args.buffer_size = BH_BUFSIZ;

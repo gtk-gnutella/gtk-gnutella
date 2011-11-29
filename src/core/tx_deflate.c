@@ -40,7 +40,6 @@
 #include "tx.h"
 #include "tx_deflate.h"
 #include "hosts.h"
-#include "settings.h"
 #include "sockets.h"
 
 #include "if/gnet_property_priv.h"
@@ -722,6 +721,19 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	 * depending on the nature of the traffic, of course).
 	 *
 	 *		--RAM, 2009-04-09
+	 *
+	 * For Ultra <-> Ultra connections we use window_bits = 15 and mem_level = 9
+	 * and request a best compression because the amount of ultra connections
+	 * is far less than the number of leaf connections and modern machines
+	 * can cope with a "best" compression overhead.
+	 *
+	 * This is now controlled with the "reduced" argument, so this layer does
+	 * not need to know whether we're an ultra node or even what an ultra
+	 * node is... It just knows whether we have to setup a fully compressed
+	 * connection or a reduced one (both in terms of memory usage and level
+	 * of compression).
+	 *
+	 *		--RAM, 2011-11-29
 	 */
 
 	{
@@ -729,7 +741,8 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 		int mem_level = MAX_MEM_LEVEL;		/* Must be 1 .. MAX_MEM_LEVEL */
 		int level = Z_BEST_COMPRESSION;
 
-		if (settings_is_ultra()) {
+		if (targs->reduced) {
+			/* Ultra -> Leaf connection */
 			window_bits = 14;
 			mem_level = 6;
 			level = Z_DEFAULT_COMPRESSION;
