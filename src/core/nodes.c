@@ -2871,13 +2871,18 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 	/*
 	 * Send the bye message, enlarging the TCP input buffer to make sure
 	 * we can atomically send the message plus the remaining queued data.
+	 *
+	 * After sending to the queue, we also allocate flushing bandwidth for
+	 * the connection so that the message does not get stuck in the TX
+	 * stack buffers and gets a chance to be sent out quickly.
 	 */
 
-	sendbuf_len = NODE_SEND_BUFSIZE + mq_size(n->outq) +
+	sendbuf_len = NODE_SEND_BUFSIZE + mq_pending(n->outq) +
 		len + sizeof(head) + 1024;		/* Slightly larger, for flow-control */
 
 	socket_send_buf(n->socket, sendbuf_len, FALSE);
 	gmsg_split_sendto_one(n, &head, reason_fmt, len + sizeof(head));
+	bio_add_allocated(mq_bio(n->outq), mq_pending(n->outq));
 
 	/*
 	 * Whether we sent the message or not, enter shutdown mode.
