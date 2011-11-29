@@ -44,9 +44,12 @@
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/cq.h"
 #include "lib/endian.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
@@ -62,7 +65,8 @@
  */
 
 #define BUFFER_COUNT	2
-#define BUFFER_NAGLE	200		/**< 200 ms */
+#define BUFFER_NAGLE	500		/**< 500 ms */
+#define BUFFER_DELAY	2		/**< 2 secs -- max Nagle delay */
 
 struct buffer {
 	char *arena;				/**< Buffer arena */
@@ -94,6 +98,7 @@ struct attr {
 	const struct tx_deflate_cb *cb;	/**< Layer-specific callbacks */
 	tx_closed_t closed;			/**< Callback to invoke when layer closed */
 	gpointer closed_arg;		/**< Argument for closing routine */
+	time_t nagle_start;			/**< When we started the Nagle timer */
 	gboolean nagle;				/**< Whether to use Nagle or not */
 	struct {
 		gboolean	enabled;	/**< Whether to use gzip encapsulation */
@@ -200,6 +205,35 @@ deflate_nagle_start(txdrv_t *tx)
 
 	attr->tm_ev = cq_insert(attr->cq, BUFFER_NAGLE, deflate_nagle_timeout, tx);
 	attr->flags |= DF_NAGLE;
+	attr->nagle_start = tm_time();
+}
+
+/**
+ * Delay the nagle timer when more data is coming.
+ */
+static void
+deflate_nagle_delay(txdrv_t *tx)
+{
+	struct attr *attr = tx->opaque;
+
+	g_assert(attr->flags & DF_NAGLE);
+	g_assert(NULL != attr->tm_ev);
+	g_assert(attr->nagle);				/* Nagle is allowed */
+
+	/*
+	 * We push back the initial delay a little while when more data comes,
+	 * hoping that enough will be output so that we end up sending the TX
+	 * buffer without having to trigger a flush too soon, since that would
+	 * degrade compression performance.
+	 *
+	 * If too much time elapsed since the Nagle timer started, do not
+	 * postpone the flush otherwise we might delay time-sensitive messages.
+	 */
+
+	if (delta_time(tm_time(), attr->nagle_start) < BUFFER_DELAY) {
+		int delay = cq_remaining(attr->tm_ev);
+		cq_resched(attr->tm_ev, MAX(delay, BUFFER_NAGLE / 2));
+	}
 }
 
 /**
@@ -432,6 +466,7 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
 	struct attr *attr = tx->opaque;
 
 	(void) unused_cq;
+
 	if (-1 != attr->send_idx) {		/* Send buffer still incompletely sent */
 
 		if (tx_deflate_debugging(9)) {
@@ -598,7 +633,9 @@ deflate_add(txdrv_t *tx, gconstpointer data, int len)
 	 * Start Nagle if not already on.
 	 */
 
-	if (!(attr->flags & DF_NAGLE))
+	if (attr->flags & DF_NAGLE)
+		deflate_nagle_delay(tx);
+	else
 		deflate_nagle_start(tx);
 
 	/*
@@ -712,7 +749,6 @@ deflate_service(gpointer data)
 		}
 	}
 
-
 	if (tx_deflate_debugging(9)) {
 		g_debug("TX %s: (%s) %sdone locally [%c%c]",
 			G_STRFUNC, gnet_host_to_string(&tx->host),
@@ -720,6 +756,7 @@ deflate_service(gpointer data)
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 	}
+
 	/*
 	 * If upper layer wants servicing, do it now.
 	 * Note that this can put us back into flow control.
