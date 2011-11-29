@@ -924,7 +924,7 @@ tx_deflate_writev(txdrv_t *tx, iovec_t *iov, int iovcnt)
 		 */
 
 		if (attr->flags & (DF_FLOWC|DF_SHUTDOWN))
-			return sent;
+			break;
 
 		ret = deflate_add(tx, iovec_base(iov), iovec_len(iov));
 
