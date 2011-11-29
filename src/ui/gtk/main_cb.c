@@ -175,6 +175,48 @@ on_button_quit_clicked(GtkButton *unused_button, gpointer unused_udata)
     quit(FALSE);
 }
 
+
+#ifdef HAVE_GTKOSXAPPLICATION
+gboolean
+on_main_window_delete_event_hide(GtkWidget *unused_widget, GdkEvent *unused_event,
+							gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+	
+	gtk_widget_hide(gui_main_window());
+	
+	return TRUE;
+}
+
+gboolean
+on_NSApplicationOpenFile(GtkOSXApplication *app, gchar *path, 
+						 gpointer user_data)
+{
+	(void) app;
+	(void) path;
+	(void) user_data;
+	
+	gtk_widget_show(gui_main_window());
+	
+	return TRUE;	
+}
+
+gboolean
+on_NSApplicationDidBecomeActive(GtkOSXApplication *app, gpointer user_data)
+{
+	(void) app;
+	(void) user_data;
+	
+	if (!quitting)
+		gtk_widget_show(gui_main_window());
+	
+	return TRUE;
+}
+
+#endif
+
 /***
  *** Tray menu
  ***/

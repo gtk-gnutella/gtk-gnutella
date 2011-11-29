@@ -25,6 +25,9 @@
 #define _gtk_main_cb_h_
 
 #include "gui.h"
+#ifdef HAVE_GTKOSXAPPLICATION
+#include <gtkmacintegration/gtkosxapplication.h>
+#endif
 
 /***
  *** General main window actions
@@ -33,6 +36,14 @@ void on_button_quit_clicked(GtkButton *button, gpointer user_data);
 gboolean on_main_window_delete_event(
     GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
+#ifdef HAVE_GTKOSXAPPLICATION
+gboolean on_main_window_delete_event_hide(GtkWidget *unused_widget, 
+	GdkEvent *unused_event, gpointer unused_udata);
+gboolean on_NSApplicationOpenFile(GtkOSXApplication *app, gchar *path, 
+	gpointer user_data);
+gboolean on_NSApplicationDidBecomeActive(GtkOSXApplication *app, 
+	gpointer user_data);
+#endif
 /***
  *** Menu bar
  ***/
