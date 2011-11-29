@@ -96,6 +96,18 @@ close_file_descriptors(const int first_fd)
 
 	fd = getdtablesize() - 1;
 	while (fd >= first_fd) {
+
+#ifdef HAVE_GTKOSXAPPLICATION
+		/* OS X doesn't allow fds being closed not opened by us. During
+		 * GUI initialisation a new kqueue fd is created for UI events. This
+		 * is visible to us as a fifo which we are not allowed to close. 
+		 * Set close on exec on all fifo's so we won't leak any of our other
+		 * fifo's
+		 *	-- JA 2011-11-28 */
+		if (is_a_fifo(fd))
+			set_close_on_exec(fd);
+		else
+#endif
 		/* OS X frowns upon random fds being closed --RAM 2011-11-13  */
 		if (fd_is_opened(fd)) {
 			if (close(fd)) {
