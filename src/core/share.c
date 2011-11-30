@@ -2476,6 +2476,7 @@ shared_file_is_shareable(const shared_file_t *sf)
 	 * because it was removed dynamically as we discovered it was spam).
 	 *
 	 * Thanks to Dmitry Butskoy for investigating this corner case.
+	 *		--RAM, 2011-11-30
 	 */
 
 	return sf->file_index != 0;
