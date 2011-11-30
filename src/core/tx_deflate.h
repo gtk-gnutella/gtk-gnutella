@@ -59,6 +59,7 @@ struct tx_deflate_args {
 	size_t buffer_flush;		/**< Flush after that many bytes */
 	gboolean nagle;				/**< Whether to use Nagle or not */
 	gboolean gzip;				/**< Whether to use gzip encapsulation */
+	gboolean reduced;			/**< Whether to use reduced compression */
 };
 
 #endif	/* _core_tx_deflate_h_ */

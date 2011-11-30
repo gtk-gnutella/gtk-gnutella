@@ -162,7 +162,7 @@
 #define NODE_UPLOAD_QUEUE_FD	5	   /**< # of fds/upload slot we can queue */
 
 #define NODE_TX_BUFSIZ			1024	/**< Buffer size for TX deflation */
-#define NODE_TX_FLUSH			16384	/**< Flush deflator every 16K */
+#define NODE_TX_FLUSH			4096	/**< Flush deflator every 4K */
 
 #define NODE_RX_VMSG_THRESH		50		/**< Limit to get vendor message info */
 
@@ -2871,13 +2871,18 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 	/*
 	 * Send the bye message, enlarging the TCP input buffer to make sure
 	 * we can atomically send the message plus the remaining queued data.
+	 *
+	 * After sending to the queue, we also allocate flushing bandwidth for
+	 * the connection so that the message does not get stuck in the TX
+	 * stack buffers and gets a chance to be sent out quickly.
 	 */
 
-	sendbuf_len = NODE_SEND_BUFSIZE + mq_size(n->outq) +
+	sendbuf_len = NODE_SEND_BUFSIZE + mq_pending(n->outq) +
 		len + sizeof(head) + 1024;		/* Slightly larger, for flow-control */
 
 	socket_send_buf(n->socket, sendbuf_len, FALSE);
 	gmsg_split_sendto_one(n, &head, reason_fmt, len + sizeof(head));
+	bio_add_allocated(mq_bio(n->outq), mq_pending(n->outq));
 
 	/*
 	 * Whether we sent the message or not, enter shutdown mode.
@@ -3548,6 +3553,7 @@ node_add_tx_written(gpointer o, int amount)
 	gnutella_node_t *n = o;
 
 	n->tx_written += amount;
+	n->last_tx = tm_time();
 }
 
 static void
@@ -3863,6 +3869,7 @@ node_is_now_connected(struct gnutella_node *n)
 		args.cb = &node_tx_deflate_cb;
 		args.nagle = TRUE;
 		args.gzip = FALSE;
+		args.reduced = settings_is_ultra() && NODE_IS_LEAF(n);
 		args.buffer_size = NODE_TX_BUFSIZ;
 		args.buffer_flush = NODE_TX_FLUSH;
 
@@ -9476,7 +9483,7 @@ node_close(void)
 void
 node_add_sent(gnutella_node_t *n, int x)
 {
-   	n->last_update = n->last_tx = tm_time();
+   	n->last_update = tm_time();
 	n->sent += x;
 }
 

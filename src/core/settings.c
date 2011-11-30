@@ -38,7 +38,6 @@
 #include <netdb.h>
 #endif
 
-#include "settings.h"
 #include "bsched.h"
 #include "ctl.h"
 #include "downloads.h"
@@ -50,8 +49,10 @@
 #include "pdht.h"
 #include "routing.h"			/* For gnet_reset_guid() */
 #include "search.h"
+#include "settings.h"
 #include "share.h"
 #include "sockets.h"
+#include "tx.h"					/* For tx_debug_set_addrs() */
 #include "udp.h"				/* For udp_received() */
 #include "upload_stats.h"
 
@@ -1277,6 +1278,15 @@ settings_close(void)
 	HFREE_NULL(gnet_db_dir);
 }
 
+/**
+ * Last memory cleanup during final shutdown sequence.
+ */
+void
+settings_terminate(void)
+{
+	tx_debug_set_addrs("");		/* Free up any registered addresses */
+}
+
 static void
 bw_stats(gnet_bw_stats_t *s, gboolean enabled, bsched_bws_t bws)
 {
@@ -1712,6 +1722,16 @@ query_answer_partials_changed(property_t prop)
 
 		g_assert(!share_can_answer_partials());
 	}
+	return FALSE;
+}
+
+static gboolean
+tx_debug_addrs_changed(property_t prop)
+{
+	char *s = gnet_prop_get_string(prop, NULL, 0);
+
+	tx_debug_set_addrs(s);
+	G_FREE_NULL(s);
 	return FALSE;
 }
 
@@ -3049,6 +3069,11 @@ static prop_map_t property_map[] = {
 		PROP_QUERY_ANSWER_PARTIALS,
 		query_answer_partials_changed,
 		FALSE,
+	},
+	{
+		PROP_TX_DEBUG_ADDRS,
+		tx_debug_addrs_changed,
+		TRUE,
 	},
 };
 

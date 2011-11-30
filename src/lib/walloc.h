@@ -175,6 +175,7 @@ G_STMT_START {				\
 } G_STMT_END
 
 #define WMOVE(p)			wmove(p, sizeof *p)
+#define WCOPY(p)			wcopy(p, sizeof *p)
 
 #define WFREE(p)			\
 G_STMT_START {				\

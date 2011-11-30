@@ -474,6 +474,8 @@ typedef enum {
     PROP_XMALLOC_DEBUG,
     PROP_QHIT_BAD_DEBUG,
     PROP_GUID_DEBUG,
+    PROP_TX_DEFLATE_DEBUG,
+    PROP_TX_DEBUG_ADDRS,
     GNET_PROPERTY_END
 } gnet_property_t;
 
