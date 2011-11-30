@@ -63,6 +63,7 @@ void settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer);
 guint32 settings_max_msg_size(void);
 void settings_add_randomness();
 void settings_close(void);
+void settings_terminate(void);
 
 guint32 get_average_servent_uptime(time_t now);
 guint32 get_average_ip_lifetime(time_t now, enum net_type net);

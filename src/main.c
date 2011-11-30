@@ -639,6 +639,7 @@ gtk_gnutella_exit(int exit_code)
 	if (debugging(0) || signal_received || shutdown_requested)
 		g_info("running final shutdown sequence...");
 
+	DO(settings_terminate);	/* Entering the final sequence */
 	DO(cq_halt);			/* No more callbacks, with everything shutdown */
 	DO(search_shutdown);	/* Disable now, since we can get queries above */
 

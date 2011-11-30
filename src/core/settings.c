@@ -1266,7 +1266,6 @@ settings_close(void)
 {
 	fd_forget_and_close(&pidfile_fd);
 	fd_forget_and_close(&save_file_path_lock);
-	tx_debug_set_addrs("");
 
 	settings_remove_lockfile(config_dir, pidfile);
 	settings_remove_lockfile(GNET_PROPERTY(save_file_path), dirlockfile);
@@ -1277,6 +1276,15 @@ settings_close(void)
 	HFREE_NULL(crash_dir);
 	HFREE_NULL(dht_db_dir);
 	HFREE_NULL(gnet_db_dir);
+}
+
+/**
+ * Last memory cleanup during final shutdown sequence.
+ */
+void
+settings_terminate(void)
+{
+	tx_debug_set_addrs("");		/* Free up any registered addresses */
 }
 
 static void
