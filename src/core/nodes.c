@@ -3553,6 +3553,7 @@ node_add_tx_written(gpointer o, int amount)
 	gnutella_node_t *n = o;
 
 	n->tx_written += amount;
+	n->last_tx = tm_time();
 }
 
 static void
@@ -9482,7 +9483,7 @@ node_close(void)
 void
 node_add_sent(gnutella_node_t *n, int x)
 {
-   	n->last_update = n->last_tx = tm_time();
+   	n->last_update = tm_time();
 	n->sent += x;
 }
 
