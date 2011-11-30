@@ -1210,7 +1210,7 @@ gmsg_infostr(gconstpointer msg)
 const char *
 gmsg_node_infostr(const gnutella_node_t *n)
 {
-	static char buf[120];
+	static char buf[160];
 	size_t w;
 
 	w = gmsg_infostr_to_buf(&n->header, buf, sizeof buf);
