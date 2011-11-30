@@ -112,6 +112,7 @@ gboolean sha1_hash_available(const shared_file_t *sf);
 gboolean sha1_hash_is_uptodate(shared_file_t *sf);
 gboolean shared_file_is_partial(const shared_file_t *sf);
 gboolean shared_file_is_finished(const shared_file_t *sf);
+gboolean shared_file_is_shareable(const shared_file_t *sf);
 filesize_t shared_file_size(const shared_file_t *sf);
 guint32 shared_file_index(const shared_file_t *sf);
 time_t shared_file_modification_time(const shared_file_t *sf);

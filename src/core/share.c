@@ -2462,6 +2462,25 @@ shared_file_is_partial(const shared_file_t *sf)
 	return NULL != sf->fi;
 }
 
+gboolean
+shared_file_is_shareable(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+
+	/*
+	 * A zeroed file_index indicates we called shared_file_deindex(),
+	 * most probably through shared_file_remove().
+	 *
+	 * We don't want to include this file in query hits even though the
+	 * file entry happens to be still listed in search bins (for instance
+	 * because it was removed dynamically as we discovered it was spam).
+	 *
+	 * Thanks to Dmitry Butskoy for investigating this corner case.
+	 */
+
+	return sf->file_index != 0;
+}
+
 filesize_t
 shared_file_size(const shared_file_t *sf)
 {
