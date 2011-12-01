@@ -1023,6 +1023,7 @@ download_free(struct download **d_ptr)
 	download_check(d);
 
 	g_hash_table_remove(dl_by_id, d->id);
+	dualhash_remove_key(dl_thex, d->id);
 	atom_guid_free_null(&d->id);
 	d->magic = 0;
 	WFREE(d);
