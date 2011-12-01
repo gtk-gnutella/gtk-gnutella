@@ -3524,6 +3524,7 @@ node_add_tx_deflated(gpointer o, int amount)
 {
 	gnutella_node_t *n = o;
 
+	node_check(n);
 	n->tx_deflated += amount;
 }
 
@@ -3533,14 +3534,28 @@ node_tx_shutdown(gpointer o, const char *reason, ...)
 	gnutella_node_t *n = o;
 	va_list args;
 
+	node_check(n);
+
 	va_start(args, reason);
 	node_shutdown_v(n, reason, args);
 	va_end(args);
 }
 
+static void
+node_tx_deflate_flowc(gpointer o, size_t amount)
+{
+	gnutella_node_t *n = o;
+
+	node_check(n);
+
+	if (amount != 0 && n->outq != NULL)
+		bio_add_allocated(mq_bio(n->outq), amount);
+}
+
 static struct tx_deflate_cb node_tx_deflate_cb = {
 	node_add_tx_deflated,		/* add_tx_deflated */
 	node_tx_shutdown,			/* shutdown */
+	node_tx_deflate_flowc,		/* flow_control */
 };
 
 /***

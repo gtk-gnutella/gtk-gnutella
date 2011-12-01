@@ -47,6 +47,7 @@ const struct txdrv_ops *tx_deflate_get_ops(void);
 struct tx_deflate_cb {
 	void (*add_tx_deflated)(gpointer owner, int amount);
 	void (*shutdown)(gpointer owner, const char *reason, ...);
+	void (*flow_control)(gpointer owner, size_t amount);
 };
 
 /**

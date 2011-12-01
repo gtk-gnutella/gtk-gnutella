@@ -3393,6 +3393,7 @@ upload_tx_error(gpointer obj, const char *reason, ...)
 static const struct tx_deflate_cb upload_tx_deflate_cb = {
 	NULL,				/* add_tx_deflated */
 	upload_tx_error,	/* shutdown */
+	NULL,				/* flow_control */
 };
 
 static void

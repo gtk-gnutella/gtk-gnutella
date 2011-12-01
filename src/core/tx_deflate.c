@@ -288,6 +288,53 @@ deflate_rotate_and_send(txdrv_t *tx)
 }
 
 /**
+ * Compute amount of buffered output data awaiting to be sent.
+ */
+static size_t
+deflate_buffered(const txdrv_t *tx)
+{
+	const struct attr *attr = tx->opaque;
+	const struct buffer *b;
+	size_t buffered;
+
+	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
+	buffered = b->wptr - b->rptr;
+
+	if (-1 != attr->send_idx) {
+		b = &attr->buf[attr->send_idx];	/* Buffer we send */
+		buffered += b->wptr - b->rptr;
+	}
+
+	return buffered;
+}
+
+/**
+ * Enter or leave flow-control.
+ */
+static void
+deflate_set_flowc(txdrv_t *tx, gboolean on)
+{
+	struct attr *attr = tx->opaque;
+
+	if (on) {
+		attr->flags |= DF_FLOWC;		/* Enter flow control */
+	} else {
+		attr->flags &= ~DF_FLOWC;		/* Leave flow control state */
+	}
+
+	if (tx_deflate_debugging(4)) {
+		g_debug("TX %s: (%s) %s flow-control [%c%c]",
+			G_STRFUNC, gnet_host_to_string(&tx->host),
+			on ? "entering" : "leaving",
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
+	}
+
+	if (NULL != attr->cb->flow_control)
+		attr->cb->flow_control(tx->owner, on ? deflate_buffered(tx) : 0);
+}
+
+/**
  * Pending data were all flushed.
  */
 static void
@@ -405,17 +452,13 @@ retry:
 	 */
 
 	if (0 == outz->avail_out) {
-		if (attr->send_idx >= 0) {				/* Send buffer not sent yet */
-			attr->flags |= DF_FLOWC|DF_FLUSH;	/* Enter flow control */
-
-			if (tx_deflate_debugging(4)) {
-				g_debug("TX compressing stack for peer %s enters FLOWC/FLUSH",
-					gnet_host_to_string(&tx->host));
-			}
+		if (attr->send_idx >= 0) {			/* Send buffer not sent yet */
+			attr->flags |= DF_FLUSH;		/* In flush mode */
+			deflate_set_flowc(tx, TRUE);	/* Starting flow-control */
 			return TRUE;
 		}
 
-		deflate_rotate_and_send(tx);			/* Can set TX_ERROR */
+		deflate_rotate_and_send(tx);		/* Can set TX_ERROR */
 
 		if (tx->flags & TX_ERROR)
 			return FALSE;
@@ -600,16 +643,11 @@ deflate_add(txdrv_t *tx, gconstpointer data, int len)
 
 		if (0 == outz->avail_out) {
 			if (attr->send_idx >= 0) {
-				attr->flags |= DF_FLOWC;	/* Enter flow control */
-
-				if (tx_deflate_debugging(4)) {
-					g_debug("TX compressing stack for peer %s enters FLOWC",
-						gnet_host_to_string(&tx->host));
-				}
+				deflate_set_flowc(tx, TRUE);	/* Enter flow control */
 				return added;
 			}
 
-			deflate_rotate_and_send(tx);	/* Can set TX_ERROR */
+			deflate_rotate_and_send(tx);		/* Can set TX_ERROR */
 
 			if (tx->flags & TX_ERROR)
 				return -1;
@@ -722,14 +760,8 @@ deflate_service(gpointer data)
 	 * have at least a free `fill' buffer.
 	 */
 
-	if (attr->flags & DF_FLOWC) {
-		attr->flags &= ~DF_FLOWC;	/* Leave flow control state */
-
-		if (tx_deflate_debugging(4)) {
-			g_debug("TX compressing stack for peer %s leaves FLOWC",
-				gnet_host_to_string(&tx->host));
-		}
-	}
+	if (attr->flags & DF_FLOWC)
+		deflate_set_flowc(tx, FALSE);	/* Leave flow control state */
 
 	/*
 	 * If closing, we're done once we have flushed everything we could.
@@ -1048,16 +1080,9 @@ static size_t
 tx_deflate_pending(txdrv_t *tx)
 {
 	const struct attr *attr = tx->opaque;
-	const struct buffer *b;
 	size_t pending;
 
-	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
-	pending = b->wptr - b->rptr;
-
-	if (-1 != attr->send_idx) {
-		b = &attr->buf[attr->send_idx];	/* Buffer we send */
-		pending += b->wptr - b->rptr;
-	}
+	pending = deflate_buffered(tx);
 
 	/*
 	 * Account for deflation of pending bytes, using the current compression
