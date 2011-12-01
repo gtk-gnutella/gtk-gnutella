@@ -892,6 +892,7 @@ bsched_begin_timeslice(bsched_t *bs)
 	GList *last = NULL;
 	double norm_factor;
 	int count;
+	unsigned bw_max;
 
 	bsched_check(bs);
 
@@ -934,6 +935,7 @@ bsched_begin_timeslice(bsched_t *bs)
 
 	norm_factor = 1000.0 / bs->period;
 	bs->io_favours = 0;
+	bw_max = bs->bw_max;
 
 	for (count = 0, iter = bs->sources; iter; iter = g_list_next(iter)) {
 		bio_source_t *bio = iter->data;
@@ -950,6 +952,13 @@ bsched_begin_timeslice(bsched_t *bs)
 
 		if (bio->flags & BIO_F_FAVOUR)
 			bs->io_favours++;
+
+		/*
+		 * Pre-allocated banwdwidth is substracted from the available maximum
+		 * to not fully starve other sources and not cause over-spending.
+		 */
+
+		bw_max -= MIN(bw_max, bio->bw_allocated);
 
 		/*
 		 * Fast EMA of bandwidth is computed on the last n=3 terms.
@@ -1027,7 +1036,7 @@ bsched_begin_timeslice(bsched_t *bs)
 			if (bs->last_used > 0 && bs->last_used < bs->count)
 				dividor = bs->last_used + 1;
 		}
-		bs->bw_slot = (bs->bw_max + bs->bw_last_capped) / dividor;
+		bs->bw_slot = (bw_max + bs->bw_last_capped) / dividor;
 	} else
 		bs->bw_slot = 0;
 
