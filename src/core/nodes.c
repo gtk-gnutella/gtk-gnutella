@@ -9139,7 +9139,7 @@ node_remove_uncompressed_ultra(gboolean *is_gtkg)
 			compact_time(delta_time(tm_time(), drop->connect_date)));
 	}
 
-	node_bye_if_writable(drop, 202, "Making room for another ultra node");
+	node_bye_if_writable(drop, 202, "Making room for a compressing ultra node");
 
 	return TRUE;
 }
