@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000, 2007, 2010 Raphael Manfredi
+ * Copyright (c) 1996-2000, 2007, 2010-2011 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Dynamic string handling.
  *
  * @author Raphael Manfredi
- * @date 1996-2000, 2007, 2010
+ * @date 1996-2000, 2007, 2010-2011
  */
 
 #ifndef _str_h_
@@ -111,8 +111,15 @@ bool str_istr(str_t *str, ssize_t idx, const char *string);
 bool str_instr(str_t *str, ssize_t idx, const char *string, size_t n);
 void str_remove(str_t *str, ssize_t idx, size_t n);
 void str_chomp(str_t *s);
+char str_chop(str_t *s);
 bool str_replace(str_t *str, ssize_t idx, size_t amt, const char *string);
+void str_reverse(str_t *s);
 void str_escape(str_t *str, char c, char e);
+size_t str_copyout(str_t *s, char *dest, size_t dest_size);
+size_t str_copyout_offset(str_t *s, size_t off, char *dest, size_t dest_size);
+size_t str_reverse_copyout(str_t *s, char *dest, size_t dest_size);
+size_t str_memout(str_t *s, char *dest, size_t dest_size);
+size_t str_memout_offset(str_t *s, size_t off, char *dest, size_t dest_size);
 
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
 size_t str_vcatf(str_t *str, const char *fmt, va_list args);
