@@ -1246,6 +1246,30 @@ str_reverse_copyout(str_t *s, char *dest, size_t dest_size)
 }
 
 /**
+ * Fetch character at given offset.  Read from the end of the string when
+ * the offset is negative, -1 being the last character, 0 being the first.
+ *
+ * @return NUL if offset is not within the string range, but NUL may be a
+ * valid string character when dealing with binary strings.
+ */
+char
+str_at(str_t *s, ssize_t offset)
+{
+	size_t len;
+
+	str_check(s);
+
+	len = s->s_len;
+
+	if (offset >= 0) {
+		return UNSIGNED(offset) >= len ? '\0' : s->s_data[offset];
+	} else {
+		size_t pos = len + offset;
+		return pos >= len ? '\0' : s->s_data[offset];
+	}
+}
+
+/**
  * Escape (in-place) all 'c' characters in string by prepending an escape 'e'
  * char in front of them.
  */

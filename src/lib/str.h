@@ -120,6 +120,7 @@ size_t str_copyout_offset(str_t *s, size_t off, char *dest, size_t dest_size);
 size_t str_reverse_copyout(str_t *s, char *dest, size_t dest_size);
 size_t str_memout(str_t *s, char *dest, size_t dest_size);
 size_t str_memout_offset(str_t *s, size_t off, char *dest, size_t dest_size);
+char str_at(str_t *s, ssize_t offset);
 
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
 size_t str_vcatf(str_t *str, const char *fmt, va_list args);
