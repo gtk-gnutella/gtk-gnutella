@@ -8316,7 +8316,7 @@ msgid "Enable HTTP request pipelining"
 msgstr "Activer l'emboîtement des requêtes HTTP"
 
 msgid "Pipelining max chunk size"
-msgstr "Taille minimum des blocs avec emboîtement"
+msgstr "Taille maximum des blocs avec emboîtement"
 
 msgid "Enable upload of patial files deemed rare"
 msgstr "Activer l'envoi des fichiers rares partiels"
@@ -8640,7 +8640,7 @@ msgid "attempts"
 msgstr "tentatives"
 
 msgid "Pipelining maximum chunk size"
-msgstr "Taille minimum des blocs emboîtés"
+msgstr "Taille maximum des blocs emboîtés"
 
 msgid "_Remove directory"
 msgstr "_Retirer un répertoire"
