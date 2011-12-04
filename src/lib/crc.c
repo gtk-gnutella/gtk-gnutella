@@ -113,6 +113,12 @@ crc32_update(uint32 crc_accum, const void *data, size_t len)
 void
 crc_init(void)
 {
+	static gboolean done;
+
+	if G_UNLIKELY(done)
+		return;
+
+	done = TRUE;
 	crc32_gen_crc_table();
 }
 
