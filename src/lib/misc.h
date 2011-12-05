@@ -712,6 +712,52 @@ reverse_strlcpy(char * const dst, size_t size,
 	return p - dst;
 }
 
+/**
+ * Encodes a variable-length integer. This encoding is equivalent to
+ * little-endian encoding whereas trailing zeros are discarded.
+ *
+ * @param v		the value to encode.
+ * @param data  must point to a sufficiently large buffer. At maximum
+ *				8 bytes are required.
+ *
+ * @return the length in bytes of the encoded variable-length integer.
+ */
+static inline int
+vlint_encode(uint64 v, char *data)
+{
+	char *p;
+
+	for (p = data; v != 0; v >>= 8)	{
+		*p++ = v & 0xff;
+	}
+
+	return p - data;
+}
+
+/**
+ * Decodes a variable-length integer. This encoding is equivalent to
+ * little-endian encoding whereas trailing zeros are discarded.
+ *
+ * @param data	the payload to decode.
+ * @param len	the length of data in bytes.
+ *
+ * @return The decoded value.
+ */
+static inline uint64
+vlint_decode(const char *data, size_t len)
+{
+	uint64 v;
+	uint i;
+
+	v = 0;
+	if (len <= 8) {
+		for (i = 0; i < len; i++) {
+			v |= (((uint64) data[i]) & 0xff) << (i * 8);
+		}
+	}
+	return v;
+}
+
 #endif /* _misc_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

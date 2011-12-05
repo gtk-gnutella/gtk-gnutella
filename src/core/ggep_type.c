@@ -842,52 +842,6 @@ ggept_hname_extract(const extvec_t *exv, char *buf, int len)
 }
 
 /**
- * Encodes a variable-length integer. This encoding is equivalent to
- * little-endian encoding whereas trailing zeros are discarded.
- *
- * @param v		The value to encode.
- * @param data  Must point to a sufficiently large buffer. At maximum
- *				8 bytes are required.
- *
- * @return the length in bytes of the encoded variable-length integer.
- */
-static inline int
-ggep_vlint_encode(uint64 v, char *data)
-{
-	char *p;
-
-	for (p = data; v != 0; v >>= 8)	{
-		*p++ = v & 0xff;
-	}
-
-	return p - data;
-}
-
-/**
- * Decodes a variable-length integer. This encoding is equivalent to
- * little-endian encoding whereas trailing zeros are discarded.
- *
- * @param data The payload to decode.
- * @param len The length of data in bytes.
- *
- * @return The decoded value.
- */
-static inline uint64
-ggep_vlint_decode(const char *data, size_t len)
-{
-	uint64 v;
-	uint i;
-
-	v = 0;
-	if (len <= 8) {
-		for (i = 0; i < len; i++) {
-			v |= (((uint64) data[i]) & 0xff) << (i * 8);
-		}
-	}
-	return v;
-}
-
-/**
  * Extract filesize length into `filesize' from extension encoded in variable-
  * length little endian with leading zeroes stripped.
  *
@@ -905,7 +859,7 @@ ggept_filesize_extract(const extvec_t *exv, uint64 *filesize)
 	if (len < 1 || len > 8) {
 		return GGEP_INVALID;
 	}
-	fs = ggep_vlint_decode(ext_payload(exv), len);
+	fs = vlint_decode(ext_payload(exv), len);
 	if (0 == fs) {
 		return GGEP_INVALID;
 	}
@@ -959,7 +913,7 @@ ggept_gtkg_ipv6_extract(const extvec_t *exv, host_addr_t *addr)
 uint
 ggept_filesize_encode(uint64 filesize, char *data)
 {
-	return ggep_vlint_encode(filesize, data);
+	return vlint_encode(filesize, data);
 }
 
 /**
@@ -977,7 +931,7 @@ ggept_uint32_extract(const extvec_t *exv, uint32 *val)
 	if (len > 4) {
 		return GGEP_INVALID;
 	}
-	v = ggep_vlint_decode(ext_payload(exv), len);
+	v = vlint_decode(ext_payload(exv), len);
 	if (val != NULL) {
 		*val = v;
 	}
@@ -1006,7 +960,7 @@ ggept_du_extract(const extvec_t *exv, uint32 *uptime)
 uint
 ggept_du_encode(uint32 uptime, char *data)
 {
-	return ggep_vlint_encode(uptime, data);
+	return vlint_encode(uptime, data);
 }
 
 /**
@@ -1020,7 +974,7 @@ ggept_du_encode(uint32 uptime, char *data)
 uint
 ggept_m_encode(uint32 mtype, char *data)
 {
-	return ggep_vlint_encode(mtype, data);
+	return vlint_encode(mtype, data);
 }
 
 
@@ -1037,7 +991,7 @@ ggept_ct_extract(const extvec_t *exv, time_t *stamp_ptr)
 	if (len > 8) {
 		return GGEP_INVALID;
 	}
-	v = ggep_vlint_decode(ext_payload(exv), len);
+	v = vlint_decode(ext_payload(exv), len);
 	if (stamp_ptr) {
 		*stamp_ptr = MIN(v, TIME_T_MAX);
 	}
@@ -1054,7 +1008,7 @@ ggept_ct_extract(const extvec_t *exv, time_t *stamp_ptr)
 uint
 ggept_ct_encode(time_t timestamp, char *data)
 {
-	return ggep_vlint_encode(timestamp, data);
+	return vlint_encode(timestamp, data);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
